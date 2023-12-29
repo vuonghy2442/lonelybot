@@ -3,8 +3,8 @@ import colorama
 from copy import deepcopy
 from colorama import Fore, Back, Style
 from typing import List, Tuple, Generator
+import os
 
-colorama.init()
 
 CARDS = [(i, j) for i in range(13) for j in range(4)]
 
@@ -283,38 +283,39 @@ def test(seed=17, n_piles=7, verbose=True):
 
         game.move(*move)
 
+def game_loop():
+    game = Solitaire(12)
 
-test()
-exit()
-# 17
-game = Solitaire(12)
+    # game.move(11, 2)
+    # game.move(10, 11)
+    # game.move(11, 5)
+    # game.move(11, 9)
+    # game.move(11, 3)
+    # game.move(0, 0)
+    # game.move(0, 7)
+    # game.move(0, 0)
+    # game.move(0, 0)
+    # game.move(0, 0)
+    # game.move(0, 0)
+    # game.move(0, 0)
+    # game.move(0, 9)
+    # game.move(0, 0)
+    # game.move(0, 9)
+    # game.move(0, 0)
+    # game.move(0, 0)
+    # game.move(0, 0)
+    # game.move(0, 11)
+    # game.move(0, 11)
+    # game.move(6, 11)
+    # game.move(6, 4)
 
-game.move(11, 2)
-game.move(10, 11)
-game.move(11, 5)
-game.move(11, 9)
-game.move(11, 3)
-game.move(0, 0)
-game.move(0, 7)
-game.move(0, 0)
-game.move(0, 0)
-game.move(0, 0)
-game.move(0, 0)
-game.move(0, 0)
-game.move(0, 9)
-game.move(0, 0)
-game.move(0, 9)
-game.move(0, 0)
-game.move(0, 0)
-game.move(0, 0)
-game.move(0, 11)
-game.move(0, 11)
-game.move(6, 11)
-game.move(6, 4)
-
-game.display()
-
-while True:
-    move = map(int, input("Move here: ").strip().split(" "))
-    print(game.move(*move))
     game.display()
+
+    while True:
+        move = map(int, input("Move here: ").strip().split(" "))
+        print(game.move(*move))
+        game.display()
+
+if __name__ == '__main__':
+    colorama.init()
+    test(seed=int.from_bytes(os.urandom(4), byteorder='little'))
