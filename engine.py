@@ -133,7 +133,7 @@ class Solitaire:
                 if src_pile == dst_pile:
                     continue
 
-                pos_move = (dst_pile[-1][0] - 1) - src_pile[0][0]
+                pos_move = src_pile[0][0] - (dst_pile[-1][0] - 1)
                 if pos_move < 0 or pos_move >= len(src_pile):
                     continue
                 if not fit_after(dst_pile[-1], src_pile[pos_move]):
@@ -142,7 +142,7 @@ class Solitaire:
                 yield (src + 5, dst + 5)
 
     def is_won(self) -> bool:
-        return self.final_stack == [13] * 4
+        return self.final_stack == [13, 13, 13, 13, 0]
 
     def move(self, src: int, dst: int) -> (bool, int):
         # special encoding:
@@ -235,7 +235,7 @@ class Solitaire:
                 dst_pile = self.visible_piles[dst_pos]
                 assert len(dst_pile) > 0
 
-                pos_move = (dst_pile[-1][0] - 1) - src_pile[0][0]
+                pos_move = src_pile[0][0] - (dst_pile[-1][0] - 1)
                 if pos_move < 0 or pos_move >= len(src_pile):
                     # the source pile is too small to move to the dst
                     return False, reward
@@ -273,21 +273,8 @@ def check_gen_move(game):
     return all_move
 
 
-def test(seed=17, n_piles=7, verbose=True):
-    game = Solitaire(seed, n_piles=n_piles)
-    for _ in range(100):
-        moves = check_gen_move(game)
-        move = random.choice(moves)
 
-        if verbose:
-            game.display()
-            print(moves)
-            print(move)
-
-        game.move(*move)
-
-def game_loop(seed):
-    game = Solitaire(seed)
+def game_loop(game):
 
     # seed 12
     # game.move(11, 2)
@@ -323,8 +310,26 @@ def game_loop(seed):
             print('Invalid')
         game.display()
 
+
+def test(seed=17, n_piles=7, verbose=True):
+    game = Solitaire(seed, n_piles=n_piles)
+    for _ in range(100):
+        moves = check_gen_move(game)
+        move = random.choice(moves)
+
+        if verbose:
+            game.display()
+            print(moves)
+            print(move)
+
+        game.move(*move)
+    print(seed)
+    game_loop(game)
+
 if __name__ == '__main__':
     colorama.init()
     seed = int.from_bytes(os.urandom(4), byteorder='little')
-    # test(seed=seed)
-    game_loop(seed)
+    print(seed)
+    test(seed=seed)
+    # game = Solitaire(seed)
+    # game_loop(game)
