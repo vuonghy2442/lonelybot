@@ -2,7 +2,7 @@ import random
 import colorama
 from copy import deepcopy
 from colorama import Fore, Back, Style
-from typing import List, Tuple
+from typing import List, Tuple, Generator
 
 colorama.init()
 
@@ -39,7 +39,7 @@ class Solitaire:
         self.hidden_piles = [None] * n_piles
         self.visible_piles = [None] * n_piles
 
-        self.final_stack = [0] * 4  # how many cards stacked
+        self.final_stack = [0] * 5  # how many cards stacked
 
         used_cards = 0
         for i in range(n_piles):
@@ -51,10 +51,8 @@ class Solitaire:
         self.draw_step = draw_step
         self.cur_draw_step = draw_step
         self.cur_draw = 0
-        self.score = 0
 
     def display(self):
-        print("Score: ", self.score)
         print("Deck 0: ", end="")
 
         if self.cur_draw_step > 0:
@@ -74,7 +72,7 @@ class Solitaire:
             print(f"{i+5}\t", end="")
         print()
 
-        i = 1 # skip the hidden layer
+        i = 1  # skip the hidden layer
         while True:
             is_print = False
             for j in range(self.n_piles):
@@ -99,15 +97,51 @@ class Solitaire:
     def copy(self):
         return deepcopy(self)
 
-    # def gen_moves(self) -> List[Tuple[int, int]]:
-    #     moves = [(0, 0)]
+    def gen_moves(self) -> Generator[Tuple[int, int], None, None]:
+        yield (0, 0)
 
-    #     first_last_cards = [
-    #         (self.visible_piles[0], self.visible_piles[-1]) if len(self.visible_piles) > 0 else ((13,0),(13,0))
-    #         for i in range(self.n_piles)
-    #     ]
+        for src in range(5):
+            # move deck to final stack
+            if src == 0:
+                draw_pos = self.cur_draw + self.cur_draw_step - 1
+                if draw_pos < 0:
+                    continue
+                else:
+                    # can actually draw from the deck
+                    u, v = self.deck[draw_pos]
+            else:
+                v = src - 1
+                u = self.final_stack[v] - 1
+                if u < 0:
+                    continue
 
-    def move(self, src: int, dst: int) -> bool:
+            # move to final stack :)
+            if src == 0 and self.final_stack[v] == u:
+                yield (0, v + 1)
+
+            for id, pile in enumerate(self.visible_piles):
+                if fit_after(pile[-1], (u, v)):
+                    yield (src, id + 5)
+
+        for src, src_pile in enumerate(self.visible_piles):
+            # move to the final stack
+            u, v = src_pile[-1]
+            if self.final_stack[v] == u:
+                yield (src + 5, v + 1)
+
+            for dst, dst_pile in enumerate(self.visible_piles):
+                if src_pile == dst_pile:
+                    continue
+
+                pos_move = (dst_pile[-1][0] - 1) - src_pile[0][0]
+                if pos_move < 0 or pos_move >= len(src_pile):
+                    continue
+                if not fit_after(dst_pile[-1], src_pile[pos_move]):
+                    continue
+
+                yield (src + 5, dst + 5)
+
+    def move(self, src: int, dst: int) -> (bool, int):
         # special encoding:
         # 0 = deck
         # 1, 2, 3, 4 = the final stack
@@ -115,15 +149,17 @@ class Solitaire:
         # return if the move is valid
         # if src == dst == 0 then it is drawing new deck
 
+        reward = 0
+
         if src == dst == 0:
             self.cur_draw += self.cur_draw_step
             if self.cur_draw >= len(self.deck):
                 self.cur_draw = 0
                 # decrease the score :3
-                self.score -= 2
+                reward -= 2
 
             self.cur_draw_step = min(len(self.deck) - self.cur_draw, self.draw_step)
-            return True
+            return True, reward
 
         if (
             dst == 0
@@ -133,27 +169,27 @@ class Solitaire:
             or src >= self.n_piles + 5
             or dst >= self.n_piles + 5
         ):
-            return False
+            return False, reward
 
         # handle drawing from deck or maybe from the final stack
         if src < 5:
             if src == 0:
                 draw_pos = self.cur_draw + self.cur_draw_step - 1
                 if draw_pos < 0:
-                    return False  # nothing left to draw
+                    return False, reward  # nothing left to draw
 
                 u, v = self.deck[draw_pos]
             else:
                 v = src - 1
                 if self.final_stack[v] == 0:
-                    return False  # nothing to draw
+                    return False, reward  # nothing to draw
                 u = self.final_stack[v] - 1
 
             # final stack
             if dst < 5:
                 # if doesn't match the number of card put, or the destination is wrong type
                 if v != dst - 1 or u != self.final_stack[v]:
-                    return False
+                    return False, reward
                 self.final_stack[v] += 1
             else:
                 dst_pos = dst - 5
@@ -162,18 +198,18 @@ class Solitaire:
                 assert len(self.visible_piles[dst_pos]) > 0
 
                 if not fit_after(self.visible_piles[dst_pos][-1], (u, v)):
-                    return False
+                    return False, reward
                 self.visible_piles[dst_pos].append((u, v))
 
             if src == 0:
                 del self.deck[draw_pos]
                 self.cur_draw_step -= 1
-                self.score += 5 if dst > 5 else 20  # yay improve score
+                reward += 5 if dst > 5 else 20  # yay improve score
             else:
                 self.final_stack[v] -= 1
-                self.score -= 15  # reduce score
+                reward -= 15  # reduce score
 
-            return True
+            return True, reward
         else:
             src_pos = src - 5
             # moving from the empty pile
@@ -185,11 +221,11 @@ class Solitaire:
                 # moving to the stack
                 u, v = src_pile[-1]
                 if v != dst - 1 or u != self.final_stack[v]:
-                    return False
+                    return False, reward
                 self.final_stack[v] += 1
                 n_moved = 1
                 # yay more score
-                self.score += 15
+                reward += 15
             else:
                 dst_pos = dst - 5
                 # finding the good position to move :)
@@ -199,10 +235,10 @@ class Solitaire:
                 pos_move = (dst_pile[-1][0] - 1) - src_pile[0][0]
                 if pos_move < 0 or pos_move >= len(src_pile):
                     # the source pile is too small to move to the dst
-                    return False
+                    return False, reward
                 if not fit_after(dst_pile[-1], src_pile[pos_move]):
                     # wrong type
-                    return False
+                    return False, reward
                 n_moved = len(src_pile) - pos_move
 
                 # move :)
@@ -211,22 +247,45 @@ class Solitaire:
             del src_pile[-n_moved:]
             if len(src_pile) == 0 and len(self.hidden_piles[src_pos]) > 0:
                 # unlocking new score :))
-                self.score += 5
+                reward += 5
                 src_pile.append(self.hidden_piles[src_pos].pop())
-        return True
+        return True, reward
 
 
-# def test(n_piles=7):
-#     game = Solitaire(12, n_piles=n_piles)
-
-#     for i in range(5 + n_piles):
-#         for j in range(5 + n_piles):
-#             g = game.copy()
-#             if g.move(i, j):
-#                 print(i, j)
+def slow_gen_move(game):
+    for i in range(5 + game.n_piles):
+        for j in range(5 + game.n_piles):
+            g = game.copy()
+            if g.move(i, j)[0]:
+                yield (i, j)
 
 
-# test()
+def check_gen_move(game):
+    g = game.copy()
+    all_move = list(game.gen_moves())
+    slow_move = list(slow_gen_move(g))
+    if set(all_move) != set(slow_move):
+        print(all_move, slow_move)
+        assert False
+    return all_move
+
+
+def test(seed=17, n_piles=7, verbose=True):
+    game = Solitaire(seed, n_piles=n_piles)
+    for _ in range(100):
+        moves = check_gen_move(game)
+        move = random.choice(moves)
+
+        if verbose:
+            game.display()
+            print(moves)
+            print(move)
+
+        game.move(*move)
+
+
+test()
+exit()
 # 17
 game = Solitaire(12)
 
