@@ -141,6 +141,9 @@ class Solitaire:
 
                 yield (src + 5, dst + 5)
 
+    def is_won(self) -> bool:
+        return self.final_stack == [13] * 4
+
     def move(self, src: int, dst: int) -> (bool, int):
         # special encoding:
         # 0 = deck
@@ -283,9 +286,10 @@ def test(seed=17, n_piles=7, verbose=True):
 
         game.move(*move)
 
-def game_loop():
-    game = Solitaire(12)
+def game_loop(seed):
+    game = Solitaire(seed)
 
+    # seed 12
     # game.move(11, 2)
     # game.move(10, 11)
     # game.move(11, 5)
@@ -313,9 +317,14 @@ def game_loop():
 
     while True:
         move = map(int, input("Move here: ").strip().split(" "))
-        print(game.move(*move))
+        try:
+            print(game.move(*move))
+        except:
+            print('Invalid')
         game.display()
 
 if __name__ == '__main__':
     colorama.init()
-    test(seed=int.from_bytes(os.urandom(4), byteorder='little'))
+    seed = int.from_bytes(os.urandom(4), byteorder='little')
+    # test(seed=seed)
+    game_loop(seed)
