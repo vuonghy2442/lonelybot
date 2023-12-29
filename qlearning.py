@@ -1,4 +1,5 @@
 from engine import Solitaire
+from network import LonelyBot, encode_game
 import torch
 from torch import nn, optim
 from torch.nn import functional as F
@@ -32,92 +33,6 @@ class ReplayMemory(object):
         return len(self.memory)
 
 
-CARD_DIM = 1 + 4
-
-
-def encode_cards(cards, n_size, dtype=torch.float32):
-    if cards[0][0] == 13:
-        cards = cards[1:]
-
-    assert n_size >= len(cards)
-    encoded = torch.zeros((n_size, CARD_DIM), dtype=dtype)
-
-    for i, (u, v) in enumerate(cards):
-        if u < 0 or u >= 13:
-            continue
-        encoded[i, 0] = u
-        encoded[i, v + 1] = 1
-    return encoded
-
-
-def encode_game(game: Solitaire, dtype=torch.float32, device="cuda:0"):
-    n_deck = 52 - game.n_piles * (game.n_piles + 1) // 2
-    deck = encode_cards(game.deck, n_deck, dtype=dtype)
-    draw_mask = torch.zeros((n_deck,), dtype=dtype)
-    pos = game.cur_draw + game.cur_draw_step - 1
-    if pos >= 0:
-        draw_mask[pos] = 1
-
-    final_stack = encode_cards(
-        [(j - 1, i) for i, j in enumerate(game.final_stack[:4])], 4, dtype=dtype
-    )
-
-    n_hidden = torch.tensor([len(p) for p in game.hidden_piles], dtype=dtype)
-
-    visible = torch.stack(
-        [encode_cards(p, 13, dtype=dtype) for p in game.visible_piles]
-    )
-
-    valid_moves = torch.zeros((5 + game.n_piles) * (5 + game.n_piles), dtype=torch.bool)
-    for move in game.gen_moves():
-        valid_moves[move[0] * (5 + game.n_piles) + move[1]] = 1
-
-    enc = {
-        "deck": deck,
-        "mask": draw_mask,
-        "final": final_stack,
-        "hidden": n_hidden,
-        "visible": visible,
-    }
-    return torch.concatenate([x.flatten() for x in enc.values()]).to(
-        device
-    ), valid_moves.to(device)
-
-
-class LonelyBot(nn.Module):
-    def __init__(self, n_piles=7):
-        super(LonelyBot, self).__init__()
-        # input is the shuffled deck stack
-        n_deck = 52 - n_piles * (n_piles + 1) // 2
-        # the cards in the deck: (n_deck, card_dim)
-
-        # mask for the current draw card (n_deck)
-
-        # cards on the final stack (4, card_dim)
-        # n number of cards in the hidden piles (n_piles,)
-        # visible cards in the stack (n_piles, 13, card_dim)
-
-        self.n_deck = n_deck
-        self.n_piles = n_piles
-        self.input_dim = (
-            n_deck * (CARD_DIM + 1) + 4 * CARD_DIM + n_piles + n_piles * 13 * CARD_DIM
-        )
-        self.output_dim = (1 + 4 + n_piles) * (1 + 4 + n_piles)
-
-        self.net = nn.Sequential(
-            nn.Linear(self.input_dim, 256),
-            nn.Mish(True),
-            nn.Linear(256, 256),
-            nn.Mish(True),
-            nn.Linear(256, self.output_dim),
-        )
-
-    def forward(self, x, y):
-        policy = self.net(x)
-        policy[~y] = -torch.inf
-        return policy
-
-
 # g = Solitaire(12)
 
 # bot = LonelyBot()
@@ -149,6 +64,7 @@ device = "cuda:0"
 # Get the number of state observations
 policy_net = LonelyBot().to(device)
 target_net = LonelyBot().to(device)
+target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
 memory = ReplayMemory(10000)
@@ -263,69 +179,72 @@ def plot_durations(show_result=False):
         else:
             display.display(plt.gcf())
 
+if __name__=='__main__':
 
-if torch.cuda.is_available():
-    num_episodes = 600
-else:
-    num_episodes = 50
+    if torch.cuda.is_available():
+        num_episodes = 600
+    else:
+        num_episodes = 50
 
-for i_episode in range(num_episodes):
-    # Initialize the environment and get it's state
-    env = Solitaire(i_episode + 123)
-    state = encode_game(env)
+    for i_episode in range(num_episodes):
+        # Initialize the environment and get it's state
+        env = Solitaire(123)
+        state = encode_game(env)
 
-    total_reward = 0
+        total_reward = 0
 
-    n_pos = 5 + env.n_piles
-    for t in count():
-        action = select_action(env)
+        n_pos = 5 + env.n_piles
+        for t in count():
+            action = select_action(env)
 
-        val = action.item()
-        valid, reward = env.move(val // n_pos, val % n_pos)
-        reward = reward if valid else -1
+            val = action.item()
+            valid, reward = env.move(val // n_pos, val % n_pos)
+            reward = reward if valid else -1
 
-        # observation, reward, terminated, truncated, _ = env.step(action.item())
-        total_reward += reward
-        reward = torch.tensor([reward], device=device)
-        terminated = env.is_won()
+            # observation, reward, terminated, truncated, _ = env.step(action.item())
+            total_reward += reward
+            reward = torch.tensor([reward], device=device)
+            terminated = env.is_won()
 
-        done = terminated or t > 100
+            done = terminated or t > 100
 
-        if terminated:
-            next_state = None
-        else:
-            next_state = encode_game(env)
+            if terminated:
+                next_state = None
+            else:
+                next_state = encode_game(env)
 
-        # Store the transition in memory
-        memory.push(
-            (state[0].unsqueeze(0), state[1].unsqueeze(0)),
-            action,
-            (next_state[0].unsqueeze(0), next_state[1].unsqueeze(0)),
-            reward,
-        )
+            # Store the transition in memory
+            memory.push(
+                (state[0].unsqueeze(0), state[1].unsqueeze(0)),
+                action,
+                (next_state[0].unsqueeze(0), next_state[1].unsqueeze(0)),
+                reward,
+            )
 
-        # Move to the next state
-        state = next_state
+            # Move to the next state
+            state = next_state
 
-        # Perform one step of the optimization (on the policy network)
-        optimize_model()
+            # Perform one step of the optimization (on the policy network)
+            optimize_model()
 
-        # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
-        target_net_state_dict = target_net.state_dict()
-        policy_net_state_dict = policy_net.state_dict()
-        for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[
-                key
-            ] * TAU + target_net_state_dict[key] * (1 - TAU)
-        target_net.load_state_dict(target_net_state_dict)
+            # Soft update of the target network's weights
+            # θ′ ← τ θ + (1 −τ )θ′
+            target_net_state_dict = target_net.state_dict()
+            policy_net_state_dict = policy_net.state_dict()
+            for key in policy_net_state_dict:
+                target_net_state_dict[key] = policy_net_state_dict[
+                    key
+                ] * TAU + target_net_state_dict[key] * (1 - TAU)
+            target_net.load_state_dict(target_net_state_dict)
 
-        if done:
-            episode_durations.append(total_reward)
-            plot_durations()
-            break
+            if done:
+                episode_durations.append(total_reward)
+                plot_durations()
+                break
 
-print("Complete")
-plot_durations(show_result=True)
-plt.ioff()
-plt.show()
+    torch.save(target_net, "checkpoint.pth")
+
+    print("Complete")
+    plot_durations(show_result=True)
+    plt.ioff()
+    plt.show()

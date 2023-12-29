@@ -312,6 +312,7 @@ def game_loop(game):
 
 
 def test(seed=17, n_piles=7, verbose=True):
+    total_reward = 0
     game = Solitaire(seed, n_piles=n_piles)
     for _ in range(100):
         moves = check_gen_move(game)
@@ -322,14 +323,16 @@ def test(seed=17, n_piles=7, verbose=True):
             print(moves)
             print(move)
 
-        game.move(*move)
-    print(seed)
+        valid, reward = game.move(*move)
+        assert valid
+        total_reward += reward
+    print(seed, total_reward)
     game_loop(game)
 
 if __name__ == '__main__':
     colorama.init()
     seed = int.from_bytes(os.urandom(4), byteorder='little')
     print(seed)
-    test(seed=seed)
+    test(seed=seed, verbose=0)
     # game = Solitaire(seed)
     # game_loop(game)
