@@ -1,14 +1,18 @@
 import random
 import colorama
+from copy import deepcopy
 from colorama import Fore, Back, Style
+from typing import List, Tuple
 
 colorama.init()
 
 CARDS = [(i, j) for i in range(13) for j in range(4)]
 
-COLOR = [Fore.RED, Fore.RED, Fore.BLACK, Fore.BLACK]
-SYMBOLS = "♥♦♣♠"
-NUMBERS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+COLOR = [Fore.RED, Fore.RED, Fore.BLACK, Fore.BLACK, Fore.WHITE]
+SYMBOLS = "♥♦♣♠X"
+NUMBERS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "X"]
+
+FAKE_CARD = (13, 4)
 
 
 def print_card(card, end=" "):
@@ -39,7 +43,7 @@ class Solitaire:
 
         used_cards = 0
         for i in range(n_piles):
-            self.hidden_piles[i] = shuffled[used_cards : used_cards + i]
+            self.hidden_piles[i] = [FAKE_CARD] + shuffled[used_cards : used_cards + i]
             self.visible_piles[i] = shuffled[used_cards + i : used_cards + i + 1]
             used_cards += i + 1
 
@@ -70,7 +74,7 @@ class Solitaire:
             print(f"{i+5}\t", end="")
         print()
 
-        i = 0
+        i = 1 # skip the hidden layer
         while True:
             is_print = False
             for j in range(self.n_piles):
@@ -91,6 +95,17 @@ class Solitaire:
             i += 1
             if not is_print:
                 break
+
+    def copy(self):
+        return deepcopy(self)
+
+    # def gen_moves(self) -> List[Tuple[int, int]]:
+    #     moves = [(0, 0)]
+
+    #     first_last_cards = [
+    #         (self.visible_piles[0], self.visible_piles[-1]) if len(self.visible_piles) > 0 else ((13,0),(13,0))
+    #         for i in range(self.n_piles)
+    #     ]
 
     def move(self, src: int, dst: int) -> bool:
         # special encoding:
@@ -143,14 +158,10 @@ class Solitaire:
             else:
                 dst_pos = dst - 5
 
-                # only king can move to empty pile
-                if len(self.visible_piles[dst_pos]) == 0 and u != 12:
-                    assert (
-                        len(self.hidden_piles[dst_pos]) == 0
-                    )  # can't have any other cards
-                    return False
-                elif not fit_after(self.visible_piles[dst_pos][-1], (u, v)):
-                    print("Yoooo", u, v)
+                # can't really be empty because of fake cards
+                assert len(self.visible_piles[dst_pos]) > 0
+
+                if not fit_after(self.visible_piles[dst_pos][-1], (u, v)):
                     return False
                 self.visible_piles[dst_pos].append((u, v))
 
@@ -167,11 +178,6 @@ class Solitaire:
             src_pos = src - 5
             # moving from the empty pile
             src_pile = self.visible_piles[src_pos]
-            if len(src_pile) == 0:
-                assert (
-                    len(self.hidden_piles[src_pos]) == 0
-                )  # can't have any other cards
-                return False
 
             n_moved = 0
 
@@ -188,20 +194,16 @@ class Solitaire:
                 dst_pos = dst - 5
                 # finding the good position to move :)
                 dst_pile = self.visible_piles[dst_pos]
-                if len(dst_pile) == 0:
-                    # move to empty pos then should move everything
-                    if src_pile[0][0] != 12:  # king
-                        return False
-                    n_moved = len(src_pile)  # move everything
-                else:
-                    pos_move = (dst_pile[-1][0] - 1) - src_pile[0][0]
-                    if pos_move < 0 or pos_move >= len(src_pile):
-                        # the source pile is too small to move to the dst
-                        return False
-                    if not fit_after(dst_pile[-1], src_pile[pos_move]):
-                        # wrong type
-                        return False
-                    n_moved = len(src_pile) - pos_move
+                assert len(dst_pile) > 0
+
+                pos_move = (dst_pile[-1][0] - 1) - src_pile[0][0]
+                if pos_move < 0 or pos_move >= len(src_pile):
+                    # the source pile is too small to move to the dst
+                    return False
+                if not fit_after(dst_pile[-1], src_pile[pos_move]):
+                    # wrong type
+                    return False
+                n_moved = len(src_pile) - pos_move
 
                 # move :)
                 dst_pile.extend(src_pile[-n_moved:])
@@ -211,13 +213,45 @@ class Solitaire:
                 # unlocking new score :))
                 self.score += 5
                 src_pile.append(self.hidden_piles[src_pos].pop())
+        return True
 
 
+# def test(n_piles=7):
+#     game = Solitaire(12, n_piles=n_piles)
+
+#     for i in range(5 + n_piles):
+#         for j in range(5 + n_piles):
+#             g = game.copy()
+#             if g.move(i, j):
+#                 print(i, j)
+
+
+# test()
 # 17
 game = Solitaire(12)
 
 game.move(11, 2)
 game.move(10, 11)
+game.move(11, 5)
+game.move(11, 9)
+game.move(11, 3)
+game.move(0, 0)
+game.move(0, 7)
+game.move(0, 0)
+game.move(0, 0)
+game.move(0, 0)
+game.move(0, 0)
+game.move(0, 0)
+game.move(0, 9)
+game.move(0, 0)
+game.move(0, 9)
+game.move(0, 0)
+game.move(0, 0)
+game.move(0, 0)
+game.move(0, 11)
+game.move(0, 11)
+game.move(6, 11)
+game.move(6, 4)
 
 game.display()
 
