@@ -4,6 +4,7 @@ from copy import deepcopy
 from colorama import Fore, Back, Style
 from typing import List, Tuple, Generator
 import os
+import time
 
 
 CARDS = [(i, j) for i in range(13) for j in range(4)]
@@ -30,12 +31,14 @@ def fit_after(card_a, card_b):
 
 
 class Solitaire:
+    __slots__ = 'n_piles', 'hidden_piles', 'visible_piles', 'final_stack', 'deck', 'draw_step', 'draw_next'
+
     def __init__(self, seed, draw_step=3, n_piles=7):
         random.seed(seed)
         shuffled = CARDS.copy()
         random.shuffle(shuffled)
 
-        self.n_piles = n_piles
+        self.n_piles = n_piles # constant
         self.hidden_piles = [None] * n_piles
         self.visible_piles = [None] * n_piles
 
@@ -48,18 +51,14 @@ class Solitaire:
             used_cards += i + 1
 
         self.deck = shuffled[used_cards:]
-        self.draw_step = draw_step
-        self.cur_draw_step = draw_step
-        self.cur_draw = 0
+        self.draw_step = draw_step # constant
+        self.draw_next = draw_step
 
     def display(self):
         print("Deck 0: ", end="")
 
-        if self.cur_draw_step > 0:
-            for i, j in self.deck[self.cur_draw : self.cur_draw + self.cur_draw_step]:
-                print_card((i, j))
-        elif self.cur_draw + self.cur_draw_step - 1 >= 0:
-            print_card(self.deck[self.cur_draw + self.cur_draw_step - 1])
+        for i, j in self.deck[max(0, self.draw_next - self.draw_step) : self.draw_next]:
+            print_card((i, j))
 
         print("\t\t", end="")
 
@@ -103,7 +102,7 @@ class Solitaire:
         for src in range(5):
             # move deck to final stack
             if src == 0:
-                draw_pos = self.cur_draw + self.cur_draw_step - 1
+                draw_pos = self.draw_next - 1
                 if draw_pos < 0:
                     continue
                 else:
@@ -155,13 +154,11 @@ class Solitaire:
         reward = 0
 
         if src == dst == 0:
-            self.cur_draw += self.cur_draw_step
-            if self.cur_draw >= len(self.deck):
-                self.cur_draw = 0
+            if self.draw_next >= len(self.deck):
+                self.draw_next = 0
                 # decrease the score :3
                 reward -= 2
-
-            self.cur_draw_step = min(len(self.deck) - self.cur_draw, self.draw_step)
+            self.draw_next = min(self.draw_next + self.draw_step, len(self.deck))
             return True, reward
 
         if (
@@ -177,7 +174,7 @@ class Solitaire:
         # handle drawing from deck or maybe from the final stack
         if src < 5:
             if src == 0:
-                draw_pos = self.cur_draw + self.cur_draw_step - 1
+                draw_pos = self.draw_next - 1
                 if draw_pos < 0:
                     return False, reward  # nothing left to draw
 
@@ -206,7 +203,7 @@ class Solitaire:
 
             if src == 0:
                 del self.deck[draw_pos]
-                self.cur_draw_step -= 1
+                self.draw_next -= 1
                 reward += 5 if dst > 5 else 20  # yay improve score
             else:
                 self.final_stack[v] -= 1
@@ -314,6 +311,9 @@ def game_loop(game):
 def test(seed=17, n_piles=7, verbose=True):
     total_reward = 0
     game = Solitaire(seed, n_piles=n_piles)
+
+    start = time.time()
+
     for _ in range(100):
         moves = check_gen_move(game)
         move = random.choice(moves)
@@ -326,6 +326,8 @@ def test(seed=17, n_piles=7, verbose=True):
         valid, reward = game.move(*move)
         assert valid
         total_reward += reward
+
+    print('Simulating time', time.time()-start)
     print(seed, total_reward)
     game_loop(game)
 

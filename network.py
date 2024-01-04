@@ -1,4 +1,4 @@
-from engine import Solitaire
+from engine import Solitaire, FAKE_CARD
 import torch
 from torch import nn
 
@@ -23,11 +23,11 @@ def encode_cards(cards, n_size, dtype=torch.float32):
 def encode_game(game: Solitaire, dtype=torch.float32, device="cuda:0"):
     n_deck = 52 - game.n_piles * (game.n_piles + 1) // 2
     deck = encode_cards(game.deck, n_deck, dtype=dtype)
-    pos = game.cur_draw + game.cur_draw_step - 1
+    pos = game.draw_next - 1
     if pos >= 0:
         draw_card = deck[pos:pos+1]
     else:
-        draw_card = deck[0]
+        draw_card = FAKE_CARD
 
     final_stack = encode_cards(
         [(j - 1, i) for i, j in enumerate(game.final_stack[:4])], 4, dtype=dtype
@@ -39,6 +39,11 @@ def encode_game(game: Solitaire, dtype=torch.float32, device="cuda:0"):
         [encode_cards(p, 13, dtype=dtype) for p in game.visible_piles]
     )
 
+    visible_rev = torch.stack(
+        [encode_cards(p, 13, dtype=dtype) for p in game.visible_piles[::-1]]
+    )
+
+
     valid_moves = torch.zeros((5 + game.n_piles) * (5 + game.n_piles), dtype=torch.bool)
     for move in game.gen_moves():
         valid_moves[move[0] * (5 + game.n_piles) + move[1]] = 1
@@ -49,6 +54,7 @@ def encode_game(game: Solitaire, dtype=torch.float32, device="cuda:0"):
         "final": final_stack,
         "hidden": n_hidden,
         "visible": visible,
+        "visible_rev": visible_rev,
     }
     return torch.concatenate([x.flatten() for x in enc.values()]).to(
         device
@@ -71,7 +77,7 @@ class LonelyBot(nn.Module):
         self.n_deck = n_deck
         self.n_piles = n_piles
         self.input_dim = (
-            (n_deck + 1) * (CARD_DIM) + 4 * CARD_DIM + n_piles + n_piles * 13 * CARD_DIM
+            (n_deck + 1) * (CARD_DIM) + 4 * CARD_DIM + n_piles + n_piles * 13 * CARD_DIM * 2
         )
         self.output_dim = (1 + 4 + n_piles) * (1 + 4 + n_piles)
 
