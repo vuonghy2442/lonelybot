@@ -387,11 +387,35 @@ def test(seed=17, n_piles=7, verbose=True):
     print(seed, total_reward)
     game_loop(game)
 
+def benchmark(seed=17, n_piles=7):
+    total_reward = 0
+
+    start = time.time()
+
+    game = Solitaire(seed, n_piles=n_piles)
+    moves = check_gen_move(game)
+    print('Init time', time.time() - start)
+
+    game = Solitaire(seed, n_piles=n_piles)
+    start = time.time()
+    for _ in range(100):
+        moves = game.gen_moves()
+        move = random.choice(moves)
+        valid, reward = game.move(*move)
+        assert valid
+        total_reward += reward
+    print('Simulating time (move/s)', 1/((time.time()-start)/100))
+
+    print(seed, total_reward)
+
+
 if __name__ == '__main__':
     colorama.init()
     seed = int.from_bytes(os.urandom(4), byteorder='little')
     seed = 14
     # print(seed)
     # test(seed=seed, verbose=0)
-    game = Solitaire(seed)
-    game_loop(game)
+    # game = Solitaire(seed)
+    # game_loop(game)
+
+    benchmark(seed)
