@@ -2,7 +2,7 @@ import random
 import colorama
 from copy import deepcopy
 from colorama import Fore, Back, Style
-from typing import  Tuple, Generator, Optional
+from typing import  List, Tuple, Generator, Optional
 import os
 import time
 import numba as nb
@@ -10,11 +10,7 @@ import numpy as np
 
 
 
-CardType = nb.types.UniTuple(nb.uint8, 2)
-CardPile = nb.types.ListType(CardType)
-
-MoveType = nb.types.UniTuple(nb.uint8, 2)
-MoveList = nb.types.ListType(MoveType)
+CardType = np.uint8
 
 COLOR = [Fore.RED, Fore.RED, Fore.BLACK, Fore.BLACK, Fore.WHITE]
 SYMBOLS = "♥♦♣♠X"
@@ -23,21 +19,30 @@ NUMBERS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "X"
 N_SUITS = 4
 N_RANKS = 13
 
-FAKE_CARD = (np.uint8(N_RANKS), np.uint8(N_SUITS))
+@nb.njit
+def split_card(card: CardType) -> (np.uint8, np.uint8):
+    return np.uint8(card // N_SUITS), np.uint8(card % N_SUITS)
+
+@nb.njit
+def make_card(rank: np.uint8, suit: np.uint8) -> np.uint8:
+    return CardType(rank  * N_SUITS + suit)
 
 def print_card(card: CardType, end=" "):
-    u, v = card
-    if u >= 0:
+    u, v = split_card(card)
+    if u >= 0 and u < N_RANKS:
         print(
             f"{Back.WHITE}{COLOR[v]}{NUMBERS[u]}{SYMBOLS[v]}{Style.RESET_ALL}", end=end
         )
     else:
         print(f"  ", end=end)
 
+FAKE_CARD = make_card(np.uint8(N_RANKS), 0)
 
 @nb.njit
 def fit_after(card_a: CardType, card_b: CardType):
-    return card_a[0] == card_b[0] + 1 and card_a[1] ^ card_b[1] >= 2
+    card_a = split_card(card_a)
+    card_b = split_card(card_b)
+    return card_a[0] == card_b[0] + 1 and (card_a[1] ^ card_b[1] >= 2 or card_a[0] == N_RANKS)
 
 
 @nb.experimental.jitclass(
@@ -45,10 +50,12 @@ def fit_after(card_a: CardType, card_b: CardType):
         'n_piles': nb.uint8,
         'draw_step': nb.uint8,
         'draw_next': nb.uint8,
-        'hidden_piles':  nb.types.ListType(CardPile),
-        'visible_piles': nb.types.ListType(CardPile),
+        'hidden_piles':  nb.from_dtype(CardType)[:],
+        'n_hidden':  nb.uint8[:],
+        'visible_piles':  nb.from_dtype(CardType)[:,:],
+        'n_visible':  nb.uint8[:],
         'final_stack': nb.uint8[:],
-        'deck': CardPile
+        'deck':  nb.from_dtype(CardType)[:]
     }
 )
 class Solitaire:
@@ -63,30 +70,28 @@ class Solitaire:
         # shuffled = [(nb.uint8(i),nb.uint8(j)) for i in range(13) for j in range(4)]
 
 
-        shuffled = np.random.permutation(N_RANKS * N_SUITS)
-        shuffled = nb.typed.List([(np.uint8(card // N_SUITS), np.uint8(card % N_SUITS)) for card in shuffled])
+        shuffled = np.random.permutation(N_RANKS * N_SUITS).astype(CardType)
 
         self.n_piles = n_piles # constant
-        self.hidden_piles = nb.typed.List.empty_list(CardPile)
-        self.visible_piles = nb.typed.List.empty_list(CardPile)
+
+        n_hidden_cards = n_piles * (n_piles - 1) // 2
 
         self.final_stack = np.zeros((N_SUITS + 1,), dtype=np.uint8)  # how many cards stacked
 
-        used_cards = 0
-        for i in range(n_piles):
-            self.hidden_piles.append(nb.typed.List.empty_list(CardType))
-            self.hidden_piles[-1].append(FAKE_CARD)
-            self.hidden_piles[-1].extend(shuffled[used_cards : used_cards + i])
-            self.visible_piles.append(shuffled[used_cards + i : used_cards + i + 1])
-            used_cards += i + 1
+        self.hidden_piles = shuffled[:n_hidden_cards]
 
-        self.deck = shuffled[used_cards:]
+        self.n_hidden = np.arange(n_piles, dtype=np.uint8)
+
+        self.visible_piles = np.empty((n_piles, N_RANKS + 1), dtype = CardType)
+        self.visible_piles[:, 0] = shuffled[n_hidden_cards : n_hidden_cards + n_piles]
+        self.n_visible = np.ones(n_piles, dtype=np.uint8)
+
+        self.deck = shuffled[n_hidden_cards + n_piles:]
         self.draw_step = draw_step # constant
         self.draw_next = draw_step
 
-    def gen_moves(self) -> MoveList:
-        result = nb.typed.List.empty_list(MoveType)
-        result.append((np.uint8(0), np.uint8(0)))
+    def gen_moves(self) -> List[Tuple[np.uint8, np.uint8]]:
+        result = [(np.uint8(0), np.uint8(0))]
 
         for src in range(5):
             # move deck to final stack
@@ -96,11 +101,11 @@ class Solitaire:
                     continue
                 else:
                     # can actually draw from the deck
-                    u, v = self.deck[draw_pos]
+                    u, v = split_card(self.deck[draw_pos])
             else:
-                v = src - 1
-                u = self.final_stack[v] - 1
-                if u < 0:
+                v = np.uint8(src - 1)
+                u = np.uint8(self.final_stack[v] - 1)
+                if u >= N_RANKS or u < 0:
                     continue
 
             # move to final stack :)
@@ -108,23 +113,25 @@ class Solitaire:
                 result.append((0, v + 1))
 
             for id, pile in enumerate(self.visible_piles):
-                if fit_after(pile[-1], (u, v)):
+                if fit_after(pile[self.n_visible[id]-1], make_card(u, v)):
                     result.append((src, id + 5))
 
         for src, src_pile in enumerate(self.visible_piles):
             # move to the final stack
-            u, v = src_pile[-1]
+            n_src = self.n_visible[src]
+            u, v = split_card(src_pile[n_src-1])
             if self.final_stack[v] == u:
                 result.append((src + 5, v + 1))
 
             for dst, dst_pile in enumerate(self.visible_piles):
-                if src_pile == dst_pile:
+                if src == dst:
                     continue
 
-                pos_move = src_pile[0][0] - (dst_pile[-1][0] - 1)
-                if pos_move < 0 or pos_move >= len(src_pile):
+                n_dst = self.n_visible[dst]
+                pos_move = split_card(src_pile[0])[0] - (split_card(dst_pile[n_dst-1])[0] - 1)
+                if pos_move < 0 or pos_move >= n_src:
                     continue
-                if not fit_after(dst_pile[-1], src_pile[pos_move]):
+                if not fit_after(dst_pile[n_dst-1], src_pile[pos_move]):
                     continue
 
                 result.append((src + 5, dst + 5))
@@ -135,8 +142,10 @@ class Solitaire:
         copied.n_piles = self.n_piles
         copied.draw_step = self.draw_step
         copied.draw_next = self.draw_next
-        copied.hidden_piles = nb.typed.List([p.copy() for p in self.hidden_piles])
-        copied.visible_piles =  nb.typed.List([p.copy() for p in self.visible_piles])
+        copied.hidden_piles = self.hidden_piles #.copy()
+        copied.n_hidden = self.n_hidden.copy()
+        copied.visible_piles =  self.visible_piles.copy()
+        copied.n_visible =  self.n_visible.copy()
         copied.deck = self.deck.copy()
         copied.final_stack = self.final_stack.copy()
         return copied
@@ -144,6 +153,17 @@ class Solitaire:
 
     def is_won(self) -> bool:
         return np.all(self.final_stack[:N_SUITS] == N_RANKS)
+
+    def pop_hidden(self, pos: int) -> CardType:
+        cnt = self.n_hidden[pos]
+        if cnt <= 0:
+            # print('Fake return') #debug
+            # print(self.n_visible) #debug
+            return FAKE_CARD
+        else:
+            self.n_hidden[pos] -= 1
+            # print(self.n_hidden, cnt, pos) #debug
+            return self.hidden_piles[(pos) * (pos - 1) // 2 + cnt - 1]
 
     def move(self, src: int, dst: int) -> (bool, int):
         # special encoding:
@@ -180,7 +200,7 @@ class Solitaire:
                 if draw_pos < 0:
                     return False, reward  # nothing left to draw
 
-                u, v = self.deck[draw_pos]
+                u, v = split_card(self.deck[draw_pos])
             else:
                 v = src - 1
                 if self.final_stack[v] == 0:
@@ -197,14 +217,18 @@ class Solitaire:
                 dst_pos = dst - 5
 
                 # can't really be empty because of fake cards
-                assert len(self.visible_piles[dst_pos]) > 0
+                assert self.n_visible[dst_pos] > 0
 
-                if not fit_after(self.visible_piles[dst_pos][-1], (u, v)):
+                n_vis =  self.n_visible[dst_pos]
+                card = make_card(u, v)
+                if not fit_after(self.visible_piles[dst_pos, n_vis - 1], card):
                     return False, reward
-                self.visible_piles[dst_pos].append((u, v))
+                self.visible_piles[dst_pos, n_vis] = card
 
             if src == 0:
-                del self.deck[draw_pos]
+                self.deck = np.delete(self.deck, draw_pos) # slow!!!
+                # self.deck[draw_pos]
+
                 self.draw_next -= 1
                 reward += 5 if dst > 5 else 20  # yay improve score
             else:
@@ -216,12 +240,13 @@ class Solitaire:
             src_pos = src - 5
             # moving from the empty pile
             src_pile = self.visible_piles[src_pos]
+            n_src = self.n_visible[src_pos]
 
             n_moved = 0
 
             if dst < 5:
                 # moving to the stack
-                u, v = src_pile[-1]
+                u, v = split_card(src_pile[n_src-1])
                 if v != dst - 1 or u != self.final_stack[v]:
                     return False, reward
                 self.final_stack[v] += 1
@@ -232,53 +257,61 @@ class Solitaire:
                 dst_pos = dst - 5
                 # finding the good position to move :)
                 dst_pile = self.visible_piles[dst_pos]
-                assert len(dst_pile) > 0
+                n_dst = self.n_visible[dst_pos]
+                assert n_dst > 0
 
-                pos_move = src_pile[0][0] - (dst_pile[-1][0] - 1)
-                if pos_move < 0 or pos_move >= len(src_pile):
+                pos_move = split_card(src_pile[0])[0] - (split_card(dst_pile[n_dst-1])[0] - 1)
+                if pos_move < 0 or pos_move >= n_src:
                     # the source pile is too small to move to the dst
                     return False, reward
-                if not fit_after(dst_pile[-1], src_pile[pos_move]):
+                if not fit_after(dst_pile[n_dst-1], src_pile[pos_move]):
                     # wrong type
                     return False, reward
-                n_moved = len(src_pile) - pos_move
+                n_moved = n_src - pos_move
 
                 # move :)
-                dst_pile.extend(src_pile[-n_moved:])
+                dst_pile[n_dst:n_dst + n_moved] = src_pile[n_src-n_moved:n_src]
+                # print(n_moved, self.n_visible) #DEBUG
+                self.n_visible[dst_pos] += n_moved
 
-            del src_pile[-n_moved:]
-            if len(src_pile) == 0 and len(self.hidden_piles[src_pos]) > 0:
+            self.n_visible[src_pos] -= n_moved
+            # del src_pile[-n_moved:]
+            if self.n_visible[src_pos] == 0 :
                 # unlocking new score :))
                 reward += 5
-                src_pile.append(self.hidden_piles[src_pos].pop())
+                src_pile[0] = self.pop_hidden(src_pos)
+                # print('Update', src_pos) #debug
+                self.n_visible[src_pos] = 1
+                # print(self.n_visible, self.visible_piles[:,0]) #debug
+
         return True, reward
 
 
 def display(self):
     print("Deck 0: ", end="")
 
-    for i, j in self.deck[max(0, self.draw_next - self.draw_step) : self.draw_next]:
-        print_card((i, j))
+    for card in self.deck[max(0, self.draw_next - self.draw_step) : self.draw_next]:
+        print_card(card)
 
     print("\t\t", end="")
 
     for i in range(4):
         print(f"{i+1}.", end="")
-        print_card((self.final_stack[i] - 1, i))
+        print_card(make_card(self.final_stack[i] - 1, i))
     print()
 
     for i in range(self.n_piles):
         print(f"{i+5}\t", end="")
     print()
 
-    i = 1  # skip the hidden layer
+    i = 0  # skip the hidden layer
     while True:
         is_print = False
         for j in range(self.n_piles):
             cur_pile = self.visible_piles[j]
 
-            n_hidden = len(self.hidden_piles[j])
-            n_visible = len(cur_pile)
+            n_hidden = self.n_hidden[j]
+            n_visible = self.n_visible[j]
             if n_hidden > i:
                 print("**\t", end="")
                 is_print = True
@@ -313,31 +346,6 @@ def check_gen_move(game):
 
 
 def game_loop(game):
-
-    # seed 12
-    # game.move(11, 2)
-    # game.move(10, 11)
-    # game.move(11, 5)
-    # game.move(11, 9)
-    # game.move(11, 3)
-    # game.move(0, 0)
-    # game.move(0, 7)
-    # game.move(0, 0)
-    # game.move(0, 0)
-    # game.move(0, 0)
-    # game.move(0, 0)
-    # game.move(0, 0)
-    # game.move(0, 9)
-    # game.move(0, 0)
-    # game.move(0, 9)
-    # game.move(0, 0)
-    # game.move(0, 0)
-    # game.move(0, 0)
-    # game.move(0, 11)
-    # game.move(0, 11)
-    # game.move(6, 11)
-    # game.move(6, 4)
-
     display(game)
 
     while True:
@@ -346,7 +354,7 @@ def game_loop(game):
             print(game.move(*move))
         except:
             print('Invalid')
-        game.display()
+        display(game)
 
 
 def test(seed=17, n_piles=7, verbose=True):
@@ -381,7 +389,8 @@ def test(seed=17, n_piles=7, verbose=True):
 if __name__ == '__main__':
     colorama.init()
     seed = int.from_bytes(os.urandom(4), byteorder='little')
-    print(seed)
-    test(seed=seed, verbose=0)
-    # game = Solitaire(seed)
-    # game_loop(game)
+    seed = 14
+    # print(seed)
+    # test(seed=seed, verbose=0)
+    game = Solitaire(seed)
+    game_loop(game)
