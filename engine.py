@@ -224,6 +224,7 @@ class Solitaire:
                 if not fit_after(self.visible_piles[dst_pos, n_vis - 1], card):
                     return False, reward
                 self.visible_piles[dst_pos, n_vis] = card
+                self.n_visible[dst_pos] += 1
 
             if src == 0:
                 self.deck = np.delete(self.deck, draw_pos) # slow!!!
