@@ -2,21 +2,30 @@ import random
 import colorama
 from copy import deepcopy
 from colorama import Fore, Back, Style
-from typing import List, Tuple, Generator
+from typing import  Tuple, Generator, Optional
 import os
 import time
+import numba as nb
+import numpy as np
 
 
-CARDS = [(i, j) for i in range(13) for j in range(4)]
+
+CardType = nb.types.UniTuple(nb.uint8, 2)
+CardPile = nb.types.ListType(CardType)
+
+MoveType = nb.types.UniTuple(nb.uint8, 2)
+MoveList = nb.types.ListType(MoveType)
 
 COLOR = [Fore.RED, Fore.RED, Fore.BLACK, Fore.BLACK, Fore.WHITE]
 SYMBOLS = "♥♦♣♠X"
 NUMBERS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "X"]
 
-FAKE_CARD = (13, 4)
+N_SUITS = 4
+N_RANKS = 13
 
+FAKE_CARD = (np.uint8(N_RANKS), np.uint8(N_SUITS))
 
-def print_card(card, end=" "):
+def print_card(card: CardType, end=" "):
     u, v = card
     if u >= 0:
         print(
@@ -26,78 +35,58 @@ def print_card(card, end=" "):
         print(f"  ", end=end)
 
 
-def fit_after(card_a, card_b):
+@nb.njit
+def fit_after(card_a: CardType, card_b: CardType):
     return card_a[0] == card_b[0] + 1 and card_a[1] ^ card_b[1] >= 2
 
 
+@nb.experimental.jitclass(
+    {
+        'n_piles': nb.uint8,
+        'draw_step': nb.uint8,
+        'draw_next': nb.uint8,
+        'hidden_piles':  nb.types.ListType(CardPile),
+        'visible_piles': nb.types.ListType(CardPile),
+        'final_stack': nb.uint8[:],
+        'deck': CardPile
+    }
+)
 class Solitaire:
-    __slots__ = 'n_piles', 'hidden_piles', 'visible_piles', 'final_stack', 'deck', 'draw_step', 'draw_next'
+    # __slots__ = 'n_piles', 'hidden_piles', 'visible_piles', 'final_stack', 'deck', 'draw_step', 'draw_next'
 
-    def __init__(self, seed, draw_step=3, n_piles=7):
-        random.seed(seed)
-        shuffled = CARDS.copy()
-        random.shuffle(shuffled)
+    def __init__(self, seed: int, draw_step: int = 3, n_piles: int =7):
+        if seed == 0 and draw_step == 0 and n_piles == 0:
+            return
+
+        np.random.seed(seed)
+
+        # shuffled = [(nb.uint8(i),nb.uint8(j)) for i in range(13) for j in range(4)]
+
+
+        shuffled = np.random.permutation(N_RANKS * N_SUITS)
+        shuffled = nb.typed.List([(np.uint8(card // N_SUITS), np.uint8(card % N_SUITS)) for card in shuffled])
 
         self.n_piles = n_piles # constant
-        self.hidden_piles = [None] * n_piles
-        self.visible_piles = [None] * n_piles
+        self.hidden_piles = nb.typed.List.empty_list(CardPile)
+        self.visible_piles = nb.typed.List.empty_list(CardPile)
 
-        self.final_stack = [0] * 5  # how many cards stacked
+        self.final_stack = np.zeros((N_SUITS + 1,), dtype=np.uint8)  # how many cards stacked
 
         used_cards = 0
         for i in range(n_piles):
-            self.hidden_piles[i] = [FAKE_CARD] + shuffled[used_cards : used_cards + i]
-            self.visible_piles[i] = shuffled[used_cards + i : used_cards + i + 1]
+            self.hidden_piles.append(nb.typed.List.empty_list(CardType))
+            self.hidden_piles[-1].append(FAKE_CARD)
+            self.hidden_piles[-1].extend(shuffled[used_cards : used_cards + i])
+            self.visible_piles.append(shuffled[used_cards + i : used_cards + i + 1])
             used_cards += i + 1
 
         self.deck = shuffled[used_cards:]
         self.draw_step = draw_step # constant
         self.draw_next = draw_step
 
-    def display(self):
-        print("Deck 0: ", end="")
-
-        for i, j in self.deck[max(0, self.draw_next - self.draw_step) : self.draw_next]:
-            print_card((i, j))
-
-        print("\t\t", end="")
-
-        for i in range(4):
-            print(f"{i+1}.", end="")
-            print_card((self.final_stack[i] - 1, i))
-        print()
-
-        for i in range(self.n_piles):
-            print(f"{i+5}\t", end="")
-        print()
-
-        i = 1  # skip the hidden layer
-        while True:
-            is_print = False
-            for j in range(self.n_piles):
-                cur_pile = self.visible_piles[j]
-
-                n_hidden = len(self.hidden_piles[j])
-                n_visible = len(cur_pile)
-                if n_hidden > i:
-                    print("**\t", end="")
-                    is_print = True
-                elif i < n_hidden + n_visible:
-                    print_card(cur_pile[i - n_hidden], end="\t")
-
-                    is_print = True
-                else:
-                    print("  \t", end="")
-            print()
-            i += 1
-            if not is_print:
-                break
-
-    def copy(self):
-        return deepcopy(self)
-
-    def gen_moves(self) -> Generator[Tuple[int, int], None, None]:
-        yield (0, 0)
+    def gen_moves(self) -> MoveList:
+        result = nb.typed.List.empty_list(MoveType)
+        result.append((np.uint8(0), np.uint8(0)))
 
         for src in range(5):
             # move deck to final stack
@@ -116,17 +105,17 @@ class Solitaire:
 
             # move to final stack :)
             if src == 0 and self.final_stack[v] == u:
-                yield (0, v + 1)
+                result.append((0, v + 1))
 
             for id, pile in enumerate(self.visible_piles):
                 if fit_after(pile[-1], (u, v)):
-                    yield (src, id + 5)
+                    result.append((src, id + 5))
 
         for src, src_pile in enumerate(self.visible_piles):
             # move to the final stack
             u, v = src_pile[-1]
             if self.final_stack[v] == u:
-                yield (src + 5, v + 1)
+                result.append((src + 5, v + 1))
 
             for dst, dst_pile in enumerate(self.visible_piles):
                 if src_pile == dst_pile:
@@ -138,10 +127,23 @@ class Solitaire:
                 if not fit_after(dst_pile[-1], src_pile[pos_move]):
                     continue
 
-                yield (src + 5, dst + 5)
+                result.append((src + 5, dst + 5))
+        return result
+
+    def copy(self):
+        copied = Solitaire(0, 0, 0)
+        copied.n_piles = self.n_piles
+        copied.draw_step = self.draw_step
+        copied.draw_next = self.draw_next
+        copied.hidden_piles = nb.typed.List([p.copy() for p in self.hidden_piles])
+        copied.visible_piles =  nb.typed.List([p.copy() for p in self.visible_piles])
+        copied.deck = self.deck.copy()
+        copied.final_stack = self.final_stack.copy()
+        return copied
+
 
     def is_won(self) -> bool:
-        return self.final_stack == [13, 13, 13, 13, 0]
+        return np.all(self.final_stack[:N_SUITS] == N_RANKS)
 
     def move(self, src: int, dst: int) -> (bool, int):
         # special encoding:
@@ -252,6 +254,45 @@ class Solitaire:
         return True, reward
 
 
+def display(self):
+    print("Deck 0: ", end="")
+
+    for i, j in self.deck[max(0, self.draw_next - self.draw_step) : self.draw_next]:
+        print_card((i, j))
+
+    print("\t\t", end="")
+
+    for i in range(4):
+        print(f"{i+1}.", end="")
+        print_card((self.final_stack[i] - 1, i))
+    print()
+
+    for i in range(self.n_piles):
+        print(f"{i+5}\t", end="")
+    print()
+
+    i = 1  # skip the hidden layer
+    while True:
+        is_print = False
+        for j in range(self.n_piles):
+            cur_pile = self.visible_piles[j]
+
+            n_hidden = len(self.hidden_piles[j])
+            n_visible = len(cur_pile)
+            if n_hidden > i:
+                print("**\t", end="")
+                is_print = True
+            elif i < n_hidden + n_visible:
+                print_card(cur_pile[i - n_hidden], end="\t")
+
+                is_print = True
+            else:
+                print("  \t", end="")
+        print()
+        i += 1
+        if not is_print:
+            break
+
 def slow_gen_move(game):
     for i in range(5 + game.n_piles):
         for j in range(5 + game.n_piles):
@@ -297,7 +338,7 @@ def game_loop(game):
     # game.move(6, 11)
     # game.move(6, 4)
 
-    game.display()
+    display(game)
 
     while True:
         move = map(int, input("Move here: ").strip().split(" "))
@@ -310,10 +351,16 @@ def game_loop(game):
 
 def test(seed=17, n_piles=7, verbose=True):
     total_reward = 0
-    game = Solitaire(seed, n_piles=n_piles)
 
     start = time.time()
 
+    game = Solitaire(seed, n_piles=n_piles)
+    moves = check_gen_move(game)
+    print('Init time', time.time() - start)
+
+    start = time.time()
+
+    game = Solitaire(seed, n_piles=n_piles)
     for _ in range(100):
         moves = check_gen_move(game)
         move = random.choice(moves)
