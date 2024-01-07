@@ -374,7 +374,7 @@ pub fn print_card(card: CardType, end: &str) {
 pub fn display(game: &Solitaire) {
     print!("Deck 0: ");
 
-    for card in &game.deck[game.draw_cur.saturating_sub(2) as usize..=game.draw_cur as usize] {
+    for card in &game.deck[game.draw_cur.saturating_sub(3) as usize..game.draw_cur as usize] {
         print_card(*card, " ");
     }
 
