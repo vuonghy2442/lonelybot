@@ -65,9 +65,10 @@ pub struct Solitaire {
     // start card ends card and flags
     visible_piles: [Pile; N_PILES as usize],
     final_stack: [u8; 4],
-    deck: [u8; (N_CARDS - N_HIDDEN_CARDS - N_PILES + 1) as usize],
-    draw_next: u8,
-    draw_cur: u8,
+    deck: [u8; (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize],
+    draw_step: u8,
+    draw_next: u8, // start position of next pile
+    draw_cur: u8,  // size of the previous pile
     n_deck: u8,
 }
 
@@ -86,7 +87,7 @@ pub fn generate_random_deck(seed: u64) -> CardDeck {
     return cards;
 }
 
-pub fn generate_game(cards: &CardDeck) -> Solitaire {
+pub fn generate_game(cards: &CardDeck, draw_step: u8) -> Solitaire {
     let hidden_piles: [CardType; N_HIDDEN_CARDS as usize] =
         cards[0..N_HIDDEN_CARDS as usize].try_into().unwrap();
     let n_hidden: [u8; N_PILES as usize] = core::array::from_fn(|i| i as CardType);
@@ -98,9 +99,13 @@ pub fn generate_game(cards: &CardDeck) -> Solitaire {
 
     let visible_piles: [Pile; N_PILES as usize] = visible_cards.map(|c| create_pile(c));
 
-    let mut deck = [0u8; (N_CARDS - N_HIDDEN_CARDS - N_PILES + 1) as usize];
-    deck[0] = FAKE_CARD;
-    deck[1..].copy_from_slice(&cards[(N_HIDDEN_CARDS + N_PILES) as usize..]);
+    const N_FULL_DECK: u8 = N_CARDS - N_HIDDEN_CARDS - N_PILES;
+
+    let deck: [u8; N_FULL_DECK as usize] = cards[(N_HIDDEN_CARDS + N_PILES) as usize..]
+        .try_into()
+        .unwrap();
+
+    let draw_step = std::cmp::min(N_FULL_DECK, draw_step);
 
     let final_stack: [u8; 4] = [0u8; 4];
 
@@ -110,14 +115,19 @@ pub fn generate_game(cards: &CardDeck) -> Solitaire {
         visible_piles,
         deck,
         final_stack,
-        draw_cur: 0,
-        draw_next: 1,
-        n_deck: N_CARDS - N_HIDDEN_CARDS - N_PILES + 1,
+        draw_step,
+        draw_cur: draw_step,
+        draw_next: draw_step,
+        n_deck: N_CARDS - N_HIDDEN_CARDS - N_PILES,
     };
 }
 
 const fn peek_deck(game: &Solitaire) -> CardType {
-    return game.deck[game.draw_cur as usize];
+    return if game.draw_cur == 0 {
+        FAKE_CARD
+    } else {
+        game.deck[game.draw_cur as usize - 1]
+    };
 }
 
 fn pop_deck(game: &mut Solitaire) {
@@ -254,7 +264,7 @@ pub fn gen_moves(game: &Solitaire) -> Vec<MoveType> {
 }
 
 // this is unsafe gotta check it is valid move before
-pub fn do_move(game: &mut Solitaire, m: &MoveType, draw_step: u8) -> i32 {
+pub fn do_move(game: &mut Solitaire, m: &MoveType) -> i32 {
     let (src, dst) = m;
     // handling final stack
     if let &Pos::Stack(id) = src {
@@ -272,28 +282,28 @@ pub fn do_move(game: &mut Solitaire, m: &MoveType, draw_step: u8) -> i32 {
     match src {
         Pos::Deck => match dst {
             Pos::Deck => {
-                game.draw_cur += 1;
                 assert!(game.draw_cur <= game.draw_next);
-                if game.draw_next >= game.n_deck {
+                let redealt = game.draw_next >= game.n_deck;
+
+                if redealt {
                     game.n_deck = game.draw_cur;
-                    game.draw_next = 1;
+                    game.draw_next = 0;
                     game.draw_cur = 0;
-                    return -2;
-                } else {
-                    let step = std::cmp::min(game.n_deck - game.draw_next, draw_step);
+                }
 
-                    if game.draw_cur != game.draw_next {
-                        // moving stuff
-                        for i in 0..step {
-                            game.deck[(game.draw_cur + i) as usize] =
-                                game.deck[(game.draw_next + i) as usize];
-                        }
+                let step = std::cmp::min(game.n_deck - game.draw_next, game.draw_step);
+
+                if game.draw_cur != game.draw_next {
+                    // moving stuff
+                    for i in 0..step {
+                        game.deck[(game.draw_cur + i) as usize] =
+                            game.deck[(game.draw_next + i) as usize];
                     }
+                }
 
-                    game.draw_cur += step - 1;
-                    game.draw_next += step;
-                    return 0;
-                };
+                game.draw_cur += step;
+                game.draw_next += step;
+                return if redealt { -2 } else { 0 };
             }
             Pos::Stack(_) => {
                 pop_deck(game);
@@ -434,26 +444,26 @@ mod tests {
             18, 32, 7, 49, 3, 19, 8, 44, 4, 51, 2, 15, 40, 35, 43, 22, 12, 42, 26, 23, 24, 5, 6,
             48, 27, 45, 47, 29, 34, 25,
         ];
-        let mut game = generate_game(&cards);
+        let mut game = generate_game(&cards, 3);
         assert_moves(
             gen_moves(&game),
             vec![(Pos::Pile(0), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(do_move(&mut game, &(Pos::Pile(0), Pos::Pile(4)), 3), 5);
+        assert_eq!(do_move(&mut game, &(Pos::Pile(0), Pos::Pile(4))), 5);
 
         assert_moves(
             gen_moves(&game),
             vec![(Pos::Pile(4), Pos::Pile(0)), (Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(do_move(&mut game, &(Pos::Pile(4), Pos::Pile(0)), 3), 5);
+        assert_eq!(do_move(&mut game, &(Pos::Pile(4), Pos::Pile(0))), 5);
         assert_moves(
             gen_moves(&game),
             vec![(Pos::Pile(2), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(do_move(&mut game, &(Pos::Pile(2), Pos::Pile(4)), 3), 5);
+        assert_eq!(do_move(&mut game, &(Pos::Pile(2), Pos::Pile(4))), 5);
 
         assert_moves(
             gen_moves(&game),
@@ -464,20 +474,20 @@ mod tests {
             ],
         );
 
-        assert_eq!(do_move(&mut game, &(Pos::Pile(2), Pos::Pile(0)), 3), 5);
+        assert_eq!(do_move(&mut game, &(Pos::Pile(2), Pos::Pile(0))), 5);
 
         assert_moves(
             gen_moves(&game),
             vec![(Pos::Pile(4), Pos::Pile(0)), (Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(do_move(&mut game, &(Pos::Pile(4), Pos::Pile(0)), 3), 5);
+        assert_eq!(do_move(&mut game, &(Pos::Pile(4), Pos::Pile(0))), 5);
 
         assert_moves(
             gen_moves(&game),
             vec![(Pos::Pile(3), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(do_move(&mut game, &(Pos::Pile(5), Pos::Stack(3)), 3), 20);
+        assert_eq!(do_move(&mut game, &(Pos::Pile(5), Pos::Stack(3))), 20);
     }
 }

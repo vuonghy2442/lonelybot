@@ -2,7 +2,7 @@ pub mod engine;
 
 use rand::prelude::*;
 use std::io::Write;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use engine::*;
 
@@ -24,7 +24,7 @@ const fn pos_to_num(p: &Pos) -> u8 {
 }
 
 fn benchmark() {
-    let mut game = generate_game(&generate_random_deck(12));
+    let mut game = generate_game(&generate_random_deck(12), 3);
     let mut rng = StdRng::seed_from_u64(14);
 
     let mut moves = Vec::<MoveType>::new();
@@ -32,7 +32,7 @@ fn benchmark() {
     let now = Instant::now();
     for _ in 0..1000 {
         gen_moves_(&game, &mut moves);
-        do_move(&mut game, moves.choose(&mut rng).unwrap(), 3);
+        do_move(&mut game, moves.choose(&mut rng).unwrap());
     }
     println!("{} op/s", 1000f64 / now.elapsed().as_secs_f64());
     display(&game);
@@ -42,7 +42,7 @@ fn main() {
     benchmark();
 
     println!("Hello, world!");
-    let mut game = generate_game(&generate_random_deck(12));
+    let mut game = generate_game(&generate_random_deck(12), 3);
     let mut line = String::new();
     loop {
         display(&game);
@@ -68,7 +68,7 @@ fn main() {
             .map(|x| x.parse::<u8>().ok())
             .collect();
         if let Some([src, dst]) = res.as_deref() {
-            do_move(&mut game, &(num_to_pos(*src), num_to_pos(*dst)), 3);
+            do_move(&mut game, &(num_to_pos(*src), num_to_pos(*dst)));
         } else {
             println!("Invalid move");
         }
