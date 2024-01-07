@@ -47,6 +47,20 @@ fn main() {
     loop {
         display(&game);
         let moves = gen_moves(&game);
+
+        {
+            let (current_deal, next_deal) = iter_deck(&game);
+            for (pos, card) in current_deal {
+                print!("{}-", pos);
+                print_card(*card, " ")
+            }
+            println!();
+            for (pos, card) in next_deal {
+                print!("{}-", pos);
+                print_card(*card, " ")
+            }
+            println!();
+        }
         println!(
             "{:?}",
             moves

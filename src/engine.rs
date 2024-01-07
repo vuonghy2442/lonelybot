@@ -130,6 +130,57 @@ const fn peek_deck(game: &Solitaire) -> CardType {
     };
 }
 
+fn optional_split_last<T>(
+    slice: &[T],
+    start: usize,
+    end: usize,
+) -> (
+    impl Iterator<Item = (usize, &T)> + Clone,
+    Option<(usize, &T)>,
+) {
+    return (
+        slice[..end.saturating_sub(1)]
+            .iter()
+            .enumerate()
+            .skip(start),
+        slice[start..end].last().map(|x| (end - 1, x)),
+    );
+}
+
+pub fn iter_deck(
+    game: &Solitaire,
+) -> (
+    impl Iterator<Item = (usize, &CardType)>,
+    impl Iterator<Item = (usize, &CardType)>,
+) {
+    let n_deck = game.n_deck as usize;
+    let draw_cur = game.draw_cur as usize;
+    let draw_next = game.draw_next as usize;
+    let draw_step = game.draw_step as usize;
+    let (head, cur) = optional_split_last(&game.deck, 0, draw_cur);
+    let (tail, last) = optional_split_last(&game.deck, draw_next, n_deck);
+
+    // non redealt
+
+    let offset = draw_step - 1 - (draw_cur % draw_step);
+
+    // filter out if repeat :)
+    let offset = if offset == draw_step - 1 {
+        n_deck
+    } else {
+        offset
+    };
+
+    return (
+        cur.into_iter()
+            .chain(tail.clone().skip(draw_step - 1).step_by(draw_step))
+            .chain(last.into_iter()),
+        head.skip(draw_step - 1)
+            .step_by(draw_step)
+            .chain(tail.skip(offset).step_by(draw_step)),
+    );
+}
+
 fn pop_deck(game: &mut Solitaire) {
     assert!(game.draw_cur > 0);
     game.draw_cur -= 1;
