@@ -120,7 +120,7 @@ impl Pile {
         return self.bottom(len - pos - 1);
     }
 
-    const fn pop(self: &Pile, step: u8) -> Pile {
+    const fn pop_(self: &Pile, step: u8) -> Pile {
         assert!(self.len() >= step);
 
         return Pile {
@@ -130,7 +130,11 @@ impl Pile {
         };
     }
 
-    const fn push(self: &Pile, c: Card) -> Pile {
+    fn pop(self: &mut Pile, step: u8) {
+        *self = self.pop_(step);
+    }
+
+    const fn push_(self: &Pile, c: Card) -> Pile {
         assert!(self.end.go_before(&c));
 
         return Pile {
@@ -138,6 +142,10 @@ impl Pile {
             end: c,
             suit: (self.suit << 1) | ((c.suit() & 1) as u16),
         };
+    }
+
+    fn push(self: &mut Pile, c: Card) {
+        *self = self.push_(c);
     }
 
     const fn movable_to(self: &Pile, to: &Pile) -> bool {
@@ -149,7 +157,7 @@ impl Pile {
             && dst_rank <= start_rank + 1;
     }
 
-    const fn move_to(self: &Pile, to: &Pile) -> (Pile, Pile) {
+    const fn move_to_(self: &Pile, to: &Pile) -> (Pile, Pile) {
         assert!(self.movable_to(to));
         let src_rank = self.end.rank();
         let dst_rank = to.end.rank();
@@ -157,7 +165,7 @@ impl Pile {
         let n_moved = dst_rank - src_rank;
 
         return (
-            self.pop(n_moved),
+            self.pop_(n_moved),
             Pile {
                 start_rank: to.start_rank,
                 end: self.end,
@@ -325,6 +333,21 @@ impl Solitaire {
         };
     }
 
+    fn push_pile(self: &mut Solitaire, id: u8, card: Card) {
+        self.visible_piles[id as usize].push(card);
+    }
+
+    fn pop_pile(self: &mut Solitaire, id: u8, step: u8) {
+        self.visible_piles[id as usize].pop(step);
+    }
+
+    fn move_pile(self: &mut Solitaire, from: u8, to: u8) {
+        let (from, to) = (from as usize, to as usize);
+        let (new_from, new_to) = self.visible_piles[from].move_to_(&self.visible_piles[to]);
+        self.visible_piles[from] = new_from;
+        self.visible_piles[to] = new_to;
+    }
+
     fn pop_hidden(self: &mut Solitaire, pos: u8) -> Card {
         let ref mut n_hid = self.n_hidden[pos as usize];
         if *n_hid == 0 {
@@ -336,7 +359,6 @@ impl Solitaire {
     }
 
     pub fn gen_moves_(self: &Solitaire, moves: &mut Vec<MoveType>) {
-        // let mut moves = vec![(Pos::Deck, Pos::Deck)];
         moves.clear();
 
         // src = src.Deck
@@ -409,8 +431,7 @@ impl Solitaire {
                     Pos::Deck(_) => unreachable!(),
                     Pos::Stack(_) => return 20,
                     &Pos::Pile(id_pile) => {
-                        let ref mut pile = self.visible_piles[id_pile as usize];
-                        *pile = pile.push(deck_card);
+                        self.push_pile(id_pile, deck_card);
                         return 5;
                     }
                 }
@@ -419,8 +440,7 @@ impl Solitaire {
                 match dst {
                     &Pos::Pile(id_pile) => {
                         let card: Card = Card::new(self.final_stack[id as usize], id);
-                        let ref mut pile = self.visible_piles[id_pile as usize];
-                        *pile = pile.push(card);
+                        self.push_pile(id_pile, card);
                         return -15;
                     }
                     _ => unreachable!(),
@@ -429,15 +449,11 @@ impl Solitaire {
             &Pos::Pile(id) => {
                 let mut reward = match dst {
                     Pos::Stack(_) => {
-                        let ref mut pile = self.visible_piles[id as usize];
-                        *pile = pile.pop(1);
+                        self.pop_pile(id, 1);
                         15
                     }
                     &Pos::Pile(id_pile) => {
-                        let (new_from, new_to) = self.visible_piles[id as usize]
-                            .move_to(&self.visible_piles[id_pile as usize]);
-                        self.visible_piles[id as usize] = new_from;
-                        self.visible_piles[id_pile as usize] = new_to;
+                        self.move_pile(id, id_pile);
                         0
                     }
                     Pos::Deck(_) => unreachable!(),
