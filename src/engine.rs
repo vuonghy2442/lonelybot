@@ -49,6 +49,7 @@ const FAKE_CARD: CardType = make_card(N_RANKS, 0);
 
 const N_PILES: u8 = 7;
 const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES - 1) / 2;
+const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize;
 
 #[derive(Debug)]
 pub struct Pile {
@@ -57,77 +58,93 @@ pub struct Pile {
     suit: u16,
 }
 
-#[derive(Debug)]
-pub struct Solitaire {
-    hidden_piles: [CardType; N_HIDDEN_CARDS as usize],
-    n_hidden: [u8; N_PILES as usize],
+impl Pile {
+    const fn from_card(c: CardType) -> Pile {
+        return Pile {
+            start_rank: split_card(c).0,
+            end: c,
+            suit: (c & 1) as u16,
+        };
+    }
 
-    // start card ends card and flags
-    visible_piles: [Pile; N_PILES as usize],
-    final_stack: [u8; 4],
-    deck: [u8; (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize],
+    const fn is_empty(self: &Pile) -> bool {
+        return self.start_rank < split_card(self.end).0;
+    }
+
+    const fn suit_type(self: &Pile) -> u8 {
+        let (rank, suit) = split_card(self.end);
+        return (rank & 1) ^ (suit / 2);
+    }
+
+    const fn len(self: &Pile) -> u8 {
+        return self.start_rank - split_card(self.end).0 + 1;
+    }
+
+    const fn bottom(self: &Pile, pos: u8) -> u8 {
+        return (((self.end + pos * N_SUITS) & !1) ^ ((pos & 1) * 2))
+            | (((self.suit >> pos) & 1) as CardType);
+    }
+
+    const fn top(self: &Pile, pos: u8) -> u8 {
+        let len = self.len();
+        assert!(pos < len);
+        return self.bottom(len - pos - 1);
+    }
+
+    const fn pop(self: &Pile, step: u8) -> Pile {
+        assert!(self.len() >= step);
+
+        return Pile {
+            start_rank: self.start_rank,
+            end: self.bottom(step),
+            suit: self.suit >> step,
+        };
+    }
+
+    const fn push(self: &Pile, c: CardType) -> Pile {
+        assert!(fit_after(self.end, c));
+
+        return Pile {
+            start_rank: self.start_rank,
+            end: c,
+            suit: (self.suit << 1) | ((c & 1) as u16),
+        };
+    }
+
+    const fn movable_to(self: &Pile, to: &Pile) -> bool {
+        let start_rank = self.start_rank;
+        let (end_rank, _) = split_card(self.end);
+        let (dst_rank, _) = split_card(to.end);
+        return (self.suit_type() == to.suit_type() || dst_rank >= N_RANKS)
+            && end_rank < dst_rank
+            && dst_rank <= start_rank + 1;
+    }
+
+    const fn move_to(self: &Pile, to: &Pile) -> (Pile, Pile) {
+        assert!(self.movable_to(to));
+        let (src_rank, _) = split_card(self.end);
+        let (dst_rank, _) = split_card(to.end);
+
+        let n_moved = dst_rank - src_rank;
+
+        return (
+            self.pop(n_moved),
+            Pile {
+                start_rank: to.start_rank,
+                end: self.end,
+                suit: (to.suit << n_moved) | (self.suit & ((1 << n_moved) - 1)),
+            },
+        );
+    }
+}
+
+#[derive(Debug)]
+pub struct Deck {
+    deck: [u8; N_FULL_DECK],
+    n_deck: u8,
     draw_step: u8,
     draw_next: u8, // start position of next pile
     draw_cur: u8,  // size of the previous pile
-    n_deck: u8,
-}
-
-const fn create_pile(c: CardType) -> Pile {
-    return Pile {
-        start_rank: split_card(c).0,
-        end: c,
-        suit: (c & 1) as u16,
-    };
-}
-
-pub fn generate_random_deck(seed: u64) -> CardDeck {
-    let mut rng = StdRng::seed_from_u64(seed);
-    let mut cards: [CardType; N_CARDS as usize] = core::array::from_fn(|i| i as CardType);
-    cards.shuffle(&mut rng);
-    return cards;
-}
-
-pub fn generate_game(cards: &CardDeck, draw_step: u8) -> Solitaire {
-    let hidden_piles: [CardType; N_HIDDEN_CARDS as usize] =
-        cards[0..N_HIDDEN_CARDS as usize].try_into().unwrap();
-    let n_hidden: [u8; N_PILES as usize] = core::array::from_fn(|i| i as CardType);
-
-    let visible_cards: &[CardType; N_PILES as usize] = cards
-        [N_HIDDEN_CARDS as usize..(N_HIDDEN_CARDS + N_PILES) as usize]
-        .try_into()
-        .unwrap();
-
-    let visible_piles: [Pile; N_PILES as usize] = visible_cards.map(|c| create_pile(c));
-
-    const N_FULL_DECK: u8 = N_CARDS - N_HIDDEN_CARDS - N_PILES;
-
-    let deck: [u8; N_FULL_DECK as usize] = cards[(N_HIDDEN_CARDS + N_PILES) as usize..]
-        .try_into()
-        .unwrap();
-
-    let draw_step = std::cmp::min(N_FULL_DECK, draw_step);
-
-    let final_stack: [u8; 4] = [0u8; 4];
-
-    return Solitaire {
-        hidden_piles,
-        n_hidden,
-        visible_piles,
-        deck,
-        final_stack,
-        draw_step,
-        draw_cur: draw_step,
-        draw_next: draw_step,
-        n_deck: N_CARDS - N_HIDDEN_CARDS - N_PILES,
-    };
-}
-
-const fn peek_deck(game: &Solitaire) -> CardType {
-    return if game.draw_cur == 0 {
-        FAKE_CARD
-    } else {
-        game.deck[game.draw_cur as usize - 1]
-    };
 }
 
 fn optional_split_last<T>(
@@ -147,43 +164,96 @@ fn optional_split_last<T>(
     );
 }
 
-pub fn iter_deck(
-    game: &Solitaire,
-) -> (
-    impl Iterator<Item = (usize, &CardType)>,
-    impl Iterator<Item = (usize, &CardType)>,
-) {
-    let n_deck = game.n_deck as usize;
-    let draw_cur = game.draw_cur as usize;
-    let draw_next = game.draw_next as usize;
-    let draw_step = game.draw_step as usize;
-    let (head, cur) = optional_split_last(&game.deck, 0, draw_cur);
-    let (tail, last) = optional_split_last(&game.deck, draw_next, n_deck);
+impl Deck {
+    pub fn new(deck: &[CardType], draw_step: u8) -> Deck {
+        assert!(deck.len() == N_FULL_DECK);
+        let draw_step = std::cmp::min(N_FULL_DECK as u8, draw_step);
 
-    // non redealt
+        return Deck {
+            deck: deck.try_into().unwrap(),
+            n_deck: deck.len() as u8,
+            draw_step,
+            draw_next: draw_step,
+            draw_cur: draw_step,
+        };
+    }
 
-    let offset = draw_step - 1 - (draw_cur % draw_step);
+    pub fn iters(
+        self: &Deck,
+    ) -> (
+        impl Iterator<Item = (usize, &CardType)>,
+        impl Iterator<Item = (usize, &CardType)>,
+    ) {
+        let n_deck = self.n_deck as usize;
+        let draw_cur = self.draw_cur as usize;
+        let draw_next = self.draw_next as usize;
+        let draw_step = self.draw_step as usize;
+        let (head, cur) = optional_split_last(&self.deck, 0, draw_cur);
+        let (tail, last) = optional_split_last(&self.deck, draw_next, n_deck);
 
-    // filter out if repeat :)
-    let offset = if offset == draw_step - 1 {
-        n_deck
-    } else {
-        offset
-    };
+        // non redealt
 
-    return (
-        cur.into_iter()
-            .chain(tail.clone().skip(draw_step - 1).step_by(draw_step))
-            .chain(last.into_iter()),
-        head.skip(draw_step - 1)
-            .step_by(draw_step)
-            .chain(tail.skip(offset).step_by(draw_step)),
-    );
+        let offset = draw_step - 1 - (draw_cur % draw_step);
+
+        // filter out if repeat :)
+        let offset = if offset == draw_step - 1 {
+            n_deck
+        } else {
+            offset
+        };
+
+        return (
+            cur.into_iter()
+                .chain(tail.clone().skip(draw_step - 1).step_by(draw_step))
+                .chain(last.into_iter()),
+            head.skip(draw_step - 1)
+                .step_by(draw_step)
+                .chain(tail.skip(offset).step_by(draw_step)),
+        );
+    }
 }
 
-fn pop_deck(game: &mut Solitaire) {
-    assert!(game.draw_cur > 0);
-    game.draw_cur -= 1;
+#[derive(Debug)]
+pub struct Solitaire {
+    hidden_piles: [CardType; N_HIDDEN_CARDS as usize],
+    n_hidden: [u8; N_PILES as usize],
+
+    // start card ends card and flags
+    visible_piles: [Pile; N_PILES as usize],
+    final_stack: [u8; 4],
+    deck: Deck,
+}
+
+pub fn generate_random_deck(seed: u64) -> CardDeck {
+    let mut rng = StdRng::seed_from_u64(seed);
+    let mut cards: [CardType; N_CARDS as usize] = core::array::from_fn(|i| i as CardType);
+    cards.shuffle(&mut rng);
+    return cards;
+}
+
+pub fn generate_game(cards: &CardDeck, draw_step: u8) -> Solitaire {
+    let hidden_piles: [CardType; N_HIDDEN_CARDS as usize] =
+        cards[0..N_HIDDEN_CARDS as usize].try_into().unwrap();
+    let n_hidden: [u8; N_PILES as usize] = core::array::from_fn(|i| i as CardType);
+
+    let visible_cards: &[CardType; N_PILES as usize] = cards
+        [N_HIDDEN_CARDS as usize..(N_HIDDEN_CARDS + N_PILES) as usize]
+        .try_into()
+        .unwrap();
+
+    let visible_piles: [Pile; N_PILES as usize] = visible_cards.map(|c| Pile::from_card(c));
+
+    let deck: Deck = Deck::new(&cards[(N_HIDDEN_CARDS + N_PILES) as usize..], draw_step);
+
+    let final_stack: [u8; 4] = [0u8; 4];
+
+    return Solitaire {
+        hidden_piles,
+        n_hidden,
+        visible_piles,
+        final_stack,
+        deck,
+    };
 }
 
 fn pop_hidden(g: &mut Solitaire, pos: u8) -> CardType {
@@ -196,83 +266,13 @@ fn pop_hidden(g: &mut Solitaire, pos: u8) -> CardType {
     }
 }
 
-const fn is_empty(p: &Pile) -> bool {
-    return p.start_rank < split_card(p.end).0;
-}
-
-const fn pile_type(p: &Pile) -> u8 {
-    let (rank, suit) = split_card(p.end);
-    return (rank & 1) ^ (suit / 2);
-}
-
-const fn pile_length(p: &Pile) -> u8 {
-    return p.start_rank - split_card(p.end).0 + 1;
-}
-
-const fn get_card_bottom(p: &Pile, pos: u8) -> u8 {
-    return (((p.end + pos * N_SUITS) & !1) ^ ((pos & 1) * 2))
-        | (((p.suit >> pos) & 1) as CardType);
-}
-
-const fn get_card_top(p: &Pile, pos: u8) -> u8 {
-    let len = pile_length(p);
-    assert!(pos < len);
-    return get_card_bottom(p, len - pos - 1);
-}
-
-const fn pop_card(p: &Pile, step: u8) -> Pile {
-    assert!(pile_length(p) >= step);
-
-    return Pile {
-        start_rank: p.start_rank,
-        end: get_card_bottom(p, step),
-        suit: p.suit >> step,
-    };
-}
-
-const fn push_card(p: &Pile, c: CardType) -> Pile {
-    assert!(fit_after(p.end, c));
-
-    return Pile {
-        start_rank: p.start_rank,
-        end: c,
-        suit: (p.suit << 1) | ((c & 1) as u16),
-    };
-}
-
-const fn movable(from: &Pile, to: &Pile) -> bool {
-    let start_rank = from.start_rank;
-    let (end_rank, _) = split_card(from.end);
-    let (dst_rank, _) = split_card(to.end);
-    return (pile_type(from) == pile_type(to) || dst_rank >= N_RANKS)
-        && end_rank < dst_rank
-        && dst_rank <= start_rank + 1;
-}
-
-const fn move_pile(from: &Pile, to: &Pile) -> (Pile, Pile) {
-    assert!(movable(from, to));
-    let (src_rank, _) = split_card(from.end);
-    let (dst_rank, _) = split_card(to.end);
-
-    let n_moved = dst_rank - src_rank;
-
-    return (
-        pop_card(from, n_moved),
-        Pile {
-            start_rank: to.start_rank,
-            end: from.end,
-            suit: (to.suit << n_moved) | (from.suit & ((1 << n_moved) - 1)),
-        },
-    );
-}
-
 pub fn gen_moves_(game: &Solitaire, moves: &mut Vec<MoveType>) {
     // let mut moves = vec![(Pos::Deck, Pos::Deck)];
     moves.clear();
 
     // src = src.Deck
     {
-        let (current_deal, next_deal) = iter_deck(&game);
+        let (current_deal, next_deal) = game.deck.iters();
         for (pos, card) in current_deal.chain(next_deal) {
             let (rank, suit) = split_card(*card);
             if rank < N_RANKS && game.final_stack[suit as usize] == rank {
@@ -303,11 +303,43 @@ pub fn gen_moves_(game: &Solitaire, moves: &mut Vec<MoveType>) {
         }
 
         for (other_id, other_pile) in game.visible_piles.iter().enumerate() {
-            if id != other_id && movable(other_pile, pile) {
+            if id != other_id && other_pile.movable_to(pile) {
                 moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
             }
         }
     }
+}
+
+pub fn peek_deck(d: &Deck, id: u8) -> CardType {
+    assert!(d.draw_cur <= d.draw_next && id < d.draw_cur || id >= d.draw_next && id < d.n_deck);
+    return d.deck[id as usize];
+}
+
+pub fn draw_deck(d: &mut Deck, id: u8) {
+    assert!(d.draw_cur <= d.draw_next && id < d.draw_cur || id >= d.draw_next && id < d.n_deck);
+
+    let step = if id < d.draw_cur {
+        let step = d.draw_cur - id;
+        if d.draw_cur != d.draw_next {
+            // moving stuff
+            d.deck.copy_within(
+                (d.draw_cur - step) as usize..(d.draw_cur as usize),
+                (d.draw_next - step) as usize,
+            );
+        }
+        step.wrapping_neg()
+    } else {
+        let step = id - d.draw_next;
+
+        d.deck.copy_within(
+            (d.draw_next) as usize..(d.draw_next + step) as usize,
+            d.draw_cur as usize,
+        );
+        step
+    };
+
+    d.draw_cur = d.draw_cur.wrapping_add(step);
+    d.draw_next = d.draw_next.wrapping_add(step.wrapping_add(1));
 }
 
 pub fn gen_moves(game: &Solitaire) -> Vec<MoveType> {
@@ -332,33 +364,8 @@ pub fn do_move(game: &mut Solitaire, m: &MoveType) -> i32 {
 
     match src {
         &Pos::Deck(id) => {
-            let deck_card = game.deck[id as usize];
-            {
-                assert!(game.draw_cur <= game.draw_next);
-
-                let step = if id < game.draw_cur {
-                    let step = game.draw_cur - id;
-                    if game.draw_cur != game.draw_next {
-                        // moving stuff
-                        game.deck.copy_within(
-                            (game.draw_cur - step) as usize..(game.draw_cur as usize),
-                            (game.draw_next - step) as usize,
-                        );
-                    }
-                    step.wrapping_neg()
-                } else {
-                    let step = id - game.draw_next;
-
-                    game.deck.copy_within(
-                        (game.draw_next) as usize..(game.draw_next + step) as usize,
-                        game.draw_cur as usize,
-                    );
-                    step
-                };
-
-                game.draw_cur = game.draw_cur.wrapping_add(step);
-                game.draw_next = game.draw_next.wrapping_add(step.wrapping_add(1));
-            }
+            let deck_card = peek_deck(&game.deck, id);
+            draw_deck(&mut game.deck, id);
 
             // not dealing with redealt yet :)
             match dst {
@@ -366,7 +373,7 @@ pub fn do_move(game: &mut Solitaire, m: &MoveType) -> i32 {
                 Pos::Stack(_) => return 20,
                 &Pos::Pile(id_pile) => {
                     let ref mut pile = game.visible_piles[id_pile as usize];
-                    *pile = push_card(&pile, deck_card);
+                    *pile = pile.push(deck_card);
                     return 5;
                 }
             }
@@ -376,7 +383,7 @@ pub fn do_move(game: &mut Solitaire, m: &MoveType) -> i32 {
                 &Pos::Pile(id_pile) => {
                     let card: u8 = make_card(game.final_stack[id as usize], id);
                     let ref mut pile = game.visible_piles[id_pile as usize];
-                    *pile = push_card(pile, card);
+                    *pile = pile.push(card);
                     return -15;
                 }
                 _ => unreachable!(),
@@ -386,14 +393,12 @@ pub fn do_move(game: &mut Solitaire, m: &MoveType) -> i32 {
             let mut reward = match dst {
                 Pos::Stack(_) => {
                     let ref mut pile = game.visible_piles[id as usize];
-                    *pile = pop_card(pile, 1);
+                    *pile = pile.pop(1);
                     15
                 }
                 &Pos::Pile(id_pile) => {
-                    let (new_from, new_to) = move_pile(
-                        &game.visible_piles[id as usize],
-                        &game.visible_piles[id_pile as usize],
-                    );
+                    let (new_from, new_to) = game.visible_piles[id as usize]
+                        .move_to(&game.visible_piles[id_pile as usize]);
                     game.visible_piles[id as usize] = new_from;
                     game.visible_piles[id_pile as usize] = new_to;
                     0
@@ -402,8 +407,8 @@ pub fn do_move(game: &mut Solitaire, m: &MoveType) -> i32 {
             };
 
             // unlocking hidden cards
-            if is_empty(&game.visible_piles[id as usize]) {
-                game.visible_piles[id as usize] = create_pile(pop_hidden(game, id));
+            if game.visible_piles[id as usize].is_empty() {
+                game.visible_piles[id as usize] = Pile::from_card(pop_hidden(game, id));
                 reward += 5;
             }
 
@@ -428,10 +433,6 @@ pub fn print_card(card: CardType, end: &str) {
 
 pub fn display(game: &Solitaire) {
     print!("Deck 0: ");
-
-    for card in &game.deck[game.draw_cur.saturating_sub(3) as usize..game.draw_cur as usize] {
-        print_card(*card, " ");
-    }
 
     print!("\t\t");
 
@@ -460,12 +461,12 @@ pub fn display(game: &Solitaire) {
             let ref cur_pile = game.visible_piles[j as usize];
 
             let n_hidden = game.n_hidden[j as usize];
-            let n_visible = pile_length(cur_pile);
+            let n_visible = cur_pile.len();
             if n_hidden > i {
                 print!("**\t");
                 is_print = true;
             } else if i < n_hidden + n_visible {
-                print_card(get_card_top(cur_pile, i - n_hidden), "\t");
+                print_card(cur_pile.top(i - n_hidden), "\t");
                 is_print = true;
             } else {
                 print!("  \t");
