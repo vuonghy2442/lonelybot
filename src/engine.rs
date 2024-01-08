@@ -35,7 +35,7 @@ impl fmt::Display for Card {
             write!(
                 f,
                 "{}{}",
-                NUMBERS[u as usize].on_white(),
+                NUMBERS[u as usize].black().on_white(),
                 SYMBOLS[v as usize].on_white().color(COLOR[v as usize])
             )
         } else {
@@ -255,7 +255,7 @@ impl Deck {
         );
     }
 
-    pub fn iter_all(self: &Deck) -> impl Iterator<Item = (u8, &Card, Drawable)> {
+    fn iter_all(self: &Deck) -> impl Iterator<Item = (u8, &Card, Drawable)> {
         let head = self.deck[..self.draw_cur as usize]
             .iter()
             .enumerate()
@@ -517,12 +517,13 @@ impl Solitaire {
 
     pub fn display(self: &Solitaire) {
         for (pos, card, t) in self.deck.iter_all() {
-            let (c1, c2) = match t {
-                Drawable::None => (' ', ' '),
-                Drawable::Current => ('(', ')'),
-                Drawable::Next => ('[', ']'),
+            let s = format!("{} ", pos);
+            let prefix = match t {
+                Drawable::None => s.bright_black(),
+                Drawable::Current => s.on_blue(),
+                Drawable::Next => s.on_bright_blue(),
             };
-            print!(" {}.{}{}{}", pos, c1, card, c2);
+            print!("{}{} ", prefix, card);
         }
         println!();
 
