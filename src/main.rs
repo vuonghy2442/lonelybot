@@ -24,18 +24,24 @@ const fn pos_to_num(p: &Pos) -> i8 {
 }
 
 fn benchmark() {
-    let mut game = Solitaire::new(&generate_shuffled_deck(12), 3);
     let mut rng = StdRng::seed_from_u64(14);
 
     let mut moves = Vec::<MoveType>::new();
 
+    let mut total_moves = 0;
     let now = Instant::now();
-    for _ in 0..1000 {
-        game.gen_moves_(&mut moves);
-        game.do_move(moves.choose(&mut rng).unwrap());
+    for i in 0..100 {
+        let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+        for _ in 0..100 {
+            game.gen_moves_(&mut moves);
+            if moves.len() == 0 {
+                break;
+            }
+            game.do_move(moves.choose(&mut rng).unwrap());
+            total_moves += 1;
+        }
     }
-    println!("{} op/s", 1000f64 / now.elapsed().as_secs_f64());
-    game.display();
+    println!("{} {} op/s", total_moves, (total_moves as f64) / now.elapsed().as_secs_f64());
 }
 
 fn main() {

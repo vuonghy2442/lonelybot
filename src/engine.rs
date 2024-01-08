@@ -208,12 +208,12 @@ enum Drawable {
 }
 
 impl Deck {
-    pub fn new(deck: &[Card], draw_step: u8) -> Deck {
+    pub fn new(deck: &[Card; N_FULL_DECK], draw_step: u8) -> Deck {
         assert!(deck.len() == N_FULL_DECK);
         let draw_step = std::cmp::min(N_FULL_DECK as u8, draw_step);
 
         return Deck {
-            deck: deck.try_into().unwrap(),
+            deck: *deck,
             n_deck: deck.len() as u8,
             draw_step,
             draw_next: draw_step,
@@ -365,7 +365,12 @@ impl Solitaire {
 
         let visible_piles: [Pile; N_PILES as usize] = visible_cards.map(|c| Pile::from_card(c));
 
-        let deck: Deck = Deck::new(&cards[(N_HIDDEN_CARDS + N_PILES) as usize..], draw_step);
+        let deck: Deck = Deck::new(
+            cards[(N_HIDDEN_CARDS + N_PILES) as usize..]
+                .try_into()
+                .unwrap(),
+            draw_step,
+        );
 
         let final_stack: [u8; 4] = [0u8; 4];
 
