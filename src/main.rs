@@ -24,29 +24,29 @@ const fn pos_to_num(p: &Pos) -> i8 {
 }
 
 fn benchmark() {
-    let mut game = generate_game(&generate_random_deck(12), 3);
+    let mut game = Solitaire::new(&generate_shuffled_deck(12), 3);
     let mut rng = StdRng::seed_from_u64(14);
 
     let mut moves = Vec::<MoveType>::new();
 
     let now = Instant::now();
     for _ in 0..1000 {
-        gen_moves_(&game, &mut moves);
-        do_move(&mut game, moves.choose(&mut rng).unwrap());
+        game.gen_moves_(&mut moves);
+        game.do_move(moves.choose(&mut rng).unwrap());
     }
     println!("{} op/s", 1000f64 / now.elapsed().as_secs_f64());
-    display(&game);
+    game.display();
 }
 
 fn main() {
     benchmark();
 
     println!("Hello, world!");
-    let mut game = generate_game(&generate_random_deck(12), 3);
+    let mut game = Solitaire::new(&generate_shuffled_deck(12), 3);
     let mut line = String::new();
     loop {
-        display(&game);
-        let moves = gen_moves(&game);
+        game.display();
+        let moves = game.gen_moves();
 
         // {
         //     let (current_deal, next_deal) = iter_deck(&game);
@@ -82,7 +82,7 @@ fn main() {
             .map(|x| x.parse::<i8>().ok())
             .collect();
         if let Some([src, dst]) = res.as_deref() {
-            do_move(&mut game, &(num_to_pos(*src), num_to_pos(*dst)));
+            game.do_move(&(num_to_pos(*src), num_to_pos(*dst)));
         } else {
             println!("Invalid move");
         }
