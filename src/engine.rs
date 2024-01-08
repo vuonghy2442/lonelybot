@@ -201,6 +201,12 @@ fn optional_split_last<T>(
     );
 }
 
+enum Drawable {
+    None,
+    Current,
+    Next,
+}
+
 impl Deck {
     pub fn new(deck: &[Card], draw_step: u8) -> Deck {
         assert!(deck.len() == N_FULL_DECK);
@@ -247,6 +253,45 @@ impl Deck {
                 .step_by(draw_step)
                 .chain(tail.skip(offset).step_by(draw_step)),
         );
+    }
+
+    pub fn iter_all(self: &Deck) -> impl Iterator<Item = (u8, &Card, Drawable)> {
+        let head = self.deck[..self.draw_cur as usize]
+            .iter()
+            .enumerate()
+            .map(|x| {
+                let pos = x.0 as u8;
+                (
+                    pos,
+                    x.1,
+                    if pos + 1 == self.draw_cur {
+                        Drawable::Current
+                    } else if (pos + 1) % self.draw_step == 0 {
+                        Drawable::Next
+                    } else {
+                        Drawable::None
+                    },
+                )
+            });
+
+        let tail = self.deck[self.draw_next as usize..self.n_deck as usize]
+            .iter()
+            .enumerate()
+            .map(|x| {
+                let pos = x.0 as u8;
+                (
+                    self.draw_next + pos,
+                    x.1,
+                    if pos + 1 == self.n_deck - self.draw_next || (pos + 1) % self.draw_step == 0 {
+                        Drawable::Current
+                    } else if (self.draw_cur + pos + 1) % self.draw_step == 0 {
+                        Drawable::Next
+                    } else {
+                        Drawable::None
+                    },
+                )
+            });
+        return head.chain(tail);
     }
 
     pub fn peek(self: &Deck, id: u8) -> Card {
@@ -471,7 +516,15 @@ impl Solitaire {
     }
 
     pub fn display(self: &Solitaire) {
-        print!("Deck 0: ");
+        for (pos, card, t) in self.deck.iter_all() {
+            let (c1, c2) = match t {
+                Drawable::None => (' ', ' '),
+                Drawable::Current => ('(', ')'),
+                Drawable::Next => ('[', ']'),
+            };
+            print!(" {}.{}{}{}", pos, c1, card, c2);
+        }
+        println!();
 
         print!("\t\t");
 

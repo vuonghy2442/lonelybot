@@ -41,7 +41,6 @@ fn benchmark() {
 fn main() {
     benchmark();
 
-    println!("Hello, world!");
     let mut game = Solitaire::new(&generate_shuffled_deck(12), 3);
     let mut line = String::new();
     loop {
