@@ -519,8 +519,26 @@ impl Solitaire {
             }
         }
     }
+}
 
-    pub fn display(self: &Solitaire) {
+fn print_card_solvitaire(f: &mut fmt::Formatter<'_>, c: Card) -> fmt::Result {
+    let (rank, suit) = c.split();
+    write!(
+        f,
+        "{}{},",
+        NUMBERS[rank as usize],
+        match suit {
+            0 => "h",
+            1 => "d",
+            2 => "c",
+            3 => "s",
+            _ => "x",
+        }
+    )
+}
+
+impl fmt::Display for Solitaire {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (pos, card, t) in self.deck.iter_all() {
             let s = format!("{} ", pos);
             let prefix = match t {
@@ -528,11 +546,11 @@ impl Solitaire {
                 Drawable::Current => s.on_blue(),
                 Drawable::Next => s.on_bright_blue(),
             };
-            print!("{}{} ", prefix, card);
+            write!(f, "{}{} ", prefix, card)?;
         }
-        println!();
+        writeln!(f)?;
 
-        print!("\t\t");
+        write!(f, "\t\t")?;
 
         for i in 0u8..4u8 {
             let card = self.final_stack[i as usize];
@@ -541,14 +559,14 @@ impl Solitaire {
             } else {
                 Card::new(card - 1, i)
             };
-            print!("{}.{} ", i + 1, card);
+            write!(f, "{}.{} ", i + 1, card)?;
         }
-        println!();
+        writeln!(f)?;
 
         for i in 0..N_PILES {
-            print!("{}\t", i + 5)
+            write!(f, "{}\t", i + 5)?;
         }
-        println!();
+        writeln!(f)?;
 
         let mut i = 0; // skip the hidden layer
 
@@ -560,21 +578,56 @@ impl Solitaire {
                 let n_hidden = self.n_hidden[j as usize];
                 let n_visible = cur_pile.len();
                 if n_hidden > i {
-                    print!("**\t");
+                    write!(f, "**\t")?;
                     is_print = true;
                 } else if i < n_hidden + n_visible {
-                    print!("{}\t", cur_pile.top(i - n_hidden));
+                    write!(f, "{}\t", cur_pile.top(i - n_hidden))?;
                     is_print = true;
                 } else {
-                    print!("  \t");
+                    write!(f, "  \t")?;
                 }
             }
-            println!();
+            writeln!(f)?;
             i += 1;
             if !is_print {
                 break;
             }
         }
+        Ok(())
+    }
+}
+
+pub struct Solvitaire(Solitaire);
+impl Solvitaire {
+    pub fn new(deck: &CardDeck, draw_step: u8) -> Solvitaire {
+        Solvitaire {
+            0: Solitaire::new(deck, draw_step),
+        }
+    }
+}
+
+impl fmt::Display for Solvitaire {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "klondike,{}", self.0.deck.draw_step)?;
+
+        for i in 0..N_PILES as usize {
+            write!(f, "{}", "   ".repeat(i))?;
+
+            for j in 0..N_PILES as usize {
+                if i < j {
+                    // hidden cards
+                    print_card_solvitaire(f, self.0.hidden_piles[j * (j - 1) / 2 + i])?;
+                } else if i == j {
+                    print_card_solvitaire(f, self.0.visible_piles[i].end)?;
+                }
+            }
+            writeln!(f)?;
+        }
+
+        for c in self.0.deck.deck {
+            print_card_solvitaire(f, c)?;
+        }
+        Ok(())
     }
 }
 

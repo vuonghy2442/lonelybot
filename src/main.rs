@@ -41,16 +41,24 @@ fn benchmark() {
             total_moves += 1;
         }
     }
-    println!("{} {} op/s", total_moves, (total_moves as f64) / now.elapsed().as_secs_f64());
+    println!(
+        "{} {} op/s",
+        total_moves,
+        (total_moves as f64) / now.elapsed().as_secs_f64()
+    );
 }
 
 fn main() {
     benchmark();
 
-    let mut game = Solitaire::new(&generate_shuffled_deck(12), 3);
+    let shuffled_deck = generate_shuffled_deck(12);
+
+    println!("{}", Solvitaire::new(&shuffled_deck, 3));
+    let mut game = Solitaire::new(&shuffled_deck, 3);
+
     let mut line = String::new();
     loop {
-        game.display();
+        print!("{}", game);
         let moves = game.gen_moves();
 
         println!(
