@@ -10,7 +10,7 @@ pub enum Pos {
     Pile(u8),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card(u8);
 
 pub type MoveType = (Pos, Pos);
@@ -651,5 +651,38 @@ mod tests {
             game.gen_moves(),
             vec![(Pos::Deck(2), Pos::Pile(3)), (Pos::Pile(5), Pos::Stack(3))],
         );
+    }
+
+    #[test]
+    fn test_draw_unrolling() {
+        let mut rng = StdRng::seed_from_u64(14);
+
+        let mut moves = Vec::<MoveType>::new();
+
+        for i in 0..100 {
+            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            for _ in 0..100 {
+                let (iter_cur, iter_next) = game.deck.iters();
+                let check_cur = game
+                    .deck
+                    .iter_all()
+                    .filter(|x| matches!(x.2, Drawable::Current))
+                    .map(|x| x.1);
+                let check_next = game
+                    .deck
+                    .iter_all()
+                    .filter(|x| matches!(x.2, Drawable::Next))
+                    .map(|x| x.1);
+
+                assert!(iter_cur.map(|x| x.1).eq(check_cur));
+                assert!(iter_next.map(|x| x.1).eq(check_next));
+
+                game.gen_moves_(&mut moves);
+                if moves.len() == 0 {
+                    break;
+                }
+                game.do_move(moves.choose(&mut rng).unwrap());
+            }
+        }
     }
 }
