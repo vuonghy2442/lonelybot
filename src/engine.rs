@@ -221,27 +221,26 @@ pub struct Deck {
     encoded: u32,
 }
 
-fn optional_split_last<T>(
-    slice: &[T],
-    start: usize,
-    end: usize,
-) -> (
-    impl Iterator<Item = (usize, &T)> + Clone,
-    Option<(usize, &T)>,
-) {
-    return (
-        slice[..end.saturating_sub(1)]
-            .iter()
-            .enumerate()
-            .skip(start),
-        slice[start..end].last().map(|x| (end - 1, x)),
-    );
+fn optional_split_last<T>(slice: &[T]) -> (&[T], Option<&T>) {
+    if slice.len() > 0 {
+        let (s, v) = slice.split_last().unwrap();
+        return (v, Some(s));
+    } else {
+        return (slice, None);
+    }
 }
 
 enum Drawable {
     None,
     Current,
     Next,
+}
+
+fn index_of_unchecked<T>(slice: &[T], item: &T) -> usize {
+    if ::std::mem::size_of::<T>() == 0 {
+        return 0; // do what you will with this case
+    }
+    (item as *const _ as usize - slice.as_ptr() as usize) / std::mem::size_of::<T>()
 }
 
 impl Deck {
@@ -260,18 +259,13 @@ impl Deck {
         };
     }
 
-    pub fn iters(
-        self: &Deck,
-    ) -> (
-        impl Iterator<Item = (usize, &Card)>,
-        impl Iterator<Item = (usize, &Card)>,
-    ) {
+    pub fn iter(self: &Deck) -> impl Iterator<Item = (usize, &Card)> {
         let n_deck = self.n_deck as usize;
         let draw_cur = self.draw_cur as usize;
         let draw_next = self.draw_next as usize;
         let draw_step = self.draw_step as usize;
-        let (head, cur) = optional_split_last(&self.deck, 0, draw_cur);
-        let (tail, last) = optional_split_last(&self.deck, draw_next, n_deck);
+        let (head, cur) = optional_split_last(&self.deck[0..draw_cur]);
+        let (tail, last) = optional_split_last(&self.deck[draw_next..n_deck]);
 
         // non redealt
 
@@ -284,14 +278,23 @@ impl Deck {
             offset
         };
 
-        return (
-            cur.into_iter()
-                .chain(tail.clone().skip(draw_step - 1).step_by(draw_step))
-                .chain(last.into_iter()),
-            head.skip(draw_step - 1)
-                .step_by(draw_step)
-                .chain(tail.skip(offset).step_by(draw_step)),
-        );
+        return cur
+            .into_iter()
+            .chain(tail.iter().skip(draw_step - 1).step_by(draw_step))
+            .chain(last.into_iter())
+            .chain(head.iter().skip(draw_step - 1).step_by(draw_step))
+            .chain(tail.iter().skip(offset).step_by(draw_step))
+            .map(move |x| {
+                let pos = index_of_unchecked(&self.deck, x);
+                (
+                    if pos >= draw_next {
+                        pos - draw_next + draw_cur
+                    } else {
+                        pos
+                    },
+                    x,
+                )
+            });
     }
 
     fn iter_all(self: &Deck) -> impl Iterator<Item = (u8, &Card, Drawable)> {
@@ -319,7 +322,7 @@ impl Deck {
             .map(|x| {
                 let pos = x.0 as u8;
                 (
-                    self.draw_next + pos,
+                    self.draw_cur + pos,
                     x.1,
                     if pos + 1 == self.n_deck - self.draw_next || (pos + 1) % self.draw_step == 0 {
                         Drawable::Current
@@ -335,16 +338,19 @@ impl Deck {
 
     pub fn peek(self: &Deck, id: u8) -> Card {
         assert!(
-            self.draw_cur <= self.draw_next && id < self.draw_cur
-                || id >= self.draw_next && id < self.n_deck
+            self.draw_cur <= self.draw_next && (id < self.n_deck - self.draw_next + self.draw_cur)
         );
-        return self.deck[id as usize];
+
+        self.deck[if id < self.draw_cur {
+            id
+        } else {
+            id - self.draw_cur + self.draw_next
+        } as usize]
     }
 
     pub fn draw(self: &mut Deck, id: u8) -> Card {
         assert!(
-            self.draw_cur <= self.draw_next && id < self.draw_cur
-                || id >= self.draw_next && id < self.n_deck
+            self.draw_cur <= self.draw_next && (id < self.n_deck - self.draw_next + self.draw_cur)
         );
 
         let draw_card = self.peek(id);
@@ -361,7 +367,7 @@ impl Deck {
             }
             step.wrapping_neg()
         } else {
-            let step = id - self.draw_next;
+            let step = id - self.draw_cur;
 
             self.deck.copy_within(
                 (self.draw_next) as usize..(self.draw_next + step) as usize,
@@ -466,18 +472,15 @@ impl Solitaire {
         moves.clear();
 
         // src = src.Deck
-        {
-            let (current_deal, next_deal) = self.deck.iters();
-            for (pos, card) in current_deal.chain(next_deal) {
-                let (rank, suit) = card.split();
-                if rank < N_RANKS && self.final_stack[suit as usize] == rank {
-                    moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
-                }
-                for (id, pile) in self.visible_piles.iter().enumerate() {
-                    let dst_card = pile.end;
-                    if dst_card.go_before(card) {
-                        moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
-                    }
+        for (pos, card) in self.deck.iter() {
+            let (rank, suit) = card.split();
+            if rank < N_RANKS && self.final_stack[suit as usize] == rank {
+                moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
+            }
+            for (id, pile) in self.visible_piles.iter().enumerate() {
+                let dst_card = pile.end;
+                if dst_card.go_before(card) {
+                    moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
                 }
             }
         }
@@ -815,7 +818,7 @@ mod tests {
         for i in 0..100 {
             let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
             for _ in 0..100 {
-                let (iter_cur, iter_next) = game.deck.iters();
+                let iter_org = game.deck.iter();
                 let check_cur = game
                     .deck
                     .iter_all()
@@ -827,8 +830,7 @@ mod tests {
                     .filter(|x| matches!(x.2, Drawable::Next))
                     .map(|x| x.1);
 
-                assert!(iter_cur.map(|x| x.1).eq(check_cur));
-                assert!(iter_next.map(|x| x.1).eq(check_next));
+                assert!(iter_org.map(|x| x.1).eq(check_cur.chain(check_next)));
 
                 game.gen_moves_(&mut moves);
                 if moves.len() == 0 {
