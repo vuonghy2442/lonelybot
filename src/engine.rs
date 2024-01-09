@@ -1,8 +1,12 @@
 use core::fmt;
 
+use crate::card::{Card, N_CARDS, N_RANKS, N_SUITS};
+use crate::deck::{Deck, Drawable, N_HIDDEN_CARDS, N_PILES};
+use crate::pile::Pile;
+
 use concat_arrays::concat_arrays;
 
-use colored::{Color, Colorize};
+use colored::Colorize;
 use rand::prelude::*;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -12,386 +16,8 @@ pub enum Pos {
     Pile(u8),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Card(u8);
-
+pub type CardDeck = [Card; N_CARDS as usize];
 pub type MoveType = (Pos, Pos);
-
-const N_SUITS: u8 = 4;
-const N_RANKS: u8 = 13;
-const N_CARDS: u8 = N_SUITS * N_RANKS;
-
-const COLOR: [Color; N_SUITS as usize] = [Color::Red, Color::Red, Color::Black, Color::Black];
-
-const SYMBOLS: [&'static str; N_SUITS as usize] = ["♥", "♦", "♣", "♠"];
-const NUMBERS: [&'static str; N_RANKS as usize] = [
-    "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
-];
-
-type CardDeck = [Card; N_CARDS as usize];
-
-impl fmt::Display for Card {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let (u, v) = self.split();
-        return if u < N_RANKS {
-            write!(
-                f,
-                "{}{}",
-                NUMBERS[u as usize].black().on_white(),
-                SYMBOLS[v as usize].on_white().color(COLOR[v as usize])
-            )
-        } else {
-            write!(f, "  ")
-        };
-    }
-}
-
-impl Card {
-    // suit = 1 to make sure it turn on the first bit in suit for deck
-    const FAKE: Card = Card::new(N_RANKS, 1);
-
-    pub const fn new(rank: u8, suit: u8) -> Card {
-        assert!(rank <= N_RANKS && suit < N_SUITS);
-        return Card {
-            0: rank * N_SUITS + suit,
-        };
-    }
-
-    pub const fn rank(self: &Card) -> u8 {
-        return self.0 / N_SUITS;
-    }
-
-    pub const fn suit(self: &Card) -> u8 {
-        return self.0 % N_SUITS;
-    }
-
-    pub const fn value(self: &Card) -> u8 {
-        return self.0;
-    }
-
-    pub const fn split(self: &Card) -> (u8, u8) {
-        return (self.rank(), self.suit());
-    }
-
-    const fn go_before(self: &Card, other: &Card) -> bool {
-        let card_a = self.split();
-        let card_b = other.split();
-        return card_a.0 == card_b.0 + 1 && (card_a.1 ^ card_b.1 >= 2 || card_a.0 >= N_RANKS);
-    }
-}
-
-const N_PILES: u8 = 7;
-const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES - 1) / 2;
-const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize;
-
-#[derive(Debug, Clone, Copy)]
-pub struct Pile {
-    start_rank: u8,
-    end: Card,
-    suit: u16,
-}
-
-impl Pile {
-    const fn from_card(c: Card) -> Pile {
-        return Pile {
-            start_rank: c.rank(),
-            end: c,
-            suit: (c.suit() & 1) as u16 + 2, // this is just for easier encoding
-        };
-    }
-
-    const fn is_empty(self: &Pile) -> bool {
-        return self.start_rank < self.end.rank();
-    }
-
-    const fn suit_type(self: &Pile) -> u8 {
-        let (rank, suit) = self.end.split();
-        return (rank & 1) ^ (suit / 2);
-    }
-
-    const fn len(self: &Pile) -> u8 {
-        return self.start_rank - self.end.rank() + 1;
-    }
-
-    const fn bottom(self: &Pile, pos: u8) -> Card {
-        let (rank, suit) = self.end.split();
-        return Card::new(
-            rank + pos,
-            (((suit / 2) ^ (pos & 1)) * 2) | (((self.suit >> pos) & 1) as u8),
-        );
-    }
-
-    const fn top(self: &Pile, pos: u8) -> Card {
-        let len = self.len();
-        assert!(pos < len);
-        return self.bottom(len - pos - 1);
-    }
-
-    const fn pop_(self: &Pile, step: u8) -> Pile {
-        assert!(self.len() >= step);
-
-        return Pile {
-            start_rank: self.start_rank,
-            end: self.bottom(step),
-            suit: self.suit >> step,
-        };
-    }
-
-    fn pop(self: &mut Pile, step: u8) {
-        *self = self.pop_(step);
-    }
-
-    const fn push_(self: &Pile, c: Card) -> Pile {
-        assert!(self.end.go_before(&c));
-
-        return Pile {
-            start_rank: self.start_rank,
-            end: c,
-            suit: (self.suit << 1) | ((c.suit() & 1) as u16),
-        };
-    }
-
-    fn push(self: &mut Pile, c: Card) {
-        *self = self.push_(c);
-    }
-
-    const fn movable_to(self: &Pile, to: &Pile) -> bool {
-        let start_rank = self.start_rank;
-        let end_rank = self.end.rank();
-        let dst_rank = to.end.rank();
-        return (self.suit_type() == to.suit_type() || dst_rank >= N_RANKS)
-            && end_rank < dst_rank
-            && dst_rank <= start_rank + 1;
-    }
-
-    const fn move_to_(self: &Pile, to: &Pile) -> (Pile, Pile) {
-        assert!(self.movable_to(to));
-        let src_rank = self.end.rank();
-        let dst_rank = to.end.rank();
-
-        let n_moved = dst_rank - src_rank;
-
-        return (
-            self.pop_(n_moved),
-            Pile {
-                start_rank: to.start_rank,
-                end: self.end,
-                suit: (to.suit << n_moved) | (self.suit & ((1 << n_moved) - 1)),
-            },
-        );
-    }
-
-    const fn encode(self: &Pile) -> u16 {
-        // the encoding is use 15 bits encoding the suit and the cards
-        // the format is like this
-        // 00001(marking start)..(suit max 13 bit)..1(marking end)000|<suit type>
-        let end_rank = self.end.rank();
-        let suit = ((self.suit << 1) | 1) << end_rank;
-        return (suit << 1) | (self.suit_type() as u16);
-    }
-}
-
-#[derive(Debug)]
-struct CardEncoder {
-    map_arr: [u32; N_CARDS as usize],
-}
-
-impl CardEncoder {
-    fn new(deck: &[Card; N_FULL_DECK]) -> CardEncoder {
-        let mut map_arr = [0u32; N_CARDS as usize];
-        for (i, c) in deck.iter().enumerate() {
-            map_arr[c.value() as usize] = 1u32 << i;
-        }
-        return CardEncoder { map_arr };
-    }
-
-    pub fn map(&self, id: Card) -> u32 {
-        return self.map_arr[id.value() as usize];
-    }
-}
-
-#[derive(Debug)]
-pub struct Deck {
-    deck: [Card; N_FULL_DECK],
-    n_deck: u8,
-    draw_step: u8,
-    draw_next: u8, // start position of next pile
-    draw_cur: u8,  // size of the previous pile
-    encoder: CardEncoder,
-    encoded: u32,
-}
-
-fn optional_split_last<T>(slice: &[T]) -> (&[T], Option<&T>) {
-    if slice.len() > 0 {
-        let (s, v) = slice.split_last().unwrap();
-        return (v, Some(s));
-    } else {
-        return (slice, None);
-    }
-}
-
-enum Drawable {
-    None,
-    Current,
-    Next,
-}
-
-fn index_of_unchecked<T>(slice: &[T], item: &T) -> usize {
-    if ::std::mem::size_of::<T>() == 0 {
-        return 0; // do what you will with this case
-    }
-    (item as *const _ as usize - slice.as_ptr() as usize) / std::mem::size_of::<T>()
-}
-
-impl Deck {
-    pub fn new(deck: &[Card; N_FULL_DECK], draw_step: u8) -> Deck {
-        assert!(deck.len() == N_FULL_DECK);
-        let draw_step = std::cmp::min(N_FULL_DECK as u8, draw_step);
-
-        return Deck {
-            deck: *deck,
-            n_deck: deck.len() as u8,
-            draw_step,
-            draw_next: draw_step,
-            draw_cur: draw_step,
-            encoder: CardEncoder::new(deck),
-            encoded: 0,
-        };
-    }
-
-    pub fn iter(self: &Deck) -> impl Iterator<Item = (usize, &Card)> {
-        let n_deck = self.n_deck as usize;
-        let draw_cur = self.draw_cur as usize;
-        let draw_next = self.draw_next as usize;
-        let draw_step = self.draw_step as usize;
-        let (head, cur) = optional_split_last(&self.deck[0..draw_cur]);
-        let (tail, last) = optional_split_last(&self.deck[draw_next..n_deck]);
-
-        // non redealt
-
-        let offset = draw_step - 1 - (draw_cur % draw_step);
-
-        // filter out if repeat :)
-        let offset = if offset == draw_step - 1 {
-            n_deck
-        } else {
-            offset
-        };
-
-        return cur
-            .into_iter()
-            .chain(tail.iter().skip(draw_step - 1).step_by(draw_step))
-            .chain(last.into_iter())
-            .chain(head.iter().skip(draw_step - 1).step_by(draw_step))
-            .chain(tail.iter().skip(offset).step_by(draw_step))
-            .map(move |x| {
-                let pos = index_of_unchecked(&self.deck, x);
-                (
-                    if pos >= draw_next {
-                        pos - draw_next + draw_cur
-                    } else {
-                        pos
-                    },
-                    x,
-                )
-            });
-    }
-
-    fn iter_all(self: &Deck) -> impl Iterator<Item = (u8, &Card, Drawable)> {
-        let head = self.deck[..self.draw_cur as usize]
-            .iter()
-            .enumerate()
-            .map(|x| {
-                let pos = x.0 as u8;
-                (
-                    pos,
-                    x.1,
-                    if pos + 1 == self.draw_cur {
-                        Drawable::Current
-                    } else if (pos + 1) % self.draw_step == 0 {
-                        Drawable::Next
-                    } else {
-                        Drawable::None
-                    },
-                )
-            });
-
-        let tail = self.deck[self.draw_next as usize..self.n_deck as usize]
-            .iter()
-            .enumerate()
-            .map(|x| {
-                let pos = x.0 as u8;
-                (
-                    self.draw_cur + pos,
-                    x.1,
-                    if pos + 1 == self.n_deck - self.draw_next || (pos + 1) % self.draw_step == 0 {
-                        Drawable::Current
-                    } else if (self.draw_cur + pos + 1) % self.draw_step == 0 {
-                        Drawable::Next
-                    } else {
-                        Drawable::None
-                    },
-                )
-            });
-        return head.chain(tail);
-    }
-
-    pub fn peek(self: &Deck, id: u8) -> Card {
-        assert!(
-            self.draw_cur <= self.draw_next && (id < self.n_deck - self.draw_next + self.draw_cur)
-        );
-
-        self.deck[if id < self.draw_cur {
-            id
-        } else {
-            id - self.draw_cur + self.draw_next
-        } as usize]
-    }
-
-    pub fn draw(self: &mut Deck, id: u8) -> Card {
-        assert!(
-            self.draw_cur <= self.draw_next && (id < self.n_deck - self.draw_next + self.draw_cur)
-        );
-
-        let draw_card = self.peek(id);
-        self.encoded ^= self.encoder.map(draw_card);
-
-        let step = if id < self.draw_cur {
-            let step = self.draw_cur - id;
-            if self.draw_cur != self.draw_next {
-                // moving stuff
-                self.deck.copy_within(
-                    (self.draw_cur - step) as usize..(self.draw_cur as usize),
-                    (self.draw_next - step) as usize,
-                );
-            }
-            step.wrapping_neg()
-        } else {
-            let step = id - self.draw_cur;
-
-            self.deck.copy_within(
-                (self.draw_next) as usize..(self.draw_next + step) as usize,
-                self.draw_cur as usize,
-            );
-            step
-        };
-
-        self.draw_cur = self.draw_cur.wrapping_add(step);
-        self.draw_next = self.draw_next.wrapping_add(step.wrapping_add(1));
-        draw_card
-    }
-
-    pub fn encode(self: &Deck) -> u32 {
-        let offset = if self.draw_cur % self.draw_step == 0 {
-            // matched so offset is free
-            0
-        } else {
-            self.draw_cur
-        };
-        // this only takes 5 bit <= 32
-        return (self.encoded << 5) | (offset as u32);
-    }
-}
 
 #[derive(Debug)]
 pub struct Solitaire {
@@ -478,7 +104,7 @@ impl Solitaire {
                 moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
             }
             for (id, pile) in self.visible_piles.iter().enumerate() {
-                let dst_card = pile.end;
+                let dst_card = pile.end();
                 if dst_card.go_before(card) {
                     moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
                 }
@@ -487,7 +113,7 @@ impl Solitaire {
 
         // move to deck
         for (id, pile) in self.visible_piles.iter().enumerate() {
-            let dst_card = pile.end;
+            let dst_card = pile.end();
 
             let (rank, suit) = dst_card.split();
             if self.final_stack[suit as usize] == rank {
@@ -619,22 +245,6 @@ impl Solitaire {
     }
 }
 
-fn print_card_solvitaire(f: &mut fmt::Formatter<'_>, c: Card) -> fmt::Result {
-    let (rank, suit) = c.split();
-    write!(
-        f,
-        "{}{},",
-        NUMBERS[rank as usize],
-        match suit {
-            0 => "h",
-            1 => "d",
-            2 => "c",
-            3 => "s",
-            _ => "x",
-        }
-    )
-}
-
 impl fmt::Display for Solitaire {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (pos, card, t) in self.deck.iter_all() {
@@ -706,7 +316,7 @@ impl Solvitaire {
 
 impl fmt::Display for Solvitaire {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "klondike,{}", self.0.deck.draw_step)?;
+        writeln!(f, "klondike,{}", self.0.deck.draw_step())?;
 
         for i in 0..N_PILES as usize {
             write!(f, "{}", "   ".repeat(i))?;
@@ -714,16 +324,16 @@ impl fmt::Display for Solvitaire {
             for j in 0..N_PILES as usize {
                 if i < j {
                     // hidden cards
-                    print_card_solvitaire(f, self.0.hidden_piles[j * (j - 1) / 2 + i])?;
+                    self.0.hidden_piles[j * (j - 1) / 2 + i].print_solvitaire(f)?;
                 } else if i == j {
-                    print_card_solvitaire(f, self.0.visible_piles[i].end)?;
+                    self.0.visible_piles[i].end().print_solvitaire(f)?;
                 }
             }
             writeln!(f)?;
         }
 
-        for c in self.0.deck.deck {
-            print_card_solvitaire(f, c)?;
+        for (_, c, _) in self.0.deck.iter_all() {
+            c.print_solvitaire(f)?;
         }
         Ok(())
     }
@@ -748,7 +358,7 @@ mod tests {
             18, 32, 7, 49, 3, 19, 8, 44, 4, 51, 2, 15, 40, 35, 43, 22, 12, 42, 26, 23, 24, 5, 6,
             48, 27, 45, 47, 29, 34, 25,
         ]
-        .map(|i| Card { 0: i });
+        .map(|i| Card::new(i / N_SUITS, i % N_SUITS));
         let mut game = Solitaire::new(&cards, 3);
         assert_moves(
             game.gen_moves(),

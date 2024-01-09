@@ -9,3 +9,6 @@ edition = "2021"
 colored = "2.1.0"
 rand = "0.8.5"
 concat-arrays = "0.1.2"
+
+[profile.release]
+lto = true
