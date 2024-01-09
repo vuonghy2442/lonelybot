@@ -47,7 +47,8 @@ impl fmt::Display for Card {
 }
 
 impl Card {
-    const FAKE: Card = Card::new(N_RANKS, 0);
+    // suit = 1 to make sure it turn on the first bit in suit for deck
+    const FAKE: Card = Card::new(N_RANKS, 1);
 
     pub const fn new(rank: u8, suit: u8) -> Card {
         assert!(rank <= N_RANKS && suit < N_SUITS);
@@ -83,7 +84,7 @@ const N_PILES: u8 = 7;
 const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES - 1) / 2;
 const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub struct Pile {
     start_rank: u8,
     end: Card,
@@ -589,13 +590,29 @@ impl Solitaire {
         });
     }
 
+    fn encode_piles(self: &Solitaire) -> [u16; N_PILES as usize] {
+        // a bit slow maybe optimize later :(
+        let mut res = [0u16; N_PILES as usize]; // you can always ignore 0 since it's not a valid state
+        let mut i: usize = 0;
+        for k in 0..N_PILES as usize {
+            let encoded = self.visible_piles[k].encode();
+            if self.n_hidden[k] == 0 {
+                i += 1;
+                res[N_PILES as usize - i] = encoded;
+            } else {
+                res[k - i] = encoded;
+            }
+        }
+        res[N_PILES as usize - i..].sort_unstable();
+        res
+    }
+
     pub fn encode(self: &Solitaire) -> [u16; N_PILES as usize + 4] {
         // TODO: canonicalize the visible piles
         let deck_encode = self.deck.encode();
 
         let deck_encode: [u16; 2] = unsafe { std::mem::transmute(deck_encode) };
-        // TODO: use each_ref when it is ready, no need to copiable Pile type
-        let pile_encode = self.visible_piles.map(|x| x.encode());
+        let pile_encode = self.encode_piles();
         let stack_encode = self.encode_stack();
         let hidden_encode = self.encode_hidden();
         return concat_arrays!(deck_encode, pile_encode, [stack_encode], [hidden_encode]);
