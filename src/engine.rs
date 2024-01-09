@@ -1,5 +1,7 @@
 use core::fmt;
 
+use concat_arrays::concat_arrays;
+
 use colored::{Color, Colorize};
 use rand::prelude::*;
 
@@ -62,6 +64,10 @@ impl Card {
         return self.0 % N_SUITS;
     }
 
+    pub const fn value(self: &Card) -> u8 {
+        return self.0;
+    }
+
     pub const fn split(self: &Card) -> (u8, u8) {
         return (self.rank(), self.suit());
     }
@@ -77,7 +83,7 @@ const N_PILES: u8 = 7;
 const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES - 1) / 2;
 const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Pile {
     start_rank: u8,
     end: Card,
@@ -89,7 +95,7 @@ impl Pile {
         return Pile {
             start_rank: c.rank(),
             end: c,
-            suit: (c.suit() & 1) as u16,
+            suit: (c.suit() & 1) as u16 + 2, // this is just for easier encoding
         };
     }
 
@@ -173,6 +179,34 @@ impl Pile {
             },
         );
     }
+
+    const fn encode(self: &Pile) -> u16 {
+        // the encoding is use 15 bits encoding the suit and the cards
+        // the format is like this
+        // 00001(marking start)..(suit max 13 bit)..1(marking end)000|<suit type>
+        let end_rank = self.end.rank();
+        let suit = ((self.suit << 1) | 1) << end_rank;
+        return (suit << 1) | (self.suit_type() as u16);
+    }
+}
+
+#[derive(Debug)]
+struct CardEncoder {
+    map_arr: [u32; N_CARDS as usize],
+}
+
+impl CardEncoder {
+    fn new(deck: &[Card; N_FULL_DECK]) -> CardEncoder {
+        let mut map_arr = [0u32; N_CARDS as usize];
+        for (i, c) in deck.iter().enumerate() {
+            map_arr[c.value() as usize] = 1u32 << i;
+        }
+        return CardEncoder { map_arr };
+    }
+
+    pub fn map(&self, id: Card) -> u32 {
+        return self.map_arr[id.value() as usize];
+    }
 }
 
 #[derive(Debug)]
@@ -182,6 +216,8 @@ pub struct Deck {
     draw_step: u8,
     draw_next: u8, // start position of next pile
     draw_cur: u8,  // size of the previous pile
+    encoder: CardEncoder,
+    encoded: u32,
 }
 
 fn optional_split_last<T>(
@@ -218,6 +254,8 @@ impl Deck {
             draw_step,
             draw_next: draw_step,
             draw_cur: draw_step,
+            encoder: CardEncoder::new(deck),
+            encoded: 0,
         };
     }
 
@@ -302,11 +340,14 @@ impl Deck {
         return self.deck[id as usize];
     }
 
-    pub fn draw(self: &mut Deck, id: u8) {
+    pub fn draw(self: &mut Deck, id: u8) -> Card {
         assert!(
             self.draw_cur <= self.draw_next && id < self.draw_cur
                 || id >= self.draw_next && id < self.n_deck
         );
+
+        let draw_card = self.peek(id);
+        self.encoded ^= self.encoder.map(draw_card);
 
         let step = if id < self.draw_cur {
             let step = self.draw_cur - id;
@@ -330,6 +371,18 @@ impl Deck {
 
         self.draw_cur = self.draw_cur.wrapping_add(step);
         self.draw_next = self.draw_next.wrapping_add(step.wrapping_add(1));
+        draw_card
+    }
+
+    pub fn encode(self: &Deck) -> u32 {
+        let offset = if self.draw_cur % self.draw_step == 0 {
+            // matched so offset is free
+            0
+        } else {
+            self.draw_cur
+        };
+        // this only takes 5 bit <= 32
+        return (self.encoded << 5) | (offset as u32);
     }
 }
 
@@ -340,7 +393,7 @@ pub struct Solitaire {
 
     // start card ends card and flags
     visible_piles: [Pile; N_PILES as usize],
-    final_stack: [u8; 4],
+    final_stack: [u8; N_SUITS as usize],
     deck: Deck,
 }
 
@@ -473,8 +526,7 @@ impl Solitaire {
 
         match src {
             &Pos::Deck(id) => {
-                let deck_card = self.deck.peek(id);
-                self.deck.draw(id);
+                let deck_card = self.deck.draw(id);
 
                 // not dealing with redealt yet :)
                 match dst {
@@ -518,6 +570,35 @@ impl Solitaire {
                 return reward;
             }
         }
+    }
+
+    fn encode_stack(self: &Solitaire) -> u16 {
+        // considering to make it incremental?
+        return self
+            .final_stack
+            .iter()
+            .enumerate()
+            .map(|x| (*x.1 as u16) << (x.0 * 4))
+            .sum();
+    }
+
+    fn encode_hidden(self: &Solitaire) -> u16 {
+        // considering to make it incremental?
+        return self.n_hidden.iter().enumerate().fold(0, |prev, val| {
+            return prev * (val.0 as u16) + *val.1 as u16;
+        });
+    }
+
+    pub fn encode(self: &Solitaire) -> [u16; N_PILES as usize + 4] {
+        // TODO: canonicalize the visible piles
+        let deck_encode = self.deck.encode();
+
+        let deck_encode: [u16; 2] = unsafe { std::mem::transmute(deck_encode) };
+        // TODO: use each_ref when it is ready, no need to copiable Pile type
+        let pile_encode = self.visible_piles.map(|x| x.encode());
+        let stack_encode = self.encode_stack();
+        let hidden_encode = self.encode_hidden();
+        return concat_arrays!(deck_encode, pile_encode, [stack_encode], [hidden_encode]);
     }
 }
 

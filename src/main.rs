@@ -1,6 +1,7 @@
 pub mod engine;
 
 use rand::prelude::*;
+use std::hint::black_box;
 use std::io::Write;
 use std::time::Instant;
 
@@ -38,6 +39,7 @@ fn benchmark() {
                 break;
             }
             game.do_move(moves.choose(&mut rng).unwrap());
+            black_box(game.encode());
             total_moves += 1;
         }
     }
@@ -59,6 +61,8 @@ fn main() {
     let mut line = String::new();
     loop {
         print!("{}", game);
+
+        print!("{:?}", game.encode());
         let moves = game.gen_moves();
 
         println!(
