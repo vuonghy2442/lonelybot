@@ -84,7 +84,7 @@ const N_PILES: u8 = 7;
 const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES - 1) / 2;
 const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Pile {
     start_rank: u8,
     end: Card,
@@ -592,18 +592,15 @@ impl Solitaire {
 
     fn encode_piles(self: &Solitaire) -> [u16; N_PILES as usize] {
         // a bit slow maybe optimize later :(
-        let mut res = [0u16; N_PILES as usize]; // you can always ignore 0 since it's not a valid state
+        let mut res = self.visible_piles.map(|p| p.encode()); // you can always ignore 0 since it's not a valid state
         let mut i: usize = 0;
         for k in 0..N_PILES as usize {
-            let encoded = self.visible_piles[k].encode();
-            if self.n_hidden[k] == 0 {
+            if self.n_hidden[k] != 0 {
+                res.swap(i, k);
                 i += 1;
-                res[N_PILES as usize - i] = encoded;
-            } else {
-                res[k - i] = encoded;
             }
         }
-        res[N_PILES as usize - i..].sort_unstable();
+        res[i..].sort_unstable();
         res
     }
 
