@@ -38,6 +38,7 @@ fn benchmark() {
     for i in 0..100 {
         let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
         for _ in 0..100 {
+            moves.clear();
             game.gen_moves_(&mut moves);
             if moves.len() == 0 {
                 break;
@@ -114,17 +115,21 @@ fn run() {
     }
 }
 
-use std::thread;
-
-const STACK_SIZE: usize = 4 * 1024 * 1024;
-
 fn main() {
-    // Spawn thread with explicit stack size
-    let child = thread::Builder::new()
-        .stack_size(STACK_SIZE)
-        .spawn(run)
-        .unwrap();
-
-    // Wait for thread to join
-    child.join().unwrap();
+    run();
 }
+
+// use std::thread;
+
+// const STACK_SIZE: usize = 4 * 1024 * 1024;
+
+// fn main() {
+//     // Spawn thread with explicit stack size
+//     let child = thread::Builder::new()
+//         .stack_size(STACK_SIZE)
+//         .spawn(run)
+//         .unwrap();
+
+//     // Wait for thread to join
+//     child.join().unwrap();
+// }

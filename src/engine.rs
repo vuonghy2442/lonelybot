@@ -106,22 +106,6 @@ impl Solitaire {
     }
 
     pub fn gen_moves_(self: &Solitaire, moves: &mut Vec<MoveType>) {
-        moves.clear();
-
-        // src = src.Deck
-        for (pos, card) in self.deck.iter() {
-            let (rank, suit) = card.split();
-            if rank < N_RANKS && self.final_stack[suit as usize] == rank {
-                moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
-            }
-            for (id, pile) in self.visible_piles.iter().enumerate() {
-                let dst_card = pile.end();
-                if dst_card.go_before(card) {
-                    moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
-                }
-            }
-        }
-
         // move to deck
         for (id, pile) in self.visible_piles.iter().enumerate() {
             let dst_card = pile.end();
@@ -140,6 +124,19 @@ impl Solitaire {
             for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
                 if id != other_id && other_pile.movable_to(pile) {
                     moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
+                }
+            }
+        }
+        // src = src.Deck
+        for (pos, card) in self.deck.iter() {
+            let (rank, suit) = card.split();
+            if rank < N_RANKS && self.final_stack[suit as usize] == rank {
+                moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
+            }
+            for (id, pile) in self.visible_piles.iter().enumerate() {
+                let dst_card = pile.end();
+                if dst_card.go_before(card) {
+                    moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
                 }
             }
         }
@@ -529,6 +526,7 @@ mod tests {
 
                 assert!(iter_org.map(|x| x.1).eq(check_cur.chain(check_next)));
 
+                moves.clear();
                 game.gen_moves_(&mut moves);
                 if moves.len() == 0 {
                     break;
@@ -547,6 +545,7 @@ mod tests {
         for i in 0..100 {
             let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
             for _ in 0..100 {
+                moves.clear();
                 game.gen_moves_(&mut moves);
                 if moves.len() == 0 {
                     break;
@@ -585,6 +584,7 @@ mod tests {
             let mut enc = Vec::<Encode>::new();
 
             for _ in 0..100 {
+                moves.clear();
                 game.gen_moves_(&mut moves);
                 if moves.len() == 0 {
                     break;
