@@ -9,7 +9,7 @@ use concat_arrays::concat_arrays;
 use colored::Colorize;
 use rand::prelude::*;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Pos {
     Deck(u8),
     Stack(u8),

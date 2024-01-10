@@ -59,8 +59,15 @@ fn test_solve() {
     let mut g = Solitaire::new(&shuffled_deck, 3);
 
     let now = Instant::now();
-    println!("{}", solver::solve_game(&mut g));
+    let res = solver::solve_game(&mut g);
     println!("Solved in {} ms", now.elapsed().as_secs_f64() * 1000f64);
+    match res {
+        Some(moves) => {
+            println!("Solvable in {} moves", moves.len());
+            println!("{:?}", moves);
+        }
+        None => println!("Impossible"),
+    }
 }
 
 fn main() {
