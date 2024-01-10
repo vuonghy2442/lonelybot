@@ -36,7 +36,6 @@ fn index_of_unchecked<T>(slice: &[T], item: &T) -> usize {
 
 impl Deck {
     pub fn new(deck: &[Card; N_FULL_DECK], draw_step: u8) -> Deck {
-        assert!(deck.len() == N_FULL_DECK);
         let draw_step = std::cmp::min(N_FULL_DECK as u8, draw_step);
 
         return Deck {
@@ -129,8 +128,8 @@ impl Deck {
         return head.chain(tail);
     }
 
-    pub fn peek(self: &Deck, id: u8) -> Card {
-        assert!(
+    pub const fn peek(self: &Deck, id: u8) -> Card {
+        debug_assert!(
             self.draw_cur <= self.draw_next
                 && (id < N_FULL_DECK as u8 - self.draw_next + self.draw_cur)
         );
@@ -168,6 +167,7 @@ impl Deck {
         self.draw_cur = self.draw_cur.wrapping_add(step);
         self.draw_next = self.draw_next.wrapping_add(step);
     }
+
     pub fn pop_next(self: &mut Deck) -> Card {
         let card = self.deck[self.draw_next as usize];
         self.draw_next += 1;
@@ -185,7 +185,7 @@ impl Deck {
     }
 
     pub fn draw(self: &mut Deck, id: u8) -> Card {
-        assert!(
+        debug_assert!(
             self.draw_cur <= self.draw_next
                 && (id < N_FULL_DECK as u8 - self.draw_next + self.draw_cur)
         );

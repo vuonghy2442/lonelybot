@@ -36,7 +36,7 @@ impl Card {
     pub const FAKE: Card = Card::new(N_RANKS, 1);
 
     pub const fn new(rank: u8, suit: u8) -> Card {
-        assert!(rank <= N_RANKS && suit < N_SUITS);
+        debug_assert!(rank <= N_RANKS && suit < N_SUITS);
         return Card {
             0: rank * N_SUITS + suit,
         };

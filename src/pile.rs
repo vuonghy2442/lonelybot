@@ -45,12 +45,12 @@ impl Pile {
 
     pub const fn top(self: &Pile, pos: u8) -> Card {
         let len = self.len();
-        assert!(pos < len);
+        debug_assert!(pos < len);
         return self.bottom(len - pos - 1);
     }
 
     pub const fn pop_(self: &Pile, step: u8) -> Pile {
-        assert!(self.len() >= step);
+        debug_assert!(self.len() >= step);
 
         return Pile {
             start_rank: self.start_rank,
@@ -64,7 +64,7 @@ impl Pile {
     }
 
     pub const fn push_(self: &Pile, c: Card) -> Pile {
-        assert!(self.end.go_before(&c));
+        debug_assert!(self.end.go_before(&c));
 
         return Pile {
             start_rank: self.start_rank,
@@ -87,7 +87,7 @@ impl Pile {
     }
 
     pub const fn move_to_(self: &Pile, to: &Pile) -> (Pile, Pile) {
-        assert!(self.movable_to(to));
+        debug_assert!(self.movable_to(to));
         let src_rank = self.end.rank();
         let dst_rank = to.end.rank();
 

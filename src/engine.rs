@@ -153,11 +153,11 @@ impl Solitaire {
         let (src, dst) = m;
         // handling final stack
         if let &Pos::Stack(id) = src {
-            assert!(self.final_stack[id as usize] > 0);
+            debug_assert!(self.final_stack[id as usize] > 0);
             self.final_stack[id as usize] -= 1;
         }
         if let &Pos::Stack(id) = dst {
-            assert!(self.final_stack[id as usize] < N_RANKS);
+            debug_assert!(self.final_stack[id as usize] < N_RANKS);
             self.final_stack[id as usize] += 1;
         }
         // handling deck
@@ -280,11 +280,11 @@ impl Solitaire {
             }
         }
         if let &Pos::Stack(id) = src {
-            assert!(self.final_stack[id as usize] < N_RANKS);
+            debug_assert!(self.final_stack[id as usize] < N_RANKS);
             self.final_stack[id as usize] += 1;
         }
         if let &Pos::Stack(id) = dst {
-            assert!(self.final_stack[id as usize] > 0);
+            debug_assert!(self.final_stack[id as usize] > 0);
             self.final_stack[id as usize] -= 1;
         }
         // handling deck
