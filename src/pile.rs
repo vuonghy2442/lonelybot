@@ -39,6 +39,10 @@ impl Pile {
         );
     }
 
+    pub const fn start_rank(self: &Pile) -> u8 {
+        return self.start_rank;
+    }
+
     pub const fn end(self: &Pile) -> Card {
         return self.end;
     }

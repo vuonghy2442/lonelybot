@@ -106,27 +106,6 @@ impl Solitaire {
     }
 
     pub fn gen_moves_(self: &Solitaire, moves: &mut Vec<MoveType>) {
-        // move to deck
-        for (id, pile) in self.visible_piles.iter().enumerate() {
-            let dst_card = pile.end();
-
-            let (rank, suit) = dst_card.split();
-            if self.final_stack[suit as usize] == rank && rank < N_RANKS {
-                moves.push((Pos::Pile(id as u8), Pos::Stack(suit)));
-            }
-
-            for i in 1..2u8 {
-                if rank > 0 && self.final_stack[(suit ^ i ^ 2) as usize] == rank {
-                    moves.push((Pos::Stack(suit ^ i ^ 2), Pos::Pile(id as u8)));
-                }
-            }
-
-            for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
-                if id != other_id && other_pile.movable_to(pile) {
-                    moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
-                }
-            }
-        }
         // src = src.Deck
         for (pos, card) in self.deck.iter() {
             let (rank, suit) = card.split();
@@ -140,7 +119,83 @@ impl Solitaire {
                 }
             }
         }
+
+        // move to deck
+        for (id, pile) in self.visible_piles.iter().enumerate() {
+            let dst_card = pile.end();
+
+            let (rank, suit) = dst_card.split();
+            if self.final_stack[suit as usize] == rank && rank < N_RANKS {
+                moves.push((Pos::Pile(id as u8), Pos::Stack(suit)));
+            }
+            for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
+                if id != other_id && other_pile.movable_to(pile) {
+                    moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
+                }
+            }
+            for i in 1..2u8 {
+                if rank > 0 && self.final_stack[(suit ^ i ^ 2) as usize] == rank {
+                    moves.push((Pos::Stack(suit ^ i ^ 2), Pos::Pile(id as u8)));
+                }
+            }
+        }
     }
+
+    // pub fn gen_moves_(self: &Solitaire, moves: &mut Vec<MoveType>) {
+    //     // move to deck
+    //     for (id, pile) in self.visible_piles.iter().enumerate() {
+    //         let dst_card = pile.end();
+
+    //         let (rank, suit) = dst_card.split();
+    //         if self.final_stack[suit as usize] == rank && rank < N_RANKS {
+    //             moves.push((Pos::Pile(id as u8), Pos::Stack(suit)));
+    //         }
+    //     }
+    //     for (id, pile) in self.visible_piles.iter().enumerate() {
+    //         for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
+    //             if id != other_id
+    //                 && other_pile.movable_to(pile)
+    //                 && other_pile.start_rank() + 1 == pile.end().rank()
+    //             {
+    //                 moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
+    //             }
+    //         }
+    //     }
+    //     // src = src.Deck
+    //     for (pos, card) in self.deck.iter() {
+    //         let (rank, suit) = card.split();
+    //         if rank < N_RANKS && self.final_stack[suit as usize] == rank {
+    //             moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
+    //         }
+    //         for (id, pile) in self.visible_piles.iter().enumerate() {
+    //             let dst_card = pile.end();
+    //             if dst_card.go_before(card) {
+    //                 moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
+    //             }
+    //         }
+    //     }
+
+    //     for (id, pile) in self.visible_piles.iter().enumerate() {
+    //         let dst_card = pile.end();
+    //         let (rank, suit) = dst_card.split();
+    //         for i in 1..2u8 {
+    //             if rank > 0 && self.final_stack[(suit ^ i ^ 2) as usize] == rank {
+    //                 moves.push((Pos::Stack(suit ^ i ^ 2), Pos::Pile(id as u8)));
+    //             }
+    //         }
+    //     }
+
+    //     for (id, pile) in self.visible_piles.iter().enumerate() {
+    //         for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
+    //             if id != other_id
+    //                 && other_pile.movable_to(pile)
+    //                 && other_pile.start_rank() + 1 != pile.end().rank()
+    //             {
+    //                 moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
+    //             }
+    //         }
+    //     }
+    // }
 
     pub fn gen_moves(self: &Solitaire) -> Vec<MoveType> {
         let mut moves = Vec::<MoveType>::new();
@@ -400,25 +455,35 @@ impl Solvitaire {
 
 impl fmt::Display for Solvitaire {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "klondike,{}", self.0.deck.draw_step())?;
+        writeln!(f, r#"{{ "tableau piles": ["#)?;
 
         for i in 0..N_PILES as usize {
-            write!(f, "{}", "   ".repeat(i))?;
-
-            for j in 0..N_PILES as usize {
-                if i < j {
-                    // hidden cards
-                    self.0.hidden_piles[j * (j - 1) / 2 + i].print_solvitaire(f)?;
-                } else if i == j {
-                    self.0.visible_piles[i].end().print_solvitaire(f)?;
-                }
+            write!(f, "[")?;
+            for j in 0..i as usize {
+                // hidden cards
+                self.0.hidden_piles[i * (i - 1) / 2 + j].print_solvitaire(f)?;
+                write!(f, ",")?;
             }
-            writeln!(f)?;
+            self.0.visible_piles[i].end().print_solvitaire(f)?;
+            if i + 1 < N_PILES as usize {
+                writeln!(f, "],")?;
+            } else {
+                writeln!(f, "]")?;
+            }
         }
 
-        for (_, c, _) in self.0.deck.iter_all() {
+        write!(f, "],\n\"stock\": ")?;
+
+        for (idx, c, _) in self.0.deck.iter_all() {
+            if idx == 0 {
+                write!(f, "[")?;
+            } else {
+                write!(f, ",")?;
+            }
             c.print_solvitaire(f)?;
         }
+        write!(f, "]}}")?;
+
         Ok(())
     }
 }

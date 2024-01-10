@@ -68,13 +68,13 @@ impl Card {
         let (rank, suit) = self.split();
         write!(
             f,
-            "{}{},",
+            r#""{}{}""#,
             NUMBERS[rank as usize],
             match suit {
-                0 => "h",
-                1 => "d",
-                2 => "c",
-                3 => "s",
+                0 => "H",
+                1 => "D",
+                2 => "C",
+                3 => "S",
                 _ => "x",
             }
         )
