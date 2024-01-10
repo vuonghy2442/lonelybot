@@ -56,7 +56,7 @@ fn benchmark() {
 }
 
 fn test_solve() {
-    let shuffled_deck = generate_shuffled_deck(14);
+    let shuffled_deck = generate_shuffled_deck(22);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let mut g = Solitaire::new(&shuffled_deck, 3);

@@ -472,17 +472,19 @@ impl fmt::Display for Solvitaire {
             }
         }
 
-        write!(f, "],\n\"stock\": ")?;
+        write!(f, "],\n\"stock\": [")?;
 
-        for (idx, c, _) in self.0.deck.iter_all() {
+        let tmp: Vec<(u8, Card)> = self.0.deck.iter_all().map(|x| (x.0, *x.1)).collect();
+
+        for &(idx, c) in tmp.iter().rev() {
+            c.print_solvitaire(f)?;
             if idx == 0 {
-                write!(f, "[")?;
+                write!(f, "]")?;
             } else {
                 write!(f, ",")?;
             }
-            c.print_solvitaire(f)?;
         }
-        write!(f, "]}}")?;
+        write!(f, "}}")?;
 
         Ok(())
     }
