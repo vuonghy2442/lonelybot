@@ -28,6 +28,8 @@ fn solve(
         history.pop();
         g.undo_move(&m, &undo);
     }
+    move_list.truncate(start);
+
     false
 }
 
