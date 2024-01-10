@@ -231,12 +231,16 @@ impl Solitaire {
         match src {
             &Pos::Deck(_) => {
                 // not dealing with redealt yet :)
-                match dst {
+                let card = match dst {
                     Pos::Deck(_) => unreachable!(),
-                    &Pos::Stack(_) => {}
-                    &Pos::Pile(id_pile) => self.pop_pile(id_pile, 1),
+                    &Pos::Stack(id) => Card::new(self.final_stack[id as usize] - 1, id),
+                    &Pos::Pile(id_pile) => {
+                        let card = self.visible_piles[id_pile as usize].end();
+                        self.pop_pile(id_pile, 1);
+                        card
+                    }
                 };
-                self.deck.unpop();
+                self.deck.push(card);
                 self.deck.set_offset(undo_info.offset);
             }
             &Pos::Stack(_) => {
@@ -250,7 +254,7 @@ impl Solitaire {
             &Pos::Pile(id) => {
                 match undo_info.hidden {
                     Some(p) => {
-                        if self.visible_piles[id as usize].end() != Card::FAKE {
+                        if self.visible_piles[id as usize].end().rank() < N_RANKS {
                             self.n_hidden[id as usize] += 1; //push back hidden
                         }
                         self.visible_piles[id as usize] = p;
@@ -549,17 +553,54 @@ mod tests {
                 }
 
                 let state = game.encode();
+                let ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
+
                 let m = moves.choose(&mut rng).unwrap();
                 let (_, undo) = game.do_move(m);
                 let next_state = game.encode();
                 // assert_ne!(next_state, state); // could to do unmeaningful moves
                 game.undo_move(m, &undo);
+                let new_ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
+
+                assert_eq!(ids, new_ids);
                 let undo_state = game.encode();
                 if undo_state != state {
                     assert_eq!(undo_state, state);
                 }
                 game.do_move(m);
                 assert_eq!(game.encode(), next_state);
+            }
+        }
+    }
+
+    #[test]
+    fn test_deep_undoing() {
+        let mut rng = StdRng::seed_from_u64(14);
+
+        let mut moves = Vec::<MoveType>::new();
+
+        for i in 0..100 {
+            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            let mut history = Vec::<(MoveType, UndoInfo)>::new();
+            let mut enc = Vec::<Encode>::new();
+
+            for _ in 0..100 {
+                game.gen_moves_(&mut moves);
+                if moves.len() == 0 {
+                    break;
+                }
+
+                enc.push(game.encode());
+
+                let m = moves.choose(&mut rng).unwrap();
+                let (_, undo) = game.do_move(m);
+                history.push((*m, undo));
+            }
+
+            for _ in 0..history.len() {
+                let (m, undo) = history.pop().unwrap();
+                game.undo_move(&m, &undo);
+                assert_eq!(game.encode(), enc.pop().unwrap());
             }
         }
     }

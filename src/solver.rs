@@ -10,9 +10,9 @@ fn solve(g: &mut Solitaire, tp: &mut HashSet<Encode>, history: &mut Vec<MoveType
     }
 
     let moves = g.gen_moves();
-    for m in moves {
-        let (_, undo) = g.do_move(&m);
-        history.push(m);
+    for m in &moves {
+        let (_, undo) = g.do_move(m);
+        history.push(*m);
         if solve(g, tp, history) {
             return true;
         }

@@ -7,7 +7,6 @@ pub const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize;
 #[derive(Debug)]
 pub struct Deck {
     deck: [Card; N_FULL_DECK],
-    n_deck: u8,
     draw_step: u8,
     draw_next: u8, // start position of next pile
     draw_cur: u8,  // size of the previous pile
@@ -42,7 +41,6 @@ impl Deck {
 
         return Deck {
             deck: *deck,
-            n_deck: deck.len() as u8,
             draw_step,
             draw_next: draw_step,
             draw_cur: draw_step,
@@ -54,12 +52,11 @@ impl Deck {
     }
 
     pub fn iter(self: &Deck) -> impl Iterator<Item = (usize, &Card)> {
-        let n_deck = self.n_deck as usize;
         let draw_cur = self.draw_cur as usize;
         let draw_next = self.draw_next as usize;
         let draw_step = self.draw_step as usize;
-        let (head, cur) = optional_split_last(&self.deck[0..draw_cur]);
-        let (tail, last) = optional_split_last(&self.deck[draw_next..n_deck]);
+        let (head, cur) = optional_split_last(&self.deck[..draw_cur]);
+        let (tail, last) = optional_split_last(&self.deck[draw_next..]);
 
         // non redealt
 
@@ -67,7 +64,7 @@ impl Deck {
 
         // filter out if repeat :)
         let offset = if offset == draw_step - 1 {
-            n_deck
+            N_FULL_DECK
         } else {
             offset
         };
@@ -110,7 +107,7 @@ impl Deck {
                 )
             });
 
-        let tail = self.deck[self.draw_next as usize..self.n_deck as usize]
+        let tail = self.deck[self.draw_next as usize..]
             .iter()
             .enumerate()
             .map(|x| {
@@ -118,7 +115,9 @@ impl Deck {
                 (
                     self.draw_cur + pos,
                     x.1,
-                    if pos + 1 == self.n_deck - self.draw_next || (pos + 1) % self.draw_step == 0 {
+                    if pos + 1 == N_FULL_DECK as u8 - self.draw_next
+                        || (pos + 1) % self.draw_step == 0
+                    {
                         Drawable::Current
                     } else if (self.draw_cur + pos + 1) % self.draw_step == 0 {
                         Drawable::Next
@@ -132,7 +131,8 @@ impl Deck {
 
     pub fn peek(self: &Deck, id: u8) -> Card {
         assert!(
-            self.draw_cur <= self.draw_next && (id < self.n_deck - self.draw_next + self.draw_cur)
+            self.draw_cur <= self.draw_next
+                && (id < N_FULL_DECK as u8 - self.draw_next + self.draw_cur)
         );
 
         self.deck[if id < self.draw_cur {
@@ -149,13 +149,11 @@ impl Deck {
 
         let step = if id < self.draw_cur {
             let step = self.draw_cur - id;
-            if self.draw_cur != self.draw_next {
-                // moving stuff
-                self.deck.copy_within(
-                    (self.draw_cur - step) as usize..(self.draw_cur as usize),
-                    (self.draw_next - step) as usize,
-                );
-            }
+            // moving stuff
+            self.deck.copy_within(
+                (self.draw_cur - step) as usize..(self.draw_cur as usize),
+                (self.draw_next - step) as usize,
+            );
             step.wrapping_neg()
         } else {
             let step = id - self.draw_cur;
@@ -176,16 +174,21 @@ impl Deck {
         card
     }
 
-    pub fn unpop(self: &mut Deck) {
+    pub fn push(self: &mut Deck, c: Card) {
         // or you can undo
-        self.draw_next -= 1;
+        self.deck[self.draw_cur as usize] = c;
+        self.draw_cur += 1;
+
+        //
+        // self.draw_next -= 1;
+        // self.deck[self.draw_next as usize] = c;
     }
 
     pub fn draw(self: &mut Deck, id: u8) -> Card {
         assert!(
-            self.draw_cur <= self.draw_next && (id < self.n_deck - self.draw_next + self.draw_cur)
+            self.draw_cur <= self.draw_next
+                && (id < N_FULL_DECK as u8 - self.draw_next + self.draw_cur)
         );
-
         self.set_offset(id);
         self.pop_next()
     }
