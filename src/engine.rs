@@ -19,6 +19,11 @@ pub enum Pos {
 pub type CardDeck = [Card; N_CARDS as usize];
 pub type MoveType = (Pos, Pos);
 
+pub struct UndoInfo {
+    offset: u8,
+    hidden: Option<Pile>,
+}
+
 #[derive(Debug)]
 pub struct Solitaire {
     hidden_piles: [Card; N_HIDDEN_CARDS as usize],
@@ -141,7 +146,7 @@ impl Solitaire {
     }
 
     // this is unsafe gotta check it is valid move before
-    pub fn do_move(self: &mut Solitaire, m: &MoveType) -> i32 {
+    pub fn do_move(self: &mut Solitaire, m: &MoveType) -> (i32, UndoInfo) {
         let (src, dst) = m;
         // handling final stack
         if let &Pos::Stack(id) = src {
@@ -154,6 +159,12 @@ impl Solitaire {
         }
         // handling deck
 
+        let offset = self.deck.get_offset();
+        let default_info = UndoInfo {
+            hidden: None,
+            offset,
+        };
+
         match src {
             &Pos::Deck(id) => {
                 let deck_card = self.deck.draw(id);
@@ -161,25 +172,24 @@ impl Solitaire {
                 // not dealing with redealt yet :)
                 match dst {
                     Pos::Deck(_) => unreachable!(),
-                    Pos::Stack(_) => return 20,
+                    Pos::Stack(_) => (20, default_info),
                     &Pos::Pile(id_pile) => {
                         self.push_pile(id_pile, deck_card);
-                        return 5;
+                        (5, default_info)
                     }
                 }
             }
-            &Pos::Stack(id) => {
-                match dst {
-                    &Pos::Pile(id_pile) => {
-                        let card: Card = Card::new(self.final_stack[id as usize], id);
-                        self.push_pile(id_pile, card);
-                        return -15;
-                    }
-                    _ => unreachable!(),
-                };
-            }
+            &Pos::Stack(id) => match dst {
+                &Pos::Pile(id_pile) => {
+                    let card: Card = Card::new(self.final_stack[id as usize], id);
+                    self.push_pile(id_pile, card);
+                    (-15, default_info)
+                }
+                _ => unreachable!(),
+            },
             &Pos::Pile(id) => {
-                let mut reward = match dst {
+                let prev = self.visible_piles[id as usize];
+                let reward = match dst {
                     Pos::Stack(_) => {
                         self.pop_pile(id, 1);
                         15
@@ -194,12 +204,83 @@ impl Solitaire {
                 // unlocking hidden cards
                 if self.visible_piles[id as usize].is_empty() {
                     self.visible_piles[id as usize] = Pile::from_card(self.pop_hidden(id));
-                    reward += 5;
+                    (
+                        reward + 5,
+                        UndoInfo {
+                            hidden: Some(prev),
+                            offset,
+                        },
+                    )
+                } else {
+                    (reward, default_info)
                 }
-
-                return reward;
             }
         }
+    }
+
+    pub fn undo_move(self: &mut Solitaire, m: &MoveType, undo_info: &UndoInfo) {
+        let (src, dst) = m;
+        // handling final stack
+
+        match src {
+            &Pos::Deck(_) => {
+                // not dealing with redealt yet :)
+                match dst {
+                    Pos::Deck(_) => unreachable!(),
+                    &Pos::Stack(_) => {}
+                    &Pos::Pile(id_pile) => self.pop_pile(id_pile, 1),
+                };
+                self.deck.unpop();
+                self.deck.set_offset(undo_info.offset);
+            }
+            &Pos::Stack(_) => {
+                match dst {
+                    &Pos::Pile(id_pile) => {
+                        self.pop_pile(id_pile, 1);
+                    }
+                    _ => unreachable!(),
+                };
+            }
+            &Pos::Pile(id) => {
+                match undo_info.hidden {
+                    Some(p) => {
+                        if self.visible_piles[id as usize].end() != Card::FAKE {
+                            self.n_hidden[id as usize] += 1; //push back hidden
+                        }
+                        self.visible_piles[id as usize] = p;
+                        match dst {
+                            &Pos::Pile(id_pile) => {
+                                self.pop_pile(id_pile, p.len());
+                            }
+                            Pos::Stack(_) => {}
+                            _ => unreachable!(),
+                        }
+                    }
+                    None => {
+                        match dst {
+                            &Pos::Stack(id_stack) => {
+                                let card =
+                                    Card::new(self.final_stack[id_stack as usize] - 1, id_stack);
+                                self.push_pile(id, card);
+                            }
+                            &Pos::Pile(id_pile) => {
+                                self.move_pile(id_pile, id);
+                            }
+                            Pos::Deck(_) => unreachable!(),
+                        };
+                    }
+                }
+            }
+        }
+        if let &Pos::Stack(id) = src {
+            assert!(self.final_stack[id as usize] < N_RANKS);
+            self.final_stack[id as usize] += 1;
+        }
+        if let &Pos::Stack(id) = dst {
+            assert!(self.final_stack[id as usize] > 0);
+            self.final_stack[id as usize] -= 1;
+        }
+        // handling deck
     }
 
     fn encode_stack(self: &Solitaire) -> u16 {
@@ -211,14 +292,6 @@ impl Solitaire {
             .map(|x| (*x.1 as u16) << (x.0 * 4))
             .sum();
     }
-
-    fn encode_hidden(self: &Solitaire) -> u16 {
-        // considering to make it incremental?
-        return self.n_hidden.iter().enumerate().fold(0, |prev, val| {
-            return prev * (val.0 as u16) + *val.1 as u16;
-        });
-    }
-
     fn encode_piles(self: &Solitaire) -> [u16; N_PILES as usize] {
         // a bit slow maybe optimize later :(
         let mut res = self.visible_piles.map(|p| p.encode()); // you can always ignore 0 since it's not a valid state
@@ -233,15 +306,19 @@ impl Solitaire {
         res
     }
 
-    pub fn encode(self: &Solitaire) -> [u16; N_PILES as usize + 4] {
-        // TODO: canonicalize the visible piles
-        let deck_encode = self.deck.encode();
+    pub fn encode(self: &Solitaire) -> [u16; N_PILES as usize + 2] {
+        // we don't need to encode the number of hidden cards since we can infer it from the piles.
+        // since the pile + stack will contain all the unlocked cards
+        // We also don't need to encode which cards is in the deck since the pile + stack has all the cards that not in the deck
 
-        let deck_encode: [u16; 2] = unsafe { std::mem::transmute(deck_encode) };
+        // considering to make it incremental?
+        // maximum 24 (N_FULL_DECK)
+        // only need u8, but whatever :<
         let pile_encode = self.encode_piles();
         let stack_encode = self.encode_stack();
-        let hidden_encode = self.encode_hidden();
-        return concat_arrays!(deck_encode, pile_encode, [stack_encode], [hidden_encode]);
+        let deck_encode = self.deck.encode_offset() as u16; //a bit wasteful
+
+        return concat_arrays!(pile_encode, [stack_encode], [deck_encode]);
     }
 }
 
@@ -369,7 +446,7 @@ mod tests {
             ],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(0), Pos::Pile(4))), 5);
+        assert_eq!(game.do_move(&(Pos::Pile(0), Pos::Pile(4))).0, 5);
 
         assert_moves(
             game.gen_moves(),
@@ -380,13 +457,13 @@ mod tests {
             ],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(4), Pos::Pile(0))), 5);
+        assert_eq!(game.do_move(&(Pos::Pile(4), Pos::Pile(0))).0, 5);
         assert_moves(
             game.gen_moves(),
             vec![(Pos::Pile(2), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(2), Pos::Pile(4))), 5);
+        assert_eq!(game.do_move(&(Pos::Pile(2), Pos::Pile(4))).0, 5);
 
         assert_moves(
             game.gen_moves(),
@@ -397,21 +474,21 @@ mod tests {
             ],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(2), Pos::Pile(0))), 5);
+        assert_eq!(game.do_move(&(Pos::Pile(2), Pos::Pile(0))).0, 5);
 
         assert_moves(
             game.gen_moves(),
             vec![(Pos::Pile(4), Pos::Pile(0)), (Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(4), Pos::Pile(0))), 5);
+        assert_eq!(game.do_move(&(Pos::Pile(4), Pos::Pile(0))).0, 5);
 
         assert_moves(
             game.gen_moves(),
             vec![(Pos::Pile(3), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(3), Pos::Pile(4))), 5);
+        assert_eq!(game.do_move(&(Pos::Pile(3), Pos::Pile(4))).0, 5);
 
         assert_moves(
             game.gen_moves(),
@@ -447,6 +524,36 @@ mod tests {
                     break;
                 }
                 game.do_move(moves.choose(&mut rng).unwrap());
+            }
+        }
+    }
+
+    #[test]
+    fn test_undoing() {
+        let mut rng = StdRng::seed_from_u64(14);
+
+        let mut moves = Vec::<MoveType>::new();
+
+        for i in 0..100 {
+            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            for _ in 0..100 {
+                game.gen_moves_(&mut moves);
+                if moves.len() == 0 {
+                    break;
+                }
+
+                let state = game.encode();
+                let m = moves.choose(&mut rng).unwrap();
+                let (_, undo) = game.do_move(m);
+                let next_state = game.encode();
+                // assert_ne!(next_state, state); // could to do unmeaningful moves
+                game.undo_move(m, &undo);
+                let undo_state = game.encode();
+                if undo_state != state {
+                    assert_eq!(undo_state, state);
+                }
+                game.do_move(m);
+                assert_eq!(game.encode(), next_state);
             }
         }
     }

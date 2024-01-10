@@ -5,33 +5,12 @@ pub const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES - 1) / 2;
 pub const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize;
 
 #[derive(Debug)]
-struct CardEncoder {
-    map_arr: [u32; N_CARDS as usize],
-}
-
-impl CardEncoder {
-    fn new(deck: &[Card; N_FULL_DECK]) -> CardEncoder {
-        let mut map_arr = [0u32; N_CARDS as usize];
-        for (i, c) in deck.iter().enumerate() {
-            map_arr[c.value() as usize] = 1u32 << i;
-        }
-        return CardEncoder { map_arr };
-    }
-
-    pub fn map(&self, id: Card) -> u32 {
-        return self.map_arr[id.value() as usize];
-    }
-}
-
-#[derive(Debug)]
 pub struct Deck {
     deck: [Card; N_FULL_DECK],
     n_deck: u8,
     draw_step: u8,
     draw_next: u8, // start position of next pile
     draw_cur: u8,  // size of the previous pile
-    encoder: CardEncoder,
-    encoded: u32,
 }
 
 fn optional_split_last<T>(slice: &[T]) -> (&[T], Option<&T>) {
@@ -67,8 +46,6 @@ impl Deck {
             draw_step,
             draw_next: draw_step,
             draw_cur: draw_step,
-            encoder: CardEncoder::new(deck),
-            encoded: 0,
         };
     }
 
@@ -165,13 +142,10 @@ impl Deck {
         } as usize]
     }
 
-    pub fn draw(self: &mut Deck, id: u8) -> Card {
-        assert!(
-            self.draw_cur <= self.draw_next && (id < self.n_deck - self.draw_next + self.draw_cur)
-        );
-
-        let draw_card = self.peek(id);
-        self.encoded ^= self.encoder.map(draw_card);
+    pub fn set_offset(self: &mut Deck, id: u8) {
+        // after this the deck will have structure
+        // [.... id-1 <empty> id....]
+        //   draw_cur ^       ^ draw_next
 
         let step = if id < self.draw_cur {
             let step = self.draw_cur - id;
@@ -194,18 +168,39 @@ impl Deck {
         };
 
         self.draw_cur = self.draw_cur.wrapping_add(step);
-        self.draw_next = self.draw_next.wrapping_add(step.wrapping_add(1));
-        draw_card
+        self.draw_next = self.draw_next.wrapping_add(step);
+    }
+    pub fn pop_next(self: &mut Deck) -> Card {
+        let card = self.deck[self.draw_next as usize];
+        self.draw_next += 1;
+        card
     }
 
-    pub fn encode(self: &Deck) -> u32 {
-        let offset = if self.draw_cur % self.draw_step == 0 {
+    pub fn unpop(self: &mut Deck) {
+        // or you can undo
+        self.draw_next -= 1;
+    }
+
+    pub fn draw(self: &mut Deck, id: u8) -> Card {
+        assert!(
+            self.draw_cur <= self.draw_next && (id < self.n_deck - self.draw_next + self.draw_cur)
+        );
+
+        self.set_offset(id);
+        self.pop_next()
+    }
+
+    pub const fn get_offset(self: &Deck) -> u8 {
+        self.draw_cur
+    }
+
+    pub const fn encode_offset(self: &Deck) -> u8 {
+        // this is the standardized version
+        if (self.draw_cur + 1) % self.draw_step == 0 {
             // matched so offset is free
-            0
+            self.draw_step - 1
         } else {
             self.draw_cur
-        };
-        // this only takes 5 bit <= 32
-        return (self.encoded << 5) | (offset as u32);
+        }
     }
 }

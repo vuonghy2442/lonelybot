@@ -1,8 +1,7 @@
-pub mod engine;
 pub mod card;
-pub mod pile;
 pub mod deck;
-
+pub mod engine;
+pub mod pile;
 
 use rand::prelude::*;
 use std::hint::black_box;
