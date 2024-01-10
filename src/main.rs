@@ -2,6 +2,7 @@ pub mod card;
 pub mod deck;
 pub mod engine;
 pub mod pile;
+pub mod solver;
 
 use rand::prelude::*;
 use std::hint::black_box;
@@ -53,7 +54,17 @@ fn benchmark() {
     );
 }
 
+fn test_solve() {
+    let shuffled_deck = generate_shuffled_deck(12);
+    let mut g = Solitaire::new(&shuffled_deck, 3);
+
+    let now = Instant::now();
+    println!("{}", solver::solve_game(&mut g));
+    println!("Solved in {} ms", now.elapsed().as_secs_f64() * 1000f64);
+}
+
 fn main() {
+    test_solve();
     benchmark();
 
     let shuffled_deck = generate_shuffled_deck(12);

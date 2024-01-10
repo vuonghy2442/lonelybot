@@ -42,6 +42,7 @@ pub fn generate_shuffled_deck(seed: u64) -> CardDeck {
     cards.shuffle(&mut rng);
     return cards;
 }
+pub type Encode = [u16; N_PILES as usize + 2];
 
 impl Solitaire {
     pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {
@@ -72,6 +73,11 @@ impl Solitaire {
             final_stack,
             deck,
         };
+    }
+
+    pub fn is_win(self: &Solitaire) -> bool {
+        // What a shame this is not a const function :(
+        return self.final_stack == [N_RANKS; N_SUITS as usize];
     }
 
     fn push_pile(self: &mut Solitaire, id: u8, card: Card) {
@@ -121,7 +127,7 @@ impl Solitaire {
             let dst_card = pile.end();
 
             let (rank, suit) = dst_card.split();
-            if self.final_stack[suit as usize] == rank {
+            if self.final_stack[suit as usize] == rank && rank < N_RANKS {
                 moves.push((Pos::Pile(id as u8), Pos::Stack(suit)));
             }
 
@@ -306,7 +312,7 @@ impl Solitaire {
         res
     }
 
-    pub fn encode(self: &Solitaire) -> [u16; N_PILES as usize + 2] {
+    pub fn encode(self: &Solitaire) -> Encode {
         // we don't need to encode the number of hidden cards since we can infer it from the piles.
         // since the pile + stack will contain all the unlocked cards
         // We also don't need to encode which cards is in the deck since the pile + stack has all the cards that not in the deck
