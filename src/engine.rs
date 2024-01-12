@@ -148,7 +148,7 @@ impl Solitaire {
                     return;
                 }
             }
-            for (other_id, other_pile) in self.visible_piles.iter().enumerate().skip(id + 1) {
+            for (other_id, other_pile) in self.visible_piles.iter().enumerate().take(id) {
                 let (a, b, a_id, b_id) = if other_pile.movable_to(pile) {
                     (other_pile, pile, other_id, id)
                 } else if pile.movable_to(other_pile) {
