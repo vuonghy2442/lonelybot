@@ -24,7 +24,7 @@ impl Pile {
         let (rank, suit) = self.end.split();
         // TODO: is there any better way to handle this
         // This cause by encoding different suit for the empty stack (maybe not using fake card?)
-        return ((rank >= N_RANKS) as u8) | (rank & 1) ^ (suit / 2);
+        return (rank & 1) ^ (suit / 2);
     }
 
     pub const fn len(self: &Pile) -> u8 {
@@ -116,6 +116,6 @@ impl Pile {
         // 00001(marking start)..(suit max 13 bit)..1(marking end)000|<suit type>
         let end_rank = self.end.rank();
         let suit = ((self.suit << 1) | 1) << end_rank;
-        return (suit << 1) | (self.suit_type() as u16);
+        return (suit << 1) | (self.suit_type() as u16) | ((end_rank >= N_RANKS) as u16);
     }
 }

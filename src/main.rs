@@ -56,7 +56,7 @@ fn benchmark() {
 }
 
 fn test_solve() {
-    let shuffled_deck = generate_shuffled_deck(24);
+        let shuffled_deck = generate_shuffled_deck(28);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let mut g = Solitaire::new(&shuffled_deck, 3);
@@ -76,46 +76,46 @@ fn test_solve() {
 
 fn run() {
     test_solve();
-    benchmark();
+    // benchmark();
 
-    let shuffled_deck = generate_shuffled_deck(12);
+    // let shuffled_deck = generate_shuffled_deck(12);
 
-    println!("{}", Solvitaire::new(&shuffled_deck, 3));
-    let mut game = Solitaire::new(&shuffled_deck, 3);
+    // println!("{}", Solvitaire::new(&shuffled_deck, 3));
+    // let mut game = Solitaire::new(&shuffled_deck, 3);
 
-    let mut line = String::new();
-    loop {
-        print!("{}", game);
+    // let mut line = String::new();
+    // loop {
+    //     print!("{}", game);
 
-        print!("{:?}", game.encode());
-        let moves = game.gen_moves();
+    //     print!("{:?}", game.encode());
+    //     let moves = game.gen_moves();
 
-        println!(
-            "{:?}",
-            moves
-                .iter()
-                .map(|x| (pos_to_num(&x.0), pos_to_num(&x.1)))
-                .collect::<Vec<(i8, i8)>>()
-        );
-        print!("Move: ");
-        std::io::stdout().flush().unwrap();
-        line.clear();
-        let b1 = std::io::stdin().read_line(&mut line);
-        if let Result::Err(_) = b1 {
-            println!("Can't read");
-            continue;
-        }
-        let res: Option<Vec<i8>> = line
-            .trim()
-            .split(' ')
-            .map(|x| x.parse::<i8>().ok())
-            .collect();
-        if let Some([src, dst]) = res.as_deref() {
-            game.do_move(&(num_to_pos(*src), num_to_pos(*dst)));
-        } else {
-            println!("Invalid move");
-        }
-    }
+    //     println!(
+    //         "{:?}",
+    //         moves
+    //             .iter()
+    //             .map(|x| (pos_to_num(&x.0), pos_to_num(&x.1)))
+    //             .collect::<Vec<(i8, i8)>>()
+    //     );
+    //     print!("Move: ");
+    //     std::io::stdout().flush().unwrap();
+    //     line.clear();
+    //     let b1 = std::io::stdin().read_line(&mut line);
+    //     if let Result::Err(_) = b1 {
+    //         println!("Can't read");
+    //         continue;
+    //     }
+    //     let res: Option<Vec<i8>> = line
+    //         .trim()
+    //         .split(' ')
+    //         .map(|x| x.parse::<i8>().ok())
+    //         .collect();
+    //     if let Some([src, dst]) = res.as_deref() {
+    //         game.do_move(&(num_to_pos(*src), num_to_pos(*dst)));
+    //     } else {
+    //         println!("Invalid move");
+    //     }
+    // }
 }
 
 fn main() {

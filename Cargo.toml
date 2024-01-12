@@ -13,3 +13,12 @@ lru = "0.12.1"
 
 [profile.release]
 lto = true
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+
+[profile.dev]
+opt-level = 1               # Use slightly better optimizations.
+overflow-checks = false     # Disable integer overflow checks.
+lto = true
