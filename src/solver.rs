@@ -2,20 +2,39 @@ use std::collections::HashSet;
 
 use crate::engine::{Encode, MoveType, Solitaire};
 
+#[derive(Debug)]
+pub struct SearchStats {
+    total_visit: usize,
+    tp_hit: usize,
+    max_depth: usize,
+}
+
+impl SearchStats {
+    pub const fn new() -> SearchStats {
+        SearchStats {
+            total_visit: 0,
+            tp_hit: 0,
+            max_depth: 0,
+        }
+    }
+}
+
 fn solve(
     g: &mut Solitaire,
     tp: &mut lru::LruCache<Encode, ()>,
     tp_hist: &mut HashSet<Encode>,
     history: &mut Vec<MoveType>,
     move_list: &mut Vec<MoveType>,
-    total_visit: &mut usize,
+    stats: &mut SearchStats,
 ) -> bool {
-    *total_visit += 1;
+    stats.max_depth = std::cmp::max(stats.max_depth, history.len());
+    stats.total_visit += 1;
     if g.is_win() {
         return true;
     }
     let encode = g.encode();
     if tp.put(encode, ()).is_some() || !tp_hist.insert(encode) {
+        stats.tp_hit += 1;
         return false;
     }
 
@@ -27,7 +46,7 @@ fn solve(
         let m = move_list[pos];
         let (_, undo) = g.do_move(&m);
         history.push(m);
-        if solve(g, tp, tp_hist, history, move_list, total_visit) {
+        if solve(g, tp, tp_hist, history, move_list, stats) {
             return true;
         }
         history.pop();
@@ -39,29 +58,20 @@ fn solve(
     false
 }
 
-pub fn solve_game(g: &mut Solitaire) -> Option<Vec<MoveType>> {
+pub fn solve_game(g: &mut Solitaire) -> (Option<Vec<MoveType>>, SearchStats) {
     let mut tp_hist = HashSet::<Encode>::new();
     let mut tp = lru::LruCache::<Encode, ()>::new(std::num::NonZeroUsize::new(1024).unwrap());
     let mut move_list = Vec::<MoveType>::new();
     let mut history = Vec::<MoveType>::new();
-    let mut total_visit: usize = 0;
+    let mut stats = SearchStats::new();
     let res = solve(
         g,
         &mut tp,
         &mut tp_hist,
         &mut history,
         &mut move_list,
-        &mut total_visit,
+        &mut stats,
     );
 
-    println!(
-        "Visited state {}, max depth cap {}",
-        total_visit,
-        history.capacity()
-    );
-    if res {
-        Some(history)
-    } else {
-        None
-    }
+    (if res { Some(history) } else { None }, stats)
 }

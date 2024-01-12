@@ -56,7 +56,7 @@ fn benchmark() {
 }
 
 fn test_solve() {
-    let shuffled_deck = generate_shuffled_deck(22);
+    let shuffled_deck = generate_shuffled_deck(12);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let mut g = Solitaire::new(&shuffled_deck, 3);
@@ -64,7 +64,8 @@ fn test_solve() {
     let now = Instant::now();
     let res = solver::solve_game(&mut g);
     println!("Solved in {} ms", now.elapsed().as_secs_f64() * 1000f64);
-    match res {
+    println!("Statistic\n{:#?}", res.1);
+    match res.0 {
         Some(moves) => {
             println!("Solvable in {} moves", moves.len());
             println!("{:?}", moves);
