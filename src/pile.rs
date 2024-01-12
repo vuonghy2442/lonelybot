@@ -2,7 +2,7 @@ use crate::card::{Card, N_RANKS};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Pile {
-    start_rank: u8,
+    start_rank: u8, //start_rank + 1
     end: Card,
     suit: u16,
 }
@@ -10,14 +10,14 @@ pub struct Pile {
 impl Pile {
     pub const fn from_card(c: Card) -> Pile {
         return Pile {
-            start_rank: c.rank(),
+            start_rank: c.rank() + 1,
             end: c,
             suit: (c.suit() & 1) as u16 + 2, // this is just for easier encoding
         };
     }
 
     pub const fn is_empty(self: &Pile) -> bool {
-        return self.start_rank < self.end.rank();
+        return self.start_rank <= self.end.rank();
     }
 
     pub const fn suit_type(self: &Pile) -> u8 {
@@ -28,7 +28,7 @@ impl Pile {
     }
 
     pub const fn len(self: &Pile) -> u8 {
-        return self.start_rank - self.end.rank() + 1;
+        return self.start_rank - self.end.rank();
     }
 
     pub const fn bottom(self: &Pile, pos: u8) -> Card {
@@ -85,9 +85,10 @@ impl Pile {
         let start_rank = self.start_rank;
         let end_rank = self.end.rank();
         let dst_rank = to.end.rank();
-        return (self.suit_type() == to.suit_type() || dst_rank >= N_RANKS)
+        // return (self.suit_type() == to.suit_type() || dst_rank >= N_RANKS)
+        return (self.end.xor_suit(&to.end) == 0 || dst_rank >= N_RANKS)
             && end_rank < dst_rank
-            && dst_rank <= start_rank + 1;
+            && dst_rank <= start_rank;
     }
 
     pub const fn n_move(self: &Pile, to: &Pile) -> u8 {

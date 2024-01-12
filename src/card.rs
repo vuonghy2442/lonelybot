@@ -58,6 +58,11 @@ impl Card {
         return (self.rank(), self.suit());
     }
 
+    pub const fn xor_suit(self: &Card, other: &Card) -> u8 {
+        let v = self.value() ^ other.value();
+        return ((v / 2) ^ (v / N_SUITS)) & 1;
+    }
+
     pub const fn go_before(self: &Card, other: &Card) -> bool {
         let card_a = self.split();
         let card_b = other.split();
