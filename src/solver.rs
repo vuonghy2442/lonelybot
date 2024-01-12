@@ -60,7 +60,7 @@ fn solve(
 
 pub fn solve_game(g: &mut Solitaire) -> (Option<Vec<MoveType>>, SearchStats) {
     let mut tp_hist = HashSet::<Encode>::new();
-    let mut tp = lru::LruCache::<Encode, ()>::new(std::num::NonZeroUsize::new(1024).unwrap());
+    let mut tp = lru::LruCache::<Encode, ()>::new(std::num::NonZeroUsize::new(1024*1024*16).unwrap());
     let mut move_list = Vec::<MoveType>::new();
     let mut history = Vec::<MoveType>::new();
     let mut stats = SearchStats::new();

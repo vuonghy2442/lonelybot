@@ -105,7 +105,15 @@ impl Solitaire {
         }
     }
 
+    const fn stack_dominance(self: &Solitaire, rank: u8, suit: u8) -> bool {
+        let stack = &self.final_stack;
+        let suit = suit as usize;
+        // allowing worring back :)
+        rank <= stack[suit ^ 2] + 2 && rank <= stack[suit ^ 2 ^ 1] + 2 && rank <= stack[suit ^ 1]
+    }
+
     pub fn gen_moves_(self: &Solitaire, moves: &mut Vec<MoveType>) {
+        let start_len = moves.len();
         // src = src.Deck
         for (pos, card) in self.deck.iter() {
             let (rank, suit) = card.split();
@@ -126,7 +134,15 @@ impl Solitaire {
 
             let (rank, suit) = dst_card.split();
             if self.final_stack[suit as usize] == rank && rank < N_RANKS {
+                // check if dominances
+                let is_domiance = self.stack_dominance(rank, suit);
+                if is_domiance {
+                    moves.truncate(start_len);
+                }
                 moves.push((Pos::Pile(id as u8), Pos::Stack(suit)));
+                if is_domiance {
+                    return;
+                }
             }
             for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
                 if id != other_id && other_pile.movable_to(pile) {
