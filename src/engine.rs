@@ -148,20 +148,27 @@ impl Solitaire {
                     return;
                 }
             }
-            for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
-                if id != other_id && other_pile.movable_to(pile) {
-                    let n_moved = other_pile.n_move(pile);
-                    if n_moved != other_pile.len() {
-                        //partial move only made when it's possible to move the card to the stack
-                        let (rank, suit) = other_pile.bottom(n_moved).split();
-                        if !self.stackable(rank, suit) {
-                            continue;
-                        }
-                    }
+            for (other_id, other_pile) in self.visible_piles.iter().enumerate().skip(id + 1) {
+                let (a, b, a_id, b_id) = if other_pile.movable_to(pile) {
+                    (other_pile, pile, other_id, id)
+                } else if pile.movable_to(other_pile) {
+                    (pile, other_pile, id, other_id)
+                } else {
+                    continue;
+                };
 
-                    moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
+                let n_moved = a.n_move(b);
+                if n_moved != a.len() {
+                    //partial move only made when it's possible to move the card to the stack
+                    let (rank, suit) = a.bottom(n_moved).split();
+                    if !self.stackable(rank, suit) {
+                        continue;
+                    }
                 }
+
+                moves.push((Pos::Pile(a_id as u8), Pos::Pile(b_id as u8)));
             }
+
             for i in 1..2u8 {
                 if rank > 0 && self.final_stack[(suit ^ i ^ 2) as usize] == rank {
                     moves.push((Pos::Stack(suit ^ i ^ 2), Pos::Pile(id as u8)));
