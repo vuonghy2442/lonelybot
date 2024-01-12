@@ -105,6 +105,10 @@ impl Solitaire {
         }
     }
 
+    const fn stackable(self: &Solitaire, rank: u8, suit: u8) -> bool {
+        self.final_stack[suit as usize] == rank && rank < N_RANKS
+    }
+
     const fn stack_dominance(self: &Solitaire, rank: u8, suit: u8) -> bool {
         let stack = &self.final_stack;
         let suit = suit as usize;
@@ -117,7 +121,7 @@ impl Solitaire {
         // src = src.Deck
         for (pos, card) in self.deck.iter() {
             let (rank, suit) = card.split();
-            if rank < N_RANKS && self.final_stack[suit as usize] == rank {
+            if self.stackable(rank, suit) {
                 moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
             }
             for (id, pile) in self.visible_piles.iter().enumerate() {
@@ -133,7 +137,7 @@ impl Solitaire {
             let dst_card = pile.end();
 
             let (rank, suit) = dst_card.split();
-            if self.final_stack[suit as usize] == rank && rank < N_RANKS {
+            if self.stackable(rank, suit) {
                 // check if dominances
                 let is_domiance = self.stack_dominance(rank, suit);
                 if is_domiance {
@@ -146,6 +150,15 @@ impl Solitaire {
             }
             for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
                 if id != other_id && other_pile.movable_to(pile) {
+                    let n_moved = other_pile.n_move(pile);
+                    if n_moved != other_pile.len() {
+                        //partial move only made when it's possible to move the card to the stack
+                        let (rank, suit) = other_pile.bottom(n_moved).split();
+                        if !self.stackable(rank, suit) {
+                            continue;
+                        }
+                    }
+
                     moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
                 }
             }
@@ -156,62 +169,6 @@ impl Solitaire {
             }
         }
     }
-
-    // pub fn gen_moves_(self: &Solitaire, moves: &mut Vec<MoveType>) {
-    //     // move to deck
-    //     for (id, pile) in self.visible_piles.iter().enumerate() {
-    //         let dst_card = pile.end();
-
-    //         let (rank, suit) = dst_card.split();
-    //         if self.final_stack[suit as usize] == rank && rank < N_RANKS {
-    //             moves.push((Pos::Pile(id as u8), Pos::Stack(suit)));
-    //         }
-    //     }
-    //     for (id, pile) in self.visible_piles.iter().enumerate() {
-    //         for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
-    //             if id != other_id
-    //                 && other_pile.movable_to(pile)
-    //                 && other_pile.start_rank() + 1 == pile.end().rank()
-    //             {
-    //                 moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
-    //             }
-    //         }
-    //     }
-    //     // src = src.Deck
-    //     for (pos, card) in self.deck.iter() {
-    //         let (rank, suit) = card.split();
-    //         if rank < N_RANKS && self.final_stack[suit as usize] == rank {
-    //             moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
-    //         }
-    //         for (id, pile) in self.visible_piles.iter().enumerate() {
-    //             let dst_card = pile.end();
-    //             if dst_card.go_before(card) {
-    //                 moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
-    //             }
-    //         }
-    //     }
-
-    //     for (id, pile) in self.visible_piles.iter().enumerate() {
-    //         let dst_card = pile.end();
-    //         let (rank, suit) = dst_card.split();
-    //         for i in 1..2u8 {
-    //             if rank > 0 && self.final_stack[(suit ^ i ^ 2) as usize] == rank {
-    //                 moves.push((Pos::Stack(suit ^ i ^ 2), Pos::Pile(id as u8)));
-    //             }
-    //         }
-    //     }
-
-    //     for (id, pile) in self.visible_piles.iter().enumerate() {
-    //         for (other_id, other_pile) in self.visible_piles.iter().enumerate() {
-    //             if id != other_id
-    //                 && other_pile.movable_to(pile)
-    //                 && other_pile.start_rank() + 1 != pile.end().rank()
-    //             {
-    //                 moves.push((Pos::Pile(other_id as u8), Pos::Pile(id as u8)));
-    //             }
-    //         }
-    //     }
-    // }
 
     pub fn gen_moves(self: &Solitaire) -> Vec<MoveType> {
         let mut moves = Vec::<MoveType>::new();

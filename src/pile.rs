@@ -90,13 +90,16 @@ impl Pile {
             && dst_rank <= start_rank + 1;
     }
 
-    pub const fn move_to_(self: &Pile, to: &Pile) -> (Pile, Pile) {
+    pub const fn n_move(self: &Pile, to: &Pile) -> u8 {
         debug_assert!(self.movable_to(to));
         let src_rank = self.end.rank();
         let dst_rank = to.end.rank();
 
-        let n_moved = dst_rank - src_rank;
+        dst_rank - src_rank
+    }
 
+    pub const fn move_to_(self: &Pile, to: &Pile) -> (Pile, Pile) {
+        let n_moved = self.n_move(to);
         return (
             self.pop_(n_moved),
             Pile {
