@@ -9,7 +9,7 @@ edition = "2021"
 colored = "2.1.0"
 rand = "0.8.5"
 concat-arrays = "0.1.2"
-lru = "0.12.1"
+quick_cache = "0.4.0"
 
 [profile.release]
 lto = true

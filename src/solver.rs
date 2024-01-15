@@ -1,3 +1,4 @@
+use quick_cache::sync::Cache;
 use std::collections::HashSet;
 
 use crate::engine::{Encode, MoveType, Solitaire};
@@ -21,7 +22,7 @@ impl SearchStats {
 
 fn solve(
     g: &mut Solitaire,
-    tp: &mut lru::LruCache<Encode, ()>,
+    tp: &mut Cache<Encode, ()>,
     tp_hist: &mut HashSet<Encode>,
     history: &mut Vec<MoveType>,
     move_list: &mut Vec<MoveType>,
@@ -33,9 +34,11 @@ fn solve(
         return true;
     }
     let encode = g.encode();
-    if tp.put(encode, ()).is_some() || !tp_hist.insert(encode) {
+    if tp.get(&encode).is_some() || !tp_hist.insert(encode) {
         stats.tp_hit += 1;
         return false;
+    } else {
+        tp.insert(encode, ());
     }
 
     let start = move_list.len();
@@ -60,8 +63,7 @@ fn solve(
 
 pub fn solve_game(g: &mut Solitaire) -> (Option<Vec<MoveType>>, SearchStats) {
     let mut tp_hist = HashSet::<Encode>::new();
-    let mut tp =
-        lru::LruCache::<Encode, ()>::new(std::num::NonZeroUsize::new(1024 * 1024 * 16).unwrap());
+    let mut tp = Cache::<Encode, ()>::new(1024 * 1024 * 16);
     let mut move_list = Vec::<MoveType>::new();
     let mut history = Vec::<MoveType>::new();
     let mut stats = SearchStats::new();
