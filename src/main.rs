@@ -4,68 +4,68 @@ pub mod engine;
 pub mod pile;
 pub mod solver;
 
-use rand::prelude::*;
-use std::hint::black_box;
-use std::io::Write;
+use solver::SearchStats;
+// use rand::prelude::*;
+// use std::hint::black_box;
 use std::time::Instant;
 
 use engine::*;
 
-const fn num_to_pos(num: i8) -> Pos {
-    if num <= 0 {
-        return Pos::Deck((-num) as u8);
-    } else if num < 5 {
-        return Pos::Stack(num as u8 - 1);
-    } else {
-        return Pos::Pile(num as u8 - 5);
-    }
-}
-const fn pos_to_num(p: &Pos) -> i8 {
-    return match p {
-        Pos::Deck(id) => -(*id as i8),
-        Pos::Stack(id) => 1 + (*id as i8),
-        Pos::Pile(id) => 5 + (*id as i8),
-    };
-}
+// const fn num_to_pos(num: i8) -> Pos {
+//     if num <= 0 {
+//         return Pos::Deck((-num) as u8);
+//     } else if num < 5 {
+//         return Pos::Stack(num as u8 - 1);
+//     } else {
+//         return Pos::Pile(num as u8 - 5);
+//     }
+// }
+// const fn pos_to_num(p: &Pos) -> i8 {
+//     return match p {
+//         Pos::Deck(id) => -(*id as i8),
+//         Pos::Stack(id) => 1 + (*id as i8),
+//         Pos::Pile(id) => 5 + (*id as i8),
+//     };
+// }
 
-fn benchmark() {
-    let mut rng = StdRng::seed_from_u64(14);
+// fn benchmark() {
+//     let mut rng = StdRng::seed_from_u64(14);
 
-    let mut moves = Vec::<MoveType>::new();
+//     let mut moves = Vec::<MoveType>::new();
 
-    let mut total_moves = 0;
-    let now = Instant::now();
-    for i in 0..100 {
-        let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
-        for _ in 0..100 {
-            moves.clear();
-            game.gen_moves_::<true>(&mut moves);
-            if moves.len() == 0 {
-                break;
-            }
-            game.do_move(moves.choose(&mut rng).unwrap());
-            black_box(game.encode());
-            total_moves += 1;
-        }
-    }
-    println!(
-        "{} {} op/s",
-        total_moves,
-        (total_moves as f64) / now.elapsed().as_secs_f64()
-    );
-}
+//     let mut total_moves = 0;
+//     let now = Instant::now();
+//     for i in 0..100 {
+//         let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+//         for _ in 0..100 {
+//             moves.clear();
+//             game.gen_moves_::<true>(&mut moves);
+//             if moves.len() == 0 {
+//                 break;
+//             }
+//             game.do_move(moves.choose(&mut rng).unwrap());
+//             black_box(game.encode());
+//             total_moves += 1;
+//         }
+//     }
+//     println!(
+//         "{} {} op/s",
+//         total_moves,
+//         (total_moves as f64) / now.elapsed().as_secs_f64()
+//     );
+// }
 
-fn test_solve() {
+fn test_solve(stats: &mut SearchStats) {
     let shuffled_deck = generate_shuffled_deck(28);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let mut g = Solitaire::new(&shuffled_deck, 3);
 
     let now = Instant::now();
-    let res = solver::solve_game(&mut g);
+    let res = solver::solve_game(&mut g, stats);
     println!("Solved in {} ms", now.elapsed().as_secs_f64() * 1000f64);
-    println!("Statistic\n{:#?}", res.1);
-    match res.0 {
+    println!("Statistic\n{:#?}", stats);
+    match res {
         Some(moves) => {
             println!("Solvable in {} moves", moves.len());
             println!("{:?}", moves);
@@ -75,7 +75,8 @@ fn test_solve() {
 }
 
 fn run() {
-    test_solve();
+    let mut stats = SearchStats::new();
+    test_solve(&mut stats);
     // benchmark();
 
     // let shuffled_deck = generate_shuffled_deck(12);

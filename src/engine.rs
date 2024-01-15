@@ -109,6 +109,11 @@ impl Solitaire {
         self.final_stack[suit as usize] == rank && rank < N_RANKS
     }
 
+    // minimal number of move left to win (can't use sum :()
+    pub fn min_move(self: &Solitaire) -> u8 {
+        N_CARDS - self.final_stack.iter().sum::<u8>()
+    }
+
     const fn stack_dominance(self: &Solitaire, rank: u8, suit: u8) -> bool {
         let stack = &self.final_stack;
         let suit = suit as usize;
@@ -163,6 +168,7 @@ impl Solitaire {
                 let n_moved = a.n_move(b);
                 if DOMINANCES && n_moved != a.len() {
                     //partial move only made when it's possible to move the card to the stack
+                    //this also stop you from moving from one empty pile to another pile
                     let (rank, suit) = a.bottom(n_moved).split();
                     if !self.stackable(rank, suit) {
                         continue;
