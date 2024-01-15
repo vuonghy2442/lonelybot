@@ -86,7 +86,7 @@ impl Pile {
         let end_rank = self.end.rank();
         let dst_rank = to.end.rank();
         // return (self.suit_type() == to.suit_type() || dst_rank >= N_RANKS)
-        return (self.end.xor_suit(&to.end) == 0 || dst_rank >= N_RANKS)
+        return (self.end.xor_suit(&to.end) == 0 || dst_rank == N_RANKS)
             && end_rank < dst_rank
             && dst_rank <= start_rank;
     }
@@ -117,6 +117,6 @@ impl Pile {
         // 00001(marking start)..(suit max 13 bit)..1(marking end)000|<suit type>
         let end_rank = self.end.rank();
         let suit = ((self.suit << 1) | 1) << end_rank;
-        return (suit << 1) | (self.suit_type() as u16) | ((end_rank >= N_RANKS) as u16);
+        return (suit << 1) | (self.suit_type() as u16) | ((end_rank == N_RANKS) as u16);
     }
 }

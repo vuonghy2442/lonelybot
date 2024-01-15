@@ -66,7 +66,7 @@ impl Card {
     pub const fn go_before(self: &Card, other: &Card) -> bool {
         let card_a = self.split();
         let card_b = other.split();
-        return card_a.0 == card_b.0 + 1 && (card_a.1 ^ card_b.1 >= 2 || card_a.0 >= N_RANKS);
+        return card_a.0 == card_b.0 + 1 && ((card_a.1 ^ card_b.1) & 2 == 2 || card_a.0 == N_RANKS);
     }
 
     pub fn print_solvitaire(self: &Card, f: &mut fmt::Formatter<'_>) -> fmt::Result {
