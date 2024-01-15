@@ -39,7 +39,7 @@ fn benchmark() {
         let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
         for _ in 0..100 {
             moves.clear();
-            game.gen_moves_(&mut moves);
+            game.gen_moves_::<true>(&mut moves);
             if moves.len() == 0 {
                 break;
             }
@@ -56,7 +56,7 @@ fn benchmark() {
 }
 
 fn test_solve() {
-        let shuffled_deck = generate_shuffled_deck(28);
+    let shuffled_deck = generate_shuffled_deck(28);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let mut g = Solitaire::new(&shuffled_deck, 3);

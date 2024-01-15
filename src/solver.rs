@@ -39,7 +39,7 @@ fn solve(
     }
 
     let start = move_list.len();
-    g.gen_moves_(move_list);
+    g.gen_moves_::<true>(move_list);
     let end = move_list.len();
 
     for pos in start..end {

@@ -116,7 +116,7 @@ impl Solitaire {
         rank <= stack[suit ^ 2] + 2 && rank <= stack[suit ^ 2 ^ 1] + 2 && rank <= stack[suit ^ 1]
     }
 
-    pub fn gen_moves_(self: &Solitaire, moves: &mut Vec<MoveType>) {
+    pub fn gen_moves_<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) {
         let start_len = moves.len();
         // src = src.Deck
         for (pos, card) in self.deck.iter() {
@@ -139,7 +139,7 @@ impl Solitaire {
             let (rank, suit) = dst_card.split();
             if self.stackable(rank, suit) {
                 // check if dominances
-                let is_domiance = self.stack_dominance(rank, suit);
+                let is_domiance = DOMINANCES && self.stack_dominance(rank, suit);
                 if is_domiance {
                     moves.truncate(start_len);
                 }
@@ -158,7 +158,7 @@ impl Solitaire {
                 };
 
                 let n_moved = a.n_move(b);
-                if n_moved != a.len() {
+                if DOMINANCES && n_moved != a.len() {
                     //partial move only made when it's possible to move the card to the stack
                     let (rank, suit) = a.bottom(n_moved).split();
                     if !self.stackable(rank, suit) {
@@ -177,9 +177,9 @@ impl Solitaire {
         }
     }
 
-    pub fn gen_moves(self: &Solitaire) -> Vec<MoveType> {
+    pub fn gen_moves<const DOMINANCES: bool>(self: &Solitaire) -> Vec<MoveType> {
         let mut moves = Vec::<MoveType>::new();
-        self.gen_moves_(&mut moves);
+        self.gen_moves_::<DOMINANCES>(&mut moves);
         return moves;
     }
 
@@ -492,7 +492,7 @@ mod tests {
         .map(|i| Card::new(i / N_SUITS, i % N_SUITS));
         let mut game = Solitaire::new(&cards, 3);
         assert_moves(
-            game.gen_moves(),
+            game.gen_moves::<false>(),
             vec![
                 (Pos::Deck(20), Pos::Pile(4)),
                 (Pos::Pile(0), Pos::Pile(4)),
@@ -500,10 +500,15 @@ mod tests {
             ],
         );
 
+        assert_moves(
+            game.gen_moves::<true>(),
+            vec![(Pos::Pile(5), Pos::Stack(3))],
+        );
+
         assert_eq!(game.do_move(&(Pos::Pile(0), Pos::Pile(4))).0, 5);
 
         assert_moves(
-            game.gen_moves(),
+            game.gen_moves::<false>(),
             vec![
                 (Pos::Deck(17), Pos::Pile(0)),
                 (Pos::Pile(4), Pos::Pile(0)),
@@ -511,16 +516,26 @@ mod tests {
             ],
         );
 
+        assert_moves(
+            game.gen_moves::<true>(),
+            vec![(Pos::Pile(5), Pos::Stack(3))],
+        );
+
         assert_eq!(game.do_move(&(Pos::Pile(4), Pos::Pile(0))).0, 5);
         assert_moves(
-            game.gen_moves(),
+            game.gen_moves::<false>(),
             vec![(Pos::Pile(2), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
+        );
+
+        assert_moves(
+            game.gen_moves::<true>(),
+            vec![(Pos::Pile(5), Pos::Stack(3))],
         );
 
         assert_eq!(game.do_move(&(Pos::Pile(2), Pos::Pile(4))).0, 5);
 
         assert_moves(
-            game.gen_moves(),
+            game.gen_moves::<false>(),
             vec![
                 (Pos::Pile(2), Pos::Pile(0)),
                 (Pos::Pile(4), Pos::Pile(2)),
@@ -528,25 +543,45 @@ mod tests {
             ],
         );
 
+        assert_moves(
+            game.gen_moves::<true>(),
+            vec![(Pos::Pile(5), Pos::Stack(3))],
+        );
+
         assert_eq!(game.do_move(&(Pos::Pile(2), Pos::Pile(0))).0, 5);
 
         assert_moves(
-            game.gen_moves(),
+            game.gen_moves::<false>(),
             vec![(Pos::Pile(4), Pos::Pile(0)), (Pos::Pile(5), Pos::Stack(3))],
+        );
+
+        assert_moves(
+            game.gen_moves::<true>(),
+            vec![(Pos::Pile(5), Pos::Stack(3))],
         );
 
         assert_eq!(game.do_move(&(Pos::Pile(4), Pos::Pile(0))).0, 5);
 
         assert_moves(
-            game.gen_moves(),
+            game.gen_moves::<false>(),
             vec![(Pos::Pile(3), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
+        );
+
+        assert_moves(
+            game.gen_moves::<true>(),
+            vec![(Pos::Pile(5), Pos::Stack(3))],
         );
 
         assert_eq!(game.do_move(&(Pos::Pile(3), Pos::Pile(4))).0, 5);
 
         assert_moves(
-            game.gen_moves(),
+            game.gen_moves::<false>(),
             vec![(Pos::Deck(2), Pos::Pile(3)), (Pos::Pile(5), Pos::Stack(3))],
+        );
+
+        assert_moves(
+            game.gen_moves::<true>(),
+            vec![(Pos::Pile(5), Pos::Stack(3))],
         );
     }
 
@@ -574,7 +609,7 @@ mod tests {
                 assert!(iter_org.map(|x| x.1).eq(check_cur.chain(check_next)));
 
                 moves.clear();
-                game.gen_moves_(&mut moves);
+                game.gen_moves_::<true>(&mut moves);
                 if moves.len() == 0 {
                     break;
                 }
@@ -593,7 +628,7 @@ mod tests {
             let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
             for _ in 0..100 {
                 moves.clear();
-                game.gen_moves_(&mut moves);
+                game.gen_moves_::<true>(&mut moves);
                 if moves.len() == 0 {
                     break;
                 }
@@ -632,7 +667,7 @@ mod tests {
 
             for _ in 0..100 {
                 moves.clear();
-                game.gen_moves_(&mut moves);
+                game.gen_moves_::<true>(&mut moves);
                 if moves.len() == 0 {
                     break;
                 }
