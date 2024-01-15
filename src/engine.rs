@@ -118,36 +118,13 @@ impl Solitaire {
         let stack = &self.final_stack;
         let suit = suit as usize;
         // allowing worring back :)
-        rank <= stack[suit ^ 2] + 2 && rank <= stack[suit ^ 2 ^ 1] + 2 && rank <= stack[suit ^ 1]
+        rank <= stack[suit ^ 2] + 2
+            && rank <= stack[suit ^ 2 ^ 1] + 2
+            && rank <= stack[suit ^ 1] + 3
     }
 
     pub fn gen_moves_<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) {
         let start_len = moves.len();
-        // src = src.Deck
-        for (pos, card, t) in self.deck.iter_all() {
-            if matches!(t, Drawable::None) {
-                continue;
-            }
-            let (rank, suit) = card.split();
-            if self.stackable(rank, suit) {
-                let is_domiance = DOMINANCES
-                    && (self.deck.draw_step() == 1 || pos + 2 >= self.deck.len()) // the last one is my own dominances, need to check
-                    && self.stack_dominance(rank, suit);
-                if is_domiance {
-                    moves.truncate(start_len);
-                }
-                moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
-                if is_domiance {
-                    return;
-                }
-            }
-            for (id, pile) in self.visible_piles.iter().enumerate() {
-                let dst_card = pile.end();
-                if dst_card.go_before(card) {
-                    moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
-                }
-            }
-        }
 
         // move to deck
         for (id, pile) in self.visible_piles.iter().enumerate() {
@@ -190,6 +167,32 @@ impl Solitaire {
             for i in 1..2u8 {
                 if rank > 0 && self.final_stack[(suit ^ i ^ 2) as usize] == rank {
                     moves.push((Pos::Stack(suit ^ i ^ 2), Pos::Pile(id as u8)));
+                }
+            }
+        }
+
+        // src = src.Deck
+        for (pos, card, t) in self.deck.iter_all() {
+            if matches!(t, Drawable::None) {
+                continue;
+            }
+            let (rank, suit) = card.split();
+            if self.stackable(rank, suit) {
+                let is_domiance = DOMINANCES
+                            && (self.deck.draw_step() == 1 || pos + 1 >= self.deck.len()) // the last one is my own dominances, need to check
+                            && self.stack_dominance(rank, suit);
+                if is_domiance {
+                    moves.truncate(start_len);
+                }
+                moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
+                if is_domiance {
+                    return;
+                }
+            }
+            for (id, pile) in self.visible_piles.iter().enumerate() {
+                let dst_card = pile.end();
+                if dst_card.go_before(card) {
+                    moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
                 }
             }
         }
@@ -459,10 +462,10 @@ impl fmt::Display for Solvitaire {
             write!(f, "[")?;
             for j in 0..i as usize {
                 // hidden cards
-                self.0.hidden_piles[i * (i - 1) / 2 + j].print_solvitaire(f)?;
+                self.0.hidden_piles[i * (i - 1) / 2 + j].print_solvitaire::<true>(f)?;
                 write!(f, ",")?;
             }
-            self.0.visible_piles[i].end().print_solvitaire(f)?;
+            self.0.visible_piles[i].end().print_solvitaire::<false>(f)?;
             if i + 1 < N_PILES as usize {
                 writeln!(f, "],")?;
             } else {
@@ -475,7 +478,7 @@ impl fmt::Display for Solvitaire {
         let tmp: Vec<(u8, Card)> = self.0.deck.iter_all().map(|x| (x.0, *x.1)).collect();
 
         for &(idx, c) in tmp.iter().rev() {
-            c.print_solvitaire(f)?;
+            c.print_solvitaire::<false>(f)?;
             if idx == 0 {
                 write!(f, "]")?;
             } else {

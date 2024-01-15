@@ -69,18 +69,26 @@ impl Card {
         return card_a.0 == card_b.0 + 1 && ((card_a.1 ^ card_b.1) & 2 == 2 || card_a.0 == N_RANKS);
     }
 
-    pub fn print_solvitaire(self: &Card, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    pub fn print_solvitaire<const LOWER: bool>(
+        self: &Card,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
         let (rank, suit) = self.split();
+        let s = match suit {
+            0 => "H",
+            1 => "D",
+            2 => "C",
+            3 => "S",
+            _ => "x",
+        };
         write!(
             f,
             r#""{}{}""#,
             NUMBERS[rank as usize],
-            match suit {
-                0 => "H",
-                1 => "D",
-                2 => "C",
-                3 => "S",
-                _ => "x",
+            if LOWER {
+                s.to_lowercase()
+            } else {
+                s.to_owned()
             }
         )
     }
