@@ -87,6 +87,10 @@ impl Deck {
             });
     }
 
+    pub const fn len(self: &Deck) -> u8 {
+        N_FULL_DECK as u8 - self.draw_next + self.draw_cur
+    }
+
     pub fn iter_all(self: &Deck) -> impl Iterator<Item = (u8, &Card, Drawable)> {
         let head = self.deck[..self.draw_cur as usize]
             .iter()

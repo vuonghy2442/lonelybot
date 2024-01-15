@@ -130,7 +130,16 @@ impl Solitaire {
             }
             let (rank, suit) = card.split();
             if self.stackable(rank, suit) {
+                let is_domiance = DOMINANCES
+                    && (self.deck.draw_step() == 1 || pos + 2 >= self.deck.len()) // the last one is my own dominances, need to check
+                    && self.stack_dominance(rank, suit);
+                if is_domiance {
+                    moves.truncate(start_len);
+                }
                 moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
+                if is_domiance {
+                    return;
+                }
             }
             for (id, pile) in self.visible_piles.iter().enumerate() {
                 let dst_card = pile.end();
