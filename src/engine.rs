@@ -119,7 +119,10 @@ impl Solitaire {
     pub fn gen_moves_<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) {
         let start_len = moves.len();
         // src = src.Deck
-        for (pos, card) in self.deck.iter() {
+        for (pos, card, t) in self.deck.iter_all() {
+            if matches!(t, Drawable::None) {
+                continue;
+            }
             let (rank, suit) = card.split();
             if self.stackable(rank, suit) {
                 moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
