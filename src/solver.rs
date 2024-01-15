@@ -1,5 +1,5 @@
 use quick_cache::sync::Cache;
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display, iter::zip};
 
 use crate::engine::{Encode, MoveType, Solitaire};
 
@@ -24,15 +24,29 @@ impl SearchStats {
     }
 }
 
+impl Display for SearchStats {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Total visit: {}\nTransposition hit: {}\nNon-cache state: {}\nMax depth search: {}\nCurrent progress:",
+            self.total_visit, self.tp_hit, self.total_visit - self.tp_hit, self.max_depth,
+        )?;
+
+        for (cur, total) in zip(self.cur_move.iter(), self.total_move.iter()) {
+            write!(f, " {}/{}", cur, total)?;
+        }
+        Ok(())
+    }
+}
+
 fn solve(
     g: &mut Solitaire,
     tp: &mut Cache<Encode, ()>,
     tp_hist: &mut HashSet<Encode>,
-    history: &mut Vec<MoveType>,
     move_list: &mut Vec<MoveType>,
     stats: &mut SearchStats,
 ) -> bool {
-    stats.max_depth = std::cmp::max(stats.max_depth, history.len());
+    stats.max_depth = std::cmp::max(stats.max_depth, stats.cur_move.len());
     stats.total_visit += 1;
 
     // if history.len() + (g.min_move() as usize) > 70 {
@@ -60,11 +74,9 @@ fn solve(
     for pos in start..end {
         let m = move_list[pos];
         let (_, undo) = g.do_move(&m);
-        history.push(m);
-        if solve(g, tp, tp_hist, history, move_list, stats) {
+        if solve(g, tp, tp_hist, move_list, stats) {
             return true;
         }
-        history.pop();
         g.undo_move(&m, &undo);
         *stats.cur_move.last_mut().unwrap() = (pos - start) as u8;
     }
@@ -80,17 +92,19 @@ pub fn solve_game(g: &mut Solitaire, stats: &mut SearchStats) -> Option<Vec<Move
     let mut tp_hist = HashSet::<Encode>::new();
     let mut tp = Cache::<Encode, ()>::new(1024 * 1024 * 32);
     let mut move_list = Vec::<MoveType>::new();
-    let mut history = Vec::<MoveType>::new();
-    let res = solve(
-        g,
-        &mut tp,
-        &mut tp_hist,
-        &mut history,
-        &mut move_list,
-        stats,
-    );
+    let res = solve(g, &mut tp, &mut tp_hist, &mut move_list, stats);
 
     if res {
+        let history = zip(
+            stats.cur_move.iter(),
+            stats.total_move.iter().scan(0, |acc, &x| {
+                let res = Some(*acc);
+                *acc += x;
+                res
+            }),
+        )
+        .map(|x| move_list[(x.0 + x.1) as usize])
+        .collect();
         Some(history)
     } else {
         None

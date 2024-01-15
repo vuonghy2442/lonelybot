@@ -4,59 +4,60 @@ pub mod engine;
 pub mod pile;
 pub mod solver;
 
+use rand::prelude::*;
 use solver::SearchStats;
 // use rand::prelude::*;
 // use std::hint::black_box;
-use std::time::Instant;
+use std::{io::Write, time::Instant};
 
 use engine::*;
 
-// const fn num_to_pos(num: i8) -> Pos {
-//     if num <= 0 {
-//         return Pos::Deck((-num) as u8);
-//     } else if num < 5 {
-//         return Pos::Stack(num as u8 - 1);
-//     } else {
-//         return Pos::Pile(num as u8 - 5);
-//     }
-// }
-// const fn pos_to_num(p: &Pos) -> i8 {
-//     return match p {
-//         Pos::Deck(id) => -(*id as i8),
-//         Pos::Stack(id) => 1 + (*id as i8),
-//         Pos::Pile(id) => 5 + (*id as i8),
-//     };
-// }
+const fn num_to_pos(num: i8) -> Pos {
+    if num <= 0 {
+        return Pos::Deck((-num) as u8);
+    } else if num < 5 {
+        return Pos::Stack(num as u8 - 1);
+    } else {
+        return Pos::Pile(num as u8 - 5);
+    }
+}
+const fn pos_to_num(p: &Pos) -> i8 {
+    return match p {
+        Pos::Deck(id) => -(*id as i8),
+        Pos::Stack(id) => 1 + (*id as i8),
+        Pos::Pile(id) => 5 + (*id as i8),
+    };
+}
 
-// fn benchmark() {
-//     let mut rng = StdRng::seed_from_u64(14);
+fn benchmark(seed: u64) {
+    let mut rng = StdRng::seed_from_u64(seed);
 
-//     let mut moves = Vec::<MoveType>::new();
+    let mut moves = Vec::<MoveType>::new();
 
-//     let mut total_moves = 0;
-//     let now = Instant::now();
-//     for i in 0..100 {
-//         let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
-//         for _ in 0..100 {
-//             moves.clear();
-//             game.gen_moves_::<true>(&mut moves);
-//             if moves.len() == 0 {
-//                 break;
-//             }
-//             game.do_move(moves.choose(&mut rng).unwrap());
-//             black_box(game.encode());
-//             total_moves += 1;
-//         }
-//     }
-//     println!(
-//         "{} {} op/s",
-//         total_moves,
-//         (total_moves as f64) / now.elapsed().as_secs_f64()
-//     );
-// }
+    let mut total_moves = 0;
+    let now = Instant::now();
+    for i in 0..100 {
+        let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+        for _ in 0..100 {
+            moves.clear();
+            game.gen_moves_::<true>(&mut moves);
+            if moves.len() == 0 {
+                break;
+            }
+            game.do_move(moves.choose(&mut rng).unwrap());
+            std::hint::black_box(game.encode());
+            total_moves += 1;
+        }
+    }
+    println!(
+        "{} {} op/s",
+        total_moves,
+        (total_moves as f64) / now.elapsed().as_secs_f64()
+    );
+}
 
-fn test_solve(stats: &mut SearchStats) {
-    let shuffled_deck = generate_shuffled_deck(28);
+fn test_solve(stats: &mut SearchStats, seed: u64) {
+    let shuffled_deck = generate_shuffled_deck(seed);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let mut g = Solitaire::new(&shuffled_deck, 3);
@@ -64,7 +65,7 @@ fn test_solve(stats: &mut SearchStats) {
     let now = Instant::now();
     let res = solver::solve_game(&mut g, stats);
     println!("Solved in {} ms", now.elapsed().as_secs_f64() * 1000f64);
-    println!("Statistic\n{:#?}", stats);
+    println!("Statistic\n{}", stats);
     match res {
         Some(moves) => {
             println!("Solvable in {} moves", moves.len());
@@ -74,53 +75,70 @@ fn test_solve(stats: &mut SearchStats) {
     }
 }
 
-fn run() {
+fn game_loop(seed: u64) {
+    let shuffled_deck = generate_shuffled_deck(seed);
+
+    println!("{}", Solvitaire::new(&shuffled_deck, 3));
+    let mut game = Solitaire::new(&shuffled_deck, 3);
+
+    let mut line = String::new();
+    loop {
+        print!("{}", game);
+
+        print!("{:?}", game.encode());
+        let moves = game.gen_moves::<true>();
+
+        println!(
+            "{:?}",
+            moves
+                .iter()
+                .map(|x| (pos_to_num(&x.0), pos_to_num(&x.1)))
+                .collect::<Vec<(i8, i8)>>()
+        );
+        print!("Move: ");
+        std::io::stdout().flush().unwrap();
+        line.clear();
+        let b1 = std::io::stdin().read_line(&mut line);
+        if let Result::Err(_) = b1 {
+            println!("Can't read");
+            continue;
+        }
+        let res: Option<Vec<i8>> = line
+            .trim()
+            .split(' ')
+            .map(|x| x.parse::<i8>().ok())
+            .collect();
+        if let Some([src, dst]) = res.as_deref() {
+            game.do_move(&(num_to_pos(*src), num_to_pos(*dst)));
+        } else {
+            println!("Invalid move");
+        }
+    }
+}
+
+fn run_solve(seed: u64) {
     let mut stats = SearchStats::new();
-    test_solve(&mut stats);
-    // benchmark();
-
-    // let shuffled_deck = generate_shuffled_deck(12);
-
-    // println!("{}", Solvitaire::new(&shuffled_deck, 3));
-    // let mut game = Solitaire::new(&shuffled_deck, 3);
-
-    // let mut line = String::new();
-    // loop {
-    //     print!("{}", game);
-
-    //     print!("{:?}", game.encode());
-    //     let moves = game.gen_moves();
-
-    //     println!(
-    //         "{:?}",
-    //         moves
-    //             .iter()
-    //             .map(|x| (pos_to_num(&x.0), pos_to_num(&x.1)))
-    //             .collect::<Vec<(i8, i8)>>()
-    //     );
-    //     print!("Move: ");
-    //     std::io::stdout().flush().unwrap();
-    //     line.clear();
-    //     let b1 = std::io::stdin().read_line(&mut line);
-    //     if let Result::Err(_) = b1 {
-    //         println!("Can't read");
-    //         continue;
-    //     }
-    //     let res: Option<Vec<i8>> = line
-    //         .trim()
-    //         .split(' ')
-    //         .map(|x| x.parse::<i8>().ok())
-    //         .collect();
-    //     if let Some([src, dst]) = res.as_deref() {
-    //         game.do_move(&(num_to_pos(*src), num_to_pos(*dst)));
-    //     } else {
-    //         println!("Invalid move");
-    //     }
-    // }
+    test_solve(&mut stats, seed);
 }
 
 fn main() {
-    run();
+    let method = std::env::args().nth(1).expect("no seed given");
+    let seed = std::env::args().nth(2).expect("no seed given");
+    let seed: u64 = seed.parse().expect("uint 64");
+    match method.as_ref() {
+        "solve" => {
+            run_solve(seed);
+        }
+        "play" => {
+            game_loop(seed);
+        }
+        "bench" => {
+            benchmark(seed);
+        }
+        _ => {
+            panic!("Wrong method")
+        }
+    }
 }
 
 // use std::thread;
