@@ -165,8 +165,13 @@ impl Solitaire {
             }
 
             for i in 1..2u8 {
-                if rank > 0 && self.final_stack[(suit ^ i ^ 2) as usize] == rank {
-                    moves.push((Pos::Stack(suit ^ i ^ 2), Pos::Pile(id as u8)));
+                let s = suit ^ i ^ 2;
+                if rank > 0
+                    && self.final_stack[s as usize] == rank
+                    && !(DOMINANCES && self.stack_dominance(rank, s))
+                // stop doing non progress move
+                {
+                    moves.push((Pos::Stack(s), Pos::Pile(id as u8)));
                 }
             }
         }
