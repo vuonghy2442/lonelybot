@@ -118,9 +118,9 @@ impl Solitaire {
         let stack = &self.final_stack;
         let suit = suit as usize;
         // allowing worring back :)
-        rank <= stack[suit ^ 2] + 2
-            && rank <= stack[suit ^ 2 ^ 1] + 2
-            && rank <= stack[suit ^ 1] + 3
+        rank <= stack[suit ^ 2] + 1
+            && rank <= stack[suit ^ 2 ^ 1] + 1
+            && rank <= stack[suit ^ 1] + 2
     }
 
     pub fn gen_moves_<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) {
@@ -164,11 +164,11 @@ impl Solitaire {
                 moves.push((Pos::Pile(a_id as u8), Pos::Pile(b_id as u8)));
             }
 
-            for i in 1..2u8 {
-                let s = suit ^ i ^ 2;
+            for i in 2..4u8 {
+                let s = suit ^ i;
                 if rank > 0
                     && self.final_stack[s as usize] == rank
-                    && !(DOMINANCES && self.stack_dominance(rank, s))
+                    && !(DOMINANCES && self.stack_dominance(rank - 1, s))
                 // stop doing non progress move
                 {
                     moves.push((Pos::Stack(s), Pos::Pile(id as u8)));

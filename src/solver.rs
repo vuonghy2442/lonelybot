@@ -12,6 +12,13 @@ pub struct SearchStats {
     total_move: Vec<u8>,
 }
 
+#[derive(Debug)]
+pub enum SearchResult {
+    Terminated,
+    Solved,
+    Unsolvable,
+}
+
 impl SearchStats {
     pub const fn new() -> SearchStats {
         SearchStats {
@@ -45,21 +52,21 @@ fn solve(
     tp_hist: &mut HashSet<Encode>,
     move_list: &mut Vec<MoveType>,
     stats: &mut SearchStats,
-) -> bool {
+) -> SearchResult {
     stats.max_depth = std::cmp::max(stats.max_depth, stats.cur_move.len());
     stats.total_visit += 1;
 
-    // if history.len() + (g.min_move() as usize) > 70 {
-    //     return false;
-    // }
+    if stats.total_visit > 60000000 {
+        return SearchResult::Terminated;
+    }
 
     if g.is_win() {
-        return true;
+        return SearchResult::Solved;
     }
     let encode = g.encode();
     if tp.get(&encode).is_some() || !tp_hist.insert(encode) {
         stats.tp_hit += 1;
-        return false;
+        return SearchResult::Unsolvable;
     } else {
         tp.insert(encode, ());
     }
@@ -74,8 +81,9 @@ fn solve(
     for pos in start..end {
         let m = move_list[pos];
         let (_, undo) = g.do_move(&m);
-        if solve(g, tp, tp_hist, move_list, stats) {
-            return true;
+        let res = solve(g, tp, tp_hist, move_list, stats);
+        if !matches!(res, SearchResult::Unsolvable) {
+            return res;
         }
         g.undo_move(&m, &undo);
         *stats.cur_move.last_mut().unwrap() = (pos - start) as u8;
@@ -85,16 +93,19 @@ fn solve(
     move_list.truncate(start);
     tp_hist.remove(&encode);
 
-    false
+    SearchResult::Unsolvable
 }
 
-pub fn solve_game(g: &mut Solitaire, stats: &mut SearchStats) -> Option<Vec<MoveType>> {
+pub fn solve_game(
+    g: &mut Solitaire,
+    stats: &mut SearchStats,
+) -> (SearchResult, Option<Vec<MoveType>>) {
     let mut tp_hist = HashSet::<Encode>::new();
     let mut tp = Cache::<Encode, ()>::new(1024 * 1024 * 32);
     let mut move_list = Vec::<MoveType>::new();
-    let res = solve(g, &mut tp, &mut tp_hist, &mut move_list, stats);
+    let search_res = solve(g, &mut tp, &mut tp_hist, &mut move_list, stats);
 
-    if res {
+    if let SearchResult::Solved = search_res {
         let history = zip(
             stats.cur_move.iter(),
             stats.total_move.iter().scan(0, |acc, &x| {
@@ -105,8 +116,8 @@ pub fn solve_game(g: &mut Solitaire, stats: &mut SearchStats) -> Option<Vec<Move
         )
         .map(|x| move_list[(x.0 + x.1) as usize])
         .collect();
-        Some(history)
+        (search_res, Some(history))
     } else {
-        None
+        (search_res, None)
     }
 }

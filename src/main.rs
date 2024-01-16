@@ -12,6 +12,8 @@ use std::{io::Write, time::Instant};
 
 use engine::*;
 
+use crate::solver::SearchResult;
+
 const fn num_to_pos(num: i8) -> Pos {
     if num <= 0 {
         return Pos::Deck((-num) as u8);
@@ -66,12 +68,14 @@ fn test_solve(stats: &mut SearchStats, seed: u64) {
     let res = solver::solve_game(&mut g, stats);
     println!("Solved in {} ms", now.elapsed().as_secs_f64() * 1000f64);
     println!("Statistic\n{}", stats);
-    match res {
-        Some(moves) => {
-            println!("Solvable in {} moves", moves.len());
-            println!("{:?}", moves);
+    match res.0 {
+        SearchResult::Solved => {
+            let m = res.1.unwrap();
+            println!("Solvable in {} moves", m.len());
+            println!("{:?}", m);
         }
-        None => println!("Impossible"),
+        SearchResult::Unsolvable => println!("Impossible"),
+        SearchResult::Terminated => println!("Terminated"),
     }
 }
 
@@ -121,11 +125,47 @@ fn run_solve(seed: u64) {
     test_solve(&mut stats, seed);
 }
 
+fn solve_loop(seed: u64) {
+    let mut cnt_terminated = 0;
+    let mut cnt_solve = 0;
+    let mut cnt_total = 0;
+    for seed in seed.. {
+        let shuffled_deck = generate_shuffled_deck(seed);
+        let mut g = Solitaire::new(&shuffled_deck, 3);
+
+        let mut stats = SearchStats::new();
+        let now = Instant::now();
+        let res = solver::solve_game(&mut g, &mut stats).0;
+        match res {
+            SearchResult::Solved => cnt_solve += 1 as usize,
+            SearchResult::Terminated => cnt_terminated += 1 as usize,
+            _ => {}
+        };
+
+        cnt_total += 1 as usize;
+        println!(
+            "Solved {} in {} ms. {:?}: ({}-{}/{} ~ {})",
+            seed,
+            now.elapsed().as_secs_f64() * 1000f64,
+            res,
+            cnt_solve,
+            cnt_terminated,
+            cnt_total,
+            cnt_solve as f64 / cnt_total as f64
+        );
+    }
+}
+
 fn main() {
     let method = std::env::args().nth(1).expect("no seed given");
     let seed = std::env::args().nth(2).expect("no seed given");
     let seed: u64 = seed.parse().expect("uint 64");
     match method.as_ref() {
+        "print" => {
+            let shuffled_deck = generate_shuffled_deck(seed);
+
+            println!("{}", Solvitaire::new(&shuffled_deck, 3));
+        }
         "solve" => {
             run_solve(seed);
         }
@@ -134,6 +174,9 @@ fn main() {
         }
         "bench" => {
             benchmark(seed);
+        }
+        "rate" => {
+            solve_loop(seed);
         }
         _ => {
             panic!("Wrong method")
