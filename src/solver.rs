@@ -1,4 +1,4 @@
-use quick_cache::sync::Cache;
+use quick_cache::unsync::Cache;
 use std::{collections::HashSet, fmt::Display, iter::zip};
 
 use crate::engine::{Encode, MoveType, Solitaire};

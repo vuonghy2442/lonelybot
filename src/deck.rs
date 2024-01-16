@@ -91,7 +91,7 @@ impl Deck {
         N_FULL_DECK as u8 - self.draw_next + self.draw_cur
     }
 
-    pub fn iter_all(self: &Deck) -> impl Iterator<Item = (u8, &Card, Drawable)> {
+    pub fn iter_all(self: &Deck) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
         let head = self.deck[..self.draw_cur as usize]
             .iter()
             .enumerate()
@@ -130,6 +130,16 @@ impl Deck {
                 )
             });
         return head.chain(tail);
+    }
+
+    pub const fn peek_last(self: &Deck) -> Option<&Card> {
+        if self.draw_next < N_FULL_DECK as u8 {
+            Some(&self.deck[N_FULL_DECK - 1])
+        } else if self.draw_cur > 0 {
+            Some(&self.deck[self.draw_cur as usize - 1])
+        } else {
+            None
+        }
     }
 
     pub const fn peek(self: &Deck, id: u8) -> Card {

@@ -171,16 +171,22 @@ impl Solitaire {
             }
         }
 
+        let filter = DOMINANCES
+            && self.deck.draw_step() > 1
+            && self.deck.peek_last().is_some_and(|&x| {
+                let (rank, suit) = x.split();
+                self.stackable(rank, suit) && self.stack_dominance(rank, suit)
+            });
+
         // src = src.Deck
-        for (pos, card, t) in self.deck.iter_all() {
-            if matches!(t, Drawable::None) {
+        for (pos, card, t) in self.deck.iter_all().rev() {
+            if matches!(t, Drawable::None) || (filter && matches!(t, Drawable::Next)) {
                 continue;
             }
             let (rank, suit) = card.split();
             if self.stackable(rank, suit) {
-                let is_domiance = DOMINANCES
-                            && (self.deck.draw_step() == 1 || pos + 1 >= self.deck.len()) // the last one is my own dominances, need to check
-                            && self.stack_dominance(rank, suit);
+                let is_domiance =
+                    DOMINANCES && self.deck.draw_step() == 1 && self.stack_dominance(rank, suit);
                 if is_domiance {
                     moves.truncate(start_len);
                 }
@@ -628,6 +634,8 @@ mod tests {
                     .map(|x| x.1);
 
                 assert!(iter_org.map(|x| x.1).eq(check_cur.chain(check_next)));
+
+                assert!(game.deck.peek_last() == game.deck.iter_all().last().map(|x| x.1));
 
                 moves.clear();
                 game.gen_moves_::<true>(&mut moves);
