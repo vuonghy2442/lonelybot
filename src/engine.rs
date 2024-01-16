@@ -216,7 +216,7 @@ impl Solitaire {
     }
 
     // this is unsafe gotta check it is valid move before
-    pub fn do_move(self: &mut Solitaire, m: &MoveType) -> (i32, UndoInfo) {
+    pub fn do_move(self: &mut Solitaire, m: &MoveType) -> UndoInfo {
         let (src, dst) = m;
         // handling final stack
         if let &Pos::Stack(id) = src {
@@ -242,10 +242,10 @@ impl Solitaire {
                 // not dealing with redealt yet :)
                 match dst {
                     Pos::Deck(_) => unreachable!(),
-                    Pos::Stack(_) => (20, default_info),
+                    Pos::Stack(_) => default_info,
                     &Pos::Pile(id_pile) => {
                         self.push_pile(id_pile, deck_card);
-                        (5, default_info)
+                        default_info
                     }
                 }
             }
@@ -253,20 +253,18 @@ impl Solitaire {
                 &Pos::Pile(id_pile) => {
                     let card: Card = Card::new(self.final_stack[id as usize], id);
                     self.push_pile(id_pile, card);
-                    (-15, default_info)
+                    default_info
                 }
                 _ => unreachable!(),
             },
             &Pos::Pile(id) => {
                 let prev = self.visible_piles[id as usize];
-                let reward = match dst {
+                match dst {
                     Pos::Stack(_) => {
                         self.pop_pile(id, 1);
-                        15
                     }
                     &Pos::Pile(id_pile) => {
                         self.move_pile(id, id_pile);
-                        0
                     }
                     Pos::Deck(_) => unreachable!(),
                 };
@@ -274,15 +272,12 @@ impl Solitaire {
                 // unlocking hidden cards
                 if self.visible_piles[id as usize].is_empty() {
                     self.visible_piles[id as usize] = Pile::from_card(self.pop_hidden(id));
-                    (
-                        reward + 5,
-                        UndoInfo {
-                            hidden: Some(prev),
-                            offset,
-                        },
-                    )
+                    UndoInfo {
+                        hidden: Some(prev),
+                        offset,
+                    }
                 } else {
-                    (reward, default_info)
+                    default_info
                 }
             }
         }
@@ -537,7 +532,7 @@ mod tests {
             vec![(Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(0), Pos::Pile(4))).0, 5);
+        game.do_move(&(Pos::Pile(0), Pos::Pile(4)));
 
         assert_moves(
             game.gen_moves::<false>(),
@@ -553,7 +548,7 @@ mod tests {
             vec![(Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(4), Pos::Pile(0))).0, 5);
+        game.do_move(&(Pos::Pile(4), Pos::Pile(0)));
         assert_moves(
             game.gen_moves::<false>(),
             vec![(Pos::Pile(2), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
@@ -564,7 +559,7 @@ mod tests {
             vec![(Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(2), Pos::Pile(4))).0, 5);
+        game.do_move(&(Pos::Pile(2), Pos::Pile(4)));
 
         assert_moves(
             game.gen_moves::<false>(),
@@ -580,7 +575,7 @@ mod tests {
             vec![(Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(2), Pos::Pile(0))).0, 5);
+        game.do_move(&(Pos::Pile(2), Pos::Pile(0)));
 
         assert_moves(
             game.gen_moves::<false>(),
@@ -592,7 +587,7 @@ mod tests {
             vec![(Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(4), Pos::Pile(0))).0, 5);
+        game.do_move(&(Pos::Pile(4), Pos::Pile(0)));
 
         assert_moves(
             game.gen_moves::<false>(),
@@ -604,7 +599,7 @@ mod tests {
             vec![(Pos::Pile(5), Pos::Stack(3))],
         );
 
-        assert_eq!(game.do_move(&(Pos::Pile(3), Pos::Pile(4))).0, 5);
+        game.do_move(&(Pos::Pile(3), Pos::Pile(4)));
 
         assert_moves(
             game.gen_moves::<false>(),
@@ -671,7 +666,7 @@ mod tests {
                 let ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
 
                 let m = moves.choose(&mut rng).unwrap();
-                let (_, undo) = game.do_move(m);
+                let undo = game.do_move(m);
                 let next_state = game.encode();
                 // assert_ne!(next_state, state); // could to do unmeaningful moves
                 game.undo_move(m, &undo);
@@ -709,7 +704,7 @@ mod tests {
                 enc.push(game.encode());
 
                 let m = moves.choose(&mut rng).unwrap();
-                let (_, undo) = game.do_move(m);
+                let undo = game.do_move(m);
                 history.push((*m, undo));
             }
 

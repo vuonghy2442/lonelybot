@@ -80,7 +80,7 @@ fn solve(
 
     for pos in start..end {
         let m = move_list[pos];
-        let (_, undo) = g.do_move(&m);
+        let undo = g.do_move(&m);
         let res = solve(g, tp, tp_hist, move_list, stats);
         if !matches!(res, SearchResult::Unsolvable) {
             return res;
