@@ -128,7 +128,10 @@ fn solve_loop(seed: u64) {
     let mut cnt_terminated = 0;
     let mut cnt_solve = 0;
     let mut cnt_total = 0;
-    for seed in seed.. {
+
+    let start = Instant::now();
+
+    for seed in seed..seed + 100 {
         let shuffled_deck = generate_shuffled_deck(seed);
         let mut g = Solitaire::new(&shuffled_deck, 3);
 
@@ -164,9 +167,11 @@ fn solve_loop(seed: u64) {
             higher,
         );
     }
+
+    println!("Total run time: {:?}", Instant::now() - start);
 }
 
-fn main() {
+fn main_fn() {
     let method = std::env::args().nth(1).expect("no seed given");
     let seed = std::env::args().nth(2).expect("no seed given");
     let seed: u64 = seed.parse().expect("uint 64");
@@ -194,17 +199,17 @@ fn main() {
     }
 }
 
-// use std::thread;
+use std::thread;
 
-// const STACK_SIZE: usize = 4 * 1024 * 1024;
+const STACK_SIZE: usize = 4 * 1024 * 1024;
 
-// fn main() {
-//     // Spawn thread with explicit stack size
-//     let child = thread::Builder::new()
-//         .stack_size(STACK_SIZE)
-//         .spawn(run)
-//         .unwrap();
+fn main() {
+    // Spawn thread with explicit stack size
+    let child = thread::Builder::new()
+        .stack_size(STACK_SIZE)
+        .spawn(main_fn)
+        .unwrap();
 
-//     // Wait for thread to join
-//     child.join().unwrap();
-// }
+    // Wait for thread to join
+    child.join().unwrap();
+}

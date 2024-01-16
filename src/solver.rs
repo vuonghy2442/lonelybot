@@ -56,9 +56,9 @@ fn solve(
     stats.max_depth = std::cmp::max(stats.max_depth, stats.cur_move.len());
     stats.total_visit += 1;
 
-    if stats.total_visit > 60000000 {
-        return SearchResult::Terminated;
-    }
+    // if stats.total_visit > 60000000 {
+    //     return SearchResult::Terminated;
+    // }
 
     if g.is_win() {
         return SearchResult::Solved;
