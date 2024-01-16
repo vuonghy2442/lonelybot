@@ -7,11 +7,17 @@ pub mod solver;
 use bpci::{Interval, NSuccessesSample, WilsonScore};
 use rand::prelude::*;
 use solver::SearchStats;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use std::{io::Write, time::Instant};
+
+use std::thread;
 
 use engine::*;
 
 use crate::solver::SearchResult;
+
+const STACK_SIZE: usize = 4 * 1024 * 1024;
 
 const fn num_to_pos(num: i8) -> Pos {
     if num <= 0 {
@@ -57,7 +63,7 @@ fn benchmark(seed: u64) {
     );
 }
 
-fn test_solve(stats: &mut SearchStats, seed: u64) {
+fn test_solve(stats: &Mutex<SearchStats>, seed: u64) {
     let shuffled_deck = generate_shuffled_deck(seed);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
@@ -66,7 +72,7 @@ fn test_solve(stats: &mut SearchStats, seed: u64) {
     let now = Instant::now();
     let res = solver::solve_game(&mut g, stats);
     println!("Solved in {} ms", now.elapsed().as_secs_f64() * 1000f64);
-    println!("Statistic\n{}", stats);
+    println!("Statistic\n{}", stats.lock().unwrap());
     match res.0 {
         SearchResult::Solved => {
             let m = res.1.unwrap();
@@ -120,8 +126,22 @@ fn game_loop(seed: u64) {
 }
 
 fn run_solve(seed: u64) {
-    let mut stats = SearchStats::new();
-    test_solve(&mut stats, seed);
+    let stats = Arc::new(Mutex::new(SearchStats::new()));
+    let child = {
+        // Spawn thread with explicit stack size
+        let stats_child = stats.clone();
+        thread::Builder::new()
+            .stack_size(STACK_SIZE)
+            .spawn(move || test_solve(stats_child.as_ref(), seed))
+            .unwrap()
+    };
+
+    while !child.is_finished() {
+        std::thread::sleep(Duration::from_millis(1000));
+        println!("Stats {}", stats.as_ref().lock().unwrap());
+    }
+
+    child.join().unwrap();
 }
 
 fn solve_loop(seed: u64) {
@@ -131,13 +151,13 @@ fn solve_loop(seed: u64) {
 
     let start = Instant::now();
 
-    for seed in seed..seed + 100 {
+    for seed in seed.. {
         let shuffled_deck = generate_shuffled_deck(seed);
         let mut g = Solitaire::new(&shuffled_deck, 3);
 
-        let mut stats = SearchStats::new();
+        let stats = Mutex::new(SearchStats::new());
         let now = Instant::now();
-        let res = solver::solve_game(&mut g, &mut stats).0;
+        let res = solver::solve_game(&mut g, &stats).0;
         match res {
             SearchResult::Solved => cnt_solve += 1 as usize,
             SearchResult::Terminated => cnt_terminated += 1 as usize,
@@ -171,7 +191,7 @@ fn solve_loop(seed: u64) {
     println!("Total run time: {:?}", Instant::now() - start);
 }
 
-fn main_fn() {
+fn main() {
     let method = std::env::args().nth(1).expect("no seed given");
     let seed = std::env::args().nth(2).expect("no seed given");
     let seed: u64 = seed.parse().expect("uint 64");
@@ -197,19 +217,4 @@ fn main_fn() {
             panic!("Wrong method")
         }
     }
-}
-
-use std::thread;
-
-const STACK_SIZE: usize = 4 * 1024 * 1024;
-
-fn main() {
-    // Spawn thread with explicit stack size
-    let child = thread::Builder::new()
-        .stack_size(STACK_SIZE)
-        .spawn(main_fn)
-        .unwrap();
-
-    // Wait for thread to join
-    child.join().unwrap();
 }
