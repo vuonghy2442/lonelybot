@@ -37,7 +37,7 @@ fn benchmark(seed: u64) {
     let mut total_moves = 0;
     let now = Instant::now();
     for i in 0..100 {
-        let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+        let mut game = Solitaire::new(&generate_shuffled_deck(seed + i), 3);
         for _ in 0..100 {
             moves.clear();
             game.gen_moves_::<true>(&mut moves);
