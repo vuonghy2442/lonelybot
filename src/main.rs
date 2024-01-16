@@ -4,10 +4,9 @@ pub mod engine;
 pub mod pile;
 pub mod solver;
 
+use bpci::{Interval, NSuccessesSample, WilsonScore};
 use rand::prelude::*;
 use solver::SearchStats;
-// use rand::prelude::*;
-// use std::hint::black_box;
 use std::{io::Write, time::Instant};
 
 use engine::*;
@@ -143,15 +142,26 @@ fn solve_loop(seed: u64) {
         };
 
         cnt_total += 1 as usize;
+
+        let lower = NSuccessesSample::new(cnt_total as u32, cnt_solve as u32)
+            .unwrap()
+            .wilson_score(1.960)
+            .lower(); //95%
+        let higher = NSuccessesSample::new(cnt_total as u32, (cnt_solve + cnt_terminated) as u32)
+            .unwrap()
+            .wilson_score(1.960)
+            .upper(); //95%
         println!(
-            "Solved {} in {} ms. {:?}: ({}-{}/{} ~ {})",
+            "Solved {} in {} ms. {:?}: ({}-{}/{} ~  {}<={}<={})",
             seed,
             now.elapsed().as_secs_f64() * 1000f64,
             res,
             cnt_solve,
             cnt_terminated,
             cnt_total,
-            cnt_solve as f64 / cnt_total as f64
+            lower,
+            cnt_solve as f64 / cnt_total as f64,
+            higher,
         );
     }
 }
