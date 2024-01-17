@@ -1,5 +1,5 @@
 use quick_cache::unsync::Cache;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{collections::HashSet, fmt::Display};
@@ -60,7 +60,12 @@ fn solve(
     move_list: &mut Vec<MoveType>,
     history: &mut Vec<MoveType>,
     stats: &SearchStats,
+    terminated: &AtomicBool,
 ) -> SearchResult {
+    if terminated.load(Ordering::Relaxed) {
+        return SearchResult::Terminated;
+    }
+
     stats.max_depth.fetch_max(history.len(), Ordering::Relaxed);
     stats.total_visit.fetch_add(1, Ordering::Relaxed);
 
@@ -90,7 +95,7 @@ fn solve(
         let m = move_list[pos];
         let undo = g.do_move(&m);
         history.push(m);
-        let res = solve(g, tp, tp_hist, move_list, history, stats);
+        let res = solve(g, tp, tp_hist, move_list, history, stats, terminated);
         if !matches!(res, SearchResult::Unsolvable) {
             return res;
         }
@@ -109,7 +114,11 @@ fn solve(
     SearchResult::Unsolvable
 }
 
-fn solve_game(g: &mut Solitaire, stats: &SearchStats) -> (SearchResult, Option<Vec<MoveType>>) {
+fn solve_game(
+    g: &mut Solitaire,
+    stats: &SearchStats,
+    terminated: &AtomicBool,
+) -> (SearchResult, Option<Vec<MoveType>>) {
     let mut tp_hist = HashSet::<Encode>::new();
     let mut tp = Cache::<Encode, ()>::new(1024 * 1024 * 32);
     let mut move_list = Vec::<MoveType>::new();
@@ -122,6 +131,7 @@ fn solve_game(g: &mut Solitaire, stats: &SearchStats) -> (SearchResult, Option<V
         &mut move_list,
         &mut history,
         stats,
+        terminated,
     );
 
     if let SearchResult::Solved = search_res {
@@ -139,12 +149,19 @@ pub fn run_solve(
 ) -> (SearchResult, SearchStats, Option<Vec<MoveType>>) {
     let ss = Arc::new(SearchStats::new());
 
+    let terminated = Arc::new(AtomicBool::new(false));
+
+    let sig_id =
+        signal_hook::flag::register(signal_hook::consts::signal::SIGINT, Arc::clone(&terminated))
+            .expect("Can't register hook");
+
     let child = {
         // Spawn thread with explicit stack size
         let ss_clone = ss.clone();
+        let term_clone = terminated.clone();
         thread::Builder::new()
             .stack_size(STACK_SIZE)
-            .spawn(move || solve_game(&mut g, ss_clone.as_ref()))
+            .spawn(move || solve_game(&mut g, ss_clone.as_ref(), term_clone.as_ref()))
             .unwrap()
     };
 
@@ -156,5 +173,7 @@ pub fn run_solve(
     }
 
     let (res, hist) = child.join().unwrap();
+    signal_hook::low_level::unregister(sig_id);
+
     return (res, Arc::try_unwrap(ss).unwrap(), hist);
 }
