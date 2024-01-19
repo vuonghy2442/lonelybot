@@ -126,6 +126,24 @@ impl Solitaire {
     pub fn gen_moves_<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) {
         let start_len = moves.len();
 
+        // move to deck
+        for (id, pile) in self.visible_piles.iter().enumerate() {
+            let dst_card = pile.end();
+
+            let (rank, suit) = dst_card.split();
+            if self.stackable(rank, suit) {
+                // check if dominances
+                let is_domiance = DOMINANCES && self.stack_dominance(rank, suit);
+                if is_domiance {
+                    moves.truncate(start_len);
+                }
+                moves.push((Pos::Pile(id as u8), Pos::Stack(suit)));
+                if is_domiance {
+                    return;
+                }
+            }
+        }
+
         let filter = DOMINANCES
             && self.deck.draw_step() > 1
             && self.deck.peek_last().is_some_and(|&x| {
@@ -150,6 +168,12 @@ impl Solitaire {
                     return;
                 }
             }
+        }
+
+        for (pos, card, t) in self.deck.iter_all().rev() {
+            if matches!(t, Drawable::None) || (filter && matches!(t, Drawable::Next)) {
+                continue;
+            }
             for (id, pile) in self.visible_piles.iter().enumerate() {
                 let dst_card = pile.end();
                 if dst_card.go_before(card) {
@@ -158,22 +182,7 @@ impl Solitaire {
             }
         }
 
-        // move to deck
         for (id, pile) in self.visible_piles.iter().enumerate() {
-            let dst_card = pile.end();
-
-            let (rank, suit) = dst_card.split();
-            if self.stackable(rank, suit) {
-                // check if dominances
-                let is_domiance = DOMINANCES && self.stack_dominance(rank, suit);
-                if is_domiance {
-                    moves.truncate(start_len);
-                }
-                moves.push((Pos::Pile(id as u8), Pos::Stack(suit)));
-                if is_domiance {
-                    return;
-                }
-            }
             for (other_id, other_pile) in self.visible_piles.iter().enumerate().take(id) {
                 let (a, b, a_id, b_id) = if other_pile.movable_to(pile) {
                     (other_pile, pile, other_id, id)
@@ -195,6 +204,12 @@ impl Solitaire {
 
                 moves.push((Pos::Pile(a_id as u8), Pos::Pile(b_id as u8)));
             }
+        }
+
+        for (id, pile) in self.visible_piles.iter().enumerate() {
+            let dst_card = pile.end();
+
+            let (rank, suit) = dst_card.split();
 
             for i in 2..4u8 {
                 let s = suit ^ i;
