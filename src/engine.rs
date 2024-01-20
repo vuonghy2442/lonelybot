@@ -201,7 +201,7 @@ impl Solitaire {
     }
 
     fn gen_pile_pile<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) -> bool {
-        for (id, pile) in self.visible_piles.iter().enumerate() {
+        for (id, pile) in self.visible_piles.iter().enumerate().skip(1) {
             for (other_id, other_pile) in self.visible_piles.iter().enumerate().take(id) {
                 let (a, b, a_id, b_id) = if other_pile.movable_to(pile) {
                     (other_pile, pile, other_id, id)
@@ -236,9 +236,10 @@ impl Solitaire {
                 self.stackable(rank, suit) && self.stack_dominance(rank, suit)
             });
 
-        let found_dominance = self.gen_pile_stack::<DOMINANCES>(moves)
+        let found_dominance = false
             || self.gen_deck_stack::<DOMINANCES>(moves, filter)
             || self.gen_deck_pile::<DOMINANCES>(moves, filter)
+            || self.gen_pile_stack::<DOMINANCES>(moves)
             || self.gen_pile_pile::<DOMINANCES>(moves)
             || self.gen_stack_pile::<DOMINANCES>(moves);
         if found_dominance {
