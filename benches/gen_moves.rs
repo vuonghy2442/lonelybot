@@ -8,12 +8,13 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut rng = StdRng::seed_from_u64(seed);
 
     let mut moves = Vec::<MoveType>::new();
-    for _ in 0..20 {
+    for _ in 0..21 {
         moves.clear();
         game.gen_moves_::<true>(&mut moves);
         if moves.len() == 0 {
             break;
         }
+        moves.sort();
         game.do_move(moves.choose(&mut rng).unwrap());
     }
 

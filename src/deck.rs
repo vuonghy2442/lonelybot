@@ -132,6 +132,81 @@ impl Deck {
         return head.chain(tail);
     }
 
+    pub fn iter_callback(
+        self: &Deck,
+        filter: bool,
+        mut push: impl FnMut(u8, &Card) -> bool,
+    ) -> bool {
+        if self.draw_step() == 1 {
+            if !filter {
+                for (pos, card) in self.deck[..self.draw_cur as usize].iter().enumerate() {
+                    if push(pos as u8, card) {
+                        return true;
+                    }
+                }
+            }
+
+            for (pos, card) in self.deck[self.draw_next as usize..].iter().enumerate() {
+                if push((pos as u8) + self.draw_cur, card) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if !filter {
+            let mut i = self.draw_step - 1;
+            while i + 1 < self.draw_cur {
+                if push(i, &self.deck[i as usize]) {
+                    return true;
+                }
+                i += self.draw_step;
+            }
+        }
+
+        if self.draw_cur > 0 {
+            if push(self.draw_cur - 1, &self.deck[self.draw_cur as usize - 1]) {
+                return true;
+            }
+        }
+
+        let gap = self.draw_next - self.draw_cur;
+
+        if self.draw_next < N_FULL_DECK as u8 {
+            if push(
+                N_FULL_DECK as u8 - 1 - gap,
+                &self.deck[N_FULL_DECK as usize - 1],
+            ) {
+                return true;
+            }
+        }
+
+        {
+            let mut i = self.draw_next + self.draw_step - 1;
+            while i + 1 < N_FULL_DECK as u8 {
+                if push(i - gap, &self.deck[i as usize]) {
+                    return true;
+                }
+                i += self.draw_step;
+            }
+        }
+
+        {
+            let offset = self.draw_cur % self.draw_step;
+            if !filter && offset != 0 {
+                let mut i = self.draw_next + self.draw_step - 1 - offset;
+
+                while i + 1 < N_FULL_DECK as u8 {
+                    if push(i - gap, &self.deck[i as usize]) {
+                        return true;
+                    }
+                    i += self.draw_step;
+                }
+            }
+        }
+        false
+    }
+
     pub const fn peek_last(self: &Deck) -> Option<&Card> {
         if self.draw_next < N_FULL_DECK as u8 {
             Some(&self.deck[N_FULL_DECK - 1])

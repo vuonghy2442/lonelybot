@@ -149,19 +149,26 @@ impl Solitaire {
         moves: &mut Vec<MoveType>,
         filter: bool,
     ) -> bool {
-        for (pos, card, t) in self.deck.iter_all().rev() {
-            if matches!(t, Drawable::None) || (filter && matches!(t, Drawable::Next)) {
-                continue;
-            }
-            let (rank, suit) = card.split();
-            if self.stackable(rank, suit) {
-                moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
-                if DOMINANCES && self.deck.draw_step() == 1 && self.stack_dominance(rank, suit) {
-                    return true;
+        if self.deck.draw_step() == 1 {
+            self.deck.iter_callback(false, |pos, card| -> bool {
+                let (rank, suit) = card.split();
+                if self.stackable(rank, suit) {
+                    moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
+                    if DOMINANCES && self.stack_dominance(rank, suit) {
+                        return true;
+                    }
                 }
-            }
+                false
+            })
+        } else {
+            self.deck.iter_callback(filter, |pos, card| -> bool {
+                let (rank, suit) = card.split();
+                if self.stackable(rank, suit) {
+                    moves.push((Pos::Deck(pos), Pos::Stack(suit)));
+                }
+                false
+            })
         }
-        false
     }
 
     pub fn gen_deck_pile<const DOMINANCES: bool>(
@@ -169,18 +176,15 @@ impl Solitaire {
         moves: &mut Vec<MoveType>,
         filter: bool,
     ) -> bool {
-        // src = src.Deck
-        for (pos, card, t) in self.deck.iter_all().rev() {
-            if matches!(t, Drawable::None) || (filter && matches!(t, Drawable::Next)) {
-                continue;
-            }
+        self.deck.iter_callback(filter, |pos, card| -> bool {
             for (id, pile) in self.visible_piles.iter().enumerate() {
                 let dst_card = pile.end();
                 if dst_card.go_before(card) {
                     moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
                 }
             }
-        }
+            false
+        });
         false
     }
 
