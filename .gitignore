@@ -1,6 +1,8 @@
 *.pth
 __pycache__
 .vscode
+log*
+test.json
 
 # Added by cargo
 

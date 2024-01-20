@@ -12,6 +12,7 @@ concat-arrays = "0.1.2"
 quick_cache = "0.4.0"
 bpci = "0.1.0"
 signal-hook = "0.3.17"
+criterion = "0.5.1"
 
 [profile.release]
 lto = true
@@ -24,3 +25,7 @@ debug = true
 opt-level = 1               # Use slightly better optimizations.
 overflow-checks = false     # Disable integer overflow checks.
 lto = true
+
+[[bench]]
+name = "gen_moves"
+harness = false
