@@ -1,16 +1,10 @@
-pub mod card;
-pub mod deck;
-pub mod engine;
-pub mod pile;
-pub mod solver;
-
 use bpci::{Interval, NSuccessesSample, WilsonScore};
 use rand::prelude::*;
 use std::{io::Write, time::Instant};
 
-use engine::*;
+use lonelybot::engine::*;
 
-use crate::solver::SearchResult;
+use lonelybot::solver::SearchResult;
 
 const fn num_to_pos(num: i8) -> Pos {
     if num <= 0 {
@@ -63,7 +57,7 @@ fn test_solve(seed: u64) {
     let g = Solitaire::new(&shuffled_deck, 3);
 
     let now = Instant::now();
-    let res = solver::run_solve(g, true);
+    let res = lonelybot::solver::run_solve(g, true);
     println!("Solved in {} ms", now.elapsed().as_secs_f64() * 1000f64);
     println!("Statistic\n{}", res.1);
     match res.0 {
@@ -130,7 +124,7 @@ fn solve_loop(seed: u64) {
         let g = Solitaire::new(&shuffled_deck, 3);
 
         let now = Instant::now();
-        let res = solver::run_solve(g, false).0;
+        let res = lonelybot::solver::run_solve(g, false).0;
         match res {
             SearchResult::Solved => cnt_solve += 1 as usize,
             SearchResult::Terminated => cnt_terminated += 1 as usize,
