@@ -1,6 +1,6 @@
 use quick_cache::unsync::Cache;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 use std::{collections::HashSet, fmt::Display};
 
@@ -8,12 +8,14 @@ use crate::engine::{Encode, MoveType, Solitaire};
 
 use std::thread;
 
+const TRACK_DEPTH: usize = 8;
+
 #[derive(Debug)]
 pub struct SearchStats {
     total_visit: AtomicUsize,
     tp_hit: AtomicUsize,
     max_depth: AtomicUsize,
-    move_state: Mutex<Vec<(u8, u8)>>,
+    move_state: [(AtomicU8, AtomicU8); TRACK_DEPTH],
 }
 
 #[derive(Debug)]
@@ -24,30 +26,36 @@ pub enum SearchResult {
 }
 
 impl SearchStats {
-    pub const fn new() -> SearchStats {
+    pub fn new() -> SearchStats {
         SearchStats {
             total_visit: AtomicUsize::new(0),
             tp_hit: AtomicUsize::new(0),
             max_depth: AtomicUsize::new(0),
-            move_state: Mutex::new(Vec::new()),
+            move_state: Default::default(),
         }
     }
 }
 
 impl Display for SearchStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let (total, hit) = (
+        let (total, hit, depth) = (
             self.total_visit.load(Ordering::Relaxed),
             self.tp_hit.load(Ordering::Relaxed),
+            self.max_depth.load(Ordering::Relaxed),
         );
         write!(
             f,
-            "Total visit: {}\nTransposition hit: {}\nNon-cache state: {}\nMax depth search: {}\nCurrent progress:",
-            total, hit, total - hit, self.max_depth.load(Ordering::Relaxed),
+            "Total visit: {}\nTransposition hit: {} (rate {})\nNon-cache state: {}\nMax depth search: {}\nCurrent progress:",
+            total, hit, (hit as f64)/(total as f64), total - hit, depth,
         )?;
 
-        for (cur, total) in self.move_state.lock().unwrap().iter() {
-            write!(f, " {}/{}", cur, total)?;
+        for (cur, total) in &self.move_state {
+            write!(
+                f,
+                " {}/{}",
+                cur.load(Ordering::Relaxed),
+                total.load(Ordering::Relaxed)
+            )?;
         }
         Ok(())
     }
@@ -85,11 +93,13 @@ fn solve(
 
     let end = move_list.len();
 
-    stats
-        .move_state
-        .lock()
-        .unwrap()
-        .push((0, (end - start) as u8));
+    let depth = history.len();
+    if depth < TRACK_DEPTH {
+        stats.move_state[depth].0.store(0, Ordering::Relaxed);
+        stats.move_state[depth]
+            .1
+            .store((end - start) as u8, Ordering::Relaxed);
+    }
 
     for pos in start..end {
         let m = move_list[pos];
@@ -103,10 +113,12 @@ fn solve(
 
         g.undo_move(&m, &undo);
 
-        stats.move_state.lock().unwrap().last_mut().unwrap().0 = (pos - start + 1) as u8;
+        if depth < TRACK_DEPTH {
+            stats.move_state[depth]
+                .0
+                .store((pos - start + 1) as u8, Ordering::Relaxed);
+        }
     }
-
-    stats.move_state.lock().unwrap().pop();
 
     move_list.truncate(start);
     tp_hist.remove(&encode);
