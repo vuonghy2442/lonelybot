@@ -40,6 +40,41 @@ fn criterion_benchmark(c: &mut Criterion) {
             black_box(moves.len());
         })
     });
+
+    c.bench_function("gen_deck_pile", |b| {
+        b.iter(|| {
+            moves.clear();
+            game.gen_deck_pile::<true>(&mut moves, false);
+        })
+    });
+
+    c.bench_function("gen_deck_stack", |b| {
+        b.iter(|| {
+            moves.clear();
+            game.gen_deck_stack::<true>(&mut moves, false);
+        })
+    });
+
+    c.bench_function("gen_pile_pile", |b| {
+        b.iter(|| {
+            moves.clear();
+            game.gen_pile_pile::<true>(&mut moves);
+        })
+    });
+
+    c.bench_function("gen_pile_stack", |b| {
+        b.iter(|| {
+            moves.clear();
+            game.gen_pile_stack::<true>(&mut moves);
+        })
+    });
+
+    c.bench_function("gen_stack_pile", |b| {
+        b.iter(|| {
+            moves.clear();
+            game.gen_stack_pile::<true>(&mut moves);
+        })
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);

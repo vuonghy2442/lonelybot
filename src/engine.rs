@@ -123,7 +123,10 @@ impl Solitaire {
             && rank <= stack[suit ^ 1] + 2
     }
 
-    fn gen_pile_stack<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) -> bool {
+    pub fn gen_pile_stack<const DOMINANCES: bool>(
+        self: &Solitaire,
+        moves: &mut Vec<MoveType>,
+    ) -> bool {
         // move to deck
         for (id, pile) in self.visible_piles.iter().enumerate() {
             let dst_card = pile.end();
@@ -141,7 +144,7 @@ impl Solitaire {
         false
     }
 
-    fn gen_deck_stack<const DOMINANCES: bool>(
+    pub fn gen_deck_stack<const DOMINANCES: bool>(
         self: &Solitaire,
         moves: &mut Vec<MoveType>,
         filter: bool,
@@ -161,7 +164,7 @@ impl Solitaire {
         false
     }
 
-    fn gen_deck_pile<const DOMINANCES: bool>(
+    pub fn gen_deck_pile<const DOMINANCES: bool>(
         self: &Solitaire,
         moves: &mut Vec<MoveType>,
         filter: bool,
@@ -181,7 +184,10 @@ impl Solitaire {
         false
     }
 
-    fn gen_stack_pile<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) -> bool {
+    pub fn gen_stack_pile<const DOMINANCES: bool>(
+        self: &Solitaire,
+        moves: &mut Vec<MoveType>,
+    ) -> bool {
         for (id, pile) in self.visible_piles.iter().enumerate() {
             let dst_card = pile.end();
 
@@ -200,7 +206,10 @@ impl Solitaire {
         false
     }
 
-    fn gen_pile_pile<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) -> bool {
+    pub fn gen_pile_pile<const DOMINANCES: bool>(
+        self: &Solitaire,
+        moves: &mut Vec<MoveType>,
+    ) -> bool {
         for (id, pile) in self.visible_piles.iter().enumerate().skip(1) {
             for (other_id, other_pile) in self.visible_piles.iter().enumerate().take(id) {
                 let (a, b, a_id, b_id) = if other_pile.movable_to(pile) {
