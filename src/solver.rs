@@ -1,5 +1,6 @@
 use quick_cache::unsync::Cache;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
+use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{collections::HashSet, fmt::Display};
@@ -130,6 +131,7 @@ fn solve_game(
     g: &mut Solitaire,
     stats: &SearchStats,
     terminated: &AtomicBool,
+    done: &Sender<()>,
 ) -> (SearchResult, Option<Vec<MoveType>>) {
     let mut tp_hist = HashSet::<Encode>::new();
     let mut tp = Cache::<Encode, ()>::new(1024 * 1024 * 32);
@@ -145,6 +147,8 @@ fn solve_game(
         stats,
         terminated,
     );
+
+    done.send(()).unwrap();
 
     if let SearchResult::Solved = search_res {
         (search_res, Some(history))
@@ -167,20 +171,24 @@ pub fn run_solve(
         signal_hook::flag::register(signal_hook::consts::signal::SIGINT, Arc::clone(&terminated))
             .expect("Can't register hook");
 
+    let (send, recv) = channel::<()>();
+
     let child = {
         // Spawn thread with explicit stack size
         let ss_clone = ss.clone();
         let term_clone = terminated.clone();
         thread::Builder::new()
             .stack_size(STACK_SIZE)
-            .spawn(move || solve_game(&mut g, ss_clone.as_ref(), term_clone.as_ref()))
+            .spawn(move || solve_game(&mut g, ss_clone.as_ref(), term_clone.as_ref(), &send))
             .unwrap()
     };
 
     if verbose {
-        while !child.is_finished() {
-            std::thread::sleep(Duration::from_millis(1000));
-            println!("{}", ss);
+        loop {
+            match recv.recv_timeout(Duration::from_millis(1000)) {
+                Ok(()) => break,
+                Err(_) => println!("{}", ss),
+            };
         }
     }
 

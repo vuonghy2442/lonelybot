@@ -419,12 +419,12 @@ impl Solitaire {
         let mut res = self.visible_piles.map(|p| p.encode()); // you can always ignore 0 since it's not a valid state
         let mut i: usize = 0;
         for k in 0..N_PILES as usize {
-            if self.n_hidden[k] != 0 {
+            if self.n_hidden[k] == 0 {
                 res.swap(i, k);
                 i += 1;
             }
         }
-        res[i..].sort_unstable();
+        res[..i].sort_unstable();
         res
     }
 
