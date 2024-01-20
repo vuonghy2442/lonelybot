@@ -515,7 +515,7 @@ impl Solvitaire {
 
 impl fmt::Display for Solvitaire {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, r#"{{ "tableau piles": ["#)?;
+        writeln!(f, r#"{{"tableau piles": ["#)?;
 
         for i in 0..N_PILES as usize {
             write!(f, "[")?;
@@ -532,7 +532,7 @@ impl fmt::Display for Solvitaire {
             }
         }
 
-        write!(f, "],\n\"stock\": [")?;
+        write!(f, "],\"stock\": [")?;
 
         let tmp: Vec<(u8, Card)> = self.0.deck.iter_all().map(|x| (x.0, *x.1)).collect();
 

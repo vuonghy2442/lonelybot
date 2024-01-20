@@ -1,5 +1,9 @@
 use bpci::{Interval, NSuccessesSample, WilsonScore};
 use rand::prelude::*;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 use std::{io::Write, time::Instant};
 
 use lonelybot::engine::*;
@@ -50,15 +54,15 @@ fn benchmark(seed: u64) {
     );
 }
 
-fn test_solve(seed: u64) {
+fn test_solve(seed: u64, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = generate_shuffled_deck(seed);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let g = Solitaire::new(&shuffled_deck, 3);
 
     let now = Instant::now();
-    let res = lonelybot::solver::run_solve(g, true);
-    println!("Solved in {} ms", now.elapsed().as_secs_f64() * 1000f64);
+    let res = lonelybot::solver::run_solve(g, true, terminated);
+    println!("Run in {} ms", now.elapsed().as_secs_f64() * 1000f64);
     println!("Statistic\n{}", res.1);
     match res.0 {
         SearchResult::Solved => {
@@ -112,7 +116,7 @@ fn game_loop(seed: u64) {
     }
 }
 
-fn solve_loop(seed: u64) {
+fn solve_loop(seed: u64, terminated: &Arc<AtomicBool>) {
     let mut cnt_terminated = 0;
     let mut cnt_solve = 0;
     let mut cnt_total = 0;
@@ -124,7 +128,7 @@ fn solve_loop(seed: u64) {
         let g = Solitaire::new(&shuffled_deck, 3);
 
         let now = Instant::now();
-        let res = lonelybot::solver::run_solve(g, false).0;
+        let res = lonelybot::solver::run_solve(g, false, terminated).0;
         match res {
             SearchResult::Solved => cnt_solve += 1 as usize,
             SearchResult::Terminated => cnt_terminated += 1 as usize,
@@ -142,7 +146,7 @@ fn solve_loop(seed: u64) {
             .wilson_score(1.960)
             .upper(); //95%
         println!(
-            "Solved {} in {} ms. {:?}: ({}-{}/{} ~  {}<={}<={})",
+            "Run {} in {:.2} ms. {:?}: ({}-{}/{} ~ {:.4}<={:.4}<={:.4})",
             seed,
             now.elapsed().as_secs_f64() * 1000f64,
             res,
@@ -153,12 +157,29 @@ fn solve_loop(seed: u64) {
             cnt_solve as f64 / cnt_total as f64,
             higher,
         );
+
+        if terminated.load(Ordering::Relaxed) {
+            thread::sleep(Duration::from_millis(500));
+            terminated.store(false, Ordering::Relaxed)
+        }
     }
 
     println!("Total run time: {:?}", Instant::now() - start);
 }
 
 fn main() {
+    let terminated = Arc::new(AtomicBool::new(false));
+
+    signal_hook::flag::register_conditional_shutdown(
+        signal_hook::consts::signal::SIGINT,
+        1,
+        Arc::clone(&terminated),
+    )
+    .expect("Can't register hook");
+
+    signal_hook::flag::register(signal_hook::consts::signal::SIGINT, Arc::clone(&terminated))
+        .expect("Can't register hook");
+
     let method = std::env::args().nth(1).expect("no seed given");
     let seed = std::env::args().nth(2).expect("no seed given");
     let seed: u64 = seed.parse().expect("uint 64");
@@ -169,7 +190,7 @@ fn main() {
             println!("{}", Solvitaire::new(&shuffled_deck, 3));
         }
         "solve" => {
-            test_solve(seed);
+            test_solve(seed, &terminated);
         }
         "play" => {
             game_loop(seed);
@@ -178,7 +199,7 @@ fn main() {
             benchmark(seed);
         }
         "rate" => {
-            solve_loop(seed);
+            solve_loop(seed, &terminated);
         }
         _ => {
             panic!("Wrong method")

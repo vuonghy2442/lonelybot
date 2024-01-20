@@ -46,7 +46,7 @@ impl Display for SearchStats {
         );
         write!(
             f,
-            "Total visit: {}\nTransposition hit: {} (rate {})\nNon-cache state: {}\nMax depth search: {}\nCurrent progress:",
+            "Total visit: {}\nTransposition hit: {} (rate {})\nMiss state: {}\nMax depth search: {}\nCurrent progress:",
             total, hit, (hit as f64)/(total as f64), total - hit, depth,
         )?;
 
@@ -162,24 +162,19 @@ const STACK_SIZE: usize = 4 * 1024 * 1024;
 pub fn run_solve(
     mut g: Solitaire,
     verbose: bool,
+    term_signal: &Arc<AtomicBool>,
 ) -> (SearchResult, SearchStats, Option<Vec<MoveType>>) {
     let ss = Arc::new(SearchStats::new());
-
-    let terminated = Arc::new(AtomicBool::new(false));
-
-    let sig_id =
-        signal_hook::flag::register(signal_hook::consts::signal::SIGINT, Arc::clone(&terminated))
-            .expect("Can't register hook");
 
     let (send, recv) = channel::<()>();
 
     let child = {
         // Spawn thread with explicit stack size
         let ss_clone = ss.clone();
-        let term_clone = terminated.clone();
+        let term = term_signal.clone();
         thread::Builder::new()
             .stack_size(STACK_SIZE)
-            .spawn(move || solve_game(&mut g, ss_clone.as_ref(), term_clone.as_ref(), &send))
+            .spawn(move || solve_game(&mut g, ss_clone.as_ref(), term.as_ref(), &send))
             .unwrap()
     };
 
@@ -193,7 +188,6 @@ pub fn run_solve(
     }
 
     let (res, hist) = child.join().unwrap();
-    signal_hook::low_level::unregister(sig_id);
 
     return (res, Arc::try_unwrap(ss).unwrap(), hist);
 }
