@@ -134,7 +134,7 @@ fn solve_game(
     done: &Sender<()>,
 ) -> (SearchResult, Option<Vec<MoveType>>) {
     let mut tp_hist = HashSet::<Encode>::new();
-    let mut tp = Cache::<Encode, ()>::new(1024 * 1024 * 32);
+    let mut tp = Cache::<Encode, ()>::new(1024 * 1024 * 256);
     let mut move_list = Vec::<MoveType>::new();
     let mut history = Vec::<MoveType>::new();
 
