@@ -19,6 +19,12 @@ pub enum Pos {
 pub type CardDeck = [Card; N_CARDS as usize];
 pub type MoveType = (Pos, Pos);
 
+pub enum Move {
+    AddCard(Card),
+    RemoveCard(Card),
+    Reveal(u8),
+}
+
 pub struct UndoInfo {
     offset: u8,
     hidden: Option<Pile>,
@@ -33,6 +39,9 @@ pub struct Solitaire {
     visible_piles: [Pile; N_PILES as usize],
     final_stack: [u8; N_SUITS as usize],
     deck: Deck,
+
+    visible_mask: u64,
+    top_mask: u64,
 }
 
 pub fn generate_shuffled_deck(seed: u64) -> CardDeck {
@@ -44,6 +53,19 @@ pub fn generate_shuffled_deck(seed: u64) -> CardDeck {
 }
 pub type Encode = [u16; N_PILES as usize + 2];
 
+const HALF_MASK: u64 = 0x33333333_3333333;
+const ALT_MASK: u64 = 0x55555555_5555555;
+
+const fn swap_pair(a: u64) -> u64 {
+    let half = (a & HALF_MASK) << 2;
+    (a >> 2) ^ half ^ (half << 4)
+}
+
+const fn card_mask(c: &Card) -> u64 {
+    let v = c.value();
+    1u64 << (v ^ ((v >> 1) & 2))
+}
+
 impl Solitaire {
     pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {
         let hidden_piles: [Card; N_HIDDEN_CARDS as usize] =
@@ -54,6 +76,11 @@ impl Solitaire {
             [N_HIDDEN_CARDS as usize..(N_HIDDEN_CARDS + N_PILES) as usize]
             .try_into()
             .unwrap();
+
+        let visible_mask = visible_cards
+            .map(|c| card_mask(&c))
+            .iter()
+            .fold(0u64, |a, b| a | *b);
 
         let visible_piles: [Pile; N_PILES as usize] = visible_cards.map(|c| Pile::from_card(c));
 
@@ -72,7 +99,26 @@ impl Solitaire {
             visible_piles,
             final_stack,
             deck,
+            visible_mask,
+            top_mask: visible_mask,
         };
+    }
+
+    pub const fn get_visible_mask(self: &Solitaire) -> u64 {
+        self.visible_mask
+    }
+
+    pub const fn get_top_mask(self: &Solitaire) -> u64 {
+        self.top_mask
+    }
+
+    pub const fn get_bottom_mask(self: &Solitaire) -> u64 {
+        let vm = self.visible_mask;
+        let tm = self.top_mask | (self.top_mask >> 1);
+        let sum_mask = vm ^ (vm >> 1);
+        let or_mask = vm | (vm >> 1);
+        let bottom_mask = ((sum_mask ^ (sum_mask << 4)) | !(or_mask << 4) | (tm << 4)) & ALT_MASK; //shared rank
+        (bottom_mask | (bottom_mask << 1)) & vm
     }
 
     pub fn is_win(self: &Solitaire) -> bool {
