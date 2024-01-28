@@ -34,6 +34,13 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("new_gen_moves", |b| {
+        b.iter(|| {
+            black_box(game.new_gen_moves());
+        })
+    });
+
+
     c.bench_function("gen_moves_dom", |b| {
         b.iter(|| {
             moves.clear();

@@ -21,7 +21,7 @@ pub type MoveType = (Pos, Pos);
 
 pub enum Move {
     AddCard(Card),
-    RemoveCard(Card),
+    ToStack(Card),
     Reveal(u8),
 }
 
@@ -56,6 +56,13 @@ pub type Encode = [u16; N_PILES as usize + 2];
 const HALF_MASK: u64 = 0x33333333_3333333;
 const ALT_MASK: u64 = 0x55555555_5555555;
 
+const SUIT_MASK: [u64; 4] = [
+    0x41414141_41414141,
+    0x82828282_82828282,
+    0x14141414_14141414,
+    0x28282828_28282828,
+];
+
 const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;
     (a >> 2) ^ half ^ (half << 4)
@@ -64,6 +71,18 @@ const fn swap_pair(a: u64) -> u64 {
 const fn card_mask(c: &Card) -> u64 {
     let v = c.value();
     1u64 << (v ^ ((v >> 1) & 2))
+}
+
+const fn min(a: u8, b: u8) -> u8 {
+    if a < b {
+        a
+    } else {
+        b
+    }
+}
+
+const fn mask(i: u8) -> u64 {
+    (1 << i) - 1
 }
 
 impl Solitaire {
@@ -113,12 +132,72 @@ impl Solitaire {
     }
 
     pub const fn get_bottom_mask(self: &Solitaire) -> u64 {
-        let vm = self.visible_mask;
-        let tm = self.top_mask | (self.top_mask >> 1);
+        let vm = self.get_visible_mask();
+        let tm = self.get_top_mask();
+        let tm = tm | (tm >> 1);
         let sum_mask = vm ^ (vm >> 1);
         let or_mask = vm | (vm >> 1);
         let bottom_mask = ((sum_mask ^ (sum_mask << 4)) | !(or_mask << 4) | (tm << 4)) & ALT_MASK; //shared rank
-        (bottom_mask | (bottom_mask << 1)) & vm
+        bottom_mask | (bottom_mask << 1) // & vm
+    }
+    pub const fn get_stack_mask(self: &Solitaire) -> (u64, u64) {
+        let s = self.final_stack;
+        let ss = [
+            card_mask(&Card::new(s[0], 0)),
+            card_mask(&Card::new(s[1], 1)),
+            card_mask(&Card::new(s[2], 2)),
+            card_mask(&Card::new(s[3], 3)),
+        ];
+        let d = (min(s[0], s[1]), min(s[2], s[3]));
+        let d = (min(d.0 + 2, d.1 + 1), min(d.0 + 1, d.1 + 2));
+        let dd = ((SUIT_MASK[0] | SUIT_MASK[1]) & mask(d.0))
+            | ((SUIT_MASK[2] | SUIT_MASK[3]) & mask(d.1));
+
+        let ss = ss[0] | ss[1] | ss[2] | ss[3];
+        (dd, ss)
+    }
+
+    pub fn get_deck_mask(self: &Solitaire, filter: bool) -> u64 {
+        let mut mask = 0;
+        self.deck.iter_callback(filter, |pos, card| -> bool {
+            mask |= card_mask(card);
+            false
+        });
+        mask
+    }
+
+    pub fn new_gen_moves(self: &Solitaire) -> [u64; 3] {
+        let vm = self.get_visible_mask();
+        let tm = self.get_top_mask();
+        let bm = self.get_bottom_mask();
+
+        let (dsm, sm) = self.get_stack_mask();
+
+        let filter = self.deck.draw_step() > 1
+            && self.deck.peek_last().is_some_and(|&x| {
+                let (rank, suit) = x.split();
+                self.stackable(rank, suit) && self.stack_dominance(rank, suit)
+            });
+
+        let deck_mask = self.get_deck_mask(filter);
+
+        let rm_mask = bm & vm & sm; // remove mask
+        let dom_mask = rm_mask & dsm;
+        if dom_mask != 0 {
+            // dominances
+            return [dom_mask.wrapping_neg() & dom_mask, 0, 0];
+        }
+
+        let add_mask = (bm >> 4) & swap_pair(sm >> 4) & !dsm;
+        let hidden_mask = tm & (bm >> 4);
+        // deck to stack, deck to pile :)
+        let ds_mask = deck_mask & sm;
+        let dp_mask = deck_mask & (bm >> 4) & !dsm;
+        return [rm_mask | ds_mask, add_mask | dp_mask, hidden_mask];
+    }
+
+    pub fn make_stack(self: &Solitaire) {
+        
     }
 
     pub fn is_win(self: &Solitaire) -> bool {
