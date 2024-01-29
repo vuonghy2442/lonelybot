@@ -1,8 +1,8 @@
 use crate::card::{Card, N_CARDS};
 
 pub const N_PILES: u8 = 7;
-pub const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES - 1) / 2;
-pub const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS - N_PILES) as usize;
+pub const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES + 1) / 2;
+pub const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS) as usize;
 
 #[derive(Debug)]
 pub struct Deck {
@@ -10,6 +10,8 @@ pub struct Deck {
     draw_step: u8,
     draw_next: u8, // start position of next pile
     draw_cur: u8,  // size of the previous pile
+    mask: u32,
+    map: [u8; N_CARDS as usize],
 }
 
 fn optional_split_last<T>(slice: &[T]) -> (&[T], Option<&T>) {
@@ -37,12 +39,18 @@ fn index_of_unchecked<T>(slice: &[T], item: &T) -> usize {
 impl Deck {
     pub fn new(deck: &[Card; N_FULL_DECK], draw_step: u8) -> Deck {
         let draw_step = std::cmp::min(N_FULL_DECK as u8, draw_step);
+        let mut map = [0u8; N_CARDS as usize];
+        for (i, c) in deck.iter().enumerate() {
+            map[c.value() as usize] = i as u8;
+        }
 
         return Deck {
             deck: *deck,
             draw_step,
             draw_next: draw_step,
             draw_cur: draw_step,
+            mask: 0,
+            map,
         };
     }
 
@@ -89,6 +97,15 @@ impl Deck {
 
     pub const fn len(self: &Deck) -> u8 {
         N_FULL_DECK as u8 - self.draw_next + self.draw_cur
+    }
+
+    pub fn find_card(self: &Deck, card: Card) -> Option<u8> {
+        self.deck[..self.draw_cur as usize]
+            .iter()
+            .chain(self.deck[self.draw_next as usize..].iter())
+            .enumerate()
+            .find(|x| x.1.value() == card.value())
+            .map(|x| x.0 as u8)
     }
 
     pub fn iter_all(self: &Deck) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
@@ -259,12 +276,14 @@ impl Deck {
 
     pub fn pop_next(self: &mut Deck) -> Card {
         let card = self.deck[self.draw_next as usize];
+        self.mask ^= 1 << self.map[card.value() as usize];
         self.draw_next += 1;
         card
     }
 
     pub fn push(self: &mut Deck, c: Card) {
         // or you can undo
+        self.mask ^= 1 << self.map[c.value() as usize];
         self.deck[self.draw_cur as usize] = c;
         self.draw_cur += 1;
 
@@ -284,6 +303,10 @@ impl Deck {
 
     pub const fn get_offset(self: &Deck) -> u8 {
         self.draw_cur
+    }
+
+    pub const fn encode(self: &Deck) -> u32 {
+        self.mask
     }
 
     pub const fn encode_offset(self: &Deck) -> u8 {
