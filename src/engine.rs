@@ -2,32 +2,31 @@ use core::fmt;
 
 use crate::card::{Card, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{Deck, Drawable, N_HIDDEN_CARDS, N_PILES};
-use crate::pile::Pile;
-
-use concat_arrays::concat_arrays;
 
 use colored::Colorize;
 use rand::prelude::*;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub enum Pos {
-    Deck(u8),
-    Stack(u8),
-    Pile(u8),
-}
-
 pub type CardDeck = [Card; N_CARDS as usize];
-pub type MoveType = (Pos, Pos);
 
+#[derive(Debug, Clone, Copy)]
 pub enum Move {
-    AddCard(Card),
-    ToStack(Card),
-    Reveal(u8),
+    DeckStack(Card),
+    PileStack(Card),
+    DeckPile(Card),
+    StackPile(Card),
+    Reveal(Card),
 }
 
-pub struct UndoInfo {
-    offset: u8,
-    hidden: Option<Pile>,
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Move::DeckStack(c) => write!(f, "DS {}", c),
+            Move::PileStack(c) => write!(f, "PS {}", c),
+            Move::DeckPile(c) => write!(f, "DP {}", c),
+            Move::StackPile(c) => write!(f, "SP {}", c),
+            Move::Reveal(c) => write!(f, "R {}", c),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -66,7 +65,7 @@ const SUIT_MASK: [u64; 4] = [
 
 const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;
-    (a >> 2) ^ half ^ (half << 4)
+    ((a >> 2) & HALF_MASK) | half
 }
 
 const fn card_mask(c: &Card) -> u64 {
@@ -92,13 +91,18 @@ const fn mask(i: u8) -> u64 {
     (1 << i) - 1
 }
 
-pub fn to_cards(mut mask: u64) -> Vec<Card> {
-    let mut card = Vec::<Card>::new();
-    while mask > 0 {
-        let last_bit = mask.wrapping_neg() & mask;
-        card.push(from_mask(&last_bit));
-        mask -= last_bit;
+fn iter_mask(mut m: u64, mut func: impl FnMut(&Card) -> ()) {
+    while m > 0 {
+        let bit = m.wrapping_neg() & m;
+        let c = from_mask(&bit);
+        func(&c);
+        m -= bit;
     }
+}
+
+pub fn to_cards(mask: u64) -> Vec<Card> {
+    let mut card = Vec::<Card>::new();
+    iter_mask(mask, |c| card.push(*c));
     card
 }
 
@@ -109,7 +113,7 @@ pub fn print_cards(cards: &Vec<Card>) {
     print!("\n");
 }
 
-type UndoStack = (Card, u8);
+type UndoInfo = (Card, u8);
 
 impl Solitaire {
     pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {
@@ -158,14 +162,20 @@ impl Solitaire {
         self.top_mask
     }
 
-    pub const fn get_bottom_mask(self: &Solitaire) -> u64 {
+    // const here
+    pub fn get_bottom_mask(self: &Solitaire) -> u64 {
         let vm = self.get_visible_mask();
-        let tm = self.get_top_mask();
-        let tm = tm | (tm >> 1);
-        let sum_mask = vm ^ (vm >> 1);
-        let or_mask = vm | (vm >> 1);
-        let bottom_mask =
-            ((sum_mask ^ (sum_mask << 4)) | (tm << 4) | !(or_mask << 4)) & or_mask & ALT_MASK; //shared rank
+        let ntm = vm ^ self.get_top_mask();
+        let sum_ntm = ntm ^ (ntm >> 1);
+        let sum_vm = vm ^ (vm >> 1);
+        let or_ntn = ntm | (ntm >> 1);
+        let or_vm = vm | (vm >> 1);
+
+        let sm = sum_vm ^ (sum_ntm << 4);
+        // print_cards(&to_cards(vm));
+        // print_cards(&to_cards(sm & ALT_MASK));
+
+        let bottom_mask = (sm | !(or_ntn << 4)) & or_vm & ALT_MASK; //shared rank
         bottom_mask | (bottom_mask << 1) // & vm
     }
     pub const fn get_stack_mask(self: &Solitaire) -> (u64, u64) {
@@ -186,7 +196,14 @@ impl Solitaire {
         (dd, ss)
     }
 
-    pub fn get_deck_mask(self: &Solitaire, filter: bool) -> u64 {
+    pub fn get_deck_mask<const DOMINANCES: bool>(self: &Solitaire) -> u64 {
+        let filter = DOMINANCES
+            && self.deck.draw_step() > 1
+            && self.deck.peek_last().is_some_and(|&x| {
+                let (rank, suit) = x.split();
+                self.stackable(rank, suit) && self.stack_dominance(rank, suit)
+            });
+
         let mut mask = 0;
         self.deck.iter_callback(filter, |_, card| -> bool {
             mask |= card_mask(card);
@@ -195,21 +212,23 @@ impl Solitaire {
         mask
     }
 
+    pub fn list_moves<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<Move>) {
+        let [to_stack, to_pile, reveal, deck] = self.new_gen_moves::<DOMINANCES>();
+
+        iter_mask(to_stack & deck, |c| moves.push(Move::DeckStack(*c)));
+        iter_mask(to_stack & !deck, |c| moves.push(Move::PileStack(*c)));
+        iter_mask(to_pile & deck, |c| moves.push(Move::DeckPile(*c)));
+        iter_mask(to_pile & !deck, |c| moves.push(Move::StackPile(*c)));
+        iter_mask(reveal, |c| moves.push(Move::Reveal(*c)));
+    }
+
     pub fn new_gen_moves<const DOMINANCES: bool>(self: &Solitaire) -> [u64; 4] {
         let vm = self.get_visible_mask();
         let tm = self.get_top_mask();
         let bm = self.get_bottom_mask();
 
-        // print_cards(&to_cards(bm));
-
         let (dsm, sm) = self.get_stack_mask();
-        let dsm = if DOMINANCES { dsm } else { 0 }; //TODO: DEBUG
-
-        let filter = self.deck.draw_step() > 1
-            && self.deck.peek_last().is_some_and(|&x| {
-                let (rank, suit) = x.split();
-                self.stackable(rank, suit) && self.stack_dominance(rank, suit)
-            });
+        let dsm = if DOMINANCES { dsm } else { 0 };
 
         let rm_mask = bm & vm & sm; // remove mask
         let dom_mask = rm_mask & dsm;
@@ -218,7 +237,8 @@ impl Solitaire {
             return [dom_mask.wrapping_neg() & dom_mask, 0, 0, 0];
         }
 
-        let deck_mask = self.get_deck_mask(filter);
+        let deck_mask = self.get_deck_mask::<DOMINANCES>();
+
         let ds_mask = deck_mask & sm;
 
         let free_pile = (((vm ^ tm) & KING_MASK).count_ones() + tm.count_ones()) < N_PILES as u32;
@@ -234,6 +254,12 @@ impl Solitaire {
         let dp_mask = deck_mask & good_pos;
         // deck to stack, deck to pile :)
         let hidden_mask = tm & tmp;
+
+        // print_cards(&to_cards(bm));
+
+        // print_cards(&to_cards(tm));
+        // print_cards(&to_cards(tmp));
+
         return [
             rm_mask | ds_mask,
             add_mask | dp_mask,
@@ -242,7 +268,7 @@ impl Solitaire {
         ];
     }
 
-    pub fn make_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64) -> UndoStack {
+    pub fn make_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64) -> UndoInfo {
         let card = from_mask(&mask);
         self.final_stack[card.suit() as usize] += 1;
 
@@ -252,14 +278,16 @@ impl Solitaire {
             self.deck.draw(pos);
             (card, offset)
         } else {
-            let hidden = self.top_mask & mask;
-            self.visible_mask &= !mask;
-            self.top_mask &= !mask;
-            (card, (hidden != 0) as u8)
+            let hidden = (self.top_mask & mask) != 0;
+            self.visible_mask ^= mask;
+            if hidden {
+                self.make_reveal(mask);
+            }
+            (card, hidden as u8)
         }
     }
 
-    pub fn unmake_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64, info: &UndoStack) {
+    pub fn unmake_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64, info: &UndoInfo) {
         let card = info.0;
         self.final_stack[card.suit() as usize] -= 1;
 
@@ -269,12 +297,12 @@ impl Solitaire {
         } else {
             self.visible_mask |= mask;
             if info.1 != 0 {
-                self.top_mask |= mask;
+                self.unmake_reveal(mask, info);
             }
         }
     }
 
-    pub fn make_pile<const DECK: bool>(self: &mut Solitaire, mask: &u64) -> UndoStack {
+    pub fn make_pile<const DECK: bool>(self: &mut Solitaire, mask: &u64) -> UndoInfo {
         let card = from_mask(&mask);
 
         self.visible_mask |= mask;
@@ -290,7 +318,7 @@ impl Solitaire {
         }
     }
 
-    pub fn unmake_pile<const DECK: bool>(self: &mut Solitaire, mask: &u64, info: &UndoStack) {
+    pub fn unmake_pile<const DECK: bool>(self: &mut Solitaire, mask: &u64, info: &UndoInfo) {
         let card = from_mask(&mask);
 
         self.visible_mask &= !mask;
@@ -307,29 +335,54 @@ impl Solitaire {
         return self.hidden_piles[(pos * (pos + 1) / 2 + n_hid) as usize];
     }
 
-    pub fn make_reveal(self: &mut Solitaire, m: &u64) -> UndoStack {
+    pub fn make_reveal(self: &mut Solitaire, m: &u64) -> UndoInfo {
         let card = from_mask(&m);
         let pos = self.hidden[card.value() as usize];
         self.top_mask &= !m;
 
+        self.n_hidden[pos as usize] -= 1;
         if self.n_hidden[pos as usize] > 0 {
-            self.n_hidden[pos as usize] -= 1;
-            let new_card = self.get_hidden(pos, self.n_hidden[pos as usize]);
+            let new_card = self.get_hidden(pos, self.n_hidden[pos as usize] - 1);
             let revealed = card_mask(&new_card);
             self.visible_mask |= revealed;
             self.top_mask |= revealed;
-            (new_card, 0)
-        } else {
-            unreachable!();
+        }
+
+        (Card::FAKE, 0)
+    }
+
+    pub fn unmake_reveal(self: &mut Solitaire, m: &u64, _info: &UndoInfo) {
+        let card = from_mask(&m);
+        let pos = self.hidden[card.value() as usize];
+        self.top_mask |= m;
+
+        if self.n_hidden[pos as usize] > 0 {
+            let new_card = self.get_hidden(pos, self.n_hidden[pos as usize] - 1);
+            let revealed = card_mask(&new_card);
+            self.visible_mask ^= revealed;
+            self.top_mask ^= revealed;
+        }
+        self.n_hidden[pos as usize] += 1;
+    }
+
+    pub fn do_move(self: &mut Solitaire, m: &Move) -> UndoInfo {
+        match m {
+            Move::DeckStack(c) => self.make_stack::<true>(&card_mask(c)),
+            Move::PileStack(c) => self.make_stack::<false>(&card_mask(c)),
+            Move::DeckPile(c) => self.make_pile::<true>(&card_mask(c)),
+            Move::StackPile(c) => self.make_pile::<false>(&card_mask(c)),
+            Move::Reveal(c) => self.make_reveal(&card_mask(c)),
         }
     }
 
-    pub fn unmake_reveal(self: &mut Solitaire, m: &u64, info: &UndoStack) {
-        self.top_mask |= m;
-
-        let revealed = card_mask(&info.0);
-        self.visible_mask ^= revealed;
-        self.top_mask ^= revealed;
+    pub fn undo_move(self: &mut Solitaire, m: &Move, undo: &UndoInfo) {
+        match m {
+            Move::DeckStack(c) => self.unmake_stack::<true>(&card_mask(c), undo),
+            Move::PileStack(c) => self.unmake_stack::<false>(&card_mask(c), undo),
+            Move::DeckPile(c) => self.unmake_pile::<true>(&card_mask(c), undo),
+            Move::StackPile(c) => self.unmake_pile::<false>(&card_mask(c), undo),
+            Move::Reveal(c) => self.unmake_reveal(&card_mask(c), undo),
+        }
     }
 
     pub fn is_win(self: &Solitaire) -> bool {
@@ -419,7 +472,9 @@ impl fmt::Display for Solitaire {
             let mut cards = Vec::<Card>::new();
             let n_hid = self.n_hidden[i as usize];
             let mut start_card = if n_hid == 0 {
-                while king_suit < 4 && self.visible_mask & card_mask(&Card::new(12, king_suit)) == 0
+                while king_suit < 4
+                    && (self.visible_mask ^ self.top_mask) & card_mask(&Card::new(12, king_suit))
+                        == 0
                 {
                     king_suit += 1;
                 }
@@ -439,14 +494,19 @@ impl fmt::Display for Solitaire {
                 if start_card.rank() == 0 {
                     break;
                 }
+                let has_both = card_mask(&Card::new(start_card.rank(), start_card.suit() ^ 1))
+                    & self.visible_mask
+                    != 0;
 
-                start_card = Card::new(start_card.rank() - 1, start_card.suit());
+                start_card = Card::new(start_card.rank() - 1, start_card.suit() ^ 2);
                 let mask = card_mask(&start_card);
-                if self.visible_mask & mask == 0 {
-                    break;
-                }
-                if self.top_mask & mask != 0 {
+                if !has_both && (self.visible_mask & mask == 0 || self.top_mask & mask != 0) {
                     start_card = Card::new(start_card.rank(), start_card.suit() ^ 1);
+                }
+                let mask = card_mask(&start_card);
+
+                if self.visible_mask & mask == 0 || self.top_mask & mask != 0 {
+                    break;
                 }
             }
             piles[i as usize] = cards;
@@ -533,222 +593,222 @@ impl fmt::Display for Solvitaire {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     // Note this useful idiom: importing names from outer (for mod tests) scope.
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
 
-//     fn assert_moves(mut a: Vec<MoveType>, mut b: Vec<MoveType>) {
-//         a.sort();
-//         b.sort();
+    // fn assert_moves(mut a: Vec<MoveType>, mut b: Vec<MoveType>) {
+    //     a.sort();
+    //     b.sort();
 
-//         assert_eq!(a, b);
-//     }
+    //     assert_eq!(a, b);
+    // }
 
-//     #[test]
-//     fn test_game() {
-//         let cards = [
-//             30, 33, 41, 13, 28, 11, 16, 36, 9, 39, 17, 37, 21, 10, 1, 38, 0, 50, 14, 31, 20, 46,
-//             18, 32, 7, 49, 3, 19, 8, 44, 4, 51, 2, 15, 40, 35, 43, 22, 12, 42, 26, 23, 24, 5, 6,
-//             48, 27, 45, 47, 29, 34, 25,
-//         ]
-//         .map(|i| Card::new(i / N_SUITS, i % N_SUITS));
-//         let mut game = Solitaire::new(&cards, 3);
-//         assert_moves(
-//             game.gen_moves::<false>(),
-//             vec![
-//                 (Pos::Deck(20), Pos::Pile(4)),
-//                 (Pos::Pile(0), Pos::Pile(4)),
-//                 (Pos::Pile(5), Pos::Stack(3)),
-//             ],
-//         );
+    // #[test]
+    // fn test_game() {
+    //     let cards = [
+    //         30, 33, 41, 13, 28, 11, 16, 36, 9, 39, 17, 37, 21, 10, 1, 38, 0, 50, 14, 31, 20, 46,
+    //         18, 32, 7, 49, 3, 19, 8, 44, 4, 51, 2, 15, 40, 35, 43, 22, 12, 42, 26, 23, 24, 5, 6,
+    //         48, 27, 45, 47, 29, 34, 25,
+    //     ]
+    //     .map(|i| Card::new(i / N_SUITS, i % N_SUITS));
+    //     let mut game = Solitaire::new(&cards, 3);
+    //     assert_moves(
+    //         game.gen_moves::<false>(),
+    //         vec![
+    //             (Pos::Deck(20), Pos::Pile(4)),
+    //             (Pos::Pile(0), Pos::Pile(4)),
+    //             (Pos::Pile(5), Pos::Stack(3)),
+    //         ],
+    //     );
 
-//         assert_moves(
-//             game.gen_moves::<true>(),
-//             vec![(Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<true>(),
+    //         vec![(Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         game.do_move(&(Pos::Pile(0), Pos::Pile(4)));
+    //     game.do_move(&(Pos::Pile(0), Pos::Pile(4)));
 
-//         assert_moves(
-//             game.gen_moves::<false>(),
-//             vec![
-//                 (Pos::Deck(17), Pos::Pile(0)),
-//                 (Pos::Pile(4), Pos::Pile(0)),
-//                 (Pos::Pile(5), Pos::Stack(3)),
-//             ],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<false>(),
+    //         vec![
+    //             (Pos::Deck(17), Pos::Pile(0)),
+    //             (Pos::Pile(4), Pos::Pile(0)),
+    //             (Pos::Pile(5), Pos::Stack(3)),
+    //         ],
+    //     );
 
-//         assert_moves(
-//             game.gen_moves::<true>(),
-//             vec![(Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<true>(),
+    //         vec![(Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         game.do_move(&(Pos::Pile(4), Pos::Pile(0)));
-//         assert_moves(
-//             game.gen_moves::<false>(),
-//             vec![(Pos::Pile(2), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     game.do_move(&(Pos::Pile(4), Pos::Pile(0)));
+    //     assert_moves(
+    //         game.gen_moves::<false>(),
+    //         vec![(Pos::Pile(2), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         assert_moves(
-//             game.gen_moves::<true>(),
-//             vec![(Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<true>(),
+    //         vec![(Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         game.do_move(&(Pos::Pile(2), Pos::Pile(4)));
+    //     game.do_move(&(Pos::Pile(2), Pos::Pile(4)));
 
-//         assert_moves(
-//             game.gen_moves::<false>(),
-//             vec![
-//                 (Pos::Pile(2), Pos::Pile(0)),
-//                 (Pos::Pile(4), Pos::Pile(2)),
-//                 (Pos::Pile(5), Pos::Stack(3)),
-//             ],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<false>(),
+    //         vec![
+    //             (Pos::Pile(2), Pos::Pile(0)),
+    //             (Pos::Pile(4), Pos::Pile(2)),
+    //             (Pos::Pile(5), Pos::Stack(3)),
+    //         ],
+    //     );
 
-//         assert_moves(
-//             game.gen_moves::<true>(),
-//             vec![(Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<true>(),
+    //         vec![(Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         game.do_move(&(Pos::Pile(2), Pos::Pile(0)));
+    //     game.do_move(&(Pos::Pile(2), Pos::Pile(0)));
 
-//         assert_moves(
-//             game.gen_moves::<false>(),
-//             vec![(Pos::Pile(4), Pos::Pile(0)), (Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<false>(),
+    //         vec![(Pos::Pile(4), Pos::Pile(0)), (Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         assert_moves(
-//             game.gen_moves::<true>(),
-//             vec![(Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<true>(),
+    //         vec![(Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         game.do_move(&(Pos::Pile(4), Pos::Pile(0)));
+    //     game.do_move(&(Pos::Pile(4), Pos::Pile(0)));
 
-//         assert_moves(
-//             game.gen_moves::<false>(),
-//             vec![(Pos::Pile(3), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<false>(),
+    //         vec![(Pos::Pile(3), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         assert_moves(
-//             game.gen_moves::<true>(),
-//             vec![(Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<true>(),
+    //         vec![(Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         game.do_move(&(Pos::Pile(3), Pos::Pile(4)));
+    //     game.do_move(&(Pos::Pile(3), Pos::Pile(4)));
 
-//         assert_moves(
-//             game.gen_moves::<false>(),
-//             vec![(Pos::Deck(2), Pos::Pile(3)), (Pos::Pile(5), Pos::Stack(3))],
-//         );
+    //     assert_moves(
+    //         game.gen_moves::<false>(),
+    //         vec![(Pos::Deck(2), Pos::Pile(3)), (Pos::Pile(5), Pos::Stack(3))],
+    //     );
 
-//         assert_moves(
-//             game.gen_moves::<true>(),
-//             vec![(Pos::Pile(5), Pos::Stack(3))],
-//         );
-//     }
+    //     assert_moves(
+    //         game.gen_moves::<true>(),
+    //         vec![(Pos::Pile(5), Pos::Stack(3))],
+    //     );
+    // }
 
-//     #[test]
-//     fn test_draw_unrolling() {
-//         let mut rng = StdRng::seed_from_u64(14);
+    #[test]
+    fn test_draw_unrolling() {
+        let mut rng = StdRng::seed_from_u64(14);
 
-//         let mut moves = Vec::<MoveType>::new();
+        let mut moves = Vec::<Move>::new();
 
-//         for i in 0..100 {
-//             let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
-//             for _ in 0..100 {
-//                 let iter_org = game.deck.iter();
-//                 let check_cur = game
-//                     .deck
-//                     .iter_all()
-//                     .filter(|x| matches!(x.2, Drawable::Current))
-//                     .map(|x| x.1);
-//                 let check_next = game
-//                     .deck
-//                     .iter_all()
-//                     .filter(|x| matches!(x.2, Drawable::Next))
-//                     .map(|x| x.1);
+        for i in 0..100 {
+            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            for _ in 0..100 {
+                let iter_org = game.deck.iter();
+                let check_cur = game
+                    .deck
+                    .iter_all()
+                    .filter(|x| matches!(x.2, Drawable::Current))
+                    .map(|x| x.1);
+                let check_next = game
+                    .deck
+                    .iter_all()
+                    .filter(|x| matches!(x.2, Drawable::Next))
+                    .map(|x| x.1);
 
-//                 assert!(iter_org.map(|x| x.1).eq(check_cur.chain(check_next)));
+                assert!(iter_org.map(|x| x.1).eq(check_cur.chain(check_next)));
 
-//                 assert!(game.deck.peek_last() == game.deck.iter_all().last().map(|x| x.1));
+                assert!(game.deck.peek_last() == game.deck.iter_all().last().map(|x| x.1));
 
-//                 moves.clear();
-//                 game.gen_moves_::<true>(&mut moves);
-//                 if moves.len() == 0 {
-//                     break;
-//                 }
-//                 game.do_move(moves.choose(&mut rng).unwrap());
-//             }
-//         }
-//     }
+                moves.clear();
+                game.list_moves::<false>(&mut moves);
+                if moves.len() == 0 {
+                    break;
+                }
+                game.do_move(moves.choose(&mut rng).unwrap());
+            }
+        }
+    }
 
-//     #[test]
-//     fn test_undoing() {
-//         let mut rng = StdRng::seed_from_u64(14);
+    #[test]
+    fn test_undoing() {
+        let mut rng = StdRng::seed_from_u64(14);
 
-//         let mut moves = Vec::<MoveType>::new();
+        let mut moves = Vec::<Move>::new();
 
-//         for i in 0..100 {
-//             let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
-//             for _ in 0..100 {
-//                 moves.clear();
-//                 game.gen_moves_::<true>(&mut moves);
-//                 if moves.len() == 0 {
-//                     break;
-//                 }
+        for i in 0..100 {
+            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            for _ in 0..100 {
+                moves.clear();
+                game.list_moves::<false>(&mut moves);
+                if moves.len() == 0 {
+                    break;
+                }
 
-//                 let state = game.encode();
-//                 let ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
+                let state = game.encode();
+                let ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
 
-//                 let m = moves.choose(&mut rng).unwrap();
-//                 let undo = game.do_move(m);
-//                 let next_state = game.encode();
-//                 // assert_ne!(next_state, state); // could to do unmeaningful moves
-//                 game.undo_move(m, &undo);
-//                 let new_ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
+                let m = moves.choose(&mut rng).unwrap();
+                let undo = game.do_move(m);
+                let next_state = game.encode();
+                // assert_ne!(next_state, state); // could to do unmeaningful moves
+                game.undo_move(m, &undo);
+                let new_ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
 
-//                 assert_eq!(ids, new_ids);
-//                 let undo_state = game.encode();
-//                 if undo_state != state {
-//                     assert_eq!(undo_state, state);
-//                 }
-//                 game.do_move(m);
-//                 assert_eq!(game.encode(), next_state);
-//             }
-//         }
-//     }
+                assert_eq!(ids, new_ids);
+                let undo_state = game.encode();
+                if undo_state != state {
+                    assert_eq!(undo_state, state);
+                }
+                game.do_move(m);
+                assert_eq!(game.encode(), next_state);
+            }
+        }
+    }
 
-//     #[test]
-//     fn test_deep_undoing() {
-//         let mut rng = StdRng::seed_from_u64(14);
+    #[test]
+    fn test_deep_undoing() {
+        let mut rng = StdRng::seed_from_u64(14);
 
-//         let mut moves = Vec::<MoveType>::new();
+        let mut moves = Vec::<Move>::new();
 
-//         for i in 0..100 {
-//             let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
-//             let mut history = Vec::<(MoveType, UndoInfo)>::new();
-//             let mut enc = Vec::<Encode>::new();
+        for i in 0..100 {
+            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            let mut history = Vec::<(Move, UndoInfo)>::new();
+            let mut enc = Vec::<Encode>::new();
 
-//             for _ in 0..100 {
-//                 moves.clear();
-//                 game.gen_moves_::<true>(&mut moves);
-//                 if moves.len() == 0 {
-//                     break;
-//                 }
+            for _ in 0..100 {
+                moves.clear();
+                game.list_moves::<false>(&mut moves);
+                if moves.len() == 0 {
+                    break;
+                }
 
-//                 enc.push(game.encode());
+                enc.push(game.encode());
 
-//                 let m = moves.choose(&mut rng).unwrap();
-//                 let undo = game.do_move(m);
-//                 history.push((*m, undo));
-//             }
+                let m = moves.choose(&mut rng).unwrap();
+                let undo = game.do_move(m);
+                history.push((*m, undo));
+            }
 
-//             for _ in 0..history.len() {
-//                 let (m, undo) = history.pop().unwrap();
-//                 game.undo_move(&m, &undo);
-//                 assert_eq!(game.encode(), enc.pop().unwrap());
-//             }
-//         }
-//     }
-// }
+            for _ in 0..history.len() {
+                let (m, undo) = history.pop().unwrap();
+                game.undo_move(&m, &undo);
+                assert_eq!(game.encode(), enc.pop().unwrap());
+            }
+        }
+    }
+}
