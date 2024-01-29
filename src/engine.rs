@@ -115,8 +115,24 @@ pub fn print_cards(cards: &Vec<Card>) {
 
 type UndoInfo = (Card, u8);
 
+pub fn to_legacy(cards: &CardDeck) -> CardDeck {
+    let mut new_deck = *cards;
+
+    const OLD_HIDDEN: u8 = N_PILES * (N_PILES - 1) / 2;
+
+    for i in 0..N_PILES {
+        for j in 0..i {
+            new_deck[(i * (i + 1) / 2 + j) as usize] = cards[(i * (i - 1) / 2 + j) as usize];
+        }
+        new_deck[(i * (i + 1) / 2 + i) as usize] = cards[(OLD_HIDDEN + i) as usize];
+    }
+    new_deck
+}
+
 impl Solitaire {
     pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {
+        //legacy
+
         let hidden_piles: [Card; N_HIDDEN_CARDS as usize] =
             cards[0..N_HIDDEN_CARDS as usize].try_into().unwrap();
 
@@ -217,9 +233,9 @@ impl Solitaire {
 
         iter_mask(to_stack & deck, |c| moves.push(Move::DeckStack(*c)));
         iter_mask(to_stack & !deck, |c| moves.push(Move::PileStack(*c)));
+        iter_mask(reveal, |c| moves.push(Move::Reveal(*c)));
         iter_mask(to_pile & deck, |c| moves.push(Move::DeckPile(*c)));
         iter_mask(to_pile & !deck, |c| moves.push(Move::StackPile(*c)));
-        iter_mask(reveal, |c| moves.push(Move::Reveal(*c)));
     }
 
     pub fn new_gen_moves<const DOMINANCES: bool>(self: &Solitaire) -> [u64; 4] {
