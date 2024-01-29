@@ -42,11 +42,27 @@ pub struct Solitaire {
     top_mask: u64,
 }
 
+pub fn to_legacy(cards: &CardDeck) -> CardDeck {
+    let mut new_deck = *cards;
+
+    const OLD_HIDDEN: u8 = N_PILES * (N_PILES - 1) / 2;
+
+    for i in 0..N_PILES {
+        for j in 0..i {
+            new_deck[(i * (i + 1) / 2 + j) as usize] = cards[(i * (i - 1) / 2 + j) as usize];
+        }
+        new_deck[(i * (i + 1) / 2 + i) as usize] = cards[(OLD_HIDDEN + i) as usize];
+    }
+    new_deck
+}
+
 pub fn generate_shuffled_deck(seed: u64) -> CardDeck {
     let mut rng = StdRng::seed_from_u64(seed);
     let mut cards: [Card; N_CARDS as usize] =
         core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, i as u8 % N_SUITS));
     cards.shuffle(&mut rng);
+
+    let cards = to_legacy(&cards);
     return cards;
 }
 pub type Encode = u64;
@@ -114,20 +130,6 @@ pub fn print_cards(cards: &Vec<Card>) {
 }
 
 type UndoInfo = (Card, u8);
-
-pub fn to_legacy(cards: &CardDeck) -> CardDeck {
-    let mut new_deck = *cards;
-
-    const OLD_HIDDEN: u8 = N_PILES * (N_PILES - 1) / 2;
-
-    for i in 0..N_PILES {
-        for j in 0..i {
-            new_deck[(i * (i + 1) / 2 + j) as usize] = cards[(i * (i - 1) / 2 + j) as usize];
-        }
-        new_deck[(i * (i + 1) / 2 + i) as usize] = cards[(OLD_HIDDEN + i) as usize];
-    }
-    new_deck
-}
 
 impl Solitaire {
     pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {

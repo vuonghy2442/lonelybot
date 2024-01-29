@@ -1,5 +1,5 @@
 use bpci::{Interval, NSuccessesSample, WilsonScore};
-use lonelybot::engine::{generate_shuffled_deck, to_legacy, Move, Solitaire, Solvitaire};
+use lonelybot::engine::{generate_shuffled_deck, Move, Solitaire, Solvitaire};
 use rand::prelude::*;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -59,7 +59,6 @@ fn test_solve(seed: u64, terminated: &Arc<AtomicBool>) {
 
 fn game_loop(seed: u64) {
     let shuffled_deck = generate_shuffled_deck(seed);
-    let shuffled_deck = to_legacy(&shuffled_deck);
 
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
     let mut game = Solitaire::new(&shuffled_deck, 3);
