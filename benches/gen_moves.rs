@@ -1,10 +1,21 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lonelybot::engine::{self, Move, Solitaire};
+use lonelybot::{
+    deck::{Deck, N_HIDDEN_CARDS},
+    engine::{self, Move, Solitaire},
+};
 use rand::prelude::*;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let seed = 51;
     let mut game = Solitaire::new(&engine::generate_shuffled_deck(seed), 3);
+
+    let sample_deck: Deck = Deck::new(
+        engine::generate_shuffled_deck(seed)[N_HIDDEN_CARDS as usize..]
+            .try_into()
+            .unwrap(),
+        3,
+    );
+
     let mut rng = StdRng::seed_from_u64(seed);
 
     let mut moves = Vec::<Move>::new();
@@ -46,13 +57,13 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    // c.bench_function("find_card", |b| {
-    //     b.iter(|| {
-    //         game.deck
-    //             .find_card(lonelybot::card::Card::new(card / 4, card % 4))
-    //             .expect("okay");
-    //     })
-    // });
+    c.bench_function("find_card", |b| {
+        b.iter(|| {
+            sample_deck
+                .find_card(lonelybot::card::Card::new(card / 4, card % 4))
+                .expect("okay");
+        })
+    });
 
     c.bench_function("deck_mask", |b| {
         b.iter(|| {
