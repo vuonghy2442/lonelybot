@@ -1,6 +1,7 @@
 use bpci::{Interval, NSuccessesSample, WilsonScore};
-use lonelybot::engine::{generate_shuffled_deck, Move, Solitaire, Solvitaire};
+use lonelybot::engine::{generate_shuffled_deck, Encode, Move, Solitaire, Solvitaire, UndoInfo};
 use rand::prelude::*;
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -66,11 +67,19 @@ fn game_loop(seed: u64) {
     let mut line = String::new();
     let mut moves = Vec::<Move>::new();
 
+    let mut move_hist = Vec::<(Move, UndoInfo)>::new();
+
+    let mut game_state = HashSet::<Encode>::new();
+
     loop {
         print!("{}", game);
+        if !game_state.insert(game.encode()) {
+            println!("Already existed state");
+            assert!(false);
+        }
 
         moves.clear();
-        game.list_moves::<false>(&mut moves);
+        game.list_moves::<true>(&mut moves);
 
         for (i, m) in moves.iter().enumerate() {
             print!("{}.{}, ", i, m);
@@ -88,7 +97,14 @@ fn game_loop(seed: u64) {
         }
         let res: Option<i8> = line.trim().parse::<i8>().ok();
         if let Some(id) = res {
-            game.do_move(&moves[id as usize]);
+            if (id as usize) < moves.len() {
+                let info = game.do_move(&moves[id as usize]);
+                move_hist.push((moves[id as usize], info));
+            } else {
+                let (m, info) = &move_hist.pop().unwrap();
+                game.undo_move(m, info);
+                println!("Undo!!");
+            }
         } else {
             println!("Invalid move");
         }

@@ -36,7 +36,7 @@ pub struct Solitaire {
     hidden: [u8; N_CARDS as usize],
 
     final_stack: [u8; N_SUITS as usize],
-    pub deck: Deck,
+    deck: Deck,
 
     visible_mask: u64,
     top_mask: u64,
@@ -129,7 +129,7 @@ pub fn print_cards(cards: &Vec<Card>) {
     print!("\n");
 }
 
-type UndoInfo = (Card, u8);
+pub type UndoInfo = (Card, u8);
 
 impl Solitaire {
     pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {
@@ -267,9 +267,9 @@ impl Solitaire {
         // not yet add the king cards :(
         let tmp = (bm >> 4) | king_mask;
 
-        let good_pos = tmp & !dsm;
-        let add_mask = swap_pair(sm >> 4) & good_pos;
-        let dp_mask = deck_mask & good_pos;
+        // let good_pos = tmp & !dsm;
+        let add_mask = swap_pair(sm >> 4) & tmp & !dsm;
+        let dp_mask = deck_mask & tmp & !(dsm & sm);
         // deck to stack, deck to pile :)
         let hidden_mask = tm & tmp;
 
@@ -430,24 +430,24 @@ impl Solitaire {
             .sum()
     }
 
-    fn encode_hidden(self: &Solitaire) -> u32 {
+    fn encode_hidden(self: &Solitaire) -> u16 {
         self.n_hidden
             .iter()
-            .rev()
             .enumerate()
-            .fold(0u32, |res, cur| res * (cur.0 as u32) + *cur.1 as u32)
+            .rev()
+            .fold(0u16, |res, cur| res * (cur.0 as u16 + 1) + *cur.1 as u16)
     }
 
     pub fn encode(self: &Solitaire) -> Encode {
         let deck_encode = self.deck.encode(); // 24 bits (can be reduced to 20)
         let stack_encode = self.encode_stack(); // 16 bits (can be reduce to 15)
-        let hidden_encode = self.encode_hidden(); // 19 bits
+        let hidden_encode = self.encode_hidden(); // 16 bits
         let offset_encode = self.deck.encode_offset(); // 5 bits
 
         return (deck_encode as u64)
             | (stack_encode as u64) << 24
             | (hidden_encode as u64) << (24 + 16)
-            | (offset_encode as u64) << (24 + 16 + 19);
+            | (offset_encode as u64) << (24 + 16 + 16);
     }
 }
 
@@ -497,7 +497,8 @@ impl fmt::Display for Solitaire {
                     king_suit += 1;
                 }
                 if king_suit < 4 {
-                    Card::new(12, king_suit)
+                    king_suit += 1;
+                    Card::new(12, king_suit - 1)
                 } else {
                     continue;
                 }
@@ -531,14 +532,14 @@ impl fmt::Display for Solitaire {
         }
 
         // printing
-        let mut i = 1; // skip the hidden layer
+        let mut i = 0; // skip the hidden layer
 
         loop {
             let mut is_print = false;
             for j in 0..N_PILES {
                 let ref cur_pile = piles[j as usize];
 
-                let n_hidden = self.n_hidden[j as usize];
+                let n_hidden = self.n_hidden[j as usize].saturating_sub(1);
                 let n_visible = cur_pile.len() as u8;
                 if n_hidden > i {
                     write!(f, "**\t")?;
@@ -767,7 +768,7 @@ mod tests {
 
         let mut moves = Vec::<Move>::new();
 
-        for i in 0..100 {
+        for i in 0..1000 {
             let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
             for _ in 0..100 {
                 moves.clear();
@@ -782,7 +783,7 @@ mod tests {
                 let m = moves.choose(&mut rng).unwrap();
                 let undo = game.do_move(m);
                 let next_state = game.encode();
-                // assert_ne!(next_state, state); // could to do unmeaningful moves
+                assert_ne!(next_state, state);
                 game.undo_move(m, &undo);
                 let new_ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
 
@@ -803,7 +804,7 @@ mod tests {
 
         let mut moves = Vec::<Move>::new();
 
-        for i in 0..100 {
+        for i in 0..1000 {
             let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
             let mut history = Vec::<(Move, UndoInfo)>::new();
             let mut enc = Vec::<Encode>::new();

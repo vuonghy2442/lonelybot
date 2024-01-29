@@ -46,13 +46,13 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("find_card", |b| {
-        b.iter(|| {
-            game.deck
-                .find_card(lonelybot::card::Card::new(card / 4, card % 4))
-                .expect("okay");
-        })
-    });
+    // c.bench_function("find_card", |b| {
+    //     b.iter(|| {
+    //         game.deck
+    //             .find_card(lonelybot::card::Card::new(card / 4, card % 4))
+    //             .expect("okay");
+    //     })
+    // });
 
     c.bench_function("deck_mask", |b| {
         b.iter(|| {
