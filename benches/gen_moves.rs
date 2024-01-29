@@ -71,9 +71,9 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("new_gen_moves", |b| {
+    c.bench_function("pure_gen_moves", |b| {
         b.iter(|| {
-            black_box(game.new_gen_moves::<true>());
+            black_box(game.gen_moves::<true>());
         })
     });
 

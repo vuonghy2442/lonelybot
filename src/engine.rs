@@ -231,7 +231,7 @@ impl Solitaire {
     }
 
     pub fn list_moves<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<Move>) {
-        let [to_stack, to_pile, reveal, deck] = self.new_gen_moves::<DOMINANCES>();
+        let [to_stack, to_pile, reveal, deck] = self.gen_moves::<DOMINANCES>();
 
         iter_mask(to_stack & deck, |c| moves.push(Move::DeckStack(*c)));
         iter_mask(to_stack & !deck, |c| moves.push(Move::PileStack(*c)));
@@ -240,7 +240,7 @@ impl Solitaire {
         iter_mask(to_pile & !deck, |c| moves.push(Move::StackPile(*c)));
     }
 
-    pub fn new_gen_moves<const DOMINANCES: bool>(self: &Solitaire) -> [u64; 4] {
+    pub fn gen_moves<const DOMINANCES: bool>(self: &Solitaire) -> [u64; 4] {
         let vm = self.get_visible_mask();
         let tm = self.get_top_mask();
         let bm = self.get_bottom_mask();
