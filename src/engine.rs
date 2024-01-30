@@ -198,7 +198,7 @@ impl Solitaire {
             | ((SUIT_MASK[2] | SUIT_MASK[3]) & full_mask(d.1 * 4))
     }
 
-    pub fn get_deck_mask<const DOMINANCES: bool>(self: &Solitaire) -> u64 {
+    pub fn get_deck_mask<const DOMINANCES: bool>(self: &Solitaire) -> (u64, bool) {
         let filter = DOMINANCES
             && self.deck.draw_step() > 1
             && self.deck.peek_last().is_some_and(|&x| {
@@ -206,12 +206,16 @@ impl Solitaire {
                 self.stackable(rank, suit) && self.stack_dominance(rank, suit)
             });
 
+        if filter && self.deck.is_pure() {
+            return (card_mask(self.deck.peek_last().unwrap()), true);
+        }
+
         let mut mask = 0;
         self.deck.iter_callback(filter, |_, card| -> bool {
             mask |= card_mask(card);
             false
         });
-        mask
+        (mask, false)
     }
 
     pub fn list_moves<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<Move>) {
@@ -243,7 +247,11 @@ impl Solitaire {
             return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0];
         }
 
-        let deck_mask = self.get_deck_mask::<DOMINANCES>();
+        let (deck_mask, dom) = self.get_deck_mask::<DOMINANCES>();
+        if dom {
+            // not very useful as dominance
+            return [deck_mask, 0, 0, deck_mask];
+        }
 
         let deck_stack = deck_mask & sm;
 
@@ -424,7 +432,7 @@ impl Solitaire {
         let stack_encode = self.encode_stack(); // 16 bits (can be reduce to 15)
         let hidden_encode = self.encode_hidden(); // 16 bits
         let deck_encode = self.deck.encode(); // 24 bits (can be reduced to 20)
-        let offset_encode = self.deck.encode_offset(); // 5 bits
+        let offset_encode = self.deck.normalized_offset(); // 5 bits
 
         return (stack_encode as u64)
             | (hidden_encode as u64) << (16)

@@ -257,7 +257,12 @@ impl Deck {
         self.mask
     }
 
-    pub const fn encode_offset(self: &Deck) -> u8 {
+    pub const fn is_pure(self: &Deck) -> bool {
+        // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
+        (self.draw_cur + 1) % self.draw_step == 0 || self.draw_next == N_FULL_DECK as u8
+    }
+
+    pub const fn normalized_offset(self: &Deck) -> u8 {
         // this is the standardized version
         if (self.draw_cur + 1) % self.draw_step == 0 {
             // matched so offset is free
