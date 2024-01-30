@@ -161,7 +161,7 @@ fn solve_loop(seed: u64, terminated: &Arc<AtomicBool>) {
     println!("Total run time: {:?}", Instant::now() - start);
 }
 
-fn main() {
+fn handling_signal() -> Arc<AtomicBool> {
     let terminated = Arc::new(AtomicBool::new(false));
 
     signal_hook::flag::register_conditional_shutdown(
@@ -173,7 +173,10 @@ fn main() {
 
     signal_hook::flag::register(signal_hook::consts::signal::SIGINT, Arc::clone(&terminated))
         .expect("Can't register hook");
+    terminated
+}
 
+fn main() {
     let method = std::env::args().nth(1).expect("no seed given");
     let seed = std::env::args().nth(2).expect("no seed given");
     let seed: u64 = seed.parse().expect("uint 64");
@@ -184,7 +187,7 @@ fn main() {
             println!("{}", Solvitaire::new(&shuffled_deck, 3));
         }
         "solve" => {
-            test_solve(seed, &terminated);
+            test_solve(seed, &handling_signal());
         }
         "play" => {
             game_loop(seed);
@@ -193,7 +196,7 @@ fn main() {
             benchmark(seed);
         }
         "rate" => {
-            solve_loop(seed, &terminated);
+            solve_loop(seed, &handling_signal());
         }
         _ => {
             panic!("Wrong method")
