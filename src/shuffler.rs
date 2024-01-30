@@ -110,3 +110,32 @@ impl RngCore for KSRandom {
         unimplemented!()
     }
 }
+
+pub struct GreenRandom {
+    seed: u32,
+}
+
+impl RngCore for GreenRandom {
+    fn next_u32(&mut self) -> u32 {
+        self.seed = (((self.seed as u64) * 16807) % 0x7fffffff) as u32;
+        self.seed
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        unimplemented!()
+    }
+
+    fn fill_bytes(&mut self, _dest: &mut [u8]) {
+        unimplemented!()
+    }
+
+    fn try_fill_bytes(&mut self, _dest: &mut [u8]) -> Result<(), rand::Error> {
+        unimplemented!()
+    }
+}
+
+impl GreenRandom {
+    pub fn new(seed: u32) -> Self {
+        GreenRandom { seed }
+    }
+}
