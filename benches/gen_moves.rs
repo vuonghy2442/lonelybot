@@ -1,16 +1,17 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
     deck::{Deck, N_HIDDEN_CARDS},
-    engine::{self, Move, Solitaire},
+    engine::{Move, Solitaire},
+    shuffler,
 };
 use rand::prelude::*;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let seed = 51;
-    let mut game = Solitaire::new(&engine::generate_shuffled_deck(seed), 3);
+    let mut game = Solitaire::new(&shuffler::shuffled_deck(seed), 3);
 
     let sample_deck: Deck = Deck::new(
-        engine::generate_shuffled_deck(seed)[N_HIDDEN_CARDS as usize..]
+        shuffler::shuffled_deck(seed)[N_HIDDEN_CARDS as usize..]
             .try_into()
             .unwrap(),
         3,
@@ -33,7 +34,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let m: Move = *moves.choose(&mut rng).unwrap();
 
-    let deck = game.get_deck_mask::<false>();
+    let deck = game.get_deck_mask::<false>().0;
     let card = (deck.wrapping_neg() & deck).trailing_zeros() as u8;
     let card = card ^ ((card >> 1) & 2);
     println!("Card: {}", card);

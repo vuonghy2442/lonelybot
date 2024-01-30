@@ -1,5 +1,6 @@
 use bpci::{Interval, NSuccessesSample, WilsonScore};
-use lonelybot::engine::{generate_shuffled_deck, Encode, Move, Solitaire, Solvitaire, UndoInfo};
+use lonelybot::engine::{Encode, Move, Solitaire, Solvitaire, UndoInfo};
+use lonelybot::shuffler::shuffled_deck_legacy;
 use rand::prelude::*;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -18,7 +19,7 @@ fn benchmark(seed: u64) {
     let mut total_moves = 0;
     let now = Instant::now();
     for i in 0..100 {
-        let mut game = Solitaire::new(&generate_shuffled_deck(seed + i), 3);
+        let mut game = Solitaire::new(&shuffled_deck_legacy(seed + i), 3);
         for _ in 0..100 {
             moves.clear();
             game.list_moves::<true>(&mut moves);
@@ -38,7 +39,7 @@ fn benchmark(seed: u64) {
 }
 
 fn test_solve(seed: u64, terminated: &Arc<AtomicBool>) {
-    let shuffled_deck = generate_shuffled_deck(seed);
+    let shuffled_deck = shuffled_deck_legacy(seed);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let g = Solitaire::new(&shuffled_deck, 3);
@@ -59,7 +60,7 @@ fn test_solve(seed: u64, terminated: &Arc<AtomicBool>) {
 }
 
 fn game_loop(seed: u64) {
-    let shuffled_deck = generate_shuffled_deck(seed);
+    let shuffled_deck = shuffled_deck_legacy(seed);
 
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
     let mut game = Solitaire::new(&shuffled_deck, 3);
@@ -118,7 +119,7 @@ fn solve_loop(seed: u64, terminated: &Arc<AtomicBool>) {
     let start = Instant::now();
 
     for seed in seed.. {
-        let shuffled_deck = generate_shuffled_deck(seed);
+        let shuffled_deck = shuffled_deck_legacy(seed);
         let g = Solitaire::new(&shuffled_deck, 3);
 
         let now = Instant::now();
@@ -182,7 +183,7 @@ fn main() {
     let seed: u64 = seed.parse().expect("uint 64");
     match method.as_ref() {
         "print" => {
-            let shuffled_deck = generate_shuffled_deck(seed);
+            let shuffled_deck = shuffled_deck_legacy(seed);
 
             println!("{}", Solvitaire::new(&shuffled_deck, 3));
         }

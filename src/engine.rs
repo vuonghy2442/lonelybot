@@ -2,11 +2,9 @@ use core::fmt;
 
 use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{Deck, Drawable, N_HIDDEN_CARDS, N_PILES};
+use crate::shuffler::CardDeck;
 
 use colored::Colorize;
-use rand::prelude::*;
-
-pub type CardDeck = [Card; N_CARDS as usize];
 
 #[derive(Debug, Clone, Copy)]
 pub enum Move {
@@ -42,29 +40,6 @@ pub struct Solitaire {
     top_mask: u64,
 }
 
-pub fn to_legacy(cards: &CardDeck) -> CardDeck {
-    let mut new_deck = *cards;
-
-    const OLD_HIDDEN: u8 = N_PILES * (N_PILES - 1) / 2;
-
-    for i in 0..N_PILES {
-        for j in 0..i {
-            new_deck[(i * (i + 1) / 2 + j) as usize] = cards[(i * (i - 1) / 2 + j) as usize];
-        }
-        new_deck[(i * (i + 1) / 2 + i) as usize] = cards[(OLD_HIDDEN + i) as usize];
-    }
-    new_deck
-}
-
-pub fn generate_shuffled_deck(seed: u64) -> CardDeck {
-    let mut rng = StdRng::seed_from_u64(seed);
-    let mut cards: [Card; N_CARDS as usize] =
-        core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, i as u8 % N_SUITS));
-    cards.shuffle(&mut rng);
-
-    let cards = to_legacy(&cards);
-    return cards;
-}
 pub type Encode = u64;
 
 const HALF_MASK: u64 = 0x33333333_3333333;
@@ -248,6 +223,7 @@ impl Solitaire {
         }
 
         let (deck_mask, dom) = self.get_deck_mask::<DOMINANCES>();
+        // no dominances for draw_step = 1 yet
         if dom {
             // not very useful as dominance
             return [deck_mask, 0, 0, deck_mask];
@@ -604,6 +580,10 @@ impl fmt::Display for Solvitaire {
 
 #[cfg(test)]
 mod tests {
+    use rand::prelude::*;
+
+    use crate::shuffler::shuffled_deck;
+
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
@@ -615,7 +595,7 @@ mod tests {
 
         let mut test = Vec::<(u8, Card)>::new();
         for i in 0..100 {
-            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            let mut game = Solitaire::new(&shuffled_deck(12 + i), 3);
             for _ in 0..100 {
                 let mut truth = game
                     .deck
@@ -652,7 +632,7 @@ mod tests {
         let mut moves = Vec::<Move>::new();
 
         for i in 0..1000 {
-            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            let mut game = Solitaire::new(&shuffled_deck(12 + i), 3);
             for _ in 0..100 {
                 moves.clear();
                 game.list_moves::<false>(&mut moves);
@@ -690,7 +670,7 @@ mod tests {
         let mut moves = Vec::<Move>::new();
 
         for i in 0..1000 {
-            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            let mut game = Solitaire::new(&shuffled_deck(12 + i), 3);
             let mut history = Vec::<(Move, UndoInfo)>::new();
             let mut enc = Vec::<Encode>::new();
 
