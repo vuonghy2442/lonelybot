@@ -4,6 +4,7 @@ use core::fmt;
 pub const N_SUITS: u8 = 4;
 pub const N_RANKS: u8 = 13;
 pub const N_CARDS: u8 = N_SUITS * N_RANKS;
+pub const KING_RANK: u8 = N_RANKS - 1;
 
 pub const COLOR: [Color; N_SUITS as usize] = [Color::Red, Color::Red, Color::Black, Color::Black];
 

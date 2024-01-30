@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::card::{Card, N_CARDS, N_RANKS, N_SUITS};
+use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{Deck, Drawable, N_HIDDEN_CARDS, N_PILES};
 
 use colored::Colorize;
@@ -70,9 +70,9 @@ pub type Encode = u64;
 const HALF_MASK: u64 = 0x33333333_3333333;
 const ALT_MASK: u64 = 0x55555555_5555555;
 
-const KING_MASK: u64 = 0xF << (4 * 12);
+const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
 
-const SUIT_MASK: [u64; 4] = [
+const SUIT_MASK: [u64; N_SUITS as usize] = [
     0x41414141_41414141,
     0x82828282_82828282,
     0x14141414_14141414,
@@ -121,7 +121,7 @@ pub fn print_cards(mask: u64) {
     print!("\n");
 }
 
-pub type UndoInfo = (Card, u8);
+pub type UndoInfo = u8;
 
 impl Solitaire {
     pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {
@@ -281,27 +281,27 @@ impl Solitaire {
             let offset = self.deck.get_offset();
             let pos = self.deck.find_card(card).unwrap();
             self.deck.draw(pos);
-            (card, offset)
+            offset
         } else {
             let hidden = (self.top_mask & mask) != 0;
             self.visible_mask ^= mask;
             if hidden {
                 self.make_reveal(mask);
             }
-            (card, hidden as u8)
+            hidden as u8
         }
     }
 
     pub fn unmake_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64, info: &UndoInfo) {
-        let card = info.0;
+        let card = from_mask(&mask);
         self.final_stack[card.suit() as usize] -= 1;
 
         if DECK {
             self.deck.push(card);
-            self.deck.set_offset(info.1);
+            self.deck.set_offset(*info);
         } else {
             self.visible_mask |= mask;
-            if info.1 != 0 {
+            if *info != 0 {
                 self.unmake_reveal(mask);
             }
         }
@@ -316,10 +316,10 @@ impl Solitaire {
             let offset = self.deck.get_offset();
             let pos = self.deck.find_card(card).unwrap();
             self.deck.draw(pos);
-            (card, offset)
+            offset
         } else {
             self.final_stack[card.suit() as usize] -= 1;
-            (card, 0)
+            0
         }
     }
 
@@ -330,7 +330,7 @@ impl Solitaire {
 
         if DECK {
             self.deck.push(card);
-            self.deck.set_offset(info.1);
+            self.deck.set_offset(*info);
         } else {
             self.final_stack[card.suit() as usize] += 1;
         }
@@ -340,7 +340,7 @@ impl Solitaire {
         return self.hidden_piles[(pos * (pos + 1) / 2 + n_hid) as usize];
     }
 
-    pub fn make_reveal(self: &mut Solitaire, m: &u64) {
+    pub fn make_reveal(self: &mut Solitaire, m: &u64) -> UndoInfo {
         let card = from_mask(&m);
         let pos = self.hidden[card.value() as usize];
         self.top_mask &= !m;
@@ -354,6 +354,7 @@ impl Solitaire {
                 self.top_mask |= revealed;
             }
         }
+        0
     }
 
     pub fn unmake_reveal(self: &mut Solitaire, m: &u64) {
@@ -376,10 +377,7 @@ impl Solitaire {
             Move::PileStack(c) => self.make_stack::<false>(&card_mask(c)),
             Move::DeckPile(c) => self.make_pile::<true>(&card_mask(c)),
             Move::StackPile(c) => self.make_pile::<false>(&card_mask(c)),
-            Move::Reveal(c) => {
-                self.make_reveal(&card_mask(c));
-                (Card::FAKE, 0)
-            }
+            Move::Reveal(c) => self.make_reveal(&card_mask(c)),
         }
     }
 
@@ -457,7 +455,7 @@ impl fmt::Display for Solitaire {
 
         write!(f, "\t\t")?;
 
-        for i in 0u8..4u8 {
+        for i in 0..N_SUITS {
             let card = self.final_stack[i as usize];
             let card = if card == 0 {
                 Card::FAKE
@@ -482,14 +480,15 @@ impl fmt::Display for Solitaire {
             let n_hid = self.n_hidden[i as usize];
             let mut start_card = if n_hid == 0 {
                 while king_suit < 4
-                    && (self.visible_mask ^ self.top_mask) & card_mask(&Card::new(12, king_suit))
+                    && (self.visible_mask ^ self.top_mask)
+                        & card_mask(&Card::new(KING_RANK, king_suit))
                         == 0
                 {
                     king_suit += 1;
                 }
                 if king_suit < 4 {
                     king_suit += 1;
-                    Card::new(12, king_suit - 1)
+                    Card::new(KING_RANK, king_suit - 1)
                 } else {
                     continue;
                 }
