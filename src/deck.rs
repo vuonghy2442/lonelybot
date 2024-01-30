@@ -14,26 +14,11 @@ pub struct Deck {
     map: [u8; N_CARDS as usize],
 }
 
-fn optional_split_last<T>(slice: &[T]) -> (&[T], Option<&T>) {
-    if slice.len() > 0 {
-        let (s, v) = slice.split_last().unwrap();
-        return (v, Some(s));
-    } else {
-        return (slice, None);
-    }
-}
-
+#[derive(Debug, PartialEq, Eq)]
 pub enum Drawable {
     None,
     Current,
     Next,
-}
-
-fn index_of_unchecked<T>(slice: &[T], item: &T) -> usize {
-    if ::std::mem::size_of::<T>() == 0 {
-        return 0; // do what you will with this case
-    }
-    (item as *const _ as usize - slice.as_ptr() as usize) / std::mem::size_of::<T>()
 }
 
 impl Deck {
@@ -56,43 +41,6 @@ impl Deck {
 
     pub const fn draw_step(self: &Deck) -> u8 {
         self.draw_step
-    }
-
-    pub fn iter(self: &Deck) -> impl Iterator<Item = (usize, &Card)> {
-        let draw_cur = self.draw_cur as usize;
-        let draw_next = self.draw_next as usize;
-        let draw_step = self.draw_step as usize;
-        let (head, cur) = optional_split_last(&self.deck[..draw_cur]);
-        let (tail, last) = optional_split_last(&self.deck[draw_next..]);
-
-        // non redealt
-
-        let offset = draw_step - 1 - (draw_cur % draw_step);
-
-        // filter out if repeat :)
-        let offset = if offset == draw_step - 1 {
-            N_FULL_DECK
-        } else {
-            offset
-        };
-
-        return cur
-            .into_iter()
-            .chain(tail.iter().skip(draw_step - 1).step_by(draw_step))
-            .chain(last.into_iter())
-            .chain(head.iter().skip(draw_step - 1).step_by(draw_step))
-            .chain(tail.iter().skip(offset).step_by(draw_step))
-            .map(move |x| {
-                let pos = index_of_unchecked(&self.deck, x);
-                (
-                    if pos >= draw_next {
-                        pos - draw_next + draw_cur
-                    } else {
-                        pos
-                    },
-                    x,
-                )
-            });
     }
 
     pub const fn len(self: &Deck) -> u8 {

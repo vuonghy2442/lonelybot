@@ -75,7 +75,6 @@ fn game_loop(seed: u64) {
         print!("{}", game);
         if !game_state.insert(game.encode()) {
             println!("Already existed state");
-            assert!(false);
         }
 
         moves.clear();
