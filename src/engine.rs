@@ -342,7 +342,9 @@ impl Solitaire {
             let new_card = self.get_hidden(pos, self.n_hidden[pos as usize] - 1);
             let revealed = card_mask(&new_card);
             self.visible_mask |= revealed;
-            self.top_mask |= revealed;
+            if new_card.rank() < N_RANKS - 1 || self.n_hidden[pos as usize] != 1 {
+                self.top_mask |= revealed;
+            }
         }
     }
 
@@ -353,9 +355,9 @@ impl Solitaire {
 
         if self.n_hidden[pos as usize] > 0 {
             let new_card = self.get_hidden(pos, self.n_hidden[pos as usize] - 1);
-            let revealed = card_mask(&new_card);
-            self.visible_mask ^= revealed;
-            self.top_mask ^= revealed;
+            let unrevealed = !card_mask(&new_card);
+            self.visible_mask &= unrevealed;
+            self.top_mask &= unrevealed;
         }
         self.n_hidden[pos as usize] += 1;
     }
