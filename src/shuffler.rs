@@ -140,48 +140,6 @@ impl GreenRandom {
     }
 }
 
-// public void ShuffleGreenFelt(uint seed) {
-//     GreenRandom rnd = new GreenRandom() { Seed = seed };
-//     for (int i = 0; i < 26; i++) {
-//         deck[i] = new Card(i);
-//     }
-//     for (int i = 0; i < 13; i++) {
-//         deck[i + 26] = new Card(i + 39);
-//     }
-//     for (int i = 0; i < 13; i++) {
-//         deck[i + 39] = new Card(i + 26);
-//     }
-//     for (int i = 0; i < 7; i++) {
-//         for (int j = 0; j < 52; j++) {
-//             int k = (int)(rnd.Next() % 52);
-//             Card temp = deck[j];
-//             deck[j] = deck[k];
-//             deck[k] = temp;
-//         }
-//     }
-//     Card[] tmp = new Card[52];
-//     Array.Copy(deck, 0, tmp, 28, 24);
-//     Array.Copy(deck, 24, tmp, 0, 28);
-//     Array.Copy(tmp, deck, 52);
-
-//     int orig = 27;
-//     for (int i = 0; i < 7; i++) {
-//         int pos = (i + 1) * (i + 2) / 2 - 1;
-//         for (int j = 6 - i; j >= 0; j--) {
-//             if (j >= i) {
-//                 Card temp = deck[pos];
-//                 deck[pos] = deck[orig];
-//                 deck[orig] = temp;
-//             }
-//             orig--;
-//             pos += (6 - j + 1);
-//         }
-//     }
-
-//     SetupInitial();
-//     Reset();
-// }
-
 pub fn greenfelt_shuffle(seed: u64) -> CardDeck {
     let mut rng = GreenRandom::new(seed as u32);
     const M: [u8; N_SUITS as usize] = [2, 1, 3, 0];
@@ -214,7 +172,6 @@ pub fn greenfelt_shuffle(seed: u64) -> CardDeck {
         new_cards
     };
     // convert to standard form
-
 
     let mut new_cards: CardDeck = cards;
 

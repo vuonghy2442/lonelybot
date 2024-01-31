@@ -229,10 +229,10 @@ impl Deck {
         card
     }
 
-    pub fn push(self: &mut Deck, c: Card) {
+    pub fn push(self: &mut Deck, card: Card) {
         // or you can undo
-        self.mask ^= 1 << self.map[c.value() as usize];
-        self.deck[self.draw_cur as usize] = c;
+        self.mask ^= 1 << self.map[card.value() as usize];
+        self.deck[self.draw_cur as usize] = card;
         self.draw_cur += 1;
 
         //
@@ -259,14 +259,14 @@ impl Deck {
 
     pub const fn is_pure(self: &Deck) -> bool {
         // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
-        (self.draw_cur + 1) % self.draw_step == 0 || self.draw_next == N_FULL_DECK as u8
+        self.draw_cur % self.draw_step == 0 || self.draw_next == N_FULL_DECK as u8
     }
 
     pub const fn normalized_offset(self: &Deck) -> u8 {
         // this is the standardized version
-        if (self.draw_cur + 1) % self.draw_step == 0 {
+        if self.draw_cur % self.draw_step == 0 {
             // matched so offset is free
-            self.draw_step - 1
+            0
         } else {
             self.draw_cur
         }
