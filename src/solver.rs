@@ -35,15 +35,23 @@ impl SearchStats {
             move_state: Default::default(),
         }
     }
+
+    pub fn total_visit(&self) -> usize {
+        self.total_visit.load(Ordering::Relaxed)
+    }
+
+    pub fn tp_hit(&self) -> usize {
+        self.tp_hit.load(Ordering::Relaxed)
+    }
+
+    pub fn max_depth(&self) -> usize {
+        self.max_depth.load(Ordering::Relaxed)
+    }
 }
 
 impl Display for SearchStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let (total, hit, depth) = (
-            self.total_visit.load(Ordering::Relaxed),
-            self.tp_hit.load(Ordering::Relaxed),
-            self.max_depth.load(Ordering::Relaxed),
-        );
+        let (total, hit, depth) = (self.total_visit(), self.tp_hit(), self.max_depth());
         write!(
             f,
             "Total visit: {}\nTransposition hit: {} (rate {})\nMiss state: {}\nMax depth search: {}\nCurrent progress:",

@@ -123,7 +123,7 @@ fn solve_loop(seed: u64, terminated: &Arc<AtomicBool>) {
         let g = Solitaire::new(&shuffled_deck, 3);
 
         let now = Instant::now();
-        let res = lonelybot::solver::run_solve(g, false, terminated).0;
+        let (res, stats, _) = lonelybot::solver::run_solve(g, false, terminated);
         match res {
             SearchResult::Solved => cnt_solve += 1 as usize,
             SearchResult::Terminated => cnt_terminated += 1 as usize,
@@ -141,7 +141,7 @@ fn solve_loop(seed: u64, terminated: &Arc<AtomicBool>) {
             .wilson_score(1.960)
             .upper(); //95%
         println!(
-            "Run {} in {:.2} ms. {:?}: ({}-{}/{} ~ {:.4}<={:.4}<={:.4})",
+            "Run {} in {:.2} ms. {:?}: ({}-{}/{} ~ {:.4}<={:.4}<={:.4}) {} {} {}",
             seed,
             now.elapsed().as_secs_f64() * 1000f64,
             res,
@@ -151,6 +151,9 @@ fn solve_loop(seed: u64, terminated: &Arc<AtomicBool>) {
             lower,
             cnt_solve as f64 / cnt_total as f64,
             higher,
+            stats.total_visit(),
+            stats.tp_hit(),
+            stats.max_depth(),
         );
 
         if terminated.load(Ordering::Relaxed) {
