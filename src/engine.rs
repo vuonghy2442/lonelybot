@@ -399,7 +399,7 @@ impl Solitaire {
             .iter()
             .enumerate()
             .rev()
-            .fold(0u16, |res, cur| res * (cur.0 as u16 + 1) + *cur.1 as u16)
+            .fold(0u16, |res, cur| res * (cur.0 as u16 + 2) + *cur.1 as u16)
     }
 
     pub fn encode(self: &Solitaire) -> Encode {
