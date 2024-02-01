@@ -167,7 +167,7 @@ impl Solitaire {
     pub const fn get_stack_dominances_mask(self: &Solitaire) -> u64 {
         let s = self.final_stack;
         let d = (min(s[0], s[1]), min(s[2], s[3]));
-        let d = (min(d.0 + 3, d.1 + 2), min(d.0 + 2, d.1 + 3));
+        let d = (min(d.0 + 1, d.1) + 2, min(d.0, d.1 + 1) + 2);
 
         ((SUIT_MASK[0] | SUIT_MASK[1]) & full_mask(d.0 * 4))
             | ((SUIT_MASK[2] | SUIT_MASK[3]) & full_mask(d.1 * 4))
@@ -175,7 +175,6 @@ impl Solitaire {
 
     pub fn get_deck_mask<const DOMINANCES: bool>(self: &Solitaire) -> (u64, bool) {
         let filter = DOMINANCES
-            && self.deck.draw_step() > 1
             && self.deck.peek_last().is_some_and(|&x| {
                 let (rank, suit) = x.split();
                 self.stackable(rank, suit) && self.stack_dominance(rank, suit)
@@ -190,6 +189,8 @@ impl Solitaire {
             mask |= card_mask(card);
             false
         });
+
+        // TODO: dominances for draw_step == 1
         (mask, false)
     }
 
