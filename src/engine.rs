@@ -40,6 +40,7 @@ pub struct Solitaire {
     top_mask: u64,
 
     sp_mask: u8,
+    last_sp: Option<Card>,
 }
 
 pub type Encode = u64;
@@ -98,7 +99,7 @@ pub fn print_cards(mask: u64) {
     print!("\n");
 }
 
-pub type UndoInfo = u16;
+pub type UndoInfo = (u16, Option<Card>);
 
 impl Solitaire {
     pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {
@@ -133,6 +134,7 @@ impl Solitaire {
             top_mask: visible_mask,
             hidden,
             sp_mask: 0,
+            last_sp: None,
         };
     }
 
@@ -219,12 +221,25 @@ impl Solitaire {
             0
         };
 
-        let pile_stack = bm & vis & sm; // remove mask
-        let pile_stack_dom = pile_stack & dsm;
-        if pile_stack_dom != 0 {
-            // dominances
-            return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0];
-        }
+        let (super_mask, super_mask2) = if let Some(c) = self.last_sp {
+            let m = card_mask(&c) >> 4;
+            let m = (m | (m >> 1)) & ALT_MASK;
+            (m | (m << 1), 0)
+        } else {
+            (full_mask(N_CARDS), full_mask(N_CARDS))
+        };
+
+        let pile_stack = if let None = self.last_sp {
+            let pile_stack = bm & vis & sm; // remove mask
+            let pile_stack_dom = pile_stack & dsm;
+            if pile_stack_dom != 0 {
+                // dominances
+                return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0];
+            }
+            pile_stack
+        } else {
+            0
+        };
 
         let (deck_mask, dom) = self.get_deck_mask::<DOMINANCES>();
         // no dominances for draw_step = 1 yet
@@ -251,7 +266,7 @@ impl Solitaire {
         let stack_pile_2 = if self.sp_mask & (3 * 4) != 0 {
             stack_pile & SUIT_MASK[1 + ((self.sp_mask / 4) & 3) as usize]
         } else {
-            stack_pile& (SUIT_MASK[2] | SUIT_MASK[3])
+            stack_pile & (SUIT_MASK[2] | SUIT_MASK[3])
         };
 
         let stack_pile = stack_pile_1 | stack_pile_2;
@@ -260,10 +275,38 @@ impl Solitaire {
         // deck to stack, deck to pile :)
         let reveal = top & free_slot;
 
+        // if DOMINANCES {
+        //     /*
+        //     Case 1:
+        //     9x 9_
+        //     __
+        //     8y 8z _ _
+        //     _ _ 7y(*) 7z(*)
+
+        //     ->
+
+        //      __
+        //      8 8
+        //      7 _ 7
+        //      . _ .
+        //      */
+        //     let and_mask = vis & (vis >> 1);
+        //     let non_top = vis ^ top;
+        //     let nand_mask = non_top & (non_top >> 1);
+        //     let and_mask = and_mask >> 4 & and_mask & swap_pair((and_mask & nand_mask) << 4);
+        //     let and_mask = and_mask & ALT_MASK;
+        //     // case 1 only now :)
+        //     let dom_mask = and_mask | (and_mask << 1);
+        //     let reveal_dom = reveal & dom_mask;
+        //     if reveal_dom != 0 {
+        //         return [0, 0, reveal_dom.wrapping_neg() & reveal_dom, 0];
+        //     }
+        // }
+
         return [
-            pile_stack | deck_stack,
-            stack_pile | deck_pile,
-            reveal,
+            (pile_stack | deck_stack) & super_mask2,
+            stack_pile | (deck_pile & super_mask),
+            reveal & super_mask,
             deck_mask,
         ];
     }
@@ -274,25 +317,34 @@ impl Solitaire {
 
         let sp_mask = self.sp_mask;
         self.sp_mask = 0; //reset
+        let last_sp = self.last_sp;
+        self.last_sp = None;
 
-        if DECK {
-            let offset = self.deck.get_offset();
-            let pos = self.deck.find_card(card).unwrap();
-            self.deck.draw(pos);
-            offset as u16 | (sp_mask as u16) << 5
-        } else {
-            let hidden = (self.top_mask & mask) != 0;
-            self.visible_mask ^= mask;
-            if hidden {
-                self.make_reveal(mask);
-            }
-            hidden as u16 | (sp_mask as u16) << 5
-        }
+        (
+            if DECK {
+                let offset = self.deck.get_offset();
+                let pos = self.deck.find_card(card).unwrap();
+                self.deck.draw(pos);
+                offset as u16 | (sp_mask as u16) << 5
+            } else {
+                let hidden = (self.top_mask & mask) != 0;
+                self.visible_mask ^= mask;
+                if hidden {
+                    self.make_reveal(mask);
+                }
+                hidden as u16 | (sp_mask as u16) << 5
+            },
+            last_sp,
+        )
     }
 
     pub fn unmake_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64, info: &UndoInfo) {
         let card = from_mask(&mask);
         self.final_stack[card.suit() as usize] -= 1;
+        self.last_sp = info.1;
+
+        let org_info = info;
+        let info = &info.0;
 
         if DECK {
             self.deck.push(card);
@@ -300,7 +352,7 @@ impl Solitaire {
         } else {
             self.visible_mask |= mask;
             if *info & 1 != 0 {
-                self.unmake_reveal(mask, &0);
+                self.unmake_reveal(mask, org_info);
             }
         }
         self.sp_mask = (*info >> 5) as u8;
@@ -309,24 +361,34 @@ impl Solitaire {
     pub fn make_pile<const DECK: bool>(self: &mut Solitaire, mask: &u64) -> UndoInfo {
         let card = from_mask(&mask);
 
-        self.visible_mask |= mask;
+        let last_sp = self.last_sp;
 
+        self.visible_mask |= mask;
         let sp_mask = self.sp_mask;
-        if DECK {
-            self.sp_mask = 0; //reset
-            let offset = self.deck.get_offset();
-            let pos = self.deck.find_card(card).unwrap();
-            self.deck.draw(pos);
-            offset as u16 | ((sp_mask as u16) << 5)
-        } else {
-            self.sp_mask |= 1 << card.suit();
-            self.final_stack[card.suit() as usize] -= 1;
-            (sp_mask as u16) << 5
-        }
+
+        (
+            if DECK {
+                self.last_sp = None;
+                self.sp_mask = 0; //reset
+                let offset = self.deck.get_offset();
+                let pos = self.deck.find_card(card).unwrap();
+                self.deck.draw(pos);
+                offset as u16 | ((sp_mask as u16) << 5)
+            } else {
+                self.last_sp = Some(card);
+                self.sp_mask |= 1 << card.suit();
+                self.final_stack[card.suit() as usize] -= 1;
+                (sp_mask as u16) << 5
+            },
+            last_sp,
+        )
     }
 
     pub fn unmake_pile<const DECK: bool>(self: &mut Solitaire, mask: &u64, info: &UndoInfo) {
         let card = from_mask(&mask);
+
+        self.last_sp = info.1;
+        let info = &info.0;
 
         self.visible_mask &= !mask;
         self.sp_mask = (*info >> 5) as u8;
@@ -348,6 +410,9 @@ impl Solitaire {
         let pos = self.hidden[card.value() as usize];
         self.top_mask &= !m;
 
+        let last_sp = self.last_sp;
+        self.last_sp = None;
+
         let sp_mask = self.sp_mask;
         self.sp_mask = 0;
 
@@ -360,12 +425,16 @@ impl Solitaire {
                 self.top_mask |= revealed;
             }
         }
-        (sp_mask as u16) << 5
+        ((sp_mask as u16) << 5, last_sp)
     }
 
     pub fn unmake_reveal(self: &mut Solitaire, m: &u64, info: &UndoInfo) {
         let card = from_mask(&m);
         let pos = self.hidden[card.value() as usize];
+
+        self.last_sp = info.1;
+        let info = &info.0;
+
         self.top_mask |= m;
         self.sp_mask = (*info >> 5) as u8;
 
