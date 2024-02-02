@@ -221,25 +221,23 @@ impl Solitaire {
             0
         };
 
-        let (super_mask, super_mask2) = if let Some(c) = self.last_sp {
-            let m = card_mask(&c) >> 4;
-            let m = (m | (m >> 1)) & ALT_MASK;
-            (m | (m << 1), 0)
+        let (super_mask, super_mask2, super_mask3) = if let Some(c) = self.last_sp {
+            let mo = card_mask(&c);
+            let m = (mo | (mo >> 1)) & ALT_MASK;
+            let m = m | (m << 1);
+            (m >> 4, 0, (m ^ mo))
         } else {
-            (full_mask(N_CARDS), full_mask(N_CARDS))
+            (full_mask(N_CARDS), full_mask(N_CARDS), full_mask(N_CARDS))
         };
 
-        let pile_stack = if let None = self.last_sp {
-            let pile_stack = bm & vis & sm; // remove mask
-            let pile_stack_dom = pile_stack & dsm;
-            if pile_stack_dom != 0 {
-                // dominances
-                return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0];
-            }
-            pile_stack
-        } else {
-            0
-        };
+        // let (super_mask, super_mask2) = (full_mask(N_CARDS), full_mask(N_CARDS));
+
+        let pile_stack = bm & vis & sm & super_mask3; // remove mask
+        let pile_stack_dom = pile_stack & dsm;
+        if pile_stack_dom != 0 {
+            // dominances
+            return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0];
+        }
 
         let (deck_mask, dom) = self.get_deck_mask::<DOMINANCES>();
         // no dominances for draw_step = 1 yet
@@ -304,7 +302,7 @@ impl Solitaire {
         // }
 
         return [
-            (pile_stack | deck_stack) & super_mask2,
+            pile_stack | (deck_stack & super_mask2),
             stack_pile | (deck_pile & super_mask),
             reveal & super_mask,
             deck_mask,
