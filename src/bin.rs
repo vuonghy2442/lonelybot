@@ -52,7 +52,10 @@ fn test_solve(seed: u64, terminated: &Arc<AtomicBool>) {
         SearchResult::Solved => {
             let m = res.2.unwrap();
             println!("Solvable in {} moves", m.len());
-            println!("{:?}", m);
+            for x in m {
+                print!("{}, ", x);
+            }
+            println!();
         }
         SearchResult::Unsolvable => println!("Impossible"),
         SearchResult::Terminated => println!("Terminated"),

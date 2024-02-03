@@ -1,6 +1,7 @@
 use crate::card::{Card, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{N_HIDDEN_CARDS, N_PILES};
 use rand::prelude::*;
+use rand_mt::Mt;
 
 pub type CardDeck = [Card; N_CARDS as usize];
 
@@ -180,6 +181,46 @@ pub fn greenfelt_shuffle(seed: u64) -> CardDeck {
         for j in i..N_PILES {
             let pos_to = j * (j + 1) / 2 + i;
             new_cards[pos_to as usize] = cards[pos_from as usize];
+            pos_from += 1;
+        }
+    }
+
+    new_cards
+}
+
+pub fn uniform_int(a: u32, b: u32, rng: &mut impl RngCore) -> u32 {
+    const B_RANGE: u32 = u32::MAX;
+
+    let range = b - a;
+    let bucket_size = B_RANGE / (range + 1) + (B_RANGE % (range + 1) == range) as u32;
+    loop {
+        let rnd = rng.next_u32() / bucket_size;
+        if rnd <= range {
+            return rnd + a;
+        }
+    }
+}
+
+pub fn solvitaire_shuffle(seed: u64) -> CardDeck {
+    const M: [u8; N_SUITS as usize] = [2, 0, 3, 1];
+    let mut cards: CardDeck =
+        core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, M[i % N_SUITS as usize]));
+
+    let mut rng: Mt = Mt::new(seed as u32);
+
+    for i in (1..cards.len()).rev() {
+        let val = uniform_int(0, i as u32, &mut rng);
+        cards.swap(i, val as usize);
+    }
+
+    //stock is in the back :))
+    let mut new_cards: CardDeck = cards;
+
+    let mut pos_from = 0;
+    for i in 0..N_PILES {
+        for j in (i..N_PILES).rev() {
+            let pos_to = j * (j + 1) / 2 + i;
+            new_cards[pos_to as usize] = cards[(N_HIDDEN_CARDS - 1 - pos_from) as usize];
             pos_from += 1;
         }
     }
