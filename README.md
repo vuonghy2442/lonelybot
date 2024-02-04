@@ -37,9 +37,22 @@ The format:
 - Tableau piles: an array of piles in order of left-right
 - Stock: an array of cards in the dealing stock, dealing from the end.
 
+### Seed
+There are 5 seed types
+- default: using simple Rust rng
+- legacy: similar to default, for combatibility with older version of this engine
+- solvitaire: reimplemenation of ([Solvitaire](https://github.com/thecharlieblake/Solvitaire)) random
+- klondike-solver: reimplementation of ([Klondike-Solver](https://github.com/ShootMe/Klondike-Solver)) random
+- greenfelt: reimplementation of ([Greenfelt](https://greenfelt.net/)) based on ([Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike)) source code
+
 ### Bench
 ```sh
-lonelybot bench [seed]
+lonelybot bench [seed_type] [seed]
+```
+
+Example input
+```sh
+lonelybot bench default 25
 ```
 
 Example output
@@ -52,14 +65,14 @@ The first number is the number of move made. The second one is the rate of move 
 ### Solve
 
 ```sh
-lonelybot solve [seed]
+lonelybot solve [seed_type] [seed]
 ```
 
 First it will print the game. Then it will solve it.
 
 Example run
 ```sh
-loneybot solve 28
+loneybot solve legacy 28
 ```
 
 Example output
@@ -96,7 +109,7 @@ The progress consists of:
 
 ### Solve loop
 ```sh
-lonelybot rate [seed]
+lonelybot rate [seed_type] [seed]
 ```
 
 This will sequentially solve the random game generate from seed, seed+1,...
@@ -107,7 +120,7 @@ To terminate the whole process, pressing ctrl-C twice in a short amount of time 
 
 Example run
 ```sh
-loneybot rate 0
+loneybot rate legacy 0
 ```
 
 Example output
@@ -142,3 +155,62 @@ Each row correspond to a game
 ```
 Run [game_seed] in [run_time] ms. [solve_result]: ([solvable]-[terminated]/[total] ~ [solvable_lb_95%]<=[solvable_rate]<=[solvable_ub_95%])
 ```
+
+### Play
+
+You can play out the game.
+Due the optimizations, the available actions are quite unsual, and performing them may result in weird results
+- One action can be equivalent to multiple actions combined in standard game
+- The result of the action is impossible but it is equivalent to the possible result in the standard game.
+- Missing some actions (should be inferior to the available actions)
+
+
+```sh
+lonelybot play [seed_type] [seed]
+```
+
+Example run
+```sh
+loneybot play legacy 0
+```
+
+Example output
+```sh
+loneybot rate legacy 0
+```
+{"tableau piles": [
+["7D"],
+["Kc","3C"],
+["6s","8c","6H"],
+["9s","Ah","5s","5C"],
+["5d","Js","5h","Qd","10H"],
+["Ac","7c","Jc","7h","Kd","9C"],
+["10c","3h","4d","4h","6c","Qs","3S"]
+],"stock": ["JD","10D","7S","10S","AD","8S","JH","2D","AS","3D","9D","9H","6D","KS","QH","2H","2S","4S","4C","KH","2C","8H","8D","QC"]}
+0 Q♣ 1 8♦ 2 8♥ 3 2♣ 4 K♥ 5 4♣ 6 4♠ 7 2♠ 8 2♥ 9 Q♥ 10 K♠ 11 6♦ 12 9♥ 13 9♦ 14 3♦ 15 A♠ 16 2♦ 17 J♥ 18 8♠ 19 A♦ 20 10♠ 21 7♠ 22 10♦ 23 J♦
+                1.   2.   3.   4.
+5       6       7       8       9       10      11
+7♦      **      **      **      **      **      **
+        3♣      **      **      **      **      **
+                6♥      **      **      **      **
+                        5♣      **      **      **
+                                10♥     **      **
+                                        9♣      **
+                                                3♠
+
+0.R 5♣, 1.R 9♣, 2.DP 2♥, 3.DP 8♥,
+Hash: 2642345984
+Move:
+
+You enter the move number to move:
+
+There are currently 5 types of move:
+- R <card>: Revealing the hidden card about the <card>
+- SP <card>: Moving the <card> from the foundation stack into the tableau (the pile in my term)
+- DP <card>: Moving the <card> from the stock (the deck in my term) to the tableau
+- DS <card>: Moving the <card> from the stock to the foundation stack
+- PS <card>: Moving the <card> from the tableau to the stack (potentially also do a reveal)
+
+# To do
+
+Converting the compressed actions into standard actions
