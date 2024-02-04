@@ -1,6 +1,7 @@
 use bpci::{Interval, NSuccessesSample, WilsonScore};
+use clap::{Parser, Subcommand};
 use lonelybot::engine::{Encode, Move, Solitaire, Solvitaire, UndoInfo};
-use lonelybot::shuffler::shuffled_deck_legacy;
+use lonelybot::shuffler::{shuffle, Seed};
 use rand::prelude::*;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -11,15 +12,15 @@ use std::{io::Write, time::Instant};
 
 use lonelybot::solver::SearchResult;
 
-fn benchmark(seed: u64) {
-    let mut rng = StdRng::seed_from_u64(seed);
+fn benchmark(seed: &Seed) {
+    let mut rng = StdRng::seed_from_u64(seed.seed());
 
     let mut moves = Vec::<Move>::new();
 
     let mut total_moves = 0;
     let now = Instant::now();
     for i in 0..100 {
-        let mut game = Solitaire::new(&shuffled_deck_legacy(seed + i), 3);
+        let mut game = Solitaire::new(&shuffle(&seed.increase(i as u64)), 3);
         for _ in 0..100 {
             moves.clear();
             game.list_moves::<true>(&mut moves);
@@ -38,8 +39,8 @@ fn benchmark(seed: u64) {
     );
 }
 
-fn test_solve(seed: u64, terminated: &Arc<AtomicBool>) {
-    let shuffled_deck = shuffled_deck_legacy(seed);
+fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
+    let shuffled_deck = shuffle(&seed);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let g = Solitaire::new(&shuffled_deck, 3);
@@ -62,8 +63,8 @@ fn test_solve(seed: u64, terminated: &Arc<AtomicBool>) {
     }
 }
 
-fn game_loop(seed: u64) {
-    let shuffled_deck = shuffled_deck_legacy(seed);
+fn game_loop(seed: &Seed) {
+    let shuffled_deck = shuffle(seed);
 
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
     let mut game = Solitaire::new(&shuffled_deck, 3);
@@ -114,15 +115,16 @@ fn game_loop(seed: u64) {
     }
 }
 
-fn solve_loop(seed: u64, terminated: &Arc<AtomicBool>) {
+fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
     let mut cnt_terminated = 0;
     let mut cnt_solve = 0;
     let mut cnt_total = 0;
 
     let start = Instant::now();
 
-    for seed in seed.. {
-        let shuffled_deck = shuffled_deck_legacy(seed);
+    for step in 0.. {
+        let seed = org_seed.increase(step);
+        let shuffled_deck = shuffle(&seed);
         let g = Solitaire::new(&shuffled_deck, 3);
 
         let now = Instant::now();
@@ -183,30 +185,61 @@ fn handling_signal() -> Arc<AtomicBool> {
     terminated
 }
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Print {
+        #[command(flatten)]
+        seed: Seed,
+    },
+
+    Bench {
+        #[command(flatten)]
+        seed: Seed,
+    },
+
+    Solve {
+        #[command(flatten)]
+        seed: Seed,
+    },
+
+    Play {
+        #[command(flatten)]
+        seed: Seed,
+    },
+
+    Rate {
+        #[command(flatten)]
+        seed: Seed,
+    },
+}
+
 fn main() {
-    let method = std::env::args().nth(1).expect("no seed given");
-    let seed = std::env::args().nth(2).expect("no seed given");
-    let seed: u64 = seed.parse().expect("uint 64");
-    match method.as_ref() {
-        "print" => {
-            let shuffled_deck = shuffled_deck_legacy(seed);
+    let args = Cli::parse().command;
+
+    match &args {
+        Commands::Print { seed } => {
+            let shuffled_deck = shuffle(seed);
 
             println!("{}", Solvitaire::new(&shuffled_deck, 3));
         }
-        "solve" => {
+        Commands::Solve { seed } => {
             test_solve(seed, &handling_signal());
         }
-        "play" => {
+        Commands::Play { seed } => {
             game_loop(seed);
         }
-        "bench" => {
+        Commands::Bench { seed } => {
             benchmark(seed);
         }
-        "rate" => {
+        Commands::Rate { seed } => {
             solve_loop(seed, &handling_signal());
-        }
-        _ => {
-            panic!("Wrong method")
         }
     }
 }

@@ -680,7 +680,7 @@ impl fmt::Display for Solvitaire {
 mod tests {
     use rand::prelude::*;
 
-    use crate::shuffler::shuffled_deck;
+    use crate::shuffler::default_shuffle;
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
@@ -693,7 +693,7 @@ mod tests {
 
         let mut test = Vec::<(u8, Card)>::new();
         for i in 0..100 {
-            let mut game = Solitaire::new(&shuffled_deck(12 + i), 3);
+            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
                 let mut truth = game
                     .deck
@@ -730,7 +730,7 @@ mod tests {
         let mut moves = Vec::<Move>::new();
 
         for i in 0..1000 {
-            let mut game = Solitaire::new(&shuffled_deck(12 + i), 3);
+            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
                 moves.clear();
                 game.list_moves::<false>(&mut moves);
@@ -768,7 +768,7 @@ mod tests {
         let mut moves = Vec::<Move>::new();
 
         for i in 0..1000 {
-            let mut game = Solitaire::new(&shuffled_deck(12 + i), 3);
+            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             let mut history = Vec::<(Move, UndoInfo)>::new();
             let mut enc = Vec::<Encode>::new();
 
