@@ -6,12 +6,20 @@
 - debug: default rust debug (cargo build)
 - bench: For microbenchmarking (cargo bench)
 
+## Seed
+There are 5 seed types
+- ``default``: using simple Rust rng
+- ``legacy``: similar to default, for combatibility with older version of this engine
+- ``solvitaire``: reimplemenation of [Solvitaire](https://github.com/thecharlieblake/Solvitaire) random
+- ``klondike``-solver: reimplementation of [Klondike-Solver](https://github.com/ShootMe/Klondike-Solver) random
+- ``greenfelt``: reimplementation of [Greenfelt](https://greenfelt.net/) based on [Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike) source code
+
 ## Run methods
-This solver has a few mod
+This solver has a few modes
 
 ### Print
 ```sh
-lonelybot print [seed]
+lonelybot print [seed_type] [seed]
 ```
 This will print the board in json format (in solvitaire format)
 
@@ -37,13 +45,6 @@ The format:
 - Tableau piles: an array of piles in order of left-right
 - Stock: an array of cards in the dealing stock, dealing from the end.
 
-### Seed
-There are 5 seed types
-- default: using simple Rust rng
-- legacy: similar to default, for combatibility with older version of this engine
-- solvitaire: reimplemenation of ([Solvitaire](https://github.com/thecharlieblake/Solvitaire)) random
-- klondike-solver: reimplementation of ([Klondike-Solver](https://github.com/ShootMe/Klondike-Solver)) random
-- greenfelt: reimplementation of ([Greenfelt](https://greenfelt.net/)) based on ([Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike)) source code
 
 ### Bench
 ```sh
@@ -178,6 +179,8 @@ Example output
 ```sh
 loneybot rate legacy 0
 ```
+
+```
 {"tableau piles": [
 ["7D"],
 ["Kc","3C"],
@@ -201,16 +204,17 @@ loneybot rate legacy 0
 0.R 5♣, 1.R 9♣, 2.DP 2♥, 3.DP 8♥,
 Hash: 2642345984
 Move:
+```
 
 You enter the move number to move:
 
 There are currently 5 types of move:
-- R <card>: Revealing the hidden card about the <card>
-- SP <card>: Moving the <card> from the foundation stack into the tableau (the pile in my term)
-- DP <card>: Moving the <card> from the stock (the deck in my term) to the tableau
-- DS <card>: Moving the <card> from the stock to the foundation stack
-- PS <card>: Moving the <card> from the tableau to the stack (potentially also do a reveal)
+- R ``card``: Revealing the hidden card about the ``card``
+- SP ``card``: Moving the ``card`` from the foundation stack into the tableau (the pile in my term)
+- DP ``card``: Moving the ``card`` from the stock (the deck in my term) to the tableau
+- DS ``card``: Moving the ``card`` from the stock to the foundation stack
+- PS ``card``: Moving the ``card`` from the tableau to the stack (potentially also do a reveal)
 
 # To do
-
+Custom game input without seed
 Converting the compressed actions into standard actions
