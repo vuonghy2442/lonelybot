@@ -82,6 +82,12 @@ const fn full_mask(i: u8) -> u64 {
     (1 << i) - 1
 }
 
+const fn spread2(mask: u64) -> u64 {
+    let mask = mask | (mask >> 1);
+    let mask = mask & ALT_MASK;
+    mask * 3
+}
+
 fn iter_mask(mut m: u64, mut func: impl FnMut(&Card) -> ()) {
     while m > 0 {
         let bit = m.wrapping_neg() & m;
@@ -219,17 +225,6 @@ impl Solitaire {
             0
         };
 
-        // let (super_mask, super_mask2, super_mask3) = if let Some(c) = self.last_sp {
-        //     let mo = card_mask(&c);
-        //     let m = (mo | (mo >> 1)) & ALT_MASK;
-        //     let m = m | (m << 1);
-        //     (m >> 4, 0, (m ^ mo))
-        // } else {
-        //     (full_mask(N_CARDS), full_mask(N_CARDS), full_mask(N_CARDS))
-        // };
-
-        // let (super_mask, super_mask2) = (full_mask(N_CARDS), full_mask(N_CARDS));
-
         let pile_stack = bm & vis & sm; // & super_mask3; // remove mask
         let pile_stack_dom = pile_stack & dsm;
         if pile_stack_dom != 0 {
@@ -246,60 +241,31 @@ impl Solitaire {
 
         let deck_stack = deck_mask & sm;
 
-        let free_pile = ((vis & KING_MASK) | top).count_ones() < N_PILES as u32;
-        let king_mask = if free_pile { KING_MASK } else { 0 };
+        let free_slot = {
+            let free_pile = ((vis & KING_MASK) | top).count_ones() < N_PILES as u32;
+            let king_mask = if free_pile { KING_MASK } else { 0 };
+            (bm >> 4) | king_mask
+        };
 
-        let free_slot = (bm >> 4) | king_mask;
+        let filter_mask = if pile_stack != 0 {
+            spread2(pile_stack >> 4)
+        } else {
+            !0
+        };
 
         let stack_pile = swap_pair(sm >> 4) & free_slot & !dsm;
-
-        // let stack_pile_1 = if self.sp_mask & 3 != 0 {
-        //     stack_pile & SUIT_MASK[((self.sp_mask & 3) - 1) as usize]
-        // } else {
-        //     stack_pile & (SUIT_MASK[0] | SUIT_MASK[1])
-        // };
-
-        // let stack_pile_2 = if self.sp_mask & (3 * 4) != 0 {
-        //     stack_pile & SUIT_MASK[1 + ((self.sp_mask / 4) & 3) as usize]
-        // } else {
-        //     stack_pile & (SUIT_MASK[2] | SUIT_MASK[3])
-        // };
-
-        // let stack_pile = stack_pile_1 | stack_pile_2;
 
         let deck_pile = deck_mask & free_slot & !(dsm & sm);
         // deck to stack, deck to pile :)
         let reveal = top & free_slot;
 
-        // if DOMINANCES {
-        //     /*
-        //     Case 1:
-        //     9x 9_
-        //     __
-        //     8y 8z _ _
-        //     _ _ 7y(*) 7z(*)
-
-        //     ->
-
-        //      __
-        //      8 8
-        //      7 _ 7
-        //      . _ .
-        //      */
-        //     let and_mask = vis & (vis >> 1);
-        //     let non_top = vis ^ top;
-        //     let nand_mask = non_top & (non_top >> 1);
-        //     let and_mask = and_mask >> 4 & and_mask & swap_pair((and_mask & nand_mask) << 4);
-        //     let and_mask = and_mask & ALT_MASK;
-        //     // case 1 only now :)
-        //     let dom_mask = and_mask | (and_mask << 1);
-        //     let reveal_dom = reveal & dom_mask;
-        //     if reveal_dom != 0 {
-        //         return [0, 0, reveal_dom.wrapping_neg() & reveal_dom, 0];
-        //     }
-        // }
-
-        return [pile_stack, deck_stack, stack_pile, deck_pile, reveal];
+        return [
+            pile_stack,
+            deck_stack,
+            stack_pile,
+            deck_pile & filter_mask,
+            reveal & filter_mask,
+        ];
     }
 
     pub fn make_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64) -> UndoInfo {
