@@ -84,8 +84,7 @@ const fn full_mask(i: u8) -> u64 {
 
 const fn spread2(mask: u64) -> u64 {
     let mask = mask | (mask >> 1);
-    let mask = mask & ALT_MASK;
-    mask * 3
+    (mask & ALT_MASK) * 3
 }
 
 fn iter_mask(mut m: u64, mut func: impl FnMut(&Card) -> ()) {
@@ -247,8 +246,8 @@ impl Solitaire {
             (bm >> 4) | king_mask
         };
 
-        let filter_mask = if pile_stack != 0 {
-            spread2(pile_stack >> 4)
+        let filter = if pile_stack & !top != 0 {
+            spread2(pile_stack) >> 4
         } else {
             !0
         };
@@ -263,8 +262,8 @@ impl Solitaire {
             pile_stack,
             deck_stack,
             stack_pile,
-            deck_pile & filter_mask,
-            reveal & filter_mask,
+            deck_pile & filter,
+            reveal & filter,
         ];
     }
 
