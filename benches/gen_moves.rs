@@ -8,10 +8,10 @@ use rand::prelude::*;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let seed = 51;
-    let mut game = Solitaire::new(&shuffler::shuffled_deck(seed), 3);
+    let mut game = Solitaire::new(&shuffler::default_shuffle(seed), 3);
 
     let sample_deck: Deck = Deck::new(
-        shuffler::shuffled_deck(seed)[N_HIDDEN_CARDS as usize..]
+        shuffler::default_shuffle(seed)[N_HIDDEN_CARDS as usize..]
             .try_into()
             .unwrap(),
         3,
