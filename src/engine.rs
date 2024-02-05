@@ -232,7 +232,11 @@ impl Solitaire {
             (SUIT_MASK[i] & unnessary_stack).trailing_zeros() as u8 / N_SUITS
         });
 
-        if (use_suit[0] < 16 && use_suit[1] < 16) || (use_suit[2] < 16 && use_suit[3] < 16) {
+        const MAX_LEN: u8 = 16;
+
+        if (use_suit[0] < MAX_LEN && use_suit[1] < MAX_LEN)
+            || (use_suit[2] < MAX_LEN && use_suit[3] < MAX_LEN)
+        {
             return [unnessary_stack, 0, 0, 0, 0];
         }
 
@@ -246,21 +250,20 @@ impl Solitaire {
         let m1 = min(use_suit[0], use_suit[1]);
         let m2 = min(use_suit[2], use_suit[3]);
 
-        let pos1 = (use_suit[1] < 16) as usize;
-        let pos2 = 2 + (use_suit[3] < 16) as usize;
+        let pos1 = (use_suit[1] < MAX_LEN) as usize;
+        let pos2 = 2 + (use_suit[3] < MAX_LEN) as usize;
 
-        let (super_mask, super_mask2) = if m1 != m2 {
+        let (filter_1, filter_2) = if m1 != m2 {
             let c = if m1 < m2 {
-                Card::new(m1, pos1 as u8)
+                Card::new(m1, 0)
             } else {
-                Card::new(m2, pos2 as u8)
+                Card::new(m2, 2)
             };
 
-            let mo = card_mask(&c);
-            let m = (mo | (mo >> 1)) & ALT_MASK;
-            let m = m | (m << 1);
+            let m = card_mask(&c);
+            let m = m * 3;
             (m >> 4, 0)
-        } else if m1 < 16 {
+        } else if m1 < MAX_LEN {
             (0, 0)
         } else {
             (!0, !0)
@@ -273,11 +276,11 @@ impl Solitaire {
         };
         let stack_pile = swap_pair(sm >> 4) & free_slot & !dsm;
 
-        let tmp = if use_suit[0] < 16 || use_suit[1] < 16 {
+        let filter_3 = if m1 < MAX_LEN {
             SUIT_MASK[pos1]
         } else {
             SUIT_MASK[0] | SUIT_MASK[1]
-        } | if use_suit[2] < 16 || use_suit[3] < 16 {
+        } | if m2 < 16 {
             SUIT_MASK[pos2]
         } else {
             SUIT_MASK[2] | SUIT_MASK[3]
@@ -290,10 +293,10 @@ impl Solitaire {
 
         return [
             pile_stack,
-            deck_stack & super_mask2,
-            stack_pile & tmp,
-            deck_pile & super_mask,
-            reveal & super_mask,
+            deck_stack & filter_2,
+            stack_pile & filter_3,
+            deck_pile & filter_1,
+            reveal & filter_1,
         ];
     }
 
