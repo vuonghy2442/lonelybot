@@ -82,11 +82,6 @@ const fn full_mask(i: u8) -> u64 {
     (1 << i) - 1
 }
 
-const fn spread2(mask: u64) -> u64 {
-    let mask = mask | (mask >> 1);
-    (mask & ALT_MASK) * 3
-}
-
 fn iter_mask(mut m: u64, mut func: impl FnMut(&Card) -> ()) {
     while m > 0 {
         let bit = m.wrapping_neg() & m;
@@ -224,11 +219,21 @@ impl Solitaire {
             0
         };
 
-        let pile_stack = bm & vis & sm; // & super_mask3; // remove mask
+        let pile_stack = bm & vis & sm; // remove mask
         let pile_stack_dom = pile_stack & dsm;
+
         if pile_stack_dom != 0 {
             // dominances
             return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0, 0];
+        }
+
+        let unnessary_stack = pile_stack & !top;
+        let use_suit: [_; 4] = std::array::from_fn(|i| {
+            (SUIT_MASK[i] & unnessary_stack).trailing_zeros() as u8 / N_SUITS
+        });
+
+        if (use_suit[0] < 16 && use_suit[1] < 16) || (use_suit[2] < 16 && use_suit[3] < 16) {
+            return [unnessary_stack, 0, 0, 0, 0];
         }
 
         let (deck_mask, dom) = self.get_deck_mask::<DOMINANCES>();
@@ -238,32 +243,57 @@ impl Solitaire {
             return [0, deck_mask, 0, 0, 0];
         }
 
-        let deck_stack = deck_mask & sm;
+        let m1 = min(use_suit[0], use_suit[1]);
+        let m2 = min(use_suit[2], use_suit[3]);
+
+        let pos1 = (use_suit[1] < 16) as usize;
+        let pos2 = 2 + (use_suit[3] < 16) as usize;
+
+        let (super_mask, super_mask2) = if m1 != m2 {
+            let c = if m1 < m2 {
+                Card::new(m1, pos1 as u8)
+            } else {
+                Card::new(m2, pos2 as u8)
+            };
+
+            let mo = card_mask(&c);
+            let m = (mo | (mo >> 1)) & ALT_MASK;
+            let m = m | (m << 1);
+            (m >> 4, 0)
+        } else if m1 < 16 {
+            (0, 0)
+        } else {
+            (!0, !0)
+        };
 
         let free_slot = {
             let free_pile = ((vis & KING_MASK) | top).count_ones() < N_PILES as u32;
             let king_mask = if free_pile { KING_MASK } else { 0 };
             (bm >> 4) | king_mask
         };
-
-        let filter = if pile_stack & !top != 0 {
-            spread2(pile_stack) >> 4
-        } else {
-            !0
-        };
-
         let stack_pile = swap_pair(sm >> 4) & free_slot & !dsm;
 
+        let tmp = if use_suit[0] < 16 || use_suit[1] < 16 {
+            SUIT_MASK[pos1]
+        } else {
+            SUIT_MASK[0] | SUIT_MASK[1]
+        } | if use_suit[2] < 16 || use_suit[3] < 16 {
+            SUIT_MASK[pos2]
+        } else {
+            SUIT_MASK[2] | SUIT_MASK[3]
+        };
+
+        let deck_stack = deck_mask & sm;
         let deck_pile = deck_mask & free_slot & !(dsm & sm);
         // deck to stack, deck to pile :)
         let reveal = top & free_slot;
 
         return [
             pile_stack,
-            deck_stack,
-            stack_pile,
-            deck_pile & filter,
-            reveal & filter,
+            deck_stack & super_mask2,
+            stack_pile & tmp,
+            deck_pile & super_mask,
+            reveal & super_mask,
         ];
     }
 
