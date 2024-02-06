@@ -228,16 +228,15 @@ impl Solitaire {
         }
 
         let unnessary_stack = pile_stack & !top;
-        let use_suit: [_; 4] = std::array::from_fn(|i| {
-            (SUIT_MASK[i] & unnessary_stack).trailing_zeros() as u8 / N_SUITS
-        });
 
-        const MAX_LEN: u8 = 16;
+        let s: [u64; 4] = std::array::from_fn(|i| unnessary_stack & SUIT_MASK[i]);
+        let ss = [s[0] | s[1], s[2] | s[3]];
 
-        if (use_suit[0] < MAX_LEN && use_suit[1] < MAX_LEN)
-            || (use_suit[2] < MAX_LEN && use_suit[3] < MAX_LEN)
-        {
-            return [unnessary_stack, 0, 0, 0, 0];
+        if s[0] != 0 && s[1] != 0 {
+            return [ss[0], 0, 0, 0, 0];
+        }
+        if s[2] != 0 && s[3] != 0 {
+            return [ss[1], 0, 0, 0, 0];
         }
 
         let (deck_mask, dom) = self.get_deck_mask::<DOMINANCES>();
@@ -246,24 +245,13 @@ impl Solitaire {
             // not very useful as dominance
             return [0, deck_mask, 0, 0, 0];
         }
+        let mm = ss.map(|x| if x != 0 { from_mask(&x) } else { Card::FAKE });
 
-        let m1 = min(use_suit[0], use_suit[1]);
-        let m2 = min(use_suit[2], use_suit[3]);
-
-        let pos1 = (use_suit[1] < MAX_LEN) as usize;
-        let pos2 = 2 + (use_suit[3] < MAX_LEN) as usize;
-
-        let (filter_1, filter_2) = if m1 != m2 {
-            let c = if m1 < m2 {
-                Card::new(m1, 0)
-            } else {
-                Card::new(m2, 2)
-            };
-
-            let m = card_mask(&c);
-            let m = m * 3;
-            (m >> 4, 0)
-        } else if m1 < MAX_LEN {
+        let (filter_1, filter_2) = if mm[0].rank() != mm[1].rank() {
+            let least = unnessary_stack & unnessary_stack.wrapping_neg();
+            let least = ((least | (least >> 1)) & ALT_MASK) * 3;
+            (least >> 4, 0)
+        } else if unnessary_stack != 0 {
             (0, 0)
         } else {
             (!0, !0)
@@ -276,12 +264,12 @@ impl Solitaire {
         };
         let stack_pile = swap_pair(sm >> 4) & free_slot & !dsm;
 
-        let filter_3 = if m1 < MAX_LEN {
-            SUIT_MASK[pos1]
+        let filter_3 = if mm[0] != Card::FAKE {
+            SUIT_MASK[mm[0].suit() as usize]
         } else {
             SUIT_MASK[0] | SUIT_MASK[1]
-        } | if m2 < 16 {
-            SUIT_MASK[pos2]
+        } | if mm[1] != Card::FAKE {
+            SUIT_MASK[mm[1].suit() as usize]
         } else {
             SUIT_MASK[2] | SUIT_MASK[3]
         };
