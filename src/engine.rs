@@ -257,17 +257,18 @@ impl Solitaire {
         }
 
         let least = unnessary_stack & unnessary_stack.wrapping_neg();
-        let (filter_1, filter_2) = if unnessary_stack == 0 || !DOMINANCES {
+
+        let (filter_1, filter_2, filter_x) = if unnessary_stack == 0 || !DOMINANCES {
             // no filter
-            (!0, !0)
+            (!0, !0, !0)
         } else if unnessary_stack == least {
             // if there are two cards with same rank one card is unnecessary
             // only one card should be stackable here, if there are multiple then try to stack them until one card is stackable
             let least = ((least | (least >> 1)) & ALT_MASK) * 3;
-            (least >> 4, 0)
+            (least >> 4, 0, !top)
         } else {
             // filter everything, only moving from stack to deck/deck to stack is allowed
-            (0, 0)
+            (0, 0, !top)
         };
 
         // free slot will compute the empty position that a card can be put into (can be king)
@@ -303,7 +304,7 @@ impl Solitaire {
         let reveal = top & free_slot;
 
         return [
-            pile_stack,
+            pile_stack & filter_x,
             deck_stack & filter_2,
             stack_pile & filter_3,
             deck_pile & filter_1,
