@@ -130,8 +130,6 @@ impl Solitaire {
             visible_mask,
             top_mask: visible_mask,
             hidden,
-            // sp_mask: 0,
-            // last_sp: None,
         };
     }
 
@@ -156,7 +154,7 @@ impl Solitaire {
         let bottom_mask = (xor_all | !(or_non_top << 4)) & or_vis & ALT_MASK;
 
         //shared rank
-        bottom_mask | (bottom_mask << 1)
+        bottom_mask * 3
     }
     pub const fn get_stack_mask(self: &Solitaire) -> u64 {
         let s = self.final_stack;
@@ -447,15 +445,15 @@ impl Solitaire {
             && rank <= stack[suit ^ 1] + 2
     }
 
+    // can be made const fn
     fn encode_stack(self: &Solitaire) -> u16 {
         // considering to make it incremental?
         self.final_stack
             .iter()
-            .enumerate()
-            .map(|x| (*x.1 as u16) << (x.0 * 4))
-            .sum()
+            .fold(0u16, |res, cur| (res << 4) + (*cur as u16))
     }
 
+    // can be made const fn
     fn encode_hidden(self: &Solitaire) -> u16 {
         self.n_hidden
             .iter()
@@ -464,6 +462,7 @@ impl Solitaire {
             .fold(0u16, |res, cur| res * (cur.0 as u16 + 2) + *cur.1 as u16)
     }
 
+    // can be made const fn
     pub fn encode(self: &Solitaire) -> Encode {
         let stack_encode = self.encode_stack(); // 16 bits (can be reduce to 15)
         let hidden_encode = self.encode_hidden(); // 16 bits
@@ -475,17 +474,68 @@ impl Solitaire {
             | (deck_encode as u64) << (16 + 16)
             | (offset_encode as u64) << (24 + 16 + 16);
     }
+
+    pub fn get_normal_piles(self: &Solitaire) -> [Vec<Card>; N_PILES as usize] {
+        let mut king_suit = 0;
+        std::array::from_fn(|i| {
+            let n_hid = self.n_hidden[i];
+            let mut start_card = if n_hid == 0 {
+                while king_suit < 4
+                    && (self.visible_mask ^ self.top_mask)
+                        & card_mask(&Card::new(KING_RANK, king_suit))
+                        == 0
+                {
+                    king_suit += 1;
+                }
+                if king_suit < 4 {
+                    king_suit += 1;
+                    Card::new(KING_RANK, king_suit - 1)
+                } else {
+                    return Vec::new();
+                }
+            } else {
+                self.get_hidden(i as u8, n_hid - 1)
+            };
+
+            let mut cards = Vec::<Card>::new();
+            loop {
+                // push start card
+                cards.push(start_card);
+
+                if start_card.rank() == 0 {
+                    break;
+                }
+                let has_both = card_mask(&Card::new(start_card.rank(), start_card.suit() ^ 1))
+                    & self.visible_mask
+                    != 0;
+
+                start_card = Card::new(start_card.rank() - 1, start_card.suit() ^ 2);
+
+                let mask = card_mask(&start_card);
+                if !has_both && (self.visible_mask & mask == 0 || self.top_mask & mask != 0) {
+                    start_card = Card::new(start_card.rank(), start_card.suit() ^ 1);
+                }
+
+                let mask = card_mask(&start_card);
+                if self.visible_mask & mask == 0 || self.top_mask & mask != 0 {
+                    break;
+                }
+            }
+            cards
+        })
+    }
 }
 
 impl fmt::Display for Solitaire {
     // this function is too long but, it's not important to performance so i'm lazy
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // print out the deck
         for (pos, card, t) in self.deck.iter_all() {
             let s = format!("{} ", pos);
             let prefix = match t {
-                Drawable::None => s.bright_black(),
-                Drawable::Current => s.on_blue(),
-                Drawable::Next => s.on_bright_blue(),
+                Drawable::None => format!(" {}", s.bright_black()),
+                Drawable::Current => format!(">{}", s.on_blue()),
+                Drawable::Next => format!("+{}", s.on_bright_blue()),
             };
             write!(f, "{}{} ", prefix, card)?;
         }
@@ -493,6 +543,7 @@ impl fmt::Display for Solitaire {
 
         write!(f, "\t\t")?;
 
+        // print out the foundation stack
         for i in 0..N_SUITS {
             let card = self.final_stack[i as usize];
             let card = if card == 0 {
@@ -509,60 +560,10 @@ impl fmt::Display for Solitaire {
         }
         writeln!(f)?;
 
-        let mut piles: [Vec<Card>; N_PILES as usize] = Default::default();
-
-        let mut king_suit = 0;
-
-        for i in 0..N_PILES {
-            let mut cards = Vec::<Card>::new();
-            let n_hid = self.n_hidden[i as usize];
-            let mut start_card = if n_hid == 0 {
-                while king_suit < 4
-                    && (self.visible_mask ^ self.top_mask)
-                        & card_mask(&Card::new(KING_RANK, king_suit))
-                        == 0
-                {
-                    king_suit += 1;
-                }
-                if king_suit < 4 {
-                    king_suit += 1;
-                    Card::new(KING_RANK, king_suit - 1)
-                } else {
-                    continue;
-                }
-            } else {
-                self.get_hidden(i, n_hid - 1)
-            };
-
-            loop {
-                // push start card
-                cards.push(start_card);
-
-                if start_card.rank() == 0 {
-                    break;
-                }
-                let has_both = card_mask(&Card::new(start_card.rank(), start_card.suit() ^ 1))
-                    & self.visible_mask
-                    != 0;
-
-                start_card = Card::new(start_card.rank() - 1, start_card.suit() ^ 2);
-                let mask = card_mask(&start_card);
-                if !has_both && (self.visible_mask & mask == 0 || self.top_mask & mask != 0) {
-                    start_card = Card::new(start_card.rank(), start_card.suit() ^ 1);
-                }
-                let mask = card_mask(&start_card);
-
-                if self.visible_mask & mask == 0 || self.top_mask & mask != 0 {
-                    break;
-                }
-            }
-            piles[i as usize] = cards;
-        }
+        let piles = self.get_normal_piles();
 
         // printing
-        let mut i = 0; // skip the hidden layer
-
-        loop {
+        for i in 0.. {
             let mut is_print = false;
             for j in 0..N_PILES {
                 let ref cur_pile = piles[j as usize];
@@ -580,7 +581,6 @@ impl fmt::Display for Solitaire {
                 }
             }
             writeln!(f)?;
-            i += 1;
             if !is_print {
                 break;
             }
