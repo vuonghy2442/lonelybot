@@ -266,16 +266,16 @@ impl Solitaire {
 
         let least = ustack & ustack.wrapping_neg();
 
-        let (filter_1, filter_2, filter_x) = if ustack == 0 || !DOMINANCES {
+        let (filter_1, filter_2) = if ustack == 0 || !DOMINANCES {
             // no filter
-            (!0, !0, !0)
+            (!0, !0)
         } else if ustack == least {
             // if there are two cards with same rank one card is unnecessary
             // only one card should be stackable here, if there are multiple then try to stack them until one card is stackable
-            ((least * 3) >> 4, 0, !top)
+            ((least * 3) >> 4, 0)
         } else {
             // filter everything, only moving from stack to deck/deck to stack is allowed
-            (0, 0, !top)
+            (0, 0)
         };
 
         // free slot will compute the empty position that a card can be put into (can be king)
@@ -315,7 +315,7 @@ impl Solitaire {
         let reveal = top & free_slot;
 
         return [
-            pile_stack & filter_x,
+            pile_stack,
             deck_stack & filter_2,
             stack_pile & filter_3,
             deck_pile & filter_1,
