@@ -234,14 +234,22 @@ impl Solitaire {
 
         // seperate the stackable cards by suit
         let s: [u64; 4] = std::array::from_fn(|i| unnessary_stack & SUIT_MASK[i]);
+        for i in 0..4 {
+            // at most 1 bit
+            debug_assert!(s[i] & s[i].wrapping_sub(1) == 0);
+        }
+
         // seperate the stackable cards by color
         let ss = [s[0] | s[1], s[2] | s[3]];
 
+        // is same check when the two stackable card of same color and same rank exists
+        let is_same = (s[0] == (s[1] >> 1), s[2] == (s[3] >> 1));
         // if we can stack 2 suits of the same color, please pick one to remove
-        if s[0] != 0 && s[1] != 0 {
+        // except only when they are partially free (removing one cause other not to stackable)
+        if s[0] != 0 && s[1] != 0 && !is_same.0 {
             return [ss[0], 0, 0, 0, 0];
         }
-        if s[2] != 0 && s[3] != 0 {
+        if s[2] != 0 && s[3] != 0 && !is_same.1 {
             return [ss[1], 0, 0, 0, 0];
         }
         // after this ``s`` is not necessary, since each card color only has one stackable suit type
@@ -254,16 +262,17 @@ impl Solitaire {
             return [0, deck_mask, 0, 0, 0];
         }
 
-        let least = unnessary_stack & unnessary_stack.wrapping_neg();
+        let ustack = (unnessary_stack | (unnessary_stack >> 1)) & ALT_MASK;
 
-        let (filter_1, filter_2, filter_x) = if unnessary_stack == 0 || !DOMINANCES {
+        let least = ustack & ustack.wrapping_neg();
+
+        let (filter_1, filter_2, filter_x) = if ustack == 0 || !DOMINANCES {
             // no filter
             (!0, !0, !0)
-        } else if unnessary_stack == least {
+        } else if ustack == least {
             // if there are two cards with same rank one card is unnecessary
             // only one card should be stackable here, if there are multiple then try to stack them until one card is stackable
-            let least = ((least | (least >> 1)) & ALT_MASK) * 3;
-            (least >> 4, 0, !top)
+            ((least * 3) >> 4, 0, !top)
         } else {
             // filter everything, only moving from stack to deck/deck to stack is allowed
             (0, 0, !top)
@@ -283,14 +292,18 @@ impl Solitaire {
         // map the card mask of lowest rank to its card
         // from mask will take the lowest bit
         // this will disallow having 2 move-to-stack-able suits of same color
-        let filter_3 = if DOMINANCES && ss[0] != 0 {
-            SUIT_MASK[from_mask(&ss[0]).suit() as usize]
-        } else {
+        let filter_3 = if !DOMINANCES || ss[0] == 0 {
             SUIT_MASK[0] | SUIT_MASK[1]
-        } | if DOMINANCES && ss[1] != 0 {
-            SUIT_MASK[from_mask(&ss[1]).suit() as usize]
+        } else if is_same.0 {
+            0
         } else {
+            SUIT_MASK[from_mask(&ss[0]).suit() as usize]
+        } | if !DOMINANCES || ss[1] == 0 {
             SUIT_MASK[2] | SUIT_MASK[3]
+        } else if is_same.1 {
+            0
+        } else {
+            SUIT_MASK[from_mask(&ss[1]).suit() as usize]
         };
 
         // moving directly from deck to stack
