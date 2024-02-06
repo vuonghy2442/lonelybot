@@ -210,6 +210,8 @@ impl Solitaire {
     pub fn gen_moves<const DOMINANCES: bool>(self: &Solitaire) -> [u64; 5] {
         let vis = self.get_visible_mask();
         let top = self.get_top_mask();
+
+        // this mask represent the rank & even^red type to be movable
         let bm = self.get_bottom_mask();
 
         let sm = self.get_stack_mask();
@@ -219,64 +221,85 @@ impl Solitaire {
             0
         };
 
+        // moving pile to stack can result in revealing the hidden card
         let pile_stack = bm & vis & sm; // remove mask
         let pile_stack_dom = pile_stack & dsm;
 
         if pile_stack_dom != 0 {
-            // dominances
+            // if there is some card that is guarantee to be fine to stack do it
             return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0, 0];
         }
 
+        // getting the stackable cards without revealing
+        // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
         let unnessary_stack = pile_stack & !top;
 
+        // seperate the stackable cards by suit
         let s: [u64; 4] = std::array::from_fn(|i| unnessary_stack & SUIT_MASK[i]);
+        // seperate the stackable cards by color
         let ss = [s[0] | s[1], s[2] | s[3]];
 
+        // if we can stack 2 suits of the same color, please pick one to remove
         if s[0] != 0 && s[1] != 0 {
             return [ss[0], 0, 0, 0, 0];
         }
         if s[2] != 0 && s[3] != 0 {
             return [ss[1], 0, 0, 0, 0];
         }
+        // after this ``s`` is not necessary, since each card color only has one stackable suit type
 
+        // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
         let (deck_mask, dom) = self.get_deck_mask::<DOMINANCES>();
         // no dominances for draw_step = 1 yet
         if dom {
             // not very useful as dominance
             return [0, deck_mask, 0, 0, 0];
         }
-        let mm = ss.map(|x| if x != 0 { from_mask(&x) } else { Card::FAKE });
 
-        let (filter_1, filter_2) = if DOMINANCES && mm[0].rank() != mm[1].rank() {
-            let least = unnessary_stack & unnessary_stack.wrapping_neg();
+        let least = unnessary_stack & unnessary_stack.wrapping_neg();
+        let (filter_1, filter_2) = if unnessary_stack == 0 || !DOMINANCES {
+            // no filter
+            (!0, !0)
+        } else if unnessary_stack == least {
+            // if there are two cards with same rank one card is unnecessary
+            // only one card should be stackable here, if there are multiple then try to stack them until one card is stackable
             let least = ((least | (least >> 1)) & ALT_MASK) * 3;
             (least >> 4, 0)
-        } else if DOMINANCES && unnessary_stack != 0 {
-            (0, 0)
         } else {
-            (!0, !0)
+            // filter everything, only moving from stack to deck/deck to stack is allowed
+            (0, 0)
         };
 
+        // free slot will compute the empty position that a card can be put into (can be king)
         let free_slot = {
+            // counting how many piles are occupied (having a top card/being a king card)
             let free_pile = ((vis & KING_MASK) | top).count_ones() < N_PILES as u32;
             let king_mask = if free_pile { KING_MASK } else { 0 };
             (bm >> 4) | king_mask
         };
+
+        // compute which card can be move to pile from stack (without being immediately move back ``!dsm``)
         let stack_pile = swap_pair(sm >> 4) & free_slot & !dsm;
 
-        let filter_3 = if DOMINANCES && mm[0] != Card::FAKE {
-            SUIT_MASK[mm[0].suit() as usize]
+        // map the card mask of lowest rank to its card
+        // from mask will take the lowest bit
+        // this will disallow having 2 move-to-stack-able suits of same color
+        let filter_3 = if DOMINANCES && ss[0] != 0 {
+            SUIT_MASK[from_mask(&ss[0]).suit() as usize]
         } else {
             SUIT_MASK[0] | SUIT_MASK[1]
-        } | if DOMINANCES && mm[1] != Card::FAKE {
-            SUIT_MASK[mm[1].suit() as usize]
+        } | if DOMINANCES && ss[1] != 0 {
+            SUIT_MASK[from_mask(&ss[1]).suit() as usize]
         } else {
             SUIT_MASK[2] | SUIT_MASK[3]
         };
 
+        // moving directly from deck to stack
         let deck_stack = deck_mask & sm;
+        // moving from deck to pile without immediately to to stack ``!(dsm & sm)``
         let deck_pile = deck_mask & free_slot & !(dsm & sm);
-        // deck to stack, deck to pile :)
+
+        // revealing a card by moving the top card to another pile (not to stack)
         let reveal = top & free_slot;
 
         return [
