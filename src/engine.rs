@@ -247,11 +247,11 @@ impl Solitaire {
         }
         let mm = ss.map(|x| if x != 0 { from_mask(&x) } else { Card::FAKE });
 
-        let (filter_1, filter_2) = if mm[0].rank() != mm[1].rank() {
+        let (filter_1, filter_2) = if DOMINANCES && mm[0].rank() != mm[1].rank() {
             let least = unnessary_stack & unnessary_stack.wrapping_neg();
             let least = ((least | (least >> 1)) & ALT_MASK) * 3;
             (least >> 4, 0)
-        } else if unnessary_stack != 0 {
+        } else if DOMINANCES && unnessary_stack != 0 {
             (0, 0)
         } else {
             (!0, !0)
@@ -264,11 +264,11 @@ impl Solitaire {
         };
         let stack_pile = swap_pair(sm >> 4) & free_slot & !dsm;
 
-        let filter_3 = if mm[0] != Card::FAKE {
+        let filter_3 = if DOMINANCES && mm[0] != Card::FAKE {
             SUIT_MASK[mm[0].suit() as usize]
         } else {
             SUIT_MASK[0] | SUIT_MASK[1]
-        } | if mm[1] != Card::FAKE {
+        } | if DOMINANCES && mm[1] != Card::FAKE {
             SUIT_MASK[mm[1].suit() as usize]
         } else {
             SUIT_MASK[2] | SUIT_MASK[3]
