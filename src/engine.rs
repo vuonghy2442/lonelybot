@@ -55,6 +55,8 @@ const SUIT_MASK: [u64; N_SUITS as usize] = [
     0x28282828_28282828,
 ];
 
+const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
+
 const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;
     ((a >> 2) & HALF_MASK) | half
@@ -170,8 +172,7 @@ impl Solitaire {
         let d = (min(s[0], s[1]), min(s[2], s[3]));
         let d = (min(d.0 + 1, d.1) + 2, min(d.0, d.1 + 1) + 2);
 
-        ((SUIT_MASK[0] | SUIT_MASK[1]) & full_mask(d.0 * 4))
-            | ((SUIT_MASK[2] | SUIT_MASK[3]) & full_mask(d.1 * 4))
+        (COLOR_MASK[0] & full_mask(d.0 * 4)) | (COLOR_MASK[1] & full_mask(d.1 * 4))
     }
 
     pub fn get_deck_mask<const DOMINANCES: bool>(self: &Solitaire) -> (u64, bool) {
@@ -228,19 +229,21 @@ impl Solitaire {
             // if there is some card that is guarantee to be fine to stack do it
             return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0, 0];
         }
-
         // getting the stackable cards without revealing
         // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
         let unnessary_stack = pile_stack & !top;
 
-        let avail_rank = {
-            let tmp = unnessary_stack | (unnessary_stack >> 1);
-            (tmp | (tmp >> 2)) & RANK_MASK
-        };
+        {
+            let avail_rank = {
+                let tmp = unnessary_stack | (unnessary_stack >> 1);
+                (tmp | (tmp >> 2)) & RANK_MASK
+            };
 
-        // if we can stack 2 cards of different ranks, please pick one to remove
-        if avail_rank.count_ones() >= 2 {
-            return [unnessary_stack, 0, 0, 0, 0];
+            // if we can stack 2 cards of different ranks, please pick one to remove
+            // or if there is 3 cards
+            if avail_rank.count_ones() >= 2 || unnessary_stack.count_ones() >= 3 {
+                return [unnessary_stack, 0, 0, 0, 0];
+            }
         }
 
         // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
@@ -282,32 +285,28 @@ impl Solitaire {
         // from mask will take the lowest bit
         // this will disallow having 2 move-to-stack-able suits of same color
         let filter_3 = {
-            // seperate the stackable cards by suit
-            let s: [u64; 4] = std::array::from_fn(|i| unnessary_stack & SUIT_MASK[i]);
-            for i in 0..4 {
-                // at most 1 bit
-                debug_assert!(s[i] & s[i].wrapping_sub(1) == 0);
-            }
-
             // seperate the stackable cards by color
-            let ss = [s[0] | s[1], s[2] | s[3]];
 
             // is same check when the two stackable card of same color and same rank exists
-            let is_same = (s[0] == (s[1] >> 1), s[2] == (s[3] >> 1));
+            let is_same = unnessary_stack & (unnessary_stack >> 1) & ALT_MASK > 0;
 
-            (if !DOMINANCES || ss[0] == 0 {
-                SUIT_MASK[0] | SUIT_MASK[1]
-            } else if is_same.0 {
+            if !DOMINANCES {
+                !0
+            } else if is_same {
+                // if there is a pair of same card you can only move the card up or reveal something
                 0
             } else {
-                SUIT_MASK[from_mask(&ss[0]).suit() as usize]
-            } | if !DOMINANCES || ss[1] == 0 {
-                SUIT_MASK[2] | SUIT_MASK[3]
-            } else if is_same.1 {
-                0
-            } else {
-                SUIT_MASK[from_mask(&ss[1]).suit() as usize]
-            })
+                let ss: [u64; 2] = std::array::from_fn(|i| unnessary_stack & COLOR_MASK[i]);
+                (if ss[0] == 0 {
+                    COLOR_MASK[0]
+                } else {
+                    SUIT_MASK[from_mask(&ss[0]).suit() as usize]
+                } | if ss[1] == 0 {
+                    COLOR_MASK[1]
+                } else {
+                    SUIT_MASK[from_mask(&ss[1]).suit() as usize]
+                })
+            }
         };
 
         // moving directly from deck to stack
