@@ -1,6 +1,5 @@
 use crate::card::{Card, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{N_HIDDEN_CARDS, N_PILES};
-use clap::{Args, ValueEnum};
 use rand::prelude::*;
 use rand_mt::Mt;
 
@@ -227,60 +226,4 @@ pub fn solvitaire_shuffle(seed: u64) -> CardDeck {
     }
 
     new_cards
-}
-
-#[derive(ValueEnum, Clone, Copy)]
-pub enum SeedType {
-    /// Doc comment
-    Default,
-    Legacy,
-    Solvitaire,
-    KlondikeSolver,
-    Greenfelt,
-}
-
-#[derive(Args, Clone, Copy)]
-pub struct Seed {
-    seed_type: SeedType,
-    seed: u64,
-}
-
-impl std::fmt::Display for Seed {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}-{}",
-            match self.seed_type {
-                SeedType::Default => "D",
-                SeedType::Legacy => "L",
-                SeedType::Solvitaire => "S",
-                SeedType::KlondikeSolver => "K",
-                SeedType::Greenfelt => "G",
-            },
-            self.seed
-        )
-    }
-}
-
-impl Seed {
-    pub const fn seed(self) -> u64 {
-        self.seed
-    }
-    pub const fn increase(self, step: u64) -> Seed {
-        Seed {
-            seed_type: self.seed_type,
-            seed: self.seed.wrapping_add(step),
-        }
-    }
-}
-
-pub fn shuffle(s: &Seed) -> CardDeck {
-    let seed = s.seed;
-    match s.seed_type {
-        SeedType::Default => default_shuffle(seed),
-        SeedType::Legacy => legacy_shuffle(seed),
-        SeedType::Solvitaire => solvitaire_shuffle(seed),
-        SeedType::KlondikeSolver => ks_shuffle(seed),
-        SeedType::Greenfelt => greenfelt_shuffle(seed),
-    }
 }

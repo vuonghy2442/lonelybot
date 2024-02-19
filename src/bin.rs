@@ -1,7 +1,10 @@
+mod tui;
+
 use bpci::{Interval, NSuccessesSample, WilsonScore};
-use clap::{Parser, Subcommand};
-use lonelybot::engine::{Encode, Move, Solitaire, Solvitaire, UndoInfo};
-use lonelybot::shuffler::{shuffle, Seed};
+use clap::{Args, Parser, Subcommand, ValueEnum};
+use lonelybot::engine::{Encode, Move, Solitaire, UndoInfo};
+use lonelybot::formatter::Solvitaire;
+use lonelybot::shuffler::{self, CardDeck};
 use rand::prelude::*;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -11,6 +14,64 @@ use std::time::Duration;
 use std::{io::Write, time::Instant};
 
 use lonelybot::solver::SearchResult;
+
+use crate::tui::print_game;
+
+#[derive(ValueEnum, Clone, Copy)]
+pub enum SeedType {
+    /// Doc comment
+    Default,
+    Legacy,
+    Solvitaire,
+    KlondikeSolver,
+    Greenfelt,
+}
+
+#[derive(Args, Clone, Copy)]
+pub struct Seed {
+    seed_type: SeedType,
+    seed: u64,
+}
+
+impl std::fmt::Display for Seed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}-{}",
+            match self.seed_type {
+                SeedType::Default => "D",
+                SeedType::Legacy => "L",
+                SeedType::Solvitaire => "S",
+                SeedType::KlondikeSolver => "K",
+                SeedType::Greenfelt => "G",
+            },
+            self.seed
+        )
+    }
+}
+
+impl Seed {
+    pub const fn seed(self) -> u64 {
+        self.seed
+    }
+    pub const fn increase(self, step: u64) -> Seed {
+        Seed {
+            seed_type: self.seed_type,
+            seed: self.seed.wrapping_add(step),
+        }
+    }
+}
+
+pub fn shuffle(s: &Seed) -> CardDeck {
+    let seed = s.seed;
+    match s.seed_type {
+        SeedType::Default => shuffler::default_shuffle(seed),
+        SeedType::Legacy => shuffler::legacy_shuffle(seed),
+        SeedType::Solvitaire => shuffler::solvitaire_shuffle(seed),
+        SeedType::KlondikeSolver => shuffler::ks_shuffle(seed),
+        SeedType::Greenfelt => shuffler::greenfelt_shuffle(seed),
+    }
+}
 
 fn benchmark(seed: &Seed) {
     let mut rng = StdRng::seed_from_u64(seed.seed());
@@ -77,7 +138,7 @@ fn game_loop(seed: &Seed) {
     let mut game_state = HashSet::<Encode>::new();
 
     loop {
-        print!("{}", game);
+        print_game(&game);
         if !game_state.insert(game.encode()) {
             println!("Already existed state");
         }

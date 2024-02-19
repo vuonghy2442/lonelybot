@@ -1,12 +1,9 @@
-use colored::{Color, Colorize};
 use core::fmt;
 
 pub const N_SUITS: u8 = 4;
 pub const N_RANKS: u8 = 13;
 pub const N_CARDS: u8 = N_SUITS * N_RANKS;
 pub const KING_RANK: u8 = N_RANKS - 1;
-
-pub const COLOR: [Color; N_SUITS as usize] = [Color::Red, Color::Red, Color::Black, Color::Black];
 
 pub const SYMBOLS: [&'static str; N_SUITS as usize] = ["♥", "♦", "♣", "♠"];
 pub const NUMBERS: [&'static str; N_RANKS as usize] = [
@@ -15,22 +12,6 @@ pub const NUMBERS: [&'static str; N_RANKS as usize] = [
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card(u8);
-
-impl fmt::Display for Card {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let (u, v) = self.split();
-        return if u < N_RANKS {
-            write!(
-                f,
-                "{}{}",
-                NUMBERS[u as usize].black().on_white(),
-                SYMBOLS[v as usize].on_white().color(COLOR[v as usize])
-            )
-        } else {
-            write!(f, "  ")
-        };
-    }
-}
 
 impl Card {
     // suit = 1 to make sure it turn on the first bit in suit for deck
