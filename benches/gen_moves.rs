@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
     deck::{Deck, N_HIDDEN_CARDS},
-    engine::{Move, Solitaire},
+    engine::{from_mask, Move, Solitaire},
     shuffler,
 };
 use rand::prelude::*;
@@ -35,9 +35,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let m: Move = *moves.choose(&mut rng).unwrap();
 
     let deck = game.get_deck_mask::<false>().0;
-    let card = (deck.wrapping_neg() & deck).trailing_zeros() as u8;
-    let card = card ^ ((card >> 1) & 2);
-    println!("Card: {}", card);
+    let card = from_mask(&deck);
 
     moves.clear();
     game.list_moves::<true>(&mut moves);
@@ -60,9 +58,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("find_card", |b| {
         b.iter(|| {
-            sample_deck
-                .find_card(lonelybot::card::Card::new(card / 4, card % 4))
-                .expect("okay");
+            sample_deck.find_card(card).expect("okay");
         })
     });
 
