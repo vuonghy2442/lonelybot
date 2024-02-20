@@ -14,6 +14,7 @@ use std::time::Duration;
 use std::{io::Write, time::Instant};
 
 use lonelybot::solver::SearchResult;
+use lonelybot::standard::StandardSolitaire;
 
 use crate::tui::print_game;
 
@@ -104,7 +105,8 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = shuffle(&seed);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
-    let g = Solitaire::new(&shuffled_deck, 3);
+    let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
+    let mut g_standard = StandardSolitaire::new(&g);
 
     let now = Instant::now();
     let res = lonelybot::solver::run_solve(g, true, terminated);
@@ -114,8 +116,13 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
         SearchResult::Solved => {
             let m = res.2.unwrap();
             println!("Solvable in {} moves", m.len());
+            let moves = g_standard.do_moves(&m[..]);
             for x in m {
                 print!("{}, ", x);
+            }
+            println!();
+            for m in moves {
+                print!("{:?} {:?} {}, ", m.0, m.1, m.2);
             }
             println!();
         }

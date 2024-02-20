@@ -4,7 +4,7 @@ pub const N_PILES: u8 = 7;
 pub const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES + 1) / 2;
 pub const N_FULL_DECK: usize = (N_CARDS - N_HIDDEN_CARDS) as usize;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Deck {
     deck: [Card; N_FULL_DECK],
     draw_step: u8,
@@ -222,7 +222,7 @@ impl Deck {
         self.draw_next = self.draw_next.wrapping_add(step);
     }
 
-    pub fn pop_next(self: &mut Deck) -> Card {
+    fn pop_next(self: &mut Deck) -> Card {
         let card = self.deck[self.draw_next as usize];
         self.mask ^= 1 << self.map[card.value() as usize];
         self.draw_next += 1;

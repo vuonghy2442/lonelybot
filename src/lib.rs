@@ -1,6 +1,7 @@
 pub mod card;
 pub mod deck;
 pub mod engine;
-pub mod solver;
-pub mod shuffler;
 pub mod formatter;
+pub mod shuffler;
+pub mod solver;
+pub mod standard;
