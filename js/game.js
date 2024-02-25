@@ -2,7 +2,7 @@
 
 window.onload = addListeners;
 
-const RANK_MAP = ['A', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const RANK_MAP = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const SUIT_MAP = ['♡', '♢', '♧', '♤'];
 const N_SUITS = SUIT_MAP.length;
 const N_RANKS = RANK_MAP.length;
@@ -34,7 +34,13 @@ class Card {
 
         this.id = () => {
             return cardId(rank, suit);
-        }
+        };
+
+        this.deleteDom = () => {
+            if (this.element === null) return;
+            this.element.remove();
+            this.element = null;
+        };
 
         this.createDOM = (pos_x, pos_y) => {
             if (this.element !== null) return;
@@ -76,7 +82,7 @@ class Card {
             c.dataset.cardId = this.id();
 
             this.element = c;
-        }
+        };
 
         this.flipCard = (duration) => {
             this.flipped = !this.flipped;
@@ -87,24 +93,35 @@ class Card {
 
             // Flip card logic
             let inner = this.element.firstElementChild;
-            if (duration > 0)
-                inner.style.transition = `transform ${duration}ms`
-
-            inner.classList.toggle("flipped");
-
             if (duration > 0) {
+                inner.style.transition = `transform ${duration}ms`
                 inner.addEventListener("transitionend", (e) => {
                     inner.style.removeProperty('transition');
-                }, { once: true })
+                }, { once: true });
             }
+
+            inner.classList.toggle("flipped");
         };
 
         this.moveTo = (pos_x, pos_y, duration) => {
             if (this.element === null) return;
 
+            {
+                const currentLeft = parseFloat(this.element.style.left) || 0;
+                const currentTop = parseFloat(this.element.style.top) || 0;
+
+                // this to prevent transitionend not triggered
+                if (Math.abs(currentLeft - pos_x) < 1e-2 && Math.abs(currentTop - pos_y) < 1e-2) return;
+            }
+
             if (duration > 0) {
-                this.element.style.transition = `top ${duration}ms ease-in-out, left ${duration}ms ease-in-out`;
                 this.animating = true;
+                this.element.style.transition = `top ${duration}ms ease-in-out, left ${duration}ms ease-in-out`;
+
+                this.element.addEventListener("transitionend", (e) => {
+                    this.element.style.removeProperty('transition');
+                    this.animating = false;
+                }, { once: true });
             }
 
             if (pos_x !== null)
@@ -112,29 +129,43 @@ class Card {
 
             if (pos_y !== null)
                 this.element.style.top = pos_y + "%";
-
-            if (duration > 0) {
-                this.element.addEventListener("transitionend", (e) => {
-                    this.element.style.removeProperty('transition');
-                    this.animating = false;
-                }, { once: true });
-            }
-
-        }
+        };
 
         this.isDraggable = () => {
             return this.draggable && !this.animating;
-        }
+        };
 
         this.goBefore = (card) => {
             return this.rank == card.rank + 1 && ((this.suit ^ card.suit) & 2 == 2 || this.rank == N_RANKS);
-        }
+        };
     }
 }
 
 class Deck {
     constructor(cards, draw_step) {
+        this.stock = cards;
+        this.waste = [];
+        this.draw_step = draw_step;
 
+        this.peek = (n) => {
+            const len = this.waste.length;
+            const start = Math.max(len - n, 0);
+            return this.waste.slice(start, len);
+        };
+
+        this.pop = () => {
+            return this.waste.pop();
+        };
+
+        this.deal = () => {
+            if (this.stock.length == 0) {
+                this.stock = this.waste;
+                this.waste = [];
+            } else {
+                let removed = this.stock.splice(0, this.draw_step);
+                this.waste.push(...removed);
+            };
+        };
     }
 }
 
@@ -188,10 +219,19 @@ const cardArray = (() => {
     return cardArray;
 })();
 
-const game = new Solitaire(cardArray, 3);
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+let shuffledCards = [...cardArray];
+shuffleArray(shuffledCards);
+
+const game = new Solitaire(shuffledCards, 3);
 
 function addListeners() {
-    document.querySelector("#deal").addEventListener('click', deal)
     initGame();
 }
 
@@ -238,21 +278,13 @@ function initGame() {
         gameBoxBound = gameBox.getBoundingClientRect();
     });
 
-
-    gameBox.addEventListener('mousedown', (event) => {
-        const cardDOM = event.target.closest('.card');
-
-        if (!cardDOM) return;
-        const card = cardArray[parseInt(cardDOM.dataset.cardId)];
-
+    function moveCard(card) {
         if (!card.isDraggable()) return;
-
         snap_audio.play();
-
 
         const dropPos = game.lift_card(card);
 
-        const [initialX, initialY] = getDOMPos(cardDOM);
+        const [initialX, initialY] = getDOMPos(card.element);
 
         const offsetX = (event.clientX - gameBoxBound.left) / gameBoxBound.width - initialX;
         const offsetY = (event.clientY - gameBoxBound.top) / gameBoxBound.height - initialY;
@@ -311,36 +343,59 @@ function initGame() {
         function handleMouseUp() {
             window.removeEventListener('mousemove', handleMouseMove);
             // Implement card snapping or other dragging behavior
-            card.moveTo(initialX * 100, initialY * 100, 300);
-
-            if (!changed) {
-                // Handle the case where the card wasn't dragged
-                card.flipCard(300);
+            if (snapped < 0) {
+                card.moveTo(initialX * 100, initialY * 100, 300);
+            } else {
+                snap_audio.play();
             }
 
-            card.draggable = true;
         }
 
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp, { once: true });
-    });
-}
-
-
-function deal() {
-    let deal_card = (rank, suit, pos) => {
-        const c = getCard(rank, suit);
-        c.flipCard();
-        c.draggable = pos == 2;
-        c.createDOM(2, 2.5);
-
-        setTimeout(() => {
-            c.flipCard(300);
-            c.moveTo(15 + pos * 2, 2.5, 300);
-        }, 200 * pos);
     }
 
-    deal_card(0, 0, 0);
-    deal_card(0, 1, 1);
-    deal_card(0, 2, 2);
+    let cards = [];
+
+    function deal() {
+        game.deck.deal();
+        for (let c of cards) {
+            c.deleteDom();
+        }
+
+        for (let [pos, c] of game.deck.peek(3).entries()) {
+            // const c = getCard(rank, suit);
+            cards.push(c);
+
+            c.flipCard();
+            c.draggable = pos == 2;
+            c.createDOM(2, 2.5);
+
+            setTimeout(() => {
+                c.flipCard(300);
+                c.moveTo(15 + pos * 2, 2.5, 300);
+            }, 200 * pos);
+        }
+    }
+
+    gameBox.addEventListener('mousedown', (event) => {
+        if (event.which !== 1)
+            return;
+
+        const cardDOM = event.target.closest('.card');
+
+        if (cardDOM) {
+            const card = cardArray[parseInt(cardDOM.dataset.cardId)];
+            moveCard(card);
+            // some how it fix the default stuff :))
+            event.preventDefault();
+            return;
+        }
+
+        if (event.target.closest('#deal')) {
+            deal();
+            event.preventDefault();
+            return;
+        }
+    });
 }
