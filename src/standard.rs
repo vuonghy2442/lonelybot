@@ -69,8 +69,13 @@ impl StandardSolitaire {
 
     // shouldn't be used in real engine
     pub fn draw_next(&mut self) {
-        let next = self.deck.get_offset() + self.deck.draw_step();
-        let next = if next > self.deck.len() { 0 } else { next };
+        let next = self.deck.get_offset();
+        let len = self.deck.len();
+        let next = if next >= len {
+            0
+        } else {
+            std::cmp::min(next + self.deck.draw_step(), len)
+        };
         self.deck.set_offset(next);
     }
 
@@ -160,7 +165,10 @@ impl StandardSolitaire {
             Move::StackPile(c) => {
                 assert!(c.rank() + 1 == self.final_stack[c.suit() as usize]);
                 self.final_stack[c.suit() as usize] -= 1;
-                move_seq.push((Pos::Stack(c.suit()), Pos::Pile(self.find_free_pile(c)), *c));
+
+                let pile = self.find_free_pile(c);
+                self.piles[pile as usize].push(*c);
+                move_seq.push((Pos::Stack(c.suit()), Pos::Pile(pile), *c));
             }
             Move::Reveal(c) => {
                 let pile_from = self.find_top_card(c);
