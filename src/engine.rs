@@ -223,8 +223,8 @@ impl Solitaire {
                 (tmp | (tmp >> 2)) & RANK_MASK
             };
 
-            // if we can stack 2 cards of different ranks, please pick one to remove
-            // or if there is 3 cards
+            // if we can stack 2 cards of different ranks,
+            // or if there is 3 cards, return the cards
             if avail_rank.count_ones() >= 2 || unnessary_stack.count_ones() >= 3 {
                 return [unnessary_stack, 0, 0, 0, 0];
             }
@@ -247,7 +247,8 @@ impl Solitaire {
             (!0, !0)
         } else if ustack == least {
             // if there are two cards with same rank one card is unnecessary
-            // only one card should be stackable here, if there are multiple then try to stack them until one card is stackable
+            // only one card should be stackable here, if there are multiple then try to unlock more cards until one card is stackable
+            // or remove one card (no adding card from stack)
             ((least * 3) >> 4, 0)
         } else {
             // filter everything, only moving from stack to deck/deck to stack is allowed
@@ -268,29 +269,28 @@ impl Solitaire {
         // map the card mask of lowest rank to its card
         // from mask will take the lowest bit
         // this will disallow having 2 move-to-stack-able suits of same color
-        let filter_3 = {
-            // seperate the stackable cards by color
-
+        let filter_3 = if !DOMINANCES || unnessary_stack == 0 {
+            !0
+        } else if unnessary_stack & (unnessary_stack >> 1) & ALT_MASK > 0 {
             // is same check when the two stackable card of same color and same rank exists
-            let is_same = unnessary_stack & (unnessary_stack >> 1) & ALT_MASK > 0;
-
-            if !DOMINANCES {
-                !0
-            } else if is_same {
-                // if there is a pair of same card you can only move the card up or reveal something
-                0
+            // if there is a pair of same card you can only move the card up or reveal something
+            0
+        } else {
+            // seperate the stackable cards by color
+            let ss: [u64; 2] = std::array::from_fn(|i| unnessary_stack & COLOR_MASK[i]);
+            // the new stacked card should be decreasing :)
+            (if ss[0] == 0 {
+                // don't change this to 0
+                // there is a case where even though there's no unncessary stackable card with color 0
+                // but there's still a stackable card
+                COLOR_MASK[0]
             } else {
-                let ss: [u64; 2] = std::array::from_fn(|i| unnessary_stack & COLOR_MASK[i]);
-                (if ss[0] == 0 {
-                    COLOR_MASK[0]
-                } else {
-                    SUIT_MASK[from_mask(&ss[0]).suit() as usize]
-                } | if ss[1] == 0 {
-                    COLOR_MASK[1]
-                } else {
-                    SUIT_MASK[from_mask(&ss[1]).suit() as usize]
-                })
-            }
+                SUIT_MASK[from_mask(&ss[0]).suit() as usize]
+            } | if ss[1] == 0 {
+                COLOR_MASK[1]
+            } else {
+                SUIT_MASK[from_mask(&ss[1]).suit() as usize]
+            })
         };
 
         // moving directly from deck to stack
