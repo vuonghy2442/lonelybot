@@ -28,7 +28,7 @@ pub type Encode = u64;
 
 const HALF_MASK: u64 = 0x33333333_3333333;
 const ALT_MASK: u64 = 0x55555555_5555555;
-const RANK_MASK: u64 = 0x11111111_11111111;
+// const RANK_MASK: u64 = 0x11111111_11111111;
 
 const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
 
@@ -217,17 +217,14 @@ impl Solitaire {
         // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
         let unnessary_stack = pile_stack & !top;
 
-        {
-            let avail_rank = {
-                let tmp = unnessary_stack | (unnessary_stack >> 1);
-                (tmp | (tmp >> 2)) & RANK_MASK
-            };
+        // unnessarily stackable pair of same-colored cards with lowest value
+        let least = {
+            let ustack = (unnessary_stack | (unnessary_stack >> 1)) & ALT_MASK;
+            (ustack & ustack.wrapping_neg()) * 0b11
+        };
 
-            // if we can stack 2 cards of different ranks,
-            // or if there is 3 cards, return the cards
-            if avail_rank.count_ones() >= 2 || unnessary_stack.count_ones() >= 3 {
-                return [unnessary_stack, 0, 0, 0, 0];
-            }
+        if DOMINANCES && unnessary_stack.count_ones() >= 3 {
+            return [unnessary_stack & least, 0, 0, 0, 0];
         }
 
         // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
@@ -237,23 +234,6 @@ impl Solitaire {
             // not very useful as dominance
             return [0, deck_mask, 0, 0, 0];
         }
-
-        let ustack = (unnessary_stack | (unnessary_stack >> 1)) & ALT_MASK;
-
-        let least = ustack & ustack.wrapping_neg();
-
-        let (filter_1, filter_2) = if ustack == 0 || !DOMINANCES {
-            // no filter
-            (!0, !0)
-        } else if ustack == least {
-            // if there are two cards with same rank one card is unnecessary
-            // only one card should be stackable here, if there are multiple then try to unlock more cards until one card is stackable
-            // or remove one card (no adding card from stack)
-            ((least * 3) >> 4, 0)
-        } else {
-            // filter everything, only moving from stack to deck/deck to stack is allowed
-            (0, 0)
-        };
 
         // free slot will compute the empty position that a card can be put into (can be king)
         let free_slot = {
@@ -269,7 +249,7 @@ impl Solitaire {
         // map the card mask of lowest rank to its card
         // from mask will take the lowest bit
         // this will disallow having 2 move-to-stack-able suits of same color
-        let filter_3 = if !DOMINANCES || unnessary_stack == 0 {
+        let filter_sp = if !DOMINANCES || unnessary_stack == 0 {
             !0
         } else if unnessary_stack & (unnessary_stack >> 1) & ALT_MASK > 0 {
             // is same check when the two stackable card of same color and same rank exists
@@ -301,12 +281,21 @@ impl Solitaire {
         // revealing a card by moving the top card to another pile (not to stack)
         let reveal = top & free_slot;
 
+        let (filter_ps, filter_new, filter_ds) = if DOMINANCES && least > 0 {
+            // only stack to the least lexigraphically card (or 2 cards if same color)
+            // do not use the deck stack when have unnecessary stackable cards
+            (least, least >> 4, 0)
+        } else {
+            // can do anything :)
+            (!0, !0, !0)
+        };
         return [
-            pile_stack,
-            deck_stack & filter_2,
-            stack_pile & filter_3,
-            deck_pile & filter_1,
-            reveal & filter_1,
+            // only return the least lexicographically card
+            pile_stack & filter_ps,
+            deck_stack & filter_ds,
+            stack_pile & filter_sp,
+            deck_pile & filter_new,
+            reveal & filter_new,
         ];
     }
 
