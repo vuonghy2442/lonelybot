@@ -214,9 +214,8 @@ fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
             .wilson_score(1.960)
             .upper(); //95%
         println!(
-            "Run {} in {:.2} ms. {:?}: ({}-{}/{} ~ {:.4}<={:.4}<={:.4}) {} {} {}",
+            "Run {} {:?}: ({}-{}/{} ~ {:.4}<={:.4}<={:.4}) {} {} {} in {:.2} ms.",
             seed,
-            now.elapsed().as_secs_f64() * 1000f64,
             res,
             cnt_solve,
             cnt_terminated,
@@ -225,8 +224,9 @@ fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
             cnt_solve as f64 / cnt_total as f64,
             higher,
             stats.total_visit(),
-            stats.tp_hit(),
+            stats.total_visit() - stats.tp_hit(),
             stats.max_depth(),
+            now.elapsed().as_secs_f64() * 1000f64,
         );
 
         if terminated.load(Ordering::Relaxed) {
