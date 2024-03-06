@@ -109,7 +109,7 @@ impl Solitaire {
             draw_step,
         );
 
-        return Solitaire {
+        Solitaire {
             hidden_piles,
             n_hidden: core::array::from_fn(|i| (i + 1) as u8),
             final_stack: [0u8; 4],
@@ -117,7 +117,7 @@ impl Solitaire {
             visible_mask,
             top_mask: visible_mask,
             hidden,
-        };
+        }
     }
 
     pub const fn get_visible_mask(self: &Solitaire) -> u64 {
@@ -141,7 +141,7 @@ impl Solitaire {
         let bottom_mask = (xor_all | !(or_non_top << 4)) & or_vis & ALT_MASK;
 
         //shared rank
-        bottom_mask * 3
+        bottom_mask * 0b11
     }
     pub const fn get_stack_mask(self: &Solitaire) -> u64 {
         let s = self.final_stack;
@@ -289,14 +289,14 @@ impl Solitaire {
             // can do anything :)
             (!0, !0, !0)
         };
-        return [
+        [
             // only return the least lexicographically card
             pile_stack & filter_ps,
             deck_stack & filter_ds,
             stack_pile & filter_sp,
             deck_pile & filter_new,
             reveal & filter_new,
-        ];
+        ]
     }
 
     pub const fn get_rev_move(&self, m: &Move) -> Option<Move> {
@@ -388,7 +388,7 @@ impl Solitaire {
     }
 
     pub const fn get_hidden(self: &Solitaire, pos: u8, n_hid: u8) -> Card {
-        return self.hidden_piles[(pos * (pos + 1) / 2 + n_hid) as usize];
+        self.hidden_piles[(pos * (pos + 1) / 2 + n_hid) as usize]
     }
 
     pub fn make_reveal(self: &mut Solitaire, m: &u64) -> UndoInfo {
@@ -445,7 +445,7 @@ impl Solitaire {
 
     pub fn is_win(self: &Solitaire) -> bool {
         // What a shame this is not a const function :(
-        return self.final_stack == [N_RANKS; N_SUITS as usize];
+        self.final_stack == [N_RANKS; N_SUITS as usize]
     }
 
     const fn stackable(self: &Solitaire, rank: u8, suit: u8) -> bool {
@@ -485,10 +485,10 @@ impl Solitaire {
         let deck_encode = self.deck.encode(); // 24 bits (can be reduced to 20)
         let offset_encode = self.deck.normalized_offset(); // 5 bits
 
-        return (stack_encode as u64)
+        (stack_encode as u64)
             | (hidden_encode as u64) << (16)
             | (deck_encode as u64) << (16 + 16)
-            | (offset_encode as u64) << (24 + 16 + 16);
+            | (offset_encode as u64) << (24 + 16 + 16)
     }
 
     pub fn get_normal_piles(self: &Solitaire) -> [Vec<Card>; N_PILES as usize] {

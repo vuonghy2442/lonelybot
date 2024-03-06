@@ -19,34 +19,34 @@ impl Card {
 
     pub const fn new(rank: u8, suit: u8) -> Card {
         debug_assert!(rank <= N_RANKS && suit < N_SUITS);
-        return Card(rank * N_SUITS + suit);
+        Card(rank * N_SUITS + suit)
     }
 
     pub const fn rank(self: &Card) -> u8 {
-        return self.0 / N_SUITS;
+        self.0 / N_SUITS
     }
 
     pub const fn suit(self: &Card) -> u8 {
-        return self.0 % N_SUITS;
+        self.0 % N_SUITS
     }
 
     pub const fn value(self: &Card) -> u8 {
-        return self.0;
+        self.0
     }
 
     pub const fn split(self: &Card) -> (u8, u8) {
-        return (self.rank(), self.suit());
+        (self.rank(), self.suit())
     }
 
     pub const fn xor_suit(self: &Card, other: &Card) -> u8 {
         let v = self.value() ^ other.value();
-        return ((v / 2) ^ (v / N_SUITS)) & 1;
+        ((v / 2) ^ (v / N_SUITS)) & 1
     }
 
     pub const fn go_before(self: &Card, other: &Card) -> bool {
         let card_a = self.split();
         let card_b = other.split();
-        return card_a.0 == card_b.0 + 1 && ((card_a.1 ^ card_b.1) & 2 == 2 || card_a.0 == N_RANKS);
+        card_a.0 == card_b.0 + 1 && ((card_a.1 ^ card_b.1) & 2 == 2 || card_a.0 == N_RANKS)
     }
 
     pub fn print_solvitaire<const LOWER: bool>(

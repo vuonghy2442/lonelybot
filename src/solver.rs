@@ -211,5 +211,5 @@ pub fn run_solve(
 
     let (res, hist) = child.join().unwrap();
 
-    return (res, Arc::try_unwrap(ss).unwrap(), hist);
+    (res, Arc::try_unwrap(ss).unwrap(), hist)
 }

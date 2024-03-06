@@ -29,14 +29,14 @@ impl Deck {
             map[c.value() as usize] = i as u8;
         }
 
-        return Deck {
+        Deck {
             deck: *deck,
             draw_step,
             draw_next: draw_step,
             draw_cur: draw_step,
             mask: 0,
             map,
-        };
+        }
     }
 
     pub const fn draw_step(self: &Deck) -> u8 {
@@ -94,7 +94,7 @@ impl Deck {
                     },
                 )
             });
-        return head.chain(tail);
+        head.chain(tail)
     }
 
     pub fn iter_callback(
