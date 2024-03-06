@@ -1,17 +1,15 @@
-use quick_cache::unsync::Cache;
-use std::fmt::Display;
-use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
-use std::sync::mpsc::{channel, RecvTimeoutError, Sender};
-use std::sync::Arc;
-use std::time::Duration;
-
 use crate::engine::{Encode, Move, Solitaire};
+use arrayvec::ArrayVec;
+use core::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
+use quick_cache::unsync::Cache;
 
-use std::thread;
-
-const TRACK_DEPTH: usize = 8;
+// before every progress you'd do at most 2*N_RANKS move
+// and there would only be N_FULL_DECK + N_HIDDEN progress step
 const TP_SIZE: usize = 256 * 1024 * 1024;
-const STACK_SIZE: usize = 4 * 1024 * 1024;
+const N_PLY_MAX: usize = 1024;
+const TRACK_DEPTH: usize = 8;
+
+pub type HistoryVec = ArrayVec<Move, N_PLY_MAX>;
 
 pub trait SearchStatistics {
     fn hit_a_state(&self, depth: usize);
@@ -29,14 +27,6 @@ pub struct AtomicSearchStats {
     unique_visit: AtomicUsize,
     max_depth: AtomicUsize,
     move_state: [(AtomicU8, AtomicU8); TRACK_DEPTH],
-}
-
-#[derive(Debug)]
-pub enum SearchResult {
-    Terminated,
-    Solved,
-    Unsolvable,
-    Crashed,
 }
 impl AtomicSearchStats {
     pub fn new() -> AtomicSearchStats {
@@ -87,8 +77,8 @@ impl SearchStatistics for AtomicSearchStats {
     }
 }
 
-impl Display for AtomicSearchStats {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for AtomicSearchStats {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let (total, unique, depth) = (self.total_visit(), self.unique_visit(), self.max_depth());
         let hit = total - unique;
         write!(
@@ -109,18 +99,31 @@ impl Display for AtomicSearchStats {
     }
 }
 
+pub trait SearchSignal {
+    fn terminate(&self);
+    fn is_terminated(&self) -> bool;
+    fn search_finished(&self);
+}
+
+#[derive(Debug)]
+pub enum SearchResult {
+    Terminated,
+    Solved,
+    Unsolvable,
+    Crashed,
+}
+
 fn solve(
     g: &mut Solitaire,
     rev_move: Option<Move>,
     tp: &mut Cache<Encode, ()>,
-    move_list: &mut Vec<Move>,
-    history: &mut Vec<Move>,
+    history: &mut HistoryVec,
     stats: &impl SearchStatistics,
-    terminated: &AtomicBool,
+    sign: &impl SearchSignal,
 ) -> SearchResult {
     // no need for history caching since the graph is mostly acyclic already, just prevent going to their own parent
 
-    if terminated.load(Ordering::Relaxed) {
+    if sign.is_terminated() {
         return SearchResult::Terminated;
     }
 
@@ -137,16 +140,11 @@ fn solve(
 
     tp.insert(encode, ());
 
-    let start = move_list.len();
-    g.list_moves::<true>(move_list);
+    let move_list = g.list_moves::<true>();
 
-    let end = move_list.len();
+    stats.hit_unique_state(depth, move_list.len());
 
-    stats.hit_unique_state(depth, end - start);
-
-    for pos in start..end {
-        let m = move_list[pos];
-
+    for (pos, &m) in move_list.iter().enumerate() {
         if Some(m) == rev_move {
             continue;
         }
@@ -154,15 +152,7 @@ fn solve(
         let undo = g.do_move(&m);
         history.push(m);
 
-        let res = solve(
-            g,
-            g.get_rev_move(&m),
-            tp,
-            move_list,
-            history,
-            stats,
-            terminated,
-        );
+        let res = solve(g, g.get_rev_move(&m), tp, history, stats, sign);
         if !matches!(res, SearchResult::Unsolvable) {
             return res;
         }
@@ -170,73 +160,27 @@ fn solve(
 
         g.undo_move(&m, &undo);
 
-        stats.finish_move(depth, pos - start + 1);
+        stats.finish_move(depth, pos);
     }
-
-    move_list.truncate(start);
 
     SearchResult::Unsolvable
 }
 
-fn solve_game(
+pub fn solve_game(
     g: &mut Solitaire,
     stats: &impl SearchStatistics,
-    terminated: &AtomicBool,
-    done: &Sender<()>,
-) -> (SearchResult, Option<Vec<Move>>) {
+    sign: &impl SearchSignal,
+) -> (SearchResult, Option<HistoryVec>) {
     let mut tp = Cache::<Encode, ()>::new(TP_SIZE);
-    let mut move_list = Vec::<Move>::new();
-    let mut history = Vec::<Move>::new();
+    let mut history = HistoryVec::new();
 
-    let search_res = solve(
-        g,
-        None,
-        &mut tp,
-        &mut move_list,
-        &mut history,
-        stats,
-        terminated,
-    );
+    let search_res = solve(g, None, &mut tp, &mut history, stats, sign);
 
-    done.send(()).ok();
+    sign.search_finished();
 
     if let SearchResult::Solved = search_res {
         (search_res, Some(history))
     } else {
         (search_res, None)
     }
-}
-
-pub fn run_solve(
-    mut g: Solitaire,
-    verbose: bool,
-    term_signal: &Arc<AtomicBool>,
-) -> (SearchResult, AtomicSearchStats, Option<Vec<Move>>) {
-    let ss = Arc::new(AtomicSearchStats::new());
-
-    let (send, recv) = channel::<()>();
-
-    let child = {
-        // Spawn thread with explicit stack size
-        let ss_clone = ss.clone();
-        let term = term_signal.clone();
-        thread::Builder::new()
-            .stack_size(STACK_SIZE)
-            .spawn(move || solve_game(&mut g, ss_clone.as_ref(), term.as_ref(), &send))
-            .unwrap()
-    };
-
-    if verbose {
-        loop {
-            match recv.recv_timeout(Duration::from_millis(1000)) {
-                Ok(()) => break,
-                Err(RecvTimeoutError::Timeout) => println!("{}", ss),
-                Err(RecvTimeoutError::Disconnected) => break,
-            };
-        }
-    }
-
-    let (res, hist) = child.join().unwrap_or((SearchResult::Crashed, None));
-
-    (res, Arc::try_unwrap(ss).unwrap(), hist)
 }

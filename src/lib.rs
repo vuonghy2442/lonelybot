@@ -1,3 +1,4 @@
+#![no_std]
 pub mod card;
 pub mod deck;
 pub mod engine;

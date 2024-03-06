@@ -1,6 +1,8 @@
+use arrayvec::ArrayVec;
+
 use crate::card::{Card, KING_RANK, N_SUITS};
 use crate::deck::{Deck, N_FULL_DECK, N_PILES};
-use crate::engine::{Move, Solitaire};
+use crate::engine::{Move, PileVec, Solitaire};
 
 #[derive(Debug)]
 pub enum Pos {
@@ -13,17 +15,24 @@ pub type StandardMove = (Pos, Pos, Card);
 
 pub const DRAW_NEXT: StandardMove = (Pos::Deck, Pos::Deck, Card::FAKE);
 
+const N_HIDDEN_MAX: usize = (N_PILES - 1) as usize;
+
+const N_PLY_MAX: usize = 1024;
+
+pub type HiddenVec = ArrayVec<Card, N_HIDDEN_MAX>;
+pub type StandardHistoryVec = ArrayVec<StandardMove, N_PLY_MAX>;
+
 #[derive(Debug)]
 pub struct StandardSolitaire {
     final_stack: [u8; N_SUITS as usize],
     deck: Deck,
-    hidden_piles: [Vec<Card>; N_PILES as usize],
-    piles: [Vec<Card>; N_PILES as usize],
+    hidden_piles: [HiddenVec; N_PILES as usize],
+    piles: [PileVec; N_PILES as usize],
 }
 
 impl StandardSolitaire {
     pub fn new(game: &Solitaire) -> StandardSolitaire {
-        let mut hidden_piles: [Vec<Card>; N_PILES as usize] = Default::default();
+        let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
 
         for i in 0..N_PILES {
             let n_hid = game.get_n_hidden()[i as usize] - 1;
@@ -40,8 +49,8 @@ impl StandardSolitaire {
         }
     }
 
-    pub fn peek_waste(&self, n_top: u8) -> Vec<Card> {
-        let mut res = Vec::<Card>::new();
+    pub fn peek_waste(&self, n_top: u8) -> ArrayVec<Card, N_FULL_DECK> {
+        let mut res = ArrayVec::<Card, N_FULL_DECK>::new();
         let draw_cur = self.deck.get_offset();
         for i in draw_cur.saturating_sub(n_top)..draw_cur {
             res.push(self.deck.peek(i));
@@ -74,7 +83,7 @@ impl StandardSolitaire {
         let next = if next >= len {
             0
         } else {
-            std::cmp::min(next + self.deck.draw_step(), len)
+            core::cmp::min(next + self.deck.draw_step(), len)
         };
         self.deck.set_offset(next);
     }
@@ -87,11 +96,11 @@ impl StandardSolitaire {
         &self.final_stack
     }
 
-    pub const fn get_piles(&self) -> &[Vec<Card>; N_PILES as usize] {
+    pub const fn get_piles(&self) -> &[PileVec; N_PILES as usize] {
         &self.piles
     }
 
-    pub const fn get_hidden(&self) -> &[Vec<Card>; N_PILES as usize] {
+    pub const fn get_hidden(&self) -> &[HiddenVec; N_PILES as usize] {
         &self.hidden_piles
     }
 
@@ -138,7 +147,7 @@ impl StandardSolitaire {
         unreachable!();
     }
 
-    pub fn do_move(&mut self, m: &Move, move_seq: &mut Vec<StandardMove>) {
+    pub fn do_move(&mut self, m: &Move, move_seq: &mut StandardHistoryVec) {
         match m {
             Move::DeckPile(c) => {
                 let cnt = self.find_deck_card(c);
@@ -177,7 +186,7 @@ impl StandardSolitaire {
                 assert!(pile_to != pile_from);
 
                 // lazy fix for the borrow checker :)
-                self.piles[pile_to as usize].append(&mut self.piles[pile_from as usize].clone());
+                self.piles[pile_to as usize].extend(self.piles[pile_from as usize].clone());
                 self.piles[pile_from as usize].clear();
 
                 if let Some(c) = self.hidden_piles[pile_from as usize].pop() {
@@ -195,7 +204,7 @@ impl StandardSolitaire {
                     assert!(pile != pile_other);
 
                     self.piles[pile_other as usize]
-                        .extend(self.piles[pile as usize].clone()[pos + 1..].iter());
+                        .extend(self.piles[pile as usize].clone()[pos + 1..].iter().cloned());
                     move_seq.push((Pos::Pile(pile), Pos::Pile(pile_other), *c));
                 }
                 self.piles[pile as usize].truncate(pos);
@@ -212,8 +221,8 @@ impl StandardSolitaire {
         }
     }
 
-    pub fn do_moves(&mut self, m: &[Move]) -> Vec<StandardMove> {
-        let mut move_seq = Vec::<StandardMove>::new();
+    pub fn do_moves(&mut self, m: &[Move]) -> StandardHistoryVec {
+        let mut move_seq = StandardHistoryVec::new();
         for mm in m {
             self.do_move(mm, &mut move_seq);
         }

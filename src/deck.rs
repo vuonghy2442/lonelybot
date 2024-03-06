@@ -23,7 +23,7 @@ pub enum Drawable {
 
 impl Deck {
     pub fn new(deck: &[Card; N_FULL_DECK], draw_step: u8) -> Deck {
-        let draw_step = std::cmp::min(N_FULL_DECK as u8, draw_step);
+        let draw_step = core::cmp::min(N_FULL_DECK as u8, draw_step);
         let mut map = [0u8; N_CARDS as usize];
         for (i, c) in deck.iter().enumerate() {
             map[c.value() as usize] = i as u8;

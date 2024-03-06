@@ -61,15 +61,10 @@ impl Card {
             3 => "S",
             _ => "x",
         };
-        write!(
-            f,
-            r#""{}{}""#,
-            NUMBERS[rank as usize],
-            if LOWER {
-                s.to_lowercase()
-            } else {
-                s.to_owned()
-            }
-        )
+        if LOWER {
+            write!(f, r#""{}{}""#, NUMBERS[rank as usize], s.to_lowercase())
+        } else {
+            write!(f, r#""{}{}""#, NUMBERS[rank as usize], s)
+        }
     }
 }

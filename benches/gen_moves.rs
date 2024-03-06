@@ -19,39 +19,33 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let mut rng = StdRng::seed_from_u64(seed);
 
-    let mut moves = Vec::<Move>::new();
     for _ in 0..21 {
-        moves.clear();
-        game.list_moves::<true>(&mut moves);
+        let moves = game.list_moves::<true>();
+
         if moves.len() == 0 {
             break;
         }
         game.do_move(moves.choose(&mut rng).unwrap());
     }
 
-    moves.clear();
-    game.list_moves::<false>(&mut moves);
+    let moves = game.list_moves::<false>();
 
     let m: Move = *moves.choose(&mut rng).unwrap();
 
     let deck = game.get_deck_mask::<false>().0;
     let card = from_mask(&deck);
 
-    moves.clear();
-    game.list_moves::<true>(&mut moves);
-
     c.bench_function("gen_moves", |b| {
         b.iter(|| {
-            moves.clear();
-            game.list_moves::<false>(&mut moves);
+            let moves = game.list_moves::<false>();
+
             black_box(moves.len());
         })
     });
 
     c.bench_function("gen_moves_dom", |b| {
         b.iter(|| {
-            moves.clear();
-            game.list_moves::<true>(&mut moves);
+            let moves = game.list_moves::<true>();
             black_box(moves.len());
         })
     });

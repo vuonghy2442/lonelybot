@@ -1,3 +1,4 @@
+mod solver;
 mod tui;
 
 use bpci::{Interval, NSuccessesSample, WilsonScore};
@@ -77,15 +78,13 @@ pub fn shuffle(s: &Seed) -> CardDeck {
 fn benchmark(seed: &Seed) {
     let mut rng = StdRng::seed_from_u64(seed.seed());
 
-    let mut moves = Vec::<Move>::new();
-
     let mut total_moves = 0;
     let now = Instant::now();
     for i in 0..100 {
         let mut game = Solitaire::new(&shuffle(&seed.increase(i as u64)), 3);
         for _ in 0..100 {
-            moves.clear();
-            game.list_moves::<true>(&mut moves);
+            let moves = game.list_moves::<true>();
+
             if moves.len() == 0 {
                 break;
             }
@@ -109,7 +108,7 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
     let mut g_standard = StandardSolitaire::new(&g);
 
     let now = Instant::now();
-    let res = lonelybot::solver::run_solve(g, true, terminated);
+    let res = solver::run_solve(g, true, terminated);
     println!("Run in {} ms", now.elapsed().as_secs_f64() * 1000f64);
     println!("Statistic\n{}", res.1);
     match res.0 {
@@ -139,7 +138,6 @@ fn game_loop(seed: &Seed) {
     let mut game = Solitaire::new(&shuffled_deck, 3);
 
     let mut line = String::new();
-    let mut moves = Vec::<Move>::new();
 
     let mut move_hist = Vec::<(Move, UndoInfo)>::new();
 
@@ -151,8 +149,7 @@ fn game_loop(seed: &Seed) {
             println!("Already existed state");
         }
 
-        moves.clear();
-        game.list_moves::<true>(&mut moves);
+        let moves = game.list_moves::<true>();
 
         for (i, m) in moves.iter().enumerate() {
             print!("{}.{}, ", i, m);
@@ -170,9 +167,10 @@ fn game_loop(seed: &Seed) {
         }
         let res: Option<i8> = line.trim().parse::<i8>().ok();
         if let Some(id) = res {
-            if (id as usize) < moves.len() {
-                let info = game.do_move(&moves[id as usize]);
-                move_hist.push((moves[id as usize], info));
+            let id = id as usize;
+            if id < moves.len() {
+                let info = game.do_move(&moves[id]);
+                move_hist.push((moves[id], info));
             } else {
                 let (m, info) = &move_hist.pop().unwrap();
                 game.undo_move(m, info);
@@ -197,7 +195,7 @@ fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
         let g = Solitaire::new(&shuffled_deck, 3);
 
         let now = Instant::now();
-        let (res, stats, _) = lonelybot::solver::run_solve(g, false, terminated);
+        let (res, stats, _) = solver::run_solve(g, false, terminated);
         match res {
             SearchResult::Solved => cnt_solve += 1 as usize,
             SearchResult::Terminated => cnt_terminated += 1 as usize,

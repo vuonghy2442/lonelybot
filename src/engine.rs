@@ -1,3 +1,5 @@
+use arrayvec::ArrayVec;
+
 use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_HIDDEN_CARDS, N_PILES};
 use crate::shuffler::CardDeck;
@@ -41,6 +43,13 @@ const SUIT_MASK: [u64; N_SUITS as usize] = [
 
 const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
 
+pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 3) as usize;
+
+pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
+
+const N_RANKS_US: usize = N_RANKS as usize;
+pub type PileVec = ArrayVec<Card, N_RANKS_US>;
+
 const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;
     ((a >> 2) & HALF_MASK) | half
@@ -76,11 +85,6 @@ fn iter_mask(mut m: u64, mut func: impl FnMut(&Card) -> ()) {
         func(&c);
         m -= bit;
     }
-}
-
-pub fn print_cards(mask: u64) {
-    iter_mask(mask, |c| print!("{} ", c));
-    print!("\n");
 }
 
 pub type UndoInfo = u8;
@@ -180,17 +184,33 @@ impl Solitaire {
         (mask, false)
     }
 
-    pub fn list_moves<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<Move>) {
+    #[must_use]
+    pub fn list_moves<const DOMINANCES: bool>(self: &Solitaire) -> MoveVec {
+        let mut moves = MoveVec::new();
+
         let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] =
             self.gen_moves::<DOMINANCES>();
+        // the only case a card can be in two different moves
+        // deck_to_stack/deck_to_pile (maximum duplicate N_SUITS cards)
+        // reveal/pile_stack (maximum duplicate N_SUITS cards)
+        // these two cases can't happen simultaneously (only max N_SUIT card can be move to a stack)
+        // => Maximum moves <= N_CARDS + N_SUIT
 
+        // maximum min(N_DECK, N_SUITS) moves
         iter_mask(deck_stack, |c| moves.push(Move::DeckStack(*c)));
+        // maximum min(N_PILES, N_SUITS) moves
         iter_mask(pile_stack, |c| moves.push(Move::PileStack(*c)));
+        // maximum min(N_PILES, N_CARDS) moves
         iter_mask(reveal, |c| moves.push(Move::Reveal(*c)));
+        // maximum min(N_PILES, N_DECK) moves
         iter_mask(deck_pile, |c| moves.push(Move::DeckPile(*c)));
+        // maximum min(N_PILES, N_SUIT) moves
         iter_mask(stack_pile, |c| moves.push(Move::StackPile(*c)));
+        // <= N_PILES * 2 + N_SUITS * 3 = 12 + 14 = 26 moves
+        moves
     }
 
+    #[must_use]
     pub fn gen_moves<const DOMINANCES: bool>(self: &Solitaire) -> [u64; 5] {
         let vis = self.get_visible_mask();
         let top = self.get_top_mask();
@@ -257,7 +277,7 @@ impl Solitaire {
             0
         } else {
             // seperate the stackable cards by color
-            let ss: [u64; 2] = std::array::from_fn(|i| unnessary_stack & COLOR_MASK[i]);
+            let ss: [u64; 2] = core::array::from_fn(|i| unnessary_stack & COLOR_MASK[i]);
             // the new stacked card should be decreasing :)
             (if ss[0] == 0 {
                 // don't change this to 0
@@ -491,9 +511,9 @@ impl Solitaire {
             | (offset_encode as u64) << (24 + 16 + 16)
     }
 
-    pub fn get_normal_piles(self: &Solitaire) -> [Vec<Card>; N_PILES as usize] {
+    pub fn get_normal_piles(self: &Solitaire) -> [PileVec; N_PILES as usize] {
         let mut king_suit = 0;
-        std::array::from_fn(|i| {
+        core::array::from_fn(|i| {
             let n_hid = self.n_hidden[i];
             let mut start_card = if n_hid == 0 {
                 while king_suit < 4
@@ -507,13 +527,13 @@ impl Solitaire {
                     king_suit += 1;
                     Card::new(KING_RANK, king_suit - 1)
                 } else {
-                    return Vec::new();
+                    return PileVec::new();
                 }
             } else {
                 self.get_hidden(i as u8, n_hid - 1)
             };
 
-            let mut cards = Vec::<Card>::new();
+            let mut cards = PileVec::new();
             loop {
                 // push start card
                 cards.push(start_card);
@@ -546,7 +566,7 @@ impl Solitaire {
 mod tests {
     use rand::prelude::*;
 
-    use crate::deck::Drawable;
+    use crate::deck::{Drawable, N_FULL_DECK};
     use crate::shuffler::default_shuffle;
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
@@ -556,9 +576,7 @@ mod tests {
     fn test_draw_unrolling() {
         let mut rng = StdRng::seed_from_u64(14);
 
-        let mut moves = Vec::<Move>::new();
-
-        let mut test = Vec::<(u8, Card)>::new();
+        let mut test = ArrayVec::<(u8, Card), N_FULL_DECK>::new();
         for i in 0..100 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
@@ -567,7 +585,7 @@ mod tests {
                     .iter_all()
                     .filter(|x| !matches!(x.2, Drawable::None))
                     .map(|x| (x.0, *x.1))
-                    .collect::<Vec<(u8, Card)>>();
+                    .collect::<ArrayVec<(u8, Card), N_FULL_DECK>>();
 
                 test.clear();
                 game.deck.iter_callback(false, |pos, x| {
@@ -580,8 +598,7 @@ mod tests {
 
                 assert_eq!(test, truth);
 
-                moves.clear();
-                game.list_moves::<false>(&mut moves);
+                let moves = game.list_moves::<false>();
                 if moves.len() == 0 {
                     break;
                 }
@@ -594,19 +611,16 @@ mod tests {
     fn test_undoing() {
         let mut rng = StdRng::seed_from_u64(14);
 
-        let mut moves = Vec::<Move>::new();
-
         for i in 0..1000 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
-                moves.clear();
-                game.list_moves::<false>(&mut moves);
+                let moves = game.list_moves::<false>();
                 if moves.len() == 0 {
                     break;
                 }
 
                 let state = game.encode();
-                let ids: Vec<(u8, Card, Drawable)> =
+                let ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =
                     game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 
                 let m = moves.choose(&mut rng).unwrap();
@@ -614,7 +628,7 @@ mod tests {
                 let next_state = game.encode();
                 assert_ne!(next_state, state);
                 game.undo_move(m, &undo);
-                let new_ids: Vec<(u8, Card, Drawable)> =
+                let new_ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =
                     game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 
                 assert_eq!(ids, new_ids);
@@ -632,16 +646,14 @@ mod tests {
     fn test_deep_undoing() {
         let mut rng = StdRng::seed_from_u64(14);
 
-        let mut moves = Vec::<Move>::new();
-
         for i in 0..1000 {
+            const N_STEP: usize = 100;
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
-            let mut history = Vec::<(Move, UndoInfo)>::new();
-            let mut enc = Vec::<Encode>::new();
+            let mut history = ArrayVec::<(Move, UndoInfo), N_STEP>::new();
+            let mut enc = ArrayVec::<Encode, N_STEP>::new();
 
-            for _ in 0..100 {
-                moves.clear();
-                game.list_moves::<false>(&mut moves);
+            for _ in 0..N_STEP {
+                let moves = game.list_moves::<false>();
                 if moves.len() == 0 {
                     break;
                 }
