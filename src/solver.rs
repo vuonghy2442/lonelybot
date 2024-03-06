@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{collections::HashSet, fmt::Display};
 
-use crate::engine::{Encode, Move, Solitaire, UndoInfo};
+use crate::engine::{Encode, Move, Solitaire};
 
 use std::thread;
 
@@ -70,22 +70,6 @@ impl Display for SearchStats {
     }
 }
 
-const fn get_rev_move(m: &Move, u: &UndoInfo) -> Option<Move> {
-    match m {
-        Move::DeckStack(_) => None,
-        Move::PileStack(c) => {
-            if *u == 0 {
-                Some(Move::StackPile(*c))
-            } else {
-                None
-            }
-        }
-        Move::DeckPile(_) => None,
-        Move::StackPile(c) => Some(Move::PileStack(*c)),
-        Move::Reveal(_) => None,
-    }
-}
-
 fn solve(
     g: &mut Solitaire,
     rev_move: Option<Move>,
@@ -139,7 +123,7 @@ fn solve(
 
         let res = solve(
             g,
-            get_rev_move(&m, &undo),
+            g.get_rev_move(&m),
             tp,
             tp_hist,
             move_list,

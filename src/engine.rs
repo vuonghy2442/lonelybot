@@ -299,6 +299,21 @@ impl Solitaire {
         ];
     }
 
+    pub const fn get_rev_move(&self, m: &Move) -> Option<Move> {
+        // check if this move can be undo using a legal move in the game
+        match m {
+            Move::PileStack(c) => {
+                if self.top_mask & card_mask(c) == 0 {
+                    Some(Move::StackPile(*c))
+                } else {
+                    None
+                }
+            }
+            Move::StackPile(c) => Some(Move::PileStack(*c)),
+            _ => None,
+        }
+    }
+
     pub fn make_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64) -> UndoInfo {
         let card = from_mask(&mask);
         self.final_stack[card.suit() as usize] += 1;
