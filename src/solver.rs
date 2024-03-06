@@ -1,9 +1,9 @@
 use quick_cache::unsync::Cache;
+use std::fmt::Display;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 use std::time::Duration;
-use std::{collections::HashSet, fmt::Display};
 
 use crate::engine::{Encode, Move, Solitaire};
 
@@ -74,12 +74,13 @@ fn solve(
     g: &mut Solitaire,
     rev_move: Option<Move>,
     tp: &mut Cache<Encode, ()>,
-    tp_hist: &mut HashSet<Encode>,
     move_list: &mut Vec<Move>,
     history: &mut Vec<Move>,
     stats: &SearchStats,
     terminated: &AtomicBool,
 ) -> SearchResult {
+    // no need for history caching since the graph is mostly acyclic already, just prevent going to their own parent
+
     if terminated.load(Ordering::Relaxed) {
         return SearchResult::Terminated;
     }
@@ -91,7 +92,7 @@ fn solve(
         return SearchResult::Solved;
     }
     let encode = g.encode();
-    if tp.get(&encode).is_some() || !tp_hist.insert(encode) {
+    if tp.get(&encode).is_some() {
         stats.tp_hit.fetch_add(1, Ordering::Relaxed);
         return SearchResult::Unsolvable;
     } else {
@@ -125,7 +126,6 @@ fn solve(
             g,
             g.get_rev_move(&m),
             tp,
-            tp_hist,
             move_list,
             history,
             stats,
@@ -146,7 +146,6 @@ fn solve(
     }
 
     move_list.truncate(start);
-    tp_hist.remove(&encode);
 
     SearchResult::Unsolvable
 }
@@ -157,7 +156,6 @@ fn solve_game(
     terminated: &AtomicBool,
     done: &Sender<()>,
 ) -> (SearchResult, Option<Vec<Move>>) {
-    let mut tp_hist = HashSet::<Encode>::new();
     let mut tp = Cache::<Encode, ()>::new(1024 * 1024 * 256);
     let mut move_list = Vec::<Move>::new();
     let mut history = Vec::<Move>::new();
@@ -166,7 +164,6 @@ fn solve_game(
         g,
         None,
         &mut tp,
-        &mut tp_hist,
         &mut move_list,
         &mut history,
         stats,
