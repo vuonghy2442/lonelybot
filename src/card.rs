@@ -19,9 +19,7 @@ impl Card {
 
     pub const fn new(rank: u8, suit: u8) -> Card {
         debug_assert!(rank <= N_RANKS && suit < N_SUITS);
-        return Card {
-            0: rank * N_SUITS + suit,
-        };
+        return Card(rank * N_SUITS + suit);
     }
 
     pub const fn rank(self: &Card) -> u8 {

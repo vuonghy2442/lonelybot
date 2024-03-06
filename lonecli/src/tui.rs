@@ -28,7 +28,7 @@ impl fmt::Display for ColoredCard {
 }
 
 fn color(c: Card) -> ColoredCard {
-    ColoredCard { 0: c }
+    ColoredCard(c)
 }
 
 pub fn print_game(game: &Solitaire) {

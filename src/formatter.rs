@@ -31,9 +31,7 @@ impl fmt::Display for Move {
 pub struct Solvitaire(Solitaire);
 impl Solvitaire {
     pub fn new(deck: &CardDeck, draw_step: u8) -> Solvitaire {
-        Solvitaire {
-            0: Solitaire::new(deck, draw_step),
-        }
+        Solvitaire(Solitaire::new(deck, draw_step))
     }
 }
 
