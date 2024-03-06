@@ -16,8 +16,10 @@ crate-type = ["cdylib", "lib"]
 unsafe_code = "forbid"
 
 [dependencies]
-rand = "0.8.5"
-quick_cache = "0.4.0"
+rand = { version = "0.8.5", default-features = false, features = ["std_rng"] }
+quick_cache = { version = "0.4.0", default-features = false, features = [
+    "ahash",
+] }
 rand_mt = "4.2.2"
 getrandom = { version = "0.2", features = ["js"] }
 arrayvec = "0.7.4"
