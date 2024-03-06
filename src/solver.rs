@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{collections::HashSet, fmt::Display};
 
-use crate::engine::{Encode, Move, Solitaire};
+use crate::engine::{Encode, Move, Solitaire, UndoInfo};
 
 use std::thread;
 
@@ -70,8 +70,25 @@ impl Display for SearchStats {
     }
 }
 
+const fn get_rev_move(m: &Move, u: &UndoInfo) -> Option<Move> {
+    match m {
+        Move::DeckStack(_) => None,
+        Move::PileStack(c) => {
+            if *u == 0 {
+                Some(Move::StackPile(*c))
+            } else {
+                None
+            }
+        }
+        Move::DeckPile(_) => None,
+        Move::StackPile(c) => Some(Move::PileStack(*c)),
+        Move::Reveal(_) => None,
+    }
+}
+
 fn solve(
     g: &mut Solitaire,
+    rev_move: Option<Move>,
     tp: &mut Cache<Encode, ()>,
     tp_hist: &mut HashSet<Encode>,
     move_list: &mut Vec<Move>,
@@ -112,9 +129,24 @@ fn solve(
 
     for pos in start..end {
         let m = move_list[pos];
+
+        if Some(m) == rev_move {
+            continue;
+        }
+
         let undo = g.do_move(&m);
         history.push(m);
-        let res = solve(g, tp, tp_hist, move_list, history, stats, terminated);
+
+        let res = solve(
+            g,
+            get_rev_move(&m, &undo),
+            tp,
+            tp_hist,
+            move_list,
+            history,
+            stats,
+            terminated,
+        );
         if !matches!(res, SearchResult::Unsolvable) {
             return res;
         }
@@ -148,6 +180,7 @@ fn solve_game(
 
     let search_res = solve(
         g,
+        None,
         &mut tp,
         &mut tp_hist,
         &mut move_list,
