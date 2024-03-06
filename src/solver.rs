@@ -1,7 +1,7 @@
 use quick_cache::unsync::Cache;
 use std::fmt::Display;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{channel, RecvTimeoutError, Sender};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -10,11 +10,23 @@ use crate::engine::{Encode, Move, Solitaire};
 use std::thread;
 
 const TRACK_DEPTH: usize = 8;
+const TP_SIZE: usize = 256 * 1024 * 1024;
+const STACK_SIZE: usize = 4 * 1024 * 1024;
+
+pub trait SearchStatistics {
+    fn hit_a_state(&self, depth: usize);
+    fn hit_unique_state(&self, depth: usize, n_moves: usize);
+    fn finish_move(&self, depth: usize, move_pos: usize);
+
+    fn total_visit(&self) -> usize;
+    fn unique_visit(&self) -> usize;
+    fn max_depth(&self) -> usize;
+}
 
 #[derive(Debug)]
-pub struct SearchStats {
+pub struct AtomicSearchStats {
     total_visit: AtomicUsize,
-    tp_hit: AtomicUsize,
+    unique_visit: AtomicUsize,
     max_depth: AtomicUsize,
     move_state: [(AtomicU8, AtomicU8); TRACK_DEPTH],
 }
@@ -24,38 +36,65 @@ pub enum SearchResult {
     Terminated,
     Solved,
     Unsolvable,
+    Crashed,
 }
-
-impl SearchStats {
-    pub fn new() -> SearchStats {
-        SearchStats {
+impl AtomicSearchStats {
+    pub fn new() -> AtomicSearchStats {
+        AtomicSearchStats {
             total_visit: AtomicUsize::new(0),
-            tp_hit: AtomicUsize::new(0),
+            unique_visit: AtomicUsize::new(0),
             max_depth: AtomicUsize::new(0),
             move_state: Default::default(),
         }
     }
+}
 
-    pub fn total_visit(&self) -> usize {
+impl SearchStatistics for AtomicSearchStats {
+    fn total_visit(&self) -> usize {
         self.total_visit.load(Ordering::Relaxed)
     }
 
-    pub fn tp_hit(&self) -> usize {
-        self.tp_hit.load(Ordering::Relaxed)
+    fn unique_visit(&self) -> usize {
+        self.unique_visit.load(Ordering::Relaxed)
     }
 
-    pub fn max_depth(&self) -> usize {
+    fn max_depth(&self) -> usize {
         self.max_depth.load(Ordering::Relaxed)
+    }
+
+    fn hit_a_state(&self, depth: usize) {
+        self.max_depth.fetch_max(depth, Ordering::Relaxed);
+        self.total_visit.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn hit_unique_state(&self, depth: usize, n_moves: usize) {
+        self.unique_visit.fetch_add(1, Ordering::Relaxed);
+
+        if depth < TRACK_DEPTH {
+            self.move_state[depth].0.store(0, Ordering::Relaxed);
+            self.move_state[depth]
+                .1
+                .store(n_moves as u8, Ordering::Relaxed);
+        }
+    }
+
+    fn finish_move(&self, depth: usize, move_pos: usize) {
+        if depth < TRACK_DEPTH {
+            self.move_state[depth]
+                .0
+                .store(move_pos as u8, Ordering::Relaxed);
+        }
     }
 }
 
-impl Display for SearchStats {
+impl Display for AtomicSearchStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let (total, hit, depth) = (self.total_visit(), self.tp_hit(), self.max_depth());
+        let (total, unique, depth) = (self.total_visit(), self.unique_visit(), self.max_depth());
+        let hit = total - unique;
         write!(
             f,
             "Total visit: {}\nTransposition hit: {} (rate {})\nMiss state: {}\nMax depth search: {}\nCurrent progress:",
-            total, hit, (hit as f64)/(total as f64), total - hit, depth,
+            total, hit, (hit as f64)/(total as f64), unique, depth,
         )?;
 
         for (cur, total) in &self.move_state {
@@ -76,7 +115,7 @@ fn solve(
     tp: &mut Cache<Encode, ()>,
     move_list: &mut Vec<Move>,
     history: &mut Vec<Move>,
-    stats: &SearchStats,
+    stats: &impl SearchStatistics,
     terminated: &AtomicBool,
 ) -> SearchResult {
     // no need for history caching since the graph is mostly acyclic already, just prevent going to their own parent
@@ -85,32 +124,25 @@ fn solve(
         return SearchResult::Terminated;
     }
 
-    stats.max_depth.fetch_max(history.len(), Ordering::Relaxed);
-    stats.total_visit.fetch_add(1, Ordering::Relaxed);
+    let depth = history.len();
+    stats.hit_a_state(depth);
 
     if g.is_win() {
         return SearchResult::Solved;
     }
     let encode = g.encode();
     if tp.get(&encode).is_some() {
-        stats.tp_hit.fetch_add(1, Ordering::Relaxed);
         return SearchResult::Unsolvable;
-    } else {
-        tp.insert(encode, ());
     }
+
+    tp.insert(encode, ());
 
     let start = move_list.len();
     g.list_moves::<true>(move_list);
 
     let end = move_list.len();
 
-    let depth = history.len();
-    if depth < TRACK_DEPTH {
-        stats.move_state[depth].0.store(0, Ordering::Relaxed);
-        stats.move_state[depth]
-            .1
-            .store((end - start) as u8, Ordering::Relaxed);
-    }
+    stats.hit_unique_state(depth, end - start);
 
     for pos in start..end {
         let m = move_list[pos];
@@ -138,11 +170,7 @@ fn solve(
 
         g.undo_move(&m, &undo);
 
-        if depth < TRACK_DEPTH {
-            stats.move_state[depth]
-                .0
-                .store((pos - start + 1) as u8, Ordering::Relaxed);
-        }
+        stats.finish_move(depth, pos - start + 1);
     }
 
     move_list.truncate(start);
@@ -152,11 +180,11 @@ fn solve(
 
 fn solve_game(
     g: &mut Solitaire,
-    stats: &SearchStats,
+    stats: &impl SearchStatistics,
     terminated: &AtomicBool,
     done: &Sender<()>,
 ) -> (SearchResult, Option<Vec<Move>>) {
-    let mut tp = Cache::<Encode, ()>::new(1024 * 1024 * 256);
+    let mut tp = Cache::<Encode, ()>::new(TP_SIZE);
     let mut move_list = Vec::<Move>::new();
     let mut history = Vec::<Move>::new();
 
@@ -170,7 +198,7 @@ fn solve_game(
         terminated,
     );
 
-    done.send(()).unwrap();
+    done.send(()).ok();
 
     if let SearchResult::Solved = search_res {
         (search_res, Some(history))
@@ -179,14 +207,12 @@ fn solve_game(
     }
 }
 
-const STACK_SIZE: usize = 4 * 1024 * 1024;
-
 pub fn run_solve(
     mut g: Solitaire,
     verbose: bool,
     term_signal: &Arc<AtomicBool>,
-) -> (SearchResult, SearchStats, Option<Vec<Move>>) {
-    let ss = Arc::new(SearchStats::new());
+) -> (SearchResult, AtomicSearchStats, Option<Vec<Move>>) {
+    let ss = Arc::new(AtomicSearchStats::new());
 
     let (send, recv) = channel::<()>();
 
@@ -204,12 +230,13 @@ pub fn run_solve(
         loop {
             match recv.recv_timeout(Duration::from_millis(1000)) {
                 Ok(()) => break,
-                Err(_) => println!("{}", ss),
+                Err(RecvTimeoutError::Timeout) => println!("{}", ss),
+                Err(RecvTimeoutError::Disconnected) => break,
             };
         }
     }
 
-    let (res, hist) = child.join().unwrap();
+    let (res, hist) = child.join().unwrap_or((SearchResult::Crashed, None));
 
     (res, Arc::try_unwrap(ss).unwrap(), hist)
 }

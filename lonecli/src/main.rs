@@ -13,7 +13,7 @@ use std::thread;
 use std::time::Duration;
 use std::{io::Write, time::Instant};
 
-use lonelybot::solver::SearchResult;
+use lonelybot::solver::{SearchResult, SearchStatistics};
 use lonelybot::standard::StandardSolitaire;
 
 use crate::tui::print_game;
@@ -128,6 +128,7 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
         }
         SearchResult::Unsolvable => println!("Impossible"),
         SearchResult::Terminated => println!("Terminated"),
+        SearchResult::Crashed => println!("Crashed"),
     }
 }
 
@@ -224,7 +225,7 @@ fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
             cnt_solve as f64 / cnt_total as f64,
             higher,
             stats.total_visit(),
-            stats.total_visit() - stats.tp_hit(),
+            stats.unique_visit(),
             stats.max_depth(),
             now.elapsed().as_secs_f64() * 1000f64,
         );
