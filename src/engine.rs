@@ -100,23 +100,17 @@ fn iter_mask(m: u64, mut func: impl FnMut(Card)) {
 pub fn _iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -> Option<T> {
     let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] = moves;
 
-    let r = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c)));
-    if r.is_some() {
-        return r;
+    if let Some(r) = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c))) {
+        Some(r)
+    } else if let Some(r) = iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c))) {
+        Some(r)
+    } else if let Some(r) = iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c))) {
+        Some(r)
+    } else if let Some(r) = iter_mask_opt::<T>(deck_pile, |c| func(Move::DeckPile(c))) {
+        Some(r)
+    } else {
+        iter_mask_opt::<T>(stack_pile, |c| func(Move::StackPile(c)))
     }
-    let r = iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c)));
-    if r.is_some() {
-        return r;
-    }
-    let r = iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c)));
-    if r.is_some() {
-        return r;
-    }
-    let r = iter_mask_opt::<T>(deck_pile, |c| func(Move::DeckPile(c)));
-    if r.is_some() {
-        return r;
-    }
-    iter_mask_opt::<T>(stack_pile, |c| func(Move::StackPile(c)))
 }
 
 pub type UndoInfo = u8;

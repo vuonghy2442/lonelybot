@@ -3,7 +3,7 @@ use arrayvec::ArrayVec;
 use core::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 use quick_cache::{unsync::Cache, UnitWeighter};
 
-pub type TpCache = Cache<Encode, (), UnitWeighter, ahash::RandomState>;
+pub type TpCache = Cache<Encode, (), UnitWeighter, nohash_hasher::BuildNoHashHasher<u64>>;
 
 // before every progress you'd do at most 2*N_RANKS move
 // and there would only be N_FULL_DECK + N_HIDDEN progress step
@@ -127,6 +127,31 @@ pub enum SearchResult {
     Crashed,
 }
 
+// These are bit-mixers, to creater better hash key for the encoded game
+fn murmur64(mut h: u64) -> u64 {
+    h ^= h >> 33;
+    h *= 0xff51afd7ed558ccd;
+    h ^= h >> 33;
+    h *= 0xc4ceb9fe1a85ec53;
+    h ^= h >> 33;
+    h
+}
+
+fn _fast_hash(mut h: u64) -> u64 {
+    h ^= h >> 23;
+    h *= 0x2127599bf4325c37;
+    h ^= h >> 47;
+    h
+}
+
+fn _rrmxmx(mut v: u64) -> u64 {
+    v ^= v.rotate_right(49) ^ v.rotate_right(24);
+    v *= 0x9fb21c651e98df25;
+    v ^= v >> 28;
+    v *= 0x9fb21c651e98df25;
+    v ^ (v >> 28)
+}
+
 fn solve(
     g: &mut Solitaire,
     rev_move: Option<Move>,
@@ -147,7 +172,7 @@ fn solve(
     if g.is_win() {
         return SearchResult::Solved;
     }
-    let encode = g.encode();
+    let encode = murmur64(g.encode());
     if tp.get(&encode).is_some() {
         return SearchResult::Unsolvable;
     }
@@ -190,7 +215,7 @@ pub fn solve_game(
         TP_SIZE,
         TP_SIZE as u64,
         Default::default(),
-        ahash::RandomState::new(),
+        Default::default(),
         Default::default(),
     );
     let mut history = HistoryVec::new();
