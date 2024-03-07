@@ -150,11 +150,12 @@ fn solve(
         if Some(m) == rev_move {
             continue;
         }
+        let rev_move = g.get_rev_move(&m);
 
         let undo = g.do_move(&m);
         history.push(m);
 
-        let res = solve(g, g.get_rev_move(&m), tp, history, stats, sign);
+        let res = solve(g, rev_move, tp, history, stats, sign);
         if !matches!(res, SearchResult::Unsolvable) {
             return res;
         }
