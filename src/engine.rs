@@ -78,13 +78,45 @@ const fn full_mask(i: u8) -> u64 {
     (1 << i) - 1
 }
 
-fn iter_mask(mut m: u64, mut func: impl FnMut(&Card) -> ()) {
+fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> Option<T>) -> Option<T> {
     while m > 0 {
-        let bit = m.wrapping_neg() & m;
-        let c = from_mask(&bit);
-        func(&c);
-        m -= bit;
+        let c = from_mask(&m);
+        let r = func(c);
+        if r.is_some() {
+            return r;
+        };
+        m &= m.wrapping_sub(1);
     }
+    None
+}
+
+fn iter_mask(m: u64, mut func: impl FnMut(Card)) {
+    iter_mask_opt::<()>(m, |c| {
+        func(c);
+        None
+    });
+}
+
+pub fn _iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -> Option<T> {
+    let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] = moves;
+
+    let r = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c)));
+    if r.is_some() {
+        return r;
+    }
+    let r = iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c)));
+    if r.is_some() {
+        return r;
+    }
+    let r = iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c)));
+    if r.is_some() {
+        return r;
+    }
+    let r = iter_mask_opt::<T>(deck_pile, |c| func(Move::DeckPile(c)));
+    if r.is_some() {
+        return r;
+    }
+    iter_mask_opt::<T>(stack_pile, |c| func(Move::StackPile(c)))
 }
 
 pub type UndoInfo = u8;
@@ -197,15 +229,15 @@ impl Solitaire {
         // => Maximum moves <= N_CARDS + N_SUIT
 
         // maximum min(N_DECK, N_SUITS) moves
-        iter_mask(deck_stack, |c| moves.push(Move::DeckStack(*c)));
+        iter_mask(deck_stack, |c| moves.push(Move::DeckStack(c)));
         // maximum min(N_PILES, N_SUITS) moves
-        iter_mask(pile_stack, |c| moves.push(Move::PileStack(*c)));
+        iter_mask(pile_stack, |c| moves.push(Move::PileStack(c)));
         // maximum min(N_PILES, N_CARDS) moves
-        iter_mask(reveal, |c| moves.push(Move::Reveal(*c)));
+        iter_mask(reveal, |c| moves.push(Move::Reveal(c)));
         // maximum min(N_PILES, N_DECK) moves
-        iter_mask(deck_pile, |c| moves.push(Move::DeckPile(*c)));
+        iter_mask(deck_pile, |c| moves.push(Move::DeckPile(c)));
         // maximum min(N_PILES, N_SUIT) moves
-        iter_mask(stack_pile, |c| moves.push(Move::StackPile(*c)));
+        iter_mask(stack_pile, |c| moves.push(Move::StackPile(c)));
         // <= N_PILES * 2 + N_SUITS * 3 = 12 + 14 = 26 moves
         moves
     }
