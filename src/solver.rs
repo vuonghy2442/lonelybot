@@ -128,11 +128,22 @@ pub enum SearchResult {
 }
 
 // These are bit-mixers, to creater better hash key for the encoded game
-fn murmur64(mut h: u64) -> u64 {
+fn _murmur64(mut h: u64) -> u64 {
     h ^= h >> 33;
     h *= 0xff51afd7ed558ccd;
     h ^= h >> 33;
     h *= 0xc4ceb9fe1a85ec53;
+    h ^= h >> 33;
+    h
+}
+
+// https://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
+// 	31	0x7fb5d329728ea185	27	0x81dadef4bc2dd44d	33
+fn murmur64_mix1(mut h: u64) -> u64 {
+    h ^= h >> 31;
+    h *= 0x7fb5d329728ea185;
+    h ^= h >> 27;
+    h *= 0x81dadef4bc2dd44d;
     h ^= h >> 33;
     h
 }
@@ -172,7 +183,7 @@ fn solve(
     if g.is_win() {
         return SearchResult::Solved;
     }
-    let encode = murmur64(g.encode());
+    let encode = murmur64_mix1(g.encode());
     if tp.get(&encode).is_some() {
         return SearchResult::Unsolvable;
     }

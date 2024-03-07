@@ -15,6 +15,6 @@ path = "src/main.rs"
 colored = "2.1.0"
 bpci = "0.1.0"
 signal-hook = "0.3.17"
-clap = { version = "4.4.18", features = ["derive"] }
+clap = { version = "4.4.18", default-features = false, features = ["std", "derive"] }
 lonelybot = { path = "../" }
-rand = "0.8.5"
+rand = { version = "0.8.5", default-features = false, features = ["std_rng"] }
