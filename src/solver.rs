@@ -1,7 +1,9 @@
 use crate::engine::{Encode, Move, Solitaire};
 use arrayvec::ArrayVec;
 use core::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
-use quick_cache::unsync::Cache;
+use quick_cache::{unsync::Cache, UnitWeighter};
+
+pub type TpCache = Cache<Encode, (), UnitWeighter, ahash::RandomState>;
 
 // before every progress you'd do at most 2*N_RANKS move
 // and there would only be N_FULL_DECK + N_HIDDEN progress step
@@ -116,7 +118,7 @@ pub enum SearchResult {
 fn solve(
     g: &mut Solitaire,
     rev_move: Option<Move>,
-    tp: &mut Cache<Encode, ()>,
+    tp: &mut TpCache,
     history: &mut HistoryVec,
     stats: &impl SearchStatistics,
     sign: &impl SearchSignal,
@@ -171,7 +173,13 @@ pub fn solve_game(
     stats: &impl SearchStatistics,
     sign: &impl SearchSignal,
 ) -> (SearchResult, Option<HistoryVec>) {
-    let mut tp = Cache::<Encode, ()>::new(TP_SIZE);
+    let mut tp = TpCache::with(
+        TP_SIZE,
+        TP_SIZE as u64,
+        Default::default(),
+        ahash::RandomState::new(),
+        Default::default(),
+    );
     let mut history = HistoryVec::new();
 
     let search_res = solve(g, None, &mut tp, &mut history, stats, sign);

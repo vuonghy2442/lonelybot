@@ -55,16 +55,17 @@ impl Card {
     ) -> fmt::Result {
         let (rank, suit) = self.split();
         let s = match suit {
-            0 => "H",
-            1 => "D",
-            2 => "C",
-            3 => "S",
-            _ => "x",
+            0 => 'H',
+            1 => 'D',
+            2 => 'C',
+            3 => 'S',
+            _ => 'x',
         };
-        if LOWER {
-            write!(f, r#""{}{}""#, NUMBERS[rank as usize], s.to_lowercase())
-        } else {
-            write!(f, r#""{}{}""#, NUMBERS[rank as usize], s)
-        }
+        write!(
+            f,
+            r#""{}{}""#,
+            NUMBERS[rank as usize],
+            if LOWER { s.to_ascii_lowercase() } else { s }
+        )
     }
 }
