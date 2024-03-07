@@ -104,7 +104,19 @@ impl core::fmt::Display for AtomicSearchStats {
 pub trait SearchSignal {
     fn terminate(&self);
     fn is_terminated(&self) -> bool;
-    fn search_finished(&self);
+    fn search_finish(&self);
+}
+
+pub struct DefaultSearchSignal;
+
+impl SearchSignal for DefaultSearchSignal {
+    fn terminate(&self) {}
+
+    fn is_terminated(&self) -> bool {
+        false
+    }
+
+    fn search_finish(&self) {}
 }
 
 #[derive(Debug)]
@@ -185,7 +197,7 @@ pub fn solve_game(
 
     let search_res = solve(g, None, &mut tp, &mut history, stats, sign);
 
-    sign.search_finished();
+    sign.search_finish();
 
     if let SearchResult::Solved = search_res {
         (search_res, Some(history))

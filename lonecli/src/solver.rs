@@ -28,7 +28,7 @@ impl<'a> SearchSignal for Signal<'a> {
         self.term_signal.load(Ordering::Relaxed)
     }
 
-    fn search_finished(&self) {
+    fn search_finish(&self) {
         self.done_channel.send(()).ok();
     }
 }
