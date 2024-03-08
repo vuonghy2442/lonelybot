@@ -1,7 +1,7 @@
 use core::time::Duration;
 use lonelybot::{
     engine::Solitaire,
-    solver::{solve_game, AtomicSearchStats, HistoryVec, SearchResult, SearchSignal},
+    solver::{solve_game_with_tracking, AtomicSearchStats, HistoryVec, SearchResult, SearchSignal},
 };
 use std::{
     sync::{
@@ -49,7 +49,7 @@ pub fn run_solve(
         thread::Builder::new()
             .stack_size(STACK_SIZE)
             .spawn(move || {
-                solve_game(
+                solve_game_with_tracking(
                     &mut g,
                     ss_clone.as_ref(),
                     &Signal {

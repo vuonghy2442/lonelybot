@@ -23,6 +23,26 @@ pub trait SearchStatistics {
     fn max_depth(&self) -> usize;
 }
 
+pub struct EmptySearchStats;
+
+impl SearchStatistics for EmptySearchStats {
+    fn total_visit(&self) -> usize {
+        Default::default()
+    }
+
+    fn unique_visit(&self) -> usize {
+        Default::default()
+    }
+
+    fn max_depth(&self) -> usize {
+        Default::default()
+    }
+
+    fn hit_a_state(&self, _: usize) {}
+    fn hit_unique_state(&self, _: usize, _: usize) {}
+    fn finish_move(&self, _: usize, _: usize) {}
+}
+
 #[derive(Debug)]
 pub struct AtomicSearchStats {
     total_visit: AtomicUsize,
@@ -119,7 +139,7 @@ impl SearchSignal for DefaultSearchSignal {
     fn search_finish(&self) {}
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum SearchResult {
     Terminated,
     Solved,
@@ -204,7 +224,7 @@ fn solve(
         history.push(m);
 
         let res = solve(g, rev_move, tp, history, stats, sign);
-        if !matches!(res, SearchResult::Unsolvable) {
+        if res != SearchResult::Unsolvable {
             return res;
         }
         history.pop();
@@ -217,7 +237,7 @@ fn solve(
     SearchResult::Unsolvable
 }
 
-pub fn solve_game(
+pub fn solve_game_with_tracking(
     g: &mut Solitaire,
     stats: &impl SearchStatistics,
     sign: &impl SearchSignal,
@@ -240,4 +260,8 @@ pub fn solve_game(
     } else {
         (search_res, None)
     }
+}
+
+pub fn solve_game(g: &mut Solitaire) -> (SearchResult, Option<HistoryVec>) {
+    solve_game_with_tracking(g, &EmptySearchStats {}, &DefaultSearchSignal {})
 }

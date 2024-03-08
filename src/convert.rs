@@ -9,7 +9,7 @@ impl From<&Solitaire> for StandardSolitaire {
         let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
 
         for i in 0..N_PILES {
-            let n_hid = game.get_n_hidden()[i as usize] - 1;
+            let n_hid = game.get_n_hidden()[i as usize].saturating_sub(1);
             for j in 0..n_hid {
                 hidden_piles[i as usize].push(game.get_hidden(i, j));
             }
@@ -24,6 +24,7 @@ impl From<&Solitaire> for StandardSolitaire {
     }
 }
 
+// this will convert and execute the move
 pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut StandardHistoryVec) {
     match m {
         Move::DeckPile(c) => {
@@ -100,10 +101,67 @@ pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut Stand
     }
 }
 
+// this will convert and execute the moves
 pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> StandardHistoryVec {
     let mut move_seq = StandardHistoryVec::new();
     for mm in m {
         convert_move(game, mm, &mut move_seq);
     }
     move_seq
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::{shuffler::default_shuffle, solver::solve_game};
+
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn test_convert() {
+        const DRAW_STEP: u8 = 3;
+        let cards = default_shuffle(12);
+        let mut game = StandardSolitaire::new(&cards, DRAW_STEP);
+
+        let res = {
+            let mut game_1: Solitaire = From::from(&game);
+            let mut game_2: Solitaire = Solitaire::new(&cards, DRAW_STEP);
+
+            let res1 = solve_game(&mut game_1);
+            let res2 = solve_game(&mut game_2);
+
+            assert_eq!(res1, res2);
+            res1
+        };
+
+        let Some(moves) = res.1 else {
+            assert!(false);
+            return;
+        };
+
+        let mut his = StandardHistoryVec::new();
+
+        let mut game_x: Solitaire = From::from(&game);
+        for pos in 0..moves.len() {
+            convert_move(&mut game, &moves[pos], &mut his);
+            game_x.do_move(&moves[pos]);
+            let mut game_c: Solitaire = From::from(&game);
+            assert_eq!(game_x.get_top_mask(), game_c.get_top_mask());
+            assert_eq!(game_x.get_visible_mask(), game_c.get_visible_mask());
+            assert_eq!(game_x.get_n_hidden(), game_c.get_n_hidden());
+            assert_eq!(game_x.get_stack(), game_c.get_stack());
+
+            let mut game_cc: StandardSolitaire = From::from(&game_c);
+
+            // let res_c = solve_game(&mut game_c);
+            // assert_eq!(res_c.0, res.0);
+            for m in moves[pos + 1..].iter() {
+                game_c.do_move(m);
+            }
+            convert_moves(&mut game_cc, &moves[pos + 1..]);
+            assert!(game_c.is_win());
+            assert!(game_cc.is_win());
+        }
+    }
 }

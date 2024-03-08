@@ -576,7 +576,6 @@ impl Solitaire {
     }
 }
 
-// untested
 impl From<&StandardSolitaire> for Solitaire {
     fn from(game: &StandardSolitaire) -> Self {
         let mut hidden_piles = [Card::FAKE; N_HIDDEN_CARDS as usize];
@@ -605,8 +604,10 @@ impl From<&StandardSolitaire> for Solitaire {
                 Some(c) => {
                     if c.rank() < KING_RANK || l > 0 {
                         top_mask |= card_mask(c);
+                        l + 1
+                    } else {
+                        0
                     }
-                    l + 1
                 }
                 None => {
                     assert_eq!(l, 0);

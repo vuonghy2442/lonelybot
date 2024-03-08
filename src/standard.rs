@@ -33,7 +33,6 @@ pub struct StandardSolitaire {
 }
 
 impl StandardSolitaire {
-    // untested
     pub fn new(cards: &CardDeck, draw_step: u8) -> StandardSolitaire {
         let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
 
@@ -59,6 +58,11 @@ impl StandardSolitaire {
                 tmp
             }),
         }
+    }
+
+    pub fn is_win(&self) -> bool {
+        // What a shame this is not a const function :(
+        self.final_stack == [N_RANKS; N_SUITS as usize]
     }
 
     pub fn peek_waste(&self, n_top: u8) -> ArrayVec<Card, N_FULL_DECK> {
