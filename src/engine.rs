@@ -3,7 +3,7 @@ use arrayvec::ArrayVec;
 use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_HIDDEN_CARDS, N_PILES};
 use crate::shuffler::CardDeck;
-use crate::standard::PileVec;
+use crate::standard::{PileVec, StandardSolitaire};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Move {
@@ -31,7 +31,6 @@ pub type Encode = u64;
 
 const HALF_MASK: u64 = 0x33333333_3333333;
 const ALT_MASK: u64 = 0x55555555_5555555;
-// const RANK_MASK: u64 = 0x11111111_11111111;
 
 const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
 
@@ -435,7 +434,8 @@ impl Solitaire {
             let new_card = self.get_hidden(pos, self.n_hidden[pos as usize] - 1);
             let revealed = card_mask(&new_card);
             self.visible_mask |= revealed;
-            if new_card.rank() < N_RANKS - 1 || self.n_hidden[pos as usize] != 1 {
+            if new_card.rank() < KING_RANK || self.n_hidden[pos as usize] != 1 {
+                // if it's not the king mask or there's some hidden cards then set it as the top card
                 self.top_mask |= revealed;
             }
         }
@@ -573,6 +573,57 @@ impl Solitaire {
             }
             cards
         })
+    }
+}
+
+// untested
+impl From<&StandardSolitaire> for Solitaire {
+    fn from(game: &StandardSolitaire) -> Self {
+        let mut hidden_piles = [Card::FAKE; N_HIDDEN_CARDS as usize];
+        let mut hidden = [0u8; N_CARDS as usize];
+        let mut visible_mask: u64 = 0;
+
+        for i in 0..N_PILES as usize {
+            for (j, c) in game.hidden_piles[i]
+                .iter()
+                .chain(game.piles[i].first())
+                .enumerate()
+            {
+                hidden_piles[(i * (i + 1) / 2) as usize + j] = *c;
+                hidden[c.value() as usize] = i as u8;
+            }
+            for c in &game.piles[i] {
+                visible_mask |= card_mask(c);
+            }
+        }
+        let mut top_mask: u64 = 0;
+        let mut n_hidden = [0u8; N_PILES as usize];
+
+        for i in 0..N_PILES as usize {
+            let l = game.hidden_piles[i].len() as u8;
+            n_hidden[i] = match game.piles[i].first() {
+                Some(c) => {
+                    if c.rank() < KING_RANK || l > 0 {
+                        top_mask |= card_mask(c);
+                    }
+                    l + 1
+                }
+                None => {
+                    assert_eq!(l, 0);
+                    0
+                }
+            }
+        }
+
+        Solitaire {
+            hidden_piles,
+            n_hidden,
+            hidden,
+            final_stack: game.final_stack,
+            deck: game.deck.clone(),
+            visible_mask,
+            top_mask,
+        }
     }
 }
 

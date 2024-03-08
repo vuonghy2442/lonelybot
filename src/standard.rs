@@ -33,6 +33,7 @@ pub struct StandardSolitaire {
 }
 
 impl StandardSolitaire {
+    // untested
     pub fn new(cards: &CardDeck, draw_step: u8) -> StandardSolitaire {
         let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
 

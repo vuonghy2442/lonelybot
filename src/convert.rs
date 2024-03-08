@@ -24,12 +24,6 @@ impl From<&Solitaire> for StandardSolitaire {
     }
 }
 
-// impl From<&StandardSolitaire> for Solitaire {
-//     fn from(game: &StandardSolitaire) -> Self {
-//         todo!()
-//     }
-// }
-
 pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut StandardHistoryVec) {
     match m {
         Move::DeckPile(c) => {
