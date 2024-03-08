@@ -1,8 +1,10 @@
 use arrayvec::ArrayVec;
 
-use crate::card::{Card, KING_RANK, N_SUITS};
+use crate::card::{Card, KING_RANK, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_FULL_DECK, N_PILES};
-use crate::engine::{Move, PileVec, Solitaire};
+use crate::shuffler::CardDeck;
+
+pub type PileVec = ArrayVec<Card, { N_RANKS as usize }>;
 
 #[derive(Debug)]
 pub enum Pos {
@@ -24,28 +26,37 @@ pub type StandardHistoryVec = ArrayVec<StandardMove, N_PLY_MAX>;
 
 #[derive(Debug)]
 pub struct StandardSolitaire {
-    final_stack: [u8; N_SUITS as usize],
-    deck: Deck,
-    hidden_piles: [HiddenVec; N_PILES as usize],
-    piles: [PileVec; N_PILES as usize],
+    pub final_stack: [u8; N_SUITS as usize],
+    pub deck: Deck,
+    pub hidden_piles: [HiddenVec; N_PILES as usize],
+    pub piles: [PileVec; N_PILES as usize],
 }
 
 impl StandardSolitaire {
-    pub fn new(game: &Solitaire) -> StandardSolitaire {
+    pub fn new(cards: &CardDeck, draw_step: u8) -> StandardSolitaire {
         let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
 
         for i in 0..N_PILES {
-            let n_hid = game.get_n_hidden()[i as usize] - 1;
-            for j in 0..n_hid {
-                hidden_piles[i as usize].push(game.get_hidden(i, j));
+            for j in 0..i {
+                let c = cards[(i * (i + 1) / 2 + j) as usize];
+                hidden_piles[i as usize].push(c);
             }
         }
 
         StandardSolitaire {
             hidden_piles,
-            final_stack: *game.get_stack(),
-            deck: game.get_deck().clone(),
-            piles: game.get_normal_piles(),
+            final_stack: [0; N_SUITS as usize],
+            deck: Deck::new(
+                cards[(crate::deck::N_HIDDEN_CARDS) as usize..]
+                    .try_into()
+                    .unwrap(),
+                draw_step,
+            ),
+            piles: core::array::from_fn(|i| {
+                let mut tmp = PileVec::new();
+                tmp.push(cards[(i * (i + 1) / 2 + i) as usize]);
+                tmp
+            }),
         }
     }
 
@@ -104,128 +115,46 @@ impl StandardSolitaire {
         &self.hidden_piles
     }
 
-    fn find_deck_card(&mut self, c: &Card) -> u8 {
+    pub fn find_deck_card(&mut self, c: &Card) -> Option<u8> {
         for i in 0..N_FULL_DECK {
             if self.peek_cur() == Some(*c) {
-                return i as u8;
+                return Some(i as u8);
             }
             self.draw_next();
         }
-        unreachable!();
+        None
     }
 
-    fn find_free_pile(&self, c: &Card) -> u8 {
+    pub fn find_free_pile(&self, c: &Card) -> Option<u8> {
         for i in 0..N_PILES {
             if let Some(cc) = self.piles[i as usize].last() {
                 if cc.go_before(&c) {
-                    return i;
+                    return Some(i);
                 }
             } else if c.rank() == KING_RANK {
-                return i;
+                return Some(i);
             }
         }
-        unreachable!();
+        None
     }
 
-    fn find_top_card(&self, c: &Card) -> u8 {
+    pub fn find_top_card(&self, c: &Card) -> Option<u8> {
         for i in 0..N_PILES {
             if Some(c) == self.piles[i as usize].first() {
-                return i;
+                return Some(i);
             }
         }
-        unreachable!();
+        None
     }
 
-    fn find_card(&self, c: &Card) -> (u8, usize) {
+    pub fn find_card(&self, c: &Card) -> Option<(u8, usize)> {
         for i in 0..N_PILES {
             for (j, cc) in self.piles[i as usize].iter().enumerate() {
                 if cc == c {
-                    return (i, j);
+                    return Some((i, j));
                 }
             }
         }
-        unreachable!();
-    }
-
-    pub fn do_move(&mut self, m: &Move, move_seq: &mut StandardHistoryVec) {
-        match m {
-            Move::DeckPile(c) => {
-                let cnt = self.find_deck_card(c);
-                for _ in 0..cnt {
-                    move_seq.push(DRAW_NEXT)
-                }
-                assert_eq!(self.draw_cur(), Some(*c));
-
-                let pile = self.find_free_pile(c);
-                self.piles[pile as usize].push(*c);
-                move_seq.push((Pos::Deck, Pos::Pile(pile), *c));
-            }
-            Move::DeckStack(c) => {
-                let cnt = self.find_deck_card(c);
-                for _ in 0..cnt {
-                    move_seq.push(DRAW_NEXT)
-                }
-                assert_eq!(self.draw_cur(), Some(*c));
-
-                assert!(c.rank() == self.final_stack[c.suit() as usize]);
-                self.final_stack[c.suit() as usize] += 1;
-                move_seq.push((Pos::Deck, Pos::Stack(c.suit()), *c));
-            }
-            Move::StackPile(c) => {
-                assert!(c.rank() + 1 == self.final_stack[c.suit() as usize]);
-                self.final_stack[c.suit() as usize] -= 1;
-
-                let pile = self.find_free_pile(c);
-                self.piles[pile as usize].push(*c);
-                move_seq.push((Pos::Stack(c.suit()), Pos::Pile(pile), *c));
-            }
-            Move::Reveal(c) => {
-                let pile_from = self.find_top_card(c);
-                let pile_to = self.find_free_pile(c);
-
-                assert!(pile_to != pile_from);
-
-                // lazy fix for the borrow checker :)
-                self.piles[pile_to as usize].extend(self.piles[pile_from as usize].clone());
-                self.piles[pile_from as usize].clear();
-
-                if let Some(c) = self.hidden_piles[pile_from as usize].pop() {
-                    self.piles[pile_from as usize].push(c);
-                }
-
-                move_seq.push((Pos::Pile(pile_from), Pos::Pile(pile_to), *c));
-            }
-            Move::PileStack(c) => {
-                assert!(c.rank() == self.final_stack[c.suit() as usize]);
-                let (pile, pos) = self.find_card(c);
-                if pos + 1 != self.piles[pile as usize].len() {
-                    let pile_other = self.find_free_pile(&self.piles[pile as usize][pos + 1]);
-
-                    assert!(pile != pile_other);
-
-                    self.piles[pile_other as usize]
-                        .extend(self.piles[pile as usize].clone()[pos + 1..].iter().cloned());
-                    move_seq.push((Pos::Pile(pile), Pos::Pile(pile_other), *c));
-                }
-                self.piles[pile as usize].truncate(pos);
-
-                if pos == 0 {
-                    if let Some(c) = self.hidden_piles[pile as usize].pop() {
-                        self.piles[pile as usize].push(c);
-                    }
-                }
-
-                self.final_stack[c.suit() as usize] += 1;
-                move_seq.push((Pos::Pile(pile), Pos::Stack(c.suit()), *c));
-            }
-        }
-    }
-
-    pub fn do_moves(&mut self, m: &[Move]) -> StandardHistoryVec {
-        let mut move_seq = StandardHistoryVec::new();
-        for mm in m {
-            self.do_move(mm, &mut move_seq);
-        }
-        move_seq
+        None
     }
 }

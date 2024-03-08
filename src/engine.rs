@@ -3,6 +3,7 @@ use arrayvec::ArrayVec;
 use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_HIDDEN_CARDS, N_PILES};
 use crate::shuffler::CardDeck;
+use crate::standard::PileVec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Move {
@@ -46,8 +47,6 @@ const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_M
 pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 3) as usize;
 
 pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
-
-pub type PileVec = ArrayVec<Card, { N_RANKS as usize }>;
 
 const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;

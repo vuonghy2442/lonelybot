@@ -3,6 +3,7 @@ mod tui;
 
 use bpci::{Interval, NSuccessesSample, WilsonScore};
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use lonelybot::convert::convert_moves;
 use lonelybot::engine::{Encode, Move, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::shuffler::{self, CardDeck};
@@ -105,7 +106,7 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
-    let mut g_standard = StandardSolitaire::new(&g);
+    let mut g_standard = StandardSolitaire::from(&g);
 
     let now = Instant::now();
     let res = solver::run_solve(g, true, terminated);
@@ -115,7 +116,7 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
         SearchResult::Solved => {
             let m = res.2.unwrap();
             println!("Solvable in {} moves", m.len());
-            let moves = g_standard.do_moves(&m[..]);
+            let moves = convert_moves(&mut g_standard, &m[..]);
             for x in m {
                 print!("{}, ", x);
             }

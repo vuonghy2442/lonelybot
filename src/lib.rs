@@ -6,3 +6,4 @@ pub mod formatter;
 pub mod shuffler;
 pub mod solver;
 pub mod standard;
+pub mod convert;
