@@ -47,8 +47,7 @@ pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 3) as usize;
 
 pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
 
-const N_RANKS_US: usize = N_RANKS as usize;
-pub type PileVec = ArrayVec<Card, N_RANKS_US>;
+pub type PileVec = ArrayVec<Card, { N_RANKS as usize }>;
 
 const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;
@@ -90,27 +89,31 @@ fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> Option<T>) -> Opti
     None
 }
 
-fn iter_mask(m: u64, mut func: impl FnMut(Card)) {
-    iter_mask_opt::<()>(m, |c| {
-        func(c);
-        None
-    });
-}
-
-pub fn _iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -> Option<T> {
+pub fn iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -> Option<T> {
+    // the only case a card can be in two different moves
+    // deck_to_stack/deck_to_pile (maximum duplicate N_SUITS cards)
+    // reveal/pile_stack (maximum duplicate N_SUITS cards)
+    // these two cases can't happen simultaneously (only max N_SUIT card can be move to a stack)
+    // => Maximum moves <= N_CARDS + N_SUIT
     let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] = moves;
 
     if let Some(r) = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c))) {
+        // maximum min(N_DECK, N_SUITS) moves
         Some(r)
     } else if let Some(r) = iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c))) {
+        // maximum min(N_PILES, N_SUITS) moves
         Some(r)
     } else if let Some(r) = iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c))) {
+        // maximum min(N_PILES, N_CARDS) moves
         Some(r)
     } else if let Some(r) = iter_mask_opt::<T>(deck_pile, |c| func(Move::DeckPile(c))) {
+        // maximum min(N_PILES, N_DECK) moves
         Some(r)
     } else {
+        // maximum min(N_PILES, N_SUIT) moves
         iter_mask_opt::<T>(stack_pile, |c| func(Move::StackPile(c)))
     }
+    // <= N_PILES * 2 + N_SUITS * 3 = 12 + 14 = 26 moves
 }
 
 pub type UndoInfo = u8;
@@ -214,25 +217,11 @@ impl Solitaire {
     pub fn list_moves<const DOMINANCES: bool>(self: &Solitaire) -> MoveVec {
         let mut moves = MoveVec::new();
 
-        let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] =
-            self.gen_moves::<DOMINANCES>();
-        // the only case a card can be in two different moves
-        // deck_to_stack/deck_to_pile (maximum duplicate N_SUITS cards)
-        // reveal/pile_stack (maximum duplicate N_SUITS cards)
-        // these two cases can't happen simultaneously (only max N_SUIT card can be move to a stack)
-        // => Maximum moves <= N_CARDS + N_SUIT
+        iter_moves(self.gen_moves::<DOMINANCES>(), |m| {
+            moves.push(m);
+            None::<()>
+        });
 
-        // maximum min(N_DECK, N_SUITS) moves
-        iter_mask(deck_stack, |c| moves.push(Move::DeckStack(c)));
-        // maximum min(N_PILES, N_SUITS) moves
-        iter_mask(pile_stack, |c| moves.push(Move::PileStack(c)));
-        // maximum min(N_PILES, N_CARDS) moves
-        iter_mask(reveal, |c| moves.push(Move::Reveal(c)));
-        // maximum min(N_PILES, N_DECK) moves
-        iter_mask(deck_pile, |c| moves.push(Move::DeckPile(c)));
-        // maximum min(N_PILES, N_SUIT) moves
-        iter_mask(stack_pile, |c| moves.push(Move::StackPile(c)));
-        // <= N_PILES * 2 + N_SUITS * 3 = 12 + 14 = 26 moves
         moves
     }
 
