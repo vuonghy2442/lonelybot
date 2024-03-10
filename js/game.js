@@ -51,19 +51,19 @@ class Card {
             c.innerHTML = `
             <div class="card_inner">
                 <div class="card_back">
-                    <svg width="100%" height="100%">       
-                        <image xlink:href="images/back.svg" width="100%" height="100%"/>    
+                    <svg width="100%" height="100%">
+                        <image xlink:href="images/back.svg" width="100%" height="100%"/>
                     </svg>
                 </div>
                 <div class="card_front">
                     <div class="card_header">
                         <span>${RANK_MAP[rank]}</span> <br>
                         <span>${SUIT_MAP[suit]}</span>
-        
+
                     </div>
                     <div class="card_body">
                         <span>${RANK_MAP[rank]}</span>
-        
+
                     </div>
                     <div class="card_footer">
                         <span>${RANK_MAP[rank]}</span> <br>
@@ -227,7 +227,8 @@ function shuffleArray(array) {
 }
 
 let shuffledCards = [...cardArray];
-shuffleArray(shuffledCards);
+shuffledCards.reverse();
+// shuffleArray(shuffledCards);
 
 const game = new Solitaire(shuffledCards, 3);
 
@@ -278,7 +279,7 @@ function initGame() {
         gameBoxBound = gameBox.getBoundingClientRect();
     });
 
-    function moveCard(card) {
+    function moveCard(event, card) {
         if (!card.isDraggable()) return;
         snap_audio.play();
 
@@ -366,14 +367,15 @@ function initGame() {
         for (let [pos, c] of game.deck.peek(3).entries()) {
             // const c = getCard(rank, suit);
             cards.push(c);
+            c.draggable = false;
 
             c.flipCard();
-            c.draggable = pos == 2;
             c.createDOM(2, 2.5);
 
             setTimeout(() => {
                 c.flipCard(300);
                 c.moveTo(15 + pos * 2, 2.5, 300);
+                c.draggable = pos == 2;
             }, 200 * pos);
         }
     }
@@ -386,7 +388,7 @@ function initGame() {
 
         if (cardDOM) {
             const card = cardArray[parseInt(cardDOM.dataset.cardId)];
-            moveCard(card);
+            moveCard(event, card);
             // some how it fix the default stuff :))
             event.preventDefault();
             return;
