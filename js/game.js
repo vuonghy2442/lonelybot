@@ -304,6 +304,8 @@ function initGame() {
     function moveCard(event, card) {
         if (!card.isDraggable()) return;
         snap_audio.play();
+        const initialZIndex = card.element.style.zIndex;
+        card.element.style.zIndex = 100;
 
         const dropPos = game.lift_card(card);
 
@@ -363,13 +365,21 @@ function initGame() {
 
         function handleMouseUp() {
             window.removeEventListener('mousemove', handleMouseMove);
+
             // Implement card snapping or other dragging behavior
             if (snapped < 0) {
                 card.moveTo(initialX * 100, initialY * 100, 300);
+                card.element.style.zIndex = initialZIndex;
             } else {
                 snap_audio.play();
+                card.element.style.zIndex = card.rank;
+
+                if (card.rank >= 2) {
+                    cardArray[cardId(card.rank - 2, card.suit)].deleteDom();
+                }
                 cards.pop();
                 game.make_move(card, snapped);
+
 
                 if (cards.length <= 1) {
                     // append new stuff
@@ -379,8 +389,8 @@ function initGame() {
                     cards[0].turnUp();
                     cards[0].createDOM(15, 2.5);
 
-                    for (let [idx, c] of cards.entries()) {
-                        c.element.style.zIndex = idx
+                    for (let [pos, c] of cards.entries()) {
+                        c.element.style.zIndex = pos;
                     }
                 }
                 cards[cards.length - 1].draggable = true;
@@ -408,6 +418,7 @@ function initGame() {
 
             c.flipCard();
             c.createDOM(2, 2.5);
+            c.element.style.zIndex = pos;
 
             setTimeout(() => {
                 c.flipCard(300);
