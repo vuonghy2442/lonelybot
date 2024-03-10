@@ -109,7 +109,7 @@ class Card {
             inner.classList.toggle("flipped");
         };
 
-        this.moveTo = (pos_x, pos_y, duration) => {
+        this.moveTo = (pos_x, pos_y, duration, zIndex) => {
             if (this.element === null) return;
 
             {
@@ -117,7 +117,10 @@ class Card {
                 const currentTop = parseFloat(this.element.style.top) || 0;
 
                 // this to prevent transitionend not triggered
-                if (Math.abs(currentLeft - pos_x) < 1e-2 && Math.abs(currentTop - pos_y) < 1e-2) return;
+                if (Math.abs(currentLeft - pos_x) < 1e-2 && Math.abs(currentTop - pos_y) < 1e-2) {
+                    this.element.style.zIndex = zIndex;
+                    return;
+                }
             }
 
             if (duration > 0) {
@@ -127,7 +130,14 @@ class Card {
                 this.element.addEventListener("transitionend", (e) => {
                     this.element.style.removeProperty('transition');
                     this.animating = false;
+                    if (zIndex !== null) {
+                        this.element.style.zIndex = zIndex;
+                    }
                 }, { once: true });
+            } else {
+                if (zIndex !== null) {
+                    this.element.style.zIndex = zIndex;
+                }
             }
 
             if (pos_x !== null)
@@ -368,8 +378,7 @@ function initGame() {
 
             // Implement card snapping or other dragging behavior
             if (snapped < 0) {
-                card.moveTo(initialX * 100, initialY * 100, 300);
-                card.element.style.zIndex = initialZIndex;
+                card.moveTo(initialX * 100, initialY * 100, 300, initialZIndex);
             } else {
                 snap_audio.play();
                 card.element.style.zIndex = card.rank;
