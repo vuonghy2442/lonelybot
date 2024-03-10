@@ -84,6 +84,12 @@ class Card {
             this.element = c;
         };
 
+        this.turnUp = (duration) => {
+            if (this.flipped) {
+                this.flipCard(duration);
+            }
+        }
+
         this.flipCard = (duration) => {
             this.flipped = !this.flipped;
 
@@ -200,6 +206,22 @@ class Solitaire {
             }
 
             return res;
+        }
+
+        this.make_move = (card, dst) => {
+            // find the position
+            if (dst == 0) {
+                this.deck.deal();
+                return;
+            }
+            let src = 0;
+            if (src == 0) {
+                this.deck.pop();
+            }
+
+            if (dst <= N_SUITS) {
+                this.stack[dst - 1] += 1
+            }
         }
     }
 };
@@ -335,8 +357,6 @@ function initGame() {
                 y -= dy * force;
             }
 
-
-
             card.moveTo(x * 100, y * 100, 0);
             changed = true;
         }
@@ -348,6 +368,22 @@ function initGame() {
                 card.moveTo(initialX * 100, initialY * 100, 300);
             } else {
                 snap_audio.play();
+                cards.pop();
+                game.make_move(card, snapped);
+
+                if (cards.length <= 1) {
+                    // append new stuff
+                    cards = game.deck.peek(cards.length + 1)
+
+                    cards[0].draggable = false;
+                    cards[0].turnUp();
+                    cards[0].createDOM(15, 2.5);
+
+                    for (let [idx, c] of cards.entries()) {
+                        c.element.style.zIndex = idx
+                    }
+                }
+                cards[cards.length - 1].draggable = true;
             }
 
         }
@@ -359,13 +395,14 @@ function initGame() {
     let cards = [];
 
     function deal() {
-        game.deck.deal();
+        game.make_move(null, 0);
         for (let c of cards) {
             c.deleteDom();
         }
 
+        cards = []
+
         for (let [pos, c] of game.deck.peek(3).entries()) {
-            // const c = getCard(rank, suit);
             cards.push(c);
             c.draggable = false;
 
