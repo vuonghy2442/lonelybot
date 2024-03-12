@@ -11,6 +11,7 @@ use lonelybot::tracking::SearchStatistics;
 use lonelybot::traverse::TraverseResult;
 use rand::prelude::*;
 use std::collections::HashSet;
+use std::fs::File;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -134,7 +135,7 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
     }
 }
 
-fn test_graph(seed: &Seed, terminated: &Arc<AtomicBool>) {
+fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = shuffle(&seed);
     println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
@@ -147,8 +148,12 @@ fn test_graph(seed: &Seed, terminated: &Arc<AtomicBool>) {
     match res.0 {
         Some((res, graph)) => {
             println!("Graphed in {} edges", graph.len());
+            let mut f = File::create(path).unwrap();
+            for e in graph.iter() {
+                write!(f, "{} {} {}\n", e.0, e.1, e.2 as u8).unwrap();
+            }
             if res == TraverseResult::Ok {
-                println!("Done :)");
+                println!("Save done");
             }
         }
         _ => println!("Crashed"),
@@ -303,6 +308,7 @@ enum Commands {
     Graph {
         #[command(flatten)]
         seed: Seed,
+        out: String,
     },
 
     Play {
@@ -328,8 +334,8 @@ fn main() {
         Commands::Solve { seed } => {
             test_solve(seed, &handling_signal());
         }
-        Commands::Graph { seed } => {
-            test_graph(seed, &handling_signal());
+        Commands::Graph { seed, out } => {
+            test_graph(seed, out, &handling_signal());
         }
         Commands::Play { seed } => {
             game_loop(seed);

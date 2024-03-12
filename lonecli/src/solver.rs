@@ -1,7 +1,7 @@
 use core::time::Duration;
 use lonelybot::{
-    engine::{Encode, Solitaire},
-    graph::graph_game_with_tracking,
+    engine::Solitaire,
+    graph::{graph_game_with_tracking, Graph},
     solver::{solve_game_with_tracking, HistoryVec, SearchResult},
     tracking::{AtomicSearchStats, SearchSignal},
     traverse::TraverseResult,
@@ -83,10 +83,7 @@ pub fn run_graph(
     mut g: Solitaire,
     verbose: bool,
     term_signal: &Arc<AtomicBool>,
-) -> (
-    Option<(TraverseResult, Vec<(Encode, Encode)>)>,
-    AtomicSearchStats,
-) {
+) -> (Option<(TraverseResult, Graph)>, AtomicSearchStats) {
     let ss = Arc::new(AtomicSearchStats::new());
 
     let (send, recv) = channel::<()>();

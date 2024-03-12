@@ -16,8 +16,11 @@ impl TranpositionTable for TpTable {
 extern crate alloc;
 use alloc::vec::Vec;
 
+pub type Edge = (Encode, Encode, bool);
+pub type Graph = Vec<Edge>;
+
 struct BuilderCallback<'a, S: SearchStatistics, T: SearchSignal> {
-    graph: Vec<(Encode, Encode)>,
+    graph: Graph,
     stats: &'a S,
     sign: &'a T,
     depth: usize,
@@ -27,17 +30,17 @@ struct BuilderCallback<'a, S: SearchStatistics, T: SearchSignal> {
 impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for BuilderCallback<'a, S, T> {
     fn on_win(&mut self, _: &Solitaire) -> TraverseResult {
         // win state
-        self.graph.push((self.prev_enc, !0));
+        self.graph.push((self.prev_enc, !0, true));
         TraverseResult::Ok
     }
 
-    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, rev: &Option<Move>, e: Encode) -> TraverseResult {
         if self.sign.is_terminated() {
             return TraverseResult::Halted;
         }
 
         self.stats.hit_a_state(self.depth);
-        self.graph.push((self.prev_enc, e));
+        self.graph.push((self.prev_enc, e, rev.is_none()));
 
         TraverseResult::Ok
     }
@@ -67,10 +70,10 @@ pub fn graph_game_with_tracking(
     g: &mut Solitaire,
     stats: &impl SearchStatistics,
     sign: &impl SearchSignal,
-) -> (TraverseResult, Vec<(Encode, Encode)>) {
+) -> (TraverseResult, Graph) {
     let mut tp = TpTable::with_hasher(Default::default());
     let mut callback = BuilderCallback {
-        graph: Vec::new(),
+        graph: Graph::new(),
         stats,
         sign,
         depth: 0,
@@ -81,6 +84,6 @@ pub fn graph_game_with_tracking(
     (finished, callback.graph)
 }
 
-pub fn graph_game(g: &mut Solitaire) -> (TraverseResult, Vec<(Encode, Encode)>) {
+pub fn graph_game(g: &mut Solitaire) -> (TraverseResult, Graph) {
     graph_game_with_tracking(g, &EmptySearchStats {}, &DefaultSearchSignal {})
 }
