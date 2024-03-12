@@ -148,12 +148,18 @@ fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
     match res.0 {
         Some((res, graph)) => {
             println!("Graphed in {} edges", graph.len());
-            let mut f = File::create(path).unwrap();
-            for e in graph.iter() {
-                write!(f, "{} {} {}\n", e.0, e.1, e.2 as u8).unwrap();
-            }
-            if res == TraverseResult::Ok {
-                println!("Save done");
+            if res != TraverseResult::Ok {
+                println!("Unfinished");
+            } else {
+                {
+                    let mut f = std::io::BufWriter::new(File::create(path).unwrap());
+                    for e in graph.iter() {
+                        write!(f, "{} {} {}\n", e.0, e.1, e.2 as u8).unwrap();
+                    }
+                }
+                if res == TraverseResult::Ok {
+                    println!("Save done");
+                }
             }
         }
         _ => println!("Crashed"),

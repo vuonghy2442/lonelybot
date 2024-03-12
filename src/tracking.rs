@@ -83,7 +83,7 @@ impl SearchStatistics for AtomicSearchStats {
         if depth < TRACK_DEPTH {
             self.move_state[depth]
                 .0
-                .store(move_pos as u8, Ordering::Relaxed);
+                .store((move_pos + 1) as u8, Ordering::Relaxed);
         }
     }
 }

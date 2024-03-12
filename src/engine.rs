@@ -303,7 +303,7 @@ impl Solitaire {
                 COLOR_MASK[1]
             } else {
                 SUIT_MASK[from_mask(&ss[1]).suit() as usize]
-            })
+            }) & (unnessary_stack - 1)
         };
 
         // moving directly from deck to stack
