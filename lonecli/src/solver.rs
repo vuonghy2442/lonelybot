@@ -1,8 +1,10 @@
 use core::time::Duration;
 use lonelybot::{
-    engine::Solitaire,
+    engine::{Encode, Solitaire},
+    graph::graph_game_with_tracking,
     solver::{solve_game_with_tracking, HistoryVec, SearchResult},
     tracking::{AtomicSearchStats, SearchSignal},
+    traverse::TraverseResult,
 };
 use std::{
     sync::{
@@ -77,44 +79,47 @@ pub fn run_solve(
     (res, Arc::try_unwrap(ss).unwrap(), hist)
 }
 
-// pub fn run_graph(
-//     mut g: Solitaire,
-//     verbose: bool,
-//     term_signal: &Arc<AtomicBool>,
-// ) -> (Option<Vec<(Encode, Encode)>>, AtomicSearchStats) {
-//     let ss = Arc::new(AtomicSearchStats::new());
+pub fn run_graph(
+    mut g: Solitaire,
+    verbose: bool,
+    term_signal: &Arc<AtomicBool>,
+) -> (
+    Option<(TraverseResult, Vec<(Encode, Encode)>)>,
+    AtomicSearchStats,
+) {
+    let ss = Arc::new(AtomicSearchStats::new());
 
-//     let (send, recv) = channel::<()>();
+    let (send, recv) = channel::<()>();
 
-//     let child = {
-//         // Spawn thread with explicit stack size
-//         let ss_clone = ss.clone();
-//         let term = term_signal.clone();
-//         thread::Builder::new()
-//             .stack_size(STACK_SIZE)
-//             .spawn(move || {
-//                 graph_game_with_tracking(
-//                     &mut g,
-//                     ss_clone.as_ref(),
-//                     &Signal {
-//                         term_signal: term.as_ref(),
-//                         done_channel: send,
-//                     },
-//                 )
-//             })
-//             .unwrap()
-//     };
+    let child = {
+        // Spawn thread with explicit stack size
+        let ss_clone = ss.clone();
+        let term = term_signal.clone();
+        thread::Builder::new()
+            .stack_size(STACK_SIZE)
+            .spawn(move || {
+                graph_game_with_tracking(
+                    &mut g,
+                    ss_clone.as_ref(),
+                    &Signal {
+                        term_signal: term.as_ref(),
+                        done_channel: send,
+                    },
+                )
+            })
+            .unwrap()
+    };
 
-//     if verbose {
-//         loop {
-//             match recv.recv_timeout(Duration::from_millis(1000)) {
-//                 Ok(()) => break,
-//                 Err(RecvTimeoutError::Timeout) => println!("{}", ss),
-//                 Err(RecvTimeoutError::Disconnected) => break,
-//             };
-//         }
-//     }
+    if verbose {
+        loop {
+            match recv.recv_timeout(Duration::from_millis(1000)) {
+                Ok(()) => break,
+                Err(RecvTimeoutError::Timeout) => println!("{}", ss),
+                Err(RecvTimeoutError::Disconnected) => break,
+            };
+        }
+    }
 
-//     let res = child.join().ok();
-//     (res, Arc::try_unwrap(ss).unwrap())
-// }
+    let res = child.join().ok();
+    (res, Arc::try_unwrap(ss).unwrap())
+}

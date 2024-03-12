@@ -10,3 +10,4 @@ pub mod solver;
 pub mod standard;
 pub mod tracking;
 pub mod traverse;
+pub mod graph;

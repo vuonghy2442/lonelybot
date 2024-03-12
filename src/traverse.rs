@@ -16,11 +16,11 @@ pub enum TraverseResult {
 pub trait GraphCallback {
     fn on_win(&mut self, g: &Solitaire) -> TraverseResult;
 
-    fn on_visit(&mut self, g: &Solitaire) -> TraverseResult;
-    fn on_move_gen(&mut self, m: &MoveVec);
+    fn on_visit(&mut self, g: &Solitaire, encode: Encode) -> TraverseResult;
+    fn on_move_gen(&mut self, m: &MoveVec, encode: Encode);
 
-    fn on_do_move(&mut self, pos: usize, m: &Move);
-    fn on_undo_move(&mut self, pos: usize, m: &Move);
+    fn on_do_move(&mut self, pos: usize, m: &Move, encode: Encode);
+    fn on_undo_move(&mut self, pos: usize, m: &Move, encode: Encode);
 
     fn on_start(&mut self);
     fn on_finish(&mut self, res: &TraverseResult);
@@ -37,16 +37,18 @@ fn traverse(
         return callback.on_win(g);
     }
 
-    if callback.on_visit(g) == TraverseResult::Halted {
+    let encode = g.encode();
+
+    if callback.on_visit(g, encode) == TraverseResult::Halted {
         return TraverseResult::Halted;
     }
 
-    if !tp.insert(default_mixer(g.encode())) {
+    if !tp.insert(default_mixer(encode)) {
         return TraverseResult::Ok;
     }
 
     let move_list = g.list_moves::<true>();
-    callback.on_move_gen(&move_list);
+    callback.on_move_gen(&move_list, encode);
 
     for (pos, &m) in move_list.iter().enumerate() {
         if Some(m) == rev_move {
@@ -54,7 +56,7 @@ fn traverse(
         }
         let rev_move = g.get_rev_move(&m);
 
-        callback.on_do_move(pos, &m);
+        callback.on_do_move(pos, &m, encode);
         let undo = g.do_move(&m);
 
         if traverse(g, rev_move, tp, callback) == TraverseResult::Halted {
@@ -62,7 +64,7 @@ fn traverse(
         }
 
         g.undo_move(&m, &undo);
-        callback.on_undo_move(pos, &m);
+        callback.on_undo_move(pos, &m, encode);
     }
     TraverseResult::Ok
 }

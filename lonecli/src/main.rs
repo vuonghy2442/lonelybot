@@ -8,6 +8,7 @@ use lonelybot::engine::{Encode, Move, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::shuffler::{self, CardDeck};
 use lonelybot::tracking::SearchStatistics;
+use lonelybot::traverse::TraverseResult;
 use rand::prelude::*;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -133,33 +134,26 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
     }
 }
 
-// fn test_graph(seed: &Seed, terminated: &Arc<AtomicBool>) {
-//     let shuffled_deck = shuffle(&seed);
-//     println!("{}", Solvitaire::new(&shuffled_deck, 3));
+fn test_graph(seed: &Seed, terminated: &Arc<AtomicBool>) {
+    let shuffled_deck = shuffle(&seed);
+    println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
-//     let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
+    let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
 
-//     let now = Instant::now();
-//     let res = solver::run_graph(g, true, terminated);
-//     println!("Run in {} ms", now.elapsed().as_secs_f64() * 1000f64);
-//     println!("Statistic\n{}", res.1);
-//     match res.0 {
-//         Some(g) => {
-//             let m = res.2.unwrap();
-//             println!("Solvable in {} moves", m.len());
-//             let moves = convert_moves(&mut g_standard, &m[..]);
-//             for x in m {
-//                 print!("{}, ", x);
-//             }
-//             println!();
-//             for m in moves {
-//                 print!("{:?} {:?} {}, ", m.0, m.1, m.2);
-//             }
-//             println!();
-//         }
-//         _ => println!("Nothing"),
-//     }
-// }
+    let now = Instant::now();
+    let res = solver::run_graph(g, true, terminated);
+    println!("Run in {} ms", now.elapsed().as_secs_f64() * 1000f64);
+    println!("Statistic\n{}", res.1);
+    match res.0 {
+        Some((res, graph)) => {
+            println!("Graphed in {} edges", graph.len());
+            if res == TraverseResult::Ok {
+                println!("Done :)");
+            }
+        }
+        _ => println!("Crashed"),
+    }
+}
 
 fn game_loop(seed: &Seed) {
     let shuffled_deck = shuffle(seed);
@@ -306,6 +300,11 @@ enum Commands {
         seed: Seed,
     },
 
+    Graph {
+        #[command(flatten)]
+        seed: Seed,
+    },
+
     Play {
         #[command(flatten)]
         seed: Seed,
@@ -328,6 +327,9 @@ fn main() {
         }
         Commands::Solve { seed } => {
             test_solve(seed, &handling_signal());
+        }
+        Commands::Graph { seed } => {
+            test_graph(seed, &handling_signal());
         }
         Commands::Play { seed } => {
             game_loop(seed);

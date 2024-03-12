@@ -46,25 +46,25 @@ impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for SolverCallback<
         TraverseResult::Halted
     }
 
-    fn on_visit(&mut self, _: &Solitaire) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> TraverseResult {
         if self.sign.is_terminated() {
             self.result = SearchResult::Terminated;
-            TraverseResult::Halted
-        } else {
-            self.stats.hit_a_state(self.history.len());
-            TraverseResult::Ok
+            return TraverseResult::Halted;
         }
+
+        self.stats.hit_a_state(self.history.len());
+        TraverseResult::Ok
     }
 
-    fn on_move_gen(&mut self, m: &crate::engine::MoveVec) {
+    fn on_move_gen(&mut self, m: &crate::engine::MoveVec, _: Encode) {
         self.stats.hit_unique_state(self.history.len(), m.len());
     }
 
-    fn on_do_move(&mut self, _: usize, m: &Move) {
+    fn on_do_move(&mut self, _: usize, m: &Move, _: Encode) {
         self.history.push(*m);
     }
 
-    fn on_undo_move(&mut self, pos: usize, _: &Move) {
+    fn on_undo_move(&mut self, pos: usize, _: &Move, _: Encode) {
         self.history.pop();
         self.stats.finish_move(self.history.len(), pos);
     }
