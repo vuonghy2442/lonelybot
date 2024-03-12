@@ -7,6 +7,7 @@ use lonelybot::convert::convert_moves;
 use lonelybot::engine::{Encode, Move, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::shuffler::{self, CardDeck};
+use lonelybot::tracking::SearchStatistics;
 use rand::prelude::*;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -15,7 +16,7 @@ use std::thread;
 use std::time::Duration;
 use std::{io::Write, time::Instant};
 
-use lonelybot::solver::{SearchResult, SearchStatistics};
+use lonelybot::solver::SearchResult;
 use lonelybot::standard::StandardSolitaire;
 
 use crate::tui::print_game;
@@ -131,6 +132,34 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
         SearchResult::Crashed => println!("Crashed"),
     }
 }
+
+// fn test_graph(seed: &Seed, terminated: &Arc<AtomicBool>) {
+//     let shuffled_deck = shuffle(&seed);
+//     println!("{}", Solvitaire::new(&shuffled_deck, 3));
+
+//     let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
+
+//     let now = Instant::now();
+//     let res = solver::run_graph(g, true, terminated);
+//     println!("Run in {} ms", now.elapsed().as_secs_f64() * 1000f64);
+//     println!("Statistic\n{}", res.1);
+//     match res.0 {
+//         Some(g) => {
+//             let m = res.2.unwrap();
+//             println!("Solvable in {} moves", m.len());
+//             let moves = convert_moves(&mut g_standard, &m[..]);
+//             for x in m {
+//                 print!("{}, ", x);
+//             }
+//             println!();
+//             for m in moves {
+//                 print!("{:?} {:?} {}, ", m.0, m.1, m.2);
+//             }
+//             println!();
+//         }
+//         _ => println!("Nothing"),
+//     }
+// }
 
 fn game_loop(seed: &Seed) {
     let shuffled_deck = shuffle(seed);
