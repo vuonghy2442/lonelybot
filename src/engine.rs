@@ -250,14 +250,8 @@ impl Solitaire {
         // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
         let unnessary_stack = pile_stack & !top;
 
-        // unnessarily stackable pair of same-colored cards with lowest value
-        let least = {
-            let ustack = (unnessary_stack | (unnessary_stack >> 1)) & ALT_MASK;
-            (ustack & ustack.wrapping_neg()) * 0b11
-        };
-
         if DOMINANCES && unnessary_stack.count_ones() >= 3 {
-            return [unnessary_stack & least, 0, 0, 0, 0];
+            return [unnessary_stack & unnessary_stack.wrapping_neg(), 0, 0, 0, 0];
         }
 
         // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
@@ -291,6 +285,17 @@ impl Solitaire {
         } else {
             // seperate the stackable cards by color
             let ss: [u64; 2] = core::array::from_fn(|i| unnessary_stack & COLOR_MASK[i]);
+
+            // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
+            // though it can make triple stackable cards in some case but in those case it will be revert immediately
+            // i.e. the last card stack is the smallest one
+            let triple_stackable = {
+                let tmp: u64 = (if ss[0] != 0 { COLOR_MASK[1] } else { 0 }
+                    | if ss[1] != 0 { COLOR_MASK[0] } else { 0 });
+                //both have then we need to block some more
+                (vis & sm & ALT_MASK & tmp) << 1
+            };
+
             // the new stacked card should be decreasing :)
             (if ss[0] == 0 {
                 // don't change this to 0
@@ -304,6 +309,7 @@ impl Solitaire {
             } else {
                 SUIT_MASK[from_mask(&ss[1]).suit() as usize]
             }) & (unnessary_stack - 1)
+                & !triple_stackable
         };
 
         // moving directly from deck to stack
@@ -314,7 +320,12 @@ impl Solitaire {
         // revealing a card by moving the top card to another pile (not to stack)
         let reveal = top & free_slot;
 
-        let (filter_ps, filter_new, filter_ds) = if DOMINANCES && least > 0 {
+        let (filter_ps, filter_new, filter_ds) = if DOMINANCES && unnessary_stack > 0 {
+            // unnessarily stackable pair of same-colored cards with lowest value
+            let least = {
+                let ustack = (unnessary_stack | (unnessary_stack >> 1)) & ALT_MASK;
+                (ustack & ustack.wrapping_neg()) * 0b11
+            };
             // only stack to the least lexigraphically card (or 2 cards if same color)
             // do not use the deck stack when have unnecessary stackable cards
             (least, least >> 4, 0)
