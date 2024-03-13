@@ -278,7 +278,7 @@ impl Solitaire {
         // this will disallow having 2 move-to-stack-able suits of same color
         let filter_sp = if !DOMINANCES || unnessary_stack == 0 {
             !0
-        } else if unnessary_stack & (unnessary_stack >> 1) & ALT_MASK > 0 {
+        } else if pile_stack & (pile_stack >> 1) & ALT_MASK > 0 {
             // is same check when the two stackable card of same color and same rank exists
             // if there is a pair of same card you can only move the card up or reveal something
             0
@@ -289,12 +289,12 @@ impl Solitaire {
             // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
             // though it can make triple stackable cards in some case but in those case it will be revert immediately
             // i.e. the last card stack is the smallest one
-            let triple_stackable = {
-                let tmp: u64 = (if ss[0] != 0 { COLOR_MASK[1] } else { 0 }
-                    | if ss[1] != 0 { COLOR_MASK[0] } else { 0 });
-                //both have then we need to block some more
-                (vis & sm & ALT_MASK & tmp) << 1
-            };
+            // let triple_stackable = {
+            //     let tmp: u64 = (if ss[0] != 0 { COLOR_MASK[1] } else { 0 }
+            //         | if ss[1] != 0 { COLOR_MASK[0] } else { 0 });
+            //     //both have then we need to block some more
+            //     ((vis ^ top) & sm & ALT_MASK & tmp) << 1
+            // };
 
             // the new stacked card should be decreasing :)
             (if ss[0] == 0 {
@@ -309,7 +309,7 @@ impl Solitaire {
             } else {
                 SUIT_MASK[from_mask(&ss[1]).suit() as usize]
             }) & (unnessary_stack - 1)
-                & !triple_stackable
+            // & !triple_stackable
         };
 
         // moving directly from deck to stack
