@@ -248,10 +248,10 @@ impl Solitaire {
         }
         // getting the stackable cards without revealing
         // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
-        let unnessary_stack = pile_stack & !top;
+        let redundant_stack = pile_stack & !top;
 
-        if DOMINANCES && unnessary_stack.count_ones() >= 3 {
-            return [unnessary_stack & unnessary_stack.wrapping_neg(), 0, 0, 0, 0];
+        if DOMINANCES && redundant_stack.count_ones() >= 3 {
+            return [redundant_stack & redundant_stack.wrapping_neg(), 0, 0, 0, 0];
         }
 
         // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
@@ -276,7 +276,7 @@ impl Solitaire {
         // map the card mask of lowest rank to its card
         // from mask will take the lowest bit
         // this will disallow having 2 move-to-stack-able suits of same color
-        let filter_sp = if !DOMINANCES || unnessary_stack == 0 {
+        let filter_sp = if !DOMINANCES || redundant_stack == 0 {
             !0
         } else if pile_stack & (pile_stack >> 1) & ALT_MASK > 0 {
             // is same check when the two stackable card of same color and same rank exists
@@ -285,7 +285,7 @@ impl Solitaire {
         } else {
             // check if unstackable by suit
             let suit_unstack: [bool; 4] =
-                core::array::from_fn(|i| unnessary_stack & SUIT_MASK[i] == 0);
+                core::array::from_fn(|i| redundant_stack & SUIT_MASK[i] == 0);
 
             // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
             // though it can make triple stackable cards in some case but in those case it will be revert immediately
@@ -297,18 +297,11 @@ impl Solitaire {
             //     ((vis ^ top) & sm & ALT_MASK & tmp) << 1
             // };
 
-            // {
-            //     if suit_unstack[0] != 0 {
-            //         let tmp = suit_unstack[0] | (suit_unstack[0] >> 1);
-            //         let tmp = tmp | (tmp >> 2);
-            //     }
-            // }
-
             (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
                 | if suit_unstack[1] { SUIT_MASK[0] } else { 0 }
                 | if suit_unstack[2] { SUIT_MASK[3] } else { 0 }
                 | if suit_unstack[3] { SUIT_MASK[2] } else { 0 })
-                & (unnessary_stack - 1) // the new stacked card should be decreasing :)
+                & (redundant_stack - 1) // the new stacked card should be decreasing :)
                                         // & !triple_stackable
         };
 
@@ -320,10 +313,10 @@ impl Solitaire {
         // revealing a card by moving the top card to another pile (not to stack)
         let reveal = top & free_slot;
 
-        let (filter_ps, filter_new, filter_ds) = if DOMINANCES && unnessary_stack > 0 {
+        let (filter_ps, filter_new, filter_ds) = if DOMINANCES && redundant_stack > 0 {
             // unnessarily stackable pair of same-colored cards with lowest value
             let least = {
-                let ustack = (unnessary_stack | (unnessary_stack >> 1)) & ALT_MASK;
+                let ustack = (redundant_stack | (redundant_stack >> 1)) & ALT_MASK;
                 (ustack & ustack.wrapping_neg()) * 0b11
             };
             // only stack to the least lexigraphically card (or 2 cards if same color)
