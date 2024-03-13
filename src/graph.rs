@@ -1,17 +1,8 @@
-use hashbrown::HashSet;
-
 use crate::{
     engine::{Encode, Move, Solitaire},
     tracking::{DefaultSearchSignal, EmptySearchStats, SearchSignal, SearchStatistics},
-    traverse::{traverse_game, GraphCallback, TranpositionTable, TraverseResult},
+    traverse::{traverse_game, GraphCallback, TpTable, TraverseResult},
 };
-
-type TpTable = HashSet<Encode, nohash_hasher::BuildNoHashHasher<Encode>>;
-impl TranpositionTable for TpTable {
-    fn insert(&mut self, value: Encode) -> bool {
-        self.insert(value)
-    }
-}
 
 extern crate alloc;
 use alloc::vec::Vec;

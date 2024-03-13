@@ -17,7 +17,6 @@ unsafe_code = "forbid"
 
 [dependencies]
 rand = { version = "0.8.5", default-features = false, features = ["std_rng"] }
-quick_cache = { version = "0.4.0", default-features = false }
 rand_mt = "4.2.2"
 arrayvec = { version = "0.7.4", default-features = false }
 nohash-hasher = { version = "0.2.0", default-features = false }

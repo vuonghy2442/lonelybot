@@ -1,3 +1,5 @@
+use hashbrown::HashSet;
+
 use crate::{
     engine::{Encode, Move, MoveVec, Solitaire},
     mixer::default_mixer,
@@ -72,6 +74,13 @@ fn traverse(
         callback.on_undo_move(pos, &m, encode);
     }
     TraverseResult::Ok
+}
+
+pub type TpTable = HashSet<Encode, nohash_hasher::BuildNoHashHasher<Encode>>;
+impl crate::traverse::TranpositionTable for TpTable {
+    fn insert(&mut self, value: Encode) -> bool {
+        self.insert(value)
+    }
 }
 
 pub fn traverse_game(

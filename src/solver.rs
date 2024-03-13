@@ -1,26 +1,12 @@
 use crate::{
     engine::{Encode, Move, Solitaire},
     tracking::{DefaultSearchSignal, EmptySearchStats, SearchSignal, SearchStatistics},
-    traverse::{traverse_game, GraphCallback, TraverseResult},
+    traverse::{traverse_game, GraphCallback, TpTable, TraverseResult},
 };
 use arrayvec::ArrayVec;
-use quick_cache::{unsync::Cache, UnitWeighter};
-
-pub type TpCache = Cache<Encode, (), UnitWeighter, nohash_hasher::BuildNoHashHasher<Encode>>;
-impl crate::traverse::TranpositionTable for TpCache {
-    fn insert(&mut self, value: Encode) -> bool {
-        if self.get(&value).is_some() {
-            false
-        } else {
-            self.insert(value, ());
-            true
-        }
-    }
-}
 
 // before every progress you'd do at most 2*N_RANKS move
 // and there would only be N_FULL_DECK + N_HIDDEN progress step
-const TP_SIZE: usize = 256 * 1024 * 1024;
 const N_PLY_MAX: usize = 1024;
 
 pub type HistoryVec = ArrayVec<Move, N_PLY_MAX>;
@@ -81,13 +67,7 @@ pub fn solve_game_with_tracking(
     stats: &impl SearchStatistics,
     sign: &impl SearchSignal,
 ) -> (SearchResult, Option<HistoryVec>) {
-    let mut tp = TpCache::with(
-        TP_SIZE,
-        TP_SIZE as u64,
-        Default::default(),
-        Default::default(),
-        Default::default(),
-    );
+    let mut tp = TpTable::with_hasher(Default::default());
 
     let mut callback = SolverCallback {
         history: HistoryVec::new(),
