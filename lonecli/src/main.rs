@@ -153,8 +153,9 @@ fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
             } else {
                 {
                     let mut f = std::io::BufWriter::new(File::create(path).unwrap());
-                    for e in graph.iter() {
-                        write!(f, "{} {} {}\n", e.0, e.1, e.2 as u8).unwrap();
+                    write!(f, "s,t,e,id\n").unwrap();
+                    for (id, e) in graph.iter().skip(1).enumerate() {
+                        write!(f, "{},{},{:?},{}\n", e.0, e.1, e.2, id).unwrap();
                     }
                 }
                 if res == TraverseResult::Ok {

@@ -16,7 +16,7 @@ pub enum TraverseResult {
 }
 
 pub trait GraphCallback {
-    fn on_win(&mut self, g: &Solitaire) -> TraverseResult;
+    fn on_win(&mut self, g: &Solitaire, rev_move: &Option<Move>) -> TraverseResult;
 
     fn on_visit(
         &mut self,
@@ -41,7 +41,7 @@ fn traverse(
     callback: &mut impl GraphCallback,
 ) -> TraverseResult {
     if g.is_win() {
-        return callback.on_win(g);
+        return callback.on_win(g, &rev_move);
     }
 
     let encode = g.encode();

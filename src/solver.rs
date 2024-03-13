@@ -27,7 +27,7 @@ struct SolverCallback<'a, S: SearchStatistics, T: SearchSignal> {
 }
 
 impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for SolverCallback<'a, S, T> {
-    fn on_win(&mut self, _: &Solitaire) -> TraverseResult {
+    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> TraverseResult {
         self.result = SearchResult::Solved;
         TraverseResult::Halted
     }
