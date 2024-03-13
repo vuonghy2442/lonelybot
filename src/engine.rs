@@ -31,6 +31,7 @@ pub type Encode = u64;
 
 const HALF_MASK: u64 = 0x33333333_3333333;
 const ALT_MASK: u64 = 0x55555555_5555555;
+const RANK_MASK: u64 = 0x11111111_11111111;
 
 const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
 
@@ -290,19 +291,20 @@ impl Solitaire {
             // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
             // though it can make triple stackable cards in some case but in those case it will be revert immediately
             // i.e. the last card stack is the smallest one
-            // let triple_stackable = {
-            //     let tmp: u64 = (if suit_unstack[0] != 0 { COLOR_MASK[1] } else { 0 }
-            //         | if suit_unstack[1] != 0 { COLOR_MASK[0] } else { 0 });
-            //     //both have then we need to block some more
-            //     ((vis ^ top) & sm & ALT_MASK & tmp) << 1
-            // };
+            let triple_stackable = {
+                let pot_stack = (vis ^ top) & sm;
+                let pot_stack = pot_stack | (pot_stack >> 1);
+                let stack_rank = redundant_stack | (redundant_stack >> 1);
+                let stack_rank = stack_rank | (stack_rank >> 2);
+                ((pot_stack & stack_rank) & RANK_MASK) * 0b11
+            };
 
             (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
                 | if suit_unstack[1] { SUIT_MASK[0] } else { 0 }
                 | if suit_unstack[2] { SUIT_MASK[3] } else { 0 }
                 | if suit_unstack[3] { SUIT_MASK[2] } else { 0 })
                 & (redundant_stack - 1) // the new stacked card should be decreasing :)
-                                        // & !triple_stackable
+                & !triple_stackable
         };
 
         // moving directly from deck to stack
