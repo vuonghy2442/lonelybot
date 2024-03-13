@@ -283,33 +283,33 @@ impl Solitaire {
             // if there is a pair of same card you can only move the card up or reveal something
             0
         } else {
-            // seperate the stackable cards by color
-            let ss: [u64; 2] = core::array::from_fn(|i| unnessary_stack & COLOR_MASK[i]);
+            // check if unstackable by suit
+            let suit_unstack: [bool; 4] =
+                core::array::from_fn(|i| unnessary_stack & SUIT_MASK[i] == 0);
 
             // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
             // though it can make triple stackable cards in some case but in those case it will be revert immediately
             // i.e. the last card stack is the smallest one
             // let triple_stackable = {
-            //     let tmp: u64 = (if ss[0] != 0 { COLOR_MASK[1] } else { 0 }
-            //         | if ss[1] != 0 { COLOR_MASK[0] } else { 0 });
+            //     let tmp: u64 = (if suit_unstack[0] != 0 { COLOR_MASK[1] } else { 0 }
+            //         | if suit_unstack[1] != 0 { COLOR_MASK[0] } else { 0 });
             //     //both have then we need to block some more
             //     ((vis ^ top) & sm & ALT_MASK & tmp) << 1
             // };
 
-            // the new stacked card should be decreasing :)
-            (if ss[0] == 0 {
-                // don't change this to 0
-                // there is a case where even though there's no unncessary stackable card with color 0
-                // but there's still a stackable card
-                COLOR_MASK[0]
-            } else {
-                SUIT_MASK[from_mask(&ss[0]).suit() as usize]
-            } | if ss[1] == 0 {
-                COLOR_MASK[1]
-            } else {
-                SUIT_MASK[from_mask(&ss[1]).suit() as usize]
-            }) & (unnessary_stack - 1)
-            // & !triple_stackable
+            // {
+            //     if suit_unstack[0] != 0 {
+            //         let tmp = suit_unstack[0] | (suit_unstack[0] >> 1);
+            //         let tmp = tmp | (tmp >> 2);
+            //     }
+            // }
+
+            (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
+                | if suit_unstack[1] { SUIT_MASK[0] } else { 0 }
+                | if suit_unstack[2] { SUIT_MASK[3] } else { 0 }
+                | if suit_unstack[3] { SUIT_MASK[2] } else { 0 })
+                & (unnessary_stack - 1) // the new stacked card should be decreasing :)
+                                        // & !triple_stackable
         };
 
         // moving directly from deck to stack
