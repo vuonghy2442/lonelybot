@@ -6,7 +6,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
 use lonelybot::engine::{Encode, Move, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
-use lonelybot::shuffler::{self, CardDeck};
+use lonelybot::shuffler::{self, CardDeck, U256};
 use lonelybot::tracking::SearchStatistics;
 use lonelybot::traverse::TraverseResult;
 use rand::prelude::*;
@@ -31,12 +31,27 @@ pub enum SeedType {
     Solvitaire,
     KlondikeSolver,
     Greenfelt,
+    Exact,
 }
 
-#[derive(Args, Clone, Copy)]
+#[derive(Args, Clone)]
+pub struct StringSeed {
+    seed_type: SeedType,
+    seed: String,
+}
+
 pub struct Seed {
     seed_type: SeedType,
-    seed: u64,
+    seed: U256,
+}
+
+impl From<&StringSeed> for Seed {
+    fn from(value: &StringSeed) -> Self {
+        Seed {
+            seed_type: value.seed_type,
+            seed: U256::from_dec_str(&value.seed).unwrap(),
+        }
+    }
 }
 
 impl std::fmt::Display for Seed {
@@ -50,6 +65,7 @@ impl std::fmt::Display for Seed {
                 SeedType::Solvitaire => "S",
                 SeedType::KlondikeSolver => "K",
                 SeedType::Greenfelt => "G",
+                SeedType::Exact => "E",
             },
             self.seed
         )
@@ -57,13 +73,13 @@ impl std::fmt::Display for Seed {
 }
 
 impl Seed {
-    pub const fn seed(self) -> u64 {
+    pub const fn seed(&self) -> U256 {
         self.seed
     }
-    pub const fn increase(self, step: u64) -> Seed {
+    pub fn increase(&self, step: u32) -> Seed {
         Seed {
             seed_type: self.seed_type,
-            seed: self.seed.wrapping_add(step),
+            seed: self.seed() + step,
         }
     }
 }
@@ -71,21 +87,22 @@ impl Seed {
 pub fn shuffle(s: &Seed) -> CardDeck {
     let seed = s.seed;
     match s.seed_type {
-        SeedType::Default => shuffler::default_shuffle(seed),
-        SeedType::Legacy => shuffler::legacy_shuffle(seed),
-        SeedType::Solvitaire => shuffler::solvitaire_shuffle(seed),
-        SeedType::KlondikeSolver => shuffler::ks_shuffle(seed),
-        SeedType::Greenfelt => shuffler::greenfelt_shuffle(seed),
+        SeedType::Default => shuffler::default_shuffle(seed.as_u64()),
+        SeedType::Legacy => shuffler::legacy_shuffle(seed.as_u64()),
+        SeedType::Solvitaire => shuffler::solvitaire_shuffle(seed.as_u32()),
+        SeedType::KlondikeSolver => shuffler::ks_shuffle(seed.as_u32()),
+        SeedType::Greenfelt => shuffler::greenfelt_shuffle(seed.as_u32()),
+        SeedType::Exact => shuffler::exact_shuffle(seed),
     }
 }
 
 fn benchmark(seed: &Seed) {
-    let mut rng = StdRng::seed_from_u64(seed.seed());
+    let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
 
     let mut total_moves = 0;
     let now = Instant::now();
     for i in 0..100 {
-        let mut game = Solitaire::new(&shuffle(&seed.increase(i as u64)), 3);
+        let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
         for _ in 0..100 {
             let moves = game.list_moves::<true>();
 
@@ -297,35 +314,39 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    Exact {
+        #[command(flatten)]
+        seed: StringSeed,
+    },
     Print {
         #[command(flatten)]
-        seed: Seed,
+        seed: StringSeed,
     },
 
     Bench {
         #[command(flatten)]
-        seed: Seed,
+        seed: StringSeed,
     },
 
     Solve {
         #[command(flatten)]
-        seed: Seed,
+        seed: StringSeed,
     },
 
     Graph {
         #[command(flatten)]
-        seed: Seed,
+        seed: StringSeed,
         out: String,
     },
 
     Play {
         #[command(flatten)]
-        seed: Seed,
+        seed: StringSeed,
     },
 
     Rate {
         #[command(flatten)]
-        seed: Seed,
+        seed: StringSeed,
     },
 }
 
@@ -334,24 +355,28 @@ fn main() {
 
     match &args {
         Commands::Print { seed } => {
-            let shuffled_deck = shuffle(seed);
+            let shuffled_deck = shuffle(&seed.into());
 
             println!("{}", Solvitaire::new(&shuffled_deck, 3));
         }
         Commands::Solve { seed } => {
-            test_solve(seed, &handling_signal());
+            test_solve(&seed.into(), &handling_signal());
         }
         Commands::Graph { seed, out } => {
-            test_graph(seed, out, &handling_signal());
+            test_graph(&seed.into(), out, &handling_signal());
         }
         Commands::Play { seed } => {
-            game_loop(seed);
+            game_loop(&seed.into());
         }
         Commands::Bench { seed } => {
-            benchmark(seed);
+            benchmark(&seed.into());
         }
         Commands::Rate { seed } => {
-            solve_loop(seed, &handling_signal());
+            solve_loop(&seed.into(), &handling_signal());
+        }
+        Commands::Exact { seed } => {
+            let shuffled_deck = shuffle(&seed.into());
+            println!("{}", shuffler::encode_shuffle(shuffled_deck));
         }
     }
 }

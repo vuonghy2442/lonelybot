@@ -2,6 +2,10 @@ use crate::card::{Card, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{N_HIDDEN_CARDS, N_PILES};
 use rand::prelude::*;
 use rand_mt::Mt;
+use uint::construct_uint;
+construct_uint! {
+    pub struct U256(4);
+}
 
 pub type CardDeck = [Card; N_CARDS as usize];
 
@@ -31,8 +35,8 @@ pub fn legacy_shuffle(seed: u64) -> CardDeck {
     to_legacy(&default_shuffle(seed))
 }
 
-pub fn ks_shuffle(seed: u64) -> CardDeck {
-    let mut rng = KSRandom::new(seed as u32);
+pub fn ks_shuffle(seed: u32) -> CardDeck {
+    let mut rng = KSRandom::new(seed);
     const M: [u8; N_SUITS as usize] = [2, 1, 3, 0];
     let mut cards: CardDeck =
         core::array::from_fn(|i| Card::new(i as u8 % N_RANKS, M[i / N_RANKS as usize]));
@@ -141,8 +145,8 @@ impl GreenRandom {
     }
 }
 
-pub fn greenfelt_shuffle(seed: u64) -> CardDeck {
-    let mut rng = GreenRandom::new(seed as u32);
+pub fn greenfelt_shuffle(seed: u32) -> CardDeck {
+    let mut rng = GreenRandom::new(seed);
     const M: [u8; N_SUITS as usize] = [2, 1, 3, 0];
     let mut cards: CardDeck = [Card::FAKE; N_CARDS as usize];
 
@@ -201,12 +205,12 @@ pub fn uniform_int(a: u32, b: u32, rng: &mut impl RngCore) -> u32 {
     }
 }
 
-pub fn solvitaire_shuffle(seed: u64) -> CardDeck {
+pub fn solvitaire_shuffle(seed: u32) -> CardDeck {
     const M: [u8; N_SUITS as usize] = [2, 0, 3, 1];
     let mut cards: CardDeck =
         core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, M[i % N_SUITS as usize]));
 
-    let mut rng: Mt = Mt::new(seed as u32);
+    let mut rng: Mt = Mt::new(seed);
 
     for i in (1..cards.len()).rev() {
         let val = uniform_int(0, i as u32, &mut rng);
@@ -226,4 +230,70 @@ pub fn solvitaire_shuffle(seed: u64) -> CardDeck {
     }
 
     new_cards
+}
+
+fn factorial(n: u8) -> U256 {
+    match n {
+        0 | 1 => U256::one(),
+        _ => factorial(n - 1) * n,
+    }
+}
+
+pub fn exact_shuffle(mut seed: U256) -> CardDeck {
+    assert!(seed < factorial(N_CARDS));
+    let mut cards: CardDeck =
+        core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, i as u8 % N_SUITS));
+
+    for i in 1..N_CARDS as usize {
+        let j = (seed % U256::from(i + 1)).as_usize();
+        seed /= (i + 1) as u128;
+        cards.swap(i, j);
+    }
+
+    cards
+}
+
+pub fn encode_shuffle(mut cards: CardDeck) -> U256 {
+    let mut encode = U256::zero();
+    for i in (1..N_CARDS as usize).rev() {
+        let card = Card::new(i as u8 / N_SUITS, i as u8 % N_SUITS);
+        let pos = cards[..(i + 1)].iter().position(|c| c == &card).unwrap();
+        encode = encode * (i + 1) + pos;
+        cards.swap(pos, i);
+    }
+    encode
+}
+
+#[cfg(test)]
+mod tests {
+    use rand::prelude::*;
+
+    use super::*;
+
+    #[test]
+    fn test_encode() {
+        let mut rng = StdRng::seed_from_u64(14);
+
+        for _ in 0..1000 {
+            let encode: u128 = rng.gen();
+            let deck = exact_shuffle(encode.into());
+            assert_eq!(encode, encode_shuffle(deck).as_u128());
+        }
+    }
+
+    #[test]
+    fn test_encode2() {
+        let mut rng = StdRng::seed_from_u64(14);
+
+        // for _ in 0..1000 {
+        let seed: u64 = rng.gen();
+        let deck = default_shuffle(seed);
+        let encode = encode_shuffle(deck.clone());
+        let deck_2 = exact_shuffle(encode);
+
+        let encode2 = encode_shuffle(deck_2.clone());
+        assert_eq!(encode, encode2);
+        assert_eq!(deck, deck_2);
+        // }
+    }
 }

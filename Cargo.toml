@@ -22,6 +22,7 @@ arrayvec = { version = "0.7.4", default-features = false }
 nohash-hasher = { version = "0.2.0", default-features = false }
 hashbrown = { version = "0.14", default-features = false }
 static_assertions = "1.1.0"
+uint = {version = "0.9.5", default-features = false}
 
 [dev-dependencies]
 criterion = "0.5.1"
