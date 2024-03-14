@@ -22,6 +22,10 @@ impl Card {
         Card(rank * N_SUITS + suit)
     }
 
+    pub const fn from_value(value: u8) -> Card {
+        Card(value)
+    }
+
     pub const fn rank(self: &Card) -> u8 {
         self.0 / N_SUITS
     }

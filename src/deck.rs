@@ -1,3 +1,5 @@
+use static_assertions::const_assert;
+
 use crate::card::{Card, N_CARDS};
 
 pub const N_PILES: u8 = 7;
@@ -24,7 +26,7 @@ pub enum Drawable {
 impl Deck {
     pub fn new(deck: &[Card; N_FULL_DECK], draw_step: u8) -> Deck {
         let draw_step = core::cmp::min(N_FULL_DECK as u8, draw_step);
-        let mut map = [0u8; N_CARDS as usize];
+        let mut map = [!0u8; N_CARDS as usize];
         for (i, c) in deck.iter().enumerate() {
             map[c.value() as usize] = i as u8;
         }
@@ -51,9 +53,8 @@ impl Deck {
         self.deck[..self.draw_cur as usize]
             .iter()
             .chain(self.deck[self.draw_next as usize..].iter())
-            .enumerate()
-            .find(|x| x.1.value() == card.value())
-            .map(|x| x.0 as u8)
+            .position(|x| x == &card)
+            .map(|x| x as u8)
     }
 
     pub fn iter_all(self: &Deck) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
@@ -253,10 +254,6 @@ impl Deck {
         self.draw_cur
     }
 
-    pub const fn encode(self: &Deck) -> u32 {
-        self.mask
-    }
-
     pub const fn is_pure(self: &Deck) -> bool {
         // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
         self.draw_cur % self.draw_step == 0 || self.draw_next == N_FULL_DECK as u8
@@ -266,9 +263,46 @@ impl Deck {
         // this is the standardized version
         if self.draw_cur % self.draw_step == 0 {
             // matched so offset is free
-            0
+            debug_assert!(self.len() <= N_FULL_DECK as u8);
+            self.len() as u8
         } else {
             self.draw_cur
         }
+    }
+
+    pub const fn encode(self: &Deck) -> u32 {
+        const_assert!(((N_FULL_DECK - 1).ilog2() + 1 + N_FULL_DECK as u32) <= 32);
+        // assert the number of bits
+        // 29 bits
+        self.mask | ((self.normalized_offset() as u32) << N_FULL_DECK)
+    }
+
+    pub fn decode(&mut self, encode: u32) {
+        let mask = encode & ((1 << N_FULL_DECK) - 1);
+        let offset = (encode >> N_FULL_DECK) as u8;
+
+        let mut rev_map = [Card::FAKE; N_FULL_DECK];
+
+        for i in 0..N_CARDS {
+            let val = self.map[i as usize];
+            if val < N_FULL_DECK as u8 && (encode >> val) & 1 == 0 {
+                rev_map[val as usize] = Card::from_value(i);
+            }
+        }
+
+        let mut pos = 0;
+
+        for i in 0..N_FULL_DECK {
+            if rev_map[i] != Card::FAKE {
+                self.deck[pos] = rev_map[i];
+                pos += 1;
+            }
+        }
+
+        self.draw_cur = pos as u8;
+        self.draw_next = N_FULL_DECK as u8;
+
+        self.set_offset(offset);
+        self.mask = mask;
     }
 }

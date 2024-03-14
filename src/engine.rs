@@ -1,7 +1,10 @@
+use core::array;
+
 use arrayvec::ArrayVec;
 
 use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_HIDDEN_CARDS, N_PILES};
+
 use crate::shuffler::CardDeck;
 use crate::standard::{PileVec, StandardSolitaire};
 
@@ -506,6 +509,7 @@ impl Solitaire {
         // considering to make it incremental?
         self.final_stack
             .iter()
+            .rev()
             .fold(0u16, |res, cur| (res << 4) + (*cur as u16))
     }
 
@@ -522,13 +526,54 @@ impl Solitaire {
     pub fn encode(self: &Solitaire) -> Encode {
         let stack_encode = self.encode_stack(); // 16 bits (can be reduce to 15)
         let hidden_encode = self.encode_hidden(); // 16 bits
-        let deck_encode = self.deck.encode(); // 24 bits (can be reduced to 20)
-        let offset_encode = self.deck.normalized_offset(); // 5 bits
+        let deck_encode = self.deck.encode(); // 29 bits (can be reduced to 25)
 
-        (stack_encode as u64)
-            | (hidden_encode as u64) << (16)
-            | (deck_encode as u64) << (16 + 16)
-            | (offset_encode as u64) << (24 + 16 + 16)
+        (stack_encode as u64) | (hidden_encode as u64) << (16) | (deck_encode as u64) << (16 + 16)
+    }
+
+    pub fn decode(&mut self, encode: u64) {
+        let (stack_encode, mut hidden_encode, deck_encode) = (
+            encode as u16 & 0xFFFF,
+            (encode >> 16) as u16 & 0xFFFF,
+            (encode >> 32) as u32,
+        );
+        let mut nonvis_mask = 0;
+        // decode stack
+        self.final_stack = array::from_fn(|i| (stack_encode >> (4 * i)) as u8 & 0xF);
+        for suit in 0..N_SUITS {
+            for rank in 0..self.final_stack[suit as usize] {
+                nonvis_mask |= card_mask(&Card::new(rank, suit));
+            }
+        }
+
+        // decode hidden
+        let mut top_mask = 0;
+        for i in 0..N_PILES {
+            let n_options = i as u16 + 2;
+            let n_hid = (hidden_encode % n_options) as u8;
+            hidden_encode /= n_options;
+
+            self.n_hidden[i as usize] = n_hid;
+            if n_hid > 0 {
+                for j in 0..n_hid - 1 {
+                    nonvis_mask |= card_mask(&self.get_hidden(i, j));
+                }
+
+                let c = self.get_hidden(i, n_hid - 1);
+                if c.rank() < KING_RANK {
+                    top_mask |= card_mask(&c);
+                }
+            }
+        }
+
+        // decode visible + top mask :'(
+        self.deck.decode(deck_encode);
+        for (_, c, _) in self.deck.iter_all() {
+            nonvis_mask |= card_mask(c);
+        }
+
+        self.top_mask = top_mask;
+        self.visible_mask = full_mask(N_CARDS) ^ nonvis_mask;
     }
 
     pub fn get_normal_piles(self: &Solitaire) -> [PileVec; N_PILES as usize] {
@@ -692,6 +737,9 @@ mod tests {
                 }
 
                 let state = game.encode();
+                game.decode(state);
+                assert_eq!(game.encode(), state);
+                
                 let ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =
                     game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 
@@ -705,9 +753,10 @@ mod tests {
 
                 assert_eq!(ids, new_ids);
                 let undo_state = game.encode();
-                if undo_state != state {
-                    assert_eq!(undo_state, state);
-                }
+                assert_eq!(undo_state, state);
+                game.decode(state);
+                assert_eq!(game.encode(), state);
+
                 game.do_move(m);
                 assert_eq!(game.encode(), next_state);
             }
