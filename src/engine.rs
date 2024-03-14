@@ -99,17 +99,17 @@ pub fn iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -
     // => Maximum moves <= N_CARDS + N_SUIT
     let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] = moves;
 
-    if let Some(r) = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c))) {
-        // maximum min(N_DECK, N_SUITS) moves
+    if let Some(r) = iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c))) {
+        // maximum min(N_PILES, N_CARDS) moves
         Some(r)
     } else if let Some(r) = iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c))) {
         // maximum min(N_PILES, N_SUITS) moves
         Some(r)
-    } else if let Some(r) = iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c))) {
-        // maximum min(N_PILES, N_CARDS) moves
-        Some(r)
     } else if let Some(r) = iter_mask_opt::<T>(deck_pile, |c| func(Move::DeckPile(c))) {
         // maximum min(N_PILES, N_DECK) moves
+        Some(r)
+    } else if let Some(r) = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c))) {
+        // maximum min(N_DECK, N_SUITS) moves
         Some(r)
     } else {
         // maximum min(N_PILES, N_SUIT) moves
@@ -739,7 +739,7 @@ mod tests {
                 let state = game.encode();
                 game.decode(state);
                 assert_eq!(game.encode(), state);
-                
+
                 let ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =
                     game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 

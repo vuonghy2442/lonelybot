@@ -4,7 +4,7 @@ mod tui;
 use bpci::{Interval, NSuccessesSample, WilsonScore};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
-use lonelybot::engine::{Encode, Move, Solitaire, UndoInfo};
+use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::shuffler::{self, CardDeck, U256};
 use lonelybot::tracking::SearchStatistics;
@@ -119,6 +119,38 @@ fn benchmark(seed: &Seed) {
         total_moves,
         (total_moves as f64) / now.elapsed().as_secs_f64()
     );
+}
+
+fn do_random(seed: &Seed) {
+    let mut total_win = 0;
+    const TOTAL_GAME: u32 = 10000;
+    for i in 0..TOTAL_GAME {
+        let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
+        let mut rev_move = None;
+        loop {
+            if game.is_win() {
+                total_win += 1;
+                break;
+            }
+            let moves = game.list_moves::<true>();
+
+            let moves: MoveVec = moves
+                .iter()
+                .filter(|&&c| Some(c) != rev_move)
+                .cloned()
+                .collect();
+
+            if moves.len() == 0 {
+                break;
+            }
+
+            let m = &moves[0];
+            rev_move = game.get_rev_move(m);
+
+            game.do_move(m);
+        }
+    }
+    println!("Total win {}/{}", total_win, TOTAL_GAME);
 }
 
 fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
@@ -341,6 +373,11 @@ enum Commands {
         seed: StringSeed,
     },
 
+    Random {
+        #[command(flatten)]
+        seed: StringSeed,
+    },
+
     Rate {
         #[command(flatten)]
         seed: StringSeed,
@@ -357,24 +394,15 @@ fn main() {
 
             println!("{}", Solvitaire(g));
         }
-        Commands::Solve { seed } => {
-            test_solve(&seed.into(), &handling_signal());
-        }
-        Commands::Graph { seed, out } => {
-            test_graph(&seed.into(), out, &handling_signal());
-        }
-        Commands::Play { seed } => {
-            game_loop(&seed.into());
-        }
-        Commands::Bench { seed } => {
-            benchmark(&seed.into());
-        }
-        Commands::Rate { seed } => {
-            solve_loop(&seed.into(), &handling_signal());
-        }
+        Commands::Solve { seed } => test_solve(&seed.into(), &handling_signal()),
+        Commands::Graph { seed, out } => test_graph(&seed.into(), out, &handling_signal()),
+        Commands::Play { seed } => game_loop(&seed.into()),
+        Commands::Bench { seed } => benchmark(&seed.into()),
+        Commands::Rate { seed } => solve_loop(&seed.into(), &handling_signal()),
         Commands::Exact { seed } => {
             let shuffled_deck = shuffle(&seed.into());
             println!("{}", shuffler::encode_shuffle(shuffled_deck));
         }
+        Commands::Random { seed } => do_random(&seed.into()),
     }
 }
