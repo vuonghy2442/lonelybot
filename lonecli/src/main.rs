@@ -123,7 +123,6 @@ fn benchmark(seed: &Seed) {
 
 fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = shuffle(&seed);
-    println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
     let mut g_standard = StandardSolitaire::from(&g);
@@ -154,7 +153,6 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
 
 fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = shuffle(&seed);
-    println!("{}", Solvitaire::new(&shuffled_deck, 3));
 
     let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
 
@@ -187,7 +185,6 @@ fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
 fn game_loop(seed: &Seed) {
     let shuffled_deck = shuffle(seed);
 
-    println!("{}", Solvitaire::new(&shuffled_deck, 3));
     let mut game = Solitaire::new(&shuffled_deck, 3);
 
     let mut line = String::new();
@@ -356,8 +353,9 @@ fn main() {
     match &args {
         Commands::Print { seed } => {
             let shuffled_deck = shuffle(&seed.into());
+            let g = StandardSolitaire::new(&shuffled_deck, 3);
 
-            println!("{}", Solvitaire::new(&shuffled_deck, 3));
+            println!("{}", Solvitaire(g));
         }
         Commands::Solve { seed } => {
             test_solve(&seed.into(), &handling_signal());

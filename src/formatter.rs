@@ -2,10 +2,10 @@ use core::fmt;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{Card, NUMBERS, N_RANKS, SYMBOLS};
+use crate::card::{Card, NUMBERS, N_RANKS, N_SUITS, SYMBOLS};
 use crate::deck::{N_FULL_DECK, N_PILES};
-use crate::engine::{Move, Solitaire};
-use crate::shuffler::CardDeck;
+use crate::engine::Move;
+use crate::standard::StandardSolitaire;
 
 impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -30,12 +30,7 @@ impl fmt::Display for Move {
     }
 }
 
-pub struct Solvitaire(Solitaire);
-impl Solvitaire {
-    pub fn new(deck: &CardDeck, draw_step: u8) -> Solvitaire {
-        Solvitaire(Solitaire::new(deck, draw_step))
-    }
-}
+pub struct Solvitaire(pub StandardSolitaire);
 
 impl fmt::Display for Solvitaire {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -43,16 +38,17 @@ impl fmt::Display for Solvitaire {
 
         for i in 0..N_PILES as usize {
             write!(f, "[")?;
-            for j in 0..i as usize {
+            for c in &self.0.hidden_piles[i] {
                 // hidden cards
-                self.0
-                    .get_hidden(i as u8, j as u8)
-                    .print_solvitaire::<true>(f)?;
+                c.print_solvitaire::<true>(f)?;
                 write!(f, ",")?;
             }
-            self.0
-                .get_hidden(i as u8, i as u8)
-                .print_solvitaire::<false>(f)?;
+            for (idx, c) in self.0.piles[i].iter().enumerate() {
+                if idx != 0 {
+                    write!(f, ",")?;
+                }
+                c.print_solvitaire::<false>(f)?;
+            }
             if i + 1 < N_PILES as usize {
                 writeln!(f, "],")?;
             } else {
@@ -73,7 +69,26 @@ impl fmt::Display for Solvitaire {
                 write!(f, ",")?;
             }
         }
-        write!(f, "}}")?;
+
+        // foundation
+        write!(f, ",\n\"foundation\": [")?;
+
+        for suit in 0..N_SUITS {
+            if suit > 0 {
+                write!(f, ",")?;
+            }
+
+            write!(f, "[")?;
+            for rank in 0..self.0.final_stack[suit as usize] {
+                if rank > 0 {
+                    write!(f, ",")?;
+                }
+                let c = Card::new(rank, suit);
+                c.print_solvitaire::<false>(f)?;
+            }
+            write!(f, "]")?;
+        }
+        write!(f, "]}}")?;
 
         Ok(())
     }
