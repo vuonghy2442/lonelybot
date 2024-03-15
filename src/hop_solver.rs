@@ -120,7 +120,7 @@ impl<'a, R: RngCore, S: SearchSignal> GraphCallback for RevStatesCallback<'a, R,
     }
 
     fn on_visit(&mut self, g: &Solitaire, rev: &Option<Move>, _: Encode) -> TraverseResult {
-        if rev.is_none() {
+        if rev.is_none() && self.his.len() > 0 {
             self.res.push((
                 self.his.clone(),
                 hop_solve_game(g, self.rng, self.n_times, self.limit, self.sign),

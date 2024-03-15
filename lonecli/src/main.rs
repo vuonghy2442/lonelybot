@@ -162,10 +162,20 @@ fn do_hop(seed: &Seed) {
     const N_TIMES: usize = 100;
     const LIMIT: usize = 10000;
 
-    print!(
-        "{:?}",
-        hop_moves_game(&mut game, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {})
-    );
+    while !game.is_win() {
+        let res = hop_moves_game(&mut game, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
+        println!("{} {:?}", game.encode(), res);
+        let best = res.iter().max_by_key(|x| x.1 .0);
+        if let Some(best) = best {
+            for m in &best.0 {
+                game.do_move(m);
+            }
+        } else {
+            println!("Lost");
+            return;
+        }
+    }
+    println!("Solved");
 }
 
 fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
