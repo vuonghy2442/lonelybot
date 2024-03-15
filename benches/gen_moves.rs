@@ -1,81 +1,101 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lonelybot::engine::{self, MoveType, Solitaire};
+use lonelybot::{
+    deck::{Deck, N_HIDDEN_CARDS},
+    engine::{from_mask, Move, Solitaire},
+    shuffler,
+};
 use rand::prelude::*;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let seed = 51;
-    let mut game = Solitaire::new(&engine::generate_shuffled_deck(seed), 3);
+    let mut game = Solitaire::new(&shuffler::default_shuffle(seed), 3);
+
+    let sample_deck: Deck = Deck::new(
+        shuffler::default_shuffle(seed)[N_HIDDEN_CARDS as usize..]
+            .try_into()
+            .unwrap(),
+        3,
+    );
+
     let mut rng = StdRng::seed_from_u64(seed);
 
-    let mut moves = Vec::<MoveType>::new();
     for _ in 0..21 {
-        moves.clear();
-        game.gen_moves_::<true>(&mut moves);
+        let moves = game.list_moves::<true>();
+
         if moves.len() == 0 {
             break;
         }
-        moves.sort();
         game.do_move(moves.choose(&mut rng).unwrap());
     }
 
-    game.gen_moves_::<false>(&mut moves);
+    let moves = game.list_moves::<false>();
 
-    println!("N moves: {:?}", moves);
+    let m: Move = *moves.choose(&mut rng).unwrap();
 
-    moves.clear();
-    game.gen_moves_::<true>(&mut moves);
-    println!("N moves (filtered): {:?}", moves);
+    let deck = game.get_deck_mask::<false>().0;
+    let card = from_mask(&deck);
 
     c.bench_function("gen_moves", |b| {
         b.iter(|| {
-            moves.clear();
-            game.gen_moves_::<false>(&mut moves);
+            let moves = game.list_moves::<false>();
+
             black_box(moves.len());
         })
     });
 
     c.bench_function("gen_moves_dom", |b| {
         b.iter(|| {
-            moves.clear();
-            game.gen_moves_::<true>(&mut moves);
+            let moves = game.list_moves::<true>();
             black_box(moves.len());
         })
     });
 
-    c.bench_function("gen_deck_pile", |b| {
+    c.bench_function("find_card", |b| {
         b.iter(|| {
-            moves.clear();
-            game.gen_deck_pile::<true>(&mut moves, false);
+            sample_deck.find_card(card).expect("okay");
         })
     });
 
-    c.bench_function("gen_deck_stack", |b| {
+    c.bench_function("deck_mask", |b| {
         b.iter(|| {
-            moves.clear();
-            game.gen_deck_stack::<true>(&mut moves, false);
+            black_box(game.get_deck_mask::<true>());
         })
     });
 
-    c.bench_function("gen_pile_pile", |b| {
+    c.bench_function("pure_gen_moves", |b| {
         b.iter(|| {
-            moves.clear();
-            game.gen_pile_pile::<true>(&mut moves);
+            black_box(game.gen_moves::<true>());
         })
     });
 
-    c.bench_function("gen_pile_stack", |b| {
+    c.bench_function("move_undo", |b| {
         b.iter(|| {
-            moves.clear();
-            game.gen_pile_stack::<true>(&mut moves);
+            let undo = game.do_move(&m);
+            game.undo_move(&m, &undo);
         })
     });
 
-    c.bench_function("gen_stack_pile", |b| {
-        b.iter(|| {
-            moves.clear();
-            game.gen_stack_pile::<true>(&mut moves);
-        })
-    });
+    // let mm = pile_stack.wrapping_neg() & pile_stack;
+
+    // if mm != 0 {
+    //     c.bench_function("make_stack", |b| {
+    //         b.iter(|| {
+    //             let undo = game.make_stack::<false>(&mm);
+    //             game.unmake_stack::<false>(&mm, &undo);
+    //         })
+    //     });
+    // }
+
+    // let mm = deck_stack.wrapping_neg() & deck_stack;
+
+    // if mm != 0 {
+    //     c.bench_function("make_deck_stack", |b| {
+    //         b.iter(|| {
+    //             let undo = game.make_stack::<true>(&mm);
+    //             game.unmake_stack::<true>(&mm, &undo);
+    //         })
+    //     });
+    // }
 }
 
 criterion_group!(benches, criterion_benchmark);

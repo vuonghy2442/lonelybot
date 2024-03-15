@@ -1,120 +1,518 @@
-use core::fmt;
+use core::array;
 
-use crate::card::{Card, N_CARDS, N_RANKS, N_SUITS};
-use crate::deck::{Deck, Drawable, N_HIDDEN_CARDS, N_PILES};
-use crate::pile::Pile;
+use arrayvec::ArrayVec;
+use rand::seq::SliceRandom;
+use rand::RngCore;
 
-use concat_arrays::concat_arrays;
+use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
+use crate::deck::{Deck, N_HIDDEN_CARDS, N_PILES};
 
-use colored::Colorize;
-use rand::prelude::*;
+use crate::shuffler::CardDeck;
+use crate::standard::{PileVec, StandardSolitaire};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub enum Pos {
-    Deck(u8),
-    Stack(u8),
-    Pile(u8),
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Move {
+    DeckStack(Card),
+    PileStack(Card),
+    DeckPile(Card),
+    StackPile(Card),
+    Reveal(Card),
 }
 
-pub type CardDeck = [Card; N_CARDS as usize];
-pub type MoveType = (Pos, Pos);
-
-pub struct UndoInfo {
-    offset: u8,
-    hidden: Option<Pile>,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Solitaire {
     hidden_piles: [Card; N_HIDDEN_CARDS as usize],
     n_hidden: [u8; N_PILES as usize],
+    hidden: [u8; N_CARDS as usize],
 
-    // start card ends card and flags
-    visible_piles: [Pile; N_PILES as usize],
     final_stack: [u8; N_SUITS as usize],
     deck: Deck,
+
+    visible_mask: u64,
+    top_mask: u64,
 }
 
-pub fn generate_shuffled_deck(seed: u64) -> CardDeck {
-    let mut rng = StdRng::seed_from_u64(seed);
-    let mut cards: [Card; N_CARDS as usize] =
-        core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, i as u8 % N_SUITS));
-    cards.shuffle(&mut rng);
-    return cards;
+pub type Encode = u64;
+
+const HALF_MASK: u64 = 0x33333333_3333333;
+const ALT_MASK: u64 = 0x55555555_5555555;
+const RANK_MASK: u64 = 0x11111111_11111111;
+
+const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
+
+const SUIT_MASK: [u64; N_SUITS as usize] = [
+    0x41414141_41414141,
+    0x82828282_82828282,
+    0x14141414_14141414,
+    0x28282828_28282828,
+];
+
+const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
+
+pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 3) as usize;
+
+pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
+
+const fn swap_pair(a: u64) -> u64 {
+    let half = (a & HALF_MASK) << 2;
+    ((a >> 2) & HALF_MASK) | half
 }
-pub type Encode = [u16; N_PILES as usize + 2];
+
+const fn card_mask(c: &Card) -> u64 {
+    let v = c.value();
+    1u64 << (v ^ ((v >> 1) & 2))
+}
+
+pub const fn from_mask(v: &u64) -> Card {
+    let v = v.trailing_zeros() as u8;
+    let v = v ^ ((v >> 1) & 2);
+    Card::new(v / N_SUITS, v % N_SUITS)
+}
+
+const fn min(a: u8, b: u8) -> u8 {
+    if a < b {
+        a
+    } else {
+        b
+    }
+}
+
+const fn full_mask(i: u8) -> u64 {
+    (1 << i) - 1
+}
+
+fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> Option<T>) -> Option<T> {
+    while m > 0 {
+        let c = from_mask(&m);
+        let r = func(c);
+        if r.is_some() {
+            return r;
+        };
+        m &= m.wrapping_sub(1);
+    }
+    None
+}
+
+pub fn iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -> Option<T> {
+    // the only case a card can be in two different moves
+    // deck_to_stack/deck_to_pile (maximum duplicate N_SUITS cards)
+    // reveal/pile_stack (maximum duplicate N_SUITS cards)
+    // these two cases can't happen simultaneously (only max N_SUIT card can be move to a stack)
+    // => Maximum moves <= N_CARDS + N_SUIT
+    let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] = moves;
+
+    if let Some(r) = iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c))) {
+        // maximum min(N_PILES, N_CARDS) moves
+        Some(r)
+    } else if let Some(r) = iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c))) {
+        // maximum min(N_PILES, N_SUITS) moves
+        Some(r)
+    } else if let Some(r) = iter_mask_opt::<T>(deck_pile, |c| func(Move::DeckPile(c))) {
+        // maximum min(N_PILES, N_DECK) moves
+        Some(r)
+    } else if let Some(r) = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c))) {
+        // maximum min(N_DECK, N_SUITS) moves
+        Some(r)
+    } else {
+        // maximum min(N_PILES, N_SUIT) moves
+        iter_mask_opt::<T>(stack_pile, |c| func(Move::StackPile(c)))
+    }
+    // <= N_PILES * 2 + N_SUITS * 3 = 12 + 14 = 26 moves
+}
+
+pub type UndoInfo = u8;
 
 impl Solitaire {
     pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {
         let hidden_piles: [Card; N_HIDDEN_CARDS as usize] =
             cards[0..N_HIDDEN_CARDS as usize].try_into().unwrap();
-        let n_hidden: [u8; N_PILES as usize] = core::array::from_fn(|i| i as u8);
 
-        let visible_cards: &[Card; N_PILES as usize] = cards
-            [N_HIDDEN_CARDS as usize..(N_HIDDEN_CARDS + N_PILES) as usize]
-            .try_into()
-            .unwrap();
+        let mut visible_mask = 0;
+        let mut hidden = [0; N_CARDS as usize];
 
-        let visible_piles: [Pile; N_PILES as usize] = visible_cards.map(|c| Pile::from_card(c));
+        for i in 0..N_PILES {
+            let start = i * (i + 1) / 2;
+            let end = (i + 2) * (i + 1) / 2;
+
+            let p = &hidden_piles[start as usize..end as usize];
+            for c in p {
+                hidden[c.value() as usize] = i;
+            }
+            visible_mask |= card_mask(p.last().unwrap());
+        }
 
         let deck: Deck = Deck::new(
-            cards[(N_HIDDEN_CARDS + N_PILES) as usize..]
-                .try_into()
-                .unwrap(),
+            cards[(N_HIDDEN_CARDS) as usize..].try_into().unwrap(),
             draw_step,
         );
 
-        let final_stack: [u8; 4] = [0u8; 4];
-
-        return Solitaire {
+        Solitaire {
             hidden_piles,
-            n_hidden,
-            visible_piles,
-            final_stack,
+            n_hidden: core::array::from_fn(|i| (i + 1) as u8),
+            final_stack: [0u8; 4],
             deck,
-        };
-    }
-
-    pub fn is_win(self: &Solitaire) -> bool {
-        // What a shame this is not a const function :(
-        return self.final_stack == [N_RANKS; N_SUITS as usize];
-    }
-
-    fn push_pile(self: &mut Solitaire, id: u8, card: Card) {
-        self.visible_piles[id as usize].push(card);
-    }
-
-    fn pop_pile(self: &mut Solitaire, id: u8, step: u8) {
-        self.visible_piles[id as usize].pop(step);
-    }
-
-    fn move_pile(self: &mut Solitaire, from: u8, to: u8) {
-        let (from, to) = (from as usize, to as usize);
-        let (new_from, new_to) = self.visible_piles[from].move_to_(&self.visible_piles[to]);
-        self.visible_piles[from] = new_from;
-        self.visible_piles[to] = new_to;
-    }
-
-    fn pop_hidden(self: &mut Solitaire, pos: u8) -> Card {
-        let ref mut n_hid = self.n_hidden[pos as usize];
-        if *n_hid == 0 {
-            return Card::FAKE;
-        } else {
-            *n_hid -= 1;
-            return self.hidden_piles[(pos * (pos - 1) / 2 + *n_hid) as usize];
+            visible_mask,
+            top_mask: visible_mask,
+            hidden,
         }
     }
 
-    const fn stackable(self: &Solitaire, rank: u8, suit: u8) -> bool {
+    pub const fn get_visible_mask(&self) -> u64 {
+        self.visible_mask
+    }
+
+    pub const fn get_top_mask(&self) -> u64 {
+        self.top_mask
+    }
+
+    pub const fn get_bottom_mask(&self) -> u64 {
+        let vis = self.get_visible_mask();
+        let non_top = vis ^ self.get_top_mask();
+        let xor_non_top = non_top ^ (non_top >> 1);
+        let xor_vis = vis ^ (vis >> 1);
+        let or_non_top = non_top | (non_top >> 1);
+        let or_vis = vis | (vis >> 1);
+
+        let xor_all = xor_vis ^ (xor_non_top << 4);
+
+        let bottom_mask = (xor_all | !(or_non_top << 4)) & or_vis & ALT_MASK;
+
+        //shared rank
+        bottom_mask * 0b11
+    }
+    pub const fn get_stack_mask(&self) -> u64 {
+        let s = self.final_stack;
+        card_mask(&Card::new(s[0], 0))
+            | card_mask(&Card::new(s[1], 1))
+            | card_mask(&Card::new(s[2], 2))
+            | card_mask(&Card::new(s[3], 3))
+    }
+
+    pub const fn get_stack_dominances_mask(&self) -> u64 {
+        let s = self.final_stack;
+        let d = (min(s[0], s[1]), min(s[2], s[3]));
+        let d = (min(d.0 + 1, d.1) + 2, min(d.0, d.1 + 1) + 2);
+
+        (COLOR_MASK[0] & full_mask(d.0 * 4)) | (COLOR_MASK[1] & full_mask(d.1 * 4))
+    }
+
+    pub fn get_deck_mask<const DOMINANCES: bool>(&self) -> (u64, bool) {
+        let filter = DOMINANCES
+            && self.deck.peek_last().is_some_and(|&x| {
+                let (rank, suit) = x.split();
+                self.stackable(rank, suit) && self.stack_dominance(rank, suit)
+            });
+
+        if filter && self.deck.is_pure() {
+            return (card_mask(self.deck.peek_last().unwrap()), true);
+        }
+
+        let mut mask = 0;
+        self.deck.iter_callback(filter, |_, card| -> bool {
+            mask |= card_mask(card);
+            false
+        });
+
+        // TODO: dominances for draw_step == 1
+        (mask, false)
+    }
+
+    #[must_use]
+    pub fn list_moves<const DOMINANCES: bool>(&self) -> MoveVec {
+        let mut moves = MoveVec::new();
+
+        iter_moves(self.gen_moves::<DOMINANCES>(), |m| {
+            moves.push(m);
+            None::<()>
+        });
+
+        moves
+    }
+
+    #[must_use]
+    pub fn gen_moves<const DOMINANCES: bool>(&self) -> [u64; 5] {
+        let vis = self.get_visible_mask();
+        let top = self.get_top_mask();
+
+        // this mask represent the rank & even^red type to be movable
+        let bm = self.get_bottom_mask();
+
+        let sm = self.get_stack_mask();
+        let dsm = if DOMINANCES {
+            self.get_stack_dominances_mask()
+        } else {
+            0
+        };
+
+        // moving pile to stack can result in revealing the hidden card
+        let pile_stack = bm & vis & sm; // remove mask
+        let pile_stack_dom = pile_stack & dsm;
+
+        if pile_stack_dom != 0 {
+            // if there is some card that is guarantee to be fine to stack do it
+            return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0, 0];
+        }
+        // getting the stackable cards without revealing
+        // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
+        let redundant_stack = pile_stack & !top;
+
+        if DOMINANCES && redundant_stack.count_ones() >= 3 {
+            return [redundant_stack & redundant_stack.wrapping_neg(), 0, 0, 0, 0];
+        }
+
+        // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
+        let (deck_mask, dom) = self.get_deck_mask::<DOMINANCES>();
+        // no dominances for draw_step = 1 yet
+        if dom {
+            // not very useful as dominance
+            return [0, deck_mask, 0, 0, 0];
+        }
+
+        // free slot will compute the empty position that a card can be put into (can be king)
+        let free_slot = {
+            // counting how many piles are occupied (having a top card/being a king card)
+            let free_pile = ((vis & KING_MASK) | top).count_ones() < N_PILES as u32;
+            let king_mask = if free_pile { KING_MASK } else { 0 };
+            (bm >> 4) | king_mask
+        };
+
+        // compute which card can be move to pile from stack (without being immediately move back ``!dsm``)
+        let stack_pile = swap_pair(sm >> 4) & free_slot & !dsm;
+
+        // map the card mask of lowest rank to its card
+        // from mask will take the lowest bit
+        // this will disallow having 2 move-to-stack-able suits of same color
+        let filter_sp = if !DOMINANCES || redundant_stack == 0 {
+            !0
+        } else if pile_stack & (pile_stack >> 1) & ALT_MASK > 0 {
+            // is same check when the two stackable card of same color and same rank exists
+            // if there is a pair of same card you can only move the card up or reveal something
+            0
+        } else {
+            // check if unstackable by suit
+            let suit_unstack: [bool; 4] =
+                core::array::from_fn(|i| redundant_stack & SUIT_MASK[i] == 0);
+
+            // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
+            // though it can make triple stackable cards in some case but in those case it will be revert immediately
+            // i.e. the last card stack is the smallest one
+            let triple_stackable = {
+                let pot_stack = (vis ^ top) & sm;
+                let pot_stack = pot_stack | (pot_stack >> 1);
+                let stack_rank = redundant_stack | (redundant_stack >> 1);
+                let stack_rank = stack_rank | (stack_rank >> 2);
+                ((pot_stack & stack_rank) & RANK_MASK) * 0b11
+            };
+
+            (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
+                | if suit_unstack[1] { SUIT_MASK[0] } else { 0 }
+                | if suit_unstack[2] { SUIT_MASK[3] } else { 0 }
+                | if suit_unstack[3] { SUIT_MASK[2] } else { 0 })
+                & (redundant_stack - 1) // the new stacked card should be decreasing :)
+                & !triple_stackable
+        };
+
+        // moving directly from deck to stack
+        let deck_stack = deck_mask & sm;
+        // moving from deck to pile without immediately to to stack ``!(dsm & sm)``
+        let deck_pile = deck_mask & free_slot & !(dsm & sm);
+
+        // revealing a card by moving the top card to another pile (not to stack)
+        let reveal = top & free_slot;
+
+        let (filter_ps, filter_new, filter_ds) = if DOMINANCES && redundant_stack > 0 {
+            // unnessarily stackable pair of same-colored cards with lowest value
+            let least = {
+                let ustack = (redundant_stack | (redundant_stack >> 1)) & ALT_MASK;
+                (ustack & ustack.wrapping_neg()) * 0b11
+            };
+            // only stack to the least lexigraphically card (or 2 cards if same color)
+            // do not use the deck stack when have unnecessary stackable cards
+            (least, least >> 4, 0)
+        } else {
+            // can do anything :)
+            (!0, !0, !0)
+        };
+        [
+            // only return the least lexicographically card
+            pile_stack & filter_ps,
+            deck_stack & filter_ds,
+            stack_pile & filter_sp,
+            deck_pile & filter_new,
+            reveal & filter_new,
+        ]
+    }
+
+    pub const fn get_rev_move(&self, m: &Move) -> Option<Move> {
+        // check if this move can be undo using a legal move in the game
+        match m {
+            Move::PileStack(c) => {
+                if self.top_mask & card_mask(c) == 0 {
+                    Some(Move::StackPile(*c))
+                } else {
+                    None
+                }
+            }
+            Move::StackPile(c) => Some(Move::PileStack(*c)),
+            _ => None,
+        }
+    }
+
+    pub fn make_stack<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
+        let card = from_mask(&mask);
+        self.final_stack[card.suit() as usize] += 1;
+
+        if DECK {
+            let offset = self.deck.get_offset();
+            let pos = self.deck.find_card(card).unwrap();
+            self.deck.draw(pos);
+            offset
+        } else {
+            let hidden = (self.top_mask & mask) != 0;
+            self.visible_mask ^= mask;
+            if hidden {
+                self.make_reveal(mask);
+            }
+            hidden as u8
+        }
+    }
+
+    pub fn unmake_stack<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
+        let card = from_mask(&mask);
+        self.final_stack[card.suit() as usize] -= 1;
+
+        if DECK {
+            self.deck.push(card);
+            self.deck.set_offset((*info & 31) as u8);
+        } else {
+            self.visible_mask |= mask;
+            if *info & 1 != 0 {
+                self.unmake_reveal(mask, &Default::default());
+            }
+        }
+    }
+
+    pub fn make_pile<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
+        let card = from_mask(&mask);
+        self.visible_mask |= mask;
+        if DECK {
+            let offset = self.deck.get_offset();
+            let pos = self.deck.find_card(card).unwrap();
+            self.deck.draw(pos);
+            offset
+        } else {
+            self.final_stack[card.suit() as usize] -= 1;
+            Default::default()
+        }
+    }
+
+    pub fn unmake_pile<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
+        let card = from_mask(&mask);
+
+        self.visible_mask &= !mask;
+
+        if DECK {
+            self.deck.push(card);
+            self.deck.set_offset((*info & 31) as u8);
+        } else {
+            self.final_stack[card.suit() as usize] += 1;
+        }
+    }
+
+    pub const fn get_deck(&self) -> &Deck {
+        &self.deck
+    }
+
+    pub const fn get_stack(&self) -> &[u8; N_SUITS as usize] {
+        &self.final_stack
+    }
+
+    pub const fn get_n_hidden(&self) -> &[u8; N_PILES as usize] {
+        &self.n_hidden
+    }
+
+    pub fn get_hidden(&self, pos: u8) -> &[Card] {
+        let start = (pos * (pos + 1) / 2) as usize;
+        let end = start + self.n_hidden[pos as usize] as usize;
+        &self.hidden_piles[start..end]
+    }
+
+    pub fn get_hidden_mut(&mut self, pos: u8) -> &mut [Card] {
+        let start = (pos * (pos + 1) / 2) as usize;
+        let end = start + self.n_hidden[pos as usize] as usize;
+        &mut self.hidden_piles[start..end]
+    }
+
+    pub fn peek_hidden(&mut self, pos: u8) -> Option<&Card> {
+        self.get_hidden(pos).last()
+    }
+
+    pub fn pop_hidden(&mut self, pos: u8) -> Option<&Card> {
+        self.n_hidden[pos as usize] -= 1;
+        self.peek_hidden(pos)
+    }
+
+    pub fn make_reveal(&mut self, m: &u64) -> UndoInfo {
+        let card = from_mask(&m);
+        let pos = self.hidden[card.value() as usize];
+        self.top_mask &= !m;
+
+        let new_card = self.pop_hidden(pos);
+        if let Some(&new_card) = new_card {
+            let revealed = card_mask(&new_card);
+            self.visible_mask |= revealed;
+            if new_card.rank() < KING_RANK || self.n_hidden[pos as usize] != 1 {
+                // if it's not the king mask or there's some hidden cards then set it as the top card
+                self.top_mask |= revealed;
+            }
+        }
+        Default::default()
+    }
+
+    pub fn unmake_reveal(&mut self, m: &u64, _info: &UndoInfo) {
+        let card = from_mask(&m);
+        let pos = self.hidden[card.value() as usize];
+
+        self.top_mask |= m;
+
+        if let Some(new_card) = self.peek_hidden(pos) {
+            let unrevealed = !card_mask(&new_card);
+            self.visible_mask &= unrevealed;
+            self.top_mask &= unrevealed;
+        }
+        self.n_hidden[pos as usize] += 1;
+    }
+
+    pub fn do_move(&mut self, m: &Move) -> UndoInfo {
+        match m {
+            Move::DeckStack(c) => self.make_stack::<true>(&card_mask(c)),
+            Move::PileStack(c) => self.make_stack::<false>(&card_mask(c)),
+            Move::DeckPile(c) => self.make_pile::<true>(&card_mask(c)),
+            Move::StackPile(c) => self.make_pile::<false>(&card_mask(c)),
+            Move::Reveal(c) => self.make_reveal(&card_mask(c)),
+        }
+    }
+
+    pub fn undo_move(&mut self, m: &Move, undo: &UndoInfo) {
+        match m {
+            Move::DeckStack(c) => self.unmake_stack::<true>(&card_mask(c), undo),
+            Move::PileStack(c) => self.unmake_stack::<false>(&card_mask(c), undo),
+            Move::DeckPile(c) => self.unmake_pile::<true>(&card_mask(c), undo),
+            Move::StackPile(c) => self.unmake_pile::<false>(&card_mask(c), undo),
+            Move::Reveal(c) => self.unmake_reveal(&card_mask(c), undo),
+        }
+    }
+
+    pub fn is_win(&self) -> bool {
+        // What a shame this is not a const function :(
+        self.final_stack == [N_RANKS; N_SUITS as usize]
+    }
+
+    const fn stackable(&self, rank: u8, suit: u8) -> bool {
         self.final_stack[suit as usize] == rank && rank < N_RANKS
     }
 
-    // minimal number of move left to win (can't use sum :()
-    pub fn min_move(self: &Solitaire) -> u8 {
-        N_CARDS - self.final_stack.iter().sum::<u8>()
-    }
-
-    const fn stack_dominance(self: &Solitaire, rank: u8, suit: u8) -> bool {
+    const fn stack_dominance(&self, rank: u8, suit: u8) -> bool {
         let stack = &self.final_stack;
         let suit = suit as usize;
         // allowing worring back :)
@@ -123,575 +521,226 @@ impl Solitaire {
             && rank <= stack[suit ^ 1] + 2
     }
 
-    pub fn gen_pile_stack<const DOMINANCES: bool>(
-        self: &Solitaire,
-        moves: &mut Vec<MoveType>,
-    ) -> bool {
-        // move to deck
-        for (id, pile) in self.visible_piles.iter().enumerate() {
-            let dst_card = pile.end();
-
-            let (rank, suit) = dst_card.split();
-            if self.stackable(rank, suit) {
-                // check if dominances
-                moves.push((Pos::Pile(id as u8), Pos::Stack(suit)));
-
-                if DOMINANCES && self.stack_dominance(rank, suit) {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
-    pub fn gen_deck_stack<const DOMINANCES: bool>(
-        self: &Solitaire,
-        moves: &mut Vec<MoveType>,
-        filter: bool,
-    ) -> bool {
-        if self.deck.draw_step() == 1 {
-            self.deck.iter_callback(false, |pos, card| -> bool {
-                let (rank, suit) = card.split();
-                if self.stackable(rank, suit) {
-                    moves.push((Pos::Deck(pos as u8), Pos::Stack(suit)));
-                    if DOMINANCES && self.stack_dominance(rank, suit) {
-                        return true;
-                    }
-                }
-                false
-            })
-        } else {
-            self.deck.iter_callback(filter, |pos, card| -> bool {
-                let (rank, suit) = card.split();
-                if self.stackable(rank, suit) {
-                    moves.push((Pos::Deck(pos), Pos::Stack(suit)));
-                }
-                false
-            })
-        }
-    }
-
-    pub fn gen_deck_pile<const DOMINANCES: bool>(
-        self: &Solitaire,
-        moves: &mut Vec<MoveType>,
-        filter: bool,
-    ) -> bool {
-        self.deck.iter_callback(filter, |pos, card| -> bool {
-            for (id, pile) in self.visible_piles.iter().enumerate() {
-                let dst_card = pile.end();
-                if dst_card.go_before(card) {
-                    moves.push((Pos::Deck(pos as u8), Pos::Pile(id as u8)));
-                }
-            }
-            false
-        });
-        false
-    }
-
-    pub fn gen_stack_pile<const DOMINANCES: bool>(
-        self: &Solitaire,
-        moves: &mut Vec<MoveType>,
-    ) -> bool {
-        for (id, pile) in self.visible_piles.iter().enumerate() {
-            let dst_card = pile.end();
-
-            let (rank, suit) = dst_card.split();
-
-            for i in 2..4u8 {
-                let s = suit ^ i;
-                if rank > 0
-                    && self.final_stack[s as usize] == rank
-                    && !(DOMINANCES && self.stack_dominance(rank - 1, s))
-                {
-                    moves.push((Pos::Stack(s), Pos::Pile(id as u8)));
-                }
-            }
-        }
-        false
-    }
-
-    pub fn gen_pile_pile<const DOMINANCES: bool>(
-        self: &Solitaire,
-        moves: &mut Vec<MoveType>,
-    ) -> bool {
-        for (id, pile) in self.visible_piles.iter().enumerate().skip(1) {
-            for (other_id, other_pile) in self.visible_piles.iter().enumerate().take(id) {
-                let (a, b, a_id, b_id) = if other_pile.movable_to(pile) {
-                    (other_pile, pile, other_id, id)
-                } else if pile.movable_to(other_pile) {
-                    (pile, other_pile, id, other_id)
-                } else {
-                    continue;
-                };
-
-                let n_moved = a.n_move(b);
-                if DOMINANCES && n_moved != a.len() {
-                    //partial move only made when it's possible to move the card to the stack
-                    //this also stop you from moving from one empty pile to another pile
-                    let (rank, suit) = a.bottom(n_moved).split();
-                    if !self.stackable(rank, suit) {
-                        continue;
-                    }
-                }
-
-                moves.push((Pos::Pile(a_id as u8), Pos::Pile(b_id as u8)));
-            }
-        }
-        false
-    }
-
-    pub fn gen_moves_<const DOMINANCES: bool>(self: &Solitaire, moves: &mut Vec<MoveType>) {
-        let start_len = moves.len();
-        let filter = DOMINANCES
-            && self.deck.draw_step() > 1
-            && self.deck.peek_last().is_some_and(|&x| {
-                let (rank, suit) = x.split();
-                self.stackable(rank, suit) && self.stack_dominance(rank, suit)
-            });
-
-        let found_dominance = false
-            || self.gen_deck_stack::<DOMINANCES>(moves, filter)
-            || self.gen_deck_pile::<DOMINANCES>(moves, filter)
-            || self.gen_pile_stack::<DOMINANCES>(moves)
-            || self.gen_pile_pile::<DOMINANCES>(moves)
-            || self.gen_stack_pile::<DOMINANCES>(moves);
-        if found_dominance {
-            let m = moves.pop().unwrap();
-            moves.truncate(start_len);
-            moves.push(m);
-        }
-    }
-
-    pub fn gen_moves<const DOMINANCES: bool>(self: &Solitaire) -> Vec<MoveType> {
-        let mut moves = Vec::<MoveType>::new();
-        self.gen_moves_::<DOMINANCES>(&mut moves);
-        return moves;
-    }
-
-    // this is unsafe gotta check it is valid move before
-    pub fn do_move(self: &mut Solitaire, m: &MoveType) -> UndoInfo {
-        let (src, dst) = m;
-        // handling final stack
-        if let &Pos::Stack(id) = src {
-            debug_assert!(self.final_stack[id as usize] > 0);
-            self.final_stack[id as usize] -= 1;
-        }
-        if let &Pos::Stack(id) = dst {
-            debug_assert!(self.final_stack[id as usize] < N_RANKS);
-            self.final_stack[id as usize] += 1;
-        }
-        // handling deck
-
-        let offset = self.deck.get_offset();
-        let default_info = UndoInfo {
-            hidden: None,
-            offset,
-        };
-
-        match src {
-            &Pos::Deck(id) => {
-                let deck_card = self.deck.draw(id);
-
-                // not dealing with redealt yet :)
-                match dst {
-                    Pos::Deck(_) => unreachable!(),
-                    Pos::Stack(_) => default_info,
-                    &Pos::Pile(id_pile) => {
-                        self.push_pile(id_pile, deck_card);
-                        default_info
-                    }
-                }
-            }
-            &Pos::Stack(id) => match dst {
-                &Pos::Pile(id_pile) => {
-                    let card: Card = Card::new(self.final_stack[id as usize], id);
-                    self.push_pile(id_pile, card);
-                    default_info
-                }
-                _ => unreachable!(),
-            },
-            &Pos::Pile(id) => {
-                let prev = self.visible_piles[id as usize];
-                match dst {
-                    Pos::Stack(_) => {
-                        self.pop_pile(id, 1);
-                    }
-                    &Pos::Pile(id_pile) => {
-                        self.move_pile(id, id_pile);
-                    }
-                    Pos::Deck(_) => unreachable!(),
-                };
-
-                // unlocking hidden cards
-                if self.visible_piles[id as usize].is_empty() {
-                    self.visible_piles[id as usize] = Pile::from_card(self.pop_hidden(id));
-                    UndoInfo {
-                        hidden: Some(prev),
-                        offset,
-                    }
-                } else {
-                    default_info
-                }
-            }
-        }
-    }
-
-    pub fn undo_move(self: &mut Solitaire, m: &MoveType, undo_info: &UndoInfo) {
-        let (src, dst) = m;
-        // handling final stack
-
-        match src {
-            &Pos::Deck(_) => {
-                // not dealing with redealt yet :)
-                let card = match dst {
-                    Pos::Deck(_) => unreachable!(),
-                    &Pos::Stack(id) => Card::new(self.final_stack[id as usize] - 1, id),
-                    &Pos::Pile(id_pile) => {
-                        let card = self.visible_piles[id_pile as usize].end();
-                        self.pop_pile(id_pile, 1);
-                        card
-                    }
-                };
-                self.deck.push(card);
-                self.deck.set_offset(undo_info.offset);
-            }
-            &Pos::Stack(_) => {
-                match dst {
-                    &Pos::Pile(id_pile) => {
-                        self.pop_pile(id_pile, 1);
-                    }
-                    _ => unreachable!(),
-                };
-            }
-            &Pos::Pile(id) => {
-                match undo_info.hidden {
-                    Some(p) => {
-                        if self.visible_piles[id as usize].end().rank() < N_RANKS {
-                            self.n_hidden[id as usize] += 1; //push back hidden
-                        }
-                        self.visible_piles[id as usize] = p;
-                        match dst {
-                            &Pos::Pile(id_pile) => {
-                                self.pop_pile(id_pile, p.len());
-                            }
-                            Pos::Stack(_) => {}
-                            _ => unreachable!(),
-                        }
-                    }
-                    None => {
-                        match dst {
-                            &Pos::Stack(id_stack) => {
-                                let card =
-                                    Card::new(self.final_stack[id_stack as usize] - 1, id_stack);
-                                self.push_pile(id, card);
-                            }
-                            &Pos::Pile(id_pile) => {
-                                self.move_pile(id_pile, id);
-                            }
-                            Pos::Deck(_) => unreachable!(),
-                        };
-                    }
-                }
-            }
-        }
-        if let &Pos::Stack(id) = src {
-            debug_assert!(self.final_stack[id as usize] < N_RANKS);
-            self.final_stack[id as usize] += 1;
-        }
-        if let &Pos::Stack(id) = dst {
-            debug_assert!(self.final_stack[id as usize] > 0);
-            self.final_stack[id as usize] -= 1;
-        }
-        // handling deck
-    }
-
-    fn encode_stack(self: &Solitaire) -> u16 {
+    // can be made const fn
+    fn encode_stack(&self) -> u16 {
         // considering to make it incremental?
-        return self
-            .final_stack
+        self.final_stack
+            .iter()
+            .rev()
+            .fold(0u16, |res, cur| (res << 4) + (*cur as u16))
+    }
+
+    // can be made const fn
+    fn encode_hidden(&self) -> u16 {
+        self.n_hidden
             .iter()
             .enumerate()
-            .map(|x| (*x.1 as u16) << (x.0 * 4))
-            .sum();
+            .rev()
+            .fold(0u16, |res, cur| res * (cur.0 as u16 + 2) + *cur.1 as u16)
     }
-    fn encode_piles(self: &Solitaire) -> [u16; N_PILES as usize] {
-        // a bit slow maybe optimize later :(
-        let mut res = self.visible_piles.map(|p| p.encode()); // you can always ignore 0 since it's not a valid state
-        let mut i: usize = 0;
-        for k in 0..N_PILES as usize {
-            if self.n_hidden[k] == 0 {
-                res.swap(i, k);
-                i += 1;
+
+    // can be made const fn
+    pub fn encode(&self) -> Encode {
+        let stack_encode = self.encode_stack(); // 16 bits (can be reduce to 15)
+        let hidden_encode = self.encode_hidden(); // 16 bits
+        let deck_encode = self.deck.encode(); // 29 bits (can be reduced to 25)
+
+        (stack_encode as u64) | (hidden_encode as u64) << (16) | (deck_encode as u64) << (16 + 16)
+    }
+
+    pub fn decode(&mut self, encode: u64) {
+        let (stack_encode, mut hidden_encode, deck_encode) = (
+            encode as u16 & 0xFFFF,
+            (encode >> 16) as u16 & 0xFFFF,
+            (encode >> 32) as u32,
+        );
+        let mut nonvis_mask = 0;
+        // decode stack
+        self.final_stack = array::from_fn(|i| (stack_encode >> (4 * i)) as u8 & 0xF);
+        for suit in 0..N_SUITS {
+            for rank in 0..self.final_stack[suit as usize] {
+                nonvis_mask |= card_mask(&Card::new(rank, suit));
             }
         }
-        res[..i].sort_unstable();
-        res
-    }
 
-    pub fn encode(self: &Solitaire) -> Encode {
-        // we don't need to encode the number of hidden cards since we can infer it from the piles.
-        // since the pile + stack will contain all the unlocked cards
-        // We also don't need to encode which cards is in the deck since the pile + stack has all the cards that not in the deck
-
-        // considering to make it incremental?
-        // maximum 24 (N_FULL_DECK)
-        // only need u8, but whatever :<
-        let pile_encode = self.encode_piles();
-        let stack_encode = self.encode_stack();
-        let deck_encode = self.deck.encode_offset() as u16; //a bit wasteful
-
-        return concat_arrays!(pile_encode, [stack_encode], [deck_encode]);
-    }
-}
-
-impl fmt::Display for Solitaire {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (pos, card, t) in self.deck.iter_all() {
-            let s = format!("{} ", pos);
-            let prefix = match t {
-                Drawable::None => s.bright_black(),
-                Drawable::Current => s.on_blue(),
-                Drawable::Next => s.on_bright_blue(),
-            };
-            write!(f, "{}{} ", prefix, card)?;
-        }
-        writeln!(f)?;
-
-        write!(f, "\t\t")?;
-
-        for i in 0u8..4u8 {
-            let card = self.final_stack[i as usize];
-            let card = if card == 0 {
-                Card::FAKE
-            } else {
-                Card::new(card - 1, i)
-            };
-            write!(f, "{}.{} ", i + 1, card)?;
-        }
-        writeln!(f)?;
-
+        // decode hidden
+        let mut top_mask = 0;
         for i in 0..N_PILES {
-            write!(f, "{}\t", i + 5)?;
-        }
-        writeln!(f)?;
+            let n_options = i as u16 + 2;
+            let n_hid = (hidden_encode % n_options) as u8;
+            hidden_encode /= n_options;
 
-        let mut i = 0; // skip the hidden layer
+            self.n_hidden[i as usize] = n_hid;
 
-        loop {
-            let mut is_print = false;
-            for j in 0..N_PILES {
-                let ref cur_pile = self.visible_piles[j as usize];
+            if let Some((last, hidden)) = self.get_hidden(i).split_last() {
+                for c in hidden {
+                    nonvis_mask |= card_mask(c);
+                }
 
-                let n_hidden = self.n_hidden[j as usize];
-                let n_visible = cur_pile.len();
-                if n_hidden > i {
-                    write!(f, "**\t")?;
-                    is_print = true;
-                } else if i < n_hidden + n_visible {
-                    write!(f, "{}\t", cur_pile.top(i - n_hidden))?;
-                    is_print = true;
-                } else {
-                    write!(f, "  \t")?;
+                if last.rank() < KING_RANK {
+                    top_mask |= card_mask(&last);
                 }
             }
-            writeln!(f)?;
-            i += 1;
-            if !is_print {
-                break;
+        }
+
+        // decode visible + top mask :'(
+        self.deck.decode(deck_encode);
+        for (_, c, _) in self.deck.iter_all() {
+            nonvis_mask |= card_mask(c);
+        }
+
+        self.top_mask = top_mask;
+        self.visible_mask = full_mask(N_CARDS) ^ nonvis_mask;
+    }
+
+    pub fn get_normal_piles(&self) -> [PileVec; N_PILES as usize] {
+        let mut king_suit = 0;
+        core::array::from_fn(|i| {
+            let n_hid = self.n_hidden[i];
+            let mut start_card = if n_hid == 0 {
+                while king_suit < 4
+                    && (self.visible_mask ^ self.top_mask)
+                        & card_mask(&Card::new(KING_RANK, king_suit))
+                        == 0
+                {
+                    king_suit += 1;
+                }
+                if king_suit < 4 {
+                    king_suit += 1;
+                    Card::new(KING_RANK, king_suit - 1)
+                } else {
+                    return PileVec::new();
+                }
+            } else {
+                *self.get_hidden(i as u8).last().unwrap()
+            };
+
+            let mut cards = PileVec::new();
+            loop {
+                // push start card
+                cards.push(start_card);
+
+                if start_card.rank() == 0 {
+                    break;
+                }
+                let has_both = card_mask(&Card::new(start_card.rank(), start_card.suit() ^ 1))
+                    & self.visible_mask
+                    != 0;
+
+                start_card = Card::new(start_card.rank() - 1, start_card.suit() ^ 2);
+
+                let mask = card_mask(&start_card);
+                if !has_both && (self.visible_mask & mask == 0 || self.top_mask & mask != 0) {
+                    start_card = Card::new(start_card.rank(), start_card.suit() ^ 1);
+                }
+
+                let mask = card_mask(&start_card);
+                if self.visible_mask & mask == 0 || self.top_mask & mask != 0 {
+                    break;
+                }
+            }
+            cards
+        })
+    }
+
+    pub fn shuffle_hidden(&mut self, rng: &mut impl RngCore) {
+        for pos in 0..N_PILES {
+            if let Some((_, hidden)) = self.get_hidden_mut(pos).split_last_mut() {
+                hidden.shuffle(rng);
             }
         }
-        Ok(())
     }
 }
 
-pub struct Solvitaire(Solitaire);
-impl Solvitaire {
-    pub fn new(deck: &CardDeck, draw_step: u8) -> Solvitaire {
-        Solvitaire {
-            0: Solitaire::new(deck, draw_step),
-        }
-    }
-}
-
-impl fmt::Display for Solvitaire {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, r#"{{"tableau piles": ["#)?;
+impl From<&StandardSolitaire> for Solitaire {
+    fn from(game: &StandardSolitaire) -> Self {
+        let mut hidden_piles = [Card::FAKE; N_HIDDEN_CARDS as usize];
+        let mut hidden = [0u8; N_CARDS as usize];
+        let mut visible_mask: u64 = 0;
 
         for i in 0..N_PILES as usize {
-            write!(f, "[")?;
-            for j in 0..i as usize {
-                // hidden cards
-                self.0.hidden_piles[i * (i - 1) / 2 + j].print_solvitaire::<true>(f)?;
-                write!(f, ",")?;
+            for (j, c) in game.hidden_piles[i]
+                .iter()
+                .chain(game.piles[i].first())
+                .enumerate()
+            {
+                hidden_piles[(i * (i + 1) / 2) as usize + j] = *c;
+                hidden[c.value() as usize] = i as u8;
             }
-            self.0.visible_piles[i].end().print_solvitaire::<false>(f)?;
-            if i + 1 < N_PILES as usize {
-                writeln!(f, "],")?;
-            } else {
-                writeln!(f, "]")?;
+            for c in &game.piles[i] {
+                visible_mask |= card_mask(c);
+            }
+        }
+        let mut top_mask: u64 = 0;
+        let mut n_hidden = [0u8; N_PILES as usize];
+
+        for i in 0..N_PILES as usize {
+            let l = game.hidden_piles[i].len() as u8;
+            n_hidden[i] = match game.piles[i].first() {
+                Some(c) => {
+                    if c.rank() < KING_RANK || l > 0 {
+                        top_mask |= card_mask(c);
+                        l + 1
+                    } else {
+                        0
+                    }
+                }
+                None => {
+                    assert_eq!(l, 0);
+                    0
+                }
             }
         }
 
-        write!(f, "],\"stock\": [")?;
-
-        let tmp: Vec<(u8, Card)> = self.0.deck.iter_all().map(|x| (x.0, *x.1)).collect();
-
-        for &(idx, c) in tmp.iter().rev() {
-            c.print_solvitaire::<false>(f)?;
-            if idx == 0 {
-                write!(f, "]")?;
-            } else {
-                write!(f, ",")?;
-            }
+        Solitaire {
+            hidden_piles,
+            n_hidden,
+            hidden,
+            final_stack: game.final_stack,
+            deck: game.deck.clone(),
+            visible_mask,
+            top_mask,
         }
-        write!(f, "}}")?;
-
-        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use rand::prelude::*;
+
+    use crate::deck::{Drawable, N_FULL_DECK};
+    use crate::shuffler::default_shuffle;
+
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
-
-    fn assert_moves(mut a: Vec<MoveType>, mut b: Vec<MoveType>) {
-        a.sort();
-        b.sort();
-
-        assert_eq!(a, b);
-    }
-
-    #[test]
-    fn test_game() {
-        let cards = [
-            30, 33, 41, 13, 28, 11, 16, 36, 9, 39, 17, 37, 21, 10, 1, 38, 0, 50, 14, 31, 20, 46,
-            18, 32, 7, 49, 3, 19, 8, 44, 4, 51, 2, 15, 40, 35, 43, 22, 12, 42, 26, 23, 24, 5, 6,
-            48, 27, 45, 47, 29, 34, 25,
-        ]
-        .map(|i| Card::new(i / N_SUITS, i % N_SUITS));
-        let mut game = Solitaire::new(&cards, 3);
-        assert_moves(
-            game.gen_moves::<false>(),
-            vec![
-                (Pos::Deck(20), Pos::Pile(4)),
-                (Pos::Pile(0), Pos::Pile(4)),
-                (Pos::Pile(5), Pos::Stack(3)),
-            ],
-        );
-
-        assert_moves(
-            game.gen_moves::<true>(),
-            vec![(Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        game.do_move(&(Pos::Pile(0), Pos::Pile(4)));
-
-        assert_moves(
-            game.gen_moves::<false>(),
-            vec![
-                (Pos::Deck(17), Pos::Pile(0)),
-                (Pos::Pile(4), Pos::Pile(0)),
-                (Pos::Pile(5), Pos::Stack(3)),
-            ],
-        );
-
-        assert_moves(
-            game.gen_moves::<true>(),
-            vec![(Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        game.do_move(&(Pos::Pile(4), Pos::Pile(0)));
-        assert_moves(
-            game.gen_moves::<false>(),
-            vec![(Pos::Pile(2), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        assert_moves(
-            game.gen_moves::<true>(),
-            vec![(Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        game.do_move(&(Pos::Pile(2), Pos::Pile(4)));
-
-        assert_moves(
-            game.gen_moves::<false>(),
-            vec![
-                (Pos::Pile(2), Pos::Pile(0)),
-                (Pos::Pile(4), Pos::Pile(2)),
-                (Pos::Pile(5), Pos::Stack(3)),
-            ],
-        );
-
-        assert_moves(
-            game.gen_moves::<true>(),
-            vec![(Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        game.do_move(&(Pos::Pile(2), Pos::Pile(0)));
-
-        assert_moves(
-            game.gen_moves::<false>(),
-            vec![(Pos::Pile(4), Pos::Pile(0)), (Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        assert_moves(
-            game.gen_moves::<true>(),
-            vec![(Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        game.do_move(&(Pos::Pile(4), Pos::Pile(0)));
-
-        assert_moves(
-            game.gen_moves::<false>(),
-            vec![(Pos::Pile(3), Pos::Pile(4)), (Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        assert_moves(
-            game.gen_moves::<true>(),
-            vec![(Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        game.do_move(&(Pos::Pile(3), Pos::Pile(4)));
-
-        assert_moves(
-            game.gen_moves::<false>(),
-            vec![(Pos::Deck(2), Pos::Pile(3)), (Pos::Pile(5), Pos::Stack(3))],
-        );
-
-        assert_moves(
-            game.gen_moves::<true>(),
-            vec![(Pos::Pile(5), Pos::Stack(3))],
-        );
-    }
 
     #[test]
     fn test_draw_unrolling() {
         let mut rng = StdRng::seed_from_u64(14);
 
-        let mut moves = Vec::<MoveType>::new();
-
+        let mut test = ArrayVec::<(u8, Card), N_FULL_DECK>::new();
         for i in 0..100 {
-            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
-                let iter_org = game.deck.iter();
-                let check_cur = game
+                let mut truth = game
                     .deck
                     .iter_all()
-                    .filter(|x| matches!(x.2, Drawable::Current))
-                    .map(|x| x.1);
-                let check_next = game
-                    .deck
-                    .iter_all()
-                    .filter(|x| matches!(x.2, Drawable::Next))
-                    .map(|x| x.1);
+                    .filter(|x| !matches!(x.2, Drawable::None))
+                    .map(|x| (x.0, *x.1))
+                    .collect::<ArrayVec<(u8, Card), N_FULL_DECK>>();
 
-                assert!(iter_org.map(|x| x.1).eq(check_cur.chain(check_next)));
+                test.clear();
+                game.deck.iter_callback(false, |pos, x| {
+                    test.push((pos, *x));
+                    false
+                });
 
-                assert!(game.deck.peek_last() == game.deck.iter_all().last().map(|x| x.1));
+                test.sort_by_key(|x| x.0);
+                truth.sort_by_key(|x| x.0);
 
-                moves.clear();
-                game.gen_moves_::<true>(&mut moves);
+                assert_eq!(test, truth);
+
+                let moves = game.list_moves::<false>();
                 if moves.len() == 0 {
                     break;
                 }
@@ -704,32 +753,35 @@ mod tests {
     fn test_undoing() {
         let mut rng = StdRng::seed_from_u64(14);
 
-        let mut moves = Vec::<MoveType>::new();
-
-        for i in 0..100 {
-            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
+        for i in 0..1000 {
+            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
-                moves.clear();
-                game.gen_moves_::<true>(&mut moves);
+                let moves = game.list_moves::<false>();
                 if moves.len() == 0 {
                     break;
                 }
 
                 let state = game.encode();
-                let ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
+                game.decode(state);
+                assert_eq!(game.encode(), state);
+
+                let ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =
+                    game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 
                 let m = moves.choose(&mut rng).unwrap();
                 let undo = game.do_move(m);
                 let next_state = game.encode();
-                // assert_ne!(next_state, state); // could to do unmeaningful moves
+                assert_ne!(next_state, state);
                 game.undo_move(m, &undo);
-                let new_ids: Vec<(usize, Card)> = game.deck.iter().map(|x| (x.0, *x.1)).collect();
+                let new_ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =
+                    game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 
                 assert_eq!(ids, new_ids);
                 let undo_state = game.encode();
-                if undo_state != state {
-                    assert_eq!(undo_state, state);
-                }
+                assert_eq!(undo_state, state);
+                game.decode(state);
+                assert_eq!(game.encode(), state);
+
                 game.do_move(m);
                 assert_eq!(game.encode(), next_state);
             }
@@ -740,16 +792,14 @@ mod tests {
     fn test_deep_undoing() {
         let mut rng = StdRng::seed_from_u64(14);
 
-        let mut moves = Vec::<MoveType>::new();
+        for i in 0..1000 {
+            const N_STEP: usize = 100;
+            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
+            let mut history = ArrayVec::<(Move, UndoInfo), N_STEP>::new();
+            let mut enc = ArrayVec::<Encode, N_STEP>::new();
 
-        for i in 0..100 {
-            let mut game = Solitaire::new(&generate_shuffled_deck(12 + i), 3);
-            let mut history = Vec::<(MoveType, UndoInfo)>::new();
-            let mut enc = Vec::<Encode>::new();
-
-            for _ in 0..100 {
-                moves.clear();
-                game.gen_moves_::<true>(&mut moves);
+            for _ in 0..N_STEP {
+                let moves = game.list_moves::<false>();
                 if moves.len() == 0 {
                     break;
                 }
