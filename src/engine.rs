@@ -644,9 +644,20 @@ impl Solitaire {
     }
 
     pub fn shuffle_hidden(&mut self, rng: &mut impl RngCore) {
+        let mut all_stuff = ArrayVec::<Card, { N_HIDDEN_CARDS as usize }>::new();
+        for pos in 0..N_PILES {
+            if let Some((_, hidden)) = self.get_hidden(pos).split_last() {
+                all_stuff.extend(hidden.iter().cloned());
+            }
+        }
+        all_stuff.shuffle(rng);
+
+        let mut start = 0;
+
         for pos in 0..N_PILES {
             if let Some((_, hidden)) = self.get_hidden_mut(pos).split_last_mut() {
-                hidden.shuffle(rng);
+                hidden.copy_from_slice(&all_stuff[start..start + hidden.len()]);
+                start += hidden.len();
             }
         }
     }
