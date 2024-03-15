@@ -70,15 +70,15 @@ impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for BuilderCallback
         self.stats.hit_unique_state(self.depth, m.len());
     }
 
-    fn on_do_move(&mut self, _: usize, m: &Move, e: Encode) {
+    fn on_do_move(&mut self, _: &Solitaire, m: &Move, e: Encode, _: &Option<Move>) {
         self.last_move = *m;
         self.prev_enc = e;
         self.depth += 1;
     }
 
-    fn on_undo_move(&mut self, pos: usize, _: &Move, _: Encode) {
+    fn on_undo_move(&mut self, _: &Move, _: Encode) {
         self.depth -= 1;
-        self.stats.finish_move(self.depth, pos);
+        self.stats.finish_move(self.depth);
     }
 
     fn on_start(&mut self) {}

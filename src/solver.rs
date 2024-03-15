@@ -46,13 +46,13 @@ impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for SolverCallback<
         self.stats.hit_unique_state(self.history.len(), m.len());
     }
 
-    fn on_do_move(&mut self, _: usize, m: &Move, _: Encode) {
+    fn on_do_move(&mut self, _: &Solitaire, m: &Move, _: Encode, _: &Option<Move>) {
         self.history.push(*m);
     }
 
-    fn on_undo_move(&mut self, pos: usize, _: &Move, _: Encode) {
+    fn on_undo_move(&mut self, _: &Move, _: Encode) {
         self.history.pop();
-        self.stats.finish_move(self.history.len(), pos);
+        self.stats.finish_move(self.history.len());
     }
 
     fn on_start(&mut self) {}

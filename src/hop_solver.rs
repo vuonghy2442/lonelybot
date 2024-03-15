@@ -37,9 +37,9 @@ impl<'a, T: SearchSignal> GraphCallback for HOPSolverCallback<'a, T> {
 
     fn on_move_gen(&mut self, _: &crate::engine::MoveVec, _: Encode) {}
 
-    fn on_do_move(&mut self, _: usize, _: &Move, _: Encode) {}
+    fn on_do_move(&mut self, _: &Solitaire, _: &Move, _: Encode, _: &Option<Move>) {}
 
-    fn on_undo_move(&mut self, _: usize, _: &Move, _: Encode) {}
+    fn on_undo_move(&mut self, _: &Move, _: Encode) {}
 
     fn on_start(&mut self) {}
 
@@ -50,6 +50,7 @@ impl<'a, T: SearchSignal> GraphCallback for HOPSolverCallback<'a, T> {
 
 pub fn hop_solve_game(
     g: &Solitaire,
+    m: &Move,
     rng: &mut impl RngCore,
     n_times: usize,
     limit: usize,
@@ -78,6 +79,7 @@ pub fn hop_solve_game(
     for _ in 0..n_times {
         let mut gg = g.clone();
         gg.shuffle_hidden(rng);
+        gg.do_move(m);
 
         let mut callback = HOPSolverCallback {
             sign,
@@ -119,12 +121,8 @@ impl<'a, R: RngCore, S: SearchSignal> GraphCallback for RevStatesCallback<'a, R,
         TraverseResult::Halted
     }
 
-    fn on_visit(&mut self, g: &Solitaire, rev: &Option<Move>, _: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, rev: &Option<Move>, _: Encode) -> TraverseResult {
         if rev.is_none() && self.his.len() > 0 {
-            self.res.push((
-                self.his.clone(),
-                hop_solve_game(g, self.rng, self.n_times, self.limit, self.sign),
-            ));
             TraverseResult::Skip
         } else {
             TraverseResult::Ok
@@ -133,11 +131,17 @@ impl<'a, R: RngCore, S: SearchSignal> GraphCallback for RevStatesCallback<'a, R,
 
     fn on_move_gen(&mut self, _: &crate::engine::MoveVec, _: Encode) {}
 
-    fn on_do_move(&mut self, _: usize, m: &Move, _: Encode) {
+    fn on_do_move(&mut self, g: &Solitaire, m: &Move, _: Encode, rev: &Option<Move>) {
         self.his.push(*m);
+        if rev.is_none() {
+            self.res.push((
+                self.his.clone(),
+                hop_solve_game(g, m, self.rng, self.n_times, self.limit, self.sign),
+            ));
+        }
     }
 
-    fn on_undo_move(&mut self, _: usize, _: &Move, _: Encode) {
+    fn on_undo_move(&mut self, _: &Move, _: Encode) {
         self.his.pop();
     }
 

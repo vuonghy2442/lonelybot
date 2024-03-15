@@ -5,7 +5,7 @@ const TRACK_DEPTH: usize = 8;
 pub trait SearchStatistics {
     fn hit_a_state(&self, depth: usize);
     fn hit_unique_state(&self, depth: usize, n_moves: usize);
-    fn finish_move(&self, depth: usize, move_pos: usize);
+    fn finish_move(&self, depth: usize);
 
     fn total_visit(&self) -> usize;
     fn unique_visit(&self) -> usize;
@@ -29,7 +29,7 @@ impl SearchStatistics for EmptySearchStats {
 
     fn hit_a_state(&self, _: usize) {}
     fn hit_unique_state(&self, _: usize, _: usize) {}
-    fn finish_move(&self, _: usize, _: usize) {}
+    fn finish_move(&self, _: usize) {}
 }
 
 #[derive(Debug)]
@@ -79,11 +79,9 @@ impl SearchStatistics for AtomicSearchStats {
         }
     }
 
-    fn finish_move(&self, depth: usize, move_pos: usize) {
+    fn finish_move(&self, depth: usize) {
         if depth < TRACK_DEPTH {
-            self.move_state[depth]
-                .0
-                .store((move_pos + 1) as u8, Ordering::Relaxed);
+            self.move_state[depth].0.fetch_add(1, Ordering::Relaxed);
         }
     }
 }

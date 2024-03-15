@@ -28,8 +28,8 @@ pub trait GraphCallback {
     ) -> TraverseResult;
     fn on_move_gen(&mut self, m: &MoveVec, encode: Encode);
 
-    fn on_do_move(&mut self, pos: usize, m: &Move, encode: Encode);
-    fn on_undo_move(&mut self, pos: usize, m: &Move, encode: Encode);
+    fn on_do_move(&mut self, g: &Solitaire, m: &Move, encode: Encode, rev_move: &Option<Move>);
+    fn on_undo_move(&mut self, m: &Move, encode: Encode);
 
     fn on_start(&mut self);
     fn on_finish(&mut self, res: &TraverseResult);
@@ -62,19 +62,19 @@ fn traverse(
     let move_list = g.list_moves::<true>();
     callback.on_move_gen(&move_list, encode);
 
-    for (pos, &m) in move_list.iter().enumerate() {
+    for &m in move_list.iter() {
         if Some(m) == rev_move {
             continue;
         }
         let rev_move = g.get_rev_move(&m);
 
-        callback.on_do_move(pos, &m, encode);
+        callback.on_do_move(g, &m, encode, &rev_move);
         let undo = g.do_move(&m);
 
         let res = traverse(g, rev_move, tp, callback);
 
         g.undo_move(&m, &undo);
-        callback.on_undo_move(pos, &m, encode);
+        callback.on_undo_move(&m, encode);
 
         if res == TraverseResult::Halted {
             return TraverseResult::Halted;
