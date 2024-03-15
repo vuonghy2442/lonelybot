@@ -154,7 +154,7 @@ fn do_random(seed: &Seed) {
     println!("Total win {}/{}", total_win, TOTAL_GAME);
 }
 
-fn do_hop(seed: &Seed) {
+fn do_hop(seed: &Seed, verbose: bool) -> bool {
     let mut game = Solitaire::new(&shuffle(&seed), 3);
 
     let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
@@ -164,18 +164,25 @@ fn do_hop(seed: &Seed) {
 
     while !game.is_win() {
         let res = hop_moves_game(&mut game, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
-        println!("{} {:?}", game.encode(), res);
+        if verbose {
+            println!("{} {:?}", game.encode(), res);
+        }
         let best = res.iter().max_by_key(|x| x.1 .0);
         if let Some(best) = best {
             for m in &best.0 {
                 game.do_move(m);
             }
         } else {
-            println!("Lost");
-            return;
+            if verbose {
+                println!("Lost");
+            }
+            return false;
         }
     }
-    println!("Solved");
+    if verbose {
+        println!("Solved");
+    }
+    true
 }
 
 fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
@@ -412,6 +419,10 @@ enum Commands {
         #[command(flatten)]
         seed: StringSeed,
     },
+    HOPLoop {
+        #[command(flatten)]
+        seed: StringSeed,
+    },
 }
 
 fn main() {
@@ -434,6 +445,16 @@ fn main() {
             println!("{}", shuffler::encode_shuffle(shuffled_deck));
         }
         Commands::Random { seed } => do_random(&seed.into()),
-        Commands::HOP { seed } => do_hop(&seed.into()),
+        Commands::HOP { seed } => {
+            do_hop(&seed.into(), true);
+        }
+        Commands::HOPLoop { seed } => {
+            let mut total: usize = 0;
+            for i in 0.. {
+                let s: Seed = seed.into();
+                total += do_hop(&s.increase(i), false) as usize;
+                println!("{}/{}", total, i + 1);
+            }
+        }
     }
 }
