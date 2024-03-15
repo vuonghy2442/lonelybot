@@ -655,9 +655,17 @@ impl Solitaire {
         let mut start = 0;
 
         for pos in 0..N_PILES {
-            if let Some((_, hidden)) = self.get_hidden_mut(pos).split_last_mut() {
-                hidden.copy_from_slice(&all_stuff[start..start + hidden.len()]);
+            let cards = if let Some((_, hidden)) = self.get_hidden_mut(pos).split_last_mut() {
+                let cards = &all_stuff[start..start + hidden.len()];
+                hidden.copy_from_slice(cards);
                 start += hidden.len();
+                cards
+            } else {
+                &[]
+            };
+
+            for c in cards {
+                self.hidden[c.value() as usize] = pos;
             }
         }
     }
