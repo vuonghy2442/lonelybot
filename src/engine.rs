@@ -429,8 +429,24 @@ impl Solitaire {
         &self.n_hidden
     }
 
-    pub const fn get_hidden(self: &Solitaire, pos: u8, n_hid: u8) -> Card {
-        self.hidden_piles[(pos * (pos + 1) / 2 + n_hid) as usize]
+    pub fn get_hidden(self: &Solitaire, pos: u8) -> &[Card] {
+        let start = (pos * (pos + 1) / 2) as usize;
+        let end = start + self.n_hidden[pos as usize] as usize;
+        &self.hidden_piles[start..end]
+    }
+
+    pub fn get_hidden_mut(self: &mut Solitaire, pos: u8) -> &mut [Card] {
+        let start = (pos * (pos + 1) / 2) as usize;
+        &mut self.hidden_piles[start..start + self.n_hidden[pos as usize] as usize]
+    }
+
+    pub fn peek_hidden(&mut self, pos: u8) -> Option<&Card> {
+        self.get_hidden(pos).last()
+    }
+
+    pub fn pop_hidden(&mut self, pos: u8) -> Option<&Card> {
+        self.n_hidden[pos as usize] -= 1;
+        self.peek_hidden(pos)
     }
 
     pub fn make_reveal(self: &mut Solitaire, m: &u64) -> UndoInfo {
@@ -438,9 +454,8 @@ impl Solitaire {
         let pos = self.hidden[card.value() as usize];
         self.top_mask &= !m;
 
-        self.n_hidden[pos as usize] -= 1;
-        if self.n_hidden[pos as usize] > 0 {
-            let new_card = self.get_hidden(pos, self.n_hidden[pos as usize] - 1);
+        let new_card = self.pop_hidden(pos);
+        if let Some(&new_card) = new_card {
             let revealed = card_mask(&new_card);
             self.visible_mask |= revealed;
             if new_card.rank() < KING_RANK || self.n_hidden[pos as usize] != 1 {
@@ -457,8 +472,7 @@ impl Solitaire {
 
         self.top_mask |= m;
 
-        if self.n_hidden[pos as usize] > 0 {
-            let new_card = self.get_hidden(pos, self.n_hidden[pos as usize] - 1);
+        if let Some(new_card) = self.peek_hidden(pos) {
             let unrevealed = !card_mask(&new_card);
             self.visible_mask &= unrevealed;
             self.top_mask &= unrevealed;
@@ -554,14 +568,14 @@ impl Solitaire {
             hidden_encode /= n_options;
 
             self.n_hidden[i as usize] = n_hid;
-            if n_hid > 0 {
-                for j in 0..n_hid - 1 {
-                    nonvis_mask |= card_mask(&self.get_hidden(i, j));
+
+            if let Some((last, hidden)) = self.get_hidden(i).split_last() {
+                for c in hidden {
+                    nonvis_mask |= card_mask(c);
                 }
 
-                let c = self.get_hidden(i, n_hid - 1);
-                if c.rank() < KING_RANK {
-                    top_mask |= card_mask(&c);
+                if last.rank() < KING_RANK {
+                    top_mask |= card_mask(&last);
                 }
             }
         }
@@ -595,7 +609,7 @@ impl Solitaire {
                     return PileVec::new();
                 }
             } else {
-                self.get_hidden(i as u8, n_hid - 1)
+                *self.get_hidden(i as u8).last().unwrap()
             };
 
             let mut cards = PileVec::new();

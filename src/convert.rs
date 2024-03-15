@@ -9,9 +9,11 @@ impl From<&Solitaire> for StandardSolitaire {
         let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
 
         for i in 0..N_PILES {
-            let n_hid = game.get_n_hidden()[i as usize].saturating_sub(1);
-            for j in 0..n_hid {
-                hidden_piles[i as usize].push(game.get_hidden(i, j));
+            let Some((_, hidden)) = game.get_hidden(i).split_last() else {
+                continue;
+            };
+            for c in hidden {
+                hidden_piles[i as usize].push(*c);
             }
         }
 
