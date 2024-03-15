@@ -1,6 +1,8 @@
 use core::array;
 
 use arrayvec::ArrayVec;
+use rand::seq::SliceRandom;
+use rand::RngCore;
 
 use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_HIDDEN_CARDS, N_PILES};
@@ -17,7 +19,7 @@ pub enum Move {
     Reveal(Card),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Solitaire {
     hidden_piles: [Card; N_HIDDEN_CARDS as usize],
     n_hidden: [u8; N_PILES as usize],
@@ -155,15 +157,15 @@ impl Solitaire {
         }
     }
 
-    pub const fn get_visible_mask(self: &Solitaire) -> u64 {
+    pub const fn get_visible_mask(&self) -> u64 {
         self.visible_mask
     }
 
-    pub const fn get_top_mask(self: &Solitaire) -> u64 {
+    pub const fn get_top_mask(&self) -> u64 {
         self.top_mask
     }
 
-    pub const fn get_bottom_mask(self: &Solitaire) -> u64 {
+    pub const fn get_bottom_mask(&self) -> u64 {
         let vis = self.get_visible_mask();
         let non_top = vis ^ self.get_top_mask();
         let xor_non_top = non_top ^ (non_top >> 1);
@@ -178,7 +180,7 @@ impl Solitaire {
         //shared rank
         bottom_mask * 0b11
     }
-    pub const fn get_stack_mask(self: &Solitaire) -> u64 {
+    pub const fn get_stack_mask(&self) -> u64 {
         let s = self.final_stack;
         card_mask(&Card::new(s[0], 0))
             | card_mask(&Card::new(s[1], 1))
@@ -186,7 +188,7 @@ impl Solitaire {
             | card_mask(&Card::new(s[3], 3))
     }
 
-    pub const fn get_stack_dominances_mask(self: &Solitaire) -> u64 {
+    pub const fn get_stack_dominances_mask(&self) -> u64 {
         let s = self.final_stack;
         let d = (min(s[0], s[1]), min(s[2], s[3]));
         let d = (min(d.0 + 1, d.1) + 2, min(d.0, d.1 + 1) + 2);
@@ -194,7 +196,7 @@ impl Solitaire {
         (COLOR_MASK[0] & full_mask(d.0 * 4)) | (COLOR_MASK[1] & full_mask(d.1 * 4))
     }
 
-    pub fn get_deck_mask<const DOMINANCES: bool>(self: &Solitaire) -> (u64, bool) {
+    pub fn get_deck_mask<const DOMINANCES: bool>(&self) -> (u64, bool) {
         let filter = DOMINANCES
             && self.deck.peek_last().is_some_and(|&x| {
                 let (rank, suit) = x.split();
@@ -216,7 +218,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub fn list_moves<const DOMINANCES: bool>(self: &Solitaire) -> MoveVec {
+    pub fn list_moves<const DOMINANCES: bool>(&self) -> MoveVec {
         let mut moves = MoveVec::new();
 
         iter_moves(self.gen_moves::<DOMINANCES>(), |m| {
@@ -228,7 +230,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub fn gen_moves<const DOMINANCES: bool>(self: &Solitaire) -> [u64; 5] {
+    pub fn gen_moves<const DOMINANCES: bool>(&self) -> [u64; 5] {
         let vis = self.get_visible_mask();
         let top = self.get_top_mask();
 
@@ -356,7 +358,7 @@ impl Solitaire {
         }
     }
 
-    pub fn make_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64) -> UndoInfo {
+    pub fn make_stack<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
         let card = from_mask(&mask);
         self.final_stack[card.suit() as usize] += 1;
 
@@ -375,7 +377,7 @@ impl Solitaire {
         }
     }
 
-    pub fn unmake_stack<const DECK: bool>(self: &mut Solitaire, mask: &u64, info: &UndoInfo) {
+    pub fn unmake_stack<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
         let card = from_mask(&mask);
         self.final_stack[card.suit() as usize] -= 1;
 
@@ -390,7 +392,7 @@ impl Solitaire {
         }
     }
 
-    pub fn make_pile<const DECK: bool>(self: &mut Solitaire, mask: &u64) -> UndoInfo {
+    pub fn make_pile<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
         let card = from_mask(&mask);
         self.visible_mask |= mask;
         if DECK {
@@ -404,7 +406,7 @@ impl Solitaire {
         }
     }
 
-    pub fn unmake_pile<const DECK: bool>(self: &mut Solitaire, mask: &u64, info: &UndoInfo) {
+    pub fn unmake_pile<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
         let card = from_mask(&mask);
 
         self.visible_mask &= !mask;
@@ -417,27 +419,28 @@ impl Solitaire {
         }
     }
 
-    pub const fn get_deck(self: &Solitaire) -> &Deck {
+    pub const fn get_deck(&self) -> &Deck {
         &self.deck
     }
 
-    pub const fn get_stack(self: &Solitaire) -> &[u8; N_SUITS as usize] {
+    pub const fn get_stack(&self) -> &[u8; N_SUITS as usize] {
         &self.final_stack
     }
 
-    pub const fn get_n_hidden(self: &Solitaire) -> &[u8; N_PILES as usize] {
+    pub const fn get_n_hidden(&self) -> &[u8; N_PILES as usize] {
         &self.n_hidden
     }
 
-    pub fn get_hidden(self: &Solitaire, pos: u8) -> &[Card] {
+    pub fn get_hidden(&self, pos: u8) -> &[Card] {
         let start = (pos * (pos + 1) / 2) as usize;
         let end = start + self.n_hidden[pos as usize] as usize;
         &self.hidden_piles[start..end]
     }
 
-    pub fn get_hidden_mut(self: &mut Solitaire, pos: u8) -> &mut [Card] {
+    pub fn get_hidden_mut(&mut self, pos: u8) -> &mut [Card] {
         let start = (pos * (pos + 1) / 2) as usize;
-        &mut self.hidden_piles[start..start + self.n_hidden[pos as usize] as usize]
+        let end = start + self.n_hidden[pos as usize] as usize;
+        &mut self.hidden_piles[start..end]
     }
 
     pub fn peek_hidden(&mut self, pos: u8) -> Option<&Card> {
@@ -449,7 +452,7 @@ impl Solitaire {
         self.peek_hidden(pos)
     }
 
-    pub fn make_reveal(self: &mut Solitaire, m: &u64) -> UndoInfo {
+    pub fn make_reveal(&mut self, m: &u64) -> UndoInfo {
         let card = from_mask(&m);
         let pos = self.hidden[card.value() as usize];
         self.top_mask &= !m;
@@ -466,7 +469,7 @@ impl Solitaire {
         Default::default()
     }
 
-    pub fn unmake_reveal(self: &mut Solitaire, m: &u64, _info: &UndoInfo) {
+    pub fn unmake_reveal(&mut self, m: &u64, _info: &UndoInfo) {
         let card = from_mask(&m);
         let pos = self.hidden[card.value() as usize];
 
@@ -480,7 +483,7 @@ impl Solitaire {
         self.n_hidden[pos as usize] += 1;
     }
 
-    pub fn do_move(self: &mut Solitaire, m: &Move) -> UndoInfo {
+    pub fn do_move(&mut self, m: &Move) -> UndoInfo {
         match m {
             Move::DeckStack(c) => self.make_stack::<true>(&card_mask(c)),
             Move::PileStack(c) => self.make_stack::<false>(&card_mask(c)),
@@ -490,7 +493,7 @@ impl Solitaire {
         }
     }
 
-    pub fn undo_move(self: &mut Solitaire, m: &Move, undo: &UndoInfo) {
+    pub fn undo_move(&mut self, m: &Move, undo: &UndoInfo) {
         match m {
             Move::DeckStack(c) => self.unmake_stack::<true>(&card_mask(c), undo),
             Move::PileStack(c) => self.unmake_stack::<false>(&card_mask(c), undo),
@@ -500,16 +503,16 @@ impl Solitaire {
         }
     }
 
-    pub fn is_win(self: &Solitaire) -> bool {
+    pub fn is_win(&self) -> bool {
         // What a shame this is not a const function :(
         self.final_stack == [N_RANKS; N_SUITS as usize]
     }
 
-    const fn stackable(self: &Solitaire, rank: u8, suit: u8) -> bool {
+    const fn stackable(&self, rank: u8, suit: u8) -> bool {
         self.final_stack[suit as usize] == rank && rank < N_RANKS
     }
 
-    const fn stack_dominance(self: &Solitaire, rank: u8, suit: u8) -> bool {
+    const fn stack_dominance(&self, rank: u8, suit: u8) -> bool {
         let stack = &self.final_stack;
         let suit = suit as usize;
         // allowing worring back :)
@@ -519,7 +522,7 @@ impl Solitaire {
     }
 
     // can be made const fn
-    fn encode_stack(self: &Solitaire) -> u16 {
+    fn encode_stack(&self) -> u16 {
         // considering to make it incremental?
         self.final_stack
             .iter()
@@ -528,7 +531,7 @@ impl Solitaire {
     }
 
     // can be made const fn
-    fn encode_hidden(self: &Solitaire) -> u16 {
+    fn encode_hidden(&self) -> u16 {
         self.n_hidden
             .iter()
             .enumerate()
@@ -537,7 +540,7 @@ impl Solitaire {
     }
 
     // can be made const fn
-    pub fn encode(self: &Solitaire) -> Encode {
+    pub fn encode(&self) -> Encode {
         let stack_encode = self.encode_stack(); // 16 bits (can be reduce to 15)
         let hidden_encode = self.encode_hidden(); // 16 bits
         let deck_encode = self.deck.encode(); // 29 bits (can be reduced to 25)
@@ -590,7 +593,7 @@ impl Solitaire {
         self.visible_mask = full_mask(N_CARDS) ^ nonvis_mask;
     }
 
-    pub fn get_normal_piles(self: &Solitaire) -> [PileVec; N_PILES as usize] {
+    pub fn get_normal_piles(&self) -> [PileVec; N_PILES as usize] {
         let mut king_suit = 0;
         core::array::from_fn(|i| {
             let n_hid = self.n_hidden[i];
@@ -638,6 +641,14 @@ impl Solitaire {
             }
             cards
         })
+    }
+
+    pub fn shuffle_hidden(&mut self, rng: &mut impl RngCore) {
+        for pos in 0..N_PILES {
+            if let Some((_, hidden)) = self.get_hidden_mut(pos).split_last_mut() {
+                hidden.shuffle(rng);
+            }
+        }
     }
 }
 

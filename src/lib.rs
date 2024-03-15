@@ -11,3 +11,4 @@ pub mod standard;
 pub mod tracking;
 pub mod traverse;
 pub mod graph;
+pub mod hop_solver;

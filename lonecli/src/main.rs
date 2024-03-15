@@ -6,8 +6,9 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
 use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
+use lonelybot::hop_solver::hop_moves_game;
 use lonelybot::shuffler::{self, CardDeck, U256};
-use lonelybot::tracking::SearchStatistics;
+use lonelybot::tracking::{DefaultSearchSignal, SearchStatistics};
 use lonelybot::traverse::TraverseResult;
 use rand::prelude::*;
 use std::collections::HashSet;
@@ -151,6 +152,20 @@ fn do_random(seed: &Seed) {
         }
     }
     println!("Total win {}/{}", total_win, TOTAL_GAME);
+}
+
+fn do_hop(seed: &Seed) {
+    let mut game = Solitaire::new(&shuffle(&seed), 3);
+
+    let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
+
+    const N_TIMES: usize = 100;
+    const LIMIT: usize = 10000;
+
+    print!(
+        "{:?}",
+        hop_moves_game(&mut game, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {})
+    );
 }
 
 fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
@@ -382,6 +397,11 @@ enum Commands {
         #[command(flatten)]
         seed: StringSeed,
     },
+
+    HOP {
+        #[command(flatten)]
+        seed: StringSeed,
+    },
 }
 
 fn main() {
@@ -404,5 +424,6 @@ fn main() {
             println!("{}", shuffler::encode_shuffle(shuffled_deck));
         }
         Commands::Random { seed } => do_random(&seed.into()),
+        Commands::HOP { seed } => do_hop(&seed.into()),
     }
 }

@@ -6,12 +6,14 @@ use crate::{
 };
 
 pub trait TranpositionTable {
+    fn clear(&mut self);
     fn insert(&mut self, value: Encode) -> bool;
 }
 
 #[derive(PartialEq, Eq)]
 pub enum TraverseResult {
     Halted,
+    Skip,
     Ok,
 }
 
@@ -33,6 +35,7 @@ pub trait GraphCallback {
     fn on_finish(&mut self, res: &TraverseResult);
 }
 
+// it guarantee to return the state of g back into normal state
 fn traverse(
     g: &mut Solitaire,
     rev_move: Option<Move>,
@@ -46,9 +49,11 @@ fn traverse(
 
     let encode = g.encode();
 
-    if callback.on_visit(g, &rev_move, encode) == TraverseResult::Halted {
-        return TraverseResult::Halted;
-    }
+    match callback.on_visit(g, &rev_move, encode) {
+        TraverseResult::Halted => return TraverseResult::Halted,
+        TraverseResult::Skip => return TraverseResult::Skip,
+        TraverseResult::Ok => {}
+    };
 
     if !tp.insert(default_mixer(encode)) {
         return TraverseResult::Ok;
@@ -66,18 +71,23 @@ fn traverse(
         callback.on_do_move(pos, &m, encode);
         let undo = g.do_move(&m);
 
-        if traverse(g, rev_move, tp, callback) == TraverseResult::Halted {
-            return TraverseResult::Halted;
-        }
+        let res = traverse(g, rev_move, tp, callback);
 
         g.undo_move(&m, &undo);
         callback.on_undo_move(pos, &m, encode);
+
+        if res == TraverseResult::Halted {
+            return TraverseResult::Halted;
+        }
     }
     TraverseResult::Ok
 }
 
 pub type TpTable = HashSet<Encode, nohash_hasher::BuildNoHashHasher<Encode>>;
 impl crate::traverse::TranpositionTable for TpTable {
+    fn clear(&mut self) {
+        self.clear();
+    }
     fn insert(&mut self, value: Encode) -> bool {
         self.insert(value)
     }
