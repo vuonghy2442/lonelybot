@@ -452,11 +452,22 @@ fn main() {
             do_hop(&seed.into(), true);
         }
         Commands::HOPLoop { seed } => {
-            let mut total: usize = 0;
+            let mut cnt_solve: usize = 0;
             for i in 0.. {
                 let s: Seed = seed.into();
-                total += do_hop(&s.increase(i), false) as usize;
-                println!("{}/{}", total, i + 1);
+                cnt_solve += do_hop(&s.increase(i), false) as usize;
+
+                let interval = NSuccessesSample::new(i + 1, cnt_solve as u32)
+                    .unwrap()
+                    .wilson_score(1.960);
+                println!(
+                    "{}/{} ~ {:.4} < {:.4} < {:.4}",
+                    cnt_solve,
+                    i + 1,
+                    interval.lower(),
+                    cnt_solve as f64 / (i + 1) as f64,
+                    interval.upper()
+                );
             }
         }
     }
