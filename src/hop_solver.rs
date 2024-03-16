@@ -20,7 +20,7 @@ impl<'a, T: SearchSignal> GraphCallback for HOPSolverCallback<'a, T> {
         TraverseResult::Halted
     }
 
-    fn on_visit(&mut self, _: &Solitaire, _: &Option<Move>, _: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> TraverseResult {
         if self.sign.is_terminated() {
             self.result = SearchResult::Terminated;
             return TraverseResult::Halted;
@@ -113,6 +113,7 @@ struct RevStatesCallback<'a, R: RngCore, S: SearchSignal> {
     limit: usize,
     sign: &'a S,
     res: Vec<(Vec<Move>, (usize, usize, usize))>,
+    skipped: bool,
 }
 
 impl<'a, R: RngCore, S: SearchSignal> GraphCallback for RevStatesCallback<'a, R, S> {
@@ -121,8 +122,8 @@ impl<'a, R: RngCore, S: SearchSignal> GraphCallback for RevStatesCallback<'a, R,
         TraverseResult::Halted
     }
 
-    fn on_visit(&mut self, _: &Solitaire, rev: &Option<Move>, _: Encode) -> TraverseResult {
-        if rev.is_none() && self.his.len() > 0 {
+    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> TraverseResult {
+        if self.skipped {
             TraverseResult::Skip
         } else {
             TraverseResult::Ok
@@ -133,11 +134,15 @@ impl<'a, R: RngCore, S: SearchSignal> GraphCallback for RevStatesCallback<'a, R,
 
     fn on_do_move(&mut self, g: &Solitaire, m: &Move, _: Encode, rev: &Option<Move>) {
         self.his.push(*m);
+        // if rev.is_none() && (matches!(m, Move::Reveal(_)) || matches!(m, Move::PileStack(_))) {
         if rev.is_none() {
+            self.skipped = true;
             self.res.push((
                 self.his.clone(),
                 hop_solve_game(g, m, self.rng, self.n_times, self.limit, self.sign),
             ));
+        } else {
+            self.skipped = false;
         }
     }
 
@@ -164,6 +169,7 @@ pub fn hop_moves_game(
         limit,
         sign,
         res: Default::default(),
+        skipped: false,
     };
 
     let mut tp = TpTable::with_hasher(Default::default());

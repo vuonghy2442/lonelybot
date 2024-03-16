@@ -28,6 +28,7 @@ struct BuilderCallback<'a, S: SearchStatistics, T: SearchSignal> {
     depth: usize,
     prev_enc: Encode,
     last_move: Move,
+    rev_move: Option<Move>,
 }
 
 const fn get_edge_type(m: &Move, rm: &Option<Move>) -> EdgeType {
@@ -54,14 +55,17 @@ impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for BuilderCallback
         TraverseResult::Ok
     }
 
-    fn on_visit(&mut self, _: &Solitaire, rev: &Option<Move>, e: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> TraverseResult {
         if self.sign.is_terminated() {
             return TraverseResult::Halted;
         }
 
         self.stats.hit_a_state(self.depth);
-        self.graph
-            .push((self.prev_enc, e, get_edge_type(&self.last_move, rev)));
+        self.graph.push((
+            self.prev_enc,
+            e,
+            get_edge_type(&self.last_move, &self.rev_move),
+        ));
 
         TraverseResult::Ok
     }
@@ -70,8 +74,9 @@ impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for BuilderCallback
         self.stats.hit_unique_state(self.depth, m.len());
     }
 
-    fn on_do_move(&mut self, _: &Solitaire, m: &Move, e: Encode, _: &Option<Move>) {
+    fn on_do_move(&mut self, _: &Solitaire, m: &Move, e: Encode, rev: &Option<Move>) {
         self.last_move = *m;
+        self.rev_move = *rev;
         self.prev_enc = e;
         self.depth += 1;
     }
@@ -101,6 +106,7 @@ pub fn graph_game_with_tracking(
         depth: 0,
         prev_enc: g.encode(),
         last_move: Move::DeckPile(Card::FAKE),
+        rev_move: None,
     };
 
     let finished = traverse_game(g, &mut tp, &mut callback);

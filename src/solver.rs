@@ -32,7 +32,7 @@ impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for SolverCallback<
         TraverseResult::Halted
     }
 
-    fn on_visit(&mut self, _: &Solitaire, _: &Option<Move>, _: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> TraverseResult {
         if self.sign.is_terminated() {
             self.result = SearchResult::Terminated;
             return TraverseResult::Halted;
