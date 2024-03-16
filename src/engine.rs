@@ -643,6 +643,36 @@ impl Solitaire {
         })
     }
 
+    // reset all hidden card into lexicalgraphic order
+    pub fn clear_hidden(&mut self) {
+        let mut all_cards = self.get_visible_mask();
+
+        // fill in final stack
+        for suit in 0..N_SUITS {
+            for rank in 0..self.final_stack[suit as usize] {
+                all_cards |= card_mask(&Card::new(rank, suit));
+            }
+        }
+
+        for (_, c, _) in self.deck.iter_all() {
+            all_cards |= card_mask(c);
+        }
+
+        let mut hidden_cards = full_mask(N_CARDS) ^ all_cards;
+
+        for pos in 0..N_PILES {
+            if let Some((_, hidden)) = self.get_hidden_mut(pos).split_last_mut() {
+                for h in hidden {
+                    debug_assert_ne!(hidden_cards, 0);
+                    *h = from_mask(&hidden_cards);
+                    hidden_cards &= hidden_cards.wrapping_sub(1);
+                }
+            }
+
+        }
+        debug_assert_ne!(hidden_cards, 0);
+    }
+
     pub fn shuffle_hidden(&mut self, rng: &mut impl RngCore) {
         let mut all_stuff = ArrayVec::<Card, { N_HIDDEN_CARDS as usize }>::new();
         for pos in 0..N_PILES {
@@ -782,6 +812,7 @@ mod tests {
 
                 let state = game.encode();
                 game.decode(state);
+                game.clone().clear_hidden();
                 assert_eq!(game.encode(), state);
 
                 let ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =

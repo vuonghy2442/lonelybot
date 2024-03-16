@@ -160,13 +160,13 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
     let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
     // let mut another_rng = StdRng::seed_from_u64(seed.seed().as_u64());
 
-    const N_TIMES: usize = 100;
-    const LIMIT: usize = 10000;
+    const N_TIMES: usize = 1000;
+    const LIMIT: usize = 1000;
 
     while !game.is_win() {
-        // let mut gg = game.clone();
-        // gg.shuffle_hidden(&mut another_rng);
-        let res = hop_moves_game(&mut game, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
+        let mut gg = game.clone();
+        gg.clear_hidden();
+        let res = hop_moves_game(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
         if verbose {
             println!("{} {:?}", game.encode(), res);
         }
