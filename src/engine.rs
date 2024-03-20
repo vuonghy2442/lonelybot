@@ -795,7 +795,7 @@ mod tests {
                 assert_eq!(test, truth);
 
                 let moves = game.list_moves::<false>();
-                if moves.len() == 0 {
+                if moves.is_empty() {
                     break;
                 }
                 game.do_move(moves.choose(&mut rng).unwrap());
@@ -811,7 +811,7 @@ mod tests {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
                 let moves = game.list_moves::<false>();
-                if moves.len() == 0 {
+                if moves.is_empty() {
                     break;
                 }
 
@@ -855,7 +855,7 @@ mod tests {
 
             for _ in 0..N_STEP {
                 let moves = game.list_moves::<false>();
-                if moves.len() == 0 {
+                if moves.is_empty() {
                     break;
                 }
 

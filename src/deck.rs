@@ -49,6 +49,10 @@ impl Deck {
         N_FULL_DECK as u8 - self.draw_next + self.draw_cur
     }
 
+    pub const fn is_empty(&self) -> bool {
+        self.draw_cur == 0 && self.draw_next == N_FULL_DECK as u8
+    }
+
     pub fn find_card(&self, card: Card) -> Option<u8> {
         self.deck[..self.draw_cur as usize]
             .iter()

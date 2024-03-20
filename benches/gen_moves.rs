@@ -22,7 +22,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     for _ in 0..21 {
         let moves = game.list_moves::<true>();
 
-        if moves.len() == 0 {
+        if moves.is_empty() {
             break;
         }
         game.do_move(moves.choose(&mut rng).unwrap());
