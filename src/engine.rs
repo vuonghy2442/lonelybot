@@ -182,10 +182,11 @@ impl Solitaire {
     }
     pub const fn get_stack_mask(&self) -> u64 {
         let s = self.final_stack;
-        card_mask(&Card::new(s[0], 0))
-            | card_mask(&Card::new(s[1], 1))
-            | card_mask(&Card::new(s[2], 2))
-            | card_mask(&Card::new(s[3], 3))
+
+        (SUIT_MASK[0] & (0b1111 << (s[0] * 4)))
+            | (SUIT_MASK[1] & (0b1111 << (s[1] * 4)))
+            | (SUIT_MASK[2] & (0b1111 << (s[2] * 4)))
+            | (SUIT_MASK[3] & (0b1111 << (s[3] * 4)))
     }
 
     pub const fn get_stack_dominances_mask(&self) -> u64 {
@@ -668,7 +669,6 @@ impl Solitaire {
                     hidden_cards &= hidden_cards.wrapping_sub(1);
                 }
             }
-
         }
         debug_assert_ne!(hidden_cards, 0);
     }
@@ -771,6 +771,14 @@ mod tests {
         for i in 0..100 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
+                let mut stack_mask: u64 = 0;
+                // fill in final stack
+                for suit in 0..N_SUITS {
+                    let rank = game.final_stack[suit as usize];
+                    stack_mask |= card_mask(&Card::new(rank, suit));
+                }
+                assert_eq!(stack_mask, game.get_stack_mask());
+
                 let mut truth = game
                     .deck
                     .iter_all()
