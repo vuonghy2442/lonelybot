@@ -123,7 +123,7 @@ pub fn iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -
 pub type UndoInfo = u8;
 
 impl Solitaire {
-    pub fn new(cards: &CardDeck, draw_step: u8) -> Solitaire {
+    pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
         let hidden_piles: [Card; N_HIDDEN_CARDS as usize] =
             cards[0..N_HIDDEN_CARDS as usize].try_into().unwrap();
 
@@ -146,7 +146,7 @@ impl Solitaire {
             draw_step,
         );
 
-        Solitaire {
+        Self {
             hidden_piles,
             n_hidden: core::array::from_fn(|i| (i + 1) as u8),
             final_stack: [0u8; 4],
@@ -722,23 +722,23 @@ impl From<&StandardSolitaire> for Solitaire {
 
         for (i, n_hid) in n_hidden.iter_mut().enumerate() {
             let l = game.hidden_piles[i].len() as u8;
-            *n_hid = match game.piles[i].first() {
-                Some(c) => {
+            *n_hid = game.piles[i].first().map_or_else(
+                || {
+                    assert_eq!(l, 0);
+                    0
+                },
+                |c| {
                     if c.rank() < KING_RANK || l > 0 {
                         top_mask |= card_mask(c);
                         l + 1
                     } else {
                         0
                     }
-                }
-                None => {
-                    assert_eq!(l, 0);
-                    0
-                }
-            }
+                },
+            )
         }
 
-        Solitaire {
+        Self {
             hidden_piles,
             n_hidden,
             hidden,

@@ -79,7 +79,7 @@ pub fn solve_game_with_tracking(
     traverse_game(g, &mut tp, &mut callback);
     let result = callback.result;
 
-    if let SearchResult::Solved = result {
+    if result == SearchResult::Solved {
         (result, Some(callback.history))
     } else {
         (result, None)

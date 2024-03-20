@@ -71,7 +71,7 @@ pub struct KSRandom {
 
 impl KSRandom {
     pub fn new(seed: u32) -> Self {
-        let mut rng = KSRandom {
+        let mut rng = Self {
             value: seed,
             mix: 51651237,
             twist: 895213268,
@@ -140,8 +140,8 @@ impl RngCore for GreenRandom {
 }
 
 impl GreenRandom {
-    pub fn new(seed: u32) -> Self {
-        GreenRandom { seed }
+    pub const fn new(seed: u32) -> Self {
+        Self { seed }
     }
 }
 

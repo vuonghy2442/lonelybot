@@ -60,7 +60,7 @@ pub fn hop_solve_game(
     let mut total_skips = 0;
     let mut total_played = 0;
 
-    let mut tp = TpTable::with_hasher(Default::default());
+    let mut tp = TpTable::default();
 
     // check if determinize
     let total_hidden: u8 = g.get_n_hidden().map(|x| x.saturating_sub(1)).iter().sum();
@@ -163,16 +163,16 @@ pub fn hop_moves_game(
     sign: &impl SearchSignal,
 ) -> Vec<(Vec<Move>, (usize, usize, usize))> {
     let mut callback = RevStatesCallback {
-        his: Default::default(),
+        his: Vec::default(),
         rng,
         n_times,
         limit,
         sign,
-        res: Default::default(),
+        res: Vec::default(),
         skipped: false,
     };
 
-    let mut tp = TpTable::with_hasher(Default::default());
+    let mut tp = TpTable::default();
     traverse_game(g, &mut tp, &mut callback);
     callback.res
 }

@@ -15,48 +15,45 @@ pub struct Card(u8);
 
 impl Card {
     // suit = 1 to make sure it turn on the first bit in suit for deck
-    pub const FAKE: Card = Card::new(N_RANKS, 1);
+    pub const FAKE: Self = Self::new(N_RANKS, 1);
 
-    pub const fn new(rank: u8, suit: u8) -> Card {
+    pub const fn new(rank: u8, suit: u8) -> Self {
         debug_assert!(rank <= N_RANKS && suit < N_SUITS);
-        Card(rank * N_SUITS + suit)
+        Self(rank * N_SUITS + suit)
     }
 
-    pub const fn from_value(value: u8) -> Card {
-        Card(value)
+    pub const fn from_value(value: u8) -> Self {
+        Self(value)
     }
 
-    pub const fn rank(self: &Card) -> u8 {
+    pub const fn rank(&self) -> u8 {
         self.0 / N_SUITS
     }
 
-    pub const fn suit(self: &Card) -> u8 {
+    pub const fn suit(&self) -> u8 {
         self.0 % N_SUITS
     }
 
-    pub const fn value(self: &Card) -> u8 {
+    pub const fn value(&self) -> u8 {
         self.0
     }
 
-    pub const fn split(self: &Card) -> (u8, u8) {
+    pub const fn split(&self) -> (u8, u8) {
         (self.rank(), self.suit())
     }
 
-    pub const fn xor_suit(self: &Card, other: &Card) -> u8 {
+    pub const fn xor_suit(&self, other: &Self) -> u8 {
         let v = self.value() ^ other.value();
         ((v / 2) ^ (v / N_SUITS)) & 1
     }
 
-    pub const fn go_before(self: &Card, other: &Card) -> bool {
+    pub const fn go_before(&self, other: &Self) -> bool {
         let card_a = self.split();
         let card_b = other.split();
         card_a.0 == card_b.0 + 1 && ((card_a.1 ^ card_b.1) & 2 == 2 || card_a.0 == N_RANKS)
     }
 
-    pub fn print_solvitaire<const LOWER: bool>(
-        self: &Card,
-        f: &mut fmt::Formatter<'_>,
-    ) -> fmt::Result {
+    pub fn print_solvitaire<const LOWER: bool>(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (rank, suit) = self.split();
         let s = match suit {
             0 => 'H',

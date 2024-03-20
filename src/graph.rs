@@ -98,7 +98,7 @@ pub fn graph_game_with_tracking(
     stats: &impl SearchStatistics,
     sign: &impl SearchSignal,
 ) -> (TraverseResult, Graph) {
-    let mut tp = TpTable::with_hasher(Default::default());
+    let mut tp = TpTable::default();
     let mut callback = BuilderCallback {
         graph: Graph::new(),
         stats,

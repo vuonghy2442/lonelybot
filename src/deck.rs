@@ -24,14 +24,14 @@ pub enum Drawable {
 }
 
 impl Deck {
-    pub fn new(deck: &[Card; N_FULL_DECK], draw_step: u8) -> Deck {
+    pub fn new(deck: &[Card; N_FULL_DECK], draw_step: u8) -> Self {
         let draw_step = core::cmp::min(N_FULL_DECK as u8, draw_step);
         let mut map = [!0u8; N_CARDS as usize];
         for (i, c) in deck.iter().enumerate() {
             map[c.value() as usize] = i as u8;
         }
 
-        Deck {
+        Self {
             deck: *deck,
             draw_step,
             draw_next: draw_step,
@@ -41,15 +41,15 @@ impl Deck {
         }
     }
 
-    pub const fn draw_step(self: &Deck) -> u8 {
+    pub const fn draw_step(&self) -> u8 {
         self.draw_step
     }
 
-    pub const fn len(self: &Deck) -> u8 {
+    pub const fn len(&self) -> u8 {
         N_FULL_DECK as u8 - self.draw_next + self.draw_cur
     }
 
-    pub fn find_card(self: &Deck, card: Card) -> Option<u8> {
+    pub fn find_card(&self, card: Card) -> Option<u8> {
         self.deck[..self.draw_cur as usize]
             .iter()
             .chain(self.deck[self.draw_next as usize..].iter())
@@ -57,7 +57,7 @@ impl Deck {
             .map(|x| x as u8)
     }
 
-    pub fn iter_all(self: &Deck) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
+    pub fn iter_all(&self) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
         let head = self.deck[..self.draw_cur as usize]
             .iter()
             .enumerate()
@@ -98,11 +98,7 @@ impl Deck {
         head.chain(tail)
     }
 
-    pub fn iter_callback(
-        self: &Deck,
-        filter: bool,
-        mut push: impl FnMut(u8, &Card) -> bool,
-    ) -> bool {
+    pub fn iter_callback(&self, filter: bool, mut push: impl FnMut(u8, &Card) -> bool) -> bool {
         if self.draw_step() == 1 {
             if !filter {
                 for (pos, card) in self.deck[..self.draw_cur as usize].iter().enumerate() {
@@ -168,7 +164,7 @@ impl Deck {
         false
     }
 
-    pub const fn peek_last(self: &Deck) -> Option<&Card> {
+    pub const fn peek_last(&self) -> Option<&Card> {
         if self.draw_next < N_FULL_DECK as u8 {
             Some(&self.deck[N_FULL_DECK - 1])
         } else if self.draw_cur > 0 {
@@ -178,7 +174,7 @@ impl Deck {
         }
     }
 
-    pub const fn peek(self: &Deck, id: u8) -> Card {
+    pub const fn peek(&self, id: u8) -> Card {
         debug_assert!(
             self.draw_cur <= self.draw_next
                 && (id < N_FULL_DECK as u8 - self.draw_next + self.draw_cur)
@@ -191,7 +187,7 @@ impl Deck {
         } as usize]
     }
 
-    pub fn set_offset(self: &mut Deck, id: u8) {
+    pub fn set_offset(&mut self, id: u8) {
         // after this the deck will have structure
         // [.... id-1 <empty> id....]
         //   draw_cur ^       ^ draw_next
@@ -218,14 +214,14 @@ impl Deck {
         self.draw_next = self.draw_next.wrapping_add(step);
     }
 
-    fn pop_next(self: &mut Deck) -> Card {
+    fn pop_next(&mut self) -> Card {
         let card = self.deck[self.draw_next as usize];
         self.mask ^= 1 << self.map[card.value() as usize];
         self.draw_next += 1;
         card
     }
 
-    pub fn push(self: &mut Deck, card: Card) {
+    pub fn push(&mut self, card: Card) {
         // or you can undo
         self.mask ^= 1 << self.map[card.value() as usize];
         self.deck[self.draw_cur as usize] = card;
@@ -236,7 +232,7 @@ impl Deck {
         // self.deck[self.draw_next as usize] = c;
     }
 
-    pub fn draw(self: &mut Deck, id: u8) -> Card {
+    pub fn draw(&mut self, id: u8) -> Card {
         debug_assert!(
             self.draw_cur <= self.draw_next
                 && (id < N_FULL_DECK as u8 - self.draw_next + self.draw_cur)
@@ -245,16 +241,16 @@ impl Deck {
         self.pop_next()
     }
 
-    pub const fn get_offset(self: &Deck) -> u8 {
+    pub const fn get_offset(&self) -> u8 {
         self.draw_cur
     }
 
-    pub const fn is_pure(self: &Deck) -> bool {
+    pub const fn is_pure(&self) -> bool {
         // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
         self.draw_cur % self.draw_step == 0 || self.draw_next == N_FULL_DECK as u8
     }
 
-    pub const fn normalized_offset(self: &Deck) -> u8 {
+    pub const fn normalized_offset(&self) -> u8 {
         // this is the standardized version
         if self.draw_cur % self.draw_step == 0 {
             // matched so offset is free
@@ -265,7 +261,7 @@ impl Deck {
         }
     }
 
-    pub const fn encode(self: &Deck) -> u32 {
+    pub const fn encode(&self) -> u32 {
         const_assert!(((N_FULL_DECK - 1).ilog2() + 1 + N_FULL_DECK as u32) <= 32);
         // assert the number of bits
         // 29 bits

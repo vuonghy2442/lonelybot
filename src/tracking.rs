@@ -42,7 +42,7 @@ pub struct AtomicSearchStats {
 
 impl Default for AtomicSearchStats {
     fn default() -> Self {
-        AtomicSearchStats {
+        Self {
             total_visit: AtomicUsize::new(0),
             unique_visit: AtomicUsize::new(0),
             max_depth: AtomicUsize::new(0),
@@ -51,8 +51,9 @@ impl Default for AtomicSearchStats {
     }
 }
 impl AtomicSearchStats {
-    pub fn new() -> AtomicSearchStats {
-        Default::default()
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 

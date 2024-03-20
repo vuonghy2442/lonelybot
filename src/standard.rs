@@ -33,7 +33,7 @@ pub struct StandardSolitaire {
 }
 
 impl StandardSolitaire {
-    pub fn new(cards: &CardDeck, draw_step: u8) -> StandardSolitaire {
+    pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
         let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
 
         for i in 0..N_PILES {
@@ -43,7 +43,7 @@ impl StandardSolitaire {
             }
         }
 
-        StandardSolitaire {
+        Self {
             hidden_piles,
             final_stack: [0; N_SUITS as usize],
             deck: Deck::new(
@@ -75,6 +75,7 @@ impl StandardSolitaire {
     }
 
     // shouldn't be used in real engine
+    #[must_use]
     pub const fn peek_cur(&self) -> Option<Card> {
         if self.deck.get_offset() == 0 {
             None
@@ -104,18 +105,22 @@ impl StandardSolitaire {
         self.deck.set_offset(next);
     }
 
+    #[must_use]
     pub const fn get_deck(&self) -> &Deck {
         &self.deck
     }
 
+    #[must_use]
     pub const fn get_stack(&self) -> &[u8; N_SUITS as usize] {
         &self.final_stack
     }
 
+    #[must_use]
     pub const fn get_piles(&self) -> &[PileVec; N_PILES as usize] {
         &self.piles
     }
 
+    #[must_use]
     pub const fn get_hidden(&self) -> &[HiddenVec; N_PILES as usize] {
         &self.hidden_piles
     }
@@ -134,15 +139,13 @@ impl StandardSolitaire {
         self.piles
             .iter()
             .position(|p| {
-                if let Some(cc) = p.last() {
-                    cc.go_before(c)
-                } else {
-                    c.rank() == KING_RANK
-                }
+                p.last()
+                    .map_or_else(|| c.rank() == KING_RANK, |cc| cc.go_before(c))
             })
             .map(|pos| pos as u8)
     }
 
+    #[must_use]
     pub fn find_top_card(&self, c: &Card) -> Option<u8> {
         self.piles
             .iter()
@@ -150,6 +153,7 @@ impl StandardSolitaire {
             .map(|pos| pos as u8)
     }
 
+    #[must_use]
     pub fn find_card(&self, c: &Card) -> Option<(u8, usize)> {
         for i in 0..N_PILES {
             for (j, cc) in self.piles[i as usize].iter().enumerate() {

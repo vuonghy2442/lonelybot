@@ -57,7 +57,7 @@ fn traverse(
     let move_list = g.list_moves::<true>();
     callback.on_move_gen(&move_list, encode);
 
-    for &m in move_list.iter() {
+    for m in move_list {
         if Some(m) == rev_move {
             continue;
         }
