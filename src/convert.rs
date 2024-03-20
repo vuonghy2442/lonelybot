@@ -32,7 +32,7 @@ pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut Stand
         Move::DeckPile(c) => {
             let cnt = game.find_deck_card(c).unwrap();
             for _ in 0..cnt {
-                move_seq.push(DRAW_NEXT)
+                move_seq.push(DRAW_NEXT);
             }
             assert_eq!(game.draw_cur(), Some(*c));
 
@@ -43,7 +43,7 @@ pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut Stand
         Move::DeckStack(c) => {
             let cnt = game.find_deck_card(c).unwrap();
             for _ in 0..cnt {
-                move_seq.push(DRAW_NEXT)
+                move_seq.push(DRAW_NEXT);
             }
             assert_eq!(game.draw_cur(), Some(*c));
 
@@ -86,7 +86,7 @@ pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut Stand
                 assert!(pile != pile_other);
 
                 game.piles[pile_other as usize]
-                    .extend(game.piles[pile as usize].clone()[pos + 1..].iter().cloned());
+                    .extend(game.piles[pile as usize].clone()[pos + 1..].iter().copied());
                 move_seq.push((Pos::Pile(pile), Pos::Pile(pile_other), *c));
             }
             game.piles[pile as usize].truncate(pos);

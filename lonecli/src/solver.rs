@@ -67,9 +67,8 @@ pub fn run_solve(
     if verbose {
         loop {
             match recv.recv_timeout(Duration::from_millis(1000)) {
-                Ok(()) => break,
-                Err(RecvTimeoutError::Timeout) => println!("{}", ss),
-                Err(RecvTimeoutError::Disconnected) => break,
+                Err(RecvTimeoutError::Disconnected) | Ok(()) => break,
+                Err(RecvTimeoutError::Timeout) => println!("{ss}"),
             };
         }
     }
@@ -110,9 +109,8 @@ pub fn run_graph(
     if verbose {
         loop {
             match recv.recv_timeout(Duration::from_millis(1000)) {
-                Ok(()) => break,
-                Err(RecvTimeoutError::Timeout) => println!("{}", ss),
-                Err(RecvTimeoutError::Disconnected) => break,
+                Err(RecvTimeoutError::Disconnected) | Ok(()) => break,
+                Err(RecvTimeoutError::Timeout) => println!("{ss}"),
             };
         }
     }

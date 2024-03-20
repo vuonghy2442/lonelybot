@@ -31,7 +31,7 @@ struct BuilderCallback<'a, S: SearchStatistics, T: SearchSignal> {
     rev_move: Option<Move>,
 }
 
-const fn get_edge_type(m: &Move, rm: &Option<Move>) -> EdgeType {
+const fn get_edge_type(m: Move, rm: Option<Move>) -> EdgeType {
     match m {
         Move::DeckStack(_) => EdgeType::DeckStack,
         Move::PileStack(_) => {
@@ -51,7 +51,7 @@ impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for BuilderCallback
     fn on_win(&mut self, _: &Solitaire, rm: &Option<Move>) -> TraverseResult {
         // win state
         self.graph
-            .push((self.prev_enc, !0, get_edge_type(&self.last_move, rm)));
+            .push((self.prev_enc, !0, get_edge_type(self.last_move, *rm)));
         TraverseResult::Ok
     }
 
@@ -64,7 +64,7 @@ impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for BuilderCallback
         self.graph.push((
             self.prev_enc,
             e,
-            get_edge_type(&self.last_move, &self.rev_move),
+            get_edge_type(self.last_move, self.rev_move),
         ));
 
         TraverseResult::Ok

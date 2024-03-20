@@ -2,7 +2,7 @@ use hashbrown::HashSet;
 
 use crate::{
     engine::{Encode, Move, MoveVec, Solitaire},
-    mixer::default_mixer,
+    mixer,
 };
 
 pub trait TranpositionTable {
@@ -50,7 +50,7 @@ fn traverse(
         TraverseResult::Ok => {}
     };
 
-    if !tp.insert(default_mixer(encode)) {
+    if !tp.insert(mixer::mix(encode)) {
         return TraverseResult::Ok;
     }
 

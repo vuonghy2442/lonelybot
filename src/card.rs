@@ -17,36 +17,44 @@ impl Card {
     // suit = 1 to make sure it turn on the first bit in suit for deck
     pub const FAKE: Self = Self::new(N_RANKS, 1);
 
+    #[must_use]
     pub const fn new(rank: u8, suit: u8) -> Self {
         debug_assert!(rank <= N_RANKS && suit < N_SUITS);
         Self(rank * N_SUITS + suit)
     }
 
+    #[must_use]
     pub const fn from_value(value: u8) -> Self {
         Self(value)
     }
 
+    #[must_use]
     pub const fn rank(&self) -> u8 {
         self.0 / N_SUITS
     }
 
+    #[must_use]
     pub const fn suit(&self) -> u8 {
         self.0 % N_SUITS
     }
 
+    #[must_use]
     pub const fn value(&self) -> u8 {
         self.0
     }
 
+    #[must_use]
     pub const fn split(&self) -> (u8, u8) {
         (self.rank(), self.suit())
     }
 
+    #[must_use]
     pub const fn xor_suit(&self, other: &Self) -> u8 {
         let v = self.value() ^ other.value();
         ((v / 2) ^ (v / N_SUITS)) & 1
     }
 
+    #[must_use]
     pub const fn go_before(&self, other: &Self) -> bool {
         let card_a = self.split();
         let card_b = other.split();

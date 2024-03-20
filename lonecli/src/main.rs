@@ -74,17 +74,21 @@ impl std::fmt::Display for Seed {
 }
 
 impl Seed {
+    #[must_use]
     pub const fn seed(&self) -> U256 {
         self.seed
     }
-    pub fn increase(&self, step: u32) -> Seed {
-        Seed {
+
+    #[must_use]
+    pub fn increase(&self, step: u32) -> Self {
+        Self {
             seed_type: self.seed_type,
             seed: self.seed() + step,
         }
     }
 }
 
+#[must_use]
 pub fn shuffle(s: &Seed) -> CardDeck {
     let seed = s.seed;
     match s.seed_type {
@@ -93,14 +97,14 @@ pub fn shuffle(s: &Seed) -> CardDeck {
         SeedType::Solvitaire => shuffler::solvitaire_shuffle(seed.as_u32()),
         SeedType::KlondikeSolver => shuffler::ks_shuffle(seed.as_u32()),
         SeedType::Greenfelt => shuffler::greenfelt_shuffle(seed.as_u32()),
-        SeedType::Exact => shuffler::exact_shuffle(seed),
+        SeedType::Exact => shuffler::exact_shuffle(seed).unwrap(),
     }
 }
 
 fn benchmark(seed: &Seed) {
     let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
 
-    let mut total_moves = 0;
+    let mut total_moves = 0u32;
     let now = Instant::now();
     for i in 0..100 {
         let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
@@ -118,13 +122,14 @@ fn benchmark(seed: &Seed) {
     println!(
         "{} {} op/s",
         total_moves,
-        (total_moves as f64) / now.elapsed().as_secs_f64()
+        f64::from(total_moves) / now.elapsed().as_secs_f64()
     );
 }
 
 fn do_random(seed: &Seed) {
-    let mut total_win = 0;
     const TOTAL_GAME: u32 = 10000;
+
+    let mut total_win = 0;
     for i in 0..TOTAL_GAME {
         let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
         let mut rev_move = None;
@@ -138,7 +143,7 @@ fn do_random(seed: &Seed) {
             let moves: MoveVec = moves
                 .iter()
                 .filter(|&&c| Some(c) != rev_move)
-                .cloned()
+                .copied()
                 .collect();
 
             if moves.is_empty() {
@@ -151,17 +156,16 @@ fn do_random(seed: &Seed) {
             game.do_move(m);
         }
     }
-    println!("Total win {}/{}", total_win, TOTAL_GAME);
+    println!("Total win {total_win}/{TOTAL_GAME}");
 }
 
 fn do_hop(seed: &Seed, verbose: bool) -> bool {
-    let mut game = Solitaire::new(&shuffle(seed), 3);
-
-    let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
-    // let mut another_rng = StdRng::seed_from_u64(seed.seed().as_u64());
-
     const N_TIMES: usize = 1000;
     const LIMIT: usize = 1000;
+
+    let mut game = Solitaire::new(&shuffle(seed), 3);
+    let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
+    // let mut another_rng = StdRng::seed_from_u64(seed.seed().as_u64());
 
     while !game.is_win() {
         let mut gg = game.clone();
@@ -204,7 +208,7 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
             println!("Solvable in {} moves", m.len());
             let moves = convert_moves(&mut g_standard, &m[..]);
             for x in m {
-                print!("{}, ", x);
+                print!("{x}, ");
             }
             println!();
             for m in moves {
@@ -230,19 +234,15 @@ fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
     match res.0 {
         Some((res, graph)) => {
             println!("Graphed in {} edges", graph.len());
-            if res != TraverseResult::Ok {
-                println!("Unfinished");
+            if res == TraverseResult::Ok {
+                let mut f = std::io::BufWriter::new(File::create(path).unwrap());
+                writeln!(f, "s,t,e,id").unwrap();
+                for (id, e) in graph.iter().skip(1).enumerate() {
+                    writeln!(f, "{},{},{:?},{}", e.0, e.1, e.2, id).unwrap();
+                }
+                println!("Save done");
             } else {
-                {
-                    let mut f = std::io::BufWriter::new(File::create(path).unwrap());
-                    writeln!(f, "s,t,e,id").unwrap();
-                    for (id, e) in graph.iter().skip(1).enumerate() {
-                        writeln!(f, "{},{},{:?},{}", e.0, e.1, e.2, id).unwrap();
-                    }
-                }
-                if res == TraverseResult::Ok {
-                    println!("Save done");
-                }
+                println!("Unfinished");
             }
         }
         _ => println!("Crashed"),
@@ -269,7 +269,7 @@ fn game_loop(seed: &Seed) {
         let moves = game.list_moves::<true>();
 
         for (i, m) in moves.iter().enumerate() {
-            print!("{}.{}, ", i, m);
+            print!("{i}.{m}, ");
         }
         println!();
 
@@ -300,9 +300,9 @@ fn game_loop(seed: &Seed) {
 }
 
 fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
-    let mut cnt_terminated = 0;
-    let mut cnt_solve = 0;
-    let mut cnt_total = 0;
+    let mut cnt_terminated = 0u32;
+    let mut cnt_solve = 0u32;
+    let mut cnt_total = 0u32;
 
     let start = Instant::now();
 
@@ -314,18 +314,18 @@ fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
         let now = Instant::now();
         let (res, stats, _) = solver::run_solve(g, false, terminated);
         match res {
-            SearchResult::Solved => cnt_solve += 1usize,
-            SearchResult::Terminated => cnt_terminated += 1usize,
+            SearchResult::Solved => cnt_solve += 1,
+            SearchResult::Terminated => cnt_terminated += 1,
             _ => {}
         };
 
-        cnt_total += 1usize;
+        cnt_total += 1;
 
-        let lower = NSuccessesSample::new(cnt_total as u32, cnt_solve as u32)
+        let lower = NSuccessesSample::new(cnt_total, cnt_solve)
             .unwrap()
             .wilson_score(1.960)
             .lower(); //95%
-        let higher = NSuccessesSample::new(cnt_total as u32, (cnt_solve + cnt_terminated) as u32)
+        let higher = NSuccessesSample::new(cnt_total, cnt_solve + cnt_terminated)
             .unwrap()
             .wilson_score(1.960)
             .upper(); //95%
@@ -337,7 +337,7 @@ fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
             cnt_terminated,
             cnt_total,
             lower,
-            cnt_solve as f64 / cnt_total as f64,
+            f64::from(cnt_solve) / f64::from(cnt_total),
             higher,
             stats.total_visit(),
             stats.unique_visit(),
@@ -347,11 +347,11 @@ fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
 
         if terminated.load(Ordering::Relaxed) {
             thread::sleep(Duration::from_millis(500));
-            terminated.store(false, Ordering::Relaxed)
+            terminated.store(false, Ordering::Relaxed);
         }
     }
 
-    println!("Total run time: {:?}", Instant::now() - start);
+    println!("Total run time: {:?}", start.elapsed());
 }
 
 fn handling_signal() -> Arc<AtomicBool> {
@@ -452,12 +452,12 @@ fn main() {
             do_hop(&seed.into(), true);
         }
         Commands::HopLoop { seed } => {
-            let mut cnt_solve: usize = 0;
+            let mut cnt_solve: u32 = 0;
             for i in 0.. {
                 let s: Seed = seed.into();
-                cnt_solve += do_hop(&s.increase(i), false) as usize;
+                cnt_solve += u32::from(do_hop(&s.increase(i), false));
 
-                let interval = NSuccessesSample::new(i + 1, cnt_solve as u32)
+                let interval = NSuccessesSample::new(i + 1, cnt_solve)
                     .unwrap()
                     .wilson_score(1.960);
                 println!(
@@ -465,7 +465,7 @@ fn main() {
                     cnt_solve,
                     i + 1,
                     interval.lower(),
-                    cnt_solve as f64 / (i + 1) as f64,
+                    f64::from(cnt_solve) / f64::from(i + 1),
                     interval.upper()
                 );
             }

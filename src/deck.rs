@@ -24,6 +24,7 @@ pub enum Drawable {
 }
 
 impl Deck {
+    #[must_use]
     pub fn new(deck: &[Card; N_FULL_DECK], draw_step: u8) -> Self {
         let draw_step = core::cmp::min(N_FULL_DECK as u8, draw_step);
         let mut map = [!0u8; N_CARDS as usize];
@@ -41,18 +42,22 @@ impl Deck {
         }
     }
 
+    #[must_use]
     pub const fn draw_step(&self) -> u8 {
         self.draw_step
     }
 
+    #[must_use]
     pub const fn len(&self) -> u8 {
         N_FULL_DECK as u8 - self.draw_next + self.draw_cur
     }
 
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.draw_cur == 0 && self.draw_next == N_FULL_DECK as u8
     }
 
+    #[must_use]
     pub fn find_card(&self, card: Card) -> Option<u8> {
         self.deck[..self.draw_cur as usize]
             .iter()
@@ -61,6 +66,7 @@ impl Deck {
             .map(|x| x as u8)
     }
 
+    #[must_use]
     pub fn iter_all(&self) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
         let head = self.deck[..self.draw_cur as usize]
             .iter()
@@ -168,6 +174,7 @@ impl Deck {
         false
     }
 
+    #[must_use]
     pub const fn peek_last(&self) -> Option<&Card> {
         if self.draw_next < N_FULL_DECK as u8 {
             Some(&self.deck[N_FULL_DECK - 1])
@@ -178,6 +185,7 @@ impl Deck {
         }
     }
 
+    #[must_use]
     pub const fn peek(&self, id: u8) -> Card {
         debug_assert!(
             self.draw_cur <= self.draw_next
@@ -245,15 +253,18 @@ impl Deck {
         self.pop_next()
     }
 
+    #[must_use]
     pub const fn get_offset(&self) -> u8 {
         self.draw_cur
     }
 
+    #[must_use]
     pub const fn is_pure(&self) -> bool {
         // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
         self.draw_cur % self.draw_step == 0 || self.draw_next == N_FULL_DECK as u8
     }
 
+    #[must_use]
     pub const fn normalized_offset(&self) -> u8 {
         // this is the standardized version
         if self.draw_cur % self.draw_step == 0 {
@@ -265,6 +276,7 @@ impl Deck {
         }
     }
 
+    #[must_use]
     pub const fn encode(&self) -> u32 {
         const_assert!(((N_FULL_DECK - 1).ilog2() + 1 + N_FULL_DECK as u32) <= 32);
         // assert the number of bits

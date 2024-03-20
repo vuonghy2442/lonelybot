@@ -34,7 +34,7 @@ fn color(c: Card) -> ColoredCard {
 pub fn print_game(game: &Solitaire) {
     // print out the deck
     for (pos, card, t) in game.get_deck().iter_all() {
-        let s = format!("{} ", pos);
+        let s = format!("{pos} ");
         let prefix = match t {
             Drawable::None => format!(" {}", s.bright_black()),
             Drawable::Current => format!(">{}", s.on_blue()),

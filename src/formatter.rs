@@ -21,11 +21,11 @@ impl fmt::Display for Card {
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DeckStack(c) => write!(f, "DS {}", c),
-            Self::PileStack(c) => write!(f, "PS {}", c),
-            Self::DeckPile(c) => write!(f, "DP {}", c),
-            Self::StackPile(c) => write!(f, "SP {}", c),
-            Self::Reveal(c) => write!(f, "R {}", c),
+            Self::DeckStack(c) => write!(f, "DS {c}"),
+            Self::PileStack(c) => write!(f, "PS {c}"),
+            Self::DeckPile(c) => write!(f, "DP {c}"),
+            Self::StackPile(c) => write!(f, "SP {c}"),
+            Self::Reveal(c) => write!(f, "R {c}"),
         }
     }
 }

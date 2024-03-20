@@ -67,7 +67,7 @@ pub fn solve_game_with_tracking(
     stats: &impl SearchStatistics,
     sign: &impl SearchSignal,
 ) -> (SearchResult, Option<HistoryVec>) {
-    let mut tp = TpTable::with_hasher(Default::default());
+    let mut tp = TpTable::default();
 
     let mut callback = SolverCallback {
         history: HistoryVec::new(),
