@@ -107,7 +107,7 @@ fn benchmark(seed: &Seed) {
         for _ in 0..100 {
             let moves = game.list_moves::<true>();
 
-            if moves.len() == 0 {
+            if moves.is_empty() {
                 break;
             }
             game.do_move(moves.choose(&mut rng).unwrap());
@@ -141,7 +141,7 @@ fn do_random(seed: &Seed) {
                 .cloned()
                 .collect();
 
-            if moves.len() == 0 {
+            if moves.is_empty() {
                 break;
             }
 
@@ -155,7 +155,7 @@ fn do_random(seed: &Seed) {
 }
 
 fn do_hop(seed: &Seed, verbose: bool) -> bool {
-    let mut game = Solitaire::new(&shuffle(&seed), 3);
+    let mut game = Solitaire::new(&shuffle(seed), 3);
 
     let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
     // let mut another_rng = StdRng::seed_from_u64(seed.seed().as_u64());
@@ -189,7 +189,7 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
 }
 
 fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
-    let shuffled_deck = shuffle(&seed);
+    let shuffled_deck = shuffle(seed);
 
     let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
     let mut g_standard = StandardSolitaire::from(&g);
@@ -219,7 +219,7 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
 }
 
 fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
-    let shuffled_deck = shuffle(&seed);
+    let shuffled_deck = shuffle(seed);
 
     let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
 
@@ -235,9 +235,9 @@ fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
             } else {
                 {
                     let mut f = std::io::BufWriter::new(File::create(path).unwrap());
-                    write!(f, "s,t,e,id\n").unwrap();
+                    writeln!(f, "s,t,e,id").unwrap();
                     for (id, e) in graph.iter().skip(1).enumerate() {
-                        write!(f, "{},{},{:?},{}\n", e.0, e.1, e.2, id).unwrap();
+                        writeln!(f, "{},{},{:?},{}", e.0, e.1, e.2, id).unwrap();
                     }
                 }
                 if res == TraverseResult::Ok {
@@ -273,12 +273,12 @@ fn game_loop(seed: &Seed) {
         }
         println!();
 
-        print!("Hash: {:?}\n", game.encode());
+        println!("Hash: {:?}", game.encode());
         print!("Move: ");
         std::io::stdout().flush().unwrap();
         line.clear();
         let b1 = std::io::stdin().read_line(&mut line);
-        if let Result::Err(_) = b1 {
+        if b1.is_err() {
             println!("Can't read");
             continue;
         }
@@ -314,12 +314,12 @@ fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
         let now = Instant::now();
         let (res, stats, _) = solver::run_solve(g, false, terminated);
         match res {
-            SearchResult::Solved => cnt_solve += 1 as usize,
-            SearchResult::Terminated => cnt_terminated += 1 as usize,
+            SearchResult::Solved => cnt_solve += 1usize,
+            SearchResult::Terminated => cnt_terminated += 1usize,
             _ => {}
         };
 
-        cnt_total += 1 as usize;
+        cnt_total += 1usize;
 
         let lower = NSuccessesSample::new(cnt_total as u32, cnt_solve as u32)
             .unwrap()
@@ -418,11 +418,11 @@ enum Commands {
         seed: StringSeed,
     },
 
-    HOP {
+    Hop {
         #[command(flatten)]
         seed: StringSeed,
     },
-    HOPLoop {
+    HopLoop {
         #[command(flatten)]
         seed: StringSeed,
     },
@@ -448,10 +448,10 @@ fn main() {
             println!("{}", shuffler::encode_shuffle(shuffled_deck));
         }
         Commands::Random { seed } => do_random(&seed.into()),
-        Commands::HOP { seed } => {
+        Commands::Hop { seed } => {
             do_hop(&seed.into(), true);
         }
-        Commands::HOPLoop { seed } => {
+        Commands::HopLoop { seed } => {
             let mut cnt_solve: usize = 0;
             for i in 0.. {
                 let s: Seed = seed.into();

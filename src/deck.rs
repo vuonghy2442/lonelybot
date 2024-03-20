@@ -130,21 +130,16 @@ impl Deck {
             }
         }
 
-        if self.draw_cur > 0 {
-            if push(self.draw_cur - 1, &self.deck[self.draw_cur as usize - 1]) {
-                return true;
-            }
+        if self.draw_cur > 0 && push(self.draw_cur - 1, &self.deck[self.draw_cur as usize - 1]) {
+            return true;
         }
 
         let gap = self.draw_next - self.draw_cur;
 
-        if self.draw_next < N_FULL_DECK as u8 {
-            if push(
-                N_FULL_DECK as u8 - 1 - gap,
-                &self.deck[N_FULL_DECK as usize - 1],
-            ) {
-                return true;
-            }
+        if self.draw_next < N_FULL_DECK as u8
+            && push(N_FULL_DECK as u8 - 1 - gap, &self.deck[N_FULL_DECK - 1])
+        {
+            return true;
         }
 
         {
@@ -264,7 +259,7 @@ impl Deck {
         if self.draw_cur % self.draw_step == 0 {
             // matched so offset is free
             debug_assert!(self.len() <= N_FULL_DECK as u8);
-            self.len() as u8
+            self.len()
         } else {
             self.draw_cur
         }
@@ -292,9 +287,9 @@ impl Deck {
 
         let mut pos = 0;
 
-        for i in 0..N_FULL_DECK {
-            if rev_map[i] != Card::FAKE {
-                self.deck[pos] = rev_map[i];
+        for c in rev_map {
+            if c != Card::FAKE {
+                self.deck[pos] = c;
                 pos += 1;
             }
         }

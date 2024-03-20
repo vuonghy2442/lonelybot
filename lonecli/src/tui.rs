@@ -69,7 +69,7 @@ pub fn print_game(game: &Solitaire) {
     for i in 0.. {
         let mut is_print = false;
         for j in 0..N_PILES {
-            let ref cur_pile = piles[j as usize];
+            let cur_pile = &piles[j as usize];
 
             let n_hidden = game.get_n_hidden()[j as usize].saturating_sub(1);
             let n_visible = cur_pile.len() as u8;
@@ -123,7 +123,7 @@ pub fn _print_standard_game(game: &StandardSolitaire) {
     for i in 0.. {
         let mut is_print = false;
         for j in 0..N_PILES {
-            let ref cur_pile = piles[j as usize];
+            let  cur_pile = &piles[j as usize];
 
             let n_visible = cur_pile.len() as u8;
             let n_hidden = hiddens[j as usize].len() as u8;

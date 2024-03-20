@@ -39,14 +39,20 @@ pub struct AtomicSearchStats {
     max_depth: AtomicUsize,
     move_state: [(AtomicU8, AtomicU8); TRACK_DEPTH],
 }
-impl AtomicSearchStats {
-    pub fn new() -> AtomicSearchStats {
+
+impl Default for AtomicSearchStats {
+    fn default() -> Self {
         AtomicSearchStats {
             total_visit: AtomicUsize::new(0),
             unique_visit: AtomicUsize::new(0),
             max_depth: AtomicUsize::new(0),
             move_state: Default::default(),
         }
+    }
+}
+impl AtomicSearchStats {
+    pub fn new() -> AtomicSearchStats {
+        Default::default()
     }
 }
 

@@ -54,7 +54,7 @@ impl StandardSolitaire {
             ),
             piles: core::array::from_fn(|i| {
                 let mut tmp = PileVec::new();
-                tmp.push(cards[(i * (i + 1) / 2 + i) as usize]);
+                tmp.push(cards[i * (i + 1) / 2 + i]);
                 tmp
             }),
         }
@@ -131,25 +131,23 @@ impl StandardSolitaire {
     }
 
     pub fn find_free_pile(&self, c: &Card) -> Option<u8> {
-        for i in 0..N_PILES {
-            if let Some(cc) = self.piles[i as usize].last() {
-                if cc.go_before(&c) {
-                    return Some(i);
+        self.piles
+            .iter()
+            .position(|p| {
+                if let Some(cc) = p.last() {
+                    cc.go_before(c)
+                } else {
+                    c.rank() == KING_RANK
                 }
-            } else if c.rank() == KING_RANK {
-                return Some(i);
-            }
-        }
-        None
+            })
+            .map(|pos| pos as u8)
     }
 
     pub fn find_top_card(&self, c: &Card) -> Option<u8> {
-        for i in 0..N_PILES {
-            if Some(c) == self.piles[i as usize].first() {
-                return Some(i);
-            }
-        }
-        None
+        self.piles
+            .iter()
+            .position(|p| p.first() == Some(c))
+            .map(|pos| pos as u8)
     }
 
     pub fn find_card(&self, c: &Card) -> Option<(u8, usize)> {
