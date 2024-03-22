@@ -51,7 +51,9 @@ impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for SolverCallback<
     }
 
     fn on_undo_move(&mut self, _: &Move, _: Encode) {
-        self.history.pop();
+        if self.result != SearchResult::Solved {
+            self.history.pop();
+        }
         self.stats.finish_move(self.history.len());
     }
 
