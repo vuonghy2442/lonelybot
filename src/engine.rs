@@ -49,7 +49,7 @@ const SUIT_MASK: [u64; N_SUITS as usize] = [
 
 const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
 
-pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 3) as usize;
+pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
 
 pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
 
@@ -107,7 +107,7 @@ pub fn iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -
     let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] = moves;
 
     if let Some(r) = iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c))) {
-        // maximum min(N_PILES, N_CARDS) moves
+        // maximum min(N_PILES - 1, N_CARDS) moves (can't have a cycle of reveal piles)
         Some(r)
     } else if let Some(r) = iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c))) {
         // maximum min(N_PILES, N_SUITS) moves
@@ -117,12 +117,14 @@ pub fn iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -
         Some(r)
     } else if let Some(r) = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c))) {
         // maximum min(N_DECK, N_SUITS) moves
+        // deck_stack and pile_stack can't happen simulatenously so both of the combine can't have more than
+        // N_SUITS move
         Some(r)
     } else {
         // maximum min(N_PILES, N_SUIT) moves
         iter_mask_opt::<T>(stack_pile, |c| func(Move::StackPile(c)))
     }
-    // <= N_PILES * 2 + N_SUITS * 3 = 12 + 14 = 26 moves
+    // <= N_PILES * 2 + N_SUITS * 2 - 1 = 14 + 8 - 1 = 21 moves
 }
 
 pub type UndoInfo = u8;
