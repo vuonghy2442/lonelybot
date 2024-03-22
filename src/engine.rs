@@ -301,8 +301,9 @@ impl Solitaire {
         // map the card mask of lowest rank to its card
         // from mask will take the lowest bit
         // this will disallow having 2 move-to-stack-able suits of same color
-        let (stack_pile, pile_stack, deck_stack, filter_new) = if !DOMINANCES || least_stack == 0 {
-            (stack_pile, pile_stack, deck_stack, !0)
+        // only return the least lexicographically card (stack_pile)
+        let (stack_pile, pile_stack, deck_stack, free_slot) = if !DOMINANCES || least_stack == 0 {
+            (stack_pile, pile_stack, deck_stack, free_slot)
         } else if paired_stack > 0 {
             // is same check when the two stackable card of same color and same rank exists
             // if there is a pair of same card you can only move the card up or reveal something
@@ -351,14 +352,7 @@ impl Solitaire {
         // revealing a card by moving the top card to another pile (not to stack)
         let reveal = top & free_slot;
 
-        [
-            // only return the least lexicographically card
-            pile_stack,
-            deck_stack,
-            stack_pile,
-            deck_pile & filter_new,
-            reveal & filter_new,
-        ]
+        [pile_stack, deck_stack, stack_pile, deck_pile, reveal]
     }
 
     #[must_use]
