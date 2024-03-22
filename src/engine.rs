@@ -319,33 +319,38 @@ impl Solitaire {
             let suit_unstack: [bool; 4] =
                 core::array::from_fn(|i| redundant_stack & SUIT_MASK[i] == 0);
 
-            // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
-            // though it can make triple stackable cards in some case but in those case it will be revert immediately
-            // i.e. the last card stack is the smallest one
-            let (triple_stackable, least) = {
-                // finding card that can potentially become stackable in the next move
-                let pot_stack = (vis ^ top) & sm;
-                let pot_stack = pot_stack | (pot_stack >> 1);
+            if (suit_unstack[0] || suit_unstack[1]) && (suit_unstack[2] || suit_unstack[3]) {
+                // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
+                // though it can make triple stackable cards in some case but in those case it will be revert immediately
+                // i.e. the last card stack is the smallest one
+                let (triple_stackable, least) = {
+                    // finding card that can potentially become stackable in the next move
+                    let pot_stack = (vis ^ top) & sm;
+                    let pot_stack = pot_stack | (pot_stack >> 1);
 
-                // finding the stackable ranks
-                let stack_rank = least_stack | (least_stack >> 1);
-                let least = (stack_rank & ALT_MASK) * 0b11;
-                let stack_rank = (stack_rank | (stack_rank >> 2)) & RANK_MASK;
-                ((pot_stack & stack_rank) * 0b11, least)
-            };
+                    // finding the stackable ranks
+                    let stack_rank = least_stack | (least_stack >> 1);
+                    let least = (stack_rank & ALT_MASK) * 0b11;
+                    let stack_rank = (stack_rank | (stack_rank >> 2)) & RANK_MASK;
+                    ((pot_stack & stack_rank) * 0b11, least)
+                };
 
-            let suit_filter = (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
-                | if suit_unstack[1] { SUIT_MASK[0] } else { 0 }
-                | if suit_unstack[2] { SUIT_MASK[3] } else { 0 }
-                | if suit_unstack[3] { SUIT_MASK[2] } else { 0 });
+                let suit_filter = (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
+                    | if suit_unstack[1] { SUIT_MASK[0] } else { 0 }
+                    | if suit_unstack[2] { SUIT_MASK[3] } else { 0 }
+                    | if suit_unstack[3] { SUIT_MASK[2] } else { 0 });
 
-            (
-                // the new stacked card should be decreasing :)
-                stack_pile & suit_filter & (least_stack - 1) & !triple_stackable,
-                least_stack,
-                0,
-                least >> 4,
-            )
+                (
+                    // the new stacked card should be decreasing :)
+                    stack_pile & suit_filter & (least_stack - 1) & !triple_stackable,
+                    least_stack,
+                    0,
+                    least >> 4,
+                )
+            } else {
+                // double card color
+                (0, least_stack, 0, 0)
+            }
         };
 
         // moving from deck to pile without immediately to to stack ``!(dsm & sm)``
