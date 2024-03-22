@@ -319,23 +319,22 @@ impl Solitaire {
             // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
             // though it can make triple stackable cards in some case but in those case it will be revert immediately
             // i.e. the last card stack is the smallest one
-            let triple_stackable = {
+            let (triple_stackable, least) = {
                 // finding card that can potentially become stackable in the next move
                 let pot_stack = (vis ^ top) & sm;
                 let pot_stack = pot_stack | (pot_stack >> 1);
 
                 // finding the stackable ranks
                 let stack_rank = least_stack | (least_stack >> 1);
+                let least = (stack_rank & ALT_MASK) * 0b11;
                 let stack_rank = (stack_rank | (stack_rank >> 2)) & RANK_MASK;
-                (pot_stack & stack_rank) * 0b11
+                ((pot_stack & stack_rank) * 0b11, least)
             };
 
             let suit_filter = (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
                 | if suit_unstack[1] { SUIT_MASK[0] } else { 0 }
                 | if suit_unstack[2] { SUIT_MASK[3] } else { 0 }
                 | if suit_unstack[3] { SUIT_MASK[2] } else { 0 });
-
-            let least = ((least_stack | (least_stack >> 1)) & ALT_MASK) * 0b11;
 
             (
                 // the new stacked card should be decreasing :)
