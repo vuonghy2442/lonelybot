@@ -313,7 +313,7 @@ impl Solitaire {
             // only stack to the least lexigraphically card (or 2 cards if same color)
             // do not use the deck stack when have unnecessary stackable cards
             let rm = paired_stack * 0b11;
-            (0, rm, 0, ((least_stack & paired_stack) * 0b11) >> 4)
+            (0, rm, 0, rm >> 4)
         } else {
             // check if unstackable by suit
             let suit_unstack: [bool; 4] =
@@ -323,16 +323,25 @@ impl Solitaire {
                 // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
                 // though it can make triple stackable cards in some case but in those case it will be revert immediately
                 // i.e. the last card stack is the smallest one
-                let (triple_stackable, least) = {
+                let least = least_stack | (least_stack >> 1);
+                let least = (least & ALT_MASK) * 0b11;
+
+                let triple_stackable = {
                     // finding card that can potentially become stackable in the next move
                     let pot_stack = (vis ^ top) & sm;
-                    let pot_stack = pot_stack | (pot_stack >> 1);
+                    let pot_stack = (pot_stack | (pot_stack >> 1)) & RANK_MASK;
 
-                    // finding the stackable ranks
-                    let stack_rank = least_stack | (least_stack >> 1);
-                    let least = (stack_rank & ALT_MASK) * 0b11;
-                    let stack_rank = (stack_rank | (stack_rank >> 2)) & RANK_MASK;
-                    ((pot_stack & stack_rank) * 0b11, least)
+                    let okay = (if !suit_unstack[0] || !suit_unstack[1] {
+                        COLOR_MASK[1]
+                    } else {
+                        0
+                    } | if !suit_unstack[2] || !suit_unstack[3] {
+                        COLOR_MASK[0]
+                    } else {
+                        0
+                    });
+
+                    (pot_stack * 0b11) & okay
                 };
 
                 let suit_filter = (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
