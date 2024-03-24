@@ -341,7 +341,7 @@ impl Solitaire {
                         0
                     });
 
-                    (pot_stack * 0b11) & okay
+                    (pot_stack * 0b11) & okay & !(least >> 4)
                 };
 
                 let suit_filter = (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
