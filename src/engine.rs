@@ -329,19 +329,16 @@ impl Solitaire {
                 let triple_stackable = {
                     // finding card that can potentially become stackable in the next move
                     let pot_stack = (vis ^ top) & sm;
-                    let pot_stack = (pot_stack | (pot_stack >> 1)) & RANK_MASK;
+                    let pot_stack = pot_stack | (pot_stack >> 1);
 
-                    let okay = (if !suit_unstack[0] || !suit_unstack[1] {
-                        COLOR_MASK[1]
-                    } else {
-                        0
-                    } | if !suit_unstack[2] || !suit_unstack[3] {
-                        COLOR_MASK[0]
-                    } else {
-                        0
-                    });
+                    // if one of them is a top card then, the next turn will be not reversible
 
-                    (pot_stack * 0b11) & okay & !(least >> 4)
+                    // due to both of the card should be stackable and not being a top card
+                    // they would have both color of their parents hence (their parent surely not stackable)
+                    // the only way they are stackable is the same rank (and larger color)
+                    let stack_rank = (least >> 2) & RANK_MASK;
+
+                    (pot_stack & stack_rank) * 0b11
                 };
 
                 let suit_filter = (if suit_unstack[0] { SUIT_MASK[1] } else { 0 }
