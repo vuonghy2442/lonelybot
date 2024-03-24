@@ -352,7 +352,12 @@ impl Solitaire {
                     stack_pile & suit_filter & (least_stack - 1) & !triple_stackable,
                     least_stack,
                     0,
-                    least >> 4,
+                    // only unlocking new stuff when doesn't have both color in the same rank
+                    if (least << 2) & redundant_stack > 0 {
+                        0
+                    } else {
+                        least >> 4
+                    },
                 )
             } else {
                 // double card color
