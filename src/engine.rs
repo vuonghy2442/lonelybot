@@ -637,7 +637,9 @@ impl Solitaire {
         let mut king_suit = 0;
         core::array::from_fn(|i| {
             let n_hid = self.n_hidden[i];
-            let mut start_card = if n_hid == 0 {
+            let last_card = self.get_hidden(i as u8).last().unwrap_or(&Card::FAKE);
+
+            let mut start_card = if n_hid <= 1 && last_card.rank() >= KING_RANK {
                 while king_suit < 4
                     && (self.visible_mask ^ self.top_mask)
                         & card_mask(&Card::new(KING_RANK, king_suit))
@@ -652,7 +654,7 @@ impl Solitaire {
                     return PileVec::new();
                 }
             } else {
-                *self.get_hidden(i as u8).last().unwrap()
+                *last_card
             };
 
             let mut cards = PileVec::new();
