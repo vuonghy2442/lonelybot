@@ -315,16 +315,17 @@ impl Solitaire {
             let rm = paired_stack * 0b11;
             (0, rm, 0, rm >> 4)
         } else {
+            // getting the stackable stuff when unstack the lowest one :)
+            let least = least_stack | (least_stack >> 1);
+            let least = (least & ALT_MASK) * 0b11;
+            let extra = redundant_stack | (vis & sm & (least << 4));
             // check if unstackable by suit
-            let suit_unstack: [bool; 4] =
-                core::array::from_fn(|i| redundant_stack & SUIT_MASK[i] == 0);
+            let suit_unstack: [bool; 4] = core::array::from_fn(|i| extra & SUIT_MASK[i] == 0);
 
             if (suit_unstack[0] || suit_unstack[1]) && (suit_unstack[2] || suit_unstack[3]) {
                 // this filter is to prevent making a double same color, inturn make 3 unnecessary stackable card
                 // though it can make triple stackable cards in some case but in those case it will be revert immediately
                 // i.e. the last card stack is the smallest one
-                let least = least_stack | (least_stack >> 1);
-                let least = (least & ALT_MASK) * 0b11;
 
                 let triple_stackable = {
                     // finding card that can potentially become stackable in the next move
