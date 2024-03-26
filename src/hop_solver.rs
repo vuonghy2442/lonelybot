@@ -55,6 +55,7 @@ pub fn hop_solve_game(
     n_times: usize,
     limit: usize,
     sign: &impl SearchSignal,
+    rev_move: Option<Move>,
 ) -> (usize, usize, usize) {
     let mut total_wins = 0;
     let mut total_skips = 0;
@@ -88,7 +89,7 @@ pub fn hop_solve_game(
             n_visit: 0,
         };
         tp.clear();
-        traverse_game(&mut gg, &mut tp, &mut callback);
+        traverse_game(&mut gg, &mut tp, &mut callback, rev_move);
         if sign.is_terminated() {
             break;
         }
@@ -139,7 +140,7 @@ impl<'a, R: RngCore, S: SearchSignal> GraphCallback for RevStatesCallback<'a, R,
             self.skipped = true;
             self.res.push((
                 self.his.clone(),
-                hop_solve_game(g, m, self.rng, self.n_times, self.limit, self.sign),
+                hop_solve_game(g, m, self.rng, self.n_times, self.limit, self.sign, None),
             ));
         } else {
             self.skipped = false;
@@ -173,6 +174,6 @@ pub fn hop_moves_game(
     };
 
     let mut tp = TpTable::default();
-    traverse_game(g, &mut tp, &mut callback);
+    traverse_game(g, &mut tp, &mut callback, None);
     callback.res
 }

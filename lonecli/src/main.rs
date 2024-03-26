@@ -160,12 +160,11 @@ fn do_random(seed: &Seed) {
 }
 
 fn do_hop(seed: &Seed, verbose: bool) -> bool {
-    const N_TIMES: usize = 1000;
+    const N_TIMES: usize = 3000;
     const LIMIT: usize = 1000;
 
     let mut game = Solitaire::new(&shuffle(seed), 3);
     let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
-    // let mut another_rng = StdRng::seed_from_u64(seed.seed().as_u64());
 
     while !game.is_win() {
         let mut gg = game.clone();

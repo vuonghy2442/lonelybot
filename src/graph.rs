@@ -109,7 +109,7 @@ pub fn graph_game_with_tracking(
         rev_move: None,
     };
 
-    let finished = traverse_game(g, &mut tp, &mut callback);
+    let finished = traverse_game(g, &mut tp, &mut callback, None);
     (finished, callback.graph)
 }
 

@@ -78,7 +78,7 @@ pub fn solve_game_with_tracking(
         result: SearchResult::Unsolvable,
     };
 
-    traverse_game(g, &mut tp, &mut callback);
+    traverse_game(g, &mut tp, &mut callback, None);
     let result = callback.result;
 
     if result == SearchResult::Solved {

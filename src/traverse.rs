@@ -92,9 +92,10 @@ pub fn traverse_game(
     g: &mut Solitaire,
     tp: &mut impl TranpositionTable,
     callback: &mut impl GraphCallback,
+    rev_move: Option<Move>,
 ) -> TraverseResult {
     callback.on_start();
-    let res = traverse(g, None, tp, callback);
+    let res = traverse(g, rev_move, tp, callback);
     callback.on_finish(&res);
     res
 }
