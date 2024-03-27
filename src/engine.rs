@@ -548,6 +548,11 @@ impl Solitaire {
     }
 
     #[must_use]
+    pub fn is_sure_win(&self) -> bool {
+        self.deck.len() <= 1 && self.n_hidden.iter().all(|x| *x <= 1)
+    }
+
+    #[must_use]
     const fn stackable(&self, rank: u8, suit: u8) -> bool {
         self.final_stack[suit as usize] == rank && rank < N_RANKS
     }

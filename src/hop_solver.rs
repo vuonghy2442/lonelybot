@@ -20,7 +20,12 @@ impl<'a, T: SearchSignal> GraphCallback for HOPSolverCallback<'a, T> {
         TraverseResult::Halted
     }
 
-    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> TraverseResult {
+    fn on_visit(&mut self, g: &Solitaire, _: Encode) -> TraverseResult {
+        if g.is_sure_win() {
+            self.result = SearchResult::Solved;
+            return TraverseResult::Halted;
+        }
+
         if self.sign.is_terminated() {
             self.result = SearchResult::Terminated;
             return TraverseResult::Halted;
