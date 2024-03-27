@@ -7,6 +7,7 @@ use lonelybot::convert::convert_moves;
 use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::hop_solver::hop_moves_game;
+use lonelybot::mcts_solver::mcts_moves_game;
 use lonelybot::shuffler::{self, CardDeck, U256};
 use lonelybot::tracking::{DefaultSearchSignal, SearchStatistics};
 use lonelybot::traverse::TraverseResult;
@@ -160,7 +161,7 @@ fn do_random(seed: &Seed) {
 }
 
 fn do_hop(seed: &Seed, verbose: bool) -> bool {
-    const N_TIMES: usize = 3000;
+    const N_TIMES: usize = 1000;
     const LIMIT: usize = 1000;
 
     let mut game = Solitaire::new(&shuffle(seed), 3);
@@ -169,14 +170,15 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
     while !game.is_win() {
         let mut gg = game.clone();
         gg.clear_hidden();
-        let res = hop_moves_game(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
-        if verbose {
-            println!("{} {:?}", game.encode(), res);
-        }
-        let best = res.iter().max_by_key(|x| x.1 .0);
+        // let res = hop_moves_game(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
+        // if verbose {
+        //     println!("{} {:?}", game.encode(), res);
+        // }
+        // let best = res.iter().max_by_key(|x| x.1 .0).map(|x| &x.0);
+        let best = mcts_moves_game(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
         if let Some(best) = best {
-            for m in &best.0 {
-                game.do_move(m);
+            for m in best {
+                game.do_move(&m);
             }
         } else {
             if verbose {
