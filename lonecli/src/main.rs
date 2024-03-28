@@ -16,9 +16,9 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread;
 use std::time::Duration;
 use std::{io::Write, time::Instant};
+use std::{thread, time};
 
 use lonelybot::solver::SearchResult;
 use lonelybot::standard::StandardSolitaire;
@@ -161,7 +161,7 @@ fn do_random(seed: &Seed) {
 }
 
 fn do_hop(seed: &Seed, verbose: bool) -> bool {
-    const N_TIMES: usize = 1000;
+    const N_TIMES: usize = 3000;
     const LIMIT: usize = 1000;
 
     let mut game = Solitaire::new(&shuffle(seed), 3);
@@ -456,18 +456,22 @@ fn main() {
             let mut cnt_solve: u32 = 0;
             for i in 0.. {
                 let s: Seed = seed.into();
+                let start = time::Instant::now();
+
                 cnt_solve += u32::from(do_hop(&s.increase(i), false));
+                let elapsed = start.elapsed();
 
                 let interval = NSuccessesSample::new(i + 1, cnt_solve)
                     .unwrap()
                     .wilson_score(1.960);
                 println!(
-                    "{}/{} ~ {:.4} < {:.4} < {:.4}",
+                    "{}/{} ~ {:.4} < {:.4} < {:.4} in {:?}",
                     cnt_solve,
                     i + 1,
                     interval.lower(),
                     f64::from(cnt_solve) / f64::from(i + 1),
-                    interval.upper()
+                    interval.upper(),
+                    elapsed
                 );
             }
         }
