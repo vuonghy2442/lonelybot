@@ -154,15 +154,30 @@ impl Solitaire {
             draw_step,
         );
 
-        Self {
+        let mut res = Self {
             hidden_piles,
             n_hidden: core::array::from_fn(|i| (i + 1) as u8),
             final_stack: [0u8; 4],
             deck,
             visible_mask,
-            top_mask: visible_mask,
+            top_mask: Default::default(),
             hidden,
+        };
+        res.top_mask = res.compute_top_mask();
+        res
+    }
+
+    fn compute_top_mask(&self) -> u64 {
+        let mut top_mask = 0;
+        for pos in 0..N_PILES {
+            if let Some((card, rest)) = self.get_hidden(pos).split_last() {
+                let is_top = rest.len() > 0 || card.rank() < KING_RANK;
+                if is_top {
+                    top_mask |= card_mask(card)
+                }
+            }
         }
+        top_mask
     }
 
     #[must_use]
@@ -601,7 +616,7 @@ impl Solitaire {
             | u64::from(deck_encode) << (16 + 16)
     }
 
-    pub fn decode(&mut self, encode: u64) {
+    pub fn decode(&mut self, encode: Encode) {
         let (stack_encode, mut hidden_encode, deck_encode) =
             (encode as u16, (encode >> 16) as u16, (encode >> 32) as u32);
         let mut nonvis_mask = 0;
@@ -627,7 +642,7 @@ impl Solitaire {
                     nonvis_mask |= card_mask(c);
                 }
 
-                if last.rank() < KING_RANK {
+                if last.rank() < KING_RANK || hidden.len() > 0 {
                     top_mask |= card_mask(last);
                 }
             }
@@ -751,6 +766,70 @@ impl Solitaire {
             }
         }
     }
+
+    pub fn is_valid(&self) -> bool {
+        // TODO: test for if visible mask and top_mask make sense to build bottom mask
+        if self.top_mask | self.visible_mask != self.visible_mask {
+            return false;
+        }
+
+        if self.compute_top_mask() != self.top_mask
+            || ((KING_MASK & (self.visible_mask ^ self.top_mask)) | self.top_mask).count_ones()
+                > N_PILES.into()
+        {
+            return false;
+        }
+
+        let mut total_cards = self.visible_mask.count_ones() as u8
+            + self.final_stack.iter().sum::<u8>()
+            + self.deck.len();
+
+        let mut fmask = self.visible_mask;
+        //check if the game is in valid state
+        for pos in 0..N_PILES {
+            if let Some((card, rest)) = self.get_hidden(pos).split_last() {
+                let mask = card_mask(card);
+                if self.visible_mask & mask == 0 {
+                    return false;
+                }
+                total_cards += rest.len() as u8;
+
+                for c in rest {
+                    fmask |= card_mask(c);
+                }
+            }
+        }
+
+        if total_cards != N_CARDS {
+            return false;
+        }
+
+        for suit in 0..N_SUITS {
+            for rank in 0..self.final_stack[usize::from(suit)] {
+                fmask |= card_mask(&Card::new(rank, suit));
+            }
+        }
+
+        for (_, c, _) in self.deck.iter_all() {
+            fmask |= card_mask(c);
+        }
+
+        if fmask != full_mask(N_CARDS) {
+            return false;
+        }
+
+        true
+    }
+
+    pub fn equivalent_to(&self, other: &Self) -> bool {
+        // check equivalent states
+        return true
+            && self.deck.equivalent_to(&other.deck)
+            && self.final_stack == other.final_stack
+            && self.top_mask == other.top_mask
+            && self.visible_mask == other.visible_mask
+            && self.n_hidden == other.n_hidden;
+    }
 }
 
 impl From<&StandardSolitaire> for Solitaire {
@@ -869,7 +948,12 @@ mod tests {
 
                 let state = game.encode();
                 game.decode(state);
-                game.clone().clear_hidden();
+                assert!(game.is_valid());
+
+                let mut gg = game.clone();
+                gg.clear_hidden();
+                assert!(gg.is_valid());
+
                 assert_eq!(game.encode(), state);
 
                 let ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =
@@ -888,6 +972,7 @@ mod tests {
                 assert_eq!(undo_state, state);
                 game.decode(state);
                 assert_eq!(game.encode(), state);
+                assert!(game.equivalent_to(&gg));
 
                 game.do_move(m);
                 assert_eq!(game.encode(), next_state);
@@ -904,24 +989,37 @@ mod tests {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             let mut history = ArrayVec::<(Move, UndoInfo), N_STEP>::new();
             let mut enc = ArrayVec::<Encode, N_STEP>::new();
+            let mut states = ArrayVec::<Solitaire, N_STEP>::new();
 
+            assert!(game.is_valid());
             for _ in 0..N_STEP {
                 let moves = game.list_moves::<false>();
                 if moves.is_empty() {
                     break;
                 }
 
+                assert!(game.is_valid());
                 enc.push(game.encode());
+                states.push(game.clone());
 
                 let m = moves.choose(&mut rng).unwrap();
                 let undo = game.do_move(m);
                 history.push((*m, undo));
             }
 
+            let new_enc = enc.clone();
+
             for _ in 0..history.len() {
                 let (m, undo) = history.pop().unwrap();
                 game.undo_move(&m, &undo);
                 assert_eq!(game.encode(), enc.pop().unwrap());
+            }
+
+            for (e, state) in new_enc.iter().zip(states) {
+                let mut g = game.clone();
+                g.decode(*e);
+                assert!(g.is_valid());
+                assert!(g.equivalent_to(&state));
             }
         }
     }

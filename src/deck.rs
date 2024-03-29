@@ -312,4 +312,11 @@ impl Deck {
         self.set_offset(offset);
         self.mask = mask;
     }
+
+    pub fn equivalent_to(&self, other: &Self) -> bool {
+        return self
+            .iter_all()
+            .zip(other.iter_all())
+            .all(|x| x.0 .1 == x.1 .1 && (x.0 .2 == Drawable::None) == (x.1 .2 == Drawable::None));
+    }
 }
