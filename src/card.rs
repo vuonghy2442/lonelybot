@@ -14,7 +14,7 @@ pub const NUMBERS: [&str; N_RANKS as usize] = [
 pub struct Card(u8);
 
 impl Card {
-    // suit = 1 to make sure it turn on the first bit in suit for deck
+    // assume that its rank is larger than all others
     pub const FAKE: Self = Self::new(N_RANKS, 0);
 
     #[must_use]

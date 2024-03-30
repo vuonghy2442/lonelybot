@@ -77,8 +77,8 @@ impl Hidden {
     }
 
     #[must_use]
-    pub const fn lens(&self) -> &[u8; N_PILES as usize] {
-        &self.n_hidden
+    pub const fn len(&self, pos: u8) -> u8 {
+        self.n_hidden[pos as usize]
     }
 
     const fn get_range(&self, pos: u8) -> core::ops::Range<usize> {
@@ -119,7 +119,7 @@ impl Hidden {
 
     #[must_use]
     pub fn all_turn_up(&self) -> bool {
-        self.lens().iter().all(|x| *x <= 1)
+        self.n_hidden.iter().all(|x| *x <= 1)
     }
 
     pub fn total_down_cards(&self) -> u8 {

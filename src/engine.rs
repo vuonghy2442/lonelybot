@@ -470,7 +470,7 @@ impl Solitaire {
         if let Some(&new_card) = new_card {
             let revealed = card_mask(&new_card);
             self.visible_mask |= revealed;
-            if new_card.rank() < KING_RANK || self.hidden.lens()[pos as usize] > 1 {
+            if new_card.rank() < KING_RANK || self.hidden.len(pos) > 1 {
                 // if it's not the king mask or there's some hidden cards then set it as the top card
                 self.top_mask |= revealed;
             }
@@ -606,11 +606,11 @@ impl Solitaire {
     #[must_use]
     pub fn get_visible_piles(&self) -> [PileVec; N_PILES as usize] {
         let mut king_suit = 0;
-        core::array::from_fn(|i| {
-            let n_hid = self.hidden.lens()[i];
-            let last_card = self.hidden.get(i as u8).last().unwrap_or(&Card::FAKE);
+        core::array::from_fn(|pos| {
+            let pos = pos as u8;
+            let last_card = self.hidden.peek(pos).unwrap_or(&Card::FAKE);
 
-            let mut start_card = if n_hid <= 1 && last_card.rank() >= KING_RANK {
+            let mut start_card = if self.hidden.len(pos) <= 1 && last_card.rank() >= KING_RANK {
                 while king_suit < N_SUITS
                     && (self.visible_mask ^ self.top_mask)
                         & card_mask(&Card::new(KING_RANK, king_suit))
