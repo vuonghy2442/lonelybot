@@ -12,14 +12,14 @@ use alloc::vec::Vec;
 
 struct ListStatesCallback {
     his: Vec<Move>,
-    res: Vec<(Vec<Move>, Solitaire)>,
+    res: Vec<(Vec<Move>, Encode)>,
     skipped: bool,
 }
 
 impl GraphCallback for ListStatesCallback {
     fn on_win(&mut self, g: &Solitaire, _: &Option<Move>) -> TraverseResult {
         self.res.clear();
-        self.res.push((self.his.clone(), g.clone()));
+        self.res.push((self.his.clone(), g.encode()));
         TraverseResult::Halted
     }
 
@@ -33,12 +33,12 @@ impl GraphCallback for ListStatesCallback {
 
     fn on_move_gen(&mut self, _: &crate::engine::MoveVec, _: Encode) {}
 
-    fn on_do_move(&mut self, g: &Solitaire, m: &Move, _e: Encode, rev: &Option<Move>) {
+    fn on_do_move(&mut self, _: &Solitaire, m: &Move, e: Encode, rev: &Option<Move>) {
         self.his.push(*m);
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
         if rev.is_none() {
             self.skipped = true;
-            self.res.push((self.his.clone(), g.clone()));
+            self.res.push((self.his.clone(), e));
         } else {
             self.skipped = false;
         }
@@ -83,7 +83,7 @@ pub fn mcts_moves_game(
     res.resize_with(states.len(), Default::default);
 
     // const C: f64 = 1.414;
-    const C: f64 = 1.0;
+    const C: f64 = 0.5;
 
     const BATCH_SIZE: usize = 10;
 
@@ -108,11 +108,9 @@ pub fn mcts_moves_game(
         let state = &states[best];
 
         //test
-        // let code = state.1.encode();
-        // g.decode(code);
+        g.decode(state.1);
         let new_res = hop_solve_game(
-            // g,
-            &state.1,
+            g,
             state.0.last().unwrap(),
             rng,
             BATCH_SIZE,
@@ -146,10 +144,6 @@ pub fn mcts_moves_game(
         //     break;
         // }
     }
-
-    // print!("{:?}", res);
-
-    // g.decode(org_state);
 
     res.iter()
         .zip(states)
