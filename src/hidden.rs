@@ -3,7 +3,7 @@ use rand::RngCore;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{card_mask, from_mask, Card, KING_RANK, N_CARDS};
+use crate::card::{from_mask, Card, KING_RANK, N_CARDS};
 use crate::deck::{N_HIDDEN_CARDS, N_PILES};
 
 use crate::standard::HiddenVec;
@@ -45,8 +45,6 @@ impl Hidden {
         let mut hidden_piles = [Card::FAKE; N_HIDDEN_CARDS as usize];
         let mut pile_map = [0u8; N_CARDS as usize];
 
-        [0u8; N_PILES as usize];
-
         for i in 0..N_PILES as usize {
             for (j, c) in piles[i].iter().chain(top[i].iter()).enumerate() {
                 hidden_piles[(i * (i + 1) / 2) + j] = *c;
@@ -57,7 +55,7 @@ impl Hidden {
         Self {
             hidden_piles,
             pile_map,
-            n_hidden: core::array::from_fn(|i| piles[i].len() as u8 + top[i].is_some() as u8),
+            n_hidden: core::array::from_fn(|i| piles[i].len() as u8 + u8::from(top[i].is_some())),
         }
     }
 
@@ -81,6 +79,7 @@ impl Hidden {
         self.n_hidden[pos as usize]
     }
 
+    #[must_use]
     const fn get_range(&self, pos: u8) -> core::ops::Range<usize> {
         let start = (pos * (pos + 1) / 2) as usize;
         let end = start + self.n_hidden[pos as usize] as usize;
@@ -122,6 +121,7 @@ impl Hidden {
         self.n_hidden.iter().all(|x| *x <= 1)
     }
 
+    #[must_use]
     pub fn total_down_cards(&self) -> u8 {
         self.n_hidden
             .iter()
@@ -157,12 +157,13 @@ impl Hidden {
         }
     }
 
+    #[must_use]
     pub fn mask(&self) -> u64 {
         let mut mask = 0;
         for pos in 0..N_PILES {
             if let Some((_, pile_map)) = self.get(pos).split_last() {
                 for c in pile_map {
-                    mask |= card_mask(c);
+                    mask |= c.mask();
                 }
             }
         }
@@ -206,6 +207,7 @@ impl Hidden {
         self.update_map();
     }
 
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         for pos in 0..N_PILES {
             for c in self.get(pos) {
@@ -220,12 +222,11 @@ impl Hidden {
     #[must_use]
     pub fn normalize(&self) -> [u8; N_PILES as usize] {
         core::array::from_fn(|pos| {
-            if self.n_hidden[pos] > 1 {
-                self.n_hidden[pos]
-            } else if self.n_hidden[pos] == 1 {
-                (self.get(pos as u8)[0].rank() < KING_RANK) as u8
-            } else {
-                0
+            let n_hid = self.n_hidden[pos];
+            match n_hid {
+                2.. => n_hid,
+                1 => u8::from(self.get(pos as u8)[0].rank() < KING_RANK),
+                0 => 0,
             }
         })
     }

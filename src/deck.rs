@@ -307,6 +307,7 @@ impl Deck {
         self.mask = mask;
     }
 
+    #[must_use]
     pub fn equivalent_to(&self, other: &Self) -> bool {
         return self
             .iter_all()

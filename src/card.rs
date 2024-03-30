@@ -69,12 +69,12 @@ impl Card {
         let card_b = other.split();
         card_a.0 == card_b.0 + 1 && ((card_a.1 ^ card_b.1) & 2 == 2 || card_a.0 == N_RANKS)
     }
-}
 
-#[must_use]
-pub const fn card_mask(c: &Card) -> u64 {
-    let v = c.value();
-    1u64 << (v ^ ((v >> 1) & 2))
+    #[must_use]
+    pub const fn mask(&self) -> u64 {
+        let v = self.value();
+        1u64 << (v ^ ((v >> 1) & 2))
+    }
 }
 
 #[must_use]
