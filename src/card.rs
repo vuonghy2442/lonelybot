@@ -49,9 +49,20 @@ impl Card {
     }
 
     #[must_use]
-    pub const fn xor_suit(&self, other: &Self) -> u8 {
-        let v = self.value() ^ other.value();
-        ((v / 2) ^ (v / N_SUITS)) & 1
+    pub const fn swap_suit(&self) -> Self {
+        // keeping the color of the suit and switch to the other type
+        // also keeping the rank
+        Self(self.0 ^ 1)
+    }
+
+    #[must_use]
+    pub const fn swap_color(&self) -> Self {
+        Self(self.0 ^ 2)
+    }
+
+    #[must_use]
+    pub const fn reduce_rank(&self) -> Self {
+        Self(self.0.saturating_sub(N_SUITS))
     }
 
     #[must_use]

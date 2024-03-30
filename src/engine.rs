@@ -675,14 +675,14 @@ impl Solitaire {
             let last_card = self.get_hidden(i as u8).last().unwrap_or(&Card::FAKE);
 
             let mut start_card = if n_hid <= 1 && last_card.rank() >= KING_RANK {
-                while king_suit < 4
+                while king_suit < N_SUITS
                     && (self.visible_mask ^ self.top_mask)
                         & card_mask(&Card::new(KING_RANK, king_suit))
                         == 0
                 {
                     king_suit += 1;
                 }
-                if king_suit < 4 {
+                if king_suit < N_SUITS {
                     king_suit += 1;
                     Card::new(KING_RANK, king_suit - 1)
                 } else {
@@ -700,20 +700,20 @@ impl Solitaire {
                 if start_card.rank() == 0 {
                     break;
                 }
-                let has_both = card_mask(&Card::new(start_card.rank(), start_card.suit() ^ 1))
-                    & self.visible_mask
-                    != 0;
 
-                start_card = Card::new(start_card.rank() - 1, start_card.suit() ^ 2);
-                let mask = card_mask(&start_card);
+                let has_both = card_mask(&start_card.swap_suit()) & self.visible_mask != 0;
+                let next_card = start_card.reduce_rank().swap_color();
 
                 let possible_cards = self.top_mask ^ self.visible_mask;
-                if !has_both && possible_cards & mask == 0 {
+                start_card = if !has_both && possible_cards & card_mask(&next_card) == 0 {
                     // not a possible cards => switch suit
-                    start_card = Card::new(start_card.rank(), start_card.suit() ^ 1);
-                }
+                    next_card.swap_suit()
+                } else {
+                    next_card
+                };
 
                 if possible_cards & card_mask(&start_card) == 0 {
+                    // if it's not good then break
                     break;
                 }
             }
