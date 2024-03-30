@@ -92,16 +92,8 @@ pub fn print_game(game: &Solitaire) {
 
     print_foundation(game.get_stack());
 
-    let piles: [PileVec; N_PILES as usize] = game.get_normal_piles();
-    let hiddens: [HiddenVec; N_PILES as usize] = core::array::from_fn(|i| {
-        game.get_hidden(i as u8)
-            .iter()
-            .rev()
-            .skip(1)
-            .rev()
-            .copied()
-            .collect()
-    });
+    let piles: [PileVec; N_PILES as usize] = game.get_visible_piles();
+    let hiddens: [HiddenVec; N_PILES as usize] = game.get_hidden().to_piles();
     print_piles(&piles, &hiddens);
 }
 

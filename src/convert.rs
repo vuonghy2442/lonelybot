@@ -1,27 +1,15 @@
 use crate::{
-    deck::N_PILES,
     engine::{Move, Solitaire},
-    standard::{HiddenVec, Pos, StandardHistoryVec, StandardSolitaire, DRAW_NEXT},
+    standard::{Pos, StandardHistoryVec, StandardSolitaire, DRAW_NEXT},
 };
 
 impl From<&Solitaire> for StandardSolitaire {
     fn from(game: &Solitaire) -> Self {
-        let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
-
-        for i in 0..N_PILES {
-            let Some((_, hidden)) = game.get_hidden(i).split_last() else {
-                continue;
-            };
-            for c in hidden {
-                hidden_piles[i as usize].push(*c);
-            }
-        }
-
         StandardSolitaire {
-            hidden_piles,
+            hidden_piles: game.get_hidden().to_piles(),
             final_stack: *game.get_stack(),
             deck: game.get_deck().clone(),
-            piles: game.get_normal_piles(),
+            piles: game.get_visible_piles(),
         }
     }
 }
@@ -120,10 +108,9 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
-    #[test]
-    fn test_convert() {
+    fn do_test_convert(seed: u64) {
         const DRAW_STEP: u8 = 3;
-        let cards = default_shuffle(12);
+        let cards = default_shuffle(seed);
         let mut game = StandardSolitaire::new(&cards, DRAW_STEP);
 
         let res = {
@@ -138,7 +125,6 @@ mod tests {
         };
 
         let Some(moves) = res.1 else {
-            assert!(false);
             return;
         };
 
@@ -149,10 +135,8 @@ mod tests {
             convert_move(&mut game, &moves[pos], &mut his);
             game_x.do_move(&moves[pos]);
             let mut game_c: Solitaire = From::from(&game);
-            assert_eq!(game_x.get_top_mask(), game_c.get_top_mask());
-            assert_eq!(game_x.get_visible_mask(), game_c.get_visible_mask());
-            assert_eq!(game_x.get_n_hidden(), game_c.get_n_hidden());
-            assert_eq!(game_x.get_stack(), game_c.get_stack());
+            assert!(game_c.is_valid());
+            assert!(game_x.equivalent_to(&game_c));
 
             let mut game_cc: StandardSolitaire = From::from(&game_c);
 
@@ -164,6 +148,13 @@ mod tests {
             convert_moves(&mut game_cc, &moves[pos + 1..]);
             assert!(game_c.is_win());
             assert!(game_cc.is_win());
+        }
+    }
+
+    #[test]
+    fn test_convert() {
+        for seed in 12..20 {
+            do_test_convert(seed);
         }
     }
 }

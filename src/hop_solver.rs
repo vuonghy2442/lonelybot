@@ -69,7 +69,7 @@ pub fn hop_solve_game(
     let mut tp = TpTable::default();
 
     // check if determinize
-    let total_hidden: u8 = g.get_n_hidden().map(|x| x.saturating_sub(1)).iter().sum();
+    let total_hidden: u8 = g.get_hidden().total_down_cards();
     if total_hidden <= 1 {
         // totally determinized
         let res = crate::solver::solve_game(&mut g.clone()).0;
@@ -84,7 +84,7 @@ pub fn hop_solve_game(
 
     for _ in 0..n_times {
         let mut gg = g.clone();
-        gg.shuffle_hidden(rng);
+        gg.get_hidden_mut().shuffle(rng);
         gg.do_move(m);
 
         let mut callback = HOPSolverCallback {

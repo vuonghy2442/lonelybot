@@ -89,3 +89,16 @@ impl Card {
         )
     }
 }
+
+#[must_use]
+pub const fn card_mask(c: &Card) -> u64 {
+    let v = c.value();
+    1u64 << (v ^ ((v >> 1) & 2))
+}
+
+#[must_use]
+pub const fn from_mask(v: &u64) -> Card {
+    let v = v.trailing_zeros() as u8;
+    let v = v ^ ((v >> 1) & 2);
+    Card::new(v / N_SUITS, v % N_SUITS)
+}

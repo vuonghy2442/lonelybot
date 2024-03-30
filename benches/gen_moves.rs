@@ -1,7 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
+    card::from_mask,
     deck::{Deck, N_HIDDEN_CARDS},
-    engine::{from_mask, Move, Solitaire},
+    engine::{Move, Solitaire},
     shuffler,
 };
 use rand::prelude::*;

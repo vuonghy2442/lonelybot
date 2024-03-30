@@ -168,7 +168,7 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
 
     while !game.is_win() {
         let mut gg = game.clone();
-        gg.clear_hidden();
+        gg.get_hidden_mut().clear();
         // let res = hop_moves_game(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
         // if verbose {
         //     println!("{} {:?}", game.encode(), res);
