@@ -67,58 +67,66 @@ impl Deck {
     }
 
     #[must_use]
-    pub fn iter_all(&self) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
-        let head = self.deck[..self.draw_cur as usize]
-            .iter()
-            .enumerate()
-            .map(|x| {
-                let pos = x.0 as u8;
-                (
-                    pos,
-                    x.1,
-                    if pos + 1 == self.draw_cur {
-                        Drawable::Current
-                    } else if (pos + 1) % self.draw_step == 0 {
-                        Drawable::Next
-                    } else {
-                        Drawable::None
-                    },
-                )
-            });
+    pub fn get_waste(&self) -> &[Card] {
+        &self.deck[..self.draw_cur as usize]
+    }
 
-        let tail = self.deck[self.draw_next as usize..]
-            .iter()
-            .enumerate()
-            .map(|x| {
-                let pos = x.0 as u8;
-                (
-                    self.draw_cur + pos,
-                    x.1,
-                    if pos + 1 == N_FULL_DECK as u8 - self.draw_next
-                        || (pos + 1) % self.draw_step == 0
-                    {
-                        Drawable::Current
-                    } else if (self.draw_cur + pos + 1) % self.draw_step == 0 {
-                        Drawable::Next
-                    } else {
-                        Drawable::None
-                    },
-                )
-            });
+    #[must_use]
+    pub fn get_deck(&self) -> &[Card] {
+        &self.deck[self.draw_next as usize..]
+    }
+
+    #[must_use]
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &Card> {
+        self.get_waste().iter().chain(self.get_deck().iter())
+    }
+
+    #[must_use]
+    pub fn iter_all(&self) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
+        let head = self.get_waste().iter().enumerate().map(|x| {
+            let pos = x.0 as u8;
+            (
+                pos,
+                x.1,
+                if pos + 1 == self.draw_cur {
+                    Drawable::Current
+                } else if (pos + 1) % self.draw_step == 0 {
+                    Drawable::Next
+                } else {
+                    Drawable::None
+                },
+            )
+        });
+
+        let tail = self.get_deck().iter().enumerate().map(|x| {
+            let pos = x.0 as u8;
+            (
+                self.draw_cur + pos,
+                x.1,
+                if pos + 1 == N_FULL_DECK as u8 - self.draw_next || (pos + 1) % self.draw_step == 0
+                {
+                    Drawable::Current
+                } else if (self.draw_cur + pos + 1) % self.draw_step == 0 {
+                    Drawable::Next
+                } else {
+                    Drawable::None
+                },
+            )
+        });
         head.chain(tail)
     }
 
     pub fn iter_callback(&self, filter: bool, mut push: impl FnMut(u8, &Card) -> bool) -> bool {
         if self.draw_step() == 1 {
             if !filter {
-                for (pos, card) in self.deck[..self.draw_cur as usize].iter().enumerate() {
+                for (pos, card) in self.get_waste().iter().enumerate() {
                     if push(pos as u8, card) {
                         return true;
                     }
                 }
             }
 
-            for (pos, card) in self.deck[self.draw_next as usize..].iter().enumerate() {
+            for (pos, card) in self.get_deck().iter().enumerate() {
                 if push((pos as u8) + self.draw_cur, card) {
                     return true;
                 }

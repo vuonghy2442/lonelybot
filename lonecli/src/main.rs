@@ -6,7 +6,6 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
 use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
-use lonelybot::hop_solver::hop_moves_game;
 use lonelybot::mcts_solver::mcts_moves_game;
 use lonelybot::shuffler::{self, CardDeck, U256};
 use lonelybot::tracking::{DefaultSearchSignal, SearchStatistics};

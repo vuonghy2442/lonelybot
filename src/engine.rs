@@ -176,8 +176,8 @@ impl Solitaire {
         let mut top_mask = 0;
         for pos in 0..N_PILES {
             if let Some((card, rest)) = self.get_hidden(pos).split_last() {
-                if rest.len() > 0 || card.rank() < KING_RANK {
-                    top_mask |= card_mask(card)
+                if !rest.is_empty() || card.rank() < KING_RANK {
+                    top_mask |= card_mask(card);
                 }
             }
         }
@@ -646,7 +646,7 @@ impl Solitaire {
             }
         }
 
-        for (_, c, _) in self.deck.iter_all() {
+        for c in self.deck.iter() {
             nonvis_mask |= card_mask(c);
         }
 
@@ -736,7 +736,7 @@ impl Solitaire {
             }
         }
 
-        for (_, c, _) in self.deck.iter_all() {
+        for c in self.deck.iter() {
             all_cards |= card_mask(c);
         }
 
@@ -781,6 +781,7 @@ impl Solitaire {
         }
     }
 
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         // TODO: test for if visible mask and top_mask make sense to build bottom mask
         if self.top_mask | self.visible_mask != self.visible_mask {
@@ -813,14 +814,14 @@ impl Solitaire {
         true
     }
 
+    #[must_use]
     pub fn equivalent_to(&self, other: &Self) -> bool {
         // check equivalent states
-        return true
-            && self.deck.equivalent_to(&other.deck)
+        self.deck.equivalent_to(&other.deck)
             && self.final_stack == other.final_stack
             && self.top_mask == other.top_mask
             && self.visible_mask == other.visible_mask
-            && self.n_hidden == other.n_hidden;
+            && self.n_hidden == other.n_hidden
     }
 }
 

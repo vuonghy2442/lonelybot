@@ -58,10 +58,9 @@ impl fmt::Display for Solvitaire {
 
         write!(f, "],\"stock\": [")?;
 
-        let tmp: ArrayVec<(u8, Card), N_FULL_DECK> =
-            self.0.get_deck().iter_all().map(|x| (x.0, *x.1)).collect();
+        let tmp: ArrayVec<Card, N_FULL_DECK> = self.0.get_deck().iter().copied().collect();
 
-        for &(idx, c) in tmp.iter().rev() {
+        for (idx, c) in tmp.iter().enumerate().rev() {
             c.print_solvitaire::<false>(f)?;
             if idx == 0 {
                 write!(f, "]")?;

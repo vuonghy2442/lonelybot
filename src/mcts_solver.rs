@@ -98,6 +98,9 @@ pub fn mcts_moves_game(
     limit: usize,
     sign: &impl SearchSignal,
 ) -> Option<Vec<Move>> {
+    const BATCH_SIZE: usize = 10;
+    const C: f64 = 0.5;
+
     let mut callback = ListStatesCallback {
         res: Vec::default(),
         skipped: false,
@@ -126,23 +129,13 @@ pub fn mcts_moves_game(
     };
 
     if states.len() <= 1 {
-        if let Some(state) = states.last() {
-            return Some(find_state(*state));
-        } else {
-            return None;
-        }
+        return states.last().map(|state| find_state(*state));
     }
 
     let mut res: Vec<(usize, usize, usize)> = Vec::with_capacity(states.len());
     res.resize_with(states.len(), Default::default);
 
-    // const C: f64 = 1.414;
-    const C: f64 = 0.5;
-
-    const BATCH_SIZE: usize = 10;
-
     let mut n = 0;
-
     loop {
         // here pick the best :)
         let best = res

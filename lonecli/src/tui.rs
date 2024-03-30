@@ -102,7 +102,7 @@ pub fn print_game(game: &Solitaire) {
             .copied()
             .collect()
     });
-    print_piles(&piles, &hiddens)
+    print_piles(&piles, &hiddens);
 }
 
 pub fn _print_standard_game(game: &StandardSolitaire) {
@@ -116,5 +116,5 @@ pub fn _print_standard_game(game: &StandardSolitaire) {
 
     let piles = game.get_piles();
     let hiddens = game.get_hidden();
-    print_piles(piles, hiddens)
+    print_piles(piles, hiddens);
 }
