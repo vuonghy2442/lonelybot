@@ -15,7 +15,7 @@ pub struct Card(u8);
 
 impl Card {
     // suit = 1 to make sure it turn on the first bit in suit for deck
-    pub const FAKE: Self = Self::new(N_RANKS, 1);
+    pub const FAKE: Self = Self::new(N_RANKS, 0);
 
     #[must_use]
     pub const fn new(rank: u8, suit: u8) -> Self {

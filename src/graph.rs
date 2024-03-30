@@ -1,8 +1,7 @@
 use crate::{
-    card::Card,
     engine::{Encode, Move, Solitaire},
     tracking::{DefaultSearchSignal, EmptySearchStats, SearchSignal, SearchStatistics},
-    traverse::{traverse_game, GraphCallback, TpTable, TraverseResult},
+    traverse::{traverse_game, TpTable, TraverseCallback, TraverseResult},
 };
 
 extern crate alloc;
@@ -47,7 +46,7 @@ const fn get_edge_type(m: Move, rm: Option<Move>) -> EdgeType {
     }
 }
 
-impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for BuilderCallback<'a, S, T> {
+impl<'a, S: SearchStatistics, T: SearchSignal> TraverseCallback for BuilderCallback<'a, S, T> {
     fn on_win(&mut self, _: &Solitaire, rm: &Option<Move>) -> TraverseResult {
         // win state
         self.graph
@@ -105,7 +104,7 @@ pub fn graph_game_with_tracking(
         sign,
         depth: 0,
         prev_enc: g.encode(),
-        last_move: Move::DeckPile(Card::FAKE),
+        last_move: Move::FAKE,
         rev_move: None,
     };
 

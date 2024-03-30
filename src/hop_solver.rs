@@ -4,7 +4,7 @@ use crate::{
     engine::{Encode, Move, Solitaire},
     solver::SearchResult,
     tracking::SearchSignal,
-    traverse::{traverse_game, GraphCallback, TpTable, TraverseResult},
+    traverse::{traverse_game, TpTable, TraverseCallback, TraverseResult},
 };
 
 struct HOPSolverCallback<'a, T: SearchSignal> {
@@ -14,7 +14,7 @@ struct HOPSolverCallback<'a, T: SearchSignal> {
     n_visit: usize,
 }
 
-impl<'a, T: SearchSignal> GraphCallback for HOPSolverCallback<'a, T> {
+impl<'a, T: SearchSignal> TraverseCallback for HOPSolverCallback<'a, T> {
     fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> TraverseResult {
         self.result = SearchResult::Solved;
         TraverseResult::Halted
@@ -122,7 +122,7 @@ struct RevStatesCallback<'a, R: RngCore, S: SearchSignal> {
     skipped: bool,
 }
 
-impl<'a, R: RngCore, S: SearchSignal> GraphCallback for RevStatesCallback<'a, R, S> {
+impl<'a, R: RngCore, S: SearchSignal> TraverseCallback for RevStatesCallback<'a, R, S> {
     fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> TraverseResult {
         self.res.push((self.his.clone(), (!0, 0, !0)));
         TraverseResult::Halted

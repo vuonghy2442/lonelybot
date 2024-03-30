@@ -17,7 +17,7 @@ pub enum TraverseResult {
     Ok,
 }
 
-pub trait GraphCallback {
+pub trait TraverseCallback {
     fn on_win(&mut self, g: &Solitaire, rev_move: &Option<Move>) -> TraverseResult;
 
     fn on_visit(&mut self, g: &Solitaire, encode: Encode) -> TraverseResult;
@@ -36,7 +36,7 @@ fn traverse(
     rev_move: Option<Move>,
     tp: &mut impl TranpositionTable,
 
-    callback: &mut impl GraphCallback,
+    callback: &mut impl TraverseCallback,
 ) -> TraverseResult {
     if g.is_win() {
         return callback.on_win(g, &rev_move);
@@ -91,7 +91,7 @@ impl crate::traverse::TranpositionTable for TpTable {
 pub fn traverse_game(
     g: &mut Solitaire,
     tp: &mut impl TranpositionTable,
-    callback: &mut impl GraphCallback,
+    callback: &mut impl TraverseCallback,
     rev_move: Option<Move>,
 ) -> TraverseResult {
     callback.on_start();

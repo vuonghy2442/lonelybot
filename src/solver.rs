@@ -1,7 +1,7 @@
 use crate::{
     engine::{Encode, Move, Solitaire},
     tracking::{DefaultSearchSignal, EmptySearchStats, SearchSignal, SearchStatistics},
-    traverse::{traverse_game, GraphCallback, TpTable, TraverseResult},
+    traverse::{traverse_game, TpTable, TraverseCallback, TraverseResult},
 };
 use arrayvec::ArrayVec;
 
@@ -26,7 +26,7 @@ struct SolverCallback<'a, S: SearchStatistics, T: SearchSignal> {
     result: SearchResult,
 }
 
-impl<'a, S: SearchStatistics, T: SearchSignal> GraphCallback for SolverCallback<'a, S, T> {
+impl<'a, S: SearchStatistics, T: SearchSignal> TraverseCallback for SolverCallback<'a, S, T> {
     fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> TraverseResult {
         self.result = SearchResult::Solved;
         TraverseResult::Halted

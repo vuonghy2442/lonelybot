@@ -4,22 +4,63 @@ use crate::{
     engine::{Encode, Move, Solitaire},
     hop_solver::hop_solve_game,
     tracking::SearchSignal,
-    traverse::{traverse_game, GraphCallback, TpTable, TraverseResult},
+    traverse::{traverse_game, TpTable, TraverseCallback, TraverseResult},
 };
 
 extern crate alloc;
 use alloc::vec::Vec;
 
-struct ListStatesCallback {
+struct FindStatesCallback {
     his: Vec<Move>,
-    res: Vec<(Vec<Move>, Encode)>,
+    found: bool,
+    state: Encode,
     skipped: bool,
 }
 
-impl GraphCallback for ListStatesCallback {
+impl TraverseCallback for FindStatesCallback {
+    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> TraverseResult {
+        self.found = true;
+        TraverseResult::Halted
+    }
+
+    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> TraverseResult {
+        if self.state == e {
+            self.found = true;
+            TraverseResult::Halted
+        } else if self.skipped {
+            TraverseResult::Skip
+        } else {
+            TraverseResult::Ok
+        }
+    }
+
+    fn on_move_gen(&mut self, _: &crate::engine::MoveVec, _: Encode) {}
+
+    fn on_do_move(&mut self, _: &Solitaire, m: &Move, _: Encode, rev: &Option<Move>) {
+        self.his.push(*m);
+        self.skipped = rev.is_none();
+    }
+
+    fn on_undo_move(&mut self, _: &Move, _: Encode) {
+        if !self.found {
+            self.his.pop();
+        }
+    }
+
+    fn on_start(&mut self) {}
+
+    fn on_finish(&mut self, _: &TraverseResult) {}
+}
+
+struct ListStatesCallback {
+    res: Vec<(Encode, Move)>,
+    skipped: bool,
+}
+
+impl TraverseCallback for ListStatesCallback {
     fn on_win(&mut self, g: &Solitaire, _: &Option<Move>) -> TraverseResult {
         self.res.clear();
-        self.res.push((self.his.clone(), g.encode()));
+        self.res.push((g.encode(), Move::FAKE));
         TraverseResult::Halted
     }
 
@@ -34,19 +75,16 @@ impl GraphCallback for ListStatesCallback {
     fn on_move_gen(&mut self, _: &crate::engine::MoveVec, _: Encode) {}
 
     fn on_do_move(&mut self, _: &Solitaire, m: &Move, e: Encode, rev: &Option<Move>) {
-        self.his.push(*m);
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
         if rev.is_none() {
             self.skipped = true;
-            self.res.push((self.his.clone(), e));
+            self.res.push((e, *m));
         } else {
             self.skipped = false;
         }
     }
 
-    fn on_undo_move(&mut self, _: &Move, _: Encode) {
-        self.his.pop();
-    }
+    fn on_undo_move(&mut self, _: &Move, _: Encode) {}
 
     fn on_start(&mut self) {}
 
@@ -61,22 +99,38 @@ pub fn mcts_moves_game(
     sign: &impl SearchSignal,
 ) -> Option<Vec<Move>> {
     let mut callback = ListStatesCallback {
-        his: Vec::default(),
         res: Vec::default(),
         skipped: false,
     };
-
-    // let org_state = g.encode();
 
     let mut tp = TpTable::default();
     traverse_game(g, &mut tp, &mut callback, None);
     let states = callback.res;
 
-    // println!("Nstates {}", states.len());
+    let mut org_g = g.clone();
+
+    let mut find_state = move |state: (Encode, Move)| {
+        let mut callback = FindStatesCallback {
+            his: Vec::default(),
+            state: state.0,
+            skipped: false,
+            found: false,
+        };
+        tp.clear();
+
+        traverse_game(&mut org_g, &mut tp, &mut callback, None);
+        if state.1 != Move::FAKE {
+            callback.his.push(state.1);
+        }
+        callback.his
+    };
 
     if states.len() <= 1 {
-        let mut states = states;
-        return states.pop().map(|x| x.0);
+        if let Some(state) = states.last() {
+            return Some(find_state(*state));
+        } else {
+            return None;
+        }
     }
 
     let mut res: Vec<(usize, usize, usize)> = Vec::with_capacity(states.len());
@@ -108,16 +162,8 @@ pub fn mcts_moves_game(
         let state = &states[best];
 
         //test
-        g.decode(state.1);
-        let new_res = hop_solve_game(
-            g,
-            state.0.last().unwrap(),
-            rng,
-            BATCH_SIZE,
-            limit,
-            sign,
-            None,
-        );
+        g.decode(state.0);
+        let new_res = hop_solve_game(g, &state.1, rng, BATCH_SIZE, limit, sign, None);
 
         n += BATCH_SIZE;
 
@@ -126,7 +172,7 @@ pub fn mcts_moves_game(
         res[best].2 += new_res.2;
 
         if res[best].2 > n_times {
-            break;
+            return Some(find_state(*state));
         }
 
         // let &(win, _skip, max_n) = res.iter().max_by_key(|x| x.2).unwrap();
@@ -144,9 +190,4 @@ pub fn mcts_moves_game(
         //     break;
         // }
     }
-
-    res.iter()
-        .zip(states)
-        .max_by_key(|x| x.0 .2)
-        .map(|x| x.1 .0)
 }

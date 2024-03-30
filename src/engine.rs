@@ -19,6 +19,10 @@ pub enum Move {
     Reveal(Card),
 }
 
+impl Move {
+    pub const FAKE: Self = Move::DeckPile(Card::FAKE);
+}
+
 #[derive(Debug, Clone)]
 pub struct Solitaire {
     hidden_piles: [Card; N_HIDDEN_CARDS as usize],
