@@ -1,5 +1,3 @@
-use core::fmt;
-
 pub const N_SUITS: u8 = 4;
 pub const N_RANKS: u8 = 13;
 pub const N_CARDS: u8 = N_SUITS * N_RANKS;
@@ -70,23 +68,6 @@ impl Card {
         let card_a = self.split();
         let card_b = other.split();
         card_a.0 == card_b.0 + 1 && ((card_a.1 ^ card_b.1) & 2 == 2 || card_a.0 == N_RANKS)
-    }
-
-    pub fn print_solvitaire<const LOWER: bool>(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (rank, suit) = self.split();
-        let s = match suit {
-            0 => 'H',
-            1 => 'D',
-            2 => 'C',
-            3 => 'S',
-            _ => 'x',
-        };
-        write!(
-            f,
-            r#""{}{}""#,
-            NUMBERS[rank as usize],
-            if LOWER { s.to_ascii_lowercase() } else { s }
-        )
     }
 }
 

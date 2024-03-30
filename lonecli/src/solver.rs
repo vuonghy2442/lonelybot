@@ -3,7 +3,7 @@ use lonelybot::{
     engine::Solitaire,
     graph::{graph_game_with_tracking, Graph},
     solver::{solve_game_with_tracking, HistoryVec, SearchResult},
-    tracking::{AtomicSearchStats, SearchSignal},
+    tracking::SearchSignal,
     traverse::TraverseResult,
 };
 use std::{
@@ -14,6 +14,8 @@ use std::{
     },
     thread,
 };
+
+use crate::tracking::AtomicSearchStats;
 
 const STACK_SIZE: usize = 4 * 1024 * 1024;
 

@@ -69,22 +69,20 @@ impl StandardSolitaire {
 
     #[must_use]
     pub fn peek_waste(&self, n_top: u8) -> ArrayVec<Card, N_FULL_DECK> {
-        let mut res = ArrayVec::<Card, N_FULL_DECK>::new();
         let draw_cur = self.deck.get_offset();
-        for i in draw_cur.saturating_sub(n_top)..draw_cur {
-            res.push(self.deck.peek(i));
-        }
-        res
+        self.deck
+            .get_waste()
+            .split_at(draw_cur.saturating_sub(n_top).into())
+            .1
+            .iter()
+            .copied()
+            .collect()
     }
 
     // shouldn't be used in real engine
     #[must_use]
-    pub const fn peek_cur(&self) -> Option<Card> {
-        if self.deck.get_offset() == 0 {
-            None
-        } else {
-            Some(self.deck.peek(self.deck.get_offset() - 1))
-        }
+    pub fn peek_cur(&self) -> Option<Card> {
+        self.deck.get_waste().last().copied()
     }
 
     // shouldn't be used in real engine

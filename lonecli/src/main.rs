@@ -1,4 +1,5 @@
 mod solver;
+mod tracking;
 mod tui;
 
 use bpci::{Interval, NSuccessesSample, WilsonScore};
@@ -8,7 +9,7 @@ use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::mcts_solver::mcts_moves_game;
 use lonelybot::shuffler::{self, CardDeck, U256};
-use lonelybot::tracking::{DefaultSearchSignal, SearchStatistics};
+use lonelybot::tracking::DefaultSearchSignal;
 use lonelybot::traverse::TraverseResult;
 use rand::prelude::*;
 use std::collections::HashSet;

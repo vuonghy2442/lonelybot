@@ -117,22 +117,22 @@ impl Deck {
     }
 
     pub fn iter_callback(&self, filter: bool, mut push: impl FnMut(u8, &Card) -> bool) -> bool {
-        if self.draw_step() == 1 {
-            if !filter {
-                for (pos, card) in self.get_waste().iter().enumerate() {
-                    if push(pos as u8, card) {
-                        return true;
-                    }
-                }
-            }
+        // if self.draw_step() == 1 {
+        //     if !filter {
+        //         for (pos, card) in self.get_waste().iter().enumerate() {
+        //             if push(pos as u8, card) {
+        //                 return true;
+        //             }
+        //         }
+        //     }
 
-            for (pos, card) in self.get_deck().iter().enumerate() {
-                if push((pos as u8) + self.draw_cur, card) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        //     for (pos, card) in self.get_deck().iter().enumerate() {
+        //         if push((pos as u8) + self.draw_cur, card) {
+        //             return true;
+        //         }
+        //     }
+        //     return false;
+        // }
 
         if !filter {
             let mut i = self.draw_step - 1;
@@ -191,20 +191,6 @@ impl Deck {
         } else {
             None
         }
-    }
-
-    #[must_use]
-    pub const fn peek(&self, id: u8) -> Card {
-        debug_assert!(
-            self.draw_cur <= self.draw_next
-                && (id < N_FULL_DECK as u8 - self.draw_next + self.draw_cur)
-        );
-
-        self.deck[if id < self.draw_cur {
-            id
-        } else {
-            id - self.draw_cur + self.draw_next
-        } as usize]
     }
 
     pub fn set_offset(&mut self, id: u8) {
