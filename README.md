@@ -22,12 +22,12 @@ This solver has a few modes
 ### Exact
 Turn a seed into the exact permutation number
 ```sh
-lonelybot exact [seed_type] [seed]
+lonecli exact [seed_type] [seed]
 ```
 
 Example run
 ```
-lonelybot exact solvitaire 22
+lonecli exact solvitaire 22
 ```
 
 Example output
@@ -39,12 +39,12 @@ Example output
 Do random play on 10000 different games from seed to seed + 10000 to see how many games it can win
 
 ```sh
-lonelybot random [seed_type] [seed]
+lonecli random [seed_type] [seed]
 ```
 
 Example run
 ```
-lonelybot exact default 0
+lonecli exact default 0
 ```
 
 Example output
@@ -55,7 +55,7 @@ Total win 1109/10000
 
 ### Print
 ```sh
-lonelybot print [seed_type] [seed]
+lonecli print [seed_type] [seed]
 ```
 This will print the board in json format (in solvitaire format)
 
@@ -86,12 +86,12 @@ The format:
 
 ### Bench
 ```sh
-lonelybot bench [seed_type] [seed]
+lonecli bench [seed_type] [seed]
 ```
 
 Example input
 ```sh
-lonelybot bench default 25
+lonecli bench default 25
 ```
 
 Example output
@@ -104,14 +104,14 @@ The first number is the number of move made. The second one is the rate of move 
 ### Solve
 
 ```sh
-lonelybot solve [seed_type] [seed]
+lonecli solve [seed_type] [seed]
 ```
 
 First it will print the game. Then it will solve it.
 
 Example run
 ```sh
-lonelybot solve default 41
+lonecli solve default 41
 ```
 
 Example impossible output
@@ -139,7 +139,7 @@ The progress consists of:
 
 Example run
 ```sh
-lonelybot solve default 12
+lonecli solve default 12
 ```
 
 Example solved output
@@ -166,7 +166,7 @@ There are 3 position: Deck (the stock), Pile (the 0-indexed tablaeu), Stack (the
 
 ### Solve loop
 ```sh
-lonelybot rate [seed_type] [seed]
+lonecli rate [seed_type] [seed]
 ```
 
 This will sequentially solve the random game generate from seed, seed+1,...
@@ -208,7 +208,7 @@ Due the optimizations, the available actions are quite unsual, and performing th
 
 
 ```sh
-lonelybot play [seed_type] [seed]
+lonecli play [seed_type] [seed]
 ```
 
 Example run
@@ -246,7 +246,7 @@ There are currently 5 types of move:
 ### HOP solver
 In this mode it will try to solve the game with no undo. (actually it is using something more like MCTS not HOP)
 ```sh
-lonelybot hop [seed_type] [seed]
+lonecli hop [seed_type] [seed]
 ```
 
 Example run
@@ -279,7 +279,7 @@ Lost
 
 ### HOP loop
 ```sh
-lonelybot hop-loop [seed_type] [seed]
+lonecli hop-loop [seed_type] [seed]
 ```
 
 - In this mode it will try to solve the game with no undo from the given seed and moving on to the next seed
@@ -303,12 +303,12 @@ Example output
 ### Graph
 Create a game graph of the game from the seed
 ```sh
-lonelybot graph [seed_type] [seed] [file.csv]
+lonecli graph [seed_type] [seed] [file.csv]
 ```
 
 Example run
 ```sh
-lonelybot graph klondike-solver 338 test.csv
+lonecli graph klondike-solver 338 test.csv
 ```
 
 Example output
