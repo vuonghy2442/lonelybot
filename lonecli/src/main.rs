@@ -170,13 +170,14 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
     while !game.is_win() {
         let mut gg = game.clone();
         gg.get_hidden_mut().clear();
-        // let res = hop_moves_game(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
-        // if verbose {
-        //     println!("{} {:?}", game.encode(), res);
-        // }
-        // let best = res.iter().max_by_key(|x| x.1 .0).map(|x| &x.0);
         let best = mcts_moves_game(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
         if let Some(best) = best {
+            if verbose {
+                for m in &best {
+                    print!("{}, ", m);
+                }
+                println!();
+            }
             for m in best {
                 game.do_move(&m);
             }

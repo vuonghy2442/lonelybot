@@ -8,14 +8,50 @@
 
 ## Seed
 There are 5 seed types
-- ``default``: using simple Rust rng
+- ``default``: using Rust rng
 - ``legacy``: similar to default, for combatibility with older version of this engine
 - ``solvitaire``: reimplemenation of [Solvitaire](https://github.com/thecharlieblake/Solvitaire) random
 - ``klondike``-solver: reimplementation of [Klondike-Solver](https://github.com/ShootMe/Klondike-Solver) random
 - ``greenfelt``: reimplementation of [Greenfelt](https://greenfelt.net/) based on [Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike) source code
+- ``exact``: converting a 256-bit integer (< 52!) to exact corresponding 52-card permutation
+
 
 ## Run methods
 This solver has a few modes
+
+### Exact
+Turn a seed into the exact permutation number
+```sh
+lonelybot exact [seed_type] [seed]
+```
+
+Example run
+```
+lonelybot exact solvitaire 22
+```
+
+Example output
+```
+75815935119064350470717521029623259780400326814603147288883495865917
+```
+
+### Random
+Do random play on 10000 different games from seed to seed + 10000 to see how many games it can win
+
+```sh
+lonelybot random [seed_type] [seed]
+```
+
+Example run
+```
+lonelybot exact default 0
+```
+
+Example output
+```
+Total win 1109/10000
+```
+
 
 ### Print
 ```sh
@@ -26,14 +62,15 @@ This will print the board in json format (in solvitaire format)
 Example output
 ```json
 {"tableau piles": [
-["7D"],
-["Kc","3C"],
-["6s","8c","6H"],
-["9s","Ah","5s","5C"],
-["5d","Js","5h","Qd","10H"],
-["Ac","7c","Jc","7h","Kd","9C"],
-["10c","3h","4d","4h","6c","Qs","3S"]
-],"stock": ["JD","10D","7S","10S","AD","8S","JH","2D","AS","3D","9D","9H","6D","KS","QH","2H","2S","4S","4C","KH","2C","8H","8D","QC"]}
+["QS"],
+["10s","QC"],
+["As","5s","6S"],
+["9h","10d","Ad","3S"],
+["5c","7d","Qd","10c","KS"],
+["2d","Jc","9s","8c","2h","9C"],
+["5d","Qh","8d","Kc","4d","8h","6H"]
+],"stock": ["KH","7C","2S","AH","9D","4C","3D","6C","8S","JD","AC","JS","KD","JH","3H","4S","7H","5H","3C","4H","10H","2C","6D","7S"],
+"foundation": [[],[],[],[]]}
 ```
 The format:
 - Card: <rank><suit>
@@ -44,6 +81,7 @@ The format:
 - Pile:  An array of cards in order of top-down
 - Tableau piles: an array of piles in order of left-right
 - Stock: an array of cards in the dealing stock, dealing from the end.
+- Foundation: an array of 4 arrays (corresponding to the suits)
 
 
 ### Bench
@@ -58,7 +96,7 @@ lonelybot bench default 25
 
 Example output
 ```
-4030 3508313.7459737095 op/s
+3555 9858569.0515807 op/s
 ```
 
 The first number is the number of move made. The second one is the rate of move making.
@@ -73,27 +111,18 @@ First it will print the game. Then it will solve it.
 
 Example run
 ```sh
-loneybot solve legacy 28
+lonelybot solve default 41
 ```
 
-Example output
+Example impossible output
 ```
-{"tableau piles": [
-["AS"],
-["2d","KD"],
-["10d","8c","KC"],
-["10h","Jc","Js","8H"],
-["10c","7s","4h","3s","5C"],
-["4c","9h","7h","5s","Qd","7D"],
-["9d","3d","7c","6d","Ks","Qh","9S"]
-],"stock": ["6C","2H","AD","QS","4D","3C","5D","JD","2C","6H","5H","8S","9C","6S","QC","8D","AH","10S","4S","3H","2S","KH","AC","JH"]}
-Run in 300.3384 ms
+Run in 7.4628000000000005 ms
 Statistic
-Total visit: 1513174
-Transposition hit: 943785 (rate 0.6237121441420485)
-Miss state: 569389
-Max depth search: 26
-Current progress: 1/1 7/7 5/5 3/3 4/4 3/3 2/2 4/4
+Total visit: 88354
+Transposition hit: 51853 (rate 0.5868777870837766)
+Miss state: 36501
+Max depth search: 32
+Current progress: 1/1 5/5 5/5 6/6 5/5 3/3 3/3 3/3
 Impossible
 ```
 
@@ -104,9 +133,36 @@ You can early terminate the search by pressing ctrl-C
 The progress consists of:
 - Total visit: the number of states visited
 - Transposition hit: the number of states skipped due to transposition hit and its ratio compare to total visit
-- Miss state: the number of stats that don't hit transposition table (total visit - transposition hit)
+- Miss state: the number of states that don't hit transposition table (total visit - transposition hit)
 - Max depth search: the maximum number of move made in the search
 - Current progress: a list of first 8 current move position/total move in the current search path.
+
+Example run
+```sh
+lonelybot solve default 12
+```
+
+Example solved output
+```
+Run in 0.1812 ms
+Statistic
+Total visit: 118
+Transposition hit: 5 (rate 0.0423728813559322)
+Miss state: 113
+Max depth search: 91
+Current progress: 0/1 0/5 0/1 0/5 0/4 0/4 0/4 0/3
+Solvable in 92 moves
+PS A♦, R 5♠, PS A♠, ....   
+Pile(4) Stack(1) A♦, Pile(6) Pile(5) 5♠, ....
+```
+
+There are two type of solution notation: 
+- The first line is the specialized notation (explained bellow)
+- The second line is the standardized notation with the format as a tuple of source position, destimation position, moving card.
+
+The special move of drawing from the stock is represent as a move from the stock (Deck) to the stock (Deck)
+
+There are 3 position: Deck (the stock), Pile (the 0-indexed tablaeu), Stack (the 0-indexed foundation stack)
 
 ### Solve loop
 ```sh
@@ -121,40 +177,25 @@ To terminate the whole process, pressing ctrl-C twice in a short amount of time 
 
 Example run
 ```sh
-loneybot rate legacy 0
+loneybot rate default 0
 ```
 
 Example output
 ```
-Run 0 in 0.66 ms. Solved: (1-0/1 ~ 0.2065<=1.0000<=1.0000)
-Run 1 in 1.66 ms. Solved: (2-0/2 ~ 0.3424<=1.0000<=1.0000)
-Run 2 in 0.56 ms. Solved: (3-0/3 ~ 0.4385<=1.0000<=1.0000)
-Run 3 in 1.01 ms. Solved: (4-0/4 ~ 0.5101<=1.0000<=1.0000)
-Run 4 in 5.70 ms. Unsolvable: (4-0/5 ~ 0.3755<=0.8000<=0.9638)
-Run 5 in 0.14 ms. Unsolvable: (4-0/6 ~ 0.3000<=0.6667<=0.9032)
-Run 6 in 17.40 ms. Unsolvable: (4-0/7 ~ 0.2505<=0.5714<=0.8418)
-Run 7 in 0.65 ms. Unsolvable: (4-0/8 ~ 0.2152<=0.5000<=0.7848)
-Run 8 in 0.24 ms. Unsolvable: (4-0/9 ~ 0.1888<=0.4444<=0.7334)
-Run 9 in 1.24 ms. Solved: (5-0/10 ~ 0.2366<=0.5000<=0.7634)
-Run 10 in 0.26 ms. Solved: (6-0/11 ~ 0.2801<=0.5455<=0.7873)
-Run 11 in 0.84 ms. Solved: (7-0/12 ~ 0.3195<=0.5833<=0.8067)
-Run 12 in 0.22 ms. Solved: (8-0/13 ~ 0.3552<=0.6154<=0.8229)
-Run 13 in 4.27 ms. Solved: (9-0/14 ~ 0.3876<=0.6429<=0.8366)
-Run 14 in 0.26 ms. Solved: (10-0/15 ~ 0.4171<=0.6667<=0.8482)
-Run 15 in 0.69 ms. Solved: (11-0/16 ~ 0.4440<=0.6875<=0.8584)
-Run 16 in 0.81 ms. Solved: (12-0/17 ~ 0.4687<=0.7059<=0.8672)
-Run 17 in 0.26 ms. Solved: (13-0/18 ~ 0.4913<=0.7222<=0.8750)
-Run 18 in 0.36 ms. Solved: (14-0/19 ~ 0.5121<=0.7368<=0.8819)
-Run 19 in 0.22 ms. Solved: (15-0/20 ~ 0.5313<=0.7500<=0.8881)
-Run 20 in 1.55 ms. Solved: (16-0/21 ~ 0.5491<=0.7619<=0.8937)
-Run 21 in 0.25 ms. Solved: (17-0/22 ~ 0.5656<=0.7727<=0.8988)
-Run 22 in 5055.55 ms. Terminated: (17-1/23 ~ 0.5353<=0.7391<=0.9034)
+Run D-0 Solved: (1-0/1 ~ 0.2065<=1.0000<=1.0000) 96 96 95 in 0.20 ms.
+Run D-1 Solved: (2-0/2 ~ 0.3424<=1.0000<=1.0000) 10804 6188 87 in 1.05 ms.
+Run D-2 Solved: (3-0/3 ~ 0.4385<=1.0000<=1.0000) 52426 26220 81 in 4.32 ms.
+Run D-3 Solved: (4-0/4 ~ 0.5101<=1.0000<=1.0000) 192 164 87 in 0.24 ms.
+Run D-4 Solved: (5-0/5 ~ 0.5655<=1.0000<=1.0000) 3141 1938 93 in 0.54 ms.
+Run D-5 Solved: (6-0/6 ~ 0.6097<=1.0000<=1.0000) 2835 1582 92 in 0.37 ms.
+Run D-6 Solved: (7-0/7 ~ 0.6457<=1.0000<=1.0000) 14953 6102 89 in 1.23 ms.
+Run D-7 Unsolvable: (7-0/8 ~ 0.5291<=0.8750<=0.9776) 3439 1928 28 in 0.45 ms.
 ...
 ```
 
 Each row correspond to a game
 ```
-Run [game_seed] in [run_time] ms. [solve_result]: ([solvable]-[terminated]/[total] ~ [solvable_lb_95%]<=[solvable_rate]<=[solvable_ub_95%])
+Run [game_seed] [solve_result]: ([solvable]-[terminated]/[total] ~ [solvable_lb_95%]<=[solvable_rate]<=[solvable_ub_95%]) [total_states] [unique_states] [max_depth] in [run_time] ms.
 ```
 
 ### Play
@@ -172,37 +213,24 @@ lonelybot play [seed_type] [seed]
 
 Example run
 ```sh
-loneybot play legacy 0
+loneybot play default 0
 ```
 
 Example output
-```sh
-loneybot rate legacy 0
 ```
-
-```
-{"tableau piles": [
-["7D"],
-["Kc","3C"],
-["6s","8c","6H"],
-["9s","Ah","5s","5C"],
-["5d","Js","5h","Qd","10H"],
-["Ac","7c","Jc","7h","Kd","9C"],
-["10c","3h","4d","4h","6c","Qs","3S"]
-],"stock": ["JD","10D","7S","10S","AD","8S","JH","2D","AS","3D","9D","9H","6D","KS","QH","2H","2S","4S","4C","KH","2C","8H","8D","QC"]}
-0 Q♣ 1 8♦ 2 8♥ 3 2♣ 4 K♥ 5 4♣ 6 4♠ 7 2♠ 8 2♥ 9 Q♥ 10 K♠ 11 6♦ 12 9♥ 13 9♦ 14 3♦ 15 A♠ 16 2♦ 17 J♥ 18 8♠ 19 A♦ 20 10♠ 21 7♠ 22 10♦ 23 J♦
+0 Q♣  1 8♦ >2 8♥  3 2♣  4 K♥ >5 4♣  6 4♠  7 2♠ >8 2♥  9 Q♥  10 K♠ >11 6♦  12 9♥  13 9♦ >14 3♦  15 A♠  16 2♦ >17 J♥  18 8♠  19 A♦ >20 10♠  21 7♠  22 10♦ >23 J♦
                 1.   2.   3.   4.
 5       6       7       8       9       10      11
-7♦      **      **      **      **      **      **
-        3♣      **      **      **      **      **
-                6♥      **      **      **      **
-                        5♣      **      **      **
-                                10♥     **      **
-                                        9♣      **
+K♣      **      **      **      **      **      **
+        8♣      **      **      **      **      **
+                5♠      **      **      **      **
+                        Q♦      **      **      **
+                                K♦      **      **
+                                        Q♠      **
                                                 3♠
 
-0.R 5♣, 1.R 9♣, 2.DP 2♥, 3.DP 8♥,
-Hash: 2642345984
+0.R Q♠, 1.R Q♦, 2.DP 2♥, 3.DP J♥, 4.DP J♦,
+Hash: 1729382259552616448
 Move:
 ```
 
@@ -215,6 +243,136 @@ There are currently 5 types of move:
 - DS ``card``: Moving the ``card`` from the stock to the foundation stack
 - PS ``card``: Moving the ``card`` from the tableau to the stack (potentially also do a reveal)
 
-# To do
-Custom game input without seed
-Converting the compressed actions into standard actions
+### HOP solver
+In this mode it will try to solve the game with no undo. (actually it is using something more like MCTS not HOP)
+```sh
+lonelybot hop [seed_type] [seed]
+```
+
+Example run
+```sh
+loneybot hop default 0
+```
+
+Example output
+```
+DP J♥, 
+DP 2♦, 
+DS A♠,  
+...
+Solved
+```
+
+Example run
+```sh
+loneybot hop default 5
+```
+
+Example output
+```
+DP 3♦,
+DP 5♦,
+DS A♥,
+...
+Lost
+```
+
+### HOP loop
+```sh
+lonelybot hop-loop [seed_type] [seed]
+```
+
+- In this mode it will try to solve the game with no undo from the given seed and moving on to the next seed
+Example run
+```sh
+loneybot hop-loop default 0
+```
+
+Example output
+```
+1/1 ~ 0.2065 < 1.0000 < 1.0000 in 3.3991924s
+2/2 ~ 0.3424 < 1.0000 < 1.0000 in 2.0126367s
+3/3 ~ 0.4385 < 1.0000 < 1.0000 in 3.6193054s
+4/4 ~ 0.5101 < 1.0000 < 1.0000 in 2.4423182s
+...
+119/239 ~ 0.4351 < 0.4979 < 0.5608 in 3.4916281s
+...
+```
+
+
+### Graph
+Create a game graph of the game from the seed
+```sh
+lonelybot graph [seed_type] [seed] [file.csv]
+```
+
+Example run
+```sh
+lonelybot graph klondike-solver 338 test.csv
+```
+
+Example output
+```
+Run in 14.779499999999999 ms
+Statistic
+Total visit: 175203
+Transposition hit: 87772 (rate 0.500973156852337)
+Miss state: 87431
+Max depth search: 118
+Current progress: 5/5 4/4 4/4 4/4 4/4 6/6 4/4 4/4
+Graphed in 175205 edges
+Save done
+```
+
+Output file
+```cs
+s,t,e,id
+1729382259552616448,1729382259552550912,Reveal,0
+1729382259552550912,1729382259505364992,Reveal,1
+1729382259505364992,1729382259505233920,Reveal,2
+1729382259505233920,1729382259497369600,Reveal,3
+...
+1693353462533652480,1693353462533259264,Reveal,175203
+```
+
+There are 4 columns:
+- s: The source id
+- t: The destination id
+- e: The move type (with more distinction between PileStack PileStackReveal)
+- id: The DFS ordering
+
+
+# Limitations
+
+- Cannot disallow worrying back
+- May not find the shortest solution
+
+# Running results
+
+As far as my knowledge goes, upto March 2024, this solver is the state of the art for checking solvability of a standard 3-card klondike game. I didn't test much on the general case of n-card game, but it is likely to be the best as well.
+
+I cross-checked my package with Solvitaire (published result) using the Klondike-Solver seed from 0 to 50k. And I also cross-checked between different versions of my own package up to much more games (at least 100k and can be up to 1M games).
+
+However, due to having a lot of specific optimizations that haven't been rigorously proven (but I intended to make sure it's always correct, not just a "very good heuristic" but can be wrong in extremely few cases). So any wrong solvability result is a bug.
+
+## Solvability result
+
+### Thoughtful Klondike
+Run K-2396068 in 0.67 ms. Solved: (1963855-0/2396069 ~ 0.8191<=0.8196<=0.8201) 87 1 84
+
+So this is the new state of the art result for solvability: 81.96 ± 0.05 (compared to the previous from Solvitaire 81.945 ± 0.084) at 95% confidence
+
+This result is computed on 1 cpu core for a few days. With more resources, it can be easily improved.
+
+One other notable thing is that there's no game that it can't decide in a reasonable amount of time that I'm awared of.
+
+### Random Klondike
+So with my hop/mtcs solver, I also achieve a state of the art for random klondike
+
+17310/38884 ~ 0.4402 < 0.4452 < 0.4501 in 4.339944021s
+
+So the solvability is 44.52 ± 0.50 (compared to the previous 36.97 ± 1.92 from #[this paper](https://ojs.aaai.org/index.php/ICAPS/article/view/13363/13211))
+
+The average running time for one game is only a few seconds.
+
+However due to significant improvement, I think this needs more verification.
