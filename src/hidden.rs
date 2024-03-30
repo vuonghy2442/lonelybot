@@ -169,7 +169,7 @@ impl Hidden {
         mask
     }
 
-    // reset all pile_map card into lexicalgraphic order
+    // reset all hidden cards into lexicographic order
     pub fn clear(&mut self) {
         let mut hidden_cards = self.mask();
 

@@ -104,7 +104,7 @@ pub fn iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -
         Some(r)
     } else if let Some(r) = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c))) {
         // maximum min(N_DECK, N_SUITS) moves
-        // deck_stack and pile_stack can't happen simulatenously so both of the combine can't have more than
+        // deck_stack and pile_stack can't happen simultaneously so both of the combine can't have more than
         // N_SUITS move
         Some(r)
     } else {
@@ -203,7 +203,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub const fn get_stack_dominances_mask(&self) -> u64 {
+    pub const fn get_stack_dominance_mask(&self) -> u64 {
         let s = self.final_stack;
         let d = (min(s[0], s[1]), min(s[2], s[3]));
         let d = (min(d.0 + 1, d.1) + 2, min(d.0, d.1 + 1) + 2);
@@ -212,8 +212,8 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub fn get_deck_mask<const DOMINANCES: bool>(&self) -> (u64, bool) {
-        let filter = DOMINANCES
+    pub fn get_deck_mask<const DOMINANCE: bool>(&self) -> (u64, bool) {
+        let filter = DOMINANCE
             && self.deck.peek_last().is_some_and(|&x| {
                 let (rank, suit) = x.split();
                 self.stackable(rank, suit) && self.stack_dominance(rank, suit)
@@ -229,15 +229,15 @@ impl Solitaire {
             false
         });
 
-        // TODO: dominances for draw_step == 1
+        // TODO: dominance for draw_step == 1
         (mask, false)
     }
 
     #[must_use]
-    pub fn list_moves<const DOMINANCES: bool>(&self) -> MoveVec {
+    pub fn list_moves<const DOMINANCE: bool>(&self) -> MoveVec {
         let mut moves = MoveVec::new();
 
-        iter_moves(self.gen_moves::<DOMINANCES>(), |m| {
+        iter_moves(self.gen_moves::<DOMINANCE>(), |m| {
             moves.push(m);
             None::<()>
         });
@@ -246,7 +246,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub fn gen_moves<const DOMINANCES: bool>(&self) -> [u64; 5] {
+    pub fn gen_moves<const DOMINANCE: bool>(&self) -> [u64; 5] {
         let vis = self.get_visible_mask();
         let top = self.get_top_mask();
 
@@ -254,8 +254,8 @@ impl Solitaire {
         let bm = self.get_bottom_mask();
 
         let sm = self.get_stack_mask();
-        let dsm = if DOMINANCES {
-            self.get_stack_dominances_mask()
+        let dsm = if DOMINANCE {
+            self.get_stack_dominance_mask()
         } else {
             0
         };
@@ -273,13 +273,13 @@ impl Solitaire {
         let redundant_stack = pile_stack & !top;
         let least_stack = redundant_stack & redundant_stack.wrapping_neg();
 
-        if DOMINANCES && redundant_stack.count_ones() >= 3 {
+        if DOMINANCE && redundant_stack.count_ones() >= 3 {
             return [least_stack, 0, 0, 0, 0];
         }
 
         // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
-        let (deck_mask, dom) = self.get_deck_mask::<DOMINANCES>();
-        // no dominances for draw_step = 1 yet
+        let (deck_mask, dom) = self.get_deck_mask::<DOMINANCE>();
+        // no dominance for draw_step = 1 yet
         if dom {
             // not very useful as dominance
             return [0, deck_mask, 0, 0, 0];
@@ -304,13 +304,13 @@ impl Solitaire {
         // from mask will take the lowest bit
         // this will disallow having 2 move-to-stack-able suits of same color
         // only return the least lexicographically card (stack_pile)
-        let (stack_pile, pile_stack, deck_stack, free_slot) = if !DOMINANCES || least_stack == 0 {
+        let (stack_pile, pile_stack, deck_stack, free_slot) = if !DOMINANCE || least_stack == 0 {
             (stack_pile, pile_stack, deck_stack, free_slot)
         } else if paired_stack > 0 {
             // is same check when the two stackable card of same color and same rank exists
             // if there is a pair of same card you can only move the card up or reveal something
-            // unnessarily stackable pair of same-colored cards with lowest value
-            // only stack to the least lexigraphically card (or 2 cards if same color)
+            // unnecessarily stackable pair of same-colored cards with lowest value
+            // only stack to the least lexicographically card (or 2 cards if same color)
             // do not use the deck stack when have unnecessary stackable cards
             let rm = paired_stack * 0b11;
             (0, rm, 0, rm >> 4)
@@ -532,7 +532,7 @@ impl Solitaire {
     const fn stack_dominance(&self, rank: u8, suit: u8) -> bool {
         let stack = &self.final_stack;
         let suit = suit as usize;
-        // allowing worring back :)
+        // allowing worrying back :)
         rank <= stack[suit ^ 2] + 1
             && rank <= stack[suit ^ 2 ^ 1] + 1
             && rank <= stack[suit ^ 1] + 2

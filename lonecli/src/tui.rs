@@ -46,7 +46,7 @@ pub fn print_foundation(stack: &[u8; N_SUITS as usize]) {
     println!();
 }
 
-pub fn print_piles(piles: &[PileVec; N_PILES as usize], hiddens: &[HiddenVec; N_PILES as usize]) {
+pub fn print_piles(piles: &[PileVec; N_PILES as usize], hidden: &[HiddenVec; N_PILES as usize]) {
     for i in 0..N_PILES {
         print!("{}\t", i + 5);
     }
@@ -59,7 +59,7 @@ pub fn print_piles(piles: &[PileVec; N_PILES as usize], hiddens: &[HiddenVec; N_
             let cur_pile = &piles[j as usize];
 
             let n_visible = cur_pile.len() as u8;
-            let n_hidden = hiddens[j as usize].len() as u8;
+            let n_hidden = hidden[j as usize].len() as u8;
             if n_hidden > i {
                 print!("**\t");
                 is_print = true;
@@ -93,8 +93,8 @@ pub fn print_game(game: &Solitaire) {
     print_foundation(game.get_stack());
 
     let piles: [PileVec; N_PILES as usize] = game.get_visible_piles();
-    let hiddens: [HiddenVec; N_PILES as usize] = game.get_hidden().to_piles();
-    print_piles(&piles, &hiddens);
+    let hidden: [HiddenVec; N_PILES as usize] = game.get_hidden().to_piles();
+    print_piles(&piles, &hidden);
 }
 
 pub fn _print_standard_game(game: &StandardSolitaire) {
@@ -107,6 +107,6 @@ pub fn _print_standard_game(game: &StandardSolitaire) {
     print_foundation(game.get_stack());
 
     let piles = game.get_piles();
-    let hiddens = game.get_hidden();
-    print_piles(piles, hiddens);
+    let hidden = game.get_hidden();
+    print_piles(piles, hidden);
 }

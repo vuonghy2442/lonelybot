@@ -1,18 +1,22 @@
 # lonelybot solver
+## Crates
+- Lonelybot is a library crate with #no_std support, and can be use in webassembly
+- Lonecli is a wrapper on lonelybot to provide features
+
 ## Build mode
 - release: use lto (cargo build --release)
-- dev: minor optimization + thin lto + debug info => for easy profiling (cargo build --profile=dev)
+- dev: thin lto + debug info => for easy profiling (cargo build --profile=dev)
 - release-with-debug: Release + debug info (cargo build --profile=release-with-debug)
 - debug: default rust debug (cargo build)
-- bench: For microbenchmarking (cargo bench)
+- bench: For micro-benchmarking (cargo bench)
 
 ## Seed
 There are 5 seed types
 - ``default``: using Rust rng
-- ``legacy``: similar to default, for combatibility with older version of this engine
-- ``solvitaire``: reimplemenation of [Solvitaire](https://github.com/thecharlieblake/Solvitaire) random
-- ``klondike``-solver: reimplementation of [Klondike-Solver](https://github.com/ShootMe/Klondike-Solver) random
-- ``greenfelt``: reimplementation of [Greenfelt](https://greenfelt.net/) based on [Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike) source code
+- ``legacy``: similar to default, for compatibility with older version of this engine
+- ``solvitaire``: re-implementation of [Solvitaire](https://github.com/thecharlieblake/Solvitaire) random
+- ``klondike``-solver: re-implementation of [Klondike-Solver](https://github.com/ShootMe/Klondike-Solver) random
+- ``greenfelt``: re-implementation of [Greenfelt](https://greenfelt.net/) based on [Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike) source code
 - ``exact``: converting a 256-bit integer (< 52!) to exact corresponding 52-card permutation
 
 
@@ -158,11 +162,11 @@ Pile(4) Stack(1) A♦, Pile(6) Pile(5) 5♠, ....
 
 There are two type of solution notation: 
 - The first line is the specialized notation (explained bellow)
-- The second line is the standardized notation with the format as a tuple of source position, destimation position, moving card.
+- The second line is the standardized notation with the format as a tuple of source position, destination position, moving card.
 
 The special move of drawing from the stock is represent as a move from the stock (Deck) to the stock (Deck)
 
-There are 3 position: Deck (the stock), Pile (the 0-indexed tablaeu), Stack (the 0-indexed foundation stack)
+There are 3 position: Deck (the stock), Pile (the 0-indexed tableaus), Stack (the 0-indexed foundation stack)
 
 ### Solve loop
 ```sh
@@ -177,7 +181,7 @@ To terminate the whole process, pressing ctrl-C twice in a short amount of time 
 
 Example run
 ```sh
-loneybot rate default 0
+lonecli rate default 0
 ```
 
 Example output
@@ -201,7 +205,7 @@ Run [game_seed] [solve_result]: ([solvable]-[terminated]/[total] ~ [solvable_lb_
 ### Play
 
 You can play out the game.
-Due the optimizations, the available actions are quite unsual, and performing them may result in weird results
+Due the optimizations, the available actions are quite unusual, and performing them may result in weird results
 - One action can be equivalent to multiple actions combined in standard game
 - The result of the action is impossible but it is equivalent to the possible result in the standard game.
 - Missing some actions (should be inferior to the available actions)
@@ -213,7 +217,7 @@ lonecli play [seed_type] [seed]
 
 Example run
 ```sh
-loneybot play default 0
+lonecli play default 0
 ```
 
 Example output
@@ -251,7 +255,7 @@ lonecli hop [seed_type] [seed]
 
 Example run
 ```sh
-loneybot hop default 0
+lonecli hop default 0
 ```
 
 Example output
@@ -265,7 +269,7 @@ Solved
 
 Example run
 ```sh
-loneybot hop default 5
+lonecli hop default 5
 ```
 
 Example output
@@ -285,7 +289,7 @@ lonecli hop-loop [seed_type] [seed]
 - In this mode it will try to solve the game with no undo from the given seed and moving on to the next seed
 Example run
 ```sh
-loneybot hop-loop default 0
+lonecli hop-loop default 0
 ```
 
 Example output
@@ -349,7 +353,7 @@ There are 4 columns:
 
 # Running results
 
-As far as my knowledge goes, upto March 2024, this solver is the state of the art for checking solvability of a standard 3-card klondike game. I didn't test much on the general case of n-card game, but it is likely to be the best as well.
+As far as my knowledge goes, up to March 2024, this solver is the state of the art for checking solvability of a standard 3-card klondike game. I didn't test much on the general case of n-card game, but it is likely to be the best as well.
 
 I cross-checked my package with Solvitaire (published result) using the Klondike-Solver seed from 0 to 50k. And I also cross-checked between different versions of my own package up to much more games (at least 100k and can be up to 1M games).
 
@@ -364,14 +368,14 @@ So this is the new state of the art result for solvability: 81.96 ± 0.05 (compa
 
 This result is computed on 1 cpu core for a few days. With more resources, it can be easily improved.
 
-One other notable thing is that there's no game that it can't decide in a reasonable amount of time that I'm awared of.
+One other notable thing is that there's no game that it can't decide in a reasonable amount of time that I'm aware of.
 
 ### Random Klondike
-So with my hop/mtcs solver, I also achieve a state of the art for random klondike
+So with my hop/MCTS solver, I also achieve the state of the art for random Klondike
 
 17310/38884 ~ 0.4402 < 0.4452 < 0.4501 in 4.339944021s
 
-So the solvability is 44.52 ± 0.50 (compared to the previous 36.97 ± 1.92 from #[this paper](https://ojs.aaai.org/index.php/ICAPS/article/view/13363/13211))
+So the solvability is 44.52 ± 0.50 (compared to the previous 36.97 ± 1.92 from [this paper](https://ojs.aaai.org/index.php/ICAPS/article/view/13363/13211))
 
 The average running time for one game is only a few seconds.
 

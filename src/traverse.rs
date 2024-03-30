@@ -5,7 +5,7 @@ use crate::{
     mixer,
 };
 
-pub trait TranpositionTable {
+pub trait TranspositionTable {
     fn clear(&mut self);
     fn insert(&mut self, value: Encode) -> bool;
 }
@@ -34,7 +34,7 @@ pub trait TraverseCallback {
 fn traverse(
     g: &mut Solitaire,
     rev_move: Option<Move>,
-    tp: &mut impl TranpositionTable,
+    tp: &mut impl TranspositionTable,
 
     callback: &mut impl TraverseCallback,
 ) -> TraverseResult {
@@ -79,7 +79,7 @@ fn traverse(
 }
 
 pub type TpTable = HashSet<Encode, nohash_hasher::BuildNoHashHasher<Encode>>;
-impl crate::traverse::TranpositionTable for TpTable {
+impl crate::traverse::TranspositionTable for TpTable {
     fn clear(&mut self) {
         self.clear();
     }
@@ -90,7 +90,7 @@ impl crate::traverse::TranpositionTable for TpTable {
 
 pub fn traverse_game(
     g: &mut Solitaire,
-    tp: &mut impl TranpositionTable,
+    tp: &mut impl TranspositionTable,
     callback: &mut impl TraverseCallback,
     rev_move: Option<Move>,
 ) -> TraverseResult {
