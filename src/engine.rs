@@ -167,12 +167,12 @@ impl Solitaire {
         res
     }
 
+    #[must_use]
     fn compute_top_mask(&self) -> u64 {
         let mut top_mask = 0;
         for pos in 0..N_PILES {
             if let Some((card, rest)) = self.get_hidden(pos).split_last() {
-                let is_top = rest.len() > 0 || card.rank() < KING_RANK;
-                if is_top {
+                if rest.len() > 0 || card.rank() < KING_RANK {
                     top_mask |= card_mask(card)
                 }
             }
@@ -188,6 +188,13 @@ impl Solitaire {
     #[must_use]
     pub const fn get_top_mask(&self) -> u64 {
         self.top_mask
+    }
+
+    #[must_use]
+    pub const fn get_extended_top_mask(&self) -> u64 {
+        // also consider the kings to be the top cards
+        self.top_mask | (self.visible_mask & KING_MASK)
+        // (self.top_mask | KING_MASK) & self.visible_mask
     }
 
     #[must_use]
@@ -303,7 +310,7 @@ impl Solitaire {
         // free slot will compute the empty position that a card can be put into (can be king)
         let free_slot = {
             // counting how many piles are occupied (having a top card/being a king card)
-            let free_pile = ((vis & KING_MASK) | top).count_ones() < u32::from(N_PILES);
+            let free_pile = self.get_extended_top_mask().count_ones() < u32::from(N_PILES);
             let king_mask = if free_pile { KING_MASK } else { 0 };
             (bm >> 4) | king_mask
         };
@@ -514,7 +521,7 @@ impl Solitaire {
         if let Some(&new_card) = new_card {
             let revealed = card_mask(&new_card);
             self.visible_mask |= revealed;
-            if new_card.rank() < KING_RANK || self.n_hidden[pos as usize] != 1 {
+            if new_card.rank() < KING_RANK || self.n_hidden[pos as usize] > 1 {
                 // if it's not the king mask or there's some hidden cards then set it as the top card
                 self.top_mask |= revealed;
             }
@@ -616,46 +623,48 @@ impl Solitaire {
             | u64::from(deck_encode) << (16 + 16)
     }
 
-    pub fn decode(&mut self, encode: Encode) {
-        let (stack_encode, mut hidden_encode, deck_encode) =
-            (encode as u16, (encode >> 16) as u16, (encode >> 32) as u32);
+    #[must_use]
+    fn compute_visible_mask(&self) -> u64 {
         let mut nonvis_mask = 0;
-        // decode stack
-        self.final_stack = array::from_fn(|i| (stack_encode >> (4 * i)) as u8 & 0xF);
+        // final stack
         for suit in 0..N_SUITS {
             for rank in 0..self.final_stack[suit as usize] {
                 nonvis_mask |= card_mask(&Card::new(rank, suit));
             }
         }
 
-        // decode hidden
-        let mut top_mask = 0;
+        // hidden
         for i in 0..N_PILES {
-            let n_options = u16::from(i) + 2;
-            let n_hid = (hidden_encode % n_options) as u8;
-            hidden_encode /= n_options;
-
-            self.n_hidden[i as usize] = n_hid;
-
-            if let Some((last, hidden)) = self.get_hidden(i).split_last() {
+            if let Some((_, hidden)) = self.get_hidden(i).split_last() {
                 for c in hidden {
                     nonvis_mask |= card_mask(c);
-                }
-
-                if last.rank() < KING_RANK || hidden.len() > 0 {
-                    top_mask |= card_mask(last);
                 }
             }
         }
 
-        // decode visible + top mask :'(
-        self.deck.decode(deck_encode);
         for (_, c, _) in self.deck.iter_all() {
             nonvis_mask |= card_mask(c);
         }
 
-        self.top_mask = top_mask;
-        self.visible_mask = full_mask(N_CARDS) ^ nonvis_mask;
+        full_mask(N_CARDS) ^ nonvis_mask
+    }
+
+    pub fn decode(&mut self, encode: Encode) {
+        let (stack_encode, mut hidden_encode, deck_encode) =
+            (encode as u16, (encode >> 16) as u16, (encode >> 32) as u32);
+        // decode stack
+        self.final_stack = array::from_fn(|i| (stack_encode >> (4 * i)) as u8 & 0xF);
+        // decode hidden
+        for i in 0..N_PILES {
+            let n_options = u16::from(i) + 2;
+            self.n_hidden[i as usize] = (hidden_encode % n_options) as u8;
+            hidden_encode /= n_options;
+        }
+        // decode visible
+        self.deck.decode(deck_encode);
+
+        self.visible_mask = self.compute_visible_mask();
+        self.top_mask = self.compute_top_mask();
     }
 
     #[must_use]
@@ -696,14 +705,15 @@ impl Solitaire {
                     != 0;
 
                 start_card = Card::new(start_card.rank() - 1, start_card.suit() ^ 2);
-
                 let mask = card_mask(&start_card);
-                if !has_both && (self.visible_mask & mask == 0 || self.top_mask & mask != 0) {
+
+                let possible_cards = self.top_mask ^ self.visible_mask;
+                if !has_both && possible_cards & mask == 0 {
+                    // not a possible cards => switch suit
                     start_card = Card::new(start_card.rank(), start_card.suit() ^ 1);
                 }
 
-                let mask = card_mask(&start_card);
-                if self.visible_mask & mask == 0 || self.top_mask & mask != 0 {
+                if possible_cards & card_mask(&start_card) == 0 {
                     break;
                 }
             }
@@ -774,47 +784,25 @@ impl Solitaire {
         }
 
         if self.compute_top_mask() != self.top_mask
-            || ((KING_MASK & (self.visible_mask ^ self.top_mask)) | self.top_mask).count_ones()
-                > N_PILES.into()
+            || self.get_extended_top_mask().count_ones() > N_PILES.into()
         {
             return false;
         }
 
-        let mut total_cards = self.visible_mask.count_ones() as u8
+        let total_cards = self.visible_mask.count_ones() as u8
             + self.final_stack.iter().sum::<u8>()
-            + self.deck.len();
-
-        let mut fmask = self.visible_mask;
-        //check if the game is in valid state
-        for pos in 0..N_PILES {
-            if let Some((card, rest)) = self.get_hidden(pos).split_last() {
-                let mask = card_mask(card);
-                if self.visible_mask & mask == 0 {
-                    return false;
-                }
-                total_cards += rest.len() as u8;
-
-                for c in rest {
-                    fmask |= card_mask(c);
-                }
-            }
-        }
+            + self.deck.len()
+            + self
+                .n_hidden
+                .iter()
+                .map(|x| x.saturating_sub(1))
+                .sum::<u8>();
 
         if total_cards != N_CARDS {
             return false;
         }
 
-        for suit in 0..N_SUITS {
-            for rank in 0..self.final_stack[usize::from(suit)] {
-                fmask |= card_mask(&Card::new(rank, suit));
-            }
-        }
-
-        for (_, c, _) in self.deck.iter_all() {
-            fmask |= card_mask(c);
-        }
-
-        if fmask != full_mask(N_CARDS) {
+        if self.compute_visible_mask() != self.visible_mask {
             return false;
         }
 

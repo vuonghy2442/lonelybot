@@ -35,8 +35,7 @@ inherits = "release"
 debug = true
 
 [profile.dev]
-opt-level = 1           # Use slightly better optimizations.
-overflow-checks = false # Disable integer overflow checks.
+opt-level = 0
 lto = "thin"
 
 [[bench]]
