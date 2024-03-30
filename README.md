@@ -1,4 +1,7 @@
-# lonelybot solver
+Lonelybot
+=========
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## Crates
 - Lonelybot is a library crate with #no_std support, and can be use in webassembly
 - Lonecli is a wrapper on lonelybot to provide features
@@ -346,12 +349,12 @@ There are 4 columns:
 - id: The DFS ordering
 
 
-# Limitations
+## Limitations
 
 - Cannot disallow worrying back
 - May not find the shortest solution
 
-# Running results
+## Running results
 
 As far as my knowledge goes, up to March 2024, this solver is the state of the art for checking solvability of a standard 3-card klondike game. I didn't test much on the general case of n-card game, but it is likely to be the best as well.
 
@@ -359,7 +362,6 @@ I cross-checked my package with Solvitaire (published result) using the Klondike
 
 However, due to having a lot of specific optimizations that haven't been rigorously proven (but I intended to make sure it's always correct, not just a "very good heuristic" but can be wrong in extremely few cases). So any wrong solvability result is a bug.
 
-## Solvability result
 
 ### Thoughtful Klondike
 Run K-2396068 in 0.67 ms. Solved: (1963855-0/2396069 ~ 0.8191<=0.8196<=0.8201) 87 1 84
@@ -380,3 +382,9 @@ So the solvability is 44.52 ± 0.50 (compared to the previous 36.97 ± 1.92 from
 The average running time for one game is only a few seconds.
 
 However due to significant improvement, I think this needs more verification.
+
+## Method
+
+It started from implementing the ideas from the Solvitaire paper in Rust (which is tagged as version 0.1). Then I figure out a suit symmetry in the game state, combining with more dominances (technical term in the Solvitaire paper) and move pruning. This allows me to vastly reduced the states (around an order of magnitude) compared to the original method, combining with highly optimized implementation, it runs around 2 orders of magnitude faster. Also after a lot of move pruning, the game tree is now a DAG (when remove cycles of 2).
+
+I will try to find some time to write a more detailed description of the method.
