@@ -1,6 +1,6 @@
 use arrayvec::ArrayVec;
 
-use crate::card::{Card, KING_RANK, N_RANKS, N_SUITS};
+use crate::card::{Card, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_FULL_DECK, N_PILES};
 use crate::shuffler::CardDeck;
 
@@ -68,45 +68,6 @@ impl StandardSolitaire {
     }
 
     #[must_use]
-    pub fn peek_waste(&self, n_top: u8) -> ArrayVec<Card, N_FULL_DECK> {
-        let draw_cur = self.deck.get_offset();
-        self.deck
-            .get_waste()
-            .split_at(draw_cur.saturating_sub(n_top).into())
-            .1
-            .iter()
-            .copied()
-            .collect()
-    }
-
-    // shouldn't be used in real engine
-    #[must_use]
-    pub fn peek_cur(&self) -> Option<Card> {
-        self.deck.get_waste().last().copied()
-    }
-
-    // shouldn't be used in real engine
-    pub fn draw_cur(&mut self) -> Option<Card> {
-        if self.deck.get_offset() == 0 {
-            None
-        } else {
-            Some(self.deck.draw(self.deck.get_offset() - 1))
-        }
-    }
-
-    // shouldn't be used in real engine
-    pub fn draw_next(&mut self) {
-        let next = self.deck.get_offset();
-        let len = self.deck.len();
-        let next = if next >= len {
-            0
-        } else {
-            core::cmp::min(next + self.deck.draw_step(), len)
-        };
-        self.deck.set_offset(next);
-    }
-
-    #[must_use]
     pub const fn get_deck(&self) -> &Deck {
         &self.deck
     }
@@ -126,12 +87,12 @@ impl StandardSolitaire {
         &self.hidden_piles
     }
 
-    pub fn find_deck_card(&mut self, c: &Card) -> Option<u8> {
-        for i in 0..N_FULL_DECK {
-            if self.peek_cur() == Some(*c) {
-                return Some(i as u8);
+    pub fn find_deck_card(&self, c: &Card) -> Option<u8> {
+        for i in 0..N_FULL_DECK as u8 {
+            let offset = self.deck.offset(i);
+            if offset > 0 && self.deck.peek(offset - 1) == c {
+                return Some(i);
             }
-            self.draw_next();
         }
         None
     }
@@ -140,10 +101,7 @@ impl StandardSolitaire {
     pub fn find_free_pile(&self, c: &Card) -> Option<u8> {
         self.piles
             .iter()
-            .position(|p| {
-                p.last()
-                    .map_or_else(|| c.rank() == KING_RANK, |cc| cc.go_before(c))
-            })
+            .position(|p| p.last().unwrap_or(&Card::FAKE).go_before(c))
             .map(|pos| pos as u8)
     }
 
@@ -155,15 +113,123 @@ impl StandardSolitaire {
             .map(|pos| pos as u8)
     }
 
+    pub fn find_card_pile(&self, pos: u8, c: &Card) -> Option<usize> {
+        self.piles[pos as usize].iter().position(|cc| *c == *cc)
+    }
+
     #[must_use]
     pub fn find_card(&self, c: &Card) -> Option<(u8, usize)> {
         for i in 0..N_PILES {
-            for (j, cc) in self.piles[i as usize].iter().enumerate() {
-                if cc == c {
-                    return Some((i, j));
-                }
+            let pos = self.find_card_pile(i, c).map(|j| (i, j));
+            if pos.is_some() {
+                return pos;
             }
         }
         None
+    }
+
+    pub fn validate_move(&self, m: &StandardMove) -> bool {
+        match *m {
+            (Pos::Deck, Pos::Deck, Card::FAKE) => true,
+            (_, Pos::Deck, _) => false,
+            (Pos::Stack(_), Pos::Stack(_), _) => false,
+
+            (Pos::Deck, Pos::Pile(pos), c) => {
+                pos < N_PILES
+                    && self.deck.peek_current() == Some(&c)
+                    && self.piles[pos as usize]
+                        .last()
+                        .unwrap_or(&Card::FAKE)
+                        .go_before(&c)
+            }
+            (Pos::Deck, Pos::Stack(pos), c) => {
+                pos < N_SUITS
+                    && self.deck.peek_current() == Some(&c)
+                    && c.suit() == pos
+                    && self.final_stack[pos as usize] == c.rank()
+            }
+            (Pos::Pile(from), Pos::Pile(to), c) => {
+                from != to
+                    && from < N_PILES
+                    && to < N_PILES
+                    && self.piles[to as usize]
+                        .last()
+                        .unwrap_or(&Card::FAKE)
+                        .go_before(&c)
+                    && self.find_card_pile(from, &c).is_some()
+            }
+            (Pos::Pile(from), Pos::Stack(to), c) => {
+                from < N_PILES
+                    && to < N_SUITS
+                    && self.piles[from as usize].last() == Some(&c)
+                    && c.suit() == to
+                    && c.rank() == self.final_stack[to as usize]
+            }
+
+            (Pos::Stack(from), Pos::Pile(to), c) => {
+                from < N_SUITS
+                    && to < N_PILES
+                    && c.suit() == from
+                    && c.rank() + 1 == self.final_stack[from as usize]
+                    && self.piles[to as usize]
+                        .last()
+                        .unwrap_or(&Card::FAKE)
+                        .go_before(&c)
+            }
+        }
+    }
+
+    // this will execute the move the move
+    // this should never panic
+    // if the move is illegal then it won't do anything (the game state will be preserved)
+    pub fn do_move(&mut self, m: &StandardMove) -> bool {
+        if !self.validate_move(m) {
+            return false;
+        }
+        match *m {
+            (Pos::Deck, Pos::Deck, _) => {
+                self.deck.deal_once();
+            }
+            (_, Pos::Deck, _) => {}
+
+            (Pos::Deck, Pos::Pile(pos), c) => {
+                self.deck.draw_current().unwrap();
+                self.piles[pos as usize].push(c);
+            }
+            (Pos::Deck, Pos::Stack(pos), _) => {
+                self.deck.draw_current().unwrap();
+                self.final_stack[pos as usize] += 1;
+            }
+            (Pos::Pile(from), Pos::Pile(to), c) => {
+                let pos = self.find_card_pile(from, &c).unwrap();
+                let tmp: PileVec = self.piles[from as usize][pos..].iter().copied().collect();
+                self.piles[to as usize].extend(tmp);
+                self.piles[from as usize].truncate(pos);
+
+                if self.piles[from as usize].is_empty() {
+                    if let Some(c) = self.hidden_piles[from as usize].pop() {
+                        self.piles[from as usize].push(c);
+                    }
+                }
+            }
+            (Pos::Pile(from), Pos::Stack(to), _) => {
+                self.piles[from as usize].pop();
+                self.final_stack[to as usize] += 1;
+
+                if self.piles[from as usize].is_empty() {
+                    if let Some(c) = self.hidden_piles[from as usize].pop() {
+                        self.piles[from as usize].push(c);
+                    }
+                }
+            }
+
+            (Pos::Stack(from), Pos::Pile(to), c) => {
+                self.final_stack[from as usize] -= 1;
+                self.piles[to as usize].push(c);
+            }
+
+            (Pos::Stack(_), Pos::Stack(_), _) => {}
+        };
+        true
     }
 }

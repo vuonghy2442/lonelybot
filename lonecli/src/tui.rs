@@ -100,7 +100,7 @@ pub fn print_game(game: &Solitaire) {
 pub fn _print_standard_game(game: &StandardSolitaire) {
     // print out the deck
     print!("0. ");
-    for card in game.peek_waste(3) {
+    for card in game.get_deck().peek_waste::<3>() {
         print!("{} ", color(card));
     }
 

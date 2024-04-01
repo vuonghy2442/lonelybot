@@ -1,5 +1,6 @@
 use core::ops::ControlFlow;
 
+use arrayvec::ArrayVec;
 use static_assertions::const_assert;
 
 use crate::card::{Card, N_CARDS};
@@ -84,8 +85,10 @@ impl Deck {
     }
 
     #[must_use]
-    pub fn iter_all(&self) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
-        let head = self.get_waste().iter().enumerate().map(|x| {
+    pub fn iter_waste(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> + ExactSizeIterator {
+        self.get_waste().iter().enumerate().map(|x| {
             let pos = x.0 as u8;
             (
                 pos,
@@ -98,9 +101,14 @@ impl Deck {
                     Drawable::None
                 },
             )
-        });
+        })
+    }
 
-        let tail = self.get_deck().iter().enumerate().map(|x| {
+    #[must_use]
+    pub fn iter_deck(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> + ExactSizeIterator {
+        self.get_deck().iter().enumerate().map(|x| {
             let pos = x.0 as u8;
             (
                 self.draw_cur + pos,
@@ -114,8 +122,52 @@ impl Deck {
                     Drawable::None
                 },
             )
-        });
-        head.chain(tail)
+        })
+    }
+
+    #[must_use]
+    pub const fn peek(&self, pos: u8) -> &Card {
+        if pos < self.draw_cur {
+            &self.deck[pos as usize]
+        } else {
+            &self.deck[(pos - self.draw_cur + self.draw_next) as usize]
+        }
+    }
+
+    #[must_use]
+    pub fn iter_all(&self) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
+        self.iter_waste().chain(self.iter_deck())
+    }
+
+    #[must_use]
+    pub fn offset(&self, n_step: u8) -> u8 {
+        let next = self.get_offset();
+        let len = self.len();
+        let step = self.draw_step();
+
+        let n_step_to_end = (len - next).div_ceil(step);
+
+        core::cmp::min(
+            if n_step <= n_step_to_end {
+                next + step * n_step
+            } else {
+                let total_step = len.div_ceil(step) + 1;
+                let n_step = (n_step - n_step_to_end - 1) % total_step;
+                step * n_step
+            },
+            len,
+        )
+    }
+
+    #[must_use]
+    pub fn offset_once(&self) -> u8 {
+        let next = self.get_offset();
+        let len = self.len();
+        if next >= len {
+            0
+        } else {
+            core::cmp::min(next + self.draw_step(), len)
+        }
     }
 
     pub fn iter_callback<T>(
@@ -294,5 +346,87 @@ impl Deck {
             .iter_all()
             .zip(other.iter_all())
             .all(|x| x.0 .1 == x.1 .1 && (x.0 .2 == Drawable::None) == (x.1 .2 == Drawable::None));
+    }
+
+    pub fn deal_once(&mut self) {
+        self.set_offset(self.offset_once());
+    }
+
+    #[must_use]
+    pub fn peek_waste<const N: usize>(&self) -> ArrayVec<Card, N> {
+        let draw_cur = self.get_offset();
+        self.get_waste()
+            .split_at(draw_cur.saturating_sub(N as u8).into())
+            .1
+            .iter()
+            .copied()
+            .collect()
+    }
+
+    #[must_use]
+    pub const fn peek_current(&self) -> Option<&Card> {
+        if self.draw_next == 0 {
+            None
+        } else {
+            Some(&self.deck[self.draw_cur as usize - 1])
+        }
+    }
+
+    pub fn draw_current(&mut self) -> Option<Card> {
+        let offset = self.get_offset();
+        if offset == 0 {
+            None
+        } else {
+            Some(self.draw(offset - 1))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rand::{rngs::StdRng, Rng, SeedableRng};
+
+    use crate::shuffler::default_shuffle;
+
+    use super::*;
+
+    #[test]
+    fn test_draw() {
+        let mut rng = StdRng::seed_from_u64(14);
+
+        for i in 0..100 {
+            let deck = default_shuffle(12 + i);
+            let deck = deck[..N_FULL_DECK].try_into().unwrap();
+
+            let draw_step = rng.gen_range(1..5);
+            let mut deck = Deck::new(deck, draw_step);
+
+            while !deck.is_empty() {
+                assert_eq!(deck.offset_once(), deck.offset(1));
+                let step = rng.gen_range(1..100);
+                let offset = deck.offset(step);
+
+                for _ in 0..step {
+                    deck.deal_once();
+                }
+
+                assert_eq!(offset, deck.get_offset());
+
+                for (pos, card, _) in deck.iter_all() {
+                    assert_eq!(deck.peek(pos), card);
+                }
+
+                for filter in [false, true] {
+                    deck.iter_callback::<()>(filter, |pos, card| {
+                        assert_eq!(deck.peek(pos), card);
+                        ControlFlow::<()>::Continue(())
+                    });
+                }
+
+                if deck.get_offset() < deck.len() && rng.gen_bool(0.5) {
+                    deck.pop_next();
+                }
+            }
+        }
     }
 }

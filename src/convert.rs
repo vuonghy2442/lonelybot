@@ -14,18 +14,18 @@ impl From<&Solitaire> for StandardSolitaire {
     }
 }
 
+// making it never panic :(
 // this will convert and execute the move
-pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut StandardHistoryVec) {
+pub fn convert_move(game: &StandardSolitaire, m: &Move, move_seq: &mut StandardHistoryVec) {
     match m {
         Move::DeckPile(c) => {
             let cnt = game.find_deck_card(c).unwrap();
             for _ in 0..cnt {
                 move_seq.push(DRAW_NEXT);
             }
-            assert_eq!(game.draw_cur(), Some(*c));
+            // assert_eq!(game.get_deck().peek_last(), Some(c));
 
             let pile = game.find_free_pile(c).unwrap();
-            game.piles[pile as usize].push(*c);
             move_seq.push((Pos::Deck, Pos::Pile(pile), *c));
         }
         Move::DeckStack(c) => {
@@ -33,18 +33,14 @@ pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut Stand
             for _ in 0..cnt {
                 move_seq.push(DRAW_NEXT);
             }
-            assert_eq!(game.draw_cur(), Some(*c));
+            // assert_eq!(game.get_deck().peek_last(), Some(c));
 
             assert!(c.rank() == game.final_stack[c.suit() as usize]);
-            game.final_stack[c.suit() as usize] += 1;
             move_seq.push((Pos::Deck, Pos::Stack(c.suit()), *c));
         }
         Move::StackPile(c) => {
-            assert!(c.rank() + 1 == game.final_stack[c.suit() as usize]);
-            game.final_stack[c.suit() as usize] -= 1;
-
+            // assert!(c.rank() + 1 == game.final_stack[c.suit() as usize]);
             let pile = game.find_free_pile(c).unwrap();
-            game.piles[pile as usize].push(*c);
             move_seq.push((Pos::Stack(c.suit()), Pos::Pile(pile), *c));
         }
         Move::Reveal(c) => {
@@ -53,39 +49,19 @@ pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut Stand
 
             assert!(pile_to != pile_from);
 
-            // lazy fix for the borrow checker :)
-            game.piles[pile_to as usize].extend(game.piles[pile_from as usize].clone());
-            game.piles[pile_from as usize].clear();
-
-            if let Some(c) = game.hidden_piles[pile_from as usize].pop() {
-                game.piles[pile_from as usize].push(c);
-            }
-
             move_seq.push((Pos::Pile(pile_from), Pos::Pile(pile_to), *c));
         }
         Move::PileStack(c) => {
             assert!(c.rank() == game.final_stack[c.suit() as usize]);
             let (pile, pos) = game.find_card(c).unwrap();
-            if pos + 1 != game.piles[pile as usize].len() {
-                let pile_other = game
-                    .find_free_pile(&game.piles[pile as usize][pos + 1])
-                    .unwrap();
+            if pos + 1 < game.piles[pile as usize].len() {
+                let move_card = game.piles[pile as usize][pos + 1];
+                let pile_other = game.find_free_pile(&move_card).unwrap();
 
-                assert!(pile != pile_other);
+                // assert!(pile != pile_other);
 
-                game.piles[pile_other as usize]
-                    .extend(game.piles[pile as usize].clone()[pos + 1..].iter().copied());
-                move_seq.push((Pos::Pile(pile), Pos::Pile(pile_other), *c));
+                move_seq.push((Pos::Pile(pile), Pos::Pile(pile_other), move_card));
             }
-            game.piles[pile as usize].truncate(pos);
-
-            if pos == 0 {
-                if let Some(c) = game.hidden_piles[pile as usize].pop() {
-                    game.piles[pile as usize].push(c);
-                }
-            }
-
-            game.final_stack[c.suit() as usize] += 1;
             move_seq.push((Pos::Pile(pile), Pos::Stack(c.suit()), *c));
         }
     }
@@ -95,7 +71,12 @@ pub fn convert_move(game: &mut StandardSolitaire, m: &Move, move_seq: &mut Stand
 pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> StandardHistoryVec {
     let mut move_seq = StandardHistoryVec::new();
     for mm in m {
+        let start = move_seq.len();
         convert_move(game, mm, &mut move_seq);
+
+        for m in move_seq[start..].iter() {
+            assert!(game.do_move(m));
+        }
     }
     move_seq
 }
@@ -132,7 +113,12 @@ mod tests {
 
         let mut game_x: Solitaire = From::from(&game);
         for pos in 0..moves.len() {
+            his.clear();
             convert_move(&mut game, &moves[pos], &mut his);
+            for m in &his {
+                assert!(game.do_move(m));
+            }
+
             game_x.do_move(&moves[pos]);
             let mut game_c: Solitaire = From::from(&game);
             assert!(game_c.is_valid());
