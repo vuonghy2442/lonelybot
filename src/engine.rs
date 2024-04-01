@@ -1,4 +1,5 @@
 use core::array;
+use core::ops::ControlFlow;
 
 use arrayvec::ArrayVec;
 
@@ -73,19 +74,19 @@ const fn full_mask(i: u8) -> u64 {
     (1 << i) - 1
 }
 
-fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> Option<T>) -> Option<T> {
+fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> ControlFlow<T>) -> ControlFlow<T> {
     while m > 0 {
         let c = from_mask(&m);
-        let r = func(c);
-        if r.is_some() {
-            return r;
-        };
+        func(c)?;
         m &= m.wrapping_sub(1);
     }
-    None
+    ControlFlow::Continue(())
 }
 
-pub fn iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -> Option<T> {
+pub fn iter_moves<T>(
+    moves: [u64; 5],
+    mut func: impl FnMut(Move) -> ControlFlow<T>,
+) -> ControlFlow<T> {
     // the only case a card can be in two different moves
     // deck_to_stack/deck_to_pile (maximum duplicate N_SUITS cards)
     // reveal/pile_stack (maximum duplicate N_SUITS cards)
@@ -93,24 +94,19 @@ pub fn iter_moves<T>(moves: [u64; 5], mut func: impl FnMut(Move) -> Option<T>) -
     // => Maximum moves <= N_CARDS + N_SUIT
     let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] = moves;
 
-    if let Some(r) = iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c))) {
-        // maximum min(N_PILES - 1, N_CARDS) moves (can't have a cycle of reveal piles)
-        Some(r)
-    } else if let Some(r) = iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c))) {
-        // maximum min(N_PILES, N_SUITS) moves
-        Some(r)
-    } else if let Some(r) = iter_mask_opt::<T>(deck_pile, |c| func(Move::DeckPile(c))) {
-        // maximum min(N_PILES, N_DECK) moves
-        Some(r)
-    } else if let Some(r) = iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c))) {
-        // maximum min(N_DECK, N_SUITS) moves
-        // deck_stack and pile_stack can't happen simultaneously so both of the combine can't have more than
-        // N_SUITS move
-        Some(r)
-    } else {
-        // maximum min(N_PILES, N_SUIT) moves
-        iter_mask_opt::<T>(stack_pile, |c| func(Move::StackPile(c)))
-    }
+    // maximum min(N_PILES - 1, N_CARDS) moves (can't have a cycle of reveal piles)
+    iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c)))?;
+    // maximum min(N_PILES, N_SUITS) moves
+    iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c)))?;
+    // maximum min(N_PILES, N_DECK) moves
+    iter_mask_opt::<T>(deck_pile, |c| func(Move::DeckPile(c)))?;
+    // maximum min(N_DECK, N_SUITS) moves
+    // deck_stack and pile_stack can't happen simultaneously so both of the combine can't have more than
+    // N_SUITS move
+    iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c)))?;
+    // maximum min(N_PILES, N_SUIT) moves
+    iter_mask_opt::<T>(stack_pile, |c| func(Move::StackPile(c)))
+
     // <= N_PILES * 2 + N_SUITS * 2 - 1 = 14 + 8 - 1 = 21 moves
 }
 
@@ -224,10 +220,11 @@ impl Solitaire {
         }
 
         let mut mask = 0;
-        self.deck.iter_callback(filter, |_, card| -> bool {
-            mask |= card.mask();
-            false
-        });
+        self.deck
+            .iter_callback(filter, |_, card| -> ControlFlow<()> {
+                mask |= card.mask();
+                ControlFlow::Continue(())
+            });
 
         // TODO: dominance for draw_step == 1
         (mask, false)
@@ -239,7 +236,7 @@ impl Solitaire {
 
         iter_moves(self.gen_moves::<DOMINANCE>(), |m| {
             moves.push(m);
-            None::<()>
+            ControlFlow::<()>::Continue(())
         });
 
         moves
@@ -768,7 +765,7 @@ mod tests {
                 test.clear();
                 game.deck.iter_callback(false, |pos, x| {
                     test.push((pos, *x));
-                    false
+                    ControlFlow::<()>::Continue(())
                 });
 
                 test.sort_by_key(|x| x.0);

@@ -309,4 +309,47 @@ mod tests {
         assert_eq!(deck, deck_2);
         // }
     }
+
+    #[test]
+    fn test_exact() {
+        assert_eq!(
+            encode_shuffle(default_shuffle(0)),
+            U256::from_dec_str(
+                "58951431144029615328972203965306300108857513542935373524517649274867"
+            )
+            .unwrap()
+        );
+
+        assert_eq!(
+            encode_shuffle(legacy_shuffle(0)),
+            U256::from_dec_str(
+                "58984888198769686684640833699869084205119854744931998784527271197475"
+            )
+            .unwrap()
+        );
+
+        assert_eq!(
+            encode_shuffle(solvitaire_shuffle(0)),
+            U256::from_dec_str(
+                "12954810653509400169295621394006691876957783508183809583464865425989"
+            )
+            .unwrap()
+        );
+
+        assert_eq!(
+            encode_shuffle(ks_shuffle(0)),
+            U256::from_dec_str(
+                "35511235380175238168226668580770214465574563740067205469369780560069"
+            )
+            .unwrap()
+        );
+
+        assert_eq!(
+            encode_shuffle(greenfelt_shuffle(0)),
+            U256::from_dec_str(
+                "54175677138559480155411779209903877761694750384126798297802324102022"
+            )
+            .unwrap()
+        );
+    }
 }

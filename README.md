@@ -358,15 +358,15 @@ There are 4 columns:
 
 As far as my knowledge goes, up to March 2024, this solver is the state of the art for checking solvability of a standard 3-card klondike game. I didn't test much on the general case of n-card game, but it is likely to be the best as well.
 
-I cross-checked my package with Solvitaire (published result) using the Klondike-Solver seed from 0 to 50k. And I also cross-checked between different versions of my own package up to much more games (at least 100k and can be up to 1M games).
+I cross-checked my package with Solvitaire (published result) using the Klondike-Solver seed from 0 to 50k, and with the 1M games with Solvitaire seed from 1 to 1M. And I also cross-checked between different versions of my own package up to much more games (at least 100k and can be up to 2M games).
 
 However, due to having a lot of specific optimizations that haven't been rigorously proven (but I intended to make sure it's always correct, not just a "very good heuristic" but can be wrong in extremely few cases). So any wrong solvability result is a bug.
 
 
 ### Thoughtful Klondike
-Run K-2396068 in 0.67 ms. Solved: (1963855-0/2396069 ~ 0.8191<=0.8196<=0.8201) 87 1 84
+Run K-3081577 Solved: (2525379-0/3081578 ~ 0.8191<=0.8195<=0.8199) 17494106 8060467 85 in 15825.15 ms.
 
-So this is the new state of the art result for solvability: 81.96 ± 0.05 (compared to the previous from Solvitaire 81.945 ± 0.084) at 95% confidence
+So this is the new state of the art result for solvability: 81.95 ± 0.04 (compared to the previous from Solvitaire 81.945 ± 0.084) at 95% confidence
 
 This result is computed on 1 cpu core for a few days. With more resources, it can be easily improved.
 
@@ -375,9 +375,9 @@ One other notable thing is that there's no game that it can't decide in a reason
 ### Random Klondike
 So with my hop/MCTS solver, I also achieve the state of the art for random Klondike
 
-17310/38884 ~ 0.4402 < 0.4452 < 0.4501 in 4.339944021s
+25319/56932 ~ 0.4406 < 0.4447 < 0.4488 in 7.359837524s
 
-So the solvability is 44.52 ± 0.50 (compared to the previous 36.97 ± 1.92 from [this paper](https://ojs.aaai.org/index.php/ICAPS/article/view/13363/13211))
+So the solvability is 44.47 ± 0.41 (compared to the previous 36.97 ± 1.92 from [this paper](https://ojs.aaai.org/index.php/ICAPS/article/view/13363/13211))
 
 The average running time for one game is only a few seconds.
 
@@ -385,6 +385,6 @@ However due to significant improvement, I think this needs more verification.
 
 ## Method
 
-It started from implementing the ideas from the Solvitaire paper in Rust (which is tagged as version 0.1). Then I figure out a suit symmetry in the game state, combining with more dominances (technical term in the Solvitaire paper) and move pruning. This allows me to vastly reduced the states (around an order of magnitude) compared to the original method, combining with highly optimized implementation, it runs around 2 orders of magnitude faster. Also after a lot of move pruning, the game tree is now a DAG (when remove cycles of 2).
+It started from implementing the ideas from the Solvitaire paper in Rust (which is tagged as version 0.1). Then I figure out a suit symmetry in the game state, combining with more dominances (technical term in the Solvitaire paper) and move pruning. This allows me to vastly reduced the states (around an order of magnitude) compared to the original method, combining with highly optimized implementation (around 2 orders of magnitude faster in search rate). In total, it runs around 3 orders of magnitude faster. Also after a lot of move pruning, the game tree is now a DAG (when remove cycles of 2).
 
 I will try to find some time to write a more detailed description of the method.

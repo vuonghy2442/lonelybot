@@ -1,3 +1,5 @@
+use core::ops::ControlFlow;
+
 use static_assertions::const_assert;
 
 use crate::card::{Card, N_CARDS};
@@ -116,52 +118,33 @@ impl Deck {
         head.chain(tail)
     }
 
-    pub fn iter_callback(&self, filter: bool, mut push: impl FnMut(u8, &Card) -> bool) -> bool {
-        // if self.draw_step() == 1 {
-        //     if !filter {
-        //         for (pos, card) in self.get_waste().iter().enumerate() {
-        //             if push(pos as u8, card) {
-        //                 return true;
-        //             }
-        //         }
-        //     }
-
-        //     for (pos, card) in self.get_deck().iter().enumerate() {
-        //         if push((pos as u8) + self.draw_cur, card) {
-        //             return true;
-        //         }
-        //     }
-        //     return false;
-        // }
-
+    pub fn iter_callback<T>(
+        &self,
+        filter: bool,
+        mut func: impl FnMut(u8, &Card) -> ControlFlow<T>,
+    ) -> ControlFlow<T> {
         if !filter {
             let mut i = self.draw_step - 1;
             while i + 1 < self.draw_cur {
-                if push(i, &self.deck[i as usize]) {
-                    return true;
-                }
+                func(i, &self.deck[i as usize])?;
                 i += self.draw_step;
             }
         }
 
-        if self.draw_cur > 0 && push(self.draw_cur - 1, &self.deck[self.draw_cur as usize - 1]) {
-            return true;
+        if self.draw_cur > 0 {
+            func(self.draw_cur - 1, &self.deck[self.draw_cur as usize - 1])?;
         }
 
         let gap = self.draw_next - self.draw_cur;
 
-        if self.draw_next < N_FULL_DECK as u8
-            && push(N_FULL_DECK as u8 - 1 - gap, &self.deck[N_FULL_DECK - 1])
-        {
-            return true;
+        if self.draw_next < N_FULL_DECK as u8 {
+            func(N_FULL_DECK as u8 - 1 - gap, &self.deck[N_FULL_DECK - 1])?;
         }
 
         {
             let mut i = self.draw_next + self.draw_step - 1;
             while i + 1 < N_FULL_DECK as u8 {
-                if push(i - gap, &self.deck[i as usize]) {
-                    return true;
-                }
+                func(i - gap, &self.deck[i as usize])?;
                 i += self.draw_step;
             }
         }
@@ -172,14 +155,12 @@ impl Deck {
                 let mut i = self.draw_next + self.draw_step - 1 - offset;
 
                 while i + 1 < N_FULL_DECK as u8 {
-                    if push(i - gap, &self.deck[i as usize]) {
-                        return true;
-                    }
+                    func(i - gap, &self.deck[i as usize])?;
                     i += self.draw_step;
                 }
             }
         }
-        false
+        ControlFlow::Continue(())
     }
 
     #[must_use]

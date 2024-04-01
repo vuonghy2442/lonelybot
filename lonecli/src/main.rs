@@ -174,7 +174,7 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
         if let Some(best) = best {
             if verbose {
                 for m in &best {
-                    print!("{}, ", m);
+                    print!("{m}, ");
                 }
                 println!();
             }
