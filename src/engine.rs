@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{from_mask, Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
+use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_HIDDEN_CARDS, N_PILES};
 
 use crate::hidden::Hidden;
@@ -76,7 +76,7 @@ const fn full_mask(i: u8) -> u64 {
 
 fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> ControlFlow<T>) -> ControlFlow<T> {
     while m > 0 {
-        let c = from_mask(&m);
+        let c = Card::from_mask(&m);
         func(c)?;
         m &= m.wrapping_sub(1);
     }
@@ -388,7 +388,7 @@ impl Solitaire {
     }
 
     pub fn make_stack<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
-        let card = from_mask(mask);
+        let card = Card::from_mask(mask);
         self.final_stack[card.suit() as usize] += 1;
 
         if DECK {
@@ -407,7 +407,7 @@ impl Solitaire {
     }
 
     pub fn unmake_stack<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
-        let card = from_mask(mask);
+        let card = Card::from_mask(mask);
         self.final_stack[card.suit() as usize] -= 1;
 
         if DECK {
@@ -422,7 +422,7 @@ impl Solitaire {
     }
 
     pub fn make_pile<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
-        let card = from_mask(mask);
+        let card = Card::from_mask(mask);
         self.visible_mask |= mask;
         if DECK {
             let offset = self.deck.get_offset();
@@ -436,7 +436,7 @@ impl Solitaire {
     }
 
     pub fn unmake_pile<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
-        let card = from_mask(mask);
+        let card = Card::from_mask(mask);
 
         self.visible_mask &= !mask;
 
@@ -459,7 +459,7 @@ impl Solitaire {
     }
 
     pub fn make_reveal(&mut self, m: &u64) -> UndoInfo {
-        let card = from_mask(m);
+        let card = Card::from_mask(m);
         let pos = self.hidden.find(&card);
         self.top_mask &= !m;
 
@@ -476,7 +476,7 @@ impl Solitaire {
     }
 
     pub fn unmake_reveal(&mut self, m: &u64, _info: &UndoInfo) {
-        let card = from_mask(m);
+        let card = Card::from_mask(m);
         let pos = self.hidden.find(&card);
 
         self.top_mask |= m;

@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
-    card::from_mask,
+    card::Card,
     deck::{Deck, N_HIDDEN_CARDS},
     engine::{Move, Solitaire},
     shuffler,
@@ -34,7 +34,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let m: Move = *moves.choose(&mut rng).unwrap();
 
     let deck = game.get_deck_mask::<false>().0;
-    let card = from_mask(&deck);
+    let card = Card::from_mask(&deck);
 
     c.bench_function("gen_moves", |b| {
         b.iter(|| {

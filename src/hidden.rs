@@ -3,7 +3,7 @@ use rand::RngCore;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{from_mask, Card, KING_RANK, N_CARDS};
+use crate::card::{Card, KING_RANK, N_CARDS};
 use crate::deck::{N_HIDDEN_CARDS, N_PILES};
 
 use crate::standard::HiddenVec;
@@ -178,7 +178,7 @@ impl Hidden {
             if let Some((_, pile_map)) = self.get_mut(pos).split_last_mut() {
                 for h in pile_map {
                     debug_assert_ne!(hidden_cards, 0);
-                    *h = from_mask(&hidden_cards);
+                    *h = Card::from_mask(&hidden_cards);
                     hidden_cards &= hidden_cards.wrapping_sub(1);
                 }
             }

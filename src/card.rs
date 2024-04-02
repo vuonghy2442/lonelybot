@@ -75,11 +75,11 @@ impl Card {
         let v = self.value();
         1u64 << (v ^ ((v >> 1) & 2))
     }
-}
 
-#[must_use]
-pub const fn from_mask(v: &u64) -> Card {
-    let v = v.trailing_zeros() as u8;
-    let v = v ^ ((v >> 1) & 2);
-    Card::new(v / N_SUITS, v % N_SUITS)
+    #[must_use]
+    pub const fn from_mask(v: &u64) -> Self {
+        let v = v.trailing_zeros() as u8;
+        let v = v ^ ((v >> 1) & 2);
+        Self::from_value(v)
+    }
 }
