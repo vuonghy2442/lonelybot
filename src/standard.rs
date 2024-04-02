@@ -87,6 +87,7 @@ impl StandardSolitaire {
         &self.hidden_piles
     }
 
+    #[must_use]
     pub fn find_deck_card(&self, c: &Card) -> Option<u8> {
         for i in 0..N_FULL_DECK as u8 {
             let offset = self.deck.offset(i);
@@ -113,6 +114,7 @@ impl StandardSolitaire {
             .map(|pos| pos as u8)
     }
 
+    #[must_use]
     pub fn find_card_pile(&self, pos: u8, c: &Card) -> Option<usize> {
         self.piles[pos as usize].iter().position(|cc| *c == *cc)
     }
@@ -128,11 +130,11 @@ impl StandardSolitaire {
         None
     }
 
+    #[must_use]
     pub fn validate_move(&self, m: &StandardMove) -> bool {
         match *m {
             (Pos::Deck, Pos::Deck, Card::FAKE) => true,
-            (_, Pos::Deck, _) => false,
-            (Pos::Stack(_), Pos::Stack(_), _) => false,
+            (_, Pos::Deck, _) | (Pos::Stack(_), Pos::Stack(_), _) => false,
 
             (Pos::Deck, Pos::Pile(pos), c) => {
                 pos < N_PILES
@@ -182,15 +184,17 @@ impl StandardSolitaire {
     // this will execute the move the move
     // this should never panic
     // if the move is illegal then it won't do anything (the game state will be preserved)
-    pub fn do_move(&mut self, m: &StandardMove) -> bool {
+    pub fn do_move(&mut self, m: &StandardMove) -> Result<(), ()> {
         if !self.validate_move(m) {
-            return false;
+            return Err(());
         }
         match *m {
             (Pos::Deck, Pos::Deck, _) => {
                 self.deck.deal_once();
             }
-            (_, Pos::Deck, _) => {}
+            (_, Pos::Deck, _) | (Pos::Stack(_), Pos::Stack(_), _) => {
+                unreachable!()
+            }
 
             (Pos::Deck, Pos::Pile(pos), c) => {
                 self.deck.draw_current().unwrap();
@@ -227,9 +231,7 @@ impl StandardSolitaire {
                 self.final_stack[from as usize] -= 1;
                 self.piles[to as usize].push(c);
             }
-
-            (Pos::Stack(_), Pos::Stack(_), _) => {}
         };
-        true
+        Ok(())
     }
 }

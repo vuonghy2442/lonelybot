@@ -16,69 +16,84 @@ impl From<&Solitaire> for StandardSolitaire {
 
 // making it never panic :(
 // this will convert and execute the move
-pub fn convert_move(game: &StandardSolitaire, m: &Move, move_seq: &mut StandardHistoryVec) {
+
+pub fn convert_move(
+    game: &StandardSolitaire,
+    m: &Move,
+    move_seq: &mut StandardHistoryVec,
+) -> Result<(), ()> {
     match m {
         Move::DeckPile(c) => {
-            let cnt = game.find_deck_card(c).unwrap();
+            let cnt = game.find_deck_card(c).ok_or(())?;
             for _ in 0..cnt {
                 move_seq.push(DRAW_NEXT);
             }
-            // assert_eq!(game.get_deck().peek_last(), Some(c));
 
-            let pile = game.find_free_pile(c).unwrap();
+            let pile = game.find_free_pile(c).ok_or(())?;
             move_seq.push((Pos::Deck, Pos::Pile(pile), *c));
         }
         Move::DeckStack(c) => {
-            let cnt = game.find_deck_card(c).unwrap();
+            if c.rank() != game.final_stack[c.suit() as usize] {
+                return Err(());
+            }
+
+            let cnt = game.find_deck_card(c).ok_or(())?;
             for _ in 0..cnt {
                 move_seq.push(DRAW_NEXT);
             }
-            // assert_eq!(game.get_deck().peek_last(), Some(c));
 
-            assert!(c.rank() == game.final_stack[c.suit() as usize]);
             move_seq.push((Pos::Deck, Pos::Stack(c.suit()), *c));
         }
         Move::StackPile(c) => {
-            // assert!(c.rank() + 1 == game.final_stack[c.suit() as usize]);
-            let pile = game.find_free_pile(c).unwrap();
+            if c.rank() + 1 != game.final_stack[c.suit() as usize] {
+                return Err(());
+            }
+            let pile = game.find_free_pile(c).ok_or(())?;
             move_seq.push((Pos::Stack(c.suit()), Pos::Pile(pile), *c));
         }
         Move::Reveal(c) => {
-            let pile_from = game.find_top_card(c).unwrap();
-            let pile_to = game.find_free_pile(c).unwrap();
+            let pile_from = game.find_top_card(c).ok_or(())?;
+            let pile_to = game.find_free_pile(c).ok_or(())?;
 
-            assert!(pile_to != pile_from);
+            if pile_to == pile_from {
+                return Err(());
+            };
 
             move_seq.push((Pos::Pile(pile_from), Pos::Pile(pile_to), *c));
         }
         Move::PileStack(c) => {
-            assert!(c.rank() == game.final_stack[c.suit() as usize]);
-            let (pile, pos) = game.find_card(c).unwrap();
+            if c.rank() != game.final_stack[c.suit() as usize] {
+                return Err(());
+            }
+            let (pile, pos) = game.find_card(c).ok_or(())?;
             if pos + 1 < game.piles[pile as usize].len() {
                 let move_card = game.piles[pile as usize][pos + 1];
-                let pile_other = game.find_free_pile(&move_card).unwrap();
+                let pile_other = game.find_free_pile(&move_card).ok_or(())?;
 
-                // assert!(pile != pile_other);
+                if pile == pile_other {
+                    return Err(());
+                }
 
                 move_seq.push((Pos::Pile(pile), Pos::Pile(pile_other), move_card));
             }
             move_seq.push((Pos::Pile(pile), Pos::Stack(c.suit()), *c));
         }
     }
+    Ok(())
 }
 
 // this will convert and execute the moves
-pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> StandardHistoryVec {
+pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> Result<StandardHistoryVec, ()> {
     let mut move_seq = StandardHistoryVec::new();
     for mm in m {
         let start = move_seq.len();
-        convert_move(game, mm, &mut move_seq);
+        convert_move(game, mm, &mut move_seq)?;
 
-        for m in move_seq[start..].iter() {
-            assert!(game.do_move(m));
+        for m in &move_seq[start..] {
+            debug_assert!(game.do_move(m).is_ok());
         }
     }
-    move_seq
+    Ok(move_seq)
 }
 
 #[cfg(test)]
@@ -114,9 +129,9 @@ mod tests {
         let mut game_x: Solitaire = From::from(&game);
         for pos in 0..moves.len() {
             his.clear();
-            convert_move(&mut game, &moves[pos], &mut his);
+            convert_move(&mut game, &moves[pos], &mut his).unwrap();
             for m in &his {
-                assert!(game.do_move(m));
+                assert!(game.do_move(m).is_ok());
             }
 
             game_x.do_move(&moves[pos]);
@@ -131,7 +146,7 @@ mod tests {
             for m in moves[pos + 1..].iter() {
                 game_c.do_move(m);
             }
-            convert_moves(&mut game_cc, &moves[pos + 1..]);
+            convert_moves(&mut game_cc, &moves[pos + 1..]).unwrap();
             assert!(game_c.is_win());
             assert!(game_cc.is_win());
         }

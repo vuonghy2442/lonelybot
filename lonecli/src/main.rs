@@ -208,7 +208,7 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
         SearchResult::Solved => {
             let m = res.2.unwrap();
             println!("Solvable in {} moves", m.len());
-            let moves = convert_moves(&mut g_standard, &m[..]);
+            let moves = convert_moves(&mut g_standard, &m[..]).unwrap();
             for x in m {
                 print!("{x}, ");
             }

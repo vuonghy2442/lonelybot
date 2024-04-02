@@ -209,14 +209,14 @@ impl Solitaire {
 
     #[must_use]
     pub fn get_deck_mask<const DOMINANCE: bool>(&self) -> (u64, bool) {
-        let filter = DOMINANCE
-            && self.deck.peek_last().is_some_and(|&x| {
-                let (rank, suit) = x.split();
-                self.stackable(rank, suit) && self.stack_dominance(rank, suit)
-            });
+        let Some(last_card) = self.deck.peek_last() else {
+            return (0, false);
+        };
+
+        let filter = DOMINANCE & self.stackable(last_card) && self.stack_dominance(last_card);
 
         if filter && self.deck.is_pure() {
-            return (self.deck.peek_last().unwrap().mask(), true);
+            return (last_card.mask(), true);
         }
 
         let mut mask = 0;
@@ -521,14 +521,15 @@ impl Solitaire {
     }
 
     #[must_use]
-    const fn stackable(&self, rank: u8, suit: u8) -> bool {
-        self.final_stack[suit as usize] == rank && rank < N_RANKS
+    const fn stackable(&self, card: &Card) -> bool {
+        self.final_stack[card.suit() as usize] == card.rank()
     }
 
     #[must_use]
-    const fn stack_dominance(&self, rank: u8, suit: u8) -> bool {
+    const fn stack_dominance(&self, card: &Card) -> bool {
         let stack = &self.final_stack;
-        let suit = suit as usize;
+        let rank = card.rank();
+        let suit = card.suit() as usize;
         // allowing worrying back :)
         rank <= stack[suit ^ 2] + 1
             && rank <= stack[suit ^ 2 ^ 1] + 1
