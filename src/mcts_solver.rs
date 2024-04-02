@@ -91,12 +91,12 @@ impl TraverseCallback for ListStatesCallback {
     fn on_finish(&mut self, _: &TraverseResult) {}
 }
 
-pub fn mcts_moves_game(
+pub fn mcts_moves_game<R: RngCore, T: SearchSignal>(
     g: &mut Solitaire,
-    rng: &mut impl RngCore,
+    rng: &mut R,
     n_times: usize,
     limit: usize,
-    sign: &impl SearchSignal,
+    sign: &T,
 ) -> Option<Vec<Move>> {
     const BATCH_SIZE: usize = 10;
     const C: f64 = 0.5;

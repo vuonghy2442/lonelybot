@@ -92,10 +92,10 @@ impl<'a, S: SearchStatistics, T: SearchSignal> TraverseCallback for BuilderCallb
     }
 }
 
-pub fn graph_game_with_tracking(
+pub fn graph_game_with_tracking<S: SearchStatistics, T: SearchSignal>(
     g: &mut Solitaire,
-    stats: &impl SearchStatistics,
-    sign: &impl SearchSignal,
+    stats: &S,
+    sign: &T,
 ) -> (TraverseResult, Graph) {
     let mut tp = TpTable::default();
     let mut callback = BuilderCallback {

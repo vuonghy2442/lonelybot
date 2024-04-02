@@ -187,7 +187,7 @@ impl Hidden {
         self.update_map();
     }
 
-    pub fn shuffle(&mut self, rng: &mut impl RngCore) {
+    pub fn shuffle<R: RngCore>(&mut self, rng: &mut R) {
         let mut all_stuff = ArrayVec::<Card, { N_HIDDEN_CARDS as usize }>::new();
         for pos in 0..N_PILES {
             if let Some((_, pile_map)) = self.get(pos).split_last() {

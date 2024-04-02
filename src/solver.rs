@@ -64,10 +64,10 @@ impl<'a, S: SearchStatistics, T: SearchSignal> TraverseCallback for SolverCallba
     }
 }
 
-pub fn solve_game_with_tracking(
+pub fn solve_game_with_tracking<S: SearchStatistics, T: SearchSignal>(
     g: &mut Solitaire,
-    stats: &impl SearchStatistics,
-    sign: &impl SearchSignal,
+    stats: &S,
+    sign: &T,
 ) -> (SearchResult, Option<HistoryVec>) {
     let mut tp = TpTable::default();
 

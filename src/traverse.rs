@@ -18,12 +18,12 @@ pub enum TraverseResult {
 }
 
 pub trait TraverseCallback {
-    fn on_win(&mut self, g: &Solitaire, rev_move: &Option<Move>) -> TraverseResult;
+    fn on_win(&mut self, game: &Solitaire, rev_move: &Option<Move>) -> TraverseResult;
 
-    fn on_visit(&mut self, g: &Solitaire, encode: Encode) -> TraverseResult;
-    fn on_move_gen(&mut self, m: &MoveVec, encode: Encode);
+    fn on_visit(&mut self, game: &Solitaire, encode: Encode) -> TraverseResult;
+    fn on_move_gen(&mut self, move_list: &MoveVec, encode: Encode);
 
-    fn on_do_move(&mut self, g: &Solitaire, m: &Move, encode: Encode, rev_move: &Option<Move>);
+    fn on_do_move(&mut self, game: &Solitaire, m: &Move, encode: Encode, rev_move: &Option<Move>);
     fn on_undo_move(&mut self, m: &Move, encode: Encode);
 
     fn on_start(&mut self);
@@ -31,20 +31,19 @@ pub trait TraverseCallback {
 }
 
 // it guarantee to return the state of g back into normal state
-fn traverse(
-    g: &mut Solitaire,
+fn traverse<T: TranspositionTable, C: TraverseCallback>(
+    game: &mut Solitaire,
     rev_move: Option<Move>,
-    tp: &mut impl TranspositionTable,
-
-    callback: &mut impl TraverseCallback,
+    tp: &mut T,
+    callback: &mut C,
 ) -> TraverseResult {
-    if g.is_win() {
-        return callback.on_win(g, &rev_move);
+    if game.is_win() {
+        return callback.on_win(game, &rev_move);
     }
 
-    let encode = g.encode();
+    let encode = game.encode();
 
-    match callback.on_visit(g, encode) {
+    match callback.on_visit(game, encode) {
         TraverseResult::Halted => return TraverseResult::Halted,
         TraverseResult::Skip => return TraverseResult::Skip,
         TraverseResult::Ok => {}
@@ -54,21 +53,21 @@ fn traverse(
         return TraverseResult::Ok;
     }
 
-    let move_list = g.list_moves::<true>();
+    let move_list = game.list_moves::<true>();
     callback.on_move_gen(&move_list, encode);
 
     for m in move_list {
         if Some(m) == rev_move {
             continue;
         }
-        let rev_move = g.get_rev_move(&m);
+        let rev_move = game.get_rev_move(&m);
 
-        callback.on_do_move(g, &m, encode, &rev_move);
-        let undo = g.do_move(&m);
+        callback.on_do_move(game, &m, encode, &rev_move);
+        let undo = game.do_move(&m);
 
-        let res = traverse(g, rev_move, tp, callback);
+        let res = traverse(game, rev_move, tp, callback);
 
-        g.undo_move(&m, &undo);
+        game.undo_move(&m, &undo);
         callback.on_undo_move(&m, encode);
 
         if res == TraverseResult::Halted {
@@ -79,7 +78,7 @@ fn traverse(
 }
 
 pub type TpTable = HashSet<Encode, nohash_hasher::BuildNoHashHasher<Encode>>;
-impl crate::traverse::TranspositionTable for TpTable {
+impl TranspositionTable for TpTable {
     fn clear(&mut self) {
         self.clear();
     }
@@ -88,14 +87,14 @@ impl crate::traverse::TranspositionTable for TpTable {
     }
 }
 
-pub fn traverse_game(
-    g: &mut Solitaire,
-    tp: &mut impl TranspositionTable,
-    callback: &mut impl TraverseCallback,
+pub fn traverse_game<T: TranspositionTable, C: TraverseCallback>(
+    game: &mut Solitaire,
+    tp: &mut T,
+    callback: &mut C,
     rev_move: Option<Move>,
 ) -> TraverseResult {
     callback.on_start();
-    let res = traverse(g, rev_move, tp, callback);
+    let res = traverse(game, rev_move, tp, callback);
     callback.on_finish(&res);
     res
 }

@@ -83,9 +83,9 @@ fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> ControlFlow<T>) ->
     ControlFlow::Continue(())
 }
 
-pub fn iter_moves<T>(
+pub fn iter_moves<T, F: FnMut(Move) -> ControlFlow<T>>(
     moves: [u64; 5],
-    mut func: impl FnMut(Move) -> ControlFlow<T>,
+    mut func: F,
 ) -> ControlFlow<T> {
     // the only case a card can be in two different moves
     // deck_to_stack/deck_to_pile (maximum duplicate N_SUITS cards)

@@ -1,6 +1,6 @@
 use crate::{
     engine::{Move, Solitaire},
-    standard::{Pos, StandardHistoryVec, StandardSolitaire, DRAW_NEXT},
+    standard::{InvalidMove, MoveResult, Pos, StandardHistoryVec, StandardSolitaire, DRAW_NEXT},
 };
 
 impl From<&Solitaire> for StandardSolitaire {
@@ -21,23 +21,23 @@ pub fn convert_move(
     game: &StandardSolitaire,
     m: &Move,
     move_seq: &mut StandardHistoryVec,
-) -> Result<(), ()> {
+) -> MoveResult<()> {
     match m {
         Move::DeckPile(c) => {
-            let cnt = game.find_deck_card(c).ok_or(())?;
+            let cnt = game.find_deck_card(c).ok_or(InvalidMove {})?;
             for _ in 0..cnt {
                 move_seq.push(DRAW_NEXT);
             }
 
-            let pile = game.find_free_pile(c).ok_or(())?;
+            let pile = game.find_free_pile(c).ok_or(InvalidMove {})?;
             move_seq.push((Pos::Deck, Pos::Pile(pile), *c));
         }
         Move::DeckStack(c) => {
             if c.rank() != game.final_stack[c.suit() as usize] {
-                return Err(());
+                return Err(InvalidMove {});
             }
 
-            let cnt = game.find_deck_card(c).ok_or(())?;
+            let cnt = game.find_deck_card(c).ok_or(InvalidMove {})?;
             for _ in 0..cnt {
                 move_seq.push(DRAW_NEXT);
             }
@@ -46,32 +46,32 @@ pub fn convert_move(
         }
         Move::StackPile(c) => {
             if c.rank() + 1 != game.final_stack[c.suit() as usize] {
-                return Err(());
+                return Err(InvalidMove {});
             }
-            let pile = game.find_free_pile(c).ok_or(())?;
+            let pile = game.find_free_pile(c).ok_or(InvalidMove {})?;
             move_seq.push((Pos::Stack(c.suit()), Pos::Pile(pile), *c));
         }
         Move::Reveal(c) => {
-            let pile_from = game.find_top_card(c).ok_or(())?;
-            let pile_to = game.find_free_pile(c).ok_or(())?;
+            let pile_from = game.find_top_card(c).ok_or(InvalidMove {})?;
+            let pile_to = game.find_free_pile(c).ok_or(InvalidMove {})?;
 
             if pile_to == pile_from {
-                return Err(());
+                return Err(InvalidMove {});
             };
 
             move_seq.push((Pos::Pile(pile_from), Pos::Pile(pile_to), *c));
         }
         Move::PileStack(c) => {
             if c.rank() != game.final_stack[c.suit() as usize] {
-                return Err(());
+                return Err(InvalidMove {});
             }
-            let (pile, pos) = game.find_card(c).ok_or(())?;
+            let (pile, pos) = game.find_card(c).ok_or(InvalidMove {})?;
             if pos + 1 < game.piles[pile as usize].len() {
                 let move_card = game.piles[pile as usize][pos + 1];
-                let pile_other = game.find_free_pile(&move_card).ok_or(())?;
+                let pile_other = game.find_free_pile(&move_card).ok_or(InvalidMove {})?;
 
                 if pile == pile_other {
-                    return Err(());
+                    return Err(InvalidMove {});
                 }
 
                 move_seq.push((Pos::Pile(pile), Pos::Pile(pile_other), move_card));
@@ -83,7 +83,7 @@ pub fn convert_move(
 }
 
 // this will convert and execute the moves
-pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> Result<StandardHistoryVec, ()> {
+pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> MoveResult<StandardHistoryVec> {
     let mut move_seq = StandardHistoryVec::new();
     for mm in m {
         let start = move_seq.len();

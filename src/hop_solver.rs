@@ -53,13 +53,13 @@ impl<'a, T: SearchSignal> TraverseCallback for HOPSolverCallback<'a, T> {
     }
 }
 
-pub fn hop_solve_game(
+pub fn hop_solve_game<R: RngCore, T: SearchSignal>(
     g: &Solitaire,
     m: &Move,
-    rng: &mut impl RngCore,
+    rng: &mut R,
     n_times: usize,
     limit: usize,
-    sign: &impl SearchSignal,
+    sign: &T,
     rev_move: Option<Move>,
 ) -> (usize, usize, usize) {
     let mut total_wins = 0;
@@ -161,12 +161,12 @@ impl<'a, R: RngCore, S: SearchSignal> TraverseCallback for RevStatesCallback<'a,
     fn on_finish(&mut self, _: &TraverseResult) {}
 }
 
-pub fn hop_moves_game(
+pub fn hop_moves_game<R: RngCore, T: SearchSignal>(
     g: &mut Solitaire,
-    rng: &mut impl RngCore,
+    rng: &mut R,
     n_times: usize,
     limit: usize,
-    sign: &impl SearchSignal,
+    sign: &T,
 ) -> Vec<(Vec<Move>, (usize, usize, usize))> {
     let mut callback = RevStatesCallback {
         his: Vec::default(),

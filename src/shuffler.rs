@@ -199,7 +199,7 @@ pub fn greenfelt_shuffle(seed: u32) -> CardDeck {
     new_cards
 }
 
-pub fn uniform_int(a: u32, b: u32, rng: &mut impl RngCore) -> u32 {
+pub fn uniform_int<R: RngCore>(a: u32, b: u32, rng: &mut R) -> u32 {
     const B_RANGE: u32 = u32::MAX;
 
     let range = b - a;

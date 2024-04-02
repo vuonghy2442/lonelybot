@@ -170,10 +170,10 @@ impl Deck {
         }
     }
 
-    pub fn iter_callback<T>(
+    pub fn iter_callback<T, F: FnMut(u8, &Card) -> ControlFlow<T>>(
         &self,
         filter: bool,
-        mut func: impl FnMut(u8, &Card) -> ControlFlow<T>,
+        mut func: F,
     ) -> ControlFlow<T> {
         if self.draw_cur > 0 {
             func(self.draw_cur - 1, &self.deck[self.draw_cur as usize - 1])?;
@@ -414,7 +414,7 @@ mod tests {
                 }
 
                 for filter in [false, true] {
-                    deck.iter_callback::<()>(filter, |pos, card| {
+                    deck.iter_callback(filter, |pos, card| {
                         assert_eq!(deck.peek(pos), card);
                         ControlFlow::<()>::Continue(())
                     });
