@@ -38,6 +38,7 @@ class Card {
 
         this.deleteDom = () => {
             if (this.element === null) return;
+            this.animating = false;
             this.element.remove();
             this.element = null;
         };
@@ -152,7 +153,7 @@ class Card {
         };
 
         this.goBefore = (card) => {
-            return this.rank == card.rank + 1 && ((this.suit ^ card.suit) & 2 == 2 || this.rank == N_RANKS);
+            return this.rank == card.rank + 1 && (((this.suit ^ card.suit) & 2) === 2 || this.rank === N_RANKS);
         };
     }
 }
@@ -193,9 +194,13 @@ const Pos = {
 
 class Solitaire {
     constructor(cards, draw_step) {
-        this.hidden_cards = cards.slice(0, N_HIDDEN_CARDS);
+        const hidden_cards = cards.slice(0, N_HIDDEN_CARDS);
         this.piles = Array.from(Array(N_PILES), (_, i) => {
-            return [this.hidden_cards[(i + 2) * (i + 1) / 2 - 1]];
+            return [hidden_cards[(i + 2) * (i + 1) / 2 - 1]];
+        });
+
+        this.hidden_piles = Array.from(Array(N_PILES), (_, i) => {
+            return hidden_cards.slice((i + 1) * i / 2, (i + 2) * (i + 1) / 2 - 1);
         });
 
         this.deck = new Deck(cards.slice(N_HIDDEN_CARDS, N_CARDS), draw_step);
@@ -290,22 +295,39 @@ function initGame() {
     }
 
     const pilePos = function () {
-        let pos = new Array();
+        let pos_stack = new Array();
+        let pos_tableau = new Array();
         // not correct but whatever =))
-        pos.push(getDOMPos(document.querySelector("#deal")));
+        pos_stack.push(getDOMPos(document.querySelector("#deal")));
 
         for (let s of document.querySelectorAll("#stack > div")) {
-            pos.push(getDOMPos(s));
+            pos_stack.push(getDOMPos(s));
+        }
+
+        for (let s of document.querySelectorAll("#tableau > div")) {
+            pos_tableau.push(getDOMPos(s));
         }
 
         for (let i = 0; i < N_PILES; ++i) {
-            pos.push([1, 1]);
+            let hidden = game.hidden_piles[i];
+            const pos = pos_tableau[i];
+            for (let j = 0; j < hidden.length; ++j) {
+                hidden[j].flipCard();
+                hidden[j].draggable = false;
+                hidden[j].createDOM(pos[0] * 100, pos[1] * 100 + 2 * j);
+            }
+            let visible = game.piles[i];
+            for (let j = 0; j < visible.length; ++j) {
+                visible[j].draggable = j + 1 == visible.length;
+                visible[j].createDOM(pos[0] * 100, pos[1] * 100 + 2 * hidden.length + j * 3);
+            }
         }
 
-        return pos;
+        return () => [...pos_stack, ...pos_tableau.map((p, i) =>
+            [p[0], p[1] + 0.02 * game.hidden_piles[i].length + 0.03 * game.piles[i].length]
+        )];
     }();
-
-    console.log(pilePos);
+    console.log(pilePos())
 
     window.addEventListener('resize', (_) => {
         gameBoxBound = gameBox.getBoundingClientRect();
@@ -327,9 +349,9 @@ function initGame() {
         let changed = false;
         let snapped = -1;
 
-        function distance2(x, y, p) {
-            let [u, v] = pilePos[p];
+        let curPilePos = pilePos();
 
+        function distance2(x, y, u, v) {
             const [dx, dy] = [x - u, y - v];
             return dx * dx + dy * dy;
         }
@@ -337,7 +359,7 @@ function initGame() {
         function findNear(x, y) {
             if (snapped >= 0) return snapped;
             for (let p of dropPos) {
-                if (distance2(x, y, p) < THRES_2) {
+                if (distance2(x, y, ...curPilePos[p]) < THRES_2) {
                     return p;
                 }
             }
@@ -353,9 +375,9 @@ function initGame() {
             let p = findNear(x, y);
 
             if (p >= 0) {
-                let [u, v] = pilePos[p];
+                let [u, v] = curPilePos[p];
                 const [dx, dy] = [x - u, y - v];
-                let dis2 = distance2(x, y, p);
+                let dis2 = distance2(x, y, u, v);
                 let d = Math.max(Math.sqrt(dis2) / THRES - 1, 0);
 
                 if (d == 0 && snapped < 0) {
@@ -386,6 +408,11 @@ function initGame() {
                 if (card.rank >= 2) {
                     cardArray[cardId(card.rank - 2, card.suit)].deleteDom();
                 }
+
+                if (card.rank > 0) {
+                    cardArray[cardId(card.rank - 1, card.suit)].draggable = false;
+                }
+
                 cards.pop();
                 game.make_move(card, snapped);
 

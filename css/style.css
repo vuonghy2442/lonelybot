@@ -208,7 +208,7 @@ html {
     display: flex;
     position: absolute;
     height: 20%;
-    left: 40%;
+    left: 45.5%;
     right: 2.5%;
     top: 2.5%;
     justify-content: space-between;
@@ -223,5 +223,27 @@ html {
     border-style: solid;
     border-width: 5px;
     border-color: #631;
+
+}
+
+#tableau {
+    display: flex;
+    position: absolute;
+    justify-content: space-between;
+    height: 20%;
+    left: 2.5%;
+    right: 2.5%;
+}
+
+#tableau>div {
+    margin-top: 2.5%;
+    height: 100%;
+    aspect-ratio: 2.5/3.5;
+    background-color: #0012;
+    border-radius: 10%/calc(10% * 2.5/3.5);
+
+    border-style: solid;
+    border-width: 2px;
+    border-color: #F75;
 
 }
