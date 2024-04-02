@@ -175,38 +175,35 @@ impl Deck {
         filter: bool,
         mut func: impl FnMut(u8, &Card) -> ControlFlow<T>,
     ) -> ControlFlow<T> {
-        if !filter {
-            let mut i = self.draw_step - 1;
-            while i + 1 < self.draw_cur {
-                func(i, &self.deck[i as usize])?;
-                i += self.draw_step;
-            }
-        }
-
         if self.draw_cur > 0 {
             func(self.draw_cur - 1, &self.deck[self.draw_cur as usize - 1])?;
         }
 
         let gap = self.draw_next - self.draw_cur;
-
-        if self.draw_next < N_FULL_DECK as u8 {
-            func(N_FULL_DECK as u8 - 1 - gap, &self.deck[N_FULL_DECK - 1])?;
-        }
-
         {
             let mut i = self.draw_next + self.draw_step - 1;
-            while i + 1 < N_FULL_DECK as u8 {
+            while i < (N_FULL_DECK - 1) as u8 {
                 func(i - gap, &self.deck[i as usize])?;
                 i += self.draw_step;
             }
         }
 
-        {
+        if self.draw_next < N_FULL_DECK as u8 {
+            func(N_FULL_DECK as u8 - 1 - gap, &self.deck[N_FULL_DECK - 1])?;
+        }
+
+        if !filter {
+            let mut i = self.draw_step - 1;
+            while i < self.draw_cur.saturating_sub(1) {
+                func(i, &self.deck[i as usize])?;
+                i += self.draw_step;
+            }
+
             let offset = self.draw_cur % self.draw_step;
-            if !filter && offset != 0 {
+            if offset != 0 {
                 let mut i = self.draw_next + self.draw_step - 1 - offset;
 
-                while i + 1 < N_FULL_DECK as u8 {
+                while i < (N_FULL_DECK - 1) as u8 {
                     func(i - gap, &self.deck[i as usize])?;
                     i += self.draw_step;
                 }
