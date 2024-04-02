@@ -22,6 +22,7 @@ There are 5 seed types
 - ``greenfelt``: re-implementation of [Greenfelt](https://greenfelt.net/) based on [Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike) source code
 - ``exact``: converting a 256-bit integer (< 52!) to exact corresponding 52-card permutation
 
+To input your own game, you can use `convert.py` in `script`, to convert the Solvitaire json format into an exact seed, which then you can input into `lonecli`. Currently it only support convert the initial state of the game.
 
 ## Run methods
 This solver has a few modes
@@ -159,11 +160,11 @@ Miss state: 113
 Max depth search: 91
 Current progress: 0/1 0/5 0/1 0/5 0/4 0/4 0/4 0/3
 Solvable in 92 moves
-PS A♦, R 5♠, PS A♠, ....   
+PS A♦, R 5♠, PS A♠, ....
 Pile(4) Stack(1) A♦, Pile(6) Pile(5) 5♠, ....
 ```
 
-There are two type of solution notation: 
+There are two type of solution notation:
 - The first line is the specialized notation (explained bellow)
 - The second line is the standardized notation with the format as a tuple of source position, destination position, moving card.
 
@@ -263,9 +264,9 @@ lonecli hop default 0
 
 Example output
 ```
-DP J♥, 
-DP 2♦, 
-DS A♠,  
+DP J♥,
+DP 2♦,
+DS A♠,
 ...
 Solved
 ```
