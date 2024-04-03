@@ -85,4 +85,9 @@ impl Stack {
     pub fn len(&self) -> u8 {
         self.0.iter().sum::<u8>()
     }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0 == [0; N_SUITS as usize]
+    }
 }

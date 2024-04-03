@@ -1,7 +1,7 @@
 use core::time::Duration;
 use lonelybot::{
     engine::Solitaire,
-    graph::{graph_game_with_tracking, Graph},
+    graph::{graph_with_tracking, Graph},
     solver::{solve_with_tracking, HistoryVec, SearchResult},
     tracking::SearchSignal,
     traverse::ControlFlow,
@@ -96,7 +96,7 @@ pub fn run_graph(
         thread::Builder::new()
             .stack_size(STACK_SIZE)
             .spawn(move || {
-                graph_game_with_tracking(
+                graph_with_tracking(
                     &mut g,
                     ss_clone.as_ref(),
                     &Signal {

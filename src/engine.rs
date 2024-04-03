@@ -210,7 +210,7 @@ impl Solitaire {
         let bm = self.get_bottom_mask();
 
         let sm = self.final_stack.mask();
-        let dsm = if DOMINANCE {
+        let dom_sm = if DOMINANCE {
             self.final_stack.dominance_mask()
         } else {
             0
@@ -218,7 +218,7 @@ impl Solitaire {
 
         // moving pile to stack can result in revealing the hidden card
         let pile_stack = bm & vis & sm; // remove mask
-        let pile_stack_dom = pile_stack & dsm;
+        let pile_stack_dom = pile_stack & dom_sm;
 
         if pile_stack_dom != 0 {
             // if there is some card that is guarantee to be fine to stack do it
@@ -249,8 +249,8 @@ impl Solitaire {
             (bm >> 4) | king_mask
         };
 
-        // compute which card can be move to pile from stack (without being immediately move back ``!dsm``)
-        let stack_pile = swap_pair(sm >> 4) & free_slot & !dsm;
+        // compute which card can be move to pile from stack (without being immediately move back ``!dom_sm``)
+        let stack_pile = swap_pair(sm >> 4) & free_slot & !dom_sm;
 
         // moving directly from deck to stack
         let deck_stack = deck_mask & sm;
@@ -321,8 +321,8 @@ impl Solitaire {
             }
         };
 
-        // moving from deck to pile without immediately to to stack ``!(dsm & sm)``
-        let deck_pile = deck_mask & free_slot & !(dsm & sm);
+        // moving from deck to pile without immediately to to stack ``!(dom_sm & sm)``
+        let deck_pile = deck_mask & free_slot & !(dom_sm & sm);
 
         // revealing a card by moving the top card to another pile (not to stack)
         let reveal = top & free_slot;
@@ -677,7 +677,7 @@ mod tests {
     fn test_draw_unrolling() {
         let mut rng = StdRng::seed_from_u64(14);
 
-        let mut test = ArrayVec::<(u8, Card), N_FULL_DECK>::new();
+        let mut test = ArrayVec::<(u8, Card), { N_FULL_DECK as usize }>::new();
         for i in 0..100 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
@@ -694,7 +694,7 @@ mod tests {
                     .iter_all()
                     .filter(|x| !matches!(x.2, Drawable::None))
                     .map(|x| (x.0, *x.1))
-                    .collect::<ArrayVec<(u8, Card), N_FULL_DECK>>();
+                    .collect::<ArrayVec<(u8, Card), { N_FULL_DECK as usize }>>();
 
                 test.clear();
                 game.deck.iter_callback(false, |pos, x| {
@@ -738,7 +738,7 @@ mod tests {
 
                 assert_eq!(game.encode(), state);
 
-                let ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =
+                let ids: ArrayVec<(u8, Card, Drawable), { N_FULL_DECK as usize }> =
                     game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 
                 let m = moves.choose(&mut rng).unwrap();
@@ -746,7 +746,7 @@ mod tests {
                 let next_state = game.encode();
                 assert_ne!(next_state, state);
                 game.undo_move(m, &undo);
-                let new_ids: ArrayVec<(u8, Card, Drawable), N_FULL_DECK> =
+                let new_ids: ArrayVec<(u8, Card, Drawable), { N_FULL_DECK as usize }> =
                     game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 
                 assert_eq!(ids, new_ids);

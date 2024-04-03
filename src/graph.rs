@@ -1,7 +1,7 @@
 use crate::{
     engine::{Encode, Move, Solitaire},
     tracking::{DefaultSearchSignal, EmptySearchStats, SearchSignal, SearchStatistics},
-    traverse::{traverse, TpTable, Callback, ControlFlow},
+    traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 
 extern crate alloc;
@@ -92,7 +92,7 @@ impl<'a, S: SearchStatistics, T: SearchSignal> Callback for BuilderCallback<'a, 
     }
 }
 
-pub fn graph_game_with_tracking<S: SearchStatistics, T: SearchSignal>(
+pub fn graph_with_tracking<S: SearchStatistics, T: SearchSignal>(
     g: &mut Solitaire,
     stats: &S,
     sign: &T,
@@ -112,6 +112,6 @@ pub fn graph_game_with_tracking<S: SearchStatistics, T: SearchSignal>(
     (finished, callback.graph)
 }
 
-pub fn graph_game(g: &mut Solitaire) -> (ControlFlow, Graph) {
-    graph_game_with_tracking(g, &EmptySearchStats {}, &DefaultSearchSignal {})
+pub fn graph(g: &mut Solitaire) -> (ControlFlow, Graph) {
+    graph_with_tracking(g, &EmptySearchStats {}, &DefaultSearchSignal {})
 }

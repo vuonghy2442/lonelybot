@@ -1,9 +1,7 @@
 use core::fmt;
 
-use arrayvec::ArrayVec;
-
 use crate::card::{Card, NUMBERS, N_RANKS, N_SUITS, SYMBOLS};
-use crate::deck::{N_FULL_DECK, N_PILES};
+use crate::deck::N_PILES;
 use crate::engine::Move;
 use crate::standard::StandardSolitaire;
 
@@ -78,16 +76,13 @@ impl fmt::Display for Solvitaire {
 
         write!(f, "],\"stock\": [")?;
 
-        let tmp: ArrayVec<Card, N_FULL_DECK> = self.0.get_deck().iter().copied().collect();
-
-        for (idx, c) in tmp.iter().enumerate().rev() {
-            write!(f, "{}", SolvitaireCard::<false>(*c))?;
-            if idx == 0 {
-                write!(f, "]")?;
-            } else {
+        for c in self.0.get_deck().iter().rev().enumerate() {
+            if c.0 > 0 {
                 write!(f, ",")?;
             }
+            write!(f, "{}", SolvitaireCard::<false>(*c.1))?;
         }
+        write!(f, "]")?;
 
         // foundation
         write!(f, ",\n\"foundation\": [")?;
