@@ -365,9 +365,13 @@ However, due to having a lot of specific optimizations that haven't been rigorou
 
 
 ### Thoughtful Klondike
-Run K-3081577 Solved: (2525379-0/3081578 ~ 0.8191<=0.8195<=0.8199) 17494106 8060467 85 in 15825.15 ms.
+Run with Solvitaire seed
+Run S-1071884 Solved: (878240-0/1071884 ~ 0.8186<=0.8193<=0.8201) 12711939 4517405 93 in 10356.75 ms.
 
-So this is the new state of the art result for solvability: 81.95 ± 0.04 (compared to the previous from Solvitaire 81.945 ± 0.084) at 95% confidence
+Run with Klondike Solver seed
+Run K-3544902 Solved: (2904790-0/3544903 ~ 0.8190<=0.8194<=0.8198) 5062 3001 93 in 4.44 ms.
+
+So this is the new state of the art result for solvability: 81.94 ± 0.04 (compared to the previous from Solvitaire 81.945 ± 0.084) at 95% confidence
 
 This result is computed on 1 cpu core for a few days. With more resources, it can be easily improved.
 

@@ -25,11 +25,11 @@ pub fn convert_move(
     match m {
         Move::DeckPile(c) => {
             let cnt = game.find_deck_card(c).ok_or(InvalidMove {})?;
+            let pile = game.find_free_pile(c).ok_or(InvalidMove {})?;
             for _ in 0..cnt {
                 move_seq.push(DRAW_NEXT);
             }
 
-            let pile = game.find_free_pile(c).ok_or(InvalidMove {})?;
             move_seq.push((Pos::Deck, Pos::Pile(pile), *c));
         }
         Move::DeckStack(c) => {
@@ -90,7 +90,8 @@ pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> MoveResult<Sta
         convert_move(game, mm, &mut move_seq)?;
 
         for m in &move_seq[start..] {
-            debug_assert!(game.do_move(m).is_ok());
+            let valid_move = game.do_move(m).is_ok();
+            debug_assert!(valid_move);
         }
     }
     Ok(move_seq)
