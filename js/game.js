@@ -327,7 +327,7 @@ function getCard(rank, suit) {
     return cardArray[cardId(rank, suit)];
 }
 
-const THRES = 0.06;
+const THRES = 0.1;
 const THRES_2 = THRES * THRES;
 
 var snap_audio = new Audio('sound/snap.mp3');
@@ -424,6 +424,7 @@ function initGame() {
             c.turnUp();
             c.draggable = false;
             c.createDOM(x * 100, y * 100);
+            cardArray[cardId(card.rank - 1, card.suit)].moveToFront();
         }
 
         if (card.rank > 0) {
@@ -454,9 +455,6 @@ function initGame() {
     })
 
     function moveCard(event, card) {
-        if (!card.isDraggable()) return;
-        snap_audio.play();
-
         const origin = game.find_origin(card);
 
         let moving_cards = [card];
@@ -466,6 +464,9 @@ function initGame() {
             let id = p.findIndex((c) => c.id() == card.id());
             moving_cards = p.slice(id);
         }
+
+        if (moving_cards.some((c) => !c.isDraggable())) return;
+        snap_audio.play();
 
         moving_cards.forEach((c) => c.moveToFront());
 
@@ -509,15 +510,15 @@ function initGame() {
                 let [u, v] = curPilePos[p];
                 const [dx, dy] = [x - u, y - v];
                 let dis2 = distance2(x, y, u, v);
-                let d = Math.max(Math.sqrt(dis2) / THRES - 1, 0);
+                let d = Math.max(Math.sqrt(dis2) / THRES - 0.5, 0);
 
-                if (d == 0 && snapped < 0) {
+                if (d < 0.5 && snapped < 0) {
                     snapped = p;
-                } else if (d > 0 && snapped >= 0) {
+                } else if (d > 0.5 && snapped >= 0) {
                     snapped = -1;
                 }
 
-                const force = d > 0 ? 0 : 1;
+                const force = d > 0 ? Math.exp(-d) : 1;
                 x -= dx * force;
                 y -= dy * force;
             }
