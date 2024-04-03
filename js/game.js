@@ -44,6 +44,11 @@ class Card {
             this.element = null;
         };
 
+        this.moveToFront = () => {
+            if (this.element === null) return;
+            gameBox.appendChild(this.element);
+        }
+
         this.createDOM = (pos_x, pos_y) => {
             if (this.element !== null) return;
             const c = document.createElement('div');
@@ -111,7 +116,7 @@ class Card {
             inner.classList.toggle("flipped");
         };
 
-        this.moveTo = (pos_x, pos_y, duration, zIndex) => {
+        this.moveTo = (pos_x, pos_y, duration) => {
             if (this.element === null) return;
 
             {
@@ -120,7 +125,6 @@ class Card {
 
                 // this to prevent transitionend not triggered
                 if (Math.abs(currentLeft - pos_x) < 1e-2 && Math.abs(currentTop - pos_y) < 1e-2) {
-                    this.element.style.zIndex = zIndex;
                     return;
                 }
             }
@@ -132,14 +136,8 @@ class Card {
                 this.element.addEventListener("transitionend", (e) => {
                     this.element.style.removeProperty('transition');
                     this.animating = false;
-                    if (zIndex !== null) {
-                        this.element.style.zIndex = zIndex;
-                    }
+
                 }, { once: true });
-            } else {
-                if (zIndex !== null) {
-                    this.element.style.zIndex = zIndex;
-                }
             }
 
             if (pos_x !== null)
@@ -397,7 +395,7 @@ function initGame() {
 
             c.flipCard();
             c.createDOM(2, 2.5);
-            c.element.style.zIndex = pos;
+            c.moveToFront();
 
             setTimeout(() => {
                 c.flipCard(300);
@@ -408,6 +406,8 @@ function initGame() {
     })
 
     game.on_push_stack.push((card) => {
+        card.moveToFront();
+
         if (card.rank >= 2) {
             cardArray[cardId(card.rank - 2, card.suit)].deleteDom();
         }
@@ -441,7 +441,7 @@ function initGame() {
             cards[0].createDOM(15, 2.5);
 
             for (let [pos, c] of cards.entries()) {
-                c.element.style.zIndex = pos;
+                c.moveToFront();
             }
         }
         cards[cards.length - 1].draggable = true;
@@ -455,10 +455,19 @@ function initGame() {
     function moveCard(event, card) {
         if (!card.isDraggable()) return;
         snap_audio.play();
-        const initialZIndex = card.element.style.zIndex;
-        card.element.style.zIndex = 100;
 
         const origin = game.find_origin(card);
+
+        let moving_cards = [card];
+
+        if (origin >= Pos.Pile) {
+            let p = game.piles[origin - Pos.Pile];
+            let id = p.findIndex((c) => c.id() == card.id());
+            moving_cards = p.slice(id);
+        }
+
+        moving_cards.forEach((c) => c.moveToFront());
+
 
         const dropPos = game.lift_card(card);
 
@@ -512,7 +521,7 @@ function initGame() {
                 y -= dy * force;
             }
 
-            card.moveTo(x * 100, y * 100, 0);
+            moving_cards.forEach((c, idx) => c.moveTo(x * 100, y * 100 + idx * 3, 0));
             changed = true;
         }
 
@@ -521,19 +530,9 @@ function initGame() {
 
             // Implement card snapping or other dragging behavior
             if (snapped < 0) {
-                card.moveTo(initialX * 100, initialY * 100, 300, initialZIndex);
+                moving_cards.forEach((c, idx) => c.moveTo(initialX * 100, initialY * 100 + idx * 3, 300 + 10 * idx));
             } else {
                 snap_audio.play();
-                card.element.style.zIndex = card.rank;
-
-                // if (origin == Pos.Deck) {
-
-                // } else if (origin < Pos.Pile) {
-
-                // } else {
-                //     // Piles
-                // }
-
                 game.make_move(card, origin, snapped);
             }
 
