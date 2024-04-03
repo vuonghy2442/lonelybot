@@ -2,9 +2,9 @@ use core::time::Duration;
 use lonelybot::{
     engine::Solitaire,
     graph::{graph_game_with_tracking, Graph},
-    solver::{solve_game_with_tracking, HistoryVec, SearchResult},
+    solver::{solve_with_tracking, HistoryVec, SearchResult},
     tracking::SearchSignal,
-    traverse::TraverseResult,
+    traverse::ControlFlow,
 };
 use std::{
     sync::{
@@ -54,7 +54,7 @@ pub fn run_solve(
         thread::Builder::new()
             .stack_size(STACK_SIZE)
             .spawn(move || {
-                solve_game_with_tracking(
+                solve_with_tracking(
                     &mut g,
                     ss_clone.as_ref(),
                     &Signal {
@@ -84,7 +84,7 @@ pub fn run_graph(
     mut g: Solitaire,
     verbose: bool,
     term_signal: &Arc<AtomicBool>,
-) -> (Option<(TraverseResult, Graph)>, AtomicSearchStats) {
+) -> (Option<(ControlFlow, Graph)>, AtomicSearchStats) {
     let ss = Arc::new(AtomicSearchStats::new());
 
     let (send, recv) = channel::<()>();

@@ -98,7 +98,7 @@ impl fmt::Display for Solvitaire {
             }
 
             write!(f, "[")?;
-            for rank in 0..self.0.final_stack[suit as usize] {
+            for rank in 0..self.0.final_stack.get(suit) {
                 if rank > 0 {
                     write!(f, ",")?;
                 }

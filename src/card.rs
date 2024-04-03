@@ -8,6 +8,16 @@ pub const NUMBERS: [&str; N_RANKS as usize] = [
     "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
 ];
 
+pub const SUIT_MASK: [u64; N_SUITS as usize] = [
+    0x4141_4141_4141_4141,
+    0x8282_8282_8282_8282,
+    0x1414_1414_1414_1414,
+    0x2828_2828_2828_2828,
+];
+
+pub const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card(u8);
 

@@ -1,7 +1,7 @@
 use crate::{
     engine::{Encode, Move, Solitaire},
     tracking::{DefaultSearchSignal, EmptySearchStats, SearchSignal, SearchStatistics},
-    traverse::{traverse_game, TpTable, TraverseCallback, TraverseResult},
+    traverse::{traverse, TpTable, Callback, ControlFlow},
 };
 
 extern crate alloc;
@@ -46,17 +46,17 @@ const fn get_edge_type(m: Move, rm: Option<Move>) -> EdgeType {
     }
 }
 
-impl<'a, S: SearchStatistics, T: SearchSignal> TraverseCallback for BuilderCallback<'a, S, T> {
-    fn on_win(&mut self, _: &Solitaire, rm: &Option<Move>) -> TraverseResult {
+impl<'a, S: SearchStatistics, T: SearchSignal> Callback for BuilderCallback<'a, S, T> {
+    fn on_win(&mut self, _: &Solitaire, rm: &Option<Move>) -> ControlFlow {
         // win state
         self.graph
             .push((self.prev_enc, !0, get_edge_type(self.last_move, *rm)));
-        TraverseResult::Ok
+        ControlFlow::Ok
     }
 
-    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> ControlFlow {
         if self.sign.is_terminated() {
-            return TraverseResult::Halted;
+            return ControlFlow::Halt;
         }
 
         self.stats.hit_a_state(self.depth);
@@ -66,7 +66,7 @@ impl<'a, S: SearchStatistics, T: SearchSignal> TraverseCallback for BuilderCallb
             get_edge_type(self.last_move, self.rev_move),
         ));
 
-        TraverseResult::Ok
+        ControlFlow::Ok
     }
 
     fn on_move_gen(&mut self, m: &crate::engine::MoveVec, _: Encode) {
@@ -87,7 +87,7 @@ impl<'a, S: SearchStatistics, T: SearchSignal> TraverseCallback for BuilderCallb
 
     fn on_start(&mut self) {}
 
-    fn on_finish(&mut self, _: &TraverseResult) {
+    fn on_finish(&mut self, _: &ControlFlow) {
         self.sign.search_finish();
     }
 }
@@ -96,7 +96,7 @@ pub fn graph_game_with_tracking<S: SearchStatistics, T: SearchSignal>(
     g: &mut Solitaire,
     stats: &S,
     sign: &T,
-) -> (TraverseResult, Graph) {
+) -> (ControlFlow, Graph) {
     let mut tp = TpTable::default();
     let mut callback = BuilderCallback {
         graph: Graph::new(),
@@ -108,10 +108,10 @@ pub fn graph_game_with_tracking<S: SearchStatistics, T: SearchSignal>(
         rev_move: None,
     };
 
-    let finished = traverse_game(g, &mut tp, &mut callback, None);
+    let finished = traverse(g, &mut tp, &mut callback, None);
     (finished, callback.graph)
 }
 
-pub fn graph_game(g: &mut Solitaire) -> (TraverseResult, Graph) {
+pub fn graph_game(g: &mut Solitaire) -> (ControlFlow, Graph) {
     graph_game_with_tracking(g, &EmptySearchStats {}, &DefaultSearchSignal {})
 }

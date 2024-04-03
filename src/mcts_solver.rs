@@ -4,7 +4,7 @@ use crate::{
     engine::{Encode, Move, Solitaire},
     hop_solver::hop_solve_game,
     tracking::SearchSignal,
-    traverse::{traverse_game, TpTable, TraverseCallback, TraverseResult},
+    traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 
 extern crate alloc;
@@ -17,20 +17,20 @@ struct FindStatesCallback {
     skipped: bool,
 }
 
-impl TraverseCallback for FindStatesCallback {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> TraverseResult {
+impl Callback for FindStatesCallback {
+    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
         self.found = true;
-        TraverseResult::Halted
+        ControlFlow::Halt
     }
 
-    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> ControlFlow {
         if self.state == e {
             self.found = true;
-            TraverseResult::Halted
+            ControlFlow::Halt
         } else if self.skipped {
-            TraverseResult::Skip
+            ControlFlow::Skip
         } else {
-            TraverseResult::Ok
+            ControlFlow::Ok
         }
     }
 
@@ -49,7 +49,7 @@ impl TraverseCallback for FindStatesCallback {
 
     fn on_start(&mut self) {}
 
-    fn on_finish(&mut self, _: &TraverseResult) {}
+    fn on_finish(&mut self, _: &ControlFlow) {}
 }
 
 struct ListStatesCallback {
@@ -57,18 +57,18 @@ struct ListStatesCallback {
     skipped: bool,
 }
 
-impl TraverseCallback for ListStatesCallback {
-    fn on_win(&mut self, g: &Solitaire, _: &Option<Move>) -> TraverseResult {
+impl Callback for ListStatesCallback {
+    fn on_win(&mut self, game: &Solitaire, _: &Option<Move>) -> ControlFlow {
         self.res.clear();
-        self.res.push((g.encode(), Move::FAKE));
-        TraverseResult::Halted
+        self.res.push((game.encode(), Move::FAKE));
+        ControlFlow::Halt
     }
 
-    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> ControlFlow {
         if self.skipped {
-            TraverseResult::Skip
+            ControlFlow::Skip
         } else {
-            TraverseResult::Ok
+            ControlFlow::Ok
         }
     }
 
@@ -88,11 +88,11 @@ impl TraverseCallback for ListStatesCallback {
 
     fn on_start(&mut self) {}
 
-    fn on_finish(&mut self, _: &TraverseResult) {}
+    fn on_finish(&mut self, _: &ControlFlow) {}
 }
 
-pub fn mcts_moves_game<R: RngCore, T: SearchSignal>(
-    g: &mut Solitaire,
+pub fn pick_moves<R: RngCore, T: SearchSignal>(
+    game: &mut Solitaire,
     rng: &mut R,
     n_times: usize,
     limit: usize,
@@ -107,10 +107,10 @@ pub fn mcts_moves_game<R: RngCore, T: SearchSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse_game(g, &mut tp, &mut callback, None);
+    traverse(game, &mut tp, &mut callback, None);
     let states = callback.res;
 
-    let mut org_g = g.clone();
+    let mut org_g = game.clone();
 
     let mut find_state = move |state: (Encode, Move)| {
         let mut callback = FindStatesCallback {
@@ -121,7 +121,7 @@ pub fn mcts_moves_game<R: RngCore, T: SearchSignal>(
         };
         tp.clear();
 
-        traverse_game(&mut org_g, &mut tp, &mut callback, None);
+        traverse(&mut org_g, &mut tp, &mut callback, None);
         if state.1 != Move::FAKE {
             callback.his.push(state.1);
         }
@@ -155,8 +155,8 @@ pub fn mcts_moves_game<R: RngCore, T: SearchSignal>(
         let state = &states[best];
 
         //test
-        g.decode(state.0);
-        let new_res = hop_solve_game(g, &state.1, rng, BATCH_SIZE, limit, sign, None);
+        game.decode(state.0);
+        let new_res = hop_solve_game(game, &state.1, rng, BATCH_SIZE, limit, sign, None);
 
         n += BATCH_SIZE;
 

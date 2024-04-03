@@ -1,7 +1,7 @@
 use crate::{
     engine::{Encode, Move, Solitaire},
     tracking::{DefaultSearchSignal, EmptySearchStats, SearchSignal, SearchStatistics},
-    traverse::{traverse_game, TpTable, TraverseCallback, TraverseResult},
+    traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 use arrayvec::ArrayVec;
 
@@ -26,20 +26,20 @@ struct SolverCallback<'a, S: SearchStatistics, T: SearchSignal> {
     result: SearchResult,
 }
 
-impl<'a, S: SearchStatistics, T: SearchSignal> TraverseCallback for SolverCallback<'a, S, T> {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> TraverseResult {
+impl<'a, S: SearchStatistics, T: SearchSignal> Callback for SolverCallback<'a, S, T> {
+    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
         self.result = SearchResult::Solved;
-        TraverseResult::Halted
+        ControlFlow::Halt
     }
 
-    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> ControlFlow {
         if self.sign.is_terminated() {
             self.result = SearchResult::Terminated;
-            return TraverseResult::Halted;
+            return ControlFlow::Halt;
         }
 
         self.stats.hit_a_state(self.history.len());
-        TraverseResult::Ok
+        ControlFlow::Ok
     }
 
     fn on_move_gen(&mut self, m: &crate::engine::MoveVec, _: Encode) {
@@ -59,13 +59,13 @@ impl<'a, S: SearchStatistics, T: SearchSignal> TraverseCallback for SolverCallba
 
     fn on_start(&mut self) {}
 
-    fn on_finish(&mut self, _: &TraverseResult) {
+    fn on_finish(&mut self, _: &ControlFlow) {
         self.sign.search_finish();
     }
 }
 
-pub fn solve_game_with_tracking<S: SearchStatistics, T: SearchSignal>(
-    g: &mut Solitaire,
+pub fn solve_with_tracking<S: SearchStatistics, T: SearchSignal>(
+    game: &mut Solitaire,
     stats: &S,
     sign: &T,
 ) -> (SearchResult, Option<HistoryVec>) {
@@ -78,7 +78,7 @@ pub fn solve_game_with_tracking<S: SearchStatistics, T: SearchSignal>(
         result: SearchResult::Unsolvable,
     };
 
-    traverse_game(g, &mut tp, &mut callback, None);
+    traverse(game, &mut tp, &mut callback, None);
     let result = callback.result;
 
     if result == SearchResult::Solved {
@@ -88,6 +88,6 @@ pub fn solve_game_with_tracking<S: SearchStatistics, T: SearchSignal>(
     }
 }
 
-pub fn solve_game(g: &mut Solitaire) -> (SearchResult, Option<HistoryVec>) {
-    solve_game_with_tracking(g, &EmptySearchStats {}, &DefaultSearchSignal {})
+pub fn solve(game: &mut Solitaire) -> (SearchResult, Option<HistoryVec>) {
+    solve_with_tracking(game, &EmptySearchStats {}, &DefaultSearchSignal {})
 }

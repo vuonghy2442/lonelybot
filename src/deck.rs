@@ -3,7 +3,10 @@ use core::ops::ControlFlow;
 use arrayvec::ArrayVec;
 use static_assertions::const_assert;
 
-use crate::card::{Card, N_CARDS};
+use crate::{
+    card::{Card, N_CARDS},
+    utils::min,
+};
 
 pub const N_PILES: u8 = 7;
 pub const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES + 1) / 2;
@@ -140,14 +143,14 @@ impl Deck {
     }
 
     #[must_use]
-    pub fn offset(&self, n_step: u8) -> u8 {
+    pub const fn offset(&self, n_step: u8) -> u8 {
         let next = self.get_offset();
         let len = self.len();
         let step = self.draw_step();
 
         let n_step_to_end = (len - next).div_ceil(step);
 
-        core::cmp::min(
+        min(
             if n_step <= n_step_to_end {
                 next + step * n_step
             } else {

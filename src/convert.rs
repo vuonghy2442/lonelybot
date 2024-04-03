@@ -14,9 +14,7 @@ impl From<&Solitaire> for StandardSolitaire {
     }
 }
 
-// making it never panic :(
-// this will convert and execute the move
-
+// never panic
 pub fn convert_move(
     game: &StandardSolitaire,
     m: &Move,
@@ -33,7 +31,7 @@ pub fn convert_move(
             move_seq.push((Pos::Deck, Pos::Pile(pile), *c));
         }
         Move::DeckStack(c) => {
-            if c.rank() != game.final_stack[c.suit() as usize] {
+            if c.rank() != game.final_stack.get(c.suit()) {
                 return Err(InvalidMove {});
             }
 
@@ -45,7 +43,7 @@ pub fn convert_move(
             move_seq.push((Pos::Deck, Pos::Stack(c.suit()), *c));
         }
         Move::StackPile(c) => {
-            if c.rank() + 1 != game.final_stack[c.suit() as usize] {
+            if c.rank() + 1 != game.final_stack.get(c.suit()) {
                 return Err(InvalidMove {});
             }
             let pile = game.find_free_pile(c).ok_or(InvalidMove {})?;
@@ -62,7 +60,7 @@ pub fn convert_move(
             move_seq.push((Pos::Pile(pile_from), Pos::Pile(pile_to), *c));
         }
         Move::PileStack(c) => {
-            if c.rank() != game.final_stack[c.suit() as usize] {
+            if c.rank() != game.final_stack.get(c.suit()) {
                 return Err(InvalidMove {});
             }
             let (pile, pos) = game.find_card(c).ok_or(InvalidMove {})?;
@@ -100,7 +98,7 @@ pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> MoveResult<Sta
 #[cfg(test)]
 mod tests {
 
-    use crate::{shuffler::default_shuffle, solver::solve_game};
+    use crate::{shuffler::default_shuffle, solver::solve};
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
@@ -114,8 +112,8 @@ mod tests {
             let mut game_1: Solitaire = From::from(&game);
             let mut game_2: Solitaire = Solitaire::new(&cards, DRAW_STEP);
 
-            let res1 = solve_game(&mut game_1);
-            let res2 = solve_game(&mut game_2);
+            let res1 = solve(&mut game_1);
+            let res2 = solve(&mut game_2);
 
             assert_eq!(res1, res2);
             res1

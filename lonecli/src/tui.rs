@@ -3,6 +3,7 @@ use core::fmt;
 use lonelybot::card::{Card, NUMBERS, N_RANKS, N_SUITS, SYMBOLS};
 use lonelybot::deck::{Drawable, N_PILES};
 use lonelybot::engine::Solitaire;
+use lonelybot::stack::Stack;
 use lonelybot::standard::{HiddenVec, PileVec, StandardSolitaire};
 
 use colored::{Color, Colorize};
@@ -31,11 +32,11 @@ fn color(c: Card) -> ColoredCard {
     ColoredCard(c)
 }
 
-pub fn print_foundation(stack: &[u8; N_SUITS as usize]) {
+pub fn print_foundation(stack: &Stack) {
     print!("\t\t");
     // print out the foundation stack
     for i in 0..N_SUITS {
-        let card = stack[i as usize];
+        let card = stack.get(i);
         let card = if card == 0 {
             Card::FAKE
         } else {

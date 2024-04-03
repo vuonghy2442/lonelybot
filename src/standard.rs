@@ -3,6 +3,7 @@ use arrayvec::ArrayVec;
 use crate::card::{Card, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_FULL_DECK, N_HIDDEN_CARDS, N_PILES};
 use crate::shuffler::CardDeck;
+use crate::stack::Stack;
 
 pub type PileVec = ArrayVec<Card, { N_RANKS as usize }>;
 
@@ -26,7 +27,7 @@ pub type StandardHistoryVec = ArrayVec<StandardMove, N_PLY_MAX>;
 
 #[derive(Debug)]
 pub struct StandardSolitaire {
-    pub final_stack: [u8; N_SUITS as usize],
+    pub final_stack: Stack,
     pub deck: Deck,
     pub hidden_piles: [HiddenVec; N_PILES as usize],
     pub piles: [PileVec; N_PILES as usize],
@@ -54,7 +55,7 @@ impl StandardSolitaire {
 
         Self {
             hidden_piles,
-            final_stack: [0; N_SUITS as usize],
+            final_stack: Stack::default(),
             deck: Deck::new(
                 cards[N_HIDDEN_CARDS as usize..].try_into().unwrap(),
                 draw_step,
@@ -69,8 +70,7 @@ impl StandardSolitaire {
 
     #[must_use]
     pub fn is_win(&self) -> bool {
-        // What a shame this is not a const function :(
-        self.final_stack == [N_RANKS; N_SUITS as usize]
+        self.final_stack.is_full()
     }
 
     #[must_use]
@@ -79,7 +79,7 @@ impl StandardSolitaire {
     }
 
     #[must_use]
-    pub const fn get_stack(&self) -> &[u8; N_SUITS as usize] {
+    pub const fn get_stack(&self) -> &Stack {
         &self.final_stack
     }
 
@@ -152,11 +152,11 @@ impl StandardSolitaire {
                         .unwrap_or(&Card::FAKE)
                         .go_before(&card)
             }
-            (Pos::Deck, Pos::Stack(pos), card) => {
-                pos < N_SUITS
+            (Pos::Deck, Pos::Stack(suit), card) => {
+                suit < N_SUITS
                     && self.deck.peek_current() == Some(&card)
-                    && card.suit() == pos
-                    && self.final_stack[pos as usize] == card.rank()
+                    && card.suit() == suit
+                    && self.final_stack.get(suit) == card.rank()
             }
             (Pos::Pile(from), Pos::Pile(to), card) => {
                 from != to
@@ -168,19 +168,19 @@ impl StandardSolitaire {
                         .go_before(&card)
                     && self.find_card_pile(from, &card).is_some()
             }
-            (Pos::Pile(from), Pos::Stack(to), card) => {
+            (Pos::Pile(from), Pos::Stack(suit), card) => {
                 from < N_PILES
-                    && to < N_SUITS
+                    && suit < N_SUITS
                     && self.piles[from as usize].last() == Some(&card)
-                    && card.suit() == to
-                    && card.rank() == self.final_stack[to as usize]
+                    && card.suit() == suit
+                    && card.rank() == self.final_stack.get(suit)
             }
 
-            (Pos::Stack(from), Pos::Pile(to), card) => {
-                from < N_SUITS
+            (Pos::Stack(suit), Pos::Pile(to), card) => {
+                suit < N_SUITS
                     && to < N_PILES
-                    && card.suit() == from
-                    && card.rank() + 1 == self.final_stack[from as usize]
+                    && card.suit() == suit
+                    && card.rank() + 1 == self.final_stack.get(suit)
                     && self.piles[to as usize]
                         .last()
                         .unwrap_or(&Card::FAKE)
@@ -208,9 +208,9 @@ impl StandardSolitaire {
                 self.deck.draw_current().unwrap();
                 self.piles[usize::from(pos)].push(card);
             }
-            (Pos::Deck, Pos::Stack(pos), _) => {
+            (Pos::Deck, Pos::Stack(suit), _) => {
                 self.deck.draw_current().unwrap();
-                self.final_stack[usize::from(pos)] += 1;
+                self.final_stack.push(suit);
             }
             (Pos::Pile(from), Pos::Pile(to), card) => {
                 let pos = self.find_card_pile(from, &card).unwrap();
@@ -218,30 +218,27 @@ impl StandardSolitaire {
                 let tmp: PileVec = self.piles[from][pos..].iter().copied().collect();
                 self.piles[to].extend(tmp);
                 self.piles[from].truncate(pos);
-
-                if self.piles[from].is_empty() {
-                    if let Some(card) = self.hidden_piles[from].pop() {
-                        self.piles[from].push(card);
-                    }
-                }
             }
-            (Pos::Pile(from), Pos::Stack(to), _) => {
-                let (from, to) = (usize::from(from), usize::from(to));
-                self.piles[from].pop();
-                self.final_stack[to] += 1;
-
-                if self.piles[from].is_empty() {
-                    if let Some(card) = self.hidden_piles[from].pop() {
-                        self.piles[from].push(card);
-                    }
-                }
+            (Pos::Pile(from), Pos::Stack(suit), _) => {
+                self.piles[usize::from(from)].pop();
+                self.final_stack.push(suit);
             }
 
-            (Pos::Stack(from), Pos::Pile(to), card) => {
-                self.final_stack[usize::from(from)] -= 1;
+            (Pos::Stack(suit), Pos::Pile(to), card) => {
+                self.final_stack.pop(suit);
                 self.piles[usize::from(to)].push(card);
             }
         };
+
+        // revealing
+        if let Pos::Pile(from) = m.0 {
+            let from = usize::from(from);
+            if self.piles[from].is_empty() {
+                if let Some(card) = self.hidden_piles[from].pop() {
+                    self.piles[from].push(card);
+                }
+            }
+        }
         Ok(())
     }
 }

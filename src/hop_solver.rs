@@ -4,7 +4,7 @@ use crate::{
     engine::{Encode, Move, Solitaire},
     solver::SearchResult,
     tracking::SearchSignal,
-    traverse::{traverse_game, TpTable, TraverseCallback, TraverseResult},
+    traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 
 struct HOPSolverCallback<'a, T: SearchSignal> {
@@ -14,29 +14,29 @@ struct HOPSolverCallback<'a, T: SearchSignal> {
     n_visit: usize,
 }
 
-impl<'a, T: SearchSignal> TraverseCallback for HOPSolverCallback<'a, T> {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> TraverseResult {
+impl<'a, T: SearchSignal> Callback for HOPSolverCallback<'a, T> {
+    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
         self.result = SearchResult::Solved;
-        TraverseResult::Halted
+        ControlFlow::Halt
     }
 
-    fn on_visit(&mut self, g: &Solitaire, _: Encode) -> TraverseResult {
+    fn on_visit(&mut self, g: &Solitaire, _: Encode) -> ControlFlow {
         if g.is_sure_win() {
             self.result = SearchResult::Solved;
-            return TraverseResult::Halted;
+            return ControlFlow::Halt;
         }
 
         if self.sign.is_terminated() {
             self.result = SearchResult::Terminated;
-            return TraverseResult::Halted;
+            return ControlFlow::Halt;
         }
 
         self.n_visit += 1;
         if self.n_visit > self.limit {
             self.result = SearchResult::Terminated;
-            TraverseResult::Halted
+            ControlFlow::Halt
         } else {
-            TraverseResult::Ok
+            ControlFlow::Ok
         }
     }
 
@@ -48,7 +48,7 @@ impl<'a, T: SearchSignal> TraverseCallback for HOPSolverCallback<'a, T> {
 
     fn on_start(&mut self) {}
 
-    fn on_finish(&mut self, _: &TraverseResult) {
+    fn on_finish(&mut self, _: &ControlFlow) {
         self.sign.search_finish();
     }
 }
@@ -72,7 +72,7 @@ pub fn hop_solve_game<R: RngCore, T: SearchSignal>(
     let total_hidden: u8 = g.get_hidden().total_down_cards();
     if total_hidden <= 1 {
         // totally determinized
-        let res = crate::solver::solve_game(&mut g.clone()).0;
+        let res = crate::solver::solve(&mut g.clone()).0;
         return if res == SearchResult::Solved {
             (!0, 0, !0)
         } else if res == SearchResult::Unsolvable {
@@ -94,7 +94,7 @@ pub fn hop_solve_game<R: RngCore, T: SearchSignal>(
             n_visit: 0,
         };
         tp.clear();
-        traverse_game(&mut gg, &mut tp, &mut callback, rev_move);
+        traverse(&mut gg, &mut tp, &mut callback, rev_move);
         if sign.is_terminated() {
             break;
         }
@@ -122,17 +122,17 @@ struct RevStatesCallback<'a, R: RngCore, S: SearchSignal> {
     skipped: bool,
 }
 
-impl<'a, R: RngCore, S: SearchSignal> TraverseCallback for RevStatesCallback<'a, R, S> {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> TraverseResult {
+impl<'a, R: RngCore, S: SearchSignal> Callback for RevStatesCallback<'a, R, S> {
+    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
         self.res.push((self.his.clone(), (!0, 0, !0)));
-        TraverseResult::Halted
+        ControlFlow::Halt
     }
 
-    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> TraverseResult {
+    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> ControlFlow {
         if self.skipped {
-            TraverseResult::Skip
+            ControlFlow::Skip
         } else {
-            TraverseResult::Ok
+            ControlFlow::Ok
         }
     }
 
@@ -158,10 +158,10 @@ impl<'a, R: RngCore, S: SearchSignal> TraverseCallback for RevStatesCallback<'a,
 
     fn on_start(&mut self) {}
 
-    fn on_finish(&mut self, _: &TraverseResult) {}
+    fn on_finish(&mut self, _: &ControlFlow) {}
 }
 
-pub fn hop_moves_game<R: RngCore, T: SearchSignal>(
+pub fn list_moves<R: RngCore, T: SearchSignal>(
     g: &mut Solitaire,
     rng: &mut R,
     n_times: usize,
@@ -179,6 +179,6 @@ pub fn hop_moves_game<R: RngCore, T: SearchSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse_game(g, &mut tp, &mut callback, None);
+    traverse(g, &mut tp, &mut callback, None);
     callback.res
 }

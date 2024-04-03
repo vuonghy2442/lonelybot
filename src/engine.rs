@@ -1,10 +1,11 @@
-use core::array;
 use core::ops::ControlFlow;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{Card, KING_RANK, N_CARDS, N_RANKS, N_SUITS};
+use crate::card::{Card, KING_RANK, N_CARDS, N_SUITS, SUIT_MASK};
 use crate::deck::{Deck, N_HIDDEN_CARDS, N_PILES};
+use crate::stack::Stack;
+use crate::utils::full_mask;
 
 use crate::hidden::Hidden;
 use crate::shuffler::CardDeck;
@@ -26,7 +27,7 @@ impl Move {
 #[derive(Debug, Clone)]
 pub struct Solitaire {
     hidden: Hidden,
-    final_stack: [u8; N_SUITS as usize],
+    final_stack: Stack,
     deck: Deck,
 
     visible_mask: u64,
@@ -41,15 +42,6 @@ const RANK_MASK: u64 = 0x1111_1111_1111_1111;
 
 const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
 
-const SUIT_MASK: [u64; N_SUITS as usize] = [
-    0x4141_4141_4141_4141,
-    0x8282_8282_8282_8282,
-    0x1414_1414_1414_1414,
-    0x2828_2828_2828_2828,
-];
-
-const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
-
 pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
 
 pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
@@ -58,20 +50,6 @@ pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
 const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;
     ((a >> 2) & HALF_MASK) | half
-}
-
-#[must_use]
-const fn min(a: u8, b: u8) -> u8 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
-#[must_use]
-const fn full_mask(i: u8) -> u64 {
-    (1 << i) - 1
 }
 
 fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> ControlFlow<T>) -> ControlFlow<T> {
@@ -132,7 +110,7 @@ impl Solitaire {
 
         let mut res = Self {
             hidden: Hidden::new(hidden_piles),
-            final_stack: [0u8; 4],
+            final_stack: Stack::default(),
             deck,
             visible_mask,
             top_mask: Default::default(),
@@ -189,31 +167,12 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub const fn get_stack_mask(&self) -> u64 {
-        let s = self.final_stack;
-
-        (SUIT_MASK[0] & (0b1111 << (s[0] * 4)))
-            | (SUIT_MASK[1] & (0b1111 << (s[1] * 4)))
-            | (SUIT_MASK[2] & (0b1111 << (s[2] * 4)))
-            | (SUIT_MASK[3] & (0b1111 << (s[3] * 4)))
-    }
-
-    #[must_use]
-    pub const fn get_stack_dominance_mask(&self) -> u64 {
-        let s = self.final_stack;
-        let d = (min(s[0], s[1]), min(s[2], s[3]));
-        let d = (min(d.0 + 1, d.1) + 2, min(d.0, d.1 + 1) + 2);
-
-        (COLOR_MASK[0] & full_mask(d.0 * 4)) | (COLOR_MASK[1] & full_mask(d.1 * 4))
-    }
-
-    #[must_use]
     pub fn get_deck_mask<const DOMINANCE: bool>(&self) -> (u64, bool) {
         let Some(last_card) = self.deck.peek_last() else {
             return (0, false);
         };
 
-        let filter = DOMINANCE & self.stackable(last_card) && self.stack_dominance(last_card);
+        let filter = DOMINANCE & self.final_stack.dominance_stackable(last_card);
 
         if filter && self.deck.is_pure() {
             return (last_card.mask(), true);
@@ -250,9 +209,9 @@ impl Solitaire {
         // this mask represent the rank & even^red type to be movable
         let bm = self.get_bottom_mask();
 
-        let sm = self.get_stack_mask();
+        let sm = self.final_stack.mask();
         let dsm = if DOMINANCE {
-            self.get_stack_dominance_mask()
+            self.final_stack.dominance_mask()
         } else {
             0
         };
@@ -389,7 +348,7 @@ impl Solitaire {
 
     pub fn make_stack<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
         let card = Card::from_mask(mask);
-        self.final_stack[card.suit() as usize] += 1;
+        self.final_stack.push(card.suit());
 
         if DECK {
             let offset = self.deck.get_offset();
@@ -408,7 +367,7 @@ impl Solitaire {
 
     pub fn unmake_stack<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
         let card = Card::from_mask(mask);
-        self.final_stack[card.suit() as usize] -= 1;
+        self.final_stack.pop(card.suit());
 
         if DECK {
             self.deck.push(card);
@@ -430,7 +389,7 @@ impl Solitaire {
             self.deck.draw(pos);
             offset
         } else {
-            self.final_stack[card.suit() as usize] -= 1;
+            self.final_stack.pop(card.suit());
             Default::default()
         }
     }
@@ -444,7 +403,7 @@ impl Solitaire {
             self.deck.push(card);
             self.deck.set_offset(*info & 31);
         } else {
-            self.final_stack[card.suit() as usize] += 1;
+            self.final_stack.push(card.suit());
         }
     }
 
@@ -454,7 +413,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub const fn get_stack(&self) -> &[u8; N_SUITS as usize] {
+    pub const fn get_stack(&self) -> &Stack {
         &self.final_stack
     }
 
@@ -512,7 +471,7 @@ impl Solitaire {
     #[must_use]
     pub fn is_win(&self) -> bool {
         // What a shame this is not a const function :(
-        self.final_stack == [N_RANKS; N_SUITS as usize]
+        self.final_stack.is_full()
     }
 
     #[must_use]
@@ -520,36 +479,10 @@ impl Solitaire {
         self.deck.len() <= 1 && self.hidden.all_turn_up()
     }
 
-    #[must_use]
-    const fn stackable(&self, card: &Card) -> bool {
-        self.final_stack[card.suit() as usize] == card.rank()
-    }
-
-    #[must_use]
-    const fn stack_dominance(&self, card: &Card) -> bool {
-        let stack = &self.final_stack;
-        let rank = card.rank();
-        let suit = card.suit() as usize;
-        // allowing worrying back :)
-        rank <= stack[suit ^ 2] + 1
-            && rank <= stack[suit ^ 2 ^ 1] + 1
-            && rank <= stack[suit ^ 1] + 2
-    }
-
-    // can be made const fn
-    #[must_use]
-    fn encode_stack(&self) -> u16 {
-        // considering to make it incremental?
-        self.final_stack
-            .iter()
-            .rev()
-            .fold(0u16, |res, cur| (res << 4) + u16::from(*cur))
-    }
-
     // can be made const fn
     #[must_use]
     pub fn encode(&self) -> Encode {
-        let stack_encode = self.encode_stack(); // 16 bits (can be reduce to 15)
+        let stack_encode = self.final_stack.encode(); // 16 bits (can be reduce to 15)
         let hidden_encode = self.hidden.encode(); // 16 bits
         let deck_encode = self.deck.encode(); // 29 bits (can be reduced to 25)
 
@@ -563,7 +496,7 @@ impl Solitaire {
         let mut nonvis_mask = 0;
         // final stack
         for suit in 0..N_SUITS {
-            for rank in 0..self.final_stack[suit as usize] {
+            for rank in 0..self.final_stack.get(suit) {
                 nonvis_mask |= Card::new(rank, suit).mask();
             }
         }
@@ -582,7 +515,7 @@ impl Solitaire {
         let (stack_encode, hidden_encode, deck_encode) =
             (encode as u16, (encode >> 16) as u16, (encode >> 32) as u32);
         // decode stack
-        self.final_stack = array::from_fn(|i| (stack_encode >> (4 * i)) as u8 & 0xF);
+        self.final_stack = Stack::decode(stack_encode);
         // decode hidden
         self.hidden.decode(hidden_encode);
         // decode visible
@@ -672,7 +605,7 @@ impl Solitaire {
         }
 
         let total_cards = self.visible_mask.count_ones() as u8
-            + self.final_stack.iter().sum::<u8>()
+            + self.final_stack.len()
             + self.deck.len()
             + self.hidden.total_down_cards();
 
@@ -751,10 +684,10 @@ mod tests {
                 let mut stack_mask: u64 = 0;
                 // fill in final stack
                 for suit in 0..N_SUITS {
-                    let rank = game.final_stack[suit as usize];
+                    let rank = game.final_stack.get(suit);
                     stack_mask |= Card::new(rank, suit).mask();
                 }
-                assert_eq!(stack_mask, game.get_stack_mask());
+                assert_eq!(stack_mask, game.final_stack.mask());
 
                 let mut truth = game
                     .deck

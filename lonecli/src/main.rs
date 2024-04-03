@@ -7,10 +7,10 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
 use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
-use lonelybot::mcts_solver::mcts_moves_game;
+use lonelybot::mcts_solver::pick_moves;
 use lonelybot::shuffler::{self, CardDeck, U256};
 use lonelybot::tracking::DefaultSearchSignal;
-use lonelybot::traverse::TraverseResult;
+use lonelybot::traverse::ControlFlow;
 use rand::prelude::*;
 use std::collections::HashSet;
 use std::fs::File;
@@ -170,22 +170,21 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
     while !game.is_win() {
         let mut gg = game.clone();
         gg.get_hidden_mut().clear();
-        let best = mcts_moves_game(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
-        if let Some(best) = best {
-            if verbose {
-                for m in &best {
-                    print!("{m}, ");
-                }
-                println!();
-            }
-            for m in best {
-                game.do_move(&m);
-            }
-        } else {
+        let best = pick_moves(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
+        let Some(best) = best else {
             if verbose {
                 println!("Lost");
             }
             return false;
+        };
+        if verbose {
+            for m in &best {
+                print!("{m}, ");
+            }
+            println!();
+        }
+        for m in best {
+            game.do_move(&m);
         }
     }
     if verbose {
@@ -236,7 +235,7 @@ fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
     match res.0 {
         Some((res, graph)) => {
             println!("Graphed in {} edges", graph.len());
-            if res == TraverseResult::Ok {
+            if res == ControlFlow::Ok {
                 let mut f = std::io::BufWriter::new(File::create(path).unwrap());
                 writeln!(f, "s,t,e,id").unwrap();
                 for (id, e) in graph.iter().skip(1).enumerate() {
@@ -286,7 +285,7 @@ fn game_loop(seed: &Seed) {
         }
         let res: Option<i8> = line.trim().parse::<i8>().ok();
         if let Some(id) = res {
-            let id = id as usize;
+            let id = usize::try_from(id).unwrap_or(usize::MAX);
             if id < moves.len() {
                 let info = game.do_move(&moves[id]);
                 move_hist.push((moves[id], info));
