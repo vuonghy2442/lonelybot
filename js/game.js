@@ -418,15 +418,16 @@ function initGame() {
     })
 
     game.on_pop_stack.push((card) => {
-        if (card.rank > 2) {
+        if (card.rank >= 2) {
+            let [x, y] = pilePos()[card.suit + Pos.Stack];
             let c = cardArray[cardId(card.rank - 2, card.suit)];
             c.turnUp();
             c.draggable = false;
-            c.createDOM(initialX, initialY);
+            c.createDOM(x * 100, y * 100);
         }
 
         if (card.rank > 0) {
-            cardArray[cardId(card.rank - 1, card.suit)].draggable = false;
+            cardArray[cardId(card.rank - 1, card.suit)].draggable = true;
         }
     })
 
@@ -440,7 +441,7 @@ function initGame() {
             cards[0].turnUp();
             cards[0].createDOM(15, 2.5);
 
-            for (let [pos, c] of cards.entries()) {
+            for (let c of cards) {
                 c.moveToFront();
             }
         }
