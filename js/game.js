@@ -529,7 +529,7 @@ function initGame() {
         }
 
         function handleMouseUp() {
-            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('pointermove', handleMouseMove);
 
             // Implement card snapping or other dragging behavior
             if (snapped < 0) {
@@ -542,8 +542,8 @@ function initGame() {
 
         }
 
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp, { once: true });
+        window.addEventListener('pointermove', handleMouseMove);
+        window.addEventListener('pointerup', handleMouseUp, { once: true });
     }
 
     let cards = [];
@@ -552,7 +552,7 @@ function initGame() {
         game.make_move(null, 0, 0);
     }
 
-    gameBox.addEventListener('mousedown', (event) => {
+    function onMouseDown(event) {
         if (event.which !== 1)
             return;
 
@@ -571,5 +571,7 @@ function initGame() {
             event.preventDefault();
             return;
         }
-    });
+    }
+
+    gameBox.addEventListener('pointerdown', onMouseDown);
 }

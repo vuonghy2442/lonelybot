@@ -2,6 +2,7 @@
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
+    touch-action: none;
 }
 
 body {
@@ -60,7 +61,6 @@ html {
     width: 100%;
     height: 25%;
     background: #00000011;
-
 }
 
 
@@ -95,6 +95,7 @@ html {
     border-radius: 10%/calc(10% * 2.5/3.5);
     overflow: clip;
     filter: drop-shadow(0 0 10px #0009);
+
 }
 
 
@@ -136,7 +137,7 @@ html {
     background-color: #c93741;
     border-radius: 10%/calc(10% * 2.5/3.5);
     transform: rotateY(180deg);
-    overflow: clip
+    overflow: clip;
 }
 
 .red_card {
