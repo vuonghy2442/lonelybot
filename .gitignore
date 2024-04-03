@@ -1,0 +1,9 @@
+.cargo
+.vscode
+target
+
+lonecli
+
+Cargo.lock
+__pycache__
+sound

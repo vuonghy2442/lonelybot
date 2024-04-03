@@ -39,7 +39,6 @@ class Card {
 
         this.deleteDom = () => {
             if (this.element === null) return;
-            this.animating = false;
             this.element.remove();
             this.element = null;
         };
@@ -85,6 +84,19 @@ class Card {
 
             c.style.left = pos_x + "%";
             c.style.top = pos_y + "%";
+
+            c.addEventListener("transitionrun", (_) => {
+                this.animating = true;
+            });
+
+            const done_animate = (_) => {
+                c.style.removeProperty('transition');
+                this.animating = false;
+            };
+
+            c.addEventListener("transitioncancel", done_animate);
+            c.addEventListener("transitionend", done_animate);
+
             gameBox.appendChild(c);
             c.dataset.cardId = this.id();
 
@@ -129,16 +141,8 @@ class Card {
                 }
             }
 
-            if (duration > 0) {
-                this.animating = true;
+            if (duration > 0)
                 this.element.style.transition = `top ${duration}ms ease-in-out, left ${duration}ms ease-in-out`;
-
-                this.element.addEventListener("transitionend", (e) => {
-                    this.element.style.removeProperty('transition');
-                    this.animating = false;
-
-                }, { once: true });
-            }
 
             if (pos_x !== null)
                 this.element.style.left = pos_x + "%";
@@ -376,7 +380,6 @@ function initGame() {
             [p[0], p[1] + 0.02 * game.hidden_piles[i].length + 0.03 * game.piles[i].length]
         )];
     }();
-    console.log(pilePos())
 
     window.addEventListener('resize', (_) => {
         gameBoxBound = gameBox.getBoundingClientRect();
@@ -478,7 +481,6 @@ function initGame() {
         const offsetX = (event.clientX - gameBoxBound.left) / gameBoxBound.width - initialX;
         const offsetY = (event.clientY - gameBoxBound.top) / gameBoxBound.height - initialY;
 
-        let changed = false;
         let snapped = -1;
 
         let curPilePos = pilePos();
@@ -524,7 +526,6 @@ function initGame() {
             }
 
             moving_cards.forEach((c, idx) => c.moveTo(x * 100, y * 100 + idx * 3, 0));
-            changed = true;
         }
 
         function handleMouseUp() {
@@ -534,7 +535,8 @@ function initGame() {
             if (snapped < 0) {
                 moving_cards.forEach((c, idx) => c.moveTo(initialX * 100, initialY * 100 + idx * 3, 300 + 10 * idx));
             } else {
-                snap_audio.play();
+                let [u, v] = curPilePos[snapped];
+                moving_cards.forEach((c, idx) => c.moveTo(u * 100, v * 100 + idx * 3, 0));
                 game.make_move(card, origin, snapped);
             }
 
