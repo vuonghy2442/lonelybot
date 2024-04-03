@@ -6,6 +6,7 @@ const RANK_MAP = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', '
 const SUIT_MAP = ['♡', '♢', '♧', '♤'];
 const N_SUITS = SUIT_MAP.length;
 const N_RANKS = RANK_MAP.length;
+const KING_RANK = N_RANKS - 1;
 const N_CARDS = N_SUITS * N_RANKS;
 
 const N_PILES = 7;
@@ -190,6 +191,7 @@ const Pos = {
     Deck: 0,
     Stack: 1,
     Pile: 1 + N_SUITS,
+    None: -1,
 }
 
 class Solitaire {
@@ -206,6 +208,28 @@ class Solitaire {
         this.deck = new Deck(cards.slice(N_HIDDEN_CARDS, N_CARDS), draw_step);
         this.stack = Array.from(Array(N_SUITS), () => 0);
 
+        this.on_deal = [];
+        this.on_pop_deck = [];
+        this.on_pop_stack = [];
+        this.on_push_stack = [];
+        this.on_reveal = [];
+
+        this.find_origin = (card) => {
+            if (this.deck.peek(1).find((c) => c.id() == card.id())) {
+                return Pos.Deck;
+            }
+
+            if (this.stack.find((rank, suit) => card.id() == cardId(rank - 1, suit))) {
+                return Pos.Stack + card.suit;
+            }
+
+            const pos = this.piles.findIndex((pile) => pile.find((c) => c.id() == card.id()));
+            if (pos >= 0) {
+                return Pos.Pile + pos;
+            }
+            return Pos.None
+        }
+
         this.lift_card = (card) => {
             // here
             const res = new Array();
@@ -214,8 +238,9 @@ class Solitaire {
             }
 
             for (let i = 0; i < N_PILES; ++i) {
-                const p = this.piles[i];
-                if (p[p.length - 1].goBefore(card)) {
+                const p = this.piles[i]
+                const last = p[p.length - 1] || new Card(N_RANKS, 0);
+                if (last.goBefore(card)) {
                     res.push(Pos.Pile + i);
                 }
             }
@@ -223,19 +248,45 @@ class Solitaire {
             return res;
         }
 
-        this.make_move = (card, dst) => {
+        this.make_move = (card, src, dst) => {
             // find the position
-            if (dst == 0) {
+            if (src == Pos.Deck && dst == Pos.Deck) {
                 this.deck.deal();
+                for (const callback of this.on_deal) { callback(); }
                 return;
             }
-            let src = 0;
-            if (src == 0) {
+            if (src == Pos.Deck) {
                 this.deck.pop();
+                for (const callback of this.on_pop_deck) { callback(); }
+
+            } else if (src <= N_SUITS) {
+                this.stack[src - 1] -= 1
+                for (const callback of this.on_pop_stack) { callback(card); }
             }
 
             if (dst <= N_SUITS) {
                 this.stack[dst - 1] += 1
+                for (const callback of this.on_push_stack) { callback(card); }
+            }
+
+            // from pile
+            let cards = [card];
+            if (src >= Pos.Pile) {
+                src = src - Pos.Pile;
+                const cardPos = this.piles[src].findIndex((c) => c.id() == card.id());
+                cards = this.piles[src].splice(cardPos)
+
+                if (this.piles[src].length == 0 && this.hidden_piles[src].length > 0) {
+                    const last = this.hidden_piles[src].pop()
+                    this.piles[src].push(last);
+                    for (const callback of this.on_reveal) { callback(src, last); }
+                }
+            }
+
+            // to pile
+            if (dst >= Pos.Pile) {
+                dst = dst - Pos.Pile;
+                this.piles[dst].push(...cards);
             }
         }
     }
@@ -264,8 +315,8 @@ function shuffleArray(array) {
 }
 
 let shuffledCards = [...cardArray];
-shuffledCards.reverse();
-// shuffleArray(shuffledCards);
+// shuffledCards.reverse();
+shuffleArray(shuffledCards);
 
 const game = new Solitaire(shuffledCards, 3);
 
@@ -333,11 +384,81 @@ function initGame() {
         gameBoxBound = gameBox.getBoundingClientRect();
     });
 
+    game.on_deal.push(() => {
+        for (let c of cards) {
+            c.deleteDom();
+        }
+
+        cards = []
+
+        for (let [pos, c] of game.deck.peek(3).entries()) {
+            cards.push(c);
+            c.draggable = false;
+
+            c.flipCard();
+            c.createDOM(2, 2.5);
+            c.element.style.zIndex = pos;
+
+            setTimeout(() => {
+                c.flipCard(300);
+                c.moveTo(15 + pos * 2, 2.5, 300);
+                c.draggable = pos == 2;
+            }, 200 * pos);
+        }
+    })
+
+    game.on_push_stack.push((card) => {
+        if (card.rank >= 2) {
+            cardArray[cardId(card.rank - 2, card.suit)].deleteDom();
+        }
+
+        if (card.rank > 0) {
+            cardArray[cardId(card.rank - 1, card.suit)].draggable = false;
+        }
+    })
+
+    game.on_pop_stack.push((card) => {
+        if (card.rank > 2) {
+            let c = cardArray[cardId(card.rank - 2, card.suit)];
+            c.turnUp();
+            c.draggable = false;
+            c.createDOM(initialX, initialY);
+        }
+
+        if (card.rank > 0) {
+            cardArray[cardId(card.rank - 1, card.suit)].draggable = false;
+        }
+    })
+
+    game.on_pop_deck.push(() => {
+        cards.pop();
+        if (cards.length <= 1) {
+            // append new stuff
+            cards = game.deck.peek(cards.length + 1)
+
+            cards[0].draggable = false;
+            cards[0].turnUp();
+            cards[0].createDOM(15, 2.5);
+
+            for (let [pos, c] of cards.entries()) {
+                c.element.style.zIndex = pos;
+            }
+        }
+        cards[cards.length - 1].draggable = true;
+    })
+
+    game.on_reveal.push((src, card) => {
+        card.draggable = true;
+        card.turnUp(200);
+    })
+
     function moveCard(event, card) {
         if (!card.isDraggable()) return;
         snap_audio.play();
         const initialZIndex = card.element.style.zIndex;
         card.element.style.zIndex = 100;
+
+        const origin = game.find_origin(card);
 
         const dropPos = game.lift_card(card);
 
@@ -405,31 +526,15 @@ function initGame() {
                 snap_audio.play();
                 card.element.style.zIndex = card.rank;
 
-                if (card.rank >= 2) {
-                    cardArray[cardId(card.rank - 2, card.suit)].deleteDom();
-                }
+                // if (origin == Pos.Deck) {
 
-                if (card.rank > 0) {
-                    cardArray[cardId(card.rank - 1, card.suit)].draggable = false;
-                }
+                // } else if (origin < Pos.Pile) {
 
-                cards.pop();
-                game.make_move(card, snapped);
+                // } else {
+                //     // Piles
+                // }
 
-
-                if (cards.length <= 1) {
-                    // append new stuff
-                    cards = game.deck.peek(cards.length + 1)
-
-                    cards[0].draggable = false;
-                    cards[0].turnUp();
-                    cards[0].createDOM(15, 2.5);
-
-                    for (let [pos, c] of cards.entries()) {
-                        c.element.style.zIndex = pos;
-                    }
-                }
-                cards[cards.length - 1].draggable = true;
+                game.make_move(card, origin, snapped);
             }
 
         }
@@ -441,27 +546,7 @@ function initGame() {
     let cards = [];
 
     function deal() {
-        game.make_move(null, 0);
-        for (let c of cards) {
-            c.deleteDom();
-        }
-
-        cards = []
-
-        for (let [pos, c] of game.deck.peek(3).entries()) {
-            cards.push(c);
-            c.draggable = false;
-
-            c.flipCard();
-            c.createDOM(2, 2.5);
-            c.element.style.zIndex = pos;
-
-            setTimeout(() => {
-                c.flipCard(300);
-                c.moveTo(15 + pos * 2, 2.5, 300);
-                c.draggable = pos == 2;
-            }, 200 * pos);
-        }
+        game.make_move(null, 0, 0);
     }
 
     gameBox.addEventListener('mousedown', (event) => {
