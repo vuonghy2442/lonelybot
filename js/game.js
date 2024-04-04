@@ -401,7 +401,7 @@ function initGame() {
             c.draggable = false;
 
             c.flipCard();
-            c.createDOM(2, 2.5);
+            c.createDOM(2.5, 2.5);
             c.moveToFront();
 
             setTimeout(() => {
