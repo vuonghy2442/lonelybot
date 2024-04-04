@@ -16,12 +16,33 @@ const N_FULL_DECK = N_CARDS - N_HIDDEN_CARDS;
 const UP_SPACE = 3;
 const DOWN_SPACE = 2;
 
+const ANIMATION_TIME = 150;
+const OFFSET_TIME = 80;
+
 // ♤♡♢♧♠♥♦♣
 
 function cardId(rank, suit) {
     return rank * N_SUITS + suit;
 }
 
+
+function createCardSVG(c) {
+    const rank_str = RANK_MAP[c.rank]
+    const suit_str = SUIT_MAP[c.suit]
+    const color = c.suit < 2 ? "#901" : "#001"
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" fill="${color}" viewBox="0 0 250 350">
+    <g dominant-baseline="hanging" font-size="40">
+       <text x="5%" y="5%">${rank_str}</text>
+       <text x="5%" y="15%">${suit_str}</text>
+    </g>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="150">${rank_str}</text>
+    <g dominant-baseline="hanging" font-size="40" transform="rotate(180 125 175)">
+       <text x="5%" y="5%" >${rank_str}</text>
+       <text x="5%" y="15%">${suit_str}</text>
+    </g>
+ </svg>`
+}
 
 class Card {
     constructor(rank, suit) {
@@ -55,32 +76,12 @@ class Card {
             if (this.element !== null) return;
             const c = document.createElement('div');
             c.id = `card_${rank}_${suit}`;
-            c.className = suit < 2 ? "card red_card" : "card black_card";
+            c.className = "card";
             c.draggable = false;
-            c.innerHTML = `
-            <div class="card_inner">
-                <div class="card_back">
-                    <svg width="100%" height="100%">
-                        <image xlink:href="images/back.svg" width="100%" height="100%"/>
-                    </svg>
-                </div>
-                <div class="card_front">
-                    <div class="card_header">
-                        <span>${RANK_MAP[rank]}</span> <br>
-                        <span>${SUIT_MAP[suit]}</span>
-
-                    </div>
-                    <div class="card_body">
-                        <span>${RANK_MAP[rank]}</span>
-
-                    </div>
-                    <div class="card_footer">
-                        <span>${RANK_MAP[rank]}</span> <br>
-                        <span>${SUIT_MAP[suit]}</span>
-                    </div>
-                </div>
-            </div>
-                `;
+            c.innerHTML = `<div class="card_inner">
+                                <div class="card_back"></div>
+                                <div class="card_front">${createCardSVG(this)}</div>
+                            </div>`;
 
             if (this.flipped)
                 c.firstElementChild.classList.add("flipped")
@@ -404,9 +405,9 @@ function initGame() {
             c.moveToFront();
 
             setTimeout(() => {
-                c.flipCard(300);
-                c.moveTo(15 + pos * 2, 2.5, 300);
-            }, 200 * pos);
+                c.flipCard(ANIMATION_TIME);
+                c.moveTo(15 + pos * 2, 2.5, ANIMATION_TIME);
+            }, OFFSET_TIME * pos);
         }
 
         if (cards.length > 0) {
@@ -543,7 +544,7 @@ function initGame() {
 
             // Implement card snapping or other dragging behavior
             if (snapped < 0) {
-                moving_cards.forEach((c, idx) => c.moveTo(initialX * 100, initialY * 100 + idx * UP_SPACE, 300 + 10 * idx));
+                moving_cards.forEach((c, idx) => c.moveTo(initialX * 100, initialY * 100 + idx * UP_SPACE, ANIMATION_TIME + 10 * idx));
             } else {
                 let [u, v] = curPilePos[snapped];
                 moving_cards.forEach((c, idx) => c.moveTo(u * 100, v * 100 + idx * UP_SPACE, 0));
