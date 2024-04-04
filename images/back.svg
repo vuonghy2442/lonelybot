@@ -1,57 +1,6 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
-<svg
-   width="50.00005mm"
-   height="70mm"
-   viewBox="0 0 50.00005 70"
-   version="1.1"
-   id="svg1"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <sodipodi:namedview
-     id="namedview1"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     inkscape:document-units="mm" />
-  <defs
-     id="defs1" />
-  <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
-     id="layer1">
-    <rect
-       style="fill:#e23d44;fill-opacity:1;stroke-width:0.250361"
-       id="rect3"
-       width="50"
-       height="70"
-       x="0"
-       y="0" />
-    <path
-       id="rect1"
-       style="display:inline;fill:#ff454a;fill-opacity:1;stroke-width:0.264583"
-       d="M 25.000024,34.999931 0,69.999862 h 50.000049 z"
-       inkscape:export-filename="rect1.svg"
-       inkscape:export-xdpi="6.0720539"
-       inkscape:export-ydpi="6.0720539" />
-    <path
-       id="path2"
-       style="display:none;fill:#e13c43;fill-opacity:1;stroke-width:0.264583"
-       d="M 0,0 V 69.999862 L 25.000024,34.999931 Z" />
-    <path
-       id="path1"
-       style="display:none;fill:#e13c43;fill-opacity:1;stroke-width:0.264583"
-       d="M 50.000049,0 25.000024,34.999931 50.000049,69.999862 Z" />
-    <path
-       id="path3"
-       style="display:inline;fill:#ca3a44;fill-opacity:1;stroke-width:0.264583"
-       d="M 0,0 25.000024,34.999931 50.000049,0 Z" />
-  </g>
-</svg>
+<svg viewBox="0 0 50 70" xmlns="http://www.w3.org/2000/svg">
+   <path style="fill:#e23d44;fill-opacity:1;stroke-width:.250361" d="M0 0h50v70H0z"/>
+   <path style="display:inline;fill:#ff454a;fill-opacity:1;stroke-width:.264583" d="M25 35 0 70h50z"/>
+   <path style="display:inline;fill:#ca3a44;fill-opacity:1;stroke-width:.264583" d="m0 0 25 35L50 0Z"/>
+ </svg>
+ 

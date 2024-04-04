@@ -80,31 +80,22 @@ html {
     height: 20%;
     aspect-ratio: 2.5/3.5;
     perspective: 1000px;
-    filter: drop-shadow(0 0 5px #0009);
+
+
     -webkit-user-select: none;
-    /* Safari */
     -ms-user-select: none;
-    /* IE 10 and IE 11 */
     user-select: none;
-    /* Standard syntax */
+
+    box-shadow: 0 0 5px #0009;
+    overflow: clip;
 }
 
 #deal {
     top: 2.5%;
     left: 2.5%;
-    border-radius: 10%/calc(10% * 2.5/3.5);
-    overflow: clip;
-    filter: drop-shadow(0 0 10px #0009);
+
     background-image: url('../images/back.svg');
     background-size: 100%;
-}
-
-
-.card {
-    overflow: clip;
-    border-radius: 10%/calc(10% * 2.5/3.5);
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-
 }
 
 .flipped {
@@ -134,14 +125,9 @@ html {
 
 .card_back {
     transform: rotateY(180deg);
-
     background-image: url('../images/back.svg');
     background-size: 100%;
-
 }
-
-
-
 
 /* stack */
 
@@ -159,7 +145,6 @@ html {
     height: 100%;
     aspect-ratio: 2.5/3.5;
     background-color: #0012;
-    border-radius: 10%/calc(10% * 2.5/3.5);
 
     border-style: solid;
     border-width: 5px;
@@ -181,10 +166,16 @@ html {
     height: 100%;
     aspect-ratio: 2.5/3.5;
     background-color: #0012;
-    border-radius: 10%/calc(10% * 2.5/3.5);
 
     border-style: solid;
     border-width: 2px;
     border-color: #F75;
 
+}
+
+.card,
+#deal,
+#tableau>div,
+#stack>div {
+    border-radius: 0.8cqw;
 }

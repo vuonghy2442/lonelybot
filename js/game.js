@@ -31,17 +31,17 @@ function createCardSVG(c) {
     const suit_str = SUIT_MAP[c.suit]
     const color = c.suit < 2 ? "#901" : "#001"
 
-    return `<svg xmlns="http://www.w3.org/2000/svg" fill="${color}" viewBox="0 0 250 350">
-    <g dominant-baseline="hanging" font-size="40">
-       <text x="5%" y="5%">${rank_str}</text>
-       <text x="5%" y="15%">${suit_str}</text>
-    </g>
-    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="150">${rank_str}</text>
-    <g dominant-baseline="hanging" font-size="40" transform="rotate(180 125 175)">
-       <text x="5%" y="5%" >${rank_str}</text>
-       <text x="5%" y="15%">${suit_str}</text>
-    </g>
- </svg>`
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="card_front" fill="${color}" viewBox="0 0 250 350">
+                <g dominant-baseline="hanging" font-size="40">
+                <text x="5%" y="5%">${rank_str}</text>
+                <text x="5%" y="15%">${suit_str}</text>
+                </g>
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="150">${rank_str}</text>
+                <g dominant-baseline="hanging" font-size="40" transform="rotate(180 125 175)">
+                <text x="5%" y="5%" >${rank_str}</text>
+                <text x="5%" y="15%">${suit_str}</text>
+                </g>
+            </svg>`
 }
 
 class Card {
@@ -80,7 +80,7 @@ class Card {
             c.draggable = false;
             c.innerHTML = `<div class="card_inner">
                                 <div class="card_back"></div>
-                                <div class="card_front">${createCardSVG(this)}</div>
+                                ${createCardSVG(this)}
                             </div>`;
 
             if (this.flipped)
