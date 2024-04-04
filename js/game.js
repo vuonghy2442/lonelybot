@@ -13,6 +13,9 @@ const N_PILES = 7;
 const N_HIDDEN_CARDS = N_PILES * (N_PILES + 1) / 2;
 const N_FULL_DECK = N_CARDS - N_HIDDEN_CARDS;
 
+const UP_SPACE = 3;
+const DOWN_SPACE = 2;
+
 // ♤♡♢♧♠♥♦♣
 
 function cardId(rank, suit) {
@@ -232,10 +235,10 @@ class Solitaire {
             return Pos.None
         }
 
-        this.lift_card = (card) => {
-            // here
+        this.lift_card = (cards) => {
+            const card = cards[0]
             const res = new Array();
-            if (this.stack[card.suit] == card.rank) {
+            if (cards.length == 1 && this.stack[card.suit] == card.rank) {
                 res.push(Pos.Stack + card.suit);
             }
 
@@ -372,12 +375,12 @@ function initGame() {
             let visible = game.piles[i];
             for (let j = 0; j < visible.length; ++j) {
                 visible[j].draggable = j + 1 == visible.length;
-                visible[j].createDOM(pos[0] * 100, pos[1] * 100 + 2 * hidden.length + j * 3);
+                visible[j].createDOM(pos[0] * 100, pos[1] * 100 + DOWN_SPACE * hidden.length + j * UP_SPACE);
             }
         }
 
         return () => [...pos_stack, ...pos_tableau.map((p, i) =>
-            [p[0], p[1] + 0.02 * game.hidden_piles[i].length + 0.03 * game.piles[i].length]
+            [p[0], p[1] + (DOWN_SPACE * game.hidden_piles[i].length + UP_SPACE * game.piles[i].length) / 100]
         )];
     }();
 
@@ -403,8 +406,11 @@ function initGame() {
             setTimeout(() => {
                 c.flipCard(300);
                 c.moveTo(15 + pos * 2, 2.5, 300);
-                c.draggable = pos == 2;
             }, 200 * pos);
+        }
+
+        if (cards.length > 0) {
+            cards[cards.length - 1].draggable = true;
         }
     })
 
@@ -441,15 +447,20 @@ function initGame() {
             // append new stuff
             cards = game.deck.peek(cards.length + 1)
 
-            cards[0].draggable = false;
-            cards[0].turnUp();
-            cards[0].createDOM(15, 2.5);
+            if (cards.length > 0) {
+                cards[0].draggable = false;
+                cards[0].turnUp();
+                cards[0].createDOM(15, 2.5);
+            }
 
             for (let c of cards) {
                 c.moveToFront();
             }
         }
-        cards[cards.length - 1].draggable = true;
+
+        if (cards.length > 0) {
+            cards[cards.length - 1].draggable = true;
+        }
     })
 
     game.on_reveal.push((src, card) => {
@@ -474,7 +485,7 @@ function initGame() {
         moving_cards.forEach((c) => c.moveToFront());
 
 
-        const dropPos = game.lift_card(card);
+        const dropPos = game.lift_card(moving_cards);
 
         const [initialX, initialY] = getDOMPos(card.element);
 
@@ -491,7 +502,6 @@ function initGame() {
         }
 
         function findNear(x, y) {
-            if (snapped >= 0) return snapped;
             for (let p of dropPos) {
                 if (distance2(x, y, ...curPilePos[p]) < THRES_2) {
                     return p;
@@ -501,8 +511,6 @@ function initGame() {
         }
 
         function handleMouseMove(event) {
-            if (!card.isDraggable()) return;
-
             let x = (event.clientX - gameBoxBound.left) / gameBoxBound.width - offsetX;
             let y = (event.clientY - gameBoxBound.top) / gameBoxBound.height - offsetY;
 
@@ -510,22 +518,24 @@ function initGame() {
 
             if (p >= 0) {
                 let [u, v] = curPilePos[p];
-                const [dx, dy] = [x - u, y - v];
-                let dis2 = distance2(x, y, u, v);
-                let d = Math.max(Math.sqrt(dis2) / THRES - 0.5, 0);
+                // const [dx, dy] = [x - u, y - v];
+                // let dis2 = dx * dx + dy * dy;
+                // let d = Math.max(Math.sqrt(dis2) / THRES - 0.5, 0);
 
-                if (d < 0.5 && snapped < 0) {
-                    snapped = p;
-                } else if (d > 0.5 && snapped >= 0) {
-                    snapped = -1;
-                }
+                snapped = p;
 
-                const force = d > 0 ? Math.exp(-d) : 1;
-                x -= dx * force;
-                y -= dy * force;
+                // const force = d > 0 ? Math.exp(-d / 0.5) : 1;
+                // x -= dx * force;
+                // y -= dy * force;
+
+                moving_cards.forEach((c, idx) => c.moveTo(u * 100, v * 100 + idx * UP_SPACE, 100));
+
+            } else if (snapped >= 0) {
+                snapped = -1;
+                moving_cards.forEach((c, idx) => c.moveTo(x * 100, y * 100 + idx * UP_SPACE, 100));
+            } else {
+                moving_cards.forEach((c, idx) => { if (!c.animating) c.moveTo(x * 100, y * 100 + idx * UP_SPACE, 0) });
             }
-
-            moving_cards.forEach((c, idx) => c.moveTo(x * 100, y * 100 + idx * 3, 0));
         }
 
         function handleMouseUp() {
@@ -533,10 +543,10 @@ function initGame() {
 
             // Implement card snapping or other dragging behavior
             if (snapped < 0) {
-                moving_cards.forEach((c, idx) => c.moveTo(initialX * 100, initialY * 100 + idx * 3, 300 + 10 * idx));
+                moving_cards.forEach((c, idx) => c.moveTo(initialX * 100, initialY * 100 + idx * UP_SPACE, 300 + 10 * idx));
             } else {
                 let [u, v] = curPilePos[snapped];
-                moving_cards.forEach((c, idx) => c.moveTo(u * 100, v * 100 + idx * 3, 0));
+                moving_cards.forEach((c, idx) => c.moveTo(u * 100, v * 100 + idx * UP_SPACE, 0));
                 game.make_move(card, origin, snapped);
             }
 
