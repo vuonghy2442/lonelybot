@@ -16,8 +16,8 @@ const N_FULL_DECK = N_CARDS - N_HIDDEN_CARDS;
 const UP_SPACE = 3;
 const DOWN_SPACE = 2;
 
-const ANIMATION_TIME = 150;
-const OFFSET_TIME = 80;
+const ANIMATION_TIME = 100;
+const OFFSET_TIME = 70;
 
 // ♤♡♢♧♠♥♦♣
 
@@ -29,7 +29,7 @@ function cardId(rank, suit) {
 function createCardSVG(c) {
     const rank_str = RANK_MAP[c.rank]
     const suit_str = SUIT_MAP[c.suit]
-    const color = c.suit < 2 ? "#901" : "#001"
+    const color = c.suit < 2 ? "#e22" : "#001"
 
     return `<svg xmlns="http://www.w3.org/2000/svg" class="card_front" fill="${color}" viewBox="0 0 250 350">
                 <g dominant-baseline="hanging" font-size="40">
@@ -124,9 +124,6 @@ class Card {
             let inner = this.element.firstElementChild;
             if (duration > 0) {
                 inner.style.transition = `transform ${duration}ms`
-                inner.addEventListener("transitionend", (e) => {
-                    inner.style.removeProperty('transition');
-                }, { once: true });
             }
 
             inner.classList.toggle("flipped");
@@ -146,7 +143,7 @@ class Card {
             }
 
             if (duration > 0)
-                this.element.style.transition = `top ${duration}ms ease-in-out, left ${duration}ms ease-in-out`;
+                this.element.style.transition = `top ${duration}ms ease-in, left ${duration}ms ease-in`;
 
             if (pos_x !== null)
                 this.element.style.left = pos_x + "%";

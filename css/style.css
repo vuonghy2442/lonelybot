@@ -81,7 +81,6 @@ html {
     aspect-ratio: 2.5/3.5;
     perspective: 1000px;
 
-
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
@@ -177,5 +176,5 @@ html {
 #deal,
 #tableau>div,
 #stack>div {
-    border-radius: 0.8cqw;
+    border-radius: 0.7cqw;
 }
