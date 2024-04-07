@@ -1,6 +1,5 @@
 <svg viewBox="0 0 50 70" xmlns="http://www.w3.org/2000/svg">
-   <path style="fill:#e23d44;fill-opacity:1;stroke-width:.250361" d="M0 0h50v70H0z"/>
-   <path style="display:inline;fill:#ff454a;fill-opacity:1;stroke-width:.264583" d="M25 35 0 70h50z"/>
-   <path style="display:inline;fill:#ca3a44;fill-opacity:1;stroke-width:.264583" d="m0 0 25 35L50 0Z"/>
- </svg>
- 
+  <path fill="#e23d44" d="M0 0h50v70H0z"/>
+  <path fill="#ff454a" d="M25 35 0 70h50z"/>
+  <path fill="#ca3a44" d="m0 0 25 35L50 0Z"/>
+</svg>
