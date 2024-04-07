@@ -15,6 +15,12 @@ const N_FULL_DECK = N_CARDS - N_HIDDEN_CARDS;
 
 const UP_SPACE = 3;
 const DOWN_SPACE = 2;
+const DEAL_SPACE = 2;
+
+const TOP_DEAL = 2.5;
+const LEFT_DEAL = 2.5;
+
+const LEFT_WASTE = 15;
 
 const ANIMATION_TIME = 100;
 const OFFSET_TIME = 70;
@@ -32,14 +38,14 @@ function createCardSVG(c) {
     const color = c.suit < 2 ? "#e22" : "#001"
 
     return `<svg xmlns="http://www.w3.org/2000/svg" class="card_front" fill="${color}" viewBox="0 0 250 350">
-                <g dominant-baseline="hanging" font-size="40">
-                <text x="5%" y="5%">${rank_str}</text>
-                <text x="5%" y="15%">${suit_str}</text>
+                <g font-size="45">
+                    <text x="5%" y="50">${rank_str}</text>
+                    <text x="5%" y="95">${suit_str}</text>
                 </g>
                 <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="150">${rank_str}</text>
-                <g dominant-baseline="hanging" font-size="40" transform="rotate(180 125 175)">
-                <text x="5%" y="5%" >${rank_str}</text>
-                <text x="5%" y="15%">${suit_str}</text>
+                <g font-size="45" transform="rotate(180 125 175)">
+                    <text x="5%" y="50" >${rank_str}</text>
+                    <text x="5%" y="95">${suit_str}</text>
                 </g>
             </svg>`
 }
@@ -84,7 +90,7 @@ class Card {
                             </div>`;
 
             if (this.flipped)
-                c.firstElementChild.classList.add("flipped")
+                c.firstElementChild.classList.add("flipped");
 
             c.style.left = pos_x + "%";
             c.style.top = pos_y + "%";
@@ -318,7 +324,6 @@ function shuffleArray(array) {
 }
 
 let shuffledCards = [...cardArray];
-// shuffledCards.reverse();
 shuffleArray(shuffledCards);
 
 const game = new Solitaire(shuffledCards, 3);
@@ -368,12 +373,12 @@ function initGame() {
             for (let j = 0; j < hidden.length; ++j) {
                 hidden[j].flipCard();
                 hidden[j].draggable = false;
-                hidden[j].createDOM(pos[0] * 100, pos[1] * 100 + 2 * j);
+                hidden[j].createDOM(pos[0] * 100, pos[1] * 100 + DOWN_SPACE * j);
             }
             let visible = game.piles[i];
             for (let j = 0; j < visible.length; ++j) {
                 visible[j].draggable = j + 1 == visible.length;
-                visible[j].createDOM(pos[0] * 100, pos[1] * 100 + DOWN_SPACE * hidden.length + j * UP_SPACE);
+                visible[j].createDOM(pos[0] * 100, pos[1] * 100 + DOWN_SPACE * hidden.length + UP_SPACE * j);
             }
         }
 
@@ -398,12 +403,12 @@ function initGame() {
             c.draggable = false;
 
             c.flipCard();
-            c.createDOM(2.5, 2.5);
+            c.createDOM(TOP_DEAL, LEFT_DEAL);
             c.moveToFront();
 
             setTimeout(() => {
                 c.flipCard(ANIMATION_TIME);
-                c.moveTo(15 + pos * 2, 2.5, ANIMATION_TIME);
+                c.moveTo(LEFT_WASTE + pos * DEAL_SPACE, TOP_DEAL, ANIMATION_TIME);
             }, OFFSET_TIME * pos);
         }
 
@@ -448,7 +453,7 @@ function initGame() {
             if (cards.length > 0) {
                 cards[0].draggable = false;
                 cards[0].turnUp();
-                cards[0].createDOM(15, 2.5);
+                cards[0].createDOM(LEFT_WASTE, TOP_DEAL);
             }
 
             for (let c of cards) {
