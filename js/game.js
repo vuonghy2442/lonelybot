@@ -18,7 +18,8 @@ const DOWN_SPACE = 2;
 const DEAL_SPACE = 3;
 
 const ANIMATION_TIME = 100;
-const OFFSET_TIME = 70;
+const OFFSET_TIME = 100;
+const REVEAL_TIME = 300;
 
 // ♤♡♢♧♠♥♦♣
 
@@ -43,6 +44,8 @@ function createCardSVG(c) {
     </g>
   </svg>`;
 }
+
+// const container = document.querySelector("#card_container");
 
 class Card {
   constructor(rank, suit) {
@@ -322,7 +325,7 @@ const pilePos = (function () {
     pos_stack.push(getDOMPos(s));
   }
 
-  for (let s of document.querySelectorAll("#tableau > div")) {
+  for (let s of document.querySelectorAll(".tableau")) {
     pos_tableau.push(getDOMPos(s));
   }
   return [...pos_stack, ...pos_tableau];
@@ -399,24 +402,23 @@ function initGame() {
     for (let c of cards) {
       c.deleteDom();
     }
-    cards = [];
 
-    for (let [pos, c] of game.deck.peek(3).entries()) {
-      cards.push(c);
+    cards = game.deck.peek(3);
+
+    for (let [pos, c] of cards.entries()) {
       c.draggable = false;
-
       c.flipCard();
+
       c.createDOM(DEAL_POS[0] * 100, DEAL_POS[1] * 100);
       c.moveToFront();
 
       setTimeout(() => {
         c.flipCard(ANIMATION_TIME);
         c.moveTo(WASTE_POS[0] * 100 + pos * DEAL_SPACE, WASTE_POS[1] * 100, ANIMATION_TIME);
+        if (pos + 1 == cards.length) {
+          c.draggable = true;
+        }
       }, OFFSET_TIME * pos);
-    }
-
-    if (cards.length > 0) {
-      cards[cards.length - 1].draggable = true;
     }
   });
 
@@ -471,7 +473,7 @@ function initGame() {
 
   game.on_reveal.push((src, card) => {
     card.draggable = true;
-    card.turnUp(200);
+    card.turnUp(REVEAL_TIME);
   });
 
   function moveCard(event, card) {
