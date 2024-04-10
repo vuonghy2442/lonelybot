@@ -70,17 +70,19 @@ html {
   font-size: 30px;
 }
 
+#top_box {
+  width: 100%;
+  height: 25%;
+  background: #040;
+  display: flex;
+}
+
 #top_row {
   width: 100%;
-  height: 20%;
+  height: 80%;
+  margin: auto;
   display: flex;
   justify-content: space-evenly;
-
-  background: #040;
-
-  padding-top: 2.5%;
-  padding-bottom: 2.5%;
-  box-sizing: content-box;
 }
 
 #top_row > div {
