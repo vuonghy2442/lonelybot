@@ -84,7 +84,9 @@ class Card {
         ${createCardSVG(this)}
       </div>`;
 
-      if (this.flipped) c.firstElementChild.classList.add("flipped");
+      const inner = c.firstElementChild;
+
+      if (this.flipped) inner.classList.add("flipped");
 
       c.style.left = pos_x + "%";
       c.style.top = pos_y + "%";
@@ -100,6 +102,14 @@ class Card {
 
       c.addEventListener("transitioncancel", done_animate);
       c.addEventListener("transitionend", done_animate);
+
+      // const done_flip_animate = (_) => {
+      //   c.style.removeProperty("transition");
+      //   this.animating = false;
+      // };
+
+      // inner.addEventListener("transitioncancel", done_flip_animate);
+      // inner.addEventListener("transitionend", done_flip_animate);
 
       gameBox.appendChild(c);
       c.dataset.cardId = this.id();
@@ -122,9 +132,9 @@ class Card {
 
       // Flip card logic
       let inner = this.element.firstElementChild;
-      if (duration > 0) {
-        inner.style.transition = `transform ${duration}ms`;
-      }
+      // if (duration > 0) {
+      //   inner.style.transition = `transform ${duration}ms`;
+      // }
 
       inner.classList.toggle("flipped");
     };

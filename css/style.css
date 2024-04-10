@@ -78,17 +78,26 @@ html {
   user-select: none;
 
   filter: drop-shadow(0 0 5px #0009);
+
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
-.flipped {
-  transform: rotateY(-180deg);
+.flipped > .card_front {
+  visibility: hidden;
+}
+
+.flipped > .card_back {
+  visibility: visible;
 }
 
 .card_inner {
   position: absolute;
   width: 100%;
   height: 100%;
-  transform-style: preserve-3d;
+}
+.card_back {
+  visibility: hidden;
 }
 
 .card_front,
@@ -96,18 +105,16 @@ html {
   position: absolute;
   width: 100%;
   height: 100%;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
 }
 
 .card_front {
-  transform: rotateY(0deg);
+  /* transform: rotateY(0deg); */
   background-color: #fff;
   background-size: 100%;
 }
 
 .card_back {
-  transform: rotateY(180deg);
+  /* transform: rotateY(180deg); */
   background-image: url("../images/back.svg");
   background-size: 100%;
 }
