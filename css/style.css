@@ -77,10 +77,12 @@ html {
   -ms-user-select: none;
   user-select: none;
 
-  filter: drop-shadow(0 0 5px #0009);
+  box-shadow: 0 0 5px #0009;
 
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+  /* -webkit-backface-visibility: hidden; */
+  /* backface-visibility: hidden; */
+
+  overflow: clip;
 }
 
 .flipped > .card_front {
@@ -161,8 +163,7 @@ html {
   border-color: #f75;
 }
 
-.card_front,
-.card_back,
+.card,
 #deal,
 .tableau,
 .stack {
