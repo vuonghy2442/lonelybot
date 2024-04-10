@@ -489,8 +489,6 @@ function initGame() {
   let handlingMove = false;
 
   function moveCard(event, card) {
-    handlingMove = true;
-
     const origin = game.find_origin(card);
 
     let moving_cards = [card];
@@ -530,6 +528,8 @@ function initGame() {
     }
 
     function handlePointerMove(event) {
+      if (!event.isPrimary) return;
+
       let x = (event.pageX - gameBoxBound.left) / gameBoxBound.width - offsetX;
       let y = (event.pageY - gameBoxBound.top) / gameBoxBound.height - offsetY;
 
@@ -580,6 +580,8 @@ function initGame() {
       }
       handlingMove = false;
     }
+
+    handlingMove = true;
 
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
