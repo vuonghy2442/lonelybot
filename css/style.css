@@ -169,7 +169,7 @@ html {
 #deal,
 #tableau > div,
 .stack {
-  border-radius: 0.7cqw;
+  border-radius: 1cqh;
 }
 
 @media (min-aspect-ratio: 3/4) {
