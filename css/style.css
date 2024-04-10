@@ -125,11 +125,10 @@ html {
 #tableau,
 #top_row {
   display: flex;
-  position: relative;
+  position: absolute;
   justify-content: space-evenly;
   height: 20%;
   width: 100%;
-  margin-top: 2.5%;
 }
 
 #top_row > div,
@@ -140,6 +139,11 @@ html {
 
 #top_row {
   background: #040;
+  top: 2.5%;
+}
+
+#tableau {
+  top: 25%;
 }
 
 #tableau > div,
