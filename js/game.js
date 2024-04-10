@@ -313,13 +313,30 @@ class Solitaire {
 
 const gameBox = document.querySelector("#game_box");
 
-let gameBoxBound = gameBox.getBoundingClientRect();
+const getOffsetRect = (el) => {
+  let rect = el.getBoundingClientRect();
+
+  // add window scroll position to get the offset position
+  let left = rect.left + window.scrollX;
+  let top = rect.top + window.scrollY;
+  let right = rect.right + window.scrollX;
+  let bottom = rect.bottom + window.scrollY;
+
+  // width and height are the same
+  let width = rect.width;
+  let height = rect.height;
+
+  return { left, top, right, bottom, width, height };
+};
+
+let gameBoxBound = getOffsetRect(gameBox);
 
 window.addEventListener("resize", (_) => {
-  gameBoxBound = gameBox.getBoundingClientRect();
+  gameBoxBound = getOffsetRect(gameBox);
 });
+
 function getDOMPos(el) {
-  let bound = el.getBoundingClientRect();
+  let bound = getOffsetRect(el);
   const x = (bound.left - gameBoxBound.left) / gameBoxBound.width;
   const y = (bound.top - gameBoxBound.top) / gameBoxBound.height;
   return [x, y];
