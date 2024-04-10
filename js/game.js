@@ -506,8 +506,8 @@ function initGame() {
 
     const [initialX, initialY] = getDOMPos(card.element);
 
-    const offsetX = (event.clientX - gameBoxBound.left) / gameBoxBound.width - initialX;
-    const offsetY = (event.clientY - gameBoxBound.top) / gameBoxBound.height - initialY;
+    const offsetX = (event.pageX - gameBoxBound.left) / gameBoxBound.width - initialX;
+    const offsetY = (event.pageY - gameBoxBound.top) / gameBoxBound.height - initialY;
 
     let snapped = -1;
 
@@ -525,9 +525,9 @@ function initGame() {
       return -1;
     }
 
-    function handleMouseMove(event) {
-      let x = (event.clientX - gameBoxBound.left) / gameBoxBound.width - offsetX;
-      let y = (event.clientY - gameBoxBound.top) / gameBoxBound.height - offsetY;
+    function handlePointerMove(event) {
+      let x = (event.pageX - gameBoxBound.left) / gameBoxBound.width - offsetX;
+      let y = (event.pageY - gameBoxBound.top) / gameBoxBound.height - offsetY;
 
       let p = findNear(x, y);
 
@@ -554,8 +554,15 @@ function initGame() {
       }
     }
 
-    function handleMouseUp() {
-      window.removeEventListener("pointermove", handleMouseMove);
+    function handlePointerCancel() {
+      snapped = -1;
+      handlePointerUp();
+    }
+
+    function handlePointerUp() {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerCancel);
 
       // Implement card snapping or other dragging behavior
       if (snapped < 0) {
@@ -569,8 +576,9 @@ function initGame() {
       }
     }
 
-    window.addEventListener("pointermove", handleMouseMove);
-    window.addEventListener("pointerup", handleMouseUp, { once: true });
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerCancel);
   }
 
   let cards = [];
@@ -579,7 +587,7 @@ function initGame() {
     game.make_move(null, 0, 0);
   }
 
-  function onMouseDown(event) {
+  function onPointerDown(event) {
     if (event.which !== 1 || !event.isPrimary) return;
 
     const cardDOM = event.target.closest(".card");
@@ -599,5 +607,5 @@ function initGame() {
     }
   }
 
-  gameBox.addEventListener("pointerdown", onMouseDown);
+  gameBox.addEventListener("pointerdown", onPointerDown);
 }
