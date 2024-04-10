@@ -486,7 +486,11 @@ function initGame() {
     card.turnUp(REVEAL_TIME);
   });
 
+  let handlingMove = false;
+
   function moveCard(event, card) {
+    handlingMove = true;
+
     const origin = game.find_origin(card);
 
     let moving_cards = [card];
@@ -574,6 +578,7 @@ function initGame() {
         moving_cards.forEach((c, idx) => c.moveTo(u * 100, v * 100 + idx * UP_SPACE, 0));
         game.make_move(card, origin, snapped);
       }
+      handlingMove = false;
     }
 
     window.addEventListener("pointermove", handlePointerMove);
@@ -588,7 +593,7 @@ function initGame() {
   }
 
   function onPointerDown(event) {
-    if (event.which !== 1 || !event.isPrimary) return;
+    if (event.which !== 1 || !event.isPrimary || handlingMove) return;
 
     const cardDOM = event.target.closest(".card");
 
