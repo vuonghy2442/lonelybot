@@ -70,18 +70,19 @@ html {
   font-size: 30px;
 }
 
-#top_box {
+.pad_box {
   width: 100%;
-  height: 25%;
+  height: 2.5%;
   background: #040;
-  display: flex;
 }
 
 #top_row {
   width: 100%;
-  height: 80%;
+  height: 20%;
   margin: auto;
   display: flex;
+  background: #040;
+
   justify-content: space-evenly;
 }
 
