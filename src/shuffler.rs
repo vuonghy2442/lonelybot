@@ -181,6 +181,7 @@ pub fn greenfelt_shuffle(seed: u32) -> CardDeck {
         new_cards[28..28 + 24].copy_from_slice(&cards[0..24]);
         new_cards[0..28].copy_from_slice(&cards[24..24 + 28]);
         new_cards[0..N_HIDDEN_CARDS as usize].reverse();
+        new_cards[N_HIDDEN_CARDS as usize..].reverse();
         new_cards
     };
     // convert to standard form
