@@ -369,9 +369,9 @@ Run with Solvitaire seed
 Run S-1071884 Solved: (878240-0/1071884 ~ 0.8186<=0.8193<=0.8201) 12711939 4517405 93 in 10356.75 ms.
 
 Run with Klondike Solver seed
-Run K-3544902 Solved: (2904790-0/3544903 ~ 0.8190<=0.8194<=0.8198) 5062 3001 93 in 4.44 ms.
+Run K-5910578 Solved: (4843708-0/5910579 ~ 0.8192<=0.8195<=0.8198) 155 149 102 in 0.60 ms.
 
-So this is the new state of the art result for solvability: 81.94 ± 0.04 (compared to the previous from Solvitaire 81.945 ± 0.084) at 95% confidence
+So this is the new state of the art result for solvability: 81.95 ± 0.03 (compared to the previous from Solvitaire 81.945 ± 0.084) at 95% confidence
 
 This result is computed on 1 cpu core for a few days. With more resources, it can be easily improved.
 
@@ -380,9 +380,9 @@ One other notable thing is that there's no game that it can't decide in a reason
 ### Random Klondike
 So with my hop/MCTS solver, I also achieve the state of the art for random Klondike
 
-25319/56932 ~ 0.4406 < 0.4447 < 0.4488 in 7.359837524s
+44953/101274 ~ 0.4408 < 0.4439 < 0.4469 in 36.506412931s
 
-So the solvability is 44.47 ± 0.41 (compared to the previous 36.97 ± 1.92 from [this paper](https://ojs.aaai.org/index.php/ICAPS/article/view/13363/13211))
+So the solvability is 44.39 ± 0.30 (compared to the previous 36.97 ± 1.92 from [this paper](https://ojs.aaai.org/index.php/ICAPS/article/view/13363/13211))
 
 The average running time for one game is only a few seconds.
 
