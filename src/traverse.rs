@@ -2,7 +2,7 @@ use hashbrown::HashSet;
 
 use crate::{
     engine::{Encode, Move, MoveVec, Solitaire},
-    utils,
+    utils::MixHasherBuilder,
 };
 
 pub trait TranspositionTable {
@@ -45,7 +45,7 @@ pub trait Callback {
     fn on_undo_move(&mut self, _m: &Move, _encode: Encode, _res: &ControlFlow) {}
 }
 
-pub type TpTable = HashSet<Encode, nohash_hasher::BuildNoHashHasher<Encode>>;
+pub type TpTable = HashSet<Encode, MixHasherBuilder>;
 impl TranspositionTable for TpTable {
     fn clear(&mut self) {
         self.clear();
@@ -74,7 +74,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
         ControlFlow::Ok => {}
     };
 
-    if !tp.insert(utils::mix(encode)) {
+    if !tp.insert(encode) {
         return ControlFlow::Ok;
     }
 

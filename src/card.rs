@@ -17,7 +17,6 @@ pub const SUIT_MASK: [u64; N_SUITS as usize] = [
 
 pub const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card(u8);
 
