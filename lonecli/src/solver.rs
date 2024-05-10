@@ -3,13 +3,13 @@ use lonelybot::{
     engine::Solitaire,
     graph::{graph_with_tracking, Graph},
     solver::{solve_with_tracking, HistoryVec, SearchResult},
-    tracking::SearchSignal,
+    tracking::TerminateSignal,
     traverse::ControlFlow,
 };
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc::{channel, RecvTimeoutError, Sender},
+        mpsc::{channel, RecvTimeoutError},
         Arc,
     },
     thread,
@@ -21,20 +21,15 @@ const STACK_SIZE: usize = 4 * 1024 * 1024;
 
 struct Signal<'a> {
     term_signal: &'a AtomicBool,
-    done_channel: Sender<()>,
 }
 
-impl<'a> SearchSignal for Signal<'a> {
+impl<'a> TerminateSignal for Signal<'a> {
     fn terminate(&self) {
         self.term_signal.store(true, Ordering::Relaxed);
     }
 
     fn is_terminated(&self) -> bool {
         self.term_signal.load(Ordering::Relaxed)
-    }
-
-    fn search_finish(&self) {
-        self.done_channel.send(()).ok();
     }
 }
 
@@ -54,14 +49,15 @@ pub fn run_solve(
         thread::Builder::new()
             .stack_size(STACK_SIZE)
             .spawn(move || {
-                solve_with_tracking(
+                let res = solve_with_tracking(
                     &mut g,
                     ss_clone.as_ref(),
                     &Signal {
                         term_signal: term.as_ref(),
-                        done_channel: send,
                     },
-                )
+                );
+                send.send(()).ok();
+                res
             })
             .unwrap()
     };
@@ -96,14 +92,15 @@ pub fn run_graph(
         thread::Builder::new()
             .stack_size(STACK_SIZE)
             .spawn(move || {
-                graph_with_tracking(
+                let res = graph_with_tracking(
                     &mut g,
                     ss_clone.as_ref(),
                     &Signal {
                         term_signal: term.as_ref(),
-                        done_channel: send,
                     },
-                )
+                );
+                send.send(()).ok();
+                res
             })
             .unwrap()
     };

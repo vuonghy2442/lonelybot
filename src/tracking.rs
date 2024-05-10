@@ -12,20 +12,13 @@ impl SearchStatistics for EmptySearchStats {
     fn finish_move(&self, _: usize) {}
 }
 
-pub trait SearchSignal {
-    fn terminate(&self);
-    fn is_terminated(&self) -> bool;
-    fn search_finish(&self);
-}
-
-pub struct DefaultSearchSignal;
-
-impl SearchSignal for DefaultSearchSignal {
+pub trait TerminateSignal {
     fn terminate(&self) {}
-
     fn is_terminated(&self) -> bool {
         false
     }
-
-    fn search_finish(&self) {}
 }
+
+pub struct DefaultTerminateSignal;
+
+impl TerminateSignal for DefaultTerminateSignal {}

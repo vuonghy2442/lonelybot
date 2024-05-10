@@ -3,18 +3,18 @@ use rand::RngCore;
 use crate::{
     engine::{Encode, Move, Solitaire},
     solver::SearchResult,
-    tracking::SearchSignal,
+    tracking::TerminateSignal,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 
-struct HOPSolverCallback<'a, T: SearchSignal> {
+struct HOPSolverCallback<'a, T: TerminateSignal> {
     sign: &'a T,
     result: SearchResult,
     limit: usize,
     n_visit: usize,
 }
 
-impl<'a, T: SearchSignal> Callback for HOPSolverCallback<'a, T> {
+impl<'a, T: TerminateSignal> Callback for HOPSolverCallback<'a, T> {
     fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
         self.result = SearchResult::Solved;
         ControlFlow::Halt
@@ -39,21 +39,9 @@ impl<'a, T: SearchSignal> Callback for HOPSolverCallback<'a, T> {
             ControlFlow::Ok
         }
     }
-
-    fn on_move_gen(&mut self, _: &crate::engine::MoveVec, _: Encode) {}
-
-    fn on_do_move(&mut self, _: &Solitaire, _: &Move, _: Encode, _: &Option<Move>) {}
-
-    fn on_undo_move(&mut self, _: &Move, _: Encode) {}
-
-    fn on_start(&mut self) {}
-
-    fn on_finish(&mut self, _: &ControlFlow) {
-        self.sign.search_finish();
-    }
 }
 
-pub fn hop_solve_game<R: RngCore, T: SearchSignal>(
+pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
     g: &Solitaire,
     m: &Move,
     rng: &mut R,
@@ -94,7 +82,7 @@ pub fn hop_solve_game<R: RngCore, T: SearchSignal>(
             n_visit: 0,
         };
         tp.clear();
-        traverse(&mut gg, &mut tp, &mut callback, rev_move);
+        traverse(&mut gg, rev_move, &mut tp, &mut callback);
         if sign.is_terminated() {
             break;
         }
@@ -112,56 +100,47 @@ pub fn hop_solve_game<R: RngCore, T: SearchSignal>(
 extern crate alloc;
 use alloc::vec::Vec;
 
-struct RevStatesCallback<'a, R: RngCore, S: SearchSignal> {
+struct RevStatesCallback<'a, R: RngCore, T: TerminateSignal> {
     his: Vec<Move>,
     rng: &'a mut R,
     n_times: usize,
     limit: usize,
-    sign: &'a S,
+    sign: &'a T,
     res: Vec<(Vec<Move>, (usize, usize, usize))>,
-    skipped: bool,
 }
 
-impl<'a, R: RngCore, S: SearchSignal> Callback for RevStatesCallback<'a, R, S> {
+impl<'a, R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'a, R, T> {
     fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
         self.res.push((self.his.clone(), (!0, 0, !0)));
         ControlFlow::Halt
     }
 
-    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> ControlFlow {
-        if self.skipped {
+    fn on_do_move(
+        &mut self,
+        g: &Solitaire,
+        m: &Move,
+        _: Encode,
+        rev: &Option<Move>,
+    ) -> ControlFlow {
+        self.his.push(*m);
+        // if rev.is_none() && (matches!(m, Move::Reveal(_)) || matches!(m, Move::PileStack(_))) {
+        if rev.is_none() {
+            self.res.push((
+                self.his.clone(),
+                hop_solve_game(g, m, self.rng, self.n_times, self.limit, self.sign, None),
+            ));
             ControlFlow::Skip
         } else {
             ControlFlow::Ok
         }
     }
 
-    fn on_move_gen(&mut self, _: &crate::engine::MoveVec, _: Encode) {}
-
-    fn on_do_move(&mut self, g: &Solitaire, m: &Move, _: Encode, rev: &Option<Move>) {
-        self.his.push(*m);
-        // if rev.is_none() && (matches!(m, Move::Reveal(_)) || matches!(m, Move::PileStack(_))) {
-        if rev.is_none() {
-            self.skipped = true;
-            self.res.push((
-                self.his.clone(),
-                hop_solve_game(g, m, self.rng, self.n_times, self.limit, self.sign, None),
-            ));
-        } else {
-            self.skipped = false;
-        }
-    }
-
-    fn on_undo_move(&mut self, _: &Move, _: Encode) {
+    fn on_undo_move(&mut self, _: &Move, _: Encode, _: &ControlFlow) {
         self.his.pop();
     }
-
-    fn on_start(&mut self) {}
-
-    fn on_finish(&mut self, _: &ControlFlow) {}
 }
 
-pub fn list_moves<R: RngCore, T: SearchSignal>(
+pub fn list_moves<R: RngCore, T: TerminateSignal>(
     g: &mut Solitaire,
     rng: &mut R,
     n_times: usize,
@@ -175,10 +154,9 @@ pub fn list_moves<R: RngCore, T: SearchSignal>(
         limit,
         sign,
         res: Vec::default(),
-        skipped: false,
     };
 
     let mut tp = TpTable::default();
-    traverse(g, &mut tp, &mut callback, None);
+    traverse(g, None, &mut tp, &mut callback);
     callback.res
 }

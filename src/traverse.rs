@@ -20,18 +20,43 @@ pub enum ControlFlow {
 pub trait Callback {
     fn on_win(&mut self, game: &Solitaire, rev_move: &Option<Move>) -> ControlFlow;
 
-    fn on_visit(&mut self, game: &Solitaire, encode: Encode) -> ControlFlow;
-    fn on_move_gen(&mut self, move_list: &MoveVec, encode: Encode);
+    fn on_visit(&mut self, _game: &Solitaire, _encode: Encode) -> ControlFlow {
+        ControlFlow::Ok
+    }
 
-    fn on_do_move(&mut self, game: &Solitaire, m: &Move, encode: Encode, rev_move: &Option<Move>);
-    fn on_undo_move(&mut self, m: &Move, encode: Encode);
+    fn on_backtrack(&mut self, _game: &Solitaire, _encode: Encode) -> ControlFlow {
+        ControlFlow::Ok
+    }
 
-    fn on_start(&mut self);
-    fn on_finish(&mut self, res: &ControlFlow);
+    fn on_move_gen(&mut self, _move_list: &MoveVec, _encode: Encode) -> ControlFlow {
+        ControlFlow::Ok
+    }
+
+    fn on_do_move(
+        &mut self,
+        _game: &Solitaire,
+        _m: &Move,
+        _encode: Encode,
+        _rev_move: &Option<Move>,
+    ) -> ControlFlow {
+        ControlFlow::Ok
+    }
+
+    fn on_undo_move(&mut self, _m: &Move, _encode: Encode, _res: &ControlFlow) {}
+}
+
+pub type TpTable = HashSet<Encode, nohash_hasher::BuildNoHashHasher<Encode>>;
+impl TranspositionTable for TpTable {
+    fn clear(&mut self) {
+        self.clear();
+    }
+    fn insert(&mut self, value: Encode) -> bool {
+        self.insert(value)
+    }
 }
 
 // it guarantee to return the state of g back into normal state
-fn traversing<T: TranspositionTable, C: Callback>(
+pub fn traverse<T: TranspositionTable, C: Callback>(
     game: &mut Solitaire,
     rev_move: Option<Move>,
     tp: &mut T,
@@ -54,7 +79,11 @@ fn traversing<T: TranspositionTable, C: Callback>(
     }
 
     let move_list = game.list_moves::<true>();
-    callback.on_move_gen(&move_list, encode);
+    match callback.on_move_gen(&move_list, encode) {
+        ControlFlow::Halt => return ControlFlow::Halt,
+        ControlFlow::Skip => return ControlFlow::Skip,
+        ControlFlow::Ok => {}
+    }
 
     for m in move_list {
         if Some(m) == rev_move {
@@ -62,39 +91,23 @@ fn traversing<T: TranspositionTable, C: Callback>(
         }
         let rev_move = game.get_rev_move(&m);
 
-        callback.on_do_move(game, &m, encode, &rev_move);
+        match callback.on_do_move(game, &m, encode, &rev_move) {
+            ControlFlow::Halt => return ControlFlow::Halt,
+            ControlFlow::Skip => continue,
+            ControlFlow::Ok => {}
+        }
+
         let undo = game.do_move(&m);
 
-        let res = traversing(game, rev_move, tp, callback);
+        let res = traverse(game, rev_move, tp, callback);
 
         game.undo_move(&m, &undo);
-        callback.on_undo_move(&m, encode);
+        callback.on_undo_move(&m, encode, &res);
 
         if res == ControlFlow::Halt {
             return ControlFlow::Halt;
         }
     }
-    ControlFlow::Ok
-}
 
-pub type TpTable = HashSet<Encode, nohash_hasher::BuildNoHashHasher<Encode>>;
-impl TranspositionTable for TpTable {
-    fn clear(&mut self) {
-        self.clear();
-    }
-    fn insert(&mut self, value: Encode) -> bool {
-        self.insert(value)
-    }
-}
-
-pub fn traverse<T: TranspositionTable, C: Callback>(
-    game: &mut Solitaire,
-    tp: &mut T,
-    callback: &mut C,
-    rev_move: Option<Move>,
-) -> ControlFlow {
-    callback.on_start();
-    let res = traversing(game, rev_move, tp, callback);
-    callback.on_finish(&res);
-    res
+    callback.on_backtrack(game, encode)
 }

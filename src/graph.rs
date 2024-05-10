@@ -1,6 +1,6 @@
 use crate::{
     engine::{Encode, Move, Solitaire},
-    tracking::{DefaultSearchSignal, EmptySearchStats, SearchSignal, SearchStatistics},
+    tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 
@@ -20,7 +20,7 @@ pub enum EdgeType {
 pub type Edge = (Encode, Encode, EdgeType);
 pub type Graph = Vec<Edge>;
 
-struct BuilderCallback<'a, S: SearchStatistics, T: SearchSignal> {
+struct BuilderCallback<'a, S: SearchStatistics, T: TerminateSignal> {
     graph: Graph,
     stats: &'a S,
     sign: &'a T,
@@ -46,7 +46,7 @@ const fn get_edge_type(m: Move, rm: Option<Move>) -> EdgeType {
     }
 }
 
-impl<'a, S: SearchStatistics, T: SearchSignal> Callback for BuilderCallback<'a, S, T> {
+impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'a, S, T> {
     fn on_win(&mut self, _: &Solitaire, rm: &Option<Move>) -> ControlFlow {
         // win state
         self.graph
@@ -69,30 +69,32 @@ impl<'a, S: SearchStatistics, T: SearchSignal> Callback for BuilderCallback<'a, 
         ControlFlow::Ok
     }
 
-    fn on_move_gen(&mut self, m: &crate::engine::MoveVec, _: Encode) {
+    fn on_move_gen(&mut self, m: &crate::engine::MoveVec, _: Encode) -> ControlFlow {
         self.stats.hit_unique_state(self.depth, m.len());
+        ControlFlow::Ok
     }
 
-    fn on_do_move(&mut self, _: &Solitaire, m: &Move, e: Encode, rev: &Option<Move>) {
+    fn on_do_move(
+        &mut self,
+        _: &Solitaire,
+        m: &Move,
+        e: Encode,
+        rev: &Option<Move>,
+    ) -> ControlFlow {
         self.last_move = *m;
         self.rev_move = *rev;
         self.prev_enc = e;
         self.depth += 1;
+        ControlFlow::Ok
     }
 
-    fn on_undo_move(&mut self, _: &Move, _: Encode) {
+    fn on_undo_move(&mut self, _: &Move, _: Encode, _: &ControlFlow) {
         self.depth -= 1;
         self.stats.finish_move(self.depth);
     }
-
-    fn on_start(&mut self) {}
-
-    fn on_finish(&mut self, _: &ControlFlow) {
-        self.sign.search_finish();
-    }
 }
 
-pub fn graph_with_tracking<S: SearchStatistics, T: SearchSignal>(
+pub fn graph_with_tracking<S: SearchStatistics, T: TerminateSignal>(
     g: &mut Solitaire,
     stats: &S,
     sign: &T,
@@ -108,10 +110,10 @@ pub fn graph_with_tracking<S: SearchStatistics, T: SearchSignal>(
         rev_move: None,
     };
 
-    let finished = traverse(g, &mut tp, &mut callback, None);
+    let finished = traverse(g, None, &mut tp, &mut callback);
     (finished, callback.graph)
 }
 
 pub fn graph(g: &mut Solitaire) -> (ControlFlow, Graph) {
-    graph_with_tracking(g, &EmptySearchStats {}, &DefaultSearchSignal {})
+    graph_with_tracking(g, &EmptySearchStats {}, &DefaultTerminateSignal {})
 }

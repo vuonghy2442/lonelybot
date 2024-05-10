@@ -3,7 +3,7 @@ use rand::RngCore;
 use crate::{
     engine::{Encode, Move, Solitaire},
     hop_solver::hop_solve_game,
-    tracking::SearchSignal,
+    tracking::TerminateSignal,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 
@@ -12,49 +12,46 @@ use alloc::vec::Vec;
 
 struct FindStatesCallback {
     his: Vec<Move>,
-    found: bool,
     state: Encode,
-    skipped: bool,
 }
 
 impl Callback for FindStatesCallback {
     fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
-        self.found = true;
         ControlFlow::Halt
     }
 
     fn on_visit(&mut self, _: &Solitaire, e: Encode) -> ControlFlow {
         if self.state == e {
-            self.found = true;
             ControlFlow::Halt
-        } else if self.skipped {
-            ControlFlow::Skip
         } else {
             ControlFlow::Ok
         }
     }
 
-    fn on_move_gen(&mut self, _: &crate::engine::MoveVec, _: Encode) {}
-
-    fn on_do_move(&mut self, _: &Solitaire, m: &Move, _: Encode, rev: &Option<Move>) {
-        self.his.push(*m);
-        self.skipped = rev.is_none();
-    }
-
-    fn on_undo_move(&mut self, _: &Move, _: Encode) {
-        if !self.found {
-            self.his.pop();
+    fn on_do_move(
+        &mut self,
+        _: &Solitaire,
+        m: &Move,
+        _: Encode,
+        rev: &Option<Move>,
+    ) -> ControlFlow {
+        if rev.is_none() {
+            ControlFlow::Skip
+        } else {
+            self.his.push(*m);
+            ControlFlow::Ok
         }
     }
 
-    fn on_start(&mut self) {}
-
-    fn on_finish(&mut self, _: &ControlFlow) {}
+    fn on_undo_move(&mut self, _: &Move, _: Encode, res: &ControlFlow) {
+        if *res == ControlFlow::Ok {
+            self.his.pop();
+        }
+    }
 }
 
 struct ListStatesCallback {
     res: Vec<(Encode, Move)>,
-    skipped: bool,
 }
 
 impl Callback for ListStatesCallback {
@@ -64,34 +61,24 @@ impl Callback for ListStatesCallback {
         ControlFlow::Halt
     }
 
-    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> ControlFlow {
-        if self.skipped {
+    fn on_do_move(
+        &mut self,
+        _: &Solitaire,
+        m: &Move,
+        e: Encode,
+        rev: &Option<Move>,
+    ) -> ControlFlow {
+        // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
+        if rev.is_none() {
+            self.res.push((e, *m));
             ControlFlow::Skip
         } else {
             ControlFlow::Ok
         }
     }
-
-    fn on_move_gen(&mut self, _: &crate::engine::MoveVec, _: Encode) {}
-
-    fn on_do_move(&mut self, _: &Solitaire, m: &Move, e: Encode, rev: &Option<Move>) {
-        // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
-        if rev.is_none() {
-            self.skipped = true;
-            self.res.push((e, *m));
-        } else {
-            self.skipped = false;
-        }
-    }
-
-    fn on_undo_move(&mut self, _: &Move, _: Encode) {}
-
-    fn on_start(&mut self) {}
-
-    fn on_finish(&mut self, _: &ControlFlow) {}
 }
 
-pub fn pick_moves<R: RngCore, T: SearchSignal>(
+pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     game: &mut Solitaire,
     rng: &mut R,
     n_times: usize,
@@ -103,11 +90,10 @@ pub fn pick_moves<R: RngCore, T: SearchSignal>(
 
     let mut callback = ListStatesCallback {
         res: Vec::default(),
-        skipped: false,
     };
 
     let mut tp = TpTable::default();
-    traverse(game, &mut tp, &mut callback, None);
+    traverse(game, None, &mut tp, &mut callback);
     let states = callback.res;
 
     let mut org_g = game.clone();
@@ -116,12 +102,10 @@ pub fn pick_moves<R: RngCore, T: SearchSignal>(
         let mut callback = FindStatesCallback {
             his: Vec::default(),
             state: state.0,
-            skipped: false,
-            found: false,
         };
         tp.clear();
 
-        traverse(&mut org_g, &mut tp, &mut callback, None);
+        traverse(&mut org_g, None, &mut tp, &mut callback);
         if state.1 != Move::FAKE {
             callback.his.push(state.1);
         }

@@ -9,7 +9,7 @@ use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::mcts_solver::pick_moves;
 use lonelybot::shuffler::{self, CardDeck, U256};
-use lonelybot::tracking::DefaultSearchSignal;
+use lonelybot::tracking::DefaultTerminateSignal;
 use lonelybot::traverse::ControlFlow;
 use rand::prelude::*;
 use std::collections::HashSet;
@@ -170,7 +170,13 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
     while !game.is_win() {
         let mut gg = game.clone();
         gg.get_hidden_mut().clear();
-        let best = pick_moves(&mut gg, &mut rng, N_TIMES, LIMIT, &DefaultSearchSignal {});
+        let best = pick_moves(
+            &mut gg,
+            &mut rng,
+            N_TIMES,
+            LIMIT,
+            &DefaultTerminateSignal {},
+        );
         let Some(best) = best else {
             if verbose {
                 println!("Lost");
