@@ -169,11 +169,15 @@ Current progress: 0/1 0/5 0/1 0/5 0/4 0/4 0/4 0/3
 Solvable in 92 moves
 PS A♦, R 5♠, PS A♠, ....
 Pile(4) Stack(1) A♦, Pile(6) Pile(5) 5♠, ....
+JG @AK ...
 ```
 
-There are two type of solution notation:
+Note that, currently, my code assumes that the first draw is automatically done (so the game starts with first n-cards drawn)
+
+There are three type of solution notation:
 - The first line is the specialized notation (explained bellow)
 - The second line is the standardized notation with the format as a tuple of source position, destination position, moving card.
+- The third line is the notation from [Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike) repo.
 
 The special move of drawing from the stock is represent as a move from the stock (Deck) to the stock (Deck)
 

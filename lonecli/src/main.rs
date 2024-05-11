@@ -21,7 +21,7 @@ use std::{io::Write, time::Instant};
 use std::{thread, time};
 
 use lonelybot::solver::SearchResult;
-use lonelybot::standard::StandardSolitaire;
+use lonelybot::standard::{Pos, StandardHistoryVec, StandardSolitaire};
 
 use crate::tui::print_game;
 
@@ -202,6 +202,24 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
     true
 }
 
+fn map_pos(p: &Pos) -> char {
+    match *p {
+        Pos::Deck => 'A',
+        Pos::Stack(id) => char::from_u32('B' as u32 + id as u32).unwrap(),
+        Pos::Pile(id) => char::from_u32('F' as u32 + id as u32).unwrap(),
+    }
+}
+
+fn print_moves_minimal_klondike(moves: &StandardHistoryVec) {
+    for m in moves {
+        if matches!(m, (Pos::Deck, Pos::Deck, _)) {
+            print!("@");
+        } else {
+            print!("{}{} ", map_pos(&m.0), map_pos(&m.1));
+        }
+    }
+}
+
 fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = shuffle(seed);
 
@@ -221,9 +239,11 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
                 print!("{x}, ");
             }
             println!();
-            for m in moves {
+            for m in &moves {
                 print!("{:?} {:?} {}, ", m.0, m.1, m.2);
             }
+            println!();
+            print_moves_minimal_klondike(&moves);
             println!();
         }
         SearchResult::Unsolvable => println!("Impossible"),
