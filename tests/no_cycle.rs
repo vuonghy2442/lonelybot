@@ -49,7 +49,7 @@ fn test_no_cycle() {
         };
 
         let mut g = Solitaire::new(&deck, 3);
-        traverse(&mut g, None, &mut tp, &mut callback);
+        traverse(&mut g, None, Move::FAKE, &mut tp, &mut callback);
         assert_eq!(callback.result, CycleResult::NoCycle);
     }
 }

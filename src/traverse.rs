@@ -1,6 +1,7 @@
 use hashbrown::HashSet;
 
 use crate::{
+    card::KING_RANK,
     engine::{Encode, Move, MoveVec, Solitaire},
     utils::MixHasherBuilder,
 };
@@ -59,6 +60,7 @@ impl TranspositionTable for TpTable {
 pub fn traverse<T: TranspositionTable, C: Callback>(
     game: &mut Solitaire,
     rev_move: Option<Move>,
+    last_move: Move,
     tp: &mut T,
     callback: &mut C,
 ) -> ControlFlow {
@@ -91,6 +93,24 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
         }
         let rev_move = game.get_rev_move(&m);
 
+        match last_move {
+            Move::Reveal(c) => {
+                if game.get_hidden().first_layer_mask() & c.mask() > 0 {
+                    // reveal the pile
+                    match m {
+                        Move::DeckStack(_) => continue,
+                        Move::PileStack(_) => continue,
+                        Move::DeckPile(c) | Move::StackPile(c) | Move::Reveal(c) => {
+                            if c.rank() != KING_RANK {
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        };
+
         match callback.on_do_move(game, &m, encode, &rev_move) {
             ControlFlow::Halt => return ControlFlow::Halt,
             ControlFlow::Skip => continue,
@@ -99,7 +119,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
 
         let undo = game.do_move(&m);
 
-        let res = traverse(game, rev_move, tp, callback);
+        let res = traverse(game, rev_move, m, tp, callback);
 
         game.undo_move(&m, &undo);
         callback.on_undo_move(&m, encode, &res);

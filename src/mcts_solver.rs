@@ -93,7 +93,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse(game, None, &mut tp, &mut callback);
+    traverse(game, None, Move::FAKE, &mut tp, &mut callback);
     let states = callback.res;
 
     let mut org_g = game.clone();
@@ -105,7 +105,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         };
         tp.clear();
 
-        traverse(&mut org_g, None, &mut tp, &mut callback);
+        traverse(&mut org_g, None, Move::FAKE, &mut tp, &mut callback);
         if state.1 != Move::FAKE {
             callback.his.push(state.1);
         }

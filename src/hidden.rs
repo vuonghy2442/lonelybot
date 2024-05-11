@@ -4,7 +4,7 @@ use rand::RngCore;
 use arrayvec::ArrayVec;
 
 use crate::card::{Card, KING_RANK, N_CARDS};
-use crate::deck::{N_PILE_CARDS, N_PILES};
+use crate::deck::{N_PILES, N_PILE_CARDS};
 
 use crate::standard::HiddenVec;
 
@@ -13,6 +13,7 @@ pub struct Hidden {
     hidden_piles: [Card; N_PILE_CARDS as usize],
     n_hidden: [u8; N_PILES as usize],
     pile_map: [u8; N_CARDS as usize],
+    first_layer_mask: u64,
 }
 
 impl Hidden {
@@ -20,11 +21,14 @@ impl Hidden {
     pub fn new(hidden_piles: [Card; N_PILE_CARDS as usize]) -> Self {
         let mut pile_map = [0; N_CARDS as usize];
 
+        let mut first_layer_mask: u64 = 0;
         for i in 0..N_PILES {
             let start = i * (i + 1) / 2;
             let end = (i + 2) * (i + 1) / 2;
 
             let p = &hidden_piles[start as usize..end as usize];
+            first_layer_mask |= p[0].mask();
+
             for c in p {
                 pile_map[usize::from(c.value())] = i;
             }
@@ -34,6 +38,7 @@ impl Hidden {
             hidden_piles,
             n_hidden: core::array::from_fn(|i| (i + 1) as u8),
             pile_map,
+            first_layer_mask,
         }
     }
 
@@ -45,8 +50,13 @@ impl Hidden {
         let mut hidden_piles = [Card::FAKE; N_PILE_CARDS as usize];
         let mut pile_map = [0u8; N_CARDS as usize];
 
+        let mut first_layer_mask: u64 = 0;
         for i in 0..N_PILES as usize {
             for (j, c) in piles[i].iter().chain(top[i].iter()).enumerate() {
+                if j == 0 {
+                    first_layer_mask |= c.mask();
+                }
+
                 hidden_piles[(i * (i + 1) / 2) + j] = *c;
                 pile_map[c.value() as usize] = i as u8;
             }
@@ -56,6 +66,7 @@ impl Hidden {
             hidden_piles,
             pile_map,
             n_hidden: core::array::from_fn(|i| piles[i].len() as u8 + u8::from(top[i].is_some())),
+            first_layer_mask,
         }
     }
 
@@ -168,6 +179,11 @@ impl Hidden {
             }
         }
         mask
+    }
+
+    #[must_use]
+    pub const fn first_layer_mask(&self) -> u64 {
+        self.first_layer_mask
     }
 
     // reset all hidden cards into lexicographic order

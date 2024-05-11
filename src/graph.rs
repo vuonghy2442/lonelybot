@@ -110,7 +110,7 @@ pub fn graph_with_tracking<S: SearchStatistics, T: TerminateSignal>(
         rev_move: None,
     };
 
-    let finished = traverse(g, None, &mut tp, &mut callback);
+    let finished = traverse(g, None, Move::FAKE, &mut tp, &mut callback);
     (finished, callback.graph)
 }
 
