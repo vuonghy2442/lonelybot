@@ -14,13 +14,20 @@ Lonelybot
 - bench: For micro-benchmarking (cargo bench)
 
 ## Seed
-There are 5 seed types
+There are 6 seed types
 - ``default``: using Rust rng
 - ``legacy``: similar to default, for compatibility with older version of this engine
 - ``solvitaire``: re-implementation of [Solvitaire](https://github.com/thecharlieblake/Solvitaire) random
 - ``klondike``-solver: re-implementation of [Klondike-Solver](https://github.com/ShootMe/Klondike-Solver) random
 - ``greenfelt``: re-implementation of [Greenfelt](https://greenfelt.net/) based on [Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike) source code
 - ``exact``: converting a 256-bit integer (< 52!) to exact corresponding 52-card permutation
+- ``microsoft``: reverse-engineered seed from Microsoft Solitaire Collection (thanks to ShootMe).
+
+To obtain the Microsoft Solitaire Collection seed, you can access the game's log file at
+
+``%LocalAppData%\Packages\Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe\LocalState\logs\solitaire.log``
+
+You'll find them on lines starting with ``SolitaireGameLogic::TryLoadGame`` or ``SolvableDeckAppComponent``
 
 To input your own game, you can use `convert.py` in `script`, to convert the Solvitaire json format into an exact seed, which then you can input into `lonecli`. Currently it only support convert the initial state of the game.
 
