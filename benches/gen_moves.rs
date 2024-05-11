@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
     card::Card,
-    deck::{Deck, N_HIDDEN_CARDS},
+    deck::{Deck, N_PILE_CARDS},
     engine::{Move, Solitaire},
     shuffler,
 };
@@ -12,7 +12,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut game = Solitaire::new(&shuffler::default_shuffle(seed), 3);
 
     let sample_deck: Deck = Deck::new(
-        shuffler::default_shuffle(seed)[N_HIDDEN_CARDS as usize..]
+        shuffler::default_shuffle(seed)[N_PILE_CARDS as usize..]
             .try_into()
             .unwrap(),
         3,

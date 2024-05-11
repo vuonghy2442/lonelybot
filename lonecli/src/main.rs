@@ -34,6 +34,7 @@ pub enum SeedType {
     KlondikeSolver,
     Greenfelt,
     Exact,
+    Microsoft,
 }
 
 #[derive(Args, Clone)]
@@ -68,6 +69,7 @@ impl std::fmt::Display for Seed {
                 SeedType::KlondikeSolver => "K",
                 SeedType::Greenfelt => "G",
                 SeedType::Exact => "E",
+                SeedType::Microsoft => "M",
             },
             self.seed
         )
@@ -99,6 +101,7 @@ pub fn shuffle(s: &Seed) -> CardDeck {
         SeedType::KlondikeSolver => shuffler::ks_shuffle(seed.as_u32()),
         SeedType::Greenfelt => shuffler::greenfelt_shuffle(seed.as_u32()),
         SeedType::Exact => shuffler::exact_shuffle(seed).unwrap(),
+        SeedType::Microsoft => shuffler::microsoft_shuffle(seed).unwrap(),
     }
 }
 

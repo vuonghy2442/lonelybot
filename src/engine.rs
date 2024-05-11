@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use arrayvec::ArrayVec;
 
 use crate::card::{Card, KING_RANK, N_CARDS, N_SUITS, SUIT_MASK};
-use crate::deck::{Deck, N_HIDDEN_CARDS, N_PILES};
+use crate::deck::{Deck, N_PILE_CARDS, N_PILES};
 use crate::stack::Stack;
 use crate::utils::full_mask;
 
@@ -93,8 +93,8 @@ pub type UndoInfo = u8;
 impl Solitaire {
     #[must_use]
     pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
-        let hidden_piles: [Card; N_HIDDEN_CARDS as usize] =
-            cards[0..N_HIDDEN_CARDS as usize].try_into().unwrap();
+        let hidden_piles: [Card; N_PILE_CARDS as usize] =
+            cards[0..N_PILE_CARDS as usize].try_into().unwrap();
 
         let mut visible_mask = 0;
 
@@ -104,7 +104,7 @@ impl Solitaire {
         }
 
         let deck: Deck = Deck::new(
-            cards[(N_HIDDEN_CARDS) as usize..].try_into().unwrap(),
+            cards[(N_PILE_CARDS) as usize..].try_into().unwrap(),
             draw_step,
         );
 
@@ -667,7 +667,7 @@ impl From<&StandardSolitaire> for Solitaire {
 mod tests {
     use rand::prelude::*;
 
-    use crate::deck::{Drawable, N_FULL_DECK};
+    use crate::deck::{Drawable, N_DECK_CARDS};
     use crate::shuffler::default_shuffle;
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
@@ -677,7 +677,7 @@ mod tests {
     fn test_draw_unrolling() {
         let mut rng = StdRng::seed_from_u64(14);
 
-        let mut test = ArrayVec::<(u8, Card), { N_FULL_DECK as usize }>::new();
+        let mut test = ArrayVec::<(u8, Card), { N_DECK_CARDS as usize }>::new();
         for i in 0..100 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
@@ -694,7 +694,7 @@ mod tests {
                     .iter_all()
                     .filter(|x| !matches!(x.2, Drawable::None))
                     .map(|x| (x.0, *x.1))
-                    .collect::<ArrayVec<(u8, Card), { N_FULL_DECK as usize }>>();
+                    .collect::<ArrayVec<(u8, Card), { N_DECK_CARDS as usize }>>();
 
                 test.clear();
                 game.deck.iter_callback(false, |pos, x| {
@@ -738,7 +738,7 @@ mod tests {
 
                 assert_eq!(game.encode(), state);
 
-                let ids: ArrayVec<(u8, Card, Drawable), { N_FULL_DECK as usize }> =
+                let ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
                     game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 
                 let m = moves.choose(&mut rng).unwrap();
@@ -746,7 +746,7 @@ mod tests {
                 let next_state = game.encode();
                 assert_ne!(next_state, state);
                 game.undo_move(m, &undo);
-                let new_ids: ArrayVec<(u8, Card, Drawable), { N_FULL_DECK as usize }> =
+                let new_ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
                     game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
 
                 assert_eq!(ids, new_ids);

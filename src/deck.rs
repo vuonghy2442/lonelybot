@@ -9,12 +9,12 @@ use crate::{
 };
 
 pub const N_PILES: u8 = 7;
-pub const N_HIDDEN_CARDS: u8 = N_PILES * (N_PILES + 1) / 2;
-pub const N_FULL_DECK: u8 = N_CARDS - N_HIDDEN_CARDS;
+pub const N_PILE_CARDS: u8 = N_PILES * (N_PILES + 1) / 2;
+pub const N_DECK_CARDS: u8 = N_CARDS - N_PILE_CARDS;
 
 #[derive(Debug, Clone)]
 pub struct Deck {
-    deck: [Card; N_FULL_DECK as usize],
+    deck: [Card; N_DECK_CARDS as usize],
     draw_step: u8,
     draw_next: u8, // start position of next pile
     draw_cur: u8,  // size of the previous pile
@@ -31,8 +31,8 @@ pub enum Drawable {
 
 impl Deck {
     #[must_use]
-    pub fn new(deck: &[Card; N_FULL_DECK as usize], draw_step: u8) -> Self {
-        let draw_step = min(N_FULL_DECK, draw_step);
+    pub fn new(deck: &[Card; N_DECK_CARDS as usize], draw_step: u8) -> Self {
+        let draw_step = min(N_DECK_CARDS, draw_step);
         let mut map = [!0u8; N_CARDS as usize];
         for (i, c) in deck.iter().enumerate() {
             map[c.value() as usize] = i as u8;
@@ -55,12 +55,12 @@ impl Deck {
 
     #[must_use]
     pub const fn len(&self) -> u8 {
-        N_FULL_DECK - self.draw_next + self.draw_cur
+        N_DECK_CARDS - self.draw_next + self.draw_cur
     }
 
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        self.draw_cur == 0 && self.draw_next == N_FULL_DECK
+        self.draw_cur == 0 && self.draw_next == N_DECK_CARDS
     }
 
     #[must_use]
@@ -116,7 +116,7 @@ impl Deck {
             (
                 self.draw_cur + pos,
                 x.1,
-                if pos + 1 == N_FULL_DECK - self.draw_next || (pos + 1) % self.draw_step == 0 {
+                if pos + 1 == N_DECK_CARDS - self.draw_next || (pos + 1) % self.draw_step == 0 {
                     Drawable::Current
                 } else if (self.draw_cur + pos + 1) % self.draw_step == 0 {
                     Drawable::Next
@@ -184,14 +184,14 @@ impl Deck {
         let gap = self.draw_next - self.draw_cur;
         {
             let mut i = self.draw_next + self.draw_step - 1;
-            while i < N_FULL_DECK - 1 {
+            while i < N_DECK_CARDS - 1 {
                 func(i - gap, &self.deck[i as usize])?;
                 i += self.draw_step;
             }
         }
 
-        if self.draw_next < N_FULL_DECK {
-            func(N_FULL_DECK - 1 - gap, &self.deck[N_FULL_DECK as usize - 1])?;
+        if self.draw_next < N_DECK_CARDS {
+            func(N_DECK_CARDS - 1 - gap, &self.deck[N_DECK_CARDS as usize - 1])?;
         }
 
         if !filter {
@@ -205,7 +205,7 @@ impl Deck {
             if offset != 0 {
                 let mut i = self.draw_next + self.draw_step - 1 - offset;
 
-                while i < N_FULL_DECK - 1 {
+                while i < N_DECK_CARDS - 1 {
                     func(i - gap, &self.deck[i as usize])?;
                     i += self.draw_step;
                 }
@@ -216,8 +216,8 @@ impl Deck {
 
     #[must_use]
     pub const fn peek_last(&self) -> Option<&Card> {
-        if self.draw_next < N_FULL_DECK {
-            Some(&self.deck[N_FULL_DECK as usize - 1])
+        if self.draw_next < N_DECK_CARDS {
+            Some(&self.deck[N_DECK_CARDS as usize - 1])
         } else if self.draw_cur > 0 {
             Some(&self.deck[self.draw_cur as usize - 1])
         } else {
@@ -272,7 +272,7 @@ impl Deck {
 
     pub fn draw(&mut self, id: u8) -> Card {
         debug_assert!(
-            self.draw_cur <= self.draw_next && (id < N_FULL_DECK - self.draw_next + self.draw_cur)
+            self.draw_cur <= self.draw_next && (id < N_DECK_CARDS - self.draw_next + self.draw_cur)
         );
         self.set_offset(id);
         self.pop_next()
@@ -286,7 +286,7 @@ impl Deck {
     #[must_use]
     pub const fn is_pure(&self) -> bool {
         // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
-        self.draw_cur % self.draw_step == 0 || self.draw_next == N_FULL_DECK
+        self.draw_cur % self.draw_step == 0 || self.draw_next == N_DECK_CARDS
     }
 
     #[must_use]
@@ -294,7 +294,7 @@ impl Deck {
         // this is the standardized version
         if self.draw_cur % self.draw_step == 0 {
             // matched so offset is free
-            debug_assert!(self.len() <= N_FULL_DECK);
+            debug_assert!(self.len() <= N_DECK_CARDS);
             self.len()
         } else {
             self.draw_cur
@@ -303,21 +303,21 @@ impl Deck {
 
     #[must_use]
     pub const fn encode(&self) -> u32 {
-        const_assert!(((N_FULL_DECK - 1).ilog2() + 1 + N_FULL_DECK as u32) <= 32);
+        const_assert!(((N_DECK_CARDS - 1).ilog2() + 1 + N_DECK_CARDS as u32) <= 32);
         // assert the number of bits
         // 29 bits
-        self.mask | ((self.normalized_offset() as u32) << N_FULL_DECK)
+        self.mask | ((self.normalized_offset() as u32) << N_DECK_CARDS)
     }
 
     pub fn decode(&mut self, encode: u32) {
-        let mask = encode & ((1 << N_FULL_DECK) - 1);
-        let offset = (encode >> N_FULL_DECK) as u8;
+        let mask = encode & ((1 << N_DECK_CARDS) - 1);
+        let offset = (encode >> N_DECK_CARDS) as u8;
 
-        let mut rev_map = [Card::FAKE; N_FULL_DECK as usize];
+        let mut rev_map = [Card::FAKE; N_DECK_CARDS as usize];
 
         for i in 0..N_CARDS {
             let val = self.map[i as usize];
-            if val < N_FULL_DECK && (encode >> val) & 1 == 0 {
+            if val < N_DECK_CARDS && (encode >> val) & 1 == 0 {
                 rev_map[val as usize] = Card::from_value(i);
             }
         }
@@ -332,7 +332,7 @@ impl Deck {
         }
 
         self.draw_cur = pos as u8;
-        self.draw_next = N_FULL_DECK;
+        self.draw_next = N_DECK_CARDS;
 
         self.set_offset(offset);
         self.mask = mask;
@@ -394,7 +394,7 @@ mod tests {
 
         for i in 0..100 {
             let deck = default_shuffle(12 + i);
-            let deck = deck[..N_FULL_DECK as usize].try_into().unwrap();
+            let deck = deck[..N_DECK_CARDS as usize].try_into().unwrap();
 
             let draw_step = rng.gen_range(1..5);
             let mut deck = Deck::new(deck, draw_step);

@@ -4,20 +4,20 @@ use rand::RngCore;
 use arrayvec::ArrayVec;
 
 use crate::card::{Card, KING_RANK, N_CARDS};
-use crate::deck::{N_HIDDEN_CARDS, N_PILES};
+use crate::deck::{N_PILE_CARDS, N_PILES};
 
 use crate::standard::HiddenVec;
 
 #[derive(Debug, Clone)]
 pub struct Hidden {
-    hidden_piles: [Card; N_HIDDEN_CARDS as usize],
+    hidden_piles: [Card; N_PILE_CARDS as usize],
     n_hidden: [u8; N_PILES as usize],
     pile_map: [u8; N_CARDS as usize],
 }
 
 impl Hidden {
     #[must_use]
-    pub fn new(hidden_piles: [Card; N_HIDDEN_CARDS as usize]) -> Self {
+    pub fn new(hidden_piles: [Card; N_PILE_CARDS as usize]) -> Self {
         let mut pile_map = [0; N_CARDS as usize];
 
         for i in 0..N_PILES {
@@ -42,7 +42,7 @@ impl Hidden {
         piles: &[HiddenVec; N_PILES as usize],
         top: &[Option<Card>; N_PILES as usize],
     ) -> Self {
-        let mut hidden_piles = [Card::FAKE; N_HIDDEN_CARDS as usize];
+        let mut hidden_piles = [Card::FAKE; N_PILE_CARDS as usize];
         let mut pile_map = [0u8; N_CARDS as usize];
 
         for i in 0..N_PILES as usize {
@@ -188,7 +188,7 @@ impl Hidden {
     }
 
     pub fn shuffle<R: RngCore>(&mut self, rng: &mut R) {
-        let mut all_stuff = ArrayVec::<Card, { N_HIDDEN_CARDS as usize }>::new();
+        let mut all_stuff = ArrayVec::<Card, { N_PILE_CARDS as usize }>::new();
         for pos in 0..N_PILES {
             if let Some((_, pile_map)) = self.get(pos).split_last() {
                 all_stuff.extend(pile_map.iter().copied());

@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 
 use crate::card::{Card, N_RANKS, N_SUITS};
-use crate::deck::{Deck, N_FULL_DECK, N_HIDDEN_CARDS, N_PILES};
+use crate::deck::{Deck, N_DECK_CARDS, N_PILE_CARDS, N_PILES};
 use crate::shuffler::CardDeck;
 use crate::stack::Stack;
 
@@ -57,7 +57,7 @@ impl StandardSolitaire {
             hidden_piles,
             final_stack: Stack::default(),
             deck: Deck::new(
-                cards[N_HIDDEN_CARDS as usize..].try_into().unwrap(),
+                cards[N_PILE_CARDS as usize..].try_into().unwrap(),
                 draw_step,
             ),
             piles: core::array::from_fn(|i| {
@@ -95,7 +95,7 @@ impl StandardSolitaire {
 
     #[must_use]
     pub fn find_deck_card(&self, card: &Card) -> Option<u8> {
-        for i in 0..N_FULL_DECK {
+        for i in 0..N_DECK_CARDS {
             let offset = self.deck.offset(i);
             if offset > 0 && self.deck.peek(offset - 1) == card {
                 return Some(i);
