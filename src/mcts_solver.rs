@@ -1,7 +1,7 @@
 use rand::RngCore;
 
 use crate::{
-    engine::{Encode, Move, Solitaire},
+    engine::{Encode, Move, PruneInfo, Solitaire},
     hop_solver::hop_solve_game,
     tracking::TerminateSignal,
     traverse::{traverse, Callback, ControlFlow, TpTable},
@@ -16,7 +16,7 @@ struct FindStatesCallback {
 }
 
 impl Callback for FindStatesCallback {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         ControlFlow::Halt
     }
 
@@ -33,8 +33,9 @@ impl Callback for FindStatesCallback {
         _: &Solitaire,
         m: &Move,
         _: Encode,
-        rev: &Option<Move>,
+        prune_info: &PruneInfo,
     ) -> ControlFlow {
+        let rev = prune_info.rev_move();
         if rev.is_none() {
             ControlFlow::Skip
         } else {
@@ -55,7 +56,7 @@ struct ListStatesCallback {
 }
 
 impl Callback for ListStatesCallback {
-    fn on_win(&mut self, game: &Solitaire, _: &Option<Move>) -> ControlFlow {
+    fn on_win(&mut self, game: &Solitaire) -> ControlFlow {
         self.res.clear();
         self.res.push((game.encode(), Move::FAKE));
         ControlFlow::Halt
@@ -66,8 +67,9 @@ impl Callback for ListStatesCallback {
         _: &Solitaire,
         m: &Move,
         e: Encode,
-        rev: &Option<Move>,
+        prune_info: &PruneInfo,
     ) -> ControlFlow {
+        let rev = prune_info.rev_move();
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
         if rev.is_none() {
             self.res.push((e, *m));
@@ -93,7 +95,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse(game, None, Move::FAKE, &mut tp, &mut callback);
+    traverse(game, &Default::default(), &mut tp, &mut callback);
     let states = callback.res;
 
     let mut org_g = game.clone();
@@ -105,7 +107,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         };
         tp.clear();
 
-        traverse(&mut org_g, None, Move::FAKE, &mut tp, &mut callback);
+        traverse(&mut org_g, &Default::default(), &mut tp, &mut callback);
         if state.1 != Move::FAKE {
             callback.his.push(state.1);
         }
@@ -140,7 +142,15 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
 
         //test
         game.decode(state.0);
-        let new_res = hop_solve_game(game, &state.1, rng, BATCH_SIZE, limit, sign, None);
+        let new_res = hop_solve_game(
+            game,
+            &state.1,
+            rng,
+            BATCH_SIZE,
+            limit,
+            sign,
+            &Default::default(),
+        );
 
         n += BATCH_SIZE;
 

@@ -1,5 +1,5 @@
 use lonelybot::{
-    engine::{Encode, Move, MoveVec, Solitaire},
+    engine::{Encode, MoveVec, Solitaire},
     shuffler::default_shuffle,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -16,7 +16,7 @@ struct CycleCallback {
 }
 
 impl Callback for CycleCallback {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         ControlFlow::Ok
     }
 
@@ -49,7 +49,7 @@ fn test_no_cycle() {
         };
 
         let mut g = Solitaire::new(&deck, 3);
-        traverse(&mut g, None, Move::FAKE, &mut tp, &mut callback);
+        traverse(&mut g, &Default::default(), &mut tp, &mut callback);
         assert_eq!(callback.result, CycleResult::NoCycle);
     }
 }
