@@ -8,6 +8,7 @@ use lonelybot::convert::convert_moves;
 use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::mcts_solver::pick_moves;
+use lonelybot::pruning::PruneInfo;
 use lonelybot::shuffler::{self, CardDeck, U256};
 use lonelybot::tracking::DefaultTerminateSignal;
 use lonelybot::traverse::ControlFlow;
@@ -290,13 +291,15 @@ fn game_loop(seed: &Seed) {
 
     let mut game_state = HashSet::<Encode>::new();
 
+    let mut pruner = PruneInfo::default();
+
     loop {
         print_game(&game);
         if !game_state.insert(game.encode()) {
             println!("Already existed state");
         }
 
-        let moves = game.list_moves::<true>(&Default::default());
+        let moves = game.list_moves::<true>(&pruner.prune_moves(&game));
 
         for (i, m) in moves.iter().enumerate() {
             print!("{i}.{m}, ");
@@ -317,9 +320,11 @@ fn game_loop(seed: &Seed) {
             let id = usize::try_from(id).unwrap_or(usize::MAX);
             if id < moves.len() {
                 let info = game.do_move(&moves[id]);
+                pruner = PruneInfo::new(&game, &pruner, &moves[id]);
                 move_hist.push((moves[id], info));
             } else {
                 let (m, info) = &move_hist.pop().unwrap();
+                pruner = PruneInfo::default();
                 game.undo_move(m, info);
                 println!("Undo!!");
             }
