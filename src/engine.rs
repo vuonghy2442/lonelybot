@@ -2,7 +2,7 @@ use core::ops::ControlFlow;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{Card, KING_RANK, N_CARDS, N_SUITS, SUIT_MASK};
+use crate::card::{Card, KING_MASK, KING_RANK, N_CARDS, N_SUITS, SUIT_MASK};
 use crate::deck::{Deck, N_PILES, N_PILE_CARDS};
 use crate::stack::Stack;
 use crate::utils::full_mask;
@@ -39,8 +39,6 @@ pub type Encode = u64;
 const HALF_MASK: u64 = 0x3333_3333_3333_3333;
 const ALT_MASK: u64 = 0x5555_5555_5555_5555;
 const RANK_MASK: u64 = 0x1111_1111_1111_1111;
-
-const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
 
 pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
 
@@ -92,62 +90,6 @@ pub type UndoInfo = u8;
 
 fn filter<const N: usize>(a: &[u64; N], remove: &[u64; N]) -> [u64; N] {
     core::array::from_fn(|idx| a[idx] & !remove[idx])
-}
-
-pub struct PruneInfo {
-    rev_move: Option<Move>,
-    last_move: Move,
-}
-
-impl Default for PruneInfo {
-    fn default() -> Self {
-        Self {
-            rev_move: None,
-            last_move: Move::FAKE,
-        }
-    }
-}
-
-impl PruneInfo {
-    pub fn new(game: &Solitaire, _prev: &PruneInfo, m: &Move) -> Self {
-        Self {
-            rev_move: game.get_rev_move(&m),
-            last_move: *m,
-        }
-    }
-
-    pub fn rev_move(&self) -> Option<Move> {
-        return self.rev_move;
-    }
-
-    pub fn last_move(&self) -> Move {
-        return self.last_move;
-    }
-
-    pub fn prune_moves(&self, game: &Solitaire) -> [u64; 5] {
-        // [pile_stack, deck_stack, stack_pile, deck_pile, reveal]
-        let mut filter = match self.last_move {
-            Move::Reveal(c) => {
-                if game.get_hidden().first_layer_mask() & c.mask() > 0 {
-                    [!0, !0, !KING_MASK, !KING_MASK, !KING_MASK]
-                } else {
-                    [0; 5]
-                }
-            }
-            _ => [0; 5],
-        };
-
-        match self.rev_move {
-            Some(Move::PileStack(c)) => filter[0] |= c.mask(),
-            Some(Move::DeckStack(c)) => filter[1] |= c.mask(),
-            Some(Move::StackPile(c)) => filter[2] |= c.mask(),
-            Some(Move::DeckPile(c)) => filter[3] |= c.mask(),
-            Some(Move::Reveal(c)) => filter[4] |= c.mask(),
-            None => {}
-        }
-
-        filter
-    }
 }
 
 impl Solitaire {
@@ -250,17 +192,10 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub fn list_moves<const DOMINANCE: bool>(&self, info: Option<&PruneInfo>) -> MoveVec {
+    pub fn list_moves<const DOMINANCE: bool>(&self, prune: &[u64; 5]) -> MoveVec {
         let mut moves = MoveVec::new();
 
-        let packed_moves = filter(
-            &self.gen_moves::<DOMINANCE>(),
-            &if let Some(info) = info {
-                info.prune_moves(self)
-            } else {
-                [0; 5]
-            },
-        );
+        let packed_moves = filter(&self.gen_moves::<DOMINANCE>(), prune);
 
         iter_moves(packed_moves, |m| {
             moves.push(m);
@@ -776,7 +711,7 @@ mod tests {
 
                 assert_eq!(test, truth);
 
-                let moves = game.list_moves::<false>(None);
+                let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {
                     break;
                 }
@@ -792,7 +727,7 @@ mod tests {
         for i in 0..1000 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
-                let moves = game.list_moves::<false>(None);
+                let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {
                     break;
                 }
@@ -844,7 +779,7 @@ mod tests {
 
             assert!(game.is_valid());
             for _ in 0..N_STEP {
-                let moves = game.list_moves::<false>(None);
+                let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {
                     break;
                 }
@@ -882,7 +817,7 @@ mod tests {
         for i in 0..1000 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
-                let moves = game.list_moves::<false>(None);
+                let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {
                     break;
                 }

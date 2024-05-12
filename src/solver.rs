@@ -1,5 +1,6 @@
 use crate::{
-    engine::{Encode, Move, PruneInfo, Solitaire},
+    engine::{Encode, Move, Solitaire},
+    pruning::PruneInfo,
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };

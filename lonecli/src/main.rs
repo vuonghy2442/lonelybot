@@ -113,7 +113,7 @@ fn benchmark(seed: &Seed) {
     for i in 0..100 {
         let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
         for _ in 0..100 {
-            let moves = game.list_moves::<true>(None);
+            let moves = game.list_moves::<true>(&Default::default());
 
             if moves.is_empty() {
                 break;
@@ -142,7 +142,7 @@ fn do_random(seed: &Seed) {
                 total_win += 1;
                 break;
             }
-            let moves = game.list_moves::<true>(None);
+            let moves = game.list_moves::<true>(&Default::default());
 
             let moves: MoveVec = moves
                 .iter()
@@ -296,7 +296,7 @@ fn game_loop(seed: &Seed) {
             println!("Already existed state");
         }
 
-        let moves = game.list_moves::<true>(None);
+        let moves = game.list_moves::<true>(&Default::default());
 
         for (i, m) in moves.iter().enumerate() {
             print!("{i}.{m}, ");

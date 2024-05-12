@@ -21,7 +21,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut rng = StdRng::seed_from_u64(seed);
 
     for _ in 0..21 {
-        let moves = game.list_moves::<true>();
+        let moves = game.list_moves::<true>(black_box(&Default::default()));
 
         if moves.is_empty() {
             break;
@@ -29,7 +29,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         game.do_move(moves.choose(&mut rng).unwrap());
     }
 
-    let moves = game.list_moves::<false>();
+    let moves = game.list_moves::<false>(black_box(&Default::default()));
 
     let m: Move = *moves.choose(&mut rng).unwrap();
 
@@ -38,7 +38,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("gen_moves", |b| {
         b.iter(|| {
-            let moves = game.list_moves::<false>();
+            let moves = game.list_moves::<false>(black_box(&Default::default()));
 
             black_box(moves.len());
         })
@@ -46,7 +46,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("gen_moves_dom", |b| {
         b.iter(|| {
-            let moves = game.list_moves::<true>();
+            let moves = game.list_moves::<true>(black_box(&Default::default()));
             black_box(moves.len());
         })
     });

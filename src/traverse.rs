@@ -1,7 +1,8 @@
 use hashbrown::HashSet;
 
 use crate::{
-    engine::{Encode, Move, MoveVec, PruneInfo, Solitaire},
+    engine::{Encode, Move, MoveVec, Solitaire},
+    pruning::PruneInfo,
     utils::MixHasherBuilder,
 };
 
@@ -78,7 +79,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
         return ControlFlow::Ok;
     }
 
-    let move_list = game.list_moves::<true>(Some(&prune_info));
+    let move_list = game.list_moves::<true>(&prune_info.prune_moves(game));
     match callback.on_move_gen(&move_list, encode) {
         ControlFlow::Halt => return ControlFlow::Halt,
         ControlFlow::Skip => return ControlFlow::Skip,
@@ -86,29 +87,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
     }
 
     for m in move_list {
-        // if Some(m) == rev_move {
-        //     continue;
-        // }
-
         let new_prune_info = PruneInfo::new(&game, &prune_info, &m);
-
-        // match last_move {
-        //     Move::Reveal(c) => {
-        //         if game.get_hidden().first_layer_mask() & c.mask() > 0 {
-        //             // reveal the pile
-        //             match m {
-        //                 Move::DeckStack(_) => continue,
-        //                 Move::PileStack(_) => continue,
-        //                 Move::DeckPile(c) | Move::StackPile(c) | Move::Reveal(c) => {
-        //                     if c.rank() != KING_RANK {
-        //                         continue;
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     _ => {}
-        // };
 
         match callback.on_do_move(game, &m, encode, &prune_info) {
             ControlFlow::Halt => return ControlFlow::Halt,

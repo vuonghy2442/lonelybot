@@ -1,8 +1,9 @@
 use rand::RngCore;
 
 use crate::{
-    engine::{Encode, Move, PruneInfo, Solitaire},
+    engine::{Encode, Move, Solitaire},
     hop_solver::hop_solve_game,
+    pruning::PruneInfo,
     tracking::TerminateSignal,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };

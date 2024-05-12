@@ -15,6 +15,9 @@ pub const SUIT_MASK: [u64; N_SUITS as usize] = [
     0x2828_2828_2828_2828,
 ];
 
+pub const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
+
+
 pub const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
