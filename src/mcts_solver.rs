@@ -101,22 +101,22 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
 
     let mut org_g = game.clone();
 
-    let mut find_state = move |state: (Encode, Move)| {
+    let mut find_state = move |state: Encode, m: Move| {
         let mut callback = FindStatesCallback {
             his: Vec::default(),
-            state: state.0,
+            state,
         };
         tp.clear();
 
         traverse(&mut org_g, &Default::default(), &mut tp, &mut callback);
-        if state.1 != Move::FAKE {
-            callback.his.push(state.1);
+        if m != Move::FAKE {
+            callback.his.push(m);
         }
         callback.his
     };
 
     if states.len() <= 1 {
-        return states.last().map(|state| find_state(*state));
+        return states.last().map(|state| find_state(state.0, state.1));
     }
 
     let mut res: Vec<(usize, usize, usize)> = Vec::with_capacity(states.len());
@@ -160,7 +160,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         res[best].2 += new_res.2;
 
         if res[best].2 > n_times {
-            return Some(find_state(*state));
+            return Some(find_state(state.0, state.1));
         }
 
         // let &(win, _skip, max_n) = res.iter().max_by_key(|x| x.2).unwrap();

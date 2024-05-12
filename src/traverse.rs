@@ -88,8 +88,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
 
     for m in move_list {
         let new_prune_info = PruneInfo::new(&game, &prune_info, &m);
-
-        match callback.on_do_move(game, &m, encode, &prune_info) {
+        match callback.on_do_move(game, &m, encode, &new_prune_info) {
             ControlFlow::Halt => return ControlFlow::Halt,
             ControlFlow::Skip => continue,
             ControlFlow::Ok => {}

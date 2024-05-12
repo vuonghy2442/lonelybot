@@ -319,8 +319,8 @@ fn game_loop(seed: &Seed) {
         if let Some(id) = res {
             let id = usize::try_from(id).unwrap_or(usize::MAX);
             if id < moves.len() {
-                let info = game.do_move(&moves[id]);
                 pruner = PruneInfo::new(&game, &pruner, &moves[id]);
+                let info = game.do_move(&moves[id]);
                 move_hist.push((moves[id], info));
             } else {
                 let (m, info) = &move_hist.pop().unwrap();

@@ -74,6 +74,7 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
     for _ in 0..n_times {
         let mut gg = g.clone();
         gg.get_hidden_mut().shuffle(rng);
+        let new_prune_info = PruneInfo::new(&gg, prune_info, m);
         gg.do_move(m);
 
         let mut callback = HOPSolverCallback {
@@ -83,7 +84,7 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
             n_visit: 0,
         };
         tp.clear();
-        traverse(&mut gg, &prune_info, &mut tp, &mut callback);
+        traverse(&mut gg, &new_prune_info, &mut tp, &mut callback);
         if sign.is_terminated() {
             break;
         }
