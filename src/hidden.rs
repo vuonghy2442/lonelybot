@@ -86,6 +86,16 @@ impl Hidden {
     }
 
     #[must_use]
+    fn compute_first_layer_mask(&self) -> u64 {
+        let mut first_layer_mask: u64 = 0;
+
+        for i in 0..N_PILES {
+            first_layer_mask |= self.get(i).first().map_or(0, |c| c.mask());
+        }
+        first_layer_mask
+    }
+
+    #[must_use]
     pub const fn len(&self, pos: u8) -> u8 {
         self.n_hidden[pos as usize]
     }
@@ -201,6 +211,7 @@ impl Hidden {
         }
         debug_assert_eq!(hidden_cards, 0);
         self.update_map();
+        self.first_layer_mask = self.compute_first_layer_mask();
     }
 
     pub fn shuffle<R: RngCore>(&mut self, rng: &mut R) {
@@ -221,6 +232,7 @@ impl Hidden {
             }
         }
         self.update_map();
+        self.first_layer_mask = self.compute_first_layer_mask();
     }
 
     #[must_use]
