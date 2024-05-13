@@ -113,7 +113,8 @@ impl Hidden {
     }
 
     #[must_use]
-    pub fn get_mut(&mut self, pos: u8) -> &mut [Card] {
+    fn get_mut(&mut self, pos: u8) -> &mut [Card] {
+        // won't public since it might require updating other stuff :)
         let range = self.get_range(pos);
         &mut self.hidden_piles[range]
     }
