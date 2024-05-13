@@ -31,13 +31,18 @@ impl Callback for FindStatesCallback {
 
     fn on_do_move(
         &mut self,
-        _: &Solitaire,
+        g: &Solitaire,
         m: &Move,
         _: Encode,
         prune_info: &PruneInfo,
     ) -> ControlFlow {
         let rev = prune_info.rev_move();
-        if rev.is_none() {
+        let ok = match m {
+            Move::Reveal(c) => c.mask() & g.get_hidden().first_layer_mask() == 0,
+            _ => true,
+        };
+
+        if rev.is_none() && ok {
             ControlFlow::Skip
         } else {
             self.his.push(*m);
