@@ -3,7 +3,7 @@ use rand::RngCore;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{Card, KING_RANK, N_CARDS};
+use crate::card::{Card, N_CARDS};
 use crate::deck::{N_PILES, N_PILE_CARDS};
 
 use crate::standard::HiddenVec;
@@ -254,7 +254,7 @@ impl Hidden {
             let n_hid = self.n_hidden[pos];
             match n_hid {
                 2.. => n_hid,
-                1 => u8::from(self.get(pos as u8)[0].rank() < KING_RANK),
+                1 => u8::from(!self.get(pos as u8)[0].is_king()),
                 0 => 0,
             }
         })

@@ -5,7 +5,7 @@ mod tui;
 use bpci::{Interval, NSuccessesSample, WilsonScore};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
-use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
+use lonelybot::engine::{Encode, Move, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::mcts_solver::pick_moves;
 use lonelybot::pruning::PruneInfo;
@@ -137,27 +137,22 @@ fn do_random(seed: &Seed) {
     let mut total_win = 0;
     for i in 0..TOTAL_GAME {
         let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
-        let mut rev_move = None;
+
+        let mut prune_info = PruneInfo::default();
         loop {
             if game.is_win() {
                 total_win += 1;
                 break;
             }
-            let moves = game.list_moves::<true>(&Default::default());
-
-            let moves: MoveVec = moves
-                .iter()
-                .filter(|&&c| Some(c) != rev_move)
-                .copied()
-                .collect();
+            let moves = game.list_moves::<true>(&prune_info.prune_moves::<false>(&game));
 
             if moves.is_empty() {
                 break;
             }
 
             let m = &moves[0];
-            rev_move = game.get_rev_move(m);
 
+            prune_info = PruneInfo::new(&game, &prune_info, m);
             game.do_move(m);
         }
     }
@@ -299,7 +294,7 @@ fn game_loop(seed: &Seed) {
             println!("Already existed state");
         }
 
-        let moves = game.list_moves::<true>(&pruner.prune_moves(&game));
+        let moves = game.list_moves::<true>(&pruner.prune_moves::<true>(&game));
 
         for (i, m) in moves.iter().enumerate() {
             print!("{i}.{m}, ");

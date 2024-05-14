@@ -124,7 +124,7 @@ impl Solitaire {
         let mut top_mask = 0;
         for pos in 0..N_PILES {
             if let Some((card, rest)) = self.hidden.get(pos).split_last() {
-                if !rest.is_empty() || card.rank() < KING_RANK {
+                if !rest.is_empty() || !card.is_king() {
                     top_mask |= card.mask();
                 }
             }
@@ -428,7 +428,7 @@ impl Solitaire {
         if let Some(&new_card) = new_card {
             let revealed = new_card.mask();
             self.visible_mask |= revealed;
-            if new_card.rank() < KING_RANK || self.hidden.len(pos) > 1 {
+            if !new_card.is_king() || self.hidden.len(pos) > 1 {
                 // if it's not the king mask or there's some hidden cards then set it as the top card
                 self.top_mask |= revealed;
             }
@@ -543,7 +543,7 @@ impl Solitaire {
             let pos = pos as u8;
             let last_card = self.hidden.peek(pos).unwrap_or(&Card::FAKE);
 
-            let mut start_card = if self.hidden.len(pos) <= 1 && last_card.rank() >= KING_RANK {
+            let mut start_card = if self.hidden.len(pos) <= 1 && last_card.is_king() {
                 while king_suit < N_SUITS
                     && (self.visible_mask ^ self.top_mask) & Card::new(KING_RANK, king_suit).mask()
                         == 0
@@ -646,7 +646,7 @@ impl From<&StandardSolitaire> for Solitaire {
 
         for (p_vis, p_hid) in game.piles.iter().zip(game.hidden_piles.iter()) {
             if let Some(c) = p_vis.first() {
-                if c.rank() < KING_RANK || !p_hid.is_empty() {
+                if !c.is_king() || !p_hid.is_empty() {
                     top_mask |= c.mask();
                 }
             }

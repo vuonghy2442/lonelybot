@@ -46,6 +46,12 @@ impl Card {
         self.0 / N_SUITS
     }
 
+    // actually this function check if it is king or fake card
+    #[must_use]
+    pub const fn is_king(&self) -> bool {
+        self.rank() >= KING_RANK
+    }
+
     #[must_use]
     pub const fn suit(&self) -> u8 {
         self.0 % N_SUITS

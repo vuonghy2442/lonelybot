@@ -79,7 +79,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
         return ControlFlow::Ok;
     }
 
-    let move_list = game.list_moves::<true>(&prune_info.prune_moves(game));
+    let move_list = game.list_moves::<true>(&prune_info.prune_moves::<true>(game));
     match callback.on_move_gen(&move_list, encode) {
         ControlFlow::Halt => return ControlFlow::Halt,
         ControlFlow::Skip => return ControlFlow::Skip,
