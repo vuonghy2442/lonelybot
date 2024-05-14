@@ -107,3 +107,32 @@ impl fmt::Display for Solvitaire {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::{json, Value};
+
+    use crate::{shuffler, standard::StandardSolitaire};
+
+    use super::Solvitaire;
+
+    #[test]
+    fn test_solvitaire_format() {
+        let game = Solvitaire(StandardSolitaire::new(&shuffler::default_shuffle(0), 3));
+        let obj: Value = serde_json::from_str(format!("{game}").as_str()).unwrap();
+
+        assert_eq!(
+            obj,
+            json!({"tableau piles": [
+            ["KC"],
+            ["6s","8C"],
+            ["9s","Ah","5S"],
+            ["5d","Js","5h","QD"],
+            ["Ac","7c","Jc","7h","KD"],
+            ["10c","3h","4d","4h","6c","QS"],
+            ["7d","3c","6h","5c","10h","9c","3S"]
+            ],"stock": ["JD","10D","7S","10S","AD","8S","JH","2D","AS","3D","9D","9H","6D","KS","QH","2H","2S","4S","4C","KH","2C","8H","8D","QC"],
+            "foundation": [[],[],[],[]]})
+        );
+    }
+}
