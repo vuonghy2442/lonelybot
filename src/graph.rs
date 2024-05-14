@@ -1,5 +1,6 @@
 use crate::{
     engine::{Encode, Move, Solitaire},
+    pruning::PruneInfo,
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -47,10 +48,13 @@ const fn get_edge_type(m: Move, rm: Option<Move>) -> EdgeType {
 }
 
 impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'a, S, T> {
-    fn on_win(&mut self, _: &Solitaire, rm: &Option<Move>) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         // win state
-        self.graph
-            .push((self.prev_enc, !0, get_edge_type(self.last_move, *rm)));
+        self.graph.push((
+            self.prev_enc,
+            !0,
+            get_edge_type(self.last_move, self.rev_move),
+        ));
         ControlFlow::Ok
     }
 
@@ -74,15 +78,9 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'
         ControlFlow::Ok
     }
 
-    fn on_do_move(
-        &mut self,
-        _: &Solitaire,
-        m: &Move,
-        e: Encode,
-        rev: &Option<Move>,
-    ) -> ControlFlow {
+    fn on_do_move(&mut self, _: &Solitaire, m: &Move, e: Encode, prune: &PruneInfo) -> ControlFlow {
         self.last_move = *m;
-        self.rev_move = *rev;
+        self.rev_move = prune.rev_move();
         self.prev_enc = e;
         self.depth += 1;
         ControlFlow::Ok
@@ -110,7 +108,7 @@ pub fn graph_with_tracking<S: SearchStatistics, T: TerminateSignal>(
         rev_move: None,
     };
 
-    let finished = traverse(g, None, &mut tp, &mut callback);
+    let finished = traverse(g, &PruneInfo::default(), &mut tp, &mut callback);
     (finished, callback.graph)
 }
 

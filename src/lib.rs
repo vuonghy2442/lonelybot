@@ -8,6 +8,7 @@ pub mod graph;
 pub mod hidden;
 pub mod hop_solver;
 pub mod mcts_solver;
+pub mod pruning;
 pub mod shuffler;
 pub mod solver;
 pub mod stack;

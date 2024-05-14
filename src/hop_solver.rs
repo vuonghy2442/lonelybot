@@ -2,6 +2,7 @@ use rand::RngCore;
 
 use crate::{
     engine::{Encode, Move, Solitaire},
+    pruning::PruneInfo,
     solver::SearchResult,
     tracking::TerminateSignal,
     traverse::{traverse, Callback, ControlFlow, TpTable},
@@ -15,7 +16,7 @@ struct HOPSolverCallback<'a, T: TerminateSignal> {
 }
 
 impl<'a, T: TerminateSignal> Callback for HOPSolverCallback<'a, T> {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         self.result = SearchResult::Solved;
         ControlFlow::Halt
     }
@@ -48,7 +49,7 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
     n_times: usize,
     limit: usize,
     sign: &T,
-    rev_move: Option<Move>,
+    prune_info: &PruneInfo,
 ) -> (usize, usize, usize) {
     let mut total_wins = 0;
     let mut total_skips = 0;
@@ -73,6 +74,7 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
     for _ in 0..n_times {
         let mut gg = g.clone();
         gg.get_hidden_mut().shuffle(rng);
+        let new_prune_info = PruneInfo::new(&gg, prune_info, m);
         gg.do_move(m);
 
         let mut callback = HOPSolverCallback {
@@ -82,7 +84,7 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
             n_visit: 0,
         };
         tp.clear();
-        traverse(&mut gg, rev_move, &mut tp, &mut callback);
+        traverse(&mut gg, &new_prune_info, &mut tp, &mut callback);
         if sign.is_terminated() {
             break;
         }
@@ -110,7 +112,7 @@ struct RevStatesCallback<'a, R: RngCore, T: TerminateSignal> {
 }
 
 impl<'a, R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'a, R, T> {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         self.res.push((self.his.clone(), (!0, 0, !0)));
         ControlFlow::Halt
     }
@@ -120,14 +122,23 @@ impl<'a, R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'a, R, T
         g: &Solitaire,
         m: &Move,
         _: Encode,
-        rev: &Option<Move>,
+        prune_info: &PruneInfo,
     ) -> ControlFlow {
         self.his.push(*m);
+        let rev = prune_info.rev_move();
         // if rev.is_none() && (matches!(m, Move::Reveal(_)) || matches!(m, Move::PileStack(_))) {
         if rev.is_none() {
             self.res.push((
                 self.his.clone(),
-                hop_solve_game(g, m, self.rng, self.n_times, self.limit, self.sign, None),
+                hop_solve_game(
+                    g,
+                    m,
+                    self.rng,
+                    self.n_times,
+                    self.limit,
+                    self.sign,
+                    prune_info,
+                ),
             ));
             ControlFlow::Skip
         } else {
@@ -157,6 +168,6 @@ pub fn list_moves<R: RngCore, T: TerminateSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse(g, None, &mut tp, &mut callback);
+    traverse(g, &PruneInfo::default(), &mut tp, &mut callback);
     callback.res
 }

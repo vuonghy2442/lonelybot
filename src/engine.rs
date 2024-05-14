@@ -2,8 +2,10 @@ use core::ops::ControlFlow;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{Card, KING_RANK, N_CARDS, N_SUITS, SUIT_MASK};
-use crate::deck::{Deck, N_PILE_CARDS, N_PILES};
+use crate::card::{
+    Card, ALT_MASK, HALF_MASK, KING_MASK, KING_RANK, N_CARDS, N_SUITS, RANK_MASK, SUIT_MASK,
+};
+use crate::deck::{Deck, N_PILES, N_PILE_CARDS};
 use crate::stack::Stack;
 use crate::utils::full_mask;
 
@@ -35,12 +37,6 @@ pub struct Solitaire {
 }
 
 pub type Encode = u64;
-
-const HALF_MASK: u64 = 0x3333_3333_3333_3333;
-const ALT_MASK: u64 = 0x5555_5555_5555_5555;
-const RANK_MASK: u64 = 0x1111_1111_1111_1111;
-
-const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
 
 pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
 
@@ -90,6 +86,10 @@ pub fn iter_moves<T, F: FnMut(Move) -> ControlFlow<T>>(
 
 pub type UndoInfo = u8;
 
+fn filter<const N: usize>(a: &[u64; N], remove: &[u64; N]) -> [u64; N] {
+    core::array::from_fn(|idx| a[idx] & !remove[idx])
+}
+
 impl Solitaire {
     #[must_use]
     pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
@@ -124,7 +124,7 @@ impl Solitaire {
         let mut top_mask = 0;
         for pos in 0..N_PILES {
             if let Some((card, rest)) = self.hidden.get(pos).split_last() {
-                if !rest.is_empty() || card.rank() < KING_RANK {
+                if !rest.is_empty() || !card.is_king() {
                     top_mask |= card.mask();
                 }
             }
@@ -190,10 +190,12 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub fn list_moves<const DOMINANCE: bool>(&self) -> MoveVec {
+    pub fn list_moves<const DOMINANCE: bool>(&self, prune: &[u64; 5]) -> MoveVec {
         let mut moves = MoveVec::new();
 
-        iter_moves(self.gen_moves::<DOMINANCE>(), |m| {
+        let packed_moves = filter(&self.gen_moves::<DOMINANCE>(), prune);
+
+        iter_moves(packed_moves, |m| {
             moves.push(m);
             ControlFlow::<()>::Continue(())
         });
@@ -426,7 +428,7 @@ impl Solitaire {
         if let Some(&new_card) = new_card {
             let revealed = new_card.mask();
             self.visible_mask |= revealed;
-            if new_card.rank() < KING_RANK || self.hidden.len(pos) > 1 {
+            if !new_card.is_king() || self.hidden.len(pos) > 1 {
                 // if it's not the king mask or there's some hidden cards then set it as the top card
                 self.top_mask |= revealed;
             }
@@ -525,7 +527,7 @@ impl Solitaire {
         self.top_mask = self.compute_top_mask();
     }
     #[must_use]
-    pub fn get_hidden(&self) -> &Hidden {
+    pub const fn get_hidden(&self) -> &Hidden {
         &self.hidden
     }
 
@@ -541,7 +543,7 @@ impl Solitaire {
             let pos = pos as u8;
             let last_card = self.hidden.peek(pos).unwrap_or(&Card::FAKE);
 
-            let mut start_card = if self.hidden.len(pos) <= 1 && last_card.rank() >= KING_RANK {
+            let mut start_card = if self.hidden.len(pos) <= 1 && last_card.is_king() {
                 while king_suit < N_SUITS
                     && (self.visible_mask ^ self.top_mask) & Card::new(KING_RANK, king_suit).mask()
                         == 0
@@ -644,7 +646,7 @@ impl From<&StandardSolitaire> for Solitaire {
 
         for (p_vis, p_hid) in game.piles.iter().zip(game.hidden_piles.iter()) {
             if let Some(c) = p_vis.first() {
-                if c.rank() < KING_RANK || !p_hid.is_empty() {
+                if !c.is_king() || !p_hid.is_empty() {
                     top_mask |= c.mask();
                 }
             }
@@ -707,7 +709,7 @@ mod tests {
 
                 assert_eq!(test, truth);
 
-                let moves = game.list_moves::<false>();
+                let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {
                     break;
                 }
@@ -723,7 +725,7 @@ mod tests {
         for i in 0..1000 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
-                let moves = game.list_moves::<false>();
+                let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {
                     break;
                 }
@@ -775,7 +777,7 @@ mod tests {
 
             assert!(game.is_valid());
             for _ in 0..N_STEP {
-                let moves = game.list_moves::<false>();
+                let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {
                     break;
                 }
@@ -813,7 +815,7 @@ mod tests {
         for i in 0..1000 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
             for _ in 0..100 {
-                let moves = game.list_moves::<false>();
+                let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {
                     break;
                 }

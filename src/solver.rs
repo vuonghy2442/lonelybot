@@ -1,5 +1,6 @@
 use crate::{
     engine::{Encode, Move, Solitaire},
+    pruning::PruneInfo,
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -27,7 +28,7 @@ struct SolverCallback<'a, S: SearchStatistics, T: TerminateSignal> {
 }
 
 impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'a, S, T> {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         self.result = SearchResult::Solved;
         ControlFlow::Halt
     }
@@ -47,7 +48,7 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'a
         ControlFlow::Ok
     }
 
-    fn on_do_move(&mut self, _: &Solitaire, m: &Move, _: Encode, _: &Option<Move>) -> ControlFlow {
+    fn on_do_move(&mut self, _: &Solitaire, m: &Move, _: Encode, _: &PruneInfo) -> ControlFlow {
         self.history.push(*m);
         ControlFlow::Ok
     }
@@ -74,7 +75,7 @@ pub fn solve_with_tracking<S: SearchStatistics, T: TerminateSignal>(
         result: SearchResult::Unsolvable,
     };
 
-    traverse(game, None, &mut tp, &mut callback);
+    traverse(game, &PruneInfo::default(), &mut tp, &mut callback);
 
     let result = callback.result;
 

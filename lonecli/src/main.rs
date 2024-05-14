@@ -5,9 +5,10 @@ mod tui;
 use bpci::{Interval, NSuccessesSample, WilsonScore};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
-use lonelybot::engine::{Encode, Move, MoveVec, Solitaire, UndoInfo};
+use lonelybot::engine::{Encode, Move, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::mcts_solver::pick_moves;
+use lonelybot::pruning::PruneInfo;
 use lonelybot::shuffler::{self, CardDeck, U256};
 use lonelybot::tracking::DefaultTerminateSignal;
 use lonelybot::traverse::ControlFlow;
@@ -113,7 +114,7 @@ fn benchmark(seed: &Seed) {
     for i in 0..100 {
         let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
         for _ in 0..100 {
-            let moves = game.list_moves::<true>();
+            let moves = game.list_moves::<true>(&Default::default());
 
             if moves.is_empty() {
                 break;
@@ -136,27 +137,22 @@ fn do_random(seed: &Seed) {
     let mut total_win = 0;
     for i in 0..TOTAL_GAME {
         let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
-        let mut rev_move = None;
+
+        let mut prune_info = PruneInfo::default();
         loop {
             if game.is_win() {
                 total_win += 1;
                 break;
             }
-            let moves = game.list_moves::<true>();
-
-            let moves: MoveVec = moves
-                .iter()
-                .filter(|&&c| Some(c) != rev_move)
-                .copied()
-                .collect();
+            let moves = game.list_moves::<true>(&prune_info.prune_moves::<false>(&game));
 
             if moves.is_empty() {
                 break;
             }
 
             let m = &moves[0];
-            rev_move = game.get_rev_move(m);
 
+            prune_info = PruneInfo::new(&game, &prune_info, m);
             game.do_move(m);
         }
     }
@@ -290,13 +286,15 @@ fn game_loop(seed: &Seed) {
 
     let mut game_state = HashSet::<Encode>::new();
 
+    let mut pruner = PruneInfo::default();
+
     loop {
         print_game(&game);
         if !game_state.insert(game.encode()) {
             println!("Already existed state");
         }
 
-        let moves = game.list_moves::<true>();
+        let moves = game.list_moves::<true>(&pruner.prune_moves::<true>(&game));
 
         for (i, m) in moves.iter().enumerate() {
             print!("{i}.{m}, ");
@@ -316,10 +314,12 @@ fn game_loop(seed: &Seed) {
         if let Some(id) = res {
             let id = usize::try_from(id).unwrap_or(usize::MAX);
             if id < moves.len() {
+                pruner = PruneInfo::new(&game, &pruner, &moves[id]);
                 let info = game.do_move(&moves[id]);
                 move_hist.push((moves[id], info));
             } else {
                 let (m, info) = &move_hist.pop().unwrap();
+                pruner = PruneInfo::default();
                 game.undo_move(m, info);
                 println!("Undo!!");
             }
@@ -475,7 +475,7 @@ fn main() {
         Commands::Rate { seed } => solve_loop(&seed.into(), &handling_signal()),
         Commands::Exact { seed } => {
             let shuffled_deck = shuffle(&seed.into());
-            println!("{}", shuffler::encode_shuffle(shuffled_deck));
+            println!("{}", shuffler::encode_shuffle(shuffled_deck).unwrap());
         }
         Commands::Random { seed } => do_random(&seed.into()),
         Commands::Hop { seed } => {

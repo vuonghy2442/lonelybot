@@ -4,7 +4,15 @@ Lonelybot
 
 ## Crates
 - Lonelybot is a library crate with #no_std support, and can be use in webassembly
-- Lonecli is a wrapper on lonelybot to provide features
+- Lonecli is a binary wrapper crate on lonelybot to provide the features through CLI
+
+You'd probably want to use `lonecli`. To run it with `cargo`,
+
+```sh
+cd lonecli
+cargo run --release -- help
+```
+
 
 ## Build mode
 - release: use lto (cargo build --release)
@@ -14,7 +22,7 @@ Lonelybot
 - bench: For micro-benchmarking (cargo bench)
 
 ## Seed
-There are 6 seed types
+There are 7 seed types
 - ``default``: using Rust rng
 - ``legacy``: similar to default, for compatibility with older version of this engine
 - ``solvitaire``: re-implementation of [Solvitaire](https://github.com/thecharlieblake/Solvitaire) random
@@ -31,9 +39,7 @@ You'll find them on lines starting with ``SolitaireGameLogic::TryLoadGame`` or `
 
 To input your own game, you can use `convert.py` in `script`, to convert the Solvitaire json format into an exact seed, which then you can input into `lonecli`. Currently it only support convert the initial state of the game.
 
-## Run methods
-This solver has a few modes
-
+## lonecli commands
 ### Exact
 Turn a seed into the exact permutation number
 ```sh
@@ -51,7 +57,7 @@ Example output
 ```
 
 ### Random
-Do random play on 10000 different games from seed to seed + 10000 to see how many games it can win
+Do random roll-outs on 10000 different games from seed to seed + 10000 to see how many games it can win
 
 ```sh
 lonecli random [seed_type] [seed]
@@ -59,7 +65,7 @@ lonecli random [seed_type] [seed]
 
 Example run
 ```
-lonecli exact default 0
+lonecli random default 0
 ```
 
 Example output
@@ -74,17 +80,21 @@ lonecli print [seed_type] [seed]
 ```
 This will print the board in json format (in solvitaire format)
 
+```sh
+lonecli print default 0
+```
+
 Example output
 ```json
 {"tableau piles": [
-["QS"],
-["10s","QC"],
-["As","5s","6S"],
-["9h","10d","Ad","3S"],
-["5c","7d","Qd","10c","KS"],
-["2d","Jc","9s","8c","2h","9C"],
-["5d","Qh","8d","Kc","4d","8h","6H"]
-],"stock": ["KH","7C","2S","AH","9D","4C","3D","6C","8S","JD","AC","JS","KD","JH","3H","4S","7H","5H","3C","4H","10H","2C","6D","7S"],
+["KC"],
+["6s","8C"],
+["9s","Ah","5S"],
+["5d","Js","5h","QD"],
+["Ac","7c","Jc","7h","KD"],
+["10c","3h","4d","4h","6c","QS"],
+["7d","3c","6h","5c","10h","9c","3S"]
+],"stock": ["JD","10D","7S","10S","AD","8S","JH","2D","AS","3D","9D","9H","6D","KS","QH","2H","2S","4S","4C","KH","2C","8H","8D","QC"],
 "foundation": [[],[],[],[]]}
 ```
 The format:
@@ -131,13 +141,13 @@ lonecli solve default 41
 
 Example impossible output
 ```
-Run in 7.4628000000000005 ms
+Run in 7.0111 ms
 Statistic
-Total visit: 88354
-Transposition hit: 51853 (rate 0.5868777870837766)
+Total visit: 77625
+Transposition hit: 41124 (rate 0.5297777777777778)
 Miss state: 36501
 Max depth search: 32
-Current progress: 1/1 5/5 5/5 6/6 5/5 3/3 3/3 3/3
+Current progress: 1/1 5/5 5/5 6/6 4/4 2/2 3/3 2/2
 Impossible
 ```
 
@@ -159,29 +169,30 @@ lonecli solve default 12
 
 Example solved output
 ```
-Run in 0.1812 ms
+Run in 0.1811 ms
 Statistic
-Total visit: 118
-Transposition hit: 5 (rate 0.0423728813559322)
-Miss state: 113
-Max depth search: 91
+Total visit: 119
+Transposition hit: 0 (rate 0)
+Miss state: 119
+Max depth search: 88
 Current progress: 0/1 0/5 0/1 0/5 0/4 0/4 0/4 0/3
-Solvable in 92 moves
+Solvable in 89 moves
 PS A♦, R 5♠, PS A♠, ....
 Pile(4) Stack(1) A♦, Pile(6) Pile(5) 5♠, ....
-JG @AK ...
+JC LK LE IG AH ...
 ```
 
-Note that, currently, my code assumes that the first draw is automatically done (so the game starts with first n-cards drawn)
 
 There are three type of solution notation:
 - The first line is the specialized notation (explained bellow)
 - The second line is the standardized notation with the format as a tuple of source position, destination position, moving card.
 - The third line is the notation from [Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike) repo.
 
+There are 3 category of positions: Deck (the stock), Pile (the 0-indexed tableaus), Stack (the 0-indexed foundation stack)
+
 The special move of drawing from the stock is represent as a move from the stock (Deck) to the stock (Deck)
 
-There are 3 position: Deck (the stock), Pile (the 0-indexed tableaus), Stack (the 0-indexed foundation stack)
+Note that, currently, my code assumes that the first draw is automatically done (so the game starts with first 3 cards drawn)
 
 ### Solve loop
 ```sh
@@ -201,14 +212,14 @@ lonecli rate default 0
 
 Example output
 ```
-Run D-0 Solved: (1-0/1 ~ 0.2065<=1.0000<=1.0000) 96 96 95 in 0.20 ms.
-Run D-1 Solved: (2-0/2 ~ 0.3424<=1.0000<=1.0000) 10804 6188 87 in 1.05 ms.
-Run D-2 Solved: (3-0/3 ~ 0.4385<=1.0000<=1.0000) 52426 26220 81 in 4.32 ms.
-Run D-3 Solved: (4-0/4 ~ 0.5101<=1.0000<=1.0000) 192 164 87 in 0.24 ms.
-Run D-4 Solved: (5-0/5 ~ 0.5655<=1.0000<=1.0000) 3141 1938 93 in 0.54 ms.
-Run D-5 Solved: (6-0/6 ~ 0.6097<=1.0000<=1.0000) 2835 1582 92 in 0.37 ms.
-Run D-6 Solved: (7-0/7 ~ 0.6457<=1.0000<=1.0000) 14953 6102 89 in 1.23 ms.
-Run D-7 Unsolvable: (7-0/8 ~ 0.5291<=0.8750<=0.9776) 3439 1928 28 in 0.45 ms.
+Run D-0 Solved: (1-0/1 ~ 0.2065<=1.0000<=1.0000) 99 99 95 in 0.19 ms.
+Run D-1 Solved: (2-0/2 ~ 0.3424<=1.0000<=1.0000) 9319 6120 81 in 0.98 ms.
+Run D-2 Solved: (3-0/3 ~ 0.4385<=1.0000<=1.0000) 35571 24661 100 in 3.19 ms.
+Run D-3 Solved: (4-0/4 ~ 0.5101<=1.0000<=1.0000) 728 537 89 in 0.23 ms.
+Run D-4 Solved: (5-0/5 ~ 0.5655<=1.0000<=1.0000) 101120 44681 92 in 9.97 ms.
+Run D-5 Solved: (6-0/6 ~ 0.6097<=1.0000<=1.0000) 2136 1423 89 in 0.43 ms.
+Run D-6 Solved: (7-0/7 ~ 0.6457<=1.0000<=1.0000) 11089 5651 87 in 1.08 ms.
+Run D-7 Unsolvable: (7-0/8 ~ 0.5291<=0.8750<=0.9776) 3115 1859 28 in 0.43 ms.
 ...
 ```
 
@@ -275,23 +286,23 @@ lonecli hop default 0
 
 Example output
 ```
-DP J♥,
-DP 2♦,
-DS A♠,
+R Q♠, 
+R Q♦, 
+DP 4♣,
 ...
 Solved
 ```
 
 Example run
 ```sh
-lonecli hop default 5
+lonecli hop default 6
 ```
 
 Example output
 ```
-DP 3♦,
-DP 5♦,
-DS A♥,
+DS A♠, 
+DP J♦, 
+DS 2♠, 
 ...
 Lost
 ```
@@ -309,12 +320,10 @@ lonecli hop-loop default 0
 
 Example output
 ```
-1/1 ~ 0.2065 < 1.0000 < 1.0000 in 3.3991924s
-2/2 ~ 0.3424 < 1.0000 < 1.0000 in 2.0126367s
-3/3 ~ 0.4385 < 1.0000 < 1.0000 in 3.6193054s
-4/4 ~ 0.5101 < 1.0000 < 1.0000 in 2.4423182s
-...
-119/239 ~ 0.4351 < 0.4979 < 0.5608 in 3.4916281s
+1/1 ~ 0.2065 < 1.0000 < 1.0000 in 4.0302814s
+2/2 ~ 0.3424 < 1.0000 < 1.0000 in 2.6200513s
+2/3 ~ 0.2077 < 0.6667 < 0.9385 in 3.7817279s
+3/4 ~ 0.3006 < 0.7500 < 0.9544 in 2.1479847s
 ...
 ```
 
@@ -332,14 +341,14 @@ lonecli graph klondike-solver 338 test.csv
 
 Example output
 ```
-Run in 14.779499999999999 ms
+Run in 13.5719 ms
 Statistic
-Total visit: 175203
-Transposition hit: 87772 (rate 0.500973156852337)
-Miss state: 87431
-Max depth search: 118
-Current progress: 5/5 4/4 4/4 4/4 4/4 6/6 4/4 4/4
-Graphed in 175205 edges
+Total visit: 136217
+Transposition hit: 57334 (rate 0.4209019432229457)
+Miss state: 78883
+Max depth search: 135
+Current progress: 5/5 1/1 0/0 4/4 3/3 5/5 4/4 4/4
+Graphed in 136219 edges
 Save done
 ```
 
@@ -347,11 +356,11 @@ Output file
 ```cs
 s,t,e,id
 1729382259552616448,1729382259552550912,Reveal,0
-1729382259552550912,1729382259505364992,Reveal,1
-1729382259505364992,1729382259505233920,Reveal,2
-1729382259505233920,1729382259497369600,Reveal,3
+1729382259552616448,1729382259505430528,Reveal,1
+1729382259505430528,1729382259505364992,Reveal,2
+1729382259505364992,1729382259458179072,Reveal,3
 ...
-1693353462533652480,1693353462533259264,Reveal,175203
+1693353462533652480,1693353462533586944,Reveal,136217
 ```
 
 There are 4 columns:
@@ -363,16 +372,16 @@ There are 4 columns:
 
 ## Limitations
 
-- Cannot disallow worrying back
-- May not find the shortest solution
+- Cannot disallow worrying back (but can be supported in the future)
+- Not designed to find the shortest solution
 
 ## Running results
 
-As far as my knowledge goes, up to March 2024, this solver is the state of the art for checking solvability of a standard 3-card klondike game. I didn't test much on the general case of n-card game, but it is likely to be the best as well.
+As far as my knowledge goes, up to May 2024, this solver is the state of the art for checking solvability of a standard 3-card klondike game. I didn't test much on the general case of n-card game, but it is likely to be the best as well.
 
 I cross-checked my package with Solvitaire (published result) using the Klondike-Solver seed from 0 to 50k, and with the 1M games with Solvitaire seed from 1 to 1M. And I also cross-checked between different versions of my own package up to much more games (at least 100k and can be up to 2M games).
 
-However, due to having a lot of specific optimizations that haven't been rigorously proven (but I intended to make sure it's always correct, not just a "very good heuristic" but can be wrong in extremely few cases). So any wrong solvability result is a bug.
+However, due to having a lot of game-specific optimizations that haven't been rigorously proven (but I intended to make sure it's always correct, not just a "very good heuristic" but can be wrong in extremely few cases). So any wrong solvability result is a bug.
 
 
 ### Thoughtful Klondike
@@ -386,21 +395,21 @@ So this is the new state of the art result for solvability: 81.95 ± 0.03 (compa
 
 This result is computed on 1 cpu core for a few days. With more resources, it can be easily improved.
 
-One other notable thing is that there's no game that it can't decide in a reasonable amount of time that I'm aware of.
+One other notable thing is that there's no game that it can't decide in a reasonable amount of time that I'm aware of. The hardest instance I know can be solves in a few minutes
 
 ### Random Klondike
 So with my hop/MCTS solver, I also achieve the state of the art for random Klondike
 
-44953/101274 ~ 0.4408 < 0.4439 < 0.4469 in 36.506412931s
+7148/15024 ~ 0.4678 < 0.4758 < 0.4838 in 3.171500072s
 
-So the solvability is 44.39 ± 0.30 (compared to the previous 36.97 ± 1.92 from [this paper](https://ojs.aaai.org/index.php/ICAPS/article/view/13363/13211))
+So the solvability is 47.58 ± 0.80 (compared to the previous 36.97 ± 1.92 from [this paper](https://ojs.aaai.org/index.php/ICAPS/article/view/13363/13211))
 
 The average running time for one game is only a few seconds.
 
-However due to significant improvement, I think this needs more verification.
+However due to the significant improvement, I think this needs more verification.
 
 ## Method
 
-It started from implementing the ideas from the Solvitaire paper in Rust (which is tagged as version 0.1). Then I figure out a suit symmetry in the game state, combining with more dominances (technical term in the Solvitaire paper) and move pruning. This allows me to vastly reduced the states (around an order of magnitude) compared to the original method, combining with highly optimized implementation (around 2 orders of magnitude faster in search rate). In total, it runs around 3 orders of magnitude faster. Also after a lot of move pruning, the game tree is now a DAG (when remove cycles of 2).
+It started from implementing the ideas from the Solvitaire paper in Rust (which is tagged as version 0.1). Then I figure out a suit symmetry in the game state, combining with more dominances (technical term in the Solvitaire paper) and move pruning. This allows me to vastly reduced the states (around an order of magnitude) compared to the original method, combining with highly optimized implementation (around 2 orders of magnitude faster in search rate). In total, it runs around 3 orders of magnitude faster. Also after a lot of move pruning, the game graph is now a DAG (when remove cycles of 2).
 
 I will try to find some time to write a more detailed description of the method.

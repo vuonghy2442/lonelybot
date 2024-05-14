@@ -33,7 +33,7 @@ impl Hasher for MixHasher {
     }
 
     fn write_u64(&mut self, n: u64) {
-        self.0 = mix(n)
+        self.0 = mix(n);
     }
 
     fn finish(&self) -> u64 {

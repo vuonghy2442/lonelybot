@@ -15,6 +15,12 @@ pub const SUIT_MASK: [u64; N_SUITS as usize] = [
     0x2828_2828_2828_2828,
 ];
 
+pub const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
+
+pub const HALF_MASK: u64 = 0x3333_3333_3333_3333;
+pub const ALT_MASK: u64 = 0x5555_5555_5555_5555;
+pub const RANK_MASK: u64 = 0x1111_1111_1111_1111;
+
 pub const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,6 +44,12 @@ impl Card {
     #[must_use]
     pub const fn rank(&self) -> u8 {
         self.0 / N_SUITS
+    }
+
+    // actually this function check if it is king or fake card
+    #[must_use]
+    pub const fn is_king(&self) -> bool {
+        self.rank() >= KING_RANK
     }
 
     #[must_use]

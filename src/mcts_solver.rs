@@ -3,6 +3,7 @@ use rand::RngCore;
 use crate::{
     engine::{Encode, Move, Solitaire},
     hop_solver::hop_solve_game,
+    pruning::PruneInfo,
     tracking::TerminateSignal,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -16,7 +17,7 @@ struct FindStatesCallback {
 }
 
 impl Callback for FindStatesCallback {
-    fn on_win(&mut self, _: &Solitaire, _: &Option<Move>) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         ControlFlow::Halt
     }
 
@@ -30,12 +31,18 @@ impl Callback for FindStatesCallback {
 
     fn on_do_move(
         &mut self,
-        _: &Solitaire,
+        g: &Solitaire,
         m: &Move,
         _: Encode,
-        rev: &Option<Move>,
+        prune_info: &PruneInfo,
     ) -> ControlFlow {
-        if rev.is_none() {
+        let rev = prune_info.rev_move();
+        let ok = match m {
+            Move::Reveal(c) => c.mask() & g.get_hidden().first_layer_mask() == 0,
+            _ => true,
+        };
+
+        if rev.is_none() && ok {
             ControlFlow::Skip
         } else {
             self.his.push(*m);
@@ -55,7 +62,7 @@ struct ListStatesCallback {
 }
 
 impl Callback for ListStatesCallback {
-    fn on_win(&mut self, game: &Solitaire, _: &Option<Move>) -> ControlFlow {
+    fn on_win(&mut self, game: &Solitaire) -> ControlFlow {
         self.res.clear();
         self.res.push((game.encode(), Move::FAKE));
         ControlFlow::Halt
@@ -66,8 +73,9 @@ impl Callback for ListStatesCallback {
         _: &Solitaire,
         m: &Move,
         e: Encode,
-        rev: &Option<Move>,
+        prune_info: &PruneInfo,
     ) -> ControlFlow {
+        let rev = prune_info.rev_move();
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
         if rev.is_none() {
             self.res.push((e, *m));
@@ -93,27 +101,27 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse(game, None, &mut tp, &mut callback);
+    traverse(game, &PruneInfo::default(), &mut tp, &mut callback);
     let states = callback.res;
 
     let mut org_g = game.clone();
 
-    let mut find_state = move |state: (Encode, Move)| {
+    let mut find_state = move |state: Encode, m: Move| {
         let mut callback = FindStatesCallback {
             his: Vec::default(),
-            state: state.0,
+            state,
         };
         tp.clear();
 
-        traverse(&mut org_g, None, &mut tp, &mut callback);
-        if state.1 != Move::FAKE {
-            callback.his.push(state.1);
+        traverse(&mut org_g, &PruneInfo::default(), &mut tp, &mut callback);
+        if m != Move::FAKE {
+            callback.his.push(m);
         }
         callback.his
     };
 
     if states.len() <= 1 {
-        return states.last().map(|state| find_state(*state));
+        return states.last().map(|state| find_state(state.0, state.1));
     }
 
     let mut res: Vec<(usize, usize, usize)> = Vec::with_capacity(states.len());
@@ -140,7 +148,15 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
 
         //test
         game.decode(state.0);
-        let new_res = hop_solve_game(game, &state.1, rng, BATCH_SIZE, limit, sign, None);
+        let new_res = hop_solve_game(
+            game,
+            &state.1,
+            rng,
+            BATCH_SIZE,
+            limit,
+            sign,
+            &PruneInfo::default(),
+        );
 
         n += BATCH_SIZE;
 
@@ -149,7 +165,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         res[best].2 += new_res.2;
 
         if res[best].2 > n_times {
-            return Some(find_state(*state));
+            return Some(find_state(state.0, state.1));
         }
 
         // let &(win, _skip, max_n) = res.iter().max_by_key(|x| x.2).unwrap();
