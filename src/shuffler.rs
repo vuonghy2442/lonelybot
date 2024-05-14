@@ -108,7 +108,7 @@ impl KSRandom {
     }
 }
 
-impl RngCore for KSRandom {
+impl KSRandom {
     fn next_u32(&mut self) -> u32 {
         let mut y = self.value ^ (self.twist.wrapping_sub(self.mix)) ^ self.value;
         y ^= self.twist ^ self.value ^ self.mix;
@@ -119,40 +119,16 @@ impl RngCore for KSRandom {
 
         self.value & 0x7fff_ffff
     }
-
-    fn next_u64(&mut self) -> u64 {
-        unimplemented!()
-    }
-
-    fn fill_bytes(&mut self, _dest: &mut [u8]) {
-        unimplemented!()
-    }
-
-    fn try_fill_bytes(&mut self, _dest: &mut [u8]) -> Result<(), rand::Error> {
-        unimplemented!()
-    }
 }
 
 pub struct GreenRandom {
     seed: u32,
 }
 
-impl RngCore for GreenRandom {
+impl GreenRandom {
     fn next_u32(&mut self) -> u32 {
         self.seed = ((u64::from(self.seed) * 16807) % 0x7fff_ffff) as u32;
         self.seed
-    }
-
-    fn next_u64(&mut self) -> u64 {
-        unimplemented!()
-    }
-
-    fn fill_bytes(&mut self, _dest: &mut [u8]) {
-        unimplemented!()
-    }
-
-    fn try_fill_bytes(&mut self, _dest: &mut [u8]) -> Result<(), rand::Error> {
-        unimplemented!()
     }
 }
 
