@@ -2,7 +2,9 @@ use core::ops::ControlFlow;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{Card, ALT_MASK, HALF_MASK, KING_MASK, KING_RANK, N_CARDS, N_SUITS, RANK_MASK, SUIT_MASK};
+use crate::card::{
+    Card, ALT_MASK, HALF_MASK, KING_MASK, KING_RANK, N_CARDS, N_SUITS, RANK_MASK, SUIT_MASK,
+};
 use crate::deck::{Deck, N_PILES, N_PILE_CARDS};
 use crate::stack::Stack;
 use crate::utils::full_mask;
@@ -35,8 +37,6 @@ pub struct Solitaire {
 }
 
 pub type Encode = u64;
-
-
 
 pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
 
@@ -527,7 +527,7 @@ impl Solitaire {
         self.top_mask = self.compute_top_mask();
     }
     #[must_use]
-    pub fn get_hidden(&self) -> &Hidden {
+    pub const fn get_hidden(&self) -> &Hidden {
         &self.hidden
     }
 

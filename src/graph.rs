@@ -1,5 +1,8 @@
 use crate::{
-    engine::{Encode, Move, Solitaire}, pruning::PruneInfo, tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal}, traverse::{traverse, Callback, ControlFlow, TpTable}
+    engine::{Encode, Move, Solitaire},
+    pruning::PruneInfo,
+    tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
+    traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 
 extern crate alloc;
@@ -105,7 +108,7 @@ pub fn graph_with_tracking<S: SearchStatistics, T: TerminateSignal>(
         rev_move: None,
     };
 
-    let finished = traverse(g, &Default::default(), &mut tp, &mut callback);
+    let finished = traverse(g, &PruneInfo::default(), &mut tp, &mut callback);
     (finished, callback.graph)
 }
 

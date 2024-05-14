@@ -1,7 +1,7 @@
 use arrayvec::ArrayVec;
 
 use crate::card::{Card, N_RANKS, N_SUITS};
-use crate::deck::{Deck, N_DECK_CARDS, N_PILE_CARDS, N_PILES};
+use crate::deck::{Deck, N_DECK_CARDS, N_PILES, N_PILE_CARDS};
 use crate::shuffler::CardDeck;
 use crate::stack::Stack;
 
@@ -42,6 +42,9 @@ pub type MoveResult<T> = core::result::Result<T, InvalidMove>;
 pub struct InvalidMove;
 
 impl StandardSolitaire {
+    /// # Panics
+    /// 
+    /// This function should never panic. If it does then the implementation is buggy
     #[must_use]
     pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
         let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
@@ -189,9 +192,15 @@ impl StandardSolitaire {
         }
     }
 
-    // this will execute the move the move
-    // this should never panic
-    // if the move is illegal then it won't do anything (the game state will be preserved)
+    /// this will execute the move the move
+    /// this should never panic
+    /// if the move is illegal then it won't do anything (the game state will be preserved)
+    /// # Errors
+    ///
+    /// Will return `InvalidMove` when the input move `m` is not a legal move
+    /// # Panics
+    /// 
+    /// This function will never panic unless the implementation is buggy
     pub fn do_move(&mut self, m: &StandardMove) -> MoveResult<()> {
         if !self.validate_move(m) {
             return Err(InvalidMove {});

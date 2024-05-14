@@ -19,38 +19,11 @@ impl Default for PruneInfo {
     }
 }
 
-/*
-let last_draw = match m {
-    Move::DeckPile(c) => Some(c),
-    Move::DeckStack(_) => None,
-    Move::StackPile(c) => {
-        if last_draw.is_some_and(|cc| cc.go_before(&c)) {
-            None
-        } else {
-            last_draw
-        }
-    }
-    Move::Reveal(c) => {
-        if last_draw.is_some_and(|cc| !cc.go_before(&c)) {
-            continue;
-        } else {
-            None
-        }
-    }
-    Move::PileStack(c) => {
-        if last_draw.is_some_and(|cc| cc.rank() != c.rank() || cc.suit() ^ c.suit() != 1) {
-            continue;
-        } else {
-            None
-        }
-    }
-};
- */
-
 impl PruneInfo {
+    #[must_use]
     pub fn new(game: &Solitaire, prev: &PruneInfo, m: &Move) -> Self {
         Self {
-            rev_move: game.get_rev_move(&m),
+            rev_move: game.get_rev_move(m),
             last_move: *m,
             last_draw: match m {
                 Move::DeckPile(c) => Some(*c),
@@ -66,15 +39,18 @@ impl PruneInfo {
         }
     }
 
-    pub fn rev_move(&self) -> Option<Move> {
-        return self.rev_move;
+    #[must_use]
+    pub const fn rev_move(&self) -> Option<Move> {
+        self.rev_move
     }
 
-    pub fn last_move(&self) -> Move {
-        return self.last_move;
+    #[must_use]
+    pub const fn last_move(&self) -> Move {
+        self.last_move
     }
 
-    pub fn prune_moves(&self, game: &Solitaire) -> [u64; 5] {
+    #[must_use]
+    pub const fn prune_moves(&self, game: &Solitaire) -> [u64; 5] {
         // [pile_stack - 0, deck_stack - 1, stack_pile - 2, deck_pile - 3, reveal - 4]
         let first_layer = game.get_hidden().first_layer_mask();
         let mut filter = match self.last_move {

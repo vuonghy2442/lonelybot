@@ -480,7 +480,7 @@ fn main() {
         Commands::Rate { seed } => solve_loop(&seed.into(), &handling_signal()),
         Commands::Exact { seed } => {
             let shuffled_deck = shuffle(&seed.into());
-            println!("{}", shuffler::encode_shuffle(shuffled_deck));
+            println!("{}", shuffler::encode_shuffle(shuffled_deck).unwrap());
         }
         Commands::Random { seed } => do_random(&seed.into()),
         Commands::Hop { seed } => {

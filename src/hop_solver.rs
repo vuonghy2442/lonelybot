@@ -168,6 +168,6 @@ pub fn list_moves<R: RngCore, T: TerminateSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse(g, &Default::default(), &mut tp, &mut callback);
+    traverse(g, &PruneInfo::default(), &mut tp, &mut callback);
     callback.res
 }

@@ -90,7 +90,7 @@ impl Hidden {
         let mut first_layer_mask: u64 = 0;
 
         for i in 0..N_PILES {
-            first_layer_mask |= self.get(i).first().map_or(0, |c| c.mask());
+            first_layer_mask |= self.get(i).first().map_or(0, Card::mask);
         }
         first_layer_mask
     }
