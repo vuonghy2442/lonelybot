@@ -92,6 +92,9 @@ fn filter<const N: usize>(a: &[u64; N], remove: &[u64; N]) -> [u64; N] {
 
 impl Solitaire {
     #[must_use]
+    /// # Panics
+    /// 
+    /// Never (unless buggy)
     pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
         let hidden_piles: [Card; N_PILE_CARDS as usize] =
             cards[0..N_PILE_CARDS as usize].try_into().unwrap();
@@ -348,7 +351,11 @@ impl Solitaire {
         }
     }
 
-    pub fn make_stack<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
+    /// # Panics
+    ///  
+    /// Panic when the card mask is not a card in the deck
+    /// It doesn't check if the card is drawable
+    fn make_stack<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
         let card = Card::from_mask(mask);
         self.final_stack.push(card.suit());
 
@@ -367,7 +374,7 @@ impl Solitaire {
         }
     }
 
-    pub fn unmake_stack<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
+    fn unmake_stack<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
         let card = Card::from_mask(mask);
         self.final_stack.pop(card.suit());
 
@@ -382,7 +389,7 @@ impl Solitaire {
         }
     }
 
-    pub fn make_pile<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
+    fn make_pile<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
         let card = Card::from_mask(mask);
         self.visible_mask |= mask;
         if DECK {
@@ -396,7 +403,7 @@ impl Solitaire {
         }
     }
 
-    pub fn unmake_pile<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
+    fn unmake_pile<const DECK: bool>(&mut self, mask: &u64, info: &UndoInfo) {
         let card = Card::from_mask(mask);
 
         self.visible_mask &= !mask;
@@ -419,7 +426,7 @@ impl Solitaire {
         &self.final_stack
     }
 
-    pub fn make_reveal(&mut self, m: &u64) -> UndoInfo {
+    fn make_reveal(&mut self, m: &u64) -> UndoInfo {
         let card = Card::from_mask(m);
         let pos = self.hidden.find(&card);
         self.top_mask &= !m;
@@ -436,7 +443,7 @@ impl Solitaire {
         Default::default()
     }
 
-    pub fn unmake_reveal(&mut self, m: &u64, _info: &UndoInfo) {
+    fn unmake_reveal(&mut self, m: &u64, _info: &UndoInfo) {
         let card = Card::from_mask(m);
         let pos = self.hidden.find(&card);
 
@@ -450,6 +457,10 @@ impl Solitaire {
         self.hidden.unpop(pos);
     }
 
+    /// # Panics
+    ///  
+    /// May panic when the move is invalid
+    /// But it may do the move even when it's invalid so be careful for using this function
     pub fn do_move(&mut self, m: &Move) -> UndoInfo {
         match m {
             Move::DeckStack(c) => self.make_stack::<true>(&c.mask()),
@@ -460,6 +471,7 @@ impl Solitaire {
         }
     }
 
+    /// It may leave the game in an invalid state with illegal move or wrong undo info
     pub fn undo_move(&mut self, m: &Move, undo: &UndoInfo) {
         match m {
             Move::DeckStack(c) => self.unmake_stack::<true>(&c.mask(), undo),
@@ -514,6 +526,7 @@ impl Solitaire {
     }
 
     pub fn decode(&mut self, encode: Encode) {
+        #[allow(clippy::cast_possible_truncation)]
         let (stack_encode, hidden_encode, deck_encode) =
             (encode as u16, (encode >> 16) as u16, (encode >> 32) as u32);
         // decode stack
@@ -540,6 +553,7 @@ impl Solitaire {
     pub fn get_visible_piles(&self) -> [PileVec; N_PILES as usize] {
         let mut king_suit = 0;
         core::array::from_fn(|pos| {
+            #[allow(clippy::cast_possible_truncation)]
             let pos = pos as u8;
             let last_card = self.hidden.peek(pos).unwrap_or(&Card::FAKE);
 
@@ -606,6 +620,7 @@ impl Solitaire {
             return false;
         }
 
+        #[allow(clippy::cast_possible_truncation)]
         let total_cards = self.visible_mask.count_ones() as u8
             + self.final_stack.len()
             + self.deck.len()

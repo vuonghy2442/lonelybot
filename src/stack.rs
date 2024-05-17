@@ -78,6 +78,7 @@ impl Stack {
 
     #[must_use]
     pub fn decode(encode: u16) -> Self {
+        #[allow(clippy::cast_possible_truncation)]
         Self(core::array::from_fn(|i| (encode >> (4 * i)) as u8 & 0xF))
     }
 

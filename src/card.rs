@@ -99,6 +99,7 @@ impl Card {
 
     #[must_use]
     pub const fn from_mask(v: &u64) -> Self {
+        #[allow(clippy::cast_possible_truncation)]
         let v = v.trailing_zeros() as u8;
         let v = v ^ ((v >> 1) & 2);
         Self::from_value(v)

@@ -133,6 +133,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         let best = res
             .iter()
             .map(|x| {
+                #[allow(clippy::cast_precision_loss)]
                 if x.2 == 0 {
                     f64::INFINITY
                 } else {

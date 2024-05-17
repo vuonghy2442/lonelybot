@@ -34,6 +34,7 @@ impl Hidden {
             }
         }
 
+        #[allow(clippy::cast_possible_truncation)]
         Self {
             hidden_piles,
             n_hidden: core::array::from_fn(|i| (i + 1) as u8),
@@ -51,17 +52,22 @@ impl Hidden {
         let mut pile_map = [0u8; N_CARDS as usize];
 
         let mut first_layer_mask: u64 = 0;
-        for i in 0..N_PILES as usize {
-            for (j, c) in piles[i].iter().chain(top[i].iter()).enumerate() {
+        for i in 0..N_PILES {
+            for (j, c) in piles[i as usize]
+                .iter()
+                .chain(top[i as usize].iter())
+                .enumerate()
+            {
                 if j == 0 {
                     first_layer_mask |= c.mask();
                 }
 
-                hidden_piles[(i * (i + 1) / 2) + j] = *c;
-                pile_map[c.value() as usize] = i as u8;
+                hidden_piles[(i * (i + 1) / 2) as usize + j] = *c;
+                pile_map[c.value() as usize] = i;
             }
         }
 
+        #[allow(clippy::cast_possible_truncation)]
         Self {
             hidden_piles,
             pile_map,
@@ -154,6 +160,7 @@ impl Hidden {
     // can be made const fn
     #[must_use]
     pub fn encode(&self) -> u16 {
+        #[allow(clippy::cast_possible_truncation)]
         self.n_hidden
             .iter()
             .enumerate()
@@ -164,6 +171,7 @@ impl Hidden {
     }
 
     pub fn decode(&mut self, mut hidden_encode: u16) {
+        #[allow(clippy::cast_possible_truncation)]
         for i in 0..N_PILES {
             let n_options = u16::from(i) + 2;
             self.n_hidden[i as usize] = (hidden_encode % n_options) as u8;
@@ -250,6 +258,7 @@ impl Hidden {
 
     #[must_use]
     pub fn normalize(&self) -> [u8; N_PILES as usize] {
+        #[allow(clippy::cast_possible_truncation)]
         core::array::from_fn(|pos| {
             let n_hid = self.n_hidden[pos];
             match n_hid {

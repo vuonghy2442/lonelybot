@@ -119,7 +119,7 @@ mod tests {
     #[test]
     fn test_solvitaire_format() {
         let game = Solvitaire(StandardSolitaire::new(&shuffler::default_shuffle(0), 3));
-        let obj: Value = serde_json::from_str(format!("{game}").as_str()).unwrap();
+        let obj: Value = serde_json::from_str(game.to_string().as_str()).unwrap();
 
         assert_eq!(
             obj,

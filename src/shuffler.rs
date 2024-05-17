@@ -26,6 +26,8 @@ pub fn to_legacy(cards: &CardDeck) -> CardDeck {
 #[must_use]
 pub fn default_shuffle(seed: u64) -> CardDeck {
     let mut rng = StdRng::seed_from_u64(seed);
+
+    #[allow(clippy::cast_possible_truncation)]
     let mut cards: CardDeck =
         core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, i as u8 % N_SUITS));
     cards.shuffle(&mut rng);
@@ -55,6 +57,8 @@ fn layer_to_pile(cards: &CardDeck) -> CardDeck {
 pub fn ks_shuffle(seed: u32) -> CardDeck {
     const M: [u8; N_SUITS as usize] = [2, 1, 3, 0];
     let mut rng = KSRandom::new(seed);
+
+    #[allow(clippy::cast_possible_truncation)]
     let mut cards: CardDeck =
         core::array::from_fn(|i| Card::new(i as u8 % N_RANKS, M[i / N_RANKS as usize]));
 
@@ -187,6 +191,8 @@ pub fn uniform_int<R: RngCore>(a: u32, b: u32, rng: &mut R) -> u32 {
 #[must_use]
 pub fn solvitaire_shuffle(seed: u32) -> CardDeck {
     const M: [u8; N_SUITS as usize] = [2, 0, 3, 1];
+
+    #[allow(clippy::cast_possible_truncation)]
     let mut cards: CardDeck =
         core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, M[i % N_SUITS as usize]));
 
@@ -225,6 +231,8 @@ pub fn exact_shuffle(mut seed: U256) -> Option<CardDeck> {
     if seed >= factorial(N_CARDS) {
         return None;
     }
+
+    #[allow(clippy::cast_possible_truncation)]
     let mut cards: CardDeck =
         core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, i as u8 % N_SUITS));
 
@@ -257,6 +265,7 @@ pub fn microsoft_shuffle(mut seed: U256) -> Option<CardDeck> {
         return None;
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     let mut cards: CardDeck =
         core::array::from_fn(|i| Card::new(i as u8 % N_RANKS, M[i / N_RANKS as usize]));
 

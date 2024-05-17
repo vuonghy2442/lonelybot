@@ -34,6 +34,7 @@ impl Deck {
     pub fn new(deck: &[Card; N_DECK_CARDS as usize], draw_step: u8) -> Self {
         let draw_step = min(N_DECK_CARDS, draw_step);
         let mut map = [!0u8; N_CARDS as usize];
+        #[allow(clippy::cast_possible_truncation)]
         for (i, c) in deck.iter().enumerate() {
             map[c.value() as usize] = i as u8;
         }
@@ -65,6 +66,7 @@ impl Deck {
 
     #[must_use]
     pub fn find_card(&self, card: Card) -> Option<u8> {
+        #[allow(clippy::cast_possible_truncation)]
         self.deck[..self.draw_cur as usize]
             .iter()
             .chain(self.deck[self.draw_next as usize..].iter())
@@ -92,6 +94,7 @@ impl Deck {
         &self,
     ) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> + ExactSizeIterator {
         self.get_waste().iter().enumerate().map(|x| {
+            #[allow(clippy::cast_possible_truncation)]
             let pos = x.0 as u8;
             (
                 pos,
@@ -112,6 +115,7 @@ impl Deck {
         &self,
     ) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> + ExactSizeIterator {
         self.get_deck().iter().enumerate().map(|x| {
+            #[allow(clippy::cast_possible_truncation)]
             let pos = x.0 as u8;
             (
                 self.draw_cur + pos,
@@ -191,7 +195,10 @@ impl Deck {
         }
 
         if self.draw_next < N_DECK_CARDS {
-            func(N_DECK_CARDS - 1 - gap, &self.deck[N_DECK_CARDS as usize - 1])?;
+            func(
+                N_DECK_CARDS - 1 - gap,
+                &self.deck[N_DECK_CARDS as usize - 1],
+            )?;
         }
 
         if !filter {
@@ -322,16 +329,16 @@ impl Deck {
             }
         }
 
-        let mut pos = 0;
+        let mut pos: u8 = 0;
 
         for c in rev_map {
             if c != Card::FAKE {
-                self.deck[pos] = c;
+                self.deck[pos as usize] = c;
                 pos += 1;
             }
         }
 
-        self.draw_cur = pos as u8;
+        self.draw_cur = pos;
         self.draw_next = N_DECK_CARDS;
 
         self.set_offset(offset);
@@ -353,6 +360,7 @@ impl Deck {
     #[must_use]
     pub fn peek_waste<const N: usize>(&self) -> ArrayVec<Card, N> {
         let draw_cur = self.get_offset();
+        #[allow(clippy::cast_possible_truncation)]
         self.get_waste()
             .split_at(draw_cur.saturating_sub(N as u8).into())
             .1

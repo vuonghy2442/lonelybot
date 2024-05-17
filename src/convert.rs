@@ -14,7 +14,12 @@ impl From<&Solitaire> for StandardSolitaire {
     }
 }
 
-// never panic
+/// # Errors
+///
+/// Return `InvalidMove` when the move is not valid and not modify anything
+/// # Panics
+///
+/// Never (unless buggy)
 pub fn convert_move(
     game: &StandardSolitaire,
     m: &Move,
@@ -80,7 +85,13 @@ pub fn convert_move(
     Ok(())
 }
 
-// this will convert and execute the moves
+/// this will convert and execute the moves
+/// # Errors
+///
+/// Return `InvalidMove` when the one of the move is not valid and the state of the game will stop before making that move
+/// # Panics
+///
+/// Never (unless buggy)
 pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> MoveResult<StandardHistoryVec> {
     let mut move_seq = StandardHistoryVec::new();
     for mm in m {

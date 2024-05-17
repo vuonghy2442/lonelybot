@@ -109,6 +109,7 @@ impl StandardSolitaire {
 
     #[must_use]
     pub fn find_free_pile(&self, card: &Card) -> Option<u8> {
+        #[allow(clippy::cast_possible_truncation)]
         self.piles
             .iter()
             .position(|p| p.last().unwrap_or(&Card::FAKE).go_before(card))
@@ -117,6 +118,7 @@ impl StandardSolitaire {
 
     #[must_use]
     pub fn find_top_card(&self, card: &Card) -> Option<u8> {
+        #[allow(clippy::cast_possible_truncation)]
         self.piles
             .iter()
             .position(|p| p.first() == Some(card))
