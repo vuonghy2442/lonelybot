@@ -208,10 +208,9 @@ fn map_pos(p: &Pos) -> char {
 
 fn print_moves_minimal_klondike(moves: &StandardHistoryVec) {
     for m in moves {
-        if matches!(m, (Pos::Deck, Pos::Deck, _)) {
-            print!("@");
-        } else {
-            print!("{}{} ", map_pos(&m.0), map_pos(&m.1));
+        match m {
+            (Pos::Deck, Pos::Deck, _) => print!("@"),
+            (from, to, _) => print!("{}{} ", map_pos(from), map_pos(to)),
         }
     }
 }

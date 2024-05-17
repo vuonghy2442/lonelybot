@@ -34,13 +34,8 @@ struct BuilderCallback<'a, S: SearchStatistics, T: TerminateSignal> {
 const fn get_edge_type(m: Move, rm: Option<Move>) -> EdgeType {
     match m {
         Move::DeckStack(_) => EdgeType::DeckStack,
-        Move::PileStack(_) => {
-            if rm.is_some() {
-                EdgeType::PileStack
-            } else {
-                EdgeType::PileStackReveal
-            }
-        }
+        Move::PileStack(_) if rm.is_some() => EdgeType::PileStack,
+        Move::PileStack(_) => EdgeType::PileStackReveal,
         Move::DeckPile(_) => EdgeType::DeckPile,
         Move::StackPile(_) => EdgeType::StackPile,
         Move::Reveal(_) => EdgeType::Reveal,

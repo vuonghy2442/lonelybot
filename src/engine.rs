@@ -93,7 +93,7 @@ fn filter<const N: usize>(a: &[u64; N], remove: &[u64; N]) -> [u64; N] {
 impl Solitaire {
     #[must_use]
     /// # Panics
-    /// 
+    ///
     /// Never (unless buggy)
     pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
         let hidden_piles: [Card; N_PILE_CARDS as usize] =
@@ -339,13 +339,7 @@ impl Solitaire {
     pub const fn get_rev_move(&self, m: &Move) -> Option<Move> {
         // check if this move can be undo using a legal move in the game
         match m {
-            Move::PileStack(c) => {
-                if self.top_mask & c.mask() == 0 {
-                    Some(Move::StackPile(*c))
-                } else {
-                    None
-                }
-            }
+            Move::PileStack(c) if self.top_mask & c.mask() == 0 => Some(Move::StackPile(*c)),
             Move::StackPile(c) => Some(Move::PileStack(*c)),
             _ => None,
         }

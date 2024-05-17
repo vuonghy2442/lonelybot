@@ -27,12 +27,8 @@ impl PruneInfo {
             last_move: *m,
             last_draw: match m {
                 Move::DeckPile(c) => Some(*c),
-                Move::StackPile(c) => {
-                    if prev.last_draw.is_some_and(|cc| cc.go_before(c)) {
-                        None
-                    } else {
-                        prev.last_draw
-                    }
+                Move::StackPile(c) if !prev.last_draw.is_some_and(|cc| cc.go_before(c)) => {
+                    prev.last_draw
                 }
                 _ => None,
             },
@@ -56,12 +52,8 @@ impl PruneInfo {
         let mut filter = if DOMINANCE {
             let first_layer = game.get_hidden().first_layer_mask();
             let mut filter = match self.last_move {
-                Move::Reveal(c) => {
-                    if first_layer & c.mask() > 0 {
-                        [!0, !0, !KING_MASK, !KING_MASK, !KING_MASK]
-                    } else {
-                        [0; 5]
-                    }
+                Move::Reveal(c) if first_layer & c.mask() > 0 => {
+                    [!0, !0, !KING_MASK, !KING_MASK, !KING_MASK]
                 }
                 _ => [0; 5],
             };
