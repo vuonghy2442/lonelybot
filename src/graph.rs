@@ -1,6 +1,6 @@
 use crate::{
     engine::{Encode, Move, Solitaire},
-    pruning::PruneInfo,
+    pruning::FullPruner,
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -43,6 +43,8 @@ const fn get_edge_type(m: Move, rm: Option<Move>) -> EdgeType {
 }
 
 impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'a, S, T> {
+    type Pruner = FullPruner;
+
     fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         // win state
         self.graph.push((
@@ -73,7 +75,13 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'
         ControlFlow::Ok
     }
 
-    fn on_do_move(&mut self, _: &Solitaire, m: &Move, e: Encode, prune: &PruneInfo) -> ControlFlow {
+    fn on_do_move(
+        &mut self,
+        _: &Solitaire,
+        m: &Move,
+        e: Encode,
+        prune: &FullPruner,
+    ) -> ControlFlow {
         self.last_move = *m;
         self.rev_move = prune.rev_move();
         self.prev_enc = e;
@@ -103,7 +111,7 @@ pub fn graph_with_tracking<S: SearchStatistics, T: TerminateSignal>(
         rev_move: None,
     };
 
-    let finished = traverse(g, &PruneInfo::default(), &mut tp, &mut callback);
+    let finished = traverse(g, &FullPruner::default(), &mut tp, &mut callback);
     (finished, callback.graph)
 }
 

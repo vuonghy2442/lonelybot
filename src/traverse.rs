@@ -2,7 +2,7 @@ use hashbrown::HashSet;
 
 use crate::{
     engine::{Encode, Move, MoveVec, Solitaire},
-    pruning::PruneInfo,
+    pruning::Pruner,
     utils::MixHasherBuilder,
 };
 
@@ -19,6 +19,8 @@ pub enum ControlFlow {
 }
 
 pub trait Callback {
+    type Pruner: Pruner;
+
     fn on_win(&mut self, game: &Solitaire) -> ControlFlow;
 
     fn on_visit(&mut self, _game: &Solitaire, _encode: Encode) -> ControlFlow {
@@ -38,7 +40,7 @@ pub trait Callback {
         _game: &Solitaire,
         _m: &Move,
         _encode: Encode,
-        _prune_info: &PruneInfo,
+        _pruner: &Self::Pruner,
     ) -> ControlFlow {
         ControlFlow::Ok
     }
@@ -59,7 +61,7 @@ impl TranspositionTable for TpTable {
 // it guarantee to return the state of g back into normal state
 pub fn traverse<T: TranspositionTable, C: Callback>(
     game: &mut Solitaire,
-    prune_info: &PruneInfo,
+    prune_info: &C::Pruner,
     tp: &mut T,
     callback: &mut C,
 ) -> ControlFlow {
@@ -79,7 +81,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
         return ControlFlow::Ok;
     }
 
-    let move_list = game.list_moves::<true>(&prune_info.prune_moves::<true>(game));
+    let move_list = game.list_moves::<true>(&prune_info.prune_moves(game));
     match callback.on_move_gen(&move_list, encode) {
         ControlFlow::Halt => return ControlFlow::Halt,
         ControlFlow::Skip => return ControlFlow::Skip,
@@ -87,7 +89,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
     }
 
     for m in move_list {
-        let new_prune_info = PruneInfo::new(game, prune_info, &m);
+        let new_prune_info = C::Pruner::new(game, prune_info, &m);
         match callback.on_do_move(game, &m, encode, &new_prune_info) {
             ControlFlow::Halt => return ControlFlow::Halt,
             ControlFlow::Skip => continue,

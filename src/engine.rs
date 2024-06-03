@@ -42,6 +42,8 @@ pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
 
 pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
 
+pub type MoveMask = [u64; 5];
+
 #[must_use]
 const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;
@@ -58,7 +60,7 @@ fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> ControlFlow<T>) ->
 }
 
 pub fn iter_moves<T, F: FnMut(Move) -> ControlFlow<T>>(
-    moves: [u64; 5],
+    moves: MoveMask,
     mut func: F,
 ) -> ControlFlow<T> {
     // the only case a card can be in two different moves
@@ -193,7 +195,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub fn list_moves<const DOMINANCE: bool>(&self, prune: &[u64; 5]) -> MoveVec {
+    pub fn list_moves<const DOMINANCE: bool>(&self, prune: &MoveMask) -> MoveVec {
         let mut moves = MoveVec::new();
 
         let packed_moves = filter(&self.gen_moves::<DOMINANCE>(), prune);
@@ -207,7 +209,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub fn gen_moves<const DOMINANCE: bool>(&self) -> [u64; 5] {
+    pub fn gen_moves<const DOMINANCE: bool>(&self) -> MoveMask {
         let vis = self.get_visible_mask();
         let top = self.get_top_mask();
 

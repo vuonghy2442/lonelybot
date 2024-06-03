@@ -1,5 +1,6 @@
 use lonelybot::{
     engine::{Encode, MoveVec, Solitaire},
+    pruning::FullPruner,
     shuffler::default_shuffle,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -16,6 +17,7 @@ struct CycleCallback {
 }
 
 impl Callback for CycleCallback {
+    type Pruner = FullPruner;
     fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         ControlFlow::Ok
     }

@@ -8,7 +8,7 @@ use lonelybot::convert::convert_moves;
 use lonelybot::engine::{Encode, Move, Solitaire, UndoInfo};
 use lonelybot::formatter::Solvitaire;
 use lonelybot::mcts_solver::pick_moves;
-use lonelybot::pruning::PruneInfo;
+use lonelybot::pruning::{CyclePruner, FullPruner, Pruner};
 use lonelybot::shuffler::{self, CardDeck, U256};
 use lonelybot::tracking::DefaultTerminateSignal;
 use lonelybot::traverse::ControlFlow;
@@ -138,13 +138,13 @@ fn do_random(seed: &Seed) {
     for i in 0..TOTAL_GAME {
         let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
 
-        let mut prune_info = PruneInfo::default();
+        let mut prune_info = CyclePruner::default();
         loop {
             if game.is_win() {
                 total_win += 1;
                 break;
             }
-            let moves = game.list_moves::<true>(&prune_info.prune_moves::<false>(&game));
+            let moves = game.list_moves::<true>(&prune_info.prune_moves(&game));
 
             if moves.is_empty() {
                 break;
@@ -152,7 +152,7 @@ fn do_random(seed: &Seed) {
 
             let m = &moves[0];
 
-            prune_info = PruneInfo::new(&game, &prune_info, m);
+            prune_info = CyclePruner::new(&game, &prune_info, m);
             game.do_move(m);
         }
     }
@@ -285,7 +285,7 @@ fn game_loop(seed: &Seed) {
 
     let mut game_state = HashSet::<Encode>::new();
 
-    let mut pruner = PruneInfo::default();
+    let mut pruner = FullPruner::default();
 
     loop {
         print_game(&game);
@@ -293,7 +293,7 @@ fn game_loop(seed: &Seed) {
             println!("Already existed state");
         }
 
-        let moves = game.list_moves::<true>(&pruner.prune_moves::<true>(&game));
+        let moves = game.list_moves::<true>(&pruner.prune_moves(&game));
 
         for (i, m) in moves.iter().enumerate() {
             print!("{i}.{m}, ");
@@ -313,12 +313,12 @@ fn game_loop(seed: &Seed) {
         if let Some(id) = res {
             let id = usize::try_from(id).unwrap_or(usize::MAX);
             if id < moves.len() {
-                pruner = PruneInfo::new(&game, &pruner, &moves[id]);
+                pruner = FullPruner::new(&game, &pruner, &moves[id]);
                 let info = game.do_move(&moves[id]);
                 move_hist.push((moves[id], info));
             } else {
                 let (m, info) = &move_hist.pop().unwrap();
-                pruner = PruneInfo::default();
+                pruner = FullPruner::default();
                 game.undo_move(m, info);
                 println!("Undo!!");
             }

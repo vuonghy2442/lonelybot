@@ -1,29 +1,66 @@
 use crate::{
     card::{Card, ALT_MASK, KING_MASK},
-    engine::{Move, Solitaire},
+    engine::{Move, MoveMask, Solitaire},
 };
 
-pub struct PruneInfo {
+pub trait Pruner {
+    #[must_use]
+    fn new(game: &Solitaire, prev: &Self, m: &Move) -> Self;
+
+    #[must_use]
+    fn prune_moves(&self, game: &Solitaire) -> MoveMask;
+}
+
+#[derive(Default)]
+pub struct CyclePruner {
     rev_move: Option<Move>,
+}
+
+impl Pruner for CyclePruner {
+    fn new(game: &Solitaire, _: &Self, m: &Move) -> Self {
+        Self {
+            rev_move: game.get_rev_move(m),
+        }
+    }
+
+    fn prune_moves(&self, _: &Solitaire) -> MoveMask {
+        let mut filter = [0; 5];
+        match self.rev_move {
+            Some(Move::PileStack(c)) => filter[0] |= c.mask(),
+            Some(Move::DeckStack(c)) => filter[1] |= c.mask(),
+            Some(Move::StackPile(c)) => filter[2] |= c.mask(),
+            Some(Move::DeckPile(c)) => filter[3] |= c.mask(),
+            Some(Move::Reveal(c)) => filter[4] |= c.mask(),
+            None => {}
+        }
+        filter
+    }
+}
+
+pub struct FullPruner {
+    cycle: CyclePruner,
     last_move: Move,
     last_draw: Option<Card>,
 }
 
-impl Default for PruneInfo {
+impl Default for FullPruner {
     fn default() -> Self {
         Self {
-            rev_move: None,
+            cycle: CyclePruner::default(),
             last_move: Move::FAKE,
             last_draw: None,
         }
     }
 }
 
-impl PruneInfo {
-    #[must_use]
-    pub fn new(game: &Solitaire, prev: &PruneInfo, m: &Move) -> Self {
+fn combine_mask(a: &MoveMask, b: &MoveMask) -> MoveMask {
+    core::array::from_fn(|i| a[i] | b[i])
+}
+
+impl Pruner for FullPruner {
+    fn new(game: &Solitaire, prev: &Self, m: &Move) -> Self {
         Self {
-            rev_move: game.get_rev_move(m),
+            cycle: CyclePruner::new(game, &prev.cycle, m),
             last_move: *m,
             last_draw: match m {
                 Move::DeckPile(c) => Some(*c),
@@ -35,21 +72,8 @@ impl PruneInfo {
         }
     }
 
-    #[must_use]
-    pub const fn rev_move(&self) -> Option<Move> {
-        self.rev_move
-    }
-
-    #[must_use]
-    pub const fn last_move(&self) -> Move {
-        self.last_move
-    }
-
-    #[must_use]
-    pub const fn prune_moves<const DOMINANCE: bool>(&self, game: &Solitaire) -> [u64; 5] {
-        // [pile_stack - 0, deck_stack - 1, stack_pile - 2, deck_pile - 3, reveal - 4]
-
-        let mut filter = if DOMINANCE {
+    fn prune_moves(&self, game: &Solitaire) -> MoveMask {
+        let filter = {
             let first_layer = game.get_hidden().first_layer_mask();
             let mut filter = match self.last_move {
                 Move::Reveal(c) if first_layer & c.mask() > 0 => {
@@ -71,19 +95,20 @@ impl PruneInfo {
                 filter[4] |= !((mm >> 4) | first_layer);
             }
             filter
-        } else {
-            [0; 5]
         };
 
-        match self.rev_move {
-            Some(Move::PileStack(c)) => filter[0] |= c.mask(),
-            Some(Move::DeckStack(c)) => filter[1] |= c.mask(),
-            Some(Move::StackPile(c)) => filter[2] |= c.mask(),
-            Some(Move::DeckPile(c)) => filter[3] |= c.mask(),
-            Some(Move::Reveal(c)) => filter[4] |= c.mask(),
-            None => {}
-        }
+        combine_mask(&filter, &self.cycle.prune_moves(game))
+    }
+}
 
-        filter
+impl FullPruner {
+    #[must_use]
+    pub const fn rev_move(&self) -> Option<Move> {
+        self.cycle.rev_move
+    }
+
+    #[must_use]
+    pub const fn last_move(&self) -> Move {
+        self.last_move
     }
 }

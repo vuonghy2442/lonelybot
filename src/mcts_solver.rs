@@ -3,7 +3,7 @@ use rand::RngCore;
 use crate::{
     engine::{Encode, Move, Solitaire},
     hop_solver::hop_solve_game,
-    pruning::PruneInfo,
+    pruning::FullPruner,
     tracking::TerminateSignal,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -17,6 +17,7 @@ struct FindStatesCallback {
 }
 
 impl Callback for FindStatesCallback {
+    type Pruner = FullPruner;
     fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
         ControlFlow::Halt
     }
@@ -34,7 +35,7 @@ impl Callback for FindStatesCallback {
         g: &Solitaire,
         m: &Move,
         _: Encode,
-        prune_info: &PruneInfo,
+        prune_info: &FullPruner,
     ) -> ControlFlow {
         let rev = prune_info.rev_move();
         let ok = match m {
@@ -62,6 +63,7 @@ struct ListStatesCallback {
 }
 
 impl Callback for ListStatesCallback {
+    type Pruner = FullPruner;
     fn on_win(&mut self, game: &Solitaire) -> ControlFlow {
         self.res.clear();
         self.res.push((game.encode(), Move::FAKE));
@@ -73,7 +75,7 @@ impl Callback for ListStatesCallback {
         _: &Solitaire,
         m: &Move,
         e: Encode,
-        prune_info: &PruneInfo,
+        prune_info: &FullPruner,
     ) -> ControlFlow {
         let rev = prune_info.rev_move();
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
@@ -101,7 +103,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse(game, &PruneInfo::default(), &mut tp, &mut callback);
+    traverse(game, &FullPruner::default(), &mut tp, &mut callback);
     let states = callback.res;
 
     let mut org_g = game.clone();
@@ -113,7 +115,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         };
         tp.clear();
 
-        traverse(&mut org_g, &PruneInfo::default(), &mut tp, &mut callback);
+        traverse(&mut org_g, &FullPruner::default(), &mut tp, &mut callback);
         if m != Move::FAKE {
             callback.his.push(m);
         }
@@ -156,7 +158,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
             BATCH_SIZE,
             limit,
             sign,
-            &PruneInfo::default(),
+            &FullPruner::default(),
         );
 
         n += BATCH_SIZE;
