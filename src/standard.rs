@@ -7,16 +7,30 @@ use crate::stack::Stack;
 
 pub type PileVec = ArrayVec<Card, { N_RANKS as usize }>;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Pos {
     Deck,
     Stack(u8),
     Pile(u8),
 }
 
-pub type StandardMove = (Pos, Pos, Card);
+#[derive(PartialEq, Eq)]
+pub struct StandardMove {
+    pub from: Pos,
+    pub to: Pos,
+    pub card: Card,
+}
 
-pub const DRAW_NEXT: StandardMove = (Pos::Deck, Pos::Deck, Card::DEFAULT);
+impl StandardMove {
+    pub const DRAW_NEXT: Self = Self {
+        from: Pos::Deck,
+        to: Pos::Deck,
+        card: Card::DEFAULT,
+    };
+    pub const fn new(from: Pos, to: Pos, card: Card) -> Self {
+        Self { from, to, card }
+    }
+}
 
 const N_HIDDEN_MAX: usize = (N_PILES - 1) as usize;
 
@@ -145,7 +159,7 @@ impl StandardSolitaire {
 
     #[must_use]
     pub fn validate_move(&self, m: &StandardMove) -> bool {
-        match *m {
+        match (m.from, m.to, m.card) {
             (Pos::Deck, Pos::Deck, Card::DEFAULT) => true,
             (_, Pos::Deck, _) | (Pos::Stack(_), Pos::Stack(_), _) => false,
 
@@ -198,7 +212,7 @@ impl StandardSolitaire {
         if !self.validate_move(m) {
             return Err(InvalidMove {});
         }
-        match *m {
+        match (m.from, m.to, m.card) {
             (Pos::Deck, Pos::Deck, _) => {
                 self.deck.deal_once();
             }
@@ -233,7 +247,7 @@ impl StandardSolitaire {
         };
 
         // revealing
-        if let Pos::Pile(from) = m.0 {
+        if let Pos::Pile(from) = m.from {
             let from = usize::from(from);
             if self.piles[from].is_empty() {
                 if let Some(card) = self.hidden_piles[from].pop() {

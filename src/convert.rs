@@ -1,7 +1,7 @@
 use crate::{
     engine::Solitaire,
     moves::Move,
-    standard::{InvalidMove, MoveResult, Pos, StandardHistoryVec, StandardSolitaire, DRAW_NEXT},
+    standard::{InvalidMove, MoveResult, Pos, StandardHistoryVec, StandardMove, StandardSolitaire},
 };
 
 impl From<&Solitaire> for StandardSolitaire {
@@ -31,10 +31,10 @@ pub fn convert_move(
             let cnt = game.find_deck_card(c).ok_or(InvalidMove {})?;
             let pile = game.find_free_pile(c).ok_or(InvalidMove {})?;
             for _ in 0..cnt {
-                move_seq.push(DRAW_NEXT);
+                move_seq.push(StandardMove::DRAW_NEXT);
             }
 
-            move_seq.push((Pos::Deck, Pos::Pile(pile), *c));
+            move_seq.push(StandardMove::new(Pos::Deck, Pos::Pile(pile), *c));
         }
         Move::DeckStack(c) => {
             if c.rank() != game.final_stack.get(c.suit()) {
@@ -43,17 +43,17 @@ pub fn convert_move(
 
             let cnt = game.find_deck_card(c).ok_or(InvalidMove {})?;
             for _ in 0..cnt {
-                move_seq.push(DRAW_NEXT);
+                move_seq.push(StandardMove::DRAW_NEXT);
             }
 
-            move_seq.push((Pos::Deck, Pos::Stack(c.suit()), *c));
+            move_seq.push(StandardMove::new(Pos::Deck, Pos::Stack(c.suit()), *c));
         }
         Move::StackPile(c) => {
             if c.rank() + 1 != game.final_stack.get(c.suit()) {
                 return Err(InvalidMove {});
             }
             let pile = game.find_free_pile(c).ok_or(InvalidMove {})?;
-            move_seq.push((Pos::Stack(c.suit()), Pos::Pile(pile), *c));
+            move_seq.push(StandardMove::new(Pos::Stack(c.suit()), Pos::Pile(pile), *c));
         }
         Move::Reveal(c) => {
             let pile_from = game.find_top_card(c).ok_or(InvalidMove {})?;
@@ -63,7 +63,11 @@ pub fn convert_move(
                 return Err(InvalidMove {});
             };
 
-            move_seq.push((Pos::Pile(pile_from), Pos::Pile(pile_to), *c));
+            move_seq.push(StandardMove::new(
+                Pos::Pile(pile_from),
+                Pos::Pile(pile_to),
+                *c,
+            ));
         }
         Move::PileStack(c) => {
             if c.rank() != game.final_stack.get(c.suit()) {
@@ -78,9 +82,13 @@ pub fn convert_move(
                     return Err(InvalidMove {});
                 }
 
-                move_seq.push((Pos::Pile(pile), Pos::Pile(pile_other), move_card));
+                move_seq.push(StandardMove::new(
+                    Pos::Pile(pile),
+                    Pos::Pile(pile_other),
+                    move_card,
+                ));
             }
-            move_seq.push((Pos::Pile(pile), Pos::Stack(c.suit()), *c));
+            move_seq.push(StandardMove::new(Pos::Pile(pile), Pos::Stack(c.suit()), *c));
         }
     }
     Ok(())

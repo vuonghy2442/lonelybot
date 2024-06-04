@@ -3,10 +3,6 @@ pub const N_RANKS: u8 = 13;
 pub const N_CARDS: u8 = N_SUITS * N_RANKS;
 pub const KING_RANK: u8 = N_RANKS - 1;
 
-pub const SYMBOLS: [&str; N_SUITS as usize] = ["♥", "♦", "♣", "♠"];
-pub const NUMBERS: [&str; N_RANKS as usize] = [
-    "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
-];
 
 pub const SUIT_MASK: [u64; N_SUITS as usize] = [
     0x4141_4141_4141_4141,

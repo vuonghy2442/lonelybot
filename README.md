@@ -177,20 +177,24 @@ Miss state: 119
 Max depth search: 88
 Current progress: 0/1 0/5 0/1 0/5 0/4 0/4 0/4 0/3
 Solvable in 89 moves
+
 PS A♦, R 5♠, PS A♠, ....
-Pile(4) Stack(1) A♦, Pile(6) Pile(5) 5♠, ....
+
+A♣:5▸♣  2♣:5▸♣  8♥:1▸4
+
 JC LK LE IG AH ...
 ```
 
 
 There are three type of solution notation:
 - The first line is the specialized notation (explained bellow)
-- The second line is the standardized notation with the format as a tuple of source position, destination position, moving card.
+- The second line is the standardized notation with the format as `[card]:[source]▸[destination]` or `=` if it's a drawing move .
 - The third line is the notation from [Minimal-Klondike](https://github.com/ShootMe/MinimalKlondike) repo.
 
-There are 3 category of positions: Deck (the stock), Pile (the 0-indexed tableaus), Stack (the 0-indexed foundation stack)
-
-The special move of drawing from the stock is represent as a move from the stock (Deck) to the stock (Deck)
+The source and destination is formatted as:
+- D: Deck (the stock)
+- 1..7: Pile (the 1-indexed tableaus)
+- ♥, ♦, ♣, ♠: Stack (the foundation stack)
 
 Note that, currently, my code assumes that the first draw is automatically done (so the game starts with first 3 cards drawn)
 

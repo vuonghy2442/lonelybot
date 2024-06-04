@@ -199,8 +199,8 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
     true
 }
 
-fn map_pos(p: &Pos) -> char {
-    match *p {
+fn map_pos(p: Pos) -> char {
+    match p {
         Pos::Deck => 'A',
         Pos::Stack(id) => char::from_u32('B' as u32 + id as u32).unwrap(),
         Pos::Pile(id) => char::from_u32('F' as u32 + id as u32).unwrap(),
@@ -209,9 +209,9 @@ fn map_pos(p: &Pos) -> char {
 
 fn print_moves_minimal_klondike(moves: &StandardHistoryVec) {
     for m in moves {
-        match m {
-            (Pos::Deck, Pos::Deck, _) => print!("@"),
-            (from, to, _) => print!("{}{} ", map_pos(from), map_pos(to)),
+        match (m.from, m.to) {
+            (Pos::Deck, Pos::Deck) => print!("@"),
+            (from, to) => print!("{}{} ", map_pos(from), map_pos(to)),
         }
     }
 }
@@ -230,14 +230,17 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
         SearchResult::Solved => {
             let m = res.2.unwrap();
             println!("Solvable in {} moves", m.len());
+            println!();
             let moves = convert_moves(&mut g_standard, &m[..]).unwrap();
             for x in m {
                 print!("{x}, ");
             }
             println!();
+            println!();
             for m in &moves {
-                print!("{:?} {:?} {}, ", m.0, m.1, m.2);
+                print!("{m}  ");
             }
+            println!();
             println!();
             print_moves_minimal_klondike(&moves);
             println!();
