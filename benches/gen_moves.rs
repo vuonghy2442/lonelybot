@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
     card::Card,
     deck::{Deck, N_PILE_CARDS},
-    engine::{Move, Solitaire},
+    engine::Solitaire,
     shuffler,
 };
 use rand::prelude::*;
@@ -31,7 +31,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let moves = game.list_moves::<false>(black_box(&Default::default()));
 
-    let m: Move = *moves.choose(&mut rng).unwrap();
+    let m = *moves.choose(&mut rng).unwrap();
 
     let deck = game.get_deck_mask::<false>().0;
     let card = Card::from_mask(&deck);

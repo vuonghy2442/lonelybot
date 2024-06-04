@@ -15,4 +15,5 @@ pub mod stack;
 pub mod standard;
 pub mod tracking;
 pub mod traverse;
+pub mod moves;
 mod utils;

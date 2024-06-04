@@ -1,30 +1,16 @@
 use core::ops::ControlFlow;
 
-use arrayvec::ArrayVec;
-
 use crate::card::{
     Card, ALT_MASK, HALF_MASK, KING_MASK, KING_RANK, N_CARDS, N_SUITS, RANK_MASK, SUIT_MASK,
 };
 use crate::deck::{Deck, N_PILES, N_PILE_CARDS};
+use crate::moves::{Move, MoveMask, MoveVec};
 use crate::stack::Stack;
 use crate::utils::full_mask;
 
 use crate::hidden::Hidden;
 use crate::shuffler::CardDeck;
 use crate::standard::{PileVec, StandardSolitaire};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Move {
-    DeckStack(Card),
-    PileStack(Card),
-    DeckPile(Card),
-    StackPile(Card),
-    Reveal(Card),
-}
-
-impl Move {
-    pub const FAKE: Self = Move::DeckPile(Card::FAKE);
-}
 
 #[derive(Debug, Clone)]
 pub struct Solitaire {
@@ -38,59 +24,13 @@ pub struct Solitaire {
 
 pub type Encode = u64;
 
-pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
-
-pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
-
-pub type MoveMask = [u64; 5];
-
 #[must_use]
 const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;
     ((a >> 2) & HALF_MASK) | half
 }
 
-fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> ControlFlow<T>) -> ControlFlow<T> {
-    while m > 0 {
-        let c = Card::from_mask(&m);
-        func(c)?;
-        m &= m.wrapping_sub(1);
-    }
-    ControlFlow::Continue(())
-}
-
-pub fn iter_moves<T, F: FnMut(Move) -> ControlFlow<T>>(
-    moves: MoveMask,
-    mut func: F,
-) -> ControlFlow<T> {
-    // the only case a card can be in two different moves
-    // deck_to_stack/deck_to_pile (maximum duplicate N_SUITS cards)
-    // reveal/pile_stack (maximum duplicate N_SUITS cards)
-    // these two cases can't happen simultaneously (only max N_SUIT card can be move to a stack)
-    // => Maximum moves <= N_CARDS + N_SUIT
-    let [pile_stack, deck_stack, stack_pile, deck_pile, reveal] = moves;
-
-    // maximum min(N_PILES - 1, N_CARDS) moves (can't have a cycle of reveal piles)
-    iter_mask_opt::<T>(reveal, |c| func(Move::Reveal(c)))?;
-    // maximum min(N_PILES, N_SUITS) moves
-    iter_mask_opt::<T>(pile_stack, |c| func(Move::PileStack(c)))?;
-    // maximum min(N_PILES, N_DECK) moves
-    iter_mask_opt::<T>(deck_pile, |c| func(Move::DeckPile(c)))?;
-    // maximum min(N_DECK, N_SUITS) moves
-    // deck_stack and pile_stack can't happen simultaneously so both of the combine can't have more than
-    // N_SUITS move
-    iter_mask_opt::<T>(deck_stack, |c| func(Move::DeckStack(c)))?;
-    // maximum min(N_PILES, N_SUIT) moves
-    iter_mask_opt::<T>(stack_pile, |c| func(Move::StackPile(c)))
-
-    // <= N_PILES * 2 + N_SUITS * 2 - 1 = 14 + 8 - 1 = 21 moves
-}
-
 pub type UndoInfo = u8;
-
-fn filter<const N: usize>(a: &[u64; N], remove: &[u64; N]) -> [u64; N] {
-    core::array::from_fn(|idx| a[idx] & !remove[idx])
-}
 
 impl Solitaire {
     #[must_use]
@@ -198,9 +138,9 @@ impl Solitaire {
     pub fn list_moves<const DOMINANCE: bool>(&self, prune: &MoveMask) -> MoveVec {
         let mut moves = MoveVec::new();
 
-        let packed_moves = filter(&self.gen_moves::<DOMINANCE>(), prune);
+        let packed_moves = self.gen_moves::<DOMINANCE>().filter(prune);
 
-        iter_moves(packed_moves, |m| {
+        packed_moves.iter_moves(|m| {
             moves.push(m);
             ControlFlow::<()>::Continue(())
         });
@@ -229,7 +169,7 @@ impl Solitaire {
 
         if pile_stack_dom != 0 {
             // if there is some card that is guarantee to be fine to stack do it
-            return [pile_stack_dom.wrapping_neg() & pile_stack_dom, 0, 0, 0, 0];
+            return MoveMask::only_pile_stack(pile_stack_dom.wrapping_neg() & pile_stack_dom);
         }
         // getting the stackable cards without revealing
         // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
@@ -237,7 +177,7 @@ impl Solitaire {
         let least_stack = redundant_stack & redundant_stack.wrapping_neg();
 
         if DOMINANCE && redundant_stack.count_ones() >= 3 {
-            return [least_stack, 0, 0, 0, 0];
+            return MoveMask::only_pile_stack(least_stack);
         }
 
         // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
@@ -245,7 +185,7 @@ impl Solitaire {
         // no dominance for draw_step = 1 yet
         if dom {
             // not very useful as dominance
-            return [0, deck_mask, 0, 0, 0];
+            return MoveMask::only_deck_stack(deck_mask);
         }
 
         // free slot will compute the empty position that a card can be put into (can be king)
@@ -334,7 +274,13 @@ impl Solitaire {
         // revealing a card by moving the top card to another pile (not to stack)
         let reveal = top & free_slot;
 
-        [pile_stack, deck_stack, stack_pile, deck_pile, reveal]
+        MoveMask {
+            pile_stack,
+            deck_stack,
+            stack_pile,
+            deck_pile,
+            reveal,
+        }
     }
 
     #[must_use]
@@ -678,6 +624,7 @@ impl From<&StandardSolitaire> for Solitaire {
 
 #[cfg(test)]
 mod tests {
+    use arrayvec::ArrayVec;
     use rand::prelude::*;
 
     use crate::deck::{Drawable, N_DECK_CARDS};

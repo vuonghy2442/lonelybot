@@ -1,7 +1,8 @@
 use hashbrown::HashSet;
 
 use crate::{
-    engine::{Encode, Move, MoveVec, Solitaire},
+    engine::{Encode, Solitaire},
+    moves::{Move, MoveVec},
     pruning::Pruner,
     utils::MixHasherBuilder,
 };

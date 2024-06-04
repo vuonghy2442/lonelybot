@@ -1,5 +1,6 @@
 use lonelybot::{
-    engine::{Encode, MoveVec, Solitaire},
+    engine::{Encode, Solitaire},
+    moves::MoveVec,
     pruning::FullPruner,
     shuffler::default_shuffle,
     traverse::{traverse, Callback, ControlFlow, TpTable},

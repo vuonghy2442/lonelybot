@@ -2,7 +2,6 @@ use core::fmt;
 
 use crate::card::{Card, NUMBERS, N_RANKS, N_SUITS, SYMBOLS};
 use crate::deck::N_PILES;
-use crate::engine::Move;
 use crate::standard::StandardSolitaire;
 
 pub struct SolvitaireCard<const LOWER: bool>(pub Card);
@@ -33,18 +32,6 @@ impl fmt::Display for Card {
             write!(f, "{}{}", NUMBERS[u as usize], SYMBOLS[v as usize])
         } else {
             write!(f, "  ")
-        }
-    }
-}
-
-impl fmt::Display for Move {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DeckStack(c) => write!(f, "DS {c}"),
-            Self::PileStack(c) => write!(f, "PS {c}"),
-            Self::DeckPile(c) => write!(f, "DP {c}"),
-            Self::StackPile(c) => write!(f, "SP {c}"),
-            Self::Reveal(c) => write!(f, "R {c}"),
         }
     }
 }

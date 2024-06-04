@@ -1,5 +1,6 @@
 use crate::{
-    engine::{Move, Solitaire},
+    engine::Solitaire,
+    moves::Move,
     standard::{InvalidMove, MoveResult, Pos, StandardHistoryVec, StandardSolitaire, DRAW_NEXT},
 };
 

@@ -1,5 +1,6 @@
 use crate::{
-    engine::{Encode, Move, Solitaire},
+    engine::{Encode, Solitaire},
+    moves::Move,
     pruning::FullPruner,
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
     traverse::{traverse, Callback, ControlFlow, TpTable},
@@ -44,7 +45,7 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'a
         ControlFlow::Ok
     }
 
-    fn on_move_gen(&mut self, m: &crate::engine::MoveVec, _: Encode) -> ControlFlow {
+    fn on_move_gen(&mut self, m: &crate::moves::MoveVec, _: Encode) -> ControlFlow {
         self.stats.hit_unique_state(self.history.len(), m.len());
         ControlFlow::Ok
     }
