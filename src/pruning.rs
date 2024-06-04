@@ -39,7 +39,7 @@ impl Default for FullPruner {
     fn default() -> Self {
         Self {
             cycle: CyclePruner::default(),
-            last_move: Move::FAKE,
+            last_move: Move::DeckPile(Card::DEFAULT),
             last_draw: None,
         }
     }
@@ -52,7 +52,7 @@ impl Pruner for FullPruner {
             last_move: *m,
             last_draw: match m {
                 Move::DeckPile(c) => Some(*c),
-                Move::StackPile(c) if !prev.last_draw.is_some_and(|cc| cc.go_before(c)) => {
+                Move::StackPile(c) if !prev.last_draw.is_some_and(|cc| c.go_after(Some(&cc))) => {
                     prev.last_draw
                 }
                 _ => None,

@@ -1,6 +1,6 @@
 use core::fmt;
 
-use lonelybot::card::{Card, NUMBERS, N_RANKS, N_SUITS, SYMBOLS};
+use lonelybot::card::{Card, NUMBERS, N_SUITS, SYMBOLS};
 use lonelybot::deck::{Drawable, N_PILES};
 use lonelybot::engine::Solitaire;
 use lonelybot::stack::Stack;
@@ -10,12 +10,12 @@ use colored::{Color, Colorize};
 
 pub const COLOR: [Color; N_SUITS as usize] = [Color::Red, Color::Red, Color::Black, Color::Black];
 
-pub struct ColoredCard(Card);
+pub struct ColoredCard(Option<Card>);
 
 impl fmt::Display for ColoredCard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let (u, v) = self.0.split();
-        if u < N_RANKS {
+        if let Some(c) = self.0 {
+            let (u, v) = c.split();
             write!(
                 f,
                 "{}{}",
@@ -28,7 +28,7 @@ impl fmt::Display for ColoredCard {
     }
 }
 
-fn color(c: Card) -> ColoredCard {
+fn color(c: Option<Card>) -> ColoredCard {
     ColoredCard(c)
 }
 
@@ -38,9 +38,9 @@ pub fn print_foundation(stack: &Stack) {
     for i in 0..N_SUITS {
         let card = stack.get(i);
         let card = if card == 0 {
-            Card::FAKE
+            None
         } else {
-            Card::new(card - 1, i)
+            Some(Card::new(card - 1, i))
         };
         print!("{}.{} ", i + 1, color(card));
     }
@@ -65,7 +65,7 @@ pub fn print_piles(piles: &[PileVec; N_PILES as usize], hidden: &[HiddenVec; N_P
                 print!("**\t");
                 is_print = true;
             } else if i < n_hidden + n_visible {
-                print!("{}\t", color(cur_pile[(i - n_hidden) as usize]));
+                print!("{}\t", color(Some(cur_pile[(i - n_hidden) as usize])));
                 is_print = true;
             } else {
                 print!("  \t");
@@ -87,7 +87,7 @@ pub fn print_game(game: &Solitaire) {
             Drawable::Current => format!(">{}", s.on_blue()),
             Drawable::Next => format!("+{}", s.on_bright_blue()),
         };
-        print!("{}{} ", prefix, color(*card));
+        print!("{}{} ", prefix, color(Some(*card)));
     }
     println!();
 
@@ -102,7 +102,7 @@ pub fn _print_standard_game(game: &StandardSolitaire) {
     // print out the deck
     print!("0. ");
     for card in game.get_deck().peek_waste::<3>() {
-        print!("{} ", color(card));
+        print!("{} ", color(Some(card)));
     }
 
     print_foundation(game.get_stack());

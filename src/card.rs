@@ -27,8 +27,7 @@ pub const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SU
 pub struct Card(u8);
 
 impl Card {
-    // assume that its rank is larger than all others
-    pub const FAKE: Self = Self::new(N_RANKS, 0);
+    pub const DEFAULT: Self = Self::new(0, 0);
 
     #[must_use]
     pub const fn new(rank: u8, suit: u8) -> Self {
@@ -85,10 +84,14 @@ impl Card {
     }
 
     #[must_use]
-    pub const fn go_before(&self, other: &Self) -> bool {
-        let card_a = self.split();
-        let card_b = other.split();
-        card_a.0 == card_b.0 + 1 && ((card_a.1 ^ card_b.1) & 2 == 2 || card_a.0 == N_RANKS)
+    pub const fn go_after(self, other: Option<&Self>) -> bool {
+        if let Some(other) = other {
+            // let card_b = other.split();
+            // card_a.0 == card_b.0 + 1 && (card_a.1 ^ card_b.1) & 2 == 2
+            ((self.0 + N_SUITS) ^ other.0 ^ 2) < 2
+        } else {
+            self.is_king()
+        }
     }
 
     #[must_use]

@@ -48,7 +48,7 @@ impl Hidden {
         piles: &[HiddenVec; N_PILES as usize],
         top: &[Option<Card>; N_PILES as usize],
     ) -> Self {
-        let mut hidden_piles = [Card::FAKE; N_PILE_CARDS as usize];
+        let mut hidden_piles = [Card::DEFAULT; N_PILE_CARDS as usize];
         let mut pile_map = [0u8; N_CARDS as usize];
 
         let mut first_layer_mask: u64 = 0;

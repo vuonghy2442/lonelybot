@@ -498,25 +498,23 @@ impl Solitaire {
 
     #[must_use]
     pub fn compute_visible_piles(&self) -> [PileVec; N_PILES as usize] {
+        let non_top = self.visible_mask ^ self.top_mask;
         let mut king_suit = 0;
         core::array::from_fn(|pos| {
             #[allow(clippy::cast_possible_truncation)]
             let pos = pos as u8;
-            let last_card = self.hidden.peek(pos).unwrap_or(&Card::FAKE);
+            let Some(last_card) = self.hidden.peek(pos) else {
+                return PileVec::new();
+            };
 
             let mut start_card = if self.hidden.len(pos) <= 1 && last_card.is_king() {
-                while king_suit < N_SUITS
-                    && (self.visible_mask ^ self.top_mask) & Card::new(KING_RANK, king_suit).mask()
-                        == 0
-                {
+                while king_suit < N_SUITS && non_top & Card::new(KING_RANK, king_suit).mask() == 0 {
                     king_suit += 1;
                 }
-                if king_suit < N_SUITS {
-                    king_suit += 1;
-                    Card::new(KING_RANK, king_suit - 1)
-                } else {
-                    return PileVec::new();
-                }
+
+                assert!(king_suit < N_SUITS);
+                king_suit += 1;
+                Card::new(KING_RANK, king_suit - 1)
             } else {
                 *last_card
             };
@@ -533,15 +531,14 @@ impl Solitaire {
                 let has_both = start_card.swap_suit().mask() & self.visible_mask != 0;
                 let next_card = start_card.reduce_rank().swap_color();
 
-                let possible_cards = self.top_mask ^ self.visible_mask;
-                start_card = if !has_both && possible_cards & next_card.mask() == 0 {
+                start_card = if !has_both && non_top & next_card.mask() == 0 {
                     // not a possible cards => switch suit
                     next_card.swap_suit()
                 } else {
                     next_card
                 };
 
-                if possible_cards & start_card.mask() == 0 {
+                if non_top & start_card.mask() == 0 {
                     // if it's not good then break
                     break;
                 }

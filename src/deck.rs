@@ -320,19 +320,19 @@ impl Deck {
         let mask = encode & ((1 << N_DECK_CARDS) - 1);
         let offset = (encode >> N_DECK_CARDS) as u8;
 
-        let mut rev_map = [Card::FAKE; N_DECK_CARDS as usize];
+        let mut rev_map = [Option::<Card>::None; N_DECK_CARDS as usize];
 
         for i in 0..N_CARDS {
             let val = self.map[i as usize];
             if val < N_DECK_CARDS && (encode >> val) & 1 == 0 {
-                rev_map[val as usize] = Card::from_value(i);
+                rev_map[val as usize] = Some(Card::from_value(i));
             }
         }
 
         let mut pos: u8 = 0;
 
         for c in rev_map {
-            if c != Card::FAKE {
+            if let Some(c) = c {
                 self.deck[pos as usize] = c;
                 pos += 1;
             }

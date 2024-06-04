@@ -15,10 +15,6 @@ pub enum Move {
     Reveal(Card),
 }
 
-impl Move {
-    pub const FAKE: Self = Move::DeckPile(Card::FAKE);
-}
-
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

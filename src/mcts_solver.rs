@@ -60,14 +60,14 @@ impl Callback for FindStatesCallback {
 }
 
 struct ListStatesCallback {
-    res: Vec<(Encode, Move)>,
+    res: Vec<(Encode, Option<Move>)>,
 }
 
 impl Callback for ListStatesCallback {
     type Pruner = FullPruner;
     fn on_win(&mut self, game: &Solitaire) -> ControlFlow {
         self.res.clear();
-        self.res.push((game.encode(), Move::FAKE));
+        self.res.push((game.encode(), None));
         ControlFlow::Halt
     }
 
@@ -81,7 +81,7 @@ impl Callback for ListStatesCallback {
         let rev = prune_info.rev_move();
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
         if rev.is_none() {
-            self.res.push((e, *m));
+            self.res.push((e, Some(*m)));
             ControlFlow::Skip
         } else {
             ControlFlow::Ok
@@ -109,7 +109,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
 
     let mut org_g = game.clone();
 
-    let mut find_state = move |state: Encode, m: Move| {
+    let mut find_state = move |state: Encode, m: Option<Move>| {
         let mut callback = FindStatesCallback {
             his: Vec::default(),
             state,
@@ -117,7 +117,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         tp.clear();
 
         traverse(&mut org_g, &FullPruner::default(), &mut tp, &mut callback);
-        if m != Move::FAKE {
+        if let Some(m) = m {
             callback.his.push(m);
         }
         callback.his
@@ -154,7 +154,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         game.decode(state.0);
         let new_res = hop_solve_game(
             game,
-            &state.1,
+            &state.1.unwrap(),
             rng,
             BATCH_SIZE,
             limit,

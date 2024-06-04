@@ -1,4 +1,5 @@
 use crate::{
+    card::Card,
     engine::{Encode, Solitaire},
     moves::{Move, MoveVec},
     pruning::FullPruner,
@@ -40,6 +41,20 @@ const fn get_edge_type(m: Move, rm: Option<Move>) -> EdgeType {
         Move::DeckPile(_) => EdgeType::DeckPile,
         Move::StackPile(_) => EdgeType::StackPile,
         Move::Reveal(_) => EdgeType::Reveal,
+    }
+}
+
+impl<'a, S: SearchStatistics, T: TerminateSignal> BuilderCallback<'a, S, T> {
+    fn new(g: &Solitaire, stats: &'a S, sign: &'a T) -> Self {
+        Self {
+            graph: Graph::new(),
+            stats,
+            sign,
+            depth: 0,
+            prev_enc: g.encode(),
+            last_move: Move::DeckPile(Card::DEFAULT),
+            rev_move: None,
+        }
     }
 }
 
@@ -102,15 +117,7 @@ pub fn graph_with_tracking<S: SearchStatistics, T: TerminateSignal>(
     sign: &T,
 ) -> (ControlFlow, Graph) {
     let mut tp = TpTable::default();
-    let mut callback = BuilderCallback {
-        graph: Graph::new(),
-        stats,
-        sign,
-        depth: 0,
-        prev_enc: g.encode(),
-        last_move: Move::FAKE,
-        rev_move: None,
-    };
+    let mut callback = BuilderCallback::new(g, stats, sign);
 
     let finished = traverse(g, &FullPruner::default(), &mut tp, &mut callback);
     (finished, callback.graph)

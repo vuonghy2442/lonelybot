@@ -16,7 +16,7 @@ pub enum Pos {
 
 pub type StandardMove = (Pos, Pos, Card);
 
-pub const DRAW_NEXT: StandardMove = (Pos::Deck, Pos::Deck, Card::FAKE);
+pub const DRAW_NEXT: StandardMove = (Pos::Deck, Pos::Deck, Card::DEFAULT);
 
 const N_HIDDEN_MAX: usize = (N_PILES - 1) as usize;
 
@@ -43,7 +43,7 @@ pub struct InvalidMove;
 
 impl StandardSolitaire {
     /// # Panics
-    /// 
+    ///
     /// This function should never panic. If it does then the implementation is buggy
     #[must_use]
     pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
@@ -112,7 +112,7 @@ impl StandardSolitaire {
         #[allow(clippy::cast_possible_truncation)]
         self.piles
             .iter()
-            .position(|p| p.last().unwrap_or(&Card::FAKE).go_before(card))
+            .position(|p| card.go_after(p.last()))
             .map(|pos| pos as u8)
     }
 
@@ -146,16 +146,13 @@ impl StandardSolitaire {
     #[must_use]
     pub fn validate_move(&self, m: &StandardMove) -> bool {
         match *m {
-            (Pos::Deck, Pos::Deck, Card::FAKE) => true,
+            (Pos::Deck, Pos::Deck, Card::DEFAULT) => true,
             (_, Pos::Deck, _) | (Pos::Stack(_), Pos::Stack(_), _) => false,
 
             (Pos::Deck, Pos::Pile(pos), card) => {
                 pos < N_PILES
                     && self.deck.peek_current() == Some(&card)
-                    && self.piles[pos as usize]
-                        .last()
-                        .unwrap_or(&Card::FAKE)
-                        .go_before(&card)
+                    && card.go_after(self.piles[pos as usize].last())
             }
             (Pos::Deck, Pos::Stack(suit), card) => {
                 suit < N_SUITS
@@ -167,10 +164,7 @@ impl StandardSolitaire {
                 from != to
                     && from < N_PILES
                     && to < N_PILES
-                    && self.piles[to as usize]
-                        .last()
-                        .unwrap_or(&Card::FAKE)
-                        .go_before(&card)
+                    && card.go_after(self.piles[to as usize].last())
                     && self.find_card_pile(from, &card).is_some()
             }
             (Pos::Pile(from), Pos::Stack(suit), card) => {
@@ -186,10 +180,7 @@ impl StandardSolitaire {
                     && to < N_PILES
                     && card.suit() == suit
                     && card.rank() + 1 == self.final_stack.get(suit)
-                    && self.piles[to as usize]
-                        .last()
-                        .unwrap_or(&Card::FAKE)
-                        .go_before(&card)
+                    && card.go_after(self.piles[to as usize].last())
             }
         }
     }
@@ -201,7 +192,7 @@ impl StandardSolitaire {
     ///
     /// Will return `InvalidMove` when the input move `m` is not a legal move
     /// # Panics
-    /// 
+    ///
     /// This function will never panic unless the implementation is buggy
     pub fn do_move(&mut self, m: &StandardMove) -> MoveResult<()> {
         if !self.validate_move(m) {

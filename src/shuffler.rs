@@ -148,7 +148,7 @@ pub fn greenfelt_shuffle(seed: u32) -> CardDeck {
     const M: [u8; N_SUITS as usize] = [2, 1, 3, 0];
 
     let mut rng = GreenRandom::new(seed);
-    let mut cards: CardDeck = [Card::FAKE; N_CARDS as usize];
+    let mut cards: CardDeck = [Card::DEFAULT; N_CARDS as usize];
 
     for i in 0..26u8 {
         cards[i as usize] = Card::new(i % N_RANKS, M[(i / N_RANKS) as usize]);
