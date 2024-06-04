@@ -67,6 +67,29 @@ impl Solitaire {
     }
 
     #[must_use]
+    pub const fn get_deck(&self) -> &Deck {
+        &self.deck
+    }
+
+    #[must_use]
+    pub const fn get_stack(&self) -> &Stack {
+        &self.final_stack
+    }
+
+    #[must_use]
+    pub const fn get_hidden(&self) -> &Hidden {
+        &self.hidden
+    }
+
+    pub fn hidden_shuffle<R: RngCore>(&mut self, rng: &mut R) {
+        self.hidden.shuffle(rng)
+    }
+
+    pub fn hidden_clear(&mut self) {
+        self.hidden.clear()
+    }
+
+    #[must_use]
     pub const fn get_visible_mask(&self) -> u64 {
         self.visible_mask
     }
@@ -87,14 +110,17 @@ impl Solitaire {
     pub const fn get_bottom_mask(&self) -> u64 {
         let vis = self.get_visible_mask();
         let non_top = vis ^ self.get_top_mask();
-        let xor_non_top = non_top ^ (non_top >> 1);
-        let xor_vis = vis ^ (vis >> 1);
-        let or_non_top = non_top | (non_top >> 1);
-        let or_vis = vis | (vis >> 1);
+        let xor_all = {
+            let xor_non_top = non_top ^ (non_top >> 1);
+            let xor_vis = vis ^ (vis >> 1);
+            xor_vis ^ (xor_non_top << 4)
+        };
 
-        let xor_all = xor_vis ^ (xor_non_top << 4);
-
-        let bottom_mask = (xor_all | !(or_non_top << 4)) & or_vis & ALT_MASK;
+        let bottom_mask = {
+            let or_non_top = non_top | (non_top >> 1);
+            let or_vis = vis | (vis >> 1);
+            (xor_all | !(or_non_top << 4)) & or_vis & ALT_MASK
+        };
 
         //shared rank
         bottom_mask * 0b11
@@ -282,7 +308,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub const fn get_rev_move(&self, m: &Move) -> Option<Move> {
+    pub const fn reverse_move(&self, m: &Move) -> Option<Move> {
         // check if this move can be undo using a legal move in the game
         match m {
             Move::PileStack(c) if self.top_mask & c.mask() == 0 => Some(Move::StackPile(*c)),
@@ -320,10 +346,10 @@ impl Solitaire {
 
         if DECK {
             self.deck.push(card);
-            self.deck.set_offset(*info & 31);
+            self.deck.set_offset(*info);
         } else {
             self.visible_mask |= mask;
-            if *info & 1 != 0 {
+            if *info > 0 {
                 self.unmake_reveal(mask, &Default::default());
             }
         }
@@ -350,20 +376,10 @@ impl Solitaire {
 
         if DECK {
             self.deck.push(card);
-            self.deck.set_offset(*info & 31);
+            self.deck.set_offset(*info);
         } else {
             self.final_stack.push(card.suit());
         }
-    }
-
-    #[must_use]
-    pub const fn get_deck(&self) -> &Deck {
-        &self.deck
-    }
-
-    #[must_use]
-    pub const fn get_stack(&self) -> &Stack {
-        &self.final_stack
     }
 
     fn make_reveal(&mut self, m: &u64) -> UndoInfo {
@@ -479,21 +495,9 @@ impl Solitaire {
         self.visible_mask = self.compute_visible_mask();
         self.top_mask = self.hidden.compute_top_mask();
     }
-    #[must_use]
-    pub const fn get_hidden(&self) -> &Hidden {
-        &self.hidden
-    }
-
-    pub fn hidden_shuffle<R: RngCore>(&mut self, rng: &mut R) {
-        self.hidden.shuffle(rng)
-    }
-
-    pub fn hidden_clear(&mut self) {
-        self.hidden.clear()
-    }
 
     #[must_use]
-    pub fn get_visible_piles(&self) -> [PileVec; N_PILES as usize] {
+    pub fn compute_visible_piles(&self) -> [PileVec; N_PILES as usize] {
         let mut king_suit = 0;
         core::array::from_fn(|pos| {
             #[allow(clippy::cast_possible_truncation)]

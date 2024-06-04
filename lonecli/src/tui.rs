@@ -93,7 +93,7 @@ pub fn print_game(game: &Solitaire) {
 
     print_foundation(game.get_stack());
 
-    let piles: [PileVec; N_PILES as usize] = game.get_visible_piles();
+    let piles: [PileVec; N_PILES as usize] = game.compute_visible_piles();
     let hidden: [HiddenVec; N_PILES as usize] = game.get_hidden().to_piles();
     print_piles(&piles, &hidden);
 }

@@ -20,7 +20,7 @@ pub struct CyclePruner {
 impl Pruner for CyclePruner {
     fn new(game: &Solitaire, _: &Self, m: &Move) -> Self {
         Self {
-            rev_move: game.get_rev_move(m),
+            rev_move: game.reverse_move(m),
         }
     }
 

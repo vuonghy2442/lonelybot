@@ -10,7 +10,7 @@ impl From<&Solitaire> for StandardSolitaire {
             hidden_piles: game.get_hidden().to_piles(),
             final_stack: *game.get_stack(),
             deck: game.get_deck().clone(),
-            piles: game.get_visible_piles(),
+            piles: game.compute_visible_piles(),
         }
     }
 }
