@@ -77,6 +77,19 @@ impl Hidden {
     }
 
     #[must_use]
+    pub fn compute_top_mask(&self) -> u64 {
+        let mut top_mask = 0;
+        for pos in 0..N_PILES {
+            if let Some((card, rest)) = self.get(pos).split_last() {
+                if !rest.is_empty() || !card.is_king() {
+                    top_mask |= card.mask();
+                }
+            }
+        }
+        top_mask
+    }
+
+    #[must_use]
     pub fn to_piles(&self) -> [HiddenVec; N_PILES as usize] {
         let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
 

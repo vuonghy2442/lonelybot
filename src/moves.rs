@@ -65,25 +65,6 @@ fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> ControlFlow<T>) ->
 }
 
 impl MoveMask {
-    pub const fn only_pile_stack(pile_stack: u64) -> MoveMask {
-        MoveMask {
-            pile_stack,
-            deck_stack: 0,
-            stack_pile: 0,
-            deck_pile: 0,
-            reveal: 0,
-        }
-    }
-    pub const fn only_deck_stack(deck_stack: u64) -> MoveMask {
-        MoveMask {
-            pile_stack: 0,
-            deck_stack,
-            stack_pile: 0,
-            deck_pile: 0,
-            reveal: 0,
-        }
-    }
-
     #[inline]
     fn binary_op<F: Fn(u64, u64) -> u64>(&self, other: &Self, op: F) -> Self {
         Self {

@@ -169,7 +169,7 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
 
     while !game.is_win() {
         let mut gg = game.clone();
-        gg.get_hidden_mut().clear();
+        gg.hidden_clear();
         let best = pick_moves(
             &mut gg,
             &mut rng,

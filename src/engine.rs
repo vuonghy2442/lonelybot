@@ -1,5 +1,7 @@
 use core::ops::ControlFlow;
 
+use rand::RngCore;
+
 use crate::card::{
     Card, ALT_MASK, HALF_MASK, KING_MASK, KING_RANK, N_CARDS, N_SUITS, RANK_MASK, SUIT_MASK,
 };
@@ -53,28 +55,15 @@ impl Solitaire {
             draw_step,
         );
 
-        let mut res = Self {
-            hidden: Hidden::new(hidden_piles),
+        let hidden = Hidden::new(hidden_piles);
+
+        Self {
+            top_mask: hidden.compute_top_mask(),
+            hidden,
             final_stack: Stack::default(),
             deck,
             visible_mask,
-            top_mask: Default::default(),
-        };
-        res.top_mask = res.compute_top_mask();
-        res
-    }
-
-    #[must_use]
-    fn compute_top_mask(&self) -> u64 {
-        let mut top_mask = 0;
-        for pos in 0..N_PILES {
-            if let Some((card, rest)) = self.hidden.get(pos).split_last() {
-                if !rest.is_empty() || !card.is_king() {
-                    top_mask |= card.mask();
-                }
-            }
         }
-        top_mask
     }
 
     #[must_use]
@@ -169,7 +158,10 @@ impl Solitaire {
 
         if pile_stack_dom != 0 {
             // if there is some card that is guarantee to be fine to stack do it
-            return MoveMask::only_pile_stack(pile_stack_dom.wrapping_neg() & pile_stack_dom);
+            return MoveMask {
+                pile_stack: pile_stack_dom.wrapping_neg() & pile_stack_dom,
+                ..Default::default()
+            };
         }
         // getting the stackable cards without revealing
         // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
@@ -177,7 +169,10 @@ impl Solitaire {
         let least_stack = redundant_stack & redundant_stack.wrapping_neg();
 
         if DOMINANCE && redundant_stack.count_ones() >= 3 {
-            return MoveMask::only_pile_stack(least_stack);
+            return MoveMask {
+                pile_stack: least_stack,
+                ..Default::default()
+            };
         }
 
         // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
@@ -185,7 +180,10 @@ impl Solitaire {
         // no dominance for draw_step = 1 yet
         if dom {
             // not very useful as dominance
-            return MoveMask::only_deck_stack(deck_mask);
+            return MoveMask {
+                deck_stack: deck_mask,
+                ..Default::default()
+            };
         }
 
         // free slot will compute the empty position that a card can be put into (can be king)
@@ -479,16 +477,19 @@ impl Solitaire {
         self.deck.decode(deck_encode);
 
         self.visible_mask = self.compute_visible_mask();
-        self.top_mask = self.compute_top_mask();
+        self.top_mask = self.hidden.compute_top_mask();
     }
     #[must_use]
     pub const fn get_hidden(&self) -> &Hidden {
         &self.hidden
     }
 
-    #[must_use]
-    pub fn get_hidden_mut(&mut self) -> &mut Hidden {
-        &mut self.hidden
+    pub fn hidden_shuffle<R: RngCore>(&mut self, rng: &mut R) {
+        self.hidden.shuffle(rng)
+    }
+
+    pub fn hidden_clear(&mut self) {
+        self.hidden.clear()
     }
 
     #[must_use]
@@ -552,7 +553,7 @@ impl Solitaire {
             return false;
         }
 
-        if self.compute_top_mask() != self.top_mask
+        if self.hidden.compute_top_mask() != self.top_mask
             || self.get_extended_top_mask().count_ones() > N_PILES.into()
         {
             return false;
