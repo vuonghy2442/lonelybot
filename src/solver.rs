@@ -1,5 +1,5 @@
 use crate::{
-    engine::{Encode, Solitaire},
+    state::{Encode, Solitaire},
     moves::Move,
     pruning::FullPruner,
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
@@ -12,6 +12,7 @@ use arrayvec::ArrayVec;
 const N_PLY_MAX: usize = 1024;
 
 pub type HistoryVec = ArrayVec<Move, N_PLY_MAX>;
+
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SearchResult {

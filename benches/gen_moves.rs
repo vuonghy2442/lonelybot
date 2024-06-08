@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
     card::Card,
     deck::{Deck, N_PILE_CARDS},
-    engine::Solitaire,
+    state::Solitaire,
     shuffler,
 };
 use rand::prelude::*;

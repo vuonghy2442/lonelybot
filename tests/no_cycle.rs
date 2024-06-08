@@ -1,20 +1,14 @@
 use lonelybot::{
-    engine::{Encode, Solitaire},
+    state::{Encode, Solitaire},
     moves::MoveVec,
     pruning::FullPruner,
     shuffler::default_shuffle,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum CycleResult {
-    CycleFound,
-    NoCycle,
-}
-
+#[derive(Default)]
 struct CycleCallback {
     history: TpTable,
-    result: CycleResult,
 }
 
 impl Callback for CycleCallback {
@@ -46,13 +40,10 @@ fn test_no_cycle() {
 
         tp.clear();
 
-        let mut callback = CycleCallback {
-            history: TpTable::default(),
-            result: CycleResult::NoCycle,
-        };
+        let mut callback = CycleCallback::default();
 
         let mut g = Solitaire::new(&deck, 3);
-        traverse(&mut g, &Default::default(), &mut tp, &mut callback);
-        assert_eq!(callback.result, CycleResult::NoCycle);
+        let res = traverse(&mut g, &Default::default(), &mut tp, &mut callback);
+        assert_eq!(res, ControlFlow::Ok);
     }
 }

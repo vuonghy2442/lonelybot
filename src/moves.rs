@@ -27,13 +27,13 @@ impl fmt::Display for Move {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Eq)]
 pub struct MoveMask {
-    pub pile_stack: u64,
-    pub deck_stack: u64,
-    pub stack_pile: u64,
-    pub deck_pile: u64,
-    pub reveal: u64,
+    pub(crate) pile_stack: u64,
+    pub(crate) deck_stack: u64,
+    pub(crate) stack_pile: u64,
+    pub(crate) deck_pile: u64,
+    pub(crate) reveal: u64,
 }
 
 impl From<Move> for MoveMask {
@@ -70,6 +70,10 @@ impl MoveMask {
             deck_pile: op(self.deck_pile, other.deck_pile),
             reveal: op(self.reveal, other.reveal),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self == &Default::default()
     }
 
     pub fn filter(&self, remove: &Self) -> Self {

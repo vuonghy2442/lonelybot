@@ -2,16 +2,17 @@ use core::fmt;
 
 use lonelybot::card::{Card, N_SUITS};
 use lonelybot::deck::{Drawable, N_PILES};
-use lonelybot::engine::Solitaire;
+use lonelybot::state::Solitaire;
 use lonelybot::formatter::{NUMBERS, SYMBOLS};
 use lonelybot::stack::Stack;
 use lonelybot::standard::{HiddenVec, PileVec, StandardSolitaire};
 
 use colored::{Color, Colorize};
 
-pub const COLOR: [Color; N_SUITS as usize] = [Color::Red, Color::Red, Color::Black, Color::Black];
+pub(crate) const COLOR: [Color; N_SUITS as usize] =
+    [Color::Red, Color::Red, Color::Black, Color::Black];
 
-pub struct ColoredCard(Option<Card>);
+pub(crate) struct ColoredCard(Option<Card>);
 
 impl fmt::Display for ColoredCard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -33,7 +34,7 @@ fn color(c: Option<Card>) -> ColoredCard {
     ColoredCard(c)
 }
 
-pub fn print_foundation(stack: &Stack) {
+pub(crate) fn print_foundation(stack: &Stack) {
     print!("\t\t");
     // print out the foundation stack
     for i in 0..N_SUITS {
@@ -48,7 +49,10 @@ pub fn print_foundation(stack: &Stack) {
     println!();
 }
 
-pub fn print_piles(piles: &[PileVec; N_PILES as usize], hidden: &[HiddenVec; N_PILES as usize]) {
+pub(crate) fn print_piles(
+    piles: &[PileVec; N_PILES as usize],
+    hidden: &[HiddenVec; N_PILES as usize],
+) {
     for i in 0..N_PILES {
         print!("{}\t", i + 5);
     }
@@ -79,7 +83,7 @@ pub fn print_piles(piles: &[PileVec; N_PILES as usize], hidden: &[HiddenVec; N_P
     }
 }
 
-pub fn print_game(game: &Solitaire) {
+pub(crate) fn print_game(game: &Solitaire) {
     // print out the deck
     for (pos, card, t) in game.get_deck().iter_all() {
         let s = format!("{pos} ");
@@ -99,7 +103,7 @@ pub fn print_game(game: &Solitaire) {
     print_piles(&piles, &hidden);
 }
 
-pub fn _print_standard_game(game: &StandardSolitaire) {
+pub(crate) fn _print_standard_game(game: &StandardSolitaire) {
     // print out the deck
     print!("0. ");
     for card in game.get_deck().peek_waste::<3>() {

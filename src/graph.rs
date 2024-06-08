@@ -1,6 +1,6 @@
 use crate::{
     card::Card,
-    engine::{Encode, Solitaire},
+    state::{Encode, Solitaire},
     moves::{Move, MoveVec},
     pruning::FullPruner,
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},

@@ -1,19 +1,20 @@
 mod solver;
+mod solvitaire;
 mod tracking;
 mod tui;
 
 use bpci::{Interval, NSuccessesSample, WilsonScore};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
-use lonelybot::engine::{Encode, Solitaire, UndoInfo};
-use lonelybot::formatter::Solvitaire;
+use lonelybot::engine::SolitaireEngine;
 use lonelybot::mcts_solver::pick_moves;
-use lonelybot::moves::Move;
-use lonelybot::pruning::{CyclePruner, FullPruner, Pruner};
+use lonelybot::pruning::{CyclePruner, FullPruner, NoPruner};
 use lonelybot::shuffler::{self, CardDeck, U256};
+use lonelybot::state::{Encode, Solitaire};
 use lonelybot::tracking::DefaultTerminateSignal;
 use lonelybot::traverse::ControlFlow;
 use rand::prelude::*;
+use solvitaire::Solvitaire;
 use std::collections::HashSet;
 use std::fs::File;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -28,7 +29,7 @@ use lonelybot::standard::{Pos, StandardHistoryVec, StandardSolitaire};
 use crate::tui::print_game;
 
 #[derive(ValueEnum, Clone, Copy)]
-pub enum SeedType {
+enum SeedType {
     /// Doc comment
     Default,
     Legacy,
@@ -40,12 +41,12 @@ pub enum SeedType {
 }
 
 #[derive(Args, Clone)]
-pub struct StringSeed {
+struct StringSeed {
     seed_type: SeedType,
     seed: String,
 }
 
-pub struct Seed {
+struct Seed {
     seed_type: SeedType,
     seed: U256,
 }
@@ -80,12 +81,12 @@ impl std::fmt::Display for Seed {
 
 impl Seed {
     #[must_use]
-    pub const fn seed(&self) -> U256 {
+    pub(crate) const fn seed(&self) -> U256 {
         self.seed
     }
 
     #[must_use]
-    pub fn increase(&self, step: u32) -> Self {
+    pub(crate) fn increase(&self, step: u32) -> Self {
         Self {
             seed_type: self.seed_type,
             seed: self.seed() + step,
@@ -94,7 +95,7 @@ impl Seed {
 }
 
 #[must_use]
-pub fn shuffle(s: &Seed) -> CardDeck {
+fn shuffle(s: &Seed) -> CardDeck {
     let seed = s.seed;
     match s.seed_type {
         SeedType::Default => shuffler::default_shuffle(seed.as_u64()),
@@ -113,14 +114,15 @@ fn benchmark(seed: &Seed) {
     let mut total_moves = 0u32;
     let now = Instant::now();
     for i in 0..100 {
-        let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
+        let mut game: SolitaireEngine<FullPruner> =
+            Solitaire::new(&shuffle(&seed.increase(i)), 3).into();
         for _ in 0..100 {
-            let moves = game.list_moves::<true>(&Default::default());
+            let moves = game.state().list_moves::<true>(&Default::default());
 
             if moves.is_empty() {
                 break;
             }
-            game.do_move(moves.choose(&mut rng).unwrap());
+            assert!(game.do_move(*moves.choose(&mut rng).unwrap()));
             std::hint::black_box(game.encode());
             total_moves += 1;
         }
@@ -137,15 +139,15 @@ fn do_random(seed: &Seed) {
 
     let mut total_win = 0;
     for i in 0..TOTAL_GAME {
-        let mut game = Solitaire::new(&shuffle(&seed.increase(i)), 3);
+        let mut game: SolitaireEngine<CyclePruner> =
+            Solitaire::new(&shuffle(&seed.increase(i)), 3).into();
 
-        let mut prune_info = CyclePruner::default();
         loop {
-            if game.is_win() {
+            if game.state().is_win() {
                 total_win += 1;
                 break;
             }
-            let moves = game.list_moves::<true>(&prune_info.prune_moves(&game));
+            let moves = game.list_moves_dom();
 
             if moves.is_empty() {
                 break;
@@ -153,8 +155,7 @@ fn do_random(seed: &Seed) {
 
             let m = &moves[0];
 
-            prune_info = CyclePruner::new(&game, &prune_info, m);
-            game.do_move(m);
+            game.do_move(*m);
         }
     }
     println!("Total win {total_win}/{TOTAL_GAME}");
@@ -164,11 +165,11 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
     const N_TIMES: usize = 3000;
     const LIMIT: usize = 1000;
 
-    let mut game = Solitaire::new(&shuffle(seed), 3);
+    let mut game: SolitaireEngine<NoPruner> = Solitaire::new(&shuffle(seed), 3).into();
     let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
 
-    while !game.is_win() {
-        let mut gg = game.clone();
+    while !game.state().is_win() {
+        let mut gg = game.state().clone();
         gg.hidden_clear();
         let best = pick_moves(
             &mut gg,
@@ -190,7 +191,7 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
             println!();
         }
         for m in best {
-            game.do_move(&m);
+            game.do_move(m);
         }
     }
     if verbose {
@@ -281,23 +282,19 @@ fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
 fn game_loop(seed: &Seed) {
     let shuffled_deck = shuffle(seed);
 
-    let mut game = Solitaire::new(&shuffled_deck, 3);
+    let mut game: SolitaireEngine<FullPruner> = Solitaire::new(&shuffled_deck, 3).into();
 
-    let mut line = String::new();
-
-    let mut move_hist = Vec::<(Move, UndoInfo)>::new();
+    let mut line: String = String::new();
 
     let mut game_state = HashSet::<Encode>::new();
 
-    let mut pruner = FullPruner::default();
-
     loop {
-        print_game(&game);
+        print_game(game.state());
         if !game_state.insert(game.encode()) {
             println!("Already existed state");
         }
 
-        let moves = game.list_moves::<true>(&pruner.prune_moves(&game));
+        let moves = game.list_moves_dom();
 
         for (i, m) in moves.iter().enumerate() {
             print!("{i}.{m}, ");
@@ -317,13 +314,9 @@ fn game_loop(seed: &Seed) {
         if let Some(id) = res {
             let id = usize::try_from(id).unwrap_or(usize::MAX);
             if id < moves.len() {
-                pruner = FullPruner::new(&game, &pruner, &moves[id]);
-                let info = game.do_move(&moves[id]);
-                move_hist.push((moves[id], info));
+                assert!(game.do_move(moves[id]));
             } else {
-                let (m, info) = &move_hist.pop().unwrap();
-                pruner = FullPruner::default();
-                game.undo_move(m, info);
+                game.undo_move();
                 println!("Undo!!");
             }
         } else {

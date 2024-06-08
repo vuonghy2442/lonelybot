@@ -1,7 +1,7 @@
 use rand::RngCore;
 
 use crate::{
-    engine::{Encode, Solitaire},
+    state::{Encode, Solitaire},
     moves::Move,
     pruning::{FullPruner, Pruner},
     solver::SearchResult,

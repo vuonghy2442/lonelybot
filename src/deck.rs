@@ -146,7 +146,7 @@ impl Deck {
     }
 
     #[must_use]
-    pub const fn offset(&self, n_step: u8) -> u8 {
+    pub(crate) const fn offset(&self, n_step: u8) -> u8 {
         let next = self.get_offset();
         let len = self.len();
         let step = self.draw_step();
@@ -166,7 +166,7 @@ impl Deck {
     }
 
     #[must_use]
-    pub fn offset_once(&self) -> u8 {
+    pub(crate) fn offset_once(&self) -> u8 {
         let next = self.get_offset();
         let len = self.len();
         if next >= len {
@@ -232,7 +232,7 @@ impl Deck {
         }
     }
 
-    pub fn set_offset(&mut self, id: u8) {
+    pub(crate) fn set_offset(&mut self, id: u8) {
         // after this the deck will have structure
         // [.... id-1 <empty> id....]
         //   draw_cur ^       ^ draw_next
@@ -266,7 +266,7 @@ impl Deck {
         card
     }
 
-    pub fn push(&mut self, card: Card) {
+    pub(crate) fn push(&mut self, card: Card) {
         // or you can undo
         self.mask ^= 1 << self.map[card.value() as usize];
         self.deck[self.draw_cur as usize] = card;
@@ -277,7 +277,7 @@ impl Deck {
         // self.deck[self.draw_next as usize] = c;
     }
 
-    pub fn draw(&mut self, id: u8) -> Card {
+    pub(crate) fn draw(&mut self, id: u8) -> Card {
         debug_assert!(
             self.draw_cur <= self.draw_next && (id < N_DECK_CARDS - self.draw_next + self.draw_cur)
         );
@@ -286,7 +286,7 @@ impl Deck {
     }
 
     #[must_use]
-    pub const fn get_offset(&self) -> u8 {
+    pub(crate) const fn get_offset(&self) -> u8 {
         self.draw_cur
     }
 
@@ -297,7 +297,7 @@ impl Deck {
     }
 
     #[must_use]
-    pub const fn normalized_offset(&self) -> u8 {
+    pub(crate) const fn normalized_offset(&self) -> u8 {
         // this is the standardized version
         if self.draw_cur % self.draw_step == 0 {
             // matched so offset is free
@@ -316,11 +316,11 @@ impl Deck {
         self.mask | ((self.normalized_offset() as u32) << N_DECK_CARDS)
     }
 
-    pub fn decode(&mut self, encode: u32) {
+    pub(crate) fn decode(&mut self, encode: u32) {
         let mask = encode & ((1 << N_DECK_CARDS) - 1);
         let offset = (encode >> N_DECK_CARDS) as u8;
 
-        let mut rev_map = [Option::<Card>::None; N_DECK_CARDS as usize];
+        let mut rev_map = [None; N_DECK_CARDS as usize];
 
         for i in 0..N_CARDS {
             let val = self.map[i as usize];
@@ -331,11 +331,9 @@ impl Deck {
 
         let mut pos: u8 = 0;
 
-        for c in rev_map {
-            if let Some(c) = c {
-                self.deck[pos as usize] = c;
-                pos += 1;
-            }
+        for c in rev_map.into_iter().flatten() {
+            self.deck[pos as usize] = c;
+            pos += 1;
         }
 
         self.draw_cur = pos;

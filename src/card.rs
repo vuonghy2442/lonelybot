@@ -3,21 +3,20 @@ pub const N_RANKS: u8 = 13;
 pub const N_CARDS: u8 = N_SUITS * N_RANKS;
 pub const KING_RANK: u8 = N_RANKS - 1;
 
-
-pub const SUIT_MASK: [u64; N_SUITS as usize] = [
+pub(crate) const SUIT_MASK: [u64; N_SUITS as usize] = [
     0x4141_4141_4141_4141,
     0x8282_8282_8282_8282,
     0x1414_1414_1414_1414,
     0x2828_2828_2828_2828,
 ];
 
-pub const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
+pub(crate) const KING_MASK: u64 = 0xF << (N_SUITS * KING_RANK);
 
-pub const HALF_MASK: u64 = 0x3333_3333_3333_3333;
-pub const ALT_MASK: u64 = 0x5555_5555_5555_5555;
-pub const RANK_MASK: u64 = 0x1111_1111_1111_1111;
+pub(crate) const HALF_MASK: u64 = 0x3333_3333_3333_3333;
+pub(crate) const ALT_MASK: u64 = 0x5555_5555_5555_5555;
+pub(crate) const RANK_MASK: u64 = 0x1111_1111_1111_1111;
 
-pub const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
+pub(crate) const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card(u8);
@@ -32,7 +31,7 @@ impl Card {
     }
 
     #[must_use]
-    pub const fn from_value(value: u8) -> Self {
+    pub(crate) const fn from_value(value: u8) -> Self {
         Self(value)
     }
 
@@ -53,7 +52,7 @@ impl Card {
     }
 
     #[must_use]
-    pub const fn value(&self) -> u8 {
+    pub(crate) const fn value(&self) -> u8 {
         self.0
     }
 
@@ -91,13 +90,13 @@ impl Card {
     }
 
     #[must_use]
-    pub const fn mask(&self) -> u64 {
+    pub(crate) const fn mask(&self) -> u64 {
         let v = self.value();
         1u64 << (v ^ ((v >> 1) & 2))
     }
 
     #[must_use]
-    pub const fn from_mask(v: &u64) -> Self {
+    pub(crate) const fn from_mask(v: &u64) -> Self {
         #[allow(clippy::cast_possible_truncation)]
         let v = v.trailing_zeros() as u8;
         let v = v ^ ((v >> 1) & 2);

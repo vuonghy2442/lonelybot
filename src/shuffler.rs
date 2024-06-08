@@ -72,7 +72,7 @@ pub fn ks_shuffle(seed: u32) -> CardDeck {
     layer_to_pile(&cards)
 }
 
-pub struct KSRandom {
+pub(crate) struct KSRandom {
     value: u32,
     mix: u32,
     twist: u32,
@@ -91,7 +91,7 @@ const fn signed_shr(x: u32, shr: u32) -> u32 {
 
 impl KSRandom {
     #[must_use]
-    pub fn new(seed: u32) -> Self {
+    fn new(seed: u32) -> Self {
         let mut rng = Self {
             value: seed,
             mix: 51_651_237,
@@ -110,9 +110,7 @@ impl KSRandom {
 
         rng
     }
-}
 
-impl KSRandom {
     fn next_u32(&mut self) -> u32 {
         let mut y = self.value ^ (self.twist.wrapping_sub(self.mix)) ^ self.value;
         y ^= self.twist ^ self.value ^ self.mix;
@@ -125,7 +123,7 @@ impl KSRandom {
     }
 }
 
-pub struct GreenRandom {
+struct GreenRandom {
     seed: u32,
 }
 
@@ -138,7 +136,7 @@ impl GreenRandom {
 
 impl GreenRandom {
     #[must_use]
-    pub const fn new(seed: u32) -> Self {
+    const fn new(seed: u32) -> Self {
         Self { seed }
     }
 }
@@ -175,7 +173,7 @@ pub fn greenfelt_shuffle(seed: u32) -> CardDeck {
     layer_to_pile(&cards)
 }
 
-pub fn uniform_int<R: RngCore>(a: u32, b: u32, rng: &mut R) -> u32 {
+fn uniform_int<R: RngCore>(a: u32, b: u32, rng: &mut R) -> u32 {
     const B_RANGE: u32 = u32::MAX;
 
     let range = b - a;

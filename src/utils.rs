@@ -1,7 +1,7 @@
 use core::hash::{BuildHasher, Hasher};
 
 #[must_use]
-pub const fn min(a: u8, b: u8) -> u8 {
+pub(crate) const fn min(a: u8, b: u8) -> u8 {
     // finding min value between 2 value
     if a < b {
         a
@@ -11,7 +11,7 @@ pub const fn min(a: u8, b: u8) -> u8 {
 }
 
 #[must_use]
-pub const fn full_mask(i: u8) -> u64 {
+pub(crate) const fn full_mask(i: u8) -> u64 {
     // return 2^i - 1 (i bits 1)
     (1 << i) - 1
 }

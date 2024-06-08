@@ -1,19 +1,7 @@
 use crate::{
-    engine::Solitaire,
     moves::Move,
     standard::{InvalidMove, MoveResult, Pos, StandardHistoryVec, StandardMove, StandardSolitaire},
 };
-
-impl From<&Solitaire> for StandardSolitaire {
-    fn from(game: &Solitaire) -> Self {
-        StandardSolitaire {
-            hidden_piles: game.get_hidden().to_piles(),
-            final_stack: *game.get_stack(),
-            deck: game.get_deck().clone(),
-            piles: game.compute_visible_piles(),
-        }
-    }
-}
 
 /// # Errors
 ///
@@ -21,7 +9,7 @@ impl From<&Solitaire> for StandardSolitaire {
 /// # Panics
 ///
 /// Never (unless buggy)
-pub fn convert_move(
+pub(crate) fn convert_move(
     game: &StandardSolitaire,
     m: &Move,
     move_seq: &mut StandardHistoryVec,
@@ -37,7 +25,7 @@ pub fn convert_move(
             move_seq.push(StandardMove::new(Pos::Deck, Pos::Pile(pile), *c));
         }
         Move::DeckStack(c) => {
-            if c.rank() != game.final_stack.get(c.suit()) {
+            if c.rank() != game.get_stack().get(c.suit()) {
                 return Err(InvalidMove {});
             }
 
@@ -49,7 +37,7 @@ pub fn convert_move(
             move_seq.push(StandardMove::new(Pos::Deck, Pos::Stack(c.suit()), *c));
         }
         Move::StackPile(c) => {
-            if c.rank() + 1 != game.final_stack.get(c.suit()) {
+            if c.rank() + 1 != game.get_stack().get(c.suit()) {
                 return Err(InvalidMove {});
             }
             let pile = game.find_free_pile(c).ok_or(InvalidMove {})?;
@@ -70,12 +58,12 @@ pub fn convert_move(
             ));
         }
         Move::PileStack(c) => {
-            if c.rank() != game.final_stack.get(c.suit()) {
+            if c.rank() != game.get_stack().get(c.suit()) {
                 return Err(InvalidMove {});
             }
             let (pile, pos) = game.find_card(c).ok_or(InvalidMove {})?;
-            if pos + 1 < game.piles[pile as usize].len() {
-                let move_card = game.piles[pile as usize][pos + 1];
+            if pos + 1 < game.get_piles()[pile as usize].len() {
+                let move_card = game.get_piles()[pile as usize][pos + 1];
                 let pile_other = game.find_free_pile(&move_card).ok_or(InvalidMove {})?;
 
                 if pile == pile_other {
@@ -118,7 +106,7 @@ pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> MoveResult<Sta
 #[cfg(test)]
 mod tests {
 
-    use crate::{shuffler::default_shuffle, solver::solve};
+    use crate::{state::Solitaire, shuffler::default_shuffle, solver::solve};
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;

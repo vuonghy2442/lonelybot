@@ -1,6 +1,6 @@
 use core::time::Duration;
 use lonelybot::{
-    engine::Solitaire,
+    state::Solitaire,
     graph::{graph_with_tracking, Graph},
     solver::{solve_with_tracking, HistoryVec, SearchResult},
     tracking::TerminateSignal,
@@ -33,7 +33,7 @@ impl<'a> TerminateSignal for Signal<'a> {
     }
 }
 
-pub fn run_solve(
+pub(crate) fn run_solve(
     mut g: Solitaire,
     verbose: bool,
     term_signal: &Arc<AtomicBool>,
@@ -76,7 +76,7 @@ pub fn run_solve(
     (res, Arc::try_unwrap(ss).unwrap(), hist)
 }
 
-pub fn run_graph(
+pub(crate) fn run_graph(
     mut g: Solitaire,
     verbose: bool,
     term_signal: &Arc<AtomicBool>,

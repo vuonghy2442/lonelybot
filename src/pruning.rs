@@ -1,15 +1,29 @@
 use crate::{
     card::{Card, ALT_MASK, KING_MASK},
-    engine::Solitaire,
     moves::{Move, MoveMask},
+    state::Solitaire,
 };
 
 pub trait Pruner {
     #[must_use]
+    // the game state is before doing the move `m`
     fn new(game: &Solitaire, prev: &Self, m: &Move) -> Self;
 
     #[must_use]
     fn prune_moves(&self, game: &Solitaire) -> MoveMask;
+}
+
+#[derive(Default)]
+pub struct NoPruner {}
+
+impl Pruner for NoPruner {
+    fn new(_: &Solitaire, _: &Self, _: &Move) -> Self {
+        Self {}
+    }
+
+    fn prune_moves(&self, _: &Solitaire) -> MoveMask {
+        MoveMask::default()
+    }
 }
 
 #[derive(Default)]
@@ -94,12 +108,7 @@ impl Pruner for FullPruner {
 
 impl FullPruner {
     #[must_use]
-    pub const fn rev_move(&self) -> Option<Move> {
+    pub(crate) const fn rev_move(&self) -> Option<Move> {
         self.cycle.rev_move
-    }
-
-    #[must_use]
-    pub const fn last_move(&self) -> Move {
-        self.last_move
     }
 }

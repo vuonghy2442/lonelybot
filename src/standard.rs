@@ -2,6 +2,7 @@ use arrayvec::ArrayVec;
 
 use crate::card::{Card, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_DECK_CARDS, N_PILES, N_PILE_CARDS};
+use crate::state::Solitaire;
 use crate::shuffler::CardDeck;
 use crate::stack::Stack;
 
@@ -41,10 +42,10 @@ pub type StandardHistoryVec = ArrayVec<StandardMove, N_PLY_MAX>;
 
 #[derive(Debug)]
 pub struct StandardSolitaire {
-    pub final_stack: Stack,
-    pub deck: Deck,
-    pub hidden_piles: [HiddenVec; N_PILES as usize],
-    pub piles: [PileVec; N_PILES as usize],
+    final_stack: Stack,
+    deck: Deck,
+    hidden_piles: [HiddenVec; N_PILES as usize],
+    piles: [PileVec; N_PILES as usize],
 }
 
 pub type MoveResult<T> = core::result::Result<T, InvalidMove>;
@@ -256,5 +257,16 @@ impl StandardSolitaire {
             }
         }
         Ok(())
+    }
+}
+
+impl From<&Solitaire> for StandardSolitaire {
+    fn from(game: &Solitaire) -> Self {
+        StandardSolitaire {
+            hidden_piles: game.get_hidden().to_piles(),
+            final_stack: *game.get_stack(),
+            deck: game.get_deck().clone(),
+            piles: game.compute_visible_piles(),
+        }
     }
 }

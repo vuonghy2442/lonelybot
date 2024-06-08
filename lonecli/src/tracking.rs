@@ -4,42 +4,32 @@ use lonelybot::tracking::SearchStatistics;
 
 const TRACK_DEPTH: usize = 8;
 
-#[derive(Debug)]
-pub struct AtomicSearchStats {
+#[derive(Debug, Default)]
+pub(crate) struct AtomicSearchStats {
     total_visit: AtomicUsize,
     unique_visit: AtomicUsize,
     max_depth: AtomicUsize,
     move_state: [(AtomicU8, AtomicU8); TRACK_DEPTH],
 }
 
-impl Default for AtomicSearchStats {
-    fn default() -> Self {
-        Self {
-            total_visit: AtomicUsize::new(0),
-            unique_visit: AtomicUsize::new(0),
-            max_depth: AtomicUsize::new(0),
-            move_state: Default::default(),
-        }
-    }
-}
 impl AtomicSearchStats {
     #[must_use]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 
     #[must_use]
-    pub fn total_visit(&self) -> usize {
+    pub(crate) fn total_visit(&self) -> usize {
         self.total_visit.load(Ordering::Relaxed)
     }
 
     #[must_use]
-    pub fn unique_visit(&self) -> usize {
+    pub(crate) fn unique_visit(&self) -> usize {
         self.unique_visit.load(Ordering::Relaxed)
     }
 
     #[must_use]
-    pub fn max_depth(&self) -> usize {
+    pub(crate) fn max_depth(&self) -> usize {
         self.max_depth.load(Ordering::Relaxed)
     }
 }

@@ -44,7 +44,7 @@ impl Hidden {
     }
 
     #[must_use]
-    pub fn from_piles(
+    pub(crate) fn from_piles(
         piles: &[HiddenVec; N_PILES as usize],
         top: &[Option<Card>; N_PILES as usize],
     ) -> Self {
@@ -77,7 +77,7 @@ impl Hidden {
     }
 
     #[must_use]
-    pub fn compute_top_mask(&self) -> u64 {
+    pub(crate) fn compute_top_mask(&self) -> u64 {
         let mut top_mask = 0;
         for pos in 0..N_PILES {
             if let Some((card, rest)) = self.get(pos).split_last() {
@@ -143,22 +143,22 @@ impl Hidden {
         self.get(pos).last()
     }
 
-    pub fn pop(&mut self, pos: u8) -> Option<&Card> {
+    pub(crate) fn pop(&mut self, pos: u8) -> Option<&Card> {
         self.n_hidden[usize::from(pos)] -= 1;
         self.peek(pos)
     }
 
-    pub fn unpop(&mut self, pos: u8) {
+    pub(crate) fn unpop(&mut self, pos: u8) {
         self.n_hidden[usize::from(pos)] += 1;
     }
 
     #[must_use]
-    pub const fn find(&self, c: &Card) -> u8 {
+    pub(crate) const fn find(&self, c: &Card) -> u8 {
         self.pile_map[c.value() as usize]
     }
 
     #[must_use]
-    pub fn all_turn_up(&self) -> bool {
+    pub fn is_all_up(&self) -> bool {
         self.n_hidden.iter().all(|x| *x <= 1)
     }
 
@@ -183,7 +183,7 @@ impl Hidden {
             })
     }
 
-    pub fn decode(&mut self, mut hidden_encode: u16) {
+    pub(crate) fn decode(&mut self, mut hidden_encode: u16) {
         #[allow(clippy::cast_possible_truncation)]
         for i in 0..N_PILES {
             let n_options = u16::from(i) + 2;
@@ -201,7 +201,7 @@ impl Hidden {
     }
 
     #[must_use]
-    pub fn mask(&self) -> u64 {
+    pub(crate) fn mask(&self) -> u64 {
         let mut mask = 0;
         for pos in 0..N_PILES {
             if let Some((_, pile_map)) = self.get(pos).split_last() {
@@ -214,7 +214,7 @@ impl Hidden {
     }
 
     #[must_use]
-    pub const fn first_layer_mask(&self) -> u64 {
+    pub(crate) const fn first_layer_mask(&self) -> u64 {
         self.first_layer_mask
     }
 
@@ -258,7 +258,7 @@ impl Hidden {
     }
 
     #[must_use]
-    pub fn is_valid(&self) -> bool {
+    pub(crate) fn is_valid(&self) -> bool {
         for pos in 0..N_PILES {
             for c in self.get(pos) {
                 if self.pile_map[c.value() as usize] != pos {
@@ -270,7 +270,7 @@ impl Hidden {
     }
 
     #[must_use]
-    pub fn normalize(&self) -> [u8; N_PILES as usize] {
+    pub(crate) fn normalize(&self) -> [u8; N_PILES as usize] {
         #[allow(clippy::cast_possible_truncation)]
         core::array::from_fn(|pos| {
             let n_hid = self.n_hidden[pos];

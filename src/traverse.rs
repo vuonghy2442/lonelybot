@@ -1,7 +1,7 @@
 use hashbrown::HashSet;
 
 use crate::{
-    engine::{Encode, Solitaire},
+    state::{Encode, Solitaire},
     moves::{Move, MoveVec},
     pruning::Pruner,
     utils::MixHasherBuilder,
@@ -12,7 +12,7 @@ pub trait TranspositionTable {
     fn insert(&mut self, value: Encode) -> bool;
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum ControlFlow {
     Halt,
     Skip,
