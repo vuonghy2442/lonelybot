@@ -82,11 +82,11 @@ impl Solitaire {
     }
 
     pub fn hidden_shuffle<R: RngCore>(&mut self, rng: &mut R) {
-        self.hidden.shuffle(rng)
+        self.hidden.shuffle(rng);
     }
 
     pub fn hidden_clear(&mut self) {
-        self.hidden.clear()
+        self.hidden.clear();
     }
 
     #[must_use]
@@ -498,26 +498,27 @@ impl Solitaire {
 
     #[must_use]
     pub fn compute_visible_piles(&self) -> [PileVec; N_PILES as usize] {
+        // TODO: should add more comprehensive test for this
         let non_top = self.visible_mask ^ self.top_mask;
         let mut king_suit = 0;
         core::array::from_fn(|pos| {
             #[allow(clippy::cast_possible_truncation)]
             let pos = pos as u8;
-            let Some(last_card) = self.hidden.peek(pos) else {
-                return PileVec::new();
-            };
 
-            let mut start_card = if self.hidden.len(pos) <= 1 && last_card.is_king() {
+            let mut start_card = *self.hidden.peek(pos).unwrap_or(&Card::new(KING_RANK, 0));
+
+            if self.hidden.len(pos) <= 1 && start_card.is_king() {
                 while king_suit < N_SUITS && non_top & Card::new(KING_RANK, king_suit).mask() == 0 {
                     king_suit += 1;
                 }
 
-                assert!(king_suit < N_SUITS);
+                if king_suit >= N_SUITS {
+                    return PileVec::default();
+                }
+
                 king_suit += 1;
-                Card::new(KING_RANK, king_suit - 1)
-            } else {
-                *last_card
-            };
+                start_card = Card::new(KING_RANK, king_suit - 1);
+            }
 
             let mut cards = PileVec::new();
             loop {
@@ -613,7 +614,7 @@ impl From<&StandardSolitaire> for Solitaire {
 
         Self {
             hidden: Hidden::from_piles(
-                &game.get_hidden(),
+                game.get_hidden(),
                 &core::array::from_fn(|i| game.get_piles()[i].first().copied()),
             ),
             final_stack: *game.get_stack(),

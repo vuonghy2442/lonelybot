@@ -2,9 +2,9 @@ use arrayvec::ArrayVec;
 
 use crate::card::{Card, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_DECK_CARDS, N_PILES, N_PILE_CARDS};
-use crate::state::Solitaire;
 use crate::shuffler::CardDeck;
 use crate::stack::Stack;
+use crate::state::Solitaire;
 
 pub type PileVec = ArrayVec<Card, { N_RANKS as usize }>;
 
@@ -28,6 +28,7 @@ impl StandardMove {
         to: Pos::Deck,
         card: Card::DEFAULT,
     };
+    #[must_use]
     pub const fn new(from: Pos, to: Pos, card: Card) -> Self {
         Self { from, to, card }
     }
