@@ -30,14 +30,17 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
         }
     }
 
+    #[must_use]
     pub const fn state(&self) -> &Solitaire {
         &self.state
     }
 
+    #[must_use]
     pub const fn pruner(&self) -> &P {
         &self.pruner
     }
 
+    #[must_use]
     pub fn is_valid(&self, m: Move) -> bool {
         MoveMask::from(m).filter(&self.valid_moves).is_empty()
     }
@@ -66,6 +69,7 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
         true
     }
 
+    #[must_use]
     pub fn encode(&self) -> Encode {
         self.state.encode()
     }
@@ -87,11 +91,13 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
         true
     }
 
+    #[must_use]
     pub fn list_moves_dom(&self) -> MoveVec {
         self.state
             .list_moves::<true>(&self.pruner.prune_moves(&self.state))
     }
 
+    #[must_use]
     pub fn list_moves(&self) -> MoveVec {
         self.state
             .list_moves::<false>(&self.pruner.prune_moves(&self.state))
