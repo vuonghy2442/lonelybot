@@ -46,14 +46,7 @@ impl Stack {
 
     #[must_use]
     pub const fn dominance(&self, card: &Card) -> bool {
-        // TODO: use dominance_mask instead
-        let stack = &self.0;
-        let rank = card.rank();
-        let suit = card.suit() as usize;
-        // allowing worrying back :)
-        rank <= stack[suit ^ 2] + 1
-            && rank <= stack[suit ^ 2 ^ 1] + 1
-            && rank <= stack[suit ^ 1] + 2
+        self.dominance_mask() & card.mask() > 0
     }
 
     #[must_use]

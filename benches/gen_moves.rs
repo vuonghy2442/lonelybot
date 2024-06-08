@@ -1,15 +1,17 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
-    card::Card,
     deck::{Deck, N_PILE_CARDS},
-    state::Solitaire,
+    engine::SolitaireEngine,
+    pruning::NoPruner,
     shuffler,
+    state::Solitaire,
 };
 use rand::prelude::*;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let seed = 51;
-    let mut game = Solitaire::new(&shuffler::default_shuffle(seed), 3);
+    let mut game: SolitaireEngine<NoPruner> =
+        Solitaire::new(&shuffler::default_shuffle(seed), 3).into();
 
     let sample_deck: Deck = Deck::new(
         shuffler::default_shuffle(seed)[N_PILE_CARDS as usize..]
@@ -21,24 +23,23 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut rng = StdRng::seed_from_u64(seed);
 
     for _ in 0..21 {
-        let moves = game.list_moves::<true>(black_box(&Default::default()));
+        let moves = game.list_moves_dom();
 
         if moves.is_empty() {
             break;
         }
-        game.do_move(moves.choose(&mut rng).unwrap());
+        game.do_move(*moves.choose(&mut rng).unwrap());
     }
 
-    let moves = game.list_moves::<false>(black_box(&Default::default()));
+    let moves = game.list_moves();
 
     let m = *moves.choose(&mut rng).unwrap();
 
-    let deck = game.get_deck_mask::<false>().0;
-    let card = Card::from_mask(&deck);
+    let card = game.state().get_deck().iter().next().unwrap();
 
     c.bench_function("gen_moves", |b| {
         b.iter(|| {
-            let moves = game.list_moves::<false>(black_box(&Default::default()));
+            let moves = game.list_moves();
 
             black_box(moves.len());
         })
@@ -46,33 +47,33 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("gen_moves_dom", |b| {
         b.iter(|| {
-            let moves = game.list_moves::<true>(black_box(&Default::default()));
+            let moves = game.list_moves_dom();
             black_box(moves.len());
         })
     });
 
     c.bench_function("find_card", |b| {
         b.iter(|| {
-            sample_deck.find_card(card).expect("okay");
+            sample_deck.find_card(*card).expect("okay");
         })
     });
 
-    c.bench_function("deck_mask", |b| {
-        b.iter(|| {
-            black_box(game.get_deck_mask::<true>());
-        })
-    });
+    // c.bench_function("deck_mask", |b| {
+    //     b.iter(|| {
+    //         black_box(game.get_deck_mask::<true>());
+    //     })
+    // });
 
     c.bench_function("pure_gen_moves", |b| {
         b.iter(|| {
-            black_box(game.gen_moves::<true>());
+            black_box(game.state().gen_moves::<true>());
         })
     });
 
     c.bench_function("move_undo", |b| {
         b.iter(|| {
-            let undo = game.do_move(&m);
-            game.undo_move(&m, &undo);
+            game.do_move(m);
+            game.undo_move();
         })
     });
 

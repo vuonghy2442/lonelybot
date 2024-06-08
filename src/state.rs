@@ -164,7 +164,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub(crate) fn gen_moves<const DOMINANCE: bool>(&self) -> MoveMask {
+    pub fn gen_moves<const DOMINANCE: bool>(&self) -> MoveMask {
         let vis = self.get_visible_mask();
         let top = self.get_top_mask();
 
