@@ -72,14 +72,17 @@ impl MoveMask {
         }
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
-        self == &Default::default()
+        self == &Self::default()
     }
 
+    #[must_use]
     pub fn filter(&self, remove: &Self) -> Self {
         self.binary_op(remove, |x, y| x & !y)
     }
 
+    #[must_use]
     pub fn combine(&self, other: &Self) -> Self {
         self.binary_op(other, |x, y| x | y)
     }

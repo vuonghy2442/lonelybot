@@ -146,7 +146,7 @@ impl Deck {
     }
 
     #[must_use]
-    pub(crate) const fn offset(&self, n_step: u8) -> u8 {
+    pub const fn offset(&self, n_step: u8) -> u8 {
         let next = self.get_offset();
         let len = self.len();
         let step = self.draw_step();
@@ -166,13 +166,13 @@ impl Deck {
     }
 
     #[must_use]
-    pub(crate) fn offset_once(&self) -> u8 {
+    pub const fn offset_once(&self) -> u8 {
         let next = self.get_offset();
         let len = self.len();
         if next >= len {
             0
         } else {
-            core::cmp::min(next + self.draw_step(), len)
+            min(next + self.draw_step(), len)
         }
     }
 

@@ -21,6 +21,10 @@ pub(crate) const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Card(u8);
 
+const fn suit_xor_color(v: u8) -> u8 {
+    v ^ ((v >> 1) & 2)
+}
+
 impl Card {
     pub const DEFAULT: Self = Self::new(0, 0);
 
@@ -36,50 +40,50 @@ impl Card {
     }
 
     #[must_use]
-    pub const fn rank(&self) -> u8 {
+    pub const fn rank(self) -> u8 {
         self.0 / N_SUITS
     }
 
     // actually this function check if it is king or fake card
     #[must_use]
-    pub const fn is_king(&self) -> bool {
+    pub const fn is_king(self) -> bool {
         self.rank() >= KING_RANK
     }
 
     #[must_use]
-    pub const fn suit(&self) -> u8 {
+    pub const fn suit(self) -> u8 {
         self.0 % N_SUITS
     }
 
     #[must_use]
-    pub(crate) const fn value(&self) -> u8 {
+    pub(crate) const fn value(self) -> u8 {
         self.0
     }
 
     #[must_use]
-    pub const fn split(&self) -> (u8, u8) {
+    pub const fn split(self) -> (u8, u8) {
         (self.rank(), self.suit())
     }
 
     #[must_use]
-    pub const fn swap_suit(&self) -> Self {
+    pub const fn swap_suit(self) -> Self {
         // keeping the color of the suit and switch to the other type
         // also keeping the rank
         Self(self.0 ^ 1)
     }
 
     #[must_use]
-    pub const fn swap_color(&self) -> Self {
+    pub const fn swap_color(self) -> Self {
         Self(self.0 ^ 2)
     }
 
     #[must_use]
-    pub const fn reduce_rank(&self) -> Self {
+    pub const fn reduce_rank(self) -> Self {
         Self(self.0.saturating_sub(N_SUITS))
     }
 
     #[must_use]
-    pub const fn go_after(self, other: Option<&Self>) -> bool {
+    pub const fn go_after(self, other: Option<Self>) -> bool {
         if let Some(other) = other {
             // let card_b = other.split();
             // card_a.0 == card_b.0 + 1 && (card_a.1 ^ card_b.1) & 2 == 2
@@ -90,16 +94,14 @@ impl Card {
     }
 
     #[must_use]
-    pub(crate) const fn mask(&self) -> u64 {
-        let v = self.value();
-        1u64 << (v ^ ((v >> 1) & 2))
+    pub(crate) const fn mask(self) -> u64 {
+        1u64 << suit_xor_color(self.value())
     }
 
     #[must_use]
     pub(crate) const fn from_mask(v: &u64) -> Self {
         #[allow(clippy::cast_possible_truncation)]
-        let v = v.trailing_zeros() as u8;
-        let v = v ^ ((v >> 1) & 2);
+        let v = suit_xor_color(v.trailing_zeros() as u8);
         Self::from_value(v)
     }
 }

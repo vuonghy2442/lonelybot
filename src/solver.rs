@@ -1,7 +1,7 @@
 use crate::{
-    state::{Encode, Solitaire},
     moves::Move,
     pruning::FullPruner,
+    state::{Encode, Solitaire},
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -12,7 +12,6 @@ use arrayvec::ArrayVec;
 const N_PLY_MAX: usize = 1024;
 
 pub type HistoryVec = ArrayVec<Move, N_PLY_MAX>;
-
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SearchResult {
@@ -51,12 +50,12 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'a
         ControlFlow::Ok
     }
 
-    fn on_do_move(&mut self, _: &Solitaire, m: &Move, _: Encode, _: &FullPruner) -> ControlFlow {
-        self.history.push(*m);
+    fn on_do_move(&mut self, _: &Solitaire, m: Move, _: Encode, _: &FullPruner) -> ControlFlow {
+        self.history.push(m);
         ControlFlow::Ok
     }
 
-    fn on_undo_move(&mut self, _: &Move, _: Encode, res: &ControlFlow) {
+    fn on_undo_move(&mut self, _: Move, _: Encode, res: &ControlFlow) {
         if *res == ControlFlow::Ok {
             self.history.pop();
         }

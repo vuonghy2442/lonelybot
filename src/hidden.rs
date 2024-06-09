@@ -109,7 +109,7 @@ impl Hidden {
         let mut first_layer_mask: u64 = 0;
 
         for i in 0..N_PILES {
-            first_layer_mask |= self.get(i).first().map_or(0, Card::mask);
+            first_layer_mask |= self.get(i).first().copied().map_or(0, Card::mask);
         }
         first_layer_mask
     }
@@ -153,7 +153,7 @@ impl Hidden {
     }
 
     #[must_use]
-    pub(crate) const fn find(&self, c: &Card) -> u8 {
+    pub(crate) const fn find(&self, c: Card) -> u8 {
         self.pile_map[c.value() as usize]
     }
 

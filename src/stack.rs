@@ -40,17 +40,17 @@ impl Stack {
     }
 
     #[must_use]
-    pub const fn stackable(&self, card: &Card) -> bool {
+    pub const fn stackable(&self, card: Card) -> bool {
         self.get(card.suit()) == card.rank()
     }
 
     #[must_use]
-    pub const fn dominance(&self, card: &Card) -> bool {
+    pub const fn dominance(&self, card: Card) -> bool {
         self.dominance_mask() & card.mask() > 0
     }
 
     #[must_use]
-    pub const fn dominance_stackable(&self, card: &Card) -> bool {
+    pub const fn dominance_stackable(&self, card: Card) -> bool {
         self.stackable(card) && self.dominance(card)
     }
 

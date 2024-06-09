@@ -1,10 +1,10 @@
 use rand::RngCore;
 
 use crate::{
-    state::{Encode, Solitaire},
     hop_solver::hop_solve_game,
     moves::Move,
     pruning::FullPruner,
+    state::{Encode, Solitaire},
     tracking::TerminateSignal,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -34,7 +34,7 @@ impl Callback for FindStatesCallback {
     fn on_do_move(
         &mut self,
         g: &Solitaire,
-        m: &Move,
+        m: Move,
         _: Encode,
         prune_info: &FullPruner,
     ) -> ControlFlow {
@@ -47,12 +47,12 @@ impl Callback for FindStatesCallback {
         if rev.is_none() && ok {
             ControlFlow::Skip
         } else {
-            self.his.push(*m);
+            self.his.push(m);
             ControlFlow::Ok
         }
     }
 
-    fn on_undo_move(&mut self, _: &Move, _: Encode, res: &ControlFlow) {
+    fn on_undo_move(&mut self, _: Move, _: Encode, res: &ControlFlow) {
         if *res == ControlFlow::Ok {
             self.his.pop();
         }
@@ -74,14 +74,14 @@ impl Callback for ListStatesCallback {
     fn on_do_move(
         &mut self,
         _: &Solitaire,
-        m: &Move,
+        m: Move,
         e: Encode,
         prune_info: &FullPruner,
     ) -> ControlFlow {
         let rev = prune_info.rev_move();
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
         if rev.is_none() {
-            self.res.push((e, Some(*m)));
+            self.res.push((e, Some(m)));
             ControlFlow::Skip
         } else {
             ControlFlow::Ok
@@ -154,7 +154,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         game.decode(state.0);
         let new_res = hop_solve_game(
             game,
-            &state.1.unwrap(),
+            state.1.unwrap(),
             rng,
             BATCH_SIZE,
             limit,

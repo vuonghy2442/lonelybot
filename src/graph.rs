@@ -1,8 +1,8 @@
 use crate::{
     card::Card,
-    state::{Encode, Solitaire},
     moves::{Move, MoveVec},
     pruning::FullPruner,
+    state::{Encode, Solitaire},
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -91,21 +91,15 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'
         ControlFlow::Ok
     }
 
-    fn on_do_move(
-        &mut self,
-        _: &Solitaire,
-        m: &Move,
-        e: Encode,
-        prune: &FullPruner,
-    ) -> ControlFlow {
-        self.last_move = *m;
+    fn on_do_move(&mut self, _: &Solitaire, m: Move, e: Encode, prune: &FullPruner) -> ControlFlow {
+        self.last_move = m;
         self.rev_move = prune.rev_move();
         self.prev_enc = e;
         self.depth += 1;
         ControlFlow::Ok
     }
 
-    fn on_undo_move(&mut self, _: &Move, _: Encode, _: &ControlFlow) {
+    fn on_undo_move(&mut self, _: Move, _: Encode, _: &ControlFlow) {
         self.depth -= 1;
         self.stats.finish_move(self.depth);
     }

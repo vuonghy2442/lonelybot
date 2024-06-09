@@ -1,10 +1,10 @@
 use rand::RngCore;
 
 use crate::{
-    state::{Encode, Solitaire},
     moves::Move,
     pruning::{FullPruner, Pruner},
     solver::SearchResult,
+    state::{Encode, Solitaire},
     tracking::TerminateSignal,
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
@@ -47,7 +47,7 @@ impl<'a, T: TerminateSignal> Callback for HOPSolverCallback<'a, T> {
 
 pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
     g: &Solitaire,
-    m: &Move,
+    m: Move,
     rng: &mut R,
     n_times: usize,
     limit: usize,
@@ -125,11 +125,11 @@ impl<'a, R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'a, R, T
     fn on_do_move(
         &mut self,
         g: &Solitaire,
-        m: &Move,
+        m: Move,
         _: Encode,
         prune_info: &FullPruner,
     ) -> ControlFlow {
-        self.his.push(*m);
+        self.his.push(m);
         let rev = prune_info.rev_move();
         // if rev.is_none() && (matches!(m, Move::Reveal(_)) || matches!(m, Move::PileStack(_))) {
         if rev.is_none() {
@@ -151,7 +151,7 @@ impl<'a, R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'a, R, T
         }
     }
 
-    fn on_undo_move(&mut self, _: &Move, _: Encode, _: &ControlFlow) {
+    fn on_undo_move(&mut self, _: Move, _: Encode, _: &ControlFlow) {
         self.his.pop();
     }
 }

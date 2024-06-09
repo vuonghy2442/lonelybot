@@ -11,7 +11,7 @@ use crate::{
 /// Never (unless buggy)
 pub(crate) fn convert_move(
     game: &StandardSolitaire,
-    m: &Move,
+    m: Move,
     move_seq: &mut StandardHistoryVec,
 ) -> MoveResult<()> {
     match m {
@@ -22,7 +22,7 @@ pub(crate) fn convert_move(
                 move_seq.push(StandardMove::DRAW_NEXT);
             }
 
-            move_seq.push(StandardMove::new(Pos::Deck, Pos::Pile(pile), *c));
+            move_seq.push(StandardMove::new(Pos::Deck, Pos::Pile(pile), c));
         }
         Move::DeckStack(c) => {
             if c.rank() != game.get_stack().get(c.suit()) {
@@ -34,14 +34,14 @@ pub(crate) fn convert_move(
                 move_seq.push(StandardMove::DRAW_NEXT);
             }
 
-            move_seq.push(StandardMove::new(Pos::Deck, Pos::Stack(c.suit()), *c));
+            move_seq.push(StandardMove::new(Pos::Deck, Pos::Stack(c.suit()), c));
         }
         Move::StackPile(c) => {
             if c.rank() + 1 != game.get_stack().get(c.suit()) {
                 return Err(InvalidMove {});
             }
             let pile = game.find_free_pile(c).ok_or(InvalidMove {})?;
-            move_seq.push(StandardMove::new(Pos::Stack(c.suit()), Pos::Pile(pile), *c));
+            move_seq.push(StandardMove::new(Pos::Stack(c.suit()), Pos::Pile(pile), c));
         }
         Move::Reveal(c) => {
             let pile_from = game.find_top_card(c).ok_or(InvalidMove {})?;
@@ -54,7 +54,7 @@ pub(crate) fn convert_move(
             move_seq.push(StandardMove::new(
                 Pos::Pile(pile_from),
                 Pos::Pile(pile_to),
-                *c,
+                c,
             ));
         }
         Move::PileStack(c) => {
@@ -64,7 +64,7 @@ pub(crate) fn convert_move(
             let (pile, pos) = game.find_card(c).ok_or(InvalidMove {})?;
             if pos + 1 < game.get_piles()[pile as usize].len() {
                 let move_card = game.get_piles()[pile as usize][pos + 1];
-                let pile_other = game.find_free_pile(&move_card).ok_or(InvalidMove {})?;
+                let pile_other = game.find_free_pile(move_card).ok_or(InvalidMove {})?;
 
                 if pile == pile_other {
                     return Err(InvalidMove {});
@@ -76,7 +76,7 @@ pub(crate) fn convert_move(
                     move_card,
                 ));
             }
-            move_seq.push(StandardMove::new(Pos::Pile(pile), Pos::Stack(c.suit()), *c));
+            move_seq.push(StandardMove::new(Pos::Pile(pile), Pos::Stack(c.suit()), c));
         }
     }
     Ok(())
@@ -93,7 +93,7 @@ pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> MoveResult<Sta
     let mut move_seq = StandardHistoryVec::new();
     for mm in m {
         let start = move_seq.len();
-        convert_move(game, mm, &mut move_seq)?;
+        convert_move(game, *mm, &mut move_seq)?;
 
         for m in &move_seq[start..] {
             let valid_move = game.do_move(m).is_ok();
@@ -106,7 +106,7 @@ pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> MoveResult<Sta
 #[cfg(test)]
 mod tests {
 
-    use crate::{state::Solitaire, shuffler::default_shuffle, solver::solve};
+    use crate::{shuffler::default_shuffle, solver::solve, state::Solitaire};
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
@@ -136,12 +136,12 @@ mod tests {
         let mut game_x: Solitaire = From::from(&game);
         for pos in 0..moves.len() {
             his.clear();
-            convert_move(&mut game, &moves[pos], &mut his).unwrap();
+            convert_move(&mut game, moves[pos], &mut his).unwrap();
             for m in &his {
                 assert!(game.do_move(m).is_ok());
             }
 
-            game_x.do_move(&moves[pos]);
+            game_x.do_move(moves[pos]);
             let mut game_c: Solitaire = From::from(&game);
             assert!(game_c.is_valid());
             assert!(game_x.equivalent_to(&game_c));
@@ -150,7 +150,7 @@ mod tests {
 
             // let res_c = solve_game(&mut game_c);
             // assert_eq!(res_c.0, res.0);
-            for m in moves[pos + 1..].iter() {
+            for &m in moves[pos + 1..].iter() {
                 game_c.do_move(m);
             }
             convert_moves(&mut game_cc, &moves[pos + 1..]).unwrap();

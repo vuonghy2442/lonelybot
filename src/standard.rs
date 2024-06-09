@@ -113,10 +113,10 @@ impl StandardSolitaire {
     }
 
     #[must_use]
-    pub fn find_deck_card(&self, card: &Card) -> Option<u8> {
+    pub fn find_deck_card(&self, card: Card) -> Option<u8> {
         for i in 0..N_DECK_CARDS {
             let offset = self.deck.offset(i);
-            if offset > 0 && self.deck.peek(offset - 1) == card {
+            if offset > 0 && *self.deck.peek(offset - 1) == card {
                 return Some(i);
             }
         }
@@ -124,32 +124,32 @@ impl StandardSolitaire {
     }
 
     #[must_use]
-    pub fn find_free_pile(&self, card: &Card) -> Option<u8> {
+    pub fn find_free_pile(&self, card: Card) -> Option<u8> {
         #[allow(clippy::cast_possible_truncation)]
         self.piles
             .iter()
-            .position(|p| card.go_after(p.last()))
+            .position(|p| card.go_after(p.last().copied()))
             .map(|pos| pos as u8)
     }
 
     #[must_use]
-    pub fn find_top_card(&self, card: &Card) -> Option<u8> {
+    pub fn find_top_card(&self, card: Card) -> Option<u8> {
         #[allow(clippy::cast_possible_truncation)]
         self.piles
             .iter()
-            .position(|p| p.first() == Some(card))
+            .position(|p| p.first() == Some(&card))
             .map(|pos| pos as u8)
     }
 
     #[must_use]
-    pub fn find_card_pile(&self, pos: u8, card: &Card) -> Option<usize> {
+    pub fn find_card_pile(&self, pos: u8, card: Card) -> Option<usize> {
         self.piles[pos as usize]
             .iter()
-            .position(|pile_card| card == pile_card)
+            .position(|pile_card| card == *pile_card)
     }
 
     #[must_use]
-    pub fn find_card(&self, card: &Card) -> Option<(u8, usize)> {
+    pub fn find_card(&self, card: Card) -> Option<(u8, usize)> {
         for i in 0..N_PILES {
             let pos = self.find_card_pile(i, card).map(|j| (i, j));
             if pos.is_some() {
@@ -168,7 +168,7 @@ impl StandardSolitaire {
             (Pos::Deck, Pos::Pile(pos), card) => {
                 pos < N_PILES
                     && self.deck.peek_current() == Some(&card)
-                    && card.go_after(self.piles[pos as usize].last())
+                    && card.go_after(self.piles[pos as usize].last().copied())
             }
             (Pos::Deck, Pos::Stack(suit), card) => {
                 suit < N_SUITS
@@ -180,8 +180,8 @@ impl StandardSolitaire {
                 from != to
                     && from < N_PILES
                     && to < N_PILES
-                    && card.go_after(self.piles[to as usize].last())
-                    && self.find_card_pile(from, &card).is_some()
+                    && card.go_after(self.piles[to as usize].last().copied())
+                    && self.find_card_pile(from, card).is_some()
             }
             (Pos::Pile(from), Pos::Stack(suit), card) => {
                 from < N_PILES
@@ -196,7 +196,7 @@ impl StandardSolitaire {
                     && to < N_PILES
                     && card.suit() == suit
                     && card.rank() + 1 == self.final_stack.get(suit)
-                    && card.go_after(self.piles[to as usize].last())
+                    && card.go_after(self.piles[to as usize].last().copied())
             }
         }
     }
@@ -231,7 +231,7 @@ impl StandardSolitaire {
                 self.final_stack.push(suit);
             }
             (Pos::Pile(from), Pos::Pile(to), card) => {
-                let pos = self.find_card_pile(from, &card).unwrap();
+                let pos = self.find_card_pile(from, card).unwrap();
                 let (from, to) = (usize::from(from), usize::from(to));
                 let tmp: PileVec = self.piles[from][pos..].iter().copied().collect();
                 self.piles[to].extend(tmp);

@@ -1,9 +1,9 @@
 use hashbrown::HashSet;
 
 use crate::{
-    state::{Encode, Solitaire},
     moves::{Move, MoveVec},
     pruning::Pruner,
+    state::{Encode, Solitaire},
     utils::MixHasherBuilder,
 };
 
@@ -39,14 +39,14 @@ pub trait Callback {
     fn on_do_move(
         &mut self,
         _game: &Solitaire,
-        _m: &Move,
+        _m: Move,
         _encode: Encode,
         _pruner: &Self::Pruner,
     ) -> ControlFlow {
         ControlFlow::Ok
     }
 
-    fn on_undo_move(&mut self, _m: &Move, _encode: Encode, _res: &ControlFlow) {}
+    fn on_undo_move(&mut self, _m: Move, _encode: Encode, _res: &ControlFlow) {}
 }
 
 pub type TpTable = HashSet<Encode, MixHasherBuilder>;
@@ -90,19 +90,19 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
     }
 
     for m in move_list {
-        let new_prune_info = C::Pruner::new(game, prune_info, &m);
-        match callback.on_do_move(game, &m, encode, &new_prune_info) {
+        let new_prune_info = C::Pruner::new(game, prune_info, m);
+        match callback.on_do_move(game, m, encode, &new_prune_info) {
             ControlFlow::Halt => return ControlFlow::Halt,
             ControlFlow::Skip => continue,
             ControlFlow::Ok => {}
         }
 
-        let undo = game.do_move(&m);
+        let undo = game.do_move(m);
 
         let res = traverse(game, &new_prune_info, tp, callback);
 
-        game.undo_move(&m, &undo);
-        callback.on_undo_move(&m, encode, &res);
+        game.undo_move(m, undo);
+        callback.on_undo_move(m, encode, &res);
 
         if res == ControlFlow::Halt {
             return ControlFlow::Halt;
