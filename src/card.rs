@@ -99,9 +99,13 @@ impl Card {
     }
 
     #[must_use]
-    pub(crate) const fn from_mask(v: &u64) -> Self {
-        #[allow(clippy::cast_possible_truncation)]
-        let v = suit_xor_color(v.trailing_zeros() as u8);
-        Self::from_value(v)
+    pub(crate) const fn from_mask(v: &u64) -> Option<Self> {
+        let v = v.trailing_zeros();
+        if v < N_CARDS as u32 {
+            #[allow(clippy::cast_possible_truncation)]
+            Some(Self::from_value(suit_xor_color(v as u8)))
+        } else {
+            None
+        }
     }
 }

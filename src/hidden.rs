@@ -226,7 +226,7 @@ impl Hidden {
             if let Some((_, pile_map)) = self.get_mut(pos).split_last_mut() {
                 for h in pile_map {
                     debug_assert_ne!(hidden_cards, 0);
-                    *h = Card::from_mask(&hidden_cards);
+                    *h = Card::from_mask(&hidden_cards).unwrap();
                     hidden_cards &= hidden_cards.wrapping_sub(1);
                 }
             }

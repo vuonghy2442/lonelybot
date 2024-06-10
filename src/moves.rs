@@ -52,8 +52,7 @@ impl From<Move> for MoveMask {
 }
 
 fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> ControlFlow<T>) -> ControlFlow<T> {
-    while m > 0 {
-        let c = Card::from_mask(&m);
+    while let Some(c) = Card::from_mask(&m) {
         func(c)?;
         m &= m.wrapping_sub(1);
     }

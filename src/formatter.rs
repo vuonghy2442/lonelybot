@@ -11,11 +11,7 @@ pub const NUMBERS: [&str; N_RANKS as usize] = [
 impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (u, v) = self.split();
-        if u < N_RANKS {
-            write!(f, "{}{}", NUMBERS[u as usize], SYMBOLS[v as usize])
-        } else {
-            write!(f, "  ")
-        }
+        write!(f, "{}{}", NUMBERS[u as usize], SYMBOLS[v as usize])
     }
 }
 
