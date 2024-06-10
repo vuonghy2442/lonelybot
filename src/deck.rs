@@ -14,10 +14,9 @@ pub const N_DECK_CARDS: u8 = N_CARDS - N_PILE_CARDS;
 
 #[derive(Debug, Clone)]
 pub struct Deck {
-    deck: [Card; N_DECK_CARDS as usize],
+    deck: ArrayVec<Card, { N_DECK_CARDS as usize }>,
     draw_step: NonZeroU8,
-    draw_next: u8, // start position of next pile
-    draw_cur: u8,  // size of the previous pile
+    draw_cur: u8, // size of the previous pile
     mask: u32,
     map: [u8; N_CARDS as usize],
 }
@@ -39,9 +38,8 @@ impl Deck {
         }
 
         Self {
-            deck: *deck,
+            deck: ArrayVec::from(*deck),
             draw_step,
-            draw_next: draw_step.get(),
             draw_cur: draw_step.get(),
             mask: 0,
             map,
@@ -55,22 +53,18 @@ impl Deck {
 
     #[must_use]
     pub const fn len(&self) -> u8 {
-        N_DECK_CARDS - self.draw_next + self.draw_cur
+        self.deck.len() as u8
     }
 
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        self.draw_cur == 0 && self.draw_next == N_DECK_CARDS
+        self.deck.is_empty()
     }
 
     #[must_use]
     pub fn find_card(&self, card: Card) -> Option<u8> {
         #[allow(clippy::cast_possible_truncation)]
-        self.deck[..self.draw_cur as usize]
-            .iter()
-            .chain(self.deck[self.draw_next as usize..].iter())
-            .position(|x| x == &card)
-            .map(|x| x as u8)
+        self.deck.iter().position(|x| x == &card).map(|x| x as u8)
     }
 
     #[must_use]
@@ -80,12 +74,12 @@ impl Deck {
 
     #[must_use]
     pub fn get_deck(&self) -> &[Card] {
-        &self.deck[self.draw_next as usize..]
+        &self.deck[self.draw_cur as usize..]
     }
 
     #[must_use]
-    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &Card> {
-        self.get_waste().iter().chain(self.get_deck().iter())
+    pub fn iter(&self) -> &[Card] {
+        &self.deck[..]
     }
 
     #[must_use]
@@ -116,12 +110,13 @@ impl Deck {
         self.get_deck().iter().enumerate().map(|x| {
             #[allow(clippy::cast_possible_truncation)]
             let pos = x.0 as u8;
+            let true_pos = self.draw_cur + pos;
             (
-                self.draw_cur + pos,
+                true_pos,
                 x.1,
-                if pos + 1 == N_DECK_CARDS - self.draw_next || (pos + 1) % self.draw_step == 0 {
+                if true_pos + 1 == self.len() || (pos + 1) % self.draw_step == 0 {
                     Drawable::Current
-                } else if (self.draw_cur + pos + 1) % self.draw_step == 0 {
+                } else if (true_pos + 1) % self.draw_step == 0 {
                     Drawable::Next
                 } else {
                     Drawable::None
@@ -131,12 +126,8 @@ impl Deck {
     }
 
     #[must_use]
-    pub const fn peek(&self, pos: u8) -> &Card {
-        if pos < self.draw_cur {
-            &self.deck[pos as usize]
-        } else {
-            &self.deck[(pos - self.draw_cur + self.draw_next) as usize]
-        }
+    pub fn peek(&self, pos: u8) -> &Card {
+        &self.deck[pos as usize]
     }
 
     #[must_use]
@@ -180,24 +171,25 @@ impl Deck {
         filter: bool,
         mut func: F,
     ) -> ControlFlow<T> {
+        let Some(last) = self.deck.last() else {
+            return ControlFlow::Continue(());
+        };
+
         if self.draw_cur > 0 {
+            // the current card
             func(self.draw_cur - 1, &self.deck[self.draw_cur as usize - 1])?;
         }
 
-        let gap = self.draw_next - self.draw_cur;
-        {
-            let mut i = self.draw_next + self.draw_step.get() - 1;
-            while i < N_DECK_CARDS - 1 {
-                func(i - gap, &self.deck[i as usize])?;
-                i += self.draw_step.get();
-            }
+        if self.draw_cur < self.len() {
+            func(self.len() - 1, last)?;
         }
 
-        if self.draw_next < N_DECK_CARDS {
-            func(
-                N_DECK_CARDS - 1 - gap,
-                &self.deck[N_DECK_CARDS as usize - 1],
-            )?;
+        {
+            let mut i = self.draw_cur + self.draw_step.get() - 1;
+            while i < self.len() - 1 {
+                func(i, &self.deck[i as usize])?;
+                i += self.draw_step.get();
+            }
         }
 
         if !filter {
@@ -209,10 +201,9 @@ impl Deck {
 
             let offset = self.draw_cur % self.draw_step;
             if offset != 0 {
-                let mut i = self.draw_next + self.draw_step.get() - 1 - offset;
-
-                while i < N_DECK_CARDS - 1 {
-                    func(i - gap, &self.deck[i as usize])?;
+                let mut i = self.draw_cur + self.draw_step.get() - offset - 1;
+                while i < self.len() - 1 {
+                    func(i, &self.deck[i as usize])?;
                     i += self.draw_step.get();
                 }
             }
@@ -221,66 +212,30 @@ impl Deck {
     }
 
     #[must_use]
-    pub const fn peek_last(&self) -> Option<&Card> {
-        if self.draw_next < N_DECK_CARDS {
-            Some(&self.deck[N_DECK_CARDS as usize - 1])
-        } else if self.draw_cur > 0 {
-            Some(&self.deck[self.draw_cur as usize - 1])
-        } else {
-            None
-        }
+    pub fn peek_last(&self) -> Option<&Card> {
+        self.deck.last()
     }
 
     pub(crate) fn set_offset(&mut self, id: u8) {
-        // after this the deck will have structure
-        // [.... id-1 <empty> id....]
-        //   draw_cur ^       ^ draw_next
-
-        let step = if id < self.draw_cur {
-            let step = self.draw_cur - id;
-            // moving stuff
-            self.deck.copy_within(
-                (self.draw_cur - step) as usize..(self.draw_cur as usize),
-                (self.draw_next - step) as usize,
-            );
-            step.wrapping_neg()
-        } else {
-            let step = id - self.draw_cur;
-
-            self.deck.copy_within(
-                (self.draw_next) as usize..(self.draw_next + step) as usize,
-                self.draw_cur as usize,
-            );
-            step
-        };
-
-        self.draw_cur = self.draw_cur.wrapping_add(step);
-        self.draw_next = self.draw_next.wrapping_add(step);
+        self.draw_cur = id;
     }
 
     fn pop_next(&mut self) -> Card {
-        let card = self.deck[self.draw_next as usize];
+        self.draw_cur -= 1;
+        let card = self.deck.remove(self.draw_cur as usize);
         self.mask ^= 1 << self.map[card.value() as usize];
-        self.draw_next += 1;
         card
     }
 
     pub(crate) fn push(&mut self, card: Card) {
         // or you can undo
         self.mask ^= 1 << self.map[card.value() as usize];
-        self.deck[self.draw_cur as usize] = card;
+        self.deck.insert(self.draw_cur as usize, card);
         self.draw_cur += 1;
-
-        //
-        // self.draw_next -= 1;
-        // self.deck[self.draw_next as usize] = c;
     }
 
     pub(crate) fn draw(&mut self, id: u8) -> Card {
-        debug_assert!(
-            self.draw_cur <= self.draw_next && (id < N_DECK_CARDS - self.draw_next + self.draw_cur)
-        );
-        self.set_offset(id);
+        self.set_offset(id + 1);
         self.pop_next()
     }
 
@@ -292,15 +247,13 @@ impl Deck {
     #[must_use]
     pub const fn is_pure(&self) -> bool {
         // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
-        self.draw_cur % self.draw_step.get() == 0 || self.draw_next == N_DECK_CARDS
+        self.draw_cur % self.draw_step.get() == 0 || self.draw_cur == self.len()
     }
 
     #[must_use]
     pub(crate) const fn normalized_offset(&self) -> u8 {
         // this is the standardized version
-        if self.draw_cur % self.draw_step.get() == 0 {
-            // matched so offset is free
-            debug_assert!(self.len() <= N_DECK_CARDS);
+        if self.is_pure() {
             self.len()
         } else {
             self.draw_cur
@@ -335,8 +288,7 @@ impl Deck {
             pos += 1;
         }
 
-        self.draw_cur = pos;
-        self.draw_next = N_DECK_CARDS;
+        self.deck.truncate(pos as usize);
 
         self.set_offset(offset);
         self.mask = mask;
@@ -367,8 +319,8 @@ impl Deck {
     }
 
     #[must_use]
-    pub const fn peek_current(&self) -> Option<&Card> {
-        if self.draw_next == 0 {
+    pub fn peek_current(&self) -> Option<&Card> {
+        if self.draw_cur == 0 {
             None
         } else {
             Some(&self.deck[self.draw_cur as usize - 1])
@@ -380,7 +332,7 @@ impl Deck {
         if offset == 0 {
             None
         } else {
-            Some(self.draw(offset - 1))
+            Some(self.draw(offset))
         }
     }
 }
@@ -426,7 +378,7 @@ mod tests {
                     });
                 }
 
-                if deck.get_offset() < deck.len() && rng.gen_bool(0.5) {
+                if deck.get_offset() > 0 && rng.gen_bool(0.5) {
                     deck.pop_next();
                 }
             }

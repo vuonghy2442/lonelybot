@@ -327,10 +327,10 @@ impl Solitaire {
         self.final_stack.push(card.suit());
 
         if DECK {
-            let offset = self.deck.get_offset();
             let pos = self.deck.find_card(card).unwrap();
             self.deck.draw(pos);
-            offset
+            debug_assert_eq!(pos, self.deck.get_offset());
+            self.deck.get_offset()
         } else {
             let hidden = (self.top_mask & mask) != 0;
             self.visible_mask ^= mask;
@@ -346,8 +346,8 @@ impl Solitaire {
         self.final_stack.pop(card.suit());
 
         if DECK {
-            self.deck.push(card);
             self.deck.set_offset(info);
+            self.deck.push(card);
         } else {
             self.visible_mask |= mask;
             if info > 0 {
@@ -360,10 +360,10 @@ impl Solitaire {
         let mask = card.mask();
         self.visible_mask |= mask;
         if DECK {
-            let offset = self.deck.get_offset();
             let pos = self.deck.find_card(card).unwrap();
             self.deck.draw(pos);
-            offset
+            debug_assert_eq!(pos, self.deck.get_offset());
+            self.deck.get_offset()
         } else {
             self.final_stack.pop(card.suit());
             Default::default()
@@ -374,8 +374,8 @@ impl Solitaire {
         self.visible_mask &= !card.mask();
 
         if DECK {
-            self.deck.push(card);
             self.deck.set_offset(info);
+            self.deck.push(card);
         } else {
             self.final_stack.push(card.suit());
         }
