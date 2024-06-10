@@ -321,8 +321,8 @@ impl Solitaire {
     ///  
     /// Panic when the card mask is not a card in the deck
     /// It doesn't check if the card is drawable
-    fn make_stack<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
-        let card = Card::from_mask(mask);
+    fn make_stack<const DECK: bool>(&mut self, card: Card) -> UndoInfo {
+        let mask = card.mask();
         self.final_stack.push(card.suit());
 
         if DECK {
@@ -334,14 +334,14 @@ impl Solitaire {
             let hidden = (self.top_mask & mask) != 0;
             self.visible_mask ^= mask;
             if hidden {
-                self.make_reveal(mask);
+                self.make_reveal(card);
             }
             u8::from(hidden)
         }
     }
 
-    fn unmake_stack<const DECK: bool>(&mut self, mask: &u64, info: UndoInfo) {
-        let card = Card::from_mask(mask);
+    fn unmake_stack<const DECK: bool>(&mut self, card: Card, info: UndoInfo) {
+        let mask = card.mask();
         self.final_stack.pop(card.suit());
 
         if DECK {
@@ -350,13 +350,13 @@ impl Solitaire {
         } else {
             self.visible_mask |= mask;
             if info > 0 {
-                self.unmake_reveal(mask, Default::default());
+                self.unmake_reveal(card, Default::default());
             }
         }
     }
 
-    fn make_pile<const DECK: bool>(&mut self, mask: &u64) -> UndoInfo {
-        let card = Card::from_mask(mask);
+    fn make_pile<const DECK: bool>(&mut self, card: Card) -> UndoInfo {
+        let mask = card.mask();
         self.visible_mask |= mask;
         if DECK {
             let offset = self.deck.get_offset();
@@ -369,10 +369,8 @@ impl Solitaire {
         }
     }
 
-    fn unmake_pile<const DECK: bool>(&mut self, mask: &u64, info: UndoInfo) {
-        let card = Card::from_mask(mask);
-
-        self.visible_mask &= !mask;
+    fn unmake_pile<const DECK: bool>(&mut self, card: Card, info: UndoInfo) {
+        self.visible_mask &= !card.mask();
 
         if DECK {
             self.deck.push(card);
@@ -382,10 +380,9 @@ impl Solitaire {
         }
     }
 
-    fn make_reveal(&mut self, m: &u64) -> UndoInfo {
-        let card = Card::from_mask(m);
+    fn make_reveal(&mut self, card: Card) -> UndoInfo {
         let pos = self.hidden.find(card);
-        self.top_mask &= !m;
+        self.top_mask &= !card.mask();
 
         let new_card = self.hidden.pop(pos);
         if let Some(&new_card) = new_card {
@@ -399,11 +396,10 @@ impl Solitaire {
         Default::default()
     }
 
-    fn unmake_reveal(&mut self, m: &u64, _info: UndoInfo) {
-        let card = Card::from_mask(m);
+    fn unmake_reveal(&mut self, card: Card, _info: UndoInfo) {
         let pos = self.hidden.find(card);
 
-        self.top_mask |= m;
+        self.top_mask |= card.mask();
 
         if let Some(new_card) = self.hidden.peek(pos) {
             let unrevealed = !new_card.mask();
@@ -419,22 +415,22 @@ impl Solitaire {
     /// But it may do the move even when it's invalid so be careful for using this function
     pub(crate) fn do_move(&mut self, m: Move) -> UndoInfo {
         match m {
-            Move::DeckStack(c) => self.make_stack::<true>(&c.mask()),
-            Move::PileStack(c) => self.make_stack::<false>(&c.mask()),
-            Move::DeckPile(c) => self.make_pile::<true>(&c.mask()),
-            Move::StackPile(c) => self.make_pile::<false>(&c.mask()),
-            Move::Reveal(c) => self.make_reveal(&c.mask()),
+            Move::DeckStack(c) => self.make_stack::<true>(c),
+            Move::PileStack(c) => self.make_stack::<false>(c),
+            Move::DeckPile(c) => self.make_pile::<true>(c),
+            Move::StackPile(c) => self.make_pile::<false>(c),
+            Move::Reveal(c) => self.make_reveal(c),
         }
     }
 
     /// It may leave the game in an invalid state with illegal move or wrong undo info
     pub(crate) fn undo_move(&mut self, m: Move, undo: UndoInfo) {
         match m {
-            Move::DeckStack(c) => self.unmake_stack::<true>(&c.mask(), undo),
-            Move::PileStack(c) => self.unmake_stack::<false>(&c.mask(), undo),
-            Move::DeckPile(c) => self.unmake_pile::<true>(&c.mask(), undo),
-            Move::StackPile(c) => self.unmake_pile::<false>(&c.mask(), undo),
-            Move::Reveal(c) => self.unmake_reveal(&c.mask(), undo),
+            Move::DeckStack(c) => self.unmake_stack::<true>(c, undo),
+            Move::PileStack(c) => self.unmake_stack::<false>(c, undo),
+            Move::DeckPile(c) => self.unmake_pile::<true>(c, undo),
+            Move::StackPile(c) => self.unmake_pile::<false>(c, undo),
+            Move::Reveal(c) => self.unmake_reveal(c, undo),
         }
     }
 
