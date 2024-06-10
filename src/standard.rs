@@ -1,3 +1,5 @@
+use core::num::NonZeroU8;
+
 use arrayvec::ArrayVec;
 
 use crate::card::{Card, N_RANKS, N_SUITS};
@@ -62,7 +64,7 @@ impl StandardSolitaire {
     ///
     /// This function should never panic. If it does then the implementation is buggy
     #[must_use]
-    pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
+    pub fn new(cards: &CardDeck, draw_step: NonZeroU8) -> Self {
         let mut hidden_piles: [HiddenVec; N_PILES as usize] = Default::default();
 
         for i in 0..N_PILES {

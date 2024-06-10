@@ -106,19 +106,22 @@ pub fn convert_moves(game: &mut StandardSolitaire, m: &[Move]) -> MoveResult<Sta
 #[cfg(test)]
 mod tests {
 
+    use core::num::NonZeroU8;
+
     use crate::{shuffler::default_shuffle, solver::solve, state::Solitaire};
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
     fn do_test_convert(seed: u64) {
-        const DRAW_STEP: u8 = 3;
+        let draw_step = NonZeroU8::new(3).unwrap();
+
         let cards = default_shuffle(seed);
-        let mut game = StandardSolitaire::new(&cards, DRAW_STEP);
+        let mut game = StandardSolitaire::new(&cards, draw_step);
 
         let res = {
             let mut game_1: Solitaire = From::from(&game);
-            let mut game_2: Solitaire = Solitaire::new(&cards, DRAW_STEP);
+            let mut game_2: Solitaire = Solitaire::new(&cards, draw_step);
 
             let res1 = solve(&mut game_1);
             let res2 = solve(&mut game_2);

@@ -1,8 +1,10 @@
+use std::num::NonZeroU8;
+
 use lonelybot::{
-    state::{Encode, Solitaire},
     moves::MoveVec,
     pruning::FullPruner,
     shuffler::default_shuffle,
+    state::{Encode, Solitaire},
     traverse::{traverse, Callback, ControlFlow, TpTable},
 };
 
@@ -42,7 +44,7 @@ fn test_no_cycle() {
 
         let mut callback = CycleCallback::default();
 
-        let mut g = Solitaire::new(&deck, 3);
+        let mut g = Solitaire::new(&deck, NonZeroU8::new(3).unwrap());
         let res = traverse(&mut g, &Default::default(), &mut tp, &mut callback);
         assert_eq!(res, ControlFlow::Ok);
     }

@@ -17,6 +17,7 @@ use rand::prelude::*;
 use solvitaire::Solvitaire;
 use std::collections::HashSet;
 use std::fs::File;
+use std::num::NonZeroU8;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -27,6 +28,11 @@ use lonelybot::solver::SearchResult;
 use lonelybot::standard::{Pos, StandardHistoryVec, StandardSolitaire};
 
 use crate::tui::print_game;
+
+const DRAW_STEP: NonZeroU8 = match NonZeroU8::new(3) {
+    Some(v) => v,
+    None => [][0],
+};
 
 #[derive(ValueEnum, Clone, Copy)]
 enum SeedType {
@@ -115,7 +121,7 @@ fn benchmark(seed: &Seed) {
     let now = Instant::now();
     for i in 0..100 {
         let mut game: SolitaireEngine<FullPruner> =
-            Solitaire::new(&shuffle(&seed.increase(i)), 3).into();
+            Solitaire::new(&shuffle(&seed.increase(i)), DRAW_STEP).into();
         for _ in 0..100 {
             let moves = game.state().list_moves::<true>(&Default::default());
 
@@ -140,7 +146,7 @@ fn do_random(seed: &Seed) {
     let mut total_win = 0;
     for i in 0..TOTAL_GAME {
         let mut game: SolitaireEngine<CyclePruner> =
-            Solitaire::new(&shuffle(&seed.increase(i)), 3).into();
+            Solitaire::new(&shuffle(&seed.increase(i)), DRAW_STEP).into();
 
         loop {
             if game.state().is_win() {
@@ -165,7 +171,7 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
     const N_TIMES: usize = 3000;
     const LIMIT: usize = 1000;
 
-    let mut game: SolitaireEngine<NoPruner> = Solitaire::new(&shuffle(seed), 3).into();
+    let mut game: SolitaireEngine<NoPruner> = Solitaire::new(&shuffle(seed), DRAW_STEP).into();
     let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
 
     while !game.state().is_win() {
@@ -220,7 +226,7 @@ fn print_moves_minimal_klondike(moves: &StandardHistoryVec) {
 fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = shuffle(seed);
 
-    let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
+    let g: Solitaire = Solitaire::new(&shuffled_deck, DRAW_STEP);
     let mut g_standard = StandardSolitaire::from(&g);
 
     let now = Instant::now();
@@ -255,7 +261,7 @@ fn test_solve(seed: &Seed, terminated: &Arc<AtomicBool>) {
 fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = shuffle(seed);
 
-    let g: Solitaire = Solitaire::new(&shuffled_deck, 3);
+    let g: Solitaire = Solitaire::new(&shuffled_deck, DRAW_STEP);
 
     let now = Instant::now();
     let res = solver::run_graph(g, true, terminated);
@@ -282,7 +288,7 @@ fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
 fn game_loop(seed: &Seed) {
     let shuffled_deck = shuffle(seed);
 
-    let mut game: SolitaireEngine<FullPruner> = Solitaire::new(&shuffled_deck, 3).into();
+    let mut game: SolitaireEngine<FullPruner> = Solitaire::new(&shuffled_deck, DRAW_STEP).into();
 
     let mut line: String = String::new();
 
@@ -335,7 +341,7 @@ fn solve_loop(org_seed: &Seed, terminated: &Arc<AtomicBool>) {
     for step in 0.. {
         let seed = org_seed.increase(step);
         let shuffled_deck = shuffle(&seed);
-        let g = Solitaire::new(&shuffled_deck, 3);
+        let g = Solitaire::new(&shuffled_deck, DRAW_STEP);
 
         let now = Instant::now();
         let (res, stats, _) = solver::run_solve(g, false, terminated);
@@ -460,7 +466,7 @@ fn main() {
     match &args {
         Commands::Print { seed } => {
             let shuffled_deck = shuffle(&seed.into());
-            let g = StandardSolitaire::new(&shuffled_deck, 3);
+            let g = StandardSolitaire::new(&shuffled_deck, DRAW_STEP);
 
             println!("{}", Solvitaire(g));
         }

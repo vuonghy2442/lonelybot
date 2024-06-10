@@ -1,3 +1,5 @@
+use std::num::NonZeroU8;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
     deck::{Deck, N_PILE_CARDS},
@@ -10,14 +12,16 @@ use rand::prelude::*;
 
 fn criterion_benchmark(c: &mut Criterion) {
     let seed = 51;
+    let draw_step = NonZeroU8::new(3).unwrap();
+
     let mut game: SolitaireEngine<NoPruner> =
-        Solitaire::new(&shuffler::default_shuffle(seed), 3).into();
+        Solitaire::new(&shuffler::default_shuffle(seed), draw_step).into();
 
     let sample_deck: Deck = Deck::new(
         shuffler::default_shuffle(seed)[N_PILE_CARDS as usize..]
             .try_into()
             .unwrap(),
-        3,
+        draw_step,
     );
 
     let mut rng = StdRng::seed_from_u64(seed);

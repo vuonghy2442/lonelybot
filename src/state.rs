@@ -1,3 +1,4 @@
+use core::num::NonZeroU8;
 use core::ops::ControlFlow;
 
 use rand::RngCore;
@@ -39,7 +40,7 @@ impl Solitaire {
     /// # Panics
     ///
     /// Never (unless buggy)
-    pub fn new(cards: &CardDeck, draw_step: u8) -> Self {
+    pub fn new(cards: &CardDeck, draw_step: NonZeroU8) -> Self {
         let hidden_piles: [Card; N_PILE_CARDS as usize] =
             cards[0..N_PILE_CARDS as usize].try_into().unwrap();
 
@@ -638,7 +639,7 @@ mod tests {
 
         let mut test = ArrayVec::<(u8, Card), { N_DECK_CARDS as usize }>::new();
         for i in 0..100 {
-            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
+            let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
             for _ in 0..100 {
                 let mut stack_mask: u64 = 0;
                 // fill in final stack
@@ -680,7 +681,7 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(14);
 
         for i in 0..1000 {
-            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
+            let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
             for _ in 0..100 {
                 let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {
@@ -727,7 +728,7 @@ mod tests {
 
         for i in 0..1000 {
             const N_STEP: usize = 100;
-            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
+            let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
             let mut history = ArrayVec::<(Move, UndoInfo), N_STEP>::new();
             let mut enc = ArrayVec::<Encode, N_STEP>::new();
             let mut states = ArrayVec::<Solitaire, N_STEP>::new();
@@ -770,7 +771,7 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(14);
 
         for i in 0..1000 {
-            let mut game = Solitaire::new(&default_shuffle(12 + i), 3);
+            let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
             for _ in 0..100 {
                 let moves = game.list_moves::<false>(&Default::default());
                 if moves.is_empty() {

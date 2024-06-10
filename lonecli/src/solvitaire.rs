@@ -92,11 +92,16 @@ mod tests {
     use lonelybot::{shuffler, standard::StandardSolitaire};
     use serde_json::{json, Value};
 
+    use crate::DRAW_STEP;
+
     use super::Solvitaire;
 
     #[test]
     fn test_solvitaire_format() {
-        let game = Solvitaire(StandardSolitaire::new(&shuffler::default_shuffle(0), 3));
+        let game = Solvitaire(StandardSolitaire::new(
+            &shuffler::default_shuffle(0),
+            DRAW_STEP,
+        ));
         let obj: Value = serde_json::from_str(game.to_string().as_str()).unwrap();
 
         assert_eq!(

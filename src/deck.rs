@@ -1,4 +1,4 @@
-use core::ops::ControlFlow;
+use core::{num::NonZeroU8, ops::ControlFlow};
 
 use arrayvec::ArrayVec;
 use static_assertions::const_assert;
@@ -15,7 +15,7 @@ pub const N_DECK_CARDS: u8 = N_CARDS - N_PILE_CARDS;
 #[derive(Debug, Clone)]
 pub struct Deck {
     deck: [Card; N_DECK_CARDS as usize],
-    draw_step: u8,
+    draw_step: NonZeroU8,
     draw_next: u8, // start position of next pile
     draw_cur: u8,  // size of the previous pile
     mask: u32,
@@ -31,8 +31,7 @@ pub enum Drawable {
 
 impl Deck {
     #[must_use]
-    pub fn new(deck: &[Card; N_DECK_CARDS as usize], draw_step: u8) -> Self {
-        let draw_step = min(N_DECK_CARDS, draw_step);
+    pub fn new(deck: &[Card; N_DECK_CARDS as usize], draw_step: NonZeroU8) -> Self {
         let mut map = [!0u8; N_CARDS as usize];
         #[allow(clippy::cast_possible_truncation)]
         for (i, c) in deck.iter().enumerate() {
@@ -42,15 +41,15 @@ impl Deck {
         Self {
             deck: *deck,
             draw_step,
-            draw_next: draw_step,
-            draw_cur: draw_step,
+            draw_next: draw_step.get(),
+            draw_cur: draw_step.get(),
             mask: 0,
             map,
         }
     }
 
     #[must_use]
-    pub const fn draw_step(&self) -> u8 {
+    pub const fn draw_step(&self) -> NonZeroU8 {
         self.draw_step
     }
 
@@ -151,15 +150,15 @@ impl Deck {
         let len = self.len();
         let step = self.draw_step();
 
-        let n_step_to_end = (len - next).div_ceil(step);
+        let n_step_to_end = (len - next).div_ceil(step.get());
 
         min(
             if n_step <= n_step_to_end {
-                next + step * n_step
+                next + step.get() * n_step
             } else {
-                let total_step = len.div_ceil(step) + 1;
+                let total_step = len.div_ceil(step.get()) + 1;
                 let n_step = (n_step - n_step_to_end - 1) % total_step;
-                step * n_step
+                step.get() * n_step
             },
             len,
         )
@@ -172,7 +171,7 @@ impl Deck {
         if next >= len {
             0
         } else {
-            min(next + self.draw_step(), len)
+            min(next + self.draw_step().get(), len)
         }
     }
 
@@ -187,10 +186,10 @@ impl Deck {
 
         let gap = self.draw_next - self.draw_cur;
         {
-            let mut i = self.draw_next + self.draw_step - 1;
+            let mut i = self.draw_next + self.draw_step.get() - 1;
             while i < N_DECK_CARDS - 1 {
                 func(i - gap, &self.deck[i as usize])?;
-                i += self.draw_step;
+                i += self.draw_step.get();
             }
         }
 
@@ -202,19 +201,19 @@ impl Deck {
         }
 
         if !filter {
-            let mut i = self.draw_step - 1;
+            let mut i = self.draw_step.get() - 1;
             while i < self.draw_cur.saturating_sub(1) {
                 func(i, &self.deck[i as usize])?;
-                i += self.draw_step;
+                i += self.draw_step.get();
             }
 
             let offset = self.draw_cur % self.draw_step;
             if offset != 0 {
-                let mut i = self.draw_next + self.draw_step - 1 - offset;
+                let mut i = self.draw_next + self.draw_step.get() - 1 - offset;
 
                 while i < N_DECK_CARDS - 1 {
                     func(i - gap, &self.deck[i as usize])?;
-                    i += self.draw_step;
+                    i += self.draw_step.get();
                 }
             }
         }
@@ -293,13 +292,13 @@ impl Deck {
     #[must_use]
     pub const fn is_pure(&self) -> bool {
         // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
-        self.draw_cur % self.draw_step == 0 || self.draw_next == N_DECK_CARDS
+        self.draw_cur % self.draw_step.get() == 0 || self.draw_next == N_DECK_CARDS
     }
 
     #[must_use]
     pub(crate) const fn normalized_offset(&self) -> u8 {
         // this is the standardized version
-        if self.draw_cur % self.draw_step == 0 {
+        if self.draw_cur % self.draw_step.get() == 0 {
             // matched so offset is free
             debug_assert!(self.len() <= N_DECK_CARDS);
             self.len()
@@ -402,7 +401,7 @@ mod tests {
             let deck = default_shuffle(12 + i);
             let deck = deck[..N_DECK_CARDS as usize].try_into().unwrap();
 
-            let draw_step = rng.gen_range(1..5);
+            let draw_step = NonZeroU8::new(rng.gen_range(1..5)).unwrap();
             let mut deck = Deck::new(deck, draw_step);
 
             while !deck.is_empty() {
