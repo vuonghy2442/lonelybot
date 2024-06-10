@@ -39,7 +39,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let m = *moves.choose(&mut rng).unwrap();
 
-    let card = game.state().get_deck().iter().next().unwrap();
+    let card = game.state().get_deck().iter().iter().next().unwrap();
 
     c.bench_function("gen_moves", |b| {
         b.iter(|| {

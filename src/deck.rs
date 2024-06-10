@@ -193,18 +193,18 @@ impl Deck {
 
         if !filter {
             let mut i = self.draw_step.get() - 1;
-            while i < self.draw_cur.saturating_sub(1) {
-                func(i, &self.deck[i as usize])?;
-                i += self.draw_step.get();
-            }
 
             let offset = self.draw_cur % self.draw_step;
-            if offset != 0 {
-                let mut i = self.draw_cur + self.draw_step.get() - offset - 1;
-                while i < self.len() - 1 {
-                    func(i, &self.deck[i as usize])?;
-                    i += self.draw_step.get();
-                }
+            let end = if offset != 0 {
+                self.len()
+            } else {
+                self.draw_cur
+            }
+            .saturating_sub(1);
+
+            while i < end {
+                func(i, &self.deck[i as usize])?;
+                i += self.draw_step.get();
             }
         }
         ControlFlow::Continue(())
