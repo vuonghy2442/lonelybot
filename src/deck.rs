@@ -156,13 +156,12 @@ impl Deck {
     }
 
     #[must_use]
-    pub const fn offset_once(&self) -> u8 {
-        let next = self.get_offset();
+    pub const fn offset_once(&self, cur: u8) -> u8 {
         let len = self.len();
-        if next >= len {
+        if cur >= len {
             0
         } else {
-            min(next + self.draw_step().get(), len)
+            min(cur + self.draw_step().get(), len)
         }
     }
 
@@ -303,7 +302,7 @@ impl Deck {
     }
 
     pub fn deal_once(&mut self) {
-        self.set_offset(self.offset_once());
+        self.set_offset(self.offset_once(self.get_offset()));
     }
 
     #[must_use]
@@ -332,7 +331,7 @@ impl Deck {
         if offset == 0 {
             None
         } else {
-            Some(self.draw(offset))
+            Some(self.draw(offset - 1))
         }
     }
 }
@@ -357,7 +356,11 @@ mod tests {
             let mut deck = Deck::new(deck, draw_step);
 
             while !deck.is_empty() {
-                assert_eq!(deck.offset_once(), deck.offset(1));
+                let mut cur = deck.get_offset();
+                for i in 0..N_DECK_CARDS {
+                    assert_eq!(cur, deck.offset(i));
+                    cur = deck.offset_once(cur);
+                }
                 let step = rng.gen_range(1..100);
                 let offset = deck.offset(step);
 
