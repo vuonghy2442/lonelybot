@@ -218,7 +218,10 @@ impl Hidden {
         self.first_layer_mask
     }
 
-    // reset all hidden cards into lexicographic order
+    /// Reset all hidden cards into lexicographic order
+    /// # Panics
+    ///
+    /// Never (unless buggy)
     pub fn clear(&mut self) {
         let mut hidden_cards = self.mask();
 
