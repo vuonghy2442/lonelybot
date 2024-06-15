@@ -18,7 +18,7 @@ pub(crate) const RANK_MASK: u64 = 0x1111_1111_1111_1111;
 
 pub(crate) const COLOR_MASK: [u64; 2] = [SUIT_MASK[0] | SUIT_MASK[1], SUIT_MASK[2] | SUIT_MASK[3]];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Card(u8);
 
 const fn suit_xor_color(v: u8) -> u8 {
@@ -35,7 +35,7 @@ impl Card {
     }
 
     #[must_use]
-    pub(crate) const fn from_value(value: u8) -> Self {
+    pub const fn from_value(value: u8) -> Self {
         Self(value)
     }
 
@@ -56,7 +56,7 @@ impl Card {
     }
 
     #[must_use]
-    pub(crate) const fn value(self) -> u8 {
+    pub const fn value(self) -> u8 {
         self.0
     }
 
