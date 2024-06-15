@@ -7,7 +7,7 @@ use crate::card::{
     Card, ALT_MASK, HALF_MASK, KING_MASK, KING_RANK, N_CARDS, N_SUITS, RANK_MASK, SUIT_MASK,
 };
 use crate::deck::{Deck, N_PILES, N_PILE_CARDS};
-use crate::moves::{Move, MoveMask, MoveVec};
+use crate::moves::{Move, MoveMask};
 use crate::stack::Stack;
 use crate::utils::full_mask;
 
@@ -91,24 +91,24 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub(crate) const fn get_visible_mask(&self) -> u64 {
+    const fn get_visible_mask(&self) -> u64 {
         self.visible_mask
     }
 
     #[must_use]
-    pub(crate) const fn get_top_mask(&self) -> u64 {
+    const fn get_top_mask(&self) -> u64 {
         self.top_mask
     }
 
     #[must_use]
-    pub(crate) const fn get_extended_top_mask(&self) -> u64 {
+    const fn get_extended_top_mask(&self) -> u64 {
         // also consider the kings to be the top cards
         self.top_mask | (self.visible_mask & KING_MASK)
         // (self.top_mask | KING_MASK) & self.visible_mask
     }
 
     #[must_use]
-    pub(crate) const fn get_bottom_mask(&self) -> u64 {
+    const fn get_bottom_mask(&self) -> u64 {
         let vis = self.get_visible_mask();
         let non_top = vis ^ self.get_top_mask();
         let xor_all = {
@@ -128,7 +128,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub(crate) fn get_deck_mask<const DOMINANCE: bool>(&self) -> (u64, bool) {
+    fn get_deck_mask<const DOMINANCE: bool>(&self) -> (u64, bool) {
         let Some(&last_card) = self.deck.peek_last() else {
             return (0, false);
         };
@@ -148,20 +148,6 @@ impl Solitaire {
 
         // TODO: dominance for draw_step == 1
         (mask, false)
-    }
-
-    #[must_use]
-    pub fn list_moves<const DOMINANCE: bool>(&self, prune: &MoveMask) -> MoveVec {
-        let mut moves = MoveVec::new();
-
-        let packed_moves = self.gen_moves::<DOMINANCE>().filter(prune);
-
-        packed_moves.iter_moves(|m| {
-            moves.push(m);
-            ControlFlow::<()>::Continue(())
-        });
-
-        moves
     }
 
     #[must_use]
@@ -628,6 +614,7 @@ mod tests {
     use rand::prelude::*;
 
     use crate::deck::{Drawable, N_DECK_CARDS};
+    use crate::moves::N_MOVES_MAX;
     use crate::shuffler::default_shuffle;
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
@@ -667,7 +654,7 @@ mod tests {
 
                 assert_eq!(test, truth);
 
-                let moves = game.list_moves::<false>(&Default::default());
+                let moves = game.gen_moves::<false>().to_vec::<N_MOVES_MAX>();
                 if moves.is_empty() {
                     break;
                 }
@@ -683,7 +670,7 @@ mod tests {
         for i in 0..1000 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
             for _ in 0..100 {
-                let moves = game.list_moves::<false>(&Default::default());
+                let moves = game.gen_moves::<false>().to_vec::<N_MOVES_MAX>();
                 if moves.is_empty() {
                     break;
                 }
@@ -735,7 +722,7 @@ mod tests {
 
             assert!(game.is_valid());
             for _ in 0..N_STEP {
-                let moves = game.list_moves::<false>(&Default::default());
+                let moves = game.gen_moves::<false>().to_vec::<N_MOVES_MAX>();
                 if moves.is_empty() {
                     break;
                 }
@@ -773,7 +760,7 @@ mod tests {
         for i in 0..1000 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
             for _ in 0..100 {
-                let moves = game.list_moves::<false>(&Default::default());
+                let moves = game.gen_moves::<false>().to_vec::<N_MOVES_MAX>();
                 if moves.is_empty() {
                     break;
                 }

@@ -93,14 +93,20 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
     }
 
     #[must_use]
-    pub fn list_moves_dom(&self) -> MoveVec {
+    fn list_moves_generics<const DOMINANCE: bool>(&self) -> MoveVec {
         self.state
-            .list_moves::<true>(&self.pruner.prune_moves(&self.state))
+            .gen_moves::<DOMINANCE>()
+            .filter(&self.pruner.prune_moves(&self.state))
+            .to_vec()
+    }
+
+    #[must_use]
+    pub fn list_moves_dom(&self) -> MoveVec {
+        self.list_moves_generics::<true>()
     }
 
     #[must_use]
     pub fn list_moves(&self) -> MoveVec {
-        self.state
-            .list_moves::<false>(&self.pruner.prune_moves(&self.state))
+        self.list_moves_generics::<false>()
     }
 }

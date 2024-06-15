@@ -123,7 +123,7 @@ fn benchmark(seed: &Seed) {
         let mut game: SolitaireEngine<FullPruner> =
             Solitaire::new(&shuffle(&seed.increase(i)), DRAW_STEP).into();
         for _ in 0..100 {
-            let moves = game.state().list_moves::<true>(&Default::default());
+            let moves = game.list_moves_dom();
 
             if moves.is_empty() {
                 break;

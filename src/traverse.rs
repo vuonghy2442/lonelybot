@@ -1,7 +1,7 @@
 use hashbrown::HashSet;
 
 use crate::{
-    moves::{Move, MoveVec},
+    moves::{Move, MoveVec, N_MOVES_MAX},
     pruning::Pruner,
     state::{Encode, Solitaire},
     utils::MixHasherBuilder,
@@ -82,7 +82,11 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
         return ControlFlow::Ok;
     }
 
-    let move_list = game.list_moves::<true>(&prune_info.prune_moves(game));
+    let move_list = game
+        .gen_moves::<true>()
+        .filter(&prune_info.prune_moves(game))
+        .to_vec::<N_MOVES_MAX>();
+
     match callback.on_move_gen(&move_list, encode) {
         ControlFlow::Halt => return ControlFlow::Halt,
         ControlFlow::Skip => return ControlFlow::Skip,

@@ -108,6 +108,15 @@ impl MoveMask {
 
         // <= N_PILES * 2 + N_SUITS * 2 - 1 = 14 + 8 - 1 = 21 moves
     }
+
+    pub fn to_vec<const N_MAX: usize>(&self) -> ArrayVec<Move, N_MAX> {
+        let mut moves = ArrayVec::new();
+        self.iter_moves(|m| {
+            moves.push(m);
+            ControlFlow::<()>::Continue(())
+        });
+        moves
+    }
 }
 
 pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
