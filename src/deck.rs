@@ -170,25 +170,22 @@ impl Deck {
         filter: bool,
         mut func: F,
     ) -> ControlFlow<T> {
-        let Some(last) = self.deck.last() else {
-            return ControlFlow::Continue(());
-        };
-
-        if self.draw_cur > 0 {
-            // the current card
-            func(self.draw_cur - 1, &self.deck[self.draw_cur as usize - 1])?;
-        }
-
-        if self.draw_cur < self.len() {
-            func(self.len() - 1, last)?;
-        }
-
         {
-            let mut i = self.draw_cur + self.draw_step.get() - 1;
-            while i < self.len() - 1 {
+            let mut i = self.draw_cur
+                + if self.draw_cur == 0 {
+                    self.draw_step.get()
+                } else {
+                    0
+                }
+                - 1;
+            while i < self.len().saturating_sub(1) {
                 func(i, &self.deck[i as usize])?;
                 i += self.draw_step.get();
             }
+        }
+
+        if self.len() > 0 {
+            func(self.len() - 1, &self.deck.last().unwrap())?;
         }
 
         if !filter {
