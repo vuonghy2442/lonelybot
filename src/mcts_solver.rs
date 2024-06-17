@@ -89,6 +89,11 @@ impl Callback for ListStatesCallback {
     }
 }
 
+/// Picking the best move using MCTS
+///
+/// # Panics
+///
+/// Maybe out of memory. Otherwise should not panic
 pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     game: &mut Solitaire,
     rng: &mut R,

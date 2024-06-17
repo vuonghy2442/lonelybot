@@ -99,7 +99,7 @@ impl Card {
     }
 
     #[must_use]
-    pub(crate) const fn from_mask(v: &u64) -> Option<Self> {
+    pub(crate) const fn from_mask(v: u64) -> Option<Self> {
         let v = v.trailing_zeros();
         if v < N_CARDS as u32 {
             #[allow(clippy::cast_possible_truncation)]

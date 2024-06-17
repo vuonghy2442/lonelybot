@@ -457,7 +457,7 @@ impl Solitaire {
         // hidden
         nonvis_mask |= self.hidden.mask();
 
-        for c in self.deck.iter() {
+        for c in self.deck.get() {
             nonvis_mask |= c.mask();
         }
 

@@ -62,6 +62,7 @@ impl core::fmt::Display for AtomicSearchStats {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let (total, unique, depth) = (self.total_visit(), self.unique_visit(), self.max_depth());
         let hit = total - unique;
+        #[allow(clippy::cast_precision_loss)]
         write!(
             f,
             "Total visit: {}\nTransposition hit: {} (rate {})\nMiss state: {}\nMax depth search: {}\nCurrent progress:",

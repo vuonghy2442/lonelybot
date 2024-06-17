@@ -29,9 +29,10 @@ use lonelybot::standard::{Pos, StandardHistoryVec, StandardSolitaire};
 
 use crate::tui::print_game;
 
-const DRAW_STEP: NonZeroU8 = match NonZeroU8::new(3) {
-    Some(v) => v,
-    None => [][0],
+const DRAW_STEP: NonZeroU8 = if let Some(v) = NonZeroU8::new(3) {
+    v
+} else {
+    panic!()
 };
 
 #[derive(ValueEnum, Clone, Copy)]
@@ -209,8 +210,8 @@ fn do_hop(seed: &Seed, verbose: bool) -> bool {
 fn map_pos(p: Pos) -> char {
     match p {
         Pos::Deck => 'A',
-        Pos::Stack(id) => char::from_u32('B' as u32 + id as u32).unwrap(),
-        Pos::Pile(id) => char::from_u32('F' as u32 + id as u32).unwrap(),
+        Pos::Stack(id) => char::from_u32('B' as u32 + u32::from(id)).unwrap(),
+        Pos::Pile(id) => char::from_u32('F' as u32 + u32::from(id)).unwrap(),
     }
 }
 

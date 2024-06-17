@@ -52,7 +52,7 @@ impl From<Move> for MoveMask {
 }
 
 fn iter_mask_opt<T>(mut m: u64, mut func: impl FnMut(Card) -> ControlFlow<T>) -> ControlFlow<T> {
-    while let Some(c) = Card::from_mask(&m) {
+    while let Some(c) = Card::from_mask(m) {
         func(c)?;
         m &= m.wrapping_sub(1);
     }
@@ -109,6 +109,7 @@ impl MoveMask {
         // <= N_PILES * 2 + N_SUITS * 2 - 1 = 14 + 8 - 1 = 21 moves
     }
 
+    #[must_use]
     pub fn to_vec<const N_MAX: usize>(&self) -> ArrayVec<Move, N_MAX> {
         let mut moves = ArrayVec::new();
         self.iter_moves(|m| {

@@ -78,7 +78,7 @@ impl Deck {
     }
 
     #[must_use]
-    pub fn iter(&self) -> &[Card] {
+    pub fn get(&self) -> &[Card] {
         &self.deck[..]
     }
 
@@ -184,8 +184,8 @@ impl Deck {
             }
         }
 
-        if self.len() > 0 {
-            func(self.len() - 1, &self.deck.last().unwrap())?;
+        if let Some(last) = self.deck.last() {
+            func(self.len() - 1, last)?;
         }
 
         if !filter {

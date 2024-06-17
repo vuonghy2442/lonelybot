@@ -6,9 +6,6 @@ use crate::{
 /// # Errors
 ///
 /// Return `InvalidMove` when the move is not valid and not modify anything
-/// # Panics
-///
-/// Never (unless buggy)
 pub(crate) fn convert_move(
     game: &StandardSolitaire,
     m: Move,

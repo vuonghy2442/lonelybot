@@ -2,10 +2,10 @@ use core::fmt;
 
 use lonelybot::card::{Card, N_SUITS};
 use lonelybot::deck::{Drawable, N_PILES};
-use lonelybot::state::Solitaire;
 use lonelybot::formatter::{NUMBERS, SYMBOLS};
 use lonelybot::stack::Stack;
 use lonelybot::standard::{HiddenVec, PileVec, StandardSolitaire};
+use lonelybot::state::Solitaire;
 
 use colored::{Color, Colorize};
 
