@@ -6,7 +6,7 @@ use crate::{
     solver::SearchResult,
     state::{Encode, Solitaire},
     tracking::TerminateSignal,
-    traverse::{traverse, Callback, ControlFlow, TpTable},
+    traverse::{traverse, Callback, Control, TpTable},
 };
 
 struct HOPSolverCallback<'a, T: TerminateSignal> {
@@ -19,28 +19,28 @@ struct HOPSolverCallback<'a, T: TerminateSignal> {
 impl<'a, T: TerminateSignal> Callback for HOPSolverCallback<'a, T> {
     type Pruner = FullPruner;
 
-    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> Control {
         self.result = SearchResult::Solved;
-        ControlFlow::Halt
+        Control::Halt
     }
 
-    fn on_visit(&mut self, g: &Solitaire, _: Encode) -> ControlFlow {
+    fn on_visit(&mut self, g: &Solitaire, _: Encode) -> Control {
         if g.is_sure_win() {
             self.result = SearchResult::Solved;
-            return ControlFlow::Halt;
+            return Control::Halt;
         }
 
         if self.sign.is_terminated() {
             self.result = SearchResult::Terminated;
-            return ControlFlow::Halt;
+            return Control::Halt;
         }
 
         self.n_visit += 1;
         if self.n_visit > self.limit {
             self.result = SearchResult::Terminated;
-            ControlFlow::Halt
+            Control::Halt
         } else {
-            ControlFlow::Ok
+            Control::Ok
         }
     }
 }
@@ -117,9 +117,9 @@ struct RevStatesCallback<'a, R: RngCore, T: TerminateSignal> {
 impl<'a, R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'a, R, T> {
     type Pruner = FullPruner;
 
-    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> Control {
         self.res.push((self.his.clone(), (!0, 0, !0)));
-        ControlFlow::Halt
+        Control::Halt
     }
 
     fn on_do_move(
@@ -128,7 +128,7 @@ impl<'a, R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'a, R, T
         m: Move,
         _: Encode,
         prune_info: &FullPruner,
-    ) -> ControlFlow {
+    ) -> Control {
         self.his.push(m);
         let rev = prune_info.rev_move();
         // if rev.is_none() && (matches!(m, Move::Reveal(_)) || matches!(m, Move::PileStack(_))) {
@@ -145,13 +145,13 @@ impl<'a, R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'a, R, T
                     prune_info,
                 ),
             ));
-            ControlFlow::Skip
+            Control::Skip
         } else {
-            ControlFlow::Ok
+            Control::Ok
         }
     }
 
-    fn on_undo_move(&mut self, _: Move, _: Encode, _: &ControlFlow) {
+    fn on_undo_move(&mut self, _: Move, _: Encode, _: &Control) {
         self.his.pop();
     }
 }

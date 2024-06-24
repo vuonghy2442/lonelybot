@@ -1,10 +1,10 @@
 use crate::{
     card::Card,
-    moves::{Move, MoveVec},
+    moves::{Move, MoveMask},
     pruning::FullPruner,
     state::{Encode, Solitaire},
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
-    traverse::{traverse, Callback, ControlFlow, TpTable},
+    traverse::{traverse, Callback, Control, TpTable},
 };
 
 extern crate alloc;
@@ -61,19 +61,19 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> BuilderCallback<'a, S, T> {
 impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'a, S, T> {
     type Pruner = FullPruner;
 
-    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> Control {
         // win state
         self.graph.push((
             self.prev_enc,
             !0,
             get_edge_type(self.last_move, self.rev_move),
         ));
-        ControlFlow::Ok
+        Control::Ok
     }
 
-    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> ControlFlow {
+    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> Control {
         if self.sign.is_terminated() {
-            return ControlFlow::Halt;
+            return Control::Halt;
         }
 
         self.stats.hit_a_state(self.depth);
@@ -83,23 +83,23 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'
             get_edge_type(self.last_move, self.rev_move),
         ));
 
-        ControlFlow::Ok
+        Control::Ok
     }
 
-    fn on_move_gen(&mut self, m: &MoveVec, _: Encode) -> ControlFlow {
-        self.stats.hit_unique_state(self.depth, m.len());
-        ControlFlow::Ok
+    fn on_move_gen(&mut self, m: &MoveMask, _: Encode) -> Control {
+        self.stats.hit_unique_state(self.depth, m.len() as usize);
+        Control::Ok
     }
 
-    fn on_do_move(&mut self, _: &Solitaire, m: Move, e: Encode, prune: &FullPruner) -> ControlFlow {
+    fn on_do_move(&mut self, _: &Solitaire, m: Move, e: Encode, prune: &FullPruner) -> Control {
         self.last_move = m;
         self.rev_move = prune.rev_move();
         self.prev_enc = e;
         self.depth += 1;
-        ControlFlow::Ok
+        Control::Ok
     }
 
-    fn on_undo_move(&mut self, _: Move, _: Encode, _: &ControlFlow) {
+    fn on_undo_move(&mut self, _: Move, _: Encode, _: &Control) {
         self.depth -= 1;
         self.stats.finish_move(self.depth);
     }
@@ -109,7 +109,7 @@ pub fn graph_with_tracking<S: SearchStatistics, T: TerminateSignal>(
     g: &mut Solitaire,
     stats: &S,
     sign: &T,
-) -> (ControlFlow, Graph) {
+) -> (Control, Graph) {
     let mut tp = TpTable::default();
     let mut callback = BuilderCallback::new(g, stats, sign);
 
@@ -117,6 +117,6 @@ pub fn graph_with_tracking<S: SearchStatistics, T: TerminateSignal>(
     (finished, callback.graph)
 }
 
-pub fn graph(g: &mut Solitaire) -> (ControlFlow, Graph) {
+pub fn graph(g: &mut Solitaire) -> (Control, Graph) {
     graph_with_tracking(g, &EmptySearchStats {}, &DefaultTerminateSignal {})
 }

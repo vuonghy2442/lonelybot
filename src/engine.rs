@@ -1,11 +1,13 @@
 use crate::{
-    moves::{Move, MoveMask, MoveVec},
+    moves::{Move, MoveMask, N_MOVES_MAX},
     pruning::Pruner,
     state::{Encode, Solitaire, UndoInfo},
 };
+pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;
 
 extern crate alloc;
 use alloc::vec::Vec;
+use arrayvec::ArrayVec;
 
 pub struct SolitaireEngine<P: Pruner> {
     state: Solitaire,

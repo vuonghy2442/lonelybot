@@ -72,6 +72,15 @@ impl MoveMask {
     }
 
     #[must_use]
+    pub const fn len(&self) -> u32 {
+        self.pile_stack.count_ones()
+            + self.deck_stack.count_ones()
+            + self.stack_pile.count_ones()
+            + self.deck_pile.count_ones()
+            + self.reveal.count_ones()
+    }
+
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self == &Self::default()
     }
@@ -122,4 +131,3 @@ impl MoveMask {
 
 pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
 
-pub type MoveVec = ArrayVec<Move, N_MOVES_MAX>;

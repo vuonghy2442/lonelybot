@@ -6,7 +6,7 @@ use crate::{
     pruning::FullPruner,
     state::{Encode, Solitaire},
     tracking::TerminateSignal,
-    traverse::{traverse, Callback, ControlFlow, TpTable},
+    traverse::{traverse, Callback, Control, TpTable},
 };
 
 extern crate alloc;
@@ -19,15 +19,15 @@ struct FindStatesCallback {
 
 impl Callback for FindStatesCallback {
     type Pruner = FullPruner;
-    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
-        ControlFlow::Halt
+    fn on_win(&mut self, _: &Solitaire) -> Control {
+        Control::Halt
     }
 
-    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> ControlFlow {
+    fn on_visit(&mut self, _: &Solitaire, e: Encode) -> Control {
         if self.state == e {
-            ControlFlow::Halt
+            Control::Halt
         } else {
-            ControlFlow::Ok
+            Control::Ok
         }
     }
 
@@ -37,7 +37,7 @@ impl Callback for FindStatesCallback {
         m: Move,
         _: Encode,
         prune_info: &FullPruner,
-    ) -> ControlFlow {
+    ) -> Control {
         let rev = prune_info.rev_move();
         let ok = match m {
             Move::Reveal(c) => c.mask() & g.get_hidden().first_layer_mask() == 0,
@@ -45,15 +45,15 @@ impl Callback for FindStatesCallback {
         };
 
         if rev.is_none() && ok {
-            ControlFlow::Skip
+            Control::Skip
         } else {
             self.his.push(m);
-            ControlFlow::Ok
+            Control::Ok
         }
     }
 
-    fn on_undo_move(&mut self, _: Move, _: Encode, res: &ControlFlow) {
-        if *res == ControlFlow::Ok {
+    fn on_undo_move(&mut self, _: Move, _: Encode, res: &Control) {
+        if *res == Control::Ok {
             self.his.pop();
         }
     }
@@ -65,10 +65,10 @@ struct ListStatesCallback {
 
 impl Callback for ListStatesCallback {
     type Pruner = FullPruner;
-    fn on_win(&mut self, game: &Solitaire) -> ControlFlow {
+    fn on_win(&mut self, game: &Solitaire) -> Control {
         self.res.clear();
         self.res.push((game.encode(), None));
-        ControlFlow::Halt
+        Control::Halt
     }
 
     fn on_do_move(
@@ -77,14 +77,14 @@ impl Callback for ListStatesCallback {
         m: Move,
         e: Encode,
         prune_info: &FullPruner,
-    ) -> ControlFlow {
+    ) -> Control {
         let rev = prune_info.rev_move();
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
         if rev.is_none() {
             self.res.push((e, Some(m)));
-            ControlFlow::Skip
+            Control::Skip
         } else {
-            ControlFlow::Ok
+            Control::Ok
         }
     }
 }

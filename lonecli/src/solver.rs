@@ -1,10 +1,10 @@
 use core::time::Duration;
 use lonelybot::{
-    state::Solitaire,
     graph::{graph_with_tracking, Graph},
     solver::{solve_with_tracking, HistoryVec, SearchResult},
+    state::Solitaire,
     tracking::TerminateSignal,
-    traverse::ControlFlow,
+    traverse::Control,
 };
 use std::{
     sync::{
@@ -19,11 +19,11 @@ use crate::tracking::AtomicSearchStats;
 
 const STACK_SIZE: usize = 4 * 1024 * 1024;
 
-struct Signal<'a> {
+struct TermSignal<'a> {
     term_signal: &'a AtomicBool,
 }
 
-impl<'a> TerminateSignal for Signal<'a> {
+impl<'a> TerminateSignal for TermSignal<'a> {
     fn terminate(&self) {
         self.term_signal.store(true, Ordering::Relaxed);
     }
@@ -52,7 +52,7 @@ pub(crate) fn run_solve(
                 let res = solve_with_tracking(
                     &mut g,
                     ss_clone.as_ref(),
-                    &Signal {
+                    &TermSignal {
                         term_signal: term.as_ref(),
                     },
                 );
@@ -80,7 +80,7 @@ pub(crate) fn run_graph(
     mut g: Solitaire,
     verbose: bool,
     term_signal: &Arc<AtomicBool>,
-) -> (Option<(ControlFlow, Graph)>, AtomicSearchStats) {
+) -> (Option<(Control, Graph)>, AtomicSearchStats) {
     let ss = Arc::new(AtomicSearchStats::new());
 
     let (send, recv) = channel::<()>();
@@ -95,7 +95,7 @@ pub(crate) fn run_graph(
                 let res = graph_with_tracking(
                     &mut g,
                     ss_clone.as_ref(),
-                    &Signal {
+                    &TermSignal {
                         term_signal: term.as_ref(),
                     },
                 );

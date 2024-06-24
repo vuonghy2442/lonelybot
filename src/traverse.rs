@@ -1,7 +1,7 @@
 use hashbrown::HashSet;
 
 use crate::{
-    moves::{Move, MoveVec},
+    moves::{Move, MoveMask},
     pruning::Pruner,
     state::{Encode, Solitaire},
     utils::MixHasherBuilder,
@@ -13,7 +13,7 @@ pub trait TranspositionTable {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum ControlFlow {
+pub enum Control {
     Halt,
     Skip,
     Ok,
@@ -22,18 +22,18 @@ pub enum ControlFlow {
 pub trait Callback {
     type Pruner: Pruner;
 
-    fn on_win(&mut self, game: &Solitaire) -> ControlFlow;
+    fn on_win(&mut self, game: &Solitaire) -> Control;
 
-    fn on_visit(&mut self, _game: &Solitaire, _encode: Encode) -> ControlFlow {
-        ControlFlow::Ok
+    fn on_visit(&mut self, _game: &Solitaire, _encode: Encode) -> Control {
+        Control::Ok
     }
 
-    fn on_backtrack(&mut self, _game: &Solitaire, _encode: Encode) -> ControlFlow {
-        ControlFlow::Ok
+    fn on_backtrack(&mut self, _game: &Solitaire, _encode: Encode) -> Control {
+        Control::Ok
     }
 
-    fn on_move_gen(&mut self, _move_list: &MoveVec, _encode: Encode) -> ControlFlow {
-        ControlFlow::Ok
+    fn on_move_gen(&mut self, _move_list: &MoveMask, _encode: Encode) -> Control {
+        Control::Ok
     }
 
     fn on_do_move(
@@ -42,11 +42,11 @@ pub trait Callback {
         _m: Move,
         _encode: Encode,
         _pruner: &Self::Pruner,
-    ) -> ControlFlow {
-        ControlFlow::Ok
+    ) -> Control {
+        Control::Ok
     }
 
-    fn on_undo_move(&mut self, _m: Move, _encode: Encode, _res: &ControlFlow) {}
+    fn on_undo_move(&mut self, _m: Move, _encode: Encode, _res: &Control) {}
 }
 
 pub type TpTable = HashSet<Encode, MixHasherBuilder>;
@@ -65,7 +65,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
     prune_info: &C::Pruner,
     tp: &mut T,
     callback: &mut C,
-) -> ControlFlow {
+) -> Control {
     if game.is_win() {
         return callback.on_win(game);
     }
@@ -73,32 +73,31 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
     let encode = game.encode();
 
     match callback.on_visit(game, encode) {
-        ControlFlow::Halt => return ControlFlow::Halt,
-        ControlFlow::Skip => return ControlFlow::Skip,
-        ControlFlow::Ok => {}
+        Control::Halt => return Control::Halt,
+        Control::Skip => return Control::Skip,
+        Control::Ok => {}
     };
 
     if !tp.insert(encode) {
-        return ControlFlow::Ok;
+        return Control::Ok;
     }
 
-    let move_list: MoveVec = game
+    let move_list = game
         .gen_moves::<true>()
-        .filter(&prune_info.prune_moves(game))
-        .to_vec();
+        .filter(&prune_info.prune_moves(game));
 
     match callback.on_move_gen(&move_list, encode) {
-        ControlFlow::Halt => return ControlFlow::Halt,
-        ControlFlow::Skip => return ControlFlow::Skip,
-        ControlFlow::Ok => {}
+        Control::Halt => return Control::Halt,
+        Control::Skip => return Control::Skip,
+        Control::Ok => {}
     }
 
-    for m in move_list {
+    let res = move_list.iter_moves(|m| {
         let new_prune_info = C::Pruner::new(game, prune_info, m);
         match callback.on_do_move(game, m, encode, &new_prune_info) {
-            ControlFlow::Halt => return ControlFlow::Halt,
-            ControlFlow::Skip => continue,
-            ControlFlow::Ok => {}
+            Control::Halt => return core::ops::ControlFlow::Break(()),
+            Control::Skip => return core::ops::ControlFlow::Continue(()),
+            Control::Ok => {}
         }
 
         let undo = game.do_move(m);
@@ -108,9 +107,15 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
         game.undo_move(m, undo);
         callback.on_undo_move(m, encode, &res);
 
-        if res == ControlFlow::Halt {
-            return ControlFlow::Halt;
+        if res == Control::Halt {
+            core::ops::ControlFlow::Break(())
+        } else {
+            core::ops::ControlFlow::Continue(())
         }
+    });
+
+    if res.is_break() {
+        return Control::Halt;
     }
 
     callback.on_backtrack(game, encode)

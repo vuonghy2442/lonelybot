@@ -3,7 +3,7 @@ use crate::{
     pruning::FullPruner,
     state::{Encode, Solitaire},
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
-    traverse::{traverse, Callback, ControlFlow, TpTable},
+    traverse::{traverse, Callback, Control, TpTable},
 };
 use arrayvec::ArrayVec;
 
@@ -30,33 +30,34 @@ struct SolverCallback<'a, S: SearchStatistics, T: TerminateSignal> {
 
 impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'a, S, T> {
     type Pruner = FullPruner;
-    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
+    fn on_win(&mut self, _: &Solitaire) -> Control {
         self.result = SearchResult::Solved;
-        ControlFlow::Halt
+        Control::Halt
     }
 
-    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> ControlFlow {
+    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> Control {
         if self.sign.is_terminated() {
             self.result = SearchResult::Terminated;
-            return ControlFlow::Halt;
+            return Control::Halt;
         }
 
         self.stats.hit_a_state(self.history.len());
-        ControlFlow::Ok
+        Control::Ok
     }
 
-    fn on_move_gen(&mut self, m: &crate::moves::MoveVec, _: Encode) -> ControlFlow {
-        self.stats.hit_unique_state(self.history.len(), m.len());
-        ControlFlow::Ok
+    fn on_move_gen(&mut self, m: &crate::moves::MoveMask, _: Encode) -> Control {
+        self.stats
+            .hit_unique_state(self.history.len(), m.len() as usize);
+        Control::Ok
     }
 
-    fn on_do_move(&mut self, _: &Solitaire, m: Move, _: Encode, _: &FullPruner) -> ControlFlow {
+    fn on_do_move(&mut self, _: &Solitaire, m: Move, _: Encode, _: &FullPruner) -> Control {
         self.history.push(m);
-        ControlFlow::Ok
+        Control::Ok
     }
 
-    fn on_undo_move(&mut self, _: Move, _: Encode, res: &ControlFlow) {
-        if *res == ControlFlow::Ok {
+    fn on_undo_move(&mut self, _: Move, _: Encode, res: &Control) {
+        if *res == Control::Ok {
             self.history.pop();
         }
         self.stats.finish_move(self.history.len());

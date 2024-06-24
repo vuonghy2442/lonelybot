@@ -12,7 +12,7 @@ use lonelybot::pruning::{CyclePruner, FullPruner, NoPruner};
 use lonelybot::shuffler::{self, CardDeck, U256};
 use lonelybot::state::{Encode, Solitaire};
 use lonelybot::tracking::DefaultTerminateSignal;
-use lonelybot::traverse::ControlFlow;
+use lonelybot::traverse::Control;
 use rand::prelude::*;
 use solvitaire::Solvitaire;
 use std::collections::HashSet;
@@ -271,7 +271,7 @@ fn test_graph(seed: &Seed, path: &String, terminated: &Arc<AtomicBool>) {
     match res.0 {
         Some((res, graph)) => {
             println!("Graphed in {} edges", graph.len());
-            if res == ControlFlow::Ok {
+            if res == Control::Ok {
                 let mut f = std::io::BufWriter::new(File::create(path).unwrap());
                 writeln!(f, "s,t,e,id").unwrap();
                 for (id, e) in graph.iter().skip(1).enumerate() {

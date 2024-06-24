@@ -1,11 +1,11 @@
 use std::num::NonZeroU8;
 
 use lonelybot::{
-    moves::MoveVec,
+    moves::MoveMask,
     pruning::FullPruner,
     shuffler::default_shuffle,
     state::{Encode, Solitaire},
-    traverse::{traverse, Callback, ControlFlow, TpTable},
+    traverse::{traverse, Callback, Control, TpTable},
 };
 
 #[derive(Default)]
@@ -15,21 +15,21 @@ struct CycleCallback {
 
 impl Callback for CycleCallback {
     type Pruner = FullPruner;
-    fn on_win(&mut self, _: &Solitaire) -> ControlFlow {
-        ControlFlow::Ok
+    fn on_win(&mut self, _: &Solitaire) -> Control {
+        Control::Ok
     }
 
-    fn on_move_gen(&mut self, _: &MoveVec, e: Encode) -> ControlFlow {
+    fn on_move_gen(&mut self, _: &MoveMask, e: Encode) -> Control {
         if !self.history.insert(e) {
-            ControlFlow::Halt
+            Control::Halt
         } else {
-            ControlFlow::Ok
+            Control::Ok
         }
     }
 
-    fn on_backtrack(&mut self, _: &Solitaire, encode: Encode) -> ControlFlow {
+    fn on_backtrack(&mut self, _: &Solitaire, encode: Encode) -> Control {
         self.history.remove(&encode);
-        ControlFlow::Ok
+        Control::Ok
     }
 }
 
@@ -46,6 +46,6 @@ fn test_no_cycle() {
 
         let mut g = Solitaire::new(&deck, NonZeroU8::new(3).unwrap());
         let res = traverse(&mut g, &Default::default(), &mut tp, &mut callback);
-        assert_eq!(res, ControlFlow::Ok);
+        assert_eq!(res, Control::Ok);
     }
 }
