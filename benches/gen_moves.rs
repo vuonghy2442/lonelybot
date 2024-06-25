@@ -4,8 +4,8 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lonelybot::{
     deck::{Deck, N_PILE_CARDS},
     engine::SolitaireEngine,
-    pruning::NoPruner,
-    shuffler,
+    pruning::{CyclePruner, NoPruner},
+    shuffler::{self, default_shuffle},
     state::Solitaire,
 };
 use rand::prelude::*;
@@ -78,6 +78,35 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| {
             game.do_move(m);
             game.undo_move();
+        })
+    });
+
+    const TOTAL_GAME: u64 = 1000;
+
+    c.bench_function("random_playout", |b| {
+        b.iter(|| {
+            let mut total_win = 0;
+            for i in 0..TOTAL_GAME {
+                let mut game: SolitaireEngine<CyclePruner> =
+                    Solitaire::new(&default_shuffle(i), draw_step).into();
+
+                loop {
+                    if game.state().is_win() {
+                        total_win += 1;
+                        break;
+                    }
+                    let moves = game.list_moves_dom();
+
+                    if moves.is_empty() {
+                        break;
+                    }
+
+                    let m = &moves[0];
+
+                    game.do_move(*m);
+                }
+            }
+            black_box(total_win);
         })
     });
 

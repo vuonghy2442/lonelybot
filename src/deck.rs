@@ -78,6 +78,7 @@ impl Deck {
         (self.mask & ((1 << v) - 1)).count_ones() as u8
     }
 
+    #[must_use]
     pub fn waste_iter(&self) -> impl DoubleEndedIterator<Item = Card> + ExactSizeIterator + '_ {
         self.deck[..self.draw_cur as usize]
             .iter()
