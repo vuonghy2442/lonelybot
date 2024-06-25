@@ -92,7 +92,7 @@ pub(crate) fn print_game(game: &Solitaire) {
             Drawable::Current => format!(">{}", s.on_blue()),
             Drawable::Next => format!("+{}", s.on_bright_blue()),
         };
-        print!("{}{} ", prefix, color(Some(*card)));
+        print!("{}{} ", prefix, color(Some(card)));
     }
     println!();
 

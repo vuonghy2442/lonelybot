@@ -14,7 +14,7 @@ pub const N_DECK_CARDS: u8 = N_CARDS - N_PILE_CARDS;
 
 #[derive(Debug, Clone)]
 pub struct Deck {
-    deck: ArrayVec<Card, { N_DECK_CARDS as usize }>,
+    deck: ArrayVec<u8, { N_DECK_CARDS as usize }>,
     draw_step: NonZeroU8,
     draw_cur: u8, // size of the previous pile
     mask: u32,
@@ -31,14 +31,16 @@ pub enum Drawable {
 impl Deck {
     #[must_use]
     pub fn new(deck: &[Card; N_DECK_CARDS as usize], draw_step: NonZeroU8) -> Self {
+        let deck = deck.map(Card::mask_index);
+
         let mut map = [!0u8; N_CARDS as usize];
         #[allow(clippy::cast_possible_truncation)]
         for (i, c) in deck.iter().enumerate() {
-            map[c.value() as usize] = i as u8;
+            map[*c as usize] = i as u8;
         }
 
         Self {
-            deck: ArrayVec::from(*deck),
+            deck: ArrayVec::from(deck),
             draw_step,
             draw_cur: draw_step.get(),
             mask: full_mask(N_DECK_CARDS) as u32,
@@ -64,35 +66,41 @@ impl Deck {
     #[must_use]
     pub fn find_card(&self, card: Card) -> Option<u8> {
         #[allow(clippy::cast_possible_truncation)]
-        self.deck.iter().position(|x| x == &card).map(|x| x as u8)
+        self.deck
+            .iter()
+            .position(|x| x == &card.mask_index())
+            .map(|x| x as u8)
     }
 
     #[must_use]
     pub fn find_card_fast(&self, card: Card) -> u8 {
-        let v = self.map[card.value() as usize];
+        let v = self.map[card.mask_index() as usize];
         (self.mask & ((1 << v) - 1)).count_ones() as u8
     }
 
-    #[must_use]
-    pub fn get_waste(&self) -> &[Card] {
-        &self.deck[..self.draw_cur as usize]
+    pub fn waste_iter(&self) -> impl DoubleEndedIterator<Item = Card> + ExactSizeIterator + '_ {
+        self.deck[..self.draw_cur as usize]
+            .iter()
+            .map(|x| Card::from_mask_index(*x))
     }
 
     #[must_use]
-    pub fn get_deck(&self) -> &[Card] {
-        &self.deck[self.draw_cur as usize..]
+    pub fn deck_iter(&self) -> impl DoubleEndedIterator<Item = Card> + ExactSizeIterator + '_ {
+        self.deck[self.draw_cur as usize..]
+            .iter()
+            .map(|x| Card::from_mask_index(*x))
     }
 
     #[must_use]
-    pub fn get(&self) -> &[Card] {
-        &self.deck[..]
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = Card> + ExactSizeIterator + '_ {
+        self.deck.iter().map(|x| Card::from_mask_index(*x))
     }
 
     #[must_use]
     pub fn iter_waste(
         &self,
-    ) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> + ExactSizeIterator {
-        self.get_waste().iter().enumerate().map(|x| {
+    ) -> impl DoubleEndedIterator<Item = (u8, Card, Drawable)> + ExactSizeIterator + '_ {
+        self.waste_iter().enumerate().map(|x| {
             #[allow(clippy::cast_possible_truncation)]
             let pos = x.0 as u8;
             (
@@ -112,8 +120,8 @@ impl Deck {
     #[must_use]
     pub fn iter_deck(
         &self,
-    ) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> + ExactSizeIterator {
-        self.get_deck().iter().enumerate().map(|x| {
+    ) -> impl DoubleEndedIterator<Item = (u8, Card, Drawable)> + ExactSizeIterator + '_ {
+        self.deck_iter().enumerate().map(|x| {
             #[allow(clippy::cast_possible_truncation)]
             let pos = x.0 as u8;
             let true_pos = self.draw_cur + pos;
@@ -132,12 +140,12 @@ impl Deck {
     }
 
     #[must_use]
-    pub fn peek(&self, pos: u8) -> &Card {
-        &self.deck[pos as usize]
+    pub fn peek(&self, pos: u8) -> Card {
+        Card::from_mask_index(self.deck[pos as usize])
     }
 
     #[must_use]
-    pub fn iter_all(&self) -> impl DoubleEndedIterator<Item = (u8, &Card, Drawable)> {
+    pub fn iter_all(&self) -> impl DoubleEndedIterator<Item = (u8, Card, Drawable)> + '_ {
         self.iter_waste().chain(self.iter_deck())
     }
 
@@ -171,7 +179,7 @@ impl Deck {
         }
     }
 
-    pub fn iter_callback<T, F: FnMut(u8, &Card) -> ControlFlow<T>>(
+    pub fn iter_callback<T, F: FnMut(u8, u8) -> ControlFlow<T>>(
         &self,
         filter: bool,
         mut func: F,
@@ -185,13 +193,13 @@ impl Deck {
                 }
                 - 1;
             while i < self.len().saturating_sub(1) {
-                func(i, &self.deck[i as usize])?;
+                func(i, self.deck[i as usize])?;
                 i += self.draw_step.get();
             }
         }
 
         if let Some(last) = self.deck.last() {
-            func(self.len() - 1, last)?;
+            func(self.len() - 1, *last)?;
         }
 
         if !filter {
@@ -206,7 +214,7 @@ impl Deck {
             .saturating_sub(1);
 
             while i < end {
-                func(i, &self.deck[i as usize])?;
+                func(i, self.deck[i as usize])?;
                 i += self.draw_step.get();
             }
         }
@@ -214,8 +222,8 @@ impl Deck {
     }
 
     #[must_use]
-    pub fn peek_last(&self) -> Option<&Card> {
-        self.deck.last()
+    pub fn peek_last(&self) -> Option<Card> {
+        self.deck.last().map(|idx: &u8| Card::from_mask_index(*idx))
     }
 
     pub(crate) fn set_offset(&mut self, id: u8) {
@@ -225,13 +233,14 @@ impl Deck {
     fn pop_next(&mut self) -> Card {
         self.draw_cur -= 1;
         let card = self.deck.remove(self.draw_cur as usize);
-        self.mask ^= 1 << self.map[card.value() as usize];
-        card
+        self.mask ^= 1 << self.map[card as usize];
+        Card::from_mask_index(card)
     }
 
     pub(crate) fn push(&mut self, card: Card) {
         // or you can undo
-        self.mask ^= 1 << self.map[card.value() as usize];
+        let card = card.mask_index();
+        self.mask ^= 1 << self.map[card as usize];
         self.deck.insert(self.draw_cur as usize, card);
         self.draw_cur += 1;
     }
@@ -279,7 +288,7 @@ impl Deck {
         for i in 0..N_CARDS {
             let val = self.map[i as usize];
             if val < N_DECK_CARDS && (encode >> val) & 1 == 0 {
-                rev_map[val as usize] = Some(Card::from_value(i));
+                rev_map[val as usize] = Some(i);
             }
         }
 
@@ -312,20 +321,20 @@ impl Deck {
     pub fn peek_waste<const N: usize>(&self) -> ArrayVec<Card, N> {
         let draw_cur = self.get_offset();
         #[allow(clippy::cast_possible_truncation)]
-        self.get_waste()
+        self.deck[..self.draw_cur as usize]
             .split_at(draw_cur.saturating_sub(N as u8).into())
             .1
             .iter()
-            .copied()
+            .map(|idx: &u8| Card::from_mask_index(*idx))
             .collect()
     }
 
     #[must_use]
-    pub fn peek_current(&self) -> Option<&Card> {
+    pub fn peek_current(&self) -> Option<Card> {
         if self.draw_cur == 0 {
             None
         } else {
-            Some(&self.deck[self.draw_cur as usize - 1])
+            Some(Card::from_mask_index(self.deck[self.draw_cur as usize - 1]))
         }
     }
 
@@ -379,7 +388,7 @@ mod tests {
 
                 for filter in [false, true] {
                     deck.iter_callback(filter, |pos, card| {
-                        assert_eq!(deck.peek(pos), card);
+                        assert_eq!(deck.peek(pos), Card::from_mask_index(card));
                         ControlFlow::<()>::Continue(())
                     });
                 }

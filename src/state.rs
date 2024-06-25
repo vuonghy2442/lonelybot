@@ -129,7 +129,7 @@ impl Solitaire {
 
     #[must_use]
     fn get_deck_mask<const DOMINANCE: bool>(&self) -> (u64, bool) {
-        let Some(&last_card) = self.deck.peek_last() else {
+        let Some(last_card) = self.deck.peek_last() else {
             return (0, false);
         };
 
@@ -142,7 +142,7 @@ impl Solitaire {
         let mut mask = 0;
         self.deck
             .iter_callback(filter, |_, card| -> ControlFlow<()> {
-                mask |= card.mask();
+                mask |= 1 << card;
                 ControlFlow::Continue(())
             });
 
@@ -457,7 +457,7 @@ impl Solitaire {
         // hidden
         nonvis_mask |= self.hidden.mask();
 
-        for c in self.deck.get() {
+        for c in self.deck.iter() {
             nonvis_mask |= c.mask();
         }
 
@@ -640,12 +640,12 @@ mod tests {
                     .deck
                     .iter_all()
                     .filter(|x| !matches!(x.2, Drawable::None))
-                    .map(|x| (x.0, *x.1))
+                    .map(|x| (x.0, x.1))
                     .collect::<ArrayVec<(u8, Card), { N_DECK_CARDS as usize }>>();
 
                 test.clear();
                 game.deck.iter_callback(false, |pos, x| {
-                    test.push((pos, *x));
+                    test.push((pos, Card::from_mask_index(x)));
                     ControlFlow::<()>::Continue(())
                 });
 
@@ -686,7 +686,7 @@ mod tests {
                 assert_eq!(game.encode(), state);
 
                 let ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
-                    game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
+                    game.deck.iter_all().map(|x| (x.0, x.1, x.2)).collect();
 
                 let m = *moves.choose(&mut rng).unwrap();
                 let undo = game.do_move(m);
@@ -694,7 +694,7 @@ mod tests {
                 assert_ne!(next_state, state);
                 game.undo_move(m, undo);
                 let new_ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
-                    game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
+                    game.deck.iter_all().map(|x| (x.0, x.1, x.2)).collect();
 
                 assert_eq!(ids, new_ids);
                 let undo_state = game.encode();

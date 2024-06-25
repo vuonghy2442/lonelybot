@@ -118,7 +118,7 @@ impl StandardSolitaire {
     pub fn find_deck_card(&self, card: Card) -> Option<u8> {
         for i in 0..N_DECK_CARDS {
             let offset = self.deck.offset(i);
-            if offset > 0 && *self.deck.peek(offset - 1) == card {
+            if offset > 0 && self.deck.peek(offset - 1) == card {
                 return Some(i);
             }
         }
@@ -169,12 +169,12 @@ impl StandardSolitaire {
 
             (Pos::Deck, Pos::Pile(pos), card) => {
                 pos < N_PILES
-                    && self.deck.peek_current() == Some(&card)
+                    && self.deck.peek_current() == Some(card)
                     && card.go_after(self.piles[pos as usize].last().copied())
             }
             (Pos::Deck, Pos::Stack(suit), card) => {
                 suit < N_SUITS
-                    && self.deck.peek_current() == Some(&card)
+                    && self.deck.peek_current() == Some(card)
                     && card.suit() == suit
                     && self.final_stack.get(suit) == card.rank()
             }

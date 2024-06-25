@@ -94,8 +94,18 @@ impl Card {
     }
 
     #[must_use]
+    pub(crate) const fn mask_index(self) -> u8 {
+        suit_xor_color(self.value())
+    }
+
+    #[must_use]
+    pub(crate) const fn from_mask_index(idx: u8) -> Self {
+        Self(suit_xor_color(idx))
+    }
+
+    #[must_use]
     pub(crate) const fn mask(self) -> u64 {
-        1u64 << suit_xor_color(self.value())
+        1u64 << self.mask_index()
     }
 
     #[must_use]
@@ -103,7 +113,7 @@ impl Card {
         let v = v.trailing_zeros();
         if v < N_CARDS as u32 {
             #[allow(clippy::cast_possible_truncation)]
-            Some(Self::from_value(suit_xor_color(v as u8)))
+            Some(Self::from_mask_index(v as u8))
         } else {
             None
         }

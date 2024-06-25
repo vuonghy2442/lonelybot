@@ -39,7 +39,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let m = *moves.choose(&mut rng).unwrap();
 
-    let card = game.state().get_deck().get().iter().next().unwrap();
+    let card = game.state().get_deck().iter().next().unwrap();
 
     c.bench_function("gen_moves", |b| {
         b.iter(|| {
@@ -58,7 +58,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("find_card", |b| {
         b.iter(|| {
-            sample_deck.find_card(*card).expect("okay");
+            black_box(sample_deck.find_card_fast(card));
         })
     });
 

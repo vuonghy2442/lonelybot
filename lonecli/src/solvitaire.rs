@@ -55,11 +55,11 @@ impl fmt::Display for Solvitaire {
 
         write!(f, "],\"stock\": [")?;
 
-        for c in self.0.get_deck().get().iter().rev().enumerate() {
+        for c in self.0.get_deck().iter().rev().enumerate() {
             if c.0 > 0 {
                 write!(f, ",")?;
             }
-            write!(f, "{}", SolvitaireCard::<false>(*c.1))?;
+            write!(f, "{}", SolvitaireCard::<false>(c.1))?;
         }
         write!(f, "]")?;
 
