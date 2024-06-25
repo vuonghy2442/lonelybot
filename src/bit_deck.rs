@@ -1,0 +1,201 @@
+use core::num::NonZeroU8;
+
+use arrayvec::ArrayVec;
+use bitintr::Pdep;
+use static_assertions::const_assert;
+
+use crate::{
+    card::{Card, N_CARDS},
+    deck::{Deck, N_DECK_CARDS},
+    utils::full_mask,
+};
+
+#[derive(Debug, Clone)]
+pub struct BitDeck {
+    // fixed
+    deck: [u8; N_DECK_CARDS as usize],
+    draw_step: NonZeroU8,
+    map: [u8; N_CARDS as usize],
+    skip_mask: u32,
+
+    // modifying
+    draw_cur: u8,
+    mask: u32,
+}
+
+const fn gap_bit_mask(gap: u8) -> u32 {
+    let mut mask: u32 = 1 << gap;
+    let mut shift = gap + 1;
+
+    while shift < 32 {
+        mask |= mask << shift;
+        shift <<= 1;
+    }
+
+    mask
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Drawable {
+    None,
+    Current,
+    Next,
+}
+
+impl BitDeck {
+    #[must_use]
+    pub fn new(deck: &[Card; N_DECK_CARDS as usize], draw_step: NonZeroU8) -> Self {
+        let mut map = [!0u8; N_CARDS as usize];
+        #[allow(clippy::cast_possible_truncation)]
+        for (i, c) in deck.iter().enumerate() {
+            map[c.value() as usize] = i as u8;
+        }
+        let mask: u32 = full_mask(N_DECK_CARDS) as u32;
+        let skip_mask = gap_bit_mask(draw_step.get() - 1);
+
+        Self {
+            deck: deck.map(Card::mask_index),
+            draw_step,
+            skip_mask,
+            map,
+            draw_cur: draw_step.get(),
+            mask,
+        }
+    }
+
+    #[must_use]
+    pub const fn draw_step(&self) -> NonZeroU8 {
+        self.draw_step
+    }
+
+    #[must_use]
+    pub const fn len(&self) -> u8 {
+        self.mask.count_ones() as u8
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.mask == 0
+    }
+
+    #[must_use]
+    pub(crate) const fn find_card(&self, card: Card) -> u8 {
+        // return !0 if can't find :)
+        self.map[card.value() as usize]
+    }
+
+    pub(crate) fn set_offset(&mut self, id: u8) {
+        self.draw_cur = id;
+    }
+
+    pub(crate) fn pop_next(&mut self) {
+        let m = (1 << self.draw_cur) >> 1;
+        self.mask ^= m;
+        self.draw_cur = (self.mask & (m.wrapping_sub(1))).count_ones() as u8; //it will be self.len when m == 0
+    }
+
+    pub(crate) fn push(&mut self, pos: u8, new_draw_cur: u8) {
+        // or you can undo
+        self.mask ^= 1 << pos;
+        self.draw_cur = new_draw_cur;
+    }
+
+    pub(crate) fn drawable_mask(&self, filter: bool) -> u32 {
+        let mask =
+            (self.skip_mask << self.draw_cur) | (((1 << self.draw_cur) | (1 << self.len())) >> 1);
+        let mask = mask | if filter { 0 } else { self.skip_mask };
+
+        mask.pdep(self.mask)
+    }
+
+    pub(crate) fn get_card_mask(&self, mut mask: u32) -> u64 {
+        let mut res = 0;
+        while mask > 0 {
+            let pos = mask.trailing_zeros();
+            res |= 1 << self.deck[pos as usize];
+            mask &= mask - 1;
+        }
+        res
+    }
+
+    pub const fn full_mask(&self) -> u32 {
+        self.mask
+    }
+
+    #[must_use]
+    pub fn peek(&self, pos: u8) -> Card {
+        Card::from_mask_index(self.deck[pos as usize])
+    }
+
+    pub(crate) fn peek_last(&self) -> Option<Card> {
+        if let Some(p) = self.mask.checked_ilog2() {
+            Some(Card::from_mask_index(self.deck[p as usize]))
+        } else {
+            None
+        }
+    }
+
+    #[must_use]
+    pub(crate) const fn get_offset(&self) -> u8 {
+        self.draw_cur
+    }
+
+    #[must_use]
+    pub const fn is_pure(&self) -> bool {
+        // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
+        self.draw_cur % self.draw_step.get() == 0 || self.draw_cur == self.len()
+    }
+
+    #[must_use]
+    pub(crate) const fn normalized_offset(&self) -> u8 {
+        // this is the standardized version
+        if self.is_pure() {
+            self.len()
+        } else {
+            self.draw_cur
+        }
+    }
+
+    #[must_use]
+    pub const fn encode(&self) -> u32 {
+        const_assert!(((N_DECK_CARDS - 1).ilog2() + 1 + N_DECK_CARDS as u32) <= 32);
+        // assert the number of bits
+        // 29 bits
+        self.mask | ((self.normalized_offset() as u32) << N_DECK_CARDS)
+    }
+
+    pub(crate) fn decode(&mut self, encode: u32) {
+        let mask = encode & ((1 << N_DECK_CARDS) - 1);
+        let offset = (encode >> N_DECK_CARDS) as u8;
+
+        self.mask = mask;
+        self.set_offset(offset);
+        self.mask = mask;
+    }
+
+    pub(crate) fn draw(&mut self, id: u8) {
+        self.set_offset(id + 1);
+        self.pop_next();
+    }
+
+    #[cfg(test)]
+    pub fn equivalent_to(&self, other: &Self) -> bool {
+        return true; // TODO: fix this
+    }
+}
+
+impl From<&BitDeck> for Deck {
+    fn from(value: &BitDeck) -> Self {
+        // TODO: Fix this :))
+        Self::new(&value.deck.map(Card::from_mask_index), value.draw_step)
+    }
+}
+
+impl From<&Deck> for BitDeck {
+    fn from(value: &Deck) -> Self {
+        // TODO: Fix this :))
+        let tmp: ArrayVec<Card, { N_DECK_CARDS as usize }> = value.deck_iter().collect();
+
+        Self::new(tmp[..].try_into().unwrap(), value.draw_step())
+    }
+}
