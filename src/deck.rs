@@ -5,7 +5,7 @@ use static_assertions::const_assert;
 
 use crate::{
     card::{Card, N_CARDS},
-    utils::min,
+    utils::{full_mask, min},
 };
 
 pub const N_PILES: u8 = 7;
@@ -41,7 +41,7 @@ impl Deck {
             deck: ArrayVec::from(*deck),
             draw_step,
             draw_cur: draw_step.get(),
-            mask: 0,
+            mask: full_mask(N_DECK_CARDS) as u32,
             map,
         }
     }
@@ -65,6 +65,12 @@ impl Deck {
     pub fn find_card(&self, card: Card) -> Option<u8> {
         #[allow(clippy::cast_possible_truncation)]
         self.deck.iter().position(|x| x == &card).map(|x| x as u8)
+    }
+
+    #[must_use]
+    pub fn find_card_fast(&self, card: Card) -> u8 {
+        let v = self.map[card.value() as usize];
+        (self.mask & ((1 << v) - 1)).count_ones() as u8
     }
 
     #[must_use]
