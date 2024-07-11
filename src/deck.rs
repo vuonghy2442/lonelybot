@@ -28,23 +28,27 @@ pub enum Drawable {
     Next,
 }
 
+pub(crate) fn compute_map(deck: &[u8]) -> [u8; N_CARDS as usize] {
+    assert!(deck.len() < u8::MAX as usize);
+    let mut map = [u8::MAX; N_CARDS as usize];
+    #[allow(clippy::cast_possible_truncation)]
+    for (i, &c) in deck.iter().enumerate() {
+        map[c as usize] = i as u8;
+    }
+    map
+}
+
 impl Deck {
     #[must_use]
-    pub fn new(deck: &[Card; N_DECK_CARDS as usize], draw_step: NonZeroU8) -> Self {
-        let deck = deck.map(Card::mask_index);
-
-        let mut map = [!0u8; N_CARDS as usize];
-        #[allow(clippy::cast_possible_truncation)]
-        for (i, c) in deck.iter().enumerate() {
-            map[*c as usize] = i as u8;
-        }
-
+    pub fn new(deck: &[Card], draw_step: NonZeroU8) -> Self {
+        let deck: ArrayVec<u8, { N_DECK_CARDS as usize }> =
+            deck.iter().copied().map(Card::mask_index).collect();
         Self {
-            deck: ArrayVec::from(deck),
+            map: compute_map(&deck),
+            deck,
             draw_step,
             draw_cur: 0,
             mask: full_mask(N_DECK_CARDS) as u32,
-            map,
         }
     }
 
@@ -238,14 +242,6 @@ impl Deck {
         Card::from_mask_index(card)
     }
 
-    pub(crate) fn push(&mut self, card: Card) {
-        // or you can undo
-        let card = card.mask_index();
-        self.mask ^= 1 << self.map[card as usize];
-        self.deck.insert(self.draw_cur as usize, card);
-        self.draw_cur += 1;
-    }
-
     pub(crate) fn draw(&mut self, id: u8) -> Card {
         self.set_offset(id + 1);
         self.pop_next()
@@ -278,32 +274,6 @@ impl Deck {
         // assert the number of bits
         // 29 bits
         self.mask | ((self.normalized_offset() as u32) << N_DECK_CARDS)
-    }
-
-    pub(crate) fn decode(&mut self, encode: u32) {
-        let mask = encode & ((1 << N_DECK_CARDS) - 1);
-        let offset = (encode >> N_DECK_CARDS) as u8;
-
-        let mut rev_map = [None; N_DECK_CARDS as usize];
-
-        for i in 0..N_CARDS {
-            let val = self.map[i as usize];
-            if val < N_DECK_CARDS && (encode >> val) & 1 == 0 {
-                rev_map[val as usize] = Some(i);
-            }
-        }
-
-        let mut pos: u8 = 0;
-
-        for c in rev_map.into_iter().flatten() {
-            self.deck[pos as usize] = c;
-            pos += 1;
-        }
-
-        self.deck.truncate(pos as usize);
-
-        self.set_offset(offset);
-        self.mask = mask;
     }
 
     #[cfg(test)]

@@ -1,5 +1,4 @@
 use core::num::NonZeroU8;
-use core::ops::ControlFlow;
 
 use rand::RngCore;
 
@@ -603,103 +602,109 @@ impl From<&StandardSolitaire> for Solitaire {
 #[cfg(test)]
 mod tests {
     use arrayvec::ArrayVec;
+    use core::ops::ControlFlow;
     use rand::prelude::*;
 
-    use crate::deck::{Drawable, N_DECK_CARDS};
+    use crate::deck::{Deck, Drawable, N_DECK_CARDS};
     use crate::moves::N_MOVES_MAX;
     use crate::shuffler::default_shuffle;
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
-    // #[test]
-    // fn test_draw_unrolling() {
-    //     let mut rng = StdRng::seed_from_u64(14);
+    #[test]
+    fn test_draw_unrolling() {
+        let mut rng = StdRng::seed_from_u64(14);
 
-    //     let mut test = ArrayVec::<(u8, Card), { N_DECK_CARDS as usize }>::new();
-    //     for i in 0..100 {
-    //         let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
-    //         for _ in 0..100 {
-    //             let mut stack_mask: u64 = 0;
-    //             // fill in final stack
-    //             for suit in 0..N_SUITS {
-    //                 let rank = game.final_stack.get(suit);
-    //                 stack_mask |= Card::new(rank, suit).mask();
-    //             }
-    //             assert_eq!(stack_mask, game.final_stack.mask());
+        let mut test = ArrayVec::<(u8, Card), { N_DECK_CARDS as usize }>::new();
+        for i in 0..100 {
+            let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
+            for _ in 0..100 {
+                let mut stack_mask: u64 = 0;
+                // fill in final stack
+                for suit in 0..N_SUITS {
+                    let rank = game.final_stack.get(suit);
+                    stack_mask |= Card::new(rank, suit).mask();
+                }
+                assert_eq!(stack_mask, game.final_stack.mask());
 
-    //             let mut truth = game
-    //                 .deck
-    //                 .iter_all()
-    //                 .filter(|x| !matches!(x.2, Drawable::None))
-    //                 .map(|x| (x.0, *x.1))
-    //                 .collect::<ArrayVec<(u8, Card), { N_DECK_CARDS as usize }>>();
+                let mut truth = Into::<Deck>::into(&game.deck)
+                    .iter_all()
+                    .filter(|x| !matches!(x.2, Drawable::None))
+                    .map(|x| (x.0, x.1))
+                    .collect::<ArrayVec<(u8, Card), { N_DECK_CARDS as usize }>>();
 
-    //             test.clear();
-    //             game.deck.iter_callback(false, |pos, x| {
-    //                 test.push((pos, *x));
-    //                 ControlFlow::<()>::Continue(())
-    //             });
+                test.clear();
+                Into::<Deck>::into(&game.deck).iter_callback(false, |pos, x| {
+                    test.push((pos, Card::from_mask_index(x)));
+                    ControlFlow::<()>::Continue(())
+                });
 
-    //             test.sort_by_key(|x| x.0);
-    //             truth.sort_by_key(|x| x.0);
+                test.sort_by_key(|x| x.0);
+                truth.sort_by_key(|x| x.0);
 
-    //             assert_eq!(test, truth);
+                assert_eq!(test, truth);
 
-    //             let moves = game.gen_moves::<false>().to_vec::<N_MOVES_MAX>();
-    //             if moves.is_empty() {
-    //                 break;
-    //             }
-    //             game.do_move(*moves.choose(&mut rng).unwrap());
-    //         }
-    //     }
-    // }
+                let moves = game.gen_moves::<false>().to_vec::<N_MOVES_MAX>();
+                if moves.is_empty() {
+                    break;
+                }
+                game.do_move(*moves.choose(&mut rng).unwrap());
+            }
+        }
+    }
 
-    // #[test]
-    // fn test_undoing() {
-    //     let mut rng = StdRng::seed_from_u64(14);
+    #[test]
+    fn test_undoing() {
+        let mut rng = StdRng::seed_from_u64(14);
 
-    //     for i in 0..1000 {
-    //         let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
-    //         for _ in 0..100 {
-    //             let moves = game.gen_moves::<false>().to_vec::<N_MOVES_MAX>();
-    //             if moves.is_empty() {
-    //                 break;
-    //             }
+        for i in 0..1000 {
+            let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
+            for _ in 0..100 {
+                let moves = game.gen_moves::<false>().to_vec::<N_MOVES_MAX>();
+                if moves.is_empty() {
+                    break;
+                }
 
-    //             let state = game.encode();
-    //             game.decode(state);
-    //             assert!(game.is_valid());
+                let state = game.encode();
+                game.decode(state);
+                assert!(game.is_valid());
 
-    //             let mut gg = game.clone();
-    //             gg.hidden.clear();
-    //             assert!(gg.is_valid());
+                let mut gg = game.clone();
+                gg.hidden.clear();
+                assert!(gg.is_valid());
 
-    //             assert_eq!(game.encode(), state);
+                assert_eq!(game.encode(), state);
 
-    //             let ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
-    //                 game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
+                let ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
+                    Into::<Deck>::into(&game.deck)
+                        .iter_all()
+                        .map(|x| (x.0, x.1, x.2))
+                        .collect();
 
-    //             let m = *moves.choose(&mut rng).unwrap();
-    //             let undo = game.do_move(m);
-    //             let next_state = game.encode();
-    //             assert_ne!(next_state, state);
-    //             game.undo_move(m, undo);
-    //             let new_ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
-    //                 game.deck.iter_all().map(|x| (x.0, *x.1, x.2)).collect();
+                let m = *moves.choose(&mut rng).unwrap();
+                let undo = game.do_move(m);
+                let next_state = game.encode();
+                assert_ne!(next_state, state);
+                game.undo_move(m, undo);
+                let new_ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
+                    Into::<Deck>::into(&game.deck)
+                        .iter_all()
+                        .map(|x| (x.0, x.1, x.2))
+                        .collect();
 
-    //             assert_eq!(ids, new_ids);
-    //             let undo_state = game.encode();
-    //             assert_eq!(undo_state, state);
-    //             game.decode(state);
-    //             assert_eq!(game.encode(), state);
-    //             assert!(game.equivalent_to(&gg));
+                assert_eq!(ids, new_ids);
+                let undo_state = game.encode();
+                assert_eq!(undo_state, state);
+                game.decode(state);
+                assert_eq!(game.encode(), state);
+                assert!(game.equivalent_to(&gg));
 
-    //             game.do_move(m);
-    //             assert_eq!(game.encode(), next_state);
-    //         }
-    //     }
-    // }
+                game.do_move(m);
+                assert_eq!(game.encode(), next_state);
+            }
+        }
+    }
 
     #[test]
     fn test_deep_undoing() {
