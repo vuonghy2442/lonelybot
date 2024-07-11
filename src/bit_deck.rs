@@ -6,14 +6,14 @@ use static_assertions::const_assert;
 
 use crate::{
     card::{Card, N_CARDS},
-    deck::{Deck, N_DECK_CARDS},
+    deck::{compute_map, Deck, N_DECK_CARDS},
     utils::full_mask,
 };
 
 #[derive(Debug, Clone)]
 pub struct BitDeck {
     // fixed
-    deck: [u8; N_DECK_CARDS as usize],
+    deck: [Card; N_DECK_CARDS as usize],
     draw_step: NonZeroU8,
     map: [u8; N_CARDS as usize],
     skip_mask: u32,
@@ -44,22 +44,14 @@ pub enum Drawable {
 
 impl BitDeck {
     #[must_use]
-    pub fn new(deck: &[Card; N_DECK_CARDS as usize], draw_step: NonZeroU8) -> Self {
-        let mut map = [!0u8; N_CARDS as usize];
-        #[allow(clippy::cast_possible_truncation)]
-        for (i, c) in deck.iter().enumerate() {
-            map[c.mask_index() as usize] = i as u8;
-        }
-        let mask: u32 = full_mask(N_DECK_CARDS) as u32;
-        let skip_mask = gap_bit_mask(draw_step.get() - 1);
-
+    pub fn new(deck: [Card; N_DECK_CARDS as usize], draw_step: NonZeroU8) -> Self {
         Self {
-            deck: deck.map(Card::mask_index),
+            map: compute_map(&deck),
+            deck,
             draw_step,
-            skip_mask,
-            map,
+            skip_mask: gap_bit_mask(draw_step.get() - 1),
             draw_cur: draw_step.get(),
-            mask,
+            mask: full_mask(N_DECK_CARDS) as u32,
         }
     }
 
@@ -112,7 +104,7 @@ impl BitDeck {
         let mut res = 0;
         while mask > 0 {
             let pos = mask.trailing_zeros();
-            res |= 1 << self.deck[pos as usize];
+            res |= self.deck[pos as usize].mask();
             mask &= mask - 1;
         }
         res
@@ -124,12 +116,12 @@ impl BitDeck {
 
     #[must_use]
     pub fn peek(&self, pos: u8) -> Card {
-        Card::from_mask_index(self.deck[pos as usize])
+        self.deck[pos as usize]
     }
 
     pub(crate) fn peek_last(&self) -> Option<Card> {
         if let Some(p) = self.mask.checked_ilog2() {
-            Some(Card::from_mask_index(self.deck[p as usize]))
+            Some(self.deck[p as usize])
         } else {
             None
         }
@@ -180,22 +172,46 @@ impl BitDeck {
 
     #[cfg(test)]
     pub fn equivalent_to(&self, other: &Self) -> bool {
-        return true; // TODO: fix this
+        Into::<Deck>::into(self).equivalent_to(&other.into())
     }
 }
 
 impl From<&BitDeck> for Deck {
     fn from(value: &BitDeck) -> Self {
-        // TODO: Fix this :))
-        Self::new(value.deck.map(Card::from_mask_index), value.draw_step)
+        let mut deck = ArrayVec::<Card, { N_DECK_CARDS as usize }>::new();
+
+        let mut mask = value.mask;
+
+        while mask > 0 {
+            let pos = mask.trailing_zeros();
+            deck.push(value.deck[pos as usize]);
+            mask &= mask - 1;
+        }
+
+        let mut deck = Deck::new(&deck, value.draw_step);
+        deck.set_offset(value.get_offset());
+        deck
     }
 }
 
 impl From<&Deck> for BitDeck {
     fn from(value: &Deck) -> Self {
         // TODO: Fix this :))
-        let tmp: ArrayVec<Card, { N_DECK_CARDS as usize }> = value.deck_iter().collect();
+        let mut deck: ArrayVec<Card, { N_DECK_CARDS as usize }> = value.iter().collect();
+        let n_cards = deck.len();
 
-        Self::new(tmp[..].try_into().unwrap(), value.draw_step())
+        while !deck.is_full() {
+            deck.push(Card::DEFAULT)
+        }
+
+        let draw_step = value.draw_step();
+        Self {
+            map: compute_map(&deck[..n_cards]),
+            deck: deck.into_inner().unwrap(),
+            draw_step,
+            skip_mask: gap_bit_mask(draw_step.get() - 1),
+            draw_cur: value.get_offset(),
+            mask: full_mask(n_cards as u8) as u32,
+        }
     }
 }

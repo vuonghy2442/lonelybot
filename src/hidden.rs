@@ -298,6 +298,7 @@ impl Hidden {
         true
     }
 
+    #[cfg(test)]
     #[must_use]
     pub(crate) fn normalize(&self) -> [u8; N_PILES as usize] {
         #[allow(clippy::cast_possible_truncation)]
