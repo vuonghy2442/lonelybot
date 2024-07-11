@@ -30,7 +30,7 @@ impl Hidden {
             first_layer_mask |= p[0].mask();
 
             for c in p {
-                pile_map[usize::from(c.value())] = i;
+                pile_map[usize::from(c.mask_index())] = i;
             }
         }
 
@@ -63,7 +63,7 @@ impl Hidden {
                 }
 
                 hidden_piles[(i * (i + 1) / 2) as usize + j] = *c;
-                pile_map[c.value() as usize] = i;
+                pile_map[c.mask_index() as usize] = i;
             }
         }
 
@@ -154,7 +154,7 @@ impl Hidden {
 
     #[must_use]
     pub(crate) const fn find(&self, c: Card) -> u8 {
-        self.pile_map[c.value() as usize]
+        self.pile_map[c.mask_index() as usize]
     }
 
     #[must_use]
@@ -195,7 +195,7 @@ impl Hidden {
     fn update_map(&mut self) {
         for pos in 0..N_PILES {
             for c in &self.hidden_piles[self.get_range(pos)] {
-                self.pile_map[c.value() as usize] = pos;
+                self.pile_map[c.mask_index() as usize] = pos;
             }
         }
     }
@@ -264,7 +264,7 @@ impl Hidden {
     pub(crate) fn is_valid(&self) -> bool {
         for pos in 0..N_PILES {
             for c in self.get(pos) {
-                if self.pile_map[c.value() as usize] != pos {
+                if self.pile_map[c.mask_index() as usize] != pos {
                     return false;
                 }
             }

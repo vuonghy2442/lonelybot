@@ -31,12 +31,8 @@ impl Card {
     #[must_use]
     pub const fn new(rank: u8, suit: u8) -> Self {
         debug_assert!(rank <= N_RANKS && suit < N_SUITS);
-        Self(rank * N_SUITS + suit)
-    }
-
-    #[must_use]
-    pub const fn from_value(value: u8) -> Self {
-        Self(value)
+        let value = rank * N_SUITS + suit;
+        Self(suit_xor_color(value))
     }
 
     #[must_use]
@@ -52,12 +48,7 @@ impl Card {
 
     #[must_use]
     pub const fn suit(self) -> u8 {
-        self.0 % N_SUITS
-    }
-
-    #[must_use]
-    pub const fn value(self) -> u8 {
-        self.0
+        suit_xor_color(self.0) % N_SUITS
     }
 
     #[must_use]
@@ -87,7 +78,7 @@ impl Card {
         if let Some(other) = other {
             // let card_b = other.split();
             // card_a.0 == card_b.0 + 1 && (card_a.1 ^ card_b.1) & 2 == 2
-            ((self.0 + N_SUITS) ^ other.0 ^ 2) < 2
+            ((self.0 + N_SUITS) ^ other.0) < 2
         } else {
             self.is_king()
         }
@@ -95,12 +86,12 @@ impl Card {
 
     #[must_use]
     pub(crate) const fn mask_index(self) -> u8 {
-        suit_xor_color(self.value())
+        self.0
     }
 
     #[must_use]
     pub(crate) const fn from_mask_index(idx: u8) -> Self {
-        Self(suit_xor_color(idx))
+        Self(idx)
     }
 
     #[must_use]
