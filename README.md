@@ -60,12 +60,12 @@ Example output
 Do random roll-outs on 10000 different games from seed to seed + 10000 to see how many games it can win
 
 ```sh
-lonecli random [seed_type] [seed]
+lonecli random [seed_type] [seed] [draw_step]
 ```
 
 Example run
 ```
-lonecli random default 0
+lonecli random default 0 3
 ```
 
 Example output
@@ -111,12 +111,12 @@ The format:
 
 ### Bench
 ```sh
-lonecli bench [seed_type] [seed]
+lonecli bench [seed_type] [seed] [draw_step]
 ```
 
 Example input
 ```sh
-lonecli bench default 25
+lonecli bench default 25 3
 ```
 
 Example output
@@ -129,14 +129,14 @@ The first number is the number of move made. The second one is the rate of move 
 ### Solve
 
 ```sh
-lonecli solve [seed_type] [seed]
+lonecli solve [seed_type] [seed] [draw_step]
 ```
 
 First it will print the game. Then it will solve it.
 
 Example run
 ```sh
-lonecli solve default 41
+lonecli solve default 41 3
 ```
 
 Example impossible output
@@ -164,7 +164,7 @@ The progress consists of:
 
 Example run
 ```sh
-lonecli solve default 12
+lonecli solve default 12 3
 ```
 
 Example solved output
@@ -200,7 +200,7 @@ Note that, currently, my code assumes that the first draw is automatically done 
 
 ### Solve loop
 ```sh
-lonecli rate [seed_type] [seed]
+lonecli rate [seed_type] [seed] [draw_step]
 ```
 
 This will sequentially solve the random game generate from seed, seed+1,...
@@ -211,7 +211,7 @@ To terminate the whole process, pressing ctrl-C twice in a short amount of time 
 
 Example run
 ```sh
-lonecli rate default 0
+lonecli rate default 0 3
 ```
 
 Example output
@@ -242,12 +242,12 @@ Due the optimizations, the available actions are quite unusual, and performing t
 
 
 ```sh
-lonecli play [seed_type] [seed]
+lonecli play [seed_type] [seed] [draw_step]
 ```
 
 Example run
 ```sh
-lonecli play default 0
+lonecli play default 0 3
 ```
 
 Example output
@@ -280,12 +280,12 @@ There are currently 5 types of move:
 ### HOP solver
 In this mode it will try to solve the game with no undo. (actually it is using something more like MCTS not HOP)
 ```sh
-lonecli hop [seed_type] [seed]
+lonecli hop [seed_type] [seed] [draw_step]
 ```
 
 Example run
 ```sh
-lonecli hop default 0
+lonecli hop default 0 3
 ```
 
 Example output
@@ -299,7 +299,7 @@ Solved
 
 Example run
 ```sh
-lonecli hop default 6
+lonecli hop default 6 3
 ```
 
 Example output
@@ -313,13 +313,13 @@ Lost
 
 ### HOP loop
 ```sh
-lonecli hop-loop [seed_type] [seed]
+lonecli hop-loop [seed_type] [seed] [draw_step]
 ```
 
 - In this mode it will try to solve the game with no undo from the given seed and moving on to the next seed
 Example run
 ```sh
-lonecli hop-loop default 0
+lonecli hop-loop default 0 3
 ```
 
 Example output
@@ -335,12 +335,12 @@ Example output
 ### Graph
 Create a game graph of the game from the seed
 ```sh
-lonecli graph [seed_type] [seed] [file.csv]
+lonecli graph [seed_type] [seed] [draw_step] [file.csv]
 ```
 
 Example run
 ```sh
-lonecli graph klondike-solver 338 test.csv
+lonecli graph klondike-solver 338 3 test.csv
 ```
 
 Example output
