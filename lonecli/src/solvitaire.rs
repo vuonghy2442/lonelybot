@@ -89,10 +89,10 @@ impl fmt::Display for Solvitaire {
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroU8;
+
     use lonelybot::{shuffler, standard::StandardSolitaire};
     use serde_json::{json, Value};
-
-    use crate::DRAW_STEP;
 
     use super::Solvitaire;
 
@@ -100,7 +100,7 @@ mod tests {
     fn test_solvitaire_format() {
         let game = Solvitaire(StandardSolitaire::new(
             &shuffler::default_shuffle(0),
-            DRAW_STEP,
+            NonZeroU8::new(3).unwrap(),
         ));
         let obj: Value = serde_json::from_str(game.to_string().as_str()).unwrap();
 
