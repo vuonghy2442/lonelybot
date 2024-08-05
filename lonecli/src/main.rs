@@ -474,7 +474,7 @@ fn main() {
             println!("{}", Solvitaire(g));
         }
         Commands::Solve { seed, draw_step } => {
-            test_solve(&seed.into(), *draw_step, &handling_signal())
+            test_solve(&seed.into(), *draw_step, &handling_signal());
         }
         Commands::Graph {
             seed,
@@ -484,7 +484,7 @@ fn main() {
         Commands::Play { seed, draw_step } => game_loop(&seed.into(), *draw_step),
         Commands::Bench { seed, draw_step } => benchmark(&seed.into(), *draw_step),
         Commands::Rate { seed, draw_step } => {
-            solve_loop(&seed.into(), *draw_step, &handling_signal())
+            solve_loop(&seed.into(), *draw_step, &handling_signal());
         }
         Commands::Exact { seed } => {
             let shuffled_deck = shuffle(&seed.into());
