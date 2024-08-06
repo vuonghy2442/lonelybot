@@ -305,7 +305,7 @@ impl Solitaire {
     }
 
     /// # Panics
-    ///  
+    ///
     /// Panic when the card mask is not a card in the deck
     /// It doesn't check if the card is drawable
     fn make_stack<const DECK: bool>(&mut self, card: Card) -> UndoInfo {
@@ -397,7 +397,7 @@ impl Solitaire {
     }
 
     /// # Panics
-    ///  
+    ///
     /// May panic when the move is invalid
     /// But it may do the move even when it's invalid so be careful for using this function
     pub(crate) fn do_move(&mut self, m: Move) -> UndoInfo {
@@ -513,7 +513,7 @@ impl Solitaire {
                 }
 
                 let has_both = start_card.swap_suit().mask() & self.visible_mask != 0;
-                let next_card = start_card.reduce_rank().swap_color();
+                let next_card = start_card.reduce_rank_swap_color();
 
                 start_card = if !has_both && non_top & next_card.mask() == 0 {
                     // not a possible cards => switch suit

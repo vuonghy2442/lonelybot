@@ -69,7 +69,7 @@ impl Card {
     }
 
     #[must_use]
-    pub const fn reduce_rank(self) -> Self {
+    pub const fn reduce_rank_swap_color(self) -> Self {
         Self(self.0.saturating_sub(N_SUITS))
     }
 
