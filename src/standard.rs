@@ -116,7 +116,7 @@ impl StandardSolitaire {
 
     #[must_use]
     pub fn find_deck_card(&self, card: Card) -> Option<u8> {
-        for i in 0..N_DECK_CARDS {
+        for i in 0..=N_DECK_CARDS {
             let offset = self.deck.offset(i);
             if offset > 0 && self.deck.peek(offset - 1) == card {
                 return Some(i);
