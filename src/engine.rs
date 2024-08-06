@@ -39,6 +39,11 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
     }
 
     #[must_use]
+    pub fn into_state(self) -> Solitaire {
+        self.state
+    }
+
+    #[must_use]
     pub const fn pruner(&self) -> &P {
         &self.pruner
     }

@@ -55,7 +55,15 @@ impl fmt::Display for Solvitaire {
 
         write!(f, "],\"stock\": [")?;
 
-        for c in self.0.get_deck().iter().rev().enumerate() {
+        for c in self.0.get_deck().deck_iter().rev().enumerate() {
+            if c.0 > 0 {
+                write!(f, ",")?;
+            }
+            write!(f, "{}", SolvitaireCard::<false>(c.1))?;
+        }
+        write!(f, "],\"waste\": [")?;
+
+        for c in self.0.get_deck().waste_iter().enumerate() {
             if c.0 > 0 {
                 write!(f, ",")?;
             }
@@ -115,6 +123,7 @@ mod tests {
             ["10c","3h","4d","4h","6c","QS"],
             ["7d","3c","6h","5c","10h","9c","3S"]
             ],"stock": ["JD","10D","7S","10S","AD","8S","JH","2D","AS","3D","9D","9H","6D","KS","QH","2H","2S","4S","4C","KH","2C","8H","8D","QC"],
+            "waste": [],
             "foundation": [[],[],[],[]]})
         );
     }
