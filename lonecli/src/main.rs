@@ -253,6 +253,47 @@ fn test_solve(seed: &Seed, draw_step: NonZeroU8, terminated: &Arc<AtomicBool>) {
     }
 }
 
+fn rand_solve(seed: &Seed, draw_step: NonZeroU8, start_seed: u64, terminated: &Arc<AtomicBool>) {
+    let shuffled_deck = shuffle(seed);
+
+    let g: Solitaire = Solitaire::new(&shuffled_deck, draw_step);
+
+    let mut game: SolitaireEngine<CyclePruner> = g.into();
+    let mut rng = StdRng::seed_from_u64(start_seed);
+
+    loop {
+        if rng.gen_bool(0.1) || game.state().is_win() {
+            break;
+        }
+        let moves = game.list_moves_dom();
+
+        let Some(m) = moves.choose(&mut rng) else {
+            break;
+        };
+
+        game.do_move(*m);
+    }
+
+    println!("{}", Solvitaire(game.state().into()));
+
+    let now = Instant::now();
+    let res = solver::run_solve(game.into_state(), true, terminated);
+    println!("Run in {} ms", now.elapsed().as_secs_f64() * 1000f64);
+    println!("Statistic\n{}", res.1);
+    match res.0 {
+        SearchResult::Solved => {
+            let m = res.2.unwrap();
+            println!("Solvable in {} moves", m.len());
+            for x in m {
+                print!("{x}, ");
+            }
+        }
+        SearchResult::Unsolvable => println!("Impossible"),
+        SearchResult::Terminated => println!("Terminated"),
+        SearchResult::Crashed => println!("Crashed"),
+    }
+}
+
 fn test_graph(seed: &Seed, draw_step: NonZeroU8, path: &String, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = shuffle(seed);
 
@@ -426,6 +467,13 @@ enum Commands {
         draw_step: NonZeroU8,
     },
 
+    RandSolve {
+        #[command(flatten)]
+        seed: StringSeed,
+        draw_step: NonZeroU8,
+        start_seed: u64,
+    },
+
     Graph {
         #[command(flatten)]
         seed: StringSeed,
@@ -474,7 +522,14 @@ fn main() {
             println!("{}", Solvitaire(g));
         }
         Commands::Solve { seed, draw_step } => {
-            test_solve(&seed.into(), *draw_step, &handling_signal())
+            test_solve(&seed.into(), *draw_step, &handling_signal());
+        }
+        Commands::RandSolve {
+            seed,
+            draw_step,
+            start_seed,
+        } => {
+            rand_solve(&seed.into(), *draw_step, *start_seed, &handling_signal());
         }
         Commands::Graph {
             seed,
@@ -484,7 +539,7 @@ fn main() {
         Commands::Play { seed, draw_step } => game_loop(&seed.into(), *draw_step),
         Commands::Bench { seed, draw_step } => benchmark(&seed.into(), *draw_step),
         Commands::Rate { seed, draw_step } => {
-            solve_loop(&seed.into(), *draw_step, &handling_signal())
+            solve_loop(&seed.into(), *draw_step, &handling_signal());
         }
         Commands::Exact { seed } => {
             let shuffled_deck = shuffle(&seed.into());

@@ -196,7 +196,6 @@ The source and destination is formatted as:
 - 1..7: Pile (the 1-indexed tableaus)
 - ♥, ♦, ♣, ♠: Stack (the foundation stack)
 
-Note that, currently, my code assumes that the first draw is automatically done (so the game starts with first 3 cards drawn)
 
 ### Solve loop
 ```sh
@@ -290,8 +289,8 @@ lonecli hop default 0 3
 
 Example output
 ```
-R Q♠, 
-R Q♦, 
+R Q♠,
+R Q♦,
 DP 4♣,
 ...
 Solved
@@ -304,9 +303,9 @@ lonecli hop default 6 3
 
 Example output
 ```
-DS A♠, 
-DP J♦, 
-DS 2♠, 
+DS A♠,
+DP J♦,
+DS 2♠,
 ...
 Lost
 ```

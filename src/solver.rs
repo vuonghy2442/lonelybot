@@ -46,8 +46,7 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'a
     }
 
     fn on_move_gen(&mut self, m: &crate::moves::MoveMask, _: Encode) -> Control {
-        self.stats
-            .hit_unique_state(self.history.len(), m.len() as usize);
+        self.stats.hit_unique_state(self.history.len(), m.len());
         Control::Ok
     }
 

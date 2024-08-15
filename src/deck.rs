@@ -42,7 +42,7 @@ impl Deck {
         Self {
             deck: ArrayVec::from(deck),
             draw_step,
-            draw_cur: draw_step.get(),
+            draw_cur: 0,
             mask: full_mask(N_DECK_CARDS) as u32,
             map,
         }

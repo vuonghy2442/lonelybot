@@ -87,7 +87,7 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'
     }
 
     fn on_move_gen(&mut self, m: &MoveMask, _: Encode) -> Control {
-        self.stats.hit_unique_state(self.depth, m.len() as usize);
+        self.stats.hit_unique_state(self.depth, m.len());
         Control::Ok
     }
 

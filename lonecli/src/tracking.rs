@@ -40,7 +40,7 @@ impl SearchStatistics for AtomicSearchStats {
         self.total_visit.fetch_add(1, Ordering::Relaxed);
     }
 
-    fn hit_unique_state(&self, depth: usize, n_moves: usize) {
+    fn hit_unique_state(&self, depth: usize, n_moves: u32) {
         self.unique_visit.fetch_add(1, Ordering::Relaxed);
 
         if depth < TRACK_DEPTH {
