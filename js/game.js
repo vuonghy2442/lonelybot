@@ -190,10 +190,10 @@ function handlePopDeckEvent() {
 
 let handlingMove = false;
 
-function moveCard(event, card) {
-  const origin_cont = card.container;
-  const origin = card.placeId;
+function getMoving(card) {
+  if (!card.isDraggable()) return;
 
+  const origin = card.placeId;
   let moving_cards = [card];
 
   if (origin >= Pos.Pile) {
@@ -202,7 +202,17 @@ function moveCard(event, card) {
     moving_cards = p.slice(id);
   }
 
-  if (moving_cards.some((c) => !c.isDraggable())) return;
+  if (moving_cards.some((c) => !c.isDraggable())) return [];
+  return moving_cards;
+}
+
+function moveCard(event, card) {
+  const origin_cont = card.container;
+  const origin = card.placeId;
+
+  const moving_cards = getMoving(card);
+  if (!moving_cards) return;
+
   snap_audio.play();
 
   card.containerToFront();
@@ -328,12 +338,21 @@ function initGame() {
 
     if (cardDOM) {
       const card = cardArray[parseInt(cardDOM.dataset.cardId)];
-      const placeId = parseInt(card.placeId);
-      if (game.stack[card.suit] === card.rank) {
-        card.moveTo(stackContainers[card.suit], 0, 0, 0);
-        game.makeMove(card, placeId, parseInt(stackContainers[card.suit].dataset.placeId));
-      }
+      const placeId = card.placeId;
 
+      const movingCards = getMoving(card);
+      if (!movingCards) return; //for now :)
+
+      const dropPos = game.liftCard(movingCards);
+      if (dropPos.length < 1) return;
+      const dst = dropPos[0];
+      const placeDst = cardPlaces[dst];
+
+      movingCards.forEach((c) => {
+        const [x, y] = placeDst.getPos(placeDst.element);
+        c.moveTo(placeDst.element, 100 * x, 100 * y, 0);
+      });
+      game.makeMove(card, placeId, dst);
       event.preventDefault();
       return;
     }

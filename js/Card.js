@@ -131,7 +131,6 @@ export class Card {
   /** @returns {number | null} */
   get placeId() {
     if (this.#element === null) return null;
-    console.log(this.container.dataset);
     return parseInt(this.container.dataset.placeId);
   }
 
