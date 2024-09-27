@@ -192,7 +192,7 @@ let handlingMove = false;
 
 function moveCard(event, card) {
   const origin_cont = card.container;
-  const origin = parseInt(origin_cont.dataset.placeId);
+  const origin = card.placeId;
 
   let moving_cards = [card];
 
@@ -292,7 +292,6 @@ function moveCard(event, card) {
 
 function onPointerDown(event) {
   if (event.which !== 1 || !event.isPrimary || handlingMove) return;
-
   const cardDOM = event.target.closest(".card");
 
   if (cardDOM) {
@@ -324,4 +323,19 @@ function initGame() {
   });
 
   document.querySelector("#game_box").addEventListener("pointerdown", onPointerDown);
+  document.querySelector("#game_box").addEventListener("dblclick", (event) => {
+    const cardDOM = event.target.closest(".card");
+
+    if (cardDOM) {
+      const card = cardArray[parseInt(cardDOM.dataset.cardId)];
+      const placeId = parseInt(card.placeId);
+      if (game.stack[card.suit] === card.rank) {
+        card.moveTo(stackContainers[card.suit], 0, 0, 0);
+        game.makeMove(card, placeId, parseInt(stackContainers[card.suit].dataset.placeId));
+      }
+
+      event.preventDefault();
+      return;
+    }
+  });
 }

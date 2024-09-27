@@ -128,6 +128,13 @@ export class Card {
     this.#draggable = val;
   }
 
+  /** @returns {number | null} */
+  get placeId() {
+    if (this.#element === null) return null;
+    console.log(this.container.dataset);
+    return parseInt(this.container.dataset.placeId);
+  }
+
   deleteDOM() {
     if (this.#element === null) return;
     this.#element.remove();
