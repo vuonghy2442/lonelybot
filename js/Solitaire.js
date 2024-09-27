@@ -63,21 +63,6 @@ export class Solitaire {
     this.onPushStackCallbacks = [];
     this.onRevealCallbacks = [];
 
-    this.findOrigin = (card) => {
-      if (this.deck.peek(1).some((c) => c.id === card.id)) {
-        return Pos.Deck;
-      }
-      const stackIndex = this.stack.findIndex((rank, suit) => cardId(rank - 1, suit) === card.id);
-      if (stackIndex !== -1) {
-        return Pos.Stack + stackIndex;
-      }
-      const pileIndex = this.piles.findIndex((pile) => pile.some((c) => c.id === card.id));
-      if (pileIndex !== -1) {
-        return Pos.Pile + pileIndex;
-      }
-      return Pos.None;
-    };
-
     this.liftCard = (cards) => {
       const card = cards[0];
       const result = [];

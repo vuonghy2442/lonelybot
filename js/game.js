@@ -78,6 +78,8 @@ let wasteContainer = document.querySelector("#waste");
 
 class CardPlace {
   constructor(element, offset, dirX, placeId) {
+    element.dataset.placeId = placeId;
+
     this.element = element;
     this.offset = offset / 100;
     this.dirX = dirX;
@@ -210,8 +212,8 @@ function initGame() {
   let handlingMove = false;
 
   function moveCard(event, card) {
-    const origin = game.findOrigin(card);
     const origin_cont = card.container;
+    const origin = parseInt(origin_cont.dataset.placeId);
 
     let moving_cards = [card];
 
