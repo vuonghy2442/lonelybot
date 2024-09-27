@@ -13,9 +13,9 @@ const N_PILES = 7;
 const N_HIDDEN_CARDS = (N_PILES * (N_PILES + 1)) / 2;
 const N_FULL_DECK = N_CARDS - N_HIDDEN_CARDS;
 
-const UP_SPACE = 3;
-const DOWN_SPACE = 2;
-const DEAL_SPACE = 3;
+const UP_SPACE = 15;
+const DOWN_SPACE = 10;
+const DEAL_SPACE = 25;
 
 const ANIMATION_TIME = 100;
 const OFFSET_TIME = 100;
@@ -47,6 +47,8 @@ function createCardSVG(c) {
 
 // const container = document.querySelector("#card_container");
 
+let front_element = null;
+
 class Card {
   constructor(rank, suit) {
     this.rank = rank;
@@ -71,10 +73,18 @@ class Card {
 
     this.moveToFront = () => {
       if (this.element === null) return;
-      gameBox.appendChild(this.element);
+      this.element.parentElement.appendChild(this.element);
     };
 
-    this.createDOM = (pos_x, pos_y) => {
+    this.moveParentToFront = () => {
+      if (this.element === null) return;
+      if (front_element !== null) front_element.style.zIndex = 0;
+
+      this.element.parentElement.style.zIndex = 1;
+      front_element = this.element.parentElement;
+    };
+
+    this.createDOM = (container, pos_x, pos_y) => {
       if (this.element !== null) return;
       const c = document.createElement("div");
       c.className = "card";
@@ -111,7 +121,7 @@ class Card {
       // inner.addEventListener("transitioncancel", done_flip_animate);
       // inner.addEventListener("transitionend", done_flip_animate);
 
-      gameBox.appendChild(c);
+      container.appendChild(c);
       c.dataset.cardId = this.id();
 
       this.element = c;
@@ -139,15 +149,15 @@ class Card {
       inner.classList.toggle("flipped");
     };
 
-    this.moveTo = (pos_x, pos_y, duration) => {
+    this.moveTo = (container, pos_x, pos_y, duration) => {
       if (this.element === null) return;
-
+      const same_cont = container === null || container === this.element.parentElement;
       {
         const currentLeft = parseFloat(this.element.style.left) || 0;
         const currentTop = parseFloat(this.element.style.top) || 0;
 
         // this to prevent transitionend not triggered
-        if (Math.abs(currentLeft - pos_x) < 1e-2 && Math.abs(currentTop - pos_y) < 1e-2) {
+        if (same_cont && Math.abs(currentLeft - pos_x) < 1e-2 && Math.abs(currentTop - pos_y) < 1e-2) {
           return;
         }
       }
@@ -157,6 +167,10 @@ class Card {
       if (pos_x !== null) this.element.style.left = pos_x + "%";
 
       if (pos_y !== null) this.element.style.top = pos_y + "%";
+      if (!same_cont) {
+        this.element.parentElement.removeChild(this.element);
+        container.appendChild(this.element);
+      }
     };
 
     this.isDraggable = () => {
@@ -335,32 +349,6 @@ window.addEventListener("resize", (_) => {
   gameBoxBound = getOffsetRect(gameBox);
 });
 
-function getDOMPos(el) {
-  let bound = getOffsetRect(el);
-  const x = (bound.left - gameBoxBound.left) / gameBoxBound.width;
-  const y = (bound.top - gameBoxBound.top) / gameBoxBound.height;
-  return [x, y];
-}
-
-const pilePos = (function () {
-  let pos_stack = new Array();
-  let pos_tableau = new Array();
-  // not correct but whatever =))
-  pos_stack.push(getDOMPos(document.querySelector("#deal")));
-
-  for (let s of document.querySelectorAll(".stack")) {
-    pos_stack.push(getDOMPos(s));
-  }
-
-  for (let s of document.querySelectorAll(".tableau")) {
-    pos_tableau.push(getDOMPos(s));
-  }
-  return [...pos_stack, ...pos_tableau];
-})();
-
-const DEAL_POS = pilePos[Pos.Deck];
-const WASTE_POS = getDOMPos(document.querySelector("#waste"));
-
 // creating cards
 const cardArray = (() => {
   const cardArray = new Array(N_CARDS);
@@ -394,34 +382,55 @@ function getCard(rank, suit) {
   return cardArray[cardId(rank, suit)];
 }
 
-const THRES = 0.1;
+const THRES = 0.4;
 const THRES_2 = THRES * THRES;
 
 var snap_audio = new Audio("sound/snap.mp3");
 
-const getPilePos = (id) => {
-  const p = pilePos[id];
-  if (id < Pos.Pile) {
-    return p;
-  } else {
-    id -= Pos.Pile;
-    return [p[0], p[1] + (DOWN_SPACE * game.hidden_piles[id].length + UP_SPACE * game.piles[id].length) / 100];
+let tableauConts = [...document.querySelectorAll(".tableau")];
+let stackConts = [...document.querySelectorAll(".stack")];
+let dealCont = document.querySelector("#deal");
+let wasteCont = document.querySelector("#waste");
+
+class CardPlace {
+  constructor(element, offset, dirX, placeId) {
+    this.element = element;
+    this.offset = offset / 100;
+    this.dirX = dirX;
+    this.boundBox = getOffsetRect(element);
+    this.placeId = placeId;
+
+    this.getPos = (el) => {
+      const bound = getOffsetRect(el);
+      const last = getOffsetRect(element.lastChild || element);
+
+      const x = (last.left - bound.left) / bound.width + (element.lastChild && dirX ? this.offset : 0);
+      const y = (last.top - bound.top) / bound.height + (element.lastChild && !dirX ? this.offset : 0);
+
+      return [x, y];
+    };
   }
-};
+}
+
+const cardPlaces = [
+  new CardPlace(wasteCont, DEAL_SPACE, true, 0),
+  ...stackConts.map((s, idx) => new CardPlace(s, 0, false, Pos.Stack + idx)),
+  ...tableauConts.map((s, idx) => new CardPlace(s, UP_SPACE, false, Pos.Pile + idx)),
+];
 
 function initGame() {
   for (let i = 0; i < N_PILES; ++i) {
     let hidden = game.hidden_piles[i];
-    const pos = pilePos[Pos.Pile + i];
+    const cont = tableauConts[i];
     for (let j = 0; j < hidden.length; ++j) {
       hidden[j].flipCard();
       hidden[j].draggable = false;
-      hidden[j].createDOM(pos[0] * 100, pos[1] * 100 + DOWN_SPACE * j);
+      hidden[j].createDOM(cont, 0, DOWN_SPACE * j);
     }
     let visible = game.piles[i];
     for (let j = 0; j < visible.length; ++j) {
       visible[j].draggable = j + 1 == visible.length;
-      visible[j].createDOM(pos[0] * 100, pos[1] * 100 + DOWN_SPACE * hidden.length + UP_SPACE * j);
+      visible[j].createDOM(cont, 0, DOWN_SPACE * hidden.length + UP_SPACE * j);
     }
   }
 
@@ -436,12 +445,12 @@ function initGame() {
       c.draggable = false;
       c.flipCard();
 
-      c.createDOM(DEAL_POS[0] * 100, DEAL_POS[1] * 100);
+      c.createDOM(dealCont, 0, 0);
       c.moveToFront();
 
       setTimeout(() => {
         c.flipCard(ANIMATION_TIME);
-        c.moveTo(WASTE_POS[0] * 100 + pos * DEAL_SPACE, WASTE_POS[1] * 100, ANIMATION_TIME);
+        c.moveTo(wasteCont, pos * DEAL_SPACE, 0, ANIMATION_TIME);
         if (pos + 1 == cards.length) {
           c.draggable = true;
         }
@@ -463,11 +472,10 @@ function initGame() {
 
   game.on_pop_stack.push((card) => {
     if (card.rank >= 2) {
-      let [x, y] = getPilePos(Pos.Stack + card.suit);
       let c = cardArray[cardId(card.rank - 2, card.suit)];
       c.turnUp();
       c.draggable = false;
-      c.createDOM(x * 100, y * 100);
+      c.createDOM(stackConts[card.suit], 0, 0);
       cardArray[cardId(card.rank - 1, card.suit)].moveToFront();
     }
 
@@ -485,7 +493,7 @@ function initGame() {
       if (cards.length > 0) {
         cards[0].draggable = false;
         cards[0].turnUp();
-        cards[0].createDOM(WASTE_POS[0] * 100, WASTE_POS[1] * 100);
+        cards[0].createDOM(wasteCont, 0, 0);
       }
 
       for (let c of cards) {
@@ -507,6 +515,7 @@ function initGame() {
 
   function moveCard(event, card) {
     const origin = game.find_origin(card);
+    const origin_cont = card.element.parentElement;
 
     let moving_cards = [card];
 
@@ -519,16 +528,20 @@ function initGame() {
     if (moving_cards.some((c) => !c.isDraggable())) return;
     snap_audio.play();
 
-    moving_cards.forEach((c) => c.moveToFront());
+    card.moveParentToFront();
 
-    const dropPos = game.lift_card(moving_cards);
+    const dropPos = game.lift_card(moving_cards).map((p) => [cardPlaces[p], cardPlaces[p].getPos(origin_cont)]);
 
-    const [initialX, initialY] = getDOMPos(card.element);
+    const cont_bound = getOffsetRect(origin_cont);
+    const card_bound = getOffsetRect(card.element);
 
-    const offsetX = (event.pageX - gameBoxBound.left) / gameBoxBound.width - initialX;
-    const offsetY = (event.pageY - gameBoxBound.top) / gameBoxBound.height - initialY;
+    const offsetX = (event.pageX - card_bound.left) / cont_bound.width;
+    const offsetY = (event.pageY - card_bound.top) / cont_bound.height;
 
-    let snapped = -1;
+    const initialX = (card_bound.left - cont_bound.left) / cont_bound.width;
+    const initialY = (card_bound.top - cont_bound.top) / cont_bound.height;
+
+    let snapped = null;
 
     function distance2(x, y, u, v) {
       const [dx, dy] = [x - u, y - v];
@@ -536,47 +549,46 @@ function initGame() {
     }
 
     function findNear(x, y) {
-      for (let p of dropPos) {
-        if (distance2(x, y, ...getPilePos(p)) < THRES_2) {
-          return p;
+      for (let [place, pos] of dropPos) {
+        if (distance2(x, y, ...pos) < THRES_2) {
+          return [place, pos];
         }
       }
-      return -1;
+      return [null, null];
     }
 
     function handlePointerMove(event) {
       if (!event.isPrimary) return;
 
-      let x = (event.pageX - gameBoxBound.left) / gameBoxBound.width - offsetX;
-      let y = (event.pageY - gameBoxBound.top) / gameBoxBound.height - offsetY;
+      let x = (event.pageX - cont_bound.left) / cont_bound.width - offsetX;
+      let y = (event.pageY - cont_bound.top) / cont_bound.height - offsetY;
 
-      let p = findNear(x, y);
+      let [place, pos] = findNear(x, y);
 
-      if (p >= 0) {
-        let [u, v] = getPilePos(p);
+      if (place !== null) {
+        snapped = place;
+        const [u, v] = pos;
         // const [dx, dy] = [x - u, y - v];
         // let dis2 = dx * dx + dy * dy;
         // let d = Math.max(Math.sqrt(dis2) / THRES - 0.5, 0);
-
-        snapped = p;
 
         // const force = d > 0 ? Math.exp(-d / 0.5) : 1;
         // x -= dx * force;
         // y -= dy * force;
 
-        moving_cards.forEach((c, idx) => c.moveTo(u * 100, v * 100 + idx * UP_SPACE, 100));
-      } else if (snapped >= 0) {
-        snapped = -1;
-        moving_cards.forEach((c, idx) => c.moveTo(x * 100, y * 100 + idx * UP_SPACE, 100));
+        moving_cards.forEach((c, idx) => c.moveTo(null, u * 100, v * 100 + idx * UP_SPACE, 100));
+      } else if (snapped !== null) {
+        snapped = null;
+        moving_cards.forEach((c, idx) => c.moveTo(null, x * 100, y * 100 + idx * UP_SPACE, 100));
       } else {
         moving_cards.forEach((c, idx) => {
-          if (!c.animating) c.moveTo(x * 100, y * 100 + idx * UP_SPACE, 0);
+          if (!c.animating) c.moveTo(null, x * 100, y * 100 + idx * UP_SPACE, 0);
         });
       }
     }
 
     function handlePointerCancel() {
-      snapped = -1;
+      snapped = null;
       handlePointerUp();
     }
 
@@ -586,14 +598,17 @@ function initGame() {
       window.removeEventListener("pointercancel", handlePointerCancel);
 
       // Implement card snapping or other dragging behavior
-      if (snapped < 0) {
+      if (snapped === null) {
         moving_cards.forEach((c, idx) =>
-          c.moveTo(initialX * 100, initialY * 100 + idx * UP_SPACE, ANIMATION_TIME + 10 * idx)
+          c.moveTo(null, initialX * 100, initialY * 100 + idx * UP_SPACE, ANIMATION_TIME + 10 * idx)
         );
       } else {
-        let [u, v] = getPilePos(snapped);
-        moving_cards.forEach((c, idx) => c.moveTo(u * 100, v * 100 + idx * UP_SPACE, 0));
-        game.make_move(card, origin, snapped);
+        moving_cards.forEach((c) => {
+          const [x, y] = snapped.getPos(snapped.element);
+          c.moveTo(snapped.element, 100 * x, 100 * y, 0);
+        });
+        game.make_move(card, origin, snapped.placeId);
+        snapped = null;
       }
       handlingMove = false;
     }

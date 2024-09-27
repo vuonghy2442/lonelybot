@@ -13,6 +13,11 @@ body {
   touch-action: none;
 }
 
+#deal,
+#waste {
+  position: relative;
+}
+
 body,
 html {
   margin: 0;
@@ -69,8 +74,8 @@ html {
 
 .card {
   position: absolute;
-  height: 20%;
-  aspect-ratio: 2.5/3.5;
+  height: 100%;
+  width: 100%;
   perspective: 1000px;
 
   -webkit-user-select: none;
@@ -156,18 +161,20 @@ html {
 
 .tableau,
 .stack {
+  position: relative;
   background-color: #0012;
 
-  border-style: solid;
-  border-width: 3px;
-  border-color: #f75;
+  outline-style: solid;
+  outline-width: 3px;
+  outline-color: #f75;
+  outline-offset: -3px;
 }
 
 .card,
 #deal,
 .tableau,
 .stack {
-  border-radius: 1cqh;
+  border-radius: 1.2vh;
 }
 
 @media (min-aspect-ratio: 3/4) {
