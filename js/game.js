@@ -196,6 +196,128 @@ function handlePopDeckEvent() {
   }
 }
 
+let handlingMove = false;
+
+function moveCard(event, card) {
+  const origin_cont = card.container;
+  const origin = parseInt(origin_cont.dataset.placeId);
+
+  let moving_cards = [card];
+
+  if (origin >= Pos.Pile) {
+    let p = game.piles[origin - Pos.Pile];
+    let id = p.findIndex((c) => c.id == card.id);
+    moving_cards = p.slice(id);
+  }
+
+  if (moving_cards.some((c) => !c.isDraggable())) return;
+  snap_audio.play();
+
+  card.containerToFront();
+
+  const dropPos = game.liftCard(moving_cards).map((p) => [cardPlaces[p], cardPlaces[p].getPos(origin_cont)]);
+
+  const cont_bound = getOffsetRect(origin_cont);
+  const card_bound = getOffsetRect(card.element);
+
+  const offsetX = (event.pageX - card_bound.left) / cont_bound.width;
+  const offsetY = (event.pageY - card_bound.top) / cont_bound.height;
+
+  const initialX = (card_bound.left - cont_bound.left) / cont_bound.width;
+  const initialY = (card_bound.top - cont_bound.top) / cont_bound.height;
+
+  let snapped = null;
+
+  function distance2(x, y, u, v) {
+    const [dx, dy] = [x - u, y - v];
+    return dx * dx + dy * dy;
+  }
+
+  function findNear(x, y) {
+    for (let [place, pos] of dropPos) {
+      if (distance2(x, y, ...pos) < THRESHOLD_2) {
+        return [place, pos];
+      }
+    }
+    return [null, null];
+  }
+
+  function handlePointerMove(event) {
+    if (!event.isPrimary) return;
+
+    let x = (event.pageX - cont_bound.left) / cont_bound.width - offsetX;
+    let y = (event.pageY - cont_bound.top) / cont_bound.height - offsetY;
+
+    let [place, pos] = findNear(x, y);
+
+    if (place !== null) {
+      snapped = place;
+      const [u, v] = pos;
+
+      moving_cards.forEach((c, idx) => c.moveTo(null, u * 100, v * 100 + idx * UP_SPACE, 100));
+    } else if (snapped !== null) {
+      snapped = null;
+      moving_cards.forEach((c, idx) => c.moveTo(null, x * 100, y * 100 + idx * UP_SPACE, 100));
+    } else {
+      moving_cards.forEach((c, idx) => {
+        if (!c.animating) c.moveTo(null, x * 100, y * 100 + idx * UP_SPACE, 0);
+      });
+    }
+  }
+
+  function handlePointerCancel() {
+    snapped = null;
+    handlePointerUp();
+  }
+
+  function handlePointerUp() {
+    window.removeEventListener("pointermove", handlePointerMove);
+    window.removeEventListener("pointerup", handlePointerUp);
+    window.removeEventListener("pointercancel", handlePointerCancel);
+
+    // Implement card snapping or other dragging behavior
+    if (snapped === null) {
+      moving_cards.forEach((c, idx) =>
+        c.moveTo(null, initialX * 100, initialY * 100 + idx * UP_SPACE, ANIMATION_TIME + 10 * idx)
+      );
+    } else {
+      moving_cards.forEach((c) => {
+        const [x, y] = snapped.getPos(snapped.element);
+        c.moveTo(snapped.element, 100 * x, 100 * y, 0);
+      });
+      game.makeMove(card, origin, snapped.placeId);
+      snapped = null;
+    }
+    handlingMove = false;
+  }
+
+  handlingMove = true;
+
+  window.addEventListener("pointermove", handlePointerMove);
+  window.addEventListener("pointerup", handlePointerUp);
+  window.addEventListener("pointercancel", handlePointerCancel);
+}
+
+function onPointerDown(event) {
+  if (event.which !== 1 || !event.isPrimary || handlingMove) return;
+
+  const cardDOM = event.target.closest(".card");
+
+  if (cardDOM) {
+    const card = cardArray[parseInt(cardDOM.dataset.cardId)];
+    moveCard(event, card);
+    // some how it fix the default stuff :))
+    event.preventDefault();
+    return;
+  }
+
+  if (event.target.closest("#deal")) {
+    game.makeMove(null, 0, 0);
+    event.preventDefault();
+    return;
+  }
+}
+
 function initGame() {
   // Initialize piles
   initializePiles();
@@ -208,128 +330,6 @@ function initGame() {
     card.draggable = true;
     card.turnUp(REVEAL_TIME);
   });
-
-  let handlingMove = false;
-
-  function moveCard(event, card) {
-    const origin_cont = card.container;
-    const origin = parseInt(origin_cont.dataset.placeId);
-
-    let moving_cards = [card];
-
-    if (origin >= Pos.Pile) {
-      let p = game.piles[origin - Pos.Pile];
-      let id = p.findIndex((c) => c.id == card.id);
-      moving_cards = p.slice(id);
-    }
-
-    if (moving_cards.some((c) => !c.isDraggable())) return;
-    snap_audio.play();
-
-    card.containerToFront();
-
-    const dropPos = game.liftCard(moving_cards).map((p) => [cardPlaces[p], cardPlaces[p].getPos(origin_cont)]);
-
-    const cont_bound = getOffsetRect(origin_cont);
-    const card_bound = getOffsetRect(card.element);
-
-    const offsetX = (event.pageX - card_bound.left) / cont_bound.width;
-    const offsetY = (event.pageY - card_bound.top) / cont_bound.height;
-
-    const initialX = (card_bound.left - cont_bound.left) / cont_bound.width;
-    const initialY = (card_bound.top - cont_bound.top) / cont_bound.height;
-
-    let snapped = null;
-
-    function distance2(x, y, u, v) {
-      const [dx, dy] = [x - u, y - v];
-      return dx * dx + dy * dy;
-    }
-
-    function findNear(x, y) {
-      for (let [place, pos] of dropPos) {
-        if (distance2(x, y, ...pos) < THRESHOLD_2) {
-          return [place, pos];
-        }
-      }
-      return [null, null];
-    }
-
-    function handlePointerMove(event) {
-      if (!event.isPrimary) return;
-
-      let x = (event.pageX - cont_bound.left) / cont_bound.width - offsetX;
-      let y = (event.pageY - cont_bound.top) / cont_bound.height - offsetY;
-
-      let [place, pos] = findNear(x, y);
-
-      if (place !== null) {
-        snapped = place;
-        const [u, v] = pos;
-
-        moving_cards.forEach((c, idx) => c.moveTo(null, u * 100, v * 100 + idx * UP_SPACE, 100));
-      } else if (snapped !== null) {
-        snapped = null;
-        moving_cards.forEach((c, idx) => c.moveTo(null, x * 100, y * 100 + idx * UP_SPACE, 100));
-      } else {
-        moving_cards.forEach((c, idx) => {
-          if (!c.animating) c.moveTo(null, x * 100, y * 100 + idx * UP_SPACE, 0);
-        });
-      }
-    }
-
-    function handlePointerCancel() {
-      snapped = null;
-      handlePointerUp();
-    }
-
-    function handlePointerUp() {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-      window.removeEventListener("pointercancel", handlePointerCancel);
-
-      // Implement card snapping or other dragging behavior
-      if (snapped === null) {
-        moving_cards.forEach((c, idx) =>
-          c.moveTo(null, initialX * 100, initialY * 100 + idx * UP_SPACE, ANIMATION_TIME + 10 * idx)
-        );
-      } else {
-        moving_cards.forEach((c) => {
-          const [x, y] = snapped.getPos(snapped.element);
-          c.moveTo(snapped.element, 100 * x, 100 * y, 0);
-        });
-        game.makeMove(card, origin, snapped.placeId);
-        snapped = null;
-      }
-      handlingMove = false;
-    }
-
-    handlingMove = true;
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-    window.addEventListener("pointercancel", handlePointerCancel);
-  }
-
-  function onPointerDown(event) {
-    if (event.which !== 1 || !event.isPrimary || handlingMove) return;
-
-    const cardDOM = event.target.closest(".card");
-
-    if (cardDOM) {
-      const card = cardArray[parseInt(cardDOM.dataset.cardId)];
-      moveCard(event, card);
-      // some how it fix the default stuff :))
-      event.preventDefault();
-      return;
-    }
-
-    if (event.target.closest("#deal")) {
-      game.makeMove(null, 0, 0);
-      event.preventDefault();
-      return;
-    }
-  }
 
   gameBox.addEventListener("pointerdown", onPointerDown);
 }
