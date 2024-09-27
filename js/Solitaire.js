@@ -62,56 +62,56 @@ export class Solitaire {
     this.onPopStackCallbacks = [];
     this.onPushStackCallbacks = [];
     this.onRevealCallbacks = [];
+  }
 
-    this.liftCard = (cards) => {
-      const card = cards[0];
-      const result = [];
-      if (cards.length === 1 && this.stack[card.suit] === card.rank) {
-        result.push(Pos.Stack + card.suit);
+  liftCard(cards) {
+    const card = cards[0];
+    const result = [];
+    if (cards.length === 1 && this.stack[card.suit] === card.rank) {
+      result.push(Pos.Stack + card.suit);
+    }
+    for (let i = 0; i < N_PILES; ++i) {
+      const pile = this.piles[i];
+      const lastCard = pile[pile.length - 1] || new Card(N_RANKS, 0);
+      if (lastCard.goBefore(card)) {
+        result.push(Pos.Pile + i);
       }
-      for (let i = 0; i < N_PILES; ++i) {
-        const pile = this.piles[i];
-        const lastCard = pile[pile.length - 1] || new Card(N_RANKS, 0);
-        if (lastCard.goBefore(card)) {
-          result.push(Pos.Pile + i);
-        }
-      }
-      return result;
-    };
+    }
+    return result;
+  }
 
-    this.makeMove = (card, src, dst) => {
-      if (src === Pos.Deck && dst === Pos.Deck) {
-        this.deck.deal();
-        this.onDealCallbacks.forEach((callback) => callback());
-        return;
-      }
-      if (src === Pos.Deck) {
-        const dealtCard = this.deck.pop();
-        this.onPopDeckCallbacks.forEach((callback) => callback(dealtCard));
-      } else if (src <= N_SUITS) {
-        this.stack[src - 1] -= 1;
-        this.onPopStackCallbacks.forEach((callback) => callback(card));
-      }
-      if (dst <= N_SUITS) {
-        this.stack[dst - 1] += 1;
-        this.onPushStackCallbacks.forEach((callback) => callback(card));
-      }
-      let cards = [card];
+  makeMove(card, src, dst) {
+    if (src === Pos.Deck && dst === Pos.Deck) {
+      this.deck.deal();
+      this.onDealCallbacks.forEach((callback) => callback());
+      return;
+    }
+    if (src === Pos.Deck) {
+      const dealtCard = this.deck.pop();
+      this.onPopDeckCallbacks.forEach((callback) => callback(dealtCard));
+    } else if (src <= N_SUITS) {
+      this.stack[src - 1] -= 1;
+      this.onPopStackCallbacks.forEach((callback) => callback(card));
+    }
+    if (dst <= N_SUITS) {
+      this.stack[dst - 1] += 1;
+      this.onPushStackCallbacks.forEach((callback) => callback(card));
+    }
+    let cards = [card];
 
-      if (src >= Pos.Pile) {
-        src -= Pos.Pile;
-        const cardIndex = this.piles[src].findIndex((c) => c.id === card.id);
-        cards = this.piles[src].splice(cardIndex);
-        if (this.piles[src].length === 0 && this.hiddenPiles[src].length > 0) {
-          const lastHiddenCard = this.hiddenPiles[src].pop();
-          this.piles[src].push(lastHiddenCard);
-          this.onRevealCallbacks.forEach((callback) => callback(src, lastHiddenCard));
-        }
+    if (src >= Pos.Pile) {
+      src -= Pos.Pile;
+      const cardIndex = this.piles[src].findIndex((c) => c.id === card.id);
+      cards = this.piles[src].splice(cardIndex);
+      if (this.piles[src].length === 0 && this.hiddenPiles[src].length > 0) {
+        const lastHiddenCard = this.hiddenPiles[src].pop();
+        this.piles[src].push(lastHiddenCard);
+        this.onRevealCallbacks.forEach((callback) => callback(src, lastHiddenCard));
       }
-      if (dst >= Pos.Pile) {
-        dst -= Pos.Pile;
-        this.piles[dst].push(...cards);
-      }
-    };
+    }
+    if (dst >= Pos.Pile) {
+      dst -= Pos.Pile;
+      this.piles[dst].push(...cards);
+    }
   }
 }

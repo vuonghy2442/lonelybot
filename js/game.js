@@ -13,54 +13,46 @@ const ANIMATION_TIME = 100;
 const OFFSET_TIME = 100;
 const REVEAL_TIME = 300;
 
-const gameBox = document.querySelector("#game_box");
-
 const getOffsetRect = (el) => {
-  let rect = el.getBoundingClientRect();
+  const rect = el.getBoundingClientRect();
 
   // add window scroll position to get the offset position
-  let left = rect.left + window.scrollX;
-  let top = rect.top + window.scrollY;
-  let right = rect.right + window.scrollX;
-  let bottom = rect.bottom + window.scrollY;
+  const left = rect.left + window.scrollX;
+  const top = rect.top + window.scrollY;
+  const right = rect.right + window.scrollX;
+  const bottom = rect.bottom + window.scrollY;
 
   // width and height are the same
-  let width = rect.width;
-  let height = rect.height;
+  const width = rect.width;
+  const height = rect.height;
 
   return { left, top, right, bottom, width, height };
 };
 
-let gameBoxBound = getOffsetRect(gameBox);
-
-window.addEventListener("resize", (_) => {
-  gameBoxBound = getOffsetRect(gameBox);
-});
-
-// creating cards
-const cardArray = (() => {
+function initCards() {
+  // creating cards
   const cardArray = new Array(N_CARDS);
 
   for (let rank = 0; rank < N_RANKS; ++rank) {
     for (let suit = 0; suit < N_SUITS; ++suit) {
-      let c = new Card(rank, suit);
+      const c = new Card(rank, suit);
       cardArray[c.id] = c;
     }
   }
-  return cardArray;
-})();
 
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
   }
+
+  const shuffledCards = [...cardArray];
+  shuffleArray(shuffledCards);
+  return [cardArray, new Solitaire(shuffledCards, 3)];
 }
 
-let shuffledCards = [...cardArray];
-shuffleArray(shuffledCards);
-
-const game = new Solitaire(shuffledCards, 3);
+const [cardArray, game] = initCards();
 
 function getCard(rank, suit) {
   return cardArray[cardId(rank, suit)];
@@ -69,12 +61,12 @@ function getCard(rank, suit) {
 const THRESHOLD = 0.4;
 const THRESHOLD_2 = THRESHOLD * THRESHOLD;
 
-var snap_audio = new Audio("sound/snap.mp3");
+const snap_audio = new Audio("sound/snap.mp3");
 
-let tableauContainers = [...document.querySelectorAll(".tableau")];
-let stackContainers = [...document.querySelectorAll(".stack")];
-let dealContainer = document.querySelector("#deal");
-let wasteContainer = document.querySelector("#waste");
+const tableauContainers = [...document.querySelectorAll(".tableau")];
+const stackContainers = [...document.querySelectorAll(".stack")];
+const dealContainer = document.querySelector("#deal");
+const wasteContainer = document.querySelector("#waste");
 
 class CardPlace {
   constructor(element, offset, dirX, placeId) {
@@ -85,16 +77,16 @@ class CardPlace {
     this.dirX = dirX;
     this.boundBox = getOffsetRect(element);
     this.placeId = placeId;
+  }
 
-    this.getPos = (el) => {
-      const bound = getOffsetRect(el);
-      const last = getOffsetRect(element.lastChild || element);
+  getPos(el) {
+    const bound = getOffsetRect(el);
+    const last = getOffsetRect(this.element.lastChild || this.element);
 
-      const x = (last.left - bound.left) / bound.width + (element.lastChild && dirX ? this.offset : 0);
-      const y = (last.top - bound.top) / bound.height + (element.lastChild && !dirX ? this.offset : 0);
+    const x = (last.left - bound.left) / bound.width + (this.element.lastChild && this.dirX ? this.offset : 0);
+    const y = (last.top - bound.top) / bound.height + (this.element.lastChild && !this.dirX ? this.offset : 0);
 
-      return [x, y];
-    };
+    return [x, y];
   }
 }
 
@@ -107,14 +99,14 @@ const cardPlaces = [
 // Helper function to initialize piles
 function initializePiles() {
   for (let i = 0; i < N_PILES; ++i) {
-    let hidden = game.hiddenPiles[i];
+    const hidden = game.hiddenPiles[i];
     const cont = tableauContainers[i];
     for (let j = 0; j < hidden.length; ++j) {
       hidden[j].flipCard();
       hidden[j].draggable = false;
       hidden[j].createDOM(cont, 0, DOWN_SPACE * j);
     }
-    let visible = game.piles[i];
+    const visible = game.piles[i];
     for (let j = 0; j < visible.length; ++j) {
       visible[j].draggable = j + 1 == visible.length;
       visible[j].createDOM(cont, 0, DOWN_SPACE * hidden.length + UP_SPACE * j);
@@ -125,13 +117,13 @@ function initializePiles() {
 let wasteCards = [];
 
 function handleDealEvent() {
-  for (let c of wasteCards) {
+  for (const c of wasteCards) {
     c.deleteDOM();
   }
 
   wasteCards = game.deck.peek(3);
 
-  for (let [pos, c] of wasteCards.entries()) {
+  for (const [pos, c] of wasteCards.entries()) {
     c.draggable = false;
     c.flipCard();
 
@@ -162,7 +154,7 @@ function handlePushStackEvent(card) {
 
 function handlePopStackEvent(card) {
   if (card.rank >= 2) {
-    let c = getCard(card.rank - 2, card.suit);
+    const c = getCard(card.rank - 2, card.suit);
     c.turnUp();
     c.draggable = false;
     c.createDOM(stackContainers[card.suit], 0, 0);
@@ -186,7 +178,7 @@ function handlePopDeckEvent() {
       wasteCards[0].createDOM(wasteContainer, 0, 0);
     }
 
-    for (let c of wasteCards) {
+    for (const c of wasteCards) {
       c.moveToFront();
     }
   }
@@ -205,8 +197,8 @@ function moveCard(event, card) {
   let moving_cards = [card];
 
   if (origin >= Pos.Pile) {
-    let p = game.piles[origin - Pos.Pile];
-    let id = p.findIndex((c) => c.id == card.id);
+    const p = game.piles[origin - Pos.Pile];
+    const id = p.findIndex((c) => c.id == card.id);
     moving_cards = p.slice(id);
   }
 
@@ -234,7 +226,7 @@ function moveCard(event, card) {
   }
 
   function findNear(x, y) {
-    for (let [place, pos] of dropPos) {
+    for (const [place, pos] of dropPos) {
       if (distance2(x, y, ...pos) < THRESHOLD_2) {
         return [place, pos];
       }
@@ -245,10 +237,10 @@ function moveCard(event, card) {
   function handlePointerMove(event) {
     if (!event.isPrimary) return;
 
-    let x = (event.pageX - cont_bound.left) / cont_bound.width - offsetX;
-    let y = (event.pageY - cont_bound.top) / cont_bound.height - offsetY;
+    const x = (event.pageX - cont_bound.left) / cont_bound.width - offsetX;
+    const y = (event.pageY - cont_bound.top) / cont_bound.height - offsetY;
 
-    let [place, pos] = findNear(x, y);
+    const [place, pos] = findNear(x, y);
 
     if (place !== null) {
       snapped = place;
@@ -331,5 +323,5 @@ function initGame() {
     card.turnUp(REVEAL_TIME);
   });
 
-  gameBox.addEventListener("pointerdown", onPointerDown);
+  document.querySelector("#game_box").addEventListener("pointerdown", onPointerDown);
 }
