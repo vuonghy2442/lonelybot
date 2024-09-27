@@ -191,7 +191,7 @@ function handlePopDeckEvent() {
 let handlingMove = false;
 
 function getMoving(card) {
-  if (!card.isDraggable()) return;
+  if (!card.isDraggable()) return [];
 
   const origin = card.placeId;
   let moving_cards = [card];
@@ -211,7 +211,7 @@ function moveCard(event, card) {
   const origin = card.placeId;
 
   const moving_cards = getMoving(card);
-  if (!moving_cards) return;
+  if (moving_cards.length == 0) return;
 
   snap_audio.play();
 
@@ -341,7 +341,7 @@ function initGame() {
       const placeId = card.placeId;
 
       const movingCards = getMoving(card);
-      if (!movingCards) return; //for now :)
+      if (movingCards.length == 0) return; //for now :)
 
       const dropPos = game.liftCard(movingCards);
       if (dropPos.length < 1) return;
