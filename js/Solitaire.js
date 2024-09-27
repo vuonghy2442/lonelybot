@@ -1,10 +1,17 @@
 "use strict";
-import { N_SUITS, cardId, Card, N_RANKS } from "./Card.js";
+import { N_SUITS, Card, N_RANKS } from "./Card.js";
 
+/** @type {number} */
 export const N_PILES = 7;
+
+/** @type {number} */
 export const N_HIDDEN_CARDS = (N_PILES * (N_PILES + 1)) / 2;
 
 export class Deck {
+  /**
+   * @param {Card[]} cards
+   * @param {number} drawStep
+   */
   constructor(cards, drawStep) {
     if (!Array.isArray(cards)) throw new Error("Cards must be an array");
     if (typeof drawStep !== "number" || drawStep <= 0) throw new Error("Draw step must be a positive number");
@@ -14,12 +21,19 @@ export class Deck {
     this._drawStep = drawStep;
   }
 
+  /**
+   * @param {number} n
+   * @returns {Card[]}
+   */
   peek(n) {
     const len = this._waste.length;
     const start = Math.max(len - n, 0);
     return this._waste.slice(start, len);
   }
 
+  /**
+   * @returns {Card}
+   */
   pop() {
     return this._waste.pop();
   }
@@ -35,6 +49,13 @@ export class Deck {
   }
 }
 
+/**
+ * @typedef {Object} Pos
+ * @property {number} Deck - The position of a card on the deck.
+ * @property {number} Stack - The position of a card in a stack (e.g., tableau).
+ * @property {number} Pile - The position of a card in a pile which is offset by N_SUITS.
+ * @property {number} None - Indicates no specific position or an invalid/null position.
+ */
 export const Pos = {
   Deck: 0,
   Stack: 1,
@@ -43,6 +64,11 @@ export const Pos = {
 };
 
 export class Solitaire {
+  /**
+   * Creates an instance of Solitaire.
+   * @param {Array<Card>} cards - The array of all cards in the deck including hidden ones.
+   * @param {number} drawStep - The number of cards to deal from the top of the deck at each step.
+   */
   constructor(cards, drawStep) {
     const hiddenCards = cards.slice(0, N_HIDDEN_CARDS);
 
@@ -64,6 +90,11 @@ export class Solitaire {
     this.onRevealCallbacks = [];
   }
 
+  /**
+   * Determines which positions cards can move to based on game rules.
+   * @param {Array<Card>} cards - The card(s) to check for movement possibilities.
+   * @returns {Array<string>} Positions where the card(s) can be moved: 'Deck', 'Pile', or 'Stack'.
+   */
   liftCard(cards) {
     const card = cards[0];
     const result = [];
@@ -80,6 +111,12 @@ export class Solitaire {
     return result;
   }
 
+  /**
+   * Executes a move in the game based on source and destination positions.
+   * @param {Card} card - The card to be moved.
+   * @param {string} src - Source position ('Deck', 'Pile', or 'Stack').
+   * @param {string} dst - Destination position ('Deck', 'Pile', or 'Stack').
+   */
   makeMove(card, src, dst) {
     if (src === Pos.Deck && dst === Pos.Deck) {
       this.deck.deal();
