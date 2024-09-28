@@ -233,10 +233,11 @@ function moveCard(event, card) {
   const initialX = (card_bound.left - cont_bound.left) / cont_bound.width;
   const initialY = (card_bound.top - cont_bound.top) / cont_bound.height;
 
-  const offsetX = (event.pageX - card_bound.left + cont_bound.left) / cont_bound.width;
-  const offsetY = (event.pageY - card_bound.top + cont_bound.top) / cont_bound.height;
+  const offsetX = event.pageX - card_bound.left + cont_bound.left;
+  const offsetY = event.pageY - card_bound.top + cont_bound.top;
 
   let snapped = null;
+  let moved = false;
 
   function distance2(x, y, u, v) {
     const [dx, dy] = [x - u, y - v];
@@ -255,8 +256,10 @@ function moveCard(event, card) {
   function handlePointerMove(event) {
     if (!event.isPrimary) return;
 
-    const x = event.pageX / cont_bound.width - offsetX;
-    const y = event.pageY / cont_bound.height - offsetY;
+    moved = true;
+
+    const x = (event.pageX - offsetX) / cont_bound.width;
+    const y = (event.pageY - offsetY) / cont_bound.height;
 
     const place = findNear(x, y);
 
@@ -289,19 +292,23 @@ function moveCard(event, card) {
       p[0].last.classList.remove("hinted");
     });
 
-    if (snapped === null) {
+    handlingMove = false;
+
+    if (snapped === null && moved) {
       movingCards.forEach((c, idx) =>
         c.moveTo(null, initialX * 100, initialY * 100 + idx * UP_SPACE, ANIMATION_TIME + 10 * idx)
       );
-    } else {
-      movingCards.forEach((c) => {
-        const [x, y] = snapped.getPos(snapped.element);
-        c.moveTo(snapped.element, 100 * x, 100 * y, 0);
-      });
-      game.makeMove(card, origin, snapped.placeId);
-      snapped = null;
+      return;
+    } else if (snapped !== null) {
+      snapped = dropPos[0][0];
     }
-    handlingMove = false;
+
+    movingCards.forEach((c) => {
+      const [x, y] = snapped.getPos(snapped.element);
+      c.moveTo(snapped.element, 100 * x, 100 * y, 0);
+    });
+    game.makeMove(card, origin, snapped.placeId);
+    snapped = null;
   }
 
   handlingMove = true;
@@ -344,28 +351,4 @@ function initGame() {
   });
 
   document.querySelector("#game_box").addEventListener("pointerdown", onPointerDown);
-  document.querySelector("#game_box").addEventListener("dblclick", (event) => {
-    const cardDOM = event.target.closest(".card");
-
-    if (cardDOM) {
-      const card = cardArray[parseInt(cardDOM.dataset.cardId)];
-      const placeId = card.placeId;
-
-      const movingCards = getMoving(card);
-      if (movingCards.length == 0) return; //for now :)
-
-      const dropPos = game.liftCard(movingCards);
-      if (dropPos.length < 1) return;
-      const dst = dropPos[0];
-      const placeDst = cardPlaces[dst];
-
-      movingCards.forEach((c) => {
-        const [x, y] = placeDst.getPos(placeDst.element);
-        c.moveTo(placeDst.element, 100 * x, 100 * y, 0);
-      });
-      game.makeMove(card, placeId, dst);
-      event.preventDefault();
-      return;
-    }
-  });
 }
