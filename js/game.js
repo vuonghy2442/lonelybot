@@ -88,6 +88,10 @@ class CardPlace {
 
     return [x, y];
   }
+
+  get last() {
+    return this.element.lastChild || this.element;
+  }
 }
 
 const cardPlaces = [
@@ -219,6 +223,10 @@ function moveCard(event, card) {
 
   const dropPos = game.liftCard(movingCards).map((p) => [cardPlaces[p], cardPlaces[p].getPos(originContainer)]);
 
+  dropPos.forEach((p) => {
+    p[0].last.classList.add("hinted");
+  });
+
   const cont_bound = getOffsetRect(originContainer);
   const card_bound = getOffsetRect(card.element);
 
@@ -253,8 +261,8 @@ function moveCard(event, card) {
     const place = findNear(x, y);
 
     if (snapped !== place) {
-      (snapped?.element.lastChild || snapped?.element)?.classList.remove("highlighted");
-      (place?.element.lastChild || place?.element)?.classList.add("highlighted");
+      snapped?.last.classList.remove("highlighted");
+      place?.last.classList.add("highlighted");
     }
 
     snapped = place;
@@ -275,7 +283,11 @@ function moveCard(event, card) {
     window.removeEventListener("pointercancel", handlePointerCancel);
 
     // Implement card snapping or other dragging behavior
-    (snapped?.element.lastChild || snapped?.element)?.classList.remove("highlighted");
+    snapped?.last.classList.remove("highlighted");
+
+    dropPos.forEach((p) => {
+      p[0].last.classList.remove("hinted");
+    });
 
     if (snapped === null) {
       movingCards.forEach((c, idx) =>

@@ -177,10 +177,16 @@ html {
   border-radius: 1.2vh;
 }
 
-.highlighted {
+.hinted {
   outline-style: solid;
   outline-width: 4px;
   outline-color: #fb5;
+}
+
+.highlighted.hinted {
+  outline-style: solid;
+  outline-width: 6px;
+  outline-color: #fd4;
 }
 
 @media (min-aspect-ratio: 3/4) {
