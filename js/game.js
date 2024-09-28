@@ -58,7 +58,7 @@ function getCard(rank, suit) {
   return cardArray[cardId(rank, suit)];
 }
 
-const THRESHOLD = 0.4;
+const THRESHOLD = 0.6;
 const THRESHOLD_2 = THRESHOLD * THRESHOLD;
 
 const snap_audio = new Audio("sound/snap.mp3");
@@ -207,26 +207,26 @@ function getMoving(card) {
 }
 
 function moveCard(event, card) {
-  const origin_cont = card.container;
+  const originContainer = card.container;
   const origin = card.placeId;
 
-  const moving_cards = getMoving(card);
-  if (moving_cards.length == 0) return;
+  const movingCards = getMoving(card);
+  if (movingCards.length == 0) return;
 
   snap_audio.play();
 
   card.containerToFront();
 
-  const dropPos = game.liftCard(moving_cards).map((p) => [cardPlaces[p], cardPlaces[p].getPos(origin_cont)]);
+  const dropPos = game.liftCard(movingCards).map((p) => [cardPlaces[p], cardPlaces[p].getPos(originContainer)]);
 
-  const cont_bound = getOffsetRect(origin_cont);
+  const cont_bound = getOffsetRect(originContainer);
   const card_bound = getOffsetRect(card.element);
-
-  const offsetX = (event.pageX - card_bound.left) / cont_bound.width;
-  const offsetY = (event.pageY - card_bound.top) / cont_bound.height;
 
   const initialX = (card_bound.left - cont_bound.left) / cont_bound.width;
   const initialY = (card_bound.top - cont_bound.top) / cont_bound.height;
+
+  const offsetX = (event.pageX - card_bound.left + cont_bound.left) / cont_bound.width;
+  const offsetY = (event.pageY - card_bound.top + cont_bound.top) / cont_bound.height;
 
   let snapped = null;
 
@@ -238,33 +238,30 @@ function moveCard(event, card) {
   function findNear(x, y) {
     for (const [place, pos] of dropPos) {
       if (distance2(x, y, ...pos) < THRESHOLD_2) {
-        return [place, pos];
+        return place;
       }
     }
-    return [null, null];
+    return null;
   }
 
   function handlePointerMove(event) {
     if (!event.isPrimary) return;
 
-    const x = (event.pageX - cont_bound.left) / cont_bound.width - offsetX;
-    const y = (event.pageY - cont_bound.top) / cont_bound.height - offsetY;
+    const x = event.pageX / cont_bound.width - offsetX;
+    const y = event.pageY / cont_bound.height - offsetY;
 
-    const [place, pos] = findNear(x, y);
+    const place = findNear(x, y);
 
-    if (place !== null) {
-      snapped = place;
-      const [u, v] = pos;
-
-      moving_cards.forEach((c, idx) => c.moveTo(null, u * 100, v * 100 + idx * UP_SPACE, 100));
-    } else if (snapped !== null) {
-      snapped = null;
-      moving_cards.forEach((c, idx) => c.moveTo(null, x * 100, y * 100 + idx * UP_SPACE, 100));
-    } else {
-      moving_cards.forEach((c, idx) => {
-        if (!c.animating) c.moveTo(null, x * 100, y * 100 + idx * UP_SPACE, 0);
-      });
+    if (snapped !== place) {
+      (snapped?.element.lastChild || snapped?.element)?.classList.remove("highlighted");
+      (place?.element.lastChild || place?.element)?.classList.add("highlighted");
     }
+
+    snapped = place;
+
+    movingCards.forEach((c, idx) => {
+      if (!c.animating) c.moveTo(null, x * 100, y * 100 + idx * UP_SPACE, 0);
+    });
   }
 
   function handlePointerCancel() {
@@ -278,12 +275,14 @@ function moveCard(event, card) {
     window.removeEventListener("pointercancel", handlePointerCancel);
 
     // Implement card snapping or other dragging behavior
+    (snapped?.element.lastChild || snapped?.element)?.classList.remove("highlighted");
+
     if (snapped === null) {
-      moving_cards.forEach((c, idx) =>
+      movingCards.forEach((c, idx) =>
         c.moveTo(null, initialX * 100, initialY * 100 + idx * UP_SPACE, ANIMATION_TIME + 10 * idx)
       );
     } else {
-      moving_cards.forEach((c) => {
+      movingCards.forEach((c) => {
         const [x, y] = snapped.getPos(snapped.element);
         c.moveTo(snapped.element, 100 * x, 100 * y, 0);
       });

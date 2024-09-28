@@ -177,6 +177,12 @@ html {
   border-radius: 1.2vh;
 }
 
+.highlighted {
+  outline-style: solid;
+  outline-width: 4px;
+  outline-color: #fb5;
+}
+
 @media (min-aspect-ratio: 3/4) {
   #game_box {
     aspect-ratio: 1.6;
