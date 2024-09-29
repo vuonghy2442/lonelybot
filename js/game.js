@@ -51,11 +51,44 @@ const stackContainers = [...document.querySelectorAll(".stack")];
 const wasteContainer = document.querySelector("#waste");
 
 const wastePlace = new CardPlace(wasteContainer, DEAL_SPACE, true, 0);
-const movingPlace = new CardPlace(document.querySelector("#moving"), UP_SPACE, false, -1);
 const stackPlaces = stackContainers.map((s, idx) => new CardPlace(s, 0, false, Pos.Stack + idx));
 const tableauPlaces = tableauContainers.map((s, idx) => new CardPlace(s, UP_SPACE, false, Pos.Pile + idx));
 
 const cardPlaces = [wastePlace, ...stackPlaces, ...tableauPlaces];
+
+class MovingPlace {
+  constructor() {
+    this.element = document.querySelector("#moving");
+  }
+
+  setMoving(el) {
+    const rect = getOffsetRect(el);
+    this.element.style.left = rect.left + "px";
+    this.element.style.top = rect.top + "px";
+    this.element.style.width = rect.width + "px";
+    this.element.style.height = rect.height + "px";
+    this.element.style.transform = "";
+  }
+
+  takeCards(cards) {
+    if (cards.length == 0) return;
+
+    this.setMoving(cards[0].container);
+    cards.forEach((c) => this.element.append(c.element));
+    this.cards = cards;
+  }
+  moveTo(x, y) {
+    this.element.style.transform = `translate(${x * 100}%,${y * 100}%)`;
+  }
+
+  putCards(place) {
+    this.cards.forEach((c) => {
+      c.moveTo(place);
+    });
+  }
+}
+
+const mover = new MovingPlace();
 
 // Helper function to initialize piles
 function initializePiles() {
@@ -108,8 +141,7 @@ function handlePopStackEvent(card) {
     const c = getCard(card.rank - 2, card.suit);
     c.turnUp();
     c.draggable = false;
-    c.createDOM(stackPlaces[card.suit]);
-    getCard(card.rank - 1, card.suit).moveToFront();
+    c.createDOM(stackPlaces[card.suit], true);
   }
 
   if (card.rank > 0) {
@@ -163,11 +195,7 @@ function moveCard(event, card) {
 
   snap_audio.play();
 
-  let [tmpX, tmpY] = movingPlace.getPos(card.element);
-
-  movingCards.forEach((c) => c.moveTo(movingPlace));
-
-  movingPlace.element.style.transform = `translate(${-tmpX * 100}%,${-tmpY * 100}%)`;
+  mover.takeCards(movingCards);
 
   const dropPos = game.liftCard(movingCards).map((p) => [cardPlaces[p], cardPlaces[p].getPos(originContainer)]);
 
@@ -212,7 +240,7 @@ function moveCard(event, card) {
 
     snapped = place;
 
-    movingPlace.element.style.transform = `translate(${(x - tmpX) * 100}%,${(y - tmpY) * 100}%)`;
+    mover.moveTo(x, y);
   }
 
   function handlePointerCancel() {
@@ -234,22 +262,17 @@ function moveCard(event, card) {
 
     handlingMove = false;
 
-    movingPlace.element.style.transform = "";
-
     const duration = new Date() - startTime;
 
     if (dropPos.length == 0 || (snapped === null && duration > 200)) {
-      movingCards.forEach((c) => c.moveTo(originPlace));
-      snapped = null;
-      return;
+      snapped = originPlace;
     } else if (snapped === null) {
       snapped = dropPos[0][0];
     }
 
-    movingCards.forEach((c) => {
-      c.moveTo(snapped);
-    });
-    game.makeMove(card, origin, snapped.placeId);
+    mover.putCards(snapped);
+
+    if (origin != snapped.placeId) game.makeMove(card, origin, snapped.placeId);
     snapped = null;
   }
 

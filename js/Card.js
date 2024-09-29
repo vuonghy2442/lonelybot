@@ -194,7 +194,7 @@ export class Card {
    * @param {number} posX
    * @param {number} posY
    */
-  createDOM(place, inFront) {
+  createDOM(place, prepend) {
     if (this.#element !== null) return;
     const cardElement = document.createElement("div");
     cardElement.className = "card";
@@ -216,7 +216,7 @@ export class Card {
     // cardElement.addEventListener("transitioncancel", doneAnimate);
     // cardElement.addEventListener("transitionend", doneAnimate);
 
-    if (inFront) {
+    if (prepend) {
       cardElement.style.left = "0%";
       cardElement.style.top = "0%";
       place.element.prepend(cardElement);
@@ -255,7 +255,7 @@ export class Card {
    * @param {number | null} posY
    * @param {number} duration
    */
-  moveTo(place) {
+  moveTo(place, animation) {
     if (this.#element === null || place === null || place.element === this.container) return;
 
     const [posX, posY] = place.getSelfPos();
@@ -265,8 +265,19 @@ export class Card {
     this.#element.style.left = `${posX * 100}%`;
     this.#element.style.top = `${posY * 100}%`;
 
-    this.container.removeChild(this.#element);
+    if (animation) {
+      const [curX, curY] = place.getPos(this.#element);
+      this.#element.style.transform = `translate(-${curX * 100}%,-${curY * 100}%)`;
+    }
+
     place.element.appendChild(this.#element);
+
+    if (animation) {
+      requestAnimationFrame(() => {
+        this.#element.style.transition = `transform ${animation}ms ease-in`;
+        this.#element.style.transform = "";
+      });
+    }
   }
 
   /** @returns {boolean} */

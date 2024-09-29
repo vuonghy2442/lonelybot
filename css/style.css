@@ -22,6 +22,7 @@ body,
 html {
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 #game_view {
@@ -31,14 +32,14 @@ html {
   background: #050;
   padding: 0;
 
-  overflow: clip;
+  overflow: hidden;
 }
 
 #game_header {
   width: 100%;
   height: 50pt;
   background: #00000055;
-  overflow: clip;
+  overflow: hidden;
   display: flex;
 }
 
@@ -46,14 +47,14 @@ html {
   width: 100%;
   height: 50pt;
   background: #00000055;
-  overflow: clip;
+  overflow: hidden;
   display: flex;
 }
 
 #game_main {
   width: 100%;
   height: calc(100% - 100pt);
-  overflow: clip;
+  overflow: hidden;
 }
 
 #game_header > div {
@@ -87,7 +88,7 @@ html {
   /* -webkit-backface-visibility: hidden; */
   /* backface-visibility: hidden; */
 
-  overflow: clip;
+  overflow: hidden;
 }
 
 .flipped > .card_front {
@@ -153,9 +154,8 @@ html {
 }
 
 #moving {
-  grid-row: 2;
-  grid-column: 3;
-  position: relative;
+  position: absolute;
+  pointer-events: none;
 }
 
 #game_grid > div {
