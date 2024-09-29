@@ -56,8 +56,52 @@ function createCardSVG(c) {
   </svg>`;
 }
 
-/** @type {HTMLElement | null} */
-let front_element = null;
+export function getOffsetRect(el) {
+  const rect = el.getBoundingClientRect();
+
+  // add window scroll position to get the offset position
+  const left = rect.left + window.scrollX;
+  const top = rect.top + window.scrollY;
+  const right = rect.right + window.scrollX;
+  const bottom = rect.bottom + window.scrollY;
+
+  // width and height are the same
+  const width = rect.width;
+  const height = rect.height;
+
+  return { left, top, right, bottom, width, height };
+}
+
+export class CardPlace {
+  constructor(element, offset, dirX, placeId) {
+    element.dataset.placeId = placeId;
+
+    this.element = element;
+    this.offset = offset / 100;
+    this.dirX = dirX;
+    this.placeId = placeId;
+  }
+
+  getPos(el) {
+    const boundBox = getOffsetRect(this.element);
+    const bound = getOffsetRect(el);
+    const nChild = this.element.childElementCount;
+    const offset = this.offset * nChild;
+
+    const x = (boundBox.left - bound.left) / bound.width + (this.dirX ? offset : 0);
+    const y = (boundBox.top - bound.top) / bound.height + (!this.dirX ? offset : 0);
+
+    return [x, y];
+  }
+
+  getSelfPos() {
+    return this.getPos(this.element);
+  }
+
+  get last() {
+    return this.element.lastChild || this.element;
+  }
+}
 
 export class Card {
   /** @type {number} */
@@ -145,19 +189,12 @@ export class Card {
     this.container?.appendChild(this.#element);
   }
 
-  containerToFront() {
-    if (this.#element === null) return;
-    if (front_element !== null) front_element.style.zIndex = "0";
-    if (this.container) this.container.style.zIndex = "1";
-    front_element = this.container;
-  }
-
   /**
-   * @param {HTMLElement} container
+   * @param {CardPlace} place
    * @param {number} posX
    * @param {number} posY
    */
-  createDOM(container, posX, posY) {
+  createDOM(place, inFront) {
     if (this.#element !== null) return;
     const cardElement = document.createElement("div");
     cardElement.className = "card";
@@ -167,19 +204,29 @@ export class Card {
     </div>`;
     const inner = cardElement.firstElementChild;
     if (inner && this.#flipped) inner.classList.add("flipped");
-    cardElement.style.left = `${posX}%`;
-    cardElement.style.top = `${posY}%`;
+
     cardElement.dataset.cardId = this.id.toString();
-    cardElement.addEventListener("transitionrun", (_) => {
-      this.#animating = true;
-    });
-    const doneAnimate = (_) => {
-      cardElement.style.removeProperty("transition");
-      this.#animating = false;
-    };
-    cardElement.addEventListener("transitioncancel", doneAnimate);
-    cardElement.addEventListener("transitionend", doneAnimate);
-    container.appendChild(cardElement);
+    // cardElement.addEventListener("transitionrun", (_) => {
+    //   this.#animating = true;
+    // });
+    // const doneAnimate = (_) => {
+    //   cardElement.style.removeProperty("transition");
+    //   this.#animating = false;
+    // };
+    // cardElement.addEventListener("transitioncancel", doneAnimate);
+    // cardElement.addEventListener("transitionend", doneAnimate);
+
+    if (inFront) {
+      cardElement.style.left = "0%";
+      cardElement.style.top = "0%";
+      place.element.prepend(cardElement);
+    } else {
+      const [posX, posY] = place.getSelfPos();
+      cardElement.style.left = `${posX * 100}%`;
+      cardElement.style.top = `${posY * 100}%`;
+      place.element.append(cardElement);
+    }
+
     this.#element = cardElement;
   }
 
@@ -203,27 +250,23 @@ export class Card {
   }
 
   /**
-   * @param {HTMLElement | null} container
+   * @param {CardPlace} container
    * @param {number | null} posX
    * @param {number | null} posY
    * @param {number} duration
    */
-  moveTo(container, posX, posY, duration) {
-    if (this.#element === null) return;
-    const sameContainer = container === null || container === this.container;
-    let currentLeft = parseFloat(this.#element.style.left) || 0;
-    let currentTop = parseFloat(this.#element.style.top) || 0;
-    if (sameContainer && Math.abs(currentLeft - posX) < 1e-2 && Math.abs(currentTop - posY) < 1e-2) {
-      return;
-    }
-    if (duration > 0) this.#element.style.transition = `top ${duration}ms ease-in, left ${duration}ms ease-in`;
-    if (posX !== null) this.#element.style.left = `${posX}%`;
-    if (posY !== null) this.#element.style.top = `${posY}%`;
-    if (!sameContainer && container) {
-      const parent = this.container;
-      if (parent) parent.removeChild(this.#element);
-      container.appendChild(this.#element);
-    }
+  moveTo(place) {
+    if (this.#element === null || place === null || place.element === this.container) return;
+
+    const [posX, posY] = place.getSelfPos();
+    // console.log("meo", posX, posY);
+
+    // if (duration > 0) this.#element.style.transition = `top ${duration}ms ease-in, left ${duration}ms ease-in`;
+    this.#element.style.left = `${posX * 100}%`;
+    this.#element.style.top = `${posY * 100}%`;
+
+    this.container.removeChild(this.#element);
+    place.element.appendChild(this.#element);
   }
 
   /** @returns {boolean} */
