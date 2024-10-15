@@ -65,7 +65,7 @@ impl Deck {
 
     /// Return whether it still exists in the deck and its position
     #[must_use]
-    pub fn find_card(&self, card: Card) -> (bool, u8) {
+    pub const fn find_card(&self, card: Card) -> (bool, u8) {
         let v = 1u32 << self.map[card.mask_index() as usize];
         (self.mask & v != 0, (self.mask & (v - 1)).count_ones() as u8)
     }
@@ -212,6 +212,16 @@ impl Deck {
             }
         }
         ControlFlow::Continue(())
+    }
+
+    #[must_use]
+    pub fn compute_mask(&self, filter: bool) -> u64 {
+        let mut mask: u64 = 0;
+        self.iter_callback(filter, |_, card| -> ControlFlow<()> {
+            mask |= 1 << card;
+            ControlFlow::Continue(())
+        });
+        mask
     }
 
     #[must_use]

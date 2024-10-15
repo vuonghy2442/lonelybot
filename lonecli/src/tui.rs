@@ -61,16 +61,16 @@ pub(crate) fn print_piles(
     // printing
     for i in 0.. {
         let mut is_print = false;
-        for j in 0..N_PILES {
-            let cur_pile = &piles[j as usize];
+        for j in 0..N_PILES as usize {
+            let cur_pile = &piles[j];
 
-            let n_visible = cur_pile.len() as u8;
-            let n_hidden = hidden[j as usize].len() as u8;
+            let n_visible = cur_pile.len();
+            let n_hidden = hidden[j].len();
             if n_hidden > i {
                 print!("**\t");
                 is_print = true;
             } else if i < n_hidden + n_visible {
-                print!("{}\t", color(Some(cur_pile[(i - n_hidden) as usize])));
+                print!("{}\t", color(Some(cur_pile[i - n_hidden])));
                 is_print = true;
             } else {
                 print!("  \t");

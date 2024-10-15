@@ -1,5 +1,4 @@
 use core::num::NonZeroU8;
-use core::ops::ControlFlow;
 
 use rand::RngCore;
 
@@ -133,21 +132,14 @@ impl Solitaire {
             return (0, false);
         };
 
-        let filter = DOMINANCE & self.final_stack.dominance_stackable(last_card);
+        let filter = DOMINANCE && self.final_stack.dominance_stackable(last_card);
 
         if filter && self.deck.is_pure() {
-            return (last_card.mask(), true);
+            (last_card.mask(), true)
+        } else {
+            // TODO: dominance for draw_step == 1
+            (self.deck.compute_mask(filter), false)
         }
-
-        let mut mask = 0;
-        self.deck
-            .iter_callback(filter, |_, card| -> ControlFlow<()> {
-                mask |= 1 << card;
-                ControlFlow::Continue(())
-            });
-
-        // TODO: dominance for draw_step == 1
-        (mask, false)
     }
 
     #[must_use]
@@ -615,6 +607,7 @@ impl From<&StandardSolitaire> for Solitaire {
 #[cfg(test)]
 mod tests {
     use arrayvec::ArrayVec;
+    use core::ops::ControlFlow;
     use rand::prelude::*;
 
     use crate::deck::{Drawable, N_DECK_CARDS};

@@ -146,7 +146,7 @@ impl StandardSolitaire {
     #[must_use]
     pub fn find_card(&self, card: Card) -> Option<(u8, &[Card])> {
         for (idx, pile) in self.piles.iter().enumerate() {
-            if let Some((_, cards)) = split_at_card(&pile, card) {
+            if let Some((_, cards)) = split_at_card(pile, card) {
                 return Some((idx as u8, cards));
             }
         }
