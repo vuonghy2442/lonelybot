@@ -313,7 +313,9 @@ impl Solitaire {
         self.final_stack.push(card.suit());
 
         if DECK {
-            let pos = self.deck.find_card_fast(card);
+            let (found, pos) = self.deck.find_card(card);
+            debug_assert!(found);
+
             let old_offset = self.deck.get_offset();
             self.deck.draw(pos);
             old_offset
@@ -346,7 +348,9 @@ impl Solitaire {
         let mask = card.mask();
         self.visible_mask |= mask;
         if DECK {
-            let pos = self.deck.find_card_fast(card);
+            let (found, pos) = self.deck.find_card(card);
+            debug_assert!(found);
+
             let old_offset = self.deck.get_offset();
             self.deck.draw(pos);
             old_offset

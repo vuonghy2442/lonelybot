@@ -58,7 +58,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("find_card", |b| {
         b.iter(|| {
-            black_box(sample_deck.find_card_fast(card));
+            black_box(sample_deck.find_card(card));
         })
     });
 

@@ -2,7 +2,7 @@ use core::num::NonZeroU8;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{Card, N_RANKS, N_SUITS};
+use crate::card::{split_at_card, Card, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_DECK_CARDS, N_PILES, N_PILE_CARDS};
 use crate::shuffler::CardDeck;
 use crate::stack::Stack;
@@ -144,18 +144,10 @@ impl StandardSolitaire {
     }
 
     #[must_use]
-    pub fn find_card_pile(&self, pos: u8, card: Card) -> Option<usize> {
-        self.piles[pos as usize]
-            .iter()
-            .position(|pile_card| card == *pile_card)
-    }
-
-    #[must_use]
-    pub fn find_card(&self, card: Card) -> Option<(u8, usize)> {
-        for i in 0..N_PILES {
-            let pos = self.find_card_pile(i, card).map(|j| (i, j));
-            if pos.is_some() {
-                return pos;
+    pub fn find_card(&self, card: Card) -> Option<(u8, &[Card])> {
+        for (idx, pile) in self.piles.iter().enumerate() {
+            if let Some((_, cards)) = split_at_card(&pile, card) {
+                return Some((idx as u8, cards));
             }
         }
         None
@@ -183,7 +175,7 @@ impl StandardSolitaire {
                     && from < N_PILES
                     && to < N_PILES
                     && card.go_after(self.piles[to as usize].last().copied())
-                    && self.find_card_pile(from, card).is_some()
+                    && split_at_card(&self.piles[from as usize], card).is_some()
             }
             (Pos::Pile(from), Pos::Stack(suit), card) => {
                 from < N_PILES
@@ -233,11 +225,11 @@ impl StandardSolitaire {
                 self.final_stack.push(suit);
             }
             (Pos::Pile(from), Pos::Pile(to), card) => {
-                let pos = self.find_card_pile(from, card).unwrap();
                 let (from, to) = (usize::from(from), usize::from(to));
-                let tmp: PileVec = self.piles[from][pos..].iter().copied().collect();
+                let (before, cards) = split_at_card(&self.piles[from], card).unwrap();
+                let tmp: PileVec = cards.iter().copied().collect();
+                self.piles[from].truncate(before.len());
                 self.piles[to].extend(tmp);
-                self.piles[from].truncate(pos);
             }
             (Pos::Pile(from), Pos::Stack(suit), _) => {
                 self.piles[usize::from(from)].pop();

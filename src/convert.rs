@@ -58,9 +58,8 @@ pub(crate) fn convert_move(
             if c.rank() != game.get_stack().get(c.suit()) {
                 return Err(InvalidMove {});
             }
-            let (pile, pos) = game.find_card(c).ok_or(InvalidMove {})?;
-            if pos + 1 < game.get_piles()[pile as usize].len() {
-                let move_card = game.get_piles()[pile as usize][pos + 1];
+            let (pile, cards) = game.find_card(c).ok_or(InvalidMove {})?;
+            if let Some(&move_card) = cards.get(1) {
                 let pile_other = game.find_free_pile(move_card).ok_or(InvalidMove {})?;
 
                 if pile == pile_other {

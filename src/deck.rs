@@ -63,19 +63,11 @@ impl Deck {
         self.deck.is_empty()
     }
 
+    /// Return whether it still exists in the deck and its position
     #[must_use]
-    pub fn find_card(&self, card: Card) -> Option<u8> {
-        #[allow(clippy::cast_possible_truncation)]
-        self.deck
-            .iter()
-            .position(|x| x == &card.mask_index())
-            .map(|x| x as u8)
-    }
-
-    #[must_use]
-    pub fn find_card_fast(&self, card: Card) -> u8 {
-        let v = self.map[card.mask_index() as usize];
-        (self.mask & ((1 << v) - 1)).count_ones() as u8
+    pub fn find_card(&self, card: Card) -> (bool, u8) {
+        let v = 1u32 << self.map[card.mask_index() as usize];
+        (self.mask & v != 0, (self.mask & (v - 1)).count_ones() as u8)
     }
 
     #[must_use]
