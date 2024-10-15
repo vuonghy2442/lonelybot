@@ -49,18 +49,9 @@ impl Stack {
         self.get(card.suit()) == card.rank()
     }
 
-    #[must_use]
-    pub const fn dominance(self, card: Card) -> bool {
-        self.dominance_mask() & card.mask() > 0
-    }
-
-    #[must_use]
-    pub const fn dominance_stackable(self, card: Card) -> bool {
-        self.stackable(card) && self.dominance(card)
-    }
-
-    pub(crate) fn is_valid(self) -> bool {
-        self.get_s().iter().all(|x| *x <= N_RANKS)
+    pub(crate) const fn is_valid(self) -> bool {
+        let s = self.get_s();
+        s[0] <= N_RANKS && s[1] <= N_RANKS && s[2] <= N_RANKS && s[3] <= N_RANKS
     }
 
     #[must_use]
@@ -79,12 +70,13 @@ impl Stack {
     }
 
     #[must_use]
-    pub fn len(self) -> u8 {
-        self.get_s().iter().sum::<u8>()
+    pub const fn len(self) -> u8 {
+        let s = self.get_s();
+        s[0] + s[1] + s[2] + s[3]
     }
 
     #[must_use]
-    pub fn is_empty(self) -> bool {
+    pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
 }

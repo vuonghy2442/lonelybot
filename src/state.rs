@@ -127,18 +127,27 @@ impl Solitaire {
     }
 
     #[must_use]
-    fn get_deck_mask<const DOMINANCE: bool>(&self) -> (u64, bool) {
-        let Some(last_card) = self.deck.peek_last() else {
-            return (0, false);
-        };
-
-        let filter = DOMINANCE && self.final_stack.dominance_stackable(last_card);
-
-        if filter && self.deck.is_pure() {
-            (last_card.mask(), true)
+    fn get_deck_mask(&self, dom_stackable: u64) -> (u64, bool) {
+        if self.deck.draw_step().get() == 1 {
+            let mask = self.deck.compute_mask(false);
+            let mask_dom = mask & dom_stackable;
+            if mask_dom > 0 {
+                (mask_dom & mask_dom.wrapping_neg(), true)
+            } else {
+                (mask, false)
+            }
         } else {
-            // TODO: dominance for draw_step == 1
-            (self.deck.compute_mask(filter), false)
+            let Some(last_card) = self.deck.peek_last() else {
+                return (0, false);
+            };
+
+            let filter = dom_stackable & last_card.mask() > 0;
+
+            if filter && self.deck.is_pure() {
+                (last_card.mask(), true)
+            } else {
+                (self.deck.compute_mask(filter), false)
+            }
         }
     }
 
@@ -181,7 +190,7 @@ impl Solitaire {
         }
 
         // computing which card can be accessible from the deck (K+ representation) and if the last card can stack dominantly
-        let (deck_mask, dom) = self.get_deck_mask::<DOMINANCE>();
+        let (deck_mask, dom) = self.get_deck_mask(dom_sm & sm);
         // no dominance for draw_step = 1 yet
         if dom {
             // not very useful as dominance
