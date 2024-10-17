@@ -21,7 +21,6 @@ pub struct Solitaire {
     deck: Deck,
 
     visible_mask: u64,
-    locked_mask: u64,
 }
 
 pub type Encode = u64;
@@ -58,7 +57,6 @@ impl Solitaire {
         let hidden = Hidden::new(hidden_piles);
 
         Self {
-            locked_mask: hidden.compute_locked_mask(),
             hidden,
             final_stack: Stack::default(),
             deck,
@@ -96,7 +94,7 @@ impl Solitaire {
 
     #[must_use]
     const fn get_locked_mask(&self) -> u64 {
-        self.locked_mask
+        self.hidden.get_locked_mask()
     }
 
     #[must_use]
@@ -323,7 +321,7 @@ impl Solitaire {
             self.deck.draw(pos);
             old_offset
         } else {
-            let locked = (self.locked_mask & mask) != 0;
+            let locked = (self.get_locked_mask() & mask) != 0;
             self.visible_mask ^= mask;
             if locked {
                 self.make_reveal(card);
@@ -375,23 +373,15 @@ impl Solitaire {
     }
 
     fn make_reveal(&mut self, card: Card) {
-        let pos = self.hidden.find(card);
-        self.locked_mask &= !card.mask(); // should i use ^ or & !
-
-        let new_card = self.hidden.pop(pos);
-        if let Some(&new_card) = new_card {
+        if let Some(&new_card) = self.hidden.pop_card(card) {
             self.visible_mask |= new_card.mask();
         }
     }
 
     fn unmake_reveal(&mut self, card: Card) {
-        let pos = self.hidden.find(card);
-        self.locked_mask |= card.mask();
-
-        if let Some(new_card) = self.hidden.peek(pos) {
+        if let Some(new_card) = self.hidden.unpop_card(card) {
             self.visible_mask &= !new_card.mask();
         }
-        self.hidden.unpop(pos);
     }
 
     /// # Panics
@@ -477,7 +467,6 @@ impl Solitaire {
         self.deck.decode(deck_encode);
 
         self.visible_mask = self.compute_visible_mask();
-        self.locked_mask = self.hidden.compute_locked_mask();
     }
 
     #[must_use]
@@ -489,22 +478,19 @@ impl Solitaire {
             #[allow(clippy::cast_possible_truncation)]
             let pos = pos as u8;
 
-            let mut start_card = match self.hidden.peek(pos) {
-                Some(&card) => card,
-                None => {
-                    while king_suit < N_SUITS
-                        && non_top & Card::new(KING_RANK, king_suit).mask() == 0
-                    {
-                        king_suit += 1;
-                    }
-
-                    if king_suit >= N_SUITS {
-                        return PileVec::default();
-                    }
-
+            let mut start_card = if let Some(&card) = self.hidden.peek(pos) {
+                card
+            } else {
+                while king_suit < N_SUITS && non_top & Card::new(KING_RANK, king_suit).mask() == 0 {
                     king_suit += 1;
-                    Card::new(KING_RANK, king_suit - 1)
                 }
+
+                if king_suit >= N_SUITS {
+                    return PileVec::default();
+                }
+
+                king_suit += 1;
+                Card::new(KING_RANK, king_suit - 1)
             };
 
             let mut cards = PileVec::new();
@@ -538,9 +524,7 @@ impl Solitaire {
     #[must_use]
     pub(crate) fn is_valid(&self) -> bool {
         // TODO: test for if visible mask and free mask make sense to build bottom mask
-        if self.hidden.compute_locked_mask() != self.locked_mask
-            || self.get_extended_top_mask().count_ones() > N_PILES.into()
-        {
+        if self.get_extended_top_mask().count_ones() > N_PILES.into() {
             return false;
         }
 
@@ -591,14 +575,11 @@ impl From<&StandardSolitaire> for Solitaire {
             &core::array::from_fn(|i| game.get_piles()[i].first().copied()),
         );
 
-        let locked_mask = hidden.compute_locked_mask();
-
         Self {
             hidden,
             final_stack: *game.get_stack(),
             deck: game.get_deck().clone(),
             visible_mask,
-            locked_mask,
         }
     }
 }

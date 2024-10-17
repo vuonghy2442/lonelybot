@@ -14,6 +14,7 @@ pub struct Hidden {
     n_hidden: [u8; N_PILES as usize],
     pile_map: [u8; N_CARDS as usize],
     first_layer_mask: u64,
+    locked_mask: u64,
 }
 
 impl Hidden {
@@ -40,7 +41,14 @@ impl Hidden {
             n_hidden: core::array::from_fn(|i| (i + 1) as u8),
             pile_map,
             first_layer_mask,
+            locked_mask: 0,
         }
+        .init_locked_mask()
+    }
+
+    #[must_use]
+    pub(crate) const fn get_locked_mask(&self) -> u64 {
+        self.locked_mask
     }
 
     #[must_use]
@@ -73,11 +81,13 @@ impl Hidden {
             pile_map,
             n_hidden: core::array::from_fn(|i| piles[i].len() as u8 + u8::from(top[i].is_some())),
             first_layer_mask,
+            locked_mask: 0,
         }
+        .init_locked_mask()
     }
 
     #[must_use]
-    pub(crate) fn compute_locked_mask(&self) -> u64 {
+    fn compute_locked_mask(&self) -> u64 {
         let mut locked_mask = 0;
         for pos in 0..N_PILES {
             for card in self.get(pos) {
@@ -85,6 +95,11 @@ impl Hidden {
             }
         }
         locked_mask
+    }
+
+    fn init_locked_mask(mut self) -> Self {
+        self.locked_mask = self.compute_locked_mask();
+        self
     }
 
     #[must_use]
@@ -141,13 +156,19 @@ impl Hidden {
         self.get(pos).last()
     }
 
-    pub(crate) fn pop(&mut self, pos: u8) -> Option<&Card> {
+    pub(crate) fn pop_card(&mut self, card: Card) -> Option<&Card> {
+        self.locked_mask &= !card.mask();
+        let pos = self.find(card);
         self.n_hidden[usize::from(pos)] -= 1;
         self.peek(pos)
     }
 
-    pub(crate) fn unpop(&mut self, pos: u8) {
+    pub(crate) fn unpop_card(&mut self, card: Card) -> Option<Card> {
+        self.locked_mask |= card.mask();
+        let pos = self.find(card);
+        let top_card = self.peek(pos).copied();
         self.n_hidden[usize::from(pos)] += 1;
+        top_card
     }
 
     #[must_use]
@@ -188,6 +209,7 @@ impl Hidden {
             self.n_hidden[i as usize] = (hidden_encode % n_options) as u8;
             hidden_encode /= n_options;
         }
+        self.locked_mask = self.compute_locked_mask();
     }
 
     fn update_map(&mut self) {
@@ -260,6 +282,10 @@ impl Hidden {
 
     #[must_use]
     pub(crate) fn is_valid(&self) -> bool {
+        if self.compute_locked_mask() != self.get_locked_mask() {
+            return false;
+        }
+
         for pos in 0..N_PILES {
             for c in self.get(pos) {
                 if self.pile_map[c.mask_index() as usize] != pos {
