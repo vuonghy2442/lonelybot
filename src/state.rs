@@ -21,7 +21,7 @@ pub struct Solitaire {
     deck: Deck,
 
     visible_mask: u64,
-    top_mask: u64,
+    locked_mask: u64,
 }
 
 pub type Encode = u64;
@@ -58,7 +58,7 @@ impl Solitaire {
         let hidden = Hidden::new(hidden_piles);
 
         Self {
-            top_mask: hidden.compute_top_mask(),
+            locked_mask: hidden.compute_locked_mask(),
             hidden,
             final_stack: Stack::default(),
             deck,
@@ -95,31 +95,30 @@ impl Solitaire {
     }
 
     #[must_use]
-    const fn get_top_mask(&self) -> u64 {
-        self.top_mask
+    const fn get_locked_mask(&self) -> u64 {
+        self.locked_mask
     }
 
     #[must_use]
     const fn get_extended_top_mask(&self) -> u64 {
         // also consider the kings to be the top cards
-        self.top_mask | (self.visible_mask & KING_MASK)
-        // (self.top_mask | KING_MASK) & self.visible_mask
+        self.visible_mask & (self.get_locked_mask() | KING_MASK)
     }
 
     #[must_use]
     const fn get_bottom_mask(&self) -> u64 {
         let vis = self.get_visible_mask();
-        let non_top = vis ^ self.get_top_mask();
+        let free = vis & !self.get_locked_mask(); //maybe no need to & TODO: check later
         let xor_all = {
-            let xor_non_top = non_top ^ (non_top >> 1);
+            let xor_free = free ^ (free >> 1);
             let xor_vis = vis ^ (vis >> 1);
-            xor_vis ^ (xor_non_top << 4)
+            xor_vis ^ (xor_free << 4)
         };
 
         let bottom_mask = {
-            let or_non_top = non_top | (non_top >> 1);
+            let or_free = free | (free >> 1);
             let or_vis = vis | (vis >> 1);
-            (xor_all | !(or_non_top << 4)) & or_vis & ALT_MASK
+            (xor_all | !(or_free << 4)) & or_vis & ALT_MASK
         };
 
         //shared rank
@@ -154,7 +153,7 @@ impl Solitaire {
     #[must_use]
     pub fn gen_moves<const DOMINANCE: bool>(&self) -> MoveMask {
         let vis = self.get_visible_mask();
-        let top = self.get_top_mask();
+        let locked = self.get_locked_mask();
 
         // this mask represent the rank & even^red type to be movable
         let bm = self.get_bottom_mask();
@@ -179,7 +178,7 @@ impl Solitaire {
         }
         // getting the stackable cards without revealing
         // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
-        let redundant_stack = pile_stack & !top;
+        let redundant_stack = pile_stack & !locked;
         let least_stack = redundant_stack & redundant_stack.wrapping_neg();
 
         if DOMINANCE && redundant_stack.count_ones() >= 3 {
@@ -244,7 +243,7 @@ impl Solitaire {
 
                 let triple_stackable = {
                     // finding card that can potentially become stackable in the next move
-                    let pot_stack = (vis ^ top) & sm;
+                    let pot_stack = !locked & vis & sm;
                     let pot_stack = pot_stack | (pot_stack >> 1);
 
                     // if one of them is a top card then, the next turn will be not reversible
@@ -284,7 +283,8 @@ impl Solitaire {
         let deck_pile = deck_mask & free_slot & !(dom_sm & sm);
 
         // revealing a card by moving the top card to another pile (not to stack)
-        let reveal = top & free_slot;
+        // do not reveal king cards
+        let reveal = vis & locked & free_slot & !(self.hidden.first_layer_mask() & KING_MASK);
 
         MoveMask {
             pile_stack,
@@ -299,7 +299,9 @@ impl Solitaire {
     pub(crate) const fn reverse_move(&self, m: Move) -> Option<Move> {
         // check if this move can be undo using a legal move in the game
         match m {
-            Move::PileStack(c) if self.top_mask & c.mask() == 0 => Some(Move::StackPile(c)),
+            Move::PileStack(c) if self.get_locked_mask() & c.mask() == 0 => {
+                Some(Move::StackPile(c))
+            }
             Move::StackPile(c) => Some(Move::PileStack(c)),
             _ => None,
         }
@@ -321,12 +323,12 @@ impl Solitaire {
             self.deck.draw(pos);
             old_offset
         } else {
-            let hidden = (self.top_mask & mask) != 0;
+            let locked = (self.locked_mask & mask) != 0;
             self.visible_mask ^= mask;
-            if hidden {
+            if locked {
                 self.make_reveal(card);
             }
-            u8::from(hidden)
+            u8::from(locked)
         }
     }
 
@@ -340,7 +342,7 @@ impl Solitaire {
         } else {
             self.visible_mask |= mask;
             if info > 0 {
-                self.unmake_reveal(card, Default::default());
+                self.unmake_reveal(card);
             }
         }
     }
@@ -372,31 +374,22 @@ impl Solitaire {
         }
     }
 
-    fn make_reveal(&mut self, card: Card) -> UndoInfo {
+    fn make_reveal(&mut self, card: Card) {
         let pos = self.hidden.find(card);
-        self.top_mask &= !card.mask();
+        self.locked_mask &= !card.mask(); // should i use ^ or & !
 
         let new_card = self.hidden.pop(pos);
         if let Some(&new_card) = new_card {
-            let revealed = new_card.mask();
-            self.visible_mask |= revealed;
-            if !new_card.is_king() || self.hidden.len(pos) > 1 {
-                // if it's not the king mask or there's some hidden cards then set it as the top card
-                self.top_mask |= revealed;
-            }
+            self.visible_mask |= new_card.mask();
         }
-        Default::default()
     }
 
-    fn unmake_reveal(&mut self, card: Card, _info: UndoInfo) {
+    fn unmake_reveal(&mut self, card: Card) {
         let pos = self.hidden.find(card);
-
-        self.top_mask |= card.mask();
+        self.locked_mask |= card.mask();
 
         if let Some(new_card) = self.hidden.peek(pos) {
-            let unrevealed = !new_card.mask();
-            self.visible_mask &= unrevealed;
-            self.top_mask &= unrevealed;
+            self.visible_mask &= !new_card.mask();
         }
         self.hidden.unpop(pos);
     }
@@ -411,7 +404,10 @@ impl Solitaire {
             Move::PileStack(c) => self.make_stack::<false>(c),
             Move::DeckPile(c) => self.make_pile::<true>(c),
             Move::StackPile(c) => self.make_pile::<false>(c),
-            Move::Reveal(c) => self.make_reveal(c),
+            Move::Reveal(c) => {
+                self.make_reveal(c);
+                UndoInfo::default()
+            }
         }
     }
 
@@ -422,7 +418,7 @@ impl Solitaire {
             Move::PileStack(c) => self.unmake_stack::<false>(c, undo),
             Move::DeckPile(c) => self.unmake_pile::<true>(c, undo),
             Move::StackPile(c) => self.unmake_pile::<false>(c, undo),
-            Move::Reveal(c) => self.unmake_reveal(c, undo),
+            Move::Reveal(c) => self.unmake_reveal(c),
         }
     }
 
@@ -481,32 +477,35 @@ impl Solitaire {
         self.deck.decode(deck_encode);
 
         self.visible_mask = self.compute_visible_mask();
-        self.top_mask = self.hidden.compute_top_mask();
+        self.locked_mask = self.hidden.compute_locked_mask();
     }
 
     #[must_use]
     pub fn compute_visible_piles(&self) -> [PileVec; N_PILES as usize] {
         // TODO: should add more comprehensive test for this
-        let non_top = self.visible_mask ^ self.top_mask;
+        let non_top = !self.get_locked_mask() & self.get_visible_mask();
         let mut king_suit = 0;
         core::array::from_fn(|pos| {
             #[allow(clippy::cast_possible_truncation)]
             let pos = pos as u8;
 
-            let mut start_card = *self.hidden.peek(pos).unwrap_or(&Card::new(KING_RANK, 0));
+            let mut start_card = match self.hidden.peek(pos) {
+                Some(&card) => card,
+                None => {
+                    while king_suit < N_SUITS
+                        && non_top & Card::new(KING_RANK, king_suit).mask() == 0
+                    {
+                        king_suit += 1;
+                    }
 
-            if self.hidden.len(pos) <= 1 && start_card.is_king() {
-                while king_suit < N_SUITS && non_top & Card::new(KING_RANK, king_suit).mask() == 0 {
+                    if king_suit >= N_SUITS {
+                        return PileVec::default();
+                    }
+
                     king_suit += 1;
+                    Card::new(KING_RANK, king_suit - 1)
                 }
-
-                if king_suit >= N_SUITS {
-                    return PileVec::default();
-                }
-
-                king_suit += 1;
-                start_card = Card::new(KING_RANK, king_suit - 1);
-            }
+            };
 
             let mut cards = PileVec::new();
             loop {
@@ -538,12 +537,8 @@ impl Solitaire {
 
     #[must_use]
     pub(crate) fn is_valid(&self) -> bool {
-        // TODO: test for if visible mask and top_mask make sense to build bottom mask
-        if self.top_mask | self.visible_mask != self.visible_mask {
-            return false;
-        }
-
-        if self.hidden.compute_top_mask() != self.top_mask
+        // TODO: test for if visible mask and free mask make sense to build bottom mask
+        if self.hidden.compute_locked_mask() != self.locked_mask
             || self.get_extended_top_mask().count_ones() > N_PILES.into()
         {
             return false;
@@ -575,7 +570,7 @@ impl Solitaire {
         // check equivalent states
         self.deck.equivalent_to(&other.deck)
             && self.final_stack == other.final_stack
-            && self.top_mask == other.top_mask
+            && self.get_extended_top_mask() == other.get_extended_top_mask()
             && self.visible_mask == other.visible_mask
             && self.hidden.normalize() == other.hidden.normalize()
     }
@@ -590,25 +585,20 @@ impl From<&StandardSolitaire> for Solitaire {
                 visible_mask |= c.mask();
             }
         }
-        let mut top_mask: u64 = 0;
 
-        for (p_vis, p_hid) in game.get_piles().iter().zip(game.get_hidden().iter()) {
-            if let Some(c) = p_vis.first() {
-                if !c.is_king() || !p_hid.is_empty() {
-                    top_mask |= c.mask();
-                }
-            }
-        }
+        let hidden = Hidden::from_piles(
+            game.get_hidden(),
+            &core::array::from_fn(|i| game.get_piles()[i].first().copied()),
+        );
+
+        let locked_mask = hidden.compute_locked_mask();
 
         Self {
-            hidden: Hidden::from_piles(
-                game.get_hidden(),
-                &core::array::from_fn(|i| game.get_piles()[i].first().copied()),
-            ),
+            hidden,
             final_stack: *game.get_stack(),
             deck: game.get_deck().clone(),
             visible_mask,
-            top_mask,
+            locked_mask,
         }
     }
 }

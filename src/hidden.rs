@@ -77,16 +77,14 @@ impl Hidden {
     }
 
     #[must_use]
-    pub(crate) fn compute_top_mask(&self) -> u64 {
-        let mut top_mask = 0;
+    pub(crate) fn compute_locked_mask(&self) -> u64 {
+        let mut locked_mask = 0;
         for pos in 0..N_PILES {
-            if let Some((card, rest)) = self.get(pos).split_last() {
-                if !rest.is_empty() || !card.is_king() {
-                    top_mask |= card.mask();
-                }
+            for card in self.get(pos) {
+                locked_mask |= card.mask();
             }
         }
-        top_mask
+        locked_mask
     }
 
     #[must_use]

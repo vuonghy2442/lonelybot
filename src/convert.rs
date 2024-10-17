@@ -135,7 +135,7 @@ mod tests {
         let mut game_x: Solitaire = From::from(&game);
         for pos in 0..moves.len() {
             his.clear();
-            convert_move(&mut game, moves[pos], &mut his).unwrap();
+            convert_move(&game, moves[pos], &mut his).unwrap();
             for m in &his {
                 assert!(game.do_move(m).is_ok());
             }
@@ -147,8 +147,6 @@ mod tests {
 
             let mut game_cc: StandardSolitaire = From::from(&game_c);
 
-            // let res_c = solve_game(&mut game_c);
-            // assert_eq!(res_c.0, res.0);
             for &m in moves[pos + 1..].iter() {
                 game_c.do_move(m);
             }

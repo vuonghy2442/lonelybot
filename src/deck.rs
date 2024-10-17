@@ -290,7 +290,7 @@ impl Deck {
 
         for i in 0..N_CARDS {
             let val = self.map[i as usize];
-            if val < N_DECK_CARDS && (encode >> val) & 1 == 0 {
+            if val < N_DECK_CARDS && (encode >> val) & 1 != 0 {
                 rev_map[val as usize] = Some(i);
             }
         }
