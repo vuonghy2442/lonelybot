@@ -90,7 +90,7 @@ impl StandardSolitaire {
     }
 
     #[must_use]
-    pub fn is_win(&self) -> bool {
+    pub const fn is_win(&self) -> bool {
         self.final_stack.is_full()
     }
 

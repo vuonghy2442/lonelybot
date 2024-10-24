@@ -413,7 +413,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub fn is_win(&self) -> bool {
+    pub const fn is_win(&self) -> bool {
         // What a shame this is not a const function :(
         self.final_stack.is_full()
     }
