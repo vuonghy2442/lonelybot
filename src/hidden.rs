@@ -212,12 +212,16 @@ impl Hidden {
         self.locked_mask = self.compute_locked_mask();
     }
 
-    fn update_map(&mut self) {
+    fn update_invariant(&mut self) {
+        // updating map
         for pos in 0..N_PILES {
             for c in &self.hidden_piles[self.get_range(pos)] {
                 self.pile_map[c.mask_index() as usize] = pos;
             }
         }
+
+        // update first layer mask
+        self.first_layer_mask = self.compute_first_layer_mask();
     }
 
     #[must_use]
@@ -255,8 +259,7 @@ impl Hidden {
             }
         }
         debug_assert_eq!(hidden_cards, 0);
-        self.update_map();
-        self.first_layer_mask = self.compute_first_layer_mask();
+        self.update_invariant();
     }
 
     pub fn shuffle<R: RngCore>(&mut self, rng: &mut R) {
@@ -276,8 +279,7 @@ impl Hidden {
                 start += pile_map.len();
             }
         }
-        self.update_map();
-        self.first_layer_mask = self.compute_first_layer_mask();
+        self.update_invariant();
     }
 
     #[must_use]

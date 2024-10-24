@@ -622,7 +622,7 @@ mod tests {
 
                 test.clear();
                 game.deck.iter_callback(false, |pos, x| {
-                    test.push((pos, Card::from_mask_index(x)));
+                    test.push((pos, x));
                     ControlFlow::<()>::Continue(())
                 });
 
