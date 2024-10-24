@@ -50,7 +50,7 @@ impl BitDeck {
             deck,
             draw_step,
             skip_mask: gap_bit_mask(draw_step.get() - 1),
-            draw_cur: draw_step.get(),
+            draw_cur: 0,
             mask: full_mask(N_DECK_CARDS) as u32,
         }
     }
@@ -92,6 +92,7 @@ impl BitDeck {
         self.draw_cur = new_draw_cur;
     }
 
+    #[must_use]
     pub(crate) fn drawable_mask(&self, filter: bool) -> u32 {
         let mask =
             (self.skip_mask << self.draw_cur) | (((1 << self.draw_cur) | (1 << self.len())) >> 1);
@@ -100,7 +101,8 @@ impl BitDeck {
         mask.pdep(self.mask)
     }
 
-    pub(crate) fn get_card_mask(&self, mut mask: u32) -> u64 {
+    #[must_use]
+    pub(crate) const fn get_card_mask(&self, mut mask: u32) -> u64 {
         let mut res = 0;
         while mask > 0 {
             let pos = mask.trailing_zeros();
@@ -110,16 +112,17 @@ impl BitDeck {
         res
     }
 
+    #[must_use]
     pub const fn full_mask(&self) -> u32 {
         self.mask
     }
 
     #[must_use]
-    pub fn peek(&self, pos: u8) -> Card {
+    pub const fn peek(&self, pos: u8) -> Card {
         self.deck[pos as usize]
     }
 
-    pub(crate) fn peek_last(&self) -> Option<Card> {
+    pub(crate) const fn peek_last(&self) -> Option<Card> {
         if let Some(p) = self.mask.checked_ilog2() {
             Some(self.deck[p as usize])
         } else {
@@ -201,7 +204,7 @@ impl From<&Deck> for BitDeck {
         let n_cards = deck.len();
 
         while !deck.is_full() {
-            deck.push(Card::DEFAULT)
+            deck.push(Card::DEFAULT);
         }
 
         let draw_step = value.draw_step();
