@@ -236,7 +236,6 @@ impl Deck {
 
     pub(crate) fn push(&mut self, card: Card) {
         // or you can undo
-        let card = card;
         self.mask ^= 1 << self.map[card.mask_index() as usize];
         self.deck.insert(self.draw_cur as usize, card);
         self.draw_cur += 1;
