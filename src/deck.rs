@@ -28,21 +28,26 @@ pub enum Drawable {
     Next,
 }
 
+#[must_use]
+pub(crate) fn compute_map(deck: &[Card]) -> [u8; N_CARDS as usize] {
+    assert!(deck.len() < u8::MAX as usize);
+    let mut map = [u8::MAX; N_CARDS as usize];
+    #[allow(clippy::cast_possible_truncation)]
+    for (i, c) in deck.iter().enumerate() {
+        map[c.mask_index() as usize] = i as u8;
+    }
+    map
+}
+
 impl Deck {
     #[must_use]
-    pub fn new(deck: [Card; N_DECK_CARDS as usize], draw_step: NonZeroU8) -> Self {
-        let mut map = [!0u8; N_CARDS as usize];
-        #[allow(clippy::cast_possible_truncation)]
-        for (i, c) in deck.iter().enumerate() {
-            map[c.mask_index() as usize] = i as u8;
-        }
-
+    pub fn new(deck: &[Card], draw_step: NonZeroU8) -> Self {
         Self {
-            deck: ArrayVec::from(deck),
+            map: compute_map(&deck),
+            deck: deck.iter().copied().collect(),
             draw_step,
             draw_cur: 0,
             mask: full_mask(N_DECK_CARDS) as u32,
-            map,
         }
     }
 
@@ -219,6 +224,15 @@ impl Deck {
     }
 
     #[must_use]
+    pub(crate) fn full_card_mask(&self) -> u64 {
+        let mut mask = 0;
+        for c in self.deck.iter() {
+            mask |= c.mask();
+        }
+        mask
+    }
+
+    #[must_use]
     pub fn peek_last(&self) -> Option<&Card> {
         self.deck.last()
     }
@@ -301,6 +315,7 @@ impl Deck {
         self.mask = mask;
     }
 
+    #[cfg(test)]
     #[must_use]
     pub fn equivalent_to(&self, other: &Self) -> bool {
         return self

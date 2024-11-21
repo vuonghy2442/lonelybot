@@ -22,6 +22,7 @@ arrayvec = { version = "0.7.4", default-features = false }
 hashbrown = { version = "0.15", default-features = false }
 static_assertions = "1.1.0"
 uint = { version = "0.10", default-features = false }
+bitintr = "0.3.0"
 
 [dev-dependencies]
 criterion = "0.5.1"

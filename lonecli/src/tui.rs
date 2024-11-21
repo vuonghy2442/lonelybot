@@ -1,7 +1,7 @@
 use core::fmt;
 
 use lonelybot::card::{Card, N_SUITS};
-use lonelybot::deck::{Drawable, N_PILES};
+use lonelybot::deck::{Deck, Drawable, N_PILES};
 use lonelybot::formatter::{NUMBERS, SYMBOLS};
 use lonelybot::stack::Stack;
 use lonelybot::standard::{HiddenVec, PileVec, StandardSolitaire};
@@ -85,7 +85,8 @@ pub(crate) fn print_piles(
 
 pub(crate) fn print_game(game: &Solitaire) {
     // print out the deck
-    for (pos, card, t) in game.get_deck().iter_all() {
+    let deck: Deck = game.get_deck().into();
+    for (pos, card, t) in deck.iter_all() {
         let s = format!("{pos} ");
         let prefix = match t {
             Drawable::None => format!(" {}", s.bright_black()),

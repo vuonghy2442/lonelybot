@@ -5,7 +5,7 @@ use rand::RngCore;
 use crate::card::{
     Card, ALT_MASK, HALF_MASK, KING_MASK, KING_RANK, N_CARDS, N_SUITS, RANK_MASK, SUIT_MASK,
 };
-use crate::deck::{Deck, N_PILES, N_PILE_CARDS};
+use crate::deck::{N_PILES, N_PILE_CARDS};
 use crate::moves::{Move, MoveMask};
 use crate::stack::Stack;
 use crate::utils::full_mask;
@@ -13,6 +13,8 @@ use crate::utils::full_mask;
 use crate::hidden::Hidden;
 use crate::shuffler::CardDeck;
 use crate::standard::{PileVec, StandardSolitaire};
+
+pub type Deck = crate::bit_deck::BitDeck;
 
 #[derive(Debug, Clone)]
 pub struct Solitaire {
@@ -446,11 +448,7 @@ impl Solitaire {
         }
 
         // hidden
-        nonvis_mask |= self.hidden.mask();
-
-        for c in self.deck.iter() {
-            nonvis_mask |= c.mask();
-        }
+        nonvis_mask |= self.hidden.mask() | self.deck.full_card_mask();
 
         full_mask(N_CARDS) ^ nonvis_mask
     }
@@ -549,6 +547,7 @@ impl Solitaire {
         true
     }
 
+    #[cfg(test)]
     #[must_use]
     pub fn equivalent_to(&self, other: &Self) -> bool {
         // check equivalent states
@@ -578,7 +577,7 @@ impl From<&StandardSolitaire> for Solitaire {
         Self {
             hidden,
             final_stack: *game.get_stack(),
-            deck: game.get_deck().clone(),
+            deck: game.get_deck().into(),
             visible_mask,
         }
     }
@@ -613,15 +612,15 @@ mod tests {
                 }
                 assert_eq!(stack_mask, game.final_stack.mask());
 
-                let mut truth = game
-                    .deck
+                let deck: crate::deck::Deck = (&game.deck).into();
+                let mut truth = deck
                     .iter_all()
                     .filter(|x| !matches!(x.2, Drawable::None))
                     .map(|x| (x.0, x.1))
                     .collect::<ArrayVec<(u8, Card), { N_DECK_CARDS as usize }>>();
 
                 test.clear();
-                game.deck.iter_callback(false, |pos, x| {
+                deck.iter_callback(false, |pos, x| {
                     test.push((pos, x));
                     ControlFlow::<()>::Continue(())
                 });
@@ -662,16 +661,19 @@ mod tests {
 
                 assert_eq!(game.encode(), state);
 
+                let deck = Into::<crate::deck::Deck>::into(&game.deck);
                 let ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
-                    game.deck.iter_all().map(|x| (x.0, x.1, x.2)).collect();
+                    deck.iter_all().map(|x| (x.0, x.1, x.2)).collect();
 
                 let m = *moves.choose(&mut rng).unwrap();
                 let undo = game.do_move(m);
                 let next_state = game.encode();
                 assert_ne!(next_state, state);
                 game.undo_move(m, undo);
+
+                let deck = Into::<crate::deck::Deck>::into(&game.deck);
                 let new_ids: ArrayVec<(u8, Card, Drawable), { N_DECK_CARDS as usize }> =
-                    game.deck.iter_all().map(|x| (x.0, x.1, x.2)).collect();
+                    deck.iter_all().map(|x| (x.0, x.1, x.2)).collect();
 
                 assert_eq!(ids, new_ids);
                 let undo_state = game.encode();

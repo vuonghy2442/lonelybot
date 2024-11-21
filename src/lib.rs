@@ -2,6 +2,7 @@
 pub mod card;
 pub mod convert;
 pub mod deck;
+pub mod bit_deck;
 pub mod engine;
 pub mod formatter;
 pub mod graph;
