@@ -35,11 +35,49 @@ const fn gap_bit_mask(gap: u8) -> u32 {
     mask
 }
 
+fn expand(mut x: u32, mut m: u32) -> u32 {
+    let m0 = m; // Save original mask.
+    let mut mk = !m << 1; // We will count 0's to right.
+    let array: [u32; 5] = core::array::from_fn(|i| {
+        let mp = mk ^ (mk << 1); // Parallel suffix.
+        let mp = mp ^ (mp << 2);
+        let mp = mp ^ (mp << 4);
+        let mp = mp ^ (mp << 8);
+        let mp = mp ^ (mp << 16);
+        let mv = mp & m; // Bits to move.
+        m = (m ^ mv) | (mv >> (1 << i)); // Compress m.
+        mk = mk & !mp;
+        mv
+    });
+
+    for (i, mv) in array.iter().enumerate().rev() {
+        let t = x << (1 << i);
+        x = (x & !mv) | (t & mv);
+    }
+    return x & m0; // Clear out extraneous bits.
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Drawable {
     None,
     Current,
     Next,
+}
+
+const fn pdep_(value: u32, mut mask: u32) -> u32 {
+    let mut res = 0;
+    let mut bb = 1;
+    loop {
+        if mask == 0 {
+            break;
+        }
+        if (value & bb) != 0 {
+            res |= mask & mask.wrapping_neg();
+        }
+        mask &= mask - 1;
+        bb += bb;
+    }
+    res
 }
 
 impl BitDeck {
@@ -98,7 +136,9 @@ impl BitDeck {
             (self.skip_mask << self.draw_cur) | (((1 << self.draw_cur) | (1 << self.len())) >> 1);
         let mask = mask | if filter { 0 } else { self.skip_mask };
 
-        mask.pdep(self.mask)
+        // mask.pdep(self.mask)
+        // expand(mask, self.mask)
+        pdep_(mask, self.mask)
     }
 
     #[must_use]
