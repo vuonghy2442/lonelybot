@@ -16,7 +16,7 @@ struct HOPSolverCallback<'a, T: TerminateSignal> {
     n_visit: usize,
 }
 
-impl<'a, T: TerminateSignal> Callback for HOPSolverCallback<'a, T> {
+impl<T: TerminateSignal> Callback for HOPSolverCallback<'_, T> {
     type Pruner = FullPruner;
 
     fn on_win(&mut self, _: &Solitaire) -> Control {
@@ -114,7 +114,7 @@ struct RevStatesCallback<'a, R: RngCore, T: TerminateSignal> {
     res: Vec<(Vec<Move>, (usize, usize, usize))>,
 }
 
-impl<'a, R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'a, R, T> {
+impl<R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'_, R, T> {
     type Pruner = FullPruner;
 
     fn on_win(&mut self, _: &Solitaire) -> Control {

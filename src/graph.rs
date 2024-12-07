@@ -58,7 +58,7 @@ impl<'a, S: SearchStatistics, T: TerminateSignal> BuilderCallback<'a, S, T> {
     }
 }
 
-impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'a, S, T> {
+impl<S: SearchStatistics, T: TerminateSignal> Callback for BuilderCallback<'_, S, T> {
     type Pruner = FullPruner;
 
     fn on_win(&mut self, _: &Solitaire) -> Control {

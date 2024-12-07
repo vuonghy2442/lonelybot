@@ -110,9 +110,3 @@ impl Card {
         }
     }
 }
-
-#[must_use]
-pub fn split_at_card(cards: &[Card], card: Card) -> Option<(&[Card], &[Card])> {
-    let pos = cards.iter().position(|c| card == *c)?;
-    Some(cards.split_at(pos))
-}

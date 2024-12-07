@@ -2,7 +2,7 @@ use core::num::NonZeroU8;
 
 use arrayvec::ArrayVec;
 
-use crate::card::{split_at_card, Card, N_RANKS, N_SUITS};
+use crate::card::{Card, N_RANKS, N_SUITS};
 use crate::deck::{Deck, N_DECK_CARDS, N_PILES, N_PILE_CARDS};
 use crate::shuffler::CardDeck;
 use crate::stack::Stack;
@@ -58,6 +58,12 @@ pub type MoveResult<T> = core::result::Result<T, InvalidMove>;
 // implementation, or do something in between.
 #[derive(Debug, Clone, Copy)]
 pub struct InvalidMove;
+
+#[must_use]
+pub fn split_at_card(cards: &[Card], card: Card) -> Option<(&[Card], &[Card])> {
+    let pos = cards.iter().position(|c| card == *c)?;
+    Some(cards.split_at(pos))
+}
 
 impl StandardSolitaire {
     /// # Panics

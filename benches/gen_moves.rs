@@ -62,11 +62,11 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    // c.bench_function("deck_mask", |b| {
-    //     b.iter(|| {
-    //         black_box(game.get_deck_mask::<true>());
-    //     })
-    // });
+    c.bench_function("deck_mask", |b| {
+        b.iter(|| {
+            black_box(game.state().get_deck().compute_mask(true));
+        })
+    });
 
     c.bench_function("pure_gen_moves", |b| {
         b.iter(|| {

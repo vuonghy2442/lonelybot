@@ -28,7 +28,7 @@ struct SolverCallback<'a, S: SearchStatistics, T: TerminateSignal> {
     result: SearchResult,
 }
 
-impl<'a, S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'a, S, T> {
+impl<S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'_, S, T> {
     type Pruner = FullPruner;
     fn on_win(&mut self, _: &Solitaire) -> Control {
         self.result = SearchResult::Solved;

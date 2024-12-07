@@ -106,8 +106,12 @@ impl MoveMask {
         iter_mask_opt::<T>(self.reveal, |c| func(Move::Reveal(c)))?;
         // maximum min(N_PILES, N_SUITS) moves
         iter_mask_opt::<T>(self.pile_stack, |c| func(Move::PileStack(c)))?;
-        // maximum min(N_PILES, N_DECK) moves
+
+        // maximum min(2 * N_PILES + 2, N_DECK) moves # should account for both suit
         iter_mask_opt::<T>(self.deck_pile, |c| func(Move::DeckPile(c)))?;
+        // but these two require to stack on the the destination pile so combine they can't be more than 2 * N_PILES + 2 ways to stack
+        // +2 = - 2 + 4 (due to 4 option of kings in empty piles)
+
         // maximum min(N_DECK, N_SUITS) moves
         // deck_stack and pile_stack can't happen simultaneously so both of the combine can't have more than
         // N_SUITS move
@@ -115,7 +119,7 @@ impl MoveMask {
         // maximum min(N_PILES, N_SUIT) moves
         iter_mask_opt::<T>(self.stack_pile, |c| func(Move::StackPile(c)))
 
-        // <= N_PILES * 2 + N_SUITS * 2 - 1 = 14 + 8 - 1 = 21 moves
+        // <= N_PILES * 2 + 2 + N_SUITS * 2 = 14 + 8 + 2 = 24 moves
     }
 
     #[must_use]
@@ -129,5 +133,4 @@ impl MoveMask {
     }
 }
 
-pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 - 1) as usize;
-
+pub const N_MOVES_MAX: usize = (N_PILES * 2 + N_SUITS * 2 + 2) as usize;
