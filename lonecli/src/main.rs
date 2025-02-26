@@ -162,6 +162,17 @@ fn do_random(seed: &Seed, draw_step: NonZeroU8) {
     println!("Total win {total_win}/{TOTAL_GAME}");
 }
 
+fn ucb1(n_sucess: usize, n_visit: usize, n_total: usize) -> f64 {
+    const C: f64 = 0.5;
+
+    #[allow(clippy::cast_precision_loss)]
+    if n_visit == 0 {
+        f64::INFINITY
+    } else {
+        n_sucess as f64 / n_visit as f64 + C * ((n_total as f64).ln() / n_visit as f64).sqrt()
+    }
+}
+
 fn do_hop(seed: &Seed, draw_step: NonZeroU8, verbose: bool) -> bool {
     const N_TIMES: usize = 3000;
     const LIMIT: usize = 1000;
@@ -178,6 +189,7 @@ fn do_hop(seed: &Seed, draw_step: NonZeroU8, verbose: bool) -> bool {
             N_TIMES,
             LIMIT,
             &DefaultTerminateSignal {},
+            ucb1,
         );
         let Some(best) = best else {
             if verbose {
@@ -262,7 +274,7 @@ fn rand_solve(seed: &Seed, draw_step: NonZeroU8, start_seed: u64, terminated: &A
     let mut rng = StdRng::seed_from_u64(start_seed);
 
     loop {
-        if rng.gen_bool(0.1) || game.state().is_win() {
+        if rng.random_bool(0.1) || game.state().is_win() {
             break;
         }
         let moves = game.list_moves_dom();

@@ -431,8 +431,8 @@ impl Solitaire {
         let deck_encode = self.deck.encode(); // 29 bits (can be reduced to 25)
 
         u64::from(stack_encode)
-            | u64::from(hidden_encode) << 16
-            | u64::from(deck_encode) << (16 + 16)
+            | (u64::from(hidden_encode) << 16)
+            | (u64::from(deck_encode) << (16 + 16))
     }
 
     #[must_use]
@@ -486,7 +486,7 @@ impl Solitaire {
                 }
 
                 if king_suit >= N_SUITS {
-                    return PileVec::default();
+                    return Default::default();
                 }
 
                 king_suit += 1;

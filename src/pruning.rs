@@ -92,7 +92,7 @@ impl Pruner for FullPruner {
             if let Some(last_draw) = self.last_draw {
                 // pruning deck :)
                 let m = last_draw.mask();
-                let mm = ((m | m >> 1) & ALT_MASK) * 0b11;
+                let mm = ((m | (m >> 1)) & ALT_MASK) * 0b11;
                 filter.pile_stack |= !mm | m;
 
                 // need | first layer because of this case , DP 8♠, R 10♥, DP K♠,

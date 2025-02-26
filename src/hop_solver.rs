@@ -1,3 +1,5 @@
+use core::ops::{Add, AddAssign};
+
 use rand::RngCore;
 
 use crate::{
@@ -45,6 +47,51 @@ impl<T: TerminateSignal> Callback for HOPSolverCallback<'_, T> {
     }
 }
 
+#[derive(Default, Clone, Copy)]
+pub struct HopResult {
+    pub wins: usize,
+    pub skips: usize,
+    pub played: usize,
+}
+
+const SURE_WIN: HopResult = HopResult {
+    wins: !0,
+    skips: 0,
+    played: !0,
+};
+
+const SURE_LOSE: HopResult = HopResult {
+    wins: 0,
+    skips: !0,
+    played: !0,
+};
+
+const SKIPPED: HopResult = HopResult {
+    wins: 0,
+    skips: 1,
+    played: 1,
+};
+
+impl Add for HopResult {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        Self {
+            wins: self.wins + rhs.wins,
+            skips: self.skips + rhs.skips,
+            played: self.played + rhs.played,
+        }
+    }
+}
+
+impl AddAssign for HopResult {
+    fn add_assign(&mut self, rhs: Self) {
+        self.wins += rhs.wins;
+        self.skips += rhs.skips;
+        self.played += rhs.played;
+    }
+}
+
 pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
     g: &Solitaire,
     m: Move,
@@ -53,7 +100,7 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
     limit: usize,
     sign: &T,
     prune_info: &FullPruner,
-) -> (usize, usize, usize) {
+) -> HopResult {
     let mut total_wins = 0;
     let mut total_skips = 0;
     let mut total_played = 0;
@@ -66,11 +113,11 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
         // totally determinized
         let res = crate::solver::solve(&mut g.clone()).0;
         return if res == SearchResult::Solved {
-            (!0, 0, !0)
+            SURE_WIN
         } else if res == SearchResult::Unsolvable {
-            (0, 0, !0)
+            SURE_LOSE
         } else {
-            (0, !0, !0)
+            SKIPPED
         };
     }
 
@@ -99,7 +146,11 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
             _ => {}
         }
     }
-    (total_wins, total_skips, total_played)
+    HopResult {
+        wins: total_wins,
+        skips: total_skips,
+        played: total_played,
+    }
 }
 
 extern crate alloc;
@@ -111,14 +162,14 @@ struct RevStatesCallback<'a, R: RngCore, T: TerminateSignal> {
     n_times: usize,
     limit: usize,
     sign: &'a T,
-    res: Vec<(Vec<Move>, (usize, usize, usize))>,
+    res: Vec<(Vec<Move>, HopResult)>,
 }
 
 impl<R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'_, R, T> {
     type Pruner = FullPruner;
 
     fn on_win(&mut self, _: &Solitaire) -> Control {
-        self.res.push((self.his.clone(), (!0, 0, !0)));
+        self.res.push((self.his.clone(), SURE_WIN));
         Control::Halt
     }
 
@@ -162,14 +213,14 @@ pub fn list_moves<R: RngCore, T: TerminateSignal>(
     n_times: usize,
     limit: usize,
     sign: &T,
-) -> Vec<(Vec<Move>, (usize, usize, usize))> {
+) -> Vec<(Vec<Move>, HopResult)> {
     let mut callback = RevStatesCallback {
-        his: Vec::default(),
+        his: Default::default(),
         rng,
         n_times,
         limit,
         sign,
-        res: Vec::default(),
+        res: Default::default(),
     };
 
     let mut tp = TpTable::default();

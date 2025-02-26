@@ -1,7 +1,7 @@
 use rand::RngCore;
 
 use crate::{
-    hop_solver::hop_solve_game,
+    hop_solver::{hop_solve_game, HopResult},
     moves::Move,
     pruning::FullPruner,
     state::{Encode, Solitaire},
@@ -10,6 +10,7 @@ use crate::{
 };
 
 extern crate alloc;
+use alloc::vec;
 use alloc::vec::Vec;
 
 struct FindStatesCallback {
@@ -89,6 +90,8 @@ impl Callback for ListStatesCallback {
     }
 }
 
+pub type PotientialFn = fn(n_sucess: usize, n_visit: usize, n_total: usize) -> f64;
+
 /// Picking the best move using MCTS
 ///
 /// # Panics
@@ -100,12 +103,12 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     n_times: usize,
     limit: usize,
     sign: &T,
+    pot_fn: PotientialFn,
 ) -> Option<Vec<Move>> {
     const BATCH_SIZE: usize = 10;
-    const C: f64 = 0.5;
 
     let mut callback = ListStatesCallback {
-        res: Vec::default(),
+        res: Default::default(),
     };
 
     let mut tp = TpTable::default();
@@ -116,7 +119,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
 
     let mut find_state = move |state: Encode, m: Option<Move>| {
         let mut callback = FindStatesCallback {
-            his: Vec::default(),
+            his: Default::default(),
             state,
         };
         tp.clear();
@@ -132,22 +135,14 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         return states.last().map(|state| find_state(state.0, state.1));
     }
 
-    let mut res: Vec<(usize, usize, usize)> = Vec::with_capacity(states.len());
-    res.resize_with(states.len(), Default::default);
+    let mut res: Vec<HopResult> = vec![HopResult::default(); states.len()];
 
     let mut n = 0;
     loop {
         // here pick the best :)
         let best = res
             .iter()
-            .map(|x| {
-                #[allow(clippy::cast_precision_loss)]
-                if x.2 == 0 {
-                    f64::INFINITY
-                } else {
-                    x.0 as f64 / x.2 as f64 + C * ((n as f64).ln() / (x.2) as f64).sqrt()
-                }
-            })
+            .map(|x| pot_fn(x.wins, x.played, n))
             .enumerate()
             .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
             .map(|x| x.0)
@@ -169,11 +164,9 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
 
         n += BATCH_SIZE;
 
-        res[best].0 += new_res.0;
-        res[best].1 += new_res.1;
-        res[best].2 += new_res.2;
+        res[best] += new_res;
 
-        if res[best].2 > n_times {
+        if res[best].played > n_times {
             return Some(find_state(state.0, state.1));
         }
 

@@ -29,7 +29,7 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
             valid_moves: state.gen_moves::<false>(),
             pruner: Default::default(),
             state,
-            history: Vec::default(),
+            history: Default::default(),
         }
     }
 

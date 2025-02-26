@@ -23,7 +23,7 @@ struct TermSignal<'a> {
     term_signal: &'a AtomicBool,
 }
 
-impl<'a> TerminateSignal for TermSignal<'a> {
+impl TerminateSignal for TermSignal<'_> {
     fn terminate(&self) {
         self.term_signal.store(true, Ordering::Relaxed);
     }
