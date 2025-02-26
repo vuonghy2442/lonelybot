@@ -33,7 +33,6 @@ use crate::tui::print_game;
 enum SeedType {
     /// Doc comment
     Default,
-    Legacy,
     Solvitaire,
     KlondikeSolver,
     Greenfelt,
@@ -67,8 +66,7 @@ impl std::fmt::Display for Seed {
             f,
             "{}-{}",
             match self.seed_type {
-                SeedType::Default => "D",
-                SeedType::Legacy => "L",
+                SeedType::Default => "L",
                 SeedType::Solvitaire => "S",
                 SeedType::KlondikeSolver => "K",
                 SeedType::Greenfelt => "G",
@@ -100,7 +98,6 @@ fn shuffle(s: &Seed) -> CardDeck {
     let seed = s.seed;
     match s.seed_type {
         SeedType::Default => shuffler::default_shuffle(seed.as_u64()),
-        SeedType::Legacy => shuffler::legacy_shuffle(seed.as_u64()),
         SeedType::Solvitaire => shuffler::solvitaire_shuffle(seed.as_u32()),
         SeedType::KlondikeSolver => shuffler::ks_shuffle(seed.as_u32()),
         SeedType::Greenfelt => shuffler::greenfelt_shuffle(seed.as_u32()),
@@ -110,7 +107,7 @@ fn shuffle(s: &Seed) -> CardDeck {
 }
 
 fn benchmark(seed: &Seed, draw_step: NonZeroU8) {
-    let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
+    let mut rng = SmallRng::seed_from_u64(seed.seed().as_u64());
 
     let mut total_moves = 0u32;
     let now = Instant::now();
@@ -163,7 +160,7 @@ fn do_random(seed: &Seed, draw_step: NonZeroU8) {
 }
 
 fn ucb1(n_sucess: usize, n_visit: usize, n_total: usize) -> f64 {
-    const C: f64 = 0.5;
+    const C: f64 = 2.;
 
     #[allow(clippy::cast_precision_loss)]
     if n_visit == 0 {
@@ -178,7 +175,7 @@ fn do_hop(seed: &Seed, draw_step: NonZeroU8, verbose: bool) -> bool {
     const LIMIT: usize = 1000;
 
     let mut game: SolitaireEngine<NoPruner> = Solitaire::new(&shuffle(seed), draw_step).into();
-    let mut rng = StdRng::seed_from_u64(seed.seed().as_u64());
+    let mut rng = SmallRng::seed_from_u64(seed.seed().as_u64());
 
     while !game.state().is_win() {
         let mut gg = game.state().clone();
@@ -271,7 +268,7 @@ fn rand_solve(seed: &Seed, draw_step: NonZeroU8, start_seed: u64, terminated: &A
     let g: Solitaire = Solitaire::new(&shuffled_deck, draw_step);
 
     let mut game: SolitaireEngine<CyclePruner> = g.into();
-    let mut rng = StdRng::seed_from_u64(start_seed);
+    let mut rng = SmallRng::seed_from_u64(start_seed);
 
     loop {
         if rng.random_bool(0.1) || game.state().is_win() {

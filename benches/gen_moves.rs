@@ -24,7 +24,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         draw_step,
     );
 
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = SmallRng::seed_from_u64(seed);
 
     for _ in 0..21 {
         let moves = game.list_moves_dom();

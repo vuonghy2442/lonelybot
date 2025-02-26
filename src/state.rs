@@ -599,7 +599,7 @@ mod tests {
 
     #[test]
     fn test_draw_unrolling() {
-        let mut rng = StdRng::seed_from_u64(14);
+        let mut rng = SmallRng::seed_from_u64(14);
 
         let mut test = ArrayVec::<(u8, Card), { N_DECK_CARDS as usize }>::new();
         for i in 0..100 {
@@ -642,7 +642,7 @@ mod tests {
 
     #[test]
     fn test_undoing() {
-        let mut rng = StdRng::seed_from_u64(14);
+        let mut rng = SmallRng::seed_from_u64(14);
 
         for i in 0..1000 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());
@@ -688,7 +688,7 @@ mod tests {
 
     #[test]
     fn test_deep_undoing() {
-        let mut rng = StdRng::seed_from_u64(14);
+        let mut rng = SmallRng::seed_from_u64(14);
 
         for i in 0..1000 {
             const N_STEP: usize = 100;
@@ -732,7 +732,7 @@ mod tests {
 
     #[test]
     fn shuffle_hidden() {
-        let mut rng = StdRng::seed_from_u64(14);
+        let mut rng = SmallRng::seed_from_u64(14);
 
         for i in 0..1000 {
             let mut game = Solitaire::new(&default_shuffle(12 + i), NonZeroU8::new(3).unwrap());

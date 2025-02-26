@@ -344,7 +344,7 @@ impl Deck {
 
 #[cfg(test)]
 mod tests {
-    use rand::{rngs::StdRng, Rng, SeedableRng};
+    use rand::{rngs::SmallRng, Rng, SeedableRng};
 
     use crate::shuffler::default_shuffle;
 
@@ -352,13 +352,13 @@ mod tests {
 
     #[test]
     fn test_draw() {
-        let mut rng = StdRng::seed_from_u64(14);
+        let mut rng = SmallRng::seed_from_u64(14);
 
         for i in 0..100 {
             let deck = default_shuffle(12 + i);
             let deck = deck[..N_DECK_CARDS as usize].try_into().unwrap();
 
-            let draw_step = NonZeroU8::new(rng.gen_range(1..5)).unwrap();
+            let draw_step = NonZeroU8::new(rng.random_range(1..5)).unwrap();
             let mut deck = Deck::new(deck, draw_step);
 
             while !deck.is_empty() {
@@ -367,7 +367,7 @@ mod tests {
                     assert_eq!(cur, deck.offset(i));
                     cur = deck.offset_once(cur);
                 }
-                let step = rng.gen_range(1..100);
+                let step = rng.random_range(1..100);
                 let offset = deck.offset(step);
 
                 for _ in 0..step {
@@ -387,7 +387,7 @@ mod tests {
                     });
                 }
 
-                if deck.get_offset() > 0 && rng.gen_bool(0.5) {
+                if deck.get_offset() > 0 && rng.random_bool(0.5) {
                     deck.pop_next();
                 }
             }

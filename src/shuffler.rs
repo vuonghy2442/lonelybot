@@ -10,33 +10,14 @@ construct_uint! {
 pub type CardDeck = [Card; N_CARDS as usize];
 
 #[must_use]
-pub fn to_legacy(cards: &CardDeck) -> CardDeck {
-    const OLD_HIDDEN: u8 = N_PILES * (N_PILES - 1) / 2;
-    let mut new_deck = *cards;
-
-    for i in 0..N_PILES {
-        for j in 0..i {
-            new_deck[(i * (i + 1) / 2 + j) as usize] = cards[(i * (i - 1) / 2 + j) as usize];
-        }
-        new_deck[(i * (i + 1) / 2 + i) as usize] = cards[(OLD_HIDDEN + i) as usize];
-    }
-    new_deck
-}
-
-#[must_use]
 pub fn default_shuffle(seed: u64) -> CardDeck {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = SmallRng::seed_from_u64(seed);
 
     #[allow(clippy::cast_possible_truncation)]
     let mut cards: CardDeck =
         core::array::from_fn(|i| Card::new(i as u8 / N_SUITS, i as u8 % N_SUITS));
     cards.shuffle(&mut rng);
     cards
-}
-
-#[must_use]
-pub fn legacy_shuffle(seed: u64) -> CardDeck {
-    to_legacy(&default_shuffle(seed))
 }
 
 fn layer_to_pile(cards: &CardDeck) -> CardDeck {
@@ -287,10 +268,10 @@ mod tests {
 
     #[test]
     fn test_encode() {
-        let mut rng = StdRng::seed_from_u64(14);
+        let mut rng = SmallRng::seed_from_u64(14);
 
         for _ in 0..1000 {
-            let encode: u128 = rng.gen();
+            let encode: u128 = rng.random();
             let deck = exact_shuffle(encode.into()).unwrap();
             assert_eq!(encode, encode_shuffle(deck).unwrap().as_u128());
         }
@@ -298,10 +279,10 @@ mod tests {
 
     #[test]
     fn test_encode2() {
-        let mut rng = StdRng::seed_from_u64(14);
+        let mut rng = SmallRng::seed_from_u64(14);
 
         // for _ in 0..1000 {
-        let seed: u64 = rng.gen();
+        let seed: u64 = rng.random();
         let deck = default_shuffle(seed);
         let encode = encode_shuffle(deck.clone()).unwrap();
         let deck_2 = exact_shuffle(encode).unwrap();
@@ -317,15 +298,7 @@ mod tests {
         assert_eq!(
             encode_shuffle(default_shuffle(0)).unwrap(),
             U256::from_dec_str(
-                "58951431144029615328972203965306300108857513542935373524517649274867"
-            )
-            .unwrap()
-        );
-
-        assert_eq!(
-            encode_shuffle(legacy_shuffle(0)).unwrap(),
-            U256::from_dec_str(
-                "58984888198769686684640833699869084205119854744931998784527271197475"
+                "50729203458830611333280116165209531413747111795379544303626237494472"
             )
             .unwrap()
         );

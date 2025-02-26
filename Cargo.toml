@@ -16,7 +16,7 @@ crate-type = ["lib"]
 unsafe_code = "forbid"
 
 [dependencies]
-rand = { version = "0.9.0", default-features = false, features = ["std_rng"] }
+rand = { version = "0.9.0", default-features = false, features = ["small_rng"] }
 rand_mt = "5.0"
 arrayvec = { version = "0.7.4", default-features = false }
 hashbrown = { version = "0.15", default-features = false }
