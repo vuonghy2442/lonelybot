@@ -86,6 +86,20 @@ impl Pruner for FullPruner {
                     deck_pile: !KING_MASK,
                     reveal: !KING_MASK,
                 },
+
+                (Move::Reveal(_), &ExtraInfo::Card(c)) => {
+                    let m = c.mask();
+                    let other = c.swap_suit().mask();
+                    let mm = m | other;
+
+                    MoveMask {
+                        pile_stack: !mm,
+                        deck_stack: !0,
+                        stack_pile: 0,
+                        deck_pile: 0,
+                        reveal: 0,
+                    }
+                }
                 // TODO: another case of stack and reveal without dominances
                 _ => MoveMask::default(),
             };
