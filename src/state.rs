@@ -33,6 +33,7 @@ const fn swap_pair(a: u64) -> u64 {
 
 pub type UndoInfo = u8;
 
+#[derive(Clone, Copy)]
 pub enum ExtraInfo {
     None,
     Card(Card),
