@@ -76,7 +76,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
         Control::Halt => return Control::Halt,
         Control::Skip => return Control::Skip,
         Control::Ok => {}
-    };
+    }
 
     if !tp.insert(encode) {
         return Control::Ok;
