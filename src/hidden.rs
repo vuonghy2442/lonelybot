@@ -56,7 +56,7 @@ impl Hidden {
         piles: &[HiddenVec; N_PILES as usize],
         top: &[Option<Card>; N_PILES as usize],
     ) -> Self {
-        let mut hidden_piles = [Card::DEFAULT; N_PILE_CARDS as usize];
+        let mut hidden_piles = [Card::INVALID; N_PILE_CARDS as usize];
         let mut pile_map = [0u8; N_CARDS as usize];
 
         let mut first_layer_mask: u64 = 0;
@@ -91,6 +91,7 @@ impl Hidden {
         let mut locked_mask = 0;
         for pos in 0..N_PILES {
             for card in self.get(pos) {
+                // it's okay to lock invalid cards
                 locked_mask |= card.mask();
             }
         }
