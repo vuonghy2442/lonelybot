@@ -93,14 +93,14 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
     }
 
     let res = move_list.iter_moves(|m| {
-        let new_prune_info = C::Pruner::new(game, prune_info, m);
-        match callback.on_do_move(game, m, encode, &new_prune_info) {
+        match callback.on_do_move(game, m, encode, &prune_info) {
             Control::Halt => return core::ops::ControlFlow::Break(()),
             Control::Skip => return core::ops::ControlFlow::Continue(()),
             Control::Ok => {}
         }
 
-        let undo = game.do_move(m);
+        let (rev_m, (undo, extra)) = game.do_move(m);
+        let new_prune_info = C::Pruner::update(prune_info, m, rev_m, extra);
 
         let res = traverse(game, &new_prune_info, tp, callback);
 

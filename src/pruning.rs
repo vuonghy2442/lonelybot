@@ -1,13 +1,13 @@
 use crate::{
     card::{Card, ALT_MASK, KING_MASK},
     moves::{Move, MoveMask},
-    state::Solitaire,
+    state::{ExtraInfo, Solitaire},
 };
 
 pub trait Pruner {
     #[must_use]
     // the game state is before doing the move `m`
-    fn new(game: &Solitaire, prev: &Self, m: Move) -> Self;
+    fn update(prev: &Self, m: Move, rev_m: Option<Move>, m: ExtraInfo) -> Self;
 
     #[must_use]
     fn prune_moves(&self, game: &Solitaire) -> MoveMask;
@@ -17,7 +17,7 @@ pub trait Pruner {
 pub struct NoPruner {}
 
 impl Pruner for NoPruner {
-    fn new(_: &Solitaire, _: &Self, _: Move) -> Self {
+    fn update(_: &Self, _: Move, _: Option<Move>, _: ExtraInfo) -> Self {
         Self {}
     }
 
@@ -32,10 +32,8 @@ pub struct CyclePruner {
 }
 
 impl Pruner for CyclePruner {
-    fn new(game: &Solitaire, _: &Self, m: Move) -> Self {
-        Self {
-            rev_move: game.reverse_move(m),
-        }
+    fn update(_: &Self, _: Move, rev_m: Option<Move>, _: ExtraInfo) -> Self {
+        Self { rev_move: rev_m }
     }
 
     fn prune_moves(&self, _: &Solitaire) -> MoveMask {
@@ -60,9 +58,9 @@ impl Default for FullPruner {
 }
 
 impl Pruner for FullPruner {
-    fn new(game: &Solitaire, prev: &Self, m: Move) -> Self {
+    fn update(prev: &Self, m: Move, rev_m: Option<Move>, extra: ExtraInfo) -> Self {
         Self {
-            cycle: CyclePruner::new(game, &prev.cycle, m),
+            cycle: CyclePruner::update(&prev.cycle, m, rev_m, extra),
             last_move: m,
             last_draw: match m {
                 Move::DeckPile(c) => Some(c),

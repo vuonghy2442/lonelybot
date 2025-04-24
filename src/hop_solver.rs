@@ -124,8 +124,8 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
     for _ in 0..n_times {
         let mut gg = g.clone();
         gg.hidden_shuffle(rng);
-        let new_prune_info = FullPruner::new(&gg, prune_info, m);
-        gg.do_move(m);
+        let (rev_m, (_, extra)) = gg.do_move(m);
+        let new_prune_info = FullPruner::update(prune_info, m, rev_m, extra);
 
         let mut callback = HOPSolverCallback {
             sign,

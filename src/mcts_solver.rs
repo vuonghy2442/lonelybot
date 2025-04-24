@@ -32,14 +32,8 @@ impl Callback for FindStatesCallback {
         }
     }
 
-    fn on_do_move(
-        &mut self,
-        g: &Solitaire,
-        m: Move,
-        _: Encode,
-        prune_info: &FullPruner,
-    ) -> Control {
-        let rev = prune_info.rev_move();
+    fn on_do_move(&mut self, g: &Solitaire, m: Move, _: Encode, pr: &FullPruner) -> Control {
+        let rev = pr.rev_move();
         let ok = match m {
             Move::Reveal(c) => c.mask() & g.get_hidden().first_layer_mask() == 0,
             _ => true,
@@ -72,14 +66,8 @@ impl Callback for ListStatesCallback {
         Control::Halt
     }
 
-    fn on_do_move(
-        &mut self,
-        _: &Solitaire,
-        m: Move,
-        e: Encode,
-        prune_info: &FullPruner,
-    ) -> Control {
-        let rev = prune_info.rev_move();
+    fn on_do_move(&mut self, _: &Solitaire, m: Move, e: Encode, pr: &FullPruner) -> Control {
+        let rev = pr.rev_move();
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
         if rev.is_none() {
             self.res.push((e, Some(m)));
