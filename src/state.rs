@@ -36,6 +36,7 @@ pub type UndoInfo = u8;
 #[derive(Clone, Copy)]
 pub enum ExtraInfo {
     None,
+    RevealEmpty,
     Card(Card),
 }
 
@@ -319,24 +320,23 @@ impl Solitaire {
         let mask = card.mask();
         self.final_stack.push(card.suit());
 
-        (
-            if DECK {
-                let (found, pos) = self.deck.find_card(card);
-                debug_assert!(found);
+        if DECK {
+            let (found, pos) = self.deck.find_card(card);
+            debug_assert!(found);
 
-                let old_offset = self.deck.get_offset();
-                self.deck.draw(pos);
-                old_offset
+            let old_offset = self.deck.get_offset();
+            self.deck.draw(pos);
+            (old_offset, ExtraInfo::None)
+        } else {
+            let locked = (self.get_locked_mask() & mask) != 0;
+            self.visible_mask ^= mask;
+            let extra = if locked {
+                self.make_reveal(card)
             } else {
-                let locked = (self.get_locked_mask() & mask) != 0;
-                self.visible_mask ^= mask;
-                if locked {
-                    self.make_reveal(card);
-                }
-                u8::from(locked)
-            },
-            ExtraInfo::None,
-        )
+                ExtraInfo::None
+            };
+            (u8::from(locked), extra)
+        }
     }
 
     fn unmake_stack<const DECK: bool>(&mut self, card: Card, info: UndoInfo) {
@@ -389,7 +389,7 @@ impl Solitaire {
             self.visible_mask |= new_card.mask();
             return ExtraInfo::Card(new_card);
         }
-        return ExtraInfo::None;
+        return ExtraInfo::RevealEmpty;
     }
 
     fn unmake_reveal(&mut self, card: Card) {

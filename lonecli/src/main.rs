@@ -6,6 +6,7 @@ mod tui;
 use bpci::{Interval, NSuccessesSample, WilsonScore};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
+use lonelybot::dependencies::DependencyEngine;
 use lonelybot::engine::SolitaireEngine;
 use lonelybot::mcts_solver::pick_moves;
 use lonelybot::pruning::{CyclePruner, FullPruner, NoPruner};
@@ -234,7 +235,7 @@ fn test_solve(seed: &Seed, draw_step: NonZeroU8, terminated: &Arc<AtomicBool>) {
     let mut g_standard = StandardSolitaire::from(&g);
 
     let now = Instant::now();
-    let res = solver::run_solve(g, true, terminated);
+    let res = solver::run_solve(g.clone(), true, terminated);
     println!("Run in {} ms", now.elapsed().as_secs_f64() * 1000f64);
     println!("Statistic\n{}", res.1);
     match res.0 {
@@ -243,9 +244,21 @@ fn test_solve(seed: &Seed, draw_step: NonZeroU8, terminated: &Arc<AtomicBool>) {
             println!("Solvable in {} moves", m.len());
             println!();
             let moves = convert_moves(&mut g_standard, &m[..]).unwrap();
-            for x in m {
+            for x in &m {
                 print!("{x}, ");
             }
+            println!();
+            println!();
+
+            let mut dep_e = DependencyEngine::new(g);
+            for mm in &m {
+                assert!(dep_e.do_move(*mm));
+            }
+
+            for link in dep_e.get() {
+                println!("{} -> {}", link.0, link.1);
+            }
+
             println!();
             println!();
             for m in &moves {
