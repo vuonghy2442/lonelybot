@@ -27,9 +27,9 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
     pub fn new(state: Solitaire) -> Self {
         Self {
             valid_moves: state.gen_moves::<false>(),
-            pruner: Default::default(),
+            pruner: P::default(),
             state,
-            history: Default::default(),
+            history: Vec::default(),
         }
     }
 

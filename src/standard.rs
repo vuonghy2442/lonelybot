@@ -246,7 +246,7 @@ impl StandardSolitaire {
                 self.final_stack.pop(suit);
                 self.piles[usize::from(to)].push(card);
             }
-        };
+        }
 
         // revealing
         if let Pos::Pile(from) = m.from {

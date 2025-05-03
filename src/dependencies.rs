@@ -59,13 +59,13 @@ impl DependencyEngine {
 
         Self {
             state,
-            cards_from: cards.clone(),
-            cards_to: cards.clone(),
+            cards_from: cards,
+            cards_to: cards,
             has_upper,
             emptying,
             last_draw: 0,
             n_moves: 0,
-            dep: Default::default(),
+            dep: Vec::default(),
         }
     }
 
@@ -112,7 +112,7 @@ impl DependencyEngine {
                 .swap(card.mask_index() as usize, other.mask_index() as usize);
         }
 
-        return self.cards_from[card.mask_index() as usize];
+        self.cards_from[card.mask_index() as usize]
     }
 
     pub fn get_move_lock_to(&mut self, card: Card) -> usize {
@@ -153,8 +153,8 @@ impl DependencyEngine {
             ExtraInfo::RevealEmpty => {
                 self.emptying.push(self.n_moves);
             }
-            _ => {}
-        };
+            ExtraInfo::None => {}
+        }
 
         match m {
             Move::DeckStack(card) => {
@@ -223,7 +223,8 @@ impl DependencyEngine {
         true
     }
 
+    #[must_use]
     pub fn get(&self) -> &Vec<(usize, usize)> {
-        return &self.dep;
+        &self.dep
     }
 }

@@ -93,7 +93,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
     }
 
     let res = move_list.iter_moves(|m| {
-        match callback.on_do_move(game, m, encode, &prune_info) {
+        match callback.on_do_move(game, m, encode, prune_info) {
             Control::Halt => return core::ops::ControlFlow::Break(()),
             Control::Skip => return core::ops::ControlFlow::Continue(()),
             Control::Ok => {}

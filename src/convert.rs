@@ -46,7 +46,7 @@ pub(crate) fn convert_move(
 
             if pile_to == pile_from {
                 return Err(InvalidMove {});
-            };
+            }
 
             move_seq.push(StandardMove::new(
                 Pos::Pile(pile_from),

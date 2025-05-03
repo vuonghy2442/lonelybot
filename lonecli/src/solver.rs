@@ -67,7 +67,7 @@ pub(crate) fn run_solve(
             match recv.recv_timeout(Duration::from_millis(1000)) {
                 Err(RecvTimeoutError::Disconnected) | Ok(()) => break,
                 Err(RecvTimeoutError::Timeout) => println!("{ss}"),
-            };
+            }
         }
     }
 
@@ -110,7 +110,7 @@ pub(crate) fn run_graph(
             match recv.recv_timeout(Duration::from_millis(1000)) {
                 Err(RecvTimeoutError::Disconnected) | Ok(()) => break,
                 Err(RecvTimeoutError::Timeout) => println!("{ss}"),
-            };
+            }
         }
     }
 

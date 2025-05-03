@@ -215,12 +215,12 @@ pub fn list_moves<R: RngCore, T: TerminateSignal>(
     sign: &T,
 ) -> Vec<(Vec<Move>, HopResult)> {
     let mut callback = RevStatesCallback {
-        his: Default::default(),
+        his: Vec::default(),
         rng,
         n_times,
         limit,
         sign,
-        res: Default::default(),
+        res: Vec::default(),
     };
 
     let mut tp = TpTable::default();

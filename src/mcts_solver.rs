@@ -96,7 +96,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     const BATCH_SIZE: usize = 10;
 
     let mut callback = ListStatesCallback {
-        res: Default::default(),
+        res: Vec::default(),
     };
 
     let mut tp = TpTable::default();
@@ -107,7 +107,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
 
     let mut find_state = move |state: Encode, m: Option<Move>| {
         let mut callback = FindStatesCallback {
-            his: Default::default(),
+            his: Vec::default(),
             state,
         };
         tp.clear();

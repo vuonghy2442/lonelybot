@@ -1,5 +1,6 @@
 use core::num::NonZeroU8;
 
+use arrayvec::ArrayVec;
 use rand::RngCore;
 
 use crate::card::{
@@ -387,9 +388,10 @@ impl Solitaire {
     fn make_reveal(&mut self, card: Card) -> ExtraInfo {
         if let Some(&new_card) = self.hidden.pop_card(card) {
             self.visible_mask |= new_card.mask();
-            return ExtraInfo::Card(new_card);
+            ExtraInfo::Card(new_card)
+        } else {
+            ExtraInfo::RevealEmpty
         }
-        return ExtraInfo::RevealEmpty;
     }
 
     fn unmake_reveal(&mut self, card: Card) {
@@ -500,7 +502,7 @@ impl Solitaire {
                 }
 
                 if king_suit >= N_SUITS {
-                    return Default::default();
+                    return ArrayVec::default();
                 }
 
                 king_suit += 1;

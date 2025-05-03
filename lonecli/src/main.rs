@@ -407,7 +407,7 @@ fn solve_loop(org_seed: &Seed, draw_step: NonZeroU8, terminated: &Arc<AtomicBool
             SearchResult::Solved => cnt_solve += 1,
             SearchResult::Terminated => cnt_terminated += 1,
             _ => {}
-        };
+        }
 
         cnt_total += 1;
 
