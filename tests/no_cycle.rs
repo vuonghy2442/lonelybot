@@ -3,7 +3,7 @@ use std::num::NonZeroU8;
 use lonelybot::{
     moves::MoveMask,
     pruning::FullPruner,
-    shuffler::default_shuffle,
+    shuffler::ks_shuffle,
     state::{Encode, Solitaire},
     traverse::{traverse, Callback, Control, TpTable},
 };
@@ -37,15 +37,15 @@ impl Callback for CycleCallback {
 #[ignore]
 fn test_no_cycle() {
     let mut tp = TpTable::default();
-    for seed in 0..1 {
-        let deck = default_shuffle(seed);
+    for seed in 0..2 {
+        let deck = ks_shuffle(seed);
 
         tp.clear();
 
         let mut callback = CycleCallback::default();
 
         let mut g = Solitaire::new(&deck, NonZeroU8::new(3).unwrap());
-        let res = traverse(&mut g, &Default::default(), &mut tp, &mut callback);
+        let res = traverse(&mut g, Default::default(), &mut tp, &mut callback);
         assert_eq!(res, Control::Ok);
     }
 }
