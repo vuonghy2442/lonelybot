@@ -134,7 +134,7 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
             n_visit: 0,
         };
         tp.clear();
-        traverse(&mut gg, &new_prune_info, &mut tp, &mut callback);
+        traverse(&mut gg, new_prune_info, &mut tp, &mut callback);
         if sign.is_terminated() {
             break;
         }
@@ -224,6 +224,6 @@ pub fn list_moves<R: RngCore, T: TerminateSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse(g, &FullPruner::default(), &mut tp, &mut callback);
+    traverse(g, FullPruner::default(), &mut tp, &mut callback);
     callback.res
 }

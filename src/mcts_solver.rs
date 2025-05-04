@@ -100,7 +100,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse(game, &FullPruner::default(), &mut tp, &mut callback);
+    traverse(game, FullPruner::default(), &mut tp, &mut callback);
     let states = callback.res;
 
     let mut org_g = game.clone();
@@ -112,7 +112,7 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
         };
         tp.clear();
 
-        traverse(&mut org_g, &FullPruner::default(), &mut tp, &mut callback);
+        traverse(&mut org_g, FullPruner::default(), &mut tp, &mut callback);
         if let Some(m) = m {
             callback.his.push(m);
         }

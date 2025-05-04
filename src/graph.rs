@@ -113,7 +113,7 @@ pub fn graph_with_tracking<S: SearchStatistics, T: TerminateSignal>(
     let mut tp = TpTable::default();
     let mut callback = BuilderCallback::new(g, stats, sign);
 
-    let finished = traverse(g, &FullPruner::default(), &mut tp, &mut callback);
+    let finished = traverse(g, FullPruner::default(), &mut tp, &mut callback);
     (finished, callback.graph)
 }
 

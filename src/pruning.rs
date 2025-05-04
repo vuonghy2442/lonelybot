@@ -7,7 +7,7 @@ use crate::{
 pub trait Pruner {
     #[must_use]
     // the game state is before doing the move `m`
-    fn update(prev: &Self, m: Move, rev_m: Option<Move>, m: ExtraInfo) -> Self;
+    fn update(&self, m: Move, rev_m: Option<Move>, m: ExtraInfo) -> Self;
 
     #[must_use]
     fn prune_moves(&self, game: &Solitaire) -> MoveMask;
@@ -17,7 +17,7 @@ pub trait Pruner {
 pub struct NoPruner {}
 
 impl Pruner for NoPruner {
-    fn update(_: &Self, _: Move, _: Option<Move>, _: ExtraInfo) -> Self {
+    fn update(&self, _: Move, _: Option<Move>, _: ExtraInfo) -> Self {
         Self {}
     }
 
@@ -32,7 +32,7 @@ pub struct CyclePruner {
 }
 
 impl Pruner for CyclePruner {
-    fn update(_: &Self, _: Move, rev_m: Option<Move>, _: ExtraInfo) -> Self {
+    fn update(&self, _: Move, rev_m: Option<Move>, _: ExtraInfo) -> Self {
         Self { rev_move: rev_m }
     }
 
@@ -60,15 +60,15 @@ impl Default for FullPruner {
 }
 
 impl Pruner for FullPruner {
-    fn update(prev: &Self, m: Move, rev_m: Option<Move>, extra: ExtraInfo) -> Self {
+    fn update(&self, m: Move, rev_m: Option<Move>, extra: ExtraInfo) -> Self {
         Self {
-            cycle: CyclePruner::update(&prev.cycle, m, rev_m, extra),
+            cycle: self.cycle.update(m, rev_m, extra),
             last_move: m,
             last_extra: extra,
             last_draw: match m {
                 Move::DeckPile(c) => Some(c),
-                Move::StackPile(c) if !prev.last_draw.is_some_and(|cc| c.go_after(Some(cc))) => {
-                    prev.last_draw
+                Move::StackPile(c) if !self.last_draw.is_some_and(|cc| c.go_after(Some(cc))) => {
+                    self.last_draw
                 }
                 _ => None,
             },
