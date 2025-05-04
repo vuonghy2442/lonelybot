@@ -32,14 +32,8 @@ impl Callback for FindStatesCallback {
         }
     }
 
-    fn on_do_move(
-        &mut self,
-        g: &Solitaire,
-        m: Move,
-        _: Encode,
-        prune_info: &FullPruner,
-    ) -> Control {
-        let rev = prune_info.rev_move();
+    fn on_do_move(&mut self, g: &Solitaire, m: Move, _: Encode, pr: &FullPruner) -> Control {
+        let rev = pr.rev_move();
         let ok = match m {
             Move::Reveal(c) => c.mask() & g.get_hidden().first_layer_mask() == 0,
             _ => true,
@@ -72,14 +66,8 @@ impl Callback for ListStatesCallback {
         Control::Halt
     }
 
-    fn on_do_move(
-        &mut self,
-        _: &Solitaire,
-        m: Move,
-        e: Encode,
-        prune_info: &FullPruner,
-    ) -> Control {
-        let rev = prune_info.rev_move();
+    fn on_do_move(&mut self, _: &Solitaire, m: Move, e: Encode, pr: &FullPruner) -> Control {
+        let rev = pr.rev_move();
         // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
         if rev.is_none() {
             self.res.push((e, Some(m)));
@@ -108,23 +96,23 @@ pub fn pick_moves<R: RngCore, T: TerminateSignal>(
     const BATCH_SIZE: usize = 10;
 
     let mut callback = ListStatesCallback {
-        res: Default::default(),
+        res: Vec::default(),
     };
 
     let mut tp = TpTable::default();
-    traverse(game, &FullPruner::default(), &mut tp, &mut callback);
+    traverse(game, FullPruner::default(), &mut tp, &mut callback);
     let states = callback.res;
 
     let mut org_g = game.clone();
 
     let mut find_state = move |state: Encode, m: Option<Move>| {
         let mut callback = FindStatesCallback {
-            his: Default::default(),
+            his: Vec::default(),
             state,
         };
         tp.clear();
 
-        traverse(&mut org_g, &FullPruner::default(), &mut tp, &mut callback);
+        traverse(&mut org_g, FullPruner::default(), &mut tp, &mut callback);
         if let Some(m) = m {
             callback.his.push(m);
         }

@@ -62,7 +62,7 @@ impl TranspositionTable for TpTable {
 // it guarantee to return the state of g back into normal state
 pub fn traverse<T: TranspositionTable, C: Callback>(
     game: &mut Solitaire,
-    prune_info: &C::Pruner,
+    prune_info: C::Pruner,
     tp: &mut T,
     callback: &mut C,
 ) -> Control {
@@ -76,7 +76,7 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
         Control::Halt => return Control::Halt,
         Control::Skip => return Control::Skip,
         Control::Ok => {}
-    };
+    }
 
     if !tp.insert(encode) {
         return Control::Ok;
@@ -93,16 +93,16 @@ pub fn traverse<T: TranspositionTable, C: Callback>(
     }
 
     let res = move_list.iter_moves(|m| {
-        let new_prune_info = C::Pruner::new(game, prune_info, m);
-        match callback.on_do_move(game, m, encode, &new_prune_info) {
+        match callback.on_do_move(game, m, encode, &prune_info) {
             Control::Halt => return core::ops::ControlFlow::Break(()),
             Control::Skip => return core::ops::ControlFlow::Continue(()),
             Control::Ok => {}
         }
 
-        let undo = game.do_move(m);
+        let (rev_m, (undo, extra)) = game.do_move(m);
+        let new_prune_info = prune_info.update(m, rev_m, extra);
 
-        let res = traverse(game, &new_prune_info, tp, callback);
+        let res = traverse(game, new_prune_info, tp, callback);
 
         game.undo_move(m, undo);
         callback.on_undo_move(m, encode, &res);

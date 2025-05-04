@@ -1,5 +1,6 @@
 use core::num::NonZeroU8;
 
+use arrayvec::ArrayVec;
 use rand::RngCore;
 
 use crate::card::{
@@ -32,6 +33,13 @@ const fn swap_pair(a: u64) -> u64 {
 }
 
 pub type UndoInfo = u8;
+
+#[derive(Clone, Copy)]
+pub enum ExtraInfo {
+    None,
+    RevealEmpty,
+    Card(Card),
+}
 
 impl Solitaire {
     #[must_use]
@@ -294,7 +302,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub(crate) const fn reverse_move(&self, m: Move) -> Option<Move> {
+    const fn reverse_move(&self, m: Move) -> Option<Move> {
         // check if this move can be undo using a legal move in the game
         match m {
             Move::PileStack(c) if self.get_locked_mask() & c.mask() == 0 => {
@@ -309,7 +317,7 @@ impl Solitaire {
     ///
     /// Panic when the card mask is not a card in the deck
     /// It doesn't check if the card is drawable
-    fn make_stack<const DECK: bool>(&mut self, card: Card) -> UndoInfo {
+    fn make_stack<const DECK: bool>(&mut self, card: Card) -> (UndoInfo, ExtraInfo) {
         let mask = card.mask();
         self.final_stack.push(card.suit());
 
@@ -319,14 +327,16 @@ impl Solitaire {
 
             let old_offset = self.deck.get_offset();
             self.deck.draw(pos);
-            old_offset
+            (old_offset, ExtraInfo::None)
         } else {
             let locked = (self.get_locked_mask() & mask) != 0;
             self.visible_mask ^= mask;
-            if locked {
-                self.make_reveal(card);
-            }
-            u8::from(locked)
+            let extra = if locked {
+                self.make_reveal(card)
+            } else {
+                ExtraInfo::None
+            };
+            (u8::from(locked), extra)
         }
     }
 
@@ -345,20 +355,23 @@ impl Solitaire {
         }
     }
 
-    fn make_pile<const DECK: bool>(&mut self, card: Card) -> UndoInfo {
+    fn make_pile<const DECK: bool>(&mut self, card: Card) -> (UndoInfo, ExtraInfo) {
         let mask = card.mask();
         self.visible_mask |= mask;
-        if DECK {
-            let (found, pos) = self.deck.find_card(card);
-            debug_assert!(found);
+        (
+            if DECK {
+                let (found, pos) = self.deck.find_card(card);
+                debug_assert!(found);
 
-            let old_offset = self.deck.get_offset();
-            self.deck.draw(pos);
-            old_offset
-        } else {
-            self.final_stack.pop(card.suit());
-            Default::default()
-        }
+                let old_offset = self.deck.get_offset();
+                self.deck.draw(pos);
+                old_offset
+            } else {
+                self.final_stack.pop(card.suit());
+                Default::default()
+            },
+            ExtraInfo::None,
+        )
     }
 
     fn unmake_pile<const DECK: bool>(&mut self, card: Card, info: UndoInfo) {
@@ -372,9 +385,12 @@ impl Solitaire {
         }
     }
 
-    fn make_reveal(&mut self, card: Card) {
+    fn make_reveal(&mut self, card: Card) -> ExtraInfo {
         if let Some(&new_card) = self.hidden.pop_card(card) {
             self.visible_mask |= new_card.mask();
+            ExtraInfo::Card(new_card)
+        } else {
+            ExtraInfo::RevealEmpty
         }
     }
 
@@ -388,17 +404,17 @@ impl Solitaire {
     ///
     /// May panic when the move is invalid
     /// But it may do the move even when it's invalid so be careful for using this function
-    pub(crate) fn do_move(&mut self, m: Move) -> UndoInfo {
-        match m {
-            Move::DeckStack(c) => self.make_stack::<true>(c),
-            Move::PileStack(c) => self.make_stack::<false>(c),
-            Move::DeckPile(c) => self.make_pile::<true>(c),
-            Move::StackPile(c) => self.make_pile::<false>(c),
-            Move::Reveal(c) => {
-                self.make_reveal(c);
-                UndoInfo::default()
-            }
-        }
+    pub(crate) fn do_move(&mut self, m: Move) -> (Option<Move>, (UndoInfo, ExtraInfo)) {
+        (
+            self.reverse_move(m),
+            match m {
+                Move::DeckStack(c) => self.make_stack::<true>(c),
+                Move::PileStack(c) => self.make_stack::<false>(c),
+                Move::DeckPile(c) => self.make_pile::<true>(c),
+                Move::StackPile(c) => self.make_pile::<false>(c),
+                Move::Reveal(c) => (UndoInfo::default(), self.make_reveal(c)),
+            },
+        )
     }
 
     /// It may leave the game in an invalid state with illegal move or wrong undo info
@@ -486,7 +502,7 @@ impl Solitaire {
                 }
 
                 if king_suit >= N_SUITS {
-                    return Default::default();
+                    return ArrayVec::default();
                 }
 
                 king_suit += 1;
@@ -666,7 +682,7 @@ mod tests {
                     game.deck.iter_all().map(|x| (x.0, x.1, x.2)).collect();
 
                 let m = *moves.choose(&mut rng).unwrap();
-                let undo = game.do_move(m);
+                let (_, (undo, _)) = game.do_move(m);
                 let next_state = game.encode();
                 assert_ne!(next_state, state);
                 game.undo_move(m, undo);
@@ -709,7 +725,7 @@ mod tests {
                 states.push(game.clone());
 
                 let m = *moves.choose(&mut rng).unwrap();
-                let undo = game.do_move(m);
+                let (_, (undo, _)) = game.do_move(m);
                 history.push((m, undo));
             }
 

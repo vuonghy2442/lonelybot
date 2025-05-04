@@ -124,8 +124,8 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
     for _ in 0..n_times {
         let mut gg = g.clone();
         gg.hidden_shuffle(rng);
-        let new_prune_info = FullPruner::new(&gg, prune_info, m);
-        gg.do_move(m);
+        let (rev_m, (_, extra)) = gg.do_move(m);
+        let new_prune_info = FullPruner::update(prune_info, m, rev_m, extra);
 
         let mut callback = HOPSolverCallback {
             sign,
@@ -134,7 +134,7 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
             n_visit: 0,
         };
         tp.clear();
-        traverse(&mut gg, &new_prune_info, &mut tp, &mut callback);
+        traverse(&mut gg, new_prune_info, &mut tp, &mut callback);
         if sign.is_terminated() {
             break;
         }
@@ -215,15 +215,15 @@ pub fn list_moves<R: RngCore, T: TerminateSignal>(
     sign: &T,
 ) -> Vec<(Vec<Move>, HopResult)> {
     let mut callback = RevStatesCallback {
-        his: Default::default(),
+        his: Vec::default(),
         rng,
         n_times,
         limit,
         sign,
-        res: Default::default(),
+        res: Vec::default(),
     };
 
     let mut tp = TpTable::default();
-    traverse(g, &FullPruner::default(), &mut tp, &mut callback);
+    traverse(g, FullPruner::default(), &mut tp, &mut callback);
     callback.res
 }

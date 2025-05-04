@@ -107,23 +107,23 @@ mod tests {
     #[test]
     fn test_solvitaire_format() {
         let game = Solvitaire(StandardSolitaire::new(
-            &shuffler::default_shuffle(0),
+            &shuffler::ks_shuffle(0),
             NonZeroU8::new(3).unwrap(),
         ));
+
         let obj: Value = serde_json::from_str(game.to_string().as_str()).unwrap();
 
         assert_eq!(
             obj,
             json!({"tableau piles": [
-            ["KC"],
-            ["6s","8C"],
-            ["9s","Ah","5S"],
-            ["5d","Js","5h","QD"],
-            ["Ac","7c","Jc","7h","KD"],
-            ["10c","3h","4d","4h","6c","QS"],
-            ["7d","3c","6h","5c","10h","9c","3S"]
-            ],"stock": ["JD","10D","7S","10S","AD","8S","JH","2D","AS","3D","9D","9H","6D","KS","QH","2H","2S","4S","4C","KH","2C","8H","8D","QC"],
-            "waste": [],
+                ["3D"],
+                ["Ad","8H"],
+                ["Qs","9d","8C"],
+                ["Jh","2c","3c","AC"],
+                ["9c","As","10s","Qc","4S"],
+                ["6d","6h","Qh","4d","6s","8D"],
+                ["2h","Ks","Js","2s","5d","6c","4H"]
+                ],"stock": ["QD","10H","3S","5S","8S","7D","KC","JD","9H","JC","4C","5H","10D","AH","7C","9S","3H","7H","5C","7S","10C","2D","KD","KH"],"waste": [],     
             "foundation": [[],[],[],[]]})
         );
     }

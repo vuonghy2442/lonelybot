@@ -27,9 +27,9 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
     pub fn new(state: Solitaire) -> Self {
         Self {
             valid_moves: state.gen_moves::<false>(),
-            pruner: Default::default(),
+            pruner: P::default(),
             state,
-            history: Default::default(),
+            history: Vec::default(),
         }
     }
 
@@ -58,8 +58,9 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
             return false;
         }
 
-        self.pruner = Pruner::new(&self.state, &self.pruner, m);
-        self.history.push((m, self.state.do_move(m)));
+        let (rev_m, (undo, extra)) = self.state.do_move(m);
+        self.pruner = Pruner::update(&self.pruner, m, rev_m, extra);
+        self.history.push((m, undo));
         self.valid_moves = self.state.gen_moves::<false>();
         true
     }

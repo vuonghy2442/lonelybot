@@ -1,13 +1,13 @@
 use crate::{
-    card::{Card, ALT_MASK, KING_MASK},
+    card::{Card, KING_MASK},
     moves::{Move, MoveMask},
-    state::Solitaire,
+    state::{ExtraInfo, Solitaire},
 };
 
 pub trait Pruner {
     #[must_use]
     // the game state is before doing the move `m`
-    fn new(game: &Solitaire, prev: &Self, m: Move) -> Self;
+    fn update(&self, m: Move, rev_m: Option<Move>, m: ExtraInfo) -> Self;
 
     #[must_use]
     fn prune_moves(&self, game: &Solitaire) -> MoveMask;
@@ -17,7 +17,7 @@ pub trait Pruner {
 pub struct NoPruner {}
 
 impl Pruner for NoPruner {
-    fn new(_: &Solitaire, _: &Self, _: Move) -> Self {
+    fn update(&self, _: Move, _: Option<Move>, _: ExtraInfo) -> Self {
         Self {}
     }
 
@@ -32,10 +32,8 @@ pub struct CyclePruner {
 }
 
 impl Pruner for CyclePruner {
-    fn new(game: &Solitaire, _: &Self, m: Move) -> Self {
-        Self {
-            rev_move: game.reverse_move(m),
-        }
+    fn update(&self, _: Move, rev_m: Option<Move>, _: ExtraInfo) -> Self {
+        Self { rev_move: rev_m }
     }
 
     fn prune_moves(&self, _: &Solitaire) -> MoveMask {
@@ -46,6 +44,7 @@ impl Pruner for CyclePruner {
 pub struct FullPruner {
     cycle: CyclePruner,
     last_move: Move,
+    last_extra: ExtraInfo,
     last_draw: Option<Card>,
 }
 
@@ -54,20 +53,22 @@ impl Default for FullPruner {
         Self {
             cycle: CyclePruner::default(),
             last_move: Move::DeckPile(Card::DEFAULT),
+            last_extra: ExtraInfo::None,
             last_draw: None,
         }
     }
 }
 
 impl Pruner for FullPruner {
-    fn new(game: &Solitaire, prev: &Self, m: Move) -> Self {
+    fn update(&self, m: Move, rev_m: Option<Move>, extra: ExtraInfo) -> Self {
         Self {
-            cycle: CyclePruner::new(game, &prev.cycle, m),
+            cycle: self.cycle.update(m, rev_m, extra),
             last_move: m,
+            last_extra: extra,
             last_draw: match m {
                 Move::DeckPile(c) => Some(c),
-                Move::StackPile(c) if !prev.last_draw.is_some_and(|cc| c.go_after(Some(cc))) => {
-                    prev.last_draw
+                Move::StackPile(c) if !self.last_draw.is_some_and(|cc| c.go_after(Some(cc))) => {
+                    self.last_draw
                 }
                 _ => None,
             },
@@ -75,25 +76,42 @@ impl Pruner for FullPruner {
     }
     fn prune_moves(&self, game: &Solitaire) -> MoveMask {
         let filter = {
-            let first_layer = game.get_hidden().first_layer_mask();
-            let mut filter = match self.last_move {
+            let mut filter = match (self.last_move, &self.last_extra) {
                 // Moving the top layer card and leave the pile empty
                 // => Must move another king to fill the empty spot, otherwise it doesn't make sense
-                Move::Reveal(c) if first_layer & c.mask() > 0 => MoveMask {
+                (Move::Reveal(_), ExtraInfo::RevealEmpty) => MoveMask {
                     pile_stack: !0,
                     deck_stack: !0,
                     stack_pile: !KING_MASK,
                     deck_pile: !KING_MASK,
                     reveal: !KING_MASK,
                 },
+
+                (Move::Reveal(_), &ExtraInfo::Card(c)) => {
+                    let m = c.mask();
+                    let other = c.swap_suit().mask();
+                    let mm = m | other;
+
+                    MoveMask {
+                        pile_stack: !mm,
+                        deck_stack: !0,
+                        stack_pile: 0,
+                        deck_pile: 0,
+                        reveal: 0,
+                    }
+                }
+                // TODO: another case of stack and reveal without dominances
                 _ => MoveMask::default(),
             };
 
             if let Some(last_draw) = self.last_draw {
+                let first_layer = game.get_hidden().first_layer_mask();
+
                 // pruning deck :)
                 let m = last_draw.mask();
-                let mm = ((m | (m >> 1)) & ALT_MASK) * 0b11;
-                filter.pile_stack |= !mm | m;
+                let other = last_draw.swap_suit().mask();
+                let mm = m | other;
+                filter.pile_stack |= !other;
 
                 // need | first layer because of this case , DP 8♠, R 10♥, DP K♠,
                 // if you reveal 10 first then you forced to get K, which might prevent you from getting 8

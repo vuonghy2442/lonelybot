@@ -27,6 +27,7 @@ const fn suit_xor_color(v: u8) -> u8 {
 
 impl Card {
     pub const DEFAULT: Self = Self::new(0, 0);
+    pub const INVALID: Self = Self::new(N_RANKS, 0);
 
     #[must_use]
     pub const fn new(rank: u8, suit: u8) -> Self {
@@ -66,6 +67,11 @@ impl Card {
     #[must_use]
     pub const fn swap_color(self) -> Self {
         Self(self.0 ^ 2)
+    }
+
+    #[must_use]
+    pub const fn increase_rank_swap_color(self) -> Self {
+        Self(self.0 + N_SUITS)
     }
 
     #[must_use]
