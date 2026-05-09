@@ -544,7 +544,7 @@ impl Solitaire {
             return false;
         }
 
-        if !self.hidden.is_valid() && self.final_stack.is_valid() {
+        if !self.hidden.is_valid() || !self.final_stack.is_valid() {
             return false;
         }
 

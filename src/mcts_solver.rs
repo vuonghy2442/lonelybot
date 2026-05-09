@@ -78,7 +78,7 @@ impl Callback for ListStatesCallback {
     }
 }
 
-pub type PotientialFn = fn(n_sucess: usize, n_visit: usize, n_total: usize) -> f64;
+pub type PotentialFn = fn(n_sucess: usize, n_visit: usize, n_total: usize) -> f64;
 
 /// Picking the best move using MCTS
 ///
@@ -91,7 +91,7 @@ pub fn pick_moves<R: Rng, T: TerminateSignal>(
     n_times: usize,
     limit: usize,
     sign: &T,
-    pot_fn: PotientialFn,
+    pot_fn: PotentialFn,
 ) -> Option<Vec<Move>> {
     const BATCH_SIZE: usize = 10;
 
