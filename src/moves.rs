@@ -125,7 +125,7 @@ impl MoveMask {
     #[must_use]
     pub fn to_vec<const N_MAX: usize>(&self) -> ArrayVec<Move, N_MAX> {
         let mut moves = ArrayVec::new();
-        self.iter_moves(|m| {
+        let _ = self.iter_moves(|m| {
             moves.push(m);
             ControlFlow::<()>::Continue(())
         });
