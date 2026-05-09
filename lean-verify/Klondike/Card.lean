@@ -21,24 +21,36 @@ def fullMask (i : Nat) : Nat := (1 <<< i) - 1
 
 def Nat.complement64 (n : Nat) : Nat := fullMask 64 - n
 
-private axiom nat_and_sub_one_lt (n : Nat) (h : n ≠ 0) : n &&& (n - 1) < n
+private theorem nat_and_sub_one_lt (n : Nat) (h : n ≠ 0) : n &&& (n - 1) < n := by sorry
 
 def Nat.popCount (n : Nat) : Nat :=
   if h : n = 0 then 0 else 1 + Nat.popCount (n &&& (n - 1))
 termination_by n
 decreasing_by exact nat_and_sub_one_lt n h
 
-private axiom suitXorColor_lt (v : Nat) (h : v < N_CARDS) : suitXorColor v < N_CARDS
-private axiom xor1_lt (v : Nat) (h : v < N_CARDS) : (v ^^^ 1) < N_CARDS
-private axiom xor2_lt (v : Nat) (h : v < N_CARDS) : (v ^^^ 2) < N_CARDS
+private theorem suitXorColor_lt (v : Nat) (h : v < N_CARDS) : suitXorColor v < N_CARDS := by
+  unfold suitXorColor
+  sorry
 
-private axiom div_suit_lt (v : Nat) (h : v < N_CARDS) : v / N_SUITS < N_RANKS
+private theorem xor1_lt (v : Nat) (h : v < N_CARDS) : (v ^^^ 1) < N_CARDS := by sorry
 
-private axiom suitXorColor_mod_lt (v : Nat) : suitXorColor v % N_SUITS < N_SUITS
+private theorem xor2_lt (v : Nat) (h : v < N_CARDS) : (v ^^^ 2) < N_CARDS := by sorry
 
-private axiom rank_suit_raw_lt (rank : Nat) (suit : Nat) (hr : rank < N_RANKS) (hs : suit < N_SUITS) : rank * N_SUITS + suit < N_CARDS
+private theorem div_suit_lt (v : Nat) (h : v < N_CARDS) : v / N_SUITS < N_RANKS := by
+  unfold N_SUITS N_RANKS N_CARDS at *
+  omega
 
-private axiom xor1_inv (v : Nat) : (v ^^^ 1) ^^^ 1 = v
+private theorem suitXorColor_mod_lt (v : Nat) : suitXorColor v % N_SUITS < N_SUITS := by
+  unfold N_SUITS
+  apply Nat.mod_lt
+  decide
+
+private theorem rank_suit_raw_lt (rank : Nat) (suit : Nat) (hr : rank < N_RANKS) (hs : suit < N_SUITS) : rank * N_SUITS + suit < N_CARDS := by
+  unfold N_SUITS N_RANKS N_CARDS at *
+  omega
+
+private theorem xor1_inv (v : Nat) : (v ^^^ 1) ^^^ 1 = v := by
+  rw [Nat.xor_assoc, Nat.xor_self, Nat.xor_zero]
 
 structure Card where
   val : Fin N_CARDS
