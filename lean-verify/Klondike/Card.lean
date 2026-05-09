@@ -21,7 +21,16 @@ def fullMask (i : Nat) : Nat := (1 <<< i) - 1
 
 def Nat.complement64 (n : Nat) : Nat := fullMask 64 - n
 
-private theorem nat_and_sub_one_lt (n : Nat) (h : n ≠ 0) : n &&& (n - 1) < n := by sorry
+private theorem nat_and_sub_one_lt (n : Nat) (h : n ≠ 0) : n &&& (n - 1) < n := by
+  have hle : n &&& (n - 1) ≤ n := Nat.and_le_left
+  have hne : n &&& (n - 1) ≠ n := by
+    intro heq
+    have h1 : n &&& (n - 1) ≤ n - 1 := Nat.and_le_right
+    have h2 : n ≤ n - 1 := by
+      calc n = n &&& (n - 1) := heq.symm
+           _ ≤ n - 1 := h1
+    omega
+  omega
 
 def Nat.popCount (n : Nat) : Nat :=
   if h : n = 0 then 0 else 1 + Nat.popCount (n &&& (n - 1))

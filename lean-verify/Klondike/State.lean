@@ -147,13 +147,16 @@ private def makeStackFromPile (s : Solitaire) (c : Card) : UndoInfo × ExtraInfo
       (ExtraInfo.none, { s with finalStack := newStack, visibleMask := newVis })
   (if locked then 1 else 0, extra, s2)
 
-private def unmakeStackFromPile (s : Solitaire) (c : Card) (undo : UndoInfo) : Solitaire :=
+private def unmakeStackFromPile (s : Solitaire) (c : Card) (undo : UndoInfo) (extra : ExtraInfo) : Solitaire :=
   let mask := Card.mask c
   let newStack := s.finalStack.pop c.suit.val
   let newVis := s.visibleMask ||| mask
   let s' := { s with finalStack := newStack, visibleMask := newVis }
   if undo > 0 then
-    let revealed : Option Card := none
+    let revealed : Option Card :=
+      match extra with
+      | ExtraInfo.revealCard rc => some rc
+      | _ => none
     unmakeReveal s' c revealed
   else s'
 
@@ -217,7 +220,7 @@ def doMove (s : Solitaire) (m : Move) : Option Move × (UndoInfo × ExtraInfo) �
 def undoMove (s : Solitaire) (m : Move) (undo : UndoInfo) (extra : ExtraInfo) : Solitaire :=
   match m with
   | .deckStack c => unmakeStackFromDeck s c undo
-  | .pileStack c => unmakeStackFromPile s c undo
+  | .pileStack c => unmakeStackFromPile s c undo extra
   | .deckPile c => unmakePileFromDeck s c undo
   | .stackPile c => unmakePileFromStack s c undo
   | .reveal c =>
