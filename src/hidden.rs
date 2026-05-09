@@ -1,5 +1,5 @@
 use rand::seq::SliceRandom;
-use rand::RngCore;
+use rand::Rng;
 
 use arrayvec::ArrayVec;
 
@@ -263,7 +263,7 @@ impl Hidden {
         self.update_invariant();
     }
 
-    pub fn shuffle<R: RngCore>(&mut self, rng: &mut R) {
+    pub fn shuffle<R: Rng>(&mut self, rng: &mut R) {
         let mut all_stuff = ArrayVec::<Card, { N_PILE_CARDS as usize }>::new();
         for pos in 0..N_PILES {
             if let Some((_, pile_map)) = self.get(pos).split_last() {

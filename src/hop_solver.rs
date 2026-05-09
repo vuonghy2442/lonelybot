@@ -1,6 +1,6 @@
 use core::ops::{Add, AddAssign};
 
-use rand::RngCore;
+use rand::Rng;
 
 use crate::{
     moves::Move,
@@ -92,7 +92,7 @@ impl AddAssign for HopResult {
     }
 }
 
-pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
+pub fn hop_solve_game<R: Rng, T: TerminateSignal>(
     g: &Solitaire,
     m: Move,
     rng: &mut R,
@@ -156,7 +156,7 @@ pub fn hop_solve_game<R: RngCore, T: TerminateSignal>(
 extern crate alloc;
 use alloc::vec::Vec;
 
-struct RevStatesCallback<'a, R: RngCore, T: TerminateSignal> {
+struct RevStatesCallback<'a, R: Rng, T: TerminateSignal> {
     his: Vec<Move>,
     rng: &'a mut R,
     n_times: usize,
@@ -165,7 +165,7 @@ struct RevStatesCallback<'a, R: RngCore, T: TerminateSignal> {
     res: Vec<(Vec<Move>, HopResult)>,
 }
 
-impl<R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'_, R, T> {
+impl<R: Rng, T: TerminateSignal> Callback for RevStatesCallback<'_, R, T> {
     type Pruner = FullPruner;
 
     fn on_win(&mut self, _: &Solitaire) -> Control {
@@ -207,7 +207,7 @@ impl<R: RngCore, T: TerminateSignal> Callback for RevStatesCallback<'_, R, T> {
     }
 }
 
-pub fn list_moves<R: RngCore, T: TerminateSignal>(
+pub fn list_moves<R: Rng, T: TerminateSignal>(
     g: &mut Solitaire,
     rng: &mut R,
     n_times: usize,
