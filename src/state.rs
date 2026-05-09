@@ -747,6 +747,89 @@ mod tests {
     }
 
     #[test]
+    fn dump_seed5_state() {
+        use crate::shuffler::ks_shuffle;
+        let cards = ks_shuffle(5);
+        let draw_step = NonZeroU8::new(3).unwrap();
+        let game = Solitaire::new(&cards, draw_step);
+
+        println!("\n=== Card values (encoded u8) ===");
+        for (i, c) in cards.iter().enumerate() {
+            print!("{},", c.mask_index());
+            if (i + 1) % 13 == 0 { println!(); }
+        }
+
+        println!("\n=== Encoded state ===");
+        println!("encode = {}", game.encode());
+
+        println!("\n=== Hidden ===");
+        println!("hidden_piles (28):");
+        for i in 0..28 { print!("{},", cards[i].mask_index()); }
+        println!();
+
+        println!("n_hidden:");
+        for i in 0..N_PILES as usize { print!("{},", game.hidden.len(i as u8)); }
+        println!();
+
+        println!("pile_map:");
+        for i in 0..N_CARDS as usize { print!("{},", game.hidden.find(Card::from_mask_index(i as u8))); }
+        println!();
+
+        println!("first_layer_mask = {}", game.hidden.first_layer_mask());
+        println!("locked_mask = {}", game.hidden.get_locked_mask());
+
+        println!("\n=== Stack ===");
+        println!("final_stack_val = {}", game.final_stack.encode());
+
+        println!("\n=== Deck ===");
+        println!("deck_len = {}", game.deck.len());
+        println!("draw_cur = {}", game.deck.get_offset());
+        println!("draw_step = {}", game.deck.draw_step().get());
+        println!("deck_encode = {}", game.deck.encode());
+        print!("deck_cards:");
+        for i in 0..game.deck.len() as usize { print!("{},", game.deck.peek(i as u8).mask_index()); }
+        println!();
+
+        println!("deck_mask = {}", game.deck.compute_mask(false));
+
+        println!("\n=== Visible mask ===");
+        println!("visible_mask = {}", game.visible_mask);
+
+        println!("\n=== genMoves (no dominance) ===");
+        let moves = game.gen_moves::<false>();
+        println!("pile_stack = {}", moves.pile_stack);
+        println!("deck_stack = {}", moves.deck_stack);
+        println!("stack_pile = {}", moves.stack_pile);
+        println!("deck_pile = {}", moves.deck_pile);
+        println!("reveal = {}", moves.reveal);
+        println!("total_moves = {}", moves.len());
+
+        println!("\n=== genMoves (with dominance) ===");
+        let moves_dom = game.gen_moves::<true>();
+        println!("pile_stack = {}", moves_dom.pile_stack);
+        println!("deck_stack = {}", moves_dom.deck_stack);
+        println!("stack_pile = {}", moves_dom.stack_pile);
+        println!("deck_pile = {}", moves_dom.deck_pile);
+        println!("reveal = {}", moves_dom.reveal);
+        println!("total_moves = {}", moves_dom.len());
+
+        println!("\n=== Move results (no dominance) ===");
+        let move_vec = moves.to_vec::<N_MOVES_MAX>();
+        for (i, m) in move_vec.iter().enumerate() {
+            let mut g = game.clone();
+            let (rev, (undo, extra)) = g.do_move(*m);
+            let new_enc = g.encode();
+            println!("{}: {:?} -> enc={}, undo={}", i, m, new_enc, undo);
+            g.undo_move(*m, undo);
+            assert_eq!(g.encode(), game.encode());
+        }
+
+        println!("\n=== Bottom mask ===");
+        println!("bottom_mask = {}", game.get_bottom_mask());
+        println!("extended_top_mask = {}", game.get_extended_top_mask());
+    }
+
+    #[test]
     fn shuffle_hidden() {
         let mut rng = SmallRng::seed_from_u64(14);
 

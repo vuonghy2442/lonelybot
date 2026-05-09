@@ -35,20 +35,47 @@ private def maskOfIdx (d : Deck) : List Nat → Nat
   | [] => 0
   | i :: is => Card.mask (d.peek i) ||| d.maskOfIdx is
 
+private def rangeStepCount (start endExcl step : Nat) : Nat :=
+  if start ≥ endExcl ∨ step = 0 then 0
+  else (endExcl - start - 1) / step + 1
+
 def computeMask (d : Deck) (filter : Bool) : Nat :=
   let step := if d.drawStep = 0 then 1 else d.drawStep
   let wasteStart := d.drawCur + (if d.drawCur = 0 then step else 0) - 1
-  let wasteLimit := if d.len ≤ 1 then 0 else d.len - 1
-  let wasteIdxs := List.range' wasteStart wasteLimit step
+  let wasteEnd := if d.len ≤ 1 then 0 else d.len - 1
+  let wasteIdxs := List.range' wasteStart (rangeStepCount wasteStart wasteEnd step) step
   let lastIdxs := if d.cards.isEmpty then [] else [d.len - 1]
   let deckIdxs :=
     if filter then [] else
       let offset := d.drawCur % step
       let endIdx := if offset ≠ 0 then d.len else d.drawCur
-      let deckLimit := if endIdx ≤ 1 then 0 else endIdx - 1
+      let deckEnd := if endIdx ≤ 1 then 0 else endIdx - 1
       let start := if step ≤ 1 then 0 else step - 1
-      List.range' start deckLimit step
+      List.range' start (rangeStepCount start deckEnd step) step
   d.maskOfIdx (wasteIdxs ++ lastIdxs ++ deckIdxs)
+
+def findCard (d : Deck) (c : Card) : Nat × Bool :=
+  let bitPos := if c.val.val < d.map.size then d.map[c.val.val]! else 0
+  let v : Nat := 1 <<< bitPos
+  let found := d.mask &&& v ≠ 0
+  let pos := Nat.popCount (d.mask &&& (v - 1))
+  (pos, found)
+
+def draw (d : Deck) (pos : Nat) : Deck × Card :=
+  let card := d.peek pos
+  let bitPos := if card.val.val < d.map.size then d.map[card.val.val]! else 0
+  let newMask := d.mask ^^^ (1 <<< bitPos)
+  let newCards := (d.cards.toList.take pos ++ d.cards.toList.drop (pos + 1)).toArray
+  ({ d with cards := newCards, mask := newMask, drawCur := pos }, card)
+
+def pushCard (d : Deck) (c : Card) : Deck :=
+  let bitPos := if c.val.val < d.map.size then d.map[c.val.val]! else 0
+  let newMask := d.mask ^^^ (1 <<< bitPos)
+  let newCards := (d.cards.toList.take d.drawCur ++ [c] ++ d.cards.toList.drop d.drawCur).toArray
+  { d with cards := newCards, mask := newMask, drawCur := d.drawCur + 1 }
+
+def setOffset (d : Deck) (offset : Nat) : Deck :=
+  { d with drawCur := offset }
 
 end Deck
 

@@ -344,7 +344,7 @@ impl Deck {
 
 #[cfg(test)]
 mod tests {
-    use rand::{rngs::SmallRng, Rng, SeedableRng};
+    use rand::{rngs::SmallRng, Rng, RngExt, SeedableRng};
 
     use crate::shuffler::default_shuffle;
 

@@ -20,11 +20,10 @@ def totalDownCards (h : Hidden) : Nat :=
   (h.nHidden.map fun n => if n ≤ 1 then 0 else n - 1).sum
 
 def encode (h : Hidden) : Nat :=
-  let rec go (acc : Nat) (idx : Nat) (lst : List Nat) : Nat :=
-    match lst with
+  let rec go (acc : Nat) (idx : Nat) : List Nat → Nat
     | [] => acc
-    | n :: ns => go (acc * (idx + 2) + n) (idx + 1) ns
-  go 0 0 h.nHidden.toList.reverse
+    | n :: ns => go (acc * (idx + 2) + n) (idx - 1) ns
+  go 0 (N_PILES - 1) h.nHidden.toList.reverse
 
 def decode (n : Nat) : Hidden :=
   let rec go (i : Nat) (acc : Nat) : Array Nat × Nat :=

@@ -8,6 +8,7 @@ import Klondike.State
 import Klondike.MoveGenCorrect
 import Klondike.Encode
 import Klondike.SuitSymmetry
+import Klondike.Verify
 
 import Klondike.Spec.Basic
 import Klondike.Spec.GameState

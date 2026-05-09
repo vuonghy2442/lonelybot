@@ -159,13 +159,14 @@ private def unmakeStackFromPile (s : Solitaire) (c : Card) (undo : UndoInfo) : S
 
 private def makeStackFromDeck (s : Solitaire) (c : Card) : UndoInfo × ExtraInfo × Solitaire :=
   let newStack := s.finalStack.push c.suit.val
+  let (pos, found) := s.deck.findCard c
   let oldOffset := s.deck.getOffset
-  let newDeck := { s.deck with drawCur := oldOffset + 1 }
+  let (newDeck, _) := s.deck.draw pos
   (oldOffset, ExtraInfo.none, { s with finalStack := newStack, deck := newDeck })
 
 private def unmakeStackFromDeck (s : Solitaire) (c : Card) (undo : UndoInfo) : Solitaire :=
   let newStack := s.finalStack.pop c.suit.val
-  let newDeck := { s.deck with drawCur := undo }
+  let newDeck := s.deck.pushCard c |>.setOffset undo
   { s with finalStack := newStack, deck := newDeck }
 
 private def makePileFromStack (s : Solitaire) (c : Card) : UndoInfo × ExtraInfo × Solitaire :=
@@ -183,14 +184,15 @@ private def unmakePileFromStack (s : Solitaire) (c : Card) (undo : UndoInfo) : S
 private def makePileFromDeck (s : Solitaire) (c : Card) : UndoInfo × ExtraInfo × Solitaire :=
   let mask := Card.mask c
   let newVis := s.visibleMask ||| mask
+  let (pos, _) := s.deck.findCard c
   let oldOffset := s.deck.getOffset
-  let newDeck := { s.deck with drawCur := oldOffset + 1 }
+  let (newDeck, _) := s.deck.draw pos
   (oldOffset, ExtraInfo.none, { s with deck := newDeck, visibleMask := newVis })
 
 private def unmakePileFromDeck (s : Solitaire) (c : Card) (undo : UndoInfo) : Solitaire :=
   let mask := Card.mask c
   let newVis := s.visibleMask &&& Nat.complement64 mask
-  let newDeck := { s.deck with drawCur := undo }
+  let newDeck := s.deck.pushCard c |>.setOffset undo
   { s with deck := newDeck, visibleMask := newVis }
 
 def doMove (s : Solitaire) (m : Move) : Option Move × (UndoInfo × ExtraInfo) × Solitaire :=
@@ -233,6 +235,54 @@ def decode (n : Nat) : Solitaire :=
    Stack.decode (n &&& 0xFFFF),
    Deck.decode (n >>> 32),
    0⟩
+
+private def cardFromNat (n : Nat) : Card :=
+  have h : n % N_CARDS < N_CARDS := Nat.mod_lt n (by decide)
+  ⟨⟨n % N_CARDS, h⟩⟩
+
+def new (cards : Array Nat) (drawStep : Nat) : Solitaire :=
+  let hiddenPilesArr : Array Card :=
+    (List.range N_PILE_CARDS |>.toArray).map fun i =>
+      cardFromNat (cards[i]! : Nat)
+  let nHiddenArr : Array Nat :=
+    (List.range N_PILES |>.toArray).map fun i => i + 1
+  let pileMapArr : Array Nat :=
+    (List.range N_CARDS |>.toArray).map fun _ => (0 : Nat)
+  let pileMapArr :=
+    List.range N_PILES |>.toArray.foldl (fun acc pos =>
+      let start := pos * (pos + 1) / 2
+      let endIdx := (pos + 2) * (pos + 1) / 2
+      (List.range (endIdx - start) |>.toArray).foldl (fun inneracc j =>
+        let idx := start + j
+        let c := cardFromNat (cards[idx]! : Nat)
+        inneracc.set! c.val.val pos) acc) pileMapArr
+  let firstLayer : Nat :=
+    List.range N_PILES |>.foldl (fun acc pos =>
+      let idx := pos * (pos + 1) / 2
+      acc ||| Card.mask (cardFromNat (cards[idx]! : Nat))) 0
+  let visMask : Nat :=
+    List.range N_PILES |>.foldl (fun acc i =>
+      let pos := (i + 2) * (i + 1) / 2 - 1
+      acc ||| Card.mask (cardFromNat (cards[pos]! : Nat))) 0
+  let lockedMask :=
+    List.range N_PILES |>.foldl (fun acc pos =>
+      let start := pos * (pos + 1) / 2
+      let endIdx := start + (pos + 1)
+      (List.range (endIdx - start) |>.foldl (fun inneracc j =>
+        inneracc ||| Card.mask (cardFromNat (cards[start + j]! : Nat))) acc)) 0
+  let hidden : Hidden := ⟨hiddenPilesArr, nHiddenArr, pileMapArr, firstLayer, lockedMask⟩
+  let deckCards : Array Card :=
+    (List.range N_DECK_CARDS |>.toArray).map fun i =>
+      cardFromNat (cards[N_PILE_CARDS + i]! : Nat)
+  let deckMapArr : Array Nat :=
+    (List.range N_CARDS |>.toArray).map fun _ => (0 : Nat)
+  let deckMapArr :=
+    (List.range N_DECK_CARDS |>.toArray).foldl (fun acc i =>
+      let c := cardFromNat (cards[N_PILE_CARDS + i]! : Nat)
+      acc.set! c.val.val i) deckMapArr
+  let deckMask : Nat := fullMask N_DECK_CARDS
+  let deck : Deck := ⟨deckCards, 0, drawStep, deckMask, deckMapArr⟩
+  ⟨hidden, Stack.empty, deck, visMask⟩
 
 end Solitaire
 
