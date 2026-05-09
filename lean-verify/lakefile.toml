@@ -1,0 +1,6 @@
+name = "Klondike"
+defaultTargets = ["Klondike"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
