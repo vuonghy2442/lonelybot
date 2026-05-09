@@ -1,6 +1,7 @@
 use crate::card::{Card, N_CARDS, N_RANKS, N_SUITS};
 use crate::deck::{N_PILES, N_PILE_CARDS};
 use rand::prelude::*;
+
 use rand_mt::Mt;
 use uint::construct_uint;
 construct_uint! {
@@ -154,7 +155,7 @@ pub fn greenfelt_shuffle(seed: u32) -> CardDeck {
     layer_to_pile(&cards)
 }
 
-fn uniform_int<R: RngCore>(a: u32, b: u32, rng: &mut R) -> u32 {
+fn uniform_int<R: rand::Rng>(a: u32, b: u32, rng: &mut R) -> u32 {
     const B_RANGE: u32 = u32::MAX;
 
     let range = b - a;

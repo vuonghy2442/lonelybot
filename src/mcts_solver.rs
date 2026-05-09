@@ -1,4 +1,4 @@
-use rand::RngCore;
+use rand::Rng;
 
 use crate::{
     hop_solver::{hop_solve_game, HopResult},
@@ -78,20 +78,20 @@ impl Callback for ListStatesCallback {
     }
 }
 
-pub type PotientialFn = fn(n_sucess: usize, n_visit: usize, n_total: usize) -> f64;
+pub type PotentialFn = fn(n_sucess: usize, n_visit: usize, n_total: usize) -> f64;
 
 /// Picking the best move using MCTS
 ///
 /// # Panics
 ///
 /// Maybe out of memory. Otherwise should not panic
-pub fn pick_moves<R: RngCore, T: TerminateSignal>(
+pub fn pick_moves<R: Rng, T: TerminateSignal>(
     game: &mut Solitaire,
     rng: &mut R,
     n_times: usize,
     limit: usize,
     sign: &T,
-    pot_fn: PotientialFn,
+    pot_fn: PotentialFn,
 ) -> Option<Vec<Move>> {
     const BATCH_SIZE: usize = 10;
 

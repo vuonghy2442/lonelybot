@@ -16,15 +16,15 @@ crate-type = ["lib"]
 unsafe_code = "forbid"
 
 [dependencies]
-rand = { version = "0.9.0", default-features = false, features = ["small_rng"] }
-rand_mt = "5.0"
+rand = { version = "0.10.1", default-features = false }
+rand_mt = "6.0.3"
 arrayvec = { version = "0.7.4", default-features = false }
-hashbrown = { version = "0.15", default-features = false }
+hashbrown = { version = "0.17", default-features = false }
 static_assertions = "1.1.0"
 uint = { version = "0.10", default-features = false }
 
 [dev-dependencies]
-criterion = "0.5.1"
+criterion = "0.8.2"
 
 
 [profile.release]

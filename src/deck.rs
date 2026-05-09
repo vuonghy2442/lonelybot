@@ -211,7 +211,7 @@ impl Deck {
     #[must_use]
     pub fn compute_mask(&self, filter: bool) -> u64 {
         let mut mask: u64 = 0;
-        self.iter_callback(filter, |_, card| -> ControlFlow<()> {
+        let _ = self.iter_callback(filter, |_, card| -> ControlFlow<()> {
             mask |= card.mask();
             ControlFlow::Continue(())
         });
@@ -254,7 +254,7 @@ impl Deck {
     #[must_use]
     pub const fn is_pure(&self) -> bool {
         // this will return true if the deck is pure (when deal repeated it will loop back to the current state)
-        self.draw_cur % self.draw_step.get() == 0 || self.draw_cur == self.len()
+        self.draw_cur.is_multiple_of(self.draw_step.get()) || self.draw_cur == self.len()
     }
 
     #[must_use]

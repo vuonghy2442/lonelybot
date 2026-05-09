@@ -1,7 +1,7 @@
 use core::num::NonZeroU8;
 
 use arrayvec::ArrayVec;
-use rand::RngCore;
+use rand::Rng;
 
 use crate::card::{
     Card, ALT_MASK, HALF_MASK, KING_MASK, KING_RANK, N_CARDS, N_SUITS, RANK_MASK, SUIT_MASK,
@@ -87,7 +87,7 @@ impl Solitaire {
         &self.hidden
     }
 
-    pub fn hidden_shuffle<R: RngCore>(&mut self, rng: &mut R) {
+    pub fn hidden_shuffle<R: Rng>(&mut self, rng: &mut R) {
         self.hidden.shuffle(rng);
     }
 
@@ -544,7 +544,7 @@ impl Solitaire {
             return false;
         }
 
-        if !self.hidden.is_valid() && self.final_stack.is_valid() {
+        if !self.hidden.is_valid() || !self.final_stack.is_valid() {
             return false;
         }
 
