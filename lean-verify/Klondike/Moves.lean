@@ -31,7 +31,7 @@ namespace MoveMask
 
 def empty : MoveMask := ⟨0, 0, 0, 0, 0⟩
 def len (m : MoveMask) : Nat :=
-  (m.pileStack + m.deckStack + m.stackPile + m.deckPile + m.reveal)
+  Nat.popCount m.pileStack + Nat.popCount m.deckStack + Nat.popCount m.stackPile + Nat.popCount m.deckPile + Nat.popCount m.reveal
 def isEmpty (m : MoveMask) : Bool := m = empty
 
 def filter (m remove : MoveMask) : MoveMask :=

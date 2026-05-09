@@ -11,7 +11,8 @@ namespace Stack
 def empty : Stack := ⟨0⟩
 def get (s : Stack) (suit : Nat) : Nat := (s.val >>> (4 * suit)) &&& 0xF
 def push (s : Stack) (suit : Nat) : Stack := ⟨s.val + (1 <<< (4 * suit))⟩
-def pop (s : Stack) (suit : Nat) : Stack := ⟨s.val - (1 <<< (4 * suit))⟩
+def pop (s : Stack) (suit : Nat) : Stack :=
+  if s.get suit > 0 then ⟨s.val - (1 <<< (4 * suit))⟩ else s
 def isFull (s : Stack) : Bool := s.val = (N_RANKS * 0x1111)
 def isEmpty (s : Stack) : Bool := s.val = 0
 def len (s : Stack) : Nat := s.get 0 + s.get 1 + s.get 2 + s.get 3

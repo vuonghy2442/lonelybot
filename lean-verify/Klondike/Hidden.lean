@@ -20,7 +20,11 @@ def totalDownCards (h : Hidden) : Nat :=
   (h.nHidden.map fun n => if n ≤ 1 then 0 else n - 1).sum
 
 def encode (h : Hidden) : Nat :=
-  h.nHidden.toList.reverse.foldl (fun res n => res * (n + 2)) 0
+  let rec go (acc : Nat) (idx : Nat) (lst : List Nat) : Nat :=
+    match lst with
+    | [] => acc
+    | n :: ns => go (acc * (idx + 2) + n) (idx + 1) ns
+  go 0 0 h.nHidden.toList.reverse
 
 def decode (n : Nat) : Hidden :=
   let rec go (i : Nat) (acc : Nat) : Array Nat × Nat :=
@@ -35,6 +39,36 @@ def decode (n : Nat) : Hidden :=
 
 def isValid (h : Hidden) : Bool :=
   h.nHidden.all (fun n => n ≤ N_RANKS)
+
+def find (h : Hidden) (c : Card) : Nat :=
+  if c.maskIndex < h.pileMap.size then h.pileMap[c.maskIndex]! else 0
+
+def peek (h : Hidden) (pos : Nat) : Option Card :=
+  let nh := if pos < h.nHidden.size then h.nHidden[pos]! else 0
+  let start := pos * (pos + 1) / 2
+  let endIdx := start + nh
+  if endIdx > 0 && endIdx ≤ h.hiddenPiles.size then
+    h.hiddenPiles[endIdx - 1]?
+  else none
+
+def popCard (h : Hidden) (c : Card) : Hidden × Option Card :=
+  let pos := h.find c
+  let nh := if pos < h.nHidden.size then h.nHidden[pos]! else 0
+  let newNHidden := if pos < h.nHidden.size then h.nHidden.set! pos (nh - 1) else h.nHidden
+  let newLockedMask := h.lockedMask &&& Nat.complement64 (Card.mask c)
+  let revealed := h.peek pos
+  let newHidden : Hidden := ⟨h.hiddenPiles, newNHidden, h.pileMap, h.firstLayerMask, newLockedMask⟩
+  (newHidden, revealed)
+
+def unpopCard (h : Hidden) (c : Card) : Option Card → Hidden :=
+  fun revealed =>
+    let pos := h.find c
+    let nh := if pos < h.nHidden.size then h.nHidden[pos]! else 0
+    let newNHidden := if pos < h.nHidden.size then h.nHidden.set! pos (nh + 1) else h.nHidden
+    let newLockedMask := h.lockedMask ||| Card.mask c
+    match revealed with
+    | some rc => ⟨h.hiddenPiles, newNHidden, h.pileMap, h.firstLayerMask, newLockedMask⟩
+    | none => ⟨h.hiddenPiles, newNHidden, h.pileMap, h.firstLayerMask, newLockedMask⟩
 
 end Hidden
 

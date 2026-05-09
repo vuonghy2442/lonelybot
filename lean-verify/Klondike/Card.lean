@@ -31,11 +31,14 @@ decreasing_by exact nat_and_sub_one_lt n h
 private axiom suitXorColor_lt (v : Nat) (h : v < N_CARDS) : suitXorColor v < N_CARDS
 private axiom xor1_lt (v : Nat) (h : v < N_CARDS) : (v ^^^ 1) < N_CARDS
 private axiom xor2_lt (v : Nat) (h : v < N_CARDS) : (v ^^^ 2) < N_CARDS
+
 private axiom div_suit_lt (v : Nat) (h : v < N_CARDS) : v / N_SUITS < N_RANKS
+
 private axiom suitXorColor_mod_lt (v : Nat) : suitXorColor v % N_SUITS < N_SUITS
+
 private axiom rank_suit_raw_lt (rank : Nat) (suit : Nat) (hr : rank < N_RANKS) (hs : suit < N_SUITS) : rank * N_SUITS + suit < N_CARDS
+
 private axiom xor1_inv (v : Nat) : (v ^^^ 1) ^^^ 1 = v
-private axiom add4_lt (v : Nat) (h : v < N_CARDS) : v + N_SUITS < N_CARDS
 
 structure Card where
   val : Fin N_CARDS
@@ -62,8 +65,10 @@ def swapSuit (c : Card) : Card :=
 def swapColor (c : Card) : Card :=
   ⟨⟨c.val.val ^^^ 2, xor2_lt c.val.val c.val.isLt⟩⟩
 
-def increaseRankSwapColor (c : Card) : Card :=
-  ⟨⟨c.val.val + N_SUITS, add4_lt c.val.val c.val.isLt⟩⟩
+def increaseRankSwapColor (c : Card) : Option Card :=
+  if h : c.val.val + N_SUITS < N_CARDS then
+    some ⟨⟨c.val.val + N_SUITS, h⟩⟩
+  else none
 
 def reduceRankSwapColor (c : Card) : Card :=
   if h : c.val.val ≥ N_SUITS then
