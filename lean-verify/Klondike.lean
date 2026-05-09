@@ -14,3 +14,4 @@ import Klondike.Spec.GameState
 import Klondike.Spec.Move
 import Klondike.Spec.Solvable
 import Klondike.Spec.Dominance
+import Klondike.Spec.SuitSymmetry
