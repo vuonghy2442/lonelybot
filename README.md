@@ -415,4 +415,4 @@ However due to the significant improvement, I think this needs more verification
 
 It started from implementing the ideas from the Solvitaire paper in Rust (which is tagged as version 0.1). Then I figure out a suit symmetry in the game state, combining with more dominances (technical term in the Solvitaire paper) and move pruning. This allows me to vastly reduced the states (around an order of magnitude) compared to the original method, combining with highly optimized implementation (around 2 orders of magnitude faster in search rate). In total, it runs around 3 orders of magnitude faster. Also after a lot of move pruning, the game graph is now a DAG (when remove cycles of 2).
 
-I will try to find some time to write a more detailed description of the method.
+A more detailed description of the method is in [docs/method.md](docs/method.md), and the notes for the in-progress macro (commitment) formalization are in [docs/macro_formalization.md](docs/macro_formalization.md).
