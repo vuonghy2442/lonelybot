@@ -1927,6 +1927,127 @@ mod tests {
             .unwrap();
     }
 
+    /// POR landcheck probe (the partial-order-reduction program, per the
+    /// design conversation): for every pair of sibling commitments offered
+    /// at a canonical state along corpus trajectories, apply them in both
+    /// orders through the shipped fold and classify:
+    /// - `pair disabled`: one order makes the other commitment disappear
+    ///   (the enablement hazard — POR must not defer such partners)
+    /// - `exact`: the two orders land on the same canonical encode —
+    ///   strict commutation; a canonical ordering costs nothing
+    /// - `closure`: the two orders land on different encodes but in the
+    ///   same closure class (closure_contains) — canonicalizing the sweep
+    ///   already quotients them; search-side dedup catches it
+    /// - `distinct`: genuinely different states — deferring either would
+    ///   need a dominance proof, not just a canonical order
+    #[test]
+    #[ignore = "commutation landscape probe; run with --ignored --release --nocapture"]
+    fn debug_commutation_landscape() {
+        std::thread::Builder::new()
+            .stack_size(256 * 1024 * 1024)
+            .spawn(|| {
+                for draw_step in [1u8, 3] {
+                    let (mut exact, mut closure, mut distinct, mut disabled) =
+                        (0usize, 0usize, 0usize, 0usize);
+                    let mut by_pair: std::collections::BTreeMap<&'static str, [usize; 4]> =
+                        std::collections::BTreeMap::new();
+                    for i in 0..16u64 {
+                        let mut game = Solitaire::new(
+                            &default_shuffle(12 + i),
+                            NonZeroU8::new(draw_step).unwrap(),
+                        );
+                        for _turn in 0..60 {
+                            if game.is_win() {
+                                break;
+                            }
+                            canonicalize(&mut game);
+                            let succs = macro_transitions_fast(&game);
+                            if succs.len() < 2 {
+                                // advance anyway: oracle witness if any
+                                let cands = enumerate_commitments(&game);
+                                match cands.first() {
+                                    None => break,
+                                    Some(c0) => {
+                                        for &m in &c0.witness_path {
+                                            let _ = game.do_move(m);
+                                        }
+                                        continue;
+                                    }
+                                }
+                            }
+                            for i in 0..succs.len() {
+                                for j in (i + 1)..succs.len() {
+                                    let (c1, s1) = &succs[i];
+                                    let (c2, s2) = &succs[j];
+                                    let kind = match (c1, c2) {
+                                        (Commitment::Draw(_), Commitment::Draw(_)) => "draw·draw",
+                                        (Commitment::Reveal(_), Commitment::Reveal(_)) => {
+                                            "reveal·reveal"
+                                        }
+                                        _ => "draw·reveal",
+                                    };
+                                    let tag = by_pair.entry(kind).or_insert([0, 0, 0, 0]);
+                                    // commitment still exists = the TOTAL
+                                    // generator (`macro_transitions_direct`)
+                                    // offers it after the sibling committed;
+                                    // the fold must not confound "disabled"
+                                    // with "fold-dropped"
+                                    let fwd = macro_transitions_direct(s1)
+                                        .into_iter()
+                                        .find(|(c, _, _, _)| c == c2);
+                                    let bwd = macro_transitions_direct(s2)
+                                        .into_iter()
+                                        .find(|(c, _, _, _)| c == c1);
+                                    match (fwd, bwd) {
+                                        (None, _) | (_, None) => {
+                                            disabled += 1;
+                                            tag[3] += 1;
+                                        }
+                                        (Some((_, _, f, _)), Some((_, _, b, _)))
+                                            if f.encode() == b.encode() =>
+                                        {
+                                            exact += 1;
+                                            tag[0] += 1;
+                                        }
+                                        (Some((_, _, f, _)), Some((_, _, b, _)))
+                                            if closure_contains(&f, b.encode()) =>
+                                        {
+                                            closure += 1;
+                                            tag[1] += 1;
+                                        }
+                                        _ => {
+                                            distinct += 1;
+                                            tag[2] += 1;
+                                        }
+                                    }
+                                }
+                            }
+                            // advance by the oracle's first witness path
+                            let cands = enumerate_commitments(&game);
+                            match cands.first() {
+                                None => break,
+                                Some(c0) => {
+                                    for &m in &c0.witness_path {
+                                        let _ = game.do_move(m);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    let total = exact + closure + distinct + disabled;
+                    println!(
+                        "commutation landscape, draw={draw_step}: pairs={total} exact={exact} closure={closure} distinct={distinct} disabled={disabled}"
+                    );
+                    for (k, [a, b, c, d]) in &by_pair {
+                        println!("  {k:14} exact={a} closure={b} distinct={c} disabled={d}");
+                    }
+                }
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
     /// R-DIA probe (macro_parking.md §P.6): the destination collapse's
     /// only remaining destination-side lemma is the sweep/stack diamond —
     /// from a parked post-state, stacking X lands in the stack outcome's
