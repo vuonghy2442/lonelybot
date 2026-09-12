@@ -405,8 +405,8 @@ the part with no published backing.
 | `CyclePruner` (2-cycle break) | `m` then immediate undo is identity — delete both | nothing | nothing | solid: composition is trivial; required for termination so it stays in every ablation (§7) |
 | `(Reveal, RevealEmpty)` → kings only | non-king moves reorder before the emptying reveal — except those the reveal *created* (placements onto the moved card, per L1), which reorder to *after* the king fill instead — or the emptying is deferred forever; the fill collateral is the §4 corner | pre-reveal state must generate them (H1(b)) — the forced-branch collisions are covered by drain-safes-first | compatible with the streak rule *by construction*: an emptying reveal is always first-layer (`make_reveal` returns `None` iff nothing is beneath), and 6.4's exemption includes first-layer — so deferring the emptying across a draw streak is never blocked | argued in §4; one open corner (king-fill existence) with falsifier (P2) |
 | `(Reveal, Card(r))` → stack `{r, twin(r)}` only, no `deck_stack` | exemption set = *exactly* the reveal's legality delta (L2); all other moves reorder before | the return-only collision with 5.1 / 5.3 is covered by reordering + drain-safes-first; paired branch keeps both bits | none: a `Reveal` clears `last_draw`, so this rule never co-fires with the streak rule — the feared `pile_stack ∩` conflict between them is *structurally impossible* | proved modulo L1/L2 (+H3, +TP acceptance per H2) |
-| `last_draw` pile_stack → `twin(d)` only | any other stack commutes with the draw ("could have been done before"): the two orders `PS;DP` / `DP;PS` reach the **same encode**, so at least one must survive the filters | the pre-draw order may be canonicalized away by D itself (forced/cascade/least) — the exemption's real purpose is to keep one order alive against exactly those H1(b) collisions; conjectured that `{twin(d)}` is the exact necessary set | the streak structure itself | **open**: mechanism conjectured, not confirmed — TODO(vuong), now with a concrete target (find or refute a state where the pre-draw order is D-suppressed and the post-draw order is D∩P-empty); full treatment incl. the burial mechanism in [last_draw_rules.md](last_draw_rules.md) §5 |
-| `last_draw` reveal → `(mm>>4) ∪ first_layer` | allowed = the reveals the draw *created* (landing on `d`/`twin(d)` — the only new landing spots, by L1) plus first-layer reveals (which create a hole, and holes couple to king mechanics, not to the deck cycle) | none beyond L1 | ordered playing of reveals vs. the fixed deck order — the `DP 8♠, R 10♥, DP K♠` comment | **claim stated and attacked** in [last_draw_rules.md](last_draw_rules.md): the deck-offset argument (D1–D3) covers the non-family, non-first-layer case; the first-layer exemption is derived from the forced-king coupling; open residues R1 (deeper-build) and R2 (exposure-created destinations), with a falsifier spec in its §6 |
+| `last_draw` pile_stack → `twin(d)` only | any other stack commutes with the draw ("could have been done before"): the two orders `PS;DP` / `DP;PS` reach the **same encode**, so at least one must survive the filters | the pre-draw order may be canonicalized away by D itself (forced/cascade/least) — the exemption's real purpose is to keep one order alive against exactly those H1(b) collisions; conjectured that `{twin(d)}` is the exact necessary set | the streak structure itself | **measured (2026-09)**: convergent-encode + `DeckStack(d)` equivalences stand; `PileStack` kills covered by the witness audit after the designed exemptions; the burial mechanism remains the conjectured piece — [last_draw_rules.md](last_draw_rules.md) §5 + §7 |
+| `last_draw` reveal → `(mm>>4) ∪ first_layer` | allowed = the reveals the draw *created* (landing on `d`/`twin(d)` — the only new landing spots, by L1) plus first-layer reveals (which create a hole, and holes couple to king mechanics, not to the deck cycle) | none beyond L1 | ordered playing of reveals vs. the fixed deck order — the `DP 8♠, R 10♥, DP K♠` comment | **measured (2026-09)**: the P3 audit found 24,212 R1-shape witnessless kills over 801,716 streak states — R1 is the *common* firing mode, not an edge case — and the per-game ablation sluice was green on all 55 flagged games; mechanism for benignity still open. Treatment in [last_draw_rules.md](last_draw_rules.md) (D1–D3 + residues R1/R2 + §7 standing numbers) |
 
 Open observations while auditing (not necessarily problems):
 
@@ -455,31 +455,42 @@ though, and the repo already has all the machinery:
    limitation: Solvitaire also prunes (different rules), so agreement is
    strong but not ground truth; the no-filter run of (1) is the only
    unfiltered reference.
-6. **(P1) The decisive cheap check.** Instrument `traverse` to log every
-   state where `gen_moves::<false>` is non-empty but the fully filtered set
-   (`gen_moves::<true>` after the pruner) is empty, tagged by *which* rule
-   pair zeroed each move family (D-branch × P-context). Every composition
-   deadlock imaginable — §4's collision, a least-stack-vs-streak
-   intersection, anything not yet thought of — passes through this
-   predicate, and it is exhaustive over whatever seed corpus it is run on.
-   A single logged live state is a concrete counterexample shape; zero logs
-   over the reference corpus upgrades all reorder rescues from "argued" to
-   "never observed to fail, at the decision point where failure would
-   happen".
-7. **(P2) King-fill existence.** After every `(Reveal, RevealEmpty)`, log
-   states where *no* king placement is generated even by the unfiltered
-   generator. Each hit is a candidate witness for the §4 corner case; the
-   soundness claim is exactly "no hits on winnable states" (correlate with
-   the verdict).
- 8. **(P3) Streak rescue witnesses.** Extend the micro rescue-checker of (4)
-    to the streak machinery: for each move killed by the `last_draw` rules,
-    require an explicit witness — either the same move legal/generated at
-    the streak's start state, or the convergent-order encode
-    (`PS(twin d); DP d` ≡ `DP d; PS(twin d)`) present in the TP. This is the
-    direct test of the `twin(d)` conjecture in Table 2. The 6.4b half has a
-    concrete spec — tagging the R1 (deeper-build) and R2
-    (exposure-created-destination) residues — in
-    [last_draw_rules.md](last_draw_rules.md) §6.
+6. **(P1) VERDICT-PRECISION CORRECTION (2026-09, from the first
+   implementation).** Two instrument hooks were added to `traverse`
+   (`Callback::INSTRUMENT`, `on_filtered_empty`, `on_reveal_empty`) and the
+   naïve form of this predicate was run on a 200-game corpus. It failed as
+   a signal: ~129k filtered-empty events over 1.7M visited against-budget
+   states and ~71k king-channel misses — being dead-ended with raw moves
+   theoretically available is *unremarkable and dominates searches that are
+   losing anyway*. "D∩P empty while raw non-empty" is a property of dead
+   branches, not of composition bugs; the predicate needs to know the
+   state was winnable, which the traversal cannot see. **The corrected
+   decisive instrument is the verdict-level 2×2 ablation** (which the doc
+   already lists as item 1; it is implemented as
+   `traverse::tests::phase0_verdict_ablation`: shipped config vs NoPruner
+   vs NoDominance vs GroundTruth over 120 games × 2 draws; assertion: never
+   `full=Lose ∧ ablation=Win`; currently green). The per-state hooks stay
+   in the engine (zero-cost under `INSTRUMENT = false`) for the narrower
+   job of *explaining* an ablation mismatch if one ever appears.
+7. **(P2) King-fill existence — usable only as a *diagnostic*, same
+   lesson.** After every `(Reveal, RevealEmpty)` empties a pile, "no king
+   channel available unfiltered" is *common* in losing branches and not by
+   itself evidence against the pruner. Its only informative use: when the
+   verdict ablation flags a game, P2's tags tell whether the §4 corner is
+   involved. What remains genuinely checkable per-game: the *winning-side*
+   variant — along a found winning line, was there ever a hole state with
+   no king alternative surviving the filter? (That requires the solution
+   path, so it lives with the P3 witness machinery below, not with this
+   event counter.)
+ 8. **(P3) Streak rescue witnesses — IMPLEMENTED AND MEASURED (2026-09).**
+    `traverse::tests::phase0_streak_witnesses` audits every `last_draw`
+    streak state (path-tracked streak starts, per-rule removal attribution
+    via `FullPruner::explain`, closure-based witnesses). Corpus results:
+    801,716 streak states audited, 24,212 witnessless kills — all in the
+    R1 shape (streak-created destinations), zero verdict flips across the
+    55 flagged games under the ablation sluice. Standing bookkeeping in
+    [last_draw_rules.md](last_draw_rules.md) §7. The not-yet-implemented
+    parts: the convergent-order TP witness check, and R1/R2 subtype tags.
 9. **Draw-step split.** Run the ground-truth differential of (1) separately
    for draw-1 (where the deck dominance is literature-backed) and draw-3
    (where it is not), so a verdict mismatch is attributed to the deck rule

@@ -196,7 +196,21 @@ Zero logs over the reference corpus upgrades Claim A's reordering half to
   the in-code anecdote is decoded and generalized by D2.
 - The first-layer exemption is now *derived* (offset-coupled through
   forced kings) rather than anecdotal.
-- Open: the R1/R2 discharge, Claim B's necessity, and the P3-extension
-  measurements.
+- **P3 is now instrumented and measured** (`traverse::tests::
+  phase0_streak_witnesses`, 2026-09): across 801,716 audited streak states,
+  24,212 witnessless kills — dominated by the *R1 shape* (Reveal moves whose
+  destination was created by the streak's own build, so no pre-streak
+  witness exists by construction; the sampled candidates are all
+  mid-range-rank reveals, consistent with chained builds). Two
+  instrumentation corrections were needed before the numbers meant
+  anything: the drawn card's own `PileStack` is design-exempt (rescued by
+  unrestricted `DeckStack(d)`, Claim B), and witnesses must be sought in
+  the streak start's *closure* (a mid-streak `StackPile` can create
+  stackability that no pre-streak state offers). The verdict sluice — every
+  game containing a witnessless kill was immediately re-run under the
+  ablation — found **55 flagged games, all verdict-consistent**. So: R1
+  fires constantly, and has not once flipped a verdict. The standing claim
+  that P3 measures is now "R1 events are common; verdict consequence
+  unobserved over the flag-conditioned corpus".
 - This document feeds the interaction doc's Table 2 (both `last_draw`
   rows) and its residual register item 5.

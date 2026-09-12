@@ -389,11 +389,17 @@ foundation move, by any reveal, and — notably — by a `StackPile` that lands
 card, the draw-order window the rule guards is closed. While it is set:
 
 - the only allowed `pile_stack` is the *twin of the drawn card*
-  (src/pruning.rs:114). The general principle is that any other stack could
-  have been done *before* the draw (drawing changes neither foundation
-  heights nor other piles' tops), so reordering makes it explored elsewhere;
-  why the twin is exempted from that reordering is the subtle part
-  (TODO(vuong) — please fill in).
+  (src/pruning.rs:114). Any other stack could have been done *before* the
+  draw (drawing changes neither foundation heights nor other piles' tops),
+  so reordering explores it elsewhere; and the two orders
+  `PS(twin d); DP d` / `DP d; PS(twin d)` reach the *same encode*, so
+  keeping the twin exempt preserves one order against canonicalization
+  elsewhere in the filters. The drawn card itself needs no exemption:
+  `DeckStack(d)` stays unrestricted during a streak and reaches the same
+  encode as `DP(d); PS(d)`. The burial half (why the twin's stack is
+  time-critical — later family draws can cover it permanently) remains a
+  conjecture with a falsifier;
+  [last_draw_rules.md](last_draw_rules.md) §5.
 - `reveal` is restricted via `mm >> 4` to the cards that *can sit on* the
   drawn card (or its twin) — one rank lower, opposite colour; the reveal's
   natural destination is the fresh placement — plus first-layer cards. The
@@ -407,7 +413,14 @@ card, the draw-order window the rule guards is closed. While it is set:
 The general claims for both streak restrictions — including the
 deck-offset argument, the decoding of the `DP 8♠, R 10♥, DP K♠` anecdote,
 and the open residues — are written out in
-[last_draw_rules.md](last_draw_rules.md).
+[last_draw_rules.md](last_draw_rules.md). Measured status (2026-09, the
+streak-witness audit `phase0_streak_witnesses`): the reveal restriction
+fires constantly in the *R1 shape* — a reveal whose landing was created
+inside the streak itself (a deeper build chain off the drawn family), so no
+pre-streak witness exists — and across the whole instrumented corpus and
+per-game ablation sluice, no verdict has ever flipped: the rule's firing
+pattern is now known, common, and benign in every game checked; the
+mechanism that makes it benign is the one open piece.
 
 ## 7. The search
 

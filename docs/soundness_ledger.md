@@ -81,8 +81,8 @@ of last_draw_rules.md; cross-references always name their doc.
 | D1 | CyclePruner (2-cycle splice) | interaction Table 2 | [x] | — | — |
 | D2 | 6.2 kings-only after `RevealEmpty` | interaction §4: reorder induction + drain-safes-first; **open corner**: the filler king may be safe-stacked with all substitutes hole-gated | [~] ⟂ | E2 | P2 instrument (Phase 0); fill-existence lemma ⟂ — contexts vanish in the macro game |
 | D3 | 6.3 `{r, twin(r)}` exemption = exactly the reveal's legality delta | interaction §5; exact via L2 | [x] ⟂ | E2 | L1/L2 case discharge (the case tables survive in the shared spine); the rule itself dies with contexts |
-| D4 | 6.4a pile_stack → `twin(d)` only | last_draw_rules §5: convergent encode + burial mechanism (Claim B); time-criticality for `twin(d)` | [~] ⟂ | E3 | burial-frequency measurement (P3, Phase 0); necessity proof ⟂ |
-| D5 | 6.4b reveal restriction `(mm>>4) ∪ first_layer` | last_draw_rules §2–§4: D1–D3 cover the offset-neutral case; residues R1/R2 named as counterexample shapes | [~] ⟂ | E2 | P3 extension (Phase 0); R1/R2 closure ⟂ — the whole streak machinery is replaced by state-computed accommodations |
+| D4 | 6.4a pile_stack → `twin(d)` only | last_draw_rules §5: convergent encode + burial mechanism (Claim B); time-criticality for `twin(d)` | [~] ⟂ | E3 | **measured 2026-09**: convergent-encode + `DeckStack(d)` equivalence + design-exemption machine-checkable in the harness; burial-frequency not yet tagged; necessity proof ⟂ |
+| D5 | 6.4b reveal restriction `(mm>>4) ∪ first_layer` | last_draw_rules §2–§4: D1–D3 cover the offset-neutral case; residues R1/R2 named as counterexample shapes | [~] ⟂ | E2 | **measured 2026-09:** P3 implemented (`phase0_streak_witnesses`) — R1 is the common firing mode (24,212 witnessless kills / 801,716 audited streak states), zero verdict flips across 55 flagged games; benign-with-unproven-mechanism; closure proof ⟂ (superseded by the macro rework) |
 
 ## E. Search structure
 
@@ -120,9 +120,9 @@ Dependency-wise, everything open bottlenecks on:
 
 | Instrument | Spec at | Claims it decides | Implemented |
 |---|---|---|---|
-| P1: filtered-empty-but-live logger, tagged by rule pair | interaction §7 item 6 | the composition closure property wholesale (D2, D4, D5, C2×C-cascade, anything unanticipated) | no |
-| P2: king-fill existence after RevealEmpty | interaction §7 item 7 | D2's corner | no |
-| P3: streak-rescue witnesses + R1/R2 tags + burial frequency | last_draw_rules §6 | D4, D5 | no |
+| P1: filtered-empty-but-live logger, tagged by rule pair | interaction §7 item 6 | the composition closure property wholesale | **superseded 2026-09**: naive form measured ~129k events/1.7M states (dead branches are the norm, not the signal); replaced by the verdict-level 2×2 ablation `traverse::tests::phase0_verdict_ablation` (green, 120 games × 2 draws × 4 configs); per-state hooks remain in `traverse` under `Callback::INSTRUMENT` for diagnosis |
+| P2: king-fill existence after RevealEmpty | interaction §7 item 7 | D2's corner | diagnostic-only per the same lesson; the informative variant rides with P3 (winning-path check) |
+| P3: streak-rescue witnesses + R1/R2 tags + burial frequency | last_draw_rules §6; `traverse::tests::phase0_streak_witnesses` | D4, D5 | **implemented 2026-09**: 24,212 witnessless kills / 801,716 audited streak states, all R1-shaped; verdict sluice green on all flagged games; R1/R2 subtags and TP-witness variant not yet built |
 | Relocation-failure counter (unwrap → counted error) | no_pile §5 item 2 (src/convert.rs:63,138,153) | B4 depth | no |
 | ctx-aware TP one-off experiment | interaction §7 item 3 | E4 | no |
 | Draw-step split ground-truth differential | interaction §7 item 9 | C5 vs C4 attribution | no |
