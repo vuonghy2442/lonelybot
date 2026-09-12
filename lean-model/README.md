@@ -123,6 +123,27 @@ Everything else is a view: `up : Card → Bool`, the total board
   recorded: C12 (needs §6.5b's exact statement), the full sleep-set
   layer, and the parking lemma (B4-adjacent).
 
+- `Klondike/Bridge.lean` — **the engine bridge**: `EState` (vis set,
+  depths, heights, order/offset — the 61-bit encode's shape), `EMove`
+  (the five engine moves, rotate-then-play), `eStep` with
+  *witness-existential* legality over realizing boards (the spec the
+  engine's masks implement), `toEngine` (the Cycle unpacks into
+  order/offset), and the crown statements: `engine_iff`
+  (model-engine ↔ abstract), `toEngine_simulates`/`toEngine_lifts`,
+  the C2 uniqueness quartet, `esolvable_offset_irrel` (the sweep's
+  license at draw-1).  Deferred: the bm XOR algebra, the encode.
+
+- `Klondike/Initial.lean` — **the exhibit**: `Anchor.start`,
+  `Deal.ofList`/`Deal.standard` (the triangular split),
+  `initialBoard`/`State.initial` (each pile's top dealt card face-up
+  on the boundary), `initial_wf` — the WF hypotheses are
+  non-vacuous.  Plus runnable `by decide` sanity checks — the oracle
+  seed; the first one caught a Nat-truncation bug in `initialBoard`
+  on its maiden run.
+
+**`FARM.md`** — the proof-farm handoff: all `sorry`s in
+dependency-ordered waves with difficulty tags and proof routes.
+
 All `sorry`s carry a `TODO(proof)` comment — they are the work items
 for proof-farming; every definition is final code.
 
