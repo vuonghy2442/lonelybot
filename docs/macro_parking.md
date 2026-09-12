@@ -250,10 +250,13 @@ is linear, not constant); the exchange lemma, if true, can only be a
 pruning tool (no poly augmentation oracle, or the exception set
 carries the hardness); and C-IND stays a constant-factor reduction,
 not a complexity collapse — hardness lives in the composition of n
-commitments, not the O(1)-width type locality. Note also: this
-engine's variant (no pile-to-pile moves, K+ full-information deck)
-breaks the standard hardness gadgets, so its generalized complexity
-is technically open — the cautious prior remains "hard."
+commitments, not the O(1)-width type locality. The K+ deck is *not* a
+differentiator: solvability is assessed in the thoughtful
+(perfect-information) frame regardless, so the representation adds
+no information advantage — the variant's generalized complexity should
+be assumed to track standard Klondike's unless proven otherwise (the
+no-pile-to-pile rule is the only structural deviation, with no settled
+complexity claim either way).
 
 ## P.5 Experiment log
 
