@@ -121,15 +121,17 @@ pub fn hop_solve_game<R: Rng, T: TerminateSignal>(
         };
     }
 
+    // determinization only permutes strictly buried cards, which no generated
+    // move depends on, so checking the candidate once here also covers every
+    // determinized clone inside the loop below
+    assert!(
+        MoveMask::from(m).filter(&g.gen_moves::<false>()).is_empty(),
+        "move {m} is illegal in this state"
+    );
+
     for _ in 0..n_times {
         let mut gg = g.clone();
         gg.hidden_shuffle(rng);
-        // determinization only permutes strictly buried cards, which no
-        // generated move depends on, so the candidate must stay legal
-        assert!(
-            MoveMask::from(m).filter(&gg.gen_moves::<false>()).is_empty(),
-            "move {m} is illegal under this determinization"
-        );
         let (rev_m, (_, extra)) = gg.do_move(m);
         let new_prune_info = FullPruner::update(prune_info, m, rev_m, extra);
 
