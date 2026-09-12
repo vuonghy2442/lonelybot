@@ -569,6 +569,29 @@ enum Commands {
     },
 }
 
+fn grouped(n: u64) -> String {
+    let s = n.to_string();
+    let len = s.len();
+    let mut out = String::with_capacity(len + len / 3);
+    for (i, c) in s.char_indices() {
+        if i > 0 && (len - i) % 3 == 0 {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    out
+}
+
+fn rate(per_sec: f64) -> String {
+    if per_sec >= 1e6 {
+        format!("{:.1}M/s", per_sec / 1e6)
+    } else if per_sec >= 1e3 {
+        format!("{:.1}k/s", per_sec / 1e3)
+    } else {
+        format!("{:.0}/s", per_sec)
+    }
+}
+
 fn main() {
     let args = Cli::parse().command;
 
@@ -585,27 +608,57 @@ fn main() {
         Commands::SolveMacro { seed, draw_step } => {
             let seed: Seed = seed.into();
             let g = Solitaire::new(&shuffle(&seed), *draw_step);
+            println!("{} draw-{} — macro (commitment) engine", seed, draw_step);
+            let suit_heights = |s: &Solitaire| {
+                let st = s.get_stack();
+                [st.get(0), st.get(1), st.get(2), st.get(3)]
+            };
+            // the deepest expansion: best foundation total among expanded
+            // nodes — how close the search got (52 = a win state, which
+            // returns before expansion)
+            let st = g.get_stack();
+            let mut best: ([u8; 4], u8) = (
+                [st.get(0), st.get(1), st.get(2), st.get(3)],
+                st.get(0) + st.get(1) + st.get(2) + st.get(3),
+            );
             let now = Instant::now();
             // the old engine's cadence: a line per 2^20 expanded nodes
             let mut visits = 0u64;
-            let win = lonelybot::macro_game::macro_solvable_direct_progress(&g, |_s| {
+            let win = lonelybot::macro_game::macro_solvable_direct_progress(&g, |s| {
                 visits += 1;
+                let h = suit_heights(s);
+                let t = h[0] + h[1] + h[2] + h[3];
+                if t > best.1 {
+                    best = (h, t);
+                }
                 if visits & 0xFFFFF == 0 {
                     let secs = now.elapsed().as_secs_f64();
                     println!(
-                        "Progress: {} nodes in {:.2?} (~{:e} node/s)",
-                        visits,
+                        "Progress: {} nodes in {:.2?} ({}), deepest {}/52 ({}/{}/{}/{})",
+                        grouped(visits),
                         Duration::from_secs_f64(secs),
-                        visits as f64 / secs,
+                        rate(visits as f64 / secs),
+                        best.1,
+                        best.0[0],
+                        best.0[1],
+                        best.0[2],
+                        best.0[3]
                     );
                 }
             });
-            println!("Run in {:.2} ms", now.elapsed().as_secs_f64() * 1000f64);
+            let secs = now.elapsed().as_secs_f64().max(1e-9);
+            println!("Run in {:.2} ms", secs * 1000f64);
             println!(
-                "{}{}",
-                if win { "Solvable" } else { "Impossible" },
-                " (macro engine: verdict only, no move line)"
+                "Macro nodes: {} ({})",
+                grouped(visits),
+                rate(visits as f64 / secs)
             );
+            println!(
+                "Deepest expansion: {}/52 foundations ({}/{}/{}/{})",
+                best.1, best.0[0], best.0[1], best.0[2], best.0[3]
+            );
+            println!("{}", if win { "Solvable" } else { "Impossible" });
+            println!("(macro engine: verdict only — no move line by design)");
         }
         Commands::RandSolve {
             seed,
