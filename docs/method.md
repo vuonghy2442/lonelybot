@@ -238,9 +238,11 @@ Roles in the engine:
 2. **Canonical twin choices.** When two twins are both options (stack either,
    place on either), the dominance rules of §5 only explore the canonical
    one.
-3. **Relaxed safe stacking.** The classical safe-automove rule requires the
-   twin suit's foundation to be at `r−1` before a rank-`r` card is safe to
-   stack; the twin argument lets this engine relax it to `r−2` (§5.1).
+3. **Safe stacking.** The threshold's twin-suit `r−2` conjunct is the
+   classical condition for worry-back games (§5.1 and
+   [pruning_dominance_interaction.md](pruning_dominance_interaction.md)
+   §2.5) — not an engine relaxation; the twin-swap machinery is what makes
+   the engine's arrangement-free port of it plausible.
 
 ## 5. Dominance rules in move generation
 
@@ -261,11 +263,18 @@ If any visible, movable card is in `dominance_mask`, *stack it* — the
 generator returns only that move (lowest bit). Informal argument: a safe
 card can always be brought back ("worried back") later, so stacking it
 loses nothing that is not reachable again by shuffling; stacking it also
-strictly grows the foundation, so it is progress. This is the classical
-Solvitaire safe-automove rule with the twin-suit requirement relaxed from
-`r−1` to `r−2` — the relaxation comes from the twin-swap machinery
-(TODO(vuong): the case analysis for the relaxation is worth writing out —
-it is one of the "more dominances" that pushed past Solvitaire's numbers).
+strictly grows the foundation, so it is progress. The threshold itself is
+the classical safe-automove condition for worry-back games (Blake & Gent,
+JAIR 85, 2026 — see
+[pruning_dominance_interaction.md](pruning_dominance_interaction.md) §2.5:
+the twin-suit `r−2` conjunct is *not* an engine relaxation; the stronger
+`f_opp ≥ r` variant applies only without worry-back). Solvitaire implements
+this same rule (the paper proves it correct in Appendix B.1), so the
+engine's edge over it comes from the other layers — the suit symmetry,
+the arrangement abstraction, the pruners — not from this threshold.
+Engine-specific and still
+open (TODO(vuong)): the port to the arrangement-free state — the shape is
+channels A/B in the interaction doc §4.
 
 ### 5.2 Three-or-more redundant stackables
 
