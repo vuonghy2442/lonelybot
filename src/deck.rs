@@ -288,14 +288,11 @@ impl Deck {
             }
         }
 
-        let mut pos: u8 = 0;
-
-        for c in rev_map.into_iter().flatten() {
-            self.deck[pos as usize] = c;
-            pos += 1;
-        }
-
-        self.deck.truncate(pos as usize);
+        // rebuild instead of writing by index: the target deck can be larger
+        // than the currently stored one, and the card order (by original
+        // position) is preserved either way
+        self.deck.clear();
+        self.deck.extend(rev_map.into_iter().flatten());
 
         self.set_offset(offset);
         self.mask = mask;
@@ -390,6 +387,33 @@ mod tests {
                 if deck.get_offset() > 0 && rng.random_bool(0.5) {
                     deck.pop_next();
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn test_decode() {
+        for i in 0..100 {
+            let cards = default_shuffle(12 + i);
+            let cards = cards[..N_DECK_CARDS as usize].try_into().unwrap();
+
+            let mut deck = Deck::new(cards, NonZeroU8::new(1).unwrap());
+            let full_encode = deck.encode();
+
+            // decode to a progressively smaller deck, then back to the bigger
+            // one: this used to panic with an out-of-bounds index write
+            let mut small_encode = full_encode;
+            for _ in 1..N_DECK_CARDS {
+                deck.decode(small_encode);
+                deck.draw(0);
+                small_encode = deck.encode();
+
+                deck.decode(small_encode);
+                assert_eq!(deck.encode(), small_encode);
+
+                deck.decode(full_encode);
+                assert_eq!(deck.encode(), full_encode);
+                assert_eq!(deck.len(), N_DECK_CARDS);
             }
         }
     }
