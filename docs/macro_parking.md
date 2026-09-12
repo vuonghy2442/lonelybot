@@ -38,12 +38,20 @@ placement is legal at `s` (a compatible free slot exists), and suppose
 the stack realization is also available (X stackable at `s`). Let
 `s_tab` / `s_stk` be the two post-states. Then:
 
-**(a) Same class.** `s_stk` is reachable from `s_tab` by one reversible
-move (`PileStack(X)` from X's parked position), and `s_tab` from `s_stk`
-by `StackPile(X)` (the spot X would take is still free — committing X
-to the stack consumes nothing on the tableau). The two post-states are
-one reversible pair apart, hence in the same closure class, hence carry
-the same game value.
+**(a) Same class — measured false as stated.** The forward leg is
+unconditional: `PileStack(X)` from X's parked position is always
+reversible-legal (parked ⇒ visible, unlocked, uncovered, stackable).
+The return leg is not: from `s_stk`, `StackPile(X)` needs a free spot
+of X's type, and the corpus shows it is not always there. The probe
+(`debug_destination_diamond`, 722 both-kind commitments): 79%
+swept-equal (the dominant region — provably so, arithmetic from the
+dominance definition), 14% encode-equal after the link, 3%
+closure-linked, and **34/722 = 4.7% distinct classes**. The
+destination fold is therefore a genuine prune, not a class-quotient;
+the property it actually needs is the one-sided containment
+**L-CONT** — `solvable(s_stk) ⟹ solvable(s_tab)` — which held 34/34
+on the measured misses and 128/128 with the promoted fold. See the
+later §P.6 for the ledger.
 
 **(b) Stackability persists; freeness may not.** A suit cannot advance
 past an unstacked card — stacking is per-suit sequential, so while X is
@@ -73,14 +81,15 @@ Plausibly the same dig-shaped-scar phenomenon as the C-SCAR residue.
 The reverse simulation needs worry-backs; without them, `s_stk` cannot
 recover `s_tab`.
 
-*Proof sketch.* (a) is by inspection of the two post-states (they differ
-only in X's position). (b) follows from per-suit sequential stacking for
-the height condition; the freeness caveat and its fiber-level observable
-are as stated. For (c), the "requires X up" dependence is type-local:
-only moves whose legality or effect touches X's type ball are affected
-by X's position, so the insertion points are well-defined and finite;
-the inserted move is exactly the realization difference, available
-whenever X is uncovered.
+*Proof sketch.* (a)'s forward leg is by inspection; the return leg fails
+at the measured 4.7%, and L-CONT replaces the mutual claim — the
+dominant region is proven outright, the remainder is `[m]`. (b) follows
+from per-suit sequential stacking for the height condition; the freeness
+caveat and its fiber-level observable are as stated. For (c), the
+"requires X up" dependence is type-local: only moves whose legality or
+effect touches X's type ball are affected by X's position, so the
+insertion points are well-defined and finite; the inserted move is
+exactly the realization difference, available whenever X is uncovered.
 
 *Empirical support.* The F3 canon measurement: when the F3 fold stopped
 materializing tableau outcomes of dominantly-stackable X, ~4.9M sweep
@@ -94,8 +103,11 @@ not merely same-class but sweep-*equal*.
 For any commitment, branching on the destination (tableau vs stack) is
 never *semantically* necessary:
 
-- with worry-backs available, the two branches are the same class (P.a);
-- without them, tableau-first dominates (P.c);
+- the one-sided containment L-CONT holds on everything measured —
+  `solvable(s_stk) ⟹ solvable(s_tab)`, 34/34 on the probe's boundary
+  cases, 128/128 with the promoted fold (P.a's mutual form fails at
+  4.7%, but the fold only needs this direction);
+- without worry-backs, tableau-first dominates (P.c);
 - when only one realization is legal, there is no choice at all.
 
 One successor per commitment — the tableau realization — is therefore
@@ -239,6 +251,59 @@ reveal-first at the commitment level (96k → 84 nodes on seed 18), the
 kind order within a commitment barely matters — both branches are
 explored and the tp table absorbs the consequences. The design
 alignment argument stands; the speed argument does not.
+
+## P.6 The collapse, promoted — and its remaining proof surface
+
+(2026-09-12, words tree. The fold is now the shipped macro search
+semantics: `collapse_pick` in `macro_solvable_direct`.)
+
+**The reduction.** Branch on the destination is sound iff the two
+post-states carry the same value. Two roads to that:
+
+- *The class route (strong).* `post_tab ≡ post_stk` as closure classes.
+  The link is unconditionally legal: from `post_tab`, `PileStack(X)` — X
+  is parked ⇒ visible, unlocked, uncovered, stackable — and the move is
+  reversible (X unlocked). Class then reduces to the sweep/stack diamond
+  R-DIA: `canonicalize(post_tab + PileStack(X)) ≡class post_stk`.
+- *The containment route (the one the fold actually needs).* One-sided:
+  `solvable(post_stk) ⟹ solvable(post_tab)`. Proven for the F3-dominant
+  region — X is dominantly safe ⇒ the `post_tab` sweep stacks X
+  (movable/uncovered/dominant at park time; parking only covers its
+  parent, which was canonical, so no extra sweep fires) ⇒ sweep-*equal*.
+  Note the covering corner (P.1b) does **not** bear on the class route —
+  closure reachability never simulates future play.
+
+**The measurement** (`debug_destination_diamond`): 722 both-kind
+commitments on the differential corpus. Tableau→stack link lands:
+
+- in P.1a's class: **79%** — the tableau outcome already swept X (the
+  generalized F3 signature; sweep-equal);
+- encode-equal after the link: 99;
+- closure-linked: 22;
+- **distinct classes: 34 (4.7%)** — R-DIA fails at measurable rate; the
+  class route is *not* the theorem.
+
+All 34 misses then held **win-region containment** against ground-truth
+`solve`: solvable(stack side) ⟹ solvable(tableau side), held=34,
+violated=0. The misses' recurring shape (10♥/Q♣ pairs across turns of
+seed 12; K♣ runs on seed 40) is the covering corner's fingerprint —
+candidate witnesses for the P.1c gap, and in every one the parked branch
+recovered the win anyway.
+
+**Status of the collapse.** Promoted after the 128-game corpus gate
+(0 mismatches; the single cap was seed 32, undecidable-in-budget in both
+folds). Proven pieces: class-value invariance; the link lemma; the F3
+region's sweep-equality (arithmetic, ~93% of duals land same-class).
+Evidence pieces `[m]`: L-CONT on all 34 measured misses; C-SCAR's
+scar-side equivalence (§P.5, both policies verdict-equal). Open `[~]`:
+L-CONT proven at scale (or a constructed counterexample) — the corner
+that remains is exactly "forced cover of X with the coverer unstackable
+in time"; C-SCAR's multi-rank absorption proof; M-4's depth bound.
+
+Also this tree: accommodation caps 12/10 → 40 (P.5's depth-artifact fix,
+ported to the words engine; `StepTransition` capacity 42), differential
+now `missing=0 extra=0`, merged=10327 — matching the pre-words cap-40
+measurement exactly.
 
 ## P.4 Parked experiments
 

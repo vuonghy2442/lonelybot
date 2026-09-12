@@ -30,6 +30,10 @@ soundness ledger's migration plan.
   function now matches the shipped solver on 64 games across both draw
   steps (oracle and fast paths equal; `macro_verdict_matches_engine`),
   and a larger 128-game sweep lives `#[ignore]`d as the acceptance harness.
+  The shipped search fold is the destination collapse (one successor per
+  commitment, park-first; `collapse_pick`): corpus-gated by the 128-game
+  sweep; its proof surface and the diamond/containment measurements live
+  in `macro_parking.md` §P.6.
 
 Supporting theorems:
 
@@ -402,6 +406,47 @@ per-suit foundation-height difference. 69 divergent orderings on the
   transitions; there it is defused by the cascade's canonical-twin rules
   and by `convert.rs` resolving the concrete card lazily. The macro engine
   needs its own explicit rule — this is it.
+
+### 6.5b The implemented slice: the word-level engine (2026-09)
+
+The transition machinery now runs on the algebra directly, not on the
+concrete state. The observation that makes it pay: **inside a reversible
+closure, the state is the stack word.** `hidden` and `deck` are invariant
+under shuffles, and the visible set is a derived function —
+
+```
+vis(stack) = full ^ buried ^ deck_remaining ^ stacked(stack)
+```
+
+— so a closure state is a `u16`, and the accommodation BFS is a walk on a
+u16 set (no state clones, no encodes; dedup keys on the word itself).
+
+Concretely (`src/macro_game.rs`):
+
+- `Words { vis, locked, stack }` — a 20-byte `Copy` board. All move masks
+  are the exact `gen_moves::<false>` formulas (with dominances off, that
+  function never early-returns, so the pure formulas are the whole
+  semantics): `bm` via no_pile §3's parity lemma (`bottom_mask_of`),
+  `sm`/`dom` from the nibble word, `free_slot`'s king gate from
+  `vis & (locked | KING)` popcount.
+- `sweep_words` — the safe-sweep canonicalization as closed-form promotion
+  on words (identical lowest-first selection, ambiguous twins included),
+  installed by one `set_board`. `words_match_moves` cross-checks it
+  encode-for-encode against per-card `do_move` replay across the corpus.
+- The §6.4 channels (direct / dig / borrow / prefix-raise) are mask checks
+  on 20-byte word copies — one nibble edit + one mask recompute per probe.
+- `post_state` materializes a successor with **one clone, one `do_move`**
+  (the commit move — the only step with deck/hidden effects) **and one
+  `set_board`** (the swept words). `Reveal`-side reveals peek the structure
+  below the departing surface at the root (shuffles never touch `hidden`).
+- `macro_solvable_direct` searches in place: apply = `do_move(commit)` +
+  `set_board(succ words)`, undo = `undo_move(commit)` + `set_board(old
+  words)`. No successor is ever materialized in the hot loop.
+
+Gates unchanged: `macro_direct_matches_oracle` (0 fabricated / 0 missed on
+the corpus, `extra_separate == 0` hard), `sweep_is_confluent`,
+`macro_verdict_matches_engine`, plus the new `words_match_moves`
+implementation-level cross-check.
 
 ### 6.6 The falsifier for the design — MEASURED GREEN (2026-09)
 
