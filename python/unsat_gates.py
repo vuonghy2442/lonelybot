@@ -136,8 +136,9 @@ def verify_line(seed: int):
 
 
 class Rung1:
-    def __init__(self, game: Game):
+    def __init__(self, game: Game, draw_step: int = 1):
         self.game = game
+        self.draw_step = draw_step
         self.piles = [[iid(c) for c in list(h) + list(v)] for h, v in game.tableau]
         self.deck = {iid(c) for c in game.deck}
         self.pool = IDPool()
@@ -162,6 +163,7 @@ class Rung1:
 
         self._order_vars()
         self._structure()
+        self._deck_pace()
         self._gates()
 
     # ---- basics -----------------------------------------------------------
@@ -197,6 +199,30 @@ class Rung1:
 
     def occA(self, c):
         return self.lit(("occA", c))
+
+    def drawLt(self, X, Y):
+        """Aux: deck card X was drawn before deck card Y (draw = the
+        arrival if placed, the departure if stacked directly). Only the
+        case-split backward clauses are needed: setting the aux true
+        forces the order literal for whichever case holds — that is the
+        constraint. (The forward direction is omitted deliberately:
+        sound for UNSAT, and the units/disjunctions supply the truth.)"""
+        key = ("drawLt", X, Y)
+        if key in self.pool.id2obj:
+            return self.lit(key)
+        a = self.lit(key)
+        ax, ay = self.occA(X), self.occA(Y)
+        rx, dx = self.ARR[X], self.DEP[X]
+        ry, dy = self.ARR[Y], self.DEP[Y]
+        # a & ax & ay  -> arr_X < arr_Y
+        self.emit([-a, -ax, -ay, self.lt_lit(rx, ry)])
+        # a & ax & ~ay -> arr_X < dep_Y
+        self.emit([-a, -ax, ay, self.lt_lit(rx, dy)])
+        # a & ~ax & ay -> dep_X < arr_Y
+        self.emit([-a, ax, -ay, self.lt_lit(dx, ry)])
+        # a & ~ax & ~ay -> dep_X < dep_Y
+        self.emit([-a, ax, ay, self.lt_lit(dx, dy)])
+        return a
 
     def _order_vars(self):
         for a in range(1, self.n + 1):
@@ -300,6 +326,28 @@ class Rung1:
             lo = X - 2 if (X % 4) < 2 else X - 6
             if lo in self.DEP:
                 self.emit([self.lt_lit(self.DEP[lo], self.DEP[X])])
+
+    # ---- deck pace (draw-3+: the K+ cyclic accessibility) ---------------
+
+    def _deck_pace(self):
+        """The deck-draw order constraints (engine coordinates: deck[0] =
+        bottom/deepest, deck[n-1] = top/first-accessible).
+
+        Brute-force over the exact deck state machine (N=6/9/12, step 3)
+        shows the pairwise-forced residue is ONLY the bottom block's
+        chain: pos[step-1] < ... < pos[1] < pos[0]. graph.py's pivot
+        clauses are NOT implied (a realizable order violates them —
+        demonstrated live by seed 56 d3, a win they wrongly reject).
+        The deeper rigidity is higher-order (pass counting); capturing
+        it needs the exact state machine, not order literals."""
+        if self.draw_step <= 1:
+            return  # draw-1: free set, no constraints
+        step = self.draw_step
+        pos = [iid(c) for c in self.game.deck]  # engine order
+        n = len(pos)
+        for i in range(min(n, step) - 1):
+            # the bottom block: drawn top-down, forced
+            self.emit([self.drawLt(pos[i + 1], pos[i])])
 
     # ---- gates ---------------------------------------------------------------
 
@@ -468,7 +516,7 @@ class Rung1:
 def evaluate(seed: int, draw: int):
     game = Game.from_str(deal_from_seed(seed))
     t0 = time.perf_counter()
-    m = Rung1(game)
+    m = Rung1(game, draw)
     t_enc = time.perf_counter() - t0
     sat, t_sat = m.solve()
     oracle = run_cli("solve", "default", str(seed), str(draw))
