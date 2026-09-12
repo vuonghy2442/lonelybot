@@ -8,6 +8,12 @@ Legend: [x] established / [~] claimed & cross-validated, proof pending / [ ] ope
 Line references are pinned to commit `5146b98` and *will* drift — prefer
 searching by function name.
 
+Build sequencing (recorded): Phase 0 — falsifiers on the *current*
+engine; Phase 1 — the architecture-independent spine (the reshape lemma,
+T, L1/L2, the safe-stack port); Phase 2 — this game, gated on verdict
+equality with the current engine. See the interaction doc's §8 and the
+soundness ledger's migration plan.
+
 ## 0. Claims
 
 - **C1 (Reduction).** The old game can be replaced by a commitment game with two

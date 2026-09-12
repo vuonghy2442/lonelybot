@@ -537,3 +537,33 @@ construction: with accommodations computed from the state alone, P's
 path-dependence disappears, H2 vanishes, and what remains of the composition
 question collapses to the dominance arguments in D plus the twin-swap
 theorem.
+
+**Sequencing decision (recorded 2026-09; see also the soundness ledger's
+migration plan).** The register's hardest-to-prove rows — the whole
+D-layer (6.2's king corner, 6.3, both halves of 6.4 with R1/R2/Claim B)
+and the composition cluster (H1 closure, H2/GHI, the DAG claim) — are
+exactly the rows the commitment game deletes by construction, so they are
+marked ⟂ *superseded-by-design* in the ledger rather than carried as
+active holes: proving them now is paying off a mortgage on a building
+being demolished. The recorded sequence is three phases. **Phase 0 —
+falsify first** (days): implement P1/P2/P3 and the relocation-failure
+counter on the *current* engine and run the reference corpus — this
+protects the published 81.95%/47.58% numbers, which stand on the
+empirical floor until the swap, and a counterexample found now reroutes
+everything. **Phase 1 — the shared spine**, architecture-independent:
+the reshape lemma (B4), the twin-swap theorem, L1/L2 with the §3 case
+tables, and the B&G safe-stack port — the deep theorems the macro still
+needs, concentrated rather than avoided. **Phase 2 — build the
+commitment game**, proving C1/C2 during construction, gated on
+full-corpus verdict equality against the current engine and then a fresh
+1M-scale validation run.
+
+Read this way, the two architectures stand on: the *current* engine on
+its empirical floor plus Phases 0–1; the *target* architecture on Phases
+1–2. Deliberately skipped unless Phase 0 fires: closure proofs for 6.4's
+R1/R2/Claim B, the 5.6 least-stack writeup, the `is_pure` formalization,
+and drain-safes-first as a standalone theorem — an instrument catching
+any of them failing converts it from a proof obligation into a bug, which
+is cheaper information either way. One Phase-2 caveat: if the macro
+candidate generator keeps analogues of `is_pure` or the least-stack
+cascade, those rows return to the proof list.

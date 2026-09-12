@@ -76,6 +76,15 @@ instrumentation do not count as proof.
 4. The closure property proper stays on the Lean track (lean-verify/) —
    the one item hand-proof will not close.
 
+**Sequencing (recorded 2026-09).** The finish line is not worked straight
+through: the three-phase decision — falsifiers first, then the
+architecture-independent spine, then the commitment game — is recorded in
+the interaction doc's §8 and the soundness ledger's migration plan.
+Concretely: item 1 and the shared spine (the reshape lemma, T, L1/L2,
+the safe-stack port) are funded first; items 2–3 are skipped unless
+Phase 0 fires, because the commitment game deletes the rules they concern
+(with the Phase-2 repatriation caveat for 5.6/`is_pure` analogues).
+
 Overall read: **referee-legible, not referee-proof.** As an informal
 appendix to the numbers, the expected referee response is "the structure
 is right; discharge the reshape lemma and the R1/R2 residues, then we'll
