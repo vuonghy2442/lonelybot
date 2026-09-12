@@ -70,6 +70,31 @@ Everything else is a view: `up : Card → Bool`, the total board
   **`solvable_engine_iff`** (the B-legs, as a move-subset equivalence
   of ONE model), `apply_wf`, **`drawTo_comm_adjacent`** (C13 pilot).
 
+- `Klondike/Theorems.lean` — the statement farm, all `sorry` with
+  `TODO(proof)`: the **relabeling group** (`Relabel`, `solvable_relabel`
+  — T generalized to all 8 coherent suit relabelings), the
+  **reversibility/commitment structure** (roundtrip lemmas,
+  `irreversibleAt` + the three A1 commitments, `accommodates` and the
+  reshape-flavored direction), **commutation** (`Move.comps` +
+  component-disjoint commutation, `Move.touch` + `disjointTouch` —
+  the type-ball interaction lemma, C13 mod-adjacent commutation and
+  the non-adjacent divergence), and **run acyclicity**
+  (`aboveOf_rank_grading`).
+
+- `Klondike/Dominance.lean` — the dominance layer (method.md §5):
+  `dominantAt`/`prunableAt`/`dominates`/`solvableWith`, the exact
+  **safe-to-stack condition** (§5.1, Blake & Gent), `isLocked`/
+  `isRedundantStack` (§5.2), `applyDrawStackTo` (§5.3's commitment),
+  and the statements: safe-stacking dominance, the redundant-stack
+  cascade, deck dominance (draw-1 + the `is_pure` caveat), the
+  worry-back and deck-to-tableau pruning rules (§5.4), the
+  twin-pair placement equivalence (§5.5), `cascade_sound` (the
+  composed filter theorem, carrying the interaction doc's warning),
+  and **`dominant_of_commutesWithAll`** — the POR bridge: full
+  commutation implies dominance, one direction only (the engine's
+  dominances run on worry-back reversibility, safe-irrelevance, and
+  canonical representatives, not commutation).
+
 All `sorry`s carry a `TODO(proof)` comment — they are the work items
 for proof-farming; every definition is final code.
 
