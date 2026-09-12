@@ -104,7 +104,8 @@ def WF (st : State) : Prop :=
        ((st.board.bottomOf d).isSome = true ∧ canSitOn c d = true))) ∧
   (∀ c, st.isVis c = true → st.stock.posOf c = none) ∧
   (∀ c, st.onFound c = true → st.stock.posOf c = none) ∧
-  (∀ s, st.heights s ≤ 13)
+  (∀ s, st.heights s ≤ 13) ∧
+  st.stock.cursor ≤ st.stock.cards.length
 
 /-- Conjugate the whole state by the twin-swap relabeling (T's action
 on every component). -/

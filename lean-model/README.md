@@ -95,6 +95,23 @@ Everything else is a view: `up : Card → Bool`, the total board
   dominances run on worry-back reversibility, safe-irrelevance, and
   canonical representatives, not commutation).
 
+- `Klondike/Progress.lean` — the progress/decidability layer: the two
+  monotone measures (`totalDepth`, stock length), **`play_self_is_shuffle`**
+  (their §9.4 DAG argument — every cycle is commitment-free, the
+  visited-list soundness), `run_append`/`State.trace`/`allDistinct`/
+  `play_cut_loop` (loop-cutting), and the decidability chain
+  `solvable_iff_distinctTrace → solvable_iff_boundedPlay →
+  solvable_decidable` with the crude `stateSpaceBound`.
+
+- `Klondike/Realizability.lean` — **B1** (no_pile §3): the type
+  machinery (`Card.typeOf`, `Rank.pred`, `belowType`), the four counts
+  (`presentType`, `placedBelow`, `uncovered`, `freeType`), `legalEdges`,
+  **`uncovered_eq_freeType`** (the parity lemma: `present − placed` =
+  the free count, via matching injectivity + edge legality),
+  `Board.Fits` + `Realizable` + `realizable_of_wf` +
+  `apply_realizable` (the maintenance table's statement).  The
+  engine-side `bm` XOR algebra is deferred to the bridge milestone.
+
 All `sorry`s carry a `TODO(proof)` comment — they are the work items
 for proof-farming; every definition is final code.
 
