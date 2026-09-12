@@ -12,6 +12,9 @@ name = "lonelybot"
 path = "src/lib.rs"
 crate-type = ["lib"]
 
+[features]
+hop_debug = []
+
 [dependencies]
 rand = { version = "0.10.2", default-features = false }
 rand_mt = "6.0.3"

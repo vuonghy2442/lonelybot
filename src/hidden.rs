@@ -311,4 +311,37 @@ impl Hidden {
             }
         })
     }
+
+    /// All strictly buried cards (below the first hidden layer of each pile),
+    /// in slot order: pile by pile, deepest first.
+    #[must_use]
+    pub fn buried_cards(&self) -> ArrayVec<Card, { N_PILE_CARDS as usize }> {
+        let mut res = ArrayVec::new();
+        for pos in 0..N_PILES {
+            if let Some((_, buried)) = self.get(pos).split_last() {
+                res.extend(buried.iter().copied());
+            }
+        }
+        res
+    }
+
+    /// Overwrite the strictly buried cards with `cards` (in the same slot
+    /// order as `buried_cards`). The anchor of each pile is preserved.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `cards.len()` doesn't match the number of buried slots.
+    pub fn apply_buried(&mut self, cards: &[Card]) {
+        let mut i = 0;
+        for pos in 0..N_PILES {
+            if let Some((_, buried)) = self.get_mut(pos).split_last_mut() {
+                for h in buried {
+                    *h = cards[i];
+                    i += 1;
+                }
+            }
+        }
+        assert_eq!(i, cards.len(), "buried card count mismatch");
+        self.update_invariant();
+    }
 }
