@@ -1,10 +1,47 @@
 # The proof farm — handoff document
 
-66 `sorry`s, every one carrying a `TODO(proof)` comment with its proof
-route in the source.  Workflow: pick an item, read its doc comment,
-prove it, delete the `sorry`, `lake build Klondike` stays green.
-Difficulty: **[T]** rfl/decide/case-bash · **[E]** one induction ·
-**[M]** real work · **[H]** needs ideas (do not assign casually).
+62 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
+each carrying a `TODO(proof)` route comment in source.  Difficulty:
+**[T]** rfl/decide/case-bash · **[E]** one induction · **[M]** real
+work · **[H]** needs ideas (do not assign casually).
+
+## Rules of engagement
+
+- **The prover is the oracle.**  Build after every edit —
+  `lake build Klondike`; one file: `lake env lean Klondike/Foo.lean`.
+  The errors print the goal and often the fix.
+- **Syntax is a query, not a recall test.**  Two candidate
+  spellings?  Pick either, build, let the error choose.  At most one
+  reasoning step on syntax before a build.
+- **Cheap tactics first**: `rfl`, `decide`, `simp`, `omega` — several
+  items fall immediately (`flipAll_eq_relabelTwin` was `rfl`).
+- **Routes here are hypotheses.**  Prover disagrees with a route ⇒
+  fix the row, not the proof; record it as a finding.
+- **Statements can be wrong too.**  Confirm the counterexample with
+  the prover, `git grep` downstream users, repair *minimally* — add
+  the missing hypothesis, never weaken the conclusion (vacuous is
+  worse than `sorry`) — fix the row.  No guard saves it ⇒ mark
+  **UNSOUND**, record the witness, escalate (the ledger's
+  rejected-claim discipline).  Worked example:
+  `eStep_deckStack_unique` needed `noDupCards` — a duplicated order
+  gives two draw indices, hence two offsets.
+- **Hygiene**: one item at a time; tree stays green; commit per
+  batch (`feat(lean): prove ...`); others' `sorry`s are untouchable.
+
+## Syntax card — paid-for facts (core 4.30, no mathlib)
+
+- `xs[i]?`, not `List.get?`; removal is `Cycle.removeIdx` (ours).
+- Dot notation needs `def State.foo` — a top-level `def foo (st : State)` won't project.
+- Impossible `none = some c`: `simp at h`, not bare `Option.noConfusion h`.
+- Multi-line `{st with …}`: first field on its own line.
+- `decide` needs `Decidable` — no matches returning `Prop`.
+- `Nat` subtraction truncates: `0 - 1 = 0` (silent index bugs).
+- `∈ b :: t`: `simp only [List.mem_cons] at h` before `rcases`.
+- `omega` knows literal `/` and `%`; treats the rest as atoms.
+- Known-good simp set: `mem_cons/map/append/flatMap/range`,
+  `decide_eq_true_iff`, `and_eq_true`, `some.injEq`.
+- `rfl` is strong here (structure eta carries it across states).
+- `Rank`/`Anchor` are inductives on purpose — no `Fin`.
 
 Work the waves in order — later waves lean on earlier ones.  Within a
 wave, items are independent (different agents can take different rows
@@ -22,10 +59,10 @@ without colliding).
 | `apply_deckStack_shortens` | Progress:40 | [E] | as above |
 | `run_append` | Progress:55 | [E] | induction on `l₁`; `run` is a fold |
 | `run_eq_trace_last` | Progress:71 | [E] | induction on the play |
-| `eStep_pileStack_unique` | Bridge:179 | [T] | the witness only justifies; successor is a literal |
-| `eStep_deckPile_unique` | Bridge:185 | [E] | uniqueness of the draw position from `noDupCards` |
-| `eStep_deckStack_unique` | Bridge:189 | [T] | as `pileStack` |
-| `eStep_stackPile_unique` | Bridge:193 | [T] | as `pileStack` |
+| ~~`eStep_pileStack_unique`~~ | ~~Bridge~~ | **done** | the witness only justifies |
+| ~~`eStep_deckPile_unique`~~ | ~~Bridge~~ | **done** | `noDupCards` pins the draw index |
+| ~~`eStep_deckStack_unique`~~ | ~~Bridge~~ | **done + statement fixed** | was *unsound* without `noDupCards` — a duplicated order gives two indices, two offsets |
+| ~~`eStep_stackPile_unique`~~ | ~~Bridge~~ | **done** | as `pileStack` |
 | `esolvable_offset_irrel` | Bridge:144 | [E] | no guard reads the offset (v1); plays correspond |
 | `Card.universe_noDup` | Initial | [M] | index-wise, over the factored product |
 | `Deal.ofList_wf` | Initial | [M] | lengths by the triangular split; `drop`/`take` preserve |
