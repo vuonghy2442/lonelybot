@@ -23,6 +23,8 @@ soundness ledger's migration plan.
 - **C2 (Bound).** Each commitment, applied to a state, yields at most **2**
   distinct post-states (in the engine's state abstraction):
   {target card lands on the tableau, target card lands on the stack}.
+  (Sharpened and measured in §6: the true form is ≤2 *reversible-closure
+  classes* per commitment; state-level multiplicity is unbounded.)
 
 Supporting theorems:
 
@@ -218,6 +220,8 @@ Open: prove that the accommodation itself contributes no extra state choice
 
 - **O6.** Minimality/uniqueness of the accommodation: two different minimal
   accommodating shuffles must yield the same post-state, or be dominated.
+  (Resolved into §6.3–6.5: an operational canonical form + an in-tree
+  falsifier.)
 - **O7.** Terminal handling: the last commitments do not empty the tableau by
   themselves; specify the `Finish` pseudo-macro (stack sweep until stuck, win
   iff all 52 stacked) and its interaction with `is_sure_win`
@@ -234,3 +238,137 @@ Open: prove that the accommodation itself contributes no extra state choice
 - **Full-corpus verdict cross-check.** Old solver vs macro solver on the
   Solvitaire 1..1M sample and Klondike-solver 0..50k; verdicts must match
   exactly.
+
+## 6. The closure algebra and the efficient transition
+(derived 2026-09, with the first in-tree measurements; probe code
+`src/macro_game.rs`, branch `macro-game`)
+
+This section turns the scaffold measurements into the design theory for a
+*direct* transition function: the point of the rework is that macro move
+generation and state transition must be constant-work-per-commitment, not a
+closure exploration. The algebra shows that this is possible.
+
+### 6.1 The closure, algebraically [~; shape measured]
+
+By A2, the reversible closure of `s` consists exactly of the states obtained
+from `s` by shuttling *unlocked* cards between tableau and foundation; deck
+order+offset and the hidden structures are invariant. Therefore, in a
+closure state:
+
+- deck and hidden are fixed;
+- per suit, the foundation content ranges over a **height interval** (only
+  prefix digs are possible — F2);
+- the visible/top changes come only from worried-back cards (a worried-back
+  card becomes a top, and covers the top it landed on).
+
+Measurement confirming the shape (probe `macro_scaffold_smoke`): outcome
+post-states of one commitment vary only in the *stack* component, forming
+per-suit interval lattices (e.g. `[2000, 1000, 0]`, `[320, 220, 120, 210]`
+— nibble-lattices over two suits), with hidden and deck parts constant.
+State-level multiplicity is **not bounded by 2 or 4** — floating worry-back
+coordinates multiply out (an 8-state grid was observed) — which forces the
+corrected C2 of §6.3.
+
+### 6.2 Locality lemma [x — formula arithmetic]
+
+For commitment target `X` (rank `r`, color χ): covering a destination twin
+`Y` requires a card of type `Y − 4`, which is rank `r`, color χ — i.e. the
+type of `X` itself: `{X, twin(X)}`. As `X` is in flight during its own
+commitment, **the only pre-existing blocker of `X`'s landing in the whole
+deck is `twin(X)`**. This is the "never a third suit" observation in exact
+form: a commitment's interference zone is one type.
+
+### 6.3 C2, corrected and measured [~]
+
+- **State-level ≤ 2 is false, and the two-twin-neighborhood "≤ 4" is not
+  the right level either** — free floats form products. The true claim:
+  *each commitment has at most 2 post-state **closure classes***
+  (tableau-kind, stack-kind).
+- **Free-float collapse.** A float outside the commitment's type
+  neighborhood (type `X`, `X±4`) has its flip-legality masks untouched by
+  the commitment's placement, so the shuffle separating two accommodation
+  variants remains legal after the commitment: free variants are mutually
+  reachable post-commitment, hence one closure class. (Modulo the same
+  type-neighborhood mask check as L1/L2 — mechanical; pending.)
+- **Measurement.** Quotienting post-states by mutual reversible
+  reachability (`closure_classes`, `closure_contains`): across 200 games of
+  greedy macro play (default_shuffle seeds 12..111, draw 1 and 3),
+  ≈4.5k commitment points, **max distinct closure classes per commitment =
+  2 — zero violations**. The probe asserts this in-tree; a value ≥ 3 is the
+  falsifier.
+- **What is left of C2.** The interacting corner: only `twin(X)` can be
+  frozen by the commitment (e.g. on a stack outcome, `f(suit(X))` moves past
+  `r`, killing `twin(X)`'s own stackability). The remaining case list —
+  `twin(X)` ∈ {stacked, on `Y`, on `Ȳ`, free} — is where the dominance
+  eliminations (5.1/5.4: "a dominant card is never available for worrying
+  back"; minimality of the accommodation) remove the extra configurations.
+
+### 6.4 The availability algebra [~]
+
+Whether an outcome shape exists for target `X` at the raw state reduces to
+a **well-founded recursion over types**, not a search. Cases for the tableau
+outcome (need an uncovered top of type `X+4`):
+
+1. **Direct** — `bm[X+4]` holds (type-level, already `X ∈ free_slot`).
+2. **Dig** — `Y` is covered; its coverer is `twin(X)` (forced by §6.2),
+   which is then a top; vacating it = stacking it (`sm[twin(X)]` — a
+   foundation prefix fact) or, if a king, moving to an empty pile.
+3. **Borrow** — a `P`-twin sits on its suit's foundation top; worry it back
+   (`SP` needs an uncovered top of type `X+8` — the same question one rank
+   up, same color).
+4. **Deeper dig** — `twin(X)` itself is covered; coverers descend in rank
+   and flip color per level; the recursion bottoms out at **aces**, which
+   are never coverable.
+
+Borrows ascend toward kings (which terminate at holes); digs descend
+toward aces. So availability is a monotone, rank-bounded AND-OR computation
+over ≤ 26 types — no closure exploration. The stack outcome is the same
+machinery: `X` is stackable now, or becomes so after raising the prefix —
+each missing prefix card needs the very same one-card dig, descending to
+aces.
+
+**Completeness is the open part**: that these four cases exhaust the
+closure's ways of producing a landing is conjectured from §6.1 + §6.2;
+chained borrows are the untested crease. This is exactly the falsifier of
+§6.6.
+
+### 6.5 The representation fact [x — engine invariant]
+
+The abstract moves are total, arrangement-free functions of the abstract
+state; their preconditions are answered at type level by the masks (§3 of
+`no_pile_to_pile.md`); and the type level is *per-card exact* exactly where
+it matters: while `X` is off-tableau (deck, hidden), `bm[type(X)]` says
+whether `twin(X)` specifically is an uncovered top, the parity over a single
+visible twin being exact. Hence:
+
+> The transition function needs no new state: the 61-bit encode plus the
+> existing runtime arrays suffice. A macro transition is a short
+> deterministic program of ordinary abstract moves (the dig/borrow sequence
+> from §6.4) followed by the safe-sweep canonicalization (F3 repeatedly —
+> already what `canonicalize` does in `src/macro_game.rs`). No closure DFS,
+> no closure-class clustering, no per-card arrangement at generation time.
+> Per-node expansion cost: `#drawables + #surfaces` times constant-bounded
+> rule work.
+
+### 6.6 The falsifier for the design
+
+`macro_transitions_direct` (to implement: rules of §6.4 producing the
+post-state by executing the short move sequence + sweeping) differentially
+against the closure-oracle `enumerate_commitments` (already in-tree):
+availability and canonical post-state must agree per commitment per state
+over the corpus; log the first divergence — that is either a missing rule
+case (extend §6.4) or a defeat of the design, in which case the closure
+torus is semantically necessary and the fast path is refuted.
+
+### 6.7 What §6 implies for the open items
+
+- **O6** has an operational answer already measured: canonical form = safe
+  sweep + closure-quotient; uniqueness of the canonical post-state per
+  commitment-kind is the confluence of the §6.4 priority order (direct >
+  dig > borrow > king-hole) — testable by the §6.6 differential.
+- **O5** (can every accommodation be reduced to the sweep?) is replaced by
+  the sharper question: is the §6.4 rule list complete? The same §6.6 test
+  decides.
+- The remaining open items here (O1/O3/O5, and O7's terminal sweep) become
+  boundary cases to encode into the §6.4 rule list rather than separate
+  hazards; the interaction doc's register keeps the cross-cutting ones.
