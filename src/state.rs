@@ -302,6 +302,13 @@ impl Solitaire {
     }
 
     #[must_use]
+    /// Check if the move is legal (present in the raw move list) in the
+    /// current state
+    pub fn is_valid_move(&self, m: Move) -> bool {
+        MoveMask::from(m).filter(&self.gen_moves::<false>()).is_empty()
+    }
+
+    #[must_use]
     pub(crate) const fn reverse_move(&self, m: Move) -> Option<Move> {
         // check if this move can be undo using a legal move in the game
         match m {

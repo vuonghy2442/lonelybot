@@ -50,7 +50,7 @@ impl<P: Pruner + Default> SolitaireEngine<P> {
 
     #[must_use]
     pub fn is_valid(&self, m: Move) -> bool {
-        MoveMask::from(m).filter(&self.valid_moves).is_empty()
+        self.state.is_valid_move(m)
     }
 
     pub fn do_move(&mut self, m: Move) -> bool {

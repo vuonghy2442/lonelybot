@@ -3,7 +3,7 @@ use core::ops::{Add, AddAssign};
 use rand::Rng;
 
 use crate::{
-    moves::{Move, MoveMask},
+    moves::Move,
     pruning::{FullPruner, Pruner},
     solver::SearchResult,
     state::{Encode, Solitaire},
@@ -124,10 +124,7 @@ pub fn hop_solve_game<R: Rng, T: TerminateSignal>(
     // determinization only permutes strictly buried cards, which no generated
     // move depends on, so checking the candidate once here also covers every
     // determinized clone inside the loop below
-    assert!(
-        MoveMask::from(m).filter(&g.gen_moves::<false>()).is_empty(),
-        "move {m} is illegal in this state"
-    );
+    assert!(g.is_valid_move(m), "move {m} is illegal in this state");
 
     for _ in 0..n_times {
         let mut gg = g.clone();
