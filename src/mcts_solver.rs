@@ -1,7 +1,7 @@
 use rand::Rng;
 
 use crate::{
-    hop_solver::{hop_solve_game, HopResult},
+    hop_solver::{hop_solve_game, is_sure_lose, is_sure_win, HopResult},
     moves::Move,
     pruning::FullPruner,
     state::{Encode, Solitaire},
@@ -82,7 +82,7 @@ impl Callback for ListStatesCallback {
     }
 }
 
-pub type PotentialFn = fn(n_sucess: usize, n_visit: usize, n_total: usize) -> f64;
+pub type PotentialFn = fn(&HopResult, usize) -> f64;
 
 /// Picking the best move using MCTS
 ///
@@ -123,7 +123,16 @@ pub fn pick_moves<R: Rng, T: TerminateSignal>(
         callback.his
     };
 
+    // the only candidate without a move is a state that already wins the
+    // game within the reversible closure: no commit is needed at all
+    if let Some(&(state, None)) = states.first() {
+        return Some(find_state(state, None));
+    }
+
     if states.len() <= 1 {
+        // a single candidate leaves no choice: evaluating it cannot change
+        // the decision, so return its path directly (this also covers the
+        // no-candidate case, which means the game is lost)
         return states.last().map(|state| find_state(state.0, state.1));
     }
 
@@ -131,14 +140,34 @@ pub fn pick_moves<R: Rng, T: TerminateSignal>(
 
     let mut n = 0;
     loop {
-        // here pick the best :)
-        let best = res
-            .iter()
-            .map(|x| pot_fn(x.wins, x.played, n))
-            .enumerate()
+        // a candidate proven to win in every hidden arrangement: committing
+        // it is optimal, stop the search right away
+        if let Some(i) = res.iter().position(is_sure_win) {
+            let (state, m) = states[i];
+            return Some(find_state(state, m));
+        }
+
+        // pick the next candidate to evaluate; exhaustively evaluated
+        // candidates are finished, never sample them again
+        let best = (0..states.len())
+            .filter(|&i| !res[i].exhaustive)
+            .map(|i| (i, pot_fn(&res[i], n)))
             .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
-            .map(|x| x.0)
-            .unwrap();
+            .map(|x| x.0);
+
+        let Some(best) = best else {
+            // every candidate was evaluated exactly
+            if res.iter().all(is_sure_lose) {
+                // every commit loses in every arrangement: the game is lost
+                return None;
+            }
+            // otherwise fall back to the best exact value
+            let best = (0..states.len())
+                .max_by(|a, b| res[*a].rate().partial_cmp(&res[*b].rate()).unwrap())
+                .unwrap();
+            let (state, m) = states[best];
+            return Some(find_state(state, m));
+        };
 
         let state = &states[best];
 
@@ -150,31 +179,35 @@ pub fn pick_moves<R: Rng, T: TerminateSignal>(
             rng,
             BATCH_SIZE,
             limit,
+            n_times * limit,
             sign,
             &FullPruner::default(),
         );
 
-        n += BATCH_SIZE;
+        if new_res.played == 0 {
+            // no playout finished (e.g. the search was terminated): return
+            // the current plan instead of spinning forever
+            return Some(find_state(state.0, state.1));
+        }
 
+        n += new_res.played;
         res[best] += new_res;
+
+        #[cfg(feature = "hop_debug")]
+        {
+            extern crate std;
+            std::eprintln!(
+                "hopdbg buried={:>2} arms={:>2} sel wins={:>4} skips={:>4} played={:>5}",
+                game.get_hidden().total_down_cards(),
+                states.len(),
+                res[best].wins,
+                res[best].skips,
+                res[best].played,
+            );
+        }
 
         if res[best].played > n_times {
             return Some(find_state(state.0, state.1));
         }
-
-        // let &(win, _skip, max_n) = res.iter().max_by_key(|x| x.2).unwrap();
-
-        // const ALPHA: f64 = 2.0;
-        // const BETA: f64 = 2.0;
-
-        // let var = {
-        //     let alpha = ALPHA + win as f64;
-        //     let beta = BETA + (max_n - win) as f64;
-        //     alpha * beta / ((alpha + beta).powi(2) * (alpha + beta + 1.0))
-        // };
-
-        // if 4.0 * var * (n_times as f64) < 1.0 {
-        //     break;
-        // }
     }
 }

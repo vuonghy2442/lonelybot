@@ -10,6 +10,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use lonelybot::convert::convert_moves;
 // use lonelybot::dependencies::DependencyEngine;
 use lonelybot::engine::SolitaireEngine;
+use lonelybot::hop_solver::HopResult;
 use lonelybot::mcts_solver::pick_moves;
 use lonelybot::pruning::{CyclePruner, FullPruner, NoPruner};
 use lonelybot::shuffler::{self, CardDeck, U256};
@@ -162,23 +163,40 @@ fn do_random(seed: &Seed, draw_step: NonZeroU8) {
     println!("Total win {total_win}/{TOTAL_GAME}");
 }
 
-fn ucb1(n_sucess: usize, n_visit: usize, n_total: usize) -> f64 {
+fn ucb1(r: &HopResult, n_total: usize) -> f64 {
     const C: f64 = 2.;
 
-    #[allow(clippy::cast_precision_loss)]
-    if n_visit == 0 {
+    if r.played == 0 {
         f64::INFINITY
     } else {
-        n_sucess as f64 / n_visit as f64 + C * ((n_total as f64).ln() / n_visit as f64).sqrt()
+        #[allow(clippy::cast_precision_loss)]
+        {
+            r.rate() + C * ((n_total as f64).ln() / r.played as f64).sqrt()
+        }
     }
+}
+
+/// One-step splitmix64 finalizer: derive a well-mixed seed from the game
+/// seed so the playout rng stream is unrelated to the deck-shuffle stream
+/// (both would otherwise start from `SmallRng::seed_from_u64(seed)`, coupling
+/// the sampled hidden-card arrangements to the true deal)
+fn mix_seed(mut z: u64) -> u64 {
+    z = z.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
 }
 
 fn do_hop(seed: &Seed, draw_step: NonZeroU8, verbose: bool) -> bool {
     const N_TIMES: usize = 3000;
+    // 1000 vs 2000 was compared head-to-head twice (seeds 0-46 and
+    // 1000-1099): the win rate is statistically identical, so the cheaper
+    // depth wins on time; deeper playouts only resolve more skips into wins
+    // (never into losses), which adds no ranking signal for this policy
     const LIMIT: usize = 1000;
 
     let mut game: SolitaireEngine<NoPruner> = Solitaire::new(&shuffle(seed), draw_step).into();
-    let mut rng = SmallRng::seed_from_u64(seed.seed().as_u64());
+    let mut rng = SmallRng::seed_from_u64(mix_seed(seed.seed().as_u64()));
 
     while !game.state().is_win() {
         // plan on the canonicalized game so the search never sees the real
@@ -537,6 +555,8 @@ enum Commands {
         #[command(flatten)]
         seed: StringSeed,
         draw_step: NonZeroU8,
+        /// Stop after this many games (default: run forever)
+        games: Option<u32>,
     },
 }
 
@@ -578,9 +598,13 @@ fn main() {
         Commands::Hop { seed, draw_step } => {
             do_hop(&seed.into(), *draw_step, true);
         }
-        Commands::HopLoop { seed, draw_step } => {
+        Commands::HopLoop {
+            seed,
+            draw_step,
+            games,
+        } => {
             let mut cnt_solve: u32 = 0;
-            for i in 0.. {
+            for i in 0..games.unwrap_or(u32::MAX) {
                 let s: Seed = seed.into();
                 let start = time::Instant::now();
 

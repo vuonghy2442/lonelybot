@@ -95,6 +95,17 @@ impl Solitaire {
         self.hidden.clear();
     }
 
+    /// Overwrite the strictly buried cards with `cards` (slot order, see
+    /// `Hidden::buried_cards`). This only permutes hidden information, so
+    /// every generated move stays legal.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `cards.len()` doesn't match the number of buried slots.
+    pub fn apply_buried(&mut self, cards: &[Card]) {
+        self.hidden.apply_buried(cards);
+    }
+
     #[must_use]
     const fn get_visible_mask(&self) -> u64 {
         self.visible_mask
@@ -617,7 +628,7 @@ mod tests {
     use crate::moves::N_MOVES_MAX;
     use crate::shuffler::default_shuffle;
 
-    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    // Note this useful idiom: importing names from outer (mod tests) scope.
     use super::*;
 
     #[test]

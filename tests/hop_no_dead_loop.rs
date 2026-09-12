@@ -1,4 +1,5 @@
 use lonelybot::engine::SolitaireEngine;
+use lonelybot::hop_solver::HopResult;
 use lonelybot::mcts_solver::pick_moves;
 use lonelybot::pruning::NoPruner;
 use lonelybot::shuffler::default_shuffle;
@@ -7,14 +8,16 @@ use lonelybot::tracking::DefaultTerminateSignal;
 use rand::{rngs::SmallRng, SeedableRng};
 use std::num::NonZeroU8;
 
-fn ucb1(n_sucess: usize, n_visit: usize, n_total: usize) -> f64 {
+fn ucb1(r: &HopResult, n_total: usize) -> f64 {
     const C: f64 = 2.;
 
-    #[allow(clippy::cast_precision_loss)]
-    if n_visit == 0 {
+    if r.played == 0 {
         f64::INFINITY
     } else {
-        n_sucess as f64 / n_visit as f64 + C * ((n_total as f64).ln() / n_visit as f64).sqrt()
+        #[allow(clippy::cast_precision_loss)]
+        {
+            r.rate() + C * ((n_total as f64).ln() / r.played as f64).sqrt()
+        }
     }
 }
 
@@ -27,14 +30,24 @@ fn ucb1(n_sucess: usize, n_visit: usize, n_total: usize) -> f64 {
 fn run_hop(seed: u64, draw_step: u8, n_times: usize, limit: usize, max_turns: usize) -> Option<bool> {
     let mut game: SolitaireEngine<NoPruner> =
         Solitaire::new(&default_shuffle(seed), NonZeroU8::new(draw_step).unwrap()).into();
-    let mut rng = SmallRng::seed_from_u64(seed);
+    // decorrelate the playout rng from the deck shuffle, like lonecli's do_hop
+    let mixed = {
+        let mut z = seed.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    };
+    let mut rng = SmallRng::seed_from_u64(mixed);
 
     for _ in 0..max_turns {
         if game.state().is_win() {
             return Some(true);
         }
 
+        // plan on the canonicalized game so the search never sees the real
+        // hidden cards, like lonecli's do_hop
         let mut gg = game.state().clone();
+        gg.hidden_clear();
         let Some(best) = pick_moves(
             &mut gg,
             &mut rng,

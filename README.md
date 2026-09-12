@@ -312,10 +312,11 @@ Lost
 
 ### HOP loop
 ```sh
-lonecli hop-loop [seed_type] [seed] [draw_step]
+lonecli hop-loop [seed_type] [seed] [draw_step] [games]
 ```
 
 - In this mode it will try to solve the game with no undo from the given seed and moving on to the next seed
+- `games` is an optional cap on the number of games to play (omit it to run forever)
 Example run
 ```sh
 lonecli hop-loop default 0 3
