@@ -239,6 +239,22 @@ debts repaid before the top element, and the covering corner as the
 sole obstruction to exchange-greediness. Parking, scars, streaks, and
 certificates are one object from four sides.
 
+*Complexity caveat.* Generalized Klondike is NP-complete, and none of
+the P-series claims conflict with that — they are fixed-52 statements
+(the game is a finite O(1) object). But hardness *predicts the
+failure modes under scaling*: M-2's residual (alive-under-the-bound-
+but-dead) is complexity-theoretically required to be non-empty in the
+generalized game (an exact fixpoint would make solvability poly);
+M-4's bound is Θ(n) (the DAG chain grows with rank count — the crease
+is linear, not constant); the exchange lemma, if true, can only be a
+pruning tool (no poly augmentation oracle, or the exception set
+carries the hardness); and C-IND stays a constant-factor reduction,
+not a complexity collapse — hardness lives in the composition of n
+commitments, not the O(1)-width type locality. Note also: this
+engine's variant (no pile-to-pile moves, K+ full-information deck)
+breaks the standard hardness gadgets, so its generalized complexity
+is technically open — the cautious prior remains "hard."
+
 ## P.5 Experiment log
 
 **C-SCAR verified on the acceptance corpus (2026-09-12, same setup).**
