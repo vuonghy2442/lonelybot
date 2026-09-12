@@ -19,7 +19,11 @@
 //!   clones, no per-step `gen_moves`, BFS dedup keyed on the u16 word.
 //! - **The direct generator** (`core_run`): the §6.4 rule list per
 //!   commitment — direct / dig / borrow / prefix-raise channels plus the
-//!   bounded shared BFS for the crease — emitting steps, not states.
+//!   bounded shared BFS for the crease — emitting steps, not states. The
+//!   goal set is trimmed two ways: the fold-mode cut (search path only,
+//!   provably selection-neutral — ledger C14) and the `goal_dead` kills
+//!   (necessary conditions from the closure algebra — ledger C15, both
+//!   derived in macro_formalization.md §8).
 //! - **The search** (`macro_solvable_direct`): in-place DFS applying
 //!   successors as `do_move(commit)` + `set_board(swept words)`; the fold
 //!   is the destination collapse (`collapse_pick`): one successor per
@@ -35,7 +39,7 @@ use arrayvec::ArrayVec;
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::card::{Card, KING_MASK, N_CARDS};
+use crate::card::{Card, KING_MASK, N_CARDS, SUIT_MASK};
 use crate::deck::N_PILES;
 use crate::moves::{Move, MoveMask, N_MOVES_MAX};
 use crate::stack::Stack;
@@ -139,6 +143,76 @@ pub(crate) mod perf_probe {
     }
     pub fn bump_enc() {
         ENCODES.with(|c| c.set(c.get() + 1));
+    }
+
+    // --- crease grammar (the BFS-elimination question) ---
+    // Thread-local histogram of what the shared accommodation BFS actually
+    // answers on the path it runs: witness shuffle-length (capped at 15),
+    // the alternating shape (a witness mixing PileStack and StackPile
+    // before the commit — the chained crease the named channels cannot
+    // express as a single probe), answered/missed goals.
+    std::thread_local! {
+        static CREASE_HIST: [Cell<u64>; 16] = [
+            Cell::new(0), Cell::new(0), Cell::new(0), Cell::new(0),
+            Cell::new(0), Cell::new(0), Cell::new(0), Cell::new(0),
+            Cell::new(0), Cell::new(0), Cell::new(0), Cell::new(0),
+            Cell::new(0), Cell::new(0), Cell::new(0), Cell::new(0),
+        ];
+        static CREASE_ALT: Cell<u64> = Cell::new(0);
+        static CREASE_ANS: Cell<u64> = Cell::new(0);
+        static CREASE_MISS: Cell<u64> = Cell::new(0);
+        static SEL_BFS: Cell<u64> = Cell::new(0);
+        static SEL_FIX: Cell<u64> = Cell::new(0);
+    }
+
+    pub fn bump_sel(bfs: bool) {
+        if bfs {
+            SEL_BFS.with(|c| c.set(c.get() + 1));
+        } else {
+            SEL_FIX.with(|c| c.set(c.get() + 1));
+        }
+    }
+
+    /// `[len 0..=15][alt][answered][missed][sel_bfs][sel_fix]`
+    #[must_use]
+    pub fn crease_read() -> [u64; 21] {
+        let mut out = [0u64; 21];
+        CREASE_HIST.with(|h| {
+            for (i, c) in h.iter().enumerate() {
+                out[i] = c.get();
+            }
+        });
+        out[16] = CREASE_ALT.with(Cell::get);
+        out[17] = CREASE_ANS.with(Cell::get);
+        out[18] = CREASE_MISS.with(Cell::get);
+        out[19] = SEL_BFS.with(Cell::get);
+        out[20] = SEL_FIX.with(Cell::get);
+        out
+    }
+
+    pub fn crease_reset() {
+        CREASE_HIST.with(|h| {
+            for c in h.iter() {
+                c.set(0);
+            }
+        });
+        CREASE_ALT.with(|c| c.set(0));
+        CREASE_ANS.with(|c| c.set(0));
+        CREASE_MISS.with(|c| c.set(0));
+        SEL_BFS.with(|c| c.set(0));
+        SEL_FIX.with(|c| c.set(0));
+    }
+
+    pub fn bump_crease(shuffles: usize, alternating: bool) {
+        CREASE_HIST.with(|h| h[shuffles.min(15)].set(h[shuffles.min(15)].get() + 1));
+        if alternating {
+            CREASE_ALT.with(|c| c.set(c.get() + 1));
+        }
+        CREASE_ANS.with(|c| c.set(c.get() + 1));
+    }
+
+    pub fn bump_crease_miss() {
+        CREASE_MISS.with(|c| c.set(c.get() + 1));
     }
 }
 
@@ -277,6 +351,47 @@ struct Words {
     stack: u16,
 }
 
+/// Per-suit single-bit table: `SUIT_NEXT[s][h]` is exactly the bit
+/// `Stack::mask` contributes for suit `s` at height `h` — the next
+/// stackable card's position (a phantom bit ≥ 52 when the suit is
+/// complete, matching `Stack::mask`'s arithmetic). Table lookups instead
+/// of nibble arithmetic on the hot path (BFS states, probes, sweeps).
+const SUIT_NEXT: [[u64; 16]; 4] = {
+    let mut t = [[0u64; 16]; 4];
+    let mut s = 0;
+    while s < 4 {
+        let mut h = 0;
+        while h < 16 {
+            t[s][h] = SUIT_MASK[s] & (0xFu64 << (4 * h));
+            h += 1;
+        }
+        s += 1;
+    }
+    t
+};
+
+/// Per-suit stacked-prefix masks: `SUIT_PREFIX[s][h]` = the cards of suit
+/// `s` with rank `< h`. The table form of the old per-card loop — a
+/// closure state's `vis` derivation (`words_at`) reads it four times per
+/// BFS state.
+const SUIT_PREFIX: [[u64; 16]; 4] = {
+    let mut t = [[0u64; 16]; 4];
+    let mut s = 0;
+    while s < 4 {
+        let mut r = 0;
+        while r < 13 {
+            t[s][r + 1] = t[s][r] | Card::new(r as u8, s as u8).mask();
+            r += 1;
+        }
+        // heights 14/15 are unreachable on a valid board; mirror 13 so the
+        // table stays total without fabricating card bits
+        t[s][14] = t[s][13];
+        t[s][15] = t[s][13];
+        s += 1;
+    }
+    t
+};
+
 impl Words {
     fn from_game(g: &Solitaire) -> Self {
         Self {
@@ -295,8 +410,15 @@ impl Words {
         bottom_mask_of(self.vis, self.locked)
     }
 
+    /// `Stack::mask` table-driven: four single-bit lookups instead of the
+    /// nibble arithmetic (the table reproduces it bit-for-bit, including
+    /// the ≥13 phantom-bit sentinels).
     fn sm(self) -> u64 {
-        Stack::decode(self.stack).mask()
+        let s = self.stack;
+        SUIT_NEXT[0][usize::from(s & 0xF)]
+            | SUIT_NEXT[1][usize::from((s >> 4) & 0xF)]
+            | SUIT_NEXT[2][usize::from((s >> 8) & 0xF)]
+            | SUIT_NEXT[3][usize::from((s >> 12) & 0xF)]
     }
 
     /// Raw `pile_stack` mask (`bm & vis & sm`) — locked cards included, as
@@ -305,25 +427,25 @@ impl Words {
         self.bm() & self.vis & self.sm()
     }
 
-    fn free_slot(self) -> u64 {
+    /// Every raw move mask, identical formulas to `gen_moves::<false>`
+    /// (with dominances off that function never early-returns, so the pure
+    /// formulas are the whole semantics). The §6.4 probes and the word BFS
+    /// both read legality through this.
+    ///
+    /// `bm`/`sm` are computed once here — the old shape rederived them via
+    /// `free_slot`/`pile_stack` (two extra `bm`s and one `sm` per call).
+    fn move_masks(self, deck_mask: u64, first_layer: u64) -> MoveMask {
+        let bm = self.bm();
+        let sm = self.sm();
         let extended = self.vis & (self.locked | KING_MASK);
         let king = if extended.count_ones() < u32::from(N_PILES) {
             KING_MASK
         } else {
             0
         };
-        (self.bm() >> 4) | king
-    }
-
-    /// Every raw move mask, identical formulas to `gen_moves::<false>`
-    /// (with dominances off that function never early-returns, so the pure
-    /// formulas are the whole semantics). The §6.4 probes and the word BFS
-    /// both read legality through this.
-    fn move_masks(self, deck_mask: u64, first_layer: u64) -> MoveMask {
-        let sm = self.sm();
-        let free_slot = self.free_slot();
+        let free_slot = (bm >> 4) | king;
         MoveMask {
-            pile_stack: self.pile_stack(),
+            pile_stack: bm & self.vis & sm,
             deck_stack: deck_mask & sm,
             stack_pile: swap_pair(sm >> 4) & free_slot,
             deck_pile: deck_mask & free_slot,
@@ -334,7 +456,8 @@ impl Words {
     /// The sweep candidate rule, word form: the same set
     /// `Solitaire::safe_sweep_candidates` computes on the concrete state.
     fn sweep_cands(self) -> u64 {
-        self.pile_stack() & Stack::decode(self.stack).dominance_mask() & !self.locked
+        let bm = self.bm();
+        (bm & self.vis & self.sm()) & Stack::decode(self.stack).dominance_mask() & !self.locked
     }
 
     fn stack_up(&mut self, c: Card) {
@@ -350,19 +473,17 @@ impl Words {
 
 /// The stacked card set of a stack word: per suit, the prefix below its
 /// height. The word-level dual of `Stack::mask` (which is the *next* card).
+/// Table form: four lookups instead of the per-card construction loop —
+/// `words_at` pays this once per BFS state.
 const fn stacked_mask(stack: u16) -> u64 {
-    let mut m = 0u64;
-    let mut s = 0;
-    while s < 4 {
-        let h = ((stack >> (4 * s)) & 0xF) as u8;
-        let mut r = 0;
-        while r < h {
-            m |= Card::new(r, s).mask();
-            r += 1;
-        }
-        s += 1;
-    }
-    m
+    #[allow(clippy::cast_possible_truncation)]
+    let (n0, n1, n2, n3) = (
+        (stack & 0xF) as usize,
+        ((stack >> 4) & 0xF) as usize,
+        ((stack >> 8) & 0xF) as usize,
+        ((stack >> 12) & 0xF) as usize,
+    );
+    SUIT_PREFIX[0][n0] | SUIT_PREFIX[1][n1] | SUIT_PREFIX[2][n2] | SUIT_PREFIX[3][n3]
 }
 
 /// The closure-invariant context: the bits `hidden` and `deck` contribute
@@ -837,7 +958,7 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         }
         let ctx = ClosureCtx::from_game(s);
         let mut commitments = core::mem::take(&mut scratch.commitments);
-        core_run(&ctx, scratch, &mut commitments);
+        core_run(&ctx, scratch, &mut commitments, true);
         scratch.commitments = commitments;
 
         // F3 dominance drop: tableau outcomes of dominantly stackable
@@ -945,6 +1066,8 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
             let Some((_, _, steps, _ch)) = collapse_pick(group, f3) else {
                 continue;
             };
+            #[cfg(test)]
+            perf_probe::bump_sel(_ch.ends_with("bfs"));
             let (vis, stack) = post_words(s, &ctx, steps);
             let old = (s.get_visible_mask(), s.get_stack().encode());
             let commit = *steps.last().expect("every channel ends in a commit");
@@ -989,7 +1112,13 @@ struct AccommodationGoal {
 pub(crate) struct BfsScratch {
     arena: Vec<(usize, Move, u16)>,
     queue: alloc::collections::VecDeque<(u16, usize)>,
-    seen: crate::traverse::TpTable,
+    /// Dedup over closure states. A closure state *is* its u16 stack word,
+    /// so dedup is a generation stamp over the whole u16 range:
+    /// `seen[w] == seen_gen` marks `w` visited this call. Direct indexing
+    /// instead of hashing, and the generation bump replaces clearing
+    /// 256 KB per call.
+    seen: Vec<u32>,
+    seen_gen: u32,
 }
 
 /// Reusable working buffers for the whole direct-transition machinery:
@@ -1013,7 +1142,8 @@ impl DirectScratch {
             bfs: BfsScratch {
                 arena: Vec::new(),
                 queue: alloc::collections::VecDeque::new(),
-                seen: crate::traverse::TpTable::default(),
+                seen: alloc::vec![0; 1 << 16],
+                seen_gen: 0,
             },
             fold_seen: Vec::new(),
             out: Vec::new(),
@@ -1065,15 +1195,24 @@ fn accommodations_shared(
     }
     // parent-pointer arena: entry i = (parent index, reaching move, depth);
     // entry 0 is the root sentinel
+    let gen = {
+        let g = scratch.seen_gen.wrapping_add(1);
+        scratch.seen_gen = if g == 0 {
+            scratch.seen.fill(0);
+            1
+        } else {
+            g
+        };
+        scratch.seen_gen
+    };
     let arena = &mut scratch.arena;
     let queue = &mut scratch.queue;
     let seen = &mut scratch.seen;
     arena.clear();
     queue.clear();
-    seen.clear();
     arena.push((usize::MAX, Move::PileStack(Card::DEFAULT), 0));
     queue.push_back((ctx.root.stack, 0));
-    seen.insert(u64::from(ctx.root.stack));
+    seen[usize::from(ctx.root.stack)] = gen;
 
     while let Some((word, idx)) = queue.pop_front() {
         #[cfg(test)]
@@ -1137,7 +1276,9 @@ fn accommodations_shared(
                 w2.stack_down(c);
                 Move::StackPile(c)
             };
-            if seen.insert(u64::from(w2.stack)) {
+            let wi = usize::from(w2.stack);
+            if seen[wi] != gen {
+                seen[wi] = gen;
                 let child = arena.len();
                 arena.push((idx, m, (depth + 1) as u16));
                 queue.push_back((w2.stack, child));
@@ -1147,6 +1288,8 @@ fn accommodations_shared(
     for (gi, goal) in goals.iter().enumerate() {
         let ans = answers[gi];
         if ans == NONE {
+            #[cfg(test)]
+            perf_probe::bump_crease_miss();
             continue;
         }
         // reconstruct the witness from the arena; caps give ≤11 shuffles +
@@ -1159,6 +1302,14 @@ fn accommodations_shared(
         }
         steps.reverse();
         steps.push(goal.commit_move);
+        #[cfg(test)]
+        {
+            let n = steps.len();
+            let shuffles = &steps[..n - 1];
+            let alt = shuffles.iter().any(|m| matches!(m, Move::PileStack(_)))
+                && shuffles.iter().any(|m| matches!(m, Move::StackPile(_)));
+            perf_probe::bump_crease(n - 1, alt);
+        }
         let channel = match goal.kind {
             OutcomeKind::Stack => "stack-bfs",
             OutcomeKind::Tableau => "tableau-bfs",
@@ -1268,6 +1419,63 @@ fn steps(ms: &[Move]) -> ArrayVec<Move, 42> {
     a
 }
 
+/// Cheap necessary conditions for an accommodation goal to open anywhere
+/// in the reversible closure — the mathematical BFS kill.
+///
+/// Inside the closure `vis(w) ⊆ root.vis ∪ worried-back(w)`, and a
+/// worry-back can only surface a card that is on the foundation at the
+/// root — i.e. a card of rank `< h₀(suit)` (the foundation is a prefix).
+/// Deck cards and buried cards never enter `vis` at all. Therefore:
+///
+/// * **Stack goal on X** (needs `sm ∋ X`, i.e. the suit climbs from `h₀`
+///   to `rank(X)`): every missing prefix card is stacked exactly once on
+///   the way up, and at that moment it must be visible — which for ranks
+///   `≥ h₀` can only mean *root-visible and unlocked* (worry-backs only
+///   surface ranks `< h₀`; locked cards cannot stack in the closure).
+///   A missing prefix card that is buried, in the deck, or locked kills
+///   the goal. Descent (`h₀ > rank(X)`) takes no cheap kill.
+/// * **Tableau goal on X** (non-king: X opens through a receiver *type*
+///   at `rank(X)+1`, opposite color — `free_slot = (bm >> 4) | king`
+///   spreads the receiver type to X's bit): the type needs a visible
+///   member at the opening state — root-visible or worried back from the
+///   root foundation. Neither twin qualifying kills the goal. Kings only
+///   open through the empty-pile gate, which has no receiver — no kill.
+///
+/// A killed goal provably has no BFS answer, so skipping it changes no
+/// successor in either mode — pure search cost. Gates:
+/// `macro_direct_matches_oracle` (the differential would count a wrong
+/// kill as a missing outcome) and the verdict sweeps.
+fn goal_dead(ctx: &ClosureCtx, commitment: Commitment, kind: OutcomeKind) -> bool {
+    let x = match commitment {
+        Commitment::Draw(x) | Commitment::Reveal(x) => x,
+    };
+    match kind {
+        OutcomeKind::Stack => {
+            let s = x.suit();
+            let h0 = ctx.root.height(s);
+            if h0 >= x.rank() {
+                return false;
+            }
+            (h0..x.rank()).any(|r| {
+                let m = Card::new(r, s).mask();
+                ctx.root.vis & m == 0 || ctx.root.locked & m != 0
+            })
+        }
+        OutcomeKind::Tableau => {
+            if x.rank() == crate::card::KING_RANK {
+                return false;
+            }
+            let r = x.rank() + 1;
+            let s = x.suit();
+            let stacked_now = stacked_mask(ctx.root.stack);
+            [Card::new(r, s ^ 2), Card::new(r, s ^ 3)].into_iter().all(|p| {
+                let m = p.mask();
+                ctx.root.vis & m == 0 && stacked_now & m == 0
+            })
+        }
+    }
+}
+
 /// The rule list proper: one entry per (commitment, channel) that opens,
 /// grouped per commitment (adjacent in the flattened vec — the
 /// differential's kind-fold relies on it). See `macro_transitions_direct`
@@ -1277,7 +1485,22 @@ fn steps(ms: &[Move]) -> ArrayVec<Move, 42> {
 /// Evaluated entirely on the canonical state's closure context — no
 /// clones, no `do_move` probes, no per-step `gen_moves`: the §6.4 channels
 /// are mask checks on the word board and 20-byte word copies.
-fn core_run(ctx: &ClosureCtx, scratch: &mut DirectScratch, commitments: &mut Vec<Commitment>) {
+///
+/// `fold` selects the search-facing goal set. The shipped fold
+/// (`collapse_pick`) picks the *first* tableau-kind entry per commitment —
+/// tableau-direct, then dig, then borrow, then tableau-bfs — and BFS
+/// answers append after every fixed channel. So a tableau goal whose
+/// commitment already has a dig/borrow outcome, and a stack goal whose
+/// commitment already has any tableau outcome, can never be selected:
+/// `fold` skips pushing exactly those. Provably the same successor per
+/// commitment (gated by `fold_goal_cut_matches_total`); the materialized
+/// path passes `false` and stays total for the differential.
+fn core_run(
+    ctx: &ClosureCtx,
+    scratch: &mut DirectScratch,
+    commitments: &mut Vec<Commitment>,
+    fold: bool,
+) {
     let mv = ctx.root.move_masks(ctx.deck_mask, ctx.first_layer);
     let deck_mask = ctx.deck_mask;
     let locked = ctx.root.locked;
@@ -1406,15 +1629,88 @@ fn core_run(ctx: &ClosureCtx, scratch: &mut DirectScratch, commitments: &mut Vec
                 }
             }
         }
-        if !stack_produced && !stack_now {
-            // (the blockers of X are two twins and each may need its own
-            // dig; the shared bounded BFS below catches the chains the
-            // fixed rules don't name. Gate: only when no fixed channel
-            // produced a stack outcome — running it after a successful
-            // prefix-raise would hunt for the *second* stack scar class
-            // (the same-kind splits of §6.7) but multiplies the per-node
-            // cost badly. The residual under-emission is measured instead:
-            // the class-coverage metric in macro_direct_matches_oracle.)
+        // dig/borrow only make sense with a parent class: kings skip both
+        let is_king = x.rank() == crate::card::KING_RANK;
+
+        // dig channel: vacate twin(X) onto a foundation if it is the
+        // (uniquely possible) coverer of a parent top. Probed on a word
+        // copy — one stack nibble edit and a mask recompute.
+        let mut dig_fired = false;
+        if !is_king {
+            let twin = x.swap_suit();
+            let twin_mask = twin.mask();
+            if locked & twin_mask == 0 && mv.pile_stack & twin_mask != 0 {
+                let mut w = ctx.root;
+                w.stack_up(twin);
+                let mv2 = w.move_masks(deck_mask, ctx.first_layer);
+                let opens = match commitment {
+                    Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
+                    Commitment::Reveal(_) => mv2.reveal & xmask != 0,
+                };
+                if opens {
+                    groups[ci].push((
+                        commitment,
+                        OutcomeKind::Tableau,
+                        steps(&[Move::PileStack(twin), direct_move]),
+                        "tableau-dig",
+                    ));
+                    dig_fired = true;
+                }
+            }
+        }
+
+        // borrow channel(s): a parent on its foundation top, worry-back-able.
+        // Probed on a word copy, same shape as the dig.
+        let mut borrow_fired = false;
+        if !is_king {
+            let r = x.rank();
+            let s = x.suit();
+            for p in [Card::new(r + 1, s ^ 2), Card::new(r + 1, s ^ 3)] {
+                let on_foundation_top =
+                    ctx.root.height(p.suit()) == p.rank().saturating_add(1);
+                if !(on_foundation_top
+                    && locked & p.mask() == 0
+                    && mv.stack_pile & p.mask() != 0)
+                {
+                    continue;
+                }
+                let mut w = ctx.root;
+                w.stack_down(p);
+                let mv2 = w.move_masks(deck_mask, ctx.first_layer);
+                let opens = match commitment {
+                    Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
+                    Commitment::Reveal(_) => mv2.reveal & xmask != 0,
+                };
+                if opens {
+                    groups[ci].push((
+                        commitment,
+                        OutcomeKind::Tableau,
+                        steps(&[Move::StackPile(p), direct_move]),
+                        "tableau-borrow",
+                    ));
+                    borrow_fired = true;
+                }
+            }
+        }
+
+        // (the blockers of X are two twins and each may need its own dig;
+        // the shared bounded BFS below catches the chains the fixed rules
+        // don't name. Gate: only when no fixed channel produced a stack
+        // outcome — running it after a successful prefix-raise would hunt
+        // for the *second* stack scar class (the same-kind splits of
+        // §6.7) but multiplies the per-node cost badly. The residual
+        // under-emission is measured instead: the class-coverage metric in
+        // macro_direct_matches_oracle.)
+        //
+        // fold mode: a stack-bfs answer can only be selected when the
+        // commitment has no tableau outcome at all (collapse_pick takes
+        // the first tableau entry, and every fixed tableau channel
+        // precedes the BFS appends) — skip the goal otherwise.
+        if !stack_produced
+            && !stack_now
+            && !goal_dead(ctx, commitment, OutcomeKind::Stack)
+            && !(fold && (direct_now || dig_fired || borrow_fired))
+        {
             goals.push(AccommodationGoal {
                 commitment,
                 kind: OutcomeKind::Stack,
@@ -1424,67 +1720,17 @@ fn core_run(ctx: &ClosureCtx, scratch: &mut DirectScratch, commitments: &mut Vec
             });
         }
 
-        // dig/borrow only make sense with a parent class: skip for kings
-        if x.rank() == crate::card::KING_RANK {
-            continue;
-        }
-
-        // dig channel: vacate twin(X) onto a foundation if it is the
-        // (uniquely possible) coverer of a parent top. Probed on a word
-        // copy — one stack nibble edit and a mask recompute.
-        let twin = x.swap_suit();
-        let twin_mask = twin.mask();
-        if locked & twin_mask == 0 && mv.pile_stack & twin_mask != 0 {
-            let mut w = ctx.root;
-            w.stack_up(twin);
-            let mv2 = w.move_masks(deck_mask, ctx.first_layer);
-            let opens = match commitment {
-                Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
-                Commitment::Reveal(_) => mv2.reveal & xmask != 0,
-            };
-            if opens {
-                groups[ci].push((
-                    commitment,
-                    OutcomeKind::Tableau,
-                    steps(&[Move::PileStack(twin), direct_move]),
-                    "tableau-dig",
-                ));
-            }
-        }
-
-        // borrow channel(s): a parent on its foundation top, worry-back-able.
-        // Probed on a word copy, same shape as the dig.
-        let r = x.rank();
-        let s = x.suit();
-        for p in [Card::new(r + 1, s ^ 2), Card::new(r + 1, s ^ 3)] {
-            let on_foundation_top = ctx.root.height(p.suit()) == p.rank().saturating_add(1);
-            if !(on_foundation_top
-                && locked & p.mask() == 0
-                && mv.stack_pile & p.mask() != 0)
-            {
-                continue;
-            }
-            let mut w = ctx.root;
-            w.stack_down(p);
-            let mv2 = w.move_masks(deck_mask, ctx.first_layer);
-            let opens = match commitment {
-                Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
-                Commitment::Reveal(_) => mv2.reveal & xmask != 0,
-            };
-            if opens {
-                groups[ci].push((
-                    commitment,
-                    OutcomeKind::Tableau,
-                    steps(&[Move::StackPile(p), direct_move]),
-                    "tableau-borrow",
-                ));
-            }
-        }
-
         // fallback channel: the shared bounded BFS below (catches the
         // chained borrow/dig crease; the differential reports how often
         // it fires)
-        if !direct_now {
+        //
+        // fold mode: with a dig/borrow outcome already in the group the
+        // tableau-bfs answer appends after it and can never be picked
+        // (collapse_pick takes the first tableau entry) — skip the goal.
+        if !direct_now
+            && !goal_dead(ctx, commitment, OutcomeKind::Tableau)
+            && !(fold && (dig_fired || borrow_fired))
+        {
             goals.push(AccommodationGoal {
                 commitment,
                 kind: OutcomeKind::Tableau,
@@ -1514,7 +1760,7 @@ fn macro_transitions_core(g: &Solitaire, scratch: &mut DirectScratch) -> (Solita
     canonicalize(&mut game);
     let ctx = ClosureCtx::from_game(&game);
     let mut commitments = core::mem::take(&mut scratch.commitments);
-    core_run(&ctx, scratch, &mut commitments);
+    core_run(&ctx, scratch, &mut commitments, false);
     scratch.commitments = commitments;
     (game, ctx)
 }
@@ -1691,6 +1937,443 @@ mod tests {
             .unwrap();
     }
 
+    /// The lookup tables against the arithmetic they replace, exhaustively:
+    /// `SUIT_NEXT`/`Words::sm` must equal `Stack::mask` for *every* u16
+    /// stack word (the table is the formula, but the guarantee is what the
+    /// hot path stands on), and `SUIT_PREFIX`/`stacked_mask` must equal the
+    /// per-card loop for every *valid* word (nibbles ≤ 13).
+    #[test]
+    fn word_tables_exact() {
+        for w in 0..=u16::MAX {
+            let tbl = Words { vis: 0, locked: 0, stack: w }.sm();
+            assert_eq!(tbl, Stack::decode(w).mask(), "sm table divergence at {w:#x}");
+        }
+        for w in 0..=u16::MAX {
+            let (mut h0, mut h1, mut h2, mut h3) = (
+                (w & 0xF) as u8,
+                ((w >> 4) & 0xF) as u8,
+                ((w >> 8) & 0xF) as u8,
+                ((w >> 12) & 0xF) as u8,
+            );
+            h0 = h0.min(13);
+            h1 = h1.min(13);
+            h2 = h2.min(13);
+            h3 = h3.min(13);
+            let valid = w
+                == (u16::from(h0) | (u16::from(h1) << 4) | (u16::from(h2) << 8) | (u16::from(h3) << 12));
+            if !valid {
+                continue;
+            }
+            let mut m = 0u64;
+            for (s, h) in [(0u8, h0), (1, h1), (2, h2), (3, h3)] {
+                for r in 0..h {
+                    m |= Card::new(r, s).mask();
+                }
+            }
+            assert_eq!(stacked_mask(w), m, "stacked_mask divergence at {w:#x}");
+        }
+    }
+
+    /// The fold-mode goal cut against the total generator, per corpus
+    /// state: for every commitment, `collapse_pick` (with the identical
+    /// F3 mask, which only reads `stack-direct` entries) must select the
+    /// same transition — or none — in both modes. That selection equality
+    /// *is* the cut's soundness argument for the search; the verdict
+    /// sweeps judge the same claim end to end.
+    #[test]
+    fn fold_goal_cut_matches_total() {
+        std::thread::Builder::new()
+            .stack_size(256 * 1024 * 1024)
+            .spawn(|| {
+                let mut states = 0usize;
+                for draw_step in [1u8, 3] {
+                    for i in 0..16u64 {
+                        let mut game = Solitaire::new(
+                            &default_shuffle(12 + i),
+                            NonZeroU8::new(draw_step).unwrap(),
+                        );
+                        for _turn in 0..50 {
+                            if game.is_win() {
+                                break;
+                            }
+                            canonicalize(&mut game);
+                            states += 1;
+                            let ctx = ClosureCtx::from_game(&game);
+
+                            let run = |fold: bool,
+                                       scratch: &mut DirectScratch|
+                             -> Vec<Option<(OutcomeKind, ArrayVec<Move, 42>, &'static str)>> {
+                                let mut commitments =
+                                    core::mem::take(&mut scratch.commitments);
+                                core_run(&ctx, scratch, &mut commitments, fold);
+                                scratch.commitments = commitments;
+                                let dom = game.get_stack().dominance_mask();
+                                let mut f3: u64 = 0;
+                                for group in &scratch.groups {
+                                    for (c, k, _, ch) in group {
+                                        if *k == OutcomeKind::Stack && *ch == "stack-direct"
+                                        {
+                                            f3 |= match c {
+                                                Commitment::Draw(x) | Commitment::Reveal(x) => {
+                                                    x.mask()
+                                                }
+                                            };
+                                        }
+                                    }
+                                }
+                                f3 &= dom;
+                                scratch
+                                    .groups
+                                    .iter()
+                                    .map(|g| {
+                                        collapse_pick(g, f3)
+                                            .map(|(_, k, st, ch)| (*k, st.clone(), *ch))
+                                    })
+                                    .collect()
+                            };
+
+                            let mut scratch = DirectScratch::new();
+                            let sel_total = run(false, &mut scratch);
+                            let n_com = scratch.commitments.len();
+                            let sel_fold = run(true, &mut scratch);
+                            assert_eq!(n_com, sel_fold.len());
+                            assert_eq!(sel_total.len(), sel_fold.len());
+                            for (t, f) in sel_total.iter().zip(sel_fold.iter()) {
+                                match (t, f) {
+                                    (None, None) => {}
+                                    (
+                                        Some((k1, s1, c1)),
+                                        Some((k2, s2, c2)),
+                                    ) => {
+                                        assert_eq!(
+                                            (k1, s1.as_slice(), c1),
+                                            (k2, s2.as_slice(), c2),
+                                            "fold selection divergence: draw={draw_step} seed={} turn={_turn}",
+                                            12 + i
+                                        );
+                                    }
+                                    (t, f) => panic!(
+                                        "fold selection None-mismatch: {t:?} vs {f:?} draw={draw_step} seed={} turn={_turn}",
+                                        12 + i
+                                    ),
+                                }
+                            }
+
+                            // advance by the oracle's first witness path
+                            let cands = enumerate_commitments(&game);
+                            match cands.first() {
+                                None => break,
+                                Some(c0) => {
+                                    for &m in &c0.witness_path {
+                                        let _ = game.do_move(m);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                println!(
+                    "fold goal cut matches total on {states} corpus states"
+                );
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    /// The per-card algebra of `bottom_mask_of`, bound to the
+    /// implementation: a card `c` is movable (`bm ∋ c`) iff
+    ///
+    /// ```text
+    /// (vis[c] ∨ vis[twin(c)])                       — pair visible somewhere
+    /// ∧ ( ¬free[u1] ∧ ¬free[u2]                     — under-pair all blocked
+    ///     ∨ vis[c]⊕vis[twin(c)]⊕free[u1]⊕free[u2] ) — or the parities differ
+    /// ```
+    ///
+    /// where `u1,u2` are the twin pair at `rank(c)−1`, opposite color (the
+    /// cards `c` can sit on; aces have none — always movable when
+    /// visible). This is the compressed parity lemma: every closure edge
+    /// and goal predicate reads at most four card bits, which is the
+    /// substrate the closed-form program (and the Lean formalization of
+    /// the kills) stands on.
+    #[test]
+    fn bm_algebra_matches() {
+        let mut x = 0x243F_6A88_85A3_08D3u64;
+        let mut next = || {
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            x
+        };
+        let full = full_mask(N_CARDS);
+        for _ in 0..2000 {
+            let vis = next() & full;
+            let locked = next() & vis;
+            let bm = bottom_mask_of(vis, locked);
+            for ci in 0..u32::from(N_CARDS) {
+                let c = Card::from_mask_index(ci as u8);
+                let t = c.swap_suit();
+                let vis_c = vis & c.mask() != 0;
+                let vis_t = vis & t.mask() != 0;
+                let free = |card: Card| vis & card.mask() != 0 && locked & card.mask() == 0;
+                let algebra = if c.rank() == 0 {
+                    vis_c || vis_t
+                } else {
+                    let u1 = c.reduce_rank_swap_color();
+                    let u2 = u1.swap_suit();
+                    let (f1, f2) = (free(u1), free(u2));
+                    (vis_c || vis_t)
+                        && ((!f1 && !f2) || ((vis_c ^ vis_t) ^ (f1 ^ f2)))
+                };
+                assert_eq!(
+                    bm & c.mask() != 0,
+                    algebra,
+                    "bm algebra divergence c={c:?} vis={vis:#x} locked={locked:#x}"
+                );
+            }
+        }
+    }
+
+    /// TP preallocation microbench: insert ~2.76M scattered u64s (the
+    /// seed-32 draw-1 unique-state count) into the search's TpTable shape,
+    /// grown from empty vs preallocated. The delta is the rehash share
+    /// the CLI could reclaim by threading a capacity through
+    /// `macro_solvable_direct`.
+    #[test]
+    #[ignore = "tp microbench; run with --ignored --release --nocapture"]
+    fn debug_tp_rehash_share() {
+        use crate::utils::MixHasherBuilder;
+        use std::time::Instant;
+        let n = 2_760_243u64;
+        let key = |i: u64| (i.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> 3) & ((1 << 61) - 1);
+        let t0 = Instant::now();
+        let mut s: hashbrown::HashSet<u64, MixHasherBuilder> = Default::default();
+        let mut inserted = 0u64;
+        for i in 0..n {
+            if s.insert(key(i)) {
+                inserted += 1;
+            }
+        }
+        let t_grow = t0.elapsed();
+        let t1 = Instant::now();
+        let mut s2: hashbrown::HashSet<u64, MixHasherBuilder> =
+            hashbrown::HashSet::with_capacity_and_hasher(4_200_000, MixHasherBuilder);
+        for i in 0..n {
+            s2.insert(key(i));
+        }
+        let t_pre = t1.elapsed();
+        assert_eq!(inserted, n);
+        assert_eq!(s2.len(), n as usize);
+        println!(
+            "insert {n} u64s: grow={t_grow:?} prealloc={t_pre:?} — rehash share {:.1}%",
+            100.0 * (1.0 - t_pre.as_secs_f64() / t_grow.as_secs_f64())
+        );
+    }
+
+    /// The direct falsifier for the `goal_dead` kills: for every corpus
+    /// state, reconstruct every (commitment, kind) that would become a BFS
+    /// goal *without* the kills, run the un-killed shared BFS over all of
+    /// them, and assert that every killed goal indeed has no answer. A
+    /// single answered-but-killed goal is a soundness bug in the kill —
+    /// this test is the kill's arbiter, the differential its backstop.
+    #[test]
+    fn goal_kills_are_sound() {
+        std::thread::Builder::new()
+            .stack_size(256 * 1024 * 1024)
+            .spawn(|| {
+                let (mut states, mut goals_total, mut killed, mut killed_answered) =
+                    (0usize, 0usize, 0usize, 0usize);
+                for draw_step in [1u8, 3] {
+                    for i in 0..16u64 {
+                        let mut game = Solitaire::new(
+                            &default_shuffle(12 + i),
+                            NonZeroU8::new(draw_step).unwrap(),
+                        );
+                        for _turn in 0..50 {
+                            if game.is_win() {
+                                break;
+                            }
+                            canonicalize(&mut game);
+                            states += 1;
+                            let ctx = ClosureCtx::from_game(&game);
+
+                            // the would-be goal set: identical conditions
+                            // to core_run's pushes, minus kills and folds
+                            let mut scratch = DirectScratch::new();
+                            let mut commitments = Vec::new();
+                            core_run(&ctx, &mut scratch, &mut commitments, false);
+                            let mut goals: Vec<AccommodationGoal> = Vec::new();
+                            let mut dead: Vec<bool> = Vec::new();
+                            for &commitment in &commitments {
+                                let g = &scratch.groups
+                                    [commitments.iter().position(|c| *c == commitment).unwrap()];
+                                let x = match commitment {
+                                    Commitment::Draw(x) | Commitment::Reveal(x) => x,
+                                };
+                                let (stack_move, direct_move) = match commitment {
+                                    Commitment::Draw(x) => (Move::DeckStack(x), Move::DeckPile(x)),
+                                    Commitment::Reveal(x) => {
+                                        (Move::PileStack(x), Move::Reveal(x))
+                                    }
+                                };
+                                let has_stack =
+                                    g.iter().any(|(_, k, _, _)| *k == OutcomeKind::Stack);
+                                if !has_stack {
+                                    goals.push(AccommodationGoal {
+                                        commitment,
+                                        kind: OutcomeKind::Stack,
+                                        xmask: x.mask(),
+                                        commit_move: stack_move,
+                                        cap: 40,
+                                    });
+                                    dead.push(goal_dead(&ctx, commitment, OutcomeKind::Stack));
+                                }
+                                let has_direct =
+                                    g.iter().any(|(_, _, _, ch)| *ch == "tableau-direct");
+                                if !has_direct {
+                                    goals.push(AccommodationGoal {
+                                        commitment,
+                                        kind: OutcomeKind::Tableau,
+                                        xmask: x.mask(),
+                                        commit_move: direct_move,
+                                        cap: 40,
+                                    });
+                                    dead.push(goal_dead(&ctx, commitment, OutcomeKind::Tableau));
+                                }
+                            }
+                            goals_total += goals.len();
+                            killed += dead.iter().filter(|&&d| d).count();
+                            if goals.is_empty() {
+                                // advance by the oracle's first witness path
+                                let cands = enumerate_commitments(&game);
+                                match cands.first() {
+                                    None => break,
+                                    Some(c0) => {
+                                        for &m in &c0.witness_path {
+                                            let _ = game.do_move(m);
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
+
+                            // the un-killed shared BFS over the would-be goals
+                            let mut bfs_scratch = DirectScratch::new();
+                            let mut groups2: Vec<Vec<StepTransition>> = commitments
+                                .iter()
+                                .map(|_| Vec::new())
+                                .collect();
+                            accommodations_shared(
+                                &ctx,
+                                &goals,
+                                &commitments,
+                                groups2.as_mut_slice(),
+                                &mut bfs_scratch.bfs,
+                            );
+                            for (gi, goal) in goals.iter().enumerate() {
+                                if !dead[gi] {
+                                    continue;
+                                }
+                                let ci = commitments
+                                    .iter()
+                                    .position(|c| *c == goal.commitment)
+                                    .unwrap();
+                                let bfs_channel = match goal.kind {
+                                    OutcomeKind::Stack => "stack-bfs",
+                                    OutcomeKind::Tableau => "tableau-bfs",
+                                };
+                                let answered = groups2[ci]
+                                    .iter()
+                                    .any(|(_, k, _, ch)| *k == goal.kind && *ch == bfs_channel);
+                                if answered {
+                                    killed_answered += 1;
+                                    panic!(
+                                        "goal_dead killed an answerable goal: draw={draw_step} seed={} turn={_turn} {:?} {:?}",
+                                        12 + i, goal.commitment, goal.kind
+                                    );
+                                }
+                            }
+
+                            // advance by the oracle's first witness path
+                            let cands = enumerate_commitments(&game);
+                            match cands.first() {
+                                None => break,
+                                Some(c0) => {
+                                    for &m in &c0.witness_path {
+                                        let _ = game.do_move(m);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                println!(
+                    "goal kills sound: {states} states, {goals_total} would-be goals, {killed} killed, {killed_answered} wrongly killed",
+                );
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    /// The BFS-elimination probe: what does the shared accommodation BFS
+    /// actually answer *on the search path* (fold mode), and does the fold
+    /// ever select a BFS successor? Hypothesis H1 (crease grammar): every
+    /// answered witness is a short, non-alternating composition of the
+    /// named channel shapes (dig = PileStack chain, borrow = StackPile,
+    /// prefix-raise = PileStack chain) — if H1 holds, the BFS is
+    /// replaceable by bounded constant-work probes; alternating shapes
+    /// (mixed PileStack/StackPile before the commit) are the genuine
+    /// chained crease that needs either the BFS or deeper rules.
+    #[test]
+    #[ignore = "crease grammar probe; run with --ignored --release --nocapture"]
+    fn debug_crease_grammar() {
+        std::thread::Builder::new()
+            .stack_size(256 * 1024 * 1024)
+            .spawn(|| {
+                for draw_step in [1u8, 3] {
+                    perf_probe::reset();
+                    perf_probe::crease_reset();
+                    let mut win_count = 0usize;
+                    for i in 0..32u64 {
+                        let g = Solitaire::new(
+                            &default_shuffle(12 + i),
+                            NonZeroU8::new(draw_step).unwrap(),
+                        );
+                        if macro_solvable_direct(&g) {
+                            win_count += 1;
+                        }
+                    }
+                    let c = perf_probe::crease_read();
+                    let p = perf_probe::read();
+                    let total: u64 = c[..16].iter().sum();
+                    println!(
+                        "draw={draw_step}: {win_count}/32 solvable; bfs_calls={} bfs_states={} answered={} missed={}",
+                        p[3], p[4], c[17], c[18]
+                    );
+                    for (l, n) in c[..16].iter().enumerate() {
+                        if *n > 0 {
+                            println!("  witness shuffles={l}: {n} ({:.1}% of answered)", 100.0 * *n as f64 / total as f64);
+                        }
+                    }
+                    println!(
+                        "  alternating (mixed dig+borrow) witnesses: {} ({:.1}%)",
+                        c[16],
+                        100.0 * c[16] as f64 / total as f64
+                    );
+                    println!(
+                        "  fold-selected successors: from fixed channels={} from BFS channels={} ({:.3}% of selections)",
+                        c[20],
+                        c[19],
+                        100.0 * c[19] as f64 / (c[19] + c[20]).max(1) as f64
+                    );
+                }
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
     /// Per-section timing attribution for the seed-32 wall: mirrors
     /// `macro_solvable_direct`'s in-place recursion with section timers
     /// (the BFS's own time is attributed by the `perf_probe` nanos
@@ -1735,7 +2418,7 @@ mod tests {
             t.ctx += t0.elapsed();
             let t0 = Instant::now();
             let mut commitments = core::mem::take(&mut scratch.commitments);
-            core_run(&ctx, scratch, &mut commitments);
+            core_run(&ctx, scratch, &mut commitments, true);
             scratch.commitments = commitments;
             t.core += t0.elapsed();
             let t0 = Instant::now();

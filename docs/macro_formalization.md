@@ -675,3 +675,144 @@ Snapshot: C2 content is now *one theorem about a five-element poset*, all
 of whose per-row claims are individually checkable, and whose total
 empirical support is: zero three-class outcomes and zero verdict
 mismatches across the curated corpora to date.
+
+## 8. The word-board closure as a guarded counter system (2026-09)
+
+The word-level engine of §6.5b made the closure walk cheap to *run*; this
+section derives what it *is*, and pins the exact jurisdiction boundary
+between the fixed channels and the BFS. Everything here is bound to the
+implementation by in-tree instruments — the section is written to be the
+Lean program's source text (ledger rows C14/C15).
+
+### 8.1 The per-card movability algebra [x — bound to the code]
+
+Decoding `bottom_mask_of` (the parity lemma of no_pile §3): for a card `c`
+with twin `t = twin(c)` and under-pair `u1, u2` (the twin pair at
+`rank(c) − 1`, opposite color — the cards `c` can sit on),
+
+```
+bm ∋ c  ⟺  (vis[c] ∨ vis[t])
+          ∧ ( ¬free[u1] ∧ ¬free[u2]
+              ∨ (vis[c] ⊕ vis[t] ⊕ free[u1] ⊕ free[u2]) )
+```
+
+where `free = vis ∧ ¬locked`. Aces have no under-pair (the `<< 4` terms
+shift out of the word) — movable whenever visible. The `× 0b11` spread
+makes movability a type-pair property: either twin carries it, which is
+why the receiver side of every landing question reads a *pair*.
+
+Bound to the code by `bm_algebra_matches` (`src/macro_game.rs` tests):
+2,000 random `(vis, locked)` masks × 52 cards, zero divergence. The test
+is the binding, not the evidence — the formula is the decoding of the
+shipped expression.
+
+### 8.2 The closure is a guarded 4-counter system [x — derivation]
+
+Inside a closure the state is the height vector `h ∈ [0, 13]⁴` (the
+`ClosureCtx` bijection of §6.5b), and `vis(h)` differs from the root's
+`vis₀` exactly on the per-suit intervals between `h₀` and `h` — climbs
+remove prefix cards, descents re-add worried-back ones. Substituting the
+interval structure into §8.1:
+
+- `Up_s` (stacking `(h_s, s)`) needs `c ∈ base_vis \ locked` — a
+  *constant* per node — plus the 4-bit test at `c`, whose bits flip only
+  when `h_{s¹}` crosses rank `h_s` (twin visibility) or `h_{s²}, h_{s³}`
+  cross `h_s − 1` (under-pair free-ness).
+- `Down_s` (worrying back `(h_s − 1, s)`) needs the receiver pair at
+  rank `h_s`, opposite color, movable — reading that pair's visibility
+  (guards on `h_{s²}, h_{s³}` vs `h_s`) and its under-pair, which contains
+  `(h_s − 1, s)` itself.
+
+Every guard — edge or goal — reads per-node constants plus threshold
+comparisons `h_i ≶ h_j ± 1`. There is no other coupling: the closure is
+a guarded counter machine over four bounded counters.
+
+### 8.3 Off the diagonals, the closed form is the shipped channels [x — derived]
+
+Two suits whose heights stay ≥ 2 away from each other's guard thresholds
+never flip each other's guard bits, so their moves commute — the §7
+interaction ball *derived from §8.1* rather than conjectured, and at the
+shuffle level, where C13's commitment-level version failed for
+deck-offset reasons that cannot arise here (shuffles do not touch the
+deck). Per suit in isolation, the guarded-counter reachability collapses
+to constant work, and the three fixed channels are exactly its pieces:
+
+- the greedy chain of `Up` guards is **prefix-raise** — the closed form
+  for isolated climbs;
+- a single parity repair of the twin term is **dig**;
+- a single free-repair of the under-pair term is **borrow**.
+
+So the §6.4 rule list is retroactively *derived*, not designed: the
+channels are the depth-≤ 1 algebraic repairs of the guard formula.
+
+### 8.4 The diagonal core, and why the BFS stays [m]
+
+Where heights sit within ± 1 of each other's thresholds, repairs
+interact, and reachability is a genuine guarded-counter problem: any
+complete evaluator must at least decide each entangled state's guards, so
+no closed form below the fixpoint exists in general. The shared
+accommodation BFS *is* that fixpoint evaluator. Measured on the search
+path (probe `debug_crease_grammar`, seeds 12..43 × draws {1, 3}):
+
+- ~7 states per call; answered witnesses 58% at depth 2, 91% ≤ 5, tail
+  to 15;
+- 4.8% (draw-1) of answered witnesses alternate dig/borrow shapes — the
+  genuine depth-2+ crease no constant-work channel names;
+- 5.8% (draw-1) / 1.9% (draw-3) of fold-*selected* successors come from
+  BFS answers — the BFS cannot be deleted outright, only fed less
+  (§8.5) and asked less (the C14 fold cut).
+
+### 8.5 The kill lemmas — the necessary fragment [~; Lean candidates]
+
+Two necessary conditions for a goal to open anywhere in the closure,
+from the interval structure of `vis`: a worried-back card is always a
+root-stacked card (rank `< h₀` of its suit), and deck and buried cards
+never enter `vis` at all.
+
+**K1 (stack goals).** To climb suit `s` from `h₀_s` to `rank(X)`, each
+prefix card `(r, s)`, `r ∈ [h₀_s, rank(X))`, is stacked at its first
+passage — at which moment it must be visible, hence root-visible (its
+rank is ≥ `h₀_s`, out of the worry-back range) and unlocked (locked
+cards never stack in the closure). A missing prefix card that is buried,
+in the deck, or locked kills the goal. Descent takes no cheap kill.
+
+**K2 (tableau goals, non-kings).** `X` opens through a receiver twin pair
+at `rank(X) + 1`, opposite color; `bm ∋` that pair requires `or_vis` on
+it, so some receiver twin must be visible at the opening state —
+root-visible or worried back from the root foundation. (Kings take no
+kill: they open through the pile-emptiness gate, which has no receiver.)
+
+Both ship as `goal_dead` (`src/macro_game.rs`) with the direct falsifier
+`goal_kills_are_sound`: for every corpus state, every killed goal is run
+through the un-killed standalone BFS and must produce no answer —
+29,781 would-be goals on 1,027 states, 24,734 killed (83%), **0 wrongly
+killed**; the answered count is exactly unchanged (823,949 draw-1), and
+the §6.6 differential reads missing=0. Search-path effect: BFS misses
+53.2M → 19.4M (63%).
+
+### 8.6 The fold-mode goal cut (ledger C14) [~]
+
+The search path pushes fewer goals than the total generator: a tableau
+goal whose commitment already has a dig/borrow outcome, and a stack goal
+whose commitment already has any tableau outcome, are provably
+unselectable — BFS answers append after every fixed channel of their
+kind, and `collapse_pick` takes the first tableau-kind entry. Checked by
+`fold_goal_cut_matches_total` (identical selections — kind, steps,
+channel — on 1,027 corpus states) and both 128-game verdict sweeps.
+
+### 8.7 Status bookkeeping
+
+- §8.1–§8.3 are [x] at the formula level, bound to the code by
+  `bm_algebra_matches` and the §6.6 differential; the standing caveat is
+  that the shipped `bottom_mask_of` is the *reference* for the parity
+  lemma, so a Lean formalization defines movability by §8.1's formula
+  and then owes the equivalence with the engine's mask arithmetic.
+- K1/K2 (ledger C15) are [~]: argued here, falsified-if-wrong in-tree.
+  The Lean obligations are K1's first-passage induction and K2's
+  `or_vis` conjunct, both over the guarded-counter closure of §8.2 —
+  they are the first ledger rows whose formalization would close to [x].
+- The fold cut (C14) is [~] on the structural selection argument plus
+  its selection-equivalence instrument.
+- What this section does *not* claim: any sufficient-direction closed
+  form on the diagonal core (§8.4), or completeness of depth-≤ 1
+  channels there — the crease histogram is the honest boundary.
