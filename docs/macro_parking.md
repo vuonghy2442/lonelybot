@@ -156,6 +156,40 @@ As of `bf479a6`:
    the hand-written channel priority, not a canonical scar (C-SCAR's
    deepest-safe-dig-first).
 
+## P.5 Experiment log
+
+**P.2 caveat 1 discharged — the under-emission is a depth artifact
+(2026-09-12, pre-words tree at `bf479a6`, throwaway worktree).** With
+the accommodation caps raised 12/10 → 40 (and `StepTransition`'s
+`ArrayVec<Move, _>` capacity scaled to match — a hard requirement, the
+shallow capacity panics on deep witnesses):
+
+- `macro_direct_matches_oracle`: **missing 12 → 0** (extra 0, separate 0
+  unchanged; merged 10315 → 10327; oracle classes uncovered 21 → 11),
+  runtime unchanged (0.06s — the level-order kills make most goals
+  terminate far below any cap);
+- `macro_verdict_matches_engine`: green, perf-neutral (0.96s);
+- seed 32 (3M-node capped probe): +1–5% BFS states, +1% wall.
+
+Conclusion: the per-kind fold's residual was measuring the depth
+bound, not a rule-list gap — at depth ≤ 40 the direct rule list covers
+every oracle class on the corpus. P.2's first named drop downgrades
+from designed-in under-emission to depth artifact; C-SCAR's remaining
+obligation is the a priori bound (M-4, DAG-derived; deepest observed
+witness ≈ 26 steps, so 30 suffices empirically). Actionable on the
+words tree: raise the caps and scale the capacity — expected
+`missing=0` there at smaller marginal cost.
+
+**P.3 deviation 1 measured — parking-first order is safe but
+perf-neutral.** Reordering tableau-direct before stack-direct within
+each commitment's emission group: verdicts green, differential
+identical (the per-kind fold keeps the same representatives, so the
+metrics are order-invariant), timing ±3–9% mixed sign. Unlike
+reveal-first at the commitment level (96k → 84 nodes on seed 18), the
+kind order within a commitment barely matters — both branches are
+explored and the tp table absorbs the consequences. The design
+alignment argument stands; the speed argument does not.
+
 ## P.4 Parked experiments
 
 - **Channel reorder** (cheap): parking channels before stack channels
