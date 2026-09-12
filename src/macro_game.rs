@@ -856,6 +856,25 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         }
         f3 &= dom;
 
+        // Forced-commitment dominance (ledger C12): the move-level F3
+        // singleton fires even for LOCKED cards — stacking a dominantly
+        // safe locked surface reveals it, and the engine then returns
+        // that move alone. The sweep eats unlocked dominants eagerly and
+        // F3 above drops the parked variant of dominant commitments, but
+        // without this rule the fold still explores sibling commitments
+        // the micro search never reaches. When a locked surface is
+        // dominantly stackable, its Reveal commitment (stack outcome) is
+        // the only successor — every alternative's first move
+        // micro-dominance-commutes after it.
+        let forced_reveal = {
+            let f = ctx.root.locked
+                & ctx.root.vis
+                & ctx.root.sm()
+                & ctx.root.bm()
+                & Stack::decode(ctx.root.stack).dominance_mask();
+            f & f.wrapping_neg()
+        };
+
         // Deck-source dominance — the draw-1 clause of the engine's
         // cascade (state.rs): when a drawable deck card is dominantly
         // stackable, the lowest such card is the only deck commitment
@@ -882,6 +901,33 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         let groups = core::mem::take(&mut scratch.groups);
         let mut win = false;
         'outer: for group in &groups {
+            // forced-commitment dominance: a locked dominantly-stackable
+            // surface's Reveal (stack outcome) is the node's only play
+            if forced_reveal != 0 {
+                match group.first() {
+                    Some((Commitment::Reveal(x), ..)) if x.mask() == forced_reveal => {}
+                    _ => continue,
+                }
+                let Some((_, _, steps, _)) = group
+                    .iter()
+                    .find(|(_, k, _, ch)| *k == OutcomeKind::Stack && *ch == "stack-direct")
+                else {
+                    continue;
+                };
+                let (vis, stack) = post_words(s, &ctx, steps);
+                let old = (s.get_visible_mask(), s.get_stack().encode());
+                let commit = *steps.last().expect("every channel ends in a commit");
+                let (_, (undo, _)) = s.do_move(commit);
+                s.set_board(vis, stack);
+                let child_win = rec(s, tp, scratch, hook);
+                s.undo_move(commit, undo);
+                s.set_board(old.0, old.1);
+                if child_win {
+                    win = true;
+                    break 'outer;
+                }
+                break 'outer; // sole successor
+            }
             // note: the C5/is_pure port was falsified (seed 21 d1 flips
             // old=win -> macro=loss): Deck::is_pure's offset-at-boundary
             // premise doesn't survive the macro's offset-jumping draws, so
@@ -1720,7 +1766,22 @@ mod tests {
                     0
                 }
             };
+            // mirror the shipped fold's forced-commitment (C12) clause
+            let forced_reveal = {
+                let f = ctx.root.locked
+                    & ctx.root.vis
+                    & ctx.root.sm()
+                    & ctx.root.bm()
+                    & Stack::decode(ctx.root.stack).dominance_mask();
+                f & f.wrapping_neg()
+            };
             'outer: for group in &groups {
+                if forced_reveal != 0 {
+                    match group.first() {
+                        Some((Commitment::Reveal(x), ..)) if x.mask() == forced_reveal => {}
+                        _ => continue,
+                    }
+                }
                 if deck_dom != 0 {
                     if let Some((Commitment::Draw(x), ..)) = group.first() {
                         if x.mask() != deck_dom {
