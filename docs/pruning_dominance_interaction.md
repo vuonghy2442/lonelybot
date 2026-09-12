@@ -8,6 +8,8 @@ unproven, and how to test the composition empirically.
 
 Companion docs: [method.md](method.md) for the rules themselves,
 [macro_formalization.md](macro_formalization.md) for the ongoing rework.
+Per-claim rigor tiers and what closes each gap:
+[soundness_ledger.md](soundness_ledger.md).
 Line references are pinned to commit `5146b98` and will drift.
 
 ## 1. The three layers and what each one claims
@@ -403,8 +405,8 @@ the part with no published backing.
 | `CyclePruner` (2-cycle break) | `m` then immediate undo is identity — delete both | nothing | nothing | solid: composition is trivial; required for termination so it stays in every ablation (§7) |
 | `(Reveal, RevealEmpty)` → kings only | non-king moves reorder before the emptying reveal — except those the reveal *created* (placements onto the moved card, per L1), which reorder to *after* the king fill instead — or the emptying is deferred forever; the fill collateral is the §4 corner | pre-reveal state must generate them (H1(b)) — the forced-branch collisions are covered by drain-safes-first | compatible with the streak rule *by construction*: an emptying reveal is always first-layer (`make_reveal` returns `None` iff nothing is beneath), and 6.4's exemption includes first-layer — so deferring the emptying across a draw streak is never blocked | argued in §4; one open corner (king-fill existence) with falsifier (P2) |
 | `(Reveal, Card(r))` → stack `{r, twin(r)}` only, no `deck_stack` | exemption set = *exactly* the reveal's legality delta (L2); all other moves reorder before | the return-only collision with 5.1 / 5.3 is covered by reordering + drain-safes-first; paired branch keeps both bits | none: a `Reveal` clears `last_draw`, so this rule never co-fires with the streak rule — the feared `pile_stack ∩` conflict between them is *structurally impossible* | proved modulo L1/L2 (+H3, +TP acceptance per H2) |
-| `last_draw` pile_stack → `twin(d)` only | any other stack commutes with the draw ("could have been done before"): the two orders `PS;DP` / `DP;PS` reach the **same encode**, so at least one must survive the filters | the pre-draw order may be canonicalized away by D itself (forced/cascade/least) — the exemption's real purpose is to keep one order alive against exactly those H1(b) collisions; conjectured that `{twin(d)}` is the exact necessary set | the streak structure itself | **open**: mechanism conjectured, not confirmed — TODO(vuong), now with a concrete target (find or refute a state where the pre-draw order is D-suppressed and the post-draw order is D∩P-empty) |
-| `last_draw` reveal → `(mm>>4) ∪ first_layer` | allowed = the reveals the draw *created* (landing on `d`/`twin(d)` — the only new landing spots, by L1) plus first-layer reveals (which create a hole, and holes couple to king mechanics, not to the deck cycle) | none beyond L1 | ordered playing of reveals vs. the fixed deck order — the `DP 8♠, R 10♥, DP K♠` comment | open: rationale exists only as the in-code example; write the deck-order argument out |
+| `last_draw` pile_stack → `twin(d)` only | any other stack commutes with the draw ("could have been done before"): the two orders `PS;DP` / `DP;PS` reach the **same encode**, so at least one must survive the filters | the pre-draw order may be canonicalized away by D itself (forced/cascade/least) — the exemption's real purpose is to keep one order alive against exactly those H1(b) collisions; conjectured that `{twin(d)}` is the exact necessary set | the streak structure itself | **open**: mechanism conjectured, not confirmed — TODO(vuong), now with a concrete target (find or refute a state where the pre-draw order is D-suppressed and the post-draw order is D∩P-empty); full treatment incl. the burial mechanism in [last_draw_rules.md](last_draw_rules.md) §5 |
+| `last_draw` reveal → `(mm>>4) ∪ first_layer` | allowed = the reveals the draw *created* (landing on `d`/`twin(d)` — the only new landing spots, by L1) plus first-layer reveals (which create a hole, and holes couple to king mechanics, not to the deck cycle) | none beyond L1 | ordered playing of reveals vs. the fixed deck order — the `DP 8♠, R 10♥, DP K♠` comment | **claim stated and attacked** in [last_draw_rules.md](last_draw_rules.md): the deck-offset argument (D1–D3) covers the non-family, non-first-layer case; the first-layer exemption is derived from the forced-king coupling; open residues R1 (deeper-build) and R2 (exposure-created destinations), with a falsifier spec in its §6 |
 
 Open observations while auditing (not necessarily problems):
 
@@ -469,12 +471,15 @@ though, and the repo already has all the machinery:
    generator. Each hit is a candidate witness for the §4 corner case; the
    soundness claim is exactly "no hits on winnable states" (correlate with
    the verdict).
-8. **(P3) Streak rescue witnesses.** Extend the micro rescue-checker of (4)
-   to the streak machinery: for each move killed by the `last_draw` rules,
-   require an explicit witness — either the same move legal/generated at
-   the streak's start state, or the convergent-order encode
-   (`PS(twin d); DP d` ≡ `DP d; PS(twin d)`) present in the TP. This is the
-   direct test of the `twin(d)` conjecture in Table 2.
+ 8. **(P3) Streak rescue witnesses.** Extend the micro rescue-checker of (4)
+    to the streak machinery: for each move killed by the `last_draw` rules,
+    require an explicit witness — either the same move legal/generated at
+    the streak's start state, or the convergent-order encode
+    (`PS(twin d); DP d` ≡ `DP d; PS(twin d)`) present in the TP. This is the
+    direct test of the `twin(d)` conjecture in Table 2. The 6.4b half has a
+    concrete spec — tagging the R1 (deeper-build) and R2
+    (exposure-created-destination) residues — in
+    [last_draw_rules.md](last_draw_rules.md) §6.
 9. **Draw-step split.** Run the ground-truth differential of (1) separately
    for draw-1 (where the deck dominance is literature-backed) and draw-3
    (where it is not), so a verdict mismatch is attributed to the deck rule
@@ -482,7 +487,9 @@ though, and the repo already has all the machinery:
 
 ## 8. Residual risk register
 
-Ordered by how much worry each deserves:
+Ordered by how much worry each deserves. For the graded inventory across
+all the docs — what is proved, what the three not-yet-rigorous cores are,
+and the finish line — see [rigor_status.md](rigor_status.md).
 
 1. **The closure property of §2 has never been checked as a whole.** All
    per-rule arguments implicitly assume their rescue target is explorable;
@@ -511,10 +518,14 @@ Ordered by how much worry each deserves:
    engine walks past a published *warning* (safe dominance must not be
    applied from the stock; B&G §5.4.1). The `is_pure` escape hatch is the
    engine's own answer and has never been written out beyond two sentences.
-5. **The `last_draw` pair of rules** — the pile_stack exemption now has a
-   mechanism to confirm or refute (generation-collision coverage of the
-   convergent-order encode; Table 2, row 4, plus logger P3); the reveal
-   restriction still has only the in-code example as its rationale.
+ 5. **The `last_draw` pair of rules** — both halves now have written
+    claims: [last_draw_rules.md](last_draw_rules.md) states the reveal
+    restriction's general claim with the deck-offset argument (D1–D3),
+    derives the first-layer exemption from the forced-king coupling, and
+    names two residues (R1 deeper-build, R2 exposure-created
+    destinations), plus a burial-based candidate mechanism for the
+    `twin(d)` exemption alongside the convergent-encode argument. What
+    remains: discharging R1/R2 and the P3 measurements.
 6. **The twin-swap theorem (T)** — unchanged from macro_formalization.md;
    every canonical-substitution rule leans on it, and the arrangement
    faithfulness (H3) is the common substrate of all ports.

@@ -394,13 +394,20 @@ card, the draw-order window the rule guards is closed. While it is set:
   heights nor other piles' tops), so reordering makes it explored elsewhere;
   why the twin is exempted from that reordering is the subtle part
   (TODO(vuong) — please fill in).
-- `reveal` is restricted to cards that the drawn card (or its twin) can sit
-  on, or first-layer cards. The in-code comment gives the motivating line:
+- `reveal` is restricted via `mm >> 4` to the cards that *can sit on* the
+  drawn card (or its twin) — one rank lower, opposite colour; the reveal's
+  natural destination is the fresh placement — plus first-layer cards. The
+  in-code comment gives the motivating line:
   `DP 8♠, R 10♥, DP K♠` — if you reveal the 10 first you are then forced to
   draw the K which might prevent you from getting the 8; if you draw the 8
   first you can no longer reveal the 10 because the reveal expects to happen
   *before* its pile is built over. The rule forces reveals to happen in the
   order the draw sequence can still accommodate.
+
+The general claims for both streak restrictions — including the
+deck-offset argument, the decoding of the `DP 8♠, R 10♥, DP K♠` anecdote,
+and the open residues — are written out in
+[last_draw_rules.md](last_draw_rules.md).
 
 ## 7. The search
 
@@ -493,9 +500,15 @@ experiments that would test the composition directly.
 
 ## 10. Verification status
 
+The per-claim rigor status (what is proven, what is argued, what is only
+conjectured, and what closes each gap) is tracked in
+[soundness_ledger.md](soundness_ledger.md).
+
 - Cross-checked against Solvitaire's published results on Klondike-Solver
   seeds 0..50k and Solvitaire seeds 1..1M; self-cross-checked across engine
   versions on 100k–2M games. No known disagreements.
+- A graded inventory of what is proved versus open — the rigor status and
+  the finish line — is in [rigor_status.md](rigor_status.md).
 - `tests/no_cycle.rs`: full-game DAG check (manual, slow; exhaustive per
   game, but so far run on two Klondike-Solver seeds only).
 - `tests/hop_no_dead_loop.rs`: regression for the hop candidate gate.

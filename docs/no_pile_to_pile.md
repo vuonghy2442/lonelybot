@@ -10,6 +10,8 @@ a move that only changes arrangement cannot change solvability.
 
 Line references are pinned to the repo state after commit `2614234`.
 Legend: [x] established here / [~] argued, needs rigor / [ ] open.
+The repository-wide claim-by-claim rigor status:
+[soundness_ledger.md](soundness_ledger.md).
 
 ## 0. What is claimed
 
@@ -247,7 +249,11 @@ pinned hidden identities, it discharges the macro doc's open item O2
 outright: the hidden-identity conflation O2 worried about does not exist
 within a game.
 
-## 6. The first-layer-king exclusion (relabeling lemma) [~]
+## 6. The first-layer-king exclusion (relabeling lemma) [x] raw-level
+
+(The raw-level isomorphism below is argued complete modulo mechanical
+checks; the context-sensitive version owed to the pruner layer is §7.
+The soundness ledger records this as B3, [x] raw-level.)
 
 `reveal` excludes first-layer kings (`!(first_layer & KING_MASK)`,
 src/state.rs:293): the only such move is relocating a lone king that
