@@ -8,6 +8,7 @@ pub mod formatter;
 pub mod graph;
 pub mod hidden;
 pub mod hop_solver;
+pub mod macro_game;
 pub mod mcts_solver;
 pub mod moves;
 pub mod pruning;
