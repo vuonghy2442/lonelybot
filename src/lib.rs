@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
 pub mod card;
 pub mod convert;

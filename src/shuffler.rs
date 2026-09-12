@@ -263,8 +263,6 @@ pub fn microsoft_shuffle(mut seed: U256) -> Option<CardDeck> {
 
 #[cfg(test)]
 mod tests {
-    use rand::prelude::*;
-
     use super::*;
 
     #[test]

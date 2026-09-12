@@ -8,3 +8,5 @@ test.json
 
 /target
 Cargo.lock
+lean-verify
+target_*

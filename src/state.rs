@@ -137,7 +137,7 @@ impl Solitaire {
             let mask = self.deck.compute_mask(false);
             let mask_dom = mask & dom_stackable;
             if mask_dom > 0 {
-                (mask_dom & mask_dom.wrapping_neg(), true)
+                (mask_dom.isolate_lowest_one(), true)
             } else {
                 (mask, false)
             }
@@ -178,14 +178,14 @@ impl Solitaire {
         if pile_stack_dom != 0 {
             // if there is some card that is guarantee to be fine to stack do it
             return MoveMask {
-                pile_stack: pile_stack_dom.wrapping_neg() & pile_stack_dom,
+                pile_stack: pile_stack_dom.isolate_lowest_one(),
                 ..Default::default()
             };
         }
         // getting the stackable cards without revealing
         // since revealing won't be undoable unless in the rare case that the card is stackable to that hidden card
         let redundant_stack = pile_stack & !locked;
-        let least_stack = redundant_stack & redundant_stack.wrapping_neg();
+        let least_stack = redundant_stack.isolate_lowest_one();
 
         if DOMINANCE && redundant_stack.count_ones() >= 3 {
             return MoveMask {
@@ -637,7 +637,7 @@ mod tests {
                     .collect::<ArrayVec<(u8, Card), { N_DECK_CARDS as usize }>>();
 
                 test.clear();
-                game.deck.iter_callback(false, |pos, x| {
+                let _ = game.deck.iter_callback(false, |pos, x| {
                     test.push((pos, x));
                     ControlFlow::<()>::Continue(())
                 });

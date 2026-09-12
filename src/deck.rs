@@ -344,7 +344,7 @@ impl Deck {
 
 #[cfg(test)]
 mod tests {
-    use rand::{rngs::SmallRng, Rng, SeedableRng};
+    use rand::{RngExt, SeedableRng, rngs::SmallRng};
 
     use crate::shuffler::default_shuffle;
 
@@ -381,7 +381,7 @@ mod tests {
                 }
 
                 for filter in [false, true] {
-                    deck.iter_callback(filter, |pos, card| {
+                    let _ = deck.iter_callback(filter, |pos, card| {
                         assert_eq!(deck.peek(pos), card);
                         ControlFlow::<()>::Continue(())
                     });
