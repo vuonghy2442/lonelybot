@@ -32,8 +32,9 @@ impl Callback for FindStatesCallback {
         }
     }
 
-    fn on_do_move(&mut self, g: &Solitaire, m: Move, _: Encode, pr: &FullPruner) -> Control {
-        let rev = pr.rev_move();
+    fn on_do_move(&mut self, g: &Solitaire, m: Move, _: Encode, _: &FullPruner) -> Control {
+        // the move itself must be undoable in one move to be part of a path
+        let rev = g.reverse_move(m);
         let ok = match m {
             Move::Reveal(c) => c.mask() & g.get_hidden().first_layer_mask() == 0,
             _ => true,
@@ -66,9 +67,12 @@ impl Callback for ListStatesCallback {
         Control::Halt
     }
 
-    fn on_do_move(&mut self, _: &Solitaire, m: Move, e: Encode, pr: &FullPruner) -> Control {
-        let rev = pr.rev_move();
-        // if rev.is_none() && matches!(m, Move::Reveal(_) | Move::PileStack(_)) {
+    fn on_do_move(&mut self, g: &Solitaire, m: Move, e: Encode, _: &FullPruner) -> Control {
+        // a candidate is an irreversible move: doing it commits the game, so
+        // the search stops there and the MCTS evaluates it separately.
+        // (checking the arrival move here, like `pr.rev_move()` did, collapses
+        // the enumeration to the root moves only)
+        let rev = g.reverse_move(m);
         if rev.is_none() {
             self.res.push((e, Some(m)));
             Control::Skip

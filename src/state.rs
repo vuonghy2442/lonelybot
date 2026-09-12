@@ -302,7 +302,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    const fn reverse_move(&self, m: Move) -> Option<Move> {
+    pub(crate) const fn reverse_move(&self, m: Move) -> Option<Move> {
         // check if this move can be undo using a legal move in the game
         match m {
             Move::PileStack(c) if self.get_locked_mask() & c.mask() == 0 => {

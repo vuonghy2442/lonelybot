@@ -181,8 +181,9 @@ impl<R: Rng, T: TerminateSignal> Callback for RevStatesCallback<'_, R, T> {
         prune_info: &FullPruner,
     ) -> Control {
         self.his.push(m);
-        let rev = prune_info.rev_move();
-        // if rev.is_none() && (matches!(m, Move::Reveal(_)) || matches!(m, Move::PileStack(_))) {
+        // a candidate is an irreversible move: doing it commits the game, so
+        // the search stops there and the evaluation happens separately
+        let rev = g.reverse_move(m);
         if rev.is_none() {
             self.res.push((
                 self.his.clone(),

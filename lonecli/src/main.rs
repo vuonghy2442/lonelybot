@@ -181,6 +181,8 @@ fn do_hop(seed: &Seed, draw_step: NonZeroU8, verbose: bool) -> bool {
     let mut rng = SmallRng::seed_from_u64(seed.seed().as_u64());
 
     while !game.state().is_win() {
+        // plan on the canonicalized game so the search never sees the real
+        // hidden cards; determinization happens only inside hop_solve_game
         let mut gg = game.state().clone();
         gg.hidden_clear();
         let best = pick_moves(
@@ -204,7 +206,9 @@ fn do_hop(seed: &Seed, draw_step: NonZeroU8, verbose: bool) -> bool {
             println!();
         }
         for m in best {
-            game.do_move(m);
+            // a move planned on the canonicalized game must stay legal in the
+            // real game; if not, the search is broken
+            assert!(game.do_move(m), "planned move {m} is illegal in the real game");
         }
     }
     if verbose {
