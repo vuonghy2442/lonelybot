@@ -109,10 +109,19 @@ lands just past `i`; wrapping through the worry-back). -/
 def drawTo (i : Nat) (cy : Cycle α) : Cycle α :=
   cy.rotate ((i + 1 + cy.cards.length - cy.cursor) % cy.cards.length)
 
-/-- TODO(proof): mechanical corollary of `removeIdx_comm` plus the two
-cursor `if` adjustments. -/
 theorem removeAt_comm {α : Type} (cy : Cycle α) (i j : Nat)
     (hij : i < j) (hj : j < cy.cursor) (hl : j < cy.cards.length) :
-    (cy.removeAt j).removeAt i = (cy.removeAt i).removeAt (j - 1) := sorry
+    (cy.removeAt j).removeAt i = (cy.removeAt i).removeAt (j - 1) := by
+  have hj1 : j - 1 + 1 = j := by omega
+  have hic : i < cy.cursor := by omega
+  have hic1 : i < cy.cursor - 1 := by omega
+  have hjc1 : j - 1 < cy.cursor - 1 := by omega
+  have hcards : removeIdx (removeIdx cy.cards j) i
+      = removeIdx (removeIdx cy.cards i) (j - 1) := by
+    have h := removeIdx_comm cy.cards i (j - 1) (by omega) (by omega)
+    rw [hj1] at h
+    exact h.symm
+  simp only [removeAt]
+  rw [if_pos hj, if_pos hic, if_pos hic1, if_pos hjc1, hcards]
 
 end Cycle

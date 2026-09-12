@@ -43,7 +43,9 @@ def Relabel.twin : Relabel where
   suitInv := Suit.flipPair
   left_inv := Suit.flipPair_flipPair
   right_inv := Suit.flipPair_flipPair
-  coherent := by sorry -- TODO(proof): 16 cases; `Suit.flipPair_color` closes each
+  coherent := by
+    intro s s'
+    simp
 
 /-- Conjugate a whole state by a relabeling (T's action, generalized). -/
 def State.relabelBy (r : Relabel) (st : State) : State :=
@@ -78,7 +80,7 @@ theorem solvable_relabel (r : Relabel) (st : State) :
     (st.relabelBy r).solvableFrom ↔ st.solvableFrom := sorry
 
 /-- `flipAll` is the twin-swap instance. -/
-theorem flipAll_eq_relabelTwin (st : State) : st.flipAll = st.relabelBy Relabel.twin := sorry
+theorem flipAll_eq_relabelTwin (st : State) : st.flipAll = st.relabelBy Relabel.twin := rfl
 
 /-! ## 2. Reversibility and commitments — their Lemma A1, model side
 
