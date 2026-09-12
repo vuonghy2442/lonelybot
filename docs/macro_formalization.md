@@ -170,9 +170,13 @@ Proof obligations / open items:
   two pile positions? (C2 needs the destination-collapse version: placing X on
   twin top Y vs Ȳ — but note both yield the same `Encode`, so this may not
   even need a cross-pile swap; see §4.)
-- **O2.** Hidden twins: does T hold when one or both twins are face-down in
-  structures (reveal order changes)? The engine's conflation of hidden
-  identities per pile relies on this.
+- **O2. Hidden twins — discharged** (no_pile_to_pile.md §1): within a
+  game, a pile's hidden structure is always a prefix of the original deal,
+  so the per-pile counts pin the hidden identities. The encode's hidden
+  amnesia therefore never conflates different hidden arrangements within
+  a game, and T is not needed for hidden cards. What remains of O2 is the
+  *cross-game* question (two deals differing by a hidden twin swap), which
+  is the local-shuffling statement of T itself.
 - **O3.** Boundary case: f(♠) = r−1 but f(♣) < r−1 (one twin stackable now,
   the other not) — the interleaving lemma must cover it.
 - **O4.** Formalize in Lean (lean-verify/), next to the existing Klondike

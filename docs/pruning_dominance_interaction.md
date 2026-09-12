@@ -227,7 +227,12 @@ deck encode preserves order/identities, and the hidden structure is pinned by
 the deal + counts, so "the card revealed by the last move" is well-defined
 per encode. The load-bearing question is whether D's canonical choices are
 arrangement-robust — that is the twin-swap + `bm`-parity story (method.md §4,
-§3.2), and it is where this note connects to the macro formalization.
+§3.2), and it is where this note connects to the macro formalization. The
+*state-level* content of this hazard — same encode ⇒ same solvability — is
+exactly the α-invariance corollary of
+[no_pile_to_pile.md](no_pile_to_pile.md) §5, pending that document's reshape
+lemma; what would remain for H3 even then is the *context-level* question
+(the path-dependence of P), which is H2's business.
 
 ## 4. The flagship example: king-fill vs forced safe stacking
 
@@ -487,7 +492,10 @@ Ordered by how much worry each deserves:
    named sub-lemmas to prove instead of one blob: drain-safes-first (§4),
    stack-stack commutation (5.2/5.5/5.6), L1/L2 (the reveal rules).
 2. **The no-pile-to-pile move set** (method.md §9 leg 1) is upstream of all
-   of this and unproven. It is also the blocker for quoting Blake & Gent's
+   of this and unproven (informal writeup:
+   [no_pile_to_pile.md](no_pile_to_pile.md) — its §3 realizability lemma is
+   the same parity machinery as H3). It is also the blocker for quoting
+   Blake & Gent's
    Appendix B proofs verbatim: their games have partial pile moves, so the
    port to this move set must happen *here*, not rule by rule.
 3. **The safe-stack pair (5.1 + 5.4)** — downgraded. The height formula is

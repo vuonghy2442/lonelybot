@@ -137,9 +137,11 @@ Two consequences of this move set are load-bearing for everything else:
 - **The only pile↔pile move is `Reveal`, and only for surface cards.** A
   *placed* card (one that came from the deck or the foundation) can only ever
   leave its pile by going to the foundation. This is the engine's biggest
-  dominance bet; it is cross-validated (§10) but not formally proven.
-  TODO(vuong): this deserves its own writeup — it is the theorem that makes
-  the state graph finite/small.
+  dominance bet; it is cross-validated (§10) but not formally proven. The
+  informal writeup is [no_pile_to_pile.md](no_pile_to_pile.md) — the crux:
+  given the suit symmetry, the only per-card facts that matter are whether
+  a card is stacked, or whether it is the top of a hidden card; relocating
+  placed cards changes neither.
 - **Reversibility partitions moves into "shuffles" and "commitments"**
   (`Solitaire::reverse_move`, src/state.rs:312). Every irreversible move
   either introduces a deck card (`DeckPile`, `DeckStack`) or flips a hidden
