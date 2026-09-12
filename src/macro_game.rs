@@ -33,6 +33,98 @@ use crate::state::{Encode, Solitaire};
 use crate::traverse::TpTable;
 use crate::card::Card;
 
+/// cfg(test)-only perf instrumentation: thread-local counters bumped by
+/// the hot paths (closure walk, closure clustering, accommodation BFS,
+/// post_state, sweep). Thread-local so parallel tests never cross-
+/// contaminate; never compiled into non-test builds.
+#[cfg(test)]
+pub(crate) mod perf_probe {
+    use core::cell::Cell;
+
+    std::thread_local! {
+        static WALK_STATES: Cell<u64> = Cell::new(0);
+        static CLS_CALLS: Cell<u64> = Cell::new(0);
+        static CLS_STATES: Cell<u64> = Cell::new(0);
+        static BFS_CALLS: Cell<u64> = Cell::new(0);
+        static BFS_STATES: Cell<u64> = Cell::new(0);
+        static POST_CALLS: Cell<u64> = Cell::new(0);
+        static POST_STEPS: Cell<u64> = Cell::new(0);
+        static CANON_SWEEPS: Cell<u64> = Cell::new(0);
+        static GEN_MOVES: Cell<u64> = Cell::new(0);
+        static DO_MOVES: Cell<u64> = Cell::new(0);
+        static UNDO_MOVES: Cell<u64> = Cell::new(0);
+        static ENCODES: Cell<u64> = Cell::new(0);
+    }
+
+    pub fn reset() {
+        WALK_STATES.with(|c| c.set(0));
+        CLS_CALLS.with(|c| c.set(0));
+        CLS_STATES.with(|c| c.set(0));
+        BFS_CALLS.with(|c| c.set(0));
+        BFS_STATES.with(|c| c.set(0));
+        POST_CALLS.with(|c| c.set(0));
+        POST_STEPS.with(|c| c.set(0));
+        CANON_SWEEPS.with(|c| c.set(0));
+        GEN_MOVES.with(|c| c.set(0));
+        DO_MOVES.with(|c| c.set(0));
+        UNDO_MOVES.with(|c| c.set(0));
+        ENCODES.with(|c| c.set(0));
+    }
+
+    #[must_use]
+    pub fn read() -> [u64; 12] {
+        [
+            WALK_STATES.with(Cell::get),
+            CLS_CALLS.with(Cell::get),
+            CLS_STATES.with(Cell::get),
+            BFS_CALLS.with(Cell::get),
+            BFS_STATES.with(Cell::get),
+            POST_CALLS.with(Cell::get),
+            POST_STEPS.with(Cell::get),
+            CANON_SWEEPS.with(Cell::get),
+            GEN_MOVES.with(Cell::get),
+            DO_MOVES.with(Cell::get),
+            UNDO_MOVES.with(Cell::get),
+            ENCODES.with(Cell::get),
+        ]
+    }
+
+    pub fn bump_walk() {
+        WALK_STATES.with(|c| c.set(c.get() + 1));
+    }
+    pub fn bump_cls_call() {
+        CLS_CALLS.with(|c| c.set(c.get() + 1));
+    }
+    pub fn bump_cls_state() {
+        CLS_STATES.with(|c| c.set(c.get() + 1));
+    }
+    pub fn bump_bfs_call() {
+        BFS_CALLS.with(|c| c.set(c.get() + 1));
+    }
+    pub fn bump_bfs_state() {
+        BFS_STATES.with(|c| c.set(c.get() + 1));
+    }
+    pub fn bump_post(steps: u64) {
+        POST_CALLS.with(|c| c.set(c.get() + 1));
+        POST_STEPS.with(|c| c.set(c.get() + steps));
+    }
+    pub fn bump_canon() {
+        CANON_SWEEPS.with(|c| c.set(c.get() + 1));
+    }
+    pub fn bump_gen() {
+        GEN_MOVES.with(|c| c.set(c.get() + 1));
+    }
+    pub fn bump_do() {
+        DO_MOVES.with(|c| c.set(c.get() + 1));
+    }
+    pub fn bump_undo() {
+        UNDO_MOVES.with(|c| c.set(c.get() + 1));
+    }
+    pub fn bump_enc() {
+        ENCODES.with(|c| c.set(c.get() + 1));
+    }
+}
+
 /// A macro move: commit to a deck card or to revealing a surface card.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Commitment {
@@ -41,10 +133,15 @@ pub enum Commitment {
 }
 
 impl Commitment {
+    /// Reveal sorts before Draw (both card-lowest-first): the measured
+    /// search order — the mirror of the old engine's raw move order,
+    /// which tries `Reveal` before any deck move. Draw-first buries
+    /// reveal-led winning lines under draw-subgame refutations; see
+    /// `macro_verdict_perf_probe` for the before/after node counts.
     fn sort_key(self) -> (u8, u8) {
         let (tag, c) = match self {
-            Commitment::Draw(c) => (0, c),
-            Commitment::Reveal(c) => (1, c),
+            Commitment::Reveal(c) => (0, c),
+            Commitment::Draw(c) => (1, c),
         };
         (tag, c.mask_index())
     }
@@ -166,6 +263,8 @@ fn canonicalize(g: &mut Solitaire) {
         if cands == 0 {
             break;
         }
+        #[cfg(test)]
+        perf_probe::bump_canon();
         let cm = cands & cands.wrapping_neg();
         let c = Card::from_mask_index(u8::try_from(cm.trailing_zeros()).unwrap());
 
@@ -207,6 +306,8 @@ fn walk(
     hist: &mut Vec<Move>,
     out: &mut Vec<CommitmentInfo>,
 ) {
+    #[cfg(test)]
+    perf_probe::bump_walk();
     if g.is_win() || !tp.insert(g.encode()) {
         return;
     }
@@ -262,6 +363,8 @@ fn walk(
 /// symmetric, so membership is mutual: this tests closure-class equality.
 fn closure_contains(a: &Solitaire, target: Encode) -> bool {
     fn rec(g: &mut Solitaire, tp: &mut TpTable, target: Encode) -> bool {
+        #[cfg(test)]
+        perf_probe::bump_cls_state();
         let enc = g.encode();
         if enc == target {
             return true;
@@ -284,6 +387,8 @@ fn closure_contains(a: &Solitaire, target: Encode) -> bool {
     }
     let mut g = a.clone();
     let mut tp = TpTable::default();
+    #[cfg(test)]
+    perf_probe::bump_cls_call();
     rec(&mut g, &mut tp, target)
 }
 
@@ -427,32 +532,73 @@ pub fn macro_solvable(g: &Solitaire) -> bool {
 }
 
 /// Transitions sourced from the rule-driven generator (the fast path):
-/// one representative per (commitment, outcome kind). The scar-choice
-/// policies of the oracle variant do not apply here — the direct
-/// generator's per-kind representative is the canonical one by §6.4's
-/// priority order, and anything beyond that would reintroduce the closure
-/// walk this exists to avoid.
+/// one representative per (commitment, outcome kind), materialized only
+/// after the fold, plus the F3 dominance drop. The scar-choice policies
+/// of the oracle variant do not apply here — the direct generator's
+/// per-kind representative is the canonical one by §6.4's priority order,
+/// and anything beyond that would reintroduce the closure walk this
+/// exists to avoid.
+///
+/// Two search policies beyond `macro_transitions_direct`'s raw emission:
+/// - per-(commitment, kind) collapse: theoretically under-emissive
+///   (macro doc §6.7: same-kind scar classes can have different futures;
+///   P2's absorption is what makes per-kind collapse safe). Deduping by
+///   encode instead visits every float-noise member of a class (§6.3,
+///   unbounded multiplicity), multiplying the search tree — the
+///   original seed-18 blowup; the loss is measured by the class-coverage
+///   metric in macro_direct_matches_oracle.
+/// - F3 (macro doc §4 "additional collapsing"): when X is dominantly
+///   stackable, its tableau outcome is dominated and is dropped. Measured
+///   5-6% of branches on the deep seeds, 16% elsewhere.
+///
+/// Both are search policies: `macro_transitions_direct` keeps full
+/// semantics for the differential, and the verdict gate judges soundness.
 #[must_use]
 pub fn macro_transitions_fast(g: &Solitaire) -> Vec<(Commitment, Solitaire)> {
-    // One successor per (commitment, kind). Theoretically under-emissive
-    // (macro doc §6.7: same-kind scar classes can have different futures,
-    // and P2's absorption is what makes per-kind collapse safe), but
-    // deduping by encode instead visits *every float-noise member* of a
-    // class (§6.3: class multiplicity is unbounded), which multiplies the
-    // search tree per level — measured as a seed-18 blowup. The right
-    // fix is class-level clustering (one rep per closure class, like
-    // enumerate_transitions); until then, the loss is measured by the
-    // class-coverage metric in macro_direct_matches_oracle.
-    let mut seen: Vec<(Commitment, OutcomeKind)> = Vec::new();
-    let mut out: Vec<(Commitment, Solitaire)> = Vec::new();
-    for (c, k, st, _) in macro_transitions_direct(g) {
-        if seen.contains(&(c, k)) {
-            continue;
+    let mut scratch = DirectScratch::new();
+    macro_transitions_fast_into(g, &mut scratch);
+    scratch.out
+}
+
+/// The search-facing fold into `scratch.out` (reused across nodes).
+fn macro_transitions_fast_into(g: &Solitaire, scratch: &mut DirectScratch) {
+    let root = macro_transitions_core(g, scratch);
+    // F3 mask: commitments with a direct stack outcome now (X stackable),
+    // of a dominantly safe type
+    let dom = root.get_stack().dominance_mask();
+    let mut f3: u64 = 0;
+    for group in &scratch.groups {
+        for (c, k, _, ch) in group {
+            if *k == OutcomeKind::Stack && *ch == "stack-direct" {
+                f3 |= match c {
+                    Commitment::Draw(x) | Commitment::Reveal(x) => x.mask(),
+                };
+            }
         }
-        seen.push((c, k));
-        out.push((c, st));
     }
-    out
+    f3 &= dom;
+    scratch.fold_seen.clear();
+    scratch.out.clear();
+    for group in &scratch.groups {
+        for (c, k, steps, _) in group {
+            if *k == OutcomeKind::Tableau
+                && f3
+                    & match c {
+                        Commitment::Draw(x) | Commitment::Reveal(x) => x.mask(),
+                    }
+                    != 0
+            {
+                continue;
+            }
+            if scratch.fold_seen.contains(&(*c, *k)) {
+                continue;
+            }
+            scratch.fold_seen.push((*c, *k));
+            scratch
+                .out
+                .push((*c, post_state(&root, steps)));
+        }
+    }
 }
 
 /// Solve the macro game on the direct transition function. Same recursive
@@ -460,77 +606,222 @@ pub fn macro_transitions_fast(g: &Solitaire) -> Vec<(Commitment, Solitaire)> {
 /// two must agree on solvability or the fast generator is wrong.
 ///
 /// Successors arrive canonicalized from `post_state`, so the recursion does
-/// not resweep them; entry canonicalizes the start state once.
+/// not resweep them; entry canonicalizes the start state once. The
+/// transition working buffers live in one `DirectScratch` for the whole
+/// search: cleared per node, not reallocated (the profiled per-node cost
+/// of fresh buffers was ~35 heap allocs).
 #[must_use]
 pub fn macro_solvable_direct(g: &Solitaire) -> bool {
-    fn rec(s: &Solitaire, tp: &mut TpTable) -> bool {
+    fn rec(s: &Solitaire, tp: &mut TpTable, scratch: &mut DirectScratch) -> bool {
         if s.is_win() || !tp.insert(s.encode()) {
             return s.is_win();
         }
-        for (_, succ) in macro_transitions_fast(s) {
-            if rec(&succ, tp) {
-                return true;
+        macro_transitions_fast_into(s, scratch);
+        // take the successor vec out so recursion can reuse the scratch
+        let succs = core::mem::take(&mut scratch.out);
+        let mut result = false;
+        for (_, succ) in &succs {
+            if rec(succ, tp, scratch) {
+                result = true;
+                break;
             }
         }
-        false
+        // hand the allocation back for the next node
+        let mut succs = succs;
+        succs.clear();
+        scratch.out = succs;
+        result
     }
     let mut root = g.clone();
     canonicalize(&mut root);
-    rec(&root, &mut TpTable::default())
+    rec(&root, &mut TpTable::default(), &mut DirectScratch::new())
 }
 
-/// Bounded local search for an accommodation the constant-work channels
-/// missed (chained borrows/digs). Returns the shortest sequence of
-/// reversible moves making `X`'s direct placement legal, or `None` within
-/// `depth` shuffles. This is the honest fallback the differential test
-/// measures: the rule list (direct/dig/borrow) converges exactly when this
-/// rarely answers.
-fn find_accommodation_bfs(
-    g: &Solitaire,
+/// One accommodation goal the fixed channels left open: make `x`'s
+/// `kind`-placement legal via a bounded reversible shuffle.
+struct AccommodationGoal {
     commitment: Commitment,
-    x: Card,
-    goal_kind: OutcomeKind,
-    max_depth: usize,
-) -> Option<Vec<Move>> {
-    use alloc::collections::VecDeque;
+    kind: OutcomeKind,
+    xmask: u64,
+    /// the irreversible move realizing the commitment once accommodated
+    commit_move: Move,
+    /// openings at pop-depth >= cap do not count (the depth bound)
+    cap: usize,
+}
 
-    let xmask = x.mask();
-    let mut queue: VecDeque<(Solitaire, Vec<Move>)> = VecDeque::new();
-    queue.push_back((g.clone(), Vec::new()));
-    let mut seen = crate::traverse::TpTable::default();
-    seen.insert(g.encode());
+/// Bounded local search for the accommodations the constant-work
+/// channels missed (chained borrows/digs — the §6.4 crease), answering
+/// *every* pending goal with one shared traversal. This is the honest
+/// fallback the differential test measures: the rule list
+/// (direct/dig/borrow) converges exactly when this rarely answers.
+///
+/// BFS, not DFS, because level order is the semantics: each goal's
+/// witness is the *shortest* opening shuffle (the depth-ordered scar the
+/// §7 absorption argument works with), and a goal is provably dead the
+/// moment level `cap` starts popping — which is what lets one traversal
+/// serve all goals with per-goal caps. Expansion order is goal-independent
+/// (mask order + insert-once dedup), so each goal's first opening is
+/// exactly the state its dedicated per-goal BFS would have returned.
+///
+/// The shared form replaces one BFS *per commitment*: those all started
+/// from the same root and re-explored the same closure (~16 probes per
+/// node on the verdict corpus, 96%+ failing; see macro_verdict_perf_probe).
+/// States are cloned only when actually enqueued (do/undo on the popped
+/// state otherwise), and witnesses are reconstructed from the
+/// parent-pointer arena, not carried as per-state move lists.
+/// Reusable working buffers for the BFS — cleared, not reallocated, per
+/// node (the profile showed ~35 heap allocs per node across these).
+pub(crate) struct BfsScratch {
+    arena: Vec<(usize, Move, u16)>,
+    queue: alloc::collections::VecDeque<(Solitaire, usize)>,
+    seen: crate::traverse::TpTable,
+}
 
-    while let Some((state, steps)) = queue.pop_front() {
-        if steps.len() >= max_depth {
-            continue;
-        }
-        let mv = state.gen_moves::<false>();
-        // does the goal kind become legal here?
-        let opens = match (commitment, goal_kind) {
-            (Commitment::Draw(_), OutcomeKind::Tableau) => mv.deck_pile & xmask != 0,
-            (Commitment::Reveal(_), OutcomeKind::Tableau) => mv.reveal & xmask != 0,
-            (Commitment::Draw(_), OutcomeKind::Stack) => mv.deck_stack & xmask != 0,
-            (Commitment::Reveal(_), OutcomeKind::Stack) => mv.pile_stack & xmask != 0,
-        };
-        if opens {
-            return Some(steps);
-        }
-        for m in mv.to_vec::<N_MOVES_MAX>() {
-            // accommodations are shuffles: reversible moves only
-            if state.reverse_move(m).is_none() {
-                continue;
-            }
-            let mut next = state.clone();
-            let _ = next.do_move(m);
-            let enc = next.encode();
-            if seen.insert(enc) {
-                let mut s2 = steps.clone();
-                s2.push(m);
-                queue.push_back((next, s2));
-            }
+/// Reusable working buffers for the whole direct-transition machinery:
+/// one set per search instead of one per node.
+pub(crate) struct DirectScratch {
+    groups: Vec<Vec<StepTransition>>,
+    goals: Vec<AccommodationGoal>,
+    bfs: BfsScratch,
+    fold_seen: Vec<(Commitment, OutcomeKind)>,
+    out: Vec<(Commitment, Solitaire)>,
+}
+
+impl DirectScratch {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            groups: Vec::new(),
+            goals: Vec::new(),
+            bfs: BfsScratch {
+                arena: Vec::new(),
+                queue: alloc::collections::VecDeque::new(),
+                seen: crate::traverse::TpTable::default(),
+            },
+            fold_seen: Vec::new(),
+            out: Vec::new(),
         }
     }
-    None
+}
+
+fn accommodations_shared(
+    g: &Solitaire,
+    root_mv: crate::moves::MoveMask,
+    goals: &[AccommodationGoal],
+    scratch: &mut BfsScratch,
+) -> Vec<Option<Vec<Move>>> {
+    #[cfg(test)]
+    perf_probe::bump_bfs_call();
+    // answers[gi] = arena index of the shallowest state where goal gi opened
+    let mut answers: Vec<Option<usize>> = (0..goals.len()).map(|_| None).collect();
+    let mut pending: Vec<usize> = (0..goals.len()).collect();
+    // parent-pointer arena: entry i = (parent index, reaching move, depth);
+    // entry 0 is the root sentinel
+    let arena = &mut scratch.arena;
+    let queue = &mut scratch.queue;
+    let seen = &mut scratch.seen;
+    arena.clear();
+    queue.clear();
+    seen.clear();
+    arena.push((usize::MAX, Move::PileStack(Card::DEFAULT), 0));
+    queue.push_back((g.clone(), 0));
+    let mut first_pop = true;
+    seen.insert(g.encode());
+
+    while let Some((mut state, idx)) = queue.pop_front() {
+        #[cfg(test)]
+        perf_probe::bump_bfs_state();
+        // the root pop reuses the caller's move mask (same state)
+        let mv = if first_pop {
+            first_pop = false;
+            root_mv
+        } else {
+            state.gen_moves::<false>()
+        };
+        let depth = usize::from(arena[idx].2);
+        // a cap this level exceeds can no longer open
+        pending.retain(|&gi| goals[gi].cap > depth);
+        if pending.is_empty() {
+            break;
+        }
+        let mut opened = false;
+        for &gi in &pending {
+            let goal = &goals[gi];
+            // does the goal kind become legal here?
+            let opens = match (goal.commitment, goal.kind) {
+                (Commitment::Draw(_), OutcomeKind::Tableau) => mv.deck_pile & goal.xmask != 0,
+                (Commitment::Reveal(_), OutcomeKind::Tableau) => mv.reveal & goal.xmask != 0,
+                (Commitment::Draw(_), OutcomeKind::Stack) => mv.deck_stack & goal.xmask != 0,
+                (Commitment::Reveal(_), OutcomeKind::Stack) => mv.pile_stack & goal.xmask != 0,
+            };
+            if opens {
+                answers[gi] = Some(idx);
+                opened = true;
+            }
+        }
+        if opened {
+            pending.retain(|&gi| answers[gi].is_none());
+            if pending.is_empty() {
+                break;
+            }
+        }
+        // children can only serve goals whose cap exceeds their depth
+        let max_cap = pending.iter().map(|&gi| goals[gi].cap).max().unwrap_or(0);
+        if depth + 1 >= max_cap {
+            continue;
+        }
+        // accommodations are shuffles: reversible moves only — exactly
+        // PileStack of unlocked cards (the locked variant is a reveal,
+        // a commitment) plus StackPile. Iterated straight from the two
+        // masks in the same card order `to_vec` would produce, skipping
+        // the full move-list materialization and per-move `reverse_move`
+        // lookups.
+        let locked_now = state.get_hidden().get_locked_mask();
+        let mut edges = mv.pile_stack & !locked_now;
+        let mut is_pile = true;
+        loop {
+            if edges == 0 {
+                if is_pile {
+                    edges = mv.stack_pile;
+                    is_pile = false;
+                    continue;
+                }
+                break;
+            }
+            let bit = edges & edges.wrapping_neg();
+            edges &= !bit;
+            let c = Card::from_mask_index(u8::try_from(bit.trailing_zeros()).unwrap());
+            let m = if is_pile {
+                Move::PileStack(c)
+            } else {
+                Move::StackPile(c)
+            };
+            let (_, (undo, _)) = state.do_move(m);
+            let enc = state.encode();
+            if seen.insert(enc) {
+                let child = arena.len();
+                arena.push((idx, m, (depth + 1) as u16));
+                queue.push_back((state.clone(), child));
+            }
+            state.undo_move(m, undo);
+        }
+    }
+    answers
+        .into_iter()
+        .map(|ans| {
+            ans.map(|idx| {
+                let mut steps = Vec::new();
+                let mut i = idx;
+                while i != 0 {
+                    let (parent, mv, _) = arena[i];
+                    steps.push(mv);
+                    i = parent;
+                }
+                steps.reverse();
+                steps
+            })
+        })
+        .collect()
 }
 
 /// Apply `m`, canonicalize the result, and return the successor state.
@@ -541,6 +832,8 @@ fn find_accommodation_bfs(
 /// Note `do_move` itself carries no validity guard, so the mask checks at
 /// the call sites are the only guard.
 fn post_state(g: &Solitaire, steps: &[Move]) -> Solitaire {
+    #[cfg(test)]
+    perf_probe::bump_post(steps.len() as u64);
     let mut next = g.clone();
     for &m in steps {
         let _ = next.do_move(m);
@@ -561,24 +854,26 @@ fn post_state(g: &Solitaire, steps: &[Move]) -> Solitaire {
 /// differential test's failure forensics.
 pub type DirectTransition = (Commitment, OutcomeKind, Solitaire, &'static str);
 
-#[must_use]
-pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
-    fn push_new(
-        out: &mut Vec<DirectTransition>,
-        commitment: Commitment,
-        kind: OutcomeKind,
-        state: Solitaire,
-        channel: &'static str,
-    ) {
-        let enc = state.encode();
-        if !out
-            .iter()
-            .any(|(c, k, s, _)| *c == commitment && *k == kind && s.encode() == enc)
-        {
-            out.push((commitment, kind, state, channel));
-        }
-    }
+/// The §6.4 rule list evaluated to *steps*: (commitment, outcome kind,
+/// accommodation steps + the realizing commit move, channel). Steps, not
+/// states, so the search-facing fold (`macro_transitions_fast`) can drop
+/// dominated outcomes before paying for a `post_state` clone.
+type StepTransition = (Commitment, OutcomeKind, ArrayVec<Move, 14>, &'static str);
 
+fn steps(ms: &[Move]) -> ArrayVec<Move, 14> {
+    let mut a = ArrayVec::new();
+    for &m in ms {
+        a.push(m);
+    }
+    a
+}
+
+/// The rule list proper: one entry per (commitment, channel) that opens,
+/// grouped per commitment (adjacent in the flattened vec — the
+/// differential's kind-fold relies on it). See `macro_transitions_direct`
+/// for the channel documentation. Working buffers come from `scratch`
+/// (reused across nodes, cleared not reallocated).
+fn macro_transitions_core(g: &Solitaire, scratch: &mut DirectScratch) -> Solitaire {
     let mut game = g.clone();
     canonicalize(&mut game);
     let mv = game.gen_moves::<false>();
@@ -586,16 +881,14 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
     let locked = game.get_hidden().get_locked_mask();
     let locked_surfaces = game.get_visible_mask() & locked;
 
-    // enumerate commitments: every drawable deck card; every locked surface
+    // enumerate commitments: every locked surface first, then every
+    // drawable deck card — reveal before draw, mirroring the old engine's
+    // raw move order (`MoveMask::iter_moves` tries `Reveal` before any
+    // deck move). Measured search order, not just aesthetics: draw-first
+    // buries reveal-led winning lines under draw-subgame refutations
+    // (seed 18 draw 1: 96k nodes draw-first vs 84 reveal-first, see
+    // `macro_verdict_perf_probe`).
     let mut commitments: Vec<Commitment> = Vec::new();
-    let mut bits = deck_mask;
-    while bits != 0 {
-        let bit = bits & bits.wrapping_neg();
-        bits &= !bit;
-        commitments.push(Commitment::Draw(Card::from_mask_index(
-            u8::try_from(bit.trailing_zeros()).unwrap(),
-        )));
-    }
     let mut bits = locked_surfaces;
     while bits != 0 {
         let bit = bits & bits.wrapping_neg();
@@ -604,9 +897,28 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
             u8::try_from(bit.trailing_zeros()).unwrap(),
         )));
     }
+    let mut bits = deck_mask;
+    while bits != 0 {
+        let bit = bits & bits.wrapping_neg();
+        bits &= !bit;
+        commitments.push(Commitment::Draw(Card::from_mask_index(
+            u8::try_from(bit.trailing_zeros()).unwrap(),
+        )));
+    }
 
-    let mut out = Vec::new();
-    for commitment in commitments {
+    // reset the reused buffers: per-commitment groups, goal list
+    let n_groups = commitments.len();
+    scratch.groups.truncate(n_groups);
+    while scratch.groups.len() < n_groups {
+        scratch.groups.push(Vec::new());
+    }
+    for grp in &mut scratch.groups {
+        grp.clear();
+    }
+    scratch.goals.clear();
+    let groups = &mut scratch.groups;
+    let goals = &mut scratch.goals;
+    for (ci, &commitment) in commitments.iter().enumerate() {
         let (x, stack_move, direct_move) = match commitment {
             Commitment::Draw(x) => (x, Move::DeckStack(x), Move::DeckPile(x)),
             Commitment::Reveal(x) => (x, Move::PileStack(x), Move::Reveal(x)),
@@ -621,13 +933,12 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
         // channel order matters: every channel is independent,
         // and no channel is allowed to skip the tableau channels
         if stack_now {
-            push_new(
-                &mut out,
+            groups[ci].push((
                 commitment,
                 OutcomeKind::Stack,
-                post_state(&game, &[stack_move]),
+                steps(&[stack_move]),
                 "stack-direct",
-            );
+            ));
         }
 
         // tableau outcome, direct channel
@@ -636,13 +947,12 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
             Commitment::Reveal(_) => mv.reveal & xmask != 0,
         };
         if direct_now {
-            push_new(
-                &mut out,
+            groups[ci].push((
                 commitment,
                 OutcomeKind::Tableau,
-                post_state(&game, &[direct_move]),
+                steps(&[direct_move]),
                 "tableau-direct",
-            );
+            ));
         }
 
         // stack-side channels. Prefix-raise: stack the missing same-suit
@@ -654,72 +964,73 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
         let suit = x.suit();
         let mut stack_produced = stack_now;
         if !stack_now && game.get_stack().get(suit) < x.rank() {
-            let mut probe = game.clone();
-            let mut steps: Vec<Move> = Vec::new();
-            let mut undos: Vec<crate::state::UndoInfo> = Vec::new();
-            let mut reachable = true;
-            loop {
-                let need = probe.get_stack().get(suit);
-                if need >= x.rank() {
-                    break;
+            // the probe dies on its first iteration unless the first
+            // missing prefix card is stackable and unlocked at the root —
+            // check that before paying for the clone + gen_moves (the
+            // profiled gen_moves hot spot: most probes die here)
+            let first = Card::new(game.get_stack().get(suit), suit);
+            if mv.pile_stack & first.mask() != 0 && locked & first.mask() == 0 {
+                let mut probe = game.clone();
+                let mut steps: Vec<Move> = Vec::new();
+                let mut undos: Vec<crate::state::UndoInfo> = Vec::new();
+                let mut reachable = true;
+                loop {
+                    let need = probe.get_stack().get(suit);
+                    if need >= x.rank() {
+                        break;
+                    }
+                    let c2 = Card::new(need, suit);
+                    let c2m = c2.mask();
+                    let pmv = probe.gen_moves::<false>();
+                    let locked_now = probe.get_hidden().get_locked_mask();
+                    if pmv.pile_stack & c2m != 0 && locked_now & c2m == 0 {
+                        let m2 = Move::PileStack(c2);
+                        let (_, (undo, _)) = probe.do_move(m2);
+                        steps.push(m2);
+                        undos.push(undo);
+                    } else {
+                        reachable = false;
+                        break;
+                    }
                 }
-                let c2 = Card::new(need, suit);
-                let c2m = c2.mask();
-                let pmv = probe.gen_moves::<false>();
-                let locked_now = probe.get_hidden().get_locked_mask();
-                if pmv.pile_stack & c2m != 0 && locked_now & c2m == 0 {
-                    let m2 = Move::PileStack(c2);
-                    let (_, (undo, _)) = probe.do_move(m2);
-                    steps.push(m2);
-                    undos.push(undo);
-                } else {
-                    reachable = false;
-                    break;
+                if reachable {
+                    let pmv = probe.gen_moves::<false>();
+                    let stack_ok = match commitment {
+                        Commitment::Draw(_) => pmv.deck_stack & xmask != 0,
+                        Commitment::Reveal(_) => pmv.pile_stack & xmask != 0,
+                    };
+                    if stack_ok {
+                        // rebuild from the untouched base: probe is dirty
+                        steps.push(stack_move);
+                        groups[ci].push((
+                            commitment,
+                            OutcomeKind::Stack,
+                            steps.into_iter().collect(),
+                            "stack-prefix-raise",
+                        ));
+                        stack_produced = true;
+                    }
                 }
+                // probe is discarded whole; `game` was never touched
+                let _ = undos;
             }
-            if reachable {
-                let pmv = probe.gen_moves::<false>();
-                let stack_ok = match commitment {
-                    Commitment::Draw(_) => pmv.deck_stack & xmask != 0,
-                    Commitment::Reveal(_) => pmv.pile_stack & xmask != 0,
-                };
-                if stack_ok {
-                    // rebuild from the untouched base: probe is dirty
-                    steps.push(stack_move);
-                    push_new(
-                        &mut out,
-                        commitment,
-                        OutcomeKind::Stack,
-                        post_state(&game, &steps),
-                        "stack-prefix-raise",
-                    );
-                    stack_produced = true;
-                }
-            }
-            // probe is discarded whole; `game` was never touched
-            let _ = undos;
         }
         if !stack_produced && !stack_now {
             // (the blockers of X are two twins and each may need its own
-            // dig; the bounded BFS catches the chains the fixed rules
-            // don't name. Gate: only when no fixed channel produced a
-            // stack outcome — running it after a successful prefix-raise
-            // would hunt for the *second* stack scar class (the same-kind
-            // splits of §6.7) but multiplies the per-node cost badly.
-            // The residual under-emission is measured instead: the
-            // class-coverage metric in macro_direct_matches_oracle.)
-            if let Some(mut steps2) =
-                find_accommodation_bfs(&game, commitment, x, OutcomeKind::Stack, 12)
-            {
-                steps2.push(stack_move);
-                push_new(
-                    &mut out,
-                    commitment,
-                    OutcomeKind::Stack,
-                    post_state(&game, &steps2),
-                    "stack-bfs",
-                );
-            }
+            // dig; the shared bounded BFS below catches the chains the
+            // fixed rules don't name. Gate: only when no fixed channel
+            // produced a stack outcome — running it after a successful
+            // prefix-raise would hunt for the *second* stack scar class
+            // (the same-kind splits of §6.7) but multiplies the per-node
+            // cost badly. The residual under-emission is measured instead:
+            // the class-coverage metric in macro_direct_matches_oracle.)
+            goals.push(AccommodationGoal {
+                commitment,
+                kind: OutcomeKind::Stack,
+                xmask,
+                commit_move: stack_move,
+                cap: 12,
+            });
         }
 
         // dig/borrow only make sense with a parent class: skip for kings
@@ -742,13 +1053,12 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
             };
             game.undo_move(mv_twin, undo);
             if opens {
-                push_new(
-                    &mut out,
+                groups[ci].push((
                     commitment,
                     OutcomeKind::Tableau,
-                    post_state(&game, &[mv_twin, direct_move]),
+                    steps(&[mv_twin, direct_move]),
                     "tableau-dig",
-                );
+                ));
             }
         }
 
@@ -773,29 +1083,81 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
             };
             game.undo_move(mv_b, undo);
             if opens {
-                push_new(
-                    &mut out,
+                groups[ci].push((
                     commitment,
                     OutcomeKind::Tableau,
-                    post_state(&game, &[mv_b, direct_move]),
+                    steps(&[mv_b, direct_move]),
                     "tableau-borrow",
-                );
+                ));
             }
         }
 
-        // fallback channel: bounded neighborhood BFS (catches the chained
-        // borrow/dig crease; the differential reports how often it fires)
+        // fallback channel: the shared bounded BFS below (catches the
+        // chained borrow/dig crease; the differential reports how often
+        // it fires)
         if !direct_now {
-            if let Some(steps) = find_accommodation_bfs(&game, commitment, x, OutcomeKind::Tableau, 10) {
-                let mut full = steps;
-                full.push(direct_move);
-                push_new(
-                    &mut out,
-                    commitment,
-                    OutcomeKind::Tableau,
-                    post_state(&game, &full),
-                    "tableau-bfs",
-                );
+            goals.push(AccommodationGoal {
+                commitment,
+                kind: OutcomeKind::Tableau,
+                xmask,
+                commit_move: direct_move,
+                cap: 10,
+            });
+        }
+    }
+
+    // pass 2: one shared BFS from the same root answers every goal the
+    // fixed channels left open (the per-commitment BFS's this replaces
+    // re-explored the same closure ~16x per node, 96%+ of calls failing;
+    // witness choice is unchanged — first opening in level order). Each
+    // result is appended to its commitment's group, keeping every
+    // commitment's emissions adjacent in the flattened output.
+    if !goals.is_empty() {
+        for (goal, witness) in goals
+            .iter()
+            .zip(accommodations_shared(&game, mv, goals, &mut scratch.bfs))
+        {
+            if let Some(mut steps) = witness {
+                steps.push(goal.commit_move);
+                let channel = match goal.kind {
+                    OutcomeKind::Stack => "stack-bfs",
+                    OutcomeKind::Tableau => "tableau-bfs",
+                };
+                let ci = commitments
+                    .iter()
+                    .position(|c| *c == goal.commitment)
+                    .expect("goal commitment comes from the enumeration");
+                groups[ci].push((goal.commitment, goal.kind, steps.into_iter().collect(), channel));
+            }
+        }
+    }
+    game
+}
+
+/// The §6.4 rule list, probed directly (no closure search). For each
+/// commitment, try in order: direct placement, dig (vacate `twin(X)`), and
+/// borrow (worry a foundation-top parent back). Each successful channel
+/// produces one canonical post-state via `post_state`.
+///
+/// v1 deliberate gaps, surfaced by the differential test below: chained
+/// borrows (borrow chains of depth > 1) and prefix-raising for the stack
+/// outcome (§6.4's stack-side analogue of the dig).
+/// The channel that produced a direct outcome — recorded for the
+/// differential test's failure forensics.
+#[must_use]
+pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
+    let mut scratch = DirectScratch::new();
+    let game = macro_transitions_core(g, &mut scratch);
+    // materialize per group with the (commitment, kind, encode) dedup
+    let mut out: Vec<DirectTransition> = Vec::new();
+    for group in &scratch.groups {
+        for (commitment, kind, steps, channel) in group {
+            let state = post_state(&game, steps);
+            let enc = state.encode();
+            if !out.iter().any(|(c, k, s, _)| {
+                *c == *commitment && *k == *kind && s.encode() == enc
+            }) {
+                out.push((*commitment, *kind, state, *channel));
             }
         }
     }
@@ -808,6 +1170,380 @@ mod tests {
     use crate::shuffler::default_shuffle;
     use crate::solver::{solve, SearchResult};
     use core::num::NonZeroU8;
+    use crate::pruning::{FullPruner, NoPruner, Pruner};
+    use crate::traverse::{traverse, Callback, Control};
+
+    /// A/B the shared multi-goal BFS against the old per-goal BFS at the
+    /// differential's first-missing states: any witness divergence is a
+    /// bug in the shared version.
+    #[test]
+    #[ignore = "forensic A/B; run with --ignored --nocapture"]
+    fn debug_shared_bfs_ab() {
+        // the old per-goal BFS, verbatim, for comparison
+        fn bfs_old(
+            g: &Solitaire,
+            commitment: Commitment,
+            x: Card,
+            goal_kind: OutcomeKind,
+            max_depth: usize,
+        ) -> Option<Vec<Move>> {
+            use alloc::collections::VecDeque;
+            let xmask = x.mask();
+            let mut queue: VecDeque<(Solitaire, Vec<Move>)> = VecDeque::new();
+            queue.push_back((g.clone(), Vec::new()));
+            let mut seen = TpTable::default();
+            seen.insert(g.encode());
+            while let Some((state, steps)) = queue.pop_front() {
+                if steps.len() >= max_depth {
+                    continue;
+                }
+                let mv = state.gen_moves::<false>();
+                let opens = match (commitment, goal_kind) {
+                    (Commitment::Draw(_), OutcomeKind::Tableau) => mv.deck_pile & xmask != 0,
+                    (Commitment::Reveal(_), OutcomeKind::Tableau) => mv.reveal & xmask != 0,
+                    (Commitment::Draw(_), OutcomeKind::Stack) => mv.deck_stack & xmask != 0,
+                    (Commitment::Reveal(_), OutcomeKind::Stack) => mv.pile_stack & xmask != 0,
+                };
+                if opens {
+                    return Some(steps);
+                }
+                for m in mv.to_vec::<N_MOVES_MAX>() {
+                    if state.reverse_move(m).is_none() {
+                        continue;
+                    }
+                    let mut next = state.clone();
+                    let _ = next.do_move(m);
+                    let enc = next.encode();
+                    if seen.insert(enc) {
+                        let mut s2 = steps.clone();
+                        s2.push(m);
+                        queue.push_back((next, s2));
+                    }
+                }
+            }
+            None
+        }
+        for (seed, turn, draw_step, card_idx, is_draw) in [
+            (34u64, 17usize, 1u8, 3u8, false),
+            (34, 17, 3, 3, false),
+            (12, 38, 1, 38, true),
+            (12, 38, 3, 38, true),
+            (40, 20, 1, 1, true),
+            (40, 20, 3, 1, true),
+        ] {
+            let mut game = Solitaire::new(
+                &default_shuffle(seed),
+                NonZeroU8::new(draw_step).unwrap(),
+            );
+            for _ in 0..turn {
+                if game.is_win() {
+                    break;
+                }
+                canonicalize(&mut game);
+                let oracle = enumerate_commitments(&game);
+                if oracle.is_empty() {
+                    break;
+                }
+                for &m in &oracle[0].witness_path {
+                    let _ = game.do_move(m);
+                }
+            }
+            canonicalize(&mut game);
+            let x = Card::from_mask_index(card_idx);
+            let commitment = if is_draw {
+                Commitment::Draw(x)
+            } else {
+                Commitment::Reveal(x)
+            };
+            if !enumerate_commitments(&game)
+                .iter()
+                .any(|c| c.commitment == commitment)
+            {
+                println!("seed={seed} draw={draw_step} turn={turn}: {commitment:?} not offered here");
+                continue;
+            }
+            let old = bfs_old(&game, commitment, x, OutcomeKind::Tableau, 10);
+            let goal = [AccommodationGoal {
+                commitment,
+                kind: OutcomeKind::Tableau,
+                xmask: x.mask(),
+                commit_move: Move::Reveal(x),
+                cap: 10,
+            }];
+            let root_mv = game.gen_moves::<false>();
+            let mut bfs_scratch = DirectScratch::new();
+            let new = accommodations_shared(&game, root_mv, &goal, &mut bfs_scratch.bfs);
+            let direct_channels: Vec<&'static str> = macro_transitions_direct(&game)
+                .iter()
+                .filter(|(c, _, _, _)| *c == commitment)
+                .map(|(_, _, _, ch)| *ch)
+                .collect();
+            println!(
+                "seed={seed} draw={draw_step} turn={turn} {commitment:?}: old={old:?} new={new:?} channels={direct_channels:?}"
+            );
+        }
+    }
+
+    /// Hang forensics for the big verdict sweep: characterize a seed the
+    /// sweep stalls on. All macro runs are node-capped (capped=true means
+    /// "at least this many nodes", not a verdict).
+    #[test]
+    #[ignore = "hang forensics; run with --ignored --release --nocapture"]
+    fn debug_big_sweep_hang() {
+        const NODE_CAP: usize = 3_000_000;
+        for (seed, draw_step) in [(32u64, 1u8), (32, 3)] {
+            let cards = default_shuffle(seed);
+            let step = NonZeroU8::new(draw_step).unwrap();
+
+            // direct first (it is the sweep's path), node-capped
+            {
+                fn rec(
+                    s: &Solitaire,
+                    tp: &mut TpTable,
+                    nodes: &mut usize,
+                    branches: &mut usize,
+                    capped: &mut bool,
+                ) -> bool {
+                    if s.is_win() || !tp.insert(s.encode()) {
+                        return s.is_win();
+                    }
+                    *nodes += 1;
+                    if *nodes > NODE_CAP {
+                        *capped = true;
+                        return false;
+                    }
+                    let succs = macro_transitions_fast(s);
+                    *branches += succs.len();
+                    succs
+                        .into_iter()
+                        .any(|(_, succ)| rec(&succ, tp, nodes, branches, capped))
+                }
+                perf_probe::reset();
+                let t = std::time::Instant::now();
+                let mut tp = TpTable::default();
+                let (mut n, mut b) = (0usize, 0usize);
+                let mut capped = false;
+                let mut root = Solitaire::new(&cards, step);
+                canonicalize(&mut root);
+                let w = rec(&root, &mut tp, &mut n, &mut b, &mut capped);
+                println!(
+                    "seed={seed} draw={draw_step} DIRECT win={w} nodes={n} branches={b} avg_branch={:5.2} capped={} total={:?} probes={:?}",
+                    b as f64 / n.max(1) as f64,
+                    capped,
+                    t.elapsed(),
+                    perf_probe::read()
+                );
+            }
+
+            // oracle, node-capped
+            {
+                fn rec(
+                    g: &Solitaire,
+                    tp: &mut TpTable,
+                    nodes: &mut usize,
+                    branches: &mut usize,
+                    capped: &mut bool,
+                ) -> bool {
+                    let mut s = g.clone();
+                    canonicalize(&mut s);
+                    if s.is_win() || !tp.insert(s.encode()) {
+                        return s.is_win();
+                    }
+                    *nodes += 1;
+                    if *nodes > NODE_CAP {
+                        *capped = true;
+                        return false;
+                    }
+                    let succs = enumerate_transitions(&s);
+                    *branches += succs.len();
+                    succs
+                        .into_iter()
+                        .any(|(_, succ)| rec(&succ, tp, nodes, branches, capped))
+                }
+                let t = std::time::Instant::now();
+                let mut tp = TpTable::default();
+                let (mut n, mut b) = (0usize, 0usize);
+                let mut capped = false;
+                let w = rec(&Solitaire::new(&cards, step), &mut tp, &mut n, &mut b, &mut capped);
+                println!(
+                    "seed={seed} draw={draw_step} ORACLE win={w} nodes={n} branches={b} avg_branch={:5.2} capped={} total={:?}",
+                    b as f64 / n.max(1) as f64,
+                    capped,
+                    t.elapsed()
+                );
+            }
+
+            // old engine reference
+            {
+                let t = std::time::Instant::now();
+                let mut game = Solitaire::new(&cards, step);
+                let (res, hist) = solve(&mut game);
+                let len = hist.map_or(0, |h| h.len());
+                println!(
+                    "seed={seed} draw={draw_step} OLD win={res:?} winline={len} total={:?}",
+                    t.elapsed()
+                );
+            }
+        }
+    }
+
+    /// Structural characterization of a seed: root commitment surface and
+    /// the old engine's 2x2 refutation cost.
+    #[test]
+    #[ignore = "forensics; run with --ignored --release --nocapture"]
+    fn debug_seed_types() {
+        const BUDGET: u64 = 20_000_000;
+        struct P {
+            won: bool,
+            visits: u64,
+            nodes: u64,
+            budget: bool,
+        }
+        fn run_old<const DOM: bool, PR: Pruner + Default>(cards: &[Card; 52], step: NonZeroU8) -> P {
+            struct C<P2: Pruner + Default> {
+                won: bool,
+                visits: u64,
+                nodes: u64,
+                budget: bool,
+                m: core::marker::PhantomData<P2>,
+            }
+            impl<P2: Pruner + Default> Callback for C<P2> {
+                type Pruner = P2;
+                fn on_win(&mut self, _: &Solitaire) -> Control {
+                    self.won = true;
+                    Control::Halt
+                }
+                fn on_visit(&mut self, _: &Solitaire, _: Encode) -> Control {
+                    self.visits += 1;
+                    if self.visits > BUDGET {
+                        self.budget = true;
+                        return Control::Halt;
+                    }
+                    Control::Ok
+                }
+                fn on_move_gen(&mut self, m: &crate::moves::MoveMask, _: Encode) -> Control {
+                    self.nodes += 1;
+                    let _ = m.len();
+                    Control::Ok
+                }
+            }
+            let mut game = Solitaire::new(cards, step);
+            let mut tp = TpTable::default();
+            let mut c = C::<PR> {
+                won: false,
+                visits: 0,
+                nodes: 0,
+                budget: false,
+                m: core::marker::PhantomData,
+            };
+            traverse::<_, _, DOM>(&mut game, &PR::default(), &mut tp, &mut c);
+            P { won: c.won, visits: c.visits, nodes: c.nodes, budget: c.budget }
+        }
+        for seed in [12u64, 21, 22, 32] {
+            for draw_step in [1u8, 3] {
+                let cards = default_shuffle(seed);
+                let step = NonZeroU8::new(draw_step).unwrap();
+                let mut g = Solitaire::new(&cards, step);
+                canonicalize(&mut g);
+                let mv = g.gen_moves::<false>();
+                let deck = g.get_deck().compute_mask(false).count_ones();
+                let locked_surfaces = (g.get_visible_mask() & g.get_hidden().get_locked_mask()).count_ones();
+                println!(
+                    "seed={seed} draw={draw_step}: root drawables={deck} locked_surfaces={locked_surfaces} stack={:x} raw_moves={}",
+                    g.get_stack().encode(),
+                    mv.len()
+                );
+                let t = std::time::Instant::now();
+                let p = run_old::<true, FullPruner>(&cards, step);
+                println!("  dom+pruner  win={} visits={:>10} nodes={:>10} budget={} {:?}", p.won, p.visits, p.nodes, p.budget, t.elapsed());
+                let t = std::time::Instant::now();
+                let p = run_old::<true, NoPruner>(&cards, step);
+                println!("  dom-only    win={} visits={:>10} nodes={:>10} budget={} {:?}", p.won, p.visits, p.nodes, p.budget, t.elapsed());
+                let t = std::time::Instant::now();
+                let p = run_old::<false, FullPruner>(&cards, step);
+                println!("  pruner-only win={} visits={:>10} nodes={:>10} budget={} {:?}", p.won, p.visits, p.nodes, p.budget, t.elapsed());
+                let t = std::time::Instant::now();
+                let p = run_old::<false, NoPruner>(&cards, step);
+                println!("  raw         win={} visits={:>10} nodes={:>10} budget={} {:?}", p.won, p.visits, p.nodes, p.budget, t.elapsed());
+            }
+        }
+    }
+
+    /// F3 measurement: over the direct search's first N nodes, what
+    /// fraction of folded successors are tableau outcomes of
+    /// dominantly-stackable commitments (the §4 "additional collapsing"
+    /// drop candidate)?
+    #[test]
+    #[ignore = "measurement; run with --ignored --release --nocapture"]
+    fn debug_f3_potential() {
+        const N: usize = 200_000;
+        fn rec(
+            s: &Solitaire,
+            tp: &mut TpTable,
+            nodes: &mut usize,
+            branches: &mut usize,
+            droppable: &mut usize,
+        ) -> bool {
+            if s.is_win() || !tp.insert(s.encode()) {
+                return s.is_win();
+            }
+            *nodes += 1;
+            if *nodes > N {
+                return false;
+            }
+            let mut root = s.clone();
+            canonicalize(&mut root);
+            let dom = root.get_stack().dominance_mask();
+            let all = macro_transitions_direct(&root);
+            // commitments with a direct stack outcome now: X stackable
+            let stack_now: u64 = all
+                .iter()
+                .filter(|(_, _, _, ch)| *ch == "stack-direct")
+                .map(|(c, _, _, _)| match c {
+                    Commitment::Draw(x) | Commitment::Reveal(x) => x.mask(),
+                })
+                .fold(0u64, |a, b| a | b);
+            let f3_mask = stack_now & dom;
+            let mut seen: Vec<(Commitment, OutcomeKind)> = Vec::new();
+            let mut succs: Vec<&Solitaire> = Vec::new();
+            for (c, k, st, _) in &all {
+                if !seen.contains(&(*c, *k)) {
+                    seen.push((*c, *k));
+                    succs.push(st);
+                }
+            }
+            *branches += succs.len();
+            for (c, k, _, _) in &all {
+                let _ = c;
+                if *k == OutcomeKind::Tableau {
+                    let x = match c {
+                        Commitment::Draw(x) | Commitment::Reveal(x) => *x,
+                    };
+                    if x.mask() & f3_mask != 0 {
+                        *droppable += 1;
+                    }
+                }
+            }
+            succs
+                .into_iter()
+                .any(|succ| rec(succ, tp, nodes, branches, droppable))
+        }
+        for (seed, draw_step) in [(32u64, 1u8), (32, 3), (14, 1), (13, 3), (21, 3)] {
+            let cards = default_shuffle(seed);
+            let step = NonZeroU8::new(draw_step).unwrap();
+            let mut root = Solitaire::new(&cards, step);
+            canonicalize(&mut root);
+            let mut tp = TpTable::default();
+            let (mut n, mut b, mut d) = (0usize, 0usize, 0usize);
+            let t = std::time::Instant::now();
+            let w = rec(&root, &mut tp, &mut n, &mut b, &mut d);
+            println!(
+                "seed={seed} draw={draw_step} win={w} nodes={n} branches={b} f3_droppable={d} ({:5.1}%) total={:?}",
+                100.0 * d as f64 / b.max(1) as f64,
+                t.elapsed()
+            );
+        }
+    }
 
     /// Deterministic replay harness: bring a specific game to a specific
     /// turn by the same greedy play policy as the differential test, then
@@ -1466,6 +2202,293 @@ mod tests {
                 }
                 assert_eq!(mismatches, 0, "macro direct path verdict sweep found mismatches");
                 println!("big verdict sweep: {n} games, {mismatches} mismatches");
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    /// Perf attribution for the verdict test's SLOW rows: runs the oracle
+    /// and direct recursions side by side with node/branch counters, the
+    /// direct generator's channel histogram, and the cfg(test) probe
+    /// counters (walk/cluster/BFS/post/sweep). The old engine is run in
+    /// its full 2x2 (dominance x pruner) to attribute its speed: the
+    /// macro game deliberately searches the *raw* game, so the gap to
+    /// `solve` is exactly the filter layers the raw search runs without.
+    #[test]
+    #[ignore = "perf probe; run with --ignored --release --nocapture"]
+    fn macro_verdict_perf_probe() {
+        /// old-engine traversal counter: visits (incl. tp hits), unique
+        /// nodes, and the filtered branching factor, with an honest budget
+        const OLD_VISIT_BUDGET: u64 = 10_000_000;
+        struct OldProbe<P: Pruner + Default> {
+            won: bool,
+            visits: u64,
+            nodes: u64,
+            branches: u64,
+            budget: bool,
+            marker: core::marker::PhantomData<P>,
+        }
+        impl<P: Pruner + Default> OldProbe<P> {
+            fn new() -> Self {
+                Self {
+                    won: false,
+                    visits: 0,
+                    nodes: 0,
+                    branches: 0,
+                    budget: false,
+                    marker: core::marker::PhantomData,
+                }
+            }
+        }
+        impl<P: Pruner + Default> Callback for OldProbe<P> {
+            type Pruner = P;
+            fn on_win(&mut self, _: &Solitaire) -> Control {
+                self.won = true;
+                Control::Halt
+            }
+            fn on_visit(&mut self, _: &Solitaire, _: Encode) -> Control {
+                self.visits += 1;
+                if self.visits > OLD_VISIT_BUDGET {
+                    self.budget = true;
+                    return Control::Halt;
+                }
+                Control::Ok
+            }
+            fn on_move_gen(&mut self, m: &crate::moves::MoveMask, _: Encode) -> Control {
+                self.nodes += 1;
+                self.branches += u64::from(m.len());
+                Control::Ok
+            }
+        }
+        fn run_old<const DOM: bool, P: Pruner + Default>(
+            cards: &[Card; 52],
+            step: NonZeroU8,
+        ) -> OldProbe<P> {
+            let mut game = Solitaire::new(cards, step);
+            let mut tp = TpTable::default();
+            let mut probe = OldProbe::<P>::new();
+            traverse::<_, _, DOM>(&mut game, &P::default(), &mut tp, &mut probe);
+            probe
+        }
+        std::thread::Builder::new()
+            .stack_size(256 * 1024 * 1024)
+            .spawn(|| {
+                for (seed, draw_step) in
+                    [(17u64, 1u8), (18, 1), (22, 1), (14, 3), (21, 3), (18, 3)]
+                {
+                    let cards = default_shuffle(seed);
+                    let step = NonZeroU8::new(draw_step).unwrap();
+                    let g = Solitaire::new(&cards, step);
+
+                    // old engine, the full 2x2 (dominance x pruner)
+                    let t = std::time::Instant::now();
+                    let p = run_old::<true, FullPruner>(&cards, step);
+                    println!(
+                        "seed={seed} draw={draw_step} OLD dom+pruner    win={:>5} visits={:>9} nodes={:>9} branches={:>10} avg_branch={:5.2} budget={} total={:?}",
+                        p.won, p.visits, p.nodes, p.branches,
+                        p.branches as f64 / p.nodes.max(1) as f64,
+                        p.budget, t.elapsed()
+                    );
+                    let t = std::time::Instant::now();
+                    let p = run_old::<true, NoPruner>(&cards, step);
+                    println!(
+                        "seed={seed} draw={draw_step} OLD dom-only      win={:>5} visits={:>9} nodes={:>9} branches={:>10} avg_branch={:5.2} budget={} total={:?}",
+                        p.won, p.visits, p.nodes, p.branches,
+                        p.branches as f64 / p.nodes.max(1) as f64,
+                        p.budget, t.elapsed()
+                    );
+                    let t = std::time::Instant::now();
+                    let p = run_old::<false, FullPruner>(&cards, step);
+                    println!(
+                        "seed={seed} draw={draw_step} OLD pruner-only    win={:>5} visits={:>9} nodes={:>9} branches={:>10} avg_branch={:5.2} budget={} total={:?}",
+                        p.won, p.visits, p.nodes, p.branches,
+                        p.branches as f64 / p.nodes.max(1) as f64,
+                        p.budget, t.elapsed()
+                    );
+                    let t = std::time::Instant::now();
+                    let p = run_old::<false, NoPruner>(&cards, step);
+                    println!(
+                        "seed={seed} draw={draw_step} OLD raw           win={:>5} visits={:>9} nodes={:>9} branches={:>10} avg_branch={:5.2} budget={} total={:?}",
+                        p.won, p.visits, p.nodes, p.branches,
+                        p.branches as f64 / p.nodes.max(1) as f64,
+                        p.budget, t.elapsed()
+                    );
+
+                    // what the old engine's winning line looks like:
+                    // length and per-move-type counts (is the win a
+                    // near-forced stacking cascade the raw DFS walks
+                    // straight into?)
+                    {
+                        let mut game = Solitaire::new(&cards, step);
+                        let (res, hist) = solve(&mut game);
+                        if let Some(h) = &hist {
+                            let mut counts = [0usize; 5];
+                            for m in h.iter() {
+                                match m {
+                                    Move::DeckStack(_) => counts[0] += 1,
+                                    Move::PileStack(_) => counts[1] += 1,
+                                    Move::DeckPile(_) => counts[2] += 1,
+                                    Move::StackPile(_) => counts[3] += 1,
+                                    Move::Reveal(_) => counts[4] += 1,
+                                }
+                            }
+                            println!(
+                                "seed={seed} draw={draw_step} OLD-WINLINE {res:?} len={} DS/PS/DP/SP/R={counts:?}",
+                                h.len()
+                            );
+                        }
+                    }
+
+                    // oracle under three successor orders: natural
+                    // (reveal-first, the shipped order), draw-first (the
+                    // legacy order), and reversed — how much of the node
+                    // count is commitment-order refutation?
+                    for (policy_name, policy) in
+                        [("natural    ", 0u8), ("draw-first  ", 1), ("reversed    ", 2)]
+                    {
+                        const NODE_CAP: usize = 3_000_000;
+                        fn rec(
+                            g: &Solitaire,
+                            policy: u8,
+                            tp: &mut TpTable,
+                            nodes: &mut usize,
+                            branches: &mut usize,
+                            capped: &mut bool,
+                        ) -> bool {
+                            let mut s = g.clone();
+                            canonicalize(&mut s);
+                            if s.is_win() || !tp.insert(s.encode()) {
+                                return s.is_win();
+                            }
+                            *nodes += 1;
+                            if *nodes > NODE_CAP {
+                                *capped = true;
+                                return false;
+                            }
+                            let mut succs = enumerate_transitions(&s);
+                            if policy == 1 {
+                                succs.sort_by_key(|(c, _)| match c {
+                                    Commitment::Draw(_) => 0,
+                                    Commitment::Reveal(_) => 1,
+                                });
+                            }
+                            *branches += succs.len();
+                            let hit = match policy {
+                                2 => succs
+                                    .iter()
+                                    .rev()
+                                    .any(|(_, succ)| rec(succ, policy, tp, nodes, branches, capped)),
+                                _ => succs
+                                    .iter()
+                                    .any(|(_, succ)| rec(succ, policy, tp, nodes, branches, capped)),
+                            };
+                            hit
+                        }
+                        let t = std::time::Instant::now();
+                        let mut tp = TpTable::default();
+                        let (mut n, mut b) = (0usize, 0usize);
+                        let mut capped = false;
+                        let w = rec(&g, policy, &mut tp, &mut n, &mut b, &mut capped);
+                        println!(
+                            "seed={seed} draw={draw_step} ORACLE/{policy_name} win={w} nodes={n} branches={b} capped={} total={:?}",
+                            capped,
+                            t.elapsed()
+                        );
+                    }
+
+                    // oracle: same shape as macro_solvable_sel(All), counted
+                    perf_probe::reset();
+                    let t0 = std::time::Instant::now();
+                    let o_win = {
+                        fn rec(
+                            g: &Solitaire,
+                            tp: &mut TpTable,
+                            nodes: &mut usize,
+                            branches: &mut usize,
+                            t_trans: &mut std::time::Duration,
+                        ) -> bool {
+                            let mut s = g.clone();
+                            canonicalize(&mut s);
+                            if s.is_win() || !tp.insert(s.encode()) {
+                                return s.is_win();
+                            }
+                            *nodes += 1;
+                            let t = std::time::Instant::now();
+                            let succs = enumerate_transitions(&s);
+                            *t_trans += t.elapsed();
+                            *branches += succs.len();
+                            succs
+                                .iter()
+                                .any(|(_, succ)| rec(succ, tp, nodes, branches, t_trans))
+                        }
+                        let mut tp = TpTable::default();
+                        let (mut n, mut b) = (0usize, 0usize);
+                        let mut t = std::time::Duration::ZERO;
+                        let w = rec(&g, &mut tp, &mut n, &mut b, &mut t);
+                        println!(
+                            "seed={seed} draw={draw_step} ORACLE win={w} nodes={n} branches={b} trans={t:?} total={:?} walk/cls_c/cls_s/bfs_c/bfs_s/post_c/post_s/canon/gen/do/undo/enc={:?}",
+                            t0.elapsed(),
+                            perf_probe::read()
+                        );
+                        w
+                    };
+
+                    // direct: same shape as macro_solvable_direct, counted;
+                    // channels kept visible by folding macro_transitions_direct
+                    // by hand (same per-(commitment, kind) first-wins rule as
+                    // macro_transitions_fast)
+                    perf_probe::reset();
+                    let t1 = std::time::Instant::now();
+                    let d_win = {
+                        fn rec(
+                            s: &Solitaire,
+                            tp: &mut TpTable,
+                            nodes: &mut usize,
+                            branches: &mut usize,
+                            emissions: &mut usize,
+                            t_trans: &mut std::time::Duration,
+                            channels: &mut std::collections::BTreeMap<&'static str, usize>,
+                        ) -> bool {
+                            if s.is_win() || !tp.insert(s.encode()) {
+                                return s.is_win();
+                            }
+                            *nodes += 1;
+                            let t = std::time::Instant::now();
+                            let all = macro_transitions_direct(s);
+                            *t_trans += t.elapsed();
+                            *emissions += all.len();
+                            let mut seen: Vec<(Commitment, OutcomeKind)> = Vec::new();
+                            let mut succs: Vec<&Solitaire> = Vec::new();
+                            for (c, k, st, ch) in &all {
+                                *channels.entry(*ch).or_insert(0) += 1;
+                                if !seen.contains(&(*c, *k)) {
+                                    seen.push((*c, *k));
+                                    succs.push(st);
+                                }
+                            }
+                            *branches += succs.len();
+                            succs.into_iter().any(|succ| {
+                                rec(succ, tp, nodes, branches, emissions, t_trans, channels)
+                            })
+                        }
+                        let mut tp = TpTable::default();
+                        let mut root = g.clone();
+                        canonicalize(&mut root);
+                        let (mut n, mut b, mut e) = (0usize, 0usize, 0usize);
+                        let mut t = std::time::Duration::ZERO;
+                        let mut ch: std::collections::BTreeMap<&'static str, usize> =
+                            Default::default();
+                        let w = rec(&root, &mut tp, &mut n, &mut b, &mut e, &mut t, &mut ch);
+                        println!(
+                            "seed={seed} draw={draw_step} DIRECT win={w} nodes={n} branches={b} emissions={e} trans={t:?} total={:?} walk/cls_c/cls_s/bfs_c/bfs_s/post_c/post_s/canon/gen/do/undo/enc={:?} channels={ch:?}",
+                            t1.elapsed(),
+                            perf_probe::read()
+                        );
+                        w
+                    };
+                    assert_eq!(o_win, d_win, "probe recursions disagree at seed={seed}");
+                }
             })
             .unwrap()
             .join()

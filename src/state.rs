@@ -27,9 +27,32 @@ pub struct Solitaire {
 pub type Encode = u64;
 
 #[must_use]
-const fn swap_pair(a: u64) -> u64 {
+pub(crate) const fn swap_pair(a: u64) -> u64 {
     let half = (a & HALF_MASK) << 2;
     ((a >> 2) & HALF_MASK) | half
+}
+
+/// The `get_bottom_mask` formula lifted off the concrete state: per type,
+/// does some realizing arrangement have an uncovered card (no_pile §3's
+/// parity lemma). Pure in the two masks, so the macro engine can evaluate
+/// arrangement-existential legality on word pairs without a `Solitaire`.
+#[must_use]
+pub(crate) const fn bottom_mask_of(vis: u64, locked: u64) -> u64 {
+    let free = vis & !locked; //maybe no need to & TODO: check later
+    let xor_all = {
+        let xor_free = free ^ (free >> 1);
+        let xor_vis = vis ^ (vis >> 1);
+        xor_vis ^ (xor_free << 4)
+    };
+
+    let bottom_mask = {
+        let or_free = free | (free >> 1);
+        let or_vis = vis | (vis >> 1);
+        (xor_all | !(or_free << 4)) & or_vis & ALT_MASK
+    };
+
+    //shared rank
+    bottom_mask * 0b11
 }
 
 pub type UndoInfo = u8;
@@ -124,22 +147,7 @@ impl Solitaire {
 
     #[must_use]
     pub(crate) const fn get_bottom_mask(&self) -> u64 {
-        let vis = self.get_visible_mask();
-        let free = vis & !self.get_locked_mask(); //maybe no need to & TODO: check later
-        let xor_all = {
-            let xor_free = free ^ (free >> 1);
-            let xor_vis = vis ^ (vis >> 1);
-            xor_vis ^ (xor_free << 4)
-        };
-
-        let bottom_mask = {
-            let or_free = free | (free >> 1);
-            let or_vis = vis | (vis >> 1);
-            (xor_all | !(or_free << 4)) & or_vis & ALT_MASK
-        };
-
-        //shared rank
-        bottom_mask * 0b11
+        bottom_mask_of(self.get_visible_mask(), self.get_locked_mask())
     }
 
     #[must_use]
@@ -169,6 +177,8 @@ impl Solitaire {
 
     #[must_use]
     pub fn gen_moves<const DOMINANCE: bool>(&self) -> MoveMask {
+        #[cfg(test)]
+        crate::macro_game::perf_probe::bump_gen();
         let vis = self.get_visible_mask();
         let locked = self.get_locked_mask();
 
@@ -423,6 +433,8 @@ impl Solitaire {
     /// May panic when the move is invalid
     /// But it may do the move even when it's invalid so be careful for using this function
     pub(crate) fn do_move(&mut self, m: Move) -> (Option<Move>, (UndoInfo, ExtraInfo)) {
+        #[cfg(test)]
+        crate::macro_game::perf_probe::bump_do();
         (
             self.reverse_move(m),
             match m {
@@ -437,6 +449,8 @@ impl Solitaire {
 
     /// It may leave the game in an invalid state with illegal move or wrong undo info
     pub(crate) fn undo_move(&mut self, m: Move, undo: UndoInfo) {
+        #[cfg(test)]
+        crate::macro_game::perf_probe::bump_undo();
         match m {
             Move::DeckStack(c) => self.unmake_stack::<true>(c, undo),
             Move::PileStack(c) => self.unmake_stack::<false>(c, undo),
@@ -446,12 +460,24 @@ impl Solitaire {
         }
     }
 
+    /// Set the board words directly: the visible set and the foundation
+    /// heights. Caller contract: the words are the result of legal abstract
+    /// play from a consistent state (the macro engine computes its canonical
+    /// form on words rather than by replaying moves — see the `Words` board
+    /// in macro_game), so the invariant `compute_visible_mask() ==
+    /// visible_mask` is preserved.
+    pub(crate) fn set_board(&mut self, vis: u64, stack: u16) {
+        self.visible_mask = vis;
+        self.final_stack = Stack::decode(stack);
+    }
+
     /// The pre-cascade safe-sweep candidates: stackable, movable, safely
-    /// dominant, unlocked tableau cards. This is the canonicalization fuel
-    /// for the macro game (`macro_game::canonicalize`): it deliberately
-    /// bypasses `gen_moves`'s least-stack/pair cascade, which is a search
-    /// filter, not part of the sweep's semantics.
+    /// dominant, unlocked tableau cards. Does the same mask pass as
+    /// `macro_game::Words::sweep_cands` on the concrete state; test-only
+    /// since the word-level board took over the sweep itself — the
+    /// confluence test compares the two orderings through this set.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn safe_sweep_candidates(&self) -> u64 {
         let vis = self.visible_mask;
         let locked = self.hidden.get_locked_mask();
@@ -474,6 +500,8 @@ impl Solitaire {
     // can be made const fn
     #[must_use]
     pub fn encode(&self) -> Encode {
+        #[cfg(test)]
+        crate::macro_game::perf_probe::bump_enc();
         let stack_encode = self.final_stack.encode(); // 16 bits (can be reduce to 15)
         let hidden_encode = self.hidden.encode(); // 16 bits
         let deck_encode = self.deck.encode(); // 29 bits (can be reduced to 25)
