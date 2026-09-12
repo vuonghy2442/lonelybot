@@ -158,6 +158,20 @@ As of `bf479a6`:
 
 ## P.5 Experiment log
 
+**C-SCAR verified on the acceptance corpus (2026-09-12, same setup).**
+`macro_verdict_matches_engine` extended to run the single-scar policies:
+both `SuccSelect::TallestOnly` and `SuccSelect::ShortestOnly` match the
+old engine's verdict on all 32 games × both draws — zero mismatches,
+with per-seed timings differing from `All` (the policies filter for
+real) but always agreeing on verdict. This is *stronger* than the
+conjecture's "deepest-safe-dig-first never loses a win": either scar
+choice preserves the verdict, i.e. the second class's futures are
+verdict-equivalent on this corpus — the empirical face of P2
+absorption. The canonical-scar choice is a free parameter; pick by
+cost. Remaining obligations: the 128-game policy sweep (not runnable
+pre-words — the oracle walk makes it minutes-to-hours), the absorption
+proof for multi-rank chains, and M-4's a priori depth bound.
+
 **P.2 caveat 1 discharged — the under-emission is a depth artifact
 (2026-09-12, pre-words tree at `bf479a6`, throwaway worktree).** With
 the accommodation caps raised 12/10 → 40 (and `StepTransition`'s
