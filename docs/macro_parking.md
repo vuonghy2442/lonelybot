@@ -156,6 +156,42 @@ As of `bf479a6`:
    the hand-written channel priority, not a canonical scar (C-SCAR's
    deepest-safe-dig-first).
 
+## P.6 Why either scar works — the convergence argument [~]
+
+The C-SCAR result (either single-scar policy preserves verdicts) is not a
+coincidence; it has a mechanism. The two surviving scar classes (after T
+collapses the P₁/P₂ twin choice — those covers are type-identical: same
+rank, same color) are the *cross-kind* pair, dig vs borrow: the dig's
+post-state has twin(X) up (+1 on the twin's suit, X parked on the twin's
+vacated spot); the borrow's has parent P down (−1 on P's suit, X parked
+on P).
+
+1. **Convergence point.** A win is all-foundations-complete, so every
+   winning play from either scar contains X's own stacking, at some
+   moment t₁.
+2. **Post-convergence repair.** After t₁, the dig's residue (twin up)
+   is progress, and the borrow's residue (P re-exposed) is repairable:
+   P was stackable at worry-time by construction — its suit height sat
+   at P.rank exactly — so re-stacking is a legal reversible move, and
+   repairs are accommodation-internal (invisible to the macro move
+   structure). The futures merge up to one reversible repair.
+3. **Pre-convergence window.** Before t₁, the states differ only in
+   type-invisible ways (X's covers are type-identical; height deltas
+   repair inside future accommodations) — except one hole: the
+   borrow's P is *buried under X*, so its repair is deferred until X
+   stacks. A winning line needing P's foundation-top before t₁, with no
+   same-type substitute, would make the classes genuinely diverge.
+
+Steps 1–2 are essentially rigorous (the win condition forces the
+convergence point; post-convergence is closure algebra). Step 3's hole
+is *the same obstruction* as the parking lemma's covering corner
+(P.1(b)): **P2 absorption, the parking dominance half, and C-SCAR's
+verdict-equivalence stand or fall on the same buried-scar window — one
+proof obligation, three theorems.** Falsifier prediction: any
+counterexample has the shape "X commits, X cannot stack in one scar
+class (prefix blocked by the scar's burial chain), the other class
+wins" — hunt with the `!bm[scar-type]`-while-X-unstacked instrument.
+
 ## P.5 Experiment log
 
 **C-SCAR verified on the acceptance corpus (2026-09-12, same setup).**
