@@ -514,6 +514,15 @@ enum Commands {
         draw_step: NonZeroU8,
     },
 
+    /// Solve with the macro (commitment) engine: verdict only — the search
+    /// does not reconstruct a move line, and there is no termination
+    /// signal (hard seeds run to completion).
+    SolveMacro {
+        #[command(flatten)]
+        seed: StringSeed,
+        draw_step: NonZeroU8,
+    },
+
     RandSolve {
         #[command(flatten)]
         seed: StringSeed,
@@ -572,6 +581,31 @@ fn main() {
         }
         Commands::Solve { seed, draw_step } => {
             test_solve(&seed.into(), *draw_step, &handling_signal());
+        }
+        Commands::SolveMacro { seed, draw_step } => {
+            let seed: Seed = seed.into();
+            let g = Solitaire::new(&shuffle(&seed), *draw_step);
+            let now = Instant::now();
+            // the old engine's cadence: a line per 2^20 expanded nodes
+            let mut visits = 0u64;
+            let win = lonelybot::macro_game::macro_solvable_direct_progress(&g, |_s| {
+                visits += 1;
+                if visits & 0xFFFFF == 0 {
+                    let secs = now.elapsed().as_secs_f64();
+                    println!(
+                        "Progress: {} nodes in {:.2?} (~{:e} node/s)",
+                        visits,
+                        Duration::from_secs_f64(secs),
+                        visits as f64 / secs,
+                    );
+                }
+            });
+            println!("Run in {:.2} ms", now.elapsed().as_secs_f64() * 1000f64);
+            println!(
+                "{}{}",
+                if win { "Solvable" } else { "Impossible" },
+                " (macro engine: verdict only, no move line)"
+            );
         }
         Commands::RandSolve {
             seed,

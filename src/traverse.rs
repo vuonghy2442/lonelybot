@@ -1,7 +1,7 @@
 use hashbrown::HashSet;
 
 use crate::{
-    moves::{Move, MoveMask, N_MOVES_MAX},
+    moves::{Move, MoveMask},
     pruning::Pruner,
     state::{Encode, Solitaire},
     utils::MixHasherBuilder,
@@ -162,6 +162,7 @@ pub fn traverse<T: TranspositionTable, C: Callback, const DOMINANCE: bool>(
 mod tests {
     use super::*;
     use crate::card::Card;
+    use crate::moves::N_MOVES_MAX;
     use crate::pruning::{FullPruner, NoPruner, Pruner};
     use crate::shuffler::default_shuffle;
     use crate::state::Solitaire;

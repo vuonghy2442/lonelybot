@@ -150,7 +150,9 @@ impl FullPruner {
     }
 
     /// The current streak card (the drawn card guarding the rules), if any.
+    /// Test instrumentation (traverse.rs's streak-witness audit).
     #[must_use]
+    #[cfg(test)]
     pub(crate) const fn instrument_last_draw(&self) -> Option<Card> {
         self.last_draw
     }

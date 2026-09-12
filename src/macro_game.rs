@@ -560,6 +560,8 @@ fn closure_contains(a: &Solitaire, target: Encode) -> bool {
 /// Number of distinct reversible-closure classes among sampled post-states.
 /// The C2 claim is that this is at most 2 per commitment (target on
 /// tableau / on foundation), i.e. all free-float variation collapses.
+/// Measurement-only: the scaffold smoke test.
+#[cfg(test)]
 fn closure_classes(samples: &[(Encode, Solitaire)]) -> usize {
     let mut reps: Vec<&Solitaire> = Vec::new();
     'next: for (_, st) in samples {
@@ -806,9 +808,32 @@ fn collapse_pick<'a>(group: &'a [StepTransition], f3: u64) -> Option<&'a StepTra
 /// working buffers live in one `DirectScratch` for the whole search.
 #[must_use]
 pub fn macro_solvable_direct(g: &Solitaire) -> bool {
-    fn rec(s: &mut Solitaire, tp: &mut TpTable, scratch: &mut DirectScratch) -> bool {
+    let mut no_hook: Option<&mut dyn FnMut(&Solitaire)> = None;
+    macro_solvable_direct_impl(g, &mut no_hook)
+}
+
+/// `macro_solvable_direct` with a per-node observer hook, called once per
+/// newly inserted (TP-miss) state — one extra dyn call per node bounds the
+/// cost on the instrumented path; the plain path passes `None` and just
+/// skips a branch. Used for progress printing (throttle inside the hook)
+/// and the state-space forensics probes.
+pub fn macro_solvable_direct_progress(g: &Solitaire, mut hook: impl FnMut(&Solitaire)) -> bool {
+    let mut hook: Option<&mut dyn FnMut(&Solitaire)> = Some(&mut hook);
+    macro_solvable_direct_impl(g, &mut hook)
+}
+
+fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&Solitaire)>) -> bool {
+    fn rec(
+        s: &mut Solitaire,
+        tp: &mut TpTable,
+        scratch: &mut DirectScratch,
+        hook: &mut Option<&mut dyn FnMut(&Solitaire)>,
+    ) -> bool {
         if s.is_win() || !tp.insert(s.encode()) {
             return s.is_win();
+        }
+        if let Some(h) = hook {
+            h(s);
         }
         let ctx = ClosureCtx::from_game(s);
         let mut commitments = core::mem::take(&mut scratch.commitments);
@@ -831,10 +856,34 @@ pub fn macro_solvable_direct(g: &Solitaire) -> bool {
         }
         f3 &= dom;
 
+        // Deck-source dominance — the draw-1 clause of the engine's
+        // cascade (state.rs): when a drawable deck card is dominantly
+        // stackable, the lowest such card is the only deck commitment
+        // worth branching on (you can always stack it first without
+        // helping anything else). Reveal commitments are untouched.
+        // Search-fold policy (like F3): the generator stays total so the
+        // differential sees all channels. Same corpus-gated tier.
+        let deck_dom = {
+            let d = ctx.deck_mask & ctx.root.sm() & Stack::decode(ctx.root.stack).dominance_mask();
+            if s.get_deck().draw_step().get() == 1 && d != 0 {
+                d & d.wrapping_neg()
+            } else {
+                0
+            }
+        };
+
         // take the working vecs out so the recursion can reuse the scratch
         let groups = core::mem::take(&mut scratch.groups);
         let mut win = false;
         'outer: for group in &groups {
+            // deck dominance: skip dominated Draw commitments entirely
+            if deck_dom != 0 {
+                if let Some((Commitment::Draw(x), ..)) = group.first() {
+                    if x.mask() != deck_dom {
+                        continue;
+                    }
+                }
+            }
             // one successor per commitment: the collapse fold
             let Some((_, _, steps, _ch)) = collapse_pick(group, f3) else {
                 continue;
@@ -844,7 +893,7 @@ pub fn macro_solvable_direct(g: &Solitaire) -> bool {
             let commit = *steps.last().expect("every channel ends in a commit");
             let (_, (undo, _)) = s.do_move(commit);
             s.set_board(vis, stack);
-            let child_win = rec(s, tp, scratch);
+            let child_win = rec(s, tp, scratch, hook);
             s.undo_move(commit, undo);
             s.set_board(old.0, old.1);
             if child_win {
@@ -857,7 +906,12 @@ pub fn macro_solvable_direct(g: &Solitaire) -> bool {
     }
     let mut root = g.clone();
     canonicalize(&mut root);
-    rec(&mut root, &mut TpTable::default(), &mut DirectScratch::new())
+    rec(
+        &mut root,
+        &mut TpTable::default(),
+        &mut DirectScratch::new(),
+        hook,
+    )
 }
 
 /// One accommodation goal the fixed channels left open: make `x`'s
@@ -1644,7 +1698,25 @@ mod tests {
 
             let groups = core::mem::take(&mut scratch.groups);
             let mut win = false;
+            // mirror the shipped fold's deck-dominance (draw-1) clause
+            let deck_dom = {
+                let d = ctx.deck_mask
+                    & ctx.root.sm()
+                    & Stack::decode(ctx.root.stack).dominance_mask();
+                if s.get_deck().draw_step().get() == 1 && d != 0 {
+                    d & d.wrapping_neg()
+                } else {
+                    0
+                }
+            };
             'outer: for group in &groups {
+                if deck_dom != 0 {
+                    if let Some((Commitment::Draw(x), ..)) = group.first() {
+                        if x.mask() != deck_dom {
+                            continue;
+                        }
+                    }
+                }
                 // the shipped fold: one successor per commitment
                 let Some((_, _, steps, _)) = collapse_pick(group, f3) else {
                     continue;
@@ -1703,6 +1775,84 @@ mod tests {
                 probes[6],
             );
         }
+    }
+
+    /// Seed-32 node-count forensics, answering "is the macro refutation's
+    /// ~15M unique states over-generation (a bug) or the missing deck-axis
+    /// compression (the streak/draw-order dominance analogue)?"
+    ///
+    /// 1. The old engine RAW on seed 32 (no dominance, no pruner),
+    ///    time-boxed. If its unique-state count exceeds the macro's, the
+    ///    macro game *is* compressing relative to the raw micro space, and
+    ///    the macro-vs-shipped gap is exactly the missing filter port.
+    ///
+    /// 2. The macro search with auxiliary coarse TP keys that strip
+    ///    (a) the deck-offset bits (encode bits 56..61) and (b) the whole
+    ///    deck word (bits 32..61): the fine-to-coarse unique-count drop is
+    ///    the redundancy each axis carries. A big drop under (a) points at
+    ///    the last-draw/draw-order port; survival under (b) would mean the
+    ///    load-bearing dimensions are hidden/stack/scar instead.
+    #[test]
+    #[ignore = "state-space forensics; run with --ignored --release --nocapture"]
+    fn debug_seed32_state_space() {
+        use std::time::{Duration, Instant};
+
+        std::thread::Builder::new()
+            .stack_size(256 * 1024 * 1024)
+            .spawn(|| {
+                // --- arm 1: old engine raw, old-visit-budget-free but time-boxed --- //
+                struct TimeCb(Instant, bool);
+                impl Callback for TimeCb {
+                    type Pruner = crate::pruning::NoPruner;
+                    fn on_win(&mut self, _: &Solitaire) -> Control {
+                        Control::Halt
+                    }
+                    fn on_visit(&mut self, _: &Solitaire, _: Encode) -> Control {
+                        if self.0.elapsed() > Duration::from_secs(120) && !self.1 {
+                            self.1 = true;
+                            return Control::Halt;
+                        }
+                        Control::Ok
+                    }
+                }
+                let cards = default_shuffle(32);
+                let mut game = Solitaire::new(&cards, NonZeroU8::new(1).unwrap());
+                let mut tp = TpTable::default();
+                let t0 = Instant::now();
+                let mut cb = TimeCb(Instant::now(), false);
+                traverse::<_, _, false>(&mut game, &NoPruner::default(), &mut tp, &mut cb);
+                println!(
+                    "OLD RAW seed=32 draw=1: unique states={} in {:?}{}",
+                    tp.len(),
+                    t0.elapsed(),
+                    if cb.1 { " (halted at 120s — lower bound)" } else { " (complete)" },
+                );
+
+                // --- arm 2: macro collapsed search + coarse keys --- //
+                let mut coarse_off = TpTable::default();
+                let mut coarse_deck = TpTable::default();
+                let (mut n, mut n_off, mut n_deck) = (0u64, 0u64, 0u64);
+                let cards = default_shuffle(32);
+                let g = Solitaire::new(&cards, NonZeroU8::new(1).unwrap());
+                let t0 = Instant::now();
+                let win = macro_solvable_direct_progress(&g, |s| {
+                    n += 1;
+                    let e = s.encode();
+                    if coarse_off.insert(e & !(0x1Fu64 << 56)) {
+                        n_off += 1;
+                    }
+                    if coarse_deck.insert(e & full_mask(32)) {
+                        n_deck += 1;
+                    }
+                });
+                println!(
+                    "MACRO collapsed seed=32 draw=1: win={win} in {:?}\n  unique states={n}\n  unique minus deck OFFSET={n_off}\n  unique minus deck WORD ={n_deck}",
+                    t0.elapsed()
+                );
+            })
+            .unwrap()
+            .join()
+            .unwrap();
     }
 
     /// R-DIA probe (macro_parking.md §P.6): the destination collapse's
@@ -2912,6 +3062,40 @@ mod tests {
                 }
                 assert_eq!(mismatches, 0, "macro direct path verdict sweep found mismatches");
                 println!("big verdict sweep: {n} games, {mismatches} mismatches");
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    /// The same verdict sweep on the KlondikeSolver shuffle family — an
+    /// independent deal distribution, so a green run here is the
+    /// collapse fold's evidence escaping the default-corpus shape.
+    #[test]
+    #[ignore = "expensive verdict sweep; run with --ignored --nocapture"]
+    fn macro_verdict_sweep_ks() {
+        std::thread::Builder::new()
+            .stack_size(256 * 1024 * 1024)
+            .spawn(|| {
+                let mut n = 0usize;
+                let mut mismatches = 0usize;
+                for draw_step in [1u8, 3] {
+                    for i in 0..64u32 {
+                        let cards = crate::shuffler::ks_shuffle(i);
+                        let step = NonZeroU8::new(draw_step).unwrap();
+                        let (res, _) = solve(&mut Solitaire::new(&cards, step));
+                        let old_win = matches!(res, SearchResult::Solved);
+                        let g = Solitaire::new(&cards, step);
+                        let fast = macro_solvable_direct(&g);
+                        n += 1;
+                        if old_win != fast {
+                            mismatches += 1;
+                            println!("seed={i} draw={draw_step} old={old_win} direct={fast} ** MISMATCH **");
+                        }
+                    }
+                }
+                assert_eq!(mismatches, 0, "macro direct path KS verdict sweep found mismatches");
+                println!("ks verdict sweep: {n} games, {mismatches} mismatches");
             })
             .unwrap()
             .join()
