@@ -434,6 +434,15 @@ pub fn macro_solvable(g: &Solitaire) -> bool {
 /// walk this exists to avoid.
 #[must_use]
 pub fn macro_transitions_fast(g: &Solitaire) -> Vec<(Commitment, Solitaire)> {
+    // One successor per (commitment, kind). Theoretically under-emissive
+    // (macro doc §6.7: same-kind scar classes can have different futures,
+    // and P2's absorption is what makes per-kind collapse safe), but
+    // deduping by encode instead visits *every float-noise member* of a
+    // class (§6.3: class multiplicity is unbounded), which multiplies the
+    // search tree per level — measured as a seed-18 blowup. The right
+    // fix is class-level clustering (one rep per closure class, like
+    // enumerate_transitions); until then, the loss is measured by the
+    // class-coverage metric in macro_direct_matches_oracle.
     let mut seen: Vec<(Commitment, OutcomeKind)> = Vec::new();
     let mut out: Vec<(Commitment, Solitaire)> = Vec::new();
     for (c, k, st, _) in macro_transitions_direct(g) {
@@ -449,22 +458,25 @@ pub fn macro_transitions_fast(g: &Solitaire) -> Vec<(Commitment, Solitaire)> {
 /// Solve the macro game on the direct transition function. Same recursive
 /// shape as `macro_solvable`, different transition semantics source — the
 /// two must agree on solvability or the fast generator is wrong.
+///
+/// Successors arrive canonicalized from `post_state`, so the recursion does
+/// not resweep them; entry canonicalizes the start state once.
 #[must_use]
 pub fn macro_solvable_direct(g: &Solitaire) -> bool {
-    fn rec(g: &Solitaire, tp: &mut TpTable) -> bool {
-        let mut s = g.clone();
-        canonicalize(&mut s);
+    fn rec(s: &Solitaire, tp: &mut TpTable) -> bool {
         if s.is_win() || !tp.insert(s.encode()) {
             return s.is_win();
         }
-        for (_, succ) in macro_transitions_fast(&s) {
+        for (_, succ) in macro_transitions_fast(s) {
             if rec(&succ, tp) {
                 return true;
             }
         }
         false
     }
-    rec(g, &mut TpTable::default())
+    let mut root = g.clone();
+    canonicalize(&mut root);
+    rec(&root, &mut TpTable::default())
 }
 
 /// Bounded local search for an accommodation the constant-work channels
@@ -522,8 +534,12 @@ fn find_accommodation_bfs(
 }
 
 /// Apply `m`, canonicalize the result, and return the successor state.
-/// All inputs come from legality checks against the same pre-state, so the
-/// move is valid by construction; `do_move`'s assertion remains the guard.
+/// All inputs come from legality checks against the same pre-state — those
+/// checks are type-level, and where a twin is ambiguous the move is legal
+/// in the arrangement-existential sense (no_pile_to_pile.md §3/§6.5:
+/// a set bit means *some* realizing arrangement has the card uncovered).
+/// Note `do_move` itself carries no validity guard, so the mask checks at
+/// the call sites are the only guard.
 fn post_state(g: &Solitaire, steps: &[Move]) -> Solitaire {
     let mut next = g.clone();
     for &m in steps {
@@ -686,8 +702,12 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
         if !stack_produced && !stack_now {
             // (the blockers of X are two twins and each may need its own
             // dig; the bounded BFS catches the chains the fixed rules
-            // don't name — prefix-raise failures and "prefix complete but
-            // buried" alike)
+            // don't name. Gate: only when no fixed channel produced a
+            // stack outcome — running it after a successful prefix-raise
+            // would hunt for the *second* stack scar class (the same-kind
+            // splits of §6.7) but multiplies the per-node cost badly.
+            // The residual under-emission is measured instead: the
+            // class-coverage metric in macro_direct_matches_oracle.)
             if let Some(mut steps2) =
                 find_accommodation_bfs(&game, commitment, x, OutcomeKind::Stack, 12)
             {
@@ -1022,6 +1042,7 @@ mod tests {
                 let mut extra = 0usize; // direct has, oracle lacks (a legality bug by construction)
                 let mut extra_merged = 0usize; // extra, but closure-connected to oracle samples (benign)
                 let mut extra_separate = 0usize; // extra and disconnected (a real soundness question)
+                let mut class_uncovered = 0usize; // oracle closure classes no direct post-state covers
                 let mut first_missing: Option<String> = None;
                 let mut first_extra: Option<String> = None;
                 let mut missing_cases: Vec<String> = Vec::new();
@@ -1189,6 +1210,37 @@ mod tests {
                             extra_merged += merged;
                             extra_separate += separate;
 
+                            // class coverage: oracle closure classes that no
+                            // direct post-state covers — the measured form
+                            // of the under-emission the fixed gates accept
+                            // (e.g. the second stack scar class when
+                            // prefix-raise already fired). Target: zero.
+                            for info in &oracle {
+                                let mut reps: Vec<&Solitaire> = Vec::new();
+                                for samples in
+                                    [&info.outcomes.canon_tableau, &info.outcomes.canon_stack]
+                                {
+                                    for (enc, st) in samples.iter() {
+                                        if !reps.iter().any(|r| closure_contains(r, *enc)) {
+                                            reps.push(st);
+                                        }
+                                    }
+                                }
+                                let direct_states: Vec<&Solitaire> = direct
+                                    .iter()
+                                    .filter(|(c, _, _, _)| *c == info.commitment)
+                                    .map(|(_, _, st, _)| st)
+                                    .collect();
+                                for rep in reps {
+                                    let enc = rep.encode();
+                                    if !direct_states.iter().any(|d| {
+                                        d.encode() == enc || closure_contains(d, enc)
+                                    }) {
+                                        class_uncovered += 1;
+                                    }
+                                }
+                            }
+
                             let before = game.encode();
                             for &m in &oracle[0].witness_path {
                                 let _ = game.do_move(m);
@@ -1198,7 +1250,7 @@ mod tests {
                         }
                     }
                 }
-                println!("direct-vs-oracle: {checked} commitments checked; availability mismatches: missing={missing} extra={extra} (merged={extra_merged}, separate={extra_separate})");
+                println!("direct-vs-oracle: {checked} commitments checked; availability mismatches: missing={missing} extra={extra} (merged={extra_merged}, separate={extra_separate}); oracle classes uncovered by direct: {class_uncovered}");
                 if let Some(m) = &first_missing {
                     println!("first missing: {m}");
                 }
