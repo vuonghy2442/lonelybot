@@ -1,0 +1,89 @@
+# Klondike (lean-model)
+
+The clean formal model of the lonelybot Klondike solver.  Lean 4,
+**core only** — no mathlib, no Batteries, no network.
+
+Replaces the `lean-verify` branch approach (Rust-mirroring
+implementation layer + spec layer + correspondence grind).  The design
+that emerged (see the repo conversations and the ledger):
+
+## Representation
+
+One executable model that is both the theorem subject and the
+reference implementation for cross-validating against Rust.
+
+**The state is what history chose and the rules don't determine** — the
+free parameters only:
+
+| region        | free (stored)            | canonical (derived)                 |
+|---------------|--------------------------|-------------------------------------|
+| tableau visible | the matching `topOf`   | —                                   |
+| tableau hidden | depths (per pile)        | deal edges below depth              |
+| foundation    | heights (per suit)       | suit-prefix edges                   |
+| stock/waste   | cursor                   | cyclic order + contents            |
+
+Everything else is a view: `up : Card → Bool`, the total board
+`totalTopOf` (image = all 52 cards), the Rust-bridge encode.
+
+## Encoding decisions
+
+- **Suit is factored**: `Suit = Color × pair` (a structure with `color`
+  and `pair : Bool`).  The tableau rules see only `(rank, color)`, so
+  twin-swap (T) is the `pair` flip and preserves color *definitionally*
+  (`Suit.flipPair_color := rfl`).  Foundations see the full four-way
+  suit.
+- **Bool-first**: primary definitions executable (`Bool`, `Option`,
+  `List`, `Fin`, `Nat` on finite enums); readable characterizations as
+  lemmas; `decide` grinds the finite case splits.
+- **One semantic function** (planned): `apply : Move → State → Option
+  State`, with `legal`/`genMoves` derived from it — desync impossible.
+- **Witness-as-data** (planned): `Solvable s := ∃ play : List Move, …`
+  — plays as constructible data, since every hard theorem (compression,
+  reshape, T, C13) is a play-rewriting proof.
+- **Cycles are not forests**: the stock is a pointed cycle, its own
+  structure; tableau matchings are forests; foundations are heights.
+
+## Status
+
+- `Klondike/Basic.lean` — Color/Suit(factored)/Rank/Card, twin-swap
+  (`flipPair`/`flipSuit` — T's relabeling, color-preservation `rfl`),
+  `canSitOn` + rank-grading antisymmetry, the 52-card universe.
+- `Klondike/Cycle.lean` — the pointed cycle: `rotate`, `removeIdx`,
+  **`removeIdx_comm`** (C13's list-level core), `drawTo`, `posOf`,
+  `passed`.  One TODO: `removeAt_comm` (cursor arithmetic over
+  `removeIdx_comm`).
+- `Klondike/Board.lean` — `Base = Anchor ⊕ Card`, the matching
+  (`topOf` + `inj`), derived `bottomOf` by search over the complete
+  enumeration, `attach`/`detach`, `aboveOf` (run walk — the
+  `pilePile` self-landing guard), `mapBy` (T's conjugation).
+  Eight TODOs, all marked `TODO(proof)`.
+- `Klondike/State.lean` — the deal, the four free parameters
+  (`board`, `heights`, `depths`, `stock` cursor), the derived views
+  (`hidden`, `topHidden`, `up`, `canPlace`), the `WF` predicate,
+  `flipAll`.  All definitions — no proofs owed.
+- `Klondike/Move.lean` — the full physical game (7 moves including
+  `pilePile`), **`apply` — the one semantic function** (real code, no
+  sorry), `legal`/`run`/`isWin`/`solvableFrom` derived from it,
+  `solvableEngine` (the engine's restricted move-set version), and
+  the farmable statements: `legal_pileStack_iff`,
+  **`apply_flipAll` + `solvable_flipAll`** (T),
+  **`solvable_engine_iff`** (the B-legs, as a move-subset equivalence
+  of ONE model), `apply_wf`, **`drawTo_comm_adjacent`** (C13 pilot).
+
+All `sorry`s carry a `TODO(proof)` comment — they are the work items
+for proof-farming; every definition is final code.
+
+## Next steps
+
+1. `Board.lean`: `Base = Anchor ⊕ Card`, `Board = topOf + inj`,
+   derived `bottomOf` + characterization.
+2. `State.lean`: deal parameter + the four free parameters; derived
+   views (`up`, `totalTopOf`).
+3. `Move/apply`: the five engine moves; `legal`/`run`/`Solvable`.
+4. The C13 pilot at cursor level: when do `Draw(x); Draw(y)` and
+   `Draw(y); Draw(x)` land on the same cycle.
+5. The Rust bridge: `toEngine`, encode injectivity, cross-validation
+   against the shipped solver's verdicts.
+
+The old `lean-verify` branch remains a source of theorem statements
+and cross-validation harnesses.
