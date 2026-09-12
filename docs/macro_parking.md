@@ -258,6 +258,35 @@ be assumed to track standard Klondike's unless proven otherwise (the
 no-pile-to-pile rule is the only structural deviation, with no settled
 complexity claim either way).
 
+## P.8 The SAT formulation — corrected after reading the engine [~]
+
+*The original scheduling proposal (hosts, arrival/departure intervals,
+mutual exclusion) assumed physical Klondike piles and is WRONG for this
+variant.* Replaying the old engine's own winning line (seed 18, 88
+moves — `check_line.py`) against the source settles it:
+
+- `Reveal(c)` is not a relocation: `make_reveal` pops c from its pile's
+  hidden range, the card *under* c becomes visible, and **c stays in
+  the visible set** (`visible_mask` is a set — no position exists);
+- `DeckPile(c)` just ORs c into the visible set (placement legality is
+  the type-level `free_slot`, existential — no spot is consumed);
+- `PileStack(c)` with c a locked surface *also* reveals (`make_stack`
+  calls `make_reveal` for locked cards — the reveal-by-stacking);
+- the only "position" in the game is each pile's unlock chain, walking
+  top→bottom — exactly `graph.py`'s `find_blocking` DAG.
+
+So the correct SAT formulation is a **bounded model check over the
+words board** (visible set + per-pile unlock depths + foundation
+heights + deck set ≈ 116 state bits): per step, one of the five moves
+with its mask legality (`pile_stack = bm & vis & sm`, `deck_pile =
+deck & free_slot`, reveal = the locked surfaces), effects as set
+updates, win = all heights 13. The K-ladder reduces to the W-ladder
+(worry-back re-entries only — M is vacuous; no card ever relocates).
+`graph.py`'s relational prototype was close to the true structure all
+along; what it (and any static relaxation) lacks is exactly the
+dynamic gates — `bm` and `free_slot` are functions of the visible set,
+and that is where the game's difficulty lives.
+
 ## P.5 Experiment log
 
 **C-SCAR verified on the acceptance corpus (2026-09-12, same setup).**
