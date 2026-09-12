@@ -204,6 +204,41 @@ counterexample has the shape "X commits, X cannot stack in one scar
 class (prefix blocked by the scar's burial chain), the other class
 wins" — hunt with the `!bm[scar-type]`-while-X-unstacked instrument.
 
+## P.7 Four new proof surfaces (2026-09-12, closing the arc)
+
+- **Scar monogenicity [finite check].** If two displacement moves
+  (dig-twin / borrow-P₁ / borrow-P₂) each survive the other, their
+  composition's class collapses to the second displacement alone —
+  accommodation chains are indexed by one card's displacement, so
+  ≤2 classes per commitment becomes structural (Newman local
+  confluence; the proof is a 3×3 pair analysis in the words algebra;
+  the non-confluent pairs = the delimited crease). Falsifier: group
+  the corpus's multi-step witnesses by last-displacement vs
+  displacement-multiset.
+- **Height-walk decomposition [M-4's proof].** Winning plays are
+  lattice walks in ℤ⁴ (stack = +eᵢ, worry = −eᵢ) whose excursions are
+  *funded* by the static unlock DAG — so accommodation depth is
+  bounded by the DAG's longest chain, a priori. Falsifier: per-seed
+  longest-chain vs deepest observed witness.
+- **The exchange lemma [the unlock greedoid].** Feasible commitment
+  sets (playable in some order) may form a greedoid; exchange would
+  subsume scar equivalence, parking dominance, streak rules, and
+  C-IND independence (stubborn sets become a corollary). Predicted
+  exception region: the covering corner. Falsifier: corpus enumeration
+  of small feasible pairs.
+- **One simulation [proof economy].** R = "differ by one repairable
+  displacement" is a one-directional simulation; F3, L-CONT, and
+  C-SCAR are each the conservative side of R, so one induction (repair
+  insertion + type-ball locality) proves all three, and the covering
+  corner is exactly the non-R region — the only place any fold can
+  fail.
+
+The unifying picture: height space ℤ⁴, the game a lattice walk with
+funded excursions, the dominance cone governing the sweep, scars as
+debts repaid before the top element, and the covering corner as the
+sole obstruction to exchange-greediness. Parking, scars, streaks, and
+certificates are one object from four sides.
+
 ## P.5 Experiment log
 
 **C-SCAR verified on the acceptance corpus (2026-09-12, same setup).**
