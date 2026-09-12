@@ -107,7 +107,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    const fn get_visible_mask(&self) -> u64 {
+    pub(crate) const fn get_visible_mask(&self) -> u64 {
         self.visible_mask
     }
 
@@ -123,7 +123,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    const fn get_bottom_mask(&self) -> u64 {
+    pub(crate) const fn get_bottom_mask(&self) -> u64 {
         let vis = self.get_visible_mask();
         let free = vis & !self.get_locked_mask(); //maybe no need to & TODO: check later
         let xor_all = {
@@ -444,6 +444,20 @@ impl Solitaire {
             Move::StackPile(c) => self.unmake_pile::<false>(c, undo),
             Move::Reveal(c) => self.unmake_reveal(c),
         }
+    }
+
+    /// The pre-cascade safe-sweep candidates: stackable, movable, safely
+    /// dominant, unlocked tableau cards. This is the canonicalization fuel
+    /// for the macro game (`macro_game::canonicalize`): it deliberately
+    /// bypasses `gen_moves`'s least-stack/pair cascade, which is a search
+    /// filter, not part of the sweep's semantics.
+    #[must_use]
+    pub(crate) fn safe_sweep_candidates(&self) -> u64 {
+        let vis = self.visible_mask;
+        let locked = self.hidden.get_locked_mask();
+        (self.get_bottom_mask() & vis & self.final_stack.mask())
+            & self.final_stack.dominance_mask()
+            & !locked
     }
 
     #[must_use]
