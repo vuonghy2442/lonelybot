@@ -214,6 +214,35 @@ pub(crate) mod perf_probe {
     pub fn bump_crease_miss() {
         CREASE_MISS.with(|c| c.set(c.get() + 1));
     }
+
+    /// Missed-goal kind split for the BFS-elimination question:
+    /// `[stack-climb, stack-descent, tableau]` — which residual miss
+    /// population a stronger kill would have to address.
+    std::thread_local! {
+        static MISS_KIND: [Cell<u64>; 3] = [Cell::new(0), Cell::new(0), Cell::new(0)];
+    }
+
+    /// `climb` = stack goal with `h₀ < rank(X)` (K1's jurisdiction),
+    /// `desc` = stack goal with `h₀ > rank(X)` (K3's), `tab` = tableau.
+    pub fn bump_miss_kind(kind: usize) {
+        MISS_KIND.with(|h| h[kind.min(2)].set(h[kind.min(2)].get() + 1));
+    }
+
+    pub fn miss_kind_read() -> [u64; 3] {
+        [
+            MISS_KIND.with(|h| h[0].get()),
+            MISS_KIND.with(|h| h[1].get()),
+            MISS_KIND.with(|h| h[2].get()),
+        ]
+    }
+
+    pub fn miss_kind_reset() {
+        MISS_KIND.with(|h| {
+            for c in h.iter() {
+                c.set(0);
+            }
+        });
+    }
 }
 
 /// A macro move: commit to a deck card or to revealing a surface card.
@@ -1289,7 +1318,24 @@ fn accommodations_shared(
         let ans = answers[gi];
         if ans == NONE {
             #[cfg(test)]
-            perf_probe::bump_crease_miss();
+            {
+                perf_probe::bump_crease_miss();
+                let x = match goal.commitment {
+                    Commitment::Draw(x) | Commitment::Reveal(x) => x,
+                };
+                let s = x.suit();
+                let k = match goal.kind {
+                    OutcomeKind::Stack => {
+                        if ctx.root.height(s) < x.rank() {
+                            0
+                        } else {
+                            1
+                        }
+                    }
+                    OutcomeKind::Tableau => 2,
+                };
+                perf_probe::bump_miss_kind(k);
+            }
             continue;
         }
         // reconstruct the witness from the arena; caps give ≤11 shuffles +
@@ -2334,6 +2380,7 @@ mod tests {
                 for draw_step in [1u8, 3] {
                     perf_probe::reset();
                     perf_probe::crease_reset();
+                    perf_probe::miss_kind_reset();
                     let mut win_count = 0usize;
                     for i in 0..32u64 {
                         let g = Solitaire::new(
@@ -2347,9 +2394,14 @@ mod tests {
                     let c = perf_probe::crease_read();
                     let p = perf_probe::read();
                     let total: u64 = c[..16].iter().sum();
+                    let mk = perf_probe::miss_kind_read();
                     println!(
                         "draw={draw_step}: {win_count}/32 solvable; bfs_calls={} bfs_states={} answered={} missed={}",
                         p[3], p[4], c[17], c[18]
+                    );
+                    println!(
+                        "  missed by kind: stack-climb={} stack-descent={} tableau={}",
+                        mk[0], mk[1], mk[2]
                     );
                     for (l, n) in c[..16].iter().enumerate() {
                         if *n > 0 {

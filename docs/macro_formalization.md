@@ -761,6 +761,11 @@ path (probe `debug_crease_grammar`, seeds 12..43 × draws {1, 3}):
 - 5.8% (draw-1) / 1.9% (draw-3) of fold-*selected* successors come from
   BFS answers — the BFS cannot be deleted outright, only fed less
   (§8.5) and asked less (the C14 fold cut).
+- The residual miss population splits (probe `miss_kind_read`, seeds
+  12..43): **~93% tableau**, ~6% stack-climb (K1's jurisdiction, already
+  served), ~0.8% stack-descent. The tableau mass is the diagonal core
+  itself — receivers visible (K2 passed) but the parity disjunct never
+  opens — which is the measured form of this section's boundary claim.
 
 ### 8.5 The kill lemmas — the necessary fragment [~; Lean candidates]
 
@@ -789,6 +794,16 @@ through the un-killed standalone BFS and must produce no answer —
 killed**; the answered count is exactly unchanged (823,949 draw-1), and
 the §6.6 differential reads missing=0. Search-path effect: BFS misses
 53.2M → 19.4M (63%).
+
+**K3 (derived, unserved).** A third kill is sound by the same invariant:
+for a stack goal with `h₀ > rank(X)` (descent), the height passes
+through every `r ∈ (rank(X), h₀]`, and each downward step at `r` needs a
+bm-movable receiver twin pair at rank `r` — some member in `base_vis`
+(`r = 13` excepted: the worried card is a king and the empty-pile gate
+route exists). Measured jurisdiction: 0.8% of residual misses (156k of
+19.4M draw-1) — recorded here not shipped; the miss-kind counters stay
+in the probe so a future tableau-side kill candidate (the 93% mass)
+answers to the same split.
 
 ### 8.6 The fold-mode goal cut (ledger C14) [~]
 
