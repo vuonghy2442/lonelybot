@@ -862,7 +862,13 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         // worth branching on (you can always stack it first without
         // helping anything else). Reveal commitments are untouched.
         // Search-fold policy (like F3): the generator stays total so the
-        // differential sees all channels. Same corpus-gated tier.
+        // differential sees all channels. Corpus-gated [~] with the named
+        // falsifier (ledger C9).
+        //
+        // The draw-3 lift was MEASURED UNSOUND and reverted (2026-09):
+        // seeds 67 & 74 (draw 3) flip old=true -> direct=false under the
+        // generalized form — in draw-3 the pace-shaped drawable set makes
+        // jumping to the dominant card skip commitments the win needs.
         let deck_dom = {
             let d = ctx.deck_mask & ctx.root.sm() & Stack::decode(ctx.root.stack).dominance_mask();
             if s.get_deck().draw_step().get() == 1 && d != 0 {
@@ -876,6 +882,11 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         let groups = core::mem::take(&mut scratch.groups);
         let mut win = false;
         'outer: for group in &groups {
+            // note: the C5/is_pure port was falsified (seed 21 d1 flips
+            // old=win -> macro=loss): Deck::is_pure's offset-at-boundary
+            // premise doesn't survive the macro's offset-jumping draws, so
+            // the "pure" states the old rule fired at and the macro states
+            // it would fire at don't correspond. Ledger row C11.
             // deck dominance: skip dominated Draw commitments entirely
             if deck_dom != 0 {
                 if let Some((Commitment::Draw(x), ..)) = group.first() {
