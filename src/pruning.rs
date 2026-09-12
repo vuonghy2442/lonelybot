@@ -75,58 +75,86 @@ impl Pruner for FullPruner {
         }
     }
     fn prune_moves(&self, game: &Solitaire) -> MoveMask {
-        let filter = {
-            let mut filter = match (self.last_move, &self.last_extra) {
-                // Moving the top layer card and leave the pile empty
-                // => Must move another king to fill the empty spot, otherwise it doesn't make sense
-                (Move::Reveal(_), ExtraInfo::RevealEmpty) => MoveMask {
-                    pile_stack: !0,
-                    deck_stack: !0,
-                    stack_pile: !KING_MASK,
-                    deck_pile: !KING_MASK,
-                    reveal: !KING_MASK,
-                },
-
-                (Move::Reveal(_), &ExtraInfo::Card(c)) => {
-                    let m = c.mask();
-                    let other = c.swap_suit().mask();
-                    let mm = m | other;
-
-                    MoveMask {
-                        pile_stack: !mm,
-                        deck_stack: !0,
-                        stack_pile: 0,
-                        deck_pile: 0,
-                        reveal: 0,
-                    }
-                }
-                // TODO: another case of stack and reveal without dominances
-                _ => MoveMask::default(),
-            };
-
-            if let Some(last_draw) = self.last_draw {
-                let first_layer = game.get_hidden().first_layer_mask();
-
-                // pruning deck :)
-                let m = last_draw.mask();
-                let other = last_draw.swap_suit().mask();
-                let mm = m | other;
-                filter.pile_stack |= !other;
-
-                // need | first layer because of this case , DP 8♠, R 10♥, DP K♠,
-                // if you reveal 10 first then you forced to get K, which might prevent you from getting 8
-                // if you get 8 first, you can't reveal 10, because it expects you to reveal it before
-                // to get the required card to put under 8, but since it doesn't reveal anything, it's not doing it``
-                filter.reveal |= !((mm >> 4) | first_layer);
-            }
-            filter
-        };
-
-        filter.combine(&self.cycle.prune_moves(game))
+        let (rule, streak, cycle) = self.explain(game);
+        rule.combine(&streak).combine(&cycle)
     }
 }
 
 impl FullPruner {
+    /// The reveal-context rules (6.2/6.3 of method.md), as a remove-mask.
+    fn reveal_rule_mask(&self) -> MoveMask {
+        match (self.last_move, &self.last_extra) {
+            // Moving the top layer card and leave the pile empty
+            // => Must move another king to fill the empty spot, otherwise it doesn't make sense
+            (Move::Reveal(_), ExtraInfo::RevealEmpty) => MoveMask {
+                pile_stack: !0,
+                deck_stack: !0,
+                stack_pile: !KING_MASK,
+                deck_pile: !KING_MASK,
+                reveal: !KING_MASK,
+            },
+
+            (Move::Reveal(_), &ExtraInfo::Card(c)) => {
+                let m = c.mask();
+                let other = c.swap_suit().mask();
+                let mm = m | other;
+
+                MoveMask {
+                    pile_stack: !mm,
+                    deck_stack: !0,
+                    stack_pile: 0,
+                    deck_pile: 0,
+                    reveal: 0,
+                }
+            }
+            // TODO: another case of stack and reveal without dominances
+            _ => MoveMask::default(),
+        }
+    }
+
+    /// The draw-streak rules (6.4a/6.4b), as a remove-mask; identity outside
+    /// a streak.
+    fn streak_mask(&self, first_layer: u64) -> MoveMask {
+        let Some(last_draw) = self.last_draw else {
+            return MoveMask::default();
+        };
+
+        // pruning deck :)
+        let m = last_draw.mask();
+        let other = last_draw.swap_suit().mask();
+        let mm = m | other;
+
+        // need | first layer because of this case , DP 8♠, R 10♥, DP K♠,
+        // if you reveal 10 first then you forced to get K, which might prevent you from getting 8
+        // if you get 8 first, you can't reveal 10, because it expects you to reveal it before
+        // to get the required card to put under 8, but since it doesn't reveal anything, it's not doing it
+        MoveMask {
+            pile_stack: !other,
+            reveal: !((mm >> 4) | first_layer),
+            ..MoveMask::default()
+        }
+    }
+
+    /// Phase-0 decomposition for the falsifier harness: the three rule
+    /// groups as separate remove-masks — (reveal-context, streak, cycle).
+    /// `prune_moves` is their union; this exists so instrumentation can
+    /// attribute each removed move to the rule that killed it.
+    #[must_use]
+    pub(crate) fn explain(&self, game: &Solitaire) -> (MoveMask, MoveMask, MoveMask) {
+        let first_layer = game.get_hidden().first_layer_mask();
+        (
+            self.reveal_rule_mask(),
+            self.streak_mask(first_layer),
+            self.cycle.prune_moves(game),
+        )
+    }
+
+    /// The current streak card (the drawn card guarding the rules), if any.
+    #[must_use]
+    pub(crate) const fn instrument_last_draw(&self) -> Option<Card> {
+        self.last_draw
+    }
+
     #[must_use]
     pub(crate) const fn rev_move(&self) -> Option<Move> {
         self.cycle.rev_move

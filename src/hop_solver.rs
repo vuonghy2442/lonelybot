@@ -62,7 +62,7 @@ fn solve_limited<T: TerminateSignal>(
         n_visit: 0,
     };
     tp.clear();
-    traverse(g, prune_info, tp, &mut callback);
+    traverse::<_, _, true>(g, prune_info, tp, &mut callback);
     callback.result
 }
 
@@ -343,6 +343,6 @@ pub fn list_moves<R: Rng, T: TerminateSignal>(
     };
 
     let mut tp = TpTable::default();
-    traverse(g, &FullPruner::default(), &mut tp, &mut callback);
+    traverse::<_, _, true>(g, &FullPruner::default(), &mut tp, &mut callback);
     callback.res
 }

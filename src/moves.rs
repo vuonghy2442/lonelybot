@@ -27,7 +27,7 @@ impl fmt::Display for Move {
     }
 }
 
-#[derive(Default, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct MoveMask {
     pub(crate) pile_stack: u64,
     pub(crate) deck_stack: u64,

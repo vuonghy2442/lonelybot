@@ -45,7 +45,7 @@ fn test_no_cycle() {
         let mut callback = CycleCallback::default();
 
         let mut g = Solitaire::new(&deck, NonZeroU8::new(3).unwrap());
-        let res = traverse(&mut g, &Default::default(), &mut tp, &mut callback);
+        let res = traverse::<_, _, true>(&mut g, &Default::default(), &mut tp, &mut callback);
         assert_eq!(res, Control::Ok);
     }
 }

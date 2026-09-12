@@ -77,7 +77,7 @@ pub fn solve_with_tracking<S: SearchStatistics, T: TerminateSignal>(
         result: SearchResult::Unsolvable,
     };
 
-    traverse(game, &FullPruner::default(), &mut tp, &mut callback);
+    traverse::<_, _, true>(game, &FullPruner::default(), &mut tp, &mut callback);
 
     let result = callback.result;
 
