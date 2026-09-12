@@ -7,3 +7,4 @@ import Klondike.Theorems
 import Klondike.Dominance
 import Klondike.Progress
 import Klondike.Realizability
+import Klondike.Macro

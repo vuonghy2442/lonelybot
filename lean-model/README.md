@@ -112,6 +112,17 @@ Everything else is a view: `up : Card → Bool`, the total board
   `apply_realizable` (the maintenance table's statement).  The
   engine-side `bm` XOR algebra is deferred to the bridge milestone.
 
+- `Klondike/Macro.lean` — **the macro (commitment) game**: `MacroMove`
+  (`drawCommit`/`revealCommit`), `commitApplies`, `macroStep`
+  (accommodation + commitment), `macroSteps`/`State.macroSolvable`,
+  **`solvableEngine_iff_macro`** (C1 — with A3's regrouping route
+  documented: draws commute with shuffles by component disjointness,
+  trailing draws drop), `macroStep_engine_play`, and
+  **`drawTo_tableau_outcomes_agree`** (C2's model seed — tableau
+  outcomes agree on everything but the board).  Deferred and
+  recorded: C12 (needs §6.5b's exact statement), the full sleep-set
+  layer, and the parking lemma (B4-adjacent).
+
 All `sorry`s carry a `TODO(proof)` comment — they are the work items
 for proof-farming; every definition is final code.
 
