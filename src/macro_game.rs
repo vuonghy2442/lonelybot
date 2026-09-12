@@ -426,6 +426,47 @@ pub fn macro_solvable(g: &Solitaire) -> bool {
     macro_solvable_sel(g, SuccSelect::All)
 }
 
+/// Transitions sourced from the rule-driven generator (the fast path):
+/// one representative per (commitment, outcome kind). The scar-choice
+/// policies of the oracle variant do not apply here — the direct
+/// generator's per-kind representative is the canonical one by §6.4's
+/// priority order, and anything beyond that would reintroduce the closure
+/// walk this exists to avoid.
+#[must_use]
+pub fn macro_transitions_fast(g: &Solitaire) -> Vec<(Commitment, Solitaire)> {
+    let mut seen: Vec<(Commitment, OutcomeKind)> = Vec::new();
+    let mut out: Vec<(Commitment, Solitaire)> = Vec::new();
+    for (c, k, st, _) in macro_transitions_direct(g) {
+        if seen.contains(&(c, k)) {
+            continue;
+        }
+        seen.push((c, k));
+        out.push((c, st));
+    }
+    out
+}
+
+/// Solve the macro game on the direct transition function. Same recursive
+/// shape as `macro_solvable`, different transition semantics source — the
+/// two must agree on solvability or the fast generator is wrong.
+#[must_use]
+pub fn macro_solvable_direct(g: &Solitaire) -> bool {
+    fn rec(g: &Solitaire, tp: &mut TpTable) -> bool {
+        let mut s = g.clone();
+        canonicalize(&mut s);
+        if s.is_win() || !tp.insert(s.encode()) {
+            return s.is_win();
+        }
+        for (_, succ) in macro_transitions_fast(&s) {
+            if rec(&succ, tp) {
+                return true;
+            }
+        }
+        false
+    }
+    rec(g, &mut TpTable::default())
+}
+
 /// Bounded local search for an accommodation the constant-work channels
 /// missed (chained borrows/digs). Returns the shortest sequence of
 /// reversible moves making `X`'s direct placement legal, or `None` within
@@ -588,48 +629,46 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
             );
         }
 
-        // kings have no parents: nothing to dig or borrow toward
-        if x.rank() != crate::card::KING_RANK {
-            // prefix-raise channel: stack the missing same-suit prefix
-            // cards until X becomes stackable. Each prefixed card is a
-            // tableau dig of its own (a movable, unlocked card of suit(X)
-            // at the next needed rank); if one is unreachable the stack
-            // outcome is genuinely absent. (Locked prefix cards would make
-            // stacking them a reveal commitment — correctly unavailable.)
-            let suit = x.suit();
-            if !stack_now && game.get_stack().get(suit) < x.rank() {
-                let mut steps: Vec<Move> = Vec::new();
-                let mut probe = game.clone();
-                let mut reachable = true;
-                loop {
-                    let need = probe.get_stack().get(suit);
-                    if need >= x.rank() {
-                        break;
-                    }
-                    let c2 = Card::new(need, suit);
-                    let c2m = c2.mask();
-                    let pmv = probe.gen_moves::<false>();
-                    let locked_now = probe.get_hidden().get_locked_mask();
-                    if pmv.pile_stack & c2m != 0 && locked_now & c2m == 0 {
-                        let m2 = Move::PileStack(c2);
-                        let _ = probe.do_move(m2);
-                        steps.push(m2);
-                    } else {
-                        reachable = false;
-                        break;
-                    }
+        // stack-side channels. Prefix-raise: stack the missing same-suit
+        // prefix cards until X becomes stackable. If the prefix is already
+        // complete, the BFS fallback handles the "X needs an unrelated
+        // shuffle to unblock" cases (e.g. a buried surface king).
+        // Per-commitment scratch state: one clone, with do/undo inside —
+        // no per-step state copies.
+        let suit = x.suit();
+        let mut stack_produced = stack_now;
+        if !stack_now && game.get_stack().get(suit) < x.rank() {
+            let mut probe = game.clone();
+            let mut steps: Vec<Move> = Vec::new();
+            let mut undos: Vec<crate::state::UndoInfo> = Vec::new();
+            let mut reachable = true;
+            loop {
+                let need = probe.get_stack().get(suit);
+                if need >= x.rank() {
+                    break;
                 }
-                // final stack move must still validate against fresh masks
-                let stack_ok = if reachable {
-                    let pmv = probe.gen_moves::<false>();
-                    match commitment {
-                        Commitment::Draw(_) => pmv.deck_stack & xmask != 0,
-                        Commitment::Reveal(_) => pmv.pile_stack & xmask != 0,
-                    }
+                let c2 = Card::new(need, suit);
+                let c2m = c2.mask();
+                let pmv = probe.gen_moves::<false>();
+                let locked_now = probe.get_hidden().get_locked_mask();
+                if pmv.pile_stack & c2m != 0 && locked_now & c2m == 0 {
+                    let m2 = Move::PileStack(c2);
+                    let (_, (undo, _)) = probe.do_move(m2);
+                    steps.push(m2);
+                    undos.push(undo);
                 } else {
-                    false
+                    reachable = false;
+                    break;
+                }
+            }
+            if reachable {
+                let pmv = probe.gen_moves::<false>();
+                let stack_ok = match commitment {
+                    Commitment::Draw(_) => pmv.deck_stack & xmask != 0,
+                    Commitment::Reveal(_) => pmv.pile_stack & xmask != 0,
                 };
                 if stack_ok {
+                    // rebuild from the untouched base: probe is dirty
                     steps.push(stack_move);
                     push_new(
                         &mut out,
@@ -638,74 +677,87 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
                         post_state(&game, &steps),
                         "stack-prefix-raise",
                     );
-                } else if !stack_now {
-                    // same fallback as the tableau side: the blockers of X
-                    // are two twins and each may need its own dig; bounded
-                    // BFS catches the chains the fixed rules don't name.
-                    if let Some(mut steps2) =
-                        find_accommodation_bfs(&game, commitment, x, OutcomeKind::Stack, 6)
-                    {
-                        steps2.push(stack_move);
-                        push_new(
-                            &mut out,
-                            commitment,
-                            OutcomeKind::Stack,
-                            post_state(&game, &steps2),
-                            "stack-bfs",
-                        );
-                    }
+                    stack_produced = true;
                 }
+            }
+            // probe is discarded whole; `game` was never touched
+            let _ = undos;
+        }
+        if !stack_produced && !stack_now {
+            // (the blockers of X are two twins and each may need its own
+            // dig; the bounded BFS catches the chains the fixed rules
+            // don't name — prefix-raise failures and "prefix complete but
+            // buried" alike)
+            if let Some(mut steps2) =
+                find_accommodation_bfs(&game, commitment, x, OutcomeKind::Stack, 12)
+            {
+                steps2.push(stack_move);
+                push_new(
+                    &mut out,
+                    commitment,
+                    OutcomeKind::Stack,
+                    post_state(&game, &steps2),
+                    "stack-bfs",
+                );
             }
         }
 
+        // dig/borrow only make sense with a parent class: skip for kings
+        if x.rank() == crate::card::KING_RANK {
+            continue;
+        }
+
         // dig channel: vacate twin(X) onto a foundation if it is the
-        // (uniquely possible) coverer of a parent top
+        // (uniquely possible) coverer of a parent top. do/undo on the base
+        // state; only produce a fresh clone when the channel opens.
         let twin = x.swap_suit();
         let twin_mask = twin.mask();
         if locked & twin_mask == 0 && mv.pile_stack & twin_mask != 0 {
-            let mut probe = game.clone();
-            let _ = probe.do_move(Move::PileStack(twin));
-            let pmv = probe.gen_moves::<false>();
+            let mv_twin = Move::PileStack(twin);
+            let (_, (undo, _)) = game.do_move(mv_twin);
+            let pmv = game.gen_moves::<false>();
             let opens = match commitment {
                 Commitment::Draw(_) => pmv.deck_pile & xmask != 0,
                 Commitment::Reveal(_) => pmv.reveal & xmask != 0,
             };
+            game.undo_move(mv_twin, undo);
             if opens {
                 push_new(
                     &mut out,
                     commitment,
                     OutcomeKind::Tableau,
-                    post_state(&game, &[Move::PileStack(twin), direct_move]),
+                    post_state(&game, &[mv_twin, direct_move]),
                     "tableau-dig",
                 );
             }
         }
 
-        // borrow channel(s): a parent on its foundation top, worry-back-able
+        // borrow channel(s): a parent on its foundation top, worry-back-able.
+        // do/undo on the base state; produce only when the channel opens.
         let r = x.rank();
         let s = x.suit();
         for p in [Card::new(r + 1, s ^ 2), Card::new(r + 1, s ^ 3)] {
             let on_foundation_top = game.get_stack().get(p.suit()) == p.rank().saturating_add(1);
-            // hmm, careful: stack top check
             if !(on_foundation_top
                 && locked & p.mask() == 0
                 && mv.stack_pile & p.mask() != 0)
             {
                 continue;
             }
-            let mut probe = game.clone();
-            let _ = probe.do_move(Move::StackPile(p));
-            let pmv = probe.gen_moves::<false>();
+            let mv_b = Move::StackPile(p);
+            let (_, (undo, _)) = game.do_move(mv_b);
+            let pmv = game.gen_moves::<false>();
             let opens = match commitment {
                 Commitment::Draw(_) => pmv.deck_pile & xmask != 0,
                 Commitment::Reveal(_) => pmv.reveal & xmask != 0,
             };
+            game.undo_move(mv_b, undo);
             if opens {
                 push_new(
                     &mut out,
                     commitment,
                     OutcomeKind::Tableau,
-                    post_state(&game, &[Move::StackPile(p), direct_move]),
+                    post_state(&game, &[mv_b, direct_move]),
                     "tableau-borrow",
                 );
             }
@@ -714,7 +766,7 @@ pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
         // fallback channel: bounded neighborhood BFS (catches the chained
         // borrow/dig crease; the differential reports how often it fires)
         if !direct_now {
-            if let Some(steps) = find_accommodation_bfs(&game, commitment, x, OutcomeKind::Tableau, 4) {
+            if let Some(steps) = find_accommodation_bfs(&game, commitment, x, OutcomeKind::Tableau, 10) {
                 let mut full = steps;
                 full.push(direct_move);
                 push_new(
@@ -776,9 +828,153 @@ mod tests {
         );
     }
 
+    /// Trace `macro_transitions_direct` for one commitment at the replayed
+    /// state: prints every channel's guard evaluation so the exact failed
+    /// conjunct is visible.
+    #[cfg(test)]
+    fn debug_trace(game0: &Solitaire, target: Card) {
+        let mut game = game0.clone();
+        canonicalize(&mut game);
+        let mv = game.gen_moves::<false>();
+        let xmask = target.mask();
+        println!("TRACE for {target:?} (mask {:#x}):", xmask);
+        println!("  masks: pile_stack={:#x} deck_pile={:#x} reveal={:#x} deck_stack={:#x} stack_pile={:#x}", 
+            mv.pile_stack, mv.deck_pile, mv.reveal, mv.deck_stack, mv.stack_pile);
+        println!("  stack_now={} direct_now={}", 
+            mv.pile_stack & xmask != 0, mv.reveal & xmask != 0);
+        println!("  stack heights: {:?}", [game.get_stack().get(0), game.get_stack().get(1), game.get_stack().get(2), game.get_stack().get(3)]);
+        println!("  x.suit()={} x.rank()={}", target.suit(), target.rank());
+        let locked = game.get_hidden().get_locked_mask();
+
+        // pile anatomy: which pile holds target, what's under it
+        let hidden = game.get_hidden();
+        for pos in 0..crate::deck::N_PILES {
+            let pile = hidden.get(pos);
+            for (i, c) in pile.iter().enumerate() {
+                if *c == target || c.swap_suit() == target {
+                    println!(
+                        "  pile {pos} card {i}/{}: {c:?} {} (locked_mask has {})",
+                        pile.len(),
+                        if *c == target { "<-- target" } else { "(twin)" },
+                        locked & target.mask() != 0
+                    );
+                }
+            }
+        }
+        for pos in 0..crate::deck::N_PILES {
+            let pile = hidden.get(pos);
+            if pile.contains(&target) {
+                let idx = pile.iter().position(|c| *c == target).unwrap();
+                println!(
+                    "  pile {pos}: target at depth {}/{}; cards above: {:?}",
+                    idx,
+                    pile.len() - 1,
+                    &pile[idx + 1..]
+                );
+            }
+        }
+
+        // prefix raise probe
+        let suit = target.suit();
+        let mut probe = game.clone();
+        let mut steps = 0;
+        loop {
+            let need = probe.get_stack().get(suit);
+            if need >= target.rank() { break; }
+            let c2 = Card::new(need, suit);
+            let pmv = probe.gen_moves::<false>();
+            let locked_now = probe.get_hidden().get_locked_mask();
+            println!("  prefix step {}: c2={:?} in_pile_stack={} locked={} visible={}", 
+                steps, c2,
+                pmv.pile_stack & c2.mask() != 0,
+                locked_now & c2.mask() != 0,
+                probe.get_visible_mask() & c2.mask() != 0);
+            if !(pmv.pile_stack & c2.mask() != 0 && locked_now & c2.mask() == 0) {
+                println!("  prefix chain breaks here"); break;
+            }
+            let _ = probe.do_move(Move::PileStack(c2));
+            steps += 1;
+            if steps > 13 { break; }
+        }
+        let pmv = probe.gen_moves::<false>();
+        println!("  after prefix: pile_stack_has_x={}", pmv.pile_stack & xmask != 0);
+        // decompose pile_stack conjuncts for the target
+        let bm = game.get_bottom_mask();
+        let vis = game.get_visible_mask();
+        let sm = game.get_stack().mask();
+        println!(
+            "  pile_stack conjuncts for {target:?}: bm({:#x})={} sm({:#x})={} vis={} locked={}",
+            bm,
+            bm & xmask != 0,
+            sm,
+            sm & xmask != 0,
+            vis & xmask != 0,
+            locked & xmask != 0,
+        );
+    }
+
     #[test]
+    #[ignore = "forensic print harness: run only when diagnosing a differential miss"]
+    fn debug_trace_reveal51() {
+        // seed 26, turn 49's failing state: replay it, then trace
+        let mut game = Solitaire::new(&default_shuffle(26), NonZeroU8::new(1).unwrap());
+        for _turn in 0..49 {
+            canonicalize(&mut game);
+            let oracle = enumerate_commitments(&game);
+            if oracle.is_empty() { break; }
+            for &m in &oracle[0].witness_path {
+                let _ = game.do_move(m);
+            }
+        }
+        debug_trace(&game, Card::from_mask_index(51));
+    }
+
+    #[test]
+    #[ignore = "forensic print harness: run only when diagnosing a differential miss"]
     fn debug_replay_seed12_turn5() {
         debug_replay(12, 1, 5);
+    }
+
+    #[test]
+    #[ignore = "forensic print harness: run only when diagnosing a differential miss"]
+    fn debug_replay_seed26_turn49() {
+        debug_replay(26, 1, 49);
+        // Where is the K of suit 0 (mask index 48) in this state, and why
+        // did the direct generator produce nothing for it?
+        let mut game = Solitaire::new(&default_shuffle(26), NonZeroU8::new(1).unwrap());
+        for _ in 0..49 {
+            canonicalize(&mut game);
+            let oracle = enumerate_commitments(&game);
+            if oracle.is_empty() {
+                break;
+            }
+            for &m in &oracle[0].witness_path {
+                let _ = game.do_move(m);
+            }
+        }
+        canonicalize(&mut game);
+        let x = Card::from_mask_index(48);
+        let xq = Card::from_mask_index(46);
+        let locked = game.get_hidden().get_locked_mask();
+        println!(
+            "card48: locked={} visible={} ; card46: locked={} visible={}",
+            locked & x.mask() != 0,
+            game.get_visible_mask() & x.mask() != 0,
+            locked & xq.mask() != 0,
+            game.get_visible_mask() & xq.mask() != 0,
+        );
+        let hidden = game.get_hidden();
+        for pos in 0..crate::deck::N_PILES {
+            let pile = hidden.get(pos);
+            if pile.contains(&x) || pile.contains(&xq) {
+                println!(
+                    "  pile {pos}: surface={:?} buried contains target={} prefix={}",
+                    pile.last(),
+                    pile.contains(&x),
+                    pile.contains(&xq)
+                );
+            }
+        }
     }
 
     /// Reproduce the prefix-raise probe with full legality diagnostics:
@@ -828,6 +1024,10 @@ mod tests {
                 let mut extra_separate = 0usize; // extra and disconnected (a real soundness question)
                 let mut first_missing: Option<String> = None;
                 let mut first_extra: Option<String> = None;
+                let mut missing_cases: Vec<String> = Vec::new();
+                let mut first_missing_state: Option<(Solitaire, Commitment)> = None;
+                let mut channel_histogram: std::collections::BTreeMap<&'static str, usize> =
+                    std::collections::BTreeMap::new();
                 for draw_step in [1u8, 3] {
                     for i in 0..30u64 {
                         let mut game = Solitaire::new(
@@ -860,6 +1060,9 @@ mod tests {
                                 .iter()
                                 .map(|(c, k, _, _)| (*c, *k == OutcomeKind::Tableau, *k == OutcomeKind::Stack))
                                 .collect();
+                            for (_, _, _, ch) in &direct {
+                                *channel_histogram.entry(*ch).or_insert(0) += 1;
+                            }
                             // fold per commitment
                             let mut folded: Vec<(Commitment, bool, bool)> = Vec::new();
                             for (c, tab, stak) in direct_kinds.drain(..) {
@@ -903,19 +1106,23 @@ mod tests {
                                             game.get_stack().get(xx.suit()),
                                             xx.rank(),
                                         );
-                                        if first_missing.is_none() {
-                                            println!("    direct_kinds this turn: {direct_kinds:?}");
-                                            println!("    direct outcomes: {:?}", direct.iter().map(|(c, k, _, ch)| (c, k, ch)).collect::<Vec<_>>());
-                                            println!(
-                                                "    enum surfaces at root: locked={:#x} vis&locked={:#x}",
-                                                game.get_hidden().get_locked_mask(),
-                                                game.get_visible_mask() & game.get_hidden().get_locked_mask()
-                                            );
-                                        }
                                         if d.map_or(true, |_| false) || (!d_tab && !d_stak) || (!d_tab && *o_tab) || (!d_stak && *o_stak) {
                                             missing += 1;
+                                            let [wit_t, wit_s] = &witness.clone().unwrap_or([None, None]);
+                                            missing_cases.push(format!(
+                                                "seed={} turn={_turn} {:?}(r{},s{}) o=({o_tab},{o_stak}) d=({d_tab},{d_stak}) tab_wit={:?} stack_wit={:?}",
+                                                12 + i,
+                                                c,
+                                                xx.rank(),
+                                                xx.suit(),
+                                                wit_t,
+                                                wit_s
+                                            ));
                                             if first_missing.is_none() {
                                                 first_missing = Some(msg);
+                                            }
+                                            if first_missing_state.is_none() {
+                                                first_missing_state = Some((game.clone(), *c));
                                             }
                                         } else {
                                             extra += 1;
@@ -1009,6 +1216,37 @@ mod tests {
                 // depth — the number must trend to zero as the rule list
                 // converges, and stays printed until it does.
                 println!("availability-miss metric: {missing} (target 0; rule-list gap, not a search unsoundness)");
+                println!("channel histogram (direct generator output share): {channel_histogram:?}");
+                println!("all missing cases:");
+                for case in &missing_cases {
+                    println!("  MISS {case}");
+                }
+                if let Some((g, c)) = &first_missing_state {
+                    let x = match c { Commitment::Draw(x) | Commitment::Reveal(x) => *x };
+                    let suit = x.suit();
+                    let mut probe = g.clone();
+                    println!("first missing: commitment={c:?} suit={suit} x_rank={}", x.rank());
+                    loop {
+                        let need = probe.get_stack().get(suit);
+                        if need >= x.rank() {
+                            println!("  prefix loop reached rank {need} >= {}", x.rank());
+                            break;
+                        }
+                        let c2 = Card::new(need, suit);
+                        let pmv = probe.gen_moves::<false>();
+                        let lnow = probe.get_hidden().get_locked_mask();
+                        println!(
+                            "  need={need} c2={c2:?} c2_in_pile_stack={} c2_locked={} c2_visible={}",
+                            pmv.pile_stack & c2.mask() != 0,
+                            lnow & c2.mask() != 0,
+                            probe.get_visible_mask() & c2.mask() != 0,
+                        );
+                        if !(pmv.pile_stack & c2.mask() != 0 && lnow & c2.mask() == 0) {
+                            break;
+                        }
+                        let _ = probe.do_move(Move::PileStack(c2));
+                    }
+                }
                 assert_eq!(extra_separate, 0, "direct generator produced a class the Oracle could not reach");
             })
             .unwrap()
@@ -1115,21 +1353,67 @@ mod tests {
                     for i in 0..16u64 {
                         let cards = default_shuffle(12 + i);
                         let step = NonZeroU8::new(draw_step).unwrap();
+                        let t0 = std::time::Instant::now();
                         let (res, _) = solve(&mut Solitaire::new(&cards, step));
                         let old_win = matches!(res, SearchResult::Solved);
+                        let t_old = t0.elapsed();
                         let g = Solitaire::new(&cards, step);
+                        let t1 = std::time::Instant::now();
                         let all = macro_solvable_sel(&g, SuccSelect::All);
-                        let tall = macro_solvable_sel(&g, SuccSelect::TallestOnly);
-                        let short = macro_solvable_sel(&g, SuccSelect::ShortestOnly);
+                        let t_all = t1.elapsed();
+                        let t2 = std::time::Instant::now();
+                        let fast = macro_solvable_direct(&g);
+                        let t_fast = t2.elapsed();
+                        // report per-config details when slow
+                        let slow = t_old.max(t_all).max(t_fast);
+                        println!(
+                            "seed={} draw={draw_step} verdict={}/{} old={:?} oracle={:?} direct={:?}",
+                            12 + i, if old_win == all && all == fast { "OK" } else { "MISMATCH" },
+                            if slow > std::time::Duration::from_millis(200) { "SLOW" } else { "" },
+                            t_old, t_all, t_fast
+                        );
                         assert_eq!(
-                            (all, tall, short),
-                            (old_win, old_win, old_win),
-                            "verdict mismatch: draw={draw_step} seed={} old={old_win} all={all} tall={tall} short={short}",
+                            (all, fast),
+                            (old_win, old_win),
+                            "verdict mismatch: draw={draw_step} seed={} old={old_win} oracle={all} direct={fast}",
                             12 + i
                         );
                     }
                 }
-                println!("macro verdicts match the engine on 32 games (both draws, all policies)");
+                println!("macro verdicts match the engine (oracle + direct paths)");
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    /// The heavy version: draw-1 plus the full greedy corpus, run manually.
+    /// Kept #[ignore] because the oracle walk makes it take minutes in
+    /// release; it's the acceptance harness when the direct path changes.
+    #[test]
+    #[ignore = "expensive verdict sweep; run with --ignored --nocapture"]
+    fn macro_verdict_sweep_big() {
+        std::thread::Builder::new()
+            .stack_size(256 * 1024 * 1024)
+            .spawn(|| {
+                let mut n = 0usize;
+                let mut mismatches = 0usize;
+                for draw_step in [1u8, 3] {
+                    for i in 0..64u64 {
+                        let cards = default_shuffle(12 + i);
+                        let step = NonZeroU8::new(draw_step).unwrap();
+                        let (res, _) = solve(&mut Solitaire::new(&cards, step));
+                        let old_win = matches!(res, SearchResult::Solved);
+                        let g = Solitaire::new(&cards, step);
+                        let fast = macro_solvable_direct(&g);
+                        n += 1;
+                        let ok = old_win == fast;
+                        if !ok { mismatches += 1; }
+                        println!("seed={} draw={draw_step} old={old_win} direct={fast} {}", 12 + i, if ok { "OK" } else { "** MISMATCH **" });
+                    }
+                }
+                assert_eq!(mismatches, 0, "macro direct path verdict sweep found mismatches");
+                println!("big verdict sweep: {n} games, {mismatches} mismatches");
             })
             .unwrap()
             .join()
