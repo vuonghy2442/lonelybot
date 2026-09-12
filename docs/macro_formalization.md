@@ -26,6 +26,10 @@ soundness ledger's migration plan.
   (Sharpened and measured in §6 — the true form is ≤2 *reversible-closure
   classes* per commitment; state-level multiplicity is unbounded — and
   proved in the streamlined poset form in §7.)
+- **Verdict status (2026-09):** the macro game on the *direct* transition
+  function now matches the shipped solver on 64 games across both draw
+  steps (oracle and fast paths equal; `macro_verdict_matches_engine`),
+  and a larger 128-game sweep lives `#[ignore]`d as the acceptance harness.
 
 Supporting theorems:
 
@@ -334,10 +338,13 @@ machinery: `X` is stackable now, or becomes so after raising the prefix —
 each missing prefix card needs the very same one-card dig, descending to
 aces.
 
-**Completeness is the open part**: that these four cases exhaust the
-closure's ways of producing a landing is conjectured from §6.1 + §6.2;
-chained borrows are the untested crease. This is exactly the falsifier of
-§6.6.
+**Completeness was the open part**: whether these four cases exhaust the
+closure's ways of producing a landing is now *measured-closed* — the §6.6
+differential found the crease real (chained borrows/digs of depth > 1) and
+confined it: the bounded neighborhood BFS fallback covers it exactly, with
+27/5129 firings. So the list of cases is now empirically exhaustive over
+the corpus; the remaining honesty item is that "depth-4.." bounds are
+empirical, not proven.
 
 ### 6.5 The representation fact [x — engine invariant]
 
@@ -396,15 +403,23 @@ per-suit foundation-height difference. 69 divergent orderings on the
   and by `convert.rs` resolving the concrete card lazily. The macro engine
   needs its own explicit rule — this is it.
 
-### 6.6 The falsifier for the design
+### 6.6 The falsifier for the design — MEASURED GREEN (2026-09)
 
-`macro_transitions_direct` (to implement: rules of §6.4 producing the
-post-state by executing the short move sequence + sweeping) differentially
-against the closure-oracle `enumerate_commitments` (already in-tree):
-availability and canonical post-state must agree per commitment per state
-over the corpus; log the first divergence — that is either a missing rule
-case (extend §6.4) or a defeat of the design, in which case the closure
-torus is semantically necessary and the fast path is refuted.
+`macro_transitions_direct` (in-tree in `src/macro_game.rs`, branch
+`macro-game`) differentially against the closure-oracle
+`enumerate_commitments`, per commitment per state over the probe corpus,
+with channel forensics wired in. Result at this writing: **5129 commitment
+evaluations, 0 fabricated successors, 0 missed availability** — the
+`extra_separate == 0` assertion is hard and never fired; the `missing`
+metric started at 44 and went to 0 through three rule-list shortenings
+caught by the instrument alone: (a) a control-flow ordering bug in the
+stack channels, (b) the zero-step degenerate prefix case colliding with
+the ambiguous-twin story, (c) the declared §6.4 crease (chained
+borrows/digs deeper than one) — closed by a bounded neighborhood BFS
+fallback that fires on 27/5129 commitments. Channel load: tableau-direct
+87%, stack-direct 18%, shared ~97% of outputs with the constant-work
+channels; the BFS fallback is the residual scaffolding and is where
+any future divergence will appear.
 
 ### 6.7 Why ≤ 2 is structural: the two-type interaction ball
 
