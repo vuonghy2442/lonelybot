@@ -3,7 +3,7 @@ use core::ops::{Add, AddAssign};
 use rand::Rng;
 
 use crate::{
-    moves::Move,
+    moves::{Move, MoveMask},
     pruning::{FullPruner, Pruner},
     solver::SearchResult,
     state::{Encode, Solitaire},
@@ -124,6 +124,12 @@ pub fn hop_solve_game<R: Rng, T: TerminateSignal>(
     for _ in 0..n_times {
         let mut gg = g.clone();
         gg.hidden_shuffle(rng);
+        // determinization only permutes strictly buried cards, which no
+        // generated move depends on, so the candidate must stay legal
+        assert!(
+            MoveMask::from(m).filter(&gg.gen_moves::<false>()).is_empty(),
+            "move {m} is illegal under this determinization"
+        );
         let (rev_m, (_, extra)) = gg.do_move(m);
         let new_prune_info = FullPruner::update(prune_info, m, rev_m, extra);
 
