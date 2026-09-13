@@ -1470,7 +1470,22 @@ fn steps(ms: &[Move]) -> ArrayVec<Move, 42> {
 ///   spreads the receiver type to X's bit): the type needs a visible
 ///   member at the opening state — root-visible or worried back from the
 ///   root foundation. Neither twin qualifying kills the goal. Kings only
-///   open through the empty-pile gate, which has no receiver — no kill.
+///   open through the empty-pile gate, which has no receiver — no kill,
+///   with one exception:
+/// * **K4 (tableau goal on a first-layer king, Reveal commitments).** A
+///   Reveal commitment's tableau goal opens only through the reveal
+///   mask, whose `!(first_layer & KING_MASK)` conjunct permanently
+///   excludes locked surface kings at the bottom of their pile (a lone
+///   king has nothing under it to reveal — surfacing it is not a reveal).
+///   The first layer is closure-invariant (Lemma A1: shuffles never
+///   touch the hidden structures), and a locked card can never leave
+///   `vis` inside the closure (locked cards never shuffle-stack), so the
+///   conjunct kills the bit at *every* closure word. Draw commitments are
+///   exempt: deck kings open through `deck_pile`'s empty-pile gate,
+///   which the exclusion does not touch. Measured (probe
+///   `debug_crease_cases`): 3% of missed goals but 17.3% of the miss
+///   cost — the lone-king endgame boards carry the corpus's largest
+///   closures (2.2k–2.8k states).
 ///
 /// A killed goal provably has no BFS answer, so skipping it changes no
 /// successor in either mode — pure search cost. Gates:
@@ -1493,6 +1508,14 @@ fn goal_dead(ctx: &ClosureCtx, commitment: Commitment, kind: OutcomeKind) -> boo
             })
         }
         OutcomeKind::Tableau => {
+            // K4: the reveal mask's first-layer king exclusion is
+            // closure-invariant, so a lone locked surface king's tableau
+            // goal never opens anywhere
+            if let Commitment::Reveal(r) = commitment {
+                if r.rank() == crate::card::KING_RANK && ctx.first_layer & r.mask() != 0 {
+                    return true;
+                }
+            }
             if x.rank() == crate::card::KING_RANK {
                 return false;
             }
@@ -2104,6 +2127,357 @@ mod tests {
                 t_all.elapsed()
             );
         }
+    }
+
+    /// The amortization question for the shared accommodation BFS ("don't
+    /// re-ask"): the closure a BFS walks — and therefore the answer for
+    /// any (goal, kind) — is a pure function of the key
+    /// `(root stack word, vis, locked, first_layer ∩ KING)`: the closure
+    /// graph is deck-independent (edges never read the deck), and the
+    /// deck-dependent goal conjuncts reduce to `x ∈ deck_mask`, which is
+    /// given for a Draw goal. So if the search revisits the same key with
+    /// the same goal, the whole walk is redundant and memoizable.
+    ///
+    /// This probe measures exactly that on the shipped search path: at
+    /// every TP-miss node (via the progress hook), re-run the fold-mode
+    /// generator locally to recover the node's goal set, and count
+    /// distinct keys, distinct (key, goal) queries, and the repeat rate.
+    /// A repeat rate near zero kills the memo idea on the spot.
+    #[test]
+    #[ignore = "closure-reuse probe; run with --ignored --release --nocapture"]
+    fn debug_closure_reuse() {
+        for draw_step in [1u8, 3] {
+            let cards = default_shuffle(32);
+            let g = Solitaire::new(&cards, NonZeroU8::new(draw_step).unwrap());
+            let mut nodes = 0u64;
+            let mut nodes_with_goals = 0u64;
+            let mut goal_queries = 0u64;
+            let mut goal_query_repeats = 0u64;
+            let mut keys: std::collections::HashSet<(u64, u64, u64, u64)> =
+                std::collections::HashSet::new();
+            let mut queries: std::collections::HashSet<(u64, u64, u64, u64, u64, u8)> =
+                std::collections::HashSet::new();
+            let t = std::time::Instant::now();
+            let win = macro_solvable_direct_progress(&g, |s| {
+                nodes += 1;
+                let ctx = ClosureCtx::from_game(s);
+                // the closure key: root words + the king-layer slice the
+                // reveal goal check reads
+                let kf = ctx.first_layer & KING_MASK;
+                let key = (
+                    ctx.root.vis,
+                    ctx.root.locked,
+                    u64::from(ctx.root.stack),
+                    kf,
+                );
+                // recover this node's goal set (same fold the search runs)
+                let mut scratch = DirectScratch::new();
+                let mut commitments = Vec::new();
+                core_run(&ctx, &mut scratch, &mut commitments, true);
+                if scratch.goals.is_empty() {
+                    return;
+                }
+                nodes_with_goals += 1;
+                keys.insert(key);
+                for goal in &scratch.goals {
+                    let kind = matches!(goal.kind, OutcomeKind::Stack) as u8;
+                    let q = (
+                        ctx.root.vis,
+                        ctx.root.locked,
+                        u64::from(ctx.root.stack),
+                        kf,
+                        goal.xmask,
+                        kind,
+                    );
+                    goal_queries += 1;
+                    if !queries.insert(q) {
+                        goal_query_repeats += 1;
+                    }
+                }
+            });
+            println!(
+                "seed=32 draw={draw_step} win={win} nodes={nodes} nodes_with_goals={nodes_with_goals} \
+                 distinct_keys={} distinct_(key,goal)={} queries={} repeats={} ({:2.1}%) in {:?}",
+                keys.len(),
+                queries.len(),
+                goal_queries,
+                goal_query_repeats,
+                100.0 * goal_query_repeats as f64 / goal_queries.max(1) as f64,
+                t.elapsed()
+            );
+        }
+    }
+
+    /// Concrete crease cases, curated from real corpus states: the
+    /// deepest answered accommodation witnesses, the alternating ones
+    /// (a PileStack before a StackPile — the up-then-down composition no
+    /// single-word channel can express, §8.4's diagonal core), and dead
+    /// tableau goals (the 93% miss mass) with the closure size the BFS
+    /// paid to conclude "never opens". Each case dumps the board, the
+    /// goal, the witness steps, and the fixed channels' guard states —
+    /// the raw material for any future channel-extension or kill
+    /// candidate.
+    #[test]
+    #[ignore = "crease case curation; run with --ignored --release --nocapture"]
+    fn debug_crease_cases() {
+        fn dump_board(g: &Solitaire) -> String {
+            let st = g.get_stack();
+            let vis = g.get_visible_mask();
+            let locked = g.get_hidden().get_locked_mask();
+            let mut surfaces = String::new();
+            let mut v = vis & locked;
+            while v != 0 {
+                let bit = v & v.wrapping_neg();
+                v &= !bit;
+                surfaces.push_str(&format!(
+                    "{} ",
+                    Card::from_mask_index(u8::try_from(bit.trailing_zeros()).unwrap())
+                ));
+            }
+            let mut free = String::new();
+            let mut v = vis & !locked;
+            while v != 0 {
+                let bit = v & v.wrapping_neg();
+                v &= !bit;
+                free.push_str(&format!(
+                    "{} ",
+                    Card::from_mask_index(u8::try_from(bit.trailing_zeros()).unwrap())
+                ));
+            }
+            format!(
+                "heights=[{} {} {} {}] locked-surfaces=[{surfaces}] free-vis=[{free}] deck={}",
+                st.get(0),
+                st.get(1),
+                st.get(2),
+                st.get(3),
+                g.get_deck().len()
+            )
+        }
+        // closure size on words: BFS over the reversible edges from the
+        // root (the same child rule as accommodations_shared)
+        fn closure_size(ctx: &ClosureCtx) -> usize {
+            let mut seen: std::collections::HashSet<u16> = std::collections::HashSet::new();
+            let mut queue: alloc::collections::VecDeque<u16> =
+                alloc::collections::VecDeque::new();
+            seen.insert(ctx.root.stack);
+            queue.push_back(ctx.root.stack);
+            while let Some(word) = queue.pop_front() {
+                let w = ctx.words_at(word);
+                let mv = w.move_masks(ctx.deck_mask, ctx.first_layer);
+                let mut edges = mv.pile_stack & !w.locked;
+                let mut is_pile = true;
+                loop {
+                    if edges == 0 {
+                        if is_pile {
+                            edges = mv.stack_pile;
+                            is_pile = false;
+                            continue;
+                        }
+                        break;
+                    }
+                    let bit = edges & edges.wrapping_neg();
+                    edges &= !bit;
+                    let c = Card::from_mask_index(u8::try_from(bit.trailing_zeros()).unwrap());
+                    let child = if is_pile {
+                        word + (1 << (4 * c.suit()))
+                    } else {
+                        word - (1 << (4 * c.suit()))
+                    };
+                    if seen.insert(child) {
+                        queue.push_back(child);
+                    }
+                }
+            }
+            seen.len()
+        }
+        struct Case {
+            seed: u64,
+            draw: u8,
+            turn: usize,
+            board: Solitaire,
+            commitment: Commitment,
+            kind: OutcomeKind,
+            steps: Vec<Move>,
+            channels_fired: Vec<&'static str>,
+            closure: usize,
+        }
+        let mut deepest: Vec<Case> = Vec::new();
+        let mut alternating: Vec<Case> = Vec::new();
+        let mut dead_tableau: Vec<Case> = Vec::new();
+        let (mut answered, mut missed) = (0usize, 0usize);
+        // K4 kill candidate tally: dead tableau goals on first-layer kings
+        // (locked surface king at the bottom of its pile — the reveal mask's
+        // !(first_layer & KING) conjunct is closure-invariant)
+        let (mut k4_count, mut k4_closure, mut dead_count, mut dead_closure) =
+            (0usize, 0usize, 0usize, 0usize);
+        for draw_step in [1u8, 3] {
+            for i in 0..32u64 {
+                let mut game = Solitaire::new(
+                    &default_shuffle(12 + i),
+                    NonZeroU8::new(draw_step).unwrap(),
+                );
+                for turn in 0..200usize {
+                    if game.is_win() {
+                        break;
+                    }
+                    canonicalize(&mut game);
+                    let ctx = ClosureCtx::from_game(&game);
+                    let mut scratch = DirectScratch::new();
+                    let mut commitments = Vec::new();
+                    core_run(&ctx, &mut scratch, &mut commitments, false);
+                    let cs = closure_size(&ctx);
+                    let fired = |ci: usize| -> Vec<&'static str> {
+                        scratch.groups[ci]
+                            .iter()
+                            .map(|(_, _, _, ch)| *ch)
+                            .collect()
+                    };
+                    for (ci, group) in scratch.groups.iter().enumerate() {
+                        for (c, k, steps, ch) in group {
+                            if !ch.ends_with("bfs") {
+                                continue;
+                            }
+                            answered += 1;
+                            let shuffles = &steps[..steps.len() - 1];
+                            let alt = shuffles
+                                .iter()
+                                .any(|m| matches!(m, Move::PileStack(_)))
+                                && shuffles
+                                    .iter()
+                                    .any(|m| matches!(m, Move::StackPile(_)));
+                            let case = Case {
+                                seed: 12 + i,
+                                draw: draw_step,
+                                turn,
+                                board: game.clone(),
+                                commitment: *c,
+                                kind: *k,
+                                steps: steps.iter().copied().collect(),
+                                channels_fired: fired(ci),
+                                closure: cs,
+                            };
+                            if alt {
+                                alternating.push(case);
+                            } else {
+                                deepest.push(case);
+                            }
+                        }
+                    }
+                    for goal in &scratch.goals {
+                        let ci = commitments
+                            .iter()
+                            .position(|c| *c == goal.commitment)
+                            .unwrap();
+                        let ch = match goal.kind {
+                            OutcomeKind::Stack => "stack-bfs",
+                            OutcomeKind::Tableau => "tableau-bfs",
+                        };
+                        let got = scratch.groups[ci]
+                            .iter()
+                            .any(|(c, k, _, cch)| *c == goal.commitment && *k == goal.kind && *cch == ch);
+                        if got {
+                            continue;
+                        }
+                        missed += 1;
+                        dead_count += 1;
+                        dead_closure += cs;
+                        let x = match goal.commitment {
+                            Commitment::Draw(x) | Commitment::Reveal(x) => x,
+                        };
+                        if x.rank() == crate::card::KING_RANK
+                            && ctx.first_layer & x.mask() != 0
+                        {
+                            k4_count += 1;
+                            k4_closure += cs;
+                        }
+                        if goal.kind == OutcomeKind::Tableau {
+                            dead_tableau.push(Case {
+                                seed: 12 + i,
+                                draw: draw_step,
+                                turn,
+                                board: game.clone(),
+                                commitment: goal.commitment,
+                                kind: goal.kind,
+                                steps: Vec::new(),
+                                channels_fired: fired(ci),
+                                closure: cs,
+                            });
+                        }
+                    }
+                    // advance by the oracle's first witness path
+                    let cands = enumerate_commitments(&game);
+                    match cands.first() {
+                        None => break,
+                        Some(c0) => {
+                            for &m in &c0.witness_path {
+                                let _ = game.do_move(m);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let show = |label: &str, cases: &[Case]| {
+            println!("=== {label} ===");
+            for c in cases {
+                println!(
+                    "seed={} draw={} turn={} goal={:?} {:?}",
+                    c.seed, c.draw, c.turn, c.commitment, c.kind
+                );
+                println!("  board: {}", dump_board(&c.board));
+                println!("  closure size: {}", c.closure);
+                println!("  fixed channels fired: {:?}", c.channels_fired);
+                if !c.steps.is_empty() {
+                    let steps: Vec<String> = c.steps.iter().map(|m| format!("{m}")).collect();
+                    println!("  witness ({} steps): {}", c.steps.len(), steps.join(" · "));
+                } else {
+                    // the K2 receiver analysis: why the tableau goal never
+                    // opens — the twin receivers at rank(X)+1, opposite
+                    // color, and their status
+                    let x = match c.commitment {
+                        Commitment::Draw(x) | Commitment::Reveal(x) => x,
+                    };
+                    if x.rank() == crate::card::KING_RANK {
+                        println!("  X is a king — opens only via the empty-pile gate (no receiver, K2 takes no kill)");
+                    } else {
+                        let vis = c.board.get_visible_mask();
+                        let locked = c.board.get_hidden().get_locked_mask();
+                        let stacked = stacked_mask(c.board.get_stack().encode());
+                        let s = x.suit();
+                        let mut rec = Vec::new();
+                        for p in [Card::new(x.rank() + 1, s ^ 2), Card::new(x.rank() + 1, s ^ 3)] {
+                            rec.push(format!(
+                                "{p}: {}",
+                                if vis & p.mask() != 0 && locked & p.mask() == 0 {
+                                    "visible-free"
+                                } else if vis & p.mask() != 0 {
+                                    "visible-locked"
+                                } else if stacked & p.mask() != 0 {
+                                    "on-foundation (worry-backable)"
+                                } else {
+                                    "buried/in-deck (dead)"
+                                }
+                            ));
+                        }
+                        println!("  receivers for X: [{}]", rec.join(", "));
+                    }
+                }
+            }
+        };
+        deepest.sort_by_key(|c| core::cmp::Reverse(c.steps.len()));
+        show("deepest witnesses", &deepest[..deepest.len().min(3)]);
+        alternating.sort_by_key(|c| c.steps.len());
+        show("alternating creases (shortest)", &alternating[..alternating.len().min(3)]);
+        dead_tableau.sort_by_key(|c| core::cmp::Reverse(c.closure));
+        show("dead tableau goals (largest closures)", &dead_tableau[..dead_tableau.len().min(3)]);
+        println!(
+            "scanned: answered={answered} missed={missed} (dead tableau recorded: {})",
+            dead_tableau.len()
+        );
+        println!(
+            "K4 candidate (first-layer-king Reveal tableau goals, all kinds counted): {k4_count} of {dead_count} missed goals, carrying {k4_closure} of {dead_closure} closure states ({:4.1}% of miss cost)",
+            100.0 * k4_closure as f64 / dead_closure.max(1) as f64
+        );
     }
 
     /// The word pipeline against move replay, state by state:

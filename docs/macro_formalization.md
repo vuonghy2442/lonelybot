@@ -766,6 +766,29 @@ path (probe `debug_crease_grammar`, seeds 12..43 × draws {1, 3}):
   served), ~0.8% stack-descent. The tableau mass is the diagonal core
   itself — receivers visible (K2 passed) but the parity disjunct never
   opens — which is the measured form of this section's boundary claim.
+- Amortization ("don't re-ask"): a BFS call's answer for a goal is a
+  pure function of the closure key `(root stack word, vis, locked,
+  first_layer ∩ KING)` — the edges never read the deck, and the
+  deck-dependent goal conjuncts reduce to `x ∈ deck_mask`, which is
+  given. Measured on the search path (probe `debug_closure_reuse`,
+  seed 32): draw-1 revisits essentially nothing (2,759,438 distinct keys
+  for 2,759,438 goal-carrying nodes, 0% query repeats — a memo is dead
+  there), but draw-3 repeats **49.9%** of its 13.8M `(key, goal)`
+  queries (1.34M distinct keys for 3.14M goal-carrying nodes). A
+  draw-3-only memo over witness answers could halve that axis's BFS
+  work (~6% of its wall) — recorded here as the one amortization lever
+  the measurements leave open.
+- Concrete case shapes (probe `debug_crease_cases`, oracle-trajectory
+  corpus): the deep witnesses are *interleaved two-suit prefix raises*
+  (a club climb whose every step's movability is gated on a parallel
+  heart climb — 8-9 steps, prefix-raise's same-suit greedy dies at the
+  first card) and *descent chains* (seven worry-backs alternating ♥/♠
+  to surface one receiver, closure 278); the alternating creases are
+  uniformly the minimal twin-pair swap `SP x♥ · PS x♦ · DS (x+1)♦` —
+  one down-edit to break the twin parity, one up-edit, then the commit —
+  which is the guarded-counter system's fundamental cycle and the proof
+  that no single-word probe (canonical representative) can replace the
+  closure walk: the opening exists only at the interior word.
 
 ### 8.5 The kill lemmas — the necessary fragment [~; Lean candidates]
 
@@ -787,11 +810,33 @@ it, so some receiver twin must be visible at the opening state —
 root-visible or worried back from the root foundation. (Kings take no
 kill: they open through the pile-emptiness gate, which has no receiver.)
 
+**K4 (tableau goals on first-layer kings, Reveal commitments — shipped
+2026-09, from the crease-case forensics).** The one king clause that is
+killable after all: a *lone* locked surface king — one sitting at the
+bottom of its pile, `X ∈ first_layer ∩ KING` — can never be revealed,
+because the raw reveal mask carries the conjunct
+`!(first_layer & KING_MASK)` (revealing a lone king surfaces nothing;
+the engine does not offer the move), and that conjunct is
+closure-invariant (Lemma A1: shuffles never touch the hidden structure)
+while a locked card can never leave `vis` inside the closure (locked
+cards never shuffle-stack). So the Reveal-commitment tableau goal is dead
+at every closure word without walking. Draw commitments are exempt —
+deck kings open through `deck_pile`'s empty-pile gate, which the
+exclusion does not touch. Measured on the oracle-trajectory corpus
+(probe `debug_crease_cases`): 3% of missed goals carrying 17.3% of the
+per-goal miss cost — lone-king *endgame* boards (deck ≈ 0, tall
+foundations, 2.2k–2.8k-state closures, the largest in the corpus). On
+the mid-game search path the effect is ~0.1% (the DFS refutation
+thicket does not reach these states); the kill pays on deep and
+near-win games. Falsifier run green: 24,779 killed (K4's +45), 0
+wrongly killed; differential and both verdict sweeps green.
+
 Both ship as `goal_dead` (`src/macro_game.rs`) with the direct falsifier
 `goal_kills_are_sound`: for every corpus state, every killed goal is run
 through the un-killed standalone BFS and must produce no answer —
-29,781 would-be goals on 1,027 states, 24,734 killed (83%), **0 wrongly
-killed**; the answered count is exactly unchanged (823,949 draw-1), and
+29,781 would-be goals on 1,027 states, 24,734 killed (83%) before K4,
+24,779 after, **0 wrongly killed**; the answered count is exactly
+unchanged (823,949 draw-1), and
 the §6.6 differential reads missing=0. Search-path effect: BFS misses
 53.2M → 19.4M (63%).
 
