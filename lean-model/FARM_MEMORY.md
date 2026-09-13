@@ -1335,3 +1335,51 @@ otMem_take_of_get (noDup pile),
   archive; its finding is the phantom-tenant description in the wave-10
   adjudication above and is rebuildable. All Temp\opencode references in
   this ledger now resolve to witnesses/.
+
+## State/Board/Theorems/Dominance — the B4-critical upstream lifts (2026-09-13)
+
+- LANDED (per-file `lake env lean` exit 0 under 4.30.0-rc2, census 29
+  unchanged): `State.isLocked` → State.lean (after canPlace, pre-WF);
+  `findFirst_ne_none_of_mem` → Board.lean (next to findFirst, ROOT
+  level); `vis_base_of_notLocked` → Theorems.lean, new section just
+  before the crux `solvable_of_pileStack` (proof verbatim — needs only
+  the two lifts above); `Board.bottomOf_detach_self` ADDED to Board.lean
+  INSIDE `namespace Board` (Bridge's ROOT-level original untouched —
+  distinct full names, no clash, dedupe later; proof verbatim from
+  Bridge.lean:231). Dominance.lean: three decls deleted, every user
+  (safe_pileStack_dominant_of_return etc.) compiles unchanged.
+- CROSS-FILE EDITS NEED OLEAN REFRESHES: `lake env lean` resolves
+  imports from disk oleans — after editing Board/State run scoped
+  module builds (`lake build Klondike.Board`, etc.) before
+  lake-env-leaning downstream files, else phantom unknown-identifier
+  errors. Also refresh the EDITED downstream olean (stale Dominance
+  olean declaring `State.isLocked` + fresh State olean = duplicate
+  declaration at load).
+- TOOLCHAIN INTERFERENCE (for the orchestrator): mid-session a parallel
+  actor flipped lean-toolchain + an elan path override to v4.33.1 (task
+  pin was 4.30.0-rc2). Under 4.33.1 Cycle.lean:163 FAILS (`rewrite`
+  motive not type correct in the removeAt_comm area — a Decidable
+  instance depends on the rewritten term). My four files verified under
+  4.30; Board.lean ALSO builds clean under 4.33. The interrupted 4.33
+  cascade left Basic/Board oleans 4.33-format (mixed dir) — any full
+  rebuild under ONE toolchain self-heals the trace mix.
+
+## TOOLCHAIN MIGRATION: v4.30.0-rc2 -> v4.33.1 (2026-09-13)
+
+- THREE one-line fixes carried the whole farm (~10k lines of proofs):
+  (1) `rw` through nested ites whose Decidable instances were elaborated
+  against pre-unfolding structure projections now fails "motive is not
+  type correct" — replace the `rw [if_pos h, ...]` chain with
+  `simp only [if_pos h, ...]` (simp handles dependent instances; the
+  error message itself recommends this).
+  (2) `rw [if_pos (Nat.lt_succ_self i)]` no longer matches `i.succ`
+  against the goal's `i + 1` — supply the proof as
+  `if_pos (by omega : i < i + 1)`.
+  (3) The 4.33 note "target not type-correct under implicit transparency"
+  is a symptom of (1), not a separate bug.
+- Sites fixed: Cycle.lean removeAt_comm; Move.lean + Commutation.lean
+  removeAt_drawTo (identical duplicated lemma in both files — expected,
+  the two-kit situation).
+- elan state: lean-model override + lean-toolchain pin = v4.33.1; the
+  root and lean-verify overrides REMOVED (lean-verify inherits the
+  default now; its stale .lake will rebuild on next use).

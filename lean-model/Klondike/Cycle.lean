@@ -160,6 +160,6 @@ theorem removeAt_comm {α : Type} (cy : Cycle α) (i j : Nat)
     rw [hj1] at h
     exact h.symm
   simp only [removeAt]
-  rw [if_pos hj, if_pos hic, if_pos hic1, if_pos hjc1, hcards]
+  simp only [if_pos hj, if_pos hic, if_pos hic1, if_pos hjc1, hcards]
 
 end Cycle

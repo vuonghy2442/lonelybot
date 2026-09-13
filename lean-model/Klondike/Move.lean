@@ -1880,8 +1880,8 @@ lives here under `Cycle`/`Board` names. -/
 out — the cursor lands exactly on `i`. -/
 theorem Cycle.removeAt_drawTo {α : Type} (i : Nat) (cy : Cycle α) :
     (cy.drawTo i).removeAt i = { cards := Cycle.removeIdx cy.cards i, cursor := i } := by
-  simp only [Cycle.removeAt, Cycle.drawTo]
-  rw [if_pos (Nat.lt_succ_self i), Nat.add_sub_cancel]
+  simp only [Cycle.removeAt, Cycle.drawTo, if_pos (by omega : i < i + 1),
+    Nat.add_sub_cancel]
 
 /-- Splicing out an earlier position shifts a later first occurrence
 down by one. -/
