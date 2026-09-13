@@ -2946,9 +2946,13 @@ mod tests {
             // the residue-dominance prize: within each (board, MASK),
             // offsets group into residue classes (mod 3) plus the pure
             // class (offset == len, already normalized); only the minimal
-            // offset per class needs exploring — count the doomed extras
-            let mut doomed: u64 = 0;
-            let mut surviving: u64 = 0;
+            // offset per class needs exploring — count the doomed extras.
+            // Plus the impure-beats-pure rule: a pure state (pass
+            // boundary — no block-1 accessibility) is dominated by ANY
+            // same-mask impure state (block 1 nonempty ⊇ empty, same
+            // successor merge), so pure states with impure siblings die.
+            let (mut doomed, mut surviving) = (0u64, 0u64);
+            let mut pure_killed_by_impure: u64 = 0;
             for (b, ds) in &boards {
                 let mut by_mask_residue: HashMap<(u32, u8), Vec<u8>> = HashMap::new();
                 for &d in ds {
@@ -2958,7 +2962,21 @@ mod tests {
                     let r = if o == len { 0 } else { o % 3 };
                     by_mask_residue.entry((m, r)).or_default().push(o);
                 }
-                for (_, offs) in by_mask_residue {
+                let has_impure = by_mask_residue
+                    .keys()
+                    .any(|(_, r)| *r != 0);
+                for ((_, r), offs) in by_mask_residue {
+                    if r == 0 {
+                        // the pure class: single state (offset == len);
+                        // dies entirely when an impure sibling exists
+                        if has_impure {
+                            pure_killed_by_impure += offs.len() as u64;
+                            doomed += offs.len() as u64;
+                        } else {
+                            surviving += 1;
+                        }
+                        continue;
+                    }
                     surviving += 1;
                     doomed += offs.len() as u64 - 1;
                 }
@@ -3010,10 +3028,11 @@ mod tests {
                 pop_spread.iter().copied().max().unwrap_or(0)
             );
             println!(
-                "  residue-dominance prize: surviving states={} doomed={} ({:4.1}% of the search's states)",
+                "  residue-dominance prize: surviving states={} doomed={} ({:4.1}% of the search's states; {} pure states killed by impure siblings)",
                 surviving,
                 doomed,
-                100.0 * doomed as f64 / states as f64
+                100.0 * doomed as f64 / states as f64,
+                pure_killed_by_impure
             );
             println!(
                 "  top-100-board mask pairs: comparable(superset)={} ({:4.1}%) same-mask={} incomparable={} ({:4.1}%)",
