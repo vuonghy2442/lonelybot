@@ -2646,6 +2646,179 @@ mod tests {
         );
     }
 
+    /// The dominance-pruned closure question (§5.2 ported into the walk):
+    /// the closure walker explores RAW edges (dominances off — the C1
+    /// reduction is about the raw game), but every worry-back makes its
+    /// card re-stackable, so the big endgame closures are full of words
+    /// with 3+ simultaneous unlocked stackables — exactly the state where
+    /// the engine's §5.2 rule ("three-or-more redundant stackables → only
+    /// the lowest") collapses the branching. Since edge-filtering
+    /// explores a subset, filtered answers ⊆ raw answers; the soundness
+    /// test is one-directional: **every goal the raw walk answers, the
+    /// filtered walk must answer too** (witness length may change — the
+    /// detour stacks the lowest first). This probe measures opening-set
+    /// preservation and the closure-size reduction, per corpus state.
+    #[test]
+    #[ignore = "closure dominance probe; run with --ignored --release --nocapture"]
+    fn debug_closure_dominance() {
+        const CAP: usize = 40;
+        /// BFS over the closure answering `goals`; when `dom` is set, the
+        /// up-edges apply §5.2 (≥3 unlocked stackables → only the lowest).
+        fn walk_answers(
+            ctx: &ClosureCtx,
+            goals: &[AccommodationGoal],
+            dom: bool,
+        ) -> (usize, Vec<bool>) {
+            let n = goals.len();
+            let mut answered = vec![false; n];
+            let mut pending: Vec<usize> = (0..n).collect();
+            let mut seen: std::collections::HashSet<u16> = std::collections::HashSet::new();
+            let mut queue: alloc::collections::VecDeque<(u16, usize)> =
+                alloc::collections::VecDeque::new();
+            seen.insert(ctx.root.stack);
+            queue.push_back((ctx.root.stack, 0));
+            let mut words = 0usize;
+            while let Some((word, depth)) = queue.pop_front() {
+                words += 1;
+                let w = ctx.words_at(word);
+                let mv = w.move_masks(ctx.deck_mask, ctx.first_layer);
+                pending.retain(|&gi| goals[gi].cap > depth);
+                if pending.is_empty() {
+                    break;
+                }
+                let mut opened = false;
+                for &gi in &pending {
+                    let goal = &goals[gi];
+                    let opens = match (goal.commitment, goal.kind) {
+                        (Commitment::Draw(_), OutcomeKind::Tableau) => {
+                            mv.deck_pile & goal.xmask != 0
+                        }
+                        (Commitment::Reveal(_), OutcomeKind::Tableau) => {
+                            mv.reveal & goal.xmask != 0
+                        }
+                        (Commitment::Draw(_), OutcomeKind::Stack) => {
+                            mv.deck_stack & goal.xmask != 0
+                        }
+                        (Commitment::Reveal(_), OutcomeKind::Stack) => {
+                            mv.pile_stack & goal.xmask != 0
+                        }
+                    };
+                    if opens {
+                        answered[gi] = true;
+                        opened = true;
+                    }
+                }
+                if opened {
+                    pending.retain(|&gi| !answered[gi]);
+                    if pending.is_empty() {
+                        break;
+                    }
+                }
+                if depth + 1 >= CAP {
+                    continue;
+                }
+                let mut ups = mv.pile_stack & !w.locked;
+                if dom && ups.count_ones() >= 3 {
+                    ups = ups & ups.wrapping_neg();
+                }
+                let mut edges = ups;
+                let mut is_pile = true;
+                loop {
+                    if edges == 0 {
+                        if is_pile {
+                            edges = mv.stack_pile;
+                            is_pile = false;
+                            continue;
+                        }
+                        break;
+                    }
+                    let bit = edges & edges.wrapping_neg();
+                    edges &= !bit;
+                    let c = Card::from_mask_index(u8::try_from(bit.trailing_zeros()).unwrap());
+                    let child = if is_pile {
+                        word + (1 << (4 * c.suit()))
+                    } else {
+                        word - (1 << (4 * c.suit()))
+                    };
+                    if seen.insert(child) {
+                        queue.push_back((child, depth + 1));
+                    }
+                }
+            }
+            (words, answered)
+        }
+        let (mut states, mut goals_checked, mut lost, mut raw_states, mut dom_states) =
+            (0usize, 0usize, 0usize, 0u64, 0u64);
+        let mut lost_cases: Vec<String> = Vec::new();
+        for draw_step in [1u8, 3] {
+            for i in 0..32u64 {
+                let mut game = Solitaire::new(
+                    &default_shuffle(12 + i),
+                    NonZeroU8::new(draw_step).unwrap(),
+                );
+                for _turn in 0..200 {
+                    if game.is_win() {
+                        break;
+                    }
+                    canonicalize(&mut game);
+                    let ctx = ClosureCtx::from_game(&game);
+                    let mut scratch = DirectScratch::new();
+                    let mut commitments = Vec::new();
+                    core_run(&ctx, &mut scratch, &mut commitments, false);
+                    if scratch.goals.is_empty() {
+                        // advance anyway
+                        let cands = enumerate_commitments(&game);
+                        match cands.first() {
+                            None => break,
+                            Some(c0) => {
+                                for &m in &c0.witness_path {
+                                    let _ = game.do_move(m);
+                                }
+                                continue;
+                            }
+                        }
+                    }
+                    states += 1;
+                    let (raw_words, raw_ans) = walk_answers(&ctx, &scratch.goals, false);
+                    let (dom_words, dom_ans) = walk_answers(&ctx, &scratch.goals, true);
+                    raw_states += raw_words as u64;
+                    dom_states += dom_words as u64;
+                    for gi in 0..scratch.goals.len() {
+                        goals_checked += 1;
+                        if raw_ans[gi] && !dom_ans[gi] {
+                            lost += 1;
+                            if lost_cases.len() < 5 {
+                                lost_cases.push(format!(
+                                    "seed={} draw={draw_step} turn={_turn} goal={:?} {:?}",
+                                    12 + i,
+                                    scratch.goals[gi].commitment,
+                                    scratch.goals[gi].kind
+                                ));
+                            }
+                        }
+                    }
+                    // advance by the oracle's first witness path
+                    let cands = enumerate_commitments(&game);
+                    match cands.first() {
+                        None => break,
+                        Some(c0) => {
+                            for &m in &c0.witness_path {
+                                let _ = game.do_move(m);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        println!(
+            "closure 5.2-dominance: {states} states, {goals_checked} goals; lost openings = {lost}; closure words raw={raw_states} dom={dom_states} ({:.1}% cut)",
+            100.0 * (1.0 - dom_states as f64 / raw_states as f64)
+        );
+        for c in &lost_cases {
+            println!("  LOST {c}");
+        }
+    }
+
     /// The word pipeline against move replay, state by state:
     /// `canonicalize` must land exactly where the per-card `do_move` sweep
     /// does (including ambiguous-twin picks), and `post_state` must equal

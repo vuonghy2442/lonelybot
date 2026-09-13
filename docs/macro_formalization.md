@@ -789,6 +789,28 @@ path (probe `debug_crease_grammar`, seeds 12..43 × draws {1, 3}):
   which is the guarded-counter system's fundamental cycle and the proof
   that no single-word probe (canonical representative) can replace the
   closure walk: the opening exists only at the interior word.
+- The interval-abstraction question (probe `debug_closure_shape`, 2,310
+  corpus states): 53.7% of closures are exactly their componentwise
+  bounding box — but those are the trivial ones (median size 3, 31.7%
+  volume-1), while **98.1% of the total walk cost is carried by the
+  holey closures** (p10 completeness 0.333, sizes to 2,956). The
+  reachable set of the diagonal core is a *staircase*, not a box: range
+  arithmetic is exact exactly where it does not matter and too loose
+  where it does. This is the measured form of "no closed form below
+  the fixpoint on the diagonal".
+- The dominance-port question (probe `debug_closure_dominance`, §5.2
+  lifted into the walker: ≥3 unlocked stackables → only the lowest):
+  opening-preserving (0 lost openings on 9,299 goals over 1,962 states —
+  edge-filtering explores a subset, and the subset still reaches every
+  opening) but **0.0% closure-size cut** (22,353 → 22,352 words). The
+  mechanism: the closure is already self-pruned — the root is swept
+  (§5.1 at board level), and the `sm`-prefix gives each suit exactly one
+  re-stackable card at a time (a deeper worry-back kills the previous
+  one's stackability), so up-edges are ≤1 per suit and the ≥3
+  precondition of §5.2 essentially never materializes inside the
+  closure. The engine's dominances prune redundancies the full game's
+  reveals and draws create; the swept-root closure never has them.
+  Recorded so the port is not re-proposed.
 
 ### 8.5 The kill lemmas — the necessary fragment [~; Lean candidates]
 
@@ -830,6 +852,22 @@ the mid-game search path the effect is ~0.1% (the DFS refutation
 thicket does not reach these states); the kill pays on deep and
 near-win games. Falsifier run green: 24,779 killed (K4's +45), 0
 wrongly killed; differential and both verdict sweeps green.
+
+**K5 (tableau goals on any king, saturated boards — shipped 2026-09).**
+The general king clause: the empty-pile gate reads
+`extended = vis & (locked | KING)` with `count_ones() < N_PILES`, and
+inside the closure the `vis ∩ locked` part — the locked surfaces — is
+exactly invariant (a locked card never stacks, that is a reveal
+commitment, and no other closure move removes a visible card; buried
+cards never surface). With all `N_PILES` piles still carrying a locked
+surface, the count is pinned ≥ N_PILES at every closure word (the
+free-king and worry-back terms only add), so the gate never opens and
+*every* king tableau goal — deck or locked, first-layer or not — is
+dead without the walk. Every root qualifies (this is the early-game
+mass). Falsifier: 25,684 of 29,781 would-be goals killed (86%), 0
+wrongly killed; search-path miss reduction ~0.7% on the standard corpus
+(the mass lives in early boards the deep refutations leave quickly).
+Free (one popcount) — shipped on the same gates as K4.
 
 Both ship as `goal_dead` (`src/macro_game.rs`) with the direct falsifier
 `goal_kills_are_sound`: for every corpus state, every killed goal is run
