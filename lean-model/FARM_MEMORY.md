@@ -1309,3 +1309,19 @@ otMem_take_of_get (noDup pile),
   vis_base_of_notLocked first (Dominance's copy is citable? NO —
   Dominance imports Theorems. Move the trichotomy UPSTREAM (to Board or
   State) when taking the crux.)
+
+
+## Theorems.lean SPLIT (2026-09-13) — Relabel + Commutation + facade
+
+- Theorems.lean 4648 -> 1245 lines; NEW Klondike/Relabel.lean (1055, sec 1,
+  imports Move only) + Klondike/Commutation.lean (2372, sec 3, imports Move +
+  Relabel — cites state_ext/decide_congr/findFirst_congr). Facade keeps sec 2/4/5 +
+  imports all three. Zero proof edits; census 29 UNCHANGED (Theorems 1 =
+  solvable_of_pileStack); full lake build Klondike green; lake env lean exit 0
+  on all three + Progress. Marker-based cuts at the five /-! ## N. headers.
+- DEVIATION (recorded): Move.consumesStock moved from sec 2 into Commutation.lean
+  (before deal_commutes_nonStock, its first citer) — all 15 in-file uses are sec 3,
+  zero sec 2 users. isAccommodation/isCommit stay (sec 2 only).
+- TRAP AGAIN: ad-hoc PowerShell output WITHOUT [Console]::OutputEncoding =
+  [Text.Encoding]::UTF8 shows mangled Unicode (⟨ -> ?, — -> -) — files were FINE;
+  always set it before eyeballing content, or trust the read tool.
