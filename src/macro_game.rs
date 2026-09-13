@@ -1470,8 +1470,8 @@ fn steps(ms: &[Move]) -> ArrayVec<Move, 42> {
 ///   spreads the receiver type to X's bit): the type needs a visible
 ///   member at the opening state — root-visible or worried back from the
 ///   root foundation. Neither twin qualifying kills the goal. Kings only
-///   open through the empty-pile gate, which has no receiver — no kill,
-///   with one exception:
+///   open through the empty-pile gate, which has no receiver — no
+///   receiver-side kill, but two conjunct-side ones:
 /// * **K4 (tableau goal on a first-layer king, Reveal commitments).** A
 ///   Reveal commitment's tableau goal opens only through the reveal
 ///   mask, whose `!(first_layer & KING_MASK)` conjunct permanently
@@ -1486,6 +1486,16 @@ fn steps(ms: &[Move]) -> ArrayVec<Move, 42> {
 ///   `debug_crease_cases`): 3% of missed goals but 17.3% of the miss
 ///   cost — the lone-king endgame boards carry the corpus's largest
 ///   closures (2.2k–2.8k states).
+/// * **K5 (tableau goal on any king, saturated boards).** The empty-pile
+///   gate reads `extended = vis & (locked | KING)` with `count_ones() <
+///   N_PILES`; inside the closure the `vis ∩ locked` part — the locked
+///   surfaces — is exactly invariant (a locked card never stacks, that
+///   is a reveal commitment, and no other closure move removes a visible
+///   card). When all N_PILES piles still carry a locked surface, the
+///   count is pinned ≥ N_PILES at every closure word (the free-king and
+///   worry-back terms only add), so the gate never opens and every king
+///   tableau goal — deck or locked, first-layer or not — is dead without
+///   the walk. Every root qualifies; this is the early-game mass.
 ///
 /// A killed goal provably has no BFS answer, so skipping it changes no
 /// successor in either mode — pure search cost. Gates:
@@ -1517,7 +1527,19 @@ fn goal_dead(ctx: &ClosureCtx, commitment: Commitment, kind: OutcomeKind) -> boo
                 }
             }
             if x.rank() == crate::card::KING_RANK {
-                return false;
+                // K5: kings park only through the empty-pile gate, which
+                // reads `extended = vis & (locked | KING)` with count <
+                // N_PILES. Inside the closure `vis ∩ locked` — the set of
+                // locked surfaces — is exactly invariant: a locked card
+                // never stacks (that is a reveal commitment), no other
+                // closure move removes a visible card, and buried cards
+                // never surface. The free-king and worry-back terms of the
+                // count are non-negative, so with all N_PILES piles still
+                // carrying a locked surface the count is pinned ≥ N_PILES
+                // at every closure word — the gate never opens, and every
+                // king tableau goal (deck or locked, any pile shape) is
+                // dead without the walk.
+                return (ctx.root.vis & ctx.root.locked).count_ones() >= u32::from(N_PILES);
             }
             let r = x.rank() + 1;
             let s = x.suit();
@@ -2477,6 +2499,150 @@ mod tests {
         println!(
             "K4 candidate (first-layer-king Reveal tableau goals, all kinds counted): {k4_count} of {dead_count} missed goals, carrying {k4_closure} of {dead_closure} closure states ({:4.1}% of miss cost)",
             100.0 * k4_closure as f64 / dead_closure.max(1) as f64
+        );
+    }
+
+    /// The closure-shape question — can the reversible structure be tamed
+    /// by interval arithmetic? For every corpus state, walk the FULL
+    /// closure (no cap), compute the per-suit height ranges, and measure
+    /// *box-completeness*: |closure| / Π(max_i − min_i + 1). A completeness
+    /// of 1 means the reachable set is exactly its componentwise bounding
+    /// box — the walk is then replaceable by 8 threshold numbers plus
+    /// goal-box intersection tests (the K6 kill family); holes mean the
+    /// diagonal core genuinely forbids the abstraction.
+    #[test]
+    #[ignore = "closure shape probe; run with --ignored --release --nocapture"]
+    fn debug_closure_shape() {
+        fn closure_words(ctx: &ClosureCtx) -> Vec<u16> {
+            let mut seen: std::collections::HashSet<u16> = std::collections::HashSet::new();
+            let mut queue: alloc::collections::VecDeque<u16> =
+                alloc::collections::VecDeque::new();
+            seen.insert(ctx.root.stack);
+            queue.push_back(ctx.root.stack);
+            while let Some(word) = queue.pop_front() {
+                let w = ctx.words_at(word);
+                let mv = w.move_masks(ctx.deck_mask, ctx.first_layer);
+                let mut edges = mv.pile_stack & !w.locked;
+                let mut is_pile = true;
+                loop {
+                    if edges == 0 {
+                        if is_pile {
+                            edges = mv.stack_pile;
+                            is_pile = false;
+                            continue;
+                        }
+                        break;
+                    }
+                    let bit = edges & edges.wrapping_neg();
+                    edges &= !bit;
+                    let c = Card::from_mask_index(u8::try_from(bit.trailing_zeros()).unwrap());
+                    let child = if is_pile {
+                        word + (1 << (4 * c.suit()))
+                    } else {
+                        word - (1 << (4 * c.suit()))
+                    };
+                    if seen.insert(child) {
+                        queue.push_back(child);
+                    }
+                }
+            }
+            seen.into_iter().collect()
+        }
+        let (mut states, mut exact, mut near, mut boxes_of_1) =
+            (0usize, 0usize, 0usize, 0usize);
+        let mut sizes: Vec<usize> = Vec::new();
+        let mut completeness: Vec<f64> = Vec::new();
+        // miss-cost weighting: closure states walked, by whether the
+        // closure is exactly a box
+        let (mut walk_in_exact, mut walk_in_holey) = (0u64, 0u64);
+        for draw_step in [1u8, 3] {
+            for i in 0..32u64 {
+                let mut game = Solitaire::new(
+                    &default_shuffle(12 + i),
+                    NonZeroU8::new(draw_step).unwrap(),
+                );
+                for _turn in 0..200 {
+                    if game.is_win() {
+                        break;
+                    }
+                    canonicalize(&mut game);
+                    let ctx = ClosureCtx::from_game(&game);
+                    let words = closure_words(&ctx);
+                    let n = words.len();
+                    let mut mins = [u8::MAX; 4];
+                    let mut maxs = [0u8; 4];
+                    for &w in &words {
+                        for s in 0..4u16 {
+                            let h = ((w >> (4 * s)) & 0xF) as u8;
+                            mins[s as usize] = mins[s as usize].min(h);
+                            maxs[s as usize] = maxs[s as usize].max(h);
+                        }
+                    }
+                    let mut volume = 1usize;
+                    for s in 0..4 {
+                        if maxs[s] >= mins[s] {
+                            volume *= usize::from(maxs[s] - mins[s] + 1);
+                        }
+                    }
+                    let comp = n as f64 / volume as f64;
+                    states += 1;
+                    sizes.push(n);
+                    completeness.push(comp);
+                    if comp >= 1.0 {
+                        exact += 1;
+                        walk_in_exact += n as u64;
+                    } else if comp >= 0.95 {
+                        near += 1;
+                        walk_in_holey += n as u64;
+                    } else {
+                        walk_in_holey += n as u64;
+                    }
+                    if volume == 1 {
+                        boxes_of_1 += 1;
+                    }
+                    // advance by the oracle's first witness path
+                    let cands = enumerate_commitments(&game);
+                    match cands.first() {
+                        None => break,
+                        Some(c0) => {
+                            for &m in &c0.witness_path {
+                                let _ = game.do_move(m);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        sizes.sort_unstable();
+        completeness.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let pct = |x: usize| 100.0 * x as f64 / states as f64;
+        println!("closure shape over {states} corpus states:");
+        println!(
+            "  sizes: min={} p50={} p90={} max={}",
+            sizes[0],
+            sizes[sizes.len() / 2],
+            sizes[sizes.len() * 9 / 10],
+            sizes[sizes.len() - 1]
+        );
+        println!(
+            "  box-completeness: exact={} ({:.1}%) near(>=0.95)={} ({:.1}%) p50={:.3} p10={:.3}",
+            exact,
+            pct(exact),
+            near,
+            pct(near),
+            completeness[completeness.len() / 2],
+            completeness[completeness.len() / 10]
+        );
+        println!(
+            "  trivial boxes (volume 1): {} ({:.1}%) — the walk is already free there",
+            boxes_of_1,
+            pct(boxes_of_1)
+        );
+        println!(
+            "  walk cost: exact-box closures carry {} states, holey carry {} ({:.1}% of walk cost is exact)",
+            walk_in_exact,
+            walk_in_holey,
+            100.0 * walk_in_exact as f64 / (walk_in_exact + walk_in_holey) as f64
         );
     }
 
