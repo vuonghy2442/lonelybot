@@ -68,6 +68,13 @@ impl Deck {
         (self.mask & v != 0, (self.mask & (v - 1)).count_ones() as u8)
     }
 
+    /// The card's bit in the live-position mask (the `v` of
+    /// `find_card`), for successor-encode computation without applying.
+    #[must_use]
+    pub(crate) const fn position_bit(&self, card: Card) -> u32 {
+        1u32 << self.map[card.mask_index() as usize]
+    }
+
     #[must_use]
     pub fn waste_iter(&self) -> impl DoubleEndedIterator<Item = Card> + ExactSizeIterator + '_ {
         self.deck[..self.draw_cur as usize].iter().copied()

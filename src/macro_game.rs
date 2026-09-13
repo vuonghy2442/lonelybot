@@ -1014,7 +1014,7 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         }
         let step = s.get_deck().draw_step().get();
         if step == 1 {
-            return rec_go(s, tp, scratch, hook);
+            return rec_go(s, tp, scratch, hook, enc);
         }
         let off = s.get_deck().get_offset();
         let n = s.get_deck().len();
@@ -1026,7 +1026,7 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
                 perf_probe::bump_reg();
                 return false;
             }
-            rec_go(s, tp, scratch, hook)
+            rec_go(s, tp, scratch, hook, enc)
         } else {
             let key = sans | u64::from(off % step);
             if scratch.offset_registry.get(&key).is_some_and(|&m| m <= off) {
@@ -1034,7 +1034,7 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
                 perf_probe::bump_reg();
                 return false;
             }
-            let res = rec_go(s, tp, scratch, hook);
+            let res = rec_go(s, tp, scratch, hook, enc);
             if !res {
                 scratch
                     .offset_registry
@@ -1056,6 +1056,7 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         tp: &mut TpTable,
         scratch: &mut DirectScratch,
         hook: &mut Option<&mut dyn FnMut(&Solitaire)>,
+        enc: Encode,
     ) -> bool {
         let ctx = ClosureCtx::from_game(s);
 
@@ -1082,6 +1083,11 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
             );
             let steps = [Move::PileStack(x)];
             let (vis, stack) = post_words(s, &ctx, &steps);
+            // TP pre-probe: on a hit the sole successor contributes
+            // false — exactly what the recursive call would return
+            if tp.contains(&successor_encode(s, steps[0], stack, enc)) {
+                return false;
+            }
             let old = (s.get_visible_mask(), s.get_stack().encode());
             let (_, (undo, _)) = s.do_move(steps[0]);
             s.set_board(vis, stack);
@@ -1150,8 +1156,14 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
             #[cfg(test)]
             perf_probe::bump_sel(_ch.ends_with("bfs"));
             let (vis, stack) = post_words(s, &ctx, steps);
-            let old = (s.get_visible_mask(), s.get_stack().encode());
             let commit = *steps.last().expect("every channel ends in a commit");
+            // TP pre-probe: compute the successor's encode without
+            // applying — on a hit (75% of branches on the hard
+            // refutations) the apply/undo pair is dead work
+            if tp.contains(&successor_encode(s, commit, stack, enc)) {
+                continue;
+            }
+            let old = (s.get_visible_mask(), s.get_stack().encode());
             let (_, (undo, _)) = s.do_move(commit);
             s.set_board(vis, stack);
             let child_win = rec(s, tp, scratch, hook);
@@ -1455,6 +1467,57 @@ fn reveal_words(w: &mut Words, g: &Solitaire, c: Card) {
     w.locked &= !c.mask();
     if let Some(r) = peek_under_pile(g, c) {
         w.vis |= r.mask();
+    }
+}
+
+/// The per-pile weights of the hidden encode's positional fold: the
+/// encode is `Σ n_hidden[i] · Π_{j<i}(j+2)`, so a pile count decrement
+/// (a reveal commit) is a subtraction of one weight — O(1) instead of
+/// the fold.
+const HIDDEN_WEIGHT: [u16; 7] = [1, 2, 6, 24, 120, 720, 5040];
+
+/// The successor's full encode, computed WITHOUT applying the commit:
+/// the swept stack word from `post_words`, the hidden word as the
+/// parent's minus the reveal's pile-weight delta, and the deck word as
+/// the parent's with the drawn card's position-bit cleared and the
+/// offset set to the drawn position (with `is_pure` normalization —
+/// `normalized_offset`'s rule, post-draw: the new length when the
+/// position is aligned or is the last).  The TP pre-probe's key: on a
+/// hit, the whole apply/undo pair is dead work — the branch
+/// contributes `false` exactly as the recursive `rec` on the TP-hit
+/// state would (win states never enter the table — `rec` returns
+/// before inserting them — and no macro-game cycle can put an
+/// in-progress state on the hit path, commitments being irreversible).
+fn successor_encode(s: &Solitaire, commit: Move, stack: u16, enc: Encode) -> Encode {
+    let hidden = ((enc >> 16) & 0xFFFF) as u16;
+    let deck = (enc >> 32) as u32;
+    match commit {
+        // reveal commits (plain reveal or reveal-by-stacking): the
+        // hidden pile under `c` shrinks by one, the deck is untouched
+        Move::Reveal(c) | Move::PileStack(c) => {
+            let pos = s.get_hidden().find(c);
+            let hidden = hidden.wrapping_sub(HIDDEN_WEIGHT[usize::from(pos)]);
+            u64::from(stack) | (u64::from(hidden) << 16) | (u64::from(deck) << 32)
+        }
+        // draw commits: the deck loses the card, the offset jumps to
+        // the drawn position
+        Move::DeckPile(c) | Move::DeckStack(c) => {
+            let (_, pos) = s.get_deck().find_card(c);
+            let v = s.get_deck().position_bit(c);
+            let mask = (deck & !v) & 0xFF_FFFF;
+            let new_len = mask.count_ones();
+            let step = u8::from(s.get_deck().draw_step().get());
+            let off = if pos % step == 0 || pos == new_len as u8 {
+                new_len
+            } else {
+                u32::from(pos)
+            };
+            u64::from(stack)
+                | (u64::from(hidden) << 16)
+                | (u64::from(mask | (off << 24)) << 32)
+        }
+        // a StackPile is always a reversible shuffle step, never a commit
+        Move::StackPile(_) => unreachable!("commit moves are irreversible"),
     }
 }
 
