@@ -546,3 +546,192 @@ The statement repairs that came with it (recorded in FARM.md wave 8):
   simp lemma (`dealOnce_cards`) or a show into the def's body before defeq
   transfers; (7) heights-update slots: state the `hon` bound against the raw
   `if`-form and `rw [if_pos/if_neg] at hon` — never name the eliminated `st'`.
+
+## Progress.lean — Wave 4 COMPLETE: boundedPlay + decidable (2026-09-13)
+
+- BOTH [H] items LANDED; Progress.lean fully proven (exit 0, zero warnings).
+  ROUTE: injective mixed-radix state code (`stateEncAux`) + pigeonhole; distinct trace
+  states -> distinct codes < stateSpaceBound -> count <= bound. The 2^52 stock slot
+  REQUIRES an order invariant WF does NOT give (WF allows reordered stocks): carried
+  `traceOK` = fixed deal/drawStep + WF + `∃ p, cur = ST.stock.cards.filter p` along the
+  trace (deck moves: `removeIdx_filter_mem` + `List.filter_filter`; draw: dealOnce_cards).
+  ~20 new reusable helpers (pigeonhole_le, distinct_nat_count_le, encF+encF_inj/lt,
+  radix_peel, nest_lt, allDistinct_map, cardCode/optCode/stockBits, traceOK_step, ...).
+- QUIRKS: rcases `-` pattern FAILED ("unknown identifier" for the trailing named slot,
+  7-slot flat patterns) while a 5-slot one worked — use `_` slots. `refine Eq.trans ?_ X`
+  mis-assigns (elaboration order) — give the full `Eq.trans A B`. No `Nat.pos_pow_of_pos`
+  in core: get 0 < a^n from a digit bound by omega (a < atom => 0 < atom, linear).
+  `List.filter_cons` yields `if p x = true` — pair with if_pos/if_neg + decide_eq_true.
+  `Nat.pow_le_pow_right (0<n) (i<=j) : n^i <= n^j`. No Bool->Nat coercion for `decide`:
+  bits via `if x ∈ cur then 1 else 0`, bridged to decide-filters by case bash.
+  omega sees `[].length`/`[]` as atoms — close nil-cases with `Nat.zero_le _` /
+  `Nat.zero_lt_one` (defeq). State equality: `show State.mk f1..f6 = State.mk g1..g6`
+  (structure eta) + rw chain — `Cycle.mk.injEq.mpr` does NOT resolve (unknown constant).
+  Bool-eq contradictions: `Bool.noConfusion (hxp.symm.trans h)`. `rw [← h']` direction
+  when the equation is y = x and the goal mentions x.
+
+## Move.lean — apply_flipAll + solvable_flipAll PROVEN (2026-09-13)
+
+- The twin conjugation + its solvability corollary, exit 0, axioms
+  [propext, Quot.sound]. Reusable helper kit now in-tree:
+  Board.mapBy_{bottomOf,attach,detach,aboveOf(_go)} (fuel-induction),
+  Base.flipBase_inj, Cycle.removeIdx_map, List.contains_map_flipSuit,
+  State.flipAll_{board_topOf_inr,board_*,stock_prev,stock_removeAt,
+  stock_dealOnce,canPlace,canMoveRun,hidden,topHidden,pileOfTopHidden,
+  hiddenBase,heights_probe,bump,drop,isWin,run_flipAll}.
+- MATCH-ARM ORDER matters in show-terms: applyPilePile's inner
+  attach-match lists some BEFORE 
+one; a show with the other order
+  is a DIFFERENT matcher — not defeq. Read the def's arms first.
+- cases h : e ALSO substitutes inside dite conditions and Decidable
+  instances — never 
+w [h] after (pattern already gone); 
+w of a
+  Prop under decide fails with "motive not type correct" (the
+  instance mentions it) — case the underlying Option + 
+fl instead.
+- {...} literals inside if c then {..} else {..} do not elaborate
+  (no expected type): write Cycle.mk in show-terms. Multi-field
+  {x with a := .., b := ..} continuations must stay at ≥ the first
+  field's column (extends the sepBy1Indent rule).
+- rw under a match-arm binder works iff the pattern is closed; to
+  rewrite terms mentioning a BOUND arm-var, show-reduce the match
+  first. run-induction: 
+evert st; induction play; intro st, tail
+  arm is xact ih s'' (s''.flipAll IS the flipped successor).
+- #print axioms from a scratch importing Klondike.Move reads the
+  STALE olean (sorryAx for pre-edit decls) — temporary in-file
+  #print is the honest check; remove it afterwards.
+
+## Theorems.lean — apply_relabel + solvable_relabel PROVEN (2026-09-13)
+
+- LANDED (axiom-clean: propext+Quot.sound): the 7-arm `apply_relabel` and
+  `solvable_relabel` (← via `Relabel.inv` + `relabelBy_inv`: double relabel = id).
+  NEW IN-TREE KIT (general, reusable): `decide_congr`, `findFirst_congr`,
+  `Relabel.{card_inj, card_cardInv, suitInv_eq, cardInv_onBase, onBase_cardInv,
+  onBase_inj, inv}`, `state_ext`, `Deal.ext'`, `relabelCycle`, `relabelBoard`
+  (+`_topOf/_bottomOf/_attach/_detach`), `relabelBy_{topOf(_inr/_inl), bottomOf(_card),
+  heights, hidden, topHidden, pileOfTopHidden, hiddenBase, isVis, canPlace, canMoveRun,
+  aboveOf(_go), prev, removeAt, stock_cursor, heights_bump/_drop}`,
+  `removeIdx_map`, `contains_map`, `beq_relabel`, `aboveOf_go_succ`,
+  `relabelCycle_dealOnce`, `relabelBy_with`, `run_relabel`, `relabelBy_inv`,
+  `solvable_of_relabel`.
+- WORKHORSE: `relabelBy_with ... := rfl` — a 4-field with-update relabels
+  componentwise ({st with board/heights/depths/stock}). Every arm-assembly is:
+  guards via the transfer lemmas, then `rw [shape-eq]` normalizations, then ONE
+  `exact relabelBy_with ...` (2-field goals accepted by defeq: rst.heights =
+  fun s => st.heights (r.suitInv s), rst.board = relabelBoard r st.board — both rfl).
+- SYNTAX (prover-confirmed): (1) `cases hst : st.apply m` SUBSTITUTES the goal —
+  do NOT then `rw [hst]` (fails; the goal already reads `... = Option.map f none`).
+  (2) `some (X).f r` parses as the 3-app `(some (X).f) r` ("Function expected at
+  some") — write `some ((X).f r)`. (3) ascribed-record show-start
+  `show ({...} : T) = ...` does NOT parse — instead `rw [show A = {record} from rfl]`
+  (A's type fixes the record's type). (4) rw auto-rfl is reducible-only: it does
+  NOT close `(none).map f = none` (append `rfl`) but DOES close if-branch records.
+  (5) DOT-TRAP: `r.cardInv_card r x` elaborates to `Relabel.cardInv_card r r x`
+  (dot PREPENDS r) — write `r.cardInv_card x`. (6) `attach_eq_some_iff` is an iff:
+  `.mp`/`.mpr`, not application.
+- Bool/== facts: `List.contains` is reducible (= `List.elem`); `contains_cons`:
+  `(a :: l).contains b = (b == a || ...)` — SEARCHED-arg LEFT. `(a == a) = true`
+  := `decide_eq_true rfl`; `of_decide_eq_true` accepts `==`-hypotheses directly;
+  card-beq transfer via `by_cases` + `card_inj`, not LawfulBEq lemmas.
+- ARM PATTERN (all 7): `show` unfold Move.relabel; `cases hst : st.apply m`;
+  none-arm: `cases hR : rst.apply (m')`; exfalso; backward-transfer each guard
+  (B1/B2 + `Option.map_eq_none_iff`; attach via `attach_eq_some_iff.mp`);
+  `apply_X_iff.mpr ⟨guards, rfl⟩` contradicts hst. some-arm: `rw [apply_X_iff] at
+  hst`; obtain; `show ... = some (st'.relabelBy r)`; `rw [apply_X_iff]`;
+  `refine ⟨guards..., ?_⟩`; shape via relabelBy_with.
+## Realizability.lean — uncovered_eq_freeType PROVEN; file fully proven (2026-09-13)
+
+- ROUTE: present = free + covered (filter_split_add, induction); covered = placed
+  via length_eq_of_bijection (NEW reusable master lemma: two NoDupP lists with
+  mutual inverse maps f/g have equal lengths — peel head from the other's middle,
+  NoDup kept by nodupP_remove/nodupP_sub). NoDupP is a NEW head-style def bridged
+  from noDupCards via noDupCards_NoDupP (mem_index + getElem?_eq_some_iff);
+  universe_noDup is a local decide-copy (Initial is downstream, unimportable).
+- canSitOn_belowType (reusable): canSitOn c d = true -> belowType d.typeOf =
+  some c.typeOf (rank_pred_iff + color_ne_flip + Rank.toIdx_inj).
+- SYNTAX TRAP (big): 'a && b = true' elaborates to 'a && decide (b = true)' : Bool
+  (&&'s right operand GREEDILY absorbs = ...; the Bool is then Prop-coerced) —
+  ALWAYS parenthesize (a && b) = true. Hit hinner; error display shows the
+  decide-wrap. Also && is LEFT-associative (A && B && C = (A && B) && C — freeType's
+  body composes directly with the filter-split lemma).
+- BINDER-TRAP ESCAPE #2: a goal holding (fun c => match bd.topOf (Sum.inr c) ...)
+  x cannot be rw'd (pattern under binder). simp only [hT] BETA-reduces the
+  application, rewrites, AND iota-reduces the ctor-headed match (probed: works in
+  simp only too) - then plain rw [hbe] closes the exposed form.
+- canSitOn_eq takes EXPLICIT (c b) args: (canSitOn_eq c d).mp h (bare
+  canSitOn_eq.mp is unknown — theorem, not iff-constant). rank_pred_iff: from
+  toIdx-eq use .MPR (mp wants pred = some).
+- NAME COLLISION: mem_split now exists in the import chain (the new Move/
+  Progress work) — mine is mem_middle_split. Grep before adding generic names.
+- Aces: belowType t = none kills covered cards via hleg -> canSitOn (rank
+  contradiction), so placedBelow = 0 = covered — no separate machinery needed.
+
+## Macro.lean — commitApplies repair (UNSOUNDNESS, def-level, sign-off pending) (2026-09-13)
+
+- `macroStep_engine_play` was FALSE as staged: `State.applyDrawTo`'s guard is
+  reachablePos + `Board.attach` (freeness/unplaced) — NO `canPlace` — so the macro
+  game admitted Draw-commitment landings no play (engine or not) can produce: every
+  edge-creating move (deckPile/stackPile/pilePile) demands canPlace, whose canSitOn/king
+  half is pure and state-independent; reveal attaches only hidden deal cards.
+  Prover-confirmed witness (Temp\opencode\MacroWitness.lean): ♠7 pile-0 sole visible
+  card, ♥5 last stock card at pass-end cursor, b = inr ♠7 — applyDrawTo succeeds
+  (edge ♥5→♠7 exists in the successor), canPlace false, all 7 other moves illegal.
+- REPAIR (in Macro.lean only): `commitApplies`'s tableau disjunct gained
+  `st.canPlace c b = true` (stack landing needs none — its rank guard is already in
+  applyDrawStackTo). No downstream users (nobody imports Klondike.Macro).
+- WAVE 9 ALERT: `applyDrawTo_eq_dealPlay` (Theorems.lean) has the SAME hole — its →
+  direction needs a canPlace hypothesis (deckPile demands it); same witness kills it.
+
+## Macro.lean — Wave 7 both items PROVEN + the dealN kit (2026-09-13)
+
+- `macroStep_engine_play`: accommodation play ++ `replicate k draw` ++ deck move; k from
+  the orbit. `drawTo_tableau_outcomes_agree`: same i (guard b-free), five rfl's, isVis via
+  `bottomOf_attach_of_ne` (attach preserves other cards' bottomOf) + bottomOf_eq for c.
+- NEW REUSABLES (all in Macro.lean): `Cycle.dealN` (deal iteration — core 4.30 has NO
+  Function.iterate) + dealN_zero/succ/one/add/shift; `maskPos_deal_reach`: every
+  accessible position is dealt to (dealN lands cursor i+1) — the WITNESS half of
+  applyDrawTo_eq_dealPlay with NO WF/hcur (posOf's range bound suffices; the lane bound
+  and wrapped-lane truncation are never read in this direction); `reachablePos_eq_some_iff`,
+  `applyDrawTo_iff`, `applyDrawStackTo_iff`, `posOf_getElem?`, `findFirstIdx_getElem?`,
+  `run_singleton`, `run_replicate_draw`, `deckPile_after_draws`/`deckStack_after_draws`
+  (deals + deck move = applyDrawTo's successor: one show + `rw [e1, e2, e3]`).
+- QUIRKS: (1) bodies of `theorem Cycle.foo` resolve bare `Cycle.*` names, TOP-LEVEL
+  theorem bodies do NOT — qualify; (2) omega does NOT unify `⟨l,c⟩.cards.length` with
+  `l.length` — defeq-cast `have hlt : i < l.length := hlt` first; (3) `0 * s` does NOT
+  whnf (Nat.mul recurses on arg 2) — `rw [Nat.zero_mul, Nat.add_zero]`; (4) `cases h : e`
+  substitutes the GOAL's e — iff-forward conjunct slots become `rfl` (watch the error);
+  (5) `rw [dealN_add, dealN_add]` chains fire on the FIRST +-term in traversal order —
+  nested sums mis-fire, compose via explicit `have hcomp` steps; (6) List.mem_replicate
+  is `(n ≠ 0 ∧ m = a)`; (7) `{⟨l,c⟩ with cursor := 0}` fails to elaborate in shows —
+  use branch-ascribed anonymous constructors `⟨l, 0⟩ : Cycle Card` (defeq carries the
+  with-update away).
+
+## WAVE-REPORT: the farm at 54 sorries (2026-09-13, post-consolidation-wave)
+
+- LANDED this wave: apply_relabel + solvable_relabel (Theorems, ~35
+  helpers, axiom-clean); solvable_iff_boundedPlay + solvable_decidable
+  (Progress FULLY PROVEN — Wave 4 complete); macroStep_engine_play +
+  drawTo_tableau_outcomes_agree (Macro, with a def-repair, see below);
+  uncovered_eq_freeType (Realizability FULLY PROVEN — a ~90-line
+  counting kit: `length_eq_of_bijection` + NoDupP); apply_flipAll +
+  solvable_flipAll (Move, +810 lines self-contained twin kit).
+- SIGN-OFF (orchestrator, ACCEPTED): Macro's `commitApplies` tableau
+  disjunct gained `st.canPlace c b = true` — `applyDrawTo`'s guard omits
+  canPlace (witness: ♠7 top of p0, ♥5 stock tail at pass-end, b = inr ♠7,
+  canSitOn ♥5 ♠7 = false — no engine play reaches the successor).
+  WAVE-9 ALERT: `applyDrawTo_eq_dealPlay` (Theorems) has the SAME hole
+  — its → direction needs a `canPlace c b` hypothesis; the witness
+  kills it as stated. Macro's `maskPos_deal_reach` + after-draws lemmas
+  give the ungated half.
+- BOUNDED-PLAY KEY INSIGHT: the 2^52 stock slot needs an ORDER
+  invariant — WF alone permits reordered stocks (24! > 2^52); the
+  filter-of-original-stock invariant (removeIdx_filter_mem +
+  filter_filter propagation) makes "removed subset determines the
+  stock" true for reachable states. The stateSpaceBound doc's claim
+  only holds for reachable states, not all WF states.
+- NAME-COLLISION INCIDENT (2nd): Macro's local `findFirst_congr`
+  collided with Theorems' (imported transitively) — renamed to
+  `findFirst_congr_mem`. RULE: grep ALL files for a name before
+  declaring generic-sounding helpers; prefer domain-prefixed names.
