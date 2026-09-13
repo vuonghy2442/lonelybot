@@ -1250,3 +1250,62 @@ otMem_take_of_get (noDup pile),
   reduce to the same reshape root. Landed toward it: the R-half
   (safe_pileStack_dominant_of_return), stackPile_pileStack_cancel,
   vis_base_of_notLocked (the dead-pile trichotomy).
+
+## Theorems.lean — solvable_accommodates REFUTED as staged + repaired + decomposed (2026-09-13)
+
+- REFUTED (prover-confirmed, Temp\opencode\B4Witness.lean, facts
+  axiom-clean [propext, Quot.sound]): without WF the statement is FALSE —
+  a PHANTOM TENANT (♠2 on base inr ♠K with ♠K unplaced; board_edges
+  forbids exactly this) in a WON state (junk rank-7/9 on p1..p6) makes
+  [stackPile ♠K p0] land the king under its tenant: the successor is a
+  total deadlock (only draw fires, as the identity — empty cycle
+  dealOnce is rfl-id), unsolvable.  Witness kit: `dead` (∀ m, apply m =
+  some t → t = s1) + run-induction; the canSitOn/guard facts as
+  List.all-decide over the cast lists; stW_not_wf via founds_gone.
+- REPAIR (per protocol, no downstream users): `+ (hwf : st.WF)`.
+- LANDED (exit 0, ONE census sorry): the full decomposition —
+  `stackPile_pileStack_return` (Dominance's cancel, restated upstream),
+  `solvable_of_stackPile` (the worry-back half PROVEN: return + prepend),
+  `solvable_of_pileStack` (THE crux, the file's only sorry, plan note
+  in-source: delete/commute/park (catch-22: parks are transient — the
+  rung card must top)/excursion cases + the return-base endgame),
+  `solvable_of_accomm_step` + `solvable_accommodates_aux` (the induction
+  skeleton; WF carried by apply_wf) and the repaired main (clean —
+  in-file citation of the sorry'd crux does NOT propagate the warning,
+  re-verified).
+- OBSTACLE for the R/N staging: `State.isLocked` is defined in
+  Dominance (downstream) — the R-half's visibility piece
+  (vis_base_of_notLocked) cannot be cited here; lift both first
+  (re-proving Bridge's bottomOf_detach_self on the way).
+- SYNTAX paid: (1) `∀ st, st.WF → …` in a STATEMENT fails (dot needs the
+  type): `∀ (st : State)`. (2) `cases m` inside a `have … := by` block
+  eliminates m from the SHARED context — factor case-bashes into a
+  standalone lemma. (3) `cases hm : e` never rewrites hypotheses —
+  `rw [hm] at h` before the defeq-cast. (4) state-def unfolding in simp:
+  the STATE name (s1W) itself must be in the list. (5) `(!b) = true` →
+  `b = false`: `simp only [Bool.not_eq_true']`. (6) `List.all_eq_true`
+  is all-implicit: `List.all_eq_true.mp h c hc`. (7) `set_option
+  linter.unusedVariables false in` must PRECEDE the doc-comment (doc +
+  set_option + decl does not parse); keep `:= sorry` (not a bare
+  `sorry`) so the orchestrator's `':= sorry'` census counts it. (8) Bool
+  contradictions h1 : X = true vs h2 : X = false: `rw [h2] at h1; exact
+  Bool.noConfusion h1` — not .trans orientation games. (9) Eq.trans
+  chains: mind which side is fixed — (X = false).symm.trans h2 : false
+  = true.
+
+## WAVE-10 ADJUDICATION (orchestrator, accepted): solvable_accommodates + hwf
+
+- The phantom-tenant witness (♠2 on unplaced ♠K — board_edges forbids it;
+  the WON state accommodating to total deadlock) confirms: B4 needs WF.
+  Repair accepted: `+ (hwf : st.WF)`, conclusion unchanged.
+- THE DECOMPOSITION (the farm's hardest item, now atomic):
+  solvable_of_stackPile (worry-back) PROVEN; solvable_of_pileStack = THE
+  CRUX (delete/commute/park/excursion/endgame analysis in-source; the
+  endgame IS Dominance's return-base N-half); the induction skeleton
+  (solvable_of_accomm_step + aux, WF carried by apply_wf) PROVED; the
+  main theorem proved against the crux. The whole farm's residue now
+  flows through one lemma.
+- NOTE for the crux-taker: State.isLocked is downstream — lift
+  vis_base_of_notLocked first (Dominance's copy is citable? NO —
+  Dominance imports Theorems. Move the trichotomy UPSTREAM (to Board or
+  State) when taking the crux.)

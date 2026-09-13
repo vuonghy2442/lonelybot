@@ -1235,21 +1235,203 @@ theorem solvable_of_accommodates {st st' : State}
   rw [State.run_append, hrun]
   exact hwrun
 
-/-- The accommodation reduction, hard direction — this is the reshape
-argument (B4): a winning play survives the cards having been shuffled
-through the foundations.  TODO(proof) [H], plan: induct on the
-accommodation play to reduce to ONE shuffle step (the play is all
-`pileStack`/`stackPile`).  `pileStack c`: the successor is *ahead* by
-one height — replay the winning play, routing every use of the stacked
-`c` through the foundation (the no-passing license — WF's `founds_gone`,
-contrapositive read — pins the interleaving).  `stackPile c b`: the
-successor is *behind* — the worry-back channel of
-pruning_dominance_interaction.md §4; the exchange happens at the first
-`c`-move of the winning play, where the taken-back `c` is exactly the
-foundation's top, and return-base existence is the crux (the Dominance
-ledger's gap (i)). -/
-theorem solvable_accommodates {st st' : State}
-    (hacc : accommodates st st') (hsol : st.solvableFrom) : st'.solvableFrom := sorry
+/-- The worry-back return: after a `stackPile`, the taken-back card is
+the foundation top and (WF: a foundation-passed card carries no tenant
+— `founds_gone` + `board_edges`) nothing sits on it, so `pileStack`
+takes the successor straight back.  Dominance's
+`stackPile_pileStack_cancel` restated for the upstream file (Dominance
+imports this one). -/
+theorem stackPile_pileStack_return {st : State} {c : Card} {b : Base} {s₁ : State}
+    (hwf : st.WF) (hsp : st.apply (Move.stackPile c b) = some s₁) :
+    s₁.apply (Move.pileStack c) = some st := by
+  rw [apply_stackPile_iff] at hsp
+  obtain ⟨hg, hcp, bd, hatt, hs₁⟩ := hsp
+  -- c is foundation-passed: neither visible nor hidden anywhere
+  have hlt : c.rank.toIdx < st.heights c.suit := by omega
+  obtain ⟨hvis, _, hhid⟩ := hwf.founds_gone c hlt
+  have hnc : st.board.topOf (Sum.inr c) = none := by
+    by_cases ht : st.board.topOf (Sum.inr c) = none
+    · exact ht
+    · exfalso
+      obtain ⟨y, hy⟩ : ∃ y, st.board.topOf (Sum.inr c) = some y := by
+        cases hh : st.board.topOf (Sum.inr c) with
+        | none => rw [hh] at ht; exact absurd ht (by simp)
+        | some y => exact ⟨y, rfl⟩
+      obtain ⟨_, hbase⟩ := hwf.board_edges (Sum.inr c) y hy
+      rcases hbase with ⟨_, _, _, _, hbc⟩ | ⟨hbd, _⟩
+      · rcases hbc with ⟨a', hth⟩ | hbd
+        · exact hhid a' (mem_of_getLast hth)
+        · have hiv : (st.board.bottomOf c).isSome = false := hvis
+          rw [hiv] at hbd
+          exact Bool.noConfusion hbd
+      · have hiv : (st.board.bottomOf c).isSome = false := hvis
+        rw [hiv] at hbd
+        exact Bool.noConfusion hbd
+  -- b was free (the worry-back's own guard) and is not c's seat
+  have hcpf := hcp
+  simp only [State.canPlace] at hcpf
+  have hfree : st.board.topOf b = none :=
+    of_decide_eq_true (Bool.and_eq_true_iff.mp hcpf).1
+  have hbne : Sum.inr c ≠ b := by
+    cases b with
+    | inl a => intro hcon; simp at hcon
+    | inr d =>
+        have hcp' := hcp
+        simp only [State.canPlace] at hcp'
+        obtain ⟨_, hivd⟩ := Bool.and_eq_true_iff.mp hcp'
+        obtain ⟨hivd, _⟩ := Bool.and_eq_true_iff.mp hivd
+        intro hcon
+        injection hcon with hcd
+        rw [← hcd] at hivd
+        rw [hvis] at hivd
+        exact Bool.noConfusion hivd
+  -- the re-stack at the successor
+  rw [hs₁]
+  rw [apply_pileStack_iff]
+  refine ⟨?_, b, ?_, ?_, ?_⟩
+  · show bd.topOf (Sum.inr c) = none
+    rw [Board.attach_topOf_ne _ _ _ hatt hbne]
+    exact hnc
+  · show bd.bottomOf c = some b
+    exact (Board.bottomOf_eq bd c b).mpr (Board.attach_topOf _ _ _ hatt)
+  · show c.rank.toIdx =
+      (if c.suit = c.suit then st.heights c.suit - 1 else st.heights c.suit)
+    rw [if_pos rfl]
+    omega
+  · show st = { { st with
+        board := bd,
+        heights := fun s => if s = c.suit then st.heights s - 1 else st.heights s } with
+      board := bd.detach b,
+      heights := fun s => if s = c.suit then
+        (if s = c.suit then st.heights s - 1 else st.heights s) + 1
+        else (if s = c.suit then st.heights s - 1 else st.heights s) }
+    have hbdb : bd.detach b = st.board := by
+      refine Board.ext_topOf (funext (fun b' => ?_))
+      by_cases hbb : b' = b
+      · rw [hbb, Board.detach_topOf, hfree]
+      · rw [Board.detach_topOf_ne _ _ _ hbb, Board.attach_topOf_ne _ _ _ hatt hbb]
+    have hhh : (fun s => if s = c.suit then
+        (if s = c.suit then st.heights s - 1 else st.heights s) + 1
+        else (if s = c.suit then st.heights s - 1 else st.heights s)) = st.heights := by
+      funext s
+      by_cases hsc : s = c.suit
+      · subst hsc
+        rw [if_pos rfl, if_pos rfl]
+        omega
+      · rw [if_neg hsc, if_neg hsc]
+    exact state_ext rfl hbdb.symm hhh.symm rfl rfl rfl
+
+/-- The worry-back half of the accommodation step: a legal `stackPile`
+never hurts — `pileStack` takes the successor straight back (nothing
+sits on a foundation-passed card), and the winning play prepends. -/
+theorem solvable_of_stackPile {st : State} {c : Card} {b : Base} {s₁ : State}
+    (hwf : st.WF) (hm : st.apply (Move.stackPile c b) = some s₁)
+    (hsol : st.solvableFrom) : s₁.solvableFrom := by
+  obtain ⟨win, w, hwrun, hwin⟩ := hsol
+  refine ⟨Move.pileStack c :: win, w, ?_, hwin⟩
+  show (match s₁.apply (Move.pileStack c) with
+    | some st' => st'.run win
+    | none => none) = some w
+  rw [stackPile_pileStack_return hwf hm]
+  exact hwrun
+
+set_option linter.unusedVariables false in
+/-- The stack half of the accommodation step — the isolated B4 reshape
+crux (this file's only `sorry`): a legal `pileStack` never hurts
+solvability.  Together with `solvable_of_stackPile` this is the whole
+content of the hard direction; the play-level lifting below is proved.
+TODO(proof) [H].  PLAN (verify, don't trust; the wave-8 sketch stands,
+with one correction — the worry-back half is DONE above):
+
+Induct on the winning play π from `st`, splitting on π's first move.
+* `pileStack c` itself — delete it: `s₁` runs π's tail directly.
+* Moves commuting with the `c`-difference — replay and induct: no move
+  of π can seat at `c`'s base `b` while `c` occupies it, and the
+  blindness kit covers the components `c` does not touch.
+* Moves seating ON `c` (`deckPile`/`stackPile`/`pilePile` x `(inr c)`)
+  — the park.  KEY STRUCTURE (the catch-22 that makes the reshape
+  work): every park is transient — `c`'s suit must pass rung
+  `toIdx c` before winning, the rung card is `c` itself, and a stacked
+  `c` admits no tenant, so the parked `x` leaves before the rung
+  passes; `x`'s exit is its own `pileStack` (rung-gated but
+  `c`-suit-independent — fires equally from `s₁`) or a reseat on a
+  rank-mate; delay the rung past the park and the delete-strategy
+  applies from the other side.
+* `stackPile` of `c`'s suit at the shifted rung `toIdx c - 1` — the
+  excursion pair (net identity): replay at the shifted height.
+  (`deckStack` of a phantom stock copy of `c` is excluded by
+  `vis_off_cycle`.)
+
+The endgame is the return-base crux: when `c`'s base was
+deal-adjacent, `canReturnBase` fails and the worry-back lands on a
+rank-mate instead — the Dominance ledger's N-half, the same root.  The
+returnable half needs `pileStack_stackPile_roundtrip` plus the guard
+bundle, whose visibility piece (`vis_base_of_notLocked`) currently
+lives downstream in Dominance — lift it here first (re-proving
+`bottomOf_detach_self` from Bridge on the way). -/
+theorem solvable_of_pileStack {st : State} (hwf : st.WF) {c : Card} {s₁ : State}
+    (hm : st.apply (Move.pileStack c) = some s₁) (hsol : st.solvableFrom) :
+    s₁.solvableFrom := sorry
+
+/-- The one-step core: an accommodation move that succeeds preserves
+solvability — dispatch to the two halves. -/
+theorem solvable_of_accomm_step {st : State} {m : Move} {s₂ : State}
+    (hwf : st.WF) (hm : st.apply m = some s₂) (hsol : st.solvableFrom)
+    (hmacc : m.isAccommodation = true) : s₂.solvableFrom := by
+  cases m with
+  | pileStack c => exact solvable_of_pileStack hwf hm hsol
+  | stackPile c b => exact solvable_of_stackPile hwf hm hsol
+  | draw | reveal _ | deckPile _ _ | deckStack _ | pilePile _ _ =>
+      exact absurd hmacc (by simp [Move.isAccommodation])
+
+/-- The accommodation reduction, hard direction — the reshape lemma
+(B4): a winning play survives the cards having been shuffled through
+the foundations.
+
+STATEMENT REPAIRED (2026-09-13): as staged (no WF hypothesis) it was
+FALSE — prover-confirmed witness `Temp/opencode/B4Witness.lean`
+(axiom-clean facts): a WON state with a *phantom tenant* (♠2 seated on
+base `inr ♠K` while ♠K is unplaced — exactly what WF's `board_edges`
+forbids) and junk occupying every anchor but p0; the accommodation
+`[stackPile ♠K p0]` seats the king under its tenant, and the successor
+is a total deadlock (only `draw` fires, as the identity) — ♠K can never
+re-stack, so it is unsolvable while the source is already won.  Repair:
+add `(hwf : st.WF)` — the design docs' invariant, preserved by the
+accommodation moves themselves (`apply_wf`).  No downstream users of
+the old statement existed.
+
+The proof decomposes over the accommodation play (each move is a
+`pileStack` or a `stackPile`): each step preserves WF (`apply_wf`) and
+solvability (`solvable_of_accomm_step`), and the induction carries
+the winning play through the shuffle. -/
+private theorem solvable_accommodates_aux {st' : State} : ∀ (play : List Move),
+    (∀ m ∈ play, m.isAccommodation = true) → ∀ (st : State),
+    st.WF → st.solvableFrom → st.run play = some st' → st'.solvableFrom := by
+  intro play
+  induction play with
+  | nil =>
+      intro _hall st _hwf hsol hrun
+      have hst : st = st' := Option.some.inj hrun
+      subst hst
+      exact hsol
+  | cons m ms ih =>
+      intro hall st hwf hsol hrun
+      simp only [State.run] at hrun
+      cases hm : st.apply m with
+      | none =>
+          rw [hm] at hrun
+          simp at hrun
+      | some s₂ =>
+          rw [hm] at hrun
+          have hrun₂ : s₂.run ms = some st' := hrun
+          have hs₂ := solvable_of_accomm_step hwf hm hsol (hall m (by simp))
+          exact ih (fun m' hm' => hall m' (by simp [hm'])) s₂
+            (apply_wf hwf m s₂ hm) hs₂ hrun₂
+
+theorem solvable_accommodates {st st' : State} (hwf : st.WF)
+    (hacc : accommodates st st') (hsol : st.solvableFrom) : st'.solvableFrom := by
+  obtain ⟨play, hrun, hall⟩ := hacc
+  exact solvable_accommodates_aux play hall st hwf hsol hrun
 
 /-! ## 3. Commutation — C-IND and C13
 
