@@ -973,18 +973,78 @@ pub fn macro_solvable_direct_progress(g: &Solitaire, mut hook: impl FnMut(&Solit
 }
 
 fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&Solitaire)>) -> bool {
+    /// The offset-dominance registry (the pace-dominance rules R1/R2,
+    /// the 2026-09 family filed in lean-model Macro.lean): per
+    /// `(state-sans-offset-bits, residue class)`, the minimal refuted
+    /// impure offset. The soundness is the pace-dominance theorem
+    /// (`pace_dominance`): within an impure residue class the earlier
+    /// cursor accesses a superset (block-1 monotone) and a common draw
+    /// merges the lines (the successor offset is the drawn position,
+    /// parent-invariant) — so a refuted offset kills every later one
+    /// in its class (R1), and any impure refutation kills the pure
+    /// sibling (R2: the pure accessible set is contained in every
+    /// impure one). Pinned by `pace_dominance_order` (100 random decks
+    /// × all offsets) and the deck-lattice measurement: the ceiling is
+    /// 43.8% of seed-32 draw-3 states. Pure offsets need no
+    /// self-entries — the deck encode already normalizes them — so
+    /// class 0 is written only as the R2 mark and read only by pure
+    /// states; draw-1 is exempt entirely (all its offsets are pure).
+    /// Corpus-gated [~]: the falsifiers are the verdict sweeps and the
+    /// KS-shuffle sweep.
     fn rec(
         s: &mut Solitaire,
         tp: &mut TpTable,
         scratch: &mut DirectScratch,
         hook: &mut Option<&mut dyn FnMut(&Solitaire)>,
     ) -> bool {
-        if s.is_win() || !tp.insert(s.encode()) {
+        let enc = s.encode();
+        if s.is_win() || !tp.insert(enc) {
             return s.is_win();
         }
         if let Some(h) = hook {
             h(s);
         }
+        let step = s.get_deck().draw_step().get();
+        if step == 1 {
+            return rec_go(s, tp, scratch, hook);
+        }
+        let off = s.get_deck().get_offset();
+        let n = s.get_deck().len();
+        let sans = (enc & !(0x1Fu64 << 56)) << 2;
+        if off % step == 0 || off == n {
+            // pure: dominated by ANY refuted impure sibling (R2)
+            if scratch.offset_registry.contains_key(&sans) {
+                return false;
+            }
+            rec_go(s, tp, scratch, hook)
+        } else {
+            let key = sans | u64::from(off % step);
+            if scratch.offset_registry.get(&key).is_some_and(|&m| m <= off) {
+                return false;
+            }
+            let res = rec_go(s, tp, scratch, hook);
+            if !res {
+                scratch
+                    .offset_registry
+                    .entry(key)
+                    .and_modify(|m| *m = (*m).min(off))
+                    .or_insert(off);
+                // R2's mark: the pure sibling is dominated too
+                scratch
+                    .offset_registry
+                    .entry(sans)
+                    .and_modify(|m| *m = (*m).min(off))
+                    .or_insert(off);
+            }
+            res
+        }
+    }
+    fn rec_go(
+        s: &mut Solitaire,
+        tp: &mut TpTable,
+        scratch: &mut DirectScratch,
+        hook: &mut Option<&mut dyn FnMut(&Solitaire)>,
+    ) -> bool {
         let ctx = ClosureCtx::from_game(s);
 
         // forced-commitment dominance (ledger C12), hoisted above the
@@ -1139,6 +1199,11 @@ pub(crate) struct DirectScratch {
     bfs: BfsScratch,
     fold_seen: Vec<(Commitment, OutcomeKind)>,
     out: Vec<(Commitment, Solitaire)>,
+    /// the offset-dominance registry (rules R1/R2, see `rec` in
+    /// `macro_solvable_direct_impl`): key = (encode with the offset
+    /// bits masked out, shifted) | residue class — class 0 is the pure
+    /// sibling's R2 mark; value = the minimal refuted impure offset.
+    offset_registry: hashbrown::HashMap<u64, u8, crate::utils::MixHasherBuilder>,
     /// the F3 mask (dominantly stackable commitments with a stack-direct
     /// outcome), derived by `core_run` from the raw masks; the search
     /// fold reads it instead of rescanning the emitted groups.
@@ -1160,6 +1225,7 @@ impl DirectScratch {
             },
             fold_seen: Vec::new(),
             out: Vec::new(),
+            offset_registry: hashbrown::HashMap::default(),
             f3: 0,
         }
     }
