@@ -924,11 +924,32 @@ theorem Cycle.removeIdx_map {α β : Type} (f : α → β) : ∀ (l : List α) (
           show f a :: Cycle.removeIdx (t.map f) n = f a :: (Cycle.removeIdx t n).map f
           rw [ih n]
 
+/-- The easy leg of the restriction: every engine play is a physical
+play (`isEngine` is a move subset). -/
+theorem solvable_of_engine {st : State} (h : st.solvableEngine) : st.solvableFrom := by
+  obtain ⟨play, heng, st', hrun, hwin⟩ := h
+  exact ⟨play, st', hrun, hwin⟩
+
 /-- **The no-pile-to-pile restriction (ledger B-legs)**: on
 well-formed states, the full physical game and the engine's restricted
-move set have the same solvability.  TODO: the compression/reshape
-arguments of no_pile_to_pile.md — now a statement about a move subset
-of ONE model, not a correspondence between two formalizations. -/
+move set have the same solvability.
+
+REFUTED AS STATED (2026-09-13, prover-confirmed, axiom-clean — witness
+`engine_iff_refuted` in `Temp\opencode\EngineWitness.lean`): the →
+direction is FALSE.  The `pileStack∘stackPile` detour only relocates a
+card that is *bare* (`topOf (inr c) = none`) *and* foundation-ready
+(`c.rank.toIdx = heights c.suit`) — a `pilePile` of any other card has
+no engine counterpart.  The witness: a WF state with pile p2 =
+[♥3 (hidden), ♠5, ♥4] and hearts at 2.  Revealing ♥3 needs ♠5 bare
+(♥4 must leave); ♥4's only non-`pilePile` exit is `pileStack`, which
+needs hearts = 3, i.e. ♥3 stacked first — circular, so the engine is
+stuck at hearts ≤ 2 forever (invariant along engine plays).  The full
+game breaks the cycle with `pilePile ♥4 (♣5)` and wins in 31 moves.
+Root cause: the abstract engine's `Reveal` is run-carrying (no_pile
+§4, case 3) while the model's `reveal` demands a bare trigger — the
+concrete move subset is strictly weaker.  Repair is an
+orchestrator-level decision: state it for *initial* states (B2+B4's
+content), or let `reveal` carry the run.  No downstream users. -/
 theorem solvable_engine_iff {st : State} (hwf : st.WF) :
     st.solvableFrom ↔ st.solvableEngine := sorry
 
@@ -1844,11 +1865,158 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           exact Bool.noConfusion (hf.symm.trans hbo)
     · intro c' hc' a' hcm
       exact hvnh c' (key c' (show (bd.bottomOf c').isSome = true from hc')) a' hcm
+/-! ### The Draw-commitment commutation kit (C13's adjacent half)
+
+`applyDrawTo`'s stock op normalizes to `⟨removeIdx cards i, i⟩`
+(`Cycle.removeAt_drawTo`); the *second* draw of each order finds its
+card at the first-occurrence position of the spliced list (the shift
+lemma for a card after the splice, the keep lemma for one before it);
+the board part is two `attach`es at distinct bases.  Theorems.lean's
+`drawTo_comm_modAdjacent` is the mod-adjacent generalization (with the
+step guard for the wrap case); this file is its upstream, so the kit
+lives here under `Cycle`/`Board` names. -/
+
+/-- The Draw-commitment's stock successor: jump past `i`, splice `i`
+out — the cursor lands exactly on `i`. -/
+theorem Cycle.removeAt_drawTo {α : Type} (i : Nat) (cy : Cycle α) :
+    (cy.drawTo i).removeAt i = { cards := Cycle.removeIdx cy.cards i, cursor := i } := by
+  simp only [Cycle.removeAt, Cycle.drawTo]
+  rw [if_pos (Nat.lt_succ_self i), Nat.add_sub_cancel]
+
+/-- Splicing out an earlier position shifts a later first occurrence
+down by one. -/
+theorem Cycle.findFirstIdx_removeIdx_shift {α : Type} (p : α → Bool) :
+    ∀ (l : List α) (q r : Nat), Cycle.findFirstIdx p l = some r → q < r →
+      Cycle.findFirstIdx p (Cycle.removeIdx l q) = some (r - 1) := by
+  intro l
+  induction l with
+  | nil =>
+      intro q r h _
+      exact absurd h (by simp [Cycle.findFirstIdx])
+  | cons a t ih =>
+      intro q r h hqr
+      have hc : (if p a then some 0 else (Cycle.findFirstIdx p t).map Nat.succ) = some r := h
+      by_cases hpa : p a = true
+      · rw [if_pos hpa, Option.some.injEq] at hc
+        exact absurd hqr (by omega)
+      · rw [if_neg hpa] at hc
+        cases q with
+        | zero =>
+            rw [Cycle.removeIdx_zero]
+            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
+            rw [hr']
+            exact congrArg some (by omega)
+        | succ q' =>
+            rw [Cycle.removeIdx_succ]
+            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
+            have hih := ih q' r' hr' (by omega)
+            show (if p a then some 0
+              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some (r - 1)
+            rw [if_neg hpa, hih, Option.map_some]
+            exact congrArg some (by omega)
+
+/-- Splicing out a later position leaves an earlier first occurrence
+where it was. -/
+theorem Cycle.findFirstIdx_removeIdx_keep {α : Type} (p : α → Bool) :
+    ∀ (l : List α) (p₀ q : Nat), Cycle.findFirstIdx p l = some p₀ → p₀ < q →
+      Cycle.findFirstIdx p (Cycle.removeIdx l q) = some p₀ := by
+  intro l
+  induction l with
+  | nil =>
+      intro p₀ q h _
+      exact absurd h (by simp [Cycle.findFirstIdx])
+  | cons a t ih =>
+      intro p₀ q h hpq
+      have hc : (if p a then some 0 else (Cycle.findFirstIdx p t).map Nat.succ) = some p₀ := h
+      cases q with
+      | zero => exact absurd hpq (by omega)
+      | succ q' =>
+          rw [Cycle.removeIdx_succ]
+          by_cases hpa : p a = true
+          · rw [if_pos hpa, Option.some.injEq] at hc
+            show (if p a then some 0
+              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
+            rw [if_pos hpa, ← hc]
+          · rw [if_neg hpa] at hc
+            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
+            have hih := ih r' q' hr' (by omega)
+            show (if p a then some 0
+              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
+            rw [if_neg hpa, hih, Option.map_some]
+            exact congrArg some (by omega)
+
+/-- The shift lemma, `posOf` packaging (the cursor is never read). -/
+theorem Cycle.posOf_removeIdx_shift {x : Card} {l : List Card} {cur cur' : Nat} {q r : Nat}
+    (h : Cycle.posOf x ⟨l, cur⟩ = some r) (hqr : q < r) :
+    Cycle.posOf x ⟨Cycle.removeIdx l q, cur'⟩ = some (r - 1) :=
+  Cycle.findFirstIdx_removeIdx_shift _ l q r h hqr
+
+/-- The keep lemma, `posOf` packaging (the cursor is never read). -/
+theorem Cycle.posOf_removeIdx_keep {x : Card} {l : List Card} {cur cur' : Nat} {p q : Nat}
+    (h : Cycle.posOf x ⟨l, cur⟩ = some p) (hpq : p < q) :
+    Cycle.posOf x ⟨Cycle.removeIdx l q, cur'⟩ = some p :=
+  Cycle.findFirstIdx_removeIdx_keep _ l p q h hpq
+
+/-- The guard's index is the plain stock position. -/
+theorem State.reachablePos_posOf {st : State} {c : Card} {i : Nat}
+    (h : st.reachablePos c = some i) : st.stock.posOf c = some i := by
+  simp only [State.reachablePos] at h
+  split at h
+  · next hpos =>
+      cases hp : st.stock.posOf c with
+      | none => rw [hp] at h; simp at h
+      | some i' =>
+          rw [hp] at h
+          simp at h
+          rw [h.2]
+  · simp at h
+
+/-- A successful Draw commitment's shape: the guard's index, the
+board attach, and the successor with the spliced stock. -/
+theorem applyDrawTo_shape {st : State} {c : Card} {b : Base} {s' : State}
+    (h : st.applyDrawTo c b = some s') :
+    ∃ i bd, st.reachablePos c = some i ∧ st.board.attach b c = some bd ∧
+      s' = { st with
+             board := bd,
+             stock := { cards := Cycle.removeIdx st.stock.cards i, cursor := i } } := by
+  simp only [State.applyDrawTo] at h
+  cases hr : st.reachablePos c with
+  | none => rw [hr] at h; simp at h
+  | some i =>
+      rw [hr] at h
+      cases ha : st.board.attach b c with
+      | none => rw [ha] at h; simp at h
+      | some bd =>
+          rw [ha] at h
+          simp at h
+          refine ⟨i, bd, rfl, rfl, ?_⟩
+          rw [← h, Cycle.removeAt_drawTo]
+
+/-- Two attachments at distinct bases commute. -/
+theorem Board.attach_attach_comm {bd : Board} {b b' : Base} {c c' : Card}
+    {bd₁ bd₂ bd₃ bd₄ : Board} (hbb : b ≠ b')
+    (h₁ : bd.attach b c = some bd₁) (h₂ : bd₁.attach b' c' = some bd₂)
+    (h₃ : bd.attach b' c' = some bd₃) (h₄ : bd₃.attach b c = some bd₄) :
+    bd₂ = bd₄ := by
+  refine Board.ext_topOf (funext (fun x => ?_))
+  by_cases hxb : x = b
+  · rw [hxb, Board.attach_topOf_ne _ _ _ h₂ hbb, Board.attach_topOf _ _ _ h₁,
+      Board.attach_topOf _ _ _ h₄]
+  · by_cases hxb' : x = b'
+    · rw [hxb', Board.attach_topOf _ _ _ h₂, Board.attach_topOf_ne _ _ _ h₄ (Ne.symm hbb),
+        Board.attach_topOf _ _ _ h₃]
+    · rw [Board.attach_topOf_ne _ _ _ h₂ hxb', Board.attach_topOf_ne _ _ _ h₁ hxb,
+        Board.attach_topOf_ne _ _ _ h₄ hxb, Board.attach_topOf_ne _ _ _ h₃ hxb']
+
 /-- **C13 pilot (model level)**: adjacent Draw-commitments commute
-(distinct bases).  Cycle content: `Cycle.removeIdx_comm`; the board
-part: `attach` on distinct bases.  NOTE: non-adjacent pairs land on
-*different cursors* — the engine's sweep/canonicalization is what
-recovers commutation there (the C-IND landscape).  TODO. -/
+(distinct bases) — the non-wrap instance at every draw step, the
+step-1 cover of Theorems' guarded `drawTo_comm_modAdjacent`.  Both
+orders' second draws splice at position `i` (`c'` shifts down from
+`i + 1`, `c` stays at `i`), the boards agree by `attach` commutation,
+and the card splices by `Cycle.removeIdx_comm`.  NOTE: non-adjacent
+pairs land on *different cursors* (`drawTo_nonadjacent_diverge`) — the
+engine's sweep/canonicalization is what recovers commutation there
+(the C-IND landscape). -/
 theorem drawTo_comm_adjacent {st : State} {c c' : Card} {b b' : Base}
     (hbb : b ≠ b') {i : Nat}
     (hic : st.stock.posOf c = some i)
@@ -1856,4 +2024,46 @@ theorem drawTo_comm_adjacent {st : State} {c c' : Card} {b b' : Base}
     {st₂ st₄ : State}
     (h₂ : (st.applyDrawTo c b >>= fun s => s.applyDrawTo c' b') = some st₂)
     (h₄ : (st.applyDrawTo c' b' >>= fun s => s.applyDrawTo c b) = some st₄) :
-    st₂ = st₄ := sorry
+    st₂ = st₄ := by
+  have hilt : i + 1 < st.stock.cards.length := Cycle.posOf_lt hic'
+  obtain ⟨s₁, hA, hB⟩ := Option.bind_eq_some_iff.mp h₂
+  obtain ⟨s₃, hC, hD⟩ := Option.bind_eq_some_iff.mp h₄
+  obtain ⟨i₀, bd₁, hr₀, ha₁, hs₁⟩ := applyDrawTo_shape hA
+  obtain ⟨k, bd₂, hrk, ha₂, hs₂⟩ := applyDrawTo_shape hB
+  obtain ⟨j₀, bd₃, hr₁, ha₃, hs₃⟩ := applyDrawTo_shape hC
+  obtain ⟨k', bd₄, hrk', ha₄, hs₄⟩ := applyDrawTo_shape hD
+  have hi₀ : i₀ = i := Option.some.inj ((State.reachablePos_posOf hr₀).symm.trans hic)
+  have hj₀ : j₀ = i + 1 := Option.some.inj ((State.reachablePos_posOf hr₁).symm.trans hic')
+  rw [hi₀] at hs₁
+  rw [hj₀] at hs₃
+  have hs₁s : s₁.stock = { cards := Cycle.removeIdx st.stock.cards i, cursor := i } := by
+    rw [hs₁]; try rfl
+  have hs₃s : s₃.stock = { cards := Cycle.removeIdx st.stock.cards (i + 1), cursor := i + 1 } := by
+    rw [hs₃]; try rfl
+  have hb₁ : s₁.board = bd₁ := by rw [hs₁]; try rfl
+  have hb₃ : s₃.board = bd₃ := by rw [hs₃]; try rfl
+  rw [hb₁] at ha₂
+  rw [hb₃] at ha₄
+  have hpk : s₁.stock.posOf c' = some k := State.reachablePos_posOf hrk
+  rw [hs₁s] at hpk
+  have hpk' : s₃.stock.posOf c = some k' := State.reachablePos_posOf hrk'
+  rw [hs₃s] at hpk'
+  have hk : k = i :=
+    Option.some.inj (hpk.symm.trans (Cycle.posOf_removeIdx_shift hic' (by omega)))
+  have hk' : k' = i :=
+    Option.some.inj (hpk'.symm.trans (Cycle.posOf_removeIdx_keep hic (by omega)))
+  have hbd : bd₂ = bd₄ := Board.attach_attach_comm hbb ha₁ ha₂ ha₃ ha₄
+  have hcomp₂ : st₂ = { st with
+      board := bd₂,
+      stock := { cards := Cycle.removeIdx (Cycle.removeIdx st.stock.cards i) k, cursor := k } } := by
+    rw [hs₂, hs₁]; try rfl
+  have hcomp₄ : st₄ = { st with
+      board := bd₄,
+      stock := { cards := Cycle.removeIdx (Cycle.removeIdx st.stock.cards (i + 1)) k',
+                 cursor := k' } } := by
+    rw [hs₄, hs₃]; try rfl
+  have hcards : Cycle.removeIdx (Cycle.removeIdx st.stock.cards i) k
+      = Cycle.removeIdx (Cycle.removeIdx st.stock.cards (i + 1)) k' := by
+    rw [hk, hk']
+    exact Cycle.removeIdx_comm st.stock.cards i i (Nat.le_refl i) hilt
+  rw [hcomp₂, hcomp₄, hbd, hcards, hk, hk']

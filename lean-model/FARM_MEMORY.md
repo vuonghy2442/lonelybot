@@ -1007,3 +1007,131 @@ otMem_take_of_get (noDup pile),
   case is Move.lean's proven `drawTo_comm_adjacent`. The C-IND
   distinct-class residue is the sibling's sweep/canonicalization
   territory (Pace.lean).
+
+## Dominance.lean — Wave 5: safe_pileStack REFUTED+repaired; deckPile PROVEN (2026-09-13)
+
+- **safe_pileStack_dominant WAS FALSE** (prover-confirmed, scratch
+  Temp\opencode\DeadPileWitness.lean, exit 0, axiom-clean): `reveal c`
+  seats the boundary UNDER c WHILE c sits on it — stacking the SOLE
+  visible card of a live pile kills the boundary card forever (only
+  `reveal` seats hidden cards; its trigger must be visible ON the
+  boundary; `canPlace x (inr r)` needs `isVis r`) ⇒ it never stacks ⇒
+  unsolvable. Witness: WF, 3 moves from win, ♦K safe+stackable on
+  hidden ♣K. REPAIR (sign-off needed): added `(hnotlock :
+  st.isLocked c = false)` (§5.2's vocabulary; State.isLocked MOVED
+  above §5.1 for it) — in WF a visible card's base is anchor/visible/
+  boundary, only the boundary dies. The wave-5 alert's "core" for
+  items 1/2/4 is now the channels A/B rank induction, NOT worry-back.
+- **deckPile_safe_prunable PROVEN** (axiom-clean): π = deckPile c b ::
+  rest replays as deckStack c :: stackPile c b :: rest — the two-move
+  composite IS the deckPile successor (stock splice same index, same
+  attach, bump-then-un-bump heights = original via state_ext+funext).
+  hwf/hsafe unused — silenced with `have := hwf`.
+- stackPile_safe_prunable (head-only statement!): second-move swaps
+  cover everything except the same-suit worry-chain (x below c in
+  suit: unswappable — x needs c gone, c can't take x's base — same
+  color kills canSitOn); [stackPile c b, pileStack c] is an
+  UNCONDITIONAL identity (attach∘detach, no canReturnBase — the
+  converse of the proven roundtrip); draw-prepend works only on the
+  dealOnce 0-orbit. Residual needs the B&G reshaping. All documented
+  in the theorem's TODO.
+- SYNTAX paid: (1) `List.mem_cons_self`/`not_mem_nil` have NO explicit
+  args in 4.30 (term IS the proof; applying `_` = "Function expected")
+  — for ground memberships use `by simp`, for variable-vs-[] use
+  `have h1 : c ∈ ([] : List Card) := hca; exact nomatch h1` (nomatch
+  needs the [] SYNTACTIC); (2) `cases ... with | a => by tac` FAILS —
+  drop the `by`, the arm is already tactic-mode; (3) `detach_topOf_ne`
+  h is `b' ≠ b` (READ ≠ DETACHED) — pass `(Ne.symm hbb)` when by_cases
+  gave the other side; (4) reveal's depths literal then-branch is
+  `st.depths a - 1` (the REVEALED pile, not the binder) — check the
+  iff's literal before writing shows; (5) funext goals over
+  state-literal projections need the REDUCED show-form (the ifs hide
+  under `{...}.heights s` — rw can't see them); (6) `Option.some.inj
+  (wState_apply.symm.trans hap)` pins an obtained successor to a
+  computed def.
+
+## Theorems.lean — Wave 9 + the forest rescope (2026-09-13)
+
+- LANDED (axiom-clean): applyDrawTo_eq_dealPlay (REPAIRED per the Wave-9 alert:
+  +`(hcan : st.canPlace c b = true)`, Macro's witness) and applyDrawStackTo_eq_dealPlay
+  (NO repair — its rank guard is deckStack's own; verified both directions).
+  Theorems 12 -> 8 sorries. NEW, the <- direction's core (this file cannot import
+  Macro — dealN kit DUPLICATED as Cycle.dealIter; consolidation into Cycle/Kit is
+  the orchestrator's call): dealIter_orbit (the chain reaches min (c0+m*s) n or
+  min (j*s) n), dealIter_mask (orbit cursor != 0 -> k-1 in the ORIGINAL maskPos —
+  done with laneUp_mem alone, NOT the sorry'd maskPos_mem_iff), dealIter_prev_reachable
+  (prev + stock_wf noDup -> posOf = k-1 = reachablePos; the splice = removeAt_drawTo).
+- RESCOPE (witness Temp\opencode\AboveIrreflWitness.lean, axiom-clean, Decide-built):
+  aboveOf_irrefl is FALSE from WF — 2-cycle: pile p1 = [h5, s6] revealed, board
+  inr h5 |-> s6 (deal-adjacent) + inr s6 |-> h5 (canSitOn: 5+1=6, colors differ).
+  Longer ALTERNATING cycles (deal-adj/canSitOn across piles) kill every per-edge or
+  deal-order repair — the acyclicity is HISTORICAL (which edge attached last), not
+  state-only. Repair: State.board_forest (a strictly-decreasing potential phi on
+  card-edges) as the hypothesis; aboveOf_rank_grading/aboveOf_irrefl from it
+  (fuel-induction on aboveOf.go, aboveOf_go_succ). Plays MAINTAIN potentials (deal:
+  pile position; attach: renumber the moved tree below the base — self-landing makes
+  the trees disjoint; reveal: shift into the gap) — the play-induction is a future
+  wave's item. solvable_accommodates left with a plan note (one-step reduction +
+  the worry-back channel, return-base crux).
+- QUIRKS: (1) `!=` is bne, NOT decide (a ~= b): an `(x != 0) = true` goal takes
+  `by simp [fact]`, decide_eq_true mistypes. (2) `rw [Nat.add_mul, Nat.one_mul]`
+  leaves `a + (b*c + c) = (a + b*c) + c` — append omega. (3) a `show` whose record
+  VALUE breaks lines fails to parse ("expected '}'") — keep `{x with f := value}`
+  on one line (run_dealIter). (4) `++` LEFT-assoc inside show-targets:
+  `simp only [List.mem_append]` yields a LEFT-nested Or-tree — `Or.inr h` inhabits
+  `X \/ p in L2`. (5) ground ites: `rw [if_pos rfl]` BEFORE omega (omega cannot
+  see ites). (6) cases-on-goal substitution hit again: `cases hp : posOf c` turned
+  the hpos-goal into `some i0 = some ...` — witness `congrArg some heq.symm`.
+
+## Bridge.lean — toEngine_lifts REFUTED AGAIN (mirror hole; UNSOUND as stated) (2026-09-13)
+
+- PROVER-CONFIRMED (Temp\opencode\LiftWitness2.lean, exit 0; witness facts
+  axiom-clean [propext, Quot.sound]): the buried-base repair does NOT close the
+  lift. NEW witness class: a card seated via DEAL-ADJACENCY on a merely-PLACED,
+  non-canSitOn base (the model board) vs re-seated via CAN-SIT-ON on a placed
+  card (the witness board). Fits' two seating disjuncts are independent, and the
+  engine model game cannot re-seat across them — that re-seating IS pilePile
+  (banned); the pileStack/stackPile accommodation is rank-gated.
+- Witness stN (WF, draw-1): p1 = [hA, h5] revealed (h5 on hA); vis adds h7 (on
+  p2's anchor) and s6 (on h7); heights (h0, s5, d13, c13); stock = the other
+  hearts + s7..sK. BOTH halves proven (no sorry): stN_notSolvable (invariant:
+  heights heart = 0 forever — the hA-under-h5 cycle; reveals dead via depths=0;
+  deckStack-heart dead via hA-not-in-stock) and a 21-move abstract win (eStep
+  chain; pileStack hA via the re-seated witness board, then free-jump deck
+  climbs + the two tableau tops). lift_false : False from the sorry'd theorem.
+- ESCALATED (no local guard: fully-revealed piles have non-fitting
+  deal-adjacent seats — ordinary states; repair = matching-tracking in EState
+  or a B4 reshape gate — orchestrator's call). Bridge.lean's two sorries now
+  documented UNSOUND-as-stated, not merely unproven.
+- REUSABLE KIT (in the scratch): seatsTop/seatsBoard (seat-list boards — inj
+  free from a `by decide` no-dup; every per-seat fact by decide); the
+  4-conjunct deadlock invariant; generic dstep/pstep eStep builders; guards by
+  `by rfl` through 21 nested with-updates (kernel whnf eats it).
+- SYNTAX paid: (1) rcases AUTO-SUBSTs pair-eqs from ⟨e1,e2⟩ patterns — bullets
+  use the goal directly; bare `x ∈ [lits]` needs simp only [List.mem_cons,
+  List.not_mem_nil] first, and the baked False disjunct needs its own rcases
+  slot + h.elim; (2) anonymous `have := term` GREEDILY eats the next line as an
+  application — NAME it (`have hm := ...`); (3) multiline `(by ...)` blocks need
+  `by` alone on its line (first-tactic-on-the-by-line fixes the column);
+  (4) proof-local haves SHADOW top-level card defs (h10!) — use r0..r21;
+  (5) simp only [eStep] reduced a literal successor equation to True — the
+  ⟨..., rfl⟩ slot wanted `trivial`; (6) apply helper lemmas' trailing (c : Card)
+  arg or the type stays a ∀.
+
+## WAVE-8 ADJUDICATIONS (orchestrator, 2026-09-13)
+
+- SIGN-OFF (accepted): safe_pileStack_dominant gained `(hnotlock : st.isLocked c = false)` — the dead-pile witness (reveal seats the boundary while the cover still sits on it; stacking kills the boundary forever) is §5.2's own guard. The core channels-A/B rank induction remains the honest [H].
+- ACCEPTED: the aboveOf forest-potential rescope (acyclicity is HISTORICAL — which
+  edge attached last — not state-only; `State.board_forest` is the hypothesis).
+- THE COHERENT FINDING (three witnesses, one root cause):
+  solvable_engine_iff + toEngine_lifts + the Fits mirror hole all refute the
+  same way — the ABSTRACT game's move set is genuinely richer than the engine's:
+  (a) Fits' deal-adjacency disjunct permits seats the model can never make
+  (disjunct-crossing: ♥5 on ♥A by adjacency, abstract re-seats on ♠6 by canSitOn);
+  (b) the model's reveal demands a BARE trigger, the abstract Reveal is
+  run-carrying (no_pile §4 case 3) — the witness state wins in the full game
+  (31 moves) but the engine is deadlocked at hearts ≤ 2.
+  REPAIR DIRECTION (pending user call): initial-states-only statements (= B2+B4)
+  or a run-carrying reveal. Witnesses: Temp\opencode\{EngineWitness,LiftWitness2,DeadPileWitness}.lean.
+- drawTo_comm_adjacent PROVEN (kit re-proved in Move under namespaced names —
+  Theorems owns the root names).

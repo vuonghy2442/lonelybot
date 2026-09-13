@@ -484,27 +484,41 @@ order/offset `maskPos`) plus the offset-rewrite lemma's replacement
 irrelevance.  That is reading work, not farm work (the deferred
 list).
 
-**REFUTED AS STATED (prover-confirmed 2026-09-13, scratch
-`Temp\opencode\LiftWitness.lean`, exit 0)**: UNSOUND even draw-1-gated
-on a WF state.  Witness `stX`: ♥/♦/♣ complete, ♠ at 12; the model board
-seats ♥Q on ♠K (a legal `canSitOn` edge), so the model's
-`pileStack ♠K` is blocked and ♥Q is immovable; every other engine
-move is illegal and `.draw` is the identity (empty stock) — so
-`¬ stX.solvableEngine`.  Yet the abstract game wins in ONE move:
-`pileStack ♠K` through the witness board `bdW` seating ♥Q on ♣5 —
-its deal-adjacent neighbor in pile p2 — which `Board.Fits`'s
-deal-adjacency clause accepted WITHOUT requiring the base to be
-hidden or visible.
+**REFUTED AS STATED — twice, prover-confirmed.**  First witness
+(2026-09-13, scratch `Temp\opencode\LiftWitness.lean`): the buried-base
+hole — an unseatable deal-adjacent base in the witness board.  KILLED
+by the Fits/board_edges repair (deal-adjacency bases must now be the
+pile's hidden boundary or a placed card).
 
-**REPAIRED (same day, the invariant-layer strengthening)**: the
-deal-adjacency clauses of `State.board_edges` and `Board.Fits` now
-demand the base be the pile's hidden boundary (`topHidden`) or a
-placed card.  The witness is thereby KILLED: `stX` is no longer WF
-(its base ♣5 is neither p2's boundary — depths are 0 — nor placed),
-so the refutation's premise `stX.WF` is gone (re-verified in the
-scratch: `¬ stX.WF` via `founds_gone` on the visible ♥Q at heights
-♥ = 13).  The remaining `sorry` below is the honest B4 accommodation
-argument, no longer a known-unsound statement. -/
+**Second witness (2026-09-13, scratch `Temp\opencode\LiftWitness2.lean`,
+exit 0, witness facts axiom-clean [propext, Quot.sound]): UNSOUND even
+after the repair — the MIRROR of the first hole.**  Witness `stN`
+(WF, draw-1): pile p1 = [♥A, ♥5] with ♥5 revealed onto ♥A
+(deal-adjacent, base merely *placed*, ranks NOT canSitOn-compatible);
+vis = {♥A, ♥5, ♥7, ♠6} with ♥7 on p2's anchor and ♠6 on ♥7; heights
+♥ = 0, ♠ = 5, ♦/♣ = 13; stock = the remaining ♥s and ♠7..♠K.
+  - ¬ `stN.solvableEngine` (proven, an engine-play invariant): ♥A is
+    buried under ♥5; the engine move set has no tableau-to-tableau
+    move (`pilePile` banned), and the pileStack/stackPile
+    accommodation for ♥5 needs heights ♥ = 4, which needs ♥A — a
+    cycle.  hearts' foundation stays at 0 forever.
+  - `(toEngine stN).esolvable` (proven, a 21-move abstract play):
+    `pileStack ♥A` through a witness board that re-seats ♥5 on ♠6
+    (canSitOn, ♠6 genuinely placed), then the ♥/♠ climbs from the
+    stock (free jumps) plus the two tableau tops.
+- ROOT CAUSE: `Board.Fits`'s two seating disjuncts — deal-adjacency
+  (base boundary-or-placed, ranks arbitrary) and canSitOn-on-placed —
+  are *independent*: the abstraction's arrangement freedom re-seats a
+  card across them, and the model engine game cannot follow (that
+  re-seating is exactly `pilePile`, the banned move; the foundation
+  accommodation is rank-gated).  No local guard kills this:
+  deal-adjacent seats with non-fitting bases occur in every
+  fully-revealed pile (v1 on h1), so the witnesses are ordinary
+  states.  A repair must track the matching in the abstract state (or
+  gate the lift on B4's reshape invariant) — an orchestrator-level
+  design decision, recorded here per the rejected-claim discipline.
+  The `sorry` below is therefore **UNSOUND as stated**, not merely
+  unproven. -/
 theorem toEngine_lifts {st : State} {eplay : List EMove} {w : EState} (hwf : st.WF)
     (hstep : st.drawStep = 1)
     (hrun : eRun (toEngine st) eplay w) (hwin : w.isWin = true) :
@@ -516,14 +530,15 @@ Combines the simulation with the lift.  Draw-1 gated as the lift
 (the all-steps form awaits the `eStep` pacing guard — see
 `toEngine_lifts`'s note).
 
-**The ← direction was refuted** by `toEngine_lifts`'s witness
-(`Temp\opencode\LiftWitness.lean`) — `(toEngine stX).esolvable` held
-while `¬ stX.solvableEngine`, because `Board.Fits` admitted
-deal-adjacent seats on unplaced, non-boundary bases.  That hole is
-now CLOSED (the buried-base repair in `Fits`/`board_edges`; see
-`toEngine_lifts`'s note) and the witness no longer satisfies `WF`.
-The → direction (the simulation) is proven below; the remaining
-`sorry` is the refuted half, now honest. -/
+**The ← direction was refuted** by `toEngine_lifts`'s witnesses
+(`Temp\opencode\LiftWitness*.lean`).  The first hole (buried base) is
+CLOSED by the Fits repair; the second (the deal-adjacency/canSitOn
+mirror — a WF draw-1 state whose abstract game wins while the model
+engine game is heart-deadlocked under a deal-successor) is OPEN and
+has no local guard: see `toEngine_lifts`'s note.  The → direction
+(the simulation) is proven below; the remaining `sorry` is the
+refuted half — **unsound as stated**, awaiting the orchestrator-level
+repair (matching-tracking in `EState`, or a B4 reshape gate). -/
 theorem engine_iff {st : State} (hwf : st.WF) (hstep : st.drawStep = 1) :
     st.solvableEngine ↔ (toEngine st).esolvable := by
   constructor

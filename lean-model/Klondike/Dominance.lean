@@ -85,6 +85,16 @@ theorem dominant_of_commutesWithAll {st : State} {m : Move}
 
 /-! ## §5.1 Forced safe stacking -/
 
+/-- A card is locked when it sits on its pile's hidden boundary
+(moving it would strand the boundary — see `safe_pileStack_dominant`'s
+repair note: the model's `reveal` seats the boundary while the card is
+still on it, so a locked card must be revealed *through* before it
+moves). -/
+def State.isLocked (st : State) (c : Card) : Bool :=
+  match st.board.bottomOf c with
+  | some (Sum.inr r) => st.pileOfTopHidden r ≠ none
+  | _ => false
+
 /-- The classical safe-automove condition (Blake & Gent; method.md
 §5.1): a card of rank `r` and color `κ` is safe ⟺ both `κ`-colored
 foundations are at `r−2` and both `κ̄`-colored at `r−1`.  Aces and
@@ -95,23 +105,34 @@ def safeToStack (st : State) (c : Card) : Bool :=
     then decide (c.rank.toIdx ≤ st.heights s + 2)
     else decide (c.rank.toIdx ≤ st.heights s + 1)
 
-/-- §5.1: a legal pileStack of a safe card is dominant — the
-worry-back argument: a safe card can always be brought back later, and
-stacking strictly grows the foundation (progress).  TODO(proof): the
-return-base availability is the crux (cf.
-`pileStack_stackPile_roundtrip`'s anchor case). -/
+/-- §5.1: a legal pileStack of a safe, *unlocked* card is dominant —
+the worry-back argument: a safe card can always be brought back later,
+and stacking strictly grows the foundation (progress).
+
+REPAIR (2026-09-13, wrong-theorem protocol): the staged statement (no
+`hnotlock`) was FALSE.  Prover-confirmed witness (scratch
+`DeadPileWitness`, axiom-clean, exit 0): `reveal c` seats the hidden
+boundary card under `c` *while `c` still sits on it* — so a card that
+is the sole visible card of a live pile (exactly `isLocked c`) must be
+revealed through BEFORE it is stacked.  Stacking it first kills the
+boundary card permanently (no move can seat a hidden card except
+`reveal`, which needs a visible card on the boundary), so it can never
+reach the foundation and the successor is unsolvable — witnessed by a
+WF state three moves from the win whose safe, legally stackable ♦K
+sits alone on the hidden ♣K.  The `hnotlock` guard — §5.2's own
+`isRedundantStack` vocabulary — excludes exactly the trigger cards
+(in a WF state a visible card's base is an anchor, a visible card, or
+the boundary; only the boundary case dies).  The remaining proof is
+the classical rank induction (channels A/B of
+pruning_dominance_interaction.md §4), which does NOT rest on
+worry-back roundtrips (the return-base crux is real: deal-adjacent
+bases admit no `canReturnBase`).  TODO(proof). -/
 theorem safe_pileStack_dominant {st : State} {c : Card} (hwf : st.WF)
+    (hnotlock : st.isLocked c = false)
     (hsafe : safeToStack st c = true) (hlegal : st.legal (Move.pileStack c) = true) :
     dominantAt st (Move.pileStack c) := sorry
 
 /-! ## §5.2 Three-or-more redundant stackables -/
-
-/-- A card is locked when it sits on its pile's hidden boundary
-(moving it would reveal). -/
-def State.isLocked (st : State) (c : Card) : Bool :=
-  match st.board.bottomOf c with
-  | some (Sum.inr r) => st.pileOfTopHidden r ≠ none
-  | _ => false
 
 /-- `redundant_stack = pile_stack & !locked` (§5.2): a stackable card
 whose stacking reveals nothing. -/
@@ -125,7 +146,14 @@ def State.redundantStacks (st : State) : List Card :=
 /-- §5.2: with ≥3 redundant stackables, stacking the lowest-rank one is
 dominant — a canonical representative; the others remain available
 later (stack moves into the foundation commute, and what is safe is
-recoverable per §5.1).  TODO. -/
+recoverable per §5.1).
+
+Note (2026-09-13): `isRedundantStack` already carries the `¬locked`
+guard, so this statement is consistent with the dead-pile witness that
+refuted the unguarded §5.1 (see `safe_pileStack_dominant`'s repair
+note) — the trigger cards are excluded here by construction.  The
+remaining work is the repaired §5.1 core (the channels A/B rank
+induction) plus the canonical-representative argument.  TODO. -/
 theorem least_redundantStack_dominant {st : State} {c : Card} (hwf : st.WF)
     (hmem : c ∈ st.redundantStacks)
     (hlen : 3 ≤ st.redundantStacks.length)
@@ -146,15 +174,95 @@ theorem deck_dominance_draw1 {st : State} {c : Card} (hwf : st.WF)
 /-! ## §5.4 Unstack only what is not safe to restack -/
 
 /-- §5.4, first half: never worry back a dominantly-stackable card —
-omitting `stackPile` of a safe card loses nothing.  TODO. -/
+omitting `stackPile` of a safe card loses nothing.  The statement is
+head-only (`prunableAt`): SOME winning play must merely avoid
+*starting* with the worry-back.
+
+Route notes (2026-09-13, partial analysis): the second move of a
+worry-headed winning play can be swapped to the front in every case
+except one — `draw` commutes (component-disjoint); `deckStack x` swaps
+(x = c is impossible: c is foundation-passed, hence off the stock);
+`deckPile x b'` swaps (b' ≠ b forced, `attach_attach_comm`);
+`pileStack x` with x ≠ c swaps (x.suit ≠ c.suit forced; b = inr x would
+block x's own stacking); `reveal y` swaps (its attach target ≠ b); and
+`pilePile c b''` right after the worry collapses to worrying directly
+to `b''` (b'' ≠ b).  The prefix `[stackPile c b, pileStack c]` is an
+unconditional identity (attach-then-detach at the same base — no
+`canReturnBase` needed, unlike the proven converse roundtrip), so it
+can be cancelled with a play-length induction.
+
+The residual blocked shape: the immediate same-suit worry-chain —
+π = stackPile c b :: stackPile x b' :: … with x the card just below c
+in c's suit (x cannot be worried before c leaves; c cannot take x's
+destination — same color kills `canSitOn`); and at drawStep ≥ 2 with
+the cursor off the deal's 0-orbit, no number of `draw`s returns to
+`st` (dealOnce's orbit), so no always-legal alternative head can be
+prepended.  Closing those needs the classical worry-back ban (B&G
+Theorem-1-compliant solutions never worry a safely-buildable card —
+the same rank-induction core as the repaired §5.1).  TODO. -/
 theorem stackPile_safe_prunable {st : State} {c : Card} {b : Base} (hwf : st.WF)
     (hsafe : safeToStack st c = true) : prunableAt st (Move.stackPile c b) := sorry
 
 /-- §5.4, second half (`deck_pile excludes dom_sm & sm`): never draw a
-card to the tableau when it could safely go to the foundation.  TODO. -/
+card to the tableau when it could safely go to the foundation.
+
+Proof: a winning play starting with `deckPile c b` is replayed as
+`deckStack c` then `stackPile c b` — the two-move composition produces
+exactly the `deckPile` successor (same stock splice, same attach, the
+bumped height un-bumped), so the rest of the play still wins, and the
+new head is the stack move, not the draw-to-tableau.  A play that
+already avoids the head needs nothing.  (Safety and WF are not needed
+for the exchange; they are kept for the rule's reading.) -/
 theorem deckPile_safe_prunable {st : State} {c : Card} {b : Base} (hwf : st.WF)
     (hsafe : safeToStack st c = true) (hstack : st.legal (Move.deckStack c) = true) :
-    prunableAt st (Move.deckPile c b) := sorry
+    prunableAt st (Move.deckPile c b) := by
+  have := hwf
+  have := hsafe
+  intro hsolv
+  obtain ⟨play, w, hrun, hwin⟩ := hsolv
+  cases play with
+  | nil =>
+      have h' : (some st : Option State) = some w := hrun
+      rw [← Option.some.inj h'] at hwin
+      exact ⟨[], st, rfl, hwin, by simp⟩
+  | cons m rest =>
+    by_cases hm : m = Move.deckPile c b
+    · subst hm
+      obtain ⟨s₁, hap, hrest⟩ := run_cons_inv hrun
+      rw [apply_deckPile_iff] at hap
+      obtain ⟨hprev, hcp, bd, hatt, hs₁⟩ := hap
+      cases htd : st.apply (Move.deckStack c) with
+      | none => simp [State.legal, htd] at hstack
+      | some t =>
+          have htd2 := htd
+          rw [apply_deckStack_iff] at htd2
+          obtain ⟨-, hrk, ht⟩ := htd2
+          have hsp : t.apply (Move.stackPile c b) = some s₁ := by
+            rw [ht, apply_stackPile_iff]
+            refine ⟨?_, hcp, bd, hatt, ?_⟩
+            · show c.rank.toIdx + 1 =
+                (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit)
+              rw [if_pos rfl]
+              omega
+            · rw [hs₁]
+              refine state_ext rfl rfl ?_ rfl rfl rfl
+              funext s
+              by_cases hsc : s = c.suit
+              · subst hsc
+                show st.heights c.suit = (if c.suit = c.suit then
+                    (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit) - 1
+                    else (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit))
+                rw [if_pos rfl, if_pos rfl]
+                omega
+              · show st.heights s = (if s = c.suit then
+                    (if s = c.suit then st.heights s + 1 else st.heights s) - 1
+                    else (if s = c.suit then st.heights s + 1 else st.heights s))
+                rw [if_neg hsc, if_neg hsc]
+          have hrun2 : st.run (Move.deckStack c :: Move.stackPile c b :: rest) = some w := by
+            simp only [State.run, htd, hsp]
+            exact hrest.1
+          exact ⟨Move.deckStack c :: Move.stackPile c b :: rest, w, hrun2, hwin, by simp⟩
+    · exact ⟨m :: rest, w, hrun, hwin, by simp [hm]⟩
 
 /-! ## §5.5 Twin-pair collapse -/
 

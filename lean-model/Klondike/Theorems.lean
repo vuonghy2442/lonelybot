@@ -1245,7 +1245,17 @@ theorem solvable_of_accommodates {st st' : State}
 
 /-- The accommodation reduction, hard direction — this is the reshape
 argument (B4): a winning play survives the cards having been shuffled
-through the foundations.  TODO. -/
+through the foundations.  TODO(proof) [H], plan: induct on the
+accommodation play to reduce to ONE shuffle step (the play is all
+`pileStack`/`stackPile`).  `pileStack c`: the successor is *ahead* by
+one height — replay the winning play, routing every use of the stacked
+`c` through the foundation (the no-passing license — WF's `founds_gone`,
+contrapositive read — pins the interleaving).  `stackPile c b`: the
+successor is *behind* — the worry-back channel of
+pruning_dominance_interaction.md §4; the exchange happens at the first
+`c`-move of the winning play, where the taken-back `c` is exactly the
+foundation's top, and return-base existence is the crux (the Dominance
+ledger's gap (i)). -/
 theorem solvable_accommodates {st st' : State}
     (hacc : accommodates st st') (hsol : st.solvableFrom) : st'.solvableFrom := sorry
 
@@ -2124,19 +2134,92 @@ theorem drawTo_nonadjacent_diverge {st : State} {c c' : Card} {b b' : Base} {i j
 
 /-! ## 4. Structure — the matching is a forest
 
-The rank grading along `topOf`-edges: everything above a card is
-strictly lower rank.  This kills cycles in the matching (the reason
-`Base`'s typing alone did not need to).
+STATEMENT REPAIR (2026-09-13, prover-confirmed witness
+`Temp\opencode\AboveIrreflWitness.lean`, axiom-clean): the staged
+grading — everything above a card is strictly lower rank, hence
+acyclicity, from `WF` alone — is FALSE.  `board_edges` admits
+deal-adjacency edges, and the deal stacks arbitrarily, so a
+deal-adjacency edge can invert a `canSitOn` edge between the same two
+cards.  Witness: pile p1 dealt `[♥5, ♠6]` fully revealed, board
+`inr ♥5 ↦ ♠6` (deal-adjacency, base visible) and `inr ♠6 ↦ ♥5`
+(`canSitOn ♥5 ♠6`: 5+1=6, colors differ) — the state is WF, and
+`aboveOf ♥5 = [♥5, ♠6]` contains `♥5`.  Longer alternating cycles
+(deal-adjacency and canSitOn edges alternating across two piles, e.g.
+`♥5 ↦ ♦9 ↦ ♣8 ↦ ♠6 ↦ ♥5` with the first and third edges deal-adjacent)
+defeat every per-edge or global-deal-order repair: the acyclicity is
+genuinely historical (which edge was attached last), not a state-only
+consequence of the edge predicates.
+
+The defensible acyclicity — the original design intent — is the
+*forest potential*: a strictly decreasing measure along the matching's
+card-edges.  Every play from `State.initial` maintains one (the deal's
+own chains grade by within-pile position; every attach renumbers the
+moved tree below its new base — the self-landing guard makes the trees
+disjoint; reveal shifts the boundary into the gap) — that
+play-induction is a later wave's item; here the potential is the
+hypothesis, and the grading + acyclicity follow from it.
 -/
 
-/-- TODO(proof): induction along `aboveOf` using the WF edge legality
-(the `canSitOn` disjunct). -/
-theorem aboveOf_rank_grading {st : State} (hwf : st.WF) (c : Card) :
-    ∀ d ∈ st.board.aboveOf c, d.rank.toIdx < c.rank.toIdx := sorry
+/-- The forest potential: `φ` strictly decreases along every
+card-to-card edge of the matching (`topOf (inr c) = some y` — `y` sits
+on `c`).  The state-only shadow of play-reachability: WF alone does
+not imply it (see the section note); every state reachable from
+`State.initial` admits one. -/
+def State.board_forest (st : State) : Prop :=
+  ∃ φ : Card → Nat, ∀ c y, st.board.topOf (Sum.inr c) = some y → φ y < φ c
 
-/-- Acyclicity, from the grading.  TODO. -/
-theorem aboveOf_irrefl {st : State} (hwf : st.WF) (c : Card) :
-    c ∉ st.board.aboveOf c := sorry
+/-- The grading, rescoped: along the run above `c`, every card is
+strictly below `c` in the forest potential (the staged rank-form is
+false — deals stack arbitrarily; see the section note). -/
+theorem aboveOf_rank_grading {st : State} (hwf : st.WF) {φ : Card → Nat}
+    (hφ : ∀ c y, st.board.topOf (Sum.inr c) = some y → φ y < φ c) (c : Card) :
+    ∀ d ∈ st.board.aboveOf c, φ d < φ c := by
+  have := hwf
+  have main : ∀ (fuel : Nat) (x : Card) (acc : List Card),
+      (∀ z ∈ acc, φ z < φ c) → (φ x < φ c ∨ x = c) →
+        ∀ d ∈ Board.aboveOf.go st.board fuel (Sum.inr x) acc, φ d < φ c := by
+    intro fuel
+    induction fuel with
+    | zero =>
+        intro x acc hacc _ d hd
+        have hd' : d ∈ acc := hd
+        exact hacc d hd'
+    | succ f ih =>
+        intro x acc hacc hx d hd
+        rw [aboveOf_go_succ] at hd
+        cases ht : st.board.topOf (Sum.inr x) with
+        | none =>
+            rw [ht] at hd
+            have hd' : d ∈ acc := hd
+            exact hacc d hd'
+        | some y =>
+            rw [ht] at hd
+            have hd' : d ∈ (if acc.contains y then acc
+                else Board.aboveOf.go st.board f (Sum.inr y) (y :: acc)) := hd
+            by_cases hcy : acc.contains y = true
+            · rw [if_pos hcy] at hd'
+              exact hacc d hd'
+            · rw [if_neg hcy] at hd'
+              have hxy : φ y < φ x := hφ x y ht
+              have hyc : φ y < φ c := by
+                rcases hx with h | h
+                · omega
+                · exact h ▸ hxy
+              refine ih y (y :: acc) (fun z hz => ?_) (Or.inl hyc) d hd'
+              rcases List.mem_cons.mp hz with rfl | hz'
+              · exact hyc
+              · exact hacc z hz'
+  intro d hd
+  exact main 52 c [] (by simp) (Or.inr rfl) d hd
+
+/-- Acyclicity, from the grading: no card is above itself when the
+matching admits a forest potential. -/
+theorem aboveOf_irrefl {st : State} (hwf : st.WF) (hfor : st.board_forest) (c : Card) :
+    c ∉ st.board.aboveOf c := by
+  obtain ⟨φ, hφ⟩ := hfor
+  have hgr := aboveOf_rank_grading hwf hφ c
+  intro hmem
+  exact absurd (hgr c hmem) (Nat.lt_irrefl _)
 
 /-! ## 5. The deck integration — the jump IS the physical game
 
@@ -2147,27 +2230,687 @@ C9's premise, as theorems, at every draw step (at step 1 the guard is
 trivial — `reachablePos_step1`).  The bridge to `toEngine_simulates`
 consumes these. -/
 
+/-! ### The deal-iteration kit — the jump-soundness machinery
+
+`Cycle.dealIter` is `k` deals (Macro.lean's `Cycle.dealN` restated —
+this file cannot import Macro), with the orbit correspondence: → every
+accessible position is dealt to (`dealReach_maskPos`), ← every cursor
+the chain reaches lands in the original mask (`dealIter_orbit` +
+`dealIter_mask`), which with `stock_wf`'s duplicate-freeness pins the
+position. -/
+
+/-- `k` deals from `cy`. -/
+def Cycle.dealIter (s : Nat) : Nat → Cycle Card → Cycle Card
+  | 0, cy => cy
+  | k + 1, cy => dealOnce s (dealIter s k cy)
+
+theorem Cycle.dealIter_zero (s : Nat) (cy : Cycle Card) : dealIter s 0 cy = cy := rfl
+
+theorem Cycle.dealIter_succ (s : Nat) (k : Nat) (cy : Cycle Card) :
+    dealIter s (k + 1) cy = dealOnce s (dealIter s k cy) := rfl
+
+theorem Cycle.dealIter_one (s : Nat) (cy : Cycle Card) :
+    dealIter s 1 cy = dealOnce s cy := rfl
+
+theorem Cycle.dealIter_add (s : Nat) : ∀ (k j : Nat) (cy : Cycle Card),
+    dealIter s (k + j) cy = dealIter s k (dealIter s j cy) := by
+  intro k
+  induction k with
+  | zero => intro j cy; rw [Nat.zero_add, dealIter_zero]
+  | succ k ih =>
+    intro j cy
+    rw [Nat.succ_add, dealIter_succ, dealIter_succ, ih]
+
+theorem Cycle.dealIter_shift (s : Nat) : ∀ (k : Nat) (cy : Cycle Card),
+    dealIter s k (dealOnce s cy) = dealOnce s (dealIter s k cy) := by
+  intro k
+  induction k with
+  | zero => intro cy; rfl
+  | succ k ih => intro cy; rw [dealIter_succ, ih, ← dealIter_succ]
+
+theorem Cycle.dealIter_cards (s : Nat) : ∀ (k : Nat) (cy : Cycle Card),
+    (dealIter s k cy).cards = cy.cards := by
+  intro k
+  induction k with
+  | zero => intro cy; rfl
+  | succ k ih => intro cy; rw [dealIter_succ, Cycle.dealOnce_cards, ih]
+
+theorem dealIter_cards' (s : Nat) (k : Nat) (l : List Card) (c₀ : Nat) :
+    (Cycle.dealIter s k ⟨l, c₀⟩).cards = l :=
+  Cycle.dealIter_cards s k ⟨l, c₀⟩
+
+theorem jump_mul_mod (k s : Nat) : k * s % s = 0 := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    rw [Nat.succ_mul, Nat.add_mod, ih, Nat.mod_self, Nat.zero_add, Nat.zero_mod]
+
+theorem jump_mul_sub_mod (k s : Nat) : (k * s - s) % s = 0 := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    have h1 : (k + 1) * s = k * s + s := by rw [Nat.add_mul, Nat.one_mul]
+    rw [h1, Nat.add_sub_cancel]
+    exact jump_mul_mod k s
+
+theorem jump_exists_mul {a s : Nat} (hmod : a % s = 0) : ∃ q, a = q * s := by
+  refine ⟨a / s, ?_⟩
+  have hdiv := Nat.div_add_mod a s
+  rw [hmod, Nat.add_zero] at hdiv
+  rw [Nat.mul_comm]
+  exact hdiv.symm
+
+theorem le_mul_self {j s : Nat} (hj : 1 ≤ j) : s ≤ j * s := by
+  have h1 : j - 1 + 1 = j := by omega
+  rw [← h1, Nat.add_mul, Nat.one_mul]
+  exact Nat.le_add_left s ((j - 1) * s)
+
+/-- One deal from the pass end (or past it) wraps to 0. -/
+theorem dealOnce_wrap (s : Nat) (l : List Card) (κ : Nat) (hκ : κ ≥ l.length) :
+    (Cycle.dealOnce s ⟨l, κ⟩).cursor = 0 := by
+  show (if κ ≥ l.length then (⟨l, 0⟩ : Cycle Card)
+      else ⟨l, min (κ + s) l.length⟩).cursor = 0
+  rw [if_pos hκ]
+
+/-- One deal below the pass end clamps at `min (κ + s)`. -/
+theorem dealOnce_step (s : Nat) (l : List Card) (κ : Nat) (hκ : ¬(κ ≥ l.length)) :
+    (Cycle.dealOnce s ⟨l, κ⟩).cursor = min (κ + s) l.length := by
+  show (if κ ≥ l.length then (⟨l, 0⟩ : Cycle Card)
+      else ⟨l, min (κ + s) l.length⟩).cursor = min (κ + s) l.length
+  rw [if_neg hκ]
+
+theorem dealIter_cursor_le (s : Nat) : ∀ (k : Nat) (cy : Cycle Card),
+    cy.cursor ≤ cy.cards.length → (Cycle.dealIter s k cy).cursor ≤ cy.cards.length := by
+  intro k
+  induction k with
+  | zero => intro cy h; exact h
+  | succ f ih =>
+    intro cy h
+    by_cases hguard : (Cycle.dealIter s f cy).cursor ≥ (Cycle.dealIter s f cy).cards.length
+    · rw [Cycle.dealIter_succ, dealOnce_wrap s _ _ hguard]
+      exact Nat.zero_le _
+    · rw [Cycle.dealIter_succ, dealOnce_step s _ _ hguard, Cycle.dealIter_cards]
+      exact Nat.min_le_right _ _
+
+/-- The orbit form: every cursor the deal chain reaches is either on
+the first pass from `c₀` (`c₀ + m·s`, clamped at the length) or on a
+fresh pass (`j·s`, clamped). -/
+theorem dealIter_orbit (s : Nat) : ∀ (k : Nat) (l : List Card) (c₀ : Nat),
+    c₀ ≤ l.length →
+    (∃ m, (Cycle.dealIter s k ⟨l, c₀⟩).cursor = min (c₀ + m * s) l.length)
+      ∨ (∃ j, (Cycle.dealIter s k ⟨l, c₀⟩).cursor = min (j * s) l.length) := by
+  intro k
+  induction k with
+  | zero =>
+    intro l c₀ hle
+    refine Or.inl ⟨0, ?_⟩
+    rw [Cycle.dealIter_zero, Nat.zero_mul, Nat.add_zero, Nat.min_eq_left hle]
+  | succ f ih =>
+    intro l c₀ hle
+    obtain hc | hc := ih l c₀ hle
+    · obtain ⟨m, hm⟩ := hc
+      by_cases hsat : l.length ≤ c₀ + m * s
+      · refine Or.inr ⟨0, ?_⟩
+        have hκn : (Cycle.dealIter s f ⟨l, c₀⟩).cursor = l.length := by
+          rw [hm, Nat.min_eq_right hsat]
+        have hguard : (Cycle.dealIter s f ⟨l, c₀⟩).cursor
+            ≥ (Cycle.dealIter s f ⟨l, c₀⟩).cards.length := by
+          rw [hκn, dealIter_cards']
+          omega
+        rw [Cycle.dealIter_succ, Nat.zero_mul, Nat.min_eq_left (Nat.zero_le l.length),
+          dealOnce_wrap s _ _ hguard]
+      · refine Or.inl ⟨m + 1, ?_⟩
+        have hκc : (Cycle.dealIter s f ⟨l, c₀⟩).cursor = c₀ + m * s := by
+          rw [hm, Nat.min_eq_left (by omega)]
+        have hguard : ¬((Cycle.dealIter s f ⟨l, c₀⟩).cursor
+            ≥ (Cycle.dealIter s f ⟨l, c₀⟩).cards.length) := by
+          rw [hκc, dealIter_cards']
+          omega
+        have hexp : c₀ + (m + 1) * s = c₀ + m * s + s := by
+          rw [Nat.add_mul, Nat.one_mul]; omega
+        rw [Cycle.dealIter_succ, dealOnce_step s _ _ hguard, hκc, dealIter_cards', hexp]
+    · obtain ⟨j, hj⟩ := hc
+      by_cases hsat : l.length ≤ j * s
+      · refine Or.inr ⟨0, ?_⟩
+        have hκn : (Cycle.dealIter s f ⟨l, c₀⟩).cursor = l.length := by
+          rw [hj, Nat.min_eq_right hsat]
+        have hguard : (Cycle.dealIter s f ⟨l, c₀⟩).cursor
+            ≥ (Cycle.dealIter s f ⟨l, c₀⟩).cards.length := by
+          rw [hκn, dealIter_cards']
+          omega
+        rw [Cycle.dealIter_succ, Nat.zero_mul, Nat.min_eq_left (Nat.zero_le l.length),
+          dealOnce_wrap s _ _ hguard]
+      · refine Or.inr ⟨j + 1, ?_⟩
+        have hκc : (Cycle.dealIter s f ⟨l, c₀⟩).cursor = j * s := by
+          rw [hj, Nat.min_eq_left (by omega)]
+        have hguard : ¬((Cycle.dealIter s f ⟨l, c₀⟩).cursor
+            ≥ (Cycle.dealIter s f ⟨l, c₀⟩).cards.length) := by
+          rw [hκc, dealIter_cards']
+          omega
+        have hexp : (j + 1) * s = j * s + s := by rw [Nat.add_mul, Nat.one_mul]
+        rw [Cycle.dealIter_succ, dealOnce_step s _ _ hguard, hκc, dealIter_cards', hexp]
+
+/-- The current-pass advance: `q` deals from `c` land exactly at
+`c + q·s` within the length (no clamp, no wrap). -/
+theorem dealChain_add {s : Nat} (hs : 0 < s) (l : List Card) :
+    ∀ (q c : Nat), c + q * s ≤ l.length →
+      Cycle.dealIter s q ⟨l, c⟩ = ⟨l, c + q * s⟩ := by
+  intro q
+  induction q with
+  | zero => intro c _; rw [Nat.zero_mul, Nat.add_zero]; rfl
+  | succ q ih =>
+    intro c hle
+    have hexp : (q + 1) * s = q * s + s := by rw [Nat.add_mul, Nat.one_mul]
+    rw [hexp] at hle
+    have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, c + s⟩ := by
+      show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
+          = (⟨l, c + s⟩ : Cycle Card)
+      rw [if_neg (by omega), Nat.min_eq_left (by omega)]
+    rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep, ih (c + s) (by omega), hexp]
+    exact congrArg (Cycle.mk l) (by omega)
+
+/-- Every cursor reaches the pass end: the chain of clamped deals. -/
+theorem dealChain_to_end {s : Nat} (hs : 0 < s) (l : List Card) :
+    ∀ (d c : Nat), c ≤ l.length → l.length - c ≤ d →
+      ∃ k, Cycle.dealIter s k ⟨l, c⟩ = ⟨l, l.length⟩ := by
+  intro d
+  induction d with
+  | zero =>
+    intro c _ hd
+    have hc : c = l.length := by omega
+    subst hc
+    exact ⟨0, rfl⟩
+  | succ d ih =>
+    intro c _ hd
+    by_cases hc : c = l.length
+    · subst hc; exact ⟨0, rfl⟩
+    · by_cases hcs : c + s < l.length
+      · have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, c + s⟩ := by
+          show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
+              = (⟨l, c + s⟩ : Cycle Card)
+          rw [if_neg (by omega), Nat.min_eq_left (by omega)]
+        obtain ⟨k, hk⟩ := ih (c + s) (by omega) (by omega)
+        refine ⟨k + 1, ?_⟩
+        rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep]
+        exact hk
+      · have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, l.length⟩ := by
+          show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
+              = (⟨l, l.length⟩ : Cycle Card)
+          rw [if_neg (by omega), Nat.min_eq_right (by omega)]
+        exact ⟨1, hstep⟩
+
+/-- The pass end is reached from any cursor, even past it (one wrap). -/
+theorem dealChain_to_end_any {s : Nat} (hs : 0 < s) (l : List Card) (c : Nat) :
+    ∃ k, Cycle.dealIter s k ⟨l, c⟩ = ⟨l, l.length⟩ := by
+  by_cases hcl : c ≤ l.length
+  · exact dealChain_to_end hs l (l.length - c) c hcl (by omega)
+  · have hwrap : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, 0⟩ := by
+      show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
+          = (⟨l, 0⟩ : Cycle Card)
+      rw [if_pos (by omega : c ≥ l.length)]
+    obtain ⟨k₀, hk₀⟩ := dealChain_to_end hs l l.length 0 (Nat.zero_le _) (by omega)
+    refine ⟨k₀ + 1, ?_⟩
+    rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hwrap, hk₀]
+
+/-- The wrapped advance: reach the pass end, wrap to 0, then climb to
+`i + 1` on the batch-top lane. -/
+theorem dealChain_wrap {s : Nat} (hs : 0 < s) (l : List Card) (c i : Nat)
+    (hlt : i < l.length) (hle : s - 1 ≤ i) (hmod : (i - (s - 1)) % s = 0) :
+    ∃ k, Cycle.dealIter s k ⟨l, c⟩ = ⟨l, i + 1⟩ := by
+  obtain ⟨k₀, hk₀⟩ := dealChain_to_end_any hs l c
+  have hwrap : Cycle.dealOnce s ⟨l, l.length⟩ = ⟨l, 0⟩ := by
+    show (if l.length ≥ l.length then (⟨l, 0⟩ : Cycle Card)
+        else ⟨l, min (l.length + s) l.length⟩) = (⟨l, 0⟩ : Cycle Card)
+    rw [if_pos (Nat.le_refl l.length)]
+  obtain ⟨q, hq⟩ := jump_exists_mul hmod
+  have hexp : (q + 1) * s = q * s + s := by rw [Nat.add_mul, Nat.one_mul]
+  have hadv : 0 + (q + 1) * s ≤ l.length := by rw [hexp]; omega
+  have hlast : 0 + (q + 1) * s = i + 1 := by rw [hexp]; omega
+  refine ⟨(q + 1) + (1 + k₀), ?_⟩
+  have hcomp1 : Cycle.dealIter s (1 + k₀) ⟨l, c⟩
+      = Cycle.dealOnce s (Cycle.dealIter s k₀ ⟨l, c⟩) := by
+    rw [Cycle.dealIter_add, Cycle.dealIter_one]
+  have hcomp2 : Cycle.dealIter s ((q + 1) + (1 + k₀)) ⟨l, c⟩
+      = Cycle.dealIter s (q + 1) (Cycle.dealOnce s (Cycle.dealIter s k₀ ⟨l, c⟩)) := by
+    rw [Cycle.dealIter_add, hcomp1]
+  rw [hcomp2, hk₀, hwrap, dealChain_add hs l (q + 1) 0 hadv, hlast]
+
+/-- The deal-orbit correspondence, witness half: every accessible
+position is dealt to — `dealIter` realizes the jump. -/
+theorem dealReach_maskPos {s : Nat} (hs : 0 < s) {cy : Cycle Card} {i : Nat}
+    (hlt : i < cy.cards.length) (hmem : i ∈ Pace.maskPos cy s hs) :
+    ∃ k, Cycle.dealIter s k cy = { cy with cursor := i + 1 } := by
+  rcases cy with ⟨l, c⟩
+  show ∃ k, Cycle.dealIter s k ⟨l, c⟩ = ⟨l, i + 1⟩
+  have hlt : i < l.length := hlt
+  simp only [Pace.maskPos] at hmem
+  rcases List.mem_append.mp hmem with h12 | h3
+  · rcases List.mem_append.mp h12 with h1 | h2
+    · obtain ⟨hle, hlt2, hmod⟩ := (Pace.laneUp_mem s hs _ _ i).mp h1
+      by_cases hc0 : c = 0
+      · subst hc0
+        rw [if_pos rfl] at hle hmod
+        exact dealChain_wrap hs l 0 i hlt hle hmod
+      · rw [if_neg hc0] at hle hmod
+        obtain ⟨q, hq⟩ := jump_exists_mul hmod
+        have hle2 : c + q * s ≤ l.length := by omega
+        have hkey : c + q * s = i + 1 := by omega
+        refine ⟨q, ?_⟩
+        rw [dealChain_add hs l q c hle2]
+        exact congrArg (Cycle.mk l) hkey
+    · rw [if_pos (by omega : 0 < l.length)] at h2
+      simp only [List.mem_singleton] at h2
+      obtain ⟨k, hk⟩ := dealChain_to_end_any hs l c
+      refine ⟨k, ?_⟩
+      rw [hk]
+      exact congrArg (Cycle.mk l) (by omega)
+  · obtain ⟨hle, -, hmod⟩ := (Pace.laneUp_mem s hs _ _ i).mp h3
+    exact dealChain_wrap hs l c i hlt hle hmod
+
+/-- `maskPos`, lane 1: the leading lane from the cursor's waste top. -/
+theorem maskPos_lane1_mem {α : Type} {l : List α} {c₀ s : Nat} (hs : 0 < s) {p : Nat}
+    (hle : (if c₀ = 0 then s - 1 else c₀ - 1) ≤ p)
+    (hlt : p < l.length - 1)
+    (hmod : (p - (if c₀ = 0 then s - 1 else c₀ - 1)) % s = 0) :
+    p ∈ Pace.maskPos ⟨l, c₀⟩ s hs := by
+  have h : p ∈ Pace.laneUp s hs (if c₀ = 0 then s - 1 else c₀ - 1) (l.length - 1) :=
+    (Pace.laneUp_mem s hs _ _ p).mpr ⟨hle, hlt, hmod⟩
+  show p ∈ (Pace.laneUp s hs _ (l.length - 1)
+    ++ (if 0 < l.length then [l.length - 1] else [])
+    ++ Pace.laneUp s hs (s - 1)
+        ((if c₀ % s != 0 then l.length else c₀) - 1))
+  simp only [List.mem_append]
+  exact Or.inl (Or.inl h)
+
+/-- `maskPos`, lane 2: the batch-top lane below the wrap end. -/
+theorem maskPos_lane2_mem {α : Type} {l : List α} {c₀ s : Nat} (hs : 0 < s) {p : Nat}
+    (hle : s - 1 ≤ p)
+    (hlt : p < (if c₀ % s != 0 then l.length else c₀) - 1)
+    (hmod : (p - (s - 1)) % s = 0) :
+    p ∈ Pace.maskPos ⟨l, c₀⟩ s hs := by
+  have h : p ∈ Pace.laneUp s hs (s - 1) ((if c₀ % s != 0 then l.length else c₀) - 1) :=
+    (Pace.laneUp_mem s hs _ _ p).mpr ⟨hle, hlt, hmod⟩
+  show p ∈ (Pace.laneUp s hs _ (l.length - 1)
+    ++ (if 0 < l.length then [l.length - 1] else [])
+    ++ Pace.laneUp s hs (s - 1)
+        ((if c₀ % s != 0 then l.length else c₀) - 1))
+  simp only [List.mem_append]
+  exact Or.inr h
+
+/-- `maskPos`, the last card (the pass-end saturation). -/
+theorem maskPos_last_mem {α : Type} {l : List α} {c₀ s : Nat} (hs : 0 < s)
+    (hn : 0 < l.length) : l.length - 1 ∈ Pace.maskPos ⟨l, c₀⟩ s hs := by
+  show l.length - 1 ∈ (Pace.laneUp s hs _ (l.length - 1)
+    ++ (if 0 < l.length then [l.length - 1] else [])
+    ++ Pace.laneUp s hs (s - 1) _)
+  rw [if_pos hn]
+  simp only [List.mem_append]
+  exact Or.inl (Or.inr (List.mem_singleton.mpr rfl))
+
+/-- The orbit lands in the mask: every cursor the deal chain reaches
+(other than a fresh 0) exposes, at `κ - 1`, a position of the
+*original* cycle's accessible set. -/
+theorem dealIter_mask {s : Nat} (hs : 0 < s) {l : List Card} {c₀ κ : Nat}
+    (hcur : c₀ ≤ l.length) (hκ : κ ≤ l.length) (h0 : κ ≠ 0)
+    (hform : (∃ m, κ = min (c₀ + m * s) l.length) ∨ (∃ j, κ = min (j * s) l.length)) :
+    κ - 1 ∈ Pace.maskPos ⟨l, c₀⟩ s hs := by
+  have := hκ
+  have := hcur
+  rcases hform with ⟨m, hm⟩ | ⟨j, hj⟩
+  · by_cases hsat : l.length ≤ c₀ + m * s
+    · have hκn : κ = l.length := by rw [hm, Nat.min_eq_right hsat]
+      rw [hκn]
+      exact maskPos_last_mem hs (by omega)
+    · rw [hm, Nat.min_eq_left (by omega)]
+      rcases Nat.eq_zero_or_pos m with rfl | hm0
+      · have hc0 : c₀ ≠ 0 := by omega
+        refine maskPos_lane1_mem hs ?_ ?_ ?_
+        · rw [if_neg hc0]; omega
+        · omega
+        · rw [if_neg hc0]
+          rw [show c₀ + 0 * s - 1 - (c₀ - 1) = 0 from by omega, Nat.zero_mod]
+      · have hsle : s ≤ m * s := le_mul_self (by omega)
+        by_cases hc0 : c₀ = 0
+        · subst hc0
+          refine maskPos_lane1_mem hs ?_ ?_ ?_
+          · rw [if_pos rfl]
+            omega
+          · omega
+          · rw [if_pos rfl]
+            have hsub : 0 + m * s - 1 - (s - 1) = m * s - s := by omega
+            rw [hsub]
+            exact jump_mul_sub_mod m s
+        · refine maskPos_lane1_mem hs ?_ ?_ ?_
+          · rw [if_neg hc0]; omega
+          · omega
+          · rw [if_neg hc0]
+            have hsub : c₀ + m * s - 1 - (c₀ - 1) = m * s := by omega
+            rw [hsub]
+            exact jump_mul_mod m s
+  · rcases Nat.eq_zero_or_pos j with rfl | hj0
+    · have hκ0 : κ = 0 := by
+        rw [hj, Nat.zero_mul, Nat.min_eq_left (Nat.zero_le l.length)]
+      exact absurd hκ0 h0
+    · have hsle : s ≤ j * s := le_mul_self (by omega)
+      by_cases hsat : l.length ≤ j * s
+      · have hκn : κ = l.length := by rw [hj, Nat.min_eq_right hsat]
+        rw [hκn]
+        exact maskPos_last_mem hs (by omega)
+      · rw [hj, Nat.min_eq_left (by omega)]
+        rcases Nat.eq_zero_or_pos (c₀ % s) with hmod0 | hpos
+        · have hne : ¬((c₀ % s != 0) = true) := by
+            rw [hmod0]
+            simp
+          by_cases hbelow : j * s - 1 < c₀ - 1
+          · refine maskPos_lane2_mem hs ?_ ?_ ?_
+            · show s - 1 ≤ j * s - 1
+              omega
+            · rw [if_neg hne]; omega
+            · have hsub : j * s - 1 - (s - 1) = j * s - s := by omega
+              rw [hsub]
+              exact jump_mul_sub_mod j s
+          · by_cases hc0 : c₀ = 0
+            · subst hc0
+              refine maskPos_lane1_mem hs ?_ ?_ ?_
+              · rw [if_pos rfl]
+                omega
+              · omega
+              · rw [if_pos rfl]
+                have hsub : j * s - 1 - (s - 1) = j * s - s := by omega
+                rw [hsub]
+                exact jump_mul_sub_mod j s
+            · obtain ⟨q, hq⟩ := jump_exists_mul hmod0
+              refine maskPos_lane1_mem hs ?_ ?_ ?_
+              · rw [if_neg hc0]; omega
+              · omega
+              · rw [if_neg hc0]
+                have hsub : j * s - 1 - (c₀ - 1) = j * s - c₀ := by omega
+                rw [hsub, hq, ← Nat.sub_mul]
+                exact jump_mul_mod (j - q) s
+        · have hres : (c₀ % s != 0) = true := by simp [Nat.ne_of_gt hpos]
+          refine maskPos_lane2_mem hs ?_ ?_ ?_
+          · show s - 1 ≤ j * s - 1
+            omega
+          · rw [if_pos hres]; omega
+          · have hsub : j * s - 1 - (s - 1) = j * s - s := by omega
+            rw [hsub]
+            exact jump_mul_sub_mod j s
+
+/-- A found position points at the card. -/
+theorem posOf_get {c : Card} : ∀ (l : List Card) (cur i : Nat),
+    Cycle.posOf c ⟨l, cur⟩ = some i → l[i]? = some c := by
+  intro l
+  induction l with
+  | nil => intro cur i h; simp [Cycle.posOf, Cycle.findFirstIdx] at h
+  | cons a t ih =>
+    intro cur i h
+    simp only [Cycle.posOf, Cycle.findFirstIdx] at h
+    by_cases ha : a = c
+    · rw [if_pos (decide_eq_true ha), Option.some.injEq] at h
+      subst h
+      rw [ha]
+      rfl
+    · rw [if_neg (fun hcon => ha (of_decide_eq_true hcon))] at h
+      cases hf : Cycle.findFirstIdx (fun c' => decide (c' = c)) t with
+      | none => rw [hf] at h; simp at h
+      | some j =>
+        rw [hf, Option.map_some, Option.some.injEq] at h
+        subst h
+        rw [List.getElem?_cons_succ]
+        exact ih 0 j hf
+
+/-- Running a pure-deal play lands on the iterated deal. -/
+theorem run_dealIter : ∀ (k : Nat) (st : State),
+    st.run (List.replicate k Move.draw) =
+      some { st with stock := Cycle.dealIter st.drawStep k st.stock } := by
+  intro k
+  induction k with
+  | zero => intro st; rfl
+  | succ f ih =>
+    intro st
+    rw [List.replicate_succ, State.run,
+      show st.apply Move.draw =
+        some { st with stock := Cycle.dealOnce st.drawStep st.stock } from rfl]
+    show ({ st with stock := Cycle.dealOnce st.drawStep st.stock } : State).run
+        (List.replicate f Move.draw) = _
+    rw [ih { st with stock := Cycle.dealOnce st.drawStep st.stock }]
+    show some { st with stock := Cycle.dealIter st.drawStep f (Cycle.dealOnce st.drawStep st.stock) }
+       = some { st with stock := Cycle.dealIter st.drawStep (f + 1) st.stock }
+    rw [Cycle.dealIter_shift, Cycle.dealIter_succ]
+
+/-- `reachablePos`, introduction form. -/
+theorem reachablePos_intro {st : State} {c : Card} {i : Nat} (hs : 0 < st.drawStep)
+    (hpos : st.stock.posOf c = some i) (hmem : i ∈ Pace.maskPos st.stock st.drawStep hs) :
+    st.reachablePos c = some i := by
+  simp only [State.reachablePos, dif_pos hs, hpos, if_pos hmem]
+
+/-- The tableau deck move after the deals brought `c` to the top. -/
+theorem deckPile_after_deals {st : State} {c : Card} {b : Base} {i : Nat} {bd : Board}
+    (hget : st.stock.cards[i]? = some c) (hcan : st.canPlace c b = true)
+    (hatt : st.board.attach b c = some bd) :
+    ({ st with stock := { st.stock with cursor := i + 1 } }).apply (Move.deckPile c b)
+      = some { st with board := bd, stock := (st.stock.drawTo i).removeAt i } := by
+  have hprev : ({ st with stock := { st.stock with cursor := i + 1 } } : State).stock.prev
+      = some c := by
+    show (Cycle.prev { st.stock with cursor := i + 1 }) = some c
+    show (if i + 1 = 0 then none else st.stock.cards[i + 1 - 1]?) = some c
+    rw [if_neg (by omega : ¬ (i + 1 = 0))]
+    have hi : i + 1 - 1 = i := by omega
+    rw [hi]
+    exact hget
+  have e1 : (({ st with stock := { st.stock with cursor := i + 1 } } : State).stock.cursor - 1)
+      = i := by
+    show i + 1 - 1 = i
+    omega
+  have e2 : ({ st with stock := { st.stock with cursor := i + 1 } } : State).stock
+      = { st.stock with cursor := i + 1 } := rfl
+  have e3 : st.stock.drawTo i = { st.stock with cursor := i + 1 } := rfl
+  refine (apply_deckPile_iff).mpr ⟨hprev, hcan, bd, hatt, ?_⟩
+  rw [e1, e2, e3]
+
+/-- The stack deck move after the deals. -/
+theorem deckStack_after_deals {st : State} {c : Card} {i : Nat}
+    (hget : st.stock.cards[i]? = some c) (hrank : c.rank.toIdx = st.heights c.suit) :
+    ({ st with stock := { st.stock with cursor := i + 1 } }).apply (Move.deckStack c)
+      = some { st with
+        stock := (st.stock.drawTo i).removeAt i,
+        heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s } := by
+  have hprev : ({ st with stock := { st.stock with cursor := i + 1 } } : State).stock.prev
+      = some c := by
+    show (Cycle.prev { st.stock with cursor := i + 1 }) = some c
+    show (if i + 1 = 0 then none else st.stock.cards[i + 1 - 1]?) = some c
+    rw [if_neg (by omega : ¬ (i + 1 = 0))]
+    have hi : i + 1 - 1 = i := by omega
+    rw [hi]
+    exact hget
+  have e1 : (({ st with stock := { st.stock with cursor := i + 1 } } : State).stock.cursor - 1)
+      = i := by
+    show i + 1 - 1 = i
+    omega
+  have e2 : ({ st with stock := { st.stock with cursor := i + 1 } } : State).stock
+      = { st.stock with cursor := i + 1 } := rfl
+  have e3 : st.stock.drawTo i = { st.stock with cursor := i + 1 } := rfl
+  refine (apply_deckStack_iff).mpr ⟨hprev, hrank, ?_⟩
+  show { st with
+    stock := (st.stock.drawTo i).removeAt i,
+    heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
+     = { st with
+    stock := (({ st with stock := { st.stock with cursor := i + 1 } } : State).stock).removeAt
+        ((({ st with stock := { st.stock with cursor := i + 1 } } : State).stock.cursor - 1)),
+    heights := fun s => if s = c.suit
+      then ({ st with stock := { st.stock with cursor := i + 1 } } : State).heights s + 1
+      else ({ st with stock := { st.stock with cursor := i + 1 } } : State).heights s }
+  rw [e1, e2, e3]
+
+/-- `applyDrawStackTo`'s shape (the stack landing needs no canPlace:
+its rank guard is `deckStack`'s own). -/
+theorem applyDrawStackTo_shape {st : State} {c : Card} {st' : State} :
+    st.applyDrawStackTo c = some st' ↔
+      ∃ i, st.reachablePos c = some i ∧ c.rank.toIdx = st.heights c.suit ∧
+        st' = { st with
+          stock := (st.stock.drawTo i).removeAt i,
+          heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s } := by
+  constructor
+  · intro h
+    simp only [State.applyDrawStackTo] at h
+    cases hpos : st.reachablePos c with
+    | none => rw [hpos] at h; simp at h
+    | some i =>
+      rw [hpos] at h
+      have h' : (if c.rank.toIdx = st.heights c.suit then
+          some { st with
+            stock := (st.stock.drawTo i).removeAt i,
+            heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
+          else none) = some st' := h
+      by_cases hrk : c.rank.toIdx = st.heights c.suit
+      · rw [if_pos hrk, Option.some.injEq] at h'
+        exact ⟨i, rfl, hrk, h'.symm⟩
+      · rw [if_neg hrk] at h'; simp at h'
+  · intro ⟨i, hpos, hrk, hst⟩
+    rw [hst]
+    simp only [State.applyDrawStackTo, hpos, if_pos hrk]
+
+/-- The ← direction's core, shared by both jump-soundness theorems:
+a deck move after `k` deals implies the guard — the dealt card sits at
+an accessible position, and the splice agrees with the jump's. -/
+theorem dealIter_prev_reachable {st : State} (hwf : st.WF) {c : Card} {k : Nat}
+    (hprev : (Cycle.dealIter st.drawStep k st.stock).prev = some c) :
+    ∃ i, st.reachablePos c = some i ∧
+      (Cycle.dealIter st.drawStep k st.stock).removeAt
+          ((Cycle.dealIter st.drawStep k st.stock).cursor - 1)
+        = (st.stock.drawTo i).removeAt i := by
+  have hs : 0 < st.drawStep := hwf.step_pos
+  have hcards : (Cycle.dealIter st.drawStep k st.stock).cards = st.stock.cards :=
+    Cycle.dealIter_cards _ _ _
+  have hκle : (Cycle.dealIter st.drawStep k st.stock).cursor ≤ st.stock.cards.length :=
+    dealIter_cursor_le _ _ _ hwf.cursor_le
+  simp only [Cycle.prev] at hprev
+  split at hprev
+  · exact absurd hprev (by simp)
+  · rename_i hκ0
+    have hκne : (Cycle.dealIter st.drawStep k st.stock).cursor ≠ 0 := hκ0
+    rw [hcards] at hprev
+    have hmem : (Cycle.dealIter st.drawStep k st.stock).cursor - 1
+        ∈ Pace.maskPos st.stock st.drawStep hs := by
+      obtain (⟨m, hm⟩ | ⟨j, hj⟩) :=
+        dealIter_orbit _ k st.stock.cards st.stock.cursor hwf.cursor_le
+      · exact dealIter_mask hs hwf.cursor_le hκle hκne (Or.inl ⟨m, hm⟩)
+      · exact dealIter_mask hs hwf.cursor_le hκle hκne (Or.inr ⟨j, hj⟩)
+    have hpos : st.stock.posOf c
+        = some ((Cycle.dealIter st.drawStep k st.stock).cursor - 1) := by
+      cases hp : st.stock.posOf c with
+      | none =>
+          exfalso
+          exact Cycle.posOf_mem (List.mem_iff_getElem?.mpr ⟨_, hprev⟩) hp
+      | some i₀ =>
+          have hget₂ : st.stock.cards[i₀]? = some c := posOf_get _ _ _ hp
+          have hi₀ : i₀ < st.stock.cards.length := Cycle.posOf_lt hp
+          have hκm1 : (Cycle.dealIter st.drawStep k st.stock).cursor - 1
+              < st.stock.cards.length := (List.getElem?_eq_some_iff.mp hprev).1
+          have heq : (Cycle.dealIter st.drawStep k st.stock).cursor - 1 = i₀ :=
+            hwf.stock_wf.1 _ _ hκm1 hi₀ (hprev.trans hget₂.symm)
+          exact congrArg some heq.symm
+    refine ⟨(Cycle.dealIter st.drawStep k st.stock).cursor - 1,
+      reachablePos_intro hs hpos hmem, ?_⟩
+    show ({ cards := Cycle.removeIdx (Cycle.dealIter st.drawStep k st.stock).cards
+              ((Cycle.dealIter st.drawStep k st.stock).cursor - 1),
+            cursor := if (Cycle.dealIter st.drawStep k st.stock).cursor - 1
+                < (Cycle.dealIter st.drawStep k st.stock).cursor
+              then (Cycle.dealIter st.drawStep k st.stock).cursor - 1
+              else (Cycle.dealIter st.drawStep k st.stock).cursor } : Cycle Card)
+      = (st.stock.drawTo ((Cycle.dealIter st.drawStep k st.stock).cursor - 1)).removeAt
+          ((Cycle.dealIter st.drawStep k st.stock).cursor - 1)
+    rw [hcards, if_pos (by omega : (Cycle.dealIter st.drawStep k st.stock).cursor - 1
+        < (Cycle.dealIter st.drawStep k st.stock).cursor), removeAt_drawTo]
+
 /-- **The jump-soundness theorem**: the tableau-outcome Draw
 commitment equals dealing until `c` is the waste top, then playing it
 with the physical deck move — the reachable-position guard is exactly
 the reachability of that deal sequence.
 
-TODO(proof) [H]: → the guard gives the deal count (maskPos ↔
-deal-iteration reachability — the prefix walk of `realizes_iff_stepsOK`;
-`pos_shift`/`cursor_after` supply the positions), then
-`apply_deckPile_iff`'s shape.  ← contrapositive by the same
-correspondence: a reaching sequence puts the position in the mask. -/
+STATEMENT REPAIR (2026-09-13, the Wave-9 alert — the same hole as
+Macro's `commitApplies` repair, witness there): the → direction needed
+`st.canPlace c b = true` — `applyDrawTo`'s own guard (accessible
+position + free base) does not check the landing rule, so without the
+conjunct the theorem admitted Draw-commitment landings no play can
+produce (♠7 pile-0's sole visible card, ♥5 the last stock card at the
+pass-end cursor, base `inr ♠7`: the jump succeeds, `canSitOn ♥5 ♠7` is
+false, so no `deckPile` ever reaches the successor).  With the guard:
+→ the mask gives the deal count (`dealReach_maskPos`), then
+`deckPile_after_deals`; ← the orbit lands in the mask
+(`dealIter_prev_reachable`: `dealIter_mask` + the duplicate-freeness
+pin). -/
 theorem applyDrawTo_eq_dealPlay {st : State} (hwf : st.WF) {c : Card} {b : Base}
-    {st'' : State} :
+    (hcan : st.canPlace c b = true) {st'' : State} :
     st.applyDrawTo c b = some st'' ↔
       ∃ k st₁, st.run (List.replicate k Move.draw) = some st₁ ∧
-        st₁.apply (Move.deckPile c b) = some st'' := sorry
+        st₁.apply (Move.deckPile c b) = some st'' := by
+  constructor
+  · intro h
+    obtain ⟨i, bd, hr, hatt, hst''⟩ := applyDrawTo_eq h
+    have hs : 0 < st.drawStep := hwf.step_pos
+    have hpos : st.stock.posOf c = some i := reachablePos_posOf hr
+    have hmem := reachablePos_mask hs hr
+    have hlt : i < st.stock.cards.length := Cycle.posOf_lt hpos
+    obtain ⟨kk, hkk⟩ := dealReach_maskPos hs hlt hmem
+    refine ⟨kk, { st with stock := Cycle.dealIter st.drawStep kk st.stock }, ?_, ?_⟩
+    · rw [run_dealIter]
+    · show ({ st with stock := Cycle.dealIter st.drawStep kk st.stock } : State).apply
+          (Move.deckPile c b) = some st''
+      rw [hkk]
+      have hdp := deckPile_after_deals (posOf_get _ _ _ hpos) hcan hatt
+      rw [hdp, removeAt_drawTo, hst'']
+  · rintro ⟨k, st₁, hrun, hdp⟩
+    rw [run_dealIter] at hrun
+    have hst₁ : { st with stock := Cycle.dealIter st.drawStep k st.stock } = st₁ :=
+      Option.some.inj hrun
+    subst hst₁
+    rw [apply_deckPile_iff] at hdp
+    obtain ⟨hprev, -, bd, hatt, hst''⟩ := hdp
+    obtain ⟨i, hrep, hstock⟩ := dealIter_prev_reachable hwf hprev
+    have hatt' : st.board.attach b c = some bd := hatt
+    have hXstock : ({ st with stock := Cycle.dealIter st.drawStep k st.stock } : State).stock
+        = Cycle.dealIter st.drawStep k st.stock := rfl
+    rw [hXstock] at hst''
+    rw [hstock] at hst''
+    rw [hst'']
+    simp only [State.applyDrawTo, hrep, hatt']
 
 /-- The stack-outcome twin: the safe-stack commitment equals dealing
-to `c`, then the physical `deckStack`.  TODO(proof) [H]: as
-`applyDrawTo_eq_dealPlay`, through `apply_deckStack_iff`. -/
+to `c`, then the physical `deckStack` — no repair needed (the rank
+guard is `deckStack`'s own). -/
 theorem applyDrawStackTo_eq_dealPlay {st : State} (hwf : st.WF) {c : Card}
     {st'' : State} :
     st.applyDrawStackTo c = some st'' ↔
       ∃ k st₁, st.run (List.replicate k Move.draw) = some st₁ ∧
-        st₁.apply (Move.deckStack c) = some st'' := sorry
+        st₁.apply (Move.deckStack c) = some st'' := by
+  constructor
+  · intro h
+    obtain ⟨i, hr, hrk, hst''⟩ := (applyDrawStackTo_shape).mp h
+    have hs : 0 < st.drawStep := hwf.step_pos
+    have hpos : st.stock.posOf c = some i := reachablePos_posOf hr
+    have hmem := reachablePos_mask hs hr
+    have hlt : i < st.stock.cards.length := Cycle.posOf_lt hpos
+    obtain ⟨kk, hkk⟩ := dealReach_maskPos hs hlt hmem
+    refine ⟨kk, { st with stock := Cycle.dealIter st.drawStep kk st.stock }, ?_, ?_⟩
+    · rw [run_dealIter]
+    · show ({ st with stock := Cycle.dealIter st.drawStep kk st.stock } : State).apply
+          (Move.deckStack c) = some st''
+      rw [hkk]
+      have hdp := deckStack_after_deals (posOf_get _ _ _ hpos) hrk
+      rw [hdp, hst'']
+  · rintro ⟨k, st₁, hrun, hds⟩
+    rw [run_dealIter] at hrun
+    have hst₁ : { st with stock := Cycle.dealIter st.drawStep k st.stock } = st₁ :=
+      Option.some.inj hrun
+    subst hst₁
+    rw [apply_deckStack_iff] at hds
+    obtain ⟨hprev, hrk, hst''⟩ := hds
+    obtain ⟨i, hrep, hstock⟩ := dealIter_prev_reachable hwf hprev
+    have hrk' : c.rank.toIdx = st.heights c.suit := hrk
+    have hXstock : ({ st with stock := Cycle.dealIter st.drawStep k st.stock } : State).stock
+        = Cycle.dealIter st.drawStep k st.stock := rfl
+    rw [hXstock] at hst''
+    rw [hstock] at hst''
+    rw [hst'']
+    simp only [State.applyDrawStackTo, hrep, if_pos hrk']
