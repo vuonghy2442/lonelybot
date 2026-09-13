@@ -190,22 +190,6 @@ theorem decompose_last : ∀ (k : Nat) (l : List Card) (u c : Card),
           (by simp only [List.length_cons] at hlen ⊢; omega) h0 hgt
         exact ⟨a :: t₀, by rw [ht]; rfl⟩
 
-/-- Distinctness of a suffix, from distinctness of the concatenation. -/
-theorem noDupCards_append_right {l₁ l₂ : List Card} (h : noDupCards (l₁ ++ l₂)) :
-    noDupCards l₂ := by
-  intro i j hi hj heq
-  have hv : ∀ k, (l₁ ++ l₂)[l₁.length + k]? = l₂[k]? := by
-    intro k
-    rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]
-  have hb1 : l₁.length + i < (l₁ ++ l₂).length := by
-    simp only [List.length_append]; omega
-  have hb2 : l₁.length + j < (l₁ ++ l₂).length := by
-    simp only [List.length_append]; omega
-  have hve : (l₁ ++ l₂)[l₁.length + i]? = (l₁ ++ l₂)[l₁.length + j]? := by
-    rw [hv, hv]; exact heq
-  have hres := h (l₁.length + i) (l₁.length + j) hb1 hb2 hve
-  omega
-
 /-- **The exhibit**: a well-formed deal's initial state is WF — the
 theorems' hypotheses are non-vacuous, and `State.initial` is the
 witness constructor: the top cards sit on the card they were dealt
@@ -216,7 +200,7 @@ theorem initial_wf {d : Deal} (hd : d.WF) (hstep : 0 < drawStep) :
     (State.initial d drawStep).WF := by
   obtain ⟨hlen, hstock, hnd⟩ := hd
   have hdw : d.WF := ⟨hlen, hstock, hnd⟩
-  refine ⟨hdw, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hdw, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro a
     show a.toIdx ≤ (d.piles a).length
     have := hlen a
@@ -255,7 +239,18 @@ theorem initial_wf {d : Deal} (hd : d.WF) (hstep : 0 < drawStep) :
         omega
       | some under =>
         obtain ⟨t, ht⟩ := decompose_last k (d.piles a) under c hlk hget hgt
-        exact Or.inl ⟨a, t, [], ht⟩
+        have htlen : t.length = k := by
+          have hlt : (t ++ under :: c :: []).length = k + 2 := by rw [← ht]; exact hlk
+          simp only [List.length_append, List.length_cons, List.length_nil] at hlt
+          omega
+        have hsub1 : a.toIdx = t.length + 1 := by rw [hti]; omega
+        have hsub2 : t.length + 1 - t.length = 1 := by omega
+        have htake : (d.piles a).take (a.toIdx) = t ++ [under] := by
+          rw [ht, hsub1, List.take_append, take_length_succ_self, hsub2]
+          rfl
+        refine Or.inl ⟨a, t, [], ht, Or.inl ⟨a, ?_⟩⟩
+        show ((d.piles a).take (a.toIdx)).getLast? = some under
+        rw [htake, getLast?_append_single]
   · intro c hc
     have hc' : ((initialBoard d).bottomOf c).isSome = true := hc
     cases h : (initialBoard d).bottomOf c with
@@ -269,6 +264,28 @@ theorem initial_wf {d : Deal} (hd : d.WF) (hstep : 0 < drawStep) :
     rw [show (State.initial d drawStep).heights c.suit = 0 from rfl] at hc
     have : c.rank.toIdx < 0 := of_decide_eq_true hc
     omega
+  · intro c hc
+    have h0 : (State.initial d drawStep).heights c.suit = 0 := rfl
+    rw [h0] at hc
+    omega
+  · intro c hc a hcm
+    have hc' : ((initialBoard d).bottomOf c).isSome = true := hc
+    cases h : (initialBoard d).bottomOf c with
+    | none => rw [h] at hc'; simp at hc'
+    | some b =>
+      have htop : (initialBoard d).topOf b = some c := (Board.bottomOf_eq _ _ _).mp h
+      obtain ⟨a₀, -, hbq, hgt⟩ := initialBoard_topOf d b c htop
+      subst hbq
+      have hcm2 : c ∈ (d.piles a).take a.toIdx := hcm
+      have hcp : c ∈ d.piles a := List.take_subset _ _ hcm2
+      have hcp₀ : c ∈ d.piles a₀ := mem_of_getLast hgt
+      have haa : a = a₀ := Deal.piles_disj hdw hcp hcp₀
+      subst haa
+      have hget : (d.piles a)[a.toIdx]? = some c := by
+        have h1 := getLast?_index (d.piles a) c hgt
+        rw [hlen a, Nat.add_sub_cancel] at h1
+        exact h1
+      exact notMem_take_of_get (Deal.pile_noDup hdw a) hget hcm2
   · intro s
     show (0 : Nat) ≤ 13
     exact Nat.zero_le _

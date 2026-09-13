@@ -631,6 +631,168 @@ theorem head?_of_take_single {α : Type} {l : List α} {n : Nat} {x : α}
       obtain ⟨rfl, -⟩ := h
       rfl
 
+/-! ### The take/last index kit (Repair A/B maintenance) -/
+
+/-- One past the length takes everything. -/
+theorem take_length_succ_self {α : Type} : ∀ (l : List α), l.take (l.length + 1) = l
+  | [] => rfl
+  | a :: t => by
+      show a :: t.take (t.length + 1) = a :: t
+      exact congrArg (a :: ·) (take_length_succ_self t)
+
+/-- The last element of an append-singleton. -/
+theorem getLast?_append_single {α : Type} (t : List α) (u : α) :
+    (t ++ [u]).getLast? = some u := by
+  rw [← head?_reverse_eq_getLast?, List.reverse_append]
+  rfl
+
+/-- Membership in a `take` slice gives a bounded index. -/
+theorem mem_take_index {α : Type} {l : List α} {n : Nat} {x : α} (h : x ∈ l.take n) :
+    ∃ i, i < n ∧ l[i]? = some x := by
+  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.mp h
+  have hib : i < n := by
+    have hlen := (List.getElem?_eq_some_iff.mp hi).1
+    rw [List.length_take] at hlen
+    omega
+  refine ⟨i, hib, ?_⟩
+  rw [List.getElem?_take, if_pos hib] at hi
+  exact hi
+
+/-- An index into the list gives membership in any longer `take`. -/
+theorem mem_take_of_index {α : Type} {l : List α} {n : Nat} {x : α} {i : Nat}
+    (hlt : i < n) (hv : l[i]? = some x) : x ∈ l.take n := by
+  refine List.mem_iff_getElem?.mpr ⟨i, ?_⟩
+  rw [List.getElem?_take, if_pos hlt]
+  exact hv
+
+/-- The last element, by index. -/
+theorem getLast?_index {α : Type} : ∀ (l : List α) (x : α), l.getLast? = some x →
+    l[l.length - 1]? = some x := by
+  intro l
+  induction l with
+  | nil => intro x h; simp at h
+  | cons a t ih =>
+      intro x h
+      cases t with
+      | nil => exact h
+      | cons b t' =>
+          have h' : (b :: t').getLast? = some x := h
+          have hih := ih x h'
+          have hidx : (a :: b :: t').length - 1 = ((b :: t').length - 1) + 1 := by
+            simp only [List.length_cons]
+            omega
+          rw [hidx, List.getElem?_cons_succ]
+          exact hih
+
+/-- The element at position `m` is in no shorter `take` (uniqueness). -/
+theorem notMem_take_of_get {l : List Card} {m : Nat} {x : Card}
+    (hnd : noDupCards l) (hget : l[m]? = some x) : x ∉ l.take m := by
+  intro hmem
+  obtain ⟨i, hilt, hig⟩ := mem_take_index hmem
+  have hb1 : i < l.length := (List.getElem?_eq_some_iff.mp hig).1
+  have hb2 : m < l.length := (List.getElem?_eq_some_iff.mp hget).1
+  have := hnd i m hb1 hb2 (hig.trans hget.symm)
+  omega
+
+/-- `take` is monotone in its bound. -/
+theorem take_mono {α : Type} {m n : Nat} {l : List α} (hmn : m ≤ n) :
+    l.take m ⊆ l.take n := by
+  intro x hx
+  obtain ⟨i, hilt, hig⟩ := mem_take_index hx
+  exact mem_take_of_index (by omega) hig
+
+/-- The boundary card, by index: `topHidden` reads position `depths − 1`. -/
+theorem topHidden_get {st : State} {a : Anchor} {r : Card}
+    (hle : st.depths a ≤ (st.deal.piles a).length) (h : st.topHidden a = some r) :
+    (st.deal.piles a)[st.depths a - 1]? = some r := by
+  have hlast : ((st.deal.piles a).take (st.depths a)).getLast? = some r := h
+  have hlen : ((st.deal.piles a).take (st.depths a)).length = st.depths a := by
+    rw [List.length_take]; omega
+  have h1 := getLast?_index ((st.deal.piles a).take (st.depths a)) r hlast
+  rw [hlen, List.getElem?_take] at h1
+  by_cases hpos : st.depths a - 1 < st.depths a
+  · rw [if_pos hpos] at h1; exact h1
+  · exfalso
+    have h0 : st.depths a = 0 := by omega
+    rw [h0] at hlast
+    simp at hlast
+
+/-! ### The append/flatMap distinctness kit -/
+
+/-- Distinctness of the left summand. -/
+theorem noDupCards_append_left {l₁ l₂ : List Card} (h : noDupCards (l₁ ++ l₂)) :
+    noDupCards l₁ := by
+  intro i j hi hj heq
+  have hb1 : i < (l₁ ++ l₂).length := by rw [List.length_append]; omega
+  have hb2 : j < (l₁ ++ l₂).length := by rw [List.length_append]; omega
+  have heq' : (l₁ ++ l₂)[i]? = (l₁ ++ l₂)[j]? := by
+    rw [List.getElem?_append_left (by omega), List.getElem?_append_left (by omega)]
+    exact heq
+  have := h i j hb1 hb2 heq'
+  omega
+
+/-- Distinctness of the right summand. -/
+theorem noDupCards_append_right {l₁ l₂ : List Card} (h : noDupCards (l₁ ++ l₂)) :
+    noDupCards l₂ := by
+  intro i j hi hj heq
+  have hb1 : l₁.length + i < (l₁ ++ l₂).length := by rw [List.length_append]; omega
+  have hb2 : l₁.length + j < (l₁ ++ l₂).length := by rw [List.length_append]; omega
+  have heq' : (l₁ ++ l₂)[l₁.length + i]? = (l₁ ++ l₂)[l₁.length + j]? := by
+    rw [List.getElem?_append_right (by omega), List.getElem?_append_right (by omega)]
+    rw [Nat.add_sub_cancel_left, Nat.add_sub_cancel_left]
+    exact heq
+  have := h (l₁.length + i) (l₁.length + j) hb1 hb2 heq'
+  omega
+
+/-- The two summands of a distinct append are disjoint. -/
+theorem noDupCards_append_disj {l₁ l₂ : List Card} (h : noDupCards (l₁ ++ l₂)) {c : Card}
+    (h1 : c ∈ l₁) (h2 : c ∈ l₂) : False := by
+  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.mp h1
+  obtain ⟨j, hj⟩ := List.mem_iff_getElem?.mp h2
+  have hbi : i < l₁.length := (List.getElem?_eq_some_iff.mp hi).1
+  have hbj : j < l₂.length := (List.getElem?_eq_some_iff.mp hj).1
+  have hb1 : i < (l₁ ++ l₂).length := by rw [List.length_append]; omega
+  have hb2 : l₁.length + j < (l₁ ++ l₂).length := by rw [List.length_append]; omega
+  have v1 : (l₁ ++ l₂)[i]? = some c := by
+    rw [List.getElem?_append_left (by omega)]; exact hi
+  have v2 : (l₁ ++ l₂)[l₁.length + j]? = some c := by
+    rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]; exact hj
+  have := h i (l₁.length + j) hb1 hb2 (by rw [v1, v2])
+  omega
+
+/-- A member pile's slice is distinct. -/
+theorem noDupCards_flatMap_of_mem {f : Anchor → List Card} : ∀ (as : List Anchor),
+    noDupCards (as.flatMap f) → ∀ x ∈ as, noDupCards (f x) := by
+  intro as
+  induction as with
+  | nil => intro _ x hx; cases hx
+  | cons y t ih =>
+      intro hnd x hx
+      rcases List.mem_cons.mp hx with rfl | hx
+      · exact noDupCards_append_left hnd
+      · exact ih (noDupCards_append_right hnd) x hx
+
+/-- Different piles' slices are disjoint. -/
+theorem piles_disj_aux {f : Anchor → List Card} : ∀ (as : List Anchor),
+    noDupCards (as.flatMap f) → ∀ a a', a ∈ as → a' ∈ as → a ≠ a' →
+      ∀ c, c ∈ f a → c ∈ f a' → False := by
+  intro as
+  induction as with
+  | nil => intro _ a _ ha _ _ _; cases ha
+  | cons y t ih =>
+      intro hnd a a' ha ha' hne c hca hca'
+      rcases List.mem_cons.mp ha with hae | ha
+      · rcases List.mem_cons.mp ha' with hae' | ha'
+        · exact hne (hae.trans hae'.symm)
+        · refine noDupCards_append_disj hnd ?_ (List.mem_flatMap.mpr ⟨a', ha', hca'⟩)
+          rw [← hae]
+          exact hca
+      · rcases List.mem_cons.mp ha' with hae' | ha'
+        · refine noDupCards_append_disj hnd ?_ (List.mem_flatMap.mpr ⟨a, ha, hca⟩)
+          rw [← hae']
+          exact hca'
+        · exact ih (noDupCards_append_right hnd) a a' ha ha' hne c hca hca'
+
 /-! ### `reveal`'s hidden-slice decomposition -/
 
 /-- The hidden slice's last card and second-to-last card decompose it:
@@ -734,6 +896,18 @@ theorem piles_stock_disj {d : Deal} (hd : d.WF) {a : Anchor} {c : Card}
   have hnd := hd.2.2 i₁ (28 + i₂) (by omega) (by omega) (by rw [hv₁, hv₂])
   omega
 
+/-- Each pile's slice is duplicate-free. -/
+theorem pile_noDup {d : Deal} (hd : d.WF) (a : Anchor) : noDupCards (d.piles a) :=
+  noDupCards_flatMap_of_mem Anchor.all (noDupCards_append_left hd.2.2) a a.mem_all
+
+/-- The piles are pairwise disjoint (a card belongs to at most one pile). -/
+theorem piles_disj {d : Deal} (hd : d.WF) {a a' : Anchor} {c : Card}
+    (h1 : c ∈ d.piles a) (h2 : c ∈ d.piles a') : a = a' := by
+  by_cases haa : a = a'
+  · exact haa
+  · exact (piles_disj_aux Anchor.all (noDupCards_append_left hd.2.2) a a'
+      a.mem_all a'.mem_all haa c h1 h2).elim
+
 end Deal
 
 /-- Splicing commutes with any relabeling. -/
@@ -808,6 +982,35 @@ theorem bottomOf_detach_ne {bd : Board} {b : Base} {c d : Card}
         rw [Board.detach_topOf_ne _ _ _ hbbne]
         exact htb)
 
+/-- After detaching at `b`: the detached card itself is unseated. -/
+theorem detach_bottomOf_self {bd : Board} {b : Base} {c : Card}
+    (hbot : bd.topOf b = some c) : (bd.detach b).bottomOf c = none := by
+  refine (Board.bottomOf_eq_none _ c).mpr (fun b' hb' => ?_)
+  by_cases hbb : b' = b
+  · rw [hbb, Board.detach_topOf] at hb'
+    exact absurd hb' (by simp)
+  · rw [Board.detach_topOf_ne _ _ _ hbb] at hb'
+    exact hbb (bd.inj b' b c hb' hbot)
+
+/-- After attaching `c` at `b`: a different card's seat is only gained,
+never lost (the reverse of `bottomOf_isSome_attach`). -/
+theorem bottomOf_isSome_attach_of_ne {bd : Board} {b : Base} {c d : Card}
+    {bd' : Board} (hatt : bd.attach b c = some bd') (hne : d ≠ c) :
+    (bd'.bottomOf d).isSome = true → (bd.bottomOf d).isSome = true := by
+  intro hds
+  obtain ⟨bb, hbb⟩ : ∃ bb, bd'.bottomOf d = some bb := by
+    cases hh : bd'.bottomOf d with
+    | none => rw [hh] at hds; simp at hds
+    | some bb => exact ⟨bb, rfl⟩
+  have h1 : bd'.topOf bb = some d := (Board.bottomOf_eq _ _ _).mp hbb
+  by_cases hbb2 : bb = b
+  · rw [hbb2, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at h1
+    exact absurd h1.symm hne
+  · rw [Board.attach_topOf_ne _ _ _ hatt hbb2] at h1
+    show (bd.bottomOf d).isSome = true
+    rw [(Board.bottomOf_eq bd d bb).mpr h1]
+    rfl
+
 /-- One deal step keeps the cursor in range. -/
 theorem Cycle.dealOnce_cursor_le (s : Nat) (cy : Cycle Card) :
     (cy.dealOnce s).cursor ≤ cy.cards.length := by
@@ -816,19 +1019,23 @@ theorem Cycle.dealOnce_cursor_le (s : Nat) (cy : Cycle Card) :
 
 /-- **WF is preserved by every legal move** — the maintenance lemma.
 Arms: `draw` is a pure cursor rotation; `reveal` rides deal-adjacency
-(cover on freshly-revealed boundary) and the piles/stock disjointness;
-`deckPile`/`deckStack` splice the waste top out (noDup and membership
-survive `removeIdx`; the cursor steps down); `pileStack`/`stackPile`
-bump/drop the height of `c`'s suit within the rank bound;
-`pilePile` moves the run within the matching (image unchanged). -/
+(the freshly-seated boundary is the new `topHidden`, its cover's base
+just became placed) and the piles/stock disjointness; `deckPile`/
+`deckStack` splice the waste top out (noDup and membership survive
+`removeIdx`; the cursor steps down); `pileStack`/`stackPile` bump/drop
+the height of `c`'s suit within the rank bound — the bumped card leaves
+the board/stock in the same move, so `founds_gone` holds; `pilePile`
+moves the run within the matching (image unchanged).  The two new
+conjuncts: `founds_gone` (foundation-passed cards are really gone)
+and `vis_not_hidden` (the image and the hidden slices are disjoint). -/
 theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
     (h : st.apply m = some st') : st'.WF := by
-  obtain ⟨hdeal, hdepths, hedges, hvis, hfound, hheights, hcursor, hstep, hnd, hmem⟩ := hwf
+  obtain ⟨hdeal, hdepths, hedges, hvis, hfound, hfgone, hvnh, hheights, hcursor, hstep, hnd, hmem⟩ := hwf
   cases m with
   | draw =>
     rw [apply_draw_iff] at h
     obtain ⟨rfl⟩ := h
-    refine ⟨hdeal, hdepths, hedges, ?_, ?_, hheights, ?_, hstep, ?_⟩
+    refine ⟨hdeal, hdepths, hedges, ?_, ?_, ?_, hvnh, hheights, ?_, hstep, ?_⟩
     · intro c' hc'
       show Cycle.findFirstIdx (fun c'' => decide (c'' = c'))
           (Cycle.dealOnce st.drawStep st.stock).cards = none
@@ -839,6 +1046,12 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           (Cycle.dealOnce st.drawStep st.stock).cards = none
       rw [Cycle.dealOnce_cards]
       exact hfound c' hc'
+    · intro c' hc'
+      refine ⟨(hfgone c' hc').1, ?_, (hfgone c' hc').2.2⟩
+      show Cycle.findFirstIdx (fun c'' => decide (c'' = c'))
+          (Cycle.dealOnce st.drawStep st.stock).cards = none
+      rw [Cycle.dealOnce_cards]
+      exact (hfgone c' hc').2.1
     · show (Cycle.dealOnce st.drawStep st.stock).cursor
           ≤ (Cycle.dealOnce st.drawStep st.stock).cards.length
       rw [Cycle.dealOnce_cards]
@@ -855,7 +1068,24 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
     obtain ⟨ht, r, a, bd, hb, hp, ha, rfl⟩ := h
     have htop : st.topHidden a = some r :=
       of_decide_eq_true (findFirst_mem _ _ _ hp).2
-    refine ⟨hdeal, ?_, ?_, ?_, hfound, hheights, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    have key : ∀ c'', c'' ≠ r → (bd.bottomOf c'').isSome = true →
+        (st.board.bottomOf c'').isSome = true := by
+      intro c'' hne hds
+      obtain ⟨bb, hbb⟩ : ∃ bb, bd.bottomOf c'' = some bb := by
+        cases hh : bd.bottomOf c'' with
+        | none => rw [hh] at hds; simp at hds
+        | some bb => exact ⟨bb, rfl⟩
+      have h1 : bd.topOf bb = some c'' := (Board.bottomOf_eq _ _ _).mp hbb
+      have hbne : bb ≠ st.hiddenBase a := by
+        intro hcon
+        rw [hcon] at h1
+        rw [Board.attach_topOf _ _ _ ha] at h1
+        exact hne (Option.some.inj h1.symm)
+      rw [Board.attach_topOf_ne _ _ _ ha hbne] at h1
+      show (st.board.bottomOf c'').isSome = true
+      rw [(Board.bottomOf_eq st.board c'' bb).mpr h1]
+      rfl
+    refine ⟨hdeal, ?_, ?_, ?_, hfound, ?_, ?_, hheights, hcursor, hstep, ⟨hnd, hmem⟩⟩
     · intro a'
       by_cases haa : a' = a
       · show (if a' = a then st.depths a - 1 else st.depths a') ≤ (st.deal.piles a').length
@@ -878,14 +1108,54 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
             right
             exact head?_of_take_single (hidden_single hb2 htop)
         | some d =>
-            exact Or.inl ⟨a, hidden_parent_dealt hb2 htop⟩
+            obtain ⟨pre, hpre⟩ := hidden_split hb2 htop
+            have hlen2 : (st.hidden a).length = pre.length + 2 := by
+              rw [hpre]
+              simp only [List.length_append, List.length_cons, List.length_nil]
+            have hmin : (st.hidden a).length = st.depths a := by
+              show ((st.deal.piles a).take (st.depths a)).length = st.depths a
+              rw [List.length_take]
+              have := hdepths a
+              omega
+            have hplen : st.depths a = pre.length + 2 := by omega
+            have hsub : st.depths a - 1 = pre.length + 1 := by omega
+            have hsub2 : pre.length + 1 - pre.length = 1 := by omega
+            have hs : st.deal.piles a = pre ++ d :: r :: (st.deal.piles a).drop (st.depths a) := by
+              have htd : st.deal.piles a = st.hidden a ++ (st.deal.piles a).drop (st.depths a) :=
+                (List.take_append_drop (st.depths a) (st.deal.piles a)).symm
+              rw [hpre] at htd
+              calc st.deal.piles a = (pre ++ [d, r]) ++ (st.deal.piles a).drop (st.depths a) := htd
+                _ = pre ++ d :: r :: (st.deal.piles a).drop (st.depths a) := by simp
+            have hnh : (st.deal.piles a).take (st.depths a - 1) = pre ++ [d] := by
+              rw [hs, hsub, List.take_append, take_length_succ_self, hsub2]
+              rfl
+            obtain ⟨t, rest, hadj⟩ := hidden_parent_dealt hb2 htop
+            refine Or.inl ⟨a, t, rest, hadj, Or.inl ⟨a, ?_⟩⟩
+            show ((st.deal.piles a).take (if a = a then st.depths a - 1 else st.depths a)).getLast? = some d
+            rw [if_pos rfl, hnh, getLast?_append_single]
       · rw [Board.attach_topOf_ne _ _ _ ha hbb] at hb'
         obtain ⟨-, hleg⟩ := hedges b c' hb'
         cases b with
         | inl a => exact hleg
         | inr d =>
-            rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
-            · exact Or.inl ⟨a, t, rest, hadj⟩
+            rcases hleg with ⟨a', t, rest, hadj, hbase⟩ | ⟨his, hsit⟩
+            · refine Or.inl ⟨a', t, rest, hadj, ?_⟩
+              rcases hbase with ⟨a'', hth⟩ | hpl
+              · by_cases haa2 : a'' = a
+                · refine Or.inr ?_
+                  have hdr : d = r := by
+                    have htra : st.topHidden a = some d := by rw [← haa2]; exact hth
+                    exact Option.some.inj (htra.symm.trans htop)
+                  rw [hdr]
+                  show (bd.bottomOf r).isSome = true
+                  rw [(Board.bottomOf_eq bd r (st.hiddenBase a)).mpr (Board.attach_topOf _ _ _ ha)]
+                  rfl
+                · refine Or.inl ⟨a'', ?_⟩
+                  show ((st.deal.piles a'').take
+                    (if a'' = a then st.depths a - 1 else st.depths a'')).getLast? = some d
+                  rw [if_neg haa2]
+                  exact hth
+              · exact Or.inr (bottomOf_isSome_attach ha hpl)
             · exact Or.inr ⟨bottomOf_isSome_attach ha his, hsit⟩
     · intro c' hc'
       show (st.stock).posOf c' = none
@@ -895,28 +1165,56 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           Deal.piles_stock_disj hdeal (by
             rw [← List.take_append_drop (st.depths a) (st.deal.piles a)]
             exact List.mem_append_left _ (mem_of_getLast htop)) (hmem r hcm))
-      · have hbdr : ∃ b, bd.bottomOf c' = some b := by
-          cases h : bd.bottomOf c' with
-          | none =>
-              simp only [State.isVis] at hc'
-              rw [h] at hc'
-              simp at hc'
-          | some b => exact ⟨b, rfl⟩
-        obtain ⟨b, hbr⟩ := hbdr
-        have hbne : b ≠ st.hiddenBase a := by
-          intro hcon
-          have h1 : bd.topOf b = some c' := (Board.bottomOf_eq bd c' _).mp hbr
-          have h2 : bd.topOf b = some r := by
-            rw [hcon]
-            exact Board.attach_topOf _ _ _ ha
-          rw [h1] at h2
-          exact hcc (Option.some.inj h2)
-        have htb : bd.topOf b = some c' := (Board.bottomOf_eq bd c' b).mp hbr
-        rw [Board.attach_topOf_ne _ _ _ ha hbne] at htb
-        exact hvis c' (by
-          show (st.board.bottomOf c').isSome = true
-          rw [(Board.bottomOf_eq st.board c' b).mpr htb]
-          rfl)
+      · exact hvis c' (key c' hcc hc')
+    · intro c' hc'
+      by_cases hcc : c' = r
+      · rw [hcc] at hc'
+        exact absurd (mem_of_getLast htop) ((hfgone r hc').2.2 a)
+      · refine ⟨?_, (hfgone c' hc').2.1, ?_⟩
+        · show (bd.bottomOf c').isSome = false
+          cases hh : (bd.bottomOf c').isSome with
+          | false => rfl
+          | true =>
+              have hbo : (st.board.bottomOf c').isSome = true := key c' hcc hh
+              have hf : (st.board.bottomOf c').isSome = false := (hfgone c' hc').1
+              exact Bool.noConfusion (hf.symm.trans hbo)
+        · intro a' hcm
+          by_cases haa : a' = a
+          · rw [haa] at hcm
+            have hcm2 : c' ∈ (st.deal.piles a).take
+                (if a = a then st.depths a - 1 else st.depths a) := hcm
+            rw [if_pos rfl] at hcm2
+            exact (hfgone c' hc').2.2 a (take_mono (by omega) hcm2)
+          · have hcm2 : c' ∈ (st.deal.piles a').take
+              (if a' = a then st.depths a - 1 else st.depths a') := hcm
+            rw [if_neg haa] at hcm2
+            exact (hfgone c' hc').2.2 a' hcm2
+    · intro c' hc' a' hcm
+      by_cases hcc : c' = r
+      · rw [hcc] at hcm
+        by_cases haa : a' = a
+        · rw [haa] at hcm
+          have hcm2 : r ∈ (st.deal.piles a).take
+              (if a = a then st.depths a - 1 else st.depths a) := hcm
+          rw [if_pos rfl] at hcm2
+          exact notMem_take_of_get (Deal.pile_noDup hdeal a) (topHidden_get (hdepths a) htop) hcm2
+        · have hcm2 : r ∈ (st.deal.piles a').take
+            (if a' = a then st.depths a - 1 else st.depths a') := hcm
+          rw [if_neg haa] at hcm2
+          have hpm : r ∈ st.deal.piles a :=
+            List.take_subset _ _ (show r ∈ (st.deal.piles a).take (st.depths a) from mem_of_getLast htop)
+          have hpm2 : r ∈ st.deal.piles a' := List.take_subset _ _ hcm2
+          exact haa (Deal.piles_disj hdeal hpm hpm2).symm
+      · by_cases haa : a' = a
+        · rw [haa] at hcm
+          have hcm2 : c' ∈ (st.deal.piles a).take
+              (if a = a then st.depths a - 1 else st.depths a) := hcm
+          rw [if_pos rfl] at hcm2
+          exact hvnh c' (key c' hcc hc') a (take_mono (by omega) hcm2)
+        · have hcm2 : c' ∈ (st.deal.piles a').take
+              (if a' = a then st.depths a - 1 else st.depths a') := hcm
+          rw [if_neg haa] at hcm2
+          exact hvnh c' (key c' hcc hc') a' hcm2
   | deckPile c b =>
     rw [apply_deckPile_iff] at h
     obtain ⟨hp, hcp, bd, hatt, rfl⟩ := h
@@ -925,7 +1223,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       split at hp
       · exact absurd hp (by simp)
       · exact ⟨by omega, hp⟩
-    refine ⟨hdeal, hdepths, ?_, ?_, ?_, hheights, ?_, hstep, ?_⟩
+    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, ?_, hheights, ?_, hstep, ?_⟩
     · intro b' c'' hb''
       refine ⟨(Board.bottomOf_eq _ _ _).mpr hb'', ?_⟩
       by_cases hbb : b' = b
@@ -944,8 +1242,11 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         cases b' with
         | inl a => exact hleg
         | inr d =>
-            rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
-            · exact Or.inl ⟨a, t, rest, hadj⟩
+            rcases hleg with ⟨a', t, rest, hadj, hbase⟩ | ⟨his, hsit⟩
+            · refine Or.inl ⟨a', t, rest, hadj, ?_⟩
+              rcases hbase with ⟨a'', hth⟩ | hpl
+              · exact Or.inl ⟨a'', hth⟩
+              · exact Or.inr (bottomOf_isSome_attach hatt hpl)
             · exact Or.inr ⟨bottomOf_isSome_attach hatt his, hsit⟩
     · intro c' hc'
       show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
@@ -983,7 +1284,8 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           have hpm := Cycle.posOf_mem hcm
           rw [hvis c' hcold] at hpm
           exact absurd hpm (by simp)
-        exact Cycle.posOf_eq_none (fun hcm => hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
+        exact Cycle.posOf_eq_none (fun hcm =>
+          hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
     · intro c' hc'
       show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
       have hnc : c' ∉ st.stock.cards := by
@@ -992,6 +1294,40 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         rw [hfound c' hc'] at hpm
         exact absurd hpm (by simp)
       exact Cycle.posOf_eq_none (fun hcm => hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
+    · intro c' hc'
+      by_cases hcc : c' = c
+      · rw [hcc] at hc'
+        have hpm : st.stock.posOf c ≠ none :=
+          Cycle.posOf_mem (List.mem_iff_getElem?.mpr ⟨st.stock.cursor - 1, hprev.2⟩)
+        rw [(hfgone c hc').2.1] at hpm
+        exact (hpm rfl).elim
+      · refine ⟨?_, ?_, (hfgone c' hc').2.2⟩
+        · show (bd.bottomOf c').isSome = false
+          cases hh : (bd.bottomOf c').isSome with
+          | false => rfl
+          | true =>
+              have hbo : (st.board.bottomOf c').isSome = true :=
+                bottomOf_isSome_attach_of_ne hatt hcc hh
+              have hf : (st.board.bottomOf c').isSome = false := (hfgone c' hc').1
+              exact Bool.noConfusion (hf.symm.trans hbo)
+        · show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
+          have hnc : c' ∉ st.stock.cards := by
+            intro hcm
+            have hpm := Cycle.posOf_mem hcm
+            rw [(hfgone c' hc').2.1] at hpm
+            exact absurd hpm (by simp)
+          exact Cycle.posOf_eq_none (fun hcm =>
+            hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
+    · intro c' hc' a' hcm
+      by_cases hcc : c' = c
+      · rw [hcc] at hcm
+        have hcs : c ∈ st.deal.stock :=
+          hmem c (List.mem_iff_getElem?.mpr ⟨st.stock.cursor - 1, hprev.2⟩)
+        have hpp : c ∈ st.deal.piles a' :=
+          List.take_subset _ _ (show c ∈ (st.deal.piles a').take (st.depths a') from hcm)
+        exact (Deal.piles_stock_disj hdeal hpp hcs).elim
+      · exact hvnh c' (bottomOf_isSome_attach_of_ne hatt hcc
+          (show (bd.bottomOf c').isSome = true from hc')) a' hcm
     · show (if st.stock.cursor - 1 < st.stock.cursor then st.stock.cursor - 1
             else st.stock.cursor) ≤ (Cycle.removeIdx st.stock.cards (st.stock.cursor - 1)).length
       rw [if_pos (by omega)]
@@ -1011,7 +1347,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       split at hp
       · exact absurd hp (by simp)
       · exact ⟨by omega, hp⟩
-    refine ⟨hdeal, hdepths, hedges, ?_, ?_, ?_, ?_, hstep, ?_⟩
+    refine ⟨hdeal, hdepths, hedges, ?_, ?_, ?_, hvnh, ?_, ?_, hstep, ?_⟩
     · intro c' hc'
       show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
       have hnc : c' ∉ st.stock.cards := by
@@ -1058,6 +1394,69 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           rw [hfound c' hold] at hpm
           exact absurd hpm (by simp)
         exact Cycle.posOf_eq_none (fun hcm => hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
+    · intro c' hc'
+      by_cases hsc : c'.suit = c.suit
+      · have hc2 : c'.rank.toIdx < st.heights c'.suit + 1 := by
+          have h2 : c'.rank.toIdx <
+              (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hc'
+          rw [if_pos hsc] at h2
+          exact h2
+        rcases Nat.lt_or_ge c'.rank.toIdx (st.heights c'.suit) with hlt | hge
+        · refine ⟨?_, ?_, (hfgone c' hlt).2.2⟩
+          · exact (hfgone c' hlt).1
+          · show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
+            have hnc : c' ∉ st.stock.cards := by
+              intro hcm
+              have hpm := Cycle.posOf_mem hcm
+              rw [(hfgone c' hlt).2.1] at hpm
+              exact absurd hpm (by simp)
+            exact Cycle.posOf_eq_none (fun hcm =>
+              hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
+        · have heq2 : c'.rank.toIdx = st.heights c'.suit := by omega
+          rw [hsc] at heq2
+          have hr : c'.rank = c.rank := Rank.toIdx_inj (by rw [heq2, hrk])
+          have hcard : c' = c := by
+            cases c' with
+            | mk s rk => cases c with
+              | mk s' rk' => rw [Card.mk.injEq]; exact ⟨hsc, hr⟩
+          rw [hcard]
+          have hcs : c ∈ st.deal.stock :=
+            hmem c (List.mem_iff_getElem?.mpr ⟨st.stock.cursor - 1, hprev.2⟩)
+          refine ⟨?_, ?_, ?_⟩
+          · show (st.board.bottomOf c).isSome = false
+            cases hh : (st.board.bottomOf c).isSome with
+            | false => rfl
+            | true =>
+                have hpm : st.stock.posOf c ≠ none :=
+                  Cycle.posOf_mem (List.mem_iff_getElem?.mpr ⟨st.stock.cursor - 1, hprev.2⟩)
+                rw [hvis c hh] at hpm
+                exact absurd hpm (by simp)
+          · have hmem2 : st.stock.cards[st.stock.cursor - 1]? = some c := hprev.2
+            exact Cycle.posOf_eq_none (fun hcm =>
+              Cycle.notMem_removeIdx_self (fun j hj => hnd j (st.stock.cursor - 1)
+                (by have := (List.getElem?_eq_some_iff.mp hj).1
+                    have := (List.getElem?_eq_some_iff.mp hmem2).1
+                    omega)
+                (by have := (List.getElem?_eq_some_iff.mp hmem2).1; omega)
+                (by rw [hj, hmem2])) hcm)
+          · intro a' hcm
+            have hpp : c ∈ st.deal.piles a' :=
+              List.take_subset _ _ (show c ∈ (st.deal.piles a').take (st.depths a') from hcm)
+            exact (Deal.piles_stock_disj hdeal hpp hcs).elim
+      · have hc2 : c'.rank.toIdx < st.heights c'.suit := by
+          have h2 : c'.rank.toIdx <
+              (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hc'
+          rw [if_neg hsc] at h2
+          exact h2
+        refine ⟨(hfgone c' hc2).1, ?_, (hfgone c' hc2).2.2⟩
+        show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
+        have hnc : c' ∉ st.stock.cards := by
+          intro hcm
+          have hpm := Cycle.posOf_mem hcm
+          rw [(hfgone c' hc2).2.1] at hpm
+          exact absurd hpm (by simp)
+        exact Cycle.posOf_eq_none (fun hcm =>
+          hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
     · intro s
       by_cases hsc : s = c.suit
       · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
@@ -1082,7 +1481,27 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
     rw [apply_pileStack_iff] at h
     obtain ⟨ht, b, hb, hrk, rfl⟩ := h
     have hbot : st.board.topOf b = some c := (Board.bottomOf_eq st.board c b).mp hb
-    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    have key : ∀ c'', ((st.board.detach b).bottomOf c'').isSome = true →
+        (st.board.bottomOf c'').isSome = true := by
+      intro c'' hds
+      obtain ⟨bb, hbb⟩ : ∃ bb, (st.board.detach b).bottomOf c'' = some bb := by
+        cases hh : (st.board.detach b).bottomOf c'' with
+        | none => rw [hh] at hds; simp at hds
+        | some bb => exact ⟨bb, rfl⟩
+      have h1 : (st.board.detach b).topOf bb = some c'' := (Board.bottomOf_eq _ _ _).mp hbb
+      have hbne : bb ≠ b := by
+        intro hcon
+        rw [hcon, Board.detach_topOf] at h1
+        exact absurd h1 (by simp)
+      rw [Board.detach_topOf_ne _ _ _ hbne] at h1
+      show (st.board.bottomOf c'').isSome = true
+      rw [(Board.bottomOf_eq st.board c'' bb).mpr h1]
+      rfl
+    have hvisc : st.isVis c = true := by
+      show (st.board.bottomOf c).isSome = true
+      rw [hb]
+      rfl
+    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, ?_, ?_, hcursor, hstep, ⟨hnd, hmem⟩⟩
     · intro b' c' hb'
       refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
       have hb'ne : b' ≠ b := by
@@ -1099,8 +1518,14 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
             rw [hcon] at hb'
             rw [ht] at hb'
             exact absurd hb' (by simp)
-          rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
-          · exact Or.inl ⟨a, t, rest, hadj⟩
+          rcases hleg with ⟨a', t, rest, hadj, hbase⟩ | ⟨his, hsit⟩
+          · refine Or.inl ⟨a', t, rest, hadj, ?_⟩
+            rcases hbase with ⟨a'', hth⟩ | hpl
+            · exact Or.inl ⟨a'', hth⟩
+            · refine Or.inr ?_
+              show ((st.board.detach b).bottomOf d).isSome = true
+              rw [bottomOf_detach_ne hbot hdc]
+              exact hpl
           · refine Or.inr ⟨?_, hsit⟩
             rw [bottomOf_detach_ne hbot hdc]
             exact his
@@ -1108,10 +1533,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       show (st.stock).posOf c' = none
       by_cases hcc : c' = c
       · rw [hcc]
-        exact hvis c (by
-          show (st.board.bottomOf c).isSome = true
-          rw [hb]
-          rfl)
+        exact hvis c hvisc
       · have hbdr : ∃ bb, (st.board.detach b).bottomOf c' = some bb := by
           cases h : (st.board.detach b).bottomOf c' with
           | none =>
@@ -1152,14 +1574,54 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
             | mk s rk => cases c with
               | mk s' rk' => rw [Card.mk.injEq]; exact ⟨hsc, hr⟩
           rw [hcard]
-          exact hvis c (by
-            show (st.board.bottomOf c).isSome = true
-            rw [hb]
-            rfl)
+          exact hvis c hvisc
       · rw [if_neg hsc] at hon
         exact hfound c' (by
           show decide (c'.rank.toIdx < st.heights c'.suit) = true
           exact decide_eq_true hon)
+    · intro c' hc'
+      by_cases hsc : c'.suit = c.suit
+      · have hc2 : c'.rank.toIdx < st.heights c'.suit + 1 := by
+          have h2 : c'.rank.toIdx <
+              (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hc'
+          rw [if_pos hsc] at h2
+          exact h2
+        rcases Nat.lt_or_ge c'.rank.toIdx (st.heights c'.suit) with hlt | hge
+        · refine ⟨?_, (hfgone c' hlt).2.1, (hfgone c' hlt).2.2⟩
+          show ((st.board.detach b).bottomOf c').isSome = false
+          cases hh : ((st.board.detach b).bottomOf c').isSome with
+          | false => rfl
+          | true =>
+              have hbo : (st.board.bottomOf c').isSome = true := key c' hh
+              have hf : (st.board.bottomOf c').isSome = false := (hfgone c' hlt).1
+              exact Bool.noConfusion (hf.symm.trans hbo)
+        · have heq2 : c'.rank.toIdx = st.heights c'.suit := by omega
+          rw [hsc] at heq2
+          have hr : c'.rank = c.rank := Rank.toIdx_inj (by rw [heq2, hrk])
+          have hcard : c' = c := by
+            cases c' with
+            | mk s rk => cases c with
+              | mk s' rk' => rw [Card.mk.injEq]; exact ⟨hsc, hr⟩
+          rw [hcard]
+          refine ⟨?_, hvis c hvisc, fun a' hcm => hvnh c hvisc a' hcm⟩
+          show ((st.board.detach b).bottomOf c).isSome = false
+          rw [detach_bottomOf_self hbot]
+          rfl
+      · have hc2 : c'.rank.toIdx < st.heights c'.suit := by
+          have h2 : c'.rank.toIdx <
+              (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hc'
+          rw [if_neg hsc] at h2
+          exact h2
+        refine ⟨?_, (hfgone c' hc2).2.1, (hfgone c' hc2).2.2⟩
+        show ((st.board.detach b).bottomOf c').isSome = false
+        cases hh : ((st.board.detach b).bottomOf c').isSome with
+        | false => rfl
+        | true =>
+            have hbo : (st.board.bottomOf c').isSome = true := key c' hh
+            have hf : (st.board.bottomOf c').isSome = false := (hfgone c' hc2).1
+            exact Bool.noConfusion (hf.symm.trans hbo)
+    · intro c' hc' a' hcm
+      exact hvnh c' (key c' (show ((st.board.detach b).bottomOf c').isSome = true from hc')) a' hcm
     · intro s
       by_cases hsc : s = c.suit
       · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
@@ -1172,7 +1634,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
   | stackPile c b =>
     rw [apply_stackPile_iff] at h
     obtain ⟨h1g, hcp, bd, hatt, rfl⟩ := h
-    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, ?_, ?_, hcursor, hstep, ⟨hnd, hmem⟩⟩
     · intro b' c' hb'
       refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
       by_cases hbb : b' = b
@@ -1191,8 +1653,11 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         cases b' with
         | inl a => exact hleg
         | inr d =>
-            rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
-            · exact Or.inl ⟨a, t, rest, hadj⟩
+            rcases hleg with ⟨a', t, rest, hadj, hbase⟩ | ⟨his, hsit⟩
+            · refine Or.inl ⟨a', t, rest, hadj, ?_⟩
+              rcases hbase with ⟨a'', hth⟩ | hpl
+              · exact Or.inl ⟨a'', hth⟩
+              · exact Or.inr (bottomOf_isSome_attach hatt hpl)
             · exact Or.inr ⟨bottomOf_isSome_attach hatt his, hsit⟩
     · intro c' hc'
       show (st.stock).posOf c' = none
@@ -1234,6 +1699,35 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         · rw [if_neg hsc] at hon
           show decide (c'.rank.toIdx < st.heights c'.suit) = true
           exact decide_eq_true hon)
+    · intro c' hc'
+      have hcold : c'.rank.toIdx < st.heights c'.suit := by
+        have h2 : c'.rank.toIdx <
+            (if c'.suit = c.suit then st.heights c'.suit - 1 else st.heights c'.suit) := hc'
+        by_cases hsc : c'.suit = c.suit
+        · rw [if_pos hsc] at h2; omega
+        · rw [if_neg hsc] at h2; omega
+      have hcne : c' ≠ c := by
+        intro hcon
+        rw [hcon] at hc'
+        have h2 : c.rank.toIdx <
+            (if c.suit = c.suit then st.heights c.suit - 1 else st.heights c.suit) := hc'
+        rw [if_pos rfl] at h2
+        omega
+      refine ⟨?_, (hfgone c' hcold).2.1, (hfgone c' hcold).2.2⟩
+      show (bd.bottomOf c').isSome = false
+      cases hh : (bd.bottomOf c').isSome with
+      | false => rfl
+      | true =>
+          have hbo : (st.board.bottomOf c').isSome = true :=
+            bottomOf_isSome_attach_of_ne hatt hcne hh
+          have hf : (st.board.bottomOf c').isSome = false := (hfgone c' hcold).1
+          exact Bool.noConfusion (hf.symm.trans hbo)
+    · intro c' hc' a' hcm
+      by_cases hcc : c' = c
+      · rw [hcc] at hcm
+        exact (hfgone c (by rw [← h1g]; omega)).2.2 a' hcm
+      · exact hvnh c' (bottomOf_isSome_attach_of_ne hatt hcc
+          (show (bd.bottomOf c').isSome = true from hc')) a' hcm
     · intro s
       by_cases hsc : s = c.suit
       · show (if s = c.suit then st.heights s - 1 else st.heights s) ≤ 13
@@ -1248,7 +1742,38 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
     obtain ⟨b₀, hb, hbne, hcmr, bd, hatt, rfl⟩ := h
     obtain ⟨hcp, -⟩ := Bool.and_eq_true_iff.mp hcmr
     have hbot₀ : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp hb
-    refine ⟨hdeal, hdepths, ?_, ?_, hfound, hheights, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    have key : ∀ c'', (bd.bottomOf c'').isSome = true →
+        (st.board.bottomOf c'').isSome = true := by
+      intro c'' hds
+      obtain ⟨bb, hbb⟩ : ∃ bb, bd.bottomOf c'' = some bb := by
+        cases hh : bd.bottomOf c'' with
+        | none => rw [hh] at hds; simp at hds
+        | some bb => exact ⟨bb, rfl⟩
+      have h1 : bd.topOf bb = some c'' := (Board.bottomOf_eq _ _ _).mp hbb
+      by_cases hbb2 : bb = b
+      · rw [hbb2, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at h1
+        show (st.board.bottomOf c'').isSome = true
+        rw [← h1, hb]
+        rfl
+      · have hbb0 : bb ≠ b₀ := by
+          intro hcon
+          rw [Board.attach_topOf_ne _ _ _ hatt hbb2] at h1
+          rw [hcon, Board.detach_topOf] at h1
+          exact absurd h1 (by simp)
+        rw [Board.attach_topOf_ne _ _ _ hatt hbb2, Board.detach_topOf_ne _ _ _ hbb0] at h1
+        show (st.board.bottomOf c'').isSome = true
+        rw [(Board.bottomOf_eq st.board c'' bb).mpr h1]
+        rfl
+    have hkept : ∀ d, (st.board.bottomOf d).isSome = true → (bd.bottomOf d).isSome = true := by
+      intro d hd0
+      by_cases hdc : d = c
+      · rw [hdc, (Board.bottomOf_eq bd c b).mpr (Board.attach_topOf _ _ _ hatt)]
+        rfl
+      · exact bottomOf_isSome_attach hatt (by
+          show ((st.board.detach b₀).bottomOf d).isSome = true
+          rw [bottomOf_detach_ne hbot₀ hdc]
+          exact hd0)
+    refine ⟨hdeal, hdepths, ?_, ?_, hfound, ?_, ?_, hheights, hcursor, hstep, ⟨hnd, hmem⟩⟩
     · intro b' c' hb'
       refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
       by_cases hbb : b' = b
@@ -1259,14 +1784,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         | inl a => exact Or.inl (of_decide_eq_true hcpm)
         | inr d =>
             obtain ⟨hvisd, hsit⟩ := Bool.and_eq_true_iff.mp hcpm
-            refine Or.inr ⟨?_, hsit⟩
-            by_cases hdc : d = c
-            · rw [hdc, (Board.bottomOf_eq bd c (Sum.inr d)).mpr (Board.attach_topOf _ _ _ hatt)]
-              rfl
-            · exact bottomOf_isSome_attach hatt (by
-                show ((st.board.detach b₀).bottomOf d).isSome = true
-                rw [bottomOf_detach_ne hbot₀ hdc]
-                exact hvisd)
+            exact Or.inr ⟨hkept d hvisd, hsit⟩
       · have hbb'₀ : b' ≠ b₀ := by
           intro hcon
           have h1 : bd.topOf b' = some c' := hb'
@@ -1277,16 +1795,12 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         cases b' with
         | inl a => exact hleg
         | inr d =>
-            rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
-            · exact Or.inl ⟨a, t, rest, hadj⟩
-            · refine Or.inr ⟨?_, hsit⟩
-              by_cases hdc : d = c
-              · rw [hdc, (Board.bottomOf_eq bd c b).mpr (Board.attach_topOf _ _ _ hatt)]
-                rfl
-              · exact bottomOf_isSome_attach hatt (by
-                  show ((st.board.detach b₀).bottomOf d).isSome = true
-                  rw [bottomOf_detach_ne hbot₀ hdc]
-                  exact his)
+            rcases hleg with ⟨a', t, rest, hadj, hbase⟩ | ⟨his, hsit⟩
+            · refine Or.inl ⟨a', t, rest, hadj, ?_⟩
+              rcases hbase with ⟨a'', hth⟩ | hpl
+              · exact Or.inl ⟨a'', hth⟩
+              · exact Or.inr (hkept d hpl)
+            · exact Or.inr ⟨hkept d his, hsit⟩
     · intro c' hc'
       show (st.stock).posOf c' = none
       by_cases hcc : c' = c
@@ -1319,7 +1833,17 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           show (st.board.bottomOf c').isSome = true
           rw [(Board.bottomOf_eq st.board c' b'').mpr htb]
           rfl)
-
+    · intro c' hc'
+      refine ⟨?_, (hfgone c' hc').2.1, (hfgone c' hc').2.2⟩
+      show (bd.bottomOf c').isSome = false
+      cases hh : (bd.bottomOf c').isSome with
+      | false => rfl
+      | true =>
+          have hbo : (st.board.bottomOf c').isSome = true := key c' hh
+          have hf : (st.board.bottomOf c').isSome = false := (hfgone c' hc').1
+          exact Bool.noConfusion (hf.symm.trans hbo)
+    · intro c' hc' a' hcm
+      exact hvnh c' (key c' (show (bd.bottomOf c').isSome = true from hc')) a' hcm
 /-- **C13 pilot (model level)**: adjacent Draw-commitments commute
 (distinct bases).  Cycle content: `Cycle.removeIdx_comm`; the board
 part: `attach` on distinct bases.  NOTE: non-adjacent pairs land on

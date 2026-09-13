@@ -344,6 +344,42 @@ theorem run_stockLen_le : ∀ (play : List Move) (st st' : State),
           have h2 := apply_stockLen_le h₀
           omega
 
+/-! ### The irreversibility trio (relocated from Theorems.lean)
+
+The commitment moves are irreversible: `reveal` strictly decreases the
+total hidden depth and no play raises it; the deck moves strictly
+shorten the cycle and no play lengthens it.  The statements lived in
+Theorems.lean (`irreversibleAt` is defined there); they moved here —
+next to the run-level monotonicity lemmas they consume, on the safe
+side of the import edge. -/
+
+/-- Depths only decrease along plays — a reveal never undoes. -/
+theorem irreversible_reveal {st : State} {c : Card} {st₁ : State}
+    (h : st.apply (Move.reveal c) = some st₁) : irreversibleAt st (Move.reveal c) := by
+  intro st₁' play h₁ hrun
+  have he : st₁' = st₁ := Option.some.inj (h₁.symm.trans h)
+  rw [he] at hrun
+  exact absurd (run_totalDepth_le play st₁ st hrun)
+    (by have := apply_reveal_totalDepth_lt h; omega)
+
+/-- No move returns a card to the cycle. -/
+theorem irreversible_deckPile {st : State} {c : Card} {b : Base} {st₁ : State}
+    (h : st.apply (Move.deckPile c b) = some st₁) : irreversibleAt st (Move.deckPile c b) := by
+  intro st₁' play h₁ hrun
+  have he : st₁' = st₁ := Option.some.inj (h₁.symm.trans h)
+  rw [he] at hrun
+  exact absurd (run_stockLen_le play st₁ st hrun)
+    (by have := apply_deckPile_shortens h; omega)
+
+/-- As `deckPile`; the foundation is not the cycle. -/
+theorem irreversible_deckStack {st : State} {c : Card} {st₁ : State}
+    (h : st.apply (Move.deckStack c) = some st₁) : irreversibleAt st (Move.deckStack c) := by
+  intro st₁' play h₁ hrun
+  have he : st₁' = st₁ := Option.some.inj (h₁.symm.trans h)
+  rw [he] at hrun
+  exact absurd (run_stockLen_le play st₁ st hrun)
+    (by have := apply_deckStack_shortens h; omega)
+
 /-- A committed move inside a successful play strictly advances at
 least one of the two measures by the play's end. -/
 theorem run_commit_measures : ∀ (play : List Move) (st st' : State),

@@ -90,17 +90,22 @@ def depths_le (st : State) : Prop :=
   ∀ a, st.depths a ≤ (st.deal.piles a).length
 
 /-- The visible matching's edge legality: the `topOf`/`bottomOf` round
-trip, and every edge sits on the card it was dealt directly onto (the
-initial deal stacks by fiat; `reveal` keeps the cover sitting on its
-freshly-revealed card) or on a fitting visible card; kings or
-fully-revealed bottoms on anchors. -/
+trip, and every edge sits on the card it was dealt directly onto — with
+that base either still the pile's hidden boundary or itself placed
+(the two shapes a dealt-adjacent base has in every reachable state:
+`reveal` attaches the boundary before anything can sit on it, and an
+attached card stays attached) — or on a fitting visible card; kings or
+fully-revealed bottoms on anchors.  The base condition is the buried-base
+clause: without it, WF admits edges onto foundation/limbo cards that no
+play can produce (the Bridge lift witness). -/
 def board_edges (st : State) : Prop :=
   ∀ b c, st.board.topOf b = some c →
     st.board.bottomOf c = some b ∧
     (match b with
      | Sum.inl a => c.rank = Rank.king ∨ (st.deal.piles a).head? = some c
      | Sum.inr d =>
-       (∃ a t rest, st.deal.piles a = t ++ d :: c :: rest) ∨
+       (∃ a t rest, st.deal.piles a = t ++ d :: c :: rest ∧
+          ((∃ a', st.topHidden a' = some d) ∨ (st.board.bottomOf d).isSome = true)) ∨
        ((st.board.bottomOf d).isSome = true ∧ canSitOn c d = true))
 
 /-- Visible cards are not in the stock cycle. -/
@@ -110,6 +115,23 @@ def vis_off_cycle (st : State) : Prop :=
 /-- Foundation cards are not in the stock cycle. -/
 def found_off_cycle (st : State) : Prop :=
   ∀ c, st.onFound c = true → st.stock.posOf c = none
+
+/-- Foundation-passed cards are really gone: a card below its suit's
+foundation height is neither visible on the tableau, nor in the stock
+cycle, nor hidden in a pile — it can only sit on the foundation.  This
+is the no-passing invariant (contrapositively, every visible, stocked,
+or hidden card sits at or above its suit's height); the third
+conjunct is required for `reveal`, which seats a boundary card and so
+must know that no hidden card is foundation-passed. -/
+def founds_gone (st : State) : Prop :=
+  ∀ c, c.rank.toIdx < st.heights c.suit →
+    st.isVis c = false ∧ st.stock.posOf c = none ∧ ∀ a, c ∉ st.hidden a
+
+/-- Visible cards are not hidden: the board's image and the piles'
+hidden slices are disjoint (a deal-adjacent seat on the boundary is
+not a placement; `reveal` is what turns one on). -/
+def vis_not_hidden (st : State) : Prop :=
+  ∀ c, st.isVis c = true → ∀ a, c ∉ st.hidden a
 
 /-- Foundation heights within range. -/
 def heights_le (st : State) : Prop := ∀ s, st.heights s ≤ 13
@@ -136,12 +158,14 @@ def stock_wf (st : State) : Prop :=
 
 /-- State well-formedness — the invariant the moves preserve (`apply_wf`)
 and the deal's exhibit satisfies (`initial_wf`): slice-bounded depths,
-legal board edges, off-cycle visible/foundation cards, bounded
-heights and cursor, a positive draw step, and a clean stock. -/
+legal board edges (deal-adjacency with a hidden-boundary-or-placed
+base), off-cycle visible/foundation cards, gone foundation cards,
+visible-not-hidden, bounded heights and cursor, a positive draw step,
+and a clean stock. -/
 def WF (st : State) : Prop :=
   st.deal.WF ∧ st.depths_le ∧ st.board_edges ∧ st.vis_off_cycle ∧
-  st.found_off_cycle ∧ st.heights_le ∧ st.cursor_le ∧ st.step_pos ∧
-  st.stock_wf
+  st.found_off_cycle ∧ st.founds_gone ∧ st.vis_not_hidden ∧ st.heights_le ∧
+  st.cursor_le ∧ st.step_pos ∧ st.stock_wf
 
 /-! ### WF accessors — the conjunct positions, written once -/
 
@@ -155,13 +179,17 @@ theorem WF.vis_off_cycle {st : State} (h : st.WF) : st.vis_off_cycle := h.2.2.2.
 
 theorem WF.found_off_cycle {st : State} (h : st.WF) : st.found_off_cycle := h.2.2.2.2.1
 
-theorem WF.heights_le {st : State} (h : st.WF) : st.heights_le := h.2.2.2.2.2.1
+theorem WF.founds_gone {st : State} (h : st.WF) : st.founds_gone := h.2.2.2.2.2.1
 
-theorem WF.cursor_le {st : State} (h : st.WF) : st.cursor_le := h.2.2.2.2.2.2.1
+theorem WF.vis_not_hidden {st : State} (h : st.WF) : st.vis_not_hidden := h.2.2.2.2.2.2.1
 
-theorem WF.step_pos {st : State} (h : st.WF) : st.step_pos := h.2.2.2.2.2.2.2.1
+theorem WF.heights_le {st : State} (h : st.WF) : st.heights_le := h.2.2.2.2.2.2.2.1
 
-theorem WF.stock_wf {st : State} (h : st.WF) : st.stock_wf := h.2.2.2.2.2.2.2.2
+theorem WF.cursor_le {st : State} (h : st.WF) : st.cursor_le := h.2.2.2.2.2.2.2.2.1
+
+theorem WF.step_pos {st : State} (h : st.WF) : st.step_pos := h.2.2.2.2.2.2.2.2.2.1
+
+theorem WF.stock_wf {st : State} (h : st.WF) : st.stock_wf := h.2.2.2.2.2.2.2.2.2.2
 
 /-- Conjugate the whole state by the twin-swap relabeling (T's action
 on every component). -/

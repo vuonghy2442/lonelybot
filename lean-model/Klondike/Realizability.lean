@@ -257,14 +257,18 @@ theorem uncovered_eq_freeType {bd : Board} (hleg : bd.legalEdges) (t : Rank × C
 /-! ## Realizability -/
 
 /-- A board *fits* a deal/depths: the edge legality of the WF third
-conjunct, lifted to boards (dealt-adjacent stack or fitting visible
+conjunct, lifted to boards (dealt-adjacent stack — with the base
+either the pile's hidden boundary or itself placed, mirroring
+`State.board_edges`'s buried-base clause — or a fitting visible
 card). -/
 def Board.Fits (bd : Board) (deal : Deal) (depths : Anchor → Nat) : Prop :=
   ∀ b c, bd.topOf b = some c →
     match b with
     | Sum.inl a => c.rank = Rank.king ∨ (deal.piles a).head? = some c
     | Sum.inr d =>
-      (∃ a t rest, deal.piles a = t ++ d :: c :: rest) ∨
+      (∃ a t rest, deal.piles a = t ++ d :: c :: rest ∧
+        ((∃ a', ((deal.piles a').take (depths a')).getLast? = some d) ∨
+          (bd.bottomOf d).isSome = true)) ∨
       ((bd.bottomOf d).isSome = true ∧ canSitOn c d)
 
 /-- **Realizability**: some fitting matching has exactly this visible

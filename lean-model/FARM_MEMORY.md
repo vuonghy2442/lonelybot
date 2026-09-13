@@ -900,3 +900,110 @@ evert st; induction play; intro st, tail
   LESSON: NEVER semicolon-chain file writes after a computed intermediate —
   build the string, THEN one guarded write; verify `git diff --stat` after
   any scripted file surgery (it caught this one immediately).
+
+## Theorems.lean — drawTo_comm_modAdjacent REPAIRED (was FALSE) + the commutation kit (2026-09-13)
+
+- STATEMENT REPAIR (sign-off needed, prover-confirmed witness
+  Temp\opencode\DrawWitness.lean): the wrap case of `drawTo_comm_modAdjacent`
+  (`i+1 = len`, `j = 0`) is FALSE at drawStep 1, len >= 3: cards [A,B,C] cursor 0,
+  c at pos 2, c' at pos 0, empty board — BOTH compositions succeed (step 1 free
+  set) and the end cursors are 0 vs len-2. This is the C-IND measurement's
+  `distinct` class. REPAIR: added `(hstep : 2 <= st.drawStep)` — with it, wrap at
+  len >= 3 is VACUOUS (order 1's second draw needs position 0 in the mask of a
+  SATURATED cursor — impossible at step >= 2, see `zero_notMem_maskPos`), wrap at
+  len = 2 is genuine (both orders end cursor 0), non-wrap (j = i+1) is genuine at
+  every step. Move.lean's `drawTo_comm_adjacent` (non-wrap, all steps) is the
+  step-1 cover. Non-wrap end cursors coincide because both second-draw indices
+  equal i; wrap splits j vs len-2 — the FARM route "end cursors j-1 vs i" holds
+  only non-wrap (the old rotate-based wrap advice is OBSOLETE under saturating
+  drawTo).
+- drawTo_nonadjacent_diverge PROVEN as stated (no repair): end cursors j-1 vs i
+  differ; cursor projection + congrArg suffices — no board/mask work at all.
+- THE IRREVERSIBLE TRIO relocated to Progress.lean (option (a)): one-line note at
+  the old site; proofs = `absurd (run_totalDepth_le/run_stockLen_le ...) (by have
+  := apply_reveal_totalDepth_lt/shortens h; omega)` (Progress exit 0, zero
+  warnings, axiom-clean).
+- NEW REUSABLE KIT (Theorems.lean, before drawTo_comm_modAdjacent):
+  `findFirstIdx_removeIdx_shift/_keep` (+ `posOf_...` wrappers, cursor-blind):
+  posOf in a spliced list (first-occurrence induction); `removeAt_drawTo`:
+  `(cy.drawTo i).removeAt i = <removeIdx cy.cards i, i>`; `applyDrawTo_eq`: the
+  successful-draw shape (index = reachablePos, attach, successor literal);
+  `reachablePos_posOf/_mask`: guard inversions; `attach_attach_comm`: two attaches
+  at distinct bases commute; `zero_notMem_maskPos`: position 0 is NOT accessible
+  from a saturated cursor (>= 2 cards, step >= 2) — proved from maskPos's def +
+  laneUp_mem, NO dependence on the sorry'd maskPos_mem_iff.
+- SYNTAX paid: (1) sepBy1Indent hit THREE times: `{ st with board := X,`
+  newline `stock := Y }` — continuation BELOW the first field's column breaks the
+  parse ("invalid {...} notation"); put the first field on its own line. (2)
+  `show T by tac` as an application ARGUMENT elaborates to a metavar-laden have —
+  use `(by tac : T)` (also `show ... from by omega` in rw lists is fine). (3)
+  `subst hi0 : i0 = i` eliminated the THEOREM binder i (AGAIN) — `rw [hi0] at hs1`
+  is the safe form. (4) `cases hp : st.stock.posOf c` substitutes goal occurrences
+  INSIDE the to-prove statement too — witnesses become rfl slots. (5) rcases on a
+  LEFT-nested Or with a List.Mem disjunct = dependent-elimination failure — plain
+  `cases ... with | inl | inr` worked. (6) omega cannot see through an opaque
+  successor's drawStep — bridge with `have hsd : s1.drawStep = st.drawStep := by
+  rw [hs1]; rfl` and ascribe mask-lemma step args at `s1.drawStep` (proof
+  irrelevance covers the mask's hstep arg). (7) `rw [if_pos ..., List.mem_singleton]`
+  after `simp only [List.mem_append]` — append decomposition must come FIRST.
+
+## State/Move/Initial/Realizability/Bridge — the invariant-layer repair (2026-09-13)
+
+- LANDED (full build green, census 42 = my delta ZERO, -5 is Theorems'
+  parallel proofs): Repair B (buried base) — oard_edges' and Fits'
+  deal-adjacency disjunct gained (∃ a', topHidden a' = some d) ∨
+  (bottomOf d).isSome; in Fits topHidden is spelled (take ...).getLast?
+  (defeq through State.topHidden) — ealizable_of_wf and
+  	oEngine_realizedBy_board survived UNCHANGED by defeq. Repair A —
+  WF += TWO conjuncts: ounds_gone (SKETCH CORRECTED: the sketch's
+  two-part version is REFUTED by reveal — a hidden-passed boundary
+  (heights ♥=3, ♥3 hidden in p1 under its cover) becomes visible ⇒
+  added the third part ∀ a, c ∉ st.hidden a) + is_not_hidden
+  (visible cards not hidden — REQUIRED: pileStack bumps toIdx c =
+  heights c exactly, so founds_gone covers it only via vis⇒¬hidden).
+  Both witnesses KILLED axiom-clean (¬stNP.WF, ¬stX.WF +
+  ¬realizedBy bdW — scratches updated in Temp\opencode). WF is now
+  the 11-conjunct chain; ound_off_cycle KEPT (redundant, cheap —
+  zero consumer churn); board_edges stays conjunct 3 so
+  realizable_of_wf's ⟨_,_,hmatch,_⟩ spine held.
+- apply_wf RE-PROVEN all 7 arms: reveal's new-edge base d₂ IS the new
+  topHidden (hidden_split + take-computation pre ++ [d₂]); the c→r
+  edge keeps deal-adjacency with base r NOW PLACED (attach); other
+  edges' base-condition: topHidden unchanged at a'≠a, d=r ⇒ a'=a ⇒
+  placed-new (d=r forced via topHidden uniqueness). founds_gone:
+  deckPile/deckStack bumped-card is stock-gone (posOf_mem contra);
+  pileStack's bumped card was visible (vis_not_hidden!); stackPile's
+  heights DROP (hcold from the -1 form); reveal's r-case vacuous via
+  r ∈ hidden a contra founds_gone. vis_not_hidden: reveal r ∉ take
+  (depths-1) via 	opHidden_get + 
+otMem_take_of_get (noDup pile),
+  cross-pile via piles_disj; deckPile c ∉ piles via stock-disj.
+- NEW REUSABLES (Move.lean, before apply_wf): take kit
+  (take_length_succ_self, getLast?_append_single, mem_take_index,
+  mem_take_of_index, getLast?_index, notMem_take_of_get, take_mono,
+  topHidden_get); append kit (noDupCards_append_left/_right — the
+  right one MOVED from Initial, delete there — and _disj);
+  flatMap/pile kit (noDupCards_flatMap_of_mem, piles_disj_aux,
+  Deal.pile_noDup, Deal.piles_disj); board inverses
+  (detach_bottomOf_self — Bridge's name taken, bottomOf_isSome_attach_of_ne).
+- QUIRKS: (1) rcases fl patterns on mem_cons substitute
+  unpredictably (y := a vs a := y) — use explicit hae : a = y +
+  w [← hae]; (2) w [haa] at hcm BEFORE defeq-casting hcm into
+  take-form (by_cases does NOT substitute the free var); (3) wf-slot
+  passing needs dealOnce_cards rw (posOf reads the stock); (4) STALE
+  OLEANS cost an hour of fake rcases errors — after ANY State/Move
+  edit run lake build Klondike FIRST (the 12-slot destructure
+  'failed' only against the old 9-conjunct WF); (5) parallel agents'
+  red Theorems blocks downstream lake env lean (missing olean) —
+  poll, don't work around it.
+
+## SIGN-OFF (orchestrator, accepted): drawTo_comm_modAdjacent's step guard
+
+- The staged statement was false at drawStep=1 (wrap witness: len 3,
+  i=2, j=0 — end cursors some 0 vs some 1). Repair: added
+  `(hstep : 2 ≤ st.drawStep)` — wrap vacuous at len≥3 (position 0
+  unreachable from the saturated cursor), genuine at len=2, non-wrap
+  genuine at every step. Conclusion unchanged; the step-1 non-wrap
+  case is Move.lean's proven `drawTo_comm_adjacent`. The C-IND
+  distinct-class residue is the sibling's sweep/canonicalization
+  territory (Pace.lean).

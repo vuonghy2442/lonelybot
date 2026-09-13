@@ -484,30 +484,27 @@ order/offset `maskPos`) plus the offset-rewrite lemma's replacement
 irrelevance.  That is reading work, not farm work (the deferred
 list).
 
-**REFUTED AS STATED (prover-confirmed 2026-09-13, orchestrator
-sign-off pending — scratch `Temp\opencode\LiftWitness.lean`, exit 0)**:
-UNSOUND even draw-1-gated on a WF state.  Witness `stX`: ♥/♦/♣
-complete, ♠ at 12; the model board seats ♥Q on ♠K (a legal
-`canSitOn` edge), so the model's `pileStack ♠K` is blocked and ♥Q is
-immovable; every other engine move is illegal and `.draw` is the
-identity (empty stock) — so `¬ stX.solvableEngine`.  Yet the abstract
-game wins in ONE move: `pileStack ♠K` through the witness board `bdW`
-seating ♥Q on ♣5 — its deal-adjacent neighbor in pile p2 — which
-`Board.Fits`'s deal-adjacency clause accepts WITHOUT requiring the
-base to be hidden or visible.  The model's `canPlace` demands a
-visible card base, so that arrangement is unreachable: the witness
-boards are strictly more permissive than the model's game.
+**REFUTED AS STATED (prover-confirmed 2026-09-13, scratch
+`Temp\opencode\LiftWitness.lean`, exit 0)**: UNSOUND even draw-1-gated
+on a WF state.  Witness `stX`: ♥/♦/♣ complete, ♠ at 12; the model board
+seats ♥Q on ♠K (a legal `canSitOn` edge), so the model's
+`pileStack ♠K` is blocked and ♥Q is immovable; every other engine
+move is illegal and `.draw` is the identity (empty stock) — so
+`¬ stX.solvableEngine`.  Yet the abstract game wins in ONE move:
+`pileStack ♠K` through the witness board `bdW` seating ♥Q on ♣5 —
+its deal-adjacent neighbor in pile p2 — which `Board.Fits`'s
+deal-adjacency clause accepted WITHOUT requiring the base to be
+hidden or visible.
 
-Root cause: the deal-adjacency clause of `Fits` (shared with
-`Realizability.realizable_of_wf`, where it mirrors WF's
-`board_edges`).  A repair — e.g. the deal-adjacent base must lie
-within the hidden prefix (`t.length < depths a`) or be visible —
-cascades: `realizable_of_wf` (proven) would need WF to track
-deal-adjacent bases, and `toEngine_simulates`'s witnesses (the
-model's own board) would need the strengthened condition, which WF
-does not give.  This is a design-level decision (the abstraction's
-honest-invariant), beyond a farm statement repair; with it in place
-the remaining work is still the B4 accommodation argument. -/
+**REPAIRED (same day, the invariant-layer strengthening)**: the
+deal-adjacency clauses of `State.board_edges` and `Board.Fits` now
+demand the base be the pile's hidden boundary (`topHidden`) or a
+placed card.  The witness is thereby KILLED: `stX` is no longer WF
+(its base ♣5 is neither p2's boundary — depths are 0 — nor placed),
+so the refutation's premise `stX.WF` is gone (re-verified in the
+scratch: `¬ stX.WF` via `founds_gone` on the visible ♥Q at heights
+♥ = 13).  The remaining `sorry` below is the honest B4 accommodation
+argument, no longer a known-unsound statement. -/
 theorem toEngine_lifts {st : State} {eplay : List EMove} {w : EState} (hwf : st.WF)
     (hstep : st.drawStep = 1)
     (hrun : eRun (toEngine st) eplay w) (hwin : w.isWin = true) :
@@ -519,10 +516,14 @@ Combines the simulation with the lift.  Draw-1 gated as the lift
 (the all-steps form awaits the `eStep` pacing guard — see
 `toEngine_lifts`'s note).
 
-**The ← direction is REFUTED** by `toEngine_lifts`'s witness (same
-scratch): `(toEngine stX).esolvable` holds while
-`¬ stX.solvableEngine`.  The → direction (the simulation) is proven
-below; the remaining `sorry` is exactly the refuted half. -/
+**The ← direction was refuted** by `toEngine_lifts`'s witness
+(`Temp\opencode\LiftWitness.lean`) — `(toEngine stX).esolvable` held
+while `¬ stX.solvableEngine`, because `Board.Fits` admitted
+deal-adjacent seats on unplaced, non-boundary bases.  That hole is
+now CLOSED (the buried-base repair in `Fits`/`board_edges`; see
+`toEngine_lifts`'s note) and the witness no longer satisfies `WF`.
+The → direction (the simulation) is proven below; the remaining
+`sorry` is the refuted half, now honest. -/
 theorem engine_iff {st : State} (hwf : st.WF) (hstep : st.drawStep = 1) :
     st.solvableEngine ↔ (toEngine st).esolvable := by
   constructor
