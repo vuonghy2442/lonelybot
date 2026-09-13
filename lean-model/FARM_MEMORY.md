@@ -523,3 +523,26 @@ The statement repairs that came with it (recorded in FARM.md wave 8):
 `noDupCards` on `pos_shift` (a duplicated card draws twice via
 `posOf` finding the second copy while `rBelow` counts by
 `idxOf` — over-counting the shift).
+
+## apply_wf PROVEN (orchestrator, 2026-09-13)
+
+- THE KEYSTONE. All 7 arms, ~500 lines, alongside 4 new helpers:
+  `bottomOf_isSome_attach` (base-survival through attach), `bottomOf_detach_ne`
+  (base-search unchanged off the detached card), `removeIdx_of_length_le`,
+  `noDupCards_removeIdx` (with the top-level `by_cases i < length` split — the
+  user-supplied fix), `hidden_split`/`hidden_single`/`hidden_parent_dealt`
+  (reveal's crux: hidden = pre ++ [d, r] → dealt-adjacency),
+  `mem_of_getLast''` (local copy — Initial's is upstream),
+  `Cycle.dealOnce_cursor_le` (their agent's new rotation).
+- `apply_realizable` = `realizable_of_wf (apply_wf ...)` — one line.
+- LESSONS this proof: (1) `subst` on `x = binder` may eliminate the THEOREM
+  binder — prefer `rw [h]` on hypotheses / goals; (2) after `cases b`, use
+  `Sum.inr d` explicitly — the binder is gone; (3) `Bool.and_eq_true` is an
+  Eq-of-Props — the usable form is `Bool.and_eq_true_iff.mp`; (4) after the
+  outer `refine ⟨bottomOf-proof, ?_⟩` closes the ∧, the inner block gets the
+  MATCH alone — `obtain ⟨-, hleg⟩` + `cases`, no second refine; (5) give
+  `mem_removeIdx` EXPLICIT l i — the `_ _` metavars mis-unify through the
+  `.cards` projection; (6) stuck-ite state projections (dealOnce) need the
+  simp lemma (`dealOnce_cards`) or a show into the def's body before defeq
+  transfers; (7) heights-update slots: state the `hon` bound against the raw
+  `if`-form and `rw [if_pos/if_neg] at hon` — never name the eliminated `st'`.

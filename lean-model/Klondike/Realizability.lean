@@ -123,7 +123,8 @@ theorem realizable_of_wf {st : State} (hwf : st.WF) :
 the abstract data realizable — each generator guard is precisely the
 witness requirement.  Model side this is `apply_wf`'s shadow; the
 engine side (the `bm` XOR algebra computing `uncovered_t > 0` from the
-tracked masks) belongs to the bridge milestone.  TODO. -/
+tracked masks) belongs to the bridge milestone. -/
 theorem apply_realizable {st st' : State} (hwf : st.WF) {m : Move}
     (h : st.apply m = some st') :
-    Realizable st'.deal st'.depths (fun c => st'.isVis c) := sorry
+    Realizable st'.deal st'.depths (fun c => st'.isVis c) :=
+  realizable_of_wf (apply_wf hwf m st' h)

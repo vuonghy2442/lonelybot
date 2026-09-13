@@ -1,6 +1,6 @@
 # The proof farm — handoff document
 
-46 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
+44 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
 each carrying a `TODO(proof)` route comment in source.  Difficulty:
 **[T]** rfl/decide/case-bash · **[E]** one induction · **[M]** real
 work · **[H]** needs ideas (do not assign casually).
@@ -72,7 +72,7 @@ New reusables: `attach_inj`, `mapBy_inj`, `Base.flipBase_flipBase`,
 | item | file:line | tag | route |
 |---|---|---|---|
 | `legal_pileStack_iff` | Move | [M] | unfold `apply`; the Board lemmas (Wave 1 done) |
-| `apply_wf` | Move | [H] | 7-way; the cycle must be a deal-stock sub-multiset — **WF was repaired for this** (5 witness-confirmed holes, see FARM_MEMORY); now also carries `step_pos` (draw ≥ 1) |
+| ~~`apply_wf`~~ | Move | **done** | the 7-way maintenance lemma, all arms — the keystone; the old "sub-multiset" blocker died with WF's `stock_wf` (noDup + membership) repair |
 | `pilePile_roundtrip` | Theorems | [M] | the run carries back; `aboveOf` untouched |
 | ~~`pileStack_stackPile_roundtrip`~~ | Theorems | **done** | detach-then-attach; heights ± |
 | ~~`draw_full_cycle`~~ | Theorems | **superseded** | the rotate-form died with the physical rework (rotate removed); replaced by `draw_full_pass` below (Wave 9) |
@@ -126,7 +126,7 @@ New reusables: `attach_inj`, `mapBy_inj`, `Base.flipBase_flipBase`,
 | `solvable_accommodates` | Theorems | **[H]** | **B4 / the reshape lemma — the farm's hardest item** |
 | `solvable_engine_iff` | Move | **[H]** | the no-pile-to-pile legs |
 | ~~`realizable_of_wf`~~ | Realizability | **done** | WF → Fits glue (post-repair) |
-| `apply_realizable` | Realizability | [M] | `apply_wf` + the above |
+| ~~`apply_realizable`~~ | Realizability | **done** | one line: `realizable_of_wf (apply_wf …)` — the keystone's shadow |
 | `uncovered_eq_freeType` | Realizability | [M] | the counting bijection (injectivity + edge legality) |
 
 ## Wave 7 — macro and bridge

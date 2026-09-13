@@ -884,19 +884,581 @@ of ONE model, not a correspondence between two formalizations. -/
 theorem solvable_engine_iff {st : State} (hwf : st.WF) :
     st.solvableFrom ↔ st.solvableEngine := sorry
 
-/-- TODO(proof): `WF` is preserved by every legal move — the
-maintenance lemma, per move case.  Prover-confirmed WF-design
-witnesses: deal-adjacency grandfathers `reveal`'s cover-on-cover edge
-(board {inr ♥2 ↦ ♥3}); stock ⊆ deal.stock carries `reveal`'s
-freshly-visible boundary card out of the cycle (witness ⟨[♥2, ♠9], 1⟩).
-RESIDUAL deckPile/deckStack blocker (prover-confirmed, escalated):
-the membership conjunct does not see multiplicity — a state stock
-[♢3, ♢3] of a deal-stock card survives it, and the splice leaves the
-second copy while the card turns visible (witness #5: board
-{inr ♠3 ↦ ♠4}, `deckPile ♢3 (inr ♠4)`) — restore
-`noDupCards st.stock.cards` as an additional conjunct. -/
+/-- After attaching `c` at `b`: any card that had a base still has
+one (the attachment only adds `c` to the image). -/
+theorem bottomOf_isSome_attach {bd : Board} {b : Base} {c : Card}
+    {bd' : Board} (hatt : bd.attach b c = some bd') {d : Card}
+    (hds : (bd.bottomOf d).isSome = true) : (bd'.bottomOf d).isSome = true := by
+  obtain ⟨b'', hb''⟩ : ∃ b'', bd.bottomOf d = some b'' := by
+    cases hh : bd.bottomOf d with
+    | none => rw [hh] at hds; simp at hds
+    | some b'' => exact ⟨b'', rfl⟩
+  have htb : bd.topOf b'' = some d := (Board.bottomOf_eq bd d b'').mp hb''
+  by_cases hdb : d = c
+  · rw [hdb, (Board.bottomOf_eq bd' c b).mpr (Board.attach_topOf _ _ _ hatt)]
+    rfl
+  · have hbbne : b'' ≠ b := by
+      intro hcon
+      have hfree : bd.topOf b = none :=
+        (Board.attach_eq_some_iff bd b c).mp (by rw [hatt]; simp) |>.1
+      rw [hcon] at htb
+      rw [htb] at hfree
+      simp at hfree
+    rw [(Board.bottomOf_eq bd' d b'').mpr (by
+      rw [Board.attach_topOf_ne _ _ _ hatt hbbne]
+      exact htb)]
+    rfl
+
+/-- After detaching the card at `b`: a *different* card's base search
+is unchanged. -/
+theorem bottomOf_detach_ne {bd : Board} {b : Base} {c d : Card}
+    (hbot : bd.topOf b = some c) (hdne : d ≠ c) :
+    (bd.detach b).bottomOf d = bd.bottomOf d := by
+  by_cases hh : bd.bottomOf d = none
+  · rw [hh]
+    refine (Board.bottomOf_eq_none _ d).mpr (fun b'' hb'' => ?_)
+    by_cases hbb : b'' = b
+    · subst hbb
+      rw [Board.detach_topOf] at hb''
+      exact absurd hb'' (by simp)
+    · rw [Board.detach_topOf_ne _ _ _ hbb] at hb''
+      exact ((Board.bottomOf_eq_none bd d).mp hh) b'' hb''
+  · cases hbd : bd.bottomOf d with
+    | none => exact absurd hbd hh
+    | some b'' =>
+      have htb : bd.topOf b'' = some d := (Board.bottomOf_eq bd d b'').mp hbd
+      have hbbne : b'' ≠ b := by
+        intro hcon; subst hcon
+        exact hdne (Option.some.inj (hbot.symm.trans htb)).symm
+      exact (Board.bottomOf_eq (bd.detach b) d b'').mpr (by
+        rw [Board.detach_topOf_ne _ _ _ hbbne]
+        exact htb)
+
+/-- One deal step keeps the cursor in range. -/
+theorem Cycle.dealOnce_cursor_le (s : Nat) (cy : Cycle Card) :
+    (cy.dealOnce s).cursor ≤ cy.cards.length := by
+  simp only [Cycle.dealOnce]
+  split <;> simp <;> omega
+
+/-- Last-element membership (local copy — `Initial`'s version is
+upstream in the import order). -/
+theorem mem_of_getLast' {l : List Card} {c : Card} (h : l.getLast? = some c) : c ∈ l := by
+  rw [← head?_reverse_eq_getLast?] at h
+  cases hrev : l.reverse with
+  | nil => rw [hrev] at h; simp at h
+  | cons x t =>
+    rw [hrev] at h
+    simp only [List.head?_cons, Option.some.injEq] at h
+    have hx : c = x := h.symm
+    subst hx
+    have h1 : c ∈ l.reverse := by rw [hrev]; exact List.mem_cons_self
+    exact List.mem_reverse.mp h1
+
+/-- **WF is preserved by every legal move** — the maintenance lemma.
+Arms: `draw` is a pure cursor rotation; `reveal` rides deal-adjacency
+(cover on freshly-revealed boundary) and the piles/stock disjointness;
+`deckPile`/`deckStack` splice the waste top out (noDup and membership
+survive `removeIdx`; the cursor steps down); `pileStack`/`stackPile`
+bump/drop the height of `c`'s suit within the rank bound;
+`pilePile` moves the run within the matching (image unchanged). -/
 theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
-    (h : st.apply m = some st') : st'.WF := sorry
+    (h : st.apply m = some st') : st'.WF := by
+  obtain ⟨hdeal, hdepths, hedges, hvis, hfound, hheights, hcursor, hstep, hnd, hmem⟩ := hwf
+  cases m with
+  | draw =>
+    rw [apply_draw_iff] at h
+    obtain ⟨rfl⟩ := h
+    refine ⟨hdeal, hdepths, hedges, ?_, ?_, hheights, ?_, hstep, ?_⟩
+    · intro c' hc'
+      show Cycle.findFirstIdx (fun c'' => decide (c'' = c'))
+          (Cycle.dealOnce st.drawStep st.stock).cards = none
+      rw [Cycle.dealOnce_cards]
+      exact hvis c' hc'
+    · intro c' hc'
+      show Cycle.findFirstIdx (fun c'' => decide (c'' = c'))
+          (Cycle.dealOnce st.drawStep st.stock).cards = none
+      rw [Cycle.dealOnce_cards]
+      exact hfound c' hc'
+    · show (Cycle.dealOnce st.drawStep st.stock).cursor
+          ≤ (Cycle.dealOnce st.drawStep st.stock).cards.length
+      rw [Cycle.dealOnce_cards]
+      exact Cycle.dealOnce_cursor_le st.drawStep st.stock
+    · refine ⟨?_, ?_⟩
+      · show noDupCards (Cycle.dealOnce st.drawStep st.stock).cards
+        rw [Cycle.dealOnce_cards]
+        exact hnd
+      · intro c'' hc''
+        rw [Cycle.dealOnce_cards] at hc''
+        exact hmem c'' hc''
+  | reveal c =>
+    rw [apply_reveal_iff] at h
+    obtain ⟨ht, r, a, bd, hb, hp, ha, rfl⟩ := h
+    have htop : st.topHidden a = some r :=
+      of_decide_eq_true (findFirst_mem _ _ _ hp).2
+    refine ⟨hdeal, ?_, ?_, ?_, hfound, hheights, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    · intro a'
+      by_cases haa : a' = a
+      · show (if a' = a then st.depths a - 1 else st.depths a') ≤ (st.deal.piles a').length
+        rw [if_pos haa, haa]
+        have := hdepths a
+        omega
+      · show (if a' = a then st.depths a - 1 else st.depths a') ≤ (st.deal.piles a').length
+        rw [if_neg haa]
+        exact hdepths a'
+    · intro b c' hb'
+      refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
+      by_cases hbb : b = st.hiddenBase a
+      · subst hbb
+        have hnew : bd.topOf (st.hiddenBase a) = some r := Board.attach_topOf _ _ _ ha
+        rw [hnew, Option.some.injEq] at hb'
+        rw [← hb']
+        simp only [State.hiddenBase]
+        cases hb2 : ((st.hidden a).reverse.drop 1).head? with
+        | none =>
+            right
+            exact head?_of_take_single (hidden_single hb2 htop)
+        | some d =>
+            exact Or.inl ⟨a, hidden_parent_dealt hb2 htop⟩
+      · rw [Board.attach_topOf_ne _ _ _ ha hbb] at hb'
+        obtain ⟨-, hleg⟩ := hedges b c' hb'
+        cases b with
+        | inl a => exact hleg
+        | inr d =>
+            rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
+            · exact Or.inl ⟨a, t, rest, hadj⟩
+            · exact Or.inr ⟨bottomOf_isSome_attach ha his, hsit⟩
+    · intro c' hc'
+      show (st.stock).posOf c' = none
+      by_cases hcc : c' = r
+      · rw [hcc]
+        exact Cycle.posOf_eq_none (fun hcm =>
+          Deal.piles_stock_disj hdeal (by
+            rw [← List.take_append_drop (st.depths a) (st.deal.piles a)]
+            exact List.mem_append_left _ (mem_of_getLast' htop)) (hmem r hcm))
+      · have hbdr : ∃ b, bd.bottomOf c' = some b := by
+          cases h : bd.bottomOf c' with
+          | none =>
+              simp only [State.isVis] at hc'
+              rw [h] at hc'
+              simp at hc'
+          | some b => exact ⟨b, rfl⟩
+        obtain ⟨b, hbr⟩ := hbdr
+        have hbne : b ≠ st.hiddenBase a := by
+          intro hcon
+          have h1 : bd.topOf b = some c' := (Board.bottomOf_eq bd c' _).mp hbr
+          have h2 : bd.topOf b = some r := by
+            rw [hcon]
+            exact Board.attach_topOf _ _ _ ha
+          rw [h1] at h2
+          exact hcc (Option.some.inj h2)
+        have htb : bd.topOf b = some c' := (Board.bottomOf_eq bd c' b).mp hbr
+        rw [Board.attach_topOf_ne _ _ _ ha hbne] at htb
+        exact hvis c' (by
+          show (st.board.bottomOf c').isSome = true
+          rw [(Board.bottomOf_eq st.board c' b).mpr htb]
+          rfl)
+  | deckPile c b =>
+    rw [apply_deckPile_iff] at h
+    obtain ⟨hp, hcp, bd, hatt, rfl⟩ := h
+    have hprev : st.stock.cursor ≠ 0 ∧ st.stock.cards[st.stock.cursor - 1]? = some c := by
+      simp only [Cycle.prev] at hp
+      split at hp
+      · exact absurd hp (by simp)
+      · exact ⟨by omega, hp⟩
+    refine ⟨hdeal, hdepths, ?_, ?_, ?_, hheights, ?_, hstep, ?_⟩
+    · intro b' c'' hb''
+      refine ⟨(Board.bottomOf_eq _ _ _).mpr hb'', ?_⟩
+      by_cases hbb : b' = b
+      · rw [hbb, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at hb''
+        rw [hbb, ← hb'']
+        obtain ⟨-, hcpm⟩ := Bool.and_eq_true_iff.mp hcp
+        cases b with
+        | inl a => exact Or.inl (of_decide_eq_true hcpm)
+        | inr d =>
+            obtain ⟨hvisd, hsit⟩ := Bool.and_eq_true_iff.mp hcpm
+            refine Or.inr ⟨bottomOf_isSome_attach hatt ?_, hsit⟩
+            show (st.board.bottomOf d).isSome = true
+            exact hvisd
+      · rw [Board.attach_topOf_ne _ _ _ hatt hbb] at hb''
+        obtain ⟨-, hleg⟩ := hedges b' c'' hb''
+        cases b' with
+        | inl a => exact hleg
+        | inr d =>
+            rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
+            · exact Or.inl ⟨a, t, rest, hadj⟩
+            · exact Or.inr ⟨bottomOf_isSome_attach hatt his, hsit⟩
+    · intro c' hc'
+      show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
+      by_cases hcc : c' = c
+      · rw [hcc]
+        have hmem2 : st.stock.cards[st.stock.cursor - 1]? = some c := hprev.2
+        exact Cycle.posOf_eq_none (fun hcm =>
+          Cycle.notMem_removeIdx_self (fun j hj => hnd j (st.stock.cursor - 1)
+            (by have := (List.getElem?_eq_some_iff.mp hj).1
+                have := (List.getElem?_eq_some_iff.mp hmem2).1
+                omega)
+            (by have := (List.getElem?_eq_some_iff.mp hmem2).1; omega)
+            (by rw [hj, hmem2])) hcm)
+      · have hbdr : ∃ bb, bd.bottomOf c' = some bb := by
+          cases h : bd.bottomOf c' with
+          | none =>
+              simp only [State.isVis] at hc'
+              rw [h] at hc'
+              simp at hc'
+          | some bb => exact ⟨bb, rfl⟩
+        obtain ⟨bb, hbr⟩ := hbdr
+        have hbbne : bb ≠ b := by
+          intro hcon
+          have h1 : bd.topOf bb = some c' := (Board.bottomOf_eq bd c' _).mp hbr
+          rw [hcon, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at h1
+          exact hcc h1.symm
+        have htb : bd.topOf bb = some c' := (Board.bottomOf_eq bd c' bb).mp hbr
+        rw [Board.attach_topOf_ne _ _ _ hatt hbbne] at htb
+        have hcold : st.isVis c' = true := by
+          show (st.board.bottomOf c').isSome = true
+          rw [(Board.bottomOf_eq st.board c' bb).mpr htb]
+          rfl
+        have hnc : c' ∉ st.stock.cards := by
+          intro hcm
+          have hpm := Cycle.posOf_mem hcm
+          rw [hvis c' hcold] at hpm
+          exact absurd hpm (by simp)
+        exact Cycle.posOf_eq_none (fun hcm => hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
+    · intro c' hc'
+      show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
+      have hnc : c' ∉ st.stock.cards := by
+        intro hcm
+        have hpm := Cycle.posOf_mem hcm
+        rw [hfound c' hc'] at hpm
+        exact absurd hpm (by simp)
+      exact Cycle.posOf_eq_none (fun hcm => hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
+    · show (if st.stock.cursor - 1 < st.stock.cursor then st.stock.cursor - 1
+            else st.stock.cursor) ≤ (Cycle.removeIdx st.stock.cards (st.stock.cursor - 1)).length
+      rw [if_pos (by omega)]
+      have hilen : st.stock.cursor - 1 < st.stock.cards.length :=
+        (List.getElem?_eq_some_iff.mp hprev.2).1
+      have := Cycle.removeIdx_length st.stock.cards (st.stock.cursor - 1) hilen
+      have := hcursor
+      omega
+    · refine ⟨noDupCards_removeIdx _ _ hnd, ?_⟩
+      intro cc hcc
+      exact hmem cc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcc)
+  | deckStack c =>
+    rw [apply_deckStack_iff] at h
+    obtain ⟨hp, hrk, rfl⟩ := h
+    have hprev : st.stock.cursor ≠ 0 ∧ st.stock.cards[st.stock.cursor - 1]? = some c := by
+      simp only [Cycle.prev] at hp
+      split at hp
+      · exact absurd hp (by simp)
+      · exact ⟨by omega, hp⟩
+    refine ⟨hdeal, hdepths, hedges, ?_, ?_, ?_, ?_, hstep, ?_⟩
+    · intro c' hc'
+      show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
+      have hnc : c' ∉ st.stock.cards := by
+        intro hcm
+        have hpm := Cycle.posOf_mem hcm
+        rw [hvis c' hc'] at hpm
+        exact absurd hpm (by simp)
+      exact Cycle.posOf_eq_none (fun hcm => hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
+    · intro c' hc'
+      show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
+      by_cases hcc : c' = c
+      · rw [hcc]
+        have hmem2 : st.stock.cards[st.stock.cursor - 1]? = some c := hprev.2
+        exact Cycle.posOf_eq_none (fun hcm =>
+          Cycle.notMem_removeIdx_self (fun j hj => hnd j (st.stock.cursor - 1)
+            (by have := (List.getElem?_eq_some_iff.mp hj).1
+                have := (List.getElem?_eq_some_iff.mp hmem2).1
+                omega)
+            (by have := (List.getElem?_eq_some_iff.mp hmem2).1; omega)
+            (by rw [hj, hmem2])) hcm)
+      · have hon : c'.rank.toIdx <
+            (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) :=
+            of_decide_eq_true hc'
+        have hold : st.onFound c' = true := by
+          by_cases hsc : c'.suit = c.suit
+          · rw [if_pos hsc] at hon
+            rcases Nat.lt_or_ge c'.rank.toIdx (st.heights c'.suit) with hlt | heq
+            · show decide (c'.rank.toIdx < st.heights c'.suit) = true
+              exact decide_eq_true hlt
+            · have heq2 : c'.rank.toIdx = st.heights c'.suit := by omega
+              rw [hsc] at heq2
+              have hr : c'.rank = c.rank := Rank.toIdx_inj (by rw [heq2, hrk])
+              have hcard : c' = c := by
+                cases c' with
+                | mk s rk => cases c with
+                  | mk s' rk' => rw [Card.mk.injEq]; exact ⟨hsc, hr⟩
+              exact absurd hcard hcc
+          · rw [if_neg hsc] at hon
+            show decide (c'.rank.toIdx < st.heights c'.suit) = true
+            exact decide_eq_true hon
+        have hnc : c' ∉ st.stock.cards := by
+          intro hcm
+          have hpm := Cycle.posOf_mem hcm
+          rw [hfound c' hold] at hpm
+          exact absurd hpm (by simp)
+        exact Cycle.posOf_eq_none (fun hcm => hnc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcm))
+    · intro s
+      by_cases hsc : s = c.suit
+      · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
+        rw [if_pos hsc, hsc]
+        have h1 : st.heights c.suit < 13 := by rw [← hrk]; exact Rank.toIdx_lt c.rank
+        omega
+      · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
+        rw [if_neg hsc]
+        exact hheights s
+    · show (if st.stock.cursor - 1 < st.stock.cursor then st.stock.cursor - 1
+            else st.stock.cursor) ≤ (Cycle.removeIdx st.stock.cards (st.stock.cursor - 1)).length
+      rw [if_pos (by omega)]
+      have hilen : st.stock.cursor - 1 < st.stock.cards.length :=
+        (List.getElem?_eq_some_iff.mp hprev.2).1
+      have := Cycle.removeIdx_length st.stock.cards (st.stock.cursor - 1) hilen
+      have := hcursor
+      omega
+    · refine ⟨noDupCards_removeIdx _ _ hnd, ?_⟩
+      intro cc hcc
+      exact hmem cc (Cycle.mem_removeIdx st.stock.cards (st.stock.cursor - 1) hcc)
+  | pileStack c =>
+    rw [apply_pileStack_iff] at h
+    obtain ⟨ht, b, hb, hrk, rfl⟩ := h
+    have hbot : st.board.topOf b = some c := (Board.bottomOf_eq st.board c b).mp hb
+    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    · intro b' c' hb'
+      refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
+      have hb'ne : b' ≠ b := by
+        intro hcon; subst hcon
+        rw [Board.detach_topOf] at hb'
+        exact absurd hb' (by simp)
+      rw [Board.detach_topOf_ne _ _ _ hb'ne] at hb'
+      obtain ⟨-, hleg⟩ := hedges b' c' hb'
+      cases b' with
+      | inl a => exact hleg
+      | inr d =>
+          have hdc : d ≠ c := by
+            intro hcon
+            rw [hcon] at hb'
+            rw [ht] at hb'
+            exact absurd hb' (by simp)
+          rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
+          · exact Or.inl ⟨a, t, rest, hadj⟩
+          · refine Or.inr ⟨?_, hsit⟩
+            rw [bottomOf_detach_ne hbot hdc]
+            exact his
+    · intro c' hc'
+      show (st.stock).posOf c' = none
+      by_cases hcc : c' = c
+      · rw [hcc]
+        exact hvis c (by
+          show (st.board.bottomOf c).isSome = true
+          rw [hb]
+          rfl)
+      · have hbdr : ∃ bb, (st.board.detach b).bottomOf c' = some bb := by
+          cases h : (st.board.detach b).bottomOf c' with
+          | none =>
+              simp only [State.isVis] at hc'
+              rw [h] at hc'
+              simp at hc'
+          | some bb => exact ⟨bb, rfl⟩
+        obtain ⟨bb, hbr⟩ := hbdr
+        have hbbne : bb ≠ b := by
+          intro hcon
+          have h1 : (st.board.detach b).topOf bb = some c' :=
+            (Board.bottomOf_eq _ c' bb).mp hbr
+          rw [hcon, Board.detach_topOf] at h1
+          exact absurd h1 (by simp)
+        have htb : (st.board.detach b).topOf bb = some c' :=
+          (Board.bottomOf_eq _ c' bb).mp hbr
+        rw [Board.detach_topOf_ne _ _ _ hbbne] at htb
+        exact hvis c' (by
+          show (st.board.bottomOf c').isSome = true
+          rw [(Board.bottomOf_eq st.board c' bb).mpr htb]
+          rfl)
+    · intro c' hc'
+      show (st.stock).posOf c' = none
+      have hon : c'.rank.toIdx <
+          (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) :=
+          of_decide_eq_true hc'
+      by_cases hsc : c'.suit = c.suit
+      · rw [if_pos hsc] at hon
+        rcases Nat.lt_or_ge c'.rank.toIdx (st.heights c'.suit) with hlt | heq
+        · exact hfound c' (by
+            show decide (c'.rank.toIdx < st.heights c'.suit) = true
+            exact decide_eq_true hlt)
+        · have heq2 : c'.rank.toIdx = st.heights c'.suit := by omega
+          rw [hsc] at heq2
+          have hr : c'.rank = c.rank := Rank.toIdx_inj (by rw [heq2, hrk])
+          have hcard : c' = c := by
+            cases c' with
+            | mk s rk => cases c with
+              | mk s' rk' => rw [Card.mk.injEq]; exact ⟨hsc, hr⟩
+          rw [hcard]
+          exact hvis c (by
+            show (st.board.bottomOf c).isSome = true
+            rw [hb]
+            rfl)
+      · rw [if_neg hsc] at hon
+        exact hfound c' (by
+          show decide (c'.rank.toIdx < st.heights c'.suit) = true
+          exact decide_eq_true hon)
+    · intro s
+      by_cases hsc : s = c.suit
+      · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
+        rw [if_pos hsc, hsc]
+        have h1 : st.heights c.suit < 13 := by rw [← hrk]; exact Rank.toIdx_lt c.rank
+        omega
+      · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
+        rw [if_neg hsc]
+        exact hheights s
+  | stackPile c b =>
+    rw [apply_stackPile_iff] at h
+    obtain ⟨h1g, hcp, bd, hatt, rfl⟩ := h
+    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    · intro b' c' hb'
+      refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
+      by_cases hbb : b' = b
+      · rw [hbb, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at hb'
+        rw [hbb, ← hb']
+        obtain ⟨-, hcpm⟩ := Bool.and_eq_true_iff.mp hcp
+        cases b with
+        | inl a => exact Or.inl (of_decide_eq_true hcpm)
+        | inr d =>
+            obtain ⟨hvisd, hsit⟩ := Bool.and_eq_true_iff.mp hcpm
+            refine Or.inr ⟨bottomOf_isSome_attach hatt ?_, hsit⟩
+            show (st.board.bottomOf d).isSome = true
+            exact hvisd
+      · rw [Board.attach_topOf_ne _ _ _ hatt hbb] at hb'
+        obtain ⟨-, hleg⟩ := hedges b' c' hb'
+        cases b' with
+        | inl a => exact hleg
+        | inr d =>
+            rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
+            · exact Or.inl ⟨a, t, rest, hadj⟩
+            · exact Or.inr ⟨bottomOf_isSome_attach hatt his, hsit⟩
+    · intro c' hc'
+      show (st.stock).posOf c' = none
+      by_cases hcc : c' = c
+      · rw [hcc]
+        have hold : st.onFound c = true := by
+          show decide (c.rank.toIdx < st.heights c.suit) = true
+          exact decide_eq_true (by omega)
+        exact hfound c hold
+      · have hbdr : ∃ b'', bd.bottomOf c' = some b'' := by
+          cases h : bd.bottomOf c' with
+          | none =>
+              simp only [State.isVis] at hc'
+              rw [h] at hc'
+              simp at hc'
+          | some b'' => exact ⟨b'', rfl⟩
+        obtain ⟨b'', hbr⟩ := hbdr
+        have hne2 : b'' ≠ b := by
+          intro hcon
+          have h1 : bd.topOf b'' = some c' := (Board.bottomOf_eq bd c' _).mp hbr
+          rw [hcon, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at h1
+          exact hcc h1.symm
+        have htb : bd.topOf b'' = some c' := (Board.bottomOf_eq bd c' b'').mp hbr
+        rw [Board.attach_topOf_ne _ _ _ hatt hne2] at htb
+        exact hvis c' (by
+          show (st.board.bottomOf c').isSome = true
+          rw [(Board.bottomOf_eq st.board c' b'').mpr htb]
+          rfl)
+    · intro c' hc'
+      show (st.stock).posOf c' = none
+      have hon : c'.rank.toIdx <
+          (if c'.suit = c.suit then st.heights c'.suit - 1 else st.heights c'.suit) :=
+          of_decide_eq_true hc'
+      exact hfound c' (by
+        by_cases hsc : c'.suit = c.suit
+        · rw [if_pos hsc] at hon
+          show decide (c'.rank.toIdx < st.heights c'.suit) = true
+          exact decide_eq_true (by omega)
+        · rw [if_neg hsc] at hon
+          show decide (c'.rank.toIdx < st.heights c'.suit) = true
+          exact decide_eq_true hon)
+    · intro s
+      by_cases hsc : s = c.suit
+      · show (if s = c.suit then st.heights s - 1 else st.heights s) ≤ 13
+        rw [if_pos hsc]
+        have := hheights s
+        omega
+      · show (if s = c.suit then st.heights s - 1 else st.heights s) ≤ 13
+        rw [if_neg hsc]
+        exact hheights s
+  | pilePile c b =>
+    rw [apply_pilePile_iff] at h
+    obtain ⟨b₀, hb, hbne, hcmr, bd, hatt, rfl⟩ := h
+    obtain ⟨hcp, -⟩ := Bool.and_eq_true_iff.mp hcmr
+    have hbot₀ : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp hb
+    refine ⟨hdeal, hdepths, ?_, ?_, hfound, hheights, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    · intro b' c' hb'
+      refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
+      by_cases hbb : b' = b
+      · rw [hbb, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at hb'
+        rw [hbb, ← hb']
+        obtain ⟨-, hcpm⟩ := Bool.and_eq_true_iff.mp hcp
+        cases b with
+        | inl a => exact Or.inl (of_decide_eq_true hcpm)
+        | inr d =>
+            obtain ⟨hvisd, hsit⟩ := Bool.and_eq_true_iff.mp hcpm
+            refine Or.inr ⟨?_, hsit⟩
+            by_cases hdc : d = c
+            · rw [hdc, (Board.bottomOf_eq bd c (Sum.inr d)).mpr (Board.attach_topOf _ _ _ hatt)]
+              rfl
+            · exact bottomOf_isSome_attach hatt (by
+                show ((st.board.detach b₀).bottomOf d).isSome = true
+                rw [bottomOf_detach_ne hbot₀ hdc]
+                exact hvisd)
+      · have hbb'₀ : b' ≠ b₀ := by
+          intro hcon
+          have h1 : bd.topOf b' = some c' := hb'
+          rw [hcon, Board.attach_topOf_ne _ _ _ hatt hbne, Board.detach_topOf] at h1
+          exact absurd h1 (by simp)
+        rw [Board.attach_topOf_ne _ _ _ hatt hbb, Board.detach_topOf_ne _ _ _ hbb'₀] at hb'
+        obtain ⟨-, hleg⟩ := hedges b' c' hb'
+        cases b' with
+        | inl a => exact hleg
+        | inr d =>
+            rcases hleg with ⟨a, t, rest, hadj⟩ | ⟨his, hsit⟩
+            · exact Or.inl ⟨a, t, rest, hadj⟩
+            · refine Or.inr ⟨?_, hsit⟩
+              by_cases hdc : d = c
+              · rw [hdc, (Board.bottomOf_eq bd c b).mpr (Board.attach_topOf _ _ _ hatt)]
+                rfl
+              · exact bottomOf_isSome_attach hatt (by
+                  show ((st.board.detach b₀).bottomOf d).isSome = true
+                  rw [bottomOf_detach_ne hbot₀ hdc]
+                  exact his)
+    · intro c' hc'
+      show (st.stock).posOf c' = none
+      by_cases hcc : c' = c
+      · rw [hcc]
+        exact hvis c (by
+          show (st.board.bottomOf c).isSome = true
+          rw [hb]
+          rfl)
+      · have hbdr : ∃ b'', bd.bottomOf c' = some b'' := by
+          cases h : bd.bottomOf c' with
+          | none =>
+              simp only [State.isVis] at hc'
+              rw [h] at hc'
+              simp at hc'
+          | some b'' => exact ⟨b'', rfl⟩
+        obtain ⟨b'', hbr⟩ := hbdr
+        have hne1 : b'' ≠ b₀ := by
+          intro hcon
+          have h1 : bd.topOf b'' = some c' := (Board.bottomOf_eq bd c' _).mp hbr
+          rw [hcon, Board.attach_topOf_ne _ _ _ hatt hbne, Board.detach_topOf] at h1
+          exact absurd h1 (by simp)
+        have hne2 : b'' ≠ b := by
+          intro hcon
+          have h1 : bd.topOf b'' = some c' := (Board.bottomOf_eq bd c' _).mp hbr
+          rw [hcon, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at h1
+          exact hcc h1.symm
+        have htb : bd.topOf b'' = some c' := (Board.bottomOf_eq bd c' b'').mp hbr
+        rw [Board.attach_topOf_ne _ _ _ hatt hne2, Board.detach_topOf_ne _ _ _ hne1] at htb
+        exact hvis c' (by
+          show (st.board.bottomOf c').isSome = true
+          rw [(Board.bottomOf_eq st.board c' b'').mpr htb]
+          rfl)
 
 /-- **C13 pilot (model level)**: adjacent Draw-commitments commute
 (distinct bases).  Cycle content: `Cycle.removeIdx_comm`; the board
