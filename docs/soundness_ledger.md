@@ -109,6 +109,19 @@ of last_draw_rules.md; cross-references always name their doc.
 |---|---|---|---|---|---|
 | F1 | Candidate paths replay legally on the real (unshuffled) game | lonecli assertion (src/main.rs:211) + encode invariance under determinization; 15,024-game run, zero failures | [x] | A1 | the assertion is the instrument |
 
+## G. The unsat ladder (SAT refutation rungs)
+
+The python/ SAT models: rungs of relaxation whose UNSAT is a cheap
+refutation. The oracle engine is the ground truth; soundness = every
+real winning line maps to a satisfying assignment.
+
+| # | Claim | Argued in | Tier | Depends on | Closed by |
+|---|---|---|---|---|---|
+| G1 | Rung-0/1 skeleton (set semantics + dynamic bm/free_slot/reveal gates) is a relaxation: UNSAT ⇒ unwinnable | unsat_gates.py; validated by the 128-game corpus (rung 3: 10/10 losses UNSAT, 118/118 wins SAT) and the acceptance test — 73 true oracle lines pinned (event order + every occurrence literal) into the CNF, all accepted; aux definitions audited as biconditionals | [~] | G3 (the counter fix), G4 | the Lean relaxation theorem + DRAT certificate checking (the [P] finish) |
+| G2 | W=0 scope: the ladder proves unwinnability of the no-worry-back subgame; full unsolvability needs the worry-back elimination | measured 2026-09: 45/118 corpus winning lines contain StackPile moves in the oracle's chosen line — they map into W=0 schedules only via the elimination | [~] | C2 (B&G Thm 5 port) | C2's port; or an independent W≥0 rung |
+| G3 | **Fixed bug (2026-09, found by the phantom-replay instrument):** free_pile_lit's sequential counter — every clause polarity inverted plus the final biconditional flipped, so the king-placement gate was vacuous since rung 1's first run | unsat_gates.py (fixed, with the mechanism note inline); seed 18 d3's phantom placed KH with 7 extended tops; the fix alone converts seed 18 (rung 2: 5/10 → 6/10), corpus re-validated both rungs | [x] | — | the corpus re-run (done); the acceptance test (done) |
+| G4 | Rung 3 — the exact draw-3 deck machine: accessibility = lane-2 ∨ max-remaining ∨ leading-lane-with-burial, characterized in original coordinates (mod-3 lane counters + the interval identity), encoded via self-certifying aux literals | deck_bf.py (validation harness) + unsat_pace3.py (encoding): predicate ≡ compute_mask on every reachable state N=6/9/12/15 (incl. deal_once edges); conditions ⟺ realizability over all permutations N=6/9; 6,000 random sequences at N=24, both directions, zero violations; all 56 corpus d3 winning draw sequences pass; pairwise-forced residue reproduced (2<1<0, the rung-2 chain subsumed). Kills 10/10 corpus losses | [~] | G1 | Lean: the characterization ⟺ Cycle.lean's pointed-cycle machine (the same spine as the C13 premise); then G1's relaxation theorem |
+
 ## The three choke points
 
 Dependency-wise, everything open bottlenecks on:
@@ -137,6 +150,9 @@ Dependency-wise, everything open bottlenecks on:
 | ctx-aware TP one-off experiment | interaction §7 item 3 | E4 | no |
 | Draw-step split ground-truth differential | interaction §7 item 9 | C5 vs C4 attribution | no |
 | no_cycle on a wider seed set (manual, slow) | tests/no_cycle.rs | E3 | yes, 2 seeds |
+| Phantom replay (python/phantom_replay.py): extract the SAT witness, replay it against the exact deck machine + gates, tag the first illegal move (PACE / GATE-BM / GATE-FS / STRUCT) | this section; `--rung3`, `checkline` (self-validation on oracle lines) | G1/G3/G4 soundness gaps (names the axis each surviving phantom exploits); found the G3 bug | **2026-09**: classified all five d3 misses as pace-exploiting pre-rung-3; checkline mode validates on worry-back lines |
+| Deck-machine validator (python/deck_bf.py): reachable-state enumeration, predicate check, pairwise-forced residue, permutation iff, N=24 sampling, corpus win lines | G4 | G4 | **2026-09**: all modes green (states N≤15, perms N≤9, 2×3k samples N=24, 56 win lines) |
+| Acceptance pinning (python/unsat_pace3.py accept): pin the oracle's true line (fired-event order + occurrence literals) into the rung-3 CNF | G1 | G1 (the direct "model accepts the real schedule" test) | **2026-09**: 73/73 accepted, 0 rejected, 45 worry-back lines tagged C2-dependent |
 
 ## Migration plan (three phases; the recorded decision)
 
@@ -170,7 +186,9 @@ as a standalone theorem — an instrument catching one of these failing
 converts it from a proof obligation into a bug, which is cheaper
 information either way.
 
-Snapshot (this writing, 28 rows): [P] 3 (all external, effective [~] until
-the port lands) · [x] 11 · [~] 12 · [ ] 2 — with D2–D5, E3, E4 superseded
+Snapshot (this writing, 32 rows): [P] 3 (all external, effective [~] until
+the port lands) · [x] 12 · [~] 15 · [ ] 2 — with D2–D5, E3, E4 superseded
 (⟂) and C6 partially so. Nothing is [P] *for this engine* yet; that is the
-lean-verify program.
+lean-verify program. The unsat ladder (section G) is the newest surface:
+sound to [~] by machine validation + corpus + acceptance pinning; its [P]
+finish is the Lean relaxation theorem with DRAT certificates.

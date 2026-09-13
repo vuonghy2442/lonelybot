@@ -136,7 +136,7 @@ def verify_line(seed: int):
 
 
 class Rung1:
-    def __init__(self, game: Game, draw_step: int = 1):
+    def __init__(self, game: Game, draw_step: int = 1, use_pace: bool = True):
         self.game = game
         self.draw_step = draw_step
         self.piles = [[iid(c) for c in list(h) + list(v)] for h, v in game.tableau]
@@ -153,6 +153,9 @@ class Rung1:
 
         self.R, self.ARR, self.DEP = {}, {}, {}
         self.ev = []
+        self._truedone = set()
+        self._falsedone = set()
+        self._fp_cache = {}
         for c in self.pile_cards():
             self.R[c] = self._new_ev()
             self.DEP[c] = self._new_ev()
@@ -163,7 +166,8 @@ class Rung1:
 
         self._order_vars()
         self._structure()
-        self._deck_pace()
+        if use_pace:
+            self._deck_pace()
         self._gates()
 
     # ---- basics -----------------------------------------------------------
@@ -181,11 +185,7 @@ class Rung1:
     def lt_lit(self, a, b):
         if a == b:
             # no event is strictly before itself — the constant FALSE
-            f = self.lit(("FALSE",))
-            if not self._falsedone:
-                self._falsedone.add(True)
-                self.clauses.append([-f])
-            return f
+            return self.FALSE_lit()
         if a < b:
             return self.lit(("lt", a, b))
         return -self.lit(("lt", b, a))
@@ -401,9 +401,6 @@ class Rung1:
         emit([-res, out])
         return out
 
-    _truedone = set()
-    _falsedone = set()
-
     def TRUE_lit(self):
         t = self.lit(("TRUE",))
         if not self._truedone:
@@ -411,11 +408,18 @@ class Rung1:
             self.clauses.append([t])
         return t
 
+    def FALSE_lit(self):
+        f = self.lit(("FALSE",))
+        if not self._falsedone:
+            self._falsedone.add(True)
+            self.clauses.append([-f])
+        return f
+
     def free_pile_lit(self, e):
         """Aux: fewer than 7 extended tops (vis & (locked|KING)) before e."""
+        if e in self._fp_cache:
+            return self._fp_cache[e]
         key = ("fp", e)
-        if key in self.pool.id2obj:
-            return self.lit(key)
         out = self.lit(key)
         TRUE = self.TRUE_lit()
         # inputs: per card Y: vis(Y) & (locked(Y) | king(Y))
@@ -442,37 +446,57 @@ class Rung1:
                 inputs.append(v)
         # out <-> at most 6 inputs true (sequential counter)
         # prev[j] = "at least j true so far" (None = FALSE)
+        # 2026-09 fix: the previous version had every clause polarity
+        # inverted ([cj,-o] etc. instead of [-cj,o]) and the first
+        # cell's forward clause tautologized by the TRUE constant, so
+        # the count was never forced up and free_pile was unconditionally
+        # satisfiable — the king-placement gate never fired.
         prev = [None] * 8
         prev[0] = TRUE
         for idx, x in enumerate(inputs):
             cur = list(prev)
             for j in range(1, 8):
-                pj = prev[j - 1]
-                cj = prev[j]
+                pj, cj = prev[j - 1], prev[j]
                 if pj is None:
-                    cur[j] = None  # x & FALSE = FALSE
+                    pass  # unreachable count
+                elif pj is TRUE:
+                    # cur[j] <-> cj | x
+                    if cj is None:
+                        cur[j] = x
+                    elif cj is not TRUE:
+                        o = self.lit(("cnt", idx, j, e))
+                        self.emit([-cj, o])
+                        self.emit([-x, o])
+                        self.emit([-o, cj, x])
+                        cur[j] = o
                 elif cj is None:
-                    # cur[j] <-> x & pj
+                    # o <-> x & pj
                     o = self.lit(("cnt", idx, j, e))
-                    self.emit([x, pj, -o])
-                    self.emit([o, -x])
-                    self.emit([o, -pj])
+                    self.emit([-x, -pj, o])
+                    self.emit([-o, x])
+                    self.emit([-o, pj])
                     cur[j] = o
+                elif cj is TRUE:
+                    cur[j] = TRUE
                 else:
                     # o <-> cj | (x & pj)
                     o = self.lit(("cnt", idx, j, e))
-                    self.emit([cj, -o])
-                    self.emit([x, pj, -o])
-                    self.emit([o, -cj, -x])
-                    self.emit([o, -cj, -pj])
+                    self.emit([-cj, o])
+                    self.emit([-x, -pj, o])
+                    self.emit([-o, cj, x])
+                    self.emit([-o, cj, pj])
                     cur[j] = o
             prev = cur
         ge7 = prev[7]
         if ge7 is None:
-            self.emit([out])  # certainly free_pile
+            self.emit([out])  # fewer than 7 inputs: certainly free_pile
+        elif ge7 is TRUE:
+            self.emit([-out])
         else:
-            self.emit([ge7, -out])
-            self.emit([out, -ge7])
+            # out <-> ~ge7 (fewer than 7 extended tops)
+            self.emit([ge7, out])
+            self.emit([-ge7, -out])
+        self._fp_cache[e] = out
         return out
 
     def _gates(self):
