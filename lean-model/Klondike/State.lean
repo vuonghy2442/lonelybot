@@ -124,6 +124,14 @@ def cursor_le (st : State) : Prop := st.stock.cursor ≤ st.stock.cards.length
 deal never advances and the accessible set is undefined. -/
 def step_pos (st : State) : Prop := 0 < st.drawStep
 
+/-- Two states differing (at most) in the stock cursor — the pace
+family's source relation (the pace dominances, the window lemmas, and
+the replay API's `diffCursor`-preservation lemmas). -/
+def diffCursor (st st' : State) : Prop :=
+  st.deal = st'.deal ∧ st.board = st'.board ∧ st.heights = st'.heights ∧
+    st.depths = st'.depths ∧ st.stock.cards = st'.stock.cards ∧
+    st.drawStep = st'.drawStep
+
 /-- The stock cycle: duplicate-free, and a sub-list of the deal's
 stock (the state's cycle only ever loses cards from the deal's). -/
 def stock_wf (st : State) : Prop :=

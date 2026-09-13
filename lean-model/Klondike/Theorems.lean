@@ -366,6 +366,59 @@ theorem deal_commutes_nonStock (st : State) (m : Move)
     (st.apply m >>= fun s => s.apply Move.draw) =
     (st.apply Move.draw >>= fun s => s.apply m) := sorry
 
+/-! ### The cursor-blindness API — the replay steps, named
+
+Every pace lemma's route repeats the same three steps: non-consuming
+moves replay verbatim from a cursor-differing state, and the draw
+commitments' successors merge.  Named here so the routes cite them. -/
+
+/-- Non-consuming moves are stock-blind: the result's stock is
+bit-for-bit the source's.
+
+TODO(proof) [E]: case bash over the five non-consuming `apply` arms —
+none writes the stock. -/
+theorem apply_nonConsuming_stock_invar {st st₁ : State} {m : Move}
+    (hc : m.consumesStock = false) (h : st.apply m = some st₁) :
+    st₁.stock = st.stock := sorry
+
+/-- Non-consuming moves are cursor-blind in legality: from two states
+differing only in the stock cursor, the same move applies, with results
+again differing only in the cursor.  This is the "replay the prefix
+verbatim" step of every pace lemma, named.
+
+TODO(proof) [E]: the legality case bash never reads the stock; the
+results' relation follows from `apply_nonConsuming_stock_invar` (the
+difference persists through). -/
+theorem apply_nonConsuming_cursor_blind {st st' st₁ : State} {m : Move}
+    (hc : m.consumesStock = false) (hd : st.diffCursor st')
+    (h : st.apply m = some st₁) :
+    ∃ st₁' : State, st'.apply m = some st₁' ∧ st₁.diffCursor st₁' := sorry
+
+/-- **The merge, game level (tableau landing)**: from two
+cursor-differing states, the same `Draw(c)` commitment to the same base
+lands on the *identical* successor — the guard's position is
+cards-determined, and the stock successor `(drawTo i).removeAt i` is
+position-determined (`Pace.drawCard_cursor_indep`), so nothing of the
+source cursor survives.  The "successors merge" step of every pace
+lemma, named.
+
+TODO(proof) [E]: unfold `applyDrawTo` — both guards succeed at the
+same `i` (`posOf` is cards-only), the board attach is cursor-blind,
+and the stock is `drawCard_cursor_indep`. -/
+theorem applyDrawTo_merge {st st' st₁ st₁' : State} {c : Card} {b : Base}
+    (hd : st.diffCursor st')
+    (h₁ : st.applyDrawTo c b = some st₁) (h₂ : st'.applyDrawTo c b = some st₁') :
+    st₁ = st₁' := sorry
+
+/-- **The merge, game level (stack landing)**: as `applyDrawTo_merge`,
+through `applyDrawStackTo`.
+
+TODO(proof) [E]: as above; the heights step is cursor-blind. -/
+theorem applyDrawStackTo_merge {st st' st₁ st₁' : State} {c : Card}
+    (hd : st.diffCursor st')
+    (h₁ : st.applyDrawStackTo c = some st₁) (h₂ : st'.applyDrawStackTo c = some st₁') :
+    st₁ = st₁' := sorry
+
 /-- The bases and cards a move reads or writes (state-dependent — the
 run under a `pilePile`, the boundary under a `reveal`). -/
 def Move.touch (st : State) : Move → List Base × List Card

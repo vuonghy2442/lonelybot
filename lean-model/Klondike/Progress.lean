@@ -465,6 +465,61 @@ theorem solvable_iff_mutuallyReaches {a b : State}
     a.solvableFrom ↔ b.solvableFrom :=
   ⟨fun h => solvable_of_reaches hba h, fun h => solvable_of_reaches hab h⟩
 
+/-- The contrapositive — the engine-facing pruning form: a refuted
+state kills everything it reaches (why a refuted state's successors
+are all dead, and the registry's "skip" rules' justification). -/
+theorem unsolvable_of_reaches {a b : State}
+    (hr : ∃ play, a.run play = some b) (hna : ¬ a.solvableFrom) :
+    ¬ b.solvableFrom := fun hb => hna (solvable_of_reaches hr hb)
+
+/-- **The one-step simulation theorem**: if `R` relates `a` to `b`,
+every `b`-move can be matched on the `a` side by some move landing
+*equal or `R`-related*, and `R` preserves wins — then every win from
+`b` lifts to `a`.
+
+The parent of the replay arguments: `pace_dominance` (R = same
+board/mask, maskPos-superset; reveals preserve R, draws merge — the
+`a' = b'` disjunct), the window lemmas' replays, and — with the move
+map read existentially — the relabeling lifts (`solvable_relabel`: the
+matched move is the relabeled one).  `solvable_of_reaches` is the
+degenerate instance where the matching play is fixed in advance. -/
+theorem solvable_of_simulates {a b : State} (R : State → State → Prop)
+    (hR : R a b)
+    (hstep : ∀ x y m b', R x y → y.apply m = some b' →
+      ∃ m' a', x.apply m' = some a' ∧ (a' = b' ∨ R a' b'))
+    (hwin : ∀ x y, R x y → y.isWin = true → x.isWin = true)
+    (hsol : b.solvableFrom) : a.solvableFrom := by
+  obtain ⟨play, w, hwrun, hwinw⟩ := hsol
+  have main : ∀ (x y : State) (play : List Move), R x y →
+      y.run play = some w → w.isWin = true →
+      ∃ play' w', x.run play' = some w' ∧ w'.isWin = true := by
+    intro x y play hRxy
+    induction play generalizing x y with
+    | nil =>
+        intro hrun hwin'
+        have hyw : y = w := by
+          simp only [State.run] at hrun
+          exact Option.some.inj hrun
+        rw [← hyw] at hwin'
+        exact ⟨[], x, rfl, hwin x y hRxy hwin'⟩
+    | cons m ms ih =>
+        intro hrun hwin'
+        simp only [State.run] at hrun
+        cases hm : y.apply m with
+        | none =>
+            rw [hm] at hrun
+            simp at hrun
+        | some b'' =>
+            rw [hm] at hrun
+            obtain ⟨m', a', ha', hcase⟩ := hstep x y m b'' hRxy hm
+            rcases hcase with rfl | hR'
+            · exact ⟨m' :: ms, w, by simp only [State.run, ha']; exact hrun, hwin'⟩
+            · obtain ⟨play'', w'', hrun'', hwin''⟩ := ih a' b'' hR' hrun hwin'
+              exact ⟨m' :: play'', w'', by simp only [State.run, ha']; exact hrun'',
+                hwin''⟩
+  obtain ⟨play', w', hrun', hwin'⟩ := main a b play hR hwrun hwinw
+  exact ⟨play', w', hrun', hwin'⟩
+
 /-- The states a play passes through (empty suffix if it dies). -/
 def State.trace (st : State) : List Move → List State
   | [] => [st]

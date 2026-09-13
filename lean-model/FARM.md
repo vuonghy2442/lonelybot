@@ -1,9 +1,17 @@
 # The proof farm — handoff document
 
-59 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
+63 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
 each carrying a `TODO(proof)` route comment in source.  Difficulty:
 **[T]** rfl/decide/case-bash · **[E]** one induction · **[M]** real
 work · **[H]** needs ideas (do not assign casually).
+
+**Proved infrastructure** (the general theorems that factor the
+routes — cite these, don't re-prove): `run_append`, `solvable_of_reaches`
++ `solvable_iff_mutuallyReaches` + `unsolvable_of_reaches` (the prefix
+family), `solvable_of_simulates` (the one-step simulation, move
+level), `macroSolvable_of_simulates` (the macro-game form — the parent
+`pace_dominance` instantiates), `State.diffCursor` (the pace
+relation, defined).
 
 **`FARM_MEMORY.md`** — the agents' append-only shared quirks ledger
 (syntax, recipes, wrong routes, reusable helpers).  Read it first;
@@ -215,9 +223,19 @@ pace only matters through `maskPos` at the instant of a draw.
 | `maskPos_residue_mono` | Pace | [E] | maskPos_mem_iff: disjuncts 1–2 cursor-free; the leading lane's `o'−1 ≤ p` weakens to `o−1 ≤ p`, residues agree |
 | `maskPos_impure_sup_pure` | Pace | [E] | the pure side reduces to the cursor-free disjuncts (pure_indep's route), which the impure side covers |
 | `drawCard_cursor_indep` | Pace | [E] | congruence: posOf (cards-only), drawTo overwrites the cursor, removeAt's successor cursor reads the overwritten value — no source cursor anywhere |
-| `pace_dominance` | Macro | **[H]** | the simulation: induction on the commitment list; reveals preserve the (equal-boards, maskPos-superset) invariant, the draw case merges via `drawCard_cursor_indep`; accommodations replay verbatim (stock-blind) |
+| `pace_dominance` | Macro | [M] | **downgraded from [H]** — instantiate `macroSolvable_of_simulates` (proved) with R = diffCursor ∧ maskPos-superset; reveals via `apply_nonConsuming_cursor_blind`, draws via the merge lemmas |
 | `pace_dominance_residue` | Macro | [M] | `pace_dominance` at the o-variant + `maskPos_residue_mono` as `hK` |
 | `pace_dominance_impure_pure` | Macro | [M] | `pace_dominance` at the o-variant + `maskPos_impure_sup_pure` as `hK` |
+
+The cursor-blindness API (Theorems.lean, added 2026-09-13 — the replay
+steps every pace route repeated, named):
+
+| item | file:line | tag | route |
+|---|---|---|---|
+| `apply_nonConsuming_stock_invar` | Theorems | [E] | case bash over the five non-consuming `apply` arms — none writes the stock |
+| `apply_nonConsuming_cursor_blind` | Theorems | [E] | legality never reads the stock; the results' relation from stock_invar |
+| `applyDrawTo_merge` | Theorems | [E] | both guards succeed at the same `i` (posOf cards-only); board attach cursor-blind; stock via `drawCard_cursor_indep` — the successors are *equal* |
+| `applyDrawStackTo_merge` | Theorems | [E] | as above; the heights step is cursor-blind |
 
 The reachability route (the physical game, added 2026-09-13 after the
 prefix principle landed): **`solvable_of_reaches` is proved**

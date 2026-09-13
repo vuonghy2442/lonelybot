@@ -48,6 +48,39 @@ shuffles are existentially witnessed by `macroStep`). -/
 def State.macroSolvable (st : State) : Prop :=
   ∃ ks w, macroSteps st ks w ∧ w.isWin = true
 
+/-- **The one-step simulation, macro level**: the commitment-game
+form of Progress.lean's `solvable_of_simulates` — if `R` relates the
+two states and every `b`-side commitment is matched on the `a` side
+(landing equal or `R`-related), wins lift.  This is the parent
+`pace_dominance` instantiates. -/
+theorem macroSolvable_of_simulates {a b : State} (R : State → State → Prop)
+    (hR : R a b)
+    (hstep : ∀ x y k b', R x y → macroStep y k b' →
+      ∃ k' a', macroStep x k' a' ∧ (a' = b' ∨ R a' b'))
+    (hwin : ∀ x y, R x y → y.isWin = true → x.isWin = true)
+    (hsol : b.macroSolvable) : a.macroSolvable := by
+  obtain ⟨ks, w, hsteps, hwinw⟩ := hsol
+  have main : ∀ (x y : State) (ks : List MacroMove), R x y →
+      macroSteps y ks w → w.isWin = true →
+      ∃ ks' w', macroSteps x ks' w' ∧ w'.isWin = true := by
+    intro x y ks hRxy
+    induction ks generalizing x y with
+    | nil =>
+        intro hsteps hwin'
+        have hyw : y = w := hsteps
+        rw [← hyw] at hwin'
+        exact ⟨[], x, rfl, hwin x y hRxy hwin'⟩
+    | cons k krest ih =>
+        intro hsteps hwin'
+        obtain ⟨st'', hstep'', hrest⟩ := hsteps
+        obtain ⟨k', a', ha', hcase⟩ := hstep x y k st'' hRxy hstep''
+        rcases hcase with rfl | hR'
+        · exact ⟨k' :: krest, w, ⟨a', ha', hrest⟩, hwin'⟩
+        · obtain ⟨ks'', w'', hsteps'', hwin''⟩ := ih a' st'' hR' hrest hwin'
+          exact ⟨k' :: ks'', w'', ⟨a', ha', hsteps''⟩, hwin''⟩
+  obtain ⟨ks', w', hsteps', hwin'⟩ := main a b ks hR hsteps hwinw
+  exact ⟨ks', w', hsteps', hwin'⟩
+
 /-- A macro step is an engine play: the accommodation is
 stack↔pile shuffling, the Draw commitment is rotations plus the deck
 move, all within the engine's move set.  TODO. -/
@@ -99,15 +132,13 @@ boards); the line's first Draw commitment is replayable
 the *identical* successor stock (`drawCard_cursor_indep`), after
 which the plays coincide.
 
-TODO(proof) [H]: induction on the winning commitment list; invariant:
-the states are equal (after the first draw) or differ only in the
-cursor with the maskPos superset — reveals preserve it (the stock's
-cards are untouched, so `hK` persists; `apply`'s reveal arm never
-consults the stock), the draw case merges via `drawCard_cursor_indep`
-(the commitment's board/heights effect is cursor-blind).  The
-accommodation witnesses replay verbatim: `accommodates` shuffles
-stock-cards only, never the cursor.  `hstep` from `hwf.step_pos`,
-`hcur` from `hwf.cursor_le`. -/
+TODO(proof) [M] (downgraded — the simulation is proved): instantiate
+`macroSolvable_of_simulates` with `R := diffCursor ∧ the maskPos
+superset`; the reveal case via `apply_nonConsuming_cursor_blind`
+(accommodations too — the shuffles are non-consuming), the draw case
+via `applyDrawTo_merge` / `applyDrawStackTo_merge` — the merge
+disjunct: after one draw the states are equal and the superset is
+moot.  `hstep` from `hwf.step_pos`, `hcur` from `hwf.cursor_le`. -/
 theorem pace_dominance {st : State} {o' : Nat} (hwf : st.WF)
     (hcur' : o' ≤ st.stock.cards.length)
     (hK : ∀ p, p ∈ Pace.maskPos { cards := st.stock.cards, cursor := o' }
@@ -274,9 +305,11 @@ better state wins and the worse is refuted, the difference is witnessed
 by a window card — the engine's "limit the next draw to the window".
 
 TODO(proof) [M]: decompose `ks` at the first `drawCommit` (the prefix
-is all `revealCommit` — the two-kind move set); replay the prefix from
-the o'-state (reveals and accommodations are cursor-blind); the merge
-gives the successor; the suffix lifts verbatim. -/
+is all `revealCommit` — the two-kind move set); replay it from the
+o'-state (`apply_nonConsuming_cursor_blind` — the reveals and the
+accommodation shuffles); the merge (`applyDrawTo_merge` /
+`applyDrawStackTo_merge`) gives the successor; the suffix lifts
+verbatim. -/
 theorem window_firstDraw_macro {st : State} {o o' : Nat} (hwf : st.WF)
     (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
     (hA : ({ st with stock := { st.stock with cursor := o } }).macroSolvable)
