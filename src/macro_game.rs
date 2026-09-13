@@ -2819,6 +2819,84 @@ mod tests {
         }
     }
 
+    /// The macro-footprint comparison: how many macro states (distinct
+    /// canonical/swept encodes) does the SHIPPED old solver (dominance +
+    /// FullPruner) actually traverse, versus the macro solver's node
+    /// count? Every macro transition ends in exactly one irreversible
+    /// move, so distinct canonical states are exactly the distinct
+    /// irreversible-move endpoints — the common scale for "how much state
+    /// space did each engine really need". The ratio macro/old quantifies
+    /// the macro solver's over-generation against the filtered old
+    /// engine: the value of the remaining filter-layer ports (the
+    /// path-dependent pruners the macro game deliberately lacks).
+    #[test]
+    #[ignore = "macro footprint comparison; run with --ignored --release --nocapture"]
+    fn debug_old_macro_footprint() {
+        use std::collections::HashSet;
+        struct MacroCounter {
+            won: bool,
+            visits: u64,
+            macro_tp: HashSet<Encode>,
+        }
+        impl Callback for MacroCounter {
+            type Pruner = FullPruner;
+            fn on_win(&mut self, _: &Solitaire) -> Control {
+                self.won = true;
+                Control::Halt
+            }
+            fn on_visit(&mut self, g: &Solitaire, _: Encode) -> Control {
+                self.visits += 1;
+                let mut w = Words::from_game(g);
+                sweep_words(&mut w);
+                // the canonical form's encode: the swept stack replaces
+                // the low 16 bits; hidden/deck are sweep-invariant
+                self.macro_tp
+                    .insert((g.encode() & !0xFFFF) | u64::from(w.stack));
+                Control::Ok
+            }
+        }
+        for draw_step in [1u8, 3] {
+            let (mut sum_old, mut sum_macro) = (0u64, 0u64);
+            for seed in [12u64, 14, 17, 18, 21, 22, 26, 32] {
+                let cards = default_shuffle(seed);
+                let step = NonZeroU8::new(draw_step).unwrap();
+                let t = std::time::Instant::now();
+                let mut game = Solitaire::new(&cards, step);
+                let mut tp = TpTable::default();
+                let mut cb = MacroCounter {
+                    won: false,
+                    visits: 0,
+                    macro_tp: HashSet::new(),
+                };
+                traverse::<_, _, true>(&mut game, &FullPruner::default(), &mut tp, &mut cb);
+                let t_old = t.elapsed();
+                let t = std::time::Instant::now();
+                let mut macro_nodes = 0u64;
+                let g2 = Solitaire::new(&cards, step);
+                let win = macro_solvable_direct_progress(&g2, |_| {
+                    macro_nodes += 1;
+                });
+                let t_macro = t.elapsed();
+                assert_eq!(cb.won, win, "verdict divergence at seed={seed} draw={draw_step}");
+                sum_old += cb.macro_tp.len() as u64;
+                sum_macro += macro_nodes;
+                println!(
+                    "seed={seed} draw={draw_step} win={win} OLD: micro-visits={:>9} macro-states={:>9} ({:>6.2}s) | MACRO: nodes={:>9} ({:>6.2}s) | ratio={:5.2}x",
+                    cb.visits,
+                    cb.macro_tp.len(),
+                    t_old.as_secs_f64(),
+                    macro_nodes,
+                    t_macro.as_secs_f64(),
+                    macro_nodes as f64 / cb.macro_tp.len().max(1) as f64
+                );
+            }
+            println!(
+                "TOTAL draw={draw_step}: old macro-states={sum_old}, macro nodes={sum_macro} ({:5.2}x)",
+                sum_macro as f64 / sum_old.max(1) as f64
+            );
+        }
+    }
+
     /// The word pipeline against move replay, state by state:
     /// `canonicalize` must land exactly where the per-card `do_move` sweep
     /// does (including ambiguous-twin picks), and `post_state` must equal
