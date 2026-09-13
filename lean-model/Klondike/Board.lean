@@ -34,6 +34,9 @@ abbrev Base := Sum Anchor Card
 /-- Twin-swap on bases. -/
 def Base.flipBase : Base → Base := Sum.map id Card.flipSuit
 
+theorem Base.flipBase_flipBase (b : Base) : b.flipBase.flipBase = b := by
+  cases b <;> simp [Base.flipBase, Card.flipSuit_flipSuit]
+
 /-- The first element of `l` satisfying `p`. -/
 def findFirst {α : Type} (p : α → Bool) : List α → Option α
   | [] => none
@@ -108,14 +111,24 @@ theorem enumBase_complete (b : Base) : b ∈ enumBase := by
 def bottomOf (bd : Board) (c : Card) : Option Base :=
   findFirst (fun b => decide (bd.topOf b = some c)) enumBase
 
-/-- TODO(proof): the characterization of the derived inverse —
-`findFirst_mem` + `enumBase_complete` + `inj` (mechanical). -/
 theorem bottomOf_eq (bd : Board) (c : Card) (b : Base) :
-    bd.bottomOf c = some b ↔ bd.topOf b = some c := sorry
+    bd.bottomOf c = some b ↔ bd.topOf b = some c := by
+  constructor
+  · intro h
+    exact of_decide_eq_true (findFirst_mem _ _ _ h).2
+  · intro h
+    exact findFirst_of_unique _ _ b (enumBase_complete b) (decide_eq_true h)
+      (fun b' _ hp' => bd.inj b' b c (of_decide_eq_true hp') h)
 
-/-- TODO(proof): the none half of the characterization. -/
 theorem bottomOf_eq_none (bd : Board) (c : Card) :
-    bd.bottomOf c = none ↔ ∀ b, bd.topOf b ≠ some c := sorry
+    bd.bottomOf c = none ↔ ∀ b, bd.topOf b ≠ some c := by
+  constructor
+  · intro h b hb
+    have h2 := (bottomOf_eq bd c b).mpr hb
+    rw [h] at h2
+    simp at h2
+  · intro h
+    exact findFirst_eq_none _ _ (fun a _ hp => absurd (of_decide_eq_true hp) (h a))
 
 /-- The empty board. -/
 def empty : Board where
@@ -124,8 +137,9 @@ def empty : Board where
 
 @[simp] theorem empty_topOf (b : Base) : Board.empty.topOf b = none := rfl
 
-/-- TODO(proof): via `findFirst_eq_none` + `empty_topOf`. -/
-@[simp] theorem empty_bottomOf (c : Card) : Board.empty.bottomOf c = none := sorry
+@[simp] theorem empty_bottomOf (c : Card) : Board.empty.bottomOf c = none := by
+  refine findFirst_eq_none _ _ (fun a _ hp => ?_)
+  simp at hp
 
 /-- Pointwise update at a base. -/
 def update (f : Base → Option Card) (b : Base) (o : Option Card) : Base → Option Card :=
@@ -161,32 +175,109 @@ def detach (bd : Board) (b : Base) : Board where
     (bd.detach b).topOf b' = bd.topOf b' := by
   simp [Board.detach, update_ne, h]
 
+theorem attach_inj (bd : Board) (b : Base) (c : Card) (hnew : bd.bottomOf c = none) :
+    ∀ (b₁ b₂ : Base) (c' : Card), update bd.topOf b (some c) b₁ = some c' →
+      update bd.topOf b (some c) b₂ = some c' → b₁ = b₂ := by
+  intro b₁ b₂ c' h₁ h₂
+  by_cases hb₁ : b₁ = b
+  · by_cases hb₂ : b₂ = b
+    · exact hb₁.trans hb₂.symm
+    · subst hb₁
+      rw [update_self] at h₁
+      rw [update_ne _ _ _ _ hb₂] at h₂
+      rw [Option.some.injEq] at h₁
+      rw [← h₁] at h₂
+      have hbot := (bottomOf_eq bd c b₂).mpr h₂
+      rw [hnew] at hbot
+      simp at hbot
+  · rw [update_ne _ _ _ _ hb₁] at h₁
+    by_cases hb₂ : b₂ = b
+    · subst hb₂
+      rw [update_self] at h₂
+      rw [Option.some.injEq] at h₂
+      rw [← h₂] at h₁
+      have hbot := (bottomOf_eq bd c b₁).mpr h₁
+      rw [hnew] at hbot
+      simp at hbot
+    · rw [update_ne _ _ _ _ hb₂] at h₂
+      exact bd.inj b₁ b₂ c' h₁ h₂
+
 /-- Attach `c` at `b` — total, guarded (fails unless `b` is free and
 `c` is unplaced). -/
 def attach (bd : Board) (b : Base) (c : Card) : Option Board :=
-  if hfree : bd.topOf b = none then
+  if _hfree : bd.topOf b = none then
     if hnew : bd.bottomOf c = none then
-      some { topOf := update bd.topOf b (some c), inj := by sorry }
+      some { topOf := update bd.topOf b (some c), inj := attach_inj bd b c hnew }
     else none
   else none
 
-/-- TODO(proof): what a successful attach does at the base. -/
 theorem attach_topOf (bd : Board) (b : Base) (c : Card) {bd' : Board}
-    (h : bd.attach b c = some bd') : bd'.topOf b = some c := sorry
+    (h : bd.attach b c = some bd') : bd'.topOf b = some c := by
+  unfold attach at h
+  split at h
+  · split at h
+    · rw [Option.some.injEq] at h
+      subst h
+      exact update_self bd.topOf b (some c)
+    · simp at h
+  · simp at h
 
-/-- TODO(proof): what a successful attach leaves alone. -/
 theorem attach_topOf_ne (bd : Board) (b : Base) (c : Card) {bd' : Board}
-    (h : bd.attach b c = some bd') (hne : b' ≠ b) : bd'.topOf b' = bd.topOf b' := sorry
+    (h : bd.attach b c = some bd') (hne : b' ≠ b) : bd'.topOf b' = bd.topOf b' := by
+  unfold attach at h
+  split at h
+  · split at h
+    · rw [Option.some.injEq] at h
+      subst h
+      exact update_ne bd.topOf b b' (some c) hne
+    · simp at h
+  · simp at h
 
-/-- TODO(proof): the attach guard is exactly the precondition. -/
 theorem attach_eq_some_iff (bd : Board) (b : Base) (c : Card) :
-    bd.attach b c ≠ none ↔ bd.topOf b = none ∧ bd.bottomOf c = none := sorry
+    bd.attach b c ≠ none ↔ bd.topOf b = none ∧ bd.bottomOf c = none := by
+  constructor
+  · intro h
+    unfold attach at h
+    split at h
+    · split at h
+      · constructor <;> assumption
+      · simp at h
+    · simp at h
+  · intro h
+    unfold attach
+    rw [dif_pos h.1, dif_pos h.2]
+    simp
 
-/-- Conjugate the board by the twin-swap relabeling (T's action).
-TODO(proof of inj): conjugation preserves the matching law. -/
+/-- Boards with the same `topOf` are equal (the `inj` law is a proof
+field — proof irrelevance). -/
+theorem ext_topOf {bd₁ bd₂ : Board} (h : bd₁.topOf = bd₂.topOf) : bd₁ = bd₂ := by
+  cases bd₁ with
+  | mk t₁ i₁ =>
+    cases bd₂ with
+    | mk t₂ i₂ =>
+      cases h
+      rfl
+
+theorem mapBy_inj (bd : Board) :
+    ∀ (b₁ b₂ : Base) (c : Card), (bd.topOf b₁.flipBase).map Card.flipSuit = some c →
+      (bd.topOf b₂.flipBase).map Card.flipSuit = some c → b₁ = b₂ := by
+  intro b₁ b₂ c h₁ h₂
+  obtain ⟨d₁, hd₁, hd₁'⟩ := Option.map_eq_some_iff.mp h₁
+  obtain ⟨d₂, hd₂, hd₂'⟩ := Option.map_eq_some_iff.mp h₂
+  have hd : d₁ = d₂ := by
+    have h := congrArg Card.flipSuit (hd₁'.trans hd₂'.symm)
+    rw [Card.flipSuit_flipSuit, Card.flipSuit_flipSuit] at h
+    exact h
+  rw [← hd] at hd₂
+  have hb : b₁.flipBase = b₂.flipBase := bd.inj _ _ _ hd₁ hd₂
+  have hb2 := congrArg Base.flipBase hb
+  rw [Base.flipBase_flipBase, Base.flipBase_flipBase] at hb2
+  exact hb2
+
+/-- Conjugate the board by the twin-swap relabeling (T's action). -/
 def mapBy (bd : Board) : Board where
   topOf := fun b => (bd.topOf b.flipBase).map Card.flipSuit
-  inj := by sorry
+  inj := mapBy_inj bd
 
 /-- The cards transitively above `c` (the run sitting on it), walked
 with fuel (defensive against ill-formed cycles: the walk stops early).

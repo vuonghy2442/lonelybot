@@ -135,13 +135,78 @@ def toEngine (st : State) : EState where
 
 /-! ## The bridge theorems -/
 
+/-- No `eStep` guard reads the offset: a move legal in `e` is legal in
+the offset-rewritten `e`, and the successors correspond the same way
+(the deck moves overwrite the offset with the draw index; every other
+move carries the rewrite through). -/
+theorem eStep_offset {e e' : EState} {m : EMove} (h : eStep e m e') (k : Nat) :
+    ∃ e'' j, eStep { e with offset := k } m e'' ∧ e'' = { e' with offset := j } := by
+  cases m with
+  | pileStack c =>
+    simp only [eStep] at h
+    obtain ⟨hv, hr, bd, hbd, htop, he'⟩ := h
+    subst he'
+    exact ⟨_, k, ⟨hv, hr, bd, hbd, htop, rfl⟩, rfl⟩
+  | deckPile c =>
+    simp only [eStep] at h
+    obtain ⟨⟨bd, hbd, b, hb⟩, i, hc, he'⟩ := h
+    subst he'
+    exact ⟨_, i, ⟨⟨bd, hbd, b, hb⟩, i, hc, rfl⟩, rfl⟩
+  | deckStack c =>
+    simp only [eStep] at h
+    obtain ⟨hr, i, hc, he'⟩ := h
+    subst he'
+    exact ⟨_, i, ⟨hr, i, hc, rfl⟩, rfl⟩
+  | stackPile c =>
+    simp only [eStep] at h
+    obtain ⟨hr, ⟨bd, hbd, b, hb⟩, he'⟩ := h
+    subst he'
+    exact ⟨_, k, ⟨hr, ⟨bd, hbd, b, hb⟩, rfl⟩, rfl⟩
+  | reveal c =>
+    simp only [eStep] at h
+    obtain ⟨hv, bd, a, r, hbd, htop, hbot, hth, he'⟩ := h
+    subst he'
+    exact ⟨_, k, ⟨hv, bd, a, r, hbd, htop, hbot, hth, rfl⟩, rfl⟩
+
+/-- The play-level lift: a play from `e` runs from the offset-rewritten
+state too, ending likewise offset-rewritten. -/
+theorem eRun_offset :
+    ∀ (play : List EMove) (e w : EState), eRun e play w → ∀ (k : Nat),
+      ∃ w' j, eRun { e with offset := k } play w' ∧ w' = { w with offset := j } := by
+  intro play
+  induction play with
+  | nil =>
+    intro e w h k
+    have he : e = w := h
+    have hk : { e with offset := k } = { w with offset := k } := by rw [he]
+    exact ⟨_, k, rfl, hk⟩
+  | cons m ms ih =>
+    intro e w h k
+    obtain ⟨e₁, hs, hr⟩ := h
+    obtain ⟨e₂, j, hs', he₂⟩ := eStep_offset hs k
+    obtain ⟨w', j', hr', hw'⟩ := ih e₁ w hr j
+    subst he₂
+    exact ⟨w', j', ⟨_, hs', hr'⟩, hw'⟩
+
+/-- The win predicate reads only the heights. -/
+theorem isWin_offset (e : EState) (j : Nat) : ({ e with offset := j }).isWin = e.isWin := rfl
+
 /-- The offset is solvability-irrelevant at draw-1 — the engine's
 pure-deck fact, the sweep's license (the canonicalization rotating
 the deck to a fixed offset).  In this v1 encoding it is nearly
 definitional (no guard reads the offset); the content arrives with
-the draw-3 pacing rules.  TODO. -/
-theorem esolvable_offset_irrel {e : EState} (hstep : e.drawStep = 1) (k : Nat) :
-    e.esolvable ↔ { e with offset := k }.esolvable := sorry
+the draw-3 pacing rules. -/
+theorem esolvable_offset_irrel {e : EState} (_hstep : e.drawStep = 1) (k : Nat) :
+    e.esolvable ↔ { e with offset := k }.esolvable := by
+  constructor
+  · intro hsol
+    obtain ⟨play, w, hr, hw⟩ := hsol
+    obtain ⟨w', j, hr', hw'⟩ := eRun_offset play e w hr k
+    exact ⟨play, w', hr', by rw [hw', isWin_offset]; exact hw⟩
+  · intro hsol
+    obtain ⟨play, w, hr, hw⟩ := hsol
+    obtain ⟨w', j, hr', hw'⟩ := eRun_offset play { e with offset := k } w hr e.offset
+    exact ⟨play, w', hr', by rw [hw', isWin_offset]; exact hw⟩
 
 /-- The simulation: every model engine play projects to an abstract
 play with the same winning outcome.  Draws before a deck move
@@ -174,23 +239,53 @@ only by the witness pile, definitionally in this encoding; the
 macro-level ≤2 — tableau vs stack closure classes — needs the
 commitment closure on EState, deferred to the macro layer.) -/
 
-/-- TODO. -/
+/-- A `pileStack`'s successor is unique: the realizing witness only
+justifies the guard; the successor is the same literal either way. -/
 theorem eStep_pileStack_unique {e e' e'' : EState} {c : Card}
-    (h₁ : eStep e (.pileStack c) e') (h₂ : eStep e (.pileStack c) e'') : e' = e'' := sorry
+    (h₁ : eStep e (.pileStack c) e') (h₂ : eStep e (.pileStack c) e'') : e' = e'' := by
+  simp only [eStep] at h₁ h₂
+  obtain ⟨-, -, ⟨-, -, -, he'⟩⟩ := h₁
+  obtain ⟨-, -, ⟨-, -, -, he''⟩⟩ := h₂
+  exact he'.trans he''.symm
 
-/-- TODO: the draw position is unique — the order has no duplicates
-under WF. -/
+/-- A `deckPile`'s successor is unique: the draw position is pinned
+by `noDupCards` (the order holds each card at most once), and the
+successor is a literal of it. -/
 theorem eStep_deckPile_unique {e e' e'' : EState} {c : Card}
     (hnd : noDupCards e.order)
-    (h₁ : eStep e (.deckPile c) e') (h₂ : eStep e (.deckPile c) e'') : e' = e'' := sorry
+    (h₁ : eStep e (.deckPile c) e') (h₂ : eStep e (.deckPile c) e'') : e' = e'' := by
+  simp only [eStep] at h₁ h₂
+  obtain ⟨⟨-, -, -, -⟩, i₁, hc₁, he'⟩ := h₁
+  obtain ⟨⟨-, -, -, -⟩, i₂, hc₂, he''⟩ := h₂
+  have hlt₁ : i₁ < e.order.length := (List.getElem?_eq_some_iff.mp hc₁).1
+  have hlt₂ : i₂ < e.order.length := (List.getElem?_eq_some_iff.mp hc₂).1
+  have hij : i₁ = i₂ := hnd i₁ i₂ hlt₁ hlt₂ (hc₁.trans hc₂.symm)
+  subst hij
+  exact he'.trans he''.symm
 
-/-- TODO. -/
+/-- A `deckStack`'s successor is unique: as `deckPile`, the draw
+position is pinned by `noDupCards` (the successor reads it through
+`order`/`offset`, so uniqueness needs the order duplicate-free). -/
 theorem eStep_deckStack_unique {e e' e'' : EState} {c : Card}
-    (h₁ : eStep e (.deckStack c) e') (h₂ : eStep e (.deckStack c) e'') : e' = e'' := sorry
+    (hnd : noDupCards e.order)
+    (h₁ : eStep e (.deckStack c) e') (h₂ : eStep e (.deckStack c) e'') : e' = e'' := by
+  simp only [eStep] at h₁ h₂
+  obtain ⟨-, i₁, hc₁, he'⟩ := h₁
+  obtain ⟨-, i₂, hc₂, he''⟩ := h₂
+  have hlt₁ : i₁ < e.order.length := (List.getElem?_eq_some_iff.mp hc₁).1
+  have hlt₂ : i₂ < e.order.length := (List.getElem?_eq_some_iff.mp hc₂).1
+  have hij : i₁ = i₂ := hnd i₁ i₂ hlt₁ hlt₂ (hc₁.trans hc₂.symm)
+  subst hij
+  exact he'.trans he''.symm
 
-/-- TODO. -/
+/-- A `stackPile`'s successor is unique: as `pileStack`, the witness
+only justifies; the successor is a literal of `e` and `c`. -/
 theorem eStep_stackPile_unique {e e' e'' : EState} {c : Card}
-    (h₁ : eStep e (.stackPile c) e') (h₂ : eStep e (.stackPile c) e'') : e' = e'' := sorry
+    (h₁ : eStep e (.stackPile c) e') (h₂ : eStep e (.stackPile c) e'') : e' = e'' := by
+  simp only [eStep] at h₁ h₂
+  obtain ⟨-, ⟨-, -, -⟩, he'⟩ := h₁
+  obtain ⟨-, ⟨-, -, -⟩, he''⟩ := h₂
+  exact he'.trans he''.symm
 
 /-! Deferred and recorded:
 

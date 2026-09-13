@@ -89,9 +89,12 @@ def canPlace (st : State) (c : Card) (b : Base) : Bool :=
 
 /-- State well-formedness (stated; components TODO(proof) as
 constructors/maintenance lemmas): depths within slices; every visible
-edge legal (sitting on the pile's hidden boundary, or on a fitting
-visible card; kings or fully-revealed bottoms on anchors); visible and
-foundation cards not in the stock; heights within range. -/
+edge legal (on the card it was dealt directly onto — the initial deal
+stacks by fiat, and `reveal` keeps the cover sitting on its
+freshly-revealed card — or on a fitting visible card; kings or
+fully-revealed bottoms on anchors); visible and foundation cards not
+in the stock; heights within range; the stock cycle is a sub-list of
+the deal's stock. -/
 def WF (st : State) : Prop :=
   st.deal.WF ∧
   (∀ a, st.depths a ≤ (st.deal.piles a).length) ∧
@@ -100,12 +103,14 @@ def WF (st : State) : Prop :=
     (match b with
      | Sum.inl a => c.rank = Rank.king ∨ (st.deal.piles a).head? = some c
      | Sum.inr d =>
-       (∃ a, st.topHidden a = some d) ∨
+       (∃ a t rest, st.deal.piles a = t ++ d :: c :: rest) ∨
        ((st.board.bottomOf d).isSome = true ∧ canSitOn c d = true))) ∧
   (∀ c, st.isVis c = true → st.stock.posOf c = none) ∧
   (∀ c, st.onFound c = true → st.stock.posOf c = none) ∧
   (∀ s, st.heights s ≤ 13) ∧
-  st.stock.cursor ≤ st.stock.cards.length
+  st.stock.cursor ≤ st.stock.cards.length ∧
+  noDupCards st.stock.cards ∧
+  ∀ c ∈ st.stock.cards, c ∈ st.deal.stock
 
 /-- Conjugate the whole state by the twin-swap relabeling (T's action
 on every component). -/

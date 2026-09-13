@@ -47,13 +47,78 @@ def Relabel.twin : Relabel where
     intro s s'
     simp
 
-/-- Conjugate a whole state by a relabeling (T's action, generalized). -/
+/-- The inverse card relabeling (conjugation's backward probe). -/
+def Relabel.cardInv (r : Relabel) : Card → Card := fun c => ⟨r.suitInv c.suit, c.rank⟩
+
+theorem Relabel.cardInv_card (r : Relabel) (c : Card) : r.cardInv (r.card c) = c := by
+  show ⟨r.suitInv (r.suit c.suit), c.rank⟩ = c
+  rw [r.left_inv c.suit]
+
+theorem Relabel.cardInv_inj (r : Relabel) {b₁ b₂ : Base}
+    (h : Sum.map id r.cardInv b₁ = Sum.map id r.cardInv b₂) : b₁ = b₂ := by
+  cases b₁ with
+  | inl a₁ =>
+      cases b₂ with
+      | inl a₂ => exact congrArg Sum.inl (by simpa using h)
+      | inr x₂ => exact absurd h (by simp)
+  | inr x₁ =>
+      cases b₂ with
+      | inl a₂ => exact absurd h (by simp)
+      | inr x₂ =>
+          have hinj : r.cardInv x₁ = r.cardInv x₂ := by simpa using h
+          obtain ⟨hs, hr⟩ := Card.mk.inj hinj
+          have hsi : x₁.suit = x₂.suit := by
+            have e1 := r.right_inv x₁.suit
+            rw [hs] at e1
+            exact e1.symm.trans (r.right_inv x₂.suit)
+          cases x₁ with
+          | mk s₁ rk₁ =>
+              cases x₂ with
+              | mk s₂ rk₂ =>
+                  have hsi' : s₁ = s₂ := hsi
+                  have hr' : rk₁ = rk₂ := hr
+                  rw [hsi', hr']
+
+/-- Conjugation preserves the matching law (standalone lemma —
+`by`-blocks do not parse inside structure instances). -/
+theorem Relabel.relabelBy_inj (r : Relabel) (st : State) :
+    ∀ (b₁ b₂ : Base) (c : Card),
+      (fun b => (st.board.topOf (Sum.map id r.cardInv b)).map r.card) b₁ = some c →
+      (fun b => (st.board.topOf (Sum.map id r.cardInv b)).map r.card) b₂ = some c →
+      b₁ = b₂ := by
+  intro b₁ b₂ c h₁ h₂
+  obtain ⟨c₁, hc₁, hc₁'⟩ := Option.map_eq_some_iff.mp h₁
+  obtain ⟨c₂, hc₂, hc₂'⟩ := Option.map_eq_some_iff.mp h₂
+  have hcc : c₁ = c₂ := by
+    have hcard : r.card c₁ = r.card c₂ := hc₁'.trans hc₂'.symm
+    obtain ⟨hs, hr⟩ := Card.mk.inj hcard
+    have hsi : c₁.suit = c₂.suit := by
+      have e1 := r.left_inv c₁.suit
+      rw [hs] at e1
+      exact e1.symm.trans (r.left_inv c₂.suit)
+    cases c₁ with
+    | mk s₁ rk₁ =>
+        cases c₂ with
+        | mk s₂ rk₂ =>
+            have hsi' : s₁ = s₂ := hsi
+            have hr' : rk₁ = rk₂ := hr
+            rw [hsi', hr']
+  subst hcc
+  exact r.cardInv_inj (st.board.inj _ _ _ hc₁ hc₂)
+
+/-- Conjugate a whole state by a relabeling (T's action, generalized).
+The board probes at the *inverse* relabeled base — the conjugation
+direction: the relabeled move `pileStack (r.card c)` guards at
+`inr (r.card c)`, which must read off `st`'s guard at `c`, and
+`cardInv ∘ card = id` is what makes it so; probing at `r.card`
+instead breaks conjugation for the group's non-involutive elements
+(the suit 4-cycles). -/
 def State.relabelBy (r : Relabel) (st : State) : State :=
   { st with
     deal := { piles := fun a => (st.deal.piles a).map r.card,
               stock := st.deal.stock.map r.card },
-    board := { topOf := fun b => (st.board.topOf (r.onBase b)).map r.card,
-               inj := by sorry }, -- TODO(proof): conjugation preserves the matching law
+    board := { topOf := fun b => (st.board.topOf (Sum.map id r.cardInv b)).map r.card,
+               inj := Relabel.relabelBy_inj r st },
     heights := fun s => st.heights (r.suitInv s),
     stock := { cards := st.stock.cards.map r.card, cursor := st.stock.cursor } }
 
@@ -98,13 +163,61 @@ def canReturnBase (c : Card) (b₀ : Base) : Bool :=
   | Sum.inl _ => decide (c.rank = Rank.king)
   | Sum.inr d => canSitOn c d
 
-/-- TODO(proof): board/heights round-trip; the stock is untouched. -/
+/-- The round trip through the foundations is the identity: detach via
+`pileStack`, come back with `stackPile` to the same base — the board
+re-attaches (attach after detach at the same base restores the
+matching pointwise), the heights return (+1 then -1). -/
 theorem pileStack_stackPile_roundtrip {st : State} {c : Card} {b₀ : Base}
     {st₁ st₂ : State}
     (h₀ : st.board.bottomOf c = some b₀)
     (hret : canReturnBase c b₀ = true)
     (h₁ : st.apply (Move.pileStack c) = some st₁)
-    (h₂ : st₁.apply (Move.stackPile c b₀) = some st₂) : st₂ = st := sorry
+    (h₂ : st₁.apply (Move.stackPile c b₀) = some st₂) : st₂ = st := by
+  have htop : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp h₀
+  simp only [State.apply, State.applyPileStack] at h₁
+  cases ht : st.board.topOf (Sum.inr c) with
+  | some x =>
+    rw [ht] at h₁
+    exact absurd h₁ (by simp)
+  | none =>
+    rw [ht, h₀] at h₁
+    have h₁' : (if c.rank.toIdx = st.heights c.suit then
+        some { st with
+          board := st.board.detach b₀,
+          heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
+        else none) = some st₁ := h₁
+    split at h₁'
+    · rw [Option.some.injEq] at h₁'
+      subst h₁'
+      simp only [State.apply, State.applyStackPile] at h₂
+      cases hatt : (st.board.detach b₀).attach b₀ c with
+      | none => rw [hatt] at h₂; exact absurd h₂ (by simp)
+      | some bd =>
+        rw [hatt] at h₂
+        simp at h₂
+        obtain ⟨-, h'⟩ := h₂
+        subst h'
+        have hbdeq : bd.topOf = st.board.topOf := by
+          funext b'
+          by_cases hbb : b' = b₀
+          · subst hbb
+            rw [Board.attach_topOf _ _ _ hatt]
+            exact htop.symm
+          · rw [Board.attach_topOf_ne _ _ _ hatt hbb, Board.detach_topOf_ne _ _ _ hbb]
+        have hbd : bd = st.board := Board.ext_topOf hbdeq
+        have hh : (fun s => if s = c.suit then
+            (if s = c.suit then st.heights s + 1 else st.heights s) - 1
+            else (if s = c.suit then st.heights s + 1 else st.heights s)) = st.heights := by
+          funext s
+          by_cases hsc : s = c.suit
+          · subst hsc
+            rw [if_pos rfl, if_pos rfl]
+            omega
+          · rw [if_neg hsc, if_neg hsc]
+        cases st with
+        | mk d b hgt dpt stck ds =>
+          rw [hbd, hh]
+    · exact absurd h₁' (by simp)
 
 /-- TODO(proof): the moved run carries back; `aboveOf` is unchanged. -/
 theorem pilePile_roundtrip {st : State} {c : Card} {b b₀ : Base} {st₁ st₂ : State}
@@ -113,12 +226,61 @@ theorem pilePile_roundtrip {st : State} {c : Card} {b b₀ : Base} {st₁ st₂ 
     (h₂ : st₁.apply (Move.pilePile c b₀) = some st₂) : st₂ = st := sorry
 
 /-- A full rotation of the stock is the identity (draw everything,
-worry back).  TODO: `(cursor + len) % len = cursor` from the cursor
-bound. -/
-theorem draw_full_cycle {st : State} (hl : st.stock.cursor ≤ st.stock.cards.length)
+worry back).  The cursor bound is strict: a cursor sitting exactly at
+`length` (which `rotate` never produces — its successors land strictly
+below) would rotate to `0`, not back to itself. -/
+theorem draw_full_cycle {st : State} (hl : st.stock.cursor < st.stock.cards.length)
     {st' : State}
     (h : st.run (List.replicate st.stock.cards.length Move.draw) = some st') :
-    st' = st := sorry
+    st' = st := by
+  have key : ∀ (n : Nat) (s : State), s.stock.cards = st.stock.cards →
+      s.stock.cursor < s.stock.cards.length →
+      s.run (List.replicate n Move.draw) =
+        some {s with stock := s.stock.rotate (n * s.drawStep)} := by
+    intro n
+    induction n with
+    | zero =>
+        intro s _ hclt
+        have hz : s.stock.rotate (0 * s.drawStep) = s.stock := by
+          have hc : s.stock.cursor % s.stock.cards.length = s.stock.cursor :=
+            Nat.mod_eq_of_lt hclt
+          cases hs : s.stock with
+          | mk cs cur =>
+            rw [hs] at hc
+            have hc' : cur % cs.length = cur := hc
+            show ({ cards := cs, cursor := (cur + 0 * s.drawStep) % cs.length } :
+                    Cycle Card) = { cards := cs, cursor := cur }
+            rw [Nat.zero_mul, Nat.add_zero]
+            exact congrArg (fun x => ({ cards := cs, cursor := x } : Cycle Card)) hc'
+        show some s = some {s with stock := s.stock.rotate (0 * s.drawStep)}
+        rw [hz]
+    | succ n ih =>
+        intro s hcards hclt
+        simp only [List.replicate_succ, State.run, State.apply, State.applyDraw]
+        have h1 : (s.stock.rotate s.drawStep).cards = st.stock.cards := by
+          rw [Cycle.rotate_cards]; exact hcards
+        have h1lt : (s.stock.rotate s.drawStep).cursor < s.stock.cards.length :=
+          Nat.mod_lt _ (by omega)
+        rw [ih {s with stock := s.stock.rotate s.drawStep} h1 h1lt]
+        show some {s with stock := (s.stock.rotate s.drawStep).rotate (n * s.drawStep)} =
+          some {s with stock := s.stock.rotate (Nat.succ n * s.drawStep)}
+        rw [Cycle.rotate_add]
+        congr 1
+        rw [Nat.succ_mul, Nat.add_comm s.drawStep (n * s.drawStep)]
+  have hrot : st.stock.rotate (st.stock.cards.length * st.drawStep) = st.stock := by
+    have hc : (st.stock.cursor + st.stock.cards.length * st.drawStep)
+        % st.stock.cards.length = st.stock.cursor := by
+      rw [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hl]
+    cases hs : st.stock with
+    | mk cs cur =>
+      rw [hs] at hc
+      have hc' : (cur + cs.length * st.drawStep) % cs.length = cur := hc
+      show ({ cards := cs, cursor := (cur + cs.length * st.drawStep) % cs.length } :
+              Cycle Card) = { cards := cs, cursor := cur }
+      rw [hc']
+  rw [key st.stock.cards.length st rfl hl] at h
+  rw [hrot] at h
+  exact (Option.some.inj h).symm
 
 /-- A commitment: no play returns to the state after it. -/
 def irreversibleAt (st : State) (m : Move) : Prop :=

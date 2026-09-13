@@ -1,9 +1,13 @@
 # The proof farm — handoff document
 
-62 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
+38 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
 each carrying a `TODO(proof)` route comment in source.  Difficulty:
 **[T]** rfl/decide/case-bash · **[E]** one induction · **[M]** real
 work · **[H]** needs ideas (do not assign casually).
+
+**`FARM_MEMORY.md`** — the agents' append-only shared quirks ledger
+(syntax, recipes, wrong routes, reusable helpers).  Read it first;
+append your findings there, never here.
 
 ## Rules of engagement
 
@@ -47,47 +51,31 @@ Work the waves in order — later waves lean on earlier ones.  Within a
 wave, items are independent (different agents can take different rows
 without colliding).
 
-## Wave 0 — no dependencies, pure computation
+## Wave 0 — COMPLETE (2026-09-13)
 
-| item | file:line | tag | route |
-|---|---|---|---|
-| ~~`removeAt_comm`~~ | ~~Cycle:116~~ | **done** | `removeIdx_comm` + cursor `if`s |
-| `apply_reveal_totalDepth_lt` | Progress:21 | [E] | case `reveal`; `totalDepth` is a sum of 7 |
-| `apply_totalDepth_le` | Progress:25 | [E] | 7-way move case bash; only reveal changes depths |
-| `apply_stockLen_le` | Progress:29 | [E] | 7-way case bash; nothing adds to the cycle |
-| `apply_deckPile_shortens` | Progress:35 | [E] | WF cursor bound makes `cursor−1` a valid index |
-| `apply_deckStack_shortens` | Progress:40 | [E] | as above |
-| `run_append` | Progress:55 | [E] | induction on `l₁`; `run` is a fold |
-| `run_eq_trace_last` | Progress:71 | [E] | induction on the play |
-| ~~`eStep_pileStack_unique`~~ | ~~Bridge~~ | **done** | the witness only justifies |
-| ~~`eStep_deckPile_unique`~~ | ~~Bridge~~ | **done** | `noDupCards` pins the draw index |
-| ~~`eStep_deckStack_unique`~~ | ~~Bridge~~ | **done + statement fixed** | was *unsound* without `noDupCards` — a duplicated order gives two indices, two offsets |
-| ~~`eStep_stackPile_unique`~~ | ~~Bridge~~ | **done** | as `pileStack` |
-| `esolvable_offset_irrel` | Bridge:144 | [E] | no guard reads the offset (v1); plays correspond |
-| `Card.universe_noDup` | Initial | [M] | index-wise, over the factored product |
-| `Deal.ofList_wf` | Initial | [M] | lengths by the triangular split; `drop`/`take` preserve |
-| `initial_wf` | Initial | [M] | the exhibit — initial edges are WF-exempt by construction |
+All computation items: the C2 uniqueness quartet (deckStack's
+statement repaired with `noDupCards`), `removeAt_comm`,
+`esolvable_offset_irrel` (+ reusable `eStep_offset`/`eRun_offset`/
+`isWin_offset`), the seven Progress measure/fold lemmas, and the
+`Initial` trio (`universe_noDup`, `ofList_wf`, `initial_wf` — the
+file fully proven, with the `initBase`/`initStep` fold refactor).
 
-## Wave 1 — the Board foundation (everything leans on these)
+## Wave 1 — COMPLETE (2026-09-13)
 
-| item | file:line | tag | route |
-|---|---|---|---|
-| `bottomOf_eq` | Board:114 | [M] | `findFirst_mem` + `findFirst_of_unique` + `enumBase_complete` + `inj` |
-| `bottomOf_eq_none` | Board:118 | [M] | `findFirst_eq_none` + `enumBase_complete` |
-| `empty_bottomOf` | Board:128 | [E] | `findFirst_eq_none` + `empty_topOf` |
-| `attach_topOf` | Board:175 | [E] | unfold `attach`; `update_self` |
-| `attach_topOf_ne` | Board:179 | [E] | `update_ne` |
-| `attach_eq_some_iff` | Board:183 | [E] | the two dite guards |
+Board.lean fully proven: `bottomOf_eq`, `bottomOf_eq_none`,
+`empty_bottomOf`, the `attach` consumption lemmas, `mapBy`'s law.
+New reusables: `attach_inj`, `mapBy_inj`, `Base.flipBase_flipBase`,
+`Board.ext_topOf` (same `topOf` ⇒ equal boards).
 
 ## Wave 2 — move-level glue
 
 | item | file:line | tag | route |
 |---|---|---|---|
-| `legal_pileStack_iff` | Move:194 | [M] | unfold `apply`; the two Board lemmas above |
-| `apply_wf` | Move:218 | [M] | 7-way case bash; the matching clause uses `bottomOf_eq` |
-| `pileStack_stackPile_roundtrip` | Theorems:105 | [M] | detach-then-attach = identity; heights ± |
-| `pilePile_roundtrip` | Theorems:111 | [M] | the run carries back; `aboveOf` untouched |
-| `draw_full_cycle` | Theorems:119 | [E] | `(cursor + len) % len = cursor` from the WF bound |
+| `legal_pileStack_iff` | Move | [M] | unfold `apply`; the Board lemmas (Wave 1 done) |
+| `apply_wf` | Move | [H] | 7-way; the cycle must be a deal-stock sub-multiset — **WF was repaired for this** (5 witness-confirmed holes, see FARM_MEMORY) |
+| `pilePile_roundtrip` | Theorems | [M] | the run carries back; `aboveOf` untouched |
+| ~~`pileStack_stackPile_roundtrip`~~ | Theorems | **done** | detach-then-attach; heights ± |
+| ~~`draw_full_cycle`~~ | Theorems | **done + statement fixed** | `≤` was false — rotate never lands at `length`; repaired to `<` |
 
 ## Wave 3 — symmetry and commutation
 
@@ -108,13 +96,13 @@ without colliding).
 
 | item | file:line | tag | route |
 |---|---|---|---|
-| `aboveOf_rank_grading` | Theorems:265 | [M] | induction along the walk; WF edge legality |
-| `aboveOf_irrefl` | Theorems:269 | [E] | from the grading |
-| `play_self_is_shuffle` | Progress:49 | [M] | Wave 0 measures + play induction |
-| `play_cut_loop` | Progress:87 | [E] | `run_append` + determinism |
-| `solvable_iff_distinctTrace` | Progress:79 | [M] | cut loops until fixpoint |
-| `solvable_iff_boundedPlay` | Progress:107 | [H] | distinct trace + the shape count (needs `apply_wf`) |
-| `solvable_decidable` | Progress:112 | [H] | bounded enumeration |
+| `aboveOf_rank_grading` | Theorems | [M] | induction along the walk; WF edge legality |
+| `aboveOf_irrefl` | Theorems | [E] | from the grading |
+| ~~`play_self_is_shuffle`~~ | Progress | **done** | measure-disjunction induction (route revised — see FARM_MEMORY) |
+| ~~`play_cut_loop`~~ | Progress | **done** | `run_append` + determinism |
+| ~~`solvable_iff_distinctTrace`~~ | Progress | **done** | + `run_take_trace` workhorse |
+| `solvable_iff_boundedPlay` | Progress | [H] | distinct trace + the shape count (needs `apply_wf`) |
+| `solvable_decidable` | Progress | [H] | bounded enumeration |
 
 ## Wave 5 — the dominances (§5)
 
@@ -133,12 +121,12 @@ without colliding).
 
 | item | file:line | tag | route |
 |---|---|---|---|
-| `solvable_of_accommodates` | Theorems:158 | [E] | prepend the shuffle play |
-| `solvable_accommodates` | Theorems:164 | **[H]** | **B4 / the reshape lemma — the farm's hardest item** |
-| `solvable_engine_iff` | Move:213 | **[H]** | the no-pile-to-pile legs |
-| `realizable_of_wf` | Realizability:117 | [M] | WF → `Board.Fits` glue |
-| `apply_realizable` | Realizability:126 | [M] | `apply_wf` + the above |
-| `uncovered_eq_freeType` | Realizability:94 | [M] | the counting bijection (injectivity + edge legality) |
+| ~~`solvable_of_accommodates`~~ | Theorems | **done** | prepend the shuffle play |
+| `solvable_accommodates` | Theorems | **[H]** | **B4 / the reshape lemma — the farm's hardest item** |
+| `solvable_engine_iff` | Move | **[H]** | the no-pile-to-pile legs |
+| ~~`realizable_of_wf`~~ | Realizability | **done** | WF → Fits glue (post-repair) |
+| `apply_realizable` | Realizability | [M] | `apply_wf` + the above |
+| `uncovered_eq_freeType` | Realizability | [M] | the counting bijection (injectivity + edge legality) |
 
 ## Wave 7 — macro and bridge
 

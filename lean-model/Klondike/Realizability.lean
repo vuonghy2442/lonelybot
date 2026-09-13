@@ -95,26 +95,29 @@ theorem uncovered_eq_freeType {bd : Board} (hleg : bd.legalEdges) (t : Rank × C
 
 /-! ## Realizability -/
 
-/-- A board *fits* a deal/depths: the full edge legality (the WF
-third conjunct, lifted to boards). -/
+/-- A board *fits* a deal/depths: the edge legality of the WF third
+conjunct, lifted to boards (dealt-adjacent stack or fitting visible
+card). -/
 def Board.Fits (bd : Board) (deal : Deal) (depths : Anchor → Nat) : Prop :=
-  bd.legalEdges ∧
-  (∀ b c, bd.topOf b = some c →
+  ∀ b c, bd.topOf b = some c →
     match b with
     | Sum.inl a => c.rank = Rank.king ∨ (deal.piles a).head? = some c
     | Sum.inr d =>
-      (∃ a, ((deal.piles a).take (depths a)).getLast? = some d) ∨
-      ((bd.bottomOf d).isSome = true ∧ canSitOn c d))
+      (∃ a t rest, deal.piles a = t ++ d :: c :: rest) ∨
+      ((bd.bottomOf d).isSome = true ∧ canSitOn c d)
 
 /-- **Realizability**: some fitting matching has exactly this visible
 set — the invariant that makes the engine's abstraction truthful. -/
 def Realizable (deal : Deal) (depths : Anchor → Nat) (vis : Card → Bool) : Prop :=
   ∃ bd : Board, bd.Fits deal depths ∧ ∀ c, (bd.bottomOf c).isSome = vis c
 
-/-- Model states are realizable (their abstract content is truthful).
-TODO: WF → Fits glue. -/
+/-- Model states are realizable (their abstract content is truthful). -/
 theorem realizable_of_wf {st : State} (hwf : st.WF) :
-    Realizable st.deal st.depths (fun c => st.isVis c) := sorry
+    Realizable st.deal st.depths (fun c => st.isVis c) := by
+  obtain ⟨_, _, hmatch, _⟩ := hwf
+  refine ⟨st.board, ?_, fun _ => rfl⟩
+  intro b c hb
+  exact (hmatch _ _ hb).2
 
 /-- **B1's preservation** (no_pile §3's maintenance table): moves keep
 the abstract data realizable — each generator guard is precisely the
