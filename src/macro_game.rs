@@ -70,11 +70,17 @@ pub(crate) mod perf_probe {
         static UNDO_MOVES: Cell<u64> = Cell::new(0);
         static ENCODES: Cell<u64> = Cell::new(0);
         static REG_FIRES: Cell<u64> = Cell::new(0);
+        static CORE_NANOS: Cell<u64> = Cell::new(0);
+        static BRANCH_NANOS: Cell<u64> = Cell::new(0);
+        static TP_NANOS: Cell<u64> = Cell::new(0);
     }
 
     pub fn reset() {
         WALK_STATES.with(|c| c.set(0));
         REG_FIRES.with(|c| c.set(0));
+        CORE_NANOS.with(|c| c.set(0));
+        BRANCH_NANOS.with(|c| c.set(0));
+        TP_NANOS.with(|c| c.set(0));
         CLS_CALLS.with(|c| c.set(0));
         CLS_STATES.with(|c| c.set(0));
         BFS_CALLS.with(|c| c.set(0));
@@ -90,7 +96,7 @@ pub(crate) mod perf_probe {
     }
 
     #[must_use]
-    pub fn read() -> [u64; 14] {
+    pub fn read() -> [u64; 17] {
         [
             WALK_STATES.with(Cell::get),
             CLS_CALLS.with(Cell::get),
@@ -106,12 +112,32 @@ pub(crate) mod perf_probe {
             UNDO_MOVES.with(Cell::get),
             ENCODES.with(Cell::get),
             REG_FIRES.with(Cell::get),
+            CORE_NANOS.with(Cell::get),
+            BRANCH_NANOS.with(Cell::get),
+            TP_NANOS.with(Cell::get),
         ]
     }
 
     /// Count the offset-dominance registry's skips (test-only).
     pub fn bump_reg() {
         REG_FIRES.with(|c| c.set(c.get() + 1));
+    }
+
+    /// Section timers for the shipped search path (test-only; the
+    /// Instant::now overhead inflates all sections equally).
+    pub fn bump_core_time(d: std::time::Duration) {
+        #[allow(clippy::cast_possible_truncation)]
+        CORE_NANOS.with(|c| c.set(c.get() + d.as_nanos() as u64));
+    }
+
+    pub fn bump_branch_time(d: std::time::Duration) {
+        #[allow(clippy::cast_possible_truncation)]
+        BRANCH_NANOS.with(|c| c.set(c.get() + d.as_nanos() as u64));
+    }
+
+    pub fn bump_tp_time(d: std::time::Duration) {
+        #[allow(clippy::cast_possible_truncation)]
+        TP_NANOS.with(|c| c.set(c.get() + d.as_nanos() as u64));
     }
 
     pub fn bump_walk() {
@@ -1029,6 +1055,8 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         scratch: &mut DirectScratch,
         hook: &mut Option<&mut dyn FnMut(&Solitaire)>,
     ) -> bool {
+        #[cfg(test)]
+        let t_tp = std::time::Instant::now();
         let enc = s.encode();
         if s.is_win() || !tp.insert(enc) {
             return s.is_win();
@@ -1036,6 +1064,8 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         if let Some(h) = hook {
             h(s);
         }
+        #[cfg(test)]
+        perf_probe::bump_tp_time(t_tp.elapsed());
         let step = s.get_deck().draw_step().get();
         if step == 1 {
             return rec_go(s, tp, scratch, hook, enc);
@@ -1113,10 +1143,10 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
                 return false;
             }
             let old = (s.get_visible_mask(), s.get_stack().encode());
-            let (_, (undo, _)) = s.do_move(steps[0]);
+            let undo = apply_commit(s, steps[0]);
             s.set_board(vis, stack);
             let child_win = rec(s, tp, scratch, hook);
-            s.undo_move(steps[0], undo);
+            undo_commit(s, steps[0], undo);
             s.set_board(old.0, old.1);
             return child_win;
         }
@@ -1150,7 +1180,11 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         };
 
         let mut commitments = core::mem::take(&mut scratch.commitments);
+        #[cfg(test)]
+        let t_core = std::time::Instant::now();
         core_run(&ctx, scratch, &mut commitments, true, s.get_deck());
+        #[cfg(test)]
+        perf_probe::bump_core_time(t_core.elapsed());
         scratch.commitments = commitments;
 
         // F3 dominance drop: tableau outcomes of dominantly stackable
@@ -1179,20 +1213,30 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
             };
             #[cfg(test)]
             perf_probe::bump_sel(_ch.ends_with("bfs"));
+            #[cfg(test)]
+            let t_branch = std::time::Instant::now();
             let (vis, stack) = post_words(s, &ctx, steps);
             let commit = *steps.last().expect("every channel ends in a commit");
             // TP pre-probe: compute the successor's encode without
             // applying — on a hit (75% of branches on the hard
             // refutations) the apply/undo pair is dead work
             if tp.contains(&successor_encode(s, commit, stack, enc)) {
+                #[cfg(test)]
+                perf_probe::bump_branch_time(t_branch.elapsed());
                 continue;
             }
             let old = (s.get_visible_mask(), s.get_stack().encode());
-            let (_, (undo, _)) = s.do_move(commit);
+            let undo = apply_commit(s, commit);
             s.set_board(vis, stack);
+            #[cfg(test)]
+            perf_probe::bump_branch_time(t_branch.elapsed());
             let child_win = rec(s, tp, scratch, hook);
-            s.undo_move(commit, undo);
+            #[cfg(test)]
+            let t_undo = std::time::Instant::now();
+            undo_commit(s, commit, undo);
             s.set_board(old.0, old.1);
+            #[cfg(test)]
+            perf_probe::bump_branch_time(t_undo.elapsed());
             if child_win {
                 win = true;
                 break 'outer;
@@ -1499,6 +1543,45 @@ fn reveal_words(w: &mut Words, g: &Solitaire, c: Card) {
 /// (a reveal commit) is a subtraction of one weight — O(1) instead of
 /// the fold.
 const HIDDEN_WEIGHT: [u16; 7] = [1, 2, 6, 24, 120, 720, 5040];
+
+/// The commit application, deck/hidden effects only. `do_move` computes
+/// `reverse_move` (the search discards it) and performs board edits
+/// that the immediately-following `set_board` overwrites — this pair
+/// applies only the lasting effects (the deck draw with its offset,
+/// the hidden pop) and undoes them. Bit-identical successors: the
+/// board is carried by the word pipeline (`post_words` + `set_board`),
+/// not by the state's own edit path.
+fn apply_commit(s: &mut Solitaire, m: Move) -> u8 {
+    match m {
+        Move::DeckPile(c) | Move::DeckStack(c) => {
+            let (_, pos) = s.get_deck().find_card(c);
+            let old = s.get_deck().get_offset();
+            let _ = s.get_deck_mut().draw(pos);
+            old
+        }
+        // Reveal commits and reveal-by-stacking (PileStack on a locked
+        // card — the only PileStack that is a commit): pop the surface
+        Move::Reveal(c) | Move::PileStack(c) => {
+            let _ = s.get_hidden_mut().pop_card(c);
+            0
+        }
+        // a StackPile is always a reversible shuffle step, never a commit
+        Move::StackPile(_) => unreachable!("commit moves are irreversible"),
+    }
+}
+
+fn undo_commit(s: &mut Solitaire, m: Move, undo: u8) {
+    match m {
+        Move::DeckPile(c) | Move::DeckStack(c) => {
+            s.get_deck_mut().push(c);
+            s.get_deck_mut().set_offset(undo);
+        }
+        Move::Reveal(c) | Move::PileStack(c) => {
+            let _ = s.get_hidden_mut().unpop_card(c);
+        }
+        Move::StackPile(_) => unreachable!("commit moves are irreversible"),
+    }
+}
 
 /// The successor's full encode, computed WITHOUT applying the commit:
 /// the swept stack word from `post_words`, the hidden word as the
@@ -2184,13 +2267,19 @@ mod tests {
                         }
                     }
                 });
+                let p = perf_probe::read();
+                let tot = p[16] as f64 + p[14] as f64 + p[15] as f64 + p[5] as f64;
                 println!(
-                    "seed={seed} draw={draw_step} win={win} nodes={n} forced={f} ({:4.1}%) deck_dom={d} ({:4.1}%) avg_deck_at_dom={:4.1} reg_fires={} in {:?}",
+                    "seed={seed} draw={draw_step} win={win} nodes={n} forced={f} ({:4.1}%) deck_dom={d} ({:4.1}%) avg_deck_at_dom={:4.1} reg_fires={} in {:?} | sections: tp={:4.1}% core={:4.1}% branch={:4.1}% bfs={:4.1}%",
                     100.0 * f as f64 / n.max(1) as f64,
                     100.0 * d as f64 / n.max(1) as f64,
                     dc as f64 / d.max(1) as f64,
-                    perf_probe::read()[13],
-                    t.elapsed()
+                    p[13],
+                    t.elapsed(),
+                    100.0 * p[16] as f64 / tot,
+                    100.0 * p[14] as f64 / tot,
+                    100.0 * p[15] as f64 / tot,
+                    100.0 * p[5] as f64 / tot,
                 );
                 nodes += n;
                 forced += f;

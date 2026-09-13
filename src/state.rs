@@ -100,6 +100,18 @@ impl Solitaire {
         &self.deck
     }
 
+    /// Crate-internal mutable deck access — for the macro engine's
+    /// specialized commit application (deck/hidden effects only, the
+    /// board carried by the word pipeline's `set_board`).
+    pub(crate) fn get_deck_mut(&mut self) -> &mut Deck {
+        &mut self.deck
+    }
+
+    /// Crate-internal mutable hidden access — as `get_deck_mut`.
+    pub(crate) fn get_hidden_mut(&mut self) -> &mut Hidden {
+        &mut self.hidden
+    }
+
     #[must_use]
     pub const fn get_stack(&self) -> &Stack {
         &self.final_stack
