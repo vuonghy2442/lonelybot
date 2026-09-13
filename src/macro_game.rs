@@ -1939,6 +1939,173 @@ mod tests {
         }
     }
 
+    /// Ordering-policy experiment for the search's commitment loop:
+    /// mirrors the shipped fold exactly (forced hoist, deck_dom, f3 from
+    /// the scratch, collapse_pick) but reorders the groups before the
+    /// loop per policy. Policy 0 (no reorder) must reproduce the shipped
+    /// node counts — the harness's own sanity check. The others probe
+    /// whether a different visitation order shrinks the refutation tree
+    /// (the reveal-before-draw fix was worth ~12% of nodes once).
+    #[test]
+    #[ignore = "ordering experiment; run with --ignored --release --nocapture"]
+    fn debug_ordering_policies() {
+        use std::time::Instant;
+        const NODE_CAP: usize = 4_000_000;
+        // policy: 0 = shipped, 1 = reversed, 2 = draws-first,
+        // 3 = kings-first (rank desc, kind order preserved),
+        // 4 = tallest successor first (needs post_words per group)
+        fn rec(
+            s: &mut Solitaire,
+            tp: &mut TpTable,
+            scratch: &mut DirectScratch,
+            nodes: &mut usize,
+            policy: u8,
+        ) -> bool {
+            if s.is_win() || !tp.insert(s.encode()) {
+                return s.is_win();
+            }
+            *nodes += 1;
+            if *nodes > NODE_CAP {
+                return false;
+            }
+            let ctx = ClosureCtx::from_game(s);
+            let forced_reveal = {
+                let f = ctx.root.locked
+                    & ctx.root.vis
+                    & ctx.root.sm()
+                    & ctx.root.bm()
+                    & Stack::decode(ctx.root.stack).dominance_mask();
+                f & f.wrapping_neg()
+            };
+            if forced_reveal != 0 {
+                let x = Card::from_mask_index(
+                    u8::try_from(forced_reveal.trailing_zeros()).unwrap(),
+                );
+                let steps = [Move::PileStack(x)];
+                let (vis, stack) = post_words(s, &ctx, &steps);
+                let old = (s.get_visible_mask(), s.get_stack().encode());
+                let (_, (undo, _)) = s.do_move(steps[0]);
+                s.set_board(vis, stack);
+                let child_win = rec(s, tp, scratch, nodes, policy);
+                s.undo_move(steps[0], undo);
+                s.set_board(old.0, old.1);
+                return child_win;
+            }
+            let deck_dom = {
+                let d = ctx.deck_mask
+                    & ctx.root.sm()
+                    & Stack::decode(ctx.root.stack).dominance_mask();
+                if s.get_deck().draw_step().get() == 1 && d != 0 {
+                    d & d.wrapping_neg()
+                } else {
+                    0
+                }
+            };
+            let mut commitments = core::mem::take(&mut scratch.commitments);
+            core_run(&ctx, scratch, &mut commitments, true);
+            scratch.commitments = commitments;
+            let f3 = scratch.f3;
+            let mut groups = core::mem::take(&mut scratch.groups);
+            match policy {
+                0 => {}
+                1 => groups.reverse(),
+                2 => groups.sort_by_key(|g| match g.first() {
+                    Some((Commitment::Draw(x), ..)) => (0u8, x.mask_index()),
+                    Some((Commitment::Reveal(x), ..)) => (1, x.mask_index()),
+                    _ => (2, 0),
+                }),
+                3 => groups.sort_by_key(|g| match g.first() {
+                    Some((Commitment::Draw(x) | Commitment::Reveal(x), ..)) => {
+                        u8::MAX - x.rank()
+                    }
+                    _ => 0,
+                }),
+                4 => {
+                    // tallest swept successor first: stack nibble sum of
+                    // the collapse_pick'd post-state, descending. Groups
+                    // without a selection sink to the end.
+                    let key = |g: &Vec<StepTransition>| -> u16 {
+                        let Some((_, _, steps, _)) = collapse_pick(g, f3) else {
+                            return 0;
+                        };
+                        let (_, stack) = post_words(s, &ctx, steps);
+                        let mut t = 0u16;
+                        for sh in 0..4u16 {
+                            t += (stack >> (4 * sh)) & 0xF;
+                        }
+                        t + 1
+                    };
+                    groups.sort_by_key(|g| core::cmp::Reverse(key(g)));
+                }
+                _ => {}
+            }
+            let mut win = false;
+            'outer: for group in &groups {
+                if deck_dom != 0 {
+                    if let Some((Commitment::Draw(x), ..)) = group.first() {
+                        if x.mask() != deck_dom {
+                            continue;
+                        }
+                    }
+                }
+                let Some((_, _, steps, _ch)) = collapse_pick(group, f3) else {
+                    continue;
+                };
+                let (vis, stack) = post_words(s, &ctx, steps);
+                let old = (s.get_visible_mask(), s.get_stack().encode());
+                let commit = *steps.last().expect("every channel ends in a commit");
+                let (_, (undo, _)) = s.do_move(commit);
+                s.set_board(vis, stack);
+                let child_win = rec(s, tp, scratch, nodes, policy);
+                s.undo_move(commit, undo);
+                s.set_board(old.0, old.1);
+                if child_win {
+                    win = true;
+                    break 'outer;
+                }
+            }
+            scratch.groups = groups;
+            win
+        }
+        for (name, policy) in [
+            ("shipped      ", 0u8),
+            ("reversed     ", 1),
+            ("draws-first  ", 2),
+            ("kings-first  ", 3),
+            ("tallest-first", 4),
+        ] {
+            let mut total_nodes = 0u64;
+            let mut total_n = 0u64;
+            let t_all = Instant::now();
+            for draw_step in [1u8, 3] {
+                for seed in [12u64, 14, 17, 18, 21, 22, 26, 32] {
+                    let mut root = Solitaire::new(
+                        &default_shuffle(seed),
+                        NonZeroU8::new(draw_step).unwrap(),
+                    );
+                    canonicalize(&mut root);
+                    let mut tp = TpTable::default();
+                    let mut scratch = DirectScratch::new();
+                    let mut nodes = 0usize;
+                    let t = Instant::now();
+                    let win = rec(&mut root, &mut tp, &mut scratch, &mut nodes, policy);
+                    if seed == 32 {
+                        println!(
+                            "  {name} seed=32 draw={draw_step} win={win} nodes={nodes} in {:?}",
+                            t.elapsed()
+                        );
+                    }
+                    total_nodes += nodes as u64;
+                    total_n += u64::from(u32::from(win));
+                }
+            }
+            println!(
+                "{name}: total nodes across 16 configs = {total_nodes} ({total_n} wins) in {:?}",
+                t_all.elapsed()
+            );
+        }
+    }
+
     /// The word pipeline against move replay, state by state:
     /// `canonicalize` must land exactly where the per-card `do_move` sweep
     /// does (including ambiguous-twin picks), and `post_state` must equal
