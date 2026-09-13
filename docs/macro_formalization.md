@@ -869,6 +869,35 @@ wrongly killed; search-path miss reduction ~0.7% on the standard corpus
 (the mass lives in early boards the deep refutations leave quickly).
 Free (one popcount) — shipped on the same gates as K4.
 
+**K6 (the four-card ball — shipped 2026-09, the tableau-side kill's
+first cut, from the signature probe).** The §8.1 locality compresses the
+whole tableau-opening question into the interaction ball
+`{X, twin(X), R1, R2}`: the receivers R1, R2 are twins *of each
+other*, and their under-pair *is* `{X, twin(X)}`. X is deck or locked
+(every commitment target is), so `free[X] ≡ 0` in the closure, and the
+receiver movability reduces to
+
+    (vis[R1] ∨ vis[R2]) ∧ (¬free[twin(X)] ∨
+                            (vis[R1] ⊕ vis[R2] ⊕ free[twin(X)]))
+
+When **one receiver is dead** (buried or deck — never enters `vis`, the
+fundamental invariant) and **twin(X) is root-free but climb-blocked**
+(K1's first-passage test on twin's own suit — so twin never stacks,
+`free[twin(X)] ≡ 1` forever, and never leaves `vis` either — the only
+`vis`-removing closure move is stacking), the condition collapses to
+`vis[R2] ∧ ¬vis[R2]` — self-cancelling in both branches, *regardless
+of the surviving receiver's status*. Measured coverage (probe
+`debug_k6_signature`, the miss-signature census): the dominant
+signatures are exactly this shape — twin=free+climb-blocked with one
+dead receiver and the other climb-blocked-or-locked — **76% of the
+tableau miss mass surviving K1–K5**. Search-path effect (probe
+`debug_crease_grammar`, seeds 12..43): tableau misses **−61.8%
+(draw-1) / −78.6% (draw-3)**, total misses −57% / −76%; seed-32 wall
+4.45 → 4.19s (draw-1) and 3.12 → 3.03s (draw-3). Falsifier green
+(`goal_kills_are_sound`: 28,354 of 29,781 killed, 0 wrongly — the
+un-killed BFS answers none of them); the differential, both verdict
+sweeps, and the KS-shuffle sweep green.
+
 Both ship as `goal_dead` (`src/macro_game.rs`) with the direct falsifier
 `goal_kills_are_sound`: for every corpus state, every killed goal is run
 through the un-killed standalone BFS and must produce no answer —

@@ -1638,6 +1638,18 @@ fn steps(ms: &[Move]) -> ArrayVec<Move, 42> {
 ///   tableau goal — deck or locked, first-layer or not — is dead without
 ///   the walk. Every root qualifies; this is the early-game mass.
 ///
+/// * **K5 (tableau goal on any king, saturated boards)** (see the arm —
+///   the empty-pile gate's surface count is pinned).
+/// * **K6 (the four-card ball)**: X deck or locked means
+///   `free[X] ≡ 0` in the closure, and the receivers' under-pair is
+///   `{X, twin(X)}` — §8.1's receiver movability reduces to
+///   `(vis[R] ∨ vis[R']) ∧ (¬free[twin] ∨ (vis[R] ⊕ vis[R'] ⊕
+///   free[twin]))`. One dead receiver (never enters `vis`) plus a
+///   root-free climb-blocked twin(X) (never stacks — K1's
+///   first-passage test on twin's suit — so `free[twin] ≡ 1`) makes
+///   both disjunct branches self-cancel. Measured coverage: 76% of
+///   the tableau miss mass surviving K1–K5 (probe `debug_k6_signature`).
+///
 /// A killed goal provably has no BFS answer, so skipping it changes no
 /// successor in either mode — pure search cost. Gates:
 /// `macro_direct_matches_oracle` (the differential would count a wrong
@@ -1681,6 +1693,48 @@ fn goal_dead(ctx: &ClosureCtx, commitment: Commitment, kind: OutcomeKind) -> boo
                 // king tableau goal (deck or locked, any pile shape) is
                 // dead without the walk.
                 return (ctx.root.vis & ctx.root.locked).count_ones() >= u32::from(N_PILES);
+            }
+            // K6: the four-card ball {X, twin(X), R1, R2}. X is deck or
+            // locked (every commitment target is), so `free[X] ≡ 0` in
+            // the closure, and the receivers' under-pair IS {X, twin(X)}
+            // — §8.1's movability of a receiver reduces to
+            // `(vis[R] ∨ vis[R']) ∧ (¬free[twin(X)] ∨
+            // (vis[R] ⊕ vis[R'] ⊕ free[twin(X)]))`. When one receiver is
+            // dead (buried or deck — never enters `vis`) and twin(X) is
+            // root-free but climb-blocked (K1's first-passage test on
+            // twin's suit: a missing prefix card not root-visible and
+            // unlocked — so twin never stacks, `free[twin(X)] ≡ 1`
+            // forever, and it never leaves `vis` either), the condition
+            // collapses to `vis[R₂] ∧ ¬vis[R₂]` — self-cancelling in
+            // both branches, regardless of the surviving receiver's
+            // status. Measured (debug_k6_signature): 76% of the tableau
+            // miss mass surviving K1–K5.
+            {
+                let twin = x.swap_suit();
+                let tm = twin.mask();
+                let twin_free =
+                    ctx.root.vis & tm != 0 && ctx.root.locked & tm == 0;
+                if twin_free {
+                    let ts = twin.suit();
+                    let h0 = ctx.root.height(ts);
+                    let climb_blocked = h0 < twin.rank()
+                        && (h0..twin.rank()).any(|rr| {
+                            let m = Card::new(rr, ts).mask();
+                            ctx.root.vis & m == 0 || ctx.root.locked & m != 0
+                        });
+                    if climb_blocked {
+                        let r = x.rank() + 1;
+                        let s = x.suit();
+                        let stacked_now = stacked_mask(ctx.root.stack);
+                        let dead = |p: Card| {
+                            let m = p.mask();
+                            ctx.root.vis & m == 0 && stacked_now & m == 0
+                        };
+                        if dead(Card::new(r, s ^ 2)) || dead(Card::new(r, s ^ 3)) {
+                            return true;
+                        }
+                    }
+                }
             }
             let r = x.rank() + 1;
             let s = x.suit();
@@ -3306,6 +3360,161 @@ mod tests {
             }
         }
         println!("pace dominance order: 100 random decks, all offsets — pure-pure equal, residue-monotone, impure ⊇ pure, merge holds");
+    }
+
+    /// **K6 research — the tableau-side kill.** The 93% miss mass:
+    /// for every tableau goal that survives K1-K5 in the total
+    /// generator and then MISSES in the shared BFS, record the root
+    /// four-card signature. The §8.1 locality compresses the whole
+    /// opening question into the interaction ball
+    /// `{X, twin(X), R, R'}` (the receivers at rank(X)+1, opposite
+    /// color) — because the receivers' under-pair IS `{X, twin(X)}`:
+    /// with `free[X] ≡ 0` in the closure (X deck or locked), the
+    /// blocked disjunct is `¬free[twin(X)]` and the parity is
+    /// `vis[R] ⊕ vis[R'] ⊕ free[twin(X)]`, so the goal opens iff some
+    /// word has `(vis[R] ∨ vis[R']) ∧ (¬free[twin(X)] ∨ odd-parity)`.
+    /// The signature dimensions this probe tallies over the miss mass:
+    /// - the receivers' status: visible-free / visible-locked /
+    ///   on-foundation (worry-backable) / dead (buried or deck)
+    /// - twin(X): free / locked / buried / deck
+    /// - the three stacking routes out (R stacks, R' stacks, twin(X)
+    ///   stacks): each K1-blocked at the root (a missing prefix card
+    ///   not root-visible-and-unlocked) or not
+    /// The conjecture the data must shape: which signatures freeze the
+    /// parity recursion (the receivers never change count, the twin
+    /// never changes freeness) — those are the K6 kills.
+    #[test]
+    #[ignore = "K6 research probe; run with --ignored --release --nocapture"]
+    fn debug_k6_signature() {
+        use std::collections::BTreeMap;
+        // K1's climb-blocked test for a card c's suit: some card in
+        // [h₀, rank(c)) is not root-visible-and-unlocked (it would have
+        // to pass through stacked, visible — worry-backs only surface
+        // ranks < h₀)
+        let climb_blocked = |ctx: &ClosureCtx, c: Card| -> bool {
+            let s = c.suit();
+            let h0 = ctx.root.height(s);
+            if h0 >= c.rank() {
+                return false; // at/above: no climb needed
+            }
+            (h0..c.rank()).any(|r| {
+                let m = Card::new(r, s).mask();
+                ctx.root.vis & m == 0 || ctx.root.locked & m != 0
+            })
+        };
+        let mut sig_tally: BTreeMap<String, usize> = BTreeMap::new();
+        let mut total_missed = 0usize;
+        for draw_step in [1u8, 3] {
+            for i in 0..32u64 {
+                let mut game = Solitaire::new(
+                    &default_shuffle(12 + i),
+                    NonZeroU8::new(draw_step).unwrap(),
+                );
+                for _turn in 0..200 {
+                    if game.is_win() {
+                        break;
+                    }
+                    canonicalize(&mut game);
+                    let ctx = ClosureCtx::from_game(&game);
+                    let mut scratch = DirectScratch::new();
+                    let mut commitments = Vec::new();
+                    core_run(&ctx, &mut scratch, &mut commitments, false, game.get_deck());
+                    // the tableau goals that were pushed and missed
+                    for goal in &scratch.goals {
+                        if goal.kind != OutcomeKind::Tableau {
+                            continue;
+                        }
+                        let ci = commitments
+                            .iter()
+                            .position(|c| *c == goal.commitment)
+                            .unwrap();
+                        let answered = scratch.groups[ci].iter().any(
+                            |(c, k, _, ch)| {
+                                *c == goal.commitment
+                                    && *k == OutcomeKind::Tableau
+                                    && *ch == "tableau-bfs"
+                            },
+                        );
+                        if answered {
+                            continue;
+                        }
+                        total_missed += 1;
+                        let x = match goal.commitment {
+                            Commitment::Draw(x) | Commitment::Reveal(x) => x,
+                        };
+                        let twin = x.swap_suit();
+                        let (r, xs) = (x.rank(), x.suit());
+                        let (r1, r2) =
+                            (Card::new(r + 1, xs ^ 2), Card::new(r + 1, xs ^ 3));
+                        let vis = ctx.root.vis;
+                        let locked = ctx.root.locked;
+                        let stacked = stacked_mask(ctx.root.stack);
+                        let status = |c: Card| -> &'static str {
+                            if vis & c.mask() != 0 {
+                                if locked & c.mask() != 0 {
+                                    "vis-locked"
+                                } else {
+                                    "vis-free"
+                                }
+                            } else if stacked & c.mask() != 0 {
+                                "on-found"
+                            } else {
+                                "dead"
+                            }
+                        };
+                        let twin_status = match status(twin) {
+                            "vis-free" => {
+                                if climb_blocked(&ctx, twin) {
+                                    "free+cb"
+                                } else {
+                                    "free"
+                                }
+                            }
+                            s => s,
+                        };
+                        let rx = match status(r1) {
+                            "vis-free" => {
+                                if climb_blocked(&ctx, r1) {
+                                    "vf+cb"
+                                } else {
+                                    "vf"
+                                }
+                            }
+                            s => s,
+                        };
+                        let rx2 = match status(r2) {
+                            "vis-free" => {
+                                if climb_blocked(&ctx, r2) {
+                                    "vf+cb"
+                                } else {
+                                    "vf"
+                                }
+                            }
+                            s => s,
+                        };
+                        let sig = format!("twin={twin_status} R1={rx} R2={rx2}");
+                        *sig_tally.entry(sig).or_insert(0) += 1;
+                    }
+                    // advance by the oracle's first witness path
+                    let cands = enumerate_commitments(&game);
+                    match cands.first() {
+                        None => break,
+                        Some(c0) => {
+                            for &m in &c0.witness_path {
+                                let _ = game.do_move(m);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        println!("K6: {total_missed} surviving tableau misses; root signatures:");
+        let mut entries: Vec<(usize, &String)> =
+            sig_tally.iter().map(|(k, v)| (*v, k)).collect();
+        entries.sort_by(|a, b| b.0.cmp(&a.0));
+        for (n, sig) in entries.iter().take(24) {
+            println!("  {n:>8} ({:5.1}%)  {sig}", 100.0 * *n as f64 / total_missed.max(1) as f64);
+        }
     }
 
     /// The word pipeline against move replay, state by state:
