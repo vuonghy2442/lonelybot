@@ -235,8 +235,9 @@ theorem noDupCards_append_right {l₁ l₂ : List Card} (h : noDupCards (l₁ ++
 theorems' hypotheses are non-vacuous, and `State.initial` is the
 witness constructor: the top cards sit on the card they were dealt
 onto (deal-adjacency), the fully-revealed single-card pile on its
-anchor, the stock is the deal's stock. -/
-theorem initial_wf {d : Deal} (hd : d.WF) (drawStep : Nat) :
+anchor, the stock is the deal's stock.  The draw step must be positive
+(the engine's `NonZeroU8`). -/
+theorem initial_wf {d : Deal} (hd : d.WF) (hstep : 0 < drawStep) :
     (State.initial d drawStep).WF := by
   obtain ⟨hlen, hstock, hnd⟩ := hd
   have hdw : d.WF := ⟨hlen, hstock, hnd⟩
@@ -298,9 +299,8 @@ theorem initial_wf {d : Deal} (hd : d.WF) (drawStep : Nat) :
     exact Nat.zero_le _
   · show (0 : Nat) ≤ d.stock.length
     exact Nat.zero_le _
-  · exact noDupCards_append_right hnd
-  · intro c hc
-    exact hc
+  · exact hstep
+  · exact ⟨noDupCards_append_right hnd, fun c hc => hc⟩
 
 /-! ## Runnable sanity checks — the oracle seed -/
 

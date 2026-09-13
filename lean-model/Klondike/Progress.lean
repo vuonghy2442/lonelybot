@@ -208,7 +208,7 @@ theorem apply_stockLen_le {st st' : State} {m : Move}
   | draw =>
     simp only [State.apply, State.applyDraw, Option.some.injEq] at h
     subst h
-    exact Nat.le_of_eq rfl
+    exact Nat.le_of_eq (by rw [Cycle.dealOnce_cards])
   | reveal c =>
     simp only [State.apply] at h
     simp only [State.applyReveal] at h

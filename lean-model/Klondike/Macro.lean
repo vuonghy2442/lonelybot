@@ -7,17 +7,20 @@ macro_formalization.md §0, model side.  A play regroups as
 "shuffle, commit, shuffle, commit, …" (their Lemma A3): a
 *commitment* is the first irreversible move after a reversible
 accommodation, and the macro game's moves are just the two
-commitment kinds — `Draw(c)` (rotate to `c`, play it: tableau or
-stack outcome) and `Reveal(c)`.  The machinery this needs is already
-in the kernel: `accommodates` (Lemma A's shuffle reachability),
-`State.applyDrawTo` / `State.applyDrawStackTo` (the Draw commitment's
-two outcomes, rotation included).
+commitment kinds — `Draw(c)` (the guarded jump to `c`, then play it:
+tableau or stack outcome) and `Reveal(c)`.  The machinery this needs
+is already in the kernel: `accommodates` (Lemma A's shuffle
+reachability), `State.applyDrawTo` / `State.applyDrawStackTo` (the
+Draw commitment's two outcomes — the accessible-set-guarded jumps,
+whose soundness is `applyDrawTo_eq_dealPlay`: jump-then-play ≡
+deal-until-then-play).
 -/
 
 /-- A macro move: one commitment. -/
 inductive MacroMove : Type where
-  /-- The `Draw(c)` commitment: rotate until `c` is the waste top,
-  then play it — tableau landing (some base) or stack landing. -/
+  /-- The `Draw(c)` commitment: deal until `c` is the waste top (the
+  guarded jump), then play it — tableau landing (some base) or stack
+  landing. -/
   | drawCommit (c : Card)
   /-- The `Reveal(c)` commitment: flip the hidden card under `c`. -/
   | revealCommit (c : Card)

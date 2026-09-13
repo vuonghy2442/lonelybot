@@ -1,6 +1,6 @@
 # The proof farm — handoff document
 
-38 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
+46 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
 each carrying a `TODO(proof)` route comment in source.  Difficulty:
 **[T]** rfl/decide/case-bash · **[E]** one induction · **[M]** real
 work · **[H]** needs ideas (do not assign casually).
@@ -72,10 +72,11 @@ New reusables: `attach_inj`, `mapBy_inj`, `Base.flipBase_flipBase`,
 | item | file:line | tag | route |
 |---|---|---|---|
 | `legal_pileStack_iff` | Move | [M] | unfold `apply`; the Board lemmas (Wave 1 done) |
-| `apply_wf` | Move | [H] | 7-way; the cycle must be a deal-stock sub-multiset — **WF was repaired for this** (5 witness-confirmed holes, see FARM_MEMORY) |
+| `apply_wf` | Move | [H] | 7-way; the cycle must be a deal-stock sub-multiset — **WF was repaired for this** (5 witness-confirmed holes, see FARM_MEMORY); now also carries `step_pos` (draw ≥ 1) |
 | `pilePile_roundtrip` | Theorems | [M] | the run carries back; `aboveOf` untouched |
 | ~~`pileStack_stackPile_roundtrip`~~ | Theorems | **done** | detach-then-attach; heights ± |
-| ~~`draw_full_cycle`~~ | Theorems | **done + statement fixed** | `≤` was false — rotate never lands at `length`; repaired to `<` |
+| ~~`draw_full_cycle`~~ | Theorems | **superseded** | the rotate-form died with the physical rework (rotate removed); replaced by `draw_full_pass` below (Wave 9) |
+| `draw_full_pass` | Theorems | [M] | the deal chain from cursor 0: each deal from `k·s` lands `min ((k+1)·s, n)`, the clamp hits `n` at `k = ⌈n/s⌉`, the next deal wraps; period `⌈n/s⌉+1` at any `s ≥ 1` |
 
 ## Wave 3 — symmetry and commutation
 
@@ -133,13 +134,60 @@ New reusables: `attach_inj`, `mapBy_inj`, `Base.flipBase_flipBase`,
 | item | file:line | tag | route |
 |---|---|---|---|
 | `macroStep_engine_play` | Macro:52 | [M] | unfold; shuffles + rotation + commit are engine moves |
-| `solvableEngine_iff_macro` | Macro:62 | [H] | A3's regrouping (draws commute, trailing draws drop) |
-| `drawTo_tableau_outcomes_agree` | Macro:77 | [M] | from `applyDrawTo`'s def + `attach` lemmas |
-| `toEngine_simulates` | Bridge:152 | [H] | play induction; draws collapse into rotations |
-| `toEngine_lifts` | Bridge:161 | **[H]** | the lift — witnesses become accommodations (B4-adjacent) |
-| `engine_iff` | Bridge:167 | [H] | simulation + lift |
+| `solvableEngine_iff_macro` | Macro:62 | [H] | A3's regrouping (draws commute, trailing draws drop); at draw ≥ 2 routes through the Wave-9 jump-soundness |
+| `drawTo_tableau_outcomes_agree` | Macro:77 | [M] | from `applyDrawTo`'s def + `attach` lemmas (the guard selects the same `i` both times) |
+| `toEngine_simulates` | Bridge:152 | [H] | play induction; draws collapse into rotations (model engine ⊆ abstract — the model's pacing is stricter, this direction is unguarded) |
+| `toEngine_lifts` | Bridge:161 | **[H]** | the lift — witnesses become accommodations (B4-adjacent); **draw-1 gated (statement repaired 2026-09-13: the abstract deck moves are free jumps, the model is paced — at draw ≥ 2 the lift fails; the all-steps form needs the `eStep` guard + `equivalent_to`, deferred reading)** |
+| `engine_iff` | Bridge:167 | [H] | simulation + lift (draw-1 gated as the lift) |
+
+## Wave 8 — the draw pacing (any step; the unsat ladder's G4)
+
+The reading is done (deck_bf.py: the characterization validated on
+every reachable state N ≤ 15, all permutations N ≤ 9, 6k random
+sequences at N = 24 both directions, all 56 corpus d3 winning lines;
+steps 2 and 4 likewise — states N = 6/9, all permutations N ≤ 8,
+1k+1k samples at N = 12, zero violations; pace_port_check.py: the
+Lean port ≡ deck_sim, 260 states 0 mismatches).
+Depends only on wave 0's cycle lemmas — independent of waves 2–7.
+
+Statement-repair history (2026-09-13, the wrong-statement protocol):
+`maskPos_mem_iff`/`maskPos_step1`/`realizes_iff_stepsOK` gained the
+cursor invariant `hcur : cursor ≤ length` (past `len + 1` the wrapped
+lane leaks out-of-range positions); `pos_shift` gained `noDupCards`
+(with duplicates the run draws the same value twice while `rBelow`
+counts by `idxOf`); and the divergence the wave arrived with was
+resolved in the machine, not the statement — `Cycle.drawTo` is now
+the deck.rs-literal jump `{ cursor := i + 1 }` (saturating), so
+`cursor_after` is exact with no mod.
+
+| item | file:line | tag | route |
+|---|---|---|---|
+| ~~`laneUp_mem`~~ | Pace | **done** | fuel induction + the `(a + step) % step` shift lemma |
+| `maskPos_mem_iff` | Pace | [M] | mem_append/mem_singleton + laneUp_mem ×2; case cursor = 0 and cursor % step = 0; the residue bookkeeping is Nat.mod_eq_of_lt + omega; `hcur` is the cursor invariant |
+| ~~`maskPos_step1`~~ | Pace | **done** | laneUp_mem + `Nat.mod_one`, cases on the cursor |
+| `pos_shift` | Pace | [M] | induction on pre through run; removeIdx order preservation + the below-count split; `hnd` excludes the duplicate-draw witness |
+| `cursor_after` | Pace | [M] | drawTo i lands i+1 exactly, removeAt i decrements — no wrap anywhere now; pos_shift supplies i |
+| `burial_bound` | Pace | [M] | idxOf injective on d (hnd), so O(w) < O(x) vs O(x) < O(w); the first is the saturation count (the interval holds exactly O(x) − O(w) − 1 cards besides w), the second vacuous both sides |
+| `realizes_iff_stepsOK` | Pace | **[H]** | prefix-walk induction with maskPos_mem_iff + pos_shift + cursor_after + burial_bound; ← induction, each stepOK disjunct via the converses (a leading-lane claim after a max-draw forces p = last, so the max disjunct catches it). `hcur` is the initial state's invariant, maintained by every drawCard. The SAT ladder's rung-3 soundness reduces to this row |
 
 **Deliberately not in the farm** (need reading, not proving):
 the `bm` XOR algebra (state.rs), C12 (macro_formalization §6.5b),
-B3 (no_pile §6), draw-3 pacing (last_draw_rules.md), the 61-bit
-encode packing.
+B3 (no_pile §6), the 61-bit encode packing, and the all-steps
+bridge (the `eStep` pacing guard + the `equivalent_to`
+transposition identity replacing `eRun_offset` — see
+`toEngine_lifts`'s note). (Draw-3 pacing was
+here until 2026-09-13: the reading is done — wave 8.)
+
+## Wave 9 — the deck integration (jump ≡ deal-then-play)
+
+The physical rework's payoff statements: the guarded Draw
+commitments ARE the physical game.  Depends on wave 8 (the
+maskPos ↔ deal-reachability correspondence is its content).
+`reachablePos_step1` is done and reusable — the draw-1 degeneration
+at the game level (C9's premise, now a theorem), the gate the wave-7
+repairs lean on.
+
+| item | file:line | tag | route |
+|---|---|---|---|
+| `applyDrawTo_eq_dealPlay` | Theorems | **[H]** | → the guard gives the deal count (maskPos ↔ deal-iteration — wave 8's chain), then `apply_deckPile_iff`'s shape; ← contrapositive by the same correspondence.  Draw-1 instance: `reachablePos_step1` + every jump is k deals |
+| `applyDrawStackTo_eq_dealPlay` | Theorems | **[H]** | as above through `apply_deckStack_iff` |

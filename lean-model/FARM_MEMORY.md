@@ -427,3 +427,99 @@ Append-only shared memory for all farm agents. Protocol:
   now be provable (guards translate via cardInv_card + left_inv);
   Move.relabel keeps probing FORWARD (r.onBase) — the two directions
   cancel: cardInv ∘ onBase = id.
+
+## ERGONOMICS REFRACTORING LANDED (2026-09-13)
+
+- **TIER 1 — the move inversions** (Move.lean, after legal_pileStack_iff):
+  `apply_draw_iff`, `apply_reveal_iff`, `apply_deckPile_iff`,
+  `apply_deckStack_iff`, `apply_pileStack_iff`, `apply_stackPile_iff`,
+  `apply_pilePile_iff` — one shape lemma per move: guards as flat
+  conjunctions + the successor literal. Future consumers open with
+  `rw [apply_X_iff] at h; obtain ⟨...⟩` instead of the case bash.
+  BACKWARD-pattern that works: `rw [hst]; simp only [State.apply,
+  applyXxx, <guard-eqs>]; split · rfl · rename_i hcond; simp
+  [<guard-facts>] at hcond` (shape-agnostic — no if_pos conjunct
+  guessing; the ite's condition may surface pre-normalized as True).
+  FORWARD-pattern: per discriminant `cases h : e` + `rw [h] at h`
+  (+ `simp at h` to iota past arm-binders when the pattern binds),
+  final `simp at h` decomposes the ite-vs-some into `guards ∧ (arm =
+  st')`.
+- **NEW GOAL-SUBSTITUTION RULE (refined)**: `cases h : e` abstracts
+  `e` under binders too, but ONLY terms without locally-bound
+  variables — in an iff-RHS with `∃ r a bd, …`, a conjunct scrutinee
+  free of bound vars gets substituted (witness `rfl`), one mentioning
+  a bound var does not (witness the original hypothesis). Check the
+  slot's expected type before writing witnesses.
+- **TIER 2 (as lemmas, not defs)**: `heights_bump_self/_ne`,
+  `heights_drop_self/_ne`, `depths_step_self/_ne` — @[simp], firing
+  on the exact with-update literal shapes. DECISION: no
+  `bumpHeight`-style defs — changing apply's bodies would churn every
+  landed proof's literal matches for no extra power; the lemmas give
+  the canonical rewrite targets.
+- **TIER 3 — WF's named conjuncts** (State.lean): `depths_le`,
+  `board_edges`, `vis_off_cycle`, `found_off_cycle`, `heights_le`,
+  `cursor_le`, `stock_wf` (bundles noDup + membership); `WF` is now
+  the 8-conjunct chain. `intro`/`show` whnf through the defs
+  transparently — existing proofs needed only the slot-count fix and
+  the stock-bullet merge; `realizable_of_wf`'s `⟨_,_,hmatch,_⟩`
+  right-spine absorption survived unchanged (board_edges is still
+  the third conjunct).
+- **INCIDENT REPORT**: a PowerShell splice truncated Move.lean (Measure
+  -Line undercounted; the tail past `piles_stock_disj` was lost from
+  the working tree) — recovered from `git show HEAD` (UTF-8 console
+  encoding required: `[Console]::OutputEncoding =
+  [Text.Encoding]::UTF8` FIRST) + in-context text. LESSON: never slice
+  files by measured line counts; use marker-based splits, and
+  `[System.IO.File]::ReadAllText/WriteAllText` for content-preserving
+  edits. Verify `git diff --stat` matches expectations after scripted
+  file surgery.
+
+## Pace.lean (wave 8, the draw pacing) — paid-for facts
+
+- **Machine divergence, resolved**: `Cycle.drawTo` wraps the cursor
+  `mod length` (rotate can never reach `cursor = len`), while
+  deck.rs's `draw` saturates there. The two agree on the MASK
+  everywhere: at a saturated cursor the leading lane is empty (its
+  positions must be >= cursor-1 = len-1), so both machines reduce to
+  top-lane UNION last; and a last-position draw is a max-remaining
+  draw, whose successor never uses the leading lane. Consequence:
+  `cursor_after` is stated with `% length` (the wrap case is the
+  max-draw) - do NOT repair it to the unwrapped form.
+- **Membership, not list equality**: `maskPos` concatenates
+  lane1 ++ [last] ++ lane2, so the list is NOT sorted and
+  `maskPos c 1 _ = List.range _` is FALSE as equality. The step-1
+  degeneration is stated by membership. Check any statement about
+  `maskPos` in the same form.
+- **No `Monad List` in core** (the syntax card's blind spot hit):
+  do-notation over List fails with `expected type is not a monad
+  application`. Use `flatMap` chains:
+  `(List.range n).flatMap fun n => (List.range (n+2)).flatMap fun c => ...`.
+- **#eval of a def in a sorry-carrying module is fine** when the def
+  itself is axiom-clean - check with `#print axioms Pace.maskPos`
+  (=> [propext, Quot.sound]) before trusting an evaluation abort.
+- **Port check (paid)**: `python/pace_port_check.py` regenerates a
+  #eval grid (n <= 9, cursor <= n+1 including saturated, step 1..4)
+  and diffs Lean's `maskPos` against deck_sim's machine:
+  260 states, 0 mismatches. Rerun after any edit to `maskPos`.
+
+## Pace.lean follow-up (2026-09-13) — the divergence resolved in the
+## machine, not the statement
+
+The earlier entry's advice (""do NOT repair cursor_after to the
+unwrapped form"") is OBSOLETE. The wrap lived in the OLD
+`Cycle.drawTo` (rotate-based, cursor mod length); it was replaced
+by the deck.rs-literal jump `{ cy with cursor := i + 1 }` — the
+cursor now saturates at `length` exactly like deck.rs's
+`set_offset`, the mask agrees everywhere on the invariant domain,
+and `cursor_after` is EXACT with no mod:
+`c''.cursor = c.cards.idxOf w - rBelow c.cards pre w`.
+`dealOnce` (the `offset_once` port: clamp at the pass end, wrap
+from the end) completes the machine.
+
+The statement repairs that came with it (recorded in FARM.md wave 8):
+`hcur : cursor <= length` on the three mask-reading theorems (past
+`len + 1` the wrapped lane leaks positions — the port-check grid's
+`n + 1` upper edge is exactly the last leak-free cursor), and
+`noDupCards` on `pos_shift` (a duplicated card draws twice via
+`posOf` finding the second copy while `rBelow` counts by
+`idxOf` — over-counting the shift).

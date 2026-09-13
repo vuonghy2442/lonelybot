@@ -315,27 +315,33 @@ def sample_check(n=24, k=2000, step=STEP, seed=1234):
 
 
 def main():
-    mode = sys.argv[1] if len(sys.argv) > 1 else "states"
+    argv = list(sys.argv[1:])
+    step = STEP
+    if "--step" in argv:
+        i = argv.index("--step")
+        step = int(argv[i + 1])
+        del argv[i:i + 2]
+    mode = argv[0] if argv else "states"
     if mode == "states":
-        for n in [int(x) for x in sys.argv[2:]] or [6, 9, 12]:
+        for n in [int(x) for x in argv[1:]] or [6, 9, 12]:
             t0 = time.perf_counter()
-            states, mism = bfs_states(n)
+            states, mism = bfs_states(n, step)
             t = time.perf_counter() - t0
-            print(f"N={n}: {len(states)} reachable states in {t:.1f}s, "
-                  f"{len(mism)} predicate mismatches")
+            print(f"step={step} N={n}: {len(states)} reachable states in "
+                  f"{t:.1f}s, {len(mism)} predicate mismatches")
             for s, m, p in mism[:5]:
                 print(f"    state rem={s[0]} c={s[1]}: mask={m} pred={p}")
-            forced = pairwise_forced(n, states)
+            forced = pairwise_forced(n, states, step)
             print(f"    pairwise-forced (a before b): {forced}")
     elif mode == "seqs":
-        for n in [int(x) for x in sys.argv[2:]] or [6, 9]:
+        for n in [int(x) for x in argv[1:]] or [6, 9]:
             t0 = time.perf_counter()
-            seqs_check(n)
+            seqs_check(n, step)
             print(f"    [{time.perf_counter() - t0:.1f}s]")
     elif mode == "sample":
-        n = int(sys.argv[2]) if len(sys.argv) > 2 else 24
-        k = int(sys.argv[3]) if len(sys.argv) > 3 else 2000
-        sample_check(n, k)
+        n = int(argv[1]) if len(argv) > 1 else 24
+        k = int(argv[2]) if len(argv) > 2 else 2000
+        sample_check(n, k, step)
     elif mode == "wins":
         wins_check()
 

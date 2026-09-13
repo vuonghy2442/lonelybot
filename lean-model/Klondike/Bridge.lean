@@ -5,13 +5,15 @@ import Klondike.Realizability
 
 The engine's side of the ledger: the state forgets where visible
 cards sit (the visible set + depths + heights + deck order/offset),
-and the deck moves are rotate-then-play (no raw draw — the offset
-advances through them).  Legality is *witness-existential over
-realizing boards* — the spec the engine's mask algebra implements.
-At draw-1 the offset constrains nothing (every card is drawable by
-rotating; the worry-back is unlimited) — it matters only for the
-draw-3 pacing rules and the engine's transposition identity, which is
-why the sweep/canonicalization is sound there.
+and the deck moves are jump-then-play (no raw draw — the offset
+advances through them; the model-side counterpart is the guarded jump
+`State.applyDrawTo` and the jump-soundness theorems).  Legality is
+*witness-existential over realizing boards* — the spec the engine's
+mask algebra implements.  At draw-1 the offset constrains nothing
+(`reachablePos_step1`: every remaining card is drawable) — it
+matters at draw ≥ 2, the pacing the accessible-set guard carries,
+and for the engine's transposition identity, which is why the
+sweep/canonicalization is sound there.
 -/
 
 /-- The engine's abstract state: the model's state with the matching
@@ -220,15 +222,28 @@ theorem toEngine_simulates {st st' : State} {play : List Move}
 to a model engine play.  Each abstract move's witness board may
 differ from the model's current arrangement, and the bridging plays
 are exactly the accommodations (stack↔pile shuffling) — the
-compression/reshape arguments.  TODO. -/
+compression/reshape arguments.
+
+Statement repair (2026-09-13): gated to draw-1.  The model's engine
+game is physically paced (`dealOnce`/`prev`); the abstract deck
+moves are still free jumps — at draw ≥ 2 the abstract game can jump
+to positions the physical deal cannot reach, and the lift fails.
+The all-steps generalization needs the `eStep` pacing guard (the
+order/offset `maskPos`) plus the offset-rewrite lemma's replacement
+— deck.rs's `equivalent_to` (accessible-set equality), not raw offset
+irrelevance.  That is reading work, not farm work (the deferred
+list).  TODO: the reshaping argument. -/
 theorem toEngine_lifts {st : State} {eplay : List EMove} {w : EState} (hwf : st.WF)
+    (hstep : st.drawStep = 1)
     (hrun : eRun (toEngine st) eplay w) (hwin : w.isWin = true) :
     st.solvableEngine := sorry
 
 /-- **The bridge theorem**: the model's engine game and the abstract
 game agree on solvability — `toEngine` is a solvability-isomorphism.
-Combines the simulation with the lift.  TODO. -/
-theorem engine_iff {st : State} (hwf : st.WF) :
+Combines the simulation with the lift.  Draw-1 gated as the lift
+(the all-steps form awaits the `eStep` pacing guard — see
+`toEngine_lifts`'s note).  TODO. -/
+theorem engine_iff {st : State} (hwf : st.WF) (hstep : st.drawStep = 1) :
     st.solvableEngine ↔ (toEngine st).esolvable := sorry
 
 /-! ## C2, EMove level

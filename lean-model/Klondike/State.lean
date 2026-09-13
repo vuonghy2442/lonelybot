@@ -87,30 +87,76 @@ def canPlace (st : State) (c : Card) (b : Base) : Bool :=
   | Sum.inl _ => decide (c.rank = Rank.king)
   | Sum.inr d => st.isVis d && canSitOn c d
 
-/-- State well-formedness (stated; components TODO(proof) as
-constructors/maintenance lemmas): depths within slices; every visible
-edge legal (on the card it was dealt directly onto — the initial deal
-stacks by fiat, and `reveal` keeps the cover sitting on its
-freshly-revealed card — or on a fitting visible card; kings or
-fully-revealed bottoms on anchors); visible and foundation cards not
-in the stock; heights within range; the stock cycle is a sub-list of
-the deal's stock. -/
-def WF (st : State) : Prop :=
-  st.deal.WF ∧
-  (∀ a, st.depths a ≤ (st.deal.piles a).length) ∧
-  (∀ b c, st.board.topOf b = some c →
+/-- Depths within the deal slices (the reveal boundary never runs past
+the deal). -/
+def depths_le (st : State) : Prop :=
+  ∀ a, st.depths a ≤ (st.deal.piles a).length
+
+/-- The visible matching's edge legality: the `topOf`/`bottomOf` round
+trip, and every edge sits on the card it was dealt directly onto (the
+initial deal stacks by fiat; `reveal` keeps the cover sitting on its
+freshly-revealed card) or on a fitting visible card; kings or
+fully-revealed bottoms on anchors. -/
+def board_edges (st : State) : Prop :=
+  ∀ b c, st.board.topOf b = some c →
     st.board.bottomOf c = some b ∧
     (match b with
      | Sum.inl a => c.rank = Rank.king ∨ (st.deal.piles a).head? = some c
      | Sum.inr d =>
        (∃ a t rest, st.deal.piles a = t ++ d :: c :: rest) ∨
-       ((st.board.bottomOf d).isSome = true ∧ canSitOn c d = true))) ∧
-  (∀ c, st.isVis c = true → st.stock.posOf c = none) ∧
-  (∀ c, st.onFound c = true → st.stock.posOf c = none) ∧
-  (∀ s, st.heights s ≤ 13) ∧
-  st.stock.cursor ≤ st.stock.cards.length ∧
-  noDupCards st.stock.cards ∧
-  ∀ c ∈ st.stock.cards, c ∈ st.deal.stock
+       ((st.board.bottomOf d).isSome = true ∧ canSitOn c d = true))
+
+/-- Visible cards are not in the stock cycle. -/
+def vis_off_cycle (st : State) : Prop :=
+  ∀ c, st.isVis c = true → st.stock.posOf c = none
+
+/-- Foundation cards are not in the stock cycle. -/
+def found_off_cycle (st : State) : Prop :=
+  ∀ c, st.onFound c = true → st.stock.posOf c = none
+
+/-- Foundation heights within range. -/
+def heights_le (st : State) : Prop := ∀ s, st.heights s ≤ 13
+
+/-- The cursor within the cycle (the pass end included). -/
+def cursor_le (st : State) : Prop := st.stock.cursor ≤ st.stock.cards.length
+
+/-- The draw step is positive (the engine's `NonZeroU8`): at 0 the
+deal never advances and the accessible set is undefined. -/
+def step_pos (st : State) : Prop := 0 < st.drawStep
+
+/-- The stock cycle: duplicate-free, and a sub-list of the deal's
+stock (the state's cycle only ever loses cards from the deal's). -/
+def stock_wf (st : State) : Prop :=
+  noDupCards st.stock.cards ∧ ∀ c ∈ st.stock.cards, c ∈ st.deal.stock
+
+/-- State well-formedness — the invariant the moves preserve (`apply_wf`)
+and the deal's exhibit satisfies (`initial_wf`): slice-bounded depths,
+legal board edges, off-cycle visible/foundation cards, bounded
+heights and cursor, a positive draw step, and a clean stock. -/
+def WF (st : State) : Prop :=
+  st.deal.WF ∧ st.depths_le ∧ st.board_edges ∧ st.vis_off_cycle ∧
+  st.found_off_cycle ∧ st.heights_le ∧ st.cursor_le ∧ st.step_pos ∧
+  st.stock_wf
+
+/-! ### WF accessors — the conjunct positions, written once -/
+
+theorem WF.deal_wf {st : State} (h : st.WF) : st.deal.WF := h.1
+
+theorem WF.depths_le {st : State} (h : st.WF) : st.depths_le := h.2.1
+
+theorem WF.board_edges {st : State} (h : st.WF) : st.board_edges := h.2.2.1
+
+theorem WF.vis_off_cycle {st : State} (h : st.WF) : st.vis_off_cycle := h.2.2.2.1
+
+theorem WF.found_off_cycle {st : State} (h : st.WF) : st.found_off_cycle := h.2.2.2.2.1
+
+theorem WF.heights_le {st : State} (h : st.WF) : st.heights_le := h.2.2.2.2.2.1
+
+theorem WF.cursor_le {st : State} (h : st.WF) : st.cursor_le := h.2.2.2.2.2.2.1
+
+theorem WF.step_pos {st : State} (h : st.WF) : st.step_pos := h.2.2.2.2.2.2.2.1
+
+theorem WF.stock_wf {st : State} (h : st.WF) : st.stock_wf := h.2.2.2.2.2.2.2.2
 
 /-- Conjugate the whole state by the twin-swap relabeling (T's action
 on every component). -/

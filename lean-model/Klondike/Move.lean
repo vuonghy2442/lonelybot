@@ -1,4 +1,4 @@
-import Klondike.State
+import Klondike.Pace
 
 /-!
 # Moves: the one semantic function
@@ -11,12 +11,19 @@ move subset, an equivalence — not two formalizations and a
 correspondence.
 
 `apply : Move → State → Option State` is the single source of truth;
-`legal`, and everything downstream, derives from it.
+`legal`, and everything downstream, derives from it.  The stock moves
+are the physical pair — deal (`draw`, clamped at the pass end and
+wrapping from it, deck.rs's `offset_once`) and play the waste top
+(`deckPile`/`deckStack`) — correct at every draw step.  The
+Draw-commitment jump (`applyDrawTo`) is the derived macro, guarded by
+the accessible set (Pace's K+ mask).
 -/
 
 /-- A move in the physical game. -/
 inductive Move : Type where
-  /-- Advance the stock cursor by `drawStep` (worry-back on wrap). -/
+  /-- Deal `drawStep` cards to the waste: clamped at the pass end (the
+  partial final deal passes the last card), wrapping from the end to a
+  fresh pass. -/
   | draw
   /-- Reveal the hidden card under the visible card `c`. -/
   | reveal (c : Card)
@@ -56,8 +63,9 @@ def Move.flipMove : Move → Move
 
 namespace State
 
+/-- One deal: the physical stock advance (deck.rs `offset_once`). -/
 def applyDraw (st : State) : Option State :=
-  some { st with stock := st.stock.rotate st.drawStep }
+  some { st with stock := st.stock.dealOnce st.drawStep }
 
 def applyReveal (st : State) (c : Card) : Option State :=
   match st.board.topOf (Sum.inr c) with
@@ -170,17 +178,62 @@ def solvableEngine (st : State) : Prop :=
   ∃ play : List Move, (∀ m ∈ play, m.isEngine = true) ∧
     ∃ st', st.run play = some st' ∧ st'.isWin = true
 
-/-- The macro-style Draw-commitment: rotate until `c` is the waste top,
-then place it at `b` (the engine's `DeckPile` before the sweep
-optimization; `drawTo` handles the worry-back wrap). -/
+/-- The reachable position of `c`: its stock position, when the
+physical deal can bring `c` to the waste top — the K+ accessible-set
+guard (`Pace.maskPos`; `0 < drawStep` per WF's `step_pos`).  The Draw
+commitments jump there; at draw-1 it is always the plain position
+(`reachablePos_step1`, the free-set degeneration). -/
+def reachablePos (st : State) (c : Card) : Option Nat :=
+  if hstep : 0 < st.drawStep then
+    match st.stock.posOf c with
+    | none => none
+    | some i => if i ∈ Pace.maskPos st.stock st.drawStep hstep then some i else none
+  else none
+
+/-- The macro-style `Draw(c)` commitment — the derived jump: deal
+until `c` is the waste top, then place it at `b` (the engine's
+`DeckPile` before the sweep optimization).  The jump is legal exactly
+when `c` is reachable (`reachablePos`, the K+ mask) — the pacing
+guard that makes the commitment engine-faithful at every draw step.
+Last-position draws saturate the cursor at the pass end. -/
 def applyDrawTo (st : State) (c : Card) (b : Base) : Option State :=
-  match st.stock.posOf c with
+  match st.reachablePos c with
   | none => none
   | some i =>
     match st.board.attach b c with
     | none => none
     | some bd =>
       some { st with board := bd, stock := (st.stock.drawTo i).removeAt i }
+
+/-- The safe-stack `Draw(c)` commitment — the derived jump with the
+reachable-position guard (as `applyDrawTo`): deal until `c` is the
+waste top, then stack it on the foundation. -/
+def applyDrawStackTo (st : State) (c : Card) : Option State :=
+  match st.reachablePos c with
+  | none => none
+  | some i =>
+    if c.rank.toIdx = st.heights c.suit then
+      some { st with
+        stock := (st.stock.drawTo i).removeAt i,
+        heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
+    else none
+
+/-- The draw-1 degeneration, game level: every in-stock card is
+reachable — the guard is trivial and the Draw commitment is the plain
+jump.  C9's premise ("jumping the offset never forfeits a card"),
+definitional at step 1; the deal-side content is `Pace.maskPos_step1`. -/
+theorem reachablePos_step1 {st : State} (hwf : st.WF) (hstep : st.drawStep = 1)
+    (c : Card) : st.reachablePos c = st.stock.posOf c := by
+  have hcur := hwf.cursor_le
+  simp only [reachablePos, hstep]
+  cases hp : st.stock.posOf c with
+  | none => rfl
+  | some i =>
+    have hlt : i < st.stock.cards.length := Cycle.posOf_lt hp
+    have hmem : i ∈ Pace.maskPos st.stock 1 (by omega : (0 : Nat) < 1) :=
+      (Pace.maskPos_step1 st.stock (by omega) hcur i).mpr hlt
+    rw [dif_pos (by omega : (0 : Nat) < 1)]
+    exact if_pos hmem
 
 end State
 
@@ -213,6 +266,262 @@ theorem legal_pileStack_iff {st : State} {c : Card} :
             else none).isSome = true
         rw [if_pos hr]
         rfl
+
+
+
+/-! ## The move inversions — one shape lemma per move
+
+The unpacking ritual (`simp only [State.apply, applyXxx]`, per-
+discriminant `cases h : e` + `rw [h] at h`, full `simp at h` to
+decompose the ite-vs-some) paid once, here, for every consumer:
+future proofs open with `rw [apply_X_iff] at h` and destructure the
+conjuncts — no more case bash per theorem.  The guard conjuncts are
+chosen decidable-flat (equalities and `= true`s) so `obtain` splits
+them in one step. -/
+
+/-- `draw` always succeeds: one deal. -/
+theorem apply_draw_iff {st st' : State} :
+    st.apply Move.draw = some st' ↔
+      st' = { st with stock := st.stock.dealOnce st.drawStep } := by
+  constructor
+  · intro h
+    exact (Option.some.inj h).symm
+  · intro h
+    rw [h]
+    rfl
+
+/-- `reveal`'s shape: the trigger card's top must be free, and the
+reveal chain (bottom is a hidden card, that card is a pile's boundary,
+the attach succeeds) delivers the boundary as the new board top with
+the pile's depth stepped down. -/
+theorem apply_reveal_iff {st st' : State} {c : Card} :
+    st.apply (Move.reveal c) = some st' ↔
+      (st.board.topOf (Sum.inr c) = none ∧
+       ∃ r a bd, st.board.bottomOf c = some (Sum.inr r) ∧
+         st.pileOfTopHidden r = some a ∧
+         st.board.attach (st.hiddenBase a) r = some bd ∧
+         st' = { st with
+           board := bd,
+           depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }) := by
+  constructor
+  · intro h
+    simp only [State.apply, State.applyReveal] at h
+    cases ht : st.board.topOf (Sum.inr c) with
+    | some _ => rw [ht] at h; exact absurd h (by simp)
+    | none =>
+      cases hb : st.board.bottomOf c with
+      | none => rw [ht, hb] at h; exact absurd h (by simp)
+      | some b =>
+        cases b with
+        | inl _ => rw [ht, hb] at h; exact absurd h (by simp)
+        | inr r =>
+          rw [ht, hb] at h
+          simp at h
+          cases hp : st.pileOfTopHidden r with
+          | none => rw [hp] at h; exact absurd h (by simp)
+          | some a =>
+            rw [hp] at h
+            simp at h
+            cases ha : st.board.attach (st.hiddenBase a) r with
+            | none => rw [ha] at h; exact absurd h (by simp)
+            | some bd =>
+              rw [ha] at h
+              have h' : some { st with
+                  board := bd,
+                  depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }
+                  = some st' := h
+              rw [Option.some.injEq] at h'
+              exact ⟨rfl, r, a, bd, rfl, hp, ha, h'.symm⟩
+  · intro ⟨ht, r, a, bd, hb, hp, ha, hst⟩
+    rw [hst]
+    simp only [State.apply, State.applyReveal, ht, hb, hp, ha]
+
+/-- `deckPile`'s shape: the waste top is the played card, the base is
+free and fitting, and the spliced-out stock. -/
+theorem apply_deckPile_iff {st st' : State} {c : Card} {b : Base} :
+    st.apply (Move.deckPile c b) = some st' ↔
+      (st.stock.prev = some c ∧ st.canPlace c b = true ∧
+       ∃ bd, st.board.attach b c = some bd ∧
+         st' = { st with
+                 board := bd,
+                 stock := st.stock.removeAt (st.stock.cursor - 1) }) := by
+  constructor
+  · intro h
+    simp only [State.apply, State.applyDeckPile] at h
+    cases hp : st.stock.prev with
+    | none => rw [hp] at h; exact absurd h (by simp)
+    | some c' =>
+      rw [hp] at h
+      cases hatt : st.board.attach b c with
+      | none => rw [hatt] at h; exact absurd h (by simp)
+      | some bd =>
+        rw [hatt] at h
+        simp at h
+        obtain ⟨⟨h1, h2⟩, h3⟩ := h
+        exact ⟨congrArg some h1, h2, bd, rfl, h3.symm⟩
+  · intro ⟨hp, hcp, bd, hatt, hst⟩
+    rw [hst]
+    simp only [State.apply, State.applyDeckPile, hp, hatt]
+    split
+    · rfl
+    · rename_i hcond
+      simp [hcp] at hcond
+
+/-- `deckStack`'s shape: the waste top is the next foundation card. -/
+theorem apply_deckStack_iff {st st' : State} {c : Card} :
+    st.apply (Move.deckStack c) = some st' ↔
+      (st.stock.prev = some c ∧ c.rank.toIdx = st.heights c.suit ∧
+       st' = { st with
+         stock := st.stock.removeAt (st.stock.cursor - 1),
+         heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }) := by
+  constructor
+  · intro h
+    simp only [State.apply, State.applyDeckStack] at h
+    cases hp : st.stock.prev with
+    | none => rw [hp] at h; exact absurd h (by simp)
+    | some c' =>
+      rw [hp] at h
+      simp at h
+      obtain ⟨⟨h1, h2⟩, h3⟩ := h
+      exact ⟨congrArg some h1, h2, h3.symm⟩
+  · intro ⟨hp, hrk, hst⟩
+    rw [hst]
+    simp only [State.apply, State.applyDeckStack, hp]
+    split
+    · rfl
+    · rename_i hcond
+      simp [hrk] at hcond
+
+/-- `pileStack`'s shape (the successor form of `legal_pileStack_iff`). -/
+theorem apply_pileStack_iff {st st' : State} {c : Card} :
+    st.apply (Move.pileStack c) = some st' ↔
+      (st.board.topOf (Sum.inr c) = none ∧
+       ∃ b, st.board.bottomOf c = some b ∧
+         c.rank.toIdx = st.heights c.suit ∧
+         st' = { st with
+           board := st.board.detach b,
+           heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }) := by
+  constructor
+  · intro h
+    simp only [State.apply, State.applyPileStack] at h
+    cases ht : st.board.topOf (Sum.inr c) with
+    | some _ => rw [ht] at h; exact absurd h (by simp)
+    | none =>
+      cases hb : st.board.bottomOf c with
+      | none => rw [ht, hb] at h; exact absurd h (by simp)
+      | some b =>
+        rw [ht, hb] at h
+        simp at h
+        obtain ⟨h1, h2⟩ := h
+        exact ⟨rfl, b, rfl, h1, h2.symm⟩
+  · intro ⟨ht, b, hb, hrk, hst⟩
+    rw [hst]
+    simp only [State.apply, State.applyPileStack, ht, hb]
+    split
+    · rfl
+    · rename_i hcond
+      simp [hrk] at hcond
+
+/-- `stackPile`'s shape: the un-stack guard (`c` is exactly the card
+the foundation expects back) plus the base conditions. -/
+theorem apply_stackPile_iff {st st' : State} {c : Card} {b : Base} :
+    st.apply (Move.stackPile c b) = some st' ↔
+      (c.rank.toIdx + 1 = st.heights c.suit ∧ st.canPlace c b = true ∧
+       ∃ bd, st.board.attach b c = some bd ∧
+         st' = { st with
+           board := bd,
+           heights := fun s => if s = c.suit then st.heights s - 1 else st.heights s }) := by
+  constructor
+  · intro h
+    simp only [State.apply, State.applyStackPile] at h
+    cases hatt : st.board.attach b c with
+    | none => rw [hatt] at h; exact absurd h (by simp)
+    | some bd =>
+      rw [hatt] at h
+      simp at h
+      obtain ⟨⟨h1, h2⟩, h3⟩ := h
+      exact ⟨h1, h2, bd, rfl, h3.symm⟩
+  · intro ⟨h1, h2, bd, hatt, hst⟩
+    rw [hst]
+    simp only [State.apply, State.applyStackPile, hatt]
+    split
+    · rfl
+    · rename_i hcond
+      simp [h1, h2] at hcond
+
+/-- `pilePile`'s shape: the run-rooted move to a different, landable
+base. -/
+theorem apply_pilePile_iff {st st' : State} {c : Card} {b : Base} :
+    st.apply (Move.pilePile c b) = some st' ↔
+      (∃ b₀, st.board.bottomOf c = some b₀ ∧
+         b₀ ≠ b ∧ st.canMoveRun c b = true ∧
+         ∃ bd, (st.board.detach b₀).attach b c = some bd ∧
+           st' = { st with board := bd }) := by
+  constructor
+  · intro h
+    simp only [State.apply, State.applyPilePile] at h
+    cases hb : st.board.bottomOf c with
+    | none => rw [hb] at h; exact absurd h (by simp)
+    | some b₀ =>
+      rw [hb] at h
+      simp at h
+      cases hatt : (st.board.detach b₀).attach b c with
+      | none => rw [hatt] at h; exact absurd h (by simp)
+      | some bd =>
+        rw [hatt] at h
+        simp at h
+        obtain ⟨⟨h1, h2⟩, h3⟩ := h
+        exact ⟨b₀, rfl, h1, h2, bd, hatt, h3.symm⟩
+  · intro ⟨b₀, hb, h1, h2, bd, hatt, hst⟩
+    rw [hst]
+    simp only [State.apply, State.applyPilePile, hb, hatt]
+    split
+    · rfl
+    · rename_i hcond
+      simp [h1, h2] at hcond
+
+/-! ## Update arithmetic — the heights/depths step lemmas
+
+The apply-successors carry `heights := fun s => if s = c.suit then …`
+updates; symbolic ite conditions do not whnf, so every consumer paid
+`rw [if_pos rfl]` / `if_neg` dances.  These fire on the exact literal
+shapes (post-unfold, pre-simplification). -/
+
+@[simp] theorem heights_bump_self {st : State} {c : Card} :
+    ({ st with heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
+      : State).heights c.suit = st.heights c.suit + 1 := by
+  show (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit) = _
+  rw [if_pos rfl]
+
+@[simp] theorem heights_bump_ne {st : State} {c : Card} {s : Suit} (h : s ≠ c.suit) :
+    ({ st with heights := fun s' => if s' = c.suit then st.heights s' + 1 else st.heights s' }
+      : State).heights s = st.heights s := by
+  show (if s = c.suit then st.heights s + 1 else st.heights s) = st.heights s
+  rw [if_neg h]
+
+@[simp] theorem heights_drop_self {st : State} {c : Card} :
+    ({ st with heights := fun s => if s = c.suit then st.heights s - 1 else st.heights s }
+      : State).heights c.suit = st.heights c.suit - 1 := by
+  show (if c.suit = c.suit then st.heights c.suit - 1 else st.heights c.suit) = _
+  rw [if_pos rfl]
+
+@[simp] theorem heights_drop_ne {st : State} {c : Card} {s : Suit} (h : s ≠ c.suit) :
+    ({ st with heights := fun s' => if s' = c.suit then st.heights s' - 1 else st.heights s' }
+      : State).heights s = st.heights s := by
+  show (if s = c.suit then st.heights s - 1 else st.heights s) = st.heights s
+  rw [if_neg h]
+
+@[simp] theorem depths_step_self {st : State} {a : Anchor} :
+    ({ st with depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }
+      : State).depths a = st.depths a - 1 := by
+  show (if a = a then st.depths a - 1 else st.depths a) = _
+  rw [if_pos rfl]
+
+@[simp] theorem depths_step_ne {st : State} {a a' : Anchor} (h : a' ≠ a) :
+    ({ st with depths := fun a'' => if a'' = a then st.depths a - 1 else st.depths a'' }
+      : State).depths a' = st.depths a' := by
+  show (if a' = a then st.depths a - 1 else st.depths a') = st.depths a'
+  rw [if_neg h]
 
 /-! ## Maintenance helpers for `apply_wf`
 
@@ -373,6 +682,151 @@ theorem head?_of_take_single {α : Type} {l : List α} {n : Nat} {x : α}
       rw [List.cons.injEq] at h
       obtain ⟨rfl, -⟩ := h
       rfl
+
+/-- Splicing never lengthens. -/
+theorem removeIdx_length_le {α : Type} : ∀ (l : List α) (i : Nat),
+    (Cycle.removeIdx l i).length ≤ l.length := by
+  intro l
+  induction l with
+  | nil => intro i; simp
+  | cons a t ih =>
+    intro i
+    cases i with
+    | zero => simp
+    | succ n =>
+      simp only [Cycle.removeIdx, List.length_cons]
+      have := ih n
+      omega
+
+/-- Splicing out-of-range is the identity. -/
+theorem removeIdx_of_length_le {α : Type} : ∀ (l : List α) (i : Nat),
+    l.length ≤ i → Cycle.removeIdx l i = l := by
+  intro l
+  induction l with
+  | nil => intro i _; rfl
+  | cons a t ih =>
+    intro i hi
+    cases i with
+    | zero => simp at hi
+    | succ n =>
+      simp only [Cycle.removeIdx, List.length_cons] at hi ⊢
+      rw [ih n (by omega)]
+
+/-- Splicing preserves index-wise distinctness. -/
+theorem noDupCards_removeIdx : ∀ (l : List Card) (i : Nat),
+    noDupCards l → noDupCards (Cycle.removeIdx l i) := by
+  intro l
+  induction l with
+  | nil => intro i _ j j' hj _ _; simp at hj
+  | cons a t ih =>
+    intro i hnd j j' hj hj' heq
+    have h1 := Cycle.getElem?_removeIdx (a :: t) i j
+    have h2 := Cycle.getElem?_removeIdx (a :: t) i j'
+    rw [h1, h2] at heq
+    by_cases hic : i < (a :: t).length
+    · have hbl : (Cycle.removeIdx (a :: t) i).length + 1 = (a :: t).length :=
+        Cycle.removeIdx_length _ i hic
+      by_cases hc1 : j < i
+      · by_cases hc2 : j' < i
+        · rw [if_pos hc1, if_pos hc2] at heq
+          have := hnd j j' (by omega) (by omega) heq
+          omega
+        · rw [if_pos hc1, if_neg hc2] at heq
+          have := hnd j (j' + 1) (by omega) (by omega) heq
+          omega
+      · by_cases hc2 : j' < i
+        · rw [if_neg hc1, if_pos hc2] at heq
+          have := hnd (j + 1) j' (by omega) (by omega) heq
+          omega
+        · rw [if_neg hc1, if_neg hc2] at heq
+          have := hnd (j + 1) (j' + 1) (by omega) (by omega) heq
+          omega
+    · have hle : Cycle.removeIdx (a :: t) i = (a :: t) :=
+        removeIdx_of_length_le _ i (by omega)
+      rw [hle] at hj hj'
+      by_cases hc1 : j < i
+      · by_cases hc2 : j' < i
+        · rw [if_pos hc1, if_pos hc2] at heq
+          have := hnd j j' (by omega) (by omega) heq
+          omega
+        · rw [if_pos hc1, if_neg hc2] at heq
+          have := hnd j (j' + 1) (by omega) (by omega) heq
+          omega
+      · by_cases hc2 : j' < i
+        · rw [if_neg hc1, if_pos hc2] at heq
+          have := hnd (j + 1) j' (by omega) (by omega) heq
+          omega
+        · rw [if_neg hc1, if_neg hc2] at heq
+          have := hnd (j + 1) (j' + 1) (by omega) (by omega) heq
+          omega
+
+/-! ### `reveal`'s hidden-slice decomposition -/
+
+/-- The hidden slice's last card and second-to-last card decompose it:
+`hidden = pre ++ [d, r]`. -/
+theorem hidden_split {st : State} {a : Anchor} {d r : Card}
+    (hrev : ((st.hidden a).reverse.drop 1).head? = some d)
+    (hgt : (st.hidden a).getLast? = some r) :
+    ∃ pre, st.hidden a = pre ++ [d, r] := by
+  have hh : (st.hidden a).reverse.head? = some r := by
+    rw [head?_reverse_eq_getLast?]; exact hgt
+  cases hr : (st.hidden a).reverse with
+  | nil => rw [hr] at hh; simp at hh
+  | cons x xs =>
+    rw [hr] at hh
+    simp only [List.head?_cons, Option.some.injEq] at hh
+    subst hh
+    have hd2 : xs.head? = some d := by
+      rw [hr] at hrev
+      simpa using hrev
+    cases xs with
+    | nil => simp at hd2
+    | cons d' ds =>
+      rw [List.head?_cons, Option.some.injEq] at hd2
+      subst hd2
+      refine ⟨ds.reverse, ?_⟩
+      rw [← List.reverse_reverse (st.hidden a), hr]
+      simp
+
+/-- The hidden slice is a single card: the boundary is the pile's
+bottom dealt card. -/
+theorem hidden_single {st : State} {a : Anchor} {r : Card}
+    (hrev : ((st.hidden a).reverse.drop 1).head? = none)
+    (hgt : (st.hidden a).getLast? = some r) :
+    st.hidden a = [r] := by
+  cases hr : (st.hidden a).reverse with
+  | nil =>
+    exfalso
+    cases hs : st.hidden a with
+    | nil => rw [hs] at hgt; simp at hgt
+    | cons y t => rw [hs] at hr; simp at hr
+  | cons x xs =>
+    cases xs with
+    | nil =>
+      have h1 : st.hidden a = [x] := by
+        rw [← List.reverse_reverse (st.hidden a), hr]
+        simp
+      rw [h1] at hgt
+      simp at hgt
+      rw [h1, hgt]
+    | cons y ys =>
+      exfalso
+      rw [hr] at hrev
+      simp at hrev
+
+/-- The boundary's dealt parent: the card under the top hidden card in
+the hidden slice is directly under it in the deal. -/
+theorem hidden_parent_dealt {st : State} {a : Anchor} {d r : Card}
+    (hrev : ((st.hidden a).reverse.drop 1).head? = some d)
+    (hgt : (st.hidden a).getLast? = some r) :
+    ∃ t rest, st.deal.piles a = t ++ d :: r :: rest := by
+  obtain ⟨pre, hpre⟩ := hidden_split hrev hgt
+  refine ⟨pre, (st.deal.piles a).drop (st.depths a), ?_⟩
+  have htd : st.deal.piles a = st.hidden a ++ (st.deal.piles a).drop (st.depths a) :=
+    (List.take_append_drop (st.depths a) (st.deal.piles a)).symm
+  rw [hpre] at htd
+  calc st.deal.piles a = (pre ++ [d, r]) ++ (st.deal.piles a).drop (st.depths a) := htd
+    _ = pre ++ d :: r :: (st.deal.piles a).drop (st.depths a) := by simp
 
 namespace Deal
 

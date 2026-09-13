@@ -1,11 +1,20 @@
 import Klondike.Basic
 
 /-!
-# The stock as a pointed cycle
+# The stock as a physical deck: the cursor machine
 
-With unlimited worrying (the engine's variant), stock/waste membership
-is derived state: the remaining deck cards form one cyclic order with a
-cursor.  Drawing rotates the cursor; playing a card splices it out.
+The stock/waste is the deal-order list with a cursor — cards before
+the cursor are the waste (top at `cursor - 1`), from it the deck.  The
+physical game has exactly two stock operations: **deal** — pass the
+next `s` cards, clamped at the pass end (the partial final deal passes
+the last card), wrapping from the end to a fresh pass (`dealOnce`,
+deck.rs's `offset_once`) — and **play the top** — splice out the waste
+top (`removeAt`).  The cursor range `[0, length]` includes the
+pass-end state (all passed, last card exposed).
+
+The jump (`drawTo`, deck.rs's `draw(id)`) is the *derived* macro
+shortcut — "deal until position `i` is the top" — legal exactly when
+`i` is in the accessible set (`Pace.maskPos`).
 
 The C13 commutation premise lives here: `removeIdx_comm` is its
 list-level core (splicing out two cards in either order leaves the
@@ -62,21 +71,19 @@ theorem removeIdx_comm {α : Type} : ∀ (l : List α) (i j : Nat), i ≤ j → 
       simp only [removeIdx]
       exact congrArg (fun r => x :: r) ih
 
-/-- Rotate the cursor past `k` cards (drawing; wrapping past the end
-is the worry-back). -/
-def rotate (k : Nat) (c : Cycle α) : Cycle α where
-  cards := c.cards
-  cursor := (c.cursor + k) % c.cards.length
+/-- One deal (deck.rs `offset_once`): pass the next `s` cards, clamped
+at the pass end — the final, partial deal passes the last card (the
+last-card rule) — and from the pass end, wrap to a fresh pass.  The
+only way the cursor advances in the physical game, at any step
+`s ≥ 1`. -/
+def dealOnce (s : Nat) (cy : Cycle α) : Cycle α :=
+  if cy.cursor ≥ cy.cards.length then { cy with cursor := 0 }
+  else { cy with cursor := min (cy.cursor + s) cy.cards.length }
 
-@[simp] theorem rotate_cards (k : Nat) (c : Cycle α) : (c.rotate k).cards = c.cards := rfl
-
-@[simp] theorem rotate_add (k₁ k₂ : Nat) (c : Cycle α) :
-    (c.rotate k₁).rotate k₂ = c.rotate (k₁ + k₂) := by
-  cases c
-  simp [rotate, Nat.mod_add_mod, Nat.add_assoc]
-
-/-- The next card to draw (at the cursor). -/
-def next (c : Cycle α) : Option α := c.cards[c.cursor]?
+@[simp] theorem dealOnce_cards (s : Nat) (cy : Cycle α) :
+    (cy.dealOnce s).cards = cy.cards := by
+  simp only [dealOnce]
+  split <;> rfl
 
 /-- The waste top: the most recently passed card (playable by
 DeckPile/DeckStack).  `none` when nothing has been passed. -/
@@ -98,16 +105,47 @@ def findFirstIdx {α : Type} (p : α → Bool) : List α → Option Nat
 def posOf (c : Card) (cy : Cycle Card) : Option Nat :=
   findFirstIdx (fun c' => decide (c' = c)) cy.cards
 
+/-- A found index is in range. -/
+theorem findFirstIdx_lt {α : Type} (p : α → Bool) : ∀ (l : List α) (i : Nat),
+    findFirstIdx p l = some i → i < l.length := by
+  intro l
+  induction l with
+  | nil => intro i h; simp [findFirstIdx] at h
+  | cons a t ih =>
+    intro i h
+    simp only [findFirstIdx] at h
+    by_cases pa : p a = true
+    · rw [if_pos pa, Option.some.injEq] at h
+      subst h
+      simp
+    · rw [if_neg pa] at h
+      cases hf : findFirstIdx p t with
+      | none => rw [hf] at h; simp at h
+      | some j =>
+        rw [hf, Option.map_some, Option.some.injEq] at h
+        subst h
+        have hj := ih j hf
+        simp only [List.length_cons]
+        omega
+
+/-- A found position is in range. -/
+theorem posOf_lt {c : Card} {cy : Cycle Card} {i : Nat}
+    (h : cy.posOf c = some i) : i < cy.cards.length :=
+  findFirstIdx_lt _ cy.cards i h
+
 /-- Has `c` been passed (is it in the waste)? -/
 def passed (c : Card) (cy : Cycle Card) : Bool :=
   match cy.posOf c with
   | some i => decide (i < cy.cursor)
   | none => false
 
-/-- Rotate so that the card at index `i` is the waste top (the cursor
-lands just past `i`; wrapping through the worry-back). -/
+/-- The jump: land the cursor just past position `i` (deck.rs `draw(id)`
+= `set_offset (id + 1)`) — the derived shortcut for "deal until the
+card at `i` is the waste top", legal exactly when `i` is in the
+accessible set (`Pace.maskPos`).  At the last position the cursor
+saturates at `length` (the pass-end state), not 0. -/
 def drawTo (i : Nat) (cy : Cycle α) : Cycle α :=
-  cy.rotate ((i + 1 + cy.cards.length - cy.cursor) % cy.cards.length)
+  { cy with cursor := i + 1 }
 
 theorem removeAt_comm {α : Type} (cy : Cycle α) (i j : Nat)
     (hij : i < j) (hj : j < cy.cursor) (hl : j < cy.cards.length) :

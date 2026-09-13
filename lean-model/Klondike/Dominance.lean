@@ -91,18 +91,6 @@ theorem least_redundantStack_dominant {st : State} {c : Card} (hwf : st.WF)
 
 /-! ## §5.3 Deck dominance -/
 
-/-- The safe-stack draw commitment: rotate to `c`, stack it on the
-foundation. -/
-def State.applyDrawStackTo (st : State) (c : Card) : Option State :=
-  match st.stock.posOf c with
-  | none => none
-  | some i =>
-    if c.rank.toIdx = st.heights c.suit then
-      some { st with
-        stock := (st.stock.drawTo i).removeAt i,
-        heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
-    else none
-
 /-- §5.3, draw-1 form: with one card per draw, every drawable card is
 equally reachable, so front-loading the safe stack of a drawable card
 loses nothing.  The general (draw-3) form needs the deck `is_pure`

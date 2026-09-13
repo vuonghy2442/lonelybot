@@ -225,62 +225,22 @@ theorem pilePile_roundtrip {st : State} {c : Card} {b b₀ : Base} {st₁ st₂ 
     (h₁ : st.apply (Move.pilePile c b) = some st₁)
     (h₂ : st₁.apply (Move.pilePile c b₀) = some st₂) : st₂ = st := sorry
 
-/-- A full rotation of the stock is the identity (draw everything,
-worry back).  The cursor bound is strict: a cursor sitting exactly at
-`length` (which `rotate` never produces — its successors land strictly
-below) would rotate to `0`, not back to itself. -/
-theorem draw_full_cycle {st : State} (hl : st.stock.cursor < st.stock.cards.length)
-    {st' : State}
-    (h : st.run (List.replicate st.stock.cards.length Move.draw) = some st') :
-    st' = st := by
-  have key : ∀ (n : Nat) (s : State), s.stock.cards = st.stock.cards →
-      s.stock.cursor < s.stock.cards.length →
-      s.run (List.replicate n Move.draw) =
-        some {s with stock := s.stock.rotate (n * s.drawStep)} := by
-    intro n
-    induction n with
-    | zero =>
-        intro s _ hclt
-        have hz : s.stock.rotate (0 * s.drawStep) = s.stock := by
-          have hc : s.stock.cursor % s.stock.cards.length = s.stock.cursor :=
-            Nat.mod_eq_of_lt hclt
-          cases hs : s.stock with
-          | mk cs cur =>
-            rw [hs] at hc
-            have hc' : cur % cs.length = cur := hc
-            show ({ cards := cs, cursor := (cur + 0 * s.drawStep) % cs.length } :
-                    Cycle Card) = { cards := cs, cursor := cur }
-            rw [Nat.zero_mul, Nat.add_zero]
-            exact congrArg (fun x => ({ cards := cs, cursor := x } : Cycle Card)) hc'
-        show some s = some {s with stock := s.stock.rotate (0 * s.drawStep)}
-        rw [hz]
-    | succ n ih =>
-        intro s hcards hclt
-        simp only [List.replicate_succ, State.run, State.apply, State.applyDraw]
-        have h1 : (s.stock.rotate s.drawStep).cards = st.stock.cards := by
-          rw [Cycle.rotate_cards]; exact hcards
-        have h1lt : (s.stock.rotate s.drawStep).cursor < s.stock.cards.length :=
-          Nat.mod_lt _ (by omega)
-        rw [ih {s with stock := s.stock.rotate s.drawStep} h1 h1lt]
-        show some {s with stock := (s.stock.rotate s.drawStep).rotate (n * s.drawStep)} =
-          some {s with stock := s.stock.rotate (Nat.succ n * s.drawStep)}
-        rw [Cycle.rotate_add]
-        congr 1
-        rw [Nat.succ_mul, Nat.add_comm s.drawStep (n * s.drawStep)]
-  have hrot : st.stock.rotate (st.stock.cards.length * st.drawStep) = st.stock := by
-    have hc : (st.stock.cursor + st.stock.cards.length * st.drawStep)
-        % st.stock.cards.length = st.stock.cursor := by
-      rw [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hl]
-    cases hs : st.stock with
-    | mk cs cur =>
-      rw [hs] at hc
-      have hc' : (cur + cs.length * st.drawStep) % cs.length = cur := hc
-      show ({ cards := cs, cursor := (cur + cs.length * st.drawStep) % cs.length } :
-              Cycle Card) = { cards := cs, cursor := cur }
-      rw [hc']
-  rw [key st.stock.cards.length st rfl hl] at h
-  rw [hrot] at h
-  exact (Option.some.inj h).symm
+/-- A full pass plus the wrap deal returns to the pass start: from
+cursor 0, dealing everything (the clamp passes the last card) and
+wrapping lands home — the deal cycle's period is `⌈n/s⌉ + 1`, at any
+step `s ≥ 1` (deck.rs `offset`'s periodicity).  Supersedes the old
+rotate-form "a full rotation is the identity", an artifact of the
+jump semantics.
+
+TODO(proof) [M]: the deal chain — each deal from `k·s` below `n`
+lands at `min ((k+1)·s, n)`; the clamp reaches `n` at `k = ⌈n/s⌉`,
+and the next deal wraps to `0`. -/
+theorem draw_full_pass {st : State} (hc : st.stock.cursor = 0)
+    (hs : 0 < st.drawStep) {st' : State}
+    (h : st.run (List.replicate
+        ((st.stock.cards.length + st.drawStep - 1) / st.drawStep + 1) Move.draw)
+      = some st') :
+    st' = st := sorry
 
 /-- A commitment: no play returns to the state after it. -/
 def irreversibleAt (st : State) (m : Move) : Prop :=
@@ -431,3 +391,37 @@ theorem aboveOf_rank_grading {st : State} (hwf : st.WF) (c : Card) :
 /-- Acyclicity, from the grading.  TODO. -/
 theorem aboveOf_irrefl {st : State} (hwf : st.WF) (c : Card) :
     c ∉ st.board.aboveOf c := sorry
+
+/-! ## 5. The deck integration — the jump IS the physical game
+
+The Draw commitments (`applyDrawTo`, `applyDrawStackTo`) are the
+derived jumps; these are the statements that the guard makes them
+exactly the physical game: jump-then-play ≡ deal-until-then-play.
+C9's premise, as theorems, at every draw step (at step 1 the guard is
+trivial — `reachablePos_step1`).  The bridge to `toEngine_simulates`
+consumes these. -/
+
+/-- **The jump-soundness theorem**: the tableau-outcome Draw
+commitment equals dealing until `c` is the waste top, then playing it
+with the physical deck move — the reachable-position guard is exactly
+the reachability of that deal sequence.
+
+TODO(proof) [H]: → the guard gives the deal count (maskPos ↔
+deal-iteration reachability — the prefix walk of `realizes_iff_stepsOK`;
+`pos_shift`/`cursor_after` supply the positions), then
+`apply_deckPile_iff`'s shape.  ← contrapositive by the same
+correspondence: a reaching sequence puts the position in the mask. -/
+theorem applyDrawTo_eq_dealPlay {st : State} (hwf : st.WF) {c : Card} {b : Base}
+    {st'' : State} :
+    st.applyDrawTo c b = some st'' ↔
+      ∃ k st₁, st.run (List.replicate k Move.draw) = some st₁ ∧
+        st₁.apply (Move.deckPile c b) = some st'' := sorry
+
+/-- The stack-outcome twin: the safe-stack commitment equals dealing
+to `c`, then the physical `deckStack`.  TODO(proof) [H]: as
+`applyDrawTo_eq_dealPlay`, through `apply_deckStack_iff`. -/
+theorem applyDrawStackTo_eq_dealPlay {st : State} (hwf : st.WF) {c : Card}
+    {st'' : State} :
+    st.applyDrawStackTo c = some st'' ↔
+      ∃ k st₁, st.run (List.replicate k Move.draw) = some st₁ ∧
+        st₁.apply (Move.deckStack c) = some st'' := sorry
