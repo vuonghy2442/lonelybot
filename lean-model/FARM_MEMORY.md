@@ -1670,3 +1670,35 @@ cannot delta-unfold the goal); count Eq.trans sides before chaining.
   (TwinSwap 7 = the user's in-flight rows, not my delta). TwinSwapWitness.lean (user-owned)
   untouched, builds green. Sibling olean outage hit once mid-session (Macro.olean vanished
   during a `lake env lean`); poll-retry resolved it.
+
+## Dominance.lean — the cluster: repair landed, reserve lemma landed (2026-09-14)
+
+- least_redundantStack_dominant REPAIRED `+ (hsafe : safeToStack st c = true)` and PROVEN by
+  reduction to safe_pileStack_dominant (hmem unpacks to legal+¬locked via List.mem_filter;
+  `simp only [Bool.not_eq_true']` flips `!b = true` to `b = false`). Census Dominance 5→4.
+- Witnesses/LeastRedundantWitness.lean (exit 0): WF + exactly-3 stackables in 3 suits (♠K/♥Q/♦9,
+  heights 12/11/6/8) + ¬safeToStack ♦9 (the 4th-suit ♣ conjunct) + a 17-move win — all decide.
+  FULL refutation OPEN: the free red-Q stackable is a peel-host (pilePile ♣J (inr ♥Q) frees ♣Q
+  → the ♥-unwinding 11→8 returns a live red 9 → ♣8 transits); two designs refuted by analysis.
+  wTop as a MATCH on constructor patterns (Suit.spade is a def — cannot be matched); wTop_mem via
+  `cases b <;> simp only [wTop, Option.some.injEq] at h` + `first | absurd h (by simp) | (subst h;
+  simp [wEdges, S, H, D, C, Suit.spade, …])` (the suit/card abbrevs must be IN the simp set or
+  the literal eqs stay opaque); wTop_inj via a 14-pair `wEdges : List (Base × Card)` + `by decide`.
+- draw1_cursor_solvable PROVEN (axiom-clean): at drawStep = 1, diffCursor twins are equi-solvable —
+  the stock-is-a-reserve theorem (B&G's draw-1 exception clause; C9's premise). Route: replay fires
+  non-consuming moves verbatim (apply_nonConsuming_cursor_blind) and, before each consuming move,
+  draws up to the source's cursor — the twins then agree on prev/splice and land on the SAME state
+  (state_ext; the cursor resyncs at every deck move). Kit: dealOnce_iterate_add1 (Macro's
+  dealOnce_iterate_add re-proved — Dominance is ABOVE Macro in the DAG), dealIter_reach1 (climb /
+  wrap / climb; the wrap: `show (if len ≥ len then (⟨l, 0⟩ : Cycle Card) else …)` then if_pos).
+- QUIRKS paid: rcases `-` slots failed AGAIN (use `_`); run_cons_inv yields a 4th (trace) conjunct —
+  use hrest.1; `obtain ⟨k₁…⟩` on ⟨l,u⟩-shaped hypotheses needs an eta-cast `have hk' : … := hk` before
+  rw (t.stock is a projection, not a constructor literal); cycle-eq with-updates: spell the reduced
+  `⟨l, 0⟩` arm in shows (rw auto-rfl closes if-branch records; a trailing rfl then ERRORS);
+  apply_nonConsuming_cursor_blind wants `= false`, not `¬(= true)` (cases hcb : b with | true =>
+  absurd hcb hc); state_ext slots are st₁-field = st₂-field (mind hd's direction: .symm).
+- Route notes upgraded: stackPile_safe_prunable (the complete 10-case second-move ledger; the
+  worry-chain (i) RESOLVES for the head-only statement by comm_stackPile_stackPile; the sole
+  blocker = deckPile x (inr c) storage = the §5.1/B4 root); deck_dominance_draw1 (the (A/B/C)
+  decomposition; A now PROVEN, B = the exchange cases, C = the pre-exit worry normal form = the
+  §5.1 root).

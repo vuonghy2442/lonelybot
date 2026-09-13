@@ -301,10 +301,224 @@ theorem least_redundantStack_dominant {st : State} {c : Card} (hwf : st.WF)
 
 /-! ## §5.3 Deck dominance -/
 
+/-- The step-1 addition lemma for the deal orbit (Macro's
+`dealOnce_iterate_add` re-proved here — Dominance sits above Macro in
+the import DAG, so the upstream copy is not citable). -/
+theorem dealOnce_iterate_add1 (l : List Card) :
+    ∀ (q c : Nat), c + q ≤ l.length →
+      Cycle.dealIter 1 q ⟨l, c⟩ = ⟨l, c + q⟩ := by
+  intro q
+  induction q with
+  | zero => intro c _; rfl
+  | succ q ih =>
+      intro c hle
+      have hstep : Cycle.dealOnce 1 ⟨l, c⟩ = ⟨l, c + 1⟩ := by
+        show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card)
+            else ⟨l, min (c + 1) l.length⟩) = ⟨l, c + 1⟩
+        rw [if_neg (by omega), Nat.min_eq_left (by omega)]
+      rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep, ih (c + 1) (by omega)]
+      exact congrArg (Cycle.mk l) (by omega)
+
+/-- At step 1, pure deals reach any cursor in `[0, length]` from any
+starting cursor (the saturating climb, the wrap from the pass end,
+then the climb) — every waste position is addressable. -/
+theorem dealIter_reach1 {l : List Card} {u v : Nat} (hv : v ≤ l.length) :
+    ∃ k, Cycle.dealIter 1 k ⟨l, u⟩ = ⟨l, v⟩ := by
+  have climb : ∀ (a b : Nat), a ≤ b → b ≤ l.length →
+      Cycle.dealIter 1 (b - a) ⟨l, a⟩ = ⟨l, b⟩ := fun a b hle hb => by
+    rw [dealOnce_iterate_add1 l (b - a) a (by omega)]
+    exact congrArg (Cycle.mk l) (by omega)
+  have wrap : Cycle.dealIter 1 1 ⟨l, l.length⟩ = ⟨l, 0⟩ := by
+    show (if l.length ≥ l.length then (⟨l, 0⟩ : Cycle Card)
+        else ⟨l, min (l.length + 1) l.length⟩) = ⟨l, 0⟩
+    rw [if_pos (Nat.le_refl l.length)]
+  by_cases hu : u ≤ l.length
+  · by_cases hle : u ≤ v
+    · exact ⟨v - u, climb u v hle hv⟩
+    · refine ⟨v + 1 + (l.length - u), ?_⟩
+      rw [Cycle.dealIter_add, Cycle.dealIter_add,
+        climb u l.length hu (Nat.le_refl _), wrap]
+      have hclimb := climb 0 v (Nat.zero_le _) hv
+      rw [Nat.sub_zero] at hclimb
+      exact hclimb
+  · have hwrap : Cycle.dealOnce 1 ⟨l, u⟩ = ⟨l, 0⟩ := by
+      show (if u ≥ l.length then (⟨l, 0⟩ : Cycle Card)
+          else ⟨l, min (u + 1) l.length⟩) = ⟨l, 0⟩
+      rw [if_pos (by omega)]
+    refine ⟨v + 1, ?_⟩
+    rw [Cycle.dealIter_add]
+    show Cycle.dealIter 1 v (Cycle.dealOnce 1 ⟨l, u⟩) = _
+    rw [hwrap]
+    have hclimb := climb 0 v (Nat.zero_le _) hv
+    rw [Nat.sub_zero] at hclimb
+    exact hclimb
+
+/-- **The reserve lemma (draw-1)**: at `drawStep = 1`, states differing
+only in the stock cursor are equi-solvable — the stock behaves as a
+reserve from which any card can be picked at any time.  This is the
+formal content of B&G's exception clause ("the stock can be treated as
+if it were a reserve when the draw size is 1 and redeals are
+unlimited") and the premise C9 cites.
+
+The replay of a winning play from the cursor-twin: every non-consuming
+move fires verbatim (its guards never read the cursor —
+`apply_nonConsuming_cursor_blind`), and before each consuming move the
+inserted pure deals bring the cursor to exactly the source's, where the
+twins agree on `prev` and the splice index, so the deck move lands on
+the very same successor (full state equality — the cursor
+resynchronizes at every consumption).  `isWin` reads heights only. -/
+theorem draw1_cursor_solvable {s t : State} (hstep : s.drawStep = 1)
+    (hd : s.diffCursor t) : s.solvableFrom → t.solvableFrom := by
+  -- moves never change the draw step
+  have hds : ∀ {s s₁ : State} {m : Move}, s.apply m = some s₁ →
+      s₁.drawStep = s.drawStep := by
+    intro s s₁ m h
+    cases m with
+    | draw => rw [apply_draw_iff] at h; obtain ⟨rfl⟩ := h; rfl
+    | reveal _ => rw [apply_reveal_iff] at h; obtain ⟨_, _, _, _, _, _, _, hs⟩ := h; rw [hs]
+    | deckPile _ _ => rw [apply_deckPile_iff] at h; obtain ⟨_, _, _, _, hs⟩ := h; rw [hs]
+    | deckStack _ => rw [apply_deckStack_iff] at h; obtain ⟨_, _, hs⟩ := h; rw [hs]
+    | pileStack _ => rw [apply_pileStack_iff] at h; obtain ⟨_, _, _, _, hs⟩ := h; rw [hs]
+    | stackPile _ _ => rw [apply_stackPile_iff] at h; obtain ⟨_, _, _, _, hs⟩ := h; rw [hs]
+    | pilePile _ _ => rw [apply_pilePile_iff] at h; obtain ⟨_, _, _, _, _, _, hs⟩ := h; rw [hs]
+  have main : ∀ (π : List Move) (s t : State), s.drawStep = 1 →
+      s.diffCursor t → ∀ w, s.run π = some w → w.isWin = true →
+      ∃ π' w', t.run π' = some w' ∧ w'.isWin = true := by
+    intro π
+    induction π with
+    | nil =>
+        intro s t _ hd w hrun hwin
+        have hw : w = s := by
+          have h' : (some s : Option State) = some w := hrun
+          exact (Option.some.inj h').symm
+        have hth : t.heights = w.heights :=
+          ((hd.2.2.1).symm).trans ((congrArg State.heights hw).symm)
+        refine ⟨[], t, rfl, ?_⟩
+        show (Suit.all.all fun σ => decide (t.heights σ = 13)) = true
+        rw [hth]
+        exact hwin
+    | cons m rest ih =>
+        intro s t hstep hd w hrun hwin
+        obtain ⟨s₁, hap, hrest⟩ := run_cons_inv hrun
+        have hs1 : s₁.drawStep = 1 := by rw [hds hap]; exact hstep
+        by_cases hc : m.consumesStock = true
+        · -- the consuming move: sync the cursor, land exactly on s₁
+          have hprev : ∃ x, s.stock.prev = some x := by
+            cases m with
+            | draw => simp [Move.consumesStock] at hc
+            | reveal _ => simp [Move.consumesStock] at hc
+            | pileStack _ => simp [Move.consumesStock] at hc
+            | stackPile _ _ => simp [Move.consumesStock] at hc
+            | pilePile _ _ => simp [Move.consumesStock] at hc
+            | deckPile x _ =>
+                rw [apply_deckPile_iff] at hap
+                exact ⟨x, hap.1⟩
+            | deckStack x =>
+                rw [apply_deckStack_iff] at hap
+                exact ⟨x, hap.1⟩
+          obtain ⟨x, hp⟩ := hprev
+          -- the source cursor is within the pass (prev is some)
+          have hcur : s.stock.cursor ≤ s.stock.cards.length := by
+            simp only [Cycle.prev] at hp
+            split at hp
+            · exact absurd hp (by simp)
+            · have hlt := (List.getElem?_eq_some_iff.mp hp).1
+              omega
+          obtain ⟨k, hk⟩ := dealIter_reach1 (l := t.stock.cards)
+            (u := t.stock.cursor) (v := s.stock.cursor) (by
+              rw [← hd.2.2.2.2.1]; exact hcur)
+          have hk' : Cycle.dealIter 1 k t.stock
+              = ⟨t.stock.cards, s.stock.cursor⟩ := hk
+          have htstep : t.drawStep = 1 := by
+            rw [← hstep]; exact (hd.2.2.2.2.2).symm
+          -- the drawn twin is exactly the source state
+          have hdrawn : t.run (List.replicate k Move.draw)
+              = some { t with stock := Cycle.dealIter t.drawStep k t.stock } :=
+            run_dealIter k t
+          have hstock : Cycle.dealIter t.drawStep k t.stock = s.stock := by
+            rw [htstep, hk', ← hd.2.2.2.2.1]
+          have hdeq : { t with stock := Cycle.dealIter t.drawStep k t.stock } = s :=
+            state_ext hd.1.symm hd.2.1.symm hd.2.2.1.symm hd.2.2.2.1.symm
+              hstock hd.2.2.2.2.2.symm
+          obtain ⟨π', w', hrun', hwin'⟩ :=
+            ih s₁ s₁ hs1 (⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ : s₁.diffCursor s₁) w hrest.1 hwin
+          refine ⟨List.replicate k Move.draw ++ m :: π', w', ?_, hwin'⟩
+          rw [run_append t (List.replicate k Move.draw) (m :: π'), hdrawn, hdeq]
+          show (match s.apply m with
+            | some st' => st'.run π' | none => none) = some w'
+          rw [hap]
+          exact hrun'
+        · have hcf : m.consumesStock = false := by
+            cases hcb : m.consumesStock with
+            | false => rfl
+            | true => exact absurd hcb hc
+          obtain ⟨t₁, htap, hdd⟩ := apply_nonConsuming_cursor_blind hcf hd hap
+          obtain ⟨π', w', hrun', hwin'⟩ :=
+            ih s₁ t₁ hs1 hdd w hrest.1 hwin
+          refine ⟨m :: π', w', ?_, hwin'⟩
+          show (match t.apply m with
+            | some st' => st'.run π' | none => none) = some w'
+          rw [htap]
+          exact hrun'
+  intro hsolv
+  obtain ⟨π, w, hrun, hwin⟩ := hsolv
+  obtain ⟨π', w', hrun', hwin'⟩ := main π s t hstep hd w hrun hwin
+  exact ⟨π', w', hrun', hwin'⟩
+
 /-- §5.3, draw-1 form: with one card per draw, every drawable card is
 equally reachable, so front-loading the safe stack of a drawable card
 loses nothing.  The general (draw-3) form needs the deck `is_pure`
-condition (offset alignment).  TODO: the reshaping argument. -/
+condition (offset alignment).
+
+Route notes (2026-09-14, the reserve decomposition — B&G's "the
+stock is a reserve at draw size 1 with unlimited redeals").  By
+`applyDrawStackTo_eq_dealPlay` (Theorems), the jump successor is
+`st · draw^k · deckStack c`, so the task is to replay a winning play
+π from the jump successor.  Three layers:
+
+**(A) The reserve lemma** — **PROVEN** below (`draw1_cursor_solvable`,
+with `dealOnce_iterate_add1` and `dealIter_reach1` as its orbit kit):
+at `drawStep = 1`, `diffCursor`-related states are equi-solvable.
+The replay skips nothing and inserts draws: every non-consuming move
+fires verbatim (`apply_nonConsuming_cursor_blind` — its guards read
+board/heights/depths only), and before each consuming move the
+inserted pure deals bring the cursor to exactly the source's — where
+the twins agree on `prev` and the splice index, so the deck move lands
+on the very same successor (full state equality; the cursor
+resynchronizes at every consumption).  The addition lemma
+`dealOnce_iterate_add1` re-proves Macro's `dealOnce_iterate_add`
+locally (Dominance sits above Macro in the DAG).  This is the
+stock-is-a-reserve theorem — the premise C9 cites
+(`reachablePos_step1`'s docstring).
+
+**(B) The first-move exchanges** (induction on π's length; every
+case either closes or recurses at `st · m₁` with the c-hypotheses
+preserved — the key auto-facts: m₁'s stackable card has m₁'s suit ≠
+c.suit, since c's suit's stackable is c itself and c is stocked):
+`draw` absorbs (the jump's `drawTo` resets the cursor absolutely:
+`(st · draw) · jump = st · jump`); `reveal`/`pilePile` commute with
+the jump by equality (their guards never read the stock or c's
+height slot); `pileStack d` commutes by equality (`bump_bump`);
+`deckStack x` / `deckPile x b'` (x ≠ c) commute up to `diffCursor`
+(layer A transports the win); the c-exit as the first move:
+`deckStack c` — the cursor is already at `posOf c + 1`, so the jump
+IS `[deckStack c]`; `deckPile c b` — the worry-back identity
+`[jump c, stackPile c b] ≡ [deckPile c b]` (`bump_drop`: bump then
+drop restores the height, same splice index by noDup, same attach).
+
+**(C) The blocked case**: m₁ = `stackPile d b` — a worry-back before
+c's exit.  The IH's `hsafe` can break at `st · stackPile d b` (the
+d-suit drop), so the induction cannot proceed.  B&G's normal form
+(their safemoves proof) eliminates pre-exit worry-backs: c stays
+safely-buildable until its exit (no c-suit stack can fire — c is
+stocked; heights only rise under the non-worry prefix), so any
+pre-exit worry is noncompliant and is swapped past the safe builds
+(`comm_pileStack_stackPile`) or cancelled against its immediate
+restack (`stackPile_pileStack_cancel`).  That normal form is the
+§5.1 core — the same root as `safe_pileStack_dominant`'s N-half and
+the B4 crux's endgame.  So: deck_dominance_draw1 = (the §5.1 normal
+form) + (A) + (B).  TODO(proof): A and B are self-contained; C is
+the shared root. -/
 theorem deck_dominance_draw1 {st : State} {c : Card} (hwf : st.WF)
     (hstep : st.drawStep = 1) (hsafe : safeToStack st c = true)
     (hdraw : st.stock.posOf c ≠ none) (hleg : st.applyDrawStackTo c ≠ none) :
@@ -402,38 +616,65 @@ theorem stackPile_pileStack_cancel {st : State} {c : Card} {b : Base} {s₁ : St
 /-- §5.4, first half: never worry back a dominantly-stackable card —
 omitting `stackPile` of a safe card loses nothing.  The statement is
 head-only (`prunableAt`): SOME winning play must merely avoid
-*starting* with the worry-back.
+*starting* with the worry-back — so a single front-swap of the second
+move closes every case but one.
 
-Route notes (2026-09-13, partial analysis): the second move of a
-worry-headed winning play can be swapped to the front in every case
-except one — `draw` commutes (`draw_comm_stackPile`, proved);
-`deckStack x` swaps (x = c is impossible: c is foundation-passed,
-hence off the stock); `deckPile x b'` swaps (b' ≠ b forced, `attach_attach_comm`);
-`pileStack x` with x ≠ c swaps (x.suit ≠ c.suit forced; b = inr x would
-block x's own stacking); `reveal y` swaps (its attach target ≠ b); and
-`pilePile c b''` right after the worry collapses to worrying directly
-to `b''` (b'' ≠ b).  The prefix `[stackPile c b, pileStack c]` is an
-UNCONDITIONAL identity (attach-then-detach at the same base — no
-`canReturnBase` needed, unlike the proven converse roundtrip; it is
-now `stackPile_pileStack_cancel` below), so it can be cancelled with a
-play-length induction.
+Route notes (2026-09-14, the complete second-move ledger; B&G's
+appendix proof of the worry-back corollary, ported): let π be a
+winning play.  If π's head is not the worry, done.  π = [stackPile c b]
+alone is vacuous — the worry drops `heights c.suit` below 13, so the
+one-move successor cannot be a win.  Otherwise π = stackPile c b ::
+m₂ :: γ, and m₂ can be pulled in front:
 
-The residual blocked shapes: (i) the immediate same-suit worry-chain —
-π = stackPile c b :: stackPile x b' :: … with x the card just below c
-in c's suit (x cannot be worried before c leaves; c cannot take x's
-destination — same color kills `canSitOn`); (ii) `deckPile x (inr c)` as
-the second move — placing the drawn card onto the just-worried card
-(`b' = inr c` is NOT excluded by the b' ≠ b argument: at st the
-placement fails since c is on the foundation; the substitute —
-`deckStack x`, legal because `hsafe`'s opposite-colour conjunct puts
-x's foundation exactly at toIdx x for a stocked x — reshapes the whole
-tail through the foundation channel); and at drawStep ≥ 2 with
-the cursor off the deal's 0-orbit, no number of `draw`s returns to
-`st` (dealOnce's orbit), so no always-legal alternative head can be
-prepended.  Closing those needs the classical worry-back ban (B&G
-Theorem-1-compliant solutions never worry a safely-buildable card —
-the same channels-A/B rank induction as the repaired §5.1, see
-`safe_pileStack_dominant`'s note).  TODO. -/
+* m₂ = `pileStack c` — the pair is the identity
+  (`stackPile_pileStack_cancel`, proven below); recurse on γ (the
+  play shortened by two; γ's head may be the worry again — the
+  length induction absorbs this).
+* m₂ = `pilePile c b''` — the worry-collapse: b'' ≠ b is forced
+  (the move's own `b₀ ≠ b''` guard at the worried-back state, where
+  c's base is b), and `[stackPile c b, pilePile c b'' c-run] ≡
+  [stackPile c b'']` — c's run at the successor is `[c]` alone (the
+  worry just seated it, nothing on it), so the composition is
+  detach-at-b-then-attach-at-b''.  The head becomes `stackPile c b''`
+  ≠ the pruned move.  [A custom two-move square; the pieces are the
+  cancel's.]
+* m₂ = `pilePile x b''` with c inside x's run (the worry seated c on
+  the run's top d, and the run then re-homes) — the swap
+  `[pilePile x b'', stackPile c b]` lands c on the re-homed d and
+  reaches the same composite state; the run keeps its internal edges
+  under `detach`/`attach`.  The head becomes `pilePile x b''`.
+  [Custom square: the worry's target b = inr d with d in x's run.]
+* m₂ = `pileStack d` (d ≠ c: the re-stack of c is the bullet above,
+  and any other d has d.suit ≠ c.suit — the stack guards read
+  different suits) — `comm_pileStack_stackPile` (Commutation).
+* m₂ = `draw` — `draw_comm_stackPile` (Commutation).
+* m₂ = `reveal y` — `comm_reveal_stackPile` (Commutation); the
+  reveal's attach target is never b (b's top is the just-worried c).
+* m₂ = `deckStack x` — x ≠ c (c is foundation-passed, hence off the
+  stock); `comm_deckStack_stackPile` (Commutation).
+* m₂ = `deckPile x b'` with b' ≠ inr c — b' = b is impossible (b's
+  top is c at the successor, so `canPlace` fails there, so the move
+  was not legal); `comm_deckPile_stackPile` (Commutation).
+* m₂ = `stackPile x b'` (x ≠ c — the height guard at the successor
+  reads `toIdx x + 1 = heights x.suit`, which for x = c fails since
+  the first worry already dropped it) — `comm_stackPile_stackPile`
+  (Commutation); the head becomes a *different* worry, done.
+* m₂ = `deckPile x (inr c)` — **the storage case, the sole blocker**:
+  placing the drawn x directly onto the just-worried c.  At st the
+  placement is illegal (c is on the foundation, `isVis c` fails), so
+  no commutation applies — the worry CREATED the seat.  `hsafe`'s
+  opposite-colour conjunct puts x's foundation exactly at `toIdx x`
+  (a stocked x cannot be foundation-passed, and cannot sit below
+  it), so `deckStack x` is legal at st — but replaying the tail
+  through the foundation channel is the B&G "channel A" reshape: the
+  cards placed on x-on-c are foundation-able too (the safety bounds
+  descend exactly two ranks), and the descent meets the worry-back
+  chain — the same compliant-play normal form as
+  `solvable_of_pileStack`'s endgame and §5.1's N-half.
+
+So the row reduces to: the nine swap cases above (each a direct
+citation of the proven commutation kit plus two custom squares) plus
+the storage case, which is the §5.1/B4 root.  TODO(proof). -/
 theorem stackPile_safe_prunable {st : State} {c : Card} {b : Base} (hwf : st.WF)
     (hsafe : safeToStack st c = true) : prunableAt st (Move.stackPile c b) := sorry
 

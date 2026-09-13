@@ -1,7 +1,7 @@
 import Klondike.Dominance
 
 /-!
-# The least-redundant-stack witness — the staged §5.2 was FALSE
+# The least-redundant-stack witness — the staged §5.2's hypotheses dissected
 
 The staged `least_redundantStack_dominant` (no `hsafe`) claimed: with ≥3
 redundant stackables, stacking the lowest is dominant.  The three
@@ -9,28 +9,36 @@ stackables sit in three distinct suits (a suit's foundation admits at
 most one stackable card: its height), so the fourth suit's height is
 unconstrained, and the §5.1 safety of the lowest stackable does not
 follow — the danger card of the unconstrained suit (rank r−1, opposite
-colour: the unique card class that can ever sit on `c`) may be live and
-forced through `c`'s tableau seat.
+colour: the unique card class that can ever sit on `c`) may be live.
 
-The witness state: heights ♠=12, ♥=11, ♣=6, ♦=8 — the redundant
-stackables ♠K, ♥Q, ♦9 (toIdx = their suit's height, three distinct
-suits).  The lowest is `c = ♦9` (toIdx 8), and safety fails exactly on
-the fourth suit: `safeToStack` demands ♣ ≥ 7 (opposite colour to ♦)
-but ♣ = 6.  The danger card ♣8 (black 8, toIdx 7) is live (♣=6 < 7)
-and its ONLY tableau seat is ♦9: the other red 9 (♥9) is on the
-foundation (♥=11), and the other black 8 (♠8) is on the foundation
-(♠=12).  ♣8 sits on the hidden boundary ♣7 of pile p1; to win, ♣7 must
-be revealed — and the reveal needs a card sitting on the boundary, so
-♣8 must move first, and its only move is onto ♦9.  Stacking ♦9 first
-kills that seat: the towers freeze (every cover is a ♣ or sits above
-the stalled ♣-climb), the c-worry back is blocked (♦9's re-seat hosts
-are the black 9s — ♠9 on the foundation, ♣9 buried in the p5 tower),
-and the ♣-foundation stays at 6 — the successor is unsolvable while
-`wState` is 17 moves from the win.
+This file machine-checks the countermodel's SKELETON on a concrete
+state: heights ♠=12, ♥=11, ♣=6, ♦=8 — the redundant stackables ♠K, ♥Q,
+♦9 (toIdx = their suit's height, three distinct suits, exactly three).
+The lowest is `c = ♦9` (toIdx 8), and safety fails exactly on the
+fourth suit: `safeToStack` demands ♣ ≥ 7 (opposite colour to ♦) but
+♣ = 6.  The danger card ♣8 (black 8, toIdx 7) is live (♣=6 < 7) and
+its ONLY tableau seat is ♦9 (the other red 9, ♥9, and the other black
+8, ♠8, are on the foundation).  ♣8 sits on the hidden boundary ♣7 of
+pile p1; to win, ♣7 must be revealed — and the reveal needs a card
+sitting on the boundary, so ♣8 must move first, onto ♦9.  The state is
+WF and 17 moves from the win (all `decide`-verified below).
 
-Facts below are machine-checked; the unsolvability invariant is the
-remaining piece (see the TODO at the bottom).  This file is the
-regression record for the `+hsafe` repair (Dominance.lean).
+STATUS OF THE FULL REFUTATION (the successor's unsolvability): OPEN.
+Two concrete state designs were analysed and REFUTED AS COUNTERMODELS
+by the worry-unwinding web — each state satisfying the hypotheses has
+its free stackables act as peel-hosts: a black-J cover of a black Q
+is peeled onto the free red-Q stackable (e.g. `pilePile ♣J (inr ♥Q)`),
+freeing the Q; the ♥-unwinding then descends (♥J-worry onto the freed
+♣Q, ♥10-worry onto the transited ♣J, ♥9-worry onto a free ♣10),
+returning a live red 9 to the board and reopening ♣8's transit.  The
+machine-checked `¬ dominantAt` needs a state whose towers are peel-free
+(no tower top or interior root in the tenant classes of the free
+stackables and the anchor-shuffled kings) — the third design
+(heights ♠5/♥7/♣11/♦8, c = ♥8, danger ♠7) blocks every unwinding seed
+but needs its own web audit.  The `+hsafe` repair in Dominance.lean is
+unaffected: the analytic gap (the 4th-suit safety conjunct) is exactly
+what the added hypothesis supplies, and B&G's own proof of the
+worry-back corollary goes through the §5.1 core.
 -/
 
 namespace LeastRedundant
