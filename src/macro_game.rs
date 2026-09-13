@@ -3045,6 +3045,116 @@ mod tests {
         }
     }
 
+    /// The pace-dominance lemma's empirical pin (the falsifier for the
+    /// offset-dominance registry before it ships). For random draw-3
+    /// decks and every offset, the accessible position set K(o) must
+    /// satisfy the order the dominance theorem stands on:
+    ///
+    /// - **pure-pure equality**: K(o) for o ≡ 0 (mod 3) or the exhausted
+    ///   boundary is o-independent — this *derives* the engine's
+    ///   `is_pure`/`normalized_offset` merge from the accessibility
+    ///   formula instead of asserting it;
+    /// - **residue monotonicity**: within an impure residue class,
+    ///   o ≤ o' implies K(o) ⊇ K(o') (block 1 of `iter_callback` starts
+    ///   lower; block 3 and the last card are class-invariant);
+    /// - **impure over pure**: every impure K strictly contains the pure
+    ///   set (block 1 nonempty ⊇ empty).
+    ///
+    /// Plus the merge lemma: drawing the same card from two states
+    /// sharing a mask (same array) yields the identical successor offset
+    /// (`draw` sets the offset to the drawn position — parent-invariant).
+    #[test]
+    fn pace_dominance_order() {
+        use crate::deck::{Deck, N_DECK_CARDS};
+        use core::ops::ControlFlow;
+        use std::collections::HashSet;
+        let step = NonZeroU8::new(3).unwrap();
+        for seed in 12u64..112 {
+            let cards = default_shuffle(seed);
+            let deck_cards: [Card; N_DECK_CARDS as usize] =
+                cards[(N_CARDS - N_DECK_CARDS) as usize..]
+                    .try_into()
+                    .unwrap();
+            let mut d = Deck::new(deck_cards, step);
+            // consume a few cards to vary the mask and array
+            let mut rng = seed;
+            for _ in 0..(seed % 7) {
+                let acc: Vec<u8> = {
+                    let mut v = Vec::new();
+                    let _ = d.iter_callback(false, |p, _| -> ControlFlow<()> {
+                        v.push(p);
+                        ControlFlow::Continue(())
+                    });
+                    v
+                };
+                if acc.is_empty() {
+                    break;
+                }
+                rng = rng.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+                let _ = d.draw(acc[(rng as usize) % acc.len()]);
+            }
+            let n = d.len();
+            let ks: Vec<HashSet<u8>> = (0..=n)
+                .map(|o| {
+                    d.set_offset(o);
+                    let mut s = HashSet::new();
+                    let _ = d.iter_callback(false, |p, _| -> ControlFlow<()> {
+                        s.insert(p);
+                        ControlFlow::Continue(())
+                    });
+                    s
+                })
+                .collect();
+            let pure = |o: u8| o % 3 == 0 || o == n;
+            for o1 in 0..=n {
+                for o2 in 0..=n {
+                    if o1 == o2 {
+                        continue;
+                    }
+                    if pure(o1) && pure(o2) {
+                        assert_eq!(
+                            ks[usize::from(o1)], ks[usize::from(o2)],
+                            "pure-pure K divergence: seed={seed} n={n} {o1} vs {o2}"
+                        );
+                    } else if !pure(o1) && !pure(o2) && o1 % 3 == o2 % 3 && o1 < o2 {
+                        assert!(
+                            ks[usize::from(o1)].is_superset(&ks[usize::from(o2)]),
+                            "residue monotonicity broken: seed={seed} n={n} {o1} vs {o2}"
+                        );
+                    } else if !pure(o1) && pure(o2) {
+                        assert!(
+                            ks[usize::from(o1)].is_superset(&ks[usize::from(o2)]),
+                            "impure K does not contain pure K: seed={seed} n={n} {o1} vs {o2}"
+                        );
+                    }
+                }
+            }
+            // merge lemma spot-check: a common-accessible position drawn
+            // from two different offsets lands on the same successor
+            for (o1, o2) in [(1u8, 4u8), (2, 5), (1, 7), (2, 8)] {
+                if o1 >= n || o2 >= n {
+                    continue;
+                }
+                let Some(&p) = ks[usize::from(o1)].intersection(&ks[usize::from(o2)]).next() else {
+                    continue;
+                };
+                let mut d1 = d.clone();
+                let mut d2 = d.clone();
+                d1.set_offset(o1);
+                d2.set_offset(o2);
+                let c1 = d1.draw(p);
+                let c2 = d2.draw(p);
+                assert_eq!(c1, c2, "merge: drawn cards differ seed={seed}");
+                assert_eq!(
+                    d1.get_offset(),
+                    d2.get_offset(),
+                    "merge: successor offsets differ seed={seed} o1={o1} o2={o2} p={p}"
+                );
+            }
+        }
+        println!("pace dominance order: 100 random decks, all offsets — pure-pure equal, residue-monotone, impure ⊇ pure, merge holds");
+    }
+
     /// The word pipeline against move replay, state by state:
     /// `canonicalize` must land exactly where the per-card `do_move` sweep
     /// does (including ambiguous-twin picks), and `post_state` must equal
