@@ -1,6 +1,6 @@
 # The proof farm — handoff document
 
-51 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
+59 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
 each carrying a `TODO(proof)` route comment in source.  Difficulty:
 **[T]** rfl/decide/case-bash · **[E]** one induction · **[M]** real
 work · **[H]** needs ideas (do not assign casually).
@@ -218,3 +218,24 @@ pace only matters through `maskPos` at the instant of a draw.
 | `pace_dominance` | Macro | **[H]** | the simulation: induction on the commitment list; reveals preserve the (equal-boards, maskPos-superset) invariant, the draw case merges via `drawCard_cursor_indep`; accommodations replay verbatim (stock-blind) |
 | `pace_dominance_residue` | Macro | [M] | `pace_dominance` at the o-variant + `maskPos_residue_mono` as `hK` |
 | `pace_dominance_impure_pure` | Macro | [M] | `pace_dominance` at the o-variant + `maskPos_impure_sup_pure` as `hK` |
+
+The reachability route (the physical game, added 2026-09-13 after the
+prefix principle landed): **`solvable_of_reaches` is proved**
+(Progress.lean — `run_append`), and **`solvable_iff_mutuallyReaches`**
+with it.  In the physical game the cursor advances without consuming
+(one `.draw` = `dealOnce`), so the better state *reaches* the worse
+one and R1/R2a become one-line compositions — no simulation.  The
+macro game has no deal move (jumps consume), so same-mask
+different-cursor states are mutually unreachable there — that residue
+is the simulation's own content.
+
+| item | file:line | tag | route |
+|---|---|---|---|
+| `deal_chain_reaches` | Macro | [E] | the play is k `.draw`s with `o + k·s = o'` (same residue); induction on k, no clamp (chain stays ≤ o') |
+| `deal_passEnd_reaches` | Macro | [E] | deals step by s until `c + s ≥ n`, then `min` clamps; induction on the remaining distance |
+| `pace_dominance_phys_residue` | Macro | [E] | `solvable_of_reaches` + `deal_chain_reaches` |
+| `pace_dominance_phys_passEnd` | Macro | [E] | `solvable_of_reaches` + `deal_passEnd_reaches` |
+| `solvable_iff_pure_cursors` | Macro | [E] | `solvable_iff_mutuallyReaches` + the deal chains composing through the pass end and the wrap — the game-level derivation of the engine's `is_pure` encode merge |
+| `deal_commutes_nonStock` | Theorems | [E] | the deal writes only `stock.cursor` with unconditional legality; case bash over the five non-consuming moves, or `commute_of_compsDisjoint` (`.draw`'s comps = `[.stock]`) |
+| `window_firstDraw` | Macro | [M] | the hurry lemma: decompose at the first `consumesStock`; the prefix replays from B with deals trimmed (`deal_commutes_nonStock` floats them past the reveals); the draw merges; the suffix verbatim |
+| `window_firstDraw_macro` | Macro | [M] | decompose `ks` at the first `drawCommit`; the reveal-commit prefix is cursor-blind (replay verbatim); a K(B)-accessible first card would merge the successors and lift the suffix — contradiction |

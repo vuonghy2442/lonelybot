@@ -1,4 +1,5 @@
 import Klondike.Dominance
+import Klondike.Progress
 
 /-!
 # The macro (commitment) game — C1 and C2
@@ -146,6 +147,148 @@ theorem pace_dominance_impure_pure {st : State} {o o' : Nat} (hwf : st.WF)
     (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
     (hsol : { st with stock := { st.stock with cursor := o' } }.macroSolvable) :
     { st with stock := { st.stock with cursor := o } }.macroSolvable := sorry
+
+/-! ### The reachability route (the physical game)
+
+In the *physical* game the cursor advances without consuming — one
+`.draw` is `dealOnce` — so the better state **reaches** the worse one
+and the dominance is a `solvable_of_reaches` instance: no simulation,
+one-line compositions.  The macro game (above) has no deal move — its
+jumps consume — so same-mask different-cursor states are mutually
+unreachable there, and that residue is the simulation's own content. -/
+
+/-- The deal chain: `k` pure deals advance the cursor from `o` to `o'`
+whenever `o ≤ o'` with the same residue (`o' − o` a multiple of the
+step).  The chain never clamps: every intermediate cursor is `≤ o' ≤
+length`.
+
+TODO(proof) [E]: the play is `k` `.draw` moves with `o + k·s = o'`;
+induction on `k` — each `dealOnce` from `c < n` gives
+`min (c + s) n = c + s` (no clamp, the chain stays ≤ o'). -/
+theorem deal_chain_reaches {st : State} {o o' : Nat}
+    (hle : o ≤ o') (hres : o % st.drawStep = o' % st.drawStep)
+    (hcur' : o' ≤ st.stock.cards.length) :
+    ∃ play, ({ st with stock := { st.stock with cursor := o } }).run play
+      = some { st with stock := { st.stock with cursor := o' } } := sorry
+
+/-- The pass-end reachability: every cursor reaches the pass end — the
+final deal clamps at `length` from *anywhere*, so the residue condition
+drops.  This is why the pass-end state is the worst same-cards state.
+
+TODO(proof) [E]: deals step by `s` until `c + s ≥ n`, then `min`
+clamps; induction on the remaining distance (the wrap is never taken —
+the chain stops at `n`). -/
+theorem deal_passEnd_reaches {st : State} {o : Nat}
+    (hcur : o ≤ st.stock.cards.length) :
+    ∃ play, ({ st with stock := { st.stock with cursor := o } }).run play
+      = some { st with stock := { st.stock with cursor := st.stock.cards.length } } := sorry
+
+/-- **R1, physical-game route**: same residue, earlier cursor —
+dominance by reachability (the deal chain), not simulation.
+
+TODO(proof) [E]: `solvable_of_reaches` + `deal_chain_reaches`. -/
+theorem pace_dominance_phys_residue {st : State} {o o' : Nat}
+    (hle : o ≤ o') (hres : o % st.drawStep = o' % st.drawStep)
+    (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
+    (hsol : { st with stock := { st.stock with cursor := o' } }.solvableFrom) :
+    { st with stock := { st.stock with cursor := o } }.solvableFrom := sorry
+
+/-- **R2a, physical-game route**: the pass-end cursor is dominated by
+every same-cards state — the clamp reaches it from anywhere, so no
+residue condition.  (The macro-game `pace_dominance_impure_pure`
+additionally covers mid-pass pure cursors via the accessible-superset
+— those are *not* reachable from impure ones, which is the
+simulation's own content.)
+
+TODO(proof) [E]: `solvable_of_reaches` + `deal_passEnd_reaches`. -/
+theorem pace_dominance_phys_passEnd {st : State} {o : Nat}
+    (hcur : o ≤ st.stock.cards.length)
+    (hsol : ({ st with stock :=
+        { st.stock with cursor := st.stock.cards.length } }).solvableFrom) :
+    { st with stock := { st.stock with cursor := o } }.solvableFrom := sorry
+
+/-- The pure-orbit cycle: all pure cursors are mutually reachable by
+pure deals — each reaches the pass end (`deal_passEnd_reaches`), the
+wrap deal lands 0, and the fresh-pass chain reaches any pure cursor
+(`deal_chain_reaches`) — so their solvability is *equivalent*.  This is
+the game-level derivation of the engine's `is_pure`/`normalized_offset`
+encode merge (the offset normalization draw-3 gets on the pure class);
+`maskPos_pure_indep` is its accessibility-level shadow.
+
+TODO(proof) [E]: `solvable_iff_mutuallyReaches` + the two deal chains
+composing through the pass end and the wrap (the wrap is one `.draw`
+from the saturated cursor). -/
+theorem solvable_iff_pure_cursors {st : State} {o o' : Nat}
+    (hp : o % st.drawStep = 0 ∨ o = st.stock.cards.length)
+    (hp' : o' % st.drawStep = 0 ∨ o' = st.stock.cards.length)
+    (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length) :
+    ({ st with stock := { st.stock with cursor := o } }).solvableFrom ↔
+    ({ st with stock := { st.stock with cursor := o' } }).solvableFrom := sorry
+
+/-! ### The window obligation — the gap structure of the pace dominance
+
+When the better state wins and the worse is refuted, the witness of
+the difference is a *window card*: a draw the worse cursor cannot
+make.  The replay mechanism is the deal commutation
+(`deal_commutes_nonStock`): deals float through the non-consuming
+prefix, so the cursor at the first consumption is well-defined, and
+the worse state replays the line by trimming the deal count. -/
+
+/-- **The hurry lemma (physical game)**: with the later same-residue
+state `B = (board, M, o')` refuted, every win from the earlier
+`A = (board, M, o)` must draw a card *before its cursor first passes
+`o'` — some stock-draw happens at a pre-`o'` cursor.  Mechanism: a
+win whose first draw waits until the cursor has reached `o'` or
+beyond can be replayed from `B` — the deal commutation floats the
+prefix's deals past its reveals and shuffles
+(`deal_commutes_nonStock`), `B` trims the deal count to land on the
+same cursor, the draw merges (`drawCard_cursor_indep` — the successor
+is position-determined), and the suffix follows verbatim.
+
+TODO(proof) [M]: decompose the winning play at its first
+`consumesStock` move; the pre-draw prefix replays from `B` with the
+deals trimmed (same residue, no wrap below `o'`); a stock-free win
+contradicts `B` directly (non-consuming plays are cursor-blind). -/
+theorem window_firstDraw {st : State} {o o' : Nat}
+    (hle : o ≤ o') (hres : o % st.drawStep = o' % st.drawStep)
+    (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
+    (hA : ({ st with stock := { st.stock with cursor := o } }).solvableFrom)
+    (hB : ¬ ({ st with stock := { st.stock with cursor := o' } }).solvableFrom) :
+    ∀ play w, ({ st with stock := { st.stock with cursor := o } }).run play = some w →
+      w.isWin = true →
+      ∃ pre m rest st₁,
+        play = pre ++ m :: rest ∧ m.consumesStock = true ∧
+        ({ st with stock := { st.stock with cursor := o } }).run pre = some st₁ ∧
+        st₁.stock.cursor < o' := sorry
+
+/-- **The window obligation (macro game)**: with the later state
+refuted, every winning macro line's first `drawCommit` draws a card
+from the *exclusive window* — a position the later cursor cannot
+access.  Mechanism: the prefix of reveal commitments and
+accommodations is cursor-blind (the deal commutation's other half), so
+the later state replays it verbatim; if the first drawn card were also
+accessible there, the successors would merge (`drawCard_cursor_indep`)
+and the suffix would lift — the later state would win.  This
+characterizes the gap between `pace_dominance`'s two sides: when the
+better state wins and the worse is refuted, the difference is witnessed
+by a window card — the engine's "limit the next draw to the window".
+
+TODO(proof) [M]: decompose `ks` at the first `drawCommit` (the prefix
+is all `revealCommit` — the two-kind move set); replay the prefix from
+the o'-state (reveals and accommodations are cursor-blind); the merge
+gives the successor; the suffix lifts verbatim. -/
+theorem window_firstDraw_macro {st : State} {o o' : Nat} (hwf : st.WF)
+    (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
+    (hA : ({ st with stock := { st.stock with cursor := o } }).macroSolvable)
+    (hB : ¬ ({ st with stock := { st.stock with cursor := o' } }).macroSolvable) :
+    ∀ ks w, macroSteps ({ st with stock := { st.stock with cursor := o } }) ks w →
+      w.isWin = true →
+      ∃ pre x rest,
+        ks = pre ++ MacroMove.drawCommit x :: rest ∧
+        (∀ k ∈ pre, ∃ c, k = MacroMove.revealCommit c) ∧
+        (∀ p, st.stock.posOf x = some p →
+          p ∉ Pace.maskPos { cards := st.stock.cards, cursor := o' }
+            st.drawStep hwf.step_pos) := sorry
 
 /-! Deferred macro statements, recorded:
 

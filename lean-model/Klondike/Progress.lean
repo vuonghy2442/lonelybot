@@ -433,6 +433,38 @@ theorem run_append (st : State) (l₁ l₂ : List Move) :
       | none => rfl
       | some st' => exact ih st'
 
+/-- **Reachability dominance (the general prefix principle)**: if `a`
+reaches `b` by any play, every win from `b` lifts to `a` — prefix the
+reaching play.  The state-level parent of `solvable_of_accommodates`
+(Theorems.lean — which restricts the reaching play to shuffles) and of
+the physical-game pace dominances (Macro.lean's
+`pace_dominance_phys_*`: the better cursor *reaches* the worse one by
+pure deals).  It does *not* subsume the macro-game pace dominance
+(`pace_dominance`): the macro game has no deal move — its jumps
+consume — so same-mask states at different cursors are mutually
+unreachable there, and the simulation/replay argument is genuinely
+more general than reachability. -/
+theorem solvable_of_reaches {a b : State}
+    (hr : ∃ play, a.run play = some b) (hsol : b.solvableFrom) :
+    a.solvableFrom := by
+  obtain ⟨play, hrun⟩ := hr
+  obtain ⟨wplay, w, hwrun, hwin⟩ := hsol
+  refine ⟨play ++ wplay, w, ?_, hwin⟩
+  rw [run_append, hrun]
+  exact hwrun
+
+/-- Mutual reachability is solvability equivalence — the two-sided
+prefix principle.  This is the "reversible move ⇒ equivalence" fact
+(a reversible move's orbit: the move, then its reverse, gives the two
+plays — cf. `pileStack_stackPile_roundtrip`), and the parent of the
+same-pace-class equivalences (Macro.lean's `solvable_iff_pure_cursors`:
+the pure cursors are mutually reachable through the deal-orbit cycle
+pass-end → wrap → fresh pass). -/
+theorem solvable_iff_mutuallyReaches {a b : State}
+    (hab : ∃ play, a.run play = some b) (hba : ∃ play, b.run play = some a) :
+    a.solvableFrom ↔ b.solvableFrom :=
+  ⟨fun h => solvable_of_reaches hba h, fun h => solvable_of_reaches hab h⟩
+
 /-- The states a play passes through (empty suffix if it dies). -/
 def State.trace (st : State) : List Move → List State
   | [] => [st]

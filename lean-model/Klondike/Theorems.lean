@@ -147,6 +147,17 @@ theorem solvable_relabel (r : Relabel) (st : State) :
 /-- `flipAll` is the twin-swap instance. -/
 theorem flipAll_eq_relabelTwin (st : State) : st.flipAll = st.relabelBy Relabel.twin := rfl
 
+section Probe
+example (bd : Board) (b : Base) (acc : List Card) : Board.aboveOf.go bd 0 b acc = acc := rfl
+example (bd : Board) (fuel : Nat) (b : Base) (acc : List Card) :
+    Board.aboveOf.go bd (fuel+1) b acc
+      = match bd.topOf b with
+        | none => acc
+        | some c' => if acc.contains c' then acc else Board.aboveOf.go bd fuel (Sum.inr c') (c' :: acc) := rfl
+example (bd : Board) (c : Card) :
+    bd.aboveOf c = Board.aboveOf.go bd 52 (Sum.inr c) [] := rfl
+end Probe
+
 /-! ## 2. Reversibility and commitments — their Lemma A1, model side
 
 `pilePile` is an involution; `draw` is cyclically invertible;
@@ -272,6 +283,14 @@ def Move.isCommit : Move → Bool
   | .deckStack _ => true
   | _ => false
 
+/-- The stock-*consuming* moves: the card draws (`deckPile`,
+`deckStack`).  `.draw` — the pure deal that advances the cursor —
+consumes nothing: the pace advance, not a card down. -/
+def Move.consumesStock : Move → Bool
+  | .deckPile _ _ => true
+  | .deckStack _ => true
+  | _ => false
+
 /-- The accommodation relation (their Lemma A's shuffle reachability). -/
 def accommodates (st st' : State) : Prop :=
   ∃ play, st.run play = some st' ∧ ∀ m ∈ play, m.isAccommodation = true
@@ -322,6 +341,30 @@ Instance of `commute_of_compsDisjoint`.  TODO. -/
 theorem reveal_draw_comm (st : State) (c : Card) :
     (st.apply (Move.reveal c) >>= fun s => s.apply Move.draw) =
     (st.apply Move.draw >>= fun s => s.apply (Move.reveal c)) := sorry
+
+/-- The deal commutes with every non-consuming move: `.draw`'s
+component signature is `[.stock]` *alone* and its legality is
+unconditional (dealing reads nothing), while the non-consuming moves —
+reveal, the two shuffles, pilePile — never touch the stock.  The
+generalization of `reveal_draw_comm` from reveal to the whole
+non-consuming sector.  The consuming draws (deckPile, deckStack) are
+the genuine exceptions: their legality reads the cursor (`maskPos`),
+which the deal changes.
+
+This is the canonical form behind the window lemma's replay — deals
+float freely through a non-consuming prefix, so the cursor at the
+first consumption is a pure function of the deal count — and behind
+`solvableEngine_iff_macro`'s regrouping (A3: draws commute with
+accommodations).
+
+TODO(proof) [E]: case bash over the five non-consuming moves from the
+`apply` defs (the deal writes only `stock.cursor`; the others never
+read it), or `commute_of_compsDisjoint` — `.draw`'s comps is
+`[.stock]` by definition, disjoint from every non-consuming move's. -/
+theorem deal_commutes_nonStock (st : State) (m : Move)
+    (hc : m.consumesStock = false) :
+    (st.apply m >>= fun s => s.apply Move.draw) =
+    (st.apply Move.draw >>= fun s => s.apply m) := sorry
 
 /-- The bases and cards a move reads or writes (state-dependent — the
 run under a `pilePile`, the boundary under a `reveal`). -/
