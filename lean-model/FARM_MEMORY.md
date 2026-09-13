@@ -1135,3 +1135,118 @@ otMem_take_of_get (noDup pile),
   or a run-carrying reveal. Witnesses: Temp\opencode\{EngineWitness,LiftWitness2,DeadPileWitness}.lean.
 - drawTo_comm_adjacent PROVEN (kit re-proved in Move under namespaced names —
   Theorems owns the root names).
+
+## Dominance.lean — Wave 5 core: the R/N reduction landed; cancel identity; §5.2 gap (2026-09-13)
+
+- LANDED (axiom-clean [propext, Quot.sound], per-file exit 0): `findFirst_ne_none_of_mem`
+  (the missing converse half of Board.findFirst_eq_none), `vis_base_of_notLocked`
+  (WF + ¬isLocked + bottomOf c = inr d ⇒ isVis d — the dead-pile TRICHOTOMY as a lemma:
+  board_edges' base-condition forces d placed (bottomOf isSome) or deal-adjacent with d a
+  hidden boundary; the latter makes pileOfTopHidden d ≠ none = isLocked — NO limbo cards,
+  NO index juggling: the contradiction route is 15 lines), `safe_pileStack_dominant_of_return`
+  (the RETURNABLE case of §5.1: canReturnBase c b ⇒ dominantAt — one `stackPile c b`
+  ACCOMMODATES st via the proven roundtrip, `solvable_of_accommodates` lifts the win; safety
+  unused there), `stackPile_pileStack_cancel` ([stackPile c b, pileStack c] = id — §5.4's
+  pair-deletion; unconditional in canReturnBase, needs WF for topOf (inr c) = none: nothing
+  sits on a foundation card, via founds_gone + board_edges).
+- THE R/N FINDING: safe_pileStack_dominant splits EXACTLY on canReturnBase c b. R half
+  proved (above). N half = the B4-shaped reshape, and NO accommodation play bridges it
+  (any accommodation play from the stacked successor back to st must fire stackPile c b —
+  excursion pairs are net identities — whose canPlace fails precisely on non-returnable
+  bases). The reshape's blocked shapes, precisely: (i) placements onto c when the placed
+  card is not yet stackable (STORAGE — deckPile x (inr c) with heights x.suit < toIdx x);
+  (ii) run-carrying pilePile placements onto diverged cards (whole runs need re-homing);
+  (iii) π-moves reading the c-suit height offset (each channel-A/B skip re-opens a divergence
+  that only closes at π's own re-commit). All three need the compliant-play normal form —
+  SAME ROOT as solvable_accommodates/B4. Recorded in the theorem's note.
+- stackPile_safe_prunable: the prior route note MISSED a second-move case: `deckPile x (inr c)`
+  (b' = inr c is not excluded by "b' ≠ b" — placing the drawn card ONTO the just-worried c:
+  at st it fails since c is on the foundation; the substitute deckStack x is legal — hsafe's
+  opp-colour conjunct pins heights x.suit = toIdx x for a stocked x — but reshapes the whole
+  tail). Route note updated; residual = that case + the same-suit worry-chain + drawStep ≥ 2
+  off-orbit. draw case was ALREADY theorem `draw_comm_stackPile` (Theorems, cite it).
+- §5.2 SOUNDNESS CONCERN (analytic, witness pending): ≥3 redundant stackables do NOT imply
+  the lowest is §5.1-safe — the three sit in three DISTINCT suits (one stackable per suit:
+  each is its suit's height), so a FOURTH suit's height is unconstrained, and safeToStack's
+  4th conjunct can fail by up to r−1. Gap shape: stackables ♠5/♥8/♣9, ♦=0 — c=♠5 fails
+  opp-colour (♦≥3), danger card ♦4 is LIVE (not foundation-able). Likely repair:
+  + `hsafe : safeToStack st c = true`. Documented in the theorem's note (TODO falsifier).
+- SYNTAX paid: (1) `show (match X with ...) = e` in a have-TYPE with the match's arms not
+  mentioning hypotheses AUTO-GENERALIZED the match over `hcp, hatt` as extra discriminants
+  ("match b, hcp, hatt with") — avoid spelling canPlace's body in a show-type; `simp only
+  [State.canPlace] at hcp'` on a COPY, then Bool.and_eq_true_iff.mp hcp' twice (the ledger
+  recipe holds). (2) `rw`'s auto-rfl does NOT evaluate `decide (none = none) && decide
+  (king = king) = true` — append explicit `rfl` (it closes at default transparency). (3)
+  `simp only [State.run, hsp, hrt]` did NOT unfold `st.run [m]` — for singleton runs use
+  `show (match st.apply m with | some st' => st'.run [] | none => none) = e` then
+  `rw [hsp, hrt]; rfl`. (4) state_ext on a `{ {stwith ...} with ...}` goal: the successor
+  literal elaborates with a `let __src` — the board/heights slots need `.symm` (slots are
+  st.field = LIT.field, lemmas give the other direction); rfl-slots survive the let (zeta).
+
+## Theorems.lean — the seven-item wave: the cursor-blindness API + commute_of_disjoint_touch (2026-09-13)
+
+- LANDED (axiom-clean [propext, Quot.sound], commute +Classical.choice): deal_commutes_nonStock
+  (rfl + the four draw_comm_* symms + consumesStock absurdity), draw_full_pass (RELOCATED below
+  run_dealIter; q = (n+s-1)/s is EXACTLY ⌈n/s⌉ — omega cannot link variable-divisor `/` with
+  products: rw hqdef INTO the Nat.div_add_mod output first), apply_nonConsuming_cursor_blind
+  (st' IS {st with stock := st'.stock} by state_ext — the blindness kit then applies the move
+  from the replaced state; draw arm via dealOnce_cards), applyDrawTo_merge / applyDrawStackTo_merge
+  (posOf runs over cards only — posOf_cards_eq; the guard index = posOf; (drawTo i).removeAt i is
+  source-cursor-FREE via Move's Cycle.removeAt_drawTo), commute_of_disjoint_touch (below).
+- TWO STATEMENT REPAIRS (both prover-confirmed, witnesses Temp\opencode\{StockInvarWitness,
+  CommuteWitness}.lean — citing the sorry'd constants is safe): (1) apply_nonConsuming_stock_invar
+  gained (hm : m ≠ Move.draw) — draw is non-consuming but WRITES the stock cursor; (2)
+  commute_of_disjoint_touch gained the hnc draw/consumesStock conjunction — .draw's touch is
+  ([], []), disjoint from EVERYTHING, but deckPile/deckStack legality reads the waste top
+  (cursor-sensitive): stock [cK,h2,cK,h4] cursor 1 step 2, king on a free anchor — the two
+  orders land [h2,cK,h4] vs [cK,h2,h4]. No downstream users existed.
+- commute_of_disjoint_touch's structure: 16 fine pair-lemmas (comm_reveal_{reveal,deckPile,
+  pileStack,stackPile,pilePile}, comm_deckPile_{pileStack,stackPile,pilePile},
+  comm_deckStack_{pileStack,stackPile}, comm_pileStack_{pileStack,stackPile,pilePile},
+  comm_stackPile_{stackPile,pilePile}, comm_pilePile_pilePile) + 2 coarse fallouts (reveal·
+  deckStack, deckStack·pilePile via commute_of_compsDisjoint) + deck·deck vacuity (both first
+  moves read the same prev; c ≠ c' from the card-disjointness). NEW KIT: bottomOf_attach_ne
+  (the equality form), attach_detach_comm, detach_detach_comm, take_reverse_drop1 (reveal·reveal's
+  redirect corner: the depth-step exposing r' as pile a's new boundary makes reveal's OWN attach
+  die — its base inr r' is occupied by the other trigger c'), topHidden/hiddenBase_congr(')
+  (POINTWISE — full-depths congruence cannot take rfl for opaque s₁.deal: rw [hs₁] in the goal
+  first), heights_bump_bump/bump_drop/drop_drop (generic α [DecidableEq α] — reused for depths
+  via depths_step_step; bump_drop at a shared suit needs that suit's height > 0 — every
+  stackPile guard supplies it), disjointTouch_symm, canPlace_inr_isVis. Heights vacuities: a
+  shared suit makes one guard read the pre-write height and the other the post-write — omega,
+  but rw the suit-eq INTO the guard first (omega cannot link st.heights c.suit and
+  st.heights c'.suit across a Suit-equality).
+- SYNTAX paid (beyond the known card): (1) `cases b with | inl _` KILLS the binder — reference
+  (Sum.inl a) with a NAMED pattern, never b afterwards; (2) after `subst hxa : x = a` the a-side
+  is gone — annotate lambda args with the SURVIVING name; (3) `Option.some.inj (A.symm.trans B)`
+  NEEDS the parens (bare chains into application parse errors); (4) a stuck `if a = a` under a
+  projection-literal blocks even exact-defeq — show the if-form and rw [if_pos rfl]; (5) witness
+  rewrites (hbase₁ etc.) must come BEFORE the state-literal rws (after rw [hs₁] the s₁-facts
+  are gone); (6) isVis vacuities via canPlace_inr_isVis + the other move's ATTACH GUARD — but
+  pilePile's guard is on the DETACHED board (c' keeps its st-seat: DP·PP needs NO vacuity,
+  DP·SP does); (7) state_ext slots: deal=1 board=2 heights=3 depths=4 stock=5 drawStep=6 —
+  miscounted ?_ positions cost three builds; (8) membership under unreduced touch-projections:
+  ascribe (have hD2 : ∀ x ∈ [c], x ∉ [c'] := hdisj.2) or show the list form.
+- draw_full_pass arithmetic: (n-1)+1 = n is FALSE at n = 0 (Nat truncation) — the vacuity comes
+  from the take-slice's some-getLast? — have hn : 0 < n FIRST. ⌈⌉-minimality (d·s ≥ n → q ≤ d)
+  needs Nat.mul_le_mul — mul monotonicity is NOT omega.
+- Theorems now carries ONE sorry (solvable_accommodates — B4, the farm's hardest, plan note in
+  place; the task brief's "zero sorry" reading assumed it was already elsewhere).
+
+## WAVE-9 ADJUDICATIONS (orchestrator, accepted)
+
+- apply_nonConsuming_stock_invar: `+ (hm : m ≠ Move.draw)` — draw is
+  non-consuming but writes the cursor (witness recorded).
+- commute_of_disjoint_touch: `+ hnc` guard (draw's empty touch-set is
+  disjoint from everything, yet draw·deckPile diverges on a duplicated
+  stock card — witness recorded). The C13 fine layer now has its kit
+  (bottomOf_attach_ne, attach_detach_comm, detach_detach_comm, the
+  reveal·reveal redirect corner, generic ±1 heights lemmas).
+- least_redundantStack_dominant: soundness concern noted (≥3 stackables
+  in 3 distinct suits leaves the 4th suit unconstrained) — repair
+  direction `+ hsafe` documented, falsifier future work.
+- THE B4 NEXUS: three independent blockers (Theorems' last sorry
+  solvable_accommodates; Dominance's N-half; stackPile's residual) all
+  reduce to the same reshape root. Landed toward it: the R-half
+  (safe_pileStack_dominant_of_return), stackPile_pileStack_cancel,
+  vis_base_of_notLocked (the dead-pile trichotomy).
