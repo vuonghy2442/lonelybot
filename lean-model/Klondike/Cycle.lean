@@ -162,4 +162,96 @@ theorem removeAt_comm {α : Type} (cy : Cycle α) (i j : Nat)
   simp only [removeAt]
   simp only [if_pos hj, if_pos hic, if_pos hic1, if_pos hjc1, hcards]
 
+/-! ### The draw-commitment splice kit
+
+The stock op of a Draw commitment (`drawTo` then `removeAt` at the
+same index) is the plain splice `⟨removeIdx cards i, i⟩`
+(`removeAt_drawTo`); a splice shifts later first occurrences down by
+one and keeps earlier ones in place
+(`findFirstIdx_removeIdx_shift`/`_keep`, with the `posOf` packagings
+— the cursor is never read).  CANONICAL HOME (2026-09-13
+consolidation): the former Move.lean/Commutation.lean/Pace.lean
+copies are deleted — this file sits above all three in the DAG. -/
+
+/-- The Draw-commitment's stock successor: jump past `i`, splice `i`
+out — the cursor lands exactly on `i`. -/
+theorem removeAt_drawTo {α : Type} (i : Nat) (cy : Cycle α) :
+    (cy.drawTo i).removeAt i = { cards := Cycle.removeIdx cy.cards i, cursor := i } := by
+  simp only [Cycle.removeAt, Cycle.drawTo, if_pos (by omega : i < i + 1),
+    Nat.add_sub_cancel]
+
+/-- Splicing out an earlier position shifts a later first occurrence
+down by one. -/
+theorem findFirstIdx_removeIdx_shift {α : Type} (p : α → Bool) :
+    ∀ (l : List α) (q r : Nat), Cycle.findFirstIdx p l = some r → q < r →
+      Cycle.findFirstIdx p (Cycle.removeIdx l q) = some (r - 1) := by
+  intro l
+  induction l with
+  | nil =>
+      intro q r h _
+      exact absurd h (by simp [Cycle.findFirstIdx])
+  | cons a t ih =>
+      intro q r h hqr
+      have hc : (if p a then some 0 else (Cycle.findFirstIdx p t).map Nat.succ) = some r := h
+      by_cases hpa : p a = true
+      · rw [if_pos hpa, Option.some.injEq] at hc
+        exact absurd hqr (by omega)
+      · rw [if_neg hpa] at hc
+        cases q with
+        | zero =>
+            rw [Cycle.removeIdx_zero]
+            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
+            rw [hr']
+            exact congrArg some (by omega)
+        | succ q' =>
+            rw [Cycle.removeIdx_succ]
+            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
+            have hih := ih q' r' hr' (by omega)
+            show (if p a then some 0
+              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some (r - 1)
+            rw [if_neg hpa, hih, Option.map_some]
+            exact congrArg some (by omega)
+
+/-- Splicing out a later position leaves an earlier first occurrence
+where it was. -/
+theorem findFirstIdx_removeIdx_keep {α : Type} (p : α → Bool) :
+    ∀ (l : List α) (p₀ q : Nat), Cycle.findFirstIdx p l = some p₀ → p₀ < q →
+      Cycle.findFirstIdx p (Cycle.removeIdx l q) = some p₀ := by
+  intro l
+  induction l with
+  | nil =>
+      intro p₀ q h _
+      exact absurd h (by simp [Cycle.findFirstIdx])
+  | cons a t ih =>
+      intro p₀ q h hpq
+      have hc : (if p a then some 0 else (Cycle.findFirstIdx p t).map Nat.succ) = some p₀ := h
+      cases q with
+      | zero => exact absurd hpq (by omega)
+      | succ q' =>
+          rw [Cycle.removeIdx_succ]
+          by_cases hpa : p a = true
+          · rw [if_pos hpa, Option.some.injEq] at hc
+            show (if p a then some 0
+              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
+            rw [if_pos hpa, ← hc]
+          · rw [if_neg hpa] at hc
+            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
+            have hih := ih r' q' hr' (by omega)
+            show (if p a then some 0
+              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
+            rw [if_neg hpa, hih, Option.map_some]
+            exact congrArg some (by omega)
+
+/-- The shift lemma, `posOf` packaging (the cursor is never read). -/
+theorem posOf_removeIdx_shift {x : Card} {l : List Card} {cur cur' : Nat} {q r : Nat}
+    (h : Cycle.posOf x ⟨l, cur⟩ = some r) (hqr : q < r) :
+    Cycle.posOf x ⟨Cycle.removeIdx l q, cur'⟩ = some (r - 1) :=
+  findFirstIdx_removeIdx_shift _ l q r h hqr
+
+/-- The keep lemma, `posOf` packaging (the cursor is never read). -/
+theorem posOf_removeIdx_keep {x : Card} {l : List Card} {cur cur' : Nat} {p q : Nat}
+    (h : Cycle.posOf x ⟨l, cur⟩ = some p) (hpq : p < q) :
+    Cycle.posOf x ⟨Cycle.removeIdx l q, cur'⟩ = some p :=
+  findFirstIdx_removeIdx_keep _ l p q h hpq
+
 end Cycle

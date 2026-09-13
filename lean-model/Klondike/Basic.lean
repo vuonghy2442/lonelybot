@@ -81,6 +81,10 @@ def Rank.toIdx : Rank → Nat
 
 theorem Rank.toIdx_lt (r : Rank) : r.toIdx < 13 := by cases r <;> decide
 
+/-- Ranks are determined by their numeric view. -/
+theorem Rank.toIdx_inj {r r' : Rank} (h : r.toIdx = r'.toIdx) : r = r' := by
+  cases r <;> cases r' <;> simp_all [Rank.toIdx]
+
 /-- All ranks. -/
 def Rank.all : List Rank :=
   [.ace, .two, .three, .four, .five, .six, .seven, .eight, .nine, .ten, .jack, .queen, .king]
@@ -130,6 +134,26 @@ theorem canSitOn_antisymm {c b : Card} (h : canSitOn c b = true) : canSitOn b c 
   obtain ⟨h2, -⟩ := hcon
   omega
 
+/-- The seat-locality fact (macro_formalization §6.2): a base `b` has at
+most two tenants — `c` and its twin.  The receiver analysis (the K2/K6
+goal kills) is built on this. -/
+theorem Card.only_blocker_is_twin {c b z : Card}
+    (hc : canSitOn c b = true) (hz : canSitOn z b = true) : z = c ∨ z = c.flipSuit := by
+  rcases c with ⟨⟨cc, cp⟩, cr⟩
+  rcases z with ⟨⟨zc, zp⟩, zr⟩
+  rcases b with ⟨⟨bc, _bp⟩, br⟩
+  obtain ⟨hcr, hcc⟩ := (canSitOn_eq _ _).mp hc
+  obtain ⟨hzr, hzc⟩ := (canSitOn_eq _ _).mp hz
+  have hcc' : cc ≠ bc := hcc
+  have hzc' : zc ≠ bc := hzc
+  have hcr' : cr.toIdx + 1 = br.toIdx := hcr
+  have hzr' : zr.toIdx + 1 = br.toIdx := hzr
+  have hrank : zr = cr := Rank.toIdx_inj (by omega)
+  have hcolor : zc = cc := by
+    cases cc <;> cases zc <;> cases bc <;> simp_all
+  subst hrank hcolor
+  cases cp <;> cases zp <;> simp [Card.flipSuit, Suit.flipPair]
+
 /-- All 52 cards. -/
 def Card.universe : List Card :=
   Suit.all.flatMap fun s => Rank.all.map fun r => Card.mk s r
@@ -140,3 +164,13 @@ theorem Card.mem_universe (c : Card) : c ∈ Card.universe := by
   exact ⟨s, s.mem_all, r, r.mem_all, rfl⟩
 
 theorem Card.universe_length : Card.universe.length = 52 := by decide
+
+/-- The receiver set of `X`: the cards `X` could sit directly on —
+rank one up, opposite color (`canSitOn X`); empty for kings.  At most
+two members (`only_blocker_is_twin`; exactly two for non-kings — the
+twin suits of the other color).  The engine's receiver-type analysis
+(K2/K6) reads this set. -/
+def Card.receivers (X : Card) : List Card := Card.universe.filter fun r => canSitOn X r
+
+theorem Card.mem_receivers_iff (X r : Card) : r ∈ X.receivers ↔ canSitOn X r = true := by
+  simp [Card.receivers, Card.mem_universe]

@@ -510,14 +510,6 @@ def drawCard (x : Card) (c : Cycle Card) : Option (Cycle Card) :=
   | none => none
   | some i => some ((c.drawTo i).removeAt i)
 
-/-- The draw successor's shape: jump past `i`, then splice `i` out —
-the cursor lands exactly on `i` (deck.rs's `set_offset(id+1)` +
-`pop_next`).  The source cursor is nowhere in the result. -/
-theorem removeAt_drawTo_eq {α : Type} (i : Nat) (cy : Cycle α) :
-    (cy.drawTo i).removeAt i = ⟨Cycle.removeIdx cy.cards i, i⟩ := by
-  simp only [Cycle.removeAt, Cycle.drawTo, if_pos (by omega : i < i + 1),
-    Nat.add_sub_cancel]
-
 /-- The merge lemma: `drawCard` reads only the cards — the jump target
 is `posOf` (cards-only), `drawTo` *overwrites* the cursor with `i + 1`,
 and `removeAt` computes the successor cursor from that overwritten value
@@ -534,7 +526,7 @@ theorem drawCard_cursor_indep (c c' : Cycle Card) (x : Card) (hc : c.cards = c'.
   | none => rfl
   | some i =>
       show some ((c.drawTo i).removeAt i) = some ((c'.drawTo i).removeAt i)
-      rw [removeAt_drawTo_eq i c, removeAt_drawTo_eq i c', hc]
+      rw [Cycle.removeAt_drawTo i c, Cycle.removeAt_drawTo i c', hc]
 
 /-! ### The posOf ↔ idxOf bridge
 
@@ -643,7 +635,7 @@ theorem run_mem : ∀ (l : List Card) (c c' : Cycle Card), run c l = some c' →
               · rw [hzx]
                 exact mem_of_posOf c.cards c.cursor x i hp
               · have hz1 : z ∈ c₁.cards := ih c₁ c' hrun' z hzs
-                rw [← hinj, removeAt_drawTo_eq i c] at hz1
+                rw [← hinj, Cycle.removeAt_drawTo i c] at hz1
                 exact mem_removeIdx_of hz1
 
 /-- A successful run's draw order is duplicate-free. -/
@@ -666,7 +658,7 @@ theorem run_pre_nodup : ∀ (pre : List Card) (c c' : Cycle Card), run c pre = s
           | some i =>
               rw [hp] at hdc
               have hc₁ : c₁ = ⟨Cycle.removeIdx c.cards i, i⟩ :=
-                (Option.some.inj hdc).symm.trans (removeAt_drawTo_eq i c)
+                (Option.some.inj hdc).symm.trans (Cycle.removeAt_drawTo i c)
               have hmem : x ∈ c.cards := hsub x (by simp)
               have hget : c.cards[i]? = some x := findFirstIdx_get c.cards x i hp
               have hsub' : ∀ z ∈ xs, z ∈ c₁.cards := fun z hz => run_mem xs c₁ c' hrun' z hz
@@ -712,12 +704,12 @@ theorem run_cards_filter : ∀ (pre : List Card) (c c' : Cycle Card), run c pre 
               have hget : c.cards[i]? = some x := findFirstIdx_get c.cards x i hp
               have hsub' : ∀ z ∈ xs, z ∈ c₁.cards := fun z hz => run_mem xs c₁ c' hrun' z hz
               have hnd' : noDupCards c₁.cards := by
-                rw [← hinj, removeAt_drawTo_eq i c]
+                rw [← hinj, Cycle.removeAt_drawTo i c]
                 exact noDupCards_removeIdx c.cards i hnd
               have hih : c'.cards = c₁.cards.filter (fun z => decide (z ∉ xs)) :=
                 ih c₁ c' hrun' hnd' hsub'
               have hfilter : c₁.cards = c.cards.filter (fun z => decide (z ≠ x)) := by
-                rw [← hinj, removeAt_drawTo_eq i c]
+                rw [← hinj, Cycle.removeAt_drawTo i c]
                 show Cycle.removeIdx c.cards i = c.cards.filter (fun z => decide (z ≠ x))
                 rw [removeIdx_filter_mem c.cards i hnd]
                 exact List.filter_congr fun z hz => by
@@ -900,7 +892,7 @@ theorem cursor_after (c c' c'' : Cycle Card) (pre : List Card) (w : Card)
   | some i =>
       rw [hp] at hdraw
       have hinj : (c'.drawTo i).removeAt i = c'' := Option.some.inj hdraw
-      rw [← hinj, removeAt_drawTo_eq i c']
+      rw [← hinj, Cycle.removeAt_drawTo i c']
       have hi : some i = some (c.cards.idxOf w - rBelow c.cards pre w) := by
         rw [← hp]; exact hpos
       exact Option.some.inj hi
@@ -1251,7 +1243,7 @@ theorem run_cursor_le : ∀ (l : List Card) (c c' : Cycle Card),
           | some i =>
               rw [hp] at hdc
               have hc₁ : c₁ = ⟨Cycle.removeIdx c.cards i, i⟩ :=
-                (Option.some.inj hdc).symm.trans (removeAt_drawTo_eq i c)
+                (Option.some.inj hdc).symm.trans (Cycle.removeAt_drawTo i c)
               have hilt : i < c.cards.length := posOf_lt hp
               have hlen : (Cycle.removeIdx c.cards i).length + 1 = c.cards.length :=
                 Cycle.removeIdx_length c.cards i hilt

@@ -100,40 +100,13 @@ theorem macroSolvable_of_simulates {a b : State} (R : State → State → Prop)
 
 The pieces `macroStep_engine_play` and `drawTo_tableau_outcomes_agree`
 are built from: the `reachablePos` / `applyDrawTo` / `applyDrawStackTo`
-shape lemmas, the deal iteration `Cycle.dealN` with its orbit
+shape lemmas, the deal iteration `Cycle.dealIter` (Theorems.lean's kit
+— Macro is downstream, so it cites rather than restates; the
+`dealOnce_*` orbit lemmas below are Macro-local) with its orbit
 correspondence (every accessible position is reached by pure deals —
 the witness half of `applyDrawTo_eq_dealPlay`, with `posOf`'s range
 bound standing in for the WF cursor invariant), and the after-deals
 deck moves. -/
-
-/-- `k` deals from `cy`. -/
-def Cycle.dealN (s : Nat) : Nat → Cycle Card → Cycle Card
-  | 0, cy => cy
-  | k + 1, cy => dealOnce s (dealN s k cy)
-
-theorem Cycle.dealN_zero (s : Nat) (cy : Cycle Card) : dealN s 0 cy = cy := rfl
-
-theorem Cycle.dealN_succ (s : Nat) (k : Nat) (cy : Cycle Card) :
-    dealN s (k + 1) cy = dealOnce s (dealN s k cy) := rfl
-
-theorem Cycle.dealN_one (s : Nat) (cy : Cycle Card) :
-    dealN s 1 cy = dealOnce s cy := rfl
-
-theorem Cycle.dealN_add (s : Nat) : ∀ (k j : Nat) (cy : Cycle Card),
-    dealN s (k + j) cy = dealN s k (dealN s j cy) := by
-  intro k
-  induction k with
-  | zero => intro j cy; rw [Nat.zero_add, dealN_zero]
-  | succ k ih =>
-    intro j cy
-    rw [Nat.succ_add, dealN_succ, dealN_succ, ih]
-
-theorem Cycle.dealN_shift (s : Nat) : ∀ (k : Nat) (cy : Cycle Card),
-    dealN s k (dealOnce s cy) = dealOnce s (dealN s k cy) := by
-  intro k
-  induction k with
-  | zero => intro cy; rfl
-  | succ k ih => intro cy; rw [dealN_succ, ih, ← dealN_succ]
 
 /-- A zero residue witnesses the multiple. -/
 theorem exists_mul_of_mod_zero {a s : Nat} (hmod : a % s = 0) : ∃ q, a = q * s := by
@@ -147,7 +120,7 @@ theorem exists_mul_of_mod_zero {a s : Nat} (hmod : a % s = 0) : ∃ q, a = q * s
 `c + q·s` whenever that stays within the length (no clamp, no wrap). -/
 theorem dealOnce_iterate_add {s : Nat} (hs : 0 < s) (l : List Card) :
     ∀ (q c : Nat), c + q * s ≤ l.length →
-      Cycle.dealN s q ⟨l, c⟩ = ⟨l, c + q * s⟩ := by
+      Cycle.dealIter s q ⟨l, c⟩ = ⟨l, c + q * s⟩ := by
   intro q
   induction q with
   | zero => intro c _; rw [Nat.zero_mul, Nat.add_zero]; rfl
@@ -159,13 +132,13 @@ theorem dealOnce_iterate_add {s : Nat} (hs : 0 < s) (l : List Card) :
       show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
           = (⟨l, c + s⟩ : Cycle Card)
       rw [if_neg (by omega), Nat.min_eq_left (by omega)]
-    rw [Cycle.dealN_succ, ← Cycle.dealN_shift, hstep, ih (c + s) (by omega), hexp]
+    rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep, ih (c + s) (by omega), hexp]
     exact congrArg (Cycle.mk l) (by omega)
 
 /-- Every cursor reaches the pass end: the chain of clamped deals. -/
 theorem dealOnce_reach_end {s : Nat} (hs : 0 < s) (l : List Card) :
     ∀ (d c : Nat), c ≤ l.length → l.length - c ≤ d →
-      ∃ k, Cycle.dealN s k ⟨l, c⟩ = ⟨l, l.length⟩ := by
+      ∃ k, Cycle.dealIter s k ⟨l, c⟩ = ⟨l, l.length⟩ := by
   intro d
   induction d with
   | zero =>
@@ -184,7 +157,7 @@ theorem dealOnce_reach_end {s : Nat} (hs : 0 < s) (l : List Card) :
           rw [if_neg (by omega), Nat.min_eq_left (by omega)]
         obtain ⟨k, hk⟩ := ih (c + s) (by omega) (by omega)
         refine ⟨k + 1, ?_⟩
-        rw [Cycle.dealN_succ, ← Cycle.dealN_shift, hstep]
+        rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep]
         exact hk
       · have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, l.length⟩ := by
           show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
@@ -194,7 +167,7 @@ theorem dealOnce_reach_end {s : Nat} (hs : 0 < s) (l : List Card) :
 
 /-- The pass end is reached from any cursor, even past it (one wrap). -/
 theorem dealOnce_reach_end_any {s : Nat} (hs : 0 < s) (l : List Card) (c : Nat) :
-    ∃ k, Cycle.dealN s k ⟨l, c⟩ = ⟨l, l.length⟩ := by
+    ∃ k, Cycle.dealIter s k ⟨l, c⟩ = ⟨l, l.length⟩ := by
   by_cases hcl : c ≤ l.length
   · exact dealOnce_reach_end hs l (l.length - c) c hcl (by omega)
   · have hwrap : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, 0⟩ := by
@@ -203,13 +176,13 @@ theorem dealOnce_reach_end_any {s : Nat} (hs : 0 < s) (l : List Card) (c : Nat) 
       rw [if_pos (by omega : c ≥ l.length)]
     obtain ⟨k₀, hk₀⟩ := dealOnce_reach_end hs l l.length 0 (Nat.zero_le _) (by omega)
     refine ⟨k₀ + 1, ?_⟩
-    rw [Cycle.dealN_succ, ← Cycle.dealN_shift, hwrap, hk₀]
+    rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hwrap, hk₀]
 
 /-- The wrapped advance: reach the pass end, wrap to 0, then climb to
 `i + 1` on the batch-top lane (`i + 1` a multiple of `s`). -/
 theorem dealOnce_wrap_advance {s : Nat} (hs : 0 < s) (l : List Card) (c i : Nat)
     (hlt : i < l.length) (hle : s - 1 ≤ i) (hmod : (i - (s - 1)) % s = 0) :
-    ∃ k, Cycle.dealN s k ⟨l, c⟩ = ⟨l, i + 1⟩ := by
+    ∃ k, Cycle.dealIter s k ⟨l, c⟩ = ⟨l, i + 1⟩ := by
   obtain ⟨k₀, hk₀⟩ := dealOnce_reach_end_any hs l c
   have hwrap : Cycle.dealOnce s ⟨l, l.length⟩ = ⟨l, 0⟩ := by
     show (if l.length ≥ l.length then (⟨l, 0⟩ : Cycle Card)
@@ -220,25 +193,25 @@ theorem dealOnce_wrap_advance {s : Nat} (hs : 0 < s) (l : List Card) (c i : Nat)
   have hadv : 0 + (q + 1) * s ≤ l.length := by rw [hexp]; omega
   have hlast : 0 + (q + 1) * s = i + 1 := by rw [hexp]; omega
   refine ⟨(q + 1) + (1 + k₀), ?_⟩
-  have hcomp1 : Cycle.dealN s (1 + k₀) ⟨l, c⟩
-      = Cycle.dealOnce s (Cycle.dealN s k₀ ⟨l, c⟩) := by
-    rw [Cycle.dealN_add, Cycle.dealN_one]
-  have hcomp2 : Cycle.dealN s ((q + 1) + (1 + k₀)) ⟨l, c⟩
-      = Cycle.dealN s (q + 1) (Cycle.dealOnce s (Cycle.dealN s k₀ ⟨l, c⟩)) := by
-    rw [Cycle.dealN_add, hcomp1]
+  have hcomp1 : Cycle.dealIter s (1 + k₀) ⟨l, c⟩
+      = Cycle.dealOnce s (Cycle.dealIter s k₀ ⟨l, c⟩) := by
+    rw [Cycle.dealIter_add, Cycle.dealIter_one]
+  have hcomp2 : Cycle.dealIter s ((q + 1) + (1 + k₀)) ⟨l, c⟩
+      = Cycle.dealIter s (q + 1) (Cycle.dealOnce s (Cycle.dealIter s k₀ ⟨l, c⟩)) := by
+    rw [Cycle.dealIter_add, hcomp1]
   rw [hcomp2, hk₀, hwrap,
     dealOnce_iterate_add hs l (q + 1) 0 hadv, hlast]
 
 /-- The deal-orbit correspondence, witness half: every accessible
-position is dealt to — `dealN` realizes the jump `drawTo i`.  `posOf`'s
+position is dealt to — `dealIter` realizes the jump `drawTo i`.  `posOf`'s
 range bound (`hlt`) replaces the WF cursor invariant: the mask's
 leading-lane bound and the wrapped lane's truncation are never needed
 in this direction (out-of-range positions never have a position). -/
 theorem maskPos_deal_reach {s : Nat} (hs : 0 < s) {cy : Cycle Card} {i : Nat}
     (hlt : i < cy.cards.length) (hmem : i ∈ Pace.maskPos cy s hs) :
-    ∃ k, Cycle.dealN s k cy = { cy with cursor := i + 1 } := by
+    ∃ k, Cycle.dealIter s k cy = { cy with cursor := i + 1 } := by
   rcases cy with ⟨l, c⟩
-  show ∃ k, Cycle.dealN s k ⟨l, c⟩ = ⟨l, i + 1⟩
+  show ∃ k, Cycle.dealIter s k ⟨l, c⟩ = ⟨l, i + 1⟩
   have hlt : i < l.length := hlt
   simp only [Pace.maskPos] at hmem
   rcases List.mem_append.mp hmem with h12 | h3
@@ -412,7 +385,7 @@ theorem run_singleton (st : State) (m : Move) : st.run [m] = st.apply m := by
 /-- A run of pure deals lands on the iterated deal. -/
 theorem run_replicate_draw : ∀ (k : Nat) (st : State),
     st.run (List.replicate k Move.draw) =
-      some { st with stock := Cycle.dealN st.drawStep k st.stock } := by
+      some { st with stock := Cycle.dealIter st.drawStep k st.stock } := by
   intro k
   induction k with
   | zero => intro st; rfl
@@ -423,9 +396,9 @@ theorem run_replicate_draw : ∀ (k : Nat) (st : State),
     show ({ st with stock := Cycle.dealOnce st.drawStep st.stock } : State).run
         (List.replicate k Move.draw) = _
     rw [ih { st with stock := Cycle.dealOnce st.drawStep st.stock }]
-    show some { st with stock := Cycle.dealN st.drawStep k (Cycle.dealOnce st.drawStep st.stock) }
-       = some { st with stock := Cycle.dealN st.drawStep (k + 1) st.stock }
-    rw [Cycle.dealN_shift, Cycle.dealN_succ]
+    show some { st with stock := Cycle.dealIter st.drawStep k (Cycle.dealOnce st.drawStep st.stock) }
+       = some { st with stock := Cycle.dealIter st.drawStep (k + 1) st.stock }
+    rw [Cycle.dealIter_shift, Cycle.dealIter_succ]
 
 /-- The tableau deck move after the deals brought `c` to the top:
 the successor is exactly `applyDrawTo`'s. -/
@@ -683,9 +656,11 @@ theorem maskPos_mem_trans {α : Type} {cy cy' : Cycle α} {s s' : Nat}
 theorem wf_of_cursor {st : State} {o : Nat} (hwf : st.WF)
     (hcur : o ≤ st.stock.cards.length) :
     ({ st with stock := { st.stock with cursor := o } } : State).WF := by
-  refine ⟨hwf.1, hwf.2.1, hwf.2.2.1, hwf.2.2.2.1, hwf.2.2.2.2.1,
-    hwf.2.2.2.2.2.1, hwf.2.2.2.2.2.2.1, hwf.2.2.2.2.2.2.2.1, ?_,
-    hwf.2.2.2.2.2.2.2.2.2.1, hwf.2.2.2.2.2.2.2.2.2.2⟩
+  refine State.WF.intro (deal_wf := hwf.deal_wf) (depths_le := hwf.depths_le)
+    (board_edges := hwf.board_edges) (vis_off_cycle := hwf.vis_off_cycle)
+    (found_off_cycle := hwf.found_off_cycle) (founds_gone := hwf.founds_gone)
+    (vis_not_hidden := hwf.vis_not_hidden) (heights_le := hwf.heights_le)
+    (cursor_le := ?_) (step_pos := hwf.step_pos) (stock_wf := hwf.stock_wf)
   show o ≤ st.stock.cards.length
   exact hcur
 
@@ -1000,7 +975,7 @@ theorem deal_chain_reaches {st : State} {o o' : Nat}
       rw [hkey]; exact hcur'
     refine ⟨List.replicate k Move.draw, ?_⟩
     rw [run_replicate_draw]
-    show some { st with stock := Cycle.dealN st.drawStep k ⟨st.stock.cards, o⟩ }
+    show some { st with stock := Cycle.dealIter st.drawStep k ⟨st.stock.cards, o⟩ }
       = some { st with stock := ⟨st.stock.cards, o'⟩ }
     have hiter := dealOnce_iterate_add hs st.stock.cards k o hle2
     rw [hkey] at hiter
@@ -1029,7 +1004,7 @@ theorem deal_passEnd_reaches {st : State} {o : Nat}
     (st.stock.cards.length - o) o hcur (Nat.le_refl _)
   refine ⟨List.replicate k Move.draw, ?_⟩
   rw [run_replicate_draw]
-  show some { st with stock := Cycle.dealN st.drawStep k ⟨st.stock.cards, o⟩ }
+  show some { st with stock := Cycle.dealIter st.drawStep k ⟨st.stock.cards, o⟩ }
     = some { st with stock := ⟨st.stock.cards, st.stock.cards.length⟩ }
   rw [hk]
 
@@ -1327,7 +1302,7 @@ theorem run_nonConsuming_blind : ∀ (l : List Move) (st st' s : State),
 count: the cursor after the prefix is `countDraw` deals from the start. -/
 theorem run_stock_deals : ∀ (l : List Move) (st y : State),
     (∀ m ∈ l, m.consumesStock = false) → st.run l = some y →
-    y.stock = Cycle.dealN st.drawStep (countDraw l) st.stock ∧
+    y.stock = Cycle.dealIter st.drawStep (countDraw l) st.stock ∧
       y.drawStep = st.drawStep := by
   intro l
   induction l with
@@ -1357,7 +1332,7 @@ theorem run_stock_deals : ∀ (l : List Move) (st y : State),
               rw [show ({ st with stock := Cycle.dealOnce st.drawStep st.stock } : State).drawStep
                     = st.drawStep from rfl] at hstock hds
               refine ⟨?_, hds⟩
-              rw [countDraw, hstock, ← Cycle.dealN_one, Cycle.dealN_add]
+              rw [countDraw, hstock, ← Cycle.dealIter_one, Cycle.dealIter_add]
           | deckPile c b => simp [Move.consumesStock] at hc
           | deckStack c => simp [Move.consumesStock] at hc
           | reveal c =>
@@ -1383,10 +1358,10 @@ with those `j` draws skipped — the end states are partners, and `b`'s
 end stock is `j - countDraw l` deals ahead of `a`'s end stock (zero
 once the play exhausts the budget, which is the hurry lemma's merge). -/
 theorem trim_pair : ∀ (l : List Move) (j : Nat) (a b y : State),
-    a.diffCursor b → b.stock = Cycle.dealN a.drawStep j a.stock →
+    a.diffCursor b → b.stock = Cycle.dealIter a.drawStep j a.stock →
     (∀ m ∈ l, m.consumesStock = false) → a.run l = some y →
     ∃ l' y', b.run l' = some y' ∧ y.diffCursor y' ∧
-      y'.stock = Cycle.dealN y.drawStep (j - countDraw l) y.stock := by
+      y'.stock = Cycle.dealIter y.drawStep (j - countDraw l) y.stock := by
   intro l
   induction l with
   | nil =>
@@ -1413,14 +1388,14 @@ theorem trim_pair : ∀ (l : List Move) (j : Nat) (a b y : State),
               have hba : b = a := by
                 refine state_ext hd.1.symm hd.2.1.symm hd.2.2.1.symm hd.2.2.2.1.symm ?_
                   hd.2.2.2.2.2.symm
-                rw [hj, Cycle.dealN_zero]
+                rw [hj, Cycle.dealIter_zero]
               have hself : y.diffCursor y := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
               refine ⟨m :: t, y, ?_, hself, ?_⟩
               · rw [hba]
                 simp only [State.run]
                 rw [hsm]
                 exact hrest
-              · rw [Nat.zero_sub, Cycle.dealN_zero]
+              · rw [Nat.zero_sub, Cycle.dealIter_zero]
           | succ j' =>
               cases m with
               | draw =>
@@ -1436,11 +1411,11 @@ theorem trim_pair : ∀ (l : List Move) (j : Nat) (a b y : State),
                 refine ⟨hd.1, hd.2.1, hd.2.2.1, hd.2.2.2.1, ?_, hd.2.2.2.2.2⟩
                 rw [Cycle.dealOnce_cards a.drawStep a.stock]
                 exact hd.2.2.2.2.1
-              have hinvar : b.stock = Cycle.dealN a₁.drawStep j' a₁.stock := by
+              have hinvar : b.stock = Cycle.dealIter a₁.drawStep j' a₁.stock := by
                 rw [ha₁]
-                show b.stock = Cycle.dealN a.drawStep j'
+                show b.stock = Cycle.dealIter a.drawStep j'
                     (Cycle.dealOnce a.drawStep a.stock)
-                rw [hj, ← Cycle.dealN_one, Cycle.dealN_add]
+                rw [hj, ← Cycle.dealIter_one, Cycle.dealIter_add]
               obtain ⟨l', y', hbrest, hdy, hystock⟩ :=
                 ih j' a₁ b y hda₁ hinvar
                   (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm'))) hrest
@@ -1452,7 +1427,7 @@ theorem trim_pair : ∀ (l : List Move) (j : Nat) (a b y : State),
               | deckStack c => simp [Move.consumesStock] at hc
               | reveal c =>
                   obtain ⟨b₁, hb₁, hdb₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
-                  have hinv₁ : b₁.stock = Cycle.dealN a₁.drawStep (j' + 1) a₁.stock := by
+                  have hinv₁ : b₁.stock = Cycle.dealIter a₁.drawStep (j' + 1) a₁.stock := by
                     rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hb₁, hj,
                       apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm,
                       apply_drawStep_invar hsm]
@@ -1465,7 +1440,7 @@ theorem trim_pair : ∀ (l : List Move) (j : Nat) (a b y : State),
                   exact hbrest
               | pileStack c =>
                   obtain ⟨b₁, hb₁, hdb₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
-                  have hinv₁ : b₁.stock = Cycle.dealN a₁.drawStep (j' + 1) a₁.stock := by
+                  have hinv₁ : b₁.stock = Cycle.dealIter a₁.drawStep (j' + 1) a₁.stock := by
                     rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hb₁, hj,
                       apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm,
                       apply_drawStep_invar hsm]
@@ -1478,7 +1453,7 @@ theorem trim_pair : ∀ (l : List Move) (j : Nat) (a b y : State),
                   exact hbrest
               | stackPile c b' =>
                   obtain ⟨b₁, hb₁, hdb₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
-                  have hinv₁ : b₁.stock = Cycle.dealN a₁.drawStep (j' + 1) a₁.stock := by
+                  have hinv₁ : b₁.stock = Cycle.dealIter a₁.drawStep (j' + 1) a₁.stock := by
                     rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hb₁, hj,
                       apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm,
                       apply_drawStep_invar hsm]
@@ -1491,7 +1466,7 @@ theorem trim_pair : ∀ (l : List Move) (j : Nat) (a b y : State),
                   exact hbrest
               | pilePile c b' =>
                   obtain ⟨b₁, hb₁, hdb₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
-                  have hinv₁ : b₁.stock = Cycle.dealN a₁.drawStep (j' + 1) a₁.stock := by
+                  have hinv₁ : b₁.stock = Cycle.dealIter a₁.drawStep (j' + 1) a₁.stock := by
                     rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hb₁, hj,
                       apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm,
                       apply_drawStep_invar hsm]
@@ -1520,7 +1495,7 @@ contradiction.  Otherwise, if the pre-consumption state's cursor has
 reached `o'`, the cursor got there by `countDraw pre` deals; the same
 residue means B's stock is `k₀ = (o' − o)/s` deals ahead
 (`exists_dealCount`), so B replays the prefix with those `k₀` draws
-skipped (`trim_pair` — the budget invariant `b.stock = dealN j a.stock`),
+skipped (`trim_pair` — the budget invariant `b.stock = dealIter j a.stock`),
 and since the play exhausts the budget (`run_stock_deals` + the
 iterate bound — fewer deals would leave the cursor below `o'`), the
 end states coincide and B wins — contradiction.  At step 0 the residue
@@ -1559,10 +1534,10 @@ theorem window_firstDraw {st : State} {o o' : Nat}
               ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
             -- the budget: B's stock is k₀ deals ahead of A's
             have hinv : ({ st with stock := { st.stock with cursor := o' } } : State).stock
-                = Cycle.dealN st.drawStep k₀
+                = Cycle.dealIter st.drawStep k₀
                   ({ st with stock := { st.stock with cursor := o } } : State).stock := by
               show (⟨st.stock.cards, o'⟩ : Cycle Card)
-                  = Cycle.dealN st.drawStep k₀ (⟨st.stock.cards, o⟩ : Cycle Card)
+                  = Cycle.dealIter st.drawStep k₀ (⟨st.stock.cards, o⟩ : Cycle Card)
               rw [dealOnce_iterate_add hs st.stock.cards k₀ o
                 (by rw [hk₀]; exact hcur'), hk₀]
             obtain ⟨l', y', hy'run, hdy, hystock⟩ :=
@@ -1587,7 +1562,7 @@ theorem window_firstDraw {st : State} {o o' : Nat}
                 (by omega)] at hstockcount
               exact hlt (by rw [hstockcount]; exact hcontra)
             have hsub : k₀ - countDraw pre = 0 := by omega
-            rw [hsub, Cycle.dealN_zero] at hystock
+            rw [hsub, Cycle.dealIter_zero] at hystock
             have hy'eq : y' = st₁ :=
               state_ext hdy.1.symm hdy.2.1.symm hdy.2.2.1.symm hdy.2.2.2.1.symm
                 hystock hdy.2.2.2.2.2.symm

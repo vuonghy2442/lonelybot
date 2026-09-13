@@ -135,7 +135,7 @@ theorem safe_pileStack_dominant_of_return {st : State} {c : Card} {b : Base}
   have htopb : st.board.topOf b = some c := (Board.bottomOf_eq st.board c b).mp hb
   have hatt : ∃ bd, (st.board.detach b).attach b c = some bd := by
     have hfree : (st.board.detach b).topOf b = none := Board.detach_topOf st.board b
-    have hnew : (st.board.detach b).bottomOf c = none := detach_bottomOf_self htopb
+    have hnew : (st.board.detach b).bottomOf c = none := Board.bottomOf_detach_self htopb
     have hne : (st.board.detach b).attach b c ≠ none :=
       (Board.attach_eq_some_iff _ _ _).mpr ⟨hfree, hnew⟩
     cases hh : (st.board.detach b).attach b c with

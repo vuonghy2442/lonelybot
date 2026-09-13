@@ -45,16 +45,16 @@ column records that.
 | A1 | Hidden identities are pinned within a game (deal prefixes + counts), so the encode never conflates hidden arrangements | no_pile_to_pile §1 (discharges macro O2) | [x] | — | — |
 | A2 | `MixHasher` is a u64→u64 bijection, hence zero collisions | src/utils.rs (xorshift × odd-multiply = composed bijections) | [x] | — | trivial; Lean-able |
 | A3 | α-invariance: solvability is a function of the abstract state = soundness of the TP conflation | no_pile_to_pile §0/§5 (corollary); interaction doc H3 | [~] | B1–B4 | inherits B4 |
-| A4 | Twin-swap theorem T (narrow scope: twin substitution) | macro_formalization §3 | [~] | — | Lean (macro O4); proof strategy written, O1/O3/O5 open |
+| A4 | Twin-swap theorem T (narrow scope: twin substitution) | macro_formalization §3; **model level: PROVEN** — lean-model (Lean 4) `solvable_relabel` + `solvable_flipAll` (the twin instance), axiom-clean [propext, Quot.sound] | [P] at the model level | — | closed at the model level; no engine-level promotion — the bridge (`engine_iff`) is refuted-unsound and removed from the library |
 
 ## B. Move-set completeness (legs 1+2 of method.md §9)
 
 | # | Claim | Argued in | Tier | Depends on | Closed by |
 |---|---|---|---|---|---|
-| B1 | Realizability invariant + parity lemma (bm computes uncovered_t > 0) | no_pile §3 (maintenance cases + boundary conditions written) | [x] | — | Lean obligation 1; the full (present, placed) case table |
+| B1 | Realizability invariant + parity lemma (bm computes uncovered_t > 0) | no_pile §3 (maintenance cases + boundary conditions written); **model level: PROVEN** — lean-model Realizability.lean is sorry-free (`uncovered_eq_freeType` the parity lemma, `realizable_of_wf`, `apply_realizable`) | [P] at the model level | — | closed at the model level; the engine's own `bm` computation stays harness-validated (the bridge to it is refuted, not proven) |
 | B2 | Completeness: concrete winning play ⇒ abstract winning play, via the compression lemma | no_pile §4 | [x] | B1, B3 | Lean obligation 2 |
 | B3 | First-layer-king relabeling is a behavioral isomorphism (raw level) | no_pile §6 | [x] | — | Lean obligation 3; context-sensitive version owed to the pruner layer (D-layer) |
-| B4 | Concretization / reshape lemma: abstract winning play ⇒ concrete winning play | no_pile §5: twin-expansion isolated as the sole "no concrete counterpart" case; normal-form conjecture (compute_visible_piles) as strategy | [~] | A4 | Lean obligation 4 + the relocation-failure instrument (§5.2; src/convert.rs:63) |
+| B4 | Concretization / reshape lemma: abstract winning play ⇒ concrete winning play | no_pile §5: twin-expansion isolated as the sole "no concrete counterpart" case; normal-form conjecture (compute_visible_piles) as strategy. **Model level: decomposed** (2026-09-13) — worry-back half (`solvable_of_stackPile`) and returnable endgame (`solvable_of_pileStack_return`, via `vis_base_of_notLocked`) PROVEN; lockedness repair landed (+`hnotlock`, witness archived: the locked stackable is a commit, not a shuffle); the induction skeleton (`solvable_of_accomm_step`) PROVEN; the N-half/return-base endgame open (the crux `solvable_of_pileStack` + Dominance's `safe_pileStack_dominant`) | [~] (halves [P] at the model level) | A4 | the N-half endgame (the crux's case ledger, FARM.md) |
 
 **The leg-1+2 theorem itself is [~]:** B2 [x] + B4 [~] ⇒ min [~].
 
@@ -120,7 +120,7 @@ real winning line maps to a satisfying assignment.
 | G1 | Rung-0/1 skeleton (set semantics + dynamic bm/free_slot/reveal gates) is a relaxation: UNSAT ⇒ unwinnable | unsat_gates.py; validated by the 128-game corpus (rung 3: 10/10 losses UNSAT, 118/118 wins SAT) and the acceptance test — 73 true oracle lines pinned (event order + every occurrence literal) into the CNF, all accepted; aux definitions audited as biconditionals | [~] | G3 (the counter fix), G4 | the Lean relaxation theorem + DRAT certificate checking (the [P] finish) |
 | G2 | W=0 scope: the ladder proves unwinnability of the no-worry-back subgame; full unsolvability needs the worry-back elimination | measured 2026-09: 45/118 corpus winning lines contain StackPile moves in the oracle's chosen line — they map into W=0 schedules only via the elimination | [~] | C2 (B&G Thm 5 port) | C2's port; or an independent W≥0 rung |
 | G3 | **Fixed bug (2026-09, found by the phantom-replay instrument):** free_pile_lit's sequential counter — every clause polarity inverted plus the final biconditional flipped, so the king-placement gate was vacuous since rung 1's first run | unsat_gates.py (fixed, with the mechanism note inline); seed 18 d3's phantom placed KH with 7 extended tops; the fix alone converts seed 18 (rung 2: 5/10 → 6/10), corpus re-validated both rungs | [x] | — | the corpus re-run (done); the acceptance test (done) |
-| G4 | Rung 3 — the exact draw-3 deck machine: accessibility = lane-2 ∨ max-remaining ∨ leading-lane-with-burial, characterized in original coordinates (mod-3 lane counters + the interval identity), encoded via self-certifying aux literals | deck_bf.py (validation harness) + unsat_pace3.py (encoding): predicate ≡ compute_mask on every reachable state N=6/9/12/15 (incl. deal_once edges); conditions ⟺ realizability over all permutations N=6/9; 6,000 random sequences at N=24, both directions, zero violations; all 56 corpus d3 winning draw sequences pass; pairwise-forced residue reproduced (2<1<0, the rung-2 chain subsumed). Kills 10/10 corpus losses | [~] | G1 | Lean: the characterization ⟺ Cycle.lean's pointed-cycle machine (the same spine as the C13 premise); then G1's relaxation theorem |
+| G4 | Rung 3 — the exact draw-3 deck machine: accessibility = lane-2 ∨ max-remaining ∨ leading-lane-with-burial, characterized in original coordinates (mod-3 lane counters + the interval identity), encoded via self-certifying aux literals | deck_bf.py (validation harness) + unsat_pace3.py (encoding): predicate ≡ compute_mask on every reachable state N=6/9/12/15 (incl. deal_once edges); conditions ⟺ realizability over all permutations N=6/9; 6,000 random sequences at N=24, both directions, zero violations; all 56 corpus d3 winning draw sequences pass; pairwise-forced residue reproduced (2<1<0, the rung-2 chain subsumed). Kills 10/10 corpus losses. **Model level: PROVEN** — lean-model Pace.lean is sorry-free: the characterization `maskPos_mem_iff` and the realizability bridge `realizes_iff_stepsOK` are machine-checked (repaired +`hpure`: the first draw reads the initial cursor's mask) | [~] (model level [P]) | G1 | the CNF encoding's Lean relaxation theorem + DRAT certificate checking (the [P] finish); the model-level machine is closed |
 
 ## The three choke points
 
@@ -186,9 +186,13 @@ as a standalone theorem — an instrument catching one of these failing
 converts it from a proof obligation into a bug, which is cheaper
 information either way.
 
-Snapshot (this writing, 32 rows): [P] 3 (all external, effective [~] until
-the port lands) · [x] 12 · [~] 15 · [ ] 2 — with D2–D5, E3, E4 superseded
-(⟂) and C6 partially so. Nothing is [P] *for this engine* yet; that is the
-lean-verify program. The unsat ladder (section G) is the newest surface:
-sound to [~] by machine validation + corpus + acceptance pinning; its [P]
-finish is the Lean relaxation theorem with DRAT certificates.
+Snapshot (this writing, 32 rows): [P] 5 (3 external, effective [~] until
+ported; + 2 model-level: A4, B1) · [x] 11 · [~] 14 — with D2–D5, E3, E4
+superseded (⟂) and C6 partially so. The engine itself is still
+[~]-at-best *in Lean terms* — the model level (lean-model) is where
+[P]s live now; the bridge to the engine (engine_iff) is
+refuted-unsound and removed, so no row here claims engine-level [P].
+The unsat ladder (section G) is the newest surface: sound to [~] by
+machine validation + corpus + acceptance pinning (its model-level
+half, G4's characterization, is [P]); its [P] finish is the Lean
+relaxation theorem with DRAT certificates.

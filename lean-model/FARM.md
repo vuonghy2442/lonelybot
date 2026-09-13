@@ -1,9 +1,9 @@
 # The proof farm — handoff document
 
-**Census: 7 `:= sorry`** (Theorems 1 · Macro 1 · Dominance 5; zero
-bullets).  Pinned by `pwsh ../script/lean-census.ps1` (run from
+**Census: 11 `:= sorry`** (Theorems 1 · Macro 1 · Dominance 5 · Kills 4;
+zero bullets).  Pinned by `pwsh ../script/lean-census.ps1` (run from
 `lean-model/`) — it fails on any NEW sorry or the return of a refuted
-constant.  All 7 are believed-true open theorems with routes below.
+constant.  All 11 are believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
 the library.
@@ -134,6 +134,57 @@ Within Dominance, rows are independent.
 | `deck_dominance_draw1` (C4) | Dominance:292 | [H] | front-loading reshaping; the pure-deck fact; draw-1 — `maskPos_step1` (every position accessible) + the deal machinery |
 | `stackPile_safe_prunable` (§5.4 first half) | Dominance:421 | [H] | worry-back ban; the cancellation kit (`stackPile_pileStack_cancel`) + the safety formula |
 | `twinPair_placement_equi` (C6) | Dominance:492 | [H] | T machinery (`solvable_flipAll`, PROVEN) applied as a local swap; both heights equal is the license |
+
+## Wave 12 — the closure-goal kills (the K-rules, scaffolded 2026-09-13)
+
+The engine's `goal_dead` (src/macro_game.rs K1–K6) as closure
+invariants over `safeAccommodates`.  Scaffolded and believed-true;
+**refute-first gate**: the Rust differential probe
+(`macro_direct_matches_oracle`) — there is no Lean-side executable
+closure walk, do not hand-probe with `#eval`.  Substrate landed and
+proved: `Card.only_blocker_is_twin` + `Card.receivers` +
+`Card.mem_receivers_iff` (Basic.lean), `State.frontier` (State.lean —
+the `ClosureCtx.frontier` mirror), `Rank.toIdx_inj` homed upstream.
+
+Work order: the keystone first — the two K-rows consume it.
+
+| item | file:line | tag | route |
+|---|---|---|---|
+| `vis_of_safeAccommodates` | Kills:40 | [M] | play induction; the foundation-side shadow (closure-foundation ⊆ root-foundation ∪ root-vis) is the carry; `stackPile`'s new visible comes from the firing foundation |
+| `State.frontier_spec` | Kills:52 | [M] | `find?` spec over the `toIdx`-filtered `Rank.all`; minimality needs the filtered list's `toIdx`-sortedness (decide-able list fact) |
+| `K1_stack_goal_dead` | Kills:75 | [M] | keystone + frontier_spec + the climb lemma (heights rose past `k` ⟹ rank `k` was `pileStack`-fired; play induction) |
+| `K2_tableau_goal_dead` | Kills:89 | [E] | `canPlace` case-split; king excluded by `hking`; `inr d` ⇒ `d ∈ receivers` (mem_receivers_iff) ⇒ keystone contradicts `hrecv` |
+
+**Not yet statable (prerequisites, then come back)** — text rows, do
+NOT add constants prematurely (the no-guessing rule; C12's deferral is
+the model):
+
+- **K4** (first-layer locked king's reveal-tableau goal never opens):
+  needs a `firstLayer` predicate (pile's hidden bottom card).  Base-rule
+  note: the engine's `reveal` generator additionally excludes lone
+  first-layer kings and reads `free_slot` (state.rs:314) — the model's
+  `applyReveal` is strictly more permissive; that base restriction is a
+  game-level prune worth its own row when the predicate lands.
+- **K5** (saturated boards: all 7 piles locked-surfaced ⇒ the empty-pile
+  gate is pinned shut; every king tableau goal dead): statable once the
+  keystone proves the locked-surfaces invariance; hypothesis shape
+  `7 ≤ {locked surfaces}.length`.
+- **K6** (the four-card ball): K2 + the climb-blocked twin + the
+  movability-algebra encoding (§8.1, `free`/`vis` xor form) — statable
+  after K1/K2 land; the xor algebra is its own reading task.
+- **C12 (forced reveal-commitment)**: needs "reveal-by-stacking" — the
+  model's `applyPileStack` never decrements `depths`.  A composite move
+  or a `commitApplies` extension is a design decision first (orchestrator).
+- **The path-conditioned prunes (method.md 6.2/6.3/6.4, D1–D5)**: the
+  model has no history/`ExtraInfo`.  Two candidate encodings — (a)
+  existential reshaping ("every win has a witness avoiding …"), proven
+  per rule and composable by transitivity; (b) generalize
+  `solvableWith`/`cascade_sound` to history-dependent filters
+  (`solvableWithHist`).  Design decision pending (orchestrator/user).
+- **Parking / destination collapse (macro_parking.md Lemma P)**, the
+  full C13 sleep-set layer, C14 fold cut, theorem T's local two-card
+  swap: need their own readings (ledger rows in
+  `docs/soundness_ledger.md`).
 
 ## The crux's case ledger (B4 decomposition state)
 

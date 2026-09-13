@@ -12,3 +12,4 @@ import Klondike.Realizability
 import Klondike.Macro
 import Klondike.Bridge
 import Klondike.Initial
+import Klondike.Kills

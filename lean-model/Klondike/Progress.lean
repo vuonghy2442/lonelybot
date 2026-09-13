@@ -1162,8 +1162,12 @@ theorem solvable_iff_boundedPlay {st : State} (hwf : st.WF) :
     obtain ⟨play, w, hrun, hwin, -⟩ := hbound
     exact ⟨play, w, hrun, hwin⟩
 
-/-- The verdict is decidable: exhaustive search over bounded plays. -/
-theorem solvable_decidable (st : State) (hwf : st.WF) :
+/-- The verdict is classically decidable-shaped: exhaustive search over
+bounded plays gives the case split `solvableFrom ∨ ¬solvableFrom`.  NOT
+a `Decidable` instance (the bound is astronomically large — this is
+the classical elimination, not an algorithm; renamed from
+`solvable_decidable` 2026-09-13 to stop the overclaim). -/
+theorem solvable_em (st : State) (hwf : st.WF) :
     st.solvableFrom ∨ ¬ st.solvableFrom := by
   by_cases hb : ∃ play w, st.run play = some w ∧ w.isWin = true ∧
     play.length ≤ stateSpaceBound

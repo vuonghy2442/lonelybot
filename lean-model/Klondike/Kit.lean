@@ -84,19 +84,6 @@ theorem mem_index {a : Card} : ∀ (l : List Card), a ∈ l → ∃ i : Nat, l[i
       · obtain ⟨i, hi⟩ := ih h
         exact ⟨i + 1, by rw [List.getElem?_cons_succ]; exact hi⟩
 
-/-- Membership split: an element sits at some middle position. -/
-theorem mem_middle_split {a : Card} : ∀ (l : List Card), a ∈ l →
-    ∃ pre post : List Card, l = pre ++ a :: post := by
-  intro l
-  induction l with
-  | nil => intro h; simp at h
-  | cons x t ih =>
-      intro h
-      rcases List.mem_cons.mp h with rfl | h
-      · exact ⟨[], t, rfl⟩
-      · obtain ⟨pre, post, ht⟩ := ih h
-        exact ⟨x :: pre, post, by simp [ht]⟩
-
 /-! ## The NoDupP counting kit -/
 
 /-- Head-style distinctness (the induction-friendly form). -/
@@ -208,7 +195,7 @@ theorem length_eq_of_bijection (f g : Card → Card) :
       intro l₂ hnd₁ hnd₂ h1 h2
       obtain ⟨ha, hndt⟩ := hnd₁
       obtain ⟨hfa, hgfa⟩ := h1 a (by simp)
-      obtain ⟨pre, post, hsplit⟩ := mem_middle_split l₂ hfa
+      obtain ⟨pre, post, hsplit⟩ := mem_split l₂ (f a) hfa
       have hnd₂' : NoDupP (pre ++ post) :=
         nodupP_remove _ _ _ (by rw [← hsplit]; exact hnd₂)
       have hfa' : f a ∉ pre ++ post :=

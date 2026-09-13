@@ -610,12 +610,12 @@ theorem applyDrawTo_merge {st st' st₁ st₁' : State} {c : Card} {b : Base}
     (hd : st.diffCursor st')
     (h₁ : st.applyDrawTo c b = some st₁) (h₂ : st'.applyDrawTo c b = some st₁') :
     st₁ = st₁' := by
-  obtain ⟨i, bd, hr₁, hatt₁, hst₁⟩ := applyDrawTo_shape h₁
-  obtain ⟨i', bd', hr₂, hatt₂, hst₂⟩ := applyDrawTo_shape h₂
+  obtain ⟨i, bd, hr₁, hatt₁, hst₁⟩ := applyDrawTo_eq h₁
+  obtain ⟨i', bd', hr₂, hatt₂, hst₂⟩ := applyDrawTo_eq h₂
   have hpos : st.stock.posOf c = st'.stock.posOf c := posOf_cards_eq hd.2.2.2.2.1
   have hii : i = i' := by
-    have e1 := State.reachablePos_posOf hr₁
-    have e2 := State.reachablePos_posOf hr₂
+    have e1 := reachablePos_posOf hr₁
+    have e2 := reachablePos_posOf hr₂
     rw [hpos] at e1
     exact Option.some.inj (e1.symm.trans e2)
   subst hii
@@ -647,8 +647,8 @@ theorem applyDrawStackTo_merge {st st' st₁ st₁' : State} {c : Card}
       | some i' =>
           rw [hr₂] at h₂
           have hii : i = i' := by
-            have e1 := State.reachablePos_posOf hr₁
-            have e2 := State.reachablePos_posOf hr₂
+            have e1 := reachablePos_posOf hr₁
+            have e2 := reachablePos_posOf hr₂
             rw [hpos] at e1
             exact Option.some.inj (e1.symm.trans e2)
           subst hii
@@ -1315,7 +1315,7 @@ theorem comm_deckPile_pileStack {st : State} {c c' : Card} {b : Base} {st₂ st�
       · exfalso
         rw [← hdc] at hb
         have h1 : (st.board.detach b₀).bottomOf d = none :=
-          detach_bottomOf_self ((Board.bottomOf_eq st.board d b₀).mp hb)
+          Board.bottomOf_detach_self ((Board.bottomOf_eq st.board d b₀).mp hb)
         have h2 : ({ st with board := st.board.detach b₀, heights := fun s => if s = d.suit then st.heights s + 1 else st.heights s } : State).isVis d = true := by
           have := hcp'
           simp only [State.canPlace, Bool.and_eq_true_iff, decide_eq_true_iff] at this
@@ -2019,126 +2019,23 @@ theorem commute_of_disjoint_touch {st : State} {m m' : Move} {st₂ st₃ : Stat
 /-! ### The Draw-commitment commutation kit
 
 `applyDrawTo`'s stock op normalizes to `⟨removeIdx cards i, i⟩`
-(`removeAt_drawTo`); the *second* draw of each order finds its card at
-the first-occurrence position of the spliced list (`posOf_removeIdx_shift`
-for a card after the splice, `..._keep` for one before it); the board
-part is two `attach`es at distinct bases (`attach_attach_comm`). -/
+(`Cycle.removeAt_drawTo`); the *second* draw of each order finds its
+card at the first-occurrence position of the spliced list
+(`Cycle.posOf_removeIdx_shift` for a card after the splice,
+`..._keep` for one before it); the board part is two `attach`es at
+distinct bases (`Board.attach_attach_comm`).  CONSOLIDATED
+2026-09-13: the Cycle-level splice/shift/keep kit lives in Cycle.lean
+and the attach commutation in Board.lean (both upstream of this file);
+the State-level shape `applyDrawTo_eq`, the guard inversions
+(`reachablePos_posOf`, from Move.lean) and `reachablePos_mask` are
+the residents here. -/
 
-/-- Splicing out an earlier position shifts a later first occurrence
-down by one. -/
-theorem findFirstIdx_removeIdx_shift {α : Type} (p : α → Bool) :
-    ∀ (l : List α) (q r : Nat), Cycle.findFirstIdx p l = some r → q < r →
-      Cycle.findFirstIdx p (Cycle.removeIdx l q) = some (r - 1) := by
-  intro l
-  induction l with
-  | nil =>
-      intro q r h _
-      exact absurd h (by simp [Cycle.findFirstIdx])
-  | cons a t ih =>
-      intro q r h hqr
-      have hc : (if p a then some 0 else (Cycle.findFirstIdx p t).map Nat.succ) = some r := h
-      by_cases hpa : p a = true
-      · rw [if_pos hpa, Option.some.injEq] at hc
-        exact absurd hqr (by omega)
-      · rw [if_neg hpa] at hc
-        cases q with
-        | zero =>
-            rw [Cycle.removeIdx_zero]
-            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
-            rw [hr']
-            exact congrArg some (by omega)
-        | succ q' =>
-            rw [Cycle.removeIdx_succ]
-            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
-            have hih := ih q' r' hr' (by omega)
-            show (if p a then some 0
-              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some (r - 1)
-            rw [if_neg hpa, hih, Option.map_some]
-            exact congrArg some (by omega)
-
-/-- Splicing out a later position leaves an earlier first occurrence
-where it was. -/
-theorem findFirstIdx_removeIdx_keep {α : Type} (p : α → Bool) :
-    ∀ (l : List α) (p₀ q : Nat), Cycle.findFirstIdx p l = some p₀ → p₀ < q →
-      Cycle.findFirstIdx p (Cycle.removeIdx l q) = some p₀ := by
-  intro l
-  induction l with
-  | nil =>
-      intro p₀ q h _
-      exact absurd h (by simp [Cycle.findFirstIdx])
-  | cons a t ih =>
-      intro p₀ q h hpq
-      have hc : (if p a then some 0 else (Cycle.findFirstIdx p t).map Nat.succ) = some p₀ := h
-      cases q with
-      | zero => exact absurd hpq (by omega)
-      | succ q' =>
-          rw [Cycle.removeIdx_succ]
-          by_cases hpa : p a = true
-          · rw [if_pos hpa, Option.some.injEq] at hc
-            show (if p a then some 0
-              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
-            rw [if_pos hpa, ← hc]
-          · rw [if_neg hpa] at hc
-            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
-            have hih := ih r' q' hr' (by omega)
-            show (if p a then some 0
-              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
-            rw [if_neg hpa, hih, Option.map_some]
-            exact congrArg some (by omega)
-
-/-- The shift lemma, `posOf` packaging (the cursor is never read). -/
-theorem posOf_removeIdx_shift {x : Card} {l : List Card} {cur cur' : Nat} {q r : Nat}
-    (h : Cycle.posOf x ⟨l, cur⟩ = some r) (hqr : q < r) :
-    Cycle.posOf x ⟨Cycle.removeIdx l q, cur'⟩ = some (r - 1) :=
-  findFirstIdx_removeIdx_shift _ l q r h hqr
-
-/-- The keep lemma, `posOf` packaging (the cursor is never read). -/
-theorem posOf_removeIdx_keep {x : Card} {l : List Card} {cur cur' : Nat} {p q : Nat}
-    (h : Cycle.posOf x ⟨l, cur⟩ = some p) (hpq : p < q) :
-    Cycle.posOf x ⟨Cycle.removeIdx l q, cur'⟩ = some p :=
-  findFirstIdx_removeIdx_keep _ l p q h hpq
-
-/-- The Draw-commitment's stock successor: jump past `i`, splice `i`
-out — the cursor lands exactly on `i`. -/
+/-- Root-level spelling of `Cycle.removeAt_drawTo`: Theorems.lean cites
+the bare name and is not editable this session — the alias dies (and
+its two cites get the `Cycle.` prefix) at Theorems' next edit. -/
 theorem removeAt_drawTo {α : Type} (i : Nat) (cy : Cycle α) :
-    (cy.drawTo i).removeAt i = { cards := Cycle.removeIdx cy.cards i, cursor := i } := by
-  simp only [Cycle.removeAt, Cycle.drawTo, if_pos (by omega : i < i + 1),
-    Nat.add_sub_cancel]
-
-/-- A successful Draw commitment's shape: the guard's index, the
-board attach, and the successor with the spliced stock. -/
-theorem applyDrawTo_eq {st : State} {c : Card} {b : Base} {s' : State}
-    (h : st.applyDrawTo c b = some s') :
-    ∃ i bd, st.reachablePos c = some i ∧ st.board.attach b c = some bd ∧
-      s' = { st with
-             board := bd,
-             stock := { cards := Cycle.removeIdx st.stock.cards i, cursor := i } } := by
-  simp only [State.applyDrawTo] at h
-  cases hr : st.reachablePos c with
-  | none => rw [hr] at h; simp at h
-  | some i =>
-      rw [hr] at h
-      cases ha : st.board.attach b c with
-      | none => rw [ha] at h; simp at h
-      | some bd =>
-          rw [ha] at h
-          simp at h
-          refine ⟨i, bd, rfl, rfl, ?_⟩
-          rw [← h, removeAt_drawTo]
-
-/-- The guard's index is the plain stock position. -/
-theorem reachablePos_posOf {st : State} {c : Card} {i : Nat}
-    (h : st.reachablePos c = some i) : st.stock.posOf c = some i := by
-  simp only [State.reachablePos] at h
-  split at h
-  · next hpos =>
-      cases hp : st.stock.posOf c with
-      | none => rw [hp] at h; simp at h
-      | some i' =>
-          rw [hp] at h
-          simp at h
-          rw [h.2]
-  · simp at h
+    (cy.drawTo i).removeAt i = { cards := Cycle.removeIdx cy.cards i, cursor := i } :=
+  Cycle.removeAt_drawTo i cy
 
 /-- The guard's index is in the accessible set. -/
 theorem reachablePos_mask {st : State} {c : Card} {i : Nat} (hpos : 0 < st.drawStep)
@@ -2152,22 +2049,6 @@ theorem reachablePos_mask {st : State} {c : Card} {i : Nat} (hpos : 0 < st.drawS
       simp at h
       rw [h.2] at h
       exact h.1
-
-/-- Two attachments at distinct bases commute. -/
-theorem attach_attach_comm {bd : Board} {b b' : Base} {c c' : Card}
-    {bd₁ bd₂ bd₃ bd₄ : Board} (hbb : b ≠ b')
-    (h₁ : bd.attach b c = some bd₁) (h₂ : bd₁.attach b' c' = some bd₂)
-    (h₃ : bd.attach b' c' = some bd₃) (h₄ : bd₃.attach b c = some bd₄) :
-    bd₂ = bd₄ := by
-  refine Board.ext_topOf (funext (fun x => ?_))
-  by_cases hxb : x = b
-  · rw [hxb, Board.attach_topOf_ne _ _ _ h₂ hbb, Board.attach_topOf _ _ _ h₁,
-      Board.attach_topOf _ _ _ h₄]
-  · by_cases hxb' : x = b'
-    · rw [hxb', Board.attach_topOf _ _ _ h₂, Board.attach_topOf_ne _ _ _ h₄ (Ne.symm hbb),
-        Board.attach_topOf _ _ _ h₃]
-    · rw [Board.attach_topOf_ne _ _ _ h₂ hxb', Board.attach_topOf_ne _ _ _ h₁ hxb,
-        Board.attach_topOf_ne _ _ _ h₄ hxb, Board.attach_topOf_ne _ _ _ h₃ hxb']
 
 /-- At a saturated cursor (`cursor = length ≥ 2`) with a paced step
 (`≥ 2`), position 0 is not accessible: every lane starts strictly
@@ -2243,10 +2124,10 @@ theorem drawTo_comm_modAdjacent {st : State} {c c' : Card} {b b' : Base} {i j le
   · -- non-wrap: j = i + 1 — both orders' second draws land on position i
     have hj1 : j = i + 1 := by rw [← hadj, Nat.mod_eq_of_lt hlt]
     have hk : k = j - 1 :=
-      Option.some.inj (hpk.symm.trans (posOf_removeIdx_shift hjc (by omega)))
+      Option.some.inj (hpk.symm.trans (Cycle.posOf_removeIdx_shift hjc (by omega)))
     have hk' : k' = i :=
-      Option.some.inj (hpk'.symm.trans (posOf_removeIdx_keep hic (by omega)))
-    have hbd : bd₂ = bd₄ := attach_attach_comm hbb ha₁ ha₂ ha₃ ha₄
+      Option.some.inj (hpk'.symm.trans (Cycle.posOf_removeIdx_keep hic (by omega)))
+    have hbd : bd₂ = bd₄ := Board.attach_attach_comm hbb ha₁ ha₂ ha₃ ha₄
     have hcomp₂ : st₂ = { st with
         board := bd₂,
         stock := { cards := Cycle.removeIdx (Cycle.removeIdx st.stock.cards i) k, cursor := k } } := by
@@ -2281,15 +2162,15 @@ theorem drawTo_comm_modAdjacent {st : State} {c c' : Card} {b b' : Base} {i j le
     · -- len = 2: both orders end at cursor 0 over the same (empty) splice
       have hk : k = 0 := by
         have hkeep : Cycle.posOf c' ⟨Cycle.removeIdx st.stock.cards i, i⟩ = some j :=
-          posOf_removeIdx_keep hjc (by omega)
+          Cycle.posOf_removeIdx_keep hjc (by omega)
         have := Option.some.inj (hpk.symm.trans hkeep)
         omega
       have hk' : k' = 0 := by
         have hshift : Cycle.posOf c ⟨Cycle.removeIdx st.stock.cards j, j⟩ = some (i - 1) :=
-          posOf_removeIdx_shift hic (by omega)
+          Cycle.posOf_removeIdx_shift hic (by omega)
         have := Option.some.inj (hpk'.symm.trans hshift)
         omega
-      have hbd : bd₂ = bd₄ := attach_attach_comm hbb ha₁ ha₂ ha₃ ha₄
+      have hbd : bd₂ = bd₄ := Board.attach_attach_comm hbb ha₁ ha₂ ha₃ ha₄
       have hcomp₂ : st₂ = { st with
           board := bd₂,
           stock := { cards := Cycle.removeIdx (Cycle.removeIdx st.stock.cards i) k, cursor := k } } := by
@@ -2309,7 +2190,7 @@ theorem drawTo_comm_modAdjacent {st : State} {c c' : Card} {b b' : Base} {i j le
       -- saturated cursor — unreachable at step ≥ 2
       have hk0 : k = 0 := by
         have hkeep : Cycle.posOf c' ⟨Cycle.removeIdx st.stock.cards i, i⟩ = some j :=
-          posOf_removeIdx_keep hjc (by omega)
+          Cycle.posOf_removeIdx_keep hjc (by omega)
         have := Option.some.inj (hpk.symm.trans hkeep)
         omega
       have hsd : s₁.drawStep = st.drawStep := by rw [hs₁]; try rfl
@@ -2355,8 +2236,8 @@ theorem drawTo_nonadjacent_diverge {st : State} {c c' : Card} {b b' : Base} {i j
   rw [hs₁s] at hpk
   have hpk' : s₃.stock.posOf c = some k' := reachablePos_posOf hrk'
   rw [hs₃s] at hpk'
-  have hk : k = j - 1 := Option.some.inj (hpk.symm.trans (posOf_removeIdx_shift hjc hij))
-  have hk' : k' = i := Option.some.inj (hpk'.symm.trans (posOf_removeIdx_keep hic hij))
+  have hk : k = j - 1 := Option.some.inj (hpk.symm.trans (Cycle.posOf_removeIdx_shift hjc hij))
+  have hk' : k' = i := Option.some.inj (hpk'.symm.trans (Cycle.posOf_removeIdx_keep hic hij))
   have hc₂ : st₂.stock.cursor = j - 1 := by
     rw [hs₂]
     show k = j - 1

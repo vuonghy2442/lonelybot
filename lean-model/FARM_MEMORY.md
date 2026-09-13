@@ -1564,3 +1564,52 @@ cannot delta-unfold the goal); count Eq.trans sides before chaining.
 - INCIDENT: scoped `lake build Klondike.Theorems` cascaded into the sibling's red mid-edit
   Pace.lean and DELETED its olean (downstream blocked ~15 min until they finished). Check
   sibling mtimes before any lake build — lake env lean keeps working off stale oleans.
+
+## Consolidation-3 — dedup landed, combinators API'd, sites deferred (2026-09-13)
+
+- CANONICAL HOMES (census 7 held throughout; every file exit 0): Cycle.lean owns the
+  draw-commitment splice kit (removeAt_drawTo, findFirstIdx_removeIdx_shift/keep,
+  posOf_removeIdx_shift/keep); Board.lean owns attach_attach_comm + bottomOf_detach_self.
+  Deleted: Move's 7-lemma kit + detach_bottomOf_self + Board.attach_attach_comm; Commutation's
+  7-lemma kit; Pace's removeAt_drawTo_eq (7 cites); Bridge's bottomOf_detach_self;
+  Kit.mem_middle_split (folded onto mem_split); Macro's Cycle.dealN kit (47 cites -> dealIter;
+  statements verbatim). RENAMED in Move to root level: applyDrawTo_shape -> applyDrawTo_eq,
+  State.reachablePos_posOf -> reachablePos_posOf (Theorems' bare cites now resolve via import).
+  Commutation keeps a ONE-LINE root alias removeAt_drawTo := Cycle.removeAt_drawTo — Theorems
+  cites the bare name and was untouchable; kill it (qualify Theorems' 2 cites) next Theorems edit.
+- STATE ADDITIONS (defeq to the raw lambdas): bumpHeight/dropHeight + @[simp] _self/_ne +
+  bump_bump/bump_drop/drop_drop (with-update composition forms = state_ext heights-slot goals);
+  WF.intro (named 11 slots). Rewired: apply_wf's 7 arms + Macro's wf_of_cursor (named args in
+  slot order, bullets unchanged).
+- WHY THE 28-LAMBDA SITES DID NOT MOVE (prover-confirmed, reverted): (1) apply DEF BODIES stay
+  raw — Theorems' roundtrip rw's its hand-spelled hh onto def-unfolded shapes; (2) apply_*_iff
+  statements stay raw — Relabel:737 rw [relabelBy_heights_bump] patterns (Relabel out of scope)
+  AND Theorems' applyDrawStackTo_eq_dealPlay mpr tail: `simp only [State.applyDrawStackTo, ...]`
+  does NOT close raw-vs-bumpHeight although defeq (simp's closing rfl sits BELOW default
+  transparency); abbrev fixes the simp tail but not rw patterns. exact/rfl-slot defeq bridges
+  (the <guards, rfl> pattern) survived everywhere.
+- DEFERRED SITES (next pass): Theorems ~20, Relabel 6, Macro 12, Bridge 3 (EState heights —
+  needs its own combinator), Initial's initial_wf (out of this pass's scope).
+- CHORES: solvable_decidable -> solvable_em (zero citers; docstring: classical split, not
+  Decidable); README Status synced to the census + current file list; ledger A4/B1 -> [P] at
+  the model level, B4 decomposed-note, G4 model-proven note (engine bridge stays refuted).
+
+## Theorems.lean — the crux: the first-move kit LANDED, endgame blocked (2026-09-13)
+
+- LANDED (axiom-clean, before the crux; full dispatch structure in the crux's in-source plan note):
+  pileStack_comm_{pileStack,stackPile,pilePile} (the plan MISSED the pileStack-x square; pilePile's
+  is a UNIFORM direct state_ext proof covering c ∈ aboveOf x, where comm_pileStack_pilePile's
+  disjointness premise FAILS — guard via aboveOf_detach_subset); reveal_notLocked; not_pileStack_of_
+  win (nil vacuity); solvable_of_pileStack_step_{delete,draw,reveal,deckStack,deckPile,pileStack,
+  stackPile,pilePile} (square + packaged-IH `∀ t, s₂.apply (pileStack c) = some t → t.solvableFrom`
+  + prepend).  IH-feeding needs s₂'s ¬isLocked + bottomOf c = b₀ — reveal DONE, other six are
+  bottomOf_attach_ne/detach_ne one-liners (unwritten).
+- BLOCKER (unchanged): parks on `inr c` + the same-suit excursion both reduce to the ENDGAME = the
+  compliant-play normal form = Dominance's N-half (kills two rows).  Next taker: the length-
+  induction aux + lockedness transfers, then the endgame via the crux's catch-22 note.
+- NEW LOCAL KIT (consolidation candidates): contains_iff_mem, aboveOf_go_{mono,step},
+  aboveOf_go_detach, aboveOf_detach_subset (detach only shortens the run walk).
+- SYNTAX paid: comm_pileStack_{pileStack,stackPile}'s h₁ is pileStack-FIRST (deckPile's is other)
+  — congrArg some needs heq.symm; a binder mentioning `c` after `(hwf : st.WF)` auto-binds c✝ —
+  bind {c : Card} first; `((l).take (if …)).getLast?` paren counts cost 3 builds; go-walk steps
+  need the defeq-cast dance past the constructor match (aboveOf_go_step packages it).

@@ -292,6 +292,24 @@ theorem ext_topOf {bd₁ bd₂ : Board} (h : bd₁.topOf = bd₂.topOf) : bd₁ 
       cases h
       rfl
 
+/-- Two attachments at distinct bases commute.  CANONICAL HOME
+(2026-09-13 consolidation): Move.lean's `Board.attach_attach_comm`
+and Commutation.lean's root-level `attach_attach_comm` are deleted. -/
+theorem attach_attach_comm {bd : Board} {b b' : Base} {c c' : Card}
+    {bd₁ bd₂ bd₃ bd₄ : Board} (hbb : b ≠ b')
+    (h₁ : bd.attach b c = some bd₁) (h₂ : bd₁.attach b' c' = some bd₂)
+    (h₃ : bd.attach b' c' = some bd₃) (h₄ : bd₃.attach b c = some bd₄) :
+    bd₂ = bd₄ := by
+  refine Board.ext_topOf (funext (fun x => ?_))
+  by_cases hxb : x = b
+  · rw [hxb, Board.attach_topOf_ne _ _ _ h₂ hbb, Board.attach_topOf _ _ _ h₁,
+      Board.attach_topOf _ _ _ h₄]
+  · by_cases hxb' : x = b'
+    · rw [hxb', Board.attach_topOf _ _ _ h₂, Board.attach_topOf_ne _ _ _ h₄ (Ne.symm hbb),
+        Board.attach_topOf _ _ _ h₃]
+    · rw [Board.attach_topOf_ne _ _ _ h₂ hxb', Board.attach_topOf_ne _ _ _ h₁ hxb,
+        Board.attach_topOf_ne _ _ _ h₄ hxb, Board.attach_topOf_ne _ _ _ h₃ hxb']
+
 theorem mapBy_inj (bd : Board) :
     ∀ (b₁ b₂ : Base) (c : Card), (bd.topOf b₁.flipBase).map Card.flipSuit = some c →
       (bd.topOf b₂.flipBase).map Card.flipSuit = some c → b₁ = b₂ := by

@@ -6,13 +6,16 @@
 $ErrorActionPreference = 'Stop'
 $k = Join-Path (Split-Path $PSScriptRoot -Parent) 'lean-model\Klondike'
 
-# Baseline 2026-09-13 (post waves 8/9/10, post refuted-constant disposal):
+# Baseline 2026-09-13 (post waves 8/9/10, post refuted-constant disposal,
+# +wave-12 scaffolding: the K-rules closure kills — Klondike/Kills.lean):
 $baseline = @{
   'Theorems.lean'  = 1  # solvable_of_pileStack (B4 crux, repaired +hnotlock)
   'Macro.lean'     = 1  # solvableEngine_iff_macro (C1)
   'Dominance.lean' = 5  # safe_pileStack_dominant, least_redundantStack_dominant,
                         # deck_dominance_draw1, stackPile_safe_prunable,
                         # twinPair_placement_equi
+  'Kills.lean'     = 4  # vis_of_safeAccommodates (keystone), State.frontier_spec,
+                        # K1_stack_goal_dead, K2_tableau_goal_dead
 }
 
 $drift = $false

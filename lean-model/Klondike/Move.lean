@@ -531,10 +531,8 @@ splice, the `posOf`-membership bridge, rank injectivity (the +1
 height bound), the deal's piles/stock disjointness, and `reveal`'s
 hidden-slice lemmas (the boundary's dealt-parent decomposition). -/
 
-/-- Ranks are determined by their numeric view. -/
-theorem Rank.toIdx_inj {r r' : Rank} (h : r.toIdx = r'.toIdx) : r = r' := by
-  cases r <;> cases r' <;> simp_all [Rank.toIdx]
-
+-- `Rank.toIdx_inj` moved to Basic.lean (CONSOLIDATED 2026-09-13; the
+-- canonical home upstream of this file).
 namespace Cycle
 
 /-- The none half of `findFirstIdx`. -/
@@ -990,16 +988,6 @@ theorem bottomOf_detach_ne {bd : Board} {b : Base} {c d : Card}
         rw [Board.detach_topOf_ne _ _ _ hbbne]
         exact htb)
 
-/-- After detaching at `b`: the detached card itself is unseated. -/
-theorem detach_bottomOf_self {bd : Board} {b : Base} {c : Card}
-    (hbot : bd.topOf b = some c) : (bd.detach b).bottomOf c = none := by
-  refine (Board.bottomOf_eq_none _ c).mpr (fun b' hb' => ?_)
-  by_cases hbb : b' = b
-  · rw [hbb, Board.detach_topOf] at hb'
-    exact absurd hb' (by simp)
-  · rw [Board.detach_topOf_ne _ _ _ hbb] at hb'
-    exact hbb (bd.inj b' b c hb' hbot)
-
 /-- After attaching `c` at `b`: a different card's seat is only gained,
 never lost (the reverse of `bottomOf_isSome_attach`). -/
 theorem bottomOf_isSome_attach_of_ne {bd : Board} {b : Base} {c d : Card}
@@ -1043,7 +1031,10 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
   | draw =>
     rw [apply_draw_iff] at h
     obtain ⟨rfl⟩ := h
-    refine ⟨hdeal, hdepths, hedges, ?_, ?_, ?_, hvnh, hheights, ?_, hstep, ?_⟩
+    refine State.WF.intro (deal_wf := hdeal) (depths_le := hdepths)
+      (board_edges := hedges) (vis_off_cycle := ?_) (found_off_cycle := ?_)
+      (founds_gone := ?_) (vis_not_hidden := hvnh) (heights_le := hheights)
+      (cursor_le := ?_) (step_pos := hstep) (stock_wf := ?_)
     · intro c' hc'
       show Cycle.findFirstIdx (fun c'' => decide (c'' = c'))
           (Cycle.dealOnce st.drawStep st.stock).cards = none
@@ -1093,7 +1084,10 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       show (st.board.bottomOf c'').isSome = true
       rw [(Board.bottomOf_eq st.board c'' bb).mpr h1]
       rfl
-    refine ⟨hdeal, ?_, ?_, ?_, hfound, ?_, ?_, hheights, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    refine State.WF.intro (deal_wf := hdeal) (depths_le := ?_)
+      (board_edges := ?_) (vis_off_cycle := ?_) (found_off_cycle := hfound)
+      (founds_gone := ?_) (vis_not_hidden := ?_) (heights_le := hheights)
+      (cursor_le := hcursor) (step_pos := hstep) (stock_wf := ⟨hnd, hmem⟩)
     · intro a'
       by_cases haa : a' = a
       · show (if a' = a then st.depths a - 1 else st.depths a') ≤ (st.deal.piles a').length
@@ -1231,7 +1225,10 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       split at hp
       · exact absurd hp (by simp)
       · exact ⟨by omega, hp⟩
-    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, ?_, hheights, ?_, hstep, ?_⟩
+    refine State.WF.intro (deal_wf := hdeal) (depths_le := hdepths)
+      (board_edges := ?_) (vis_off_cycle := ?_) (found_off_cycle := ?_)
+      (founds_gone := ?_) (vis_not_hidden := ?_) (heights_le := hheights)
+      (cursor_le := ?_) (step_pos := hstep) (stock_wf := ?_)
     · intro b' c'' hb''
       refine ⟨(Board.bottomOf_eq _ _ _).mpr hb'', ?_⟩
       by_cases hbb : b' = b
@@ -1355,7 +1352,10 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       split at hp
       · exact absurd hp (by simp)
       · exact ⟨by omega, hp⟩
-    refine ⟨hdeal, hdepths, hedges, ?_, ?_, ?_, hvnh, ?_, ?_, hstep, ?_⟩
+    refine State.WF.intro (deal_wf := hdeal) (depths_le := hdepths)
+      (board_edges := hedges) (vis_off_cycle := ?_) (found_off_cycle := ?_)
+      (founds_gone := ?_) (vis_not_hidden := hvnh) (heights_le := ?_)
+      (cursor_le := ?_) (step_pos := hstep) (stock_wf := ?_)
     · intro c' hc'
       show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
       have hnc : c' ∉ st.stock.cards := by
@@ -1509,7 +1509,10 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       show (st.board.bottomOf c).isSome = true
       rw [hb]
       rfl
-    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, ?_, ?_, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    refine State.WF.intro (deal_wf := hdeal) (depths_le := hdepths)
+      (board_edges := ?_) (vis_off_cycle := ?_) (found_off_cycle := ?_)
+      (founds_gone := ?_) (vis_not_hidden := ?_) (heights_le := ?_)
+      (cursor_le := hcursor) (step_pos := hstep) (stock_wf := ⟨hnd, hmem⟩)
     · intro b' c' hb'
       refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
       have hb'ne : b' ≠ b := by
@@ -1613,7 +1616,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           rw [hcard]
           refine ⟨?_, hvis c hvisc, fun a' hcm => hvnh c hvisc a' hcm⟩
           show ((st.board.detach b).bottomOf c).isSome = false
-          rw [detach_bottomOf_self hbot]
+          rw [Board.bottomOf_detach_self hbot]
           rfl
       · have hc2 : c'.rank.toIdx < st.heights c'.suit := by
           have h2 : c'.rank.toIdx <
@@ -1642,7 +1645,10 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
   | stackPile c b =>
     rw [apply_stackPile_iff] at h
     obtain ⟨h1g, hcp, bd, hatt, rfl⟩ := h
-    refine ⟨hdeal, hdepths, ?_, ?_, ?_, ?_, ?_, ?_, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    refine State.WF.intro (deal_wf := hdeal) (depths_le := hdepths)
+      (board_edges := ?_) (vis_off_cycle := ?_) (found_off_cycle := ?_)
+      (founds_gone := ?_) (vis_not_hidden := ?_) (heights_le := ?_)
+      (cursor_le := hcursor) (step_pos := hstep) (stock_wf := ⟨hnd, hmem⟩)
     · intro b' c' hb'
       refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
       by_cases hbb : b' = b
@@ -1781,7 +1787,10 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           show ((st.board.detach b₀).bottomOf d).isSome = true
           rw [bottomOf_detach_ne hbot₀ hdc]
           exact hd0)
-    refine ⟨hdeal, hdepths, ?_, ?_, hfound, ?_, ?_, hheights, hcursor, hstep, ⟨hnd, hmem⟩⟩
+    refine State.WF.intro (deal_wf := hdeal) (depths_le := hdepths)
+      (board_edges := ?_) (vis_off_cycle := ?_) (found_off_cycle := hfound)
+      (founds_gone := ?_) (vis_not_hidden := ?_) (heights_le := hheights)
+      (cursor_le := hcursor) (step_pos := hstep) (stock_wf := ⟨hnd, hmem⟩)
     · intro b' c' hb'
       refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
       by_cases hbb : b' = b
@@ -1858,94 +1867,16 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
 (`Cycle.removeAt_drawTo`); the *second* draw of each order finds its
 card at the first-occurrence position of the spliced list (the shift
 lemma for a card after the splice, the keep lemma for one before it);
-the board part is two `attach`es at distinct bases.  Theorems.lean's
+the board part is two `attach`es at distinct bases
+(`Board.attach_attach_comm`).  CONSOLIDATED 2026-09-13: the Cycle-level
+splice/shift/keep kit lives in Cycle.lean, the attach commutation in
+Board.lean (both above this file in the DAG); this file keeps the
+State-level guard inversions and the pilot theorem.  Theorems.lean's
 `drawTo_comm_modAdjacent` is the mod-adjacent generalization (with the
-step guard for the wrap case); this file is its upstream, so the kit
-lives here under `Cycle`/`Board` names. -/
-
-/-- The Draw-commitment's stock successor: jump past `i`, splice `i`
-out — the cursor lands exactly on `i`. -/
-theorem Cycle.removeAt_drawTo {α : Type} (i : Nat) (cy : Cycle α) :
-    (cy.drawTo i).removeAt i = { cards := Cycle.removeIdx cy.cards i, cursor := i } := by
-  simp only [Cycle.removeAt, Cycle.drawTo, if_pos (by omega : i < i + 1),
-    Nat.add_sub_cancel]
-
-/-- Splicing out an earlier position shifts a later first occurrence
-down by one. -/
-theorem Cycle.findFirstIdx_removeIdx_shift {α : Type} (p : α → Bool) :
-    ∀ (l : List α) (q r : Nat), Cycle.findFirstIdx p l = some r → q < r →
-      Cycle.findFirstIdx p (Cycle.removeIdx l q) = some (r - 1) := by
-  intro l
-  induction l with
-  | nil =>
-      intro q r h _
-      exact absurd h (by simp [Cycle.findFirstIdx])
-  | cons a t ih =>
-      intro q r h hqr
-      have hc : (if p a then some 0 else (Cycle.findFirstIdx p t).map Nat.succ) = some r := h
-      by_cases hpa : p a = true
-      · rw [if_pos hpa, Option.some.injEq] at hc
-        exact absurd hqr (by omega)
-      · rw [if_neg hpa] at hc
-        cases q with
-        | zero =>
-            rw [Cycle.removeIdx_zero]
-            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
-            rw [hr']
-            exact congrArg some (by omega)
-        | succ q' =>
-            rw [Cycle.removeIdx_succ]
-            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
-            have hih := ih q' r' hr' (by omega)
-            show (if p a then some 0
-              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some (r - 1)
-            rw [if_neg hpa, hih, Option.map_some]
-            exact congrArg some (by omega)
-
-/-- Splicing out a later position leaves an earlier first occurrence
-where it was. -/
-theorem Cycle.findFirstIdx_removeIdx_keep {α : Type} (p : α → Bool) :
-    ∀ (l : List α) (p₀ q : Nat), Cycle.findFirstIdx p l = some p₀ → p₀ < q →
-      Cycle.findFirstIdx p (Cycle.removeIdx l q) = some p₀ := by
-  intro l
-  induction l with
-  | nil =>
-      intro p₀ q h _
-      exact absurd h (by simp [Cycle.findFirstIdx])
-  | cons a t ih =>
-      intro p₀ q h hpq
-      have hc : (if p a then some 0 else (Cycle.findFirstIdx p t).map Nat.succ) = some p₀ := h
-      cases q with
-      | zero => exact absurd hpq (by omega)
-      | succ q' =>
-          rw [Cycle.removeIdx_succ]
-          by_cases hpa : p a = true
-          · rw [if_pos hpa, Option.some.injEq] at hc
-            show (if p a then some 0
-              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
-            rw [if_pos hpa, ← hc]
-          · rw [if_neg hpa] at hc
-            obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
-            have hih := ih r' q' hr' (by omega)
-            show (if p a then some 0
-              else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
-            rw [if_neg hpa, hih, Option.map_some]
-            exact congrArg some (by omega)
-
-/-- The shift lemma, `posOf` packaging (the cursor is never read). -/
-theorem Cycle.posOf_removeIdx_shift {x : Card} {l : List Card} {cur cur' : Nat} {q r : Nat}
-    (h : Cycle.posOf x ⟨l, cur⟩ = some r) (hqr : q < r) :
-    Cycle.posOf x ⟨Cycle.removeIdx l q, cur'⟩ = some (r - 1) :=
-  Cycle.findFirstIdx_removeIdx_shift _ l q r h hqr
-
-/-- The keep lemma, `posOf` packaging (the cursor is never read). -/
-theorem Cycle.posOf_removeIdx_keep {x : Card} {l : List Card} {cur cur' : Nat} {p q : Nat}
-    (h : Cycle.posOf x ⟨l, cur⟩ = some p) (hpq : p < q) :
-    Cycle.posOf x ⟨Cycle.removeIdx l q, cur'⟩ = some p :=
-  Cycle.findFirstIdx_removeIdx_keep _ l p q h hpq
+step guard for the wrap case). -/
 
 /-- The guard's index is the plain stock position. -/
-theorem State.reachablePos_posOf {st : State} {c : Card} {i : Nat}
+theorem reachablePos_posOf {st : State} {c : Card} {i : Nat}
     (h : st.reachablePos c = some i) : st.stock.posOf c = some i := by
   simp only [State.reachablePos] at h
   split at h
@@ -1960,7 +1891,7 @@ theorem State.reachablePos_posOf {st : State} {c : Card} {i : Nat}
 
 /-- A successful Draw commitment's shape: the guard's index, the
 board attach, and the successor with the spliced stock. -/
-theorem applyDrawTo_shape {st : State} {c : Card} {b : Base} {s' : State}
+theorem applyDrawTo_eq {st : State} {c : Card} {b : Base} {s' : State}
     (h : st.applyDrawTo c b = some s') :
     ∃ i bd, st.reachablePos c = some i ∧ st.board.attach b c = some bd ∧
       s' = { st with
@@ -1978,22 +1909,6 @@ theorem applyDrawTo_shape {st : State} {c : Card} {b : Base} {s' : State}
           simp at h
           refine ⟨i, bd, rfl, rfl, ?_⟩
           rw [← h, Cycle.removeAt_drawTo]
-
-/-- Two attachments at distinct bases commute. -/
-theorem Board.attach_attach_comm {bd : Board} {b b' : Base} {c c' : Card}
-    {bd₁ bd₂ bd₃ bd₄ : Board} (hbb : b ≠ b')
-    (h₁ : bd.attach b c = some bd₁) (h₂ : bd₁.attach b' c' = some bd₂)
-    (h₃ : bd.attach b' c' = some bd₃) (h₄ : bd₃.attach b c = some bd₄) :
-    bd₂ = bd₄ := by
-  refine Board.ext_topOf (funext (fun x => ?_))
-  by_cases hxb : x = b
-  · rw [hxb, Board.attach_topOf_ne _ _ _ h₂ hbb, Board.attach_topOf _ _ _ h₁,
-      Board.attach_topOf _ _ _ h₄]
-  · by_cases hxb' : x = b'
-    · rw [hxb', Board.attach_topOf _ _ _ h₂, Board.attach_topOf_ne _ _ _ h₄ (Ne.symm hbb),
-        Board.attach_topOf _ _ _ h₃]
-    · rw [Board.attach_topOf_ne _ _ _ h₂ hxb', Board.attach_topOf_ne _ _ _ h₁ hxb,
-        Board.attach_topOf_ne _ _ _ h₄ hxb, Board.attach_topOf_ne _ _ _ h₃ hxb']
 
 /-- **C13 pilot (model level)**: adjacent Draw-commitments commute
 (distinct bases) — the non-wrap instance at every draw step, the
@@ -2015,12 +1930,12 @@ theorem drawTo_comm_adjacent {st : State} {c c' : Card} {b b' : Base}
   have hilt : i + 1 < st.stock.cards.length := Cycle.posOf_lt hic'
   obtain ⟨s₁, hA, hB⟩ := Option.bind_eq_some_iff.mp h₂
   obtain ⟨s₃, hC, hD⟩ := Option.bind_eq_some_iff.mp h₄
-  obtain ⟨i₀, bd₁, hr₀, ha₁, hs₁⟩ := applyDrawTo_shape hA
-  obtain ⟨k, bd₂, hrk, ha₂, hs₂⟩ := applyDrawTo_shape hB
-  obtain ⟨j₀, bd₃, hr₁, ha₃, hs₃⟩ := applyDrawTo_shape hC
-  obtain ⟨k', bd₄, hrk', ha₄, hs₄⟩ := applyDrawTo_shape hD
-  have hi₀ : i₀ = i := Option.some.inj ((State.reachablePos_posOf hr₀).symm.trans hic)
-  have hj₀ : j₀ = i + 1 := Option.some.inj ((State.reachablePos_posOf hr₁).symm.trans hic')
+  obtain ⟨i₀, bd₁, hr₀, ha₁, hs₁⟩ := applyDrawTo_eq hA
+  obtain ⟨k, bd₂, hrk, ha₂, hs₂⟩ := applyDrawTo_eq hB
+  obtain ⟨j₀, bd₃, hr₁, ha₃, hs₃⟩ := applyDrawTo_eq hC
+  obtain ⟨k', bd₄, hrk', ha₄, hs₄⟩ := applyDrawTo_eq hD
+  have hi₀ : i₀ = i := Option.some.inj ((reachablePos_posOf hr₀).symm.trans hic)
+  have hj₀ : j₀ = i + 1 := Option.some.inj ((reachablePos_posOf hr₁).symm.trans hic')
   rw [hi₀] at hs₁
   rw [hj₀] at hs₃
   have hs₁s : s₁.stock = { cards := Cycle.removeIdx st.stock.cards i, cursor := i } := by
@@ -2031,9 +1946,9 @@ theorem drawTo_comm_adjacent {st : State} {c c' : Card} {b b' : Base}
   have hb₃ : s₃.board = bd₃ := by rw [hs₃]; try rfl
   rw [hb₁] at ha₂
   rw [hb₃] at ha₄
-  have hpk : s₁.stock.posOf c' = some k := State.reachablePos_posOf hrk
+  have hpk : s₁.stock.posOf c' = some k := reachablePos_posOf hrk
   rw [hs₁s] at hpk
-  have hpk' : s₃.stock.posOf c = some k' := State.reachablePos_posOf hrk'
+  have hpk' : s₃.stock.posOf c = some k' := reachablePos_posOf hrk'
   rw [hs₃s] at hpk'
   have hk : k = i :=
     Option.some.inj (hpk.symm.trans (Cycle.posOf_removeIdx_shift hic' (by omega)))

@@ -226,18 +226,6 @@ theorem estate_ext {e₁ e₂ : EState} (h1 : e₁.deal = e₂.deal)
       simp only [EState.mk.injEq]
       exact ⟨h1, funext h2, funext h3, funext h4, h5, h6, h7⟩
 
-/-- After detaching at `b`: the detached card itself is no longer seated
-(the `bottomOf_detach_ne` sibling). -/
-theorem bottomOf_detach_self {bd : Board} {b : Base} {c : Card}
-    (hbot : bd.topOf b = some c) : (bd.detach b).bottomOf c = none := by
-  refine (Board.bottomOf_eq_none _ c).mpr (fun b' hb' => ?_)
-  by_cases hbb : b' = b
-  · subst hbb
-    rw [Board.detach_topOf] at hb'
-    simp at hb'
-  · rw [Board.detach_topOf_ne _ _ _ hbb] at hb'
-    exact hbb (bd.inj b' b c hb' hbot)
-
 /-- The model's own board realizes its projection — WF's board-edges
 conjunction *is* `Fits` (Realizability's `realizable_of_wf`, at the
 board level). -/
@@ -268,7 +256,7 @@ theorem toEngine_step_pileStack {st st' : State} {c : Card} (hwf : st.WF)
       = (decide (c' ≠ c) && (st.board.bottomOf c').isSome)
     by_cases hcc : c' = c
     · subst hcc
-      rw [bottomOf_detach_self htb, decide_eq_false (fun hh => hh rfl), Bool.false_and]
+      rw [Board.bottomOf_detach_self htb, decide_eq_false (fun hh => hh rfl), Bool.false_and]
       rfl
     · rw [bottomOf_detach_ne htb hcc, decide_eq_true hcc, Bool.true_and]
   · intro _; rfl

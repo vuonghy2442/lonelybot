@@ -96,6 +96,17 @@ def isLocked (st : State) (c : Card) : Bool :=
   | some (Sum.inr r) => st.pileOfTopHidden r ≠ none
   | _ => false
 
+/-- The per-suit climb frontier (the engine closure context's
+`frontier[s]`, macro_game.rs): the first rank at or above the
+foundation height whose card is not visible-and-unlocked — 13 when the
+climb is open.  The goal-kill tests read `st.frontier s < X.rank.toIdx`
+(K1's blockedness, K6's climb-blocked twin; see Klondike/Kills.lean). -/
+def frontier (st : State) (s : Suit) : Nat :=
+  match (Rank.all.filter fun r => st.heights s ≤ r.toIdx).find?
+      (fun r => !(st.isVis ⟨s, r⟩) || st.isLocked ⟨s, r⟩) with
+  | some r => r.toIdx
+  | none => 13
+
 /-- Depths within the deal slices (the reveal boundary never runs past
 the deal). -/
 def depths_le (st : State) : Prop :=
@@ -202,6 +213,155 @@ theorem WF.cursor_le {st : State} (h : st.WF) : st.cursor_le := h.2.2.2.2.2.2.2.
 theorem WF.step_pos {st : State} (h : st.WF) : st.step_pos := h.2.2.2.2.2.2.2.2.2.1
 
 theorem WF.stock_wf {st : State} (h : st.WF) : st.stock_wf := h.2.2.2.2.2.2.2.2.2.2
+
+/-- WF by named conjuncts — construction without positional slots
+(the anonymous-constructor spelling `⟨_, _, …⟩` is positional and
+silent under reordering; the 11 slots here are, in order: `deal_wf`,
+`depths_le`, `board_edges`, `vis_off_cycle`, `found_off_cycle`,
+`founds_gone`, `vis_not_hidden`, `heights_le`, `cursor_le`,
+`step_pos`, `stock_wf`). -/
+theorem WF.intro {st : State} (deal_wf : st.deal.WF) (depths_le : st.depths_le)
+    (board_edges : st.board_edges) (vis_off_cycle : st.vis_off_cycle)
+    (found_off_cycle : st.found_off_cycle) (founds_gone : st.founds_gone)
+    (vis_not_hidden : st.vis_not_hidden) (heights_le : st.heights_le)
+    (cursor_le : st.cursor_le) (step_pos : st.step_pos)
+    (stock_wf : st.stock_wf) : st.WF :=
+  ⟨deal_wf, depths_le, board_edges, vis_off_cycle, found_off_cycle, founds_gone,
+    vis_not_hidden, heights_le, cursor_le, step_pos, stock_wf⟩
+
+/-! ### The heights combinators
+
+The named form of the successors' height updates — the raw spelling
+`fun s => if s = c.suit then st.heights s ± 1 else st.heights s`
+appeared ~28× across the farm.  DEFEQ to that raw lambda, with the
+simp/composition kit ready.  SITES DEFERRED (2026-09-13, the
+next pass): the `apply` def bodies and the `apply_*_iff` statements
+stay raw — their unfolded/literal shapes are load-bearing in
+rw-pattern consumers this pass may not edit (Theorems' roundtrip
+unfolds and the `applyDrawStackTo_eq_dealPlay` tail; Relabel's
+`relabelBy_heights_bump` rewrites).  Theorems/Relabel/Macro/Bridge
+sites are the next pass's inventory. -/
+
+/-- Bump one suit's foundation height by one (the `pileStack` /
+`deckStack` / `applyDrawStackTo` successors' heights). -/
+def bumpHeight (st : State) (σ : Suit) : Suit → Nat :=
+  fun s => if s = σ then st.heights s + 1 else st.heights s
+
+/-- Drop one suit's foundation height by one (the `stackPile`
+successor's heights). -/
+def dropHeight (st : State) (σ : Suit) : Suit → Nat :=
+  fun s => if s = σ then st.heights s - 1 else st.heights s
+
+@[simp] theorem bumpHeight_self (st : State) (σ : Suit) :
+    st.bumpHeight σ σ = st.heights σ + 1 := by
+  show (if σ = σ then st.heights σ + 1 else st.heights σ) = _
+  rw [if_pos rfl]
+
+@[simp] theorem bumpHeight_ne {st : State} {σ : Suit} (s : Suit) (h : s ≠ σ) :
+    st.bumpHeight σ s = st.heights s := by
+  show (if s = σ then st.heights s + 1 else st.heights s) = _
+  rw [if_neg h]
+
+@[simp] theorem dropHeight_self (st : State) (σ : Suit) :
+    st.dropHeight σ σ = st.heights σ - 1 := by
+  show (if σ = σ then st.heights σ - 1 else st.heights σ) = _
+  rw [if_pos rfl]
+
+@[simp] theorem dropHeight_ne {st : State} {σ : Suit} (s : Suit) (h : s ≠ σ) :
+    st.dropHeight σ s = st.heights s := by
+  show (if s = σ then st.heights s - 1 else st.heights s) = _
+  rw [if_neg h]
+
+/-- The ± composition kit — the with-update forms of Commutation's
+generic `heights_bump_bump`/`bump_drop`/`drop_drop` (which stay for the
+`depths` steps).  Two bumps always commute; a bump past a drop at the
+shared suit needs that suit's height positive (every `stackPile` guard
+supplies it). -/
+theorem bump_bump (st : State) (σ σ' : Suit) :
+    { st with heights := st.bumpHeight σ' }.bumpHeight σ
+      = { st with heights := st.bumpHeight σ }.bumpHeight σ' := by
+  funext s
+  by_cases h1 : s = σ
+  · by_cases h2 : s = σ'
+    · show (if s = σ then (if s = σ' then st.heights s + 1 else st.heights s) + 1
+          else if s = σ' then st.heights s + 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) + 1
+          else if s = σ then st.heights s + 1 else st.heights s)
+      rw [if_pos h1, if_pos h2, if_pos h2, if_pos h1]
+    · show (if s = σ then (if s = σ' then st.heights s + 1 else st.heights s) + 1
+          else if s = σ' then st.heights s + 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) + 1
+          else if s = σ then st.heights s + 1 else st.heights s)
+      rw [if_pos h1, if_neg h2, if_neg h2, if_pos h1]
+  · by_cases h2 : s = σ'
+    · show (if s = σ then (if s = σ' then st.heights s + 1 else st.heights s) + 1
+          else if s = σ' then st.heights s + 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) + 1
+          else if s = σ then st.heights s + 1 else st.heights s)
+      rw [if_neg h1, if_pos h2, if_neg h1, if_pos h2]
+    · show (if s = σ then (if s = σ' then st.heights s + 1 else st.heights s) + 1
+          else if s = σ' then st.heights s + 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) + 1
+          else if s = σ then st.heights s + 1 else st.heights s)
+      rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
+
+theorem bump_drop {st : State} (σ σ' : Suit) (hpos : σ = σ' → 0 < st.heights σ) :
+    { st with heights := st.dropHeight σ' }.bumpHeight σ
+      = { st with heights := st.bumpHeight σ }.dropHeight σ' := by
+  funext s
+  by_cases h1 : s = σ
+  · by_cases h2 : s = σ'
+    · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) + 1
+          else if s = σ' then st.heights s - 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) - 1
+          else if s = σ then st.heights s + 1 else st.heights s)
+      rw [if_pos h1, if_pos h2, if_pos h2, if_pos h1, h1]
+      have hpos' := hpos (h1.symm.trans h2)
+      omega
+    · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) + 1
+          else if s = σ' then st.heights s - 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) - 1
+          else if s = σ then st.heights s + 1 else st.heights s)
+      rw [if_pos h1, if_neg h2, if_neg h2, if_pos h1]
+  · by_cases h2 : s = σ'
+    · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) + 1
+          else if s = σ' then st.heights s - 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) - 1
+          else if s = σ then st.heights s + 1 else st.heights s)
+      rw [if_neg h1, if_pos h2, if_neg h1, if_pos h2]
+    · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) + 1
+          else if s = σ' then st.heights s - 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) - 1
+          else if s = σ then st.heights s + 1 else st.heights s)
+      rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
+
+theorem drop_drop (st : State) (σ σ' : Suit) :
+    { st with heights := st.dropHeight σ' }.dropHeight σ
+      = { st with heights := st.dropHeight σ }.dropHeight σ' := by
+  funext s
+  by_cases h1 : s = σ
+  · by_cases h2 : s = σ'
+    · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) - 1
+          else if s = σ' then st.heights s - 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s - 1 else st.heights s) - 1
+          else if s = σ then st.heights s - 1 else st.heights s)
+      rw [if_pos h1, if_pos h2, if_pos h2, if_pos h1]
+    · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) - 1
+          else if s = σ' then st.heights s - 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s - 1 else st.heights s) - 1
+          else if s = σ then st.heights s - 1 else st.heights s)
+      rw [if_pos h1, if_neg h2, if_neg h2, if_pos h1]
+  · by_cases h2 : s = σ'
+    · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) - 1
+          else if s = σ' then st.heights s - 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s - 1 else st.heights s) - 1
+          else if s = σ then st.heights s - 1 else st.heights s)
+      rw [if_neg h1, if_pos h2, if_neg h1, if_pos h2]
+    · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) - 1
+          else if s = σ' then st.heights s - 1 else st.heights s)
+          = (if s = σ' then (if s = σ then st.heights s - 1 else st.heights s) - 1
+          else if s = σ then st.heights s - 1 else st.heights s)
+      rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
 
 /-- Conjugate the whole state by the twin-swap relabeling (T's action
 on every component). -/
