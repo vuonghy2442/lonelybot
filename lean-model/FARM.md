@@ -1,6 +1,6 @@
 # The proof farm — handoff document
 
-44 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
+51 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
 each carrying a `TODO(proof)` route comment in source.  Difficulty:
 **[T]** rfl/decide/case-bash · **[E]** one induction · **[M]** real
 work · **[H]** needs ideas (do not assign casually).
@@ -191,3 +191,30 @@ repairs lean on.
 |---|---|---|---|
 | `applyDrawTo_eq_dealPlay` | Theorems | **[H]** | → the guard gives the deal count (maskPos ↔ deal-iteration — wave 8's chain), then `apply_deckPile_iff`'s shape; ← contrapositive by the same correspondence.  Draw-1 instance: `reachablePos_step1` + every jump is k deals |
 | `applyDrawStackTo_eq_dealPlay` | Theorems | **[H]** | as above through `apply_deckStack_iff` |
+
+## Wave 10 — the pace dominance (the offset-dominance registry)
+
+Filed 2026-09-13 after the engine measurements: the refuted-offset
+registry rules R1/R2, measured at **43.8% of seed-32 draw-3 states**
+(1.38M of 3.15M doomed; 912k of them pure states killed by impure
+siblings — R2 is the bigger half); draw-1 exactly 0 (its offsets are
+fully normalized — the rules are draw-3's analogue of that).  Rust
+falsifier: `pace_dominance_order` (src/macro_game.rs — 100 random
+decks × every offset: pure-pure equal, residue-monotone, impure ⊇
+pure, merge holds).  The machine rows depend only on wave 8's
+`maskPos_mem_iff`; the game rows are the macro machinery.
+
+The theorem family: the state space factors as *board × pace* —
+reveals are pace-inert (never touch the stock), draws reset the pace
+to the drawn card's position (a function of the cards alone), so the
+pace only matters through `maskPos` at the instant of a draw.
+
+| item | file:line | tag | route |
+|---|---|---|---|
+| `maskPos_pure_indep` | Pace | [E] | maskPos_mem_iff ×2: a pure cursor's leading lane has residue step−1 (vacuous at 0/pass-end), subsumed by the batch-top disjunct — both sides reduce to batch ∪ last |
+| `maskPos_residue_mono` | Pace | [E] | maskPos_mem_iff: disjuncts 1–2 cursor-free; the leading lane's `o'−1 ≤ p` weakens to `o−1 ≤ p`, residues agree |
+| `maskPos_impure_sup_pure` | Pace | [E] | the pure side reduces to the cursor-free disjuncts (pure_indep's route), which the impure side covers |
+| `drawCard_cursor_indep` | Pace | [E] | congruence: posOf (cards-only), drawTo overwrites the cursor, removeAt's successor cursor reads the overwritten value — no source cursor anywhere |
+| `pace_dominance` | Macro | **[H]** | the simulation: induction on the commitment list; reveals preserve the (equal-boards, maskPos-superset) invariant, the draw case merges via `drawCard_cursor_indep`; accommodations replay verbatim (stock-blind) |
+| `pace_dominance_residue` | Macro | [M] | `pace_dominance` at the o-variant + `maskPos_residue_mono` as `hK` |
+| `pace_dominance_impure_pure` | Macro | [M] | `pace_dominance` at the o-variant + `maskPos_impure_sup_pure` as `hK` |

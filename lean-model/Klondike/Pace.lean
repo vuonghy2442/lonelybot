@@ -204,6 +204,67 @@ theorem maskPos_step1 {α : Type} (c : Cycle α) (hstep : 0 < 1)
       rw [hlane, hlane]
       refine ⟨fun h => ?_, fun h => ?_⟩ <;> omega
 
+/-! ## The pace order — the offset-dominance family
+
+The order the search's refuted-offset registry stands on (engine side,
+2026-09: the registry rules R1/R2, measured at 43.8% of seed-32 draw-3
+states doomed — 1.38M of 3.15M, of which 912k pure states killed by
+impure siblings; draw-1 exactly 0, the normalization's degeneration).
+Rust falsifier: `pace_dominance_order` (src/macro_game.rs — 100 random
+decks × every offset).  The game-level exploit is Macro.lean's
+`pace_dominance`. -/
+
+/-- The pure-pure equality: every pure cursor — aligned
+(`o % step = 0`, including 0) or at the pass end (`o = length`) —
+accesses the same set: the batch-top lane plus the last card.  This
+*derives* deck.rs's `is_pure`/`normalized_offset` encode merge (the
+offset normalization draw-1 gets everywhere, draw-3 gets on the pure
+class) from the machine's formula instead of asserting it.
+
+TODO(proof) [E]: `maskPos_mem_iff` both sides; a pure cursor's leading
+lane has residue `(o - 1) % step = step - 1` (and at `o = 0` or the
+pass end it is vacuous), so it subsumes into the batch-top disjunct —
+both sides reduce to `p % step = step - 1 ∧ p < n - 1` plus the last
+card. -/
+theorem maskPos_pure_indep {α : Type} (c c' : Cycle α) (step : Nat) (hstep : 0 < step)
+    (hc : c.cards = c'.cards)
+    (hcur : c.cursor ≤ c.cards.length) (hcur' : c'.cursor ≤ c'.cards.length)
+    (hpure : c.cursor % step = 0 ∨ c.cursor = c.cards.length)
+    (hpure' : c'.cursor % step = 0 ∨ c'.cursor = c'.cards.length) :
+    ∀ p, p ∈ maskPos c step hstep ↔ p ∈ maskPos c' step hstep := sorry
+
+/-- Residue monotonicity: within an impure residue class, the earlier
+cursor accesses more — `K(o) ⊇ K(o')` when `o ≤ o'` and
+`o % step = o' % step ≠ 0`.  The mechanism: `iter_callback`'s leading
+lane starts at `o - 1` (lower for smaller `o`) while the batch-top lane
+and the last card are class-invariant.
+
+TODO(proof) [E]: `maskPos_mem_iff` both sides; the first two disjuncts
+are cursor-free; the leading lane's bound `o' - 1 ≤ p` weakens to
+`o - 1 ≤ p` by `hle`, the residues agree by `hres`, and `0 < o'`
+gives `0 < o`. -/
+theorem maskPos_residue_mono {α : Type} (c c' : Cycle α) (step : Nat) (hstep : 0 < step)
+    (hc : c.cards = c'.cards)
+    (hle : c.cursor ≤ c'.cursor)
+    (hres : c.cursor % step = c'.cursor % step)
+    (himp : c'.cursor % step ≠ 0)
+    (hcur : c.cursor ≤ c.cards.length) (hcur' : c'.cursor ≤ c'.cards.length) :
+    ∀ p, p ∈ maskPos c' step hstep → p ∈ maskPos c step hstep := sorry
+
+/-- Impure over pure: any mid-pass cursor's accessible set contains the
+pass-boundary (pure) one — the impure set is the pure set (batch-top
+lane + last card) *plus* a nonempty leading lane.
+
+TODO(proof) [E]: `maskPos_mem_iff` both sides; the pure side reduces to
+the two cursor-free disjuncts (`maskPos_pure_indep`'s route), which the
+impure side's first two disjuncts already cover. -/
+theorem maskPos_impure_sup_pure {α : Type} (c c' : Cycle α) (step : Nat) (hstep : 0 < step)
+    (hc : c.cards = c'.cards)
+    (himp : c.cursor % step ≠ 0)
+    (hpure' : c'.cursor % step = 0 ∨ c'.cursor = c'.cards.length)
+    (hcur : c.cursor ≤ c.cards.length) (hcur' : c'.cursor ≤ c'.cards.length) :
+    ∀ p, p ∈ maskPos c' step hstep → p ∈ maskPos c step hstep := sorry
+
 /-! ## The draw machine
 
 The bare-cycle machine the sequence form talks about: one draw is
@@ -219,6 +280,20 @@ def drawCard (x : Card) (c : Cycle Card) : Option (Cycle Card) :=
   match c.posOf x with
   | none => none
   | some i => some ((c.drawTo i).removeAt i)
+
+/-- The merge lemma: `drawCard` reads only the cards — the jump target
+is `posOf` (cards-only), `drawTo` *overwrites* the cursor with `i + 1`,
+and `removeAt` computes the successor cursor from that overwritten value
+(`if i < i + 1 then i + 1 - 1` = `i`) — so two cycles with the same
+cards draw any card to the *identical* successor.  This is what makes
+winning lines merge after one common draw, the load-bearing step of
+Macro.lean's `pace_dominance` replay.
+
+TODO(proof) [E]: congruence — `posOf` agrees by `hc`, and the successor
+cycle `⟨removeIdx c.cards i, i⟩` has no occurrence of the source
+cursor. -/
+theorem drawCard_cursor_indep (c c' : Cycle Card) (x : Card) (hc : c.cards = c'.cards) :
+    drawCard x c = drawCard x c' := sorry
 
 /-- The deterministic machine run over a draw order. -/
 def run (c : Cycle Card) : List Card → Option (Cycle Card)
