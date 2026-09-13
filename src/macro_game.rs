@@ -2897,6 +2897,135 @@ mod tests {
         }
     }
 
+    /// The deck-lattice decomposition — what IS the 164x deck-word
+    /// multiplicity? Per board (stack | hidden), the visited states carry
+    /// different deck masks (which cards remain) and offsets (pace). The
+    /// attack-relevant shape:
+    /// - *comparable* mask pairs (M1 ⊃ M2): the subset state is
+    ///   reachable from the superset state by draw+park sequences
+    ///   (board-preserving) — in draw-1 the offset is normalized away, so
+    ///   TP already dedupes this order-redundancy and a state-level
+    ///   dominance adds nothing;
+    /// - *incomparable* masks: genuinely different deployed-card sets —
+    ///   distinct positions no dominance by superset can merge;
+    /// - offset multiplicity per (board, mask): surviving draw-order
+    ///   information (draw-3 only; draw-1 normalizes it away).
+    #[test]
+    #[ignore = "deck lattice decomposition; run with --ignored --release --nocapture"]
+    fn debug_deck_lattice() {
+        use std::collections::{HashMap, HashSet};
+        for draw_step in [1u8, 3] {
+            let g = Solitaire::new(&default_shuffle(32), NonZeroU8::new(draw_step).unwrap());
+            let mut boards: HashMap<u32, Vec<u32>> = HashMap::new();
+            macro_solvable_direct_progress(&g, |s| {
+                let e = s.encode();
+                let board = (e & 0xFFFF_FFFF) as u32;
+                let deck = (e >> 32) as u32;
+                boards.entry(board).or_default().push(deck);
+            });
+            let states: u64 = boards.values().map(|v| v.len() as u64).sum();
+            let mut mults: Vec<u64> = boards.values().map(|v| v.len() as u64).collect();
+            mults.sort_unstable();
+            // distinct (board, mask) and offset multiplicity per mask
+            let mut masks: HashSet<(u32, u32)> = HashSet::new();
+            let mut offsets_per_mask: HashMap<(u32, u32), HashSet<u8>> = HashMap::new();
+            for (b, ds) in &boards {
+                for &d in ds {
+                    let m = d & 0xFF_FFFF;
+                    masks.insert((*b, m));
+                    offsets_per_mask
+                        .entry((*b, m))
+                        .or_default()
+                        .insert((d >> 24) as u8);
+                }
+            }
+            let multi_offset: u64 = offsets_per_mask
+                .values()
+                .filter(|o| o.len() > 1)
+                .count() as u64;
+            // the residue-dominance prize: within each (board, MASK),
+            // offsets group into residue classes (mod 3) plus the pure
+            // class (offset == len, already normalized); only the minimal
+            // offset per class needs exploring — count the doomed extras
+            let mut doomed: u64 = 0;
+            let mut surviving: u64 = 0;
+            for (b, ds) in &boards {
+                let mut by_mask_residue: HashMap<(u32, u8), Vec<u8>> = HashMap::new();
+                for &d in ds {
+                    let m = d & 0xFF_FFFF;
+                    let o = (d >> 24) as u8;
+                    let len = m.count_ones() as u8;
+                    let r = if o == len { 0 } else { o % 3 };
+                    by_mask_residue.entry((m, r)).or_default().push(o);
+                }
+                for (_, offs) in by_mask_residue {
+                    surviving += 1;
+                    doomed += offs.len() as u64 - 1;
+                }
+            }
+            // pairwise structure on the top-100 boards by multiplicity
+            let mut top: Vec<(&u32, &Vec<u32>)> = boards.iter().collect();
+            top.sort_by_key(|(_, v)| core::cmp::Reverse(v.len()));
+            let (mut comparable, mut incomparable, mut same_mask) = (0u64, 0u64, 0u64);
+            let mut pop_spread: Vec<u8> = Vec::new();
+            for (_, ds) in top.iter().take(100) {
+                let masks: Vec<u32> = ds.iter().map(|d| d & 0xFF_FFFF).collect();
+                let mut pmin = 24u8;
+                let mut pmax = 0u8;
+                for &m in &masks {
+                    let p = m.count_ones() as u8;
+                    pmin = pmin.min(p);
+                    pmax = pmax.max(p);
+                }
+                pop_spread.push(pmax - pmin);
+                for i in 0..masks.len() {
+                    for j in 0..masks.len() {
+                        if i == j {
+                            continue;
+                        }
+                        let (mi, mj) = (masks[i], masks[j]);
+                        if mi == mj {
+                            same_mask += 1;
+                        } else if (mi & mj) == mj {
+                            comparable += 1; // mi ⊃ mj
+                        } else if (mi & mj) != mi {
+                            incomparable += 1;
+                        }
+                    }
+                }
+            }
+            let pairs = comparable + incomparable + same_mask;
+            println!(
+                "seed=32 draw={draw_step}: states={states} boards={} avg-mult={:5.1} p50-mult={} max-mult={}",
+                boards.len(),
+                states as f64 / boards.len() as f64,
+                mults[mults.len() / 2],
+                mults[mults.len() - 1]
+            );
+            println!(
+                "  distinct (board,mask)={} — {} masks carry >1 offset (draw-order info survived); popcount spread per top-board: p50={} max={}",
+                masks.len(),
+                multi_offset,
+                pop_spread[pop_spread.len() / 2],
+                pop_spread.iter().copied().max().unwrap_or(0)
+            );
+            println!(
+                "  residue-dominance prize: surviving states={} doomed={} ({:4.1}% of the search's states)",
+                surviving,
+                doomed,
+                100.0 * doomed as f64 / states as f64
+            );
+            println!(
+                "  top-100-board mask pairs: comparable(superset)={} ({:4.1}%) same-mask={} incomparable={} ({:4.1}%)",
+                comparable,
+                100.0 * comparable as f64 / pairs as f64,
+                same_mask,
+                incomparable,
+                100.0 * incomparable as f64 / pairs as f64
+            );
+        }
+    }
+
     /// The word pipeline against move replay, state by state:
     /// `canonicalize` must land exactly where the per-card `do_move` sweep
     /// does (including ambiguous-twin picks), and `post_state` must equal
