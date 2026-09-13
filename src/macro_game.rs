@@ -986,36 +986,16 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
             h(s);
         }
         let ctx = ClosureCtx::from_game(s);
-        let mut commitments = core::mem::take(&mut scratch.commitments);
-        core_run(&ctx, scratch, &mut commitments, true);
-        scratch.commitments = commitments;
 
-        // F3 dominance drop: tableau outcomes of dominantly stackable
-        // commitments with a direct stack outcome (same fold as the
-        // materialized path).
-        let dom = s.get_stack().dominance_mask();
-        let mut f3: u64 = 0;
-        for group in &scratch.groups {
-            for (c, k, _, ch) in group {
-                if *k == OutcomeKind::Stack && *ch == "stack-direct" {
-                    f3 |= match c {
-                        Commitment::Draw(x) | Commitment::Reveal(x) => x.mask(),
-                    };
-                }
-            }
-        }
-        f3 &= dom;
-
-        // Forced-commitment dominance (ledger C12): the move-level F3
-        // singleton fires even for LOCKED cards — stacking a dominantly
-        // safe locked surface reveals it, and the engine then returns
-        // that move alone. The sweep eats unlocked dominants eagerly and
-        // F3 above drops the parked variant of dominant commitments, but
-        // without this rule the fold still explores sibling commitments
-        // the micro search never reaches. When a locked surface is
-        // dominantly stackable, its Reveal commitment (stack outcome) is
-        // the only successor — every alternative's first move
-        // micro-dominance-commutes after it.
+        // forced-commitment dominance (ledger C12), hoisted above the
+        // generator: a locked dominantly-stackable surface's Reveal
+        // (stack outcome) is the node's only explored successor, and its
+        // stack-direct channel provably exists — the forced mask is a
+        // subset of `bm & vis & sm = pile_stack` — so at these nodes the
+        // whole rule list, the shared BFS, and the group loop are dead
+        // work. Measured on the search path (probe
+        // `debug_forced_and_deck_dom_rate`): fires at ~11% of draw-1 /
+        // ~15% of draw-3 nodes.
         let forced_reveal = {
             let f = ctx.root.locked
                 & ctx.root.vis
@@ -1024,6 +1004,20 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
                 & Stack::decode(ctx.root.stack).dominance_mask();
             f & f.wrapping_neg()
         };
+        if forced_reveal != 0 {
+            let x = Card::from_mask_index(
+                u8::try_from(forced_reveal.trailing_zeros()).unwrap(),
+            );
+            let steps = [Move::PileStack(x)];
+            let (vis, stack) = post_words(s, &ctx, &steps);
+            let old = (s.get_visible_mask(), s.get_stack().encode());
+            let (_, (undo, _)) = s.do_move(steps[0]);
+            s.set_board(vis, stack);
+            let child_win = rec(s, tp, scratch, hook);
+            s.undo_move(steps[0], undo);
+            s.set_board(old.0, old.1);
+            return child_win;
+        }
 
         // Deck-source dominance — the draw-1 clause of the engine's
         // cascade (state.rs): when a drawable deck card is dominantly
@@ -1033,6 +1027,12 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         // Search-fold policy (like F3): the generator stays total so the
         // differential sees all channels. Corpus-gated [~] with the named
         // falsifier (ledger C9).
+        //
+        // note: the C5/is_pure port was falsified (seed 21 d1 flips
+        // old=win -> macro=loss): Deck::is_pure's offset-at-boundary
+        // premise doesn't survive the macro's offset-jumping draws, so
+        // the "pure" states the old rule fired at and the macro states
+        // it would fire at don't correspond. Ledger row C11.
         //
         // The draw-3 lift was MEASURED UNSOUND and reverted (2026-09):
         // seeds 67 & 74 (draw 3) flip old=true -> direct=false under the
@@ -1047,42 +1047,22 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
             }
         };
 
+        let mut commitments = core::mem::take(&mut scratch.commitments);
+        core_run(&ctx, scratch, &mut commitments, true);
+        scratch.commitments = commitments;
+
+        // F3 dominance drop: tableau outcomes of dominantly stackable
+        // commitments with a direct stack outcome (same fold as the
+        // materialized path). `core_run` derives it from the raw masks —
+        // bits of (pile_stack ∩ locked surfaces) ∪ deck_stack under
+        // dominance, exactly the commitments carrying a stack-direct
+        // entry — so no post-hoc group scan.
+        let f3 = scratch.f3;
+
         // take the working vecs out so the recursion can reuse the scratch
         let groups = core::mem::take(&mut scratch.groups);
         let mut win = false;
         'outer: for group in &groups {
-            // forced-commitment dominance: a locked dominantly-stackable
-            // surface's Reveal (stack outcome) is the node's only play
-            if forced_reveal != 0 {
-                match group.first() {
-                    Some((Commitment::Reveal(x), ..)) if x.mask() == forced_reveal => {}
-                    _ => continue,
-                }
-                let Some((_, _, steps, _)) = group
-                    .iter()
-                    .find(|(_, k, _, ch)| *k == OutcomeKind::Stack && *ch == "stack-direct")
-                else {
-                    continue;
-                };
-                let (vis, stack) = post_words(s, &ctx, steps);
-                let old = (s.get_visible_mask(), s.get_stack().encode());
-                let commit = *steps.last().expect("every channel ends in a commit");
-                let (_, (undo, _)) = s.do_move(commit);
-                s.set_board(vis, stack);
-                let child_win = rec(s, tp, scratch, hook);
-                s.undo_move(commit, undo);
-                s.set_board(old.0, old.1);
-                if child_win {
-                    win = true;
-                    break 'outer;
-                }
-                break 'outer; // sole successor
-            }
-            // note: the C5/is_pure port was falsified (seed 21 d1 flips
-            // old=win -> macro=loss): Deck::is_pure's offset-at-boundary
-            // premise doesn't survive the macro's offset-jumping draws, so
-            // the "pure" states the old rule fired at and the macro states
-            // it would fire at don't correspond. Ledger row C11.
             // deck dominance: skip dominated Draw commitments entirely
             if deck_dom != 0 {
                 if let Some((Commitment::Draw(x), ..)) = group.first() {
@@ -1159,6 +1139,10 @@ pub(crate) struct DirectScratch {
     bfs: BfsScratch,
     fold_seen: Vec<(Commitment, OutcomeKind)>,
     out: Vec<(Commitment, Solitaire)>,
+    /// the F3 mask (dominantly stackable commitments with a stack-direct
+    /// outcome), derived by `core_run` from the raw masks; the search
+    /// fold reads it instead of rescanning the emitted groups.
+    f3: u64,
 }
 
 impl DirectScratch {
@@ -1176,6 +1160,7 @@ impl DirectScratch {
             },
             fold_seen: Vec::new(),
             out: Vec::new(),
+            f3: 0,
         }
     }
 }
@@ -1552,6 +1537,15 @@ fn core_run(
     let locked = ctx.root.locked;
     let locked_surfaces = ctx.root.vis & locked;
 
+    // F3 mask, derived from the raw masks instead of the emitted groups:
+    // a stack-direct entry exists exactly for the commitments whose card
+    // sits in `pile_stack` (the locked surfaces — reveal-by-stacking) or
+    // `deck_stack`, so `f3 = those ∩ dominance` needs no per-commitment
+    // scan. Stored on the scratch for the search fold to read.
+    let f3_bits = ((mv.pile_stack & locked_surfaces) | mv.deck_stack)
+        & Stack::decode(ctx.root.stack).dominance_mask();
+    scratch.f3 = f3_bits;
+
     // enumerate commitments: every locked surface first, then every
     // drawable deck card — reveal before draw, mirroring the old engine's
     // raw move order (`MoveMask::iter_moves` tries `Reveal` before any
@@ -1625,15 +1619,99 @@ fn core_run(
             ));
         }
 
+        // the F3 fold for this commitment: dominantly stackable now with
+        // a direct stack outcome — `collapse_pick` then takes that
+        // stack-direct entry and no later channel of either kind is
+        // reachable. Only meaningful in fold mode (the total generator
+        // must keep emitting everything).
+        let f3_sel = fold && f3_bits & xmask != 0;
+
         // stack-side channels. Prefix-raise: stack the missing same-suit
         // prefix cards until X becomes stackable. If the prefix is already
         // complete, the BFS fallback handles the "X needs an unrelated
         // shuffle to unblock" cases (e.g. a buried surface king).
         // The probe runs on a word copy: `locked` is shuffle-invariant and
         // the pile-stack mask recomputes from the words.
+        //
+        // (Moved after dig/borrow — the group's emission order between the
+        // fixed Stack channel and the fixed Tableau channels is selection-
+        // immaterial: `collapse_pick` takes the first Tableau entry or
+        // `.first()`, and prefix-raise can only be `.first()` when no
+        // Tableau channel fired at all. In fold mode the probe is skipped
+        // entirely when any such entry exists or the commitment is
+        // dominantly stackable now (f3): the outcome it would emit is then
+        // unselectable.)
         let suit = x.suit();
+        let is_king = x.rank() == crate::card::KING_RANK;
+
+        // dig channel: vacate twin(X) onto a foundation if it is the
+        // (uniquely possible) coverer of a parent top. Probed on a word
+        // copy — one stack nibble edit and a mask recompute.
+        let mut dig_fired = false;
+        if !is_king && !(fold && (direct_now || f3_sel)) {
+            let twin = x.swap_suit();
+            let twin_mask = twin.mask();
+            if locked & twin_mask == 0 && mv.pile_stack & twin_mask != 0 {
+                let mut w = ctx.root;
+                w.stack_up(twin);
+                let mv2 = w.move_masks(deck_mask, ctx.first_layer);
+                let opens = match commitment {
+                    Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
+                    Commitment::Reveal(_) => mv2.reveal & xmask != 0,
+                };
+                if opens {
+                    groups[ci].push((
+                        commitment,
+                        OutcomeKind::Tableau,
+                        steps(&[Move::PileStack(twin), direct_move]),
+                        "tableau-dig",
+                    ));
+                    dig_fired = true;
+                }
+            }
+        }
+
+        // borrow channel(s): a parent on its foundation top, worry-back-able.
+        // Probed on a word copy, same shape as the dig. Fold mode skips the
+        // probe when an earlier Tableau entry (direct, dig) already exists
+        // or f3 selects the stack-direct outcome: unselectable.
+        let mut borrow_fired = false;
+        if !is_king && !(fold && (direct_now || dig_fired || f3_sel)) {
+            let r = x.rank();
+            let s = x.suit();
+            for p in [Card::new(r + 1, s ^ 2), Card::new(r + 1, s ^ 3)] {
+                let on_foundation_top =
+                    ctx.root.height(p.suit()) == p.rank().saturating_add(1);
+                if !(on_foundation_top
+                    && locked & p.mask() == 0
+                    && mv.stack_pile & p.mask() != 0)
+                {
+                    continue;
+                }
+                let mut w = ctx.root;
+                w.stack_down(p);
+                let mv2 = w.move_masks(deck_mask, ctx.first_layer);
+                let opens = match commitment {
+                    Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
+                    Commitment::Reveal(_) => mv2.reveal & xmask != 0,
+                };
+                if opens {
+                    groups[ci].push((
+                        commitment,
+                        OutcomeKind::Tableau,
+                        steps(&[Move::StackPile(p), direct_move]),
+                        "tableau-borrow",
+                    ));
+                    borrow_fired = true;
+                }
+            }
+        }
+
         let mut stack_produced = stack_now;
-        if !stack_now && ctx.root.height(suit) < x.rank() {
+        if !stack_now
+            && ctx.root.height(suit) < x.rank()
+            && !(fold && (direct_now || dig_fired || borrow_fired))
+        {
             // the probe dies on its first iteration unless the first
             // missing prefix card is stackable and unlocked at the root —
             // check that before entering the loop (most probes die here)
@@ -1675,69 +1753,6 @@ fn core_run(
                 }
             }
         }
-        // dig/borrow only make sense with a parent class: kings skip both
-        let is_king = x.rank() == crate::card::KING_RANK;
-
-        // dig channel: vacate twin(X) onto a foundation if it is the
-        // (uniquely possible) coverer of a parent top. Probed on a word
-        // copy — one stack nibble edit and a mask recompute.
-        let mut dig_fired = false;
-        if !is_king {
-            let twin = x.swap_suit();
-            let twin_mask = twin.mask();
-            if locked & twin_mask == 0 && mv.pile_stack & twin_mask != 0 {
-                let mut w = ctx.root;
-                w.stack_up(twin);
-                let mv2 = w.move_masks(deck_mask, ctx.first_layer);
-                let opens = match commitment {
-                    Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
-                    Commitment::Reveal(_) => mv2.reveal & xmask != 0,
-                };
-                if opens {
-                    groups[ci].push((
-                        commitment,
-                        OutcomeKind::Tableau,
-                        steps(&[Move::PileStack(twin), direct_move]),
-                        "tableau-dig",
-                    ));
-                    dig_fired = true;
-                }
-            }
-        }
-
-        // borrow channel(s): a parent on its foundation top, worry-back-able.
-        // Probed on a word copy, same shape as the dig.
-        let mut borrow_fired = false;
-        if !is_king {
-            let r = x.rank();
-            let s = x.suit();
-            for p in [Card::new(r + 1, s ^ 2), Card::new(r + 1, s ^ 3)] {
-                let on_foundation_top =
-                    ctx.root.height(p.suit()) == p.rank().saturating_add(1);
-                if !(on_foundation_top
-                    && locked & p.mask() == 0
-                    && mv.stack_pile & p.mask() != 0)
-                {
-                    continue;
-                }
-                let mut w = ctx.root;
-                w.stack_down(p);
-                let mv2 = w.move_masks(deck_mask, ctx.first_layer);
-                let opens = match commitment {
-                    Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
-                    Commitment::Reveal(_) => mv2.reveal & xmask != 0,
-                };
-                if opens {
-                    groups[ci].push((
-                        commitment,
-                        OutcomeKind::Tableau,
-                        steps(&[Move::StackPile(p), direct_move]),
-                        "tableau-borrow",
-                    ));
-                    borrow_fired = true;
-                }
-            }
-        }
 
         // (the blockers of X are two twins and each may need its own dig;
         // the shared bounded BFS below catches the chains the fixed rules
@@ -1772,10 +1787,12 @@ fn core_run(
         //
         // fold mode: with a dig/borrow outcome already in the group the
         // tableau-bfs answer appends after it and can never be picked
-        // (collapse_pick takes the first tableau entry) — skip the goal.
+        // (collapse_pick takes the first tableau entry) — and under f3
+        // the selection is the stack-direct entry outright — skip the
+        // goal in both cases.
         if !direct_now
             && !goal_dead(ctx, commitment, OutcomeKind::Tableau)
-            && !(fold && (dig_fired || borrow_fired))
+            && !(fold && (dig_fired || borrow_fired || f3_sel))
         {
             goals.push(AccommodationGoal {
                 commitment,
@@ -1814,9 +1831,11 @@ fn macro_transitions_core(g: &Solitaire, scratch: &mut DirectScratch) -> (Solita
 /// The §6.4 rule list with full semantics, for the differential: every
 /// channel's outcome materialized (per-channel dedup by encode), no fold.
 /// Channels per commitment, in emission order: stack-direct,
-/// tableau-direct, prefix-raise (stack the missing same-suit prefix) on
-/// the stack side; dig (vacate `twin(X)`), borrow (worry a foundation-top
-/// parent back) on the tableau side; and the bounded shared BFS for the
+/// tableau-direct; dig (vacate `twin(X)`), borrow (worry a foundation-top
+/// parent back) on the tableau side; prefix-raise (stack the missing
+/// same-suit prefix) on the stack side (the fixed Stack channel sits
+/// after the fixed Tableau channels — selection-immaterial, see
+/// `core_run`); and the bounded shared BFS for the
 /// chained crease (caps 40 — measured as not-a-depth-artifact, P.5).
 #[must_use]
 pub fn macro_transitions_direct(g: &Solitaire) -> Vec<DirectTransition> {
@@ -1858,6 +1877,65 @@ mod tests {
             let cm = cands & cands.wrapping_neg();
             let c = Card::from_mask_index(u8::try_from(cm.trailing_zeros()).unwrap());
             let _ = g.do_move(Move::PileStack(c));
+        }
+    }
+
+    /// Search-path firing rates for the two search-level sole-successor
+    /// rules (fold C12 forced-reveal, C9 draw-1 deck dominance), measured
+    /// through the progress hook on the shipped path: at every TP-miss
+    /// node, recompute the two masks and count. The rates bound the work a
+    /// pre-`core_run` short-circuit could skip (the whole rule list plus
+    /// the shared BFS at forced nodes; the deck-side channels at
+    /// deck-dominated draw-1 nodes).
+    #[test]
+    #[ignore = "rate probe; run with --ignored --release --nocapture"]
+    fn debug_forced_and_deck_dom_rate() {
+        for draw_step in [1u8, 3] {
+            let (mut nodes, mut forced, mut deck_dom) = (0u64, 0u64, 0u64);
+            let mut deck_cards = 0u64;
+            for seed in [12u64, 14, 17, 18, 21, 22, 26, 32] {
+                let g = Solitaire::new(&default_shuffle(seed), NonZeroU8::new(draw_step).unwrap());
+                let (mut n, mut f, mut d, mut dc) = (0u64, 0u64, 0u64, 0u64);
+                let t = std::time::Instant::now();
+                let win = macro_solvable_direct_progress(&g, |s| {
+                    n += 1;
+                    let root = Words::from_game(s);
+                    let fr = root.locked
+                        & root.vis
+                        & root.sm()
+                        & root.bm()
+                        & Stack::decode(root.stack).dominance_mask();
+                    if fr != 0 {
+                        f += 1;
+                    }
+                    if draw_step == 1 {
+                        let dm = s.get_deck().compute_mask(false)
+                            & root.sm()
+                            & Stack::decode(root.stack).dominance_mask();
+                        if dm != 0 {
+                            d += 1;
+                            dc += s.get_deck().compute_mask(false).count_ones() as u64;
+                        }
+                    }
+                });
+                println!(
+                    "seed={seed} draw={draw_step} win={win} nodes={n} forced={f} ({:4.1}%) deck_dom={d} ({:4.1}%) avg_deck_at_dom={:4.1} in {:?}",
+                    100.0 * f as f64 / n.max(1) as f64,
+                    100.0 * d as f64 / n.max(1) as f64,
+                    dc as f64 / d.max(1) as f64,
+                    t.elapsed()
+                );
+                nodes += n;
+                forced += f;
+                deck_dom += d;
+                deck_cards += dc;
+            }
+            println!(
+                "TOTAL draw={draw_step}: nodes={nodes} forced={forced} ({:4.1}%) deck_dom={deck_dom} ({:4.1}%) avg_deck_at_dom={:4.1}",
+                100.0 * forced as f64 / nodes.max(1) as f64,
+                100.0 * deck_dom as f64 / nodes.max(1) as f64,
+                deck_cards as f64 / deck_dom.max(1) as f64,
+            );
         }
     }
 
@@ -2468,24 +2546,45 @@ mod tests {
             let t0 = Instant::now();
             let ctx = ClosureCtx::from_game(s);
             t.ctx += t0.elapsed();
+            // mirror the shipped fold's forced-commitment (C12) clause,
+            // hoisted above the generator
+            let forced_reveal = {
+                let f = ctx.root.locked
+                    & ctx.root.vis
+                    & ctx.root.sm()
+                    & ctx.root.bm()
+                    & Stack::decode(ctx.root.stack).dominance_mask();
+                f & f.wrapping_neg()
+            };
+            if forced_reveal != 0 {
+                let x = Card::from_mask_index(
+                    u8::try_from(forced_reveal.trailing_zeros()).unwrap(),
+                );
+                let steps = [Move::PileStack(x)];
+                let t0 = Instant::now();
+                let (vis, stack) = post_words(s, &ctx, &steps);
+                t.post += t0.elapsed();
+                let t0 = Instant::now();
+                let old = (s.get_visible_mask(), s.get_stack().encode());
+                let (_, (undo, _)) = s.do_move(steps[0]);
+                s.set_board(vis, stack);
+                *branches += 1;
+                t.apply += t0.elapsed();
+                let child_win = rec(s, tp, scratch, nodes, branches, t);
+                let t0 = Instant::now();
+                s.undo_move(steps[0], undo);
+                s.set_board(old.0, old.1);
+                t.apply += t0.elapsed();
+                return child_win;
+            }
             let t0 = Instant::now();
             let mut commitments = core::mem::take(&mut scratch.commitments);
             core_run(&ctx, scratch, &mut commitments, true);
             scratch.commitments = commitments;
             t.core += t0.elapsed();
+            // the shipped fold reads the F3 mask the generator derived
             let t0 = Instant::now();
-            let dom = s.get_stack().dominance_mask();
-            let mut f3: u64 = 0;
-            for group in &scratch.groups {
-                for (c, k, _, ch) in group {
-                    if *k == OutcomeKind::Stack && *ch == "stack-direct" {
-                        f3 |= match c {
-                            Commitment::Draw(x) | Commitment::Reveal(x) => x.mask(),
-                        };
-                    }
-                }
-            }
-            f3 &= dom;
+            let f3 = scratch.f3;
             t.f3 += t0.elapsed();
 
             let groups = core::mem::take(&mut scratch.groups);
@@ -2501,22 +2600,7 @@ mod tests {
                     0
                 }
             };
-            // mirror the shipped fold's forced-commitment (C12) clause
-            let forced_reveal = {
-                let f = ctx.root.locked
-                    & ctx.root.vis
-                    & ctx.root.sm()
-                    & ctx.root.bm()
-                    & Stack::decode(ctx.root.stack).dominance_mask();
-                f & f.wrapping_neg()
-            };
             'outer: for group in &groups {
-                if forced_reveal != 0 {
-                    match group.first() {
-                        Some((Commitment::Reveal(x), ..)) if x.mask() == forced_reveal => {}
-                        _ => continue,
-                    }
-                }
                 if deck_dom != 0 {
                     if let Some((Commitment::Draw(x), ..)) = group.first() {
                         if x.mask() != deck_dom {
