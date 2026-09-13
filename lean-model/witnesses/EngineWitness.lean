@@ -209,7 +209,12 @@ def wplay : List Move :=
    Move.pileStack wsJ, Move.pileStack wsQ, Move.pileStack wsK,
    Move.deckStack whK]
 
+/-- info: true -/
+#guard_msgs in
 #eval (wstate.run wplay).isSome
+
+/-- info: true -/
+#guard_msgs in
 #eval ((wstate.run wplay).getD wstate).isWin
 
 /-- The full game wins: the 31-move play runs to a win (kernel-checked). -/
@@ -773,15 +778,20 @@ theorem wstate_wf : wstate.WF := by
       rw [this]
       decide
 
-/-- **The refutation**: `solvable_engine_iff` is false as stated.  On
-this WF state the full game wins (park ♥4, reveal ♠5, drain) while the
-engine is doomed (hearts frozen at ≤ 2 — the reveal-deadlock that only
-`pilePile` breaks). -/
-theorem engine_iff_refuted :
-    ¬ (∀ st : State, st.WF → (st.solvableFrom ↔ st.solvableEngine)) := by
-  intro hall
-  have hiff := hall wstate wstate_wf
-  exact wstate_not_engine (hiff.mp wstate_solvable)
+/-! ## The refutation (HISTORICAL)
+
+`solvable_engine_iff` — the no-pile-to-pile iff, DELETED from Move.lean
+on 2026-09-13 in the laundering disposal — was refuted by exactly the
+facts above: `wstate` is WF (`wstate_wf`) and wins in the full game
+(`wstate_solvable`, the 31-move park-reveal-drain play) while the
+engine is doomed (`wstate_not_engine` — hearts frozen at ≤ 2, the
+reveal-deadlock that only `pilePile` breaks).  The deleted statement
+is archived as fenced text in FARM.md's REFUTED section (item 1); its
+easy leg survives as the proven `solvable_of_engine` (Move.lean), and
+the initial-states repair direction is scaffolded in
+Klondike/Restriction.lean.  The former `engine_iff_refuted` corollary
+(deriving the negated ∀-form) has been removed so that this file cites
+no deleted constant — the countermodel facts stand alone. -/
 
 
 end EngineWitness

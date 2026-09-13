@@ -13,3 +13,5 @@ import Klondike.Macro
 import Klondike.Bridge
 import Klondike.Initial
 import Klondike.Kills
+import Klondike.Restriction
+import Klondike.TwinSwap

@@ -67,5 +67,10 @@ theorem wf_noPassing (st : State) (hwf : st.WF) :
 
 end NoPassingWitness
 
+/-- info: 'NoPassingWitness.stNP_not_wf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms NoPassingWitness.stNP_not_wf
+
+/-- info: 'NoPassingWitness.wf_noPassing' depends on axioms: [propext] -/
+#guard_msgs in
 #print axioms NoPassingWitness.wf_noPassing

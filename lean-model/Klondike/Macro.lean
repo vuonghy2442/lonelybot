@@ -59,42 +59,64 @@ def macroSteps : State → List MacroMove → State → Prop
   | st, k :: ks, st' => ∃ st'', macroStep st k st'' ∧ macroSteps st'' ks st'
 
 /-- Macro solvability: a winning commitment sequence exists (the
-shuffles are existentially witnessed by `macroStep`). -/
+shuffles are existentially witnessed by `macroStep`), with a *final*
+shuffle — A3's regrouping is "shuffle, commit, shuffle, commit, …,
+shuffle".
+
+DEF REPAIR (2026-09-13, this agent — orchestrator sign-off pending;
+prover-confirmed witness `witnesses/MacroC1Witness.lean`): as staged
+(`∃ ks w, macroSteps st ks w ∧ w.isWin = true`) the final
+accommodation block had no home — `macroSteps` ends on a commitment,
+so an engine win whose last height-raise is a trailing accommodation
+had no macro witness.  Witness: ♥ at 12 with the ♥K sole visible on an
+anchor, empty stock, all depths 0 — `solvableEngine` by `[pileStack
+♥K]`, while no `commitApplies` ever fires (empty stock kills the Draw
+commitments, all-zero depths kill the Reveals), so no macro line
+exists at all.  The Rust macro game checks the win *after* the
+canonicalizing sweep (`macro_solvable_sel`'s `canonicalize` before
+every `is_win`), which is exactly this final accommodation. -/
 def State.macroSolvable (st : State) : Prop :=
-  ∃ ks w, macroSteps st ks w ∧ w.isWin = true
+  ∃ ks w w', macroSteps st ks w ∧ accommodates w w' ∧ w'.isWin = true
 
 /-- **The one-step simulation, macro level**: the commitment-game
 form of Progress.lean's `solvable_of_simulates` — if `R` relates the
-two states and every `b`-side commitment is matched on the `a` side
-(landing equal or `R`-related), wins lift.  This is the parent
+two states, every `b`-side commitment is matched on the `a` side
+(landing equal or `R`-related), and `b`-side accommodation tails lift
+across `R` (the cursor-blind replay), wins lift.  This is the parent
 `pace_dominance` instantiates. -/
 theorem macroSolvable_of_simulates {a b : State} (R : State → State → Prop)
     (hR : R a b)
     (hstep : ∀ x y k b', R x y → macroStep y k b' →
       ∃ k' a', macroStep x k' a' ∧ (a' = b' ∨ R a' b'))
+    (hacc : ∀ x y u, R x y → accommodates y u →
+      ∃ v, accommodates x v ∧ (v = u ∨ R v u))
     (hwin : ∀ x y, R x y → y.isWin = true → x.isWin = true)
     (hsol : b.macroSolvable) : a.macroSolvable := by
-  obtain ⟨ks, w, hsteps, hwinw⟩ := hsol
+  obtain ⟨ks, w, u, hsteps, haccu, hwinu⟩ := hsol
   have main : ∀ (x y : State) (ks : List MacroMove), R x y →
-      macroSteps y ks w → w.isWin = true →
-      ∃ ks' w', macroSteps x ks' w' ∧ w'.isWin = true := by
+      macroSteps y ks w →
+      ∃ ks' wₓ v, macroSteps x ks' wₓ ∧ accommodates wₓ v ∧ v.isWin = true := by
     intro x y ks hRxy
     induction ks generalizing x y with
     | nil =>
-        intro hsteps hwin'
+        intro hsteps
         have hyw : y = w := hsteps
-        rw [← hyw] at hwin'
-        exact ⟨[], x, rfl, hwin x y hRxy hwin'⟩
+        rw [← hyw] at haccu
+        obtain ⟨v, haccv, hvcase⟩ := hacc x y u hRxy haccu
+        rcases hvcase with hv | hRv
+        · rw [hv] at haccv
+          exact ⟨[], x, u, rfl, haccv, hwinu⟩
+        · exact ⟨[], x, v, rfl, haccv, hwin v u hRv hwinu⟩
     | cons k krest ih =>
-        intro hsteps hwin'
+        intro hsteps
         obtain ⟨st'', hstep'', hrest⟩ := hsteps
         obtain ⟨k', a', ha', hcase⟩ := hstep x y k st'' hRxy hstep''
         rcases hcase with rfl | hR'
-        · exact ⟨k' :: krest, w, ⟨a', ha', hrest⟩, hwin'⟩
-        · obtain ⟨ks'', w'', hsteps'', hwin''⟩ := ih a' st'' hR' hrest hwin'
-          exact ⟨k' :: ks'', w'', ⟨a', ha', hsteps''⟩, hwin''⟩
-  obtain ⟨ks', w', hsteps', hwin'⟩ := main a b ks hR hsteps hwinw
-  exact ⟨ks', w', hsteps', hwin'⟩
+        · exact ⟨k' :: krest, w, u, ⟨a', ha', hrest⟩, haccu, hwinu⟩
+        · obtain ⟨ks'', w'', v, hsteps'', haccv, hwinv⟩ := ih a' st'' hR' hrest
+          exact ⟨k' :: ks'', w'', v, ⟨a', ha', hsteps''⟩, haccv, hwinv⟩
+  obtain ⟨ks', wₓ, v, hsteps', haccv, hwinv⟩ := main a b ks hR hsteps
+  exact ⟨ks', wₓ, v, hsteps', haccv, hwinv⟩
 
 /-! ## The draw-decomposition toolkit
 
@@ -544,16 +566,6 @@ theorem macroStep_engine_play {st : State} {k : MacroMove} {st'' : State}
           · obtain rfl := List.mem_singleton.mp hm
             rfl
 
-/-- **C1 (the macro reduction)**: on well-formed states, the engine's
-restricted game and the macro commitment game have the same
-solvability.  ← is `macroStep_engine_play` + induction.  → is their
-Lemma A3's regrouping: draws commute with accommodations (component
-disjointness — `commute_of_compsDisjoint`), so they can be pushed
-into the commitment's rotation; trailing draws drop (`isWin` reads
-only heights, which draws never touch).  TODO. -/
-theorem solvableEngine_iff_macro {st : State} (hwf : st.WF) :
-    st.solvableEngine ↔ st.macroSolvable := sorry
-
 /-- **C2, model seed**: the tableau-landing outcomes of a Draw
 commitment (from one fixed state) agree on everything but the board —
 deal, heights, depths, stock, draw step, and the visible set.  The
@@ -778,7 +790,7 @@ theorem pace_dominance {st : State} {o' : Nat} (hwf : st.WF)
     (b := { st with stock := { st.stock with cursor := o' } })
     (fun x y => x.diffCursor y ∧ x.drawStep = st.drawStep ∧
       x.stock = st.stock ∧ y.stock = { st.stock with cursor := o' })
-    ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl⟩ ?_ ?_ hsol
+    ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl⟩ ?_ ?_ ?_ hsol
   · -- the one-step simulation
     intro x y k b' hRxy hms
     obtain ⟨hdc, hds, hxs, hys⟩ := hRxy
@@ -866,6 +878,16 @@ theorem pace_dominance {st : State} {o' : Nat} (hwf : st.WF)
             applyDrawStackTo_merge hdx₁ hdst hxds'
           rw [← hmerge] at hxds'
           exact ⟨MacroMove.drawCommit c, b', ⟨x₁, haccx, ⟨base, Or.inr hxds'⟩⟩, Or.inl rfl⟩
+  · -- the trailing accommodation replays from the partner state
+    intro x y u hRxy haccu
+    obtain ⟨hdc, hds, hxs, hys⟩ := hRxy
+    obtain ⟨play, hrun, hall⟩ := haccu
+    obtain ⟨v, hvrun, hdv, hvstock, hustock, _, hvds⟩ :=
+      accommodates_cursor_blind y x u play hall (diffCursor_symm hdc) hrun
+    refine ⟨v, ⟨play, hvrun, hall⟩, Or.inr ⟨diffCursor_symm hdv, ?_, ?_, ?_⟩⟩
+    · rw [hvds]; exact hds
+    · rw [hvstock]; exact hxs
+    · rw [hustock]; exact hys
   · -- wins are heights-only
     intro x y hRxy hyw
     have hh : x.heights = y.heights := hRxy.1.2.2.1
@@ -1120,6 +1142,325 @@ theorem macroSteps_append : ∀ (l₁ l₂ : List MacroMove) (s w : State),
       intro l₂ s w ⟨m, hstepm, hrm⟩
       obtain ⟨st'', hstep, hrest⟩ := hstepm
       exact ⟨st'', hstep, ih l₂ st'' w ⟨m, hrest, hrm⟩⟩
+
+/-! ### C1 — the commitment-game correspondence
+
+Both directions of `solvableEngine_iff_macro`.  ← chains
+`macroStep_engine_play` (each macro step is an engine play) and
+appends the final accommodation.  → is A3's regrouping
+(`engine_macro_lift`): the macro line tracks the engine state with the
+current segment's draws erased — reveals fire from the cursor-blind
+twin, Draw commitments jump from the segment's start cursor (the
+engine's own draws form the orbit, whose soundness
+`dealIter_prev_reachable` supplies: the landing position is masked,
+the splice position-determined, so the two lines *merge*), the
+trailing draws drop (they never move the macro state), and the
+trailing accommodations are the final shuffle block.  No commutation
+of moves is needed: the macro never has to reorder anything, because
+the jump reads the *original* cursor of each segment and the deck
+moves' splices are cursor-free. -/
+
+/-- A macro step is an engine play — the two-step chain form used by
+both directions of C1. -/
+theorem macroSteps_engine_run : ∀ (ks : List MacroMove) (s w : State),
+    macroSteps s ks w →
+    ∃ play, s.run play = some w ∧ ∀ m ∈ play, m.isEngine = true := by
+  intro ks
+  induction ks with
+  | nil =>
+      intro s w h
+      have h' : s = w := h
+      refine ⟨[], ?_, fun _ hm => nomatch hm⟩
+      rw [← h']
+      rfl
+  | cons k krest ih =>
+      intro s w h
+      obtain ⟨st'', hstep, hrest⟩ := h
+      obtain ⟨play₁, hr₁, he₁⟩ := macroStep_engine_play hstep
+      obtain ⟨play₂, hr₂, he₂⟩ := ih st'' w hrest
+      refine ⟨play₁ ++ play₂, ?_, ?_⟩
+      · rw [run_append, hr₁]
+        exact hr₂
+      · intro mm hmm
+        rcases List.mem_append.mp hmm with hmm | hmm
+        · exact he₁ mm hmm
+        · exact he₂ mm hmm
+
+/-- **C1 ←**: a macro win is an engine win. -/
+theorem engine_of_macro {st : State} (h : st.macroSolvable) : st.solvableEngine := by
+  obtain ⟨ks, w, w', hsteps, hacc, hwin⟩ := h
+  obtain ⟨play₁, hr₁, he₁⟩ := macroSteps_engine_run ks st w hsteps
+  obtain ⟨play₂, hr₂, he₂⟩ := hacc
+  refine ⟨play₁ ++ play₂, ?_, w', ?_, hwin⟩
+  · intro mm hmm
+    rcases List.mem_append.mp hmm with hmm | hmm
+    · exact he₁ mm hmm
+    · have hac := he₂ mm hmm
+      cases mm <;> simp_all [Move.isAccommodation, Move.isEngine]
+  · rw [run_append, hr₁]
+    exact hr₂
+
+/-- A `diffCursor` twin of a well-formed state is well-formed (only
+`cursor_le` reads the cursor, and the cards agree). -/
+theorem wf_of_diffCursor {m e : State} (hwf : e.WF) (hd : m.diffCursor e)
+    (hcur : m.stock.cursor ≤ m.stock.cards.length) : m.WF := by
+  have hst : m.stock = { e.stock with cursor := m.stock.cursor } := by
+    obtain ⟨_, _, _, _, ⟨l, cu⟩, _⟩ := m
+    show (⟨l, cu⟩ : Cycle Card) = { e.stock with cursor := cu }
+    rw [show l = e.stock.cards from hd.2.2.2.2.1]
+  have hme : m = { e with stock := { e.stock with cursor := m.stock.cursor } } :=
+    state_ext hd.1 hd.2.1 hd.2.2.1 hd.2.2.2.1 hst hd.2.2.2.2.2
+  rw [hme]
+  exact wf_of_cursor hwf (by rw [← hd.2.2.2.2.1]; exact hcur)
+
+/-- **C1 →, the engine-to-macro lift**: every engine play regroups as
+a macro line whose states track the engine's.  The invariant (carried
+through the move-by-move induction): the macro state `m` is the
+engine state `e` with the current segment's draws erased
+(`diffCursor`), its cursor bounded, the engine stock is `k` deals
+ahead of the macro stock (the segment's draws, as an orbit), the
+engine state stays well-formed, and the macro line built so far ends
+at the last commitment's successor `mseg` with the segment's
+accommodations already replayed into `m` (`accommodates mseg m`).
+
+Per move kind: a *draw* only extends the deal count (the macro state
+does not move — the draws are absorbed by the next Draw commitment's
+jump); an *accommodation* replays on the cursor-blind twin
+(`apply_nonConsuming_cursor_blind`); a *reveal* fires as a
+`revealCommit` from the twin; a deck move fires as a `drawCommit`
+whose guard `reachablePos` is supplied by the engine's own draws
+(`dealIter_prev_reachable` — the orbit lands in the mask), and whose
+successor *merges* the two lines (the splice `(drawTo i).removeAt i`
+is position-determined, the attach cursor-blind), resetting the
+invariant.  Trailing draws never move `m`; trailing accommodations
+extend the final `accommodates mseg m`. -/
+theorem engine_macro_lift : ∀ (play : List Move),
+    (∀ m ∈ play, m.isEngine = true) →
+    ∀ (s₀ m e : State),
+      m.diffCursor e →
+      m.stock.cursor ≤ m.stock.cards.length →
+      (∃ k, e.stock = Cycle.dealIter m.drawStep k m.stock) →
+      (∃ ks mseg, macroSteps s₀ ks mseg ∧ accommodates mseg m) →
+      e.WF →
+      ∀ e', e.run play = some e' →
+      ∃ ks' mseg' m',
+        macroSteps s₀ ks' mseg' ∧ accommodates mseg' m' ∧ m'.heights = e'.heights := by
+  intro play
+  induction play with
+  | nil =>
+      intro _ s₀ m e hd _ _ hctx _ e' hrun
+      have he : e = e' := Option.some.inj hrun
+      subst he
+      obtain ⟨ks, mseg, hks, haccseg⟩ := hctx
+      exact ⟨ks, mseg, m, hks, haccseg, hd.2.2.1⟩
+  | cons mv rest ih =>
+      intro heng s₀ m e hd hcur hdeals hctx hwfe e' hrun
+      simp only [State.run] at hrun
+      cases hsm : e.apply mv with
+      | none => rw [hsm] at hrun; simp at hrun
+      | some e₁ =>
+          rw [hsm] at hrun
+          have hrest : e₁.run rest = some e' := hrun
+          have hmeng := heng mv (List.mem_cons.mpr (Or.inl rfl))
+          have hwfe₁ := apply_wf hwfe _ _ hsm
+          cases mv with
+          | pilePile c b => simp [Move.isEngine] at hmeng
+          | draw =>
+              have hd1 : e₁ = { e with stock := e.stock.dealOnce e.drawStep } :=
+                (apply_draw_iff (st := e) (st' := e₁)).mp hsm
+              subst hd1
+              refine ih (fun m' hm' => heng m' (List.mem_cons.mpr (Or.inr hm'))) s₀ m
+                { e with stock := e.stock.dealOnce e.drawStep }
+                ⟨hd.1, hd.2.1, hd.2.2.1, hd.2.2.2.1, ?_, hd.2.2.2.2.2⟩ hcur ?_ hctx hwfe₁
+                e' hrest
+              · show m.stock.cards = (e.stock.dealOnce e.drawStep).cards
+                rw [Cycle.dealOnce_cards]
+                exact hd.2.2.2.2.1
+              · obtain ⟨k, hk⟩ := hdeals
+                refine ⟨k + 1, ?_⟩
+                show (e.stock.dealOnce e.drawStep) = Cycle.dealIter m.drawStep (k + 1) m.stock
+                rw [hk, Cycle.dealIter_succ, ← hd.2.2.2.2.2]
+          | pileStack c =>
+              obtain ⟨m₁, hm₁, hdm₁⟩ := apply_nonConsuming_cursor_blind (st := e) (st' := m)
+                (st₁ := e₁) rfl (diffCursor_symm hd) hsm
+              have hst1 : e₁.stock = e.stock :=
+                apply_nonConsuming_stock_invar rfl (by intro h; simp at h) hsm
+              have hst2 : m₁.stock = m.stock :=
+                apply_nonConsuming_stock_invar rfl (by intro h; simp at h) hm₁
+              have hds : m₁.drawStep = m.drawStep := by
+                rw [← hdm₁.2.2.2.2.2, apply_drawStep_invar hsm]
+                exact (hd.2.2.2.2.2).symm
+              obtain ⟨ks, mseg, hks, haccseg⟩ := hctx
+              obtain ⟨A, hrunA, hallA⟩ := haccseg
+              have haccseg' : accommodates mseg m₁ := by
+                refine ⟨A ++ [Move.pileStack c], ?_, ?_⟩
+                · rw [run_append, hrunA]
+                  show m.run [Move.pileStack c] = some m₁
+                  rw [run_singleton]
+                  exact hm₁
+                · intro m' hm'
+                  rcases List.mem_append.mp hm' with hm' | hm'
+                  · exact hallA m' hm'
+                  · obtain rfl := List.mem_singleton.mp hm'
+                    rfl
+              refine ih (fun m' hm' => heng m' (List.mem_cons.mpr (Or.inr hm'))) s₀ m₁ e₁
+                (diffCursor_symm hdm₁) (by rw [hst2]; exact hcur)
+                (by obtain ⟨k, hk⟩ := hdeals; exact ⟨k, by rw [hst1, hst2, hds]; exact hk⟩)
+                ⟨ks, mseg, hks, haccseg'⟩ hwfe₁ e' hrest
+          | stackPile c b =>
+              obtain ⟨m₁, hm₁, hdm₁⟩ := apply_nonConsuming_cursor_blind (st := e) (st' := m)
+                (st₁ := e₁) rfl (diffCursor_symm hd) hsm
+              have hst1 : e₁.stock = e.stock :=
+                apply_nonConsuming_stock_invar rfl (by intro h; simp at h) hsm
+              have hst2 : m₁.stock = m.stock :=
+                apply_nonConsuming_stock_invar rfl (by intro h; simp at h) hm₁
+              have hds : m₁.drawStep = m.drawStep := by
+                rw [← hdm₁.2.2.2.2.2, apply_drawStep_invar hsm]
+                exact (hd.2.2.2.2.2).symm
+              obtain ⟨ks, mseg, hks, haccseg⟩ := hctx
+              obtain ⟨A, hrunA, hallA⟩ := haccseg
+              have haccseg' : accommodates mseg m₁ := by
+                refine ⟨A ++ [Move.stackPile c b], ?_, ?_⟩
+                · rw [run_append, hrunA]
+                  show m.run [Move.stackPile c b] = some m₁
+                  rw [run_singleton]
+                  exact hm₁
+                · intro m' hm'
+                  rcases List.mem_append.mp hm' with hm' | hm'
+                  · exact hallA m' hm'
+                  · obtain rfl := List.mem_singleton.mp hm'
+                    rfl
+              refine ih (fun m' hm' => heng m' (List.mem_cons.mpr (Or.inr hm'))) s₀ m₁ e₁
+                (diffCursor_symm hdm₁) (by rw [hst2]; exact hcur)
+                (by obtain ⟨k, hk⟩ := hdeals; exact ⟨k, by rw [hst1, hst2, hds]; exact hk⟩)
+                ⟨ks, mseg, hks, haccseg'⟩ hwfe₁ e' hrest
+          | reveal c =>
+              obtain ⟨m₁, hm₁, hdm₁⟩ := apply_nonConsuming_cursor_blind (st := e) (st' := m)
+                (st₁ := e₁) rfl (diffCursor_symm hd) hsm
+              have hst1 : e₁.stock = e.stock :=
+                apply_nonConsuming_stock_invar rfl (by intro h; simp at h) hsm
+              have hst2 : m₁.stock = m.stock :=
+                apply_nonConsuming_stock_invar rfl (by intro h; simp at h) hm₁
+              have hds : m₁.drawStep = m.drawStep := by
+                rw [← hdm₁.2.2.2.2.2, apply_drawStep_invar hsm]
+                exact (hd.2.2.2.2.2).symm
+              obtain ⟨ks, mseg, hks, haccseg⟩ := hctx
+              have hstep' : macroStep mseg (MacroMove.revealCommit c) m₁ :=
+                ⟨m, haccseg, hm₁⟩
+              refine ih (fun m' hm' => heng m' (List.mem_cons.mpr (Or.inr hm'))) s₀ m₁ e₁
+                (diffCursor_symm hdm₁) (by rw [hst2]; exact hcur)
+                (by obtain ⟨k, hk⟩ := hdeals; exact ⟨k, by rw [hst1, hst2, hds]; exact hk⟩)
+                ⟨ks ++ [MacroMove.revealCommit c], m₁,
+                  macroSteps_append _ _ _ _ ⟨mseg, hks, ⟨m₁, hstep', rfl⟩⟩,
+                  ⟨[], rfl, fun _ hm => nomatch hm⟩⟩ hwfe₁ e' hrest
+          | deckPile c b =>
+              rw [apply_deckPile_iff] at hsm
+              obtain ⟨hprev, hcan, bd, hatt, hst⟩ := hsm
+              have hmwf : m.WF := wf_of_diffCursor hwfe hd hcur
+              obtain ⟨k, hk⟩ := hdeals
+              have hprev' : (Cycle.dealIter m.drawStep k m.stock).prev = some c := by
+                rw [← hk]
+                exact hprev
+              obtain ⟨i, hreach, hsplices⟩ := dealIter_prev_reachable hmwf hprev'
+              have hilt : i < m.stock.cards.length :=
+                Cycle.posOf_lt (reachablePos_posOf hreach)
+              have hatt' : m.board.attach b c = some bd := by
+                rw [hd.2.1]
+                exact hatt
+              have hcan' : m.canPlace c b = true := by
+                rw [canPlace_board_congr hd.2.1]
+                exact hcan
+              have hlit : m.applyDrawTo c b =
+                  some { m with board := bd, stock := (m.stock.drawTo i).removeAt i } :=
+                applyDrawTo_iff.mpr ⟨i, bd, hreach, hatt', rfl⟩
+              have hmerge : { m with board := bd, stock := (m.stock.drawTo i).removeAt i }
+                  = e₁ := by
+                rw [hst, hk, hsplices]
+                exact state_ext hd.1 rfl hd.2.2.1 hd.2.2.2.1 rfl hd.2.2.2.2.2
+              obtain ⟨ks, mseg, hks, haccseg⟩ := hctx
+              have hstep' : macroStep mseg (MacroMove.drawCommit c)
+                  { m with board := bd, stock := (m.stock.drawTo i).removeAt i } :=
+                ⟨m, haccseg, ⟨b, Or.inl ⟨hcan', hlit⟩⟩⟩
+              rw [hmerge] at hstep'
+              refine ih (fun m' hm' => heng m' (List.mem_cons.mpr (Or.inr hm'))) s₀ e₁ e₁
+                ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+                (by
+                  rw [← hmerge, Cycle.removeAt_drawTo]
+                  show (i : Nat) ≤ (Cycle.removeIdx m.stock.cards i).length
+                  have hlen := Cycle.removeIdx_length m.stock.cards i hilt
+                  omega)
+                ⟨0, (Cycle.dealIter_zero e₁.drawStep e₁.stock).symm⟩
+                ⟨ks ++ [MacroMove.drawCommit c], e₁,
+                  macroSteps_append _ _ _ _ ⟨mseg, hks, ⟨e₁, hstep', rfl⟩⟩,
+                  ⟨[], rfl, fun _ hm => nomatch hm⟩⟩ hwfe₁ e' hrest
+          | deckStack c =>
+              rw [apply_deckStack_iff] at hsm
+              obtain ⟨hprev, hrk, hst⟩ := hsm
+              have hmwf : m.WF := wf_of_diffCursor hwfe hd hcur
+              obtain ⟨k, hk⟩ := hdeals
+              have hprev' : (Cycle.dealIter m.drawStep k m.stock).prev = some c := by
+                rw [← hk]
+                exact hprev
+              obtain ⟨i, hreach, hsplices⟩ := dealIter_prev_reachable hmwf hprev'
+              have hilt : i < m.stock.cards.length :=
+                Cycle.posOf_lt (reachablePos_posOf hreach)
+              have hrk' : c.rank.toIdx = m.heights c.suit := by
+                rw [hd.2.2.1]
+                exact hrk
+              have hlit : m.applyDrawStackTo c =
+                  some { m with
+                    stock := (m.stock.drawTo i).removeAt i,
+                    heights := fun s => if s = c.suit then m.heights s + 1 else m.heights s } :=
+                applyDrawStackTo_iff.mpr ⟨i, hreach, hrk', rfl⟩
+              have hmerge : { m with
+                    stock := (m.stock.drawTo i).removeAt i,
+                    heights := fun s => if s = c.suit then m.heights s + 1 else m.heights s }
+                  = e₁ := by
+                rw [hst, hk, hsplices]
+                refine state_ext hd.1 hd.2.1 ?_ hd.2.2.2.1 rfl hd.2.2.2.2.2
+                funext s
+                show (if s = c.suit then m.heights s + 1 else m.heights s)
+                  = (if s = c.suit then e.heights s + 1 else e.heights s)
+                rw [congrFun hd.2.2.1 s]
+              obtain ⟨ks, mseg, hks, haccseg⟩ := hctx
+              have hstep' : macroStep mseg (MacroMove.drawCommit c)
+                  { m with
+                    stock := (m.stock.drawTo i).removeAt i,
+                    heights := fun s => if s = c.suit then m.heights s + 1 else m.heights s } :=
+                ⟨m, haccseg, ⟨Sum.inl Anchor.p0, Or.inr hlit⟩⟩
+              rw [hmerge] at hstep'
+              refine ih (fun m' hm' => heng m' (List.mem_cons.mpr (Or.inr hm'))) s₀ e₁ e₁
+                ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+                (by
+                  rw [← hmerge, Cycle.removeAt_drawTo]
+                  show (i : Nat) ≤ (Cycle.removeIdx m.stock.cards i).length
+                  have hlen := Cycle.removeIdx_length m.stock.cards i hilt
+                  omega)
+                ⟨0, (Cycle.dealIter_zero e₁.drawStep e₁.stock).symm⟩
+                ⟨ks ++ [MacroMove.drawCommit c], e₁,
+                  macroSteps_append _ _ _ _ ⟨mseg, hks, ⟨e₁, hstep', rfl⟩⟩,
+                  ⟨[], rfl, fun _ hm => nomatch hm⟩⟩ hwfe₁ e' hrest
+
+/-- **C1 →**: an engine win is a macro win. -/
+theorem macro_of_engine {st : State} (hwf : st.WF)
+    (h : st.solvableEngine) : st.macroSolvable := by
+  obtain ⟨play, heng, w, hrun, hwin⟩ := h
+  obtain ⟨ks, mseg, m, hsteps, haccseg, hheights⟩ :=
+    engine_macro_lift play heng st st st
+      ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ hwf.cursor_le ⟨0, rfl⟩
+      ⟨[], st, rfl, ⟨[], rfl, fun _ hm => nomatch hm⟩⟩ hwf w hrun
+  refine ⟨ks, mseg, m, hsteps, haccseg, ?_⟩
+  show State.isWin m = true
+  simp only [State.isWin, hheights]
+  exact hwin
+
+/-- **C1 (the macro reduction)**: on well-formed states, the engine's
+restricted game and the macro commitment game have the same
+solvability.  ← is `macroSteps_engine_run` + the final accommodation
+append; → is A3's regrouping (`engine_macro_lift`). -/
+theorem solvableEngine_iff_macro {st : State} (hwf : st.WF) :
+    st.solvableEngine ↔ st.macroSolvable :=
+  ⟨macro_of_engine hwf, engine_of_macro⟩
 
 /-- The macro line's shape: either every commitment is a reveal, or the
 line splits at the first `drawCommit` with an all-reveal prefix. -/
@@ -1618,8 +1959,8 @@ theorem window_firstDraw_macro {st : State} {o o' : Nat} (hwf : st.WF)
     (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
     (hA : ({ st with stock := { st.stock with cursor := o } }).macroSolvable)
     (hB : ¬ ({ st with stock := { st.stock with cursor := o' } }).macroSolvable) :
-    ∀ ks w, macroSteps ({ st with stock := { st.stock with cursor := o } }) ks w →
-      w.isWin = true →
+    ∀ ks w w', macroSteps ({ st with stock := { st.stock with cursor := o } }) ks w →
+      accommodates w w' → w'.isWin = true →
       ∃ pre x rest,
         ks = pre ++ MacroMove.drawCommit x :: rest ∧
         (∀ k ∈ pre, ∃ c, k = MacroMove.revealCommit c) ∧
@@ -1632,19 +1973,24 @@ theorem window_firstDraw_macro {st : State} {o o' : Nat} (hwf : st.WF)
   have hdiff : ({ st with stock := { st.stock with cursor := o } } : State).diffCursor
       { st with stock := { st.stock with cursor := o' } } :=
     ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
-  intro ks w hsteps hw
+  intro ks w w' hsteps haccw hw'
   rcases macroSteps_first_drawCommit ks
       { st with stock := { st.stock with cursor := o } } w hsteps with
     hall | ⟨pre, x, rest, s₂, s₃, hsplit, hpre, hpres₂, hdraw, hsuf⟩
-  · -- all reveals: the later state replays the line and wins
+  · -- all reveals: the later state replays the line and the final
+    -- accommodation, and wins
     exfalso
-    obtain ⟨w', hsteps', hdw, _, _, _, _⟩ :=
+    obtain ⟨wB, hsteps', hdw, _, _, _, _⟩ :=
       macroSteps_reveal_blind ks { st with stock := { st.stock with cursor := o } }
         { st with stock := { st.stock with cursor := o' } } w hall hsteps hdiff
-    have hh : w.heights = w'.heights := hdw.2.2.1
-    have hisw : State.isWin w = State.isWin w' := by
+    obtain ⟨playT, hrunT, hallT⟩ := haccw
+    obtain ⟨v, hvrun, hdv, _, _, _, _⟩ :=
+      accommodates_cursor_blind w wB w' playT hallT hdw hrunT
+    have hh : w'.heights = v.heights := hdv.2.2.1
+    have hisw : State.isWin w' = State.isWin v := by
       simp only [State.isWin, hh]
-    exact hB ⟨ks, w', hsteps', by rw [← hisw]; exact hw⟩
+    exact hB ⟨ks, wB, v, hsteps', ⟨playT, hvrun, hallT⟩,
+      by rw [← hisw]; exact hw'⟩
   · -- the first drawCommit: the window card
     refine ⟨pre, x, rest, hsplit, hpre, ?_⟩
     intro p hpos hmem
@@ -1683,9 +2029,10 @@ theorem window_firstDraw_macro {st : State} {o o' : Nat} (hwf : st.WF)
       have hmerge : s₃ = { B₃ with board := bd, stock := (B₃.stock.drawTo p).removeAt p } :=
         applyDrawTo_merge hA₃B₃ hdt hxdt
       rw [← hmerge] at hxdt
-      exact hB ⟨pre ++ MacroMove.drawCommit x :: rest, w,
+      exact hB ⟨pre ++ MacroMove.drawCommit x :: rest, w, w',
         macroSteps_append _ _ _ _ ⟨B₂, hstepsB₂, ⟨s₃, ⟨B₃, hacct, ⟨base, Or.inl ⟨by
-          rw [← canPlace_board_congr hA₃B₃.2.1]; exact hcan, hxdt⟩⟩⟩, hsuf⟩⟩, hw⟩
+          rw [← canPlace_board_congr hA₃B₃.2.1]; exact hcan, hxdt⟩⟩⟩, hsuf⟩⟩,
+        haccw, hw'⟩
     · -- stack landing
       obtain ⟨_, _, hrk, _⟩ := applyDrawStackTo_iff.mp hdst
       have hrkx : x.rank.toIdx = B₃.heights x.suit := by
@@ -1700,9 +2047,9 @@ theorem window_firstDraw_macro {st : State} {o o' : Nat} (hwf : st.WF)
             heights := fun s => if s = x.suit then B₃.heights s + 1 else B₃.heights s } :=
         applyDrawStackTo_merge hA₃B₃ hdst hxds'
       rw [← hmerge] at hxds'
-      exact hB ⟨pre ++ MacroMove.drawCommit x :: rest, w,
+      exact hB ⟨pre ++ MacroMove.drawCommit x :: rest, w, w',
         macroSteps_append _ _ _ _ ⟨B₂, hstepsB₂, ⟨s₃, ⟨B₃, hacct, ⟨base, Or.inr hxds'⟩⟩,
-          hsuf⟩⟩, hw⟩
+          hsuf⟩⟩, haccw, hw'⟩
 
 /-! Deferred macro statements, recorded:
 

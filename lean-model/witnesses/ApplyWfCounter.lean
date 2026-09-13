@@ -1,18 +1,34 @@
 import Klondike.Initial
 
 /-!
-# `apply_wf` counterexample — scratch confirmation
+# `apply_wf` witnesses #1 & #2 — repaired, now regression anchors
 
-Claim: `State.apply_wf` (Move.lean) is UNSOUND.  The `reveal` move keeps
-the trigger card `c` sitting on the revealed card `r` (now *visible*),
-but WF's third conjunct only grandfathers edges onto `topHidden`
-cards; the boundary has just moved below `r`, so the `c→r` edge is left
-requiring `canSitOn c r`, which no guard of `applyReveal` ensures.
-
-Witness: standard deal, fresh stock, empty foundations, boundary at
+Witness #1 (the reveal arm, 2026-09-13): the trigger card `c` stays
+sitting on the revealed card `r` (now *visible*), and the then-current
+WF only grandfathered edges onto `topHidden` cards; the boundary had
+just moved below `r`, so the `c→r` edge was left requiring
+`canSitOn c r`, which no guard of `applyReveal` ensured.  Witness
+`st0`: standard deal, fresh stock, empty foundations, boundary at
 `a.toIdx` per pile, and the single visible edge `♥3` on the hidden
 boundary `♥2` of pile p1 (exactly pile p1's dealt shape).  Then
-`reveal ♥3` is legal, and its successor is not WF.
+`reveal ♥3` was legal and the successor was not WF.
+
+Witness #2 (the deckPile arm): WF constrained only the *deal's* stock
+(`Deal.WF`), never the state's cycle, so `stD` — the same shape with
+the state's stock carrying `♥4` TWICE — was WF, and `deckPile ♥4`
+spliced out one copy and turned the card visible while the second copy
+stayed in the cycle, breaking `isVis → posOf = none`.
+
+Both holes were closed by the 2026-09-13 WF/board_edges repairs
+(FARM_MEMORY), and `apply_wf` is PROVEN — the old
+`apply_wf_unsound`/`apply_wf_unsound_deckPile : False` theorems (which
+cited the pre-repair shapes) are now false statements and have been
+removed.  What remains is the *positive* regression: the old
+counterexamples no longer escape the invariant — `st0.WF` holds under
+the eleven-conjunct WF and its reveal successor is WF again
+(`st1_wf`, via the proven `apply_wf`), while the duplicated cycle is
+now rejected outright (`stD_not_wf`, the `noDupCards` half of
+`stock_wf`).
 -/
 
 /-- ♥2: pile p1's top hidden card in the standard deal. -/
@@ -44,9 +60,13 @@ theorem st0_topOf_self : st0.board.topOf (Sum.inr c2) = some c3 :=
 theorem st0_topOf_ne {b : Base} (h : b ≠ Sum.inr c2) : st0.board.topOf b = none :=
   (Board.update_ne Board.empty.topOf (Sum.inr c2) b (some c3) h).trans (Board.empty_topOf b)
 
+/-- The witness is WF under the repaired eleven-conjunct invariant:
+the `♥3`-on-`♥2` edge is deal-adjacent with `♥2` as pile p1's hidden
+boundary (the buried-base clause's first disjunct), and the fresh
+deal stock is duplicate-free and a sub-list of itself. -/
 theorem st0_wf : st0.WF := by
-  have hdw : Deal.standard.WF := Deal.ofList_wf Card.universe_length Card.universe_noDup
-  refine ⟨hdw, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  have hdw : Deal.standard.WF := Deal.ofList_wf Card.universe_length universe_noDup
+  refine ⟨hdw, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro a
     have h1 : (st0.deal.piles a).length = a.toIdx + 1 := hdw.1 a
     have h2 : st0.depths a = a.toIdx := rfl
@@ -56,7 +76,8 @@ theorem st0_wf : st0.WF := by
     · subst hbb
       have hc3 : c = c3 := Option.some.inj (h.symm.trans st0_topOf_self)
       subst hc3
-      refine ⟨by decide, Or.inl ⟨Anchor.p1, by decide⟩⟩
+      refine ⟨(Board.bottomOf_eq _ _ _).mpr h, ?_⟩
+      exact Or.inl ⟨Anchor.p1, [], [], by decide, Or.inl ⟨Anchor.p1, by decide⟩⟩
     · rw [st0_topOf_ne hbb] at h
       simp at h
   · intro c hc
@@ -78,45 +99,61 @@ theorem st0_wf : st0.WF := by
     simp only [State.onFound] at hc
     rw [show st0.heights c.suit = 0 from rfl, decide_eq_true_eq] at hc
     exact absurd hc (by omega)
+  · intro c hc
+    have h0 : st0.heights c.suit = 0 := rfl
+    omega
+  · intro c hc a hca
+    have hck : c = c3 := by
+      simp only [State.isVis] at hc
+      cases hb : st0.board.bottomOf c with
+      | none => rw [hb] at hc; simp at hc
+      | some b =>
+          have htb : st0.board.topOf b = some c := (Board.bottomOf_eq _ _ _).mp hb
+          by_cases hbb : b = Sum.inr c2
+          · rw [hbb] at htb
+            exact Option.some.inj (htb.symm.trans st0_topOf_self)
+          · rw [st0_topOf_ne hbb] at htb
+            simp at htb
+    subst hck
+    cases a <;> exact absurd hca (by decide)
   · intro s
     have : st0.heights s = 0 := rfl
     omega
   · exact Nat.zero_le _
+  · exact Nat.zero_lt_one
+  · refine ⟨?_, ?_⟩
+    · intro i j hi hj heq
+      have h24 : st0.stock.cards.length = 24 := by decide
+      rw [h24] at hi hj
+      have hall : ∀ i ∈ List.range 24, ∀ j ∈ List.range 24,
+          st0.stock.cards[i]? = st0.stock.cards[j]? → i = j := by decide
+      exact hall i (List.mem_range.mpr hi) j (List.mem_range.mpr hj) heq
+    · intro c hcm
+      exact hcm
 
-theorem st1_not_wf : ¬ st1.WF := by
-  intro hwf
-  have h3 := hwf.2.2.1 (Sum.inr c2) c3
-    (show st1.board.topOf (Sum.inr c2) = some c3 from by decide)
-  rcases h3.2 with ⟨a', ha'⟩ | ⟨-, hcs⟩
-  · exact (show ∀ a', st1.topHidden a' ≠ some c2 from by
-      intro a'; cases a' <;> decide) a' ha'
-  · exact absurd hcs (show ¬ (canSitOn c3 c2 = true) from by decide)
-
-theorem apply_wf_unsound :
-    ¬ (∀ {st : State}, st.WF → ∀ (m : Move) (st' : State),
-        st.apply m = some st' → st'.WF) := by
-  intro haw
+/-- The countermodel's premise still holds (by the kernel): `reveal ♥3`
+is legal at the witness. -/
+theorem st0_apply : st0.apply (Move.reveal c3) = some st1 := by
   have his : (st0.apply (Move.reveal c3)).isSome = true := by decide
-  obtain ⟨st', hst'⟩ : ∃ st', st0.apply (Move.reveal c3) = some st' := by
-    cases hap : st0.apply (Move.reveal c3) with
-    | none => rw [hap] at his; simp at his
-    | some s => exact ⟨s, rfl⟩
-  have hwf' := haw st0_wf (Move.reveal c3) st' hst'
-  have heq : st' = st1 := by
-    show st' = (st0.apply (Move.reveal c3)).getD st0
-    rw [hst']
-    rfl
-  subst heq
-  exact st1_not_wf hwf'
+  cases h : st0.apply (Move.reveal c3) with
+  | none =>
+      rw [h] at his
+      simp at his
+  | some s =>
+      have hw : st1 = s := by
+        show (st0.apply (Move.reveal c3)).getD st0 = s
+        rw [h]
+        rfl
+      rw [hw]
 
-/-!
-## Second hole: `deckPile` on a duplicate cycle
+/-- THE REPAIR HOLDS: the old counterexample's reveal successor is WF.
+Under the repaired invariant the `♥3`-on-`♥2` edge is justified by `♥2`
+being seated on p1's anchor (`reveal` attaches the boundary before
+anything can sit on it — exactly the deal-adjacency base clause). -/
+theorem st1_wf : st1.WF :=
+  apply_wf st0_wf _ _ st0_apply
 
-`WF` constrains only the *deal's* stock (`Deal.WF`), never the state's
-cycle; a WF state may carry a duplicated card in `st.stock.cards`.
-`deckPile` splices out one copy and turns the card visible — the
-second copy stays in the cycle, violating WF's `isVis → posOf = none`.
--/
+/-! ## Witness #2 — the duplicated cycle, now rejected outright -/
 
 /-- ♥4. -/
 def d4 : Card := ⟨Suit.heart, Rank.four⟩
@@ -132,7 +169,7 @@ def bdD : Board where
   topOf := Board.update Board.empty.topOf (Sum.inr hA) (some s5)
   inj := Board.attach_inj Board.empty (Sum.inr hA) s5 (Board.empty_bottomOf s5)
 
-/-- WF witness: cycle carries ♥4 twice; cursor past both. -/
+/-- The old witness: cycle carries ♥4 twice; cursor past both. -/
 def stD : State where
   deal := Deal.standard
   board := bdD
@@ -141,76 +178,30 @@ def stD : State where
   stock := ⟨[d4, d4], 2⟩
   drawStep := 1
 
-/-- The deckPile successor (computed by the kernel). -/
+/-- The deckPile successor (computed by the kernel; kept as the
+countermodel record). -/
 def stD1 : State := (stD.apply (Move.deckPile d4 (Sum.inr s5))).getD stD
 
-theorem stD_topOf_self : stD.board.topOf (Sum.inr hA) = some s5 :=
-  Board.update_self Board.empty.topOf (Sum.inr hA) (some s5)
-
-theorem stD_topOf_ne {b : Base} (h : b ≠ Sum.inr hA) : stD.board.topOf b = none :=
-  (Board.update_ne Board.empty.topOf (Sum.inr hA) b (some s5) h).trans (Board.empty_topOf b)
-
-theorem stD_wf : stD.WF := by
-  have hdw : Deal.standard.WF := Deal.ofList_wf Card.universe_length Card.universe_noDup
-  refine ⟨hdw, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · intro a
-    have h1 : (stD.deal.piles a).length = a.toIdx + 1 := hdw.1 a
-    have h2 : stD.depths a = 1 := rfl
-    omega
-  · intro b c h
-    by_cases hbb : b = Sum.inr hA
-    · subst hbb
-      have hc5 : c = s5 := Option.some.inj (h.symm.trans stD_topOf_self)
-      subst hc5
-      refine ⟨by decide, Or.inl ⟨Anchor.p0, by decide⟩⟩
-    · rw [stD_topOf_ne hbb] at h
-      simp at h
-  · intro c hc
-    by_cases hcc : c = s5
-    · subst hcc
-      decide
-    · have hb : stD.board.bottomOf c = none := by
-        rw [Board.bottomOf_eq_none]
-        intro b hb2
-        by_cases hbb : b = Sum.inr hA
-        · subst hbb
-          exact hcc (Option.some.inj (hb2.symm.trans stD_topOf_self))
-        · rw [stD_topOf_ne hbb] at hb2
-          simp at hb2
-      simp only [State.isVis] at hc
-      rw [hb] at hc
-      simp at hc
-  · intro c hc
-    simp only [State.onFound] at hc
-    rw [show stD.heights c.suit = 0 from rfl, decide_eq_true_eq] at hc
-    exact absurd hc (by omega)
-  · intro s
-    have : stD.heights s = 0 := rfl
-    omega
-  · decide
-
-theorem stD1_not_wf : ¬ stD1.WF := by
+/-- The old witness is no longer WF: `stock_wf`'s `noDupCards` half
+(the conjunct this witness forced, restored 2026-09-13) rejects the
+duplicated cycle outright. -/
+theorem stD_not_wf : ¬ stD.WF := by
   intro hwf
-  have h4 := hwf.2.2.2.1 d4 (show stD1.isVis d4 = true from by decide)
-  have hne : stD1.stock.posOf d4 ≠ none := by decide
-  rw [h4] at hne
-  exact hne rfl
+  have hnd : noDupCards [d4, d4] := hwf.stock_wf.1
+  exact absurd (hnd 0 1 (by decide) (by decide) rfl) (by decide)
 
-theorem apply_wf_unsound_deckPile :
-    ¬ (∀ {st : State}, st.WF → ∀ (m : Move) (st' : State),
-        st.apply m = some st' → st'.WF) := by
-  intro haw
-  have his : (stD.apply (Move.deckPile d4 (Sum.inr s5))).isSome = true := by decide
-  obtain ⟨st', hst'⟩ : ∃ st', stD.apply (Move.deckPile d4 (Sum.inr s5)) = some st' := by
-    cases hap : stD.apply (Move.deckPile d4 (Sum.inr s5)) with
-    | none => rw [hap] at his; simp at his
-    | some s => exact ⟨s, rfl⟩
-  have hwf' := haw stD_wf (Move.deckPile d4 (Sum.inr s5)) st' hst'
-  have heq : st' = stD1 := by
-    show st' = (stD.apply (Move.deckPile d4 (Sum.inr s5))).getD stD
-    rw [hst']
-    rfl
-  subst heq
-  exact stD1_not_wf hwf'
-#print axioms apply_wf_unsound
-#print axioms apply_wf_unsound_deckPile
+/-- The countermodel's premise still holds (by the kernel) — only the
+WF side of the old refutation is gone. -/
+example : (stD.apply (Move.deckPile d4 (Sum.inr s5))).isSome = true := by decide
+
+/-- info: 'st0_wf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms st0_wf
+
+/-- info: 'st1_wf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms st1_wf
+
+/-- info: 'stD_not_wf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms stD_not_wf

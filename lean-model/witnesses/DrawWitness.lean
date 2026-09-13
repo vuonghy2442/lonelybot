@@ -18,13 +18,38 @@ def stX : State where
   stock := { cards := [cA, cB, cC], cursor := 0 }
   drawStep := 1
 
-#eval stX.stock.posOf cC   -- expect some 2  (i = 2)
-#eval stX.stock.posOf cA   -- expect some 0  (j = 0)
-#eval ((2 + 1) % 3 : Nat)  -- expect 0       (hadj holds)
+/-- info: some 2 -/
+#guard_msgs in
+#eval stX.stock.posOf cC   -- i = 2
 
+/-- info: some 0 -/
+#guard_msgs in
+#eval stX.stock.posOf cA   -- j = 0
+
+/-- info: 0 -/
+#guard_msgs in
+#eval ((2 + 1) % 3 : Nat)  -- (i+1) % len = j (hadj holds)
+
+/-- info: true -/
+#guard_msgs in
 #eval (stX.applyDrawTo cC (Sum.inl Anchor.p0) >>= fun s => s.applyDrawTo cA (Sum.inl Anchor.p1)).isSome
+
+/-- info: true -/
+#guard_msgs in
 #eval (stX.applyDrawTo cA (Sum.inl Anchor.p1) >>= fun s => s.applyDrawTo cC (Sum.inl Anchor.p0)).isSome
+
+/-- info: some 0 -/
+#guard_msgs in
 #eval (stX.applyDrawTo cC (Sum.inl Anchor.p0) >>= fun s => s.applyDrawTo cA (Sum.inl Anchor.p1)).map fun s => s.stock.cursor
+
+/-- info: some 1 -/
+#guard_msgs in
 #eval (stX.applyDrawTo cA (Sum.inl Anchor.p1) >>= fun s => s.applyDrawTo cC (Sum.inl Anchor.p0)).map fun s => s.stock.cursor
+
+/-- info: some 1 -/
+#guard_msgs in
 #eval (stX.applyDrawTo cC (Sum.inl Anchor.p0) >>= fun s => s.applyDrawTo cA (Sum.inl Anchor.p1)).map fun s => s.stock.cards.length
+
+/-- info: some 1 -/
+#guard_msgs in
 #eval (stX.applyDrawTo cA (Sum.inl Anchor.p1) >>= fun s => s.applyDrawTo cC (Sum.inl Anchor.p0)).map fun s => s.stock.cards.length

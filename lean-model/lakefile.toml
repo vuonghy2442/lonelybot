@@ -3,3 +3,7 @@ version = "0.1.0"
 
 [[lean_lib]]
 name = "Klondike"
+
+[[lean_lib]]
+name = "Witnesses"
+globs = ["Witnesses.*"]

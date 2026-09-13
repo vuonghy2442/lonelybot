@@ -948,17 +948,33 @@ theorem E21_win : E21.isWin = true := by
   rcases s with ⟨col, p⟩
   cases col <;> cases p <;> rfl
 
-/-! ## The refutation -/
+/-! ## The refutation (HISTORICAL)
 
-theorem lift_false : False := by
-  have hsol := toEngine_lifts (st := stN) (eplay := PLAY) (w := E21) stN_wf rfl line E21_win
-  exact absurd hsol stN_notSolvable
+`toEngine_lifts` — the draw-1 lift, DELETED from Bridge.lean on
+2026-09-13 in the laundering disposal — was refuted by exactly the
+facts above: `stN` is WF (`stN_wf`), draw-1 (`rfl`), the abstract game
+wins `PLAY` (`line`, `E21_win`), and the model engine cannot
+(`stN_notSolvable`).  The deleted statement is archived as fenced text
+in FARM.md's REFUTED section (item 2, together with `engine_iff`,
+which falls transitively).  The former `lift_false : False` corollary
+cited the deleted constant by design; this file now carries only the
+self-contained, axiom-clean countermodel facts. -/
 
+/-- info: 'stN_wf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms stN_wf
+
+/-- info: 'stN_notSolvable' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms stN_notSolvable
+
+/-- info: 'line' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms line
+
+/-- info: 'E21_win' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms E21_win
-#print axioms lift_false
 
 
 

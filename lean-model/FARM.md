@@ -1,9 +1,10 @@
 # The proof farm — handoff document
 
-**Census: 11 `:= sorry`** (Theorems 1 · Macro 1 · Dominance 5 · Kills 4;
-zero bullets).  Pinned by `pwsh ../script/lean-census.ps1` (run from
-`lean-model/`) — it fails on any NEW sorry or the return of a refuted
-constant.  All 11 are believed-true open theorems with routes below.
+**Census: 20 `:= sorry`** (Theorems 1 · Dominance 5 · Kills 4
+· Restriction 2 · TwinSwap 8; zero bullets).  Pinned by
+`pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
+any NEW sorry or the return of a refuted constant.  All 20 are
+believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
 the library.
@@ -128,7 +129,7 @@ Within Dominance, rows are independent.
 | item | file:line | tag | route |
 |---|---|---|---|
 | `solvable_of_pileStack` (the crux) | Theorems:1028 | **[H]** | the case ledger below — 2 squares, the π-induction, then the park/endgame (N-half) |
-| `solvableEngine_iff_macro` (C1) | Macro:581 | [H] | A3's regrouping: draws commute with shuffles by component disjointness, trailing draws drop; ← via `macroStep_engine_play` + induction |
+| ~~`solvableEngine_iff_macro` (C1)~~ | Macro | **done** | A3's regrouping landed (parallel session) |
 | `safe_pileStack_dominant` (N-half) | Dominance:237 | [H] | post-crux: the endgame IS this row's root (canReturnBase fails on deal-adjacent bases → rank-mate worry-back) |
 | `least_redundantStack_dominant` | Dominance:280 | **repair-first** | OPEN SOUNDNESS CONCERN: ≥3 stackables in 3 distinct suits leaves the 4th suit unconstrained.  Falsify (refute-first protocol), repair `+hsafe`, THEN prove |
 | `deck_dominance_draw1` (C4) | Dominance:292 | [H] | front-loading reshaping; the pure-deck fact; draw-1 — `maskPos_step1` (every position accessible) + the deal machinery |
@@ -185,6 +186,103 @@ the model):
   full C13 sleep-set layer, C14 fold cut, theorem T's local two-card
   swap: need their own readings (ledger rows in
   `docs/soundness_ledger.md`).
+
+## Wave 13 — the pile-to-pile restriction (B2, scaffolded 2026-09-13)
+
+The engine's license: on dealt-reachable states the full physical game
+and the restricted move set agree (`Klondike/Restriction.lean`).  The
+naive all-states iff was refuted (EngineWitness; the model's `reveal`
+is bare-trigger, the engine's `Reveal` is run-carrying) — the repaired
+statements are scoped by the new `initialReachable` predicate.
+
+**Refute-first gate (run before farming the rows)**: replay the
+EngineWitness state by an *engine* play from `State.initial wdeal 1`
+(`witnesses/EngineWitness.lean`, `wstate`/`wdeal` are in file).  If
+reachable, the wave-13 statements fall — escalate (the repair is the
+run-carrying-reveal model extension, a design decision below).
+
+| item | file:line | tag | route |
+|---|---|---|---|
+| `solvableEngine_iff_solvable_of_reachable` (B2 crown) | Restriction:73 | [H] | `cascadeMeasure` well-founded induction; per-move replay is the row below; → is `solvable_of_engine` (proven) |
+| `engine_replay_of_pilePile` (the replay step) | Restriction:88 | [H] | case ledger in the file's header: (1) returnable base — proven kits (`stackPile_pileStack_cancel`, `pileStack_comm_*`); (2) locked boundary carry — the B4 crux + rank-mate twin step via `solvable_flipAll` (proven) under the both-heights-equal license, §5.5's pattern; (3) the probe's alarm |
+
+Dependencies: row 2 consumes the B4 crux (Theorems `solvable_of_pileStack`)
+— reasonably sequenced AFTER wave 11's crux rows.  The twin-swap
+dependency is already discharged (Relabel.lean, axiom-clean).
+
+## Wave 14 — the local twin swap (scaffolded + corrected 2026-09-13)
+
+The representation-canonicalization theorem (`Klondike/TwinSwap.lean`):
+the *local* swap `Card.swapTwin t` (exchange just the pair in place —
+unlike Relabel's whole-suit action) preserves solvability at **equal
+foundation heights**, so which twin of an ambiguous pair occupies a
+seat is a don't-care, and covering either twin is worth the same.
+
+Landed and proved: `Card.swapTwin` + involution/color/rank/inj kit,
+`canSitOn_swapTwin_right/_left` (the cargo-transfer fact), the
+`swapFull`/`swapColorOf` family, `Card.flipSuit_rank` (Basic.lean);
+`Base.swapTwin`/`Base.swapFull`, `Board.mapByWith` (the GENERIC
+involution conjugation — one proof, retires the mapBy pattern) +
+`mapByTwin`/`mapByFull` (Board.lean); `State.swapTwin`/`Move.swapTwin`,
+`heights_eq_of_redundantStack`, `redundantTwins_heights_eq`.
+
+**FINDING (same day)**: the apply-level conjugation is FALSE — no
+state map commutes with `apply` here (the three failure modes recorded
+in TwinSwap.lean's header; legality-flip machine-checked in
+witnesses/TwinSwapWitness.lean, a LIVE build witness).  The sorried
+statements of the automorphism route were REMOVED per the laundering
+rule; the surviving theorem is solvability-level **strategy
+modification** (play-rewriting; the modified line may insert one
+pilePile transposition step — the B4 normal-form family).
+
+| item | file:line | tag | route |
+|---|---|---|---|
+| `State.apply_swapFull_of_avoids` (pair-avoiding conjugation) | TwinSwap:413 | [M] | 7-arm guard translation mirroring `apply_relabel`; license `hwf` ∧ both twins `isVis`; kit list in the docstring |
+| `State.swapTwin_swapTwin` (state-level involution) | TwinSwap:511 | [M] | `state_ext` over 6 fields; pointwise involutions + `Option.map_map`/`List.map_map`|
+| `State.simTwin_step` (the bisimulation step) | TwinSwap:~531 | **[H]** | avoiding moves verbatim via the conjugation row; pair-touching moves pick level 1 (`_heights_relabel`); pivot arms' equal counters come from the two free guards; side conditions propagate (stocks/hidden shrink) |
+| `State.simTwin_runWin` (the transport) | TwinSwap:~539 | [M] | play induction over `simTwin_step`; isWin transfer along the levels |
+| ~~`State.solvable_swapTwin`~~ (the crown) | TwinSwap:~550s | **proved** (cites the three rows above — keep the row until they land) | sim-bisimulation: `refl_right`/`refl_left` instances + run transport |
+| `State.solvable_pileStack_twin_iff` (the strategy pivot) | TwinSwap:229 | [H] | twin stack-exchange at a both-legal pivot — the two guards force equal counters for free; probe-first per discipline |
+| `State.solvable_iff_canonicalStack` (supermove sufficiency) | TwinSwap:305 | [H] | pivot + cascadeMeasure descent over the first non-canonical stack |
+| `State.solvable_cover_twin_iff` | TwinSwap:597 | [M] | the size-bounded instance of the pivot |
+| `State.swapTwin_wf` | TwinSwap:~600s | [M] | conjunct-wise (no license needed) |
+| `State.solvable_iff_canonicalStack` (supermove sufficiency) | TwinSwap:~229-265 | [H] | pivot + cascadeMeasure descent over the first non-canonical stack; supermove defs `applySuperStack`/`applySuperStack_sound`/`isSome_applySuperStack` proven |
+
+**Design candidate (supermove form, per vuong)**: a suit-symmetric
+"superStack" macro move — stack the (rank, color) with the
+transposition folded in, like `drawCommit` folds the jump.  This moves
+the asymmetry out of the state space into one move's semantics; the
+subset-completeness direction is then the *same* strategy-modification
+content, but the correctness statement becomes move-set-shaped (like
+C1's macro equivalence) rather than state-canonicalization-shaped.  If
+the pivot row resists, this reframing is the fallback architecture —
+decide before farming the pivot.
+
+**Related design candidate (the wide closure, per vuong)**: the twin
+cargo-transfers are *returnable* `pilePile`s, so a closure extended by
+returnable pilePile absorbs the twin phenomenon at macro level.
+Careful: `safeAccommodates`'s pileStack is guarded (`¬isLocked`) — the
+wide analog needs the matching guard (returnable bases only, per the
+R/N split in `solvable_of_pileStack_return`).  It changes the K-rules'
+premise (`safeAccommodates` in Kills.lean) and C1's proof surface — a
+parallel `safeAccommodatesW` first, and merge only if the shadow
+lemmas land cleanly.
+
+**Trajectory note (same source)**: the closure is growing into a proof
+interface — segregation rule of thumb for the dominance farm: if the
+rule's essence is "the successor returns by shuffles", it lives at the
+closure level (twin-pair, K-rules, the returnable halves) and the
+macro/closure machinery carries it; if the rule's essence is an
+irreversible channel (worry-back bans, deck pacing), the closure frames
+but doesn't settle it.  When the wide closure lands, re-home those rows
+rather than proving them inside the move set.
+
+On landing, `twinPair_placement_equi` (wave 11, Dominance) merges into
+the cover family — its redundant-pair premise is exactly the license by
+`redundantTwins_heights_eq`.  B2's case ledger (Restriction.lean)
+shrinks: the park-on-twin half of the pilePile cases collapses into the
+cover equivalence; the EngineWitness-shaped residue (twin unavailable)
+is what remains.
 
 ## The crux's case ledger (B4 decomposition state)
 

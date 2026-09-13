@@ -25,8 +25,13 @@ theorem wNe : ¬ ({ wSt with stock := ⟨[wCard1, wCard2], 1⟩ } : State).stock
   simp only [wSt] at hc
   omega
 
-theorem stock_invar_false : False := by
-  have h := apply_nonConsuming_stock_invar (m := Move.draw) rfl wDraw
-  exact wNe h
+/-! ## The refutation (HISTORICAL)
 
-#print axioms stock_invar_false
+`stock_invar_false : False` (the first version of this file) cited the
+pre-repair `apply_nonConsuming_stock_invar (m := Move.draw) rfl wDraw`
+— the non-consuming-but-cursor-writing draw is exactly the countermodel
+`wDraw` + `wNe` above.  The same-session repair added
+`(hm : m ≠ Move.draw)` and the theorem is PROVEN; the old citation no
+longer typechecks and has been removed.  The countermodel facts (draw
+is non-consuming yet lands the cursor at 1, so the successor's stock
+differs) remain, axiom-clean. -/

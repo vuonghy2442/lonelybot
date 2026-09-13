@@ -24,10 +24,11 @@ permutations of n ≤ 7 decks × steps 1–4 × every pure cursor in range,
 plus 40320 perms at n = 8 (step 3, cursors 0 and 8); without it every
 impure cursor in [0, n] shows counterexamples.
 
-HISTORICAL after the repair: `iff_refuted`/`broken` cite the pre-repair
-statement (no `hpure`).  The core facts (`maskPos_cy`, `realizes_true`,
-`stepsOK_false`, all axiom-clean) cite no sorry'd constant and stay
-green.
+HISTORICAL after the repair: `broken` (which cited the pre-repair
+statement, no `hpure`) has been removed; `iff_refuted` is the
+self-contained residue.  The core facts (`maskPos_cy`-style probes,
+`realizes_true`, `stepsOK_false`, all axiom-clean) cite no sorry'd
+constant and stay green.
 -/
 
 namespace PaceStepsOKWitness
@@ -43,10 +44,19 @@ def cy : Cycle Card := ⟨[a, b], 1⟩
 
 theorem hs : 0 < 2 := by decide
 
--- Executable sanity probes (the refute-first protocol):
-#eval maskPos cy 2 hs                        -- [0, 1]: position 0 leaks in via the leading lane
-#eval cy.posOf a                             -- some 0
-#eval laneAt [a, b] 2 [] a                   -- 0 ≠ 1: the first step condition fails
+-- Executable sanity probes (the refute-first protocol), pinned:
+
+/-- info: [0, 1] -/
+#guard_msgs in
+#eval maskPos cy 2 hs  -- position 0 leaks in via the leading lane
+
+/-- info: some 0 -/
+#guard_msgs in
+#eval cy.posOf a
+
+/-- info: 0 -/
+#guard_msgs in
+#eval laneAt [a, b] 2 [] a  -- 0 ≠ 1: the first step condition fails
 
 /-- The witness deck is duplicate-free. -/
 theorem hnd : noDupCards [a, b] := by
@@ -95,14 +105,18 @@ theorem stepsOK_false : ¬ stepsOK [a, b] 2 [a, b] := by
     cases hb
   · simp at hx
 
-/-- The staged iff fails on the witness (against the pre-repair
-statement: cites the sorry'd `realizes_iff_stepsOK`). -/
+/-- The staged iff fails on the witness — the self-contained half of
+the refutation: at this impure cursor the two sides genuinely differ
+(forever: the repaired theorem only claims the iff on the pure class,
+and `cy` is impure). -/
 theorem iff_refuted : ¬ (realizes 2 hs cy [a, b] ↔ stepsOK [a, b] 2 [a, b]) := by
   intro hiff
   exact stepsOK_false (hiff.mp realizes_true)
 
-theorem broken : False := by
-  have hiff := realizes_iff_stepsOK cy 2 hs hcur [a, b] (List.Perm.refl _) hnd
-  exact iff_refuted hiff
+/-! `broken : False` (the first version of this file) derived the
+contradiction from the pre-repair `realizes_iff_stepsOK` (no `hpure`)
+via `iff_refuted`; the same-session repair added the purity hypothesis
+and PROVED the theorem, so the citation no longer typechecks and has
+been removed. -/
 
 end PaceStepsOKWitness

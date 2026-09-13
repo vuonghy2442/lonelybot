@@ -1613,3 +1613,60 @@ cannot delta-unfold the goal); count Eq.trans sides before chaining.
   — congrArg some needs heq.symm; a binder mentioning `c` after `(hwf : st.WF)` auto-binds c✝ —
   bind {c : Card} first; `((l).take (if …)).getLast?` paren counts cost 3 builds; go-walk steps
   need the defeq-cast dance past the constructor match (aboveOf_go_step packages it).
+
+## Macro.lean — C1 PROVEN (→ needed a DEF REPAIR) (2026-09-13)
+
+- REFUTED as staged (witnesses/MacroC1Witness.lean, axiom-clean, core facts stay green): the →
+  direction was FALSE — `macroSteps` ends on a COMMIT, so an engine win whose last height-raise
+  is a TRAILING ACCOMMODATION had no macro witness (stC1: ♥12, ♥K sole visible on an anchor,
+  empty stock, all depths 0 — engine wins [pileStack ♥K] while no commitApplies EVER fires:
+  empty stock kills drawCommits, depths-0 kills reveals; Rust parity: macro_solvable_sel checks
+  is_win AFTER canonicalize).  REPAIR (sign-off pending): State.macroSolvable gained the final
+  accommodation block — ∃ ks w w', macroSteps st ks w ∧ accommodates w w' ∧ w'.isWin = true.
+  No external users; every in-file consumer repaired same-session.
+- PROVEN (exit 0, zero warnings; census Macro 1→0).  ← = macroSteps_engine_run (chains
+  macroStep_engine_play + run_append + appends the final accommodation).  → = the new
+  engine_macro_lift: NO move commutation needed (A3's "draws commute with shuffles" route is
+  OBSOLETE) — the induction carries m.diffCursor e ∧ m-cursor-bound ∧ ∃k e.stock =
+  dealIter k m.stock ∧ e.WF plus the line-so-far; draws only extend k (m never moves);
+  reveals fire cursor-blind from the twin; deck moves fire drawCommit from the segment-START
+  cursor — `dealIter_prev_reachable` (Theorems) is the whole guard+splice tool — and MERGE
+  the two lines (removeAt_drawTo is cursor-free; state_ext closes); trailing draws drop,
+  trailing accommodations ARE the final block.  m.WF recovered via the new wf_of_diffCursor.
+- DOWNSTREAM (in-file): macroSolvable_of_simulates +hacc (tail-lifting hypothesis; main
+  restructured to return the full package); pace_dominance gained the hacc bullet
+  (accommodates_cursor_blind + pin algebra); window_firstDraw_macro's ∀ gained (w',
+  accommodates w w', win-at-w') — the merged-suffix construction sites pass the A-tail
+  verbatim, the all-reveal branch replays it cursor-blind; residue/impure_pure untouched.
+- NEW Macro-local kit (consolidation candidates): macroSteps_engine_run, engine_of_macro,
+  wf_of_diffCursor, engine_macro_lift, macro_of_engine.
+- SYNTAX paid: rw under a stuck >>= binder fails — `show st'.run [m]` THEN run_singleton
+  (macroStep_engine_play's pattern is mandatory); `subst h : e₁ = literal` eliminates e₁ —
+  pass the LITERAL in the following refine; `(by tac₁ newline tac₂)` continuations must NOT
+  dedent below tac₁'s column (by alone on its line); the repaired macroSolvable package has
+  SIX witness slots (the cons-equal case forgot v := u); obtain on a PROJECTION (m.stock)
+  substitutes only the goal — destructure the STATE m to make hd's projections reduce;
+  diffCursor's board conjunct rw's FORWARD (m.board → e.board) to convert macro-side guards.
+
+## witnesses — the regression layer, resumed (2026-09-13)
+
+- Predecessor (killed) had done: all `*_refuted` corollaries replaced by REFUTED-archive
+  notes (EngineWitness/LiftWitness2/LiftWitness/Cascade/PaceStepZero/PaceStepsOK/Commute/
+  StockInvar/ApplyWfCounter*), repaired-history anchors, `#guard_msgs` on every deterministic
+  `#eval`, Axioms.lean with 17 crown gates, README lifecycle. NOT redone.
+- THE BUILD BUG ("Witnesses: some modules have bad imports" at job computation): Lake's
+  TOML glob `"Witnesses.*"` = andSubmodules — it names the ROOT module `Witnesses`, which
+  has no file; recCollectLocalModules' imports-fetch fails for it. FIX: new root facade
+  `Witnesses.lean` (imports only Witnesses.Axioms — witness files CANNOT be co-imported:
+  dozens of root-level name collisions: wState/wDeal/H/S/cA…; the facade's one import is
+  the case-sensitivity tripwire: lowercase `witnesses/` + case-sensitive FS = loud import
+  error instead of a silent empty lib). lakefile unchanged.
+- ADDED: Axioms gates for solvable_of_pileStack_return + C1's engine_of_macro,
+  macro_of_engine, macroSteps_engine_run, engine_macro_lift (all [propext, Quot.sound]);
+  MacroC1Witness's 3 #evals + public stC1_macroNew guarded. QUIRK: `private` decls' mangled
+  names differ by invocation — `_private.Witnesses.X…` under `lake build` vs
+  `_private.witnesses.X…` under `lake env lean` — NEVER #guard_msgs a private name.
+- GATES: `lake build Klondike Witnesses` exit 0 (48 jobs); census "inventory pinned: OK"
+  (TwinSwap 7 = the user's in-flight rows, not my delta). TwinSwapWitness.lean (user-owned)
+  untouched, builds green. Sibling olean outage hit once mid-session (Macro.olean vanished
+  during a `lake env lean`); poll-retry resolved it.

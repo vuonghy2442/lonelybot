@@ -48,4 +48,6 @@ theorem hidden_parent_adjacent {st : State} {a : Anchor} {r d₂ : Card}
   rw [hs, hu, List.append_assoc, List.append_assoc]
   rfl
 
+/-- info: 'hidden_parent_adjacent' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms hidden_parent_adjacent

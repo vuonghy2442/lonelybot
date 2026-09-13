@@ -112,14 +112,42 @@ theorem stX_not_dominantAt : ¬ dominantAt stX (Move.pileStack c2) := by
 
 end RefuteCommutesAll
 
+/-- info: 'RefuteCommutesAll.stX_h' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
 #print axioms RefuteCommutesAll.stX_h
+
+/-- info: 'RefuteCommutesAll.stX_not_dominantAt' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms RefuteCommutesAll.stX_not_dominantAt
 
+/-- info: 'apply_pileStack_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms apply_pileStack_iff
+
+/-- info: 'apply_draw_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms apply_draw_iff
+
+/-- info: 'apply_deckPile_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms apply_deckPile_iff
+
+/-- info: 'apply_deckStack_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms apply_deckStack_iff
+
+/-- info: 'apply_stackPile_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms apply_stackPile_iff
+
+/-- info: 'apply_pilePile_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms apply_pilePile_iff
+
+/-- info: 'Board.attach_topOf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms Board.attach_topOf
+
+/-- info: 'Board.bottomOf_eq' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms Board.bottomOf_eq

@@ -28,9 +28,10 @@ progress measure must be hypothesized (the repair: the escape must
 strictly decrease `cascadeMeasure`).
 
 HISTORICAL after the repair (2026-09-13, same session): the
-`cascade_refuted` corollary cites the pre-repair statement; the core
-facts (`stW_wf`, `stW_solvable`, `h_W`, `stW_notSolvableWith`) cite no
-sorry'd constant and stay green.
+`cascade_refuted` corollary (which cited the pre-repair statement) has
+been removed — see the note at the bottom.  The core facts (`stW_wf`,
+`stW_solvable`, `h_W`, `stW_notSolvableWith`) cite no sorry'd constant
+and stay green.
 -/
 
 /-- The king of diamonds — the one card still out. -/
@@ -84,10 +85,19 @@ def Pdraw : Move → Bool
   | .draw => true
   | _ => false
 
--- Refute-first probes: the trap is real.
-#eval stW.isWin                                -- false
-#eval (stW.apply (Move.pileStack dK)).isSome   -- true (the only way out)
-#eval (stW.apply Move.draw).isSome             -- true (the identity)
+-- Refute-first probes: the trap is real (pinned).
+
+/-- info: false -/
+#guard_msgs in
+#eval stW.isWin
+
+/-- info: true -/
+#guard_msgs in
+#eval (stW.apply (Move.pileStack dK)).isSome  -- true (the only way out)
+
+/-- info: true -/
+#guard_msgs in
+#eval (stW.apply Move.draw).isSome            -- true (the identity)
 
 /-- The winning successor: ♦K stacked, ♦ at 13 — all four complete. -/
 def stWin : State := { stW with
@@ -215,10 +225,18 @@ theorem stW_notSolvableWith : ¬ stW.solvableWith Pdraw := by
   rw [stW_notWin] at hwin
   exact Bool.noConfusion hwin
 
-/-! ## The staged statement refuted (pre-repair) -/
+/-! ## The staged statement refuted (HISTORICAL)
 
-theorem cascade_refuted : False :=
-  stW_notSolvableWith (cascade_sound (P := Pdraw) stW h_W stW_solvable)
+`cascade_refuted : False` (the first version of this file) cited the
+pre-repair `cascade_sound` — escape = `dominantAt` alone — through
+`stW_notSolvableWith (cascade_sound (P := Pdraw) stW h_W stW_solvable)`.
+The same-session repair added the strict `cascadeMeasure` decrease to
+the escape conjunct and the theorem is now PROVEN; the old citation no
+longer typechecks and has been removed.  The countermodel facts above
+(`stW_wf`, `stW_solvable`, `h_W`, `stW_notSolvableWith` — the trap: the
+draw-only filter satisfies the *weaker* escape vacuously) remain,
+axiom-clean, as the regression record of what the progress conjunct is
+for. -/
 
 /-! ## The trap survives WF — a bare `hwf` is not a repair -/
 

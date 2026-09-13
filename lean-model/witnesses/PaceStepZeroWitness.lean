@@ -21,8 +21,9 @@ is solvable while cursor 0 is not (kills
 end is pure too (kills `solvable_iff_pure_cursors`).
 
 HISTORICAL after the repair (all three gained `hstep : 0 <
-st.drawStep`): the `*_refuted` corollaries cite the pre-repair
-statements.  The core facts (`stZ_dead`, `stZ_run_fix`, `stZ_notReach`,
+st.drawStep`, and are PROVEN): the `*_refuted` corollaries that cited
+the pre-repair statements have been removed — see the note at the
+bottom.  The core facts (`stZ_dead`, `stZ_run_fix`, `stZ_notReach`,
 `stZ_notSolvable`, `stN_solvable`) cite no sorry'd constant and stay
 green.
 -/
@@ -37,10 +38,19 @@ def stZ : State :=
 /-- The pass-end twin: cursor at the length. -/
 def stN : State := { stZ with stock := { stZ.stock with cursor := 4 } }
 
--- Executable sanity probes (the refute-first protocol):
-#eval stZ.stock.cards.length                    -- 4
-#eval (Cycle.dealOnce stZ.drawStep stZ.stock).cursor  -- 0 (step 0: the identity below the pass end)
-#eval (Cycle.dealOnce stZ.drawStep stN.stock).cursor  -- 0 (from the pass end it wraps)
+-- Executable sanity probes (the refute-first protocol), pinned:
+
+/-- info: 4 -/
+#guard_msgs in
+#eval stZ.stock.cards.length
+
+/-- info: 0 -/
+#guard_msgs in
+#eval (Cycle.dealOnce stZ.drawStep stZ.stock).cursor  -- step 0: the identity below the pass end
+
+/-- info: 0 -/
+#guard_msgs in
+#eval (Cycle.dealOnce stZ.drawStep stN.stock).cursor  -- from the pass end it wraps
 
 /-- Every move from `stZ` fails, or is `draw`'s identity. -/
 theorem stZ_dead : ∀ (m : Move) (s : State), stZ.apply m = some s → s = stZ := by
@@ -149,28 +159,35 @@ theorem stN_solvable : stN.solvableFrom :=
     Move.deckStack ⟨Suit.diamond, Rank.king⟩, Move.deckStack ⟨Suit.heart, Rank.king⟩],
    s4, rfl, rfl⟩
 
--- The three refutations, citing the still-sorry'd statements (safe):
--- `deal_passEnd_reaches` at (stZ, 0) is false.
-theorem passEnd_refuted : False := by
-  have h := deal_passEnd_reaches (st := stZ) (o := 0) (hcur := by decide)
-  exact stZ_notReach h
+/-! ## The refutations (HISTORICAL)
 
--- `pace_dominance_phys_passEnd` at (stZ, 0) is false.
-theorem passEnd_dominance_refuted : False := by
-  have h := pace_dominance_phys_passEnd (st := stZ) (o := 0)
-    (hcur := by decide) (hsol := stN_solvable)
-  exact stZ_notSolvable h
+`passEnd_refuted`, `passEnd_dominance_refuted`, `pure_cursors_refuted`
+(this file's first version) each derived `False` from the pre-repair
+statements — `deal_passEnd_reaches`, `pace_dominance_phys_passEnd`,
+`solvable_iff_pure_cursors` without the step-positivity hypothesis —
+through exactly the facts above: `stZ_notReach` (the pass end is
+unreachable at step 0), `stN_solvable` vs `stZ_notSolvable` (the pass
+end wins while the mid-pass cursor cannot), and the purity of both
+cursors.  The same-session repair gave all three theorems
+`hstep : 0 < st.drawStep` (and they are PROVEN); the old citations no
+longer typecheck and have been removed.  The countermodel facts stay. -/
 
--- `solvable_iff_pure_cursors` at (stZ, 0, 4) is false (both cursors
--- pure: 0 % 0 = 0 and 4 = the length).
-theorem pure_cursors_refuted : False := by
-  have h := solvable_iff_pure_cursors (st := stZ) (o := 0) (o' := 4)
-    (hp := Or.inl (by decide)) (hp' := Or.inr rfl)
-    (hcur := by decide) (hcur' := by decide)
-  exact stZ_notSolvable (h.mpr stN_solvable)
-
+/-- info: 'stZ_dead' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms stZ_dead
+
+/-- info: 'stZ_run_fix' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms stZ_run_fix
+
+/-- info: 'stZ_notReach' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms stZ_notReach
+
+/-- info: 'stZ_notSolvable' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms stZ_notSolvable
+
+/-- info: 'stN_solvable' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms stN_solvable

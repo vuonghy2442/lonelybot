@@ -1,7 +1,11 @@
 import Klondike.Bridge
 
 /-! Scratch: `toEngine_lifts` was UNSOUND as stated (draw-1, WF state).
-RESOLVED 2026-09-13 by the invariant-layer repair (Repair B).
+RESOLVED 2026-09-13 by the invariant-layer repair (Repair B) — but
+then REFUTED AGAIN the same day by the deal-adjacency/canSitOn mirror
+hole (LiftWitness2.lean), and both constants were DELETED from
+Bridge.lean in the 2026-09-13 laundering disposal (statements archived
+in FARM.md's REFUTED section).
 
 Witness `stX`: hearts/diamonds/clubs complete, spades at 12 (♠K next).
 The model's board seats ♥Q ON ♠K (a legal `canSitOn` edge), so the
@@ -20,8 +24,9 @@ board's edge ♥Q→♠K needs ♠K placed-or-boundary (it is: p0's head —
 no, depths are 0, so ♠K must be PLACED — it is, on inl p0 — that
 edge survives); the KILLER is (b) `founds_gone`: ♥Q is visible with
 `heights ♥ = 13 > 11 = toIdx ♥Q`.  So `¬ stX.WF` (below), the
-refutation's premise is gone, and the remaining `toEngine_lifts`
-sorry is the honest B4 accommodation argument.
+refutation's premise is gone.  (Superseded same-day: the lift fell to
+a second, independent hole — see the note at the bottom and
+LiftWitness2.lean; the constants were then deleted from Bridge.lean.)
 
 The deadness facts below still hold for `stX` as a state (they are
 just no longer about a WF state), but the ABSTRACT WIN IS GONE: the
@@ -321,21 +326,26 @@ the model's own board `bdX` cannot witness the step either (♠K is not
 a free surface — ♥Q sits on it).  The one-move abstract win no longer
 exists, which is exactly the content of the repair. -/
 
-/-! ## The hole is closed (2026-09-13 repair)
+/-! ## The hole is closed (2026-09-13 repair) — and re-opened elsewhere
 
 The refutation below is the one that HELD before the invariant-layer
 repair: with the old `Fits`/`board_edges` (no buried-base condition)
 and the old WF (no `founds_gone`), `stX.WF` was provable and these
 ∀-statements were refuted through it.  Now `stX.WF` is FALSE
-(`stX_not_wf` above), so these refutations no longer go through —
-`toEngine_lifts`/`engine_iff` are no longer known-unsound, and their
-remaining `sorry`s are the honest B4 accommodation work.
+(`stX_not_wf` above), so these refutations no longer go through.
 
-What the repair does NOT claim: a proof of the lift.  It only
-removes the counterexample: the abstraction's realizing boards are
-now honest (deal-adjacent bases are real boundary-or-placed cards),
-so the witness boards can no longer be strictly more permissive than
-the model's game through buried bases. -/
+SUPERSEDED (2026-09-13, later the same day): the repair did NOT save
+the lift — `toEngine_lifts` was REFUTED AGAIN by a different hole (the
+abstraction's arrangement freedom re-seating a card across `Fits`'
+independent seating disjuncts; witnesses/LiftWitness2.lean), and with
+`engine_iff` it was DELETED from Bridge.lean in the laundering
+disposal.  The statements are archived in FARM.md's REFUTED section.
+
+What the repair DOES claim (and this file still tests): the witness
+boards are now honest — deal-adjacent bases are real
+boundary-or-placed cards, so THIS witness's shape of strictly-more-
+permissive realizing boards is gone.  The facts below (`stX_not_wf`,
+`stX_not_realizedBy_bdW`) pin exactly that closure. -/
 
 /-- The old refutation's premise is dead: no WF state of this shape
 exists to instantiate the lift with. -/
@@ -346,5 +356,10 @@ example : ¬ (stX.WF ∧ stX.drawStep = 1 ∧
 
 end LiftWitness
 
+/-- info: 'LiftWitness.stX_not_wf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
 #print axioms LiftWitness.stX_not_wf
+
+/-- info: 'LiftWitness.stX_not_realizedBy_bdW' depends on axioms: [propext] -/
+#guard_msgs in
 #print axioms LiftWitness.stX_not_realizedBy_bdW

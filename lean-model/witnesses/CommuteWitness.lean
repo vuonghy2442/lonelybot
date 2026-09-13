@@ -45,28 +45,14 @@ theorem wDisj : disjointTouch (wM.touch stW) (Move.draw.touch stW) := by
   · intro b _ hin; exact nomatch hin
   · intro c _ hin; exact nomatch hin
 
-theorem commute_false : False := by
-  have hS1 : wComp₁.isSome = true := by decide
-  have hS2 : wComp₂.isSome = true := by decide
-  have hC1 : Option.map (fun s => s.stock.cards) wComp₁ = some [h2, cK, h4] := by decide
-  have hC2 : Option.map (fun s => s.stock.cards) wComp₂ = some [cK, h2, h4] := by decide
-  cases hA : wComp₁ with
-  | none =>
-      rw [hA] at hS1
-      simp at hS1
-  | some wA =>
-      cases hB : wComp₂ with
-      | none =>
-          rw [hB] at hS2
-          simp at hS2
-      | some wB =>
-          have heq := commute_of_disjoint_touch wDisj hA hB
-          have hc := congrArg (fun s => s.stock.cards) heq
-          rw [hA] at hC1
-          rw [hB] at hC2
-          simp only [Option.map_some, Option.some.injEq] at hC1 hC2
-          simp only [] at hc
-          rw [hC1, hC2] at hc
-          exact absurd hc (by decide)
+/-! ## The refutation (HISTORICAL)
 
-#print axioms commute_false
+`commute_false : False` (the first version of this file) cited the
+pre-repair `commute_of_disjoint_touch wDisj hA hB` and read the two
+stock projections apart.  The same-session repair added the `hnc`
+draw/consumesStock conjunction — draw's EMPTY touch-set is disjoint
+from everything, yet the deck moves' legality reads the cursor the
+deal moves — and the theorem is PROVEN; the old citation no longer
+typechecks and has been removed.  The countermodel facts above (both
+orders succeed, the end stocks genuinely differ, the touch-sets are
+disjoint) remain, axiom-clean. -/
