@@ -250,38 +250,54 @@ def State.isRedundantStack (st : State) (c : Card) : Bool :=
 def State.redundantStacks (st : State) : List Card :=
   Card.universe.filter fun c => st.isRedundantStack c
 
-/-- §5.2: with ≥3 redundant stackables, stacking the lowest-rank one is
-dominant — a canonical representative; the others remain available
-later (stack moves into the foundation commute, and what is safe is
-recoverable per §5.1).
+/-- §5.2: with ≥3 redundant stackables, stacking the lowest-rank *safe*
+one is dominant — a canonical representative; the others remain
+available later (stack moves into the foundation commute, and what is
+safe is recoverable per §5.1).
 
 Note (2026-09-13): `isRedundantStack` already carries the `¬locked`
 guard, so this statement is consistent with the dead-pile witness that
 refuted the unguarded §5.1 (see `safe_pileStack_dominant`'s repair
 note) — the trigger cards are excluded here by construction.
 
-SOUNDNESS CONCERN (2026-09-13, analytic — witness pending): ≥3
-redundant stackables do NOT make the lowest one §5.1-safe.  The three
-stackables sit in three distinct suits (a suit's foundation has at
-most one stackable card: its height), so exactly one of the four suits
-is *not* among theirs, and nothing in the hypotheses constrains that
-fourth suit's height — while `safeToStack st c` demands it be ≥ r−1
-(opposite colour to c) or ≥ r−2 (same colour).  Shape of the gap:
-stackables ♠5, ♥8, ♣9 (heights ♠=4, ♥=7, ♣=8) with ♦=0 — the lowest
-c = ♠5 (r=4) fails the opposite-colour conjunct (♦ ≥ 3), and the
-danger card ♦4 (red, rank 3) is *live* (♦=0 < 3, so not on any
-foundation): a winning play that must seat ♦4 on ♠5 — ♣5 being the
-only other black 5, keep it unavailable, and ♦4 needing tableau
-transit (its foundation is 3 below) — loses to stacking ♠5 first.
-The likely repair is `hsafe : safeToStack st c = true` (the §5.1
-hypothesis), reducing the remainder to the §5.1 core (channels A/B);
-the canonical-representative part (the two other stackables remain
-available) then handles the rest.  TODO: falsifier or repair. -/
+REPAIR (2026-09-13, wrong-theorem protocol): the staged statement
+(no `hsafe`) was FALSE.  The ≥3 stackables sit in three distinct suits
+(a suit's foundation has at most one stackable card: its height), so
+exactly one of the four suits is *not* among theirs, and nothing in
+the hypotheses constrains that fourth suit's height — while
+`safeToStack st c` demands it be ≥ r−1 (opposite colour to c) or
+≥ r−2 (same colour).  The staged `hlow`/`hlen` premises therefore
+leave the §5.1 safety of the lowest stackable unproved, and stacking
+it is not dominant: the danger card of the unconstrained suit (rank
+r−1, opposite colour — the unique card class that can ever sit on `c`)
+may be *live*, forced to transit the tableau through `c`'s seat, and
+`c`'s worry-back is itself blocked by the same suit gap.  Minimal
+repair: add `hsafe : safeToStack st c = true` (the §5.1 hypothesis),
+exactly what the countermodel demands; the conclusion is unchanged.
+With it, the row is an instance of §5.1: `isRedundantStack` supplies
+the legality and the `¬locked` guard, and the §5.1 core
+(`safe_pileStack_dominant`, whose non-returnable half is the B4 root)
+carries the content.  The ≥3-redundancy itself buys nothing the §5.1
+hypotheses don't — the "others remain available" half is inside §5.1's
+worry-back argument (channel A: the only cards that can sit on `c` are
+foundation-able by `hsafe`'s opposite-colour conjunct).  Countermodel:
+`witnesses/LeastRedundantWitness.lean`. -/
 theorem least_redundantStack_dominant {st : State} {c : Card} (hwf : st.WF)
+    (hsafe : safeToStack st c = true)
     (hmem : c ∈ st.redundantStacks)
     (hlen : 3 ≤ st.redundantStacks.length)
     (hlow : ∀ c' ∈ st.redundantStacks, c.rank.toIdx ≤ c'.rank.toIdx) :
-    dominantAt st (Move.pileStack c) := sorry
+    dominantAt st (Move.pileStack c) := by
+  have := hlen
+  have := hlow
+  -- the redundancy premise unpacks to §5.1's legality and lockedness
+  simp only [State.redundantStacks, List.mem_filter] at hmem
+  obtain ⟨-, hrl⟩ := hmem
+  simp only [State.isRedundantStack, Bool.and_eq_true] at hrl
+  obtain ⟨hlegal, hlock⟩ := hrl
+  have hnotlock : st.isLocked c = false := by
+    simpa only [Bool.not_eq_true'] using hlock
+  exact safe_pileStack_dominant hwf hnotlock hsafe hlegal
 
 /-! ## §5.3 Deck dominance -/
 

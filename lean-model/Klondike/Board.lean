@@ -44,13 +44,6 @@ def Base.swapTwin (c : Card) : Base → Base := Sum.map id (Card.swapTwin c)
     (b.swapTwin c).swapTwin c = b := by
   cases b <;> simp [Base.swapTwin]
 
-/-- Full twin swap on bases (Φ's board action). -/
-def Base.swapFull (t : Card) : Base → Base := Sum.map id (Card.swapFull t)
-
-@[simp] theorem Base.swapFull_swapFull (t : Card) (b : Base) :
-    (b.swapFull t).swapFull t = b := by
-  cases b <;> simp [Base.swapFull]
-
 /-- The first element of `l` satisfying `p`. -/
 def findFirst {α : Type} (p : α → Bool) : List α → Option α
   | [] => none
@@ -370,53 +363,10 @@ def mapByTwin (bd : Board) (t : Card) : Board where
   topOf := fun b => (bd.topOf (b.swapTwin t)).map (Card.swapTwin t)
   inj := mapByTwin_inj bd t
 
-/-- A card-mapped base map is injective when the card map is. -/
-theorem base_map_inj {f : Card → Card} (hf : Function.Injective f) :
-    Function.Injective (Sum.map id f : Base → Base) := by
-  intro x y hxy
-  cases x with
-  | inl a =>
-    cases y with
-    | inl b =>
-      have hab : a = b := by simpa [Sum.map] using hxy
-      rw [hab]
-    | inr d => simp [Sum.map] at hxy
-  | inr c =>
-    cases y with
-    | inl b => simp [Sum.map] at hxy
-    | inr d =>
-      have hcd : f c = f d := by simpa [Sum.map] using hxy
-      exact congrArg Sum.inr (hf hcd)
-
-/-- An involution is injective (no `Function.Involutive` in this core —
-proved inline). -/
-theorem inj_of_involutive {f : Card → Card} (hf : ∀ x, f (f x) = x) :
-    Function.Injective f := by
-  intro x y h
-  have h' := congrArg f h
-  rwa [hf, hf] at h'
-
-/-- The generic board conjugation by an involutive card permutation —
-the one proof behind `mapBy`/`mapByTwin`/`mapByFull`. -/
-theorem mapByWith_inj (bd : Board) {f : Card → Card} (hf : ∀ x, f (f x) = x) :
-    ∀ (b₁ b₂ : Base) (c : Card), (bd.topOf (Sum.map id f b₁)).map f = some c →
-      (bd.topOf (Sum.map id f b₂)).map f = some c → b₁ = b₂ := by
-  intro b₁ b₂ c h₁ h₂
-  obtain ⟨d₁, hd₁, hd₁'⟩ := Option.map_eq_some_iff.mp h₁
-  obtain ⟨d₂, hd₂, hd₂'⟩ := Option.map_eq_some_iff.mp h₂
-  have hd : d₁ = d₂ := inj_of_involutive hf (hd₁'.trans hd₂'.symm)
-  rw [← hd] at hd₂
-  exact base_map_inj (inj_of_involutive hf) (bd.inj _ _ _ hd₁ hd₂)
-
-/-- Conjugate the board by an involutive card permutation `f`. -/
-def mapByWith (bd : Board) (f : Card → Card) (hf : ∀ x, f (f x) = x) : Board where
-  topOf := fun b => (bd.topOf (Sum.map id f b)).map f
-  inj := mapByWith_inj bd hf
-
-/-- Conjugate the board by the full twin swap `Card.swapFull t` (Φ's
-board action — Klondike/TwinSwap.lean). -/
-def mapByFull (bd : Board) (t : Card) : Board := bd.mapByWith (Card.swapFull t)
-  (Card.swapFull_swapFull t)
+-- `Base.swapFull`, `base_map_inj`, the generic `mapByWith`, and
+-- `mapByFull` were added during the Φ-conjugation detour (2026-09-13)
+-- and removed the same day with that design's refutation; `mapByTwin`
+-- covers the live use.
 
 /-- The cards transitively above `c` (the run sitting on it), walked
 with fuel (defensive against ill-formed cycles: the walk stops early).

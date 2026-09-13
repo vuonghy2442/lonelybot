@@ -13,18 +13,19 @@ $baseline = @{
   'Theorems.lean'  = 1  # solvable_of_pileStack (B4 crux, repaired +hnotlock)
   'Macro.lean'     = 0  # C1 PROVEN 2026-09-13 (def repair: macroSolvable gained the
                         # trailing accommodation — witnesses/MacroC1Witness.lean)
-  'Dominance.lean' = 5  # safe_pileStack_dominant, least_redundantStack_dominant,
-                        # deck_dominance_draw1, stackPile_safe_prunable,
-                        # twinPair_placement_equi
+  'Dominance.lean' = 4  # safe_pileStack_dominant, deck_dominance_draw1,
+                        # stackPile_safe_prunable, twinPair_placement_equi
+                        # (least_redundantStack_dominant PROVEN with the +hsafe
+                        # repair, per its wave-11 concern, by the parallel
+                        # session 2026-09-13)
   'Kills.lean'     = 4  # vis_of_safeAccommodates (keystone), State.frontier_spec,
                         # K1_stack_goal_dead, K2_tableau_goal_dead
   'Restriction.lean' = 2  # solvableEngine_iff_solvable_of_reachable (B2),
                         # engine_replay_of_pilePile (the replay step)
-  'TwinSwap.lean'  = 8  # crown `solvable_swapTwin` is PROVEN-modulo-3-rows;
-                        # open rows: solvable_pileStack_twin_iff (pivot),
-                        # solvable_iff_canonicalStack, apply_swapFull_of_avoids,
-                        # solvable_cover_twin_iff, swapTwin_wf,
-                        # swapTwin_swapTwin, simTwin_step [H], simTwin_runWin
+  'TwinSwap.lean'  = 1  # pilePile_return_legal (return-move legality of the
+                        # cargo transfer; the seat-swap conjugation was
+                        # refuted — witnesses/TwinSwapWitness.lean — and the
+                        # design moved to cargo level, cf. FARM.md wave 14)
                         # (the naive conjugation was REFUTED as stated —
                         #  witnesses/TwinSwapWitness.lean; FARM.md wave 14)
 }
