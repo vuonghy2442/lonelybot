@@ -930,28 +930,15 @@ theorem solvable_of_engine {st : State} (h : st.solvableEngine) : st.solvableFro
   obtain ⟨play, heng, st', hrun, hwin⟩ := h
   exact ⟨play, st', hrun, hwin⟩
 
-/-- **The no-pile-to-pile restriction (ledger B-legs)**: on
-well-formed states, the full physical game and the engine's restricted
-move set have the same solvability.
-
-REFUTED AS STATED (2026-09-13, prover-confirmed, axiom-clean — witness
-`engine_iff_refuted` in `Temp\opencode\EngineWitness.lean`): the →
-direction is FALSE.  The `pileStack∘stackPile` detour only relocates a
-card that is *bare* (`topOf (inr c) = none`) *and* foundation-ready
-(`c.rank.toIdx = heights c.suit`) — a `pilePile` of any other card has
-no engine counterpart.  The witness: a WF state with pile p2 =
-[♥3 (hidden), ♠5, ♥4] and hearts at 2.  Revealing ♥3 needs ♠5 bare
-(♥4 must leave); ♥4's only non-`pilePile` exit is `pileStack`, which
-needs hearts = 3, i.e. ♥3 stacked first — circular, so the engine is
-stuck at hearts ≤ 2 forever (invariant along engine plays).  The full
-game breaks the cycle with `pilePile ♥4 (♣5)` and wins in 31 moves.
-Root cause: the abstract engine's `Reveal` is run-carrying (no_pile
-§4, case 3) while the model's `reveal` demands a bare trigger — the
-concrete move subset is strictly weaker.  Repair is an
-orchestrator-level decision: state it for *initial* states (B2+B4's
-content), or let `reveal` carry the run.  No downstream users. -/
-theorem solvable_engine_iff {st : State} (hwf : st.WF) :
-    st.solvableFrom ↔ st.solvableEngine := sorry
+/- The no-pile-to-pile iff (`solvable_engine_iff`) was REFUTED AS
+STATED and removed from the library (2026-09-13, per the review's
+laundering finding — a `sorry`'d false statement is citable without
+warning; witness `witnesses/EngineWitness.lean`, `engine_iff_refuted`):
+the engine's run-carrying `Reveal` vs the model's bare-trigger
+`reveal` makes the concrete move subset strictly weaker.  The proven
+easy leg survives as `solvable_of_engine` above.  Repair routes
+(initial-states form; run-carrying `reveal`) are archived in FARM.md's
+REFUTED section — an orchestrator decision. -/
 
 /-- After attaching `c` at `b`: any card that had a base still has
 one (the attachment only adds `c` to the image). -/

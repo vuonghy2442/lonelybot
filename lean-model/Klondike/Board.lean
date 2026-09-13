@@ -83,6 +83,26 @@ theorem findFirst_eq_none {α : Type} (p : α → Bool) :
       rw [findFirst_cons, if_neg (h b (by simp))]
       exact findFirst_eq_none p t (fun a ha => h a (by simp [ha]))
 
+/-- `findFirst` finds: if some member satisfies `p`, the search is not
+`none` (the missing converse half of `findFirst_eq_none`).  RELOCATED
+2026-09-13 from Dominance.lean — `vis_base_of_notLocked` (Theorems)
+needs it upstream of the B4 crux. -/
+theorem findFirst_ne_none_of_mem {α : Type} (p : α → Bool) :
+    ∀ (l : List α) (a : α), a ∈ l → p a = true → findFirst p l ≠ none := by
+  intro l
+  induction l with
+  | nil => intro a ha; exact absurd ha (by simp)
+  | cons b t ih =>
+      intro a ha hp
+      simp only [findFirst_cons]
+      by_cases hb : p b = true
+      · rw [if_pos hb]; simp
+      · rw [if_neg hb]
+        simp only [List.mem_cons] at ha
+        rcases ha with h | h
+        · rw [h] at hp; exact absurd hp hb
+        · exact ih a h hp
+
 /-- The tableau board: a partial bijation read through `topOf` — for
 each base, the card sitting on it.  The single law `inj` makes it a
 matching: at most one card per base, hence `topOf` injective on its
@@ -174,6 +194,20 @@ def detach (bd : Board) (b : Base) : Board where
 @[simp] theorem detach_topOf_ne (bd : Board) (b b' : Base) (h : b' ≠ b) :
     (bd.detach b).topOf b' = bd.topOf b' := by
   simp [Board.detach, update_ne, h]
+
+/-- After detaching at `b`: the detached card itself is no longer
+seated (the `bottomOf_detach_ne` sibling, Move.lean).  Re-proved
+upstream 2026-09-13 from Bridge.lean (Theorems cannot cite Bridge);
+Bridge's root-level original stays — dedupe is a later wave's choice. -/
+theorem bottomOf_detach_self {bd : Board} {b : Base} {c : Card}
+    (hbot : bd.topOf b = some c) : (bd.detach b).bottomOf c = none := by
+  refine (Board.bottomOf_eq_none _ c).mpr (fun b' hb' => ?_)
+  by_cases hbb : b' = b
+  · subst hbb
+    rw [Board.detach_topOf] at hb'
+    simp at hb'
+  · rw [Board.detach_topOf_ne _ _ _ hbb] at hb'
+    exact hbb (bd.inj b' b c hb' hbot)
 
 theorem attach_inj (bd : Board) (b : Base) (c : Card) (hnew : bd.bottomOf c = none) :
     ∀ (b₁ b₂ : Base) (c' : Card), update bd.topOf b (some c) b₁ = some c' →

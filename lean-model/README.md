@@ -159,5 +159,6 @@ for proof-farming; every definition is final code.
 5. The Rust bridge: `toEngine`, encode injectivity, cross-validation
    against the shipped solver's verdicts.
 
-The old `lean-verify` branch remains a source of theorem statements
-and cross-validation harnesses.
+(The old `lean-verify` branch was deleted 2026-09-13 — unbuildable
+after the model rework; its durable refutation witnesses live in
+`witnesses/`, and FARM.md's REFUTED section archives the statements.)

@@ -1,17 +1,19 @@
 # The proof farm — handoff document
 
-63 `sorry`s (recount: `Select-String -Path Klondike\*.lean -Pattern ':= sorry'`),
-each carrying a `TODO(proof)` route comment in source.  Difficulty:
-**[T]** rfl/decide/case-bash · **[E]** one induction · **[M]** real
-work · **[H]** needs ideas (do not assign casually).
+**Census: 7 `:= sorry`** (Theorems 1 · Macro 1 · Dominance 5; zero
+bullets).  Pinned by `pwsh ../script/lean-census.ps1` (run from
+`lean-model/`) — it fails on any NEW sorry or the return of a refuted
+constant.  All 7 are believed-true open theorems with routes below.
+Every definition is final code; refutations live in
+[witnesses/](witnesses/) and the REFUTED section below — **not** in
+the library.
 
-**Proved infrastructure** (the general theorems that factor the
-routes — cite these, don't re-prove): `run_append`, `solvable_of_reaches`
-+ `solvable_iff_mutuallyReaches` + `unsolvable_of_reaches` (the prefix
-family), `solvable_of_simulates` (the one-step simulation, move
-level), `macroSolvable_of_simulates` (the macro-game form — the parent
-`pace_dominance` instantiates), `State.diffCursor` (the pace
-relation, defined).
+Session history: 63 (farm open) → 30 (2026-09-13 morning) → **7**
+(2026-09-13 evening: waves 8/9/10 complete, the pace family, the B4
+decomposition, cascade_sound; ~26 theorems proved, **6 fresh
+refutations** — every one caught by a refute-first probe *before*
+wasted proof effort — and 2 legacy refuted constants removed from the
+library).
 
 **`FARM_MEMORY.md`** — the agents' append-only shared quirks ledger
 (syntax, recipes, wrong routes, reusable helpers).  Read it first;
@@ -33,15 +35,23 @@ append your findings there, never here.
   the prover, `git grep` downstream users, repair *minimally* — add
   the missing hypothesis, never weaken the conclusion (vacuous is
   worse than `sorry`) — fix the row.  No guard saves it ⇒ mark
-  **UNSOUND**, record the witness, escalate (the ledger's
-  rejected-claim discipline).  Worked example:
-  `eStep_deckStack_unique` needed `noDupCards` — a duplicated order
-  gives two draw indices, hence two offsets.
+  **UNSOUND**, record the witness, remove it from the library (see
+  REFUTED below), escalate.  Worked examples:
+  `eStep_deckStack_unique` needed `noDupCards`; `realizes_iff_stepsOK`
+  needed `hpure`; the crux needed `hnotlock`.
+- **Refute-first**: the target statements have not been through the
+  witness protocol.  Before investing in a proof, spend a bounded
+  probe attempting to falsify it (`#eval` grids on small instances —
+  the definitions are executable).  Session evidence: 6 of 6
+  refutations were caught this way, cheaply.
 - **Hygiene**: one item at a time; tree stays green; commit per
   batch (`feat(lean): prove ...`); others' `sorry`s are untouchable.
+  Parallel sessions may be farming — never revert anyone's work.
 
-## Syntax card — paid-for facts (core 4.30, no mathlib)
+## Syntax card — paid-for facts (core 4.33.1, no mathlib)
 
+- Toolchain: v4.33.1 (migrated from 4.30.0-rc2 with three one-line
+  fixes).  `Nat.div_add_mod` product order flipped in 4.33.
 - `xs[i]?`, not `List.get?`; removal is `Cycle.removeIdx` (ours).
 - Dot notation needs `def State.foo` — a top-level `def foo (st : State)` won't project.
 - Impossible `none = some c`: `simp at h`, not bare `Option.noConfusion h`.
@@ -54,206 +64,194 @@ append your findings there, never here.
   `decide_eq_true_iff`, `and_eq_true`, `some.injEq`.
 - `rfl` is strong here (structure eta carries it across states).
 - `Rank`/`Anchor` are inductives on purpose — no `Fin`.
+- `lake env lean` reads DISK oleans — after editing an upstream file,
+  refresh with a scoped `lake build Klondike.<Module>` (never a full
+  build from an agent; lock contention).  Sibling red-olean outages
+  are weather: poll, don't work around.
+- MORE in FARM_MEMORY (the ledger is the source of truth — e.g. the
+  `cases h : e` goal-substitution trap, `bif`'s trailing `rfl`,
+  `show...from` not a tactic, state_ext slot order).
 
-Work the waves in order — later waves lean on earlier ones.  Within a
-wave, items are independent (different agents can take different rows
-without colliding).
+## Proved infrastructure (cite these, don't re-prove)
 
-## Wave 0 — COMPLETE (2026-09-13)
+The general theorems that factor the routes:
 
-All computation items: the C2 uniqueness quartet (deckStack's
-statement repaired with `noDupCards`), `removeAt_comm`,
-`esolvable_offset_irrel` (+ reusable `eStep_offset`/`eRun_offset`/
-`isWin_offset`), the seven Progress measure/fold lemmas, and the
-`Initial` trio (`universe_noDup`, `ofList_wf`, `initial_wf` — the
-file fully proven, with the `initBase`/`initStep` fold refactor).
+- **Search/progress** (Progress, sorry-free): `run_append`,
+  `solvable_of_reaches` + `solvable_iff_mutuallyReaches`,
+  `play_self_is_shuffle` (every cycle is a shuffle), `play_cut_loop`,
+  `solvable_iff_distinctTrace`, `solvable_iff_boundedPlay`.
+- **Simulation**: `solvable_of_simulates` (move level),
+  `macroSolvable_of_simulates` (macro level — the parent every pace
+  dominance instantiates).
+- **The pace machine** (Pace, sorry-free — G4 machine-checked): the
+  residue kit, `maskPos_mem_iff` (the characterization),
+  `drawCard_cursor_indep`, `run_cards_filter` (the run's end deck IS
+  `filter (·∉pre)`), `pos_shift`, `cursor_after`, `burial_bound`,
+  **`realizes_iff_stepsOK`** (repaired `+hpure`; rung 3's soundness),
+  `maskPos_step1`, `maskPos_pure_indep/_residue_mono/_impure_sup_pure`.
+- **Pace dominances** (Macro): `pace_dominance`, `_residue`, `_impure_pure`
+  (the simulation forms), the physical family (`deal_chain_reaches`,
+  `deal_passEnd_reaches` — both repaired `+hstep`),
+  `pace_dominance_phys_residue/_passEnd`, `solvable_iff_pure_cursors`,
+  `window_firstDraw(_macro)`, `run_replicate_draw`,
+  `dealOnce_iterate_add`, `dealOnce_reach_end(_any)`.
+- **Dominance layer** (Dominance): `dominant_of_commutesWithAll`
+  (the POR bridge), `safe_pileStack_dominant_of_return` (the R-half),
+  `deckPile_safe_prunable` (§5.4 second half), `stackPile_pileStack_cancel`,
+  **`cascade_sound`** (repaired: the escape move must strictly drop
+  `cascadeMeasure := heightDebt + totalDepth + stockLen`; the
+  instantiation kit `cascade_escape_progress` proves the commit
+  moves do).
+- **The B4 case kit** (Theorems, around the crux):
+  `solvable_of_stackPile` (the worry-back half), `solvable_of_pileStack_return`
+  (the returnable endgame — CLOSED), `pileStack_pilePile_stackPile`,
+  the commute squares `pileStack_comm_{draw,reveal,deckStack,deckPile}`,
+  `stackPile_pileStack_return`, `pileStack_stackPile_roundtrip`,
+  `solvable_of_accomm_step` (+hnl) and the `safeAccommodates` induction
+  skeleton (the main `solvable_accommodates` is proved against the crux).
+- **Kit/Cycle-level**: Kit's idxOf/take/count kits
+  (`idxOf_filter`, `filter_split_compl`, `count_below`,
+  `filter_mem_take_count`, `mem_removeIdx_of/_iff`, `NoDupP_noDupCards`,
+  `dropLast_append_single`); the upstream lifts
+  `State.isLocked` (State.lean), `vis_base_of_notLocked` (Theorems),
+  `Board.bottomOf_detach_self` (Board).
+- **The wave-9 deck integration** (Theorems):
+  `applyDrawTo_eq_dealPlay` / `applyDrawStackTo_eq_dealPlay`
+  (the jump-soundness theorems, `+canPlace` repair), the
+  `dealIter`/`dealChain`/`draw_full_pass` machinery.
 
-## Wave 1 — COMPLETE (2026-09-13)
+## Wave 11 — the open items (7)
 
-Board.lean fully proven: `bottomOf_eq`, `bottomOf_eq_none`,
-`empty_bottomOf`, the `attach` consumption lemmas, `mapBy`'s law.
-New reusables: `attach_inj`, `mapBy_inj`, `Base.flipBase_flipBase`,
-`Board.ext_topOf` (same `topOf` ⇒ equal boards).
-
-## Wave 2 — move-level glue
-
-| item | file:line | tag | route |
-|---|---|---|---|
-| `legal_pileStack_iff` | Move | [M] | unfold `apply`; the Board lemmas (Wave 1 done) |
-| ~~`apply_wf`~~ | Move | **done** | the 7-way maintenance lemma, all arms — the keystone; the old "sub-multiset" blocker died with WF's `stock_wf` (noDup + membership) repair |
-| `pilePile_roundtrip` | Theorems | [M] | the run carries back; `aboveOf` untouched |
-| ~~`pileStack_stackPile_roundtrip`~~ | Theorems | **done** | detach-then-attach; heights ± |
-| ~~`draw_full_cycle`~~ | Theorems | **superseded** | the rotate-form died with the physical rework (rotate removed); replaced by `draw_full_pass` below (Wave 9) |
-| `draw_full_pass` | Theorems | [M] | the deal chain from cursor 0: each deal from `k·s` lands `min ((k+1)·s, n)`, the clamp hits `n` at `k = ⌈n/s⌉`, the next deal wraps; period `⌈n/s⌉+1` at any `s ≥ 1` |
-
-## Wave 3 — symmetry and commutation
-
-| item | file:line | tag | route |
-|---|---|---|---|
-| `apply_relabel` | Theorems:72 | [M] | 7 move cases; each near-`rfl` (factored suits!) |
-| `solvable_relabel` | Theorems:78 | [M] | play induction via `apply_relabel` |
-| `irreversible_reveal` | Theorems:128 | [M] | depths monotone along plays |
-| `irreversible_deckPile` | Theorems:132 | [M] | cycle length monotone along plays |
-| `irreversible_deckStack` | Theorems:136 | [M] | as above |
-| `commute_of_compsDisjoint` | Theorems:194 | [M] | per-move: legality reads only own components |
-| `reveal_draw_comm` | Theorems:200 | [E] | instance of the above |
-| `commute_of_disjoint_touch` | Theorems:229 | [H] | the type-ball lemma — the C13 premise |
-| `drawTo_comm_modAdjacent` | Theorems:240 | [M] | `removeIdx_comm` + cursor arithmetic (incl. wrap) |
-| `drawTo_nonadjacent_diverge` | Theorems:253 | [M] | end cursors `j−1` vs `i` |
-
-## Wave 4 — structure and progress
-
-| item | file:line | tag | route |
-|---|---|---|---|
-| `aboveOf_rank_grading` | Theorems | [M] | induction along the walk; WF edge legality |
-| `aboveOf_irrefl` | Theorems | [E] | from the grading |
-| ~~`play_self_is_shuffle`~~ | Progress | **done** | measure-disjunction induction (route revised — see FARM_MEMORY) |
-| ~~`play_cut_loop`~~ | Progress | **done** | `run_append` + determinism |
-| ~~`solvable_iff_distinctTrace`~~ | Progress | **done** | + `run_take_trace` workhorse |
-| `solvable_iff_boundedPlay` | Progress | [H] | distinct trace + the shape count (needs `apply_wf`) |
-| `solvable_decidable` | Progress | [H] | bounded enumeration |
-
-## Wave 5 — the dominances (§5)
-
-| item | file:line | tag | route |
-|---|---|---|---|
-| `dominant_of_commutesWithAll` | Dominance:41 | [M] | play induction, bubbling |
-| `safe_pileStack_dominant` | Dominance:62 | [H] | worry-back; return-base is the crux |
-| `least_redundantStack_dominant` | Dominance:90 | [H] | §5.2's canonical-representative argument |
-| `deck_dominance_draw1` | Dominance:113 | [H] | front-loading reshaping; the pure-deck fact |
-| `stackPile_safe_prunable` | Dominance:120 | [H] | §5.4 first half |
-| `deckPile_safe_prunable` | Dominance:126 | [H] | §5.4 second half |
-| `twinPair_placement_equi` | Dominance:140 | [H] | local twin swap; both heights equal is the license |
-| `cascade_sound` | Dominance:158 | [H] | **the open composition question** — needs the progress measure (Wave 4's cycle theorem) |
-
-## Wave 6 — the B-legs core
+Work any row; D-rows collide only with each other (same file).
+Within Dominance, rows are independent.
 
 | item | file:line | tag | route |
 |---|---|---|---|
-| ~~`solvable_of_accommodates`~~ | Theorems | **done** | prepend the shuffle play |
-| `solvable_accommodates` | Theorems | **[H]** | **B4 / the reshape lemma — the farm's hardest item** |
-| `solvable_engine_iff` | Move | **[H]** | the no-pile-to-pile legs |
-| ~~`realizable_of_wf`~~ | Realizability | **done** | WF → Fits glue (post-repair) |
-| ~~`apply_realizable`~~ | Realizability | **done** | one line: `realizable_of_wf (apply_wf …)` — the keystone's shadow |
-| `uncovered_eq_freeType` | Realizability | [M] | the counting bijection (injectivity + edge legality) |
+| `solvable_of_pileStack` (the crux) | Theorems:1028 | **[H]** | the case ledger below — 2 squares, the π-induction, then the park/endgame (N-half) |
+| `solvableEngine_iff_macro` (C1) | Macro:581 | [H] | A3's regrouping: draws commute with shuffles by component disjointness, trailing draws drop; ← via `macroStep_engine_play` + induction |
+| `safe_pileStack_dominant` (N-half) | Dominance:237 | [H] | post-crux: the endgame IS this row's root (canReturnBase fails on deal-adjacent bases → rank-mate worry-back) |
+| `least_redundantStack_dominant` | Dominance:280 | **repair-first** | OPEN SOUNDNESS CONCERN: ≥3 stackables in 3 distinct suits leaves the 4th suit unconstrained.  Falsify (refute-first protocol), repair `+hsafe`, THEN prove |
+| `deck_dominance_draw1` (C4) | Dominance:292 | [H] | front-loading reshaping; the pure-deck fact; draw-1 — `maskPos_step1` (every position accessible) + the deal machinery |
+| `stackPile_safe_prunable` (§5.4 first half) | Dominance:421 | [H] | worry-back ban; the cancellation kit (`stackPile_pileStack_cancel`) + the safety formula |
+| `twinPair_placement_equi` (C6) | Dominance:492 | [H] | T machinery (`solvable_flipAll`, PROVEN) applied as a local swap; both heights equal is the license |
 
-## Wave 7 — macro and bridge
+## The crux's case ledger (B4 decomposition state)
 
-| item | file:line | tag | route |
-|---|---|---|---|
-| `macroStep_engine_play` | Macro:52 | [M] | unfold; shuffles + rotation + commit are engine moves |
-| `solvableEngine_iff_macro` | Macro:62 | [H] | A3's regrouping (draws commute, trailing draws drop); at draw ≥ 2 routes through the Wave-9 jump-soundness |
-| `drawTo_tableau_outcomes_agree` | Macro:77 | [M] | from `applyDrawTo`'s def + `attach` lemmas (the guard selects the same `i` both times) |
-| `toEngine_simulates` | Bridge:152 | [H] | play induction; draws collapse into rotations (model engine ⊆ abstract — the model's pacing is stricter, this direction is unguarded) |
-| `toEngine_lifts` | Bridge:161 | **[H]** | the lift — witnesses become accommodations (B4-adjacent); **draw-1 gated (statement repaired 2026-09-13: the abstract deck moves are free jumps, the model is paced — at draw ≥ 2 the lift fails; the all-steps form needs the `eStep` guard + `equivalent_to`, deferred reading)** |
-| `engine_iff` | Bridge:167 | [H] | simulation + lift (draw-1 gated as the lift) |
+`solvable_of_pileStack {st} (hwf : st.WF) (hnotlock : st.isLocked c = false)`
+— a legal `pileStack` never hurts solvability.  Repairs: `+hwf`
+(phantom tenant, witnesses/… B4 archive), `+hnotlock` (locked
+stackable strands its boundary — witnesses/B4LockedWitness.lean; this
+hole was Dominance's, never propagated to B4 until 2026-09-13).
 
-## Wave 8 — the draw pacing (any step; the unsat ladder's G4)
+DONE: the R-half (`solvable_of_pileStack_return`); `pilePile` replay;
+commute squares for draw/reveal/deckStack/deckPile.
+REMAINING, in order:
+1. the 2 squares (`stackPile x b''` with `x.suit ≠ c.suit`;
+   `pilePile x b''` with `x ≠ c`) — `deckPile`'s square is the
+   template (equality halves already exist in Commutation);
+2. the π-induction (delete case trivial, nil vacuous);
+3. the park-on-`c` analysis (catch-22: parks are transient — the rung
+   card must top; the parked `x` leaves before the rung passes);
+4. the excursion pair (`stackPile` of `c`'s suit at the shifted rung);
+5. the endgame (return-base crux: deal-adjacent base ⇒ the worry-back
+   lands on a rank-mate) — this IS Dominance's N-half; taking it here
+   kills two rows.
 
-The reading is done (deck_bf.py: the characterization validated on
-every reachable state N ≤ 15, all permutations N ≤ 9, 6k random
-sequences at N = 24 both directions, all 56 corpus d3 winning lines;
-steps 2 and 4 likewise — states N = 6/9, all permutations N ≤ 8,
-1k+1k samples at N = 12, zero violations; pace_port_check.py: the
-Lean port ≡ deck_sim, 260 states 0 mismatches).
-Depends only on wave 0's cycle lemmas — independent of waves 2–7.
+## REFUTED — archived out of the library
 
-Statement-repair history (2026-09-13, the wrong-statement protocol):
-`maskPos_mem_iff`/`maskPos_step1`/`realizes_iff_stepsOK` gained the
-cursor invariant `hcur : cursor ≤ length` (past `len + 1` the wrapped
-lane leaks out-of-range positions); `pos_shift` gained `noDupCards`
-(with duplicates the run draws the same value twice while `rBelow`
-counts by `idxOf`); and the divergence the wave arrived with was
-resolved in the machine, not the statement — `Cycle.drawTo` is now
-the deck.rs-literal jump `{ cursor := i + 1 }` (saturating), so
-`cursor_after` is exact with no mod.
+Removed 2026-09-13 (laundering hazard: a `sorry`'d false statement is
+citable without warning — FARM_MEMORY:24).  Witnesses in
+[witnesses/](witnesses/) are historical; their `*_refuted` corollaries
+cite the deleted constants by design.  Any return needs a repaired
+statement, a proof, and an orchestrator decision.
 
-| item | file:line | tag | route |
-|---|---|---|---|
-| ~~`laneUp_mem`~~ | Pace | **done** | fuel induction + the `(a + step) % step` shift lemma |
-| `maskPos_mem_iff` | Pace | [M] | mem_append/mem_singleton + laneUp_mem ×2; case cursor = 0 and cursor % step = 0; the residue bookkeeping is Nat.mod_eq_of_lt + omega; `hcur` is the cursor invariant |
-| ~~`maskPos_step1`~~ | Pace | **done** | laneUp_mem + `Nat.mod_one`, cases on the cursor |
-| `pos_shift` | Pace | [M] | induction on pre through run; removeIdx order preservation + the below-count split; `hnd` excludes the duplicate-draw witness |
-| `cursor_after` | Pace | [M] | drawTo i lands i+1 exactly, removeAt i decrements — no wrap anywhere now; pos_shift supplies i |
-| `burial_bound` | Pace | [M] | idxOf injective on d (hnd), so O(w) < O(x) vs O(x) < O(w); the first is the saturation count (the interval holds exactly O(x) − O(w) − 1 cards besides w), the second vacuous both sides |
-| `realizes_iff_stepsOK` | Pace | **[H]** | prefix-walk induction with maskPos_mem_iff + pos_shift + cursor_after + burial_bound; ← induction, each stepOK disjunct via the converses (a leading-lane claim after a max-draw forces p = last, so the max disjunct catches it). `hcur` is the initial state's invariant, maintained by every drawCard. The SAT ladder's rung-3 soundness reduces to this row |
+1. `solvable_engine_iff` (was Move.lean) — the no-pile-to-pile iff:
+   ```
+   theorem solvable_engine_iff {st : State} (hwf : st.WF) :
+       st.solvableFrom ↔ st.solvableEngine
+   ```
+   REFUTED: the engine's `Reveal` is run-carrying, the model's demands
+   a bare trigger — the concrete move subset is strictly weaker
+   (witnesses/EngineWitness.lean; the p2 = [♥3, ♠5, ♥4] deadlock).
+   Repair routes: state for *initial* states (B2+B4's content), or
+   let `reveal` carry the run.  The easy leg survives as
+   `solvable_of_engine` (Move.lean, proven).
+2. `toEngine_lifts` (was Bridge.lean) — the draw-1 lift:
+   ```
+   theorem toEngine_lifts {st : State} {eplay : List EMove} {w : EState}
+       (hwf : st.WF) (hstep : st.drawStep = 1)
+       (hrun : eRun (toEngine st) eplay w) (hwin : w.isWin = true) :
+       st.solvableEngine
+   ```
+   REFUTED twice (buried base — closed by the Fits repair; then the
+   deal-adjacency/canSitOn mirror — witnesses/LiftWitness*.lean): the
+   abstraction's arrangement freedom re-seats a card across `Fits`'
+   independent seating disjuncts and the model engine game cannot
+   follow.  No local guard.  Repair routes: matching-tracking in
+   `EState`, a B4 reshape gate, or the initial-states form.
+3. `engine_iff` (was Bridge.lean) — the bridge iff: ← is the lift;
+   refuted transitively.  The proven → survives as `toEngine_simulates`
+   (Bridge.lean).
 
-**Deliberately not in the farm** (need reading, not proving):
-the `bm` XOR algebra (state.rs), C12 (macro_formalization §6.5b),
-B3 (no_pile §6), the 61-bit encode packing, and the all-steps
-bridge (the `eStep` pacing guard + the `equivalent_to`
-transposition identity replacing `eRun_offset` — see
-`toEngine_lifts`'s note). (Draw-3 pacing was
-here until 2026-09-13: the reading is done — wave 8.)
+## Consolidation-3 queue (before wave 11 farming)
 
-## Wave 9 — the deck integration (jump ≡ deal-then-play)
+Duplication is compounding — canonicalize into Kit/Cycle per the DAG:
 
-The physical rework's payoff statements: the guarded Draw
-commitments ARE the physical game.  Depends on wave 8 (the
-maskPos ↔ deal-reachability correspondence is its content).
-`reachablePos_step1` is done and reusable — the draw-1 degeneration
-at the game level (C9's premise, now a theorem), the gate the wave-7
-repairs lean on.
+- `Cycle.dealN` kit (Macro) vs `Cycle.dealIter` kit (Theorems) —
+  near-verbatim, DAG-forced;
+- `removeAt_drawTo` ×3 (Move:1881, Commutation:2103, Pace:424) → one
+  in Cycle.lean;
+- `bottomOf_detach_self` ×3 (Board:202, Move:1007, Bridge:231) → one
+  in Board.lean;
+- six lemmas verbatim-duplicated Move↔Commutation under different
+  names (`applyDrawTo_eq`/`applyDrawTo_shape`, `attach_attach_comm` ×2,
+  `findFirstIdx_removeIdx_*` ×4) — both copies patched in lockstep once
+  already (toolchain migration);
+- the round-2 local kits (Pace-local: `run_mem`, `run_pre_nodup`,
+  `run_cards_filter`, `rBelow_append_single`, `count_interval`, …;
+  Macro-local 17-helper kit) — promote the Cycle-level ones to
+  Kit/Cycle, keep the game-level ones local;
+- `Kit.mem_middle_split` = Card-specialized `Kit.mem_split`, one consumer;
+- the raw update lambdas — 28 copies of
+  `fun s => if s = c.suit then st.heights s + 1 else st.heights s`:
+  introduce `bumpHeight`/`dropHeight` named combinators + simp lemmas
+  (the highest-value small refactor);
+- positional WF construction (9 sites): named constructor lemmas or
+  `{ deal_wf := …, … }` dot-notation construction;
+- `apply_wf` (~815 lines): the `notMem_removeIdx_self` idiom ×4 —
+  extract;
+- `Commutation.lean` at 2372 lines: split coarse (compsDisjoint +
+  blindness) vs fine (touch + drawTo).
 
-| item | file:line | tag | route |
-|---|---|---|---|
-| `applyDrawTo_eq_dealPlay` | Theorems | **[H]** | → the guard gives the deal count (maskPos ↔ deal-iteration — wave 8's chain), then `apply_deckPile_iff`'s shape; ← contrapositive by the same correspondence.  Draw-1 instance: `reachablePos_step1` + every jump is k deals |
-| `applyDrawStackTo_eq_dealPlay` | Theorems | **[H]** | as above through `apply_deckStack_iff` |
+## Chore queue
 
-## Wave 10 — the pace dominance (the offset-dominance registry)
+- `solvable_decidable` (Progress:1166) overclaims: it is the classical
+  case split (`solvableFrom ∨ ¬solvableFrom`), not a `Decidable`
+  instance — rename (`solvable_em`?) or document.
+- Realizability:219/246 lint warnings ("unused simp arg"): **load-
+  bearing calls** (terminal `rfl` closers) — do NOT delete; replace
+  with explicit closers only with proof in hand.
+- `hwf` vestigial in `play_self_is_shuffle` / `solvable_iff_distinctTrace`
+  — dropping it from the former is load-bearing for a WF-free cascade
+  route; prefer dropping over silencing.
+- lean-model/README.md status section: stale (pre-split file list).
+- docs/soundness_ledger.md rows A4/B1/B4/G4: model-level proofs landed
+  (solvable_relabel; Realizability sorry-free; B4 decomposed with the
+  lockedness repair; realizes_iff_stepsOK repaired+proven) — sync the
+  tiers.
+- witnesses/ → a buildable regression `lean_lib` (`example … := by
+  decide` forms, `#guard_msgs` on `#eval`s, `#print axioms` gates) —
+  turns archived refutations into tests.
 
-Filed 2026-09-13 after the engine measurements: the refuted-offset
-registry rules R1/R2, measured at **43.8% of seed-32 draw-3 states**
-(1.38M of 3.15M doomed; 912k of them pure states killed by impure
-siblings — R2 is the bigger half); draw-1 exactly 0 (its offsets are
-fully normalized — the rules are draw-3's analogue of that).  Rust
-falsifier: `pace_dominance_order` (src/macro_game.rs — 100 random
-decks × every offset: pure-pure equal, residue-monotone, impure ⊇
-pure, merge holds).  The machine rows depend only on wave 8's
-`maskPos_mem_iff`; the game rows are the macro machinery.
+## Design decisions pending (orchestrator/user — do not farm)
 
-The theorem family: the state space factors as *board × pace* —
-reveals are pace-inert (never touch the stock), draws reset the pace
-to the drawn card's position (a function of the cards alone), so the
-pace only matters through `maskPos` at the instant of a draw.
-
-| item | file:line | tag | route |
-|---|---|---|---|
-| `maskPos_pure_indep` | Pace | [E] | maskPos_mem_iff ×2: a pure cursor's leading lane has residue step−1 (vacuous at 0/pass-end), subsumed by the batch-top disjunct — both sides reduce to batch ∪ last |
-| `maskPos_residue_mono` | Pace | [E] | maskPos_mem_iff: disjuncts 1–2 cursor-free; the leading lane's `o'−1 ≤ p` weakens to `o−1 ≤ p`, residues agree |
-| `maskPos_impure_sup_pure` | Pace | [E] | the pure side reduces to the cursor-free disjuncts (pure_indep's route), which the impure side covers |
-| `drawCard_cursor_indep` | Pace | [E] | congruence: posOf (cards-only), drawTo overwrites the cursor, removeAt's successor cursor reads the overwritten value — no source cursor anywhere |
-| `pace_dominance` | Macro | [M] | **downgraded from [H]** — instantiate `macroSolvable_of_simulates` (proved) with R = diffCursor ∧ maskPos-superset; reveals via `apply_nonConsuming_cursor_blind`, draws via the merge lemmas |
-| `pace_dominance_residue` | Macro | [M] | `pace_dominance` at the o-variant + `maskPos_residue_mono` as `hK` |
-| `pace_dominance_impure_pure` | Macro | [M] | `pace_dominance` at the o-variant + `maskPos_impure_sup_pure` as `hK` |
-
-The cursor-blindness API (Theorems.lean, added 2026-09-13 — the replay
-steps every pace route repeated, named):
-
-| item | file:line | tag | route |
-|---|---|---|---|
-| `apply_nonConsuming_stock_invar` | Theorems | [E] | case bash over the five non-consuming `apply` arms — none writes the stock |
-| `apply_nonConsuming_cursor_blind` | Theorems | [E] | legality never reads the stock; the results' relation from stock_invar |
-| `applyDrawTo_merge` | Theorems | [E] | both guards succeed at the same `i` (posOf cards-only); board attach cursor-blind; stock via `drawCard_cursor_indep` — the successors are *equal* |
-| `applyDrawStackTo_merge` | Theorems | [E] | as above; the heights step is cursor-blind |
-
-The reachability route (the physical game, added 2026-09-13 after the
-prefix principle landed): **`solvable_of_reaches` is proved**
-(Progress.lean — `run_append`), and **`solvable_iff_mutuallyReaches`**
-with it.  In the physical game the cursor advances without consuming
-(one `.draw` = `dealOnce`), so the better state *reaches* the worse
-one and R1/R2a become one-line compositions — no simulation.  The
-macro game has no deal move (jumps consume), so same-mask
-different-cursor states are mutually unreachable there — that residue
-is the simulation's own content.
-
-| item | file:line | tag | route |
-|---|---|---|---|
-| `deal_chain_reaches` | Macro | [E] | the play is k `.draw`s with `o + k·s = o'` (same residue); induction on k, no clamp (chain stays ≤ o') |
-| `deal_passEnd_reaches` | Macro | [E] | deals step by s until `c + s ≥ n`, then `min` clamps; induction on the remaining distance |
-| `pace_dominance_phys_residue` | Macro | [E] | `solvable_of_reaches` + `deal_chain_reaches` |
-| `pace_dominance_phys_passEnd` | Macro | [E] | `solvable_of_reaches` + `deal_passEnd_reaches` |
-| `solvable_iff_pure_cursors` | Macro | [E] | `solvable_iff_mutuallyReaches` + the deal chains composing through the pass end and the wrap — the game-level derivation of the engine's `is_pure` encode merge |
-| `deal_commutes_nonStock` | Theorems | [E] | the deal writes only `stock.cursor` with unconditional legality; case bash over the five non-consuming moves, or `commute_of_compsDisjoint` (`.draw`'s comps = `[.stock]`) |
-| `window_firstDraw` | Macro | [M] | the hurry lemma: decompose at the first `consumesStock`; the prefix replays from B with deals trimmed (`deal_commutes_nonStock` floats them past the reveals); the draw merges; the suffix verbatim |
-| `window_firstDraw_macro` | Macro | [M] | decompose `ks` at the first `drawCommit`; the reveal-commit prefix is cursor-blind (replay verbatim); a K(B)-accessible first card would merge the successors and lift the suffix — contradiction |
+- **`applyDrawTo` guard fold-in**: fold `canPlace` into the def
+  (simplifies the three compensation sites; wave-9 statements go
+  hypothesis-free) vs rename to `applyDrawJumpTo` + document.
+- **The Bridge repair route**: EState matching-tracking vs B4 gate vs
+  initial-states — needed before any `engine_iff`-style theorem returns.
+- **lean-verify/ debris** (untracked, unbuildable): tarball to
+  docs/attic or delete; README's last paragraph still cites it.
+- **Repo-root clutter**: `a_*.txt` ×5, `fail_*.txt`, logs, notebooks,
+  `src/bit_deck_no_bmi2.rs` (orphan Rust in src/) — ignore rules or
+  delete.

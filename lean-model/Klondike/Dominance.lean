@@ -85,16 +85,6 @@ theorem dominant_of_commutesWithAll {st : State} {m : Move}
 
 /-! ## §5.1 Forced safe stacking -/
 
-/-- A card is locked when it sits on its pile's hidden boundary
-(moving it would strand the boundary — see `safe_pileStack_dominant`'s
-repair note: the model's `reveal` seats the boundary while the card is
-still on it, so a locked card must be revealed *through* before it
-moves). -/
-def State.isLocked (st : State) (c : Card) : Bool :=
-  match st.board.bottomOf c with
-  | some (Sum.inr r) => st.pileOfTopHidden r ≠ none
-  | _ => false
-
 /-- The classical safe-automove condition (Blake & Gent; method.md
 §5.1): a card of rank `r` and color `κ` is safe ⟺ both `κ`-colored
 foundations are at `r−2` and both `κ̄`-colored at `r−1`.  Aces and
@@ -104,55 +94,6 @@ def safeToStack (st : State) (c : Card) : Bool :=
     if s.color = c.suit.color
     then decide (c.rank.toIdx ≤ st.heights s + 2)
     else decide (c.rank.toIdx ≤ st.heights s + 1)
-
-/-! ### The `¬locked` ⇒ visible-base lemma (the dead-pile trichotomy) -/
-
-/-- `findFirst` finds: if some member satisfies `p`, the search is not
-`none` (the missing converse half of `Board.findFirst_eq_none`). -/
-theorem findFirst_ne_none_of_mem {α : Type} (p : α → Bool) :
-    ∀ (l : List α) (a : α), a ∈ l → p a = true → findFirst p l ≠ none := by
-  intro l
-  induction l with
-  | nil => intro a ha; exact absurd ha (by simp)
-  | cons b t ih =>
-      intro a ha hp
-      simp only [findFirst_cons]
-      by_cases hb : p b = true
-      · rw [if_pos hb]; simp
-      · rw [if_neg hb]
-        simp only [List.mem_cons] at ha
-        rcases ha with h | h
-        · rw [h] at hp; exact absurd hp hb
-        · exact ih a h hp
-
-/-- In a WF state, an unlocked visible card's card-base is itself
-visible — the trichotomy behind the dead-pile repair: a visible card's
-base is an anchor, a visible card, or its pile's hidden boundary, and
-only the boundary case is `isLocked` (stacking onto it strands it).
-The proof is the boundary half read contrapositively: `board_edges`
-forces the base `d` of `c` to be placed (`bottomOf d` set — visible) or
-deal-adjacent with `d` itself a hidden boundary or placed; if `d` is
-*not* placed, some pile's `topHidden` is `d`, so `pileOfTopHidden d ≠
-none` and `c` is locked after all.  (That `d` is never a limbo card —
-revealed but neither visible nor on a foundation — also falls out: both
-seating disjuncts of `board_edges` would fail for `c`'s edge.) -/
-theorem vis_base_of_notLocked {st : State} {c d : Card} (hwf : st.WF)
-    (hb : st.board.bottomOf c = some (Sum.inr d))
-    (hnotlock : st.isLocked c = false) : st.isVis d = true := by
-  have htop : st.board.topOf (Sum.inr d) = some c :=
-    (Board.bottomOf_eq st.board c (Sum.inr d)).mp hb
-  obtain ⟨_, hbase⟩ := hwf.board_edges (Sum.inr d) c htop
-  rcases hbase with ⟨_, _, _, _, hbc⟩ | ⟨hbd, _⟩
-  · rcases hbc with ⟨a', hth⟩ | hbd
-    · exfalso
-      have hlk : st.isLocked c = true := by
-        simp only [State.isLocked, hb]
-        exact decide_eq_true (fun h =>
-          findFirst_ne_none_of_mem (fun a => decide (st.topHidden a = some d))
-            Anchor.all a' a'.mem_all (decide_eq_true hth) h)
-      simp [hlk] at hnotlock
-    · exact hbd
-  · exact hbd
 
 /-- The returnable case of `safe_pileStack_dominant` (the R/N
 reduction, returnable half): when the worry-back to `c`'s own base is
@@ -267,7 +208,8 @@ reach the foundation and the successor is unsolvable — witnessed by a
 WF state three moves from the win whose safe, legally stackable ♦K
 sits alone on the hidden ♣K.  The `hnotlock` guard — §5.2's own
 `isRedundantStack` vocabulary — excludes exactly the trigger cards
-(`vis_base_of_notLocked` above is the trichotomy, now a lemma).
+(`vis_base_of_notLocked`, lifted upstream to Theorems.lean, is the
+trichotomy, now a lemma).
 
 STATUS (2026-09-13, the R/N reduction): the RETURNABLE case — the
 base admits `canReturnBase c b` — is PROVEN
@@ -556,21 +498,203 @@ theorem twinPair_placement_equi {st : State} {x c : Card} {st₁ st₂ : State}
 
 /-! ## The cascade, composed -/
 
+/-- The four-way case split on suits (the factored structure has no
+`cases`; this is the enumeration). -/
+theorem suit_cases (s : Suit) :
+    s = Suit.heart ∨ s = Suit.spade ∨ s = Suit.diamond ∨ s = Suit.club := by
+  rcases s with ⟨c, p⟩
+  cases c with
+  | red =>
+      cases p with
+      | false => exact Or.inl rfl
+      | true => exact Or.inr (Or.inr (Or.inl rfl))
+  | black =>
+      cases p with
+      | false => exact Or.inr (Or.inl rfl)
+      | true => exact Or.inr (Or.inr (Or.inr rfl))
+
+/-- The foundation debt: how many cards the foundations still owe
+(per-suit `13 − height`, summed).  `pileStack`/`deckStack` pay one
+down; no other move raises a height. -/
+def heightDebt (st : State) : Nat :=
+  (13 - st.heights Suit.heart) + (13 - st.heights Suit.spade) +
+    (13 - st.heights Suit.diamond) + (13 - st.heights Suit.club)
+
+/-- The cascade progress measure (§9.4): foundation debt + total
+hidden depth + remaining stock.  Every escape the §5 cascade actually
+offers strictly decreases it — `pileStack`/`deckStack` grow a
+foundation (the debt falls), `deckPile` consumes the stock, `reveal`
+uncovers — while the reversible shuffles (`.draw`, `.pilePile`,
+worry-back `stackPile`) leave it untouched or raise it. -/
+def cascadeMeasure (st : State) : Nat :=
+  heightDebt st + st.totalDepth + st.stock.cards.length
+
+/-- The bump case of the debt: a successor whose heights are the
+`pileStack`/`deckStack` bump (one suit +1, the rest verbatim) under
+the stack guard `toIdx c = heights c.suit` — the rank index caps the
+bumped suit at 12, so the debt strictly falls. -/
+theorem heightDebt_bump {st : State} {c : Card}
+    (hrk : c.rank.toIdx = st.heights c.suit) (st' : State)
+    (hF : ∀ s', st'.heights s' = if s' = c.suit then st.heights s' + 1 else st.heights s') :
+    heightDebt st' < heightDebt st := by
+  have hle : st.heights c.suit ≤ 12 := by
+    have hlt := Rank.toIdx_lt c.rank
+    omega
+  show (13 - st'.heights Suit.heart) + (13 - st'.heights Suit.spade) +
+      (13 - st'.heights Suit.diamond) + (13 - st'.heights Suit.club) <
+    (13 - st.heights Suit.heart) + (13 - st.heights Suit.spade) +
+    (13 - st.heights Suit.diamond) + (13 - st.heights Suit.club)
+  rcases suit_cases c.suit with hcs | hcs | hcs | hcs
+  · rw [hcs] at hF hle
+    have h1 : st'.heights Suit.heart = st.heights Suit.heart + 1 := hF Suit.heart
+    have h2 : st'.heights Suit.spade = st.heights Suit.spade := hF Suit.spade
+    have h3 : st'.heights Suit.diamond = st.heights Suit.diamond := hF Suit.diamond
+    have h4 : st'.heights Suit.club = st.heights Suit.club := hF Suit.club
+    rw [h1, h2, h3, h4]
+    omega
+  · rw [hcs] at hF hle
+    have h1 : st'.heights Suit.heart = st.heights Suit.heart := hF Suit.heart
+    have h2 : st'.heights Suit.spade = st.heights Suit.spade + 1 := hF Suit.spade
+    have h3 : st'.heights Suit.diamond = st.heights Suit.diamond := hF Suit.diamond
+    have h4 : st'.heights Suit.club = st.heights Suit.club := hF Suit.club
+    rw [h1, h2, h3, h4]
+    omega
+  · rw [hcs] at hF hle
+    have h1 : st'.heights Suit.heart = st.heights Suit.heart := hF Suit.heart
+    have h2 : st'.heights Suit.spade = st.heights Suit.spade := hF Suit.spade
+    have h3 : st'.heights Suit.diamond = st.heights Suit.diamond + 1 := hF Suit.diamond
+    have h4 : st'.heights Suit.club = st.heights Suit.club := hF Suit.club
+    rw [h1, h2, h3, h4]
+    omega
+  · rw [hcs] at hF hle
+    have h1 : st'.heights Suit.heart = st.heights Suit.heart := hF Suit.heart
+    have h2 : st'.heights Suit.spade = st.heights Suit.spade := hF Suit.spade
+    have h3 : st'.heights Suit.diamond = st.heights Suit.diamond := hF Suit.diamond
+    have h4 : st'.heights Suit.club = st.heights Suit.club + 1 := hF Suit.club
+    rw [h1, h2, h3, h4]
+    omega
+
+/-- The §5 escapes do force progress: every commitment move (`reveal`,
+`deckPile`, `deckStack`) or foundation stack (`pileStack`) strictly
+decreases the cascade measure — the instantiation kit for the repaired
+`cascade_sound` below.  No WF needed: the stack guards pin the bumped
+suit's height at a rank index ≤ 12 (`heightDebt_bump`), `reveal`'s
+strict totalDepth drop and the deck moves' stock shrink are the proven
+Progress monotonicities. -/
+theorem cascade_escape_progress {st st' : State} {m : Move}
+    (hes : m.isCommit = true ∨ ∃ c, m = Move.pileStack c)
+    (hap : st.apply m = some st') :
+    cascadeMeasure st' < cascadeMeasure st := by
+  have hTD := apply_totalDepth_le hap
+  have hSL := apply_stockLen_le hap
+  rcases hes with hcom | ⟨c, hm⟩
+  · cases m with
+    | draw => simp [Move.isCommit] at hcom
+    | pileStack c => simp [Move.isCommit] at hcom
+    | stackPile c b => simp [Move.isCommit] at hcom
+    | pilePile c b => simp [Move.isCommit] at hcom
+    | reveal c =>
+        obtain ⟨_, r, a, bd, _, _, _, hs⟩ := (apply_reveal_iff (st := st) (st' := st')).mp hap
+        have hd : heightDebt st' = heightDebt st := by rw [hs]; rfl
+        have := apply_reveal_totalDepth_lt hap
+        simp only [cascadeMeasure]
+        omega
+    | deckPile c b =>
+        obtain ⟨_, _, _, _, hs⟩ := (apply_deckPile_iff (st := st) (st' := st')).mp hap
+        have hd : heightDebt st' = heightDebt st := by rw [hs]; rfl
+        have := apply_deckPile_shortens hap
+        simp only [cascadeMeasure]
+        omega
+    | deckStack c =>
+        obtain ⟨_, hrk, hs⟩ := (apply_deckStack_iff (st := st) (st' := st')).mp hap
+        have hd : heightDebt st' < heightDebt st := by
+          refine heightDebt_bump hrk st' ?_
+          intro s'
+          rw [hs]
+        have := apply_deckStack_shortens hap
+        simp only [cascadeMeasure]
+        omega
+  · subst hm
+    obtain ⟨_, b, _, hrk, hs⟩ := (apply_pileStack_iff (st := st) (st' := st')).mp hap
+    have hd : heightDebt st' < heightDebt st := by
+      refine heightDebt_bump hrk st' ?_
+      intro s'
+      rw [hs]
+    simp only [cascadeMeasure]
+    omega
+
 /-- The dominance cascade (§5 + pruning_dominance_interaction): a
 filter that, at every reachable solvable state, leaves either the win
-or a dominant `P`-move, preserves solvability.
+or a dominant, *progress-forcing* P-move, preserves solvability.
 
-WARNING (their §9): the individual rules are argued separately, and
-individually-sound filters can be jointly unsound — this composition
-is the repo's main open soundness question.  The hypothesis here is
-the strong all-reachable-states form, and the induction needs the
-progress measure (§9.4: the dominances force progress — foundation
-growth, reveals, draws — so states do not repeat: the DAG argument).
-TODO. -/
+REPAIR (2026-09-13, wrong-statement protocol — the wave's finding):
+the staged statement (escape = `dominantAt` alone) was FALSE.
+Prover-confirmed witness (witnesses/CascadeWitness.lean, exit 0, the
+core facts axiom-clean): a WF state one `pileStack ♦K` from the win
+with the stock exhausted — `applyDraw` is unconditionally `some`, and
+`dealOnce` on the empty cycle is the identity, so `draw` is *trivially
+dominant* there (the successor is the state itself) — and the
+hypothesis therefore holds for the draw-only filter at every reachable
+solvable state, while no all-draw play can win (draws never touch
+`heights`).  The same hole yawns for any reversible non-commit:
+`pilePile` (kings between free anchors) and worry-back `stackPile`
+(via `stackPile_pileStack_cancel`) are dominant by invertibility and
+make no progress.  `dominantAt` alone carries no termination content;
+the induction needs the progress measure this docstring's predecessor
+already announced (§9.4: the dominances force progress — foundation
+growth, reveals — so states do not repeat: the DAG argument), and the
+staged hypothesis simply forgot to demand it.  Repair: the escape must
+additionally strictly decrease `cascadeMeasure` — every §5 escape
+satisfies it (`cascade_escape_progress`, the instantiation kit);
+draws are excluded, matching the engine's own division of labor (its
+draw-loops are terminated by the CyclePruner/TP layer, which this
+model does not carry — a draw-inclusive cascade would need the
+deal-orbit's finite period; deferred with the reading).
+
+The proof is a bounded induction on the measure: the escape move
+takes the recursion strictly down it, `dominantAt` keeps the successor
+solvable, and the win is the base case (the empty play). -/
 theorem cascade_sound {P : Move → Bool} (st : State)
     (h : ∀ st₁ play, st.run play = some st₁ → st₁.solvableFrom →
-      st₁.isWin = true ∨ ∃ m, P m = true ∧ st₁.legal m = true ∧ dominantAt st₁ m) :
-    st.solvableFrom → st.solvableWith P := sorry
+      st₁.isWin = true ∨ ∃ m, P m = true ∧ st₁.legal m = true ∧ dominantAt st₁ m ∧
+        ∀ st₂, st₁.apply m = some st₂ → cascadeMeasure st₂ < cascadeMeasure st₁) :
+    st.solvableFrom → st.solvableWith P := by
+  intro hsolv
+  have main : ∀ (n : Nat) (s : State) (π : List Move),
+      st.run π = some s → cascadeMeasure s ≤ n → s.solvableFrom → s.solvableWith P := by
+    intro n
+    induction n with
+    | zero =>
+        intro s π hrun hμ hsolv
+        rcases h s π hrun hsolv with hw | ⟨m, hP, _, hdom, hprog⟩
+        · exact ⟨[], by simp, s, rfl, hw⟩
+        · exfalso
+          obtain ⟨s', hap, _⟩ := hdom hsolv
+          have := hprog s' hap
+          omega
+    | succ n ih =>
+        intro s π hrun hμ hsolv
+        rcases h s π hrun hsolv with hw | ⟨m, hP, _, hdom, hprog⟩
+        · exact ⟨[], by simp, s, rfl, hw⟩
+        · obtain ⟨s', hap, hsol'⟩ := hdom hsolv
+          have hμ' : cascadeMeasure s' ≤ n := by
+            have := hprog s' hap
+            omega
+          have hreach : st.run (π ++ [m]) = some s' := by
+            rw [run_append st π [m], hrun]
+            show (match s.apply m with | some x => x.run [] | none => none) = some s'
+            rw [hap]
+            rfl
+          obtain ⟨play₁, hall₁, w, hrw, hww⟩ := ih s' (π ++ [m]) hreach hμ' hsol'
+          refine ⟨m :: play₁, ?_, w, ?_, hww⟩
+          · intro m' hm'
+            rcases List.mem_cons.mp hm' with rfl | hmt
+            · exact hP
+            · exact hall₁ m' hmt
+          · show (match s.apply m with | some x => x.run play₁ | none => none) = some w
+            rw [hap]
+            exact hrw
+  exact main (cascadeMeasure st) st [] (by rfl) (Nat.le_refl _) hsolv
 
 /-! §5.6 (the least-stack cascade) is deferred — it is the most
 intricate dominance and carries its own TODO in method.md.

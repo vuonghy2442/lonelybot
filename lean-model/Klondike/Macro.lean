@@ -612,6 +612,151 @@ theorem drawTo_tableau_outcomes_agree {st : State} {c : Card} {b b' : Base}
     rfl
   · rw [bottomOf_attach_of_ne hatt₁ hcc, bottomOf_attach_of_ne hatt₂ hcc]
 
+/-! ### The pace-replay toolkit
+
+The pieces the pace dominances repeat, named: the cursor relation's
+symmetry, the two game-wide invariants no move breaks (draw step,
+board-only reading of `canPlace`), the mask-membership transport (the
+positivity argument is proof-irrelevant), the cursor variant's WF, and
+the run-level accommodation replay.  Consolidation note: these are
+Macro-local for the wave (the file was the only consumer); moving them
+upstream (State/Commutation) is the orchestrator's call. -/
+
+/-- The pace relation's symmetry (all six conjuncts are equalities). -/
+theorem diffCursor_symm {st st' : State} (h : st.diffCursor st') : st'.diffCursor st :=
+  ⟨h.1.symm, h.2.1.symm, h.2.2.1.symm, h.2.2.2.1.symm, h.2.2.2.2.1.symm,
+    h.2.2.2.2.2.symm⟩
+
+/-- No move ever writes the draw step — the pacing parameter is fixed
+for the whole game (every apply's successor is a with-update that never
+names it). -/
+theorem apply_drawStep_invar {st st₁ : State} {m : Move}
+    (h : st.apply m = some st₁) : st₁.drawStep = st.drawStep := by
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at h
+      rw [h]
+  | reveal c =>
+      rw [apply_reveal_iff] at h
+      obtain ⟨-, r, a, bd, -, -, -, hst⟩ := h
+      rw [hst]
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at h
+      obtain ⟨-, -, bd, -, hst⟩ := h
+      rw [hst]
+  | deckStack c =>
+      rw [apply_deckStack_iff] at h
+      obtain ⟨-, -, hst⟩ := h
+      rw [hst]
+  | pileStack c =>
+      rw [apply_pileStack_iff] at h
+      obtain ⟨-, b, -, -, hst⟩ := h
+      rw [hst]
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at h
+      obtain ⟨-, -, bd, -, hst⟩ := h
+      rw [hst]
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at h
+      obtain ⟨b₀, -, -, -, bd, -, hst⟩ := h
+      rw [hst]
+
+/-- `canPlace` reads the board alone — the stock cursor never enters
+the landing rule. -/
+theorem canPlace_board_congr {st st' : State} {c : Card} {b : Base}
+    (hb : st.board = st'.board) : st.canPlace c b = st'.canPlace c b := by
+  simp only [State.canPlace, State.isVis, hb]
+
+/-- `maskPos` memberships transport along equalities of the cycle and
+the step: the positivity argument is proof-irrelevant, the data rides
+the equalities. -/
+theorem maskPos_mem_trans {α : Type} {cy cy' : Cycle α} {s s' : Nat}
+    {hp : 0 < s} {hp' : 0 < s'} (hcy : cy = cy') (hss : s = s')
+    (i : Nat) (h : i ∈ Pace.maskPos cy s hp) :
+    i ∈ Pace.maskPos cy' s' hp' := by
+  subst hcy
+  subst hss
+  exact h
+
+/-- The cursor variant of a well-formed state is well-formed — only
+`cursor_le` reads the cursor, and that is the supplied bound. -/
+theorem wf_of_cursor {st : State} {o : Nat} (hwf : st.WF)
+    (hcur : o ≤ st.stock.cards.length) :
+    ({ st with stock := { st.stock with cursor := o } } : State).WF := by
+  refine ⟨hwf.1, hwf.2.1, hwf.2.2.1, hwf.2.2.2.1, hwf.2.2.2.2.1,
+    hwf.2.2.2.2.2.1, hwf.2.2.2.2.2.2.1, hwf.2.2.2.2.2.2.2.1, ?_,
+    hwf.2.2.2.2.2.2.2.2.2.1, hwf.2.2.2.2.2.2.2.2.2.2⟩
+  show o ≤ st.stock.cards.length
+  exact hcur
+
+/-- One blind replay step: the accommodation move applies from the
+partner state too, landing on partners (used under both shuffles). -/
+theorem acc_step_blind {st st' s : State} {m : Move} {ms : List Move}
+    (hind : ∀ m' ∈ ms, m'.isAccommodation = true)
+    (hc : m.consumesStock = false) (hmd : m ≠ Move.draw)
+    (hd : st.diffCursor st') (hrun : st.run (m :: ms) = some s)
+    (ih : ∀ (st st' s : State), (∀ m ∈ ms, m.isAccommodation = true) →
+      st.diffCursor st' → st.run ms = some s →
+      ∃ t, st'.run ms = some t ∧ s.diffCursor t ∧ t.stock = st'.stock ∧
+        s.stock = st.stock ∧ s.drawStep = st.drawStep ∧ t.drawStep = st'.drawStep) :
+    ∃ t, st'.run (m :: ms) = some t ∧ s.diffCursor t ∧ t.stock = st'.stock ∧
+      s.stock = st.stock ∧ s.drawStep = st.drawStep ∧ t.drawStep = st'.drawStep := by
+  simp only [State.run] at hrun
+  cases hsm : st.apply m with
+  | none => rw [hsm] at hrun; simp at hrun
+  | some s₁ =>
+      rw [hsm] at hrun
+      have hrest : s₁.run ms = some s := hrun
+      obtain ⟨s₁', hs₁', hds₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
+      have hs₁stock : s₁.stock = st.stock := apply_nonConsuming_stock_invar hc hmd hsm
+      have hs₁'stock : s₁'.stock = st'.stock :=
+        apply_nonConsuming_stock_invar hc hmd hs₁'
+      have hs₁ds : s₁.drawStep = st.drawStep := apply_drawStep_invar hsm
+      have hs₁'ds : s₁'.drawStep = st'.drawStep := apply_drawStep_invar hs₁'
+      obtain ⟨t, htrun, hdt, htstock, hsstock, hsds, htds⟩ :=
+        ih s₁ s₁' s hind hds₁ hrest
+      refine ⟨t, ?_, hdt, ?_, ?_, ?_, ?_⟩
+      · simp only [State.run]
+        rw [hs₁']
+        exact htrun
+      · rw [htstock]; exact hs₁'stock
+      · rw [hsstock]; exact hs₁stock
+      · rw [hsds]; exact hs₁ds
+      · rw [htds]; exact hs₁'ds
+
+/-- The accommodation replay, run level: a shuffle play from a state
+replays verbatim from any cursor-partner, landing on partners — the
+prefix step of every pace-dominance replay. -/
+theorem accommodates_cursor_blind : ∀ (st st' s : State) (play : List Move),
+    (∀ m ∈ play, m.isAccommodation = true) → st.diffCursor st' →
+    st.run play = some s →
+    ∃ t, st'.run play = some t ∧ s.diffCursor t ∧ t.stock = st'.stock ∧
+      s.stock = st.stock ∧ s.drawStep = st.drawStep ∧ t.drawStep = st'.drawStep := by
+  intro st st' s play
+  induction play generalizing st st' s with
+  | nil =>
+      intro _ hd hrun
+      have h0 : st.run [] = some st := rfl
+      rw [h0] at hrun
+      have hss : st = s := Option.some.inj hrun
+      subst hss
+      exact ⟨st', rfl, hd, rfl, rfl, rfl, rfl⟩
+  | cons m ms ih =>
+      intro hind hd hrun
+      have hmac : m.isAccommodation = true := hind m (List.mem_cons.mpr (Or.inl rfl))
+      cases m with
+      | draw => simp [Move.isAccommodation] at hmac
+      | reveal c => simp [Move.isAccommodation] at hmac
+      | deckPile c b => simp [Move.isAccommodation] at hmac
+      | deckStack c => simp [Move.isAccommodation] at hmac
+      | pilePile c b => simp [Move.isAccommodation] at hmac
+      | pileStack c =>
+          exact acc_step_blind (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm')))
+            rfl (by intro h; simp at h) hd hrun ih
+      | stackPile c b =>
+          exact acc_step_blind (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm')))
+            rfl (by intro h; simp at h) hd hrun ih
+
 /-! ## The pace dominance — the offset-dominance registry's soundness
 
 The search-side exploit of Pace's pace order: the engine's
@@ -631,36 +776,150 @@ boards); the line's first Draw commitment is replayable
 the *identical* successor stock (`drawCard_cursor_indep`), after
 which the plays coincide.
 
-TODO(proof) [M] (downgraded — the simulation is proved): instantiate
-`macroSolvable_of_simulates` with `R := diffCursor ∧ the maskPos
-superset`; the reveal case via `apply_nonConsuming_cursor_blind`
-(accommodations too — the shuffles are non-consuming), the draw case
-via `applyDrawTo_merge` / `applyDrawStackTo_merge` — the merge
-disjunct: after one draw the states are equal and the superset is
-moot.  `hstep` from `hwf.step_pos`, `hcur` from `hwf.cursor_le`. -/
+Proof: `macroSolvable_of_simulates` at the stock-pinned relation
+`diffCursor ∧ drawStep = st.drawStep ∧ x.stock = st.stock ∧
+y.stock = the o'-stock` — the pins never need re-establishing (reveals
+preserve stocks, draws merge past the relation), so the superset `hK`
+only ever applies at the original cursor pair.  The accommodation
+prefix replays verbatim (`accommodates_cursor_blind`); the draw guard
+is rebuilt cards-only (`posOf_cards_eq`) with the mask transported
+(`maskPos_mem_trans`); the successors merge
+(`applyDrawTo_merge`/`applyDrawStackTo_merge`).  `hcur'` is vestigial
+(the superset subsumes it). -/
 theorem pace_dominance {st : State} {o' : Nat} (hwf : st.WF)
     (hcur' : o' ≤ st.stock.cards.length)
     (hK : ∀ p, p ∈ Pace.maskPos { cards := st.stock.cards, cursor := o' }
         st.drawStep hwf.step_pos →
       p ∈ Pace.maskPos st.stock st.drawStep hwf.step_pos)
     (hsol : { st with stock := { st.stock with cursor := o' } }.macroSolvable) :
-    st.macroSolvable := sorry
+    st.macroSolvable := by
+  have := hcur'
+  -- The pace relation: identical but for the cursor, both stocks pinned
+  -- to the two constants.  The pins never need re-establishing: reveals
+  -- preserve the stocks (non-consuming), and the draw case merges past
+  -- the relation entirely (the successors are equal), so the superset
+  -- only ever applies at the original cursor pair.
+  refine macroSolvable_of_simulates (a := st)
+    (b := { st with stock := { st.stock with cursor := o' } })
+    (fun x y => x.diffCursor y ∧ x.drawStep = st.drawStep ∧
+      x.stock = st.stock ∧ y.stock = { st.stock with cursor := o' })
+    ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl⟩ ?_ ?_ hsol
+  · -- the one-step simulation
+    intro x y k b' hRxy hms
+    obtain ⟨hdc, hds, hxs, hys⟩ := hRxy
+    have hyd : y.drawStep = st.drawStep := by rw [← hdc.2.2.2.2.2]; exact hds
+    simp only [macroStep] at hms
+    obtain ⟨y₁, hacc, hcom⟩ := hms
+    obtain ⟨play, hplay, haccm⟩ := hacc
+    -- the accommodation replays verbatim from the partner state
+    obtain ⟨x₁, hx₁run, hdx₁, hx₁s, hy₁s, hy₁d, hx₁d⟩ :=
+      accommodates_cursor_blind y x y₁ play haccm (diffCursor_symm hdc) hplay
+    have haccx : accommodates x x₁ := ⟨play, hx₁run, haccm⟩
+    have hy₁ds : y₁.drawStep = st.drawStep := by rw [hy₁d, hyd]
+    have hx₁ds : x₁.drawStep = st.drawStep := by rw [hx₁d, hds]
+    have hx₁stock : x₁.stock = st.stock := by rw [hx₁s, hxs]
+    have hy₁stock : y₁.stock = { st.stock with cursor := o' } := by rw [hy₁s, hys]
+    have hcardseq : st.stock.cards = y₁.stock.cards := by rw [hy₁stock]
+    cases k with
+    | revealCommit c =>
+        -- cursor-inert: the same reveal applies from the partner, the
+        -- successors stay partners
+        simp only [commitApplies] at hcom
+        obtain ⟨a', ha', hda'⟩ :=
+          apply_nonConsuming_cursor_blind rfl hdx₁ hcom
+        have ha's : a'.stock = x₁.stock :=
+          apply_nonConsuming_stock_invar rfl (by intro h; simp at h) ha'
+        have hb's : b'.stock = y₁.stock :=
+          apply_nonConsuming_stock_invar rfl (by intro h; simp at h) hcom
+        have ha'd : a'.drawStep = x₁.drawStep := apply_drawStep_invar ha'
+        refine ⟨MacroMove.revealCommit c, a', ⟨x₁, haccx, ha'⟩, Or.inr
+          ⟨diffCursor_symm hda', by rw [ha'd, hx₁ds], by rw [ha's, hx₁stock],
+            by rw [hb's, hy₁stock]⟩⟩
+    | drawCommit c =>
+        -- the guard's position is cards-only; the superset carries the
+        -- mask; the successors merge
+        simp only [commitApplies] at hcom
+        obtain ⟨base, hb⟩ := hcom
+        rcases hb with ⟨hcan, hdt⟩ | hdst
+        · -- tableau landing
+          obtain ⟨i, bd, hr, hatt, _⟩ := applyDrawTo_iff.mp hdt
+          obtain ⟨_, hpos', hmem'⟩ := reachablePos_eq_some_iff.mp hr
+          have hstepx : 0 < x₁.drawStep := by rw [hx₁ds]; exact hwf.step_pos
+          have hposx : x₁.stock.posOf c = some i := by
+            rw [hx₁stock, posOf_cards_eq hcardseq]
+            exact hpos'
+          have hmemx : i ∈ Pace.maskPos x₁.stock x₁.drawStep hstepx :=
+            maskPos_mem_trans (show st.stock = x₁.stock from hx₁stock.symm)
+              (show st.drawStep = x₁.drawStep from hx₁ds.symm) i
+              (hK i (maskPos_mem_trans hy₁stock hy₁ds i hmem'))
+          have hxr : x₁.reachablePos c = some i :=
+            reachablePos_eq_some_iff.mpr ⟨hstepx, hposx, hmemx⟩
+          have hattx : x₁.board.attach base c = some bd := by
+            rw [← hdx₁.2.1]; exact hatt
+          have hxdt : x₁.applyDrawTo c base =
+              some { x₁ with board := bd, stock := (x₁.stock.drawTo i).removeAt i } :=
+            applyDrawTo_iff.mpr ⟨i, bd, hxr, hattx, rfl⟩
+          have hmerge : b' =
+              { x₁ with board := bd, stock := (x₁.stock.drawTo i).removeAt i } :=
+            applyDrawTo_merge hdx₁ hdt hxdt
+          rw [← hmerge] at hxdt
+          refine ⟨MacroMove.drawCommit c, b', ⟨x₁, haccx, ⟨base, Or.inl ⟨by
+            rw [← canPlace_board_congr hdx₁.2.1]; exact hcan, hxdt⟩⟩⟩, Or.inl rfl⟩
+        · -- stack landing
+          obtain ⟨i, hr, hrk, _⟩ := applyDrawStackTo_iff.mp hdst
+          obtain ⟨_, hpos', hmem'⟩ := reachablePos_eq_some_iff.mp hr
+          have hstepx : 0 < x₁.drawStep := by rw [hx₁ds]; exact hwf.step_pos
+          have hposx : x₁.stock.posOf c = some i := by
+            rw [hx₁stock, posOf_cards_eq hcardseq]
+            exact hpos'
+          have hmemx : i ∈ Pace.maskPos x₁.stock x₁.drawStep hstepx :=
+            maskPos_mem_trans (show st.stock = x₁.stock from hx₁stock.symm)
+              (show st.drawStep = x₁.drawStep from hx₁ds.symm) i
+              (hK i (maskPos_mem_trans hy₁stock hy₁ds i hmem'))
+          have hxr : x₁.reachablePos c = some i :=
+            reachablePos_eq_some_iff.mpr ⟨hstepx, hposx, hmemx⟩
+          have hrkx : c.rank.toIdx = x₁.heights c.suit := by
+            rw [← hdx₁.2.2.1]; exact hrk
+          have hxds' : x₁.applyDrawStackTo c =
+              some { x₁ with
+                stock := (x₁.stock.drawTo i).removeAt i,
+                heights := fun s => if s = c.suit then x₁.heights s + 1 else x₁.heights s } :=
+            applyDrawStackTo_iff.mpr ⟨i, hxr, hrkx, rfl⟩
+          have hmerge : b' = { x₁ with
+                stock := (x₁.stock.drawTo i).removeAt i,
+                heights := fun s => if s = c.suit then x₁.heights s + 1 else x₁.heights s } :=
+            applyDrawStackTo_merge hdx₁ hdst hxds'
+          rw [← hmerge] at hxds'
+          exact ⟨MacroMove.drawCommit c, b', ⟨x₁, haccx, ⟨base, Or.inr hxds'⟩⟩, Or.inl rfl⟩
+  · -- wins are heights-only
+    intro x y hRxy hyw
+    have hh : x.heights = y.heights := hRxy.1.2.2.1
+    have hisw : State.isWin x = State.isWin y := by
+      simp only [State.isWin, hh]
+    rw [hisw]
+    exact hyw
 
 /-- **R1 (registry rule 1)**: within an impure residue class the
 earlier cursor dominates — a win from the later pace lifts to the
 earlier.  This is the soundness of skipping the larger-offset state
 when the minimal same-residue state was refuted.
 
-TODO(proof) [M]: `pace_dominance` at the `o`-variant (reconstruct its
-WF from `hwf` minus/plus the cursor conjuncts) with
-`maskPos_residue_mono` as `hK`. -/
+Proof: `pace_dominance` at the `o`-variant (whose WF is `wf_of_cursor`,
+only `cursor_le` reads the cursor) with `Pace.maskPos_residue_mono`
+as `hK`. -/
 theorem pace_dominance_residue {st : State} {o o' : Nat} (hwf : st.WF)
     (hle : o ≤ o')
     (hres : o % st.drawStep = o' % st.drawStep)
     (himp : o' % st.drawStep ≠ 0)
     (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
     (hsol : { st with stock := { st.stock with cursor := o' } }.macroSolvable) :
-    { st with stock := { st.stock with cursor := o } }.macroSolvable := sorry
+    { st with stock := { st.stock with cursor := o } }.macroSolvable := by
+  refine pace_dominance (st := { st with stock := { st.stock with cursor := o } })
+    (o' := o') (wf_of_cursor hwf hcur) hcur' ?_ hsol
+  intro p hp
+  exact Pace.maskPos_residue_mono (c := ⟨st.stock.cards, o⟩)
+    (c' := ⟨st.stock.cards, o'⟩) st.drawStep hwf.step_pos rfl
+    hle hres himp hcur hcur' p hp
 
 /-- **R2 (registry rule 2)**: the pass-boundary (pure) cursor is
 dominated by any impure cursor on the same cards — a win from the
@@ -669,14 +928,20 @@ skipping the pure state when a same-cards impure state was refuted
 (the measured bigger half of the prize: 912k of the 1.38M doomed
 seed-32 draw-3 states).
 
-TODO(proof) [M]: `pace_dominance` at the `o`-variant with
-`maskPos_impure_sup_pure` as `hK`. -/
+Proof: `pace_dominance` at the `o`-variant with
+`Pace.maskPos_impure_sup_pure` as `hK`. -/
 theorem pace_dominance_impure_pure {st : State} {o o' : Nat} (hwf : st.WF)
     (himp : o % st.drawStep ≠ 0)
     (hpure' : o' % st.drawStep = 0 ∨ o' = st.stock.cards.length)
     (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
     (hsol : { st with stock := { st.stock with cursor := o' } }.macroSolvable) :
-    { st with stock := { st.stock with cursor := o } }.macroSolvable := sorry
+    { st with stock := { st.stock with cursor := o } }.macroSolvable := by
+  refine pace_dominance (st := { st with stock := { st.stock with cursor := o } })
+    (o' := o') (wf_of_cursor hwf hcur) hcur' ?_ hsol
+  intro p hp
+  exact Pace.maskPos_impure_sup_pure (c := ⟨st.stock.cards, o⟩)
+    (c' := ⟨st.stock.cards, o'⟩) st.drawStep hwf.step_pos rfl
+    himp hpure' hcur hcur' p hp
 
 /-! ### The reachability route (the physical game)
 
@@ -690,38 +955,93 @@ unreachable there, and that residue is the simulation's own content. -/
 /-- The deal chain: `k` pure deals advance the cursor from `o` to `o'`
 whenever `o ≤ o'` with the same residue (`o' − o` a multiple of the
 step).  The chain never clamps: every intermediate cursor is `≤ o' ≤
-length`.
-
-TODO(proof) [E]: the play is `k` `.draw` moves with `o + k·s = o'`;
-induction on `k` — each `dealOnce` from `c < n` gives
-`min (c + s) n = c + s` (no clamp, the chain stays ≤ o'). -/
+length`.  At `drawStep = 0` the residue hypothesis forces `o = o'`
+(`Nat.mod_zero`), so the statement holds at every step. -/
 theorem deal_chain_reaches {st : State} {o o' : Nat}
     (hle : o ≤ o') (hres : o % st.drawStep = o' % st.drawStep)
     (hcur' : o' ≤ st.stock.cards.length) :
     ∃ play, ({ st with stock := { st.stock with cursor := o } }).run play
-      = some { st with stock := { st.stock with cursor := o' } } := sorry
+      = some { st with stock := { st.stock with cursor := o' } } := by
+  by_cases hs : 0 < st.drawStep
+  · -- extract the deal count: `o' - o` is a multiple of the step
+    obtain ⟨k, hkey⟩ : ∃ k, o + k * st.drawStep = o' := by
+      have hzm : (o' - o) % st.drawStep = 0 := by
+        have hsplit : o' = o + (o' - o) := by omega
+        rw [hsplit, Nat.add_mod] at hres
+        have hr : o % st.drawStep < st.drawStep := Nat.mod_lt _ hs
+        have ht : (o' - o) % st.drawStep < st.drawStep := Nat.mod_lt _ hs
+        by_cases hlt : o % st.drawStep + (o' - o) % st.drawStep < st.drawStep
+        · rw [Nat.mod_eq_of_lt hlt] at hres
+          omega
+        · have hams : ∀ (u v : Nat), (u + v) % u = v % u := by
+            intro u v
+            rw [Nat.add_comm u v,
+              show v + u = v + u * 1 from by rw [Nat.mul_one],
+              Nat.add_mul_mod_self_left]
+          have hred : (o % st.drawStep + (o' - o) % st.drawStep) % st.drawStep
+              = o % st.drawStep + (o' - o) % st.drawStep - st.drawStep := by
+            have hlt2 : o % st.drawStep + (o' - o) % st.drawStep - st.drawStep
+                < st.drawStep := by omega
+            have h1 : (o % st.drawStep + (o' - o) % st.drawStep) % st.drawStep
+                = (st.drawStep + (o % st.drawStep + (o' - o) % st.drawStep
+                    - st.drawStep)) % st.drawStep := by
+              have hsum : st.drawStep + (o % st.drawStep + (o' - o) % st.drawStep
+                  - st.drawStep) = o % st.drawStep + (o' - o) % st.drawStep := by omega
+              rw [hsum]
+            rw [h1, hams, Nat.mod_eq_of_lt hlt2]
+          rw [hred] at hres
+          omega
+      refine ⟨(o' - o) / st.drawStep, ?_⟩
+      have hdm := Nat.div_add_mod (o' - o) st.drawStep
+      rw [hzm, Nat.add_zero, Nat.mul_comm] at hdm
+      rw [hdm]
+      omega
+    have hle2 : o + k * st.drawStep ≤ st.stock.cards.length := by
+      rw [hkey]; exact hcur'
+    refine ⟨List.replicate k Move.draw, ?_⟩
+    rw [run_replicate_draw]
+    show some { st with stock := Cycle.dealN st.drawStep k ⟨st.stock.cards, o⟩ }
+      = some { st with stock := ⟨st.stock.cards, o'⟩ }
+    have hiter := dealOnce_iterate_add hs st.stock.cards k o hle2
+    rw [hkey] at hiter
+    rw [hiter]
+  · have hs0 : st.drawStep = 0 := by omega
+    rw [hs0, Nat.mod_zero, Nat.mod_zero] at hres
+    subst hres
+    exact ⟨[], rfl⟩
 
 /-- The pass-end reachability: every cursor reaches the pass end — the
 final deal clamps at `length` from *anywhere*, so the residue condition
 drops.  This is why the pass-end state is the worst same-cards state.
 
-TODO(proof) [E]: deals step by `s` until `c + s ≥ n`, then `min`
-clamps; induction on the remaining distance (the wrap is never taken —
-the chain stops at `n`). -/
+Statement repair (2026-09-13, this agent — witness
+`witnesses/PaceStepZeroWitness.lean`, machine-checked): gained
+`(hstep : 0 < st.drawStep)`.  At step 0 every deal is the identity
+below the pass end (`min (c + 0) n = c`), so the pass end is
+unreachable from a mid-pass cursor — the clamped chain genuinely needs
+a positive step. -/
 theorem deal_passEnd_reaches {st : State} {o : Nat}
+    (hstep : 0 < st.drawStep)
     (hcur : o ≤ st.stock.cards.length) :
     ∃ play, ({ st with stock := { st.stock with cursor := o } }).run play
-      = some { st with stock := { st.stock with cursor := st.stock.cards.length } } := sorry
+      = some { st with stock := { st.stock with cursor := st.stock.cards.length } } := by
+  obtain ⟨k, hk⟩ := dealOnce_reach_end hstep st.stock.cards
+    (st.stock.cards.length - o) o hcur (Nat.le_refl _)
+  refine ⟨List.replicate k Move.draw, ?_⟩
+  rw [run_replicate_draw]
+  show some { st with stock := Cycle.dealN st.drawStep k ⟨st.stock.cards, o⟩ }
+    = some { st with stock := ⟨st.stock.cards, st.stock.cards.length⟩ }
+  rw [hk]
 
 /-- **R1, physical-game route**: same residue, earlier cursor —
-dominance by reachability (the deal chain), not simulation.
-
-TODO(proof) [E]: `solvable_of_reaches` + `deal_chain_reaches`. -/
+dominance by reachability (the deal chain), not simulation. -/
 theorem pace_dominance_phys_residue {st : State} {o o' : Nat}
     (hle : o ≤ o') (hres : o % st.drawStep = o' % st.drawStep)
     (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
     (hsol : { st with stock := { st.stock with cursor := o' } }.solvableFrom) :
-    { st with stock := { st.stock with cursor := o } }.solvableFrom := sorry
+    { st with stock := { st.stock with cursor := o } }.solvableFrom := by
+  have := hcur
+  exact solvable_of_reaches (deal_chain_reaches hle hres hcur') hsol
 
 /-- **R2a, physical-game route**: the pass-end cursor is dominated by
 every same-cards state — the clamp reaches it from anywhere, so no
@@ -730,12 +1050,18 @@ additionally covers mid-pass pure cursors via the accessible-superset
 — those are *not* reachable from impure ones, which is the
 simulation's own content.)
 
-TODO(proof) [E]: `solvable_of_reaches` + `deal_passEnd_reaches`. -/
+Statement repair (2026-09-13, this agent — witness
+`witnesses/PaceStepZeroWitness.lean`): gained `(hstep : 0 <
+st.drawStep)`, inherited from `deal_passEnd_reaches` (at step 0 the
+pass end is unreachable and the pass-end state can be solvable while
+the mid-pass one is not). -/
 theorem pace_dominance_phys_passEnd {st : State} {o : Nat}
+    (hstep : 0 < st.drawStep)
     (hcur : o ≤ st.stock.cards.length)
     (hsol : ({ st with stock :=
         { st.stock with cursor := st.stock.cards.length } }).solvableFrom) :
-    { st with stock := { st.stock with cursor := o } }.solvableFrom := sorry
+    { st with stock := { st.stock with cursor := o } }.solvableFrom :=
+  solvable_of_reaches (deal_passEnd_reaches hstep hcur) hsol
 
 /-- The pure-orbit cycle: all pure cursors are mutually reachable by
 pure deals — each reaches the pass end (`deal_passEnd_reaches`), the
@@ -745,15 +1071,55 @@ the game-level derivation of the engine's `is_pure`/`normalized_offset`
 encode merge (the offset normalization draw-3 gets on the pure class);
 `maskPos_pure_indep` is its accessibility-level shadow.
 
-TODO(proof) [E]: `solvable_iff_mutuallyReaches` + the two deal chains
-composing through the pass end and the wrap (the wrap is one `.draw`
-from the saturated cursor). -/
+Statement repair (2026-09-13, this agent — witness
+`witnesses/PaceStepZeroWitness.lean`, machine-checked): gained
+`(hstep : 0 < st.drawStep)`.  At step 0 the pure cursors 0 and the pass
+end are *not* equivalent (the deal is frozen; the pass-end twin wins by
+`deckStack`s the frozen cursor cannot make). -/
 theorem solvable_iff_pure_cursors {st : State} {o o' : Nat}
+    (hstep : 0 < st.drawStep)
     (hp : o % st.drawStep = 0 ∨ o = st.stock.cards.length)
     (hp' : o' % st.drawStep = 0 ∨ o' = st.stock.cards.length)
     (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length) :
     ({ st with stock := { st.stock with cursor := o } }).solvableFrom ↔
-    ({ st with stock := { st.stock with cursor := o' } }).solvableFrom := sorry
+    ({ st with stock := { st.stock with cursor := o' } }).solvableFrom := by
+  -- the wrap: one deal from the saturated cursor lands the fresh pass
+  have hwc : Cycle.dealOnce st.drawStep { st.stock with cursor := st.stock.cards.length }
+      = { st.stock with cursor := 0 } := by
+    show (if st.stock.cards.length ≥ st.stock.cards.length
+        then (⟨st.stock.cards, 0⟩ : Cycle Card)
+        else ⟨st.stock.cards, min (st.stock.cards.length + st.drawStep) st.stock.cards.length⟩)
+      = ⟨st.stock.cards, 0⟩
+    rw [if_pos (Nat.le_refl _)]
+  have hwraprun : ({ st with stock := { st.stock with cursor := st.stock.cards.length } } : State).run [Move.draw]
+      = some { st with stock := { st.stock with cursor := 0 } } := by
+    rw [run_singleton]
+    show some { st with stock := Cycle.dealOnce st.drawStep { st.stock with cursor := st.stock.cards.length } }
+      = some { st with stock := { st.stock with cursor := 0 } }
+    rw [hwc]
+  -- every pure cursor is reachable from *every* cursor: through the
+  -- pass end, the wrap, and the fresh-pass chain (source purity is not
+  -- needed — only the target's, for the last leg)
+  have chain : ∀ (x y : Nat), (y % st.drawStep = 0 ∨ y = st.stock.cards.length) →
+      x ≤ st.stock.cards.length → y ≤ st.stock.cards.length →
+      ∃ play, ({ st with stock := { st.stock with cursor := x } }).run play
+        = some { st with stock := { st.stock with cursor := y } } := by
+    intro x y hy hxcur hycur
+    rcases hy with hym | hye
+    · obtain ⟨playA, hA⟩ := deal_passEnd_reaches hstep hxcur
+      obtain ⟨playB, hB⟩ := deal_chain_reaches (Nat.zero_le y)
+        (by rw [Nat.zero_mod, hym] : 0 % st.drawStep = y % st.drawStep) hycur
+      have hstep1 : ({ st with stock := { st.stock with cursor := x } } : State).run
+          (playA ++ [Move.draw])
+          = some { st with stock := { st.stock with cursor := 0 } } := by
+        rw [run_append, hA]
+        exact hwraprun
+      exact ⟨(playA ++ [Move.draw]) ++ playB, by
+        rw [run_append, hstep1]
+        exact hB⟩
+    · obtain ⟨playA, hA⟩ := deal_passEnd_reaches hstep hxcur
+      exact ⟨playA, by rw [hye]; exact hA⟩
+  exact solvable_iff_mutuallyReaches (chain o o' hp' hcur hcur') (chain o' o hp hcur' hcur)
 
 /-! ### The window obligation — the gap structure of the pace dominance
 
@@ -763,6 +1129,379 @@ make.  The replay mechanism is the deal commutation
 (`deal_commutes_nonStock`): deals float through the non-consuming
 prefix, so the cursor at the first consumption is well-defined, and
 the worse state replays the line by trimming the deal count. -/
+
+/-- Chaining macro steps distributes over append. -/
+theorem macroSteps_append : ∀ (l₁ l₂ : List MacroMove) (s w : State),
+    (∃ m, macroSteps s l₁ m ∧ macroSteps m l₂ w) →
+    macroSteps s (l₁ ++ l₂) w := by
+  intro l₁
+  induction l₁ with
+  | nil =>
+      intro l₂ s w ⟨m, hm, hr⟩
+      have hs : s = m := hm
+      subst hs
+      exact hr
+  | cons k krest ih =>
+      intro l₂ s w ⟨m, hstepm, hrm⟩
+      obtain ⟨st'', hstep, hrest⟩ := hstepm
+      exact ⟨st'', hstep, ih l₂ st'' w ⟨m, hrest, hrm⟩⟩
+
+/-- The macro line's shape: either every commitment is a reveal, or the
+line splits at the first `drawCommit` with an all-reveal prefix. -/
+theorem macroSteps_first_drawCommit : ∀ (ks : List MacroMove) (s w : State),
+    macroSteps s ks w →
+    (∀ k ∈ ks, ∃ c, k = MacroMove.revealCommit c) ∨
+    ∃ pre x rest s₂ s₃, ks = pre ++ MacroMove.drawCommit x :: rest ∧
+      (∀ k ∈ pre, ∃ c, k = MacroMove.revealCommit c) ∧
+      macroSteps s pre s₂ ∧ macroStep s₂ (MacroMove.drawCommit x) s₃ ∧
+      macroSteps s₃ rest w := by
+  intro ks
+  induction ks with
+  | nil => intro s w _; exact Or.inl (fun k hk => nomatch hk)
+  | cons k krest ih =>
+      intro s w hsteps
+      obtain ⟨s', hstep, hrest⟩ := hsteps
+      cases k with
+      | revealCommit c =>
+          rcases ih s' w hrest with
+            hall | ⟨pre, x, rest, s₂, s₃, hsplit, hpre, hp₂, hd, hsuf⟩
+          · refine Or.inl (fun k' hk' => by
+              rcases List.mem_cons.mp hk' with hke | hm
+              · exact ⟨c, hke⟩
+              · exact hall k' hm)
+          · refine Or.inr ⟨MacroMove.revealCommit c :: pre, x, rest, s₂, s₃,
+              by simp [hsplit], fun k' hk' => by
+                rcases List.mem_cons.mp hk' with hke | hm
+                · exact ⟨c, hke⟩
+                · exact hpre k' hm,
+              ⟨s', hstep, hp₂⟩, hd, hsuf⟩
+      | drawCommit x =>
+          refine Or.inr ⟨[], x, krest, s, s', rfl, (fun k hk => nomatch hk),
+            rfl, hstep, hrest⟩
+
+/-- The reveal-commit prefix replays from any cursor-partner: each
+step's accommodation and reveal are cursor-blind, and the stocks and
+draw steps are preserved. -/
+theorem macroSteps_reveal_blind : ∀ (pre : List MacroMove) (s s' s₁ : State),
+    (∀ k ∈ pre, ∃ c, k = MacroMove.revealCommit c) →
+    macroSteps s pre s₁ → s.diffCursor s' →
+    ∃ s₁', macroSteps s' pre s₁' ∧ s₁.diffCursor s₁' ∧
+      s₁.stock = s.stock ∧ s₁'.stock = s'.stock ∧
+      s₁.drawStep = s.drawStep ∧ s₁'.drawStep = s'.drawStep := by
+  intro pre
+  induction pre with
+  | nil =>
+      intro s s' s₁ _ hsteps hd
+      have hs : s = s₁ := hsteps
+      subst hs
+      exact ⟨s', rfl, hd, rfl, rfl, rfl, rfl⟩
+  | cons k krest ih =>
+      intro s s' s₁ hall hsteps hd
+      obtain ⟨s₂, hstep, hrest⟩ := hsteps
+      obtain ⟨c, hc⟩ := hall k (List.mem_cons.mpr (Or.inl rfl))
+      subst hc
+      obtain ⟨am, hacc, hcom⟩ := hstep
+      obtain ⟨play, hplay, hplaym⟩ := hacc
+      obtain ⟨t, htrun, hdt, htstock, hsstock, hsds, htds⟩ :=
+        accommodates_cursor_blind s s' am play hplaym hd hplay
+      have hacct : accommodates s' t := ⟨play, htrun, hplaym⟩
+      have hcom' : am.apply (Move.reveal c) = some s₂ := hcom
+      obtain ⟨s₂', hs₂', hds₂⟩ := apply_nonConsuming_cursor_blind rfl hdt hcom'
+      have hs₂stock : s₂.stock = am.stock :=
+        apply_nonConsuming_stock_invar rfl (by intro h; simp at h) hcom'
+      have hs₂'stock : s₂'.stock = t.stock :=
+        apply_nonConsuming_stock_invar rfl (by intro h; simp at h) hs₂'
+      have hs₂ds : s₂.drawStep = am.drawStep := apply_drawStep_invar hcom'
+      have hs₂'ds : s₂'.drawStep = t.drawStep := apply_drawStep_invar hs₂'
+      obtain ⟨s₁', hrest', hds, hsstock', hs'stock', hsds', hs'ds'⟩ :=
+        ih s₂ s₂' s₁ (fun k' hk' => hall k' (List.mem_cons.mpr (Or.inr hk'))) hrest hds₂
+      exact ⟨s₁', ⟨s₂', ⟨t, hacct, hs₂'⟩, hrest'⟩, hds,
+        by rw [hsstock', hs₂stock, hsstock],
+        by rw [hs'stock', hs₂'stock, htstock],
+        by rw [hsds', hs₂ds, hsds],
+        by rw [hs'ds', hs₂'ds, htds]⟩
+
+/-- A same-residue pair within a positive step: the distance is a step
+multiple (the deal-count extraction, shared by the hurry lemma). -/
+theorem exists_dealCount {o o' s : Nat} (hs : 0 < s) (hle : o ≤ o')
+    (hres : o % s = o' % s) : ∃ k₀, o + k₀ * s = o' := by
+  have hzm : (o' - o) % s = 0 := by
+    have hsplit : o' = o + (o' - o) := by omega
+    rw [hsplit, Nat.add_mod] at hres
+    have hr : o % s < s := Nat.mod_lt _ hs
+    have ht : (o' - o) % s < s := Nat.mod_lt _ hs
+    by_cases hlt : o % s + (o' - o) % s < s
+    · rw [Nat.mod_eq_of_lt hlt] at hres
+      omega
+    · have hams : ∀ (u v : Nat), (u + v) % u = v % u := by
+        intro u v
+        rw [Nat.add_comm u v,
+          show v + u = v + u * 1 from by rw [Nat.mul_one],
+          Nat.add_mul_mod_self_left]
+      have hred : (o % s + (o' - o) % s) % s
+          = o % s + (o' - o) % s - s := by
+        have hlt2 : o % s + (o' - o) % s - s < s := by omega
+        have h1 : (o % s + (o' - o) % s) % s
+            = (s + (o % s + (o' - o) % s - s)) % s := by
+          have hsum : s + (o % s + (o' - o) % s - s)
+              = o % s + (o' - o) % s := by omega
+          rw [hsum]
+        rw [h1, hams, Nat.mod_eq_of_lt hlt2]
+      rw [hred] at hres
+      omega
+  refine ⟨(o' - o) / s, ?_⟩
+  have hdm := Nat.div_add_mod (o' - o) s
+  rw [hzm, Nat.add_zero, Nat.mul_comm] at hdm
+  rw [hdm]
+  omega
+
+/-- The number of pure deals in a play. -/
+def countDraw : List Move → Nat
+  | [] => 0
+  | Move.draw :: t => countDraw t + 1
+  | Move.reveal _ :: t => countDraw t
+  | Move.deckPile _ _ :: t => countDraw t
+  | Move.deckStack _ :: t => countDraw t
+  | Move.pileStack _ :: t => countDraw t
+  | Move.stackPile _ _ :: t => countDraw t
+  | Move.pilePile _ _ :: t => countDraw t
+
+/-- The first stock-consuming move splits a play. -/
+theorem play_first_consumes : ∀ (l : List Move),
+    (∃ m, m ∈ l ∧ m.consumesStock = true) →
+    ∃ pre m rest, l = pre ++ m :: rest ∧ m.consumesStock = true ∧
+      (∀ m' ∈ pre, m'.consumesStock = false) := by
+  intro l
+  induction l with
+  | nil => intro ⟨m, hm, _⟩; exact absurd hm (by simp)
+  | cons m t ih =>
+      intro hex
+      by_cases hc : m.consumesStock = true
+      · exact ⟨[], m, t, rfl, hc, fun m' hm' => nomatch hm'⟩
+      · obtain ⟨pre, m', rest, hsplit, hc', hnc⟩ := ih (by
+          obtain ⟨mm, hmm, hcm⟩ := hex
+          refine ⟨mm, ?_, hcm⟩
+          rcases List.mem_cons.mp hmm with he | hmem
+          · rw [he] at hcm; exact absurd hcm hc
+          · exact hmem)
+        exact ⟨m :: pre, m', rest, by simp [hsplit], hc', fun m' hm' => by
+          rcases List.mem_cons.mp hm' with he | hmem
+          · rw [he]
+            cases hbool : m.consumesStock with
+            | false => rfl
+            | true => exact absurd hbool hc
+          · exact hnc m' hmem⟩
+
+/-- A non-consuming play replays from any cursor-partner (the draw arm
+included — its successor is again a partner). -/
+theorem run_nonConsuming_blind : ∀ (l : List Move) (st st' s : State),
+    (∀ m ∈ l, m.consumesStock = false) → st.diffCursor st' → st.run l = some s →
+    ∃ t, st'.run l = some t ∧ s.diffCursor t := by
+  intro l
+  induction l with
+  | nil =>
+      intro st st' s _ hd hrun
+      have h0 : st.run [] = some st := rfl
+      rw [h0] at hrun
+      have hss : st = s := Option.some.inj hrun
+      subst hss
+      exact ⟨st', rfl, hd⟩
+  | cons m t ih =>
+      intro st st' s hind hd hrun
+      simp only [State.run] at hrun
+      cases hsm : st.apply m with
+      | none => rw [hsm] at hrun; simp at hrun
+      | some s₁ =>
+          rw [hsm] at hrun
+          have hrest : s₁.run t = some s := hrun
+          have hc := hind m (List.mem_cons.mpr (Or.inl rfl))
+          obtain ⟨s₁', hs₁', hds₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
+          obtain ⟨u, htrun, hdu⟩ :=
+            ih s₁ s₁' s (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm'))) hds₁ hrest
+          refine ⟨u, ?_, hdu⟩
+          simp only [State.run]
+          rw [hs₁']
+          exact htrun
+
+/-- An interleaved non-consuming prefix's stock effect is the pure deal
+count: the cursor after the prefix is `countDraw` deals from the start. -/
+theorem run_stock_deals : ∀ (l : List Move) (st y : State),
+    (∀ m ∈ l, m.consumesStock = false) → st.run l = some y →
+    y.stock = Cycle.dealN st.drawStep (countDraw l) st.stock ∧
+      y.drawStep = st.drawStep := by
+  intro l
+  induction l with
+  | nil =>
+      intro st y _ hrun
+      have h0 : st.run [] = some st := rfl
+      rw [h0] at hrun
+      have hss : st = y := Option.some.inj hrun
+      subst hss
+      exact ⟨rfl, rfl⟩
+  | cons m t ih =>
+      intro st y hind hrun
+      simp only [State.run] at hrun
+      cases hsm : st.apply m with
+      | none => rw [hsm] at hrun; simp at hrun
+      | some s₁ =>
+          rw [hsm] at hrun
+          have hrest : s₁.run t = some y := hrun
+          have hc := hind m (List.mem_cons.mpr (Or.inl rfl))
+          obtain ⟨hstock, hds⟩ :=
+            ih s₁ y (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm'))) hrest
+          cases m with
+          | draw =>
+              have ha₁ : s₁ = { st with stock := Cycle.dealOnce st.drawStep st.stock } :=
+                apply_draw_iff.mp hsm
+              rw [ha₁] at hstock hds
+              rw [show ({ st with stock := Cycle.dealOnce st.drawStep st.stock } : State).drawStep
+                    = st.drawStep from rfl] at hstock hds
+              refine ⟨?_, hds⟩
+              rw [countDraw, hstock, ← Cycle.dealN_one, Cycle.dealN_add]
+          | deckPile c b => simp [Move.consumesStock] at hc
+          | deckStack c => simp [Move.consumesStock] at hc
+          | reveal c =>
+              rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm] at hstock
+              rw [apply_drawStep_invar hsm] at hstock hds
+              exact ⟨hstock, hds⟩
+          | pileStack c =>
+              rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm] at hstock
+              rw [apply_drawStep_invar hsm] at hstock hds
+              exact ⟨hstock, hds⟩
+          | stackPile c b =>
+              rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm] at hstock
+              rw [apply_drawStep_invar hsm] at hstock hds
+              exact ⟨hstock, hds⟩
+          | pilePile c b =>
+              rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm] at hstock
+              rw [apply_drawStep_invar hsm] at hstock hds
+              exact ⟨hstock, hds⟩
+
+/-- The paired replay with deal-skipping: from a cursor-partner `b`
+whose stock is `j` deals ahead of `a`'s, a non-consuming play replays
+with those `j` draws skipped — the end states are partners, and `b`'s
+end stock is `j - countDraw l` deals ahead of `a`'s end stock (zero
+once the play exhausts the budget, which is the hurry lemma's merge). -/
+theorem trim_pair : ∀ (l : List Move) (j : Nat) (a b y : State),
+    a.diffCursor b → b.stock = Cycle.dealN a.drawStep j a.stock →
+    (∀ m ∈ l, m.consumesStock = false) → a.run l = some y →
+    ∃ l' y', b.run l' = some y' ∧ y.diffCursor y' ∧
+      y'.stock = Cycle.dealN y.drawStep (j - countDraw l) y.stock := by
+  intro l
+  induction l with
+  | nil =>
+      intro j a b y hd hj _ hrun
+      have h0 : a.run [] = some a := rfl
+      rw [h0] at hrun
+      have hss : a = y := Option.some.inj hrun
+      subst hss
+      refine ⟨[], b, rfl, hd, ?_⟩
+      rw [countDraw, Nat.sub_zero]
+      exact hj
+  | cons m t ih =>
+      intro j a b y hd hj hind hrun
+      simp only [State.run] at hrun
+      cases hsm : a.apply m with
+      | none => rw [hsm] at hrun; simp at hrun
+      | some a₁ =>
+          rw [hsm] at hrun
+          have hrest : a₁.run t = some y := hrun
+          have hc := hind m (List.mem_cons.mpr (Or.inl rfl))
+          cases j with
+          | zero =>
+              -- the budgets coincide: b *is* a (same stock, same fields)
+              have hba : b = a := by
+                refine state_ext hd.1.symm hd.2.1.symm hd.2.2.1.symm hd.2.2.2.1.symm ?_
+                  hd.2.2.2.2.2.symm
+                rw [hj, Cycle.dealN_zero]
+              have hself : y.diffCursor y := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+              refine ⟨m :: t, y, ?_, hself, ?_⟩
+              · rw [hba]
+                simp only [State.run]
+                rw [hsm]
+                exact hrest
+              · rw [Nat.zero_sub, Cycle.dealN_zero]
+          | succ j' =>
+              cases m with
+              | draw =>
+              -- b skips this deal
+              have ha₁ : a₁ = { a with stock := Cycle.dealOnce a.drawStep a.stock } :=
+                apply_draw_iff.mp hsm
+              have hda₁ : a₁.diffCursor b := by
+                rw [ha₁]
+                show a.deal = b.deal ∧ a.board = b.board ∧ a.heights = b.heights ∧
+                  a.depths = b.depths ∧
+                  (Cycle.dealOnce a.drawStep a.stock).cards = b.stock.cards ∧
+                  a.drawStep = b.drawStep
+                refine ⟨hd.1, hd.2.1, hd.2.2.1, hd.2.2.2.1, ?_, hd.2.2.2.2.2⟩
+                rw [Cycle.dealOnce_cards a.drawStep a.stock]
+                exact hd.2.2.2.2.1
+              have hinvar : b.stock = Cycle.dealN a₁.drawStep j' a₁.stock := by
+                rw [ha₁]
+                show b.stock = Cycle.dealN a.drawStep j'
+                    (Cycle.dealOnce a.drawStep a.stock)
+                rw [hj, ← Cycle.dealN_one, Cycle.dealN_add]
+              obtain ⟨l', y', hbrest, hdy, hystock⟩ :=
+                ih j' a₁ b y hda₁ hinvar
+                  (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm'))) hrest
+              refine ⟨l', y', hbrest, hdy, ?_⟩
+              rw [countDraw]
+              have hsub : j' + 1 - (countDraw t + 1) = j' - countDraw t := by omega
+              rw [hsub, hystock]
+              | deckPile c b' => simp [Move.consumesStock] at hc
+              | deckStack c => simp [Move.consumesStock] at hc
+              | reveal c =>
+                  obtain ⟨b₁, hb₁, hdb₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
+                  have hinv₁ : b₁.stock = Cycle.dealN a₁.drawStep (j' + 1) a₁.stock := by
+                    rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hb₁, hj,
+                      apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm,
+                      apply_drawStep_invar hsm]
+                  obtain ⟨l', y', hbrest, hdy, hystock⟩ :=
+                    ih (j' + 1) a₁ b₁ y hdb₁ hinv₁
+                      (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm'))) hrest
+                  refine ⟨Move.reveal c :: l', y', ?_, hdy, hystock⟩
+                  simp only [State.run]
+                  rw [hb₁]
+                  exact hbrest
+              | pileStack c =>
+                  obtain ⟨b₁, hb₁, hdb₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
+                  have hinv₁ : b₁.stock = Cycle.dealN a₁.drawStep (j' + 1) a₁.stock := by
+                    rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hb₁, hj,
+                      apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm,
+                      apply_drawStep_invar hsm]
+                  obtain ⟨l', y', hbrest, hdy, hystock⟩ :=
+                    ih (j' + 1) a₁ b₁ y hdb₁ hinv₁
+                      (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm'))) hrest
+                  refine ⟨Move.pileStack c :: l', y', ?_, hdy, hystock⟩
+                  simp only [State.run]
+                  rw [hb₁]
+                  exact hbrest
+              | stackPile c b' =>
+                  obtain ⟨b₁, hb₁, hdb₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
+                  have hinv₁ : b₁.stock = Cycle.dealN a₁.drawStep (j' + 1) a₁.stock := by
+                    rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hb₁, hj,
+                      apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm,
+                      apply_drawStep_invar hsm]
+                  obtain ⟨l', y', hbrest, hdy, hystock⟩ :=
+                    ih (j' + 1) a₁ b₁ y hdb₁ hinv₁
+                      (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm'))) hrest
+                  refine ⟨Move.stackPile c b' :: l', y', ?_, hdy, hystock⟩
+                  simp only [State.run]
+                  rw [hb₁]
+                  exact hbrest
+              | pilePile c b' =>
+                  obtain ⟨b₁, hb₁, hdb₁⟩ := apply_nonConsuming_cursor_blind hc hd hsm
+                  have hinv₁ : b₁.stock = Cycle.dealN a₁.drawStep (j' + 1) a₁.stock := by
+                    rw [apply_nonConsuming_stock_invar hc (by intro h; simp at h) hb₁, hj,
+                      apply_nonConsuming_stock_invar hc (by intro h; simp at h) hsm,
+                      apply_drawStep_invar hsm]
+                  obtain ⟨l', y', hbrest, hdy, hystock⟩ :=
+                    ih (j' + 1) a₁ b₁ y hdb₁ hinv₁
+                      (fun m' hm' => hind m' (List.mem_cons.mpr (Or.inr hm'))) hrest
+                  refine ⟨Move.pilePile c b' :: l', y', ?_, hdy, hystock⟩
+                  simp only [State.run]
+                  rw [hb₁]
+                  exact hbrest
 
 /-- **The hurry lemma (physical game)**: with the later same-residue
 state `B = (board, M, o')` refuted, every win from the earlier
@@ -775,10 +1514,17 @@ prefix's deals past its reveals and shuffles
 same cursor, the draw merges (`drawCard_cursor_indep` — the successor
 is position-determined), and the suffix follows verbatim.
 
-TODO(proof) [M]: decompose the winning play at its first
-`consumesStock` move; the pre-draw prefix replays from `B` with the
-deals trimmed (same residue, no wrap below `o'`); a stock-free win
-contradicts `B` directly (non-consuming plays are cursor-blind). -/
+Proof: split at the first consuming move (`play_first_consumes`).  A
+stock-free win replays from B verbatim (`run_nonConsuming_blind`) —
+contradiction.  Otherwise, if the pre-consumption state's cursor has
+reached `o'`, the cursor got there by `countDraw pre` deals; the same
+residue means B's stock is `k₀ = (o' − o)/s` deals ahead
+(`exists_dealCount`), so B replays the prefix with those `k₀` draws
+skipped (`trim_pair` — the budget invariant `b.stock = dealN j a.stock`),
+and since the play exhausts the budget (`run_stock_deals` + the
+iterate bound — fewer deals would leave the cursor below `o'`), the
+end states coincide and B wins — contradiction.  At step 0 the residue
+hypothesis forces `o = o'` (Nat.mod_zero), so A is B — vacuous. -/
 theorem window_firstDraw {st : State} {o o' : Nat}
     (hle : o ≤ o') (hres : o % st.drawStep = o' % st.drawStep)
     (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
@@ -789,7 +1535,87 @@ theorem window_firstDraw {st : State} {o o' : Nat}
       ∃ pre m rest st₁,
         play = pre ++ m :: rest ∧ m.consumesStock = true ∧
         ({ st with stock := { st.stock with cursor := o } }).run pre = some st₁ ∧
-        st₁.stock.cursor < o' := sorry
+        st₁.stock.cursor < o' := by
+  have := hcur
+  intro play w hrun hw
+  by_cases hex : ∃ m, m ∈ play ∧ m.consumesStock = true
+  · -- split at the first consuming move
+    obtain ⟨pre, m, rest, hsplit, hcm, hnc⟩ := play_first_consumes play hex
+    rw [hsplit, run_append] at hrun
+    cases hpre : ({ st with stock := { st.stock with cursor := o } } : State).run pre with
+    | none => rw [hpre] at hrun; simp at hrun
+    | some st₁ =>
+        rw [hpre] at hrun
+        have hsuf : st₁.run (m :: rest) = some w := hrun
+        by_cases hlt : st₁.stock.cursor < o'
+        · exact ⟨pre, m, rest, st₁, hsplit, hcm, hpre, hlt⟩
+        · -- the cursor has reached o': B replays the prefix with the
+          -- deals trimmed and wins — contradiction
+          exfalso
+          by_cases hs : 0 < st.drawStep
+          · obtain ⟨k₀, hk₀⟩ := exists_dealCount hs hle hres
+            have hdiff : ({ st with stock := { st.stock with cursor := o } } : State).diffCursor
+                { st with stock := { st.stock with cursor := o' } } :=
+              ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+            -- the budget: B's stock is k₀ deals ahead of A's
+            have hinv : ({ st with stock := { st.stock with cursor := o' } } : State).stock
+                = Cycle.dealN st.drawStep k₀
+                  ({ st with stock := { st.stock with cursor := o } } : State).stock := by
+              show (⟨st.stock.cards, o'⟩ : Cycle Card)
+                  = Cycle.dealN st.drawStep k₀ (⟨st.stock.cards, o⟩ : Cycle Card)
+              rw [dealOnce_iterate_add hs st.stock.cards k₀ o
+                (by rw [hk₀]; exact hcur'), hk₀]
+            obtain ⟨l', y', hy'run, hdy, hystock⟩ :=
+              trim_pair pre k₀ { st with stock := { st.stock with cursor := o } }
+                { st with stock := { st.stock with cursor := o' } } st₁ hdiff hinv hnc hpre
+            -- the play exhausted the budget (else st₁'s cursor < o')
+            obtain ⟨hstockcount, _⟩ :=
+              run_stock_deals pre { st with stock := { st.stock with cursor := o } } st₁
+                hnc hpre
+            have hk₀le : k₀ ≤ countDraw pre := by
+              apply Classical.byContradiction
+              intro hnot
+              have h1 : (countDraw pre + 1) * st.drawStep
+                  = countDraw pre * st.drawStep + st.drawStep := by
+                rw [Nat.add_mul, Nat.one_mul]
+              have h2 : (countDraw pre + 1) * st.drawStep ≤ k₀ * st.drawStep :=
+                Nat.mul_le_mul (by omega) (Nat.le_refl _)
+              have hcontra : o + countDraw pre * st.drawStep < o' := by omega
+              rw [show ({ st with stock := { st.stock with cursor := o } } : State).stock
+                    = (⟨st.stock.cards, o⟩ : Cycle Card) from rfl] at hstockcount
+              rw [dealOnce_iterate_add hs st.stock.cards (countDraw pre) o
+                (by omega)] at hstockcount
+              exact hlt (by rw [hstockcount]; exact hcontra)
+            have hsub : k₀ - countDraw pre = 0 := by omega
+            rw [hsub, Cycle.dealN_zero] at hystock
+            have hy'eq : y' = st₁ :=
+              state_ext hdy.1.symm hdy.2.1.symm hdy.2.2.1.symm hdy.2.2.2.1.symm
+                hystock hdy.2.2.2.2.2.symm
+            refine hB ⟨l' ++ m :: rest, w, ?_, hw⟩
+            rw [run_append, hy'run, hy'eq]
+            exact hsuf
+          · -- step zero: the residue forces o = o', so A is B
+            have hs0 : st.drawStep = 0 := by omega
+            rw [hs0, Nat.mod_zero, Nat.mod_zero] at hres
+            subst hres
+            exact hB hA
+  · -- no consuming move: the whole play is cursor-blind — B wins
+    exfalso
+    have hnc' : ∀ m' ∈ play, m'.consumesStock = false := by
+      intro m' hm'
+      cases hcb : m'.consumesStock with
+      | false => rfl
+      | true => exact absurd ⟨m', hm', hcb⟩ hex
+    have hdiff : ({ st with stock := { st.stock with cursor := o } } : State).diffCursor
+        { st with stock := { st.stock with cursor := o' } } :=
+      ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+    obtain ⟨w', hrun', hdw⟩ :=
+      run_nonConsuming_blind play { st with stock := { st.stock with cursor := o } }
+        { st with stock := { st.stock with cursor := o' } } w hnc' hdiff hrun
+    have hh : w.heights = w'.heights := hdw.2.2.1
+    have hisw : State.isWin w = State.isWin w' := by
+      simp only [State.isWin, hh]
+    exact hB ⟨play, w', hrun', by rw [← hisw]; exact hw⟩
 
 /-- **The window obligation (macro game)**: with the later state
 refuted, every winning macro line's first `drawCommit` draws a card
@@ -803,12 +1629,16 @@ characterizes the gap between `pace_dominance`'s two sides: when the
 better state wins and the worse is refuted, the difference is witnessed
 by a window card — the engine's "limit the next draw to the window".
 
-TODO(proof) [M]: decompose `ks` at the first `drawCommit` (the prefix
-is all `revealCommit` — the two-kind move set); replay it from the
-o'-state (`apply_nonConsuming_cursor_blind` — the reveals and the
-accommodation shuffles); the merge (`applyDrawTo_merge` /
-`applyDrawStackTo_merge`) gives the successor; the suffix lifts
-verbatim. -/
+Proof: split `ks` at the first `drawCommit` (`macroSteps_first_drawCommit`).
+An all-reveal line replays from the later state
+(`macroSteps_reveal_blind`) and wins — contradiction.  Otherwise the
+first `drawCommit`'s card, if accessible at the later cursor, lets the
+later state replay the prefix, make the same draw (the merge
+`applyDrawTo_merge` / `applyDrawStackTo_merge`), and lift the suffix —
+again a contradiction; so the drawn position is outside the later
+mask.  No residue condition is needed: the merge works from any
+`diffCursor` pair.  `hcur`/`hcur'`/`hA` are vestigial (the argument
+runs off the supplied line alone). -/
 theorem window_firstDraw_macro {st : State} {o o' : Nat} (hwf : st.WF)
     (hcur : o ≤ st.stock.cards.length) (hcur' : o' ≤ st.stock.cards.length)
     (hA : ({ st with stock := { st.stock with cursor := o } }).macroSolvable)
@@ -820,7 +1650,84 @@ theorem window_firstDraw_macro {st : State} {o o' : Nat} (hwf : st.WF)
         (∀ k ∈ pre, ∃ c, k = MacroMove.revealCommit c) ∧
         (∀ p, st.stock.posOf x = some p →
           p ∉ Pace.maskPos { cards := st.stock.cards, cursor := o' }
-            st.drawStep hwf.step_pos) := sorry
+            st.drawStep hwf.step_pos) := by
+  have := hcur
+  have := hcur'
+  have := hA
+  have hdiff : ({ st with stock := { st.stock with cursor := o } } : State).diffCursor
+      { st with stock := { st.stock with cursor := o' } } :=
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  intro ks w hsteps hw
+  rcases macroSteps_first_drawCommit ks
+      { st with stock := { st.stock with cursor := o } } w hsteps with
+    hall | ⟨pre, x, rest, s₂, s₃, hsplit, hpre, hpres₂, hdraw, hsuf⟩
+  · -- all reveals: the later state replays the line and wins
+    exfalso
+    obtain ⟨w', hsteps', hdw, _, _, _, _⟩ :=
+      macroSteps_reveal_blind ks { st with stock := { st.stock with cursor := o } }
+        { st with stock := { st.stock with cursor := o' } } w hall hsteps hdiff
+    have hh : w.heights = w'.heights := hdw.2.2.1
+    have hisw : State.isWin w = State.isWin w' := by
+      simp only [State.isWin, hh]
+    exact hB ⟨ks, w', hsteps', by rw [← hisw]; exact hw⟩
+  · -- the first drawCommit: the window card
+    refine ⟨pre, x, rest, hsplit, hpre, ?_⟩
+    intro p hpos hmem
+    exfalso
+    -- replay the reveal prefix from the later state
+    obtain ⟨B₂, hstepsB₂, hdAB₂, hB₂stock, hs₂stock, hs₂ds, hB₂ds⟩ :=
+      macroSteps_reveal_blind pre { st with stock := { st.stock with cursor := o } }
+        { st with stock := { st.stock with cursor := o' } } s₂ hpre hpres₂ hdiff
+    obtain ⟨A₃, haccA, hcomA⟩ := hdraw
+    obtain ⟨play, hplay, hplaym⟩ := haccA
+    obtain ⟨B₃, hB₃run, hA₃B₃, hB₃stock, hA₃stock, hA₃ds, hB₃ds⟩ :=
+      accommodates_cursor_blind s₂ B₂ A₃ play hplaym hdAB₂ hplay
+    have hacct : accommodates B₂ B₃ := ⟨play, hB₃run, hplaym⟩
+    have hB₃stock' : B₃.stock = { st.stock with cursor := o' } := by
+      rw [hB₃stock, hs₂stock]
+    have hB₃ds' : B₃.drawStep = st.drawStep := by rw [hB₃ds, hB₂ds]
+    have hstepx : 0 < B₃.drawStep := by rw [hB₃ds']; exact hwf.step_pos
+    have hposx : B₃.stock.posOf x = some p := by
+      rw [hB₃stock', posOf_cards_eq rfl]
+      exact hpos
+    have hmemx : p ∈ Pace.maskPos B₃.stock B₃.drawStep hstepx :=
+      maskPos_mem_trans (show { st.stock with cursor := o' } = B₃.stock from hB₃stock'.symm)
+        (show st.drawStep = B₃.drawStep from hB₃ds'.symm) p hmem
+    have hxr : B₃.reachablePos x = some p :=
+      reachablePos_eq_some_iff.mpr ⟨hstepx, hposx, hmemx⟩
+    simp only [commitApplies] at hcomA
+    obtain ⟨base, hb⟩ := hcomA
+    rcases hb with ⟨hcan, hdt⟩ | hdst
+    · -- tableau landing: the same base, the merged successor
+      obtain ⟨_, bd, _, hatt, _⟩ := applyDrawTo_iff.mp hdt
+      have hattx : B₃.board.attach base x = some bd := by
+        rw [← hA₃B₃.2.1]; exact hatt
+      have hxdt : B₃.applyDrawTo x base =
+          some { B₃ with board := bd, stock := (B₃.stock.drawTo p).removeAt p } :=
+        applyDrawTo_iff.mpr ⟨p, bd, hxr, hattx, rfl⟩
+      have hmerge : s₃ = { B₃ with board := bd, stock := (B₃.stock.drawTo p).removeAt p } :=
+        applyDrawTo_merge hA₃B₃ hdt hxdt
+      rw [← hmerge] at hxdt
+      exact hB ⟨pre ++ MacroMove.drawCommit x :: rest, w,
+        macroSteps_append _ _ _ _ ⟨B₂, hstepsB₂, ⟨s₃, ⟨B₃, hacct, ⟨base, Or.inl ⟨by
+          rw [← canPlace_board_congr hA₃B₃.2.1]; exact hcan, hxdt⟩⟩⟩, hsuf⟩⟩, hw⟩
+    · -- stack landing
+      obtain ⟨_, _, hrk, _⟩ := applyDrawStackTo_iff.mp hdst
+      have hrkx : x.rank.toIdx = B₃.heights x.suit := by
+        rw [← hA₃B₃.2.2.1]; exact hrk
+      have hxds' : B₃.applyDrawStackTo x =
+          some { B₃ with
+            stock := (B₃.stock.drawTo p).removeAt p,
+            heights := fun s => if s = x.suit then B₃.heights s + 1 else B₃.heights s } :=
+        applyDrawStackTo_iff.mpr ⟨p, hxr, hrkx, rfl⟩
+      have hmerge : s₃ = { B₃ with
+            stock := (B₃.stock.drawTo p).removeAt p,
+            heights := fun s => if s = x.suit then B₃.heights s + 1 else B₃.heights s } :=
+        applyDrawStackTo_merge hA₃B₃ hdst hxds'
+      rw [← hmerge] at hxds'
+      exact hB ⟨pre ++ MacroMove.drawCommit x :: rest, w,
+        macroSteps_append _ _ _ _ ⟨B₂, hstepsB₂, ⟨s₃, ⟨B₃, hacct, ⟨base, Or.inr hxds'⟩⟩,
+          hsuf⟩⟩, hw⟩
 
 /-! Deferred macro statements, recorded:
 

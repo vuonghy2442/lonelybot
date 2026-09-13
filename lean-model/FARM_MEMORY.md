@@ -798,14 +798,16 @@ evert st; induction play; intro st, tail
   projections iota-reduce; no transfer lemmas, unlike relabelBy) + draw_comm_gen (the draw
   half: some s₁ >>= f and the successor shape make exact-defeq carry each arm) +
   State.run_append (upstream restatement — Progress IMPORTS Theorems, so its
-  solvable_of_reaches/un_append are UNUSABLE from Theorems; namespaced to dodge the
+  solvable_of_reaches/
+un_append are UNUSABLE from Theorems; namespaced to dodge the
   root-level collision).
 - QUIRKS: (1) xact h X (by simp) (by simp) proving False does NOT close an arbitrary
   goal — append .elim. (2) A 2-field with-update lemma's pattern did NOT rw against a
   1-field goal literal; fix: have-pin it with the untouched field EXPLICIT on the RHS
   (some {sd with board := bd, depths := st.depths} — {sd with board := bd} fails:
   sd.depths ≢ st.depths while sd is opaque). (3) An equation fixing a case-arm binder
-  (b₀' = b₀) must be rw'd at EVERY hypothesis mentioning it (w [hb₀e] at hne hatt).
+  (b₀' = b₀) must be rw'd at EVERY hypothesis mentioning it (
+w [hb₀e] at hne hatt).
   (4) bind-normalization: (some x >>= f) ≡ f x by iota — show/xact defeq handles
   unreduced binds, no core Option.bind lemmas needed.
 ## Dominance.lean — Wave 5 POR bridge: refuted, repaired, PROVEN (2026-09-13)
@@ -832,7 +834,8 @@ evert st; induction play; intro st, tail
   drop heights below the safe thresholds). Rank-induction shape per
   pruning_dominance_interaction.md §4 channels A/B.
 - SYNTAX paid: show applyXxx… then simp only [State.apply, State.applyXxx]
-  EXPOSES the match before w [topOf-facts] (rw cannot see discriminants inside
+  EXPOSES the match before 
+w [topOf-facts] (rw cannot see discriminants inside
   an ununfolded application); records in have-types need ascription
   (stNP.heights (⟨s, r⟩ : Card).suit — bare { suit := s … } fails to elaborate);
   y decide inside implicit-arg position needs the implicit PINNED
@@ -953,7 +956,8 @@ evert st; induction play; intro st, tail
   parallel proofs): Repair B (buried base) — oard_edges' and Fits'
   deal-adjacency disjunct gained (∃ a', topHidden a' = some d) ∨
   (bottomOf d).isSome; in Fits topHidden is spelled (take ...).getLast?
-  (defeq through State.topHidden) — ealizable_of_wf and
+  (defeq through State.topHidden) — 
+ealizable_of_wf and
   	oEngine_realizedBy_board survived UNCHANGED by defeq. Repair A —
   WF += TWO conjuncts: ounds_gone (SKETCH CORRECTED: the sketch's
   two-part version is REFUTED by reveal — a hidden-passed boundary
@@ -986,9 +990,12 @@ otMem_take_of_get (noDup pile),
   flatMap/pile kit (noDupCards_flatMap_of_mem, piles_disj_aux,
   Deal.pile_noDup, Deal.piles_disj); board inverses
   (detach_bottomOf_self — Bridge's name taken, bottomOf_isSome_attach_of_ne).
-- QUIRKS: (1) rcases fl patterns on mem_cons substitute
+- QUIRKS: (1) rcases 
+fl patterns on mem_cons substitute
   unpredictably (y := a vs a := y) — use explicit hae : a = y +
-  w [← hae]; (2) w [haa] at hcm BEFORE defeq-casting hcm into
+  
+w [← hae]; (2) 
+w [haa] at hcm BEFORE defeq-casting hcm into
   take-form (by_cases does NOT substitute the free var); (3) wf-slot
   passing needs dealOnce_cards rw (posOf reads the stock); (4) STALE
   OLEANS cost an hour of fake rcases errors — after ANY State/Move
@@ -1383,3 +1390,177 @@ otMem_take_of_get (noDup pile),
 - elan state: lean-model override + lean-toolchain pin = v4.33.1; the
   root and lean-verify overrides REMOVED (lean-verify inherits the
   default now; its stale .lake will rebuild on next use).
+
+## Macro.lean — the physical-game pace reachability (2026-09-13)
+
+- LANDED (axiom-clean [propext, Quot.sound]; file's sorry residue = the
+  six macro rows): deal_chain_reaches, deal_passEnd_reaches,
+  pace_dominance_phys_residue, pace_dominance_phys_passEnd,
+  solvable_iff_pure_cursors — the latter three REPAIRED: each gained
+  `(hstep : 0 < st.drawStep)`.
+- REFUTED AS STAGED (witnesses/PaceStepZeroWitness.lean, exit 0, core
+  facts axiom-clean, README updated): they carried no step-positivity —
+  at drawStep = 0 every deal is the identity (min (c+0) n = c), the
+  pass end is unreachable while its twin (cursor = 4) wins by four
+  deckStacks the frozen cursor cannot make. Witness state stZ: empty
+  board, heights 12, stock = the 4 kings, step 0; dead-kit via the
+  apply_*_iff inversions + run-fix induction. Item 1 SURVIVES s = 0
+  (mod_zero forces o = o'; play []). The *_refuted corollaries go
+  HISTORICAL on the next olean refresh (by design, ApplyWfCounter
+  lifecycle).
+- ROUTES: 1 = run_replicate_draw + dealOnce_iterate_add + a k-extraction
+  case-bash (omega cannot link variable-divisor % with products):
+  (o'-o)%s = 0 from mod_lt + mod_eq_of_lt case split, then
+  Nat.add_comm / show v+u = v+u*1 / Nat.add_mul_mod_self_left (core has
+  NO Nat.add_mod_self). 3/4 = solvable_of_reaches one-liners (item 3's
+  unused hcur silenced by have := hcur). 5 = the through-pass chain
+  x→passEnd ++ [draw] (the wrap: if_pos (Nat.le_refl _)) ++ 0→y
+  (deal_chain_reaches; SOURCE purity is never needed — only the
+  target's), composed by run_append with bind-iota defeq exacts.
+- 4.33 QUIRKS: Nat.div_add_mod is now k*(m/k)+m%k — the product order
+  FLIPPED vs 4.30 (rw [Nat.mul_comm] at it; exists_mul_of_mod_zero is
+  the in-file precedent). And AGAIN: a show whose record VALUE breaks
+  lines fails to parse — keep each {x with f := v} on one line.
+- SIBLING COLLISION: their Kit.lean went red mid-session (missing olean
+  blocked ALL downstream verification) — polled ~8 min until green; did
+  not work around it.
+
+## Pace.lean — waves 8/10: all six items LANDED (2026-09-13)
+
+- pos_shift, cursor_after, burial_bound [M] + maskPos_pure_indep/_residue_mono/_impure_sup_pure
+[E]: Pace exit 0, one census sorry left (realizes_iff_stepsOK). Axiom-clean ([propext,
+Quot.sound], +Classical.choice for burial/masks). Refutation probes (Temp\opencode\
+paceprobe.lean, #eval): all 340 len≤4 sequences of a 4-deck + 720×7 prefixes of 6-deck perms
+(machine trio), d4/d6 × steps 1-4 × all cursor pairs (mask trio) — ZERO violations, no repairs.
+- pos_shift ROUTE (better than the FARM sketch — no order-preservation lemmas): run_cards_filter
+(the run's end deck IS filter(∉pre): removeIdx_filter_mem + filter_filter + filter_congr;
+run_mem feeds the IH membership; run_pre_nodup via x∉c₁.cards/posOf-none) then idxOf_filter
+(index-in-filter = passing-before count) + filter_mem_take_count + filter_split_compl.
+cursor_after = drawCard shape + removeAt_drawTo_eq + pos_shift, two lines.
+- burial_bound: count_interval (|[a,b)| = b−a via count_below ×2 + one filter_split_add) +
+pigeonhole both directions. THE [M] CORE: the arithmetic hyp TRUNCATES — omega needs the
+no-truncation fact idxOf x ≥ rBelow init x + 2, built from two distinct non-init cards (w, z)
+below x: pigeonhole_le [w,z] ≤ take∖init + have : [w,z].length = 2 := rfl (omega does NOT
+evaluate literal list lengths; without it the vacuous-truncation branch survives and omega
+reports a fake counterexample).
+- MASK TRIO: one new lemma mod_sub_one_of_mod_zero (o%step=0 ∧ 0<o → (o−1)%step=step−1;
+step≤o via Nat.mul_le_mul_left — omega cannot extract o ≥ step from step*(o/step)=o, nonlinear).
+After the maskPos_mem_iff rws: A ∨ B ∨ C is A ∨ (B ∨ C) — Or.inl h, NOT Or.inl (Or.inl h).
+himp vestigial in impure_sup (silenced with have := himp).
+- KIT.lean ADDITIONS (scoped build refreshed; State/Move re-verified exit 0): NoDupP_noDupCards,
+filter_true_id, idxOf kit (idxOf_cons_ne/_le_of_get/_get/_lt_length/_inj/_filter), take kit
+(mem_of_mem_take, nodupP_take, mem_take_iff — needs NO noDup), count kit (filter_split_compl,
+count_below, count_singleton, filter_mem_take_count), dropLast_append_single,
+mem_removeIdx_of/_iff. PACE-LOCAL (consolidation: Move/Theorems copies are DOWNSTREAM):
+findFirstIdx_get, mem_of_posOf (≠ Move's Cycle.posOf_mem direction), posOf_eq_idxOf, run_mem,
+run_pre_nodup, run_cards_filter, rBelow_append_single, count_interval. removeAt_drawTo_eq =
+the known Cycle.removeAt_drawTo dup, kept.
+- SYNTAX paid: show T from e is NOT tactic syntax (rw-arg only) — use xact e (defeq);
+if after simp only needs a trailing rfl; Bool-ite if_neg wants the ¬(decide P = true) form;
+list-induction IH does NOT re-take the list (ih c₁ c' hrun', not ih xs c₁ c' ...);
+subst hzx : z = x ate the INDUCTION head — rw [hzx] on the goal instead; Or.resolve_left
+wants ¬(w = a) = Ne.symm haw; List.length_cons rw fires on ONE instantiation (t.filter p vs t)
+— use rfl-length haves for omega; state rBelow-links in rBelow-form (have := hsplit — omega
+cannot delta-unfold the goal); count Eq.trans sides before chaining.
+
+## Pace.lean — realizes_iff_stepsOK PROVEN (+hpure repair) (2026-09-13)
+
+- REFUTED AS STAGED (#eval probe + witnesses/PaceStepsOKWitness.lean): realizes' FIRST draw reads the
+  INITIAL cursor's mask (leading lane included) while stepOK at pre = [] has no predecessor — any impure
+  cursor (deck [♥A,♥2], step 2, cursor 1) gives realizable-but-not-stepsOK. REPAIR: + (hpure :
+  c.cursor % step = 0 ∨ c.cursor = c.cards.length) (maskPos_pure_indep's class; rung 3 starts at
+  cursor 0, so not vacuous). Probed clean: all perms n ≤ 7 × steps 1-4 × every pure cursor + 40320 perms
+  at n = 8. The ← direction needs NO hpure (first-draw disjuncts are cursor-free). Exit 0, zero
+  warnings, axioms [propext, Classical.choice, Quot.sound]. The witness's broken lemma cites the pre-repair form.
+- LANDED (Pace-local kit): lane_pred_mod, perm_nodupP (core's Perm ctor is cons NOT skip),
+  noDupCards_snoc, posOf_idxOf, run_cursor_le (posOf_lt + removeIdx_length), run_snoc (THREE cycle
+  binders start/end/succ — a two-binder version is FALSE), run_snoc_inv, realizes_prefix,
+  run_cursor_last (cursor_after packaged), getLast?_snoc, snoc_split, filter_idxOf_lt (idxOf_filter +
+  pigeonhole), filter_last_maxRem, maxRem_last (maxRem ↔ last position: filter_split_add + bijection
+  vs w :: take-filter), mid_step_iff (the per-step iff), nil_stepOK_realizes (the pre = [] step).
+- QUIRKS: cases h : e substitutes the GOAL — never rw the scrutinee after (have-cast instead:
+  have h' : run c₂ t = some c := hrun); rw [← h] rewrites RHS→LHS (match the slot's term, not the
+  goal's); ∧-conjunct ORDER in anonymous constructors (maskPos_mem_iff's (A) is %-residue FIRST); rw at
+  MULTIPLE hyps needs the pattern in ALL of them; (init ++ [x]).length = init.length + 1 is NOT rfl;
+  spell every filter as fun z => decide (z ∉ pre) identically — omega/rw atoms match binder names.
+
+## Dominance.lean — cascade_sound REFUTED+repaired+PROVEN (2026-09-13)
+
+- FALSITY (witnesses/CascadeWitness.lean, exit 0, core facts axiom-clean; the
+  state is WF, so +hwf is NOT a repair): empty stock makes applyDraw the
+  IDENTITY (dealOnce: cursor >= length -> 0; 0 >= 0) — draw is trivially
+  dominantAt (successor = self), so h holds for the draw-only filter at
+  EVERY reachable solvable state while no all-draw play wins. Same trap
+  class: pilePile / worry-back stackPile — invertible => dominant, no progress.
+- REPAIR: the h escape += strict cascadeMeasure decrease (heightDebt
+  Sum_s(13-h) + totalDepth + stockLen); draws excluded — the engine's
+  draw-loops die via CyclePruner/TP (unmodeled); a draw-inclusive cascade
+  needs the deal-orbit period (deferred). Kit: cascade_escape_progress
+  (commit OR pileStack -> strict decrease; no WF — Rank.toIdx_lt caps the
+  bump; reveal/deck via the proven Progress monotonicities).
+- PROOF: bounded Nat induction on the measure; win -> []; escape -> dominantAt
+  keeps the successor solvable, run_append at pi++[m] keeps h in scope.
+- SYNTAX: 'fun s' => by rw [hs]; rfl' — the rfl ESCAPED the lambda (outer ;);
+  rcases '-' slots failed again (use '_'); solvableWith ctor: play, allP,
+  st', run, win; 'cases hh :' substitutes the goal (don't rw after). Pace's
+  mid-edit red file cost ~20 min of polling (Move imports Pace — missing
+  olean blocks all downstream; poll, don't work around).
+
+## Macro.lean — the pace dominances ALL FIVE LANDED (2026-09-13)
+
+- PROVEN (exit 0, lone census sorry = solvableEngine_iff_macro): pace_dominance,
+  pace_dominance_residue, pace_dominance_impure_pure, window_firstDraw,
+  window_firstDraw_macro — axioms [propext, Quot.sound] (+Classical.choice for 2/4).
+- ROUTE 1: macroSolvable_of_simulates at R = diffCursor ∧ drawStep-pin ∧ STOCK PINS
+  (x.stock = st.stock, y.stock = the o'-stock) — the pins make the maskPos superset
+  never re-establishable (reveals preserve stocks, draws MERGE past R). 2/3 =
+  pace_dominance at the o-variant (wf_of_cursor) + B2's Pace mask lemmas as hK.
+- ROUTE 5: macroSteps_first_drawCommit split; reveal prefix replays
+  (macroSteps_reveal_blind); accessible card ⇒ applyDrawTo/StackTo_merge ⇒ B wins.
+  NO residue needed. ROUTE 4: trim_pair (budget b.stock = dealN j a.stock, B skips j
+  draws; j = 0 ⇒ b = a free) + run_stock_deals + exists_dealCount; k₀le via
+  mul_le_mul haves fed to omega (omega can't do c<s → c·s<k₀·s alone).
+- NEW KIT (Macro-local; consolidation candidates for State/Commutation):
+  diffCursor_symm, apply_drawStep_invar, canPlace_board_congr, maskPos_mem_trans
+  (proof-irrelevance transport), wf_of_cursor, accommodates_cursor_blind +
+  acc_step_blind, countDraw, run_nonConsuming_blind, run_stock_deals, trim_pair,
+  play_first_consumes, exists_dealCount, macroSteps_append/_first_drawCommit/
+  _reveal_blind.
+- PROBE (Temp\opencode\paceprobe2.lean): 10-deck #eval, steps 2/3/4, all 121 cursor
+  pairs — R1/R2 zero violations, direction strict — no repairs. Step-0 hole closed
+  by hres (Nat.mod_zero forces o = o'), same as the physical family.
+- SYNTAX paid: apply_nonConsuming_cursor_blind takes ONLY (hc, hd, h) — no hm;
+  posOf_cards_eq's arg needs its own typed have (by-block runs before ?cy' assigned);
+  commitApplies' ∃ base wrapper on BOTH disjuncts; rcases '-' slots broke AGAIN
+  (use '_' at the right arity — the stack iff has 4 flat slots); show (x >>= f) = e
+  is NOT defeq to st.run (m :: t) = e (two stuck matchers) — simp only [State.run]
+  first, then rw the apply-equation; destructured-output NAMES by side not by slot
+  (macroSteps_reveal_blind slot 4 = the SOURCE's stock); with-update .stock often
+  iota-reduces inside rw results but .drawStep does not — per-field show-(rfl)-rws.
+- Pace olean vanished mid-session (~12 min poll; the known Move-imports-Pace blast
+  radius — poll, don't work around).
+
+## Theorems.lean — the crux REFUTED as staged, repaired (+hnotlock), case kit landed (2026-09-13)
+
+- REFUTED (witnesses/B4LockedWitness.lean, DeadPile's state reused, facts axiom-clean): the
+  crux AND solvable_accommodates were FALSE — a LOCKED stackable is a commit, not a shuffle
+  (Dominance's accepted safe_pileStack hole, never propagated to B4). REPAIR: crux
+  `+ (hnotlock : st.isLocked c = false)`; chain: playSafeAccomm/safeAccommodates (defs after
+  `accommodates` — that def UNCHANGED, Macro cites it) through accomm_step (+hnl) and
+  aux/main. One census sorry left (the crux); Dominance/Macro/Progress verified green after.
+- LANDED (before the crux, all [propext, Quot.sound]): solvable_of_pileStack_return (R-half:
+  canReturnBase => roundtrip+replay; vis_base_of_notLocked is the visibility piece);
+  pileStack_pilePile_stackPile (pi's own pilePile c b'' replays as stackPile c b'' onto the SAME
+  successor — no IH); commute squares in "exists t" form pileStack_comm_{draw,reveal,deckStack,
+  deckPile}. BLOCKER: park-on-c + excursion reduce to the endgame (compliant-play normal form);
+  remaining: stackPile/pilePile squares + the pi-induction (delete case trivial).
+- RECIPE: equality half = Commutation's comm_*_pileStack with disjointTouch DERIVED (touch eqs
+  by simp only [Move.touch, guards] or rfl; transfers: bottomOf_detach_ne, detach_topOf_ne,
+  pileOfTopHidden_congr, vis_off_cycle + Cycle.posOf_mem for stocked x, Rank.toIdx_inj for the
+  suit split). QUIRKS: iff-slots take the GOAL's state form (rw [hs1] first, or s1-form
+  hprev'/hatt1' bridges); `by rw [hde]` auto-rfls Sum.inr d = Sum.inr c (trailing rfl errors);
+  rcases slot COUNT on and_eq_true_iff.mp results = 2; playSafeAccomm must sit AFTER the
+  forall-st in the aux (else st-dagger capture).
+- INCIDENT: scoped `lake build Klondike.Theorems` cascaded into the sibling's red mid-edit
+  Pace.lean and DELETED its olean (downstream blocked ~15 min until they finished). Check
+  sibling mtimes before any lake build — lake env lean keeps working off stale oleans.

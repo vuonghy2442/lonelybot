@@ -670,5 +670,345 @@ theorem encF_lt {α : Type} (r : Nat) : ∀ (l : List α) (f : α → Nat),
       calc f a + r * encF r t f < r * r ^ t.length := nest_lt h1 h2
         _ = r ^ t.length * r := Nat.mul_comm _ _
 
+/-! ## The idxOf / take / counting kit
+
+First-occurrence indexing (`List.idxOf`, Nat-valued, `length` when
+absent), its interaction with `Cycle.removeIdx` and `List.take`, and
+the counting transfers the burial/position lemmas stand on. -/
+
+/-- The head-style distinctness implies the index-wise one. -/
+theorem NoDupP_noDupCards : ∀ {l : List Card}, NoDupP l → noDupCards l := by
+  intro l
+  induction l with
+  | nil => intro _ i j hi; simp only [List.length_nil] at hi; omega
+  | cons a t ih =>
+      intro hnd i j hi hj heq
+      simp only [List.length_cons] at hi hj
+      cases i with
+      | zero =>
+          rw [List.getElem?_cons_zero] at heq
+          cases j with
+          | zero => rfl
+          | succ j' =>
+              rw [List.getElem?_cons_succ] at heq
+              exact absurd (List.mem_iff_getElem?.mpr ⟨j', heq.symm⟩) hnd.1
+      | succ i' =>
+          cases j with
+          | zero =>
+              rw [List.getElem?_cons_zero, List.getElem?_cons_succ] at heq
+              exact absurd (List.mem_iff_getElem?.mpr ⟨i', heq⟩) hnd.1
+          | succ j' =>
+              rw [List.getElem?_cons_succ, List.getElem?_cons_succ] at heq
+              have := ih hnd.2 i' j' (by omega) (by omega) heq
+              omega
+
+/-- Filtering by an always-true predicate changes nothing. -/
+theorem filter_true_id : ∀ (l : List Card), l.filter (fun _ => true) = l := by
+  intro l
+  induction l with
+  | nil => rfl
+  | cons a t ih =>
+      exact congrArg (a :: ·) ih
+
+/-- The index of a non-head element steps past the head. -/
+theorem idxOf_cons_ne {a w : Card} {t : List Card} (h : a ≠ w) :
+    (a :: t).idxOf w = t.idxOf w + 1 := by
+  have hbeq : (a == w) = false := by simp [h]
+  simp only [List.idxOf_cons, hbeq]
+  rfl
+
+/-- A found index is minimal. -/
+theorem idxOf_le_of_get : ∀ (l : List Card) (w : Card) (k : Nat),
+    l[k]? = some w → l.idxOf w ≤ k := by
+  intro l
+  induction l with
+  | nil => intro w k h; simp at h
+  | cons a t ih =>
+      intro w k h
+      cases k with
+      | zero =>
+          rw [List.getElem?_cons_zero, Option.some.injEq] at h
+          rw [h, List.idxOf_cons_self]
+          exact Nat.le_refl _
+      | succ k' =>
+          rw [List.getElem?_cons_succ] at h
+          by_cases haw : a = w
+          · rw [haw, List.idxOf_cons_self]
+            exact Nat.zero_le _
+          · rw [idxOf_cons_ne haw]
+            have := ih w k' h
+            omega
+
+/-- The index of a member points at it. -/
+theorem idxOf_get : ∀ (l : List Card) (w : Card), w ∈ l → l[l.idxOf w]? = some w := by
+  intro l
+  induction l with
+  | nil => intro w h; cases h
+  | cons a t ih =>
+      intro w h
+      by_cases haw : a = w
+      · rw [haw, List.idxOf_cons_self, List.getElem?_cons_zero]
+      · rw [idxOf_cons_ne haw, List.getElem?_cons_succ]
+        exact ih w ((List.mem_cons.mp h).resolve_left (Ne.symm haw))
+
+/-- A member's index is in range. -/
+theorem idxOf_lt_length {l : List Card} {w : Card} (h : w ∈ l) :
+    l.idxOf w < l.length :=
+  (List.getElem?_eq_some_iff.mp (idxOf_get l w h)).1
+
+/-- `idxOf` is injective on members. -/
+theorem idxOf_inj {l : List Card} {z z' : Card} (hz : z ∈ l) (hz' : z' ∈ l)
+    (h : l.idxOf z = l.idxOf z') : z = z' := by
+  have e1 : l[l.idxOf z']? = some z := by rw [← h]; exact idxOf_get l z hz
+  have e2 : l[l.idxOf z']? = some z' := idxOf_get l z' hz'
+  exact Option.some.inj (e1.symm.trans e2)
+
+/-- Taking a prefix keeps only original members. -/
+theorem mem_of_mem_take : ∀ (l : List Card) (k : Nat) (z : Card),
+    z ∈ l.take k → z ∈ l := by
+  intro l
+  induction l with
+  | nil => intro k z h; simp at h
+  | cons a t ih =>
+      intro k z h
+      cases k with
+      | zero =>
+          rw [show List.take 0 (a :: t) = ([] : List Card) from rfl] at h
+          cases h
+      | succ k' =>
+          rw [show List.take (k' + 1) (a :: t) = a :: List.take k' t from rfl] at h
+          rcases List.mem_cons.mp h with rfl | h'
+          · exact List.mem_cons.mpr (Or.inl rfl)
+          · exact List.mem_cons_of_mem _ (ih k' z h')
+
+/-- Distinctness survives taking a prefix. -/
+theorem nodupP_take : ∀ (l : List Card) (k : Nat), NoDupP l → NoDupP (l.take k) := by
+  intro l
+  induction l with
+  | nil => intro k _; cases k <;> exact trivial
+  | cons a t ih =>
+      intro k hnd
+      obtain ⟨hat, hndt⟩ := hnd
+      cases k with
+      | zero => rw [show List.take 0 (a :: t) = ([] : List Card) from rfl]; exact trivial
+      | succ k' =>
+          rw [show List.take (k' + 1) (a :: t) = a :: List.take k' t from rfl]
+          exact ⟨fun hmem => hat (mem_of_mem_take t k' a hmem), ih k' hndt⟩
+
+/-- Prefix membership, in index terms: `take k` holds exactly the
+members whose `idxOf` is below `k`. -/
+theorem mem_take_iff {l : List Card} (k : Nat) (z : Card) :
+    z ∈ l.take k ↔ z ∈ l ∧ l.idxOf z < k := by
+  constructor
+  · intro h
+    obtain ⟨j, hj⟩ := List.mem_iff_getElem?.mp h
+    have hz : (if j < k then l[j]? else none) = some z := by
+      rw [← List.getElem?_take]; exact hj
+    by_cases hjk : j < k
+    · rw [if_pos hjk] at hz
+      refine ⟨List.mem_iff_getElem?.mpr ⟨j, hz⟩, ?_⟩
+      have := idxOf_le_of_get l z j hz
+      omega
+    · rw [if_neg hjk] at hz
+      simp at hz
+  · intro h
+    obtain ⟨hmem, hlt⟩ := h
+    have hget : l[l.idxOf z]? = some z := idxOf_get l z hmem
+    have hjk : (l.take k)[l.idxOf z]? = some z := by
+      rw [List.getElem?_take, if_pos hlt]; exact hget
+    have hbound : l.idxOf z < (l.take k).length := by
+      rw [List.length_take]
+      have := idxOf_lt_length hmem
+      omega
+    exact List.mem_iff_getElem?.mpr ⟨l.idxOf z, hjk⟩
+
+/-- A filter and its complement split the length exactly. -/
+theorem filter_split_compl (p : Card → Bool) : ∀ (l : List Card),
+    (l.filter p).length + (l.filter (fun z => !p z)).length = l.length := by
+  intro l
+  induction l with
+  | nil => rfl
+  | cons a t ih =>
+      cases hpa : p a with
+      | true =>
+          have e1 : (a :: t).filter p = a :: t.filter p := by
+            rw [List.filter_cons, if_pos hpa]
+          have e2 : (a :: t).filter (fun z => !p z) = t.filter (fun z => !p z) := by
+            rw [List.filter_cons, if_neg (by simp [hpa])]
+          rw [e1, e2]
+          have h1 : (a :: t.filter p).length = (t.filter p).length + 1 := rfl
+          have h2 : (a :: t).length = t.length + 1 := rfl
+          omega
+      | false =>
+          have e1 : (a :: t).filter p = t.filter p := by
+            rw [List.filter_cons, if_neg (by simp [hpa])]
+          have e2 : (a :: t).filter (fun z => !p z) = a :: t.filter (fun z => !p z) := by
+            rw [List.filter_cons, if_pos (by simp [hpa])]
+          rw [e1, e2]
+          have h1 : (a :: t.filter (fun z => !p z)).length
+              = (t.filter (fun z => !p z)).length + 1 := rfl
+          have h2 : (a :: t).length = t.length + 1 := rfl
+          omega
+
+/-- Below-`k` counting: the first `k` positions hold exactly `k` cards
+(distinct list, `k` within range). -/
+theorem count_below {l : List Card} (hnd : noDupCards l) {k : Nat} (hk : k ≤ l.length) :
+    (l.filter (fun z => decide (l.idxOf z < k))).length = k := by
+  have hndP : NoDupP l := noDupCards_NoDupP hnd
+  have hmem1 : ∀ z ∈ l.filter (fun z => decide (l.idxOf z < k)), z ∈ l.take k := by
+    intro z hz
+    obtain ⟨hml, hlt⟩ := List.mem_filter.mp hz
+    exact (mem_take_iff k z).mpr ⟨hml, by simpa using hlt⟩
+  have hmem2 : ∀ z ∈ l.take k, z ∈ l.filter (fun z => decide (l.idxOf z < k)) := by
+    intro z hz
+    obtain ⟨hml, hlt⟩ := (mem_take_iff k z).mp hz
+    exact List.mem_filter.mpr ⟨hml, by simpa using hlt⟩
+  have hlen := length_eq_of_bijection (f := fun z => z) (g := fun z => z)
+    (l.filter (fun z => decide (l.idxOf z < k))) (l.take k)
+    (nodupP_filter _ hndP) (nodupP_take l k hndP)
+    (fun z hz => ⟨hmem1 z hz, rfl⟩) (fun z hz => ⟨hmem2 z hz, rfl⟩)
+  rw [hlen, List.length_take]
+  omega
+
+/-- A distinct list filters to a singleton at any member. -/
+theorem count_singleton {l : List Card} {w : Card} (hnd : noDupCards l) (hmem : w ∈ l) :
+    (l.filter (fun z => decide (z = w))).length = 1 := by
+  have hndP : NoDupP l := noDupCards_NoDupP hnd
+  have hnd1 : NoDupP [w] := ⟨by simp, trivial⟩
+  have := length_eq_of_bijection (f := fun z => z) (g := fun z => z)
+    (l.filter (fun z => decide (z = w))) [w] (nodupP_filter _ hndP) hnd1
+    (fun z hz => by
+      obtain ⟨-, hzw⟩ := List.mem_filter.mp hz
+      have hz' : z = w := by simpa using hzw
+      rw [hz']; simp)
+    (fun z hz => by
+      have hz' : z = w := List.mem_singleton.mp hz
+      exact ⟨by rw [hz']; exact List.mem_filter.mpr ⟨hmem, by simp⟩, by simp [hz']⟩)
+  simpa using this
+
+/-- Counting transfer: filtering the first `k` positions of `d` by
+membership in `pre` counts the same as filtering `pre` by the
+`idxOf`-below-`k` test (both count the overlap — distinct lists,
+`pre` inside `d`). -/
+theorem filter_mem_take_count {d pre : List Card} (hnd : noDupCards d)
+    (hndpre : noDupCards pre) (hsub : ∀ z ∈ pre, z ∈ d) (k : Nat) :
+    ((d.take k).filter (fun z => decide (z ∈ pre))).length
+      = (pre.filter (fun z => decide (d.idxOf z < k))).length := by
+  have hndP : NoDupP d := noDupCards_NoDupP hnd
+  have hndpreP : NoDupP pre := noDupCards_NoDupP hndpre
+  have hmem1 : ∀ z ∈ (d.take k).filter (fun z => decide (z ∈ pre)),
+      z ∈ pre.filter (fun z => decide (d.idxOf z < k)) := by
+    intro z hz
+    obtain ⟨hzt, hzp⟩ := List.mem_filter.mp hz
+    obtain ⟨hml, hlt⟩ := (mem_take_iff k z).mp hzt
+    have hzp' : z ∈ pre := by simpa using hzp
+    exact List.mem_filter.mpr ⟨hzp', by simpa using hlt⟩
+  have hmem2 : ∀ z ∈ pre.filter (fun z => decide (d.idxOf z < k)),
+      z ∈ (d.take k).filter (fun z => decide (z ∈ pre)) := by
+    intro z hz
+    obtain ⟨hzp, hlt⟩ := List.mem_filter.mp hz
+    have hml : z ∈ d := hsub z hzp
+    refine List.mem_filter.mpr ⟨(mem_take_iff k z).mpr ⟨hml, by simpa using hlt⟩, ?_⟩
+    simp [hzp]
+  exact length_eq_of_bijection (f := fun z => z) (g := fun z => z)
+    ((d.take k).filter (fun z => decide (z ∈ pre)))
+    (pre.filter (fun z => decide (d.idxOf z < k)))
+    (nodupP_filter _ (nodupP_take d k hndP)) (nodupP_filter _ hndpreP)
+    (fun z hz => ⟨hmem1 z hz, rfl⟩) (fun z hz => ⟨hmem2 z hz, rfl⟩)
+
+/-- The index of a member in a filtered list counts the passing
+elements before it. -/
+theorem idxOf_filter (p : Card → Bool) : ∀ (l : List Card) (w : Card), w ∈ l → p w = true →
+    (l.filter p).idxOf w = ((l.take (l.idxOf w)).filter p).length := by
+  intro l
+  induction l with
+  | nil => intro w h; cases h
+  | cons a t ih =>
+      intro w hmem hpw
+      by_cases haw : a = w
+      · rw [haw, List.filter_cons, if_pos hpw, List.idxOf_cons_self, List.idxOf_cons_self]
+        rfl
+      · have hwt : w ∈ t := (List.mem_cons.mp hmem).resolve_left (Ne.symm haw)
+        rw [idxOf_cons_ne haw, List.filter_cons,
+          show List.take (t.idxOf w + 1) (a :: t) = a :: List.take (t.idxOf w) t from rfl,
+          List.filter_cons]
+        by_cases hpa : p a = true
+        · rw [if_pos hpa, if_pos hpa, idxOf_cons_ne haw, List.length_cons]
+          have := ih w hwt hpw
+          omega
+        · rw [if_neg hpa, if_neg hpa]
+          exact ih w hwt hpw
+
+/-- Dropping the last element of a single-suffix append. -/
+theorem dropLast_append_single {α : Type} : ∀ (init : List α) (x : α),
+    (init ++ [x]).dropLast = init := by
+  intro init x
+  rw [List.dropLast_append, if_neg (by simp : ¬(([x] : List α).isEmpty = true)),
+    show ([x] : List α).dropLast = ([] : List α) from rfl, List.append_nil]
+
+/-! ## The splice-membership kit -/
+
+/-- Removal keeps only original members. -/
+theorem mem_removeIdx_of {l : List Card} {i : Nat} {z : Card}
+    (h : z ∈ Cycle.removeIdx l i) : z ∈ l := by
+  obtain ⟨k, hk⟩ := List.mem_iff_getElem?.mp h
+  have hget := Cycle.getElem?_removeIdx l i k
+  rw [hk] at hget
+  by_cases hlt : k < i
+  · rw [if_pos hlt] at hget
+    exact List.mem_iff_getElem?.mpr ⟨k, hget.symm⟩
+  · rw [if_neg hlt] at hget
+    exact List.mem_iff_getElem?.mpr ⟨k + 1, hget.symm⟩
+
+/-- Removal membership, exactly: the splice keeps everything but the
+removed card (which occurs once, distinct list). -/
+theorem mem_removeIdx_iff {l : List Card} {i : Nat} {c : Card}
+    (hnd : noDupCards l) (hget : l[i]? = some c) (z : Card) :
+    z ∈ Cycle.removeIdx l i ↔ z ∈ l ∧ z ≠ c := by
+  have hilt : i < l.length := (List.getElem?_eq_some_iff.mp hget).1
+  have hlen : (Cycle.removeIdx l i).length + 1 = l.length :=
+    Cycle.removeIdx_length l i hilt
+  constructor
+  · intro hmem
+    obtain ⟨k, hk⟩ := List.mem_iff_getElem?.mp hmem
+    have hklt : k < l.length := by
+      have := (List.getElem?_eq_some_iff.mp hk).1
+      omega
+    have hz : (if k < i then l[k]? else l[k + 1]?) = some z := by
+      rw [← Cycle.getElem?_removeIdx l i k]; exact hk
+    constructor
+    · by_cases hlt : k < i
+      · rw [if_pos hlt] at hz
+        exact List.mem_iff_getElem?.mpr ⟨k, hz⟩
+      · rw [if_neg hlt] at hz
+        exact List.mem_iff_getElem?.mpr ⟨k + 1, hz⟩
+    · intro hzc
+      rw [hzc] at hz
+      by_cases hlt : k < i
+      · rw [if_pos hlt] at hz
+        have := hnd k i hklt hilt (hz.trans hget.symm)
+        omega
+      · rw [if_neg hlt] at hz
+        have hk1 : k + 1 < l.length := by
+          have := (List.getElem?_eq_some_iff.mp hk).1
+          omega
+        have := hnd (k + 1) i hk1 hilt (hz.trans hget.symm)
+        omega
+  · intro hmem
+    obtain ⟨hzl, hne⟩ := hmem
+    obtain ⟨j, hj⟩ := List.mem_iff_getElem?.mp hzl
+    have hjlt : j < l.length := (List.getElem?_eq_some_iff.mp hj).1
+    have hji : j ≠ i := by
+      intro hji
+      rw [hji] at hj
+      exact hne (Option.some.inj (hj.symm.trans hget))
+    by_cases hlt : j < i
+    · exact List.mem_iff_getElem?.mpr ⟨j, by
+        rw [Cycle.getElem?_removeIdx, if_pos hlt]; exact hj⟩
+    · have hilt2 : i < j := by omega
+      exact List.mem_iff_getElem?.mpr ⟨j - 1, by
+        rw [Cycle.getElem?_removeIdx, if_neg (by omega),
+          show j - 1 + 1 = j from by omega]; exact hj⟩
+
 
 
