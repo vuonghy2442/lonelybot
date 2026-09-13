@@ -1,4 +1,5 @@
 import Klondike.Bridge
+import Klondike.Kit
 
 /-!
 # The initial state — exhibiting WF states
@@ -63,21 +64,6 @@ def State.initial (d : Deal) (drawStep : Nat) : State where
   drawStep := drawStep
 
 /-! ## Statements -/
-
-/-- The 52 cards are distinct (index-wise, over the factored
-product). -/
-theorem Card.universe_noDup : noDupCards Card.universe := by
-  intro i j hi hj heq
-  rw [Card.universe_length] at hi hj
-  have hall : ∀ i ∈ List.range 52, ∀ j ∈ List.range 52,
-      Card.universe[i]? = Card.universe[j]? → i = j := by decide
-  exact hall i (List.mem_range.mpr hi) j (List.mem_range.mpr hj) heq
-
-/-- Reassembling a chunk: the first `n` of `drop s`, followed by
-`drop t` (with `s + n = t`), is `drop s` again. -/
-theorem take_drop_chunk {α : Type} (l : List α) (s n t : Nat) (h : s + n = t) :
-    (l.drop s).take n ++ l.drop t = l.drop s := by
-  rw [← h, ← List.drop_drop, List.take_append_drop]
 
 /-- The `ofList` slices, exposed for rewriting. -/
 theorem Deal.ofList_piles (l : List Card) (a : Anchor) :
@@ -203,17 +189,6 @@ theorem decompose_last : ∀ (k : Nat) (l : List Card) (u c : Card),
         obtain ⟨t₀, ht⟩ := ih (x :: t') u c
           (by simp only [List.length_cons] at hlen ⊢; omega) h0 hgt
         exact ⟨a :: t₀, by rw [ht]; rfl⟩
-
-/-- Last-element membership. -/
-theorem mem_of_getLast {l : List Card} {c : Card} (h : l.getLast? = some c) : c ∈ l := by
-  rw [← head?_reverse_eq_getLast?] at h
-  cases hrev : l.reverse with
-  | nil => rw [hrev] at h; simp at h
-  | cons x t =>
-    rw [hrev] at h
-    simp only [List.head?_cons, Option.some.injEq] at h
-    subst h
-    exact List.mem_reverse.mp (by rw [hrev]; exact List.mem_cons_self)
 
 /-- Distinctness of a suffix, from distinctness of the concatenation. -/
 theorem noDupCards_append_right {l₁ l₂ : List Card} (h : noDupCards (l₁ ++ l₂)) :

@@ -1,4 +1,5 @@
 import Klondike.Theorems
+import Klondike.Progress
 
 /-!
 # Dominances — the rules that are known to be good
@@ -29,16 +30,58 @@ def State.solvableWith (P : Move → Bool) (st : State) : Prop :=
 
 /-! ## The POR bridge — dominance vs commutation, one direction -/
 
-/-- Full commutation *implies* dominance: a move that can be bubbled
-past any other move (reaching the same state) can be forced first in
-any winning play.  The converse fails — a safe stack is dominant via
-worry-back yet commutes with nothing (it changes `heights`, which
-changes every other stack's legality).  TODO(proof): play induction. -/
+/-- Full commutation *implies* dominance, one direction: a move that
+can be bubbled past any other move (reaching the same composite state)
+can be forced first — provided some winning play actually uses `m`.
+The bubbling pushes `m`'s first occurrence in the winning play to the
+front, one exchange at a time; each exchange is `h` at the state just
+before the occurrence.  The converse fails — a safe stack is dominant
+via worry-back yet commutes with nothing (it changes `heights`, which
+changes every other stack's legality).
+
+REPAIR (2026-09-13, wrong-theorem protocol): the staged statement had
+the exchange at `st` only and no occurrence premise — refuted by a
+prover-checked witness (scratch `RefuteCommutesAll`, axiom-clean): a
+won state (empty board, all heights 13, empty stock) with
+`m = .pileStack ♥2` — the exchange hypothesis holds vacuously (♥2 is
+on no board at `st` nor at any one-step successor), the state is
+solvable via `[]`, and `dominantAt` fails since `m` is illegal at
+`st`.  The exchange is now at every state (the bubbling applies it at
+each prefix state of the play), and `huse` supplies the missing
+occurrence: some winning play must contain `m` — without it no
+exchange ever fires, and a play avoiding `m` leaves nothing to
+bubble. -/
 theorem dominant_of_commutesWithAll {st : State} {m : Move}
-    (h : ∀ m' : Move, ∀ st₁ st₂ : State,
-      st.apply m' = some st₁ → st₁.apply m = some st₂ →
-      ∃ st₃, st.apply m = some st₃ ∧ st₃.apply m' = some st₂) :
-    dominantAt st m := sorry
+    (h : ∀ (s : State) (m' : Move) (s₁ s₂ : State),
+      s.apply m' = some s₁ → s₁.apply m = some s₂ →
+      ∃ s₃, s.apply m = some s₃ ∧ s₃.apply m' = some s₂)
+    (huse : ∃ play w, st.run play = some w ∧ w.isWin = true ∧ m ∈ play) :
+    dominantAt st m := by
+  intro _
+  obtain ⟨play, w, hrun, hwin, hmem⟩ := huse
+  have main : ∀ (play : List Move) (s w : State),
+      s.run play = some w → w.isWin = true → m ∈ play →
+      ∃ s₃, s.apply m = some s₃ ∧ s₃.solvableFrom := by
+    intro play
+    induction play with
+    | nil => intro s w _ _ hmem; exact absurd hmem (by simp)
+    | cons m₁ rest ih =>
+        intro s w hrun hwin hmem
+        obtain ⟨t₁, hap₁, hrest, _⟩ := run_cons_inv hrun
+        by_cases hm₁ : m₁ = m
+        · subst hm₁
+          exact ⟨t₁, hap₁, rest, w, hrest, hwin⟩
+        · have hmem' : m ∈ rest := by
+            simp only [List.mem_cons] at hmem
+            rcases hmem with h | h
+            · exact absurd h.symm hm₁
+            · exact h
+          obtain ⟨s₃, hap₃, hs₃⟩ := ih t₁ w hrest hwin hmem'
+          obtain ⟨s₄, hap₄, ham₄⟩ := h s m₁ t₁ s₃ hap₁ hap₃
+          refine ⟨s₄, hap₄, ?_⟩
+          exact solvable_of_reaches ⟨[m₁], by
+            simp only [State.run, ham₄]⟩ hs₃
+  exact main play st w hrun hwin hmem
 
 /-! ## §5.1 Forced safe stacking -/
 

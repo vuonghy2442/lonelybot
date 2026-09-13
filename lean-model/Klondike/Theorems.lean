@@ -1127,11 +1127,43 @@ theorem pileStack_stackPile_roundtrip {st : State} {c : Card} {b₀ : Base}
           rw [hbd, hh]
     · exact absurd h₁' (by simp)
 
-/-- TODO(proof): the moved run carries back; `aboveOf` is unchanged. -/
+/-- The moved run carries back; `aboveOf` is unchanged.  The first move
+detaches `b₀` and attaches `b`; the second (given legal) detaches `b`
+and attaches `b₀` — the composition's `topOf` is pointwise the
+original's, and pilePile writes only the board. -/
 theorem pilePile_roundtrip {st : State} {c : Card} {b b₀ : Base} {st₁ st₂ : State}
     (h₀ : st.board.bottomOf c = some b₀)
     (h₁ : st.apply (Move.pilePile c b) = some st₁)
-    (h₂ : st₁.apply (Move.pilePile c b₀) = some st₂) : st₂ = st := sorry
+    (h₂ : st₁.apply (Move.pilePile c b₀) = some st₂) : st₂ = st := by
+  have htop₀ : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp h₀
+  rw [apply_pilePile_iff] at h₁
+  obtain ⟨b₀', hb₀', hne, _, bd, hatt, hst₁⟩ := h₁
+  rw [h₀] at hb₀'
+  have hb₀e : b₀' = b₀ := (Option.some.inj hb₀').symm
+  rw [hb₀e] at hne hatt
+  rw [hst₁] at h₂
+  rw [apply_pilePile_iff] at h₂
+  obtain ⟨b₁, hb₁, _, _, bd₂, hatt₂, hst₂⟩ := h₂
+  have hb₁' : bd.bottomOf c = some b₁ := hb₁
+  have hatt₂' : (bd.detach b₁).attach b₀ c = some bd₂ := hatt₂
+  have hbb₁ : b₁ = b :=
+    bd.inj b₁ b c ((Board.bottomOf_eq bd c b₁).mp hb₁') (Board.attach_topOf _ _ _ hatt)
+  rw [hbb₁] at hatt₂'
+  have hneA : (st.board.detach b₀).attach b c ≠ none := by rw [hatt]; simp
+  obtain ⟨hta, _⟩ := (Board.attach_eq_some_iff _ _ _).mp hneA
+  have htb : st.board.topOf b = none := by
+    rw [← Board.detach_topOf_ne st.board b₀ b (Ne.symm hne)]
+    exact hta
+  have hbd₂ : bd₂ = st.board := by
+    refine Board.ext_topOf (funext (fun b' => ?_))
+    by_cases hbb₀ : b' = b₀
+    · rw [hbb₀, Board.attach_topOf _ _ _ hatt₂', htop₀]
+    · rw [Board.attach_topOf_ne _ _ _ hatt₂' hbb₀]
+      by_cases hbb : b' = b
+      · rw [hbb, Board.detach_topOf, htb]
+      · rw [Board.detach_topOf_ne _ _ _ hbb, Board.attach_topOf_ne _ _ _ hatt hbb,
+          Board.detach_topOf_ne _ _ _ hbb₀]
+  rw [hst₂, hbd₂]
 
 /-- A full pass plus the wrap deal returns to the pass start: from
 cursor 0, dealing everything (the clamp passes the last card) and
@@ -1192,10 +1224,30 @@ def Move.consumesStock : Move → Bool
 def accommodates (st st' : State) : Prop :=
   ∃ play, st.run play = some st' ∧ ∀ m ∈ play, m.isAccommodation = true
 
+/-- Prepending plays: `run` distributes over `++` (the append lemma —
+Progress's `run_append` restated for the upstream file, under the
+`State` namespace to keep the names distinct). -/
+theorem State.run_append (st : State) (l₁ l₂ : List Move) :
+    st.run (l₁ ++ l₂) = (st.run l₁) >>= fun s => s.run l₂ := by
+  revert st
+  induction l₁ with
+  | nil => intro st; rfl
+  | cons m ms ih =>
+      intro st
+      simp only [List.cons_append, State.run]
+      cases st.apply m with
+      | none => rfl
+      | some st' => exact ih st'
+
 /-- The accommodation reduction, easy direction — prepend the shuffle
-play.  TODO. -/
+play: an accommodation play from `st'` to `st`, then the win. -/
 theorem solvable_of_accommodates {st st' : State}
-    (hacc : accommodates st' st) (hsol : st.solvableFrom) : st'.solvableFrom := sorry
+    (hacc : accommodates st' st) (hsol : st.solvableFrom) : st'.solvableFrom := by
+  obtain ⟨play, hrun, _⟩ := hacc
+  obtain ⟨win, w, hwrun, hwin⟩ := hsol
+  refine ⟨play ++ win, w, ?_, hwin⟩
+  rw [State.run_append, hrun]
+  exact hwrun
 
 /-- The accommodation reduction, hard direction — this is the reshape
 argument (B4): a winning play survives the cards having been shuffled
@@ -1227,17 +1279,394 @@ def Move.comps : Move → List Component
   | .stackPile _ _ => [.tableau, .foundations]
   | .pilePile _ _ => [.tableau]
 
-/-- TODO(proof): each move's legality reads only its components, so
-neither order sees the other's writes. -/
+/-! ### The blindness kit — the commutation workhorse
+
+A move's guards read only their own components, so replacing the fields
+a move never reads preserves its outcome up to those fields: the
+stock/heights-blind forms (reveal, pilePile — for the `draw` and
+`deckStack` pairs), the board/depths-blind form (deckStack — for the
+reveal/pilePile pairs), and the stock-blind none-forms (pileStack,
+stackPile).  The `some`-forms carry the successor along with the
+replaced fields. -/
+
+theorem reveal_blind_some {st : State} {c : Card} {cy : Cycle Card} {hs : Suit → Nat}
+    {s₁ : State} (h : st.apply (Move.reveal c) = some s₁) :
+    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal c)
+      = some { s₁ with stock := cy, heights := hs } := by
+  rw [apply_reveal_iff] at h
+  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := h
+  rw [hst₁]
+  rw [apply_reveal_iff]
+  exact ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩
+
+theorem reveal_blind_none {st : State} {c : Card} {cy : Cycle Card} {hs : Suit → Nat}
+    (h : st.apply (Move.reveal c) = none) :
+    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal c) = none := by
+  cases hr : ({ st with stock := cy, heights := hs } : State).apply (Move.reveal c) with
+  | none => rfl
+  | some _ =>
+      exfalso
+      rw [apply_reveal_iff] at hr
+      obtain ⟨htop, r, a, bd, hbot, hpile, hatt, _⟩ := hr
+      have hcontra : st.apply (Move.reveal c) = some { st with
+          board := bd,
+          depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' } :=
+        apply_reveal_iff.mpr ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩
+      exact absurd hcontra (by rw [h]; simp)
+
+theorem pilePile_blind_some {st : State} {c : Card} {b : Base} {cy : Cycle Card}
+    {hs : Suit → Nat} {s₁ : State} (h : st.apply (Move.pilePile c b) = some s₁) :
+    ({ st with stock := cy, heights := hs } : State).apply (Move.pilePile c b)
+      = some { s₁ with stock := cy, heights := hs } := by
+  rw [apply_pilePile_iff] at h
+  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, hst₁⟩ := h
+  rw [hst₁]
+  rw [apply_pilePile_iff]
+  exact ⟨b₀, hb₀, hne, hcmr, bd, hatt, rfl⟩
+
+theorem pilePile_blind_none {st : State} {c : Card} {b : Base} {cy : Cycle Card}
+    {hs : Suit → Nat} (h : st.apply (Move.pilePile c b) = none) :
+    ({ st with stock := cy, heights := hs } : State).apply (Move.pilePile c b) = none := by
+  cases hr : ({ st with stock := cy, heights := hs } : State).apply (Move.pilePile c b) with
+  | none => rfl
+  | some _ =>
+      exfalso
+      rw [apply_pilePile_iff] at hr
+      obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, _⟩ := hr
+      have hcontra : st.apply (Move.pilePile c b) = some { st with board := bd } :=
+        apply_pilePile_iff.mpr ⟨b₀, hb₀, hne, hcmr, bd, hatt, rfl⟩
+      exact absurd hcontra (by rw [h]; simp)
+
+theorem deckStack_blind_some {st : State} {c : Card} {bd : Board} {dpt : Anchor → Nat}
+    {sd : State} (h : st.apply (Move.deckStack c) = some sd) :
+    ({ st with board := bd, depths := dpt } : State).apply (Move.deckStack c)
+      = some { sd with board := bd, depths := dpt } := by
+  rw [apply_deckStack_iff] at h
+  obtain ⟨hp, hrk, hsd⟩ := h
+  rw [hsd]
+  rw [apply_deckStack_iff]
+  exact ⟨hp, hrk, rfl⟩
+
+theorem deckStack_blind_none {st : State} {c : Card} {bd : Board} {dpt : Anchor → Nat}
+    (h : st.apply (Move.deckStack c) = none) :
+    ({ st with board := bd, depths := dpt } : State).apply (Move.deckStack c) = none := by
+  cases hr : ({ st with board := bd, depths := dpt } : State).apply (Move.deckStack c) with
+  | none => rfl
+  | some _ =>
+      exfalso
+      rw [apply_deckStack_iff] at hr
+      obtain ⟨hp, hrk, _⟩ := hr
+      have hcontra : st.apply (Move.deckStack c) = some { st with
+          stock := st.stock.removeAt (st.stock.cursor - 1),
+          heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s } :=
+        apply_deckStack_iff.mpr ⟨hp, hrk, rfl⟩
+      exact absurd hcontra (by rw [h]; simp)
+
+theorem pileStack_blind_none {st : State} {c : Card} {cy : Cycle Card}
+    (h : st.apply (Move.pileStack c) = none) :
+    ({ st with stock := cy } : State).apply (Move.pileStack c) = none := by
+  cases hr : ({ st with stock := cy } : State).apply (Move.pileStack c) with
+  | none => rfl
+  | some _ =>
+      exfalso
+      rw [apply_pileStack_iff] at hr
+      obtain ⟨htop, b, hb, hrk, _⟩ := hr
+      have hcontra : st.apply (Move.pileStack c) = some { st with
+          board := st.board.detach b,
+          heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s } :=
+        apply_pileStack_iff.mpr ⟨htop, b, hb, hrk, rfl⟩
+      exact absurd hcontra (by rw [h]; simp)
+
+theorem stackPile_blind_none {st : State} {c : Card} {b : Base} {cy : Cycle Card}
+    (h : st.apply (Move.stackPile c b) = none) :
+    ({ st with stock := cy } : State).apply (Move.stackPile c b) = none := by
+  cases hr : ({ st with stock := cy } : State).apply (Move.stackPile c b) with
+  | none => rfl
+  | some _ =>
+      exfalso
+      rw [apply_stackPile_iff] at hr
+      obtain ⟨hrk, hcp, bd, hatt, _⟩ := hr
+      have hcontra : st.apply (Move.stackPile c b) = some { st with
+          board := bd,
+          heights := fun s => if s = c.suit then st.heights s - 1 else st.heights s } :=
+        apply_stackPile_iff.mpr ⟨hrk, hcp, bd, hatt, rfl⟩
+      exact absurd hcontra (by rw [h]; simp)
+
+/-- The `draw` half of every draw-pair: the deal always succeeds, so
+only the other move's stock-blindness remains — failure persists, and
+success carries the successor with the deal's stock. -/
+theorem draw_comm_gen (st : State) (m : Move)
+    (hn : st.apply m = none →
+      ({ st with stock := st.stock.dealOnce st.drawStep } : State).apply m = none)
+    (hs : ∀ s₁, st.apply m = some s₁ →
+      ({ st with stock := st.stock.dealOnce st.drawStep } : State).apply m
+        = some { s₁ with stock := s₁.stock.dealOnce s₁.drawStep }) :
+    (st.apply Move.draw >>= fun s => s.apply m) = (st.apply m >>= fun s => s.apply Move.draw) := by
+  have hD : st.apply Move.draw = some { st with stock := st.stock.dealOnce st.drawStep } := rfl
+  rw [hD]
+  cases hm : st.apply m with
+  | none => exact hn hm
+  | some s₁ => exact hs s₁ hm
+
+theorem draw_comm_reveal (st : State) (c : Card) :
+    (st.apply Move.draw >>= fun s => s.apply (Move.reveal c)) =
+    (st.apply (Move.reveal c) >>= fun s => s.apply Move.draw) := by
+  refine draw_comm_gen st (Move.reveal c) ?_ ?_
+  · exact reveal_blind_none
+  · intro s₁ h
+    rw [apply_reveal_iff] at h
+    obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := h
+    rw [hst₁]
+    rw [apply_reveal_iff]
+    exact ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩
+
+theorem draw_comm_pileStack (st : State) (c : Card) :
+    (st.apply Move.draw >>= fun s => s.apply (Move.pileStack c)) =
+    (st.apply (Move.pileStack c) >>= fun s => s.apply Move.draw) := by
+  refine draw_comm_gen st (Move.pileStack c) ?_ ?_
+  · exact pileStack_blind_none
+  · intro s₁ h
+    rw [apply_pileStack_iff] at h
+    obtain ⟨htop, b, hb, hrk, hst₁⟩ := h
+    rw [hst₁]
+    rw [apply_pileStack_iff]
+    exact ⟨htop, b, hb, hrk, rfl⟩
+
+theorem draw_comm_stackPile (st : State) (c : Card) (b : Base) :
+    (st.apply Move.draw >>= fun s => s.apply (Move.stackPile c b)) =
+    (st.apply (Move.stackPile c b) >>= fun s => s.apply Move.draw) := by
+  refine draw_comm_gen st (Move.stackPile c b) ?_ ?_
+  · exact stackPile_blind_none
+  · intro s₁ h
+    rw [apply_stackPile_iff] at h
+    obtain ⟨hrk, hcp, bd, hatt, hst₁⟩ := h
+    rw [hst₁]
+    rw [apply_stackPile_iff]
+    exact ⟨hrk, hcp, bd, hatt, rfl⟩
+
+theorem draw_comm_pilePile (st : State) (c : Card) (b : Base) :
+    (st.apply Move.draw >>= fun s => s.apply (Move.pilePile c b)) =
+    (st.apply (Move.pilePile c b) >>= fun s => s.apply Move.draw) := by
+  refine draw_comm_gen st (Move.pilePile c b) ?_ ?_
+  · exact pilePile_blind_none
+  · intro s₁ h
+    rw [apply_pilePile_iff] at h
+    obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, hst₁⟩ := h
+    rw [hst₁]
+    rw [apply_pilePile_iff]
+    exact ⟨b₀, hb₀, hne, hcmr, bd, hatt, rfl⟩
+
+/-- Each move's legality reads only its components, so neither order
+sees the other's writes.  The 49 move pairs split into the 37 with
+overlapping components (the hypothesis is absurd — any shared component
+witnesses it) and the 12 genuinely disjoint ones (draw with the four
+non-stock moves via `draw_comm_*`; reveal/deckStack and deckStack/pilePile
+via the blindness kit — both orders land on the same fieldwise merge). -/
 theorem commute_of_compsDisjoint (st : State) (m m' : Move)
     (h : ∀ x ∈ Move.comps m, x ∉ Move.comps m') :
-    (st.apply m >>= fun s => s.apply m') = (st.apply m' >>= fun s => s.apply m) := sorry
+    (st.apply m >>= fun s => s.apply m') = (st.apply m' >>= fun s => s.apply m) := by
+  cases m with
+  | draw =>
+      cases m' with
+      | draw => exact (h Component.stock (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | reveal c => exact draw_comm_reveal st c
+      | deckPile _ _ => exact (h Component.stock (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckStack _ => exact (h Component.stock (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pileStack c => exact draw_comm_pileStack st c
+      | stackPile c _ => exact draw_comm_stackPile st c _
+      | pilePile c b => exact draw_comm_pilePile st c b
+  | reveal c =>
+      cases m' with
+      | draw => exact (draw_comm_reveal st c).symm
+      | reveal _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckPile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckStack c' =>
+          cases hr : st.apply (Move.reveal c) with
+          | none =>
+              cases hd : st.apply (Move.deckStack c') with
+              | none => rfl
+              | some sd =>
+                  show none = sd.apply (Move.reveal c)
+                  rw [apply_deckStack_iff] at hd
+                  obtain ⟨hp, hrk, hsd⟩ := hd
+                  rw [hsd]
+                  exact (reveal_blind_none hr).symm
+          | some s₁ =>
+              cases hd : st.apply (Move.deckStack c') with
+              | none =>
+                  show s₁.apply (Move.deckStack c') = none
+                  rw [apply_reveal_iff] at hr
+                  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := hr
+                  rw [hst₁]
+                  exact deckStack_blind_none hd
+              | some sd =>
+                  show s₁.apply (Move.deckStack c') = sd.apply (Move.reveal c)
+                  have hrw := hr
+                  have hdw := hd
+                  rw [apply_reveal_iff] at hr
+                  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := hr
+                  rw [apply_deckStack_iff] at hd
+                  obtain ⟨hp, hrk, hsd⟩ := hd
+                  rw [hst₁, hsd]
+                  rw [deckStack_blind_some hdw, reveal_blind_some hrw]
+                  rw [hst₁, hsd]
+      | pileStack _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | stackPile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pilePile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+  | deckPile _ _ =>
+      cases m' with
+      | draw => exact (h Component.stock (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | reveal _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckPile _ _ => exact (h Component.stock (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckStack _ => exact (h Component.stock (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pileStack _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | stackPile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pilePile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+  | deckStack c =>
+      cases m' with
+      | draw => exact (h Component.stock (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | reveal c' =>
+          cases hd : st.apply (Move.deckStack c) with
+          | none =>
+              cases hr : st.apply (Move.reveal c') with
+              | none => rfl
+              | some s₁ =>
+                  show none = s₁.apply (Move.deckStack c)
+                  rw [apply_reveal_iff] at hr
+                  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := hr
+                  rw [hst₁]
+                  exact (deckStack_blind_none hd).symm
+          | some sd =>
+              cases hr : st.apply (Move.reveal c') with
+              | none =>
+                  show sd.apply (Move.reveal c') = none
+                  rw [apply_deckStack_iff] at hd
+                  obtain ⟨hp, hrk, hsd⟩ := hd
+                  rw [hsd]
+                  exact reveal_blind_none hr
+              | some s₁ =>
+                  show sd.apply (Move.reveal c') = s₁.apply (Move.deckStack c)
+                  have hrw := hr
+                  have hdw := hd
+                  rw [apply_reveal_iff] at hr
+                  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := hr
+                  rw [apply_deckStack_iff] at hd
+                  obtain ⟨hp, hrk, hsd⟩ := hd
+                  rw [hst₁, hsd]
+                  rw [reveal_blind_some hrw, deckStack_blind_some hdw]
+                  rw [hst₁, hsd]
+      | deckPile _ _ => exact (h Component.stock (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckStack _ => exact (h Component.stock (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pileStack _ => exact (h Component.foundations (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | stackPile _ _ =>
+          exact (h Component.foundations (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pilePile c' b =>
+          cases hd : st.apply (Move.deckStack c) with
+          | none =>
+              cases hpp : st.apply (Move.pilePile c' b) with
+              | none => rfl
+              | some s₁ =>
+                  show none = s₁.apply (Move.deckStack c)
+                  rw [apply_pilePile_iff] at hpp
+                  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, hst₁⟩ := hpp
+                  rw [hst₁]
+                  exact (deckStack_blind_none hd).symm
+          | some sd =>
+              cases hpp : st.apply (Move.pilePile c' b) with
+              | none =>
+                  show sd.apply (Move.pilePile c' b) = none
+                  rw [apply_deckStack_iff] at hd
+                  obtain ⟨hp, hrk, hsd⟩ := hd
+                  rw [hsd]
+                  exact pilePile_blind_none hpp
+              | some s₁ =>
+                  show sd.apply (Move.pilePile c' b) = s₁.apply (Move.deckStack c)
+                  have hppw := hpp
+                  have hdw := hd
+                  rw [apply_pilePile_iff] at hpp
+                  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, hst₁⟩ := hpp
+                  rw [apply_deckStack_iff] at hd
+                  obtain ⟨hp, hrk, hsd⟩ := hd
+                  rw [hst₁, hsd]
+                  rw [pilePile_blind_some hppw]
+                  have hb1 : ({ st with board := bd } : State).apply (Move.deckStack c)
+                      = some { sd with board := bd, depths := st.depths } :=
+                    deckStack_blind_some hdw
+                  rw [hb1]
+                  rw [hst₁, hsd]
+  | pileStack c =>
+      cases m' with
+      | draw => exact (draw_comm_pileStack st c).symm
+      | reveal _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckPile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckStack _ => exact (h Component.foundations (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pileStack _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | stackPile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pilePile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+  | stackPile c b =>
+      cases m' with
+      | draw => exact (draw_comm_stackPile st c b).symm
+      | reveal _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckPile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckStack _ => exact (h Component.foundations (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pileStack _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | stackPile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pilePile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+  | pilePile c b =>
+      cases m' with
+      | draw => exact (draw_comm_pilePile st c b).symm
+      | reveal _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckPile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | deckStack c' =>
+          cases hpp : st.apply (Move.pilePile c b) with
+          | none =>
+              cases hd : st.apply (Move.deckStack c') with
+              | none => rfl
+              | some sd =>
+                  show none = sd.apply (Move.pilePile c b)
+                  rw [apply_deckStack_iff] at hd
+                  obtain ⟨hp, hrk, hsd⟩ := hd
+                  rw [hsd]
+                  exact (pilePile_blind_none hpp).symm
+          | some s₁ =>
+              cases hd : st.apply (Move.deckStack c') with
+              | none =>
+                  show s₁.apply (Move.deckStack c') = none
+                  rw [apply_pilePile_iff] at hpp
+                  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, hst₁⟩ := hpp
+                  rw [hst₁]
+                  exact deckStack_blind_none hd
+              | some sd =>
+                  show s₁.apply (Move.deckStack c') = sd.apply (Move.pilePile c b)
+                  have hppw := hpp
+                  have hdw := hd
+                  rw [apply_pilePile_iff] at hpp
+                  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, hst₁⟩ := hpp
+                  rw [apply_deckStack_iff] at hd
+                  obtain ⟨hp, hrk, hsd⟩ := hd
+                  rw [hst₁, hsd]
+                  have hb1 : ({ st with board := bd } : State).apply (Move.deckStack c')
+                      = some { sd with board := bd, depths := st.depths } :=
+                    deckStack_blind_some hdw
+                  rw [hb1]
+                  rw [pilePile_blind_some hppw]
+                  rw [hst₁, hsd]
+      | pileStack _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | stackPile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
+      | pilePile _ _ => exact (h Component.tableau (by simp [Move.comps]) (by simp [Move.comps])).elim
 
 /-- The C-IND clean sector: draw·reveal always commutes.
-Instance of `commute_of_compsDisjoint`.  TODO. -/
+Instance of `commute_of_compsDisjoint`. -/
 theorem reveal_draw_comm (st : State) (c : Card) :
     (st.apply (Move.reveal c) >>= fun s => s.apply Move.draw) =
-    (st.apply Move.draw >>= fun s => s.apply (Move.reveal c)) := sorry
+    (st.apply Move.draw >>= fun s => s.apply (Move.reveal c)) := by
+  refine commute_of_compsDisjoint st (Move.reveal c) Move.draw ?_
+  intro x hx
+  cases x with
+  | tableau => simp [Move.comps]
+  | foundations => simp [Move.comps] at hx
+  | hidden => simp [Move.comps]
+  | stock => simp [Move.comps] at hx
 
 /-- The deal commutes with every non-consuming move: `.draw`'s
 component signature is `[.stock]` *alone* and its legality is

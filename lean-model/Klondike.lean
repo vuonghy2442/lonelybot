@@ -1,5 +1,6 @@
 import Klondike.Basic
 import Klondike.Cycle
+import Klondike.Kit
 import Klondike.Board
 import Klondike.State
 import Klondike.Pace

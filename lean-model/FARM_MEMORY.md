@@ -755,3 +755,148 @@ evert st; induction play; intro st, tail
   State.flipAll st) — no third rewrite needed. And solvable_relabel's
   iff is (relabelBy-solvable ↔ solvable): from st to flipped is .MPR.
   Axiom-clean: [propext, Quot.sound].
+
+## CONSOLIDATION-2: Klondike/Kit.lean — the shared kit extracted (2026-09-13)
+
+- NEW FILE `Klondike/Kit.lean` (imports Basic + Cycle only — the DAG
+  is Basic < Cycle < Kit < Board < State < …): `noDupCards` (def, ex
+  State.lean), `head?_reverse_eq_getLast?`, `mem_of_getLast` (MERGE:
+  Initial's + Move's `mem_of_getLast'` → one), `take_drop_chunk`,
+  `mem_split`, `mem_index`, `mem_middle_split`, the NoDupP kit
+  (`NoDupP`, `nodupP_sub/_remove`, `noDupCards_NoDupP`,
+  `universe_noDup` [Initial's dead `Card.universe_noDup` deleted —
+  identical proof], `universe_nodupP`, `nodupP_filter`,
+  `length_eq_of_bijection`, `filter_split_add`, `filter_len_zero`),
+  the allDistinct kit (def ex Progress + `_cons/_tail/_notMem/
+  _append_right/_filter/_map`, `pigeonhole_le`,
+  `distinct_nat_count_le`), `filter_mem_idem`, `filter_mem_self`,
+  `removeIdx_filter_mem`, the splice kit (`Cycle.getElem?_removeIdx`
+  ex Move, `removeIdx_length_le/_of_length_le`,
+  `noDupCards_removeIdx`), the radix kit (`encF`, `radix_peel`,
+  `nest_lt`, `encF_inj`, `encF_lt`).  Line moves: State 179→176,
+  Move 1478→1335, Initial 317→292, Progress 1402→1136, Realizability
+  520→291; clean rebuild green, sorry census unchanged (54).
+- LEFT BEHIND: Theorems' `findFirst_congr` (needs `findFirst`, defined
+  in Board.lean — above Kit's floor); `decide_congr`,
+  `head?_of_take_single`, `noDupCards_append_right` (generic but
+  single-file users, not in the wave's inventory); `stateEncAux` +
+  the cardCode/suitCode/optCode/stockBits family (state-specific);
+  Realizability's `color_ne_flip`/`rank_pred_iff`/`canSitOn_belowType`
+  (card-rule, not list machinery).
+- USEFUL FACT: `noDupCards` (Card-typed) and `allDistinct` {α} are
+  DEFEQ on Card lists — `filter_mem_idem` passes a noDupCards proof
+  to `allDistinct_cons_notMem` directly (they now coexist in Kit).
+
+## Theorems.lean — commutation wave: 4 items LANDED (2026-09-13)
+
+- PROVEN (axiom-clean, [propext, Quot.sound]): pilePile_roundtrip, solvable_of_accommodates,
+  commute_of_compsDisjoint, reveal_draw_comm (last = one-line instance of the first via
+  y cases x <;> simp [Move.comps]-style per-component bash on the comps hypothesis).
+- NEW REUSABLE KIT (in Theorems.lean, before commute_of_compsDisjoint): the BLINDNESS
+  lemmas — reveal/pilePile @{stock, heights} (some+none forms), deckStack @{board, depths},
+  pileStack/stackPile @{stock} (none only) — guard transfer is pure DEFEQ (with-update
+  projections iota-reduce; no transfer lemmas, unlike relabelBy) + draw_comm_gen (the draw
+  half: some s₁ >>= f and the successor shape make exact-defeq carry each arm) +
+  State.run_append (upstream restatement — Progress IMPORTS Theorems, so its
+  solvable_of_reaches/un_append are UNUSABLE from Theorems; namespaced to dodge the
+  root-level collision).
+- QUIRKS: (1) xact h X (by simp) (by simp) proving False does NOT close an arbitrary
+  goal — append .elim. (2) A 2-field with-update lemma's pattern did NOT rw against a
+  1-field goal literal; fix: have-pin it with the untouched field EXPLICIT on the RHS
+  (some {sd with board := bd, depths := st.depths} — {sd with board := bd} fails:
+  sd.depths ≢ st.depths while sd is opaque). (3) An equation fixing a case-arm binder
+  (b₀' = b₀) must be rw'd at EVERY hypothesis mentioning it (w [hb₀e] at hne hatt).
+  (4) bind-normalization: (some x >>= f) ≡ f x by iota — show/xact defeq handles
+  unreduced binds, no core Option.bind lemmas needed.
+## Dominance.lean — Wave 5 POR bridge: refuted, repaired, PROVEN (2026-09-13)
+
+- dominant_of_commutesWithAll WAS FALSE as staged (exchange at st only, no
+  occurrence premise). Prover-confirmed witness (scratch RefuteCommutesAll,
+  axiom-clean): won state (empty board, heights 13, empty stock), m = pileStack ♥2 —
+  h vacuous (♥2 off every one-step successor board; only draw/stackPile-kings legal),
+  solvable via [], dominantAt fails. REPAIR (no downstream code users): h
+  generalized to every state + huse : ∃ winning play ∋ m (without it no exchange
+  ever fires). Proof LANDED: play induction — cons case m₁ = m direct, else
+  IH-at-t₁ (m ∈ rest) + h s m₁ t₁ s₃ gives s₄ ≻ m₁ → s₃ → solvable_of_reaches
+  [m₁]. nil case vacuous (m ∉ []). No win-state nil analysis needed.
+- WAVE-5 ALERT (2/3/4 = safe_pileStack_dominant, stackPile_safe_prunable,
+  deckPile_safe_prunable): ALL reduce to one core worry-back transfer (c-down →
+  c-up replay); three gaps: (i) return-base existence (FARM's flagged crux —
+  deal-adjacent/anchor-non-king bases admit no return, and hsafe implies NO free
+  (r+1,opp) card); (ii) channel-A substitution needs no-passing
+  (heights x.suit = toIdx x for the (r−1,opp) cards: ≥ from hsafe, ≤ would need
+  no-passing) — WF does NOT imply it: witness stNP (scratch NoPassingWitness,
+  axiom-clean) = standard initial deal + heights ♥ := 1 is WF with visible
+  foundation-passed ♥A — statements 2-4 likely need a no-passing/repair before
+  B4-grade proof; (iii) height-monotonicity along arbitrary plays (worry-backs in π
+  drop heights below the safe thresholds). Rank-induction shape per
+  pruning_dominance_interaction.md §4 channels A/B.
+- SYNTAX paid: show applyXxx… then simp only [State.apply, State.applyXxx]
+  EXPOSES the match before w [topOf-facts] (rw cannot see discriminants inside
+  an ununfolded application); records in have-types need ascription
+  (stNP.heights (⟨s, r⟩ : Card).suit — bare { suit := s … } fails to elaborate);
+  y decide inside implicit-arg position needs the implicit PINNED
+  (Deal.piles_stock_disj (a := Anchor.p0) … (by decide)); one-step-successor
+  ground analysis: apply_X_iff.mp + Board.attach_topOf(_ne)/empty lemmas.
+## Bridge.lean — toEngine_simulates PROVEN (repair: +hwf) + the toolkit (2026-09-13)
+
+- LANDED (axiom-clean): toEngine_simulates with a STATEMENT REPAIR — gained
+  `(hwf : st.WF)` (orchestrator sign-off pending). As stated (no WF) it was
+  FALSE (prover-confirmed, Temp\opencode\SimWitness.lean, exit 0): a non-WF
+  state with board {(inr hK |-> hQ), (inl p0 |-> hK)} wins by two model
+  pileStacks while the abstract game is frozen — hQ is unseatable in ANY
+  realizing board (deal with no piles), so every witness-demanding eStep
+  guard fails. WF supplies the witness: st.board realizes toEngine st.
+- New reusables (all in Bridge.lean, before the theorem): estate_ext
+  (EState field-ext via EState.mk.injEq + funext), bottomOf_detach_self (the
+  missing self-case of Move's bottomOf_detach_ne), toEngine_realizedBy_board
+  (WF board_edges = Fits, term-level), toEngine_step_{pileStack,deckPile,
+  deckStack,stackPile,reveal} (one model move = one eStep, st.board the
+  witness; deck moves' index = cursor-1), toEngine_run (the strong invariant:
+  eplay tracks everything but the offset — the draw case IS eRun_offset).
+  deckStack needs NO witness (its eStep guard has no realizedBy).
+- QUIRKS paid: (1) goal orientation is toEngine{model} = {abstract literal}
+  (eStep's e' = lit) — estate_ext goals come model-left; (2) the &&-/= greedy
+  parse trap BIT AGAIN in show-terms — parenthesize `(a && b) = c` fully;
+  (3) `rw [hst]` (st' = {st with ...}) then per-field defeq carries heights/
+  order/depths — only vis (bottomOf lemmas) and offset (if_pos + omega on
+  cursor-1 < cursor) need work; (4) `obtain <h> := (hEq : a = b)` DROPS the
+  slot silently (Eq has no fields for rcases) — use `subst hEq` or a have;
+  (5) `List.mem_cons_self` takes EXPLICIT args in 4.30 — `(by simp)` is the
+  safe membership proof; (6) #print axioms from a scratch reads the STALE
+  olean — in-file #print is the honest check (again).
+
+## Bridge.lean — toEngine_lifts + engine_iff REFUTED as stated (2026-09-13)
+
+- PROVER-CONFIRMED UNSOUND (Temp\opencode\LiftWitness.lean, exit 0, axiom-
+  clean): toEngine_lifts fails even draw-1-gated on a WF state. Witness stX:
+  heights h13/s12/d13/c13, board {(inl p0)|->sK, (inr sK)|->hQ} + the six
+  deal-heads on p1..p6 (all anchors occupied), empty stock, depths 0. The
+  model is DEAD (every engine move none — case-bash rfl — and draw is the
+  identity), so not solvableEngine; but the abstract wins in ONE move:
+  pileStack sK via bdW = same board with hQ seated on cl5, its deal-adjacent
+  neighbor in pile p2 ([di10, cl5, heQ]).
+- ROOT CAUSE: Board.Fits's deal-adjacency clause (`piles a = t ++ d :: c ::
+  rest`) demands NOTHING of the base d — d may be a foundation/limbo card.
+  The model's canPlace demands a visible base, so such arrangements are
+  unreachable: witness boards are strictly more permissive than the model.
+  REPAIR CASCADE WARNING: strengthening Fits (deal-adjacent base hidden —
+  t.length < depths a — or visible) breaks realizable_of_wf (WF's
+  board_edges does not track it) AND toEngine_simulates's st.board
+  witnesses — an orchestrator-level design decision, not a farm repair.
+- engine_iff: the <- direction is the lift (refuted by the same witness);
+  the -> direction (simulation) is PROVEN inside the sorry'd proof.
+- WITNESS CONSTRUCTION KIT (reusable for refutations): full 52-card deal
+  via range-52 `by decide` noDup (universe_noDup's pattern); boards as
+  8-branch if-chains (inj via cases b1/b2 + simp_all + `exact absurd
+  (h1.trans h2.symm) (by decide)` — simp_all CANNOT close distinct-card
+  contradictions by itself); Suit is a STRUCTURE — `rcases c with <(<cl,p>),r>`
+  is needed for ground-card case-bashes (plain cases s leaves fvars);
+  WF-conjuncts cursor_le/step_pos as terms: (Nat.le_refl 0 : st.cursor_le),
+  (Nat.zero_lt_one : st.step_pos) — no Decidable instance on the defs.
+- INCIDENT (2nd of its kind): a PowerShell ONE-LINER DESTROYED Bridge.lean
+  (semicolon-chained WriteAllText ran with a $null from the failed Join;
+  length-1 file). Recovered via `git show HEAD:...` + re-edits. REINFORCED
+  LESSON: NEVER semicolon-chain file writes after a computed intermediate —
+  build the string, THEN one guarded write; verify `git diff --stat` after
+  any scripted file surgery (it caught this one immediately).

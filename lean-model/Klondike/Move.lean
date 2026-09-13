@@ -1,4 +1,5 @@
 import Klondike.Pace
+import Klondike.Kit
 
 /-!
 # Moves: the one semantic function
@@ -582,37 +583,6 @@ theorem posOf_mem {c : Card} {cy : Cycle Card} (h : c ∈ cy.cards) :
     cy.posOf c ≠ none :=
   findFirstIdx_mem c cy.cards h
 
-/-- Splicing out index `i` shifts later indices down by one. -/
-theorem getElem?_removeIdx {α : Type} :
-    ∀ (l : List α) (i j : Nat),
-      (removeIdx l i)[j]? = if j < i then l[j]? else l[j + 1]? := by
-  intro l
-  induction l with
-  | nil =>
-    intro i j
-    simp only [removeIdx_nil, List.getElem?_nil]
-    split <;> rfl
-  | cons a t ih =>
-    intro i
-    cases i with
-    | zero =>
-      intro j
-      simp only [removeIdx_zero, List.getElem?_cons_succ]
-      rw [if_neg (Nat.not_lt_zero j)]
-    | succ n =>
-      intro j
-      cases j with
-      | zero =>
-        simp only [removeIdx_succ, List.getElem?_cons_zero]
-        rw [if_pos (Nat.zero_lt_succ n)]
-      | succ m =>
-        simp only [removeIdx_succ, List.getElem?_cons_succ]
-        by_cases hm : m < n
-        · rw [if_pos (by omega : m + 1 < n + 1)]
-          exact (ih n m).trans (if_pos hm)
-        · rw [if_neg (by omega : ¬(m + 1 < n + 1))]
-          exact (ih n m).trans (if_neg hm)
-
 /-- Splicing keeps only the original members. -/
 theorem mem_removeIdx {α : Type} : ∀ (l : List α) (i : Nat) {x : α},
     x ∈ removeIdx l i → x ∈ l := by
@@ -647,28 +617,6 @@ theorem notMem_removeIdx_self {α : Type} {l : List α} {i : Nat} {x : α}
 
 end Cycle
 
-/-- Reversal exchanges head and last (the `hiddenBase` walk). -/
-theorem head?_reverse_eq_getLast? {α : Type} :
-    ∀ (l : List α), l.reverse.head? = l.getLast? := by
-  intro l
-  induction l with
-  | nil => rfl
-  | cons a t ih =>
-    cases t with
-    | nil => rfl
-    | cons b u =>
-      cases hrev : (b :: u).reverse with
-      | nil =>
-        exfalso
-        have ht := congrArg List.reverse hrev
-        rw [List.reverse_reverse] at ht
-        simp at ht
-      | cons z zs =>
-        rw [show (a :: b :: u).reverse = z :: (zs ++ [a]) from by
-          rw [List.reverse_cons, hrev, List.cons_append]]
-        rw [hrev] at ih
-        exact ih
-
 /-- A `take` slice that is a single card means the list starts there. -/
 theorem head?_of_take_single {α : Type} {l : List α} {n : Nat} {x : α}
     (h : l.take n = [x]) : l.head? = some x := by
@@ -682,83 +630,6 @@ theorem head?_of_take_single {α : Type} {l : List α} {n : Nat} {x : α}
       rw [List.cons.injEq] at h
       obtain ⟨rfl, -⟩ := h
       rfl
-
-/-- Splicing never lengthens. -/
-theorem removeIdx_length_le {α : Type} : ∀ (l : List α) (i : Nat),
-    (Cycle.removeIdx l i).length ≤ l.length := by
-  intro l
-  induction l with
-  | nil => intro i; simp
-  | cons a t ih =>
-    intro i
-    cases i with
-    | zero => simp
-    | succ n =>
-      simp only [Cycle.removeIdx, List.length_cons]
-      have := ih n
-      omega
-
-/-- Splicing out-of-range is the identity. -/
-theorem removeIdx_of_length_le {α : Type} : ∀ (l : List α) (i : Nat),
-    l.length ≤ i → Cycle.removeIdx l i = l := by
-  intro l
-  induction l with
-  | nil => intro i _; rfl
-  | cons a t ih =>
-    intro i hi
-    cases i with
-    | zero => simp at hi
-    | succ n =>
-      simp only [Cycle.removeIdx, List.length_cons] at hi ⊢
-      rw [ih n (by omega)]
-
-/-- Splicing preserves index-wise distinctness. -/
-theorem noDupCards_removeIdx : ∀ (l : List Card) (i : Nat),
-    noDupCards l → noDupCards (Cycle.removeIdx l i) := by
-  intro l
-  induction l with
-  | nil => intro i _ j j' hj _ _; simp at hj
-  | cons a t ih =>
-    intro i hnd j j' hj hj' heq
-    have h1 := Cycle.getElem?_removeIdx (a :: t) i j
-    have h2 := Cycle.getElem?_removeIdx (a :: t) i j'
-    rw [h1, h2] at heq
-    by_cases hic : i < (a :: t).length
-    · have hbl : (Cycle.removeIdx (a :: t) i).length + 1 = (a :: t).length :=
-        Cycle.removeIdx_length _ i hic
-      by_cases hc1 : j < i
-      · by_cases hc2 : j' < i
-        · rw [if_pos hc1, if_pos hc2] at heq
-          have := hnd j j' (by omega) (by omega) heq
-          omega
-        · rw [if_pos hc1, if_neg hc2] at heq
-          have := hnd j (j' + 1) (by omega) (by omega) heq
-          omega
-      · by_cases hc2 : j' < i
-        · rw [if_neg hc1, if_pos hc2] at heq
-          have := hnd (j + 1) j' (by omega) (by omega) heq
-          omega
-        · rw [if_neg hc1, if_neg hc2] at heq
-          have := hnd (j + 1) (j' + 1) (by omega) (by omega) heq
-          omega
-    · have hle : Cycle.removeIdx (a :: t) i = (a :: t) :=
-        removeIdx_of_length_le _ i (by omega)
-      rw [hle] at hj hj'
-      by_cases hc1 : j < i
-      · by_cases hc2 : j' < i
-        · rw [if_pos hc1, if_pos hc2] at heq
-          have := hnd j j' (by omega) (by omega) heq
-          omega
-        · rw [if_pos hc1, if_neg hc2] at heq
-          have := hnd j (j' + 1) (by omega) (by omega) heq
-          omega
-      · by_cases hc2 : j' < i
-        · rw [if_neg hc1, if_pos hc2] at heq
-          have := hnd (j + 1) j' (by omega) (by omega) heq
-          omega
-        · rw [if_neg hc1, if_neg hc2] at heq
-          have := hnd (j + 1) (j' + 1) (by omega) (by omega) heq
-          omega
 
 /-! ### `reveal`'s hidden-slice decomposition -/
 
@@ -943,20 +814,6 @@ theorem Cycle.dealOnce_cursor_le (s : Nat) (cy : Cycle Card) :
   simp only [Cycle.dealOnce]
   split <;> simp <;> omega
 
-/-- Last-element membership (local copy — `Initial`'s version is
-upstream in the import order). -/
-theorem mem_of_getLast' {l : List Card} {c : Card} (h : l.getLast? = some c) : c ∈ l := by
-  rw [← head?_reverse_eq_getLast?] at h
-  cases hrev : l.reverse with
-  | nil => rw [hrev] at h; simp at h
-  | cons x t =>
-    rw [hrev] at h
-    simp only [List.head?_cons, Option.some.injEq] at h
-    have hx : c = x := h.symm
-    subst hx
-    have h1 : c ∈ l.reverse := by rw [hrev]; exact List.mem_cons_self
-    exact List.mem_reverse.mp h1
-
 /-- **WF is preserved by every legal move** — the maintenance lemma.
 Arms: `draw` is a pure cursor rotation; `reveal` rides deal-adjacency
 (cover on freshly-revealed boundary) and the piles/stock disjointness;
@@ -1037,7 +894,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         exact Cycle.posOf_eq_none (fun hcm =>
           Deal.piles_stock_disj hdeal (by
             rw [← List.take_append_drop (st.depths a) (st.deal.piles a)]
-            exact List.mem_append_left _ (mem_of_getLast' htop)) (hmem r hcm))
+            exact List.mem_append_left _ (mem_of_getLast htop)) (hmem r hcm))
       · have hbdr : ∃ b, bd.bottomOf c' = some b := by
           cases h : bd.bottomOf c' with
           | none =>

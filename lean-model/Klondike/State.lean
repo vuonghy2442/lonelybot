@@ -1,5 +1,6 @@
 import Klondike.Board
 import Klondike.Cycle
+import Klondike.Kit
 
 /-!
 # Game state: the free parameters + derived views
@@ -9,10 +10,6 @@ the README's table): the visible matching, the foundation heights,
 the hidden boundary depths, the stock cursor — everything else is a
 derived view (`hidden`, `topHidden`, `up`, …).
 -/
-
-/-- No duplicate cards (index-wise). -/
-def noDupCards : List Card → Prop :=
-  fun l => ∀ i j : Nat, i < l.length → j < l.length → l[i]? = l[j]? → i = j
 
 /-- A deal: the fixed arrangement the game is played from.
 
