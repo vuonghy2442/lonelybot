@@ -675,7 +675,7 @@ evert st; induction play; intro st, tail
   game admitted Draw-commitment landings no play (engine or not) can produce: every
   edge-creating move (deckPile/stackPile/pilePile) demands canPlace, whose canSitOn/king
   half is pure and state-independent; reveal attaches only hidden deal cards.
-  Prover-confirmed witness (Temp\opencode\MacroWitness.lean): ♠7 pile-0 sole visible
+  Prover-confirmed witness (witnesses/MacroWitness.lean): ♠7 pile-0 sole visible
   card, ♥5 last stock card at pass-end cursor, b = inr ♠7 — applyDrawTo succeeds
   (edge ♥5→♠7 exists in the successor), canPlace false, all 7 other moves illegal.
 - REPAIR (in Macro.lean only): `commitApplies`'s tableau disjunct gained
@@ -842,7 +842,7 @@ evert st; induction play; intro st, tail
 
 - LANDED (axiom-clean): toEngine_simulates with a STATEMENT REPAIR — gained
   `(hwf : st.WF)` (orchestrator sign-off pending). As stated (no WF) it was
-  FALSE (prover-confirmed, Temp\opencode\SimWitness.lean, exit 0): a non-WF
+  FALSE (prover-confirmed, witnesses/SimWitness.lean, exit 0): a non-WF
   state with board {(inr hK |-> hQ), (inl p0 |-> hK)} wins by two model
   pileStacks while the abstract game is frozen — hQ is unseatable in ANY
   realizing board (deal with no piles), so every witness-demanding eStep
@@ -868,7 +868,7 @@ evert st; induction play; intro st, tail
 
 ## Bridge.lean — toEngine_lifts + engine_iff REFUTED as stated (2026-09-13)
 
-- PROVER-CONFIRMED UNSOUND (Temp\opencode\LiftWitness.lean, exit 0, axiom-
+- PROVER-CONFIRMED UNSOUND (witnesses/LiftWitness.lean, exit 0, axiom-
   clean): toEngine_lifts fails even draw-1-gated on a WF state. Witness stX:
   heights h13/s12/d13/c13, board {(inl p0)|->sK, (inr sK)|->hQ} + the six
   deal-heads on p1..p6 (all anchors occupied), empty stock, depths 0. The
@@ -904,7 +904,7 @@ evert st; induction play; intro st, tail
 ## Theorems.lean — drawTo_comm_modAdjacent REPAIRED (was FALSE) + the commutation kit (2026-09-13)
 
 - STATEMENT REPAIR (sign-off needed, prover-confirmed witness
-  Temp\opencode\DrawWitness.lean): the wrap case of `drawTo_comm_modAdjacent`
+  witnesses/DrawWitness.lean): the wrap case of `drawTo_comm_modAdjacent`
   (`i+1 = len`, `j = 0`) is FALSE at drawStep 1, len >= 3: cards [A,B,C] cursor 0,
   c at pos 2, c' at pos 0, empty board — BOTH compositions succeed (step 1 free
   set) and the end cursors are 0 vs len-2. This is the C-IND measurement's
@@ -962,7 +962,7 @@ evert st; induction play; intro st, tail
   (visible cards not hidden — REQUIRED: pileStack bumps toIdx c =
   heights c exactly, so founds_gone covers it only via vis⇒¬hidden).
   Both witnesses KILLED axiom-clean (¬stNP.WF, ¬stX.WF +
-  ¬realizedBy bdW — scratches updated in Temp\opencode). WF is now
+  ¬realizedBy bdW — scratches updated in witnesses/). WF is now
   the 11-conjunct chain; ound_off_cycle KEPT (redundant, cheap —
   zero consumer churn); board_edges stays conjunct 3 so
   realizable_of_wf's ⟨_,_,hmatch,_⟩ spine held.
@@ -1011,7 +1011,7 @@ otMem_take_of_get (noDup pile),
 ## Dominance.lean — Wave 5: safe_pileStack REFUTED+repaired; deckPile PROVEN (2026-09-13)
 
 - **safe_pileStack_dominant WAS FALSE** (prover-confirmed, scratch
-  Temp\opencode\DeadPileWitness.lean, exit 0, axiom-clean): `reveal c`
+  witnesses/DeadPileWitness.lean, exit 0, axiom-clean): `reveal c`
   seats the boundary UNDER c WHILE c sits on it — stacking the SOLE
   visible card of a live pile kills the boundary card forever (only
   `reveal` seats hidden cards; its trigger must be visible ON the
@@ -1061,7 +1061,7 @@ otMem_take_of_get (noDup pile),
   min (j*s) n), dealIter_mask (orbit cursor != 0 -> k-1 in the ORIGINAL maskPos —
   done with laneUp_mem alone, NOT the sorry'd maskPos_mem_iff), dealIter_prev_reachable
   (prev + stock_wf noDup -> posOf = k-1 = reachablePos; the splice = removeAt_drawTo).
-- RESCOPE (witness Temp\opencode\AboveIrreflWitness.lean, axiom-clean, Decide-built):
+- RESCOPE (witness witnesses/AboveIrreflWitness.lean, axiom-clean, Decide-built):
   aboveOf_irrefl is FALSE from WF — 2-cycle: pile p1 = [h5, s6] revealed, board
   inr h5 |-> s6 (deal-adjacent) + inr s6 |-> h5 (canSitOn: 5+1=6, colors differ).
   Longer ALTERNATING cycles (deal-adj/canSitOn across piles) kill every per-edge or
@@ -1085,7 +1085,7 @@ otMem_take_of_get (noDup pile),
 
 ## Bridge.lean — toEngine_lifts REFUTED AGAIN (mirror hole; UNSOUND as stated) (2026-09-13)
 
-- PROVER-CONFIRMED (Temp\opencode\LiftWitness2.lean, exit 0; witness facts
+- PROVER-CONFIRMED (witnesses/LiftWitness2.lean, exit 0; witness facts
   axiom-clean [propext, Quot.sound]): the buried-base repair does NOT close the
   lift. NEW witness class: a card seated via DEAL-ADJACENCY on a merely-PLACED,
   non-canSitOn base (the model board) vs re-seated via CAN-SIT-ON on a placed
@@ -1132,7 +1132,7 @@ otMem_take_of_get (noDup pile),
   run-carrying (no_pile §4 case 3) — the witness state wins in the full game
   (31 moves) but the engine is deadlocked at hearts ≤ 2.
   REPAIR DIRECTION (pending user call): initial-states-only statements (= B2+B4)
-  or a run-carrying reveal. Witnesses: Temp\opencode\{EngineWitness,LiftWitness2,DeadPileWitness}.lean.
+  or a run-carrying reveal. Witnesses: witnesses/{EngineWitness,LiftWitness2,DeadPileWitness}.lean.
 - drawTo_comm_adjacent PROVEN (kit re-proved in Move under namespaced names —
   Theorems owns the root names).
 
@@ -1193,7 +1193,7 @@ otMem_take_of_get (noDup pile),
   from the replaced state; draw arm via dealOnce_cards), applyDrawTo_merge / applyDrawStackTo_merge
   (posOf runs over cards only — posOf_cards_eq; the guard index = posOf; (drawTo i).removeAt i is
   source-cursor-FREE via Move's Cycle.removeAt_drawTo), commute_of_disjoint_touch (below).
-- TWO STATEMENT REPAIRS (both prover-confirmed, witnesses Temp\opencode\{StockInvarWitness,
+- TWO STATEMENT REPAIRS (both prover-confirmed, witnesses witnesses/{StockInvarWitness,
   CommuteWitness}.lean — citing the sorry'd constants is safe): (1) apply_nonConsuming_stock_invar
   gained (hm : m ≠ Move.draw) — draw is non-consuming but WRITES the stock cursor; (2)
   commute_of_disjoint_touch gained the hnc draw/consumesStock conjunction — .draw's touch is
@@ -1253,7 +1253,7 @@ otMem_take_of_get (noDup pile),
 
 ## Theorems.lean — solvable_accommodates REFUTED as staged + repaired + decomposed (2026-09-13)
 
-- REFUTED (prover-confirmed, Temp\opencode\B4Witness.lean, facts
+- REFUTED (prover-confirmed, witnesses/B4Witness.lean, facts
   axiom-clean [propext, Quot.sound]): without WF the statement is FALSE —
   a PHANTOM TENANT (♠2 on base inr ♠K with ♠K unplaced; board_edges
   forbids exactly this) in a WON state (junk rank-7/9 on p1..p6) makes
@@ -1325,3 +1325,13 @@ otMem_take_of_get (noDup pile),
 - TRAP AGAIN: ad-hoc PowerShell output WITHOUT [Console]::OutputEncoding =
   [Text.Encoding]::UTF8 shows mangled Unicode (⟨ -> ?, — -> -) — files were FINE;
   always set it before eyeballing content, or trust the read tool.
+
+## WITNESS ARCHIVE (2026-09-13)
+
+- The refutation/crux witnesses are now DURABLE: lean-model/witnesses/
+  (17 files + README). 13 compile against the current tree; 4 are
+  HISTORICAL (they refute the pre-repair statements — their job is
+  done). B4Witness was lost to an over-eager cleanup during the
+  archive; its finding is the phantom-tenant description in the wave-10
+  adjudication above and is rebuildable. All Temp\opencode references in
+  this ledger now resolve to witnesses/.
