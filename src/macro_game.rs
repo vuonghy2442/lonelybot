@@ -534,6 +534,12 @@ struct ClosureCtx {
     first_layer: u64,
     /// buried cards | deck-remaining cards: the closure-fixed non-visibles
     nonvis_base: u64,
+    /// the per-suit climb frontier: the first rank `r ≥ h₀(s)` whose
+    /// card `(r, s)` is NOT root-visible-and-unlocked (13 when the
+    /// whole climb is open). K1's first-passage blockedness and K6's
+    /// climb-blocked twin test are `frontier[s] < rank(c)` — one
+    /// comparison instead of the per-goal prefix walk.
+    frontier: [u8; 4],
 }
 
 impl ClosureCtx {
@@ -544,11 +550,29 @@ impl ClosureCtx {
         // root (the visible-set invariant, `is_valid`-checked on the test
         // corpus). Reads no per-card state.
         let nonvis_base = full_mask(N_CARDS) ^ root.vis ^ stacked_mask(root.stack);
+        // the per-suit climb frontier: the first rank at or above the
+        // foundation height whose card is not root-visible-and-unlocked
+        // (13 = the climb is open). K1's blockedness test and K6's
+        // twin test are `frontier[s] < rank(c)` — O(1) per goal.
+        let mut frontier = [13u8; 4];
+        for s in 0..4u8 {
+            let h0 = root.height(s);
+            let mut r = h0;
+            while r < 13 {
+                let m = Card::new(r, s).mask();
+                if root.vis & m == 0 || root.locked & m != 0 {
+                    frontier[usize::from(s)] = r;
+                    break;
+                }
+                r += 1;
+            }
+        }
         Self {
             root,
             deck_mask: g.get_deck().compute_mask(false),
             first_layer: g.get_hidden().first_layer_mask(),
             nonvis_base,
+            frontier,
         }
     }
 
@@ -1665,10 +1689,10 @@ fn goal_dead(ctx: &ClosureCtx, commitment: Commitment, kind: OutcomeKind) -> boo
             if h0 >= x.rank() {
                 return false;
             }
-            (h0..x.rank()).any(|r| {
-                let m = Card::new(r, s).mask();
-                ctx.root.vis & m == 0 || ctx.root.locked & m != 0
-            })
+            // K1: some prefix card in [h₀, rank) is not root-visible and
+            // unlocked — the first-passage argument (worry-backs surface
+            // only ranks < h₀; locked cards never stack in the closure)
+            ctx.frontier[usize::from(s)] < x.rank()
         }
         OutcomeKind::Tableau => {
             // K4: the reveal mask's first-layer king exclusion is
@@ -1714,25 +1738,16 @@ fn goal_dead(ctx: &ClosureCtx, commitment: Commitment, kind: OutcomeKind) -> boo
                 let tm = twin.mask();
                 let twin_free =
                     ctx.root.vis & tm != 0 && ctx.root.locked & tm == 0;
-                if twin_free {
-                    let ts = twin.suit();
-                    let h0 = ctx.root.height(ts);
-                    let climb_blocked = h0 < twin.rank()
-                        && (h0..twin.rank()).any(|rr| {
-                            let m = Card::new(rr, ts).mask();
-                            ctx.root.vis & m == 0 || ctx.root.locked & m != 0
-                        });
-                    if climb_blocked {
-                        let r = x.rank() + 1;
-                        let s = x.suit();
-                        let stacked_now = stacked_mask(ctx.root.stack);
-                        let dead = |p: Card| {
-                            let m = p.mask();
-                            ctx.root.vis & m == 0 && stacked_now & m == 0
-                        };
-                        if dead(Card::new(r, s ^ 2)) || dead(Card::new(r, s ^ 3)) {
-                            return true;
-                        }
+                if twin_free && ctx.frontier[usize::from(twin.suit())] < twin.rank() {
+                    let r = x.rank() + 1;
+                    let s = x.suit();
+                    let stacked_now = stacked_mask(ctx.root.stack);
+                    let dead = |p: Card| {
+                        let m = p.mask();
+                        ctx.root.vis & m == 0 && stacked_now & m == 0
+                    };
+                    if dead(Card::new(r, s ^ 2)) || dead(Card::new(r, s ^ 3)) {
+                        return true;
                     }
                 }
             }
@@ -3515,6 +3530,121 @@ mod tests {
         for (n, sig) in entries.iter().take(24) {
             println!("  {n:>8} ({:5.1}%)  {sig}", 100.0 * *n as f64 / total_missed.max(1) as f64);
         }
+    }
+
+    /// **The incremental-core scoping probe**: how much of a child's
+    /// channel evaluation is inherited from its parent? For every
+    /// fold-selected successor edge on the corpus trajectory, run the
+    /// total generator on BOTH sides and diff the per-commitment
+    /// channel sets. The incremental design's viability is exactly
+    /// this number: the fraction of the child's commitments with
+    /// unchanged outcomes (inheritable), plus the new-commitment rate
+    /// (fresh work regardless). Also tallies the edge sweep size — the
+    /// swept cards are additional edited bits beyond the commit's own,
+    /// the real invalidation width.
+    #[test]
+    #[ignore = "incremental scoping; run with --ignored --release --nocapture"]
+    fn debug_edge_overlap() {
+        use std::collections::BTreeMap;
+        let channel_set = |scratch: &DirectScratch| -> BTreeMap<(u8, u8), Vec<&'static str>> {
+            let mut m: BTreeMap<(u8, u8), Vec<&'static str>> = BTreeMap::new();
+            for (c, _k, _s, ch) in scratch.groups.iter().flat_map(|g| g.iter()) {
+                let key = match c {
+                    Commitment::Draw(x) | Commitment::Reveal(x) => {
+                        (x.mask_index(), 1)
+                    }
+                };
+                let e = m.entry(key).or_default();
+                if !e.contains(ch) {
+                    e.push(ch);
+                }
+            }
+            m
+        };
+        let (mut edges, mut shared, mut identical, mut fresh, mut dropped) =
+            (0u64, 0u64, 0u64, 0u64, 0u64);
+        let mut sweep_hist = [0u64; 16];
+        for draw_step in [1u8, 3] {
+            for i in 0..32u64 {
+                let mut game = Solitaire::new(
+                    &default_shuffle(12 + i),
+                    NonZeroU8::new(draw_step).unwrap(),
+                );
+                for _turn in 0..200 {
+                    if game.is_win() {
+                        break;
+                    }
+                    canonicalize(&mut game);
+                    // parent outcomes
+                    let mut pscratch = DirectScratch::new();
+                    let mut pcomms = Vec::new();
+                    let pctx = ClosureCtx::from_game(&game);
+                    core_run(&pctx, &mut pscratch, &mut pcomms, false, game.get_deck());
+                    let parent = channel_set(&pscratch);
+                    // the fold successors
+                    let succs = macro_transitions_fast(&game);
+                    let ptotal: u32 = (0..4).map(|s| u32::from(game.get_stack().get(s))).sum();
+                    for (commitment, child) in &succs {
+                        edges += 1;
+                        let ctotal: u32 = (0..4).map(|s| u32::from(child.get_stack().get(s))).sum();
+                        let stacked_commit = matches!(
+                            commitment,
+                            Commitment::Draw(_)
+                        ) || matches!(commitment, Commitment::Reveal(_));
+                        let _ = stacked_commit;
+                        // swept cards beyond the commit's own stack edit:
+                        // reveal/tableau commits add 0, stack outcomes +1
+                        let swept = (ctotal - ptotal).saturating_sub(1);
+                        sweep_hist[(swept.min(15)) as usize] += 1;
+                        let mut cscratch = DirectScratch::new();
+                        let mut ccomms = Vec::new();
+                        let cctx = ClosureCtx::from_game(child);
+                        core_run(&cctx, &mut cscratch, &mut ccomms, false, child.get_deck());
+                        let child_map = channel_set(&cscratch);
+                        for (c, chans) in &child_map {
+                            match parent.get(c) {
+                                Some(pchans) => {
+                                    shared += 1;
+                                    if pchans == chans {
+                                        identical += 1;
+                                    }
+                                }
+                                None => {
+                                    fresh += 1;
+                                }
+                            }
+                        }
+                        for c in parent.keys() {
+                            if !child_map.contains_key(c) {
+                                dropped += 1;
+                            }
+                        }
+                    }
+                    // advance by the oracle's first witness path
+                    let cands = enumerate_commitments(&game);
+                    match cands.first() {
+                        None => break,
+                        Some(c0) => {
+                            for &m in &c0.witness_path {
+                                let _ = game.do_move(m);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        println!(
+            "incremental scoping over {edges} edges: shared commitments {shared}, identical channels {identical} ({:4.1}% of shared), fresh (new in child) {fresh} ({:4.1}% of child work), dropped {dropped}",
+            100.0 * identical as f64 / shared.max(1) as f64,
+            100.0 * fresh as f64 / (shared + fresh).max(1) as f64,
+        );
+        print!("  edge sweep sizes: ");
+        for (n, v) in sweep_hist.iter().enumerate() {
+            if *v > 0 {
+                print!("{n}x{} ", v);
+            }
+        }
+        println!();
     }
 
     /// The word pipeline against move replay, state by state:
