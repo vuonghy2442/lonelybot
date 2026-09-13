@@ -735,3 +735,23 @@ evert st; induction play; intro st, tail
   collided with Theorems' (imported transitively) — renamed to
   `findFirst_congr_mem`. RULE: grep ALL files for a name before
   declaring generic-sounding helpers; prefer domain-prefixed names.
+
+## CONSOLIDATION-1: twin pair is now 2-line corollaries (2026-09-13)
+
+- Move.lean: 2273 -> 1398 lines. The 800-line self-contained twin kit
+  (Board.mapBy_*/update_flipBase, the State.flipAll_* family,
+  Base.flipBase_inj, List.contains_map_flipSuit, run_flipAll,
+  flipAll_isWin) DELETED — no external users (grep-verified; the
+  sibling had independently landed the same consolidation in a parallel
+  commit, hence the "already declared" surprise: ALWAYS rebuild the
+  oleans (`lake build Klondike`) after editing Move/State — the stale
+  olean made the corollaries look pre-declared).
+- Kept: Cycle.removeIdx_map (Theorems uses it 3x).
+- apply_flipAll/solvable_flipAll now live in Theorems.lean as
+  corollaries of apply_relabel/solvable_relabel via the rfl:
+  `rw [h1 (m.flipMove = m.relabel twin, per-constructor rfl),
+     h2 (State.flipAll = State.relabelBy twin, funext + the rfl)]`.
+  NOTE: rw [h2] consumes st.flipAll too (dot notation IS
+  State.flipAll st) — no third rewrite needed. And solvable_relabel's
+  iff is (relabelBy-solvable ↔ solvable): from st to flipped is .MPR.
+  Axiom-clean: [propext, Quot.sound].

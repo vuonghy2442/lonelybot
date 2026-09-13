@@ -1025,6 +1025,25 @@ theorem solvable_relabel (r : Relabel) (st : State) :
 /-- `flipAll` is the twin-swap instance. -/
 theorem flipAll_eq_relabelTwin (st : State) : st.flipAll = st.relabelBy Relabel.twin := rfl
 
+/-- **T (twin swap), conjugation step**: the twin instance of
+`apply_relabel` — `flipAll` *is* `relabelBy Relabel.twin` (by `rfl`)
+and `Move.flipMove` is `Move.relabel Relabel.twin` per constructor, so
+the general conjugation transfers wholesale. -/
+theorem apply_flipAll (m : Move) (st : State) :
+    st.flipAll.apply m.flipMove = (st.apply m).map State.flipAll := by
+  have h1 : m.flipMove = m.relabel Relabel.twin := by cases m <;> rfl
+  have h2 : State.flipAll = State.relabelBy Relabel.twin :=
+    funext flipAll_eq_relabelTwin
+  rw [h1, h2]
+  exact apply_relabel Relabel.twin m st
+
+/-- **T (twin swap)**: solvability is invariant under the relabeling —
+the twin instance of `solvable_relabel`. -/
+theorem solvable_flipAll {st : State} (h : st.solvableFrom) :
+    st.flipAll.solvableFrom := by
+  rw [flipAll_eq_relabelTwin]
+  exact (solvable_relabel Relabel.twin st).mpr h
+
 section Probe
 example (bd : Board) (b : Base) (acc : List Card) : Board.aboveOf.go bd 0 b acc = acc := rfl
 example (bd : Board) (fuel : Nat) (b : Base) (acc : List Card) :
