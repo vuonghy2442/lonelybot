@@ -22,10 +22,9 @@ $baseline = @{
                         # K1_stack_goal_dead, K2_tableau_goal_dead
   'Restriction.lean' = 2  # solvableEngine_iff_solvable_of_reachable (B2),
                         # engine_replay_of_pilePile (the replay step)
-  'TwinSwap.lean'  = 1  # pilePile_return_legal (return-move legality of the
-                        # cargo transfer; the seat-swap conjugation was
-                        # refuted — witnesses/TwinSwapWitness.lean — and the
-                        # design moved to cargo level, cf. FARM.md wave 14)
+  'TwinSwap.lean'  = 1  # Board.aboveOf_congr_off [M] (the walk-invariance kit;
+                        # everything else in the file is proven including the
+                        # cargo-transfer chain and pilePile_return_legal)
                         # (the naive conjugation was REFUTED as stated —
                         #  witnesses/TwinSwapWitness.lean; FARM.md wave 14)
 }

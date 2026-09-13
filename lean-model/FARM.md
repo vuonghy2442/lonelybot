@@ -235,7 +235,8 @@ laundering rule.
 
 | item | file:line | tag | route |
 |---|---|---|---|
-| `State.pilePile_return_legal` | TwinSwap:~278 | [M] | the return-request legality: invert the transfer `apply_pilePile_iff`; the `aboveOf` reseat-invariance helper is the kit it needs |
+| ~~`State.pilePile_return_legal`~~ | TwinSwap:~300 | **done** (2026-09-13) | the full guard bundle; only the walk-invariance was split out |
+| `Board.aboveOf_congr_off` | TwinSwap:~296 | [M] | run-walk invariance under off-run reseating; fuel induction via `aboveOf_go_succ`/the relabel walk template |
 
 **Design frozen**: the wide-closure and supermove candidates above were
 designs for the REFUTED seat-swap direction; the cargo direction needs

@@ -268,18 +268,139 @@ theorem State.solvable_cargoTwin_transfer {st : State} {z t : Card} {st₁ : Sta
   · exact ⟨_, h₂eq ▸ hback⟩
   · exact ⟨_, hgo⟩
 
-/-- The return legality module: the return `pilePile` of the transfer
-goes through whenever the twins are both bare-visible — its premises
-(`topOf` none at the origin base, `isVis` of the twin, `canSitOn` by
-the body's hypotheses, run self-landing at an unchanged run) are
-maintained by the transfer's own attachment/detachment machinery.
 
-TODO(proof) [M]: invert the transfer iff for the return guards; the
-run structure is untouched because the twins aren't in `z`'s run
-(`pileOfTopHidden`-freeness licensed the case, derivable from WF; an
-`aboveOf` reseat-invariance lemma makes it mechanical). -/
+/-- The contains-false bridge. -/
+theorem lcontains_false_of_notMem {x : Card} : ∀ {l : List Card}, x ∉ l → l.contains x = false
+  | [], _ => rfl
+  | a :: t, h => by
+      have hna : x ≠ a := fun hxa => h (hxa ▸ List.mem_cons_self)
+      have hrest : x ∉ t := fun hm => h (List.mem_cons_of_mem a hm)
+      rw [List.contains_cons]
+      cases hax : (x == a) with
+      | true => exact absurd (of_decide_eq_true hax) hna
+      | false =>
+          simp only [Bool.false_or]
+          exact lcontains_false_of_notMem hrest
+
+/-- The run walk is blind to everything outside the run members' own
+slots: two boards agreeing at every `inr`-slot the walk can probe
+coincide on the run — provided the walk never wakes the excluded slots,
+which the run-membership side condition supplies.
+
+TODO(proof) [M]: fuel induction on `Board.aboveOf.go` (the one-step
+unfold is `aboveOf_go_succ`, Relabel.lean; `relabelBy_aboveOf_go` is the
+template).  Invariant: the current base's probe agrees (the current card
+is the root or in `acc`, hence pair-free); the contains-test then
+branches the same on both sides; the consed card enters the output,
+whence `hfree` disables the pair. -/
+theorem Board.aboveOf_congr_off {bd bd' : Board} {c t : Card}
+    (hagree : ∀ x : Card, x ≠ t → x ≠ t.flipSuit →
+      bd.topOf (Sum.inr x) = bd'.topOf (Sum.inr x))
+    (hfree : ∀ x : Card, x ∈ bd.aboveOf c → x ≠ t ∧ x ≠ t.flipSuit)
+    (hroot : bd.topOf (Sum.inr c) = bd'.topOf (Sum.inr c)) :
+    bd'.aboveOf c = bd.aboveOf c := sorry
+
+/-- The return legality: after the forward transfer, the pilePile back
+to the original twin's base fires.  The guard bundle: the origin's own
+base went bare (the detachment), the twin stays visible (attach/detach
+preserve their bases), the fit transfers by twin-blindness
+(`canSitOn_swapTwin_right`), and the run's self-landing check reads the
+run the transfer left alone (`Board.aboveOf_congr_off`). -/
 theorem State.pilePile_return_legal {st : State} {z t : Card} {st₁ : State}
-    (hwf : st.WF) (hvis : st.isVis t = true) (hvis' : st.isVis t.flipSuit = true)
+    (hvis : st.isVis t = true)
     (h₀ : st.board.bottomOf z = some (Sum.inr t))
+    (hfree : ∀ x : Card, x ∈ st.board.aboveOf z → x ≠ t ∧ x ≠ t.flipSuit)
     (h₁ : st.apply (Move.pilePile z (Sum.inr t.flipSuit)) = some st₁) :
-    ∃ st₂, st₁.apply (Move.pilePile z (Sum.inr t)) = some st₂ := sorry
+    ∃ st₂, st₁.apply (Move.pilePile z (Sum.inr t)) = some st₂ := by
+  rw [apply_pilePile_iff] at h₁
+  obtain ⟨b₀', hbot₁, hne₁, hcmr₁, bd, hatt, hst₁⟩ := h₁
+  have hb₀e : b₀' = Sum.inr t := Option.some.inj (hbot₁.symm.trans h₀)
+  subst hb₀e
+  have hcmr_place : st.canPlace z (Sum.inr t.flipSuit) = true := by
+    rw [State.canMoveRun] at hcmr₁
+    exact (Bool.and_eq_true_iff.mp hcmr₁).1
+  have hcs' : canSitOn z t.flipSuit = true := by
+    simp only [State.canPlace] at hcmr_place
+    have h' := (Bool.and_eq_true_iff.mp hcmr_place).2
+    exact (Bool.and_eq_true_iff.mp h').2
+  have hne_tz : t ≠ z := by
+    simp only [canSitOn_eq] at hcs'
+    obtain ⟨hrk, -⟩ := hcs'
+    intro hcon
+    rw [Card.flipSuit_rank] at hrk
+    rw [hcon] at hrk
+    omega
+  have hne_tz' : z ≠ t.flipSuit := by
+    simp only [canSitOn_eq] at hcs'
+    obtain ⟨hrk, -⟩ := hcs'
+    intro hcon
+    rw [hcon] at hrk
+    omega
+  have htopZ : bd.topOf (Sum.inr t.flipSuit) = some z := Board.attach_topOf _ _ _ hatt
+  have hdet_top : (st.board.detach (Sum.inr t)).topOf (Sum.inr t) = none :=
+    Board.detach_topOf _ _
+  have hbot₂ : st₁.board.bottomOf z = some (Sum.inr t.flipSuit) := by
+    rw [hst₁]
+    show bd.bottomOf z = some (Sum.inr t.flipSuit)
+    exact (Board.bottomOf_eq _ _ _).mpr htopZ
+  have hne : Sum.inr t.flipSuit ≠ Sum.inr t :=
+    fun h : (Sum.inr t.flipSuit : Base) = Sum.inr t => Card.flipSuit_ne t (Sum.inr.inj h)
+  have htop_t : st₁.board.topOf (Sum.inr t) = none := by
+    rw [hst₁]
+    show bd.topOf (Sum.inr t) = none
+    rw [Board.attach_topOf_ne _ _ _ hatt (fun h => hne h.symm)]
+    exact hdet_top
+  obtain ⟨bT, hbT⟩ := Option.isSome_iff_exists.mp hvis
+  have htop_sz : st.board.topOf (Sum.inr t) = some z :=
+    (Board.bottomOf_eq _ _ _).mp h₀
+  have hvis₁ : st₁.isVis t = true := by
+    rw [hst₁]
+    show (bd.bottomOf t).isSome = true
+    have hds : ((st.board.detach (Sum.inr t)).bottomOf t).isSome = true := by
+      rw [bottomOf_detach_ne htop_sz hne_tz]
+      exact Option.isSome_iff_exists.mpr ⟨bT, hbT⟩
+    exact bottomOf_isSome_attach hatt hds
+  have hcs_t : canSitOn z t = true := by
+    rw [← Card.swapTwin_self_right t, canSitOn_swapTwin_right]
+    exact hcs'
+  have hcan₁ : st₁.canPlace z (Sum.inr t) = true := by
+    rw [State.canPlace]
+    simp only [Bool.and_eq_true, htop_t, decide_true, true_and]
+    exact ⟨hvis₁, hcs_t⟩
+  have habenotmem : t ∉ st.board.aboveOf z := fun hm => (hfree t hm).1 rfl
+  have habove : st₁.board.aboveOf z = st.board.aboveOf z := by
+    have hagree : ∀ x : Card, x ≠ t → x ≠ t.flipSuit →
+        st.board.topOf (Sum.inr x) = st₁.board.topOf (Sum.inr x) := by
+      intro x hx₁ hx₂
+      rw [hst₁]
+      show st.board.topOf (Sum.inr x) = bd.topOf (Sum.inr x)
+      rw [Board.attach_topOf_ne _ _ _ hatt
+        (fun h : (Sum.inr x : Base) = Sum.inr t.flipSuit => hx₂ (Sum.inr.inj h))]
+      show st.board.topOf (Sum.inr x) = (st.board.detach (Sum.inr t)).topOf (Sum.inr x)
+      rw [Board.detach_topOf_ne _ _ _
+        (fun h : (Sum.inr x : Base) = Sum.inr t => hx₁ (Sum.inr.inj h))]
+    exact Board.aboveOf_congr_off hagree hfree
+      (hagree z hne_tz.symm hne_tz')
+  have hcmr₂ : st₁.canMoveRun z (Sum.inr t) = true := by
+    rw [State.canMoveRun]
+    show (st₁.canPlace z (Sum.inr t) && !(st₁.board.aboveOf z).contains t) = true
+    rw [Bool.and_eq_true_iff]
+    refine ⟨hcan₁, ?_⟩
+    rw [habove, lcontains_false_of_notMem habenotmem]
+    rfl
+  have htopZ₁ : st₁.board.topOf (Sum.inr t.flipSuit) = some z := by
+    rw [hst₁]
+    exact htopZ
+  have htop_t' : (st₁.board.detach (Sum.inr t.flipSuit)).topOf (Sum.inr t) = none := by
+    rw [Board.detach_topOf_ne _ _ _ (fun h => hne h.symm)]
+    exact htop_t
+  have hbot_z : (st₁.board.detach (Sum.inr t.flipSuit)).bottomOf z = none := by
+    exact Board.bottomOf_detach_self htopZ₁
+  cases hatt₂ : (st₁.board.detach (Sum.inr t.flipSuit)).attach (Sum.inr t) z with
+  | none =>
+      have := (Board.attach_eq_some_iff _ _ _).mpr ⟨htop_t', hbot_z⟩
+      rw [hatt₂] at this
+      simp at this
+  | some bd₂ =>
+      refine ⟨{ st₁ with board := bd₂ }, ?_⟩
+      exact apply_pilePile_iff.mpr ⟨Sum.inr t.flipSuit, hbot₂, hne, hcmr₂, bd₂, hatt₂, rfl⟩
