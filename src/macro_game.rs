@@ -40,7 +40,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use crate::card::{Card, KING_MASK, N_CARDS, SUIT_MASK};
-use crate::deck::N_PILES;
+use crate::deck::{Deck, N_PILES};
 use crate::moves::{Move, MoveMask, N_MOVES_MAX};
 use crate::stack::Stack;
 use crate::state::{bottom_mask_of, swap_pair, Encode, Solitaire};
@@ -69,10 +69,12 @@ pub(crate) mod perf_probe {
         static DO_MOVES: Cell<u64> = Cell::new(0);
         static UNDO_MOVES: Cell<u64> = Cell::new(0);
         static ENCODES: Cell<u64> = Cell::new(0);
+        static REG_FIRES: Cell<u64> = Cell::new(0);
     }
 
     pub fn reset() {
         WALK_STATES.with(|c| c.set(0));
+        REG_FIRES.with(|c| c.set(0));
         CLS_CALLS.with(|c| c.set(0));
         CLS_STATES.with(|c| c.set(0));
         BFS_CALLS.with(|c| c.set(0));
@@ -88,7 +90,7 @@ pub(crate) mod perf_probe {
     }
 
     #[must_use]
-    pub fn read() -> [u64; 13] {
+    pub fn read() -> [u64; 14] {
         [
             WALK_STATES.with(Cell::get),
             CLS_CALLS.with(Cell::get),
@@ -103,7 +105,13 @@ pub(crate) mod perf_probe {
             DO_MOVES.with(Cell::get),
             UNDO_MOVES.with(Cell::get),
             ENCODES.with(Cell::get),
+            REG_FIRES.with(Cell::get),
         ]
+    }
+
+    /// Count the offset-dominance registry's skips (test-only).
+    pub fn bump_reg() {
+        REG_FIRES.with(|c| c.set(c.get() + 1));
     }
 
     pub fn bump_walk() {
@@ -1014,12 +1022,16 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         if off % step == 0 || off == n {
             // pure: dominated by ANY refuted impure sibling (R2)
             if scratch.offset_registry.contains_key(&sans) {
+                #[cfg(test)]
+                perf_probe::bump_reg();
                 return false;
             }
             rec_go(s, tp, scratch, hook)
         } else {
             let key = sans | u64::from(off % step);
             if scratch.offset_registry.get(&key).is_some_and(|&m| m <= off) {
+                #[cfg(test)]
+                perf_probe::bump_reg();
                 return false;
             }
             let res = rec_go(s, tp, scratch, hook);
@@ -1108,7 +1120,7 @@ fn macro_solvable_direct_impl(g: &Solitaire, hook: &mut Option<&mut dyn FnMut(&S
         };
 
         let mut commitments = core::mem::take(&mut scratch.commitments);
-        core_run(&ctx, scratch, &mut commitments, true);
+        core_run(&ctx, scratch, &mut commitments, true, s.get_deck());
         scratch.commitments = commitments;
 
         // F3 dominance drop: tableau outcomes of dominantly stackable
@@ -1642,6 +1654,7 @@ fn core_run(
     scratch: &mut DirectScratch,
     commitments: &mut Vec<Commitment>,
     fold: bool,
+    deck: &Deck,
 ) {
     let mv = ctx.root.move_masks(ctx.deck_mask, ctx.first_layer);
     let deck_mask = ctx.deck_mask;
@@ -1664,6 +1677,19 @@ fn core_run(
     // buries reveal-led winning lines under draw-subgame refutations
     // (seed 18 draw 1: 96k nodes draw-first vs 84 reveal-first, see
     // `macro_verdict_perf_probe`).
+    //
+    // The draw commitments enumerate by deck position DESCENDING (a
+    // reverse pass over the array, filtered by the K+ mask): the
+    // successor's offset after a draw is the drawn card's position, so
+    // the last-drawn card determines a line's final offset — exploring
+    // high positions first explores the permutations that END on low
+    // positions (small offsets) first, i.e. the *dominating* states of
+    // the offset-dominance classes first, so the refuted-offset
+    // registry fires on arrival instead of after the fact. Mask-ascending
+    // order is an uncorrelated coin flip per same-class pair (~half the
+    // dominated explored before their dominators are refuted — the
+    // measured 6.9% realized vs the 43.8% ceiling); ascending position
+    // order is systematically the worst (dominated always first).
     commitments.clear();
     let mut bits = locked_surfaces;
     while bits != 0 {
@@ -1673,13 +1699,10 @@ fn core_run(
             u8::try_from(bit.trailing_zeros()).unwrap(),
         )));
     }
-    let mut bits = deck_mask;
-    while bits != 0 {
-        let bit = bits & bits.wrapping_neg();
-        bits &= !bit;
-        commitments.push(Commitment::Draw(Card::from_mask_index(
-            u8::try_from(bit.trailing_zeros()).unwrap(),
-        )));
+    for c in deck.iter().rev() {
+        if deck_mask & c.mask() != 0 {
+            commitments.push(Commitment::Draw(c));
+        }
     }
 
     // reset the reused buffers: per-commitment groups, goal list
@@ -1934,7 +1957,7 @@ fn macro_transitions_core(g: &Solitaire, scratch: &mut DirectScratch) -> (Solita
     canonicalize(&mut game);
     let ctx = ClosureCtx::from_game(&game);
     let mut commitments = core::mem::take(&mut scratch.commitments);
-    core_run(&ctx, scratch, &mut commitments, false);
+    core_run(&ctx, scratch, &mut commitments, false, game.get_deck());
     scratch.commitments = commitments;
     (game, ctx)
 }
@@ -2030,10 +2053,11 @@ mod tests {
                     }
                 });
                 println!(
-                    "seed={seed} draw={draw_step} win={win} nodes={n} forced={f} ({:4.1}%) deck_dom={d} ({:4.1}%) avg_deck_at_dom={:4.1} in {:?}",
+                    "seed={seed} draw={draw_step} win={win} nodes={n} forced={f} ({:4.1}%) deck_dom={d} ({:4.1}%) avg_deck_at_dom={:4.1} reg_fires={} in {:?}",
                     100.0 * f as f64 / n.max(1) as f64,
                     100.0 * d as f64 / n.max(1) as f64,
                     dc as f64 / d.max(1) as f64,
+                    perf_probe::read()[13],
                     t.elapsed()
                 );
                 nodes += n;
@@ -2113,7 +2137,7 @@ mod tests {
                 }
             };
             let mut commitments = core::mem::take(&mut scratch.commitments);
-            core_run(&ctx, scratch, &mut commitments, true);
+            core_run(&ctx, scratch, &mut commitments, true, s.get_deck());
             scratch.commitments = commitments;
             let f3 = scratch.f3;
             let mut groups = core::mem::take(&mut scratch.groups);
@@ -2261,7 +2285,7 @@ mod tests {
                 // recover this node's goal set (same fold the search runs)
                 let mut scratch = DirectScratch::new();
                 let mut commitments = Vec::new();
-                core_run(&ctx, &mut scratch, &mut commitments, true);
+                core_run(&ctx, &mut scratch, &mut commitments, true, s.get_deck());
                 if scratch.goals.is_empty() {
                     return;
                 }
@@ -2412,7 +2436,7 @@ mod tests {
                     let ctx = ClosureCtx::from_game(&game);
                     let mut scratch = DirectScratch::new();
                     let mut commitments = Vec::new();
-                    core_run(&ctx, &mut scratch, &mut commitments, false);
+                    core_run(&ctx, &mut scratch, &mut commitments, false, game.get_deck());
                     let cs = closure_size(&ctx);
                     let fired = |ci: usize| -> Vec<&'static str> {
                         scratch.groups[ci]
@@ -2830,7 +2854,7 @@ mod tests {
                     let ctx = ClosureCtx::from_game(&game);
                     let mut scratch = DirectScratch::new();
                     let mut commitments = Vec::new();
-                    core_run(&ctx, &mut scratch, &mut commitments, false);
+                    core_run(&ctx, &mut scratch, &mut commitments, false, game.get_deck());
                     if scratch.goals.is_empty() {
                         // advance anyway
                         let cands = enumerate_commitments(&game);
@@ -3411,7 +3435,7 @@ mod tests {
                              -> Vec<Option<(OutcomeKind, ArrayVec<Move, 42>, &'static str)>> {
                                 let mut commitments =
                                     core::mem::take(&mut scratch.commitments);
-                                core_run(&ctx, scratch, &mut commitments, fold);
+                                core_run(&ctx, scratch, &mut commitments, fold, game.get_deck());
                                 scratch.commitments = commitments;
                                 let dom = game.get_stack().dominance_mask();
                                 let mut f3: u64 = 0;
@@ -3607,7 +3631,7 @@ mod tests {
                             // to core_run's pushes, minus kills and folds
                             let mut scratch = DirectScratch::new();
                             let mut commitments = Vec::new();
-                            core_run(&ctx, &mut scratch, &mut commitments, false);
+                            core_run(&ctx, &mut scratch, &mut commitments, false, game.get_deck());
                             let mut goals: Vec<AccommodationGoal> = Vec::new();
                             let mut dead: Vec<bool> = Vec::new();
                             for &commitment in &commitments {
@@ -3861,7 +3885,7 @@ mod tests {
             }
             let t0 = Instant::now();
             let mut commitments = core::mem::take(&mut scratch.commitments);
-            core_run(&ctx, scratch, &mut commitments, true);
+            core_run(&ctx, scratch, &mut commitments, true, s.get_deck());
             scratch.commitments = commitments;
             t.core += t0.elapsed();
             // the shipped fold reads the F3 mask the generator derived
