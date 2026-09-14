@@ -2494,6 +2494,226 @@ theorem State.cargo_flipSuit {st : State} {t z z' : Card}
     exact Card.flipSuit_ne t (Sum.inr.inj (Option.some.inj hbb)).symm
   exact Card.flipSuit_eq_of_color_rank hc hr hne
 
+/-- **The merge ply, root landing (route step 2a)**: at a riders-cleared
+state (the seat over `z` bare), the exchanged game plays the mirror
+merge — the same run, landed on the other cargo — and the successor's
+board is the merge-successor's board, twin-swapped at the CARGO `z`;
+every other field is the exchange's (the source's: the merge touches
+only the board).  The fit is twin-blind (`canSitOn_flipSuit_right` at
+the cargo twin, `cargo_flipSuit`); the self-landing guard is
+`exchangeTwin_mirror_guard`; the board commutation is the per-seat
+analysis — the four twin seats carry the exchanged/skewed values, the
+landing seats the two attach-updates, and everywhere else the
+inj-pinned z-freeness makes the relabeling fix the value.
+
+NOTE (the climb-out's open item): the full `swapTwin z` also relabels
+the deal piles and the stock, while this successor keeps the source's
+deal — and board cards stay listed in the deal piles (the reveal keeps
+it), so the state-level correspondence between the ply result and
+`a₁.swapTwin z` has a deal reconciliation to do. -/
+theorem State.exchange_merge_ply_root {st a₁ : State} {t z z' c : Card}
+    (hztop : st.board.topOf (Sum.inr t) = some z)
+    (hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hnb : t ∉ st.board.aboveOf z ∧ t.flipSuit ∉ st.board.aboveOf z)
+    (hnb' : t ∉ st.board.aboveOf z' ∧ t.flipSuit ∉ st.board.aboveOf z')
+    (hmerge : t ∈ st.board.aboveOf c)
+    (hct : c ≠ t ∧ c ≠ t.flipSuit)
+    (hrid : st.board.topOf (Sum.inr z) = none)
+    (hstep : st.apply (Move.pilePile c (Sum.inr z')) = some a₁) :
+    ∃ M', (st.exchangeTwinCargo t).apply (Move.pilePile c (Sum.inr z)) = some M' ∧
+      M'.board = a₁.board.mapByTwin z ∧ M'.deal = a₁.deal ∧ M'.heights = a₁.heights ∧
+      M'.depths = a₁.depths ∧ M'.stock = a₁.stock ∧ M'.drawStep = a₁.drawStep := by
+  rw [apply_pilePile_iff] at hstep
+  obtain ⟨b₀, hbot, hne, hcmr, bd₁, hatt₁, ha₁⟩ := hstep
+  have hcargo : z' = z.flipSuit := State.cargo_flipSuit hfit hfit' hztop hztop'
+  have hzr : z.rank.toIdx + 1 = t.rank.toIdx := ((canSitOn_eq z t).mp hfit).1
+  have hz'r : z'.rank.toIdx + 1 = t.flipSuit.rank.toIdx := ((canSitOn_eq z' _).mp hfit').1
+  have hfr : t.flipSuit.rank.toIdx = t.rank.toIdx := congrArg Rank.toIdx (Card.flipSuit_rank t)
+  have hzne : z ≠ t := fun h => by rw [h] at hzr; omega
+  have hzne' : z ≠ t.flipSuit := fun h => by rw [h] at hzr; rw [hfr] at hzr; omega
+  have hz'ne : z' ≠ t := fun h => by rw [h] at hz'r; omega
+  have hz'ne' : z' ≠ t.flipSuit := fun h => by rw [h] at hz'r; omega
+  have htz : t ≠ z := fun h => hzne h.symm
+  have htz' : t ≠ z' := fun h => hz'ne h.symm
+  have ht'z : t.flipSuit ≠ z := fun h => hzne' h.symm
+  have ht'z' : t.flipSuit ≠ z' := fun h => hz'ne' h.symm
+  have hzzone : z ≠ z' := fun h => by
+    rw [h] at hcargo
+    exact (Card.flipSuit_ne z') hcargo.symm
+  have hcz : c ≠ z := by
+    intro hcon
+    rw [hcon] at hmerge
+    exact hnb.1 hmerge
+  have hcz' : c ≠ z' := by
+    intro hcon
+    rw [hcon] at hmerge
+    exact hnb'.1 hmerge
+  have hselfm := hcmr
+  rw [State.canMoveRun, Bool.and_eq_true_iff] at hselfm
+  obtain ⟨hcp, -⟩ := hselfm
+  obtain ⟨hz'bare, -, hfitcz'⟩ := canPlace_inr_iff.mp hcp
+  -- the base exclusions
+  have hb₀z : b₀ ≠ Sum.inr z := by
+    intro hcon
+    have htc : st.board.topOf (Sum.inr z) = some c := (Board.bottomOf_eq _ _ _).mp (hcon ▸ hbot)
+    rw [htc] at hrid
+    exact absurd hrid (by simp)
+  have hb₀t : b₀ ≠ Sum.inr t := by
+    intro hcon
+    have htc : st.board.topOf (Sum.inr t) = some c := (Board.bottomOf_eq _ _ _).mp (hcon ▸ hbot)
+    rw [hztop] at htc
+    exact hcz (Option.some.inj htc).symm
+  have hb₀t' : b₀ ≠ Sum.inr t.flipSuit := by
+    intro hcon
+    have htc : st.board.topOf (Sum.inr t.flipSuit) = some c :=
+      (Board.bottomOf_eq _ _ _).mp (hcon ▸ hbot)
+    rw [hztop'] at htc
+    exact hcz' (Option.some.inj htc).symm
+  -- the seat-fixing equations
+  have hfixz : Base.swapTwin t (Sum.inr z) = Sum.inr z :=
+    Base.swapTwin_eq_self (fun h => hzne (Sum.inr.inj h)) (fun h => hzne' (Sum.inr.inj h))
+  have hfixz' : Base.swapTwin t (Sum.inr z') = Sum.inr z' :=
+    Base.swapTwin_eq_self (fun h => hz'ne (Sum.inr.inj h)) (fun h => hz'ne' (Sum.inr.inj h))
+  have hfixb₀ : Base.swapTwin t b₀ = b₀ :=
+    Base.swapTwin_eq_self hb₀t hb₀t'
+  have hzsz : Base.swapTwin z (Sum.inr z') = Sum.inr z := by
+    show Sum.inr (Card.swapTwin z z') = Sum.inr z
+    rw [hcargo]
+    exact congrArg Sum.inr (Card.swapTwin_self_right z)
+  have hzs' : Base.swapTwin z (Sum.inr z) = Sum.inr z' := by
+    show Sum.inr (Card.swapTwin z z) = Sum.inr z'
+    rw [Card.swapTwin_self_left]
+    exact (congrArg Sum.inr hcargo).symm
+  have hselfzt : Base.swapTwin z (Sum.inr t) = Sum.inr t :=
+    Base.swapTwin_eq_self (fun h => htz (Sum.inr.inj h)) (fun h => htz' (by
+      rw [← hcargo] at h
+      exact Sum.inr.inj h))
+  have hselfzt' : Base.swapTwin z (Sum.inr t.flipSuit) = Sum.inr t.flipSuit :=
+    Base.swapTwin_eq_self (fun h => ht'z (Sum.inr.inj h)) (fun h => ht'z' (by
+      rw [← hcargo] at h
+      exact Sum.inr.inj h))
+  have hselfzb₀ : Base.swapTwin z b₀ = b₀ := by
+    refine Base.swapTwin_eq_self hb₀z ?_
+    intro h
+    rw [← hcargo] at h
+    exact hne h
+  have hselftt : Base.swapTwin t (Sum.inr t) = Sum.inr t.flipSuit := by
+    show Sum.inr (Card.swapTwin t t) = Sum.inr t.flipSuit
+    exact congrArg Sum.inr (Card.swapTwin_self_left t)
+  have hselftt' : Base.swapTwin t (Sum.inr t.flipSuit) = Sum.inr t := by
+    show Sum.inr (Card.swapTwin t t.flipSuit) = Sum.inr t
+    exact congrArg Sum.inr (Card.swapTwin_self_right t)
+  -- the mirror's guard components
+  have hbotM : (st.exchangeTwinCargo t).board.bottomOf c = some b₀ := by
+    rw [State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin, hbot]
+    simp [hfixb₀]
+  have htopzM : (st.exchangeTwinCargo t).board.topOf (Sum.inr z) = none := by
+    rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hfixz]
+    exact hrid
+  have hvisM : (st.exchangeTwinCargo t).isVis z = true := by
+    rw [State.isVis, State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin,
+      (Board.bottomOf_eq _ _ _).mpr hztop]
+    simp
+  have hfitM : canSitOn c z = true := by
+    have hzz : z = z'.flipSuit := by rw [hcargo, Card.flipSuit_flipSuit]
+    rw [hzz, canSitOn_flipSuit_right]
+    exact hfitcz'
+  have hczf : c ≠ z.flipSuit := fun h => hcz' (by rw [← hcargo] at h; exact h)
+  have hselfM : z ∉ (st.board.exchangeTwin t).aboveOf c :=
+    State.exchangeTwin_mirror_guard hztop hztop' hfit hfit' hnb hnb' hmerge hct
+  have hcmrM : (st.exchangeTwinCargo t).canMoveRun c (Sum.inr z) = true := by
+    refine canMoveRun_inr_iff.mpr ⟨canPlace_inr_iff.mpr ⟨htopzM, hvisM, hfitM⟩, ?_⟩
+    show ((st.board.exchangeTwin t).aboveOf c).contains z = false
+    cases hcon : ((st.board.exchangeTwin t).aboveOf c).contains z with
+    | false => rfl
+    | true => exact absurd ((List.contains_iff_mem).mp hcon) hselfM
+  -- the mirror's attach
+  have htopzM' : ((st.board.exchangeTwin t).detach b₀).topOf (Sum.inr z) = none := by
+    rw [Board.detach_topOf_ne _ _ _ (fun h => hb₀z h.symm)]
+    exact htopzM
+  have hbotM' : ((st.board.exchangeTwin t).detach b₀).bottomOf c = none := by
+    have htc : (st.board.exchangeTwin t).topOf b₀ = some c := by
+      rw [Board.exchangeTwin_topOf, hfixb₀]
+      exact (Board.bottomOf_eq _ _ _).mp hbot
+    exact Board.bottomOf_detach_self htc
+  have hattne : ((st.board.exchangeTwin t).detach b₀).attach (Sum.inr z) c ≠ none :=
+    (Board.attach_eq_some_iff _ _ _).mpr ⟨htopzM', hbotM'⟩
+  have hattex : ∃ bdM, ((st.board.exchangeTwin t).detach b₀).attach (Sum.inr z) c = some bdM := by
+    cases hattc : ((st.board.exchangeTwin t).detach b₀).attach (Sum.inr z) c with
+    | none => exact (hattne hattc).elim
+    | some bd => exact ⟨bd, rfl⟩
+  obtain ⟨bdM, hatt⟩ := hattex
+  refine ⟨{st.exchangeTwinCargo t with board := bdM},
+    apply_pilePile_iff.mpr ⟨b₀, hbotM, hb₀z, hcmrM, bdM, hatt, rfl⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  -- the board commutation: bdM = bd₁.mapByTwin z
+  have hL : ∀ (b' : Base), b' ≠ Sum.inr z → b' ≠ b₀ →
+      bdM.topOf b' = st.board.topOf (b'.swapTwin t) := by
+    intro b' h1 h2
+    rw [Board.attach_topOf_ne _ _ _ hatt h1, Board.detach_topOf_ne _ _ _ h2,
+      Board.exchangeTwin_topOf]
+  have hR : ∀ (b' : Base), b' ≠ Sum.inr z' → b' ≠ b₀ →
+      bd₁.topOf b' = st.board.topOf b' := by
+    intro b' h1 h2
+    rw [Board.attach_topOf_ne _ _ _ hatt₁ h1, Board.detach_topOf_ne _ _ _ h2]
+  rw [ha₁]
+  show bdM = bd₁.mapByTwin z
+  apply Board.ext_topOf
+  funext b'
+  rw [mapByTwin_topOf]
+  by_cases hz : b' = Sum.inr z
+  · rw [hz, Board.attach_topOf _ _ _ hatt, hzs', Board.attach_topOf _ _ _ hatt₁]
+    show some c = some (Card.swapTwin z c)
+    rw [Card.swapTwin_of_ne hcz hczf]
+  · by_cases hz' : b' = Sum.inr z'
+    · rw [hz', hL (Sum.inr z') (fun h => hzzone (Sum.inr.inj h).symm)
+        (fun h => hne h.symm), hfixz', hz'bare, hzsz,
+        hR (Sum.inr z) (fun h => hzzone (Sum.inr.inj h)) (fun h => hb₀z h.symm), hrid]
+      rfl
+    · by_cases ht : b' = Sum.inr t
+      · rw [ht, hL (Sum.inr t) (fun h => htz (Sum.inr.inj h))
+          (fun h => hb₀t h.symm), hselftt, hselfzt,
+          hR (Sum.inr t) (fun h => htz' (Sum.inr.inj h)) (fun h => hb₀t h.symm), hztop]
+        show st.board.topOf (Sum.inr t.flipSuit) = some (Card.swapTwin z z)
+        rw [Card.swapTwin_self_left, ← hcargo]
+        exact hztop'
+      · by_cases ht' : b' = Sum.inr t.flipSuit
+        · rw [ht', hL (Sum.inr t.flipSuit) (fun h => ht'z (Sum.inr.inj h))
+            (fun h => hb₀t' h.symm), hselftt', hselfzt',
+            hR (Sum.inr t.flipSuit) (fun h => ht'z' (Sum.inr.inj h))
+              (fun h => hb₀t' h.symm), hztop']
+          show st.board.topOf (Sum.inr t) = some (Card.swapTwin z z')
+          rw [show Card.swapTwin z z' = z from by rw [hcargo]; exact Card.swapTwin_self_right z]
+          exact hztop
+        · by_cases hb₀ : b' = b₀
+          · rw [hb₀, Board.attach_topOf_ne _ _ _ hatt (fun h => hb₀z h),
+              Board.detach_topOf, hselfzb₀,
+              Board.attach_topOf_ne _ _ _ hatt₁ (fun h => hne h), Board.detach_topOf]
+            rfl
+          · -- everywhere else: both read through, and the value is z-free by inj
+            have hfixt : b'.swapTwin t = b' := Base.swapTwin_eq_self ht ht'
+            have hfixz2 : b'.swapTwin z = b' :=
+              Base.swapTwin_eq_self hz (fun h => hz' (by rw [← hcargo] at h; exact h))
+            rw [hL b' hz (fun h => hb₀ h), hfixt, hfixz2,
+              hR b' hz' (fun h => hb₀ h)]
+            cases hb : st.board.topOf b' with
+            | none => rfl
+            | some x =>
+                show some x = some (Card.swapTwin z x)
+                have hxz : x ≠ z := by
+                  intro hcon
+                  have hinj := st.board.inj (Sum.inr t) b' x (by rw [hztop, hcon]) hb
+                  exact ht hinj.symm
+                have hxz' : x ≠ z' := by
+                  intro hcon
+                  have hinj := st.board.inj (Sum.inr t.flipSuit) b' x (by rw [hztop', hcon]) hb
+                  exact ht' hinj.symm
+                rw [Card.swapTwin_of_ne hxz (fun h => hxz' (by rw [← hcargo] at h; exact h))]
+  · rw [ha₁]; rfl
+  · rw [ha₁]; rfl
+  · rw [ha₁]; rfl
+  · rw [ha₁]; rfl
+  · rw [ha₁]; rfl
 /-- **The twin-rooted merge — the [H] residual**: the frozen-phase
 move whose root is the twin itself, landing on the other cargo's run —
 the twin's own run (the cargo riding on top of it) merges onto the
