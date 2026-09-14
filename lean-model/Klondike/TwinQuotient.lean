@@ -626,15 +626,23 @@ structural discovery behind it — the CARGOS ARE A TWIN PAIR
 (`State.cargo_flipSuit`: the fits pin both to the twins' shared rank
 and the shared other color, so `z' = z.flipSuit`) — makes the fit
 twin-blind and identifies the ply's landing as the merge-successor's
-board, twin-swapped AT THE CARGO z.  THE OPEN ITEM the climb-out now
-faces: the full `swapTwin z` also relabels the deal piles and the
-stock, while the ply keeps the source's deal — and board cards stay
-listed in the deal piles (the reveal keeps `deal`), so the
-state-level correspondence between the ply result and `a₁.swapTwin z`
-needs a deal reconciliation (the climb-out's replay machinery must
-either work board-only, or the deal difference must be bridged).  The
-stock is z-free (`vis_off_cycle` at seated z/z'); only the deal
-piles carry the difference. -/
+board, twin-swapped AT THE CARGO z.  THE DEAL RECONCILIATION (the
+climb-out's former open item) is now RESOLVED: the full `swapTwin z`
+relabels the deal piles and the stock, while the ply keeps the
+source's deal — but this difference is INNOCUOUS
+(`State.apply_swapTwinBoard_clean`, the board-only mirror lemma, 7
+cases): the only deal-reads in any move's guard are the reveal's
+boundary lookups (`pileOfTopHidden`, `hiddenBase`), which only ever
+produce HIDDEN-SLICE cards, and z/z' are never hidden (WF
+`vis_not_hidden` at the licensed state; the hidden slices shrink
+monotonically since only reveal writes depths); the stock is z-free
+(the cycle static, z/z' seated), so deckPile's moved card - a stock
+card - is always off the pair.  Every clean move - reveals included -
+conjugates under the board-only swap.  The climb-out's remaining
+content: the run-level packaging, the pair/separated replay at
+board-only (the chunk-B machinery re-based on
+`apply_swapTwinBoard_clean`), the rider-prefix extraction, and the
+L1/O3(ii) catch-up deferral. -/
 theorem State.solvable_of_exchange_merge {st a₁ : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF) (h : st.twinLicensed t)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
