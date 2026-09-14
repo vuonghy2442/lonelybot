@@ -562,27 +562,32 @@ correction); the own-cargo landings are self-landing at the SOURCE
 above the passing twin, hence above the run's root), so the hland
 cases are exactly the other-cargo tops.
 
-TODO(proof) **[H]** — the route (updated 2026-09-14, sessions 8-9):
-the gate FIRED EMPTY (the w15wfmerge probe: no divergence — founds_gone
-forces live blockers); the cycle threat resolved (the license pins the
-four cards' component rigid — cycles live in separate components);
-the mirror's self-landing guard is LANDED
-(`exchangeTwin_mirror_guard`: pred-reaches + the exchange bound +
-comparability, every case a braid).  The bridge now decomposes as:
-**(1)** the rider-prefix — the z-riders stack off in stx exactly as in
-a₁ (identical heights, identical bareness order — π's own moves,
-replayed verbatim; `pileStack_mem_of_win` supplies the liveness);
-**(2)** the mirror merge — the guard lemma + the twin-blind fit give
-legality, landing on the now-bare z; the resulting M vs a₁: the two
-stack arrangements are the twin-swap in the bare case, and in general
-differ by the rider placement; **(3)** the climb-out — the remaining
-content: a₁'s chain (R, z, t, ib, c, R', z', t') vs stx's two chains
-(R, z, t') and (R', z', t, ib, c) — π's stacking order does NOT
-transfer (the z'-segment's order reverses), so the climb-out is a
-RESCHEDULING: the suits' rung-counters are independent, and the
-deadlock question is exactly the L1/O3 interleaving class
-(TwinAgnostic's open window).  This — the swap-replay/rescheduling —
-is the bridge's sole remaining piece, shared with the rooted variant. -/
+TODO(proof) **[H]** — the route (updated 2026-09-14, sessions 8-11):
+the gate FIRED EMPTY; the cycle threat resolved (license rigidity); the
+mirror's self-landing guard is LANDED (`exchangeTwin_mirror_guard`,
+c-run form; `exchangeTwin_mirror_guard_zstack`, the z'-stack form —
+the rider transfer's guard, dying by transitivity alone).  The
+strategy, complete via the TWO-PLY TRANSFER: **(1)** the rider-prefix
+(π's own moves, identical heights/bareness).  **(2a)** ROOT landing
+(d = z'): the MIRROR merge `pilePile c (inr z)` — the c-run guard +
+the twin-blind fit.  **(2b)** DEEP landing (d ∈ aboveOf z'): the RIDER
+TRANSFER `pilePile r₁ (inr z)` (the z'-stack guard ✓ landed; the fit
+twin-blind — NOTE the fit hole: a deal-adjacent first rider (not
+fitting z') breaks the transfer — that sub-case needs either the
+replay's normalization or a premise repair), then the ORIGINAL merge
+`pilePile c (inr d)` (the original fit; the guard at stx₂ — a
+non-exchange board — needs the walk-computation argument, not the
+bound).  In both ply-completed cases the result is the TWIN-SWAP of
+a₁-after-prefix.  **(3)** the climb-out = the twin-swap replay of
+π-after-prefix: the clean moves conjugate (`apply_swapTwin_clean`),
+the z/z' foundation moves are the exception set, and the
+non-adjacent window is precisely L1/O3 — TwinAgnostic's open
+interleaving lemma, now reached from a second direction.  The suit-level
+relabel (`solvable_relabel`) does NOT shortcut it: the needed
+correspondence is the two-card transposition τ_z, and ρ'∘τ_z (the
+residual 12 black transpositions) meets the same window per pair.
+The bridges' sole remaining content is that window; the assembly
+around it is mechanical. -/
 theorem State.solvable_of_exchange_merge {st a₁ : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF) (h : st.twinLicensed t)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
@@ -1737,6 +1742,72 @@ theorem State.exchangeTwin_mirror_guard {st : State} {t z z' c : Card}
             · exact hnb'.1 h4
     · exact ht'z h
     · exact hz'ne' h.symm
+    · exact hnb.2 h
+    · exact hnb'.2 h
+
+/-- **The mirror-guard, z'-stack form**: for any card of the other
+cargo's run (y above z'), the exchanged walk from y never reaches z —
+the rider transfer's guard.  Simpler than the c-run form: the first
+bound case dies by transitivity directly (y is above z', so t' above
+y forces t' above z' — the braid), no both-twins comparability
+needed. -/
+theorem State.exchangeTwin_mirror_guard_zstack {st : State} {t z z' y : Card}
+    (hztop : st.board.topOf (Sum.inr t) = some z)
+    (hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hnb : t ∉ st.board.aboveOf z ∧ t.flipSuit ∉ st.board.aboveOf z)
+    (hnb' : t ∉ st.board.aboveOf z' ∧ t.flipSuit ∉ st.board.aboveOf z')
+    (hy : y ∈ st.board.aboveOf z') :
+    z ∉ (st.board.exchangeTwin t).aboveOf y := by
+  have hzne : z ≠ t := by
+    intro hcon
+    rw [hcon] at hfit
+    obtain ⟨hr, -⟩ := (canSitOn_eq t t).mp hfit
+    omega
+  have hzne' : z ≠ t.flipSuit := by
+    intro hcon
+    rw [hcon] at hfit
+    obtain ⟨hr, -⟩ := (canSitOn_eq t.flipSuit t).mp hfit
+    rw [Card.flipSuit_rank] at hr
+    omega
+  have hz'ne : z' ≠ t := by
+    intro hcon
+    rw [hcon] at hfit'
+    obtain ⟨hr, -⟩ := (canSitOn_eq t t.flipSuit).mp hfit'
+    rw [Card.flipSuit_rank] at hr
+    omega
+  have hz'ne' : z' ≠ t.flipSuit := by
+    intro hcon
+    rw [hcon] at hfit'
+    obtain ⟨hr, -⟩ := (canSitOn_eq t.flipSuit t.flipSuit).mp hfit'
+    omega
+  have ht'z : t.flipSuit ≠ z := by
+    intro hcon
+    rw [← hcon] at hfit
+    obtain ⟨hr, -⟩ := (canSitOn_eq t.flipSuit t).mp hfit
+    rw [Card.flipSuit_rank] at hr
+    omega
+  have ht'z' : t.flipSuit ≠ z' := by
+    intro hcon
+    rw [← hcon] at hfit'
+    obtain ⟨hr, -⟩ := (canSitOn_eq t.flipSuit t.flipSuit).mp hfit'
+    omega
+  intro hmem
+  have htopstx : (st.board.exchangeTwin t).topOf (Sum.inr t.flipSuit) = some z := by
+    rw [Board.exchangeTwin_topOf]
+    have hsw : Base.swapTwin t (Sum.inr t.flipSuit) = Sum.inr t := by
+      show Sum.inr (Card.swapTwin t t.flipSuit) = Sum.inr t
+      rw [Card.swapTwin_self_right]
+    rw [hsw]
+    exact hztop
+  rcases Board.aboveOf_pred htopstx hmem with h | h
+  · rw [← h] at hy
+    exact hnb'.2 hy
+  · rcases Board.aboveOf_exchangeTwin_bound hztop hztop'
+      ⟨hzne, hzne', hz'ne, hz'ne'⟩ hnb hnb' h with h | h | h | h | h
+    · exact hnb'.2 (Board.aboveOf_trans hy h)
+    · exact ht'z h
+    · exact ht'z' h
     · exact hnb.2 h
     · exact hnb'.2 h
 
