@@ -3007,6 +3007,1376 @@ theorem solvable_of_pileStack_of_rungNormal {st : State} (hwf : st.WF) {c : Card
   exact solvable_of_pileStack_aux π.length st c b₀ s₁ hwf hnotlock hb₀ hm π
     (Nat.le_refl _) ⟨π₁, π₂, hsplit, hclr⟩ w hrun hwin
 
+/-! ### (c-α) — the park-window one-step replay (the twin-seat
+divergence φ, ENDGAME §8.3 (c)'s first gap)
+
+The descent's transformation step (ENDGAME §4) meets blocked moves
+inside the divergence window: the park redirect (`park y on c` → `park
+y on c.flipSuit`, step 2') leaves the two lines agreeing on everything
+except the twin seat region — the source has the cargo on `c`'s seat
+with the twin's bare, the replay has them exchanged.  The kit below is
+the `excursionSim` template's park-window twin: the φ (`parkSim`), the
+one-step replay through it (`parkSim_step`), the step-0 instantiation
+at the three park moves, the convergence at the cargo's departure, and
+the segment packaging (`parkSim_run`).
+
+The walk-agreement piece (the (c-α)-named `aboveOf_congr_off`
+analogue) is TWO-directional here — the excursion φ's board
+difference was a detach (walks only shrink, `aboveOf_detach_subset`);
+the park φ's is a two-cell value swap, so walks can grow (through the
+twin's seat, where the replay carries the cargo) or shrink (through
+`c`'s, where the source does).  The good direction (needed by
+`pilePile`'s self-landing guard) holds under the no-merge guard — the
+moved run does not pass through the twin's seat; the bad direction is
+the MERGE corner, where the same-move replay genuinely dies (probed
+`Temp/opencode/caprobe.lean`, evals 17–20: the move fires in the
+source line and is self-landing in the replay) — the descent's own
+business, exactly the shape that blocks TwinExchange's [H] row
+(FARM_MEMORY's "only the merges diverge").  The (c1α) gate: probed
+2026-09-14 (`Temp/opencode/caprobe.lean`, 23 evals): the φ
+instantiates, blind steps replay, the departure converges, the
+one-move re-merge lands on the replay, and at the licensed pre-state
+the double-redirect escape exists — no too-narrow witness; the
+mid-play twin occupancy is canonicalizable, so the certificate keeps
+reading the source state. -/
+
+/-- The redirect's fit license: the tableau rules are twin-blind (the
+twin of the host hosts equally). -/
+theorem canSitOn_flipSuit_right (x y : Card) : canSitOn x y.flipSuit = canSitOn x y := rfl
+
+/-- The twin-seat divergence φ (ENDGAME §8.3 (c-α)): the source line
+`σ` has the cargo `y` parked on `c`'s seat with the twin seat bare;
+the replay line `τ` has them exchanged; everything else agrees (the
+deal, heights, depths, stock, drawStep, and every board cell off the
+two seats), and both seat owners stay visible.  The descent
+instantiates it at the park redirect (§4 step 2', `c` the rung card)
+and at the excursion window's park-on-`x` shape (the same φ, the seat
+pair `x`/`x.flipSuit`). -/
+def parkSim (c y : Card) (σ τ : State) : Prop :=
+  σ.deal = τ.deal ∧ σ.heights = τ.heights ∧ σ.depths = τ.depths ∧
+    σ.stock = τ.stock ∧ σ.drawStep = τ.drawStep ∧
+    σ.board.topOf (Sum.inr c) = some y ∧ σ.board.topOf (Sum.inr c.flipSuit) = none ∧
+    τ.board.topOf (Sum.inr c) = none ∧ τ.board.topOf (Sum.inr c.flipSuit) = some y ∧
+    (∀ b, b ≠ Sum.inr c → b ≠ Sum.inr c.flipSuit → σ.board.topOf b = τ.board.topOf b) ∧
+    σ.isVis c = true ∧ σ.isVis c.flipSuit = true ∧ y ≠ c ∧ y ≠ c.flipSuit
+
+/-- φ-extractor: only the cargo's base differs, and `bottomOf`
+searches the cells — off the cargo the two lines agree. -/
+theorem parkSim_bottomOf_congr {c y : Card} {σ τ : State} (hsim : parkSim c y σ τ) :
+    ∀ d, d ≠ y → σ.board.bottomOf d = τ.board.bottomOf d := by
+  obtain ⟨-, -, -, -, -, hσc, hσt, hτc, hτt, hoff, -, -, -, -⟩ := hsim
+  intro d hdne
+  by_cases hb : σ.board.bottomOf d = none
+  · have hτnone : τ.board.bottomOf d = none :=
+      (Board.bottomOf_eq_none _ d).mpr (fun b hb' => by
+        by_cases hbc : b = Sum.inr c
+        · rw [hbc, hτc] at hb'; simp at hb'
+        by_cases hbt : b = Sum.inr c.flipSuit
+        · rw [hbt, hτt] at hb'
+          exact absurd (Option.some.inj hb').symm hdne
+        · exact ((Board.bottomOf_eq_none σ.board d).mp hb) b (by
+            rw [hoff b hbc hbt]; exact hb'))
+    rw [hb, hτnone]
+  · cases hsb : σ.board.bottomOf d with
+    | none => rw [hsb] at hb; exact absurd hb (by simp)
+    | some b =>
+        have htb : σ.board.topOf b = some d := (Board.bottomOf_eq _ _ _).mp hsb
+        have hbc : b ≠ Sum.inr c := by
+          intro hcon; rw [hcon, hσc] at htb
+          exact absurd (Option.some.inj htb).symm hdne
+        have hbt : b ≠ Sum.inr c.flipSuit := by
+          intro hcon; rw [hcon, hσt] at htb; exact absurd htb (by simp)
+        have hτtb : τ.board.topOf b = some d := by
+          rw [← hoff b hbc hbt]; exact htb
+        rw [(Board.bottomOf_eq τ.board d b).mpr hτtb]
+
+/-- φ-extractor: visibility agrees everywhere (the cargo is seated in
+both lines, just at exchanged seats). -/
+theorem parkSim_isVis_congr {c y : Card} {σ τ : State} (hsim : parkSim c y σ τ) :
+    ∀ d, σ.isVis d = τ.isVis d := by
+  have hbot := parkSim_bottomOf_congr hsim
+  obtain ⟨-, -, -, -, -, hσc, hσt, hτc, hτt, hoff, -, -, -, -⟩ := hsim
+  have hboty : σ.board.bottomOf y = some (Sum.inr c) :=
+    (Board.bottomOf_eq _ _ _).mpr hσc
+  have hbotyτ : τ.board.bottomOf y = some (Sum.inr c.flipSuit) :=
+    (Board.bottomOf_eq _ _ _).mpr hτt
+  intro d
+  by_cases hdy : d = y
+  · rw [hdy]
+    show (σ.board.bottomOf y).isSome = (τ.board.bottomOf y).isSome
+    rw [hboty, hbotyτ]
+    rfl
+  · show (σ.board.bottomOf d).isSome = (τ.board.bottomOf d).isSome
+    rw [hbot d hdy]
+
+/-- φ-extractor: `canPlace` agrees off the two seats (it reads the
+target cell and the target card's visibility — neither moves). -/
+theorem parkSim_canPlace_congr {c y : Card} {σ τ : State} (hsim : parkSim c y σ τ) :
+    ∀ (z : Card) (b : Base), b ≠ Sum.inr c → b ≠ Sum.inr c.flipSuit →
+      σ.canPlace z b = τ.canPlace z b := by
+  have hivs := parkSim_isVis_congr hsim
+  obtain ⟨-, -, -, -, -, -, -, -, -, hoff, -, -, -, -⟩ := hsim
+  intro z b hbc hbt
+  have htop : σ.board.topOf b = τ.board.topOf b := hoff b hbc hbt
+  simp only [State.canPlace, htop]
+  cases b with
+  | inl a => rfl
+  | inr d =>
+      show (decide (τ.board.topOf (Sum.inr d) = none) && (σ.isVis d && canSitOn z d)) =
+        (decide (τ.board.topOf (Sum.inr d) = none) && (τ.isVis d && canSitOn z d))
+      rw [hivs d]
+
+/-- A visible card's edge survives an attach elsewhere. -/
+theorem isVis_attach_ne {bd : Board} {b : Base} {z d : Card} {bd' : Board}
+    (hatt : bd.attach b z = some bd') (hvis : (bd.bottomOf d).isSome = true) :
+    (bd'.bottomOf d).isSome = true := by
+  obtain ⟨b_d, hb_d⟩ : ∃ b_d, bd.bottomOf d = some b_d := by
+    cases hb : bd.bottomOf d with
+    | none => rw [hb] at hvis; simp at hvis
+    | some b_d => exact ⟨b_d, rfl⟩
+  have htop : bd.topOf b_d = some d := (Board.bottomOf_eq _ _ _).mp hb_d
+  have hfree : bd.topOf b = none :=
+    ((Board.attach_eq_some_iff bd b z).mp (by rw [hatt]; simp)).1
+  have hne : b_d ≠ b := by
+    intro hcon; rw [hcon, hfree] at htop; simp at htop
+  show (bd'.bottomOf d).isSome = true
+  rw [(Board.bottomOf_eq _ _ _).mpr (by
+    rw [Board.attach_topOf_ne _ _ _ hatt hne]; exact htop)]
+  rfl
+
+/-- A visible card's edge survives a detach at another card's base. -/
+theorem isVis_detach_ne {bd : Board} {b : Base} {z d : Card}
+    (htopb : bd.topOf b = some z) (hvis : (bd.bottomOf d).isSome = true)
+    (hdz : d ≠ z) : ((bd.detach b).bottomOf d).isSome = true := by
+  obtain ⟨b_d, hb_d⟩ : ∃ b_d, bd.bottomOf d = some b_d := by
+    cases hb : bd.bottomOf d with
+    | none => rw [hb] at hvis; simp at hvis
+    | some b_d => exact ⟨b_d, rfl⟩
+  have htop : bd.topOf b_d = some d := (Board.bottomOf_eq _ _ _).mp hb_d
+  have hne : b_d ≠ b := by
+    intro hcon; rw [hcon, htopb] at htop
+    exact absurd (Option.some.inj htop).symm hdz
+  show ((bd.detach b).bottomOf d).isSome = true
+  rw [(Board.bottomOf_eq _ _ _).mpr (by
+    rw [Board.detach_topOf_ne _ _ _ hne]; exact htop)]
+  rfl
+
+/-- The walk's first read: a `none` cell ends the walk at the
+accumulator. -/
+theorem aboveOf_go_topOf_none {bd : Board} {b : Base} (h : bd.topOf b = none)
+    (fuel : Nat) (acc : List Card) :
+    Board.aboveOf.go bd (fuel + 1) b acc = acc := by
+  rw [aboveOf_go_succ, h]
+
+/-- The (c-α) walk agreement, the good direction: the replay line's
+walk from `b` is CONTAINED in the source's, provided (i) the walk is
+not currently at the twin's seat, and (ii) the source's walk from
+here never reaches the twin — the twin's seat is where the replay
+line carries the cargo, and the walk only reads it after adding the
+twin, which the source's walk would have done too.  Fuel induction
+(the `aboveOf_go_congr_aux` template). -/
+theorem parkSim_aboveOf_go {c : Card} {σ τ : State}
+    (hτc : τ.board.topOf (Sum.inr c) = none)
+    (hoff : ∀ b, b ≠ Sum.inr c → b ≠ Sum.inr c.flipSuit → σ.board.topOf b = τ.board.topOf b) :
+    ∀ (n : Nat) (b : Base) (acc : List Card),
+      b ≠ Sum.inr c.flipSuit →
+      (∀ x, x ∈ Board.aboveOf.go σ.board n b acc → x ≠ c.flipSuit) →
+      (∀ w, w ∈ Board.aboveOf.go τ.board n b acc →
+        w ∈ acc ∨ w ∈ Board.aboveOf.go σ.board n b acc) := by
+  intro n
+  induction n with
+  | zero =>
+      intro b acc _ _ w hw
+      exact Or.inl hw
+  | succ n ih =>
+      intro b acc hbt hout w hw
+      rw [aboveOf_go_succ] at hw
+      cases hb : τ.board.topOf b with
+      | none => rw [hb] at hw; exact Or.inl hw
+      | some c' =>
+          rw [hb] at hw
+          have hw' : w ∈ (if acc.contains c' = true then acc
+              else Board.aboveOf.go τ.board n (Sum.inr c') (c' :: acc)) := hw
+          by_cases hct : acc.contains c' = true
+          · rw [if_pos hct] at hw'; exact Or.inl hw'
+          · rw [if_neg hct] at hw'
+            have hbcne : b ≠ Sum.inr c := by
+              intro hcon; rw [hcon, hτc] at hb; exact absurd hb (by simp)
+            have hσtop : σ.board.topOf b = some c' := by
+              rw [hoff b hbcne hbt]; exact hb
+            have hstep : Board.aboveOf.go σ.board (n + 1) b acc =
+                Board.aboveOf.go σ.board n (Sum.inr c') (c' :: acc) :=
+              aboveOf_go_step hσtop hct
+            have hc't : c' ≠ c.flipSuit := by
+              intro hcon
+              have hmem : c.flipSuit ∈ Board.aboveOf.go σ.board (n + 1) b acc := by
+                rw [hstep]
+                exact aboveOf_go_mono _ _ _ _ c.flipSuit (show c.flipSuit ∈ c' :: acc by
+                  rw [hcon]; simp)
+              exact absurd rfl (hout _ hmem)
+            rcases ih (Sum.inr c') (c' :: acc)
+              (fun hcon => hc't (Sum.inr.inj hcon))
+              (fun x hx => hout x (by rw [hstep]; exact hx)) w hw' with h | h
+            · rcases List.mem_cons.mp h with rfl | h
+              · refine Or.inr ?_
+                rw [hstep]
+                exact aboveOf_go_mono _ _ _ _ w (by simp)
+              · exact Or.inl h
+            · refine Or.inr ?_
+              rw [hstep]
+              exact h
+
+/-- The packaged walk agreement: off the twin's own run, the replay's
+walk is contained in the source's — `pilePile`'s self-landing guard
+transfers a fortiori (the merge corner, where the moved run passes
+through the twin's seat, is exactly the hypothesis's failure). -/
+theorem parkSim_aboveOf_subset {c y z : Card} {σ τ : State} (hsim : parkSim c y σ τ)
+    (hzt : z ≠ c.flipSuit)
+    (hnb : ∀ w, w ∈ σ.board.aboveOf z → w ≠ c.flipSuit) :
+    ∀ w, w ∈ τ.board.aboveOf z → w ∈ σ.board.aboveOf z := by
+  obtain ⟨-, -, -, -, -, -, -, hτc, -, hoff, -, -, -, -⟩ := hsim
+  intro w hw
+  rcases parkSim_aboveOf_go hτc hoff 52 (Sum.inr z) []
+    (fun hcon => hzt (Sum.inr.inj hcon)) hnb w hw with h | h
+  · exact absurd h (by simp)
+  · exact h
+
+/-- The cargo-rooted walk agreement: the replay's walk from the cargo
+`y` itself is contained in the source's plus the cargo — the only
+extension the twin's seat buys is `y` itself, and the walk dedups
+immediately after (its next read is `y`'s own seat, already in the
+accumulator).  This is what makes the cargo's own `pilePile` re-home
+fire in the replay line (the convergence lemma's self-landing
+transfer). -/
+theorem parkSim_cargo_go {c y z₁ : Card} {σ τ : State}
+    (hτc : τ.board.topOf (Sum.inr c) = none)
+    (hτt : τ.board.topOf (Sum.inr c.flipSuit) = some y)
+    (hoff : ∀ b, b ≠ Sum.inr c → b ≠ Sum.inr c.flipSuit → σ.board.topOf b = τ.board.topOf b)
+    (hz₁ : σ.board.topOf (Sum.inr y) = some z₁)
+    (hy₁ : y ≠ c) (hy₁' : y ≠ c.flipSuit) :
+    ∀ (n : Nat) (b : Base) (acc : List Card),
+      z₁ ∈ acc →
+      (∀ w, w ∈ Board.aboveOf.go τ.board n b acc →
+        w ∈ acc ∨ w ∈ Board.aboveOf.go σ.board n b acc ∨ w = y) := by
+  intro n
+  induction n with
+  | zero =>
+      intro b acc _ w hw
+      exact Or.inl hw
+  | succ n ih =>
+      intro b acc hz₁acc w hw
+      rw [aboveOf_go_succ] at hw
+      cases hb : τ.board.topOf b with
+      | none => rw [hb] at hw; exact Or.inl hw
+      | some c' =>
+          rw [hb] at hw
+          have hw' : w ∈ (if acc.contains c' = true then acc
+              else Board.aboveOf.go τ.board n (Sum.inr c') (c' :: acc)) := hw
+          by_cases hct : acc.contains c' = true
+          · rw [if_pos hct] at hw'; exact Or.inl hw'
+          · rw [if_neg hct] at hw'
+            by_cases hbt : b = Sum.inr c.flipSuit
+            · rw [hbt] at hb
+              have hcy : y = c' := (Option.some.inj (hb.symm.trans hτt)).symm
+              subst hcy
+              have hτz₁ : τ.board.topOf (Sum.inr y) = some z₁ := by
+                rw [← hoff _ (fun h => hy₁ (Sum.inr.inj h))
+                  (fun h => hy₁' (Sum.inr.inj h))]
+                exact hz₁
+              have hshort : Board.aboveOf.go τ.board n (Sum.inr y) (y :: acc)
+                  = y :: acc := by
+                cases n with
+                | zero => rfl
+                | succ m =>
+                    rw [aboveOf_go_succ, hτz₁]
+                    show (if (y :: acc).contains z₁ = true then (y :: acc)
+                        else Board.aboveOf.go τ.board m (Sum.inr z₁) (z₁ :: y :: acc))
+                      = y :: acc
+                    rw [if_pos ((contains_iff_mem _ _).mpr
+                      (List.mem_cons_of_mem _ hz₁acc))]
+              rw [hshort] at hw'
+              rcases List.mem_cons.mp hw' with rfl | hw'
+              · exact Or.inr (Or.inr rfl)
+              · exact Or.inl hw'
+            · have hbcne : b ≠ Sum.inr c := by
+                intro hcon; rw [hcon, hτc] at hb; exact absurd hb (by simp)
+              have hσtop : σ.board.topOf b = some c' := by
+                rw [hoff b hbcne hbt]; exact hb
+              have hstep : Board.aboveOf.go σ.board (n + 1) b acc =
+                  Board.aboveOf.go σ.board n (Sum.inr c') (c' :: acc) :=
+                aboveOf_go_step hσtop hct
+              rcases ih (Sum.inr c') (c' :: acc)
+                (List.mem_cons_of_mem _ hz₁acc) w hw' with h | h | h
+              · rcases List.mem_cons.mp h with rfl | h
+                · exact Or.inr (Or.inl (by
+                    rw [hstep]
+                    exact aboveOf_go_mono _ _ _ _ w (by simp)))
+                · exact Or.inl h
+              · exact Or.inr (Or.inl (by rw [hstep]; exact h))
+              · exact Or.inr (Or.inr h)
+
+/-- The packaged cargo walk: `aboveOf_τ y ⊆ aboveOf_σ y ∪ {y}`. -/
+theorem parkSim_aboveOf_cargo {c y : Card} {σ τ : State} (hsim : parkSim c y σ τ) :
+    ∀ w, w ∈ τ.board.aboveOf y → w ∈ σ.board.aboveOf y ∨ w = y := by
+  obtain ⟨-, -, -, -, -, hσc, hσt, hτc, hτt, hoff, -, -, hyc, hyt⟩ := hsim
+  intro w hw
+  cases hz : σ.board.topOf (Sum.inr y) with
+  | none =>
+      have hτnone : τ.board.topOf (Sum.inr y) = none := by
+        rw [← hoff _ (fun h => hyc (Sum.inr.inj h))
+          (fun h => hyt (Sum.inr.inj h))]
+        exact hz
+      have hnil : Board.aboveOf.go τ.board 52 (Sum.inr y) [] = [] :=
+        aboveOf_go_topOf_none hτnone 51 []
+      have h2 : w ∈ Board.aboveOf.go τ.board 52 (Sum.inr y) [] := hw
+      rw [hnil] at h2
+      exact absurd h2 (by simp)
+  | some z₁ =>
+      have hτz₁ : τ.board.topOf (Sum.inr y) = some z₁ := by
+        rw [← hoff _ (fun h => hyc (Sum.inr.inj h))
+          (fun h => hyt (Sum.inr.inj h))]
+        exact hz
+      have hstep : Board.aboveOf.go τ.board 52 (Sum.inr y) []
+          = Board.aboveOf.go τ.board 51 (Sum.inr z₁) [z₁] :=
+        aboveOf_go_step hτz₁ (by simp)
+      have hstepσ : Board.aboveOf.go σ.board 52 (Sum.inr y) []
+          = Board.aboveOf.go σ.board 51 (Sum.inr z₁) [z₁] :=
+        aboveOf_go_step hz (by simp)
+      have h2 : w ∈ Board.aboveOf.go τ.board 52 (Sum.inr y) [] := hw
+      rw [hstep] at h2
+      rcases parkSim_cargo_go hτc hτt hoff hz hyc hyt 51 (Sum.inr z₁) [z₁]
+        (by simp) w h2 with h | h | h
+      · rcases List.mem_cons.mp h with hwz | h
+        · refine Or.inl ?_
+          rw [hwz]
+          show z₁ ∈ Board.aboveOf.go σ.board 52 (Sum.inr y) []
+          rw [hstepσ]
+          exact aboveOf_go_mono _ _ _ _ z₁ (by simp)
+        · exact absurd h (by simp)
+      · exact Or.inl (by
+          show w ∈ Board.aboveOf.go σ.board 52 (Sum.inr y) []
+          rw [hstepσ]
+          exact h)
+      · exact Or.inr h
+
+/-- The park-window blindness (the §7.2-style move-only choice): `m`
+does not touch the twin-seat divergence region in a way the
+same-move replay cannot follow — no park on either seat (the source
+fires, the replay dies — the redirect-cycle hazard, probed evals
+15–16), the twin is neither revealed, foundation-passed nor re-homed
+(its seat is where the replay carries the cargo), and the cargo's own
+moves are the convergence lemmas' territory.  The walk guard (the
+moved run does not pass through the twin's seat — the MERGE corner,
+probed evals 17–20) is NOT move-only; `parkSim_step` carries it
+separately, and `parkSim_run` carries it per trace state. -/
+def Move.parkBlind (c y : Card) : Move → Bool
+  | .draw => true
+  | .reveal z => decide (z ≠ c.flipSuit)
+  | .deckPile _ b'' => decide (b'' ≠ Sum.inr c) && decide (b'' ≠ Sum.inr c.flipSuit)
+  | .deckStack _ => true
+  | .pileStack z => decide (z ≠ y) && decide (z ≠ c.flipSuit)
+  | .stackPile _ b'' => decide (b'' ≠ Sum.inr c) && decide (b'' ≠ Sum.inr c.flipSuit)
+  | .pilePile z b'' =>
+      decide (z ≠ y) && decide (z ≠ c.flipSuit) &&
+        decide (b'' ≠ Sum.inr c) && decide (b'' ≠ Sum.inr c.flipSuit)
+
+theorem parkBlind_reveal {c y z : Card}
+    (h : (Move.reveal z).parkBlind c y = true) : z ≠ c.flipSuit := by
+  have h1 : (decide (z ≠ c.flipSuit)) = true := h
+  exact of_decide_eq_true h1
+
+theorem parkBlind_pileStack {c y z : Card}
+    (h : (Move.pileStack z).parkBlind c y = true) : z ≠ y ∧ z ≠ c.flipSuit := by
+  have h1 : (decide (z ≠ y) && decide (z ≠ c.flipSuit)) = true := h
+  rw [Bool.and_eq_true_iff] at h1
+  exact ⟨of_decide_eq_true h1.1, of_decide_eq_true h1.2⟩
+
+theorem parkBlind_deckPile {c y z : Card} {b'' : Base}
+    (h : (Move.deckPile z b'').parkBlind c y = true) :
+    b'' ≠ Sum.inr c ∧ b'' ≠ Sum.inr c.flipSuit := by
+  have h1 : (decide (b'' ≠ Sum.inr c) && decide (b'' ≠ Sum.inr c.flipSuit)) = true := h
+  rw [Bool.and_eq_true_iff] at h1
+  exact ⟨of_decide_eq_true h1.1, of_decide_eq_true h1.2⟩
+
+theorem parkBlind_stackPile {c y z : Card} {b'' : Base}
+    (h : (Move.stackPile z b'').parkBlind c y = true) :
+    b'' ≠ Sum.inr c ∧ b'' ≠ Sum.inr c.flipSuit := by
+  have h1 : (decide (b'' ≠ Sum.inr c) && decide (b'' ≠ Sum.inr c.flipSuit)) = true := h
+  rw [Bool.and_eq_true_iff] at h1
+  exact ⟨of_decide_eq_true h1.1, of_decide_eq_true h1.2⟩
+
+theorem parkBlind_pilePile {c y z : Card} {b'' : Base}
+    (h : (Move.pilePile z b'').parkBlind c y = true) :
+    z ≠ y ∧ z ≠ c.flipSuit ∧ b'' ≠ Sum.inr c ∧ b'' ≠ Sum.inr c.flipSuit := by
+  have h1 : (decide (z ≠ y) && decide (z ≠ c.flipSuit) &&
+      decide (b'' ≠ Sum.inr c) && decide (b'' ≠ Sum.inr c.flipSuit)) = true := h
+  simp only [Bool.and_eq_true_iff] at h1
+  exact ⟨of_decide_eq_true h1.1.1.1, of_decide_eq_true h1.1.1.2,
+    of_decide_eq_true h1.1.2, of_decide_eq_true h1.2⟩
+
+/-- The (c-α) one-step replay — the park window's `excursionSim_step`:
+a window move that is park-blind (and, for the `pilePile` landings,
+walk-guarded — the moved run does not pass through the twin's seat)
+replays from the twin-seat divergence's target, and the successors are
+φ-related.  The corners: the boards differ at the two seats only, so
+every guard that reads elsewhere transfers (`parkSim_canPlace_congr`,
+`parkSim_isVis_congr`, the height cells are equal); `reveal`'s attach
+base is never a region card (WF's `vis_not_hidden`); `pilePile`'s
+self-landing reads the run walk — `parkSim_aboveOf_subset` (the good
+direction) or, for the moved card `c` itself, the walk from `c`'s seat
+which is empty in the replay. -/
+theorem parkSim_step {c y : Card} {σ τ : State} (hwf : σ.WF)
+    (hsim : parkSim c y σ τ) {m : Move}
+    (hblind : m.parkBlind c y = true)
+    (hwalk : ∀ z d : Card, m = Move.pilePile z (Sum.inr d) → z ≠ c →
+      ∀ w, w ∈ σ.board.aboveOf z → w ≠ c.flipSuit)
+    {σ' : State} (h : σ.apply m = some σ') :
+    ∃ τ', τ.apply m = some τ' ∧ parkSim c y σ' τ' := by
+  obtain ⟨hdeal, hh, hdpt, hstock, hds, hσc, hσt, hτc, hτt, hoff, hvisc, hvist, hyc, hyt⟩ :=
+    hsim
+  have hre : parkSim c y σ τ :=
+    ⟨hdeal, hh, hdpt, hstock, hds, hσc, hσt, hτc, hτt, hoff, hvisc, hvist, hyc, hyt⟩
+  have hbotc := parkSim_bottomOf_congr hre
+  have hivs := parkSim_isVis_congr hre
+  have hcpc := parkSim_canPlace_congr hre
+  have hboty : σ.board.bottomOf y = some (Sum.inr c) :=
+    (Board.bottomOf_eq _ _ _).mpr hσc
+  have hisVisyσ : σ.isVis y = true := by
+    show (σ.board.bottomOf y).isSome = true
+    rw [hboty]
+    rfl
+  have hbotne : ∀ d, σ.isVis d = true → σ.board.bottomOf d ≠ none := by
+    intro d hd hcon
+    have hd' : (σ.board.bottomOf d).isSome = true := hd
+    rw [hcon] at hd'
+    simp at hd'
+  cases m with
+  | draw =>
+      obtain rfl := apply_draw_iff.mp h
+      refine ⟨{τ with stock := τ.stock.dealOnce τ.drawStep}, apply_draw_iff.mpr rfl, ?_⟩
+      refine ⟨hdeal, ?_, hdpt, ?_, hds, hσc, hσt, hτc, hτt, ?_, hvisc, hvist, hyc, hyt⟩
+      · show σ.heights = {τ with stock := τ.stock.dealOnce τ.drawStep}.heights
+        rw [hh]
+      · show σ.stock.dealOnce σ.drawStep = {τ with stock := τ.stock.dealOnce τ.drawStep}.stock
+        rw [hstock, hds]
+      · intro b hbc hbt
+        show σ.board.topOf b = {τ with stock := τ.stock.dealOnce τ.drawStep}.board.topOf b
+        exact hoff b hbc hbt
+  | reveal z =>
+      have hzt : z ≠ c.flipSuit := parkBlind_reveal hblind
+      rw [apply_reveal_iff] at h
+      obtain ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩ := h
+      have hzc : z ≠ c := by
+        intro hcon; rw [hcon, hσc] at htop; exact absurd htop (by simp)
+      have hzy : z ≠ y := by
+        intro hcon
+        rw [hcon] at hbot
+        have hcr : c = r :=
+          (Sum.inr.inj (Option.some.inj (hbot.symm.trans hboty))).symm
+        rw [← hcr] at hpile
+        have hth : σ.topHidden a = some c := of_decide_eq_true (findFirst_mem _ _ _ hpile).2
+        exact hwf.vis_not_hidden c hvisc a (mem_of_getLast hth)
+      have htopτ : τ.board.topOf (Sum.inr z) = none := by
+        rw [← hoff _ (fun hcon => hzc (Sum.inr.inj hcon))
+          (fun hcon => hzt (Sum.inr.inj hcon))]
+        exact htop
+      have hbotτ : τ.board.bottomOf z = some (Sum.inr r) := by
+        rw [← hbotc z hzy]; exact hbot
+      have hpileτ : τ.pileOfTopHidden r = some a := by
+        rw [pileOfTopHidden_congr hdeal.symm hdpt.symm r]
+        exact hpile
+      have hhbτ : τ.hiddenBase a = σ.hiddenBase a :=
+        hiddenBase_congr hdeal.symm hdpt.symm a
+      have hth : σ.topHidden a = some r := of_decide_eq_true (findFirst_mem _ _ _ hpile).2
+      have hrmem : r ∈ σ.hidden a := mem_of_getLast hth
+      have hry : r ≠ y := by
+        intro hcon; rw [hcon] at hrmem
+        exact hwf.vis_not_hidden y hisVisyσ a hrmem
+      have hrc : c ≠ r := by
+        intro hcon; rw [← hcon] at hrmem
+        exact hwf.vis_not_hidden c hvisc a hrmem
+      have hrt : c.flipSuit ≠ r := by
+        intro hcon; rw [← hcon] at hrmem
+        exact hwf.vis_not_hidden c.flipSuit hvist a hrmem
+      have hgu := (Board.attach_eq_some_iff σ.board (σ.hiddenBase a) r).mp
+        (by rw [hatt]; simp)
+      have hbhc : σ.hiddenBase a ≠ Sum.inr c := by
+        intro hcon
+        exact hwf.vis_not_hidden c hvisc a (hidden_mem_of_hiddenBase hth hcon)
+      have hbht : σ.hiddenBase a ≠ Sum.inr c.flipSuit := by
+        intro hcon
+        exact hwf.vis_not_hidden c.flipSuit hvist a (hidden_mem_of_hiddenBase hth hcon)
+      have htopaτ : τ.board.topOf (σ.hiddenBase a) = none := by
+        rw [← hoff _ hbhc hbht]
+        exact hgu.1
+      have hbotrτ : τ.board.bottomOf r = none := by
+        rw [← hbotc r hry]
+        exact hgu.2
+      obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, τ.board.attach (σ.hiddenBase a) r = some bdτ := by
+        have hne : τ.board.attach (σ.hiddenBase a) r ≠ none :=
+          (Board.attach_eq_some_iff _ _ _).mpr ⟨htopaτ, hbotrτ⟩
+        cases hh : τ.board.attach (σ.hiddenBase a) r with
+        | none => rw [hh] at hne; simp at hne
+        | some bdτ => exact ⟨bdτ, rfl⟩
+      refine ⟨{τ with
+        board := bdτ,
+        depths := fun a' => if a' = a then τ.depths a - 1 else τ.depths a'}, ?_, ?_⟩
+      · rw [apply_reveal_iff]
+        refine ⟨htopτ, r, a, bdτ, hbotτ, hpileτ, ?_, rfl⟩
+        rw [hhbτ]
+        exact hattτ
+      · refine ⟨hdeal, ?_, ?_, hstock, hds, ?_, ?_, ?_, ?_, ?_,
+          ?_, ?_, hyc, hyt⟩
+        · show σ.heights = {τ with
+              board := bdτ,
+              depths := fun a' => if a' = a then τ.depths a - 1 else τ.depths a'}.heights
+          rw [hh]
+        · show (fun a' => if a' = a then σ.depths a - 1 else σ.depths a') =
+              (fun a' => if a' = a then τ.depths a - 1 else τ.depths a')
+          rw [hdpt]
+        · show bd.topOf (Sum.inr c) = some y
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hbhc)]
+          exact hσc
+        · show bd.topOf (Sum.inr c.flipSuit) = none
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hbht)]
+          exact hσt
+        · show {τ with
+              board := bdτ,
+              depths := fun a' => if a' = a then τ.depths a - 1 else τ.depths a'}.board.topOf
+              (Sum.inr c) = none
+          rw [Board.attach_topOf_ne _ _ _ hattτ (Ne.symm hbhc)]
+          exact hτc
+        · show {τ with
+              board := bdτ,
+              depths := fun a' => if a' = a then τ.depths a - 1 else τ.depths a'}.board.topOf
+              (Sum.inr c.flipSuit) = some y
+          rw [Board.attach_topOf_ne _ _ _ hattτ (Ne.symm hbht)]
+          exact hτt
+        · intro b hbc hbt
+          show bd.topOf b = {τ with
+              board := bdτ,
+              depths := fun a' => if a' = a then τ.depths a - 1 else τ.depths a'}.board.topOf b
+          by_cases hbb : b = σ.hiddenBase a
+          · rw [hbb, Board.attach_topOf _ _ _ hatt, Board.attach_topOf _ _ _ hattτ]
+          · rw [Board.attach_topOf_ne _ _ _ hatt hbb, Board.attach_topOf_ne _ _ _ hattτ hbb]
+            exact hoff b hbc hbt
+        · show (bd.bottomOf c).isSome = true
+          exact isVis_attach_ne hatt hvisc
+        · show (bd.bottomOf c.flipSuit).isSome = true
+          exact isVis_attach_ne hatt hvist
+  | deckPile z b'' =>
+      obtain ⟨hb''c, hb''t⟩ := parkBlind_deckPile hblind
+      rw [apply_deckPile_iff] at h
+      obtain ⟨hprev, hcpσ, bd, hatt, rfl⟩ := h
+      have hgu := (Board.attach_eq_some_iff σ.board b'' z).mp (by rw [hatt]; simp)
+      have hzy : z ≠ y := by
+        intro hcon; rw [hcon, hboty] at hgu; simp at hgu
+      have hzc : z ≠ c := by
+        intro hcon; rw [hcon] at hgu
+        exact hbotne c hvisc hgu.2
+      have hzt : z ≠ c.flipSuit := by
+        intro hcon; rw [hcon] at hgu
+        exact hbotne c.flipSuit hvist hgu.2
+      have htopb''τ : τ.board.topOf b'' = none := by
+        rw [← hoff b'' hb''c hb''t]
+        exact hgu.1
+      have hbotzτ : τ.board.bottomOf z = none := by
+        rw [← hbotc z hzy]
+        exact hgu.2
+      obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, τ.board.attach b'' z = some bdτ := by
+        have hne : τ.board.attach b'' z ≠ none :=
+          (Board.attach_eq_some_iff _ _ _).mpr ⟨htopb''τ, hbotzτ⟩
+        cases hh : τ.board.attach b'' z with
+        | none => rw [hh] at hne; simp at hne
+        | some bdτ => exact ⟨bdτ, rfl⟩
+      refine ⟨{τ with
+        board := bdτ,
+        stock := τ.stock.removeAt (τ.stock.cursor - 1)}, ?_, ?_⟩
+      · rw [apply_deckPile_iff]
+        exact ⟨by rw [← hstock]; exact hprev,
+          by rw [← hcpc z b'' hb''c hb''t]; exact hcpσ, bdτ, hattτ, rfl⟩
+      · refine ⟨hdeal, ?_, hdpt, ?_, hds, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hyc, hyt⟩
+        · show σ.heights = {τ with
+              board := bdτ,
+              stock := τ.stock.removeAt (τ.stock.cursor - 1)}.heights
+          rw [hh]
+        · show σ.stock.removeAt (σ.stock.cursor - 1) = {τ with
+              board := bdτ,
+              stock := τ.stock.removeAt (τ.stock.cursor - 1)}.stock
+          rw [hstock]
+        · show bd.topOf (Sum.inr c) = some y
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb''c)]
+          exact hσc
+        · show bd.topOf (Sum.inr c.flipSuit) = none
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb''t)]
+          exact hσt
+        · show {τ with
+              board := bdτ,
+              stock := τ.stock.removeAt (τ.stock.cursor - 1)}.board.topOf (Sum.inr c) = none
+          rw [Board.attach_topOf_ne _ _ _ hattτ (Ne.symm hb''c)]
+          exact hτc
+        · show {τ with
+              board := bdτ,
+              stock := τ.stock.removeAt (τ.stock.cursor - 1)}.board.topOf
+              (Sum.inr c.flipSuit) = some y
+          rw [Board.attach_topOf_ne _ _ _ hattτ (Ne.symm hb''t)]
+          exact hτt
+        · intro b hbc hbt
+          show bd.topOf b = {τ with
+              board := bdτ,
+              stock := τ.stock.removeAt (τ.stock.cursor - 1)}.board.topOf b
+          by_cases hbb : b = b''
+          · rw [hbb, Board.attach_topOf _ _ _ hatt, Board.attach_topOf _ _ _ hattτ]
+          · rw [Board.attach_topOf_ne _ _ _ hatt hbb, Board.attach_topOf_ne _ _ _ hattτ hbb]
+            exact hoff b hbc hbt
+        · show (bd.bottomOf c).isSome = true
+          exact isVis_attach_ne hatt hvisc
+        · show (bd.bottomOf c.flipSuit).isSome = true
+          exact isVis_attach_ne hatt hvist
+  | deckStack z =>
+      rw [apply_deckStack_iff] at h
+      obtain ⟨hprev, hrk, rfl⟩ := h
+      refine ⟨{τ with
+        stock := τ.stock.removeAt (τ.stock.cursor - 1),
+        heights := fun s => if s = z.suit then τ.heights s + 1 else τ.heights s}, ?_, ?_⟩
+      · rw [apply_deckStack_iff]
+        exact ⟨by rw [← hstock]; exact hprev, by rw [← hh]; exact hrk, rfl⟩
+      · refine ⟨hdeal, ?_, hdpt, ?_, hds, hσc, hσt, hτc, hτt, ?_, hvisc, hvist, hyc, hyt⟩
+        · funext s
+          by_cases hsz : s = z.suit
+          · show (if s = z.suit then σ.heights s + 1 else σ.heights s) =
+                (if s = z.suit then τ.heights s + 1 else τ.heights s)
+            rw [if_pos hsz, if_pos hsz, hh]
+          · show (if s = z.suit then σ.heights s + 1 else σ.heights s) =
+                (if s = z.suit then τ.heights s + 1 else τ.heights s)
+            rw [if_neg hsz, if_neg hsz, hh]
+        · show σ.stock.removeAt (σ.stock.cursor - 1) = {τ with
+              stock := τ.stock.removeAt (τ.stock.cursor - 1),
+              heights := fun s => if s = z.suit then τ.heights s + 1 else τ.heights s}.stock
+          rw [hstock]
+        · intro b hbc hbt
+          show σ.board.topOf b = {τ with
+              stock := τ.stock.removeAt (τ.stock.cursor - 1),
+              heights := fun s => if s = z.suit then τ.heights s + 1 else τ.heights s}.board.topOf b
+          exact hoff b hbc hbt
+  | pileStack z =>
+      obtain ⟨hzy, hzt⟩ := parkBlind_pileStack hblind
+      rw [apply_pileStack_iff] at h
+      obtain ⟨htop, b₀, hb₀, hrk, rfl⟩ := h
+      have hzc : z ≠ c := by
+        intro hcon; rw [hcon, hσc] at htop; exact absurd htop (by simp)
+      have htopτ : τ.board.topOf (Sum.inr z) = none := by
+        rw [← hoff _ (fun hcon => hzc (Sum.inr.inj hcon))
+          (fun hcon => hzt (Sum.inr.inj hcon))]
+        exact htop
+      have hb₀τ : τ.board.bottomOf z = some b₀ := by
+        rw [← hbotc z hzy]; exact hb₀
+      have hb₀top : σ.board.topOf b₀ = some z := (Board.bottomOf_eq _ _ _).mp hb₀
+      have hb₀c : b₀ ≠ Sum.inr c := by
+        intro hcon
+        have hx : σ.board.topOf (Sum.inr c) = some z := by
+          rw [← hcon]; exact hb₀top
+        exact hzy (Option.some.inj (hx.symm.trans hσc))
+      have hb₀t : b₀ ≠ Sum.inr c.flipSuit := by
+        intro hcon
+        have hx : σ.board.topOf (Sum.inr c.flipSuit) = some z := by
+          rw [← hcon]; exact hb₀top
+        rw [hσt] at hx
+        exact absurd hx (by simp)
+      refine ⟨{τ with
+        board := τ.board.detach b₀,
+        heights := fun s => if s = z.suit then τ.heights s + 1 else τ.heights s}, ?_, ?_⟩
+      · rw [apply_pileStack_iff]
+        exact ⟨htopτ, b₀, hb₀τ, by rw [← hh]; exact hrk, rfl⟩
+      · refine ⟨hdeal, ?_, hdpt, hstock, hds, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hyc, hyt⟩
+        · funext s
+          by_cases hsz : s = z.suit
+          · show (if s = z.suit then σ.heights s + 1 else σ.heights s) =
+                (if s = z.suit then τ.heights s + 1 else τ.heights s)
+            rw [if_pos hsz, if_pos hsz, hh]
+          · show (if s = z.suit then σ.heights s + 1 else σ.heights s) =
+                (if s = z.suit then τ.heights s + 1 else τ.heights s)
+            rw [if_neg hsz, if_neg hsz, hh]
+        · show (σ.board.detach b₀).topOf (Sum.inr c) = some y
+          rw [Board.detach_topOf_ne _ _ _ (Ne.symm hb₀c)]
+          exact hσc
+        · show (σ.board.detach b₀).topOf (Sum.inr c.flipSuit) = none
+          rw [Board.detach_topOf_ne _ _ _ (Ne.symm hb₀t)]
+          exact hσt
+        · show {τ with
+              board := τ.board.detach b₀,
+              heights := fun s => if s = z.suit then τ.heights s + 1 else τ.heights s}.board.topOf
+              (Sum.inr c) = none
+          rw [Board.detach_topOf_ne _ _ _ (Ne.symm hb₀c)]
+          exact hτc
+        · show {τ with
+              board := τ.board.detach b₀,
+              heights := fun s => if s = z.suit then τ.heights s + 1 else τ.heights s}.board.topOf
+              (Sum.inr c.flipSuit) = some y
+          rw [Board.detach_topOf_ne _ _ _ (Ne.symm hb₀t)]
+          exact hτt
+        · intro b hbc hbt
+          show (σ.board.detach b₀).topOf b = {τ with
+              board := τ.board.detach b₀,
+              heights := fun s => if s = z.suit then τ.heights s + 1 else τ.heights s}.board.topOf b
+          by_cases hbb : b = b₀
+          · rw [hbb, Board.detach_topOf, Board.detach_topOf]
+          · rw [Board.detach_topOf_ne _ _ _ hbb, Board.detach_topOf_ne _ _ _ hbb]
+            exact hoff b hbc hbt
+        · show ((σ.board.detach b₀).bottomOf c).isSome = true
+          exact isVis_detach_ne hb₀top hvisc hzc.symm
+        · show ((σ.board.detach b₀).bottomOf c.flipSuit).isSome = true
+          exact isVis_detach_ne hb₀top hvist hzt.symm
+  | stackPile z b'' =>
+      obtain ⟨hb''c, hb''t⟩ := parkBlind_stackPile hblind
+      rw [apply_stackPile_iff] at h
+      obtain ⟨hrk, hcpσ, bd, hatt, rfl⟩ := h
+      have hgu := (Board.attach_eq_some_iff σ.board b'' z).mp (by rw [hatt]; simp)
+      have hzy : z ≠ y := by
+        intro hcon; rw [hcon, hboty] at hgu; simp at hgu
+      have hzc : z ≠ c := by
+        intro hcon; rw [hcon] at hgu
+        exact hbotne c hvisc hgu.2
+      have hzt : z ≠ c.flipSuit := by
+        intro hcon; rw [hcon] at hgu
+        exact hbotne c.flipSuit hvist hgu.2
+      have htopb''τ : τ.board.topOf b'' = none := by
+        rw [← hoff b'' hb''c hb''t]
+        exact hgu.1
+      have hbotzτ : τ.board.bottomOf z = none := by
+        rw [← hbotc z hzy]
+        exact hgu.2
+      obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, τ.board.attach b'' z = some bdτ := by
+        have hne : τ.board.attach b'' z ≠ none :=
+          (Board.attach_eq_some_iff _ _ _).mpr ⟨htopb''τ, hbotzτ⟩
+        cases hh : τ.board.attach b'' z with
+        | none => rw [hh] at hne; simp at hne
+        | some bdτ => exact ⟨bdτ, rfl⟩
+      refine ⟨{τ with
+        board := bdτ,
+        heights := fun s => if s = z.suit then τ.heights s - 1 else τ.heights s}, ?_, ?_⟩
+      · rw [apply_stackPile_iff]
+        exact ⟨by rw [← hh]; exact hrk,
+          by rw [← hcpc z b'' hb''c hb''t]; exact hcpσ, bdτ, hattτ, rfl⟩
+      · refine ⟨hdeal, ?_, hdpt, hstock, hds, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hyc, hyt⟩
+        · funext s
+          by_cases hsz : s = z.suit
+          · show (if s = z.suit then σ.heights s - 1 else σ.heights s) =
+                (if s = z.suit then τ.heights s - 1 else τ.heights s)
+            rw [if_pos hsz, if_pos hsz, hh]
+          · show (if s = z.suit then σ.heights s - 1 else σ.heights s) =
+                (if s = z.suit then τ.heights s - 1 else τ.heights s)
+            rw [if_neg hsz, if_neg hsz, hh]
+        · show bd.topOf (Sum.inr c) = some y
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb''c)]
+          exact hσc
+        · show bd.topOf (Sum.inr c.flipSuit) = none
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb''t)]
+          exact hσt
+        · show {τ with
+              board := bdτ,
+              heights := fun s => if s = z.suit then τ.heights s - 1 else τ.heights s}.board.topOf
+              (Sum.inr c) = none
+          rw [Board.attach_topOf_ne _ _ _ hattτ (Ne.symm hb''c)]
+          exact hτc
+        · show {τ with
+              board := bdτ,
+              heights := fun s => if s = z.suit then τ.heights s - 1 else τ.heights s}.board.topOf
+              (Sum.inr c.flipSuit) = some y
+          rw [Board.attach_topOf_ne _ _ _ hattτ (Ne.symm hb''t)]
+          exact hτt
+        · intro b hbc hbt
+          show bd.topOf b = {τ with
+              board := bdτ,
+              heights := fun s => if s = z.suit then τ.heights s - 1 else τ.heights s}.board.topOf b
+          by_cases hbb : b = b''
+          · rw [hbb, Board.attach_topOf _ _ _ hatt, Board.attach_topOf _ _ _ hattτ]
+          · rw [Board.attach_topOf_ne _ _ _ hatt hbb, Board.attach_topOf_ne _ _ _ hattτ hbb]
+            exact hoff b hbc hbt
+        · show (bd.bottomOf c).isSome = true
+          exact isVis_attach_ne hatt hvisc
+        · show (bd.bottomOf c.flipSuit).isSome = true
+          exact isVis_attach_ne hatt hvist
+  | pilePile z b'' =>
+      obtain ⟨hzy, hzt, hb''c, hb''t⟩ := parkBlind_pilePile hblind
+      rw [apply_pilePile_iff] at h
+      obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, rfl⟩ := h
+      have hb₀τ : τ.board.bottomOf z = some b₀ := by
+        rw [← hbotc z hzy]; exact hb₀
+      have hcpσ : σ.canPlace z b'' = true := by
+        have h2 := hcmr
+        simp only [State.canMoveRun] at h2
+        exact (Bool.and_eq_true_iff.mp h2).1
+      have hsl : ∀ d : Card, b'' = Sum.inr d →
+          (σ.board.aboveOf z).contains d = false := by
+        intro d hd
+        have h2 := hcmr
+        simp only [State.canMoveRun, hd] at h2
+        have h3 : (!(σ.board.aboveOf z).contains d) = true :=
+          (Bool.and_eq_true_iff.mp h2).2
+        rw [Bool.not_eq_true'] at h3
+        exact h3
+      have hcmrτ : τ.canMoveRun z b'' = true := by
+        simp only [State.canMoveRun, Bool.and_eq_true_iff]
+        refine ⟨by rw [← hcpc z b'' hb''c hb''t]; exact hcpσ, ?_⟩
+        cases b'' with
+        | inl a => rfl
+        | inr d =>
+            show (!(τ.board.aboveOf z).contains d) = true
+            rw [Bool.not_eq_true']
+            by_cases hzc : z = c
+            · rw [hzc]
+              have hgo : Board.aboveOf.go τ.board 52 (Sum.inr c) [] = [] :=
+                aboveOf_go_topOf_none hτc 51 []
+              show (Board.aboveOf.go τ.board 52 (Sum.inr c) []).contains d = false
+              rw [hgo]
+              exact contains_false_of_notMem (by simp)
+            · refine contains_false_of_notMem (fun hm => ?_)
+              have hmem : d ∈ σ.board.aboveOf z :=
+                parkSim_aboveOf_subset hre hzt (hwalk z d rfl hzc) d hm
+              exact absurd ((contains_iff_mem _ _).mpr hmem) (by rw [hsl d rfl]; simp)
+      have hb₀top : σ.board.topOf b₀ = some z := (Board.bottomOf_eq _ _ _).mp hb₀
+      have hb₀c : b₀ ≠ Sum.inr c := by
+        intro hcon
+        have hx : σ.board.topOf (Sum.inr c) = some z := by
+          rw [← hcon]; exact hb₀top
+        exact hzy (Option.some.inj (hx.symm.trans hσc))
+      have hb₀t : b₀ ≠ Sum.inr c.flipSuit := by
+        intro hcon
+        have hx : σ.board.topOf (Sum.inr c.flipSuit) = some z := by
+          rw [← hcon]; exact hb₀top
+        rw [hσt] at hx
+        exact absurd hx (by simp)
+      have hb₀topτ : τ.board.topOf b₀ = some z := by
+        rw [← hoff b₀ hb₀c hb₀t]; exact hb₀top
+      have hfreeσ : (σ.board.detach b₀).topOf b'' = none :=
+        ((Board.attach_eq_some_iff _ _ _).mp (by rw [hatt]; simp)).1
+      have hbdettop : (τ.board.detach b₀).topOf b'' = none := by
+        rw [Board.detach_topOf_ne _ _ _ hne.symm, ← hoff b'' hb''c hb''t,
+          ← Board.detach_topOf_ne σ.board b₀ b'' hne.symm]
+        exact hfreeσ
+      obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, (τ.board.detach b₀).attach b'' z = some bdτ := by
+        have hbotz : (τ.board.detach b₀).bottomOf z = none :=
+          Board.bottomOf_detach_self hb₀topτ
+        have hne2 : (τ.board.detach b₀).attach b'' z ≠ none :=
+          (Board.attach_eq_some_iff _ _ _).mpr ⟨hbdettop, hbotz⟩
+        cases hh : (τ.board.detach b₀).attach b'' z with
+        | none => rw [hh] at hne2; simp at hne2
+        | some bdτ => exact ⟨bdτ, rfl⟩
+      refine ⟨{τ with board := bdτ}, ?_, ?_⟩
+      · rw [apply_pilePile_iff]
+        exact ⟨b₀, hb₀τ, hne, hcmrτ, bdτ, hattτ, rfl⟩
+      · refine ⟨hdeal, hh, hdpt, hstock, hds, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hyc, hyt⟩
+        · show bd.topOf (Sum.inr c) = some y
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb''c),
+            Board.detach_topOf_ne _ _ _ (Ne.symm hb₀c)]
+          exact hσc
+        · show bd.topOf (Sum.inr c.flipSuit) = none
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb''t),
+            Board.detach_topOf_ne _ _ _ (Ne.symm hb₀t)]
+          exact hσt
+        · show bdτ.topOf (Sum.inr c) = none
+          rw [Board.attach_topOf_ne _ _ _ hattτ (Ne.symm hb''c),
+            Board.detach_topOf_ne _ _ _ (Ne.symm hb₀c)]
+          exact hτc
+        · show bdτ.topOf (Sum.inr c.flipSuit) = some y
+          rw [Board.attach_topOf_ne _ _ _ hattτ (Ne.symm hb''t),
+            Board.detach_topOf_ne _ _ _ (Ne.symm hb₀t)]
+          exact hτt
+        · intro b hbc hbt
+          show bd.topOf b = bdτ.topOf b
+          by_cases hbb : b = b₀
+          · rw [hbb, Board.attach_topOf_ne _ _ _ hatt hne, Board.detach_topOf,
+            Board.attach_topOf_ne _ _ _ hattτ hne, Board.detach_topOf]
+          by_cases hbb2 : b = b''
+          · rw [hbb2, Board.attach_topOf _ _ _ hatt, Board.attach_topOf _ _ _ hattτ]
+          · rw [Board.attach_topOf_ne _ _ _ hatt hbb2,
+            Board.attach_topOf_ne _ _ _ hattτ hbb2,
+            Board.detach_topOf_ne _ _ _ hbb,
+            Board.detach_topOf_ne _ _ _ hbb]
+            exact hoff b hbc hbt
+        · show (bd.bottomOf c).isSome = true
+          by_cases hzc2 : z = c
+          · have hbd : bd.topOf b'' = some z := Board.attach_topOf _ _ _ hatt
+            rw [hzc2] at hbd
+            rw [(Board.bottomOf_eq _ _ _).mpr hbd]
+            rfl
+          · exact isVis_attach_ne hatt
+              (isVis_detach_ne hb₀top hvisc (Ne.symm hzc2))
+        · show (bd.bottomOf c.flipSuit).isSome = true
+          exact isVis_attach_ne hatt (isVis_detach_ne hb₀top hvist hzt.symm)
+
+/-- Step 0, the `deckPile` park: from the pre-park state (twin
+licensed: visible and bare), the park `deckPile y (inr c)` and its
+twin redirect produce a φ-pair — the descent's corner-(i)
+transformation premise (ENDGAME §4 step 2'). -/
+theorem parkSim_of_deckPile {st : State} {c y : Card} {σ : State}
+    (hlic : st.isVis c.flipSuit = true)
+    (hfree : st.board.topOf (Sum.inr c.flipSuit) = none)
+    (hσ : st.apply (Move.deckPile y (Sum.inr c)) = some σ) :
+    ∃ τ, st.apply (Move.deckPile y (Sum.inr c.flipSuit)) = some τ ∧ parkSim c y σ τ := by
+  rw [apply_deckPile_iff] at hσ
+  obtain ⟨hprev, hcpσ, bd, hatt, rfl⟩ := hσ
+  have hcp' : (decide (st.board.topOf (Sum.inr c) = none) &&
+      (st.isVis c && canSitOn y c)) = true := hcpσ
+  rw [Bool.and_eq_true_iff] at hcp'
+  have htopc : st.board.topOf (Sum.inr c) = none := of_decide_eq_true hcp'.1
+  have hvc : st.isVis c = true := (Bool.and_eq_true_iff.mp hcp'.2).1
+  have hfit : canSitOn y c = true := (Bool.and_eq_true_iff.mp hcp'.2).2
+  have hgu := (Board.attach_eq_some_iff st.board (Sum.inr c) y).mp (by rw [hatt]; simp)
+  have hyt : y ≠ c.flipSuit := by
+    obtain ⟨h1, -⟩ := (canSitOn_eq _ _).mp hfit
+    intro hcon
+    have h2 : y.rank.toIdx + 1 = c.flipSuit.rank.toIdx := by
+      rw [Card.flipSuit_rank]; exact h1
+    rw [hcon] at h2
+    omega
+  have hyc : y ≠ c := by
+    obtain ⟨h1, -⟩ := (canSitOn_eq _ _).mp hfit
+    intro hcon
+    rw [hcon] at h1
+    omega
+  have hcpτ : st.canPlace y (Sum.inr c.flipSuit) = true := by
+    show (decide (st.board.topOf (Sum.inr c.flipSuit) = none) &&
+        (st.isVis c.flipSuit && canSitOn y c.flipSuit)) = true
+    rw [hfree, hlic, canSitOn_flipSuit_right, hfit]
+    rfl
+  obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, st.board.attach (Sum.inr c.flipSuit) y = some bdτ := by
+    have hne : st.board.attach (Sum.inr c.flipSuit) y ≠ none :=
+      (Board.attach_eq_some_iff _ _ _).mpr ⟨hfree, hgu.2⟩
+    cases hh : st.board.attach (Sum.inr c.flipSuit) y with
+    | none => rw [hh] at hne; simp at hne
+    | some bdτ => exact ⟨bdτ, rfl⟩
+  refine ⟨{st with board := bdτ, stock := st.stock.removeAt (st.stock.cursor - 1)},
+    ?_, ?_⟩
+  · rw [apply_deckPile_iff]
+    exact ⟨hprev, hcpτ, bdτ, hattτ, rfl⟩
+  · refine ⟨rfl, rfl, rfl, rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hyc, hyt⟩
+    · show bd.topOf (Sum.inr c) = some y
+      exact Board.attach_topOf _ _ _ hatt
+    · show bd.topOf (Sum.inr c.flipSuit) = none
+      rw [Board.attach_topOf_ne _ _ _ hatt
+        (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon))]
+      exact hfree
+    · show {st with
+          board := bdτ,
+          stock := st.stock.removeAt (st.stock.cursor - 1)}.board.topOf (Sum.inr c) = none
+      rw [Board.attach_topOf_ne _ _ _ hattτ
+        (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon).symm)]
+      exact htopc
+    · show {st with
+          board := bdτ,
+          stock := st.stock.removeAt (st.stock.cursor - 1)}.board.topOf
+          (Sum.inr c.flipSuit) = some y
+      exact Board.attach_topOf _ _ _ hattτ
+    · intro b hbc hbt
+      show bd.topOf b = {st with
+          board := bdτ,
+          stock := st.stock.removeAt (st.stock.cursor - 1)}.board.topOf b
+      rw [Board.attach_topOf_ne _ _ _ hatt hbc, Board.attach_topOf_ne _ _ _ hattτ hbt]
+    · show (bd.bottomOf c).isSome = true
+      exact isVis_attach_ne hatt hvc
+    · show (bd.bottomOf c.flipSuit).isSome = true
+      exact isVis_attach_ne hatt hlic
+
+/-- Step 0, the `stackPile` park (the worry-back onto `c`): same
+shape — the rung guard is twin-blind (the heights are untouched by
+the seating), and both successors drop the same height cell. -/
+theorem parkSim_of_stackPile {st : State} {c y : Card} {σ : State}
+    (hlic : st.isVis c.flipSuit = true)
+    (hfree : st.board.topOf (Sum.inr c.flipSuit) = none)
+    (hσ : st.apply (Move.stackPile y (Sum.inr c)) = some σ) :
+    ∃ τ, st.apply (Move.stackPile y (Sum.inr c.flipSuit)) = some τ ∧ parkSim c y σ τ := by
+  rw [apply_stackPile_iff] at hσ
+  obtain ⟨hrk, hcpσ, bd, hatt, rfl⟩ := hσ
+  have hcp' : (decide (st.board.topOf (Sum.inr c) = none) &&
+      (st.isVis c && canSitOn y c)) = true := hcpσ
+  rw [Bool.and_eq_true_iff] at hcp'
+  have htopc : st.board.topOf (Sum.inr c) = none := of_decide_eq_true hcp'.1
+  have hvc : st.isVis c = true := (Bool.and_eq_true_iff.mp hcp'.2).1
+  have hfit : canSitOn y c = true := (Bool.and_eq_true_iff.mp hcp'.2).2
+  have hgu := (Board.attach_eq_some_iff st.board (Sum.inr c) y).mp (by rw [hatt]; simp)
+  have hyt : y ≠ c.flipSuit := by
+    obtain ⟨h1, -⟩ := (canSitOn_eq _ _).mp hfit
+    intro hcon
+    have h2 : y.rank.toIdx + 1 = c.flipSuit.rank.toIdx := by
+      rw [Card.flipSuit_rank]; exact h1
+    rw [hcon] at h2
+    omega
+  have hyc : y ≠ c := by
+    obtain ⟨h1, -⟩ := (canSitOn_eq _ _).mp hfit
+    intro hcon
+    rw [hcon] at h1
+    omega
+  have hcpτ : st.canPlace y (Sum.inr c.flipSuit) = true := by
+    show (decide (st.board.topOf (Sum.inr c.flipSuit) = none) &&
+        (st.isVis c.flipSuit && canSitOn y c.flipSuit)) = true
+    rw [hfree, hlic, canSitOn_flipSuit_right, hfit]
+    rfl
+  obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, st.board.attach (Sum.inr c.flipSuit) y = some bdτ := by
+    have hne : st.board.attach (Sum.inr c.flipSuit) y ≠ none :=
+      (Board.attach_eq_some_iff _ _ _).mpr ⟨hfree, hgu.2⟩
+    cases hh : st.board.attach (Sum.inr c.flipSuit) y with
+    | none => rw [hh] at hne; simp at hne
+    | some bdτ => exact ⟨bdτ, rfl⟩
+  refine ⟨{st with
+    board := bdτ,
+    heights := fun s => if s = y.suit then st.heights s - 1 else st.heights s}, ?_, ?_⟩
+  · rw [apply_stackPile_iff]
+    exact ⟨hrk, hcpτ, bdτ, hattτ, rfl⟩
+  · refine ⟨rfl, rfl, rfl, rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hyc, hyt⟩
+    · show bd.topOf (Sum.inr c) = some y
+      exact Board.attach_topOf _ _ _ hatt
+    · show bd.topOf (Sum.inr c.flipSuit) = none
+      rw [Board.attach_topOf_ne _ _ _ hatt
+        (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon))]
+      exact hfree
+    · show {st with
+          board := bdτ,
+          heights := fun s => if s = y.suit then st.heights s - 1 else st.heights s}.board.topOf
+          (Sum.inr c) = none
+      rw [Board.attach_topOf_ne _ _ _ hattτ
+        (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon).symm)]
+      exact htopc
+    · show {st with
+          board := bdτ,
+          heights := fun s => if s = y.suit then st.heights s - 1 else st.heights s}.board.topOf
+          (Sum.inr c.flipSuit) = some y
+      exact Board.attach_topOf _ _ _ hattτ
+    · intro b hbc hbt
+      show bd.topOf b = {st with
+          board := bdτ,
+          heights := fun s => if s = y.suit then st.heights s - 1 else st.heights s}.board.topOf b
+      rw [Board.attach_topOf_ne _ _ _ hatt hbc, Board.attach_topOf_ne _ _ _ hattτ hbt]
+    · show (bd.bottomOf c).isSome = true
+      exact isVis_attach_ne hatt hvc
+    · show (bd.bottomOf c.flipSuit).isSome = true
+      exact isVis_attach_ne hatt hlic
+
+/-- Step 0, the `pilePile` park (the re-home onto `c`): the redirect
+`pilePile y (inr twin)` is derived from the license plus the two
+honest extras — `y` not currently ON the twin (`hb₀ne`; the
+from-the-twin shape is the anti-convergence, the descent's separate
+business) and the no-braid guard (`hnb`, the self-landing half). -/
+theorem parkSim_of_pilePile {st : State} {c y : Card} {σ : State}
+    (hlic : st.isVis c.flipSuit = true)
+    (hfree : st.board.topOf (Sum.inr c.flipSuit) = none)
+    (hbotne : ∀ b₀ : Base, st.board.bottomOf y = some b₀ → b₀ ≠ Sum.inr c.flipSuit)
+    (hnb : ∀ w, w ∈ st.board.aboveOf y → w ≠ c.flipSuit)
+    (hσ : st.apply (Move.pilePile y (Sum.inr c)) = some σ) :
+    ∃ τ, st.apply (Move.pilePile y (Sum.inr c.flipSuit)) = some τ ∧ parkSim c y σ τ := by
+  rw [apply_pilePile_iff] at hσ
+  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, rfl⟩ := hσ
+  have hb₀ne : b₀ ≠ Sum.inr c.flipSuit := hbotne b₀ hb₀
+  have hcp' : st.canPlace y (Sum.inr c) = true := by
+    have h2 := hcmr
+    simp only [State.canMoveRun] at h2
+    exact (Bool.and_eq_true_iff.mp h2).1
+  have hcp'' : (decide (st.board.topOf (Sum.inr c) = none) &&
+      (st.isVis c && canSitOn y c)) = true := hcp'
+  rw [Bool.and_eq_true_iff] at hcp''
+  have htopc : st.board.topOf (Sum.inr c) = none := of_decide_eq_true hcp''.1
+  have hvc : st.isVis c = true := (Bool.and_eq_true_iff.mp hcp''.2).1
+  have hfit : canSitOn y c = true := (Bool.and_eq_true_iff.mp hcp''.2).2
+  have hyt : y ≠ c.flipSuit := by
+    obtain ⟨h1, -⟩ := (canSitOn_eq _ _).mp hfit
+    intro hcon
+    have h2 : y.rank.toIdx + 1 = c.flipSuit.rank.toIdx := by
+      rw [Card.flipSuit_rank]; exact h1
+    rw [hcon] at h2
+    omega
+  have hyc : y ≠ c := by
+    obtain ⟨h1, -⟩ := (canSitOn_eq _ _).mp hfit
+    intro hcon
+    rw [hcon] at h1
+    omega
+  have hcpτ : st.canPlace y (Sum.inr c.flipSuit) = true := by
+    show (decide (st.board.topOf (Sum.inr c.flipSuit) = none) &&
+        (st.isVis c.flipSuit && canSitOn y c.flipSuit)) = true
+    rw [hfree, hlic, canSitOn_flipSuit_right, hfit]
+    rfl
+  have hcmrτ : st.canMoveRun y (Sum.inr c.flipSuit) = true := by
+    show (st.canPlace y (Sum.inr c.flipSuit) &&
+      (!(st.board.aboveOf y).contains c.flipSuit)) = true
+    rw [hcpτ, Bool.true_and, Bool.not_eq_true']
+    exact contains_false_of_notMem (fun hm => (hnb _ hm) rfl)
+  have hb₀top : st.board.topOf b₀ = some y := (Board.bottomOf_eq _ _ _).mp hb₀
+  have hfree' : (st.board.detach b₀).topOf (Sum.inr c.flipSuit) = none := by
+    rw [Board.detach_topOf_ne _ _ _ hb₀ne.symm]
+    exact hfree
+  have hboty' : (st.board.detach b₀).bottomOf y = none :=
+    Board.bottomOf_detach_self hb₀top
+  obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, (st.board.detach b₀).attach (Sum.inr c.flipSuit) y
+      = some bdτ := by
+    have hne : (st.board.detach b₀).attach (Sum.inr c.flipSuit) y ≠ none :=
+      (Board.attach_eq_some_iff _ _ _).mpr ⟨hfree', hboty'⟩
+    cases hh : (st.board.detach b₀).attach (Sum.inr c.flipSuit) y with
+    | none => rw [hh] at hne; simp at hne
+    | some bdτ => exact ⟨bdτ, rfl⟩
+  refine ⟨{st with board := bdτ}, ?_, ?_⟩
+  · rw [apply_pilePile_iff]
+    exact ⟨b₀, hb₀, hb₀ne, hcmrτ, bdτ, hattτ, rfl⟩
+  · refine ⟨rfl, rfl, rfl, rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hyc, hyt⟩
+    · show bd.topOf (Sum.inr c) = some y
+      exact Board.attach_topOf _ _ _ hatt
+    · show bd.topOf (Sum.inr c.flipSuit) = none
+      rw [Board.attach_topOf_ne _ _ _ hatt
+        (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon)),
+        Board.detach_topOf_ne _ _ _ hb₀ne.symm]
+      exact hfree
+    · show bdτ.topOf (Sum.inr c) = none
+      rw [Board.attach_topOf_ne _ _ _ hattτ
+        (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon).symm),
+        Board.detach_topOf_ne _ _ _ hne.symm]
+      exact htopc
+    · show bdτ.topOf (Sum.inr c.flipSuit) = some y
+      exact Board.attach_topOf _ _ _ hattτ
+    · intro b hbc hbt
+      show bd.topOf b = bdτ.topOf b
+      by_cases hbb : b = b₀
+      · rw [hbb, Board.attach_topOf_ne _ _ _ hatt hne, Board.detach_topOf,
+        Board.attach_topOf_ne _ _ _ hattτ hb₀ne, Board.detach_topOf]
+      · rw [Board.attach_topOf_ne _ _ _ hatt hbc, Board.attach_topOf_ne _ _ _ hattτ hbt,
+        Board.detach_topOf_ne _ _ _ hbb]
+    · show (bd.bottomOf c).isSome = true
+      exact isVis_attach_ne hatt (isVis_detach_ne hb₀top hvc hyc.symm)
+    · show (bd.bottomOf c.flipSuit).isSome = true
+      exact isVis_attach_ne hatt (isVis_detach_ne hb₀top hlic hyt.symm)
+
+/-- Convergence at the cargo's foundation departure: `pileStack y`
+fires in both lines and the successors COINCIDE — the divergence is
+gone (both seats bare in both). -/
+theorem parkSim_converge_pileStack {c y : Card} {σ τ σ' : State}
+    (hsim : parkSim c y σ τ) (h : σ.apply (Move.pileStack y) = some σ') :
+    ∃ τ', τ.apply (Move.pileStack y) = some τ' ∧ σ' = τ' := by
+  obtain ⟨hdeal, hh, hdpt, hstock, hds, hσc, hσt, hτc, hτt, hoff, hvisc, hvist, hyc, hyt⟩ :=
+    hsim
+  rw [apply_pileStack_iff] at h
+  obtain ⟨htop, b₀, hb₀, hrk, rfl⟩ := h
+  have hb₀c : b₀ = Sum.inr c :=
+    Option.some.inj (hb₀.symm.trans
+      ((Board.bottomOf_eq σ.board y (Sum.inr c)).mpr hσc))
+  rw [hb₀c]
+  have htopτ : τ.board.topOf (Sum.inr y) = none := by
+    rw [← hoff _ (fun hcon => hyc (Sum.inr.inj hcon))
+      (fun hcon => hyt (Sum.inr.inj hcon))]
+    exact htop
+  have hb₀τ : τ.board.bottomOf y = some (Sum.inr c.flipSuit) :=
+    (Board.bottomOf_eq _ _ _).mpr hτt
+  refine ⟨{τ with
+    board := τ.board.detach (Sum.inr c.flipSuit),
+    heights := fun s => if s = y.suit then τ.heights s + 1 else τ.heights s},
+    ?_, ?_⟩
+  · rw [apply_pileStack_iff]
+    exact ⟨htopτ, Sum.inr c.flipSuit, hb₀τ, by rw [← hh]; exact hrk, rfl⟩
+  · refine state_ext ?_ ?_ ?_ ?_ ?_ ?_
+    · exact hdeal
+    · refine Board.ext_topOf (funext (fun b => ?_))
+      by_cases hbc : b = Sum.inr c
+      · rw [hbc, Board.detach_topOf, Board.detach_topOf_ne _ _ _
+          (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon).symm), hτc]
+      by_cases hbt : b = Sum.inr c.flipSuit
+      · rw [hbt, Board.detach_topOf_ne _ _ _
+          (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon)), Board.detach_topOf]
+        exact hσt
+      · show (σ.board.detach (Sum.inr c)).topOf b
+          = (τ.board.detach (Sum.inr c.flipSuit)).topOf b
+        rw [Board.detach_topOf_ne _ _ _ hbc, Board.detach_topOf_ne _ _ _ hbt]
+        exact hoff b hbc hbt
+    · funext s
+      by_cases hsy : s = y.suit
+      · show (if s = y.suit then σ.heights s + 1 else σ.heights s) =
+          (if s = y.suit then τ.heights s + 1 else τ.heights s)
+        rw [if_pos hsy, if_pos hsy, hh]
+      · show (if s = y.suit then σ.heights s + 1 else σ.heights s) =
+          (if s = y.suit then τ.heights s + 1 else τ.heights s)
+        rw [if_neg hsy, if_neg hsy, hh]
+    · exact hdpt
+    · exact hstock
+    · exact hds
+
+/-- The one-move re-merge: from the source line, the cargo's re-home
+onto the twin's seat lands exactly on the replay state. -/
+theorem parkSim_merge_pilePile {c y : Card} {σ τ σ' : State}
+    (hsim : parkSim c y σ τ)
+    (h : σ.apply (Move.pilePile y (Sum.inr c.flipSuit)) = some σ') :
+    σ' = τ := by
+  obtain ⟨hdeal, hh, hdpt, hstock, hds, hσc, hσt, hτc, hτt, hoff, hvisc, hvist, hyc, hyt⟩ :=
+    hsim
+  rw [apply_pilePile_iff] at h
+  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, rfl⟩ := h
+  have hb₀c : b₀ = Sum.inr c :=
+    Option.some.inj (hb₀.symm.trans
+      ((Board.bottomOf_eq σ.board y (Sum.inr c)).mpr hσc))
+  rw [hb₀c] at hatt
+  refine state_ext ?_ ?_ ?_ ?_ ?_ ?_
+  · exact hdeal
+  · refine Board.ext_topOf (funext (fun b => ?_))
+    by_cases hbc : b = Sum.inr c
+    · rw [hbc, Board.attach_topOf_ne _ _ _ hatt
+        (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon).symm), Board.detach_topOf, hτc]
+    by_cases hbt : b = Sum.inr c.flipSuit
+    · rw [hbt, Board.attach_topOf _ _ _ hatt, hτt]
+    · rw [Board.attach_topOf_ne _ _ _ hatt hbt,
+        Board.detach_topOf_ne _ _ _ hbc]
+      exact hoff b hbc hbt
+  · show σ.heights = τ.heights
+    exact hh
+  · exact hdpt
+  · exact hstock
+  · exact hds
+
+/-- Convergence at the cargo's re-home: `pilePile y b''` (off the twin's
+own seat) fires in both lines and the successors COINCIDE — the
+self-landing guard transfers through the cargo walk
+(`parkSim_aboveOf_cargo`: the replay's walk from `y` is the source's
+plus `y` itself, and `y` never fits itself). -/
+theorem parkSim_converge_pilePile {c y : Card} {σ τ σ' : State} {b'' : Base}
+    (hsim : parkSim c y σ τ) (h : σ.apply (Move.pilePile y b'') = some σ')
+    (hb''ne : b'' ≠ Sum.inr c.flipSuit) :
+    ∃ τ', τ.apply (Move.pilePile y b'') = some τ' ∧ σ' = τ' := by
+  obtain ⟨hdeal, hh, hdpt, hstock, hds, hσc, hσt, hτc, hτt, hoff, hvisc, hvist, hyc, hyt⟩ :=
+    hsim
+  have hre : parkSim c y σ τ :=
+    ⟨hdeal, hh, hdpt, hstock, hds, hσc, hσt, hτc, hτt, hoff, hvisc, hvist, hyc, hyt⟩
+  have hcpc := parkSim_canPlace_congr hre
+  rw [apply_pilePile_iff] at h
+  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, rfl⟩ := h
+  have hb₀c : b₀ = Sum.inr c :=
+    Option.some.inj (hb₀.symm.trans
+      ((Board.bottomOf_eq σ.board y (Sum.inr c)).mpr hσc))
+  rw [hb₀c] at hatt hne
+  have hcpσ : σ.canPlace y b'' = true := by
+    have h2 := hcmr
+    simp only [State.canMoveRun] at h2
+    exact (Bool.and_eq_true_iff.mp h2).1
+  have hsl : ∀ d : Card, b'' = Sum.inr d →
+      (σ.board.aboveOf y).contains d = false := by
+    intro d hd
+    have h2 := hcmr
+    simp only [State.canMoveRun, hd] at h2
+    have h3 : (!(σ.board.aboveOf y).contains d) = true :=
+      (Bool.and_eq_true_iff.mp h2).2
+    rw [Bool.not_eq_true'] at h3
+    exact h3
+  have hb₀τ : τ.board.bottomOf y = some (Sum.inr c.flipSuit) :=
+    (Board.bottomOf_eq _ _ _).mpr hτt
+  have htopb''σ : σ.board.topOf b'' = none := by
+    have h2 := hcmr
+    simp only [State.canMoveRun] at h2
+    have h3 : σ.canPlace y b'' = true := (Bool.and_eq_true_iff.mp h2).1
+    have h4 := h3
+    simp only [State.canPlace] at h4
+    rw [Bool.and_eq_true_iff] at h4
+    exact of_decide_eq_true h4.1
+  have hb''c : b'' ≠ Sum.inr c := by
+    intro hcon; rw [hcon, hσc] at htopb''σ; simp at htopb''σ
+  have hdy : ∀ d : Card, b'' = Sum.inr d → d ≠ y := by
+    intro d hd hcon
+    have h3 : σ.canPlace y b'' = true := hcpσ
+    rw [hd, hcon] at h3
+    simp only [State.canPlace] at h3
+    rw [Bool.and_eq_true_iff] at h3
+    have h4 : canSitOn y y = true := (Bool.and_eq_true_iff.mp h3.2).2
+    obtain ⟨h5, -⟩ := (canSitOn_eq _ _).mp h4
+    omega
+  have hcmrτ : τ.canMoveRun y b'' = true := by
+    simp only [State.canMoveRun, Bool.and_eq_true_iff]
+    have hcpτ : τ.canPlace y b'' = true := by
+      rw [← hcpc y b'' hb''c hb''ne]; exact hcpσ
+    refine ⟨hcpτ, ?_⟩
+    cases b'' with
+    | inl a => rfl
+    | inr d =>
+        show (!(τ.board.aboveOf y).contains d) = true
+        rw [Bool.not_eq_true']
+        refine contains_false_of_notMem (fun hm => ?_)
+        rcases parkSim_aboveOf_cargo hre d hm with hmem | hdy2
+        · exact absurd ((contains_iff_mem _ _).mpr hmem) (by rw [hsl d rfl]; simp)
+        · exact hdy d rfl hdy2
+  have hfreeσ : (σ.board.detach (Sum.inr c)).topOf b'' = none :=
+    ((Board.attach_eq_some_iff _ _ _).mp (by rw [hatt]; simp)).1
+  have hbdettop : (τ.board.detach (Sum.inr c.flipSuit)).topOf b'' = none := by
+    rw [Board.detach_topOf_ne _ _ _ hb''ne, ← hoff b'' hb''c hb''ne,
+      ← Board.detach_topOf_ne σ.board (Sum.inr c) b'' hb''c]
+    exact hfreeσ
+  obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, (τ.board.detach (Sum.inr c.flipSuit)).attach b'' y
+      = some bdτ := by
+    have hboty : (τ.board.detach (Sum.inr c.flipSuit)).bottomOf y = none :=
+      Board.bottomOf_detach_self hτt
+    have hne2 : (τ.board.detach (Sum.inr c.flipSuit)).attach b'' y ≠ none :=
+      (Board.attach_eq_some_iff _ _ _).mpr ⟨hbdettop, hboty⟩
+    cases hh : (τ.board.detach (Sum.inr c.flipSuit)).attach b'' y with
+    | none => rw [hh] at hne2; simp at hne2
+    | some bdτ => exact ⟨bdτ, rfl⟩
+  refine ⟨{τ with board := bdτ}, ?_, ?_⟩
+  · rw [apply_pilePile_iff]
+    exact ⟨Sum.inr c.flipSuit, hb₀τ, hb''ne.symm, hcmrτ, bdτ, hattτ, rfl⟩
+  · refine state_ext ?_ ?_ ?_ ?_ ?_ ?_
+    · exact hdeal
+    · refine Board.ext_topOf (funext (fun b => ?_))
+      by_cases hbc : b = Sum.inr c
+      · rw [hbc, Board.attach_topOf_ne _ _ _ hatt hb''c.symm, Board.detach_topOf,
+          Board.attach_topOf_ne _ _ _ hattτ hb''c.symm,
+          Board.detach_topOf_ne _ _ _
+            (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon).symm), hτc]
+      by_cases hbt : b = Sum.inr c.flipSuit
+      · rw [hbt, Board.attach_topOf_ne _ _ _ hatt hb''ne.symm,
+          Board.detach_topOf_ne _ _ _
+            (fun hcon => Card.flipSuit_ne c (Sum.inr.inj hcon)), hσt,
+          Board.attach_topOf_ne _ _ _ hattτ hb''ne.symm, Board.detach_topOf]
+      · show bd.topOf b = bdτ.topOf b
+        by_cases hbb : b = b''
+        · rw [hbb, Board.attach_topOf _ _ _ hatt, Board.attach_topOf _ _ _ hattτ]
+        · rw [Board.attach_topOf_ne _ _ _ hatt hbb, Board.attach_topOf_ne _ _ _ hattτ hbb,
+          Board.detach_topOf_ne _ _ _ hbc, Board.detach_topOf_ne _ _ _ hbt]
+          exact hoff b hbc hbt
+    · show σ.heights = τ.heights
+      exact hh
+    · exact hdpt
+    · exact hstock
+    · exact hds
+
+/-- The φ-simulation along a whole segment: a γ of park-blind moves —
+with the walk guard checked at each step's own state (the trace
+form: for every decomposition of γ at a firing step, the moved run
+does not pass through the twin's seat there) — replays from the
+divergence's target, ending φ-related.  The convergence lemmas close
+the window at the cargo's departure; the tail then runs verbatim. -/
+theorem parkSim_run {c y : Card} : ∀ (γ : List Move) (σ τ : State), σ.WF →
+    parkSim c y σ τ → ∀ σend, σ.run γ = some σend →
+      (∀ (pre : List Move) (m : Move) (rest : List Move) (σi : State),
+        γ = pre ++ m :: rest → σ.run pre = some σi →
+          m.parkBlind c y = true ∧
+            (∀ z d : Card, m = Move.pilePile z (Sum.inr d) → z ≠ c →
+              ∀ w, w ∈ σi.board.aboveOf z → w ≠ c.flipSuit)) →
+      ∃ τend, τ.run γ = some τend ∧ parkSim c y σend τend := by
+  intro γ
+  induction γ with
+  | nil =>
+      intro σ τ _ hsim σend hγ _
+      simp only [State.run] at hγ
+      obtain rfl := Option.some.inj hγ
+      exact ⟨τ, rfl, hsim⟩
+  | cons m ms ih =>
+      intro σ τ hwf hsim σend hγ hgd
+      simp only [State.run] at hγ
+      cases hm : σ.apply m with
+      | none => rw [hm] at hγ; simp at hγ
+      | some σ' =>
+          rw [hm] at hγ
+          have hrest : σ'.run ms = some σend := hγ
+          obtain ⟨hblind, hwalk⟩ := hgd [] m ms σ rfl (by rfl)
+          obtain ⟨τ', hτ', hsim'⟩ :=
+            parkSim_step hwf hsim hblind hwalk hm
+          obtain ⟨τend, hrun', hsim''⟩ :=
+            ih σ' τ' (apply_wf hwf m σ' hm) hsim' σend hrest
+              (fun pre' m' rest' σi'' hsplit hpre =>
+                hgd (m :: pre') m' rest' σi''
+                  (by rw [hsplit, List.cons_append])
+                  (by simp only [State.run, hm]; exact hpre))
+          exact ⟨τend, by simp only [State.run, hτ']; exact hrun', hsim''⟩
+
 set_option linter.unusedVariables false in
 /-- ENDGAME §8.3 (c)'s normal-form characterization — the certificate
     route's remaining `sorry`: from a WF, unlocked, rung-legal source,

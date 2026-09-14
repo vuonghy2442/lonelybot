@@ -1967,3 +1967,99 @@ tree).
 - OLD crux `solvable_of_pileStack` TOMBSTONED (falsity = user's 2026-09-14 decision, ENDGAME 8; REFUTED-archive style) and replaced by `solvable_of_pileStack' : s1.solvableFrom OR st.forcedPark c` - PROVEN as a reduction; the file's single `:= sorry` moved into `rungNormal_or_forcedPark` (the 4 (B,L) descent; its docstring = the next taker's brief: (c-alpha) park-window one-step replay, template excursionSim_step [the twin-seat-divergence phi, NOT the edge-removal one]; (c-beta) the B-neutral transfer stalls the measure [last-noncompliant-first or a third component]; excursion linchpin: the return pileStack x fires pre-pass [deckStack x dead by vis_off_cycle]; (c1alpha/beta) refute-first gates).
 - PROPAGATION (8.4's note; conclusion-only surgery, hypotheses untouched): `solvable_of_accomm_step` + `solvable_accommodates_aux`/`solvable_accommodates` gain `OR exists c sigma pre sub, st.run (pre ++ Move.pileStack c :: sub) = some st' AND st.run pre = some sigma AND sigma.forcedPark c` (mid-play certificate witnessed by the play's own prefix; corner-exclusion mid-accommodation stays [GAP], B2-side alternative unstarted). NO downstream users existed (grep-first; the whole DAG re-verified exit-0 against the refreshed olean: Kills/Progress/Dominance/Realizability/Macro/TwinSwap/TwinExchange/Bridge/Initial/Restriction, others' sorries unchanged). Census: Theorems 1, total 12, pinned OK.
 - QUIRKS paid: rcases `<c, rfl, hfp>` on `m = Move.pileStack c` under `cases hm : st.apply m` - the rfl-subst on the induction's head var is clean (m eliminated, hm auto-rewritten); `st.run [] = some st` is plain rfl; `st.run (m :: pre) = some sigma` closes as `simp only [State.run, hm]; exact hpre` (rung_prefix_cons's pattern). Olean refresh lock-free: `lake env lean -o .lake\build\lib\lean\Klondike\Theorems.olean Klondike\Theorems.lean`.
+
+## TwinExchange.lean — the prefix-induction mechanics LANDED (2026-09-14, session 4)
+
+- LANDED (sorry-free, axioms [propext, Quot.sound]): `Board.exchangeTwin_detach_ne` + `Board.exchangeTwin_attach_ne` (the detach/attach
+  congruences off the twin pair — the attach_ne form: from bd.attach b c = some bd', conclude (bd.exT t).attach b c = some (bd'.exT t);
+  the b.swapTwin t ≠ b rewrite inside rw chains uses the `have h2 := swapTwin_swapSymm...; rw [h, hfix] at h2`-pattern, NOT ←-rw [loop]),
+  `State.isVis_exchangeTin` (visibility transfers — via a `show` to the isSome-form FIRST, then rw + cases; the folded State.isVis on the
+  RHS does NOT get substituted by `cases hb :`), and the mirror steps: `exchangeTwinCargo_step_draw`, `_step_deckStack` (stock/heights
+  frame-inherited; the successor relation is a field-for-field rfl), and `_step_pilePile` (THE clean-run step: walk congruence via
+  aboveOf_congr_off + the two board congruences; β/b non-twin derived from the guard + h₀'s topOf form — the occupied-twin argument).
+- THE STEP-LEMMA SHAPE for the remaining three kinds (reveal/deckPile/stackPile — single-attach each): case-split b ∈ twin seats OFF via
+  the canPlace guard (topOf (inr t) = some z ≠ none kills it), extract canPlace from canMoveRun via `simp only [State.canMoveRun] at hcmr`
+  (NOT rw — the match-in-body quirk AGAIN, on VARIABLE bases), transfer canPlace by cases on b (inl: defeq-exact; inr: simp only
+  [State.canPlace] at both + rw the topOf/isVis transfers), then assemble via apply_*_iff with the attach congruence. The reveal's
+  hiddenBase non-twin: the attach guard topOf (hiddenBase) = none vs h₀'s occupied twin seats.
+- PREMISE TRANSFERS (the induction's remaining mechanics — the unplaced-card argument, proven informally here for the next taker):
+  every seating move (pilePile/deckPile/stackPile/reveal attaches) writes an UNPLACED card (attach's own guard), and `t` stays placed
+  through the pre-freedom prefix (pileStack t needs t bare — z is on it; pilePile t re-seats it) — so no move can SEAT t, hence t never
+  ENTERS a cargo's run; and a run CONTAINING t contains the cargo z (z is on t), so it cannot land on z's stack (self-landing). Same for
+  t'. The hnb premises persist through all non-freedom moves without WF.
+- THE MERGE GAP, sharpened: the merge breaks the mirror (self-landing in the exchanged state) AND the premise transfer (it CREATES the
+  braid t ∈ aboveOf z' — the induction's premises die mid-play). So the naive prefix induction CANNOT work — the route MUST normalize
+  ("winning plays avoid cargo-top merges pre-freedom") or do the B&G piecewise bookkeeping. Rank arithmetic kills the merge only for
+  canSitOn-graded runs (deal-adjacent runs are ungraded — no contradiction available).
+- Census 12 (TwinExchange 1 — only the [H] row's assembly + the merge gap remain).
+
+## TwinExchange.lean — the mechanics table COMPLETE (2026-09-14, session 5)
+
+- LANDED (sorry-free, axioms [propext, Quot.sound]): `State.canPlace_exchangeTwin` (the placement-guard transfer off the twin pair;
+  inl-case closes by DEFEQ-exact, inr via simp only [State.canPlace] + the topOf/isVis transfers) + the last three mirror steps:
+  `exchangeTwinCargo_step_deckPile`, `_stackPile`, `_reveal`. ALL SIX non-freedom move kinds now mirror (draw, deckStack, deckPile,
+  stackPile, reveal, pilePile-clean) + the freedom bridge.
+- THE REVEAL STEP's off-twin derivations (reusable): triggers on the twin seats are killed by htop vs h₀'s occupied seats (c ≠ t/t');
+  reveals whose REVEALED CARD is a twin cannot fire (the attach guard needs it unplaced — bottomOf r = none — but hvis/hvis' keep the
+  twins placed — so r ≠ t/t' from any firing reveal); the attach BASE (hiddenBase) is off-twin the same way (the occupied-seat argument).
+  The B-side's pileOfTopHidden/hiddenBase read the deal+depths — transfer via Frame.pileOfTopHidden_congr/Frame.hiddenBase_congr with the
+  exchangeTwinCargo_{deal,depths} rfl-lemmas (Frame.lean's congruences are the reveal step's workhorse).
+- QUIRKS paid: (1) the iff-destructured successor states display as FULL literals after `rw [hst]` — the `(st.exT t).board` pattern is
+  GONE, so do NOT rw the board lemma there; just rw the field lemmas that still appear (stock/heights/depths) and `rfl` — defeq carries
+  the literal-vs-literal equality; (2) an ∃-witness slot inside a refine (bd') must be FILLED (`bd.exchangeTwin t`), not left `?_` —
+  otherwise the bullets shift and the goals become Boards; (3) `Frame.*_congr` produces an EQUALITY — `rw` it then `exact hpile`, not
+  exact-the-congr (type mismatch).
+- THE ASSEMBLY RECIPE (next session): strong induction on the play; per step: case the move kind → the step lemma gives the B-successor
+  = a₁.exT t; the PREMISE TRANSFERS still to land (the unplaced-card argument, sketched in the session-4 note); the freedom case → the
+  bridge; the merge case → the gap. The clean-play theorem (merge-free plays ⟹ stx solvable) is then immediate.
+- Census still 12 (TwinExchange 1).
+
+## TwinExchange.lean — the premise-transfer substrate begun (2026-09-14, session 6)
+
+- LANDED (sorry-free, axioms [propext] only): `Board.aboveOf_sub_detach` (THE DETACH-SHRINK: x ∈ aboveOf_{bd.detach b} c₀ →
+  x ∈ aboveOf_bd c₀ — the fuel induction on the go-function: until the first read of b the walks (and the acc contains-checks)
+  coincide; at b the detached walk stops (mono rescues the acc); the some-read case derives inr c₀ ≠ b from hd (the detach set b to
+  none) and re-syncs the scrutinees via ← detach_topOf_ne).
+- **THE WF REPAIR** (the session's key finding, recorded in the [H] row): the hnb transfer through the ATTACH-moves (deckPile/
+  stackPile/reveal) needs the moved card to carry NO stack — at WF provable via board_edges: the edge (inr c → y) over a stock or
+  foundationed base c fails BOTH disjuncts (the deal-adjacent one's own side condition demands c topHidden-or-seated; the legal one
+  demands c seated); WITHOUT WF a phantom unplaced card can formally support a stack carrying `t` into a cargo run — the main row
+  should add `hwf`. NO WF needed for: the pilePile case (the self-landing guard excludes t-containing runs from the cargo's own
+  stack) and the reveal case (the revealed card's stack is exactly {the trigger} by the trigger's bareness guard).
+- THE REMAINING TRANSFER PIECES (templated): (1) the attach-growth lemma `x ∈ aboveOf_{attach b c} c₀ → x ∈ aboveOf c₀ ∨ x = c ∨
+  x ∈ aboveOf c` — the fuel induction with the divergence-at-b analysis; the sub-walk from c needs its own induction (the acc
+  at the divergence is c :: prefix — the prefix pollutes, so the sub-walk's statement is `go n (inr c) acc ⊆ acc ∪ {c} ∪ aboveOf c`);
+  (2) the WF stack-free derivations (board_edges, ~15 lines each for stock/foundation); (3) the h₀/hvis transfers (trivial: the
+  topOf_persist/attach_topOf_ne one-liners per kind).
+- SIBLING WEATHER (2 outages polled through, both settled green): the Theorems chain went red mid-edit twice — poll, don't work
+  around. The sibling CONSOLIDATED my Card/Base.swapTwin_flipSuit into Relabel.lean (canonical home) leaving a dangling tombstone
+  docstring in TwinExchange (a `/-- ... -/` with no declaration — the parse error at the NEXT `/--`); fixed by folding it into the
+  section header. The merge corner is now CONFIRMED FROM BOTH SIDES (their parkSim c-alpha note: fires in sigma, self-landing in
+  tau — the same shape).
+- QUIRKS paid: (1) `List.Subset` has STRICT-IMPLICIT binders (⦃a⦄) — apply the subset term DIRECTLY to the membership proof
+  (`exact mono (n+1) (inr c₀) acc hx`), NOT (x, hx); (2) `rw [if_pos]` FAILS under an unreduced match scrutinee — after
+  `rw [hd] at hx`, `dsimp only at hx` to iota-reduce the match BEFORE the if-rewrites; (3) there are TWO aboveOf_go_mono's
+  (Theorems' explicit-bd membership form; TwinSwap's Board.* subset form) — mind which one `aboveOf_go_mono` resolves to.
+- Census still 12 (TwinExchange 1 — the [H] row only; TwinAgnostic.lean is the sibling's new file).
+
+## Theorems — c-alpha LANDED sorry-free (2026-09-14)
+
+- (c-alpha) LANDED (Theorems.lean only, +~430 lines, axioms [propext, Quot.sound], census Theorems 1 = carrier UNTOUCHED, total 12 pinned):
+  `parkSim` (twin-seat divergence phi: cargo y on c's seat vs twin's, else equal, hosts visible, y neither) + extractors (_bottomOf/_isVis/_canPlace)
+  + WALK AGREEMENT both forms: `parkSim_aboveOf_subset` (twin not in the moved run => replay walk <= source; pilePile self-landing transfer) and
+  `parkSim_aboveOf_cargo` (tau.walk(y) <= sigma.walk(y) U {y}; the re-home convergence's guard) + `Move.parkBlind` (move-only blindness) +
+  `parkSim_step` (the ONE-STEP REPLAY, excursionSim_step's park twin; WF for reveal's vis_not_hidden) + step-0s `parkSim_of_{deckPile,stackPile,pilePile}`
+  (redirect DERIVED from the twin license + canSitOn_flipSuit_right := rfl; pilePile adds hb0ne y-not-on-twin + hnb no-braid) + convergences
+  `parkSim_converge_{pileStack,pilePile}` (successors COINCIDE) + `parkSim_merge_pilePile` (pilePile y (inr twin) lands ON the replay state) +
+  `parkSim_run` (segment packaging; the walk guard is PER-TRACE-STATE, quantified over decompositions). Excursion-window use: parkSim x z, same phi.
+- (c1alpha) GATE DID NOT FIRE (Temp/opencode/caprobe.lean, 23 evals, exit 0): phi instantiates, blind steps replay, departure converges, re-merge lands;
+  at the licensed pre-state fpB is FALSE and BOTH redirected parks fire (double-redirect escape => the both-occupied exchange, (c-beta) territory) -
+  no too-narrow witness, certificate keeps reading the source state, NO carrier shape change. Exclusions probed load-bearing (evals 15-20): parks on
+  the twin (redirect-cycle hazard) and the MERGE (moved run through the twin's seat: fires in sigma, self-landing in tau - TwinExchange [H]'s corner;
+  hwalk is state-dependent BY NECESSITY: the value-swap phi breaks aboveOf_detach_subset's one-directionality).
+- QUIRKS paid: fuel-52 not 51-at-52 (whnf timeout - apply walk lemmas at 52 directly); rcases rfl on mem_cons eliminates the substituted var (rw instead);
+  state_ext with sigma-typed facts fails on successor-literals (refine state_ext ?_ x6 + per-field exact); post-`rw [aboveOf_go_succ] at hw` + cases hb:
+  rw [hb] at hw THEN ascribe the iota-reduced if-form before if_pos/if_neg; rw [Bool.not_eq_true'] on (!x)=true yields x = false (no intro);
+  canPlace-ascription matches go DEPENDENT (decode: have h := hcp; simp only [State.canPlace] at h; rw [Bool.and_eq_true_iff] at h).
+- (c-beta) for coordination: the transfer's B-neutrality still stalls the (B,L) measure - last-noncompliant-first or a third component is the descent
+  taker's open item; the exchange/merge shapes it meets are probed above.
