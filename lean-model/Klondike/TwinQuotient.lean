@@ -1645,6 +1645,111 @@ theorem Board.aboveOf_comp {bd : Board} :
                   (fun h => (List.mem_cons.mp h).elim hxc hxa)
                   (fun h => (List.mem_cons.mp h).elim hyc hya) hne
 
+/-- **The mirror's self-landing guard**: in the exchanged state, the
+walk from `c` never reaches `z` — so the mirror merge (the run riding
+the other cargo, landing on the now-bare `z`) is never self-landing
+via `z`.  The assembly: pred-reaches puts `t'` on the exchanged walk
+(z's base there is `t'` — the seat swap), the exchange walk-bound
+transfers `t'` to the source side, and every case dies by a braid:
+`t'` above a cargo is `hnb`/`hnb'` outright; `t'` on the source
+c-run (with `hmerge`'s `t`) makes the twins comparable, and each
+comparability branch chains through the covers (`z`, `z'`) back into
+the braids.  The rank exclusions come from the fits. -/
+theorem State.exchangeTwin_mirror_guard {st : State} {t z z' c : Card}
+    (hztop : st.board.topOf (Sum.inr t) = some z)
+    (hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hnb : t ∉ st.board.aboveOf z ∧ t.flipSuit ∉ st.board.aboveOf z)
+    (hnb' : t ∉ st.board.aboveOf z' ∧ t.flipSuit ∉ st.board.aboveOf z')
+    (hmerge : t ∈ st.board.aboveOf c)
+    (hct : c ≠ t ∧ c ≠ t.flipSuit) :
+    z ∉ (st.board.exchangeTwin t).aboveOf c := by
+  have hzne : z ≠ t := by
+    intro hcon
+    rw [hcon] at hfit
+    obtain ⟨hr, -⟩ := (canSitOn_eq t t).mp hfit
+    omega
+  have hzne' : z ≠ t.flipSuit := by
+    intro hcon
+    rw [hcon] at hfit
+    obtain ⟨hr, -⟩ := (canSitOn_eq t.flipSuit t).mp hfit
+    rw [Card.flipSuit_rank] at hr
+    omega
+  have hz'ne : z' ≠ t := by
+    intro hcon
+    rw [hcon] at hfit'
+    obtain ⟨hr, -⟩ := (canSitOn_eq t t.flipSuit).mp hfit'
+    rw [Card.flipSuit_rank] at hr
+    omega
+  have hz'ne' : z' ≠ t.flipSuit := by
+    intro hcon
+    rw [hcon] at hfit'
+    obtain ⟨hr, -⟩ := (canSitOn_eq t.flipSuit t.flipSuit).mp hfit'
+    omega
+  have ht'z : t.flipSuit ≠ z := by
+    intro hcon
+    rw [← hcon] at hfit
+    obtain ⟨hr, -⟩ := (canSitOn_eq t.flipSuit t).mp hfit
+    rw [Card.flipSuit_rank] at hr
+    omega
+  have htz' : t ≠ z' := by
+    intro hcon
+    rw [← hcon] at hfit'
+    obtain ⟨hr, -⟩ := (canSitOn_eq t t.flipSuit).mp hfit'
+    rw [Card.flipSuit_rank] at hr
+    omega
+  have htt' : t ≠ t.flipSuit := (Card.flipSuit_ne t).symm
+  have hzz' : z ≠ z' := by
+    intro hcon
+    rw [hcon] at hztop
+    exact htt' (Sum.inr.inj (st.board.inj (Sum.inr t) (Sum.inr t.flipSuit) z' hztop hztop'))
+  intro hmem
+  have htopstx : (st.board.exchangeTwin t).topOf (Sum.inr t.flipSuit) = some z := by
+    rw [Board.exchangeTwin_topOf]
+    have hsw : Base.swapTwin t (Sum.inr t.flipSuit) = Sum.inr t := by
+      show Sum.inr (Card.swapTwin t t.flipSuit) = Sum.inr t
+      rw [Card.swapTwin_self_right]
+    rw [hsw]
+    exact hztop
+  rcases Board.aboveOf_pred htopstx hmem with h | h
+  · exact hct.2 h.symm
+  · rcases Board.aboveOf_exchangeTwin_bound hztop hztop'
+      ⟨hzne, hzne', hz'ne, hz'ne'⟩ hnb hnb' h with h | h | h | h | h
+    · -- t' on the source c-run: both twins — comparability
+      have hz1 : z ∈ st.board.aboveOf t := Board.mem_aboveOf_of_topOf hztop
+      have hz1' : z' ∈ st.board.aboveOf t.flipSuit :=
+        Board.mem_aboveOf_of_topOf hztop'
+      rcases Board.aboveOf_comp 52 (Sum.inr c) [] t.flipSuit t h hmerge
+        (by simp) (by simp) (fun hcon => htt' hcon.symm) with hc | hc
+      · -- t' above t: compare with z (t's cover)
+        rcases Board.aboveOf_comp 52 (Sum.inr t) [] t.flipSuit z hc hz1
+          (by simp) (by simp) (fun hcon => ht'z hcon) with hc2 | hc2
+        · exact hnb.2 hc2
+        · rcases Board.aboveOf_comp 52 (Sum.inr t.flipSuit) [] z z' hc2 hz1'
+            (by simp) (by simp) (fun hcon => hzz' hcon) with hc3 | hc3
+          · rcases Board.aboveOf_pred hztop hc3 with h4 | h4
+            · exact htz' h4
+            · exact hnb'.1 h4
+          · rcases Board.aboveOf_pred hztop' hc3 with h4 | h4
+            · exact ht'z h4
+            · exact hnb.2 h4
+      · -- t above t': compare with z' (t''s cover)
+        rcases Board.aboveOf_comp 52 (Sum.inr t.flipSuit) [] t z' hc hz1'
+          (by simp) (by simp) (fun hcon => htz' hcon) with hc2 | hc2
+        · exact hnb'.1 hc2
+        · rcases Board.aboveOf_comp 52 (Sum.inr t) [] z' z hc2 hz1
+            (by simp) (by simp) (fun hcon => hzz' hcon.symm) with hc3 | hc3
+          · rcases Board.aboveOf_pred hztop' hc3 with h4 | h4
+            · exact ht'z h4
+            · exact hnb.2 h4
+          · rcases Board.aboveOf_pred hztop hc3 with h4 | h4
+            · exact htz' h4
+            · exact hnb'.1 h4
+    · exact ht'z h
+    · exact hz'ne' h.symm
+    · exact hnb.2 h
+    · exact hnb'.2 h
+
 /-- **The merge's landing is on the OTHER cargo's stack** — the
 own-cargo side is self-landing at the SOURCE: a card of the own
 cargo's run is above the passing twin (one step,
