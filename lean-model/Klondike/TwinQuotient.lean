@@ -581,7 +581,18 @@ swap-replay needs either the conjugation kit (TwinAgnostic's
 `apply_swapTwin_clean`, the twin exception set) or a direct
 board-level replay lemma.  The landing refinement
 (`merge_own_landing_absurd`, below) settles the own-cargo side of
-`hland`; the z-side disjuncts are vacuous. -/
+`hland`; the z-side disjuncts are vacuous.
+
+**The cycle finding (w15wfmerge's cycle probe, 2026-09-14)**: WF does
+NOT exclude board cycles (a crafted 3-cycle — deal-adjacent + two fit
+edges — passes all 11 conjuncts; the walk self-includes).  So the
+mirror's guard cannot ride the step-expansion/pile-disjointness at WF
+strength: the bridge needs either an acyclicity premise grown into
+`twinLicensed` (decidable, per-state: the relevant walks are
+self-disjoint) or the `initialReachable` scoping (reachable boards
+are provably cycle-free: the initial board is linear and the
+self-landing guard blocks every cycle-closing move).  Gate re-opened:
+witness-hunt the cyclic+licensed+merge family first. -/
 theorem State.solvable_of_exchange_merge {st a₁ : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF) (h : st.twinLicensed t)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
