@@ -2729,6 +2729,248 @@ theorem State.exchange_merge_ply_root {st a₁ : State} {t z z' c : Card}
   · rw [ha₁]; rfl
   · rw [ha₁]; rfl
   · rw [ha₁]; rfl
+/-! ### The board-only twin swap - the climb-out's correspondence
+
+The ply result relates to the source's merge successor by the
+BOARD-ONLY twin swap at the cargo z: the board relabeled
+(`mapByTwin z`), every other field kept.  This is NOT the full
+`swapTwin z` (which also relabels the deal piles and the stock) - and
+it cannot be, since board moves never relabel cards - but the deal
+difference is INNOCUOUS: the deal-reads a move's guard performs are
+`pileOfTopHidden` and `hiddenBase` (the reveal's boundary lookup),
+both of which only ever produce HIDDEN-SLICE cards, and z/z' are
+never hidden (WF `vis_not_hidden`; the hidden slices shrink
+monotonically since only reveal writes depths).  The stock is z-free
+too (z/z' seated, the cycle static), so deckPile's moved card - a
+stock card - is always off the pair.  Every clean move - reveals
+included - conjugates under the board-only swap: the climb-out needs
+no deal reconciliation after all. -/
+
+/-- The board-only twin swap: the board relabeled at the twin,
+everything else kept. -/
+def State.swapTwinBoard (t : Card) (st : State) : State :=
+  { st with board := st.board.mapByTwin t }
+
+@[simp] theorem State.swapTwinBoard_board (t : Card) (st : State) :
+    (st.swapTwinBoard t).board = st.board.mapByTwin t := rfl
+
+theorem State.swapTwinBoard_deal (t : Card) (st : State) :
+    (st.swapTwinBoard t).deal = st.deal := rfl
+
+theorem State.swapTwinBoard_heights (t : Card) (st : State) :
+    (st.swapTwinBoard t).heights = st.heights := rfl
+
+theorem State.swapTwinBoard_depths (t : Card) (st : State) :
+    (st.swapTwinBoard t).depths = st.depths := rfl
+
+theorem State.swapTwinBoard_stock (t : Card) (st : State) :
+    (st.swapTwinBoard t).stock = st.stock := rfl
+
+/-- The guard-functions read only board and heights, on which the
+board-only and full swaps agree definitionally - so TwinAgnostic's
+guard transfers apply verbatim. -/
+theorem State.swapTwinBoard_canPlace (t : Card) (st : State) (c : Card) (b : Base) :
+    (st.swapTwinBoard t).canPlace (Card.swapTwin t c) (b.swapTwin t) = st.canPlace c b :=
+  swapTwin_canPlace st t c b
+
+theorem State.swapTwinBoard_canMoveRun (t : Card) (st : State) (c : Card) (b : Base) :
+    (st.swapTwinBoard t).canMoveRun (Card.swapTwin t c) (b.swapTwin t) = st.canMoveRun c b :=
+  swapTwin_canMoveRun st t c b
+
+theorem State.swapTwinBoard_isVis (t : Card) (st : State) (d : Card) :
+    (st.swapTwinBoard t).isVis (Card.swapTwin t d) = st.isVis d :=
+  swapTwin_isVis st t d
+
+/-- The same-seat, same-card attach commutes with the relabel when
+both the seat and the card are off the pair (the reveal-case's
+successor computation: the boundary card attaches at the SAME seat
+with the SAME card on both sides - the seat is deal-derived, hence
+unswapped). -/
+theorem Board.mapByTwin_attach_off {bd : Board} {t : Card} {b : Base} {c : Card}
+    {bd' : Board}
+    (hb : b ≠ Sum.inr t) (hb' : b ≠ Sum.inr t.flipSuit)
+    (hc : c ≠ t) (hc' : c ≠ t.flipSuit)
+    (h : bd.attach b c = some bd') :
+    (bd.mapByTwin t).attach b c = some (bd'.mapByTwin t) := by
+  have hfixb : b.swapTwin t = b := Base.swapTwin_eq_self hb hb'
+  have hfixc : Card.swapTwin t c = c := Card.swapTwin_of_ne hc hc'
+  have htopb : bd.topOf b = none := ((Board.attach_eq_some_iff _ _ _).mp (by rw [h]; simp)).1
+  have hbotc : bd.bottomOf c = none := ((Board.attach_eq_some_iff _ _ _).mp (by rw [h]; simp)).2
+  have hfree : (bd.mapByTwin t).topOf b = none := by
+    rw [mapByTwin_topOf, hfixb, htopb]
+    rfl
+  have hnew : (bd.mapByTwin t).bottomOf c = none := by
+    have hmb := mapByTwin_bottomOf bd t c
+    rw [hfixc] at hmb
+    rw [hmb, hbotc]
+    rfl
+  have hattne : (bd.mapByTwin t).attach b c ≠ none :=
+    (Board.attach_eq_some_iff _ _ _).mpr ⟨hfree, hnew⟩
+  cases hattM : (bd.mapByTwin t).attach b c with
+  | none => exact absurd hattM hattne
+  | some bdM =>
+      have hbdM : bdM = bd'.mapByTwin t := by
+        apply Board.ext_topOf
+        funext b''
+        by_cases hbb : b'' = b
+        · rw [hbb, Board.attach_topOf _ _ _ hattM, mapByTwin_topOf, hfixb,
+            Board.attach_topOf _ _ _ h]
+          show some c = some (Card.swapTwin t c)
+          rw [hfixc]
+        · have hbsne : b''.swapTwin t ≠ b := by
+            intro hcon
+            have h2 : b'' = b.swapTwin t := by rw [← hcon, Base.swapTwin_swapTwin]
+            rw [hfixb] at h2
+            exact hbb h2
+          rw [Board.attach_topOf_ne _ _ _ hattM (fun h => hbb h), mapByTwin_topOf,
+            mapByTwin_topOf, Board.attach_topOf_ne _ _ _ h (fun h => hbsne h)]
+      rw [hbdM]
+
+/-- **The board-only mirror lemma**: a clean move's successor in the
+board-swapped game is the board-swapped successor.  The reveal case
+rides `mapByTwin_attach_off`: the r-component and the hiddenBase are
+deal-derived (unswapped) and off the pair; the deckPile case rides
+the stock's z-freeness (stock cards are off the pair); every other
+case is TwinAgnostic's with the deal/stock mappings dropped (the
+fields are literally the same). -/
+theorem State.apply_swapTwinBoard_clean {z : Card} {S R : State} {m : Move}
+    (hhid : ∀ a, z ∉ S.hidden a ∧ z.flipSuit ∉ S.hidden a)
+    (hstock : z ∉ S.stock.cards ∧ z.flipSuit ∉ S.stock.cards)
+    (hclean : Move.cleanTwin z m = true) (hS : S.apply m = some R) :
+    (S.swapTwinBoard z).apply (m.swapTwin z) = some (R.swapTwinBoard z) := by
+  cases m with
+  | draw =>
+      have hR : R = {S with stock := S.stock.dealOnce S.drawStep} := by
+        rw [apply_draw_iff] at hS; exact hS
+      show (S.swapTwinBoard z).apply Move.draw = some (R.swapTwinBoard z)
+      rw [apply_draw_iff]
+      rw [hR]
+      apply state_ext <;> try rfl
+  | reveal c =>
+      rw [apply_reveal_iff] at hS
+      obtain ⟨htop, r, a, bd, hbot, hp, hatt, hR⟩ := hS
+      have hrhid : r ∈ S.hidden a := State.mem_hidden_of_pileOfTopHidden hp
+      have hrne : r ≠ z ∧ r ≠ z.flipSuit :=
+        ⟨fun h => (hhid a).1 (h ▸ hrhid), fun h => (hhid a).2 (h ▸ hrhid)⟩
+      have hHB1 : S.hiddenBase a ≠ Sum.inr z := by
+        intro hcon
+        exact (hhid a).1 (State.mem_hidden_of_hiddenBase hcon)
+      have hHB2 : S.hiddenBase a ≠ Sum.inr z.flipSuit := by
+        intro hcon
+        exact (hhid a).2 (State.mem_hidden_of_hiddenBase hcon)
+      show (S.swapTwinBoard z).apply (Move.reveal (Card.swapTwin z c))
+        = some (R.swapTwinBoard z)
+      rw [apply_reveal_iff]
+      refine ⟨?_, r, a, bd.mapByTwin z, ?_, hp, ?_, ?_⟩
+      · rw [State.swapTwinBoard_board, mapByTwin_topOf]
+        show (S.board.topOf (Base.swapTwin z (Sum.inr (Card.swapTwin z c)))).map
+          (Card.swapTwin z) = none
+        rw [show Base.swapTwin z (Sum.inr (Card.swapTwin z c)) = Sum.inr c from by
+          show Sum.inr (Card.swapTwin z (Card.swapTwin z c)) = Sum.inr c
+          rw [Card.swapTwin_swapTwin], htop]
+        rfl
+      · rw [State.swapTwinBoard_board, mapByTwin_bottomOf, hbot, Option.map_some]
+        show some (Base.swapTwin z (Sum.inr r)) = some (Sum.inr r)
+        rw [show Base.swapTwin z (Sum.inr r) = Sum.inr r from by
+          show Sum.inr (Card.swapTwin z r) = Sum.inr r
+          rw [Card.swapTwin_of_ne hrne.1 hrne.2]]
+      · show (S.board.mapByTwin z).attach (S.hiddenBase a) r = some (bd.mapByTwin z)
+        exact Board.mapByTwin_attach_off hHB1 hHB2 hrne.1 hrne.2 hatt
+      · rw [hR]
+        apply state_ext <;> try rfl
+  | deckStack c =>
+      rw [apply_deckStack_iff] at hS
+      obtain ⟨hprev, hrk, hR⟩ := hS
+      obtain ⟨hc1, hc2⟩ := Card.offPair_iff.mp (by simpa using hclean)
+      have hfixc : Card.swapTwin z c = c := Card.swapTwin_of_ne hc1 hc2
+      show (S.swapTwinBoard z).apply (Move.deckStack (Card.swapTwin z c))
+        = some (R.swapTwinBoard z)
+      rw [hfixc, apply_deckStack_iff]
+      refine ⟨hprev, ?_, ?_⟩
+      · rw [State.swapTwinBoard_heights]
+        exact hrk
+      · rw [hR]
+        apply state_ext <;> try rfl
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at hS
+      obtain ⟨hprev, hcp, bd, hatt, hR⟩ := hS
+      have hcne : Card.swapTwin z c = c := by
+        have hmem : c ∈ S.stock.cards := by
+          simp only [Cycle.prev] at hprev
+          split at hprev
+          · exact absurd hprev (by simp)
+          · exact List.mem_iff_getElem?.mpr ⟨S.stock.cursor - 1, hprev⟩
+        refine Card.swapTwin_of_ne (fun h => ?_) (fun h => ?_)
+        · rw [h] at hmem; exact (hstock.1 hmem).elim
+        · rw [h] at hmem; exact (hstock.2 hmem).elim
+      show (S.swapTwinBoard z).apply (Move.deckPile (Card.swapTwin z c) (b.swapTwin z))
+        = some (R.swapTwinBoard z)
+      rw [hcne, apply_deckPile_iff]
+      refine ⟨?_, ?_, bd.mapByTwin z, ?_, ?_⟩
+      · rw [State.swapTwinBoard_stock]
+        exact hprev
+      · rw [← hcne, State.swapTwinBoard_canPlace]
+        exact hcp
+      · rw [← hcne, State.swapTwinBoard_board]
+        exact mapByTwin_attach hatt
+      · rw [hR]
+        apply state_ext <;> try rfl
+  | pileStack c =>
+      rw [apply_pileStack_iff] at hS
+      obtain ⟨htop, β, hβ, hrk, hR⟩ := hS
+      obtain ⟨hc1, hc2⟩ := Card.offPair_iff.mp (by simpa using hclean)
+      have hfixc : Card.swapTwin z c = c := Card.swapTwin_of_ne hc1 hc2
+      show (S.swapTwinBoard z).apply (Move.pileStack (Card.swapTwin z c))
+        = some (R.swapTwinBoard z)
+      rw [hfixc, apply_pileStack_iff]
+      refine ⟨?_, β.swapTwin z, ?_, ?_, ?_⟩
+      · rw [State.swapTwinBoard_board, mapByTwin_topOf]
+        show (S.board.topOf (Base.swapTwin z (Sum.inr c))).map (Card.swapTwin z) = none
+        rw [show Base.swapTwin z (Sum.inr c) = Sum.inr c from by
+          show Sum.inr (Card.swapTwin z c) = Sum.inr c
+          rw [hfixc], htop]
+        rfl
+      · rw [← hfixc, State.swapTwinBoard_board, mapByTwin_bottomOf, hβ,
+          Option.map_some]
+      · rw [State.swapTwinBoard_heights]
+        exact hrk
+      · rw [hR]
+        apply state_ext <;> try rfl
+        simp only [State.swapTwinBoard_board, mapByTwin_detach]
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at hS
+      obtain ⟨hrk, hcp, bd, hatt, hR⟩ := hS
+      obtain ⟨hc1, hc2⟩ := Card.offPair_iff.mp (by simpa using hclean)
+      have hfixc : Card.swapTwin z c = c := Card.swapTwin_of_ne hc1 hc2
+      show (S.swapTwinBoard z).apply (Move.stackPile (Card.swapTwin z c) (b.swapTwin z))
+        = some (R.swapTwinBoard z)
+      rw [hfixc, apply_stackPile_iff]
+      refine ⟨?_, ?_, bd.mapByTwin z, ?_, ?_⟩
+      · rw [State.swapTwinBoard_heights]
+        exact hrk
+      · rw [← hfixc, State.swapTwinBoard_canPlace]
+        exact hcp
+      · rw [← hfixc, State.swapTwinBoard_board]
+        exact mapByTwin_attach hatt
+      · rw [hR]
+        apply state_ext <;> try rfl
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at hS
+      obtain ⟨b₀, hbot, hne, hcmr, bd, hatt, hR⟩ := hS
+      show (S.swapTwinBoard z).apply (Move.pilePile (Card.swapTwin z c) (b.swapTwin z))
+        = some (R.swapTwinBoard z)
+      rw [apply_pilePile_iff]
+      refine ⟨b₀.swapTwin z, ?_, ?_, ?_, bd.mapByTwin z, ?_, ?_⟩
+      · rw [State.swapTwinBoard_board, mapByTwin_bottomOf, hbot, Option.map_some]
+      · intro hcon
+        exact hne (Base.swapTwin_inj z hcon)
+      · rw [State.swapTwinBoard_canMoveRun]
+        exact hcmr
+      · rw [State.swapTwinBoard_board, mapByTwin_detach]
+        exact mapByTwin_attach hatt
+      · rw [hR]
+        apply state_ext <;> try rfl
+
 /-- **The twin-rooted merge — the [H] residual**: the frozen-phase
 move whose root is the twin itself, landing on the other cargo's run —
 the twin's own run (the cargo riding on top of it) merges onto the
