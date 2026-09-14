@@ -15,6 +15,8 @@
         static UNDO_MOVES: Cell<u64> = Cell::new(0);
         static ENCODES: Cell<u64> = Cell::new(0);
         static REG_FIRES: Cell<u64> = Cell::new(0);
+        static ACTIVE_CT: Cell<u64> = Cell::new(0);
+        static QUIET_SKIP: Cell<u64> = Cell::new(0);
         static CORE_NANOS: Cell<u64> = Cell::new(0);
         static BRANCH_NANOS: Cell<u64> = Cell::new(0);
         static TP_NANOS: Cell<u64> = Cell::new(0);
@@ -41,7 +43,7 @@
     }
 
     #[must_use]
-    pub fn read() -> [u64; 17] {
+    pub fn read() -> [u64; 19] {
         [
             WALK_STATES.with(Cell::get),
             CLS_CALLS.with(Cell::get),
@@ -57,6 +59,8 @@
             UNDO_MOVES.with(Cell::get),
             ENCODES.with(Cell::get),
             REG_FIRES.with(Cell::get),
+            ACTIVE_CT.with(Cell::get),
+            QUIET_SKIP.with(Cell::get),
             CORE_NANOS.with(Cell::get),
             BRANCH_NANOS.with(Cell::get),
             TP_NANOS.with(Cell::get),
@@ -66,6 +70,13 @@
     /// Count the offset-dominance registry's skips (test-only).
     pub fn bump_reg() {
         REG_FIRES.with(|c| c.set(c.get() + 1));
+    }
+
+    /// The active-mask enumeration split (test-only): active
+    /// commitments entering the emission loop vs quiet ones skipped.
+    pub fn bump_quiet_split(active: u32, quiet: u32) {
+        ACTIVE_CT.with(|c| c.set(c.get() + u64::from(active)));
+        QUIET_SKIP.with(|c| c.set(c.get() + u64::from(quiet)));
     }
 
     /// Section timers for the shipped search path (test-only; the

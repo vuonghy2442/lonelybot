@@ -19,6 +19,11 @@ pub struct Deck {
     draw_cur: u8, // size of the previous pile
     mask: u32,
     map: [u8; N_CARDS as usize],
+    /// the card-mask of the remaining deck, maintained on draw/push —
+    /// the draw-1 shortcut for `compute_mask(false)` (the K+
+    /// degeneration: every remaining card is accessible), replacing the
+    /// two-lane walk (~40-48 iterations) on the hot per-node path.
+    card_mask: u64,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -32,9 +37,11 @@ impl Deck {
     #[must_use]
     pub fn new(deck: [Card; N_DECK_CARDS as usize], draw_step: NonZeroU8) -> Self {
         let mut map = [!0u8; N_CARDS as usize];
+        let mut card_mask = 0u64;
         #[allow(clippy::cast_possible_truncation)]
         for (i, c) in deck.iter().enumerate() {
             map[c.mask_index() as usize] = i as u8;
+            card_mask |= c.mask();
         }
 
         Self {
@@ -43,6 +50,7 @@ impl Deck {
             draw_cur: 0,
             mask: full_mask(N_DECK_CARDS) as u32,
             map,
+            card_mask,
         }
     }
 
@@ -217,12 +225,24 @@ impl Deck {
 
     #[must_use]
     pub fn compute_mask(&self, filter: bool) -> u64 {
+        // the draw-1 degeneration: every remaining card is accessible —
+        // the maintained card-mask is the K+ mask exactly (the
+        // `maskPos_step1` fact), replacing the two-lane walk
+        if self.draw_step.get() == 1 && !filter {
+            return self.card_mask;
+        }
         let mut mask: u64 = 0;
         let _ = self.iter_callback(filter, |_, card| -> ControlFlow<()> {
             mask |= card.mask();
             ControlFlow::Continue(())
         });
         mask
+    }
+
+    /// The card-mask of the remaining deck (maintained incrementally).
+    #[must_use]
+    pub const fn remaining_card_mask(&self) -> u64 {
+        self.card_mask
     }
 
     #[must_use]
@@ -238,12 +258,14 @@ impl Deck {
         self.draw_cur -= 1;
         let card = self.deck.remove(self.draw_cur as usize);
         self.mask ^= 1 << self.map[card.mask_index() as usize];
+        self.card_mask &= !card.mask();
         card
     }
 
     pub(crate) fn push(&mut self, card: Card) {
         // or you can undo
         self.mask ^= 1 << self.map[card.mask_index() as usize];
+        self.card_mask |= card.mask();
         self.deck.insert(self.draw_cur as usize, card);
         self.draw_cur += 1;
     }
@@ -300,6 +322,7 @@ impl Deck {
         // position) is preserved either way
         self.deck.clear();
         self.deck.extend(rev_map.into_iter().flatten());
+        self.card_mask = self.deck.iter().fold(0u64, |m, c| m | c.mask());
 
         self.set_offset(offset);
         self.mask = mask;

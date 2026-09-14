@@ -58,18 +58,19 @@
                     }
                 });
                 let p = perf_probe::read();
-                let tot = p[16] as f64 + p[14] as f64 + p[15] as f64 + p[5] as f64;
+                let tot = p[18] as f64 + p[16] as f64 + p[17] as f64 + p[5] as f64;
                 println!(
-                    "seed={seed} draw={draw_step} win={win} nodes={n} forced={f} ({:4.1}%) deck_dom={d} ({:4.1}%) avg_deck_at_dom={:4.1} reg_fires={} in {:?} | sections: tp={:4.1}% core={:4.1}% branch={:4.1}% bfs={:4.1}%",
+                    "seed={seed} draw={draw_step} win={win} nodes={n} forced={f} ({:4.1}%) deck_dom={d} ({:4.1}%) avg_deck_at_dom={:4.1} reg_fires={} in {:?} | sections: tp={:4.1}% core={:4.1}% branch={:4.1}% bfs={:4.1}% | quiet={:4.1}%",
                     100.0 * f as f64 / n.max(1) as f64,
                     100.0 * d as f64 / n.max(1) as f64,
                     dc as f64 / d.max(1) as f64,
                     p[13],
                     t.elapsed(),
+                    100.0 * p[18] as f64 / tot,
                     100.0 * p[16] as f64 / tot,
-                    100.0 * p[14] as f64 / tot,
-                    100.0 * p[15] as f64 / tot,
+                    100.0 * p[17] as f64 / tot,
                     100.0 * p[5] as f64 / tot,
+                    100.0 * p[15] as f64 / (p[14] as f64 + p[15] as f64).max(1.0),
                 );
                 nodes += n;
                 forced += f;

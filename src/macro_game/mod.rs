@@ -1785,6 +1785,11 @@ fn core_run(
     // prefix start, both kills) emit nothing in either mode and are
     // skipped before the loop.
     commitments.clear();
+    #[cfg(test)]
+    {
+        let act = (commit_mask & active).count_ones();
+        perf_probe::bump_quiet_split(act, commit_mask.count_ones() - act);
+    }
     let mut bits = locked_surfaces & active;
     while bits != 0 {
         let bit = bits & bits.wrapping_neg();
