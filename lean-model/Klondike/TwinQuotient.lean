@@ -1547,6 +1547,57 @@ theorem State.twinLicensed_apply_pilePile_passing {st a₁ : State} {t z z' c : 
     · intro hmem
       exact hnb'.2 (Board.aboveOf_sub_detach 52 z' [] t.flipSuit hmem)
 
+/-- **The walk collects the predecessor** (the pred-reaches
+primitive): if the walk from `y` collected `z`, and `z` sits on `u`,
+then the walk collected `u` first — or started there.  With the
+license's rigidity (h₀ pins the cargos' bases, the braids pin the
+twins off the cargo chains), this is the engine of the mirror's
+self-landing guard: `z ∈ aboveOf_stx c` forces `t'` onto the
+walk-from-`c`, and the braid case analysis kills every route. -/
+theorem Board.aboveOf_pred_reaches {bd : Board} :
+    ∀ (n : Nat) (b : Base) (acc : List Card) (z u : Card),
+      bd.topOf (Sum.inr u) = some z →
+      z ∈ Board.aboveOf.go bd n b acc →
+      z ∈ acc ∨ u ∈ acc ∨ u ∈ Board.aboveOf.go bd n b acc ∨ b = Sum.inr u := by
+  intro n
+  induction n with
+  | zero => intro b acc z u _ hz; exact Or.inl hz
+  | succ k ih =>
+      intro b acc z u hu hz
+      cases ht : bd.topOf b with
+      | none => rw [Board.aboveOf_go_topOf_none ht] at hz; exact Or.inl hz
+      | some c' =>
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop ht hcon] at hz; exact Or.inl hz
+          · rw [Board.aboveOf_go_step ht hcon] at hz
+            rcases ih (Sum.inr c') (c' :: acc) z u hu hz with h | h | h | h
+            · rcases List.mem_cons.mp h with heq | h'
+              · rw [heq] at hu
+                exact Or.inr (Or.inr (Or.inr (bd.inj b (Sum.inr u) c' ht hu)))
+              · exact Or.inl h'
+            · rcases List.mem_cons.mp h with heq | h'
+              · rw [heq]
+                refine Or.inr (Or.inr (Or.inl ?_))
+                rw [Board.aboveOf_go_step ht hcon]
+                exact Board.aboveOf_go_mem bd k (Sum.inr c') (c' :: acc) c' (by simp)
+              · exact Or.inr (Or.inl h')
+            · exact Or.inr (Or.inr (Or.inl (Board.aboveOf_go_step ht hcon ▸ h)))
+            · rw [(Sum.inr.inj h).symm]
+              refine Or.inr (Or.inr (Or.inl ?_))
+              rw [Board.aboveOf_go_step ht hcon]
+              exact Board.aboveOf_go_mem bd k (Sum.inr c') (c' :: acc) c' (by simp)
+
+/-- The 52 form: the walk from `y` collected `z` ⟹ `z`'s base card
+`u` was collected too (or is the start). -/
+theorem Board.aboveOf_pred {bd : Board} {y z u : Card}
+    (hu : bd.topOf (Sum.inr u) = some z) (hz : z ∈ bd.aboveOf y) :
+    u = y ∨ u ∈ bd.aboveOf y := by
+  rcases Board.aboveOf_pred_reaches 52 (Sum.inr y) [] z u hu hz with h | h | h | h
+  · exact absurd h (by simp)
+  · exact absurd h (by simp)
+  · exact Or.inr h
+  · exact Or.inl (Sum.inr.inj h).symm
+
 /-- **The merge's landing is on the OTHER cargo's stack** — the
 own-cargo side is self-landing at the SOURCE: a card of the own
 cargo's run is above the passing twin (one step,
