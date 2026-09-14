@@ -2392,6 +2392,48 @@ theorem solvable_swapTwin_separated {st : State} {t : Card} {p₁ mid p₂ : Lis
                 refine ⟨_, W.swapTwin t, run_append_some (run_append_some (run_append_some
                   (run_append_some hR₁ hS₁) hS₂) hS₃) hS₄, hwin⟩
 
+/-- The ortho predicate is flip-dual (the two off-suits swap). -/
+theorem Move.orthoTwin_flipSuit (t : Card) (m : Move) :
+    Move.orthoTwin t.flipSuit m = Move.orthoTwin t m := by
+  cases m with
+  | draw | reveal _ | deckPile _ _ | pilePile _ _ => rfl
+  | deckStack c | pileStack c | stackPile c _ =>
+      simp only [Move.orthoTwin, Card.flipSuit_flipSuit, and_comm]
+
+/-- **The separated twin-swap replay, backward.**  The same statement
+with the twin stackings reversed (the mirror image of the forward
+shape): the forward theorem at the exchanged state with the flipped
+twin, whose exchange is the source by the involution. -/
+theorem solvable_swapTwin_separated_back {st : State} {t : Card} {q₁ mid q₂ : List Move}
+    (hc₁ : ∀ m ∈ q₁, Move.cleanTwin t m = true)
+    (hc₂ : ∀ m ∈ q₂, Move.cleanTwin t m = true)
+    (ho : ∀ m ∈ mid, Move.orthoTwin t m = true)
+    {W : State}
+    (hrun : (st.swapTwin t).run (q₁ ++ [Move.pileStack t.flipSuit] ++ mid
+      ++ [Move.pileStack t] ++ q₂) = some W)
+    (hwin : W.isWin = true) :
+    st.solvableFrom := by
+  have hc₁' : ∀ m ∈ q₁, Move.cleanTwin t.flipSuit m = true := by
+    intro m hm
+    rw [← Move.cleanTwin_flipSuit]
+    exact hc₁ m hm
+  have hc₂' : ∀ m ∈ q₂, Move.cleanTwin t.flipSuit m = true := by
+    intro m hm
+    rw [← Move.cleanTwin_flipSuit]
+    exact hc₂ m hm
+  have ho' : ∀ m ∈ mid, Move.orthoTwin t.flipSuit m = true := by
+    intro m hm
+    rw [Move.orthoTwin_flipSuit]
+    exact ho m hm
+  have hrun' : (st.swapTwin t).run (q₁ ++ [Move.pileStack t.flipSuit] ++ mid
+    ++ [Move.pileStack t.flipSuit.flipSuit] ++ q₂) = some W := by
+    rw [Card.flipSuit_flipSuit]
+    exact hrun
+  have h := solvable_swapTwin_separated (st := st.swapTwin t) (t := t.flipSuit)
+    hc₁' hc₂' ho' hrun' hwin
+  rw [State.swapTwin_flipSuit, State.swapTwin_swapTwin] at h
+  exact h
+
 /-- **The merge's landing is on the OTHER cargo's stack** — the
 own-cargo side is self-landing at the SOURCE: a card of the own
 cargo's run is above the passing twin (one step,
