@@ -1598,6 +1598,53 @@ theorem Board.aboveOf_pred {bd : Board} {y z u : Card}
   · exact Or.inr h
   · exact Or.inl (Sum.inr.inj h).symm
 
+/-- **Walk comparability** (the tail-fact): two distinct cards
+collected by the same walk are comparable — the later-collected is
+above the earlier.  The engine is the seeded-walk bound (session-7):
+the continuation past the earlier card is a walk seeded with the
+cards before it, and the fresh walk from the earlier card collects
+everything the continuation does.  The mirror-guard's last
+primitive. -/
+theorem Board.aboveOf_comp {bd : Board} :
+    ∀ (n : Nat) (b : Base) (acc : List Card) (x y : Card),
+      x ∈ Board.aboveOf.go bd n b acc → y ∈ Board.aboveOf.go bd n b acc →
+      x ∉ acc → y ∉ acc → x ≠ y →
+      x ∈ bd.aboveOf y ∨ y ∈ bd.aboveOf x := by
+  intro n
+  induction n with
+  | zero => intro b acc x y hx _ hxa _ _; exact absurd hx hxa
+  | succ k ih =>
+      intro b acc x y hx hy hxa hya hne
+      cases ht : bd.topOf b with
+      | none => rw [Board.aboveOf_go_topOf_none ht] at hx; exact absurd hx hxa
+      | some c' =>
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop ht hcon] at hx; exact absurd hx hxa
+          · rw [Board.aboveOf_go_step ht hcon] at hx hy
+            by_cases hxc : x = c'
+            · subst hxc
+              rcases Board.aboveOf_go_seeded_subset (52 - k) k x (x :: acc) [] y
+                (List.nil_subset _) hy with h | h
+              · rcases List.mem_cons.mp h with heq | h'
+                · exact absurd heq.symm hne
+                · exact absurd h' hya
+              · refine Or.inr ?_
+                rw [Board.aboveOf_eq_go (52 - k + k) (by omega)]
+                exact h
+            · by_cases hyc : y = c'
+              · subst hyc
+                rcases Board.aboveOf_go_seeded_subset (52 - k) k y (y :: acc) [] x
+                  (List.nil_subset _) hx with h | h
+                · rcases List.mem_cons.mp h with heq | h'
+                  · exact absurd heq hne
+                  · exact absurd h' hxa
+                · refine Or.inl ?_
+                  rw [Board.aboveOf_eq_go (52 - k + k) (by omega)]
+                  exact h
+              · exact ih (Sum.inr c') (c' :: acc) x y hx hy
+                  (fun h => (List.mem_cons.mp h).elim hxc hxa)
+                  (fun h => (List.mem_cons.mp h).elim hyc hya) hne
+
 /-- **The merge's landing is on the OTHER cargo's stack** — the
 own-cargo side is self-landing at the SOURCE: a card of the own
 cargo's run is above the passing twin (one step,
