@@ -2,6 +2,7 @@ import Klondike.Move
 import Klondike.Relabel
 import Klondike.Commutation
 import Klondike.Frame
+import Klondike.Tactics
 
 /-!
 # The theorem farm - formalized
@@ -236,22 +237,15 @@ theorem stackPile_pileStack_return {st : State} {c : Card} {b : Base} {s₁ : St
         rw [hiv] at hbd
         exact Bool.noConfusion hbd
   -- b was free (the worry-back's own guard) and is not c's seat
-  have hcpf := hcp
-  simp only [State.canPlace] at hcpf
-  have hfree : st.board.topOf b = none :=
-    of_decide_eq_true (Bool.and_eq_true_iff.mp hcpf).1
+  have hfree : st.board.topOf b = none := topOf_of_canPlace hcp
   have hbne : Sum.inr c ≠ b := by
     cases b with
     | inl a => intro hcon; simp at hcon
     | inr d =>
-        have hcp' := hcp
-        simp only [State.canPlace] at hcp'
-        obtain ⟨_, hivd⟩ := Bool.and_eq_true_iff.mp hcp'
-        obtain ⟨hivd, _⟩ := Bool.and_eq_true_iff.mp hivd
         intro hcon
         injection hcon with hcd
-        rw [← hcd] at hivd
-        rw [hvis] at hivd
+        have hivd := isVis_of_canPlace_inr hcp
+        rw [← hcd, hvis] at hivd
         exact Bool.noConfusion hivd
   -- the re-stack at the successor
   rw [hs₁]
@@ -875,109 +869,44 @@ accumulator only grows, and detaching a base only shortens the walk
 (the detached walk is a prefix of the original).  With the `contains`
 reflection of membership, this carries the guard across `c`'s
 departure — the run above `x` shrinks when `c` leaves it, so what did
-not land on the run before does not land on it after.  LOCAL this
-round (Board/Cycle-level in spirit) — flagged for the consolidation
-pass. -/
+not land on the run before does not land on it after.  The proofs
+re-homed to Board.lean's R1 kit (2026-09-14): the mono/step lemmas and
+the grading/irrefl pair below are one-line citations of
+`Board.aboveOf_go_mem`/`_go_step`/`_go_sub`(via detach)/`_grading`/
+`_self_disjoint`; the walk-congruence general forms live there too
+(`Board.aboveOf_congr`, `Board.aboveOf_sub`). -/
 
 /-- `List.contains` reflects membership (the `instBEqOfDecidableEq`
-instance — the same route as `beq_relabel`). -/
-theorem contains_iff_mem : ∀ (l : List Card) (d : Card), l.contains d = true ↔ d ∈ l := by
-  intro l
-  induction l with
-  | nil =>
-      intro d
-      constructor
-      · intro hc; exact Bool.noConfusion hc
-      · intro hm; exact nomatch hm
-  | cons a t ih =>
-      intro d
-      constructor
-      · intro hc
-        have hc' : (d == a || t.contains d) = true := hc
-        cases hb : (d == a) with
-        | true => exact List.mem_cons.mpr (Or.inl (of_decide_eq_true hb))
-        | false =>
-            rw [hb, Bool.false_or] at hc'
-            exact List.mem_cons.mpr (Or.inr ((ih d).mp hc'))
-      · intro hm
-        show (d == a || t.contains d) = true
-        rcases List.mem_cons.mp hm with hda | hm'
-        · have h1 : (d == a) = true := by rw [hda]; exact decide_eq_true rfl
-          rw [h1, Bool.true_or]
-        · rw [(ih d).mpr hm', Bool.or_true]
+instance — core's `List.contains_iff_mem`). -/
+theorem contains_iff_mem : ∀ (l : List Card) (d : Card), l.contains d = true ↔ d ∈ l :=
+  fun _ _ => List.contains_iff_mem
 
 /-- The walk's accumulator only grows: everything in `acc` survives
 into the walk's result. -/
 theorem aboveOf_go_mono (bd : Board) : ∀ (fuel : Nat) (b : Base) (acc : List Card) (y : Card),
-    y ∈ acc → y ∈ Board.aboveOf.go bd fuel b acc := by
-  intro fuel
-  induction fuel with
-  | zero => intro b acc y hy; exact hy
-  | succ n ih =>
-      intro b acc y hy
-      rw [aboveOf_go_succ]
-      cases ht : bd.topOf b with
-      | none => exact hy
-      | some c' =>
-          show y ∈ (if acc.contains c' = true then acc
-            else Board.aboveOf.go bd n (Sum.inr c') (c' :: acc))
-          by_cases hc : acc.contains c' = true
-          · rw [if_pos hc]; exact hy
-          · rw [if_neg hc]
-            exact ih (Sum.inr c') (c' :: acc) y (by simp [hy])
+    y ∈ acc → y ∈ Board.aboveOf.go bd fuel b acc :=
+  Board.aboveOf_go_mem bd
 
 /-- One walk step over a matched card (the reduced form, for rewriting
 past the constructor-headed match). -/
 theorem aboveOf_go_step {bd : Board} {b₀ : Base} {c' : Card} {n : Nat} {acc : List Card}
     (hbd : bd.topOf b₀ = some c') (hc : acc.contains c' ≠ true) :
-    Board.aboveOf.go bd (n + 1) b₀ acc = Board.aboveOf.go bd n (Sum.inr c') (c' :: acc) := by
-  rw [aboveOf_go_succ, hbd]
-  show (if acc.contains c' = true then acc else Board.aboveOf.go bd n (Sum.inr c') (c' :: acc))
-      = Board.aboveOf.go bd n (Sum.inr c') (c' :: acc)
-  rw [if_neg hc]
+    Board.aboveOf.go bd (n + 1) b₀ acc = Board.aboveOf.go bd n (Sum.inr c') (c' :: acc) :=
+  Board.aboveOf_go_step hbd hc
 
 /-- Detaching a base only shortens the run walk: every card the
 detached board's walk reaches was already reached by the original's
-(the two walks coincide until the detached base, where the shortened
-one stops first). -/
+(the pointwise sub-board subset `Board.aboveOf_go_sub` — the detach
+is the instance where the one differing cell is emptied). -/
 theorem aboveOf_go_detach {bd : Board} {b : Base} :
     ∀ (fuel : Nat) (b₀ : Base) (acc : List Card) (y : Card),
       y ∈ Board.aboveOf.go (bd.detach b) fuel b₀ acc →
       y ∈ acc ∨ y ∈ Board.aboveOf.go bd fuel b₀ acc := by
-  intro fuel
-  induction fuel with
-  | zero => intro b₀ acc y hy; exact Or.inl hy
-  | succ n ih =>
-      intro b₀ acc y hy
-      rw [aboveOf_go_succ] at hy
-      cases ht : (bd.detach b).topOf b₀ with
-      | none =>
-          rw [ht] at hy
-          exact Or.inl hy
-      | some c' =>
-          rw [ht] at hy
-          have hbne : b₀ ≠ b := by
-            intro hbe
-            rw [hbe, Board.detach_topOf] at ht
-            exact absurd ht (by simp)
-          have hbd : bd.topOf b₀ = some c' := by
-            rw [← Board.detach_topOf_ne bd b b₀ hbne]
-            exact ht
-          have hy' : y ∈ (if acc.contains c' = true then acc
-              else Board.aboveOf.go (bd.detach b) n (Sum.inr c') (c' :: acc)) := hy
-          by_cases hc : acc.contains c' = true
-          · rw [if_pos hc] at hy'
-            exact Or.inl hy'
-          · rw [if_neg hc] at hy'
-            rcases ih (Sum.inr c') (c' :: acc) y hy' with hy₁ | hy₁
-            · rcases List.mem_cons.mp hy₁ with hya | hy₂
-              · refine Or.inr ?_
-                rw [aboveOf_go_step hbd hc]
-                exact aboveOf_go_mono bd n (Sum.inr c') (c' :: acc) y (by rw [hya]; simp)
-              · exact Or.inl hy₂
-            · refine Or.inr ?_
-              rw [aboveOf_go_step hbd hc]
-              exact hy₁
+  intro fuel b₀ acc y hy
+  refine Or.inr (Board.aboveOf_go_sub (bd' := bd.detach b) (fun b' => ?_) fuel b₀ acc y hy)
+  by_cases hb : b' = b
+  · exact Or.inl (by rw [hb]; exact Board.detach_topOf bd b)
+  · exact Or.inr (Board.detach_topOf_ne bd b b' hb)
 
 /-- Detaching a base only shrinks the run above a card (the walk
 corollary of `aboveOf_go_detach`). -/
@@ -1997,15 +1926,9 @@ private theorem solvable_of_pileStack_aux : ∀ (n : Nat) (st : State) (c : Card
             have hep' : ∃ ρ₁ ρ₂, rest = ρ₁ ++ Move.pileStack c :: ρ₂ ∧
                 ∀ m'' ∈ ρ₁, cBlocked c m'' = false :=
               ⟨rest₁, π₂, hrest', fun m'' hm'' => hclr₁ m'' (by simp [hm''])⟩
-            have hrun' := hrun
-            simp only [State.run] at hrun'
-            cases hm2 : st.apply m with
-            | none => rw [hm2] at hrun'; simp at hrun'
-            | some s₂ =>
-                rw [hm2] at hrun'
-                have hrest : s₂.run rest = some w := hrun'
-                have hwf₂ := apply_wf hwf m s₂ hm2
-                cases m with
+            obtain ⟨s₂, hm2, hrest⟩ := run_cons_elim hrun
+            have hwf₂ := apply_wf hwf m s₂ hm2
+            cases m with
                 | draw =>
                     obtain ⟨hlk, hb2⟩ := lockedness_draw hm2
                     refine solvable_of_pileStack_step_draw hbot hm hm2 ?_
@@ -2116,28 +2039,18 @@ private theorem rung_pass_aux {c : Card} {R : Nat} (hrk : c.rank.toIdx = R) :
   induction π with
   | nil =>
       intro u w hrun hle _ hgt
-      simp only [State.run] at hrun
-      have hu : u = w := Option.some.inj hrun
-      subst hu
+      run_step hrun
       omega
   | cons m rest ih =>
       intro u w hrun hle hc hgt
-      have hrun' := hrun
-      simp only [State.run] at hrun'
-      cases hm : u.apply m with
-      | none => rw [hm] at hrun'; simp at hrun'
-      | some s₂ =>
-          rw [hm] at hrun'
-          have hrest : s₂.run rest = some w := hrun'
-          cases m with
+      obtain ⟨s₂, hm, hrest⟩ := run_cons_elim hrun
+      cases m with
           | pileStack x =>
               by_cases hxc : x = c
               · subst hxc
                 refine ⟨[], rest, by simp, ?_⟩
                 intro u' hu'
-                simp only [State.run] at hu'
-                have huu : u = u' := Option.some.inj hu'
-                subst huu
+                run_step hu'
                 exact hle
               · have hmx := hm
                 rw [apply_pileStack_iff] at hmx
@@ -2842,26 +2755,17 @@ theorem excursionSim_run {x : Card} {b : Base} :
   induction γ with
   | nil =>
       intro σ τ _ hsim σend hγ _
-      simp only [State.run] at hγ
-      obtain rfl := Option.some.inj hγ
+      run_step hγ
       exact ⟨τ, rfl, hsim⟩
   | cons m ms ih =>
       intro σ τ hwf hsim σend hγ hgd
-      simp only [State.run] at hγ
-      cases hm : σ.apply m with
-      | none => rw [hm] at hγ; simp at hγ
-      | some σ' =>
-          rw [hm] at hγ
-          have hrest : σ'.run ms = some σend := hγ
-          obtain ⟨hseats, hblind⟩ := hgd m (by simp)
-          obtain ⟨τ', hτ', hsim'⟩ := excursionSim_step hwf hsim hseats hblind hm
-          obtain ⟨τend, hrun', hsim''⟩ :=
-            ih σ' τ' (apply_wf hwf m σ' hm) hsim' σend hrest
-              (fun m' hm' => hgd m' (by simp [hm']))
-          refine ⟨τend, ?_, hsim''⟩
-          simp only [State.run]
-          rw [hτ']
-          exact hrun'
+      obtain ⟨σ', hm, hrest⟩ := run_cons_elim hγ
+      obtain ⟨hseats, hblind⟩ := hgd m (by simp)
+      obtain ⟨τ', hτ', hsim'⟩ := excursionSim_step hwf hsim hseats hblind hm
+      obtain ⟨τend, hrun', hsim''⟩ :=
+        ih σ' τ' (apply_wf hwf m σ' hm) hsim' σend hrest
+          (fun m' hm' => hgd m' (by simp [hm']))
+      exact ⟨τend, run_cons_intro hτ' hrun', hsim''⟩
 
 set_option linter.unusedVariables false in
 /-- **W3, the spread excursion pair (ENDGAME.md §5)**: deleting a
@@ -2893,35 +2797,25 @@ theorem excursion_pair_delete {st : State} (hwf : st.WF) {c x : Card} {b : Base}
   -- append-headed (`::` binds tighter than `++`); the cons form is the
   -- same list by `List.cons_append`
   rw [List.cons_append] at hrun
-  simp only [State.run] at hrun
-  cases hst : st.apply (Move.stackPile x b) with
-  | none => rw [hst] at hrun; simp at hrun
-  | some s₁ =>
-      rw [hst] at hrun
-      have hrest : s₁.run (γ ++ Move.pileStack x :: π₂) = some w := hrun
-      rw [State.run_append] at hrest
-      obtain ⟨u, hu, hv⟩ := Option.bind_eq_some_iff.mp hrest
-      simp only [State.run] at hv
-      cases hq : u.apply (Move.pileStack x) with
-      | none => rw [hq] at hv; simp at hv
-      | some v =>
-          rw [hq] at hv
-          have hpx : u.apply (Move.pileStack x) = some v := hq
-          have hπ₂ : v.run π₂ = some w := hv
-          have hgd : ∀ m ∈ γ, m.seatsOrReads x = false ∧
-              Frame.heightsOf x.suit ∉ m.reads := by
-            intro m hm
-            obtain ⟨hseats, hcsm⟩ := hblind m hm
-            refine ⟨hseats, ?_⟩
-            intro hmem
-            rw [hσ] at hmem
-            exact hcsm hmem
-          obtain ⟨τ₁, hτrun, hsim₁⟩ :=
-            excursionSim_run γ s₁ st (apply_wf hwf (Move.stackPile x b) s₁ hst)
-              (excursionSim_of_stackPile hwf hst) u hu hgd
-          have hconv : v = τ₁ := excursionSim_converge hsim₁ hpx
-          rw [State.run_append, hτrun, ← hconv]
-          exact hπ₂
+  obtain ⟨s₁, hst, hrest⟩ := run_cons_elim hrun
+  rw [State.run_append] at hrest
+  obtain ⟨u, hu, hv⟩ := Option.bind_eq_some_iff.mp hrest
+  obtain ⟨v, hq, hπ₂⟩ := run_cons_elim hv
+  have hpx : u.apply (Move.pileStack x) = some v := hq
+  have hgd : ∀ m ∈ γ, m.seatsOrReads x = false ∧
+      Frame.heightsOf x.suit ∉ m.reads := by
+    intro m hm
+    obtain ⟨hseats, hcsm⟩ := hblind m hm
+    refine ⟨hseats, ?_⟩
+    intro hmem
+    rw [hσ] at hmem
+    exact hcsm hmem
+  obtain ⟨τ₁, hτrun, hsim₁⟩ :=
+    excursionSim_run γ s₁ st (apply_wf hwf (Move.stackPile x b) s₁ hst)
+      (excursionSim_of_stackPile hwf hst) u hu hgd
+  have hconv : v = τ₁ := excursionSim_converge hsim₁ hpx
+  rw [State.run_append, hτrun, ← hconv]
+  exact hπ₂
 
 /-! ### W4 — the certificate form (ENDGAME.md §8.3, candidate (c) as
 picked 2026-09-14): the forced-park certificate, the repaired crux.
@@ -3915,14 +3809,8 @@ theorem parkSim_of_deckPile {st : State} {c y : Card} {σ : State}
     (hfree : st.board.topOf (Sum.inr c.flipSuit) = none)
     (hσ : st.apply (Move.deckPile y (Sum.inr c)) = some σ) :
     ∃ τ, st.apply (Move.deckPile y (Sum.inr c.flipSuit)) = some τ ∧ parkSim c y σ τ := by
-  rw [apply_deckPile_iff] at hσ
-  obtain ⟨hprev, hcpσ, bd, hatt, rfl⟩ := hσ
-  have hcp' : (decide (st.board.topOf (Sum.inr c) = none) &&
-      (st.isVis c && canSitOn y c)) = true := hcpσ
-  rw [Bool.and_eq_true_iff] at hcp'
-  have htopc : st.board.topOf (Sum.inr c) = none := of_decide_eq_true hcp'.1
-  have hvc : st.isVis c = true := (Bool.and_eq_true_iff.mp hcp'.2).1
-  have hfit : canSitOn y c = true := (Bool.and_eq_true_iff.mp hcp'.2).2
+  guard_nf at hσ
+  obtain ⟨hprev, ⟨htopc, hvc, hfit⟩, bd, hatt, rfl⟩ := hσ
   have hgu := (Board.attach_eq_some_iff st.board (Sum.inr c) y).mp (by rw [hatt]; simp)
   have hyt : y ≠ c.flipSuit := by
     obtain ⟨h1, -⟩ := (canSitOn_eq _ _).mp hfit
@@ -3936,11 +3824,8 @@ theorem parkSim_of_deckPile {st : State} {c y : Card} {σ : State}
     intro hcon
     rw [hcon] at h1
     omega
-  have hcpτ : st.canPlace y (Sum.inr c.flipSuit) = true := by
-    show (decide (st.board.topOf (Sum.inr c.flipSuit) = none) &&
-        (st.isVis c.flipSuit && canSitOn y c.flipSuit)) = true
-    rw [hfree, hlic, canSitOn_flipSuit_right, hfit]
-    rfl
+  have hcpτ : st.canPlace y (Sum.inr c.flipSuit) = true :=
+    canPlace_inr_iff.mpr ⟨hfree, hlic, hfit⟩
   obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, st.board.attach (Sum.inr c.flipSuit) y = some bdτ := by
     have hne : st.board.attach (Sum.inr c.flipSuit) y ≠ none :=
       (Board.attach_eq_some_iff _ _ _).mpr ⟨hfree, hgu.2⟩
@@ -3987,14 +3872,8 @@ theorem parkSim_of_stackPile {st : State} {c y : Card} {σ : State}
     (hfree : st.board.topOf (Sum.inr c.flipSuit) = none)
     (hσ : st.apply (Move.stackPile y (Sum.inr c)) = some σ) :
     ∃ τ, st.apply (Move.stackPile y (Sum.inr c.flipSuit)) = some τ ∧ parkSim c y σ τ := by
-  rw [apply_stackPile_iff] at hσ
-  obtain ⟨hrk, hcpσ, bd, hatt, rfl⟩ := hσ
-  have hcp' : (decide (st.board.topOf (Sum.inr c) = none) &&
-      (st.isVis c && canSitOn y c)) = true := hcpσ
-  rw [Bool.and_eq_true_iff] at hcp'
-  have htopc : st.board.topOf (Sum.inr c) = none := of_decide_eq_true hcp'.1
-  have hvc : st.isVis c = true := (Bool.and_eq_true_iff.mp hcp'.2).1
-  have hfit : canSitOn y c = true := (Bool.and_eq_true_iff.mp hcp'.2).2
+  guard_nf at hσ
+  obtain ⟨hrk, ⟨htopc, hvc, hfit⟩, bd, hatt, rfl⟩ := hσ
   have hgu := (Board.attach_eq_some_iff st.board (Sum.inr c) y).mp (by rw [hatt]; simp)
   have hyt : y ≠ c.flipSuit := by
     obtain ⟨h1, -⟩ := (canSitOn_eq _ _).mp hfit
@@ -4008,11 +3887,8 @@ theorem parkSim_of_stackPile {st : State} {c y : Card} {σ : State}
     intro hcon
     rw [hcon] at h1
     omega
-  have hcpτ : st.canPlace y (Sum.inr c.flipSuit) = true := by
-    show (decide (st.board.topOf (Sum.inr c.flipSuit) = none) &&
-        (st.isVis c.flipSuit && canSitOn y c.flipSuit)) = true
-    rw [hfree, hlic, canSitOn_flipSuit_right, hfit]
-    rfl
+  have hcpτ : st.canPlace y (Sum.inr c.flipSuit) = true :=
+    canPlace_inr_iff.mpr ⟨hfree, hlic, hfit⟩
   obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, st.board.attach (Sum.inr c.flipSuit) y = some bdτ := by
     have hne : st.board.attach (Sum.inr c.flipSuit) y ≠ none :=
       (Board.attach_eq_some_iff _ _ _).mpr ⟨hfree, hgu.2⟩
@@ -4068,16 +3944,7 @@ theorem parkSim_of_pilePile {st : State} {c y : Card} {σ : State}
   rw [apply_pilePile_iff] at hσ
   obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, rfl⟩ := hσ
   have hb₀ne : b₀ ≠ Sum.inr c.flipSuit := hbotne b₀ hb₀
-  have hcp' : st.canPlace y (Sum.inr c) = true := by
-    have h2 := hcmr
-    simp only [State.canMoveRun] at h2
-    exact (Bool.and_eq_true_iff.mp h2).1
-  have hcp'' : (decide (st.board.topOf (Sum.inr c) = none) &&
-      (st.isVis c && canSitOn y c)) = true := hcp'
-  rw [Bool.and_eq_true_iff] at hcp''
-  have htopc : st.board.topOf (Sum.inr c) = none := of_decide_eq_true hcp''.1
-  have hvc : st.isVis c = true := (Bool.and_eq_true_iff.mp hcp''.2).1
-  have hfit : canSitOn y c = true := (Bool.and_eq_true_iff.mp hcp''.2).2
+  obtain ⟨htopc, hvc, hfit⟩ := canPlace_inr_iff.mp (canPlace_of_canMoveRun hcmr)
   have hyt : y ≠ c.flipSuit := by
     obtain ⟨h1, -⟩ := (canSitOn_eq _ _).mp hfit
     intro hcon
@@ -4090,16 +3957,11 @@ theorem parkSim_of_pilePile {st : State} {c y : Card} {σ : State}
     intro hcon
     rw [hcon] at h1
     omega
-  have hcpτ : st.canPlace y (Sum.inr c.flipSuit) = true := by
-    show (decide (st.board.topOf (Sum.inr c.flipSuit) = none) &&
-        (st.isVis c.flipSuit && canSitOn y c.flipSuit)) = true
-    rw [hfree, hlic, canSitOn_flipSuit_right, hfit]
-    rfl
-  have hcmrτ : st.canMoveRun y (Sum.inr c.flipSuit) = true := by
-    show (st.canPlace y (Sum.inr c.flipSuit) &&
-      (!(st.board.aboveOf y).contains c.flipSuit)) = true
-    rw [hcpτ, Bool.true_and, Bool.not_eq_true']
-    exact contains_false_of_notMem (fun hm => (hnb _ hm) rfl)
+  have hcpτ : st.canPlace y (Sum.inr c.flipSuit) = true :=
+    canPlace_inr_iff.mpr ⟨hfree, hlic, hfit⟩
+  have hcmrτ : st.canMoveRun y (Sum.inr c.flipSuit) = true :=
+    canMoveRun_inr_iff.mpr ⟨hcpτ,
+      contains_false_of_notMem (fun hm => (hnb _ hm) rfl)⟩
   have hb₀top : st.board.topOf b₀ = some y := (Board.bottomOf_eq _ _ _).mp hb₀
   have hfree' : (st.board.detach b₀).topOf (Sum.inr c.flipSuit) = none := by
     rw [Board.detach_topOf_ne _ _ _ hb₀ne.symm]
@@ -4246,50 +4108,29 @@ theorem parkSim_converge_pilePile {c y : Card} {σ τ σ' : State} {b'' : Base}
     Option.some.inj (hb₀.symm.trans
       ((Board.bottomOf_eq σ.board y (Sum.inr c)).mpr hσc))
   rw [hb₀c] at hatt hne
-  have hcpσ : σ.canPlace y b'' = true := by
-    have h2 := hcmr
-    simp only [State.canMoveRun] at h2
-    exact (Bool.and_eq_true_iff.mp h2).1
+  have hcpσ : σ.canPlace y b'' = true := canPlace_of_canMoveRun hcmr
   have hsl : ∀ d : Card, b'' = Sum.inr d →
-      (σ.board.aboveOf y).contains d = false := by
-    intro d hd
-    have h2 := hcmr
-    simp only [State.canMoveRun, hd] at h2
-    have h3 : (!(σ.board.aboveOf y).contains d) = true :=
-      (Bool.and_eq_true_iff.mp h2).2
-    rw [Bool.not_eq_true'] at h3
-    exact h3
+      (σ.board.aboveOf y).contains d = false := fun d hd =>
+    contains_false_of_canMoveRun_inr (hd ▸ hcmr)
   have hb₀τ : τ.board.bottomOf y = some (Sum.inr c.flipSuit) :=
     (Board.bottomOf_eq _ _ _).mpr hτt
-  have htopb''σ : σ.board.topOf b'' = none := by
-    have h2 := hcmr
-    simp only [State.canMoveRun] at h2
-    have h3 : σ.canPlace y b'' = true := (Bool.and_eq_true_iff.mp h2).1
-    have h4 := h3
-    simp only [State.canPlace] at h4
-    rw [Bool.and_eq_true_iff] at h4
-    exact of_decide_eq_true h4.1
+  have htopb''σ : σ.board.topOf b'' = none := topOf_of_canPlace hcpσ
   have hb''c : b'' ≠ Sum.inr c := by
     intro hcon; rw [hcon, hσc] at htopb''σ; simp at htopb''σ
   have hdy : ∀ d : Card, b'' = Sum.inr d → d ≠ y := by
     intro d hd hcon
-    have h3 : σ.canPlace y b'' = true := hcpσ
+    have h3 := hcpσ
     rw [hd, hcon] at h3
-    simp only [State.canPlace] at h3
-    rw [Bool.and_eq_true_iff] at h3
-    have h4 : canSitOn y y = true := (Bool.and_eq_true_iff.mp h3.2).2
+    have h4 : canSitOn y y = true := canSitOn_of_canPlace_inr h3
     obtain ⟨h5, -⟩ := (canSitOn_eq _ _).mp h4
     omega
   have hcmrτ : τ.canMoveRun y b'' = true := by
-    simp only [State.canMoveRun, Bool.and_eq_true_iff]
     have hcpτ : τ.canPlace y b'' = true := by
       rw [← hcpc y b'' hb''c hb''ne]; exact hcpσ
-    refine ⟨hcpτ, ?_⟩
     cases b'' with
-    | inl a => rfl
+    | inl a => exact canMoveRun_inl_iff.mpr hcpτ
     | inr d =>
-        show (!(τ.board.aboveOf y).contains d) = true
-        rw [Bool.not_eq_true']
+        refine canMoveRun_inr_iff.mpr ⟨hcpτ, ?_⟩
         refine contains_false_of_notMem (fun hm => ?_)
         rcases parkSim_aboveOf_cargo hre d hm with hmem | hdy2
         · exact absurd ((contains_iff_mem _ _).mpr hmem) (by rw [hsl d rfl]; simp)
@@ -4355,27 +4196,21 @@ theorem parkSim_run {c y : Card} : ∀ (γ : List Move) (σ τ : State), σ.WF �
   induction γ with
   | nil =>
       intro σ τ _ hsim σend hγ _
-      simp only [State.run] at hγ
-      obtain rfl := Option.some.inj hγ
+      run_step hγ
       exact ⟨τ, rfl, hsim⟩
   | cons m ms ih =>
       intro σ τ hwf hsim σend hγ hgd
-      simp only [State.run] at hγ
-      cases hm : σ.apply m with
-      | none => rw [hm] at hγ; simp at hγ
-      | some σ' =>
-          rw [hm] at hγ
-          have hrest : σ'.run ms = some σend := hγ
-          obtain ⟨hblind, hwalk⟩ := hgd [] m ms σ rfl (by rfl)
-          obtain ⟨τ', hτ', hsim'⟩ :=
-            parkSim_step hwf hsim hblind hwalk hm
-          obtain ⟨τend, hrun', hsim''⟩ :=
-            ih σ' τ' (apply_wf hwf m σ' hm) hsim' σend hrest
-              (fun pre' m' rest' σi'' hsplit hpre =>
-                hgd (m :: pre') m' rest' σi''
-                  (by rw [hsplit, List.cons_append])
-                  (by simp only [State.run, hm]; exact hpre))
-          exact ⟨τend, by simp only [State.run, hτ']; exact hrun', hsim''⟩
+      obtain ⟨σ', hm, hrest⟩ := run_cons_elim hγ
+      obtain ⟨hblind, hwalk⟩ := hgd [] m ms σ rfl (by rfl)
+      obtain ⟨τ', hτ', hsim'⟩ :=
+        parkSim_step hwf hsim hblind hwalk hm
+      obtain ⟨τend, hrun', hsim''⟩ :=
+        ih σ' τ' (apply_wf hwf m σ' hm) hsim' σend hrest
+          (fun pre' m' rest' σi'' hsplit hpre =>
+            hgd (m :: pre') m' rest' σi''
+              (by rw [hsplit, List.cons_append])
+              (by exact run_cons_intro hm hpre))
+      exact ⟨τend, run_cons_intro hτ' hrun', hsim''⟩
 
 set_option linter.unusedVariables false in
 /-- ENDGAME §8.3 (c)'s normal-form characterization — the certificate
@@ -4521,38 +4356,30 @@ private theorem solvable_accommodates_aux {st' : State} : ∀ (play : List Move)
   induction play with
   | nil =>
       intro _hall st _hwf hsol _hsafe hrun
-      have hst : st = st' := Option.some.inj hrun
-      subst hst
+      run_step hrun
       exact Or.inl hsol
   | cons m ms ih =>
       intro hall st hwf hsol hsafe hrun
       obtain ⟨hnl, hsafe2⟩ := hsafe
-      simp only [State.run] at hrun
-      cases hm : st.apply m with
-      | none =>
-          rw [hm] at hrun
-          simp at hrun
-      | some s₂ =>
-          rw [hm] at hrun
-          have hrun₂ : s₂.run ms = some st' := hrun
-          rcases solvable_of_accomm_step hwf hm hsol (hall m (by simp)) hnl with
-            hs₂ | ⟨c, rfl, hfp⟩
-          · have hsafe' : playSafeAccomm s₂ ms := by
-              have hgs : (st.apply m).getD st = s₂ := by rw [hm]; rfl
-              rw [hgs] at hsafe2
-              exact hsafe2
-            rcases ih (fun m' hm' => hall m' (by simp [hm'])) s₂
-              (apply_wf hwf m s₂ hm) hs₂ hsafe' hrun₂ with
-              h | ⟨c, σ, pre, sub, hsplit, hpre, hfp⟩
-            · exact Or.inl h
-            · refine Or.inr ⟨c, σ, m :: pre, sub, ?_, ?_, hfp⟩
-              · rw [hsplit]; simp
-              · simp only [State.run, hm]; exact hpre
-          · -- the certificate fires at THIS step: the play's own
-            -- prefix (empty — the state is `st` itself) witnesses it
-            refine Or.inr ⟨c, st, [], ms, ?_, ?_, hfp⟩
-            · simp
-            · rfl
+      obtain ⟨s₂, hm, hrun₂⟩ := run_cons_elim hrun
+      rcases solvable_of_accomm_step hwf hm hsol (hall m (by simp)) hnl with
+        hs₂ | ⟨c, rfl, hfp⟩
+      · have hsafe' : playSafeAccomm s₂ ms := by
+          have hgs : (st.apply m).getD st = s₂ := by rw [hm]; rfl
+          rw [hgs] at hsafe2
+          exact hsafe2
+        rcases ih (fun m' hm' => hall m' (by simp [hm'])) s₂
+          (apply_wf hwf m s₂ hm) hs₂ hsafe' hrun₂ with
+          h | ⟨c, σ, pre, sub, hsplit, hpre, hfp⟩
+        · exact Or.inl h
+        · refine Or.inr ⟨c, σ, m :: pre, sub, ?_, ?_, hfp⟩
+          · rw [hsplit]; simp
+          · exact run_cons_intro hm hpre
+      · -- the certificate fires at THIS step: the play's own
+        -- prefix (empty — the state is `st` itself) witnesses it
+        refine Or.inr ⟨c, st, [], ms, ?_, ?_, hfp⟩
+        · simp
+        · rfl
 
 theorem solvable_accommodates {st st' : State} (hwf : st.WF)
     (hacc : safeAccommodates st st') (hsol : st.solvableFrom) :
@@ -4604,56 +4431,22 @@ def State.board_forest (st : State) : Prop :=
 
 /-- The grading, rescoped: along the run above `c`, every card is
 strictly below `c` in the forest potential (the staged rank-form is
-false — deals stack arbitrarily; see the section note). -/
+false — deals stack arbitrarily; see the section note).  The proof is
+Board's `Board.aboveOf_grading` (the fuel induction re-homed, R1). -/
 theorem aboveOf_rank_grading {st : State} (hwf : st.WF) {φ : Card → Nat}
     (hφ : ∀ c y, st.board.topOf (Sum.inr c) = some y → φ y < φ c) (c : Card) :
     ∀ d ∈ st.board.aboveOf c, φ d < φ c := by
   have := hwf
-  have main : ∀ (fuel : Nat) (x : Card) (acc : List Card),
-      (∀ z ∈ acc, φ z < φ c) → (φ x < φ c ∨ x = c) →
-        ∀ d ∈ Board.aboveOf.go st.board fuel (Sum.inr x) acc, φ d < φ c := by
-    intro fuel
-    induction fuel with
-    | zero =>
-        intro x acc hacc _ d hd
-        have hd' : d ∈ acc := hd
-        exact hacc d hd'
-    | succ f ih =>
-        intro x acc hacc hx d hd
-        rw [aboveOf_go_succ] at hd
-        cases ht : st.board.topOf (Sum.inr x) with
-        | none =>
-            rw [ht] at hd
-            have hd' : d ∈ acc := hd
-            exact hacc d hd'
-        | some y =>
-            rw [ht] at hd
-            have hd' : d ∈ (if acc.contains y then acc
-                else Board.aboveOf.go st.board f (Sum.inr y) (y :: acc)) := hd
-            by_cases hcy : acc.contains y = true
-            · rw [if_pos hcy] at hd'
-              exact hacc d hd'
-            · rw [if_neg hcy] at hd'
-              have hxy : φ y < φ x := hφ x y ht
-              have hyc : φ y < φ c := by
-                rcases hx with h | h
-                · omega
-                · exact h ▸ hxy
-              refine ih y (y :: acc) (fun z hz => ?_) (Or.inl hyc) d hd'
-              rcases List.mem_cons.mp hz with rfl | hz'
-              · exact hyc
-              · exact hacc z hz'
-  intro d hd
-  exact main 52 c [] (by simp) (Or.inr rfl) d hd
+  exact Board.aboveOf_grading hφ c
 
 /-- Acyclicity, from the grading: no card is above itself when the
-matching admits a forest potential. -/
+matching admits a forest potential (the proof is Board's
+`Board.aboveOf_self_disjoint`, R1's re-home of the fuel induction). -/
 theorem aboveOf_irrefl {st : State} (hwf : st.WF) (hfor : st.board_forest) (c : Card) :
     c ∉ st.board.aboveOf c := by
+  have := hwf
   obtain ⟨φ, hφ⟩ := hfor
-  have hgr := aboveOf_rank_grading hwf hφ c
-  intro hmem
-  exact absurd (hgr c hmem) (Nat.lt_irrefl _)
+  exact Board.aboveOf_self_disjoint hφ c
 
 /-! ## 5. The deck integration — the jump IS the physical game
 

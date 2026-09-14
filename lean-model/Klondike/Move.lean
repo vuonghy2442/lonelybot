@@ -481,6 +481,81 @@ theorem apply_pilePile_iff {st st' : State} {c : Card} {b : Base} :
     · rename_i hcond
       simp [h1, h2] at hcond
 
+/-! ## The guard normal form — the `= true` characterizations
+
+The flat conjunctions the apply-guards decode to, plus the one-way
+extractors that work at a *variable* base (the per-use `cases b` +
+`Bool.and_eq_true_iff` ritual, paid once here).  The bundle macro
+`guard_nf` (Klondike/Tactics.lean) takes an `apply = some`-hypothesis
+to this form in one `simp only` call; the lemmas live here — not in
+Tactics.lean — because `apply_wf` below is itself a consumer and
+Tactics imports this file. -/
+
+/-- `canPlace` on a tableau base: free base, visible card, fit. -/
+theorem canPlace_inr_iff {st : State} {c d : Card} :
+    st.canPlace c (Sum.inr d) = true ↔
+      (st.board.topOf (Sum.inr d) = none ∧ st.isVis d = true ∧ canSitOn c d = true) := by
+  simp only [State.canPlace, Bool.and_eq_true_iff, decide_eq_true_iff]
+
+/-- `canPlace` on an anchor: free base, king. -/
+theorem canPlace_inl_iff {st : State} {c : Card} {a : Anchor} :
+    st.canPlace c (Sum.inl a) = true ↔
+      (st.board.topOf (Sum.inl a) = none ∧ c.rank = Rank.king) := by
+  simp only [State.canPlace, Bool.and_eq_true_iff, decide_eq_true_iff]
+
+/-- `canMoveRun` on a tableau base: the placement guard plus the
+self-landing guard. -/
+theorem canMoveRun_inr_iff {st : State} {c d : Card} :
+    st.canMoveRun c (Sum.inr d) = true ↔
+      (st.canPlace c (Sum.inr d) = true ∧ (st.board.aboveOf c).contains d = false) := by
+  simp only [State.canMoveRun, Bool.and_eq_true_iff, Bool.not_eq_true']
+
+/-- `canMoveRun` on an anchor: just the placement guard. -/
+theorem canMoveRun_inl_iff {st : State} {c : Card} {a : Anchor} :
+    st.canMoveRun c (Sum.inl a) = true ↔ st.canPlace c (Sum.inl a) = true := by
+  simp only [State.canMoveRun, Bool.and_true]
+
+/-- Legality as successor-existence (the `Option.isSome` normal form). -/
+theorem legal_true_iff {st : State} {m : Move} :
+    st.legal m = true ↔ ∃ st', st.apply m = some st' := by
+  simp only [State.legal, Option.isSome_iff_exists]
+
+/-- The free-base guard of any placement, at a variable base. -/
+theorem topOf_of_canPlace {st : State} {c : Card} {b : Base}
+    (h : st.canPlace c b = true) : st.board.topOf b = none := by
+  cases b with
+  | inl a => exact (canPlace_inl_iff.mp h).1
+  | inr d => exact (canPlace_inr_iff.mp h).1
+
+/-- The king guard of an anchor placement. -/
+theorem king_of_canPlace_inl {st : State} {c : Card} {a : Anchor}
+    (h : st.canPlace c (Sum.inl a) = true) : c.rank = Rank.king :=
+  (canPlace_inl_iff.mp h).2
+
+/-- The base card of a tableau placement is visible. -/
+theorem isVis_of_canPlace_inr {st : State} {c d : Card}
+    (h : st.canPlace c (Sum.inr d) = true) : st.isVis d = true :=
+  (canPlace_inr_iff.mp h).2.1
+
+/-- The fit guard of a tableau placement. -/
+theorem canSitOn_of_canPlace_inr {st : State} {c d : Card}
+    (h : st.canPlace c (Sum.inr d) = true) : canSitOn c d = true :=
+  (canPlace_inr_iff.mp h).2.2
+
+/-- `canMoveRun`'s placement conjunct, at a variable base. -/
+theorem canPlace_of_canMoveRun {st : State} {c : Card} {b : Base}
+    (h : st.canMoveRun c b = true) : st.canPlace c b = true := by
+  cases b with
+  | inl a => exact canMoveRun_inl_iff.mp h
+  | inr d => exact (canMoveRun_inr_iff.mp h).1
+
+/-- The self-landing guard: the landing base's card is not on the
+moved run. -/
+theorem contains_false_of_canMoveRun_inr {st : State} {c d : Card}
+    (h : st.canMoveRun c (Sum.inr d) = true) :
+    (st.board.aboveOf c).contains d = false :=
+  (canMoveRun_inr_iff.mp h).2
+
 /-! ## Update arithmetic — the heights/depths step lemmas
 
 The apply-successors carry `heights := fun s => if s = c.suit then …`
@@ -1234,14 +1309,12 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       by_cases hbb : b' = b
       · rw [hbb, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at hb''
         rw [hbb, ← hb'']
-        obtain ⟨-, hcpm⟩ := Bool.and_eq_true_iff.mp hcp
         cases b with
-        | inl a => exact Or.inl (of_decide_eq_true hcpm)
+        | inl a => exact Or.inl (king_of_canPlace_inl hcp)
         | inr d =>
-            obtain ⟨hvisd, hsit⟩ := Bool.and_eq_true_iff.mp hcpm
-            refine Or.inr ⟨bottomOf_isSome_attach hatt ?_, hsit⟩
+            refine Or.inr ⟨bottomOf_isSome_attach hatt ?_, canSitOn_of_canPlace_inr hcp⟩
             show (st.board.bottomOf d).isSome = true
-            exact hvisd
+            exact isVis_of_canPlace_inr hcp
       · rw [Board.attach_topOf_ne _ _ _ hatt hbb] at hb''
         obtain ⟨-, hleg⟩ := hedges b' c'' hb''
         cases b' with
@@ -1654,14 +1727,12 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       by_cases hbb : b' = b
       · rw [hbb, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at hb'
         rw [hbb, ← hb']
-        obtain ⟨-, hcpm⟩ := Bool.and_eq_true_iff.mp hcp
         cases b with
-        | inl a => exact Or.inl (of_decide_eq_true hcpm)
+        | inl a => exact Or.inl (king_of_canPlace_inl hcp)
         | inr d =>
-            obtain ⟨hvisd, hsit⟩ := Bool.and_eq_true_iff.mp hcpm
-            refine Or.inr ⟨bottomOf_isSome_attach hatt ?_, hsit⟩
+            refine Or.inr ⟨bottomOf_isSome_attach hatt ?_, canSitOn_of_canPlace_inr hcp⟩
             show (st.board.bottomOf d).isSome = true
-            exact hvisd
+            exact isVis_of_canPlace_inr hcp
       · rw [Board.attach_topOf_ne _ _ _ hatt hbb] at hb'
         obtain ⟨-, hleg⟩ := hedges b' c' hb'
         cases b' with
@@ -1754,7 +1825,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
   | pilePile c b =>
     rw [apply_pilePile_iff] at h
     obtain ⟨b₀, hb, hbne, hcmr, bd, hatt, rfl⟩ := h
-    obtain ⟨hcp, -⟩ := Bool.and_eq_true_iff.mp hcmr
+    have hcp := canPlace_of_canMoveRun hcmr
     have hbot₀ : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp hb
     have key : ∀ c'', (bd.bottomOf c'').isSome = true →
         (st.board.bottomOf c'').isSome = true := by
@@ -1796,12 +1867,10 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       by_cases hbb : b' = b
       · rw [hbb, Board.attach_topOf _ _ _ hatt, Option.some.injEq] at hb'
         rw [hbb, ← hb']
-        obtain ⟨-, hcpm⟩ := Bool.and_eq_true_iff.mp hcp
         cases b with
-        | inl a => exact Or.inl (of_decide_eq_true hcpm)
+        | inl a => exact Or.inl (king_of_canPlace_inl hcp)
         | inr d =>
-            obtain ⟨hvisd, hsit⟩ := Bool.and_eq_true_iff.mp hcpm
-            exact Or.inr ⟨hkept d hvisd, hsit⟩
+            exact Or.inr ⟨hkept d (isVis_of_canPlace_inr hcp), canSitOn_of_canPlace_inr hcp⟩
       · have hbb'₀ : b' ≠ b₀ := by
           intro hcon
           have h1 : bd.topOf b' = some c' := hb'

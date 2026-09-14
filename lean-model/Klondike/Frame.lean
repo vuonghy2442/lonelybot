@@ -1,4 +1,5 @@
 import Klondike.Move
+import Klondike.Tactics
 
 /-!
 # The separation discipline: `Frame`, `reads`, `writes`, the two laws
@@ -236,10 +237,8 @@ whole blindness kit. -/
 /-- The successor inherits every frame the move does not write. -/
 theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
     ∀ (f : Frame), f ∉ m.writes → f.agree s₁ st := by
-  cases m with
+  move_cases h with
   | draw =>
-      rw [apply_draw_iff] at h
-      obtain rfl := h
       intro f hf
       cases f with
       | deal => rfl
@@ -250,9 +249,6 @@ theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
       | stockCursor => exact absurd (by simp [Move.writes]) hf
       | drawStep => rfl
   | reveal c =>
-      rw [apply_reveal_iff] at h
-      obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hs₁⟩ := h
-      rw [hs₁]
       intro f hf
       cases f with
       | deal => rfl
@@ -263,9 +259,6 @@ theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
       | stockCursor => rfl
       | drawStep => rfl
   | deckPile c b =>
-      rw [apply_deckPile_iff] at h
-      obtain ⟨hprev, hcp, bd, hatt, hs₁⟩ := h
-      rw [hs₁]
       intro f hf
       cases f with
       | deal => rfl
@@ -276,9 +269,6 @@ theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
       | stockCursor => exact absurd (by simp [Move.writes]) hf
       | drawStep => rfl
   | deckStack c =>
-      rw [apply_deckStack_iff] at h
-      obtain ⟨hprev, hrk, hs₁⟩ := h
-      rw [hs₁]
       intro f hf
       cases f with
       | deal => rfl
@@ -293,9 +283,6 @@ theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
       | stockCursor => exact absurd (by simp [Move.writes]) hf
       | drawStep => rfl
   | pileStack c =>
-      rw [apply_pileStack_iff] at h
-      obtain ⟨htop, b₀, hb, hrk, hs₁⟩ := h
-      rw [hs₁]
       intro f hf
       cases f with
       | deal => rfl
@@ -310,9 +297,6 @@ theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
       | stockCursor => rfl
       | drawStep => rfl
   | stackPile c b =>
-      rw [apply_stackPile_iff] at h
-      obtain ⟨hrk, hcp, bd, hatt, hs₁⟩ := h
-      rw [hs₁]
       intro f hf
       cases f with
       | deal => rfl
@@ -327,9 +311,6 @@ theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
       | stockCursor => rfl
       | drawStep => rfl
   | pilePile c b =>
-      rw [apply_pilePile_iff] at h
-      obtain ⟨b₀, hb, hne, hcmr, bd, hatt, hs₁⟩ := h
-      rw [hs₁]
       intro f hf
       cases f with
       | deal => rfl
@@ -1070,9 +1051,10 @@ free base), and the run-root sitting at `b` is `x` itself (the
 `bottomOf` round trip) — so a legal γ never reads the occupied seat
 without mentioning `x`.  What stays genuinely state-dependent is the
 `pilePile` run walk reading THROUGH `x`'s edge (`aboveOf`) — the W3
-taker's φ simulation (below) handles it; its one missing kit piece is
-the walk-agreement lemma (TwinSwap's `aboveOf_congr_off` is the
-template). -/
+taker's φ simulation (below) handles it; its walk-agreement piece is
+Board-level kit since R1 (`Board.aboveOf_congr` / `Board.aboveOf_sub`,
+the `aboveOf_congr_off` generalization), and W3's one-step replay
+itself landed in Theorems (`excursionSim_step`). -/
 
 /-- Does the base (as a seat to land on) mention the card `x`? -/
 def Base.seats (b : Base) (x : Card) : Bool :=
@@ -1195,9 +1177,10 @@ dropped height restored).  The one-step replay for a γ of
 kit piece: the board edits are single-base updates away from `b`
 (self-guarding I), so they commute with the `detach b` (the
 attach/detach commutations), the heights and stock transfer by
-`apply_heights_blind` / `frame_invar`, and the one open lemma is the
-`aboveOf` walk agreement (TwinSwap's `aboveOf_congr_off` is the
-template). -/
+`apply_heights_blind` / `frame_invar`, and the `aboveOf` walk
+agreement is Board-level kit since R1 (`Board.aboveOf_congr` /
+`Board.aboveOf_sub`) — the one-step replay itself landed in Theorems
+(`excursionSim_step`). -/
 def excursionSim (x : Card) (b : Base) (σ τ : State) : Prop :=
   σ.deal = τ.deal ∧ σ.depths = τ.depths ∧ σ.stock = τ.stock ∧ σ.drawStep = τ.drawStep ∧
     σ.heights x.suit + 1 = τ.heights x.suit ∧
@@ -1240,6 +1223,8 @@ What they do NOT subsume — recorded, not forced:
 * `draw`·`draw`: not frame-disjoint (a move never frame-commutes with
   itself when it writes anything) — the trivial same-term case.
 * the W3 one-step replay through `excursionSim`: stated, not proven
-  here — the `aboveOf` walk-agreement lemma is the missing kit piece.
+  here — proven in Theorems (`excursionSim_step`, 2026-09-14); the
+  walk-agreement lemma it needed is Board-level kit since R1
+  (`Board.aboveOf_congr` / `Board.aboveOf_sub`).
 
 -/

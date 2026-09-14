@@ -2063,3 +2063,9 @@ tree).
   canPlace-ascription matches go DEPENDENT (decode: have h := hcp; simp only [State.canPlace] at h; rw [Bool.and_eq_true_iff] at h).
 - (c-beta) for coordination: the transfer's B-neutrality still stalls the (B,L) measure - last-noncompliant-first or a third component is the descent
   taker's open item; the exchange/merge shapes it meets are probed above.
+
+## Board/Tactics — Phase 0 landed by interrupted agents, verified by orchestrator (2026-09-14)
+
+- aboveOf encapsulation (Board.lean, +450): the kit (step/self-disjoint/no-fuel-truncation/slot-congruence), `.go` deprecation-noted (private-ization pending — live consumers in TwinSwap-side files); consumers converted in Theorems (net -388), Move, Frame, Dominance. No proof's meaning changed; carrier byte-identical.
+- Tactics.lean (244): the guard-normal-form simp set (curated, named — NOT global @[simp]) + `run_step` + `move_cases`; demonstration conversions in Move/Theorems.
+- Both agents were interrupted before session-end blocks and facade import commit; acceptance run by orchestrator: census 12 pinned, Witnesses 47 jobs green, axioms [propext, Quot.sound] throughout, per-file 6/6 exit 0. Facade import of Klondike.Tactics pending (the user's TwinAgnostic/run_split collision blocks facade builds — their fix).

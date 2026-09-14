@@ -1,5 +1,6 @@
 import Klondike.Theorems
 import Klondike.Progress
+import Klondike.Tactics
 
 /-!
 # Dominances — the rules that are known to be good
@@ -373,14 +374,14 @@ theorem draw1_cursor_solvable {s t : State} (hstep : s.drawStep = 1)
   have hds : ∀ {s s₁ : State} {m : Move}, s.apply m = some s₁ →
       s₁.drawStep = s.drawStep := by
     intro s s₁ m h
-    cases m with
-    | draw => rw [apply_draw_iff] at h; obtain ⟨rfl⟩ := h; rfl
-    | reveal _ => rw [apply_reveal_iff] at h; obtain ⟨_, _, _, _, _, _, _, hs⟩ := h; rw [hs]
-    | deckPile _ _ => rw [apply_deckPile_iff] at h; obtain ⟨_, _, _, _, hs⟩ := h; rw [hs]
-    | deckStack _ => rw [apply_deckStack_iff] at h; obtain ⟨_, _, hs⟩ := h; rw [hs]
-    | pileStack _ => rw [apply_pileStack_iff] at h; obtain ⟨_, _, _, _, hs⟩ := h; rw [hs]
-    | stackPile _ _ => rw [apply_stackPile_iff] at h; obtain ⟨_, _, _, _, hs⟩ := h; rw [hs]
-    | pilePile _ _ => rw [apply_pilePile_iff] at h; obtain ⟨_, _, _, _, _, _, hs⟩ := h; rw [hs]
+    move_cases h with
+    | draw => rfl
+    | reveal _ => rfl
+    | deckPile _ _ => rfl
+    | deckStack _ => rfl
+    | pileStack _ => rfl
+    | stackPile _ _ => rfl
+    | pilePile _ _ => rfl
   have main : ∀ (π : List Move) (s t : State), s.drawStep = 1 →
       s.diffCursor t → ∀ w, s.run π = some w → w.isWin = true →
       ∃ π' w', t.run π' = some w' ∧ w'.isWin = true := by
@@ -560,22 +561,15 @@ theorem stackPile_pileStack_cancel {st : State} {c : Card} {b : Base} {s₁ : St
         rw [hiv] at hbd
         exact Bool.noConfusion hbd
   -- b was free (the worry-back's own guard) and is not c's seat
-  have hcpf := hcp
-  simp only [State.canPlace] at hcpf
-  have hfree : st.board.topOf b = none :=
-    of_decide_eq_true (Bool.and_eq_true_iff.mp hcpf).1
+  have hfree : st.board.topOf b = none := topOf_of_canPlace hcp
   have hbne : Sum.inr c ≠ b := by
     cases b with
     | inl a => intro hcon; simp at hcon
     | inr d =>
-        have hcp' := hcp
-        simp only [State.canPlace] at hcp'
-        obtain ⟨_, hivd⟩ := Bool.and_eq_true_iff.mp hcp'
-        obtain ⟨hivd, _⟩ := Bool.and_eq_true_iff.mp hivd
         intro hcon
         injection hcon with hcd
-        rw [← hcd] at hivd
-        rw [hvis] at hivd
+        have hivd := isVis_of_canPlace_inr hcp
+        rw [← hcd, hvis] at hivd
         exact Bool.noConfusion hivd
   -- the re-stack at the successor
   rw [hs₁]
