@@ -282,19 +282,23 @@ premise).
 
 | item | file:line | tag | route |
 |---|---|---|---|
-| `solvable_cargoTwin_exchange` (both-occupied iff) | TwinExchange:991 | [H] | **Mechanics COMPLETE (sessions 3-5); premise-transfer substrate begun (session 6)**: the freedom-first bridge `solvable_of_exchange_pileStack`; mirror steps for ALL SIX non-freedom move kinds (`exchangeTwinCargo_step_{draw,deckStack,deckPile,stackPile,reveal,pilePile}`); `Board.aboveOf_sub_detach` (the detach-shrink, LANDED).  **The WF repair (session 6 finding)**: the hnb transfer through the attach-moves needs the moved card stack-free — at WF this is board_edges (the deal-adjacent disjunct's topHidden-or-seated side condition kills edges over stock/foundationed bases); without WF a phantom unplaced card can formally support a stack carrying `t` into a cargo run.  Remaining: the attach-growth lemma, the WF stack-free derivations, the h₀/hvis transfers, the assembly.  **The open gap**: the MERGE (a pilePile whose root's walk passes a twin, landing on the other cargo's stack — breaks the mirror AND creates the braid `t ∈ aboveOf z'`; B&G redirect `canSitOn`-gated; bare-cargo redirect degenerates to the `z ↔ z'` conjugation, dead at suit-reading moves).  Route: piecewise bookkeeping or play normalization; gate first (the corner AND the merge shape).  Premise arithmetic: `z' = z.flipSuit` forced — two twin pairs crossed; `canSitOn_hosts_are_twins` (LANDED) is the seat lock |
+| `solvable_cargoTwin_exchange` (both-occupied iff) | TwinExchange:1007 | [H] | **REPAIRED `+hwf` (2026-09-14, session 7) — the gate FIRED on the merge shape**: the premiseless form is REFUTED by the witness at Temp/opencode/w15merge.lean (#eval, re-verified against the real definitions at Temp/opencode/w15mergecheck.lean: a crafted non-WF state — empty deal, heights past visible cards — where the 3-move win goes through the MERGE `pilePile ♥10 (inr ♣J)`, while the exchanged state is FROZEN: its whole reachable space is two states, the second with zero legal moves; the merge self-lands there and every dodge is blocked — the strays sit at foundation-passed ranks, all anchors occupied, the mirror landing blocked by a crafted tenant).  The repair kills the witness via founds_gone/board_edges — the session-6 phantom-stack finding realized; symmetric (the exchange preserves WF: swapped edges legal-seated by twin-blindness) and non-vacuous at every engine state.  Mechanics otherwise COMPLETE (sessions 3-5): the freedom-first bridge; mirror steps for all six non-freedom kinds; `Board.aboveOf_sub_detach` LANDED.  The user's session-7 correction**: t-passing runs landing OFF both cargo stacks mirror fine — the merge is EXACTLY the cargo-stack landing; the step lemma's v2 guard is LANDED (`Board.selfLanding_exchangeTwin_of_off_cargo`, on the walk-bound `Board.aboveOf_exchangeTwin_bound` + the attach-growth law `Board.mem_aboveOf_attach` + the seeded-walk bounds — sessions 6-7).  Remaining: the WF stack-free derivations, the h₀/hvis transfers, the step-lemma v2 wiring, the assembly.  **The sole open gap (at WF)**: the merge — normalization ("winning plays avoid cargo-top merges") or the B&G piecewise bookkeeping.  Premise arithmetic: `z' = z.flipSuit` forced; `canSitOn_hosts_are_twins` (LANDED) is the seat lock |
 | ~~`solvable_cargoTwin_exchange_bare`~~ (bare-twin, move-free) | TwinExchange | **done** (2026-09-14) | PROVEN via the *backward* realization (`exchangeTwinCargo_pilePile_back`): from the exchanged state the cargo's pilePile onto its original twin is legal and lands on the original — the exchange is one move from the original, and the win replays through it.  The twin card is never consulted, so the statement was STRENGTHENED: the planned `hzone`/`hwf` premises dropped, phantom twins (stocked/buried/foundationed) covered for free |
 
-**Refute-first gate (before farming the remaining row)**:
-**deal-inherited cargo/host adjacency** — if the cargo↔host pair came
-from the deal (board_edges first disjunct), `canSitOn` can fail at the
-bridge and the scaffold's `hfit` premises are load-bearing.
-Witness-hunt the PREMISELESS form: a both-occupied state where some
-`canSitOn z t = false` and solvability diverges between `st` and
-`st.exchangeTwinCargo t` — a hit confirms the repair; no hit weakens
-the premise.  The companion's direction is settled in the strong
-(proven) direction; the reverse `stx → st` at invisible twins has a
-candidate stuck shape (see FARM_MEMORY's wave-15 note).
+**Refute-first gate — HALF-FIRED (2026-09-14, session 7)**: the
+**deal-inherited cargo/host adjacency** leg (hfit's premiselessness)
+remains unprobed — witness-hunt it separately if the hfit premises are
+ever to be weakened.  The **merge-shape leg FIRED**: the premiseless
+(no-`hwf`) form is refuted — the witness at
+Temp/opencode/w15merge.lean (re-verified at w15mergecheck.lean against
+the real definitions): a crafted non-WF both-occupied state where the
+win REQUIRES the merge (the t-passing run onto the other cargo's
+stack) and the exchanged state is frozen-dead.  The repair `+hwf`
+LANDED in the statement; the WF-side merge (reachable states) remains
+the sole open question — the normalization or the piecewise
+bookkeeping, per the row above.  The companion's direction is settled
+in the strong (proven) direction; the reverse `stx → st` at invisible
+twins has a candidate stuck shape (see FARM_MEMORY's wave-15 note).
 
 Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
 etc.).  **Dependency note**: W4's reformulation (the W-repair at the
@@ -563,13 +567,19 @@ time alongside the cruxes; NOT ahead of them.
 
 ## Design decisions pending (orchestrator/user — do not farm)
 
+- **SETTLED 2026-09-14 — batteries/std4: stay core-only.** The
+  hand-rolled List/Option kit is battle-tested and consolidated;
+  switching mid-endgame churns for marginal gain. Revisit only
+  post-endgame, with a concrete duplication count.
+- **Ops note**: intermittent `.olean.private` read failures under
+  concurrent sessions are AV-weather (files verified healthy) —
+  recommended fix: real-time-scan exclusion for the elan toolchain
+  dir and the repo. Until then: retry (the polling protocol).
 - **`applyDrawTo` guard fold-in**: fold `canPlace` into the def
   (simplifies the three compensation sites; wave-9 statements go
   hypothesis-free) vs rename to `applyDrawJumpTo` + document.
 - **The Bridge repair route**: EState matching-tracking vs B4 gate vs
   initial-states — needed before any `engine_iff`-style theorem returns.
-- **lean-verify/ debris** (untracked, unbuildable): tarball to
-  docs/attic or delete; README's last paragraph still cites it.
 - **Repo-root clutter**: `a_*.txt` ×5, `fail_*.txt`, logs, notebooks,
   `src/bit_deck_no_bmi2.rs` (orphan Rust in src/) — ignore rules or
-  delete.
+  delete. (lean-verify/ was deleted 2026-09-13 — row closed.)

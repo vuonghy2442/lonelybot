@@ -612,16 +612,18 @@ theorem State.solvable_of_exchange_pileStack {st : State} {z z' t : Card}
 
 /-! ### The premise-transfer substrate (the hnb persistence rides these)
 
-`aboveOf_sub_detach` (below) and the attach-growth lemma (the next
-session's piece: `x ∈ aboveOf_{attach b c} c₀ → x ∈ aboveOf c₀ ∨ x = c ∨
-x ∈ aboveOf c`, the fuel-induction with the divergence-at-b analysis)
-are the walk laws behind the no-braid premise transfer — the
-unplaced-card argument.  Note the WF dependency discovered (2026-09-14,
-session 6): the deckPile/stackPile/reveal cases need the moved card to
-carry no stack, which holds at WF states by board_edges (a stock,
-foundationed, or non-boundary-hidden base admits no edge — the
-deal-adjacent disjunct's own topHidden-or-seated side condition); the
-pilePile case needs no WF (the self-landing guard does the work). -/
+The walk laws behind the no-braid premise transfer — the unplaced-card
+argument — and behind the step lemma's v2 (the user's session-7
+correction: t-passing runs landing off the cargo stacks mirror fine).
+Landed 2026-09-14, sessions 6-7: `aboveOf_sub_detach` (the
+detach-shrink), the seeded-walk bounds, the attach-growth law, the
+exchange walk-bound, and the off-cargo self-landing corollary.  The WF
+dependency (session 6): the deckPile/stackPile/reveal premise-transfer
+cases need the moved card to carry no stack, which holds at WF states
+by board_edges (a stock, foundationed, or non-boundary-hidden base
+admits no edge — the deal-adjacent disjunct's own topHidden-or-seated
+side condition); the pilePile case needs no WF (the self-landing guard
+does the work). -/
 
 /-- **Detaching shrinks every run**: the walk in the detached board
 collects a subset of the original walk's cards (the only changed seat
@@ -661,6 +663,262 @@ theorem Board.aboveOf_sub_detach {bd : Board} {b : Base} :
             exact hx
           · rw [if_neg hcon] at hx ⊢
             exact ih c' (c' :: acc) x hx
+
+/-- The seeded-walk bound, two-accumulator form: a run walked with a
+larger accumulator `B` (fuel `m`) outputs only members of `B` and what
+the walk with the smaller accumulator `S ⊆ B` (fuel `j + m`) outputs —
+the two walks read the same seats while both run, and the bigger
+accumulator's contains-guard only fires earlier. -/
+theorem Board.aboveOf_go_seeded_subset {bd : Board} (j : Nat) :
+    ∀ (m : Nat) (x : Card) (B S : List Card) (y : Card),
+    S ⊆ B → y ∈ Board.aboveOf.go bd m (Sum.inr x) B →
+    y ∈ B ∨ y ∈ Board.aboveOf.go bd (j + m) (Sum.inr x) S := by
+  intro m
+  induction m with
+  | zero => intro x B S y _ hy; exact Or.inl hy
+  | succ n ih =>
+      intro x B S y hsub hy
+      cases ht : bd.topOf (Sum.inr x) with
+      | none =>
+          rw [Board.aboveOf_go_topOf_none ht] at hy
+          exact Or.inl hy
+      | some d =>
+          by_cases hBd : B.contains d = true
+          · rw [Board.aboveOf_go_stop ht hBd] at hy
+            exact Or.inl hy
+          · rw [Board.aboveOf_go_step ht hBd] at hy
+            have hSd : S.contains d ≠ true := by
+              intro hc
+              exact hBd ((List.contains_iff_mem).mpr (hsub ((List.contains_iff_mem).mp hc)))
+            have hsub' : (d :: S) ⊆ (d :: B) := by
+              intro z hz
+              rcases List.mem_cons.mp hz with heq | hz'
+              · rw [heq]; exact List.mem_cons_self
+              · exact List.mem_cons_of_mem _ (hsub hz')
+            have hgoal : Board.aboveOf.go bd (j + (n + 1)) (Sum.inr x) S
+                = Board.aboveOf.go bd (j + n) (Sum.inr d) (d :: S) := by
+              have hfuel : j + (n + 1) = (j + n) + 1 := by omega
+              rw [hfuel]
+              exact Board.aboveOf_go_step ht hSd
+            rw [hgoal]
+            rcases ih d (d :: B) (d :: S) y hsub' hy with h | h
+            · rcases List.mem_cons.mp h with heq | h'
+              · rw [heq]
+                exact Or.inr
+                  (Board.aboveOf_go_mem bd (j + n) (Sum.inr d) (d :: S) d List.mem_cons_self)
+              · exact Or.inl h'
+            · exact Or.inr h
+
+/-- The seeded-walk bound, 52 form: a walk seeded with `B` (any fuel
+`m ≤ 52`) outputs only `B`'s members and the plain run above `x`. -/
+theorem Board.aboveOf_go_seeded_bound {bd : Board} :
+    ∀ (m : Nat) (x : Card) (B : List Card) (y : Card), m ≤ 52 →
+    y ∈ Board.aboveOf.go bd m (Sum.inr x) B →
+    y ∈ B ∨ y ∈ bd.aboveOf x := by
+  intro m x B y hm hy
+  rcases Board.aboveOf_go_seeded_subset (52 - m) m x B [] y (List.nil_subset _) hy with h | h
+  · exact Or.inl h
+  · refine Or.inr ?_
+    have hf : (52 - m) + m = 52 := by omega
+    rw [hf, ← Board.aboveOf_eq] at h
+    exact h
+
+/-- **The attach-growth law**: attaching `c` at `b` grows any run by at
+most `c`'s own contribution — everything in the new run above `c₀` was
+already above `c₀`, or is `c`, or was above `c`.  The hnb premise
+transfer through the attach half of pilePile/pilePile rides this. -/
+theorem Board.mem_aboveOf_attach {bd : Board} {b : Base} {c c₀ x : Card}
+    {bd' : Board} (hatt : bd.attach b c = some bd') (hx : x ∈ bd'.aboveOf c₀) :
+    x ∈ bd.aboveOf c₀ ∨ x = c ∨ x ∈ bd.aboveOf c := by
+  have hnn : bd.attach b c ≠ none := by rw [hatt]; simp
+  obtain ⟨hfree, -⟩ := (Board.attach_eq_some_iff bd b c).mp hnn
+  have hb : bd'.topOf b = some c := Board.attach_topOf bd b c hatt
+  have hne : ∀ (b₁ : Base), b₁ ≠ b → bd'.topOf b₁ = bd.topOf b₁ :=
+    fun b₁ h₁ => Board.attach_topOf_ne bd b c hatt h₁
+  -- The two boards run the identical walk once `c` is in the
+  -- accumulator: the only differing seat reads `some c` (guard fires)
+  -- on one side and `none` (walk ends) on the other.
+  have lem_eq : ∀ (n : Nat) (b₀ : Base) (acc : List Card), c ∈ acc →
+      Board.aboveOf.go bd' n b₀ acc = Board.aboveOf.go bd n b₀ acc := by
+    intro n
+    induction n with
+    | zero => intro b₀ acc _; rfl
+    | succ n ih =>
+        intro b₀ acc hc
+        by_cases hbb : b₀ = b
+        · rw [hbb]
+          rw [Board.aboveOf_go_stop hb ((List.contains_iff_mem).mpr hc),
+              Board.aboveOf_go_topOf_none hfree]
+        · have hread : bd'.topOf b₀ = bd.topOf b₀ := hne b₀ hbb
+          cases ht : bd.topOf b₀ with
+          | none =>
+              rw [Board.aboveOf_go_topOf_none (hread.trans ht),
+                  Board.aboveOf_go_topOf_none ht]
+          | some d =>
+              by_cases hcon : acc.contains d = true
+              · rw [Board.aboveOf_go_stop (hread.trans ht) hcon,
+                    Board.aboveOf_go_stop ht hcon]
+              · rw [Board.aboveOf_go_step (hread.trans ht) hcon,
+                    Board.aboveOf_go_step ht hcon]
+                exact ih (Sum.inr d) (d :: acc) (List.mem_cons_of_mem _ hc)
+  -- The main induction: the walks agree until the first read of `b`;
+  -- there the attach-side walk may continue into `c`'s own stack.
+  have main : ∀ (n : Nat) (b₀ : Base) (acc : List Card) (y : Card), n ≤ 52 →
+      y ∈ Board.aboveOf.go bd' n b₀ acc →
+      y ∈ Board.aboveOf.go bd n b₀ acc ∨ y = c ∨ y ∈ bd.aboveOf c := by
+    intro n
+    induction n with
+    | zero => intro b₀ acc y _ hy; exact Or.inl hy
+    | succ n ih =>
+        intro b₀ acc y hn hy
+        by_cases hbb : b₀ = b
+        · rw [hbb] at hy
+          by_cases hcon : acc.contains c = true
+          · rw [Board.aboveOf_go_stop hb hcon] at hy
+            exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y hy)
+          · rw [Board.aboveOf_go_step hb hcon] at hy
+            rw [lem_eq n (Sum.inr c) (c :: acc) List.mem_cons_self] at hy
+            rcases Board.aboveOf_go_seeded_bound n c (c :: acc) y (by omega) hy with h | h
+            · rcases List.mem_cons.mp h with heq | h'
+              · exact Or.inr (Or.inl heq)
+              · exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y h')
+            · exact Or.inr (Or.inr h)
+        · have hread : bd'.topOf b₀ = bd.topOf b₀ := hne b₀ hbb
+          cases ht : bd.topOf b₀ with
+          | none =>
+              rw [Board.aboveOf_go_topOf_none (hread.trans ht)] at hy
+              exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y hy)
+          | some d =>
+              by_cases hcon : acc.contains d = true
+              · rw [Board.aboveOf_go_stop (hread.trans ht) hcon] at hy
+                exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y hy)
+              · rw [Board.aboveOf_go_step (hread.trans ht) hcon] at hy
+                rcases ih (Sum.inr d) (d :: acc) y (by omega) hy with h | h | h
+                · exact Or.inl (by rw [Board.aboveOf_go_step ht hcon]; exact h)
+                · exact Or.inr (Or.inl h)
+                · exact Or.inr (Or.inr h)
+  rw [Board.aboveOf_eq] at hx
+  rcases main 52 (Sum.inr c₀) [] x (Nat.le_refl 52) hx with h | h | h
+  · exact Or.inl h
+  · exact Or.inr (Or.inl h)
+  · exact Or.inr (Or.inr h)
+
+/-- **The exchange walk-bound** (the user's session-7 correction made
+formal): the walk in the exchanged board from any card grows by at most
+the two cargos' own stacks — everything else was already collected by
+the original walk. -/
+theorem Board.aboveOf_exchangeTwin_bound {bd : Board} {t z z' c x : Card}
+    (h₀ : bd.topOf (Sum.inr t) = some z)
+    (h₀' : bd.topOf (Sum.inr t.flipSuit) = some z')
+    (hne : z ≠ t ∧ z ≠ t.flipSuit ∧ z' ≠ t ∧ z' ≠ t.flipSuit)
+    (hnbz : t ∉ bd.aboveOf z ∧ t.flipSuit ∉ bd.aboveOf z)
+    (hnbz' : t ∉ bd.aboveOf z' ∧ t.flipSuit ∉ bd.aboveOf z')
+    (hx : x ∈ (bd.exchangeTwin t).aboveOf c) :
+    x ∈ bd.aboveOf c ∨ x = z ∨ x = z' ∨ x ∈ bd.aboveOf z ∨ x ∈ bd.aboveOf z' := by
+  have hsw : Base.swapTwin t (Sum.inr t.flipSuit) = Sum.inr t := by
+    show Sum.inr (Card.swapTwin t t.flipSuit) = Sum.inr t
+    rw [Card.swapTwin_self_right]
+  have hsw' : Base.swapTwin t (Sum.inr t) = Sum.inr t.flipSuit := by
+    show Sum.inr (Card.swapTwin t t) = Sum.inr t.flipSuit
+    rw [Card.swapTwin_self_left]
+  have hxt : (bd.exchangeTwin t).topOf (Sum.inr t) = some z' := by
+    rw [Board.exchangeTwin_topOf, hsw']; exact h₀'
+  have hxt' : (bd.exchangeTwin t).topOf (Sum.inr t.flipSuit) = some z := by
+    rw [Board.exchangeTwin_topOf, hsw]; exact h₀
+  have hagree : ∀ (b₁ : Base), b₁ ≠ Sum.inr t → b₁ ≠ Sum.inr t.flipSuit →
+      (bd.exchangeTwin t).topOf b₁ = bd.topOf b₁ := by
+    intro b₁ hb hb'
+    rw [Board.exchangeTwin_topOf, Base.swapTwin_eq_self hb hb']
+  have hagreeC : ∀ (w : Card), w ≠ t → w ≠ t.flipSuit →
+      bd.topOf (Sum.inr w) = (bd.exchangeTwin t).topOf (Sum.inr w) := by
+    intro w hw₁ hw₂
+    rw [Board.exchangeTwin_topOf,
+      Base.swapTwin_eq_self (fun h => hw₁ (Sum.inr.inj h))
+        (fun h => hw₂ (Sum.inr.inj h))]
+  have hz : (bd.exchangeTwin t).aboveOf z = bd.aboveOf z :=
+    Board.aboveOf_congr_off hagreeC
+      (fun w hw => ⟨fun heq => hnbz.1 (heq ▸ hw), fun heq => hnbz.2 (heq ▸ hw)⟩)
+      ⟨hne.1, hne.2.1⟩
+  have hz' : (bd.exchangeTwin t).aboveOf z' = bd.aboveOf z' :=
+    Board.aboveOf_congr_off hagreeC
+      (fun w hw => ⟨fun heq => hnbz'.1 (heq ▸ hw), fun heq => hnbz'.2 (heq ▸ hw)⟩)
+      ⟨hne.2.2.1, hne.2.2.2⟩
+  have main : ∀ (n : Nat) (b₀ : Base) (acc : List Card) (y : Card), n ≤ 52 →
+      y ∈ Board.aboveOf.go (bd.exchangeTwin t) n b₀ acc →
+      y ∈ Board.aboveOf.go bd n b₀ acc ∨ y = z ∨ y = z' ∨
+        y ∈ bd.aboveOf z ∨ y ∈ bd.aboveOf z' := by
+    intro n
+    induction n with
+    | zero => intro b₀ acc y _ hy; exact Or.inl hy
+    | succ n ih =>
+        intro b₀ acc y hn hy
+        by_cases hbt : b₀ = Sum.inr t
+        · rw [hbt] at hy
+          by_cases hcon : acc.contains z' = true
+          · rw [Board.aboveOf_go_stop hxt hcon] at hy
+            exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y hy)
+          · rw [Board.aboveOf_go_step hxt hcon] at hy
+            rcases Board.aboveOf_go_seeded_bound n z' (z' :: acc) y (by omega) hy with h | h
+            · rcases List.mem_cons.mp h with heq | h'
+              · exact Or.inr (Or.inr (Or.inl heq))
+              · exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y h')
+            · rw [hz'] at h
+              exact Or.inr (Or.inr (Or.inr (Or.inr h)))
+        · by_cases hbt' : b₀ = Sum.inr t.flipSuit
+          · rw [hbt'] at hy
+            by_cases hcon : acc.contains z = true
+            · rw [Board.aboveOf_go_stop hxt' hcon] at hy
+              exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y hy)
+            · rw [Board.aboveOf_go_step hxt' hcon] at hy
+              rcases Board.aboveOf_go_seeded_bound n z (z :: acc) y (by omega) hy with h | h
+              · rcases List.mem_cons.mp h with heq | h'
+                · exact Or.inr (Or.inl heq)
+                · exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y h')
+              · rw [hz] at h
+                exact Or.inr (Or.inr (Or.inr (Or.inl h)))
+          · have hread : (bd.exchangeTwin t).topOf b₀ = bd.topOf b₀ := hagree b₀ hbt hbt'
+            cases ht : bd.topOf b₀ with
+            | none =>
+                rw [Board.aboveOf_go_topOf_none (hread.trans ht)] at hy
+                exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y hy)
+            | some d =>
+                by_cases hcon : acc.contains d = true
+                · rw [Board.aboveOf_go_stop (hread.trans ht) hcon] at hy
+                  exact Or.inl (Board.aboveOf_go_mem bd (n + 1) b₀ acc y hy)
+                · rw [Board.aboveOf_go_step (hread.trans ht) hcon] at hy
+                  rcases ih (Sum.inr d) (d :: acc) y (by omega) hy with h | h | h | h | h
+                  · exact Or.inl (by rw [Board.aboveOf_go_step ht hcon]; exact h)
+                  · exact Or.inr (Or.inl h)
+                  · exact Or.inr (Or.inr (Or.inl h))
+                  · exact Or.inr (Or.inr (Or.inr (Or.inl h)))
+                  · exact Or.inr (Or.inr (Or.inr (Or.inr h)))
+  rw [Board.aboveOf_eq] at hx
+  rcases main 52 (Sum.inr c) [] x (Nat.le_refl 52) hx with h | h | h | h | h
+  · exact Or.inl h
+  · exact Or.inr (Or.inl h)
+  · exact Or.inr (Or.inr (Or.inl h))
+  · exact Or.inr (Or.inr (Or.inr (Or.inl h)))
+  · exact Or.inr (Or.inr (Or.inr (Or.inr h)))
+
+/-- **The off-cargo self-landing transfer** (the step lemma v2's guard):
+a card off the original run and off both cargos' stacks stays off the
+exchanged run — the user's session-7 correction, formal. -/
+theorem Board.selfLanding_exchangeTwin_of_off_cargo {bd : Board} {t z z' c d : Card}
+    (h₀ : bd.topOf (Sum.inr t) = some z)
+    (h₀' : bd.topOf (Sum.inr t.flipSuit) = some z')
+    (hne : z ≠ t ∧ z ≠ t.flipSuit ∧ z' ≠ t ∧ z' ≠ t.flipSuit)
+    (hnbz : t ∉ bd.aboveOf z ∧ t.flipSuit ∉ bd.aboveOf z)
+    (hnbz' : t ∉ bd.aboveOf z' ∧ t.flipSuit ∉ bd.aboveOf z')
+    (hd : d ≠ z ∧ d ≠ z' ∧ d ∉ bd.aboveOf z ∧ d ∉ bd.aboveOf z')
+    (hguard : d ∉ bd.aboveOf c) :
+    d ∉ (bd.exchangeTwin t).aboveOf c := by
+  intro hmem
+  rcases Board.aboveOf_exchangeTwin_bound h₀ h₀' hne hnbz hnbz' hmem with h | h | h | h | h
+  · exact hguard h
+  · exact hd.1 h
+  · exact hd.2.1 h
+  · exact hd.2.2.1 h
+  · exact hd.2.2.2 h
 
 /-! ### The clean-move mirror steps (the prefix induction's mechanics)
 
@@ -975,8 +1233,10 @@ base); without WF a phantom unplaced card can formally support a stack
 carrying `t` into a cargo run.  The pilePile case needs no WF (the
 self-landing guard excludes runs containing `t` from landing on the
 cargo's own stack); the reveal case needs only the trigger's bareness.
-**Remaining**: the attach-growth lemma, the WF stack-free derivations,
-the h₀/hvis transfers, and the assembly.  **The open gap**: the MERGE —
+**Remaining**: the WF stack-free derivations, the h₀/hvis transfers,
+the step-lemma v2 wiring (the pilePile step re-based on
+`Board.selfLanding_exchangeTwin_of_off_cargo` — the t-passing runs with
+targets off the cargo stacks), and the assembly.  **The open gap**: the MERGE —
 a `pilePile` whose root's walk passes a twin, landing on the other
 cargo's stack — which breaks the mirror (self-landing in the exchanged
 state) AND the premise transfer (it creates the braid `t ∈ aboveOf z'`);

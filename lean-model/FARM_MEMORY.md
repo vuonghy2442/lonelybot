@@ -2069,3 +2069,34 @@ tree).
 - aboveOf encapsulation (Board.lean, +450): the kit (step/self-disjoint/no-fuel-truncation/slot-congruence), `.go` deprecation-noted (private-ization pending — live consumers in TwinSwap-side files); consumers converted in Theorems (net -388), Move, Frame, Dominance. No proof's meaning changed; carrier byte-identical.
 - Tactics.lean (244): the guard-normal-form simp set (curated, named — NOT global @[simp]) + `run_step` + `move_cases`; demonstration conversions in Move/Theorems.
 - Both agents were interrupted before session-end blocks and facade import commit; acceptance run by orchestrator: census 12 pinned, Witnesses 47 jobs green, axioms [propext, Quot.sound] throughout, per-file 6/6 exit 0. Facade import of Klondike.Tactics pending (the user's TwinAgnostic/run_split collision blocks facade builds — their fix).
+
+## TwinExchange.lean — THE GATE FIRED: the premiseless [H] form REFUTED, repaired `+hwf` (2026-09-14, session 7)
+
+- THE WITNESS (Temp/opencode/w15merge.lean; RE-VERIFIED against the real definitions at Temp/opencode/w15mergecheck.lean — imports
+  Klondike.TwinExchange, #eval exit 0): a crafted non-WF state — empty deal, heights (red 12 / black 13), 13 board seats — with z=♠J on t=♦Q,
+  z'=♣J on t'=♥Q, c=♥10's run [♥10, ♦Q, ♠J, ♥3] passing t, X=♦K buried under c.  ALL premises hold (isVis/bottomOf/canSitOn/hnb — every one
+  #eval-verified).  st WINS in exactly 3: `pilePile ♥10 (inr ♣J)` — THE MERGE (the t-passing run onto the other cargo z') — then `pileStack ♦K`,
+  `pileStack ♥K`.  stx = exchangeTwinCargo t is FROZEN: legalMoves stx = [pileStack ♥K] only (the merge SELF-LANDS — z' rides t there), and the
+  successor has ZERO legal moves — the reachable space is 2 states, neither a win (winIn false at every depth probed to 14; the closure makes it
+  unbounded).
+- THE BLOCKADES (why no dodge exists — reusable for the WF-variant hunt): the strays sit at foundation-passed ranks (never stackable), the two
+  red-queen seats deadlock between the jacks, no black kings on the tableau (t's run immovable), all 7 anchors occupied (no king escape from the
+  completed spade/club foundations), kH sits on a card not an anchor (stacking it frees nothing).
+- THE REPAIR: `+hwf` landed in the statement (TwinExchange:1007).  The witness dies via founds_gone (t' visible at heart 12 — verified) and
+  board_edges (the non-fitting edges would need deal adjacency — the deal is empty).  The repair is SYMMETRIC: exchangeTwinCargo preserves WF (the
+  swapped edges t→z', t'→z are legal-seated by twin-blindness — rank/color transfer across the pair) — worth a named lemma `exchangeTwinCargo_wf`
+  when the assembly needs it.
+- THE USER'S CORRECTION (same session, analytically + executably confirmed): a t-passing run landing OFF both cargo stacks is legal in BOTH games
+  and mirrors fine — the merge is EXACTLY the cargo-stack landing.  Consequence: the step lemma needs v2 via the WALK-BOUND
+  `aboveOf_{exT} c ⊆ aboveOf c ∪ {z,z'} ∪ aboveOf z ∪ aboveOf z'` (fuel induction: the walks agree until the first twin read; the tails are
+  aboveOf_congr_off's territory since the cargo stacks avoid the twins by hnb) — the agent brief for this + the attach-growth law was relaunched
+  mid-session.
+- Census still 12 (TwinExchange 1 — the repaired [H] row only).  No downstream users existed (grep-first: only docstring mentions + the def site).
+- WALK LAWS LANDED (session 7, agent-produced, integrated + re-verified): `Board.aboveOf_go_seeded_subset`/`_bound` (the seeded-walk bounds — a walk with a
+  pre-seeded acc outputs only seed ∪ the plain walk's output; the fuel compensation `j = 52 - m` lands exactly on `aboveOf x`), `Board.mem_aboveOf_attach`
+  (the attach-growth law), `Board.aboveOf_exchangeTwin_bound` (the exchange walk-bound — the user's correction formal), and
+  `Board.selfLanding_exchangeTwin_of_off_cargo` (the step-lemma v2 guard).  All axioms [propext, Quot.sound].  The agent's deviations (worth stealing):
+  no unseatedness argument needed — a by_cases on the contains-guard handles both divergence outcomes; the KEY trick is lem_eq: once c is in the acc, the
+  two boards' walks are LITERALLY EQUAL (at the attach seat: some-c-with-guard-fires ≡ none — both stop at the same acc); `List.Subset` ALSO has
+  strict-implicit binders (hsub hz, not hsub z hz) — the same class as the aboveOf_go_mono quirk.  The sibling's aboveOf encapsulation
+  (aboveOf_go_step/_stop/_topOf_none/_mem/aboveOf_eq) is the right API — the proofs ride it.
