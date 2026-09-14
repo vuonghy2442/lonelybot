@@ -16,4 +16,6 @@ import Klondike.Kills
 import Klondike.Restriction
 import Klondike.TwinSwap
 import Klondike.TwinExchange
+import Klondike.TwinAgnostic
 import Klondike.Frame
+import Klondike.Tactics

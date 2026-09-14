@@ -987,8 +987,25 @@ Route: piecewise bookkeeping or play normalization ("winning plays
 avoid cargo-top merges"); the gate's witness hunt (the corner AND the
 merge shape) runs first.  Premise arithmetic: `hfit`/`hfit'` force
 `z' = z.flipSuit` — two twin pairs crossed; `canSitOn_hosts_are_twins`
-is the seat lock. -/
+is the seat lock.
+
+**REPAIRED 2026-09-14 (session 7) — `+hwf`**: the premiseless form is
+REFUTED by a witness (Temp/opencode/w15merge.lean, #eval-verified,
+exit 0): a crafted non-WF state (empty deal, heights past visible
+cards) satisfying every premise where the 3-move win goes through the
+MERGE (`pilePile ♥10 (inr ♣J)` — c's t-passing run onto z'), while the
+exchanged state is FROZEN (its reachable space is two states, the
+second with zero legal moves — exhaustively dead at every depth; the
+merge is self-landing there, and every dodge is blocked: the strays
+sit at foundation-passed ranks, the anchors are all occupied, the
+mirror landing is blocked by a crafted non-fitting tenant).  The repair
+`hwf : st.WF` kills the witness via founds_gone/board_edges — exactly
+the session-6 phantom-stack finding realized.  Note the repair is
+symmetric (the exchange preserves WF: the swapped edges are
+legal-seated by twin-blindness) and non-vacuous at every engine state.
+The WF-side merge remains the sole open gap. -/
 theorem State.solvable_cargoTwin_exchange {st : State} {z z' t : Card}
+    (hwf : st.WF)
     (hvis : st.isVis t = true) (hvis' : st.isVis t.flipSuit = true)
     (h₀ : st.board.bottomOf z = some (Sum.inr t))
     (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))

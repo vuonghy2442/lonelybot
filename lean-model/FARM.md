@@ -302,6 +302,69 @@ crux ledger) already absorbs park cases via the swap — whether it needs
 the both-cargo shape or only the bare-twin one should be settled before
 farming this wave.
 
+## Wave 16 — the twin mirror: all moves twin-agnostic except the foundation moves (LANDED 2026-09-14, sorry-free)
+
+**Claim** (the alternative route to T, by move-level decomposition): the
+local twin exchange `State.swapTwin t` conjugates every CLEAN move —
+clean = not a foundation move of a pair member (`Move.cleanTwin`): the
+three foundation kinds (`pileStack`/`deckStack`/`stackPile`) read
+`heights`, which the swap fixes, so they cross to the OTHER suit's
+count exactly when the moved card is `t`/`t.flipSuit`
+(TwinSwapWitness's refutation shape); NOTHING tableau-side is an
+exception (`draw`/`reveal`/`deckPile`/`pilePile` — `canSitOn` is
+color-blind, the run walk reads relabeled seats, the deal/depths views
+map along).
+
+**Landed** (Klondike/TwinAgnostic.lean, imports only the Relabel chain
+— below the Theorems breakage — axiom-clean
+`[propext, Quot.sound]`, census 0):
+
+- `apply_swapTwin_clean` — the mirror lemma:
+  `(st.swapTwin t).apply (m.swapTwin t) = (st.apply m).map (State.swapTwin t)`
+  for clean `m`, unconditional in the state (no WF, no height
+  alignment); the none-direction rides the involution (the mirror of a
+  clean mirror is the source), so only the some-direction is
+  constructed.  Play form: `run_swapTwin_clean`.
+- `run_swapTwin_pair` + `solvable_swapTwin_paired`/`_back` — **the
+  licensed pair**: where the winning play's twin foundation moves are
+  ONE adjacent pair `[pileStack t, pileStack t.flipSuit]` (the aligned
+  shape — both stackable at the same moment, §5.5's redundant pair
+  supplies it in the engine), the exchange preserves solvability both
+  directions.  The alignment is DERIVED, not premises: the pair firing
+  pins both suits' heights to the shared rank; after the pair the
+  heights re-sync (each suit gained its twin's rank once in both), so
+  the tail mirrors verbatim — no skew survives the back-to-back shape.
+- The `mapByTwin` transfer kit (topOf/bottomOf/attach/detach/aboveOf,
+  the twin-seat probes `mapByTwin_topOf_flip(_Suit)`/
+  `mapByTwin_bottomOf_flip(_Suit)`, the cycle laws `twinCycle_*`, the
+  composed guards) — the local-swap analogue of Relabel's `relabelBy`
+  kit, consumable by the window argument.
+
+**Substrate relocation (same day)**: `Move.swapTwin`/`State.swapTwin`/
+`State.swapTwin_swapTwin` moved TwinSwap → Relabel (the relabeling
+group's canonical home), `Card.swapTwin_flipSuit`/`Base.swapTwin_flipSuit`
+moved TwinExchange → Relabel (plus the new `Move.swapTwin_flipSuit`/
+`State.swapTwin_flipSuit`) — names and proofs unchanged, TwinAgnostic
+sits below the Theorems chain and needs the substrate.
+
+**What remains open** — T's general window (this wave's residue, and
+wave 15 [H]'s sibling): when the twin stacks are NOT adjacent, the
+source play interleaves its same-color catch-up between them, and the
+mirrored game cannot copy it verbatim — the ±1 height skew on the twin
+suits blocks the s1-cascade in the mirror and vice versa (the successor
+correspondence after ONE twin stack is `State.twinSkew`, board-swapped
+with the one suit bumped — exactly the divergence the pair re-sync
+cancels).  The bridge — reorderings plus reveal-relocations of the
+stuck twin — is the interleaving lemma (L1/O3) of
+macro_formalization §3; the mirror lemma is its mechanical half,
+isolated so the window argument consumes it.  Candidate normalization
+before farming: "winning plays can be reshaped so the twin stacks are
+adjacent" (false in general — the catch-up needs the structure unlocked
+by the FIRST stack, e.g. the empty-pile/king chain; the refute-first
+shape is exactly that deadlock).
+
+
+
 ## The crux's case ledger (B4 decomposition state)
 
 **ROUTE (2026-09-14): [ENDGAME.md](ENDGAME.md)** — the reading pass
