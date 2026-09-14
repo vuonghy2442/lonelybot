@@ -586,8 +586,26 @@ interleaving lemma, now reached from a second direction.  The suit-level
 relabel (`solvable_relabel`) does NOT shortcut it: the needed
 correspondence is the two-card transposition τ_z, and ρ'∘τ_z (the
 residual 12 black transpositions) meets the same window per pair.
-The bridges' sole remaining content is that window; the assembly
-around it is mechanical. -/
+**The L1/O3 decomposition (sessions 11-12)**: the window splits.
+**(i) THE SEPARATED CASE is provable**: if π = prefix ++ [stack z] ++
+mid ++ [stack z'] ++ suffix with the mid containing NO move whose
+legality reads the twin suits' heights, the mirror replays
+[prefix*, stack z', mid*, stack z, suffix*] — the rung-EXACTNESS of
+`pileStack` (rank.toIdx = heights, exactly) does the heavy lifting:
+during the source's mid (spade = 11, club = 10), the only stackable
+twin-suit cards are ♠Q (rung 11) and the twin ♣J itself (rung 10 =
+the second twin move); during the mirror's mid (spade = 10, club =
+11), dually — so a twin-suit-free mid is exactly a mid whose red/
+region moves replay verbatim (identical red heights, identical
+bareness order on the swapped stack), and the twins stack at their
+translated positions with their rungs already correct.  **(ii) THE
+RESIDUE = the catch-up deferral**: the mid's possible twin-suit
+activity (the exact-rung ♠Q/♣Q stackings and the spade/club
+worry-backs) must be deferred to the suffix — a commutation whose
+obstruction is the worry-backs' board interactions (a backed card
+can host a later mid landing).  This is the precise remaining content
+of the window; the separated case generalizes TwinAgnostic's paired
+shape (a mid at all, vs. none). -/
 theorem State.solvable_of_exchange_merge {st a₁ : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF) (h : st.twinLicensed t)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
