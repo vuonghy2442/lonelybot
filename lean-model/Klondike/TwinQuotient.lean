@@ -1829,6 +1829,235 @@ theorem State.exchangeTwin_mirror_guard_zstack {st : State} {t z z' y : Card}
     · exact hnb.2 h
     · exact hnb'.2 h
 
+/-! ## The twin-swap replay, separated case (L1/O3, part i)
+
+The provable half of the interleaving window: when the winning
+play's twin foundation moves are separated by a mid whose moves
+never touch the twin suits' heights, the local swap preserves
+solvability.  The mirror plays [prefix*, stack t', mid*, stack t,
+suffix*]; between the twin stackings the two games correspond by
+the CROSS-SKEW (the twin suits' heights exchanged — each game has
+stacked exactly one twin), the ortho mid maintains it step-by-step,
+and the second stackings re-sync (both suits gain their twin's rank
+once), so the tail conjugates again. -/
+
+/-- A move whose legality never reads the twin suits' heights: the
+three height-reading kinds with their moved card off the twin suits;
+everything else is height-blind (draw/reveal/deckPile/pilePile never
+probe heights). -/
+def Move.orthoTwin (t : Card) : Move → Bool
+  | .pileStack c => decide (c.suit ≠ t.suit ∧ c.suit ≠ t.flipSuit.suit)
+  | .deckStack c => decide (c.suit ≠ t.suit ∧ c.suit ≠ t.flipSuit.suit)
+  | .stackPile c _ => decide (c.suit ≠ t.suit ∧ c.suit ≠ t.flipSuit.suit)
+  | _ => true
+
+/-- Two states differing only in the twin suits' heights. -/
+def State.twinHeightRel (t : Card) (S S' : State) : Prop :=
+  S.board = S'.board ∧ S.deal = S'.deal ∧ S.depths = S'.depths ∧
+    S.stock = S'.stock ∧ S.drawStep = S'.drawStep ∧
+    ∀ s, s ≠ t.suit → s ≠ t.flipSuit.suit → S.heights s = S'.heights s
+
+/-- **The height-congruence**: an ortho move's firing and effects
+agree on states differing only in the twin suits' heights — the
+reading kinds probe the moved card's suit (off the twin suits, so
+agreeing); the height-blind kinds never probe; the successors keep
+the relation (the height update touches only the moved card's
+suit). -/
+theorem State.apply_twinHeightRel {t : Card} {S S' : State} {m : Move}
+    (hrel : State.twinHeightRel t S S') (hort : Move.orthoTwin t m = true)
+    {R : State} (hS : S.apply m = some R) :
+    ∃ R', S'.apply m = some R' ∧ State.twinHeightRel t R R' := by
+  obtain ⟨hb, hd, hdp, hst, hds, hh⟩ := hrel
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at hS
+      obtain rfl := hS
+      refine ⟨{S' with stock := S'.stock.dealOnce S'.drawStep}, apply_draw_iff.mpr rfl, hb, hd, hdp, ?_, hds, ?_⟩
+      · show S.stock.dealOnce S.drawStep = S'.stock.dealOnce S'.drawStep
+        rw [hst, hds]
+      · intro s h1 h2
+        show S.heights s = S'.heights s
+        exact hh s h1 h2
+  | reveal c =>
+      rw [apply_reveal_iff] at hS
+      obtain ⟨ht, r, a, bd, hbot, hp, ha, rfl⟩ := hS
+      have ht' : S'.board.topOf (Sum.inr c) = none := by rw [← hb]; exact ht
+      have hbot' : S'.board.bottomOf c = some (Sum.inr r) := by rw [← hb]; exact hbot
+      have hp' : S'.pileOfTopHidden r = some a := by
+        rw [← Frame.pileOfTopHidden_congr hd hdp]
+        exact hp
+      have ha' : S'.board.attach (S'.hiddenBase a) r = some bd := by
+        rw [show S'.hiddenBase a = S.hiddenBase a from (Frame.hiddenBase_congr hd hdp a).symm, ← hb]
+        exact ha
+      refine ⟨{S' with board := bd, depths := fun a' => if a' = a then S'.depths a - 1 else S'.depths a'}, apply_reveal_iff.mpr ⟨ht', r, a, bd, hbot', hp', ha', rfl⟩, rfl, hd, ?_, hst, hds, ?_⟩
+      · funext a'
+        by_cases ha' : a' = a
+        · show (if a' = a then S.depths a - 1 else S.depths a') = (if a' = a then S'.depths a - 1 else S'.depths a')
+          rw [if_pos ha', if_pos ha', hdp]
+        · show (if a' = a then S.depths a - 1 else S.depths a') = (if a' = a then S'.depths a - 1 else S'.depths a')
+          rw [if_neg ha', if_neg ha']
+          show S.depths a' = S'.depths a'
+          rw [hdp]
+      · intro s h1 h2
+        show S.heights s = S'.heights s
+        exact hh s h1 h2
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at hS
+      obtain ⟨hprev, hcp, bd, hatt, rfl⟩ := hS
+      have hprev' : S'.stock.prev = some c := by rw [← hst]; exact hprev
+      have hisVis : ∀ d, S'.isVis d = S.isVis d := by
+        intro d
+        simp only [State.isVis, hb]
+      have hcp' : S'.canPlace c b = true := by
+        cases b with
+        | inl a =>
+            obtain ⟨htb, hking⟩ := canPlace_inl_iff.mp hcp
+            exact canPlace_inl_iff.mpr ⟨by rw [← hb]; exact htb, hking⟩
+        | inr d =>
+            obtain ⟨htb, hvis, hcs⟩ := canPlace_inr_iff.mp hcp
+            refine canPlace_inr_iff.mpr ⟨by rw [← hb]; exact htb, ?_, hcs⟩
+            rw [hisVis d]
+            exact hvis
+      have hatt' : S'.board.attach b c = some bd := by rw [← hb]; exact hatt
+      refine ⟨{S' with board := bd, stock := S'.stock.removeAt (S'.stock.cursor - 1)}, apply_deckPile_iff.mpr ⟨hprev', hcp', bd, hatt', rfl⟩, rfl, hd, hdp, ?_, hds, ?_⟩
+      · show S.stock.removeAt (S.stock.cursor - 1) = S'.stock.removeAt (S'.stock.cursor - 1)
+        rw [hst]
+      · intro s h1 h2
+        show S.heights s = S'.heights s
+        exact hh s h1 h2
+  | deckStack c =>
+      rw [apply_deckStack_iff] at hS
+      obtain ⟨hprev, hrk, rfl⟩ := hS
+      obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
+      have hrk' : c.rank.toIdx = S'.heights c.suit := by
+        rw [← hh c.suit hsu hsu']
+        exact hrk
+      refine ⟨{S' with stock := S'.stock.removeAt (S'.stock.cursor - 1), heights := fun s => if s = c.suit then S'.heights s + 1 else S'.heights s}, apply_deckStack_iff.mpr ⟨by rw [← hst]; exact hprev, hrk', rfl⟩, hb, hd, hdp, ?_, hds, ?_⟩
+      · show S.stock.removeAt (S.stock.cursor - 1) = S'.stock.removeAt (S'.stock.cursor - 1)
+        rw [hst]
+      · intro s h1 h2
+        show (if s = c.suit then S.heights s + 1 else S.heights s) = (if s = c.suit then S'.heights s + 1 else S'.heights s)
+        by_cases hsc : s = c.suit
+        · rw [if_pos hsc, if_pos hsc, hh s h1 h2]
+        · rw [if_neg hsc, if_neg hsc]
+          exact hh s h1 h2
+  | pileStack c =>
+      rw [apply_pileStack_iff] at hS
+      obtain ⟨ht, b, hbot, hrk, rfl⟩ := hS
+      obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
+      have hrk' : c.rank.toIdx = S'.heights c.suit := by
+        rw [← hh c.suit hsu hsu']
+        exact hrk
+      refine ⟨{S' with board := S'.board.detach b, heights := fun s => if s = c.suit then S'.heights s + 1 else S'.heights s}, apply_pileStack_iff.mpr ⟨by rw [← hb]; exact ht, b, by rw [← hb]; exact hbot, hrk', rfl⟩, by rw [hb], hd, hdp, hst, hds, ?_⟩
+      · intro s h1 h2
+        show (if s = c.suit then S.heights s + 1 else S.heights s) = (if s = c.suit then S'.heights s + 1 else S'.heights s)
+        by_cases hsc : s = c.suit
+        · rw [if_pos hsc, if_pos hsc, hh s h1 h2]
+        · rw [if_neg hsc, if_neg hsc]
+          exact hh s h1 h2
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at hS
+      obtain ⟨hrk, hcp, bd, hatt, rfl⟩ := hS
+      obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
+      have hrk' : c.rank.toIdx + 1 = S'.heights c.suit := by
+        rw [← hh c.suit hsu hsu']
+        exact hrk
+      have hisVis : ∀ d, S'.isVis d = S.isVis d := by
+        intro d
+        simp only [State.isVis, hb]
+      have hcp' : S'.canPlace c b = true := by
+        cases b with
+        | inl a =>
+            obtain ⟨htb, hking⟩ := canPlace_inl_iff.mp hcp
+            exact canPlace_inl_iff.mpr ⟨by rw [← hb]; exact htb, hking⟩
+        | inr d =>
+            obtain ⟨htb, hvis, hcs⟩ := canPlace_inr_iff.mp hcp
+            refine canPlace_inr_iff.mpr ⟨by rw [← hb]; exact htb, ?_, hcs⟩
+            rw [hisVis d]
+            exact hvis
+      have hatt' : S'.board.attach b c = some bd := by rw [← hb]; exact hatt
+      refine ⟨{S' with board := bd, heights := fun s => if s = c.suit then S'.heights s - 1 else S'.heights s}, apply_stackPile_iff.mpr ⟨hrk', hcp', bd, hatt', rfl⟩, rfl, hd, hdp, hst, hds, ?_⟩
+      · intro s h1 h2
+        show (if s = c.suit then S.heights s - 1 else S.heights s) = (if s = c.suit then S'.heights s - 1 else S'.heights s)
+        by_cases hsc : s = c.suit
+        · rw [if_pos hsc, if_pos hsc, hh s h1 h2]
+        · rw [if_neg hsc, if_neg hsc]
+          exact hh s h1 h2
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at hS
+      obtain ⟨b₀, hbot, hne, hcmr, bd, hatt, rfl⟩ := hS
+      have hbot' : S'.board.bottomOf c = some b₀ := by rw [← hb]; exact hbot
+      have hatt' : (S'.board.detach b₀).attach b c = some bd := by rw [← hb]; exact hatt
+      have hcmr' : S'.canMoveRun c b = true := by
+        cases b with
+        | inl a =>
+            have hcpa : S.canPlace c (Sum.inl a) = true := canMoveRun_inl_iff.mp hcmr
+            obtain ⟨htb, hking⟩ := canPlace_inl_iff.mp hcpa
+            exact canMoveRun_inl_iff.mpr (canPlace_inl_iff.mpr ⟨by rw [← hb]; exact htb, hking⟩)
+        | inr d =>
+            obtain ⟨hcpa, hac⟩ := canMoveRun_inr_iff.mp hcmr
+            obtain ⟨htb, hvis, hcs⟩ := canPlace_inr_iff.mp hcpa
+            refine canMoveRun_inr_iff.mpr ⟨canPlace_inr_iff.mpr
+              ⟨by rw [← hb]; exact htb, ?_, hcs⟩, by rw [← hb]; exact hac⟩
+            show S'.isVis d = true
+            rw [show S'.isVis d = S.isVis d from by simp only [State.isVis, hb]]
+            exact hvis
+      refine ⟨{S' with board := bd}, apply_pilePile_iff.mpr ⟨b₀, hbot', hne, hcmr', bd, hatt', rfl⟩, rfl, hd, hdp, hst, hds, ?_⟩
+      · intro s h1 h2
+        show S.heights s = S'.heights s
+        exact hh s h1 h2
+
+/-- **The twin suits' heights are ortho-invariant**: an ortho move
+changes at most the moved card's suit (off the twin suits). -/
+theorem State.apply_ortho_preserves {t : Card} {S R : State} {m : Move}
+    (hort : Move.orthoTwin t m = true) (hS : S.apply m = some R) :
+    R.heights t.suit = S.heights t.suit ∧
+      R.heights t.flipSuit.suit = S.heights t.flipSuit.suit := by
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at hS
+      obtain rfl := hS
+      exact ⟨rfl, rfl⟩
+  | reveal c =>
+      rw [apply_reveal_iff] at hS
+      obtain ⟨-, -, -, -, -, -, -, rfl⟩ := hS
+      exact ⟨rfl, rfl⟩
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at hS
+      obtain ⟨-, -, -, -, rfl⟩ := hS
+      exact ⟨rfl, rfl⟩
+  | deckStack c =>
+      rw [apply_deckStack_iff] at hS
+      obtain ⟨-, -, rfl⟩ := hS
+      obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
+      refine ⟨?_, ?_⟩
+      · show (if t.suit = c.suit then S.heights t.suit + 1 else S.heights t.suit) = S.heights t.suit
+        rw [if_neg (fun hc => hsu hc.symm)]
+      · show (if t.flipSuit.suit = c.suit then S.heights t.flipSuit.suit + 1 else S.heights t.flipSuit.suit) = S.heights t.flipSuit.suit
+        rw [if_neg (fun hc => hsu' hc.symm)]
+  | pileStack c =>
+      rw [apply_pileStack_iff] at hS
+      obtain ⟨-, -, -, -, rfl⟩ := hS
+      obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
+      refine ⟨?_, ?_⟩
+      · show (if t.suit = c.suit then S.heights t.suit + 1 else S.heights t.suit) = S.heights t.suit
+        rw [if_neg (fun hc => hsu hc.symm)]
+      · show (if t.flipSuit.suit = c.suit then S.heights t.flipSuit.suit + 1 else S.heights t.flipSuit.suit) = S.heights t.flipSuit.suit
+        rw [if_neg (fun hc => hsu' hc.symm)]
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at hS
+      obtain ⟨-, -, -, -, rfl⟩ := hS
+      obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
+      refine ⟨?_, ?_⟩
+      · show (if t.suit = c.suit then S.heights t.suit - 1 else S.heights t.suit) = S.heights t.suit
+        rw [if_neg (fun hc => hsu hc.symm)]
+      · show (if t.flipSuit.suit = c.suit then S.heights t.flipSuit.suit - 1 else S.heights t.flipSuit.suit) = S.heights t.flipSuit.suit
+        rw [if_neg (fun hc => hsu' hc.symm)]
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at hS
+      obtain ⟨-, -, -, -, -, -, rfl⟩ := hS
+      exact ⟨rfl, rfl⟩
+
 /-- **The merge's landing is on the OTHER cargo's stack** — the
 own-cargo side is self-landing at the SOURCE: a card of the own
 cargo's run is above the passing twin (one step,
