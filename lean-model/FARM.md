@@ -1,9 +1,9 @@
 # The proof farm — handoff document
 
-**Census: 12 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 4
-· Restriction 2 · TwinSwap 1; zero bullets).  Pinned by
+**Census: 11 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 4
+· Restriction 2; zero bullets).  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 12 are
+any NEW sorry or the return of a refuted constant.  All 11 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -236,11 +236,44 @@ laundering rule.
 | item | file:line | tag | route |
 |---|---|---|---|
 | ~~`State.pilePile_return_legal`~~ | TwinSwap:~300 | **done** (2026-09-13) | the full guard bundle; only the walk-invariance was split out |
-| `Board.aboveOf_congr_off` | TwinSwap:~296 | [M] | run-walk invariance under off-run reseating; fuel induction via `aboveOf_go_succ`/the relabel walk template |
+| ~~`Board.aboveOf_congr_off`~~ | TwinSwap:~296 | **done** (2026-09-14) | fuel induction via `Board.aboveOf_go_congr_aux` (analytical invariant: acc members + current-call output stay pair-free, so `hagree` covers every probe) on `Board.aboveOf_go_mono` (acc ⊆ output); twin line now sorry-free |
 
 **Design frozen**: the wide-closure and supermove candidates above were
 designs for the REFUTED seat-swap direction; the cargo direction needs
 neither.  They stay closed pending the transfer row's landing.
+
+## Wave 15 (queued) — the twin pair, both-cargo exchange (move-free)
+
+**Claim** (2026-09-14, user): states A (cargo `z` on twin `t`, cargo `z'`
+on twin `t'`) and B (cargos exchanged, everything else untouched) are
+solvable-equivalent — *without* the exchange being executable (no legal
+pilePile can swap both cargos; seats stay put).  This is the engine's
+twin-transposition reasoning at the both-occupied shape; the wave-14
+theorem (`State.solvable_cargoTwin`) covers exactly the one-bare-twin
+boundary case of it.
+
+**Proof sketch (scheduling argument, user's idea)**: three links.
+(1) **Frozen-phase mirroring**: until a twin frees, simulate the play
+step-for-step with the mirror map swapping t↔t′ (other cards untouched);
+invariant: states differ only at the two twin-slot occupants.  While both
+seats are occupied no guard can consult the swapped data (occupied bases
+reject landings; cargo contents move only as run-roots, which detach on
+both sides symmetrically).  (2) **Bridge at the first freedom**: the
+instant a cargo run leaves a twin, both threads have one occupied + one
+bare seat — bridge with `State.solvable_cargoTwin`, after which the two
+threads become literally the same state.  (3) tails coincide.
+
+| item | route |
+|---|---|
+| refute-first corner | **deal-inherited cargo/host adjacency**: if the cargo↔host pair came from the deal (board_edges first disjunct), `canSitOn` can fail at the bridge and `solvable_cargoTwin`'s executability premise dies — the Bridge.lean:466 trap shape (deal-adjacency vs canSitOn re-seating).  Witness-hunt BEFORE any proof attempt: find a both-occupied state where the bridge premise fails and solvability diverges.  Repair shape if refuted: premise "adjacency legal-seated" (holds at play-reachable states when the adjacency was move-created). |
+| mirror-phase bisimulation | per-move-kind case work; components in hand: `canSitOn_swapTwin_right/_left`, `Board.aboveOf_congr_off` (guard congruence), attach/detach kits, `swapTwin_swapTwin`.  Sizing [L]. No new theory expected. |
+| companion (bare-twin, move-free) | the same bisimulation substrate, applied at the one-bare-twin shape without requiring the transfer move to fire; one-directional (`solvable ⟸`) likely suffices for engine pruning |
+
+Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
+etc.).  **Dependency note**: W4's reformulation (the W-repair at the
+crux ledger) already absorbs park cases via the swap — whether it needs
+the both-cargo shape or only the bare-twin one should be settled before
+farming this wave.
 
 ## The crux's case ledger (B4 decomposition state)
 
@@ -249,14 +282,16 @@ over B&G + no_pile §5 + the landed kit.  The normal form is
 `rungNormal` (before the first, forced `pileStack c` — the rung pass —
 no move parks on `c`, no c-suit worry-back); the measure is
 lexicographic (blocked-moves-before-rung, play length); the work order
-is W1 (π-scaffold + six transfer one-liners) → W2 (`rung_pass_of_win`)
-→ W3 (excursion-pair deletion) → W4 (the park episode).  **W4 is
-gated on the forced-park refute probe** — the shape where the twin seat
-is unavailable (`Card.only_blocker_is_twin` makes it the only
-alternative), the tenant is unstackable (the crux carries no `hsafe`),
-and no rank-mate return exists: a witness there falsifies the crux
-statement itself (repair directions: `+hsafe`, or `initialReachable`
-scoping).  Probe FIRST; do not burn W4 proof effort behind it.
+is W1 (landed 2026-09-14) → W2 (landed, `≤`-repaired) → W3 (adjacent
+landed; spread blocked on the frame theory) → W4.  **REFORMULATION
+DECISION (2026-09-14, user): the staged crux is FALSE at the forced-park
+shape — known, no refutation witness needed.  The repair is NOT a
+guard (`+hsafe`/`initialReachable` deprioritized): W4 is reformulated
+to rely on the twin swap — canonicalize via the proven automorphism
+(`swapTwin`, TwinSwap.lean) + `solvable_cargoTwin_transfer`, so the
+park/pilePile-shaped cases are absorbed by the swap rather than
+case-split.  The exact statement shape is the open design item
+(ENDGAME.md §5, W4 note).**
 
 `solvable_of_pileStack {st} (hwf : st.WF) (hnotlock : st.isLocked c = false)`
 — a legal `pileStack` never hurts solvability.  Repairs: `+hwf`

@@ -1775,3 +1775,48 @@ tree).
   `by decide` fails on free locals — show+rw+simp; `cases m` kills m — hoist apply_wf/hcm BEFORE;
   rw [hσ] (c.suit→x.suit) matches the rung guard; Cycle.mem_removeIdx; idxOf; (False).elim.
 
+
+- (continuation) `pilePile_return_legal` hypothesis slimmed: dropped the
+  two-clause `hfree`; caller now passes only `hnotloop : t ∉ st.board.aboveOf z`
+  (the no-board-loop clause).  The twin half is derived INSIDE the proof
+  from the forward move's own `canMoveRun` self-landing guard — note the
+  guard comes out of `rw [State.canMoveRun]` as `!decide (contains = true)`,
+  so harvest it as `contains ≠ true` + `eq_false_of_ne_true`, NOT by
+  matching on a bare `!contains` component (type-mismatch).
+  Axioms re-verified: [propext, Quot.sound]; census still 11.
+
+- (continuation) twin line packaged: `State.solvable_cargoTwin` composes
+  `pilePile_return_legal` + `solvable_cargoTwin_transfer` — the engine-facing
+  theorem whose four premises read exactly as the informal claim (twin
+  visible; cargo placed on it; no board loop; the swap move executable).
+  Axioms [propext, Quot.sound]; census still 11.  WF-extension candidates
+  from the design discussion (`board_acyclic` plain form `∀ c, c ∉
+  st.board.aboveOf c` — under `board_edges` equivalent to anchored; the
+  ∃-grading certificate derivable once from it; `cards_accounted`
+  totality) stay PARKED: land-trigger is a second consumer of
+  run-geometry / card-whereabouts beyond the twin line.
+
+## Frame.lean — the separation discipline LANDED sorry-free (2026-09-14)
+
+- Frame enum: deal/board/heightsOf-per-SUIT/depths/stockCards+stockCursor-split/drawStep; Move.reads/writes pure
+  (state-dependence confined INSIDE frames — the honest refinement story is in the header). writes ⊆ reads proven.
+- MASTER LAWS (proven once, sorry-free): frame_congr (+_none: verdict+successor transfer from read-agreement),
+  frame_invar (unread frames inherited), commute_of_disjoint_frames (Law 2: read/write-disjoint ⇒ both orders equal,
+  NO legality hypotheses). All-frame ext: state_ext_of_frames.
+- ACCEPTANCE: blindness kit ×7 (apply_blind_stock_heights/_board_depths/_stock + instances) = one frame_congr each;
+  the 12 coarse pairs (draw_comm_* ×4 + reveal·deckStack + deckStack·pilePile) via Law 2 — commute_of_compsDisjoint
+  SUBSUMED; deal_commutes_nonStock_frame DERIVES commute_of_disjoint_touch's hnc guard (non-consuming = no stock
+  frames in reads); cursor-blindness API (apply_cursor_blind_frame — non-draw sector; draw arm stays Commutation's).
+- Of the SIXTEEN comm_*: only deckStack·{pileStack,stackPile} fall out (deckStack is board-free; heightsOf split) —
+  re-derived STRENGTHENED (hdisj dropped; same-suit vacuous via guard omega). The other 14 interact inside the
+  atomic board frame (isVis reads arbitrary seats) — the touch layer's territory: BOUNDARY recorded, not forced.
+- W3: Move.seatsOrReads (the §7.2 move-only choice — c-arg or base-card = x) + heightsOf_mem_reads_iff (cSuitMove
+  frame-native) + apply_heights_blind (the dropped height invisible to x-suit-blind γ) + self-guarding I/II
+  (canPlace_eq_false_of_seated, topOf_of_bottomOf — why move-only is honest) + excursionSim def (the φ interface:
+  τ = σ minus x's edge, heights x.suit +1). ONE-STEP REPLAY NOT PROVEN — the aboveOf walk-agreement lemma
+  (TwinSwap's aboveOf_congr_off template) is the missing piece.
+- Probe: Temp/opencode/frameprobe.lean (grid=12, same/diff-suit legs, legality invariance). QUIRKS paid:
+  rcases `-` patterns + trailing named slot failed silently (use explicit names); after `cases h : e` the goal shows
+  do-notation binds — `show` the beta-reduced form BEFORE rw into bind bodies; `h2 _ rfl` fails (metavar) — name
+  the Frame; Frame.agree is match-typed so `.trans`/`.symm` need the cases-lemma Frame.agree_trans/_symm;
+  [System.Text.Encoding]::UTF8 WriteAllText ADDS A BOM (broke the import line) — use UTF8Encoding($false).

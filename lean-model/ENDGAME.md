@@ -253,7 +253,26 @@ The `hblind` guard is the honest shape — spelling "the intermediate
 segment does not read the dropped height or `x`'s seat" is a def-level
 choice, see §7.
 
-**W4 — the park episode [H, the endgame core].**
+**W4 — the park episode [H, the endgame core] — REFORMULATED 2026-09-14
+(user decision).** The staged license disjunction below is SUPERSEDED:
+the forced-park shape (no license holds) is known FALSE — no refutation
+witness owed. The route forward is **twin-swap canonicalization**: the
+park/pilePile-shaped reshaping is absorbed by the now-fully-proven
+TwinSwap machinery — `State.swapTwin` (the unconditional automorphism,
+heights permuted with the cards), `solvable_swapTwin`,
+`solvable_cargoTwin_transfer`, `pilePile_return_legal`,
+`aboveOf_congr_off` — so the replay never case-splits on the park's
+legality: it transfers the cargo to the twin representation and lets
+the automorphism carry the verdict. The exact statement shape is the
+open design item: candidates include (a) swap-the-successor — `s₁ ∨
+swapTwin-pair s₁` solvable; (b) the statement over the twin quotient
+(the engine's own representation — verdicts on the quotient, ambiguous
+seats unidentified); (c) the play-level form — the winning play rewrites
+via swap-steps to one that never parks on `c`, folded into W5's
+normal-form existence. What the three sub-lemmas below still buy: their
+licenses are the FREE cases of the canonicalization (F3's sub-case
+analysis feeds whichever shape is chosen). W4b/W4c remain the
+Dominance-row corollaries' channels either way.
 ```lean
 theorem park_episode_replay {st : State} (hwf : st.WF) {c x : Card} {b₀ : Base}
     {s₁ s₂ : State} (hnotlock : st.isLocked c = false)
