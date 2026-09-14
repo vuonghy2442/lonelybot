@@ -169,6 +169,111 @@ theorem Board.aboveOf_exchangeTwin {bd : Board} {t c : Card}
     congrArg Sum.inr (Card.swapTwin_of_ne hx'.1 hx'.2)
   rw [Board.exchangeTwin_topOf, hxe]
 
+/-! ### The walk transitivity — the missing keystone
+
+`aboveOf` is transitive on RAW boards (no WF): the matching's `inj`
+makes the up-chain from any card unique, so the walk from `x` is a
+tail of the walk from `y` whenever `x ∈ aboveOf y` — the
+guard-truncation is symmetric around cycles, so nothing is lost.
+The merge case's landing analysis (the off-cargo split below)
+consumes this; the seed-tricks elsewhere dance around it.
+-/
+
+/-- **The walk reaches every card it collects**: either the card was
+seeded, or the walk, at some recursion depth, sits ON the card's seat
+with the card heading the accumulator — carrying the fuel/length
+bookkeeping (one fuel unit per collected card) and the accumulator's
+duplicate-freeness, so the seat-split never runs on empty fuel (53
+collected cards would be needed; the deck has 52). -/
+theorem Board.aboveOf_go_reaches {bd : Board} :
+    ∀ (n : Nat) (b : Base) (acc : List Card) (u : Card),
+      acc.Nodup →
+      u ∈ Board.aboveOf.go bd n b acc →
+      u ∈ acc ∨ ∃ (m : Nat) (A : List Card),
+        Board.aboveOf.go bd n b acc = Board.aboveOf.go bd m (Sum.inr u) (u :: A) ∧
+          m + (u :: A).length = n + acc.length ∧ (u :: A).Nodup := by
+  intro n
+  induction n with
+  | zero => intro b acc u _ hu; exact Or.inl hu
+  | succ k ih =>
+      intro b acc u hnd hu
+      cases ht : bd.topOf b with
+      | none => rw [Board.aboveOf_go_topOf_none ht] at hu; exact Or.inl hu
+      | some c' =>
+          by_cases hc : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop ht hc] at hu; exact Or.inl hu
+          · rw [Board.aboveOf_go_step ht hc] at hu
+            have hnd' : (c' :: acc).Nodup :=
+              List.nodup_cons.mpr ⟨fun hmem => hc ((List.contains_iff_mem).mpr hmem), hnd⟩
+            rcases ih (Sum.inr c') (c' :: acc) u hnd' hu with h | ⟨m, A, heq, hlen, hndA⟩
+            · rcases List.mem_cons.mp h with heq' | h'
+              · subst heq'
+                refine Or.inr ⟨k, acc, Board.aboveOf_go_step ht hc, ?_, hnd'⟩
+                have hl : (u :: acc).length = acc.length + 1 := rfl
+                omega
+              · exact Or.inl h'
+            · refine Or.inr ⟨m, A, (Board.aboveOf_go_step ht hc).trans heq, ?_, hndA⟩
+              have hl : (c' :: acc).length = acc.length + 1 := rfl
+              omega
+
+/-- **The walk's successor closure**: a collected card's own successor
+was read one step past it — the seat-split lemma at fuel 53 (the
+empty-fuel corner dies on the 52-count). -/
+theorem Board.aboveOf_succ_closed {bd : Board} {y u v : Card}
+    (hu : u ∈ bd.aboveOf y) (hv : bd.topOf (Sum.inr u) = some v) :
+    v ∈ bd.aboveOf y := by
+  rw [Board.aboveOf_eq_go 53 (by omega)] at hu ⊢
+  rcases Board.aboveOf_go_reaches 53 (Sum.inr y) [] u (by simp) hu with h | ⟨m, A, heq, hlen, hndA⟩
+  · exact absurd h (by simp)
+  · rw [heq]
+    cases m with
+    | zero =>
+        exfalso
+        have h0 : ([] : List Card).length = 0 := rfl
+        have h52 := Board.nodup_cards_length_le hndA
+        omega
+    | succ k =>
+        by_cases hcon : (u :: A).contains v = true
+        · rw [Board.aboveOf_go_stop hv hcon]
+          exact (List.contains_iff_mem).mp hcon
+        · rw [Board.aboveOf_go_step hv hcon]
+          exact Board.aboveOf_go_mem bd k (Sum.inr v) (v :: u :: A) v (by simp)
+
+/-- The membership induction: a walk whose seat card is already
+collected stays inside `aboveOf y` — each read is closed by
+`aboveOf_succ_closed`, the accumulator rides the hypothesis. -/
+theorem Board.aboveOf_go_of_mem {bd : Board} {y : Card} :
+    ∀ (n : Nat) (u : Card) (acc : List Card) (w : Card),
+      u ∈ bd.aboveOf y → (∀ c ∈ acc, c ∈ bd.aboveOf y) →
+      w ∈ Board.aboveOf.go bd n (Sum.inr u) acc →
+      w ∈ bd.aboveOf y := by
+  intro n
+  induction n with
+  | zero => intro u acc w _ hacc hw; exact hacc w hw
+  | succ k ih =>
+      intro u acc w hu hacc hw
+      cases ht : bd.topOf (Sum.inr u) with
+      | none => rw [Board.aboveOf_go_topOf_none ht] at hw; exact hacc w hw
+      | some c' =>
+          have hc' : c' ∈ bd.aboveOf y := Board.aboveOf_succ_closed hu ht
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop ht hcon] at hw; exact hacc w hw
+          · rw [Board.aboveOf_go_step ht hcon] at hw
+            exact ih c' (c' :: acc) w hc'
+              (by intro c hc
+                  rcases List.mem_cons.mp hc with heq | hc'
+                  · rw [heq]; exact hc'
+                  · exact hacc c hc') hw
+
+/-- **Walk transitivity** — `aboveOf` is transitive on raw boards (no
+WF needed): the matching's `inj` makes the up-chain unique, so the
+walk from `x` is a tail of the walk from `y`; the guard-truncation is
+symmetric around cycles. -/
+theorem Board.aboveOf_trans {bd : Board} {x y : Card}
+    (hxy : x ∈ bd.aboveOf y) {w : Card} (hw : w ∈ bd.aboveOf x) :
+    w ∈ bd.aboveOf y :=
+  Board.aboveOf_go_of_mem 52 x [] w hxy (by simp) hw
+
 /-- A fitting cargo is off its host's twin pair (the fit forces the
 rank gap — the cargos never confuse the license's seats). -/
 theorem Card.ne_pair_of_canSitOn {z t : Card} (h : canSitOn z t = true) :
@@ -435,12 +540,18 @@ theorem State.exchangeTwinCargo_step_pileStack {st a₁ : State} {t z z' c : Car
     · rfl
     · rfl
 
-/-- **The merge bridge — the [H] crux**: the pilePile-root freedom —
-a run whose walk reaches a twin (carrying a cargo's stack off its
-seat), landing on the other cargo's stack — the one frozen-phase move
-whose same-move mirror is self-landing in the exchanged state.
+/-- **The merge bridge — the [H] crux, now exactly the cargo-top
+landing**: the pilePile-root freedom — a run whose walk reaches a
+twin (carrying a cargo's stack off its seat), landing ON a cargo
+stack — the one frozen-phase move whose same-move mirror is
+self-landing in the exchanged state.  The off-cargo landings mirror
+(`exchangeTwinCargo_step_pilePile_passing` — session-7's
+correction); the own-cargo landings are self-landing at the SOURCE
+(the guard plus walk transitivity: a card of the own cargo's run is
+above the passing twin, hence above the run's root), so the hland
+cases are exactly the other-cargo tops.
 
-TODO(proof) **[H]**: the route (TwinExchange's ledger): piecewise
+TODO(proof) **[H]**: the route (TwinExchange.lean's ledger): piecewise
 bookkeeping (the other-seat landing, fit by twin-blindness — the
 run rides the OTHER cargo in the mirror — landing in the translated
 frame, the bit g ∈ {id, e} surviving what the fixed mirror cannot),
@@ -448,10 +559,12 @@ or play normalization ("winning plays avoid cargo-top merges").  The
 gate: the witness hunt at WF states (TwinExchange.lean:1247) — no
 witness means the bridge is a lemma; a witness means a premise
 repair (then grow `twinLicensed` by the decidable exclusion). -/
-theorem State.solvable_of_exchange_merge {st a₁ : State} {t c : Card} {b : Base}
+theorem State.solvable_of_exchange_merge {st a₁ : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF) (h : st.twinLicensed t)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
     (hmerge : t ∈ st.board.aboveOf c ∨ t.flipSuit ∈ st.board.aboveOf c)
+    (hland : ∃ d, b = Sum.inr d ∧
+      (d = z ∨ d ∈ st.board.aboveOf z ∨ d = z' ∨ d ∈ st.board.aboveOf z'))
     (hsol : a₁.solvableFrom) :
     (st.exchangeTwinCargo t).solvableFrom := sorry
 
@@ -1197,6 +1310,209 @@ theorem State.twinLicensed_apply_pilePile_root {st a₁ : State} {t z z' c : Car
     · intro hmem
       exact hnb'.2 (Board.aboveOf_sub_detach 52 z' [] t.flipSuit hmem)
 
+/-- **The t-passing `pilePile` mirror step** (the off-cargo landing —
+the session-7 correction, formal): a run whose walk reaches a twin,
+landing off both cargo stacks — the SAME move is legal in the
+exchanged state and the successors stay exchanged.  The self-landing
+guard transfers by `Board.selfLanding_exchangeTwin_of_off_cargo`
+(the exchanged walk grows by the other cargo's run, which the
+landing is off); the detach/attach congruences fire at the off-pair
+bases. -/
+theorem State.exchangeTwinCargo_step_pilePile_passing {st a₁ : State} {t z z' c : Card} {b : Base}
+    (h₀ : st.board.bottomOf z = some (Sum.inr t))
+    (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hnb : t ∉ st.board.aboveOf z ∧ t.flipSuit ∉ st.board.aboveOf z)
+    (hnb' : t ∉ st.board.aboveOf z' ∧ t.flipSuit ∉ st.board.aboveOf z')
+    (hc : c ≠ z ∧ c ≠ z')
+    (hoff : ∀ d, b = Sum.inr d →
+      d ≠ z ∧ d ≠ z' ∧ d ∉ st.board.aboveOf z ∧ d ∉ st.board.aboveOf z')
+    (hstep : st.apply (Move.pilePile c b) = some a₁) :
+    (st.exchangeTwinCargo t).apply (Move.pilePile c b)
+      = some (a₁.exchangeTwinCargo t) := by
+  have hztop : st.board.topOf (Sum.inr t) = some z := (Board.bottomOf_eq _ _ _).mp h₀
+  have hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z' :=
+    (Board.bottomOf_eq _ _ _).mp h₀'
+  have hzne : z ≠ t := (Card.ne_pair_of_canSitOn hfit).1
+  have hzne' : z ≠ t.flipSuit := (Card.ne_pair_of_canSitOn hfit).2
+  have hz't : z' ≠ t := by
+    obtain ⟨-, hb⟩ := Card.ne_pair_of_canSitOn hfit'
+    exact fun h => hb (by rw [h, Card.flipSuit_flipSuit])
+  have hz't' : z' ≠ t.flipSuit := (Card.ne_pair_of_canSitOn hfit').1
+  rw [apply_pilePile_iff] at hstep ⊢
+  obtain ⟨b₀, hbot, hbne, hcmr, bd, hatt, rfl⟩ := hstep
+  simp only [State.canMoveRun, Bool.and_eq_true_iff] at hcmr
+  obtain ⟨hcp, hselfm⟩ := hcmr
+  have hb₀t : b₀ ≠ Sum.inr t := by
+    intro hcon
+    rw [hcon] at hbot
+    exact hc.1 (Option.some.inj (hztop.symm.trans
+      ((Board.bottomOf_eq st.board c (Sum.inr t)).mp hbot))).symm
+  have hb₀t' : b₀ ≠ Sum.inr t.flipSuit := by
+    intro hcon
+    rw [hcon] at hbot
+    exact hc.2 (Option.some.inj (hztop'.symm.trans
+      ((Board.bottomOf_eq st.board c (Sum.inr t.flipSuit)).mp hbot))).symm
+  have hbt : b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
+    constructor
+    · intro hcon
+      cases b with
+      | inl a => exact absurd hcon (by simp)
+      | inr d =>
+          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
+          rw [hcon, hztop] at htopb
+          simp at htopb
+    · intro hcon
+      cases b with
+      | inl a => exact absurd hcon (by simp)
+      | inr d =>
+          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
+          rw [hcon, hztop'] at htopb
+          simp at htopb
+  have hselfSrc : ∀ d, b = Sum.inr d → d ∉ st.board.aboveOf c := by
+    intro d hd
+    have h2 : (!(st.board.aboveOf c).contains d) = true := by
+      have h3 := hselfm
+      rw [hd] at h3
+      exact h3
+    intro hmem
+    have hc2 : (st.board.aboveOf c).contains d = true :=
+      (List.contains_iff_mem).mpr hmem
+    rw [hc2] at h2
+    simp at h2
+  have hselfE : ∀ d, b = Sum.inr d → d ∉ (st.board.exchangeTwin t).aboveOf c := by
+    intro d hd
+    exact Board.selfLanding_exchangeTwin_of_off_cargo hztop hztop'
+      ⟨hzne, hzne', hz't, hz't'⟩ hnb hnb' (hoff d hd) (hselfSrc d hd)
+  have hb₀E : (st.exchangeTwinCargo t).board.bottomOf c = some b₀ := by
+    rw [State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin, hbot]
+    show some (Base.swapTwin t b₀) = some b₀
+    rw [Base.swapTwin_eq_self hb₀t hb₀t']
+  have hcpE : (st.exchangeTwinCargo t).canPlace c b = true := by
+    rw [State.canPlace_exchangeTwin hbt.1 hbt.2]
+    exact hcp
+  have hcmrE : (st.exchangeTwinCargo t).canMoveRun c b = true := by
+    simp only [State.canMoveRun, Bool.and_eq_true_iff]
+    refine ⟨hcpE, ?_⟩
+    cases b with
+    | inl a => rfl
+    | inr d =>
+        show (!((st.exchangeTwinCargo t).board.aboveOf c).contains d) = true
+        rw [State.exchangeTwinCargo_board, lcontains_false_of_notMem (hselfE d rfl)]
+        rfl
+  have hattE : ((st.exchangeTwinCargo t).board.detach b₀).attach b c
+      = some (bd.exchangeTwin t) := by
+    rw [State.exchangeTwinCargo_board,
+      Board.exchangeTwin_detach_ne _ _ hb₀t hb₀t']
+    exact Board.exchangeTwin_attach_ne _ _ hbt.1 hbt.2 hatt
+  exact ⟨b₀, hb₀E, hbne, hcmrE, bd.exchangeTwin t, hattE, rfl⟩
+
+/-- **The t-passing `pilePile` license transfer** (the off-cargo
+landing): the cargos ride the twins (only the root's own base
+changes), and the no-braid walks survive because the attach cell is
+on neither cargo's walk — the landing premise (`hoff`) plus the
+detach-shrink (`aboveOf_sub_detach`) close the congruence. -/
+theorem State.twinLicensed_apply_pilePile_passing {st a₁ : State} {t z z' c : Card} {b : Base}
+    (hvis : st.isVis t = true) (hvis' : st.isVis t.flipSuit = true)
+    (h₀ : st.board.bottomOf z = some (Sum.inr t))
+    (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hnb : t ∉ st.board.aboveOf z ∧ t.flipSuit ∉ st.board.aboveOf z)
+    (hnb' : t ∉ st.board.aboveOf z' ∧ t.flipSuit ∉ st.board.aboveOf z')
+    (hct : c ≠ t ∧ c ≠ t.flipSuit) (hc : c ≠ z ∧ c ≠ z')
+    (hoff : ∀ d, b = Sum.inr d →
+      d ≠ z ∧ d ≠ z' ∧ d ∉ st.board.aboveOf z ∧ d ∉ st.board.aboveOf z')
+    (hstep : st.apply (Move.pilePile c b) = some a₁) : a₁.twinLicensed t := by
+  have hztop : st.board.topOf (Sum.inr t) = some z := (Board.bottomOf_eq _ _ _).mp h₀
+  have hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z' :=
+    (Board.bottomOf_eq _ _ _).mp h₀'
+  rw [apply_pilePile_iff] at hstep
+  obtain ⟨b₀, hbot, hbne, hcmr, bd, hatt, rfl⟩ := hstep
+  simp only [State.canMoveRun, Bool.and_eq_true_iff] at hcmr
+  obtain ⟨hcp, -⟩ := hcmr
+  have hzbot : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp hbot
+  have hb₀t : b₀ ≠ Sum.inr t := by
+    intro hcon
+    rw [hcon] at hbot
+    exact hc.1 (Option.some.inj (hztop.symm.trans
+      ((Board.bottomOf_eq st.board c (Sum.inr t)).mp hbot))).symm
+  have hb₀t' : b₀ ≠ Sum.inr t.flipSuit := by
+    intro hcon
+    rw [hcon] at hbot
+    exact hc.2 (Option.some.inj (hztop'.symm.trans
+      ((Board.bottomOf_eq st.board c (Sum.inr t.flipSuit)).mp hbot))).symm
+  have hbt : b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
+    constructor
+    · intro hcon
+      cases b with
+      | inl a => exact absurd hcon (by simp)
+      | inr d =>
+          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
+          rw [hcon, hztop] at htopb
+          simp at htopb
+    · intro hcon
+      cases b with
+      | inl a => exact absurd hcon (by simp)
+      | inr d =>
+          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
+          rw [hcon, hztop'] at htopb
+          simp at htopb
+  have hcongrz : bd.aboveOf z = (st.board.detach b₀).aboveOf z := by
+    apply Board.aboveOf_congr
+    intro x hx
+    by_cases hxb : b = Sum.inr x
+    · exfalso
+      obtain ⟨h1, -, h3, -⟩ := hoff x hxb
+      rcases List.mem_cons.mp hx with heq | hx'
+      · exact h1 heq
+      · exact h3 (Board.aboveOf_sub_detach 52 z [] x hx')
+    · rw [Board.attach_topOf_ne _ _ _ hatt (fun hcon => hxb hcon.symm)]
+  have hcongrz' : bd.aboveOf z' = (st.board.detach b₀).aboveOf z' := by
+    apply Board.aboveOf_congr
+    intro x hx
+    by_cases hxb : b = Sum.inr x
+    · exfalso
+      obtain ⟨-, h2, -, h4⟩ := hoff x hxb
+      rcases List.mem_cons.mp hx with heq | hx'
+      · exact h2 heq
+      · exact h4 (Board.aboveOf_sub_detach 52 z' [] x hx')
+    · rw [Board.attach_topOf_ne _ _ _ hatt (fun hcon => hxb hcon.symm)]
+  refine ⟨z, z', ?_, ?_, ?_, ?_, hfit, hfit', ?_, ?_⟩
+  · show (bd.bottomOf t).isSome = true
+    refine bottomOf_isSome_attach hatt ?_
+    show ((st.board.detach b₀).bottomOf t).isSome = true
+    rw [bottomOf_detach_ne hzbot (fun h => hct.1 h.symm)]
+    exact hvis
+  · show (bd.bottomOf t.flipSuit).isSome = true
+    refine bottomOf_isSome_attach hatt ?_
+    show ((st.board.detach b₀).bottomOf t.flipSuit).isSome = true
+    rw [bottomOf_detach_ne hzbot (fun h => hct.2 h.symm)]
+    exact hvis'
+  · show bd.bottomOf z = some (Sum.inr t)
+    exact (Board.bottomOf_eq _ _ _).mpr (by
+      rw [Board.attach_topOf_ne _ _ _ hatt (fun hcon => hbt.1 hcon.symm),
+        Board.detach_topOf_ne _ _ _ (fun hcon => hb₀t hcon.symm)]
+      exact hztop)
+  · show bd.bottomOf z' = some (Sum.inr t.flipSuit)
+    exact (Board.bottomOf_eq _ _ _).mpr (by
+      rw [Board.attach_topOf_ne _ _ _ hatt (fun hcon => hbt.2 hcon.symm),
+        Board.detach_topOf_ne _ _ _ (fun hcon => hb₀t' hcon.symm)]
+      exact hztop')
+  · show t ∉ bd.aboveOf z ∧ t.flipSuit ∉ bd.aboveOf z
+    rw [hcongrz]
+    constructor
+    · intro hmem
+      exact hnb.1 (Board.aboveOf_sub_detach 52 z [] t hmem)
+    · intro hmem
+      exact hnb.2 (Board.aboveOf_sub_detach 52 z [] t.flipSuit hmem)
+  · show t ∉ bd.aboveOf z' ∧ t.flipSuit ∉ bd.aboveOf z'
+    rw [hcongrz']
+    constructor
+    · intro hmem
+      exact hnb'.1 (Board.aboveOf_sub_detach 52 z' [] t hmem)
+    · intro hmem
+      exact hnb'.2 (Board.aboveOf_sub_detach 52 z' [] t.flipSuit hmem)
+
 /-- **The twin-rooted merge — the [H] residual**: the frozen-phase
 move whose root is the twin itself, landing on the other cargo's run —
 the twin's own run (the cargo riding on top of it) merges onto the
@@ -1665,7 +1981,43 @@ theorem State.solvable_exchangeTwinCargo_go :
                     · -- off the pair: merge or clean
                       by_cases hmerge : t ∈ st.board.aboveOf c ∨
                         t.flipSuit ∈ st.board.aboveOf c
-                      · exact State.solvable_of_exchange_merge hwf hlicb hap hmerge hsol₁
+                      · -- the merge: split on the landing (off-cargo
+                        -- landings mirror — session-7's correction)
+                        cases b with
+                        | inl a =>
+                            have hoff : ∀ d, Sum.inl a = Sum.inr d →
+                                d ≠ z ∧ d ≠ z' ∧ d ∉ st.board.aboveOf z ∧
+                                  d ∉ st.board.aboveOf z' :=
+                              fun d hd => absurd hd (by simp)
+                            have hlic₁ : a₁.twinLicensed t :=
+                              State.twinLicensed_apply_pilePile_passing hvis hvis' h₀ h₀'
+                                hfit hfit' hnb hnb' ⟨hct, hct'⟩ ⟨hcz, hcz'⟩ hoff hap
+                            exact State.solvable_step
+                              (State.exchangeTwinCargo_step_pilePile_passing h₀ h₀'
+                                hfit hfit' hnb hnb' ⟨hcz, hcz'⟩ hoff hap)
+                              (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                        | inr d =>
+                            by_cases hland : d = z ∨ d ∈ st.board.aboveOf z ∨
+                              d = z' ∨ d ∈ st.board.aboveOf z'
+                            · exact State.solvable_of_exchange_merge hwf hlicb hap hmerge
+                                ⟨d, rfl, hland⟩ hsol₁
+                            · have hoff : ∀ d', (Sum.inr d : Base) = Sum.inr d' →
+                                d' ≠ z ∧ d' ≠ z' ∧ d' ∉ st.board.aboveOf z ∧
+                                  d' ∉ st.board.aboveOf z' := by
+                                intro d' hd'
+                                have hdeq : d' = d := Sum.inr.inj hd'.symm
+                                rw [hdeq]
+                                exact ⟨fun h => hland (Or.inl h),
+                                  fun h => hland (Or.inr (Or.inr (Or.inl h))),
+                                  fun h => hland (Or.inr (Or.inl h)),
+                                  fun h => hland (Or.inr (Or.inr (Or.inr h)))⟩
+                              have hlic₁ : a₁.twinLicensed t :=
+                                State.twinLicensed_apply_pilePile_passing hvis hvis' h₀ h₀'
+                                  hfit hfit' hnb hnb' ⟨hct, hct'⟩ ⟨hcz, hcz'⟩ hoff hap
+                              exact State.solvable_step
+                                (State.exchangeTwinCargo_step_pilePile_passing h₀ h₀'
+                                  hfit hfit' hnb hnb' ⟨hcz, hcz'⟩ hoff hap)
+                                (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
                       · have hclean : t ∉ st.board.aboveOf c ∧
                           t.flipSuit ∉ st.board.aboveOf c :=
                           ⟨fun h => hmerge (Or.inl h), fun h => hmerge (Or.inr h)⟩
