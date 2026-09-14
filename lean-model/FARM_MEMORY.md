@@ -1702,3 +1702,21 @@ cannot delta-unfold the goal); count Eq.trans sides before chaining.
   blocker = deckPile x (inr c) storage = the §5.1/B4 root); deck_dominance_draw1 (the (A/B/C)
   decomposition; A now PROVEN, B = the exchange cases, C = the pre-exit worry normal form = the
   §5.1 root).
+
+## ENDGAME.md — the route reading (2026-09-14)
+
+- lean-model/ENDGAME.md is the B4/§5.1 endgame route doc: paper mapping (B&G
+  numbering confirmed: Thm 1 = safemoves main.tex:1417, Cor 2 = worry-ban
+  :1453, Cor 3 = thresholds :1460 (= safeToStack bit-for-bit), Thm 4 =
+  immediate building :1521, Thm 5 = compatibility :1614), the rungNormal
+  normal-form def sketch, the (B, L) lexicographic measure, and the W1–W5
+  work order with full statement drafts + falsifiers.
+- KEY STRUCTURAL FACTS for the endgame taker: F2 seat locality — a park on
+  c has exactly ONE alternative seat, the twin (only_blocker_is_twin,
+  Basic.lean:144); F0 — the rung card is c itself, so every winning play
+  fires pileStack c (deckStack c killed by vis_off_cycle); F3 — the N-case
+  base of rank r + c's colour IS the twin seat, free in s₁.
+- CRITICAL GAP flagged: the forced park (twin unavailable, tenant unstackable,
+  no rank-mate for c) — refute-first before W4; repairs: +hsafe / initialReachable.
+- founds_gone (State.lean:149) CLOSES the wave-5 no-passing alert (ii) —
+  stNP predates that conjunct; channel A needs no new repair.

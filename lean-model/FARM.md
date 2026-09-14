@@ -244,6 +244,20 @@ neither.  They stay closed pending the transfer row's landing.
 
 ## The crux's case ledger (B4 decomposition state)
 
+**ROUTE (2026-09-14): [ENDGAME.md](ENDGAME.md)** — the reading pass
+over B&G + no_pile §5 + the landed kit.  The normal form is
+`rungNormal` (before the first, forced `pileStack c` — the rung pass —
+no move parks on `c`, no c-suit worry-back); the measure is
+lexicographic (blocked-moves-before-rung, play length); the work order
+is W1 (π-scaffold + six transfer one-liners) → W2 (`rung_pass_of_win`)
+→ W3 (excursion-pair deletion) → W4 (the park episode).  **W4 is
+gated on the forced-park refute probe** — the shape where the twin seat
+is unavailable (`Card.only_blocker_is_twin` makes it the only
+alternative), the tenant is unstackable (the crux carries no `hsafe`),
+and no rank-mate return exists: a witness there falsifies the crux
+statement itself (repair directions: `+hsafe`, or `initialReachable`
+scoping).  Probe FIRST; do not burn W4 proof effort behind it.
+
 `solvable_of_pileStack {st} (hwf : st.WF) (hnotlock : st.isLocked c = false)`
 — a legal `pileStack` never hurts solvability.  Repairs: `+hwf`
 (phantom tenant, witnesses/… B4 archive), `+hnotlock` (locked
@@ -251,7 +265,9 @@ stackable strands its boundary — witnesses/B4LockedWitness.lean; this
 hole was Dominance's, never propagated to B4 until 2026-09-13).
 
 DONE: the R-half (`solvable_of_pileStack_return`); `pilePile` replay;
-commute squares for draw/reveal/deckStack/deckPile.
+all commute squares (incl. `pileStack_comm_pileStack`, which the
+original plan missed); the seven step dispatch lemmas
+(`solvable_of_pileStack_step_*`) + `reveal_notLocked`.
 REMAINING, in order:
 1. the 2 squares (`stackPile x b''` with `x.suit ≠ c.suit`;
    `pilePile x b''` with `x ≠ c`) — `deckPile`'s square is the
