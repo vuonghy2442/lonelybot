@@ -540,6 +540,17 @@ theorem State.exchangeTwinCargo_step_pileStack {st a₁ : State} {t z z' c : Car
     · rfl
     · rfl
 
+/-- One step of the walk: the card directly on `t` is above `t`. -/
+theorem Board.mem_aboveOf_of_topOf {bd : Board} {t z : Card}
+    (h : bd.topOf (Sum.inr t) = some z) : z ∈ bd.aboveOf t := by
+  rw [Board.aboveOf_eq_go 53 (by omega), Board.aboveOf_go_succ, h]
+  show z ∈ (if ([] : List Card).contains z = true then ([] : List Card)
+    else aboveOf.go bd 52 (Sum.inr z) [z])
+  by_cases hcon : ([] : List Card).contains z = true
+  · simp at hcon
+  · rw [if_neg hcon]
+    exact Board.aboveOf_go_mem bd 52 (Sum.inr z) [z] z (by simp)
+
 /-- **The merge bridge — the [H] crux, now exactly the cargo-top
 landing**: the pilePile-root freedom — a run whose walk reaches a
 twin (carrying a cargo's stack off its seat), landing ON a cargo
@@ -551,14 +562,26 @@ correction); the own-cargo landings are self-landing at the SOURCE
 above the passing twin, hence above the run's root), so the hland
 cases are exactly the other-cargo tops.
 
-TODO(proof) **[H]**: the route (TwinExchange.lean's ledger): piecewise
-bookkeeping (the other-seat landing, fit by twin-blindness — the
-run rides the OTHER cargo in the mirror — landing in the translated
-frame, the bit g ∈ {id, e} surviving what the fixed mirror cannot),
-or play normalization ("winning plays avoid cargo-top merges").  The
-gate: the witness hunt at WF states (TwinExchange.lean:1247) — no
-witness means the bridge is a lemma; a witness means a premise
-repair (then grow `twinLicensed` by the decidable exclusion). -/
+TODO(proof) **[H]** — the route (mapped by the w15wfmerge probe,
+2026-09-14): the gate FIRED EMPTY (the first WF candidate — the
+w15merge cast fully re-crafted under WF — shows NO divergence:
+`founds_gone` forces every blocker to be live, it stacks off, the
+mirror opens, stx wins).  The exhibited stx play IS the argument in
+miniature: **(1)** the riders on the seated cargo clear (they are
+live — at/above their heights — and a winning play stacks every
+card), **(2)** the MIRROR merge fires (the run rides the other
+cargo, landing on the now-bare cargo — its board is the local
+twin-swap of `a₁`'s, the heights and stock agree, and the winning
+play replays modulo the swap — the moves are deal-blind except
+reveals), **(3)** the tail climbs out.  The missing primitives, both
+[M+]: the mirror's self-landing guard needs PILE-DISJOINTNESS (a
+card's run stays in its pile: `pred-reaches` — the walk collects the
+predecessor — plus WF cycle-freeness via board_edges), and the
+swap-replay needs either the conjugation kit (TwinAgnostic's
+`apply_swapTwin_clean`, the twin exception set) or a direct
+board-level replay lemma.  The landing refinement
+(`merge_own_landing_absurd`, below) settles the own-cargo side of
+`hland`; the z-side disjuncts are vacuous. -/
 theorem State.solvable_of_exchange_merge {st a₁ : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF) (h : st.twinLicensed t)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
@@ -1512,6 +1535,21 @@ theorem State.twinLicensed_apply_pilePile_passing {st a₁ : State} {t z z' c : 
       exact hnb'.1 (Board.aboveOf_sub_detach 52 z' [] t hmem)
     · intro hmem
       exact hnb'.2 (Board.aboveOf_sub_detach 52 z' [] t.flipSuit hmem)
+
+/-- **The merge's landing is on the OTHER cargo's stack** — the
+own-cargo side is self-landing at the SOURCE: a card of the own
+cargo's run is above the passing twin (one step,
+`mem_aboveOf_of_topOf`), hence above the run's root (walk
+transitivity) — the source guard's territory.  The w15wfmerge probe's
+z-side hland disjuncts are therefore vacuous. -/
+theorem State.merge_own_landing_absurd {st : State} {t z c d : Card}
+    (hztop : st.board.topOf (Sum.inr t) = some z)
+    (hmerge : t ∈ st.board.aboveOf c)
+    (hguard : d ∉ st.board.aboveOf c)
+    (hd : d = z ∨ d ∈ st.board.aboveOf z) : False := by
+  rcases hd with rfl | hd'
+  · exact hguard (Board.aboveOf_trans hmerge (Board.mem_aboveOf_of_topOf hztop))
+  · exact hguard (Board.aboveOf_trans hmerge (Board.aboveOf_sub_of_seated hztop hd'))
 
 /-- **The twin-rooted merge — the [H] residual**: the frozen-phase
 move whose root is the twin itself, landing on the other cargo's run —
