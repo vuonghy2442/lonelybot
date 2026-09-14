@@ -619,7 +619,22 @@ stacking lands the cross-skew under the rung-alignment both firings
 supply), `apply_crossTwin_stack` (the second re-syncs onto the plain
 swapTwin correspondence), and the assembly
 `solvable_swapTwin_separated` (+ `_back`).  The remaining bridge
-content is exactly (ii). -/
+content is exactly (ii).
+
+**(2a) is LANDED too** (`State.exchange_merge_ply_root`): the
+structural discovery behind it — the CARGOS ARE A TWIN PAIR
+(`State.cargo_flipSuit`: the fits pin both to the twins' shared rank
+and the shared other color, so `z' = z.flipSuit`) — makes the fit
+twin-blind and identifies the ply's landing as the merge-successor's
+board, twin-swapped AT THE CARGO z.  THE OPEN ITEM the climb-out now
+faces: the full `swapTwin z` also relabels the deal piles and the
+stock, while the ply keeps the source's deal — and board cards stay
+listed in the deal piles (the reveal keeps `deal`), so the
+state-level correspondence between the ply result and `a₁.swapTwin z`
+needs a deal reconciliation (the climb-out's replay machinery must
+either work board-only, or the deal difference must be bridged).  The
+stock is z-free (`vis_off_cycle` at seated z/z'); only the deal
+piles carry the difference. -/
 theorem State.solvable_of_exchange_merge {st a₁ : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF) (h : st.twinLicensed t)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
