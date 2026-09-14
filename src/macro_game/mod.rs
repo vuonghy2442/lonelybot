@@ -1709,13 +1709,14 @@ fn core_run(
     // but the scalar's king branch exits before those kills)
     let stacked_now = stacked_mask(ctx.root.stack);
     let commit_mask = deck_mask | locked_surfaces;
-    let k1_dead = {
+    let k1_open = {
         let mut open = 0u64;
         for s in 0..4u8 {
             open |= SUIT_PREFIX[usize::from(s)][usize::from(ctx.frontier[usize::from(s)]) + 1];
         }
-        commit_mask & !open
+        open
     };
+    let k1_dead = commit_mask & !k1_open;
     let tableau_dead = {
         let receiver_live = sit_on_spread(ctx.root.vis | stacked_now);
         let k2_dead = commit_mask & !KING_MASK & !receiver_live;
@@ -1727,6 +1728,36 @@ fn core_run(
         let k6_dead =
             commit_mask & twin_swap(ctx.root.vis & !locked) & k1_dead & k2_dead;
         king_dead | k6_dead | k2_dead
+    };
+    // The active mask: a commitment is quiet iff no channel guard passes,
+    // no prefix chain can start (the first missing card not
+    // stackable-and-unlocked, or the climb is empty), and both its goal
+    // kills fire. The quiet set is mode-independent — every fold-mode
+    // suppression input (direct_now, dig/borrow fired, f3_sel) is
+    // provably false for a quiet commitment (f3 ⊆ stack_direct, and
+    // the dig/borrow probes need their candidate bits) — so skipping
+    // the quiet majority is safe for the search AND the differential's
+    // total path: they emit nothing and push nothing in either mode.
+    let active = {
+        let mut prefix_cand = 0u64;
+        for s in 0..4u8 {
+            let h0 = ctx.root.height(s);
+            if h0 < crate::card::N_RANKS {
+                let first = Card::new(h0, s);
+                if mv.pile_stack & first.mask() != 0 && locked & first.mask() == 0 {
+                    prefix_cand |= SUIT_MASK[usize::from(s)]
+                        & !SUIT_PREFIX[usize::from(s)][usize::from(h0) + 1];
+                }
+            }
+        }
+        commit_mask
+            & (stack_direct
+                | tableau_direct
+                | dig_cand
+                | borrow_cand
+                | prefix_cand
+                | k1_open
+                | !tableau_dead)
     };
 
     // enumerate commitments: every locked surface first, then every
@@ -1749,8 +1780,12 @@ fn core_run(
     // dominated explored before their dominators are refuted — the
     // measured 6.9% realized vs the 43.8% ceiling); ascending position
     // order is systematically the worst (dominated always first).
+    //
+    // Filtered by the active mask: the quiet commitments (no channel, no
+    // prefix start, both kills) emit nothing in either mode and are
+    // skipped before the loop.
     commitments.clear();
-    let mut bits = locked_surfaces;
+    let mut bits = locked_surfaces & active;
     while bits != 0 {
         let bit = bits & bits.wrapping_neg();
         bits &= !bit;
@@ -1759,7 +1794,7 @@ fn core_run(
         )));
     }
     for c in deck.iter().rev() {
-        if deck_mask & c.mask() != 0 {
+        if active & deck_mask & c.mask() != 0 {
             commitments.push(Commitment::Draw(c));
         }
     }
