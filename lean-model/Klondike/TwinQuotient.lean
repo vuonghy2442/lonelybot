@@ -1,3 +1,4 @@
+import Klondike.TwinAgnostic
 import Klondike.TwinExchange
 
 /-!
@@ -2057,6 +2058,339 @@ theorem State.apply_ortho_preserves {t : Card} {S R : State} {m : Move}
       rw [apply_pilePile_iff] at hS
       obtain ⟨-, -, -, -, -, -, rfl⟩ := hS
       exact ⟨rfl, rfl⟩
+
+/-! ### Chunk B: the cross-skew and the separated replay -/
+
+/-- An ortho move is clean (its moved card's suit is off the twin
+suits, so the card is off the pair). -/
+theorem Move.orthoTwin_clean {t : Card} {m : Move} (hort : Move.orthoTwin t m = true) :
+    Move.cleanTwin t m = true := by
+  cases m with
+  | draw | reveal _ | deckPile _ _ | pilePile _ _ => rfl
+  | deckStack c | pileStack c | stackPile c _ =>
+      obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
+      show Card.offPair t c = true
+      exact Card.offPair_true (fun h => hsu (by rw [h])) (fun h => hsu' (by rw [h]))
+
+/-- The twin-height exchange: only the two twin suits' height entries
+are swapped, everything else is kept. -/
+def State.twinHeightSwap (t : Card) (st : State) : State :=
+  { st with heights := fun s => if s = t.suit then st.heights t.flipSuit.suit
+      else if s = t.flipSuit.suit then st.heights t.suit else st.heights s }
+
+theorem State.twinHeightSwap_heights_eq (t : Card) (st : State) (s : Suit) :
+    (st.twinHeightSwap t).heights s =
+      (if s = t.suit then st.heights t.flipSuit.suit
+        else if s = t.flipSuit.suit then st.heights t.suit else st.heights s) := rfl
+
+theorem State.twinHeightRel_heightSwap (t : Card) (st : State) :
+    State.twinHeightRel t st (st.twinHeightSwap t) :=
+  ⟨rfl, rfl, rfl, rfl, rfl, fun s h1 h2 => by
+    show st.heights s = (if s = t.suit then st.heights t.flipSuit.suit
+      else if s = t.flipSuit.suit then st.heights t.suit else st.heights s)
+    rw [if_neg h1, if_neg h2]⟩
+
+/-- The cross-skew: the exchanged state with the twin suits' heights
+exchanged — the correspondence between the two games while exactly one
+twin has been stacked on each side. -/
+def State.crossTwin (t : Card) (st : State) : State :=
+  { st.swapTwin t with
+    heights := fun s => if s = t.suit then st.heights t.flipSuit.suit
+      else if s = t.flipSuit.suit then st.heights t.suit else st.heights s }
+
+theorem State.crossTwin_heights_eq (t : Card) (st : State) (s : Suit) :
+    (st.crossTwin t).heights s =
+      (if s = t.suit then st.heights t.flipSuit.suit
+        else if s = t.flipSuit.suit then st.heights t.suit else st.heights s) := rfl
+
+theorem State.crossTwin_board (t : Card) (st : State) :
+    (st.crossTwin t).board = st.board.mapByTwin t := by
+  show (st.swapTwin t).board = _
+  rw [swapTwin_board]
+
+/-- The cross-skew factors: the height exchange commutes with the
+local twin swap (they touch disjoint fields). -/
+theorem State.crossTwin_eq (t : Card) (st : State) :
+    st.crossTwin t = (st.twinHeightSwap t).swapTwin t := by
+  apply state_ext
+  · rfl
+  · rw [State.crossTwin_board, swapTwin_board]
+    rfl
+  · rw [swapTwin_heights]
+    rfl
+  · rfl
+  · rfl
+  · rfl
+
+/-- **The ortho step crosses**: an ortho move fires in the cross-skew
+image under the relabeled move, landing on the cross-skew image of the
+successor — the height-commute (chunk A) composed with the clean
+mirror step. -/
+theorem State.apply_crossTwin_ortho {t : Card} {S R : State} {m : Move}
+    (hort : Move.orthoTwin t m = true) (hS : S.apply m = some R) :
+    (S.crossTwin t).apply (m.swapTwin t) = some (R.crossTwin t) := by
+  have hcl : Move.cleanTwin t m = true := Move.orthoTwin_clean hort
+  obtain ⟨R', hfire, hrel⟩ := State.apply_twinHeightRel (S' := S.twinHeightSwap t)
+    (State.twinHeightRel_heightSwap t S) hort hS
+  have hpin : R' = R.twinHeightSwap t := by
+    obtain ⟨hb, hd, hdp, hst, hds, hh⟩ := hrel
+    have hsne : t.flipSuit.suit ≠ t.suit := fun h => Suit.flipPair_ne t.suit h
+    have hS' := State.apply_ortho_preserves (t := t) (S := S.twinHeightSwap t) (R := R') hort hfire
+    have hR := State.apply_ortho_preserves (t := t) (S := S) (R := R) hort hS
+    apply state_ext
+    · exact hd.symm
+    · exact hb.symm
+    · funext s
+      by_cases h1 : s = t.suit
+      · rw [h1, hS'.1, State.twinHeightSwap_heights_eq, State.twinHeightSwap_heights_eq,
+          if_pos rfl, if_pos rfl]
+        exact hR.2.symm
+      · by_cases h2 : s = t.flipSuit.suit
+        · rw [h2, hS'.2, State.twinHeightSwap_heights_eq, State.twinHeightSwap_heights_eq,
+            if_neg hsne, if_pos rfl, if_neg hsne, if_pos rfl]
+          exact hR.1.symm
+        · rw [State.twinHeightSwap_heights_eq, if_neg h1, if_neg h2]
+          exact (hh s h1 h2).symm
+    · exact hdp.symm
+    · exact hst.symm
+    · exact hds.symm
+  rw [hpin] at hfire
+  have hstep := apply_swapTwin_clean_some (st := S.twinHeightSwap t) hcl hfire
+  rw [← State.crossTwin_eq t S, ← State.crossTwin_eq t R] at hstep
+  exact hstep
+
+/-- The play-level crossing: an ortho play crosses wholesale. -/
+theorem State.run_crossTwin_ortho (t : Card) : ∀ (st : State) (play : List Move),
+    (∀ m ∈ play, Move.orthoTwin t m = true) → ∀ {C : State}, st.run play = some C →
+    (st.crossTwin t).run (play.map (Move.swapTwin t)) = some (C.crossTwin t) := by
+  intro st play
+  revert st
+  induction play with
+  | nil => intro st _ C hrun; simp only [State.run] at hrun; obtain rfl := Option.some.inj hrun; rfl
+  | cons m ms ih =>
+      intro st hort C hrun
+      simp only [List.map_cons, State.run] at hrun ⊢
+      cases hS : st.apply m with
+      | none => rw [hS] at hrun; exact absurd hrun (by simp)
+      | some R =>
+          rw [hS] at hrun
+          rw [State.apply_crossTwin_ortho (hort m List.mem_cons_self) hS]
+          exact ih R (fun m' hm' => hort m' (List.mem_cons_of_mem _ hm')) hrun
+
+/-- The twin suits' heights are ortho-invariant along a whole play. -/
+theorem State.run_ortho_preserves {t : Card} : ∀ (st : State) (play : List Move),
+    (∀ m ∈ play, Move.orthoTwin t m = true) → ∀ {C : State}, st.run play = some C →
+    C.heights t.suit = st.heights t.suit ∧
+      C.heights t.flipSuit.suit = st.heights t.flipSuit.suit := by
+  intro st play
+  revert st
+  induction play with
+  | nil => intro st _ C hrun; simp only [State.run] at hrun; obtain rfl := Option.some.inj hrun; exact ⟨rfl, rfl⟩
+  | cons m ms ih =>
+      intro st hort C hrun
+      simp only [State.run] at hrun
+      cases hS : st.apply m with
+      | none => rw [hS] at hrun; exact absurd hrun (by simp)
+      | some R =>
+          rw [hS] at hrun
+          obtain ⟨h1, h2⟩ := State.apply_ortho_preserves (hort m List.mem_cons_self) hS
+          obtain ⟨h3, h4⟩ := ih R (fun m' hm' => hort m' (List.mem_cons_of_mem _ hm')) hrun
+          exact ⟨h3.trans h1, h4.trans h2⟩
+
+/-- **The skew step**: the mirror's first twin stacking — in the
+exchanged state the twin's stack fires at the twin's rung (the
+alignment premise pins the other suit), landing on the skew state. -/
+theorem State.apply_swapTwin_stack_flip {st : State} {t : Card} {β : Base}
+    (htop : st.board.topOf (Sum.inr t) = none)
+    (hβ : st.board.bottomOf t = some β)
+    (hs₂ : st.heights t.flipSuit.suit = t.rank.toIdx) :
+    (st.swapTwin t).apply (Move.pileStack t.flipSuit) = some (st.twinSkew t β) := by
+  rw [apply_pileStack_iff]
+  refine ⟨?_, β.swapTwin t, ?_, ?_, rfl⟩
+  · rw [swapTwin_board, mapByTwin_topOf_flipSuit, htop]
+    rfl
+  · rw [swapTwin_board, mapByTwin_bottomOf_flipSuit st.board t hβ]
+  · rw [Card.flipSuit_rank, swapTwin_heights]
+    exact hs₂.symm
+
+/-- The alignment conversion: under the two firings' shared rung, the
+skew state IS the cross-skew of the source's stacking successor. -/
+theorem State.twinSkew_eq_crossTwin {st B : State} {t : Card} {β : Base}
+    (hshape : B = {st with board := st.board.detach β, heights := fun s => if s = t.suit then st.heights s + 1 else st.heights s})
+    (halign : st.heights t.suit = st.heights t.flipSuit.suit) :
+    st.twinSkew t β = B.crossTwin t := by
+  have hsne : t.flipSuit.suit ≠ t.suit := fun h => Suit.flipPair_ne t.suit h
+  have hBh : ∀ s, B.heights s = if s = t.suit then st.heights s + 1 else st.heights s := by
+    intro s
+    rw [hshape]
+  apply state_ext
+  · rw [hshape]
+    rfl
+  · rw [twinSkew_board, State.crossTwin_board, hshape]
+  · funext s
+    rw [State.crossTwin_heights_eq]
+    show (if s = t.flipSuit.suit then (st.swapTwin t).heights s + 1 else (st.swapTwin t).heights s)
+      = (if s = t.suit then B.heights t.flipSuit.suit
+        else if s = t.flipSuit.suit then B.heights t.suit else B.heights s)
+    rw [swapTwin_heights, hBh t.flipSuit.suit, hBh t.suit, hBh s]
+    by_cases h1 : s = t.suit
+    · rw [if_neg (fun h => hsne (h.symm.trans h1)), if_pos h1, if_neg hsne, h1]
+      exact halign
+    · by_cases h2 : s = t.flipSuit.suit
+      · rw [if_pos h2, if_neg h1, if_pos h2, if_pos rfl, h2]
+        omega
+      · rw [if_neg h2, if_neg h1, if_neg h2, if_neg h1]
+  · rw [hshape]
+    rfl
+  · rw [hshape]
+    rfl
+  · rw [hshape]
+    rfl
+
+/-- **The re-sync step**: the mirror's second twin stacking — at the
+cross-skew state the source's twin fires at ITS rung (the rung read
+through the exchange), and the landing is back on the plain exchanged
+correspondence: the heights re-sync (both suits gained once on both
+sides), so the tail conjugates again. -/
+theorem State.apply_crossTwin_stack {C D : State} {t : Card} {β' : Base}
+    (htop' : C.board.topOf (Sum.inr t.flipSuit) = none)
+    (hβ' : C.board.bottomOf t.flipSuit = some β')
+    (hrk' : t.flipSuit.rank.toIdx = C.heights t.flipSuit.suit)
+    (halign₂ : C.heights t.suit = C.heights t.flipSuit.suit + 1)
+    (hshape : D = {C with board := C.board.detach β', heights := fun s => if s = t.flipSuit.suit then C.heights s + 1 else C.heights s}) :
+    (C.crossTwin t).apply (Move.pileStack t) = some (D.swapTwin t) := by
+  have hsne : t.flipSuit.suit ≠ t.suit := fun h => Suit.flipPair_ne t.suit h
+  have hDh : ∀ s, D.heights s = if s = t.flipSuit.suit then C.heights s + 1 else C.heights s := by
+    intro s
+    rw [hshape]
+  rw [apply_pileStack_iff]
+  refine ⟨?_, β'.swapTwin t, ?_, ?_, ?_⟩
+  · rw [State.crossTwin_board, mapByTwin_topOf_flip, htop']
+    rfl
+  · rw [State.crossTwin_board]
+    exact mapByTwin_bottomOf_flip C.board t hβ'
+  · rw [State.crossTwin_heights_eq, if_pos rfl, ← Card.flipSuit_rank]
+    exact hrk'
+  · apply state_ext
+    · rw [hshape]
+      rfl
+    · rw [swapTwin_board, State.crossTwin_board, mapByTwin_detach, hshape]
+    · funext s
+      show (D.swapTwin t).heights s = (if s = t.suit then (C.crossTwin t).heights s + 1
+        else (C.crossTwin t).heights s)
+      rw [swapTwin_heights, hDh s, State.crossTwin_heights_eq]
+      by_cases h1 : s = t.suit
+      · rw [h1, if_pos rfl, if_pos rfl, if_neg (Ne.symm hsne)]
+        exact halign₂
+      · by_cases h2 : s = t.flipSuit.suit
+        · rw [h2, if_pos rfl, if_neg hsne, if_neg hsne, if_pos rfl]
+          exact halign₂.symm
+        · rw [if_neg h2, if_neg h1, if_neg h1, if_neg h2]
+    · rw [hshape]
+      rfl
+    · rw [hshape]
+      rfl
+    · rw [hshape]
+      rfl
+
+/-- **The separated twin-swap replay (L1/O3, part i).**  If the source
+game wins via a play whose twin foundation stackings are separated by
+an ORTHO mid (no move whose legality reads the twin suits' heights),
+the exchanged game is solvable: the clean prefix and tail mirror
+verbatim, the first stacking lands the games in the cross-skew (each
+side has stacked exactly one twin — the twin suits' heights exchanged),
+the ortho mid crosses step-by-step, and the second stacking re-syncs
+onto the plain exchanged correspondence.  The rung-exactness of
+`pileStack` supplies the alignment: both firings pin their suit to the
+shared rank, so each side's other suit is exactly at the rung its
+mirror needs. -/
+theorem solvable_swapTwin_separated {st : State} {t : Card} {p₁ mid p₂ : List Move}
+    (hc₁ : ∀ m ∈ p₁, Move.cleanTwin t m = true)
+    (hc₂ : ∀ m ∈ p₂, Move.cleanTwin t m = true)
+    (ho : ∀ m ∈ mid, Move.orthoTwin t m = true)
+    {W : State}
+    (hrun : st.run (p₁ ++ [Move.pileStack t] ++ mid ++ [Move.pileStack t.flipSuit] ++ p₂)
+      = some W)
+    (hwin : W.isWin = true) :
+    (st.swapTwin t).solvableFrom := by
+  simp only [List.append_assoc] at hrun
+  rw [run_split_bind st p₁
+    ([Move.pileStack t] ++ (mid ++ ([Move.pileStack t.flipSuit] ++ p₂)))] at hrun
+  cases hA : st.run p₁ with
+  | none => rw [hA] at hrun; simp at hrun
+  | some A =>
+    rw [hA] at hrun
+    have hrun1 : A.run ([Move.pileStack t] ++ (mid ++ ([Move.pileStack t.flipSuit] ++ p₂)))
+      = some W := hrun
+    rw [run_split_bind A [Move.pileStack t] (mid ++ ([Move.pileStack t.flipSuit] ++ p₂))] at hrun1
+    simp only [State.run] at hrun1
+    cases hB₀ : A.apply (Move.pileStack t) with
+    | none => rw [hB₀] at hrun1; simp at hrun1
+    | some B =>
+        rw [hB₀] at hrun1
+        have hrun2 : B.run (mid ++ ([Move.pileStack t.flipSuit] ++ p₂)) = some W := hrun1
+        rw [run_split_bind B mid ([Move.pileStack t.flipSuit] ++ p₂)] at hrun2
+        cases hC : B.run mid with
+        | none => rw [hC] at hrun2; simp at hrun2
+        | some C =>
+            rw [hC] at hrun2
+            have hrun3 : C.run ([Move.pileStack t.flipSuit] ++ p₂) = some W := hrun2
+            rw [run_split_bind C [Move.pileStack t.flipSuit] p₂] at hrun3
+            simp only [State.run] at hrun3
+            cases hD₀ : C.apply (Move.pileStack t.flipSuit) with
+            | none => rw [hD₀] at hrun3; simp at hrun3
+            | some D =>
+                rw [hD₀] at hrun3
+                have hWD : D.run p₂ = some W := hrun3
+                rw [apply_pileStack_iff] at hB₀
+                obtain ⟨htop, β, hβ, hrk, hBshape⟩ := hB₀
+                rw [apply_pileStack_iff] at hD₀
+                obtain ⟨htop', β', hβ', hrk', hDshape⟩ := hD₀
+                have hsne : t.flipSuit.suit ≠ t.suit := fun h => Suit.flipPair_ne t.suit h
+                obtain ⟨hCt, hCt'⟩ := State.run_ortho_preserves B mid ho hC
+                have hB' : B.heights t.flipSuit.suit = A.heights t.flipSuit.suit := by
+                  rw [hBshape]
+                  show (if t.flipSuit.suit = t.suit then A.heights t.flipSuit.suit + 1
+                    else A.heights t.flipSuit.suit) = A.heights t.flipSuit.suit
+                  rw [if_neg hsne]
+                have hs₂ : A.heights t.flipSuit.suit = t.rank.toIdx := by
+                  have h2 : t.flipSuit.rank.toIdx = C.heights t.flipSuit.suit := hrk'
+                  rw [Card.flipSuit_rank, hCt', hB'] at h2
+                  exact h2.symm
+                have halign₁ : A.heights t.suit = A.heights t.flipSuit.suit := by
+                  rw [hs₂, hrk]
+                have halign₂ : C.heights t.suit = C.heights t.flipSuit.suit + 1 := by
+                  have h1 : C.heights t.suit = A.heights t.suit + 1 := by
+                    rw [hCt, hBshape]
+                    show (if t.suit = t.suit then A.heights t.suit + 1 else A.heights t.suit)
+                      = A.heights t.suit + 1
+                    rw [if_pos rfl]
+                  have h2 : C.heights t.flipSuit.suit = t.rank.toIdx := by
+                    rw [← Card.flipSuit_rank]
+                    exact hrk'.symm
+                  rw [h1, h2, ← hrk]
+                have hR₁ : (st.swapTwin t).run (p₁.map (Move.swapTwin t))
+                    = some (A.swapTwin t) := by
+                  rw [run_swapTwin_clean t st p₁ hc₁, hA]
+                  rfl
+                have hM₁ : (A.swapTwin t).apply (Move.pileStack t.flipSuit)
+                    = some (B.crossTwin t) := by
+                  rw [State.apply_swapTwin_stack_flip htop hβ hs₂]
+                  rw [State.twinSkew_eq_crossTwin hBshape halign₁]
+                have hS₁ : (A.swapTwin t).run [Move.pileStack t.flipSuit]
+                    = some (B.crossTwin t) := by
+                  simp only [State.run, hM₁]
+                have hS₂ : (B.crossTwin t).run (mid.map (Move.swapTwin t))
+                    = some (C.crossTwin t) := State.run_crossTwin_ortho t B mid ho hC
+                have hS₃ : (C.crossTwin t).run [Move.pileStack t]
+                    = some (D.swapTwin t) := by
+                  simp only [State.run, State.apply_crossTwin_stack htop' hβ' hrk' halign₂ hDshape]
+                have hS₄ : (D.swapTwin t).run (p₂.map (Move.swapTwin t))
+                    = some (W.swapTwin t) := by
+                  rw [run_swapTwin_clean t D p₂ hc₂, hWD]
+                  rfl
+                refine ⟨_, W.swapTwin t, run_append_some (run_append_some (run_append_some
+                  (run_append_some hR₁ hS₁) hS₂) hS₃) hS₄, hwin⟩
 
 /-- **The merge's landing is on the OTHER cargo's stack** — the
 own-cargo side is self-landing at the SOURCE: a card of the own
