@@ -606,7 +606,20 @@ worry-backs) must be deferred to the suffix — a commutation whose
 obstruction is the worry-backs' board interactions (a backed card
 can host a later mid landing).  This is the precise remaining content
 of the window; the separated case generalizes TwinAgnostic's paired
-shape (a mid at all, vs. none). -/
+shape (a mid at all, vs. none).
+
+**(i) is now LANDED** (below, after the walk-kit): the cross-skew
+machinery — `State.twinHeightRel`/`apply_twinHeightRel` (ortho moves
+fire identically under twin-height differences) +
+`apply_ortho_preserves` (the twin heights are ortho-invariant),
+`State.crossTwin`/`apply_crossTwin_ortho`/`run_crossTwin_ortho` (the
+mid crosses wholesale, via `crossTwin = twinHeightSwap ∘ swapTwin`),
+`apply_swapTwin_stack_flip` + `twinSkew_eq_crossTwin` (the first
+stacking lands the cross-skew under the rung-alignment both firings
+supply), `apply_crossTwin_stack` (the second re-syncs onto the plain
+swapTwin correspondence), and the assembly
+`solvable_swapTwin_separated` (+ `_back`).  The remaining bridge
+content is exactly (ii). -/
 theorem State.solvable_of_exchange_merge {st a₁ : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF) (h : st.twinLicensed t)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
