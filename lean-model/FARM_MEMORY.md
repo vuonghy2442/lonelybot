@@ -1820,3 +1820,93 @@ tree).
   do-notation binds — `show` the beta-reduced form BEFORE rw into bind bodies; `h2 _ rfl` fails (metavar) — name
   the Frame; Frame.agree is match-typed so `.trans`/`.symm` need the cases-lemma Frame.agree_trans/_symm;
   [System.Text.Encoding]::UTF8 WriteAllText ADDS A BOM (broke the import line) — use UTF8Encoding($false).
+
+## TwinExchange.lean — wave-15 scaffold findings (2026-09-14)
+
+- REPRESENTATION (paid): the cargo exchange is the two-seat VALUE swap `topOf := bd.topOf ∘ (·.swapTwin t)`
+  (Board.exchangeTwin) — the stacks RIDE because every card above a cargo root names its own seat; only the
+  two root edges change. Total + guard-free (a matching stays a matching under a 2-point value swap);
+  `bottomOf_exchangeTwin`: a card's base swaps seats. Involution at board and state level. Axioms [propext,
+  Quot.sound]. Quirk paid: `cases hb : e` ALREADY substitutes e in the goal — a following `rw [hb]` fails.
+- WRONG ROUTE (analytical, prover not yet consulted): the sketch's "no guard consults the swapped data" is
+  FALSE at the runs — an aboveOf walk passing the CARD t reads the `inr t` seat and continues into the OTHER
+  thread's cargo, so a pilePile landing a run on one cargo's top is SELF-LANDING in the mirror thread. The
+  frozen-phase correspondence is STRUCTURAL: land-on-cargo-top ↦ land-on-OTHER-cargo's-top. The same-move
+  replay DOES work when only one seat is occupied (the phantom companion's mirror: A's walks ⊇ B's, so the
+  self-landing guards transfer downward).
+- The no-braid premises (t, t.flipSuit ∉ aboveOf z / z') are sanity, not just guard reuse: a twin inside a
+  cargo run makes the exchange seat a stack ON ITS OWN MEMBER (cyclic board); mutual nesting (z' ∈ aboveOf z)
+  already implies the braid (t' sits directly under z').
+- HIDDEN-TWIN TRAP (companion): the reveal's ATTACH base (hiddenBase = the second-from-top hidden) can BE the
+  twin seat `inr t'` — the phantom exchange state then blocks the reveal ⇒ divergence. Hence the companion's
+  `hzone` (visible ∨ stocked ∨ foundationed) + `hwf` (zones disjoint ⇒ twin not hidden); `hbare` separately
+  kills the deal-adjacent trigger shape (a reveal trigger needs bottomOf c = inr t', i.e. a card ON t').
+- REVERSE-at-phantom stuck shape (candidate witness for the direction question): stx's play lands a run on the
+  freed t-seat — the st-mirror cannot land there (cargo present) nor redirect (phantom seat: isVis t' = false
+  blocks canPlace). FORWARD (st → stx) is clean: nothing lands on, walks through, or reveals at a seat whose
+  card is off the board; the height-writes are the same moves, so a terminal win transfers verbatim.
+- THE IDENTIFICATION (still to land; both rows cite it): the post-transfer state = `st.exchangeTwinCargo t` —
+  apply_pilePile_iff's `(detach (inr t)).attach (inr t') z` composite vs the two-slot swap, via ext_topOf +
+  attach_topOf_ne/detach_topOf_ne case split (hbare supplies the vacuous slot). Plus canMoveRun's guards from
+  hbare/hvis'/canSitOn_swapTwin_right (the fit transfers across twins: `rw [← Card.swapTwin_self_right t]`).
+  Census 13 (TwinExchange 2).
+
+## ENDGAME §8 — the W4 drafts (2026-09-14)
+
+- DESIGN agent: ENDGAME.md §8 appended (three W4 drafts + trade-off + recommendation); no Klondike edits.
+- Corner taxonomy: forced-park = (i) twin bare (redirect, FREE cases, old W4a-c licenses; hazard: redirect cycle), (ii) occupied by a FITTING cargo (exchange corner, TwinExchange [H]/[M]; the exchange BLOCKS the stack — canonical play stacks c AFTER the occupier departs, F1), (iii) unavailable / deal-inherited non-fitting (TRUE corner: crux false, known; draw-1 reserve lemma rescues, draw-3 not).
+- (a) `solvable_of_pileStack_or_twin` — disjunctive TWIN-STACK successor (the literal swap-image reading is VACUOUS by the R1 square): hmt ASSUMED (equal heights, NOT derivable from hsafe); SILENT at the corner; yield-poor (§5.5 only).
+- (b) quotient: bare TwinEq orbits verdict-INVARIANT (vacuity trap — equivalent to the staged crux); the teeth are exchange_bare at deck-cover (b2 = `solvable_cover_twin_iff` in flight) + cargoTwin_exchange [H]; survives as a CLASS statement; endpoint = same certificate disjunction as (c).
+- (c) `rungNormal_or_forcedPark` + repaired crux `s₁.solvableFrom ∨ st.forcedPark c` (ADDED CONCLUSION, no guards — respects the user decision). forcedPark is a DRAFT def (state-level arms; the tenant arm is play-level, deliberately OUT — toEngine_lifts class); exactness probes (c1) are the gate.
+- RECOMMENDATION: (c) with (b)'s exchange package as lemma-0 (the hybrid); (a) demoted to an hmt-shape corollary. Rows fall under hsafe modulo the channel-A/B bridge [GAP: alert (iii)].
+- Gaps named: (c-α) divergence-window one-step replay (aboveOf_congr_off template, same piece W3's φ needs); (c-β) the transfer step is B-NEUTRAL — the §4 measure stalls (last-noncompliant-first or a third component).
+- IN-FLIGHT R1-R4 (apply_swapTwin / solvable_swapTwin / solvable_cover_twin_iff / swapTwin_wf): NOT greppable at 09:10; heights-permutation must respect TwinSwapWitness's root cause; (c) needs none directly (rides landed solvable_cargoTwin + [H]/[M]).
+- Propagation: solvable_of_accomm_step (Theorems:2393) inherits the disjunct; corner-exclusion mid-accommodation unproven [GAP].
+
+## TwinExchange.lean — the [M] row CLOSED: the backward-transfer collapse (2026-09-14)
+
+- LANDED (sorry-free, axioms [propext, Quot.sound]): `Base.swapTwin_eq_self`; the two IDENTIFICATIONS —
+  `pilePile_exchangeTwinCargo_fwd` (st --pilePile z (inr t')--> stx, needs hvis'/hbare/hfit + t' ∉ aboveOf z only — the
+  contains guard is DIRECT, no walk congruence needed on the forward side) and `exchangeTwinCargo_pilePile_back`
+  (stx --pilePile z (inr t)--> st — the exchange's ONE-MOVE INVERSE); `solvable_cargoTwin_exchange_bare` closes the row.
+- THE COLLAPSE (supersedes the mirror analysis above): prove st → stx NOT by mirroring st's play in stx but by
+  playing the BACKWARD transfer from stx — its guards never consult the twin CARD (canPlace reads only the target
+  seat's bareness, the HOST's visibility — carried across the exchange by bottomOf_exchangeTwin — and the fit), so
+  stx.apply (pilePile z (inr t)) = some st and the winning play replays through it: `[back-move] ++ π`.  Hence the
+  statement was STRENGTHENED past the scaffold: hzone/hwf dropped (phantom twins — stocked, buried, foundationed —
+  covered for free); wave-14's visibility premise is a FORWARD-transfer artifact only.
+- The backward walk congruence: aboveOf_{stx} z = aboveOf_st z via aboveOf_congr_off (hagree from
+  exchangeTwin_topOf + Base.swapTwin_eq_self; hfree = the no-braid premises reassembled; hcfree: z ≠ t, t' from
+  canSitOn's rank arithmetic + twin-blindness).
+- QUIRKS paid: (1) dot notation `((Sum.inr t) : _).swapTwin t` fails (Sum has no swapTwin — the metavariable blocks
+  Base resolution) — write `Base.swapTwin t (Sum.inr t)` or ascribe `(Sum.inr t : Base)`; (2) after
+  congrArg Option.some + ext_topOf + funext, the structure-literal projection needs `dsimp only` BEFORE the
+  update/detach_topOf rewrites; (3) `rw [apply_pilePile_iff]` + a 7-slot refine ⟨b₀, bottomOf, ne, canMoveRun, bd,
+  attach, rfl⟩ — the last rfl is structure eta ({stx with board := st.board} ≡ st), no state_ext needed.
+- The reverse (stx → st) at INVISIBLE twins stays open (the forward transfer needs isVis t'); candidate stuck shape
+  as recorded above.  Census 12 (TwinExchange 1 — only the [H] both-occupied row remains).
+
+## Theorems/Frame — W3 spread LANDED sorry-free (2026-09-14)
+
+- LANDED (Theorems.lean only, +`import Klondike.Frame` — root-name collisions grep'd clean, Dominance re-verified
+  against the rebuilt olean; axioms [propext, Quot.sound]): `excursion_pair_delete` (§5 W3) + the φ-kit:
+  `excursionSim_of_stackPile` (step 0 via stackPile_pileStack_return wholesale), `_converge` (the pair nets to the
+  identity), `_step` (the ONE-STEP REPLAY — Frame's honest boundary closed, also ENDGAME §8 (c-α)'s piece), `_run`
+  (segment induction); + `cSuitMove` (Prop-valued: heightsOf c.suit ∈ m.reads), `hidden_mem_of_hiddenBase`,
+  `contains_false_of_notMem`. Theorems.olean refreshed (scoped build) for the axioms check.
+- ITEM-1 GREP-FIRST: the walk-agreement form W3 consumes is the DETACH-SUBSET (replay walk ⊆ source walk —
+  pilePile's self-landing guard transfers a fortiori) = `aboveOf_detach_subset` (Theorems:983, landed 2026-09-13)
+  — NO duplicate written; the equality form (aboveOf_congr_off's) unneeded at this level; the missing piece was
+  the one-step replay itself.
+- STATEMENT REPAIR: the draft's `∃ π', … ∧ …` was elided + dangling binder → the concrete deletion `st.run (γ ++
+  π₂) = some w` (π' := γ ++ π₂ witnesses any ∃-packaging; the length drop of 2 is W5's L↓); hrk kept for the
+  draft's shape (derivable from hrun). Non-vacuity: a γ of draws is always blind (reads table); the excursion
+  context is Temp/opencode/w2probe.lean's witness.
+- SYNTAX PAID: `::` binds TIGHTER than `++` — the draft's play parses ((stackPile::γ) ++ (pileStack::π₂)):
+  append-headed, rfl-equal to the cons form (append-on-cons is defeq, so rfl-probes CANNOT distinguish the parses)
+  — `rw [List.cons_append] at hrun` FIRST or `simp only [State.run]` no-progress. `rw [State.canMoveRun]` FAILS
+  (match-in-body def) — `simp only [State.canMoveRun]` instead. `Bool.not_eq_true'` is a Prop-EQUALITY, not an
+  Iff (no .mp/.mpr): `rw [Bool.not_eq_true'] at h`. with-update projections need `show`-casts.
+- REVEAL CORNER (§7.2's blind spot): hiddenBase a ≠ inr x is NOT move-only derivable — a seatsOrReads-clean
+  reveal can still attach at x's hidden seat; the exclusion is WF's vis_not_hidden via hidden_mem_of_hiddenBase
+  (revert + `cases hs : scrutinee` iota-reduces the hiddenBase match; hidden_split gives the membership).

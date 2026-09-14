@@ -401,3 +401,240 @@ Dominance.lean:370; B = the exchange cases, Dominance.lean:494–508);
 
 *Route reading by the farm's READING agent. Nothing here is proven; every
 statement named in §5 must pass the refute-first gate before proof work.*
+
+## 8. W4 — the reformulated statement, three drafts (design pass, 2026-09-14)
+
+Design deliverable; nothing proven; gaps marked [GAP]/[IN-FLIGHT]; Lean claims
+cite file:line. Decision context: FARM.md:286-294 — the staged crux is FALSE at
+the forced-park shape (known); the repair is twin-swap canonicalization, not a
+guard.
+
+### 8.0 Inventory + corner taxonomy
+
+Landed: `State.swapTwin` (TwinSwap.lean:50 — heights FIXED, NOT an
+automorphism: TwinSwap.lean:44-49, TwinSwapWitness.lean:12-16),
+`solvable_cargoTwin_transfer`/`pilePile_return_legal`/`aboveOf_congr_off`/
+`solvable_cargoTwin`/`redundantTwins_heights_eq` (TwinSwap.lean:246/382/361/
+504/110); the exchange substrate `exchangeTwin`/`exchangeTwinCargo`
+(TwinExchange.lean:86/118, proven) + the sorry rows `…_exchange` [H]
+(TwinExchange.lean:173), `…_exchange_bare` [M] (:205); the W1-W3 kit (aux
+Theorems.lean:1953, ∃-hyp :1957; `cBlocked` :1893; `rung_pass_of_win` :2258;
+`excursion_pair_delete_adjacent` :2293; `seatsOrReads`/`excursionSim`
+Frame.lean:1087/1201). **[IN-FLIGHT]** the four §5 names (`apply_swapTwin`,
+`solvable_swapTwin`, `solvable_cover_twin_iff`, `swapTwin_wf`) are NOT
+greppable at design time (09:10, the user's live edit) — contracts R1-R4,
+§8.4. The heights-permutation design must respect TwinSwapWitness.lean:18-24
+(suit counts are shared with non-swapped cards) **[GAP]**.
+
+Corner taxonomy (F2: the twin is the only alternative seat, Basic.lean:144 +
+`Card.receivers` Basic.lean:177):
+- **(i) twin bare+visible** — the redirect works (fit:
+  `canSitOn_swapTwin_right`, Basic.lean:243); the FREE cases (the old W4a/W4c
+  licenses); hazard: the redirect cycle (§6 W4a).
+- **(ii) twin occupied by a FITTING cargo `y`** — the exchange corner:
+  `exchangeTwinCargo c` moves `y`'s run onto `c`'s seat board-only
+  (TwinExchange.lean:86-91), licensed by [H]. The exchange BLOCKS the stack
+  (`y` on `c`): the canonical play stacks `c` after `y` departs (F1) — a
+  reorder, not a stack-successor fact.
+- **(iii) twin unavailable** (hidden / foundation-passed / deal-inherited
+  NON-FITTING occupier — Bridge.lean:466 trap, TwinExchange.lean:54-58) —
+  the TRUE corner: no redirect, no exchange license, no delayable draw at
+  draw-3 (draw-1: the reserve lemma, Dominance.lean:370, rescues). The staged
+  `s₁.solvableFrom` is FALSE here — the user's decision.
+- Shared convergence core (all three proofs): within an episode window
+  [park, departure] the threads differ only at twin seats; at each tenant's
+  own `pileStack` (rung-gated, `c`-suit-independent) they CONVERGE — B&G
+  Case-1 (main.tex:1552-1553) at gated moves; TwinExchange.lean:27-50.
+
+### 8.1 (a) swap-the-successor — the disjunctive twin-stack theorem
+
+The literal reading of "`s₁ ∨ swapTwin-pair s₁`" — the swap-image
+`s₁.swapTwin c` — is VACUOUS (the R1 conjugation square + R2 equisolve the
+disjuncts); the non-vacuous draft is the TWIN-STACK successor:
+
+```lean
+theorem solvable_of_pileStack_or_twin {st : State} (hwf : st.WF) {c : Card}
+    {s₁ s₁' : State} (hnotlock : st.isLocked c = false)
+    (hm  : st.apply (Move.pileStack c) = some s₁)
+    (hmt : st.apply (Move.pileStack c.flipSuit) = some s₁')
+    (hsol : st.solvableFrom) :
+    s₁.solvableFrom ∨ s₁'.solvableFrom := sorry
+```
+`hwf`/`hnotlock` DERIVED (the crux's own; carried by the `lockedness_*`
+transfers, Theorems.lean:2008-2085); `hm` the move; `hsol` given; `hmt`
+**ASSUMED, load-bearing** — packs twin-visible + twin-bare + `heights
+c.flipSuit.suit = c.rank.toIdx` (from `redundantTwins_heights_eq`,
+TwinSwap.lean:110). Cannot drop: at unequal heights disjunct-2 does not
+exist (collapse to the FALSE staged crux); underivable from `hsafe`
+(LeastRedundantWitness, Dominance.lean:263-284).
+
+Proof: `rung_pass_of_win` (Theorems.lean:2258) + the §4 descent; parks
+redirect at (i) (blindness: `aboveOf_congr_off`, TwinSwap.lean:361 — the
+W3-φ template, Frame.lean:1201), exchange-canonicalize at (ii)
+(`solvable_cargoTwin`, TwinSwap.lean:504 — executable there: `c` bare by
+`hm`; or [H]); the redirect-cycle terminal escapes to the mirror world
+(R1+R2+equal-heights + the aux, W1) delivering `s₁'`. **[GAP]**
+`redirect_or_mirror` (descent terminal; template: B&G Case-2,
+main.tex:1438-1442); license shared with the open
+`twinPair_placement_equi` (Dominance.lean:749). Forced-park survival:
+**SILENT** at (iii) — and (ii)-unequal — `hmt` fails (twin not bare, or
+the rung mismatch); speaks only at redirect-cycle shapes — (a) does not
+repair the corner. Corollary yield: weak — `hmt` underivable from `hsafe`
+(Dominance.lean:92-96 bounds same-colour at `r−2`), so none of the three
+rows (Dominance.lean:237/522/678) fall; only §5.5 instances
+(`isRedundantStack`, Dominance.lean:246). Refute-first: (a1) both stacks
+fire, `st` solvable, BOTH successors dead — kills (a); (a2) `hmt`
+non-vacuity (`eStep_deckStack_unique` class); (a3) the redirect-cycle
+hunt — no witness ⇒ disjunct-2 is dead weight.
+
+### 8.2 (b) the twin quotient — the verdict-canonical package
+
+```lean
+def TwinEq (st st' : State) : Prop :=
+  EqvGen (fun u v => ∃ t, v = u.swapTwin t) st st'
+
+theorem solvable_of_pileStack_quot {st : State} (hwf : st.WF) {c : Card}
+    {s₁ : State} (hnotlock : st.isLocked c = false)
+    (hm : st.apply (Move.pileStack c) = some s₁) (hsol : st.solvableFrom) :
+    ∃ s₁', TwinEq s₁ s₁' ∧ s₁'.solvableFrom := sorry
+```
+**Vacuity trap, plainly**: orbits are swap-images and R2 makes verdicts
+orbit-invariant — the ∃ is witnessed by `s₁` itself: the bare form is
+EQUIVALENT to the staged (false) crux. Teeth require identifying more
+than orbits — exactly TwinExchange's rows (`exchangeTwinCargo` is NOT a
+`swapTwin` orbit: cargo values move, heights untouched,
+TwinExchange.lean:127-128 vs TwinSwap.lean:50-57):
+
+```lean
+/-- (b2) the ambiguous cover — the deck-cover specialization of the
+    [M] row: parking x on c vs on the twin. -/
+theorem solvable_cover_twin_iff' {st : State} {x c : Card} {p p' : State}
+    (hvis : st.isVis c = true) (hvis' : st.isVis c.flipSuit = true)
+    (hfree : st.board.topOf (Sum.inr c) = none)
+    (hfree' : st.board.topOf (Sum.inr c.flipSuit) = none)
+    (hp : st.apply (Move.deckPile x (Sum.inr c)) = some p)
+    (hp' : st.apply (Move.deckPile x (Sum.inr c.flipSuit)) = some p') :
+    p.solvableFrom ↔ p'.solvableFrom := sorry
+```
+— the cover-successors differ at exactly the two seat slots (`p' =
+`p.exchangeTwinCargo c` **[GAP: the `Board.ext_topOf` identification
+one-liner — the same TwinExchange.lean:197-200 names]**); the statement
+is `exchange_bare` (TwinExchange.lean:205) at `hzone`'s visible arm; its
+redundancy-licensed instance is the open `twinPair_placement_equi`
+(Dominance.lean:749); (b3) is [H] itself. `hvis/hvis'/hfree/hfree'`
+ASSUMED (the ambiguous-seats shape — the premiseless form is the
+refuted-family risk); `hp/hp'` the parks. Proof: the three-link
+mirroring (TwinExchange.lean:27-50) — frozen phase (`aboveOf_congr_off` +
+`canSitOn_swapTwin_right/_left`, Basic.lean:243/249), bridge
+(`solvable_cargoTwin`, TwinSwap.lean:504), tails coincide. **[GAP]** the
+walk-passing structural correspondence (TwinExchange.lean:32-38); R2 for
+the orbit layer. Forced-park survival: at (ii) the class contains the
+twin-bare representative — the descent runs there, the verdict transfers
+back; at (iii) `hfit` dies with the deal-inherited cargo — silent IFF the
+premiseless exchange is false (TwinExchange.lean:52-64's gate); at
+(iii)-hidden/foundationed there is no cargo — silent. Survives as a
+CLASS statement; delivers no stack-successor conclusion — the endpoint
+is again (c)'s certificate, by the class route. Corollary yield: the
+engine-facing verdict lemmas (the TT canonicalization, Macro.lean:76) +
+the §5.5 row (Dominance.lean:749 as a (b2) corollary); the three target
+rows only via (c)'s assembly. Refute-first: (b1) the premiseless-exchange
+witness hunt (TwinExchange.lean:58-64); (b2) the phantom-arm stuck shape
+(TwinExchange.lean:62-64); (b3) the class-membership probe: the extended
+class of a corner-(ii) state contains a park-free-in-`c` member.
+
+### 8.3 (c) play-level swap-rewrites folded into W5 — the characterized normal form
+
+The pure normal-form existence is FALSE at (iii) (the park is forced), so
+W5 carves the corner out with an explicit certificate — an ADDED
+CONCLUSION, not a guard (hypotheses unchanged; the falsity quarantined
+in a probe-able predicate):
+
+```lean
+/-- The forced-park certificate (DRAFT): the corner where no pre-pass
+    canonicalization removes the park on c. State-level arms; the
+    tenant-unstackability arm is play-level and stays OUT (the
+    toEngine_lifts mistake class, §6 W4c's note). -/
+def State.forcedPark (st : State) (c : Card) : Prop :=
+  ¬(st.isVis c.flipSuit = true ∧ st.board.topOf (Sum.inr c.flipSuit) = none) ∧
+  ∀ d, canSitOn c d = true →
+    ¬(st.isVis d = true ∧ st.board.topOf (Sum.inr d) = none)
+
+theorem rungNormal_or_forcedPark {st : State} (hwf : st.WF) {c : Card}
+    {s₁ : State} (hnotlock : st.isLocked c = false)
+    (hm : st.apply (Move.pileStack c) = some s₁) (hsol : st.solvableFrom) :
+    (∃ π w, st.run π = some w ∧ w.isWin = true ∧
+      ∃ π₁ π₂, π = π₁ ++ Move.pileStack c :: π₂ ∧
+        ∀ m ∈ π₁, cBlocked c m = false) ∨ st.forcedPark c := sorry
+
+/-- The repaired crux: the staged conclusion off the certificate. -/
+theorem solvable_of_pileStack' {st : State} (hwf : st.WF) {c : Card} {s₁ : State}
+    (hnotlock : st.isLocked c = false)
+    (hm : st.apply (Move.pileStack c) = some s₁) (hsol : st.solvableFrom) :
+    s₁.solvableFrom ∨ st.forcedPark c := sorry
+```
+(`solvable_of_pileStack'` = disjunct-1's play + the LANDED aux
+(Theorems.lean:1953, ∃-hyp :1957 IS disjunct-1) + `…_step_delete`
+(Theorems.lean:1744) — the W1 scaffold untouched; all hypotheses DERIVED
+from the staged crux, Theorems.lean:2383-2386.)
+
+Proof: the §4 (B, L) descent — 1 excursion-pair deletion (W3 adjacent
+:2293 + `stackPile_pileStack_cancel`, Dominance.lean:536; spread on
+`excursionSim`, Frame.lean:1201); 2' the exchange-canonicalizing
+redirect — (i) plain, (ii) transfer-then-redirect (`solvable_cargoTwin`,
+executable: `c` bare by `hm`) with the transfer B-neutral, (iii) the
+descent STALLS and emits the certificate; 3 storage elimination (the
+safety instances); the episode windows ride the convergence core (§8.0).
+**[GAP]** (c-α) the divergence-window one-step replay — the
+walk-agreement lemma, `aboveOf_congr_off` the template (the same piece
+W3's φ needs); (c-β) the transfer's B-neutrality stalls the §4 measure
+(last-noncompliant-first, or a third component); (c-γ) certificate
+EXACTNESS — too narrow reintroduces falsity, too wide kills the
+corollaries. Forced-park survival: at (iii) the theorem asserts the
+certificate — TRUE there by construction (the arms name the
+unavailability shapes); at (i)/(ii) the normal form exists and the
+conclusion is delivered — the only candidate that both SPEAKS at the
+corner and closes the crux off it. Corollary yield: all three rows UNDER
+`hsafe` — the bridge: `hsafe` kills the certificate (the opposite-colour
+conjunct makes every live rank-`r−1` tenant stackable — channel A; the
+same-colour conjunct kills the no-return arm — channel B;
+Dominance.lean:92-96). **[GAP: the channel-A/B simulation with
+`hsafe`-preservation along the transformed play — §7.5 alert (iii), the
+B&G Thm-5 port, main.tex:1619-1632]** — which the rows always owed
+(Dominance.lean:230-234); case 10 = the same assembly at the
+worry-created seat (Dominance.lean:662-673); `deck_dominance_draw1` C
+adds the landed reserve lemma (Dominance.lean:370). Refute-first:
+(c1) certificate exactness — (α) a staged-falsity shape where
+`forcedPark` is FALSE (too narrow), (β) an `hsafe` state matching it
+(too wide); (c2) a repeating redirect-then-transfer cycle (B never
+drops); (c3) re-verify the `lockedness_*` transfers per aux arm
+(Theorems.lean:2008-2085).
+
+### 8.4 Trade-offs + recommendation (for the user to override)
+
+| | falsity risk | proof cost | corollary yield | W1-W3 fit |
+|---|---|---|---|---|
+| (a) twin-stack disjunction | low (silent at the corner); `hmt` vacuity risk | low (rides (c)'s descent) | poor (§5.5 only) | aux reused as-is |
+| (b) quotient/verdict package | the [H]/[M] rows' own gates (deal-adjacency corner) | medium (mirroring designed; walk lemma missing) | engine verdicts + §5.5; rows only via (c)'s endpoint | orthogonal (state-level) |
+| (c) normal form + certificate | certificate exactness (c1) — quarantined, probe-able | high (descent + (c-α)/(c-β) + the bridge) | all three rows (via the [GAP] bridge) | exact (aux's ∃-form IS disjunct-1) |
+
+Recommendation: **(c) as the target, with (b)'s exchange package as its
+lemma-0 — the hybrid**. (1) falsity quarantined in a named predicate —
+the refute-first discipline's best shape; (2) the landed W1 aux consumes
+disjunct-1 verbatim (Theorems.lean:1957), W2/W3 as-is — zero rework;
+(3) all three Dominance rows hang off it with ONE shared remaining gap
+(the `hsafe`-preservation bridge); (4) (b)'s mirroring
+(TwinExchange.lean:27-50) is the designed proof of the descent's hardest
+step — buy it as lemmas, don't re-derive. Demote (a) to an `hmt`-shape
+corollary (keeps the §5.5 channel warm). Propagation cost, flagged: the
+disjunct reaches `solvable_of_accomm_step` (Theorems.lean:2393-2401) —
+corner-exclusion mid-accommodation is unproven **[GAP]**; the
+alternative is proving the certificate vacuous on accommodation-reachable
+states (B2-side, unstarted).
+
+Contracts record (the [IN-FLIGHT] four): R1 `apply_swapTwin` — the
+conjugation square, (a)'s mirror case only; R2 `solvable_swapTwin` — the
+orbit layer, (b)'s trivial half; R3 `solvable_cover_twin_iff` — (b2) =
+`exchange_bare` at the deck-cover; R4 `swapTwin_wf` — WF preservation,
+the heights-permutation question (witnesses/TwinSwapWitness.lean:18-24).
+(c) needs NONE directly — it rides the landed `solvable_cargoTwin` + the
+[H]/[M] rows; the hybrid needs R2/R4 only for the droppable orbit layer.
