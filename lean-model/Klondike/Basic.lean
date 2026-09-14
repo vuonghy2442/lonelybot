@@ -20,6 +20,17 @@ inductive Color : Type where
   | red | black
   deriving DecidableEq, Repr
 
+/-- The two-color discriminators. -/
+theorem Color.eq_of_ne_red {c : Color} (h : c ≠ Color.red) : c = Color.black := by
+  cases c with
+  | red => exact absurd rfl h
+  | black => rfl
+
+theorem Color.eq_of_ne_black {c : Color} (h : c ≠ Color.black) : c = Color.red := by
+  cases c with
+  | red => rfl
+  | black => exact absurd rfl h
+
 /-- A suit, factored as a color plus a pair index. -/
 structure Suit : Type where
   /-- The color — everything the tableau rules see. -/
@@ -117,6 +128,15 @@ theorem Card.flipSuit_rank (c : Card) : c.flipSuit.rank = c.rank := rfl
 
 theorem Card.flipSuit_ne (c : Card) : c.flipSuit ≠ c :=
   fun h => Suit.flipPair_ne c.suit (congrArg Card.suit h)
+
+/-- Two distinct cards of the same rank and color are twins: each
+color-rank class is a twin pair. -/
+theorem Card.flipSuit_eq_of_color_rank {a b : Card} (hcolor : a.suit.color = b.suit.color)
+    (hrank : a.rank = b.rank) (hne : a ≠ b) : b = a.flipSuit := by
+  obtain ⟨⟨ca, pa⟩, ra⟩ := a
+  obtain ⟨⟨cb, pb⟩, rb⟩ := b
+  simp only [Card.flipSuit, Suit.flipPair]
+  cases ca <;> cases cb <;> cases pa <;> cases pb <;> simp_all
 
 /-- Tableau stacking: `c` may be placed directly on `b` iff `c` is
 exactly one rank below `b` and the colors differ. -/

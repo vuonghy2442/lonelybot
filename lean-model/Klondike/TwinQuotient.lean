@@ -2462,6 +2462,38 @@ theorem State.merge_own_landing_absurd {st : State} {t z c d : Card}
   · exact hguard (Board.aboveOf_trans hmerge (Board.mem_aboveOf_of_topOf hztop))
   · exact hguard (Board.aboveOf_trans hmerge (Board.aboveOf_sub_of_seated hztop hd'))
 
+/-- **The cargo twin**: the two cargo cards are themselves a twin pair.
+The fits pin both cargos to the twins' shared rank (one below, the
+rungs) and to the shared other color; distinct cards of one rank-color
+class are twins. -/
+theorem State.cargo_flipSuit {st : State} {t z z' : Card}
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hztop : st.board.topOf (Sum.inr t) = some z)
+    (hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z') :
+    z' = z.flipSuit := by
+  obtain ⟨hrk, hcol⟩ := (canSitOn_eq z t).mp hfit
+  obtain ⟨hrk', hcol'⟩ := (canSitOn_eq z' t.flipSuit).mp hfit'
+  rw [Card.flipSuit_color] at hcol'
+  have hfr : t.flipSuit.rank.toIdx = t.rank.toIdx :=
+    congrArg Rank.toIdx (Card.flipSuit_rank t)
+  have hr : z.rank = z'.rank := Rank.toIdx_inj (by omega)
+  have hc : z.suit.color = z'.suit.color := by
+    by_cases ht : t.suit.color = Color.red
+    · rw [ht] at hcol hcol'
+      rw [Color.eq_of_ne_red hcol, Color.eq_of_ne_red hcol']
+    · have htb : t.suit.color = Color.black := Color.eq_of_ne_red ht
+      rw [htb] at hcol hcol'
+      rw [Color.eq_of_ne_black hcol, Color.eq_of_ne_black hcol']
+  have hbb₁ : st.board.bottomOf z = some (Sum.inr t) := (Board.bottomOf_eq _ _ _).mpr hztop
+  have hbb₁' : st.board.bottomOf z' = some (Sum.inr t.flipSuit) :=
+    (Board.bottomOf_eq _ _ _).mpr hztop'
+  have hne : z ≠ z' := by
+    intro hcon
+    have hbb : st.board.bottomOf z = st.board.bottomOf z' := by rw [hcon]
+    rw [hbb₁, hbb₁'] at hbb
+    exact Card.flipSuit_ne t (Sum.inr.inj (Option.some.inj hbb)).symm
+  exact Card.flipSuit_eq_of_color_rank hc hr hne
+
 /-- **The twin-rooted merge — the [H] residual**: the frozen-phase
 move whose root is the twin itself, landing on the other cargo's run —
 the twin's own run (the cargo riding on top of it) merges onto the
