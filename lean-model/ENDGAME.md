@@ -139,11 +139,14 @@ The compliant play — Lean-shaped sketch (a predicate on plays,
 `stepsOK`-style, Pace.lean:780):
 
 ```lean
-/-- The blocked shapes: seating on c, and same-suit worry-backs. -/
+/-- The blocked shapes: seating on c, and same-suit worry-backs.
+    (REPAIRED 2026-09-14: the draft's separate `.stackPile x _` arm was
+    SHADOWED by the 3-way seat group — fold the excursion test into the
+    stackPile arm.) -/
 def cBlocked (c : Card) : Move → Bool
-  | .deckPile _ b'' | .stackPile _ b'' | .pilePile _ b'' =>
-      decide (b'' = Sum.inr c)
-  | .stackPile x _ => decide (x.suit = c.suit)   -- the excursion shape
+  | .deckPile _ b'' | .pilePile _ b'' => decide (b'' = Sum.inr c)
+  | .stackPile x b'' =>
+      decide (b'' = Sum.inr c) || decide (x.suit = c.suit)
   | _ => false
 
 /-- π is rung-normal for c when the pre-rung-pass segment is unblocked:
@@ -224,9 +227,13 @@ theorem rung_pass_of_win {st : State} (hwf : st.WF) {c : Card} {s₁ : State}
     (hm : st.apply (Move.pileStack c) = some s₁) {π : List Move} {w : State}
     (hw : st.run π = some w) (hwin : w.isWin = true) :
     ∃ π₁ π₂, π = π₁ ++ Move.pileStack c :: π₂ ∧
-      ∀ u, st.run π₁ = some u → u.heights c.suit = st.heights c.suit
+      ∀ u, st.run π₁ = some u → u.heights c.suit ≤ st.heights c.suit
 ```
-The last conjunct: the rung pass is the *first* exceedance of `r`. Kit:
+The last conjunct (REPAIRED 2026-09-14: the draft said `=` — FALSE: an
+excursion before the rung pass dips the height; witness
+Temp/opencode/w2probe.lean; honest first-exceedance form is `≤`):
+the rung pass is the *first* exceedance of `r`. LANDED (Theorems.lean,
+`rung_pass_aux`/`rung_prefix_cons`/`rung_pass_of_win`). Kit:
 `State.isVis_of_apply_pileStack` (TwinSwap.lean:219), `vis_off_cycle`,
 `founds_gone` (State.lean:149 — this WF conjunct also closes the wave-5
 "no-passing" alert (ii): the stNP witness predates `founds_gone`),

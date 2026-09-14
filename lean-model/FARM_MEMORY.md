@@ -1720,3 +1720,58 @@ cannot delta-unfold the goal); count Eq.trans sides before chaining.
   no rank-mate for c) — refute-first before W4; repairs: +hsafe / initialReachable.
 - founds_gone (State.lean:149) CLOSES the wave-5 no-passing alert (ii) —
   stNP predates that conjunct; channel A needs no new repair.
+
+## TwinSwap.lean — aboveOf_congr_off PROVEN, twin line sorry-free (2026-09-14)
+
+The last [M] row fell. Deliverables: `Board.aboveOf_go_mono` (acc ⊆ output
+under fuel induction), `Board.aboveOf_go_congr_aux` (the congruence aux with
+the self-maintaining invariant: acc members + current sub-call output are
+pair-free — the continuation's output IS the current call's via the
+continue-branch), `Board.aboveOf_congr_off` (the 52-fuel instantiation;
+`hcfree : c ≠ t ∧ c ≠ t.flipSuit` replaces the old redundant `hroot`).
+
+Syntax scars worth keeping:
+- After `rw [hagree]` rewrites ONE side's match-scrutinee, `cases hb : e`
+  must target the scrutinee ACTUALLY IN THE GOAL (the rewrite-target side
+  `bd'.topOf ...`, not the source `bd.topOf ...`), or `rfl`/`show` die on
+  unreduced matches. The other side's companion equation is written
+  separately: `(hagree …).trans hb : bd.topOf … = some c'`.
+- `rw [lemma, scrutinee-eq]` at a match leaves `match some c' …` — `rw
+  [if_pos h]`/`rw [if_neg h]` cannot see under it: `show` the reduced arm
+  (defeq iota unwraps the match), THEN the if rewrites fire. Exact
+  sequence inside a nested `have hstep := by` on `go bd (n+1) …`:
+  `rw [aboveOf_go_succ bd, hp']` → `show (if … = true then acc else CONT)
+    = CONT` → `rw [if_neg hcont]`.
+- Fuel-induction invariant placement: carry `hout : ∀ x ∈ go bd n … , …`
+  as a hypothesis of the ∀-statement, not the conclusion; inductive
+  application tuple order: `ih c' (c' :: acc) … hacc' hout'` with
+  `hout'` built by `hstep ▸ hx` transport.
+- Verified in isolation at TEMP\opencode\walk_scratch.lean, then ported.
+
+Process scar: `lake build` was blocked for TwinSwap verification by a
+PARALLEL session mid-edit of Theorems.lean (wiped Theorems.olean).  Repair:
+`git show HEAD:…Theorems.lean` → temp root `…\Klondike\Theorems.lean`,
+`lake env lean -R <tmproot> -o <real olean path> <the file>` rebuilds the
+dependency olean WITHOUT touching their file; then typecheck per-file with
+`lake env lean -o $TEMP\… TwinSwap.lean` (diverts the olean off the source
+tree).
+
+## Theorems.lean — the W1/W2 scaffold + W3-adjacent LANDED (2026-09-14)
+
+- LANDED (axiom-clean [propext, Quot.sound (+Classical.choice for the by_cases inductions)]; census
+  Theorems pinned 1 = the crux; +536 lines, Theorems.lean ONLY): W1 transfers isLocked_congr,
+  lockedness_{draw,deckStack,deckPile,pileStack,stackPile,pilePile} (c ≠ x guards; deckPile caller
+  derives c ≠ x via vis_off_cycle), bottomOf_of_reveal (reveal seat half). W1 scaffold: cBlocked +
+  extractors + solvable_of_pileStack_aux (private; π-length induction; hyp ∃ π₁ π₂,
+  π = π₁ ++ pileStack c :: π₂ ∧ π₁ cBlocked-free = rungNormal substance, post-pass unconstrained;
+  dispatches delete/run-root/7 steps ONLY — zero new sorry). W2: rung_pass_aux + rung_prefix_cons +
+  rung_pass_of_win, DRAFT REPAIRED prefix conjunct = → ≤ (witness Temp/opencode/w2probe.lean, #eval
+  exit 0: winning play, unique pileStack ♦K @2, forced prefix dips to 11 < 12 via the excursion
+  stackPile ♦Q (inr ♣K)). W3: excursion_pair_delete_adjacent (hcancel-form — stackPile_pileStack_cancel
+  is Dominance's, DOWNSTREAM; instantiate there). Spread map: move-only blindness {no x-suit
+  pileStack/deckStack/stackPile, no deckPile/pilePile card-or-base x, no reveal x} + φ (replay = source
+  minus x seat-edge, heights x.suit +1; x top stays empty; carries-x pilePile safe) — the §7.2 choice.
+- QUIRKS: obtain rfl/subst ELIMINATES the substituted var (c/s₂/m) — keep shape eqs, rw into goals;
+  `by decide` fails on free locals — show+rw+simp; `cases m` kills m — hoist apply_wf/hcm BEFORE;
+  rw [hσ] (c.suit→x.suit) matches the rung guard; Cycle.mem_removeIdx; idxOf; (False).elim.
+

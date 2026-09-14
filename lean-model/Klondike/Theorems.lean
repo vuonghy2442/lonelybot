@@ -1601,6 +1601,115 @@ theorem reveal_notLocked {st s₂ : State} {c x : Card} (hnotlock : st.isLocked 
           rw [hkey]
           simp
 
+/-! ### The IH-transfer one-liners (the π-induction's guards)
+
+The crux's induction feeds its IH at each first-move successor `s₂`;
+the guards — `s₂.isLocked c = false` and `s₂.board.bottomOf c =
+some b₀` — follow from the source facts plus these one-liners.  The
+six non-reveal shapes (`draw`, `deckStack`, `deckPile`, `pileStack x`,
+`stackPile x b''`, `pilePile x b''`) write neither the deal nor the
+depths, so the hidden-pile views are untouched and only the seat has
+to survive the board edit; the reveal shape's lockedness half is
+`reveal_notLocked` above, with the seat half (`bottomOf_of_reveal`)
+repeated here.  ENDGAME.md §5 W1. -/
+
+/-- Lockedness congruence: the same seat (via `bottomOf`) and the same
+deal/depths give the same lockedness — the search reads nothing else. -/
+theorem isLocked_congr {st s₂ : State} {c : Card}
+    (hbot : s₂.board.bottomOf c = st.board.bottomOf c)
+    (hdeal : s₂.deal = st.deal) (hdpt : s₂.depths = st.depths) :
+    s₂.isLocked c = st.isLocked c := by
+  simp only [State.isLocked, hbot]
+  cases st.board.bottomOf c with
+  | none => rfl
+  | some b =>
+      cases b with
+      | inl _ => rfl
+      | inr r =>
+          show decide (s₂.pileOfTopHidden r ≠ none) = decide (st.pileOfTopHidden r ≠ none)
+          rw [pileOfTopHidden_congr hdeal hdpt r]
+
+/-- `draw`: the stock advance touches nothing the lockedness or seat
+searches read. -/
+theorem lockedness_draw {st s₂ : State} {c : Card}
+    (hmd : st.apply Move.draw = some s₂) :
+    s₂.isLocked c = st.isLocked c ∧ s₂.board.bottomOf c = st.board.bottomOf c := by
+  rw [apply_draw_iff] at hmd
+  obtain rfl := hmd
+  exact ⟨isLocked_congr rfl rfl rfl, rfl⟩
+
+/-- `deckStack`: the foundation draw writes the stock and one height —
+not the seat or the hidden piles. -/
+theorem lockedness_deckStack {st s₂ : State} {c x : Card}
+    (hmd : st.apply (Move.deckStack x) = some s₂) :
+    s₂.isLocked c = st.isLocked c ∧ s₂.board.bottomOf c = st.board.bottomOf c := by
+  rw [apply_deckStack_iff] at hmd
+  obtain ⟨_, _, rfl⟩ := hmd
+  exact ⟨isLocked_congr rfl rfl rfl, rfl⟩
+
+/-- `deckPile` onto another card's base: the seat and the hidden piles
+survive the attach (the played card itself is stocked, so it is not
+`c` — that exclusion is the caller's job). -/
+theorem lockedness_deckPile {st s₂ : State} {c x : Card} {b'' : Base}
+    (hmd : st.apply (Move.deckPile x b'') = some s₂) (hxc : c ≠ x) :
+    s₂.isLocked c = st.isLocked c ∧ s₂.board.bottomOf c = st.board.bottomOf c := by
+  rw [apply_deckPile_iff] at hmd
+  obtain ⟨_, _, bd, hatt, rfl⟩ := hmd
+  exact ⟨isLocked_congr (bottomOf_attach_ne hatt hxc) rfl rfl,
+    bottomOf_attach_ne hatt hxc⟩
+
+/-- `pileStack` of another card `x`: `c`'s seat survives the detach at
+`x`'s base. -/
+theorem lockedness_pileStack {st s₂ : State} {c x : Card}
+    (hmx : st.apply (Move.pileStack x) = some s₂) (hxc : c ≠ x) :
+    s₂.isLocked c = st.isLocked c ∧ s₂.board.bottomOf c = st.board.bottomOf c := by
+  rw [apply_pileStack_iff] at hmx
+  obtain ⟨_, bx, hbx, _, rfl⟩ := hmx
+  exact ⟨isLocked_congr
+      (bottomOf_detach_ne ((Board.bottomOf_eq st.board x bx).mp hbx) hxc) rfl rfl,
+    bottomOf_detach_ne ((Board.bottomOf_eq st.board x bx).mp hbx) hxc⟩
+
+/-- `stackPile` of another card `x`: `c`'s seat survives the attach at
+the landing base. -/
+theorem lockedness_stackPile {st s₂ : State} {c x : Card} {b'' : Base}
+    (hms : st.apply (Move.stackPile x b'') = some s₂) (hxc : c ≠ x) :
+    s₂.isLocked c = st.isLocked c ∧ s₂.board.bottomOf c = st.board.bottomOf c := by
+  rw [apply_stackPile_iff] at hms
+  obtain ⟨_, _, bd, hatt, rfl⟩ := hms
+  exact ⟨isLocked_congr (bottomOf_attach_ne hatt hxc) rfl rfl,
+    bottomOf_attach_ne hatt hxc⟩
+
+/-- `pilePile` of another card `x`: `c`'s seat survives both the
+detach at `x`'s old base and the attach at the landing base. -/
+theorem lockedness_pilePile {st s₂ : State} {c x : Card} {b'' : Base}
+    (hmp : st.apply (Move.pilePile x b'') = some s₂) (hxc : c ≠ x) :
+    s₂.isLocked c = st.isLocked c ∧ s₂.board.bottomOf c = st.board.bottomOf c := by
+  rw [apply_pilePile_iff] at hmp
+  obtain ⟨bx, hbx, _, _, bd, hatt, rfl⟩ := hmp
+  have hstep : (st.board.detach bx).bottomOf c = st.board.bottomOf c :=
+    bottomOf_detach_ne ((Board.bottomOf_eq st.board x bx).mp hbx) hxc
+  exact ⟨isLocked_congr ((bottomOf_attach_ne hatt hxc).trans hstep) rfl rfl,
+    (bottomOf_attach_ne hatt hxc).trans hstep⟩
+
+/-- The reveal's seat half (the lockedness half is
+`reveal_notLocked`): `c`'s seat survives the boundary card's attach —
+if the boundary `r` were `c`, the trigger `x` would sit on `c`,
+excluded by `c`'s top-freeness (the stack's own guard). -/
+theorem bottomOf_of_reveal {st s₂ : State} {c x : Card}
+    (htopn : st.board.topOf (Sum.inr c) = none)
+    (hmr : st.apply (Move.reveal x) = some s₂) :
+    s₂.board.bottomOf c = st.board.bottomOf c := by
+  rw [apply_reveal_iff] at hmr
+  obtain ⟨_, r, a, bd, hbx, _, hatt, rfl⟩ := hmr
+  have hcr : c ≠ r := by
+    intro hce
+    rw [← hce] at hbx
+    have hX : st.board.topOf (Sum.inr c) = some x :=
+      (Board.bottomOf_eq st.board x (Sum.inr c)).mp hbx
+    rw [htopn] at hX
+    exact absurd hX (by simp)
+  exact bottomOf_attach_ne hatt hcr
+
 /-! ### The first-move steps (the π-induction's square cases)
 
 For each non-blocked first move of the winning play, the commute
@@ -1761,6 +1870,433 @@ theorem solvable_of_pileStack_step_pilePile {st : State} {c x : Card} {b₀ b'' 
   refine ⟨Move.pilePile x b'' :: win, w, ?_, hwin⟩
   simp only [State.run, hL]
   exact hwrun
+
+/-! ### The π-scaffold (ENDGAME.md §5: W1's aux, W2's rung pass, W3's
+adjacent pair)
+
+`cBlocked` is the blocked-shape predicate of the crux's π-induction;
+`solvable_of_pileStack_aux` packages the closed dispatch (vacuity,
+delete, run-root, seven commuting steps) under the no-blocked-move
+hypothesis — the park/excursion residue (W3/W4) is EXCLUDED, not
+assumed away: the statement is assembled only from proven cases, so
+it carries no new `sorry`.  `rung_pass_of_win` is the rung-pass
+existence (every winning play fires `pileStack c`, the first
+exceedance of `c`'s rung). -/
+
+/-- The blocked shapes of the crux's π-induction (ENDGAME.md §3): a
+placement move seating a card *on* `c` (the park), and a `stackPile`
+of `c`'s suit (the same-suit worry-back — the excursion; the landing
+base is irrelevant, any same-suit worry-back drops the rung before the
+pass).  Everything else — including `pileStack c` itself (the rung
+pass, the delete case) and `pilePile c b''` (the run-root re-home) —
+is unblocked. -/
+def cBlocked (c : Card) : Move → Bool
+  | .deckPile _ b'' => decide (b'' = Sum.inr c)
+  | .stackPile x b'' => decide (b'' = Sum.inr c) || decide (x.suit = c.suit)
+  | .pilePile _ b'' => decide (b'' = Sum.inr c)
+  | _ => false
+
+theorem cBlocked_deckPile {c x : Card} {b'' : Base}
+    (h : cBlocked c (Move.deckPile x b'') = false) : b'' ≠ Sum.inr c := by
+  intro hbe
+  have hc : cBlocked c (Move.deckPile x b'') = true := by
+    show (decide (b'' = Sum.inr c) : Bool) = true
+    rw [hbe]
+    simp
+  rw [hc] at h
+  exact Bool.noConfusion h
+
+theorem cBlocked_pilePile {c x : Card} {b'' : Base}
+    (h : cBlocked c (Move.pilePile x b'') = false) : b'' ≠ Sum.inr c := by
+  intro hbe
+  have hc : cBlocked c (Move.pilePile x b'') = true := by
+    show (decide (b'' = Sum.inr c) : Bool) = true
+    rw [hbe]
+    simp
+  rw [hc] at h
+  exact Bool.noConfusion h
+
+theorem cBlocked_stackPile {c x : Card} {b'' : Base}
+    (h : cBlocked c (Move.stackPile x b'') = false) :
+    b'' ≠ Sum.inr c ∧ x.suit ≠ c.suit := by
+  constructor
+  · intro hbe
+    have hc : cBlocked c (Move.stackPile x b'') = true := by
+      show (decide (b'' = Sum.inr c) || decide (x.suit = c.suit)) = true
+      rw [hbe]
+      simp
+    rw [hc] at h
+    exact Bool.noConfusion h
+  · intro hse
+    have hc : cBlocked c (Move.stackPile x b'') = true := by
+      show (decide (b'' = Sum.inr c) || decide (x.suit = c.suit)) = true
+      rw [hse]
+      simp
+    rw [hc] at h
+    exact Bool.noConfusion h
+
+/-- The π-scaffold of the crux's N-half (ENDGAME.md §5, W1): a winning
+play whose prefix before the rung pass is unblocked replays from the
+stack successor `s₁` — by induction on the play's length, dispatching
+each first move to the landed machinery: the rung pass itself (the
+delete case, `solvable_of_pileStack_step_delete`), the run-root
+re-home (`pileStack_pilePile_stackPile`), and the seven commuting
+steps (`solvable_of_pileStack_step_*`), with the IH's guards —
+`s₂.WF` (`apply_wf`), `s₂.isLocked c = false` and
+`s₂.board.bottomOf c = some b₀` (the transfer one-liners above) —
+carried per case.  The hypothesis is the `rungNormal` substance (the
+rung pass occurs, and nothing parks on `c` nor worries back `c`'s
+suit before it — `cBlocked`); moves AFTER the pass are unconstrained,
+matching `rung_pass_of_win`'s conclusion shape, so W5 composes the
+normal-form existence, this aux, and the delete case without touching
+the tail.  No new `sorry`: every dispatched case is proven. -/
+private theorem solvable_of_pileStack_aux : ∀ (n : Nat) (st : State) (c : Card)
+    (b₀ : Base) (s₁ : State), st.WF → st.isLocked c = false →
+    st.board.bottomOf c = some b₀ → st.apply (Move.pileStack c) = some s₁ →
+    ∀ π : List Move, π.length ≤ n →
+    (∃ π₁ π₂, π = π₁ ++ Move.pileStack c :: π₂ ∧ ∀ m ∈ π₁, cBlocked c m = false) →
+    ∀ w, st.run π = some w → w.isWin = true → s₁.solvableFrom := by
+  intro n
+  induction n with
+  | zero =>
+      intro st c b₀ s₁ _ _ _ hm π hlen hep w hrun hwin
+      cases π with
+      | nil => obtain ⟨_, _, hsplit, _⟩ := hep; simp at hsplit
+      | cons m rest =>
+          simp only [List.length_cons] at hlen
+          exact absurd hlen (by omega)
+  | succ n ih =>
+      intro st c b₀ s₁ hwf hnotlock hbot hm π hlen hep w hrun hwin
+      obtain ⟨π₁, π₂, hsplit, hclr₁⟩ := hep
+      cases π with
+      | nil => simp at hsplit
+      | cons m rest =>
+          have hlenr : rest.length ≤ n := by
+            simp only [List.length_cons] at hlen
+            omega
+          have hmo := hm
+          rw [apply_pileStack_iff] at hmo
+          obtain ⟨htopn, _, _, hrk, _⟩ := hmo
+          by_cases hfirst : π₁ = []
+          · -- the rung pass is the first move: the delete case, no IH
+            subst hfirst
+            simp only [List.nil_append, List.cons.injEq] at hsplit
+            obtain ⟨rfl, rfl⟩ := hsplit
+            exact solvable_of_pileStack_step_delete hm hrun hwin
+          · -- the first move precedes the pass: it is unblocked
+            obtain ⟨m', rest₁, rfl⟩ : ∃ m' rest₁, π₁ = m' :: rest₁ := by
+              cases π₁ with
+              | nil => exact absurd rfl hfirst
+              | cons m' rest₁ => exact ⟨m', rest₁, rfl⟩
+            simp only [List.cons_append, List.cons.injEq] at hsplit
+            obtain ⟨hmeq, hrest'⟩ := hsplit
+            have hcm : cBlocked c m = false := by
+              rw [hmeq]
+              exact hclr₁ m' (by simp)
+            have hep' : ∃ ρ₁ ρ₂, rest = ρ₁ ++ Move.pileStack c :: ρ₂ ∧
+                ∀ m'' ∈ ρ₁, cBlocked c m'' = false :=
+              ⟨rest₁, π₂, hrest', fun m'' hm'' => hclr₁ m'' (by simp [hm''])⟩
+            have hrun' := hrun
+            simp only [State.run] at hrun'
+            cases hm2 : st.apply m with
+            | none => rw [hm2] at hrun'; simp at hrun'
+            | some s₂ =>
+                rw [hm2] at hrun'
+                have hrest : s₂.run rest = some w := hrun'
+                have hwf₂ := apply_wf hwf m s₂ hm2
+                cases m with
+                | draw =>
+                    obtain ⟨hlk, hb2⟩ := lockedness_draw hm2
+                    refine solvable_of_pileStack_step_draw hbot hm hm2 ?_
+                    intro t hR
+                    exact ih s₂ c b₀ t hwf₂ (hlk.trans hnotlock)
+                      (hb2.trans hbot) hR rest hlenr hep' w hrest hwin
+                | reveal x =>
+                    have hlock₂ : s₂.isLocked c = false :=
+                      reveal_notLocked hnotlock htopn hm2
+                    have hb2 : s₂.board.bottomOf c = some b₀ :=
+                      (bottomOf_of_reveal htopn hm2).trans hbot
+                    refine solvable_of_pileStack_step_reveal hwf hnotlock hbot hm hm2 ?_
+                    intro t hR
+                    exact ih s₂ c b₀ t hwf₂ hlock₂ hb2 hR rest hlenr hep' w hrest hwin
+                | deckStack x =>
+                    obtain ⟨hlk, hb2⟩ := lockedness_deckStack hm2
+                    refine solvable_of_pileStack_step_deckStack hwf hbot hm hm2 ?_
+                    intro t hR
+                    exact ih s₂ c b₀ t hwf₂ (hlk.trans hnotlock)
+                      (hb2.trans hbot) hR rest hlenr hep' w hrest hwin
+                | deckPile x b'' =>
+                    have hnc : b'' ≠ Sum.inr c := cBlocked_deckPile hcm
+                    -- the played card is stocked, c is visible: c ≠ x
+                    have hmd2 := hm2
+                    rw [apply_deckPile_iff] at hmd2
+                    obtain ⟨hprev, _, _, _, _⟩ := hmd2
+                    have hmem : x ∈ st.stock.cards := by
+                      simp only [Cycle.prev] at hprev
+                      split at hprev
+                      · exact absurd hprev (by simp)
+                      · exact List.mem_iff_getElem?.mpr ⟨st.stock.cursor - 1, hprev⟩
+                    have hxc : c ≠ x := by
+                      intro hxe
+                      rw [← hxe] at hmem
+                      exact Cycle.posOf_mem hmem (hwf.vis_off_cycle c (by
+                        show (st.board.bottomOf c).isSome = true
+                        rw [hbot]
+                        rfl))
+                    obtain ⟨hlk, hb2⟩ := lockedness_deckPile hm2 hxc
+                    refine solvable_of_pileStack_step_deckPile hwf hbot hm hm2 hnc ?_
+                    intro t hR
+                    exact ih s₂ c b₀ t hwf₂ (hlk.trans hnotlock)
+                      (hb2.trans hbot) hR rest hlenr hep' w hrest hwin
+                | pileStack x =>
+                    by_cases hxc : x = c
+                    · subst hxc
+                      exact solvable_of_pileStack_step_delete hm hrun hwin
+                    · have hmx2 := hm2
+                      rw [apply_pileStack_iff] at hmx2
+                      obtain ⟨_, bx, hbx, _, _⟩ := hmx2
+                      obtain ⟨hlk, hb2⟩ := lockedness_pileStack hm2 (Ne.symm hxc)
+                      refine solvable_of_pileStack_step_pileStack hbot hbx hm hm2 hxc ?_
+                      intro t hR
+                      exact ih s₂ c b₀ t hwf₂ (hlk.trans hnotlock)
+                        (hb2.trans hbot) hR rest hlenr hep' w hrest hwin
+                | stackPile x b'' =>
+                    obtain ⟨hnc, hσ⟩ := cBlocked_stackPile hcm
+                    have hxc : c ≠ x := by
+                      intro hxe
+                      exact hσ (by rw [hxe])
+                    obtain ⟨hlk, hb2⟩ := lockedness_stackPile hm2 hxc
+                    refine solvable_of_pileStack_step_stackPile hbot hm hm2 hnc hσ ?_
+                    intro t hR
+                    exact ih s₂ c b₀ t hwf₂ (hlk.trans hnotlock)
+                      (hb2.trans hbot) hR rest hlenr hep' w hrest hwin
+                | pilePile x b'' =>
+                    have hnc : b'' ≠ Sum.inr c := cBlocked_pilePile hcm
+                    by_cases hxc : x = c
+                    · rw [hxc] at hm2
+                      -- the run-root replay: no IH needed
+                      refine ⟨Move.stackPile c b'' :: rest, w, ?_, hwin⟩
+                      simp only [State.run, pileStack_pilePile_stackPile hbot hrk hm hm2]
+                      exact hrest
+                    · obtain ⟨hlk, hb2⟩ := lockedness_pilePile hm2 (Ne.symm hxc)
+                      refine solvable_of_pileStack_step_pilePile hbot hm hm2 hnc hxc ?_
+                      intro t hR
+                      exact ih s₂ c b₀ t hwf₂ (hlk.trans hnotlock)
+                        (hb2.trans hbot) hR rest hlenr hep' w hrest hwin
+
+/-- The induction step's common tail for the rung-pass search:
+prefixing the (already replayed) first move onto the IH's
+decomposition. -/
+private theorem rung_prefix_cons {u s₂ : State} {m : Move} {c : Card} {R : Nat}
+    {rest π₁ π₂ : List Move}
+    (hm : u.apply m = some s₂)
+    (hsplit : rest = π₁ ++ Move.pileStack c :: π₂)
+    (hconj : ∀ u', s₂.run π₁ = some u' → u'.heights c.suit ≤ R) :
+    ∃ ρ₁ ρ₂, (m :: rest) = ρ₁ ++ Move.pileStack c :: ρ₂ ∧
+      (∀ u', u.run ρ₁ = some u' → u'.heights c.suit ≤ R) :=
+  ⟨m :: π₁, π₂, by rw [hsplit]; simp, fun u' hu' => hconj u' (by
+    simp only [State.run, hm] at hu'
+    exact hu')⟩
+
+/-- W2's core: a play whose end state strictly exceeds the bound `R`
+(≥ the start's `c`-suit height) must contain the rung pass
+`pileStack c` — the exceedance can only be the bump at `c`'s own
+rung: a same-suit bump past `R` needs the unique `c`-suit card at
+`toIdx R = toIdx c`, i.e. `c` itself, and `deckStack c` is impossible
+(`c` never enters the stock cycle — the cycle only loses cards).  The
+prefix up to the exhibited pass never exceeds `R`: the first
+exceedance IS the pass. -/
+private theorem rung_pass_aux {c : Card} {R : Nat} (hrk : c.rank.toIdx = R) :
+    ∀ (π : List Move) (u : State) (w : State), u.run π = some w →
+    u.heights c.suit ≤ R → c ∉ u.stock.cards → w.heights c.suit > R →
+    ∃ π₁ π₂, π = π₁ ++ Move.pileStack c :: π₂ ∧
+      (∀ u', u.run π₁ = some u' → u'.heights c.suit ≤ R) := by
+  intro π
+  induction π with
+  | nil =>
+      intro u w hrun hle _ hgt
+      simp only [State.run] at hrun
+      have hu : u = w := Option.some.inj hrun
+      subst hu
+      omega
+  | cons m rest ih =>
+      intro u w hrun hle hc hgt
+      have hrun' := hrun
+      simp only [State.run] at hrun'
+      cases hm : u.apply m with
+      | none => rw [hm] at hrun'; simp at hrun'
+      | some s₂ =>
+          rw [hm] at hrun'
+          have hrest : s₂.run rest = some w := hrun'
+          cases m with
+          | pileStack x =>
+              by_cases hxc : x = c
+              · subst hxc
+                refine ⟨[], rest, by simp, ?_⟩
+                intro u' hu'
+                simp only [State.run] at hu'
+                have huu : u = u' := Option.some.inj hu'
+                subst huu
+                exact hle
+              · have hmx := hm
+                rw [apply_pileStack_iff] at hmx
+                obtain ⟨_, _, _, hrkx, hsp⟩ := hmx
+                have hle₂ : s₂.heights c.suit ≤ R := by
+                  rw [hsp]
+                  show (if c.suit = x.suit then u.heights c.suit + 1 else u.heights c.suit) ≤ R
+                  by_cases hσ : c.suit = x.suit
+                  · rw [if_pos hσ]
+                    by_cases hlt : u.heights c.suit < R
+                    · omega
+                    · have hR : u.heights c.suit = R := by omega
+                      have h1 : x.rank.toIdx = u.heights c.suit := by
+                        rw [hσ]; exact hrkx
+                      have h2 : x.rank.toIdx = c.rank.toIdx := by rw [h1, hR, hrk]
+                      have h3 : x.rank = c.rank := Rank.toIdx_inj h2
+                      exact absurd (show x = c by cases x; cases c; simp_all) hxc
+                  · rw [if_neg hσ]; exact hle
+                have hc₂ : c ∉ s₂.stock.cards := by rw [hsp]; exact hc
+                obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
+                exact rung_prefix_cons hm hsplit hconj
+          | draw =>
+              have hmd := hm
+              rw [apply_draw_iff] at hmd
+              have hle₂ : s₂.heights c.suit ≤ R := by rw [hmd]; exact hle
+              have hc₂ : c ∉ s₂.stock.cards := by
+                rw [hmd]
+                show c ∉ (u.stock.dealOnce u.drawStep).cards
+                rw [Cycle.dealOnce_cards]
+                exact hc
+              obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
+              exact rung_prefix_cons hm hsplit hconj
+          | reveal _ =>
+              have hmr := hm
+              rw [apply_reveal_iff] at hmr
+              obtain ⟨_, _, _, _, _, _, _, hsr⟩ := hmr
+              have hle₂ : s₂.heights c.suit ≤ R := by rw [hsr]; exact hle
+              have hc₂ : c ∉ s₂.stock.cards := by rw [hsr]; exact hc
+              obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
+              exact rung_prefix_cons hm hsplit hconj
+          | deckPile _ _ =>
+              have hmd := hm
+              rw [apply_deckPile_iff] at hmd
+              obtain ⟨_, _, _, _, hsd⟩ := hmd
+              have hle₂ : s₂.heights c.suit ≤ R := by rw [hsd]; exact hle
+              have hc₂ : c ∉ s₂.stock.cards := by
+                rw [hsd]
+                intro hmem
+                exact hc (Cycle.mem_removeIdx _ _ hmem)
+              obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
+              exact rung_prefix_cons hm hsplit hconj
+          | deckStack x =>
+              have hmd := hm
+              rw [apply_deckStack_iff] at hmd
+              obtain ⟨hprev, hrkx, hsd⟩ := hmd
+              have hxc : x ≠ c := by
+                intro hxe
+                rw [hxe] at hprev
+                have hmem : c ∈ u.stock.cards := by
+                  simp only [Cycle.prev] at hprev
+                  split at hprev
+                  · exact absurd hprev (by simp)
+                  · exact List.mem_iff_getElem?.mpr ⟨u.stock.cursor - 1, hprev⟩
+                exact hc hmem
+              have hle₂ : s₂.heights c.suit ≤ R := by
+                rw [hsd]
+                show (if c.suit = x.suit then u.heights c.suit + 1 else u.heights c.suit) ≤ R
+                by_cases hσ : c.suit = x.suit
+                · rw [if_pos hσ]
+                  by_cases hlt : u.heights c.suit < R
+                  · omega
+                  · have hR : u.heights c.suit = R := by omega
+                    have h1 : x.rank.toIdx = u.heights c.suit := by
+                      rw [hσ]; exact hrkx
+                    have h2 : x.rank.toIdx = c.rank.toIdx := by rw [h1, hR, hrk]
+                    have h3 : x.rank = c.rank := Rank.toIdx_inj h2
+                    exact absurd (show x = c by cases x; cases c; simp_all) hxc
+                · rw [if_neg hσ]; exact hle
+              have hc₂ : c ∉ s₂.stock.cards := by
+                rw [hsd]
+                intro hmem
+                exact hc (Cycle.mem_removeIdx _ _ hmem)
+              obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
+              exact rung_prefix_cons hm hsplit hconj
+          | stackPile x _ =>
+              have hms := hm
+              rw [apply_stackPile_iff] at hms
+              obtain ⟨_, _, _, _, hss⟩ := hms
+              have hle₂ : s₂.heights c.suit ≤ R := by
+                rw [hss]
+                show (if c.suit = x.suit then u.heights c.suit - 1 else u.heights c.suit) ≤ R
+                by_cases hσ : c.suit = x.suit
+                · rw [if_pos hσ]; omega
+                · rw [if_neg hσ]; exact hle
+              have hc₂ : c ∉ s₂.stock.cards := by rw [hss]; exact hc
+              obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
+              exact rung_prefix_cons hm hsplit hconj
+          | pilePile _ _ =>
+              have hmp := hm
+              rw [apply_pilePile_iff] at hmp
+              obtain ⟨_, _, _, _, _, _, hsp⟩ := hmp
+              have hle₂ : s₂.heights c.suit ≤ R := by rw [hsp]; exact hle
+              have hc₂ : c ∉ s₂.stock.cards := by rw [hsp]; exact hc
+              obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
+              exact rung_prefix_cons hm hsplit hconj
+
+/-- The rung pass exists (ENDGAME.md §5, W2 — first-exceedance form):
+every winning play from a WF state where `pileStack c` is legal fires
+`pileStack c` at some position, and no state on the prefix before the
+exhibited pass has `c`'s suit height above the rung `st.heights
+c.suit = toIdx c`.  (The height may dip below the rung before the
+pass — an excursion — but never exceed it: the bump past the rung
+reads `c`'s own card.)  STATEMENT REPAIRED (2026-09-14,
+prover-confirmed witness `Temp/opencode/w2probe.lean`, #eval): the
+draft's equality conjunct `u.heights c.suit = st.heights c.suit` was
+FALSE — a worry-back of `c`'s suit before the rung pass (an excursion)
+dips the height to `r - 1` on the forced prefix; the honest form is
+`≤`, matching ENDGAME's own "first exceedance" reading. -/
+theorem rung_pass_of_win {st : State} (hwf : st.WF) {c : Card} {s₁ : State}
+    (hm : st.apply (Move.pileStack c) = some s₁) {π : List Move} {w : State}
+    (hw : st.run π = some w) (hwin : w.isWin = true) :
+    ∃ π₁ π₂, π = π₁ ++ Move.pileStack c :: π₂ ∧
+      ∀ u, st.run π₁ = some u → u.heights c.suit ≤ st.heights c.suit := by
+  have hmo := hm
+  rw [apply_pileStack_iff] at hmo
+  obtain ⟨_, _, hb, hrk, _⟩ := hmo
+  have hvis : st.isVis c = true := by
+    show (st.board.bottomOf c).isSome = true
+    rw [hb]
+    rfl
+  have hc : c ∉ st.stock.cards := fun hmem =>
+    Cycle.posOf_mem hmem (hwf.vis_off_cycle c hvis)
+  have h13 : w.heights c.suit = 13 := by
+    have h := hwin
+    simp only [State.isWin] at h
+    exact of_decide_eq_true (List.all_eq_true.mp h c.suit (Suit.mem_all c.suit))
+  have hr : st.heights c.suit < 13 := by
+    rw [← hrk]
+    exact Rank.toIdx_lt c.rank
+  have hgt : w.heights c.suit > st.heights c.suit := by rw [h13]; omega
+  exact rung_pass_aux hrk π st w hw (Nat.le_refl _) hc hgt
+
+/-- W3's adjacent case at the run level (ENDGAME.md §5 W3; the spread
+version — the excursion pair with an intermediate blind segment — is
+the next agent's: its `seatsOrReads` blindness predicate is a def-level
+design choice, ENDGAME §7.2, and is state-dependent for the
+run-carrying `pilePile` shapes): deleting a worry-back immediately
+followed by its re-stack changes nothing — the composition is the
+identity, so the rest of the play runs from the source state itself.
+The apply-level cancellation is a hypothesis because its home
+(`stackPile_pileStack_cancel`) is Dominance's, downstream of this
+file: there, instantiate it with
+`excursion_pair_delete_adjacent (stackPile_pileStack_cancel hwf hsp)`. -/
+theorem excursion_pair_delete_adjacent {st : State} {x : Card}
+    {s₁ : State} {π : List Move} {w : State}
+    (hcancel : s₁.apply (Move.pileStack x) = some st)
+    (hrun : s₁.run (Move.pileStack x :: π) = some w) :
+    st.run π = some w := by
+  simp only [State.run, hcancel] at hrun
+  exact hrun
 
 set_option linter.unusedVariables false in
 /-- The stack half of the accommodation step — the isolated B4 reshape
