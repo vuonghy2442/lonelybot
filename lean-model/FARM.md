@@ -282,7 +282,7 @@ premise).
 
 | item | file:line | tag | route |
 |---|---|---|---|
-| `solvable_cargoTwin_exchange` (both-occupied iff) | TwinExchange:614 | [H] | **Base case LANDED (2026-09-14, session 3)**: `solvable_of_exchange_pileStack` — the freedom-first bridge (same `pileStack` in the exchanged state via `Board.exchangeTwin_detach`, then the remaining cargo's backward transfer, then the tail verbatim); the first freedom move is always a `pileStack` (pre-freedom `pilePile z _` impossible — the seat lock confines the cargo to the occupied twins).  Remaining: the pre-freedom prefix induction — same-move mirror clean for the other move kinds (reveal triggers on `t`/`t'` vacuous); the obstruction is exactly the MERGE case (a pilePile landing a twin-passing run onto the other cargo's stack-top — self-landing in the mirror; the B&G redirect `canSitOn`-gated; bare-cargo redirect works but degenerates to the `z ↔ z'` conjugation, which dies at suit-reading moves — TwinSwapWitness's root cause).  Route: piecewise bookkeeping or play normalization; gate first (the corner AND the merge shape).  Premise arithmetic: `hfit`/`hfit'` force `z' = z.flipSuit` — two twin pairs crossed; `canSitOn_hosts_are_twins` (LANDED) is the seat lock |
+| `solvable_cargoTwin_exchange` (both-occupied iff) | TwinExchange:991 | [H] | **Mechanics COMPLETE (sessions 3-5); premise-transfer substrate begun (session 6)**: the freedom-first bridge `solvable_of_exchange_pileStack`; mirror steps for ALL SIX non-freedom move kinds (`exchangeTwinCargo_step_{draw,deckStack,deckPile,stackPile,reveal,pilePile}`); `Board.aboveOf_sub_detach` (the detach-shrink, LANDED).  **The WF repair (session 6 finding)**: the hnb transfer through the attach-moves needs the moved card stack-free — at WF this is board_edges (the deal-adjacent disjunct's topHidden-or-seated side condition kills edges over stock/foundationed bases); without WF a phantom unplaced card can formally support a stack carrying `t` into a cargo run.  Remaining: the attach-growth lemma, the WF stack-free derivations, the h₀/hvis transfers, the assembly.  **The open gap**: the MERGE (a pilePile whose root's walk passes a twin, landing on the other cargo's stack — breaks the mirror AND creates the braid `t ∈ aboveOf z'`; B&G redirect `canSitOn`-gated; bare-cargo redirect degenerates to the `z ↔ z'` conjugation, dead at suit-reading moves).  Route: piecewise bookkeeping or play normalization; gate first (the corner AND the merge shape).  Premise arithmetic: `z' = z.flipSuit` forced — two twin pairs crossed; `canSitOn_hosts_are_twins` (LANDED) is the seat lock |
 | ~~`solvable_cargoTwin_exchange_bare`~~ (bare-twin, move-free) | TwinExchange | **done** (2026-09-14) | PROVEN via the *backward* realization (`exchangeTwinCargo_pilePile_back`): from the exchanged state the cargo's pilePile onto its original twin is legal and lands on the original — the exchange is one move from the original, and the win replays through it.  The twin card is never consulted, so the statement was STRENGTHENED: the planned `hzone`/`hwf` premises dropped, phantom twins (stocked/buried/foundationed) covered for free |
 
 **Refute-first gate (before farming the remaining row)**:
@@ -411,6 +411,72 @@ Duplication is compounding — canonicalize into Kit/Cycle per the DAG:
   extract;
 - `Commutation.lean` at 2372 lines: split coarse (compsDisjoint +
   blindness) vs fine (touch + drawTo).
+
+## Refactor Phase 0 — the friction-cleanup scope (core-only)
+
+**Decision (2026-09-14, user): core Lean 4 only — mathlib declined
+(bulk), batteries/std4 also declined (purity-as-a-value).  All
+ergonomics work below is therefore encapsulation + simp-normal-form +
+small macros, nothing external.**
+
+### R1 — `aboveOf` encapsulation (the walk API)
+
+Consumers must never name `fuel` again.  At Board.lean level:
+
+- prove the kit once: `aboveOf_step` (one-step equation), `aboveOf_nodup`
+  (the contains-guard preserves `List.Nodup`) — the ≤52-distinct-cards
+  argument: raw boards never fuel-truncate; keep `c ∈ aboveOf c` as the
+  *cycle marker* (true exactly on loop junk — pair it with the parked
+  `board_acyclic` row so WF-consumers later get `c ∉` for free);
+- re-home `aboveOf_go_succ` (Relabel.lean) into Board.lean as part of
+  the kit; consumer sweep: GREP all `aboveOf.go`/`go_succ` uses outside
+  Board.lean (Relabel, Theorems' replay, TwinSwap's two aux) and port
+  onto the kit.  Make `Board.aboveOf.go` `private` on landing.
+- acceptance: no `aboveOf.go` token outside Board.lean; census
+  unchanged; crowns' `#print axioms` unchanged.
+
+### R2 — guard normal form (`@[guard]` simp set)
+
+One `Klondike/Guardnorm.lean`: canonical `= true`-level characterization
+lemmas for `State.legal`, `State.canPlace`, `State.canMoveRun`,
+`State.isRedundantStack` — statement shape rewrite directly into the
+Bool conjunction (avoid the bare-decide intermediate that bit the
+canMoveRun harvest, FARM_MEMORY 2026-09-14).  Sweep the ~40
+`Bool.and_eq_true_iff.mp` decompositions in apply_wf/TwinSwap/
+Dominance/Kills/Commutation/Theorems onto the set.
+- acceptance: build green; `Bool.and_eq_true`-token count in proof
+  bodies drops ≥ half; crowns' axioms unchanged.
+
+### R3 — the two macros (`Klondike/Tactics.lean`, new)
+
+- `run_step h h₁`: the `State.run` cons-propagation dance
+  (`simp only [State.run]` + apply-case + `Option.some.inj` + `rfl`),
+  currently pasted verbatim twice inside `solvable_cargoTwin_transfer`
+  alone.
+- `move_cases h`: destruct `h : st.apply m = some st'` — dispatch
+  `cases m`, apply the right `apply_*_iff`, obtain-destructure with
+  generic names.
+- acceptance: ≥5 real call sites converted; theorems' statements and
+  axioms byte-identical.
+
+### Land-rules for R1–R3
+
+One item per commit; `lean-census.ps1` stays pinned; Witnesses lib
+green; `#print axioms` snapshot over the crown set
+(`solvableEngine_iff_macro`, `solvable_cargoTwin`,
+`solvable_cargoTwin_exchange_bare`, `realizes_iff_stepsOK`) recorded in
+the commit message before/after.  Honest sizing: R1 ~[M], R2 ~[S],
+R3 ~[S]; R1's kit proofs are the only non-mechanical part (the
+congruence template already exists in TwinSwap).  Sequenced in dead
+time alongside the cruxes; NOT ahead of them.
+
+### Parked beyond Phase 0 (trigger-gated)
+
+- Phase 1: move-kind file split (Theorems 3945 proof-lines; Commutation
+  2135) — trigger: one more parallel-session build collision.
+- Phase 2: Frame discipline generalized to board-slot frames (kills
+  future `aboveOf_congr_off`-shaped one-offs) — trigger: the wave-15
+  bisimulation actually farming.
 
 ## Chore queue
 

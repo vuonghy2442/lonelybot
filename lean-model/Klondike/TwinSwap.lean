@@ -22,76 +22,16 @@ Both directions are proven from the roundtrip.
 
 Abandoned along the way (recorded in FARM.md's wave-14 note and its
 witnesses): the seat-level automorphism and the apply-level conjugation.
-`Move.swapTwin`/`State.swapTwin` stay as the substrate for
-`witnesses/TwinSwapWitness.lean` (the legality-flip record).
+`Move.swapTwin`/`State.swapTwin` (the substrate, RELOCATED 2026-09-14 to
+Klondike/Relabel.lean — the relabeling group's file, below the Theorems
+chain) stay available for `witnesses/TwinSwapWitness.lean` (the
+legality-flip record) and Klondike/TwinAgnostic.lean (the licensed
+mirror).
 
 Subsidiary facts proven here and used outside: `redundantTwins_heights_eq`
 (the §5.5 redundant pair forces equal heights — feeds the Dominance
 row's repair).
 -/
-
-/-- The local twin swap on moves: card arguments and card bases are
-re-named.  Kept for the witness/regression layer. -/
-def Move.swapTwin (t : Card) : Move → Move
-  | .draw => .draw
-  | .reveal c => .reveal (Card.swapTwin t c)
-  | .deckPile c b => .deckPile (Card.swapTwin t c) (b.swapTwin t)
-  | .deckStack c => .deckStack (Card.swapTwin t c)
-  | .pileStack c => .pileStack (Card.swapTwin t c)
-  | .stackPile c b => .stackPile (Card.swapTwin t c) (b.swapTwin t)
-  | .pilePile c b => .pilePile (Card.swapTwin t c) (b.swapTwin t)
-
-/-- The local twin swap on states: every *occurrence* of the pair is
-exchanged (deal piles and stock — so the hidden slices follow — the
-board matching, and the cycle), while the heights function, depths,
-cursor, and draw step stay put.  Not an automorphism (the legality-flip
-is machine-checked in `witnesses/TwinSwapWitness.lean`): `heights`
-stays fixed because suits are *shared* with non-swapped cards. -/
-def State.swapTwin (t : Card) (st : State) : State where
-  deal := { piles := fun a => (st.deal.piles a).map (Card.swapTwin t),
-            stock := st.deal.stock.map (Card.swapTwin t) }
-  board := st.board.mapByTwin t
-  heights := st.heights
-  depths := st.depths
-  stock := { cards := st.stock.cards.map (Card.swapTwin t), cursor := st.stock.cursor }
-  drawStep := st.drawStep
-
-/-- The state-level involution: exchanging the pair twice is the
-identity. -/
-theorem State.swapTwin_swapTwin (t : Card) (st : State) :
-    (st.swapTwin t).swapTwin t = st := by
-  have mapTwin_id : ∀ l : List Card,
-      (l.map (Card.swapTwin t)).map (Card.swapTwin t) = l := by
-    intro l
-    induction l with
-    | nil => rfl
-    | cons x xs ih =>
-        simp only [List.map_cons, List.cons.injEq]
-        exact ⟨Card.swapTwin_swapTwin t x, ih⟩
-  obtain ⟨d0, b0, h0, dp0, s0, ds0⟩ := st
-  apply state_ext
-  · -- deal: two mapped layers cancel pointwise
-    cases d0 with
-    | mk piles stock =>
-      show ({ piles := fun a => ((piles a).map (Card.swapTwin t)).map (Card.swapTwin t),
-              stock := (stock.map (Card.swapTwin t)).map (Card.swapTwin t) } : Deal) = _
-      have hp : (fun a => ((piles a).map (Card.swapTwin t)).map (Card.swapTwin t)) = piles := by
-        funext a
-        exact mapTwin_id (piles a)
-      rw [hp, mapTwin_id]
-  · apply Board.ext_topOf
-    funext b
-    simp [State.swapTwin, Board.mapByTwin]
-    rw [show (t.swapTwin ∘ t.swapTwin) = id from funext (fun x => Card.swapTwin_swapTwin t x)]
-    cases b0.topOf b <;> rfl
-  · rfl
-  · rfl
-  · cases s0 with
-    | mk cards cursor =>
-      show ({ cards := ((cards.map (Card.swapTwin t)).map (Card.swapTwin t)),
-                cursor := cursor } : Cycle Card) = _
-      rw [mapTwin_id]
-  · rfl
 
 /-- A redundant stack has its suit's height at exactly the card's rank
 (the pileStack guard). -/
@@ -282,40 +222,128 @@ theorem lcontains_false_of_notMem {x : Card} : ∀ {l : List Card}, x ∉ l → 
           simp only [Bool.false_or]
           exact lcontains_false_of_notMem hrest
 
+/-- `go`'s accumulator grows monotonically (fuel induction; the one-step
+unfold is `aboveOf_go_succ`, Relabel.lean). -/
+theorem Board.aboveOf_go_mono {bd : Board} : ∀ (n : Nat) (b : Base) (acc : List Card),
+    acc ⊆ Board.aboveOf.go bd n b acc := by
+  intro n
+  induction n with
+  | zero => intro b acc; exact List.Subset.refl _
+  | succ n ih =>
+      intro b acc
+      rw [aboveOf_go_succ]
+      cases hb : bd.topOf b with
+      | none => exact List.Subset.refl _
+      | some c' =>
+          show acc ⊆ (if acc.contains c' = true then acc else
+              Board.aboveOf.go bd n (Sum.inr c') (c' :: acc))
+          by_cases hc : acc.contains c' = true
+          · rw [if_pos hc]; exact List.Subset.refl _
+          · rw [if_neg hc]
+            exact List.Subset.trans (fun x hx => List.mem_cons_of_mem c' hx) (ih _ _)
+
+/-- Two boards agreeing at every `inr`-slot the walk can probe run the
+same walk: fuel induction carrying the invariants (the acc's members are
+pair-free, and the current sub-call's output — which each continuation's
+output equals — stays pair-free, so `hagree` covers every probe). -/
+theorem Board.aboveOf_go_congr_aux {bd bd' : Board} {t : Card}
+    (hagree : ∀ x : Card, x ≠ t → x ≠ t.flipSuit → bd.topOf (Sum.inr x) = bd'.topOf (Sum.inr x)) :
+    ∀ (n : Nat) (c₀ : Card) (acc : List Card),
+      c₀ ≠ t → c₀ ≠ t.flipSuit →
+      (∀ x : Card, x ∈ acc → x ≠ t ∧ x ≠ t.flipSuit) →
+      (∀ x : Card, x ∈ Board.aboveOf.go bd n (Sum.inr c₀) acc → x ≠ t ∧ x ≠ t.flipSuit) →
+      Board.aboveOf.go bd' n (Sum.inr c₀) acc = Board.aboveOf.go bd n (Sum.inr c₀) acc := by
+  intro n
+  induction n with
+  | zero => intro c₀ acc _ _ _ _; rfl
+  | succ n ih =>
+      intro c₀ acc hc₀ne hc₀ne' hacc hout
+      rw [aboveOf_go_succ, aboveOf_go_succ, hagree c₀ hc₀ne hc₀ne']
+      cases hb : bd'.topOf (Sum.inr c₀) with
+      | none => rfl
+      | some c' =>
+          show (if acc.contains c' = true then acc else
+                Board.aboveOf.go bd' n (Sum.inr c') (c' :: acc))
+              = (if acc.contains c' = true then acc else
+                Board.aboveOf.go bd n (Sum.inr c') (c' :: acc))
+          by_cases hcont : acc.contains c' = true
+          · rw [if_pos hcont]; rw [if_pos hcont]
+          · rw [if_neg hcont]
+            rw [if_neg hcont]
+            have hstep : Board.aboveOf.go bd (n + 1) (Sum.inr c₀) acc =
+                Board.aboveOf.go bd n (Sum.inr c') (c' :: acc) := by
+              have hp' : bd.topOf (Sum.inr c₀) = some c' := (hagree c₀ hc₀ne hc₀ne').trans hb
+              rw [aboveOf_go_succ bd, hp']
+              show (if acc.contains c' = true then acc else
+                    Board.aboveOf.go bd n (Sum.inr c') (c' :: acc))
+                  = Board.aboveOf.go bd n (Sum.inr c') (c' :: acc)
+              rw [if_neg hcont]
+            have hc'out : c' ∈ Board.aboveOf.go bd (n + 1) (Sum.inr c₀) acc := by
+              rw [hstep]
+              exact Board.aboveOf_go_mono _ _ _ (List.mem_cons_self)
+            have hc'free : c' ≠ t ∧ c' ≠ t.flipSuit := hout c' hc'out
+            have hacc' : ∀ x, x ∈ c' :: acc → x ≠ t ∧ x ≠ t.flipSuit := by
+              intro x hx
+              rcases List.mem_cons.mp hx with rfl | hx
+              · exact hc'free
+              · exact hacc x hx
+            have hout' : ∀ x, x ∈ Board.aboveOf.go bd n (Sum.inr c') (c' :: acc) →
+                x ≠ t ∧ x ≠ t.flipSuit := by
+              intro x hx
+              apply hout
+              exact hstep ▸ hx
+            exact ih c' (c' :: acc) hc'free.1 hc'free.2 hacc' hout'
+
 /-- The run walk is blind to everything outside the run members' own
 slots: two boards agreeing at every `inr`-slot the walk can probe
 coincide on the run — provided the walk never wakes the excluded slots,
-which the run-membership side condition supplies.
-
-TODO(proof) [M]: fuel induction on `Board.aboveOf.go` (the one-step
-unfold is `aboveOf_go_succ`, Relabel.lean; `relabelBy_aboveOf_go` is the
-template).  Invariant: the current base's probe agrees (the current card
-is the root or in `acc`, hence pair-free); the contains-test then
-branches the same on both sides; the consed card enters the output,
-whence `hfree` disables the pair. -/
+which the run-membership side condition supplies. -/
 theorem Board.aboveOf_congr_off {bd bd' : Board} {c t : Card}
     (hagree : ∀ x : Card, x ≠ t → x ≠ t.flipSuit →
       bd.topOf (Sum.inr x) = bd'.topOf (Sum.inr x))
     (hfree : ∀ x : Card, x ∈ bd.aboveOf c → x ≠ t ∧ x ≠ t.flipSuit)
-    (hroot : bd.topOf (Sum.inr c) = bd'.topOf (Sum.inr c)) :
-    bd'.aboveOf c = bd.aboveOf c := sorry
+    (hcfree : c ≠ t ∧ c ≠ t.flipSuit) :
+    bd'.aboveOf c = bd.aboveOf c := by
+  show Board.aboveOf.go bd' 52 (Sum.inr c) [] = Board.aboveOf.go bd 52 (Sum.inr c) []
+  exact Board.aboveOf_go_congr_aux hagree 52 c [] hcfree.1 hcfree.2
+    (fun x hx => by simp_all) hfree
 
 /-- The return legality: after the forward transfer, the pilePile back
 to the original twin's base fires.  The guard bundle: the origin's own
 base went bare (the detachment), the twin stays visible (attach/detach
 preserve their bases), the fit transfers by twin-blindness
 (`canSitOn_swapTwin_right`), and the run's self-landing check reads the
-run the transfer left alone (`Board.aboveOf_congr_off`). -/
+run the transfer left alone (`Board.aboveOf_congr_off`).
+
+`hnotloop` is the only a-priori content: the cargo's own seat does not
+re-enter the run (i.e. no board cycle t → z → … → t).  The twin half of
+run-purity is not asked for: it is the forward move's own self-landing
+guard (`canMoveRun`'s `!contains`). -/
 theorem State.pilePile_return_legal {st : State} {z t : Card} {st₁ : State}
     (hvis : st.isVis t = true)
     (h₀ : st.board.bottomOf z = some (Sum.inr t))
-    (hfree : ∀ x : Card, x ∈ st.board.aboveOf z → x ≠ t ∧ x ≠ t.flipSuit)
+    (hnotloop : t ∉ st.board.aboveOf z)
     (h₁ : st.apply (Move.pilePile z (Sum.inr t.flipSuit)) = some st₁) :
     ∃ st₂, st₁.apply (Move.pilePile z (Sum.inr t)) = some st₂ := by
   rw [apply_pilePile_iff] at h₁
   obtain ⟨b₀', hbot₁, hne₁, hcmr₁, bd, hatt, hst₁⟩ := h₁
   have hb₀e : b₀' = Sum.inr t := Option.some.inj (hbot₁.symm.trans h₀)
   subst hb₀e
+  -- the forward move's self-landing guard, harvested for the twin half
+  have hguard' : (st.board.aboveOf z).contains t.flipSuit ≠ true := by
+    intro hc
+    rw [State.canMoveRun] at hcmr₁
+    have hnb := (Bool.and_eq_true_iff.mp hcmr₁).2
+    rw [hc] at hnb
+    simp at hnb
+  have hcont₂ : (st.board.aboveOf z).contains t.flipSuit = false := eq_false_of_ne_true hguard'
+  -- full run-purity: clause 1 is hnotloop, clause 2 is the guard
+  have hfree : ∀ x : Card, x ∈ st.board.aboveOf z → x ≠ t ∧ x ≠ t.flipSuit := by
+    intro x hm
+    refine ⟨fun ht : x = t => hnotloop (ht ▸ hm), fun ht : x = t.flipSuit => ?_⟩
+    rw [ht] at hm
+    rw [List.contains_iff_mem.mpr hm] at hcont₂
+    simp at hcont₂
   have hcmr_place : st.canPlace z (Sum.inr t.flipSuit) = true := by
     rw [State.canMoveRun] at hcmr₁
     exact (Bool.and_eq_true_iff.mp hcmr₁).1
@@ -379,8 +407,7 @@ theorem State.pilePile_return_legal {st : State} {z t : Card} {st₁ : State}
       show st.board.topOf (Sum.inr x) = (st.board.detach (Sum.inr t)).topOf (Sum.inr x)
       rw [Board.detach_topOf_ne _ _ _
         (fun h : (Sum.inr x : Base) = Sum.inr t => hx₁ (Sum.inr.inj h))]
-    exact Board.aboveOf_congr_off hagree hfree
-      (hagree z hne_tz.symm hne_tz')
+    exact Board.aboveOf_congr_off hagree hfree ⟨hne_tz.symm, hne_tz'⟩
   have hcmr₂ : st₁.canMoveRun z (Sum.inr t) = true := by
     rw [State.canMoveRun]
     show (st₁.canPlace z (Sum.inr t) && !(st₁.board.aboveOf z).contains t) = true
@@ -404,3 +431,20 @@ theorem State.pilePile_return_legal {st : State} {z t : Card} {st₁ : State}
   | some bd₂ =>
       refine ⟨{ st₁ with board := bd₂ }, ?_⟩
       exact apply_pilePile_iff.mpr ⟨Sum.inr t.flipSuit, hbot₂, hne, hcmr₂, bd₂, hatt₂, rfl⟩
+
+
+/-- **The twin cargo-transfer, packaged**: at a visible twin with the
+cargo placed and no board loop (the model-side licenses), an executable
+transfer to the other twin is solvability-preserving — both directions.
+The composition of `pilePile_return_legal` (the return move exists)
+with `solvable_cargoTwin_transfer` (roundtrip ⇒ equivalence).  The four
+premises are exactly the informal claim spelled out: the twin is
+visible, the cargo starts on it, the board has no loop through the
+cargo's seat, and the swap move itself is available. -/
+theorem State.solvable_cargoTwin {st : State} {z t : Card} {st₁ : State}
+    (hvis : st.isVis t = true)
+    (h₀ : st.board.bottomOf z = some (Sum.inr t))
+    (hnotloop : t ∉ st.board.aboveOf z)
+    (h₁ : st.apply (Move.pilePile z (Sum.inr t.flipSuit)) = some st₁) :
+    st₁.solvableFrom ↔ st.solvableFrom :=
+  State.solvable_cargoTwin_transfer h₀ h₁ (State.pilePile_return_legal hvis h₀ hnotloop h₁)

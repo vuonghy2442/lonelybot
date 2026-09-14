@@ -22,11 +22,20 @@ $baseline = @{
                         # K1_stack_goal_dead, K2_tableau_goal_dead
   'Restriction.lean' = 2  # solvableEngine_iff_solvable_of_reachable (B2),
                         # engine_replay_of_pilePile (the replay step)
-  'TwinSwap.lean'  = 1  # Board.aboveOf_congr_off [M] (the walk-invariance kit;
-                        # everything else in the file is proven including the
-                        # cargo-transfer chain and pilePile_return_legal)
+  'TwinSwap.lean'  = 0  # Board.aboveOf_congr_off PROVEN 2026-09-14 via the
+                        # fuel-induction congruence (Board.aboveOf_go_congr_aux)
+                        # + acc-monotonicity (Board.aboveOf_go_mono); the twin
+                        # line is now sorry-free
                         # (the naive conjugation was REFUTED as stated —
                         #  witnesses/TwinSwapWitness.lean; FARM.md wave 14)
+  'TwinExchange.lean' = 1  # +wave-15 scaffolding: the both-cargo exchange —
+                        # solvable_cargoTwin_exchange (both-occupied iff) remains.
+                        # PROVEN 2026-09-14: solvable_cargoTwin_exchange_bare
+                        # (the one-bare companion) via the backward realization
+                        # exchangeTwinCargo_pilePile_back — the statement
+                        # STRENGTHENED (hwf/hzone dropped, no zone premise);
+                        # the exchangeTwin substrate + both transfer
+                        # identifications are proven, axiom-clean
 }
 
 $drift = $false

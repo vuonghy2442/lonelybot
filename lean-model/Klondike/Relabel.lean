@@ -1053,3 +1053,141 @@ example (bd : Board) (c : Card) :
     bd.aboveOf c = Board.aboveOf.go bd 52 (Sum.inr c) [] := rfl
 end Probe
 
+/-! ## 2. The local twin swap — the substrate
+
+The third relabeling action, next to `relabelBy`'s suit-level group and
+`flipAll`'s global instance: the LOCAL pair exchange `t ↔ t.flipSuit`,
+renaming exactly the two cards in the deal, the board matching and the
+stock cycle — heights, depths, cursor and draw step stay put.
+
+RELOCATED 2026-09-14: `Move.swapTwin`/`State.swapTwin`/
+`State.swapTwin_swapTwin` from TwinSwap.lean, and
+`Card.swapTwin_flipSuit`/`Base.swapTwin_flipSuit` from TwinExchange.lean
+— the canonical home is here (the relabeling group's file), and
+Klondike/TwinAgnostic.lean (the mirror lemma) sits below the Theorems
+chain and needs the substrate without it.  The names and proofs are
+unchanged; TwinSwap/TwinExchange still see them transitively.
+
+Not an automorphism: `heights` stays fixed because suits are *shared*
+with non-swapped cards — the foundation guards cross to the other
+suit's count, which is the refuted unconditional conjugation
+(`witnesses/TwinSwapWitness.lean`) and TwinAgnostic.lean's exception
+set. -/
+
+/-- The local twin swap on moves: card arguments and card bases are
+re-named. -/
+def Move.swapTwin (t : Card) : Move → Move
+  | .draw => .draw
+  | .reveal c => .reveal (Card.swapTwin t c)
+  | .deckPile c b => .deckPile (Card.swapTwin t c) (b.swapTwin t)
+  | .deckStack c => .deckStack (Card.swapTwin t c)
+  | .pileStack c => .pileStack (Card.swapTwin t c)
+  | .stackPile c b => .stackPile (Card.swapTwin t c) (b.swapTwin t)
+  | .pilePile c b => .pilePile (Card.swapTwin t c) (b.swapTwin t)
+
+/-- The local twin swap on states: every *occurrence* of the pair is
+exchanged (deal piles and stock — so the hidden slices follow — the
+board matching, and the cycle), while the heights function, depths,
+cursor, and draw step stay put. -/
+def State.swapTwin (t : Card) (st : State) : State where
+  deal := { piles := fun a => (st.deal.piles a).map (Card.swapTwin t),
+            stock := st.deal.stock.map (Card.swapTwin t) }
+  board := st.board.mapByTwin t
+  heights := st.heights
+  depths := st.depths
+  stock := { cards := st.stock.cards.map (Card.swapTwin t), cursor := st.stock.cursor }
+  drawStep := st.drawStep
+
+/-- The state-level involution: exchanging the pair twice is the
+identity. -/
+theorem State.swapTwin_swapTwin (t : Card) (st : State) :
+    (st.swapTwin t).swapTwin t = st := by
+  have mapTwin_id : ∀ l : List Card,
+      (l.map (Card.swapTwin t)).map (Card.swapTwin t) = l := by
+    intro l
+    induction l with
+    | nil => rfl
+    | cons x xs ih =>
+        simp only [List.map_cons, List.cons.injEq]
+        exact ⟨Card.swapTwin_swapTwin t x, ih⟩
+  obtain ⟨d0, b0, h0, dp0, s0, ds0⟩ := st
+  apply state_ext
+  · -- deal: two mapped layers cancel pointwise
+    cases d0 with
+    | mk piles stock =>
+      show ({ piles := fun a => ((piles a).map (Card.swapTwin t)).map (Card.swapTwin t),
+              stock := (stock.map (Card.swapTwin t)).map (Card.swapTwin t) } : Deal) = _
+      have hp : (fun a => ((piles a).map (Card.swapTwin t)).map (Card.swapTwin t)) = piles := by
+        funext a
+        exact mapTwin_id (piles a)
+      rw [hp, mapTwin_id]
+  · apply Board.ext_topOf
+    funext b
+    show Option.map (Card.swapTwin t) (Option.map (Card.swapTwin t)
+        (b0.topOf ((b.swapTwin t).swapTwin t))) = b0.topOf b
+    rw [Base.swapTwin_swapTwin]
+    cases hb : b0.topOf b with
+    | none => rfl
+    | some x => simp
+  · rfl
+  · rfl
+  · cases s0 with
+    | mk cards cursor =>
+      show ({ cards := ((cards.map (Card.swapTwin t)).map (Card.swapTwin t)),
+                cursor := cursor } : Cycle Card) = _
+      rw [mapTwin_id]
+  · rfl
+
+/-- The twin's swap is the same swap: `t` and `t.flipSuit` generate the
+same pair permutation (the pair is unordered). -/
+theorem Card.swapTwin_flipSuit (t x : Card) :
+    Card.swapTwin t.flipSuit x = Card.swapTwin t x := by
+  by_cases h₁ : x = t.flipSuit
+  · rw [h₁, Card.swapTwin_self_left, Card.swapTwin_self_right, Card.flipSuit_flipSuit]
+  · by_cases h₂ : x = t
+    · rw [h₂, Card.swapTwin_self_left]
+      show (if t = t.flipSuit then t.flipSuit.flipSuit
+          else if t = t.flipSuit.flipSuit then t.flipSuit else t) = t.flipSuit
+      rw [if_neg (fun h => Card.flipSuit_ne t h.symm),
+        if_pos (show t = t.flipSuit.flipSuit from (Card.flipSuit_flipSuit t).symm)]
+    · rw [Card.swapTwin_of_ne h₁ (fun h => h₂ (h.trans (Card.flipSuit_flipSuit t))),
+        Card.swapTwin_of_ne h₂ h₁]
+
+theorem Base.swapTwin_flipSuit (t : Card) (b : Base) :
+    b.swapTwin t.flipSuit = b.swapTwin t := by
+  cases b with
+  | inl a => rfl
+  | inr x =>
+      show Sum.inr (Card.swapTwin t.flipSuit x) = Sum.inr (Card.swapTwin t x)
+      rw [Card.swapTwin_flipSuit]
+
+theorem Move.swapTwin_flipSuit (t : Card) (m : Move) :
+    Move.swapTwin t.flipSuit m = Move.swapTwin t m := by
+  cases m <;> simp [Move.swapTwin, Card.swapTwin_flipSuit, Base.swapTwin_flipSuit]
+
+/-- Hence the twin's state exchange is the same exchange. -/
+theorem State.swapTwin_flipSuit (st : State) (t : Card) :
+    st.swapTwin t.flipSuit = st.swapTwin t := by
+  have hcard : Card.swapTwin t.flipSuit = Card.swapTwin t := funext (Card.swapTwin_flipSuit t)
+  apply state_ext
+  · apply Deal.ext'
+    · intro a
+      show ((st.deal.piles a).map (Card.swapTwin t.flipSuit)) =
+        (st.deal.piles a).map (Card.swapTwin t)
+      rw [hcard]
+    · show st.deal.stock.map (Card.swapTwin t.flipSuit) =
+        st.deal.stock.map (Card.swapTwin t)
+      rw [hcard]
+  · show st.board.mapByTwin t.flipSuit = st.board.mapByTwin t
+    apply Board.ext_topOf
+    funext b
+    show (st.board.topOf (b.swapTwin t.flipSuit)).map (Card.swapTwin t.flipSuit) =
+      (st.board.topOf (b.swapTwin t)).map (Card.swapTwin t)
+    rw [Base.swapTwin_flipSuit, hcard]
+  · rfl
+  · rfl
+  · show ({ cards := st.stock.cards.map (Card.swapTwin t.flipSuit), cursor := st.stock.cursor } : Cycle Card) =
+      { cards := st.stock.cards.map (Card.swapTwin t), cursor := st.stock.cursor }
+    rw [hcard]
+  · rfl
+
