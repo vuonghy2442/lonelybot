@@ -1614,6 +1614,22 @@ fn goal_dead(ctx: &ClosureCtx, commitment: Commitment, kind: OutcomeKind) -> boo
     }
 }
 
+/// The adjacent-bit twin swap (`swap_suit` = index ^ 1): maps a mask to
+/// the cards whose TWIN is in it — the dig-candidate spread.
+const EVEN_MASK: u64 = 0x5555_5555_5555_5555;
+fn twin_swap(m: u64) -> u64 {
+    ((m & !EVEN_MASK) >> 1) | ((m & EVEN_MASK) << 1)
+}
+
+/// The sit-on spread: the cards that sit on P's cards — `go_after` says
+/// x sits on y iff (x + 4) ^ y < 2 (the layout's rank-parity interleave
+/// absorbed by the XOR form), so the sitters are P's bits shifted down 4
+/// and twin-duplicated. The receiver/borrow/kill spreads.
+fn sit_on_spread(p: u64) -> u64 {
+    let d = p >> 4;
+    d | twin_swap(d)
+}
+
 /// The rule list proper: one entry per (commitment, channel) that opens,
 /// grouped per commitment (adjacent in the flattened vec — the
 /// differential's kind-fold relies on it). See `macro_transitions_direct`
@@ -1653,6 +1669,59 @@ fn core_run(
     let f3_bits = ((mv.pile_stack & locked_surfaces) | mv.deck_stack)
         & Stack::decode(ctx.root.stack).dominance_mask();
     scratch.f3 = f3_bits;
+
+    // The guard battery, lifted to bulk masks — the engine's own
+    // `gen_moves` idiom applied to the macro channels: every per-
+    // commitment guard is a whole-mask set question, so the ~20
+    // commitments' channel decisions (the "quiet 16" confirmations
+    // included) read as bit tests against six masks computed once
+    // per node (~25 mask ops total). Verified bit-exact against the
+    // scalar guards on 36,927 commitments / 2,310 corpus states (probe
+    // `debug_mask_lift`; the scalar `goal_dead` stays as the
+    // falsifier's reference implementation).
+    let stack_direct = (deck_mask & mv.deck_stack) | (locked_surfaces & mv.pile_stack);
+    let tableau_direct = (deck_mask & mv.deck_pile) | (locked_surfaces & mv.reveal);
+    let dig_cand = (deck_mask | locked_surfaces)
+        & !KING_MASK
+        & twin_swap(mv.pile_stack & !locked);
+    let borrow_cand = {
+        let mut ftop = 0u64;
+        for s in 0..4u8 {
+            let h0 = ctx.root.height(s);
+            if h0 > 0 {
+                ftop |= Card::new(h0 - 1, s).mask();
+            }
+        }
+        (deck_mask | locked_surfaces)
+            & !KING_MASK
+            & sit_on_spread(ftop & !locked & mv.stack_pile)
+    };
+    // the kills: K1's climb-blocked mask (the open climb per suit is
+    // `SUIT_PREFIX[s][frontier[s]+1]`), the tableau kill disjunction
+    // (K4/K5 kings, K6's four-card ball, K2's dead receivers — kings
+    // excluded from K2/K6: their phantom rank-13 receivers read dead,
+    // but the scalar's king branch exits before those kills)
+    let stacked_now = stacked_mask(ctx.root.stack);
+    let commit_mask = deck_mask | locked_surfaces;
+    let k1_dead = {
+        let mut open = 0u64;
+        for s in 0..4u8 {
+            open |= SUIT_PREFIX[usize::from(s)][usize::from(ctx.frontier[usize::from(s)]) + 1];
+        }
+        commit_mask & !open
+    };
+    let tableau_dead = {
+        let receiver_live = sit_on_spread(ctx.root.vis | stacked_now);
+        let k2_dead = commit_mask & !KING_MASK & !receiver_live;
+        let king_dead = if (ctx.root.vis & locked).count_ones() >= u32::from(N_PILES) {
+            commit_mask & KING_MASK
+        } else {
+            locked_surfaces & KING_MASK & ctx.first_layer
+        };
+        let k6_dead =
+            commit_mask & twin_swap(ctx.root.vis & !locked) & k1_dead & k2_dead;
+        king_dead | k6_dead | k2_dead
+    };
 
     // enumerate commitments: every locked surface first, then every
     // drawable deck card — reveal before draw, mirroring the old engine's
@@ -1707,11 +1776,8 @@ fn core_run(
         };
         let xmask = x.mask();
 
-        // stack outcome
-        let stack_now = match commitment {
-            Commitment::Draw(_) => mv.deck_stack & xmask != 0,
-            Commitment::Reveal(_) => mv.pile_stack & xmask != 0,
-        };
+        // stack outcome (the lifted mask)
+        let stack_now = stack_direct & xmask != 0;
         // channel order matters: every channel is independent,
         // and no channel is allowed to skip the tableau channels
         if stack_now {
@@ -1723,11 +1789,8 @@ fn core_run(
             ));
         }
 
-        // tableau outcome, direct channel
-        let direct_now = match commitment {
-            Commitment::Draw(_) => mv.deck_pile & xmask != 0,
-            Commitment::Reveal(_) => mv.reveal & xmask != 0,
-        };
+        // tableau outcome, direct channel (the lifted mask)
+        let direct_now = tableau_direct & xmask != 0;
         if direct_now {
             groups[ci].push((
                 commitment,
@@ -1764,37 +1827,39 @@ fn core_run(
 
         // dig channel: vacate twin(X) onto a foundation if it is the
         // (uniquely possible) coverer of a parent top. Probed on a word
-        // copy — one stack nibble edit and a mask recompute.
+        // copy — one stack nibble edit and a mask recompute. The guard
+        // is the lifted dig-candidate mask (twin unlocked & stackable).
         let mut dig_fired = false;
-        if !is_king && !(fold && (direct_now || f3_sel)) {
+        if !is_king && dig_cand & xmask != 0 && !(fold && (direct_now || f3_sel)) {
             let twin = x.swap_suit();
-            let twin_mask = twin.mask();
-            if locked & twin_mask == 0 && mv.pile_stack & twin_mask != 0 {
-                let mut w = ctx.root;
-                w.stack_up(twin);
-                let mv2 = w.move_masks(deck_mask, ctx.first_layer);
-                let opens = match commitment {
-                    Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
-                    Commitment::Reveal(_) => mv2.reveal & xmask != 0,
-                };
-                if opens {
-                    groups[ci].push((
-                        commitment,
-                        OutcomeKind::Tableau,
-                        steps(&[Move::PileStack(twin), direct_move]),
-                        "tableau-dig",
-                    ));
-                    dig_fired = true;
-                }
+            let mut w = ctx.root;
+            w.stack_up(twin);
+            let mv2 = w.move_masks(deck_mask, ctx.first_layer);
+            let opens = match commitment {
+                Commitment::Draw(_) => mv2.deck_pile & xmask != 0,
+                Commitment::Reveal(_) => mv2.reveal & xmask != 0,
+            };
+            if opens {
+                groups[ci].push((
+                    commitment,
+                    OutcomeKind::Tableau,
+                    steps(&[Move::PileStack(twin), direct_move]),
+                    "tableau-dig",
+                ));
+                dig_fired = true;
             }
         }
 
         // borrow channel(s): a parent on its foundation top, worry-back-able.
-        // Probed on a word copy, same shape as the dig. Fold mode skips the
-        // probe when an earlier Tableau entry (direct, dig) already exists
-        // or f3 selects the stack-direct outcome: unselectable.
+        // Probed on a word copy, same shape as the dig. Gated by the
+        // lifted borrow-candidate mask (some parent worry-backable); fold
+        // mode skips the probe when an earlier Tableau entry (direct,
+        // dig) already exists or f3 selects the stack-direct outcome.
         let mut borrow_fired = false;
-        if !is_king && !(fold && (direct_now || dig_fired || f3_sel)) {
+        if !is_king
+            && borrow_cand & xmask != 0
+            && !(fold && (direct_now || dig_fired || f3_sel))
+        {
             let r = x.rank();
             let s = x.suit();
             for p in [Card::new(r + 1, s ^ 2), Card::new(r + 1, s ^ 3)] {
@@ -1887,7 +1952,7 @@ fn core_run(
         // precedes the BFS appends) — skip the goal otherwise.
         if !stack_produced
             && !stack_now
-            && !goal_dead(ctx, commitment, OutcomeKind::Stack)
+            && k1_dead & xmask == 0
             && !(fold && (direct_now || dig_fired || borrow_fired))
         {
             goals.push(AccommodationGoal {
@@ -1909,7 +1974,7 @@ fn core_run(
         // the selection is the stack-direct entry outright — skip the
         // goal in both cases.
         if !direct_now
-            && !goal_dead(ctx, commitment, OutcomeKind::Tableau)
+            && tableau_dead & xmask == 0
             && !(fold && (dig_fired || borrow_fired || f3_sel))
         {
             goals.push(AccommodationGoal {
