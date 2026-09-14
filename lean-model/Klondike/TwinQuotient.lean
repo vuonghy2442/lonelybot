@@ -562,37 +562,27 @@ correction); the own-cargo landings are self-landing at the SOURCE
 above the passing twin, hence above the run's root), so the hland
 cases are exactly the other-cargo tops.
 
-TODO(proof) **[H]** — the route (mapped by the w15wfmerge probe,
-2026-09-14): the gate FIRED EMPTY (the first WF candidate — the
-w15merge cast fully re-crafted under WF — shows NO divergence:
-`founds_gone` forces every blocker to be live, it stacks off, the
-mirror opens, stx wins).  The exhibited stx play IS the argument in
-miniature: **(1)** the riders on the seated cargo clear (they are
-live — at/above their heights — and a winning play stacks every
-card), **(2)** the MIRROR merge fires (the run rides the other
-cargo, landing on the now-bare cargo — its board is the local
-twin-swap of `a₁`'s, the heights and stock agree, and the winning
-play replays modulo the swap — the moves are deal-blind except
-reveals), **(3)** the tail climbs out.  The missing primitives, both
-[M+]: the mirror's self-landing guard needs PILE-DISJOINTNESS (a
-card's run stays in its pile: `pred-reaches` — the walk collects the
-predecessor — plus WF cycle-freeness via board_edges), and the
-swap-replay needs either the conjugation kit (TwinAgnostic's
-`apply_swapTwin_clean`, the twin exception set) or a direct
-board-level replay lemma.  The landing refinement
-(`merge_own_landing_absurd`, below) settles the own-cargo side of
-`hland`; the z-side disjuncts are vacuous.
-
-**The cycle finding (w15wfmerge's cycle probe, 2026-09-14)**: WF does
-NOT exclude board cycles (a crafted 3-cycle — deal-adjacent + two fit
-edges — passes all 11 conjuncts; the walk self-includes).  So the
-mirror's guard cannot ride the step-expansion/pile-disjointness at WF
-strength: the bridge needs either an acyclicity premise grown into
-`twinLicensed` (decidable, per-state: the relevant walks are
-self-disjoint) or the `initialReachable` scoping (reachable boards
-are provably cycle-free: the initial board is linear and the
-self-landing guard blocks every cycle-closing move).  Gate re-opened:
-witness-hunt the cyclic+licensed+merge family first. -/
+TODO(proof) **[H]** — the route (updated 2026-09-14, sessions 8-9):
+the gate FIRED EMPTY (the w15wfmerge probe: no divergence — founds_gone
+forces live blockers); the cycle threat resolved (the license pins the
+four cards' component rigid — cycles live in separate components);
+the mirror's self-landing guard is LANDED
+(`exchangeTwin_mirror_guard`: pred-reaches + the exchange bound +
+comparability, every case a braid).  The bridge now decomposes as:
+**(1)** the rider-prefix — the z-riders stack off in stx exactly as in
+a₁ (identical heights, identical bareness order — π's own moves,
+replayed verbatim; `pileStack_mem_of_win` supplies the liveness);
+**(2)** the mirror merge — the guard lemma + the twin-blind fit give
+legality, landing on the now-bare z; the resulting M vs a₁: the two
+stack arrangements are the twin-swap in the bare case, and in general
+differ by the rider placement; **(3)** the climb-out — the remaining
+content: a₁'s chain (R, z, t, ib, c, R', z', t') vs stx's two chains
+(R, z, t') and (R', z', t, ib, c) — π's stacking order does NOT
+transfer (the z'-segment's order reverses), so the climb-out is a
+RESCHEDULING: the suits' rung-counters are independent, and the
+deadlock question is exactly the L1/O3 interleaving class
+(TwinAgnostic's open window).  This — the swap-replay/rescheduling —
+is the bridge's sole remaining piece, shared with the rooted variant. -/
 theorem State.solvable_of_exchange_merge {st a₁ : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF) (h : st.twinLicensed t)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
