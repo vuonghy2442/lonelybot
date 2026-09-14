@@ -1,9 +1,9 @@
 # The proof farm — handoff document
 
-**Census: 11 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 4
-· Restriction 2; zero bullets).  Pinned by
+**Census: 12 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 4
+· Restriction 2 · TwinExchange 1; zero bullets).  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 11 are
+any NEW sorry or the return of a refuted constant.  All 12 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -242,7 +242,7 @@ laundering rule.
 designs for the REFUTED seat-swap direction; the cargo direction needs
 neither.  They stay closed pending the transfer row's landing.
 
-## Wave 15 (queued) — the twin pair, both-cargo exchange (move-free)
+## Wave 15 — the twin pair, both-cargo exchange (scaffolded 2026-09-14)
 
 **Claim** (2026-09-14, user): states A (cargo `z` on twin `t`, cargo `z'`
 on twin `t'`) and B (cargos exchanged, everything else untouched) are
@@ -252,22 +252,49 @@ twin-transposition reasoning at the both-occupied shape; the wave-14
 theorem (`State.solvable_cargoTwin`) covers exactly the one-bare-twin
 boundary case of it.
 
+**Scaffold landed** (Klondike/TwinExchange.lean): the state-transform is
+the two-seat VALUE swap — `Board.exchangeTwin` (topOf := bd.topOf ∘
+seat-swap; the cargo stacks RIDE, since every card above a cargo root
+names its own seat, so only the two root edges change) +
+`State.exchangeTwinCargo` (board-only lift), with the kit PROVEN and
+axiom-clean: the pointwise characterization, the involutions (board and
+state level), the `bottomOf` seat-swap law, and the two transfer
+realizations of the exchange (`pilePile_exchangeTwinCargo_fwd`,
+`exchangeTwinCargo_pilePile_back` — the detach/attach composite IS the
+two-slot swap, both directions, given the bare premise).
+
 **Proof sketch (scheduling argument, user's idea)**: three links.
 (1) **Frozen-phase mirroring**: until a twin frees, simulate the play
-step-for-step with the mirror map swapping t↔t′ (other cards untouched);
-invariant: states differ only at the two twin-slot occupants.  While both
-seats are occupied no guard can consult the swapped data (occupied bases
-reject landings; cargo contents move only as run-roots, which detach on
-both sides symmetrically).  (2) **Bridge at the first freedom**: the
-instant a cargo run leaves a twin, both threads have one occupied + one
-bare seat — bridge with `State.solvable_cargoTwin`, after which the two
-threads become literally the same state.  (3) tails coincide.
+step-for-step; invariant: states differ only at the two twin seats.
+While both seats are occupied no landing can target them (occupied
+bases reject), but the run walks DO read them — a walk passing the
+CARD `t` continues into the other thread's cargo — so the move
+correspondence is structural, not verbatim (a pilePile landing a run
+on a cargo top maps to the other cargo's top; `canSitOn_swapTwin`
+carries the fit, `aboveOf_congr_off` the walk congruence).  (2) **Bridge
+at the first freedom**: the instant a cargo run leaves a twin, both
+threads have one occupied + one bare seat — bridge with
+`State.solvable_cargoTwin` plus `pilePile_exchangeTwinCargo_fwd`'s
+identification of the post-transfer state with the exchange.  (3)
+**tails coincide** (even with no freedom ever, the height-writes
+mirror, so a terminal win transfers — no "freedom must exist"
+premise).
 
-| item | route |
-|---|---|
-| refute-first corner | **deal-inherited cargo/host adjacency**: if the cargo↔host pair came from the deal (board_edges first disjunct), `canSitOn` can fail at the bridge and `solvable_cargoTwin`'s executability premise dies — the Bridge.lean:466 trap shape (deal-adjacency vs canSitOn re-seating).  Witness-hunt BEFORE any proof attempt: find a both-occupied state where the bridge premise fails and solvability diverges.  Repair shape if refuted: premise "adjacency legal-seated" (holds at play-reachable states when the adjacency was move-created). |
-| mirror-phase bisimulation | per-move-kind case work; components in hand: `canSitOn_swapTwin_right/_left`, `Board.aboveOf_congr_off` (guard congruence), attach/detach kits, `swapTwin_swapTwin`.  Sizing [L]. No new theory expected. |
-| companion (bare-twin, move-free) | the same bisimulation substrate, applied at the one-bare-twin shape without requiring the transfer move to fire; one-directional (`solvable ⟸`) likely suffices for engine pruning |
+| item | file:line | tag | route |
+|---|---|---|---|
+| `solvable_cargoTwin_exchange` (both-occupied iff) | TwinExchange:614 | [H] | **Base case LANDED (2026-09-14, session 3)**: `solvable_of_exchange_pileStack` — the freedom-first bridge (same `pileStack` in the exchanged state via `Board.exchangeTwin_detach`, then the remaining cargo's backward transfer, then the tail verbatim); the first freedom move is always a `pileStack` (pre-freedom `pilePile z _` impossible — the seat lock confines the cargo to the occupied twins).  Remaining: the pre-freedom prefix induction — same-move mirror clean for the other move kinds (reveal triggers on `t`/`t'` vacuous); the obstruction is exactly the MERGE case (a pilePile landing a twin-passing run onto the other cargo's stack-top — self-landing in the mirror; the B&G redirect `canSitOn`-gated; bare-cargo redirect works but degenerates to the `z ↔ z'` conjugation, which dies at suit-reading moves — TwinSwapWitness's root cause).  Route: piecewise bookkeeping or play normalization; gate first (the corner AND the merge shape).  Premise arithmetic: `hfit`/`hfit'` force `z' = z.flipSuit` — two twin pairs crossed; `canSitOn_hosts_are_twins` (LANDED) is the seat lock |
+| ~~`solvable_cargoTwin_exchange_bare`~~ (bare-twin, move-free) | TwinExchange | **done** (2026-09-14) | PROVEN via the *backward* realization (`exchangeTwinCargo_pilePile_back`): from the exchanged state the cargo's pilePile onto its original twin is legal and lands on the original — the exchange is one move from the original, and the win replays through it.  The twin card is never consulted, so the statement was STRENGTHENED: the planned `hzone`/`hwf` premises dropped, phantom twins (stocked/buried/foundationed) covered for free |
+
+**Refute-first gate (before farming the remaining row)**:
+**deal-inherited cargo/host adjacency** — if the cargo↔host pair came
+from the deal (board_edges first disjunct), `canSitOn` can fail at the
+bridge and the scaffold's `hfit` premises are load-bearing.
+Witness-hunt the PREMISELESS form: a both-occupied state where some
+`canSitOn z t = false` and solvability diverges between `st` and
+`st.exchangeTwinCargo t` — a hit confirms the repair; no hit weakens
+the premise.  The companion's direction is settled in the strong
+(proven) direction; the reverse `stx → st` at invisible twins has a
+candidate stuck shape (see FARM_MEMORY's wave-15 note).
 
 Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
 etc.).  **Dependency note**: W4's reformulation (the W-repair at the
@@ -290,8 +317,12 @@ guard (`+hsafe`/`initialReachable` deprioritized): W4 is reformulated
 to rely on the twin swap — canonicalize via the proven automorphism
 (`swapTwin`, TwinSwap.lean) + `solvable_cargoTwin_transfer`, so the
 park/pilePile-shaped cases are absorbed by the swap rather than
-case-split.  The exact statement shape is the open design item
-(ENDGAME.md §5, W4 note).**
+case-split.  **PICKED 2026-09-14: (c) + hybrid** — the certificate form
+`s₁.solvableFrom ∨ st.forcedPark c` (added conclusion, no guards) +
+`rungNormal_or_forcedPark`, with TwinExchange's rows as lemma-0 (the
+user's in-flight Klondike/TwinExchange.lean; contracts R1–R4 in
+ENDGAME §8).  Propagation: the disjunct reaches
+`solvable_of_accomm_step`.**
 
 `solvable_of_pileStack {st} (hwf : st.WF) (hnotlock : st.isLocked c = false)`
 — a legal `pileStack` never hurts solvability.  Repairs: `+hwf`

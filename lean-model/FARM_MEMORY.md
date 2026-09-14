@@ -1910,3 +1910,60 @@ tree).
 - REVEAL CORNER (§7.2's blind spot): hiddenBase a ≠ inr x is NOT move-only derivable — a seatsOrReads-clean
   reveal can still attach at x's hidden seat; the exclusion is WF's vis_not_hidden via hidden_mem_of_hiddenBase
   (revert + `cases hs : scrutinee` iota-reduces the hiddenBase match; hidden_split gives the membership).
+
+## TwinExchange.lean — the [H] row's obstruction map (2026-09-14, session 2)
+
+- LANDED: `canSitOn_hosts_are_twins` (THE SEAT LOCK): canSitOn z t ∧ canSitOn z d ⟹ d = t ∨ d = t.flipSuit — the
+  rank/color dual of only_blocker_is_twin (tenants-of-a-base ↔ hosts-of-a-tenant). QUIRK paid: retype the
+  canSitOn_eq rank hypotheses (`have h1' : zr.toIdx + 1 = tr.toIdx := h1`) BEFORE omega — the raw ones carry
+  unreduced Card.rank projections that omega treats as distinct atoms.
+- PREMISE ARITHMETIC: hfit + hfit' force z' = z.flipSuit (same rank, same color; z ≠ z' from the distinct bases
+  inr t ≠ inr t') — the both-occupied shape is TWO TWIN PAIRS crossed. Consequence via the seat lock: the cargos'
+  only landing seats are the twins — the two crossings are the only live cargo configurations; a cargo leaves its
+  twin only via pileStack (foundation). stx is NOT reachable from st — the equivalence is genuinely play-level.
+- DEAD ROUTES (checked, do not retry): (1) the 3-move swap via a third seat — no third seat exists (the seat lock);
+  (2) B&G Thm-4 redirect at MERGES — a pilePile landing a run whose walk passes a twin onto the OTHER cargo's
+  stack-top is self-landing in the mirror thread, and the redirect target's fit does NOT transfer (the two
+  stack-tops are unrelated cards) — the port is blocked exactly where ENDGAME §2 warned (their convergence moves
+  free, ours canSitOn-gated); (3) the z ↔ z' CONJUGATION invariant (correct for BARE cargos — twin-blind fit on
+  z/z' via canSitOn_swapTwin_right) — dies at suit-reading moves (pileStack z needs z's rung, the conjugate move
+  needs z''s; heights are per-suit, not conjugated — TwinSwapWitness's root cause).
+- The same-move mirror is CLEAN for draw/deckStack/deckPile/stackPile/reveal (reveal triggers on t/t' are VACUOUS:
+  the boundary attach needs the revealed card unseated, but the hosts are seated by hvis/hvis') and for pilePile
+  off twin-reads. ONLY the merges diverge.
+- ROUTE FORWARD (multi-session): the B&G-Case-1 piecewise bookkeeping (exchange-invariant pre-merge → conjugation
+  post-merge → suit-gated switching), or a play normalization ("winning plays avoid cargo-top merges" — the §4
+  last-noncompliant lex machinery). The gate's witness hunt should run FIRST (the corner AND the merge shape).
+- FREE LICENSES identified, NOT landed: [z' bare + z'-rung at st] ⟹ st reaches stx in 3 moves
+  [pileStack z'; pilePile z (inr t'); stackPile z' (inr t)] — the worry-back rung matches the post-pileStack
+  height exactly — giving stx.solvable → st.solvable; the z-side symmetric for the other direction. The natural
+  free cases of the eventual licensing disjunction (cf. park_episode_replay's hlic).
+
+## TwinExchange.lean — the freedom-first bridge LANDED (2026-09-14, session 3)
+
+- LANDED (sorry-free, axioms [propext, Quot.sound]): `Card/Base/Board/State.*_flipSuit` (the twin's swap/exchange
+  is the SAME swap — the pair is unordered; `Card.swapTwin_flipSuit` case 3 needs the flipSuit_flipSuit-bridged
+  of_ne hypothesis), `Board.exchangeTwin_detach` (detach-at-twin congruence: (bd.exchangeTwin t).detach (inr t') =
+  (bd.detach (inr t)).exchangeTwin t — ext_topOf case split b ∈ {inr t, inr t', other}), and
+  `State.solvable_of_exchange_pileStack` — THE BASE CASE: if the winning play's first move is pileStack z, stx plays
+  [pileStack z (mirror: guards common, lands on A₁.exchangeTwinCargo t by the detach congruence); pilePile z' (inr t')
+  (the backward transfer at the FLIPPED roles — exchangeTwinCargo t' = exchangeTwinCargo t)] then π verbatim.
+  z'-side = the same lemma at the flipped roles.
+- STRUCTURAL SIMPLIFICATION: the first freedom move is ALWAYS a pileStack — pre-freedom pilePile z _ is impossible
+  (the seat lock confines the cargo run to the twin seats, both occupied). So the induction shape is: prefix (mirror)
+  + freedom (bridge, LANDED). The ONLY remaining gap: the merge moves in the prefix.
+- QUIRKS paid: (1) `Option.some.inj (hb₀.symm.trans h₀)` — mind the directions (symm THEN trans); (2) an opaque A₁
+  from iff-destructuring needs `rw [hA₁]` (or show-casts) EVERYWHERE its projections appear — the bottomOf/isVis/topOf
+  facts go through `bottomOf_detach_ne` + `rw [hA₁]`; (3) structure-literal projections under rw: `show` the
+  iota-reduced form first, e.g. `show (st.board.exchangeTwin t).detach ... = _`; (4) membership transfers across
+  board equalities: define `hmem : ∀ x ∈ A₁.aboveOf z' → x ∈ st.aboveOf z'` via the `rw [← habove₁]` pattern instead
+  of ▸ (its direction is finicky); (5) the bridge's braid exclusions use ONLY the REMAINING cargo's hnb' — the
+  mover's hnb is not needed (pileStack z doesn't disturb z''s run — aboveOf_congr_off with hfree from hnb').
+- Census still 12 (TwinExchange 1 — only the [H] row's prefix induction remains; the merge case is the whole gap).
+
+## Theorems - W4 certificate form LANDED, descent isolated (2026-09-14)
+
+- LANDED (Theorems.lean ONLY; State.lean untouched - placement grep-first: cBlocked/cSuitMove/board_forest precedent): `State.forcedPark` (8.3(c) draft verbatim - twin NOT vis-and-bare, no rank-mate; tenant arm OUT per toEngine_lifts class) + probes `State.not_forcedPark_of_twin_seat`/`_of_rank_mate` (axiom-free; Temp/opencode/fpprobe.lean #eval: TRUE at unavailable/occupied/non-fitting-occupier twin corners, FALSE under both licenses; corner-(ii) width = the (c-gamma) exactness gate, recorded in the def's docstring) + `solvable_of_pileStack_of_rungNormal` (disjunct-1: the W1 aux consumed VERBATIM, b0 = apply_pileStack_iff slot 2).
+- OLD crux `solvable_of_pileStack` TOMBSTONED (falsity = user's 2026-09-14 decision, ENDGAME 8; REFUTED-archive style) and replaced by `solvable_of_pileStack' : s1.solvableFrom OR st.forcedPark c` - PROVEN as a reduction; the file's single `:= sorry` moved into `rungNormal_or_forcedPark` (the 4 (B,L) descent; its docstring = the next taker's brief: (c-alpha) park-window one-step replay, template excursionSim_step [the twin-seat-divergence phi, NOT the edge-removal one]; (c-beta) the B-neutral transfer stalls the measure [last-noncompliant-first or a third component]; excursion linchpin: the return pileStack x fires pre-pass [deckStack x dead by vis_off_cycle]; (c1alpha/beta) refute-first gates).
+- PROPAGATION (8.4's note; conclusion-only surgery, hypotheses untouched): `solvable_of_accomm_step` + `solvable_accommodates_aux`/`solvable_accommodates` gain `OR exists c sigma pre sub, st.run (pre ++ Move.pileStack c :: sub) = some st' AND st.run pre = some sigma AND sigma.forcedPark c` (mid-play certificate witnessed by the play's own prefix; corner-exclusion mid-accommodation stays [GAP], B2-side alternative unstarted). NO downstream users existed (grep-first; the whole DAG re-verified exit-0 against the refreshed olean: Kills/Progress/Dominance/Realizability/Macro/TwinSwap/TwinExchange/Bridge/Initial/Restriction, others' sorries unchanged). Census: Theorems 1, total 12, pinned OK.
+- QUIRKS paid: rcases `<c, rfl, hfp>` on `m = Move.pileStack c` under `cases hm : st.apply m` - the rfl-subst on the induction's head var is clean (m eliminated, hm auto-rewritten); `st.run [] = some st` is plain rfl; `st.run (m :: pre) = some sigma` closes as `simp only [State.run, hm]; exact hpre` (rung_prefix_cons's pattern). Olean refresh lock-free: `lake env lean -o .lake\build\lib\lean\Klondike\Theorems.olean Klondike\Theorems.lean`.

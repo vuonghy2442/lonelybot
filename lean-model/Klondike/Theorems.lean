@@ -2923,105 +2923,184 @@ theorem excursion_pair_delete {st : State} (hwf : st.WF) {c x : Card} {b : Base}
           rw [State.run_append, hτrun, ← hconv]
           exact hπ₂
 
+/-! ### W4 — the certificate form (ENDGAME.md §8.3, candidate (c) as
+picked 2026-09-14): the forced-park certificate, the repaired crux.
+
+TOMBSTONE (2026-09-14, the REFUTED-archive discipline; the falsity
+knowledge is the user's, the decision recorded in FARM.md's crux ledger
+"REFORMULATION DECISION"; the design is ENDGAME.md §8).  The staged
+crux
+
+    theorem solvable_of_pileStack {st : State} (hwf : st.WF) {c : Card}
+        {s₁ : State} (hnotlock : st.isLocked c = false)
+        (hm : st.apply (Move.pileStack c) = some s₁)
+        (hsol : st.solvableFrom) : s₁.solvableFrom
+
+is FALSE at the forced-park corner (ENDGAME §8.0's (iii)): the twin
+seat unavailable (hidden / foundation-passed / a deal-inherited
+non-fitting occupier), the tenant unstackable (no `hsafe` here, by
+design), no rank-mate return for `c` — F2 (`Card.only_blocker_is_twin`)
+makes the twin the ONLY alternative seat, so a park on `c` can be
+forced: the source's win may ride the parked run through `c`'s seat,
+which `s₁` (c detached, the seat gone) cannot reproduce.  The repair is
+NOT a guard (no `+hsafe`, no `initialReachable` scoping): the
+certificate below is an ADDED CONCLUSION — the falsity quarantined in
+a named, probe-able predicate, the crux's hypotheses untouched. -/
+
+/-- The forced-park certificate (ENDGAME §8.3 (c), the draft def): the
+    corner where no pre-pass canonicalization removes a park on `c` —
+    the twin seat is unavailable (hidden, foundation-passed, or
+    occupied: not visible-AND-bare) AND no rank-mate return for `c`
+    exists (no visible, free `d` with `canSitOn c d`).  The two arms
+    are the negations of the old W4a/W4c licenses (§5's `hlic` first
+    and third disjuncts); the tenant-unstackability arm (W4b's, the
+    second disjunct) is play-level and stays OUT — the
+    `toEngine_lifts` mistake class (ENDGAME §6, W4c's note).  Probed
+    2026-09-14 (`Temp/opencode/fpprobe.lean`, #eval): TRUE at the
+    unavailable-, occupied- and non-fitting-occupier-twin corners,
+    FALSE under either license.  Width note (the (c-γ) exactness gate):
+    the occupied-by-FITTING-cargo corner (ii) satisfies arm 1 without
+    being a true corner — the descent's exchange step absorbs it, and
+    under `hsafe` channel A does (the Dominance bridge's [GAP]); the
+    width is the price of state-level probe-ability. -/
+def State.forcedPark (st : State) (c : Card) : Prop :=
+  ¬(st.isVis c.flipSuit = true ∧ st.board.topOf (Sum.inr c.flipSuit) = none) ∧
+  ∀ d, canSitOn c d = true → ¬(st.isVis d = true ∧ st.board.topOf (Sum.inr d) = none)
+
+/-- Exactness probe (c1), the twin half: a visible, BARE twin seat —
+    the redirect target — falsifies the certificate (with the twin
+    licensed, a park on `c` is never forced). -/
+theorem State.not_forcedPark_of_twin_seat {st : State} {c : Card}
+    (hvis : st.isVis c.flipSuit = true)
+    (hfree : st.board.topOf (Sum.inr c.flipSuit) = none) : ¬st.forcedPark c := by
+  intro ⟨harm, _⟩
+  exact harm ⟨hvis, hfree⟩
+
+/-- Exactness probe (c1), the rank-mate half: a visible, free rank-mate
+    return for `c` falsifies the certificate (the worry-back lands
+    there — the old W4c channel). -/
+theorem State.not_forcedPark_of_rank_mate {st : State} {c d : Card}
+    (hfit : canSitOn c d = true) (hvis : st.isVis d = true)
+    (hfree : st.board.topOf (Sum.inr d) = none) : ¬st.forcedPark c := by
+  intro ⟨_, harm⟩
+  exact harm d hfit ⟨hvis, hfree⟩
+
+/-- The repaired crux's disjunct-1, standalone: a winning play whose
+    pre-rung-pass prefix is `cBlocked`-clean replays from the stack
+    successor — the W1 scaffold (`solvable_of_pileStack_aux`)
+    consumed VERBATIM (its ∃-hypothesis IS the clean decomposition;
+    ENDGAME §8.3: the LANDED aux IS disjunct-1), the base extracted
+    from `hm` itself.  Everything the repaired crux still owes lives in
+    `rungNormal_or_forcedPark` below. -/
+theorem solvable_of_pileStack_of_rungNormal {st : State} (hwf : st.WF) {c : Card}
+    {s₁ : State}
+    (hnotlock : st.isLocked c = false)
+    (hm : st.apply (Move.pileStack c) = some s₁)
+    (hnorm : ∃ π w, st.run π = some w ∧ w.isWin = true ∧
+      ∃ π₁ π₂, π = π₁ ++ Move.pileStack c :: π₂ ∧
+        ∀ m ∈ π₁, cBlocked c m = false) :
+    s₁.solvableFrom := by
+  obtain ⟨π, w, hrun, hwin, π₁, π₂, hsplit, hclr⟩ := hnorm
+  have hmo := hm
+  rw [apply_pileStack_iff] at hmo
+  obtain ⟨_, b₀, hb₀, _, _⟩ := hmo
+  exact solvable_of_pileStack_aux π.length st c b₀ s₁ hwf hnotlock hb₀ hm π
+    (Nat.le_refl _) ⟨π₁, π₂, hsplit, hclr⟩ w hrun hwin
+
 set_option linter.unusedVariables false in
-/-- The stack half of the accommodation step — the isolated B4 reshape
-crux (this file's only `sorry`): a legal `pileStack` of an *unlocked*
-card never hurts solvability.  Together with `solvable_of_stackPile`
-this is the whole content of the hard direction; the play-level
-lifting below is proved.
+/-- ENDGAME §8.3 (c)'s normal-form characterization — the certificate
+    route's remaining `sorry`: from a WF, unlocked, rung-legal source,
+    either some winning play is rung-normal for `c` (its pre-pass
+    prefix `cBlocked`-clean — exactly what
+    `solvable_of_pileStack_of_rungNormal` consumes), or the state
+    carries the forced-park certificate.  The hypotheses are the staged
+    crux's own, unchanged (the falsity is quarantined in the
+    conclusion, not guarded away).
 
-STATEMENT REPAIRED (2026-09-13, prover-confirmed witness
-`witnesses/B4LockedWitness.lean`, facts axiom-clean): as staged (no
-lockedness) it was FALSE — the dead-pile hole, the same one that
-repaired `safe_pileStack_dominant` (Dominance's accepted `hnotlock`
-guard).  When `c` sits on its pile's hidden boundary, stacking it
-strands the boundary card forever: no tenant can ever sit on it again
-(`canPlace` demands a visible base, `reveal` demands a visible card on
-the boundary), so it can never reach the foundation and the successor
-is unsolvable — while the source state wins by revealing through `c`
-first (the witness: reveal ♦K, stack ♦K, stack ♣K — three moves).
-The same witness refutes `solvable_accommodates` as staged (the
-accommodation play `[pileStack ♦K]`), so the repair carries through the
-whole chain below (`playSafeAccomm`).  Repair: `+ (hnotlock :
-st.isLocked c = false)`, conclusion unchanged — a locked stack is a
-commit, not a shuffle.
+TODO(proof) [H] — the §4 (B, L) descent, B = `cBlocked` moves strictly
+before the rung pass, L = the play's length (`rung_pass_of_win`
+supplies the pass, at the first exceedance).  Work the LAST blocked
+move before the pass:
 
-TODO(proof) [H].  PLAN (verify, don't trust): the R/N split first —
+* excursion (`stackPile x b`, `x.suit = c.suit`): its return
+  `pileStack x` fires before the pass — the height path back to the
+  rung climbs through `x`'s own rung, and `deckStack x` is dead (`x`
+  sits on the board; `vis_off_cycle`); delete the pair.  The spread
+  form (`excursion_pair_delete`) needs the in-between segment
+  `x`-seat/`x`-height blind, and the last-blocked window may still
+  park ON `x` (free, unblocked, but seat-reading) — **(c-α)** the
+  divergence-window one-step replay for that shape (template:
+  `excursionSim_step`, which closed the excursion φ's version; the
+  park window's φ is the twin-seat divergence, not the edge-removal).
+* park (seating on `c`): redirect to the twin — (i) bare+visible: the
+  plain redirect (fit by `canSitOn_swapTwin_right`); (ii) occupied by
+  a fitting cargo: transfer-then-redirect (`State.solvable_cargoTwin`,
+  TwinSwap.lean — executable, `c`'s seat being bare by `hm`'s own
+  guard; the move-free strengthening
+  `State.solvable_cargoTwin_exchange_bare`, TwinExchange.lean), the
+  transfer itself B-neutral (it replaces one blocked move with
+  another) — **(c-β)** the measure stalls (fix: last-noncompliant-
+  first, or a third component); (iii) twin unavailable: the descent
+  stalls and emits the certificate — arm 1 exactly.  Arm 2 is the
+  rank-mate escape's negation (the old W4c license).
+* storage elimination: the safety instances only — the Dominance rows'
+  own channel, not needed for the crux itself.
 
-* R (`canReturnBase c b₀ = true`): DONE, `solvable_of_pileStack_return`
-  above — return and replay.
-* N (non-returnable: `c`'s base deal-adjacent with `canSitOn c d`
-  false, or a non-king pile-bottom on its anchor): induct on the
-  winning play π from `st` (strong induction on its length; the IH is
-  the crux at the first move's successor `s₂`, with the shorter tail
-  — the N-conditions carry: `canReturnBase` is state-independent and
-  `bottomOf c = some b₀` survives every move that does not re-seat
-  `c`), splitting on π's first move.  ALL the first-move machinery is
-  now LANDED as citable lemmas:
-  * nil — vacuous: `not_pileStack_of_win` (a won state has every
-    height 13, past every rung).
-  * `pileStack c` itself — delete: `solvable_of_pileStack_step_delete`.
-  * `pilePile c b''` — the run-root replay, `pileStack_pilePile_stackPile`
-    above (no IH needed).
-  * the seven commuting shapes — `solvable_of_pileStack_step_{draw,
-    reveal,deckStack,deckPile,pilePileStack,stackPile,pilePile}`: each
-    takes the square (`pileStack_comm_*`, all seven now landed — the
-    ledger's `pileStack x` case was missed by the original plan and
-    added 2026-09-13) plus the packaged IH
-    `∀ t, s₂.apply (Move.pileStack c) = some t → t.solvableFrom` and
-    prepends the replayed move.  Feeding the IH at `s₂` needs, besides
-    `apply_wf`: `s₂.isLocked c = false` — LANDED for reveal
-    (`reveal_notLocked`; the other six shapes do not write `depths` or
-    `c`'s seat, so the transfers are the `bottomOf_attach_ne`/
-    `bottomOf_detach_ne` one-liners) — and `s₂.board.bottomOf c =
-    some b₀` (same lemmas).  (`reveal c` itself cannot occur — its
-    trigger needs `c`'s base hidden, excluded by `hnotlock`;
-    `deckStack` of a phantom stock copy of `c` is excluded by
-    `vis_off_cycle`.)
-  * REMAINING, the blocked shapes — both reduce to the endgame:
-    * Moves seating ON `c` (`deckPile`/`stackPile`/`pilePile` x
-      `(inr c)`) — the park.  KEY STRUCTURE (the catch-22 that makes
-      the reshape work): every park is transient — `c`'s suit must
-      pass rung `toIdx c` before winning, the rung card is `c`
-      itself, and a stacked `c` admits no tenant (`canPlace` demands
-      `isVis c`, false once stacked), so the parked `x` leaves before
-      the rung passes; `x`'s exit is its own `pileStack` (rung-gated
-      but `c`-suit-independent — fires equally from `s₁`) or a reseat
-      on a rank-mate; delay the rung past the park and the
-      delete-strategy applies from the other side.
-    * `stackPile` of `c`'s suit at the shifted rung `toIdx c - 1` —
-      the excursion pair (net identity): replay at the shifted height
-      (`deckStack` of a phantom stock copy of `c` excluded by
-      `vis_off_cycle`).  (Both this and the park reduce to the
-      endgame: the excursion fires from `s₁` only after a return
-      drops the rung back.)
-
-The endgame is the return-base crux: when `c`'s base was deal-adjacent,
-`canReturnBase` fails and the worry-back lands on a rank-mate instead —
-the Dominance ledger's N-half (`safe_pileStack_dominant`'s residual),
-the same root (the three blocked shapes recorded there: storage parks,
-run-carrying re-homes, rung-offset reads — all needing the
-compliant-play normal form).  The gate lifts are done (2026-09-13):
-`State.isLocked` in State.lean, `findFirst_ne_none_of_mem` and
-`Board.bottomOf_detach_self` in Board.lean.  Closing the endgame here
-kills both rows. -/
-theorem solvable_of_pileStack {st : State} (hwf : st.WF) {c : Card} {s₁ : State}
+The redirect-cycle hazard (§6 W4a) and the certificate's exactness
+are the taker's refute-first gates ((c1) α/β): a staged-falsity shape
+where `forcedPark` is FALSE at `st` yet the park is forced mid-play
+(the certificate reads the SOURCE state; a mid-play twin occupancy is
+the (c-α) window's business — such a witness makes the certificate too
+narrow); and an `hsafe` state matching the certificate (too wide — the
+corner-(ii) width is the known instance, absorbed by channel A under
+the bridge's [GAP]). -/
+theorem rungNormal_or_forcedPark {st : State} (hwf : st.WF) {c : Card} {s₁ : State}
     (hnotlock : st.isLocked c = false)
     (hm : st.apply (Move.pileStack c) = some s₁) (hsol : st.solvableFrom) :
-    s₁.solvableFrom := sorry
+    (∃ π w, st.run π = some w ∧ w.isWin = true ∧
+      ∃ π₁ π₂, π = π₁ ++ Move.pileStack c :: π₂ ∧
+        ∀ m ∈ π₁, cBlocked c m = false) ∨ st.forcedPark c := sorry
+
+/-- The repaired crux (ENDGAME §8.3 (c), the picked form): a legal
+    `pileStack` of an unlocked card never hurts solvability — EXCEPT
+    at the forced-park corner, where the certificate fires.  Disjunct-1
+    is `solvable_of_pileStack_of_rungNormal` (the W1 scaffold consumed
+    verbatim); disjunct-2 is the quarantine.  The reduction to
+    `rungNormal_or_forcedPark` is PROVEN here — the crux's remaining
+    content is exactly the normal-form characterization's `sorry`
+    above. -/
+theorem solvable_of_pileStack' {st : State} (hwf : st.WF) {c : Card} {s₁ : State}
+    (hnotlock : st.isLocked c = false)
+    (hm : st.apply (Move.pileStack c) = some s₁) (hsol : st.solvableFrom) :
+    s₁.solvableFrom ∨ st.forcedPark c := by
+  rcases rungNormal_or_forcedPark hwf hnotlock hm hsol with
+    ⟨π, w, hrun, hwin, π₁, π₂, hsplit, hclr⟩ | hfp
+  · exact Or.inl (solvable_of_pileStack_of_rungNormal hwf hnotlock hm
+      ⟨π, w, hrun, hwin, π₁, π₂, hsplit, hclr⟩)
+  · exact Or.inr hfp
 
 /-- The one-step core: an accommodation move that succeeds preserves
 solvability — dispatch to the two halves.  REPAIRED 2026-09-13 with
 the crux (`hnl`, the per-move `playSafeAccomm` head): a locked
 `pileStack` is not a solvability-preserving shuffle (the dead-pile
-witness). -/
+witness).  REPAIRED AGAIN (2026-09-14, the certificate form —
+ENDGAME §8.4's propagation note): the `pileStack` half carries the
+repaired crux's disjunct — the stack successor is solvable OR the
+source state holds the forced-park certificate for the moved card
+(the mid-accommodation corner-exclusion is the flagged [GAP]; the
+alternative — the certificate vacuous on accommodation-reachable
+states — is B2-side, unstarted).  Hypotheses untouched. -/
 theorem solvable_of_accomm_step {st : State} {m : Move} {s₂ : State}
     (hwf : st.WF) (hm : st.apply m = some s₂) (hsol : st.solvableFrom)
     (hmacc : m.isAccommodation = true)
-    (hnl : ∀ c, m = Move.pileStack c → st.isLocked c = false) : s₂.solvableFrom := by
+    (hnl : ∀ c, m = Move.pileStack c → st.isLocked c = false) :
+    s₂.solvableFrom ∨ ∃ c, m = Move.pileStack c ∧ st.forcedPark c := by
   cases m with
-  | pileStack c => exact solvable_of_pileStack hwf (hnl c rfl) hm hsol
-  | stackPile c b => exact solvable_of_stackPile hwf hm hsol
+  | pileStack c =>
+      rcases solvable_of_pileStack' hwf (hnl c rfl) hm hsol with h | hfp
+      · exact Or.inl h
+      · exact Or.inr ⟨c, rfl, hfp⟩
+  | stackPile c b => exact Or.inl (solvable_of_stackPile hwf hm hsol)
   | draw | reveal _ | deckPile _ _ | deckStack _ | pilePile _ _ =>
       exact absurd hmacc (by simp [Move.isAccommodation])
 
@@ -3052,20 +3131,29 @@ existed.
 
 The proof decomposes over the accommodation play (each move is a
 `pileStack` or a `stackPile`): each step preserves WF (`apply_wf`) and
-solvability (`solvable_of_accomm_step` — with the play's safety, every
-`pileStack` unlocked), and the induction carries the winning play
-through the shuffle. -/
+solvability up to the forced-park disjunct (`solvable_of_accomm_step`
+— with the play's safety, every `pileStack` unlocked), and the
+induction carries the winning play through the shuffle; a certificate
+firing mid-play is witnessed by the play's own prefix (the state it
+fires from, reached by that prefix, with the `pileStack c` step next).
+REPAIRED (2026-09-14, the certificate form): the conclusion carries
+the disjunct — see the crux's tombstone above; corner-exclusion
+mid-accommodation is ENDGAME §8.4's flagged [GAP]. -/
 private theorem solvable_accommodates_aux {st' : State} : ∀ (play : List Move),
     (∀ m ∈ play, m.isAccommodation = true) → ∀ (st : State),
     st.WF → st.solvableFrom → playSafeAccomm st play →
-    st.run play = some st' → st'.solvableFrom := by
+    st.run play = some st' →
+    st'.solvableFrom ∨
+      ∃ (c : Card) (σ : State) (pre sub : List Move),
+        play = pre ++ Move.pileStack c :: sub ∧
+          st.run pre = some σ ∧ σ.forcedPark c := by
   intro play
   induction play with
   | nil =>
       intro _hall st _hwf hsol _hsafe hrun
       have hst : st = st' := Option.some.inj hrun
       subst hst
-      exact hsol
+      exact Or.inl hsol
   | cons m ms ih =>
       intro hall st hwf hsol hsafe hrun
       obtain ⟨hnl, hsafe2⟩ := hsafe
@@ -3077,18 +3165,36 @@ private theorem solvable_accommodates_aux {st' : State} : ∀ (play : List Move)
       | some s₂ =>
           rw [hm] at hrun
           have hrun₂ : s₂.run ms = some st' := hrun
-          have hs₂ := solvable_of_accomm_step hwf hm hsol (hall m (by simp)) hnl
-          have hsafe' : playSafeAccomm s₂ ms := by
-            have hgs : (st.apply m).getD st = s₂ := by rw [hm]; rfl
-            rw [hgs] at hsafe2
-            exact hsafe2
-          exact ih (fun m' hm' => hall m' (by simp [hm'])) s₂
-            (apply_wf hwf m s₂ hm) hs₂ hsafe' hrun₂
+          rcases solvable_of_accomm_step hwf hm hsol (hall m (by simp)) hnl with
+            hs₂ | ⟨c, rfl, hfp⟩
+          · have hsafe' : playSafeAccomm s₂ ms := by
+              have hgs : (st.apply m).getD st = s₂ := by rw [hm]; rfl
+              rw [hgs] at hsafe2
+              exact hsafe2
+            rcases ih (fun m' hm' => hall m' (by simp [hm'])) s₂
+              (apply_wf hwf m s₂ hm) hs₂ hsafe' hrun₂ with
+              h | ⟨c, σ, pre, sub, hsplit, hpre, hfp⟩
+            · exact Or.inl h
+            · refine Or.inr ⟨c, σ, m :: pre, sub, ?_, ?_, hfp⟩
+              · rw [hsplit]; simp
+              · simp only [State.run, hm]; exact hpre
+          · -- the certificate fires at THIS step: the play's own
+            -- prefix (empty — the state is `st` itself) witnesses it
+            refine Or.inr ⟨c, st, [], ms, ?_, ?_, hfp⟩
+            · simp
+            · rfl
 
 theorem solvable_accommodates {st st' : State} (hwf : st.WF)
-    (hacc : safeAccommodates st st') (hsol : st.solvableFrom) : st'.solvableFrom := by
+    (hacc : safeAccommodates st st') (hsol : st.solvableFrom) :
+    st'.solvableFrom ∨
+      ∃ (c : Card) (σ : State) (pre sub : List Move),
+        st.run (pre ++ Move.pileStack c :: sub) = some st' ∧
+          st.run pre = some σ ∧ σ.forcedPark c := by
   obtain ⟨play, hrun, hall, hsafe⟩ := hacc
-  exact solvable_accommodates_aux play hall st hwf hsol hsafe hrun
+  rcases solvable_accommodates_aux play hall st hwf hsol hsafe hrun with
+    h | ⟨c, σ, pre, sub, hsplit, hpre, hfp⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨c, σ, pre, sub, by rw [← hsplit]; exact hrun, hpre, hfp⟩
 
 /-! ## 4. Structure — the matching is a forest
 
