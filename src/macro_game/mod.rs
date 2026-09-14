@@ -1530,6 +1530,12 @@ fn steps(ms: &[Move]) -> ArrayVec<Move, 42> {
 /// successor in either mode — pure search cost. Gates:
 /// `macro_direct_matches_oracle` (the differential would count a wrong
 /// kill as a missing outcome) and the verdict sweeps.
+///
+/// Test-only since the mask-lift: `core_run` consumes the bulk masks
+/// (verified bit-exact by `debug_mask_lift`); this scalar form stays as
+/// the falsifier's reference implementation (`goal_kills_are_sound` and
+/// the probes read it).
+#[cfg(test)]
 fn goal_dead(ctx: &ClosureCtx, commitment: Commitment, kind: OutcomeKind) -> bool {
     let x = match commitment {
         Commitment::Draw(x) | Commitment::Reveal(x) => x,
