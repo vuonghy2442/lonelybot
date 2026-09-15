@@ -2044,6 +2044,141 @@ theorem State.twinCorr_run_window' (z : Card) :
             exact ⟨Nf, Move.relabelTwin id m :: nplay', State.run_cons_comp hfire hrun',
               ρ', hcorr'⟩
 
+/-! ## §12. The mid-episode pilePile — the walk-agreement substrate -/
+
+/-- **The column transitivity**: a card above a walk member is a walk
+member — the column above any card of `q`'s column stays inside the
+column (the extend step iterated through the fuel induction). -/
+theorem Board.mem_aboveOf_trans {bd : Board} : ∀ (m : Nat) (b : Base) (acc : List Card)
+    (q _z e : Card), (∀ w ∈ acc, w ∈ q :: bd.aboveOf q) →
+    (∃ z₀, b = Sum.inr z₀ ∧ z₀ ∈ q :: bd.aboveOf q) →
+    e ∈ Board.aboveOf.go bd m b acc → e ∈ q :: bd.aboveOf q := by
+  intro m
+  induction m with
+  | zero => intro b acc q z e hacc _ he; exact hacc e he
+  | succ n ih =>
+      intro b acc q z e hacc hseat he
+      cases ht : bd.topOf b with
+      | none => rw [Board.aboveOf_go_topOf_none ht] at he; exact hacc e he
+      | some c' =>
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop ht hcon] at he; exact hacc e he
+          · rw [Board.aboveOf_go_step ht hcon] at he
+            -- the new card is in the q-column (the extend step)
+            have hcq : c' ∈ q :: bd.aboveOf q := by
+              obtain ⟨z₀, hb, hz₀⟩ := hseat
+              have hw : bd.topOf (Sum.inr z₀) = some c' := by rw [← hb]; exact ht
+              exact Board.mem_aboveOf_extend hz₀ hw
+            refine ih (Sum.inr c') (c' :: acc) q z e ?_ ⟨c', rfl, hcq⟩ he
+            intro w hw
+            rcases List.mem_cons.mp hw with rfl | hw'
+            · exact hcq
+            · exact hacc w hw'
+
+/-- **The column membership invariant**: every member of a walk from a
+card's seat is either an accumulator member or a member of the
+card's canonical column (any fuel; the transitivity closes the
+continuation case). -/
+theorem Board.go_mem_or_column {bd : Board} :
+    ∀ (m : Nat) (q : Card) (acc : List Card) (d : Card),
+      d ∈ Board.aboveOf.go bd m (Sum.inr q) acc → d ∈ acc ∨ d ∈ bd.aboveOf q := by
+  intro m
+  induction m with
+  | zero => intro q acc d hd; exact Or.inl hd
+  | succ n ih =>
+      intro q acc d hd
+      cases hread : bd.topOf (Sum.inr q) with
+      | none => rw [Board.aboveOf_go_topOf_none hread] at hd; exact Or.inl hd
+      | some c' =>
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop hread hcon] at hd; exact Or.inl hd
+          · have hd0 := hd
+            rw [Board.aboveOf_go_step hread hcon] at hd
+            rcases ih c' (c' :: acc) d hd with h | h
+            · rcases List.mem_cons.mp h with rfl | h
+              · exact Or.inr (Board.mem_aboveOf_of_topOf hread)
+              · exact Or.inl h
+            · have h1 : c' ∈ q :: bd.aboveOf q :=
+                List.mem_cons_of_mem _ (Board.mem_aboveOf_of_topOf hread)
+              have h2 : d ∈ q :: bd.aboveOf q :=
+                Board.mem_aboveOf_trans 52 (Sum.inr c') ([] : List Card) q c' d
+                  (by intro w hw; exact absurd hw (by simp))
+                  ⟨c', rfl, h1⟩ h
+              rcases List.mem_cons.mp h2 with rfl | h3
+              · -- the cyclic head: the card itself is an acc member or a
+                -- plain walk member (the acc subsumption + saturation on
+                -- the original walk from its own seat)
+                rcases Board.aboveOf_go_acc_sub hd0 with h4 | h4
+                · exact Or.inl h4
+                · exact Or.inr (Board.aboveOf_go_sat h4)
+              · exact Or.inr h3
+
+/-- **The two-seat walk agreement**: if two boards differ at exactly
+two seats — `bdM` holds the card `s` at `β` where `bdS` is empty, and
+`bdS` holds `s` at `bq'` where `bdM` is empty, agreeing everywhere
+else, with the columns above `s` agreeing — then every walk of `bdM`
+stays inside the corresponding walk of `bdS` union the strand column
+`s :: bdS.aboveOf s`.  This is the source-side reformulation of the
+pilePile step's mirror-side `hplace` premise: the mirror walk's extra
+members are exactly the strand column — at the mid-episode's
+identity map the composite mirror walk enters the strand's column
+only through `β`, and that whole column is the source's own strand
+column (the `above_strand` field). -/
+theorem Board.aboveOf_two_seat_sub {bdM bdS : Board} {β bq' : Base} {s : Card}
+    (hβ : bdM.topOf β = some s) (hβ' : bdS.topOf β = none)
+    (hbq : bdM.topOf bq' = none) (hbq' : bdS.topOf bq' = some s)
+    (hagr : ∀ b, b ≠ β → b ≠ bq' → bdM.topOf b = bdS.topOf b)
+    (hcol : bdM.aboveOf s = bdS.aboveOf s) :
+    ∀ (m : Nat) (b : Base) (acc : List Card) (e : Card),
+      e ∈ Board.aboveOf.go bdM m b acc →
+        e ∈ acc ∨ e ∈ s :: bdS.aboveOf s ∨ e ∈ Board.aboveOf.go bdS m b acc := by
+  intro m
+  induction m with
+  | zero => intro b acc e he; exact Or.inl he
+  | succ n ih =>
+      intro b acc e he
+      cases ht : bdM.topOf b with
+      | none =>
+          rw [Board.aboveOf_go_topOf_none ht] at he
+          exact Or.inl he
+      | some c' =>
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop ht hcon] at he; exact Or.inl he
+          · rw [Board.aboveOf_go_step ht hcon] at he
+            by_cases hb : b = β
+            · -- the divergence seat: c' = s, the continuation is the
+              -- strand column (the column lemma + the column agreement)
+              subst hb
+              rw [hβ] at ht
+              have hcs : s = c' := Option.some.inj ht
+              subst hcs
+              rcases Board.go_mem_or_column n s (s :: acc) e he with h | h
+              · rcases List.mem_cons.mp h with rfl | h
+                · exact Or.inr (Or.inl (by simp))
+                · exact Or.inl h
+              · rw [hcol] at h
+                exact Or.inr (Or.inl (List.mem_cons_of_mem _ h))
+            · have hbq' : b ≠ bq' := by
+                intro hcon2
+                subst hcon2
+                rw [hbq] at ht
+                exact absurd ht (by simp)
+              -- the agreeing seat: the source walk reads the same card
+              have htS : bdS.topOf b = some c' := by
+                rw [← hagr b hb hbq']; exact ht
+              have hconS : acc.contains c' ≠ true := hcon
+              rcases ih (Sum.inr c') (c' :: acc) e he with h | h | h
+              · rcases List.mem_cons.mp h with rfl | h
+                · refine Or.inr (Or.inr ?_)
+                  rw [Board.aboveOf_go_step htS hconS]
+                  exact Board.aboveOf_go_mem bdS n (Sum.inr e) (e :: acc) e
+                    (by simp)
+                · exact Or.inl h
+              · exact Or.inr (Or.inl h)
+              · refine Or.inr (Or.inr ?_)
+                rw [Board.aboveOf_go_step htS hconS]
+                exact h
+
 /-- **THE GROWTH-ENGAGED WINDOW** (the climb-out replay, the
 strengthened form): a twin-correlated mirror of a WF source that can
 win by a play the growth-engaged window admits is itself solvable —
@@ -2080,7 +2215,13 @@ run-placement premise `hplace` of the pilePile step quantifies over
 the composite MIRROR walk (not source-checkable), and the
 strand-riding-the-run corner (the strand in the moved run: the run
 carries it in the source but the mirror's copy sits at the strand
-seat) has no in-kind response. -/
+seat) has no in-kind response.  The walk-agreement SUBSTRATE for the
+source-side reformulation is landed (`Board.aboveOf_two_seat_sub`:
+at the two-seat board difference, the mirror walk stays inside the
+source walk union the strand column) — the remaining residue is the
+thin composite-board layer (the at-home case `β = bq'`, the strand
+column's preservation under the detach/attach surgery) plus the
+run/strand disjointness clause. -/
 theorem State.solvable_of_twinCorr_window' {S M : State} {z : Card}
     (hcorr : State.TwinCorr (Card.swapTwin z) z.suit S M)
     (hMle : ∀ s, M.heights s ≤ 13)
