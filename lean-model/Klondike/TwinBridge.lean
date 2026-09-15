@@ -1961,10 +1961,13 @@ theorem State.playWindow'_adjacent_pair {S W : State} {t z z' : Card} {play : Li
     State.playWindow'_post_of_run hrest2
   -- step 1's admission (the growth arm) and routing condition
   have hcond1 : ¬ ((z.suit ≠ z.suit ∧ z.suit ≠ z.suit.flipPair) ∨
-      (z.rank.toIdx ≤ S.heights (Card.flipSuit z).suit)) := by
-    rintro (⟨h, -⟩ | h)
+      (z.rank.toIdx ≤ S.heights (Card.flipSuit z).suit ∨
+        (Card.swapTwin z z = z ∧
+          z.rank.toIdx < S.heights (Card.flipSuit z).suit))) := by
+    rintro (⟨h, -⟩ | (h | ⟨-, hlt⟩))
     · exact h rfl
     · exact hskew h
+    · omega
   have hgrowth : decide ((z = z ∨ z = Card.flipSuit z) ∧
       (S.board.bottomOf (Card.flipSuit z)).isSome ∧
       S.board.topOf (Sum.inr (Card.flipSuit z)) = none ∧
@@ -1982,7 +1985,7 @@ theorem State.playWindow'_adjacent_pair {S W : State} {t z z' : Card} {play : Li
       (Move.pileStack z :: Move.pileStack z' :: play) = true
   rw [State.playWindow', hstep1]
   refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
-  · exact Bool.or_eq_true_iff.mpr (Or.inr hgrowth)
+  · exact Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr hgrowth)))
   · rw [if_neg hcond1]
     simp only [State.playWindow', hstep2]
     rw [if_pos hstr]
@@ -2050,14 +2053,16 @@ theorem State.playWindow'_adjacent_pair_skew {S W : State} {t z z' : Card}
       (Move.pileStack z :: Move.pileStack z' :: play) = true
   rw [State.playWindow', hstep1]
   refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
-  · exact Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr hskewd)))
-  · rw [if_pos (Or.inr hskew)]
+  · exact Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr
+      (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr hskewd)))))
+  · rw [if_pos (Or.inr (Or.inl hskew))]
     rw [State.playWindow', hstep2]
     refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
-    · refine Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr ?_)))
+    · refine Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr
+        (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr ?_)))))
       rw [decide_eq_true_eq]
       exact hskew2
-    · rw [if_pos (Or.inr hskew2)]
+    · rw [if_pos (Or.inr (Or.inl hskew2))]
       exact hrest'
 
 /-- **The equal-heights sufficiency theorem** (the last `hsolw'` gap, at
@@ -3417,7 +3422,8 @@ theorem State.playWindow'_tail_of_eq_heights {z : Card} {σ : Suit} :
           rw [State.playWindow', hm]
           refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
           · exact Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr
-              (Or.inl (decide_eq_true_eq.mpr ⟨hqσ, hqσ'⟩))))
+              (Or.inl (Bool.or_eq_true_iff.mpr
+                (Or.inl (decide_eq_true_eq.mpr ⟨hqσ, hqσ'⟩))))))
           · rw [if_pos (Or.inl ⟨hqσ, hqσ'⟩)]
             exact hih
         · -- an off-pair deckStack: the suit disjunct alone
@@ -3709,3 +3715,66 @@ theorem State.raiser_adjacency_bubble {S W : State} {q r : Card} {π₁ π₂ π
     simp only [List.append_assoc, List.cons_append, List.nil_append]
   rw [← hlist2]
   exact run_append_some (run_append_some hR₁run hbubble) hπ₃'
+
+/-- **The multi-rider column induction, structural form**: a run of the
+column's riders' own `pileStack`s from a licensed state preserves the
+license (each rider off the protected four) and EMPTIES the column —
+every card above z at the start is one of the riders (the membership
+premise), the stackings only remove column members (the walk shrinks
+under the detach, `aboveOf_sub_detach`; the stacked rider is unseated,
+`bottomOf_detach_self`, so it cannot re-enter the column), so at the
+end no card sits above z: the cargo is BARE.  The firings are carried
+BY THE RUN — the outside-in order is encoded (each rider fires exactly
+when bare and rung-ready) — so this is the multi-rider induction's
+structural half; the extraction of the run from the winning play is
+the schedule-existence bulk (§12.2's audit: the raiser adjacency is
+landed, the cover/uncover interference is the constructed-detour
+corner).  Together with `raiser_adjacency_bubble` (the reordering step)
+and `exchangeTwinCargo_run_cleanStack` (the mirror replay), this closes
+the column-clearing third of the double-clear schedule. -/
+theorem State.column_clear_run {t z z' : Card} :
+    ∀ (riders : List Card) (S : State),
+    State.TwinLicensedAt S t z z' →
+    (∀ r ∈ riders, r ≠ t ∧ r ≠ t.flipSuit ∧ r ≠ z ∧ r ≠ z') →
+    (∀ c ∈ S.board.aboveOf z, c ∈ riders) →
+    ∀ S₀ : State, S.run (riders.map Move.pileStack) = some S₀ →
+    State.TwinLicensedAt S₀ t z z' ∧ S₀.board.topOf (Sum.inr z) = none := by
+  intro riders
+  induction riders with
+  | nil =>
+      intro S hlic _ hmem S₀ hrun
+      obtain rfl := run_nil_elim hrun
+      refine ⟨hlic, ?_⟩
+      cases htop : S.board.topOf (Sum.inr z) with
+      | none => rfl
+      | some c =>
+          exfalso
+          exact absurd (hmem c (Board.mem_aboveOf_of_topOf htop)) (by simp)
+  | cons r rs ih =>
+      intro S hlic hprot hmem S₀ hrun
+      rw [List.map_cons] at hrun
+      obtain ⟨S', hfiring, hrest⟩ := run_cons_elim hrun
+      -- the firing's shape: the detach at r's own base
+      have hf := hfiring
+      rw [apply_pileStack_iff] at hf
+      obtain ⟨htop, bq, hbq, hrk, hS'⟩ := hf
+      have hboard' : S'.board = S.board.detach bq := by rw [hS']
+      -- the license transfer (r off the protected four)
+      have hlic' := State.twinLicensedAt_apply_pileStack_off hlic
+        (hprot r (by simp)) hfiring
+      -- the column-membership transfer: the walk shrinks under the
+      -- detach, and the stacked rider cannot re-enter (it is unseated)
+      have hmem' : ∀ c ∈ S'.board.aboveOf z, c ∈ rs := by
+        intro c hc
+        have hseated : S'.board.bottomOf c ≠ none := Board.seated_of_mem_aboveOf hc
+        rw [hboard'] at hc
+        have hin : c ∈ S.board.aboveOf z := Board.aboveOf_sub_detach 52 z [] c hc
+        rcases List.mem_cons.mp (hmem c hin) with hcon | hcrs
+        · exfalso
+          rw [hcon] at hseated
+          have hnone : S'.board.bottomOf r = none := by
+            rw [hboard']
+            exact Board.bottomOf_detach_self ((Board.bottomOf_eq S.board r bq).mp hbq)
+          exact hseated hnone
+        · exact hcrs
+      exact ih S' hlic' (fun r' hr' => hprot r' (List.mem_cons_of_mem _ hr')) hmem' S₀ hrest
