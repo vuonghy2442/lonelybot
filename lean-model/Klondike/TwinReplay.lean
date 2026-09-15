@@ -1357,12 +1357,14 @@ source-side premises (the twin seated and bare, the two corner
 freedoms), and a failed skew then ROUTES TO THE GROWTH (the phase
 turns `mid`).  MID-episode: draws, `deckStack`s (any — their frame
 lemmas carry no X-premises), `pileStack`s off the strand's mirror
-base, and the TABLEAU kinds — reveals, deckPiles and stackPiles —
-with their landing-seat clauses (the landing base and the moved
-card off the strand's mirror base; the landing seat off the
-strand's column; the landing card not in the strand's column);
-pilePiles stay excluded mid-episode (the mirror-side run-placement
-premise).  The CATCH-UP is the strand's own `pileStack` (with its
+base, and the TABLEAU kinds — reveals, deckPiles, stackPiles and
+pilePiles — with their landing-seat clauses (the landing base and
+the moved card off the strand's mirror base; the landing seat off
+the strand's column; the landing card not in the strand's column;
+the pilePile run's bases off the strand's column, the vacated and
+landing coordinates off the run, the run itself disjoint from the
+strand's column — the source-side renderings of the L1/L2 family).
+The CATCH-UP is the strand's own `pileStack` (with its
 skew), draining to `post`.  POST-episode: no conditions (the
 identity correspondence aligns everything —
 `State.TwinCore.heights_eq_of_fix`).  The `[]` case demands the
@@ -1439,7 +1441,24 @@ def State.playWindow' (z : Card) (σ : Suit) (ep : State.WindowEp) (st : State) 
                  | Sum.inr d => decide (d ≠ strand ∧ d ∉ st.board.aboveOf strand)
                  | Sum.inl _ => true) == true) &&
               State.playWindow' z σ (.mid strand β) st' ms
-          | .mid _ _, .pilePile _ _ => false
+          | .mid strand β, .pilePile c b =>
+              (decide (c ≠ strand ∧ β ≠ b ∧
+                ((st.board.bottomOf c).elim true (fun b0 =>
+                  decide (β ≠ b0 ∧ b0 ≠ b) &&
+                  (strand :: st.board.aboveOf strand).all
+                    (fun y => decide (b ≠ Sum.inr y ∧ b0 ≠ Sum.inr y)) &&
+                  Card.universe.all (fun d =>
+                    decide (b ≠ Sum.inr d ∨ (d ≠ strand ∧
+                      d ∉ st.board.aboveOf strand ∧
+                      d ∉ c :: st.board.aboveOf c))) &&
+                  Card.universe.all (fun d =>
+                    decide (b0 ≠ Sum.inr d ∨ (d ≠ strand ∧
+                      d ∉ st.board.aboveOf strand ∧
+                      d ∉ c :: st.board.aboveOf c))) &&
+                  (c :: st.board.aboveOf c).all
+                    (fun y => decide (y ≠ strand ∧
+                      y ∉ st.board.aboveOf strand))) = true)) &&
+              State.playWindow' z σ (.mid strand β) st' ms)
           | .mid strand β, .pileStack q =>
               if q = strand then
                 (decide (q.rank.toIdx ≤ st.heights (Card.flipSuit q).suit) &&
@@ -1523,6 +1542,214 @@ theorem State.run_cons_comp {M : State} {r : Move} {N Nf : State} {nplay' : List
     M.run (r :: nplay') = some Nf := by
   simp only [State.run, hfire]
   exact hrun'
+
+/-! ## §12. The mid-episode pilePile — the walk-agreement substrate -/
+
+/-- **The column transitivity**: a card above a walk member is a walk
+member — the column above any card of `q`'s column stays inside the
+column (the extend step iterated through the fuel induction). -/
+theorem Board.mem_aboveOf_trans {bd : Board} : ∀ (m : Nat) (b : Base) (acc : List Card)
+    (q _z e : Card), (∀ w ∈ acc, w ∈ q :: bd.aboveOf q) →
+    (∃ z₀, b = Sum.inr z₀ ∧ z₀ ∈ q :: bd.aboveOf q) →
+    e ∈ Board.aboveOf.go bd m b acc → e ∈ q :: bd.aboveOf q := by
+  intro m
+  induction m with
+  | zero => intro b acc q z e hacc _ he; exact hacc e he
+  | succ n ih =>
+      intro b acc q z e hacc hseat he
+      cases ht : bd.topOf b with
+      | none => rw [Board.aboveOf_go_topOf_none ht] at he; exact hacc e he
+      | some c' =>
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop ht hcon] at he; exact hacc e he
+          · rw [Board.aboveOf_go_step ht hcon] at he
+            -- the new card is in the q-column (the extend step)
+            have hcq : c' ∈ q :: bd.aboveOf q := by
+              obtain ⟨z₀, hb, hz₀⟩ := hseat
+              have hw : bd.topOf (Sum.inr z₀) = some c' := by rw [← hb]; exact ht
+              exact Board.mem_aboveOf_extend hz₀ hw
+            refine ih (Sum.inr c') (c' :: acc) q z e ?_ ⟨c', rfl, hcq⟩ he
+            intro w hw
+            rcases List.mem_cons.mp hw with rfl | hw'
+            · exact hcq
+            · exact hacc w hw'
+
+/-- **The column membership invariant**: every member of a walk from a
+card's seat is either an accumulator member or a member of the
+card's canonical column (any fuel; the transitivity closes the
+continuation case). -/
+theorem Board.go_mem_or_column {bd : Board} :
+    ∀ (m : Nat) (q : Card) (acc : List Card) (d : Card),
+      d ∈ Board.aboveOf.go bd m (Sum.inr q) acc → d ∈ acc ∨ d ∈ bd.aboveOf q := by
+  intro m
+  induction m with
+  | zero => intro q acc d hd; exact Or.inl hd
+  | succ n ih =>
+      intro q acc d hd
+      cases hread : bd.topOf (Sum.inr q) with
+      | none => rw [Board.aboveOf_go_topOf_none hread] at hd; exact Or.inl hd
+      | some c' =>
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop hread hcon] at hd; exact Or.inl hd
+          · have hd0 := hd
+            rw [Board.aboveOf_go_step hread hcon] at hd
+            rcases ih c' (c' :: acc) d hd with h | h
+            · rcases List.mem_cons.mp h with rfl | h
+              · exact Or.inr (Board.mem_aboveOf_of_topOf hread)
+              · exact Or.inl h
+            · have h1 : c' ∈ q :: bd.aboveOf q :=
+                List.mem_cons_of_mem _ (Board.mem_aboveOf_of_topOf hread)
+              have h2 : d ∈ q :: bd.aboveOf q :=
+                Board.mem_aboveOf_trans 52 (Sum.inr c') ([] : List Card) q c' d
+                  (by intro w hw; exact absurd hw (by simp))
+                  ⟨c', rfl, h1⟩ h
+              rcases List.mem_cons.mp h2 with rfl | h3
+              · -- the cyclic head: the card itself is an acc member or a
+                -- plain walk member (the acc subsumption + saturation on
+                -- the original walk from its own seat)
+                rcases Board.aboveOf_go_acc_sub hd0 with h4 | h4
+                · exact Or.inl h4
+                · exact Or.inr (Board.aboveOf_go_sat h4)
+              · exact Or.inr h3
+
+/-- **The two-seat walk agreement**: if two boards differ at exactly
+two seats — `bdM` holds the card `s` at `β` where `bdS` is empty, and
+`bdS` holds `s` at `bq'` where `bdM` is empty, agreeing everywhere
+else, with the columns above `s` agreeing — then every walk of `bdM`
+stays inside the corresponding walk of `bdS` union the strand column
+`s :: bdS.aboveOf s`.  This is the source-side reformulation of the
+pilePile step's mirror-side `hplace` premise: the mirror walk's extra
+members are exactly the strand column — at the mid-episode's
+identity map the composite mirror walk enters the strand's column
+only through `β`, and that whole column is the source's own strand
+column (the `above_strand` field). -/
+theorem Board.aboveOf_two_seat_sub {bdM bdS : Board} {β bq' : Base} {s : Card}
+    (hβ : bdM.topOf β = some s) (hβ' : bdS.topOf β = none)
+    (hbq : bdM.topOf bq' = none) (hbq' : bdS.topOf bq' = some s)
+    (hagr : ∀ b, b ≠ β → b ≠ bq' → bdM.topOf b = bdS.topOf b)
+    (hcol : bdM.aboveOf s = bdS.aboveOf s) :
+    ∀ (m : Nat) (b : Base) (acc : List Card) (e : Card),
+      e ∈ Board.aboveOf.go bdM m b acc →
+        e ∈ acc ∨ e ∈ s :: bdS.aboveOf s ∨ e ∈ Board.aboveOf.go bdS m b acc := by
+  intro m
+  induction m with
+  | zero => intro b acc e he; exact Or.inl he
+  | succ n ih =>
+      intro b acc e he
+      cases ht : bdM.topOf b with
+      | none =>
+          rw [Board.aboveOf_go_topOf_none ht] at he
+          exact Or.inl he
+      | some c' =>
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop ht hcon] at he; exact Or.inl he
+          · rw [Board.aboveOf_go_step ht hcon] at he
+            by_cases hb : b = β
+            · -- the divergence seat: c' = s, the continuation is the
+              -- strand column (the column lemma + the column agreement)
+              subst hb
+              rw [hβ] at ht
+              have hcs : s = c' := Option.some.inj ht
+              subst hcs
+              rcases Board.go_mem_or_column n s (s :: acc) e he with h | h
+              · rcases List.mem_cons.mp h with rfl | h
+                · exact Or.inr (Or.inl (by simp))
+                · exact Or.inl h
+              · rw [hcol] at h
+                exact Or.inr (Or.inl (List.mem_cons_of_mem _ h))
+            · have hbq' : b ≠ bq' := by
+                intro hcon2
+                subst hcon2
+                rw [hbq] at ht
+                exact absurd ht (by simp)
+              -- the agreeing seat: the source walk reads the same card
+              have htS : bdS.topOf b = some c' := by
+                rw [← hagr b hb hbq']; exact ht
+              have hconS : acc.contains c' ≠ true := hcon
+              rcases ih (Sum.inr c') (c' :: acc) e he with h | h | h
+              · rcases List.mem_cons.mp h with rfl | h
+                · refine Or.inr (Or.inr ?_)
+                  rw [Board.aboveOf_go_step htS hconS]
+                  exact Board.aboveOf_go_mem bdS n (Sum.inr e) (e :: acc) e
+                    (by simp)
+                · exact Or.inl h
+              · exact Or.inr (Or.inl h)
+              · refine Or.inr (Or.inr ?_)
+                rw [Board.aboveOf_go_step htS hconS]
+                exact h
+
+/-- **The surgery preserves the untouched column**: a detach-then-attach
+surgery at bases `b0`/`b` leaves the walk above any card `t` whose
+column's card-seats avoid both bases — the walk only reads the seats
+`Sum.inr y` for the column's cards (the extend lemma keeps every
+found card inside the column), and the surgery changes no other
+`topOf` value.  This is the `hcol` supply for the composite boards in
+the pilePile step: the strand column survives the move. -/
+theorem Board.aboveOf_detattach_eq {bd : Board} {b0 b : Base} {c t : Card}
+    {bd' : Board} (hatt : (bd.detach b0).attach b c = some bd')
+    (hb0 : b0 ≠ b)
+    (hcol : ∀ y ∈ t :: bd.aboveOf t, b0 ≠ Sum.inr y ∧ b ≠ Sum.inr y) :
+    bd'.aboveOf t = bd.aboveOf t := by
+  have hagree : ∀ (n : Nat) (seat : Base) (acc : List Card),
+      (∀ z ∈ acc, z ∈ t :: bd.aboveOf t) →
+        (seat = Sum.inr t ∨ ∃ z ∈ t :: bd.aboveOf t, seat = Sum.inr z) →
+        Board.aboveOf.go bd' n seat acc = Board.aboveOf.go bd n seat acc := by
+    intro n
+    induction n with
+    | zero => intro seat acc _ _; rfl
+    | succ m ih =>
+        intro seat acc hacc hseat
+        -- the seat is untouched by both surgery bases
+        have hseats : seat ≠ b ∧ seat ≠ b0 := by
+          constructor
+          · intro hcon; subst hcon
+            rcases hseat with hs | ⟨z, hz, hzs⟩
+            · exact (hcol t (List.mem_cons.mpr (Or.inl rfl))).2 hs
+            · exact (hcol z hz).2 hzs
+          · intro hcon; subst hcon
+            rcases hseat with hs | ⟨z, hz, hzs⟩
+            · exact (hcol t (List.mem_cons.mpr (Or.inl rfl))).1 hs
+            · exact (hcol z hz).1 hzs
+        -- the topOf values agree at the seat
+        have hbrid : bd'.topOf seat = bd.topOf seat := by
+          have h1 : bd'.topOf seat = (bd.detach b0).topOf seat :=
+            Board.attach_topOf_ne (bd.detach b0) b c hatt hseats.1
+          rw [h1]
+          cases seat with
+          | inl a =>
+              exact absurd hseat (by
+                rintro (hs | ⟨z, _, hzs⟩)
+                · exact Sum.inl_ne_inr hs
+                · exact Sum.inl_ne_inr hzs)
+          | inr d =>
+              show (bd.detach b0).topOf (Sum.inr d) = bd.topOf (Sum.inr d)
+              exact Board.detach_topOf_ne _ _ _ hseats.2
+        rw [Board.aboveOf_go_succ bd' m seat acc,
+          Board.aboveOf_go_succ bd m seat acc, hbrid]
+        cases hd : bd.topOf seat with
+        | none => rfl
+        | some c' =>
+            have hc'col : c' ∈ t :: bd.aboveOf t := by
+              rcases hseat with hs | hmid
+              · rw [hs] at hd
+                exact List.mem_cons_of_mem _ (Board.mem_aboveOf_of_topOf hd)
+              · obtain ⟨z, hz, hzs⟩ := hmid
+                rw [hzs] at hd
+                exact Board.mem_aboveOf_extend hz hd
+            show (if acc.contains c' = true then acc
+                else Board.aboveOf.go bd' m (Sum.inr c') (c' :: acc)) =
+              (if acc.contains c' = true then acc
+                else Board.aboveOf.go bd m (Sum.inr c') (c' :: acc))
+            by_cases hcon : acc.contains c' = true
+            · rw [if_pos hcon, if_pos hcon]
+            · rw [if_neg hcon, if_neg hcon]
+              exact ih (Sum.inr c') (c' :: acc) (by
+                intro z hz
+                rcases List.mem_cons.mp hz with rfl | hz'
+                · exact hc'col
+                · exact hacc z hz') (Or.inr ⟨c', hc'col, rfl⟩)
+  rw [Board.aboveOf_eq_go (n := 52) (by omega), Board.aboveOf_eq_go (n := 52) (by omega)]
+  exact hagree 52 (Sum.inr t) [] (by intro z hz; exact absurd hz (by simp)) (Or.inl rfl)
 
 /-- **The growth-engaged run**: a play the growth-engaged window
 admits replays through the correspondence — the mirror's play is
@@ -2182,8 +2409,295 @@ theorem State.twinCorr_run_window' (z : Card) :
                   exact ⟨Nf, Move.relabelTwin id (Move.stackPile c b) :: nplay',
                     State.run_cons_comp hfire hrun', ρ', hcorr'⟩
             | pilePile c b =>
-                simp only [State.playWindow', hS] at hwin
-                exact absurd hwin (by simp)
+                -- the firing's shape first (binds b₀ and the composite board)
+                have hSiff := apply_pilePile_iff.mp hS
+                obtain ⟨b₀, hbot, hne, hcmr, bdS, hattS, rfl⟩ := hSiff
+                -- the window clause, decomposed (the elim reduces at b₀)
+                simp only [State.playWindow', hS, hbot, Bool.and_eq_true,
+                  decide_eq_true_iff] at hwin
+                obtain ⟨⟨hcne, hβb, hinner⟩, hwin'⟩ := hwin
+                rw [Option.elim_some] at hinner
+                simp only [Bool.and_eq_true, decide_eq_true_iff,
+                  List.all_eq_true] at hinner
+                obtain ⟨⟨⟨⟨⟨hβb0, hne⟩, hcolseats⟩, hU1⟩, hU2⟩, hdisj⟩ := hinner
+                -- the frame readings
+                have habove : M.board.aboveOf strand = S.board.aboveOf strand := by
+                  have h1 := hframe.above_strand strand (by simp)
+                  simpa using h1
+                have hMtopβ : M.board.topOf β = some strand :=
+                  (Board.bottomOf_eq M.board strand β).mp hbase
+                have hStopb0 : S.board.topOf b₀ = some c :=
+                  (Board.bottomOf_eq S.board c b₀).mp hbot
+                have hStopsb : S.board.topOf b = none := by
+                  have hcp : S.canPlace c b = true := by
+                    have h2 := hcmr
+                    simp only [State.canMoveRun, Bool.and_eq_true] at h2
+                    exact h2.1
+                  cases b with
+                  | inl a => exact (canPlace_inl_iff.mp hcp).1
+                  | inr d => exact (canPlace_inr_iff.mp hcp).1
+                -- the strand's source seat
+                obtain ⟨bq', hbq'⟩ : ∃ bq', S.board.bottomOf strand = some bq' := by
+                  have h1 : S.isVis strand = true := by
+                    have h2 : M.isVis strand = true :=
+                      hframe.strand_vis strand (by simp)
+                    rw [hframe.vis_iff strand] at h2
+                    exact h2
+                  rw [State.isVis] at h1
+                  cases hb : S.board.bottomOf strand with
+                  | none => rw [hb] at h1; exact absurd h1 (by simp)
+                  | some bq' => exact ⟨bq', rfl⟩
+                have hStopbq' : S.board.topOf bq' = some strand :=
+                  (Board.bottomOf_eq S.board strand bq').mp hbq'
+                have hMtopbq' : M.board.topOf bq' = none := by
+                  have h1 := hframe.top_wanted strand (by simp) bq' hbq'
+                  rw [show Base.relabel id bq' = bq' from by cases bq' <;> rfl] at h1
+                  exact h1
+                have hbnebq' : b ≠ bq' := by
+                  intro hcon; subst hcon
+                  rw [hStopbq'] at hStopsb
+                  exact absurd hStopsb (by simp)
+                have hb0nebq' : b₀ ≠ bq' := by
+                  intro hcon; subst hcon
+                  rw [hStopb0] at hStopbq'
+                  have hccss : c = strand := Option.some.inj hStopbq'
+                  exact absurd hccss hcne
+                have hStopβ : S.board.topOf β = none := by
+                  cases hSβ : S.board.topOf β with
+                  | none => rfl
+                  | some c' =>
+                      by_cases hcss : c' = strand
+                      · -- the strand sits at β in S too — but its wanted seat
+                        -- is empty in the mirror, contradicting hbase
+                        rw [hcss] at hSβ
+                        have hSβs : S.board.bottomOf strand = some β :=
+                          (Board.bottomOf_eq S.board strand β).mpr hSβ
+                        rw [← Option.some.inj (hSβs.symm.trans hbq')] at hMtopbq'
+                        exact absurd hMtopbq' (by rw [hMtopβ]; simp)
+                      · have h1 := hframe.top_some β c' hSβ (by
+                          simp only [List.map_id, List.mem_singleton]
+                          exact hcss)
+                        rw [show Base.relabel id β = β from by cases β <;> rfl] at h1
+                        rw [h1] at hMtopβ
+                        have hcs2 : c' = strand := Option.some.inj hMtopβ
+                        exact absurd hcs2 hcss
+                -- the mirror's firing pieces
+                have hMtopb0 : M.board.topOf b₀ = some c := by
+                  have h1 := hframe.top_some b₀ c hStopb0 (by
+                    simp only [List.map_id, List.mem_singleton]
+                    exact hcne)
+                  rw [show Base.relabel id b₀ = b₀ from by cases b₀ <;> rfl] at h1
+                  exact h1
+                have hMtopb : M.board.topOf b = none := by
+                  have h1 := hframe.top_none b hStopsb (by
+                    intro x hx hcon
+                    rw [List.mem_singleton.mp hx] at hcon
+                    rw [hbase] at hcon
+                    have h2 : β = Base.relabel id b := Option.some.inj hcon
+                    rw [show Base.relabel id b = b from by cases b <;> rfl] at h2
+                    exact hβb h2)
+                  rw [show Base.relabel id b = b from by cases b <;> rfl] at h1
+                  exact h1
+                have hMfree : (M.board.detach b₀).topOf b = none := by
+                  rw [Board.detach_topOf_ne M.board b₀ b (fun hcon => hne hcon.symm)]
+                  exact hMtopb
+                have hMnew : (M.board.detach b₀).bottomOf c = none :=
+                  Board.bottomOf_detach_self hMtopb0
+                obtain ⟨bdM, hattM⟩ : ∃ bdx, (M.board.detach b₀).attach b c
+                    = some bdx := by
+                  have hne0 : (M.board.detach b₀).attach b c ≠ none := by
+                    rw [Board.attach_eq_some_iff]
+                    exact ⟨hMfree, hMnew⟩
+                  exact Option.ne_none_iff_exists'.mp hne0
+                -- the composite boards' two-seat facts
+                have hcompβM : bdM.topOf β = some strand := by
+                  rw [Board.attach_topOf_ne (M.board.detach b₀) b c hattM hβb,
+                    Board.detach_topOf_ne M.board b₀ β hβb0]
+                  exact hMtopβ
+                have hcompβS : bdS.topOf β = none := by
+                  rw [Board.attach_topOf_ne (S.board.detach b₀) b c hattS hβb,
+                    Board.detach_topOf_ne S.board b₀ β hβb0]
+                  exact hStopβ
+                have hcompbqM : bdM.topOf bq' = none := by
+                  rw [Board.attach_topOf_ne (M.board.detach b₀) b c hattM
+                    (fun hcon => hbnebq' hcon.symm),
+                    Board.detach_topOf_ne M.board b₀ bq'
+                      (fun hcon => hb0nebq' hcon.symm)]
+                  exact hMtopbq'
+                have hcompbqS : bdS.topOf bq' = some strand := by
+                  rw [Board.attach_topOf_ne (S.board.detach b₀) b c hattS
+                    (fun hcon => hbnebq' hcon.symm),
+                    Board.detach_topOf_ne S.board b₀ bq'
+                      (fun hcon => hb0nebq' hcon.symm)]
+                  exact hStopbq'
+                have hcompagr : ∀ b'', b'' ≠ β → b'' ≠ bq' →
+                    bdM.topOf b'' = bdS.topOf b'' := by
+                  intro b'' h1 h2
+                  by_cases hbb0 : b'' = b₀
+                  · rw [hbb0]
+                    rw [Board.attach_topOf_ne (S.board.detach b₀) b c hattS hne,
+                      Board.attach_topOf_ne (M.board.detach b₀) b c hattM hne,
+                      Board.detach_topOf, Board.detach_topOf]
+                  · by_cases hbb : b'' = b
+                    · rw [hbb]
+                      rw [Board.attach_topOf (M.board.detach b₀) b c hattM,
+                        Board.attach_topOf (S.board.detach b₀) b c hattS]
+                    · cases hSb : S.board.topOf b'' with
+                      | none =>
+                          have hMn : M.board.topOf b'' = none := by
+                            have h1' := hframe.top_none b'' hSb (by
+                              intro x hx hcon
+                              rw [List.mem_singleton.mp hx] at hcon
+                              rw [hbase] at hcon
+                              rw [show Base.relabel id b'' = b'' from
+                                by cases b'' <;> rfl] at hcon
+                              exact h1 (Option.some.inj hcon).symm)
+                            rw [show Base.relabel id b'' = b'' from
+                              by cases b'' <;> rfl] at h1'
+                            exact h1'
+                          rw [Board.attach_topOf_ne (M.board.detach b₀) b c hattM hbb,
+                            Board.attach_topOf_ne (S.board.detach b₀) b c hattS hbb,
+                            Board.detach_topOf_ne M.board b₀ b''
+                              hbb0,
+                            Board.detach_topOf_ne S.board b₀ b''
+                              hbb0,
+                            hMn, hSb]
+                      | some c'' =>
+                          have hesc : c'' ≠ strand := by
+                            intro hcon
+                            rw [hcon] at hSb
+                            have hbq : b'' = bq' :=
+                              S.board.inj b'' bq' strand hSb hStopbq'
+                            exact h2 hbq
+                          have hMn : M.board.topOf b'' = some c'' := by
+                            have h1' := hframe.top_some b'' c'' hSb (by
+                              simp only [List.map_id, List.mem_singleton]
+                              exact hesc)
+                            rw [show Base.relabel id b'' = b'' from
+                              by cases b'' <;> rfl] at h1'
+                            exact h1'
+                          rw [Board.attach_topOf_ne (M.board.detach b₀) b c hattM hbb,
+                            Board.attach_topOf_ne (S.board.detach b₀) b c hattS hbb,
+                            Board.detach_topOf_ne M.board b₀ b''
+                              hbb0,
+                            Board.detach_topOf_ne S.board b₀ b''
+                              hbb0,
+                            hMn, hSb]
+                -- the composite strand column (the preservation, twice)
+                have hcolM : bdM.aboveOf strand = M.board.aboveOf strand :=
+                  Board.aboveOf_detattach_eq hattM hne (by
+                    intro y hy
+                    rw [habove] at hy
+                    exact ⟨(hcolseats y hy).2, (hcolseats y hy).1⟩)
+                have hcolS : bdS.aboveOf strand = S.board.aboveOf strand :=
+                  Board.aboveOf_detattach_eq hattS hne (fun y hy =>
+                    ⟨(hcolseats y hy).2, (hcolseats y hy).1⟩)
+                have hcolbd : bdM.aboveOf strand = bdS.aboveOf strand := by
+                  rw [hcolM, hcolS, habove]
+                -- hplace via the two-seat walk agreement
+                have hplace : ∀ (c₂ e : Card), e ∈ c :: S.board.aboveOf c →
+                    e ∈ (((M.board.detach (Base.relabel id b₀)).attach
+                      (Base.relabel id b) (id c)).getD M.board).aboveOf c₂ →
+                    e ∈ (((S.board.detach b₀).attach b c).getD S.board).aboveOf c₂ := by
+                  intro c₂ e herun hmem
+                  have hmemM : e ∈ Board.aboveOf.go bdM 52 (Sum.inr c₂) [] := by
+                    rw [show Base.relabel id b₀ = b₀ from by cases b₀ <;> rfl,
+                      show Base.relabel id b = b from by cases b <;> rfl,
+                      show id c = c from rfl] at hmem
+                    rw [hattM] at hmem
+                    rw [Board.aboveOf_eq_go (n := 52) (by omega)] at hmem
+                    exact hmem
+                  rcases Board.aboveOf_two_seat_sub hcompβM hcompβS hcompbqM hcompbqS
+                    hcompagr hcolbd 52 (Sum.inr c₂) [] e hmemM with h | h | h
+                  · exact absurd h (by simp)
+                  · rcases List.mem_cons.mp h with he | h
+                    · exact absurd he (hdisj e herun).1
+                    · rw [hcolS] at h
+                      exact absurd h (hdisj e herun).2
+                  · rw [hattS]
+                    rw [Board.aboveOf_eq_go (n := 52) (by omega)]
+                    exact h
+                -- hread via the detach split + the L2 third part
+                have hread : ∀ (c' d : Card), b = Sum.inr d →
+                    d ∈ S.board.aboveOf (id c') →
+                    d ∈ (S.board.detach b₀).aboveOf (id c') := by
+                  intro c' d hd dh
+                  have hdU := hU1 d d.mem_universe
+                  rcases hdU with hbl | ⟨_, _, hdrun⟩
+                  · exact absurd hd hbl
+                  · rw [Board.aboveOf_eq_go (n := 52) (by omega)] at dh
+                    rcases Board.aboveOf_go_detach_split hStopb0 52 c' [] d dh with
+                      h1 | h1 | h1
+                    · exact absurd h1 (by simp)
+                    · rw [Board.aboveOf_eq_go (n := 52) (by omega)]
+                      exact h1
+                    · exact absurd h1 hdrun
+                -- the L1/L2 renderings
+                have hfree : ∀ x ∈ [strand],
+                    M.board.bottomOf x ≠ some (Base.relabel id b) := by
+                  intro x hx hcon
+                  rw [List.mem_singleton.mp hx] at hcon
+                  rw [hbase] at hcon
+                  have h2 : β = Base.relabel id b := Option.some.inj hcon
+                  rw [show Base.relabel id b = b from by cases b <;> rfl] at h2
+                  exact hβb h2
+                have hwalk : ∀ x ∈ [strand], ∀ y ∈ x :: M.board.aboveOf x,
+                    Base.relabel id b ≠ Sum.inr y := by
+                  intro x hx y hy
+                  rw [List.mem_singleton.mp hx] at hy
+                  rw [habove] at hy
+                  rw [show Base.relabel id b = b from by cases b <;> rfl]
+                  exact (hcolseats y hy).1
+                have hwalk0 : ∀ x ∈ [strand], ∀ y ∈ x :: M.board.aboveOf x,
+                    Base.relabel id b₀ ≠ Sum.inr y := by
+                  intro x hx y hy
+                  rw [List.mem_singleton.mp hx] at hy
+                  rw [habove] at hy
+                  rw [show Base.relabel id b₀ = b₀ from by cases b₀ <;> rfl]
+                  exact (hcolseats y hy).2
+                have hL2 : ∀ d : Card, b = Sum.inr d →
+                    (id d ∉ [strand] ∧ (∀ x ∈ [strand],
+                      d ∉ S.board.aboveOf (id x)) ∧ d ∉ c :: S.board.aboveOf c) := by
+                  intro d hd
+                  have hdU := hU1 d d.mem_universe
+                  rcases hdU with hbl | ⟨h1, h2, h3⟩
+                  · exact absurd hd hbl
+                  · exact ⟨by intro hmem; exact h1 (List.mem_singleton.mp hmem),
+                      ⟨by intro x hx; rw [List.mem_singleton.mp hx]; exact h2, h3⟩⟩
+                have hL20 : ∀ d : Card, b₀ = Sum.inr d →
+                    (id d ∉ [strand] ∧ (∀ x ∈ [strand],
+                      d ∉ S.board.aboveOf (id x)) ∧ d ∉ c :: S.board.aboveOf c) := by
+                  intro d hd
+                  have hdU := hU2 d d.mem_universe
+                  rcases hdU with hbl | ⟨h1, h2, h3⟩
+                  · exact absurd hd hbl
+                  · exact ⟨by intro hmem; exact h1 (List.mem_singleton.mp hmem),
+                      ⟨by intro x hx; rw [List.mem_singleton.mp hx]; exact h2, h3⟩⟩
+                have hcX : c ∉ List.map id [strand] := by
+                  simp only [List.map_id, List.mem_singleton]
+                  exact hcne
+                obtain ⟨N, hfire, hX'⟩ := State.TwinCorrX.apply_pilePile_X hframe
+                  hcX hS hbot hne hfree hwalk hL2 hL20 hwalk0 hread hplace
+                -- the strand's base survives into the successor
+                have hSiffM := apply_pilePile_iff.mp hfire
+                obtain ⟨b₀M, hbotM, hneM, hcmrM, bdM2, hattM2, hNbd⟩ := hSiffM
+                have hb0M : b₀M = b₀ := by
+                  have h2 : M.board.bottomOf c = some b₀ :=
+                    (Board.bottomOf_eq M.board c b₀).mpr hMtopb0
+                  exact Option.some.inj (hbotM.symm.trans h2)
+                rw [hb0M] at hattM2
+                rw [show Base.relabel id b = b from by cases b <;> rfl] at hattM2
+                rw [show id c = c from rfl] at hattM2
+                have hbdM2 : bdM2 = bdM := Option.some.inj (hattM2.symm.trans hattM)
+                rw [hbdM2] at hNbd
+                have hbaseN : N.board.bottomOf strand = some β := by
+                  rw [hNbd]
+                  exact (Board.bottomOf_eq bdM strand β).mpr hcompβM
+                obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ := ih _ _ (.mid strand β)
+                  (State.heights_le_apply hMle hfire) (apply_wf hwf _ _ hS)
+                  ⟨hX', hbaseN, hstrand⟩ hwin' hrun
+                exact ⟨Nf, Move.relabelTwin id (Move.pilePile c b) :: nplay',
+                  State.run_cons_comp hfire hrun', ρ', hcorr'⟩
           · -- ===== POST-EPISODE =====
             have hcorr : State.TwinCorr id z.suit S M := hinv
             simp only [State.playWindow', hS] at hwin
@@ -2193,141 +2707,6 @@ theorem State.twinCorr_run_window' (z : Card) :
               (State.heights_le_apply hMle hfire) (apply_wf hwf _ R hS) hcorrR hwin hrun
             exact ⟨Nf, Move.relabelTwin id m :: nplay', State.run_cons_comp hfire hrun',
               ρ', hcorr'⟩
-
-/-! ## §12. The mid-episode pilePile — the walk-agreement substrate -/
-
-/-- **The column transitivity**: a card above a walk member is a walk
-member — the column above any card of `q`'s column stays inside the
-column (the extend step iterated through the fuel induction). -/
-theorem Board.mem_aboveOf_trans {bd : Board} : ∀ (m : Nat) (b : Base) (acc : List Card)
-    (q _z e : Card), (∀ w ∈ acc, w ∈ q :: bd.aboveOf q) →
-    (∃ z₀, b = Sum.inr z₀ ∧ z₀ ∈ q :: bd.aboveOf q) →
-    e ∈ Board.aboveOf.go bd m b acc → e ∈ q :: bd.aboveOf q := by
-  intro m
-  induction m with
-  | zero => intro b acc q z e hacc _ he; exact hacc e he
-  | succ n ih =>
-      intro b acc q z e hacc hseat he
-      cases ht : bd.topOf b with
-      | none => rw [Board.aboveOf_go_topOf_none ht] at he; exact hacc e he
-      | some c' =>
-          by_cases hcon : acc.contains c' = true
-          · rw [Board.aboveOf_go_stop ht hcon] at he; exact hacc e he
-          · rw [Board.aboveOf_go_step ht hcon] at he
-            -- the new card is in the q-column (the extend step)
-            have hcq : c' ∈ q :: bd.aboveOf q := by
-              obtain ⟨z₀, hb, hz₀⟩ := hseat
-              have hw : bd.topOf (Sum.inr z₀) = some c' := by rw [← hb]; exact ht
-              exact Board.mem_aboveOf_extend hz₀ hw
-            refine ih (Sum.inr c') (c' :: acc) q z e ?_ ⟨c', rfl, hcq⟩ he
-            intro w hw
-            rcases List.mem_cons.mp hw with rfl | hw'
-            · exact hcq
-            · exact hacc w hw'
-
-/-- **The column membership invariant**: every member of a walk from a
-card's seat is either an accumulator member or a member of the
-card's canonical column (any fuel; the transitivity closes the
-continuation case). -/
-theorem Board.go_mem_or_column {bd : Board} :
-    ∀ (m : Nat) (q : Card) (acc : List Card) (d : Card),
-      d ∈ Board.aboveOf.go bd m (Sum.inr q) acc → d ∈ acc ∨ d ∈ bd.aboveOf q := by
-  intro m
-  induction m with
-  | zero => intro q acc d hd; exact Or.inl hd
-  | succ n ih =>
-      intro q acc d hd
-      cases hread : bd.topOf (Sum.inr q) with
-      | none => rw [Board.aboveOf_go_topOf_none hread] at hd; exact Or.inl hd
-      | some c' =>
-          by_cases hcon : acc.contains c' = true
-          · rw [Board.aboveOf_go_stop hread hcon] at hd; exact Or.inl hd
-          · have hd0 := hd
-            rw [Board.aboveOf_go_step hread hcon] at hd
-            rcases ih c' (c' :: acc) d hd with h | h
-            · rcases List.mem_cons.mp h with rfl | h
-              · exact Or.inr (Board.mem_aboveOf_of_topOf hread)
-              · exact Or.inl h
-            · have h1 : c' ∈ q :: bd.aboveOf q :=
-                List.mem_cons_of_mem _ (Board.mem_aboveOf_of_topOf hread)
-              have h2 : d ∈ q :: bd.aboveOf q :=
-                Board.mem_aboveOf_trans 52 (Sum.inr c') ([] : List Card) q c' d
-                  (by intro w hw; exact absurd hw (by simp))
-                  ⟨c', rfl, h1⟩ h
-              rcases List.mem_cons.mp h2 with rfl | h3
-              · -- the cyclic head: the card itself is an acc member or a
-                -- plain walk member (the acc subsumption + saturation on
-                -- the original walk from its own seat)
-                rcases Board.aboveOf_go_acc_sub hd0 with h4 | h4
-                · exact Or.inl h4
-                · exact Or.inr (Board.aboveOf_go_sat h4)
-              · exact Or.inr h3
-
-/-- **The two-seat walk agreement**: if two boards differ at exactly
-two seats — `bdM` holds the card `s` at `β` where `bdS` is empty, and
-`bdS` holds `s` at `bq'` where `bdM` is empty, agreeing everywhere
-else, with the columns above `s` agreeing — then every walk of `bdM`
-stays inside the corresponding walk of `bdS` union the strand column
-`s :: bdS.aboveOf s`.  This is the source-side reformulation of the
-pilePile step's mirror-side `hplace` premise: the mirror walk's extra
-members are exactly the strand column — at the mid-episode's
-identity map the composite mirror walk enters the strand's column
-only through `β`, and that whole column is the source's own strand
-column (the `above_strand` field). -/
-theorem Board.aboveOf_two_seat_sub {bdM bdS : Board} {β bq' : Base} {s : Card}
-    (hβ : bdM.topOf β = some s) (hβ' : bdS.topOf β = none)
-    (hbq : bdM.topOf bq' = none) (hbq' : bdS.topOf bq' = some s)
-    (hagr : ∀ b, b ≠ β → b ≠ bq' → bdM.topOf b = bdS.topOf b)
-    (hcol : bdM.aboveOf s = bdS.aboveOf s) :
-    ∀ (m : Nat) (b : Base) (acc : List Card) (e : Card),
-      e ∈ Board.aboveOf.go bdM m b acc →
-        e ∈ acc ∨ e ∈ s :: bdS.aboveOf s ∨ e ∈ Board.aboveOf.go bdS m b acc := by
-  intro m
-  induction m with
-  | zero => intro b acc e he; exact Or.inl he
-  | succ n ih =>
-      intro b acc e he
-      cases ht : bdM.topOf b with
-      | none =>
-          rw [Board.aboveOf_go_topOf_none ht] at he
-          exact Or.inl he
-      | some c' =>
-          by_cases hcon : acc.contains c' = true
-          · rw [Board.aboveOf_go_stop ht hcon] at he; exact Or.inl he
-          · rw [Board.aboveOf_go_step ht hcon] at he
-            by_cases hb : b = β
-            · -- the divergence seat: c' = s, the continuation is the
-              -- strand column (the column lemma + the column agreement)
-              subst hb
-              rw [hβ] at ht
-              have hcs : s = c' := Option.some.inj ht
-              subst hcs
-              rcases Board.go_mem_or_column n s (s :: acc) e he with h | h
-              · rcases List.mem_cons.mp h with rfl | h
-                · exact Or.inr (Or.inl (by simp))
-                · exact Or.inl h
-              · rw [hcol] at h
-                exact Or.inr (Or.inl (List.mem_cons_of_mem _ h))
-            · have hbq' : b ≠ bq' := by
-                intro hcon2
-                subst hcon2
-                rw [hbq] at ht
-                exact absurd ht (by simp)
-              -- the agreeing seat: the source walk reads the same card
-              have htS : bdS.topOf b = some c' := by
-                rw [← hagr b hb hbq']; exact ht
-              have hconS : acc.contains c' ≠ true := hcon
-              rcases ih (Sum.inr c') (c' :: acc) e he with h | h | h
-              · rcases List.mem_cons.mp h with rfl | h
-                · refine Or.inr (Or.inr ?_)
-                  rw [Board.aboveOf_go_step htS hconS]
-                  exact Board.aboveOf_go_mem bdS n (Sum.inr e) (e :: acc) e
-                    (by simp)
-                · exact Or.inl h
-              · exact Or.inr (Or.inl h)
-              · refine Or.inr (Or.inr ?_)
-                rw [Board.aboveOf_go_step htS hconS]
-                exact h
 
 /-- **THE GROWTH-ENGAGED WINDOW** (the climb-out replay, the
 strengthened form): a twin-correlated mirror of a WF source that can
@@ -2355,23 +2734,24 @@ Every OTHER on-suit worry-back is admitted UNCONDITIONALLY — the rung
 derivation `State.TwinCore.rung_eq_unstack_of_ne` (the iff at the
 moved card pushes the mirror's rung up, the iff at the next card up —
 ρ-fixed by the rank gap — caps it).  The pair-deckStack exclusion
-(route (c)) stays.  MID-EPISODE TABLEAU: reveals, deckPiles and
-stackPiles (off- and on-suit) are ADMITTED with their landing-seat
-clauses (the landing base and the moved card off the strand's mirror
-base β; the landing seat off the strand's column; the landing card
-not in the strand's column — the source-side renderings of the L1/L2
-family); only pilePiles remain excluded mid-episode — the
-run-placement premise `hplace` of the pilePile step quantifies over
-the composite MIRROR walk (not source-checkable), and the
-strand-riding-the-run corner (the strand in the moved run: the run
-carries it in the source but the mirror's copy sits at the strand
-seat) has no in-kind response.  The walk-agreement SUBSTRATE for the
-source-side reformulation is landed (`Board.aboveOf_two_seat_sub`:
-at the two-seat board difference, the mirror walk stays inside the
-source walk union the strand column) — the remaining residue is the
-thin composite-board layer (the at-home case `β = bq'`, the strand
-column's preservation under the detach/attach surgery) plus the
-run/strand disjointness clause. -/
+(route (c)) stays.  MID-EPISODE TABLEAU: reveals, deckPiles,
+stackPiles (off- and on-suit) AND pilePiles are ADMITTED with their
+landing-seat clauses (the landing base and the moved card off the
+strand's mirror base β; the landing seat off the strand's column; the
+landing card not in the strand's column — the source-side renderings
+of the L1/L2 family).  The pilePile admission runs through the
+walk-agreement substrate (`Board.aboveOf_two_seat_sub`: at the
+two-seat board difference — the strand at β in the mirror, the
+strand at its source seat bq' in the source, agreeing elsewhere —
+the mirror walk stays inside the source walk union the strand
+column) plus the surgery-preservation (`Board.aboveOf_detattach_eq`:
+the strand column survives the detach/attach move), the
+composite-board agreement (the two-seat facts and the trichotomy at
+the vacated/landing seats), and the run/strand disjointness clause
+(the run's members are neither the strand nor in its column — the
+at-home case `β = bq'` is forbidden by the frame's own top_wanted
+against the strand's base fact).  The window is now
+mid-episode-unconditional in every tableau kind. -/
 theorem State.solvable_of_twinCorr_window' {S M : State} {z : Card}
     (hcorr : State.TwinCorr (Card.swapTwin z) z.suit S M)
     (hMle : ∀ s, M.heights s ≤ 13)
