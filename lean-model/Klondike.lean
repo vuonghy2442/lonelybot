@@ -19,5 +19,6 @@ import Klondike.TwinExchange
 import Klondike.TwinAgnostic
 import Klondike.TwinQuotient
 import Klondike.TwinReplay
+import Klondike.TwinBridge
 import Klondike.Frame
 import Klondike.Tactics
