@@ -1173,6 +1173,55 @@ theorem State.TwinCore.rung_ne_of_noskew_pair {z : Card} {σ S M} {q : Card}
     have := hnoskew
     omega
 
+/-- **The unstack rung without the anti-skew** (the non-pair,
+non-adjacent case): for a worry-back of a card that is neither pair
+member and whose rank is not the pair rank minus one, the mirror's
+rung is aligned REGARDLESS of the partner suit — the stacked-set iff
+at the moved card pushes the mirror's rung up, and the iff at the
+next card up (which the rank gap guarantees is `ρ`-fixed) caps it.
+The anti-skew remains load-bearing only at the pair members and the
+just-below-pair unstack: there the crossed configuration (the
+partner member stacked in the source, this one not) puts the mirror
+genuinely ahead, and the response would be a MULTI-unstack (the
+mirror dropping its rung past the stranded pair card before the
+verbatim) — not a single in-kind move, and not source-composable. -/
+theorem State.TwinCore.rung_eq_unstack_of_ne {z : Card} {σ S M} {c : Card}
+    (h : State.TwinCore (Card.swapTwin z) σ S M)
+    (hon : c.suit = σ ∨ c.suit = σ.flipPair)
+    (hSg : S.heights c.suit = c.rank.toIdx + 1)
+    (hcρ : Card.swapTwin z c = c)
+    (hrne : c.rank.toIdx + 1 ≠ z.rank.toIdx)
+    (hMle : M.heights (Card.swapTwin z c).suit ≤ 13) :
+    M.heights (Card.swapTwin z c).suit = c.rank.toIdx + 1 := by
+  rw [hcρ] at hMle ⊢
+  have hiff := h.stacked_iff c hon
+  rw [Card.IsTwinMap.rank h.isTwinMap c, hcρ] at hiff
+  have hge : M.heights c.suit > c.rank.toIdx := hiff.mpr (by rw [hSg]; omega)
+  rcases Nat.eq_or_lt_of_le (show c.rank.toIdx + 1 ≤ 13 by
+      have := Rank.toIdx_lt c.rank; omega) with h13 | hlt
+  · omega
+  · obtain ⟨rp, hrp⟩ := Rank.exists_toIdx (c.rank.toIdx + 1) hlt
+    have hcp : Card.swapTwin z (Card.mk c.suit rp) = Card.mk c.suit rp := by
+      refine Card.swapTwin_of_ne ?_ ?_
+      · intro hcon
+        have h1 : z.rank.toIdx = (Card.mk c.suit rp).rank.toIdx := by rw [hcon]
+        rw [show (Card.mk c.suit rp).rank.toIdx = rp.toIdx from rfl, hrp] at h1
+        exact hrne h1.symm
+      · intro hcon
+        have h1 : z.rank.toIdx = (Card.mk c.suit rp).rank.toIdx := by
+          rw [hcon, Card.flipSuit_rank]
+        rw [show (Card.mk c.suit rp).rank.toIdx = rp.toIdx from rfl, hrp] at h1
+        exact hrne h1.symm
+    have honp : (Card.mk c.suit rp).suit = σ ∨ (Card.mk c.suit rp).suit = σ.flipPair := by
+      show c.suit = σ ∨ c.suit = σ.flipPair
+      exact hon
+    have hiffp := h.stacked_iff (Card.mk c.suit rp) honp
+    rw [Card.IsTwinMap.rank h.isTwinMap (Card.mk c.suit rp), hcp] at hiffp
+    have hcap : ¬ (S.heights c.suit > rp.toIdx) := by rw [hSg, hrp]; omega
+    have hle : ¬ (M.heights c.suit > rp.toIdx) := fun hc => hcap (hiffp.mp hc)
+    have h2 : rp.toIdx = c.rank.toIdx + 1 := hrp
+    omega
+
 /-! ## §11. The growth-engaged window -/
 
 /-- **The window's episode phase**: the play's position relative to
@@ -1255,7 +1304,9 @@ def State.playWindow' (z : Card) (σ : Suit) (ep : State.WindowEp) (st : State) 
                     | none => Sum.inr q)) st' ms)
           | .pre, .stackPile c _ =>
               (decide (c.suit ≠ σ ∧ c.suit ≠ σ.flipPair) ||
-                decide (st.heights (Card.flipSuit c).suit ≤ c.rank.toIdx + 1)) &&
+                decide (st.heights (Card.flipSuit c).suit ≤ c.rank.toIdx + 1) ||
+                decide (Card.swapTwin z c = c ∧
+                  c.rank.toIdx + 1 ≠ z.rank.toIdx)) &&
               State.playWindow' z σ .pre st' ms
           | .mid strand β, .draw => State.playWindow' z σ (.mid strand β) st' ms
           | .mid strand β, .deckStack _ => State.playWindow' z σ (.mid strand β) st' ms
@@ -1464,16 +1515,53 @@ theorem State.twinCorr_run_window' (z : Card) :
                 simp only [State.playWindow', hS, Bool.and_eq_true, Bool.or_eq_true,
                   decide_eq_true_iff] at hwin
                 obtain ⟨hcl, hwin'⟩ := hwin
-                have hok : Move.windowOK (Card.swapTwin z) z.suit S (Move.stackPile c b)
-                    = true := by
-                  simp only [Move.windowOK, Bool.or_eq_true, decide_eq_true_iff]
-                  exact hcl
-                obtain ⟨N, hfire, hcorrR⟩ :=
-                  State.twinCorr_step_window hcorr hMle hwf hhid hstock hok hS
-                obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ := hihpre N hfire hcorrR hwin'
-                exact ⟨Nf,
-                  Move.relabelTwin (Card.swapTwin z) (Move.stackPile c b) :: nplay',
-                  State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                rcases hcl with (hoff | hanti) | hnew
+                · obtain ⟨N, hfire, hcorrR⟩ :=
+                    State.TwinCorr.apply_clean hcorr hhid hstock
+                    (by simp only [Move.twinClean, decide_eq_true_iff]
+                        exact hoff) hS
+                  obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ :=
+                    hihpre N hfire hcorrR hwin'
+                  exact ⟨Nf,
+                    Move.relabelTwin (Card.swapTwin z) (Move.stackPile c b) :: nplay',
+                    State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                · have hok : Move.windowOK (Card.swapTwin z) z.suit S
+                      (Move.stackPile c b) = true := by
+                    simp only [Move.windowOK, Bool.or_eq_true, decide_eq_true_iff]
+                    exact Or.inr hanti
+                  obtain ⟨N, hfire, hcorrR⟩ :=
+                    State.twinCorr_step_window hcorr hMle hwf hhid hstock hok hS
+                  obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ :=
+                    hihpre N hfire hcorrR hwin'
+                  exact ⟨Nf,
+                    Move.relabelTwin (Card.swapTwin z) (Move.stackPile c b) :: nplay',
+                    State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                · -- the non-pair, non-adjacent worry-back: the rung DERIVED
+                  obtain ⟨hcρ, hrne⟩ := hnew
+                  by_cases hon : c.suit = z.suit ∨ c.suit = z.suit.flipPair
+                  · have hSiff := apply_stackPile_iff.mp hS
+                    obtain ⟨hrk, hcp, bd, hatt, rfl⟩ := hSiff
+                    have halign : M.heights (Card.swapTwin z c).suit
+                        = c.rank.toIdx + 1 :=
+                      State.TwinCore.rung_eq_unstack_of_ne hcorr.toTwinCore hon hrk.symm
+                        hcρ hrne (hMle (Card.swapTwin z c).suit)
+                    obtain ⟨N, hfire, hX⟩ := State.TwinCorrX.apply_stackPile_onsuit
+                      (State.TwinCorr.toTwinCorrX hcorr) hwf hon (by simp) hS halign
+                      (by simp) (by simp) (by simp) (by simp)
+                    obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ :=
+                      hihpre N hfire hX.toCorr hwin'
+                    exact ⟨Nf,
+                      Move.relabelTwin (Card.swapTwin z) (Move.stackPile c b) :: nplay',
+                      State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                  · obtain ⟨N, hfire, hcorrR⟩ :=
+                      State.TwinCorr.apply_clean hcorr hhid hstock
+                      (by simp only [Move.twinClean, decide_eq_true_iff]
+                          exact ⟨fun h => hon (Or.inl h), fun h => hon (Or.inr h)⟩) hS
+                    obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ :=
+                      hihpre N hfire hcorrR hwin'
+                    exact ⟨Nf,
+                      Move.relabelTwin (Card.swapTwin z) (Move.stackPile c b) :: nplay',
+                      State.run_cons_comp hfire hrun', ρ', hcorr'⟩
             | pileStack q =>
                 by_cases hif : (q.suit ≠ z.suit ∧ q.suit ≠ z.suit.flipPair) ∨
                   q.rank.toIdx ≤ S.heights (Card.flipSuit q).suit
@@ -1971,17 +2059,28 @@ own shape (the two on-suit kings plus the 52-count).  Over the
 original window, the STACK-SKEW premise is GONE: an on-suit
 `pileStack` needs only the off-suitness, the skew, or the growth's
 source-side premises (the pair card, the twin seated and bare, the
-corner freedoms); the unstack anti-skew stays only PRE-episode (the
-identity regime derives it); the pair-deckStack exclusion (route
-(c)) stays.  MID-EPISODE TABLEAU: reveals, deckPiles and stackPiles
-(off- and on-suit) are ADMITTED with their landing-seat clauses (the
-landing base and the moved card off the strand's mirror base β;
-the landing seat off the strand's column; the landing card not in
-the strand's column — the source-side renderings of the L1/L2
+corner freedoms).  The UNSTACK ANTI-SKEW is now needed only at the
+pair members and the JUST-BELOW-PAIR worry-back (rank one under the
+pair card): there the crossed configuration (the partner member
+stacked in the source, this one not) puts the mirror genuinely AHEAD,
+and the response would be a MULTI-unstack — the mirror dropping its
+rung past the stranded pair card before the verbatim — not a single
+in-kind move, and not source-composable (the unstack-growth corner).
+Every OTHER on-suit worry-back is admitted UNCONDITIONALLY — the rung
+derivation `State.TwinCore.rung_eq_unstack_of_ne` (the iff at the
+moved card pushes the mirror's rung up, the iff at the next card up —
+ρ-fixed by the rank gap — caps it).  The pair-deckStack exclusion
+(route (c)) stays.  MID-EPISODE TABLEAU: reveals, deckPiles and
+stackPiles (off- and on-suit) are ADMITTED with their landing-seat
+clauses (the landing base and the moved card off the strand's mirror
+base β; the landing seat off the strand's column; the landing card
+not in the strand's column — the source-side renderings of the L1/L2
 family); only pilePiles remain excluded mid-episode — the
-run-placement premise `hplace` of the pilePile step is MIRROR-side
-(not source-checkable), and the strand-riding-the-run corner has no
-in-kind response. -/
+run-placement premise `hplace` of the pilePile step quantifies over
+the composite MIRROR walk (not source-checkable), and the
+strand-riding-the-run corner (the strand in the moved run: the run
+carries it in the source but the mirror's copy sits at the strand
+seat) has no in-kind response. -/
 theorem State.solvable_of_twinCorr_window' {S M : State} {z : Card}
     (hcorr : State.TwinCorr (Card.swapTwin z) z.suit S M)
     (hMle : ∀ s, M.heights s ≤ 13)
