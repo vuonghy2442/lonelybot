@@ -195,6 +195,31 @@ successor's WINDOW-solvability (the solvableFrom-to-solvableWindow
 transfer is the L1/O0 residue) — the constructive evidence covers the
 probed geometries.
 
+§12.2 advances the schedule-existence bulk.  The extraction side is
+CLOSED without the feared 52-conservation: TwinSwap's
+`pileStack_mem_of_win` (the founds_gone route — at the win state every
+card is foundation-passed and unseated) already delivers "every rider
+stacks in the winning play", and this file's
+`bottomOf_run_mem_pileStack` is the win-free positional core.  The
+interference audit for pulling the raisers earlier found the
+deckStack's partner class RESTRICTED: `draw` (the cursor moves the
+prev) and `deckPile` (the removeAt shifts it) are GENUINE
+non-commuters — in a firing run they cannot be swapped past a
+deckStack, so the schedule pulls them along as a unit — while
+`reveal`/`pilePile` commute by pure component-disjointness
+(`deckStack_swap_zclean` + `run_bubble_deckStack`, the deckStack
+raiser-pull kit; the pileStack raiser-pull was already
+`stacking_swap_zclean`/`run_bubble_stacking`, all four height-blind
+kinds).  `State.raiser_adjacency_bubble` is the extraction-order
+interface: the rider's own stack bubbles back to just after its
+preceding deckStack raiser, the terminal state preserved — the
+multi-rider induction's consumption step.  The remaining interference —
+the moves that TOUCH the rider's seat (a cover lands a run on the bare
+rider, its uncover removes it, both before the rider's stack; pulling
+the stack past the cover breaks the cover's `isVis` guard) — is the
+CONSTRUCTED-DETOUR corner's content (§13's residue): the schedule must
+re-route those trajectories, not commute past them.
+
 **Honest boundaries, recorded for the later sessions:**
 
 1. The license enters UNPACKED and PINNED (`State.TwinLicensedAt`): the
@@ -3509,3 +3534,178 @@ theorem State.bottomOf_run_mem_pileStack :
       rcases ih R T hrest1 q b' hb' with hmem | hseated
       · exact Or.inl (List.mem_cons_of_mem _ hmem)
       · exact Or.inr hseated
+
+/-! ### §12.2. The deckStack-raiser's swap — the restricted partner class
+
+The interference audit for pulling a `deckStack` raiser earlier: the
+deckStack's firing guards read `stock.prev` (the CURSOR-sensitive
+predecessor) and the rung — so its commutative partners among the
+height-blind kinds are ONLY the stock- and heights-untouched ones
+(`reveal`, `pilePile`): a `draw` moves the cursor (the prev changes —
+the swapped order's deckStack reads a different card), and a `deckPile`
+removes the prev (the removeAt shifts it).  Both are GENUINE
+non-commuters for the deckStack — in a firing run they cannot be
+swapped past it, and the schedule must pull them ALONG (the
+[draws; deckPiles; deckStack] unit, the internal order preserved).
+For the two clean partners the swap is COMPONENT-DISJOINT (the
+deckStack lives on stock+foundations, the reveal/pilePile on
+tableau±hidden — `commute_of_compsDisjoint`), so both guards transfer
+by rfl and the firing transfer is total. -/
+
+/-- **The deckStack single swap, restricted partners**: a `reveal` or
+`pilePile` and a `deckStack q` commute in the run — both orders fire,
+the same final state.  The transfer is pure component-disjointness:
+the deckStack's guards (`stock.prev`, the rung) are stock- and
+heights-reads, untouched by the board±depths edit; the reveal's/pilePile's
+guards are board±depths reads, untouched by the stock+heights edit;
+the state agreement is `commute_of_compsDisjoint`. -/
+theorem State.deckStack_swap_zclean {S w : State} {q : Card} {m : Move} {rest : List Move}
+    (hkind : (∃ c, m = Move.reveal c) ∨ (∃ c b, m = Move.pilePile c b))
+    (hrun : S.run (m :: Move.deckStack q :: rest) = some w) :
+    S.run (Move.deckStack q :: m :: rest) = some w := by
+  obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+  obtain ⟨T, hds, hrest⟩ := run_cons_elim hrest1
+  have hL : (S.apply m >>= fun s => s.apply (Move.deckStack q)) = some T :=
+    Option.bind_eq_some_iff.mpr ⟨R, hm, hds⟩
+  rcases hkind with ⟨c, rfl⟩ | ⟨c, b, rfl⟩
+  · -- m = reveal c: the stock- and heights-blind partner
+    have hm' := hm
+    rw [apply_reveal_iff] at hm'
+    obtain ⟨htopc, r, a, bd, hbotc, hp, hatt, rfl⟩ := hm'
+    have hdsR := hds
+    rw [apply_deckStack_iff] at hdsR
+    obtain ⟨hprevR, hrkR, -⟩ := hdsR
+    have hdsS : S.apply (Move.deckStack q) = some {S with
+        stock := S.stock.removeAt (S.stock.cursor - 1),
+        heights := fun s => if s = q.suit then S.heights s + 1 else S.heights s} :=
+      apply_deckStack_iff.mpr ⟨hprevR, hrkR, rfl⟩
+    obtain ⟨T', hm₀⟩ : ∃ T' : State, ({S with
+        stock := S.stock.removeAt (S.stock.cursor - 1),
+        heights := fun s => if s = q.suit then S.heights s + 1 else S.heights s}).apply
+        (Move.reveal c) = some T' :=
+      ⟨_, apply_reveal_iff
+        (st := {S with
+          stock := S.stock.removeAt (S.stock.cursor - 1),
+          heights := fun s => if s = q.suit then S.heights s + 1 else S.heights s}).mpr
+        ⟨htopc, r, a, bd, hbotc, hp, hatt, rfl⟩⟩
+    have hcomps : ∀ x ∈ Move.comps (Move.reveal c), x ∉ Move.comps (Move.deckStack q) := by
+      intro x hx
+      cases x <;> simp [Move.comps] at hx ⊢
+    have hR : (S.apply (Move.deckStack q) >>= fun s => s.apply (Move.reveal c)) = some T' :=
+      Option.bind_eq_some_iff.mpr ⟨_, hdsS, hm₀⟩
+    have hTT : T = T' :=
+      Option.some.inj (hL.symm.trans
+        ((commute_of_compsDisjoint S (Move.reveal c) (Move.deckStack q) hcomps).trans hR))
+    rw [hTT] at hrest
+    exact run_cons_intro hdsS (run_cons_intro hm₀ hrest)
+  · -- m = pilePile c b: the stock- and heights-blind partner
+    have hm' := hm
+    rw [apply_pilePile_iff] at hm'
+    obtain ⟨β₀, hbotc, hne, hcmr, bd, hatt, rfl⟩ := hm'
+    have hdsR := hds
+    rw [apply_deckStack_iff] at hdsR
+    obtain ⟨hprevR, hrkR, -⟩ := hdsR
+    have hdsS : S.apply (Move.deckStack q) = some {S with
+        stock := S.stock.removeAt (S.stock.cursor - 1),
+        heights := fun s => if s = q.suit then S.heights s + 1 else S.heights s} :=
+      apply_deckStack_iff.mpr ⟨hprevR, hrkR, rfl⟩
+    obtain ⟨T', hm₀⟩ : ∃ T' : State, ({S with
+        stock := S.stock.removeAt (S.stock.cursor - 1),
+        heights := fun s => if s = q.suit then S.heights s + 1 else S.heights s}).apply
+        (Move.pilePile c b) = some T' :=
+      ⟨_, apply_pilePile_iff
+        (st := {S with
+          stock := S.stock.removeAt (S.stock.cursor - 1),
+          heights := fun s => if s = q.suit then S.heights s + 1 else S.heights s}).mpr
+        ⟨β₀, hbotc, hne, hcmr, bd, hatt, rfl⟩⟩
+    have hcomps : ∀ x ∈ Move.comps (Move.pilePile c b), x ∉ Move.comps (Move.deckStack q) := by
+      intro x hx
+      cases x <;> simp [Move.comps] at hx ⊢
+    have hR : (S.apply (Move.deckStack q) >>= fun s => s.apply (Move.pilePile c b)) = some T' :=
+      Option.bind_eq_some_iff.mpr ⟨_, hdsS, hm₀⟩
+    have hTT : T = T' :=
+      Option.some.inj (hL.symm.trans
+        ((commute_of_compsDisjoint S (Move.pilePile c b) (Move.deckStack q) hcomps).trans hR))
+    rw [hTT] at hrest
+    exact run_cons_intro hdsS (run_cons_intro hm₀ hrest)
+
+/-- The deckStack-commuting run class: every move a `reveal` or
+`pilePile` — the stock- and heights-untouched kinds, the deckStack's
+ONLY commutative partners (a `draw` moves the cursor, a `deckPile`
+removes the prev: both break the deckStack's `prev`-read, so in a
+firing run they cannot be swapped past it — the schedule pulls them
+along as a unit instead). -/
+def State.DSCommRun : List Move → State → Prop
+  | [], _ => True
+  | m :: ms, S => ((∃ c, m = Move.reveal c) ∨ (∃ c b, m = Move.pilePile c b)) ∧
+      (match S.apply m with
+      | some R => State.DSCommRun ms R
+      | none => True)
+
+/-- **The deckStack bubble**: a `deckStack q` commutes past a whole
+`DSCommRun` segment, the terminal state preserved — the
+left-decomposition induction (the IH bubbles the tail at the post-head
+state, the single swap reorders the head).  With `run_bubble_stacking`
+(the pileStack bubble past the height-blind segment) this completes the
+raiser-pull kit: a `pileStack` raiser pulls past all four height-blind
+kinds, a `deckStack` raiser past the reveal/pilePile class. -/
+theorem State.run_bubble_deckStack (q : Card) : ∀ (π₂ : List Move) (S T : State),
+    S.run (π₂ ++ [Move.deckStack q]) = some T →
+    State.DSCommRun π₂ S →
+    ∃ T' : State, S.run (Move.deckStack q :: π₂) = some T' ∧ T' = T := by
+  intro π₂
+  induction π₂ with
+  | nil =>
+      intro S T hrun _
+      exact ⟨T, hrun, rfl⟩
+  | cons m rest ih =>
+      intro S T hrun hclean
+      obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+      obtain ⟨hkind, hcr⟩ := hclean
+      rw [hm] at hcr
+      obtain ⟨T'', hrun'', heq⟩ := ih R T hrest1 hcr
+      exact ⟨T'', State.deckStack_swap_zclean hkind (run_cons_intro hm hrun''), heq⟩
+
+/-- **The extraction-order step (the adjacency form)**: within a run, a
+rider's own `pileStack r` — sitting behind a segment π₂ that is
+r-clean (height-blind, r and its seat untouched at every state it
+fires) — bubbles BACK to just after the preceding `deckStack q` raiser,
+the terminal state preserved: the reordered prefix reaches the same
+winner, so the remainder's solvability is untouched.  This is the
+multi-rider induction's consumption interface: each rider's stack is
+brought adjacent to its raiser ([raiser; stack] as a unit), the license
+surviving by `twinLicensedAt_apply_pileStack_off`.  The further
+front-ization (the unit past the earlier prefix π₁) needs the
+ZClean-reindexing congruence under the deckStack edit — the π₁-moves'
+touched sets are board/depths-reads (invariant), but a `deckPile`'s
+FIRING reads the moved prev, so the reindexed cleanliness is a
+premise there, not a derivation. -/
+theorem State.raiser_adjacency_bubble {S W : State} {q r : Card} {π₁ π₂ π₃ : List Move}
+    (hrun : S.run (π₁ ++ Move.deckStack q :: π₂ ++ Move.pileStack r :: π₃) = some W)
+    (hclean : ∃ R₁ : State, S.run (π₁ ++ [Move.deckStack q]) = some R₁ ∧
+      State.ZCleanRun r π₂ R₁) :
+    ∃ π₂' : List Move,
+      S.run (π₁ ++ Move.deckStack q :: Move.pileStack r :: π₂' ++ π₃) = some W := by
+  obtain ⟨R₁, hR₁run, hzclean⟩ := hclean
+  -- the run's two-segment decomposition (term-level run_append, the
+  -- associativity made explicit)
+  have hlist1 : (π₁ ++ [Move.deckStack q]) ++ (π₂ ++ [Move.pileStack r] ++ π₃)
+      = π₁ ++ Move.deckStack q :: π₂ ++ Move.pileStack r :: π₃ := by
+    simp only [List.append_assoc, List.cons_append, List.nil_append]
+  have hseg : S.run ((π₁ ++ [Move.deckStack q]) ++ (π₂ ++ [Move.pileStack r] ++ π₃))
+      = some W := hlist1 ▸ hrun
+  obtain ⟨A, hA, hrestA⟩ := Option.bind_eq_some_iff.mp
+    ((run_append S (π₁ ++ [Move.deckStack q]) (π₂ ++ [Move.pileStack r] ++ π₃)).symm.trans hseg)
+  have hAR : A = R₁ := Option.some.inj (hA.symm.trans hR₁run)
+  rw [hAR] at hrestA
+  obtain ⟨T₂, hT₂, hπ₃⟩ := Option.bind_eq_some_iff.mp
+    ((run_append R₁ (π₂ ++ [Move.pileStack r]) π₃).symm.trans hrestA)
+  -- the rider's stack bubbles past π₂ to just after the raiser
+  obtain ⟨T', hbubble, hT'⟩ := State.run_bubble_stacking r π₂ R₁ T₂ hT₂ hzclean
+  have hπ₃' : T'.run π₃ = some W := by rw [hT']; exact hπ₃
+  refine ⟨π₂, ?_⟩
+  have hlist2 : ((π₁ ++ [Move.deckStack q]) ++ (Move.pileStack r :: π₂)) ++ π₃
+      = π₁ ++ Move.deckStack q :: Move.pileStack r :: π₂ ++ π₃ := by
+    simp only [List.append_assoc, List.cons_append, List.nil_append]
+  rw [← hlist2]
+  exact run_append_some (run_append_some hR₁run hbubble) hπ₃'
