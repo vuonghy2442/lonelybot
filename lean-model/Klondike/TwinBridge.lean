@@ -122,8 +122,28 @@ riders allowed — running to a both-bare licensed state where the merge
 re-fires with a solvable successor), the mirror's verbatim replay being
 the run-level lemma `State.exchangeTwinCargo_run_cleanStack`.
 `State.solvable_of_exchange_merge_rooted_sched` is the scheduled direct
-bridge; `State.rider_clear_sched` is the single-swap commutation
-building block (over Commutation's `comm_pileStack_pilePile`).
+bridge; `State.rider_clear_sched` is the single-swap commutation —
+COMPLETE with its firing transfer (the swapped order's firing derived
+from the disjointness plus the root-not-on-q corner, through the
+attach/detach congruences), the L1/O0 building block unconditional in
+the run.
+
+§10 is the CONSTRUCTIVE route (dblclear2.lean): the blockade witness
+rebuilt with the blocker's rung NOT yet arrived and the missing rung
+card in the stock — the constructive schedule [deckStack the raiser; 
+pileStack the blocker; the z'-detour; the merge; the climbs] wins on
+BOTH sides.  Landed: `State.rung_raiser_off_pairs` (the rank-ladder
+arithmetic — every rung-raiser of a fit-seated rider is off the
+protected four; stock cards are never protected outright by WF's
+vis_off_cycle) and the MIXED scheduled form
+`State.exchangeDoubleClear_of_sched_mixed` (a CleanStack prefix plus
+the z'-detour, the mirror's verbatim replay derived for the WHOLE mixed
+prefix) with its direct bridge
+`State.solvable_of_exchange_merge_rooted_sched_mixed`.  The residue:
+the schedule's EXISTENCE at arbitrary WF+licensed+solvable states (the
+raisers' reachability and the blocker-chain's termination) and the
+successor's solvability — the constructive evidence covers the probed
+geometries.
 
 **Honest boundaries, recorded for the later sessions:**
 
@@ -1996,31 +2016,314 @@ theorem State.solvable_of_exchange_merge_rooted_sched {st a₁ : State} {t z z' 
   obtain ⟨π', W, hrun', hwin'⟩ := hres
   exact ⟨π ++ π', W, run_append_some hrunX hrun', hwin'⟩
 
-/-- **The rider-stacking commutation** (the L1/O0 building block): a
+/-- **The rider-stacking commutation, with the firing transfer**: a
 rider's clean `pileStack q` can be pulled EARLIER past a following
 `pilePile c b'` whose touch-set is disjoint from the stacking's at st
 (neither q's seat nor the merge's landing/detach bases nor the run
-overlap), landing on the SAME state (Commutation's
-`comm_pileStack_pilePile`), so the run still reaches the same winner.
-The swapped order's FIRING is carried as the hypothesis (`hswap`) — the
-firing-transfer analysis (q's bareness, seat, and rung are invariant
-under the merge's two-seat edit, given the disjointness and that the
-merge's root does not sit on q — else the stacking could not fire
-first) is the residue, mechanical through the attach/detach
-congruences. -/
+overlap), and whose root does not sit on q (`hroot` — else the stacking
+could not fire first).  The SWAPPED order's firing is DERIVED here: the
+stacking's guards at st are the merge's invariants (q's bareness
+survives the merge's two-seat edit — the landing cannot be q's own
+seat, for then q would not be bare after; the detach base is not it, by
+hroot — q's base and rung are untouched by construction), and the
+merge's guards at the stacked state are the stacking's (the run's walk
+only shrinks, the landing and root bases are untouched, the rung is
+heights-blind).  Both orders land on the SAME state (Commutation's
+`comm_pileStack_pilePile`), so the run reaches the same winner.  This
+is the L1/O0 building block complete: with the disjointness + hroot,
+the swap is unconditional in the run. -/
 theorem State.rider_clear_sched {st w : State} {q c : Card} {b' : Base} {π : List Move}
     (hdisj : disjointTouch ((Move.pileStack q).touch st) ((Move.pilePile c b').touch st))
-    (hrun : st.run (Move.pilePile c b' :: Move.pileStack q :: π) = some w)
-    (hswap : ∃ t₁ t₂ : State, st.apply (Move.pileStack q) = some t₁ ∧
-      t₁.apply (Move.pilePile c b') = some t₂) :
+    (hroot : st.board.bottomOf c ≠ some (Sum.inr q))
+    (hrun : st.run (Move.pilePile c b' :: Move.pileStack q :: π) = some w) :
     st.run (Move.pileStack q :: Move.pilePile c b' :: π) = some w := by
   obtain ⟨s₁, happ1, hrest1⟩ := run_cons_elim hrun
   obtain ⟨s₂, hps2, hrest2⟩ := run_cons_elim hrest1
-  obtain ⟨t₁, t₂, hfireS, hfireM⟩ := hswap
+  -- the merge's shape at st (substituting s₁ := {st with board := bd})
+  have hdapp := happ1
+  rw [apply_pilePile_iff] at hdapp
+  obtain ⟨β₀, hbotc, hne, hcmr, bd, hatt, rfl⟩ := hdapp
+  -- the stacking's shape at s₁ (substituting s₂)
+  have hdps := hps2
+  rw [apply_pileStack_iff] at hdps
+  obtain ⟨htopq, bq, hbq, hrkq, rfl⟩ := hdps
+  have htopq' : bd.topOf (Sum.inr q) = none := htopq
+  have hbqbd : bd.bottomOf q = some bq := hbq
+  have hrkq' : q.rank.toIdx = st.heights q.suit := hrkq
+  -- q ≠ c (the disjointness's card half, raw) and q's base at st survives
+  -- the merge (the run untouched: q ≠ c)
+  have hqc : q ≠ c := by
+    intro hcon
+    exact hdisj.2 q (by simp [Move.touch]) (by rw [hcon]; simp [Move.touch])
+  have hbotqst : st.board.bottomOf q = some bq := by
+    have h := State.apply_pilePile_bottomOf happ1 hqc
+    rw [← h]; exact hbqbd
+  have htopbq : st.board.topOf bq = some q := (Board.bottomOf_eq st.board q bq).mp hbotqst
+  -- the touch sets, spelled out at the two bases
+  have hPSt : (Move.pileStack q).touch st = ([bq], [q]) := by
+    simp only [Move.touch, hbotqst, Option.toList_some]
+  have hPPt : (Move.pilePile c b').touch st = (b' :: [β₀], c :: st.board.aboveOf c) := by
+    simp only [Move.touch, hbotc, Option.toList_some]
+  have hdisj₀ := hdisj
+  rw [hPSt, hPPt] at hdisj
+  have hbqb' : bq ≠ b' := fun hcon => hdisj.1 bq (by simp) (by rw [hcon]; simp)
+  have hbqβ₀ : bq ≠ β₀ := fun hcon => hdisj.1 bq (by simp) (by simp [hcon])
+  -- the merge's landing is not q's own seat (else q would not be bare after)
+  have hb'q : b' ≠ Sum.inr q := by
+    intro hcon
+    rw [hcon] at hatt
+    have hc1 : bd.topOf (Sum.inr q) = some c := Board.attach_topOf _ _ _ hatt
+    rw [hc1] at htopq'
+    exact absurd htopq' (by simp)
+  -- and the detach base is not q's own seat (the root does not sit on q)
+  have hβ₀q : β₀ ≠ Sum.inr q := by
+    intro hcon
+    rw [hcon] at hbotc
+    exact hroot hbotc
+  -- (1) the stacking's firing at st: q's bareness survived the merge
+  have htopqst : st.board.topOf (Sum.inr q) = none := by
+    have h1 : bd.topOf (Sum.inr q) = none := htopq
+    rw [Board.attach_topOf_ne _ _ _ hatt (fun hcon => hb'q hcon.symm),
+      Board.detach_topOf_ne _ _ _ (fun hcon => hβ₀q hcon.symm)] at h1
+    exact h1
+  obtain ⟨t₁, hfireS⟩ : ∃ t₁, st.apply (Move.pileStack q) = some t₁ :=
+    ⟨_, apply_pileStack_iff.mpr ⟨htopqst, bq, hbotqst, hrkq', rfl⟩⟩
+  -- pin t₁ to its successor form (the stacking's state equation)
+  have hdpsS := hfireS
+  rw [apply_pileStack_iff] at hdpsS
+  obtain ⟨-, bq₂, hbq₂, -, ht₁eq⟩ := hdpsS
+  have hbqeq : bq₂ = bq := Option.some.inj (hbq₂.symm.trans hbotqst)
+  rw [hbqeq] at ht₁eq
+  subst ht₁eq
+  -- (2) the merge's re-firing at the stacked state: the root's base, the
+  -- landing, the guard, and the attach all survive the one-seat edit
+  have hbotct₁ : (st.board.detach bq).bottomOf c = some β₀ := by
+    rw [bottomOf_detach_ne htopbq (fun h => hqc h.symm)]
+    exact hbotc
+  have hcpst : st.canPlace c b' = true := by
+    simp only [State.canMoveRun, Bool.and_eq_true_iff] at hcmr
+    exact hcmr.1
+  have hcpt₁ : ({st with board := st.board.detach bq, heights := fun s => if s = q.suit then st.heights s + 1 else st.heights s}).canPlace c b' = true := by
+    cases b' with
+    | inl a =>
+        have h2 := canPlace_inl_iff.mp hcpst
+        refine canPlace_inl_iff.mpr ⟨?_, h2.2⟩
+        have h1 : (st.board.detach bq).topOf (Sum.inl a) = st.board.topOf (Sum.inl a) :=
+          Board.detach_topOf_ne _ _ _ (fun hcon => hbqb' hcon.symm)
+        rw [h1]
+        exact h2.1
+    | inr d =>
+        have h3 := canPlace_inr_iff.mp hcpst
+        refine canPlace_inr_iff.mpr ⟨?_, ?_, h3.2.2⟩
+        · have h1 : (st.board.detach bq).topOf (Sum.inr d) = st.board.topOf (Sum.inr d) :=
+            Board.detach_topOf_ne _ _ _ (fun hcon => hbqb' hcon.symm)
+          rw [h1]
+          exact h3.1
+        · have hdq : d ≠ q := fun hcon => hb'q (by rw [hcon])
+          have h2 : (st.board.detach bq).bottomOf d = st.board.bottomOf d :=
+            bottomOf_detach_ne htopbq (fun h => hdq h)
+          show ((st.board.detach bq).bottomOf d).isSome = true
+          rw [h2]
+          exact h3.2.1
+  have hcmrt₁ : ({st with board := st.board.detach bq, heights := fun s => if s = q.suit then st.heights s + 1 else st.heights s}).canMoveRun c b' = true := by
+    cases b' with
+    | inl a => simp only [State.canMoveRun, hcpt₁]; rfl
+    | inr d =>
+        refine canMoveRun_inr_iff.mpr ⟨hcpt₁, ?_⟩
+        show ((st.board.detach bq).aboveOf c).contains d = false
+        cases hcon : ((st.board.detach bq).aboveOf c).contains d with
+        | false => rfl
+        | true =>
+            have hmem : d ∈ (st.board.detach bq).aboveOf c := (List.contains_iff_mem).mp hcon
+            have hmem' : d ∈ st.board.aboveOf c :=
+              Board.aboveOf_sub_detach 52 c [] d hmem
+            have hfalse := (canMoveRun_inr_iff.mp hcmr).2
+            rw [List.contains_iff_mem.mpr hmem'] at hfalse
+            exact absurd hfalse (by simp)
+  -- the attach: the stacked board's landing seat is free and the root is off it
+  have hfree₀ : (st.board.detach β₀).topOf b' = none :=
+    (Board.attach_eq_some_iff _ _ _).mp (by rw [hatt]; simp) |>.1
+  have htopβ₀q : (st.board.detach β₀).topOf bq = some q := by
+    rw [Board.detach_topOf_ne _ _ _ hbqβ₀]
+    exact htopbq
+  have hne' : ((st.board.detach bq).detach β₀).attach b' c ≠ none := by
+    refine (Board.attach_eq_some_iff _ _ _).mpr ⟨?_, ?_⟩
+    · rw [detach_detach_comm hbqβ₀, Board.detach_topOf_ne _ _ _
+        (fun hcon => hbqb' hcon.symm)]
+      exact hfree₀
+    · rw [detach_detach_comm hbqβ₀,
+        bottomOf_detach_ne htopβ₀q (fun h => hqc h.symm),
+        Board.bottomOf_detach_self ((Board.bottomOf_eq st.board c β₀).mp hbotc)]
+  obtain ⟨bd', hatt'⟩ : ∃ bd', ((st.board.detach bq).detach β₀).attach b' c = some bd' := by
+    cases htt : ((st.board.detach bq).detach β₀).attach b' c with
+    | none => exact absurd htt hne'
+    | some bd'' => exact ⟨bd'', rfl⟩
+  obtain ⟨t₂, hfireM⟩ : ∃ t₂, ({st with board := st.board.detach bq, heights := fun s => if s = q.suit then st.heights s + 1 else st.heights s}).apply (Move.pilePile c b') = some t₂ :=
+    ⟨_, apply_pilePile_iff.mpr ⟨β₀, hbotct₁, hne, hcmrt₁, bd', hatt', rfl⟩⟩
+  -- both orders fire and agree; reassemble the swapped run
   have hbind₁ : (st.apply (Move.pileStack q) >>= fun s => s.apply (Move.pilePile c b'))
-      = some t₂ := Option.bind_eq_some_iff.mpr ⟨t₁, hfireS, hfireM⟩
-  have hbind₂ : (st.apply (Move.pilePile c b') >>= fun s => s.apply (Move.pileStack q))
-      = some s₂ := Option.bind_eq_some_iff.mpr ⟨s₁, happ1, hps2⟩
-  have hcomm : t₂ = s₂ := comm_pileStack_pilePile hdisj hbind₁ hbind₂
+      = some t₂ := Option.bind_eq_some_iff.mpr ⟨_, hfireS, hfireM⟩
+  have hbind₂ := Option.bind_eq_some_iff.mpr ⟨_, happ1, hps2⟩
+  have hcomm := comm_pileStack_pilePile hdisj₀ hbind₁ hbind₂
   subst hcomm
   exact run_cons_intro hfireS (run_cons_intro hfireM hrest2)
+
+/-! ## §10. The constructive double-clearing — the rung-raising route
+
+The constructive lead, probed (dblclear2.lean): the blockade witness
+REBUILT with the blocker's rung NOT yet arrived (heart height 8) and the
+missing rung card ♥9 as the state stock's waste top.  The CONSTRUCTIVE
+schedule — no extraction from a winning play — wins on BOTH sides:
+(a) RAISE the rung (`deckStack ♥9`: a stock card, hence never a
+protected card — WF's `vis_off_cycle` keeps the visible protected four
+out of the stock; draws/deckStacks are UNCONDITIONALLY exchange-clean,
+the step kit carries them premise-free);
+(b) STACK the blocker (`pileStack ♥10`: CleanStack);
+(c) THE z'-DETOUR (the validated iterated repair);
+(d) the merge, then the climbs.
+Below: (i) the rung-raiser disjointness — the rank-ladder arithmetic
+behind "no rung-raiser is ever a protected card"; (ii) the MIXED
+scheduled form of `ExchangeDoubleClear` — the constructive schedule's
+shape (a CleanStack prefix, then the z'-detour), with the mirror's
+verbatim replay DERIVED for the whole mixed prefix.  The honest
+boundary: the schedule's EXISTENCE at arbitrary WF+licensed+solvable
+states (the reachability of the raisers, the termination of the
+blocker-chain recursion) and the successor's solvability stay premises
+— the constructive evidence covers the probed geometries. -/
+
+/-- **The rung-raiser disjointness** (the constructive route's core
+arithmetic — dblclear2.lean's (i)-check): every rung-raiser of a
+FIT-SEATED rider on a cargo is off the protected four {t, t', z, z'}.
+The ladder: the raiser sits strictly below the rider (the rung), the
+rider strictly below the cargo (the fit), the cargo strictly below the
+twin (the license's fit), and the cargo pair shares the rank — so the
+raiser's rank is strictly below all four protected ranks.  (The color
+refinement: the rider's color opposes the cargo's, so the rider's suit
+differs from both cargos' suits outright; the twin may share the
+rider's suit but never the rung.) -/
+theorem State.rung_raiser_off_pairs {x r z z' t : Card}
+    (hx : x.rank.toIdx < r.rank.toIdx)
+    (hr : r.rank.toIdx + 1 = z.rank.toIdx)
+    (hzt : z.rank.toIdx + 1 = t.rank.toIdx)
+    (hz' : z'.rank.toIdx = z.rank.toIdx) :
+    x ≠ t ∧ x ≠ t.flipSuit ∧ x ≠ z ∧ x ≠ z' := by
+  have ht'r : t.flipSuit.rank.toIdx = t.rank.toIdx := by
+    rw [Card.flipSuit_rank]
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro hcon
+    have h1 := congrArg (fun c => c.rank.toIdx) hcon
+    omega
+  · intro hcon
+    have h1 := congrArg (fun c => c.rank.toIdx) hcon
+    omega
+  · intro hcon
+    have h1 := congrArg (fun c => c.rank.toIdx) hcon
+    omega
+  · intro hcon
+    have h1 := congrArg (fun c => c.rank.toIdx) hcon
+    omega
+
+/-- **The double-clearing premise, the MIXED scheduled form** — the
+constructive route's shape (dblclear2.lean's validated schedule): a
+CleanStack prefix (the rung-raisings and blocker-stackings) reaching a
+state where the first rider r₁ still rides z'; then the z'-DETOUR (the
+whole rider run, the landing d riding along, still bare), emptying z'
+and leaving BOTH cargo seats bare with the license intact.  The
+mirror's verbatim replay is DERIVED for the WHOLE mixed prefix — the
+stacking part by the run-level lemma (the license riding), the detour
+by the clean-run mirror step (the no-braids plus r₁'s direct seat under
+z' giving the twins-off-r₁-run premise).  This strengthens
+`exchangeDoubleClear_of_sched` to the actual [H′] geometry — the z'-side
+clearing is necessarily a DETACH, for the landing d must stay seated
+for the merge's re-firing (the riders cannot all stack away).  The
+residue stays: the schedule's existence and the successor's
+solvability. -/
+theorem State.exchangeDoubleClear_of_sched_mixed {st : State} {t z z' c : Card} {b : Base}
+    (hwf : st.WF) (hlic : State.TwinLicensedAt st t z z')
+    {πₛ : List Move} {Sₛ S₀ : State} {r₁ : Card} {β : Base}
+    (hrunₛ : st.run πₛ = some Sₛ)
+    (hclean : ∀ m ∈ πₛ, State.CleanStack m t z z')
+    (hr₁ : Sₛ.board.topOf (Sum.inr z') = some r₁)
+    (hr₁off : r₁ ≠ t ∧ r₁ ≠ t.flipSuit ∧ r₁ ≠ z ∧ r₁ ≠ z')
+    (hdetour : Sₛ.apply (Move.pilePile r₁ β) = some S₀)
+    (hbare : S₀.board.topOf (Sum.inr z) = none ∧ S₀.board.topOf (Sum.inr z') = none)
+    (hmerge : ∃ a₁' : State, S₀.apply (Move.pilePile c b) = some a₁' ∧ a₁'.solvableFrom) :
+    st.ExchangeDoubleClear t z z' c b := by
+  -- the stacking prefix replays verbatim, the license riding to Sₛ
+  obtain ⟨hrunX, hlicₛ⟩ := State.exchangeTwinCargo_run_cleanStack hlic hclean hrunₛ
+  obtain ⟨hvis, hvis', h₀ₛ, h₀ₛ', hfit, hfit', hnbₛ, hnbₛ'⟩ := hlicₛ
+  -- the detour's mirror step: the twins sit off r₁'s run (the no-braids
+  -- plus r₁'s direct seat under z')
+  have hcleanr : t ∉ Sₛ.board.aboveOf r₁ ∧ t.flipSuit ∉ Sₛ.board.aboveOf r₁ := by
+    have hr₁in : r₁ ∈ Sₛ.board.aboveOf z' := Board.mem_aboveOf_of_topOf hr₁
+    constructor
+    · intro hmem
+      exact hnbₛ'.1 (Board.aboveOf_trans hr₁in hmem)
+    · intro hmem
+      exact hnbₛ'.2 (Board.aboveOf_trans hr₁in hmem)
+  have hfireD : (Sₛ.exchangeTwinCargo t).apply (Move.pilePile r₁ β)
+      = some (S₀.exchangeTwinCargo t) :=
+    State.exchangeTwinCargo_step_pilePile h₀ₛ h₀ₛ' ⟨hr₁off.2.2.1, hr₁off.2.2.2⟩
+      ⟨hr₁off.1, hr₁off.2.1⟩ hcleanr hdetour
+  -- the source runs the mixed prefix to S₀
+  have hrunπ : st.run (πₛ ++ [Move.pilePile r₁ β]) = some S₀ :=
+    run_append_some hrunₛ (run_cons_intro hdetour rfl)
+  -- the covers survive the detour (the rider run is off both cargos)
+  have hbz₀ : S₀.board.bottomOf z = some (Sum.inr t) :=
+    (State.apply_pilePile_bottomOf hdetour (fun h => hr₁off.2.2.1 h.symm)).trans h₀ₛ
+  have hbz₀' : S₀.board.bottomOf z' = some (Sum.inr t.flipSuit) :=
+    (State.apply_pilePile_bottomOf hdetour (fun h => hr₁off.2.2.2 h.symm)).trans h₀ₛ'
+  refine ⟨πₛ ++ [Move.pilePile r₁ β], S₀, hrunπ, ?_, State.wf_run hwf hrunπ, hfit, hfit',
+    (Board.bottomOf_eq S₀.board z (Sum.inr t)).mp hbz₀,
+    (Board.bottomOf_eq S₀.board z' (Sum.inr t.flipSuit)).mp hbz₀',
+    hbare.1, hbare.2, hmerge⟩
+  exact run_append_some hrunX (run_cons_intro hfireD rfl)
+
+/-- **The scheduled direct bridge, MIXED form**: the [H′] shape closed
+from the CONSTRUCTIVE schedule alone — the CleanStack prefix's replay
+and the detour's mirror step are derived, the direct correspondence
+applies at the both-bare end state (the covers surviving the detour),
+and the mirror's winning play is the replayed mixed prefix followed by
+the direct route's play. -/
+theorem State.solvable_of_exchange_merge_rooted_sched_mixed {st a₁ : State} {t z z' c : Card}
+    {b : Base}
+    (hwin : ∀ {S M : State} {u : Card}, State.TwinCorr (Card.swapTwin u) u.suit S M →
+      (∀ s, M.heights s ≤ 13) → S.WF → S.solvableFrom → M.solvableFrom)
+    (hwf : st.WF) (hlic : State.TwinLicensedAt st t z z')
+    {πₛ : List Move} {Sₛ S₀ : State} {r₁ : Card} {β : Base}
+    (hrunₛ : st.run πₛ = some Sₛ)
+    (hclean : ∀ m ∈ πₛ, State.CleanStack m t z z')
+    (hr₁ : Sₛ.board.topOf (Sum.inr z') = some r₁)
+    (hr₁off : r₁ ≠ t ∧ r₁ ≠ t.flipSuit ∧ r₁ ≠ z ∧ r₁ ≠ z')
+    (hdetour : Sₛ.apply (Move.pilePile r₁ β) = some S₀)
+    (hbare : S₀.board.topOf (Sum.inr z) = none ∧ S₀.board.topOf (Sum.inr z') = none)
+    (hstep : S₀.apply (Move.pilePile c b) = some a₁) (hsol : a₁.solvableFrom) :
+    (st.exchangeTwinCargo t).solvableFrom := by
+  obtain ⟨hrunX, hlicₛ⟩ := State.exchangeTwinCargo_run_cleanStack hlic hclean hrunₛ
+  obtain ⟨hvis, hvis', h₀ₛ, h₀ₛ', hfit, hfit', hnbₛ, hnbₛ'⟩ := hlicₛ
+  have hcleanr : t ∉ Sₛ.board.aboveOf r₁ ∧ t.flipSuit ∉ Sₛ.board.aboveOf r₁ := by
+    have hr₁in : r₁ ∈ Sₛ.board.aboveOf z' := Board.mem_aboveOf_of_topOf hr₁
+    constructor
+    · intro hmem
+      exact hnbₛ'.1 (Board.aboveOf_trans hr₁in hmem)
+    · intro hmem
+      exact hnbₛ'.2 (Board.aboveOf_trans hr₁in hmem)
+  have hfireD : (Sₛ.exchangeTwinCargo t).apply (Move.pilePile r₁ β)
+      = some (S₀.exchangeTwinCargo t) :=
+    State.exchangeTwinCargo_step_pilePile h₀ₛ h₀ₛ' ⟨hr₁off.2.2.1, hr₁off.2.2.2⟩
+      ⟨hr₁off.1, hr₁off.2.1⟩ hcleanr hdetour
+  have hrunπ : st.run (πₛ ++ [Move.pilePile r₁ β]) = some S₀ :=
+    run_append_some hrunₛ (run_cons_intro hdetour rfl)
+  have hbz₀ : S₀.board.bottomOf z = some (Sum.inr t) :=
+    (State.apply_pilePile_bottomOf hdetour (fun h => hr₁off.2.2.1 h.symm)).trans h₀ₛ
+  have hbz₀' : S₀.board.bottomOf z' = some (Sum.inr t.flipSuit) :=
+    (State.apply_pilePile_bottomOf hdetour (fun h => hr₁off.2.2.2 h.symm)).trans h₀ₛ'
+  have hztop₀ : S₀.board.topOf (Sum.inr t) = some z :=
+    (Board.bottomOf_eq S₀.board z (Sum.inr t)).mp hbz₀
+  have hztop₀' : S₀.board.topOf (Sum.inr t.flipSuit) = some z' :=
+    (Board.bottomOf_eq S₀.board z' (Sum.inr t.flipSuit)).mp hbz₀'
+  have hres := State.solvable_of_exchange_merge_direct hwin (State.wf_run hwf hrunπ)
+    hfit hfit' hztop₀ hztop₀' hbare hstep hsol
+  obtain ⟨π', W, hrun', hwin'⟩ := hres
+  refine ⟨(πₛ ++ [Move.pilePile r₁ β]) ++ π', W, ?_, hwin'⟩
+  exact run_append_some (run_append_some hrunX (run_cons_intro hfireD rfl)) hrun'
