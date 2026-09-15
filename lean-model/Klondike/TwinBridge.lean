@@ -218,7 +218,34 @@ the moves that TOUCH the rider's seat (a cover lands a run on the bare
 rider, its uncover removes it, both before the rider's stack; pulling
 the stack past the cover breaks the cover's `isVis` guard) — is the
 CONSTRUCTED-DETOUR corner's content (§13's residue): the schedule must
-re-route those trajectories, not commute past them.
+re-route those trajectories, not commute past them.  (The probes'
+verdict: the detour is CONSTRUCTED, not extracted — at the witnesses
+the winning play never contains the detour move.)
+
+§12.3 completes the column-clearing structural half and re-audits the
+successor admission under Phase-2.  `State.aboveOf_shrink_run` (a run
+of `pileStack`s only shrinks every column), `State.twinLicensedAt_flipSuit`
+(the unpacked license names the pair), and `State.both_columns_clear`
+(the z-side clears, then the z′-side at the flipped license, the
+membership and bareness transferring by the shrink — licensed and both
+cargos BARE at the end): the double-clear schedule's structural
+skeleton, the detour corner the one named gap.  The AUDIT (item 4):
+Phase-2's FOURTH disjunct (the partner-past arm) KILLS the
+tableau-climb alternation — `State.playWindow'_tail_of_equalized`
+lands it: after the equalization (both pair-suit rungs past the pair
+rank), a run of height-blind moves plus ρ-FIXED on-pair `pileStack`s
+admits VERBATIM (the partner-past is invariant through the class),
+`rung_eq_of_partner_past`'s admission-side counterpart.  The residue
+is now precisely: (a) the `deckStack` arm carries NO partner-past
+disjunct — the stock-sourced climbs still need the skew/alternation;
+(b) the `stackPile` arm unchanged — the pair-member and
+just-below-pair worry-back anti-skews remain the declared
+obstruction.  So the successor's `solvableWindow'` does NOT yet follow
+from the sufficiency family: the successor play's on-pair deckStacks
+and worry-backs carry the residue — [H]/[H′] do not close premise-free
+until either the window grows the deckStack arm or the schedule
+avoids stock-sourced on-pair climbs before the successor's
+consumption.
 
 **Honest boundaries, recorded for the later sessions:**
 
@@ -3778,3 +3805,224 @@ theorem State.column_clear_run {t z z' : Card} :
           exact hseated hnone
         · exact hcrs
       exact ih S' hlic' (fun r' hr' => hprot r' (List.mem_cons_of_mem _ hr')) hmem' S₀ hrest
+
+/-- A run of `pileStack`s only ever SHRINKS every column: each
+stacking's board edit is a detach (at the stacked card's own base),
+and the walk from any card's seat only loses members under a detach
+(`aboveOf_sub_detach` — base-agnostic). -/
+theorem State.aboveOf_shrink_run (x : Card) :
+    ∀ (π : List Move) (S T : State), S.run π = some T →
+    (∀ m ∈ π, ∃ q : Card, m = Move.pileStack q) →
+    ∀ c ∈ T.board.aboveOf x, c ∈ S.board.aboveOf x := by
+  intro π
+  induction π with
+  | nil =>
+      intro S T hrun _ c hc
+      obtain rfl := run_nil_elim hrun
+      exact hc
+  | cons m rest ih =>
+      intro S T hrun hkind c hc
+      obtain ⟨q, hq⟩ := hkind m (by simp)
+      rw [hq] at hrun
+      obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+      have hf := hm
+      rw [apply_pileStack_iff] at hf
+      obtain ⟨_htop, _bq, _hbq, _hrk, hR⟩ := hf
+      have hcR : c ∈ R.board.aboveOf x :=
+        ih R T hrest1 (fun m' hm' => hkind m' (List.mem_cons_of_mem _ hm')) c hc
+      rw [hR] at hcR
+      exact Board.aboveOf_sub_detach 52 x [] c hcR
+
+/-- The unpacked license names the pair: it is symmetric in
+`t ↔ t.flipSuit` (mirroring TwinQuotient's packaged
+`twinLicensed_flipSuit` — the z'-side clearing consumes it to apply the
+column induction at the OTHER cargo). -/
+theorem State.twinLicensedAt_flipSuit {st : State} {t z z' : Card}
+    (h : State.TwinLicensedAt st t z z') :
+    State.TwinLicensedAt st t.flipSuit z' z := by
+  obtain ⟨hvis, hvis', h₀, h₀', hfit, hfit', hnb, hnb'⟩ := h
+  refine ⟨hvis', ?_, h₀', ?_, hfit', ?_, ⟨hnb'.2, ?_⟩, ⟨hnb.2, ?_⟩⟩
+  · rw [Card.flipSuit_flipSuit]; exact hvis
+  · rw [Card.flipSuit_flipSuit]; exact h₀
+  · rw [Card.flipSuit_flipSuit]; exact hfit
+  · rw [Card.flipSuit_flipSuit]; exact hnb'.1
+  · rw [Card.flipSuit_flipSuit]; exact hnb.1
+
+/-- **The both-cargo composition** (the double-clear schedule's
+structural skeleton, the detour corner the one named gap): the z-side
+column clears by the riders' own stacks (`column_clear_run`), then the
+z′-side by the symmetric application at the FLIPPED license
+(`twinLicensedAt_flipSuit` — the license names the pair, so the
+anchor-roles swap) — the second clearing's membership premise
+transfers because the first run of `pileStack`s only shrinks columns
+(`aboveOf_shrink_run`), and the first clearing's bareness survives the
+second by the same shrink — so at the end the state is LICENSED and
+BOTH cargos are BARE.  The schedule's firings are carried by the two
+runs; the extraction of the runs from the winning play (the raiser
+adjacency + the constructed detour for the deal-adjacent rider) is the
+remaining existence bulk. -/
+theorem State.both_columns_clear {t z z' : Card} :
+    ∀ (rz rz' : List Card) (S S₁ S₂ : State),
+    State.TwinLicensedAt S t z z' →
+    (∀ r ∈ rz ++ rz', r ≠ t ∧ r ≠ t.flipSuit ∧ r ≠ z ∧ r ≠ z') →
+    (∀ c ∈ S.board.aboveOf z, c ∈ rz) →
+    (∀ c ∈ S.board.aboveOf z', c ∈ rz') →
+    S.run (rz.map Move.pileStack) = some S₁ →
+    S₁.run (rz'.map Move.pileStack) = some S₂ →
+    State.TwinLicensedAt S₂ t z z' ∧
+      S₂.board.topOf (Sum.inr z) = none ∧ S₂.board.topOf (Sum.inr z') = none := by
+  intro rz rz' S S₁ S₂ hlic hprot hmemz hmemz' hrun1 hrun2
+  have hkind1 : ∀ m ∈ rz.map Move.pileStack, ∃ q : Card, m = Move.pileStack q := by
+    intro m hm
+    obtain ⟨r, -, hmeq⟩ := List.mem_map.mp hm
+    exact ⟨r, hmeq.symm⟩
+  have hkind2 : ∀ m ∈ rz'.map Move.pileStack, ∃ q : Card, m = Move.pileStack q := by
+    intro m hm
+    obtain ⟨r, -, hmeq⟩ := List.mem_map.mp hm
+    exact ⟨r, hmeq.symm⟩
+  -- the z-column clears: licensed at S₁, z bare at S₁
+  obtain ⟨hlic₁, hz₁⟩ := State.column_clear_run rz S hlic
+    (fun r hr => hprot r (List.mem_append_left _ hr)) hmemz S₁ hrun1
+  -- the z'-column-membership at S₁ (the z-clearing only shrinks columns)
+  have hmemz'₁ : ∀ c ∈ S₁.board.aboveOf z', c ∈ rz' := fun c hc =>
+    hmemz' c (State.aboveOf_shrink_run z' _ S S₁ hrun1 hkind1 c hc)
+  -- the z'-column clears at the flipped license: licensed, z' bare
+  obtain ⟨hlic₂', hz'₂⟩ := State.column_clear_run rz' S₁
+    (State.twinLicensedAt_flipSuit hlic₁)
+    (fun r hr =>
+      let ⟨ha, hb, hc, hd⟩ := hprot r (List.mem_append_right _ hr)
+      ⟨hb, by rw [Card.flipSuit_flipSuit]; exact ha, hd, hc⟩) hmemz'₁ S₂ hrun2
+  -- the license flips back (the double flip is the identity)
+  have hlic₂ : State.TwinLicensedAt S₂ t z z' := by
+    have h := State.twinLicensedAt_flipSuit hlic₂'
+    rw [Card.flipSuit_flipSuit] at h
+    exact h
+  -- the z-bareness at S₂ (the z'-clearing only shrinks columns)
+  have hcol₂ : ∀ c ∈ S₂.board.aboveOf z, c ∈ S₁.board.aboveOf z :=
+    State.aboveOf_shrink_run z _ S₁ S₂ hrun2 hkind2
+  have hcol₁ : ∀ c ∈ S₁.board.aboveOf z, False := fun c hc =>
+    absurd hc (by rw [Board.aboveOf_step_none hz₁]; simp)
+  have hz₂ : S₂.board.topOf (Sum.inr z) = none := by
+    cases htop : S₂.board.topOf (Sum.inr z) with
+    | none => rfl
+    | some c => exact absurd (Board.mem_aboveOf_of_topOf htop) (fun hmem => hcol₁ c (hcol₂ c hmem))
+  exact ⟨hlic₂, hz₂, hz'₂⟩
+
+/-- The height-blind kinds' successors keep every rung (their iff
+successor forms touch only the board/stock/depths — the heights are
+carried untouched).  RE-LANDED standalone (the §11 per-branch rfl
+inlined it; the tail-of-equalized induction needs it abstractly, the
+successor state opaque). -/
+theorem State.heights_congr_heightBlind {S R : State} {m : Move}
+    (hkind : Move.heightBlind m = true) (hS : S.apply m = some R) :
+    ∀ s, R.heights s = S.heights s := by
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at hS
+      obtain ⟨rfl⟩ := hS
+      intro s; rfl
+  | reveal c =>
+      rw [apply_reveal_iff] at hS
+      obtain ⟨-, -, -, -, -, -, -, rfl⟩ := hS
+      intro s; rfl
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at hS
+      obtain ⟨-, -, -, -, rfl⟩ := hS
+      intro s; rfl
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at hS
+      obtain ⟨-, -, -, -, -, -, rfl⟩ := hS
+      intro s; rfl
+  | deckStack c => exact absurd hkind (by simp [Move.heightBlind])
+  | pileStack c => exact absurd hkind (by simp [Move.heightBlind])
+  | stackPile c b => exact absurd hkind (by simp [Move.heightBlind])
+
+/-- **The alternation-kill's tail class** (§12's audit, updated for
+Phase-2's fourth disjunct): the height-blind kinds plus the ρ-FIXED
+on-pair `pileStack`s — the tableau-sourced climbs. -/
+def State.TailClimbClean (z : Card) (m : Move) : Prop :=
+  Move.heightBlind m = true ∨
+    (∃ q : Card, m = Move.pileStack q ∧ Card.swapTwin z q = q ∧
+      (q.suit = z.suit ∨ q.suit = z.suit.flipPair))
+
+/-- **The tail admission after the equalization — the alternation is
+DEAD for the tableau-sourced climbs** (Phase-2's fourth disjunct
+consumed): at a state where BOTH pair-suit rungs sit strictly above
+the pair rank (the equalized post-head state — the two rung-exact
+firings leave them at z.rank+1), a run of `TailClimbClean` moves is
+pre-admitted, the phase staying `.pre` throughout.  The ρ-fixed
+on-pair stack's admission is the partner-past arm — the partner rung
+is PAST the pair rank, and the class's moves preserve that (the
+height-blind kinds touch no rung, the ρ-fixed stacks raise their OWN
+suit's rung only, and a firing ρ-fixed stack's rank already sat at the
+pre-firing own rung — itself above the pair rank — so the bump stays
+above it).  No alternation is required: a run of same-suit climbs
+admits VERBATIM (`rung_eq_of_partner_past`'s admission-side
+counterpart).  The residue — the deckStack arm has NO partner-past
+disjunct (the stock-sourced climbs still need the skew/alternation),
+and the `stackPile` arm is unchanged (the pair-member and
+just-below-pair worry-back anti-skews remain the declared
+obstruction). -/
+theorem State.playWindow'_tail_of_equalized {z : Card} :
+    ∀ (play : List Move) (S T : State),
+    S.run play = some T →
+    (z.rank.toIdx < S.heights z.suit ∧
+      z.rank.toIdx < S.heights (Card.flipSuit z).suit) →
+    (∀ m ∈ play, State.TailClimbClean z m) →
+    State.playWindow' z z.suit State.WindowEp.pre S play = true := by
+  intro play
+  induction play with
+  | nil => intro S T _ _ _; rfl
+  | cons m rest ih =>
+      intro S T hrun hpast hclean
+      obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+      rcases hclean m (by simp) with hkind | ⟨q, hmeq, hcρ, hon⟩
+      · -- a height-blind move: admitted unconditionally, the rungs carried
+        rw [State.playWindow'_cons_heightBlind hkind hm]
+        refine ih R T hrest1 ⟨?_, ?_⟩
+          (fun m' hm' => hclean m' (List.mem_cons_of_mem _ hm'))
+        · rw [State.heights_congr_heightBlind hkind hm z.suit]; exact hpast.1
+        · rw [State.heights_congr_heightBlind hkind hm (Card.flipSuit z).suit]
+          exact hpast.2
+      · -- a ρ-fixed on-pair stack: the partner-past arm
+        subst hmeq
+        -- the partner-suit's rung is the premise's other half
+        have hpastq : z.rank.toIdx < S.heights (Card.flipSuit q).suit := by
+          rcases hon with h | h
+          · have hsuit : (Card.flipSuit q).suit = (Card.flipSuit z).suit := by
+              show q.suit.flipPair = (Card.flipSuit z).suit
+              rw [h]; rfl
+            rw [hsuit]; exact hpast.2
+          · have hsuit : (Card.flipSuit q).suit = z.suit := by
+              show q.suit.flipPair = z.suit
+              rw [h, Suit.flipPair_flipPair]
+            rw [hsuit]; exact hpast.1
+        -- the firing's shape: the own rung bumps, the partner is untouched
+        have hf := hm
+        rw [apply_pileStack_iff] at hf
+        obtain ⟨htopq, bq, hbq, hrkq, hR⟩ := hf
+        have hbump : ∀ s, R.heights s =
+            (if s = q.suit then S.heights s + 1 else S.heights s) := by
+          intro s
+          rw [hR]
+        have hpastR : z.rank.toIdx < R.heights z.suit ∧
+            z.rank.toIdx < R.heights (Card.flipSuit z).suit := by
+          constructor
+          · rw [hbump z.suit]
+            rcases hon with h | h
+            · rw [if_pos h.symm]; omega
+            · rw [if_neg (fun hcon => Suit.flipPair_ne z.suit (hcon.trans h).symm)]
+              exact hpast.1
+          · rw [hbump (Card.flipSuit z).suit]
+            rcases hon with h | h
+            · rw [if_neg (fun hcon => Suit.flipPair_ne z.suit (hcon.trans h))]
+              exact hpast.2
+            · rw [if_pos (show (Card.flipSuit z).suit = q.suit from h.symm)]
+              omega
+        have hih := ih R T hrest1 hpastR
+          (fun m' hm' => hclean m' (List.mem_cons_of_mem _ hm'))
+        rw [State.playWindow', hm]
+        refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
+        · exact Bool.or_eq_true_iff.mpr (Or.inr (decide_eq_true_eq.mpr ⟨hcρ, hpastq⟩))
+        · rw [if_pos (Or.inr (Or.inr ⟨hcρ, hpastq⟩))]
+          exact hih
