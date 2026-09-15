@@ -798,3 +798,222 @@ theorem State.solvable_of_twinCorr_clean_back {ρ σ S M}
     rw [hcs]
     exact hc
   exact State.solvable_of_twinCorr_clean hcorr.symm hSle hhid' hstock' hclean hrun hwin
+
+/-! ## §9. The window -/
+
+/-- **The window's move condition**: the moves the mirror can answer
+in kind, one-for-one, preserving the correspondence verbatim.  The
+height-blind kinds (draw/reveal/deckPile/pilePile) always; an
+off-suit foundation move always (its guard reads only the off-suit
+heights, where the games agree).  A twin-suit foundation move needs
+its rung condition: an on-suit STACK (`deckStack`/`pileStack`) needs
+the partner suit's rung at or above the moved rank (the skew —
+`State.TwinCore.rung_of_skew` then pins the mirror's rung, so the
+answer is the aligned verbatim stack and the growth never engages),
+an on-suit UNSTACK (`stackPile`) needs the partner suit's rung at or
+below the moved rank plus one (`State.TwinCore.stackPile_rung`), and
+an on-suit `deckStack` needs the moved card `ρ`-fixed (the non-pair
+card — the PAIR card's deckStack has no in-kind response: the run
+level residual, excluded here). -/
+def Move.windowOK (ρ : Card → Card) (σ : Suit) (st : State) (m : Move) : Bool :=
+  match m with
+  | .draw | .reveal _ | .deckPile _ _ | .pilePile _ _ => true
+  | .deckStack q =>
+      decide (q.suit ≠ σ ∧ q.suit ≠ σ.flipPair) ||
+      (decide (q.rank.toIdx ≤ st.heights (Card.flipSuit q).suit) &&
+       decide (ρ q = q))
+  | .pileStack q =>
+      decide (q.suit ≠ σ ∧ q.suit ≠ σ.flipPair) ||
+      decide (q.rank.toIdx ≤ st.heights (Card.flipSuit q).suit)
+  | .stackPile c _ =>
+      decide (c.suit ≠ σ ∧ c.suit ≠ σ.flipPair) ||
+      decide (st.heights (Card.flipSuit c).suit ≤ c.rank.toIdx + 1)
+
+/-- **The window's play condition**: every move of the play satisfies
+`Move.windowOK` at the state it is played from. -/
+def State.playWindow (ρ : Card → Card) (σ : Suit) (st : State) : List Move → Bool
+  | [] => true
+  | m :: ms =>
+      Move.windowOK ρ σ st m &&
+      match st.apply m with
+      | none => false
+      | some st' => State.playWindow ρ σ st' ms
+
+/-- The play condition's one-step unfolding at a firing move. -/
+theorem State.playWindow_cons_of {ρ σ st m ms R} (hS : st.apply m = some R) :
+    State.playWindow ρ σ st (m :: ms)
+      = (Move.windowOK ρ σ st m && State.playWindow ρ σ R ms) := by
+  simp only [State.playWindow, hS]
+
+/-- **Window-solvability**: the source wins by a play the window
+admits. -/
+def State.solvableWindow (ρ : Card → Card) (σ : Suit) (S : State) : Prop :=
+  ∃ play W, S.run play = some W ∧ W.isWin = true ∧
+    State.playWindow ρ σ S play = true
+
+/-- The empty-crossing frame IS the full correspondence (every escape
+is vacuous, so the seat clauses give back the board conjugation). -/
+theorem State.TwinCorrX.toCorr {ρ σ S M} (h : State.TwinCorrX ρ σ S M []) :
+    State.TwinCorr ρ σ S M :=
+  ⟨h.core, by
+    intro b
+    cases hS : S.board.topOf (Base.relabel ρ b) with
+    | some c =>
+        have h1 := h.top_some (Base.relabel ρ b) c hS (by simp)
+        rw [Base.relabel_invol h.core.isTwinMap b] at h1
+        rw [Option.map_some]
+        exact h1
+    | none =>
+        have h1 := h.top_none (Base.relabel ρ b) hS (by simp)
+        rw [Base.relabel_invol h.core.isTwinMap b] at h1
+        rw [Option.map_none]
+        exact h1⟩
+
+/-- **The window step**: one move the window admits is translated and
+answered in kind — the mirror's response is the `relabelTwin` image,
+firing, and the correspondence is preserved verbatim.  The dispatch:
+the clean kinds verbatim; an on-suit stack by the pinned rung (the
+skew derivation `rung_of_skew`); an on-suit deckStack of a non-pair
+card by the same card at the pinned rung; an on-suit unstack by the
+aligned rung (`stackPile_rung`, the 52-count capping the mirror). -/
+theorem State.twinCorr_step_window {ρ σ S M R m}
+    (hcorr : State.TwinCorr ρ σ S M)
+    (hMle : ∀ s, M.heights s ≤ 13)
+    (hwf : S.WF)
+    (hhid : ∀ a, ∀ c ∈ S.hidden a, ρ c = c)
+    (hstock : ∀ c ∈ S.stock.cards, ρ c = c)
+    (hok : Move.windowOK ρ σ S m = true)
+    (hS : S.apply m = some R) :
+    ∃ N, M.apply (Move.relabelTwin ρ m) = some N ∧ State.TwinCorr ρ σ R N := by
+  cases m with
+  | draw => exact State.TwinCorr.apply_clean hcorr hhid hstock rfl hS
+  | reveal c => exact State.TwinCorr.apply_clean hcorr hhid hstock rfl hS
+  | deckPile c b => exact State.TwinCorr.apply_clean hcorr hhid hstock rfl hS
+  | pilePile c b => exact State.TwinCorr.apply_clean hcorr hhid hstock rfl hS
+  | deckStack q =>
+      by_cases hon : q.suit = σ ∨ q.suit = σ.flipPair
+      · simp only [Move.windowOK, Bool.or_eq_true, Bool.and_eq_true,
+        decide_eq_true_iff] at hok
+        rcases hok with hoff | ⟨hskew, hqρ⟩
+        · rcases hon with hs | hs
+          · exact absurd hs hoff.1
+          · exact absurd hs hoff.2
+        · have hSiff := apply_deckStack_iff.mp hS
+          obtain ⟨hprev, hrk, rfl⟩ := hSiff
+          have hrung := State.TwinCore.rung_of_skew hcorr.toTwinCore hon hrk.symm hskew
+          rw [hqρ] at hrung
+          obtain ⟨N, hfire, hX⟩ := State.TwinCorrX.apply_deckStack_onsuit
+            (State.TwinCorr.toTwinCorrX hcorr) hon hqρ hS hrung
+          refine ⟨N, ?_, hX.toCorr⟩
+          show M.apply (Move.deckStack (ρ q)) = some N
+          rw [hqρ]
+          exact hfire
+      · exact State.TwinCorr.apply_clean hcorr hhid hstock
+          (by simp only [Move.twinClean, decide_eq_true_iff]
+              exact ⟨fun h => hon (Or.inl h), fun h => hon (Or.inr h)⟩) hS
+  | pileStack q =>
+      by_cases hon : q.suit = σ ∨ q.suit = σ.flipPair
+      · simp only [Move.windowOK, Bool.or_eq_true, decide_eq_true_iff] at hok
+        rcases hok with hoff | hskew
+        · rcases hon with hs | hs
+          · exact absurd hs hoff.1
+          · exact absurd hs hoff.2
+        · have hSiff := apply_pileStack_iff.mp hS
+          obtain ⟨htop, bq, hbot, hrk, rfl⟩ := hSiff
+          have halign := State.TwinCore.rung_of_skew hcorr.toTwinCore hon hrk.symm hskew
+          obtain ⟨N, hfire, hX⟩ := State.TwinCorrX.apply_pileStack_onsuit
+            (State.TwinCorr.toTwinCorrX hcorr) hon hS halign (by simp) (by simp)
+          exact ⟨N, hfire, hX.toCorr⟩
+      · exact State.TwinCorr.apply_clean hcorr hhid hstock
+          (by simp only [Move.twinClean, decide_eq_true_iff]
+              exact ⟨fun h => hon (Or.inl h), fun h => hon (Or.inr h)⟩) hS
+  | stackPile c b =>
+      by_cases hon : c.suit = σ ∨ c.suit = σ.flipPair
+      · simp only [Move.windowOK, Bool.or_eq_true, decide_eq_true_iff] at hok
+        rcases hok with hoff | hanti
+        · rcases hon with hs | hs
+          · exact absurd hs hoff.1
+          · exact absurd hs hoff.2
+        · have hSiff := apply_stackPile_iff.mp hS
+          obtain ⟨hrk, hcp, bd, hatt, rfl⟩ := hSiff
+          have halign := State.TwinCore.stackPile_rung hcorr.toTwinCore hon hrk.symm hanti
+            (hMle (ρ c).suit)
+          obtain ⟨N, hfire, hX⟩ := State.TwinCorrX.apply_stackPile_onsuit
+            (State.TwinCorr.toTwinCorrX hcorr) hwf hon (by simp) hS halign
+            (by simp) (by simp) (by simp) (by simp)
+          exact ⟨N, hfire, hX.toCorr⟩
+      · exact State.TwinCorr.apply_clean hcorr hhid hstock
+          (by simp only [Move.twinClean, decide_eq_true_iff]
+              exact ⟨fun h => hon (Or.inl h), fun h => hon (Or.inr h)⟩) hS
+
+/-- **The window run**: a play the window admits translates wholesale
+— the mirror runs the `relabelTwin` image, the correspondence is
+preserved at every step, and the invariants (the mirror's 52-count,
+the source's WF, the hidden/stock `ρ`-freeness) ride along. -/
+theorem State.twinCorr_run_window (ρ : Card → Card) (σ : Suit) :
+    ∀ (play : List Move) (S M : State),
+    State.TwinCorr ρ σ S M →
+    (∀ s, M.heights s ≤ 13) →
+    S.WF →
+    (∀ a, ∀ c ∈ S.hidden a, ρ c = c) → (∀ c ∈ S.stock.cards, ρ c = c) →
+    State.playWindow ρ σ S play = true →
+    ∀ {W : State}, S.run play = some W →
+    ∃ N, M.run (play.map (Move.relabelTwin ρ)) = some N ∧ State.TwinCorr ρ σ W N := by
+  intro play
+  induction play with
+  | nil =>
+      intro S M hcorr _ _ _ _ _ W hrun
+      have h1 : S.run [] = some S := rfl
+      have hW : W = S := (Option.some.inj (h1.symm.trans hrun)).symm
+      subst hW
+      exact ⟨M, rfl, hcorr⟩
+  | cons m ms ih =>
+      intro S M hcorr hMle hwf hhid hstock hwin W hrun
+      simp only [State.run] at hrun
+      cases hS : S.apply m with
+      | none => rw [hS] at hrun; exact absurd hrun (by simp)
+      | some R =>
+          rw [hS] at hrun
+          rw [State.playWindow_cons_of hS] at hwin
+          simp only [Bool.and_eq_true] at hwin
+          obtain ⟨hok, hwin'⟩ := hwin
+          obtain ⟨N, hfire, hcorr'⟩ :=
+            State.twinCorr_step_window hcorr hMle hwf hhid hstock hok hS
+          obtain ⟨N', hrun', hcorr''⟩ := ih R N hcorr'
+            (State.heights_le_apply hMle hfire)
+            (apply_wf hwf m R hS)
+            (fun a c hc => hhid a c (State.hidden_sub_apply hS a c hc))
+            (fun c hc => hstock c (State.stock_cards_sub_apply hS c hc))
+            hwin' hrun
+          refine ⟨N', ?_, hcorr''⟩
+          simp only [List.map_cons, State.run, hfire]
+          exact hrun'
+
+/-- **THE WINDOW** (the climb-out replay, conditional form): a
+twin-correlated mirror of a WF source that can win by a play the
+window admits is itself solvable — the mirror replays the
+ρ-translated play verbatim, the correspondence preserved at every
+step (no growth: the skew forces the aligned response, so the
+crossed-set machinery never engages), and the endgame is the
+correspondence's own shape (the two on-suit kings plus the
+52-count).  The added premises over the target four-premise form,
+each named and minimal: `hhid`/`hstock` (the hidden and stock cards
+`ρ`-fixed — needed by the reveal/deckPile responses, WF-consequences
+at the licensed exchange states, not derivable from the
+correspondence alone) and `hsolw` in place of `hsol` (the winning
+play must satisfy the window condition: every twin-suit foundation
+move carries its rung condition — the skew for stacks, the anti-skew
+for unstacks — and the pair card's deckStack is excluded). -/
+theorem State.solvable_of_twinCorr_window {S M : State} {z : Card}
+    (hcorr : State.TwinCorr (Card.swapTwin z) z.suit S M)
+    (hMle : ∀ s, M.heights s ≤ 13)
+    (hwf : S.WF)
+    (hhid : ∀ a, ∀ c ∈ S.hidden a, Card.swapTwin z c = c)
+    (hstock : ∀ c ∈ S.stock.cards, Card.swapTwin z c = c)
+    (hsolw : S.solvableWindow (Card.swapTwin z) z.suit) :
+    M.solvableFrom := by
+  obtain ⟨play, W, hrun, hwin, hplay⟩ := hsolw
+  obtain ⟨N, hrun', hcorr'⟩ := State.twinCorr_run_window (Card.swapTwin z) z.suit play S M
+    hcorr hMle hwf hhid hstock hplay hrun
+  exact ⟨play.map (Move.relabelTwin (Card.swapTwin z)), N, hrun',
+    State.twinCorr_isWin_of_le hcorr' hwin (State.heights_le_run hMle hrun')⟩
