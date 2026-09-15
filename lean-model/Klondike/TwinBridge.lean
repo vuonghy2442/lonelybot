@@ -1977,14 +1977,16 @@ was rung-EXACT, so the partner rung sits at z.rank + 1 ≥ z'.rank), and
 the twin rungs EQUALIZE at z.rank + 1 after the two firings (the
 "equal-heights" of the sufficiency theorem — a consequence, not a
 premise: the exchange's own heights are rfl-equal throughout).  The
-tail's pre-admission is the honest boundary: after the equalized
-rungs, the remaining pre-conditions are the on-suit deckStack/pileStack
-skews (automatic for the rung-climbing cards — founds_gone pins the
-stock's on-suit cards at or above the current rung, and the rung
-climbers' skews hold from the raised partner rung) and the unstack
-anti-skew — for which the pair-card worry-backs are the genuine
-residue (the partner rung can be pushed past c.rank + 1 by decking
-the twin before the worry-back). -/
+tail's pre-admission is the honest boundary (§12's audit): the
+remaining pre-conditions are the on-suit deckStack/pileStack SKEWS
+(state-dependent — the rungs' co-climb must ALTERNATE: two own-suit
+climbs in a row break the second's skew, so only the interleaved
+ladder is admitted) and the unstack ANTI-SKEW — whose load-bearing
+cases are the pair-card worry-backs (the partner rung can be pushed
+past c.rank + 1 by climbing the partner first) and the just-below-pair
+worry-backs (the crossed configuration while the partner stays
+stacked) — exactly the multi-unstack obstruction of
+`TwinCore.rung_eq_unstack_of_ne`'s honest stays. -/
 theorem State.playWindow'_adjacent_pair_skew {S W : State} {t z z' : Card}
     {play : List Move}
     (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
@@ -2044,18 +2046,18 @@ The "equal heights" of the title is a CONSEQUENCE, not a premise: the
 exchange's heights are rfl-equal throughout (board-only), and the two
 stackings' rung-exact firings EQUALIZE the twin suits' rungs at
 z.rank + 1 — from which the tail's on-suit skews hold for every
-rung-climbing card (founds_gone pins the stock's on-suit cards at or
-above the current rung) and the anti-skew for the pair-card worry-backs
-reduces to partner-rung ≤ own-rung.  The remaining residuals, both
-premises in the skew-holding branch: the unstack anti-skew for
-non-pair twin-suit worry-backs pulled below a raised partner rung
-(the L1/L2 interleaving), and the ADJACENCY itself — a winning play
-whose stackings are separated by tableau moves needs the re-scheduling
-(the z'-suit rung-raisers between the stackings CANNOT commute past
-the second stacking — they raise its firing rung — but they are
-themselves window'-admitted, their skews holding from the first
-stacking's raised rung; the pure commutation applies only to the
-non-raiser moves). -/
+INTERLEAVED rung-climber (the co-climb alternates) and the anti-skew
+for the pair-card worry-backs holds at the equalized state itself.
+The remaining residual — the tail premise, carried as a premise in
+the skew-holding branch — is precisely the ON-PAIR foundation moves'
+state-dependent arms (§12's audit): the on-suit stacks' skews (the
+co-climb must alternate), the pair-member and just-below-pair
+worry-backs' anti-skews (the crossed configurations — the
+multi-unstack obstruction), and nothing else (every other kind is
+state-independently admitted — `State.playWindow'_tail_of_eq_heights`);
+the non-pair non-adjacent worry-backs were discharged by the third
+disjunct (`rung_eq_unstack_of_ne`, 12259ae).  The ADJACENCY residual
+is closed by the re-scheduling (§11, `playWindow'_of_rescheduled`). -/
 theorem State.playWindow'_of_eq_heights {st : State} {t z z' : Card}
     (_hwf : st.WF)
     (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
@@ -3312,3 +3314,198 @@ theorem State.playWindow'_of_rescheduled {st : State} {t z z' : Card}
       (Option.some.inj (hfire₂''.symm.trans hfire₂))]
     exact State.playWindow'_append_heightBlind π₂ S₂ T' π₃ hrunπ₂' hkinds
       (by rw [hT']; exact htail)
+
+/-! ## §12. The skew-branch tail premise — the verdict and the residue
+
+The tail premise of `playWindow'_adjacent_pair_skew` was audited for
+the kill (the mission's two vacuity hypotheses): BOTH FAIL.  The
+pair-member worry-backs are NOT vacuous in the tail — after the head,
+both pair members sit on the foundations (their unstacks fire at the
+equalized rungs), and the partner rung CAN climb past z.rank+1 (the
+co-climb alternation: the partner's (z.rank+1)-card admits via its own
+skew at equality, raising the partner rung to z.rank+2, after which
+the pair-member worry-back's anti-skew FAILS while its firing guard
+still holds) — the crossed configuration `rung_eq_unstack_of_ne`'s
+docstring names the obstruction (the multi-unstack: the mirror would
+have to drop its rung past the stranded pair card — not a single
+in-kind move).  The just-below-pair worry-backs are likewise reachable
+with the partner still stacked (the anti-skew needs the partner rung
+down at c.rank+1 — the crossed configuration is present in the tail
+whenever the partner's unstack has not yet fired).  And the tail
+premise carries MORE than the anti-skew: the on-suit STACKS' skews are
+equally state-dependent (two own-suit climbs in a row break the
+second's skew — the co-climb must alternate), so the premise is the
+honest price of the pre-episode admission's state-dependent arms.
+
+What IS true — and lands here — is the precise residue: the tail
+admission reduces to exactly the on-pair foundation moves (the on-suit
+`pileStack`/`deckStack` skews and the on-suit `stackPile`
+anti-skews).  `State.PreAdmitClean` names the complement — the moves
+whose pre-episode arms carry NO state-dependent condition (the four
+height-blind kinds, the off-pair foundation moves, and the ρ-fixed
+non-just-below-pair worry-backs — the `rung_eq_unstack_of_ne` class)
+— and `State.playWindow'_tail_of_eq_heights` discharges the tail
+premise for any tail of that class: the admission is per-move
+state-independent, so the firing run alone carries the induction. -/
+
+/-- The state-independently pre-admitted class: the height-blind kinds
+(`Move.heightBlind`), the off-pair foundation moves (the first
+disjunct of every foundation arm is the suit test — no rung read), and
+the ρ-fixed non-just-below-pair worry-backs (the third `stackPile`
+disjunct — the `rung_eq_unstack_of_ne` class).  Every pre-episode arm
+these moves hit carries no state-dependent condition. -/
+def State.PreAdmitClean (z : Card) (σ : Suit) (m : Move) : Prop :=
+  Move.heightBlind m = true ∨
+    (∃ q : Card, (m = Move.pileStack q ∨ m = Move.deckStack q) ∧
+      q.suit ≠ σ ∧ q.suit ≠ σ.flipPair) ∨
+    (∃ c : Card, ∃ b : Base, m = Move.stackPile c b ∧
+      Card.swapTwin z c = c ∧ c.rank.toIdx + 1 ≠ z.rank.toIdx)
+
+/-- **The tail admission at the equal-heights route — the residue
+characterization**: a tail consisting of `PreAdmitClean` moves is
+pre-admitted from ANY state it runs through (the per-move arms carry
+no rung conditions — the firing run alone carries the induction; the
+phase stays `.pre` throughout, no growth routing: the off-pair arms
+take the then-branch, the ρ-fixed worry-backs the third disjunct).
+Together with the §11 kit this reduces the skew-branch's tail premise
+to exactly the on-pair foundation moves — the on-suit stacks' skews
+(the co-climb alternation) and the on-suit worry-backs' anti-skews
+(the pair-member and just-below-pair crossed configurations), which
+are the honest boundary of the equal-heights sufficiency. -/
+theorem State.playWindow'_tail_of_eq_heights {z : Card} {σ : Suit} :
+    ∀ (play : List Move) (S T : State),
+    S.run play = some T →
+    (∀ m ∈ play, State.PreAdmitClean z σ m) →
+    State.playWindow' z σ State.WindowEp.pre S play = true := by
+  intro play
+  induction play with
+  | nil => intro S T _ _; rfl
+  | cons m rest ih =>
+      intro S T hrun hclean
+      obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+      have hih := ih R T hrest1 (fun m' hm' => hclean m' (List.mem_cons_of_mem _ hm'))
+      rcases hclean m (by simp) with hkind | ⟨q, hmeq, hqσ, hqσ'⟩ | ⟨c, b, hmeq, hρ, hrne⟩
+      · rw [State.playWindow'_cons_heightBlind hkind hm]
+        exact hih
+      · rcases hmeq with rfl | rfl
+        · -- an off-pair pileStack: the suit disjunct, the then-branch
+          rw [State.playWindow', hm]
+          refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
+          · exact Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr
+              (Or.inl (decide_eq_true_eq.mpr ⟨hqσ, hqσ'⟩))))
+          · rw [if_pos (Or.inl ⟨hqσ, hqσ'⟩)]
+            exact hih
+        · -- an off-pair deckStack: the suit disjunct alone
+          rw [State.playWindow', hm]
+          refine Bool.and_eq_true_iff.mpr ⟨?_, hih⟩
+          exact Bool.or_eq_true_iff.mpr
+            (Or.inl (decide_eq_true_eq.mpr ⟨hqσ, hqσ'⟩))
+      · -- a ρ-fixed non-just-below-pair worry-back: the third disjunct
+        subst hmeq
+        rw [State.playWindow', hm]
+        refine Bool.and_eq_true_iff.mpr ⟨?_, hih⟩
+        exact Bool.or_eq_true_iff.mpr
+          (Or.inr (decide_eq_true_eq.mpr ⟨hρ, hrne⟩))
+
+/-! ### §12.1. The extraction lemma — the double-clear schedule's
+foundation
+
+The constructive schedule (§13) needs the riders' own stackings to be
+IN the source's winning play.  The positional fact: the
+tableau→foundation transition of a card is its own `pileStack` ALONE —
+every other kind either leaves the card's base untouched (the board
+edit is an attach at another card's seat — `q ≠ c` from the attach's
+own unplacedness guard — or a detach at another card's base), or
+moves the card within the tableau (the `pilePile` run-move — the run's
+root lands at the landing seat, the members' bases ride along).  So a
+card seated on the tableau at the start of a run either meets its own
+`pileStack` in the play or is still seated at the end.  (The isWin-side
+corollary — a winning play stacks every tableau card — additionally
+needs the card-conservation invariant, 52 = tableau + hidden + stock
++ foundations, which the model does not yet carry as a lemma; that is
+the honest residue of the full extraction, recorded here.) -/
+
+/-- **The positional extraction**: along a run, a tableau card either
+has its own `pileStack` in the play or is STILL on the tableau at the
+end — no other move kind can unseat it to a foundation. -/
+theorem State.bottomOf_run_mem_pileStack :
+    ∀ (π : List Move) (S T : State), S.run π = some T →
+    ∀ (q : Card) (b : Base), S.board.bottomOf q = some b →
+    Move.pileStack q ∈ π ∨ ∃ b', T.board.bottomOf q = some b' := by
+  intro π
+  induction π with
+  | nil =>
+      intro S T hrun q b hbot
+      obtain rfl := run_nil_elim hrun
+      exact Or.inr ⟨b, hbot⟩
+  | cons m rest ih =>
+      intro S T hrun q b hbot
+      obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+      by_cases hmeq : m = Move.pileStack q
+      · exact Or.inl (by rw [hmeq]; exact List.mem_cons_self)
+      have hbotR : ∃ b', R.board.bottomOf q = some b' := by
+        cases m with
+        | draw =>
+            rw [apply_draw_iff] at hm
+            obtain ⟨rfl⟩ := hm
+            exact ⟨b, hbot⟩
+        | reveal c =>
+            rw [apply_reveal_iff] at hm
+            obtain ⟨htop, r, a, bd, hbotc, hp, hatt, rfl⟩ := hm
+            have hqr : q ≠ r := by
+              intro hcon
+              have hnone : S.board.bottomOf r = none :=
+                ((Board.attach_eq_some_iff S.board (S.hiddenBase a) r).mp
+                  (by rw [hatt]; simp)).2
+              rw [hcon] at hbot
+              rw [hbot] at hnone
+              exact absurd hnone (by simp)
+            exact ⟨b, (bottomOf_attach_ne hatt hqr).trans hbot⟩
+        | deckPile c b' =>
+            rw [apply_deckPile_iff] at hm
+            obtain ⟨hprev, hcp, bd, hatt, rfl⟩ := hm
+            have hqc : q ≠ c := by
+              intro hcon
+              have hnone : S.board.bottomOf c = none :=
+                ((Board.attach_eq_some_iff S.board b' c).mp (by rw [hatt]; simp)).2
+              rw [hcon] at hbot
+              rw [hbot] at hnone
+              exact absurd hnone (by simp)
+            exact ⟨b, (bottomOf_attach_ne hatt hqc).trans hbot⟩
+        | deckStack q' =>
+            rw [apply_deckStack_iff] at hm
+            obtain ⟨hprev, hrk, rfl⟩ := hm
+            exact ⟨b, hbot⟩
+        | pileStack q' =>
+            have hqq' : q' ≠ q := by
+              intro hcon
+              rw [hcon] at hmeq
+              exact hmeq rfl
+            rw [apply_pileStack_iff] at hm
+            obtain ⟨htop, bq, hbq, hrk, rfl⟩ := hm
+            have htopbq : S.board.topOf bq = some q' :=
+              (Board.bottomOf_eq S.board q' bq).mp hbq
+            exact ⟨b, (bottomOf_detach_ne htopbq (fun hcon => hqq' hcon.symm)).trans hbot⟩
+        | stackPile c b' =>
+            rw [apply_stackPile_iff] at hm
+            obtain ⟨hrk, hcp, bd, hatt, rfl⟩ := hm
+            have hqc : q ≠ c := by
+              intro hcon
+              have hnone : S.board.bottomOf c = none :=
+                ((Board.attach_eq_some_iff S.board b' c).mp (by rw [hatt]; simp)).2
+              rw [hcon] at hbot
+              rw [hbot] at hnone
+              exact absurd hnone (by simp)
+            exact ⟨b, (bottomOf_attach_ne hatt hqc).trans hbot⟩
+        | pilePile c b' =>
+            have hmraw := hm
+            rw [apply_pilePile_iff] at hm
+            obtain ⟨β₀, hbotc, hne, hcmr, bd, hatt, rfl⟩ := hm
+            by_cases hqc : q = c
+            · rw [hqc]
+              exact ⟨b', (Board.bottomOf_eq bd c b').mpr (Board.attach_topOf _ _ _ hatt)⟩
+            · exact ⟨b, (State.apply_pilePile_bottomOf hmraw hqc).trans hbot⟩
+      obtain ⟨b', hb'⟩ := hbotR
+      rcases ih R T hrest1 q b' hb' with hmem | hseated
+      · exact Or.inl (List.mem_cons_of_mem _ hmem)
+      · exact Or.inr hseated
