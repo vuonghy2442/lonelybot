@@ -92,23 +92,33 @@ the z'-stack) — modulo the same three premises in their rooted readings
   `solvable_of_exchange_merge_rooted` (the ∃z-package of the two
   normalization premises standing in for the license's unpacked z).
 
-§8 below is the DIRECT reduction — the endgame simplification when the
-window lands: at a licensed WF state whose BOTH cargo stacks are bare,
-the exchange is twin-correlated with the source at the CARGO pair
+§8 below is the DIRECT reduction — the endgame simplification on the
+REAL window (TwinReplay's `solvable_of_twinCorr_window`, landed): at a
+licensed WF state whose BOTH cargo stacks are bare, the exchange is
+twin-correlated with the source at the CARGO pair
 (`State.twinCorr_exchangeTwinCargo` — the covers identify the seat
-exchange with the cargo twin swap), so `hwin` ALONE closes the bridge
-(`State.solvable_of_exchange_merge_direct`) — no ROOT/DEEP dispatch, no
-rider transfer, no detour: the window replays the source's ENTIRE
-winning play, the merge included.  The naive twin-pair form of the
-correspondence is FALSE at licensed states (rootedprobe3.lean: the
-exchange swaps seat contents without relabeling card identities, so the
-value-relabeling board clause fails at the twins' own bases — and its
-requirements are mutually exclusive with the founds_gone cross-case);
-the deep corners (riders on z') obstruct even the cargo-pair form, and
-are served either by the §5/§7 scaffolds or by the double-clearing
-premise (`State.ExchangeDoubleClear` +
-`State.solvable_of_exchange_merge_rooted_direct`), which restores the
-direct route and supersedes hdet there.
+exchange with the cargo twin swap), so the window replays the source's
+ENTIRE window-admitted winning play, the merge included (a `pilePile`
+is windowOK-always, composed by `State.solvableWindow_cons`), and the
+exchange wins (`State.solvable_of_exchange_merge_direct`).  The
+window's added premises are discharged: `hMle` by the correspondence
+lemma, `hhid`/`hstock` by `State.swapTwin_hid_stock_of_covers` (WF +
+the covers — the cargos seated, hence visible, hence off the hidden
+slices and the stock; the shrink lemmas
+`State.swapTwin_hid_stock_sub_apply` cover the alternative
+through-the-prefix route); what replaces plain solvability is `hsolw`
+— the successor's winning play must be window-admitted (the
+skew/anti-skew + pair-deckStack exclusion).  The naive twin-pair form
+of the correspondence is FALSE at licensed states (rootedprobe3.lean:
+the exchange swaps seat contents without relabeling card identities, so
+the value-relabeling board clause fails at the twins' own bases — and
+its requirements are mutually exclusive with the founds_gone
+cross-case); the deep corners (riders on z') obstruct even the
+cargo-pair form, and are served either by the §5/§7 scaffolds or by
+the double-clearing premise (`State.ExchangeDoubleClear` +
+`State.solvable_of_exchange_merge_rooted_direct` — the successor
+premise window-shaped), which restores the direct route and supersedes
+hdet there.
 
 §9 attacks that premise and REDUCES it: probed at the blockade
 witnesses (dblclear.lean), no refuting witness exists — the cycle
@@ -142,8 +152,9 @@ prefix) with its direct bridge
 `State.solvable_of_exchange_merge_rooted_sched_mixed`.  The residue:
 the schedule's EXISTENCE at arbitrary WF+licensed+solvable states (the
 raisers' reachability and the blocker-chain's termination) and the
-successor's solvability — the constructive evidence covers the probed
-geometries.
+successor's WINDOW-solvability (the solvableFrom-to-solvableWindow
+transfer is the L1/O0 residue) — the constructive evidence covers the
+probed geometries.
 
 **Honest boundaries, recorded for the later sessions:**
 
@@ -1662,17 +1673,31 @@ theorem State.solvable_of_exchange_merge_rooted_bridge_full {st a₁ : State} {t
   obtain ⟨z, hrp, hdet⟩ := hnorm
   exact State.solvable_of_exchange_merge_rooted_bridge hwin hrp hdet hwf h hstep hc hland hsol
 
-/-! ## §8. The direct reduction — the window alone at a both-bare state
+/-! ## §8. The direct reduction — the window at a both-bare state
 
-The endgame simplification, validated with its boundary: when the window
-premise lands (TwinReplay's climb-out replay, `hwin` below carrying the
-heights bound `∀ s, M.heights s ≤ 13` as its Mle argument — the agreed
-interface pending `solvable_of_twinCorr_window`'s landing), a licensed
-WF state whose BOTH cargo stacks are bare (z and z' riders-cleared)
-needs NO merge analysis at all — the exchange state is twin-correlated
-with the source at the CARGO pair, so the window replays the source's
-ENTIRE winning play — the merge included — through the correspondence,
-and the exchange wins.
+The endgame simplification, validated with its boundary: the window has
+LANDED (TwinReplay's `solvable_of_twinCorr_window`, commit 861d775), and
+this section wires it in.  A licensed WF state whose BOTH cargo stacks
+are bare (z and z' riders-cleared) needs NO merge analysis at all — the
+exchange state is twin-correlated with the source at the CARGO pair, so
+the window replays the source's ENTIRE window-admitted winning play —
+the merge included — through the correspondence, and the exchange wins.
+The window's added premises over the old abstract `hwin` are all
+discharged or relocated: `hMle` (the mirror's heights rfl + WF's
+`heights_le` — carried by the correspondence lemma), `hhid`/`hstock`
+(the hidden/stock cards ρ-fixed — DERIVED here from WF + the covers:
+the cargos are seated, hence visible, hence off the hidden slices and
+the stock, and `swapTwin z` fixes everything off the pair), and `hsolw`
+in place of plain solvability — the winning play must satisfy the
+window condition (the skew/anti-skew + pair-deckStack exclusion), so
+the consumers' solvability premises become `solvableWindow`-shaped,
+composed through the merge move (a `pilePile` is windowOK-always —
+height-blind) by the cons-glue below.  The window is CONSUMED at the
+both-bare state (the correspondence's S-side): its premises derive
+from THAT state's WF + the surviving covers — which the license-carrying
+run lemmas already provide — so no st-level preservation through the
+prefix is needed (the shrink lemmas are landed anyway for the
+alternative route).
 
 **The boundary, probed (rootedprobe3.lean):** the naive twin-pair form
 `TwinCorr (swapTwin t) t.suit st (st.exchangeTwinCargo t)` is FALSE at
@@ -1691,8 +1716,74 @@ twin swap — §1's `exchangeTwin_eq_mapByTwin_of_covers`), and it needs
 BOTH cargo seats bare — exactly what the deep landing's z'-riders
 obstruct, hence the double-clearing premise below for the deep corners.
 The direct route supersedes the two-ply scaffolds wherever its regime
-holds; the hrp/hdet scaffolds remain as the fallback for conditional
-windows and rider-carrying states. -/
+holds; the hrp/hdet scaffolds remain as the fallback for
+non-window-shaped winning plays and rider-carrying states. -/
+
+/-- **The window's cons-glue**: a firing window-admitted move prepends
+to a window-solvable successor — the playWindow condition is
+state-chained by definition. -/
+theorem State.solvableWindow_cons {S R : State} {ρ : Card → Card} {σ : Suit} {m : Move}
+    (hstep : S.apply m = some R) (hok : Move.windowOK ρ σ S m = true)
+    (hrest : R.solvableWindow ρ σ) : S.solvableWindow ρ σ := by
+  obtain ⟨play, W, hrun, hwin, hplay⟩ := hrest
+  refine ⟨m :: play, W, run_cons_intro hstep hrun, hwin, ?_⟩
+  rw [State.playWindow_cons_of hstep]
+  simp [hok, hplay]
+
+/-- **The window's hidden/stock premises, from WF + the covers**: the two
+cargos are seated (the covers), hence visible, hence — by WF — off every
+hidden slice (`vis_not_hidden`) and out of the stock (`vis_off_cycle`);
+`swapTwin z` fixes every card off the pair, so the hidden and stock cards
+are all ρ-fixed.  This packages the window's WF-derivations; it applies
+at ANY state carrying the covers (the both-bare states of the scheduled
+routes included — the window's S-side). -/
+theorem State.swapTwin_hid_stock_of_covers {S : State} {t z z' : Card}
+    (hwf : S.WF)
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hztop : S.board.topOf (Sum.inr t) = some z)
+    (hztop' : S.board.topOf (Sum.inr t.flipSuit) = some z') :
+    (∀ a, ∀ c ∈ S.hidden a, Card.swapTwin z c = c) ∧
+      (∀ c ∈ S.stock.cards, Card.swapTwin z c = c) := by
+  have hcargo : z' = z.flipSuit := State.cargo_flipSuit hfit hfit' hztop hztop'
+  have hvisz : S.isVis z = true := by
+    show (S.board.bottomOf z).isSome = true
+    rw [(Board.bottomOf_eq S.board z (Sum.inr t)).mpr hztop]
+    rfl
+  have hvisz' : S.isVis (Card.flipSuit z) = true := by
+    show (S.board.bottomOf (Card.flipSuit z)).isSome = true
+    rw [← hcargo, (Board.bottomOf_eq S.board z' (Sum.inr t.flipSuit)).mpr hztop']
+    rfl
+  have hzh : ∀ a, z ∉ S.hidden a := fun a hmem => hwf.vis_not_hidden z hvisz a hmem
+  have hz'h : ∀ a, Card.flipSuit z ∉ S.hidden a :=
+    fun a hmem => hwf.vis_not_hidden (Card.flipSuit z) hvisz' a hmem
+  have hzs : z ∉ S.stock.cards := by
+    intro hmem
+    have hpm := Cycle.posOf_mem hmem
+    rw [hwf.vis_off_cycle z hvisz] at hpm
+    exact absurd hpm (by simp)
+  have hz's : Card.flipSuit z ∉ S.stock.cards := by
+    intro hmem
+    have hpm := Cycle.posOf_mem hmem
+    rw [hwf.vis_off_cycle (Card.flipSuit z) hvisz'] at hpm
+    exact absurd hpm (by simp)
+  refine ⟨fun a c hc => Card.swapTwin_of_ne (fun h => hzh a (h ▸ hc))
+      (fun h => hz'h a (h ▸ hc)), ?_⟩
+  intro c hc
+  exact Card.swapTwin_of_ne (fun h => hzs (h ▸ hc)) (fun h => hz's (h ▸ hc))
+
+/-- **The window's hidden/stock premises survive any move** (the
+alternative route — not needed by the consumers, which re-derive the
+premises at the both-bare state from the covers): the hidden slices
+shrink monotonically and the stock only loses cards (TwinReplay's
+`hidden_sub_apply`/`stock_cards_sub_apply`). -/
+theorem State.swapTwin_hid_stock_sub_apply {S R : State} {z : Card} {m : Move}
+    (hS : S.apply m = some R)
+    (hhid : ∀ a, ∀ c ∈ S.hidden a, Card.swapTwin z c = c)
+    (hstock : ∀ c ∈ S.stock.cards, Card.swapTwin z c = c) :
+    (∀ a, ∀ c ∈ R.hidden a, Card.swapTwin z c = c) ∧
+      (∀ c ∈ R.stock.cards, Card.swapTwin z c = c) :=
+  ⟨fun a c hc => hhid a c (State.hidden_sub_apply hS a c hc),
+    fun c hc => hstock c (State.stock_cards_sub_apply hS c hc)⟩
 
 /-- **The direct correspondence at a both-bare licensed state**: the
 exchange is the source's twin-correlated partner at the CARGO pair —
@@ -1780,30 +1871,38 @@ theorem State.twinCorr_exchangeTwinCargo {st : State} {t z z' : Card}
     rw [hheights]
     exact h13 s
 
-/-- **The direct merge bridge — the window alone at a both-bare licensed
+/-- **The direct merge bridge — the REAL window at a both-bare licensed
 state**: NO merge analysis (no ROOT/DEEP dispatch, no rider transfer, no
 detour, no hdet) — the merge move is just one legal move of the winning
-line; the window replays the source's ENTIRE play (the merge included)
-through the direct correspondence.  Note the route never inspects the
-move: ANY legal move of a both-bare licensed WF solvable state
-transfers.  The DEEP corners (riders on z', the landing among them) fall
-outside this regime — the correspondence itself dies there — and are
-handled either by the §5/§7 scaffolds or by the double-clearing premise
-(`ExchangeDoubleClear` below), which restores this direct route. -/
+line; the window (TwinReplay's `solvable_of_twinCorr_window`) replays
+the source's ENTIRE window-admitted play (the merge included — a
+`pilePile` is windowOK-always, composed by the cons-glue) through the
+direct correspondence.  The window's added premises are all discharged:
+`hMle` by the correspondence lemma, `hhid`/`hstock` by the
+WF+covers derivation; what REPLACES plain solvability is `hsolw` — the
+successor's winning play must be window-admitted.  The route never
+inspects the move: ANY legal move of a both-bare licensed WF state with
+a window-solvable successor transfers.  The DEEP corners (riders on z',
+the landing among them) fall outside this regime — the correspondence
+itself dies there — and are handled either by the §5/§7 scaffolds or by
+the double-clearing premise (`ExchangeDoubleClear` below), which
+restores this direct route. -/
 theorem State.solvable_of_exchange_merge_direct {st a₁ : State} {t z z' c : Card} {b : Base}
-    (hwin : ∀ {S M : State} {u : Card}, State.TwinCorr (Card.swapTwin u) u.suit S M →
-      (∀ s, M.heights s ≤ 13) → S.WF → S.solvableFrom → M.solvableFrom)
     (hwf : st.WF)
     (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
     (hztop : st.board.topOf (Sum.inr t) = some z)
     (hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z')
     (hbare : st.board.topOf (Sum.inr z) = none ∧ st.board.topOf (Sum.inr z') = none)
     (hstep : st.apply (Move.pilePile c b) = some a₁)
-    (hsol : a₁.solvableFrom) :
+    (hsolw : a₁.solvableWindow (Card.swapTwin z) z.suit) :
     (st.exchangeTwinCargo t).solvableFrom := by
   obtain ⟨hcorr, hmle⟩ :=
     State.twinCorr_exchangeTwinCargo hwf hfit hfit' hztop hztop' hbare
-  exact hwin hcorr hmle hwf (State.solvable_step hstep hsol)
+  obtain ⟨hhid, hstock⟩ :=
+    State.swapTwin_hid_stock_of_covers hwf hfit hfit' hztop hztop'
+  have hwin : st.solvableWindow (Card.swapTwin z) z.suit :=
+    State.solvableWindow_cons hstep rfl hsolw
+  exact State.solvable_of_twinCorr_window hcorr hmle hwf hhid hstock hwin
 
 /-- **The double-cleared normalization premise** (the direct route's
 honest boundary at the deep corners): the source's winning line can be
@@ -1812,9 +1911,12 @@ reaching a state S₀ at which the license's covers still hold, both z
 and z' are bare, and the SAME merge move re-fires (the landing d riding
 along with the cleared z'-riders, still bare, wherever the clearing
 left it — the merge's landing is the CARD d's seat, not a position) with
-a solvable successor — and π replays verbatim in the exchanged game.
-This is `ExchangeRiderPrefixRooted`'s shape with the z'-side clearing
-added; its discharge is the same L1/O3-shaped play normalization and
+a WINDOW-solvable successor — and π replays verbatim in the exchanged
+game.  This is `ExchangeRiderPrefixRooted`'s shape with the z'-side
+clearing added; the successor's premise is `solvableWindow`-shaped (the
+window-conditioned winning play the real window consumes — the
+plain-solvability transfer is the L1/O0 residue); the discharge of the
+whole schedule is the same L1/O3-shaped play normalization and
 exchange-cleanliness residue — NOT the detour machinery (`hdet` and the
 two-ply are superseded by this route). -/
 def State.ExchangeDoubleClear (st : State) (t z z' c : Card) (b : Base) : Prop :=
@@ -1827,9 +1929,10 @@ def State.ExchangeDoubleClear (st : State) (t z z' c : Card) (b : Base) : Prop :
     S₀.board.topOf (Sum.inr t.flipSuit) = some z' ∧
     S₀.board.topOf (Sum.inr z) = none ∧
     S₀.board.topOf (Sum.inr z') = none ∧
-    (∃ a₁' : State, S₀.apply (Move.pilePile c b) = some a₁' ∧ a₁'.solvableFrom)
+    (∃ a₁' : State, S₀.apply (Move.pilePile c b) = some a₁' ∧
+      a₁'.solvableWindow (Card.swapTwin z) z.suit)
 
-/-- **The rooted direct bridge** — [H′] closed by the window alone,
+/-- **The rooted direct bridge** — [H′] closed by the REAL window,
 modulo the double-clearing premise: the mirror replays the clearing
 prefix (the premise's verbatim-replay clause), landing at the exchanged
 cleared state, where the direct bridge applies — the ENTIRE merge
@@ -1840,18 +1943,16 @@ is MOVE-AGNOSTIC in c (only the premise's re-firing move mentions it),
 so the [H]-deep case is the same wrapper at c ≠ t. -/
 theorem State.solvable_of_exchange_merge_rooted_direct {st a₁ : State} {t z z' c : Card}
     {b : Base}
-    (hwin : ∀ {S M : State} {u : Card}, State.TwinCorr (Card.swapTwin u) u.suit S M →
-      (∀ s, M.heights s ≤ 13) → S.WF → S.solvableFrom → M.solvableFrom)
     (hdcl : st.ExchangeDoubleClear t z z' c b)
     (_hwf : st.WF) (_h : st.twinLicensed t)
     (_hstep : st.apply (Move.pilePile c b) = some a₁) (_hc : c = t)
     (_hland : ∃ d, b = Sum.inr d ∧ d ∈ st.board.aboveOf z')
     (_hsol : a₁.solvableFrom) :
     (st.exchangeTwinCargo t).solvableFrom := by
-  obtain ⟨π, S₀, hrunπ, hrunπX, hwf₀, hfit, hfit', hztop, hztop', hbz, hbz', a₁', hstep₀, hsol₀⟩ :=
+  obtain ⟨π, S₀, hrunπ, hrunπX, hwf₀, hfit, hfit', hztop, hztop', hbz, hbz', a₁', hstep₀, hsolw₀⟩ :=
     hdcl
-  have hres := State.solvable_of_exchange_merge_direct hwin hwf₀ hfit hfit' hztop hztop'
-    ⟨hbz, hbz'⟩ hstep₀ hsol₀
+  have hres := State.solvable_of_exchange_merge_direct hwf₀ hfit hfit' hztop hztop'
+    ⟨hbz, hbz'⟩ hstep₀ hsolw₀
   obtain ⟨π', W, hrun', hwin'⟩ := hres
   exact ⟨π ++ π', W, run_append_some hrunπX hrun', hwin'⟩
 
@@ -1877,7 +1978,10 @@ at WF without the interleaving machinery; below it is REDUCED: the
 hardest-looking clause (the mirror's verbatim replay of the clearing
 prefix) is DERIVED from per-move stacking-cleanliness, leaving the
 scheduled form — the clearings, the both-bare outcome, and the merge's
-re-firing with a solvable successor — as the honest residue. -/
+re-firing with a WINDOW-solvable successor — as the honest residue (the
+window consumes at the both-bare state, where hhid/hstock derive from
+that state's WF + the surviving covers, which the license-carrying run
+lemmas already provide). -/
 
 /-- **The stacking-clean condition for the double-clearing prefix**: a
 `pileStack q` with q off the protected pair set {t, t', z, z'}.  Unlike
@@ -1962,14 +2066,15 @@ theorem State.exchangeTwinCargo_run_cleanStack {st st' : State} {t z z' : Card}
 premise's hardest-looking clause — the mirror's verbatim replay of the
 clearing prefix — is DERIVED here from the per-move stacking-cleanliness
 (the run-level replay above); what stays scheduled is the outcome (both
-cargo seats bare) and the merge's re-firing with a solvable successor.
-This is the strongest conditional form: the L1/O3 scheduling residue is
-exactly the extraction of such a schedule from the winning play (the
-commutation `rider_clear_sched` below is the single-swap building
-block).  Detach-based clearings (the z'-detour of the deep corners)
-extend the kit the same way — compose this run lemma with
-`exchangeTwinCargo_step_pilePile` at the prefix's end, as §5/§7's HOLE
-routes already do inline. -/
+cargo seats bare) and the merge's re-firing with a WINDOW-solvable
+successor (the real window's play condition — the plain-solvability
+transfer is the L1/O0 residue).  This is the strongest conditional
+form: the L1/O3 scheduling residue is exactly the extraction of such a
+schedule from the winning play (the commutation `rider_clear_sched`
+below is the single-swap building block).  Detach-based clearings (the
+z'-detour of the deep corners) extend the kit the same way — compose
+this run lemma with `exchangeTwinCargo_step_pilePile` at the prefix's
+end, as §5/§7's HOLE routes already do inline. -/
 theorem State.exchangeDoubleClear_of_sched {st : State} {t z z' c : Card} {b : Base}
     (hwf : st.WF)
     (hlic : State.TwinLicensedAt st t z z')
@@ -1977,7 +2082,8 @@ theorem State.exchangeDoubleClear_of_sched {st : State} {t z z' c : Card} {b : B
     (hrun : st.run π = some S₀)
     (hclean : ∀ m ∈ π, State.CleanStack m t z z')
     (hbare : S₀.board.topOf (Sum.inr z) = none ∧ S₀.board.topOf (Sum.inr z') = none)
-    (hmerge : ∃ a₁' : State, S₀.apply (Move.pilePile c b) = some a₁' ∧ a₁'.solvableFrom) :
+    (hmerge : ∃ a₁' : State, S₀.apply (Move.pilePile c b) = some a₁' ∧
+      a₁'.solvableWindow (Card.swapTwin z) z.suit) :
     st.ExchangeDoubleClear t z z' c b := by
   obtain ⟨hrunX, hlic₀⟩ := State.exchangeTwinCargo_run_cleanStack hlic hclean hrun
   obtain ⟨hvis, hvis', h₀, h₀', hfit, hfit', hnb, hnb'⟩ := hlic₀
@@ -1988,22 +2094,21 @@ theorem State.exchangeDoubleClear_of_sched {st : State} {t z z' c : Card} {b : B
 
 /-- **The scheduled direct bridge**: the [H′] shape closed from the
 SCHEDULE alone — the clearing prefix's mirror-replay is derived, the
-direct correspondence applies at the both-bare end state (the license's
-covers surviving the clean prefix), and the mirror's winning play is
-the replayed prefix followed by the direct route's play.  The residual
+REAL window applies at the both-bare end state (the license's covers
+surviving the clean prefix), and the mirror's winning play is the
+replayed prefix followed by the window's translated play.  The residual
 hypotheses are exactly the schedule: the clean prefix running to a
-both-bare licensed state at which the merge re-fires with a solvable
-successor. -/
+both-bare licensed state at which the merge re-fires with a
+window-solvable successor. -/
 theorem State.solvable_of_exchange_merge_rooted_sched {st a₁ : State} {t z z' c : Card}
     {b : Base}
-    (hwin : ∀ {S M : State} {u : Card}, State.TwinCorr (Card.swapTwin u) u.suit S M →
-      (∀ s, M.heights s ≤ 13) → S.WF → S.solvableFrom → M.solvableFrom)
     (hwf : st.WF) (hlic : State.TwinLicensedAt st t z z')
     {π : List Move} {S₀ : State}
     (hrun : st.run π = some S₀)
     (hclean : ∀ m ∈ π, State.CleanStack m t z z')
     (hbare : S₀.board.topOf (Sum.inr z) = none ∧ S₀.board.topOf (Sum.inr z') = none)
-    (hstep : S₀.apply (Move.pilePile c b) = some a₁) (hsol : a₁.solvableFrom) :
+    (hstep : S₀.apply (Move.pilePile c b) = some a₁)
+    (hsolw : a₁.solvableWindow (Card.swapTwin z) z.suit) :
     (st.exchangeTwinCargo t).solvableFrom := by
   obtain ⟨hrunX, hlic₀⟩ := State.exchangeTwinCargo_run_cleanStack hlic hclean hrun
   obtain ⟨hvis, hvis', h₀, h₀', hfit, hfit', hnb, hnb'⟩ := hlic₀
@@ -2011,8 +2116,8 @@ theorem State.solvable_of_exchange_merge_rooted_sched {st a₁ : State} {t z z' 
     (Board.bottomOf_eq S₀.board z (Sum.inr t)).mp h₀
   have hztop₀' : S₀.board.topOf (Sum.inr t.flipSuit) = some z' :=
     (Board.bottomOf_eq S₀.board z' (Sum.inr t.flipSuit)).mp h₀'
-  have hres := State.solvable_of_exchange_merge_direct hwin (State.wf_run hwf hrun)
-    hfit hfit' hztop₀ hztop₀' hbare hstep hsol
+  have hres := State.solvable_of_exchange_merge_direct (State.wf_run hwf hrun)
+    hfit hfit' hztop₀ hztop₀' hbare hstep hsolw
   obtain ⟨π', W, hrun', hwin'⟩ := hres
   exact ⟨π ++ π', W, run_append_some hrunX hrun', hwin'⟩
 
@@ -2247,7 +2352,8 @@ theorem State.exchangeDoubleClear_of_sched_mixed {st : State} {t z z' c : Card} 
     (hr₁off : r₁ ≠ t ∧ r₁ ≠ t.flipSuit ∧ r₁ ≠ z ∧ r₁ ≠ z')
     (hdetour : Sₛ.apply (Move.pilePile r₁ β) = some S₀)
     (hbare : S₀.board.topOf (Sum.inr z) = none ∧ S₀.board.topOf (Sum.inr z') = none)
-    (hmerge : ∃ a₁' : State, S₀.apply (Move.pilePile c b) = some a₁' ∧ a₁'.solvableFrom) :
+    (hmerge : ∃ a₁' : State, S₀.apply (Move.pilePile c b) = some a₁' ∧
+      a₁'.solvableWindow (Card.swapTwin z) z.suit) :
     st.ExchangeDoubleClear t z z' c b := by
   -- the stacking prefix replays verbatim, the license riding to Sₛ
   obtain ⟨hrunX, hlicₛ⟩ := State.exchangeTwinCargo_run_cleanStack hlic hclean hrunₛ
@@ -2281,14 +2387,13 @@ theorem State.exchangeDoubleClear_of_sched_mixed {st : State} {t z z' c : Card} 
 
 /-- **The scheduled direct bridge, MIXED form**: the [H′] shape closed
 from the CONSTRUCTIVE schedule alone — the CleanStack prefix's replay
-and the detour's mirror step are derived, the direct correspondence
-applies at the both-bare end state (the covers surviving the detour),
-and the mirror's winning play is the replayed mixed prefix followed by
-the direct route's play. -/
+and the detour's mirror step are derived, the REAL window applies at the
+both-bare end state (the covers surviving the detour), and the mirror's
+winning play is the replayed mixed prefix followed by the window's
+translated play.  The successor's premise is window-shaped
+(`solvableWindow` at the merge's successor). -/
 theorem State.solvable_of_exchange_merge_rooted_sched_mixed {st a₁ : State} {t z z' c : Card}
     {b : Base}
-    (hwin : ∀ {S M : State} {u : Card}, State.TwinCorr (Card.swapTwin u) u.suit S M →
-      (∀ s, M.heights s ≤ 13) → S.WF → S.solvableFrom → M.solvableFrom)
     (hwf : st.WF) (hlic : State.TwinLicensedAt st t z z')
     {πₛ : List Move} {Sₛ S₀ : State} {r₁ : Card} {β : Base}
     (hrunₛ : st.run πₛ = some Sₛ)
@@ -2297,7 +2402,8 @@ theorem State.solvable_of_exchange_merge_rooted_sched_mixed {st a₁ : State} {t
     (hr₁off : r₁ ≠ t ∧ r₁ ≠ t.flipSuit ∧ r₁ ≠ z ∧ r₁ ≠ z')
     (hdetour : Sₛ.apply (Move.pilePile r₁ β) = some S₀)
     (hbare : S₀.board.topOf (Sum.inr z) = none ∧ S₀.board.topOf (Sum.inr z') = none)
-    (hstep : S₀.apply (Move.pilePile c b) = some a₁) (hsol : a₁.solvableFrom) :
+    (hstep : S₀.apply (Move.pilePile c b) = some a₁)
+    (hsolw : a₁.solvableWindow (Card.swapTwin z) z.suit) :
     (st.exchangeTwinCargo t).solvableFrom := by
   obtain ⟨hrunX, hlicₛ⟩ := State.exchangeTwinCargo_run_cleanStack hlic hclean hrunₛ
   obtain ⟨hvis, hvis', h₀ₛ, h₀ₛ', hfit, hfit', hnbₛ, hnbₛ'⟩ := hlicₛ
@@ -2322,8 +2428,8 @@ theorem State.solvable_of_exchange_merge_rooted_sched_mixed {st a₁ : State} {t
     (Board.bottomOf_eq S₀.board z (Sum.inr t)).mp hbz₀
   have hztop₀' : S₀.board.topOf (Sum.inr t.flipSuit) = some z' :=
     (Board.bottomOf_eq S₀.board z' (Sum.inr t.flipSuit)).mp hbz₀'
-  have hres := State.solvable_of_exchange_merge_direct hwin (State.wf_run hwf hrunπ)
-    hfit hfit' hztop₀ hztop₀' hbare hstep hsol
+  have hres := State.solvable_of_exchange_merge_direct (State.wf_run hwf hrunπ)
+    hfit hfit' hztop₀ hztop₀' hbare hstep hsolw
   obtain ⟨π', W, hrun', hwin'⟩ := hres
   refine ⟨(πₛ ++ [Move.pilePile r₁ β]) ++ π', W, ?_, hwin'⟩
   exact run_append_some (run_append_some hrunX (run_cons_intro hfireD rfl)) hrun'
