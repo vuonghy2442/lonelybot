@@ -124,13 +124,24 @@ the double-clearing premise (`State.ExchangeDoubleClear` +
 premise window'-shaped), which restores the direct route and supersedes
 hdet there.  The TRANSFER characterization (the playWindow'-of-solvable
 question): `State.playWindow'_adjacent_pair` proves the sufficiency
-half — the adjacent pair-stacking [pileStack z; pileStack z'; rest]
-with the first stack's skew failing is FULLY admitted (growth →
-catch-up → post, the rest unconditional); `apply_deckStack_ne_of_vis`
-kills the pair-deckStack exclusion at licensed states; the residuals
-are the unstack anti-skew (pre-episode), the skew-holding adjacent case
-(the rest stays pre-conditional), and the mid-episode tableau
-exclusion (non-adjacent stackings) — the L1/L2 re-homing residue.
+half - the adjacent pair-stacking [pileStack z; pileStack z'; rest]
+with the first stack's skew failing is FULLY admitted (growth ->
+catch-up -> post, the rest unconditional); `apply_deckStack_ne_of_vis`
+kills the pair-deckStack exclusion at licensed states;
+`State.playWindow'_adjacent_pair_skew` closes the SKEW-HOLDING adjacent
+case modulo the tail's pre-admission (the second stack's skew DERIVED
+from the first's rung-exact firing; the twin rungs EQUALIZE at
+z.rank + 1), and `State.playWindow'_of_eq_heights` composes the two
+into the equal-heights sufficiency theorem at the adjacent-head shape
+(the "equal heights" a CONSEQUENCE - the exchange's heights are
+rfl-equal, the stackings equalize the twin rungs; validated end-to-end
+at the dblclear2 witness's both-bare state, eqheights.lean); the
+residuals are the unstack anti-skew for non-pair twin-suit worry-backs
+pulled below a raised partner rung (the L1/L2 interleaving) and the
+ADJACENCY itself (the z'-suit rung-raisers between the stackings
+CANNOT commute past the second stacking - they raise its firing rung;
+they are themselves window'-admitted, their skews holding from the
+first stacking's raised rung).
 
 §9 attacks that premise and REDUCES it: probed at the blockade
 witnesses (dblclear.lean), no refuting witness exists — the cycle
@@ -1939,6 +1950,116 @@ theorem State.playWindow'_adjacent_pair {S W : State} {t z z' : Card} {play : Li
     simp only [decide_eq_true_eq, Card.flipSuit_flipSuit, Card.flipSuit_rank]
     show z.rank.toIdx ≤ S.heights z.suit + 1
     omega
+
+/-- **The adjacent-pair-stacking transfer, the SKEW-HOLDING case**: at a
+both-bare licensed state, the play [pileStack z; pileStack z'; rest]
+with the first stack's skew HOLDING at S is window'-admitted through
+the two stackings, the phase staying PRE, given the tail's
+pre-admission.  The content: BOTH stackings are admitted by the SKEW
+arm — the first by hypothesis; the second DERIVED (the first's firing
+was rung-EXACT, so the partner rung sits at z.rank + 1 ≥ z'.rank), and
+the twin rungs EQUALIZE at z.rank + 1 after the two firings (the
+"equal-heights" of the sufficiency theorem — a consequence, not a
+premise: the exchange's own heights are rfl-equal throughout).  The
+tail's pre-admission is the honest boundary: after the equalized
+rungs, the remaining pre-conditions are the on-suit deckStack/pileStack
+skews (automatic for the rung-climbing cards — founds_gone pins the
+stock's on-suit cards at or above the current rung, and the rung
+climbers' skews hold from the raised partner rung) and the unstack
+anti-skew — for which the pair-card worry-backs are the genuine
+residue (the partner rung can be pushed past c.rank + 1 by decking
+the twin before the worry-back). -/
+theorem State.playWindow'_adjacent_pair_skew {S W : State} {t z z' : Card}
+    {play : List Move}
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hztop : S.board.topOf (Sum.inr t) = some z)
+    (hztop' : S.board.topOf (Sum.inr t.flipSuit) = some z')
+    (_hbare : S.board.topOf (Sum.inr z) = none ∧ S.board.topOf (Sum.inr z') = none)
+    (hskew : z.rank.toIdx ≤ S.heights (Card.flipSuit z).suit)
+    (hrun : S.run (Move.pileStack z :: Move.pileStack z' :: play) = some W)
+    (hrest : ∀ S₂ : State, S.run [Move.pileStack z, Move.pileStack z'] = some S₂ →
+      State.playWindow' z z.suit State.WindowEp.pre S₂ play = true) :
+    State.playWindow' z z.suit State.WindowEp.pre S
+        (Move.pileStack z :: Move.pileStack z' :: play) = true := by
+  obtain ⟨S₁, hstep1, hrest1⟩ := run_cons_elim hrun
+  obtain ⟨S₂, hstep2, hrest2⟩ := run_cons_elim hrest1
+  have hcargo : z' = z.flipSuit := State.cargo_flipSuit hfit hfit' hztop hztop'
+  have hrest' : State.playWindow' z z.suit State.WindowEp.pre S₂ play = true :=
+    hrest S₂ (run_cons_intro hstep1 (run_cons_intro hstep2 rfl))
+  -- the first firing's rung-exactness (z's own rung before the bump)
+  have hd1 := hstep1
+  rw [apply_pileStack_iff] at hd1
+  obtain ⟨htop1, bq, hbq, hrk1, hS₁⟩ := hd1
+  -- the first stack's skew, as a decidability equation
+  have hskewd : decide (z.rank.toIdx ≤ S.heights (Card.flipSuit z).suit) = true := by
+    simp only [decide_eq_true_eq]
+    exact hskew
+  -- the second stacking's skew, DERIVED: the first firing was rung-EXACT
+  -- (heights z.suit = z.rank), so the partner rung after the bump sits at
+  -- z.rank + 1 ≥ z'.rank (the pair shares the rank)
+  have hskew2 : z'.rank.toIdx ≤ S₁.heights (Card.flipSuit z').suit := by
+    rw [hS₁, hcargo, Card.flipSuit_flipSuit, Card.flipSuit_rank]
+    show z.rank.toIdx ≤ (if z.suit = z.suit then S.heights z.suit + 1 else S.heights z.suit)
+    rw [if_pos rfl]
+    omega
+  -- the computation
+  show State.playWindow' z z.suit State.WindowEp.pre S
+      (Move.pileStack z :: Move.pileStack z' :: play) = true
+  rw [State.playWindow', hstep1]
+  refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
+  · exact Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr hskewd)))
+  · rw [if_pos (Or.inr hskew)]
+    rw [State.playWindow', hstep2]
+    refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
+    · refine Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr ?_)))
+      rw [decide_eq_true_eq]
+      exact hskew2
+    · rw [if_pos (Or.inr hskew2)]
+      exact hrest'
+
+/-- **The equal-heights sufficiency theorem** (the last `hsolw'` gap, at
+the adjacent-head shape): at a both-bare licensed WF state, a winning
+play whose head is the ADJACENT PAIR-STACKING [pileStack z; pileStack
+z'; rest] gives `solvableWindow' z z.suit` — the skew-failing branch by
+`playWindow'_adjacent_pair` (the tail UNCONDITIONAL: growth → catch-up
+→ post), the skew-holding branch by `playWindow'_adjacent_pair_skew`
+(the tail's pre-admission carried as the premise — the honest boundary).
+The "equal heights" of the title is a CONSEQUENCE, not a premise: the
+exchange's heights are rfl-equal throughout (board-only), and the two
+stackings' rung-exact firings EQUALIZE the twin suits' rungs at
+z.rank + 1 — from which the tail's on-suit skews hold for every
+rung-climbing card (founds_gone pins the stock's on-suit cards at or
+above the current rung) and the anti-skew for the pair-card worry-backs
+reduces to partner-rung ≤ own-rung.  The remaining residuals, both
+premises in the skew-holding branch: the unstack anti-skew for
+non-pair twin-suit worry-backs pulled below a raised partner rung
+(the L1/L2 interleaving), and the ADJACENCY itself — a winning play
+whose stackings are separated by tableau moves needs the re-scheduling
+(the z'-suit rung-raisers between the stackings CANNOT commute past
+the second stacking — they raise its firing rung — but they are
+themselves window'-admitted, their skews holding from the first
+stacking's raised rung; the pure commutation applies only to the
+non-raiser moves). -/
+theorem State.playWindow'_of_eq_heights {st : State} {t z z' : Card}
+    (_hwf : st.WF)
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hztop : st.board.topOf (Sum.inr t) = some z)
+    (hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z')
+    (hbare : st.board.topOf (Sum.inr z) = none ∧ st.board.topOf (Sum.inr z') = none)
+    (hplay : ∃ (play : List Move) (W : State),
+      st.run (Move.pileStack z :: Move.pileStack z' :: play) = some W ∧ W.isWin = true ∧
+      (¬ (z.rank.toIdx ≤ st.heights (Card.flipSuit z).suit) ∨
+        ∀ S₂ : State, st.run [Move.pileStack z, Move.pileStack z'] = some S₂ →
+          State.playWindow' z z.suit State.WindowEp.pre S₂ play = true))
+    (_hsol : st.solvableFrom) :
+    st.solvableWindow' z z.suit := by
+  obtain ⟨play, W, hrun, hwin, hcase⟩ := hplay
+  refine ⟨Move.pileStack z :: Move.pileStack z' :: play, W, hrun, hwin, ?_⟩
+  rcases hcase with hfailskew | htail
+  · exact State.playWindow'_adjacent_pair hfit hfit' hztop hztop' hbare hfailskew hrun
+  · by_cases hskew : z.rank.toIdx ≤ st.heights (Card.flipSuit z).suit
+    · exact State.playWindow'_adjacent_pair_skew hfit hfit' hztop hztop' hbare hskew hrun htail
+    · exact State.playWindow'_adjacent_pair hfit hfit' hztop hztop' hbare hskew hrun
 
 /-- **The direct correspondence at a both-bare licensed state**: the
 exchange is the source's twin-correlated partner at the CARGO pair —
