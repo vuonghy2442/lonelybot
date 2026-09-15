@@ -143,6 +143,22 @@ CANNOT commute past the second stacking - they raise its firing rung;
 they are themselves window'-admitted, their skews holding from the
 first stacking's raised rung).
 
+The ADJACENCY residual is closed SELECTIVELY (§11, the re-scheduling):
+the raisers must stay, but every HEIGHT-BLIND move commutes — and the
+height-blind kinds (draw/reveal/deckPile/pilePile — `Move.heightBlind`)
+are exactly the non-raisers.  `State.ZClean`/`State.ZCleanRun` package
+the cleanliness (the touched cards off z', the touched bases off
+z''s own seat), `State.stacking_swap_zclean` is the SINGLE SWAP with
+the full firing transfer (both orders fire, the same final state),
+`State.run_bubble_stacking` bubbles the second stacking past a whole
+z-clean segment, and `State.playWindow'_of_rescheduled` composes the
+bubble with the adjacent-head sufficiency — a winning play
+[pileStack z; π₂; pileStack z'; π₃] with π₂ z'-clean gives
+`solvableWindow'`, the height-blind π₂ unconditionally pre-admitted
+so the tail premise reduces to π₃'s.  The remaining residuals are the
+unstack anti-skew above and the raisers themselves (they must stay
+between the stackings — the re-scheduled play keeps them in place).
+
 §9 attacks that premise and REDUCES it: probed at the blockade
 witnesses (dblclear.lean), no refuting witness exists — the cycle
 constructions dissolve at the solvability hypothesis (draws/deckStacks
@@ -2717,3 +2733,582 @@ theorem State.solvable_of_exchange_merge_rooted_sched_mixed {st a₁ : State} {t
   obtain ⟨π', W, hrun', hwin'⟩ := hres
   refine ⟨(πₛ ++ [Move.pilePile r₁ β]) ++ π', W, ?_, hwin'⟩
   exact run_append_some (run_append_some hrunX (run_cons_intro hfireD rfl)) hrun'
+
+/-! ## §11. The selective re-scheduling — the non-adjacent case
+
+The normalization design (from the equal-heights session's discovery):
+the z'-suit rung-raisers between the two cargo-stackings CANNOT commute
+past the second stacking (they raise its firing rung), but every
+HEIGHT-BLIND move can — and the height-blind kinds are exactly the
+non-raisers.  The kit:
+
+* `Move.heightBlind` — the raiser classification (decidable): the
+  kinds that never change any foundation height (draw, reveal,
+  deckPile, pilePile) vs the foundation moves (which change their own
+  suit's height — the z'-suit ones are the raisers that must stay
+  between the stackings);
+* `State.ZClean` / `State.ZCleanRun` — the z'-cleanliness of an
+  intervening move at a state (height-blind, z' not among the moved
+  cards, z''s own seat `inr z'` not among the touched bases — it
+  neither lands on z' nor detaches from it, so z' stays bare), and its
+  state-indexed version along a run segment;
+* `State.stacking_swap_zclean` — the SINGLE SWAP with the full firing
+  transfer: a z-clean height-blind move and the stacking commute, both
+  orders firing, the same final state (the transfer: the stacking's
+  guards survive the move — z' bare, seated, rung-exact, by the
+  touched-base/card exclusions and the height-blindness; the move's
+  guards survive the stacking — its landing/detach bases off the
+  stacking's edit, its stock/deal/depths reads untouched);
+* `State.run_bubble_stacking` — the BUBBLE: the second stacking
+  commutes past a whole z-clean segment, the terminal state preserved
+  (the left-decomposition induction: the IH bubbles the tail, the
+  single swap reorders the head);
+* `State.playWindow'_of_rescheduled` — the normalization: at a
+  both-bare licensed state, a winning play [pileStack z; π₂; pileStack
+  z'; π₃] with π₂ z'-clean gives `solvableWindow'` — the bubbled play
+  [pileStack z; pileStack z'; π₂; π₃] wins identically, and the
+  ADJACENT-HEAD sufficiency (`playWindow'_of_eq_heights`) applies, the
+  height-blind π₂ being unconditionally pre-admitted so the tail
+  premise reduces to π₃'s. -/
+
+/-- **The raiser classification**: the height-blind kinds — the moves
+that never change any foundation height.  Everything else is a
+foundation move (deckStack/pileStack/stackPile) changing its own
+suit's height; the z'-suit ones are exactly the rung-raisers that must
+stay between the two cargo-stackings. -/
+def Move.heightBlind : Move → Bool
+  | .draw | .reveal _ | .deckPile _ _ | .pilePile _ _ => true
+  | _ => false
+
+/-- **The z'-cleanliness of an intervening move at a state**: the move
+is height-blind (a non-raiser), its touched cards exclude z' (it does
+not move z'), and its touched bases exclude z''s own seat `inr z'` (it
+neither lands on z' nor detaches from it — z' stays bare). -/
+def State.ZClean (m : Move) (z' : Card) (S : State) : Prop :=
+  Move.heightBlind m = true ∧
+    (∀ x ∈ (m.touch S).2, x ≠ z') ∧
+    (∀ b ∈ (m.touch S).1, b ≠ Sum.inr z')
+
+/-- The state-indexed cleanliness along a run segment (each move clean
+at the state it fires from). -/
+def State.ZCleanRun (z' : Card) : List Move → State → Prop
+  | [], _ => True
+  | m :: ms, S => State.ZClean m z' S ∧ (match S.apply m with
+    | some R => State.ZCleanRun z' ms R
+    | none => True)
+
+/-- **The single swap, with the full firing transfer**: a z-clean
+height-blind move and the stacking of z' commute in the run — both
+orders fire and the final state is the same.  The transfer: the
+stacking's guards survive the move (z' stays bare — the move's touched
+bases exclude `inr z'`; z' stays seated at the same base — the move's
+touched cards exclude z'; the rung survives — the height-blind kinds
+never touch heights), and the move's guards survive the stacking (its
+landing and detach bases are off the stacking's detach seat `bq` — the
+landing by the canPlace failure at the occupied seat, the detach by the
+card exclusion; its stock/deal/depths reads are untouched by the
+board+height edit).  The state equality is the comm kit's
+`commute_of_disjoint_touch` on the derived touch disjointness. -/
+theorem State.stacking_swap_zclean {S w : State} {z' : Card} {m : Move}
+    {rest : List Move}
+    (hclean : State.ZClean m z' S)
+    (hrun : S.run (m :: Move.pileStack z' :: rest) = some w) :
+    S.run (Move.pileStack z' :: m :: rest) = some w := by
+  obtain ⟨hkind, hcards, hbases⟩ := hclean
+  obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+  obtain ⟨T, hstack, hrest⟩ := run_cons_elim hrest1
+  -- the stacking's firing shape at R (T pinned to its successor form)
+  have hbind := hstack
+  rw [apply_pileStack_iff] at hstack
+  obtain ⟨htopR, bq, hbotR, hrkR, -⟩ := hstack
+  cases m with
+  | draw =>
+      have hmraw := hm
+      rw [apply_draw_iff] at hm
+      obtain ⟨rfl⟩ := hm
+      -- the stock edit cannot move z' or its seat: both reads are rfl
+      have htopS : S.board.topOf (Sum.inr z') = none := htopR
+      have hbotS : S.board.bottomOf z' = some bq := hbotR
+      have hrkS : z'.rank.toIdx = S.heights z'.suit := hrkR
+      have hstackS : S.apply (Move.pileStack z') = some
+          {S with
+            board := S.board.detach bq,
+            heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s} :=
+        apply_pileStack_iff.mpr ⟨htopS, bq, hbotS, hrkS, rfl⟩
+      obtain ⟨T', hmv⟩ : ∃ T' : State, ({S with
+          board := S.board.detach bq,
+          heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).apply
+          Move.draw = some T' := ⟨_, apply_draw_iff.mpr rfl⟩
+      have hcomm : T = T' := Option.some.inj
+        ((Option.bind_eq_some_iff.mpr ⟨_, hmraw, hbind⟩).symm.trans
+          ((deal_commutes_nonStock S (Move.pileStack z') rfl).symm.trans
+            (Option.bind_eq_some_iff.mpr ⟨_, hstackS, hmv⟩)))
+      subst hcomm
+      exact run_cons_intro hstackS (run_cons_intro hmv hrest)
+  | reveal c =>
+      have hmraw := hm
+      rw [apply_reveal_iff] at hm
+      obtain ⟨htopc, r, a, bd₀, hbotc, hp, hatt, rfl⟩ := hm
+      -- the exclusions from the z'-cleanliness
+      have hhz : Sum.inr z' ≠ S.hiddenBase a :=
+        fun hcon => hbases (S.hiddenBase a) (by simp [Move.touch, hbotc, hp]) hcon.symm
+      have hczz : c ≠ z' := hcards c (by simp [Move.touch, hbotc, hp])
+      have hrzz : r ≠ z' := hcards r (by simp [Move.touch, hbotc, hp])
+      -- the invariances: z' bare, seated, rung-exact at S too
+      have htopS : S.board.topOf (Sum.inr z') = none :=
+        (Board.attach_topOf_ne S.board (S.hiddenBase a) r hatt hhz).symm.trans htopR
+      have hbotS : S.board.bottomOf z' = some bq :=
+        (bottomOf_attach_ne hatt (fun hcon => hrzz hcon.symm)).symm.trans hbotR
+      have hrkS : z'.rank.toIdx = S.heights z'.suit := hrkR
+      have hbq : S.board.topOf bq = some z' :=
+        (Board.bottomOf_eq S.board z' bq).mp hbotS
+      -- the reveal's attach seat is off the stacking's detach seat
+      have hhhb : S.hiddenBase a ≠ bq := by
+        intro hcon
+        have hfree : S.board.topOf (S.hiddenBase a) = none :=
+          ((Board.attach_eq_some_iff S.board (S.hiddenBase a) r).mp
+            (by rw [hatt]; simp)).1
+        rw [hcon] at hfree
+        rw [hfree] at hbq
+        exact absurd hbq (by simp)
+      have hicbq : Sum.inr c ≠ bq := by
+        intro hcon
+        rw [← hcon] at hbq
+        rw [hbq] at htopc
+        exact absurd htopc (by simp)
+      have hstackS : S.apply (Move.pileStack z') = some
+          {S with
+            board := S.board.detach bq,
+            heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s} :=
+        apply_pileStack_iff.mpr ⟨htopS, bq, hbotS, hrkS, rfl⟩
+      -- the reveal at the stacked state: every guard survives the edit
+      have htopc₀ : (S.board.detach bq).topOf (Sum.inr c) = none := by
+        rw [Board.detach_topOf_ne _ _ _ hicbq]
+        exact htopc
+      have hbotc₀ : (S.board.detach bq).bottomOf c = some (Sum.inr r) := by
+        rw [bottomOf_detach_ne hbq hczz]
+        exact hbotc
+      have hfreehb : S.board.topOf (S.hiddenBase a) = none :=
+        ((Board.attach_eq_some_iff S.board (S.hiddenBase a) r).mp
+          (by rw [hatt]; simp)).1
+      have hbotr : S.board.bottomOf r = none :=
+        ((Board.attach_eq_some_iff S.board (S.hiddenBase a) r).mp
+          (by rw [hatt]; simp)).2
+      obtain ⟨bd₁, hatt₁⟩ : ∃ bd₁, (S.board.detach bq).attach (S.hiddenBase a) r
+          = some bd₁ := by
+        have hne : ((S.board.detach bq).attach (S.hiddenBase a) r) ≠ none :=
+          (Board.attach_eq_some_iff _ _ _).mpr
+            ⟨by rw [Board.detach_topOf_ne _ _ _ hhhb];
+                exact hfreehb,
+             by rw [bottomOf_detach_ne hbq hrzz]; exact hbotr⟩
+        cases hx : (S.board.detach bq).attach (S.hiddenBase a) r with
+        | none => rw [hx] at hne; exact absurd hne (by simp)
+        | some bd₁ => exact ⟨bd₁, rfl⟩
+      obtain ⟨T', hmv⟩ : ∃ T' : State, ({S with
+          board := S.board.detach bq,
+          heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).apply
+          (Move.reveal c) = some T' :=
+        ⟨_, apply_reveal_iff
+          (st := {S with
+            board := S.board.detach bq,
+            heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).mpr
+          ⟨htopc₀, r, a, bd₁, hbotc₀, hp, hatt₁, rfl⟩⟩
+      have hdisj : disjointTouch ((Move.reveal c).touch S)
+          ((Move.pileStack z').touch S) := by
+        refine ⟨?_, ?_⟩
+        · intro b hbmem hbmem'
+          simp only [Move.touch, hbotc, hp] at hbmem
+          simp only [Move.touch, hbotS, Option.toList_some] at hbmem'
+          have hb₁ : b = S.hiddenBase a := List.mem_singleton.mp hbmem
+          have hb₂ : b = bq := List.mem_singleton.mp hbmem'
+          exact hhhb (hb₁.symm.trans hb₂)
+        · intro x hxmem hxmem'
+          simp only [Move.touch] at hxmem'
+          exact hcards x hxmem (List.mem_singleton.mp hxmem')
+      have hcomm : T = T' := comm_reveal_pileStack hdisj
+          (Option.bind_eq_some_iff.mpr ⟨_, hmraw, hbind⟩)
+          (Option.bind_eq_some_iff.mpr ⟨_, hstackS, hmv⟩)
+      subst hcomm
+      exact run_cons_intro hstackS (run_cons_intro hmv hrest)
+  | deckPile c b =>
+      have hmraw := hm
+      rw [apply_deckPile_iff] at hm
+      obtain ⟨hprev, hcp, bd₀, hatt, rfl⟩ := hm
+      -- the exclusions and the landing's freedom
+      have hbbz : b ≠ Sum.inr z' := hbases b (by simp [Move.touch])
+      have hccz : c ≠ z' := hcards c (by simp [Move.touch])
+      -- the invariances: z' bare, seated, rung-exact at S too
+      have htopS : S.board.topOf (Sum.inr z') = none :=
+        (Board.attach_topOf_ne S.board b c hatt (fun hcon => hbbz hcon.symm)).symm.trans htopR
+      have hbotS : S.board.bottomOf z' = some bq :=
+        (bottomOf_attach_ne hatt (fun hcon => hccz hcon.symm)).symm.trans hbotR
+      have hrkS : z'.rank.toIdx = S.heights z'.suit := hrkR
+      have hbq : S.board.topOf bq = some z' :=
+        (Board.bottomOf_eq S.board z' bq).mp hbotS
+      have hbne : b ≠ bq := by
+        intro hcon
+        have hfree : S.board.topOf b = none := topOf_of_canPlace hcp
+        rw [hcon] at hfree
+        rw [hfree] at hbq
+        exact absurd hbq (by simp)
+      have hstackS : S.apply (Move.pileStack z') = some
+          {S with
+            board := S.board.detach bq,
+            heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s} :=
+        apply_pileStack_iff.mpr ⟨htopS, bq, hbotS, hrkS, rfl⟩
+      -- the deckPile at the stacked state: the stock read is untouched
+      -- and the placement guards survive the one-seat edit
+      have htopb₀ : (S.board.detach bq).topOf b = none := by
+        rw [Board.detach_topOf_ne _ _ _ hbne]
+        exact topOf_of_canPlace hcp
+      have hbotc₀ : (S.board.detach bq).bottomOf c = none := by
+        rw [bottomOf_detach_ne hbq hccz]
+        exact ((Board.attach_eq_some_iff S.board b c).mp (by rw [hatt]; simp)).2
+      obtain ⟨bd₁, hatt₁⟩ : ∃ bd₁, (S.board.detach bq).attach b c = some bd₁ := by
+        have hne : ((S.board.detach bq).attach b c) ≠ none :=
+          (Board.attach_eq_some_iff _ _ _).mpr ⟨htopb₀, hbotc₀⟩
+        cases hx : (S.board.detach bq).attach b c with
+        | none => rw [hx] at hne; exact absurd hne (by simp)
+        | some bd₁ => exact ⟨bd₁, rfl⟩
+      have hcp₀ : ({S with
+            board := S.board.detach bq,
+            heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).canPlace
+            c b = true := by
+        cases b with
+        | inl a =>
+            have h2 := canPlace_inl_iff.mp hcp
+            refine canPlace_inl_iff.mpr ⟨?_, h2.2⟩
+            have h1 : (S.board.detach bq).topOf (Sum.inl a) = S.board.topOf (Sum.inl a) :=
+              Board.detach_topOf_ne _ _ _ hbne
+            rw [h1]
+            exact h2.1
+        | inr d =>
+            have h3 := canPlace_inr_iff.mp hcp
+            have hdz : d ≠ z' := fun hcon => hbbz (by rw [hcon])
+            refine canPlace_inr_iff.mpr ⟨?_, ?_, h3.2.2⟩
+            · have h1 : (S.board.detach bq).topOf (Sum.inr d)
+                  = S.board.topOf (Sum.inr d) :=
+                Board.detach_topOf_ne _ _ _ hbne
+              rw [h1]
+              exact h3.1
+            · have h2 : (S.board.detach bq).bottomOf d = S.board.bottomOf d :=
+                bottomOf_detach_ne hbq hdz
+              show ((S.board.detach bq).bottomOf d).isSome = true
+              rw [h2]
+              exact h3.2.1
+      obtain ⟨T', hmv⟩ : ∃ T' : State, ({S with
+          board := S.board.detach bq,
+          heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).apply
+          (Move.deckPile c b) = some T' :=
+        ⟨_, apply_deckPile_iff
+          (st := {S with
+            board := S.board.detach bq,
+            heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).mpr
+          ⟨hprev, hcp₀, bd₁, hatt₁, rfl⟩⟩
+      have hdisj : disjointTouch ((Move.deckPile c b).touch S)
+          ((Move.pileStack z').touch S) := by
+        refine ⟨?_, ?_⟩
+        · intro b₁ hbmem hbmem'
+          simp only [Move.touch] at hbmem
+          simp only [Move.touch, hbotS, Option.toList_some] at hbmem'
+          have hb₁ : b₁ = b := List.mem_singleton.mp hbmem
+          have hb₂ : b₁ = bq := List.mem_singleton.mp hbmem'
+          exact hbne (hb₁.symm.trans hb₂)
+        · intro x hxmem hxmem'
+          simp only [Move.touch] at hxmem'
+          exact hcards x hxmem (List.mem_singleton.mp hxmem')
+      have hcomm : T = T' := comm_deckPile_pileStack hdisj
+          (Option.bind_eq_some_iff.mpr ⟨_, hmraw, hbind⟩)
+          (Option.bind_eq_some_iff.mpr ⟨_, hstackS, hmv⟩)
+      subst hcomm
+      exact run_cons_intro hstackS (run_cons_intro hmv hrest)
+  | pilePile c b =>
+      have hmraw := hm
+      rw [apply_pilePile_iff] at hm
+      obtain ⟨β₀, hbotc, hne, hcmr, bd₀, hatt, rfl⟩ := hm
+      have htopβ₀ : S.board.topOf β₀ = some c :=
+        (Board.bottomOf_eq S.board c β₀).mp hbotc
+      have hccz : c ≠ z' := hcards c (by simp [Move.touch])
+      have hbbz : b ≠ Sum.inr z' := hbases b (by simp [Move.touch])
+      have hβ₀bz : β₀ ≠ Sum.inr z' :=
+        hbases β₀ (by simp [Move.touch, hbotc, Option.toList_some])
+      have hcpst : S.canPlace c b = true := by
+        simp only [State.canMoveRun, Bool.and_eq_true_iff] at hcmr
+        exact hcmr.1
+      -- the invariances: z' bare, seated, rung-exact at S too
+      have htopS : S.board.topOf (Sum.inr z') = none := by
+        have h1 : bd₀.topOf (Sum.inr z') = none := htopR
+        rw [Board.attach_topOf_ne _ _ _ hatt (fun hcon => hbbz hcon.symm),
+          Board.detach_topOf_ne _ _ _ (fun hcon => hβ₀bz hcon.symm)] at h1
+        exact h1
+      have hbotS : S.board.bottomOf z' = some bq := by
+        have h1 : bd₀.bottomOf z' = some bq := hbotR
+        rw [bottomOf_attach_ne hatt (fun hcon => hccz hcon.symm),
+          bottomOf_detach_ne htopβ₀ (fun hcon => hccz hcon.symm)] at h1
+        exact h1
+      have hrkS : z'.rank.toIdx = S.heights z'.suit := hrkR
+      -- the two touched bases are off the stacking's detach seat
+      have hbq : S.board.topOf bq = some z' :=
+        (Board.bottomOf_eq S.board z' bq).mp hbotS
+      have hbne : b ≠ bq := by
+        intro hcon
+        have hfree : S.board.topOf b = none := topOf_of_canPlace hcpst
+        rw [hcon] at hfree
+        rw [hfree] at hbq
+        exact absurd hbq (by simp)
+      have hβ₀ne : β₀ ≠ bq := by
+        intro hcon
+        rw [hcon] at hbotc
+        have hcq : S.board.topOf bq = some c := (Board.bottomOf_eq S.board c bq).mp hbotc
+        rw [hbq] at hcq
+        exact hccz (Option.some.inj hcq).symm
+      have hstackS : S.apply (Move.pileStack z') = some
+          {S with
+            board := S.board.detach bq,
+            heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s} :=
+        apply_pileStack_iff.mpr ⟨htopS, bq, hbotS, hrkS, rfl⟩
+      -- the pilePile at the stacked state: the root's base, the
+      -- landing, the run guard, and the attach all survive the edit
+      have hbotc₀ : (S.board.detach bq).bottomOf c = some β₀ := by
+        rw [bottomOf_detach_ne hbq hccz]
+        exact hbotc
+      have hcp₀ : ({S with
+            board := S.board.detach bq,
+            heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).canPlace
+            c b = true := by
+        cases b with
+        | inl a =>
+            have h2 := canPlace_inl_iff.mp hcpst
+            refine canPlace_inl_iff.mpr ⟨?_, h2.2⟩
+            have h1 : (S.board.detach bq).topOf (Sum.inl a) = S.board.topOf (Sum.inl a) :=
+              Board.detach_topOf_ne _ _ _ hbne
+            rw [h1]
+            exact h2.1
+        | inr d =>
+            have h3 := canPlace_inr_iff.mp hcpst
+            have hdz : d ≠ z' := fun hcon => hbbz (by rw [hcon])
+            refine canPlace_inr_iff.mpr ⟨?_, ?_, h3.2.2⟩
+            · have h1 : (S.board.detach bq).topOf (Sum.inr d)
+                  = S.board.topOf (Sum.inr d) :=
+                Board.detach_topOf_ne _ _ _ hbne
+              rw [h1]
+              exact h3.1
+            · have h2 : (S.board.detach bq).bottomOf d = S.board.bottomOf d :=
+                bottomOf_detach_ne hbq hdz
+              show ((S.board.detach bq).bottomOf d).isSome = true
+              rw [h2]
+              exact h3.2.1
+      have hcmr₀ : ({S with
+            board := S.board.detach bq,
+            heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).canMoveRun
+            c b = true := by
+        cases b with
+        | inl a => simp only [State.canMoveRun, hcp₀]; rfl
+        | inr d =>
+            refine canMoveRun_inr_iff.mpr ⟨hcp₀, ?_⟩
+            show ((S.board.detach bq).aboveOf c).contains d = false
+            cases hcon : ((S.board.detach bq).aboveOf c).contains d with
+            | false => rfl
+            | true =>
+                have hmem : d ∈ (S.board.detach bq).aboveOf c :=
+                  (List.contains_iff_mem).mp hcon
+                have hmem' : d ∈ S.board.aboveOf c :=
+                  Board.aboveOf_sub_detach 52 c [] d hmem
+                have hfalse := (canMoveRun_inr_iff.mp hcmr).2
+                rw [List.contains_iff_mem.mpr hmem'] at hfalse
+                exact absurd hfalse (by simp)
+      -- the attach at the doubly-detached board
+      have hfree₀ : (S.board.detach β₀).topOf b = none := by
+        rw [Board.detach_topOf_ne _ _ _ (fun hcon => hne hcon.symm)]
+        exact topOf_of_canPlace hcpst
+      have hbqβ₀ : bq ≠ β₀ := fun hcon => hβ₀ne hcon.symm
+      have htopbqβ₀ : (S.board.detach β₀).topOf bq = some z' := by
+        rw [Board.detach_topOf_ne _ _ _ hbqβ₀]
+        exact hbq
+      have hne' : ((S.board.detach bq).detach β₀).attach b c ≠ none := by
+        refine (Board.attach_eq_some_iff _ _ _).mpr ⟨?_, ?_⟩
+        · rw [detach_detach_comm hbqβ₀, Board.detach_topOf_ne _ _ _ hbne]
+          exact hfree₀
+        · rw [detach_detach_comm hbqβ₀, bottomOf_detach_ne htopbqβ₀ hccz,
+            Board.bottomOf_detach_self htopβ₀]
+      obtain ⟨bd₁, hatt₁⟩ : ∃ bd₁, ((S.board.detach bq).detach β₀).attach b c
+          = some bd₁ := by
+        have := hne'
+        cases hx : ((S.board.detach bq).detach β₀).attach b c with
+        | none => rw [hx] at this; exact absurd this (by simp)
+        | some bd₁ => exact ⟨bd₁, rfl⟩
+      obtain ⟨T', hmv⟩ : ∃ T' : State, ({S with
+          board := S.board.detach bq,
+          heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).apply
+          (Move.pilePile c b) = some T' :=
+        ⟨_, apply_pilePile_iff.mpr ⟨β₀, hbotc₀, hne, hcmr₀, bd₁, hatt₁, rfl⟩⟩
+      have hdisj : disjointTouch ((Move.pilePile c b).touch S)
+          ((Move.pileStack z').touch S) := by
+        refine ⟨?_, ?_⟩
+        · intro b₁ hbmem hbmem'
+          simp only [Move.touch, hbotc, Option.toList_some] at hbmem
+          simp only [Move.touch, hbotS, Option.toList_some] at hbmem'
+          rcases List.mem_cons.mp hbmem with hb₁ | hb₁
+          · exact hbne (hb₁.symm.trans (List.mem_singleton.mp hbmem'))
+          · exact hβ₀ne ((List.mem_singleton.mp hb₁).symm.trans
+              (List.mem_singleton.mp hbmem'))
+        · intro x hxmem hxmem'
+          simp only [Move.touch] at hxmem'
+          exact hcards x hxmem (List.mem_singleton.mp hxmem')
+      have hcomm : T = T' :=
+        (comm_pileStack_pilePile (disjointTouch_symm hdisj)
+          (Option.bind_eq_some_iff.mpr ⟨_, hstackS, hmv⟩)
+          (Option.bind_eq_some_iff.mpr ⟨_, hmraw, hbind⟩)).symm
+      subst hcomm
+      exact run_cons_intro hstackS (run_cons_intro hmv hrest)
+  | deckStack c => exact absurd hkind (by simp [Move.heightBlind])
+  | pileStack c => exact absurd hkind (by simp [Move.heightBlind])
+  | stackPile c b => exact absurd hkind (by simp [Move.heightBlind])
+
+/-- **The bubble**: the second stacking commutes past a whole z'-clean
+segment, the terminal state preserved — the left-decomposition
+induction (the IH bubbles the tail at the post-head state, the single
+swap reorders the head). -/
+theorem State.run_bubble_stacking (z' : Card) : ∀ (π₂ : List Move) (S T : State),
+    S.run (π₂ ++ [Move.pileStack z']) = some T →
+    State.ZCleanRun z' π₂ S →
+    ∃ T' : State, S.run (Move.pileStack z' :: π₂) = some T' ∧ T' = T := by
+  intro π₂
+  induction π₂ with
+  | nil =>
+      intro S T hrun _
+      exact ⟨T, hrun, rfl⟩
+  | cons m rest ih =>
+      intro S T hrun hclean
+      obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+      obtain ⟨hcm, hcr⟩ := hclean
+      rw [hm] at hcr
+      obtain ⟨T'', hrun'', heq⟩ := ih R T hrest1 hcr
+      exact ⟨T'', State.stacking_swap_zclean hcm (run_cons_intro hm hrun''), heq⟩
+
+/-- The height-blind kinds' pre-episode admission carries no condition:
+a firing draw/reveal/deckPile/pilePile at a pre-phase state continues
+the play pre-admitted, the phase unchanged. -/
+theorem State.playWindow'_cons_heightBlind {z : Card} {σ : Suit} {S R : State}
+    {m : Move} {ms : List Move}
+    (hkind : Move.heightBlind m = true) (hS : S.apply m = some R) :
+    State.playWindow' z σ State.WindowEp.pre S (m :: ms)
+      = State.playWindow' z σ State.WindowEp.pre R ms := by
+  cases m with
+  | draw => simp only [State.playWindow', hS]
+  | reveal c => simp only [State.playWindow', hS]
+  | deckPile c b => simp only [State.playWindow', hS]
+  | pilePile c b => simp only [State.playWindow', hS]
+  | deckStack c => exact absurd hkind (by simp [Move.heightBlind])
+  | pileStack c => exact absurd hkind (by simp [Move.heightBlind])
+  | stackPile c b => exact absurd hkind (by simp [Move.heightBlind])
+
+/-- The kinds-only extraction from a z-clean run segment: along a run
+the segment's moves are all height-blind. -/
+theorem State.zcleanRun_heightBlind_of_run {z' : Card} :
+    ∀ (π : List Move) (S T : State), S.run π = some T → State.ZCleanRun z' π S →
+    ∀ m ∈ π, Move.heightBlind m = true := by
+  intro π
+  induction π with
+  | nil => intro S T _ _ m hm; exact absurd hm (by simp)
+  | cons m rest ih =>
+      intro S T hrun hclean m' hm'
+      obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+      obtain ⟨hcm, hcr⟩ := hclean
+      rw [hm] at hcr
+      rcases List.mem_cons.mp hm' with rfl | hm''
+      · exact hcm.1
+      · exact ih R T hrest1 hcr m' hm''
+
+/-- **The height-blind prefix admission**: a run of height-blind moves
+that ends admitted at `T` is admitted from the start `S` — the
+pre-phase arms carry no condition, so each firing kind just extends the
+admitted play frontward. -/
+theorem State.playWindow'_append_heightBlind {z : Card} {σ : Suit} :
+    ∀ (π : List Move) (S T : State) (tail : List Move),
+    S.run π = some T →
+    (∀ m ∈ π, Move.heightBlind m = true) →
+    State.playWindow' z σ State.WindowEp.pre T tail = true →
+    State.playWindow' z σ State.WindowEp.pre S (π ++ tail) = true := by
+  intro π
+  induction π with
+  | nil =>
+      intro S T tail hrun _ htail
+      obtain rfl := run_nil_elim hrun
+      exact htail
+  | cons m rest ih =>
+      intro S T tail hrun hkinds htail
+      obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
+      rw [List.cons_append, State.playWindow'_cons_heightBlind
+        (hkinds m (by simp)) hm]
+      exact ih R T tail hrest1 (fun m' hm' => hkinds m' (List.mem_cons_of_mem _ hm'))
+        htail
+
+/-- **The selective re-scheduling normalization**: at a both-bare
+licensed state, a winning play whose head is the z-stacking followed by
+a z'-clean height-blind segment, the z'-stacking, and an arbitrary
+winning tail gives `solvableWindow'` — the bubbled play
+[pileStack z; pileStack z'; π₂; π₃] wins identically (the bubble, the
+terminal state preserved), so the ADJACENT-HEAD sufficiency
+(`playWindow'_of_eq_heights`) applies, the height-blind π₂ being
+unconditionally pre-admitted so the tail premise reduces to π₃'s at
+the same terminal state. -/
+theorem State.playWindow'_of_rescheduled {st : State} {t z z' : Card}
+    (hwf : st.WF)
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hztop : st.board.topOf (Sum.inr t) = some z)
+    (hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z')
+    (hbare : st.board.topOf (Sum.inr z) = none ∧ st.board.topOf (Sum.inr z') = none)
+    (hplay : ∃ (π₂ π₃ : List Move) (W : State),
+      st.run (Move.pileStack z :: π₂ ++ Move.pileStack z' :: π₃) = some W ∧
+      W.isWin = true ∧
+      ∃ S₁ : State, st.apply (Move.pileStack z) = some S₁ ∧
+        State.ZCleanRun z' π₂ S₁ ∧
+        ∃ T₃ : State, S₁.run (π₂ ++ [Move.pileStack z']) = some T₃ ∧
+          (¬ (z.rank.toIdx ≤ st.heights (Card.flipSuit z).suit) ∨
+            State.playWindow' z z.suit State.WindowEp.pre T₃ π₃ = true))
+    (_hsol : st.solvableFrom) :
+    st.solvableWindow' z z.suit := by
+  obtain ⟨π₂, π₃, W, hrunW, hwin, S₁, hfire₁, hclean, T₃, hrun₃, hcase⟩ := hplay
+  -- the middle's decomposition (the determinism plumbing, once)
+  have hmid := hrun₃
+  rw [run_append] at hmid
+  obtain ⟨R₂, hrunπ₂, htail⟩ := Option.bind_eq_some_iff.mp hmid
+  obtain ⟨T₃b, hfirez, hnileq⟩ := run_cons_elim htail
+  rw [run_nil_elim hnileq] at hfirez
+  -- the winning tail from the original play
+  have hrunπ₃ : T₃.run π₃ = some W := by
+    obtain ⟨S₁', hfire₁', hrest⟩ := run_cons_elim hrunW
+    rw [show S₁' = S₁ from Option.some.inj (hfire₁'.symm.trans hfire₁)] at hrest
+    obtain ⟨R₂', hrunπ₂', hpost⟩ := Option.bind_eq_some_iff.mp
+      ((run_append S₁ π₂ (Move.pileStack z' :: π₃)).symm.trans hrest)
+    rw [show R₂' = R₂ from Option.some.inj (hrunπ₂'.symm.trans hrunπ₂)] at hpost
+    obtain ⟨T₃', hfirez', hrest'⟩ := run_cons_elim hpost
+    rw [show T₃' = T₃ from Option.some.inj (hfirez'.symm.trans hfirez)] at hrest'
+    exact hrest'
+  -- the kinds of π₂ (the cleanliness gives the height-blindness along the run)
+  have hkinds : ∀ m ∈ π₂, Move.heightBlind m = true :=
+    State.zcleanRun_heightBlind_of_run π₂ S₁ R₂ hrunπ₂ hclean
+  -- the bubble: the second stacking past π₂, the composite state preserved
+  obtain ⟨T', hbubble, hT'⟩ := State.run_bubble_stacking z' π₂ S₁ T₃ hrun₃ hclean
+  obtain ⟨S₂, hfire₂, hrunπ₂'⟩ := run_cons_elim hbubble
+  have hrunπ₃' : T'.run π₃ = some W := by rw [hT']; exact hrunπ₃
+  -- the bubbled adjacent-head play wins identically
+  have hbubbled : st.run (Move.pileStack z :: Move.pileStack z' :: π₂ ++ π₃)
+      = some W := by
+    refine run_cons_intro hfire₁ ?_
+    exact run_append_some hbubble hrunπ₃'
+  -- the adjacent-head sufficiency applies; the tail premise reduces to π₃'s
+  refine State.playWindow'_of_eq_heights hwf hfit hfit' hztop hztop' hbare
+    ⟨π₂ ++ π₃, W, hbubbled, hwin, ?_⟩ _hsol
+  rcases hcase with hfailskew | htail
+  · exact Or.inl hfailskew
+  · refine Or.inr ?_
+    intro S₂' hS₂'
+    obtain ⟨S₁'', hfire₁'', hrestz⟩ := run_cons_elim hS₂'
+    rw [show S₁'' = S₁ from Option.some.inj (hfire₁''.symm.trans hfire₁)] at hrestz
+    obtain ⟨S₂'', hfire₂'', hfin⟩ := run_cons_elim hrestz
+    rw [show S₂' = S₂ from (run_nil_elim hfin).symm.trans
+      (Option.some.inj (hfire₂''.symm.trans hfire₂))]
+    exact State.playWindow'_append_heightBlind π₂ S₂ T' π₃ hrunπ₂' hkinds
+      (by rw [hT']; exact htail)
