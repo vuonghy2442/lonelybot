@@ -51,11 +51,15 @@ The step's cases (the EngineWitness shapes are the fence posts):
    statements fall and the model needs the run-carrying-reveal repair
    (track R, design decision — recorded in FARM.md).
 
-Refute-first gate: reachability probe — reconstruct the EngineWitness
-state by an *engine* play from `State.initial wdeal 1`
-(`witnesses/EngineWitness.lean` has both).  If unreachable, the
-`initialReachable` hypothesis is doing its job; if reachable,
-escalate before farming the sorries below.
+Refute-first gate: reachability probe - reconstruct the EngineWitness
+state by a play from `State.initial wdeal 1`.  **CLOSED 2026-09-15 -
+unreachable**: `witnesses/EngineReachProbe.lean` proves
+`EngineWitness.wstate_not_reachable : initialReachable wstate -> False` by a
+four-way probe invariant on the mono-suit pile `p3` (its inner edges
+form only through descending reveals, and digging past them breaks a
+same-suit link that `canSitOn` can never re-form).  Stronger than the
+gate asked: unreachability holds against the FULL move set.  The
+statement below stands as written; the escape hatch (case 3) is empty.
 -/
 
 /-- Reachable from a dealt game: the domain the engine actually plays

@@ -195,11 +195,17 @@ naive all-states iff was refuted (EngineWitness; the model's `reveal`
 is bare-trigger, the engine's `Reveal` is run-carrying) — the repaired
 statements are scoped by the new `initialReachable` predicate.
 
-**Refute-first gate (run before farming the rows)**: replay the
-EngineWitness state by an *engine* play from `State.initial wdeal 1`
-(`witnesses/EngineWitness.lean`, `wstate`/`wdeal` are in file).  If
-reachable, the wave-13 statements fall — escalate (the repair is the
-run-carrying-reveal model extension, a design decision below).
+**Refute-first gate (run before farming the rows)** — **CLOSED
+2026-09-15, the statement stands**: `witnesses/EngineReachProbe.lean`
+proves `wstate_not_reachable : ¬ initialReachable wstate` (axioms
+`[propext, Classical.choice, Quot.sound]`).  Maintenance covers the FULL
+move set, not just engine moves: the witness's pristine mono-suit `p3`
+chain can't survive its own digging (the four-way disjunction protects
+"fully dug ⇒ chain scarred"; the 1→0 reveal kill-move is disarmed by
+the cover-pinning aux: only `wh9` ever covers the still-hidden `wh10`'s
+seat, so when it can leave bare, the middle link is already broken).
+The initialReachable hypothesis is doing exactly its job; the
+run-carrying-reveal repair stays in the drawer.
 
 | item | file:line | tag | route |
 |---|---|---|---|
