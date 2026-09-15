@@ -1017,3 +1017,158 @@ theorem State.solvable_of_twinCorr_window {S M : State} {z : Card}
     hcorr hMle hwf hhid hstock hplay hrun
   exact ⟨play.map (Move.relabelTwin (Card.swapTwin z)), N, hrun',
     State.twinCorr_isWin_of_le hcorr' hwin (State.heights_le_run hMle hrun')⟩
+
+/-! ## §10. The growth engagement -/
+
+/-- **The pair-group cancellation**: composing the two swaps of the
+SAME twin pair is the identity — so a growth at either member of the
+window's pair `{z, flipSuit z}` (from the base map `swapTwin z`)
+returns the correspondence to the identity map. -/
+theorem Card.swapTwin_pair_comp (z : Card) :
+    (Card.swapTwin (Card.flipSuit z) ∘ Card.swapTwin z) = id := by
+  funext x
+  by_cases hx : x = z
+  · rw [hx]
+    show Card.swapTwin (Card.flipSuit z) (Card.swapTwin z z) = z
+    rw [Card.swapTwin_self_left, Card.swapTwin_self_left, Card.flipSuit_flipSuit]
+  · by_cases hx' : x = Card.flipSuit z
+    · rw [hx']
+      show Card.swapTwin (Card.flipSuit z) (Card.swapTwin z (Card.flipSuit z))
+        = Card.flipSuit z
+      rw [Card.swapTwin_self_right]
+      unfold Card.swapTwin
+      rw [if_neg (Card.flipSuit_ne z).symm,
+        if_pos (show z = Card.flipSuit (Card.flipSuit z) from (Card.flipSuit_flipSuit z).symm)]
+    · show Card.swapTwin (Card.flipSuit z) (Card.swapTwin z x) = x
+      rw [Card.swapTwin_of_ne hx hx',
+        Card.swapTwin_of_ne hx' (fun hcon => absurd (hcon.trans (Card.flipSuit_flipSuit z)) hx)]
+
+/-- **The rung equality under a pointwise-fixing map**: when the
+correspondence's `ρ` fixes EVERY card (the post-growth identity — the
+mid-episode and post-episode regime), the stacked-set iff is the
+identity on every card, so the two games' heights are EQUAL at every
+suit (the 52-count on both sides caps the cut argument).  This is the
+rung alignment for the whole post-episode regime: no skew condition
+is needed — the firing rung transfers directly. -/
+theorem State.TwinCore.heights_eq_of_fix {ρ σ S M} (h : State.TwinCore ρ σ S M)
+    (hfix : ∀ c, ρ c = c)
+    (hMle : ∀ s, M.heights s ≤ 13) (hSle : ∀ s, S.heights s ≤ 13) :
+    ∀ s, M.heights s = S.heights s := by
+  intro s
+  by_cases hon : s = σ ∨ s = σ.flipPair
+  · have hcut : ∀ r : Rank, r.toIdx < 13 →
+        (M.heights s > r.toIdx ↔ S.heights s > r.toIdx) := by
+      intro r hr
+      have honc : (Card.mk s r).suit = σ ∨ (Card.mk s r).suit = σ.flipPair := by
+        show s = σ ∨ s = σ.flipPair
+        exact hon
+      have hiff := h.stacked_iff (Card.mk s r) honc
+      rw [hfix (Card.mk s r)] at hiff
+      exact hiff
+    rcases Nat.lt_trichotomy (M.heights s) (S.heights s) with hlt | heq | hgt
+    · exfalso
+      have hM13 : M.heights s < 13 := Nat.lt_of_lt_of_le hlt (hSle s)
+      obtain ⟨r, hr⟩ := Rank.exists_toIdx (M.heights s) hM13
+      have h1 : ¬ (M.heights s > r.toIdx) := by rw [hr]; omega
+      have h2 : S.heights s > r.toIdx := by rw [hr]; omega
+      exact h1 ((hcut r (by rw [hr]; omega)).mpr h2)
+    · exact heq
+    · exfalso
+      have hS13 : S.heights s < 13 := Nat.lt_of_lt_of_le hgt (hMle s)
+      obtain ⟨r, hr⟩ := Rank.exists_toIdx (S.heights s) hS13
+      have h1 : ¬ (S.heights s > r.toIdx) := by rw [hr]; omega
+      have h2 : M.heights s > r.toIdx := by rw [hr]; omega
+      exact h1 ((hcut r (by rw [hr]; omega)).mp h2)
+  · exact h.heights_off s (fun hcon => hon (Or.inl hcon))
+      (fun hcon => hon (Or.inr hcon))
+
+/-- **The misalignment from the failed skew** (the growth's `hmis`
+supply): for a PAIR card's on-suit stack (the moved card is `z` or its
+twin), the failed skew — the partner suit's source rung strictly below
+the moved rank — FORCES the mirror's misalignment.  The proof: the
+stacked-set iff at the moved card caps the mirror's rung at the moved
+rank, and the iff at every lower card of the partner suit (all of them
+ρ-fixed — the pair members sit AT the moved rank, not below) would
+push the partner rung up to the moved rank — so an aligned mirror
+would re-derive the skew.  This is the dispatch hinge of the growth
+engagement: `¬skew` legitimately routes the pair-stack to the
+growth. -/
+theorem State.TwinCore.rung_ne_of_noskew_pair {z : Card} {σ S M} {q : Card}
+    (h : State.TwinCore (Card.swapTwin z) σ S M)
+    (hon : q.suit = σ ∨ q.suit = σ.flipPair)
+    (hq : S.heights q.suit = q.rank.toIdx)
+    (hpair : q = z ∨ q = Card.flipSuit z)
+    (hnoskew : ¬ (q.rank.toIdx ≤ S.heights (Card.flipSuit q).suit)) :
+    M.heights (Card.swapTwin z q).suit ≠ q.rank.toIdx := by
+  intro halign
+  -- the alignment's suit/rank bookkeeping:
+  have hρsuit : (Card.swapTwin z q).suit = (Card.flipSuit q).suit := by
+    rcases hpair with hp | hp
+    · rw [hp]
+      show (Card.swapTwin z z).suit = (Card.flipSuit z).suit
+      rw [Card.swapTwin_self_left]
+    · rw [hp]
+      show (Card.swapTwin z (Card.flipSuit z)).suit = (Card.flipSuit (Card.flipSuit z)).suit
+      rw [Card.swapTwin_self_right, Card.flipSuit_flipSuit]
+  have hρrank : (Card.swapTwin z q).rank = q.rank := by
+    rcases hpair with hp | hp
+    · rw [hp]
+      show (Card.swapTwin z z).rank = z.rank
+      rw [Card.swapTwin_self_left, Card.flipSuit_rank]
+    · rw [hp]
+      show (Card.swapTwin z (Card.flipSuit z)).rank = (Card.flipSuit z).rank
+      rw [Card.swapTwin_self_right, Card.flipSuit_rank]
+  -- the partner suit is on-suit (the twin of an on-suit suit):
+  have honf : (Card.flipSuit q).suit = σ ∨ (Card.flipSuit q).suit = σ.flipPair := by
+    show q.suit.flipPair = σ ∨ q.suit.flipPair = σ.flipPair
+    rcases hon with hs | hs
+    · rw [hs]; exact Or.inr rfl
+    · rw [hs]; exact Or.inl (Suit.flipPair_flipPair σ)
+  -- the skew re-derivation: every lower rank card of the partner suit is
+  -- ρ-fixed and its iff pushes the source rung up
+  have hgt : ∀ r : Rank, r.toIdx < q.rank.toIdx →
+      S.heights (Card.flipSuit q).suit > r.toIdx := by
+    intro r hr
+    have honc : (Card.mk (Card.flipSuit q).suit r).suit = σ ∨
+        (Card.mk (Card.flipSuit q).suit r).suit = σ.flipPair := by
+      show (Card.flipSuit q).suit = σ ∨ (Card.flipSuit q).suit = σ.flipPair
+      exact honf
+    have hiff := h.stacked_iff (Card.mk (Card.flipSuit q).suit r) honc
+    have hrk : z.rank.toIdx = q.rank.toIdx := by
+      rcases hpair with hp | hp
+      · rw [hp]
+      · rw [hp, Card.flipSuit_rank]
+    have hfix : Card.swapTwin z (Card.mk (Card.flipSuit q).suit r)
+        = Card.mk (Card.flipSuit q).suit r := by
+      refine Card.swapTwin_of_ne ?_ ?_
+      · intro hcon
+        have h1 : (Card.mk (Card.flipSuit q).suit r).rank.toIdx = z.rank.toIdx := by
+          rw [show (Card.mk (Card.flipSuit q).suit r).rank = z.rank from
+            congrArg Card.rank hcon]
+        have h2 : (Card.mk (Card.flipSuit q).suit r).rank.toIdx = r.toIdx := rfl
+        omega
+      · intro hcon
+        have h1 : (Card.mk (Card.flipSuit q).suit r).rank.toIdx = (Card.flipSuit z).rank.toIdx := by
+          rw [show (Card.mk (Card.flipSuit q).suit r).rank = (Card.flipSuit z).rank from
+            congrArg Card.rank hcon]
+        have h2 : (Card.mk (Card.flipSuit q).suit r).rank.toIdx = r.toIdx := rfl
+        rw [Card.flipSuit_rank] at h1
+        omega
+    rw [hfix] at hiff
+    have hL : M.heights (Card.mk (Card.flipSuit q).suit r).suit
+        > (Card.mk (Card.flipSuit q).suit r).rank.toIdx := by
+      show M.heights (Card.flipSuit q).suit > r.toIdx
+      rw [← hρsuit, halign]
+      omega
+    exact hiff.mp hL
+  -- the pushed-up rung contradicts the failed skew
+  have hk : q.rank.toIdx < 13 := Rank.toIdx_lt q.rank
+  rcases Nat.eq_zero_or_pos q.rank.toIdx with h0 | hpos
+  · exfalso
+    have := hnoskew
+    omega
+  · obtain ⟨r, hr⟩ := Rank.exists_toIdx (q.rank.toIdx - 1) (by omega)
+    have hpush := hgt r (by rw [hr]; omega)
+    rw [hr] at hpush
+    have := hnoskew
+    omega
