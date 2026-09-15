@@ -1222,6 +1222,107 @@ theorem State.TwinCore.rung_eq_unstack_of_ne {z : Card} {σ S M} {c : Card}
     have h2 : rp.toIdx = c.rank.toIdx + 1 := hrp
     omega
 
+/-- **The rung equality with the partner past the pair rank** (the
+post-equalization climb): for a NON-pair on-suit stack whose partner
+suit's rung sits strictly above the pair rank, the mirror's rung is
+aligned REGARDLESS of the skew — the stacked-set iff at the moved
+card caps the mirror, the iff at the partner-suit pair member (the
+cross at the pair rank) pushes the mirror past the pair rank, and the
+non-pair cards between cut identically on both sides.  This kills the
+co-climb's ALTERNATION requirement: after the adjacent pair-stacking
+`[pileStack z; pileStack z']` equalizes the twin rungs, a run of
+same-suit climbs has the skew broken from the second climb on (the
+partner rung stays at z.rank + 1 while the own suit climbs past it),
+but the partner stays past the pair rank — so every climb of the run
+is aligned and admits VERBATIM. -/
+theorem State.TwinCore.rung_eq_of_partner_past {z : Card} {S M} {q : Card}
+    (h : State.TwinCore (Card.swapTwin z) z.suit S M)
+    (hon : q.suit = z.suit ∨ q.suit = z.suit.flipPair)
+    (hq : S.heights q.suit = q.rank.toIdx)
+    (hcρ : Card.swapTwin z q = q)
+    (hpart : z.rank.toIdx < S.heights (Card.flipSuit q).suit)
+    (_hMle : M.heights (Card.swapTwin z q).suit ≤ 13) :
+    M.heights (Card.swapTwin z q).suit = q.rank.toIdx := by
+  rw [hcρ]
+  -- the cap: the iff at the moved card
+  have hiff := h.stacked_iff q hon
+  rw [Card.IsTwinMap.rank h.isTwinMap q, hcρ] at hiff
+  have hle : ¬ (M.heights q.suit > q.rank.toIdx) := by
+    intro hgt
+    have h1 := hiff.mp hgt
+    rw [hq] at h1
+    exact Nat.lt_irrefl _ h1
+  -- the push: the cross at the partner-suit pair member
+  have hpush : M.heights q.suit > z.rank.toIdx := by
+    rcases hon with hqz | hqz
+    · -- q at z's suit: the cross reads flipSuit z (the partner suit)
+      have honf : (Card.flipSuit z).suit = z.suit ∨
+          (Card.flipSuit z).suit = z.suit.flipPair := by
+        show z.suit.flipPair = z.suit ∨ z.suit.flipPair = z.suit.flipPair
+        exact Or.inr rfl
+      have hifff := h.stacked_iff (Card.flipSuit z) honf
+      rw [Card.flipSuit_rank, Card.swapTwin_self_right] at hifff
+      simp only [Card.flipSuit_suit] at hifff
+      -- hifff : M.heights q.suit > z.rank ↔ S.heights z.suit.flipPair > z.rank
+      rw [Card.flipSuit_suit, hqz] at hpart
+      rw [hqz]
+      exact hifff.mpr hpart
+    · -- q at the partner suit: the cross reads z
+      have honz : z.suit = z.suit ∨ z.suit = z.suit.flipPair := Or.inl rfl
+      have hiffz := h.stacked_iff z honz
+      rw [Card.IsTwinMap.rank h.isTwinMap z, Card.swapTwin_self_left] at hiffz
+      simp only [Card.flipSuit_suit] at hiffz
+      -- hiffz : M.heights z.suit.flipPair > z.rank ↔ S.heights z.suit > z.rank
+      rw [Card.flipSuit_suit, hqz, Suit.flipPair_flipPair] at hpart
+      rw [hqz]
+      exact hiffz.mpr hpart
+  -- the in-between non-pair cuts
+  have hcuts : ∀ r : Rank, r.toIdx < q.rank.toIdx → r.toIdx ≠ z.rank.toIdx →
+      M.heights q.suit > r.toIdx := by
+    intro r hr hrne
+    have honr : (Card.mk q.suit r).suit = z.suit ∨
+        (Card.mk q.suit r).suit = z.suit.flipPair := by
+      show q.suit = z.suit ∨ q.suit = z.suit.flipPair
+      exact hon
+    have hiffR := h.stacked_iff (Card.mk q.suit r) honr
+    rw [Card.IsTwinMap.rank h.isTwinMap (Card.mk q.suit r)] at hiffR
+    have hcR : Card.swapTwin z (Card.mk q.suit r) = Card.mk q.suit r := by
+      refine Card.swapTwin_of_ne ?_ ?_
+      · intro hcon
+        have h1 : z.rank = (Card.mk q.suit r).rank := (congrArg Card.rank hcon).symm
+        have h2 : (Card.mk q.suit r).rank = r := rfl
+        rw [h2] at h1
+        exact hrne (by rw [h1])
+      · intro hcon
+        have h1 : z.rank = (Card.mk q.suit r).rank := (congrArg Card.rank hcon).symm
+        have h2 : (Card.mk q.suit r).rank = r := rfl
+        rw [h2] at h1
+        exact hrne (by rw [h1])
+    rw [hcR] at hiffR
+    have h2 : (Card.mk q.suit r).rank.toIdx = r.toIdx := rfl
+    refine hiffR.mpr ?_
+    rw [h2, hq]
+    exact hr
+  -- the assembly: the trichotomy on the mirror's rung — the cuts
+  -- (with the push excluding the pair rank) close the low case
+  rcases Nat.lt_trichotomy (M.heights q.suit) (q.rank.toIdx) with hlt' | heq' | hgt'
+  · exfalso
+    have hk13 := Rank.toIdx_lt q.rank
+    have hk : M.heights q.suit < 13 :=
+      Nat.lt_of_lt_of_le hlt' (Nat.le_of_lt hk13)
+    obtain ⟨r, hr⟩ := Rank.exists_toIdx (M.heights q.suit) hk
+    have hrne : r.toIdx ≠ z.rank.toIdx := by
+      intro hcon
+      have h1 : z.rank.toIdx < M.heights q.suit := hpush
+      rw [← hcon, ← hr] at h1
+      exact Nat.lt_irrefl _ h1
+    have hc := hcuts r (hr ▸ hlt') hrne
+    rw [hr] at hc
+    exact absurd hc (Nat.lt_irrefl (M.heights q.suit))
+  · exact heq'
+  · exact absurd hgt' hle
+
+
 /-! ## §11. The growth-engaged window -/
 
 /-- **The window's episode phase**: the play's position relative to
@@ -1293,9 +1394,13 @@ def State.playWindow' (z : Card) (σ : Suit) (ep : State.WindowEp) (st : State) 
                   (st.board.bottomOf q).elim true
                     (fun b => decide (b ≠ Sum.inr q ∧ b ≠ Sum.inr (Card.flipSuit q))) ∧
                   (st.board.bottomOf (Card.flipSuit q)).elim true
-                    (fun b => decide (b ≠ Sum.inr q ∧ b ≠ Sum.inr (Card.flipSuit q))))) &&
+                    (fun b => decide (b ≠ Sum.inr q ∧ b ≠ Sum.inr (Card.flipSuit q)))) ||
+                decide (Card.swapTwin z q = q ∧
+                  z.rank.toIdx < st.heights (Card.flipSuit q).suit)) &&
               (if (q.suit ≠ σ ∧ q.suit ≠ σ.flipPair) ∨
-                  q.rank.toIdx ≤ st.heights (Card.flipSuit q).suit
+                  (q.rank.toIdx ≤ st.heights (Card.flipSuit q).suit ∨
+                  (Card.swapTwin z q = q ∧
+                    z.rank.toIdx < st.heights (Card.flipSuit q).suit))
                then State.playWindow' z σ .pre st' ms
                else State.playWindow' z σ
                  (.mid (Card.swapTwin z q)
@@ -1564,20 +1669,63 @@ theorem State.twinCorr_run_window' (z : Card) :
                       State.run_cons_comp hfire hrun', ρ', hcorr'⟩
             | pileStack q =>
                 by_cases hif : (q.suit ≠ z.suit ∧ q.suit ≠ z.suit.flipPair) ∨
-                  q.rank.toIdx ≤ S.heights (Card.flipSuit q).suit
-                · -- the verbatim regime: off-suit or skewed
+                  (q.rank.toIdx ≤ S.heights (Card.flipSuit q).suit ∨
+                  (Card.swapTwin z q = q ∧
+                    z.rank.toIdx < S.heights (Card.flipSuit q).suit))
+                · -- the verbatim regime: off-suit, skewed, or the
+                  -- partner-past post-equalization climb
                   simp only [State.playWindow', hS, if_pos hif, Bool.and_eq_true] at hwin
                   obtain ⟨-, hwin'⟩ := hwin
-                  have hok : Move.windowOK (Card.swapTwin z) z.suit S (Move.pileStack q)
-                      = true := by
-                    simp only [Move.windowOK, Bool.or_eq_true, decide_eq_true_iff]
-                    exact hif
-                  obtain ⟨N, hfire, hcorrR⟩ :=
-                    State.twinCorr_step_window hcorr hMle hwf hhid hstock hok hS
-                  obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ := hihpre N hfire hcorrR hwin'
-                  exact ⟨Nf,
-                    Move.relabelTwin (Card.swapTwin z) (Move.pileStack q) :: nplay',
-                    State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                  rcases hif with hoff | hmid
+                  · have hok : Move.windowOK (Card.swapTwin z) z.suit S
+                          (Move.pileStack q) = true := by
+                      simp only [Move.windowOK, Bool.or_eq_true, decide_eq_true_iff]
+                      exact Or.inl hoff
+                    obtain ⟨N, hfire, hcorrR⟩ :=
+                      State.twinCorr_step_window hcorr hMle hwf hhid hstock hok hS
+                    obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ :=
+                      hihpre N hfire hcorrR hwin'
+                    exact ⟨Nf,
+                      Move.relabelTwin (Card.swapTwin z) (Move.pileStack q) :: nplay',
+                      State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                  rcases hmid with hskew | hnew
+                  · have hok : Move.windowOK (Card.swapTwin z) z.suit S
+                          (Move.pileStack q) = true := by
+                      simp only [Move.windowOK, Bool.or_eq_true, decide_eq_true_iff]
+                      exact Or.inr hskew
+                    obtain ⟨N, hfire, hcorrR⟩ :=
+                      State.twinCorr_step_window hcorr hMle hwf hhid hstock hok hS
+                    obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ :=
+                      hihpre N hfire hcorrR hwin'
+                    exact ⟨Nf,
+                      Move.relabelTwin (Card.swapTwin z) (Move.pileStack q) :: nplay',
+                      State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                  · -- the non-pair post-equalization climb: the rung
+                    -- derived (the partner past the pair rank)
+                    obtain ⟨hcρ, hpart⟩ := hnew
+                    by_cases hon : q.suit = z.suit ∨ q.suit = z.suit.flipPair
+                    · have hSiff := apply_pileStack_iff.mp hS
+                      obtain ⟨htop, bq, hbot, hrk, rfl⟩ := hSiff
+                      have halign : M.heights (Card.swapTwin z q).suit
+                          = q.rank.toIdx :=
+                        State.TwinCore.rung_eq_of_partner_past hcorr.toTwinCore hon
+                          hrk.symm hcρ hpart (hMle (Card.swapTwin z q).suit)
+                      obtain ⟨N, hfire, hX⟩ := State.TwinCorrX.apply_pileStack_onsuit
+                        (State.TwinCorr.toTwinCorrX hcorr) hon hS halign (by simp) (by simp)
+                      obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ :=
+                        hihpre N hfire hX.toCorr hwin'
+                      exact ⟨Nf,
+                        Move.relabelTwin (Card.swapTwin z) (Move.pileStack q) :: nplay',
+                        State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                    · obtain ⟨N, hfire, hcorrR⟩ :=
+                        State.TwinCorr.apply_clean hcorr hhid hstock
+                        (by simp only [Move.twinClean, decide_eq_true_iff]
+                            exact ⟨fun h => hon (Or.inl h), fun h => hon (Or.inr h)⟩) hS
+                      obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ :=
+                        hihpre N hfire hcorrR hwin'
+                      exact ⟨Nf,
+                        Move.relabelTwin (Card.swapTwin z) (Move.pileStack q) :: nplay',
+                        State.run_cons_comp hfire hrun', ρ', hcorr'⟩
                 · -- the GROWTH: on-suit, failed skew, pair card
                   have hon : q.suit = z.suit ∨ q.suit = z.suit.flipPair := by
                     by_cases hq1 : q.suit = z.suit
@@ -1586,14 +1734,14 @@ theorem State.twinCorr_run_window' (z : Card) :
                       · exact Or.inr hq2
                       · exact absurd (Or.inl ⟨hq1, hq2⟩) hif
                   have hnoskew : ¬ (q.rank.toIdx ≤
-                      S.heights (Card.flipSuit q).suit) := fun hskew => hif (Or.inr hskew)
+                      S.heights (Card.flipSuit q).suit) := fun hskew => hif (Or.inr (Or.inl hskew))
                   simp only [State.playWindow', hS, if_neg hif, Bool.and_eq_true,
                     Bool.or_eq_true, Bool.or_eq_true, decide_eq_true_iff] at hwin
                   obtain ⟨hcl, hwin'⟩ := hwin
-                  rcases hcl with (hoff | hskew) | hg
+                  rcases hcl with ((hoff | hskew) | hgp) | hpp
                   · exact (hif (Or.inl hoff)).elim
-                  · exact (hif (Or.inr hskew)).elim
-                  · obtain ⟨hpair, hseated, hbareS, hcbqB, hcbq'B⟩ := hg
+                  · exact (hif (Or.inr (Or.inl hskew))).elim
+                  · obtain ⟨hpair, hseated, hbareS, hcbqB, hcbq'B⟩ := hgp
                     obtain ⟨bq', hbq'⟩ : ∃ b, S.board.bottomOf (Card.flipSuit q)
                         = some b := by
                       cases hS2 : S.board.bottomOf (Card.flipSuit q) with
@@ -1677,6 +1825,8 @@ theorem State.twinCorr_run_window' (z : Card) :
                     exact ⟨Nf,
                       (Move.pileStack (Card.flipSuit (Card.swapTwin z q))) :: nplay',
                       State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                  · -- the partner-past disjunct cannot reach the growth branch
+                    exact (hif (Or.inr (Or.inr hpp))).elim
           · -- ===== MID-EPISODE =====
             rcases hinv with ⟨hframe, hbase, hstrand⟩
             have hrung : ∀ s, M.heights s = S.heights s :=
