@@ -1205,9 +1205,14 @@ PRE-episode: the old window's clauses, with the on-suit `pileStack`
 skew WEAKENED — a PAIR card's stack may instead carry the growth's
 source-side premises (the twin seated and bare, the two corner
 freedoms), and a failed skew then ROUTES TO THE GROWTH (the phase
-turns `mid`).  MID-episode: only draws, `deckStack`s (any — their
-frame lemmas carry no X-premises) and `pileStack`s off the strand's
-mirror base; the CATCH-UP is the strand's own `pileStack` (with its
+turns `mid`).  MID-episode: draws, `deckStack`s (any — their frame
+lemmas carry no X-premises), `pileStack`s off the strand's mirror
+base, and the TABLEAU kinds — reveals, deckPiles and stackPiles —
+with their landing-seat clauses (the landing base and the moved
+card off the strand's mirror base; the landing seat off the
+strand's column; the landing card not in the strand's column);
+pilePiles stay excluded mid-episode (the mirror-side run-placement
+premise).  The CATCH-UP is the strand's own `pileStack` (with its
 skew), draining to `post`.  POST-episode: no conditions (the
 identity correspondence aligns everything —
 `State.TwinCore.heights_eq_of_fix`).  The `[]` case demands the
@@ -1254,6 +1259,31 @@ def State.playWindow' (z : Card) (σ : Suit) (ep : State.WindowEp) (st : State) 
               State.playWindow' z σ .pre st' ms
           | .mid strand β, .draw => State.playWindow' z σ (.mid strand β) st' ms
           | .mid strand β, .deckStack _ => State.playWindow' z σ (.mid strand β) st' ms
+          | .mid strand β, .reveal c =>
+              decide (c ≠ strand ∧ β ≠ Sum.inr c ∧
+                ((st.board.bottomOf c).elim true
+                  (fun b => match b with
+                   | Sum.inr r => (st.pileOfTopHidden r).elim true
+                     (fun a => decide (β ≠ st.hiddenBase a))
+                   | Sum.inl _ => true))) &&
+              State.playWindow' z σ (.mid strand β) st' ms
+          | .mid strand β, .deckPile q b =>
+              decide (b ≠ β ∧ β ≠ Sum.inr q ∧
+                (strand :: st.board.aboveOf strand).all
+                  (fun y => decide (b ≠ Sum.inr y)) ∧
+                (match b with
+                 | Sum.inr d => decide (d ≠ strand ∧ d ∉ st.board.aboveOf strand)
+                 | Sum.inl _ => true) == true) &&
+              State.playWindow' z σ (.mid strand β) st' ms
+          | .mid strand β, .stackPile c b =>
+              decide (b ≠ β ∧ β ≠ Sum.inr c ∧
+                (strand :: st.board.aboveOf strand).all
+                  (fun y => decide (b ≠ Sum.inr y)) ∧
+                (match b with
+                 | Sum.inr d => decide (d ≠ strand ∧ d ∉ st.board.aboveOf strand)
+                 | Sum.inl _ => true) == true) &&
+              State.playWindow' z σ (.mid strand β) st' ms
+          | .mid _ _, .pilePile _ _ => false
           | .mid strand β, .pileStack q =>
               if q = strand then
                 (decide (q.rank.toIdx ≤ st.heights (Card.flipSuit q).suit) &&
@@ -1261,7 +1291,6 @@ def State.playWindow' (z : Card) (σ : Suit) (ep : State.WindowEp) (st : State) 
               else
                 (decide (Sum.inr q ≠ β) &&
                   State.playWindow' z σ (.mid strand β) st' ms)
-          | .mid _ _, _ => false
 
 /-- **Growth-engaged window-solvability**: the source wins by a play
 the growth-engaged window admits (from the pre-episode phase). -/
@@ -1684,15 +1713,237 @@ theorem State.twinCorr_run_window' (z : Card) :
                     exact ⟨Nf, Move.relabelTwin id (Move.pileStack q) :: nplay',
                       State.run_cons_comp hfire hrun', ρ', hcorr'⟩
             | reveal c =>
-                simp only [State.playWindow', hS] at hwin
-                exact absurd hwin (by simp)
-            | deckPile c b =>
-                simp only [State.playWindow', hS] at hwin
-                exact absurd hwin (by simp)
-            | pilePile c b =>
-                simp only [State.playWindow', hS] at hwin
-                exact absurd hwin (by simp)
+                simp only [State.playWindow', hS, Bool.and_eq_true, decide_eq_true_iff]
+                  at hwin
+                have hSiff := apply_reveal_iff.mp hS
+                obtain ⟨htop, r, a, bd, hbot, hp, hatt, rfl⟩ := hSiff
+                obtain ⟨⟨hcne, hβc, helim⟩, hwin'⟩ := hwin
+                -- reduce the hiddenBase clause (defeq-iota through the option elims)
+                have hβhb : β ≠ S.hiddenBase a := by
+                  have hb1 := helim
+                  rw [hbot] at hb1
+                  have hb2 : ((S.pileOfTopHidden r).elim true
+                      (fun a' => decide (β ≠ S.hiddenBase a'))) = true := hb1
+                  rw [hp] at hb2
+                  have hb3 : decide (β ≠ S.hiddenBase a) = true := hb2
+                  exact decide_eq_true_iff.mp hb3
+                have hcX : c ∉ List.map id [strand] := by
+                  simp only [List.map_id]
+                  exact fun hcon => hcne (List.mem_singleton.mp hcon)
+                have hcov : ∀ x ∈ [strand],
+                    M.board.bottomOf x ≠ some (Sum.inr (id c)) := by
+                  intro x hx hcon
+                  rw [List.mem_singleton.mp hx] at hcon
+                  rw [hbase] at hcon
+                  exact hβc (Option.some.inj hcon)
+                have hfree : ∀ x ∈ [strand],
+                    M.board.bottomOf x ≠ some (S.hiddenBase a) := by
+                  intro x hx hcon
+                  rw [List.mem_singleton.mp hx] at hcon
+                  rw [hbase] at hcon
+                  exact hβhb (Option.some.inj hcon)
+                obtain ⟨N, hfire, hX'⟩ := State.TwinCorrX.apply_reveal_X hframe hwf
+                  (fun _ _ _ => rfl) hcX hS hbot hp hcov hfree
+                have hSiffM := apply_reveal_iff.mp hfire
+                obtain ⟨htopM, rM, aM, bdM, hbotM, hpM, hattM, hNM⟩ := hSiffM
+                have htopSr : S.board.topOf (Sum.inr r) = some c :=
+                  (Board.bottomOf_eq S.board c (Sum.inr r)).mp hbot
+                have htopMr : M.board.topOf (Sum.inr r) = some c :=
+                  hframe.top_some (Sum.inr r) c htopSr
+                    (by simp only [List.map_id, List.mem_singleton]; exact hcne)
+                have hbotMc : M.board.bottomOf (id c) = some (Sum.inr r) :=
+                  (Board.bottomOf_eq M.board (id c) (Sum.inr r)).mpr htopMr
+                have hrMr : rM = r :=
+                  Sum.inr.inj (Option.some.inj (hbotM.symm.trans hbotMc))
+                have haMa : aM = a := by
+                  have h1 : M.pileOfTopHidden r = S.pileOfTopHidden r :=
+                    Frame.pileOfTopHidden_congr hframe.core.deal_eq
+                      hframe.core.depths_eq r
+                  rw [hrMr] at hpM
+                  rw [h1] at hpM
+                  exact Option.some.inj (hpM.symm.trans hp)
+                have hbaseN : N.board.bottomOf strand = some β := by
+                  rw [hNM]
+                  have hβ : M.board.topOf β = some strand :=
+                    (Board.bottomOf_eq M.board strand β).mp hbase
+                  have hbM : M.hiddenBase aM = S.hiddenBase a := by
+                    rw [haMa]
+                    exact Frame.hiddenBase_congr hframe.core.deal_eq
+                      hframe.core.depths_eq a
+                  have h2 : bdM.topOf β = M.board.topOf β :=
+                    Board.attach_topOf_ne M.board (M.hiddenBase aM) rM hattM
+                      (by
+                        intro hcon
+                        rw [hbM] at hcon
+                        exact hβhb hcon)
+                  show bdM.bottomOf strand = some β
+                  exact (Board.bottomOf_eq _ strand β).mpr (h2.trans hβ)
+                obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ := ih _ _ (.mid strand β)
+                  (State.heights_le_apply hMle hfire) (apply_wf hwf _ _ hS)
+                  ⟨hX', hbaseN, hstrand⟩ hwin' hrun
+                exact ⟨Nf, Move.relabelTwin id (Move.reveal c) :: nplay',
+                  State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+            | deckPile q b =>
+                simp only [State.playWindow', hS, Bool.and_eq_true, decide_eq_true_iff,
+                  List.all_eq_true] at hwin
+                obtain ⟨⟨hbβ, hβq, hwall, hL2m⟩, hwin'⟩ := hwin
+                have habove : M.board.aboveOf strand = S.board.aboveOf strand := by
+                  have h1 := hframe.above_strand strand (by simp)
+                  simpa using h1
+                have hwalk : ∀ x ∈ [strand], ∀ y ∈ x :: M.board.aboveOf x,
+                    Base.relabel id b ≠ Sum.inr y := by
+                  intro x hx y hy
+                  rw [List.mem_singleton.mp hx] at hy
+                  rw [habove] at hy
+                  have hrb : Base.relabel id b = b := by cases b <;> rfl
+                  rw [hrb]
+                  exact hwall y hy
+                have hbare2 : ∀ x ∈ [strand],
+                    M.board.bottomOf x ≠ some (Sum.inr q) := by
+                  intro x hx hcon
+                  rw [List.mem_singleton.mp hx] at hcon
+                  rw [hbase] at hcon
+                  exact hβq (Option.some.inj hcon)
+                have hfree : ∀ x ∈ [strand],
+                    M.board.bottomOf x ≠ some (Base.relabel id b) := by
+                  intro x hx hcon
+                  rw [List.mem_singleton.mp hx] at hcon
+                  rw [hbase] at hcon
+                  have hrb : Base.relabel id b = b := by cases b <;> rfl
+                  rw [hrb] at hcon
+                  exact hbβ (Option.some.inj hcon).symm
+                have hL2 : ∀ d : Card, b = Sum.inr d →
+                    (id d ∉ [strand] ∧ ∀ x ∈ [strand],
+                      d ∉ S.board.aboveOf (id x)) := by
+                  intro d hd
+                  have h3 := hL2m
+                  simp only [hd, beq_iff_eq, decide_eq_true_iff] at h3
+                  refine ⟨fun hcon => h3.1 (List.mem_singleton.mp hcon), ?_⟩
+                  intro x hx
+                  rw [List.mem_singleton.mp hx]
+                  exact h3.2
+                obtain ⟨N, hfire, hX'⟩ := State.TwinCorrX.apply_deckPile hframe hwf
+                  (fun c _ => rfl) hS hfree hbare2 hwalk hL2
+                have hSiffM := apply_deckPile_iff.mp hfire
+                obtain ⟨hprevM, hcpM, bdM, hattM, hNM⟩ := hSiffM
+                have hbaseN : N.board.bottomOf strand = some β := by
+                  rw [hNM]
+                  have hβ : M.board.topOf β = some strand :=
+                    (Board.bottomOf_eq M.board strand β).mp hbase
+                  have h2 : bdM.topOf β = M.board.topOf β :=
+                    Board.attach_topOf_ne M.board (Base.relabel id b) q hattM
+                      (fun hcon => hbβ (by
+                        have hrb : Base.relabel id b = b := by cases b <;> rfl
+                        exact hrb.symm.trans hcon.symm))
+                  show bdM.bottomOf strand = some β
+                  exact (Board.bottomOf_eq _ strand β).mpr (h2.trans hβ)
+                obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ := ih _ _ (.mid strand β)
+                  (State.heights_le_apply hMle hfire) (apply_wf hwf _ _ hS)
+                  ⟨hX', hbaseN, hstrand⟩ hwin' hrun
+                exact ⟨Nf, Move.relabelTwin id (Move.deckPile q b) :: nplay',
+                  State.run_cons_comp hfire hrun', ρ', hcorr'⟩
             | stackPile c b =>
+                simp only [State.playWindow', hS, Bool.and_eq_true, decide_eq_true_iff,
+                  List.all_eq_true] at hwin
+                obtain ⟨⟨hbβ, hβc, hwall, hL2m⟩, hwin'⟩ := hwin
+                have habove : M.board.aboveOf strand = S.board.aboveOf strand := by
+                  have h1 := hframe.above_strand strand (by simp)
+                  simpa using h1
+                have hwalk : ∀ x ∈ [strand], ∀ y ∈ x :: M.board.aboveOf x,
+                    Base.relabel id b ≠ Sum.inr y := by
+                  intro x hx y hy
+                  rw [List.mem_singleton.mp hx] at hy
+                  rw [habove] at hy
+                  have hrb : Base.relabel id b = b := by cases b <;> rfl
+                  rw [hrb]
+                  exact hwall y hy
+                have hbare2 : ∀ x ∈ [strand],
+                    M.board.bottomOf x ≠ some (Sum.inr c) := by
+                  intro x hx hcon
+                  rw [List.mem_singleton.mp hx] at hcon
+                  rw [hbase] at hcon
+                  exact hβc (Option.some.inj hcon)
+                have hfree : ∀ x ∈ [strand],
+                    M.board.bottomOf x ≠ some (Base.relabel id b) := by
+                  intro x hx hcon
+                  rw [List.mem_singleton.mp hx] at hcon
+                  rw [hbase] at hcon
+                  have hrb : Base.relabel id b = b := by cases b <;> rfl
+                  rw [hrb] at hcon
+                  exact hbβ (Option.some.inj hcon).symm
+                have hL2 : ∀ d : Card, b = Sum.inr d →
+                    (id d ∉ [strand] ∧ ∀ x ∈ [strand],
+                      d ∉ S.board.aboveOf (id x)) := by
+                  intro d hd
+                  have h3 := hL2m
+                  simp only [hd, beq_iff_eq, decide_eq_true_iff] at h3
+                  refine ⟨fun hcon => h3.1 (List.mem_singleton.mp hcon), ?_⟩
+                  intro x hx
+                  rw [List.mem_singleton.mp hx]
+                  exact h3.2
+                by_cases hon : c.suit = z.suit ∨ c.suit = z.suit.flipPair
+                · have hSiff := apply_stackPile_iff.mp hS
+                  obtain ⟨hrk, hcp, bd, hatt, rfl⟩ := hSiff
+                  have halign : M.heights (id c).suit = c.rank.toIdx + 1 := by
+                    show M.heights c.suit = c.rank.toIdx + 1
+                    rw [hrung c.suit]; exact hrk.symm
+                  have hcX : c ∉ List.map id [strand] := by
+                    simp only [List.map_id]
+                    intro hcon
+                    have h1 : S.isVis c = true := by
+                      have h2 : M.isVis strand = true :=
+                        hframe.strand_vis strand (by simp)
+                      rw [hframe.vis_iff strand] at h2
+                      rw [← List.mem_singleton.mp hcon] at h2
+                      exact h2
+                    have hlt : c.rank.toIdx < S.heights c.suit := by omega
+                    have h3 : S.isVis c = false := (hwf.founds_gone c hlt).1
+                    rw [h3] at h1
+                    exact absurd h1 (by simp)
+                  obtain ⟨N, hfire, hX'⟩ := State.TwinCorrX.apply_stackPile_onsuit
+                    hframe hwf hon hcX hS halign hfree hbare2 hwalk hL2
+                  have hSiffM := apply_stackPile_iff.mp hfire
+                  obtain ⟨hrkM, hcpM, bdM, hattM, hNM⟩ := hSiffM
+                  have hbaseN : N.board.bottomOf strand = some β := by
+                    rw [hNM]
+                    have hβ : M.board.topOf β = some strand :=
+                      (Board.bottomOf_eq M.board strand β).mp hbase
+                    have h2 : bdM.topOf β = M.board.topOf β :=
+                      Board.attach_topOf_ne M.board (Base.relabel id b) (id c) hattM
+                        (fun hcon => hbβ (by
+                        have hrb : Base.relabel id b = b := by cases b <;> rfl
+                        exact hrb.symm.trans hcon.symm))
+                    show bdM.bottomOf strand = some β
+                    exact (Board.bottomOf_eq _ strand β).mpr (h2.trans hβ)
+                  obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ := ih _ _ (.mid strand β)
+                    (State.heights_le_apply hMle hfire) (apply_wf hwf _ _ hS)
+                    ⟨hX', hbaseN, hstrand⟩ hwin' hrun
+                  exact ⟨Nf, Move.relabelTwin id (Move.stackPile c b) :: nplay',
+                    State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+                · obtain ⟨N, hfire, hX'⟩ := State.TwinCorrX.apply_stackPile_off hframe
+                    hwf
+                    (⟨fun hcon => hon (Or.inl hcon), fun hcon => hon (Or.inr hcon)⟩ :
+                      c.suit ≠ z.suit ∧ c.suit ≠ z.suit.flipPair) hS hfree hbare2
+                    hwalk hL2
+                  have hSiffM := apply_stackPile_iff.mp hfire
+                  obtain ⟨hrkM, hcpM, bdM, hattM, hNM⟩ := hSiffM
+                  have hbaseN : N.board.bottomOf strand = some β := by
+                    rw [hNM]
+                    have hβ : M.board.topOf β = some strand :=
+                      (Board.bottomOf_eq M.board strand β).mp hbase
+                    have h2 : bdM.topOf β = M.board.topOf β :=
+                      Board.attach_topOf_ne M.board (Base.relabel id b) c hattM
+                        (fun hcon => hbβ (by
+                        have hrb : Base.relabel id b = b := by cases b <;> rfl
+                        exact hrb.symm.trans hcon.symm))
+                    show bdM.bottomOf strand = some β
+                    exact (Board.bottomOf_eq _ strand β).mpr (h2.trans hβ)
+                  obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ := ih _ _ (.mid strand β)
+                    (State.heights_le_apply hMle hfire) (apply_wf hwf _ _ hS)
+                    ⟨hX', hbaseN, hstrand⟩ hwin' hrun
+                  exact ⟨Nf, Move.relabelTwin id (Move.stackPile c b) :: nplay',
+                    State.run_cons_comp hfire hrun', ρ', hcorr'⟩
+            | pilePile c b =>
                 simp only [State.playWindow', hS] at hwin
                 exact absurd hwin (by simp)
           · -- ===== POST-EPISODE =====
@@ -1722,9 +1973,15 @@ original window, the STACK-SKEW premise is GONE: an on-suit
 source-side premises (the pair card, the twin seated and bare, the
 corner freedoms); the unstack anti-skew stays only PRE-episode (the
 identity regime derives it); the pair-deckStack exclusion (route
-(c)) stays.  Mid-episode tableau moves (reveals, deckPiles,
-pilePiles, stackPiles) remain excluded — the L1/L2 re-homing
-residual. -/
+(c)) stays.  MID-EPISODE TABLEAU: reveals, deckPiles and stackPiles
+(off- and on-suit) are ADMITTED with their landing-seat clauses (the
+landing base and the moved card off the strand's mirror base β;
+the landing seat off the strand's column; the landing card not in
+the strand's column — the source-side renderings of the L1/L2
+family); only pilePiles remain excluded mid-episode — the
+run-placement premise `hplace` of the pilePile step is MIRROR-side
+(not source-checkable), and the strand-riding-the-run corner has no
+in-kind response. -/
 theorem State.solvable_of_twinCorr_window' {S M : State} {z : Card}
     (hcorr : State.TwinCorr (Card.swapTwin z) z.suit S M)
     (hMle : ∀ s, M.heights s ≤ 13)
