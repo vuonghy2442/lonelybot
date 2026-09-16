@@ -169,10 +169,10 @@ theorem stS_no_eStep (m : EMove) (e' : EState) : ¬ eStep (toEngine stS) m e' :=
       simp only [eStep] at h
       obtain ⟨_, ⟨bd, hbd, _, _⟩, _⟩ := h
       exact stS_unrealizable bd hbd
-  | reveal c =>
+  | reveal a =>
       intro h
       simp only [eStep] at h
-      obtain ⟨_, bd, _, _, hbd, _, _, _, _⟩ := h
+      obtain ⟨bd, _, hbd, _, _, _⟩ := h
       exact stS_unrealizable bd hbd
 
 /-- Hence no abstract play wins. -/

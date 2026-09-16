@@ -64,11 +64,9 @@ theorem stX_h : ∀ (m' : Move) (s₁ s₂ : State),
       dsimp only at htop
       rw [stX_topOf] at htop
       exact absurd htop (by simp)
-  | reveal c =>
-      have hnone : stX.apply (Move.reveal c) = none := by
-        show State.applyReveal stX c = none
-        simp only [State.applyReveal]
-        rw [stX_topOf, stX_bottomOf]
+  | reveal a =>
+      -- depths are all 0, so the boundary is definitionally absent
+      have hnone : stX.apply (Move.reveal a) = none := rfl
       rw [hnone] at hm'
       exact absurd hm' (by simp)
   | deckPile c b =>

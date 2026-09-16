@@ -29,7 +29,9 @@ now false statements and have been removed.  What remains is the
 positive regression: both witness STATES are now rejected outright by
 the strengthened invariant itself (`stE_not_wf`, `stF_not_wf`) — no
 state of either shape can ever again instantiate the move-preserves-WF
-claim to refute it.
+claim to refute it.  (The reveal-through successors `stE1`/`stF1` were
+retired with the 2026-09-16 rule repair: both boundaries are covered,
+so the physical flip is refused — pinned below.)
 -/
 
 /-- ♥2: pile p1's bottom card. -/
@@ -51,10 +53,6 @@ def stE : State where
   depths := fun _ => 1
   stock := ⟨Deal.standard.stock, 0⟩
   drawStep := 1
-
-/-- The reveal successor (computed by the kernel; kept as the
-countermodel record). -/
-def stE1 : State := (stE.apply (Move.reveal s9)).getD stE
 
 theorem stE_topOf_self : stE.board.topOf (Sum.inr c2) = some s9 :=
   Board.update_self Board.empty.topOf (Sum.inr c2) (some s9)
@@ -83,9 +81,9 @@ theorem stE_not_wf : ¬ stE.WF := by
     | p6 => exact absurd hc2 (by decide)
   · exact absurd hcs (show ¬ (canSitOn s9 c2 = true) from by decide)
 
-/-- The countermodel's premise still holds (by the kernel): `reveal ♠9`
-is legal at the witness. -/
-example : (stE.apply (Move.reveal s9)).isSome = true := by decide
+/-- The physical flip is refused: the boundary ♥2 is covered by ♠9
+(pinned — the pre-repair reveal-through no longer exists). -/
+example : (stE.apply (Move.reveal Anchor.p1)).isSome = false := by decide
 
 /-! ## Witness #4 — the stock⊄deal hole, closed by membership -/
 
@@ -106,10 +104,6 @@ def stF : State where
   stock := ⟨[c2, s9], 1⟩
   drawStep := 1
 
-/-- The reveal successor (computed by the kernel; kept as the
-countermodel record). -/
-def stF1 : State := (stF.apply (Move.reveal c3)).getD stF
-
 theorem stF_topOf_self : stF.board.topOf (Sum.inr c2) = some c3 :=
   Board.update_self Board.empty.topOf (Sum.inr c2) (some c3)
 
@@ -125,9 +119,9 @@ theorem stF_not_wf : ¬ stF.WF := by
   have hmem := hwf.stock_wf.2 c2 (by decide)
   exact absurd hmem (by decide)
 
-/-- The countermodel's premise still holds (by the kernel): `reveal ♥3`
-is legal at the witness (the edge is genuinely deal-adjacent). -/
-example : (stF.apply (Move.reveal c3)).isSome = true := by decide
+/-- The physical flip is refused here too: the boundary ♥2 is covered
+by ♥3 (pinned). -/
+example : (stF.apply (Move.reveal Anchor.p1)).isSome = false := by decide
 
 /-- info: 'stE_not_wf' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in

@@ -165,14 +165,12 @@ theorem probeInv_apply {st st' : State} (hdeal : st.deal = wdeal) (hwf : st.WF)
   | deckStack c =>
       rw [apply_deckStack_iff] at h; obtain ⟨-, -, rfl⟩ := h
       exact ⟨hmain, haux, hmax⟩
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at h
-      obtain ⟨ht, r, a, bd, hbot, hpile, hatt, rfl⟩ := h
+      obtain ⟨r, bd, hth, htop, hatt, rfl⟩ := h
       by_cases ha3 : a = Anchor.p3
       · subst ha3
-        obtain ⟨-, hth⟩ := findFirst_mem (fun a' => decide (st.topHidden a' = some r))
-          Anchor.all Anchor.p3 hpile
-        have hth' : st.topHidden Anchor.p3 = some r := of_decide_eq_true hth
+        have hth' : st.topHidden Anchor.p3 = some r := hth
         have hk4 : st.depths Anchor.p3 = 0 ∨ st.depths Anchor.p3 = 1 ∨
             st.depths Anchor.p3 = 2 ∨ st.depths Anchor.p3 = 3 := by omega
         rcases hk4 with hk | hk | hk | hk
@@ -182,9 +180,9 @@ theorem probeInv_apply {st st' : State} (hdeal : st.deal = wdeal) (hwf : st.WF)
             rw [State.hidden, hdeal, hk, wdeal_piles_p3]; rfl
           rw [hnothing] at hth'
           exact absurd hth' (by simp)
-        · -- **the killer** (1 → 0): the aux pins the cover to wh9, which
-          -- must be bare — so the wh9-seat link is already broken, and the
-          -- killer's attach lands at the anchor, off the watched seats.
+        · -- **the killer** (1 → 0): the flip's own bare guard empties
+          -- wh10's seat, so the first watched link fails in the successor;
+          -- the attach lands at the anchor, off the other watched seats.
           have hbv : st.hidden Anchor.p3 = [wh10] := by
             rw [State.hidden, hdeal, hk, wdeal_piles_p3]; rfl
           have hbdlist : ((st.hidden Anchor.p3).reverse.drop 1).head? = none := by
@@ -194,15 +192,13 @@ theorem probeInv_apply {st st' : State} (hdeal : st.deal = wdeal) (hwf : st.WF)
               show (st.hidden Anchor.p3).getLast? = some wh10
               rw [hbv]; rfl
             exact Option.some.inj (hth'.symm.trans h1)
-          have hcb : c = wh9 := by
-            rw [hr10] at hbot
-            exact haux c (by rw [hk]; decide) ((Board.bottomOf_eq _ _ _).mp hbot)
-          subst hr10; subst hcb
           have hbase : st.hiddenBase Anchor.p3 = Sum.inl Anchor.p3 := by
             show (match ((st.hidden Anchor.p3).reverse.drop 1).head? with
               | some d => Sum.inr d | none => Sum.inl Anchor.p3) = _
             rw [hbdlist]
           rw [hbase] at hatt
+          have htop10 : st.board.topOf (Sum.inr wh10) = none := by
+            rw [← hr10]; exact htop
           refine ⟨?_, ?_, ?_⟩
           · show (if Anchor.p3 = Anchor.p3 then st.depths Anchor.p3 - 1
                 else st.depths Anchor.p3) ≠ 0
@@ -210,9 +206,9 @@ theorem probeInv_apply {st st' : State} (hdeal : st.deal = wdeal) (hwf : st.WF)
                 ∨ bd.topOf (Sum.inr wh9) ≠ some wh8
                 ∨ bd.topOf (Sum.inr wh8) ≠ some wh7
             rw [if_pos rfl]
-            refine Or.inr (Or.inr (Or.inl ?_))
-            have hne : Sum.inr wh9 ≠ Sum.inl Anchor.p3 := by decide
-            rw [Board.attach_topOf_ne _ _ _ hatt hne, ht]
+            refine Or.inr (Or.inl ?_)
+            have hne : Sum.inr wh10 ≠ Sum.inl Anchor.p3 := by decide
+            rw [Board.attach_topOf_ne _ _ _ hatt hne, htop10]
             simp
           · show ∀ X, (if Anchor.p3 = Anchor.p3 then st.depths Anchor.p3 - 1
                 else st.depths Anchor.p3) ≠ 0 →

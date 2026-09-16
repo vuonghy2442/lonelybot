@@ -136,8 +136,8 @@ theorem stock_inv_step (m : Move) (s s' : State) (hst : s.stock = ⟨[], 0⟩)
       rw [draw_id s hst] at hap
       rw [← Option.some.inj hap]
       exact hst
-  | reveal c =>
-      obtain ⟨-, r, a, bd, -, -, -, hs⟩ := (apply_reveal_iff (st := s) (st' := s')).mp hap
+  | reveal a =>
+      obtain ⟨_, _, _, _, _, hs⟩ := (apply_reveal_iff (st := s) (st' := s')).mp hap
       rw [hs]
       exact hst
   | deckPile c b =>

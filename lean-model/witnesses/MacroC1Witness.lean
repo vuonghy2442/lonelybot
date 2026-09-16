@@ -165,24 +165,18 @@ private theorem stC1_wf : stC1.WF := by
 
 /-- All-zero depths: no pile has a hidden boundary, so no reveal can
 fire (whatever the board). -/
-private theorem reveal_dead {s : State} (hdepth : ∀ a, s.depths a = 0) (c : Card) :
-    s.apply (Move.reveal c) = none := by
-  have hpile : ∀ r, s.pileOfTopHidden r = none := by
-    intro r
-    refine findFirst_eq_none _ Anchor.all (fun a _ => ?_)
-    show (decide (s.topHidden a = some r)) ≠ true
-    rw [show s.topHidden a = none from by
-      show ((s.deal.piles a).take (s.depths a)).getLast? = none
-      rw [hdepth a]
-      rfl]
-    simp
-  cases h : s.apply (Move.reveal c) with
+private theorem reveal_dead {s : State} (hdepth : ∀ a, s.depths a = 0) (a : Anchor) :
+    s.apply (Move.reveal a) = none := by
+  cases h : s.apply (Move.reveal a) with
   | none => rfl
   | some st' =>
       rw [apply_reveal_iff] at h
-      obtain ⟨_, r, _, _, _, hp, _, _⟩ := h
-      rw [hpile r] at hp
-      simp at hp
+      obtain ⟨r, _, ht, _, _, _⟩ := h
+      rw [show s.topHidden a = none from by
+        show ((s.deal.piles a).take (s.depths a)).getLast? = none
+        rw [hdepth a]
+        rfl] at ht
+      simp at ht
 
 /-- Empty stock + all-zero depths: no commitment applies. -/
 private theorem deadCommit {s : State} (hstock : s.stock.cards = [])

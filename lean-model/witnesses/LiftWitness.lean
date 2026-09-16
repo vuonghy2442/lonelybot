@@ -257,10 +257,9 @@ theorem stX_pileStack_none : ∀ (c : Card), stX.apply (Move.pileStack c) = none
   rcases c with ⟨⟨cl, p⟩, r⟩
   cases cl <;> cases p <;> cases r <;> rfl
 
-theorem stX_reveal_none : ∀ (c : Card), stX.apply (Move.reveal c) = none := by
-  intro c
-  rcases c with ⟨⟨cl, p⟩, r⟩
-  cases cl <;> cases p <;> cases r <;> rfl
+theorem stX_reveal_none : ∀ (a : Anchor), stX.apply (Move.reveal a) = none := by
+  intro a
+  cases a <;> rfl
 
 theorem stX_deckPile_none : ∀ (c : Card) (b : Base), stX.apply (Move.deckPile c b) = none := by
   intro c b

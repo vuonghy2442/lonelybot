@@ -3,15 +3,20 @@ import Klondike.Initial
 /-!
 # `apply_wf` witnesses #1 & #2 — repaired, now regression anchors
 
-Witness #1 (the reveal arm, 2026-09-13): the trigger card `c` stays
-sitting on the revealed card `r` (now *visible*), and the then-current
-WF only grandfathered edges onto `topHidden` cards; the boundary had
-just moved below `r`, so the `c→r` edge was left requiring
-`canSitOn c r`, which no guard of `applyReveal` ensured.  Witness
-`st0`: standard deal, fresh stock, empty foundations, boundary at
-`a.toIdx` per pile, and the single visible edge `♥3` on the hidden
-boundary `♥2` of pile p1 (exactly pile p1's dealt shape).  Then
-`reveal ♥3` was legal and the successor was not WF.
+Witness #1 (the reveal arm, 2026-09-13; the reveal-through geometry
+RETIRED by the 2026-09-16 rule repair): under the pre-repair rule the
+trigger card `c` stayed sitting on the revealed card `r` (now
+*visible*), and the then-current WF only grandfathered edges onto
+`topHidden` cards; the boundary had just moved below `r`, so the
+`c→r` edge was left requiring `canSitOn c r`, which no guard of
+`applyReveal` ensured.  Witness `st0`: standard deal, fresh stock,
+empty foundations, boundary at `a.toIdx` per pile, and the single
+visible edge `♥3` on the hidden boundary `♥2` of pile p1 (exactly
+pile p1's dealt shape).  Then `reveal ♥3` was legal and the successor
+was not WF.  Under the physical flip rule (2026-09-16) the
+reveal-through no longer exists — at `st0` the boundary is covered, so
+the flip is ILLEGAL (pinned below); the state stays as a WF
+regression anchor.
 
 Witness #2 (the deckPile arm): WF constrained only the *deal's* stock
 (`Deal.WF`), never the state's cycle, so `stD` — the same shape with
@@ -25,10 +30,9 @@ Both holes were closed by the 2026-09-13 WF/board_edges repairs
 cited the pre-repair shapes) are now false statements and have been
 removed.  What remains is the *positive* regression: the old
 counterexamples no longer escape the invariant — `st0.WF` holds under
-the eleven-conjunct WF and its reveal successor is WF again
-(`st1_wf`, via the proven `apply_wf`), while the duplicated cycle is
-now rejected outright (`stD_not_wf`, the `noDupCards` half of
-`stock_wf`).
+the eleven-conjunct WF and its flip is correctly refused at the
+covered boundary, while the duplicated cycle is now rejected outright
+(`stD_not_wf`, the `noDupCards` half of `stock_wf`).
 -/
 
 /-- ♥2: pile p1's top hidden card in the standard deal. -/
@@ -51,8 +55,11 @@ def st0 : State where
   stock := ⟨Deal.standard.stock, 0⟩
   drawStep := 1
 
-/-- The reveal successor (computed by the kernel). -/
-def st1 : State := (st0.apply (Move.reveal c3)).getD st0
+/-- The flip is refused at the covered boundary: p1's hidden `♥2`
+carries `♥3`, so the physical rule's bare guard fails (the
+reveal-through successor `st1` of the pre-repair geometry no longer
+exists — this pin replaces it). -/
+example : (st0.apply (Move.reveal Anchor.p1)).isSome = false := by decide
 
 theorem st0_topOf_self : st0.board.topOf (Sum.inr c2) = some c3 :=
   Board.update_self Board.empty.topOf (Sum.inr c2) (some c3)
@@ -131,28 +138,6 @@ theorem st0_wf : st0.WF := by
     · intro c hcm
       exact hcm
 
-/-- The countermodel's premise still holds (by the kernel): `reveal ♥3`
-is legal at the witness. -/
-theorem st0_apply : st0.apply (Move.reveal c3) = some st1 := by
-  have his : (st0.apply (Move.reveal c3)).isSome = true := by decide
-  cases h : st0.apply (Move.reveal c3) with
-  | none =>
-      rw [h] at his
-      simp at his
-  | some s =>
-      have hw : st1 = s := by
-        show (st0.apply (Move.reveal c3)).getD st0 = s
-        rw [h]
-        rfl
-      rw [hw]
-
-/-- THE REPAIR HOLDS: the old counterexample's reveal successor is WF.
-Under the repaired invariant the `♥3`-on-`♥2` edge is justified by `♥2`
-being seated on p1's anchor (`reveal` attaches the boundary before
-anything can sit on it — exactly the deal-adjacency base clause). -/
-theorem st1_wf : st1.WF :=
-  apply_wf st0_wf _ _ st0_apply
-
 /-! ## Witness #2 — the duplicated cycle, now rejected outright -/
 
 /-- ♥4. -/
@@ -197,10 +182,6 @@ example : (stD.apply (Move.deckPile d4 (Sum.inr s5))).isSome = true := by decide
 /-- info: 'st0_wf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms st0_wf
-
-/-- info: 'st1_wf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms st1_wf
 
 /-- info: 'stD_not_wf' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in

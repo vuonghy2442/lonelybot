@@ -65,9 +65,9 @@ theorem stZ_dead : ∀ (m : Move) (s : State), stZ.apply m = some s → s = stZ 
         (apply_draw_iff (st := stZ) (st' := s)).mp h
       subst hst
       rfl
-  | reveal c =>
-      obtain ⟨-, r, a, bd, hb, -, -, -⟩ := (apply_reveal_iff (st := stZ) (st' := s)).mp h
-      rw [hbot c] at hb; simp at hb
+  | reveal a =>
+      obtain ⟨r, _, ht, _, _, _⟩ := (apply_reveal_iff (st := stZ) (st' := s)).mp h
+      simp [State.topHidden, State.hidden, stZ] at ht
   | deckPile c b =>
       obtain ⟨hp, -, -, -, -⟩ := (apply_deckPile_iff (st := stZ) (st' := s)).mp h
       rw [hprev] at hp; simp at hp

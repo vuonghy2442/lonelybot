@@ -193,13 +193,15 @@ def wstate : State where
   stock := ⟨[whK], 1⟩
   drawStep := 1
 
-/-- The full game's winning play: park ♥4 on ♣5, reveal ♠5 (♥3 comes
-up), then drain every pile top-down as the foundations climb, and
-finally stack the lone stock card ♥K. -/
+/-- The full game's winning play: park ♥4 on ♣5, stack ♠5 (freeing p2's
+boundary), flip the boundary (♥3 comes up), then drain every pile
+top-down as the foundations climb, and finally stack the lone stock
+card ♥K. -/
 def wplay : List Move :=
   [Move.pilePile wh4 (Sum.inr wc5),
-   Move.reveal ws5,
-   Move.pileStack ws5, Move.pileStack wh3, Move.pileStack wh4, Move.pileStack wc5,
+   Move.pileStack ws5,
+   Move.reveal Anchor.p2,
+   Move.pileStack wh3, Move.pileStack wh4, Move.pileStack wc5,
    Move.pileStack wh5, Move.pileStack wh6, Move.pileStack wh7, Move.pileStack wh8,
    Move.pileStack wh9, Move.pileStack wh10, Move.pileStack ws6,
    Move.pileStack whJ, Move.pileStack whQ,
@@ -270,42 +272,40 @@ theorem inv_apply {st st' : State} (hI : Inv st) {m : Move} (heng : m.isEngine =
       show wh3 ∉ (st.stock.dealOnce st.drawStep).cards
       rw [Cycle.dealOnce_cards]
       exact hS3
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at h
-      obtain ⟨ht, r, a, bd, hb, hp, ha, rfl⟩ := h
+      obtain ⟨r, bd, hth, htop, hatt, rfl⟩ := h
       obtain ⟨hfree, -⟩ := (Board.attach_eq_some_iff st.board (st.hiddenBase a) r).mp
-        (by rw [ha]; simp)
+        (by rw [hatt]; simp)
+      -- the revealed card cannot be ♥3: the flip demands it bare, and
+      -- ♥3 is covered by ♠5
+      have hrne : r ≠ wh3 := by
+        intro hre
+        rw [hre] at htop
+        rw [htop] at hT3
+        exact absurd hT3 (by simp)
       refine ⟨hH, ?_, ?_, ?_, hS3⟩
       · show bd.topOf (Sum.inr wh3) = some ws5
         by_cases hbb : st.hiddenBase a = Sum.inr wh3
         · rw [hbb] at hfree
           rw [hfree] at hT3
           exact absurd hT3 (by simp)
-        · rw [Board.attach_topOf_ne _ _ _ ha (fun hh => hbb hh.symm)]
+        · rw [Board.attach_topOf_ne _ _ _ hatt (fun hh => hbb hh.symm)]
           exact hT3
       · show bd.topOf (Sum.inr ws5) = some wh4
         by_cases hbb : st.hiddenBase a = Sum.inr ws5
         · rw [hbb] at hfree
           rw [hfree] at hT5
           exact absurd hT5 (by simp)
-        · rw [Board.attach_topOf_ne _ _ _ ha (fun hh => hbb hh.symm)]
+        · rw [Board.attach_topOf_ne _ _ _ hatt (fun hh => hbb hh.symm)]
           exact hT5
       · show bd.bottomOf wh3 = none
         refine (Board.bottomOf_eq_none _ _).mpr (fun b' hb' => ?_)
         by_cases hbb : b' = st.hiddenBase a
-        · rw [hbb, Board.attach_topOf _ _ _ ha] at hb'
+        · rw [hbb, Board.attach_topOf _ _ _ hatt] at hb'
           rw [Option.some.injEq] at hb'
-          -- the revealed card would be ♥3: its trigger is ♠5, which is covered
-          rw [hb'] at hb
-          rw [show Sum.inr wh3 = Sum.inr wh3 from rfl] at hb
-          have hc5 : c = ws5 := by
-            have := (Board.bottomOf_eq st.board c (Sum.inr wh3)).mp hb
-            rw [hT3] at this
-            exact Option.some.inj this.symm
-          rw [hc5] at ht
-          rw [hT5] at ht
-          exact absurd ht (by simp)
-        · rw [Board.attach_topOf_ne _ _ _ ha hbb] at hb'
+          exact hrne hb'
+        · rw [Board.attach_topOf_ne _ _ _ hatt hbb] at hb'
           exact (Board.bottomOf_eq_none _ _).mp hB3 b' hb'
   | deckPile c b =>
       rw [apply_deckPile_iff] at h

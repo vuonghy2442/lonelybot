@@ -80,10 +80,10 @@ example : accommodates W W := ⟨[], rfl, by intro m hm; cases hm⟩
 
 /-- info: false -/
 #guard_msgs in
-#eval W.legal (Move.reveal spade7)                       -- no hidden cards
+#eval W.legal (Move.reveal Anchor.p0)                       -- no hidden cards
 
 /-- info: false -/
 #guard_msgs in
-#eval W.legal (Move.reveal heart5)                       -- not visible
+#eval W.legal (Move.reveal Anchor.p6)                       -- no hidden cards (any pile)
 
 -- the only legal move is `.draw` (toggles the cursor), so the successor is unreachable.

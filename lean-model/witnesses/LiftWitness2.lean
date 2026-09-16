@@ -295,13 +295,12 @@ theorem stN_inv : ∀ (play : List Move) (st st' : State),
           · exact ht
           · exact hd
           · simp only [Cycle.dealOnce_cards]; exact hmem
-      | reveal c =>
+      | reveal a =>
           rw [apply_reveal_iff] at hap
-          obtain ⟨-, r, a, bd, -, hp, -, -⟩ := hap
-          obtain ⟨-, hp'⟩ := findFirst_mem _ _ _ hp
+          obtain ⟨r, _, ht, _, _, _⟩ := hap
           rw [show st.topHidden a = ((st.deal.piles a).take (st.depths a)).getLast? from rfl,
-            hd a, List.take_zero] at hp'
-          simp at hp'
+            hd a, List.take_zero] at ht
+          simp at ht
       | deckPile c b =>
           rw [apply_deckPile_iff] at hap
           obtain ⟨-, hcp, bd, hatt, hst⟩ := hap

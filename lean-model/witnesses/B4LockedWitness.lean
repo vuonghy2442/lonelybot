@@ -1,27 +1,27 @@
 import Klondike.Theorems
 
 /-!
-# The locked-pile witness — `solvable_of_pileStack` was FALSE as staged
+# The locked-pile witness — HISTORICAL after the reveal-rule repair
 
 The dead-pile hole (the same one that repaired
 `safe_pileStack_dominant`, see `DeadPileWitness.lean`) killed the B4
-crux too: when the stackable card `c` is *locked* (it sits on its
-pile's hidden boundary), `pileStack c` strands the boundary forever —
-no tenant can ever sit on it again (`canPlace` demands a visible base;
-`reveal` demands a visible card on the boundary), so the boundary card
-can never reach the foundation and the successor is unsolvable — while
-the source state wins in three moves (reveal, stack, stack).
+crux too as staged: when the stackable card `c` is *locked* (it sits
+on its pile's hidden boundary), `pileStack c` stranded the boundary
+forever under the PRE-2026-09-16 reveal rule — no tenant could ever
+sit on it again, so the boundary card could never reach the
+foundation and the successor was unsolvable — while the source state
+won in three moves.
 
-The witness state is DeadPileWitness's (reused verbatim): ♦K legally
-`pileStack`able on the hidden ♣K, ♠/♥ complete, ♦/♣ at 12, empty
-stock.  The first version of this file derived `False` from the
-sorry'd `solvable_of_pileStack` and `solvable_accommodates` (the
-accommodation play `[pileStack ♦K]`), which forced the same-session
-repair: `+ (hnotlock : st.isLocked c = false)` on the crux, and the
-per-play safety (`playSafeAccomm` / `safeAccommodates`) through the
-whole B4 chain.  The examples at the bottom record that the guard is
-tight — every other hypothesis of the repaired statements holds at
-this state (so no weaker repair covers the hole).
+**The 2026-09-16 reveal-rule repair (the physical flip: `Move.reveal
+a`, legal exactly when the boundary is bare) dissolves the lockedness
+hole at this witness**: after ♦K stacks, the boundary flips and the
+accommodation successor is solvable in two more moves (pinned below).
+Whether the `+ hnotlock` guard can now be dropped from the repaired
+crux (`solvable_of_pileStack`, still sorry'd) is a fresh question for
+the library — the general locked case has an arbitrary boundary card,
+not always a rung-ready king.  The state stays as a regression
+witness; the tightness examples at the bottom record the historical
+guard's motivation.
 -/
 
 namespace B4Locked
@@ -238,10 +238,10 @@ private theorem wState_wf : wState.WF := by
     · exact absurd hi (Nat.not_lt_zero i)
     · exact nomatch (show c ∈ ([] : List Card) from hc)
 
-/-! ## The witness is solvable (three moves) -/
+/-! ## The witness is solvable (three moves, the physical order) -/
 
 private def wPlay : List Move :=
-  [Move.reveal (D .king), Move.pileStack (D .king), Move.pileStack (C .king)]
+  [Move.pileStack (D .king), Move.reveal Anchor.p1, Move.pileStack (C .king)]
 
 private def wWin : State := (wState.run wPlay).getD wState
 
@@ -261,248 +261,18 @@ private theorem wRun : wState.run wPlay = some wWin := by
 private theorem wState_solvable : wState.solvableFrom :=
   ⟨wPlay, wWin, wRun, by decide⟩
 
-/-! ## The dead-pile invariant -/
-
-/-- Pile p1 still has exactly one hidden card (♣K), with nothing on it
-and ♣K not visible. -/
-private def DeadInv (s : State) : Prop :=
-  s.deal = wDeal ∧ s.depths Anchor.p1 = 1 ∧
-    s.board.topOf (Sum.inr (C .king)) = none ∧
-    s.board.bottomOf (C .king) = none
-
-private theorem deadInv_hidden {s : State} (hi : DeadInv s) :
-    s.hidden Anchor.p1 = [C .king] := by
-  show (s.deal.piles Anchor.p1).take (s.depths Anchor.p1) = [C .king]
-  rw [hi.1, hi.2.1]
-  rfl
-
-private theorem deadInv_topHidden {s : State} (hi : DeadInv s) :
-    s.topHidden Anchor.p1 = some (C .king) := by
-  show (s.hidden Anchor.p1).getLast? = some (C .king)
-  rw [deadInv_hidden hi]
-  rfl
-
-private theorem deadInv_mem {s : State} (hi : DeadInv s) :
-    C .king ∈ s.deal.piles Anchor.p1 := by
-  have h1 : C .king ∈ s.hidden Anchor.p1 := by
-    rw [deadInv_hidden hi]
-    simp
-  exact List.take_subset _ _ h1
-
-/-- The invariant survives every move. -/
-private theorem deadInv_step {s s' : State} (hwf : s.WF) (hi : DeadInv s) {m : Move}
-    (hap : s.apply m = some s') : DeadInv s' := by
-  obtain ⟨hdeal, hdep, htop, hbot⟩ := hi
-  cases m with
-  | draw =>
-      rw [apply_draw_iff] at hap
-      obtain ⟨rfl⟩ := hap
-      exact ⟨hdeal, hdep, htop, hbot⟩
-  | reveal x =>
-      rw [apply_reveal_iff] at hap
-      obtain ⟨-, r, a, bd, hb, hp, hatt, hst⟩ := hap
-      rw [hst]
-      have hane : a ≠ Anchor.p1 := by
-        intro hae
-        rw [hae] at hp
-        have htr : s.topHidden Anchor.p1 = some r := pileOfTopHidden_topHidden hp
-        rw [deadInv_topHidden ⟨hdeal, hdep, htop, hbot⟩] at htr
-        have hrCK : C .king = r := Option.some.inj htr
-        rw [← hrCK] at hb
-        have hcon : s.board.topOf (Sum.inr (C .king)) = some x :=
-          (Board.bottomOf_eq _ _ _).mp hb
-        rw [htop] at hcon
-        exact absurd hcon (by simp)
-      refine ⟨hdeal, ?_, ?_, ?_⟩
-      · show (if Anchor.p1 = a then s.depths a - 1 else s.depths Anchor.p1) = 1
-        rw [if_neg (Ne.symm hane)]
-        exact hdep
-      · show bd.topOf (Sum.inr (C .king)) = none
-        have hbne : Sum.inr (C .king) ≠ s.hiddenBase a := by
-          intro hbe
-          have hmem : C .king ∈ s.deal.piles a := hiddenBase_piles hbe.symm
-          exact hane (Deal.piles_disj hwf.deal_wf hmem
-            (deadInv_mem ⟨hdeal, hdep, htop, hbot⟩))
-        rw [Board.attach_topOf_ne _ _ _ hatt hbne]
-        exact htop
-      · show bd.bottomOf (C .king) = none
-        refine (Board.bottomOf_eq_none _ _).mpr ?_
-        intro b'' hb''
-        have hrne : r ≠ C .king := by
-          intro hre
-          have htr : s.topHidden a = some r := pileOfTopHidden_topHidden hp
-          rw [hre] at htr
-          have hmem2 : C .king ∈ s.hidden a := mem_of_getLast htr
-          have hmem3 : C .king ∈ s.deal.piles a := List.take_subset _ _ hmem2
-          exact hane (Deal.piles_disj hwf.deal_wf hmem3
-            (deadInv_mem ⟨hdeal, hdep, htop, hbot⟩))
-        by_cases hbb : b'' = s.hiddenBase a
-        · rw [hbb, Board.attach_topOf _ _ _ hatt] at hb''
-          exact hrne (Option.some.inj hb'')
-        · rw [Board.attach_topOf_ne _ _ _ hatt hbb] at hb''
-          exact ((Board.bottomOf_eq_none _ _).mp hbot) b'' hb''
-  | deckPile x b =>
-      rw [apply_deckPile_iff] at hap
-      obtain ⟨hprev, hcp, bd, hatt, hst⟩ := hap
-      rw [hst]
-      have hbne : Sum.inr (C .king) ≠ b := by
-        intro hbe
-        rw [← hbe] at hcp
-        have his := canPlace_inr_isVis hcp
-        simp only [State.isVis, hbot] at his
-        exact absurd his (by decide)
-      have hxne : x ≠ C .king := by
-        intro hxe
-        rw [hxe] at hprev
-        have hmem : C .king ∈ s.stock.cards := prev_mem hprev
-        exact Deal.piles_stock_disj hwf.deal_wf (deadInv_mem ⟨hdeal, hdep, htop, hbot⟩)
-          ((hwf.stock_wf).2 _ hmem)
-      refine ⟨hdeal, hdep, ?_, ?_⟩
-      · show bd.topOf (Sum.inr (C .king)) = none
-        rw [Board.attach_topOf_ne _ _ _ hatt hbne]
-        exact htop
-      · show bd.bottomOf (C .king) = none
-        refine (Board.bottomOf_eq_none _ _).mpr ?_
-        intro b'' hb''
-        by_cases hbb : b'' = b
-        · rw [hbb, Board.attach_topOf _ _ _ hatt] at hb''
-          exact hxne (Option.some.inj hb'')
-        · rw [Board.attach_topOf_ne _ _ _ hatt hbb] at hb''
-          exact ((Board.bottomOf_eq_none _ _).mp hbot) b'' hb''
-  | deckStack x =>
-      rw [apply_deckStack_iff] at hap
-      obtain ⟨-, -, rfl⟩ := hap
-      exact ⟨hdeal, hdep, htop, hbot⟩
-  | pileStack x =>
-      rw [apply_pileStack_iff] at hap
-      obtain ⟨-, b, hb, -, rfl⟩ := hap
-      refine ⟨hdeal, hdep, ?_, ?_⟩
-      · show (s.board.detach b).topOf (Sum.inr (C .king)) = none
-        by_cases hbb : b = Sum.inr (C .king)
-        · rw [hbb]
-          exact Board.detach_topOf _ _
-        · rw [Board.detach_topOf_ne _ _ _ (Ne.symm hbb)]
-          exact htop
-      · show (s.board.detach b).bottomOf (C .king) = none
-        refine (Board.bottomOf_eq_none _ _).mpr ?_
-        intro b'' hb''
-        by_cases hbb : b'' = b
-        · rw [hbb, Board.detach_topOf] at hb''
-          simp at hb''
-        · rw [Board.detach_topOf_ne _ _ _ hbb] at hb''
-          exact ((Board.bottomOf_eq_none _ _).mp hbot) b'' hb''
-  | stackPile x b =>
-      rw [apply_stackPile_iff] at hap
-      obtain ⟨hrk, hcp, bd, hatt, rfl⟩ := hap
-      have hxne : x ≠ C .king := by
-        intro hxe
-        rw [hxe] at hrk
-        have hlt : (C .king).rank.toIdx < s.heights (C .king).suit := by omega
-        exact (hwf.founds_gone (C .king) hlt).2.2 Anchor.p1
-          (by rw [deadInv_hidden ⟨hdeal, hdep, htop, hbot⟩]
-              simp)
-      refine ⟨hdeal, hdep, ?_, ?_⟩
-      · show bd.topOf (Sum.inr (C .king)) = none
-        have hbne : Sum.inr (C .king) ≠ b := by
-          intro hbe
-          rw [← hbe] at hcp
-          have his := canPlace_inr_isVis hcp
-          simp only [State.isVis, hbot] at his
-          exact absurd his (by decide)
-        rw [Board.attach_topOf_ne _ _ _ hatt hbne]
-        exact htop
-      · show bd.bottomOf (C .king) = none
-        refine (Board.bottomOf_eq_none _ _).mpr ?_
-        intro b'' hb''
-        by_cases hbb : b'' = b
-        · rw [hbb, Board.attach_topOf _ _ _ hatt] at hb''
-          exact hxne (Option.some.inj hb'')
-        · rw [Board.attach_topOf_ne _ _ _ hatt hbb] at hb''
-          exact ((Board.bottomOf_eq_none _ _).mp hbot) b'' hb''
-  | pilePile x b =>
-      rw [apply_pilePile_iff] at hap
-      obtain ⟨b₀, hb₀, hne, hcm, bd, hatt, rfl⟩ := hap
-      refine ⟨hdeal, hdep, ?_, ?_⟩
-      · show bd.topOf (Sum.inr (C .king)) = none
-        have hbne : Sum.inr (C .king) ≠ b := by
-          intro hbe
-          rw [← hbe] at hcm
-          have his := canMoveRun_inr_isVis hcm
-          simp only [State.isVis, hbot] at his
-          exact absurd his (by decide)
-        rw [Board.attach_topOf_ne _ _ _ hatt hbne]
-        show (s.board.detach b₀).topOf (Sum.inr (C .king)) = none
-        by_cases hbb : b₀ = Sum.inr (C .king)
-        · rw [hbb]
-          exact Board.detach_topOf _ _
-        · rw [Board.detach_topOf_ne _ _ _ (Ne.symm hbb)]
-          exact htop
-      · show bd.bottomOf (C .king) = none
-        refine (Board.bottomOf_eq_none _ _).mpr ?_
-        intro b'' hb''
-        have hxne : x ≠ C .king := by
-          intro hxe
-          rw [hxe, hbot] at hb₀
-          simp at hb₀
-        by_cases hbb : b'' = b
-        · rw [hbb, Board.attach_topOf _ _ _ hatt] at hb''
-          exact hxne (Option.some.inj hb'')
-        · rw [Board.attach_topOf_ne _ _ _ hatt hbb] at hb''
-          by_cases hbb₀ : b'' = b₀
-          · rw [hbb₀, Board.detach_topOf] at hb''
-            simp at hb''
-          · rw [Board.detach_topOf_ne _ _ _ hbb₀] at hb''
-            exact ((Board.bottomOf_eq_none _ _).mp hbot) b'' hb''
-
-/-- A WF state satisfying the invariant is unsolvable: the win needs
-`heights ♣ = 13`, so ♣K foundation-passed, but it stays hidden. -/
-private theorem dead_unsolvable {s : State} (hwf : s.WF) (hi : DeadInv s) :
-    ¬ s.solvableFrom := by
-  intro hsolv
-  obtain ⟨play, w, hrun, hwin⟩ := hsolv
-  have aux : ∀ (play : List Move) (s w : State),
-      s.run play = some w → s.WF → DeadInv s → DeadInv w ∧ w.WF := by
-    intro play
-    induction play with
-    | nil =>
-        intro s w hrun hwf hi
-        have h' : some s = some w := hrun
-        rw [← Option.some.inj h']
-        exact ⟨hi, hwf⟩
-    | cons m rest ih =>
-        intro s w hrun hwf hi
-        have hstep : ∃ s', s.apply m = some s' ∧ s'.run rest = some w := by
-          simp only [State.run] at hrun
-          cases hap : s.apply m with
-          | none =>
-              rw [hap] at hrun
-              exact absurd hrun (by simp)
-          | some s' =>
-              rw [hap] at hrun
-              exact ⟨s', rfl, hrun⟩
-        obtain ⟨s', hap, hrest⟩ := hstep
-        exact ih s' w hrest (apply_wf hwf m s' hap) (deadInv_step hwf hi hap)
-  obtain ⟨hiw, hwfw⟩ := aux play s w hrun hwf hi
-  have hc13 : w.heights Suit.club = 13 :=
-    of_decide_eq_true ((List.all_eq_true.mp hwin) Suit.club (Suit.mem_all _))
-  have hlt : (C .king).rank.toIdx < w.heights (C .king).suit := by
-    show (C .king).rank.toIdx < w.heights Suit.club
-    rw [hc13]
-    decide
-  exact (hwfw.founds_gone (C .king) hlt).2.2 Anchor.p1
-    (by rw [deadInv_hidden hiw]; simp)
-
-/-! ## The refutations (HISTORICAL — the statements were repaired the
-same session)
+/-! ## The historical guard's motivation + the rule-repair effect
 
 `crux_refuted` / `main_refuted` (this file's first version, 2026-09-13)
 derived `False` from the pre-repair statements — `solvable_of_pileStack`
 and `solvable_accommodates` without the lockedness guard — via exactly
 the facts below: `wState.solvableFrom`, `wState.apply (pileStack ♦K) =
-some wState1`, and `¬ wState1.solvableFrom`.  The same-session repair
-(`+ hnotlock` on the crux, `safeAccommodates` on the main) excludes
-precisely this witness, and the guard is tight — every other hypothesis
-of the repaired statements holds here: -/
+some wState1`, and `¬ wState1.solvableFrom` (the dead-pile invariant,
+retired with the reveal rule).  The same-session repair
+(`+ hnotlock` on the crux, `safeAccommodates` on the main) excluded
+precisely this witness.  The tightness examples (every other
+hypothesis holds here) stay green below — and the revival pins record
+that the 2026-09-16 rule repair dissolves the hole at this witness: -/
 
 private def wState1 : State := (wState.apply (Move.pileStack (D .king))).getD wState
 
@@ -523,8 +293,31 @@ private theorem wState_apply :
 private theorem wState1_wf : wState1.WF :=
   apply_wf wState_wf _ _ wState_apply
 
-private theorem wState1_DeadInv : DeadInv wState1 :=
-  ⟨rfl, rfl, by decide, by decide⟩
+/-- The flip is illegal while ♦K covers the boundary (pinned). -/
+example : (wState.apply (Move.reveal Anchor.p1)).isSome = false := by decide
+
+/-- The revival play: flip the bare boundary, then stack ♣K. -/
+private def wRevive : List Move := [Move.reveal Anchor.p1, Move.pileStack (C .king)]
+
+private def wWin1 : State := (wState1.run wRevive).getD wState1
+
+private theorem wState1_run : wState1.run wRevive = some wWin1 := by
+  have his : (wState1.run wRevive).isSome = true := by decide
+  cases h : wState1.run wRevive with
+  | none =>
+      rw [h] at his
+      simp at his
+  | some w =>
+      have hw : wWin1 = w := by
+        show (wState1.run wRevive).getD wState1 = w
+        rw [h]
+        rfl
+      rw [hw]
+
+/-- **The locked-hole dissolves here**: the accommodation successor is
+solvable in two more moves under the physical flip rule. -/
+theorem wState1_solvable : wState1.solvableFrom :=
+  ⟨wRevive, wWin1, wState1_run, by decide⟩
 
 example : wState.isLocked (D .king) = true := by decide
 
@@ -535,13 +328,10 @@ example : wState.apply (Move.pileStack (D .king)) = some wState1 :=
 
 example : wState.solvableFrom := wState_solvable
 
-example : ¬ wState1.solvableFrom :=
-  dead_unsolvable wState1_wf wState1_DeadInv
-
 end B4Locked
 
 #print axioms B4Locked.wState_wf
 #print axioms B4Locked.wState_solvable
-#print axioms B4Locked.dead_unsolvable
 #print axioms B4Locked.wState_apply
 #print axioms B4Locked.wState1_wf
+#print axioms B4Locked.wState1_solvable

@@ -261,11 +261,12 @@ example : ∀ c' ∈ wState.redundantStacks, (D .nine).rank.toIdx ≤ c'.rank.to
 /-- Safety fails exactly on the unconstrained fourth suit (♣). -/
 example : safeToStack wState (D .nine) = false := by decide
 
-/-- The state is solvable: 17 moves, the spine being the reveal, the
-transit through ♦9's seat, and the four climbs. -/
+/-- The state is solvable: 17 moves, the spine being the transit
+through ♦9's seat (which frees p1's boundary for the physical flip),
+the reveal, and the four climbs. -/
 private def wPlay : List Move :=
-  [Move.reveal (C .eight),
-   Move.pilePile (C .eight) (Sum.inr (D .nine)),
+  [Move.pilePile (C .eight) (Sum.inr (D .nine)),
+   Move.reveal Anchor.p1,
    Move.pileStack (C .seven),
    Move.pileStack (C .eight),
    Move.pileStack (D .nine),
