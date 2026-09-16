@@ -665,37 +665,117 @@ theorem king_dislodge_exists {st : State} {t c : Card} {a : Anchor}
 
 /-! ## The fusion point: the merge-mirror conjugation -/
 
-/-! ## The fusion point: the merge-mirror conjugation (DESIGNED, next pass) -/
-
-/-! The next lemma, fully designed (the case analysis verified on paper;
-the write is mechanical, ~150 lines): `merge_mirror_conjugate` —
-
-    (hz'z : z' = z.flipSuit) (hznt : z ≠ t) (hznt' : z ≠ t.flipSuit)
+theorem merge_mirror_conjugate {st a₁ s₂ : State} {t z z' c : Card}
+    (hz'z : z' = z.flipSuit)
+    (hznt : z ≠ t) (hznt' : z ≠ t.flipSuit)
     (hbotZ : st.board.bottomOf z = some (Sum.inr t))
     (hbotZ' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
     (hmerge : st.apply (Move.pilePile c (Sum.inr z')) = some a₁)
     (hmirror : (st.exchangeTwinCargo t).apply (Move.pilePile c (Sum.inr z)) = some s₂) :
-    s₂ = { a₁ with board := a₁.board.mapByTwin z }
-
-**The suit-gated switching point, formal**: both aftermaths are the
-z↔z' RELABELING CONJUGATES of each other.  The merge bridge's
-both-bare arm then reduces to the conjugated-solvability question —
-the suit-reading correspondence the window machinery exists for.
-
-Proof skeleton: unpack both moves (apply_pilePile_iff + canMoveRun_inr_iff:
-z'/z bare, the fits); the off-pair grid (z ≠ z'; t ≠ z' via hznt' +
-flipSuit_flipSuit; t' ≠ z; c ≠ z/z' via the fits' rank arithmetic);
-b₀ off all four twin/cargo seats (topOf clashes); b₀' = b₀ (c's seat
-survives the exchange); then Board.ext_topOf + funext with six seat
-cases — (inr t): z' vs (some z).map = z' via swapTwin_self_left;
-(inr t'): z vs z'.map via swapTwin_self_right; (inr z): c vs
-attach_topOf; (inr z'): none vs none (both bare, seats off the other
-pair); b₀: none vs none (both detaches); generic b: st.topOf b on
-both sides (the card at b is off-pair by Board.inj — z sits only at
-(inr t), z' only at (inr t')); the non-map side through
-exchangeTwin_topOf + swapTwin_of_ne/swapTwin_eq_self at every step.
-Close with state_ext (five rfl fields — the exchange and both merges
-touch only boards). -/
+    s₂ = { a₁ with board := a₁.board.mapByTwin z } := by
+  -- the seat facts
+  have hztop : st.board.topOf (Sum.inr t) = some z :=
+    (Board.bottomOf_eq st.board z (Sum.inr t)).mp hbotZ
+  have hz'top : st.board.topOf (Sum.inr t.flipSuit) = some z' :=
+    (Board.bottomOf_eq st.board z' (Sum.inr t.flipSuit)).mp hbotZ'
+  -- the merge, factored; its guards give z' bare and the fit
+  rw [apply_pilePile_iff] at hmerge
+  obtain ⟨b₀, hb₀, -, hcmr₁, bd₁, hatt₁, rfl⟩ := hmerge
+  rw [canMoveRun_inr_iff] at hcmr₁
+  obtain ⟨hcp₁, -⟩ := hcmr₁
+  have hcp₁' : (decide (st.board.topOf (Sum.inr z') = none) &&
+      (st.isVis z' && canSitOn c z')) = true := hcp₁
+  simp only [Bool.and_eq_true_iff, decide_eq_true_iff, Bool.and_eq_true_iff] at hcp₁'
+  obtain ⟨hz'bare, -, hfit₁⟩ := hcp₁'
+  -- the mirror, factored; its guards give z bare in stx and the fit
+  rw [apply_pilePile_iff] at hmirror
+  obtain ⟨b₀', hb₀', -, hcmr₂, bd₂, hatt₂, rfl⟩ := hmirror
+  rw [canMoveRun_inr_iff] at hcmr₂
+  obtain ⟨hcp₂, -⟩ := hcmr₂
+  have hcp₂' : (decide ((st.exchangeTwinCargo t).board.topOf (Sum.inr z) = none) &&
+      ((st.exchangeTwinCargo t).isVis z && canSitOn c z)) = true := hcp₂
+  simp only [Bool.and_eq_true_iff, decide_eq_true_iff, Bool.and_eq_true_iff] at hcp₂'
+  obtain ⟨hzbarer, -, hfit₂⟩ := hcp₂'
+  -- the off-pair grid
+  have hzz' : z ≠ z' := fun h => Card.flipSuit_ne z (h.trans hz'z).symm
+  have htz' : t ≠ z' := by
+    intro h
+    exact hznt' (by rw [h, hz'z]; exact (Card.flipSuit_flipSuit z).symm)
+  have htz : t ≠ z := fun h => hznt h.symm
+  have ht'z : t.flipSuit ≠ z := by
+    intro h
+    exact htz' (by rw [← Card.flipSuit_flipSuit t, h, hz'z])
+  have ht'z' : t.flipSuit ≠ z' := by
+    intro h
+    exact htz (by rw [← Card.flipSuit_flipSuit t, h, hz'z, Card.flipSuit_flipSuit z])
+  -- the fits force c off the pair (the rank arithmetic)
+  have hcz : c ≠ z := by
+    intro h
+    rw [h] at hfit₂
+    rcases (canSitOn_eq z z).mp hfit₂ with ⟨h1, -⟩
+    omega
+  have hcz' : c ≠ z' := by
+    intro h
+    rw [h] at hfit₁
+    rcases (canSitOn_eq z' z').mp hfit₁ with ⟨h1, -⟩
+    omega
+  -- THE BOARD IDENTITY (the six-seat Board.ext_topOf analysis, designed
+  -- above): bd₂ = bd₁.mapByTwin z via the per-seat cases -- (inr t):
+  -- z' vs (some z).map via swapTwin_self_left;  (inr t'): z vs
+  -- (some z').map via swapTwin_self_right;  (inr z): c via attach_topOf;
+  -- (inr z'): none vs none;  b₀: none vs none (both detaches);
+  -- generic: st.topOf b on both sides (the card at b is off-pair by
+  -- Board.inj).  Every step rides attach/detach_topOf_ne,
+  -- exchangeTwin_topOf + swapTwin_eq_self/swapTwin_of_ne.
+  have hbd : bd₂ = bd₁.mapByTwin z := by
+    -- c's seat in st, and b₀ off the four twin/cargo card-seats
+    have hbot₀ : st.board.topOf b₀ = some c :=
+      (Board.bottomOf_eq st.board c b₀).mp hb₀
+    have hb₀t : b₀ ≠ Sum.inr t := by
+      intro h
+      rw [h] at hbot₀
+      rw [hztop] at hbot₀
+      exact hcz (Option.some.inj hbot₀).symm
+    have hb₀t' : b₀ ≠ Sum.inr t.flipSuit := by
+      intro h
+      rw [h] at hbot₀
+      rw [hz'top] at hbot₀
+      exact hcz' (Option.some.inj hbot₀).symm
+    have hswZ : Base.swapTwin t (Sum.inr z) = Sum.inr z :=
+      Base.swapTwin_eq_self (fun h => htz (Sum.inr.inj h).symm)
+        (fun h => hznt' (Sum.inr.inj h))
+    have hzbare : st.board.topOf (Sum.inr z) = none := by
+      rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hswZ] at hzbarer
+      exact hzbarer
+    have hb₀z : b₀ ≠ Sum.inr z := by
+      intro h
+      rw [h] at hbot₀
+      rw [hzbare] at hbot₀
+      simp at hbot₀
+    have hb₀z' : b₀ ≠ Sum.inr z' := by
+      intro h
+      rw [h] at hbot₀
+      rw [hz'bare] at hbot₀
+      simp at hbot₀
+    -- c's seat survives the exchange: the mirror detaches at the same b₀
+    have hswB₀ : b₀.swapTwin t = b₀ :=
+      Base.swapTwin_eq_self hb₀t hb₀t'
+    have hbot₀' : (st.exchangeTwinCargo t).board.topOf b₀ = some c := by
+      rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hswB₀]
+      exact hbot₀
+    have hb₀'eq : b₀' = b₀ :=
+      Option.some.inj (hb₀'.symm.trans ((Board.bottomOf_eq _ c b₀).mpr hbot₀'))
+    subst hb₀'eq
+    sorry
+  -- the state extensionality: both moves are board-only, the exchange
+  -- copies every other field
+  apply state_ext
+  · rfl
+  · exact hbd
+  · rfl
+  · rfl
+  · rfl
+  · rfl
 
 /-! ## The unseating taxonomy (the play-level disciplines' keystone) -/
 
