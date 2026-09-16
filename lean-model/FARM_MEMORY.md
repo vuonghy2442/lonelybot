@@ -2143,3 +2143,18 @@ tree).
   goal -- the exists-body's first conjunct becomes `rfl`, not `hA`; (d) the king-rank computation: `have h12 : t.rank.toIdx = 12 := by
   rw [hking]; rfl` -- the `simp only [Rank.toIdx] at h` route left omega without the linear fact (the constraint set showed only the
   toIdx_lt bound).
+- THE GENERAL FORM LANDED (same session, second batch): `dislodge_reland` -- the collapse fires from ANY legal dislodge of the twin's
+  sub-run (a free anchor, a fit, a deal-adjacent seat); `park_reland` is now the two-line king instance (`park_king_run` + the general
+  form).  The target exclusions are DERIVED, not premises: `b ≠ inr t`/`b ≠ inr d` from the attach's freeness (their seats are occupied),
+  `b ≠ inr z'` from the self-landing guard + the walk-entry fact.  The assembly's WF-level merge-case calculus shrinks to: does the twin's
+  sub-run have ANY landing?  New supporting facts: `aboveOf_contains_topOf` (the walk-entry, contains form: a card riding `t` is IN the
+  run above `t`, cycles or not -- the self-landing guard's silent partner), riding TwinSwap's `Board.aboveOf_go_mono` (cite, don't
+  re-derive) + `lcontains_true_of_mem` (the membership->contains bridge, the mirror of TwinSwap's `lcontains_false_of_notMem` -- worth
+  hoisting to Basic in a dedupe wave).  All sorry-free, axiom-clean [propext, Quot.sound], green.
+- SYNTAX PAID FOR (batch two): (a) after `rw [Board.aboveOf_go_succ, h]` the match does NOT iota-reduce under `rw` -- force it with an
+  explicit `show (if ... = true then _ else _)` BEFORE rewriting the if (Board.lean's own `aboveOf_step_some` precedent, the step I
+  skipped); (b) `if_neg` is DEPRECATED under v4.34 -- use `ite_eq_right`; (c) `Option.some.inj` of two `bottomOf` equations composes as
+  `hb₀.symm.trans hbotT` (the `hb₀.trans hbotT.symm` order does not type-check); (d) `Board.attach_eq_some_iff.mp` wants `≠ none` -- build
+  it from `= some _` by the rw-at-then-simp dance; (e) bare `simp` on a `(c' :: acc).contains y = true` goal DRIFTS to the membership
+  form `y = c' ∨ y ∈ acc` (the linter flags the unused args) -- bridge explicitly with `lcontains_true_of_mem`/`List.contains_cons`
+  instead.
