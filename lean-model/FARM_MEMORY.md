@@ -2179,3 +2179,11 @@ tree).
   1:0 ("expected token") -- probe-file surgery needs `[System.IO.File]::WriteAllLines` with a no-BOM UTF8Encoding; and note the sibling's
   0ed3d48 swept and REORGANIZED TwinCollapse (subscripts ASCII-fied, park's section headers merged) -- grep the theorem names before
   editing by remembered anchors.
+
+- THE BARE-RUNG COMPOSITION + THE TRICHOTOMY SKELETON (same session, fifth batch): rung_stacks (a bare, seated, at-the-rung card
+  stacks -- the cascade's terminal move); mirror_of_bare_rung (the w15wfmerge happy path END-TO-END: blocker r on z is a bare rung ->
+  stacks -> the mirror fires -- two moves, NO founds_gone needed); merge_ply_cases (the named split: z bare -> arm (a); blocker exists ->
+  arm (b), closed outright when a bare rung); king_dislodge_exists (arm (c)'s king case in the existential form dislodge_reland
+  consumes).  The trichotomy's remaining corner is now sharp: a COVERED or NON-RUNG blocker and a king-with-no-free-anchor (or non-king)
+  twin -- the cascade + counting residues, both play-level.  All sorry-free, axiom-clean [propext, Quot.sound].  SYNTAX: `cases hz : e`
+  abstracts e in the goal -- the none-arm becomes `rfl`, not `hz` (the same class as the park_king_run finding).
