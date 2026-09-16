@@ -898,6 +898,41 @@ theorem merge_mirror_conjugate {st a₁ s₂ : State} {t z z' c : Card}
   · rfl
   · rfl
 
+/-! ## The bridge's both-bare arm: the reduction -/
+
+/-- **The merge bridge's both-bare arm, reduced.**  With the run
+through `t` landing on the bare `z'` (the merge, `a₁` solvable) and
+the mirror firing in the exchanged state (landing on the bare `z`),
+the exchanged state is solvable — GIVEN the two named residuals:
+
+1. `hmirror` — the mirror's firing (the walk-guard `z ∉
+   aboveOf_{stx} c`;  in the both-bare regime the run from `c` in
+   `stx` reads `... t, z'` and terminates, so the guard is
+   mechanical — the step_some chain off the bare tips);
+2. `hconj` — the conjugated-solvability (a winning play survives the
+   z↔z' board relabeling — the suit-reading correspondence, the
+   window machinery's remaining content).
+
+Composed: `mirror fires → merge_mirror_conjugate (the aftermaths are
+mapByTwin conjugates) → hconj transfers a₁'s win → run_cons_intro
+prepends the mirror move`.  The bridge's first closed shape. -/
+theorem merge_bridge_both_bare {st a₁ s₂ : State} {t z z' c : Card}
+    (hz'z : z' = z.flipSuit) (hznt : z ≠ t) (hznt' : z ≠ t.flipSuit)
+    (hbotZ : st.board.bottomOf z = some (Sum.inr t))
+    (hbotZ' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
+    (hmerge : st.apply (Move.pilePile c (Sum.inr z')) = some a₁)
+    (hmirror : (st.exchangeTwinCargo t).apply (Move.pilePile c (Sum.inr z)) = some s₂)
+    (hsol : a₁.solvableFrom)
+    (hconj : ∀ s : State, s.solvableFrom →
+      {s with board := s.board.mapByTwin z}.solvableFrom) :
+    (st.exchangeTwinCargo t).solvableFrom := by
+  have hconjs : s₂ = {a₁ with board := a₁.board.mapByTwin z} :=
+    merge_mirror_conjugate hz'z hznt hznt' hbotZ hbotZ' hmerge hmirror
+  subst hconjs
+  obtain ⟨π, w, hrun, hwin⟩ := hconj a₁ hsol
+  exact ⟨Move.pilePile c (Sum.inr z) :: π, w,
+    run_cons_intro hmirror hrun, hwin⟩
+
 /-! ## The unseating taxonomy (the play-level disciplines' keystone) -/
 
 /-- The freeness of a successful attach (the `≠ none` bridge,
