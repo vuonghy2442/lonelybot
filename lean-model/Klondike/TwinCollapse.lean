@@ -133,7 +133,8 @@ theorem wf_vis_rank {st : State} (hwf : st.WF) {c : Card} (hvis : st.isVis c = t
   by_cases hle : st.heights c.suit ≤ c.rank.toIdx
   · exact hle
   · have hlt : c.rank.toIdx < st.heights c.suit := by omega
-    exact absurd hvis (hwf.founds_gone c hlt).1
+    rw [(hwf.founds_gone c hlt).1] at hvis
+    simp at hvis
 
 /-! ## The second repair: the blocker stacks off, the mirror opens -/
 

@@ -2158,3 +2158,14 @@ tree).
   it from `= some _` by the rw-at-then-simp dance; (e) bare `simp` on a `(c' :: acc).contains y = true` goal DRIFTS to the membership
   form `y = c' ∨ y ∈ acc` (the linter flags the unused args) -- bridge explicitly with `lcontains_true_of_mem`/`List.contains_cons`
   instead.
+- THE SECOND REPAIR LANDED (same session, third batch): `wf_vis_rank` (WF's founds_gone contrapositive -- every visible card sits at or above
+  its suit's height; the blocker-is-live seed) and `blocker_leaves_mirror` (w15wfmerge's mechanism, general form): when the blocker `r`
+  riding `z` stacks off, `z` bares and the MIRROR merge `pilePile c (inr z)` fires -- c's run lands on z, exposing the host `d`, with
+  heights gaining exactly r's rung.  The aftermath is the z<->z' twin-conjugate of the source's post-merge state (the suit-gated switching
+  point -- the cleaner correspondence than the dislodge aftermath).  The kit now covers both repair families: `dislodge_reland` (the
+  self-landing obstruction) and `blocker_leaves_mirror` (the mirror-blocked obstruction).  All sorry-free, axiom-clean [propext, Quot.sound].
+- SYNTAX PAID FOR (batch three): (a) `by_contra` does NOT exist without mathlib -- use `by_cases h : P <;> omega` for the contrapositive;
+  (b) `canSitOn_flipSuit_right` ALREADY EXISTS (Theorems:2907, an rfl equation `canSitOn x y.flipSuit = canSitOn x y`) -- cite it, and it
+  takes x y explicitly, rw-style; (c) `founds_gone`'s first conjunct is the Bool equation `isVis c = false`, NOT `¬(isVis c = true)` -- `absurd`
+  mismatches, use `rw [...] at hvis; simp at hvis`; (d) the structure-literal syntax card bites in `refine` witnesses too -- first field on
+  its own line or the parser drops a `}`.
