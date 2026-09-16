@@ -511,17 +511,18 @@ theorem rank_lt_of_mem_aboveOf {st : State} (hv : st.visClean) {c x : Card}
         rw [hy]; exact hc₁lt
       exact Board.aboveOf_go_rank_lt hv 51 c c₁ [c₁] hvisc₁ hc₁lt hacc x hmem'
 
-/-- **The merge is impossible at reachable states** — the [H] crux,
-vacuous under `initialReachable`.  A pilePile whose run passes a twin
-cannot land on either twin's cargo stack: the run is strictly
-rank-descending (the clean-stacks corollary), so the twin inside the
-run sits strictly below the root in rank, while the cargo landing
-demands the root sit two below the twin.  At merely-WF states the
-deal-adjacent branch of `board_edges` admits dirty visible edges (the
-old reveal-through's artifacts) — there the merge was live, and it is
-exactly what the w15merge witness exhibited. -/
-theorem merge_impossible_of_initialReachable {st a₁ : State} {t z z' c : Card} {b : Base}
-    (hreach : initialReachable st)
+/-- **The merge is impossible at clean-stacks states** — the [H]
+crux, vacuous under `visClean` (hence under `initialReachable`).  A
+pilePile whose run passes a twin cannot land on either twin's cargo
+stack: the run is strictly rank-descending (the clean-stacks
+corollary), so the twin inside the run sits strictly below the root
+in rank, while the cargo landing demands the root sit two below the
+twin.  At merely-WF states the deal-adjacent branch of
+`board_edges` admits dirty visible edges (the old reveal-through's
+artifacts) — there the merge was live, and it is exactly what the
+w15merge witness exhibited. -/
+theorem merge_impossible_of_visClean {st a₁ : State} {t z z' c : Card} {b : Base}
+    (hv : st.visClean)
     (h₀ : st.board.bottomOf z = some (Sum.inr t))
     (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
     (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
@@ -530,7 +531,6 @@ theorem merge_impossible_of_initialReachable {st a₁ : State} {t z z' c : Card}
     (hland : ∃ d, b = Sum.inr d ∧
       (d = z ∨ d ∈ st.board.aboveOf z ∨ d = z' ∨ d ∈ st.board.aboveOf z')) :
     False := by
-  obtain ⟨-, hv⟩ := initialReachable_visClean hreach
   obtain ⟨d, hb, hd⟩ := hland
   rw [apply_pilePile_iff] at hstep
   obtain ⟨b₀, hb₀, -, hcmr, -, -, -⟩ := hstep
@@ -570,3 +570,18 @@ theorem merge_impossible_of_initialReachable {st a₁ : State} {t z z' c : Card}
     · subst hct; omega
     · have hlt := rank_lt_of_mem_aboveOf hv hvc hmem
       omega
+
+/-- The reachability corollary: every reachable state is
+visClean, so the merge is impossible there too. -/
+theorem merge_impossible_of_initialReachable {st a₁ : State} {t z z' c : Card} {b : Base}
+    (hreach : initialReachable st)
+    (h₀ : st.board.bottomOf z = some (Sum.inr t))
+    (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hstep : st.apply (Move.pilePile c b) = some a₁)
+    (hmerge : t ∈ st.board.aboveOf c ∨ t.flipSuit ∈ st.board.aboveOf c)
+    (hland : ∃ d, b = Sum.inr d ∧
+      (d = z ∨ d ∈ st.board.aboveOf z ∨ d = z' ∨ d ∈ st.board.aboveOf z')) :
+    False :=
+  merge_impossible_of_visClean (initialReachable_visClean hreach).2
+    h₀ h₀' hfit hfit' hstep hmerge hland
