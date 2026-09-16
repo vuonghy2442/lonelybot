@@ -352,6 +352,30 @@ survived: `apply_wf`, the mirror steps, the license transfers, the
 extraction family — all re-verified under the new rule (build green,
 census pinned at 14, unchanged).
 
+**Session note (2026-09-16, evening — the file split)**: two new
+iteration-homes in `lean-model/Klondike/`:
+`MergeFire.lean` (importing TwinBridge — the merge's re-firing
+family: `merge_refires_clean` MOVED here from TwinBridge, with
+`merge_refires_mixed` the incoming next piece; the walk-entry kit it
+consumes — `RunChain`, `aboveOf_run_root_of_chain`,
+`aboveOf_card_base` — lives in TwinQuotient's walk family) and the
+user's `TwinCollapse.lean` (the anchor-relocation kit).  Both wired
+into `Klondike.lean`'s import list (TwinCollapse was an orphan
+module before).  The iteration economics: a MergeFire check is ~3s
+vs ~4.2s for the TwinBridge re-elaboration — and, more importantly,
+the small files isolate concurrent red states (a broken TwinExchange
+no longer blocks MergeFire's compilation — the pattern the user's
+"green under v4.34 while TwinExchange was red" already exhibited).
+RECOVERY NOTE: the split surgery collided with concurrent edits and
+briefly zeroed TwinBridge.lean — restored from git (the only
+uncommitted delta was the trim itself), the stub olean (1.4KB,
+timestamped before its own dependencies — the
+building-through-breakage artifact) deleted, full clean rebuild green
+(60 jobs both libs), census pinned at 14.  LESSON: after any
+`lake clean` under concurrent edits, verify the olean sizes — a
+KB-sized olean for a K-line file means lake skipped a phantom
+"fresh" stub.
+
 **Session note (2026-09-16, close — the column composition LANDED)**:
 `State.exchangeDoubleClear_of_columns` (TwinBridge §12.3, axiom-clean
 [propext, Quot.sound]) closes the gap between `both_columns_clear`

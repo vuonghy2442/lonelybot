@@ -585,3 +585,33 @@ theorem merge_impossible_of_initialReachable {st a₁ : State} {t z z' c : Card}
     False :=
   merge_impossible_of_visClean (initialReachable_visClean hreach).2
     h₀ h₀' hfit hfit' hstep hmerge hland
+
+/-- **The twin-rooted merge is impossible at clean-stacks states** —
+the rooted companion of `merge_impossible_of_visClean`: a `pilePile`
+whose run IS the twin itself (rooted at `c = t`), landing on the other
+twin's cargo run, cannot fire.  The walk descent (the clean-stacks
+corollary) pins the landing card strictly below the other cargo in
+rank, while the landing fit demands it one ABOVE the twin. -/
+theorem merge_rooted_impossible_of_visClean {st a₁ : State} {t z' c : Card} {b : Base}
+    (hv : st.visClean)
+    (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
+    (hfit' : canSitOn z' t.flipSuit = true)
+    (hstep : st.apply (Move.pilePile c b) = some a₁)
+    (hc : c = t)
+    (hland : ∃ d, b = Sum.inr d ∧ d ∈ st.board.aboveOf z') :
+    False := by
+  obtain ⟨d, hb, hdz'⟩ := hland
+  rw [hc, apply_pilePile_iff] at hstep
+  obtain ⟨-, -, -, hcmr, -, -, -⟩ := hstep
+  simp only [State.canMoveRun, Bool.and_eq_true_iff] at hcmr
+  obtain ⟨hcp, -⟩ := hcmr
+  simp only [State.canPlace, hb, Bool.and_eq_true_iff, decide_eq_true_iff] at hcp
+  obtain ⟨-, -, hcs⟩ := hcp
+  obtain ⟨hrk, -⟩ := (canSitOn_eq t d).mp hcs
+  obtain ⟨hrk', -⟩ := (canSitOn_eq z' t.flipSuit).mp hfit'
+  have hvz' : st.isVis z' = true := by
+    show (st.board.bottomOf z').isSome = true
+    rw [h₀']; rfl
+  have hlt := rank_lt_of_mem_aboveOf hv hvz' hdz'
+  rw [Card.flipSuit_rank] at hrk'
+  omega

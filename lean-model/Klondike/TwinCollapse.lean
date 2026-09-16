@@ -123,7 +123,130 @@ theorem merge_rank_arith {t c z z' : Card}
   · cases hc : c.suit.color <;> cases hz : z.suit.color <;>
       cases ht : t.suit.color <;> simp_all
 
-/-! ## Step 1: the park -/
+/-! ## The liveness and fit bridges -/
+
+/-- WF's `founds_gone` contrapositive: every VISIBLE card sits at or
+above its suit's height — the blocker-on-`z` is LIVE (the w15wfmerge
+mechanism's seed, the trichotomy's third arm). -/
+theorem wf_vis_rank {st : State} (hwf : st.WF) {c : Card} (hvis : st.isVis c = true) :
+    st.heights c.suit ≤ c.rank.toIdx := by
+  by_cases hle : st.heights c.suit ≤ c.rank.toIdx
+  · exact hle
+  · have hlt : c.rank.toIdx < st.heights c.suit := by omega
+    exact absurd hvis (hwf.founds_gone c hlt).1
+
+/-! ## The second repair: the blocker stacks off, the mirror opens -/
+
+/-- **The blocker-stacks-off mirror repair** (w15wfmerge's mechanism,
+general form).  In the exchanged state the mirror merge
+`pilePile c (inr z)` is blocked by the blocker `r` riding `z`.  When
+`r` stacks off — the founds_gone cascade's terminal move (`r` live by
+`wf_vis_rank`, its rung founded) — `z` bares and the mirror fires:
+`c`'s run lands on `z`, the aftermath being the z↔z' twin-conjugate of
+the source's post-merge state (the suit-gated switching point).  The
+re-landing exposes the host `d`;  heights gain exactly `r`'s rung;
+stock and depths are untouched. -/
+theorem blocker_leaves_mirror {st : State} {t' c z z' d r : Card}
+    (hdz : d ≠ z)
+    (ht'z : t' ≠ z)
+    (hbotZ : st.board.bottomOf z = some (Sum.inr t'))
+    (hbotC : st.board.bottomOf c = some (Sum.inr d))
+    (hz'z : z' = z.flipSuit)
+    (hfit : canSitOn c z' = true)
+    (hznot : z ∉ st.board.aboveOf c)
+    (hrz : st.board.bottomOf r = some (Sum.inr z))
+    (hrstacks : ∃ s₁, st.apply (Move.pileStack r) = some s₁) :
+    ∃ s₁ s₂, st.apply (Move.pileStack r) = some s₁ ∧
+      s₁.apply (Move.pilePile c (Sum.inr z)) = some s₂ ∧
+      s₂.board.topOf (Sum.inr z) = some c ∧
+      s₂.board.topOf (Sum.inr d) = none ∧
+      s₂.heights = (fun s => if s = r.suit then st.heights s + 1 else st.heights s) ∧
+      s₂.stock = st.stock ∧ s₂.depths = st.depths := by
+  -- the st-level seats
+  have htopT : st.board.topOf (Sum.inr t') = some z :=
+    (Board.bottomOf_eq st.board z (Sum.inr t')).mp hbotZ
+  have htopD : st.board.topOf (Sum.inr d) = some c :=
+    (Board.bottomOf_eq st.board c (Sum.inr d)).mp hbotC
+  -- the blocker's stacking, factored (the board is the detach at z's seat)
+  obtain ⟨s₁, hs₁⟩ := hrstacks
+  rw [apply_pileStack_iff] at hs₁
+  obtain ⟨htopr, b, hb, hrk, -⟩ := hs₁
+  have hbc : b = Sum.inr z := Option.some.inj (hb.symm.trans hrz)
+  subst hbc
+  -- z bares
+  have hfree₁ : (st.board.detach (Sum.inr z)).topOf (Sum.inr z) = none :=
+    Board.detach_topOf _ _
+  -- z stays seated (its own seat is untouched)
+  have htopT₁ : (st.board.detach (Sum.inr z)).topOf (Sum.inr t') = some z := by
+    rw [Board.detach_topOf_ne _ _ _ (fun h => ht'z (Sum.inr.inj h))]
+    exact htopT
+  have hvisz₁ : ({ st with board := st.board.detach (Sum.inr z) } : State).isVis z = true := by
+    show ((st.board.detach (Sum.inr z)).bottomOf z).isSome = true
+    rw [(Board.bottomOf_eq _ z (Sum.inr t')).mpr htopT₁]
+    rfl
+  -- c's seat is untouched
+  have htopD₁ : (st.board.detach (Sum.inr z)).topOf (Sum.inr d) = some c := by
+    rw [Board.detach_topOf_ne _ _ _ (fun h => hdz (Sum.inr.inj h))]
+    exact htopD
+  have hbotC₁ : (st.board.detach (Sum.inr z)).bottomOf c = some (Sum.inr d) :=
+    (Board.bottomOf_eq _ c (Sum.inr d)).mpr htopD₁
+  -- the walk above c only shrinks under the detach: z stays out
+  have hsub : ∀ b : Base, (st.board.detach (Sum.inr z)).topOf b = none ∨
+      (st.board.detach (Sum.inr z)).topOf b = st.board.topOf b := by
+    intro b
+    by_cases hb : b = Sum.inr z
+    · subst hb
+      exact Or.inl (Board.detach_topOf _ _)
+    · exact Or.inr (Board.detach_topOf_ne _ _ _ hb)
+  have hznot₁ : z ∉ ({ st with board := st.board.detach (Sum.inr z) } : State).board.aboveOf c := by
+    intro hy
+    exact hznot (Board.aboveOf_sub hsub z hy)
+  -- the mirror's guards (the fit is flip-blind: Theorems'
+  -- `canSitOn_flipSuit_right`)
+  have hfitM : canSitOn c z = true := by
+    have h : canSitOn c z.flipSuit = true := by rw [← hz'z]; exact hfit
+    rw [canSitOn_flipSuit_right c z] at h
+    exact h
+  have hcp : ({ st with board := st.board.detach (Sum.inr z) } : State).canPlace c (Sum.inr z) = true := by
+    show (decide ((st.board.detach (Sum.inr z)).topOf (Sum.inr z) = none) &&
+        (({ st with board := st.board.detach (Sum.inr z) } : State).isVis z &&
+          canSitOn c z)) = true
+    rw [hfree₁, hvisz₁, hfitM]
+    rfl
+  have hcont : (({ st with board := st.board.detach (Sum.inr z) } : State).board.aboveOf c).contains z = false :=
+    lcontains_false_of_notMem hznot₁
+  have hcmr : ({ st with board := st.board.detach (Sum.inr z) } : State).canMoveRun c (Sum.inr z) = true := by
+    rw [canMoveRun_inr_iff]
+    exact ⟨hcp, hcont⟩
+  -- the mirror's attach
+  have hdet2Free : ((st.board.detach (Sum.inr z)).detach (Sum.inr d)).topOf (Sum.inr z) = none := by
+    rw [Board.detach_topOf_ne _ _ _ (fun h => hdz (Sum.inr.inj h).symm)]
+    exact hfree₁
+  have hdet2Bot : ((st.board.detach (Sum.inr z)).detach (Sum.inr d)).bottomOf c = none :=
+    Board.bottomOf_detach_self htopD₁
+  have hatt₂ : ((st.board.detach (Sum.inr z)).detach (Sum.inr d)).attach (Sum.inr z) c ≠ none := by
+    rw [Board.attach_eq_some_iff]
+    exact ⟨hdet2Free, hdet2Bot⟩
+  cases hB : ((st.board.detach (Sum.inr z)).detach (Sum.inr d)).attach (Sum.inr z) c with
+  | none => exact absurd hB hatt₂
+  | some bd₂ =>
+      refine ⟨{ st with
+                board := st.board.detach (Sum.inr z)
+                heights := fun s => if s = r.suit then st.heights s + 1 else st.heights s },
+              { st with
+                board := bd₂
+                heights := fun s => if s = r.suit then st.heights s + 1 else st.heights s },
+              apply_pileStack_iff.mpr ⟨htopr, Sum.inr z, hrz, hrk, rfl⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · rw [apply_pilePile_iff]
+        exact ⟨Sum.inr d, hbotC₁, fun h => hdz (Sum.inr.inj h), hcmr, bd₂, hB, rfl⟩
+      · show bd₂.topOf (Sum.inr z) = some c
+        exact Board.attach_topOf _ _ _ hB
+      · show bd₂.topOf (Sum.inr d) = none
+        rw [Board.attach_topOf_ne _ _ _ hB (fun h => hdz (Sum.inr.inj h)),
+            Board.detach_topOf]
+      · rfl
+      · rfl
+      · rfl
 
 /-- A seated king parks its sub-run at any free anchor, the board
 factorized (consumed by `park_reland`). -/

@@ -1,5 +1,6 @@
 import Klondike.TwinAgnostic
 import Klondike.TwinExchange
+import Klondike.Restriction
 
 /-!
 # The twin quotient — the pair group and the license (layers 0–1)
@@ -3097,15 +3098,50 @@ the play induction over the frozen phase, with the state generalized
 so the license re-seats at every step.  The case ledger per the
 source play's head move (the mechanics: TwinExchange's six step
 lemmas, the seventh here, the twin-rooted mirror above; the bridges:
-the freedom-first and the two merges). -/
-theorem State.solvable_exchangeTwinCargo_go :
+the freedom-first and the two merges).
+
+**Parameterized by the two merge bridges and a riding invariant**
+(`P`): `hrooted`/`hpassing` carry exactly the two [H] bridges' shapes
+and may consult `P` at the firing state.  The WF row rides
+`P := fun _ => True` with the two open bridges; the clean row rides
+`P := visClean` and closes both merges by contradiction
+(`merge_impossible_of_visClean` + its rooted companion). -/
+theorem State.solvable_exchangeTwinCargo_go_gen
+    (P : State → Prop)
+    (hP : ∀ {st st' : State} {m : Move},
+      st.WF → P st → st.apply m = some st' → P st')
+    (hrooted : ∀ {st a₁ : State} {t z z' c : Card} {b : Base},
+      st.WF → P st →
+      st.isVis t = true → st.isVis t.flipSuit = true →
+      st.board.bottomOf z = some (Sum.inr t) →
+      st.board.bottomOf z' = some (Sum.inr t.flipSuit) →
+      canSitOn z t = true → canSitOn z' t.flipSuit = true →
+      (t ∉ st.board.aboveOf z ∧ t.flipSuit ∉ st.board.aboveOf z) →
+      (t ∉ st.board.aboveOf z' ∧ t.flipSuit ∉ st.board.aboveOf z') →
+      st.apply (Move.pilePile c b) = some a₁ → c = t →
+      (∃ d, b = Sum.inr d ∧ d ∈ st.board.aboveOf z') →
+      a₁.solvableFrom → (st.exchangeTwinCargo t).solvableFrom)
+    (hpassing : ∀ {st a₁ : State} {t z z' c : Card} {b : Base},
+      st.WF → P st →
+      st.isVis t = true → st.isVis t.flipSuit = true →
+      st.board.bottomOf z = some (Sum.inr t) →
+      st.board.bottomOf z' = some (Sum.inr t.flipSuit) →
+      canSitOn z t = true → canSitOn z' t.flipSuit = true →
+      (t ∉ st.board.aboveOf z ∧ t.flipSuit ∉ st.board.aboveOf z) →
+      (t ∉ st.board.aboveOf z' ∧ t.flipSuit ∉ st.board.aboveOf z') →
+      st.apply (Move.pilePile c b) = some a₁ →
+      (t ∈ st.board.aboveOf c ∨ t.flipSuit ∈ st.board.aboveOf c) →
+      (∃ d, b = Sum.inr d ∧
+        (d = z ∨ d ∈ st.board.aboveOf z ∨ d = z' ∨ d ∈ st.board.aboveOf z')) →
+      a₁.solvableFrom → (st.exchangeTwinCargo t).solvableFrom) :
     ∀ (play : List Move) (st : State) (t : Card),
-    st.twinLicensed t → st.WF → (∃ w, st.run play = some w ∧ w.isWin = true) →
+    st.twinLicensed t → st.WF → P st →
+    (∃ w, st.run play = some w ∧ w.isWin = true) →
     (st.exchangeTwinCargo t).solvableFrom := by
   intro play
   induction play with
   | nil =>
-      intro st t hlic hwf ⟨w, hrun, hwin⟩
+      intro st t hlic hwf _ ⟨w, hrun, hwin⟩
       have hw : st = w := Option.some.inj hrun
       subst hw
       refine ⟨[], st.exchangeTwinCargo t, rfl, ?_⟩
@@ -3113,7 +3149,7 @@ theorem State.solvable_exchangeTwinCargo_go :
       rw [hE]
       exact hwin
   | cons m ms ih =>
-      intro st t hlic hwf ⟨w, hrun, hwin⟩
+      intro st t hlic hwf hPst ⟨w, hrun, hwin⟩
       cases hap : st.apply m with
       | none =>
           simp only [State.run, hap] at hrun
@@ -3141,7 +3177,7 @@ theorem State.solvable_exchangeTwinCargo_go :
                 rfl
               exact State.solvable_step (State.exchangeTwinCargo_step_draw hap)
                 (ih a₁ t (State.twinLicensed_congr hbd hlicb)
-                  (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                  (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
           | deckStack c =>
               have hbd : a₁.board = st.board := by
                 have happ := hap
@@ -3150,7 +3186,7 @@ theorem State.solvable_exchangeTwinCargo_go :
                 rfl
               exact State.solvable_step (State.exchangeTwinCargo_step_deckStack hap)
                 (ih a₁ t (State.twinLicensed_congr hbd hlicb)
-                  (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                  (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
           | deckPile c b =>
               have happ := hap
               rw [apply_deckPile_iff] at happ
@@ -3204,7 +3240,7 @@ theorem State.solvable_exchangeTwinCargo_go :
                 rw [ha₁]
                 exact State.twinLicensed_attach hwf hlicb hatt hct hbotc hhid hbt
               exact State.solvable_step (State.exchangeTwinCargo_step_deckPile h₀ h₀' hap)
-                (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
           | stackPile c b =>
               have happ := hap
               rw [apply_stackPile_iff] at happ
@@ -3250,13 +3286,13 @@ theorem State.solvable_exchangeTwinCargo_go :
                 rw [ha₁]
                 exact State.twinLicensed_attach hwf hlicb hatt hct hbotc hhid hbt
               exact State.solvable_step (State.exchangeTwinCargo_step_stackPile h₀ h₀' hap)
-                (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
           | reveal c =>
               have hlic₁ : a₁.twinLicensed t :=
                 State.twinLicensed_apply_reveal hwf hlicb hap
               exact State.solvable_step
                 (State.exchangeTwinCargo_step_reveal hvis hvis' h₀ h₀' hap)
-                (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
           | pileStack c =>
               by_cases hcz : c = z
               · rw [hcz] at hap
@@ -3295,7 +3331,7 @@ theorem State.solvable_exchangeTwinCargo_go :
                       hct ⟨hcz, hcz'⟩ hap
                   exact State.solvable_step
                     (State.exchangeTwinCargo_step_pileStack h₀ h₀' ⟨hcz, hcz'⟩ hct hap)
-                    (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                    (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
           | pilePile c b =>
               by_cases hcz : c = z
               · -- the seat lock: the cargo's own run cannot leave pre-freedom
@@ -3370,7 +3406,7 @@ theorem State.solvable_exchangeTwinCargo_go :
                           State.twinLicensed_apply_pilePile_root hvis' h₀ h₀' hfit hfit'
                             hnb hnb' hap rfl hland
                         exact State.solvable_step hstepE
-                          (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                          (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
                     | inr d =>
                         have hselfgt : d ∉ st.board.aboveOf t := by
                           intro hmem
@@ -3397,8 +3433,8 @@ theorem State.solvable_exchangeTwinCargo_go :
                           omega
                         by_cases hdz' : d ∈ st.board.aboveOf z'
                         · -- the twin-rooted merge
-                          exact State.solvable_of_exchange_merge_rooted hwf hlicb hap rfl
-                            ⟨d, rfl, hdz'⟩ hsol₁
+                          exact hrooted hwf hPst hvis hvis' h₀ h₀' hfit hfit' hnb hnb'
+                            hap rfl ⟨d, rfl, hdz'⟩ hsol₁
                         · have hselfE : d ∉ (st.board.exchangeTwin t).aboveOf t := by
                             intro hmem
                             rcases Board.aboveOf_exchangeTwin_bound hztop hztop'
@@ -3423,7 +3459,7 @@ theorem State.solvable_exchangeTwinCargo_go :
                             State.twinLicensed_apply_pilePile_root hvis' h₀ h₀' hfit
                               hfit' hnb hnb' hap rfl hland
                           exact State.solvable_step hstepE
-                            (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                            (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
                   · by_cases hct' : c = t.flipSuit
                     · -- the twin-rooted runs, the flipped pair
                       rw [hct'] at hap
@@ -3463,7 +3499,7 @@ theorem State.solvable_exchangeTwinCargo_go :
                             State.twinLicensed_apply_pilePile_root hvisf' h₀f h₀f'
                               hfitf hfitf' hnbf hnbf' hap rfl hland
                           have hres := State.solvable_step hstepE
-                            (ih a₁ t.flipSuit hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                            (ih a₁ t.flipSuit hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
                           rw [← State.exchangeTwinCargo_pair]
                           exact hres
                       | inr d =>
@@ -3481,8 +3517,8 @@ theorem State.solvable_exchangeTwinCargo_go :
                           obtain ⟨-, -, hfitd⟩ := canPlace_inr_iff.mp hcp
                           by_cases hdzf' : d ∈ st.board.aboveOf zf'
                           · -- the twin-rooted merge, the flipped pair
-                            have hres := State.solvable_of_exchange_merge_rooted hwf hlicfb
-                              hap rfl ⟨d, rfl, hdzf'⟩ hsol₁
+                            have hres := hrooted hwf hPst hvisf hvisf' h₀f h₀f'
+                              hfitf hfitf' hnbf hnbf' hap rfl ⟨d, rfl, hdzf'⟩ hsol₁
                             rw [State.exchangeTwinCargo_pair] at hres
                             exact hres
                           · have hdzfne : d ≠ zf := by
@@ -3522,7 +3558,7 @@ theorem State.solvable_exchangeTwinCargo_go :
                               State.twinLicensed_apply_pilePile_root hvisf' h₀f h₀f'
                                 hfitf hfitf' hnbf hnbf' hap rfl hland
                             have hres := State.solvable_step hstepE
-                              (ih a₁ t.flipSuit hlic₁ (apply_wf hwf _ _ hap)
+                              (ih a₁ t.flipSuit hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap)
                                 ⟨w, hrun, hwin⟩)
                             rw [← State.exchangeTwinCargo_pair]
                             exact hres
@@ -3543,12 +3579,12 @@ theorem State.solvable_exchangeTwinCargo_go :
                             exact State.solvable_step
                               (State.exchangeTwinCargo_step_pilePile_passing h₀ h₀'
                                 hfit hfit' hnb hnb' ⟨hcz, hcz'⟩ hoff hap)
-                              (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                              (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
                         | inr d =>
                             by_cases hland : d = z ∨ d ∈ st.board.aboveOf z ∨
                               d = z' ∨ d ∈ st.board.aboveOf z'
-                            · exact State.solvable_of_exchange_merge hwf hlicb hap hmerge
-                                ⟨d, rfl, hland⟩ hsol₁
+                            · exact hpassing hwf hPst hvis hvis' h₀ h₀' hfit hfit'
+                                hnb hnb' hap hmerge ⟨d, rfl, hland⟩ hsol₁
                             · have hoff : ∀ d', (Sum.inr d : Base) = Sum.inr d' →
                                 d' ≠ z ∧ d' ≠ z' ∧ d' ∉ st.board.aboveOf z ∧
                                   d' ∉ st.board.aboveOf z' := by
@@ -3565,7 +3601,7 @@ theorem State.solvable_exchangeTwinCargo_go :
                               exact State.solvable_step
                                 (State.exchangeTwinCargo_step_pilePile_passing h₀ h₀'
                                   hfit hfit' hnb hnb' ⟨hcz, hcz'⟩ hoff hap)
-                                (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                                (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
                       · have hclean : t ∉ st.board.aboveOf c ∧
                           t.flipSuit ∉ st.board.aboveOf c :=
                           ⟨fun h => hmerge (Or.inl h), fun h => hmerge (Or.inr h)⟩
@@ -3578,7 +3614,44 @@ theorem State.solvable_exchangeTwinCargo_go :
                         exact State.solvable_step
                           (State.exchangeTwinCargo_step_pilePile h₀ h₀' ⟨hcz, hcz'⟩
                             ⟨hct, hct'⟩ hclean hap)
-                          (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) ⟨w, hrun, hwin⟩)
+                          (ih a₁ t hlic₁ (apply_wf hwf _ _ hap) (hP hwf hPst hap) ⟨w, hrun, hwin⟩)
+
+/-- **The WF instance** — the row's original form: the merge handlers
+are the two [H] bridges (`solvable_of_exchange_merge`,
+`solvable_of_exchange_merge_rooted`, both open at WF) and the riding
+invariant is trivial. -/
+theorem State.solvable_exchangeTwinCargo_go :
+    ∀ (play : List Move) (st : State) (t : Card),
+    st.twinLicensed t → st.WF → (∃ w, st.run play = some w ∧ w.isWin = true) →
+    (st.exchangeTwinCargo t).solvableFrom :=
+  fun play st t h hwf ⟨w, hrun, hwin⟩ =>
+    State.solvable_exchangeTwinCargo_go_gen (fun _ => True)
+      (fun _ _ _ => trivial)
+      (fun hwf _ hvis hvis' h₀ h₀' hfit hfit' hnb hnb' hstep hc hland hsol =>
+        State.solvable_of_exchange_merge_rooted hwf
+          ⟨_, _, hvis, hvis', h₀, h₀', hfit, hfit', hnb, hnb'⟩ hstep hc hland hsol)
+      (fun hwf _ hvis hvis' h₀ h₀' hfit hfit' hnb hnb' hstep hmerge hland hsol =>
+        State.solvable_of_exchange_merge hwf
+          ⟨_, _, hvis, hvis', h₀, h₀', hfit, hfit', hnb, hnb'⟩ hstep hmerge hland hsol)
+      play st t h hwf trivial ⟨w, hrun, hwin⟩
+
+/-- **The clean-stacks instance**: at `visClean` states both merge
+corners are CONTRADICTIONS — the passing merge by
+`merge_impossible_of_visClean`, the rooted merge by its rooted
+companion — so the simulation runs to completion with NO residual:
+from a licensed, WF, clean-stacks winning state, the exchanged state
+wins. -/
+theorem State.solvable_exchangeTwinCargo_go_clean :
+    ∀ (play : List Move) (st : State) (t : Card),
+    st.twinLicensed t → st.WF → st.visClean →
+    (∃ w, st.run play = some w ∧ w.isWin = true) →
+    (st.exchangeTwinCargo t).solvableFrom :=
+  State.solvable_exchangeTwinCargo_go_gen State.visClean
+    (fun hwf hvc hstep => apply_visClean hwf hvc hstep)
+    (fun _ hvc _ _ _ h₀' _ hfit' _ _ hstep hc hland _ =>
+      (merge_rooted_impossible_of_visClean hvc h₀' hfit' hstep hc hland).elim)
+    (fun _ hvc _ _ h₀ h₀' hfit hfit' _ _ hstep hmerge hland _ =>
+      (merge_impossible_of_visClean hvc h₀ h₀' hfit hfit' hstep hmerge hland).elim)
 
 /-- **The forward simulation** (the g-simulation, g ∈ {id, e}): from a
 licensed winning state, the exchanged state wins — the play induction
@@ -3636,4 +3709,102 @@ theorem State.solvable_cargoTwin_exchange_licensed {st : State} {z z' t : Card}
     (hnb' : t ∉ st.board.aboveOf z' ∧ t.flipSuit ∉ st.board.aboveOf z') :
     (st.exchangeTwinCargo t).solvableFrom ↔ st.solvableFrom :=
   State.solvable_iff_exchangeTwinCargo hwf
+    ⟨z, z', hvis, hvis', h₀, h₀', hfit, hfit', hnb, hnb'⟩
+
+/-! ### The clean-stacks row — the simulation with no residual
+
+The general row at `visClean` states: both merge corners die by
+contradiction, so the iff is fully proven (the reachable-states form
+via `initialReachable_visClean`, no [H] bridge consulted). -/
+
+/-- **The clean-stacks forward simulation**: the wrapper over
+`solvable_exchangeTwinCargo_go_clean`. -/
+theorem State.solvable_exchangeTwinCargo_clean {st : State} {t : Card}
+    (hwf : st.WF) (hvc : st.visClean) (h : st.twinLicensed t)
+    (hsol : st.solvableFrom) :
+    (st.exchangeTwinCargo t).solvableFrom := by
+  obtain ⟨π, w, hrun, hwin⟩ := hsol
+  exact State.solvable_exchangeTwinCargo_go_clean π st t h hwf hvc ⟨w, hrun, hwin⟩
+
+/-- **`visClean` descends through the exchange**: the only edges the
+seat swap touches are the two cargo-on-twin edges, re-fitted by
+twin-blindness (`canSitOn_swapTwin_right`); every other card-seat is
+fixed (`swapTwin_eq_self`) and its edges transfer verbatim. -/
+theorem State.visClean_exchangeTwinCargo {st : State} {t : Card}
+    (hvc : st.visClean) (h : st.twinLicensed t) :
+    (st.exchangeTwinCargo t).visClean := by
+  obtain ⟨z, z', -, -, h₀, h₀', hfit, hfit', -, -⟩ := h
+  have hztop : st.board.topOf (Sum.inr t) = some z :=
+    (Board.bottomOf_eq _ _ _).mp h₀
+  have hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z' :=
+    (Board.bottomOf_eq _ _ _).mp h₀'
+  intro c d htop hvisd
+  have hvis : st.isVis d = true := by
+    rw [← State.isVis_exchangeTwin st t d]
+    exact hvisd
+  rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf] at htop
+  by_cases hdt : d = t
+  · rw [hdt] at htop
+    rw [show Base.swapTwin t (Sum.inr t) = Sum.inr t.flipSuit from by
+      show Sum.inr (Card.swapTwin t t) = Sum.inr t.flipSuit
+      rw [Card.swapTwin_self_left]] at htop
+    rw [hztop'] at htop
+    have hc : c = z' := (Option.some.inj htop).symm
+    rw [hdt, hc,
+      show t = Card.swapTwin t t.flipSuit from (Card.swapTwin_self_right t).symm,
+      canSitOn_swapTwin_right]
+    exact hfit'
+  · by_cases hdt' : d = t.flipSuit
+    · rw [hdt'] at htop
+      rw [show Base.swapTwin t (Sum.inr t.flipSuit) = Sum.inr t from by
+        show Sum.inr (Card.swapTwin t t.flipSuit) = Sum.inr t
+        rw [Card.swapTwin_self_right]] at htop
+      rw [hztop] at htop
+      have hc : c = z := (Option.some.inj htop).symm
+      rw [hdt', hc,
+        show t.flipSuit = Card.swapTwin t t from (Card.swapTwin_self_left t).symm,
+        canSitOn_swapTwin_right]
+      exact hfit
+    · rw [show Base.swapTwin t (Sum.inr d) = Sum.inr d from by
+        show Sum.inr (Card.swapTwin t d) = Sum.inr d
+        rw [Card.swapTwin_of_ne hdt hdt']] at htop
+      exact hvc c d htop hvis
+
+/-- **The row's iff, clean-stacks form** — the general row at visClean
+states, fully PROVEN (no residual: both merges die by contradiction).
+The backward direction is the clean forward simulation at the
+exchanged state (the involution returns it to `st`; the license, WF
+and visClean all descend through the exchange). -/
+theorem State.solvable_iff_exchangeTwinCargo_clean {st : State} {t : Card}
+    (hwf : st.WF) (hvc : st.visClean) (h : st.twinLicensed t) :
+    (st.exchangeTwinCargo t).solvableFrom ↔ st.solvableFrom := by
+  constructor
+  · intro hsol
+    have hwf' : (st.exchangeTwinCargo t).WF :=
+      State.wf_exchangeTwinCargo_of_twinLicensed hwf h
+    have h' : (st.exchangeTwinCargo t).twinLicensed t :=
+      State.twinLicensed_exchangeTwinCargo h
+    have hvc' : (st.exchangeTwinCargo t).visClean :=
+      State.visClean_exchangeTwinCargo hvc h
+    have hinv : (st.exchangeTwinCargo t).exchangeTwinCargo t = st :=
+      State.exchangeTwinCargo_exchangeTwinCargo st t
+    rw [← hinv]
+    exact State.solvable_exchangeTwinCargo_clean hwf' hvc' h' hsol
+  · exact State.solvable_exchangeTwinCargo_clean hwf hvc h
+
+/-- **The general row at clean-stacks states** — TwinExchange's
+`solvable_cargoTwin_exchange` premise bundle with `visClean` added:
+both twins visible, both seats hosting a fitted cargo, no braid, and
+every visible-base edge clean.  This is the reachable-states form of
+the row (`initialReachable_visClean`), with no [H] residual. -/
+theorem State.solvable_cargoTwin_exchange_of_visClean {st : State} {z z' t : Card}
+    (hwf : st.WF) (hvc : st.visClean)
+    (hvis : st.isVis t = true) (hvis' : st.isVis t.flipSuit = true)
+    (h₀ : st.board.bottomOf z = some (Sum.inr t))
+    (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hnb : t ∉ st.board.aboveOf z ∧ t.flipSuit ∉ st.board.aboveOf z)
+    (hnb' : t ∉ st.board.aboveOf z' ∧ t.flipSuit ∉ st.board.aboveOf z') :
+    (st.exchangeTwinCargo t).solvableFrom ↔ st.solvableFrom :=
+  State.solvable_iff_exchangeTwinCargo_clean hwf hvc
     ⟨z, z', hvis, hvis', h₀, h₀', hfit, hfit', hnb, hnb'⟩

@@ -21,5 +21,7 @@ import Klondike.TwinQuotient
 import Klondike.TwinFrame
 import Klondike.TwinReplay
 import Klondike.TwinBridge
+import Klondike.MergeFire
+import Klondike.TwinCollapse
 import Klondike.Frame
 import Klondike.Tactics
