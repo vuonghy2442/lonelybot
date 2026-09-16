@@ -2100,3 +2100,46 @@ tree).
   two boards' walks are LITERALLY EQUAL (at the attach seat: some-c-with-guard-fires ≡ none — both stop at the same acc); `List.Subset` ALSO has
   strict-implicit binders (hsub hz, not hsub z hz) — the same class as the aboveOf_go_mono quirk.  The sibling's aboveOf encapsulation
   (aboveOf_go_step/_stop/_topOf_none/_mem/aboveOf_eq) is the right API — the proofs ride it.
+
+## Session note (2026-09-16, parallel gate session — the CIRCULAR family probed: w15circ.lean)
+
+- THE GATE RAN: the w15wfmerge note's remaining candidate family — CIRCULAR blocker dependencies ("a blocker whose stacking rung is only reachable
+  through the cards it blocks") — has a fully licensed, WF, forced-merge cast at probes/w15circ.lean, and it DIES: stx wins anyway.  The cast:
+  t = ♦K (a KING — the sub-run [t, z'] has no card landings, killing the w15-family black-king redirect at the root), c = ♥J, z/z' = the black
+  queens (c's run can ONLY land on them), R = ♦Q on z with its rung ♦J BURIED UNDER c (exposed only by the merge), ♠K hidden behind the locked
+  pin [♣9 ← ♣10], heights (♦10, ♥10, ♠11, ♣8), empty stock.  #eval-verified: wfCheck both true, every twinLicensed component true, the merge
+  legal in st / self-landing + R-blocked in stx, st's 16-move win through the FORCED merge (some true), and stx's 18-move win (some true).
+- THE MECHANISM (third documented mirror-repair, after w15wfmerge's blocker-stacks-off and fithole's rider-detour): the ANCHOR-RELOCATION
+  COLLAPSE.  t being a king means [t, z'] parks at any free anchor (kings relocate freely, run intact); c then re-lands on the now-bare z'
+  (the self-landing guard dies with the run — z' is no longer above c); the re-landing exposes the burial chain (the mirror state unwinds the
+  SOURCE's circle through it); the [♣9 ← ♣10] pin breaks because ♣10's landing target c goes bare mid-collapse.  FREE ANCHORS ARE THE FUEL:
+  holding all seven needs ~7 frozen occupants, each demanding circular stacking with a merge-exposed unwind target — and the burial chain under
+  c is the only such target, single-use per cover rank (the whack-a-mole terminates in the occupant budget).  Every cast tried (covered kings,
+  king-t, deepened burials) died to a dismantle/stack-off escape — founds_gone liveness + anchor outs are structural at WF.
+- CONSEQUENCES FOR THE ROUTE: evidence that the bridges are TRUE at WF strengthens further; the B&G piecewise bookkeeping's merge handling
+  gains the documented third case (dismantle-and-reland, not just wait-for-blocker).  Normalization ("winning plays avoid cargo-top merges")
+  remains dead (this cast's st merge is forced — fithole's shape, now with a burial-justified variant), so the [H] chain through
+  ExchangeDoubleClear stays the load-bearing route.
+- INFRA WEATHER (this session, non-math): (a) Klondike/TwinExchange.lean is RED under the v4.34 toolchain at HEAD — omega failure at 1263:85
+  (needs the rank ≤ 12 bound on `t.flipSuit.rank.toIdx`), rewrite miss at 1269:6, decide-wrapping type mismatch at 1291:17 — its olean is
+  missing, which blocks EVERY probe importing TwinQuotient/TwinExchange; w15circ ran against a verbatim local copy of exchangeTwin
+  (re-verify when green, the w15mergecheck pattern); fixing it is cheap but belongs to whoever owns the exchange file.  (b) w15wfmerge.lean's
+  `legalMoves` still uses the OLD card-indexed `Move.reveal c` — it will not compile against the post-c5c6904 library (anchor-indexed); the
+  probes refresh needs `Anchor.all.map (fun a => Move.reveal a)` (w15circ's kit has the fixed version).  (c) the string-keyed `winBFS` is
+  impractical at #eval beyond small depths (each state enumerates ~700 candidate moves with full board walks; 7+ minutes at depth 20
+  without finishing) — explicit plays decide gates; a depths-audit (heights frozen) is the cheap deadness certificate when needed.
+- THE COLLAPSE KIT LANDED (same session): `Klondike/TwinCollapse.lean` -- the mechanism's general lemmas, sorry-free, axiom-clean
+  [propext, Quot.sound], built green under v4.34 while TwinExchange is still red (imports only Klondike.Tactics, zero exchange dependency).
+  `canSitOn_of_king_eq_false` + `canPlace_inr_of_king` (a king's card-landing set is empty -- the t-is-a-king root fact, formal);
+  `park_king_run` (the park, board-factorized); `park_reland` (the two-move composite: park at a free anchor + re-land on the freed twin
+  cargo -- c seated on z', the host d under c EXPOSED, heights/stock/depths untouched); `solvable_of_park_reland` (the solvability seed,
+  via `run_cons_intro`).  Integration: the premise `hbotZ : bottomOf z' = some (inr t)` is the exchange's aftermath -- the [H] assembly
+  supplies it from the exchange lemmas when the tree greens; the case fires when the run passes a KING twin, the B&G merge bookkeeping's
+  third case alongside blocker-stacks-off (w15wfmerge) and rider-detour (fithole).
+- SYNTAX PAID FOR (TwinCollapse's build, worth stealing): (a) `rw`'s EXPLICIT-argument elaboration order means `nomatch` lambdas at
+  `Board.detach_topOf_ne _ _ _ (fun h => nomatch h)` leave metavars and mis-unify -- name the disjointness once with concrete types
+  (`base_inl_ne_inr`/`base_inr_ne_inl`, in TwinCollapse) and pass the name; (b) `canSitOn_eq` is a FUNCTION -- `(canSitOn_eq t d).mp h`
+  works, bare `canSitOn_eq.mp h` resolves as a namespace lookup and fails with "Unknown constant"; (c) `cases hA : e` ABSTRACTS e in the
+  goal -- the exists-body's first conjunct becomes `rfl`, not `hA`; (d) the king-rank computation: `have h12 : t.rank.toIdx = 12 := by
+  rw [hking]; rfl` -- the `simp only [Rank.toIdx] at h` route left omega without the linear fact (the constraint set showed only the
+  toIdx_lt bound).
