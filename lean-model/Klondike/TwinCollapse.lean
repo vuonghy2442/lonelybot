@@ -765,8 +765,129 @@ theorem merge_mirror_conjugate {st a₁ s₂ : State} {t z z' c : Card}
       exact hbot₀
     have hb₀'eq : b₀' = b₀ :=
       Option.some.inj (hb₀'.symm.trans ((Board.bottomOf_eq _ c b₀).mpr hbot₀'))
-    subst hb₀'eq
-    sorry
+    subst b₀'
+    subst z'
+    -- helpers: the map is the identity off the pair; cards at non-twin
+    -- seats are off the pair by the matching's injectivity
+    have hmapid : ∀ o : Option Card, (∀ x, o = some x → x ≠ z ∧ x ≠ z.flipSuit) →
+        o.map (Card.swapTwin z) = o := by
+      intro o h
+      cases o with
+      | none => rfl
+      | some x =>
+          obtain ⟨hx, hx'⟩ := h x rfl
+          show some (Card.swapTwin z x) = some x
+          rw [Card.swapTwin_of_ne hx hx']
+    have hcardoff : ∀ b : Base, b ≠ Sum.inr t → b ≠ Sum.inr t.flipSuit →
+        ∀ x, st.board.topOf b = some x → x ≠ z ∧ x ≠ z.flipSuit := by
+      intro b hb hb' x hx
+      refine ⟨fun h => ?_, fun h => ?_⟩
+      · rw [h] at hx
+        have hbz : st.board.bottomOf z = some b :=
+          (Board.bottomOf_eq st.board z b).mpr hx
+        rw [hbotZ] at hbz
+        exact hb (Option.some.inj hbz).symm
+      · rw [h] at hx
+        have hbz : st.board.bottomOf z.flipSuit = some b :=
+          (Board.bottomOf_eq st.board z.flipSuit b).mpr hx
+        rw [hbotZ'] at hbz
+        exact hb' (Option.some.inj hbz).symm
+    have hswT : Base.swapTwin t (Sum.inr t) = Sum.inr t.flipSuit := by
+      show Sum.inr (Card.swapTwin t t) = Sum.inr t.flipSuit
+      rw [Card.swapTwin_self_left]
+    have hswT' : Base.swapTwin t (Sum.inr t.flipSuit) = Sum.inr t := by
+      show Sum.inr (Card.swapTwin t t.flipSuit) = Sum.inr t
+      rw [Card.swapTwin_self_right]
+    have hswZ : Base.swapTwin z (Sum.inr z) = Sum.inr z.flipSuit := by
+      show Sum.inr (Card.swapTwin z z) = Sum.inr z.flipSuit
+      rw [Card.swapTwin_self_left]
+    have hswZ' : Base.swapTwin z (Sum.inr z.flipSuit) = Sum.inr z := by
+      show Sum.inr (Card.swapTwin z z.flipSuit) = Sum.inr z
+      rw [Card.swapTwin_self_right]
+    apply Board.ext_topOf
+    funext b
+    show bd₂.topOf b = (bd₁.topOf (b.swapTwin z)).map (Card.swapTwin z)
+    by_cases hbb : b = b₀
+    · -- the host seat: both sides none
+      subst b
+      rw [Board.attach_topOf_ne _ _ _ hatt₂ hb₀z, Board.detach_topOf,
+          Base.swapTwin_eq_self hb₀z hb₀z',
+          Board.attach_topOf_ne _ _ _ hatt₁ hb₀z', Board.detach_topOf]
+      rfl
+    · cases b with
+      | inl a =>
+          -- an anchor: fixed by both swaps, off everything
+          rw [Base.swapTwin_eq_self base_inl_ne_inr base_inl_ne_inr,
+              Board.attach_topOf_ne _ _ _ hatt₂ base_inl_ne_inr,
+              Board.detach_topOf_ne _ _ _ hbb,
+              State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
+              Base.swapTwin_eq_self base_inl_ne_inr base_inl_ne_inr,
+              Board.attach_topOf_ne _ _ _ hatt₁ base_inl_ne_inr,
+              Board.detach_topOf_ne _ _ _ hbb]
+          exact (hmapid _ (hcardoff (Sum.inl a) base_inl_ne_inr base_inl_ne_inr)).symm
+      | inr w =>
+          by_cases hwt : w = t
+          · -- the twin's own seat: z' rides it in stx
+            subst w
+            rw [Base.swapTwin_eq_self (fun h => htz (Sum.inr.inj h))
+                  (fun h => htz' (Sum.inr.inj h)),
+                Board.attach_topOf_ne _ _ _ hatt₂ (fun h => htz (Sum.inr.inj h)),
+                Board.detach_topOf_ne _ _ _ (fun h => hb₀t h.symm),
+                State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hswT,
+                hz'top,
+                Board.attach_topOf_ne _ _ _ hatt₁ (fun h => htz' (Sum.inr.inj h)),
+                Board.detach_topOf_ne _ _ _ (fun h => hb₀t h.symm),
+                hztop]
+            show some z.flipSuit = some (Card.swapTwin z z)
+            rw [Card.swapTwin_self_left]
+          by_cases hwt' : w = t.flipSuit
+          · -- the other twin's seat: z rides it in stx
+            subst w
+            rw [Base.swapTwin_eq_self (fun h => ht'z (Sum.inr.inj h))
+                  (fun h => ht'z' (Sum.inr.inj h)),
+                Board.attach_topOf_ne _ _ _ hatt₂ (fun h => ht'z (Sum.inr.inj h)),
+                Board.detach_topOf_ne _ _ _ (fun h => hb₀t' h.symm),
+                State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hswT',
+                hztop,
+                Board.attach_topOf_ne _ _ _ hatt₁ (fun h => ht'z' (Sum.inr.inj h)),
+                Board.detach_topOf_ne _ _ _ (fun h => hb₀t' h.symm),
+                hz'top]
+            show some z = some (Card.swapTwin z z.flipSuit)
+            rw [Card.swapTwin_self_right]
+          by_cases hwz : w = z
+          · -- the mirror's landing seat: c rides it in bd₂
+            subst w
+            rw [hswZ, Board.attach_topOf _ _ _ hatt₁,
+                Board.attach_topOf _ _ _ hatt₂]
+            exact (hmapid _ (fun x hx => ⟨fun h => hcz ((Option.some.inj hx).trans h),
+              fun h => hcz' ((Option.some.inj hx).trans h)⟩)).symm
+          by_cases hwz' : w = z.flipSuit
+          · -- the merge's landing seat: empty in both
+            subst w
+            rw [hswZ',
+                Board.attach_topOf_ne _ _ _ hatt₂ (fun h => hzz' (Sum.inr.inj h).symm),
+                Board.detach_topOf_ne _ _ _ (fun h => hb₀z' h.symm),
+                State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
+                Base.swapTwin_eq_self (fun h => htz' (Sum.inr.inj h).symm)
+                  (fun h => ht'z' (Sum.inr.inj h).symm),
+                hz'bare,
+                Board.attach_topOf_ne _ _ _ hatt₁ (fun h => hzz' (Sum.inr.inj h)),
+                Board.detach_topOf_ne _ _ _ (fun h => hb₀z h.symm),
+                hzbare]
+            rfl
+          · -- a generic card seat: untouched by everything
+            rw [Base.swapTwin_eq_self (fun h => hwz (Sum.inr.inj h))
+                  (fun h => hwz' (Sum.inr.inj h)),
+                Board.attach_topOf_ne _ _ _ hatt₂ (fun h => hwz (Sum.inr.inj h)),
+                Board.detach_topOf_ne _ _ _ hbb,
+                State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
+                Base.swapTwin_eq_self (fun h => hwt (Sum.inr.inj h))
+                  (fun h => hwt' (Sum.inr.inj h)),
+                Board.attach_topOf_ne _ _ _ hatt₁ (fun h => hwz' (Sum.inr.inj h)),
+                Board.detach_topOf_ne _ _ _ hbb]
+            exact (hmapid _ (hcardoff (Sum.inr w)
+              (fun h => hwt (Sum.inr.inj h))
+              (fun h => hwt' (Sum.inr.inj h)))).symm
   -- the state extensionality: both moves are board-only, the exchange
   -- copies every other field
   apply state_ext
