@@ -2206,3 +2206,38 @@ tree).
   defeq-tolerant) then `rw [hnone] at hb; simp at hb`; (b) `(iff.mp ?_).1` leaves iff-arg metavars unbound when the projection pins
   elaboration first -- derive the argument (`hne`) as a separate `have` with all args explicit; (c) `Option.noConfusion (h.symm.trans
   hatt)` leaves the equation as metavars -- the rw-at-then-simp-at dance is the robust form.
+
+## Session note (2026-09-16, the clean-stacks cut - the twin exchange's reachable form PROVEN)
+
+- THE CLEAN-STACKS ROW IS PROVEN: `solvable_cargoTwin_exchange_of_visClean` (TwinQuotient:3800) - the [H] row's premise bundle + `hvc : st.visClean`
+  gives the full iff, NO bridge consulted. Every reachable state qualifies (`initialReachable_visClean`). Census unchanged at 14; axioms
+  [propext, Classical.choice, Quot.sound] for the row, [propext, Quot.sound] for the core.
+- THE ENGINE is `solvable_exchangeTwinCargo_go_gen`: the [M] assembly's play induction parameterized by the two merge bridges + a riding
+  invariant P (threaded through all 13 IH calls as `(hP hwf hPst hap)` right after `apply_wf` - one replaceAll on `(apply_wf hwf _ _ hap)`).
+  TWO DESIGN CONSTRAINTS worth remembering: (a) the handlers take the license OPEN (its eight facts positionally, z/z' as the landing
+  premise's own binders) - a bundled `twinLicensed t` handler re-binds FRESH witnesses and can never feed `merge_impossible_of_visClean`
+  (no equation links them; same-base bijection is not free); (b) the WF instance re-derives the original `_go` verbatim (P := fun _ => True,
+  `trivial` for the P-slot, handlers = the two sorry'd bridges) - the WF-level route is bit-for-bit untouched, only re-specified.
+- THE CLEAN INSTANCE `_go_clean` (P := visClean via `apply_visClean`, both handlers contradictions): the passing merge dies by the existing
+  `merge_impossible_of_visClean`; the rooted corner needed its OWN lemma - `merge_rooted_impossible_of_visClean` (Restriction:588): the
+  passing form's hmerge demands the twin STRICTLY inside the run (t ∈ aboveOf c), useless at c = t; the rooted form kills it by pure
+  arithmetic (the landing fit `canSitOn t d` puts d one ABOVE the twin; `rank_lt_of_mem_aboveOf` on the other cargo's walk pins d strictly
+  BELOW it; omega).
+- THE BACKWARD DIRECTION rides the involution + three descents: `wf_exchangeTwinCargo_of_twinLicensed`, `twinLicensed_exchangeTwinCargo`,
+  and the new `visClean_exchangeTwinCargo` (the only edges the seat swap touches are the two cargo-on-twin seats, re-fitted by
+  `canSitOn_swapTwin_right`; every other card-seat is fixed by `swapTwin_eq_self` - no walk congruence needed, the visClean statement only
+  reads card-seats).
+- INFRA: TwinQuotient now imports Klondike.Restriction (new graph edge - visClean/apply_visClean/the merge lemmas; previously the
+  TwinSwap->Dominance chain never reached Restriction). The DUPLICATE-DECLARATION hazard realized once: a weaker
+  `exchangeTwinCargo_step_pilePile_passing` (hct + ∃-hoff) landed in TwinExchange while the committed TwinQuotient:1405 version (no hct =>
+  covers twin-rooted c = t mirrors; ∀-hoff => covers anchor landings) already existed - TwinQuotient imports TwinExchange so the build dies
+  'already been declared'; the TwinQuotient form is canonical. The RunChain walk-entry lemma needed CHAIN-induction (`induction hchain`),
+  not list-induction - the fixed-root list IH can never apply to `RunChain x rest` (the sub-chain's root is x, not r); also
+  `Board.aboveOf_trans` wants the base-chain argument first, and `absurd h hrne` not `h.symm` (Ne is not definitionally symmetric).
+- THE TEMP DIR COLLIDES: parallel sessions overwrite probe files by name (axcheck.lean was overwritten mid-session by a sibling) - unique-name
+  the probes. And a session is appending notes to a STRAY ROOT-LEVEL FARM_MEMORY.md (repo root, untracked) instead of lean-model/ - merge and
+  redirect before the two notes diverge.
+- PENDING (agreed, not started): the TwinQuotient split - BoardWalk.lean (the pure walk combinatorics: aboveOf_trans/pred/_comp, RunChain,
+  run_root_of_chain, card_base) + TwinSimulation.lean (the [M] assembly + both bridges + the rows; the Restriction import moves there);
+  MergeFire.lean will need `import Klondike.BoardWalk` when the walk kit moves (it consumes RunChain + run_root_of_chain + card_base but does
+  not import TwinQuotient).

@@ -306,3 +306,231 @@ theorem State.merge_refires_mixed {st Sₛ S₀ : State} {c r₁ : Card} {b β :
   rw [apply_pilePile_iff]
   exact ⟨β₀, hbotS, hneβ, hcmrS, bd', hatt', rfl⟩
 
+/-- **The board only gets cleaner** (the user's "clearVis"): every
+WONKY edge at a move's successor — a visible-base edge violating the
+chaining rule — already existed, identically, at the source.  An
+edge's wonkiness is immutable while it persists (`canSitOn` is
+card-level); the only transitions are destroy-and-recreate, and
+every re-creation on a visible base is a placement, which is
+`canSitOn`-guarded.  The one wonky-creator — the reveal, seating
+the boundary card on its hidden under-card — creates only on HIDDEN
+bases (excluded here by the visibility premise, `vis_not_hidden`),
+and a hidden base's own promotion to visibility requires its seat
+vacated (the bare rule): no wonky edge ever survives into
+visibility.  Wonky → correct (by replacement), never the reverse.
+
+The run-level consequence: the wonky set only shrinks along plays —
+every wonky edge at any state descends, unchanged, from the
+source's (the "old money" property).  With `merge_rank_arith` (the
+merge run ascends two ranks) this grades the merge case: a live
+merge needs ≥1 wonky edge in its run, and those edges are old
+money — consumable by the repairs, never replenished. -/
+theorem State.wonky_sub {st st' : State} {m : Move}
+    (hwf : st.WF) (h : st.apply m = some st') :
+    ∀ (x y : Card), st'.board.topOf (Sum.inr y) = some x →
+      st'.isVis y = true → canSitOn x y = false →
+      st.board.topOf (Sum.inr y) = some x ∧ st.isVis y = true := by
+  intro x y htop' hvis' hwonky
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at h
+      obtain rfl := h
+      exact ⟨htop', hvis'⟩
+  | deckStack q =>
+      rw [apply_deckStack_iff] at h
+      obtain ⟨-, -, rfl⟩ := h
+      exact ⟨htop', hvis'⟩
+  | pileStack q =>
+      rw [apply_pileStack_iff] at h
+      obtain ⟨-, b, hbq, -, rfl⟩ := h
+      have htopb : st.board.topOf b = some q :=
+        (Board.bottomOf_eq st.board q b).mp hbq
+      change (st.board.detach b).topOf (Sum.inr y) = some x at htop'
+      change ((st.board.detach b).bottomOf y).isSome = true at hvis'
+      by_cases hbb : b = Sum.inr y
+      · rw [hbb, Board.detach_topOf] at htop'
+        exact absurd htop' (by simp)
+      · rw [Board.detach_topOf_ne _ _ _ (Ne.symm hbb)] at htop'
+        have hyq : y ≠ q := by
+          intro hcon
+          have hnone : (st.board.detach b).bottomOf q = none :=
+            Board.bottomOf_detach_self htopb
+          rw [hcon] at hvis'
+          rw [hnone] at hvis'
+          exact absurd hvis' (by simp)
+        exact ⟨htop', by
+          show (st.board.bottomOf y).isSome = true
+          rw [← bottomOf_detach_ne htopb hyq]
+          exact hvis'⟩
+  | reveal a =>
+      have hstep := h
+      rw [apply_reveal_iff] at h
+      obtain ⟨r, bd, htoph, hbare, hatt, hS⟩ := h
+      have hSb : st'.board = bd := by rw [hS]
+      have hSd : st'.depths a = st.depths a - 1 := by rw [hS]; simp
+      rw [hSb] at htop'
+      change (st'.board.bottomOf y).isSome = true at hvis'
+      rw [hSb] at hvis'
+      by_cases hbb : st.hiddenBase a = Sum.inr y
+      · -- the new edge: the base is the hidden under-card — never visible
+        obtain ⟨pre, hpre⟩ := hiddenBase_split hbb htoph
+        have hdpy : st.depths a = pre.length + 2 := by
+          have h1 : (st.hidden a).length = st.depths a := by
+            show ((st.deal.piles a).take (st.depths a)).length = st.depths a
+            rw [List.length_take]
+            have := hwf.depths_le a
+            omega
+          rw [hpre] at h1
+          simp at h1
+          omega
+        have hmem : y ∈ st'.hidden a := by
+          show y ∈ (st'.deal.piles a).take (st'.depths a)
+          rw [show st'.deal = st.deal from by rw [hS], hSd]
+          rw [show st.hidden a = (st.deal.piles a).take (st.depths a) from rfl] at hpre
+          have hsplit : st.deal.piles a = pre ++ [y, r] ++
+              (st.deal.piles a).drop (st.depths a) := by
+            rw [← hpre]
+            exact (List.take_append_drop _ _).symm
+          rw [hsplit, hdpy, List.take_append, List.take_append]
+          simp
+        have hnv : st'.isVis y = false := by
+          cases hc : st'.isVis y with
+          | false => rfl
+          | true => exact absurd hmem ((apply_wf hwf _ _ hstep).vis_not_hidden y hc a)
+        have hcontrad : (bd.bottomOf y).isSome = false := by
+          rw [← hSb]
+          exact hnv
+        rw [hcontrad] at hvis'
+        exact Bool.noConfusion hvis'
+      · -- a preserved edge: the seat is untouched by the attach
+        have hne : (Sum.inr y : Base) ≠ st.hiddenBase a :=
+          fun hcon => hbb hcon.symm
+        rw [Board.attach_topOf_ne _ _ _ hatt hne] at htop'
+        by_cases hyr : y = r
+        · rw [hyr] at htop'
+          exact absurd htop' (by rw [hbare]; simp)
+        · exact ⟨htop', by
+            show (st.board.bottomOf y).isSome = true
+            rw [← bottomOf_attach_ne hatt hyr]
+            exact hvis'⟩
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at h
+      obtain ⟨hprev, hcp, bd, hatt, rfl⟩ := h
+      change bd.topOf (Sum.inr y) = some x at htop'
+      change (bd.bottomOf y).isSome = true at hvis'
+      by_cases hbb : b = Sum.inr y
+      · -- the new edge: placement-guarded — never wonky
+        have hxc : x = c := by
+          have h1 : bd.topOf b = some c := Board.attach_topOf _ _ _ hatt
+          rw [hbb] at h1
+          exact Option.some.inj (htop'.symm.trans h1)
+        rw [hxc] at hwonky
+        rw [hbb] at hcp
+        rw [canPlace_inr_iff] at hcp
+        exact Bool.noConfusion (hcp.2.2.symm.trans hwonky)
+      · have hne : (Sum.inr y : Base) ≠ b := fun hcon => hbb hcon.symm
+        rw [Board.attach_topOf_ne _ _ _ hatt hne] at htop'
+        by_cases hyc : y = c
+        · -- the fresh card came from the stock: it hosts no edges
+          rw [hyc] at htop' ⊢
+          have hcmem : c ∈ st.stock.cards := by
+            simp only [Cycle.prev] at hprev
+            split at hprev
+            · exact absurd hprev (by simp)
+            · exact List.mem_iff_getElem?.mpr
+                ⟨st.stock.cursor - 1, by simpa using hprev⟩
+          have hnvis : st.isVis c = false := by
+            cases hc : st.isVis c with
+            | false => rfl
+            | true =>
+                have hnone := hwf.vis_off_cycle c hc
+                exact absurd hnone (Cycle.posOf_ne_none_of_mem hcmem)
+          have hnvis' : (st.board.bottomOf c).isSome = false := hnvis
+          have hnb : st.board.bottomOf c = none := by
+            cases hb : st.board.bottomOf c with
+            | none => rfl
+            | some b' =>
+                rw [hb] at hnvis'
+                exact absurd hnvis' (by simp)
+          have hnh : ∀ a, c ∉ st.hidden a := by
+            intro a hcm
+            exact Deal.piles_stock_disj hwf.deal_wf
+              (List.take_subset _ _ hcm) ((hwf.stock_wf).2 c hcmem)
+          exact absurd htop' (by rw [State.topOf_inr_eq_none hwf hnb hnh]; simp)
+        · exact ⟨htop', by
+            show (st.board.bottomOf y).isSome = true
+            rw [← bottomOf_attach_ne hatt hyc]
+            exact hvis'⟩
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at h
+      obtain ⟨hrk, hcp, bd, hatt, rfl⟩ := h
+      change bd.topOf (Sum.inr y) = some x at htop'
+      change (bd.bottomOf y).isSome = true at hvis'
+      by_cases hbb : b = Sum.inr y
+      · have hxc : x = c := by
+          have h1 : bd.topOf b = some c := Board.attach_topOf _ _ _ hatt
+          rw [hbb] at h1
+          exact Option.some.inj (htop'.symm.trans h1)
+        rw [hxc] at hwonky
+        rw [hbb] at hcp
+        rw [canPlace_inr_iff] at hcp
+        exact Bool.noConfusion (hcp.2.2.symm.trans hwonky)
+      · have hne : (Sum.inr y : Base) ≠ b := fun hcon => hbb hcon.symm
+        rw [Board.attach_topOf_ne _ _ _ hatt hne] at htop'
+        by_cases hyc : y = c
+        · -- the fresh card came from the foundation: founded, hosts no edges
+          rw [hyc] at htop' ⊢
+          have hfounded : c.rank.toIdx < st.heights c.suit := by omega
+          have hg := hwf.founds_gone c hfounded
+          have hnvis' : (st.board.bottomOf c).isSome = false := hg.1
+          have hnb : st.board.bottomOf c = none := by
+            cases hb : st.board.bottomOf c with
+            | none => rfl
+            | some b' =>
+                rw [hb] at hnvis'
+                exact absurd hnvis' (by simp)
+          have hnh : ∀ a, c ∉ st.hidden a := fun a => hg.2.2 a
+          exact absurd htop' (by rw [State.topOf_inr_eq_none hwf hnb hnh]; simp)
+        · exact ⟨htop', by
+            show (st.board.bottomOf y).isSome = true
+            rw [← bottomOf_attach_ne hatt hyc]
+            exact hvis'⟩
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at h
+      obtain ⟨b₀, hbot, hne₀, hcmr, bd, hatt, rfl⟩ := h
+      change bd.topOf (Sum.inr y) = some x at htop'
+      change (bd.bottomOf y).isSome = true at hvis'
+      have hcp : st.canPlace c b = true := by
+        have h1 := hcmr
+        simp only [State.canMoveRun, Bool.and_eq_true_iff] at h1
+        exact h1.1
+      by_cases hbb : b = Sum.inr y
+      · have hxc : x = c := by
+          have h1 : bd.topOf b = some c := Board.attach_topOf _ _ _ hatt
+          rw [hbb] at h1
+          exact Option.some.inj (htop'.symm.trans h1)
+        rw [hxc] at hwonky
+        rw [hbb] at hcp
+        rw [canPlace_inr_iff] at hcp
+        exact Bool.noConfusion (hcp.2.2.symm.trans hwonky)
+      · have hne : (Sum.inr y : Base) ≠ b := fun hcon => hbb hcon.symm
+        rw [Board.attach_topOf_ne _ _ _ hatt hne] at htop'
+        by_cases hb₀ : b₀ = Sum.inr y
+        · rw [hb₀, Board.detach_topOf] at htop'
+          exact absurd htop' (by simp)
+        · have hne' : (Sum.inr y : Base) ≠ b₀ := fun hcon => hb₀ hcon.symm
+          rw [Board.detach_topOf_ne _ _ _ hne'] at htop'
+          have htopb₀ : st.board.topOf b₀ = some c :=
+            (Board.bottomOf_eq st.board c b₀).mp hbot
+          by_cases hyc : y = c
+          · rw [hyc] at htop' ⊢
+            exact ⟨htop', by
+              show (st.board.bottomOf c).isSome = true
+              rw [hbot]
+              rfl⟩
+          · exact ⟨htop', by
+              show (st.board.bottomOf y).isSome = true
+              rw [← bottomOf_detach_ne htopb₀ hyc,
+                ← bottomOf_attach_ne hatt (fun hcon => hyc hcon)]
+              exact hvis'⟩
+

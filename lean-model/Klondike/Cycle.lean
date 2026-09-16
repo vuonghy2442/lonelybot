@@ -133,6 +133,30 @@ def findFirstIdx {α : Type} (p : α → Bool) : List α → Option Nat
 def posOf (c : Card) (cy : Cycle Card) : Option Nat :=
   findFirstIdx (fun c' => decide (c' = c)) cy.cards
 
+/-- **A member is found**: the position search never misses a
+present card (the stock cards are positioned — hence, via
+`vis_off_cycle`, never seated). -/
+theorem findFirstIdx_ne_none_of_mem {α : Type} (p : α → Bool) :
+    ∀ (l : List α) (a : α), a ∈ l → p a = true → findFirstIdx p l ≠ none
+  | [], _, hmem, _ => by simp at hmem
+  | b :: t, a, hmem, hp => by
+      simp only [findFirstIdx]
+      by_cases hcon : p b = true
+      · rw [if_pos hcon]; simp
+      · rw [if_neg hcon]
+        have hmem'' : a ∈ t := by
+          rcases List.mem_cons.mp hmem with h | h
+          · rw [h] at hp; exact absurd hp hcon
+          · exact h
+        cases hmem' : findFirstIdx p t with
+        | none => exact absurd hmem' (findFirstIdx_ne_none_of_mem p t a hmem'' hp)
+        | some i => simp
+
+/-- The packaging: a card in the cycle's remaining list is positioned. -/
+theorem posOf_ne_none_of_mem {c : Card} {cy : Cycle Card}
+    (hmem : c ∈ cy.cards) : cy.posOf c ≠ none :=
+  findFirstIdx_ne_none_of_mem _ cy.cards c hmem (by simp)
+
 /-- A found index is in range. -/
 theorem findFirstIdx_lt {α : Type} (p : α → Bool) : ∀ (l : List α) (i : Nat),
     findFirstIdx p l = some i → i < l.length := by
