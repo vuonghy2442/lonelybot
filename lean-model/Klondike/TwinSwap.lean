@@ -8,7 +8,13 @@ This file holds two proven theories.
 **Visibility along a play** (§1): a tableau card's visibility is
 anti-monotone under every move except its own `pileStack`
 (`isVis_antimono`), every tableau card is stacked along a winning play
-(`pileStack_mem_of_win`), and right before that stack the card is
+(the visible side `pileStack_mem_of_win`; the hidden side
+`pileStack_mem_of_win_hidden` via the un-hide step
+`isVis_of_apply_of_not_mem_hidden` — the deal's pile slices are
+constants of the motion, so a hidden card's only exit is the `reveal`
+that seats it, and the terminal win's `founds_gone` forces the exit;
+the combined corollary is `pileStack_mem_of_win_tableau`, TwinBridge
+§12.1's extraction), and right before that stack the card is
 visible and bare (`isVis_of_apply_pileStack`, `topOf_none_of_apply_pileStack`).
 These are the "assume the game is solvable, hence you can get the card
 to the foundation exactly when needed" facts, made into lemmas.
@@ -168,6 +174,165 @@ theorem State.topOf_none_of_apply_pileStack {st st' : State} {c : Card}
     (h : st.apply (Move.pileStack c) = some st') : st.board.topOf (Sum.inr c) = none := by
   rw [apply_pileStack_iff] at h
   exact h.1
+
+/-! ### The hidden side of the win extraction (the conservation route)
+
+The deal's pile slices are constants of the motion, and the only move
+that writes `depths` is the `reveal`, stepping exactly one pile's
+boundary down by one.  So a card sitting in a pile's hidden slice has
+exactly one exit — the `reveal` that seats it on the board — and a
+winning play must fire it: the terminal win puts every card on a
+foundation, and WF's `founds_gone` kills every hidden card there.
+This is TwinBridge §12.1's conservation content, stated location-wise
+(the count form would additionally need the four classes to partition
+`Card.universe`; the extraction only needs the location transfer). -/
+
+/-- **The un-hide step**: a card leaves a pile's hidden slice only at
+the `reveal` that seats it.  The deal's slices never change; the six
+non-reveal kinds keep `depths` verbatim; the reveal steps only its own
+pile's boundary down, the leaving card being exactly the revealed one. -/
+theorem State.isVis_of_apply_of_not_mem_hidden {S R : State} {m : Move}
+    (hS : S.apply m = some R) {a : Anchor} {c : Card}
+    (hin : c ∈ S.hidden a) (hout : c ∉ R.hidden a) :
+    R.isVis c = true := by
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at hS
+      obtain rfl := hS
+      exact absurd hin hout
+  | reveal c₀ =>
+      rw [apply_reveal_iff] at hS
+      obtain ⟨-, r, a₀, bd, -, hpile, hatt, hR⟩ := hS
+      by_cases haa : a₀ = a
+      · -- the reveal stepped THIS pile's boundary down
+        rw [haa] at hpile hatt
+        have hink : c ∈ (S.deal.piles a).take (S.depths a) := hin
+        have hRd : R.depths a = S.depths a - 1 := by
+          rw [hR]
+          show (if a = a₀ then S.depths a₀ - 1 else S.depths a) = S.depths a - 1
+          rw [haa, if_pos rfl]
+        have houtk : c ∉ (S.deal.piles a).take (S.depths a - 1) := by
+          have h1 : c ∉ (R.deal.piles a).take (R.depths a) := hout
+          rw [hRd] at h1
+          have hdl : R.deal = S.deal := by rw [hR]
+          rw [hdl] at h1
+          exact h1
+        cases hk : S.depths a with
+        | zero => rw [hk] at hink; simp at hink
+        | succ k =>
+            rw [hk] at hink houtk
+            rw [Nat.add_sub_cancel] at houtk
+            have hlen : k < (S.deal.piles a).length := by
+              by_cases hcon : k < (S.deal.piles a).length
+              · exact hcon
+              · have hle : (S.deal.piles a).length ≤ k := by omega
+                rw [List.take_of_length_le (Nat.le_trans hle (Nat.le_succ k))] at hink
+                rw [List.take_of_length_le hle] at houtk
+                exact absurd hink houtk
+            have hsplit : (S.deal.piles a).take (k + 1)
+                = (S.deal.piles a).take k ++ [(S.deal.piles a)[k]] :=
+              List.take_succ_eq_append_getElem hlen
+            rw [hsplit] at hink
+            -- the leaving card is the element at the boundary: the top
+            -- hidden card, which is the revealed one
+            have hck : c = (S.deal.piles a)[k] := by
+              rcases List.mem_append.mp hink with h | h
+              · exact absurd h houtk
+              · rw [List.mem_singleton] at h; exact h
+            have htop : S.topHidden a = some c := by
+              show ((S.deal.piles a).take (S.depths a)).getLast? = some c
+              rw [hk, hsplit, List.getLast?_append, hck]
+              rfl
+            have hrc : r = c := by
+              have hp : S.topHidden a = some r :=
+                of_decide_eq_true (findFirst_mem _ _ _ hpile).2
+              rw [htop] at hp
+              exact (Option.some.inj hp).symm
+            have hatt2 : bd.topOf (S.hiddenBase a) = some r :=
+              Board.attach_topOf _ _ _ hatt
+            rw [hrc] at hatt2
+            show (R.board.bottomOf c).isSome = true
+            rw [show R.board = bd from by rw [hR]]
+            exact Option.isSome_iff_exists.mpr ⟨S.hiddenBase a,
+              (Board.bottomOf_eq _ _ _).mpr hatt2⟩
+      · -- the boundary at `a` untouched: the hidden slices coincide
+        have hRd : R.depths a = S.depths a := by
+          rw [hR]
+          show (if a = a₀ then S.depths a₀ - 1 else S.depths a) = S.depths a
+          rw [if_neg (fun hcon => haa hcon.symm)]
+        have h1 : c ∉ (R.deal.piles a).take (R.depths a) := hout
+        rw [hRd] at h1
+        have hdl : R.deal = S.deal := by rw [hR]
+        rw [hdl] at h1
+        exact absurd hin h1
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at hS
+      obtain ⟨-, -, bd, hatt, hst'⟩ := hS
+      rw [hst'] at hout
+      exact absurd hin hout
+  | deckStack c =>
+      rw [apply_deckStack_iff] at hS
+      obtain ⟨-, -, hst'⟩ := hS
+      rw [hst'] at hout
+      exact absurd hin hout
+  | pileStack c =>
+      rw [apply_pileStack_iff] at hS
+      obtain ⟨-, b, hbot, hrk, hst'⟩ := hS
+      rw [hst'] at hout
+      exact absurd hin hout
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at hS
+      obtain ⟨-, -, bd, hatt, hst'⟩ := hS
+      rw [hst'] at hout
+      exact absurd hin hout
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at hS
+      obtain ⟨b₀, hbot, hne, hcm, bd, hatt, hst'⟩ := hS
+      rw [hst'] at hout
+      exact absurd hin hout
+
+/-- **The win-induction's hidden side**: every card that starts in a
+pile's hidden slice is `pileStack`ed somewhere along a winning play —
+the win forces it out of the slice (`founds_gone` at the terminal
+state), and the only exit is the `reveal` that seats it, from where
+the visible side's induction takes over. -/
+theorem State.pileStack_mem_of_win_hidden {st w : State} {play : List Move}
+    {a : Anchor} {c : Card}
+    (hwf : st.WF) (hrun : st.run play = some w) (hwin : w.isWin = true)
+    (hin : c ∈ st.hidden a) :
+    Move.pileStack c ∈ play := by
+  induction play generalizing st with
+  | nil =>
+      have hsw : st = w := run_nil_elim hrun
+      subst hsw
+      have h13 : st.heights c.suit = 13 := by
+        unfold State.isWin at hwin
+        rw [List.all_eq_true] at hwin
+        exact of_decide_eq_true (hwin c.suit (Suit.mem_all _))
+      have hlt : c.rank.toIdx < st.heights c.suit := by rw [h13]; exact Rank.toIdx_lt _
+      exact absurd hin ((hwf.founds_gone c hlt).2.2 a)
+  | cons m ms ih =>
+      obtain ⟨st₁, hm, hrest⟩ := run_cons_elim hrun
+      by_cases hout : c ∈ st₁.hidden a
+      · exact List.mem_cons.mpr (Or.inr (ih (apply_wf hwf m st₁ hm) hrest hout))
+      · have hvis₁ : st₁.isVis c = true :=
+          State.isVis_of_apply_of_not_mem_hidden hm hin hout
+        exact List.mem_cons.mpr (Or.inr
+          (State.pileStack_mem_of_win (apply_wf hwf m st₁ hm) hrest hwin hvis₁))
+
+/-- **The §12.1 extraction corollary** (the conservation route
+complete): along a winning play from a WF state, EVERY tableau card —
+seated on the board, or sitting in a pile's hidden slice — meets its
+own `pileStack`.  The visible side is the visibility induction; the
+hidden side is the un-hide step plus the terminal `founds_gone`. -/
+theorem State.pileStack_mem_of_win_tableau {st w : State} {play : List Move}
+    {c : Card}
+    (hwf : st.WF) (hrun : st.run play = some w) (hwin : w.isWin = true)
+    (htab : st.isVis c = true ∨ ∃ a, c ∈ st.hidden a) :
+    Move.pileStack c ∈ play := by
+  rcases htab with hvis | ⟨a, hin⟩
+  · exact State.pileStack_mem_of_win hwf hrun hwin hvis
+  · exact State.pileStack_mem_of_win_hidden hwf hrun hwin hin
 
 /-! ## §2. The twin cargo transfer
 

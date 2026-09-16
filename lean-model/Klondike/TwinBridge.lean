@@ -3478,10 +3478,16 @@ moves the card within the tableau (the `pilePile` run-move — the run's
 root lands at the landing seat, the members' bases ride along).  So a
 card seated on the tableau at the start of a run either meets its own
 `pileStack` in the play or is still seated at the end.  (The isWin-side
-corollary — a winning play stacks every tableau card — additionally
-needs the card-conservation invariant, 52 = tableau + hidden + stock
-+ foundations, which the model does not yet carry as a lemma; that is
-the honest residue of the full extraction, recorded here.) -/
+corollary — a winning play stacks every tableau card — LANDED
+2026-09-16: TwinSwap's `pileStack_mem_of_win_tableau`, via the un-hide
+step `State.isVis_of_apply_of_not_mem_hidden` — the location-wise
+conservation: the deal's pile slices are constants of the motion, so a
+hidden card's only exit is the reveal that seats it, and the terminal
+win's `founds_gone` forces that exit — plus the win-induction's hidden
+side `State.pileStack_mem_of_win_hidden`; axiom-clean
+[propext, Quot.sound].  The count form (52 = tableau + hidden + stock +
+foundations as a partition of `Card.universe`) remains unformalized;
+nothing downstream cites it.) -/
 
 /-- **The positional extraction**: along a run, a tableau card either
 has its own `pileStack` in the play or is STILL on the tableau at the

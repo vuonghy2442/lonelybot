@@ -306,6 +306,29 @@ bookkeeping, per the row above.  The companion's direction is settled
 in the strong (proven) direction; the reverse `stx → st` at invisible
 twins has a candidate stuck shape (see FARM_MEMORY's wave-15 note).
 
+**Session note (2026-09-16, toolchain + the extraction corollary)**:
+the model bumped to `leanprover/lean4:v4.34.0` (three `show`
+normal-form repairs in Relabel/TwinFrame/TwinAgnostic — v4.34 changed
+how `List.contains`/`elem` unfolds relative to the `||` pattern; the
+match form is the canonical one now).  **TwinBridge §12.1's named
+residue LANDED**: the isWin-side extraction corollary — every tableau
+card (board-seated OR hidden-in-pile) meets its own `pileStack` along
+a winning play — is now `State.pileStack_mem_of_win_tableau`
+(TwinSwap.lean, axiom-clean [propext, Quot.sound]), via the un-hide
+step `State.isVis_of_apply_of_not_mem_hidden` (the location-wise
+conservation: the deal's pile slices are constants of the motion, the
+only `depths` writer is the reveal stepping one boundary down, the
+leaving card being exactly the revealed one) plus the win-induction's
+hidden side `State.pileStack_mem_of_win_hidden` (the terminal
+`founds_gone` forces the exit).  The count form (52-partition of
+`Card.universe`) stays unformalized — nothing downstream cites it.
+Census: TwinSwap stays 0 (the new lemmas are proven); TwinQuotient
+pinned at 2 (the merge bridges — the census entry predating commit
+9a40232's file).  Remaining for [H]/[H′]: the three named premises
+(`ExchangeRiderPrefix`/`ExchangeDeepNorm` + rooted readings) and the
+§12.3 residuals (the deckStack partner-past arm, the worry-back
+anti-skews, the schedule existence, the successor's window transfer).
+
 Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
 etc.).  **Dependency note**: W4's reformulation (the W-repair at the
 crux ledger) already absorbs park cases via the swap — whether it needs
