@@ -3979,11 +3979,16 @@ successor state opaque). -/theorem State.heights_congr_heightBlind {S R : State}
   | stackPile c b => exact absurd hkind (by simp [Move.heightBlind])
 
 /-- **The alternation-kill's tail class** (§12's audit, updated for
-Phase-2's fourth disjunct): the height-blind kinds plus the ρ-FIXED
-on-pair `pileStack`s — the tableau-sourced climbs. -/
+Phase-2's fourth disjunct and the 2026-09-16 deckStack partner-past
+arm): the height-blind kinds plus the ρ-FIXED on-pair `pileStack`s
+(the tableau-sourced climbs) AND the ρ-FIXED on-pair `deckStack`s
+(the stock-sourced climbs — admitted verbatim post-equalization since
+the arm landed). -/
 def State.TailClimbClean (z : Card) (m : Move) : Prop :=
   Move.heightBlind m = true ∨
     (∃ q : Card, m = Move.pileStack q ∧ Card.swapTwin z q = q ∧
+      (q.suit = z.suit ∨ q.suit = z.suit.flipPair)) ∨
+    (∃ q : Card, m = Move.deckStack q ∧ Card.swapTwin z q = q ∧
       (q.suit = z.suit ∨ q.suit = z.suit.flipPair))
 
 /-- **The tail admission after the equalization — the alternation is
@@ -4020,7 +4025,7 @@ theorem State.playWindow'_tail_of_equalized {z : Card} :
   | cons m rest ih =>
       intro S T hrun hpast hclean
       obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
-      rcases hclean m (by simp) with hkind | ⟨q, hmeq, hcρ, hon⟩
+      rcases hclean m (by simp) with hkind | ⟨q, hmeq, hcρ, hon⟩ | ⟨q, hmeq, hcρ, hon⟩
       · -- a height-blind move: admitted unconditionally, the rungs carried
         rw [State.playWindow'_cons_heightBlind hkind hm]
         refine ih R T hrest1 ⟨?_, ?_⟩
@@ -4070,3 +4075,43 @@ theorem State.playWindow'_tail_of_equalized {z : Card} :
         · exact Bool.or_eq_true_iff.mpr (Or.inr (decide_eq_true_eq.mpr ⟨hcρ, hpastq⟩))
         · rw [ite_eq_left (Or.inr (Or.inr ⟨hcρ, hpastq⟩))]
           exact hih
+      · -- a ρ-fixed on-pair deckStack: the NEW partner-past arm (no
+        -- routing — the deckStack arm always stays `.pre`)
+        subst hmeq
+        have hpastq : z.rank.toIdx < S.heights (Card.flipSuit q).suit := by
+          rcases hon with h | h
+          · have hsuit : (Card.flipSuit q).suit = (Card.flipSuit z).suit := by
+              show q.suit.flipPair = (Card.flipSuit z).suit
+              rw [h]; rfl
+            rw [hsuit]; exact hpast.2
+          · have hsuit : (Card.flipSuit q).suit = z.suit := by
+              show q.suit.flipPair = z.suit
+              rw [h, Suit.flipPair_flipPair]
+            rw [hsuit]; exact hpast.1
+        -- the firing's shape: the own rung bumps, the partner is untouched
+        have hf := hm
+        rw [apply_deckStack_iff] at hf
+        obtain ⟨hprev, hrk, hR⟩ := hf
+        have hbump : ∀ s, R.heights s =
+            (if s = q.suit then S.heights s + 1 else S.heights s) := by
+          intro s
+          rw [hR]
+        have hpastR : z.rank.toIdx < R.heights z.suit ∧
+            z.rank.toIdx < R.heights (Card.flipSuit z).suit := by
+          constructor
+          · rw [hbump z.suit]
+            rcases hon with h | h
+            · rw [ite_eq_left h.symm]; omega
+            · rw [ite_eq_right (fun hcon => Suit.flipPair_ne z.suit (hcon.trans h).symm)]
+              exact hpast.1
+          · rw [hbump (Card.flipSuit z).suit]
+            rcases hon with h | h
+            · rw [ite_eq_right (fun hcon => Suit.flipPair_ne z.suit (hcon.trans h))]
+              exact hpast.2
+            · rw [ite_eq_left (show (Card.flipSuit z).suit = q.suit from h.symm)]
+              omega
+        have hih := ih R T hrest1 hpastR
+          (fun m' hm' => hclean m' (List.mem_cons_of_mem _ hm'))
+        rw [State.playWindow', hm]
+        refine Bool.and_eq_true_iff.mpr ⟨?_, hih⟩
+        exact Bool.or_eq_true_iff.mpr (Or.inr (decide_eq_true_eq.mpr ⟨hcρ, hpastq⟩))

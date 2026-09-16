@@ -382,6 +382,16 @@ the skew/alternation once the partner rung is past the pair rank.  The
 window's remaining declared obstruction is (b) alone: the `stackPile`
 arm's pair-member and just-below-pair worry-back anti-skews.
 
+**Follow-up (same day): the alternation-kill's tail class EXTENDED** —
+`State.TailClimbClean` now admits the ρ-fixed on-pair `deckStack`s
+too (the stock-sourced climbs), and `playWindow'_tail_of_equalized`
+carries the case (the partner-past derivation mirroring the stack
+case's, minus the routing — the deckStack arm always stays `.pre`).
+Post-equalization, a run of height-blind moves plus ρ-fixed on-pair
+climbs of EITHER source (tableau or stock) admits verbatim — the
+co-climb alternation is dead for both.  Axiom-clean
+[propext, Quot.sound]; census pinned at 14.
+
 Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
 etc.).  **Dependency note**: W4's reformulation (the W-repair at the
 crux ledger) already absorbs park cases via the swap — whether it needs
