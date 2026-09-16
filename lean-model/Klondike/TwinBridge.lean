@@ -2904,15 +2904,14 @@ theorem State.stacking_swap_zclean {S w : State} {z' : Card} {m : Move}
             (Option.bind_eq_some_iff.mpr ⟨_, hstackS, hmv⟩)))
       subst hcomm
       exact run_cons_intro hstackS (run_cons_intro hmv hrest)
-  | reveal c =>
+  | reveal a =>
       have hmraw := hm
       rw [apply_reveal_iff] at hm
-      obtain ⟨htopc, r, a, bd₀, hbotc, hp, hatt, rfl⟩ := hm
+      obtain ⟨r, bd₀, htop, hbare, hatt, rfl⟩ := hm
       -- the exclusions from the z'-cleanliness
       have hhz : Sum.inr z' ≠ S.hiddenBase a :=
-        fun hcon => hbases (S.hiddenBase a) (by simp [Move.touch, hbotc, hp]) hcon.symm
-      have hczz : c ≠ z' := hcards c (by simp [Move.touch, hbotc, hp])
-      have hrzz : r ≠ z' := hcards r (by simp [Move.touch, hbotc, hp])
+        fun hcon => hbases (S.hiddenBase a) (by simp [Move.touch, htop]) hcon.symm
+      have hrzz : r ≠ z' := hcards r (by simp [Move.touch, htop])
       -- the invariances: z' bare, seated, rung-exact at S too
       have htopS : S.board.topOf (Sum.inr z') = none :=
         (Board.attach_topOf_ne S.board (S.hiddenBase a) r hatt hhz).symm.trans htopR
@@ -2930,23 +2929,18 @@ theorem State.stacking_swap_zclean {S w : State} {z' : Card} {m : Move}
         rw [hcon] at hfree
         rw [hfree] at hbq
         exact absurd hbq (by simp)
-      have hicbq : Sum.inr c ≠ bq := by
+      -- the boundary's own seat is off the stacking's detach seat
+      have hicrq : Sum.inr r ≠ bq := by
         intro hcon
         rw [← hcon] at hbq
-        rw [hbq] at htopc
-        exact absurd htopc (by simp)
+        rw [hbq] at hbare
+        exact absurd hbare (by simp)
       have hstackS : S.apply (Move.pileStack z') = some
           {S with
             board := S.board.detach bq,
             heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s} :=
         apply_pileStack_iff.mpr ⟨htopS, bq, hbotS, hrkS, rfl⟩
       -- the reveal at the stacked state: every guard survives the edit
-      have htopc₀ : (S.board.detach bq).topOf (Sum.inr c) = none := by
-        rw [Board.detach_topOf_ne _ _ _ hicbq]
-        exact htopc
-      have hbotc₀ : (S.board.detach bq).bottomOf c = some (Sum.inr r) := by
-        rw [bottomOf_detach_ne hbq hczz]
-        exact hbotc
       have hfreehb : S.board.topOf (S.hiddenBase a) = none :=
         ((Board.attach_eq_some_iff S.board (S.hiddenBase a) r).mp
           (by rw [hatt]; simp)).1
@@ -2966,21 +2960,23 @@ theorem State.stacking_swap_zclean {S w : State} {z' : Card} {m : Move}
       obtain ⟨T', hmv⟩ : ∃ T' : State, ({S with
           board := S.board.detach bq,
           heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).apply
-          (Move.reveal c) = some T' :=
+          (Move.reveal a) = some T' :=
         ⟨_, apply_reveal_iff
           (st := {S with
             board := S.board.detach bq,
             heights := fun s => if s = z'.suit then S.heights s + 1 else S.heights s}).mpr
-          ⟨htopc₀, r, a, bd₁, hbotc₀, hp, hatt₁, rfl⟩⟩
-      have hdisj : disjointTouch ((Move.reveal c).touch S)
+          ⟨r, bd₁, htop, by rw [Board.detach_topOf_ne _ _ _ hicrq]; exact hbare,
+            hatt₁, rfl⟩⟩
+      have hdisj : disjointTouch ((Move.reveal a).touch S)
           ((Move.pileStack z').touch S) := by
         refine ⟨?_, ?_⟩
         · intro b hbmem hbmem'
-          simp only [Move.touch, hbotc, hp] at hbmem
+          simp only [Move.touch, htop] at hbmem
           simp only [Move.touch, hbotS, Option.toList_some] at hbmem'
-          have hb₁ : b = S.hiddenBase a := List.mem_singleton.mp hbmem
-          have hb₂ : b = bq := List.mem_singleton.mp hbmem'
-          exact hhhb (hb₁.symm.trans hb₂)
+          rcases List.mem_cons.mp hbmem with rfl | hbmemr
+          · exact hhhb (List.mem_singleton.mp hbmem')
+          · exact hicrq ((List.mem_singleton.mp hbmemr).symm.trans
+              (List.mem_singleton.mp hbmem'))
         · intro x hxmem hxmem'
           simp only [Move.touch] at hxmem'
           exact hcards x hxmem (List.mem_singleton.mp hxmem')
@@ -3513,9 +3509,9 @@ theorem State.bottomOf_run_mem_pileStack :
             rw [apply_draw_iff] at hm
             obtain ⟨rfl⟩ := hm
             exact ⟨b, hbot⟩
-        | reveal c =>
+        | reveal a =>
             rw [apply_reveal_iff] at hm
-            obtain ⟨htop, r, a, bd, hbotc, hp, hatt, rfl⟩ := hm
+            obtain ⟨r, bd, htop, hbare, hatt, rfl⟩ := hm
             have hqr : q ≠ r := by
               intro hcon
               have hnone : S.board.bottomOf r = none :=
@@ -3599,18 +3595,18 @@ heights-reads, untouched by the board±depths edit; the reveal's/pilePile's
 guards are board±depths reads, untouched by the stock+heights edit;
 the state agreement is `commute_of_compsDisjoint`. -/
 theorem State.deckStack_swap_zclean {S w : State} {q : Card} {m : Move} {rest : List Move}
-    (hkind : (∃ c, m = Move.reveal c) ∨ (∃ c b, m = Move.pilePile c b))
+    (hkind : (∃ a, m = Move.reveal a) ∨ (∃ c b, m = Move.pilePile c b))
     (hrun : S.run (m :: Move.deckStack q :: rest) = some w) :
     S.run (Move.deckStack q :: m :: rest) = some w := by
   obtain ⟨R, hm, hrest1⟩ := run_cons_elim hrun
   obtain ⟨T, hds, hrest⟩ := run_cons_elim hrest1
   have hL : (S.apply m >>= fun s => s.apply (Move.deckStack q)) = some T :=
     Option.bind_eq_some_iff.mpr ⟨R, hm, hds⟩
-  rcases hkind with ⟨c, rfl⟩ | ⟨c, b, rfl⟩
-  · -- m = reveal c: the stock- and heights-blind partner
+  rcases hkind with ⟨a, rfl⟩ | ⟨c, b, rfl⟩
+  · -- m = reveal a: the stock- and heights-blind partner
     have hm' := hm
     rw [apply_reveal_iff] at hm'
-    obtain ⟨htopc, r, a, bd, hbotc, hp, hatt, rfl⟩ := hm'
+    obtain ⟨r, bd, htop, hbare, hatt, rfl⟩ := hm'
     have hdsR := hds
     rw [apply_deckStack_iff] at hdsR
     obtain ⟨hprevR, hrkR, -⟩ := hdsR
@@ -3621,20 +3617,20 @@ theorem State.deckStack_swap_zclean {S w : State} {q : Card} {m : Move} {rest : 
     obtain ⟨T', hm₀⟩ : ∃ T' : State, ({S with
         stock := S.stock.removeAt (S.stock.cursor - 1),
         heights := fun s => if s = q.suit then S.heights s + 1 else S.heights s}).apply
-        (Move.reveal c) = some T' :=
+        (Move.reveal a) = some T' :=
       ⟨_, apply_reveal_iff
         (st := {S with
           stock := S.stock.removeAt (S.stock.cursor - 1),
           heights := fun s => if s = q.suit then S.heights s + 1 else S.heights s}).mpr
-        ⟨htopc, r, a, bd, hbotc, hp, hatt, rfl⟩⟩
-    have hcomps : ∀ x ∈ Move.comps (Move.reveal c), x ∉ Move.comps (Move.deckStack q) := by
+        ⟨r, bd, htop, hbare, hatt, rfl⟩⟩
+    have hcomps : ∀ x ∈ Move.comps (Move.reveal a), x ∉ Move.comps (Move.deckStack q) := by
       intro x hx
       cases x <;> simp [Move.comps] at hx ⊢
-    have hR : (S.apply (Move.deckStack q) >>= fun s => s.apply (Move.reveal c)) = some T' :=
+    have hR : (S.apply (Move.deckStack q) >>= fun s => s.apply (Move.reveal a)) = some T' :=
       Option.bind_eq_some_iff.mpr ⟨_, hdsS, hm₀⟩
     have hTT : T = T' :=
       Option.some.inj (hL.symm.trans
-        ((commute_of_compsDisjoint S (Move.reveal c) (Move.deckStack q) hcomps).trans hR))
+        ((commute_of_compsDisjoint S (Move.reveal a) (Move.deckStack q) hcomps).trans hR))
     rw [hTT] at hrest
     exact run_cons_intro hdsS (run_cons_intro hm₀ hrest)
   · -- m = pilePile c b: the stock- and heights-blind partner

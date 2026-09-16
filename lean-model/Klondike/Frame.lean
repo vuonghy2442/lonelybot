@@ -355,19 +355,17 @@ theorem frame_congr {m : Move} {st st' : State} (hr : Frame.agrees m.reads st st
             show (st.stock.dealOnce st.drawStep).cursor = (st'.stock.dealOnce st'.drawStep).cursor
             rw [hcyc, hs]
         | drawStep => exact hf
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at h
-      obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hs₁⟩ := h
+      obtain ⟨r, bd, htop, hbare, hatt, hs₁⟩ := h
       have hb : st.board = st'.board := hr Frame.board (by simp [Move.reads])
       have hd : st.deal = st'.deal := hr Frame.deal (by simp [Move.reads])
       have hdp : st.depths = st'.depths := hr Frame.depths (by simp [Move.reads])
-      have htop' : st'.board.topOf (Sum.inr c) = none := by
-        rw [show st'.board = st.board from hb.symm]; exact htop
-      have hbot' : st'.board.bottomOf c = some (Sum.inr r) := by
-        rw [show st'.board = st.board from hb.symm]; exact hbot
-      have hpile' : st'.pileOfTopHidden r = some a := by
-        rw [(Frame.pileOfTopHidden_congr hd hdp r).symm]
-        exact hpile
+      have htop' : st'.topHidden a = some r := by
+        rw [(Frame.topHidden_congr hd hdp a).symm]
+        exact htop
+      have hbare' : st'.board.topOf (Sum.inr r) = none := by
+        rw [show st'.board = st.board from hb.symm]; exact hbare
       have hatt' : st'.board.attach (st'.hiddenBase a) r = some bd := by
         rw [(Frame.hiddenBase_congr hd hdp a).symm,
           show st'.board = st.board from hb.symm]
@@ -376,7 +374,7 @@ theorem frame_congr {m : Move} {st st' : State} (hr : Frame.agrees m.reads st st
         board := bd,
         depths := fun a' => if a' = a then st'.depths a - 1 else st'.depths a' }, ?_, ?_⟩
       · rw [apply_reveal_iff]
-        exact ⟨htop', r, a, bd, hbot', hpile', hatt', rfl⟩
+        exact ⟨r, bd, htop', hbare', hatt', rfl⟩
       · rw [hs₁]
         intro f hf
         cases f with
@@ -805,17 +803,17 @@ the non-membership side conditions are `decide`-level facts about the
 reads table. -/
 
 /-- `reveal_blind_some` (Commutation.lean), re-derived. -/
-theorem reveal_blind_some_frame {st : State} {c : Card} {cy : Cycle Card} {hs : Suit → Nat}
-    {s₁ : State} (h : st.apply (Move.reveal c) = some s₁) :
-    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal c)
+theorem reveal_blind_some_frame {st : State} {a : Anchor} {cy : Cycle Card} {hs : Suit → Nat}
+    {s₁ : State} (h : st.apply (Move.reveal a) = some s₁) :
+    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal a)
       = some { s₁ with stock := cy, heights := hs } :=
   apply_blind_stock_heights (by simp [Move.reads]) (by simp [Move.reads])
     (by simp [Move.reads]) h
 
 /-- `reveal_blind_none` (Commutation.lean), re-derived. -/
-theorem reveal_blind_none_frame {st : State} {c : Card} {cy : Cycle Card} {hs : Suit → Nat}
-    (h : st.apply (Move.reveal c) = none) :
-    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal c) = none :=
+theorem reveal_blind_none_frame {st : State} {a : Anchor} {cy : Cycle Card} {hs : Suit → Nat}
+    (h : st.apply (Move.reveal a) = none) :
+    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal a) = none :=
   apply_blind_stock_heights_none (by simp [Move.reads]) (by simp [Move.reads])
     (by simp [Move.reads]) h
 
@@ -876,10 +874,10 @@ theorem deal_commutes_nonStock_frame (st : State) (m : Move)
     (fun f hf => by cases f <;> simp_all [Move.reads, Move.writes]) h2 h3
 
 /-- `draw_comm_reveal` (Commutation), re-derived. -/
-theorem draw_comm_reveal_frame (st : State) (c : Card) :
-    (st.apply Move.draw >>= fun s => s.apply (Move.reveal c)) =
-    (st.apply (Move.reveal c) >>= fun s => s.apply Move.draw) :=
-  (deal_commutes_nonStock_frame st (Move.reveal c) (by simp [Move.reads])).symm
+theorem draw_comm_reveal_frame (st : State) (a : Anchor) :
+    (st.apply Move.draw >>= fun s => s.apply (Move.reveal a)) =
+    (st.apply (Move.reveal a) >>= fun s => s.apply Move.draw) :=
+  (deal_commutes_nonStock_frame st (Move.reveal a) (by simp [Move.reads])).symm
 
 /-- `draw_comm_pileStack` (Commutation), re-derived. -/
 theorem draw_comm_pileStack_frame (st : State) (c : Card) :
@@ -901,10 +899,10 @@ theorem draw_comm_pilePile_frame (st : State) (c : Card) (b : Base) :
 
 /-- The reveal·deckStack arm of `commute_of_compsDisjoint`
 (Commutation), re-derived — the C-IND clean sector. -/
-theorem reveal_deckStack_comm_frame (st : State) (c c' : Card) :
-    (st.apply (Move.reveal c) >>= fun s => s.apply (Move.deckStack c')) =
-    (st.apply (Move.deckStack c') >>= fun s => s.apply (Move.reveal c)) :=
-  commute_of_disjoint_frames st (Move.reveal c) (Move.deckStack c')
+theorem reveal_deckStack_comm_frame (st : State) (a : Anchor) (c' : Card) :
+    (st.apply (Move.reveal a) >>= fun s => s.apply (Move.deckStack c')) =
+    (st.apply (Move.deckStack c') >>= fun s => s.apply (Move.reveal a)) :=
+  commute_of_disjoint_frames st (Move.reveal a) (Move.deckStack c')
     (fun f hf => by cases f <;> simp_all [Move.reads, Move.writes])
     (fun f hf => by cases f <;> simp_all [Move.reads, Move.writes])
     (fun f hf => by cases f <;> simp_all [Move.writes])
@@ -1065,10 +1063,12 @@ def Base.seats (b : Base) (x : Card) : Bool :=
 /-- The per-card frame specialization: does `m`'s board-frame
 interaction mention `x` — as the moved card, or as the base card of
 its target?  (`deckStack` never touches the board; `draw` never
-does.) -/
+does.  A `reveal` never mentions a *visible* `x`: its seat-reads are
+confined to the hidden boundary and the base beneath it, both below
+the visible surface.) -/
 def Move.seatsOrReads (x : Card) : Move → Bool
   | .draw => false
-  | .reveal c => decide (c = x)
+  | .reveal _ => false
   | .deckPile c b => decide (c = x) || b.seats x
   | .deckStack _ => false
   | .pileStack c => decide (c = x)

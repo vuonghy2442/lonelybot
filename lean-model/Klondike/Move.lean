@@ -26,8 +26,9 @@ inductive Move : Type where
   partial final deal passes the last card), wrapping from the end to a
   fresh pass. -/
   | draw
-  /-- Reveal the hidden card under the visible card `c`. -/
-  | reveal (c : Card)
+  /-- Reveal pile `a`'s hidden boundary card — the physical flip rule:
+  legal only when nothing sits on the boundary. -/
+  | reveal (a : Anchor)
   /-- Waste top `c` onto the tableau base `b`. -/
   | deckPile (c : Card) (b : Base)
   /-- Waste top `c` onto the foundation. -/
@@ -52,10 +53,11 @@ def Move.isEngine : Move → Bool
   | .stackPile _ _ => true
   | .pilePile _ _ => false
 
-/-- Twin-swap on moves. -/
+/-- Twin-swap on moves.  The reveal is twin-invariant: the pile index
+  carries no suit. -/
 def Move.flipMove : Move → Move
   | .draw => .draw
-  | .reveal c => .reveal c.flipSuit
+  | .reveal a => .reveal a
   | .deckPile c b => .deckPile c.flipSuit b.flipBase
   | .deckStack c => .deckStack c.flipSuit
   | .pileStack c => .pileStack c.flipSuit
@@ -68,22 +70,19 @@ namespace State
 def applyDraw (st : State) : Option State :=
   some { st with stock := st.stock.dealOnce st.drawStep }
 
-def applyReveal (st : State) (c : Card) : Option State :=
-  match st.board.topOf (Sum.inr c) with
-  | some _ => none
-  | none =>
-    match st.board.bottomOf c with
-    | some (Sum.inr r) =>
-      match st.pileOfTopHidden r with
+def applyReveal (st : State) (a : Anchor) : Option State :=
+  match st.topHidden a with
+  | none => none
+  | some r =>
+    match st.board.topOf (Sum.inr r) with
+    | some _ => none
+    | none =>
+      match st.board.attach (st.hiddenBase a) r with
       | none => none
-      | some a =>
-        match st.board.attach (st.hiddenBase a) r with
-        | none => none
-        | some bd =>
-          some { st with
-            board := bd,
-            depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }
-    | _ => none
+      | some bd =>
+        some { st with
+          board := bd,
+          depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }
 
 def applyDeckPile (st : State) (c : Card) (b : Base) : Option State :=
   match st.stock.prev with
@@ -148,7 +147,7 @@ def applyPilePile (st : State) (c : Card) (b : Base) : Option State :=
 `legal` and everything downstream derives from this. -/
 def apply : Move → State → Option State
   | .draw, st => st.applyDraw
-  | .reveal c, st => st.applyReveal c
+  | .reveal a, st => st.applyReveal a
   | .deckPile c b, st => st.applyDeckPile c b
   | .deckStack c, st => st.applyDeckStack c
   | .pileStack c, st => st.applyPileStack c
@@ -291,51 +290,43 @@ theorem apply_draw_iff {st st' : State} :
     rw [h]
     rfl
 
-/-- `reveal`'s shape: the trigger card's top must be free, and the
-reveal chain (bottom is a hidden card, that card is a pile's boundary,
-the attach succeeds) delivers the boundary as the new board top with
-the pile's depth stepped down. -/
-theorem apply_reveal_iff {st st' : State} {c : Card} :
-    st.apply (Move.reveal c) = some st' ↔
-      (st.board.topOf (Sum.inr c) = none ∧
-       ∃ r a bd, st.board.bottomOf c = some (Sum.inr r) ∧
-         st.pileOfTopHidden r = some a ∧
-         st.board.attach (st.hiddenBase a) r = some bd ∧
-         st' = { st with
-           board := bd,
-           depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }) := by
+/-- `reveal`'s shape: the pile's boundary card exists and is bare (no
+edge sits on it — the physical flip condition), and the attach seats it
+with the pile's depth stepped down. -/
+theorem apply_reveal_iff {st st' : State} {a : Anchor} :
+    st.apply (Move.reveal a) = some st' ↔
+      (∃ r bd, st.topHidden a = some r ∧
+          st.board.topOf (Sum.inr r) = none ∧
+          st.board.attach (st.hiddenBase a) r = some bd ∧
+          st' = { st with
+            board := bd,
+            depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }) := by
   constructor
   · intro h
     simp only [State.apply, State.applyReveal] at h
-    cases ht : st.board.topOf (Sum.inr c) with
-    | some _ => rw [ht] at h; exact absurd h (by simp)
-    | none =>
-      cases hb : st.board.bottomOf c with
-      | none => rw [ht, hb] at h; exact absurd h (by simp)
-      | some b =>
-        cases b with
-        | inl _ => rw [ht, hb] at h; exact absurd h (by simp)
-        | inr r =>
-          rw [ht, hb] at h
-          simp at h
-          cases hp : st.pileOfTopHidden r with
-          | none => rw [hp] at h; exact absurd h (by simp)
-          | some a =>
-            rw [hp] at h
-            simp at h
-            cases ha : st.board.attach (st.hiddenBase a) r with
-            | none => rw [ha] at h; exact absurd h (by simp)
-            | some bd =>
-              rw [ha] at h
-              have h' : some { st with
-                  board := bd,
-                  depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }
-                  = some st' := h
-              rw [Option.some.injEq] at h'
-              exact ⟨rfl, r, a, bd, rfl, hp, ha, h'.symm⟩
-  · intro ⟨ht, r, a, bd, hb, hp, ha, hst⟩
+    cases ht : st.topHidden a with
+    | none => rw [ht] at h; exact absurd h (by simp)
+    | some r =>
+      rw [ht] at h
+      simp at h
+      cases htop : st.board.topOf (Sum.inr r) with
+      | some _ => rw [htop] at h; exact absurd h (by simp)
+      | none =>
+        rw [htop] at h
+        simp at h
+        cases ha : st.board.attach (st.hiddenBase a) r with
+        | none => rw [ha] at h; exact absurd h (by simp)
+        | some bd =>
+          rw [ha] at h
+          have h' : some { st with
+              board := bd,
+              depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }
+              = some st' := h
+          rw [Option.some.injEq] at h'
+          exact ⟨r, bd, rfl, htop, ha, h'.symm⟩
+  · intro ⟨r, bd, ht, htop, ha, hst⟩
     rw [hst]
-    simp only [State.apply, State.applyReveal, ht, hb, hp, ha]
+    simp only [State.apply, State.applyReveal, ht, htop, ha]
 
 /-- `deckPile`'s shape: the waste top is the played card, the base is
 free and fitting, and the spliced-out stock. -/
@@ -1090,8 +1081,9 @@ theorem Cycle.dealOnce_cursor_le (s : Nat) (cy : Cycle Card) :
 
 /-- **WF is preserved by every legal move** — the maintenance lemma.
 Arms: `draw` is a pure cursor rotation; `reveal` rides deal-adjacency
-(the freshly-seated boundary is the new `topHidden`, its cover's base
-just became placed) and the piles/stock disjointness; `deckPile`/
+(the freshly-seated boundary is the new `topHidden`; the bare guard
+means no edge sits on it, so existing edges keep their classification)
+and the piles/stock disjointness; `deckPile`/
 `deckStack` splice the waste top out (noDup and membership survive
 `removeIdx`; the cursor steps down); `pileStack`/`stackPile` bump/drop
 the height of `c`'s suit within the rank bound — the bumped card leaves
@@ -1137,11 +1129,9 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       · intro c'' hc''
         rw [Cycle.dealOnce_cards] at hc''
         exact hmem c'' hc''
-  | reveal c =>
+  | reveal a =>
     rw [apply_reveal_iff] at h
-    obtain ⟨ht, r, a, bd, hb, hp, ha, rfl⟩ := h
-    have htop : st.topHidden a = some r :=
-      of_decide_eq_true (findFirst_mem _ _ _ hp).2
+    obtain ⟨r, bd, htop, hbare, ha, rfl⟩ := h
     have key : ∀ c'', c'' ≠ r → (bd.bottomOf c'').isSome = true →
         (st.board.bottomOf c'').isSome = true := by
       intro c'' hne hds
@@ -1219,14 +1209,14 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
             · refine Or.inl ⟨a', t, rest, hadj, ?_⟩
               rcases hbase with ⟨a'', hth⟩ | hpl
               · by_cases haa2 : a'' = a
-                · refine Or.inr ?_
+                · exfalso
+                  -- d = r, so the edge would sit on the boundary — the bare
+                  -- guard hbare forbids exactly that
                   have hdr : d = r := by
                     have htra : st.topHidden a = some d := by rw [← haa2]; exact hth
                     exact Option.some.inj (htra.symm.trans htop)
-                  rw [hdr]
-                  show (bd.bottomOf r).isSome = true
-                  rw [(Board.bottomOf_eq bd r (st.hiddenBase a)).mpr (Board.attach_topOf _ _ _ ha)]
-                  rfl
+                  rw [hdr, hbare] at hb'
+                  simp at hb'
                 · refine Or.inl ⟨a'', ?_⟩
                   show ((st.deal.piles a'').take
                     (if a'' = a then st.depths a - 1 else st.depths a'')).getLast? = some d

@@ -471,20 +471,20 @@ theorem pileStack_comm_draw {st : State} {c : Card} {b₀ : Base} {s₁ s₂ : S
   · exact (apply_draw_iff).mpr rfl
   · exact (apply_pileStack_iff).mpr ⟨htopn, b₀, hbot, hrk, rfl⟩
 
-/-- The reveal square: revealing under `x` commutes with the stack.  The
-reveal writes the board at `hiddenBase a` (never `c`'s seat `b₀` — `c`
-occupies it, so the attach that would sit there is dead on arrival)
-and one depth; the stack writes the board at `b₀` and one height.
-`x = c` cannot occur (`reveal c` needs `c`'s own base hidden, i.e.
-`c` locked), and `hiddenBase a`'s card is hidden, hence not the
-visible `c`.  The equality of the two ends is `comm_reveal_pileStack`
+/-- The reveal square: revealing pile `a`'s boundary commutes with the
+stack.  The reveal writes the board at `hiddenBase a` (never `c`'s
+seat `b₀` — `c` occupies it, so the attach that would sit there is dead
+on arrival) and one depth; the stack writes the board at `b₀` and one
+height.  The boundary is hidden, hence not the visible `c`, and the
+bare guard forces `c`'s seat off the boundary's own seat.  The
+equality of the two ends is `comm_reveal_pileStack`
 (`Commutation.lean`), whose disjointness premise is derived here. -/
-theorem pileStack_comm_reveal {st : State} {c x : Card} {b₀ : Base} {s₁ s₂ : State}
-    (hwf : st.WF) (hnotlock : st.isLocked c = false)
+theorem pileStack_comm_reveal {st : State} {c : Card} {a : Anchor} {b₀ : Base} {s₁ s₂ : State}
+    (hwf : st.WF)
     (hbot : st.board.bottomOf c = some b₀) (hrk : c.rank.toIdx = st.heights c.suit)
     (hm : st.apply (Move.pileStack c) = some s₁)
-    (hmr : st.apply (Move.reveal x) = some s₂) :
-    ∃ t, s₁.apply (Move.reveal x) = some t ∧ s₂.apply (Move.pileStack c) = some t := by
+    (hmr : st.apply (Move.reveal a) = some s₂) :
+    ∃ t, s₁.apply (Move.reveal a) = some t ∧ s₂.apply (Move.pileStack c) = some t := by
   have hmo := hm
   have hmo2 := hmr
   rw [apply_pileStack_iff] at hm
@@ -493,24 +493,16 @@ theorem pileStack_comm_reveal {st : State} {c x : Card} {b₀ : Base} {s₁ s₂
   rw [hbb] at hs₁
   have htop : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp hbot
   rw [apply_reveal_iff] at hmr
-  obtain ⟨htopx, r, a, bd, hbx, hpile, hatt, hs₂⟩ := hmr
-  -- the disjointness facts
-  have hgt : (st.hidden a).getLast? = some r :=
-    of_decide_eq_true ((findFirst_mem _ _ _ hpile).2)
-  have hxc : x ≠ c := by
-    intro hxe
-    rw [hxe] at hbx
-    have hlk : st.isLocked c = true := by
-      simp [State.isLocked, hbx, hpile]
-    rw [hlk] at hnotlock
-    exact Bool.noConfusion hnotlock
+  obtain ⟨r, bd, htoph, hbare, hatt, hs₂⟩ := hmr
+  -- c is visible; the boundary is hidden, hence not c
+  have hcvis : st.isVis c = true := by
+    show (st.board.bottomOf c).isSome = true
+    rw [hbot]
+    rfl
+  have hgt : (st.hidden a).getLast? = some r := htoph
   have hrc : r ≠ c := by
     intro hre
-    have hX : st.board.topOf (Sum.inr r) = some x :=
-      (Board.bottomOf_eq st.board x (Sum.inr r)).mp hbx
-    rw [hre] at hX
-    rw [htopn] at hX
-    exact absurd hX (by simp)
+    exact hwf.vis_not_hidden c hcvis a (by rw [← hre]; exact mem_of_getLast hgt)
   have hβ : st.hiddenBase a ≠ b₀ := by
     intro hbe
     have hfree : st.board.topOf (st.hiddenBase a) = none := by
@@ -518,18 +510,14 @@ theorem pileStack_comm_reveal {st : State} {c x : Card} {b₀ : Base} {s₁ s₂
       exact h.1
     rw [hbe, htop] at hfree
     exact absurd hfree (by simp)
-  have hbxne : Sum.inr x ≠ b₀ := by
+  -- c's seat is not the boundary's own seat (the bare guard)
+  have hb₀r : Sum.inr r ≠ b₀ := by
     intro hbe
     rw [← hbe] at htop
-    rw [htopx] at htop
+    rw [hbare] at htop
     exact absurd htop (by simp)
-  -- the boundary's parent is hidden, hence not the visible c
   have hbc : Sum.inr c ≠ st.hiddenBase a := by
     intro hbe
-    have hcvis : st.isVis c = true := by
-      show (st.board.bottomOf c).isSome = true
-      rw [hbot]
-      rfl
     simp only [State.hiddenBase] at hbe
     cases hrev : ((st.hidden a).reverse.drop 1).head? with
     | none => rw [hrev] at hbe; exact absurd hbe (by simp)
@@ -558,6 +546,11 @@ theorem pileStack_comm_reveal {st : State} {c x : Card} {b₀ : Base} {s₁ s₂
     rw [Board.detach_topOf_ne st.board b₀ _ hβ]
     have h := (Board.attach_eq_some_iff st.board (st.hiddenBase a) r).mp (by rw [hatt]; simp)
     exact h.1
+  have hbare' : (st.board.detach b₀).topOf (Sum.inr r) = none := by
+    by_cases hb₀e : b₀ = Sum.inr r
+    · rw [hb₀e, Board.detach_topOf]
+    · rw [Board.detach_topOf_ne st.board b₀ _ (fun hcon => hb₀e hcon.symm)]
+      exact hbare
   have hbotrn : (st.board.detach b₀).bottomOf r = none := by
     rw [bottomOf_detach_ne htop hrc]
     exact hbrn
@@ -566,18 +559,11 @@ theorem pileStack_comm_reveal {st : State} {c x : Card} {b₀ : Base} {s₁ s₂
   cases hatt₁ : (st.board.detach b₀).attach (st.hiddenBase a) r with
   | none => rw [hatt₁] at hne; simp at hne
   | some bd₁ =>
-      have hL : s₁.apply (Move.reveal x) = some {s₁ with
+      have hL : s₁.apply (Move.reveal a) = some {s₁ with
           board := bd₁,
           depths := fun a' => if a' = a then s₁.depths a - 1 else s₁.depths a' } := by
         rw [hs₁, apply_reveal_iff]
-        refine ⟨?_, r, a, bd₁, ?_, ?_, hatt₁, rfl⟩
-        · show (st.board.detach b₀).topOf (Sum.inr x) = none
-          rw [Board.detach_topOf_ne st.board b₀ _ hbxne]
-          exact htopx
-        · show (st.board.detach b₀).bottomOf x = some (Sum.inr r)
-          rw [bottomOf_detach_ne htop hxc]
-          exact hbx
-        · exact (pileOfTopHidden_congr rfl rfl r).symm.trans hpile
+        exact ⟨r, bd₁, htoph, hbare', hatt₁, rfl⟩
       -- the stack replays from the reveal successor
       have htopn₂ : bd.topOf (Sum.inr c) = none := by
         rw [Board.attach_topOf_ne _ _ _ hatt hbc]
@@ -592,13 +578,13 @@ theorem pileStack_comm_reveal {st : State} {c x : Card} {b₀ : Base} {s₁ s₂
         rw [hs₂, apply_pileStack_iff]
         exact ⟨htopn₂, b₀, hbot₂, hrk, rfl⟩
       -- the two orders end in the same state (the commutation kit)
-      have hcomp₁ : (st.apply (Move.pileStack c) >>= fun s => s.apply (Move.reveal x)) =
+      have hcomp₁ : (st.apply (Move.pileStack c) >>= fun s => s.apply (Move.reveal a)) =
           some {s₁ with
             board := bd₁,
             depths := fun a' => if a' = a then s₁.depths a - 1 else s₁.depths a' } := by
         rw [hmo]
         exact hL
-      have hcomp₂ : (st.apply (Move.reveal x) >>= fun s => s.apply (Move.pileStack c)) =
+      have hcomp₂ : (st.apply (Move.reveal a) >>= fun s => s.apply (Move.pileStack c)) =
           some {s₂ with
             board := bd.detach b₀,
             heights := fun s => if s = c.suit then s₂.heights s + 1 else s₂.heights s } := by
@@ -606,23 +592,21 @@ theorem pileStack_comm_reveal {st : State} {c x : Card} {b₀ : Base} {s₁ s₂
         exact hR
       have heq := comm_reveal_pileStack
         (by
-          have hRt : (Move.reveal x).touch st = ([st.hiddenBase a], [x, r]) := by
-            simp only [Move.touch, hbx, hpile]
+          have hRt : (Move.reveal a).touch st = ([st.hiddenBase a, Sum.inr r], [r]) := by
+            simp only [Move.touch, htoph]
           have hPSt : (Move.pileStack c).touch st = ([b₀], [c]) := by
             simp only [Move.touch, hbot, Option.toList_some]
           rw [hRt, hPSt]
           refine ⟨?_, ?_⟩
           · intro bb hbmem hxmem
-            simp only [List.mem_singleton] at hbmem hxmem
-            rw [hbmem] at hxmem
-            exact hβ hxmem
+            simp only [List.mem_cons, List.not_mem_nil, or_false] at hbmem hxmem
+            rcases hbmem with rfl | rfl
+            · exact hβ hxmem
+            · exact hb₀r hxmem
           · intro cc ccmem cxmem
-            simp only [List.mem_cons, List.not_mem_nil] at ccmem
-            simp only [List.mem_singleton] at cxmem
-            rcases ccmem with hc | hc | hc
-            · rw [hc] at cxmem; exact hxc cxmem
-            · rw [hc] at cxmem; exact hrc cxmem
-            · exact hc.elim)
+            simp only [List.mem_singleton] at ccmem cxmem
+            rw [ccmem] at cxmem
+            exact hrc cxmem)
         hcomp₂ hcomp₁
       exact ⟨_, hL, hR.trans (congrArg some heq)⟩
 
@@ -1422,7 +1406,7 @@ theorem pileStack_pilePile_stackPile {st : State} {c : Card} {b₀ b'' : Base} {
     rw [if_neg hsc, if_neg hsc]
 
 /-- A successful `reveal` preserves another card's unlockedness (when
-that card is a run top — the π-induction's `c`): the reveal steps one
+that card is visible — the π-induction's `c`): the reveal steps one
 pile's boundary depth and seats the old boundary card; `c`'s seat
 survives (the landing base `hiddenBase a` is free, and `c` occupies
 its own), and for the boundary search to newly find `c`'s parent, the
@@ -1431,24 +1415,19 @@ the reveal's own attach targets precisely that base and demands it
 free, while `c` sits there.  The reveal case of the crux's
 π-induction applies its IH at the reveal successor, where this is the
 lockedness side condition. -/
-theorem reveal_notLocked {st s₂ : State} {c x : Card} (hnotlock : st.isLocked c = false)
-    (htopn : st.board.topOf (Sum.inr c) = none)
-    (hmr : st.apply (Move.reveal x) = some s₂) : s₂.isLocked c = false := by
+theorem reveal_notLocked {st s₂ : State} {c : Card} {a : Anchor} (hwf : st.WF)
+    (hvis : st.isVis c = true) (hnotlock : st.isLocked c = false)
+    (hmr : st.apply (Move.reveal a) = some s₂) : s₂.isLocked c = false := by
   rw [apply_reveal_iff] at hmr
-  obtain ⟨htopx, r, a, bd, hbx, hpile, hatt, hs₂⟩ := hmr
-  -- c is not the revealed boundary (x sits on r; nothing sits on c)
+  obtain ⟨r, bd, htoph, hbare, hatt, hs₂⟩ := hmr
+  -- c is visible, the boundary is hidden: c ≠ r
+  have hgt : (st.hidden a).getLast? = some r := htoph
   have hcr : c ≠ r := by
     intro hce
-    rw [← hce] at hbx
-    have hX : st.board.topOf (Sum.inr c) = some x :=
-      (Board.bottomOf_eq st.board x (Sum.inr c)).mp hbx
-    rw [htopn] at hX
-    exact absurd hX (by simp)
+    rw [← hce] at hgt
+    exact hwf.vis_not_hidden c hvis a (mem_of_getLast hgt)
   -- c's seat survives the reveal's attach
   have hb : bd.bottomOf c = st.board.bottomOf c := bottomOf_attach_ne hatt hcr
-  -- the old boundary of the stepped pile
-  have hgt : (st.hidden a).getLast? = some r :=
-    of_decide_eq_true ((findFirst_mem _ _ _ hpile).2)
   rw [hs₂]
   simp only [State.isLocked]
   rw [hb]
@@ -1467,22 +1446,15 @@ theorem reveal_notLocked {st s₂ : State} {c x : Card} (hnotlock : st.isLocked 
             | some a'' =>
                 rw [hp] at h
                 simp at h
-          -- r ≠ d (else the reveal's trigger x shares d's seat with c,
-          -- making the trigger c itself — locked)
+          -- r ≠ d (else c would sit on the boundary — the reveal's own
+          -- bare guard excludes it)
           have hrd : r ≠ d := by
             intro hde
-            rw [hde] at hbx hpile
-            have hx : st.board.topOf (Sum.inr d) = some x :=
-              (Board.bottomOf_eq st.board x (Sum.inr d)).mp hbx
-            have hc : st.board.topOf (Sum.inr d) = some c :=
-              (Board.bottomOf_eq st.board c (Sum.inr d)).mp hb₀
-            have hxc : x = c := Option.some.inj (hx.symm.trans hc)
-            rw [hxc] at hbx
-            have hlk : st.isLocked c = true := by
-              simp only [State.isLocked, hbx]
-              exact decide_eq_true (by rw [hpile]; simp)
-            rw [hlk] at hnotlock
-            exact Bool.noConfusion hnotlock
+            rw [← hde] at hb₀
+            have hc : st.board.topOf (Sum.inr r) = some c :=
+              (Board.bottomOf_eq st.board c (Sum.inr r)).mp hb₀
+            rw [hbare] at hc
+            exact absurd hc (by simp)
           -- the new search still misses d at every pile
           have hkey : ({ st with
               board := bd,
@@ -1623,21 +1595,17 @@ theorem lockedness_pilePile {st s₂ : State} {c x : Card} {b'' : Base}
 
 /-- The reveal's seat half (the lockedness half is
 `reveal_notLocked`): `c`'s seat survives the boundary card's attach —
-if the boundary `r` were `c`, the trigger `x` would sit on `c`,
-excluded by `c`'s top-freeness (the stack's own guard). -/
-theorem bottomOf_of_reveal {st s₂ : State} {c x : Card}
-    (htopn : st.board.topOf (Sum.inr c) = none)
-    (hmr : st.apply (Move.reveal x) = some s₂) :
+the boundary is hidden, `c` is visible, so they differ. -/
+theorem bottomOf_of_reveal {st s₂ : State} {c : Card} {a : Anchor} (hwf : st.WF)
+    (hvis : st.isVis c = true)
+    (hmr : st.apply (Move.reveal a) = some s₂) :
     s₂.board.bottomOf c = st.board.bottomOf c := by
   rw [apply_reveal_iff] at hmr
-  obtain ⟨_, r, a, bd, hbx, _, hatt, rfl⟩ := hmr
+  obtain ⟨r, bd, htoph, hbare, hatt, rfl⟩ := hmr
   have hcr : c ≠ r := by
     intro hce
-    rw [← hce] at hbx
-    have hX : st.board.topOf (Sum.inr c) = some x :=
-      (Board.bottomOf_eq st.board x (Sum.inr c)).mp hbx
-    rw [htopn] at hX
-    exact absurd hX (by simp)
+    rw [← hce] at htoph
+    exact hwf.vis_not_hidden c hvis a (mem_of_getLast htoph)
   exact bottomOf_attach_ne hatt hcr
 
 /-! ### The first-move steps (the π-induction's square cases)
@@ -1700,18 +1668,18 @@ theorem solvable_of_pileStack_step_draw {st : State} {c : Card} {b₀ : Base} {s
 
 /-- The reveal step: replay the reveal from the stack successor. -/
 theorem solvable_of_pileStack_step_reveal {st : State} {c : Card} (hwf : st.WF)
-    (hnotlock : st.isLocked c = false) {x : Card} {b₀ : Base} {s₁ s₂ : State}
+    {a : Anchor} {b₀ : Base} {s₁ s₂ : State}
     (hbot : st.board.bottomOf c = some b₀)
     (hm : st.apply (Move.pileStack c) = some s₁)
-    (hmr : st.apply (Move.reveal x) = some s₂)
+    (hmr : st.apply (Move.reveal a) = some s₂)
     (ih : ∀ t, s₂.apply (Move.pileStack c) = some t → t.solvableFrom) :
     s₁.solvableFrom := by
   have hmo := hm
   rw [apply_pileStack_iff] at hmo
   obtain ⟨_, _, _, hrk, _⟩ := hmo
-  obtain ⟨t, hL, hR⟩ := pileStack_comm_reveal hwf hnotlock hbot hrk hm hmr
+  obtain ⟨t, hL, hR⟩ := pileStack_comm_reveal hwf hbot hrk hm hmr
   obtain ⟨win, w, hwrun, hwin⟩ := ih t hR
-  refine ⟨Move.reveal x :: win, w, ?_, hwin⟩
+  refine ⟨Move.reveal a :: win, w, ?_, hwin⟩
   simp only [State.run, hL]
   exact hwrun
 
@@ -1935,12 +1903,16 @@ private theorem solvable_of_pileStack_aux : ∀ (n : Nat) (st : State) (c : Card
                     intro t hR
                     exact ih s₂ c b₀ t hwf₂ (hlk.trans hnotlock)
                       (hb2.trans hbot) hR rest hlenr hep' w hrest hwin
-                | reveal x =>
+                | reveal a =>
+                    have hvis : st.isVis c = true := by
+                      show (st.board.bottomOf c).isSome = true
+                      rw [hbot]
+                      rfl
                     have hlock₂ : s₂.isLocked c = false :=
-                      reveal_notLocked hnotlock htopn hm2
+                      reveal_notLocked hwf hvis hnotlock hm2
                     have hb2 : s₂.board.bottomOf c = some b₀ :=
-                      (bottomOf_of_reveal htopn hm2).trans hbot
-                    refine solvable_of_pileStack_step_reveal hwf hnotlock hbot hm hm2 ?_
+                      (bottomOf_of_reveal hwf hvis hm2).trans hbot
+                    refine solvable_of_pileStack_step_reveal hwf hbot hm hm2 ?_
                     intro t hR
                     exact ih s₂ c b₀ t hwf₂ hlock₂ hb2 hR rest hlenr hep' w hrest hwin
                 | deckStack x =>
@@ -2086,7 +2058,7 @@ private theorem rung_pass_aux {c : Card} {R : Nat} (hrk : c.rank.toIdx = R) :
           | reveal _ =>
               have hmr := hm
               rw [apply_reveal_iff] at hmr
-              obtain ⟨_, _, _, _, _, _, _, hsr⟩ := hmr
+              obtain ⟨r, bd, htoph, hbare, hatt, hsr⟩ := hmr
               have hle₂ : s₂.heights c.suit ≤ R := by rw [hsr]; exact hle
               have hc₂ : c ∉ s₂.stock.cards := by rw [hsr]; exact hc
               obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
@@ -2385,55 +2357,51 @@ theorem excursionSim_step {x : Card} {b : Base} {σ τ : State} (hwf : σ.WF)
       refine ⟨hdeal, hdpt, ?_, hds, hhx, fun s hs => hho s hs, htopb, hbrw, htopx⟩
       show σ.stock.dealOnce σ.drawStep = τ.stock.dealOnce τ.drawStep
       rw [hstock, hds]
-  | reveal c =>
-      have hcx : c ≠ x := by
-        have h1 : decide (c = x) = false := hseats
-        exact of_decide_eq_false h1
+  | reveal a =>
       rw [apply_reveal_iff] at h
-      obtain ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩ := h
+      obtain ⟨r, bd, htoph, hbare, hatt, rfl⟩ := h
       -- the deal/depths-blind views agree on the τ side
-      have hpileτ : τ.pileOfTopHidden r = some a := by
-        rw [pileOfTopHidden_congr hdeal.symm hdpt.symm r]
-        exact hpile
+      have hth : σ.topHidden a = some r := htoph
+      have htopτ : τ.topHidden a = some r := by
+        rw [topHidden_congr hdeal.symm hdpt.symm a]
+        exact htoph
       have hhbτ : τ.hiddenBase a = σ.hiddenBase a :=
         hiddenBase_congr hdeal.symm hdpt.symm a
-      have hth : σ.topHidden a = some r :=
-        of_decide_eq_true (findFirst_mem _ _ _ hpile).2
       have hrmem : r ∈ σ.hidden a := mem_of_getLast hth
       have hrne : r ≠ x := by
         intro hcon
         rw [hcon] at hrmem
         exact hwf.vis_not_hidden x hvisx a hrmem
       -- τ's guards
-      have hinr : (Sum.inr c : Base) ≠ b := by
+      have hinr : (Sum.inr r : Base) ≠ b := by
         intro hcon
         rw [← hcon] at htopb
-        rw [htop] at htopb
+        rw [hbare] at htopb
         exact absurd htopb (by simp)
-      have htopτ : τ.board.topOf (Sum.inr c) = none := by
+      have hbareτ : τ.board.topOf (Sum.inr r) = none := by
         rw [htopeq _ hinr]
-        exact htop
-      have hbotτ : τ.board.bottomOf c = some (Sum.inr r) := by
-        rw [hboteq c hcx]
-        exact hbot
-      obtain ⟨htopb'', hbotr⟩ := (Board.attach_eq_some_iff _ _ _).mp (by rw [hatt]; simp)
+        exact hbare
+      have hbotr : σ.board.bottomOf r = none :=
+        ((Board.attach_eq_some_iff _ _ _).mp (by rw [hatt]; simp)).2
+      have hbotrτ : τ.board.bottomOf r = none := by
+        rw [hboteq r hrne]
+        exact hbotr
       have hbne : σ.hiddenBase a ≠ b := by
         intro hcon
+        have htopb'' : σ.board.topOf (σ.hiddenBase a) = none :=
+          ((Board.attach_eq_some_iff _ _ _).mp (by rw [hatt]; simp)).1
         rw [hcon] at htopb''
         rw [htopb] at htopb''
         exact absurd htopb'' (by simp)
       have hbasein : σ.hiddenBase a ≠ Sum.inr x := by
         intro hcon
         exact hwf.vis_not_hidden x hvisx a (hidden_mem_of_hiddenBase hth hcon)
-      have htoph : τ.board.topOf (σ.hiddenBase a) = none := by
+      have htophτ : τ.board.topOf (σ.hiddenBase a) = none := by
         rw [htopeq _ hbne]
-        exact htopb''
-      have hbotrτ : τ.board.bottomOf r = none := by
-        rw [hboteq r hrne]
-        exact hbotr
+        exact ((Board.attach_eq_some_iff _ _ _).mp (by rw [hatt]; simp)).1
       obtain ⟨bdτ, hattτ⟩ : ∃ bdτ, τ.board.attach (σ.hiddenBase a) r = some bdτ := by
         have hne : τ.board.attach (σ.hiddenBase a) r ≠ none :=
-          (Board.attach_eq_some_iff _ _ _).mpr ⟨htoph, hbotrτ⟩
+          (Board.attach_eq_some_iff _ _ _).mpr ⟨htophτ, hbotrτ⟩
         cases hh : τ.board.attach (σ.hiddenBase a) r with
         | none => rw [hh] at hne; simp at hne
         | some bdτ => exact ⟨bdτ, rfl⟩
@@ -2444,7 +2412,7 @@ theorem excursionSim_step {x : Card} {b : Base} {σ τ : State} (hwf : σ.WF)
         board := bdτ,
         depths := fun a' => if a' = a then τ.depths a - 1 else τ.depths a'}, ?_, ?_⟩
       · rw [apply_reveal_iff]
-        exact ⟨htopτ, r, a, bdτ, hbotτ, hpileτ, hattτ', rfl⟩
+        exact ⟨r, bdτ, htopτ, hbareτ, hattτ', rfl⟩
       · refine ⟨hdeal, ?_, hstock, hds, hhx, fun s hs => hho s hs, ?_, ?_, ?_⟩
         · show (fun a' => if a' = a then σ.depths a - 1 else σ.depths a') =
               (fun a' => if a' = a then τ.depths a - 1 else τ.depths a')
@@ -3265,7 +3233,7 @@ probed evals 17–20) is NOT move-only; `parkSim_step` carries it
 separately, and `parkSim_run` carries it per trace state. -/
 def Move.parkBlind (c y : Card) : Move → Bool
   | .draw => true
-  | .reveal z => decide (z ≠ c.flipSuit)
+  | .reveal _ => true
   | .deckPile _ b'' => decide (b'' ≠ Sum.inr c) && decide (b'' ≠ Sum.inr c.flipSuit)
   | .deckStack _ => true
   | .pileStack z => decide (z ≠ y) && decide (z ≠ c.flipSuit)
@@ -3273,11 +3241,6 @@ def Move.parkBlind (c y : Card) : Move → Bool
   | .pilePile z b'' =>
       decide (z ≠ y) && decide (z ≠ c.flipSuit) &&
         decide (b'' ≠ Sum.inr c) && decide (b'' ≠ Sum.inr c.flipSuit)
-
-theorem parkBlind_reveal {c y z : Card}
-    (h : (Move.reveal z).parkBlind c y = true) : z ≠ c.flipSuit := by
-  have h1 : (decide (z ≠ c.flipSuit)) = true := h
-  exact of_decide_eq_true h1
 
 theorem parkBlind_pileStack {c y z : Card}
     (h : (Move.pileStack z).parkBlind c y = true) : z ≠ y ∧ z ≠ c.flipSuit := by
@@ -3356,32 +3319,15 @@ theorem parkSim_step {c y : Card} {σ τ : State} (hwf : σ.WF)
       · intro b hbc hbt
         show σ.board.topOf b = {τ with stock := τ.stock.dealOnce τ.drawStep}.board.topOf b
         exact hoff b hbc hbt
-  | reveal z =>
-      have hzt : z ≠ c.flipSuit := parkBlind_reveal hblind
+  | reveal a =>
       rw [apply_reveal_iff] at h
-      obtain ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩ := h
-      have hzc : z ≠ c := by
-        intro hcon; rw [hcon, hσc] at htop; exact absurd htop (by simp)
-      have hzy : z ≠ y := by
-        intro hcon
-        rw [hcon] at hbot
-        have hcr : c = r :=
-          (Sum.inr.inj (Option.some.inj (hbot.symm.trans hboty))).symm
-        rw [← hcr] at hpile
-        have hth : σ.topHidden a = some c := of_decide_eq_true (findFirst_mem _ _ _ hpile).2
-        exact hwf.vis_not_hidden c hvisc a (mem_of_getLast hth)
-      have htopτ : τ.board.topOf (Sum.inr z) = none := by
-        rw [← hoff _ (fun hcon => hzc (Sum.inr.inj hcon))
-          (fun hcon => hzt (Sum.inr.inj hcon))]
-        exact htop
-      have hbotτ : τ.board.bottomOf z = some (Sum.inr r) := by
-        rw [← hbotc z hzy]; exact hbot
-      have hpileτ : τ.pileOfTopHidden r = some a := by
-        rw [pileOfTopHidden_congr hdeal.symm hdpt.symm r]
-        exact hpile
+      obtain ⟨r, bd, htoph, hbare, hatt, rfl⟩ := h
       have hhbτ : τ.hiddenBase a = σ.hiddenBase a :=
         hiddenBase_congr hdeal.symm hdpt.symm a
-      have hth : σ.topHidden a = some r := of_decide_eq_true (findFirst_mem _ _ _ hpile).2
+      have hth : σ.topHidden a = some r := htoph
+      have htopτ : τ.topHidden a = some r := by
+        rw [topHidden_congr hdeal.symm hdpt.symm a]
+        exact htoph
       have hrmem : r ∈ σ.hidden a := mem_of_getLast hth
       have hry : r ≠ y := by
         intro hcon; rw [hcon] at hrmem
@@ -3403,6 +3349,10 @@ theorem parkSim_step {c y : Card} {σ τ : State} (hwf : σ.WF)
       have htopaτ : τ.board.topOf (σ.hiddenBase a) = none := by
         rw [← hoff _ hbhc hbht]
         exact hgu.1
+      have hbareτ : τ.board.topOf (Sum.inr r) = none := by
+        rw [← hoff _ (fun hcon => hrc (Sum.inr.inj hcon).symm)
+          (fun hcon => hrt (Sum.inr.inj hcon).symm)]
+        exact hbare
       have hbotrτ : τ.board.bottomOf r = none := by
         rw [← hbotc r hry]
         exact hgu.2
@@ -3416,7 +3366,7 @@ theorem parkSim_step {c y : Card} {σ τ : State} (hwf : σ.WF)
         board := bdτ,
         depths := fun a' => if a' = a then τ.depths a - 1 else τ.depths a'}, ?_, ?_⟩
       · rw [apply_reveal_iff]
-        refine ⟨htopτ, r, a, bdτ, hbotτ, hpileτ, ?_, rfl⟩
+        refine ⟨r, bdτ, htopτ, hbareτ, ?_, rfl⟩
         rw [hhbτ]
         exact hattτ
       · refine ⟨hdeal, ?_, ?_, hstock, hds, ?_, ?_, ?_, ?_, ?_,

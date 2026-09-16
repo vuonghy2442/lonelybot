@@ -17,56 +17,43 @@ verdict is decidable.
 increases it. -/
 def State.totalDepth (st : State) : Nat := (Anchor.all.map st.depths).sum
 
-theorem apply_reveal_totalDepth_lt {st st' : State} {c : Card}
-    (h : st.apply (Move.reveal c) = some st') : st'.totalDepth < st.totalDepth := by
+theorem apply_reveal_totalDepth_lt {st st' : State} {a : Anchor}
+    (h : st.apply (Move.reveal a) = some st') : st'.totalDepth < st.totalDepth := by
   simp only [State.apply] at h
   simp only [State.applyReveal] at h
-  cases ht : st.board.topOf (Sum.inr c) with
-  | some _ =>
+  cases ht : st.topHidden a with
+  | none =>
     rw [ht] at h
     simp at h
-  | none =>
-    cases hb : st.board.bottomOf c with
-    | none =>
-      rw [ht, hb] at h
+  | some r =>
+    rw [ht] at h
+    simp at h
+    cases htop : st.board.topOf (Sum.inr r) with
+    | some _ =>
+      rw [htop] at h
       simp at h
-    | some b =>
-      cases b with
-      | inl _ =>
-        rw [ht, hb] at h
+    | none =>
+      rw [htop] at h
+      simp at h
+      cases ha : st.board.attach (st.hiddenBase a) r with
+      | none =>
+        rw [ha] at h
         simp at h
-      | inr r =>
-        rw [ht, hb] at h
+      | some bd =>
+        rw [ha] at h
         simp at h
-        cases hp : st.pileOfTopHidden r with
-        | none =>
-          rw [hp] at h
-          simp at h
-        | some a =>
-          rw [hp] at h
-          simp at h
-          cases ha : st.board.attach (st.hiddenBase a) r with
-          | none =>
-            rw [ha] at h
-            simp at h
-          | some bd =>
-            rw [ha] at h
-            simp at h
-            subst h
-            have hta : st.topHidden a = some r := by
-              simp only [State.pileOfTopHidden] at hp
-              simpa using (findFirst_mem _ _ a hp).2
-            have hpos : 0 < st.depths a := by
-              simp only [State.topHidden, State.hidden] at hta
-              cases hdp : st.depths a with
-              | zero =>
-                rw [hdp] at hta
-                simp at hta
-              | succ n => omega
-            show (Anchor.all.map (fun a' => if a' = a then st.depths a - 1 else st.depths a')).sum
-              < (Anchor.all.map st.depths).sum
-            cases a <;> simp [Anchor.all, List.map_cons, List.map_nil,
-              List.sum_cons, List.sum_nil] <;> omega
+        subst h
+        have hpos : 0 < st.depths a := by
+          simp only [State.topHidden, State.hidden] at ht
+          cases hdp : st.depths a with
+          | zero =>
+            rw [hdp] at ht
+            simp at ht
+          | succ n => omega
+        show (Anchor.all.map (fun a' => if a' = a then st.depths a - 1 else st.depths a')).sum
+          < (Anchor.all.map st.depths).sum
+        cases a <;> simp [Anchor.all, List.map_cons, List.map_nil,
+          List.sum_cons, List.sum_nil] <;> omega
 
 theorem apply_totalDepth_le {st st' : State} {m : Move}
     (h : st.apply m = some st') : st'.totalDepth ≤ st.totalDepth := by
@@ -210,42 +197,32 @@ theorem apply_stockLen_le {st st' : State} {m : Move}
     simp only [State.apply, State.applyDraw, Option.some.injEq] at h
     subst h
     exact Nat.le_of_eq (by rw [Cycle.dealOnce_cards])
-  | reveal c =>
+  | reveal a =>
     simp only [State.apply] at h
     simp only [State.applyReveal] at h
-    cases ht : st.board.topOf (Sum.inr c) with
-    | some _ =>
+    cases ht : st.topHidden a with
+    | none =>
       rw [ht] at h
       simp at h
-    | none =>
-      cases hb : st.board.bottomOf c with
-      | none =>
-        rw [ht, hb] at h
+    | some r =>
+      rw [ht] at h
+      simp at h
+      cases htop : st.board.topOf (Sum.inr r) with
+      | some _ =>
+        rw [htop] at h
         simp at h
-      | some b =>
-        cases b with
-        | inl _ =>
-          rw [ht, hb] at h
+      | none =>
+        rw [htop] at h
+        simp at h
+        cases ha : st.board.attach (st.hiddenBase a) r with
+        | none =>
+          rw [ha] at h
           simp at h
-        | inr r =>
-          rw [ht, hb] at h
+        | some bd =>
+          rw [ha] at h
           simp at h
-          cases hp : st.pileOfTopHidden r with
-          | none =>
-            rw [hp] at h
-            simp at h
-          | some a =>
-            rw [hp] at h
-            simp at h
-            cases ha : st.board.attach (st.hiddenBase a) r with
-            | none =>
-              rw [ha] at h
-              simp at h
-            | some bd =>
-              rw [ha] at h
-              simp at h
-              subst h
-              exact Nat.le_of_eq rfl
+          subst h
+          exact Nat.le_of_eq rfl
   | deckPile c b =>
     exact Nat.le_of_lt (apply_deckPile_shortens h)
   | deckStack c =>
@@ -344,6 +321,28 @@ theorem run_stockLen_le : ∀ (play : List Move) (st st' : State),
           have h2 := apply_stockLen_le h₀
           omega
 
+/-- Running a play preserves WF (the per-move `apply_wf`, packaged
+once for consumers that reason at run level). -/
+theorem run_wf : ∀ (play : List Move) (st st' : State),
+    st.run play = some st' → st.WF → st'.WF := by
+  intro play
+  induction play with
+  | nil =>
+      intro st st' h hwf
+      simp only [State.run, Option.some.injEq] at h
+      subst h
+      exact hwf
+  | cons m ms ih =>
+      intro st st' h hwf
+      simp only [State.run] at h
+      cases h₀ : st.apply m with
+      | none =>
+          rw [h₀] at h
+          simp at h
+      | some s₀ =>
+          rw [h₀] at h
+          exact ih s₀ st' h (apply_wf hwf m s₀ h₀)
+
 /-! ### The irreversibility trio (relocated from Theorems.lean)
 
 The commitment moves are irreversible: `reveal` strictly decreases the
@@ -354,8 +353,8 @@ next to the run-level monotonicity lemmas they consume, on the safe
 side of the import edge. -/
 
 /-- Depths only decrease along plays — a reveal never undoes. -/
-theorem irreversible_reveal {st : State} {c : Card} {st₁ : State}
-    (h : st.apply (Move.reveal c) = some st₁) : irreversibleAt st (Move.reveal c) := by
+theorem irreversible_reveal {st : State} {a : Anchor} {st₁ : State}
+    (h : st.apply (Move.reveal a) = some st₁) : irreversibleAt st (Move.reveal a) := by
   intro st₁' play h₁ hrun
   have he : st₁' = st₁ := Option.some.inj (h₁.symm.trans h)
   rw [he] at hrun
@@ -914,9 +913,9 @@ theorem traceOK_step {ST s s' : State} (m : Move) (hok : traceOK ST s)
       show (s.stock.dealOnce s.drawStep).cards = ST.stock.cards.filter p
       rw [Cycle.dealOnce_cards]
       exact hp
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at h
-      obtain ⟨_, _, _, _, _, _, _, hst⟩ := h
+      obtain ⟨_, _, _, _, _, hst⟩ := h
       refine ⟨?_, ?_, hwf', ?_⟩
       · rw [hst]; exact hdeal
       · rw [hst]; exact hstep

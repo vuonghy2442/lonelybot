@@ -120,10 +120,11 @@ def State.relabelBy (r : Relabel) (st : State) : State :=
     heights := fun s => st.heights (r.suitInv s),
     stock := { cards := st.stock.cards.map r.card, cursor := st.stock.cursor } }
 
-/-- Relabel a move. -/
+/-- Relabel a move.  The reveal is anchor-indexed and anchors are
+relabel-invariant (the deal's pile structure conjugates cardwise). -/
 def Move.relabel (r : Relabel) : Move → Move
   | .draw => .draw
-  | .reveal c => .reveal (r.card c)
+  | .reveal a => .reveal a
   | .deckPile c b => .deckPile (r.card c) (r.onBase b)
   | .deckStack c => .deckStack (r.card c)
   | .pileStack c => .pileStack (r.card c)
@@ -584,37 +585,30 @@ theorem apply_relabel (r : Relabel) (m : Move) (st : State) :
       rw [hstock, relabelCycle_dealOnce r st.stock st.drawStep]
       exact congrArg some (relabelBy_with r st st.board st.heights st.depths
         (st.stock.dealOnce st.drawStep)).symm
-  | reveal c =>
-      show (st.relabelBy r).apply (Move.reveal (r.card c))
-        = (st.apply (Move.reveal c)).map (State.relabelBy r)
-      cases hst : st.apply (Move.reveal c) with
+  | reveal a =>
+      show (st.relabelBy r).apply (Move.reveal a)
+        = (st.apply (Move.reveal a)).map (State.relabelBy r)
+      cases hst : st.apply (Move.reveal a) with
       | none =>
-          show (st.relabelBy r).apply (Move.reveal (r.card c)) = none
-          cases hR : (st.relabelBy r).apply (Move.reveal (r.card c)) with
+          show (st.relabelBy r).apply (Move.reveal a) = none
+          cases hR : (st.relabelBy r).apply (Move.reveal a) with
           | none => rfl
           | some st'' =>
               exfalso
               rw [apply_reveal_iff] at hR
-              obtain ⟨htR, r', a, bdR, hbotR, hpileR, hattR, -⟩ := hR
-              have htop : st.board.topOf (Sum.inr c) = none := by
-                rw [relabelBy_topOf_inr r st c] at htR
-                exact Option.map_eq_none_iff.mp htR
-              have hbot : st.board.bottomOf c = some (Sum.inr (r.cardInv r')) := by
-                rw [relabelBy_bottomOf_card r st c] at hbotR
-                obtain ⟨b₀, hx, hx'⟩ := Option.map_eq_some_iff.mp hbotR
-                cases b₀ with
-                | inl aa =>
-                    have hx'' : Sum.inl aa = Sum.inr r' := hx'
-                    exact absurd hx'' (by simp)
-                | inr y =>
-                    have hcy : r.card y = r' := Sum.inr.inj hx'
-                    have hyc : y = r.cardInv r' :=
-                      Relabel.card_inj r (hcy.trans (Relabel.card_cardInv r r').symm)
-                    rw [hyc] at hx
-                    exact hx
-              have hpile : st.pileOfTopHidden (r.cardInv r') = some a := by
-                rw [relabelBy_pileOfTopHidden r st r'] at hpileR
-                exact hpileR
+              obtain ⟨r', bdR, htopR, hbareR, hattR, -⟩ := hR
+              have htop : st.topHidden a = some (r.cardInv r') := by
+                rw [relabelBy_topHidden r st a] at htopR
+                obtain ⟨x, hx, hx'⟩ := Option.map_eq_some_iff.mp htopR
+                have hxc : x = r.cardInv r' :=
+                  Relabel.card_inj r (hx'.trans (Relabel.card_cardInv r r').symm)
+                rw [hxc] at hx
+                exact hx
+              have hbare : st.board.topOf (Sum.inr (r.cardInv r')) = none := by
+                have hEq := relabelBy_topOf_inr r st (r.cardInv r')
+                rw [Relabel.card_cardInv r r'] at hEq
+                rw [hEq] at hbareR
+                exact Option.map_eq_none_iff.mp hbareR
               rw [relabelBy_hiddenBase r st a] at hattR
               obtain ⟨htopR2, hbotR2⟩ := (Board.attach_eq_some_iff _ _ _).mp (by rw [hattR]; simp)
               have htop2 : st.board.topOf (st.hiddenBase a) = none := by
@@ -629,29 +623,21 @@ theorem apply_relabel (r : Relabel) (m : Move) (st : State) :
               | none => rw [hS] at hneS; simp at hneS
               | some bd₀ =>
                   exact absurd (apply_reveal_iff.mpr
-                    ⟨htop, r.cardInv r', a, bd₀, hbot, hpile, hS, rfl⟩) (by rw [hst]; simp)
+                    ⟨r.cardInv r', bd₀, htop, hbare, hS, rfl⟩) (by rw [hst]; simp)
       | some st' =>
           rw [apply_reveal_iff] at hst
-          obtain ⟨htop, r', a, bd, hbot, hpile, hatt, hst'⟩ := hst
-          show (st.relabelBy r).apply (Move.reveal (r.card c)) = some (st'.relabelBy r)
+          obtain ⟨r₀, bd, htop, hbare, hatt, hst'⟩ := hst
+          show (st.relabelBy r).apply (Move.reveal a) = some (st'.relabelBy r)
           rw [apply_reveal_iff]
-          have htopR : (st.relabelBy r).board.topOf (Sum.inr (r.card c)) = none := by
-            rw [relabelBy_topOf_inr r st c, htop]
+          refine ⟨r.card r₀, relabelBoard r bd, ?_, ?_, ?_, ?_⟩
+          · rw [relabelBy_topHidden r st a, htop, Option.map_some]
+          · rw [relabelBy_topOf_inr r st r₀, hbare]
             rfl
-          have hbotR : (st.relabelBy r).board.bottomOf (r.card c)
-              = some (Sum.inr (r.card r')) := by
-            rw [relabelBy_bottomOf_card r st c, hbot, Option.map_some]
-            rfl
-          have hpileR : (st.relabelBy r).pileOfTopHidden (r.card r') = some a := by
-            rw [relabelBy_pileOfTopHidden r st (r.card r'), Relabel.cardInv_card r r', hpile]
-          have hattR : (st.relabelBy r).board.attach ((st.relabelBy r).hiddenBase a) (r.card r')
-              = some (relabelBoard r bd) := by
-            rw [relabelBy_hiddenBase r st a]
+          · rw [relabelBy_hiddenBase r st a]
             exact relabelBoard_attach r st.board hatt
-          refine ⟨htopR, r.card r', a, relabelBoard r bd, hbotR, hpileR, hattR, ?_⟩
-          rw [hst']
-          exact relabelBy_with r st bd st.heights
-            (fun a' => if a' = a then st.depths a - 1 else st.depths a') st.stock
+          · rw [hst']
+            exact relabelBy_with r st bd st.heights
+              (fun a' => if a' = a then st.depths a - 1 else st.depths a') st.stock
   | deckPile c b =>
       show (st.relabelBy r).apply (Move.deckPile (r.card c) (r.onBase b))
         = (st.apply (Move.deckPile c b)).map (State.relabelBy r)
@@ -1079,10 +1065,10 @@ suit's count, which is the refuted unconditional conjugation
 set. -/
 
 /-- The local twin swap on moves: card arguments and card bases are
-re-named. -/
+re-named (the reveal is anchor-indexed and stays put). -/
 def Move.swapTwin (t : Card) : Move → Move
   | .draw => .draw
-  | .reveal c => .reveal (Card.swapTwin t c)
+  | .reveal a => .reveal a
   | .deckPile c b => .deckPile (Card.swapTwin t c) (b.swapTwin t)
   | .deckStack c => .deckStack (Card.swapTwin t c)
   | .pileStack c => .pileStack (Card.swapTwin t c)

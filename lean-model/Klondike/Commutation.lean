@@ -43,29 +43,29 @@ reveal/pilePile pairs), and the stock-blind none-forms (pileStack,
 stackPile).  The `some`-forms carry the successor along with the
 replaced fields. -/
 
-theorem reveal_blind_some {st : State} {c : Card} {cy : Cycle Card} {hs : Suit → Nat}
-    {s₁ : State} (h : st.apply (Move.reveal c) = some s₁) :
-    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal c)
+theorem reveal_blind_some {st : State} {a : Anchor} {cy : Cycle Card} {hs : Suit → Nat}
+    {s₁ : State} (h : st.apply (Move.reveal a) = some s₁) :
+    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal a)
       = some { s₁ with stock := cy, heights := hs } := by
   rw [apply_reveal_iff] at h
-  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := h
+  obtain ⟨r, bd, htop, hbare, hatt, hst₁⟩ := h
   rw [hst₁]
   rw [apply_reveal_iff]
-  exact ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩
+  exact ⟨r, bd, htop, hbare, hatt, rfl⟩
 
-theorem reveal_blind_none {st : State} {c : Card} {cy : Cycle Card} {hs : Suit → Nat}
-    (h : st.apply (Move.reveal c) = none) :
-    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal c) = none := by
-  cases hr : ({ st with stock := cy, heights := hs } : State).apply (Move.reveal c) with
+theorem reveal_blind_none {st : State} {a : Anchor} {cy : Cycle Card} {hs : Suit → Nat}
+    (h : st.apply (Move.reveal a) = none) :
+    ({ st with stock := cy, heights := hs } : State).apply (Move.reveal a) = none := by
+  cases hr : ({ st with stock := cy, heights := hs } : State).apply (Move.reveal a) with
   | none => rfl
   | some _ =>
       exfalso
       rw [apply_reveal_iff] at hr
-      obtain ⟨htop, r, a, bd, hbot, hpile, hatt, _⟩ := hr
-      have hcontra : st.apply (Move.reveal c) = some { st with
+      obtain ⟨r, bd, htop, hbare, hatt, _⟩ := hr
+      have hcontra : st.apply (Move.reveal a) = some { st with
           board := bd,
           depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' } :=
-        apply_reveal_iff.mpr ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩
+        apply_reveal_iff.mpr ⟨r, bd, htop, hbare, hatt, rfl⟩
       exact absurd hcontra (by rw [h]; simp)
 
 theorem pilePile_blind_some {st : State} {c : Card} {b : Base} {cy : Cycle Card}
@@ -186,17 +186,17 @@ theorem draw_comm_gen (st : State) (m : Move)
   | none => exact hn hm
   | some s₁ => exact hs s₁ hm
 
-theorem draw_comm_reveal (st : State) (c : Card) :
-    (st.apply Move.draw >>= fun s => s.apply (Move.reveal c)) =
-    (st.apply (Move.reveal c) >>= fun s => s.apply Move.draw) := by
-  refine draw_comm_gen st (Move.reveal c) ?_ ?_
+theorem draw_comm_reveal (st : State) (a : Anchor) :
+    (st.apply Move.draw >>= fun s => s.apply (Move.reveal a)) =
+    (st.apply (Move.reveal a) >>= fun s => s.apply Move.draw) := by
+  refine draw_comm_gen st (Move.reveal a) ?_ ?_
   · exact reveal_blind_none
   · intro s₁ h
     rw [apply_reveal_iff] at h
-    obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := h
+    obtain ⟨r, bd, htop, hbare, hatt, hst₁⟩ := h
     rw [hst₁]
     rw [apply_reveal_iff]
-    exact ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩
+    exact ⟨r, bd, htop, hbare, hatt, rfl⟩
 
 theorem draw_comm_pileStack (st : State) (c : Card) :
     (st.apply Move.draw >>= fun s => s.apply (Move.pileStack c)) =
@@ -274,7 +274,7 @@ theorem commute_of_compsDisjoint (st : State) (m m' : Move)
               | none =>
                   show s₁.apply (Move.deckStack c') = none
                   rw [apply_reveal_iff] at hr
-                  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := hr
+                  obtain ⟨r, bd, htop, hbare, hatt, hst₁⟩ := hr
                   rw [hst₁]
                   exact deckStack_blind_none hd
               | some sd =>
@@ -282,7 +282,7 @@ theorem commute_of_compsDisjoint (st : State) (m m' : Move)
                   have hrw := hr
                   have hdw := hd
                   rw [apply_reveal_iff] at hr
-                  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := hr
+                  obtain ⟨r, bd, htop, hbare, hatt, hst₁⟩ := hr
                   rw [apply_deckStack_iff] at hd
                   obtain ⟨hp, hrk, hsd⟩ := hd
                   rw [hst₁, hsd]
@@ -311,7 +311,7 @@ theorem commute_of_compsDisjoint (st : State) (m m' : Move)
               | some s₁ =>
                   show none = s₁.apply (Move.deckStack c)
                   rw [apply_reveal_iff] at hr
-                  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := hr
+                  obtain ⟨r, bd, htop, hbare, hatt, hst₁⟩ := hr
                   rw [hst₁]
                   exact (deckStack_blind_none hd).symm
           | some sd =>
@@ -327,7 +327,7 @@ theorem commute_of_compsDisjoint (st : State) (m m' : Move)
                   have hrw := hr
                   have hdw := hd
                   rw [apply_reveal_iff] at hr
-                  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst₁⟩ := hr
+                  obtain ⟨r, bd, htop, hbare, hatt, hst₁⟩ := hr
                   rw [apply_deckStack_iff] at hd
                   obtain ⟨hp, hrk, hsd⟩ := hd
                   rw [hst₁, hsd]
@@ -435,10 +435,10 @@ theorem commute_of_compsDisjoint (st : State) (m m' : Move)
 
 /-- The C-IND clean sector: draw·reveal always commutes.
 Instance of `commute_of_compsDisjoint`. -/
-theorem reveal_draw_comm (st : State) (c : Card) :
-    (st.apply (Move.reveal c) >>= fun s => s.apply Move.draw) =
-    (st.apply Move.draw >>= fun s => s.apply (Move.reveal c)) := by
-  refine commute_of_compsDisjoint st (Move.reveal c) Move.draw ?_
+theorem reveal_draw_comm (st : State) (a : Anchor) :
+    (st.apply (Move.reveal a) >>= fun s => s.apply Move.draw) =
+    (st.apply Move.draw >>= fun s => s.apply (Move.reveal a)) := by
+  refine commute_of_compsDisjoint st (Move.reveal a) Move.draw ?_
   intro x hx
   cases x with
   | tableau => simp [Move.comps]
@@ -507,9 +507,9 @@ theorem apply_nonConsuming_stock_invar {st st₁ : State} {m : Move}
     st₁.stock = st.stock := by
   cases m with
   | draw => exact absurd rfl hm
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at h
-      obtain ⟨-, r, a, bd, -, -, -, hst⟩ := h
+      obtain ⟨-, bd, -, -, -, hst⟩ := h
       rw [hst]
   | deckPile c b => exact absurd hc (by simp [Move.consumesStock])
   | deckStack c => exact absurd hc (by simp [Move.consumesStock])
@@ -552,13 +552,13 @@ theorem apply_nonConsuming_cursor_blind {st st' st₁ : State} {m : Move}
       show (st.stock.dealOnce st.drawStep).cards
           = (st'.stock.dealOnce st'.drawStep).cards
       rw [Cycle.dealOnce_cards, Cycle.dealOnce_cards, hd.2.2.2.2.1]
-  | reveal c =>
+  | reveal a =>
       have hblind := reveal_blind_some (cy := st'.stock) (hs := st.heights) h
       have hst'2 : { st with stock := st'.stock, heights := st.heights } = st' :=
         state_ext hd.1 hd.2.1 hd.2.2.1 hd.2.2.2.1 rfl hd.2.2.2.2.2
       rw [hst'2] at hblind
       rw [apply_reveal_iff] at h
-      obtain ⟨-, r, a, bd, -, -, -, hst⟩ := h
+      obtain ⟨-, bd, -, -, -, hst⟩ := h
       refine ⟨{ st₁ with stock := st'.stock, heights := st.heights }, hblind, ?_⟩
       rw [hst]
       exact ⟨rfl, rfl, rfl, rfl, hd.2.2.2.2.1, rfl⟩
@@ -682,16 +682,14 @@ theorem applyDrawStackTo_merge {st st' st₁ st₁' : State} {c : Card}
           · rw [if_neg hrk] at h₁'; exact absurd h₁' (by simp)
 
 /-- The bases and cards a move reads or writes (state-dependent — the
-run under a `pilePile`, the boundary under a `reveal`). -/
+run under a `pilePile`, the boundary's own seat and landing base under
+a `reveal`). -/
 def Move.touch (st : State) : Move → List Base × List Card
   | .draw => ([], [])
-  | .reveal c =>
-      (match st.board.bottomOf c with
-       | some (Sum.inr r) =>
-           (match st.pileOfTopHidden r with
-            | some a => [st.hiddenBase a]
-            | none => [Sum.inr r], [c, r])
-       | _ => ([], [c]))
+  | .reveal a =>
+      (match st.topHidden a with
+       | some r => ([st.hiddenBase a, Sum.inr r], [r])
+       | none => ([], []))
   | .deckPile c b => ([b], [c])
   | .deckStack c => ([], [c])
   | .pileStack c => ((st.board.bottomOf c).toList, [c])
@@ -932,255 +930,157 @@ to its own cards; the hidden-pile views read only deal and depths), and
 assemble the common successor fieldwise (the board via the edit
 commutations, the heights/depths via the update lemmas). -/
 
-theorem comm_reveal_deckPile {st : State} {c c' : Card} {b' : Base} {st₂ st₃ : State}
-    (hdisj : disjointTouch ((Move.reveal c).touch st) ((Move.deckPile c' b').touch st))
-    (h₁ : (st.apply (Move.reveal c) >>= fun s => s.apply (Move.deckPile c' b')) = some st₂)
-    (h₂ : (st.apply (Move.deckPile c' b') >>= fun s => s.apply (Move.reveal c)) = some st₃) :
+theorem comm_reveal_deckPile {st : State} {a : Anchor} {c' : Card} {b' : Base} {st₂ st₃ : State}
+    (hdisj : disjointTouch ((Move.reveal a).touch st) ((Move.deckPile c' b').touch st))
+    (h₁ : (st.apply (Move.reveal a) >>= fun s => s.apply (Move.deckPile c' b')) = some st₂)
+    (h₂ : (st.apply (Move.deckPile c' b') >>= fun s => s.apply (Move.reveal a)) = some st₃) :
     st₂ = st₃ := by
   obtain ⟨s₁, hR, hDP⟩ := Option.bind_eq_some_iff.mp h₁
   obtain ⟨s₃, hDP', hR'⟩ := Option.bind_eq_some_iff.mp h₂
   rw [apply_reveal_iff] at hR
-  obtain ⟨htop, r, a, bd₁, hbot, hpile, hatt, hs₁⟩ := hR
+  obtain ⟨r, bd₁, htop, hbare, hatt, hs₁⟩ := hR
   rw [apply_deckPile_iff] at hDP
   obtain ⟨hprev, hcp, bd', hatt', hs₂⟩ := hDP
   rw [apply_deckPile_iff] at hDP'
   obtain ⟨hprev', hcp', bd₁', hatt₁', hs₃⟩ := hDP'
   rw [apply_reveal_iff] at hR'
-  obtain ⟨htop', r', a', bd₂', hbot', hpile', hatt₂', hs₄⟩ := hR'
-  have hRt : (Move.reveal c).touch st = ([st.hiddenBase a], [c, r]) := by
-    simp only [Move.touch, hbot, hpile]
+  obtain ⟨r', bd₂', htop', hbare', hatt₂', hs₄⟩ := hR'
+  have hRt : (Move.reveal a).touch st = ([st.hiddenBase a, Sum.inr r], [r]) := by
+    simp only [Move.touch, htop]
   rw [hRt] at hdisj
-  have hD1 : ∀ b ∈ [st.hiddenBase a], b ∉ [b'] := hdisj.1
-  have hD2 : ∀ x ∈ [c, r], x ∉ [c'] := hdisj.2
+  have hD1 : ∀ b ∈ [st.hiddenBase a, Sum.inr r], b ∉ [b'] := hdisj.1
+  have hD2 : ∀ x ∈ [r], x ∉ [c'] := hdisj.2
   have hβ : st.hiddenBase a ≠ b' :=
     fun hcon => hD1 (st.hiddenBase a) (by simp) (by rw [hcon]; simp)
-  have hcne : c ≠ c' := fun hcon => hD2 c (by simp) (by rw [hcon]; simp)
-  have hrne : r ≠ c' := fun hcon => hD2 r (by simp) (by rw [hcon]; simp)
-  -- the deckPile attach preserves c's and c''s seats; reveal's view is board-blind
-  rw [hs₃] at hbot' hpile' hatt₂'
-  have hbr : bd₁'.bottomOf c = some (Sum.inr r') := hbot'
-  rw [bottomOf_attach_ne hatt₁' hcne, hbot] at hbr
-  have hrr : r' = r := Sum.inr.inj (Option.some.inj hbr.symm)
-  have hpl : st.pileOfTopHidden r' = some a' := hpile'
-  rw [hrr] at hpl
-  have haa : a' = a := Option.some.inj (hpl.symm.trans hpile)
+  -- the boundary card is the same in both orders (topHidden reads only
+  -- the deal and the depths, which the deckPile never writes)
+  rw [hs₃] at htop' hatt₂'
+  have hrr : r' = r := Option.some.inj (htop'.symm.trans htop)
+  rw [hrr] at hatt₂'
+  have hatt₂'' : bd₁'.attach (st.hiddenBase a) r = some bd₂' := hatt₂'
   rw [hs₁] at hatt'
   have hatt'₂ : bd₁.attach b' c' = some bd' := hatt'
-  rw [hrr, haa] at hatt₂'
-  have hatt₂'' : bd₁'.attach (st.hiddenBase a) r = some bd₂' := hatt₂'
   have hbd : bd' = bd₂' := Board.attach_attach_comm hβ hatt hatt'₂ hatt₁' hatt₂''
-  rw [hs₂, hs₁, hs₄, hs₃, haa, hbd]
+  rw [hs₂, hs₁, hs₄, hs₃, hbd]
 
-theorem comm_reveal_pileStack {st : State} {c c' : Card} {st₂ st₃ : State}
-    (hdisj : disjointTouch ((Move.reveal c).touch st) ((Move.pileStack c').touch st))
-    (h₁ : (st.apply (Move.reveal c) >>= fun s => s.apply (Move.pileStack c')) = some st₂)
-    (h₂ : (st.apply (Move.pileStack c') >>= fun s => s.apply (Move.reveal c)) = some st₃) :
+theorem comm_reveal_pileStack {st : State} {a : Anchor} {c' : Card} {st₂ st₃ : State}
+    (hdisj : disjointTouch ((Move.reveal a).touch st) ((Move.pileStack c').touch st))
+    (h₁ : (st.apply (Move.reveal a) >>= fun s => s.apply (Move.pileStack c')) = some st₂)
+    (h₂ : (st.apply (Move.pileStack c') >>= fun s => s.apply (Move.reveal a)) = some st₃) :
     st₂ = st₃ := by
   obtain ⟨s₁, hR, hPS⟩ := Option.bind_eq_some_iff.mp h₁
   obtain ⟨s₃, hPS', hR'⟩ := Option.bind_eq_some_iff.mp h₂
   rw [apply_reveal_iff] at hR
-  obtain ⟨htop, r, a, bd₁, hbot, hpile, hatt, hs₁⟩ := hR
+  obtain ⟨r, bd₁, htop, hbare, hatt, hs₁⟩ := hR
   rw [apply_pileStack_iff] at hPS
   obtain ⟨htop', b₀', hb', hrk', hs₂⟩ := hPS
   rw [apply_pileStack_iff] at hPS'
   obtain ⟨htop₂, b₀, hb, hrk, hs₃⟩ := hPS'
   rw [apply_reveal_iff] at hR'
-  obtain ⟨htop₃, r'', a'', bd₄, hbot₃, hpile₃, hatt₃, hs₄⟩ := hR'
-  have hRt : (Move.reveal c).touch st = ([st.hiddenBase a], [c, r]) := by
-    simp only [Move.touch, hbot, hpile]
+  obtain ⟨r', bd₄, htop', hbare', hatt₃, hs₄⟩ := hR'
+  have hRt : (Move.reveal a).touch st = ([st.hiddenBase a, Sum.inr r], [r]) := by
+    simp only [Move.touch, htop]
   have hPSt : (Move.pileStack c').touch st = ([b₀], [c']) := by
     simp only [Move.touch, hb, Option.toList_some]
   rw [hRt, hPSt] at hdisj
-  have hD1 : ∀ b ∈ [st.hiddenBase a], b ∉ [b₀] := hdisj.1
-  have hD2 : ∀ x ∈ [c, r], x ∉ [c'] := hdisj.2
+  have hD1 : ∀ b ∈ [st.hiddenBase a, Sum.inr r], b ∉ [b₀] := hdisj.1
+  have hD2 : ∀ x ∈ [r], x ∉ [c'] := hdisj.2
   have hβ : st.hiddenBase a ≠ b₀ :=
     fun hcon => hD1 (st.hiddenBase a) (by simp) (by rw [hcon]; simp)
-  have hcne : c ≠ c' := fun hcon => hD2 c (by simp) (by rw [hcon]; simp)
   have hrne : r ≠ c' := fun hcon => hD2 r (by simp) (by rw [hcon]; simp)
-  -- the detach preserves c's seat (c ≠ the detached card); reveal's view is board-blind
-  rw [hs₃] at hbot₃ hpile₃ hatt₃
-  have htb₀ : st.board.topOf b₀ = some c' := (Board.bottomOf_eq st.board c' b₀).mp hb
-  have hbr : (st.board.detach b₀).bottomOf c = some (Sum.inr r'') := hbot₃
-  rw [bottomOf_detach_ne htb₀ hcne, hbot] at hbr
-  have hrr : r'' = r := Sum.inr.inj (Option.some.inj hbr.symm)
-  have hpl : st.pileOfTopHidden r'' = some a'' := hpile₃
-  rw [hrr] at hpl
-  have haa : a'' = a := Option.some.inj (hpl.symm.trans hpile)
-  -- pileStack's detach base is the same in both orders
+  -- pileStack's detach base is the same in both orders (reveal's
+  -- attach preserves c''s seat since r ≠ c')
   rw [hs₁] at hb'
   have hb₂ : bd₁.bottomOf c' = some b₀' := hb'
   rw [bottomOf_attach_ne hatt (Ne.symm hrne), hb] at hb₂
   have hb₀e : b₀' = b₀ := (Option.some.inj hb₂).symm
-  rw [hrr, haa] at hatt₃
+  -- the boundary card is the same in both orders (pileStack never
+  -- writes the deal or the depths)
+  rw [hs₃] at htop' hatt₃
+  have hrr : r' = r := Option.some.inj (htop'.symm.trans htop)
+  rw [hrr] at hatt₃
   have hatt₃' : (st.board.detach b₀).attach (st.hiddenBase a) r = some bd₄ := hatt₃
-  rw [hs₂, hs₁, hs₄, hs₃, haa, hb₀e]
+  rw [hs₂, hs₁, hs₄, hs₃, hb₀e]
   refine state_ext rfl ?_ rfl rfl rfl rfl
   exact attach_detach_comm hβ hatt hatt₃'
 
-theorem comm_reveal_stackPile {st : State} {c c' : Card} {b' : Base} {st₂ st₃ : State}
-    (hdisj : disjointTouch ((Move.reveal c).touch st) ((Move.stackPile c' b').touch st))
-    (h₁ : (st.apply (Move.reveal c) >>= fun s => s.apply (Move.stackPile c' b')) = some st₂)
-    (h₂ : (st.apply (Move.stackPile c' b') >>= fun s => s.apply (Move.reveal c)) = some st₃) :
+theorem comm_reveal_stackPile {st : State} {a : Anchor} {c' : Card} {b' : Base} {st₂ st₃ : State}
+    (hdisj : disjointTouch ((Move.reveal a).touch st) ((Move.stackPile c' b').touch st))
+    (h₁ : (st.apply (Move.reveal a) >>= fun s => s.apply (Move.stackPile c' b')) = some st₂)
+    (h₂ : (st.apply (Move.stackPile c' b') >>= fun s => s.apply (Move.reveal a)) = some st₃) :
     st₂ = st₃ := by
   obtain ⟨s₁, hR, hSP⟩ := Option.bind_eq_some_iff.mp h₁
   obtain ⟨s₃, hSP', hR'⟩ := Option.bind_eq_some_iff.mp h₂
   rw [apply_reveal_iff] at hR
-  obtain ⟨htop, r, a, bd₁, hbot, hpile, hatt, hs₁⟩ := hR
+  obtain ⟨r, bd₁, htop, hbare, hatt, hs₁⟩ := hR
   rw [apply_stackPile_iff] at hSP
   obtain ⟨hrk', hcp', bd₂, hatt', hs₂⟩ := hSP
   rw [apply_stackPile_iff] at hSP'
   obtain ⟨hrk, hcp, bd₃, hatt₁, hs₃⟩ := hSP'
   rw [apply_reveal_iff] at hR'
-  obtain ⟨htop₃, r'', a'', bd₄, hbot₃, hpile₃, hatt₃, hs₄⟩ := hR'
-  have hRt : (Move.reveal c).touch st = ([st.hiddenBase a], [c, r]) := by
-    simp only [Move.touch, hbot, hpile]
+  obtain ⟨r', bd₄, htop', hbare', hatt₃, hs₄⟩ := hR'
+  have hRt : (Move.reveal a).touch st = ([st.hiddenBase a, Sum.inr r], [r]) := by
+    simp only [Move.touch, htop]
   rw [hRt] at hdisj
-  have hD1 : ∀ b ∈ [st.hiddenBase a], b ∉ [b'] := hdisj.1
-  have hD2 : ∀ x ∈ [c, r], x ∉ [c'] := hdisj.2
+  have hD1 : ∀ b ∈ [st.hiddenBase a, Sum.inr r], b ∉ [b'] := hdisj.1
+  have hD2 : ∀ x ∈ [r], x ∉ [c'] := hdisj.2
   have hβ : st.hiddenBase a ≠ b' :=
     fun hcon => hD1 (st.hiddenBase a) (by simp) (by rw [hcon]; simp)
-  have hcne : c ≠ c' := fun hcon => hD2 c (by simp) (by rw [hcon]; simp)
-  have hrne : r ≠ c' := fun hcon => hD2 r (by simp) (by rw [hcon]; simp)
-  rw [hs₃] at hbot₃ hpile₃ hatt₃
-  have hbr : bd₃.bottomOf c = some (Sum.inr r'') := hbot₃
-  rw [bottomOf_attach_ne hatt₁ hcne, hbot] at hbr
-  have hrr : r'' = r := Sum.inr.inj (Option.some.inj hbr.symm)
-  have hpl : st.pileOfTopHidden r'' = some a'' := hpile₃
-  rw [hrr] at hpl
-  have haa : a'' = a := Option.some.inj (hpl.symm.trans hpile)
+  -- the boundary card is the same in both orders (stackPile never
+  -- writes the deal or the depths)
+  rw [hs₃] at htop' hatt₃
+  have hrr : r' = r := Option.some.inj (htop'.symm.trans htop)
+  rw [hrr] at hatt₃
+  have hatt₃' : bd₃.attach (st.hiddenBase a) r = some bd₄ := hatt₃
   rw [hs₁] at hatt'
   have hatt'₂ : bd₁.attach b' c' = some bd₂ := hatt'
-  rw [hrr, haa] at hatt₃
-  have hatt₃' : bd₃.attach (st.hiddenBase a) r = some bd₄ := hatt₃
   have hbd : bd₂ = bd₄ := Board.attach_attach_comm hβ hatt hatt'₂ hatt₁ hatt₃'
-  rw [hs₂, hs₁, hs₄, hs₃, haa, hbd]
+  rw [hs₂, hs₁, hs₄, hs₃, hbd]
 
-/-- `reveal`·`reveal`: the depth steps commute, the boundary searches
-survive the other reveal's depth write *except* at the exposed pile —
-and when the exposed card IS the other reveal's boundary card, the
-first reveal's seating blocks the second's attach (vacuity, via
-`take_reverse_drop1`: the base under the boundary is the card the
-depth-step exposes). -/
-theorem comm_reveal_reveal {st : State} {c c' : Card} {st₂ st₃ : State}
-    (hdisj : disjointTouch ((Move.reveal c).touch st) ((Move.reveal c').touch st))
-    (h₁ : (st.apply (Move.reveal c) >>= fun s => s.apply (Move.reveal c')) = some st₂)
-    (h₂ : (st.apply (Move.reveal c') >>= fun s => s.apply (Move.reveal c)) = some st₃) :
+/-- `reveal`·`reveal`: the depth steps commute (`depths_step_step`),
+each boundary survives the other reveal's depth write (the piles are
+distinct — the disjoint touch sets force it), and the two attaches
+commute (`attach_attach_comm`). -/
+theorem comm_reveal_reveal {st : State} {a a' : Anchor} {st₂ st₃ : State}
+    (hdisj : disjointTouch ((Move.reveal a).touch st) ((Move.reveal a').touch st))
+    (h₁ : (st.apply (Move.reveal a) >>= fun s => s.apply (Move.reveal a')) = some st₂)
+    (h₂ : (st.apply (Move.reveal a') >>= fun s => s.apply (Move.reveal a)) = some st₃) :
     st₂ = st₃ := by
   obtain ⟨s₁, hRA, hRB⟩ := Option.bind_eq_some_iff.mp h₁
   obtain ⟨s₃, hRC, hRD⟩ := Option.bind_eq_some_iff.mp h₂
   rw [apply_reveal_iff] at hRA
-  obtain ⟨htop, r, a, bd₁, hbot, hpile, hatt, hs₁⟩ := hRA
+  obtain ⟨r, bd₁, htop, hbare, hatt, hs₁⟩ := hRA
   rw [apply_reveal_iff] at hRB
-  obtain ⟨htop', r₁, a₁, bd₂, hbot₁, hpile₁, hatt₁, hs₂⟩ := hRB
+  obtain ⟨r₁, bd₂, htop₁, hbare₁, hatt₁, hs₂⟩ := hRB
   rw [apply_reveal_iff] at hRC
-  obtain ⟨htop₂, r', a', bd₃, hbot', hpile', hatt', hs₃⟩ := hRC
+  obtain ⟨r', bd₃, htop', hbare', hatt', hs₃⟩ := hRC
   rw [apply_reveal_iff] at hRD
-  obtain ⟨htop₃, r₄, a₄, bd₄, hbot₄, hpile₄, hatt₄, hs₄⟩ := hRD
-  have hRt : (Move.reveal c).touch st = ([st.hiddenBase a], [c, r]) := by
-    simp only [Move.touch, hbot, hpile]
-  have hRt' : (Move.reveal c').touch st = ([st.hiddenBase a'], [c', r']) := by
-    simp only [Move.touch, hbot', hpile']
+  obtain ⟨r₄, bd₄, htop₄, hbare₄, hatt₄, hs₄⟩ := hRD
+  have hRt : (Move.reveal a).touch st = ([st.hiddenBase a, Sum.inr r], [r]) := by
+    simp only [Move.touch, htop]
+  have hRt' : (Move.reveal a').touch st = ([st.hiddenBase a', Sum.inr r'], [r']) := by
+    simp only [Move.touch, htop']
   rw [hRt, hRt'] at hdisj
-  have hD1 : ∀ b ∈ [st.hiddenBase a], b ∉ [st.hiddenBase a'] := hdisj.1
-  have hD2 : ∀ x ∈ [c, r], x ∉ [c', r'] := hdisj.2
+  have hD1 : ∀ b ∈ [st.hiddenBase a, Sum.inr r], b ∉ [st.hiddenBase a', Sum.inr r'] := hdisj.1
+  have hD2 : ∀ x ∈ [r], x ∉ [r'] := hdisj.2
   have hβ : st.hiddenBase a ≠ st.hiddenBase a' :=
     fun hcon => hD1 (st.hiddenBase a) (by simp) (by rw [hcon]; simp)
-  have hrc' : r ≠ c' := fun hcon => hD2 r (by simp) (by rw [hcon]; simp)
   have hrr' : r ≠ r' := fun hcon => hD2 r (by simp) (by rw [hcon]; simp)
-  have hcr' : c ≠ r' := fun hcon => hD2 c (by simp) (by rw [hcon]; simp)
-  have hTa : st.topHidden a = some r := of_decide_eq_true (findFirst_mem _ _ _ hpile).2
-  have hTa' : st.topHidden a' = some r' := of_decide_eq_true (findFirst_mem _ _ _ hpile').2
   have haa' : a ≠ a' := fun hcon => hβ (by rw [hcon])
-  -- the triggers' under-cards are untouched (card-disjointness + the
-  -- attach blindness)
-  rw [hs₁] at hbot₁
-  have hbr₁ : bd₁.bottomOf c' = some (Sum.inr r₁) := hbot₁
-  rw [bottomOf_attach_ne hatt (Ne.symm hrc'), hbot'] at hbr₁
-  have hr₁ : r₁ = r' := Sum.inr.inj (Option.some.inj hbr₁.symm)
-  rw [hr₁] at hatt₁ hpile₁
-  rw [hs₃] at hbot₄
-  have hbr₄ : bd₃.bottomOf c = some (Sum.inr r₄) := hbot₄
-  rw [bottomOf_attach_ne hatt' hcr', hbot] at hbr₄
-  have hr₄ : r₄ = r := Sum.inr.inj (Option.some.inj hbr₄.symm)
-  rw [hr₄] at hatt₄ hpile₄
-  -- the boundary searches: both survive unless the exposed card is the
-  -- other's boundary — and then the FIRST reveal's own attach dies (its
-  -- base is the exposed card, which the other trigger already occupies)
-  by_cases hred : s₁.topHidden a = some r'
-  · exfalso
-    have hreseq : s₁.topHidden a = ((st.deal.piles a).take (st.depths a - 1)).getLast? := by
-      rw [hs₁]
-      show ((st.deal.piles a).take (if a = a then st.depths a - 1 else st.depths a)).getLast?
-          = ((st.deal.piles a).take (st.depths a - 1)).getLast?
-      rw [if_pos rfl]
-    have hred' : ((st.deal.piles a).take (st.depths a - 1)).getLast? = some r' :=
-      hreseq.symm.trans hred
-    have hseq : (((st.deal.piles a).take (st.depths a)).reverse.drop 1).head? = some r' :=
-      take_reverse_drop1 hTa hred' hrr'
-    have hhb : st.hiddenBase a = Sum.inr r' := by
-      show (match (((st.deal.piles a).take (st.depths a)).reverse.drop 1).head? with
-            | some d => Sum.inr d
-            | none => Sum.inl a) = Sum.inr r'
-      rw [hseq]
-    rw [hhb] at hatt
-    obtain ⟨htopg, -⟩ := (Board.attach_eq_some_iff st.board (Sum.inr r') r).mp
-      (by rw [hatt]; simp)
-    rw [(Board.bottomOf_eq st.board c' (Sum.inr r')).mp hbot'] at htopg
-    exact absurd htopg (by simp)
-  by_cases hred' : s₃.topHidden a' = some r
-  · exfalso
-    have hreseq : s₃.topHidden a' = ((st.deal.piles a').take (st.depths a' - 1)).getLast? := by
-      rw [hs₃]
-      show ((st.deal.piles a').take (if a' = a' then st.depths a' - 1 else st.depths a')).getLast?
-          = ((st.deal.piles a').take (st.depths a' - 1)).getLast?
-      rw [if_pos rfl]
-    have hred'' : ((st.deal.piles a').take (st.depths a' - 1)).getLast? = some r :=
-      hreseq.symm.trans hred'
-    have hseq : (((st.deal.piles a').take (st.depths a')).reverse.drop 1).head? = some r :=
-      take_reverse_drop1 hTa' hred'' (fun hcon => hrr' hcon.symm)
-    have hhb : st.hiddenBase a' = Sum.inr r := by
-      show (match (((st.deal.piles a').take (st.depths a')).reverse.drop 1).head? with
-            | some d => Sum.inr d
-            | none => Sum.inl a') = Sum.inr r
-      rw [hseq]
-    rw [hhb] at hatt'
-    obtain ⟨htopg, -⟩ := (Board.attach_eq_some_iff st.board (Sum.inr r) r').mp
-      (by rw [hatt']; simp)
-    rw [(Board.bottomOf_eq st.board c (Sum.inr r)).mp hbot] at htopg
-    exact absurd htopg (by simp)
-  -- no redirects: the searches agree
-  have hpp : s₁.pileOfTopHidden r' = st.pileOfTopHidden r' := by
-    show findFirst (fun x => decide (s₁.topHidden x = some r')) Anchor.all
-        = findFirst (fun x => decide (st.topHidden x = some r')) Anchor.all
-    refine findFirst_congr (fun x => ?_) Anchor.all
-    by_cases hxa : x = a
-    · subst hxa
-      rw [decide_congr (iff_of_false hred
-        (fun (hp : st.topHidden x = some r') =>
-          hrr' (Option.some.inj (hp.symm.trans hTa)).symm))]
-    · have hdx : st.depths x = s₁.depths x := by
-        rw [hs₁]
-        show st.depths x = (if x = a then st.depths a - 1 else st.depths x)
-        rw [if_neg hxa]
-      rw [topHidden_congr' (by rw [hs₁]) x hdx]
-  have hpp' : s₃.pileOfTopHidden r = st.pileOfTopHidden r := by
-    show findFirst (fun x => decide (s₃.topHidden x = some r)) Anchor.all
-        = findFirst (fun x => decide (st.topHidden x = some r)) Anchor.all
-    refine findFirst_congr (fun x => ?_) Anchor.all
-    by_cases hxa : x = a'
-    · subst hxa
-      rw [decide_congr (iff_of_false hred'
-        (fun (hp : st.topHidden x = some r) =>
-          hrr' (Option.some.inj (hp.symm.trans hTa'))))]
-    · have hdx : st.depths x = s₃.depths x := by
-        rw [hs₃]
-        show st.depths x = (if x = a' then st.depths a' - 1 else st.depths x)
-        rw [if_neg hxa]
-      rw [topHidden_congr' (by rw [hs₃]) x hdx]
-  rw [hpp] at hpile₁
-  have haa₁ : a₁ = a' := Option.some.inj (hpile₁.symm.trans hpile')
-  rw [hpp'] at hpile₄
-  have haa₄ : a₄ = a := Option.some.inj (hpile₄.symm.trans hpile)
+  -- each second reveal's boundary is the first's (topHidden reads the
+  -- deal and the depths; the other reveal steps only its own pile)
+  have hdx : s₁.depths a' = st.depths a' := by
+    rw [hs₁]
+    show (if a' = a then st.depths a - 1 else st.depths a') = st.depths a'
+    rw [if_neg (fun hcon => haa' hcon.symm)]
+  rw [topHidden_congr' (by rw [hs₁]) a' hdx] at htop₁
+  have hr₁ : r₁ = r' := Option.some.inj (htop₁.symm.trans htop')
+  have hdx' : s₃.depths a = st.depths a := by
+    rw [hs₃]
+    show (if a = a' then st.depths a' - 1 else st.depths a) = st.depths a
+    rw [if_neg haa']
+  rw [topHidden_congr' (by rw [hs₃]) a hdx'] at htop₄
+  have hr₄ : r₄ = r := Option.some.inj (htop₄.symm.trans htop)
   -- the attach bases: each reveal's base survives the other's depth write
   have hdpa' : st.depths a' = (fun x => if x = a then st.depths a - 1 else st.depths x) a' := by
     show st.depths a' = (if a' = a then st.depths a - 1 else st.depths a')
@@ -1194,62 +1094,53 @@ theorem comm_reveal_reveal {st : State} {c c' : Card} {st₂ st₃ : State}
   have hbase₄ : s₃.hiddenBase a = st.hiddenBase a := by
     rw [hs₃, show st.hiddenBase a = ({ st with board := bd₃, depths := fun x => if x = a' then st.depths a' - 1 else st.depths x } : State).hiddenBase a
       from hiddenBase_congr'' a hdpa]
-  rw [haa₁, hbase₁, hs₁] at hatt₁
+  rw [hr₁, hbase₁, hs₁] at hatt₁
   have hatt₁' : bd₁.attach (st.hiddenBase a') r' = some bd₂ := hatt₁
-  rw [haa₄, hbase₄, hs₃] at hatt₄
+  rw [hr₄, hbase₄, hs₃] at hatt₄
   have hatt₄' : bd₃.attach (st.hiddenBase a) r = some bd₄ := hatt₄
   have hbd : bd₂ = bd₄ := Board.attach_attach_comm hβ hatt hatt₁' hatt' hatt₄'
-  rw [hs₂, hs₁, hs₄, hs₃, haa₁, haa₄, hbd]
+  rw [hs₂, hs₁, hs₄, hs₃, hbd]
   refine state_ext rfl rfl rfl ?_ rfl rfl
   exact depths_step_step st.depths a a'
 
-theorem comm_reveal_pilePile {st : State} {c c' : Card} {b' : Base} {st₂ st₃ : State}
-    (hdisj : disjointTouch ((Move.reveal c).touch st) ((Move.pilePile c' b').touch st))
-    (h₁ : (st.apply (Move.reveal c) >>= fun s => s.apply (Move.pilePile c' b')) = some st₂)
-    (h₂ : (st.apply (Move.pilePile c' b') >>= fun s => s.apply (Move.reveal c)) = some st₃) :
+theorem comm_reveal_pilePile {st : State} {a : Anchor} {c' : Card} {b' : Base} {st₂ st₃ : State}
+    (hdisj : disjointTouch ((Move.reveal a).touch st) ((Move.pilePile c' b').touch st))
+    (h₁ : (st.apply (Move.reveal a) >>= fun s => s.apply (Move.pilePile c' b')) = some st₂)
+    (h₂ : (st.apply (Move.pilePile c' b') >>= fun s => s.apply (Move.reveal a)) = some st₃) :
     st₂ = st₃ := by
   obtain ⟨s₁, hR, hPP⟩ := Option.bind_eq_some_iff.mp h₁
   obtain ⟨s₃, hPP', hR'⟩ := Option.bind_eq_some_iff.mp h₂
   rw [apply_reveal_iff] at hR
-  obtain ⟨htop, r, a, bd₁, hbot, hpile, hatt, hs₁⟩ := hR
+  obtain ⟨r, bd₁, htop, hbare, hatt, hs₁⟩ := hR
   rw [apply_pilePile_iff] at hPP
   obtain ⟨b₀', hb', hne', hcmr', bd₂, hatt', hs₂⟩ := hPP
   rw [apply_pilePile_iff] at hPP'
   obtain ⟨b₀, hb, hne, hcmr, bd₃, hatt₁, hs₃⟩ := hPP'
   rw [apply_reveal_iff] at hR'
-  obtain ⟨htop₃, r'', a'', bd₄, hbot₃, hpile₃, hatt₃, hs₄⟩ := hR'
-  have hRt : (Move.reveal c).touch st = ([st.hiddenBase a], [c, r]) := by
-    simp only [Move.touch, hbot, hpile]
+  obtain ⟨r', bd₄, htop', hbare', hatt₃, hs₄⟩ := hR'
+  have hRt : (Move.reveal a).touch st = ([st.hiddenBase a, Sum.inr r], [r]) := by
+    simp only [Move.touch, htop]
   have hPPt : (Move.pilePile c' b').touch st = (b' :: [b₀], c' :: st.board.aboveOf c') := by
     simp only [Move.touch, hb, Option.toList_some]
   rw [hRt, hPPt] at hdisj
-  have hD1 : ∀ b ∈ [st.hiddenBase a], b ∉ (b' :: [b₀] : List Base) := hdisj.1
-  have hD2 : ∀ x ∈ [c, r], x ∉ (c' :: st.board.aboveOf c') := hdisj.2
+  have hD1 : ∀ b ∈ [st.hiddenBase a, Sum.inr r], b ∉ (b' :: [b₀] : List Base) := hdisj.1
+  have hD2 : ∀ x ∈ [r], x ∉ (c' :: st.board.aboveOf c') := hdisj.2
   have hβ₁ : st.hiddenBase a ≠ b' :=
     fun hcon => hD1 (st.hiddenBase a) (by simp) (by rw [hcon]; simp)
   have hβ₂ : st.hiddenBase a ≠ b₀ :=
     fun hcon => hD1 (st.hiddenBase a) (by simp) (by rw [hcon]; simp)
-  have hcc' : c ≠ c' := fun hcon => hD2 c (by simp) (by rw [hcon]; simp)
-  have hcAb : c ∉ st.board.aboveOf c' :=
-    fun hcon => hD2 c (by simp) (by simp [hcon])
   have hrc' : r ≠ c' := fun hcon => hD2 r (by simp) (by rw [hcon]; simp)
-  have hrAb : r ∉ st.board.aboveOf c' :=
-    fun hcon => hD2 r (by simp) (by simp [hcon])
-  -- reveal's trigger seat survives the pilePile edit; its view is board-blind
-  rw [hs₃] at hbot₃ hpile₃ hatt₃
-  have htb₀ : st.board.topOf b₀ = some c' := (Board.bottomOf_eq st.board c' b₀).mp hb
-  have hbr : bd₃.bottomOf c = some (Sum.inr r'') := hbot₃
-  rw [bottomOf_attach_ne hatt₁ hcc', bottomOf_detach_ne htb₀ hcc', hbot] at hbr
-  have hrr : r'' = r := Sum.inr.inj (Option.some.inj hbr.symm)
-  have hpl : st.pileOfTopHidden r'' = some a'' := hpile₃
-  rw [hrr] at hpl
-  have haa : a'' = a := Option.some.inj (hpl.symm.trans hpile)
-  -- pilePile's detach base agrees in both orders
+  -- pilePile's detach base agrees in both orders (reveal's attach
+  -- preserves c''s seat since r ≠ c')
   rw [hs₁] at hb'
   have hb₂ : bd₁.bottomOf c' = some b₀' := hb'
   rw [bottomOf_attach_ne hatt (Ne.symm hrc'), hb] at hb₂
   have hb₀e : b₀' = b₀ := (Option.some.inj hb₂).symm
-  rw [hrr, haa] at hatt₃
+  -- the boundary card is the same in both orders (pilePile never
+  -- writes the deal or the depths)
+  rw [hs₃] at htop' hatt₃
+  have hrr : r' = r := Option.some.inj (htop'.symm.trans htop)
+  rw [hrr] at hatt₃
   have hatt₃' : bd₃.attach (st.hiddenBase a) r = some bd₄ := hatt₃
   rw [hs₁] at hatt'
   have hatt'₂ : (bd₁.detach b₀').attach b' c' = some bd₂ := hatt'
@@ -1272,7 +1163,7 @@ theorem comm_reveal_pilePile {st : State} {c c' : Card} {b' : Base} {st₂ st₃
             Board.detach_topOf_ne _ _ _ hxb₀, Board.attach_topOf_ne _ _ _ hatt hxb,
             Board.attach_topOf_ne bd₃ _ r hatt₃' hxb,
             Board.attach_topOf_ne _ _ _ hatt₁ hxb', Board.detach_topOf_ne _ _ _ hxb₀]
-  rw [hs₂, hs₁, hs₄, hs₃, haa, hbd]
+  rw [hs₂, hs₁, hs₄, hs₃, hbd]
 
 theorem comm_deckPile_pileStack {st : State} {c c' : Card} {b : Base} {st₂ st₃ : State}
     (hdisj : disjointTouch ((Move.deckPile c b).touch st) ((Move.pileStack c').touch st))

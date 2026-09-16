@@ -844,8 +844,8 @@ theorem cascade_escape_progress {st st' : State} {m : Move}
     | pileStack c => simp [Move.isCommit] at hcom
     | stackPile c b => simp [Move.isCommit] at hcom
     | pilePile c b => simp [Move.isCommit] at hcom
-    | reveal c =>
-        obtain ⟨_, r, a, bd, _, _, _, hs⟩ := (apply_reveal_iff (st := st) (st' := st')).mp hap
+    | reveal a =>
+        obtain ⟨_, _, _, _, _, hs⟩ := (apply_reveal_iff (st := st) (st' := st')).mp hap
         have hd : heightDebt st' = heightDebt st := by rw [hs]; rfl
         have := apply_reveal_totalDepth_lt hap
         simp only [cascadeMeasure]

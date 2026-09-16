@@ -82,8 +82,8 @@ def Move.cleanTwin (t : Card) : Move → Bool
 
 @[simp] theorem Move.cleanTwin_draw (t : Card) : Move.cleanTwin t Move.draw = true := rfl
 
-@[simp] theorem Move.cleanTwin_reveal (t : Card) (c : Card) :
-    Move.cleanTwin t (Move.reveal c) = true := rfl
+@[simp] theorem Move.cleanTwin_reveal (t : Card) (a : Anchor) :
+    Move.cleanTwin t (Move.reveal a) = true := rfl
 
 @[simp] theorem Move.cleanTwin_deckPile (t : Card) (c : Card) (b : Base) :
     Move.cleanTwin t (Move.deckPile c b) = true := rfl
@@ -495,17 +495,15 @@ theorem apply_swapTwin_clean_some {st st' : State} {m : Move} {t : Card}
       apply congrArg some
       apply state_ext <;> try rfl
       exact twinCycle_dealOnce t st.stock st.drawStep
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at hst
-      obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst'⟩ := hst
-      show (st.swapTwin t).apply (Move.reveal (Card.swapTwin t c)) = some (st'.swapTwin t)
+      obtain ⟨r, bd, htop, hbare, hatt, hst'⟩ := hst
+      show (st.swapTwin t).apply (Move.reveal a) = some (st'.swapTwin t)
       rw [apply_reveal_iff]
-      refine ⟨?_, Card.swapTwin t r, a, bd.mapByTwin t, ?_, ?_, ?_, ?_⟩
-      · rw [swapTwin_board, mapByTwin_topOf_inr, htop]
+      refine ⟨Card.swapTwin t r, bd.mapByTwin t, ?_, ?_, ?_, ?_⟩
+      · rw [swapTwin_topHidden, htop, Option.map_some]
+      · rw [swapTwin_board, mapByTwin_topOf_inr, hbare]
         rfl
-      · rw [swapTwin_board, mapByTwin_bottomOf, hbot, Option.map_some]
-        rfl
-      · rw [swapTwin_pileOfTopHidden, hpile]
       · rw [swapTwin_board, swapTwin_hiddenBase]
         exact mapByTwin_attach hatt
       · rw [hst']

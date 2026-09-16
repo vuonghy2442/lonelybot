@@ -160,7 +160,7 @@ body:
 ```
 move_cases h with
 | draw => …
-| reveal c => …            -- htop r a bd hbot hpile hatt
+| reveal a => …            -- r bd htop hbare hatt
 | deckPile c b => …        -- hprev hcp bd hatt
 | deckStack c => …         -- hprev hrk
 | pileStack c => …         -- htop b hb hrk
@@ -216,7 +216,7 @@ elab "move_cases" h:ident
             match mcAltName alt with
             | some `draw => `(tactic| obtain rfl := apply_draw_iff.mp $h)
             | some `reveal => `(tactic|
-                obtain ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩ :=
+                obtain ⟨r, bd, htop, hbare, hatt, rfl⟩ :=
                   apply_reveal_iff.mp $h)
             | some `deckPile => `(tactic|
                 obtain ⟨hprev, hcp, bd, hatt, rfl⟩ := apply_deckPile_iff.mp $h)

@@ -57,6 +57,34 @@ theorem removeIdx_length {α : Type} : ∀ (l : List α) (i : Nat), i < l.length
       simp only [removeIdx, List.length_cons]
       omega
 
+/-- Splicing out an index keeps only old members. -/
+theorem removeIdx_mem {α : Type} : ∀ (l : List α) (i : Nat) (x : α),
+    x ∈ removeIdx l i → x ∈ l
+  | [], _, _, h => by simp at h
+  | y :: t, 0, _, h => List.mem_cons.mpr (Or.inr h)
+  | y :: t, i + 1, x, h => by
+      rcases List.mem_cons.mp h with heq | hm
+      · exact List.mem_cons.mpr (Or.inl heq)
+      · exact List.mem_cons.mpr (Or.inr (removeIdx_mem t i x hm))
+
+/-- A member other than the spliced element survives the splice (the
+option form: the spliced element identified by `getElem?`, no length
+bookkeeping needed). -/
+theorem mem_removeIdx_of_ne {α : Type} : ∀ (l : List α) (i : Nat) (x z : α),
+    l[i]? = some z → x ≠ z → x ∈ l → x ∈ removeIdx l i
+  | [], _, _, _, hget, _, _ => by simp at hget
+  | y :: t, 0, x, z, hget, hne, hm => by
+      rw [List.getElem?_cons_zero] at hget
+      have hyz : y = z := Option.some.inj hget
+      rcases List.mem_cons.mp hm with heq | hm
+      · exact absurd (heq.trans hyz) hne
+      · exact hm
+  | y :: t, i + 1, x, z, hget, hne, hm => by
+      rcases List.mem_cons.mp hm with heq | hm
+      · exact List.mem_cons.mpr (Or.inl heq)
+      · exact List.mem_cons.mpr (Or.inr
+          (mem_removeIdx_of_ne t i x z hget hne hm))
+
 /-- The C13 premise, list level: splicing out two cards in either
 order leaves the same list (the later index adjusts down by one). -/
 theorem removeIdx_comm {α : Type} : ∀ (l : List α) (i j : Nat), i ≤ j → j + 1 < l.length →

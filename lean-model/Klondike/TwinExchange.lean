@@ -1039,30 +1039,21 @@ theorem State.exchangeTwinCargo_step_stackPile {st a₁ : State} {t z z' c : Car
   · rw [hst, State.exchangeTwinCargo_heights]
     rfl
 
-/-- `reveal` mirrors: the trigger's own seat, the revealed card, the
-pile/hiddenBase reads (deal+depths-inherited), and the attach base are
-all off the twin pair at any FIRING reveal — triggers on the twin seats
-are excluded (the seats are occupied), and reveals whose revealed card
-is a twin cannot fire (the attach needs the revealed card unplaced, but
-the twins stay placed). -/
-theorem State.exchangeTwinCargo_step_reveal {st a₁ : State} {t z z' c : Card}
+/-- `reveal` mirrors: the revealed card, the pile/hiddenBase reads
+(deal+depths-inherited), and the attach base are all off the twin pair
+at any FIRING reveal — and reveals whose revealed card is a twin cannot
+fire (the attach needs the revealed card unplaced, but the twins stay
+placed). -/
+theorem State.exchangeTwinCargo_step_reveal {st a₁ : State} {t z z' : Card} {a : Anchor}
     (hvis : st.isVis t = true) (hvis' : st.isVis t.flipSuit = true)
     (h₀ : st.board.bottomOf z = some (Sum.inr t))
     (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
-    (hstep : st.apply (Move.reveal c) = some a₁) :
-    (st.exchangeTwinCargo t).apply (Move.reveal c) = some (a₁.exchangeTwinCargo t) := by
+    (hstep : st.apply (Move.reveal a) = some a₁) :
+    (st.exchangeTwinCargo t).apply (Move.reveal a) = some (a₁.exchangeTwinCargo t) := by
   have hztop : st.board.topOf (Sum.inr t) = some z := (Board.bottomOf_eq _ _ _).mp h₀
   have hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z' := (Board.bottomOf_eq _ _ _).mp h₀'
   rw [apply_reveal_iff] at hstep ⊢
-  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, hst⟩ := hstep
-  have hct : c ≠ t := by
-    intro h
-    rw [h, hztop] at htop
-    simp at htop
-  have hct' : c ≠ t.flipSuit := by
-    intro h
-    rw [h, hztop'] at htop
-    simp at htop
+  obtain ⟨r, bd, htop, hbare, hatt, hst⟩ := hstep
   -- the revealed card r is off the twin pair (else the attach would
   -- seat a placed twin)
   have hrt : r ≠ t ∧ r ≠ t.flipSuit := by
@@ -1093,18 +1084,14 @@ theorem State.exchangeTwinCargo_step_reveal {st a₁ : State} {t z z' c : Card}
     rw [h, hztop'] at hgb
     simp at hgb
   -- the B-side guards
-  refine ⟨?_, r, a, bd.exchangeTwin t, ?_, ?_, ?_, ?_⟩
-  · rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
-      Base.swapTwin_eq_self (fun h => hct (Sum.inr.inj h))
-        (fun h => hct' (Sum.inr.inj h))]
+  refine ⟨r, bd.exchangeTwin t, ?_, ?_, ?_, ?_⟩
+  · rw [Frame.topHidden_congr (State.exchangeTwinCargo_deal st t)
+      (State.exchangeTwinCargo_depths st t) a]
     exact htop
-  · rw [State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin, hbot]
-    show some (Base.swapTwin t (Sum.inr r)) = _
-    rw [Base.swapTwin_eq_self (fun h => hrt.1 (Sum.inr.inj h))
-      (fun h => hrt.2 (Sum.inr.inj h))]
-  · rw [Frame.pileOfTopHidden_congr (State.exchangeTwinCargo_deal st t)
-      (State.exchangeTwinCargo_depths st t) r]
-    exact hpile
+  · rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
+      Base.swapTwin_eq_self (fun h => hrt.1 (Sum.inr.inj h))
+        (fun h => hrt.2 (Sum.inr.inj h))]
+    exact hbare
   · rw [show (st.exchangeTwinCargo t).hiddenBase a = st.hiddenBase a from
       Frame.hiddenBase_congr (State.exchangeTwinCargo_deal st t)
         (State.exchangeTwinCargo_depths st t) a,

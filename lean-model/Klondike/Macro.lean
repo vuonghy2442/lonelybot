@@ -23,8 +23,8 @@ inductive MacroMove : Type where
   guarded jump), then play it — tableau landing (some base) or stack
   landing. -/
   | drawCommit (c : Card)
-  /-- The `Reveal(c)` commitment: flip the hidden card under `c`. -/
-  | revealCommit (c : Card)
+  /-- The `Reveal(a)` commitment: flip pile `a`'s hidden boundary. -/
+  | revealCommit (a : Anchor)
   deriving DecidableEq
 
 /-- The commitment application from a (already accommodated) state.
@@ -47,7 +47,7 @@ def commitApplies (st : State) (k : MacroMove) (st'' : State) : Prop :=
   | .drawCommit c =>
       ∃ b : Base, (st.canPlace c b = true ∧ st.applyDrawTo c b = some st'')
         ∨ st.applyDrawStackTo c = some st''
-  | .revealCommit c => st.apply (Move.reveal c) = some st''
+  | .revealCommit a => st.apply (Move.reveal a) = some st''
 
 /-- One macro step: an accommodation, then the commitment. -/
 def macroStep (st : State) (k : MacroMove) (st'' : State) : Prop :=
@@ -621,9 +621,9 @@ theorem apply_drawStep_invar {st st₁ : State} {m : Move}
   | draw =>
       rw [apply_draw_iff] at h
       rw [h]
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at h
-      obtain ⟨-, r, a, bd, -, -, -, hst⟩ := h
+      obtain ⟨r, bd, htop, hbare, hatt, hst⟩ := h
       rw [hst]
   | deckPile c b =>
       rw [apply_deckPile_iff] at h

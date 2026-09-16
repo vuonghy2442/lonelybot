@@ -66,8 +66,8 @@ def Board.canPlaceOn (bd : Board) (c : Card) (b : Base) : Bool :=
 
 /-- The engine's five moves. -/
 inductive EMove : Type where
-  /-- Flip the hidden card under the visible `c`. -/
-  | reveal (c : Card)
+  /-- Flip pile `a`'s hidden boundary. -/
+  | reveal (a : Anchor)
   /-- Rotate to `c`, play it to the tableau (visible, no position). -/
   | deckPile (c : Card)
   /-- Rotate to `c`, stack it. -/
@@ -108,10 +108,8 @@ def eStep : EState → EMove → EState → Prop
       e' = { e with
         vis := fun c' => e.vis c' || decide (c' = c),
         heights := fun s => if s = c.suit then e.heights s - 1 else e.heights s }
-  | e, .reveal c, e' =>
-      e.vis c = true ∧
-      ∃ bd a r, e.realizedBy bd ∧ bd.topOf (Sum.inr c) = none ∧
-        bd.bottomOf c = some (Sum.inr r) ∧ e.topHiddenOf a = some r ∧
+  | e, .reveal a, e' =>
+      ∃ bd r, e.realizedBy bd ∧ e.topHiddenOf a = some r ∧ bd.bottomOf r = none ∧
         e' = { e with
           vis := fun c' => e.vis c' || decide (c' = r),
           depths := fun a' => if a' = a then e.depths a - 1 else e.depths a' }
@@ -165,11 +163,11 @@ theorem eStep_offset {e e' : EState} {m : EMove} (h : eStep e m e') (k : Nat) :
     obtain ⟨hr, ⟨bd, hbd, b, hb⟩, he'⟩ := h
     subst he'
     exact ⟨_, k, ⟨hr, ⟨bd, hbd, b, hb⟩, rfl⟩, rfl⟩
-  | reveal c =>
+  | reveal a =>
     simp only [eStep] at h
-    obtain ⟨hv, bd, a, r, hbd, htop, hbot, hth, he'⟩ := h
+    obtain ⟨bd, r, hbd, hth, hrn, he'⟩ := h
     subst he'
-    exact ⟨_, k, ⟨hv, bd, a, r, hbd, htop, hbot, hth, rfl⟩, rfl⟩
+    exact ⟨_, k, ⟨bd, r, hbd, hth, hrn, rfl⟩, rfl⟩
 
 /-- The play-level lift: a play from `e` runs from the offset-rewritten
 state too, ending likewise offset-rewritten. -/
@@ -346,20 +344,26 @@ theorem toEngine_step_stackPile {st st' : State} {c : Card} {b : Base} (hwf : st
   · rfl
   · rfl
 
-/-- One model `reveal` is one abstract `reveal` (the trigger's pile's
-boundary card is the abstract `topHiddenOf`). -/
-theorem toEngine_step_reveal {st st' : State} {c : Card} (hwf : st.WF)
-    (h : st.apply (Move.reveal c) = some st') :
-    eStep (toEngine st) (EMove.reveal c) (toEngine st') := by
+/-- One model `reveal` is one abstract `reveal` (the pile's boundary
+card is the abstract `topHiddenOf`, and the bare guard is the
+boundary's unseatedness). -/
+theorem toEngine_step_reveal {st st' : State} {a : Anchor} (hwf : st.WF)
+    (h : st.apply (Move.reveal a) = some st') :
+    eStep (toEngine st) (EMove.reveal a) (toEngine st') := by
   rw [apply_reveal_iff] at h
-  obtain ⟨htop, r, a, bd, hbot, hpth, hatt, hst⟩ := h
-  have hth : (toEngine st).topHiddenOf a = some r :=
-    of_decide_eq_true (findFirst_mem _ _ _ hpth).2
-  have hvis : (toEngine st).vis c = true := by
-    show (st.board.bottomOf c).isSome = true
-    rw [hbot]
-    rfl
-  refine ⟨hvis, st.board, a, r, toEngine_realizedBy_board hwf, htop, hbot, hth, ?_⟩
+  obtain ⟨r, bd, htop, hbare, hatt, hst⟩ := h
+  have hth : (toEngine st).topHiddenOf a = some r := htop
+  have hrn : st.board.bottomOf r = none := by
+    cases hbb : st.board.bottomOf r with
+    | none => rfl
+    | some b' =>
+        exfalso
+        have hrv : st.isVis r = true := by
+          show (st.board.bottomOf r).isSome = true
+          rw [hbb]
+          rfl
+        exact hwf.vis_not_hidden r hrv a (mem_of_getLast htop)
+  refine ⟨st.board, r, toEngine_realizedBy_board hwf, hth, hrn, ?_⟩
   rw [hst]
   apply estate_ext
   · rfl

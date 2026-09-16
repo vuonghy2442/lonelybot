@@ -1417,13 +1417,11 @@ def State.playWindow' (z : Card) (σ : Suit) (ep : State.WindowEp) (st : State) 
               State.playWindow' z σ .pre st' ms
           | .mid strand β, .draw => State.playWindow' z σ (.mid strand β) st' ms
           | .mid strand β, .deckStack _ => State.playWindow' z σ (.mid strand β) st' ms
-          | .mid strand β, .reveal c =>
-              decide (c ≠ strand ∧ β ≠ Sum.inr c ∧
-                ((st.board.bottomOf c).elim true
-                  (fun b => match b with
-                   | Sum.inr r => (st.pileOfTopHidden r).elim true
-                     (fun a => decide (β ≠ st.hiddenBase a))
-                   | Sum.inl _ => true))) &&
+          | .mid strand β, .reveal a =>
+              (match st.topHidden a with
+               | none => true
+               | some r =>
+                   decide (β ≠ Sum.inr r ∧ β ≠ st.hiddenBase a)) &&
               State.playWindow' z σ (.mid strand β) st' ms
           | .mid strand β, .deckPile q b =>
               decide (b ≠ β ∧ β ≠ Sum.inr q ∧
@@ -2177,30 +2175,21 @@ theorem State.twinCorr_run_window' (z : Card) :
                       ⟨hX', hbase', hstrand⟩ hwin' hrun
                     exact ⟨Nf, Move.relabelTwin id (Move.pileStack q) :: nplay',
                       State.run_cons_comp hfire hrun', ρ', hcorr'⟩
-            | reveal c =>
-                simp only [State.playWindow', hS, Bool.and_eq_true, decide_eq_true_iff]
-                  at hwin
+            | reveal a =>
+                simp only [State.playWindow', hS, Bool.and_eq_true] at hwin
                 have hSiff := apply_reveal_iff.mp hS
-                obtain ⟨htop, r, a, bd, hbot, hp, hatt, rfl⟩ := hSiff
-                obtain ⟨⟨hcne, hβc, helim⟩, hwin'⟩ := hwin
-                -- reduce the hiddenBase clause (defeq-iota through the option elims)
-                have hβhb : β ≠ S.hiddenBase a := by
-                  have hb1 := helim
-                  rw [hbot] at hb1
-                  have hb2 : ((S.pileOfTopHidden r).elim true
-                      (fun a' => decide (β ≠ S.hiddenBase a'))) = true := hb1
-                  rw [hp] at hb2
-                  have hb3 : decide (β ≠ S.hiddenBase a) = true := hb2
-                  exact decide_eq_true_iff.mp hb3
-                have hcX : c ∉ List.map id [strand] := by
-                  simp only [List.map_id]
-                  exact fun hcon => hcne (List.mem_singleton.mp hcon)
+                obtain ⟨r, bd, htop, hbare, hatt, rfl⟩ := hSiff
+                obtain ⟨hcond, hwin'⟩ := hwin
+                rw [htop] at hcond
+                have h2 : decide (β ≠ Sum.inr r ∧ β ≠ S.hiddenBase a) = true := hcond
+                simp only [Bool.and_eq_true_iff, decide_eq_true_iff] at h2
+                obtain ⟨hβr, hβhb⟩ := h2
                 have hcov : ∀ x ∈ [strand],
-                    M.board.bottomOf x ≠ some (Sum.inr (id c)) := by
+                    M.board.bottomOf x ≠ some (Sum.inr r) := by
                   intro x hx hcon
                   rw [List.mem_singleton.mp hx] at hcon
                   rw [hbase] at hcon
-                  exact hβc (Option.some.inj hcon)
+                  exact hβr (Option.some.inj hcon)
                 have hfree : ∀ x ∈ [strand],
                     M.board.bottomOf x ≠ some (S.hiddenBase a) := by
                   intro x hx hcon
@@ -2208,35 +2197,18 @@ theorem State.twinCorr_run_window' (z : Card) :
                   rw [hbase] at hcon
                   exact hβhb (Option.some.inj hcon)
                 obtain ⟨N, hfire, hX'⟩ := State.TwinCorrX.apply_reveal_X hframe hwf
-                  (fun _ _ _ => rfl) hcX hS hbot hp hcov hfree
+                  (fun _ _ _ => rfl) hS htop hcov hfree
                 have hSiffM := apply_reveal_iff.mp hfire
-                obtain ⟨htopM, rM, aM, bdM, hbotM, hpM, hattM, hNM⟩ := hSiffM
-                have htopSr : S.board.topOf (Sum.inr r) = some c :=
-                  (Board.bottomOf_eq S.board c (Sum.inr r)).mp hbot
-                have htopMr : M.board.topOf (Sum.inr r) = some c :=
-                  hframe.top_some (Sum.inr r) c htopSr
-                    (by simp only [List.map_id, List.mem_singleton]; exact hcne)
-                have hbotMc : M.board.bottomOf (id c) = some (Sum.inr r) :=
-                  (Board.bottomOf_eq M.board (id c) (Sum.inr r)).mpr htopMr
-                have hrMr : rM = r :=
-                  Sum.inr.inj (Option.some.inj (hbotM.symm.trans hbotMc))
-                have haMa : aM = a := by
-                  have h1 : M.pileOfTopHidden r = S.pileOfTopHidden r :=
-                    Frame.pileOfTopHidden_congr hframe.core.deal_eq
-                      hframe.core.depths_eq r
-                  rw [hrMr] at hpM
-                  rw [h1] at hpM
-                  exact Option.some.inj (hpM.symm.trans hp)
+                obtain ⟨rM, bdM, htopM, hbareM, hattM, hNM⟩ := hSiffM
                 have hbaseN : N.board.bottomOf strand = some β := by
                   rw [hNM]
                   have hβ : M.board.topOf β = some strand :=
                     (Board.bottomOf_eq M.board strand β).mp hbase
-                  have hbM : M.hiddenBase aM = S.hiddenBase a := by
-                    rw [haMa]
-                    exact Frame.hiddenBase_congr hframe.core.deal_eq
+                  have hbM : M.hiddenBase a = S.hiddenBase a :=
+                    Frame.hiddenBase_congr hframe.core.deal_eq
                       hframe.core.depths_eq a
                   have h2 : bdM.topOf β = M.board.topOf β :=
-                    Board.attach_topOf_ne M.board (M.hiddenBase aM) rM hattM
+                    Board.attach_topOf_ne M.board (M.hiddenBase a) rM hattM
                       (by
                         intro hcon
                         rw [hbM] at hcon
@@ -2246,7 +2218,7 @@ theorem State.twinCorr_run_window' (z : Card) :
                 obtain ⟨Nf, nplay', hrun', ρ', hcorr'⟩ := ih _ _ (.mid strand β)
                   (State.heights_le_apply hMle hfire) (apply_wf hwf _ _ hS)
                   ⟨hX', hbaseN, hstrand⟩ hwin' hrun
-                exact ⟨Nf, Move.relabelTwin id (Move.reveal c) :: nplay',
+                exact ⟨Nf, Move.relabelTwin id (Move.reveal a) :: nplay',
                   State.run_cons_comp hfire hrun', ρ', hcorr'⟩
             | deckPile q b =>
                 simp only [State.playWindow', hS, Bool.and_eq_true, decide_eq_true_iff,

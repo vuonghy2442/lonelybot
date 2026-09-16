@@ -1019,16 +1019,16 @@ the attach base is the next hidden card down (or the anchor) — off the
 twin seats (occupied) — and the no-braid walks are literally
 unchanged: every card the walks read is seated, the attach base is
 hidden, and `vis_not_hidden` keeps them apart (`Board.aboveOf_congr`). -/
-theorem State.twinLicensed_apply_reveal {st a₁ : State} {t c : Card}
+theorem State.twinLicensed_apply_reveal {st a₁ : State} {t : Card} {a : Anchor}
     (hwf : st.WF) (h : st.twinLicensed t)
-    (hstep : st.apply (Move.reveal c) = some a₁) : a₁.twinLicensed t := by
+    (hstep : st.apply (Move.reveal a) = some a₁) : a₁.twinLicensed t := by
   obtain ⟨z, z', hvis, hvis', h₀, h₀', hfit, hfit', hnb, hnb'⟩ := h
   have hztop : st.board.topOf (Sum.inr t) = some z := (Board.bottomOf_eq _ _ _).mp h₀
   have hztop' : st.board.topOf (Sum.inr t.flipSuit) = some z' :=
     (Board.bottomOf_eq _ _ _).mp h₀'
   rw [apply_reveal_iff] at hstep
-  obtain ⟨htop, r, a, bd, hbot, hpile, hatt, rfl⟩ := hstep
-  have hrmem : r ∈ st.hidden a := State.mem_hidden_of_pileOfTopHidden hpile
+  obtain ⟨r, bd, htop, hbare, hatt, rfl⟩ := hstep
+  have hrmem : r ∈ st.hidden a := mem_of_getLast htop
   have hrt : r ≠ t ∧ r ≠ t.flipSuit := by
     constructor
     · intro hcon; rw [hcon] at hrmem; exact hwf.vis_not_hidden t hvis a hrmem
@@ -1915,18 +1915,17 @@ theorem State.apply_twinHeightRel {t : Card} {S S' : State} {m : Move}
       · intro s h1 h2
         show S.heights s = S'.heights s
         exact hh s h1 h2
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at hS
-      obtain ⟨ht, r, a, bd, hbot, hp, ha, rfl⟩ := hS
-      have ht' : S'.board.topOf (Sum.inr c) = none := by rw [← hb]; exact ht
-      have hbot' : S'.board.bottomOf c = some (Sum.inr r) := by rw [← hb]; exact hbot
-      have hp' : S'.pileOfTopHidden r = some a := by
-        rw [← Frame.pileOfTopHidden_congr hd hdp]
-        exact hp
+      obtain ⟨r, bd, htop, hbare, hatt, rfl⟩ := hS
+      have htop' : S'.topHidden a = some r := by
+        rw [← Frame.topHidden_congr hd hdp]
+        exact htop
+      have hbare' : S'.board.topOf (Sum.inr r) = none := by rw [← hb]; exact hbare
       have ha' : S'.board.attach (S'.hiddenBase a) r = some bd := by
         rw [show S'.hiddenBase a = S.hiddenBase a from (Frame.hiddenBase_congr hd hdp a).symm, ← hb]
-        exact ha
-      refine ⟨{S' with board := bd, depths := fun a' => if a' = a then S'.depths a - 1 else S'.depths a'}, apply_reveal_iff.mpr ⟨ht', r, a, bd, hbot', hp', ha', rfl⟩, rfl, hd, ?_, hst, hds, ?_⟩
+        exact hatt
+      refine ⟨{S' with board := bd, depths := fun a' => if a' = a then S'.depths a - 1 else S'.depths a'}, apply_reveal_iff.mpr ⟨r, bd, htop', hbare', ha', rfl⟩, rfl, hd, ?_, hst, hds, ?_⟩
       · funext a'
         by_cases ha' : a' = a
         · show (if a' = a then S.depths a - 1 else S.depths a') = (if a' = a then S'.depths a - 1 else S'.depths a')
@@ -2854,10 +2853,10 @@ theorem State.apply_swapTwinBoard_clean {z : Card} {S R : State} {m : Move}
       rw [apply_draw_iff]
       rw [hR]
       apply state_ext <;> try rfl
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at hS
-      obtain ⟨htop, r, a, bd, hbot, hp, hatt, hR⟩ := hS
-      have hrhid : r ∈ S.hidden a := State.mem_hidden_of_pileOfTopHidden hp
+      obtain ⟨r, bd, htop, hbare, hatt, hR⟩ := hS
+      have hrhid : r ∈ S.hidden a := mem_of_getLast htop
       have hrne : r ≠ z ∧ r ≠ z.flipSuit :=
         ⟨fun h => (hhid a).1 (h ▸ hrhid), fun h => (hhid a).2 (h ▸ hrhid)⟩
       have hHB1 : S.hiddenBase a ≠ Sum.inr z := by
@@ -2866,22 +2865,13 @@ theorem State.apply_swapTwinBoard_clean {z : Card} {S R : State} {m : Move}
       have hHB2 : S.hiddenBase a ≠ Sum.inr z.flipSuit := by
         intro hcon
         exact (hhid a).2 (State.mem_hidden_of_hiddenBase hcon)
-      show (S.swapTwinBoard z).apply (Move.reveal (Card.swapTwin z c))
+      have hfixr : Card.swapTwin z r = r := Card.swapTwin_of_ne hrne.1 hrne.2
+      show (S.swapTwinBoard z).apply (Move.reveal a)
         = some (R.swapTwinBoard z)
       rw [apply_reveal_iff]
-      refine ⟨?_, r, a, bd.mapByTwin z, ?_, hp, ?_, ?_⟩
-      · rw [State.swapTwinBoard_board, mapByTwin_topOf]
-        show (S.board.topOf (Base.swapTwin z (Sum.inr (Card.swapTwin z c)))).map
-          (Card.swapTwin z) = none
-        rw [show Base.swapTwin z (Sum.inr (Card.swapTwin z c)) = Sum.inr c from by
-          show Sum.inr (Card.swapTwin z (Card.swapTwin z c)) = Sum.inr c
-          rw [Card.swapTwin_swapTwin], htop]
+      refine ⟨r, bd.mapByTwin z, htop, ?_, ?_, ?_⟩
+      · rw [State.swapTwinBoard_board, ← hfixr, mapByTwin_topOf_inr, hbare]
         rfl
-      · rw [State.swapTwinBoard_board, mapByTwin_bottomOf, hbot, Option.map_some]
-        show some (Base.swapTwin z (Sum.inr r)) = some (Sum.inr r)
-        rw [show Base.swapTwin z (Sum.inr r) = Sum.inr r from by
-          show Sum.inr (Card.swapTwin z r) = Sum.inr r
-          rw [Card.swapTwin_of_ne hrne.1 hrne.2]]
       · show (S.board.mapByTwin z).attach (S.hiddenBase a) r = some (bd.mapByTwin z)
         exact Board.mapByTwin_attach_off hHB1 hHB2 hrne.1 hrne.2 hatt
       · rw [hR]

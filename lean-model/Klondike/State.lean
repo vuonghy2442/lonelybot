@@ -85,10 +85,10 @@ def canPlace (st : State) (c : Card) (b : Base) : Bool :=
   | Sum.inr d => st.isVis d && canSitOn c d
 
 /-- A card is locked when it sits on its pile's hidden boundary
-(moving it would strand the boundary — see `safe_pileStack_dominant`'s
-repair note in Dominance.lean: the model's `reveal` seats the boundary
-while the card is still on it, so a locked card must be revealed
-*through* before it moves).  RELOCATED 2026-09-13 from Dominance.lean —
+(the physical reveal rule demands a bare boundary, so a locked card
+must *move* before its pile can reveal — under the pre-2026-09-16
+reveal-through rule it was the reverse: it had to be revealed through
+before it moved).  RELOCATED 2026-09-13 from Dominance.lean —
 the B4 crux (`solvable_of_pileStack`, Theorems.lean) and
 `vis_base_of_notLocked` need it upstream of Dominance. -/
 def isLocked (st : State) (c : Card) : Bool :=

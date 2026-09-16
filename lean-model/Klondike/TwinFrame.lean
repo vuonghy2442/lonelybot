@@ -751,10 +751,10 @@ def Move.twinClean (σ : Suit) : Move → Bool
 
 /-- The ρ-translation of a move: every card argument and every
 card-seat relabeled through ρ (the `Move.swapTwin` construction at a
-general twin map). -/
+general twin map; the reveal is anchor-indexed and stays put). -/
 def Move.relabelTwin (ρ : Card → Card) : Move → Move
   | .draw => .draw
-  | .reveal c => .reveal (ρ c)
+  | .reveal a => .reveal a
   | .deckPile c b => .deckPile (ρ c) (Base.relabel ρ b)
   | .deckStack c => .deckStack (ρ c)
   | .pileStack c => .pileStack (ρ c)
@@ -769,7 +769,7 @@ theorem Move.relabelTwin_relabelTwin {ρ : Card → Card} (hρ : Card.IsTwinMap 
     Move.relabelTwin ρ (Move.relabelTwin ρ m) = m := by
   cases m with
   | draw => rfl
-  | reveal c => show Move.reveal (ρ (ρ c)) = _; rw [hρ.invol c]
+  | reveal a => rfl
   | deckPile c b =>
       show Move.deckPile (ρ (ρ c)) (Base.relabel ρ (Base.relabel ρ b)) = _
       rw [hρ.invol c, Base.relabel_invol hρ b]
@@ -870,9 +870,9 @@ theorem State.depths_le_apply {S R : State} {m : Move} (hS : S.apply m = some R)
       rw [apply_draw_iff] at hS
       obtain rfl := hS
       intro a; exact Nat.le_refl _
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at hS
-      obtain ⟨-, r, a, bd, -, -, -, rfl⟩ := hS
+      obtain ⟨r, bd, htop, hbare, hatt, rfl⟩ := hS
       intro a'
       by_cases haa : a' = a
       · rw [haa]
@@ -1005,25 +1005,21 @@ theorem State.TwinCorr.apply_clean {ρ σ S M R m}
         h.heights_off, h.stacked_iff⟩, h.board_eq⟩
       show M.stock.dealOnce M.drawStep = S.stock.dealOnce S.drawStep
       rw [h.stock_eq, h.step_eq]
-  | reveal c =>
+  | reveal a =>
       rw [apply_reveal_iff] at hS
-      obtain ⟨htop, r, a, bd, hbot, hp, hatt, rfl⟩ := hS
-      have hrhid : r ∈ S.hidden a := State.mem_hidden_of_pileOfTopHidden hp
+      obtain ⟨r, bd, htop, hbare, hatt, rfl⟩ := hS
+      have hrhid : r ∈ S.hidden a := mem_of_getLast htop
       have hrr : ρ r = r := hhid a r hrhid
       have hhbM : M.hiddenBase a = S.hiddenBase a :=
         Frame.hiddenBase_congr h.deal_eq h.depths_eq a
-      have htopM : M.board.topOf (Sum.inr (ρ c)) = none := by
-        have hseat : Base.relabel ρ (Sum.inr (ρ c)) = Sum.inr c := by
-          show Sum.inr (ρ (ρ c)) = _
-          rw [h.isTwinMap.invol c]
-        rw [h.board_eq, hseat, htop]
+      have htopM : M.topHidden a = some r :=
+        (Frame.topHidden_congr h.deal_eq h.depths_eq a).trans htop
+      have hbareM : M.board.topOf (Sum.inr r) = none := by
+        rw [h.board_mapByRho, Board.mapByRho_topOf,
+          show Base.relabel ρ (Sum.inr r) = Sum.inr r from by
+            show Sum.inr (ρ r) = Sum.inr r
+            rw [hrr], hbare]
         rfl
-      have hbotM : M.board.bottomOf (ρ c) = some (Sum.inr r) := by
-        rw [h.board_mapByRho, Board.mapByRho_bottomOf, hbot, Option.map_some]
-        show some (Sum.inr (ρ r)) = _
-        rw [hrr]
-      have hpM : M.pileOfTopHidden r = some a :=
-        (Frame.pileOfTopHidden_congr h.deal_eq h.depths_eq r).trans hp
       have hHBfix : Base.relabel ρ (S.hiddenBase a) = S.hiddenBase a := by
         cases hHB : S.hiddenBase a with
         | inl a' => rfl
@@ -1038,7 +1034,7 @@ theorem State.TwinCorr.apply_clean {ρ σ S M R m}
       refine ⟨{M with
           board := Board.mapByRho h.isTwinMap bd,
           depths := fun a' => if a' = a then M.depths a - 1 else M.depths a'},
-        apply_reveal_iff.mpr ⟨htopM, r, a, Board.mapByRho h.isTwinMap bd, hbotM, hpM,
+        apply_reveal_iff.mpr ⟨r, Board.mapByRho h.isTwinMap bd, htopM, hbareM,
           by rw [hhbM]; exact hattM, rfl⟩, ?_⟩
       refine ⟨⟨h.isTwinMap, h.fixes_off, h.deal_eq, ?_, h.stock_eq, h.step_eq,
         h.heights_off, h.stacked_iff⟩, ?_⟩
@@ -1279,16 +1275,6 @@ under the NEW correspondence ρn, the two rungs equal) and the DROP
 (the worry-back — both games return one card, the rungs equal).  The
 excluded middle card is the moved pair itself (`x = q` / `x = flip q`
 or `x = c` / `x = flip c`), handled inline by the callers. -/
-
-/-- Same suit and rank is the same card. -/
-theorem Card.eq_of_suit_rank {x q : Card} (hs : x.suit = q.suit)
-    (hr : x.rank = q.rank) : x = q := by
-  cases x with
-  | mk xs xr =>
-      cases q with
-      | mk qs qr =>
-          rw [Card.mk.injEq]
-          exact ⟨hs, hr⟩
 
 /-- Two on-suit cards of the same rank are the pair (each rank has
 exactly one card per twin suit). -/
@@ -2496,6 +2482,64 @@ theorem Board.mem_aboveOf_attach_two {bd : Board} {d r w c₀ y : Card} {bd' : B
     exact Or.inl h1
   · exact Or.inr (Or.inl h1)
   · exact Or.inr (Or.inr h1)
+
+/-- The one-step attach decomposition: seating `r` on a bare `inr d`
+(nothing on `r` in the successor) grows the walk by `r` alone. -/
+theorem Board.mem_aboveOf_attach_one {bd : Board} {d r c₀ y : Card} {bd' : Board}
+    (hatt : bd.attach (Sum.inr d) r = some bd') (hfree : bd.topOf (Sum.inr d) = none)
+    (hrnone : bd'.topOf (Sum.inr r) = none)
+    (hy : y ∈ bd'.aboveOf c₀) : y ∈ bd.aboveOf c₀ ∨ y = r := by
+  have hgo : ∀ (n : Nat) (c₁ : Card) (acc : List Card),
+      y ∈ Board.aboveOf.go bd' n (Sum.inr c₁) acc →
+        y ∈ Board.aboveOf.go bd n (Sum.inr c₁) acc ∨ y = r := by
+    intro n
+    induction n with
+    | zero => intro c₁ acc hy; exact Or.inl hy
+    | succ m ih =>
+        intro c₁ acc hy
+        by_cases hcd : c₁ = d
+        · have hrd : bd'.topOf (Sum.inr c₁) = some r := by
+            rw [hcd]; exact Board.attach_topOf _ _ _ hatt
+          have hmd : bd.topOf (Sum.inr c₁) = none := by rw [hcd]; exact hfree
+          rw [Board.aboveOf_go_topOf_none hmd]
+          by_cases hcr : acc.contains r = true
+          · rw [Board.aboveOf_go_stop hrd hcr] at hy
+            exact Or.inl hy
+          · rw [Board.aboveOf_go_step hrd hcr] at hy
+            cases hm : m with
+            | zero =>
+                rw [hm] at hy
+                have hy' : y ∈ r :: acc := hy
+                rcases List.mem_cons.mp hy' with h1 | h1
+                · exact Or.inr h1
+                · exact Or.inl h1
+            | succ m' =>
+                rw [hm, Board.aboveOf_go_topOf_none hrnone] at hy
+                have hy' : y ∈ r :: acc := hy
+                rcases List.mem_cons.mp hy' with h1 | h1
+                · exact Or.inr h1
+                · exact Or.inl h1
+        · have hne : bd'.topOf (Sum.inr c₁) = bd.topOf (Sum.inr c₁) :=
+            Board.attach_topOf_ne _ _ _ hatt (fun hcon => hcd (Sum.inr.inj hcon))
+          cases hb : bd.topOf (Sum.inr c₁) with
+          | none =>
+              rw [hb] at hne
+              rw [Board.aboveOf_go_topOf_none hne] at hy
+              rw [Board.aboveOf_go_topOf_none hb]
+              exact Or.inl hy
+          | some c' =>
+              rw [hb] at hne
+              by_cases hcon : acc.contains c' = true
+              · rw [Board.aboveOf_go_stop hne hcon] at hy
+                rw [Board.aboveOf_go_stop hb hcon]
+                exact Or.inl hy
+              · rw [Board.aboveOf_go_step hne hcon] at hy
+                rw [Board.aboveOf_go_step hb hcon]
+                exact ih c' (c' :: acc) hy
+  rcases hgo 52 c₀ [] hy with h1 | h1
+  · rw [Board.aboveOf_eq_go (n := 52) (by omega)]
+    exact Or.inl h1
+  · exact Or.inr h1
 
 /-- One more fuel unit only extends the walk: the read either stops
 (the result is the accumulator, which the shorter walk already
@@ -4600,32 +4644,28 @@ theorem State.TwinCorrX.apply_stackPile_off {ρ σ S M X R c b}
 
 /-- **The reveal step in the frame**: the boundary card is
 deal-determined and every hidden card is `ρ`-fixed (`hhid`), so the
-mirror turns the same boundary `r` at the same `hiddenBase` — the
-cover conjugates (`hcX`), and the hiddenness of the under-card makes
-every walk-condition (the strands never read the landing seat, the
-extension stays out of the strands' columns) DERIVABLE rather than
-premised.  The two genuine shape premises: no strand sits at the
-mirror's landing seat (`hfree`), and none rides the mirror's cover
-(`hcov`). -/
-theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
+mirror reveals the same pile's boundary at the same `hiddenBase` —
+there is no trigger any more (the bare boundary IS the guard), and
+the hiddenness of the under-card makes every walk-condition (the
+strands never read the landing seat, the extension stays out of the
+strands' columns) DERIVABLE rather than premised.  The two genuine
+shape premises: no strand sits on the boundary's own seat (`hcov`),
+and none sits at the mirror's landing seat (`hfree`). -/
+theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R r a}
     (h : State.TwinCorrX ρ σ S M X)
     (hwf : S.WF)
     (hhid : ∀ a', ∀ c' ∈ S.hidden a', ρ c' = c')
-    (hcX : c ∉ X.map ρ)
-    (hS : S.apply (Move.reveal c) = some R)
-    (hbot : S.board.bottomOf c = some (Sum.inr r))
-    (hp : S.pileOfTopHidden r = some a)
-    (hcov : ∀ x ∈ X, M.board.bottomOf x ≠ some (Sum.inr (ρ c)))
+    (hS : S.apply (Move.reveal a) = some R)
+    (htop : S.topHidden a = some r)
+    (hcov : ∀ x ∈ X, M.board.bottomOf x ≠ some (Sum.inr r))
     (hfree : ∀ x ∈ X, M.board.bottomOf x ≠ some (S.hiddenBase a)) :
-    ∃ N, M.apply (Move.reveal (ρ c)) = some N ∧ State.TwinCorrX ρ σ R N X := by
+    ∃ N, M.apply (Move.reveal a) = some N ∧ State.TwinCorrX ρ σ R N X := by
   rw [apply_reveal_iff] at hS
-  obtain ⟨htop, r', a', bd, hbot', hp', hatt, rfl⟩ := hS
-  have hrr' : r' = r := Sum.inr.inj (Option.some.inj (hbot'.symm.trans hbot))
-  rw [hrr'] at hp' hatt
-  have haa' : a' = a := Option.some.inj (hp'.symm.trans hp)
-  rw [haa'] at hatt hp' ⊢
+  obtain ⟨r', bd, htop', hbare, hatt, rfl⟩ := hS
+  have hrr' : r' = r := Option.some.inj (htop'.symm.trans htop)
+  rw [hrr'] at htop' hbare hatt
   -- the boundary facts: hidden, ρ-fixed, invisible both sides
-  have hrhid : r ∈ S.hidden a := State.mem_hidden_of_pileOfTopHidden hp
+  have hrhid : r ∈ S.hidden a := mem_of_getLast htop
   have hrr : ρ r = r := hhid a r hrhid
   have hvir : S.isVis r = false := by
     have h1 := hwf.vis_not_hidden r
@@ -4653,23 +4693,19 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
         have hdr : ρ d = d := hhid a d (State.mem_hidden_of_hiddenBase hHB)
         show Sum.inr (ρ d) = Sum.inr d
         rw [hdr]
-  -- the mirror's guard pieces
-  have hbotc : S.board.topOf (Sum.inr r) = some c :=
-    (Board.bottomOf_eq S.board c (Sum.inr r)).mp hbot
-  have hcovM : M.board.topOf (Sum.inr r) = some (ρ c) := by
-    have h1 := h.top_some (Sum.inr r) c hbotc hcX
-    rw [show Base.relabel ρ (Sum.inr r) = Sum.inr (ρ r) from rfl, hrr] at h1
-    exact h1
-  have hbotM : M.board.bottomOf (ρ c) = some (Sum.inr r) :=
-    (Board.bottomOf_eq M.board (ρ c) (Sum.inr r)).mpr hcovM
-  have htopM : M.board.topOf (Sum.inr (ρ c)) = none := by
-    have h1 := h.top_none (Sum.inr c) htop (fun x hxX hcon => hcov x hxX (by
-      rw [show Base.relabel ρ (Sum.inr c) = Sum.inr (ρ c) from rfl] at hcon
+  -- the mirror's guards: the same boundary at the same base, bare both sides
+  have htopM : M.topHidden a = some r :=
+    (Frame.topHidden_congr h.core.deal_eq h.core.depths_eq a).trans htop
+  have hbareM : M.board.topOf (Sum.inr r) = none := by
+    have h1 := h.top_none (Sum.inr r) hbare (fun x hxX hcon => hcov x hxX (by
+      rw [show Base.relabel ρ (Sum.inr r) = Sum.inr r from by
+        show Sum.inr (ρ r) = Sum.inr r
+        rw [hrr]] at hcon
       exact hcon))
-    rw [show Base.relabel ρ (Sum.inr c) = Sum.inr (ρ c) from rfl] at h1
+    rw [show Base.relabel ρ (Sum.inr r) = Sum.inr r from by
+      show Sum.inr (ρ r) = Sum.inr r
+      rw [hrr]] at h1
     exact h1
-  have hpM : M.pileOfTopHidden r = some a :=
-    (Frame.pileOfTopHidden_congr h.core.deal_eq h.core.depths_eq r).trans hp
   have hfreeS : S.board.topOf (S.hiddenBase a) = none :=
     ((Board.attach_eq_some_iff S.board (S.hiddenBase a) r).mp (by rw [hatt]; simp)).1
   have hfreeM : M.board.topOf (S.hiddenBase a) = none := by
@@ -4680,7 +4716,7 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
     exact h1
   -- the hidden under-card facts (whenever the landing seat is a card seat)
   have hdF : ∀ d : Card, S.hiddenBase a = Sum.inr d →
-      (ρ d = d ∧ M.isVis d = false ∧ S.isVis d = false ∧ d ≠ r ∧ d ≠ ρ c) := by
+      (ρ d = d ∧ M.isVis d = false ∧ S.isVis d = false) := by
     intro d hHB
     have hd : d ∈ S.hidden a := State.mem_hidden_of_hiddenBase hHB
     have hdr : ρ d = d := hhid a d hd
@@ -4690,21 +4726,37 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
       | false => rfl
       | true => exact (h1 h2 a hd).elim
     have hvM : M.isVis d = false := by rw [h.vis_iff d, hdr, hvS]
-    have hne1 : d ≠ r := by
-      intro hcon
-      rw [hHB] at hfreeS
-      rw [← hcon] at hbotc
-      exact absurd (hbotc.symm.trans hfreeS) (by simp)
-    have hne2 : d ≠ ρ c := by
-      intro hcon
-      have h1 : S.isVis c = true := by
-        show (S.board.bottomOf c).isSome = true
-        rw [hbot]
-        rfl
-      have h2 : M.isVis (ρ c) = true := by rw [h.vis_iff (ρ c), h.core.isTwinMap.invol c, h1]
-      rw [← hcon] at h2
-      exact absurd h2 (by rw [hvM]; simp)
-    exact ⟨hdr, hvM, hvS, hne1, hne2⟩
+    exact ⟨hdr, hvM, hvS⟩
+  -- the under-card differs from the boundary (the pile slice is
+  -- duplicate-free: the under-card sits strictly before the top's index)
+  have hdner : ∀ d : Card, S.hiddenBase a = Sum.inr d → d ≠ r := by
+    intro d hHB hcon
+    have hs : ((S.hidden a).reverse.drop 1).head? = some d := by
+      cases hh : ((S.hidden a).reverse.drop 1).head? with
+      | none => simp only [State.hiddenBase, hh] at hHB; exact absurd hHB (by simp)
+      | some d' =>
+          simp only [State.hiddenBase, hh] at hHB
+          exact congrArg some (Sum.inr.inj hHB)
+    obtain ⟨pre, hpre⟩ := hidden_split hs htop
+    have hlen : (S.hidden a).length = pre.length + 2 := by rw [hpre]; simp
+    have hdpt : (S.hidden a).length = S.depths a := by
+      show ((S.deal.piles a).take (S.depths a)).length = S.depths a
+      rw [List.length_take]
+      have := hwf.depths_le a
+      omega
+    have hsub : S.depths a - 1 = pre.length + 1 := by omega
+    have hs2 : S.deal.piles a = pre ++ d :: r :: (S.deal.piles a).drop (S.depths a) := by
+      have htd : S.deal.piles a = S.hidden a ++ (S.deal.piles a).drop (S.depths a) :=
+        (List.take_append_drop (S.depths a) (S.deal.piles a)).symm
+      rw [hpre] at htd
+      calc S.deal.piles a = (pre ++ [d, r]) ++ (S.deal.piles a).drop (S.depths a) := htd
+        _ = pre ++ d :: r :: (S.deal.piles a).drop (S.depths a) := by simp
+    have hnh : (S.deal.piles a).take (S.depths a - 1) = pre ++ [d] := by
+      have hsub2 : pre.length + 1 - pre.length = 1 := by omega
+      rw [hs2, hsub, List.take_append, take_length_succ_self, hsub2]
+      rfl
+    exact notMem_take_of_get (Deal.pile_noDup hwf.deal_wf a)
+      (topHidden_get (hwf.depths_le a) htop) (by rw [← hcon, hnh]; simp)
   -- the successor's seat kits
   have htopR : bd.topOf (S.hiddenBase a) = some r := Board.attach_topOf _ _ _ hatt
   obtain ⟨bd', hattM⟩ : ∃ bd', M.board.attach (S.hiddenBase a) r = some bd' := by
@@ -4721,16 +4773,10 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
   have hrelabel : ∀ b₁ b₂ : Base, Base.relabel ρ b₁ = Base.relabel ρ b₂ → b₁ = b₂ :=
     fun _ _ hcon => Base.relabel_inj h.core.isTwinMap hcon
   have hrvis : M.isVis r = false := by rw [h.vis_iff r, hrr, hvir]
-  have hcovvis : M.isVis (ρ c) = true := by
-    have h1 : S.isVis c = true := by
-      show (S.board.bottomOf c).isSome = true
-      rw [hbot]
-      rfl
-    rw [h.vis_iff (ρ c), h.core.isTwinMap.invol c, h1]
   refine ⟨{M with
       board := bd',
       depths := fun a' => if a' = a then M.depths a - 1 else M.depths a'},
-    apply_reveal_iff.mpr ⟨htopM, r, a, bd', hbotM, hpM,
+    apply_reveal_iff.mpr ⟨r, bd', htopM, hbareM,
       by rw [Frame.hiddenBase_congr h.core.deal_eq h.core.depths_eq a]; exact hattM, rfl⟩, ?_⟩
   refine ⟨⟨h.core.isTwinMap, h.core.fixes_off, h.core.deal_eq, ?_, h.core.stock_eq,
     h.core.step_eq, h.core.heights_off, h.core.stacked_iff⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -4848,7 +4894,7 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
           rw [hHB] at hcon
           exact absurd hcon (by simp)
       | inr d =>
-          obtain ⟨-, hvM, -, -⟩ := hdF d hHB
+          obtain ⟨-, hvM, -⟩ := hdF d hHB
           rw [hHB] at hcon
           have hyv : M.isVis y = true := by
             rcases List.mem_cons.mp hy with hyy | hy'
@@ -4869,7 +4915,7 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
           rw [hHB] at hcon
           exact absurd hcon (by simp)
       | inr d =>
-          obtain ⟨-, -, hvS, -, -⟩ := hdF d hHB
+          obtain ⟨-, -, hvS⟩ := hdF d hHB
           rw [hHB] at hcon
           have hyv : S.isVis y = true := by
             rcases List.mem_cons.mp hy with hyy | hy'
@@ -4898,7 +4944,7 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
           rw [hHB] at hcon
           exact absurd hcon (by simp)
       | inr d =>
-          obtain ⟨-, hvM, -, -⟩ := hdF d hHB
+          obtain ⟨-, hvM, -⟩ := hdF d hHB
           rw [hHB] at hcon
           have hyv : M.isVis y = true := by
             rcases List.mem_cons.mp hy' with hyy | hy''
@@ -4940,34 +4986,22 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
           rw [hstrc x hxX]
           exact h1
     | inr d =>
-        obtain ⟨hdr, hvM, -, hdne1, hdne2⟩ := hdF d hHB
+        obtain ⟨hdr, hvM, hvS⟩ := hdF d hHB
         by_cases hMread : d ∈ c₂ :: M.board.aboveOf c₂
-        · -- the walk reads the landing seat: decompose via the two-step lemma
+        · -- the walk reads the landing seat: the one-step extension
           have hy2 : y ∈ bd'.aboveOf c₂ := hy
           have hatt2 : M.board.attach (Sum.inr d) r = some bd' := by
             rw [← hHB]; exact hattM
           have hfree2 : M.board.topOf (Sum.inr d) = none := by
             rw [← hHB]; exact hfreeM
-          have hw1 : bd'.topOf (Sum.inr r) = some (ρ c) := by
-            rw [hNne _ (by
-              intro hcon
-              rw [hHB] at hcon
-              exact hdne1 (Sum.inr.inj hcon).symm)]
-            exact hcovM
-          have hw2 : bd'.topOf (Sum.inr (ρ c)) = none := by
-            rw [hNne _ (by
-              intro hcon
-              rw [hHB] at hcon
-              exact hdne2 (Sum.inr.inj hcon).symm)]
-            exact htopM
           have hbotcd : bd.topOf (Sum.inr d) = some r := by
             rw [← hHB]; exact htopR
-          have hbotcr : bd.topOf (Sum.inr r) = some c := by
-            rw [hRne _ (by
+          have hw1 : bd'.topOf (Sum.inr r) = none := by
+            rw [hNne _ (by
               intro hcon
               rw [hHB] at hcon
-              exact hdne1 (Sum.inr.inj hcon).symm)]
-            exact hbotc
+              exact hdner d hHB (Sum.inr.inj hcon).symm)]
+            exact hbareM
           -- Step 1: d ∈ ρ c₂ :: bd.walk(ρ c₂)
           have hstep1 : d ∈ ρ c₂ :: bd.aboveOf (ρ c₂) := by
             rcases List.mem_cons.mp hMread with hhead | htail
@@ -4996,19 +5030,16 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
                   exact h3
                 have h3 : d ∈ S.board.aboveOf (ρ x) := by rw [← hed]; exact he
                 obtain ⟨b₀, hb₀⟩ := Board.mem_aboveOf_seated h3
-                have hvS : S.isVis d = true := by
+                have hvS2 : S.isVis d = true := by
                   show (S.board.bottomOf d).isSome = true
                   rw [(Board.bottomOf_eq S.board d b₀).mpr hb₀]
                   rfl
-                rw [hdF d hHB |>.2.2.1] at hvS
-                exact absurd hvS (by simp)
+                rw [hdF d hHB |>.2.2] at hvS2
+                exact absurd hvS2 (by simp)
           -- Step 2: r ∈ ρ c₂ :: bd.walk(ρ c₂)
           have hstep2 : r ∈ ρ c₂ :: bd.aboveOf (ρ c₂) :=
             Board.mem_aboveOf_extend hstep1 hbotcd
-          -- Step 3: c ∈ ρ c₂ :: bd.walk(ρ c₂)
-          have hstep3 : c ∈ ρ c₂ :: bd.aboveOf (ρ c₂) :=
-            Board.mem_aboveOf_extend hstep2 hbotcr
-          rcases Board.mem_aboveOf_attach_two hatt2 hfree2 hw1 hw2 hy2 with h1 | h1 | h1
+          rcases Board.mem_aboveOf_attach_one hatt2 hfree2 hw1 hy2 with h1 | h1
           · -- y ∈ M.walk(c₂)
             rcases h.above_sub c₂ y h1 with h2 | h2 | ⟨x, hxX, h2⟩
             · obtain ⟨e, he, hey⟩ := List.mem_map.mp h2
@@ -5027,27 +5058,9 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R c r a}
                   rw [← hrr]
                   exact (congrArg ρ hhead).symm)
               rw [hc₂] at hy
-              have hwalkr : bd'.aboveOf r = [ρ c] := by
-                rw [Board.aboveOf_step_some hw1 (by
-                  rw [Board.aboveOf_step_none hw2]; simp),
-                  Board.aboveOf_step_none hw2]
-                rfl
-              rw [hwalkr] at hy
-              rcases List.mem_cons.mp hy with h1' | h1'
-              · rw [h1'] at hrvis
-                exact absurd hrvis (by rw [hcovvis]; simp)
-              · exact absurd h1' (by simp)
-            · exact Or.inl (List.mem_map.mpr ⟨r, htail, hrr⟩)
-          · -- y = ρ c: the placement via Step 3
-            rw [h1] at hy ⊢
-            rcases List.mem_cons.mp hstep3 with hhead | htail
-            · exfalso
-              have hc₂ : c₂ = ρ c :=
-                (h.core.isTwinMap.invol c₂).symm.trans (congrArg ρ hhead.symm)
-              rw [hc₂] at hy
-              rw [Board.aboveOf_step_none hw2] at hy
+              rw [Board.aboveOf_step_none hw1] at hy
               exact absurd hy (by simp)
-            · exact Or.inl (List.mem_map.mpr ⟨c, htail, rfl⟩)
+            · exact Or.inl (List.mem_map.mpr ⟨r, htail, hrr⟩)
         · -- the walk never reads the seat: congr + pre-above_sub
           have hcongr : bd'.aboveOf c₂ = M.board.aboveOf c₂ := by
             refine Board.aboveOf_congr ?_

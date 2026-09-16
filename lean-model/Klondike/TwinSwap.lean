@@ -78,9 +78,9 @@ theorem State.isVis_antimono {st st' : State} {m : Move} {x : Card}
     rw [h]
     show (st.board.bottomOf x).isSome = true
     exact Option.isSome_iff_exists.mpr ⟨b₀, hb₀⟩
-  | reveal c =>
+  | reveal a =>
     rw [apply_reveal_iff] at h
-    obtain ⟨-, r, a, bd, -, -, hatt, hst'⟩ := h
+    obtain ⟨r, bd, htop, hbare, hatt, hst'⟩ := h
     rw [hst']
     show (bd.bottomOf x).isSome = true
     have hds : (st.board.bottomOf x).isSome = true := Option.isSome_iff_exists.mpr ⟨b₀, hb₀⟩
@@ -200,12 +200,12 @@ theorem State.isVis_of_apply_of_not_mem_hidden {S R : State} {m : Move}
       rw [apply_draw_iff] at hS
       obtain rfl := hS
       exact absurd hin hout
-  | reveal c₀ =>
+  | reveal a₀ =>
       rw [apply_reveal_iff] at hS
-      obtain ⟨-, r, a₀, bd, -, hpile, hatt, hR⟩ := hS
+      obtain ⟨r, bd, htop, hbare, hatt, hR⟩ := hS
       by_cases haa : a₀ = a
       · -- the reveal stepped THIS pile's boundary down
-        rw [haa] at hpile hatt
+        rw [haa] at hatt htop
         have hink : c ∈ (S.deal.piles a).take (S.depths a) := hin
         have hRd : R.depths a = S.depths a - 1 := by
           rw [hR]
@@ -239,15 +239,11 @@ theorem State.isVis_of_apply_of_not_mem_hidden {S R : State} {m : Move}
               rcases List.mem_append.mp hink with h | h
               · exact absurd h houtk
               · rw [List.mem_singleton] at h; exact h
-            have htop : S.topHidden a = some c := by
+            have hth : S.topHidden a = some c := by
               show ((S.deal.piles a).take (S.depths a)).getLast? = some c
               rw [hk, hsplit, List.getLast?_append, hck]
               rfl
-            have hrc : r = c := by
-              have hp : S.topHidden a = some r :=
-                of_decide_eq_true (findFirst_mem _ _ _ hpile).2
-              rw [htop] at hp
-              exact (Option.some.inj hp).symm
+            have hrc : r = c := (Option.some.inj (hth.symm.trans htop)).symm
             have hatt2 : bd.topOf (S.hiddenBase a) = some r :=
               Board.attach_topOf _ _ _ hatt
             rw [hrc] at hatt2
@@ -333,6 +329,183 @@ theorem State.pileStack_mem_of_win_tableau {st w : State} {play : List Move}
   rcases htab with hvis | ⟨a, hin⟩
   · exact State.pileStack_mem_of_win hwf hrun hwin hvis
   · exact State.pileStack_mem_of_win_hidden hwf hrun hwin hin
+
+/-! ### The location conservation (§12.1's invariant, the location form)
+
+The count form of §12.1's conservation (52 = tableau + hidden + stock +
+foundations) needs every card to BE somewhere first.  `Located` is that
+location half: each card sits in one of the four regions (exactly one
+at WF: `vis_not_hidden`, `vis_off_cycle` and `founds_gone` pairwise
+separate them), and the class transfers along every move — the deck
+moves splice the played card out of the stock (deckPile re-seating it,
+deckStack founding it), the stack moves only trade foundation seats
+back to the tableau (`stackPile`'s own card; the rank gap separates the
+same-suit bystanders), and the hidden slice's only exit is the reveal
+that seats. -/
+
+/-- Cards are determined by their suit and rank (RELOCATED 2026-09-16
+from Klondike/TwinFrame.lean — the location conservation's rank-gap
+argument needed it below TwinExchange; TwinFrame's usages resolve to
+this one). -/
+theorem Card.eq_of_suit_rank {c₁ c₂ : Card}
+    (hs : c₁.suit = c₂.suit) (hr : c₁.rank = c₂.rank) : c₁ = c₂ := by
+  cases c₁ <;> cases c₂ <;> simp_all
+
+/-- Every card is somewhere: seated on the visible tableau, in a
+pile's hidden slice, in the stock's remaining cycle, or on a
+foundation. -/
+def State.Located (st : State) : Prop :=
+  ∀ c, st.isVis c = true ∨ (∃ a, c ∈ st.hidden a) ∨ c ∈ st.stock.cards ∨ st.onFound c = true
+
+/-- **Location conservation**: every move preserves `Located`.  The
+class transfers: the un-seating `pileStack` lands its own card on a
+foundation; the deck moves splice the played card out of the stock
+(deckPile re-seating it, deckStack founding it) and no other stock
+member is touched; the stack moves only trade foundation seats back to
+the tableau; the hidden slice's only exit is the reveal that seats. -/
+theorem State.located_apply {S R : State} {m : Move} (hS : S.apply m = some R)
+    (hloc : S.Located) : R.Located := by
+  intro c
+  rcases hloc c with hvis | ⟨a, hin⟩ | hstock | hfound
+  · -- seated: only its own pileStack unseats it, to a foundation
+    by_cases hme : m = Move.pileStack c
+    · rw [hme, apply_pileStack_iff] at hS
+      obtain ⟨_, _, _, hrk, hst'⟩ := hS
+      rw [hst']
+      refine Or.inr (Or.inr (Or.inr ?_))
+      show decide (c.rank.toIdx < (if c.suit = c.suit then S.heights c.suit + 1 else S.heights c.suit)) = true
+      rw [if_pos rfl]
+      exact decide_eq_true (by omega)
+    · exact Or.inl (State.isVis_antimono hS hvis hme)
+  · -- hidden: still hidden, or the reveal that exits seats it
+    by_cases hout : c ∈ R.hidden a
+    · exact Or.inr (Or.inl ⟨a, hout⟩)
+    · exact Or.inl (State.isVis_of_apply_of_not_mem_hidden hS hin hout)
+  · -- stock: draws keep it; the deck moves play only one card
+    cases m with
+    | draw =>
+        rw [apply_draw_iff] at hS
+        obtain rfl := hS
+        refine Or.inr (Or.inr (Or.inl ?_))
+        show c ∈ (S.stock.dealOnce S.drawStep).cards
+        rw [Cycle.dealOnce_cards]
+        exact hstock
+    | deckPile c₀ b =>
+        rw [apply_deckPile_iff] at hS
+        obtain ⟨hprev, _, bd, hatt, hst'⟩ := hS
+        rw [hst']
+        by_cases hc : c = c₀
+        · rw [hc]
+          exact Or.inl (Option.isSome_iff_exists.mpr ⟨b,
+            (Board.bottomOf_eq _ _ _).mpr (Board.attach_topOf _ _ _ hatt)⟩)
+        · refine Or.inr (Or.inr (Or.inl ?_))
+          have hget : S.stock.cards[S.stock.cursor - 1]? = some c₀ := by
+            unfold Cycle.prev at hprev
+            by_cases hz : S.stock.cursor = 0
+            · rw [if_pos hz] at hprev; simp at hprev
+            · rw [if_neg hz] at hprev; exact hprev
+          exact Cycle.mem_removeIdx_of_ne _ _ _ _ hget hc hstock
+    | deckStack c₀ =>
+        rw [apply_deckStack_iff] at hS
+        obtain ⟨hprev, hrk, hst'⟩ := hS
+        rw [hst']
+        by_cases hc : c = c₀
+        · rw [hc]
+          refine Or.inr (Or.inr (Or.inr ?_))
+          show decide (c₀.rank.toIdx < (if c₀.suit = c₀.suit then S.heights c₀.suit + 1 else S.heights c₀.suit)) = true
+          rw [if_pos rfl]
+          exact decide_eq_true (by omega)
+        · refine Or.inr (Or.inr (Or.inl ?_))
+          have hget : S.stock.cards[S.stock.cursor - 1]? = some c₀ := by
+            unfold Cycle.prev at hprev
+            by_cases hz : S.stock.cursor = 0
+            · rw [if_pos hz] at hprev; simp at hprev
+            · rw [if_neg hz] at hprev; exact hprev
+          exact Cycle.mem_removeIdx_of_ne _ _ _ _ hget hc hstock
+    | reveal c₀ =>
+        rw [apply_reveal_iff] at hS
+        obtain ⟨_, _, _, _, _, hst'⟩ := hS
+        rw [hst']
+        exact Or.inr (Or.inr (Or.inl hstock))
+    | pileStack c₀ =>
+        rw [apply_pileStack_iff] at hS
+        obtain ⟨_, _, _, _, hst'⟩ := hS
+        rw [hst']
+        exact Or.inr (Or.inr (Or.inl hstock))
+    | stackPile c₀ b =>
+        rw [apply_stackPile_iff] at hS
+        obtain ⟨_, _, _, _, hst'⟩ := hS
+        rw [hst']
+        exact Or.inr (Or.inr (Or.inl hstock))
+    | pilePile c₀ b =>
+        rw [apply_pilePile_iff] at hS
+        obtain ⟨_, _, _, _, _, _, hst'⟩ := hS
+        rw [hst']
+        exact Or.inr (Or.inr (Or.inl hstock))
+  · -- foundation: stackPile's own card returns to the tableau; the stack kinds only raise
+    cases m with
+    | draw =>
+        rw [apply_draw_iff] at hS
+        obtain rfl := hS
+        exact Or.inr (Or.inr (Or.inr hfound))
+    | reveal c₀ =>
+        rw [apply_reveal_iff] at hS
+        obtain ⟨_, _, _, _, _, hst'⟩ := hS
+        rw [hst']
+        exact Or.inr (Or.inr (Or.inr hfound))
+    | deckPile c₀ b =>
+        rw [apply_deckPile_iff] at hS
+        obtain ⟨_, _, _, _, hst'⟩ := hS
+        rw [hst']
+        exact Or.inr (Or.inr (Or.inr hfound))
+    | pilePile c₀ b =>
+        rw [apply_pilePile_iff] at hS
+        obtain ⟨_, _, _, _, _, _, hst'⟩ := hS
+        rw [hst']
+        exact Or.inr (Or.inr (Or.inr hfound))
+    | deckStack c₀ =>
+        rw [apply_deckStack_iff] at hS
+        obtain ⟨_, _, hst'⟩ := hS
+        rw [hst']
+        refine Or.inr (Or.inr (Or.inr ?_))
+        show decide (c.rank.toIdx < (if c.suit = c₀.suit then S.heights c.suit + 1 else S.heights c.suit)) = true
+        by_cases hcs : c.suit = c₀.suit
+        · rw [if_pos hcs]
+          exact decide_eq_true (by have := of_decide_eq_true hfound; omega)
+        · rw [if_neg hcs]
+          exact hfound
+    | pileStack c₀ =>
+        rw [apply_pileStack_iff] at hS
+        obtain ⟨_, _, _, _, hst'⟩ := hS
+        rw [hst']
+        refine Or.inr (Or.inr (Or.inr ?_))
+        show decide (c.rank.toIdx < (if c.suit = c₀.suit then S.heights c.suit + 1 else S.heights c.suit)) = true
+        by_cases hcs : c.suit = c₀.suit
+        · rw [if_pos hcs]
+          exact decide_eq_true (by have := of_decide_eq_true hfound; omega)
+        · rw [if_neg hcs]
+          exact hfound
+    | stackPile c₀ b =>
+        rw [apply_stackPile_iff] at hS
+        obtain ⟨hrk₀, _, bd, hatt, hst'⟩ := hS
+        rw [hst']
+        by_cases hc : c = c₀
+        · rw [hc]
+          exact Or.inl (Option.isSome_iff_exists.mpr ⟨b,
+            (Board.bottomOf_eq _ _ _).mpr (Board.attach_topOf _ _ _ hatt)⟩)
+        · refine Or.inr (Or.inr (Or.inr ?_))
+          show decide (c.rank.toIdx < (if c.suit = c₀.suit then S.heights c.suit - 1 else S.heights c.suit)) = true
+          by_cases hcs : c.suit = c₀.suit
+          · rw [if_pos hcs]
+            have hfound' : c.rank.toIdx < S.heights c.suit := of_decide_eq_true hfound
+            have hrk' : c₀.rank.toIdx + 1 = S.heights c.suit := by
+              rw [hcs]; exact hrk₀
+            have hne' : c.rank.toIdx ≠ c₀.rank.toIdx := by
+              intro hcc
+              exact hc (Card.eq_of_suit_rank hcs (Rank.toIdx_inj hcc))
+            exact decide_eq_true (by omega)
+          · rw [if_neg hcs]
+            exact hfound
 
 /-! ## §2. The twin cargo transfer
 
