@@ -124,6 +124,55 @@ theorem merge_rank_arith {t c z z' : Card}
   · cases hc : c.suit.color <;> cases hz : z.suit.color <;>
       cases ht : t.suit.color <;> simp_all
 
+/-! ## The wonky stratification's Layer 0 (the measure's calculus) -/
+
+/-- **The all-fits run descends**: when every card-edge in the board
+is a `canSitOn` fit, every member of a run is strictly below its root
+in rank (the rank grading instantiated at the fit potential — the
+Board-level grading is unconditional, no WF needed).  The
+contrapositive is the merge's engine: an ASCENDING run forces a
+non-fit edge. -/
+theorem allfit_run_descends {st : State}
+    (hfits : ∀ x y, st.board.topOf (Sum.inr x) = some y → canSitOn y x = true)
+    {c d : Card} (hmem : d ∈ st.board.aboveOf c) :
+    d.rank.toIdx < c.rank.toIdx := by
+  refine Board.aboveOf_grading (φ := fun x => x.rank.toIdx) ?_ c d hmem
+  intro x y h
+  have h1 := ((canSitOn_eq y x).mp (hfits x y h)).1
+  omega
+
+/-- **A live merge forces a non-fit edge**: with the license fits and
+the run passing `t` (whose rank `merge_rank_arith` pins at `c + 2`),
+the board cannot be all-fits — some visible card-edge violates the
+chaining rule.  This is the wonky stratification's engine: the
+consumption budget is nonzero exactly when merges are live, so a
+wonky-free board is merge-free along every play (the W₀ base case of
+the stratified induction). -/
+theorem merge_forces_nonfit {st : State} {t c z z' : Card}
+    (hz'z : z' = z.flipSuit)
+    (hfit : canSitOn z t = true) (hmerge : canSitOn c z' = true)
+    (hin : t ∈ st.board.aboveOf c) :
+    ¬(∀ x y, st.board.topOf (Sum.inr x) = some y → canSitOn y x = true) := by
+  intro hall
+  have hdesc := allfit_run_descends hall hin
+  obtain ⟨hrank, -⟩ := merge_rank_arith hz'z hfit hmerge
+  omega
+
+/-- **The merge's ascending edge, direct form**: the t-on-c relation
+(rank +2, `merge_rank_arith`'s pin) is not a fit — when `t` rides `c`,
+that edge is the wonky one the repairs consume (the dislodge
+destroys it, the re-landing replaces it with a fit). -/
+theorem merge_edge_nonfit {t c z z' : Card}
+    (hz'z : z' = z.flipSuit)
+    (hfit : canSitOn z t = true) (hmerge : canSitOn c z' = true) :
+    canSitOn t c = false := by
+  cases hcb : canSitOn t c with
+  | true =>
+      obtain ⟨h1, -⟩ := (canSitOn_eq t c).mp hcb
+      obtain ⟨hrank, -⟩ := merge_rank_arith hz'z hfit hmerge
+      omega
+  | false => rfl
+
 /-! ## The liveness and fit bridges -/
 
 /-- WF's `founds_gone` contrapositive: every VISIBLE card sits at or
@@ -233,6 +282,49 @@ theorem exchangeTwinCargo_topOf_off_pair {st : State} {t w : Card}
   rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
     Base.swapTwin_eq_self (fun h => hw₁ (Sum.inr.inj h))
       (fun h => hw₂ (Sum.inr.inj h))]
+
+/-- **The exchange preserves the all-fits property** (the edge-budget's
+equality through the exchange, edge-style): if every edge of `st`
+fits, then every edge of `st.exchangeTwinCargo t` fits.  The exchange
+replaces exactly two edges — the twin seats' riders — and ALL FOUR
+touched edges are fits: the license fits for the source pair, the
+fit-relation's twin-blindness (`canSitOn_flipSuit_right`, rfl — the
+relation reads only rank and color, both flip-invariant) for the
+swapped pair.  Every other edge is untouched (off-pair).  With the
+involution, the non-fit budgets of `st` and `stx` are EQUAL — the
+mirror inherits the source's wonky budget. -/
+theorem exchange_allfit_of_allfit {st : State} {t z z' : Card}
+    (hbotZ : st.board.bottomOf z = some (Sum.inr t))
+    (hbotZ' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hall : ∀ x y, st.board.topOf (Sum.inr x) = some y → canSitOn y x = true) :
+    ∀ x y, (st.exchangeTwinCargo t).board.topOf (Sum.inr x) = some y →
+      canSitOn y x = true := by
+  have hztop : st.board.topOf (Sum.inr t) = some z :=
+    (Board.bottomOf_eq st.board z (Sum.inr t)).mp hbotZ
+  have hz'top : st.board.topOf (Sum.inr t.flipSuit) = some z' :=
+    (Board.bottomOf_eq st.board z' (Sum.inr t.flipSuit)).mp hbotZ'
+  have hswT : Base.swapTwin t (Sum.inr t) = Sum.inr t.flipSuit := by
+    show Sum.inr (Card.swapTwin t t) = Sum.inr t.flipSuit
+    rw [Card.swapTwin_self_left]
+  have hswT' : Base.swapTwin t (Sum.inr t.flipSuit) = Sum.inr t := by
+    show Sum.inr (Card.swapTwin t t.flipSuit) = Sum.inr t
+    rw [Card.swapTwin_self_right]
+  intro x y hedge
+  by_cases hx : x = t
+  · rw [hx, State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hswT,
+        hz'top] at hedge
+    have hy : y = z' := (Option.some.inj hedge).symm
+    rw [hx, hy]
+    exact (canSitOn_flipSuit_right z' t).symm.trans hfit'
+  by_cases hx' : x = t.flipSuit
+  · rw [hx', State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hswT',
+        hztop] at hedge
+    have hy : y = z := (Option.some.inj hedge).symm
+    rw [hx', hy]
+    exact (canSitOn_flipSuit_right z t.flipSuit).symm.trans hfit
+  · rw [exchangeTwinCargo_topOf_off_pair hx hx'] at hedge
+    exact hall x y hedge
 
 /-- **The bare-cargo arm of the dislodge-existence trichotomy**: when
 nothing rides `z` (the blocker absent), the mirror merge
