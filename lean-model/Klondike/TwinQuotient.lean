@@ -1704,6 +1704,42 @@ theorem Board.aboveOf_run_root_of_chain {bd : Board} {c r : Card} :
         · exact absurd h hrne
         · exact h
 
+/-- **Every run card has a card under it**: the walk reads only card
+seats, so anything it collects sits on some card — an anchor-based
+card is never collected by a walk that starts at a card.  The fuel
+form (the accumulator disjunct for the already-seeded cards). -/
+theorem Board.aboveOf_card_base {bd : Board} :
+    ∀ (n : Nat) (b : Base) (acc : List Card) (z : Card),
+      (∃ w : Card, b = Sum.inr w) →
+      z ∈ Board.aboveOf.go bd n b acc →
+      z ∈ acc ∨ ∃ u : Card, bd.topOf (Sum.inr u) = some z := by
+  intro n
+  induction n with
+  | zero => intro b acc z _ hz; exact Or.inl hz
+  | succ k ih =>
+      intro b acc z hb hz
+      cases ht : bd.topOf b with
+      | none => rw [Board.aboveOf_go_topOf_none ht] at hz; exact Or.inl hz
+      | some c' =>
+          by_cases hcon : acc.contains c' = true
+          · rw [Board.aboveOf_go_stop ht hcon] at hz; exact Or.inl hz
+          · rw [Board.aboveOf_go_step ht (fun h => hcon h)] at hz
+            rcases ih (Sum.inr c') (c' :: acc) z ⟨c', rfl⟩ hz with h | h
+            · rcases List.mem_cons.mp h with rfl | h'
+              · obtain ⟨w, hw⟩ := hb
+                refine Or.inr ⟨w, ?_⟩
+                rw [hw] at ht
+                exact ht
+              · exact Or.inl h'
+            · exact Or.inr h
+
+/-- The membership form: every card of a run sits on some card. -/
+theorem Board.aboveOf_card_base_of_mem {bd : Board} {y z : Card}
+    (hz : z ∈ bd.aboveOf y) : ∃ u : Card, bd.topOf (Sum.inr u) = some z := by
+  rcases Board.aboveOf_card_base 52 (Sum.inr y) [] z ⟨y, rfl⟩ hz with h | h
+  · exact absurd h (by simp)
+  · exact h
+
 /-- **Walk comparability** (the tail-fact): two distinct cards
 collected by the same walk are comparable — the later-collected is
 above the earlier.  The engine is the seeded-walk bound (session-7):
