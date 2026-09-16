@@ -595,7 +595,7 @@ cascade obligation. -/
 theorem merge_ply_cases {st : State} {z : Card} :
     st.board.topOf (Sum.inr z) = none ∨ ∃ r, st.board.bottomOf r = some (Sum.inr z) := by
   cases hz : st.board.topOf (Sum.inr z) with
-  | none => exact Or.inl hz
+  | none => exact Or.inl rfl
   | some r => exact Or.inr ⟨r, (Board.bottomOf_eq st.board r (Sum.inr z)).mpr hz⟩
 
 /-- Arm (c)'s king case, in the existential form `dislodge_reland`
