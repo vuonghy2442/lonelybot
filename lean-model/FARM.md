@@ -288,7 +288,8 @@ premise).
 
 | item | file:line | tag | route |
 |---|---|---|---|
-| `solvable_cargoTwin_exchange` (both-occupied iff) | TwinExchange:1007 | [H] | **REPAIRED `+hwf` (2026-09-14, session 7) — the gate FIRED on the merge shape**: the premiseless form is REFUTED by the witness at Temp/opencode/w15merge.lean (#eval, re-verified against the real definitions at Temp/opencode/w15mergecheck.lean: a crafted non-WF state — empty deal, heights past visible cards — where the 3-move win goes through the MERGE `pilePile ♥10 (inr ♣J)`, while the exchanged state is FROZEN: its whole reachable space is two states, the second with zero legal moves; the merge self-lands there and every dodge is blocked — the strays sit at foundation-passed ranks, all anchors occupied, the mirror landing blocked by a crafted tenant).  The repair kills the witness via founds_gone/board_edges — the session-6 phantom-stack finding realized; symmetric (the exchange preserves WF: swapped edges legal-seated by twin-blindness) and non-vacuous at every engine state.  Mechanics otherwise COMPLETE (sessions 3-5): the freedom-first bridge; mirror steps for all six non-freedom kinds; `Board.aboveOf_sub_detach` LANDED.  The user's session-7 correction**: t-passing runs landing OFF both cargo stacks mirror fine — the merge is EXACTLY the cargo-stack landing; the step lemma's v2 guard is LANDED (`Board.selfLanding_exchangeTwin_of_off_cargo`, on the walk-bound `Board.aboveOf_exchangeTwin_bound` + the attach-growth law `Board.mem_aboveOf_attach` + the seeded-walk bounds — sessions 6-7).  Remaining: the WF stack-free derivations, the h₀/hvis transfers, the step-lemma v2 wiring, the assembly.  **The sole open gap (at WF)**: the merge — normalization ("winning plays avoid cargo-top merges") or the B&G piecewise bookkeeping.  Premise arithmetic: `z' = z.flipSuit` forced; `canSitOn_hosts_are_twins` (LANDED) is the seat lock |
+| `solvable_cargoTwin_exchange` (both-occupied iff) | TwinExchange:1007 | [H] | **REPAIRED `+hwf` (2026-09-14, session 7) — the gate FIRED on the merge shape**: the premiseless form is REFUTED by the witness at Temp/opencode/w15merge.lean (#eval, re-verified against the real definitions at Temp/opencode/w15mergecheck.lean: a crafted non-WF state — empty deal, heights past visible cards — where the 3-move win goes through the MERGE `pilePile ♥10 (inr ♣J)`, while the exchanged state is FROZEN: its whole reachable space is two states, the second with zero legal moves; the merge self-lands there and every dodge is blocked — the strays sit at foundation-passed ranks, all anchors occupied, the mirror landing blocked by a crafted tenant).  The repair kills the witness via founds_gone/board_edges — the session-6 phantom-stack finding realized; symmetric (the exchange preserves WF: swapped edges legal-seated by twin-blindness) and non-vacuous at every engine state.  Mechanics otherwise COMPLETE (sessions 3-5): the freedom-first bridge; mirror steps for all six non-freedom kinds; `Board.aboveOf_sub_detach` LANDED.  The user's session-7 correction**: t-passing runs landing OFF both cargo stacks mirror fine — the merge is EXACTLY the cargo-stack landing; the step lemma's v2 guard is LANDED (`Board.selfLanding_exchangeTwin_of_off_cargo`, on the walk-bound `Board.aboveOf_exchangeTwin_bound` + the attach-growth law `Board.mem_aboveOf_attach` + the seeded-walk bounds — sessions 6-7).  Remaining: **UPDATE 2026-09-16 — all LANDED**: the h₀/hvis transfers, the WF stack-free derivations (`twinLicensed_attach` on `State.topOf_inr_eq_none`), the v2 wiring, and the assembly itself (the [M] g-simulation `solvable_exchangeTwinCargo_go` — the play induction with the license re-seating at every step, all seven kinds dispatched, the freedom-first bridges at both cargo sides, the seat lock killing `pilePile z`/`pilePile z'` pre-freedom).  The row's sole remaining content: the two merge bridges (`solvable_of_exchange_merge` TwinQuotient:647, `solvable_of_exchange_merge_rooted` TwinQuotient:3080) — normalization or the B&G piecewise bookkeeping; the clean-stacks form below needs neither.  Premise arithmetic: `z' = z.flipSuit` forced; `canSitOn_hosts_are_twins` (LANDED) is the seat lock |
+| ~~`solvable_cargoTwin_exchange_of_visClean`~~ (both-occupied iff, clean-stacks) | TwinQuotient:3800 | **done** (2026-09-16) | The reachable-states form — the row's premise bundle **plus `hvc : st.visClean`** gives the iff, PROVEN with no bridge consulted (every reachable state qualifies via `initialReachable_visClean`).  Engine: `solvable_exchangeTwinCargo_go_gen` — the assembly's induction parameterized by (i) the two merge bridges taken with the license OPEN (its eight facts, so the handler's z/z' is syntactically the landing premise's — a bundled `twinLicensed` handler re-binds fresh witnesses and cannot feed the impossibility lemmas) and (ii) a riding invariant `P`; the WF instance re-derives the original `_go` verbatim (`P := fun _ => True`, handlers = the two sorry'd bridges — the WF-level route untouched), the clean instance (`_go_clean`: `P := visClean` via `apply_visClean`) closes both merge corners by contradiction — `merge_impossible_of_visClean` (passing) + the new `merge_rooted_impossible_of_visClean` (Restriction:588 — rooted: the landing fit puts the card one ABOVE the twin, the clean-walk descent pins it strictly BELOW the other cargo).  Backward direction: the involution + `wf_exchangeTwinCargo_of_twinLicensed` + `twinLicensed_exchangeTwinCargo` + the new `visClean_exchangeTwinCargo` (the only swapped edges are the two cargo-on-twin seats, re-fitted by `canSitOn_swapTwin_right`).  Axioms [propext, Classical.choice, Quot.sound] (row) / [propext, Quot.sound] (core); TwinQuotient now imports Restriction |
 | ~~`solvable_cargoTwin_exchange_bare`~~ (bare-twin, move-free) | TwinExchange | **done** (2026-09-14) | PROVEN via the *backward* realization (`exchangeTwinCargo_pilePile_back`): from the exchanged state the cargo's pilePile onto its original twin is legal and lands on the original — the exchange is one move from the original, and the win replays through it.  The twin card is never consulted, so the statement was STRENGTHENED: the planned `hzone`/`hwf` premises dropped, phantom twins (stocked/buried/foundationed) covered for free |
 
 **Refute-first gate — HALF-FIRED (2026-09-14, session 7)**: the
@@ -396,6 +397,56 @@ on all three branches.  The mixed consumers' re-firing premise now
 reduces to the source firing + the schedule's own shape premises;
 the successor's window-solvability (L1/O0) is the sole remaining
 half.
+
+**Session note (2026-09-16, night — the fusion point MAPPED, the
+hybrid ladder's floor BANKED)**: `solvable_cargoTwin_exchange` at
+visClean is DONE (the user's `go_clean` + the impossibility — banked
+unconditionally).  The pure-WF statement's remaining content is
+exactly the two merge bridges, and the collapse lane's front half is
+proven: the trichotomy skeleton (`merge_ply_cases` +
+`mirror_fires_of_bare` + `blocker_leaves_mirror` +
+`dislodge_reland`/`park_reland` + `mirror_of_bare_rung`), the
+discipline chain (`unseats_imp_pileStack` — the only unseating move
+is the card's own pileStack; `same_suit_no_stack` + `founded_not_in_aboveOf`
++ the §12.1 extraction = the same-suit cascade arm: the twin MUST
+dislodge on any winning line), and `merge_rank_arith`.  **The
+fusion point** — where the collapse lane meets the window lane —
+needs exactly two glue lemmas, both now sharp:
+
+1. **THE CORRESPONDENCE AT THE AFTERMATH**: `twinCorr_of_ply`
+   (TwinBridge) builds `TwinCorr (swapTwin z) z.suit S M` from the
+   board-conjugation data (`M.board = S.board.mapByTwin z`,
+   deal/heights/depths/stock equal, both cargos visible).  The
+   collapse aftermaths give exactly that data shape —
+   `dislodge_reland`/`mirror_fires_of_bare` conclude `s₂.board.topOf
+   (Sum.inr z') = some c ∧ topOf (Sum.inr d) = none ∧ heights/stock/
+   depths preserved` — so the glue is: the aftermath `s₂` equals
+   `a₁.mapByTwin`-shape for the source's merge successor `a₁` (the
+   seat-level matching of the composite's conclusion against
+   `mapByTwin`'s pointwise action), then `twinCorr_of_ply` applies
+   verbatim.  `blocker_leaves_mirror`'s height bump (the blocker's
+   rung) is the wrinkle: the correspondence's `M.heights = S.heights`
+   clause needs the heights difference absorbed — either by running
+   the correspondence at the pre-stack state (the §5 growth
+   precedent: the first pair-stack inside the window), or the
+   TwinCorrX strand form.
+
+2. **L1/O0 AT THE AFTERMATH**: the source's `a₁` is plain-solvable
+   (the handler's premise); the climb-out needs
+   `solvableWindow'`.  The aftermath-shape question: at the merged
+   configuration (c on z', the pair colocated), does the head's
+   equalization come cheap?  The landed tail classes
+   (`TailClimbClean` with both climb sources,
+   `playWindow'_of_rescheduled`, `append_nostack`) cover the
+   post-equalization tail; the head is the open half, and the
+   trichotomy's forcing may present it well-shaped (the blocker's
+   stack = the first pair-rung climb, already played).
+
+The lane split at the fusion: the collapse lane composites the
+discipline chain into the forcing theorem; the window lane derives
+the correspondence + assesses the aftermath head.  Both glue lemmas
+live in MergeFire (the correspondence) and TwinReplay (the window
+premises) — no file collisions.
 
 **Session note (2026-09-16, close — the column composition LANDED)**:
 `State.exchangeDoubleClear_of_columns` (TwinBridge §12.3, axiom-clean
