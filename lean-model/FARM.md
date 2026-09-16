@@ -430,6 +430,27 @@ CleanAt run-replay, `exchangeTwinCargo_step_pilePile`), and
 existence (the landing's new seat, via the clean-stacks theorem's
 candidate analysis) is the next session's construction.
 
+**Follow-up (the mixed schedule's firing-half — the design mapped)**:
+`merge_refires_mixed` (not yet landed) would derive the re-firing
+half of `exchangeDoubleClear_of_sched_mixed`'s `hstep` premise from
+the source firing, completing `merge_refires_clean`'s premise
+reduction to the window side for the FULL mixed schedule.  The
+design: (i) the CleanStack segment's guards-transfer is
+`merge_refires_clean` verbatim; (ii) the DETOUR segment's transfer —
+the root's base via `State.apply_pilePile_bottomOf` (r₁ ≠ c), the
+landing base's freeness via the attach/detach `topOf_ne` pair (the
+firing's b₀ ≠ b automatic: topOf b₀ = some r₁ ≠ none), the landing
+card's visibility via `apply_pilePile_bottomOf` (r₁ ≠ d) or the
+root-reseating (d = r₁: the new base β is some); (iii) the
+contains-guard `d ∉ aboveOf c` needs the walk-ENTRY fact —
+`mem_aboveOf_attach` is too coarse (its third disjunct covers the
+whole moved run regardless of connection) — the sharp form: every
+S₀-path from c uses the new attach edge (else it exists in Sₛ), so
+the β-card is on the c-walk, contra the premise — formalizable via
+the `aboveOf_pred`-family's walk induction (TwinQuotient's
+pred-reaches pair).  With (i)-(iii), the mixed consumers' `hstep`
+reduces to the source firing + the schedule's own premises.
+
 **Follow-up (the admission-composition kit)**:
 `State.playWindow'_append_nostack` (TwinBridge, axiom-clean
 [propext, Quot.sound]) — the pre-episode admission composes over a
