@@ -2187,3 +2187,12 @@ tree).
   consumes).  The trichotomy's remaining corner is now sharp: a COVERED or NON-RUNG blocker and a king-with-no-free-anchor (or non-king)
   twin -- the cascade + counting residues, both play-level.  All sorry-free, axiom-clean [propext, Quot.sound].  SYNTAX: `cases hz : e`
   abstracts e in the goal -- the none-arm becomes `rfl`, not `hz` (the same class as the park_king_run finding).
+
+- THE SAME-SUIT DISCIPLINE'S CORE LANDED (same session, sixth batch): founded_not_in_aboveOf (a founded card has an EMPTY RUN
+  at WF -- the first edge's buried-base clause needs the root seated-or-hidden-boundary, and founds_gone refutes both: the general
+  exclusion, useful beyond the merge); same_suit_no_stack (the discipline: a same-suit twin sitting above c with t.rank = c.rank + 2 --
+  merge_rank_arith's pin -- can NEVER stack while above c); merge_run_not_stackable (the merge-ply packaging over the license fits).
+  WITH the sibling's 12.1 extraction corollary ("every tableau card stacks in a win"), the same-suit case of the trichotomy's cascade
+  arm CLOSES: t must stack on a winning line, same-suit t-above-c cannot, hence t must DISLODGE (pilePile) in the source -- the
+  source-side dislodge the exchange correspondence then relates to the mirror's collapse.  The cascade residue shrinks to the
+  DIFFERENT-suit blocker cases.  All sorry-free; founded_not_in_aboveOf rides [propext] alone.

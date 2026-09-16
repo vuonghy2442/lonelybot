@@ -137,6 +137,61 @@ theorem wf_vis_rank {st : State} (hwf : st.WF) {c : Card} (hvis : st.isVis c = t
     rw [(hwf.founds_gone c hlt).1] at hvis
     simp at hvis
 
+/-! ## The founded-run exclusion (the same-suit discipline's core) -/
+
+/-- **A founded card has an empty run at WF**: nothing can sit above a
+foundation-passed card.  The first edge of any run would need its base
+(the founded card) still seated (board_edges' buried-base clause) or a
+hidden boundary — and `founds_gone` refutes both. -/
+theorem founded_not_in_aboveOf {st : State} (hwf : st.WF) {c y : Card}
+    (hc : c.rank.toIdx < st.heights c.suit) (hy : y ∈ st.board.aboveOf c) : False := by
+  obtain ⟨hvis, -, hhid⟩ := hwf.founds_gone c hc
+  rw [State.isVis] at hvis
+  cases htop : st.board.topOf (Sum.inr c) with
+  | none =>
+      rw [Board.aboveOf_step_none htop] at hy
+      cases hy
+  | some w =>
+      obtain ⟨-, hedge⟩ := hwf.board_edges (Sum.inr c) w htop
+      rcases hedge with ⟨a, l, rest, -, hbase⟩ | ⟨hbcs, -⟩
+      · rcases hbase with ⟨a', hth⟩ | hcs
+        · exact hhid a' (mem_of_getLast hth)
+        · rw [hvis] at hcs
+          simp at hcs
+      · rw [hvis] at hbcs
+        simp at hbcs
+
+/-- **The same-suit no-stack discipline**: at WF, the twin `t` inside a
+same-suit merge run (where `merge_rank_arith` pins `t.rank =
+c.rank + 2`) can NEVER stack while it sits above `c` — the stack exit
+is closed, leaving the dislodge (`pilePile`) as the only way out.
+The winning-line discipline's core, state-level;  the play-level
+partner (every tableau card stacks in a win) is the §12.1 extraction
+corollary — together they force a source-side dislodge for same-suit
+winning merges. -/
+theorem same_suit_no_stack {st : State} (hwf : st.WF) {t c : Card}
+    (hsuit : t.suit = c.suit)
+    (hrank : t.rank.toIdx = c.rank.toIdx + 2)
+    (habove : t ∈ st.board.aboveOf c) :
+    t.rank.toIdx ≠ st.heights t.suit := by
+  intro hstack
+  have hc : c.rank.toIdx < st.heights c.suit := by
+    rw [← hsuit]; omega
+  exact founded_not_in_aboveOf hwf hc habove
+
+/-- The merge-ply form: with the license fits and the run passing `t`
+above `c`, a same-suit twin is not at its rung — `merge_rank_arith`
+composed with `same_suit_no_stack`. -/
+theorem merge_run_not_stackable {st : State} (hwf : st.WF) {t c z z' : Card}
+    (hsuit : t.suit = c.suit)
+    (hz'z : z' = z.flipSuit)
+    (hfit : canSitOn z t = true)
+    (hmerge : canSitOn c z' = true)
+    (habove : t ∈ st.board.aboveOf c) :
+    t.rank.toIdx ≠ st.heights t.suit := by
+  obtain ⟨hrank, -⟩ := merge_rank_arith hz'z hfit hmerge
+  exact same_suit_no_stack hwf hsuit hrank habove
+
 /-! ## The exchange connectors (the aftermath premises, standalone) -/
 
 /-- The exchange's signature, seat form: the cargo `z'` of `t'` rides
