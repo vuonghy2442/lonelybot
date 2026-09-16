@@ -320,14 +320,37 @@ conservation: the deal's pile slices are constants of the motion, the
 only `depths` writer is the reveal stepping one boundary down, the
 leaving card being exactly the revealed one) plus the win-induction's
 hidden side `State.pileStack_mem_of_win_hidden` (the terminal
-`founds_gone` forces the exit).  The count form (52-partition of
-`Card.universe`) stays unformalized — nothing downstream cites it.
+`founds_gone` forces the exit).  The count form's location half is
+now LANDED too (`State.Located` + `State.located_apply`, same session:
+every card seated/hidden/stock/founded, the class transferring along
+every move — the deck moves splicing the played card, the rank gap
+separating `stackPile`'s same-suit bystanders); only the partition
+arithmetic (52 = |classes|) remains unformalized — nothing downstream
+cites it.
 Census: TwinSwap stays 0 (the new lemmas are proven); TwinQuotient
 pinned at 2 (the merge bridges — the census entry predating commit
 9a40232's file).  Remaining for [H]/[H′]: the three named premises
 (`ExchangeRiderPrefix`/`ExchangeDeepNorm` + rooted readings) and the
 §12.3 residuals (the deckStack partner-past arm, the worry-back
 anti-skews, the schedule existence, the successor's window transfer).
+
+**Session note (2026-09-16, later — the reveal rule REPAIRED to the
+physical flip)**: `Move.reveal` is anchor-indexed and legal exactly
+when the pile's boundary is bare (commit c5c6904).  The pre-repair
+trigger-card rule admitted unphysical covered flips AND starved
+exposed boundaries — the dead-pile pathology (the B4/Dominance
+hnotlock guards' original motivation) was an artifact of it, retired
+with the witnesses reframed historical (the accommodation successor
+now REVIVES: `[reveal a, pileStack r]` — `wState1_solvable` pinned at
+both witnesses).  **The fresh B4 question**: whether the `hnotlock`
+premise can be dropped — the locked successor's boundary is now a
+normal visible top after the flip, so the stranding corner is gone;
+but the crux's remaining content (`rungNormal_or_forcedPark`'s
+normal-form characterization — the (B, L) descent, the (c-α)/(c-β)
+sub-gaps) is unchanged by the repair.  The reveal-dependent machinery
+survived: `apply_wf`, the mirror steps, the license transfers, the
+extraction family — all re-verified under the new rule (build green,
+census pinned at 14, unchanged).
 
 Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
 etc.).  **Dependency note**: W4's reformulation (the W-repair at the
