@@ -3299,6 +3299,44 @@ theorem State.playWindow'_append_heightBlind {z : Card} {σ : Suit} :
       exact ih R T tail hrest1 (fun m' hm' => hkinds m' (List.mem_cons_of_mem _ hm'))
         htail
 
+/-- **The pre-episode admission composes over a routing-free prefix**:
+a segment containing NO `pileStack` (the six kinds whose pre-arms
+stay `.pre` unconditionally — only a stack's failed-skew pair card
+routes to the mid-episode), itself pre-admitted and running from `S`
+to `S₀`, extends any pre-admitted tail at `S₀` — the per-move
+admission threads through the concatenation.  The L1/O0 transfer's
+consumers assemble their admissions this way: the raiser head (the
+deckStacks and the off-pair climbs), then the rescheduled body, then
+the equalized tail. -/
+theorem State.playWindow'_append_nostack {z : Card} {σ : Suit} :
+    ∀ (π₁ : List Move) (S S₀ : State) (π₂ : List Move),
+      (∀ q : Card, Move.pileStack q ∉ π₁) →
+      State.playWindow' z σ State.WindowEp.pre S π₁ = true →
+      S.run π₁ = some S₀ →
+      State.playWindow' z σ State.WindowEp.pre S₀ π₂ = true →
+      State.playWindow' z σ State.WindowEp.pre S (π₁ ++ π₂) = true := by
+  intro π₁
+  induction π₁ with
+  | nil =>
+      intro S S₀ π₂ _ _ hrun h2
+      obtain rfl := run_nil_elim hrun
+      exact h2
+  | cons m rest ih =>
+      intro S S₀ π₂ hstack h1 hrun h2
+      obtain ⟨R, hm, hrest⟩ := run_cons_elim hrun
+      cases m with
+      | pileStack q =>
+          exact absurd (show Move.pileStack q ∈ Move.pileStack q :: rest by simp)
+            (hstack q)
+      | draw | reveal _ | deckPile _ _ | pilePile _ _ =>
+          simp only [List.cons_append, State.playWindow', hm] at h1 ⊢
+          exact ih R S₀ π₂ (fun q hq => hstack q (List.mem_cons_of_mem _ hq)) h1 hrest h2
+      | deckStack _ | stackPile _ _ =>
+          simp only [List.cons_append, State.playWindow', hm] at h1 ⊢
+          rw [Bool.and_eq_true_iff] at h1 ⊢
+          exact ⟨h1.1, ih R S₀ π₂ (fun q hq => hstack q (List.mem_cons_of_mem _ hq))
+            h1.2 hrest h2⟩
+
 /-- **The selective re-scheduling normalization**: at a both-bare
 licensed state, a winning play whose head is the z-stacking followed by
 a z'-clean height-blind segment, the z'-stacking, and an arbitrary

@@ -410,6 +410,20 @@ rider — the deep-landing corners (the landing ON a cleared z'-rider)
 need the route's other machinery, and the schedule's consumer-side
 analysis of which landings satisfy it is the next session's map-work.
 
+**Follow-up (the admission-composition kit)**:
+`State.playWindow'_append_nostack` (TwinBridge, axiom-clean
+[propext, Quot.sound]) — the pre-episode admission composes over a
+routing-free prefix: a segment with no `pileStack` (only a stack's
+failed-skew pair card routes to the mid-episode; the six other kinds'
+pre-arms stay `.pre` unconditionally), itself pre-admitted and
+running `S → S₀`, extends any pre-admitted tail at `S₀`.  This is the
+L1/O0 transfer's assembly tool: the successor's admission will be
+built as [raiser head (deckStacks, no stackings) + the rescheduled
+body + the equalized tail], each piece admitted separately and glued
+by this lemma — the head's own admission (the pre-equalization skew
+arms) and the tail's worry-backs (residue (b)) stay the residue, but
+the gluing is now mechanical.
+
 Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
 etc.).  **Dependency note**: W4's reformulation (the W-repair at the
 crux ledger) already absorbs park cases via the swap — whether it needs
