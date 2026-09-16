@@ -4087,6 +4087,52 @@ theorem State.merge_refires_clean {st S₀ : State} {c : Card} {b : Base}
   rw [apply_pilePile_iff]
   exact ⟨β₀, hbotS, hneβ, hcmrS, bd', hatt', rfl⟩
 
+/-- **The rooted merge's landing candidates**: with `z` fit-seated on
+`t` (the license's `hfit`), any card hosting `t` sits exactly two
+ranks above `z` and in `z`'s color — in particular the landing is
+NEVER one of the four protected cards (the twins and the cargos: the
+rank arithmetic excludes them outright, `t`-rank `z.rank + 1` and
+`z`-rank `z.rank` against the landing's `z.rank + 2`).  This is the
+consumer-side seed for `merge_refires_clean`'s landing-survival
+premise: the landing is a plain outside card, and whether it is a
+cleared column member (the `[H]/[H′]` `hland` shapes — the schedule
+must RE-HOME it) or already off-column is exactly the schedule's
+remaining geometry choice. -/
+theorem State.rooted_merge_landing {t z y : Card}
+    (hfit : canSitOn z t = true) (hcy : canSitOn t y = true) :
+    y.rank.toIdx = z.rank.toIdx + 2 ∧ y.suit.color = z.suit.color ∧
+      y ≠ t ∧ y ≠ t.flipSuit ∧ y ≠ z ∧ y ≠ z.flipSuit := by
+  obtain ⟨hrz, hc⟩ := (canSitOn_eq z t).mp hfit
+  obtain ⟨hrt, hc'⟩ := (canSitOn_eq t y).mp hcy
+  refine ⟨by omega, ?_, ?_, ?_, ?_, ?_⟩
+  · -- the colors chain: z ≠ t, t ≠ y ⇒ z = y
+    cases hcz : z.suit.color with
+    | red =>
+        have htb : t.suit.color = Color.black :=
+          Color.eq_of_ne_red (fun hcon => hc (hcz.trans hcon.symm))
+        have hyr : y.suit.color = Color.red :=
+          Color.eq_of_ne_black (fun hcon => hc' (htb.trans hcon.symm))
+        rw [hyr]
+    | black =>
+        have htb : t.suit.color = Color.red :=
+          Color.eq_of_ne_black (fun hcon => hc (hcz.trans hcon.symm))
+        have hyr : y.suit.color = Color.black :=
+          Color.eq_of_ne_red (fun hcon => hc' (htb.trans hcon.symm))
+        rw [hyr]
+  · intro hcon
+    rw [hcon] at hrt
+    omega
+  · intro hcon
+    rw [hcon, Card.flipSuit_rank] at hrt
+    omega
+  · intro hcon
+    rw [hcon] at hrt
+    omega
+  · intro hcon
+    rw [hcon, Card.flipSuit_rank] at hrt
+    omega
+
+
 /-- **The column composition closes `ExchangeDoubleClear`**: the two
 FIRING rider-runs — `both_columns_clear`'s premises, exactly the
 schedule's structural skeleton — plus the merge's re-firing with a

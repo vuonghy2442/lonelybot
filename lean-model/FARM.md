@@ -410,6 +410,26 @@ rider — the deep-landing corners (the landing ON a cleared z'-rider)
 need the route's other machinery, and the schedule's consumer-side
 analysis of which landings satisfy it is the next session's map-work.
 
+**Follow-up (the landing geometry MAPPED — the schedule's shape
+constraint)**: `State.rooted_merge_landing` (TwinBridge, axiom-clean)
+— with `z` fit-seated on `t`, any card hosting `t` (the rooted
+merge's landing) sits exactly TWO ranks above `z`, in `z`'s color, and
+is NEVER one of the four protected cards (the rank arithmetic
+excludes the twins and the cargos outright).  **The consequence**:
+at the `[H]/[H′]` `hland` shapes the landing is a strict z'-column
+member — so the CLEANSTACK-ONLY double-clear schedule CANNOT serve
+the merge bridges: both columns clear (the both-bare premise), the
+landing is among the cleared, and the re-firing on its seat dies.
+The honest schedule is MIXED: CleanStack clearings for the column
+bulk PLUS pilePile re-homing for the landing card itself (detaching
+it off the column to a surviving seat — visible and bare — before
+the merge re-fires there; §13's "re-route, not commute" made
+concrete).  The mixed-run mirror replay exists in pieces (the
+CleanAt run-replay, `exchangeTwinCargo_step_pilePile`), and
+`merge_refires_clean` serves the CleanStack segments; the re-homing
+existence (the landing's new seat, via the clean-stacks theorem's
+candidate analysis) is the next session's construction.
+
 **Follow-up (the admission-composition kit)**:
 `State.playWindow'_append_nostack` (TwinBridge, axiom-clean
 [propext, Quot.sound]) — the pre-episode admission composes over a

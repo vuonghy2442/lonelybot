@@ -443,3 +443,130 @@ theorem initialReachable_anchorOK {st : State} (hreach : initialReachable st) :
       c.rank = Rank.king ∨ (st.deal.piles a).head? = some c := by
   intro a c htop
   exact ((initialReachable_visClean hreach).1.board_edges (Sum.inl a) c htop).2
+
+/-- The walk collects only rank-descending cards: at a board whose
+every edge with a visible base is clean (`canSitOn`), each member of
+a run is strictly below the root in rank.  Fuel induction carrying
+the root and the current root's visibility; the accumulator
+condition rides the collection. -/
+theorem Board.aboveOf_go_rank_lt {bd : Board}
+    (hclean : ∀ a b, bd.topOf (Sum.inr b) = some a → (bd.bottomOf b).isSome = true →
+      canSitOn a b = true) :
+    ∀ (n : Nat) (root c : Card) (acc : List Card),
+      (bd.bottomOf c).isSome = true →
+      c.rank.toIdx < root.rank.toIdx →
+      (∀ y ∈ acc, y.rank.toIdx < root.rank.toIdx) →
+      ∀ x, x ∈ Board.aboveOf.go bd n (Sum.inr c) acc →
+        x.rank.toIdx < root.rank.toIdx := by
+  intro n
+  induction n with
+  | zero =>
+      intro root c acc _ _ hacc x hx
+      exact hacc x hx
+  | succ n ih =>
+      intro root c acc hvis hc hacc x hx
+      rw [aboveOf_go_succ] at hx
+      cases hb : bd.topOf (Sum.inr c) with
+      | none => rw [hb] at hx; exact hacc x hx
+      | some c' =>
+          simp only [hb] at hx
+          have hvisc' : (bd.bottomOf c').isSome = true := by
+            have hbot := (Board.bottomOf_eq bd c' (Sum.inr c)).mpr hb
+            rw [hbot]; rfl
+          have hcc' : canSitOn c' c = true := hclean c' c hb hvis
+          have hrank : c'.rank.toIdx + 1 = c.rank.toIdx := (canSitOn_eq _ _).mp hcc' |>.1
+          have hc'lt : c'.rank.toIdx < root.rank.toIdx := by omega
+          have hacc' : ∀ y ∈ c' :: acc, y.rank.toIdx < root.rank.toIdx := by
+            intro y hy
+            rcases List.mem_cons.mp hy with rfl | hy'
+            · exact hc'lt
+            · exact hacc y hy'
+          by_cases hcont : acc.contains c' = true
+          · rw [if_pos hcont] at hx; exact hacc x hx
+          · rw [if_neg hcont] at hx
+            exact ih root c' (c' :: acc) hvisc' hc'lt hacc' x hx
+
+/-- Every member of a visible card's run is strictly below it in
+rank — the clean-stacks corollary for reachable states. -/
+theorem rank_lt_of_mem_aboveOf {st : State} (hv : st.visClean) {c x : Card}
+    (hc : st.isVis c = true) (hmem : x ∈ st.board.aboveOf c) :
+    x.rank.toIdx < c.rank.toIdx := by
+  have hmem' : x ∈ Board.aboveOf.go st.board 52 (Sum.inr c) [] := hmem
+  rw [show (52 : Nat) = 51 + 1 from rfl] at hmem'
+  rw [aboveOf_go_succ] at hmem'
+  cases hb : st.board.topOf (Sum.inr c) with
+  | none => rw [hb] at hmem'; simp at hmem'
+  | some c₁ =>
+      simp only [hb] at hmem'
+      rw [if_neg (by simp)] at hmem'
+      have hvisc₁ : (st.board.bottomOf c₁).isSome = true := by
+        have hbot := (Board.bottomOf_eq st.board c₁ (Sum.inr c)).mpr hb
+        rw [hbot]; rfl
+      have hcc₁ : canSitOn c₁ c = true := hv c₁ c hb hc
+      have hrank : c₁.rank.toIdx + 1 = c.rank.toIdx := (canSitOn_eq _ _).mp hcc₁ |>.1
+      have hc₁lt : c₁.rank.toIdx < c.rank.toIdx := by omega
+      have hacc : ∀ y ∈ [c₁], y.rank.toIdx < c.rank.toIdx := by
+        intro y hy
+        simp only [List.mem_singleton] at hy
+        rw [hy]; exact hc₁lt
+      exact Board.aboveOf_go_rank_lt hv 51 c c₁ [c₁] hvisc₁ hc₁lt hacc x hmem'
+
+/-- **The merge is impossible at reachable states** — the [H] crux,
+vacuous under `initialReachable`.  A pilePile whose run passes a twin
+cannot land on either twin's cargo stack: the run is strictly
+rank-descending (the clean-stacks corollary), so the twin inside the
+run sits strictly below the root in rank, while the cargo landing
+demands the root sit two below the twin.  At merely-WF states the
+deal-adjacent branch of `board_edges` admits dirty visible edges (the
+old reveal-through's artifacts) — there the merge was live, and it is
+exactly what the w15merge witness exhibited. -/
+theorem merge_impossible_of_initialReachable {st a₁ : State} {t z z' c : Card} {b : Base}
+    (hreach : initialReachable st)
+    (h₀ : st.board.bottomOf z = some (Sum.inr t))
+    (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.flipSuit = true)
+    (hstep : st.apply (Move.pilePile c b) = some a₁)
+    (hmerge : t ∈ st.board.aboveOf c ∨ t.flipSuit ∈ st.board.aboveOf c)
+    (hland : ∃ d, b = Sum.inr d ∧
+      (d = z ∨ d ∈ st.board.aboveOf z ∨ d = z' ∨ d ∈ st.board.aboveOf z')) :
+    False := by
+  obtain ⟨-, hv⟩ := initialReachable_visClean hreach
+  obtain ⟨d, hb, hd⟩ := hland
+  rw [apply_pilePile_iff] at hstep
+  obtain ⟨b₀, hb₀, -, hcmr, -, -, -⟩ := hstep
+  have hvc : st.isVis c = true := by
+    show (st.board.bottomOf c).isSome = true
+    rw [hb₀]; rfl
+  simp only [State.canMoveRun] at hcmr
+  obtain ⟨hcp, -⟩ := Bool.and_eq_true_iff.mp hcmr
+  simp only [State.canPlace, hb, Bool.and_eq_true_iff, decide_eq_true_iff] at hcp
+  obtain ⟨-, -, hcs⟩ := hcp
+  obtain ⟨hcrk, -⟩ := (canSitOn_eq c d).mp hcs
+  obtain ⟨hzrk, -⟩ := (canSitOn_eq z t).mp hfit
+  obtain ⟨hz'rk, -⟩ := (canSitOn_eq z' t.flipSuit).mp hfit'
+  have htwin : t.flipSuit.rank.toIdx = t.rank.toIdx :=
+    congrArg Rank.toIdx (Card.flipSuit_rank t)
+  -- the landing card is at or below the cargo rank
+  have hdle : d.rank.toIdx ≤ t.rank.toIdx - 1 := by
+    rcases hd with rfl | hd | rfl | hd
+    · omega
+    · have hvz : st.isVis z = true := by
+        show (st.board.bottomOf z).isSome = true
+        rw [h₀]; rfl
+      have hlt := rank_lt_of_mem_aboveOf hv hvz hd
+      omega
+    · omega
+    · have hvz' : st.isVis z' = true := by
+        show (st.board.bottomOf z').isSome = true
+        rw [h₀']; rfl
+      have hlt := rank_lt_of_mem_aboveOf hv hvz' hd
+      omega
+  rcases hmerge with hmem | hmem
+  · by_cases hct : c = t
+    · subst hct; omega
+    · have hlt := rank_lt_of_mem_aboveOf hv hvc hmem
+      omega
+  · by_cases hct : c = t.flipSuit
+    · subst hct; omega
+    · have hlt := rank_lt_of_mem_aboveOf hv hvc hmem
+      omega
