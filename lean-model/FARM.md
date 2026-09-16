@@ -352,6 +352,21 @@ survived: `apply_wf`, the mirror steps, the license transfers, the
 extraction family — all re-verified under the new rule (build green,
 census pinned at 14, unchanged).
 
+**Session note (2026-09-16, close — the column composition LANDED)**:
+`State.exchangeDoubleClear_of_columns` (TwinBridge §12.3, axiom-clean
+[propext, Quot.sound]) closes the gap between `both_columns_clear`
+(the two FIRING rider-runs — the schedule's structural skeleton) and
+`ExchangeDoubleClear` itself: the concatenated column-run is
+CleanStack by the protection (the mirror's verbatim replay DERIVED via
+the run-level replay lemma), and the both-bare end state plus the
+merge's re-firing with a window-solvable successor close the premise.
+The [H]/[H′] chain now reads: winning play → (the extraction residue:
+the FIRING column-runs + the successor's window-solvability — the
+raiser adjacency, the covers-on-riders constructed detour, the L1/O0
+transfer) → `exchangeDoubleClear_of_columns` → `ExchangeDoubleClear` →
+`solvable_of_exchange_merge_rooted_direct` → the merge bridge → the
+licensed iff assembly.
+
 Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
 etc.).  **Dependency note**: W4's reformulation (the W-repair at the
 crux ledger) already absorbs park cases via the swap — whether it needs

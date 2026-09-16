@@ -2013,9 +2013,9 @@ theorem State.playWindow'_adjacent_pair {S W : State} {t z z' : Card} {play : Li
   rw [State.playWindow', hstep1]
   refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
   · exact Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr hgrowth)))
-  · rw [if_neg hcond1]
+  · rw [ite_eq_right hcond1]
     simp only [State.playWindow', hstep2]
-    rw [if_pos hstr]
+    rw [ite_eq_left hstr]
     refine Bool.and_eq_true_iff.mpr ⟨?_, hpost⟩
     rw [hcargo]
     simp only [decide_eq_true_eq, Card.flipSuit_flipSuit, Card.flipSuit_rank]
@@ -2073,7 +2073,7 @@ theorem State.playWindow'_adjacent_pair_skew {S W : State} {t z z' : Card}
   have hskew2 : z'.rank.toIdx ≤ S₁.heights (Card.flipSuit z').suit := by
     rw [hS₁, hcargo, Card.flipSuit_flipSuit, Card.flipSuit_rank]
     show z.rank.toIdx ≤ (if z.suit = z.suit then S.heights z.suit + 1 else S.heights z.suit)
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     omega
   -- the computation
   show State.playWindow' z z.suit State.WindowEp.pre S
@@ -2082,14 +2082,14 @@ theorem State.playWindow'_adjacent_pair_skew {S W : State} {t z z' : Card}
   refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
   · exact Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr
       (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr hskewd)))))
-  · rw [if_pos (Or.inr (Or.inl hskew))]
+  · rw [ite_eq_left (Or.inr (Or.inl hskew))]
     rw [State.playWindow', hstep2]
     refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
     · refine Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr
         (Or.inl (Bool.or_eq_true_iff.mpr (Or.inr ?_)))))
       rw [decide_eq_true_eq]
       exact hskew2
-    · rw [if_pos (Or.inr (Or.inl hskew2))]
+    · rw [ite_eq_left (Or.inr (Or.inl hskew2))]
       exact hrest'
 
 /-- **The equal-heights sufficiency theorem** (the last `hsolw'` gap, at
@@ -3447,7 +3447,7 @@ theorem State.playWindow'_tail_of_eq_heights {z : Card} {σ : Suit} :
           · exact Bool.or_eq_true_iff.mpr (Or.inl (Bool.or_eq_true_iff.mpr
               (Or.inl (Bool.or_eq_true_iff.mpr
                 (Or.inl (decide_eq_true_eq.mpr ⟨hqσ, hqσ'⟩))))))
-          · rw [if_pos (Or.inl ⟨hqσ, hqσ'⟩)]
+          · rw [ite_eq_left (Or.inl ⟨hqσ, hqσ'⟩)]
             exact hih
         · -- an off-pair deckStack: the suit disjunct alone
           rw [State.playWindow', hm]
@@ -3910,12 +3910,50 @@ theorem State.both_columns_clear {t z z' : Card} :
     | some c => exact absurd (Board.mem_aboveOf_of_topOf htop) (fun hmem => hcol₁ c (hcol₂ c hmem))
   exact ⟨hlic₂, hz₂, hz'₂⟩
 
+/-- **The column composition closes `ExchangeDoubleClear`**: the two
+FIRING rider-runs — `both_columns_clear`'s premises, exactly the
+schedule's structural skeleton — plus the merge's re-firing with a
+window-solvable successor at the both-bare end state deliver the
+premise.  The mirror's verbatim-replay clause is DERIVED (the
+concatenated run is CleanStack by the protection, so the run-level
+replay lemma applies); nothing else is needed.  The remaining
+existence bulk for the scheduled form: extracting the FIRING runs
+from the winning play (the raiser adjacency + the constructed detour
+for the covers-on-riders corner) and the successor's
+window-solvability (the L1/O0 transfer). -/
+theorem State.exchangeDoubleClear_of_columns {st : State} {t z z' c : Card} {b : Base}
+    (hwf : st.WF) (hlic : State.TwinLicensedAt st t z z')
+    {rz rz' : List Card} {S₁ S₂ : State}
+    (hprot : ∀ r ∈ rz ++ rz', r ≠ t ∧ r ≠ t.flipSuit ∧ r ≠ z ∧ r ≠ z')
+    (hmemz : ∀ c ∈ st.board.aboveOf z, c ∈ rz)
+    (hmemz' : ∀ c ∈ st.board.aboveOf z', c ∈ rz')
+    (hrun1 : st.run (rz.map Move.pileStack) = some S₁)
+    (hrun2 : S₁.run (rz'.map Move.pileStack) = some S₂)
+    (hmerge : ∃ a₁' : State, S₂.apply (Move.pilePile c b) = some a₁' ∧
+      a₁'.solvableWindow' z z.suit) :
+    st.ExchangeDoubleClear t z z' c b := by
+  -- the concatenated run fires to the both-bare state
+  have hrun : st.run (rz.map Move.pileStack ++ rz'.map Move.pileStack) = some S₂ :=
+    run_append_some hrun1 hrun2
+  -- licensed + both bare at S₂ (the structural skeleton)
+  obtain ⟨_hlic₂, hz₂, hz'₂⟩ :=
+    State.both_columns_clear rz rz' st S₁ S₂ hlic hprot hmemz hmemz' hrun1 hrun2
+  -- the concatenated run is CleanStack (the protection's four exclusions)
+  have hclean : ∀ m ∈ rz.map Move.pileStack ++ rz'.map Move.pileStack,
+      State.CleanStack m t z z' := by
+    intro m hm
+    rcases List.mem_append.mp hm with hm | hm
+    · obtain ⟨r, hr, hmeq⟩ := List.mem_map.mp hm
+      exact ⟨r, hmeq.symm, hprot r (List.mem_append_left _ hr)⟩
+    · obtain ⟨r, hr, hmeq⟩ := List.mem_map.mp hm
+      exact ⟨r, hmeq.symm, hprot r (List.mem_append_right _ hr)⟩
+  exact State.exchangeDoubleClear_of_sched hwf hlic hrun hclean ⟨hz₂, hz'₂⟩ hmerge
+
 /-- The height-blind kinds' successors keep every rung (their iff
 successor forms touch only the board/stock/depths — the heights are
 carried untouched).  RE-LANDED standalone (the §11 per-branch rfl
 inlined it; the tail-of-equalized induction needs it abstractly, the
-successor state opaque). -/
-theorem State.heights_congr_heightBlind {S R : State} {m : Move}
+successor state opaque). -/theorem State.heights_congr_heightBlind {S R : State} {m : Move}
     (hkind : Move.heightBlind m = true) (hS : S.apply m = some R) :
     ∀ s, R.heights s = S.heights s := by
   cases m with
@@ -4012,19 +4050,19 @@ theorem State.playWindow'_tail_of_equalized {z : Card} :
           constructor
           · rw [hbump z.suit]
             rcases hon with h | h
-            · rw [if_pos h.symm]; omega
-            · rw [if_neg (fun hcon => Suit.flipPair_ne z.suit (hcon.trans h).symm)]
+            · rw [ite_eq_left h.symm]; omega
+            · rw [ite_eq_right (fun hcon => Suit.flipPair_ne z.suit (hcon.trans h).symm)]
               exact hpast.1
           · rw [hbump (Card.flipSuit z).suit]
             rcases hon with h | h
-            · rw [if_neg (fun hcon => Suit.flipPair_ne z.suit (hcon.trans h))]
+            · rw [ite_eq_right (fun hcon => Suit.flipPair_ne z.suit (hcon.trans h))]
               exact hpast.2
-            · rw [if_pos (show (Card.flipSuit z).suit = q.suit from h.symm)]
+            · rw [ite_eq_left (show (Card.flipSuit z).suit = q.suit from h.symm)]
               omega
         have hih := ih R T hrest1 hpastR
           (fun m' hm' => hclean m' (List.mem_cons_of_mem _ hm'))
         rw [State.playWindow', hm]
         refine Bool.and_eq_true_iff.mpr ⟨?_, ?_⟩
         · exact Bool.or_eq_true_iff.mpr (Or.inr (decide_eq_true_eq.mpr ⟨hcρ, hpastq⟩))
-        · rw [if_pos (Or.inr (Or.inr ⟨hcρ, hpastq⟩))]
+        · rw [ite_eq_left (Or.inr (Or.inr ⟨hcρ, hpastq⟩))]
           exact hih
