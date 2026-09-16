@@ -97,6 +97,32 @@ theorem aboveOf_contains_topOf {bd : Board} {x y : Card}
   exact lcontains_true_of_mem
     (Board.aboveOf_go_mono 52 (Sum.inr y) [y] (List.mem_cons_self ..))
 
+/-! ## The merge's forced arithmetic -/
+
+/-- The premise arithmetic, formal: from the license fit (`z` rides `t`
+by fit), the twin identity (`z' = z.flipSuit`), and the merge's own
+landing fit (`canSitOn c z'`), the twin sits EXACTLY TWO RANKS ABOVE
+the run head, in the SAME color.  The merge run therefore ASCENDS —
+which is why visClean (descending runs) kills it and why live merges
+at WF ride dirty deal-adjacent edges.  Immediate consequences: a KING
+twin forces `c` to be the same-color jack (`c.rank` = 10);  a
+same-suit twin forces the source's own merged stack into the
+rank-inversion unwind (the winning-line discipline the trichotomy
+consumes). -/
+theorem merge_rank_arith {t c z z' : Card}
+    (hz'z : z' = z.flipSuit)
+    (hfit : canSitOn z t = true)
+    (hmerge : canSitOn c z' = true) :
+    t.rank.toIdx = c.rank.toIdx + 2 ∧ t.suit.color = c.suit.color := by
+  obtain ⟨h1, h2⟩ := (canSitOn_eq z t).mp hfit
+  obtain ⟨h5, h6⟩ := (canSitOn_eq c z').mp hmerge
+  rw [hz'z, Card.flipSuit_rank] at h5
+  rw [hz'z, Card.flipSuit_color] at h6
+  refine ⟨?_, ?_⟩
+  · omega
+  · cases hc : c.suit.color <;> cases hz : z.suit.color <;>
+      cases ht : t.suit.color <;> simp_all
+
 /-! ## Step 1: the park -/
 
 /-- A seated king parks its sub-run at any free anchor, the board
