@@ -1648,6 +1648,62 @@ theorem Board.aboveOf_pred {bd : Board} {y z u : Card}
   · exact Or.inr h
   · exact Or.inl (Sum.inr.inj h).symm
 
+/-- **An explicit run chain**: a list of cards, each sitting directly
+on the one before, rooted at `r` — the schedule's own view of a
+detoured run (the detour moves exactly such a chain). -/
+inductive Board.RunChain (bd : Board) : Card → List Card → Prop where
+  | root (r : Card) : bd.RunChain r []
+  | step (r x : Card) (rest : List Card)
+      (hseat : bd.topOf (Sum.inr r) = some x) (hself : x ≠ r)
+      (hrest : bd.RunChain x rest) : bd.RunChain r (x :: rest)
+
+/-- **The walk enters a run only at its root**: if a card of a
+chain-run (the root or any member) lies on the `c`-walk, and `c` is
+neither the root nor on the run, then the ROOT lies on the `c`-walk.
+Each card has one base: the descent from a run member to the root
+passes through cards whose `c`-walk membership is inherited downward
+(`aboveOf_pred`), and the root's off-run-ness for `c` propagates
+upward (`aboveOf_trans` monotonicity).  This is the walk-entry fact
+the mixed schedule's contains-guard needs: a re-homed landing card
+(re-)entering the merge root's walk forces the detour's landing base
+onto that walk. -/
+theorem Board.aboveOf_run_root_of_chain {bd : Board} {c r : Card} :
+    ∀ (run : List Card) (d : Card),
+      bd.RunChain r run →
+      (d = r ∨ d ∈ run) →
+      d ∈ bd.aboveOf c → r ≠ c → c ∉ bd.aboveOf r →
+      r ∈ bd.aboveOf c := by
+  intro run d hchain
+  induction hchain with
+  | root =>
+      intro hd hdc _ _
+      rcases hd with rfl | hmem
+      · exact hdc
+      · exact absurd hmem (by simp)
+  | step r₀ x rest hseat hself hrest ih =>
+      intro hd hdc hrne hcr
+      simp only [List.mem_cons] at hd
+      -- the sub-chain's root `x` is strictly on the run, off `c`'s reach
+      have hxrun : x ∈ bd.aboveOf r₀ :=
+        Board.mem_aboveOf_of_topOf hseat
+      have hxne : x ≠ c := by
+        intro hcon
+        rw [hcon] at hxrun
+        exact hcr hxrun
+      have hcx : c ∉ bd.aboveOf x := fun hmem => hcr (Board.aboveOf_trans hxrun hmem)
+      rcases hd with rfl | rfl | hmem
+      · exact hdc
+      · -- the first member: the pred puts the root on the c-walk
+        rcases Board.aboveOf_pred hseat hdc with h | h
+        · exact absurd h hrne
+        · exact h
+      · -- deeper: the IH at the sub-chain puts `x` on the c-walk,
+        -- and the pred carries it to the root
+        have hxc := ih (Or.inr hmem) hdc hxne hcx
+        rcases Board.aboveOf_pred hseat hxc with h | h
+        · exact absurd h hrne
+        · exact h
+
 /-- **Walk comparability** (the tail-fact): two distinct cards
 collected by the same walk are comparable — the later-collected is
 above the earlier.  The engine is the seeded-walk bound (session-7):
