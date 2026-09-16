@@ -547,6 +547,67 @@ theorem park_reland {st : State} {t c z' d : Card} {a : Anchor}
   obtain ⟨bd₁, -, hs₁⟩ := park_king_run hbotT hking hfree
   exact dislodge_reland hct hbotT hbotZ hbotC hz'bare hfit ⟨{ st with board := bd₁ }, hs₁⟩
 
+/-! ## The bare-rung composition + the trichotomy skeleton -/
+
+/-- The rung's stacking: a bare, seated, exactly-at-the-rung card
+stacks off (`pileStack` fires) — the cascade's terminal move. -/
+theorem rung_stacks {st : State} {r : Card}
+    (hbot : ∃ b, st.board.bottomOf r = some b)
+    (hrbar : st.board.topOf (Sum.inr r) = none)
+    (hrk : r.rank.toIdx = st.heights r.suit) :
+    ∃ s1, st.apply (Move.pileStack r) = some s1 := by
+  obtain ⟨b, hb⟩ := hbot
+  exact ⟨{ st with
+    board := st.board.detach b
+    heights := fun s => if s = r.suit then st.heights s + 1 else st.heights s },
+    apply_pileStack_iff.mpr ⟨hrbar, b, hb, hrk, rfl⟩⟩
+
+/-- **The w15wfmerge happy path, end-to-end**: when the blocker `r`
+riding `z` is a BARE RUNG (`r.rank = heights(r.suit)`, nothing above
+`r`), it stacks off and the mirror merge fires — two moves, no
+founds_gone needed (the liveness content enters only when `r` is NOT
+the rung: that is the cascade obligation). -/
+theorem mirror_of_bare_rung {st : State} {t' c z z' d r : Card}
+    (hdz : d ≠ z)
+    (ht'z : t' ≠ z)
+    (hbotZ : st.board.bottomOf z = some (Sum.inr t'))
+    (hbotC : st.board.bottomOf c = some (Sum.inr d))
+    (hz'z : z' = z.flipSuit)
+    (hfit : canSitOn c z' = true)
+    (hznot : z ∉ st.board.aboveOf c)
+    (hrz : st.board.bottomOf r = some (Sum.inr z))
+    (hrbar : st.board.topOf (Sum.inr r) = none)
+    (hrk : r.rank.toIdx = st.heights r.suit) :
+    ∃ s1 s2, st.apply (Move.pileStack r) = some s1 ∧
+      s1.apply (Move.pilePile c (Sum.inr z)) = some s2 ∧
+      s2.board.topOf (Sum.inr z) = some c ∧
+      s2.board.topOf (Sum.inr d) = none ∧
+      s2.heights = (fun s => if s = r.suit then st.heights s + 1 else st.heights s) ∧
+      s2.stock = st.stock ∧ s2.depths = st.depths :=
+  blocker_leaves_mirror hdz ht'z hbotZ hbotC hz'z hfit hznot hrz
+    (rung_stacks ⟨_, hrz⟩ hrbar hrk)
+
+/-- The merge-ply case skeleton: either the mirror target `z` is bare
+(arm (a): `mirror_fires_of_bare`), or a blocker `r` rides it — and
+when that blocker is a bare rung, `mirror_of_bare_rung` closes arm (b)
+outright.  The remaining corner (a covered or non-rung blocker) is the
+cascade obligation. -/
+theorem merge_ply_cases {st : State} {z : Card} :
+    st.board.topOf (Sum.inr z) = none ∨ ∃ r, st.board.bottomOf r = some (Sum.inr z) := by
+  cases hz : st.board.topOf (Sum.inr z) with
+  | none => exact Or.inl hz
+  | some r => exact Or.inr ⟨r, (Board.bottomOf_eq st.board r (Sum.inr z)).mpr hz⟩
+
+/-- Arm (c)'s king case, in the existential form `dislodge_reland`
+consumes: a king twin with a free anchor always has the dislodge. -/
+theorem king_dislodge_exists {st : State} {t c : Card} {a : Anchor}
+    (hbotT : st.board.bottomOf t = some (Sum.inr c))
+    (hking : t.rank = Rank.king)
+    (hfree : st.board.topOf (Sum.inl a) = none) :
+    ∃ s1, st.apply (Move.pilePile t (Sum.inl a)) = some s1 := by
+  obtain ⟨bd1, -, hs1⟩ := park_king_run hbotT hking hfree
+  exact ⟨{ st with board := bd1 }, hs1⟩
+
 /-! ## The solvability seed -/
 
 /-- The collapse's solvability seed: solvability of the post-collapse

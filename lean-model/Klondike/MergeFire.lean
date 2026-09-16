@@ -136,16 +136,171 @@ theorem State.merge_refires_clean {st S₀ : State} {c : Card} {b : Base}
           | true => exact absurd (List.contains_iff_mem.mp hcon) hmem
   -- the attach succeeds: the landing is free, the root unplaced after
   -- its own detach
-  have hatt : (S₀.board.detach β₀).attach b c ≠ none := by
+  have hatt₀ : (S₀.board.detach β₀).attach b c ≠ none := by
     rw [Board.attach_eq_some_iff]
     constructor
     · rw [Board.detach_topOf_ne _ _ _ (Ne.symm hneβ)]
       exact htopbS
     · exact Board.bottomOf_detach_self
         ((Board.bottomOf_eq S₀.board c β₀).mp hbotS)
+  obtain ⟨bd', hatt₀'⟩ : ∃ bd', (S₀.board.detach β₀).attach b c = some bd' := by
+    cases hA : (S₀.board.detach β₀).attach b c with
+    | none => exact absurd hA hatt₀
+    | some bd' => exact ⟨bd', rfl⟩
+  refine ⟨{ S₀ with board := bd' }, ?_⟩
+  rw [apply_pilePile_iff]
+  exact ⟨β₀, hbotS, hneβ, hcmrS, bd', hatt₀', rfl⟩
+
+/-- **The merge's guards survive the MIXED schedule** (the CleanStack
+prefix + the z'-detour, `exchangeDoubleClear_of_sched_mixed`'s shape):
+a firing merge at the source re-fires at the detoured state.  The
+CleanStack segment's transfer is `merge_refires_clean` verbatim; the
+DETOUR segment's: the root's base survives (`apply_pilePile_bottomOf`,
+`r₁ ≠ c`), the landing base's freeness survives (the two edited seats
+are the detour's own — both excluded by `hβne`/the firing's shape),
+the landing card's visibility survives (re-seated within the moved
+run — its base is either the run's internal seat, untouched, or, for
+`d = r₁`-adjacent shapes, excluded by `hr₁card`).  The
+CONTAINS-GUARD is the walk-ENTRY argument: a card entering the merge
+root's walk from the re-homed run forces the run's root in
+(`aboveOf_run_root_of_chain`), whose base card is then the detour's
+landing (`aboveOf_card_base_of_mem` + the seat's uniqueness) — and
+the landing card is off the merge root's walk and the run by
+`hβcard`.  This derives the FIRING half of the mixed schedule's
+re-firing premise; the successor's window-solvability (L1/O0)
+remains the other half. -/
+theorem State.merge_refires_mixed {st Sₛ S₀ : State} {c r₁ : Card} {b β : Base}
+    {πₛ : List Move} {a₁ : State} {run : List Card}
+    (hrunₛ : st.run πₛ = some Sₛ)
+    (hkindₛ : ∀ m ∈ πₛ, ∃ q : Card, m = Move.pileStack q)
+    (hoffₛ : ∀ q : Card, Move.pileStack q ∈ πₛ →
+      q ≠ c ∧ ∀ d : Card, b = Sum.inr d → q ≠ d)
+    (hstep : st.apply (Move.pilePile c b) = some a₁)
+    (hdetour : Sₛ.apply (Move.pilePile r₁ β) = some S₀)
+    (hr₁ne : r₁ ≠ c)
+    (hβne : β ≠ b)
+    (hself : β ≠ Sum.inr r₁)
+    (hr₁card : ∀ d : Card, b = Sum.inr d → r₁ ≠ d)
+    (hβcard : ∀ y : Card, β = Sum.inr y → y ≠ c ∧
+      y ∉ Sₛ.board.aboveOf c ∧ y ∉ Sₛ.board.aboveOf r₁)
+    (hc₀ : c ∉ S₀.board.aboveOf r₁)
+    (hchain : S₀.board.RunChain r₁ run)
+    (hride : ∀ d : Card, b = Sum.inr d → d = r₁ ∨ d ∈ run) :
+    ∃ a₁' : State, S₀.apply (Move.pilePile c b) = some a₁' := by
+  -- part 1: the clean firing at the schedule's intermediate state
+  obtain ⟨aₛ, hfireₛ⟩ := State.merge_refires_clean hrunₛ hkindₛ hoffₛ hstep
+  -- part 2: the firing's guards at Sₛ
+  have hP := hfireₛ
+  rw [apply_pilePile_iff] at hP
+  obtain ⟨β₀, hbotβ, hneβ, hcmr, -, -⟩ := hP
+  have htopb : Sₛ.board.topOf b = none := by
+    cases b with
+    | inl a =>
+        have h2 := canMoveRun_inl_iff.mp hcmr
+        rw [canPlace_inl_iff] at h2
+        exact h2.1
+    | inr d =>
+        have h2 := canMoveRun_inr_iff.mp hcmr
+        rw [canPlace_inr_iff] at h2
+        exact h2.1.1
+  have hisvd : ∀ d : Card, b = Sum.inr d → Sₛ.isVis d = true ∧ canSitOn c d = true := by
+    intro d hb
+    have h := hcmr
+    rw [hb, canMoveRun_inr_iff] at h
+    obtain ⟨hcp, -⟩ := h
+    rw [canPlace_inr_iff] at hcp
+    exact ⟨hcp.2.1, hcp.2.2⟩
+  have hcont : ∀ d : Card, b = Sum.inr d → d ∉ Sₛ.board.aboveOf c := by
+    intro d hb hmem
+    have h := hcmr
+    rw [hb, canMoveRun_inr_iff] at h
+    obtain ⟨-, hnc⟩ := h
+    have hmem' : (Sₛ.board.aboveOf c).contains d = true :=
+      List.contains_iff_mem.mpr hmem
+    rw [hmem'] at hnc
+    simp at hnc
+  -- part 3: the detour's shape (S₀ kept abstract; the board equation
+  -- for the attach-side lemmas)
+  have hD := hdetour
+  rw [apply_pilePile_iff] at hD
+  obtain ⟨b₀, hbotr, hne₀, hcmr₀, bd₀, hatt₀, hS₀⟩ := hD
+  have hSb : S₀.board = bd₀ := by rw [hS₀]
+  -- part 4: the root's base survives the detour
+  have hbotS : S₀.board.bottomOf c = some β₀ := by
+    rw [State.apply_pilePile_bottomOf hdetour (Ne.symm hr₁ne)]
+    exact hbotβ
+  -- part 5: the landing base's freeness survives
+  have htopbS : S₀.board.topOf b = none := by
+    rw [hSb]
+    have hbβ : b ≠ β := fun hcon => hβne hcon.symm
+    have h1 : bd₀.topOf b = (Sₛ.board.detach b₀).topOf b :=
+      Board.attach_topOf_ne _ _ _ hatt₀ hbβ
+    by_cases hbb : b = b₀
+    · rw [h1, hbb, Board.detach_topOf]
+    · rw [h1, Board.detach_topOf_ne _ _ _ hbb]
+      exact htopb
+  -- part 6: the landing card's visibility survives
+  have hisvS : ∀ d : Card, b = Sum.inr d → S₀.isVis d = true ∧ canSitOn c d = true := by
+    intro d hb
+    have hd : d ≠ r₁ := fun hcon => hr₁card d hb hcon.symm
+    have hbotd : S₀.board.bottomOf d = Sₛ.board.bottomOf d :=
+      State.apply_pilePile_bottomOf hdetour hd
+    exact ⟨by
+        show (S₀.board.bottomOf d).isSome = true
+        rw [hbotd]
+        exact (hisvd d hb).1,
+      (hisvd d hb).2⟩
+  -- part 7: the contains-guard — the walk-entry argument
+  have hcontS : ∀ d : Card, b = Sum.inr d → d ∉ S₀.board.aboveOf c := by
+    intro d hb hmem
+    rw [hSb] at hmem hchain hc₀
+    rcases Board.mem_aboveOf_attach hatt₀ hmem with h1 | h2 | h3
+    · exact hcont d hb (Board.aboveOf_sub_detach 52 c [] d h1)
+    · exact hr₁card d hb h2.symm
+    · -- the landing rides the run: the walk entered it — at the root
+      have hr₁c : r₁ ∈ bd₀.aboveOf c :=
+        Board.aboveOf_run_root_of_chain run d hchain (hride d hb) hmem hr₁ne hc₀
+      -- the run's root sits on a card — and the seat is the detour's
+      -- landing (the attach's own seat, by the board's injectivity)
+      obtain ⟨u, hu⟩ := Board.aboveOf_card_base_of_mem hr₁c
+      have hβu : β = Sum.inr u := by
+        have h1 : bd₀.topOf β = some r₁ := Board.attach_topOf _ _ _ hatt₀
+        exact bd₀.inj β (Sum.inr u) r₁ h1 hu
+      rcases Board.aboveOf_pred hu hr₁c with h4 | h4
+      · exact (hβcard u hβu).1 h4
+      · rcases Board.mem_aboveOf_attach hatt₀ h4 with h5 | h6 | h7
+        · exact (hβcard u hβu).2.1 (Board.aboveOf_sub_detach 52 c [] u h5)
+        · exact hself (hβu.trans (congrArg Sum.inr h6))
+        · exact (hβcard u hβu).2.2 (Board.aboveOf_sub_detach 52 r₁ [] u h7)
+  -- part 8: the guards reassemble
+  have hcmrS : S₀.canMoveRun c b = true := by
+    cases b with
+    | inl a =>
+        rw [canMoveRun_inl_iff, canPlace_inl_iff]
+        have h2 := canMoveRun_inl_iff.mp hcmr
+        rw [canPlace_inl_iff] at h2
+        exact ⟨htopbS, h2.2⟩
+    | inr d =>
+        rw [canMoveRun_inr_iff, canPlace_inr_iff]
+        obtain ⟨hvis, hcs⟩ := hisvS d rfl
+        refine ⟨⟨htopbS, hvis, hcs⟩, ?_⟩
+        show (S₀.board.aboveOf c).contains d = false
+        cases hcon : (S₀.board.aboveOf c).contains d with
+        | false => rfl
+        | true => exact absurd (List.contains_iff_mem.mp hcon) (hcontS d rfl)
+  -- part 9: the final attach + the iff
+  have hattfin : (S₀.board.detach β₀).attach b c ≠ none := by
+    rw [Board.attach_eq_some_iff]
+    constructor
+    · have htopq : S₀.board.topOf β₀ = some c :=
+        (Board.bottomOf_eq S₀.board c β₀).mp hbotS
+      rw [Board.detach_topOf_ne _ _ _ (Ne.symm hneβ)]
+      exact htopbS
+    · exact Board.bottomOf_detach_self
+        ((Board.bottomOf_eq S₀.board c β₀).mp hbotS)
   obtain ⟨bd', hatt'⟩ : ∃ bd', (S₀.board.detach β₀).attach b c = some bd' := by
     cases hA : (S₀.board.detach β₀).attach b c with
-    | none => exact absurd hA hatt
+    | none => exact absurd hA hattfin
     | some bd' => exact ⟨bd', rfl⟩
   refine ⟨{ S₀ with board := bd' }, ?_⟩
   rw [apply_pilePile_iff]

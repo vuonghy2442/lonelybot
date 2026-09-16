@@ -376,6 +376,27 @@ building-through-breakage artifact) deleted, full clean rebuild green
 KB-sized olean for a K-line file means lake skipped a phantom
 "fresh" stub.
 
+**Follow-up (same evening — `merge_refires_mixed` LANDED)**:
+`State.merge_refires_mixed` (MergeFire.lean, axiom-clean
+[propext, Quot.sound], the first theorem in the file's own home) —
+the firing-half derivation for the FULL mixed schedule
+(`exchangeDoubleClear_of_sched_mixed`'s shape): a firing merge
+re-fires after a CleanStack prefix + the z'-detour, under the
+schedule-natural premises (`hβcard`: the detour's landing card off
+the merge root's walk and off the detoured run at the source;
+`hself`: the detour not landing at its own root's seat; `hβne`:
+the two landings distinct; `hchain`/`hride`: the detoured run as a
+chain with the merge's landing riding it; `hc₀`: the merge root off
+the run at the end state).  The contains-guard is the walk-entry
+assembly: `mem_aboveOf_attach` decomposes, the riding case forces
+the run root in (`aboveOf_run_root_of_chain`), whose seat is the
+detour's landing (`aboveOf_card_base_of_mem` + board injectivity),
+whose pred re-enters the attach-decomposition and dies by `hβcard`
+on all three branches.  The mixed consumers' re-firing premise now
+reduces to the source firing + the schedule's own shape premises;
+the successor's window-solvability (L1/O0) is the sole remaining
+half.
+
 **Session note (2026-09-16, close — the column composition LANDED)**:
 `State.exchangeDoubleClear_of_columns` (TwinBridge §12.3, axiom-clean
 [propext, Quot.sound]) closes the gap between `both_columns_clear`
