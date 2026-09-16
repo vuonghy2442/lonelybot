@@ -2169,3 +2169,13 @@ tree).
   takes x y explicitly, rw-style; (c) `founds_gone`'s first conjunct is the Bool equation `isVis c = false`, NOT `¬(isVis c = true)` -- `absurd`
   mismatches, use `rw [...] at hvis; simp at hvis`; (d) the structure-literal syntax card bites in `refine` witnesses too -- first field on
   its own line or the parser drops a `}`.
+- THE CONNECTORS + THE BARE-CARGO ARM (same session, fourth batch, TwinExchange green again so TwinCollapse now imports it):
+  `exchangeTwinCargo_bottomOf_z'` / `exchangeTwinCargo_bottomOf_z` (the aftermath premises `hbotZ` both repairs consume, standalone --
+  the derivations were inline in TwinExchange's walk lemmas), `exchangeTwinCargo_topOf_off_pair` (the `hz'bare` transfer -- seats off the
+  twin pair untouched), and `mirror_fires_of_bare` (the dislodge-existence trichotomy's ARM (a): z bare -> the mirror merge fires NOW, the
+  0-move repair).  Plus `probes/w15circcheck.lean`: the w15circ cast re-verified against the REAL exchangeTwinCargo -- every finding
+  identical (wfCheck both, license, blocked/self-landing merge, the 16-move win, the 18-move collapse); the verbatim local copy retired.
+  All sorry-free, axiom-clean [propext, Quot.sound].  INFRA: PS 5.1's `Set-Content -Encoding UTF8` writes a BOM that Lean rejects at
+  1:0 ("expected token") -- probe-file surgery needs `[System.IO.File]::WriteAllLines` with a no-BOM UTF8Encoding; and note the sibling's
+  0ed3d48 swept and REORGANIZED TwinCollapse (subscripts ASCII-fied, park's section headers merged) -- grep the theorem names before
+  editing by remembered anchors.

@@ -1,5 +1,6 @@
 import Klondike.Tactics
 import Klondike.TwinSwap
+import Klondike.TwinExchange
 
 /-!
 # The anchor-relocation collapse kit (2026-09-16, the w15circ session)
@@ -135,6 +136,106 @@ theorem wf_vis_rank {st : State} (hwf : st.WF) {c : Card} (hvis : st.isVis c = t
   · have hlt : c.rank.toIdx < st.heights c.suit := by omega
     rw [(hwf.founds_gone c hlt).1] at hvis
     simp at hvis
+
+/-! ## The exchange connectors (the aftermath premises, standalone) -/
+
+/-- The exchange's signature, seat form: the cargo `z'` of `t'` rides
+`t` after the exchange — the `hbotZ` premise `dislodge_reland`
+consumes.  (The derivation appears inline in TwinExchange's walk
+lemmas; standalone here for the assembly.) -/
+theorem exchangeTwinCargo_bottomOf_z' {st : State} {t z' : Card}
+    (h₀' : st.board.bottomOf z' = some (Sum.inr t.flipSuit)) :
+    (st.exchangeTwinCargo t).board.bottomOf z' = some (Sum.inr t) := by
+  have hsw' : Base.swapTwin t (Sum.inr t) = Sum.inr t.flipSuit := by
+    show Sum.inr (Card.swapTwin t t) = Sum.inr t.flipSuit
+    rw [Card.swapTwin_self_left]
+  have htop' : st.board.topOf (Sum.inr t.flipSuit) = some z' :=
+    (Board.bottomOf_eq st.board z' (Sum.inr t.flipSuit)).mp h₀'
+  refine (Board.bottomOf_eq _ z' (Sum.inr t)).mpr ?_
+  rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hsw']
+  exact htop'
+
+/-- The mirrored connector: the cargo `z` of `t` rides `t'` after the
+exchange — the `hbotZ` premise `blocker_leaves_mirror` consumes. -/
+theorem exchangeTwinCargo_bottomOf_z {st : State} {t z : Card}
+    (h₀ : st.board.bottomOf z = some (Sum.inr t)) :
+    (st.exchangeTwinCargo t).board.bottomOf z = some (Sum.inr t.flipSuit) := by
+  have hsw : Base.swapTwin t (Sum.inr t.flipSuit) = Sum.inr t := by
+    show Sum.inr (Card.swapTwin t t.flipSuit) = Sum.inr t
+    rw [Card.swapTwin_self_right]
+  have htop : st.board.topOf (Sum.inr t) = some z :=
+    (Board.bottomOf_eq st.board z (Sum.inr t)).mp h₀
+  refine (Board.bottomOf_eq _ z (Sum.inr t.flipSuit)).mpr ?_
+  rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hsw]
+  exact htop
+
+/-- Seats off the twin pair are untouched by the exchange (the
+`hz'bare` transfer: the merge's own legality made `z'` bare in st, and
+the exchange never reads `(inr z')`). -/
+theorem exchangeTwinCargo_topOf_off_pair {st : State} {t w : Card}
+    (hw₁ : w ≠ t) (hw₂ : w ≠ t.flipSuit) :
+    (st.exchangeTwinCargo t).board.topOf (Sum.inr w) = st.board.topOf (Sum.inr w) := by
+  rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
+    Base.swapTwin_eq_self (fun h => hw₁ (Sum.inr.inj h))
+      (fun h => hw₂ (Sum.inr.inj h))]
+
+/-- **The bare-cargo arm of the dislodge-existence trichotomy**: when
+nothing rides `z` (the blocker absent), the mirror merge
+`pilePile c (inr z)` fires immediately — the 0-move repair, board-only. -/
+theorem mirror_fires_of_bare {st : State} {t' c z z' d : Card}
+    (hdz : d ≠ z)
+    (hbotZ : st.board.bottomOf z = some (Sum.inr t'))
+    (hbotC : st.board.bottomOf c = some (Sum.inr d))
+    (hz'z : z' = z.flipSuit)
+    (hfit : canSitOn c z' = true)
+    (hznot : z ∉ st.board.aboveOf c)
+    (hzbare : st.board.topOf (Sum.inr z) = none) :
+    ∃ s₂, st.apply (Move.pilePile c (Sum.inr z)) = some s₂ ∧
+      s₂.board.topOf (Sum.inr z) = some c ∧
+      s₂.board.topOf (Sum.inr d) = none ∧
+      s₂.heights = st.heights ∧ s₂.stock = st.stock ∧ s₂.depths = st.depths := by
+  have hvisz : st.isVis z = true := by
+    show (st.board.bottomOf z).isSome = true
+    rw [hbotZ]
+    rfl
+  have hfitM : canSitOn c z = true := by
+    have h : canSitOn c z.flipSuit = true := by rw [← hz'z]; exact hfit
+    rw [canSitOn_flipSuit_right c z] at h
+    exact h
+  have hcp : st.canPlace c (Sum.inr z) = true := by
+    show (decide (st.board.topOf (Sum.inr z) = none) &&
+        (st.isVis z && canSitOn c z)) = true
+    rw [hzbare, hvisz, hfitM]
+    rfl
+  have hcont : (st.board.aboveOf c).contains z = false :=
+    lcontains_false_of_notMem hznot
+  have hcmr : st.canMoveRun c (Sum.inr z) = true := by
+    rw [canMoveRun_inr_iff]
+    exact ⟨hcp, hcont⟩
+  have hdetFree : (st.board.detach (Sum.inr d)).topOf (Sum.inr z) = none := by
+    rw [Board.detach_topOf_ne _ _ _ (fun h => hdz (Sum.inr.inj h).symm)]
+    exact hzbare
+  have hdetBot : (st.board.detach (Sum.inr d)).bottomOf c = none := by
+    have htopD : st.board.topOf (Sum.inr d) = some c :=
+      (Board.bottomOf_eq st.board c (Sum.inr d)).mp hbotC
+    exact Board.bottomOf_detach_self htopD
+  have hatt : (st.board.detach (Sum.inr d)).attach (Sum.inr z) c ≠ none := by
+    rw [Board.attach_eq_some_iff]
+    exact ⟨hdetFree, hdetBot⟩
+  cases hB : (st.board.detach (Sum.inr d)).attach (Sum.inr z) c with
+  | none => exact absurd hB hatt
+  | some bd₂ =>
+      refine ⟨{ st with board := bd₂ }, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · rw [apply_pilePile_iff]
+        exact ⟨Sum.inr d, hbotC, fun h => hdz (Sum.inr.inj h), hcmr, bd₂, hB, rfl⟩
+      · show bd₂.topOf (Sum.inr z) = some c
+        exact Board.attach_topOf _ _ _ hB
+      · show bd₂.topOf (Sum.inr d) = none
+        rw [Board.attach_topOf_ne _ _ _ hB (fun h => hdz (Sum.inr.inj h)),
+            Board.detach_topOf]
+      · rfl
+      · rfl
+      · rfl
 
 /-! ## The second repair: the blocker stacks off, the mirror opens -/
 
