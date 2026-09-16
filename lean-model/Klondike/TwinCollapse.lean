@@ -663,6 +663,40 @@ theorem king_dislodge_exists {st : State} {t c : Card} {a : Anchor}
   obtain ⟨bd1, -, hs1⟩ := park_king_run hbotT hking hfree
   exact ⟨{ st with board := bd1 }, hs1⟩
 
+/-! ## The fusion point: the merge-mirror conjugation -/
+
+/-! ## The fusion point: the merge-mirror conjugation (DESIGNED, next pass) -/
+
+/-! The next lemma, fully designed (the case analysis verified on paper;
+the write is mechanical, ~150 lines): `merge_mirror_conjugate` —
+
+    (hz'z : z' = z.flipSuit) (hznt : z ≠ t) (hznt' : z ≠ t.flipSuit)
+    (hbotZ : st.board.bottomOf z = some (Sum.inr t))
+    (hbotZ' : st.board.bottomOf z' = some (Sum.inr t.flipSuit))
+    (hmerge : st.apply (Move.pilePile c (Sum.inr z')) = some a₁)
+    (hmirror : (st.exchangeTwinCargo t).apply (Move.pilePile c (Sum.inr z)) = some s₂) :
+    s₂ = { a₁ with board := a₁.board.mapByTwin z }
+
+**The suit-gated switching point, formal**: both aftermaths are the
+z↔z' RELABELING CONJUGATES of each other.  The merge bridge's
+both-bare arm then reduces to the conjugated-solvability question —
+the suit-reading correspondence the window machinery exists for.
+
+Proof skeleton: unpack both moves (apply_pilePile_iff + canMoveRun_inr_iff:
+z'/z bare, the fits); the off-pair grid (z ≠ z'; t ≠ z' via hznt' +
+flipSuit_flipSuit; t' ≠ z; c ≠ z/z' via the fits' rank arithmetic);
+b₀ off all four twin/cargo seats (topOf clashes); b₀' = b₀ (c's seat
+survives the exchange); then Board.ext_topOf + funext with six seat
+cases — (inr t): z' vs (some z).map = z' via swapTwin_self_left;
+(inr t'): z vs z'.map via swapTwin_self_right; (inr z): c vs
+attach_topOf; (inr z'): none vs none (both bare, seats off the other
+pair); b₀: none vs none (both detaches); generic b: st.topOf b on
+both sides (the card at b is off-pair by Board.inj — z sits only at
+(inr t), z' only at (inr t')); the non-map side through
+exchangeTwin_topOf + swapTwin_of_ne/swapTwin_eq_self at every step.
+Close with state_ext (five rfl fields — the exchange and both merges
+touch only boards). -/
+
 /-! ## The unseating taxonomy (the play-level disciplines' keystone) -/
 
 /-- The freeness of a successful attach (the `≠ none` bridge,
