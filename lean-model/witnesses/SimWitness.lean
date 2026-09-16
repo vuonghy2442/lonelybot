@@ -26,33 +26,33 @@ def bdS : Board where
     intro b₁ b₂ c h₁ h₂
     by_cases hb : b₁ = Sum.inr heK
     · subst hb
-      rw [if_pos rfl] at h₁
+      rw [ite_eq_left rfl] at h₁
       rw [Option.some.injEq] at h₁
       subst h₁
       by_cases hb₂ : b₂ = Sum.inr heK
       · exact hb₂.symm
-      · rw [if_neg hb₂] at h₂
+      · rw [ite_eq_right hb₂] at h₂
         by_cases hb₃ : b₂ = Sum.inl Anchor.p0
         · subst hb₃
-          rw [if_pos rfl] at h₂
+          rw [ite_eq_left rfl] at h₂
           simp at h₂
-        · rw [if_neg hb₃] at h₂
+        · rw [ite_eq_right hb₃] at h₂
           simp at h₂
-    · rw [if_neg hb] at h₁
+    · rw [ite_eq_right hb] at h₁
       by_cases hb₃ : b₁ = Sum.inl Anchor.p0
       · subst hb₃
-        rw [if_pos rfl] at h₁
+        rw [ite_eq_left rfl] at h₁
         rw [Option.some.injEq] at h₁
         subst h₁
         by_cases hb₂ : b₂ = Sum.inr heK
-        · rw [if_pos hb₂] at h₂
+        · rw [ite_eq_left hb₂] at h₂
           simp at h₂
-        · rw [if_neg hb₂] at h₂
+        · rw [ite_eq_right hb₂] at h₂
           by_cases hb₄ : b₂ = Sum.inl Anchor.p0
           · exact hb₄.symm
-          · rw [if_neg hb₄] at h₂
+          · rw [ite_eq_right hb₄] at h₂
             simp at h₂
-      · rw [if_neg hb₃] at h₁
+      · rw [ite_eq_right hb₃] at h₁
         simp at h₁
 
 def stS : State where
@@ -140,7 +140,7 @@ theorem stS_unrealizable (bd : Board) : ¬ (toEngine stS).realizedBy bd := by
           · have h3 : bdS.topOf b' = none := by
               show (if b' = Sum.inr heK then some heQ
                   else if b' = Sum.inl Anchor.p0 then some heK else none) = none
-              rw [if_neg hbr, if_neg hbr2]
+              rw [ite_eq_right hbr, ite_eq_right hbr2]
             rw [h3] at htb2
             simp at htb2
 

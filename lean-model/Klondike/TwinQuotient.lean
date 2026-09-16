@@ -549,7 +549,7 @@ theorem Board.mem_aboveOf_of_topOf {bd : Board} {t z : Card}
     else aboveOf.go bd 52 (Sum.inr z) [z])
   by_cases hcon : ([] : List Card).contains z = true
   · simp at hcon
-  · rw [if_neg hcon]
+  · rw [ite_eq_right hcon]
     exact Board.aboveOf_go_mem bd 52 (Sum.inr z) [z] z (by simp)
 
 /-- **The merge bridge — the [H] crux, now exactly the cargo-top
@@ -1929,9 +1929,9 @@ theorem State.apply_twinHeightRel {t : Card} {S S' : State} {m : Move}
       · funext a'
         by_cases ha' : a' = a
         · show (if a' = a then S.depths a - 1 else S.depths a') = (if a' = a then S'.depths a - 1 else S'.depths a')
-          rw [if_pos ha', if_pos ha', hdp]
+          rw [ite_eq_left ha', ite_eq_left ha', hdp]
         · show (if a' = a then S.depths a - 1 else S.depths a') = (if a' = a then S'.depths a - 1 else S'.depths a')
-          rw [if_neg ha', if_neg ha']
+          rw [ite_eq_right ha', ite_eq_right ha']
           show S.depths a' = S'.depths a'
           rw [hdp]
       · intro s h1 h2
@@ -1974,8 +1974,8 @@ theorem State.apply_twinHeightRel {t : Card} {S S' : State} {m : Move}
       · intro s h1 h2
         show (if s = c.suit then S.heights s + 1 else S.heights s) = (if s = c.suit then S'.heights s + 1 else S'.heights s)
         by_cases hsc : s = c.suit
-        · rw [if_pos hsc, if_pos hsc, hh s h1 h2]
-        · rw [if_neg hsc, if_neg hsc]
+        · rw [ite_eq_left hsc, ite_eq_left hsc, hh s h1 h2]
+        · rw [ite_eq_right hsc, ite_eq_right hsc]
           exact hh s h1 h2
   | pileStack c =>
       rw [apply_pileStack_iff] at hS
@@ -1988,8 +1988,8 @@ theorem State.apply_twinHeightRel {t : Card} {S S' : State} {m : Move}
       · intro s h1 h2
         show (if s = c.suit then S.heights s + 1 else S.heights s) = (if s = c.suit then S'.heights s + 1 else S'.heights s)
         by_cases hsc : s = c.suit
-        · rw [if_pos hsc, if_pos hsc, hh s h1 h2]
-        · rw [if_neg hsc, if_neg hsc]
+        · rw [ite_eq_left hsc, ite_eq_left hsc, hh s h1 h2]
+        · rw [ite_eq_right hsc, ite_eq_right hsc]
           exact hh s h1 h2
   | stackPile c b =>
       rw [apply_stackPile_iff] at hS
@@ -2016,8 +2016,8 @@ theorem State.apply_twinHeightRel {t : Card} {S S' : State} {m : Move}
       · intro s h1 h2
         show (if s = c.suit then S.heights s - 1 else S.heights s) = (if s = c.suit then S'.heights s - 1 else S'.heights s)
         by_cases hsc : s = c.suit
-        · rw [if_pos hsc, if_pos hsc, hh s h1 h2]
-        · rw [if_neg hsc, if_neg hsc]
+        · rw [ite_eq_left hsc, ite_eq_left hsc, hh s h1 h2]
+        · rw [ite_eq_right hsc, ite_eq_right hsc]
           exact hh s h1 h2
   | pilePile c b =>
       rw [apply_pilePile_iff] at hS
@@ -2068,27 +2068,27 @@ theorem State.apply_ortho_preserves {t : Card} {S R : State} {m : Move}
       obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
       refine ⟨?_, ?_⟩
       · show (if t.suit = c.suit then S.heights t.suit + 1 else S.heights t.suit) = S.heights t.suit
-        rw [if_neg (fun hc => hsu hc.symm)]
+        rw [ite_eq_right (fun hc => hsu hc.symm)]
       · show (if t.flipSuit.suit = c.suit then S.heights t.flipSuit.suit + 1 else S.heights t.flipSuit.suit) = S.heights t.flipSuit.suit
-        rw [if_neg (fun hc => hsu' hc.symm)]
+        rw [ite_eq_right (fun hc => hsu' hc.symm)]
   | pileStack c =>
       rw [apply_pileStack_iff] at hS
       obtain ⟨-, -, -, -, rfl⟩ := hS
       obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
       refine ⟨?_, ?_⟩
       · show (if t.suit = c.suit then S.heights t.suit + 1 else S.heights t.suit) = S.heights t.suit
-        rw [if_neg (fun hc => hsu hc.symm)]
+        rw [ite_eq_right (fun hc => hsu hc.symm)]
       · show (if t.flipSuit.suit = c.suit then S.heights t.flipSuit.suit + 1 else S.heights t.flipSuit.suit) = S.heights t.flipSuit.suit
-        rw [if_neg (fun hc => hsu' hc.symm)]
+        rw [ite_eq_right (fun hc => hsu' hc.symm)]
   | stackPile c b =>
       rw [apply_stackPile_iff] at hS
       obtain ⟨-, -, -, -, rfl⟩ := hS
       obtain ⟨hsu, hsu'⟩ := (decide_eq_true_iff).mp hort
       refine ⟨?_, ?_⟩
       · show (if t.suit = c.suit then S.heights t.suit - 1 else S.heights t.suit) = S.heights t.suit
-        rw [if_neg (fun hc => hsu hc.symm)]
+        rw [ite_eq_right (fun hc => hsu hc.symm)]
       · show (if t.flipSuit.suit = c.suit then S.heights t.flipSuit.suit - 1 else S.heights t.flipSuit.suit) = S.heights t.flipSuit.suit
-        rw [if_neg (fun hc => hsu' hc.symm)]
+        rw [ite_eq_right (fun hc => hsu' hc.symm)]
   | pilePile c b =>
       rw [apply_pilePile_iff] at hS
       obtain ⟨-, -, -, -, -, -, rfl⟩ := hS
@@ -2123,7 +2123,7 @@ theorem State.twinHeightRel_heightSwap (t : Card) (st : State) :
   ⟨rfl, rfl, rfl, rfl, rfl, fun s h1 h2 => by
     show st.heights s = (if s = t.suit then st.heights t.flipSuit.suit
       else if s = t.flipSuit.suit then st.heights t.suit else st.heights s)
-    rw [if_neg h1, if_neg h2]⟩
+    rw [ite_eq_right h1, ite_eq_right h2]⟩
 
 /-- The cross-skew: the exchanged state with the twin suits' heights
 exchanged — the correspondence between the two games while exactly one
@@ -2178,13 +2178,13 @@ theorem State.apply_crossTwin_ortho {t : Card} {S R : State} {m : Move}
     · funext s
       by_cases h1 : s = t.suit
       · rw [h1, hS'.1, State.twinHeightSwap_heights_eq, State.twinHeightSwap_heights_eq,
-          if_pos rfl, if_pos rfl]
+          ite_eq_left rfl, ite_eq_left rfl]
         exact hR.2.symm
       · by_cases h2 : s = t.flipSuit.suit
         · rw [h2, hS'.2, State.twinHeightSwap_heights_eq, State.twinHeightSwap_heights_eq,
-            if_neg hsne, if_pos rfl, if_neg hsne, if_pos rfl]
+            ite_eq_right hsne, ite_eq_left rfl, ite_eq_right hsne, ite_eq_left rfl]
           exact hR.1.symm
-        · rw [State.twinHeightSwap_heights_eq, if_neg h1, if_neg h2]
+        · rw [State.twinHeightSwap_heights_eq, ite_eq_right h1, ite_eq_right h2]
           exact (hh s h1 h2).symm
     · exact hdp.symm
     · exact hst.symm
@@ -2269,12 +2269,12 @@ theorem State.twinSkew_eq_crossTwin {st B : State} {t : Card} {β : Base}
         else if s = t.flipSuit.suit then B.heights t.suit else B.heights s)
     rw [swapTwin_heights, hBh t.flipSuit.suit, hBh t.suit, hBh s]
     by_cases h1 : s = t.suit
-    · rw [if_neg (fun h => hsne (h.symm.trans h1)), if_pos h1, if_neg hsne, h1]
+    · rw [ite_eq_right (fun h => hsne (h.symm.trans h1)), ite_eq_left h1, ite_eq_right hsne, h1]
       exact halign
     · by_cases h2 : s = t.flipSuit.suit
-      · rw [if_pos h2, if_neg h1, if_pos h2, if_pos rfl, h2]
+      · rw [ite_eq_left h2, ite_eq_right h1, ite_eq_left h2, ite_eq_left rfl, h2]
         omega
-      · rw [if_neg h2, if_neg h1, if_neg h2, if_neg h1]
+      · rw [ite_eq_right h2, ite_eq_right h1, ite_eq_right h2, ite_eq_right h1]
   · rw [hshape]
     rfl
   · rw [hshape]
@@ -2304,7 +2304,7 @@ theorem State.apply_crossTwin_stack {C D : State} {t : Card} {β' : Base}
     rfl
   · rw [State.crossTwin_board]
     exact mapByTwin_bottomOf_flip C.board t hβ'
-  · rw [State.crossTwin_heights_eq, if_pos rfl, ← Card.flipSuit_rank]
+  · rw [State.crossTwin_heights_eq, ite_eq_left rfl, ← Card.flipSuit_rank]
     exact hrk'
   · apply state_ext
     · rw [hshape]
@@ -2315,12 +2315,12 @@ theorem State.apply_crossTwin_stack {C D : State} {t : Card} {β' : Base}
         else (C.crossTwin t).heights s)
       rw [swapTwin_heights, hDh s, State.crossTwin_heights_eq]
       by_cases h1 : s = t.suit
-      · rw [h1, if_pos rfl, if_pos rfl, if_neg (Ne.symm hsne)]
+      · rw [h1, ite_eq_left rfl, ite_eq_left rfl, ite_eq_right (Ne.symm hsne)]
         exact halign₂
       · by_cases h2 : s = t.flipSuit.suit
-        · rw [h2, if_pos rfl, if_neg hsne, if_neg hsne, if_pos rfl]
+        · rw [h2, ite_eq_left rfl, ite_eq_right hsne, ite_eq_right hsne, ite_eq_left rfl]
           exact halign₂.symm
-        · rw [if_neg h2, if_neg h1, if_neg h1, if_neg h2]
+        · rw [ite_eq_right h2, ite_eq_right h1, ite_eq_right h1, ite_eq_right h2]
     · rw [hshape]
       rfl
     · rw [hshape]
@@ -2387,7 +2387,7 @@ theorem solvable_swapTwin_separated {st : State} {t : Card} {p₁ mid p₂ : Lis
                   rw [hBshape]
                   show (if t.flipSuit.suit = t.suit then A.heights t.flipSuit.suit + 1
                     else A.heights t.flipSuit.suit) = A.heights t.flipSuit.suit
-                  rw [if_neg hsne]
+                  rw [ite_eq_right hsne]
                 have hs₂ : A.heights t.flipSuit.suit = t.rank.toIdx := by
                   have h2 : t.flipSuit.rank.toIdx = C.heights t.flipSuit.suit := hrk'
                   rw [Card.flipSuit_rank, hCt', hB'] at h2
@@ -2399,7 +2399,7 @@ theorem solvable_swapTwin_separated {st : State} {t : Card} {p₁ mid p₂ : Lis
                     rw [hCt, hBshape]
                     show (if t.suit = t.suit then A.heights t.suit + 1 else A.heights t.suit)
                       = A.heights t.suit + 1
-                    rw [if_pos rfl]
+                    rw [ite_eq_left rfl]
                   have h2 : C.heights t.flipSuit.suit = t.rank.toIdx := by
                     rw [← Card.flipSuit_rank]
                     exact hrk'.symm

@@ -272,8 +272,8 @@ theorem toEngine_step_deckPile {st st' : State} {c : Card} {b : Base} (hwf : st.
   obtain ⟨hprev, hcp, bd, hatt, hst⟩ := h
   simp only [Cycle.prev] at hprev
   by_cases hcur : st.stock.cursor = 0
-  · rw [if_pos hcur] at hprev; simp at hprev
-  · rw [if_neg hcur] at hprev
+  · rw [ite_eq_left hcur] at hprev; simp at hprev
+  · rw [ite_eq_right hcur] at hprev
     refine ⟨⟨st.board, toEngine_realizedBy_board hwf, b, hcp⟩, st.stock.cursor - 1, hprev, ?_⟩
     rw [hst]
     apply estate_ext
@@ -292,7 +292,7 @@ theorem toEngine_step_deckPile {st st' : State} {c : Card} {b : Base} (hwf : st.
     · rfl
     · show (if st.stock.cursor - 1 < st.stock.cursor then st.stock.cursor - 1
         else st.stock.cursor) = st.stock.cursor - 1
-      rw [if_pos (by omega)]
+      rw [ite_eq_left (by omega)]
     · rfl
 
 /-- One model `deckStack` is one abstract `deckStack` (no realizing
@@ -304,8 +304,8 @@ theorem toEngine_step_deckStack {st st' : State} {c : Card}
   obtain ⟨hprev, hrk, hst⟩ := h
   simp only [Cycle.prev] at hprev
   by_cases hcur : st.stock.cursor = 0
-  · rw [if_pos hcur] at hprev; simp at hprev
-  · rw [if_neg hcur] at hprev
+  · rw [ite_eq_left hcur] at hprev; simp at hprev
+  · rw [ite_eq_right hcur] at hprev
     refine ⟨hrk, st.stock.cursor - 1, hprev, ?_⟩
     rw [hst]
     apply estate_ext
@@ -316,7 +316,7 @@ theorem toEngine_step_deckStack {st st' : State} {c : Card}
     · rfl
     · show (if st.stock.cursor - 1 < st.stock.cursor then st.stock.cursor - 1
         else st.stock.cursor) = st.stock.cursor - 1
-      rw [if_pos (by omega)]
+      rw [ite_eq_left (by omega)]
     · rfl
 
 /-- One model `stackPile` is one abstract `stackPile`. -/

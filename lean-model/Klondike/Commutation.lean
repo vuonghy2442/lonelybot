@@ -663,23 +663,23 @@ theorem applyDrawStackTo_merge {st st' st₁ st₁' : State} {c : Card}
                 heights := fun s => if s = c.suit then st'.heights s + 1 else st'.heights s }
               else none) = some st₁' := h₂
           by_cases hrk : c.rank.toIdx = st.heights c.suit
-          · rw [if_pos hrk, Option.some.injEq] at h₁'
-            rw [if_pos (hrk.trans (congrFun (hd.2.2.1) c.suit)), Option.some.injEq] at h₂'
+          · rw [ite_eq_left hrk, Option.some.injEq] at h₁'
+            rw [ite_eq_left (hrk.trans (congrFun (hd.2.2.1) c.suit)), Option.some.injEq] at h₂'
             rw [← h₁', ← h₂']
             refine state_ext hd.1 hd.2.1 ?_ hd.2.2.2.1 ?_ hd.2.2.2.2.2
             · funext s
               by_cases hsc : s = c.suit
               · show (if s = c.suit then st.heights s + 1 else st.heights s)
                   = (if s = c.suit then st'.heights s + 1 else st'.heights s)
-                rw [if_pos hsc, if_pos hsc]
+                rw [ite_eq_left hsc, ite_eq_left hsc]
                 exact congrArg (· + 1) (congrFun (hd.2.2.1) s)
               · show (if s = c.suit then st.heights s + 1 else st.heights s)
                   = (if s = c.suit then st'.heights s + 1 else st'.heights s)
-                rw [if_neg hsc, if_neg hsc]
+                rw [ite_eq_right hsc, ite_eq_right hsc]
                 exact congrFun (hd.2.2.1) s
             · rw [Cycle.removeAt_drawTo i st.stock, Cycle.removeAt_drawTo i st'.stock,
                 hd.2.2.2.2.1]
-          · rw [if_neg hrk] at h₁'; exact absurd h₁' (by simp)
+          · rw [ite_eq_right hrk] at h₁'; exact absurd h₁' (by simp)
 
 /-- The bases and cards a move reads or writes (state-dependent — the
 run under a `pilePile`, the boundary's own seat and landing base under
@@ -862,11 +862,11 @@ theorem heights_bump_bump {α : Type} [DecidableEq α] (f : α → Nat) (σ σ' 
   funext s
   by_cases h1 : s = σ
   · by_cases h2 : s = σ'
-    · rw [if_pos h2, if_pos h1, if_pos h1, if_pos h2]
-    · rw [if_neg h2, if_pos h1, if_pos h1, if_neg h2]
+    · rw [ite_eq_left h2, ite_eq_left h1, ite_eq_left h1, ite_eq_left h2]
+    · rw [ite_eq_right h2, ite_eq_left h1, ite_eq_left h1, ite_eq_right h2]
   · by_cases h2 : s = σ'
-    · rw [if_pos h2, if_neg h1, if_neg h1, if_pos h2]
-    · rw [if_neg h2, if_neg h1, if_neg h1, if_neg h2]
+    · rw [ite_eq_left h2, ite_eq_right h1, ite_eq_right h1, ite_eq_left h2]
+    · rw [ite_eq_right h2, ite_eq_right h1, ite_eq_right h1, ite_eq_right h2]
 
 theorem heights_bump_drop {α : Type} [DecidableEq α] (f : α → Nat) (σ σ' : α) (hpos : σ = σ' → 0 < f σ) :
     (fun s => if s = σ' then (if s = σ then f s - 1 else f s) + 1
@@ -876,13 +876,13 @@ theorem heights_bump_drop {α : Type} [DecidableEq α] (f : α → Nat) (σ σ' 
   funext s
   by_cases h1 : s = σ
   · by_cases h2 : s = σ'
-    · rw [if_pos h2, if_pos h1, if_pos h1, if_pos h2, h1]
+    · rw [ite_eq_left h2, ite_eq_left h1, ite_eq_left h1, ite_eq_left h2, h1]
       have hpos' := hpos (h1.symm.trans h2)
       omega
-    · rw [if_neg h2, if_pos h1, if_pos h1, if_neg h2]
+    · rw [ite_eq_right h2, ite_eq_left h1, ite_eq_left h1, ite_eq_right h2]
   · by_cases h2 : s = σ'
-    · rw [if_pos h2, if_neg h1, if_neg h1, if_pos h2]
-    · rw [if_neg h2, if_neg h1, if_neg h1, if_neg h2]
+    · rw [ite_eq_left h2, ite_eq_right h1, ite_eq_right h1, ite_eq_left h2]
+    · rw [ite_eq_right h2, ite_eq_right h1, ite_eq_right h1, ite_eq_right h2]
 
 theorem heights_drop_drop {α : Type} [DecidableEq α] (f : α → Nat) (σ σ' : α) :
     (fun s => if s = σ' then (if s = σ then f s - 1 else f s) - 1
@@ -892,11 +892,11 @@ theorem heights_drop_drop {α : Type} [DecidableEq α] (f : α → Nat) (σ σ' 
   funext s
   by_cases h1 : s = σ
   · by_cases h2 : s = σ'
-    · rw [if_pos h2, if_pos h1, if_pos h1, if_pos h2]
-    · rw [if_neg h2, if_pos h1, if_pos h1, if_neg h2]
+    · rw [ite_eq_left h2, ite_eq_left h1, ite_eq_left h1, ite_eq_left h2]
+    · rw [ite_eq_right h2, ite_eq_left h1, ite_eq_left h1, ite_eq_right h2]
   · by_cases h2 : s = σ'
-    · rw [if_pos h2, if_neg h1, if_neg h1, if_pos h2]
-    · rw [if_neg h2, if_neg h1, if_neg h1, if_neg h2]
+    · rw [ite_eq_left h2, ite_eq_right h1, ite_eq_right h1, ite_eq_left h2]
+    · rw [ite_eq_right h2, ite_eq_right h1, ite_eq_right h1, ite_eq_right h2]
 
 theorem disjointTouch_symm {t₁ t₂ : List Base × List Card}
     (h : disjointTouch t₁ t₂) : disjointTouch t₂ t₁ :=
@@ -912,12 +912,12 @@ theorem depths_step_step (dpt : Anchor → Nat) (a a' : Anchor) :
   funext x
   by_cases h1 : x = a
   · by_cases h2 : x = a'
-    · rw [if_pos h2, if_pos (h2.symm.trans h1), if_pos h1, if_pos (h1.symm.trans h2),
+    · rw [ite_eq_left h2, ite_eq_left (h2.symm.trans h1), ite_eq_left h1, ite_eq_left (h1.symm.trans h2),
         show a = a' from h1.symm.trans h2]
-    · rw [if_neg h2, if_pos h1, if_pos h1, if_neg (fun hc => h2 (h1.trans hc))]
+    · rw [ite_eq_right h2, ite_eq_left h1, ite_eq_left h1, ite_eq_right (fun hc => h2 (h1.trans hc))]
   · by_cases h2 : x = a'
-    · rw [if_pos h2, if_neg (fun hc => h1 (h2.trans hc)), if_neg h1, if_pos h2]
-    · rw [if_neg h2, if_neg h1, if_neg h1, if_neg h2]
+    · rw [ite_eq_left h2, ite_eq_right (fun hc => h1 (h2.trans hc)), ite_eq_right h1, ite_eq_left h2]
+    · rw [ite_eq_right h2, ite_eq_right h1, ite_eq_right h1, ite_eq_right h2]
 
 /-! ### The pair lemmas — `commute_of_disjoint_touch`'s arms
 
@@ -1072,25 +1072,25 @@ theorem comm_reveal_reveal {st : State} {a a' : Anchor} {st₂ st₃ : State}
   have hdx : s₁.depths a' = st.depths a' := by
     rw [hs₁]
     show (if a' = a then st.depths a - 1 else st.depths a') = st.depths a'
-    rw [if_neg (fun hcon => haa' hcon.symm)]
+    rw [ite_eq_right (fun hcon => haa' hcon.symm)]
   rw [topHidden_congr' (by rw [hs₁]) a' hdx] at htop₁
   have hr₁ : r₁ = r' := Option.some.inj (htop₁.symm.trans htop')
   have hdx' : s₃.depths a = st.depths a := by
     rw [hs₃]
     show (if a = a' then st.depths a' - 1 else st.depths a) = st.depths a
-    rw [if_neg haa']
+    rw [ite_eq_right haa']
   rw [topHidden_congr' (by rw [hs₃]) a hdx'] at htop₄
   have hr₄ : r₄ = r := Option.some.inj (htop₄.symm.trans htop)
   -- the attach bases: each reveal's base survives the other's depth write
   have hdpa' : st.depths a' = (fun x => if x = a then st.depths a - 1 else st.depths x) a' := by
     show st.depths a' = (if a' = a then st.depths a - 1 else st.depths a')
-    rw [if_neg (fun hcon => haa' hcon.symm)]
+    rw [ite_eq_right (fun hcon => haa' hcon.symm)]
   have hbase₁ : s₁.hiddenBase a' = st.hiddenBase a' := by
     rw [hs₁, show st.hiddenBase a' = ({ st with board := bd₁, depths := fun x => if x = a then st.depths a - 1 else st.depths x } : State).hiddenBase a'
       from hiddenBase_congr'' a' hdpa']
   have hdpa : st.depths a = (fun x => if x = a' then st.depths a' - 1 else st.depths x) a := by
     show st.depths a = (if a = a' then st.depths a' - 1 else st.depths a)
-    rw [if_neg haa']
+    rw [ite_eq_right haa']
   have hbase₄ : s₃.hiddenBase a = st.hiddenBase a := by
     rw [hs₃, show st.hiddenBase a = ({ st with board := bd₃, depths := fun x => if x = a' then st.depths a' - 1 else st.depths x } : State).hiddenBase a
       from hiddenBase_congr'' a hdpa]
@@ -1378,7 +1378,7 @@ theorem comm_deckStack_pileStack {st : State} {c c' : Card} {st₂ st₃ : State
     rw [hs₃] at hrk'
     have hrk'' : c.rank.toIdx = (if c.suit = c'.suit then st.heights c.suit + 1
       else st.heights c.suit) := hrk'
-    rw [if_pos hσ.symm] at hrk''
+    rw [ite_eq_left hσ.symm] at hrk''
     omega
   -- the suits differ: the bumps land on independent coordinates
   have hb₂ : st.board.bottomOf c' = some b₀' := by
@@ -1413,7 +1413,7 @@ theorem comm_deckStack_stackPile {st : State} {c c' : Card} {b' : Base} {st₂ s
     rw [hs₃] at hrk''
     have hrk3 : c.rank.toIdx = (if c.suit = c'.suit then st.heights c.suit - 1
       else st.heights c.suit) := hrk''
-    rw [if_pos hσ] at hrk3
+    rw [ite_eq_left hσ] at hrk3
     rw [← hσ] at hrk₂
     omega
   have hpos : c'.suit = c.suit → 0 < st.heights c'.suit := fun _ => by
@@ -1458,7 +1458,7 @@ theorem comm_pileStack_pileStack {st : State} {c c' : Card} {st₂ st₃ : State
     rw [hs₃] at hrk₃
     have hrk4 : c.rank.toIdx = (if c.suit = c'.suit then st.heights c.suit + 1
       else st.heights c.suit) := hrk₃
-    rw [if_pos hσ.symm] at hrk4
+    rw [ite_eq_left hσ.symm] at hrk4
     omega
   -- the second detach reads the same seat in both orders
   have htb₀ : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp hb
@@ -1504,7 +1504,7 @@ theorem comm_pileStack_stackPile {st : State} {c c' : Card} {b' : Base} {st₂ s
     rw [hs₃] at hrk₃
     have hrk4 : c.rank.toIdx = (if c.suit = c'.suit then st.heights c.suit - 1
       else st.heights c.suit) := hrk₃
-    rw [if_pos hσ.symm] at hrk4
+    rw [ite_eq_left hσ.symm] at hrk4
     rw [hσ] at hrk₂
     omega
   have hpos : c'.suit = c.suit → 0 < st.heights c'.suit := by
@@ -1592,7 +1592,7 @@ theorem comm_stackPile_stackPile {st : State} {c c' : Card} {b b' : Base} {st₂
     rw [hs₃] at hrk₃
     have hrk4 : c.rank.toIdx + 1 = (if c.suit = c'.suit then st.heights c.suit - 1
       else st.heights c.suit) := hrk₃
-    rw [if_pos hσ.symm] at hrk4
+    rw [ite_eq_left hσ.symm] at hrk4
     omega
   rw [hs₁] at hatt'
   have hatt'₂ : bd₁.attach b' c' = some bd₂ := hatt'
@@ -1932,7 +1932,7 @@ theorem removeAt_drawTo {α : Type} (i : Nat) (cy : Cycle α) :
 theorem reachablePos_mask {st : State} {c : Card} {i : Nat} (hpos : 0 < st.drawStep)
     (h : st.reachablePos c = some i) :
     i ∈ Pace.maskPos st.stock st.drawStep hpos := by
-  simp only [State.reachablePos, dif_pos hpos] at h
+  simp only [State.reachablePos, dite_eq_left hpos] at h
   cases hp : st.stock.posOf c with
   | none => rw [hp] at h; simp at h
   | some i' =>
@@ -1954,7 +1954,7 @@ theorem zero_notMem_maskPos {α : Type} {c : Cycle α} {step : Nat} (hstep : 0 <
       ++ Pace.laneUp step hstep (step - 1)
         ((if c.cursor % step != 0 then c.cards.length else c.cursor) - 1)) := hmem
   simp only [List.mem_append] at hmem'
-  rw [if_pos (by omega : 0 < c.cards.length), List.mem_singleton] at hmem'
+  rw [ite_eq_left (by omega : 0 < c.cards.length), List.mem_singleton] at hmem'
   cases hmem' with
   | inl hmem'' =>
       cases hmem'' with

@@ -68,28 +68,28 @@ def wBoard : Board where
             have h₂' : (if x₂ = h5 then some s6 else if x₂ = s6 then some h5 else none)
                 = some c := h₂
             by_cases e₁ : x₁ = h5
-            · rw [if_pos e₁] at h₁'
+            · rw [ite_eq_left e₁] at h₁'
               by_cases e₂ : x₂ = h5
-              · rw [if_pos e₂] at h₂'
+              · rw [ite_eq_left e₂] at h₂'
                 rw [Option.some.injEq] at h₁' h₂'
                 exact congrArg Sum.inr (e₁.trans e₂.symm)
               · by_cases e₂' : x₂ = s6
-                · rw [if_neg e₂, if_pos e₂'] at h₂'
+                · rw [ite_eq_right e₂, ite_eq_left e₂'] at h₂'
                   rw [Option.some.injEq] at h₁' h₂'
                   exact absurd (h₁'.trans h₂'.symm) (by decide)
-                · rw [if_neg e₂, if_neg e₂'] at h₂'; simp at h₂'
+                · rw [ite_eq_right e₂, ite_eq_right e₂'] at h₂'; simp at h₂'
             · by_cases e₁' : x₁ = s6
-              · rw [if_neg e₁, if_pos e₁'] at h₁'
+              · rw [ite_eq_right e₁, ite_eq_left e₁'] at h₁'
                 by_cases e₂ : x₂ = h5
-                · rw [if_pos e₂] at h₂'
+                · rw [ite_eq_left e₂] at h₂'
                   rw [Option.some.injEq] at h₁' h₂'
                   exact absurd (h₁'.trans h₂'.symm) (by decide)
                 · by_cases e₂' : x₂ = s6
-                  · rw [if_neg e₂, if_pos e₂'] at h₂'
+                  · rw [ite_eq_right e₂, ite_eq_left e₂'] at h₂'
                     rw [Option.some.injEq] at h₁' h₂'
                     exact congrArg Sum.inr (e₁'.trans e₂'.symm)
-                  · rw [if_neg e₂, if_neg e₂'] at h₂'; simp at h₂'
-              · rw [if_neg e₁, if_neg e₁'] at h₁'; simp at h₁'
+                  · rw [ite_eq_right e₂, ite_eq_right e₂'] at h₂'; simp at h₂'
+              · rw [ite_eq_right e₁, ite_eq_right e₁'] at h₁'; simp at h₁'
 
 def wState : State where
   deal := wDeal
@@ -111,17 +111,17 @@ theorem wState_WF : wState.WF := by
         have hb' : (if x = h5 then some s6 else if x = s6 then some h5 else none)
             = some c := hb
         by_cases ex : x = h5
-        · rw [if_pos ex, Option.some.injEq] at hb'
+        · rw [ite_eq_left ex, Option.some.injEq] at hb'
           subst hb'
           subst ex
           refine ⟨by decide, ?_⟩
           exact Or.inl ⟨Anchor.p1, [], [], by decide, Or.inr (by decide)⟩
         · by_cases ex' : x = s6
-          · rw [if_neg ex, if_pos ex', Option.some.injEq] at hb'
+          · rw [ite_eq_right ex, ite_eq_left ex', Option.some.injEq] at hb'
             subst hb'
             subst ex'
             exact ⟨by decide, Or.inr ⟨by decide, by decide⟩⟩
-          · rw [if_neg ex, if_neg ex'] at hb'
+          · rw [ite_eq_right ex, ite_eq_right ex'] at hb'
             simp at hb'
   · intro c _
     show wState.stock.posOf c = none

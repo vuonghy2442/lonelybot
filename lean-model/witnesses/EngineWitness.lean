@@ -338,7 +338,7 @@ theorem inv_apply {st st' : State} (hI : Inv st) {m : Move} (heng : m.isEngine =
       · by_cases hch : c.suit = Suit.heart
         · show (if Suit.heart = c.suit then st.heights Suit.heart + 1
             else st.heights Suit.heart) ≤ 2
-          rw [if_pos (by rw [← hch])]
+          rw [ite_eq_left (by rw [← hch])]
           have hrk2 : c.rank.toIdx = st.heights Suit.heart := by rw [hrk, hch]
           rcases Nat.lt_or_ge c.rank.toIdx 2 with hlt | hge
           · omega
@@ -349,7 +349,7 @@ theorem inv_apply {st st' : State} (hI : Inv st) {m : Move} (heng : m.isEngine =
             exact absurd hmem hS3
         · show (if Suit.heart = c.suit then st.heights Suit.heart + 1
             else st.heights Suit.heart) ≤ 2
-          rw [if_neg (fun hcon => hch hcon.symm)]
+          rw [ite_eq_right (fun hcon => hch hcon.symm)]
           exact hH
       · show wh3 ∉ (st.stock.removeAt (st.stock.cursor - 1)).cards
         exact fun hmem => hS3 (Cycle.mem_removeIdx _ _ hmem)
@@ -360,7 +360,7 @@ theorem inv_apply {st st' : State} (hI : Inv st) {m : Move} (heng : m.isEngine =
       · by_cases hch : c.suit = Suit.heart
         · show (if Suit.heart = c.suit then st.heights Suit.heart + 1
             else st.heights Suit.heart) ≤ 2
-          rw [if_pos (by rw [← hch])]
+          rw [ite_eq_left (by rw [← hch])]
           have hrk2 : c.rank.toIdx = st.heights Suit.heart := by rw [hrk, hch]
           rcases Nat.lt_or_ge c.rank.toIdx 2 with hlt | hge
           · omega
@@ -370,7 +370,7 @@ theorem inv_apply {st st' : State} (hI : Inv st) {m : Move} (heng : m.isEngine =
             exact absurd (hb.symm.trans hB3) (by simp)
         · show (if Suit.heart = c.suit then st.heights Suit.heart + 1
             else st.heights Suit.heart) ≤ 2
-          rw [if_neg (fun hcon => hch hcon.symm)]
+          rw [ite_eq_right (fun hcon => hch hcon.symm)]
           exact hH
       · show (st.board.detach b).topOf (Sum.inr wh3) = some ws5
         by_cases hbb : b = Sum.inr wh3
@@ -414,11 +414,11 @@ theorem inv_apply {st st' : State} (hI : Inv st) {m : Move} (heng : m.isEngine =
       · by_cases hch : c.suit = Suit.heart
         · show (if Suit.heart = c.suit then st.heights Suit.heart - 1
             else st.heights Suit.heart) ≤ 2
-          rw [if_pos (by rw [← hch])]
+          rw [ite_eq_left (by rw [← hch])]
           omega
         · show (if Suit.heart = c.suit then st.heights Suit.heart - 1
             else st.heights Suit.heart) ≤ 2
-          rw [if_neg (fun hcon => hch hcon.symm)]
+          rw [ite_eq_right (fun hcon => hch hcon.symm)]
           exact hH
       · show bd.topOf (Sum.inr wh3) = some ws5
         by_cases hbb : b = Sum.inr wh3

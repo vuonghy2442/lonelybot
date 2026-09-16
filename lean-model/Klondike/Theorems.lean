@@ -79,9 +79,9 @@ theorem pileStack_stackPile_roundtrip {st : State} {c : Card} {b₀ : Base}
           funext s
           by_cases hsc : s = c.suit
           · subst hsc
-            rw [if_pos rfl, if_pos rfl]
+            rw [ite_eq_left rfl, ite_eq_left rfl]
             omega
-          · rw [if_neg hsc, if_neg hsc]
+          · rw [ite_eq_right hsc, ite_eq_right hsc]
         cases st with
         | mk d b hgt dpt stck ds =>
           rw [hbd, hh]
@@ -258,7 +258,7 @@ theorem stackPile_pileStack_return {st : State} {c : Card} {b : Base} {s₁ : St
     exact (Board.bottomOf_eq bd c b).mpr (Board.attach_topOf _ _ _ hatt)
   · show c.rank.toIdx =
       (if c.suit = c.suit then st.heights c.suit - 1 else st.heights c.suit)
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     omega
   · show st = { { st with
         board := bd,
@@ -278,9 +278,9 @@ theorem stackPile_pileStack_return {st : State} {c : Card} {b : Base} {s₁ : St
       funext s
       by_cases hsc : s = c.suit
       · subst hsc
-        rw [if_pos rfl, if_pos rfl]
+        rw [ite_eq_left rfl, ite_eq_left rfl]
         omega
-      · rw [if_neg hsc, if_neg hsc]
+      · rw [ite_eq_right hsc, ite_eq_right hsc]
     exact state_ext rfl hbdb.symm hhh.symm rfl rfl rfl
 
 /-- The worry-back half of the accommodation step: a legal `stackPile`
@@ -373,7 +373,7 @@ theorem solvable_of_pileStack_return {st : State} (hwf : st.WF) {c : Card} {b₀
     rw [hs₁]
     show c.rank.toIdx + 1 =
       (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit)
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     omega
   have hfree : s₁.board.topOf b₀ = none := by
     rw [hs₁]
@@ -656,7 +656,7 @@ theorem pileStack_comm_deckStack {st : State} {c x : Card} {b₀ : Base} {s₁ s
     refine ⟨hprev, ?_, rfl⟩
     show x.rank.toIdx =
       (if x.suit = c.suit then st.heights x.suit + 1 else st.heights x.suit)
-    rw [if_neg hσ]
+    rw [ite_eq_right hσ]
     exact hrkx
   -- the stack replays from the deck successor
   have hR : s₂.apply (Move.pileStack c) = some {s₂ with
@@ -666,7 +666,7 @@ theorem pileStack_comm_deckStack {st : State} {c x : Card} {b₀ : Base} {s₁ s
     refine ⟨htopn, b₀, hbot, ?_, rfl⟩
     show c.rank.toIdx =
       (if c.suit = x.suit then st.heights c.suit + 1 else st.heights c.suit)
-    rw [if_neg (Ne.symm hσ)]
+    rw [ite_eq_right (Ne.symm hσ)]
     exact hrk
   -- the two orders end in the same state (the commutation kit)
   have hcomp₁ : (st.apply (Move.pileStack c) >>= fun s => s.apply (Move.deckStack x)) =
@@ -964,7 +964,7 @@ theorem pileStack_comm_pileStack {st : State} {c x : Card} {b₀ bx : Base} {s�
       exact hbx
     · show x.rank.toIdx =
         (if x.suit = c.suit then st.heights x.suit + 1 else st.heights x.suit)
-      rw [if_neg hσ]
+      rw [ite_eq_right hσ]
       exact hrkx
   -- the stack of c from the stack successor of x
   have hR : s₂.apply (Move.pileStack c) = some {s₂ with
@@ -980,7 +980,7 @@ theorem pileStack_comm_pileStack {st : State} {c x : Card} {b₀ bx : Base} {s�
       exact hbot
     · show c.rank.toIdx =
         (if c.suit = x.suit then st.heights c.suit + 1 else st.heights c.suit)
-      rw [if_neg (Ne.symm hσ)]
+      rw [ite_eq_right (Ne.symm hσ)]
       exact hrk
   -- the two orders end in the same state (the commutation kit)
   have hcomp₁ : (st.apply (Move.pileStack c) >>= fun s => s.apply (Move.pileStack x)) =
@@ -1055,7 +1055,7 @@ theorem pileStack_comm_stackPile {st : State} {c x : Card} {b₀ b'' : Base} {s�
     rw [hs₁]
     show x.rank.toIdx + 1 =
       (if x.suit = c.suit then st.heights x.suit + 1 else st.heights x.suit)
-    rw [if_neg hσ]
+    rw [ite_eq_right hσ]
     exact hrkx
   have hfreen' : (st.board.detach b₀).topOf b'' = none := by
     rw [Board.detach_topOf_ne st.board b₀ b'' (Ne.symm hnb)]
@@ -1117,7 +1117,7 @@ theorem pileStack_comm_stackPile {st : State} {c x : Card} {b₀ b'' : Base} {s�
         rw [hs₂, apply_pileStack_iff]
         refine ⟨htopn₂, b₀, hbot₂, ?_, rfl⟩
         show c.rank.toIdx = (if c.suit = x.suit then st.heights c.suit - 1 else st.heights c.suit)
-        rw [if_neg (Ne.symm hσ)]
+        rw [ite_eq_right (Ne.symm hσ)]
         exact hrk
       -- the two orders end in the same state (the commutation kit)
       have hcomp₁ : (st.apply (Move.pileStack c) >>= fun s => s.apply (Move.stackPile x b'')) =
@@ -1348,7 +1348,7 @@ theorem pileStack_pilePile_stackPile {st : State} {c : Card} {b₀ b'' : Base} {
     rw [hs₁]
     show c.rank.toIdx + 1 =
       (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit)
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     omega
   -- the base is still free (c's old base is not the target) and still fitting
   have hneb : b₀ ≠ b'' := hne
@@ -1397,13 +1397,13 @@ theorem pileStack_pilePile_stackPile {st : State} {c : Card} {b₀ b'' : Base} {
       (if s = c.suit then
           (if s = c.suit then st.heights s + 1 else st.heights s) - 1
           else (if s = c.suit then st.heights s + 1 else st.heights s))
-    rw [if_pos hsc, if_pos hsc]
+    rw [ite_eq_left hsc, ite_eq_left hsc]
     omega
   · show st.heights s =
       (if s = c.suit then
           (if s = c.suit then st.heights s + 1 else st.heights s) - 1
           else (if s = c.suit then st.heights s + 1 else st.heights s))
-    rw [if_neg hsc, if_neg hsc]
+    rw [ite_eq_right hsc, ite_eq_right hsc]
 
 /-- A successful `reveal` preserves another card's unlockedness (when
 that card is visible — the π-induction's `c`): the reveal steps one
@@ -1473,7 +1473,7 @@ theorem reveal_notLocked {st s₂ : State} {c : Card} {a : Anchor} (hwf : st.WF)
                 rw [haa] at h
                 have h' : ((st.deal.piles a).take
                     (if a = a then st.depths a - 1 else st.depths a)).getLast? = some d := h
-                rw [if_pos rfl] at h'
+                rw [ite_eq_left rfl] at h'
                 exact h'
               have hgt' : ((st.deal.piles a).take (st.depths a)).getLast? = some r := hgt
               have hhead : (((st.deal.piles a).take (st.depths a)).reverse.drop 1).head? = some d :=
@@ -1491,7 +1491,7 @@ theorem reveal_notLocked {st s₂ : State} {c : Card} {a : Anchor} (hwf : st.WF)
                 have hc : ((st.deal.piles a').take
                     (if a' = a then st.depths a - 1 else st.depths a')).getLast? = some d :=
                   of_decide_eq_true htd
-                rw [if_neg haa] at hc
+                rw [ite_eq_right haa] at hc
                 exact hc
               have h'' : st.topHidden a' = some d := h'
               exact findFirst_ne_none_of_mem
@@ -2031,7 +2031,7 @@ private theorem rung_pass_aux {c : Card} {R : Nat} (hrk : c.rank.toIdx = R) :
                   rw [hsp]
                   show (if c.suit = x.suit then u.heights c.suit + 1 else u.heights c.suit) ≤ R
                   by_cases hσ : c.suit = x.suit
-                  · rw [if_pos hσ]
+                  · rw [ite_eq_left hσ]
                     by_cases hlt : u.heights c.suit < R
                     · omega
                     · have hR : u.heights c.suit = R := by omega
@@ -2040,7 +2040,7 @@ private theorem rung_pass_aux {c : Card} {R : Nat} (hrk : c.rank.toIdx = R) :
                       have h2 : x.rank.toIdx = c.rank.toIdx := by rw [h1, hR, hrk]
                       have h3 : x.rank = c.rank := Rank.toIdx_inj h2
                       exact absurd (show x = c by cases x; cases c; simp_all) hxc
-                  · rw [if_neg hσ]; exact hle
+                  · rw [ite_eq_right hσ]; exact hle
                 have hc₂ : c ∉ s₂.stock.cards := by rw [hsp]; exact hc
                 obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
                 exact rung_prefix_cons hm hsplit hconj
@@ -2091,7 +2091,7 @@ private theorem rung_pass_aux {c : Card} {R : Nat} (hrk : c.rank.toIdx = R) :
                 rw [hsd]
                 show (if c.suit = x.suit then u.heights c.suit + 1 else u.heights c.suit) ≤ R
                 by_cases hσ : c.suit = x.suit
-                · rw [if_pos hσ]
+                · rw [ite_eq_left hσ]
                   by_cases hlt : u.heights c.suit < R
                   · omega
                   · have hR : u.heights c.suit = R := by omega
@@ -2100,7 +2100,7 @@ private theorem rung_pass_aux {c : Card} {R : Nat} (hrk : c.rank.toIdx = R) :
                     have h2 : x.rank.toIdx = c.rank.toIdx := by rw [h1, hR, hrk]
                     have h3 : x.rank = c.rank := Rank.toIdx_inj h2
                     exact absurd (show x = c by cases x; cases c; simp_all) hxc
-                · rw [if_neg hσ]; exact hle
+                · rw [ite_eq_right hσ]; exact hle
               have hc₂ : c ∉ s₂.stock.cards := by
                 rw [hsd]
                 intro hmem
@@ -2115,8 +2115,8 @@ private theorem rung_pass_aux {c : Card} {R : Nat} (hrk : c.rank.toIdx = R) :
                 rw [hss]
                 show (if c.suit = x.suit then u.heights c.suit - 1 else u.heights c.suit) ≤ R
                 by_cases hσ : c.suit = x.suit
-                · rw [if_pos hσ]; omega
-                · rw [if_neg hσ]; exact hle
+                · rw [ite_eq_left hσ]; omega
+                · rw [ite_eq_right hσ]; exact hle
               have hc₂ : c ∉ s₂.stock.cards := by rw [hss]; exact hc
               obtain ⟨π₁, π₂, hsplit, hconj⟩ := ih s₂ w hrest hle₂ hc₂ hgt
               exact rung_prefix_cons hm hsplit hconj
@@ -2266,11 +2266,11 @@ theorem excursionSim_of_stackPile {st : State} (hwf : st.WF) {x : Card} {b : Bas
   · rw [hst]
     show s₁.heights x.suit + 1 =
         (if x.suit = x.suit then s₁.heights x.suit + 1 else s₁.heights x.suit)
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   · intro s hs
     rw [hst]
     show s₁.heights s = (if s = x.suit then s₁.heights s + 1 else s₁.heights s)
-    rw [if_neg hs]
+    rw [ite_eq_right hs]
   · rw [hsb]; exact htopb
   · rw [hst]
 
@@ -2296,10 +2296,10 @@ theorem excursionSim_converge {x : Card} {b : Base} {σ τ σ₂ : State}
     · subst hss
       show (if x.suit = x.suit then σ.heights x.suit + 1 else σ.heights x.suit)
           = τ.heights x.suit
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       exact hhx
     · show (if s = x.suit then σ.heights s + 1 else σ.heights s) = τ.heights s
-      rw [if_neg hss]
+      rw [ite_eq_right hss]
       exact hho s hss
 
 /-- The W3 one-step replay — Frame's honest boundary, closed: a
@@ -2492,14 +2492,14 @@ theorem excursionSim_step {x : Card} {b : Base} {σ τ : State} (hwf : σ.WF)
           rw [hstock]
         · show (if x.suit = c.suit then σ.heights x.suit + 1 else σ.heights x.suit) + 1 =
               (if x.suit = c.suit then τ.heights x.suit + 1 else τ.heights x.suit)
-          rw [if_neg hsc, if_neg hsc]
+          rw [ite_eq_right hsc, ite_eq_right hsc]
           exact hhx
         · intro s hs
           show (if s = c.suit then σ.heights s + 1 else σ.heights s) =
               (if s = c.suit then τ.heights s + 1 else τ.heights s)
           by_cases hsc' : s = c.suit
-          · rw [if_pos hsc', if_pos hsc', hho s hs]
-          · rw [if_neg hsc', if_neg hsc']
+          · rw [ite_eq_left hsc', ite_eq_left hsc', hho s hs]
+          · rw [ite_eq_right hsc', ite_eq_right hsc']
             exact hho s hs
   | pileStack c =>
       have hcx : c ≠ x := by
@@ -2539,14 +2539,14 @@ theorem excursionSim_step {x : Card} {b : Base} {σ τ : State} (hwf : σ.WF)
       · refine ⟨hdeal, hdpt, hstock, hds, ?_, ?_, ?_, ?_, ?_⟩
         · show (if x.suit = c.suit then σ.heights x.suit + 1 else σ.heights x.suit) + 1 =
               (if x.suit = c.suit then τ.heights x.suit + 1 else τ.heights x.suit)
-          rw [if_neg hsc, if_neg hsc]
+          rw [ite_eq_right hsc, ite_eq_right hsc]
           exact hhx
         · intro s hs
           show (if s = c.suit then σ.heights s + 1 else σ.heights s) =
               (if s = c.suit then τ.heights s + 1 else τ.heights s)
           by_cases hsc' : s = c.suit
-          · rw [if_pos hsc', if_pos hsc', hho s hs]
-          · rw [if_neg hsc', if_neg hsc']
+          · rw [ite_eq_left hsc', ite_eq_left hsc', hho s hs]
+          · rw [ite_eq_right hsc', ite_eq_right hsc']
             exact hho s hs
         · show (σ.board.detach b₀).topOf b = some x
           rw [Board.detach_topOf_ne _ _ _ hbbne]
@@ -2598,14 +2598,14 @@ theorem excursionSim_step {x : Card} {b : Base} {σ τ : State} (hwf : σ.WF)
       · refine ⟨hdeal, hdpt, hstock, hds, ?_, ?_, ?_, ?_, ?_⟩
         · show (if x.suit = c.suit then σ.heights x.suit - 1 else σ.heights x.suit) + 1 =
               (if x.suit = c.suit then τ.heights x.suit - 1 else τ.heights x.suit)
-          rw [if_neg hsc, if_neg hsc]
+          rw [ite_eq_right hsc, ite_eq_right hsc]
           exact hhx
         · intro s hs
           show (if s = c.suit then σ.heights s - 1 else σ.heights s) =
               (if s = c.suit then τ.heights s - 1 else τ.heights s)
           by_cases hsc' : s = c.suit
-          · rw [if_pos hsc', if_pos hsc', hho s hs]
-          · rw [if_neg hsc', if_neg hsc']
+          · rw [ite_eq_left hsc', ite_eq_left hsc', hho s hs]
+          · rw [ite_eq_right hsc', ite_eq_right hsc']
             exact hho s hs
         · show bd.topOf b = some x
           rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb''ne)]
@@ -3060,8 +3060,8 @@ theorem parkSim_aboveOf_go {c : Card} {σ τ : State}
           have hw' : w ∈ (if acc.contains c' = true then acc
               else Board.aboveOf.go τ.board n (Sum.inr c') (c' :: acc)) := hw
           by_cases hct : acc.contains c' = true
-          · rw [if_pos hct] at hw'; exact Or.inl hw'
-          · rw [if_neg hct] at hw'
+          · rw [ite_eq_left hct] at hw'; exact Or.inl hw'
+          · rw [ite_eq_right hct] at hw'
             have hbcne : b ≠ Sum.inr c := by
               intro hcon; rw [hcon, hτc] at hb; exact absurd hb (by simp)
             have hσtop : σ.board.topOf b = some c' := by
@@ -3135,8 +3135,8 @@ theorem parkSim_cargo_go {c y z₁ : Card} {σ τ : State}
           have hw' : w ∈ (if acc.contains c' = true then acc
               else Board.aboveOf.go τ.board n (Sum.inr c') (c' :: acc)) := hw
           by_cases hct : acc.contains c' = true
-          · rw [if_pos hct] at hw'; exact Or.inl hw'
-          · rw [if_neg hct] at hw'
+          · rw [ite_eq_left hct] at hw'; exact Or.inl hw'
+          · rw [ite_eq_right hct] at hw'
             by_cases hbt : b = Sum.inr c.flipSuit
             · rw [hbt] at hb
               have hcy : y = c' := (Option.some.inj (hb.symm.trans hτt)).symm
@@ -3154,7 +3154,7 @@ theorem parkSim_cargo_go {c y z₁ : Card} {σ τ : State}
                     show (if (y :: acc).contains z₁ = true then (y :: acc)
                         else Board.aboveOf.go τ.board m (Sum.inr z₁) (z₁ :: y :: acc))
                       = y :: acc
-                    rw [if_pos ((contains_iff_mem _ _).mpr
+                    rw [ite_eq_left ((contains_iff_mem _ _).mpr
                       (List.mem_cons_of_mem _ hz₁acc))]
               rw [hshort] at hw'
               rcases List.mem_cons.mp hw' with rfl | hw'
@@ -3490,10 +3490,10 @@ theorem parkSim_step {c y : Card} {σ τ : State} (hwf : σ.WF)
           by_cases hsz : s = z.suit
           · show (if s = z.suit then σ.heights s + 1 else σ.heights s) =
                 (if s = z.suit then τ.heights s + 1 else τ.heights s)
-            rw [if_pos hsz, if_pos hsz, hh]
+            rw [ite_eq_left hsz, ite_eq_left hsz, hh]
           · show (if s = z.suit then σ.heights s + 1 else σ.heights s) =
                 (if s = z.suit then τ.heights s + 1 else τ.heights s)
-            rw [if_neg hsz, if_neg hsz, hh]
+            rw [ite_eq_right hsz, ite_eq_right hsz, hh]
         · show σ.stock.removeAt (σ.stock.cursor - 1) = {τ with
               stock := τ.stock.removeAt (τ.stock.cursor - 1),
               heights := fun s => if s = z.suit then τ.heights s + 1 else τ.heights s}.stock
@@ -3537,10 +3537,10 @@ theorem parkSim_step {c y : Card} {σ τ : State} (hwf : σ.WF)
           by_cases hsz : s = z.suit
           · show (if s = z.suit then σ.heights s + 1 else σ.heights s) =
                 (if s = z.suit then τ.heights s + 1 else τ.heights s)
-            rw [if_pos hsz, if_pos hsz, hh]
+            rw [ite_eq_left hsz, ite_eq_left hsz, hh]
           · show (if s = z.suit then σ.heights s + 1 else σ.heights s) =
                 (if s = z.suit then τ.heights s + 1 else τ.heights s)
-            rw [if_neg hsz, if_neg hsz, hh]
+            rw [ite_eq_right hsz, ite_eq_right hsz, hh]
         · show (σ.board.detach b₀).topOf (Sum.inr c) = some y
           rw [Board.detach_topOf_ne _ _ _ (Ne.symm hb₀c)]
           exact hσc
@@ -3607,10 +3607,10 @@ theorem parkSim_step {c y : Card} {σ τ : State} (hwf : σ.WF)
           by_cases hsz : s = z.suit
           · show (if s = z.suit then σ.heights s - 1 else σ.heights s) =
                 (if s = z.suit then τ.heights s - 1 else τ.heights s)
-            rw [if_pos hsz, if_pos hsz, hh]
+            rw [ite_eq_left hsz, ite_eq_left hsz, hh]
           · show (if s = z.suit then σ.heights s - 1 else σ.heights s) =
                 (if s = z.suit then τ.heights s - 1 else τ.heights s)
-            rw [if_neg hsz, if_neg hsz, hh]
+            rw [ite_eq_right hsz, ite_eq_right hsz, hh]
         · show bd.topOf (Sum.inr c) = some y
           rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb''c)]
           exact hσc
@@ -3999,10 +3999,10 @@ theorem parkSim_converge_pileStack {c y : Card} {σ τ σ' : State}
       by_cases hsy : s = y.suit
       · show (if s = y.suit then σ.heights s + 1 else σ.heights s) =
           (if s = y.suit then τ.heights s + 1 else τ.heights s)
-        rw [if_pos hsy, if_pos hsy, hh]
+        rw [ite_eq_left hsy, ite_eq_left hsy, hh]
       · show (if s = y.suit then σ.heights s + 1 else σ.heights s) =
           (if s = y.suit then τ.heights s + 1 else τ.heights s)
-        rw [if_neg hsy, if_neg hsy, hh]
+        rw [ite_eq_right hsy, ite_eq_right hsy, hh]
     · exact hdpt
     · exact hstock
     · exact hds
@@ -4487,14 +4487,14 @@ theorem dealOnce_wrap (s : Nat) (l : List Card) (κ : Nat) (hκ : κ ≥ l.lengt
     (Cycle.dealOnce s ⟨l, κ⟩).cursor = 0 := by
   show (if κ ≥ l.length then (⟨l, 0⟩ : Cycle Card)
       else ⟨l, min (κ + s) l.length⟩).cursor = 0
-  rw [if_pos hκ]
+  rw [ite_eq_left hκ]
 
 /-- One deal below the pass end clamps at `min (κ + s)`. -/
 theorem dealOnce_step (s : Nat) (l : List Card) (κ : Nat) (hκ : ¬(κ ≥ l.length)) :
     (Cycle.dealOnce s ⟨l, κ⟩).cursor = min (κ + s) l.length := by
   show (if κ ≥ l.length then (⟨l, 0⟩ : Cycle Card)
       else ⟨l, min (κ + s) l.length⟩).cursor = min (κ + s) l.length
-  rw [if_neg hκ]
+  rw [ite_eq_right hκ]
 
 theorem dealIter_cursor_le (s : Nat) : ∀ (k : Nat) (cy : Cycle Card),
     cy.cursor ≤ cy.cards.length → (Cycle.dealIter s k cy).cursor ≤ cy.cards.length := by
@@ -4582,7 +4582,7 @@ theorem dealChain_add {s : Nat} (hs : 0 < s) (l : List Card) :
     have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, c + s⟩ := by
       show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
           = (⟨l, c + s⟩ : Cycle Card)
-      rw [if_neg (by omega), Nat.min_eq_left (by omega)]
+      rw [ite_eq_right (by omega), Nat.min_eq_left (by omega)]
     rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep, ih (c + s) (by omega), hexp]
     exact congrArg (Cycle.mk l) (by omega)
 
@@ -4605,7 +4605,7 @@ theorem dealChain_to_end {s : Nat} (hs : 0 < s) (l : List Card) :
       · have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, c + s⟩ := by
           show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
               = (⟨l, c + s⟩ : Cycle Card)
-          rw [if_neg (by omega), Nat.min_eq_left (by omega)]
+          rw [ite_eq_right (by omega), Nat.min_eq_left (by omega)]
         obtain ⟨k, hk⟩ := ih (c + s) (by omega) (by omega)
         refine ⟨k + 1, ?_⟩
         rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep]
@@ -4613,7 +4613,7 @@ theorem dealChain_to_end {s : Nat} (hs : 0 < s) (l : List Card) :
       · have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, l.length⟩ := by
           show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
               = (⟨l, l.length⟩ : Cycle Card)
-          rw [if_neg (by omega), Nat.min_eq_right (by omega)]
+          rw [ite_eq_right (by omega), Nat.min_eq_right (by omega)]
         exact ⟨1, hstep⟩
 
 /-- The pass end is reached from any cursor, even past it (one wrap). -/
@@ -4624,7 +4624,7 @@ theorem dealChain_to_end_any {s : Nat} (hs : 0 < s) (l : List Card) (c : Nat) :
   · have hwrap : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, 0⟩ := by
       show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
           = (⟨l, 0⟩ : Cycle Card)
-      rw [if_pos (by omega : c ≥ l.length)]
+      rw [ite_eq_left (by omega : c ≥ l.length)]
     obtain ⟨k₀, hk₀⟩ := dealChain_to_end hs l l.length 0 (Nat.zero_le _) (by omega)
     refine ⟨k₀ + 1, ?_⟩
     rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hwrap, hk₀]
@@ -4638,7 +4638,7 @@ theorem dealChain_wrap {s : Nat} (hs : 0 < s) (l : List Card) (c i : Nat)
   have hwrap : Cycle.dealOnce s ⟨l, l.length⟩ = ⟨l, 0⟩ := by
     show (if l.length ≥ l.length then (⟨l, 0⟩ : Cycle Card)
         else ⟨l, min (l.length + s) l.length⟩) = (⟨l, 0⟩ : Cycle Card)
-    rw [if_pos (Nat.le_refl l.length)]
+    rw [ite_eq_left (Nat.le_refl l.length)]
   obtain ⟨q, hq⟩ := jump_exists_mul hmod
   have hexp : (q + 1) * s = q * s + s := by rw [Nat.add_mul, Nat.one_mul]
   have hadv : 0 + (q + 1) * s ≤ l.length := by rw [hexp]; omega
@@ -4666,16 +4666,16 @@ theorem dealReach_maskPos {s : Nat} (hs : 0 < s) {cy : Cycle Card} {i : Nat}
     · obtain ⟨hle, hlt2, hmod⟩ := (Pace.laneUp_mem s hs _ _ i).mp h1
       by_cases hc0 : c = 0
       · subst hc0
-        rw [if_pos rfl] at hle hmod
+        rw [ite_eq_left rfl] at hle hmod
         exact dealChain_wrap hs l 0 i hlt hle hmod
-      · rw [if_neg hc0] at hle hmod
+      · rw [ite_eq_right hc0] at hle hmod
         obtain ⟨q, hq⟩ := jump_exists_mul hmod
         have hle2 : c + q * s ≤ l.length := by omega
         have hkey : c + q * s = i + 1 := by omega
         refine ⟨q, ?_⟩
         rw [dealChain_add hs l q c hle2]
         exact congrArg (Cycle.mk l) hkey
-    · rw [if_pos (by omega : 0 < l.length)] at h2
+    · rw [ite_eq_left (by omega : 0 < l.length)] at h2
       simp only [List.mem_singleton] at h2
       obtain ⟨k, hk⟩ := dealChain_to_end_any hs l c
       refine ⟨k, ?_⟩
@@ -4720,7 +4720,7 @@ theorem maskPos_last_mem {α : Type} {l : List α} {c₀ s : Nat} (hs : 0 < s)
   show l.length - 1 ∈ (Pace.laneUp s hs _ (l.length - 1)
     ++ (if 0 < l.length then [l.length - 1] else [])
     ++ Pace.laneUp s hs (s - 1) _)
-  rw [if_pos hn]
+  rw [ite_eq_left hn]
   simp only [List.mem_append]
   exact Or.inl (Or.inr (List.mem_singleton.mpr rfl))
 
@@ -4742,25 +4742,25 @@ theorem dealIter_mask {s : Nat} (hs : 0 < s) {l : List Card} {c₀ κ : Nat}
       rcases Nat.eq_zero_or_pos m with rfl | hm0
       · have hc0 : c₀ ≠ 0 := by omega
         refine maskPos_lane1_mem hs ?_ ?_ ?_
-        · rw [if_neg hc0]; omega
+        · rw [ite_eq_right hc0]; omega
         · omega
-        · rw [if_neg hc0]
+        · rw [ite_eq_right hc0]
           rw [show c₀ + 0 * s - 1 - (c₀ - 1) = 0 from by omega, Nat.zero_mod]
       · have hsle : s ≤ m * s := le_mul_self (by omega)
         by_cases hc0 : c₀ = 0
         · subst hc0
           refine maskPos_lane1_mem hs ?_ ?_ ?_
-          · rw [if_pos rfl]
+          · rw [ite_eq_left rfl]
             omega
           · omega
-          · rw [if_pos rfl]
+          · rw [ite_eq_left rfl]
             have hsub : 0 + m * s - 1 - (s - 1) = m * s - s := by omega
             rw [hsub]
             exact jump_mul_sub_mod m s
         · refine maskPos_lane1_mem hs ?_ ?_ ?_
-          · rw [if_neg hc0]; omega
+          · rw [ite_eq_right hc0]; omega
           · omega
-          · rw [if_neg hc0]
+          · rw [ite_eq_right hc0]
             have hsub : c₀ + m * s - 1 - (c₀ - 1) = m * s := by omega
             rw [hsub]
             exact jump_mul_mod m s
@@ -4782,25 +4782,25 @@ theorem dealIter_mask {s : Nat} (hs : 0 < s) {l : List Card} {c₀ κ : Nat}
           · refine maskPos_lane2_mem hs ?_ ?_ ?_
             · show s - 1 ≤ j * s - 1
               omega
-            · rw [if_neg hne]; omega
+            · rw [ite_eq_right hne]; omega
             · have hsub : j * s - 1 - (s - 1) = j * s - s := by omega
               rw [hsub]
               exact jump_mul_sub_mod j s
           · by_cases hc0 : c₀ = 0
             · subst hc0
               refine maskPos_lane1_mem hs ?_ ?_ ?_
-              · rw [if_pos rfl]
+              · rw [ite_eq_left rfl]
                 omega
               · omega
-              · rw [if_pos rfl]
+              · rw [ite_eq_left rfl]
                 have hsub : j * s - 1 - (s - 1) = j * s - s := by omega
                 rw [hsub]
                 exact jump_mul_sub_mod j s
             · obtain ⟨q, hq⟩ := jump_exists_mul hmod0
               refine maskPos_lane1_mem hs ?_ ?_ ?_
-              · rw [if_neg hc0]; omega
+              · rw [ite_eq_right hc0]; omega
               · omega
-              · rw [if_neg hc0]
+              · rw [ite_eq_right hc0]
                 have hsub : j * s - 1 - (c₀ - 1) = j * s - c₀ := by omega
                 rw [hsub, hq, ← Nat.sub_mul]
                 exact jump_mul_mod (j - q) s
@@ -4808,7 +4808,7 @@ theorem dealIter_mask {s : Nat} (hs : 0 < s) {l : List Card} {c₀ κ : Nat}
           refine maskPos_lane2_mem hs ?_ ?_ ?_
           · show s - 1 ≤ j * s - 1
             omega
-          · rw [if_pos hres]; omega
+          · rw [ite_eq_left hres]; omega
           · have hsub : j * s - 1 - (s - 1) = j * s - s := by omega
             rw [hsub]
             exact jump_mul_sub_mod j s
@@ -4823,11 +4823,11 @@ theorem posOf_get {c : Card} : ∀ (l : List Card) (cur i : Nat),
     intro cur i h
     simp only [Cycle.posOf, Cycle.findFirstIdx] at h
     by_cases ha : a = c
-    · rw [if_pos (decide_eq_true ha), Option.some.injEq] at h
+    · rw [ite_eq_left (decide_eq_true ha), Option.some.injEq] at h
       subst h
       rw [ha]
       rfl
-    · rw [if_neg (fun hcon => ha (of_decide_eq_true hcon))] at h
+    · rw [ite_eq_right (fun hcon => ha (of_decide_eq_true hcon))] at h
       cases hf : Cycle.findFirstIdx (fun c' => decide (c' = c)) t with
       | none => rw [hf] at h; simp at h
       | some j =>
@@ -4925,19 +4925,19 @@ theorem draw_full_pass {st : State} (hc : st.stock.cursor = 0)
           show (if d * st.drawStep ≥ l.length then (⟨l, 0⟩ : Cycle Card)
               else ⟨l, min (d * st.drawStep + st.drawStep) l.length⟩)
             = ⟨l, min ((d + 1) * st.drawStep) l.length⟩
-          rw [if_neg (by omega : ¬ (d * st.drawStep ≥ l.length)), Nat.add_mul, Nat.one_mul]
+          rw [ite_eq_right (by omega : ¬ (d * st.drawStep ≥ l.length)), Nat.add_mul, Nat.one_mul]
     have hpass : Cycle.dealIter st.drawStep q ⟨l, 0⟩ = ⟨l, l.length⟩ := by
       rw [main q (Nat.le_refl q), Nat.min_eq_right hqge]
     rw [Cycle.dealIter_succ, hpass]
     show (if l.length ≥ l.length then (⟨l, 0⟩ : Cycle Card)
         else ⟨l, min (l.length + st.drawStep) l.length⟩) = ⟨l, 0⟩
-    rw [if_pos (Nat.le_refl l.length)]
+    rw [ite_eq_left (Nat.le_refl l.length)]
 
 /-- `reachablePos`, introduction form. -/
 theorem reachablePos_intro {st : State} {c : Card} {i : Nat} (hs : 0 < st.drawStep)
     (hpos : st.stock.posOf c = some i) (hmem : i ∈ Pace.maskPos st.stock st.drawStep hs) :
     st.reachablePos c = some i := by
-  simp only [State.reachablePos, dif_pos hs, hpos, if_pos hmem]
+  simp only [State.reachablePos, dite_eq_left hs, hpos, ite_eq_left hmem]
 
 /-- The tableau deck move after the deals brought `c` to the top. -/
 theorem deckPile_after_deals {st : State} {c : Card} {b : Base} {i : Nat} {bd : Board}
@@ -4949,7 +4949,7 @@ theorem deckPile_after_deals {st : State} {c : Card} {b : Base} {i : Nat} {bd : 
       = some c := by
     show (Cycle.prev { st.stock with cursor := i + 1 }) = some c
     show (if i + 1 = 0 then none else st.stock.cards[i + 1 - 1]?) = some c
-    rw [if_neg (by omega : ¬ (i + 1 = 0))]
+    rw [ite_eq_right (by omega : ¬ (i + 1 = 0))]
     have hi : i + 1 - 1 = i := by omega
     rw [hi]
     exact hget
@@ -4974,7 +4974,7 @@ theorem deckStack_after_deals {st : State} {c : Card} {i : Nat}
       = some c := by
     show (Cycle.prev { st.stock with cursor := i + 1 }) = some c
     show (if i + 1 = 0 then none else st.stock.cards[i + 1 - 1]?) = some c
-    rw [if_neg (by omega : ¬ (i + 1 = 0))]
+    rw [ite_eq_right (by omega : ¬ (i + 1 = 0))]
     have hi : i + 1 - 1 = i := by omega
     rw [hi]
     exact hget
@@ -5018,12 +5018,12 @@ theorem applyDrawStackTo_shape {st : State} {c : Card} {st' : State} :
             heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
           else none) = some st' := h
       by_cases hrk : c.rank.toIdx = st.heights c.suit
-      · rw [if_pos hrk, Option.some.injEq] at h'
+      · rw [ite_eq_left hrk, Option.some.injEq] at h'
         exact ⟨i, rfl, hrk, h'.symm⟩
-      · rw [if_neg hrk] at h'; simp at h'
+      · rw [ite_eq_right hrk] at h'; simp at h'
   · intro ⟨i, hpos, hrk, hst⟩
     rw [hst]
-    simp only [State.applyDrawStackTo, hpos, if_pos hrk]
+    simp only [State.applyDrawStackTo, hpos, ite_eq_left hrk]
 
 /-- The ← direction's core, shared by both jump-soundness theorems:
 a deck move after `k` deals implies the guard — the dealt card sits at
@@ -5075,7 +5075,7 @@ theorem dealIter_prev_reachable {st : State} (hwf : st.WF) {c : Card} {k : Nat}
               else (Cycle.dealIter st.drawStep k st.stock).cursor } : Cycle Card)
       = (st.stock.drawTo ((Cycle.dealIter st.drawStep k st.stock).cursor - 1)).removeAt
           ((Cycle.dealIter st.drawStep k st.stock).cursor - 1)
-    rw [hcards, if_pos (by omega : (Cycle.dealIter st.drawStep k st.stock).cursor - 1
+    rw [hcards, ite_eq_left (by omega : (Cycle.dealIter st.drawStep k st.stock).cursor - 1
         < (Cycle.dealIter st.drawStep k st.stock).cursor), Cycle.removeAt_drawTo]
 
 /-- **The jump-soundness theorem**: the tableau-outcome Draw
@@ -5168,4 +5168,4 @@ theorem applyDrawStackTo_eq_dealPlay {st : State} (hwf : st.WF) {c : Card}
     rw [hXstock] at hst''
     rw [hstock] at hst''
     rw [hst'']
-    simp only [State.applyDrawStackTo, hrep, if_pos hrk']
+    simp only [State.applyDrawStackTo, hrep, ite_eq_left hrk']

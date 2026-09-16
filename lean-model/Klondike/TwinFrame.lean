@@ -507,7 +507,7 @@ theorem Board.mapByRho_detach {ρ : Card → Card} (hρ : Card.IsTwinMap ρ) (bd
     show (if Base.relabel ρ b = Base.relabel ρ b then none
         else (Board.mapByRho hρ bd).topOf (Base.relabel ρ b))
       = ((bd.detach b).mapByRho hρ).topOf (Base.relabel ρ b)
-    rw [if_pos rfl, Board.mapByRho_topOf_relabel, Board.detach_topOf]
+    rw [ite_eq_left rfl, Board.mapByRho_topOf_relabel, Board.detach_topOf]
     rfl
   · show (if b'' = Base.relabel ρ b then none else (Board.mapByRho hρ bd).topOf b'')
       = ((bd.detach b).mapByRho hρ).topOf b''
@@ -515,7 +515,7 @@ theorem Board.mapByRho_detach {ρ : Card → Card} (hρ : Card.IsTwinMap ρ) (bd
       have hc2 := Base.relabel_invol hρ b''
       rw [hcon] at hc2
       exact hc2.symm)
-    rw [if_neg hbb, Board.mapByRho_topOf, Board.mapByRho_topOf,
+    rw [ite_eq_right hbb, Board.mapByRho_topOf, Board.mapByRho_topOf,
       Board.detach_topOf_ne _ _ _ hcb]
 
 theorem beq_twinMap {ρ : Card → Card} (hρ : Card.IsTwinMap ρ) (x y : Card) :
@@ -570,8 +570,8 @@ theorem Board.mapByRho_aboveOf_go {ρ : Card → Card} (hρ : Card.IsTwinMap ρ)
                else Board.aboveOf.go bd n (Sum.inr x) (x :: acc)).map ρ
           rw [contains_twinMap hρ acc x]
           by_cases hac : acc.contains x = true
-          · rw [if_pos hac, if_pos hac]
-          · rw [if_neg hac, if_neg hac]
+          · rw [ite_eq_left hac, ite_eq_left hac]
+          · rw [ite_eq_right hac, ite_eq_right hac]
             exact ih (Sum.inr x) (x :: acc)
 
 theorem Board.mapByRho_aboveOf {ρ : Card → Card} (hρ : Card.IsTwinMap ρ) (bd : Board)
@@ -834,30 +834,30 @@ theorem Move.twinClean_heights {σ : Suit} {S R : State} {m : Move}
       obtain ⟨-, -, rfl⟩ := hS
       constructor
       · show (if σ = c.suit then S.heights σ + 1 else S.heights σ) = S.heights σ
-        rw [if_neg (fun hcon => h1 hcon.symm)]
+        rw [ite_eq_right (fun hcon => h1 hcon.symm)]
       · show (if σ.flipPair = c.suit then S.heights σ.flipPair + 1 else S.heights σ.flipPair)
           = S.heights σ.flipPair
-        rw [if_neg (fun hcon => h2 hcon.symm)]
+        rw [ite_eq_right (fun hcon => h2 hcon.symm)]
   | pileStack c =>
       obtain ⟨h1, h2⟩ := by simpa [Move.twinClean] using hc
       rw [apply_pileStack_iff] at hS
       obtain ⟨-, -, -, -, rfl⟩ := hS
       constructor
       · show (if σ = c.suit then S.heights σ + 1 else S.heights σ) = S.heights σ
-        rw [if_neg (fun hcon => h1 hcon.symm)]
+        rw [ite_eq_right (fun hcon => h1 hcon.symm)]
       · show (if σ.flipPair = c.suit then S.heights σ.flipPair + 1 else S.heights σ.flipPair)
           = S.heights σ.flipPair
-        rw [if_neg (fun hcon => h2 hcon.symm)]
+        rw [ite_eq_right (fun hcon => h2 hcon.symm)]
   | stackPile c b =>
       obtain ⟨h1, h2⟩ := by simpa [Move.twinClean] using hc
       rw [apply_stackPile_iff] at hS
       obtain ⟨-, -, -, -, rfl⟩ := hS
       constructor
       · show (if σ = c.suit then S.heights σ - 1 else S.heights σ) = S.heights σ
-        rw [if_neg (fun hcon => h1 hcon.symm)]
+        rw [ite_eq_right (fun hcon => h1 hcon.symm)]
       · show (if σ.flipPair = c.suit then S.heights σ.flipPair - 1 else S.heights σ.flipPair)
           = S.heights σ.flipPair
-        rw [if_neg (fun hcon => h2 hcon.symm)]
+        rw [ite_eq_right (fun hcon => h2 hcon.symm)]
 
 /-! ### The shrink lemmas (the `hhid`/`hstock` premises' maintenance) -/
 
@@ -877,10 +877,10 @@ theorem State.depths_le_apply {S R : State} {m : Move} (hS : S.apply m = some R)
       by_cases haa : a' = a
       · rw [haa]
         show (if a = a then S.depths a - 1 else S.depths a) ≤ _
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         exact Nat.sub_le _ _
       · show (if a' = a then S.depths a - 1 else S.depths a') ≤ S.depths a'
-        rw [if_neg haa]
+        rw [ite_eq_right haa]
         exact Nat.le_refl _
   | deckPile c b =>
       rw [apply_deckPile_iff] at hS
@@ -1043,12 +1043,12 @@ theorem State.TwinCorr.apply_clean {ρ σ S M R m}
         · rw [ha']
           show (if a = a then M.depths a - 1 else M.depths a)
             = (if a = a then S.depths a - 1 else S.depths a)
-          rw [if_pos rfl, if_pos rfl]
+          rw [ite_eq_left rfl, ite_eq_left rfl]
           show M.depths a - 1 = S.depths a - 1
           rw [congrFun h.depths_eq a]
         · show (if a' = a then M.depths a - 1 else M.depths a')
             = (if a' = a then S.depths a - 1 else S.depths a')
-          rw [if_neg ha', if_neg ha']
+          rw [ite_eq_right ha', ite_eq_right ha']
           show M.depths a' = S.depths a'
           rw [congrFun h.depths_eq a']
       · intro b'
@@ -1110,9 +1110,9 @@ theorem State.TwinCorr.apply_clean {ρ σ S M R m}
           show (if s = c.suit then M.heights s + 1 else M.heights s)
             = (if s = c.suit then S.heights s + 1 else S.heights s)
           by_cases hsc : s = c.suit
-          · simp only [if_pos hsc]
+          · simp only [ite_eq_left hsc]
             rw [h.heights_off s hs1 hs2]
-          · simp only [if_neg hsc]
+          · simp only [ite_eq_right hsc]
             exact h.heights_off s hs1 hs2
         · intro c' hon
           have honρ : (ρ c').suit = σ ∨ (ρ c').suit = σ.flipPair :=
@@ -1129,7 +1129,7 @@ theorem State.TwinCorr.apply_clean {ρ σ S M R m}
               else M.heights (ρ c').suit) > (ρ c').rank.toIdx
             ↔ (if c'.suit = c.suit then S.heights c'.suit + 1 else S.heights c'.suit)
               > c'.rank.toIdx
-          rw [if_neg hne, if_neg hne']
+          rw [ite_eq_right hne, ite_eq_right hne']
           exact h.stacked_iff c' hon
   | pileStack c =>
       obtain ⟨h1, h2⟩ := by simpa [Move.twinClean] using hclean
@@ -1161,9 +1161,9 @@ theorem State.TwinCorr.apply_clean {ρ σ S M R m}
           show (if s = c.suit then M.heights s + 1 else M.heights s)
             = (if s = c.suit then S.heights s + 1 else S.heights s)
           by_cases hsc : s = c.suit
-          · simp only [if_pos hsc]
+          · simp only [ite_eq_left hsc]
             rw [h.heights_off s hs1 hs2]
-          · simp only [if_neg hsc]
+          · simp only [ite_eq_right hsc]
             exact h.heights_off s hs1 hs2
         · intro c' hon
           have honρ : (ρ c').suit = σ ∨ (ρ c').suit = σ.flipPair :=
@@ -1180,7 +1180,7 @@ theorem State.TwinCorr.apply_clean {ρ σ S M R m}
               else M.heights (ρ c').suit) > (ρ c').rank.toIdx
             ↔ (if c'.suit = c.suit then S.heights c'.suit + 1 else S.heights c'.suit)
               > c'.rank.toIdx
-          rw [if_neg hne, if_neg hne']
+          rw [ite_eq_right hne, ite_eq_right hne']
           exact h.stacked_iff c' hon
         · intro b'
           show (M.board.detach (Base.relabel ρ b)).topOf b'
@@ -1216,9 +1216,9 @@ theorem State.TwinCorr.apply_clean {ρ σ S M R m}
           show (if s = c.suit then M.heights s - 1 else M.heights s)
             = (if s = c.suit then S.heights s - 1 else S.heights s)
           by_cases hsc : s = c.suit
-          · simp only [if_pos hsc]
+          · simp only [ite_eq_left hsc]
             rw [h.heights_off s hs1 hs2]
-          · simp only [if_neg hsc]
+          · simp only [ite_eq_right hsc]
             exact h.heights_off s hs1 hs2
         · intro c' hon
           have honρ : (ρ c').suit = σ ∨ (ρ c').suit = σ.flipPair :=
@@ -1235,7 +1235,7 @@ theorem State.TwinCorr.apply_clean {ρ σ S M R m}
               else M.heights (ρ c').suit) > (ρ c').rank.toIdx
             ↔ (if c'.suit = c.suit then S.heights c'.suit - 1 else S.heights c'.suit)
               > c'.rank.toIdx
-          rw [if_neg hne, if_neg hne']
+          rw [ite_eq_right hne, ite_eq_right hne']
           exact h.stacked_iff c' hon
         · intro b'
           show (Board.mapByRho h.isTwinMap bd).topOf b' = (bd.topOf (Base.relabel ρ b')).map ρ
@@ -1311,8 +1311,8 @@ theorem State.stacked_bump_aux {σ : Suit} {hS hM hS' hM' : Suit → Nat}
   rw [hrx, hrank, hMb (ρ x).suit, hSb x.suit]
   by_cases h1 : x.suit = q.suit
   · by_cases h2 : (ρ x).suit = w.suit
-    · rw [if_pos h2, if_pos h1, h2, h1, hw, hq]
-    · rw [if_neg h2, if_pos h1, h1, hq]
+    · rw [ite_eq_left h2, ite_eq_left h1, h2, h1, hw, hq]
+    · rw [ite_eq_right h2, ite_eq_left h1, h1, hq]
       have hkx : x.rank.toIdx ≠ q.rank.toIdx := by
         intro hcon
         exact hxq (Card.eq_of_suit_rank h1 (Rank.toIdx_inj hcon))
@@ -1327,7 +1327,7 @@ theorem State.stacked_bump_aux {σ : Suit} {hS hM hS' hM' : Suit → Nat}
           omega
         exact holdx.mpr h1'
   · by_cases h2 : (ρ x).suit = w.suit
-    · rw [if_pos h2, if_neg h1, h2, hw]
+    · rw [ite_eq_left h2, ite_eq_right h1, h2, hw]
       have hkx : x.rank.toIdx ≠ q.rank.toIdx := by
         intro hcon
         rcases Card.eq_or_flip_of_onSuit_rank hon honq hcon with hc | hc
@@ -1341,7 +1341,7 @@ theorem State.stacked_bump_aux {σ : Suit} {hS hM hS' hM' : Suit → Nat}
         have hMside := holdx.mpr hlt
         rw [h2, hw] at hMside
         omega
-    · rw [if_neg h2, if_neg h1]
+    · rw [ite_eq_right h2, ite_eq_right h1]
       exact holdx
 
 /-- **The drop**: after the source's worry-back of `c` and the
@@ -1367,8 +1367,8 @@ theorem State.stacked_drop_aux {σ : Suit} {hS hM hS' hM' : Suit → Nat}
   rw [hMd (ρ x).suit, hSd x.suit, hrk]
   by_cases h1 : x.suit = c.suit
   · by_cases h2 : (ρ x).suit = (ρ c).suit
-    · rw [if_pos h2, if_pos h1, h2, h1, hMg, hSg]
-    · rw [if_neg h2, if_pos h1, h1, hSg]
+    · rw [ite_eq_left h2, ite_eq_left h1, h2, h1, hMg, hSg]
+    · rw [ite_eq_right h2, ite_eq_left h1, h1, hSg]
       have hkx : x.rank.toIdx ≠ c.rank.toIdx := by
         intro hcon
         exact hxc (Card.eq_of_suit_rank h1 (Rank.toIdx_inj hcon))
@@ -1383,7 +1383,7 @@ theorem State.stacked_drop_aux {σ : Suit} {hS hM hS' hM' : Suit → Nat}
           omega
         exact holdx.mpr h1'
   · by_cases h2 : (ρ x).suit = (ρ c).suit
-    · rw [if_pos h2, if_neg h1, h2, hMg]
+    · rw [ite_eq_left h2, ite_eq_right h1, h2, hMg]
       have hkx : x.rank.toIdx ≠ c.rank.toIdx := by
         intro hcon
         rcases Card.eq_or_flip_of_onSuit_rank hon' hon hcon with hc | hc
@@ -1397,7 +1397,7 @@ theorem State.stacked_drop_aux {σ : Suit} {hS hM hS' hM' : Suit → Nat}
         have hMside := holdx.mpr hlt
         rw [h2, hMg] at hMside
         omega
-    · rw [if_neg h2, if_neg h1]
+    · rw [ite_eq_right h2, ite_eq_right h1]
       exact holdx
 
 /-! ### The on-suit foundation steps -/
@@ -1456,7 +1456,7 @@ theorem State.TwinCorr.apply_pileStack_onsuit {ρ σ S M R q}
       · intro hcon; exact hs2 (hcon.trans hs)
     show (if s = (ρ q).suit then M.heights s + 1 else M.heights s)
       = (if s = q.suit then S.heights s + 1 else S.heights s)
-    rw [if_neg hne1, if_neg hne2]
+    rw [ite_eq_right hne1, ite_eq_right hne2]
     exact h.heights_off s hs1 hs2
   · intro c' hon'
     by_cases hcq : c' = q
@@ -1465,12 +1465,12 @@ theorem State.TwinCorr.apply_pileStack_onsuit {ρ σ S M R q}
       · intro _
         show (if q.suit = q.suit then S.heights q.suit + 1 else S.heights q.suit)
           > q.rank.toIdx
-        rw [if_pos rfl, ← hrk]
+        rw [ite_eq_left rfl, ← hrk]
         omega
       · intro _
         show (if (ρ q).suit = (ρ q).suit then M.heights (ρ q).suit + 1
             else M.heights (ρ q).suit) > (ρ q).rank.toIdx
-        rw [if_pos rfl, Card.IsTwinMap.rank h.isTwinMap q, halign]
+        rw [ite_eq_left rfl, Card.IsTwinMap.rank h.isTwinMap q, halign]
         omega
     · by_cases hcq' : c' = Card.flipSuit q
       · rw [hcq']
@@ -1489,7 +1489,7 @@ theorem State.TwinCorr.apply_pileStack_onsuit {ρ σ S M R q}
             else M.heights (ρ q.flipSuit).suit) > (ρ q.flipSuit).rank.toIdx
           ↔ (if q.flipSuit.suit = q.suit then S.heights q.flipSuit.suit + 1
             else S.heights q.flipSuit.suit) > q.flipSuit.rank.toIdx
-        rw [if_neg hfsρ, if_neg hfs, Card.flipSuit_rank q]
+        rw [ite_eq_right hfsρ, ite_eq_right hfs, Card.flipSuit_rank q]
         exact h.stacked_iff q.flipSuit honf
       · exact State.stacked_bump_aux
           (hS := S.heights) (hM := M.heights)
@@ -1603,7 +1603,7 @@ theorem State.TwinCorr.apply_stackPile_onsuit {ρ σ S M R c b}
       · intro hcon; exact hs2 (hcon.trans hs)
     show (if s = (ρ c).suit then M.heights s - 1 else M.heights s)
       = (if s = c.suit then S.heights s - 1 else S.heights s)
-    rw [if_neg hne1, if_neg hne2]
+    rw [ite_eq_right hne1, ite_eq_right hne2]
     exact h.heights_off s hs1 hs2
   · intro c' hon'
     have hfc : (Card.flipSuit c).suit ≠ c.suit := by
@@ -1623,7 +1623,7 @@ theorem State.TwinCorr.apply_stackPile_onsuit {ρ σ S M R c b}
           else M.heights (ρ c).suit) > (ρ c).rank.toIdx
         ↔ (if c.suit = c.suit then S.heights c.suit - 1 else S.heights c.suit)
           > c.rank.toIdx
-      rw [if_pos rfl, if_pos rfl, Card.IsTwinMap.rank h.isTwinMap c, halign]
+      rw [ite_eq_left rfl, ite_eq_left rfl, Card.IsTwinMap.rank h.isTwinMap c, halign]
       constructor <;> intro hlt <;> omega
     · by_cases hcc' : c' = Card.flipSuit c
       · rw [hcc']
@@ -1632,7 +1632,7 @@ theorem State.TwinCorr.apply_stackPile_onsuit {ρ σ S M R c b}
               else M.heights (ρ (Card.flipSuit c)).suit) > (ρ (Card.flipSuit c)).rank.toIdx
           ↔ (if (Card.flipSuit c).suit = c.suit then S.heights (Card.flipSuit c).suit - 1
             else S.heights (Card.flipSuit c).suit) > (Card.flipSuit c).rank.toIdx
-        rw [if_neg hfcρ, if_neg hfc, Card.flipSuit_rank c]
+        rw [ite_eq_right hfcρ, ite_eq_right hfc, Card.flipSuit_rank c]
         exact h.stacked_iff (Card.flipSuit c) honf
       · exact State.stacked_drop_aux
           (hS := S.heights) (hM := M.heights)
@@ -1872,7 +1872,7 @@ theorem State.TwinCorr.apply_pileStack_grow {ρ σ S M R q bq bq'}
         · intro hcon; exact hs2 (hcon.trans hs)
       show (if s = (Card.flipSuit (ρ q)).suit then M.heights s + 1 else M.heights s)
         = (if s = q.suit then S.heights s + 1 else S.heights s)
-      rw [if_neg hne1, if_neg hne2]
+      rw [ite_eq_right hne1, ite_eq_right hne2]
       exact h.heights_off s hs1 hs2
     · intro c' hon'
       have hρq : (Card.swapTwin (ρ q) ∘ ρ) q = Card.flipSuit (ρ q) := by
@@ -1888,13 +1888,13 @@ theorem State.TwinCorr.apply_pileStack_grow {ρ σ S M R q bq bq'}
         · intro _
           show (if q.suit = q.suit then S.heights q.suit + 1 else S.heights q.suit)
             > q.rank.toIdx
-          rw [if_pos rfl, ← hrk]
+          rw [ite_eq_left rfl, ← hrk]
           clear hB hB2; omega
         · intro _
           show (if (Card.flipSuit (ρ q)).suit = (Card.flipSuit (ρ q)).suit
               then M.heights (Card.flipSuit (ρ q)).suit + 1
               else M.heights (Card.flipSuit (ρ q)).suit) > (Card.flipSuit (ρ q)).rank.toIdx
-          rw [if_pos rfl, Card.flipSuit_rank (ρ q), Card.IsTwinMap.rank h.isTwinMap q, hgoal]
+          rw [ite_eq_left rfl, Card.flipSuit_rank (ρ q), Card.IsTwinMap.rank h.isTwinMap q, hgoal]
           clear hB hB2; omega
       · by_cases hcq' : c' = Card.flipSuit q
         · rw [hcq']
@@ -1912,7 +1912,7 @@ theorem State.TwinCorr.apply_pileStack_grow {ρ σ S M R q bq bq'}
               then M.heights (ρ q).suit + 1 else M.heights (ρ q).suit) > (ρ q).rank.toIdx
             ↔ (if (Card.flipSuit q).suit = q.suit then S.heights (Card.flipSuit q).suit + 1
               else S.heights (Card.flipSuit q).suit) > (Card.flipSuit q).rank.toIdx
-          rw [if_neg hnv, if_neg hqf, Card.IsTwinMap.rank h.isTwinMap q, Card.flipSuit_rank q]
+          rw [ite_eq_right hnv, ite_eq_right hqf, Card.IsTwinMap.rank h.isTwinMap q, Card.flipSuit_rank q]
           constructor
           · intro hlt
             exact absurd hlt hF1
@@ -1940,7 +1940,7 @@ theorem State.TwinCorr.apply_pileStack_grow {ρ σ S M R q bq bq'}
     have hN : (M.board.detach (Base.relabel ρ bq')).topOf β
         = (S.board.topOf (Base.relabel ρ β)).map ρ := by
       show (if β = Base.relabel ρ bq' then none else M.board.topOf β) = _
-      rw [if_neg (fun hcon => hγ2 (by
+      rw [ite_eq_right (fun hcon => hγ2 (by
         rw [hcon, Base.relabel_invol h.isTwinMap bq']))]
       exact h.board_eq β
     have hfixγ : Base.relabel (Card.swapTwin (ρ q) ∘ ρ) β = Base.relabel ρ β := by
@@ -1964,7 +1964,7 @@ theorem State.TwinCorr.apply_pileStack_grow {ρ σ S M R q bq bq'}
     have hR : (S.board.detach bq).topOf (Base.relabel ρ β)
         = S.board.topOf (Base.relabel ρ β) := by
       show (if Base.relabel ρ β = bq then none else S.board.topOf (Base.relabel ρ β)) = _
-      rw [if_neg hγ1]
+      rw [ite_eq_right hγ1]
     rw [hN, hfixγ, hR]
     cases hval : S.board.topOf (Base.relabel ρ β) with
     | none => rfl
@@ -1994,13 +1994,13 @@ theorem State.TwinCorr.apply_pileStack_grow {ρ σ S M R q bq bq'}
   · -- the stranded card at the crossed seat
     show (if Base.relabel ρ bq = Base.relabel ρ bq' then none
         else M.board.topOf (Base.relabel ρ bq)) = some (ρ q)
-    rw [if_neg (fun hcon => hbqne (Base.relabel_inj h.isTwinMap hcon))]
+    rw [ite_eq_right (fun hcon => hbqne (Base.relabel_inj h.isTwinMap hcon))]
     rw [h.board_eq, Base.relabel_invol h.isTwinMap bq,
       (Board.bottomOf_eq S.board q bq).mp hbq, Option.map_some]
   · -- the detached seat
     show (if Base.relabel ρ bq' = Base.relabel ρ bq' then none
         else M.board.topOf (Base.relabel ρ bq')) = none
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
 
 /-! ## §6. The crossed-set frame — the weakened correspondence
 
@@ -2066,16 +2066,16 @@ theorem Board.aboveOf_go_detach {bd : Board} {b : Base} {e : Card}
           · rw [hbb'] at hb' ⊢
             have hce : e = c' := Option.some.inj (hb.symm.trans hb')
             simp only [Board.detach_topOf, ← hce]
-            rw [if_neg hacc, Board.aboveOf_go_none hbare n (e :: acc),
+            rw [ite_eq_right hacc, Board.aboveOf_go_none hbare n (e :: acc),
               List.filter_cons_of_neg (by simp)]
             exact hself acc hacc
           · have hd' : (bd.detach b).topOf b' = some c' := by
               rw [Board.detach_topOf_ne bd b b' hbb']; exact hb'
             simp only [hd']
             by_cases hcon : acc.contains c' = true
-            · rw [if_pos hcon, if_pos hcon]
+            · rw [ite_eq_left hcon, ite_eq_left hcon]
               exact hself acc hacc
-            · rw [if_neg hcon, if_neg hcon]
+            · rw [ite_eq_right hcon, ite_eq_right hcon]
               refine ih (Sum.inr c') (c' :: acc) (fun hc => ?_)
               have hmem : e ∈ c' :: acc := List.contains_iff_mem.mp hc
               rcases List.mem_cons.mp hmem with rfl | hmem'
@@ -2986,8 +2986,8 @@ theorem Board.aboveOf_go_seated {bd : Board} :
           have hd' : d ∈ (if acc.contains c' = true then acc
             else aboveOf.go bd m (Sum.inr c') (c' :: acc)) := hd
           by_cases hcon : acc.contains c' = true
-          · rw [if_pos hcon] at hd'; exact hacc d hd'
-          · rw [if_neg hcon] at hd'
+          · rw [ite_eq_left hcon] at hd'; exact hacc d hd'
+          · rw [ite_eq_right hcon] at hd'
             refine ih (Sum.inr c') (c' :: acc) ?_ d hd'
             intro z hz
             rcases List.mem_cons.mp hz with rfl | hz'
@@ -3100,7 +3100,7 @@ theorem apply_pileStack_catchup {ρ σ S M X R q}
       · intro hcon; exact hs2 (hcon ▸ hs)
     show (if s = (ρ q).suit then M.heights s + 1 else M.heights s)
       = (if s = q.suit then S.heights s + 1 else S.heights s)
-    rw [if_neg h1, if_neg h2]
+    rw [ite_eq_right h1, ite_eq_right h2]
     exact h.core.heights_off s hs1 hs2
   · intro c' hon'
     by_cases hcq : c' = q
@@ -3109,12 +3109,12 @@ theorem apply_pileStack_catchup {ρ σ S M X R q}
       · intro _
         show (if q.suit = q.suit then S.heights q.suit + 1 else S.heights q.suit)
           > q.rank.toIdx
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         omega
       · intro _
         show (if (ρ q).suit = (ρ q).suit then M.heights (ρ q).suit + 1
             else M.heights (ρ q).suit) > (ρ q).rank.toIdx
-        rw [if_pos rfl, Card.IsTwinMap.rank h.core.isTwinMap q, hrung]
+        rw [ite_eq_left rfl, Card.IsTwinMap.rank h.core.isTwinMap q, hrung]
         omega
     · by_cases hcq' : c' = Card.flipSuit q
       · rw [hcq']
@@ -3134,7 +3134,7 @@ theorem apply_pileStack_catchup {ρ σ S M X R q}
             else M.heights (ρ (Card.flipSuit q)).suit) > (ρ (Card.flipSuit q)).rank.toIdx
           ↔ (if (Card.flipSuit q).suit = q.suit then S.heights (Card.flipSuit q).suit + 1
             else S.heights (Card.flipSuit q).suit) > (Card.flipSuit q).rank.toIdx
-        rw [if_neg hfsρ, if_neg hfs, Card.flipSuit_rank q]
+        rw [ite_eq_right hfsρ, ite_eq_right hfs, Card.flipSuit_rank q]
         exact h.core.stacked_iff (Card.flipSuit q) honf
       · exact State.stacked_bump_aux
           (hS := S.heights) (hM := M.heights)
@@ -3353,7 +3353,7 @@ theorem State.TwinCorr.apply_pileStack_grow_X {ρ σ S M R q bq bq' ρ'}
       have h1 : q = Card.flipSuit (Card.flipSuit q) := (Card.flipSuit_flipSuit q).symm
       have h2 : Card.swapTwin (Card.flipSuit q) q = Card.flipSuit q := by
         unfold Card.swapTwin
-        rw [if_neg (fun hcon => Card.flipSuit_ne q hcon.symm), if_pos h1]
+        rw [ite_eq_right (fun hcon => Card.flipSuit_ne q hcon.symm), ite_eq_left h1]
       rw [h2]
   have hρ'fix : ∀ c, c ≠ q → c ≠ Card.flipSuit q → ρ' c = ρ c := by
     intro c h1 h2
@@ -3814,7 +3814,7 @@ theorem State.TwinCorrX.apply_pileStack_onsuit {ρ σ S M X R q}
       · intro hcon; exact hs2 (hcon ▸ hs)
     show (if s = (ρ q).suit then M.heights s + 1 else M.heights s)
       = (if s = q.suit then S.heights s + 1 else S.heights s)
-    rw [if_neg h1, if_neg h2]
+    rw [ite_eq_right h1, ite_eq_right h2]
     exact h.core.heights_off s hs1 hs2
   · intro c' hon'
     by_cases hcq : c' = q
@@ -3823,12 +3823,12 @@ theorem State.TwinCorrX.apply_pileStack_onsuit {ρ σ S M X R q}
       · intro _
         show (if q.suit = q.suit then S.heights q.suit + 1 else S.heights q.suit)
           > q.rank.toIdx
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         omega
       · intro _
         show (if (ρ q).suit = (ρ q).suit then M.heights (ρ q).suit + 1
             else M.heights (ρ q).suit) > (ρ q).rank.toIdx
-        rw [if_pos rfl, Card.IsTwinMap.rank h.core.isTwinMap q, halign]
+        rw [ite_eq_left rfl, Card.IsTwinMap.rank h.core.isTwinMap q, halign]
         omega
     · by_cases hcq' : c' = Card.flipSuit q
       · rw [hcq']
@@ -3848,7 +3848,7 @@ theorem State.TwinCorrX.apply_pileStack_onsuit {ρ σ S M X R q}
             else M.heights (ρ (Card.flipSuit q)).suit) > (ρ (Card.flipSuit q)).rank.toIdx
           ↔ (if (Card.flipSuit q).suit = q.suit then S.heights (Card.flipSuit q).suit + 1
             else S.heights (Card.flipSuit q).suit) > (Card.flipSuit q).rank.toIdx
-        rw [if_neg hfsρ, if_neg hfs, Card.flipSuit_rank q]
+        rw [ite_eq_right hfsρ, ite_eq_right hfs, Card.flipSuit_rank q]
         exact h.core.stacked_iff (Card.flipSuit q) honf
       · exact State.stacked_bump_aux
           (hS := S.heights) (hM := M.heights)
@@ -4022,13 +4022,13 @@ theorem Cycle.posOf_of_mem {c : Card} {cy : Cycle Card} (h : c ∈ cy.cards) :
           have h1 : Cycle.findFirstIdx (fun c' => decide (c' = c)) (a' :: t) = some 0 := by
             show (if decide (a' = c) then some 0
               else (Cycle.findFirstIdx (fun c' => decide (c' = c)) t).map Nat.succ) = some 0
-            rw [if_pos (by rw [hpp]; simp)]
+            rw [ite_eq_left (by rw [hpp]; simp)]
           rw [h1] at hcon; exact absurd hcon (by simp)
         · have hd : ¬(decide (a' = c) = true) :=
             fun hcon => hpp (of_decide_eq_true hcon)
           show (if decide (a' = c) then some 0
               else (Cycle.findFirstIdx (fun c' => decide (c' = c)) t).map Nat.succ) ≠ none
-          rw [if_neg hd]
+          rw [ite_eq_right hd]
           rcases List.mem_cons.mp hm with hq | hm'
           · exact absurd hq.symm hpp
           · cases hval : Cycle.findFirstIdx (fun c' => decide (c' = c)) t with
@@ -4473,8 +4473,8 @@ theorem State.TwinCorrX.apply_stackPile_off {ρ σ S M X R c b}
     show (if s = c.suit then M.heights s - 1 else M.heights s)
       = (if s = c.suit then S.heights s - 1 else S.heights s)
     by_cases hsc : s = c.suit
-    · rw [if_pos hsc, if_pos hsc, h.core.heights_off s hs1 hs2]
-    · rw [if_neg hsc, if_neg hsc]
+    · rw [ite_eq_left hsc, ite_eq_left hsc, h.core.heights_off s hs1 hs2]
+    · rw [ite_eq_right hsc, ite_eq_right hsc]
       exact h.core.heights_off s hs1 hs2
   · -- stacked_iff
     intro c' hon'
@@ -4491,7 +4491,7 @@ theorem State.TwinCorrX.apply_stackPile_off {ρ σ S M X R c b}
     show (if (ρ c').suit = c.suit then M.heights (ρ c').suit - 1 else M.heights (ρ c').suit)
         > (ρ c').rank.toIdx
       ↔ (if c'.suit = c.suit then S.heights c'.suit - 1 else S.heights c'.suit) > c'.rank.toIdx
-    rw [if_neg honρ, if_neg hcs]
+    rw [ite_eq_right honρ, ite_eq_right hcs]
     exact h.core.stacked_iff c' hon'
   · -- strand_vis
     intro x hx
@@ -4786,12 +4786,12 @@ theorem State.TwinCorrX.apply_reveal_X {ρ σ S M X R r a}
     · rw [ha']
       show (if a = a then M.depths a - 1 else M.depths a)
         = (if a = a then S.depths a - 1 else S.depths a)
-      rw [if_pos rfl, if_pos rfl]
+      rw [ite_eq_left rfl, ite_eq_left rfl]
       show M.depths a - 1 = S.depths a - 1
       rw [congrFun h.core.depths_eq a]
     · show (if a' = a then M.depths a - 1 else M.depths a')
         = (if a' = a then S.depths a - 1 else S.depths a')
-      rw [if_neg ha', if_neg ha']
+      rw [ite_eq_right ha', ite_eq_right ha']
       show M.depths a' = S.depths a'
       rw [congrFun h.core.depths_eq a']
   · -- strand_vis
@@ -5196,7 +5196,7 @@ theorem State.TwinCorrX.apply_stackPile_onsuit {ρ σ S M X R c b}
       · intro hcon; exact hs2 (hcon.trans hs)
     show (if s = (ρ c).suit then M.heights s - 1 else M.heights s)
       = (if s = c.suit then S.heights s - 1 else S.heights s)
-    rw [if_neg hne1, if_neg hne2]
+    rw [ite_eq_right hne1, ite_eq_right hne2]
     exact h.core.heights_off s hs1 hs2
   · -- stacked_iff
     intro c' hon'
@@ -5217,7 +5217,7 @@ theorem State.TwinCorrX.apply_stackPile_onsuit {ρ σ S M X R c b}
           else M.heights (ρ c).suit) > (ρ c).rank.toIdx
         ↔ (if c.suit = c.suit then S.heights c.suit - 1 else S.heights c.suit)
           > c.rank.toIdx
-      rw [if_pos rfl, if_pos rfl, Card.IsTwinMap.rank h.core.isTwinMap c, halign]
+      rw [ite_eq_left rfl, ite_eq_left rfl, Card.IsTwinMap.rank h.core.isTwinMap c, halign]
       constructor <;> intro hlt <;> omega
     · by_cases hcc' : c' = Card.flipSuit c
       · rw [hcc']
@@ -5226,7 +5226,7 @@ theorem State.TwinCorrX.apply_stackPile_onsuit {ρ σ S M X R c b}
               else M.heights (ρ (Card.flipSuit c)).suit) > (ρ (Card.flipSuit c)).rank.toIdx
           ↔ (if (Card.flipSuit c).suit = c.suit then S.heights (Card.flipSuit c).suit - 1
             else S.heights (Card.flipSuit c).suit) > (Card.flipSuit c).rank.toIdx
-        rw [if_neg hfcρ, if_neg hfc, Card.flipSuit_rank c]
+        rw [ite_eq_right hfcρ, ite_eq_right hfc, Card.flipSuit_rank c]
         exact h.core.stacked_iff (Card.flipSuit c) honf
       · exact State.stacked_drop_aux
           (hS := S.heights) (hM := M.heights)
@@ -5427,9 +5427,9 @@ theorem State.TwinCorrX.apply_deckStack_off {ρ σ S M X R q}
     show (if s = q.suit then M.heights s + 1 else M.heights s)
       = (if s = q.suit then S.heights s + 1 else S.heights s)
     by_cases hsc : s = q.suit
-    · rw [if_pos hsc, if_pos hsc]
+    · rw [ite_eq_left hsc, ite_eq_left hsc]
       rw [h.core.heights_off s hs1 hs2]
-    · rw [if_neg hsc, if_neg hsc]
+    · rw [ite_eq_right hsc, ite_eq_right hsc]
       exact h.core.heights_off s hs1 hs2
   · intro c' hon'
     by_cases hcq : c' = q
@@ -5438,12 +5438,12 @@ theorem State.TwinCorrX.apply_deckStack_off {ρ σ S M X R q}
       · intro _
         show (if q.suit = q.suit then S.heights q.suit + 1 else S.heights q.suit)
           > q.rank.toIdx
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         omega
       · intro _
         show (if q.suit = q.suit then M.heights q.suit + 1 else M.heights q.suit)
           > q.rank.toIdx
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         omega
     · by_cases hcq' : c' = Card.flipSuit q
       · rw [hcq']
@@ -5473,7 +5473,7 @@ theorem State.TwinCorrX.apply_deckStack_off {ρ σ S M X R q}
             else M.heights (ρ (Card.flipSuit q)).suit) > (ρ (Card.flipSuit q)).rank.toIdx
           ↔ (if (Card.flipSuit q).suit = q.suit then S.heights (Card.flipSuit q).suit + 1
             else S.heights (Card.flipSuit q).suit) > (Card.flipSuit q).rank.toIdx
-        rw [if_neg hfsρ, if_neg hfs, hρfq, Card.flipSuit_rank q,
+        rw [ite_eq_right hfsρ, ite_eq_right hfs, hρfq, Card.flipSuit_rank q,
           h.core.heights_off _ hoff'.1 hoff'.2]
       · have honρ : (ρ c').suit ≠ q.suit := by
           intro hcon
@@ -5489,7 +5489,7 @@ theorem State.TwinCorrX.apply_deckStack_off {ρ σ S M X R q}
             else M.heights (ρ c').suit) > (ρ c').rank.toIdx
           ↔ (if c'.suit = q.suit then S.heights c'.suit + 1 else S.heights c'.suit)
             > c'.rank.toIdx
-        rw [if_neg honρ, if_neg hcs]
+        rw [ite_eq_right honρ, ite_eq_right hcs]
         exact h.core.stacked_iff c' hon'
 
 /-- **The on-suit deckStack in the frame** (the probe-decided case):
@@ -5529,7 +5529,7 @@ theorem State.TwinCorrX.apply_deckStack_onsuit {ρ σ S M X R q}
       · exact hs2 (hcon.trans hs)
     show (if s = q.suit then M.heights s + 1 else M.heights s)
       = (if s = q.suit then S.heights s + 1 else S.heights s)
-    rw [if_neg hsq, if_neg hsq]
+    rw [ite_eq_right hsq, ite_eq_right hsq]
     exact h.core.heights_off s hs1 hs2
   · intro c' hon'
     have hrk' : (ρ c').rank.toIdx = c'.rank.toIdx := by
@@ -5540,12 +5540,12 @@ theorem State.TwinCorrX.apply_deckStack_onsuit {ρ σ S M X R q}
       · intro _
         show (if q.suit = q.suit then S.heights q.suit + 1 else S.heights q.suit)
           > q.rank.toIdx
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         omega
       · intro _
         show (if q.suit = q.suit then M.heights q.suit + 1 else M.heights q.suit)
           > q.rank.toIdx
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         omega
     · by_cases hcq' : c' = Card.flipSuit q
       · rw [hcq']
@@ -5565,7 +5565,7 @@ theorem State.TwinCorrX.apply_deckStack_onsuit {ρ σ S M X R q}
               else M.heights (ρ (Card.flipSuit q)).suit) > (ρ (Card.flipSuit q)).rank.toIdx
           ↔ (if (Card.flipSuit q).suit = q.suit then S.heights (Card.flipSuit q).suit + 1
             else S.heights (Card.flipSuit q).suit) > (Card.flipSuit q).rank.toIdx
-        rw [if_neg hfsρ, if_neg hfs]
+        rw [ite_eq_right hfsρ, ite_eq_right hfs]
         exact h.core.stacked_iff (Card.flipSuit q) honf
       · have hold := h.core.stacked_iff c' hon'
         have hold1 := hold.mp
@@ -5577,14 +5577,14 @@ theorem State.TwinCorrX.apply_deckStack_onsuit {ρ σ S M X R q}
               else M.heights (ρ c').suit) > (ρ c').rank.toIdx
             ↔ (if c'.suit = q.suit then S.heights c'.suit + 1 else S.heights c'.suit)
               > c'.rank.toIdx
-            rw [if_pos hcρs, if_pos hcs, hcρs, hcs]
+            rw [ite_eq_left hcρs, ite_eq_left hcs, hcρs, hcs]
             rw [hcρs] at hold1 hold2
             constructor <;> intro hlt <;> omega
           · show (if (ρ c').suit = q.suit then M.heights (ρ c').suit + 1
               else M.heights (ρ c').suit) > (ρ c').rank.toIdx
             ↔ (if c'.suit = q.suit then S.heights c'.suit + 1 else S.heights c'.suit)
               > c'.rank.toIdx
-            rw [if_neg hcρs, if_pos hcs, hcs]
+            rw [ite_eq_right hcρs, ite_eq_left hcs, hcs]
             have hsep : c'.rank.toIdx ≠ q.rank.toIdx := by
               intro hcon
               exact hcq (Card.eq_of_suit_rank hcs (Rank.toIdx_inj hcon))
@@ -5600,7 +5600,7 @@ theorem State.TwinCorrX.apply_deckStack_onsuit {ρ σ S M X R q}
               else M.heights (ρ c').suit) > (ρ c').rank.toIdx
             ↔ (if c'.suit = q.suit then S.heights c'.suit + 1 else S.heights c'.suit)
               > c'.rank.toIdx
-            rw [if_pos hcρs, if_neg hcs, hcρs]
+            rw [ite_eq_left hcρs, ite_eq_right hcs, hcρs]
             rw [hcρs] at hold1 hold2
             have hsep : (ρ c').rank.toIdx ≠ q.rank.toIdx := by
               intro hcon
@@ -5618,7 +5618,7 @@ theorem State.TwinCorrX.apply_deckStack_onsuit {ρ σ S M X R q}
               else M.heights (ρ c').suit) > (ρ c').rank.toIdx
             ↔ (if c'.suit = q.suit then S.heights c'.suit + 1 else S.heights c'.suit)
               > c'.rank.toIdx
-            rw [if_neg hcρs, if_neg hcs]
+            rw [ite_eq_right hcρs, ite_eq_right hcs]
             exact hold
 
 /-- **The off-suit pileStack in the frame**: the visible top goes to
@@ -5681,8 +5681,8 @@ theorem State.TwinCorrX.apply_pileStack_off {ρ σ S M X R q}
     show (if s = q.suit then M.heights s + 1 else M.heights s)
       = (if s = q.suit then S.heights s + 1 else S.heights s)
     by_cases hsc : s = q.suit
-    · rw [if_pos hsc, if_pos hsc, h.core.heights_off s hs1 hs2]
-    · rw [if_neg hsc, if_neg hsc]
+    · rw [ite_eq_left hsc, ite_eq_left hsc, h.core.heights_off s hs1 hs2]
+    · rw [ite_eq_right hsc, ite_eq_right hsc]
       exact h.core.heights_off s hs1 hs2
   · intro c' hon'
     by_cases hcq : c' = q
@@ -5691,12 +5691,12 @@ theorem State.TwinCorrX.apply_pileStack_off {ρ σ S M X R q}
       · intro _
         show (if q.suit = q.suit then S.heights q.suit + 1 else S.heights q.suit)
           > q.rank.toIdx
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         omega
       · intro _
         show (if q.suit = q.suit then M.heights q.suit + 1 else M.heights q.suit)
           > q.rank.toIdx
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         omega
     · have honρ : (ρ c').suit ≠ q.suit := by
         intro hcon
@@ -5712,7 +5712,7 @@ theorem State.TwinCorrX.apply_pileStack_off {ρ σ S M X R q}
           else M.heights (ρ c').suit) > (ρ c').rank.toIdx
         ↔ (if c'.suit = q.suit then S.heights c'.suit + 1 else S.heights c'.suit)
           > c'.rank.toIdx
-      rw [if_neg honρ, if_neg hcs]
+      rw [ite_eq_right honρ, ite_eq_right hcs]
       exact h.core.stacked_iff c' hon'
   · intro x hx
     have h1 := h.strand_vis x hx

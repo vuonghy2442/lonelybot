@@ -131,7 +131,7 @@ theorem safe_pileStack_dominant_of_return {st : State} {c : Card} {b : Base}
       State).heights c.suit := by
     show c.rank.toIdx + 1 =
       (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit)
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     omega
   have htopb : st.board.topOf b = some c := (Board.bottomOf_eq st.board c b).mp hb
   have hatt : ∃ bd, (st.board.detach b).attach b c = some bd := by
@@ -316,7 +316,7 @@ theorem dealOnce_iterate_add1 (l : List Card) :
       have hstep : Cycle.dealOnce 1 ⟨l, c⟩ = ⟨l, c + 1⟩ := by
         show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card)
             else ⟨l, min (c + 1) l.length⟩) = ⟨l, c + 1⟩
-        rw [if_neg (by omega), Nat.min_eq_left (by omega)]
+        rw [ite_eq_right (by omega), Nat.min_eq_left (by omega)]
       rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep, ih (c + 1) (by omega)]
       exact congrArg (Cycle.mk l) (by omega)
 
@@ -332,7 +332,7 @@ theorem dealIter_reach1 {l : List Card} {u v : Nat} (hv : v ≤ l.length) :
   have wrap : Cycle.dealIter 1 1 ⟨l, l.length⟩ = ⟨l, 0⟩ := by
     show (if l.length ≥ l.length then (⟨l, 0⟩ : Cycle Card)
         else ⟨l, min (l.length + 1) l.length⟩) = ⟨l, 0⟩
-    rw [if_pos (Nat.le_refl l.length)]
+    rw [ite_eq_left (Nat.le_refl l.length)]
   by_cases hu : u ≤ l.length
   · by_cases hle : u ≤ v
     · exact ⟨v - u, climb u v hle hv⟩
@@ -345,7 +345,7 @@ theorem dealIter_reach1 {l : List Card} {u v : Nat} (hv : v ≤ l.length) :
   · have hwrap : Cycle.dealOnce 1 ⟨l, u⟩ = ⟨l, 0⟩ := by
       show (if u ≥ l.length then (⟨l, 0⟩ : Cycle Card)
           else ⟨l, min (u + 1) l.length⟩) = ⟨l, 0⟩
-      rw [if_pos (by omega)]
+      rw [ite_eq_left (by omega)]
     refine ⟨v + 1, ?_⟩
     rw [Cycle.dealIter_add]
     show Cycle.dealIter 1 v (Cycle.dealOnce 1 ⟨l, u⟩) = _
@@ -582,7 +582,7 @@ theorem stackPile_pileStack_cancel {st : State} {c : Card} {b : Base} {s₁ : St
     exact (Board.bottomOf_eq bd c b).mpr (Board.attach_topOf _ _ _ hatt)
   · show c.rank.toIdx =
       (if c.suit = c.suit then st.heights c.suit - 1 else st.heights c.suit)
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     omega
   · show st = { { st with
         board := bd,
@@ -602,9 +602,9 @@ theorem stackPile_pileStack_cancel {st : State} {c : Card} {b : Base} {s₁ : St
       funext s
       by_cases hsc : s = c.suit
       · subst hsc
-        rw [if_pos rfl, if_pos rfl]
+        rw [ite_eq_left rfl, ite_eq_left rfl]
         omega
-      · rw [if_neg hsc, if_neg hsc]
+      · rw [ite_eq_right hsc, ite_eq_right hsc]
     exact state_ext rfl hbdb.symm hhh.symm rfl rfl rfl
 
 /-- §5.4, first half: never worry back a dominantly-stackable card —
@@ -711,7 +711,7 @@ theorem deckPile_safe_prunable {st : State} {c : Card} {b : Base} (hwf : st.WF)
             refine ⟨?_, hcp, bd, hatt, ?_⟩
             · show c.rank.toIdx + 1 =
                 (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit)
-              rw [if_pos rfl]
+              rw [ite_eq_left rfl]
               omega
             · rw [hs₁]
               refine state_ext rfl rfl ?_ rfl rfl rfl
@@ -721,12 +721,12 @@ theorem deckPile_safe_prunable {st : State} {c : Card} {b : Base} (hwf : st.WF)
                 show st.heights c.suit = (if c.suit = c.suit then
                     (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit) - 1
                     else (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit))
-                rw [if_pos rfl, if_pos rfl]
+                rw [ite_eq_left rfl, ite_eq_left rfl]
                 omega
               · show st.heights s = (if s = c.suit then
                     (if s = c.suit then st.heights s + 1 else st.heights s) - 1
                     else (if s = c.suit then st.heights s + 1 else st.heights s))
-                rw [if_neg hsc, if_neg hsc]
+                rw [ite_eq_right hsc, ite_eq_right hsc]
           have hrun2 : st.run (Move.deckStack c :: Move.stackPile c b :: rest) = some w := by
             simp only [State.run, htd, hsp]
             exact hrest.1

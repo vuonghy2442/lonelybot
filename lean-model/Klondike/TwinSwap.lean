@@ -210,7 +210,7 @@ theorem State.isVis_of_apply_of_not_mem_hidden {S R : State} {m : Move}
         have hRd : R.depths a = S.depths a - 1 := by
           rw [hR]
           show (if a = a₀ then S.depths a₀ - 1 else S.depths a) = S.depths a - 1
-          rw [haa, if_pos rfl]
+          rw [haa, ite_eq_left rfl]
         have houtk : c ∉ (S.deal.piles a).take (S.depths a - 1) := by
           have h1 : c ∉ (R.deal.piles a).take (R.depths a) := hout
           rw [hRd] at h1
@@ -255,7 +255,7 @@ theorem State.isVis_of_apply_of_not_mem_hidden {S R : State} {m : Move}
         have hRd : R.depths a = S.depths a := by
           rw [hR]
           show (if a = a₀ then S.depths a₀ - 1 else S.depths a) = S.depths a
-          rw [if_neg (fun hcon => haa hcon.symm)]
+          rw [ite_eq_right (fun hcon => haa hcon.symm)]
         have h1 : c ∉ (R.deal.piles a).take (R.depths a) := hout
         rw [hRd] at h1
         have hdl : R.deal = S.deal := by rw [hR]
@@ -374,7 +374,7 @@ theorem State.located_apply {S R : State} {m : Move} (hS : S.apply m = some R)
       rw [hst']
       refine Or.inr (Or.inr (Or.inr ?_))
       show decide (c.rank.toIdx < (if c.suit = c.suit then S.heights c.suit + 1 else S.heights c.suit)) = true
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       exact decide_eq_true (by omega)
     · exact Or.inl (State.isVis_antimono hS hvis hme)
   · -- hidden: still hidden, or the reveal that exits seats it
@@ -402,8 +402,8 @@ theorem State.located_apply {S R : State} {m : Move} (hS : S.apply m = some R)
           have hget : S.stock.cards[S.stock.cursor - 1]? = some c₀ := by
             unfold Cycle.prev at hprev
             by_cases hz : S.stock.cursor = 0
-            · rw [if_pos hz] at hprev; simp at hprev
-            · rw [if_neg hz] at hprev; exact hprev
+            · rw [ite_eq_left hz] at hprev; simp at hprev
+            · rw [ite_eq_right hz] at hprev; exact hprev
           exact Cycle.mem_removeIdx_of_ne _ _ _ _ hget hc hstock
     | deckStack c₀ =>
         rw [apply_deckStack_iff] at hS
@@ -413,14 +413,14 @@ theorem State.located_apply {S R : State} {m : Move} (hS : S.apply m = some R)
         · rw [hc]
           refine Or.inr (Or.inr (Or.inr ?_))
           show decide (c₀.rank.toIdx < (if c₀.suit = c₀.suit then S.heights c₀.suit + 1 else S.heights c₀.suit)) = true
-          rw [if_pos rfl]
+          rw [ite_eq_left rfl]
           exact decide_eq_true (by omega)
         · refine Or.inr (Or.inr (Or.inl ?_))
           have hget : S.stock.cards[S.stock.cursor - 1]? = some c₀ := by
             unfold Cycle.prev at hprev
             by_cases hz : S.stock.cursor = 0
-            · rw [if_pos hz] at hprev; simp at hprev
-            · rw [if_neg hz] at hprev; exact hprev
+            · rw [ite_eq_left hz] at hprev; simp at hprev
+            · rw [ite_eq_right hz] at hprev; exact hprev
           exact Cycle.mem_removeIdx_of_ne _ _ _ _ hget hc hstock
     | reveal c₀ =>
         rw [apply_reveal_iff] at hS
@@ -470,9 +470,9 @@ theorem State.located_apply {S R : State} {m : Move} (hS : S.apply m = some R)
         refine Or.inr (Or.inr (Or.inr ?_))
         show decide (c.rank.toIdx < (if c.suit = c₀.suit then S.heights c.suit + 1 else S.heights c.suit)) = true
         by_cases hcs : c.suit = c₀.suit
-        · rw [if_pos hcs]
+        · rw [ite_eq_left hcs]
           exact decide_eq_true (by have := of_decide_eq_true hfound; omega)
-        · rw [if_neg hcs]
+        · rw [ite_eq_right hcs]
           exact hfound
     | pileStack c₀ =>
         rw [apply_pileStack_iff] at hS
@@ -481,9 +481,9 @@ theorem State.located_apply {S R : State} {m : Move} (hS : S.apply m = some R)
         refine Or.inr (Or.inr (Or.inr ?_))
         show decide (c.rank.toIdx < (if c.suit = c₀.suit then S.heights c.suit + 1 else S.heights c.suit)) = true
         by_cases hcs : c.suit = c₀.suit
-        · rw [if_pos hcs]
+        · rw [ite_eq_left hcs]
           exact decide_eq_true (by have := of_decide_eq_true hfound; omega)
-        · rw [if_neg hcs]
+        · rw [ite_eq_right hcs]
           exact hfound
     | stackPile c₀ b =>
         rw [apply_stackPile_iff] at hS
@@ -496,7 +496,7 @@ theorem State.located_apply {S R : State} {m : Move} (hS : S.apply m = some R)
         · refine Or.inr (Or.inr (Or.inr ?_))
           show decide (c.rank.toIdx < (if c.suit = c₀.suit then S.heights c.suit - 1 else S.heights c.suit)) = true
           by_cases hcs : c.suit = c₀.suit
-          · rw [if_pos hcs]
+          · rw [ite_eq_left hcs]
             have hfound' : c.rank.toIdx < S.heights c.suit := of_decide_eq_true hfound
             have hrk' : c₀.rank.toIdx + 1 = S.heights c.suit := by
               rw [hcs]; exact hrk₀
@@ -504,7 +504,7 @@ theorem State.located_apply {S R : State} {m : Move} (hS : S.apply m = some R)
               intro hcc
               exact hc (Card.eq_of_suit_rank hcs (Rank.toIdx_inj hcc))
             exact decide_eq_true (by omega)
-          · rw [if_neg hcs]
+          · rw [ite_eq_right hcs]
             exact hfound
 
 /-! ## §2. The twin cargo transfer
@@ -576,8 +576,8 @@ theorem Board.aboveOf_go_mono {bd : Board} : ∀ (n : Nat) (b : Base) (acc : Lis
           show acc ⊆ (if acc.contains c' = true then acc else
               Board.aboveOf.go bd n (Sum.inr c') (c' :: acc))
           by_cases hc : acc.contains c' = true
-          · rw [if_pos hc]; exact List.Subset.refl _
-          · rw [if_neg hc]
+          · rw [ite_eq_left hc]; exact List.Subset.refl _
+          · rw [ite_eq_right hc]
             exact List.Subset.trans (fun x hx => List.mem_cons_of_mem c' hx) (ih _ _)
 
 /-- Two boards agreeing at every `inr`-slot the walk can probe run the
@@ -605,9 +605,9 @@ theorem Board.aboveOf_go_congr_aux {bd bd' : Board} {t : Card}
               = (if acc.contains c' = true then acc else
                 Board.aboveOf.go bd n (Sum.inr c') (c' :: acc))
           by_cases hcont : acc.contains c' = true
-          · rw [if_pos hcont]; rw [if_pos hcont]
-          · rw [if_neg hcont]
-            rw [if_neg hcont]
+          · rw [ite_eq_left hcont]; rw [ite_eq_left hcont]
+          · rw [ite_eq_right hcont]
+            rw [ite_eq_right hcont]
             have hstep : Board.aboveOf.go bd (n + 1) (Sum.inr c₀) acc =
                 Board.aboveOf.go bd n (Sum.inr c') (c' :: acc) := by
               have hp' : bd.topOf (Sum.inr c₀) = some c' := (hagree c₀ hc₀ne hc₀ne').trans hb
@@ -615,7 +615,7 @@ theorem Board.aboveOf_go_congr_aux {bd bd' : Board} {t : Card}
               show (if acc.contains c' = true then acc else
                     Board.aboveOf.go bd n (Sum.inr c') (c' :: acc))
                   = Board.aboveOf.go bd n (Sum.inr c') (c' :: acc)
-              rw [if_neg hcont]
+              rw [ite_eq_right hcont]
             have hc'out : c' ∈ Board.aboveOf.go bd (n + 1) (Sum.inr c₀) acc := by
               rw [hstep]
               exact Board.aboveOf_go_mono _ _ _ (List.mem_cons_self)
@@ -674,7 +674,7 @@ theorem State.pilePile_return_legal {st : State} {z t : Card} {st₁ : State}
     have hnb := (Bool.and_eq_true_iff.mp hcmr₁).2
     rw [hc] at hnb
     simp at hnb
-  have hcont₂ : (st.board.aboveOf z).contains t.flipSuit = false := eq_false_of_ne_true hguard'
+  have hcont₂ : (st.board.aboveOf z).contains t.flipSuit = false := Bool.eq_false_of_ne_true hguard'
   -- full run-purity: clause 1 is hnotloop, clause 2 is the guard
   have hfree : ∀ x : Card, x ∈ st.board.aboveOf z → x ≠ t ∧ x ≠ t.flipSuit := by
     intro x hm

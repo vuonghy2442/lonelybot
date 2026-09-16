@@ -137,14 +137,14 @@ def bdX : Board where
             all_goals exact absurd (h₁.trans h₂.symm) (by decide)
         | inr d =>
             by_cases hd : d = spK
-            · rw [if_pos (by simp [hd])] at h₂
+            · rw [ite_eq_left (by simp [hd])] at h₂
               cases a <;> simp_all
               all_goals exact absurd (h₁.trans h₂.symm) (by decide)
-            · rw [if_neg (by simp [hd])] at h₂
+            · rw [ite_eq_right (by simp [hd])] at h₂
               simp at h₂
     | inr d =>
         by_cases hd : d = spK
-        · rw [if_pos (by simp [hd]), Option.some.injEq] at h₁
+        · rw [ite_eq_left (by simp [hd]), Option.some.injEq] at h₁
           subst h₁
           cases b₂ with
           | inl a' =>
@@ -152,11 +152,11 @@ def bdX : Board where
               all_goals exact absurd (h₂.trans h₁.symm) (by decide)
           | inr d' =>
               by_cases hd' : d' = spK
-              · rw [if_pos (by simp [hd']), Option.some.injEq] at h₂
+              · rw [ite_eq_left (by simp [hd']), Option.some.injEq] at h₂
                 exact congrArg Sum.inr (hd.trans hd'.symm)
-              · rw [if_neg (by simp [hd'])] at h₂
+              · rw [ite_eq_right (by simp [hd'])] at h₂
                 simp at h₂
-        · rw [if_neg (by simp [hd])] at h₁
+        · rw [ite_eq_right (by simp [hd])] at h₁
           simp at h₁
 
 /-- The abstract witness board: ♥Q on its deal-neighbor ♣5 (invisible
@@ -182,14 +182,14 @@ def bdW : Board where
             all_goals exact absurd (h₁.trans h₂.symm) (by decide)
         | inr d =>
             by_cases hd : d = cl5
-            · rw [if_pos (by simp [hd])] at h₂
+            · rw [ite_eq_left (by simp [hd])] at h₂
               cases a <;> simp_all
               all_goals exact absurd (h₁.trans h₂.symm) (by decide)
-            · rw [if_neg (by simp [hd])] at h₂
+            · rw [ite_eq_right (by simp [hd])] at h₂
               simp at h₂
     | inr d =>
         by_cases hd : d = cl5
-        · rw [if_pos (by simp [hd]), Option.some.injEq] at h₁
+        · rw [ite_eq_left (by simp [hd]), Option.some.injEq] at h₁
           subst h₁
           cases b₂ with
           | inl a' =>
@@ -197,11 +197,11 @@ def bdW : Board where
               all_goals exact absurd (h₂.trans h₁.symm) (by decide)
           | inr d' =>
               by_cases hd' : d' = cl5
-              · rw [if_pos (by simp [hd']), Option.some.injEq] at h₂
+              · rw [ite_eq_left (by simp [hd']), Option.some.injEq] at h₂
                 exact congrArg Sum.inr (hd.trans hd'.symm)
-              · rw [if_neg (by simp [hd'])] at h₂
+              · rw [ite_eq_right (by simp [hd'])] at h₂
                 simp at h₂
-        · rw [if_neg (by simp [hd])] at h₁
+        · rw [ite_eq_right (by simp [hd])] at h₁
           simp at h₁
 
 def stX : State where

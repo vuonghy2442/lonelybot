@@ -143,10 +143,10 @@ theorem findFirstIdx_lt {α : Type} (p : α → Bool) : ∀ (l : List α) (i : N
     intro i h
     simp only [findFirstIdx] at h
     by_cases pa : p a = true
-    · rw [if_pos pa, Option.some.injEq] at h
+    · rw [ite_eq_left pa, Option.some.injEq] at h
       subst h
       simp
-    · rw [if_neg pa] at h
+    · rw [ite_eq_right pa] at h
       cases hf : findFirstIdx p t with
       | none => rw [hf] at h; simp at h
       | some j =>
@@ -188,7 +188,7 @@ theorem removeAt_comm {α : Type} (cy : Cycle α) (i j : Nat)
     rw [hj1] at h
     exact h.symm
   simp only [removeAt]
-  simp only [if_pos hj, if_pos hic, if_pos hic1, if_pos hjc1, hcards]
+  simp only [ite_eq_left hj, ite_eq_left hic, ite_eq_left hic1, ite_eq_left hjc1, hcards]
 
 /-! ### The draw-commitment splice kit
 
@@ -205,7 +205,7 @@ copies are deleted — this file sits above all three in the DAG. -/
 out — the cursor lands exactly on `i`. -/
 theorem removeAt_drawTo {α : Type} (i : Nat) (cy : Cycle α) :
     (cy.drawTo i).removeAt i = { cards := Cycle.removeIdx cy.cards i, cursor := i } := by
-  simp only [Cycle.removeAt, Cycle.drawTo, if_pos (by omega : i < i + 1),
+  simp only [Cycle.removeAt, Cycle.drawTo, ite_eq_left (by omega : i < i + 1),
     Nat.add_sub_cancel]
 
 /-- Splicing out an earlier position shifts a later first occurrence
@@ -222,9 +222,9 @@ theorem findFirstIdx_removeIdx_shift {α : Type} (p : α → Bool) :
       intro q r h hqr
       have hc : (if p a then some 0 else (Cycle.findFirstIdx p t).map Nat.succ) = some r := h
       by_cases hpa : p a = true
-      · rw [if_pos hpa, Option.some.injEq] at hc
+      · rw [ite_eq_left hpa, Option.some.injEq] at hc
         exact absurd hqr (by omega)
-      · rw [if_neg hpa] at hc
+      · rw [ite_eq_right hpa] at hc
         cases q with
         | zero =>
             rw [Cycle.removeIdx_zero]
@@ -237,7 +237,7 @@ theorem findFirstIdx_removeIdx_shift {α : Type} (p : α → Bool) :
             have hih := ih q' r' hr' (by omega)
             show (if p a then some 0
               else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some (r - 1)
-            rw [if_neg hpa, hih, Option.map_some]
+            rw [ite_eq_right hpa, hih, Option.map_some]
             exact congrArg some (by omega)
 
 /-- Splicing out a later position leaves an earlier first occurrence
@@ -258,16 +258,16 @@ theorem findFirstIdx_removeIdx_keep {α : Type} (p : α → Bool) :
       | succ q' =>
           rw [Cycle.removeIdx_succ]
           by_cases hpa : p a = true
-          · rw [if_pos hpa, Option.some.injEq] at hc
+          · rw [ite_eq_left hpa, Option.some.injEq] at hc
             show (if p a then some 0
               else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
-            rw [if_pos hpa, ← hc]
-          · rw [if_neg hpa] at hc
+            rw [ite_eq_left hpa, ← hc]
+          · rw [ite_eq_right hpa] at hc
             obtain ⟨r', hr', hrr⟩ := Option.map_eq_some_iff.mp hc
             have hih := ih r' q' hr' (by omega)
             show (if p a then some 0
               else (Cycle.findFirstIdx p (Cycle.removeIdx t q')).map Nat.succ) = some p₀
-            rw [if_neg hpa, hih, Option.map_some]
+            rw [ite_eq_right hpa, hih, Option.map_some]
             exact congrArg some (by omega)
 
 /-- The shift lemma, `posOf` packaging (the cursor is never read). -/

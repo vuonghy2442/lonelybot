@@ -375,7 +375,7 @@ theorem relabelBoard_detach (r : Relabel) (bd : Board) (b : Base) :
   · rw [hbb]
     show (if r.onBase b = r.onBase b then none else (relabelBoard r bd).topOf (r.onBase b))
       = ((bd.detach b).topOf (Sum.map id r.cardInv (r.onBase b))).map r.card
-    rw [if_pos rfl, Relabel.cardInv_onBase r b, Board.detach_topOf]
+    rw [ite_eq_left rfl, Relabel.cardInv_onBase r b, Board.detach_topOf]
     rfl
   · show (if b'' = r.onBase b then none else (relabelBoard r bd).topOf b'')
       = ((bd.detach b).topOf (Sum.map id r.cardInv b'')).map r.card
@@ -383,7 +383,7 @@ theorem relabelBoard_detach (r : Relabel) (bd : Board) (b : Base) :
       have hc2 := Relabel.onBase_cardInv r b''
       rw [hcon] at hc2
       exact hc2.symm)
-    rw [if_neg hbb, Board.detach_topOf_ne _ _ _ hcb]
+    rw [ite_eq_right hbb, Board.detach_topOf_ne _ _ _ hcb]
     rfl
 
 theorem relabelBy_isVis (r : Relabel) (st : State) (d : Card) :
@@ -471,8 +471,8 @@ theorem relabelBy_aboveOf_go (r : Relabel) (st : State) : ∀ (fuel : Nat) (b : 
                else Board.aboveOf.go st.board n (Sum.inr x) (x :: acc)).map r.card
           rw [contains_map r acc x]
           by_cases hac : acc.contains x = true
-          · rw [if_pos hac, if_pos hac]
-          · rw [if_neg hac, if_neg hac]
+          · rw [ite_eq_left hac, ite_eq_left hac]
+          · rw [ite_eq_right hac, ite_eq_right hac]
             exact ih (Sum.inr x) (x :: acc)
 
 theorem relabelBy_aboveOf (r : Relabel) (st : State) (c : Card) :
@@ -503,19 +503,19 @@ theorem relabelCycle_dealOnce (r : Relabel) (cy : Cycle Card) (s : Nat) :
   split
   · rename_i h
     simp only [Cycle.dealOnce]
-    rw [if_pos h]
+    rw [ite_eq_left h]
   · rename_i h
     simp only [Cycle.dealOnce]
-    rw [if_neg h]
+    rw [ite_eq_right h]
 
 theorem relabelBy_prev (r : Relabel) (st : State) :
     (st.relabelBy r).stock.prev = st.stock.prev.map r.card := by
   show (if st.stock.cursor = 0 then none else (st.stock.cards.map r.card)[st.stock.cursor - 1]?)
     = (if st.stock.cursor = 0 then none else st.stock.cards[st.stock.cursor - 1]?).map r.card
   by_cases h0 : st.stock.cursor = 0
-  · rw [if_pos h0, if_pos h0]
+  · rw [ite_eq_left h0, ite_eq_left h0]
     rfl
-  · rw [if_neg h0, if_neg h0, List.getElem?_map]
+  · rw [ite_eq_right h0, ite_eq_right h0, List.getElem?_map]
 
 theorem removeIdx_map (r : Relabel) : ∀ (l : List Card) (i : Nat),
     Cycle.removeIdx (l.map r.card) i = (Cycle.removeIdx l i).map r.card
@@ -553,10 +553,10 @@ theorem relabelBy_heights_bump (r : Relabel) (st : State) (c : Card) :
   funext s
   by_cases hs : r.suitInv s = c.suit
   · have hsc : s = (r.card c).suit := (Relabel.suitInv_eq r).mp hs
-    rw [if_pos hsc, if_pos hs]
+    rw [ite_eq_left hsc, ite_eq_left hs]
     rfl
   · have hsc : s ≠ (r.card c).suit := fun hcon => hs ((Relabel.suitInv_eq r).mpr hcon)
-    rw [if_neg hsc, if_neg hs]
+    rw [ite_eq_right hsc, ite_eq_right hs]
     rfl
 
 theorem relabelBy_heights_drop (r : Relabel) (st : State) (c : Card) :
@@ -567,10 +567,10 @@ theorem relabelBy_heights_drop (r : Relabel) (st : State) (c : Card) :
   funext s
   by_cases hs : r.suitInv s = c.suit
   · have hsc : s = (r.card c).suit := (Relabel.suitInv_eq r).mp hs
-    rw [if_pos hsc, if_pos hs]
+    rw [ite_eq_left hsc, ite_eq_left hs]
     rfl
   · have hsc : s ≠ (r.card c).suit := fun hcon => hs ((Relabel.suitInv_eq r).mpr hcon)
-    rw [if_neg hsc, if_neg hs]
+    rw [ite_eq_right hsc, ite_eq_right hs]
     rfl
 
 /-- **T's conjugation step, generalized**: applying a relabeled move
@@ -1138,8 +1138,8 @@ theorem Card.swapTwin_flipSuit (t x : Card) :
     · rw [h₂, Card.swapTwin_self_left]
       show (if t = t.flipSuit then t.flipSuit.flipSuit
           else if t = t.flipSuit.flipSuit then t.flipSuit else t) = t.flipSuit
-      rw [if_neg (fun h => Card.flipSuit_ne t h.symm),
-        if_pos (show t = t.flipSuit.flipSuit from (Card.flipSuit_flipSuit t).symm)]
+      rw [ite_eq_right (fun h => Card.flipSuit_ne t h.symm),
+        ite_eq_left (show t = t.flipSuit.flipSuit from (Card.flipSuit_flipSuit t).symm)]
     · rw [Card.swapTwin_of_ne h₁ (fun h => h₂ (h.trans (Card.flipSuit_flipSuit t))),
         Card.swapTwin_of_ne h₂ h₁]
 

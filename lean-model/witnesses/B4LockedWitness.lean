@@ -61,9 +61,9 @@ private theorem wTop_some {b : Base} {c : Card} (h : wTop b = some c) :
     c = D .king ∧ b = Sum.inr (C .king) := by
   by_cases hbc : b = Sum.inr (C .king)
   · refine ⟨?_, hbc⟩
-    simp only [wTop, if_pos hbc, Option.some.injEq] at h
+    simp only [wTop, ite_eq_left hbc, Option.some.injEq] at h
     exact h.symm
-  · simp only [wTop, if_neg hbc] at h
+  · simp only [wTop, ite_eq_right hbc] at h
     exact absurd h (by simp)
 
 private theorem wTop_inj : ∀ (b₁ b₂ : Base) (c : Card),

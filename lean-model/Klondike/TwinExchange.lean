@@ -229,7 +229,7 @@ theorem State.pilePile_exchangeTwinCargo_fwd {st : State} {z t : Card}
   refine ⟨Sum.inr t, h₀, fun h => Card.flipSuit_ne t (Sum.inr.inj h).symm, hcmr',
     st.board.exchangeTwin t, ?_, rfl⟩
   unfold Board.attach
-  rw [dif_pos hdetT', dif_pos hbotD]
+  rw [dite_eq_left hdetT', dite_eq_left hbotD]
   apply congrArg Option.some
   apply Board.ext_topOf
   funext base
@@ -327,7 +327,7 @@ theorem State.exchangeTwinCargo_pilePile_back {st : State} {z t : Card}
   refine ⟨Sum.inr t.flipSuit, hbotE, fun h => Card.flipSuit_ne t (Sum.inr.inj h), hcmr,
     st.board, ?_, rfl⟩
   unfold Board.attach
-  rw [dif_pos hdetT, dif_pos hbotD]
+  rw [dite_eq_left hdetT, dite_eq_left hbotD]
   apply congrArg Option.some
   apply Board.ext_topOf
   funext base
@@ -455,7 +455,7 @@ theorem Board.exchangeTwin_attach_ne (bd : Board) (t : Card) {b : Base} {c : Car
     rw [Board.bottomOf_exchangeTwin, hg2]
     rfl
   unfold Board.attach
-  rw [dif_pos hg1', dif_pos hg2']
+  rw [dite_eq_left hg1', dite_eq_left hg2']
   apply congrArg Option.some
   apply Board.ext_topOf
   funext base
@@ -659,9 +659,9 @@ theorem Board.aboveOf_sub_detach {bd : Board} {b : Base} :
           show x ∈ (if acc.contains c' = true then acc
               else Board.aboveOf.go bd n (Sum.inr c') (c' :: acc))
           by_cases hcon : acc.contains c' = true
-          · rw [if_pos hcon] at hx ⊢
+          · rw [ite_eq_left hcon] at hx ⊢
             exact hx
-          · rw [if_neg hcon] at hx ⊢
+          · rw [ite_eq_right hcon] at hx ⊢
             exact ih c' (c' :: acc) x hx
 
 /-- The seeded-walk bound, two-accumulator form: a run walked with a

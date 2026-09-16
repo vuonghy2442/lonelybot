@@ -367,6 +367,21 @@ transfer) → `exchangeDoubleClear_of_columns` → `ExchangeDoubleClear` →
 `solvable_of_exchange_merge_rooted_direct` → the merge bridge → the
 licensed iff assembly.
 
+**Session note (2026-09-16, the window's deckStack partner-past arm
+GROWN)**: `playWindow'`'s pre-episode `deckStack` arm gained the
+ρ-fixed ∧ partner-past third disjunct (`TwinReplay`), with the
+strengthened window's replay case added (the stock-sourced
+post-equalization climb translates via
+`TwinCore.rung_eq_of_partner_past` + `TwinCorrX.apply_deckStack_onsuit`
+— both pre-existing) and the one downstream admission proof
+(`playWindow'_tail_of_eq_heights`'s off-pair deckStack) adapted; the
+sufficiency family (65 admission-proving uses) unaffected.  Axiom-clean
+[propext, Quot.sound]; census pinned at 14.  This closes §12.3's
+audit residue (a) — the stock-sourced on-pair climbs no longer need
+the skew/alternation once the partner rung is past the pair rank.  The
+window's remaining declared obstruction is (b) alone: the `stackPile`
+arm's pair-member and just-below-pair worry-back anti-skews.
+
 Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
 etc.).  **Dependency note**: W4's reformulation (the W-repair at the
 crux ledger) already absorbs park cases via the swap — whether it needs

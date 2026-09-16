@@ -153,7 +153,7 @@ theorem dealOnce_iterate_add {s : Nat} (hs : 0 < s) (l : List Card) :
     have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, c + s⟩ := by
       show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
           = (⟨l, c + s⟩ : Cycle Card)
-      rw [if_neg (by omega), Nat.min_eq_left (by omega)]
+      rw [ite_eq_right (by omega), Nat.min_eq_left (by omega)]
     rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep, ih (c + s) (by omega), hexp]
     exact congrArg (Cycle.mk l) (by omega)
 
@@ -176,7 +176,7 @@ theorem dealOnce_reach_end {s : Nat} (hs : 0 < s) (l : List Card) :
       · have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, c + s⟩ := by
           show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
               = (⟨l, c + s⟩ : Cycle Card)
-          rw [if_neg (by omega), Nat.min_eq_left (by omega)]
+          rw [ite_eq_right (by omega), Nat.min_eq_left (by omega)]
         obtain ⟨k, hk⟩ := ih (c + s) (by omega) (by omega)
         refine ⟨k + 1, ?_⟩
         rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hstep]
@@ -184,7 +184,7 @@ theorem dealOnce_reach_end {s : Nat} (hs : 0 < s) (l : List Card) :
       · have hstep : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, l.length⟩ := by
           show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
               = (⟨l, l.length⟩ : Cycle Card)
-          rw [if_neg (by omega), Nat.min_eq_right (by omega)]
+          rw [ite_eq_right (by omega), Nat.min_eq_right (by omega)]
         exact ⟨1, hstep⟩
 
 /-- The pass end is reached from any cursor, even past it (one wrap). -/
@@ -195,7 +195,7 @@ theorem dealOnce_reach_end_any {s : Nat} (hs : 0 < s) (l : List Card) (c : Nat) 
   · have hwrap : Cycle.dealOnce s ⟨l, c⟩ = ⟨l, 0⟩ := by
       show (if c ≥ l.length then (⟨l, 0⟩ : Cycle Card) else ⟨l, min (c + s) l.length⟩)
           = (⟨l, 0⟩ : Cycle Card)
-      rw [if_pos (by omega : c ≥ l.length)]
+      rw [ite_eq_left (by omega : c ≥ l.length)]
     obtain ⟨k₀, hk₀⟩ := dealOnce_reach_end hs l l.length 0 (Nat.zero_le _) (by omega)
     refine ⟨k₀ + 1, ?_⟩
     rw [Cycle.dealIter_succ, ← Cycle.dealIter_shift, hwrap, hk₀]
@@ -209,7 +209,7 @@ theorem dealOnce_wrap_advance {s : Nat} (hs : 0 < s) (l : List Card) (c i : Nat)
   have hwrap : Cycle.dealOnce s ⟨l, l.length⟩ = ⟨l, 0⟩ := by
     show (if l.length ≥ l.length then (⟨l, 0⟩ : Cycle Card)
         else ⟨l, min (l.length + s) l.length⟩) = (⟨l, 0⟩ : Cycle Card)
-    rw [if_pos (Nat.le_refl l.length)]
+    rw [ite_eq_left (Nat.le_refl l.length)]
   obtain ⟨q, hq⟩ := exists_mul_of_mod_zero hmod
   have hexp : (q + 1) * s = q * s + s := by rw [Nat.add_mul, Nat.one_mul]
   have hadv : 0 + (q + 1) * s ≤ l.length := by rw [hexp]; omega
@@ -241,16 +241,16 @@ theorem maskPos_deal_reach {s : Nat} (hs : 0 < s) {cy : Cycle Card} {i : Nat}
     · obtain ⟨hle, hlt2, hmod⟩ := (Pace.laneUp_mem s hs _ _ i).mp h1
       by_cases hc0 : c = 0
       · subst hc0
-        rw [if_pos rfl] at hle hmod
+        rw [ite_eq_left rfl] at hle hmod
         exact dealOnce_wrap_advance hs l 0 i hlt hle hmod
-      · rw [if_neg hc0] at hle hmod
+      · rw [ite_eq_right hc0] at hle hmod
         obtain ⟨q, hq⟩ := exists_mul_of_mod_zero hmod
         have hle2 : c + q * s ≤ l.length := by omega
         have hkey : c + q * s = i + 1 := by omega
         refine ⟨q, ?_⟩
         rw [dealOnce_iterate_add hs l q c hle2]
         exact congrArg (Cycle.mk l) hkey
-    · rw [if_pos (by omega : 0 < l.length)] at h2
+    · rw [ite_eq_left (by omega : 0 < l.length)] at h2
       simp only [List.mem_singleton] at h2
       obtain ⟨k, hk⟩ := dealOnce_reach_end_any hs l c
       refine ⟨k, ?_⟩
@@ -270,10 +270,10 @@ theorem findFirstIdx_getElem? {α : Type} (p : α → Bool) :
     intro i h
     simp only [Cycle.findFirstIdx] at h
     by_cases hp : p a = true
-    · rw [if_pos hp, Option.some.injEq] at h
+    · rw [ite_eq_left hp, Option.some.injEq] at h
       subst h
       exact ⟨a, rfl, hp⟩
-    · rw [if_neg hp] at h
+    · rw [ite_eq_right hp] at h
       cases hf : Cycle.findFirstIdx p t with
       | none => rw [hf] at h; simp at h
       | some j =>
@@ -307,13 +307,13 @@ theorem reachablePos_eq_some_iff {st : State} {c : Card} {i : Nat} :
         rw [hpo] at h
         have h' : (if j ∈ Pace.maskPos st.stock st.drawStep hstep then some j else none) = some i := h
         by_cases hmem : j ∈ Pace.maskPos st.stock st.drawStep hstep
-        · rw [if_pos hmem, Option.some.injEq] at h'
+        · rw [ite_eq_left hmem, Option.some.injEq] at h'
           subst h'
           exact ⟨hstep, rfl, hmem⟩
-        · rw [if_neg hmem] at h'; simp at h'
+        · rw [ite_eq_right hmem] at h'; simp at h'
     · simp at h
   · intro ⟨hstep, hpo, hmem⟩
-    simp only [State.reachablePos, dif_pos hstep, hpo, if_pos hmem]
+    simp only [State.reachablePos, dite_eq_left hstep, hpo, ite_eq_left hmem]
 
 /-- `applyDrawTo`'s shape: the reachable guard selects the index, the
 attach the board, the successor the spliced jump. -/
@@ -362,12 +362,12 @@ theorem applyDrawStackTo_iff {st : State} {c : Card} {st' : State} :
             heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
           else none) = some st' := h
       by_cases hrk : c.rank.toIdx = st.heights c.suit
-      · rw [if_pos hrk, Option.some.injEq] at h'
+      · rw [ite_eq_left hrk, Option.some.injEq] at h'
         exact ⟨i, rfl, hrk, h'.symm⟩
-      · rw [if_neg hrk] at h'; simp at h'
+      · rw [ite_eq_right hrk] at h'; simp at h'
   · intro ⟨i, hpos, hrk, hst⟩
     rw [hst]
-    simp only [State.applyDrawStackTo, hpos, if_pos hrk]
+    simp only [State.applyDrawStackTo, hpos, ite_eq_left hrk]
 
 /-- Pointwise agreement of the search predicates. -/
 theorem findFirst_congr_mem {α : Type} (p q : α → Bool) :
@@ -379,8 +379,8 @@ theorem findFirst_congr_mem {α : Type} (p q : α → Bool) :
     intro h
     rw [findFirst_cons, findFirst_cons, h a List.mem_cons_self]
     by_cases hq : q a = true
-    · rw [if_pos hq, if_pos hq]
-    · rw [if_neg hq, if_neg hq]
+    · rw [ite_eq_left hq, ite_eq_left hq]
+    · rw [ite_eq_right hq, ite_eq_right hq]
       exact ih (fun a' ha' => h a' (List.mem_cons_of_mem _ ha'))
 
 /-- Attaching `c` at `b` leaves every other card's `bottomOf` alone. -/
@@ -432,7 +432,7 @@ theorem deckPile_after_draws {st : State} {c : Card} {b : Base} {i : Nat} {bd : 
   have hprev : ({ st with stock := { st.stock with cursor := i + 1 } } : State).stock.prev = some c := by
     show (Cycle.prev { st.stock with cursor := i + 1 }) = some c
     show (if i + 1 = 0 then none else st.stock.cards[i + 1 - 1]?) = some c
-    rw [if_neg (by omega : ¬ (i + 1 = 0))]
+    rw [ite_eq_right (by omega : ¬ (i + 1 = 0))]
     have hi : i + 1 - 1 = i := by omega
     rw [hi]
     exact hget
@@ -455,7 +455,7 @@ theorem deckStack_after_draws {st : State} {c : Card} {i : Nat}
   have hprev : ({ st with stock := { st.stock with cursor := i + 1 } } : State).stock.prev = some c := by
     show (Cycle.prev { st.stock with cursor := i + 1 }) = some c
     show (if i + 1 = 0 then none else st.stock.cards[i + 1 - 1]?) = some c
-    rw [if_neg (by omega : ¬ (i + 1 = 0))]
+    rw [ite_eq_right (by omega : ¬ (i + 1 = 0))]
     have hi : i + 1 - 1 = i := by omega
     rw [hi]
     exact hget
@@ -1087,7 +1087,7 @@ theorem solvable_iff_pure_cursors {st : State} {o o' : Nat}
         then (⟨st.stock.cards, 0⟩ : Cycle Card)
         else ⟨st.stock.cards, min (st.stock.cards.length + st.drawStep) st.stock.cards.length⟩)
       = ⟨st.stock.cards, 0⟩
-    rw [if_pos (Nat.le_refl _)]
+    rw [ite_eq_left (Nat.le_refl _)]
   have hwraprun : ({ st with stock := { st.stock with cursor := st.stock.cards.length } } : State).run [Move.draw]
       = some { st with stock := { st.stock with cursor := 0 } } := by
     rw [run_singleton]

@@ -169,9 +169,9 @@ theorem nodupP_filter (p : Card → Bool) : ∀ {l : List Card}, NoDupP l → No
       intro hnd
       obtain ⟨ha, hndt⟩ := hnd
       by_cases hpa : p a = true
-      · rw [List.filter_cons, if_pos hpa]
+      · rw [List.filter_cons, ite_eq_left hpa]
         exact ⟨fun hmem => ha (List.mem_filter.mp hmem).1, ih hndt⟩
-      · rw [List.filter_cons, if_neg hpa]
+      · rw [List.filter_cons, ite_eq_right hpa]
         exact ih hndt
 
 /-- **The bijection count**: two distinct lists with mutual inverse
@@ -345,11 +345,11 @@ theorem allDistinct_filter {α : Type} (p : α → Bool) : ∀ (l : List α),
   | cons a t ih =>
       intro h
       by_cases hp : p a = true
-      · rw [List.filter_cons, if_pos hp]
+      · rw [List.filter_cons, ite_eq_left hp]
         refine allDistinct_cons ?_ (ih (allDistinct_cons_tail h))
         intro hm
         exact allDistinct_cons_notMem h (List.mem_filter.mp hm).1
-      · rw [List.filter_cons, if_neg hp]
+      · rw [List.filter_cons, ite_eq_right hp]
         exact ih (allDistinct_cons_tail h)
 
 /-- The map of a distinct list under an injective-on-it function is
@@ -389,7 +389,7 @@ theorem filter_mem_idem : ∀ (l : List Card), noDupCards l →
   | cons a t ih =>
       intro hnd
       have hnot : a ∉ t := allDistinct_cons_notMem hnd
-      rw [List.filter_cons, if_pos (decide_eq_true (by simp))]
+      rw [List.filter_cons, ite_eq_left (decide_eq_true (by simp))]
       refine congrArg (a :: ·) ?_
       refine Eq.trans (ih (allDistinct_cons_tail hnd)) ?_
       exact (List.filter_congr (fun x hx => by
@@ -421,35 +421,35 @@ theorem filter_split_add (p q : Card → Bool) : ∀ (l : List Card),
       cases hpa : p a with
       | true =>
           have e1 : (a :: t).filter p = a :: t.filter p := by
-            rw [List.filter_cons, if_pos hpa]
+            rw [List.filter_cons, ite_eq_left hpa]
           cases hqa : q a with
           | true =>
               have e2 : (a :: t).filter (fun x => p x && q x)
                   = a :: t.filter (fun x => p x && q x) := by
-                rw [List.filter_cons, if_pos (by simp [hpa, hqa])]
+                rw [List.filter_cons, ite_eq_left (by simp [hpa, hqa])]
               have e3 : (a :: t).filter (fun x => p x && !q x)
                   = t.filter (fun x => p x && !q x) := by
-                rw [List.filter_cons, if_neg (by simp [hpa, hqa])]
+                rw [List.filter_cons, ite_eq_right (by simp [hpa, hqa])]
               rw [e1, e2, e3, List.length_cons, List.length_cons]
               omega
           | false =>
               have e2 : (a :: t).filter (fun x => p x && q x)
                   = t.filter (fun x => p x && q x) := by
-                rw [List.filter_cons, if_neg (by simp [hpa, hqa])]
+                rw [List.filter_cons, ite_eq_right (by simp [hpa, hqa])]
               have e3 : (a :: t).filter (fun x => p x && !q x)
                   = a :: t.filter (fun x => p x && !q x) := by
-                rw [List.filter_cons, if_pos (by simp [hpa, hqa])]
+                rw [List.filter_cons, ite_eq_left (by simp [hpa, hqa])]
               rw [e1, e2, e3, List.length_cons, List.length_cons]
               omega
       | false =>
           have e1 : (a :: t).filter p = t.filter p := by
-            rw [List.filter_cons, if_neg (by simp [hpa])]
+            rw [List.filter_cons, ite_eq_right (by simp [hpa])]
           have e2 : (a :: t).filter (fun x => p x && q x)
               = t.filter (fun x => p x && q x) := by
-            rw [List.filter_cons, if_neg (by simp [hpa])]
+            rw [List.filter_cons, ite_eq_right (by simp [hpa])]
           have e3 : (a :: t).filter (fun x => p x && !q x)
               = t.filter (fun x => p x && !q x) := by
-            rw [List.filter_cons, if_neg (by simp [hpa])]
+            rw [List.filter_cons, ite_eq_right (by simp [hpa])]
           rw [e1, e2, e3]
           omega
 
@@ -461,7 +461,7 @@ theorem filter_len_zero (p : Card → Bool) : ∀ (l : List Card),
   | nil => intro _; rfl
   | cons a t ih =>
       intro h
-      rw [List.filter_cons, if_neg (by simp [h a (by simp)])]
+      rw [List.filter_cons, ite_eq_right (by simp [h a (by simp)])]
       exact ih (fun x hx => h x (by simp [hx]))
 
 /-! ## The splice kit -/
@@ -484,20 +484,20 @@ theorem getElem?_removeIdx {α : Type} :
     | zero =>
       intro j
       simp only [removeIdx_zero, List.getElem?_cons_succ]
-      rw [if_neg (Nat.not_lt_zero j)]
+      rw [ite_eq_right (Nat.not_lt_zero j)]
     | succ n =>
       intro j
       cases j with
       | zero =>
         simp only [removeIdx_succ, List.getElem?_cons_zero]
-        rw [if_pos (Nat.zero_lt_succ n)]
+        rw [ite_eq_left (Nat.zero_lt_succ n)]
       | succ m =>
         simp only [removeIdx_succ, List.getElem?_cons_succ]
         by_cases hm : m < n
-        · rw [if_pos (by omega : m + 1 < n + 1)]
-          exact (ih n m).trans (if_pos hm)
-        · rw [if_neg (by omega : ¬(m + 1 < n + 1))]
-          exact (ih n m).trans (if_neg hm)
+        · rw [ite_eq_left (by omega : m + 1 < n + 1)]
+          exact (ih n m).trans (ite_eq_left hm)
+        · rw [ite_eq_right (by omega : ¬(m + 1 < n + 1))]
+          exact (ih n m).trans (ite_eq_right hm)
 
 end Cycle
 
@@ -546,17 +546,17 @@ theorem noDupCards_removeIdx : ∀ (l : List Card) (i : Nat),
         Cycle.removeIdx_length _ i hic
       by_cases hc1 : j < i
       · by_cases hc2 : j' < i
-        · rw [if_pos hc1, if_pos hc2] at heq
+        · rw [ite_eq_left hc1, ite_eq_left hc2] at heq
           have := hnd j j' (by omega) (by omega) heq
           omega
-        · rw [if_pos hc1, if_neg hc2] at heq
+        · rw [ite_eq_left hc1, ite_eq_right hc2] at heq
           have := hnd j (j' + 1) (by omega) (by omega) heq
           omega
       · by_cases hc2 : j' < i
-        · rw [if_neg hc1, if_pos hc2] at heq
+        · rw [ite_eq_right hc1, ite_eq_left hc2] at heq
           have := hnd (j + 1) j' (by omega) (by omega) heq
           omega
-        · rw [if_neg hc1, if_neg hc2] at heq
+        · rw [ite_eq_right hc1, ite_eq_right hc2] at heq
           have := hnd (j + 1) (j' + 1) (by omega) (by omega) heq
           omega
     · have hle : Cycle.removeIdx (a :: t) i = (a :: t) :=
@@ -564,17 +564,17 @@ theorem noDupCards_removeIdx : ∀ (l : List Card) (i : Nat),
       rw [hle] at hj hj'
       by_cases hc1 : j < i
       · by_cases hc2 : j' < i
-        · rw [if_pos hc1, if_pos hc2] at heq
+        · rw [ite_eq_left hc1, ite_eq_left hc2] at heq
           have := hnd j j' (by omega) (by omega) heq
           omega
-        · rw [if_pos hc1, if_neg hc2] at heq
+        · rw [ite_eq_left hc1, ite_eq_right hc2] at heq
           have := hnd j (j' + 1) (by omega) (by omega) heq
           omega
       · by_cases hc2 : j' < i
-        · rw [if_neg hc1, if_pos hc2] at heq
+        · rw [ite_eq_right hc1, ite_eq_left hc2] at heq
           have := hnd (j + 1) j' (by omega) (by omega) heq
           omega
-        · rw [if_neg hc1, if_neg hc2] at heq
+        · rw [ite_eq_right hc1, ite_eq_right hc2] at heq
           have := hnd (j + 1) (j' + 1) (by omega) (by omega) heq
           omega
 
@@ -592,12 +592,12 @@ theorem removeIdx_filter_mem : ∀ (l : List Card) (i : Nat), noDupCards l →
       cases i with
       | zero =>
           show t = (a :: t).filter (fun x => decide (x ∈ t))
-          rw [List.filter_cons, if_neg (by simp [hnot])]
+          rw [List.filter_cons, ite_eq_right (by simp [hnot])]
           exact filter_mem_idem t hdt
       | succ j =>
           show a :: Cycle.removeIdx t j
             = (a :: t).filter (fun x => decide (x ∈ a :: Cycle.removeIdx t j))
-          rw [List.filter_cons, if_pos (decide_eq_true (by simp))]
+          rw [List.filter_cons, ite_eq_left (decide_eq_true (by simp))]
           refine congrArg (a :: ·) ?_
           refine Eq.trans (ih j hdt) ?_
           exact (List.filter_congr (fun x hx => by
@@ -792,17 +792,17 @@ theorem mem_take_iff {l : List Card} (k : Nat) (z : Card) :
     have hz : (if j < k then l[j]? else none) = some z := by
       rw [← List.getElem?_take]; exact hj
     by_cases hjk : j < k
-    · rw [if_pos hjk] at hz
+    · rw [ite_eq_left hjk] at hz
       refine ⟨List.mem_iff_getElem?.mpr ⟨j, hz⟩, ?_⟩
       have := idxOf_le_of_get l z j hz
       omega
-    · rw [if_neg hjk] at hz
+    · rw [ite_eq_right hjk] at hz
       simp at hz
   · intro h
     obtain ⟨hmem, hlt⟩ := h
     have hget : l[l.idxOf z]? = some z := idxOf_get l z hmem
     have hjk : (l.take k)[l.idxOf z]? = some z := by
-      rw [List.getElem?_take, if_pos hlt]; exact hget
+      rw [List.getElem?_take, ite_eq_left hlt]; exact hget
     have hbound : l.idxOf z < (l.take k).length := by
       rw [List.length_take]
       have := idxOf_lt_length hmem
@@ -819,18 +819,18 @@ theorem filter_split_compl (p : Card → Bool) : ∀ (l : List Card),
       cases hpa : p a with
       | true =>
           have e1 : (a :: t).filter p = a :: t.filter p := by
-            rw [List.filter_cons, if_pos hpa]
+            rw [List.filter_cons, ite_eq_left hpa]
           have e2 : (a :: t).filter (fun z => !p z) = t.filter (fun z => !p z) := by
-            rw [List.filter_cons, if_neg (by simp [hpa])]
+            rw [List.filter_cons, ite_eq_right (by simp [hpa])]
           rw [e1, e2]
           have h1 : (a :: t.filter p).length = (t.filter p).length + 1 := rfl
           have h2 : (a :: t).length = t.length + 1 := rfl
           omega
       | false =>
           have e1 : (a :: t).filter p = t.filter p := by
-            rw [List.filter_cons, if_neg (by simp [hpa])]
+            rw [List.filter_cons, ite_eq_right (by simp [hpa])]
           have e2 : (a :: t).filter (fun z => !p z) = a :: t.filter (fun z => !p z) := by
-            rw [List.filter_cons, if_pos (by simp [hpa])]
+            rw [List.filter_cons, ite_eq_left (by simp [hpa])]
           rw [e1, e2]
           have h1 : (a :: t.filter (fun z => !p z)).length
               = (t.filter (fun z => !p z)).length + 1 := rfl
@@ -913,24 +913,24 @@ theorem idxOf_filter (p : Card → Bool) : ∀ (l : List Card) (w : Card), w ∈
   | cons a t ih =>
       intro w hmem hpw
       by_cases haw : a = w
-      · rw [haw, List.filter_cons, if_pos hpw, List.idxOf_cons_self, List.idxOf_cons_self]
+      · rw [haw, List.filter_cons, ite_eq_left hpw, List.idxOf_cons_self, List.idxOf_cons_self]
         rfl
       · have hwt : w ∈ t := (List.mem_cons.mp hmem).resolve_left (Ne.symm haw)
         rw [idxOf_cons_ne haw, List.filter_cons,
           show List.take (t.idxOf w + 1) (a :: t) = a :: List.take (t.idxOf w) t from rfl,
           List.filter_cons]
         by_cases hpa : p a = true
-        · rw [if_pos hpa, if_pos hpa, idxOf_cons_ne haw, List.length_cons]
+        · rw [ite_eq_left hpa, ite_eq_left hpa, idxOf_cons_ne haw, List.length_cons]
           have := ih w hwt hpw
           omega
-        · rw [if_neg hpa, if_neg hpa]
+        · rw [ite_eq_right hpa, ite_eq_right hpa]
           exact ih w hwt hpw
 
 /-- Dropping the last element of a single-suffix append. -/
 theorem dropLast_append_single {α : Type} : ∀ (init : List α) (x : α),
     (init ++ [x]).dropLast = init := by
   intro init x
-  rw [List.dropLast_append, if_neg (by simp : ¬(([x] : List α).isEmpty = true)),
+  rw [List.dropLast_append, ite_eq_right (by simp : ¬(([x] : List α).isEmpty = true)),
     show ([x] : List α).dropLast = ([] : List α) from rfl, List.append_nil]
 
 /-! ## The splice-membership kit -/
@@ -942,9 +942,9 @@ theorem mem_removeIdx_of {l : List Card} {i : Nat} {z : Card}
   have hget := Cycle.getElem?_removeIdx l i k
   rw [hk] at hget
   by_cases hlt : k < i
-  · rw [if_pos hlt] at hget
+  · rw [ite_eq_left hlt] at hget
     exact List.mem_iff_getElem?.mpr ⟨k, hget.symm⟩
-  · rw [if_neg hlt] at hget
+  · rw [ite_eq_right hlt] at hget
     exact List.mem_iff_getElem?.mpr ⟨k + 1, hget.symm⟩
 
 /-- Removal membership, exactly: the splice keeps everything but the
@@ -965,17 +965,17 @@ theorem mem_removeIdx_iff {l : List Card} {i : Nat} {c : Card}
       rw [← Cycle.getElem?_removeIdx l i k]; exact hk
     constructor
     · by_cases hlt : k < i
-      · rw [if_pos hlt] at hz
+      · rw [ite_eq_left hlt] at hz
         exact List.mem_iff_getElem?.mpr ⟨k, hz⟩
-      · rw [if_neg hlt] at hz
+      · rw [ite_eq_right hlt] at hz
         exact List.mem_iff_getElem?.mpr ⟨k + 1, hz⟩
     · intro hzc
       rw [hzc] at hz
       by_cases hlt : k < i
-      · rw [if_pos hlt] at hz
+      · rw [ite_eq_left hlt] at hz
         have := hnd k i hklt hilt (hz.trans hget.symm)
         omega
-      · rw [if_neg hlt] at hz
+      · rw [ite_eq_right hlt] at hz
         have hk1 : k + 1 < l.length := by
           have := (List.getElem?_eq_some_iff.mp hk).1
           omega
@@ -991,10 +991,10 @@ theorem mem_removeIdx_iff {l : List Card} {i : Nat} {c : Card}
       exact hne (Option.some.inj (hj.symm.trans hget))
     by_cases hlt : j < i
     · exact List.mem_iff_getElem?.mpr ⟨j, by
-        rw [Cycle.getElem?_removeIdx, if_pos hlt]; exact hj⟩
+        rw [Cycle.getElem?_removeIdx, ite_eq_left hlt]; exact hj⟩
     · have hilt2 : i < j := by omega
       exact List.mem_iff_getElem?.mpr ⟨j - 1, by
-        rw [Cycle.getElem?_removeIdx, if_neg (by omega),
+        rw [Cycle.getElem?_removeIdx, ite_eq_right (by omega),
           show j - 1 + 1 = j from by omega]; exact hj⟩
 
 

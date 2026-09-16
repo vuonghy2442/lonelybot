@@ -77,7 +77,7 @@ theorem laneUp_mem (step : Nat) (hstep : 0 < step) (start bound p : Nat) :
     | zero =>
         intro start bound p hb
         have hnl : ¬ start < bound := by omega
-        rw [laneUp, if_neg hnl]
+        rw [laneUp, ite_eq_right hnl]
         constructor
         · intro hmem
           cases hmem
@@ -87,7 +87,7 @@ theorem laneUp_mem (step : Nat) (hstep : 0 < step) (start bound p : Nat) :
         intro start bound p hb
         rw [laneUp]
         by_cases hlt : start < bound
-        · rw [if_pos hlt, List.mem_cons]
+        · rw [ite_eq_left hlt, List.mem_cons]
           constructor
           · rintro (rfl | hm)
             · exact ⟨by omega, hlt, by simp⟩
@@ -114,7 +114,7 @@ theorem laneUp_mem (step : Nat) (hstep : 0 < step) (start bound p : Nat) :
               rw [← h6] at h3
               rw [key (p - (start + step))] at h3
               exact h3
-        · rw [if_neg hlt]
+        · rw [ite_eq_right hlt]
           constructor
           · intro hmem
             cases hmem
@@ -233,13 +233,13 @@ theorem maskPos_mem_iff {α : Type} (c : Cycle α) (step : Nat) (hstep : 0 < ste
   have hmid : (p ∈ (if 0 < cards.length then [cards.length - 1] else []))
       ↔ (0 < cards.length ∧ p = cards.length - 1) := by
     by_cases hnpos : 0 < cards.length
-    · rw [if_pos hnpos, List.mem_singleton]
+    · rw [ite_eq_left hnpos, List.mem_singleton]
       constructor
       · intro h
         exact ⟨hnpos, h⟩
       · intro h
         exact h.2
-    · rw [if_neg hnpos]
+    · rw [ite_eq_right hnpos]
       constructor
       · intro h
         cases h
@@ -249,14 +249,14 @@ theorem maskPos_mem_iff {α : Type} (c : Cycle α) (step : Nat) (hstep : 0 < ste
   rw [hmid]
   by_cases hbe : (cursor % step != 0) = true
   · -- mid-pass cursor: the wrapped lane's bound is the last card
-    rw [if_pos hbe]
+    rw [ite_eq_left hbe]
     have hc0 : cursor ≠ 0 := by
       intro h0
       subst h0
       rw [Nat.zero_mod] at hbe
       exact Bool.noConfusion hbe
     have hc0' : 0 < cursor := Nat.pos_of_ne_zero hc0
-    rw [if_neg hc0]
+    rw [ite_eq_right hc0]
     rw [laneUp_mem, laneUp_mem]
     constructor
     · rintro ((⟨h1, h2, h3⟩ | ⟨h4, hlast⟩) | ⟨h5, h6, h7⟩)
@@ -268,10 +268,10 @@ theorem maskPos_mem_iff {α : Type} (c : Cycle α) (step : Nat) (hstep : 0 < ste
           residue_top_sub step hstep p h1⟩
       · exact Or.inl (Or.inr ⟨h4, hlast⟩)
       · exact Or.inl (Or.inl ⟨h1, h2, mod_sub_eq_zero step hstep (cursor - 1) p h1 h3⟩)
-  · rw [if_neg hbe]
+  · rw [ite_eq_right hbe]
     by_cases hc0 : cursor = 0
     · -- fresh pass: the leading lane is the batch-top lane itself
-      rw [if_pos hc0]
+      rw [ite_eq_left hc0]
       rw [laneUp_mem, laneUp_mem]
       constructor
       · rintro ((⟨h1, h2, h3⟩ | ⟨h4, hlast⟩) | ⟨h5, h6, h7⟩)
@@ -284,7 +284,7 @@ theorem maskPos_mem_iff {α : Type} (c : Cycle α) (step : Nat) (hstep : 0 < ste
         · exact Or.inl (Or.inr ⟨h4, hlast⟩)
         · omega
     · -- aligned cursor: the wrapped lane degenerates below the cursor
-      rw [if_neg hc0]
+      rw [ite_eq_right hc0]
       have hc0' : 0 < cursor := Nat.pos_of_ne_zero hc0
       have h0 : cursor % step = 0 := by
         by_cases hx : cursor % step = 0
@@ -364,7 +364,7 @@ theorem maskPos_step1 {α : Type} (c : Cycle α) (hstep : 0 < 1)
   | succ m =>
       simp only [maskPos, Nat.mod_one]
       have hb : ((0 : Nat) != 0) = false := by decide
-      rw [hb, if_neg (Nat.succ_ne_zero m)]
+      rw [hb, ite_eq_right (Nat.succ_ne_zero m)]
       simp
       rw [hlane, hlane]
       refine ⟨fun h => ?_, fun h => ?_⟩ <;> omega
@@ -547,10 +547,10 @@ theorem findFirstIdx_get : ∀ (l : List Card) (w : Card) (i : Nat),
       simp only [Cycle.findFirstIdx] at h
       by_cases haw : a = w
       · have hp : decide (a = w) = true := by simp [haw]
-        rw [if_pos hp, Option.some.injEq] at h
+        rw [ite_eq_left hp, Option.some.injEq] at h
         rw [← h, List.getElem?_cons_zero, haw]
       · have hpn : ¬(decide (a = w) = true) := by simp [haw]
-        rw [if_neg hpn] at h
+        rw [ite_eq_right hpn] at h
         cases hq : Cycle.findFirstIdx (fun c' => decide (c' = w)) t with
         | none => rw [hq] at h; simp at h
         | some j =>
@@ -571,7 +571,7 @@ theorem mem_of_posOf : ∀ (l : List Card) (cur : Nat) (w : Card) (i : Nat),
       · rw [haw]
         exact List.mem_cons.mpr (Or.inl rfl)
       · have hpn : ¬(decide (a = w) = true) := by simp [haw]
-        rw [if_neg hpn] at h
+        rw [ite_eq_right hpn] at h
         cases hq : Cycle.findFirstIdx (fun c' => decide (c' = w)) t with
         | none => rw [hq] at h; simp at h
         | some j =>
@@ -589,13 +589,13 @@ theorem posOf_eq_idxOf : ∀ (l : List Card) (cur : Nat) (w : Card), w ∈ l →
       by_cases haw : a = w
       · have hp : decide (a = w) = true := by simp [haw]
         simp only [posOf, Cycle.findFirstIdx]
-        rw [if_pos hp, haw, List.idxOf_cons_self]
+        rw [ite_eq_left hp, haw, List.idxOf_cons_self]
       · have hpn : ¬(decide (a = w) = true) := by simp [haw]
         have hwt : w ∈ t := (List.mem_cons.mp h).resolve_left (Ne.symm haw)
         have hih : Cycle.findFirstIdx (fun c' => decide (c' = w)) t
             = some (t.idxOf w) := ih cur w hwt
         simp only [posOf, Cycle.findFirstIdx]
-        rw [if_neg hpn, hih, Option.map_some, idxOf_cons_ne haw]
+        rw [ite_eq_right hpn, hih, Option.map_some, idxOf_cons_ne haw]
 
 /-- The deterministic machine run over a draw order. -/
 def run (c : Cycle Card) : List Card → Option (Cycle Card)
@@ -795,10 +795,10 @@ theorem rBelow_append_single (d init : List Card) (x w : Card) :
       = (if d.idxOf x < d.idxOf w then 1 else 0) := by
     rw [List.filter_cons, List.filter_nil]
     by_cases hxw : d.idxOf x < d.idxOf w
-    · rw [if_pos (show decide (d.idxOf x < d.idxOf w) = true from by simp [hxw]),
-        if_pos hxw, List.length_cons, List.length_nil]
-    · rw [if_neg (show ¬(decide (d.idxOf x < d.idxOf w) = true) from by simp [hxw]),
-        if_neg hxw, List.length_nil]
+    · rw [ite_eq_left (show decide (d.idxOf x < d.idxOf w) = true from by simp [hxw]),
+        ite_eq_left hxw, List.length_cons, List.length_nil]
+    · rw [ite_eq_right (show ¬(decide (d.idxOf x < d.idxOf w) = true) from by simp [hxw]),
+        ite_eq_right hxw, List.length_nil]
   rw [hsingle]
 
 /-- The interval count: on a distinct deck, the cards with `idxOf` in
@@ -937,7 +937,7 @@ theorem burial_bound (d : List Card) (pre : List Card) (x w : Card)
   by_cases hlt : d.idxOf w < d.idxOf x
   · -- O(w) < O(x): both sides are |A| ≤ |B|
     have hrw0 : rBelow d (init ++ [x]) w = rBelow d init w := by
-      rw [hrw, if_neg (by omega : ¬(d.idxOf x < d.idxOf w)), Nat.add_zero]
+      rw [hrw, ite_eq_right (by omega : ¬(d.idxOf x < d.idxOf w)), Nat.add_zero]
     -- |A| = O(x) - O(w) - 1, A = the interval strictly above w
     have hAcount : (d.filter (fun z => decide (d.idxOf w < d.idxOf z ∧ d.idxOf z < d.idxOf x))).length
         = d.idxOf x - d.idxOf w - 1 := by
@@ -1090,7 +1090,7 @@ theorem burial_bound (d : List Card) (pre : List Card) (x w : Card)
     -- init-interval vs deck-interval count
     have hxa : d.idxOf x < d.idxOf w := by omega
     have hrw1 : rBelow d (init ++ [x]) w = rBelow d init w + 1 := by
-      rw [hrw, if_pos hxa]
+      rw [hrw, ite_eq_left hxa]
     have hsplit3 := filter_split_add (fun z => decide (d.idxOf z < d.idxOf w))
       (fun z => decide (d.idxOf z < d.idxOf x)) init
     have cI : init.filter (fun z => decide (d.idxOf z < d.idxOf w) && decide (d.idxOf z < d.idxOf x))

@@ -86,9 +86,9 @@ private theorem c1Top_some {b : Base} {c : Card} (h : c1Top b = some c) :
     c = H .king ∧ b = Sum.inl Anchor.p0 := by
   by_cases hbc : b = Sum.inl Anchor.p0
   · refine ⟨?_, hbc⟩
-    simp only [c1Top, if_pos hbc, Option.some.injEq] at h
+    simp only [c1Top, ite_eq_left hbc, Option.some.injEq] at h
     exact h.symm
-  · simp only [c1Top, if_neg hbc] at h
+  · simp only [c1Top, ite_eq_right hbc] at h
     exact absurd h (by simp)
 
 private theorem c1Top_inj : ∀ (b₁ b₂ : Base) (c : Card),

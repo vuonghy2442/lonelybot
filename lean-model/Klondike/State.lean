@@ -255,22 +255,22 @@ def dropHeight (st : State) (σ : Suit) : Suit → Nat :=
 @[simp] theorem bumpHeight_self (st : State) (σ : Suit) :
     st.bumpHeight σ σ = st.heights σ + 1 := by
   show (if σ = σ then st.heights σ + 1 else st.heights σ) = _
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 @[simp] theorem bumpHeight_ne {st : State} {σ : Suit} (s : Suit) (h : s ≠ σ) :
     st.bumpHeight σ s = st.heights s := by
   show (if s = σ then st.heights s + 1 else st.heights s) = _
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 @[simp] theorem dropHeight_self (st : State) (σ : Suit) :
     st.dropHeight σ σ = st.heights σ - 1 := by
   show (if σ = σ then st.heights σ - 1 else st.heights σ) = _
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 @[simp] theorem dropHeight_ne {st : State} {σ : Suit} (s : Suit) (h : s ≠ σ) :
     st.dropHeight σ s = st.heights s := by
   show (if s = σ then st.heights s - 1 else st.heights s) = _
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- The ± composition kit — the with-update forms of Commutation's
 generic `heights_bump_bump`/`bump_drop`/`drop_drop` (which stay for the
@@ -287,23 +287,23 @@ theorem bump_bump (st : State) (σ σ' : Suit) :
           else if s = σ' then st.heights s + 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) + 1
           else if s = σ then st.heights s + 1 else st.heights s)
-      rw [if_pos h1, if_pos h2, if_pos h2, if_pos h1]
+      rw [ite_eq_left h1, ite_eq_left h2, ite_eq_left h2, ite_eq_left h1]
     · show (if s = σ then (if s = σ' then st.heights s + 1 else st.heights s) + 1
           else if s = σ' then st.heights s + 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) + 1
           else if s = σ then st.heights s + 1 else st.heights s)
-      rw [if_pos h1, if_neg h2, if_neg h2, if_pos h1]
+      rw [ite_eq_left h1, ite_eq_right h2, ite_eq_right h2, ite_eq_left h1]
   · by_cases h2 : s = σ'
     · show (if s = σ then (if s = σ' then st.heights s + 1 else st.heights s) + 1
           else if s = σ' then st.heights s + 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) + 1
           else if s = σ then st.heights s + 1 else st.heights s)
-      rw [if_neg h1, if_pos h2, if_neg h1, if_pos h2]
+      rw [ite_eq_right h1, ite_eq_left h2, ite_eq_right h1, ite_eq_left h2]
     · show (if s = σ then (if s = σ' then st.heights s + 1 else st.heights s) + 1
           else if s = σ' then st.heights s + 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) + 1
           else if s = σ then st.heights s + 1 else st.heights s)
-      rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
+      rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h1, ite_eq_right h2]
 
 theorem bump_drop {st : State} (σ σ' : Suit) (hpos : σ = σ' → 0 < st.heights σ) :
     { st with heights := st.dropHeight σ' }.bumpHeight σ
@@ -315,25 +315,25 @@ theorem bump_drop {st : State} (σ σ' : Suit) (hpos : σ = σ' → 0 < st.heigh
           else if s = σ' then st.heights s - 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) - 1
           else if s = σ then st.heights s + 1 else st.heights s)
-      rw [if_pos h1, if_pos h2, if_pos h2, if_pos h1, h1]
+      rw [ite_eq_left h1, ite_eq_left h2, ite_eq_left h2, ite_eq_left h1, h1]
       have hpos' := hpos (h1.symm.trans h2)
       omega
     · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) + 1
           else if s = σ' then st.heights s - 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) - 1
           else if s = σ then st.heights s + 1 else st.heights s)
-      rw [if_pos h1, if_neg h2, if_neg h2, if_pos h1]
+      rw [ite_eq_left h1, ite_eq_right h2, ite_eq_right h2, ite_eq_left h1]
   · by_cases h2 : s = σ'
     · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) + 1
           else if s = σ' then st.heights s - 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) - 1
           else if s = σ then st.heights s + 1 else st.heights s)
-      rw [if_neg h1, if_pos h2, if_neg h1, if_pos h2]
+      rw [ite_eq_right h1, ite_eq_left h2, ite_eq_right h1, ite_eq_left h2]
     · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) + 1
           else if s = σ' then st.heights s - 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s + 1 else st.heights s) - 1
           else if s = σ then st.heights s + 1 else st.heights s)
-      rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
+      rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h1, ite_eq_right h2]
 
 theorem drop_drop (st : State) (σ σ' : Suit) :
     { st with heights := st.dropHeight σ' }.dropHeight σ
@@ -345,23 +345,23 @@ theorem drop_drop (st : State) (σ σ' : Suit) :
           else if s = σ' then st.heights s - 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s - 1 else st.heights s) - 1
           else if s = σ then st.heights s - 1 else st.heights s)
-      rw [if_pos h1, if_pos h2, if_pos h2, if_pos h1]
+      rw [ite_eq_left h1, ite_eq_left h2, ite_eq_left h2, ite_eq_left h1]
     · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) - 1
           else if s = σ' then st.heights s - 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s - 1 else st.heights s) - 1
           else if s = σ then st.heights s - 1 else st.heights s)
-      rw [if_pos h1, if_neg h2, if_neg h2, if_pos h1]
+      rw [ite_eq_left h1, ite_eq_right h2, ite_eq_right h2, ite_eq_left h1]
   · by_cases h2 : s = σ'
     · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) - 1
           else if s = σ' then st.heights s - 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s - 1 else st.heights s) - 1
           else if s = σ then st.heights s - 1 else st.heights s)
-      rw [if_neg h1, if_pos h2, if_neg h1, if_pos h2]
+      rw [ite_eq_right h1, ite_eq_left h2, ite_eq_right h1, ite_eq_left h2]
     · show (if s = σ then (if s = σ' then st.heights s - 1 else st.heights s) - 1
           else if s = σ' then st.heights s - 1 else st.heights s)
           = (if s = σ' then (if s = σ then st.heights s - 1 else st.heights s) - 1
           else if s = σ then st.heights s - 1 else st.heights s)
-      rw [if_neg h1, if_neg h2, if_neg h1, if_neg h2]
+      rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h1, ite_eq_right h2]
 
 /-- Conjugate the whole state by the twin-swap relabeling (T's action
 on every component). -/

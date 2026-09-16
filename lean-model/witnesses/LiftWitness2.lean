@@ -340,7 +340,7 @@ theorem stN_inv : ∀ (play : List Move) (st st' : State),
           · rw [hst]
             show (if Suit.heart = c.suit then st.heights Suit.heart + 1
               else st.heights Suit.heart) = 0
-            rw [if_neg (fun hcc => hns hcc.symm)]
+            rw [ite_eq_right (fun hcc => hns hcc.symm)]
             exact hh
           · rw [hst]; exact ht
           · rw [hst]; exact hd
@@ -373,7 +373,7 @@ theorem stN_inv : ∀ (play : List Move) (st st' : State),
           · rw [hst]
             show (if Suit.heart = c.suit then st.heights Suit.heart + 1
               else st.heights Suit.heart) = 0
-            rw [if_neg (fun hcc => hns hcc.symm)]
+            rw [ite_eq_right (fun hcc => hns hcc.symm)]
             exact hh
           · rw [hst]; show (st.board.detach b).topOf (Sum.inr hA) = some h5
             rw [Board.detach_topOf_ne _ _ _ (Ne.symm hnb)]
@@ -397,7 +397,7 @@ theorem stN_inv : ∀ (play : List Move) (st st' : State),
           · rw [hst]
             show (if Suit.heart = c.suit then st.heights Suit.heart - 1
               else st.heights Suit.heart) = 0
-            rw [if_neg (fun hcc => hns hcc.symm)]
+            rw [ite_eq_right (fun hcc => hns hcc.symm)]
             exact hh
           · rw [hst]; show bd.topOf (Sum.inr hA) = some h5
             rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hnb)]

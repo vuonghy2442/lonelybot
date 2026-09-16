@@ -3453,7 +3453,8 @@ theorem State.playWindow'_tail_of_eq_heights {z : Card} {σ : Suit} :
           rw [State.playWindow', hm]
           refine Bool.and_eq_true_iff.mpr ⟨?_, hih⟩
           exact Bool.or_eq_true_iff.mpr
-            (Or.inl (decide_eq_true_eq.mpr ⟨hqσ, hqσ'⟩))
+            (Or.inl (Bool.or_eq_true_iff.mpr
+              (Or.inl (decide_eq_true_eq.mpr ⟨hqσ, hqσ'⟩))))
       · -- a ρ-fixed non-just-below-pair worry-back: the third disjunct
         subst hmeq
         rw [State.playWindow', hm]
@@ -3998,11 +3999,14 @@ suit's rung only, and a firing ρ-fixed stack's rank already sat at the
 pre-firing own rung — itself above the pair rank — so the bump stays
 above it).  No alternation is required: a run of same-suit climbs
 admits VERBATIM (`rung_eq_of_partner_past`'s admission-side
-counterpart).  The residue — the deckStack arm has NO partner-past
-disjunct (the stock-sourced climbs still need the skew/alternation),
-and the `stackPile` arm is unchanged (the pair-member and
-just-below-pair worry-back anti-skews remain the declared
-obstruction). -/
+counterpart).  The deckStack arm's partner-past disjunct is LANDED
+too (2026-09-16: `playWindow'`'s pre-episode deckStack arm grew the
+ρ-fixed ∧ partner-past third disjunct, and the strengthened window's
+replay (`twinCorr_run_window'`) gained the case — the stock-sourced
+post-equalization climbs now admit verbatim, closing this audit's
+residue (a)).  The residue is (b) alone: the `stackPile` arm is
+unchanged (the pair-member and just-below-pair worry-back
+anti-skews remain the declared obstruction). -/
 theorem State.playWindow'_tail_of_equalized {z : Card} :
     ∀ (play : List Move) (S T : State),
     S.run play = some T →

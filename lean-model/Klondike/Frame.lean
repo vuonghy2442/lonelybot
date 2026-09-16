@@ -138,8 +138,8 @@ theorem Frame.findFirst_congr {α : Type} {p q : α → Bool} (h : ∀ a, p a = 
   | a :: t => by
       rw [findFirst_cons, findFirst_cons, h a]
       by_cases hq : q a = true
-      · rw [if_pos hq, if_pos hq]
-      · rw [if_neg hq, if_neg hq]
+      · rw [ite_eq_left hq, ite_eq_left hq]
+      · rw [ite_eq_right hq, ite_eq_right hq]
         exact Frame.findFirst_congr h t
 
 /-- The hidden-pile views read only the deal and the depths (the
@@ -277,7 +277,7 @@ theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
           by_cases hss : s = c.suit
           · exact absurd (by simp [Move.writes, hss]) hf
           · show (if s = c.suit then st.heights s + 1 else st.heights s) = st.heights s
-            rw [if_neg hss]
+            rw [ite_eq_right hss]
       | depths => rfl
       | stockCards => exact absurd (by simp [Move.writes]) hf
       | stockCursor => exact absurd (by simp [Move.writes]) hf
@@ -291,7 +291,7 @@ theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
           by_cases hss : s = c.suit
           · exact absurd (by simp [Move.writes, hss]) hf
           · show (if s = c.suit then st.heights s + 1 else st.heights s) = st.heights s
-            rw [if_neg hss]
+            rw [ite_eq_right hss]
       | depths => rfl
       | stockCards => rfl
       | stockCursor => rfl
@@ -305,7 +305,7 @@ theorem frame_invar {m : Move} {st s₁ : State} (h : st.apply m = some s₁) :
           by_cases hss : s = c.suit
           · exact absurd (by simp [Move.writes, hss]) hf
           · show (if s = c.suit then st.heights s - 1 else st.heights s) = st.heights s
-            rw [if_neg hss]
+            rw [ite_eq_right hss]
       | depths => rfl
       | stockCards => rfl
       | stockCursor => rfl
@@ -386,8 +386,8 @@ theorem frame_congr {m : Move} {st st' : State} (hr : Frame.agrees m.reads st st
             show (if a' = a then st.depths a - 1 else st.depths a')
               = (if a' = a then st'.depths a - 1 else st'.depths a')
             by_cases h'a : a' = a
-            · rw [if_pos h'a, if_pos h'a, congrFun hdp a]
-            · rw [if_neg h'a, if_neg h'a, congrFun hdp a']
+            · rw [ite_eq_left h'a, ite_eq_left h'a, congrFun hdp a]
+            · rw [ite_eq_right h'a, ite_eq_right h'a, congrFun hdp a']
         | stockCards => exact hf
         | stockCursor => exact hf
         | drawStep => exact hf
@@ -449,8 +449,8 @@ theorem frame_congr {m : Move} {st st' : State} (hr : Frame.agrees m.reads st st
             show (if s = c.suit then st.heights s + 1 else st.heights s)
               = (if s = c.suit then st'.heights s + 1 else st'.heights s)
             by_cases hss : s = c.suit
-            · rw [if_pos hss, if_pos hss, hss, hh]
-            · rw [if_neg hss, if_neg hss]
+            · rw [ite_eq_left hss, ite_eq_left hss, hss, hh]
+            · rw [ite_eq_right hss, ite_eq_right hss]
               exact hf
         | depths => exact hf
         | stockCards =>
@@ -490,8 +490,8 @@ theorem frame_congr {m : Move} {st st' : State} (hr : Frame.agrees m.reads st st
             show (if s = c.suit then st.heights s + 1 else st.heights s)
               = (if s = c.suit then st'.heights s + 1 else st'.heights s)
             by_cases hss : s = c.suit
-            · rw [if_pos hss, if_pos hss, hss, hh]
-            · rw [if_neg hss, if_neg hss]
+            · rw [ite_eq_left hss, ite_eq_left hss, hss, hh]
+            · rw [ite_eq_right hss, ite_eq_right hss]
               exact hf
         | depths => exact hf
         | stockCards => exact hf
@@ -520,8 +520,8 @@ theorem frame_congr {m : Move} {st st' : State} (hr : Frame.agrees m.reads st st
             show (if s = c.suit then st.heights s - 1 else st.heights s)
               = (if s = c.suit then st'.heights s - 1 else st'.heights s)
             by_cases hss : s = c.suit
-            · rw [if_pos hss, if_pos hss, hss, hh]
-            · rw [if_neg hss, if_neg hss]
+            · rw [ite_eq_left hss, ite_eq_left hss, hss, hh]
+            · rw [ite_eq_right hss, ite_eq_right hss]
               exact hf
         | depths => exact hf
         | stockCards => exact hf
@@ -946,8 +946,8 @@ theorem comm_deckStack_pileStack_frame {st : State} {c c' : Card} {st₂ st₃ :
         = (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hrk'
     have hrk''₂ : c.rank.toIdx
         = (if c.suit = c'.suit then st.heights c.suit + 1 else st.heights c.suit) := hrk''
-    rw [if_pos hσ.symm] at hrk'₂
-    rw [if_pos hσ] at hrk''₂
+    rw [ite_eq_left hσ.symm] at hrk'₂
+    rw [ite_eq_left hσ] at hrk''₂
     omega
   · refine Option.some.inj ?_
     rw [← h₁, ← h₂]
@@ -982,8 +982,8 @@ theorem comm_deckStack_stackPile_frame {st : State} {c c' : Card} {b' : Base} {s
         = (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hrk'
     have hrk''₂ : c.rank.toIdx
         = (if c.suit = c'.suit then st.heights c.suit - 1 else st.heights c.suit) := hrk''
-    rw [if_pos hσ.symm] at hrk'₂
-    rw [if_pos hσ] at hrk''₂
+    rw [ite_eq_left hσ.symm] at hrk'₂
+    rw [ite_eq_left hσ] at hrk''₂
     omega
   · refine Option.some.inj ?_
     rw [← h₁, ← h₂]
@@ -1111,7 +1111,7 @@ theorem apply_heights_blind {m : Move} {st s₁ : State} {σ : Suit} {hσ : Nat}
     | board => rfl
     | heightsOf s =>
         show st.heights s = (if s = σ then hσ else st.heights s)
-        rw [if_neg (fun hcon => hread (by rw [← hcon]; exact hf))]
+        rw [ite_eq_right (fun hcon => hread (by rw [← hcon]; exact hf))]
     | depths => rfl
     | stockCards => rfl
     | stockCursor => rfl
@@ -1126,15 +1126,15 @@ theorem apply_heights_blind {m : Move} {st s₁ : State} {σ : Suit} {hσ : Nat}
     | heightsOf s =>
         show s₁'.heights s = (if s = σ then hσ else s₁.heights s)
         by_cases hss : s = σ
-        · rw [hss, if_pos rfl]
+        · rw [hss, ite_eq_left rfl]
           have hu : s₁'.heights σ = (if σ = σ then hσ else st.heights σ) :=
             frame_congr_unread h1 (Frame.heightsOf σ) hread
-          rw [if_pos rfl] at hu
+          rw [ite_eq_left rfl] at hu
           exact hu
-        · rw [if_neg hss]
+        · rw [ite_eq_right hss]
           exact Frame.agree_symm (h2 (Frame.heightsOf s)
             (by show st.heights s = (if s = σ then hσ else st.heights s)
-                rw [if_neg hss]))
+                rw [ite_eq_right hss]))
     | depths => exact Frame.agree_symm (h2 Frame.depths rfl)
     | stockCards => exact Frame.agree_symm (h2 Frame.stockCards rfl)
     | stockCursor => exact Frame.agree_symm (h2 Frame.stockCursor rfl)

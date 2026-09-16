@@ -876,10 +876,10 @@ theorem stockBits_eq_decide {cur₁ cur₂ : List Card} {x : Card}
   by_cases c₁ : x ∈ cur₁
   · by_cases c₂ : x ∈ cur₂
     · rw [decide_eq_true c₁, decide_eq_true c₂]
-    · rw [if_pos c₁, if_neg c₂] at h
+    · rw [ite_eq_left c₁, ite_eq_right c₂] at h
       exact absurd h (by omega)
   · by_cases c₂ : x ∈ cur₂
-    · rw [if_neg c₁, if_pos c₂] at h
+    · rw [ite_eq_right c₁, ite_eq_left c₂] at h
       exact absurd h.symm (by omega)
     · rw [decide_eq_false c₁, decide_eq_false c₂]
 

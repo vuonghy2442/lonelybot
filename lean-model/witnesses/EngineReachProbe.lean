@@ -205,7 +205,7 @@ theorem probeInv_apply {st st' : State} (hdeal : st.deal = wdeal) (hwf : st.WF)
                 ∨ bd.topOf (Sum.inr wh10) ≠ some wh9
                 ∨ bd.topOf (Sum.inr wh9) ≠ some wh8
                 ∨ bd.topOf (Sum.inr wh8) ≠ some wh7
-            rw [if_pos rfl]
+            rw [ite_eq_left rfl]
             refine Or.inr (Or.inl ?_)
             have hne : Sum.inr wh10 ≠ Sum.inl Anchor.p3 := by decide
             rw [Board.attach_topOf_ne _ _ _ hatt hne, htop10]
@@ -214,11 +214,11 @@ theorem probeInv_apply {st st' : State} (hdeal : st.deal = wdeal) (hwf : st.WF)
                 else st.depths Anchor.p3) ≠ 0 →
                 bd.topOf (Sum.inr wh10) = some X → X = wh9
             intro X hX0 hXtop
-            rw [if_pos rfl, hk] at hX0
+            rw [ite_eq_left rfl, hk] at hX0
             exact absurd rfl hX0
           · show (if Anchor.p3 = Anchor.p3 then st.depths Anchor.p3 - 1
                 else st.depths Anchor.p3) ≤ 3
-            rw [if_pos rfl]
+            rw [ite_eq_left rfl]
             omega
         · -- 2 → 1: deposits wh9 on wh10's seat (feeds the aux); depth stays ≥ 1
           have hbv : st.hidden Anchor.p3 = [wh10, wh9] := by
@@ -284,7 +284,7 @@ theorem probeInv_apply {st st' : State} (hdeal : st.deal = wdeal) (hwf : st.WF)
               ∨ bd.topOf (Sum.inr wh10) ≠ some wh9
               ∨ bd.topOf (Sum.inr wh9) ≠ some wh8
               ∨ bd.topOf (Sum.inr wh8) ≠ some wh7
-          rw [if_neg (fun hh => ha3 hh.symm)]
+          rw [ite_eq_right (fun hh => ha3 hh.symm)]
           rcases hmain with h0 | h1 | h2 | h3
           · exact Or.inl h0
           · exact Or.inr (Or.inl (by
@@ -299,11 +299,11 @@ theorem probeInv_apply {st st' : State} (hdeal : st.deal = wdeal) (hwf : st.WF)
         · show ∀ X, (if Anchor.p3 = a then st.depths a - 1 else st.depths Anchor.p3) ≠ 0 →
               bd.topOf (Sum.inr wh10) = some X → X = wh9
           intro X hX0 hX
-          rw [if_neg (fun hh => ha3 hh.symm)] at hX0
+          rw [ite_eq_right (fun hh => ha3 hh.symm)] at hX0
           rw [Board.attach_topOf_ne _ _ _ hatt (fun hh => hne10 hh.symm)] at hX
           exact haux X hX0 hX
         · show (if Anchor.p3 = a then st.depths a - 1 else st.depths Anchor.p3) ≤ 3
-          rw [if_neg (fun hh => ha3 hh.symm)]
+          rw [ite_eq_right (fun hh => ha3 hh.symm)]
           exact hmax
   | deckPile c b =>
       rw [apply_deckPile_iff] at h

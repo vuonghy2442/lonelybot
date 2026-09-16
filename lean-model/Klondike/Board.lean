@@ -59,10 +59,10 @@ theorem findFirst_mem {α : Type} (p : α → Bool) :
   | [], _, h => by simp at h
   | b :: t, a, h => by
       by_cases hb : p b = true
-      · rw [findFirst_cons, if_pos hb, Option.some.injEq] at h
+      · rw [findFirst_cons, ite_eq_left hb, Option.some.injEq] at h
         subst h
         exact ⟨by simp, hb⟩
-      · rw [findFirst_cons, if_neg hb] at h
+      · rw [findFirst_cons, ite_eq_right hb] at h
         obtain ⟨hm, hp⟩ := findFirst_mem p t a h
         exact ⟨by simp [hm], hp⟩
 
@@ -73,8 +73,8 @@ theorem findFirst_of_unique {α : Type} (p : α → Bool) :
   | b :: t, a, hm, hp, hu => by
       rw [findFirst_cons]
       by_cases hb : p b = true
-      · rw [if_pos hb, hu b (by simp) hb]
-      · rw [if_neg hb]
+      · rw [ite_eq_left hb, hu b (by simp) hb]
+      · rw [ite_eq_right hb]
         simp only [List.mem_cons] at hm
         refine findFirst_of_unique p t a ?_ hp ?_
         · rcases hm with h | h
@@ -87,7 +87,7 @@ theorem findFirst_eq_none {α : Type} (p : α → Bool) :
     ∀ (l : List α), (∀ a ∈ l, p a ≠ true) → findFirst p l = none
   | [], _ => rfl
   | b :: t, h => by
-      rw [findFirst_cons, if_neg (h b (by simp))]
+      rw [findFirst_cons, ite_eq_right (h b (by simp))]
       exact findFirst_eq_none p t (fun a ha => h a (by simp [ha]))
 
 /-- `findFirst` finds: if some member satisfies `p`, the search is not
@@ -103,8 +103,8 @@ theorem findFirst_ne_none_of_mem {α : Type} (p : α → Bool) :
       intro a ha hp
       simp only [findFirst_cons]
       by_cases hb : p b = true
-      · rw [if_pos hb]; simp
-      · rw [if_neg hb]
+      · rw [ite_eq_left hb]; simp
+      · rw [ite_eq_right hb]
         simp only [List.mem_cons] at ha
         rcases ha with h | h
         · rw [h] at hp; exact absurd hp hb
@@ -286,7 +286,7 @@ theorem attach_eq_some_iff (bd : Board) (b : Base) (c : Card) :
     · simp at h
   · intro h
     unfold attach
-    rw [dif_pos h.1, dif_pos h.2]
+    rw [dite_eq_left h.1, dite_eq_left h.2]
     simp
 
 /-- Boards with the same `topOf` are equal (the `inj` law is a proof
@@ -432,8 +432,8 @@ theorem aboveOf_go_mem (bd : Board) : ∀ (fuel : Nat) (b : Base) (acc : List Ca
           show y ∈ (if acc.contains c' = true then acc
             else aboveOf.go bd n (Sum.inr c') (c' :: acc))
           by_cases hc : acc.contains c' = true
-          · rw [if_pos hc]; exact hy
-          · rw [if_neg hc]
+          · rw [ite_eq_left hc]; exact hy
+          · rw [ite_eq_right hc]
             exact ih (Sum.inr c') (c' :: acc) y (by simp [hy])
 
 /-- One walk step over a matched card: the reduced form for rewriting
@@ -445,7 +445,7 @@ theorem aboveOf_go_step {bd : Board} {b₀ : Base} {c' : Card} {n : Nat} {acc : 
   rw [aboveOf_go_succ, hbd]
   show (if acc.contains c' = true then acc else aboveOf.go bd n (Sum.inr c') (c' :: acc))
       = aboveOf.go bd n (Sum.inr c') (c' :: acc)
-  rw [if_neg hc]
+  rw [ite_eq_right hc]
 
 /-- The walk's first read: a `none` cell ends the walk at the
 accumulator. -/
@@ -461,7 +461,7 @@ theorem aboveOf_go_stop {bd : Board} {b₀ : Base} {c' : Card} {n : Nat} {acc : 
     aboveOf.go bd (n + 1) b₀ acc = acc := by
   rw [aboveOf_go_succ, hbd]
   show (if acc.contains c' = true then acc else aboveOf.go bd n (Sum.inr c') (c' :: acc)) = acc
-  rw [if_pos hc]
+  rw [ite_eq_left hc]
 
 /-- The contains-guard keeps the accumulator duplicate-free. -/
 theorem aboveOf_nodup (bd : Board) : ∀ (n : Nat) (b : Base) (acc : List Card),
@@ -478,8 +478,8 @@ theorem aboveOf_nodup (bd : Board) : ∀ (n : Nat) (b : Base) (acc : List Card),
           show (if acc.contains c' = true then acc
             else aboveOf.go bd n (Sum.inr c') (c' :: acc)).Nodup
           by_cases hc : acc.contains c' = true
-          · rw [if_pos hc]; exact hnd
-          · rw [if_neg hc]
+          · rw [ite_eq_left hc]; exact hnd
+          · rw [ite_eq_right hc]
             refine ih (Sum.inr c') (c' :: acc) (List.nodup_cons.mpr ⟨?_, hnd⟩)
             intro hmem
             exact hc ((List.contains_iff_mem).mpr hmem)
@@ -570,7 +570,7 @@ private theorem aboveOf_go_fuel_sat (bd : Board) : ∀ (m : Nat) (x : Card) (acc
           show (if acc.contains c' = true then acc
             else aboveOf.go bd 0 (Sum.inr c') (c' :: acc)) = acc
           by_cases hc : acc.contains c' = true
-          · rw [if_pos hc]
+          · rw [ite_eq_left hc]
           · exfalso
             have hmem : c' ∉ acc := fun hmem => hc ((List.contains_iff_mem).mpr hmem)
             have hcon := nodup_cards_length_le (List.nodup_cons.mpr ⟨hmem, hnd⟩)
@@ -632,7 +632,7 @@ theorem aboveOf_go_seed (bd : Board) (s : Card) : ∀ (n : Nat) (x : Card) (l : 
                 else aboveOf.go bd n (Sum.inr y) (y :: (l ++ [s])))
                 = ((if l.contains y = true then l
                     else aboveOf.go bd n (Sum.inr y) (y :: l)) ++ [s])
-            rw [if_pos hcy2, if_pos hcy]
+            rw [ite_eq_left hcy2, ite_eq_left hcy]
           · by_cases hys : y = s
             · subst hys
               exfalso
@@ -652,7 +652,7 @@ theorem aboveOf_go_seed (bd : Board) (s : Card) : ∀ (n : Nat) (x : Card) (l : 
                   else aboveOf.go bd n (Sum.inr y) (y :: (l ++ [s])))
                   = ((if l.contains y = true then l
                       else aboveOf.go bd n (Sum.inr y) (y :: l)) ++ [s])
-              rw [if_neg hne, if_neg hcy]
+              rw [ite_eq_right hne, ite_eq_right hcy]
               have hstep : aboveOf.go bd (n + 1) (Sum.inr x) l =
                   aboveOf.go bd n (Sum.inr y) (y :: l) :=
                 aboveOf_go_step ht hcy
@@ -679,7 +679,7 @@ theorem aboveOf_step_some {bd : Board} {c c' : Card}
   show (if ([] : List Card).contains c' = true then ([] : List Card)
       else aboveOf.go bd 52 (Sum.inr c') (c' :: ([] : List Card)))
       = bd.aboveOf c' ++ [c']
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   exact aboveOf_go_seed bd c' 52 c' [] (fun z hz heq => hnc (heq ▸ hz))
 
 /-- The general walk congruence, fuel level (the induction form):
@@ -709,8 +709,8 @@ theorem aboveOf_go_congr {bd bd' : Board} {P : Card → Prop}
               = (if acc.contains y = true then acc
                   else aboveOf.go bd n (Sum.inr y) (y :: acc))
           by_cases hcy : acc.contains y = true
-          · rw [if_pos hcy, if_pos hcy]
-          · rw [if_neg hcy, if_neg hcy]
+          · rw [ite_eq_left hcy, ite_eq_left hcy]
+          · rw [ite_eq_right hcy, ite_eq_right hcy]
             have hstep : aboveOf.go bd (n + 1) (Sum.inr x) acc =
                 aboveOf.go bd n (Sum.inr y) (y :: acc) :=
               aboveOf_go_step htbd hcy
@@ -757,9 +757,9 @@ theorem aboveOf_go_sub {bd bd' : Board}
           have hy' : y ∈ (if acc.contains c' = true then acc
               else aboveOf.go bd' n (Sum.inr c') (c' :: acc)) := hy
           by_cases hcy : acc.contains c' = true
-          · rw [if_pos hcy] at hy'
+          · rw [ite_eq_left hcy] at hy'
             exact aboveOf_go_mem bd (n + 1) b acc y hy'
-          · rw [if_neg hcy] at hy'
+          · rw [ite_eq_right hcy] at hy'
             have hbd : bd.topOf b = some c' := by
               rcases hsub b with h | h
               · rw [h] at ht; exact absurd ht (by simp)
@@ -805,9 +805,9 @@ theorem aboveOf_grading {bd : Board} {φ : Card → Nat}
             have hd' : d ∈ (if acc.contains y = true then acc
                 else aboveOf.go bd f (Sum.inr y) (y :: acc)) := hd
             by_cases hcy : acc.contains y = true
-            · rw [if_pos hcy] at hd'
+            · rw [ite_eq_left hcy] at hd'
               exact hacc d hd'
-            · rw [if_neg hcy] at hd'
+            · rw [ite_eq_right hcy] at hd'
               have hxy : φ y < φ x := hφ x y ht
               have hyc : φ y < φ c := by
                 rcases hx with h | h

@@ -240,7 +240,7 @@ theorem mapByTwin_detach (bd : Board) (t : Card) (b : Base) :
   · rw [hbb]
     show (if b.swapTwin t = b.swapTwin t then none else (bd.mapByTwin t).topOf (b.swapTwin t)) =
       ((bd.detach b).mapByTwin t).topOf (b.swapTwin t)
-    rw [if_pos rfl, mapByTwin_topOf_swap, Board.detach_topOf]
+    rw [ite_eq_left rfl, mapByTwin_topOf_swap, Board.detach_topOf]
     rfl
   · show (if b'' = b.swapTwin t then none else (bd.mapByTwin t).topOf b'') =
       ((bd.detach b).mapByTwin t).topOf b''
@@ -248,7 +248,7 @@ theorem mapByTwin_detach (bd : Board) (t : Card) (b : Base) :
       have hc2 := Base.swapTwin_swapTwin t b''
       rw [hcon] at hc2
       exact hc2.symm)
-    rw [if_neg hbb, mapByTwin_topOf, mapByTwin_topOf, Board.detach_topOf_ne _ _ _ hcb]
+    rw [ite_eq_right hbb, mapByTwin_topOf, mapByTwin_topOf, Board.detach_topOf_ne _ _ _ hcb]
 
 theorem beq_swapTwin (t : Card) (x y : Card) :
     ((Card.swapTwin t x == Card.swapTwin t y) : Bool) = (x == y) := by
@@ -300,8 +300,8 @@ theorem mapByTwin_aboveOf_go (bd : Board) (t : Card) : ∀ (fuel : Nat) (b : Bas
                else Board.aboveOf.go bd n (Sum.inr x) (x :: acc)).map (Card.swapTwin t)
           rw [contains_swapTwin t acc x]
           by_cases hac : acc.contains x = true
-          · rw [if_pos hac, if_pos hac]
-          · rw [if_neg hac, if_neg hac]
+          · rw [ite_eq_left hac, ite_eq_left hac]
+          · rw [ite_eq_right hac, ite_eq_right hac]
             exact ih (Sum.inr x) (x :: acc)
 
 theorem mapByTwin_aboveOf (bd : Board) (t : Card) (c : Card) :
@@ -334,9 +334,9 @@ theorem twinCycle_prev (t : Card) (cy : Cycle Card) :
   show (if cy.cursor = 0 then none else (cy.cards.map (Card.swapTwin t))[cy.cursor - 1]?)
      = (if cy.cursor = 0 then none else cy.cards[cy.cursor - 1]?).map (Card.swapTwin t)
   by_cases h0 : cy.cursor = 0
-  · rw [if_pos h0, if_pos h0]
+  · rw [ite_eq_left h0, ite_eq_left h0]
     rfl
-  · rw [if_neg h0, if_neg h0, List.getElem?_map]
+  · rw [ite_eq_right h0, ite_eq_right h0, List.getElem?_map]
 
 theorem twinCycle_dealOnce (t : Card) (cy : Cycle Card) (s : Nat) :
     (twinCycle t cy).dealOnce s = twinCycle t (cy.dealOnce s) := by
@@ -349,10 +349,10 @@ theorem twinCycle_dealOnce (t : Card) (cy : Cycle Card) (s : Nat) :
   split
   · rename_i h
     simp only [Cycle.dealOnce]
-    rw [if_pos h]
+    rw [ite_eq_left h]
   · rename_i h
     simp only [Cycle.dealOnce]
-    rw [if_neg h]
+    rw [ite_eq_right h]
 
 theorem twinCycle_removeAt (t : Card) (cy : Cycle Card) (i : Nat) :
     (twinCycle t cy).removeAt i = twinCycle t (cy.removeAt i) := by
@@ -642,14 +642,14 @@ theorem twinSkew_board (st : State) (t : Card) (b : Base) :
     (st.twinSkew t b).heights t.flipSuit.suit = st.heights t.flipSuit.suit + 1 := by
   show (if t.flipSuit.suit = t.flipSuit.suit then (st.swapTwin t).heights t.flipSuit.suit + 1
       else (st.swapTwin t).heights t.flipSuit.suit) = _
-  rw [if_pos rfl, swapTwin_heights]
+  rw [ite_eq_left rfl, swapTwin_heights]
 
 @[simp] theorem twinSkew_heights_ne {st : State} {t : Card} {b : Base} {s : Suit}
     (h : s ≠ t.flipSuit.suit) :
     (st.twinSkew t b).heights s = st.heights s := by
   show (if s = t.flipSuit.suit then (st.swapTwin t).heights s + 1
       else (st.swapTwin t).heights s) = st.heights s
-  rw [if_neg h, swapTwin_heights]
+  rw [ite_eq_right h, swapTwin_heights]
 
 /-- **The back-to-back twin stacks mirror.**  If the source play stacks
 `t` and then IMMEDIATELY `t.flipSuit` (the aligned double stack — both
@@ -678,7 +678,7 @@ theorem run_swapTwin_pair {st A A₁ : State} {t : Card}
     rw [hA']
     show (if t.flipSuit.suit = t.suit then st.heights t.flipSuit.suit + 1
         else st.heights t.flipSuit.suit) = st.heights t.flipSuit.suit
-    rw [if_neg hsne]
+    rw [ite_eq_right hsne]
   -- the derived alignment: h₀ pins s1, h₁ pins s2 (A's heights are st's off the bumped suit)
   have hs₂ : st.heights t.flipSuit.suit = t.rank.toIdx := by
     have h2 : t.flipSuit.rank.toIdx = A.heights t.flipSuit.suit := hrk'
@@ -722,13 +722,13 @@ theorem run_swapTwin_pair {st A A₁ : State} {t : Card}
         by_cases h1 : s = t.suit
         · have h2 : s ≠ t.flipSuit.suit := fun h => hsne (h.symm.trans h1)
           have hsk : (st.twinSkew t β).heights s = st.heights s := twinSkew_heights_ne h2
-          rw [if_neg h2, if_pos h1, if_pos h1, hsk]
+          rw [ite_eq_right h2, ite_eq_left h1, ite_eq_left h1, hsk]
         · by_cases h2 : s = t.flipSuit.suit
           · have hsk : (st.twinSkew t β).heights s = st.heights s + 1 := by
               rw [h2]; exact twinSkew_heights_self st t β
-            rw [if_pos h2, if_neg h1, if_neg h1, hsk]
+            rw [ite_eq_left h2, ite_eq_right h1, ite_eq_right h1, hsk]
           · have hsk : (st.twinSkew t β).heights s = st.heights s := twinSkew_heights_ne h2
-            rw [if_neg h2, if_neg h1, if_neg h1, hsk]
+            rw [ite_eq_right h2, ite_eq_right h1, ite_eq_right h1, hsk]
   -- assembly
   simp only [State.run]
   rw [hM₁]

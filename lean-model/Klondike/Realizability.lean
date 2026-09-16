@@ -216,7 +216,6 @@ theorem uncovered_eq_freeType {bd : Board} (hleg : bd.legalEdges) (t : Rank × C
               rw [of_decide_eq_true htyc] at hbr
               rw [hbt] at hbr
               have htye : e.typeOf = t' := (Option.some.inj hbr).symm
-              simp only [hT]
               refine ⟨List.mem_filter.mpr ⟨e.mem_universe, ?_⟩, ?_⟩
               · show (decide (e.typeOf = t') && (match bd.bottomOf e with
                     | some (Sum.inr d) => decide (d.typeOf = t) && (bd.bottomOf d).isSome
@@ -243,7 +242,6 @@ theorem uncovered_eq_freeType {bd : Board} (hleg : bd.legalEdges) (t : Rank × C
                   obtain ⟨htyd, hpresd⟩ := Bool.and_eq_true_iff.mp hinner
                   have hT : bd.topOf (Sum.inr d) = some y :=
                     (Board.bottomOf_eq bd y (Sum.inr d)).mp hb
-                  simp only [hb]
                   refine ⟨List.mem_filter.mpr ⟨d.mem_universe, ?_⟩, ?_⟩
                   · show ((decide (d.typeOf = t) && (bd.bottomOf d).isSome) &&
                       !decide (bd.topOf (Sum.inr d) = none)) = true

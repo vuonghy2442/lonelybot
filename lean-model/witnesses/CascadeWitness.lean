@@ -277,8 +277,8 @@ theorem stW_wf : stW.WF := by
   · intro s
     show (if s = Suit.diamond then 12 else 13) ≤ 13
     by_cases hsd : s = Suit.diamond
-    · rw [if_pos hsd]; omega
-    · rw [if_neg hsd]; omega
+    · rw [ite_eq_left hsd]; omega
+    · rw [ite_eq_right hsd]; omega
   · exact Nat.zero_le _
   · exact Nat.zero_lt_one
   · refine ⟨?_, ?_⟩

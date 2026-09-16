@@ -213,7 +213,7 @@ def Card.swapTwin (c x : Card) : Card :=
 
 @[simp] theorem Card.swapTwin_self_right (c : Card) : Card.swapTwin c c.flipSuit = c := by
   unfold Card.swapTwin
-  rw [if_neg (Card.flipSuit_ne c), if_pos rfl]
+  rw [ite_eq_right (Card.flipSuit_ne c), ite_eq_left rfl]
 
 /-- The local swap is an involution. -/
 @[simp]
@@ -223,15 +223,15 @@ theorem Card.swapTwin_swapTwin (c x : Card) : Card.swapTwin c (Card.swapTwin c x
   · by_cases h₂ : x = c.flipSuit
     · subst h₂; rw [Card.swapTwin_self_right, Card.swapTwin_self_left]
     · have h₃ : Card.swapTwin c x = x := by
-        unfold Card.swapTwin; rw [if_neg h₁, if_neg h₂]
-      rw [h₃]; unfold Card.swapTwin; rw [if_neg h₁, if_neg h₂]
+        unfold Card.swapTwin; rw [ite_eq_right h₁, ite_eq_right h₂]
+      rw [h₃]; unfold Card.swapTwin; rw [ite_eq_right h₁, ite_eq_right h₂]
 
 /-- Outside the pair, the local swap is the identity: exactly the two
 cards `t`, `t.flipSuit` are exchanged, the other 50 are fixed. -/
 theorem Card.swapTwin_of_ne {t x : Card} (h₁ : x ≠ t) (h₂ : x ≠ t.flipSuit) :
     Card.swapTwin t x = x := by
   unfold Card.swapTwin
-  rw [if_neg h₁, if_neg h₂]
+  rw [ite_eq_right h₁, ite_eq_right h₂]
 
 /-- The local swap is invisible to the tableau rules (color). -/
 @[simp] theorem Card.swapTwin_color (c x : Card) :
@@ -240,7 +240,7 @@ theorem Card.swapTwin_of_ne {t x : Card} (h₁ : x ≠ t) (h₂ : x ≠ t.flipSu
   · rw [h₁]; simp
   · by_cases h₂ : x = c.flipSuit
     · rw [h₂]; simp [Card.flipSuit_color]
-    · unfold Card.swapTwin; rw [if_neg h₁, if_neg h₂]
+    · unfold Card.swapTwin; rw [ite_eq_right h₁, ite_eq_right h₂]
 
 /-- The local swap preserves rank. -/
 @[simp] theorem Card.swapTwin_rank (c x : Card) :
@@ -249,7 +249,7 @@ theorem Card.swapTwin_of_ne {t x : Card} (h₁ : x ≠ t) (h₂ : x ≠ t.flipSu
   · rw [h₁]; simp
   · by_cases h₂ : x = c.flipSuit
     · rw [h₂]; simp
-    · unfold Card.swapTwin; rw [if_neg h₁, if_neg h₂]
+    · unfold Card.swapTwin; rw [ite_eq_right h₁, ite_eq_right h₂]
 
 /-- The local swap is injective (an involution is). -/
 theorem Card.swapTwin_inj (c : Card) : Function.Injective (Card.swapTwin c) := by

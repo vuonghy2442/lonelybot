@@ -232,8 +232,8 @@ theorem reachablePos_step1 {st : State} (hwf : st.WF) (hstep : st.drawStep = 1)
     have hlt : i < st.stock.cards.length := Cycle.posOf_lt hp
     have hmem : i ∈ Pace.maskPos st.stock 1 (by omega : (0 : Nat) < 1) :=
       (Pace.maskPos_step1 st.stock (by omega) hcur i).mpr hlt
-    rw [dif_pos (by omega : (0 : Nat) < 1)]
-    exact if_pos hmem
+    rw [dite_eq_left (by omega : (0 : Nat) < 1)]
+    exact ite_eq_left hmem
 
 end State
 
@@ -264,7 +264,7 @@ theorem legal_pileStack_iff {st : State} {c : Card} :
               board := st.board.detach b,
               heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
             else none).isSome = true
-        rw [if_pos hr]
+        rw [ite_eq_left hr]
         rfl
 
 
@@ -551,44 +551,44 @@ theorem contains_false_of_canMoveRun_inr {st : State} {c d : Card}
 
 The apply-successors carry `heights := fun s => if s = c.suit then …`
 updates; symbolic ite conditions do not whnf, so every consumer paid
-`rw [if_pos rfl]` / `if_neg` dances.  These fire on the exact literal
+`rw [ite_eq_left rfl]` / `ite_eq_right` dances.  These fire on the exact literal
 shapes (post-unfold, pre-simplification). -/
 
 @[simp] theorem heights_bump_self {st : State} {c : Card} :
     ({ st with heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }
       : State).heights c.suit = st.heights c.suit + 1 := by
   show (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit) = _
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 @[simp] theorem heights_bump_ne {st : State} {c : Card} {s : Suit} (h : s ≠ c.suit) :
     ({ st with heights := fun s' => if s' = c.suit then st.heights s' + 1 else st.heights s' }
       : State).heights s = st.heights s := by
   show (if s = c.suit then st.heights s + 1 else st.heights s) = st.heights s
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 @[simp] theorem heights_drop_self {st : State} {c : Card} :
     ({ st with heights := fun s => if s = c.suit then st.heights s - 1 else st.heights s }
       : State).heights c.suit = st.heights c.suit - 1 := by
   show (if c.suit = c.suit then st.heights c.suit - 1 else st.heights c.suit) = _
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 @[simp] theorem heights_drop_ne {st : State} {c : Card} {s : Suit} (h : s ≠ c.suit) :
     ({ st with heights := fun s' => if s' = c.suit then st.heights s' - 1 else st.heights s' }
       : State).heights s = st.heights s := by
   show (if s = c.suit then st.heights s - 1 else st.heights s) = st.heights s
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 @[simp] theorem depths_step_self {st : State} {a : Anchor} :
     ({ st with depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' }
       : State).depths a = st.depths a - 1 := by
   show (if a = a then st.depths a - 1 else st.depths a) = _
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 @[simp] theorem depths_step_ne {st : State} {a a' : Anchor} (h : a' ≠ a) :
     ({ st with depths := fun a'' => if a'' = a then st.depths a - 1 else st.depths a'' }
       : State).depths a' = st.depths a' := by
   show (if a' = a then st.depths a - 1 else st.depths a') = st.depths a'
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-! ## Maintenance helpers for `apply_wf`
 
@@ -610,7 +610,7 @@ theorem findFirstIdx_eq_none {α : Type} (p : α → Bool) : ∀ (l : List α),
   | cons a t ih =>
     intro h
     simp only [findFirstIdx]
-    rw [if_neg (h a List.mem_cons_self)]
+    rw [ite_eq_right (h a List.mem_cons_self)]
     rw [ih (fun x hx => h x (List.mem_cons_of_mem _ hx))]
     rfl
 
@@ -628,7 +628,7 @@ theorem findFirstIdx_mem {α : Type} [DecidableEq α] (x : α) : ∀ (l : List �
       simp only [findFirstIdx]
       by_cases hdf : decide (a = x) = true
       · simp [hdf]
-      · rw [if_neg hdf]
+      · rw [ite_eq_right hdf]
         cases hfind : findFirstIdx (fun y => decide (y = x)) t with
         | none => exact absurd hfind hind
         | some k => simp
@@ -672,10 +672,10 @@ theorem notMem_removeIdx_self {α : Type} {l : List α} {i : Nat} {x : α}
   obtain ⟨j, hj⟩ := List.mem_iff_getElem?.mp hmem
   rw [getElem?_removeIdx] at hj
   by_cases h : j < i
-  · rw [if_pos h] at hj
+  · rw [ite_eq_left h] at hj
     have := hind j hj
     omega
-  · rw [if_neg h] at hj
+  · rw [ite_eq_right h] at hj
     have := hind (j + 1) hj
     omega
 
@@ -719,14 +719,14 @@ theorem mem_take_index {α : Type} {l : List α} {n : Nat} {x : α} (h : x ∈ l
     rw [List.length_take] at hlen
     omega
   refine ⟨i, hib, ?_⟩
-  rw [List.getElem?_take, if_pos hib] at hi
+  rw [List.getElem?_take, ite_eq_left hib] at hi
   exact hi
 
 /-- An index into the list gives membership in any longer `take`. -/
 theorem mem_take_of_index {α : Type} {l : List α} {n : Nat} {x : α} {i : Nat}
     (hlt : i < n) (hv : l[i]? = some x) : x ∈ l.take n := by
   refine List.mem_iff_getElem?.mpr ⟨i, ?_⟩
-  rw [List.getElem?_take, if_pos hlt]
+  rw [List.getElem?_take, ite_eq_left hlt]
   exact hv
 
 /-- The last element, by index. -/
@@ -775,7 +775,7 @@ theorem topHidden_get {st : State} {a : Anchor} {r : Card}
   have h1 := getLast?_index ((st.deal.piles a).take (st.depths a)) r hlast
   rw [hlen, List.getElem?_take] at h1
   by_cases hpos : st.depths a - 1 < st.depths a
-  · rw [if_pos hpos] at h1; exact h1
+  · rw [ite_eq_left hpos] at h1; exact h1
   · exfalso
     have h0 : st.depths a = 0 := by omega
     rw [h0] at hlast
@@ -1156,11 +1156,11 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
     · intro a'
       by_cases haa : a' = a
       · show (if a' = a then st.depths a - 1 else st.depths a') ≤ (st.deal.piles a').length
-        rw [if_pos haa, haa]
+        rw [ite_eq_left haa, haa]
         have := hdepths a
         omega
       · show (if a' = a then st.depths a - 1 else st.depths a') ≤ (st.deal.piles a').length
-        rw [if_neg haa]
+        rw [ite_eq_right haa]
         exact hdepths a'
     · intro b c' hb'
       refine ⟨(Board.bottomOf_eq _ _ _).mpr hb', ?_⟩
@@ -1199,7 +1199,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
             obtain ⟨t, rest, hadj⟩ := hidden_parent_dealt hb2 htop
             refine Or.inl ⟨a, t, rest, hadj, Or.inl ⟨a, ?_⟩⟩
             show ((st.deal.piles a).take (if a = a then st.depths a - 1 else st.depths a)).getLast? = some d
-            rw [if_pos rfl, hnh, getLast?_append_single]
+            rw [ite_eq_left rfl, hnh, getLast?_append_single]
       · rw [Board.attach_topOf_ne _ _ _ ha hbb] at hb'
         obtain ⟨-, hleg⟩ := hedges b c' hb'
         cases b with
@@ -1220,7 +1220,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
                 · refine Or.inl ⟨a'', ?_⟩
                   show ((st.deal.piles a'').take
                     (if a'' = a then st.depths a - 1 else st.depths a'')).getLast? = some d
-                  rw [if_neg haa2]
+                  rw [ite_eq_right haa2]
                   exact hth
               · exact Or.inr (bottomOf_isSome_attach ha hpl)
             · exact Or.inr ⟨bottomOf_isSome_attach ha his, hsit⟩
@@ -1250,11 +1250,11 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           · rw [haa] at hcm
             have hcm2 : c' ∈ (st.deal.piles a).take
                 (if a = a then st.depths a - 1 else st.depths a) := hcm
-            rw [if_pos rfl] at hcm2
+            rw [ite_eq_left rfl] at hcm2
             exact (hfgone c' hc').2.2 a (take_mono (by omega) hcm2)
           · have hcm2 : c' ∈ (st.deal.piles a').take
               (if a' = a then st.depths a - 1 else st.depths a') := hcm
-            rw [if_neg haa] at hcm2
+            rw [ite_eq_right haa] at hcm2
             exact (hfgone c' hc').2.2 a' hcm2
     · intro c' hc' a' hcm
       by_cases hcc : c' = r
@@ -1263,11 +1263,11 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         · rw [haa] at hcm
           have hcm2 : r ∈ (st.deal.piles a).take
               (if a = a then st.depths a - 1 else st.depths a) := hcm
-          rw [if_pos rfl] at hcm2
+          rw [ite_eq_left rfl] at hcm2
           exact notMem_take_of_get (Deal.pile_noDup hdeal a) (topHidden_get (hdepths a) htop) hcm2
         · have hcm2 : r ∈ (st.deal.piles a').take
             (if a' = a then st.depths a - 1 else st.depths a') := hcm
-          rw [if_neg haa] at hcm2
+          rw [ite_eq_right haa] at hcm2
           have hpm : r ∈ st.deal.piles a :=
             List.take_subset _ _ (show r ∈ (st.deal.piles a).take (st.depths a) from mem_of_getLast htop)
           have hpm2 : r ∈ st.deal.piles a' := List.take_subset _ _ hcm2
@@ -1276,11 +1276,11 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         · rw [haa] at hcm
           have hcm2 : c' ∈ (st.deal.piles a).take
               (if a = a then st.depths a - 1 else st.depths a) := hcm
-          rw [if_pos rfl] at hcm2
+          rw [ite_eq_left rfl] at hcm2
           exact hvnh c' (key c' hcc hc') a (take_mono (by omega) hcm2)
         · have hcm2 : c' ∈ (st.deal.piles a').take
               (if a' = a then st.depths a - 1 else st.depths a') := hcm
-          rw [if_neg haa] at hcm2
+          rw [ite_eq_right haa] at hcm2
           exact hvnh c' (key c' hcc hc') a' hcm2
   | deckPile c b =>
     rw [apply_deckPile_iff] at h
@@ -1398,7 +1398,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           (show (bd.bottomOf c').isSome = true from hc')) a' hcm
     · show (if st.stock.cursor - 1 < st.stock.cursor then st.stock.cursor - 1
             else st.stock.cursor) ≤ (Cycle.removeIdx st.stock.cards (st.stock.cursor - 1)).length
-      rw [if_pos (by omega)]
+      rw [ite_eq_left (by omega)]
       have hilen : st.stock.cursor - 1 < st.stock.cards.length :=
         (List.getElem?_eq_some_iff.mp hprev.2).1
       have := Cycle.removeIdx_length st.stock.cards (st.stock.cursor - 1) hilen
@@ -1444,7 +1444,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
             of_decide_eq_true hc'
         have hold : st.onFound c' = true := by
           by_cases hsc : c'.suit = c.suit
-          · rw [if_pos hsc] at hon
+          · rw [ite_eq_left hsc] at hon
             rcases Nat.lt_or_ge c'.rank.toIdx (st.heights c'.suit) with hlt | heq
             · show decide (c'.rank.toIdx < st.heights c'.suit) = true
               exact decide_eq_true hlt
@@ -1456,7 +1456,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
                 | mk s rk => cases c with
                   | mk s' rk' => rw [Card.mk.injEq]; exact ⟨hsc, hr⟩
               exact absurd hcard hcc
-          · rw [if_neg hsc] at hon
+          · rw [ite_eq_right hsc] at hon
             show decide (c'.rank.toIdx < st.heights c'.suit) = true
             exact decide_eq_true hon
         have hnc : c' ∉ st.stock.cards := by
@@ -1470,7 +1470,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       · have hc2 : c'.rank.toIdx < st.heights c'.suit + 1 := by
           have h2 : c'.rank.toIdx <
               (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hc'
-          rw [if_pos hsc] at h2
+          rw [ite_eq_left hsc] at h2
           exact h2
         rcases Nat.lt_or_ge c'.rank.toIdx (st.heights c'.suit) with hlt | hge
         · refine ⟨?_, ?_, (hfgone c' hlt).2.2⟩
@@ -1517,7 +1517,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       · have hc2 : c'.rank.toIdx < st.heights c'.suit := by
           have h2 : c'.rank.toIdx <
               (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hc'
-          rw [if_neg hsc] at h2
+          rw [ite_eq_right hsc] at h2
           exact h2
         refine ⟨(hfgone c' hc2).1, ?_, (hfgone c' hc2).2.2⟩
         show (st.stock.removeAt (st.stock.cursor - 1)).posOf c' = none
@@ -1531,15 +1531,15 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
     · intro s
       by_cases hsc : s = c.suit
       · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
-        rw [if_pos hsc, hsc]
+        rw [ite_eq_left hsc, hsc]
         have h1 : st.heights c.suit < 13 := by rw [← hrk]; exact Rank.toIdx_lt c.rank
         omega
       · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
-        rw [if_neg hsc]
+        rw [ite_eq_right hsc]
         exact hheights s
     · show (if st.stock.cursor - 1 < st.stock.cursor then st.stock.cursor - 1
             else st.stock.cursor) ≤ (Cycle.removeIdx st.stock.cards (st.stock.cursor - 1)).length
-      rw [if_pos (by omega)]
+      rw [ite_eq_left (by omega)]
       have hilen : st.stock.cursor - 1 < st.stock.cards.length :=
         (List.getElem?_eq_some_iff.mp hprev.2).1
       have := Cycle.removeIdx_length st.stock.cards (st.stock.cursor - 1) hilen
@@ -1635,7 +1635,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) :=
           of_decide_eq_true hc'
       by_cases hsc : c'.suit = c.suit
-      · rw [if_pos hsc] at hon
+      · rw [ite_eq_left hsc] at hon
         rcases Nat.lt_or_ge c'.rank.toIdx (st.heights c'.suit) with hlt | heq
         · exact hfound c' (by
             show decide (c'.rank.toIdx < st.heights c'.suit) = true
@@ -1649,7 +1649,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
               | mk s' rk' => rw [Card.mk.injEq]; exact ⟨hsc, hr⟩
           rw [hcard]
           exact hvis c hvisc
-      · rw [if_neg hsc] at hon
+      · rw [ite_eq_right hsc] at hon
         exact hfound c' (by
           show decide (c'.rank.toIdx < st.heights c'.suit) = true
           exact decide_eq_true hon)
@@ -1658,7 +1658,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       · have hc2 : c'.rank.toIdx < st.heights c'.suit + 1 := by
           have h2 : c'.rank.toIdx <
               (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hc'
-          rw [if_pos hsc] at h2
+          rw [ite_eq_left hsc] at h2
           exact h2
         rcases Nat.lt_or_ge c'.rank.toIdx (st.heights c'.suit) with hlt | hge
         · refine ⟨?_, (hfgone c' hlt).2.1, (hfgone c' hlt).2.2⟩
@@ -1684,7 +1684,7 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
       · have hc2 : c'.rank.toIdx < st.heights c'.suit := by
           have h2 : c'.rank.toIdx <
               (if c'.suit = c.suit then st.heights c'.suit + 1 else st.heights c'.suit) := hc'
-          rw [if_neg hsc] at h2
+          rw [ite_eq_right hsc] at h2
           exact h2
         refine ⟨?_, (hfgone c' hc2).2.1, (hfgone c' hc2).2.2⟩
         show ((st.board.detach b).bottomOf c').isSome = false
@@ -1699,11 +1699,11 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
     · intro s
       by_cases hsc : s = c.suit
       · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
-        rw [if_pos hsc, hsc]
+        rw [ite_eq_left hsc, hsc]
         have h1 : st.heights c.suit < 13 := by rw [← hrk]; exact Rank.toIdx_lt c.rank
         omega
       · show (if s = c.suit then st.heights s + 1 else st.heights s) ≤ 13
-        rw [if_neg hsc]
+        rw [ite_eq_right hsc]
         exact hheights s
   | stackPile c b =>
     rw [apply_stackPile_iff] at h
@@ -1768,10 +1768,10 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
           of_decide_eq_true hc'
       exact hfound c' (by
         by_cases hsc : c'.suit = c.suit
-        · rw [if_pos hsc] at hon
+        · rw [ite_eq_left hsc] at hon
           show decide (c'.rank.toIdx < st.heights c'.suit) = true
           exact decide_eq_true (by omega)
-        · rw [if_neg hsc] at hon
+        · rw [ite_eq_right hsc] at hon
           show decide (c'.rank.toIdx < st.heights c'.suit) = true
           exact decide_eq_true hon)
     · intro c' hc'
@@ -1779,14 +1779,14 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
         have h2 : c'.rank.toIdx <
             (if c'.suit = c.suit then st.heights c'.suit - 1 else st.heights c'.suit) := hc'
         by_cases hsc : c'.suit = c.suit
-        · rw [if_pos hsc] at h2; omega
-        · rw [if_neg hsc] at h2; omega
+        · rw [ite_eq_left hsc] at h2; omega
+        · rw [ite_eq_right hsc] at h2; omega
       have hcne : c' ≠ c := by
         intro hcon
         rw [hcon] at hc'
         have h2 : c.rank.toIdx <
             (if c.suit = c.suit then st.heights c.suit - 1 else st.heights c.suit) := hc'
-        rw [if_pos rfl] at h2
+        rw [ite_eq_left rfl] at h2
         omega
       refine ⟨?_, (hfgone c' hcold).2.1, (hfgone c' hcold).2.2⟩
       show (bd.bottomOf c').isSome = false
@@ -1806,11 +1806,11 @@ theorem apply_wf {st : State} (hwf : st.WF) (m : Move) (st' : State)
     · intro s
       by_cases hsc : s = c.suit
       · show (if s = c.suit then st.heights s - 1 else st.heights s) ≤ 13
-        rw [if_pos hsc]
+        rw [ite_eq_left hsc]
         have := hheights s
         omega
       · show (if s = c.suit then st.heights s - 1 else st.heights s) ≤ 13
-        rw [if_neg hsc]
+        rw [ite_eq_right hsc]
         exact hheights s
   | pilePile c b =>
     rw [apply_pilePile_iff] at h
