@@ -273,8 +273,12 @@ theorem contains_swapTwin (t : Card) : ∀ (l : List Card) (x : Card),
   | nil => intro x; rfl
   | cons a tl ih =>
       intro x
-      show ((Card.swapTwin t x == Card.swapTwin t a) || (tl.map (Card.swapTwin t)).contains (Card.swapTwin t x))
-        = (x == a || tl.contains x)
+      show (match Card.swapTwin t x == Card.swapTwin t a with
+            | true => true
+            | false => (tl.map (Card.swapTwin t)).contains (Card.swapTwin t x))
+           = (match x == a with
+            | true => true
+            | false => tl.contains x)
       rw [ih x, beq_swapTwin t x a]
 
 theorem mapByTwin_aboveOf_go (bd : Board) (t : Card) : ∀ (fuel : Nat) (b : Base) (acc : List Card),

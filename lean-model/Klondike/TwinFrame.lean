@@ -542,7 +542,12 @@ theorem contains_twinMap {ρ : Card → Card} (hρ : Card.IsTwinMap ρ) :
   | nil => intro x; rfl
   | cons a tl ih =>
       intro x
-      show ((ρ x == ρ a) || (tl.map ρ).contains (ρ x)) = (x == a || tl.contains x)
+      show (match ρ x == ρ a with
+            | true => true
+            | false => (tl.map ρ).contains (ρ x))
+           = (match x == a with
+            | true => true
+            | false => tl.contains x)
       rw [ih x, beq_twinMap hρ x a]
 
 theorem Board.mapByRho_aboveOf_go {ρ : Card → Card} (hρ : Card.IsTwinMap ρ) (bd : Board) :

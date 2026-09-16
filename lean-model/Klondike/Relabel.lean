@@ -435,8 +435,12 @@ theorem contains_map (r : Relabel) : ∀ (l : List Card) (x : Card),
   | nil => intro x; rfl
   | cons a t ih =>
       intro x
-      show ((r.card x == r.card a) || (t.map r.card).contains (r.card x))
-        = (x == a || t.contains x)
+      show (match r.card x == r.card a with
+            | true => true
+            | false => (t.map r.card).contains (r.card x))
+           = (match x == a with
+            | true => true
+            | false => t.contains x)
       rw [ih x, beq_relabel r x a]
 
 theorem aboveOf_go_succ (bd : Board) (fuel : Nat) (b : Base) (acc : List Card) :

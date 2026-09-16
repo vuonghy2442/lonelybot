@@ -36,6 +36,12 @@ $baseline = @{
                         # STRENGTHENED (hwf/hzone dropped, no zone premise);
                         # the exchangeTwin substrate + both transfer
                         # identifications are proven, axiom-clean
+  'TwinQuotient.lean' = 2  # +wave-15 quotient layer (commit 9a40232): the licensed
+                        # iff + assembly PROVEN; the two remaining are the MERGE
+                        # bridges — solvable_of_exchange_merge (TwinQuotient:646)
+                        # and solvable_of_exchange_merge_rooted (:2997) — the
+                        # [H] crux at WF (FARM.md wave-15 row: normalization or
+                        # B&G piecewise bookkeeping)
 }
 
 $drift = $false
