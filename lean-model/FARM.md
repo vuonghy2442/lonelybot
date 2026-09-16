@@ -392,6 +392,24 @@ climbs of EITHER source (tableau or stock) admits verbatim — the
 co-climb alternation is dead for both.  Axiom-clean
 [propext, Quot.sound]; census pinned at 14.
 
+**Follow-up (the merge's re-firing DERIVED)**:
+`State.merge_refires_clean` (TwinBridge, axiom-clean
+[propext, Quot.sound]) — a firing merge re-fires at the end of a
+CleanStack column-run whose stacked cards stay off the merge's
+touch-set (the root `c`, and the landing base's card `d`): the run is
+detach-only, so the root's base, the landing base's freeness, and the
+landing card's visibility are carried verbatim, and the run-walk only
+shrinks (`aboveOf_shrink_run`).  This derives the FIRING half of the
+double-clear schedule's re-firing premise
+(`exchangeDoubleClear_of_columns`'s `hmerge`); the WINDOW half (the
+successor's `solvableWindow'`) is the L1/O0 residue, now the sole
+remaining content of that premise.  NOTE the honest boundary: the
+landing-survival premise (`d` not among the run's stacked cards) is
+exactly the geometry where the landing card is not itself a cleared
+rider — the deep-landing corners (the landing ON a cleared z'-rider)
+need the route's other machinery, and the schedule's consumer-side
+analysis of which landings satisfy it is the next session's map-work.
+
 Sequenced after the live cruxes (waves 11–13 remnants: B4/Kills B2
 etc.).  **Dependency note**: W4's reformulation (the W-repair at the
 crux ledger) already absorbs park cases via the swap — whether it needs
