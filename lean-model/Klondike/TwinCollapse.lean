@@ -663,6 +663,141 @@ theorem king_dislodge_exists {st : State} {t c : Card} {a : Anchor}
   obtain ⟨bd1, -, hs1⟩ := park_king_run hbotT hking hfree
   exact ⟨{ st with board := bd1 }, hs1⟩
 
+/-! ## The unseating taxonomy (the play-level disciplines' keystone) -/
+
+/-- The freeness of a successful attach (the `≠ none` bridge,
+`attach_eq_some_iff`'s hidden conversion). -/
+theorem attach_frees {bd : Board} {b : Base} {c : Card} {bd' : Board}
+    (hatt : bd.attach b c = some bd') : bd.topOf b = none := by
+  have hne : bd.attach b c ≠ none := by
+    intro hcon
+    rw [hcon] at hatt
+    simp at hatt
+  exact ((Board.attach_eq_some_iff bd b c).mp hne).1
+
+/-- **The only move that unseats a card is `pileStack` of that card**:
+every other move either leaves the board alone (draw, deckStack),
+attaches at a free seat (reveal, deckPile, stackPile — a free seat
+cannot be `t`'s occupied seat), or re-attaches the moved run
+(`pilePile` — the run head re-seats, riders ride along).  The
+keystone of the winning-line disciplines: "t must stack" (the §12.1
+extraction corollary) composes with this to force
+dislodge-before-stack orderings. -/
+theorem unseats_imp_pileStack {st s' : State} {m : Move} {t : Card}
+    (happly : st.apply m = some s')
+    (hbot : st.board.bottomOf t ≠ none)
+    (hbot' : s'.board.bottomOf t = none) :
+    m = Move.pileStack t := by
+  cases hb : st.board.bottomOf t with
+  | none => exact absurd hb hbot
+  | some b₀ =>
+    have htop₀ : st.board.topOf b₀ = some t :=
+      (Board.bottomOf_eq st.board t b₀).mp hb
+    cases m with
+    | draw =>
+        rw [apply_draw_iff] at happly
+        obtain rfl := happly
+        have hnone : st.board.bottomOf t = none := hbot'
+        rw [hnone] at hb
+        simp at hb
+    | reveal a =>
+        rw [apply_reveal_iff] at happly
+        obtain ⟨r, bd, -, -, hatt, rfl⟩ := happly
+        have hf : st.board.topOf (st.hiddenBase a) = none := attach_frees hatt
+        have hne : b₀ ≠ st.hiddenBase a := by
+          intro heq
+          rw [heq] at htop₀
+          rw [htop₀] at hf
+          simp at hf
+        have eq1 : bd.topOf b₀ = some t := by
+          rw [Board.attach_topOf_ne _ _ _ hatt hne]
+          exact htop₀
+        have hnone : bd.bottomOf t = none := hbot'
+        rw [(Board.bottomOf_eq _ t b₀).mpr eq1] at hnone
+        simp at hnone
+    | deckPile c b =>
+        rw [apply_deckPile_iff] at happly
+        obtain ⟨-, -, bd, hatt, rfl⟩ := happly
+        have hf : st.board.topOf b = none := attach_frees hatt
+        have hne : b₀ ≠ b := by
+          intro heq
+          rw [heq] at htop₀
+          rw [htop₀] at hf
+          simp at hf
+        have eq1 : bd.topOf b₀ = some t := by
+          rw [Board.attach_topOf_ne _ _ _ hatt hne]
+          exact htop₀
+        have hnone : bd.bottomOf t = none := hbot'
+        rw [(Board.bottomOf_eq _ t b₀).mpr eq1] at hnone
+        simp at hnone
+    | deckStack c =>
+        rw [apply_deckStack_iff] at happly
+        obtain ⟨-, -, rfl⟩ := happly
+        have hnone : st.board.bottomOf t = none := hbot'
+        rw [hnone] at hb
+        simp at hb
+    | pileStack c =>
+        rw [apply_pileStack_iff] at happly
+        obtain ⟨-, b, hb1, -, rfl⟩ := happly
+        by_cases hct : c = t
+        · subst hct
+          rfl
+        · have hne : b₀ ≠ b := by
+            intro heq
+            rw [heq] at htop₀
+            rw [(Board.bottomOf_eq st.board c b).mp hb1] at htop₀
+            exact hct (Option.some.inj htop₀)
+          have eq1 : (st.board.detach b).topOf b₀ = some t := by
+            rw [Board.detach_topOf_ne _ _ _ hne]
+            exact htop₀
+          have hnone : (st.board.detach b).bottomOf t = none := hbot'
+          rw [(Board.bottomOf_eq _ t b₀).mpr eq1] at hnone
+          simp at hnone
+    | stackPile c b =>
+        rw [apply_stackPile_iff] at happly
+        obtain ⟨-, -, bd, hatt, rfl⟩ := happly
+        have hf : st.board.topOf b = none := attach_frees hatt
+        have hne : b₀ ≠ b := by
+          intro heq
+          rw [heq] at htop₀
+          rw [htop₀] at hf
+          simp at hf
+        have eq1 : bd.topOf b₀ = some t := by
+          rw [Board.attach_topOf_ne _ _ _ hatt hne]
+          exact htop₀
+        have hnone : bd.bottomOf t = none := hbot'
+        rw [(Board.bottomOf_eq _ t b₀).mpr eq1] at hnone
+        simp at hnone
+    | pilePile c b =>
+        rw [apply_pilePile_iff] at happly
+        obtain ⟨b', hb', -, -, bd, hatt, rfl⟩ := happly
+        by_cases hbb' : b₀ = b'
+        · have hct : c = t := by
+            have h1 : st.board.topOf b' = some c :=
+              (Board.bottomOf_eq st.board c b').mp hb'
+            rw [← hbb'] at h1
+            rw [h1] at htop₀
+            exact Option.some.inj htop₀
+          rw [hct] at hatt
+          have eq1 : bd.topOf b = some t := Board.attach_topOf _ _ _ hatt
+          have hnone : bd.bottomOf t = none := hbot'
+          rw [(Board.bottomOf_eq _ t b).mpr eq1] at hnone
+          simp at hnone
+        · have hf : (st.board.detach b').topOf b = none := attach_frees hatt
+          have hne : b₀ ≠ b := by
+            intro heq
+            rw [← heq] at hf
+            rw [Board.detach_topOf_ne _ _ _ (fun h => hbb' h)] at hf
+            rw [htop₀] at hf
+            simp at hf
+          have eq1 : bd.topOf b₀ = some t := by
+            rw [Board.attach_topOf_ne _ _ _ hatt hne,
+                Board.detach_topOf_ne _ _ _ (fun h => hbb' h)]
+            exact htop₀
+          have hnone : bd.bottomOf t = none := hbot'
+          rw [(Board.bottomOf_eq _ t b₀).mpr eq1] at hnone
+          simp at hnone
+
 /-! ## The solvability seed -/
 
 /-- The collapse's solvability seed: solvability of the post-collapse

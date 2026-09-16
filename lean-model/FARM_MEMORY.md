@@ -2196,3 +2196,13 @@ tree).
   arm CLOSES: t must stack on a winning line, same-suit t-above-c cannot, hence t must DISLODGE (pilePile) in the source -- the
   source-side dislodge the exchange correspondence then relates to the mirror's collapse.  The cascade residue shrinks to the
   DIFFERENT-suit blocker cases.  All sorry-free; founded_not_in_aboveOf rides [propext] alone.
+
+- THE UNSEATING TAXONOMY LANDED (same session, seventh batch): unseats_imp_pileStack -- THE ONLY MOVE THAT UNSEATS A CARD IS
+  pileStack OF THAT CARD (draw/deckStack leave the board alone; reveal/deckPile/stackPile attach at a FREE seat, which cannot be the
+  occupied seat; pilePile re-attaches the moved run -- the head re-seats and riders ride along definitionally).  Plus attach_frees (the
+  freeness of a successful attach -- the ne-none bridge).  This is the keystone the play-level disciplines compose with: "t must stack"
+  (the 12.1 extraction corollary) + unseats_imp_pileStack + same_suit_no_stack gives the dislodge-before-stack forcing on winning lines.
+  SYNTAX PAID FOR: (a) `absurd` is NOT defeq-tolerant through state-update projections -- use `have hnone : T := hbot'` (have IS
+  defeq-tolerant) then `rw [hnone] at hb; simp at hb`; (b) `(iff.mp ?_).1` leaves iff-arg metavars unbound when the projection pins
+  elaboration first -- derive the argument (`hne`) as a separate `have` with all args explicit; (c) `Option.noConfusion (h.symm.trans
+  hatt)` leaves the equation as metavars -- the rw-at-then-simp-at dance is the robust form.
