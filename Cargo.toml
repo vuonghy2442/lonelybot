@@ -25,7 +25,8 @@ uint = { version = "0.10.1", default-features = false }
 
 [dev-dependencies]
 criterion = "0.8.2"
-
+lonecli = { path = "lonecli" }
+serde_json = "1.0.117"
 
 [profile.release]
 lto = true

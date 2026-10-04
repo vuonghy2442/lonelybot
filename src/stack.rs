@@ -12,6 +12,13 @@ impl Stack {
         [self.get(0), self.get(1), self.get(2), self.get(3)]
     }
 
+
+    #[must_use]
+    pub(crate) const fn from_s(s: [u8; N_SUITS as usize]) -> Self {
+        Self((s[0] as u16) | ((s[1] as u16) << 4) | ((s[2] as u16) << 8) | ((s[3] as u16) << 12))        
+    }
+
+
     #[must_use]
     pub(crate) const fn mask(self) -> u64 {
         let s = self.get_s();

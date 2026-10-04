@@ -29,6 +29,41 @@ pub enum Drawable {
 }
 
 impl Deck {
+
+    /// Creates a Deck from a midgame state where some cards may have already been removed.
+    /// - "current_cards": The sequence of cards currently in waste + stock.
+    /// - "draw_cur": The number of cards currently in the waste pile.
+    /// - "draw_step": The draw rule (e.g., draw 1 or draw 3).
+    /// - "full_deck_template": The complete array of all N_DECK_CARDS used at game start (needed for mapping).
+    #[must_use]
+    pub fn from_midgame(
+        current_cards: &[Card],
+        draw_cur: u8,
+        draw_step: NonZeroU8,
+        full_deck_template: &[Card; N_DECK_CARDS as usize],
+    ) -> Self {
+        // 1. Build the global map using the original template
+        let mut map = [!0u8; N_CARDS as usize];
+        for (i, c) in full_deck_template.iter().enumerate() {
+            #[allow(clippy::cast_possible_truncation)]
+            {
+                map[c.mask_index() as usize] = i as u8;
+            }
+        }
+        // 2. Compute the bitmask for the cards currently present in the deck/waste
+        let mut mask: u32 = 0;
+        for c in current_cards {
+            let pos = map[c.mask_index() as usize];
+            assert!(pos != !0u8, "Card not found in deck template");
+            mask |= 1u32 << pos;
+        }
+
+        let mut deck = ArrayVec::new();
+        deck.try_extend_from_slice(current_cards).expect("Too many cards for ArrayVec");
+
+        Self { deck, draw_step, draw_cur, mask, map }
+    }
+
     #[must_use]
     pub fn new(deck: [Card; N_DECK_CARDS as usize], draw_step: NonZeroU8) -> Self {
         let mut map = [!0u8; N_CARDS as usize];
