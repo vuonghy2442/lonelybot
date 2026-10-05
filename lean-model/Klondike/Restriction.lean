@@ -69,6 +69,98 @@ def initialReachable (st : State) : Prop :=
   ∃ (d : Deal) (s : Nat) (play : List Move), d.WF ∧ 0 < s ∧
     (State.initial d s).run play = some st
 
+/-! ## The recurrence presentation (the induction infrastructure)
+
+`initialReachable` is a *deposit* — a play from a dealt initial
+state — which is what a witness hands over, but not what a proof
+consumes.  Every fence over the reachable fragment (`cleanStacks`,
+`anchorOK`, the probe's pile-card conservation, the planned B2
+induction) has the same shape: an invariant holds at the dealt
+initial states and survives one legal move.  The inductive below is
+that shape, and the iff hands any deposit to any such induction —
+the generic combinator every future gate-proof cites. -/
+
+/-- Reachability by recurrence: the dealt initial states, closed
+under one legal move.  No moves ever rewrite `deal` or `drawStep`, so
+the closure never leaves the dealt game it started in. -/
+inductive initialReachableR : State → Prop
+  /-- A dealt game's start. -/
+  | initial (d : Deal) (s : Nat) (hd : d.WF) (hs : 0 < s) :
+      initialReachableR (State.initial d s)
+  /-- One legal move preserves reachability. -/
+  | step (st : State) (m : Move) (st' : State)
+      (h : st.apply m = some st') (hprev : initialReachableR st) :
+      initialReachableR st'
+
+/-- The recurrence presents every deposit: replay the play backward,
+step by step, from its end. -/
+theorem initialReachableR_of_run : ∀ (play : List Move) (st₀ st : State),
+    st₀.run play = some st → initialReachableR st₀ → initialReachableR st := by
+  intro play
+  induction play with
+  | nil =>
+      intro st₀ st h hprev
+      simp only [State.run] at h
+      have he : st₀ = st := Option.some.inj h
+      subst he
+      exact hprev
+  | cons m ms ih =>
+      intro st₀ st h hprev
+      simp only [State.run] at h
+      cases hm : st₀.apply m with
+      | none => rw [hm] at h; exact absurd h (by simp)
+      | some s₁ =>
+          rw [hm] at h
+          exact ih s₁ st h (initialReachableR.step st₀ m s₁ hm hprev)
+
+/-- The recurrence has every deposit: exhibit the play, one
+constructor per move, by induction on the derivation. -/
+theorem initialReachable_of_initialReachableR {st : State}
+    (h : initialReachableR st) : initialReachable st := by
+  induction h with
+  | initial d s hdw hs =>
+      exact ⟨d, s, [], hdw, hs, rfl⟩
+  | step s₀ m s₁ hap hprev ih =>
+      obtain ⟨d, s, play, hdw, hs, hrun⟩ := ih
+      refine ⟨d, s, play ++ [m], hdw, hs, ?_⟩
+      rw [run_append, hrun]
+      show s₀.run [m] = some s₁
+      rw [run_singleton]
+      exact hap
+
+/-- **The iff** — the recurrence presentation and the deposit
+presentation carry the same states. -/
+theorem initialReachableR_iff {st : State} :
+    initialReachableR st ↔ initialReachable st :=
+  ⟨initialReachable_of_initialReachableR,
+   fun ⟨d, s, play, hdw, hs, hrun⟩ =>
+     initialReachableR_of_run play (State.initial d s) st hrun
+       (initialReachableR.initial d s hdw hs)⟩
+
+/-- **The generic combinator** (the recurrence's `rec`, packaged):
+to prove `I` of every dealt-reachable state, show `I` at every dealt
+initial state and that one legal move preserves it.  This is the
+invariant-preservation form every future gate-proof over the
+reachable fragment takes. -/
+theorem invariant_of_initialReachableR {I : State → Prop}
+    (hinit : ∀ (d : Deal) (s : Nat), d.WF → 0 < s → I (State.initial d s))
+    (hstep : ∀ (st st' : State) (m : Move), st.apply m = some st' →
+      I st → I st') :
+    ∀ st, initialReachableR st → I st := by
+  intro st h
+  induction h with
+  | initial d s hdw hs => exact hinit d s hdw hs
+  | step st m st' hap hprev ih => exact hstep st st' m hap ih
+
+/-- The combinator, deposit form: the reachability side of the iff
+absorbed, so the gate-proof reads directly off `initialReachable`. -/
+theorem invariant_of_initialReachable {I : State → Prop}
+    (hinit : ∀ (d : Deal) (s : Nat), d.WF → 0 < s → I (State.initial d s))
+    (hstep : ∀ (st st' : State) (m : Move), st.apply m = some st' →
+      I st → I st') :
+    ∀ st, initialReachable st → I st := fun st hr =>
+  invariant_of_initialReachableR hinit hstep st (initialReachableR_iff.mpr hr)
+
 /-- **B2, the engine's license**: on states reached from a deal, the
 full physical game and the engine's restricted move set have the same
 solvability.  The `→` direction is `solvable_of_engine` (proven);
@@ -421,12 +513,21 @@ theorem run_visClean : ∀ (play : List Move) (st st' : State),
           rw [hm] at h
           exact ih s₀ st' (apply_wf hwf m s₀ hm) (apply_visClean hwf hv hm) h
 
-/-- Every reachable state has clean visible stacks and is WF. -/
+/-- Every reachable state has clean visible stacks and is WF.
+
+REFIT onto the combinator (2026-10-05, the wave-20 pattern proof):
+the fence is exactly invariant-preservation — `I := fun st =>
+st.WF ∧ st.visClean` seeds at the dealt initial states
+(`initial_wf` + `initial_visClean`) and each step preserves it
+(`apply_wf` + `apply_visClean`).  The combinator replays this for
+every future gate; the old deposit-unpacking proof is retired. -/
 theorem initialReachable_visClean {st : State} (hreach : initialReachable st) :
-    st.WF ∧ st.visClean := by
-  obtain ⟨d, s, play, hdw, hs, hrun⟩ := hreach
-  exact run_visClean play (State.initial d s) st (initial_wf hdw hs)
-    (initial_visClean d s hdw) hrun
+    st.WF ∧ st.visClean :=
+  invariant_of_initialReachable
+    (I := fun st => st.WF ∧ st.visClean)
+    (fun d s hdw hs => ⟨initial_wf hdw hs, initial_visClean d s hdw⟩)
+    (fun _ st' m hap hI => ⟨apply_wf hI.1 m st' hap, apply_visClean hI.1 hI.2 hap⟩)
+    st hreach
 
 /-- **The clean-stacks theorem**: every visible stack of a reachable
 state follows the chaining rule — rank descending by one,
