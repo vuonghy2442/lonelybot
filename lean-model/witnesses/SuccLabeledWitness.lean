@@ -517,6 +517,282 @@ theorem wk_succ_labeled_as_stated_false :
   obtain ⟨r, hlive, _⟩ := h uState (S .king) uSucc uState_wf uStep
   exact uLabelLive_false r hlive
 
+/-! ## The reversibility objection, settled mechanically (addendum)
+
+The orchestrator's objection: the vacating shuffle is `pileStack ♥A`,
+and since only kings re-enter empty anchors while an ace's worry-back
+(`stackPile ♥A`) needs a 2-receiver that this board does not provide,
+the promotion is irreversible — so under Lemma A/A3's "reversible
+window" reading the window must split, the promotion is its OWN commit,
+the `Draw(♠K)` root shifts post-♥A, and the successor becomes
+`hole`-labeled — collapsing the refutation.  This section settles all
+three questions mechanically:
+
+* **Q1**: `uStep_instance` spells the exact commit instance behind
+  `uStep` — the window play `[pileStack ♥A]`, the accommodated state
+  `uMid`, and the **tableau arm** of `commitApplies`
+  (`∃ b, uMid.canPlace (♠K) b = true ∧ uMid.applyDrawTo (♠K) b = some
+  uSucc` at `b = Sum.inl p0`) — every guard read at **`uMid`**, the
+  post-unseat state — and `uNoRootCommit` shows NO arm of the
+  commitment fires at the root `uState` itself (tableau arm: all
+  anchors occupied, king without receivers; stack arm: 12 vs the frozen
+  spade height 0).  The instance is legal per the definitions exactly as
+  written; nothing about it is inferred.
+* **Q2**: reversibility is a premise NOWHERE in the `macroStep`
+  relation.  `macroStep st k st'' := ∃ st', accommodates st st' ∧
+  commitApplies st' k st''` (Macro.lean), `accommodates` is
+  `∃ play, st.run play = some st' ∧ ∀ m ∈ play, m.isAccommodation`
+  (Theorems.lean:162), and `commitApplies` has no window-content
+  premise.  The model's own strongest window gate,
+  `playSafeAccomm`/`safeAccommodates` (Theorems.lean:171-180), checks
+  only LOCKEDNESS of `pileStack` sources (B4's dead-pile hazard) and is
+  consumed only by Kills' closure invariants — never by
+  `macroStep`/`commitApplies`.  `uUnseat_safeAccommodates` proves the
+  promotion forms a **safe** accommodation window even under that
+  strictest gate: the source ♥A sits on anchor p0, not on any hidden
+  boundary (`uHead0_unlocked`), so `isLocked ♥A = false`.  And the
+  documented A-layer classification is kind-based, not
+  context-based (macro_formalization.md §2, Lemma A1: "only `PileStack`
+  (unlocked) and `StackPile` are reversible" — matching the engine's
+  `reverse_move`, src/state.rs:312-321): an unlocked `pileStack` is a
+  shuffle move by KIND, exactly where it fires.
+* **Q3**: the witness **survives** — `wk_succ_labeled_as_stated_false`
+  is a theorem about the model's `macroStep` as defined, and no
+  reversibility premise exists for it to violate.  What the objection
+  really identifies is the real finding, now filed: the window relation
+  is kind-based while the model's own irreversibility predicate
+  `irreversibleAt` (Theorems.lean:138) is context-based, and the two
+  disagree at `uState`: `uPromotionPermanent` proves the promotion is
+  permanent along the entire accommodation closure (at `uMid` every
+  accommodation move is dead — the seat pairs/ranks make every
+  `pileStack` and every `stackPile` fail, including the worry-back of
+  ♥A, whose only 2-rank receiver ♦2 is the same color — so
+  `accommodates uMid s'` forces `s' = uMid`).  The window contains
+  commit-shaped content the relation cannot see.  The two repair routes
+  for the orchestrator: (a) gate `macroStep`'s windows on
+  context-irreversibility (making the promotion its own commit — under
+  which reading `uShifted_hole_cover` proves THIS configuration IS
+  `hole`-labeled at the shifted root, the five-channel list holding
+  there), or (b) keep the kind-based window and add the `anchorHead`
+  channel.  Under (a) this file becomes the boundary record of the
+  pre-gate semantics; under (b) it stays the standing refutation.
+  Either way the witness is never deleted. -/
+
+
+/-! ### Q1 — the exact instance -/
+
+/-- Q1: behind `uStep` the commitment does NOT fire at the root — both
+arms of `commitApplies uState (drawCommit ♠K)` are dead there. -/
+private theorem uNoRootCommit :
+    ¬ ∃ s, commitApplies uState (MacroMove.drawCommit (S .king)) s := by
+  rintro ⟨s, hs⟩
+  rcases (commitApplies_draw_cases uState (S .king) s).mp hs with
+    ⟨b, hcp, -⟩ | hst
+  · cases b with
+    | inl a =>
+        obtain ⟨hfree, -⟩ := canPlace_inl_iff.mp hcp
+        exact uOccupied a hfree
+    | inr d =>
+        obtain ⟨-, -, hfit⟩ := canPlace_inr_iff.mp hcp
+        exact receivers_king_nil rfl hfit
+  · have h12 := applyDrawStackTo_heights uState (S .king) s hst
+    have hsp : (S .king).suit = Suit.spade := rfl
+    rw [hsp] at h12
+    have h0 : uState.heights Suit.spade = 0 := rfl
+    have hk12 : (S .king).rank.toIdx = 12 := rfl
+    omega
+
+/-- Q1: the full instance datum of `uStep` — the window play, the
+accommodated state, the tableau arm with its base, ALL read at `uMid`;
+and no root instance exists. -/
+theorem uStep_instance :
+    macroStep uState (MacroMove.drawCommit (S .king)) uSucc ∧
+    uState.run [Move.pileStack (H .ace)] = some uMid ∧
+    (∃ st', st' = uMid ∧ commitApplies st' (MacroMove.drawCommit (S .king)) uSucc) ∧
+    uMid.canPlace (S .king) (Sum.inl Anchor.p0) = true ∧
+    uMid.applyDrawTo (S .king) (Sum.inl Anchor.p0) = some uSucc ∧
+    ¬ ∃ s, commitApplies uState (MacroMove.drawCommit (S .king)) s :=
+  ⟨uStep, by rw [run_singleton]; exact uUnseat,
+    ⟨uMid, rfl, ⟨Sum.inl Anchor.p0, Or.inl ⟨uMid_canPlace, uSucc_apply⟩⟩⟩,
+    uMid_canPlace, uSucc_apply, uNoRootCommit⟩
+
+/-! ### Q2 — the window gates the model actually has -/
+
+/-- Q2: the unseat's source card is UNLOCKED — its seat is the anchor
+`p0`, not a hidden boundary, so the B4 gate does not fire. -/
+private theorem uHead0_unlocked : uState.isLocked (H .ace) = false := by
+  show (match uState.board.bottomOf (H .ace) with
+    | some (Sum.inr r) => uState.pileOfTopHidden r ≠ none
+    | _ => false) = false
+  rw [show uState.board.bottomOf (H .ace) = some (Sum.inl Anchor.p0) from
+    (Board.bottomOf_eq _ _ _).mpr (uBoard_topOf_inl Anchor.p0)]
+
+/-- Q2: the vacating play is a SAFE accommodation even under the
+model's strictest window gate (`playSafeAccomm`, the B4 locked-source
+condition). -/
+theorem uUnseat_safeAccommodates : safeAccommodates uState uMid :=
+  ⟨[Move.pileStack (H .ace)], uUnseat,
+    (fun m hm => by
+      rcases List.mem_cons.mp hm with rfl | hm
+      · rfl
+      · exact absurd hm (by simp)),
+    (fun c heq => by
+      have hcc : H .ace = c := by injection heq
+      subst hcc
+      exact uHead0_unlocked),
+    trivial⟩
+
+/-! ### The promotion is permanent along the accommodation closure -/
+
+/-- The mid state's heights pattern: only the heart was bumped. -/
+private theorem uMid_heights_heart : uMid.heights Suit.heart = 1 := by
+  show (if Suit.heart = (H .ace).suit then uState.heights Suit.heart + 1
+      else uState.heights Suit.heart) = 1
+  have h0 : uState.heights Suit.heart = 0 := rfl
+  by_cases hc : Suit.heart = (H .ace).suit
+  · rw [ite_eq_left hc, h0]
+  · exact absurd rfl hc
+
+private theorem uMid_heights_ne (s : Suit) (h : s ≠ Suit.heart) :
+    uMid.heights s = 0 := by
+  show (if s = (H .ace).suit then uState.heights s + 1 else uState.heights s) = 0
+  rw [ite_eq_right (fun hh => h (hh.trans (rfl : (H .ace).suit = Suit.heart)))]
+  rfl
+
+/-- Every anchored head other than the vacated ♥A sits at a foundation
+height 0 while its rank is a two or a five-to-nine — no `pileStack` of
+any of them can fire from `uMid`. -/
+private theorem uMid_head_heights (a : Anchor) (ha : a ≠ Anchor.p0) :
+    uMid.heights (uHead a).suit = 0 := by
+  cases a with
+  | p0 => exact absurd rfl ha
+  | p1 => exact uMid_heights_ne _ (by decide)
+  | p2 => exact uMid_heights_ne _ (by decide)
+  | p3 => exact uMid_heights_ne _ (by decide)
+  | p4 => exact uMid_heights_ne _ (by decide)
+  | p5 => exact uMid_heights_ne _ (by decide)
+  | p6 => exact uMid_heights_ne _ (by decide)
+
+/-- The only seated cards at `uMid` are the six remaining anchored
+heads (the dealt pile heads, minus the promoted ♥A). -/
+private theorem uMid_seated (c : Card)
+    (h : (uMid.board.bottomOf c).isSome = true) :
+    ∃ a : Anchor, a ≠ Anchor.p0 ∧ c = uHead a := by
+  obtain ⟨b, hb⟩ : ∃ b, uMid.board.bottomOf c = some b := by
+    cases hbot : uMid.board.bottomOf c with
+    | none => rw [hbot] at h; simp at h
+    | some b => exact ⟨b, rfl⟩
+  have htb : (uState.board.detach (Sum.inl Anchor.p0)).topOf b = some c :=
+    (Board.bottomOf_eq _ _ _).mp hb
+  cases b with
+  | inl a =>
+      by_cases hap0 : a = Anchor.p0
+      · rw [hap0, Board.detach_topOf] at htb
+        exact absurd htb (by simp)
+      · rw [Board.detach_topOf_ne _ _ _ (fun hh => hap0 (Sum.inl.inj hh))] at htb
+        have htb2 : uBoard.topOf (Sum.inl a) = some c := htb
+        rw [uBoard_topOf_inl] at htb2
+        exact ⟨a, hap0, (Option.some.inj htb2).symm⟩
+  | inr d =>
+      rw [Board.detach_topOf_ne _ _ _ sumInr_ne_sumInl] at htb
+      have htb2 : uBoard.topOf (Sum.inr d) = some c := htb
+      rw [uBoard_topOf_inr] at htb2
+      exact absurd htb2 (by simp)
+
+private theorem uMid_dead_pileStack (c : Card) (t : State)
+    (h : uMid.apply (Move.pileStack c) = some t) : False := by
+  rw [apply_pileStack_iff] at h
+  obtain ⟨-, b, hbot, hrk, -⟩ := h
+  obtain ⟨a, hap0, hcu⟩ := uMid_seated c (by rw [hbot]; exact rfl)
+  rw [hcu] at hrk
+  rw [uMid_head_heights a hap0] at hrk
+  cases a with
+  | p0 => exact absurd rfl hap0
+  | p1 => exact absurd hrk (by decide)
+  | p2 => exact absurd hrk (by decide)
+  | p3 => exact absurd hrk (by decide)
+  | p4 => exact absurd hrk (by decide)
+  | p5 => exact absurd hrk (by decide)
+  | p6 => exact absurd hrk (by decide)
+
+private theorem uMid_dead_stackPile (c : Card) (b : Base) (t : State)
+    (h : uMid.apply (Move.stackPile c b) = some t) : False := by
+  rw [apply_stackPile_iff] at h
+  obtain ⟨hg, hcp, -, -, -⟩ := h
+  by_cases hsh : c.suit = Suit.heart
+  · rw [hsh, uMid_heights_heart] at hg
+    cases b with
+    | inl a =>
+        obtain ⟨-, hking⟩ := canPlace_inl_iff.mp hcp
+        rw [hking] at hg
+        exact absurd hg (by have hk : (Rank.king).toIdx = 12 := rfl; omega)
+    | inr d =>
+        obtain ⟨-, hvis, hfit⟩ := canPlace_inr_iff.mp hcp
+        obtain ⟨a, hap0, hdh⟩ := uMid_seated d hvis
+        rw [hdh] at hfit
+        obtain ⟨hgc1, hgc2⟩ := (canSitOn_eq c (uHead a)).mp hfit
+        cases a with
+        | p0 => exact absurd rfl hap0
+        | p1 =>
+            have hcol : c.suit.color = (D .two).suit.color := by rw [hsh]; rfl
+            exact absurd hcol hgc2
+        | p2 => exact absurd (hg.symm.trans hgc1) (by decide)
+        | p3 => exact absurd (hg.symm.trans hgc1) (by decide)
+        | p4 => exact absurd (hg.symm.trans hgc1) (by decide)
+        | p5 => exact absurd (hg.symm.trans hgc1) (by decide)
+        | p6 => exact absurd (hg.symm.trans hgc1) (by decide)
+  · rw [uMid_heights_ne c.suit hsh] at hg
+    omega
+
+/-- The post-promotion state is accommodation-dead: every shuffle move
+is illegal from `uMid`. -/
+private theorem uMid_dead (m : Move) (hm : m.isAccommodation = true)
+    (t : State) (hap : uMid.apply m = some t) : False := by
+  cases m with
+  | pileStack c => exact uMid_dead_pileStack c t hap
+  | stackPile c b => exact uMid_dead_stackPile c b t hap
+  | draw => simp [Move.isAccommodation] at hm
+  | reveal a => simp [Move.isAccommodation] at hm
+  | deckPile c b => simp [Move.isAccommodation] at hm
+  | deckStack c => simp [Move.isAccommodation] at hm
+  | pilePile c b => simp [Move.isAccommodation] at hm
+
+/-- **The promotion is permanent along the window's own closure**: no
+accommodation play from `uMid` ever leaves it — in particular the
+worried-back ace can never return to the tableau, by kind the
+`stackPile ♥A` inverse the objection names and by every other shuffle
+move besides. -/
+theorem uPromotionPermanent : ∀ (s' : State), accommodates uMid s' → s' = uMid := by
+  rintro s' ⟨play, hrun, hall⟩
+  induction play generalizing s' with
+  | nil => exact (Option.some.inj hrun).symm
+  | cons m ms ih =>
+      have hm : m.isAccommodation = true := hall m (by simp)
+      have hrun' : (match uMid.apply m with
+        | some s'' => s''.run ms | none => none) = some s' := hrun
+      cases hap : uMid.apply m with
+      | none => rw [hap] at hrun'; exact absurd hrun' (by simp)
+      | some s₁ =>
+          rw [hap] at hrun'
+          exact (uMid_dead m hm s₁ hap).elim
+
+/-! ### (a)-route coverage — the shifted root IS hole-labeled -/
+
+/-- Under the objection's reading (the promotion re-grouped as its own
+commit), the successor's root is `uMid` itself, and THERE the five
+channels suffice: the hole is live at `uMid` (anchor 0 is free) and the
+commitment goes through it with the empty accommodation. -/
+theorem uShifted_hole_cover :
+    LabelLive uMid (S .king) Label.hole ∧
+    SuccThrough uMid (S .king) Label.hole uSucc :=
+  ⟨⟨Anchor.p0, rfl, Board.detach_topOf uState.board (Sum.inl Anchor.p0)⟩,
+   ⟨uMid, [], rfl, (fun _ hm => by simp at hm),
+     ⟨Sum.inl Anchor.p0, uMid_canPlace, uSucc_apply⟩, rfl⟩⟩
+
 end SuccLabeled
 
 #print axioms SuccLabeled.wk_succ_labeled_as_stated_false
+#print axioms SuccLabeled.uStep_instance
+#print axioms SuccLabeled.uUnseat_safeAccommodates
+#print axioms SuccLabeled.uPromotionPermanent
+#print axioms SuccLabeled.uShifted_hole_cover
