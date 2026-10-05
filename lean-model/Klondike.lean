@@ -3,6 +3,7 @@ import Klondike.Cycle
 import Klondike.Kit
 import Klondike.Board
 import Klondike.State
+import Klondike.Movability
 import Klondike.Pace
 import Klondike.Move
 import Klondike.Theorems

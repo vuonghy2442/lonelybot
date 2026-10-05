@@ -1,9 +1,10 @@
 # The proof farm — handoff document
 
-**Census: 12 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 4
-· Restriction 2 · TwinExchange 1; zero bullets).  Pinned by
+**Census: 14 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 3
+· Movability 1 · Restriction 2 · TwinExchange 1 · TwinQuotient 2;
+zero bullets).  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 12 are
+any NEW sorry or the return of a refuted constant.  All 14 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -147,14 +148,16 @@ proved: `Card.only_blocker_is_twin` + `Card.receivers` +
 `Card.mem_receivers_iff` (Basic.lean), `State.frontier` (State.lean —
 the `ClosureCtx.frontier` mirror), `Rank.toIdx_inj` homed upstream.
 
-Work order: the keystone first — the two K-rows consume it.
+Work order: the keystone first — K1 consumes it.  (K2 landed
+2026-10-05 keystone-tainted: its proof *cites* the keystone as a
+premise, so it auto-cleans when the keystone lands — no re-proof.)
 
 | item | file:line | tag | route |
 |---|---|---|---|
 | `vis_of_safeAccommodates` | Kills:40 | [M] | play induction; the foundation-side shadow (closure-foundation ⊆ root-foundation ∪ root-vis) is the carry; `stackPile`'s new visible comes from the firing foundation |
 | `State.frontier_spec` | Kills:52 | [M] | `find?` spec over the `toIdx`-filtered `Rank.all`; minimality needs the filtered list's `toIdx`-sortedness (decide-able list fact) |
 | `K1_stack_goal_dead` | Kills:75 | [M] | keystone + frontier_spec + the climb lemma (heights rose past `k` ⟹ rank `k` was `pileStack`-fired; play induction) |
-| `K2_tableau_goal_dead` | Kills:89 | [E] | `canPlace` case-split; king excluded by `hking`; `inr d` ⇒ `d ∈ receivers` (mem_receivers_iff) ⇒ keystone contradicts `hrecv` |
+| ~~`K2_tableau_goal_dead`~~ | Kills:107 | **done** (2026-10-05) | PROVEN (wave-12 K2 session): `Bool.eq_false_or_eq_true` split; the anchor arm king-killed (`king_of_canPlace_inl`, `hking`), the tableau arm via `canPlace_inr_iff` ⇒ `mem_receivers_iff` ⇒ the keystone contradicts `hrecv` both disjuncts (root-vis false: `simp at` the conjunct; the worry-back rank bound: `omega`).  Keystone-tainted (`sorryAx` only via `vis_of_safeAccommodates`); the row's own marker gone — census Kills 4 → 3.  §8.1's substrate banked same session in `Klondike/Movability.lean` (see the session note) |
 
 **Not yet statable (prerequisites, then come back)** — text rows, do
 NOT add constants prematurely (the no-guessing rule; C12's deferral is
@@ -173,6 +176,11 @@ the model):
 - **K6** (the four-card ball): K2 + the climb-blocked twin + the
   movability-algebra encoding (§8.1, `free`/`vis` xor form) — statable
   after K1/K2 land; the xor algebra is its own reading task.
+  UPDATE 2026-10-05 (K2 session): K2 landed; the §8.1 encoding is
+  banked (`Klondike/Movability.lean` — `Card.underPair` IS the
+  ball's under-pair, `orVis_of_movableOf` the `or_vis` door,
+  `movableOf_flipSuit` the ×0b11 pair property); the remaining K6
+  prerequisite is K1's climb-blocked twin fact.
 - **C12 (forced reveal-commitment)**: needs "reveal-by-stacking" — the
   model's `applyPileStack` never decrements `depths`.  A composite move
   or a `commitApplies` extension is a design decision first (orchestrator).
@@ -844,3 +852,56 @@ time alongside the cruxes; NOT ahead of them.
 - **Repo-root clutter**: `a_*.txt` ×5, `fail_*.txt`, logs, notebooks,
   `src/bit_deck_no_bmi2.rs` (orphan Rust in src/) — ignore rules or
   delete. (lean-verify/ was deleted 2026-09-13 — row closed.)
+
+## Session note (2026-10-05 — wave-12's K2 lands; §8.1's Movability substrate banked)
+
+- **`K2_tableau_goal_dead` PROVEN** (Kills.lean, the staged [E] route
+  verbatim): `Bool.eq_false_or_eq_true` split; the anchor arm
+  king-killed, the tableau arm via `canPlace_inr_iff` +
+  `Card.mem_receivers_iff`, the shared keystone
+  `vis_of_safeAccommodates` contradicting the death conjuncts both
+  ways (`simp at hvis0` on root-visibility; `omega` on the
+  worry-back rank bound `heights ≤ rank` vs `< heights`).  Axioms
+  `[propext, sorryAx, Quot.sound]` — the `sorryAx` arrives ONLY
+  through the keystone (the sibling session's row), so K2's own
+  census marker is gone (Kills 4 → 3) and it auto-cleans at
+  keystone-landing.
+- **`Klondike/Movability.lean` NEW** (§8.1 / ledger C15's substrate,
+  the K6 bullet's "movability-algebra encoding"): `Card.underPair`
+  (the Option-shaped twin pair one rank below, opposite color — the
+  engine's `reduce_rank_swap_color`/`swap_suit` pair members, order
+  included), the sitter recognition `canSitOn_iff_underPair`,
+  §8.1's formula as the DEFINITION (`Card.movableOf` on raw
+  vis/locked functions; `State.free = vis ∧ ¬locked`, the
+  `State.movable` wrapper), `orVis_of_movableOf` (the `or_vis` door —
+  K2's §8.5 receiver premise), `movableOf_ace` (aces movable whenever
+  the type-pair is visible), `movableOf_flipSuit` (the ×0b11
+  type-pair property via `underPair_flipSuit_of_pred` +
+  `movable_pair_symm`), and the engine mask transcription
+  (`Suit.code`/`Card.maskIndex` — the rank-parity-interleaved layout
+  of src/card.rs; `Mask.maskOf`/`shr1`/`shl4`/`alt`/`spread`/
+  `bottomMask` — `bottom_mask_of` on little-endian position words).
+  Everything listed is PROVEN, axiom-clean [propext, Quot.sound]
+  (`movableOf_flipSuit`/`State.movable`: [propext]); registered in
+  the umbrella after `Klondike.State`.
+- **The §8.7 owed equivalence STATED, not claimed**:
+  `Mask.bottomMask_matches_movableOf` — the sole new sorry (census
+  +1), one-paragraph decode plan in its docstring (maskIndex
+  bijection + the `± 4` under-pair reads + the ace underflow + the
+  16-case Bool exhaustion; no u64 truncation event below 52+4 < 64).
+  The Rust side stays bound by `bm_algebra_matches`.
+- **Substrate relocation**: `Color.flip`, `color_ne_flip`,
+  `Rank.pred`, `rank_pred_iff` moved Realizability → Basic.lean
+  (verbatim, pointer notes both sides — the wave-14 relocation
+  pattern; Movability needs them upstream of State).  Realizability
+  unchanged otherwise, build green.
+- **Census discipline**: baseline updated (Kills 3, Movability 1,
+  total 14, pinned OK).  LEGAL TRAP recorded: the census greps the
+  literal `:= sorry` text — do not write that string inside
+  doc-comments/prose (the K2 taint note tripped it before rewording).
+- **Next tickets**: (1) the keystone (sibling, in flight) — K2
+  auto-cleans; (2) `Mask.bottomMask_matches_movableOf` [M];
+  (3) `frontier_spec` (K1's premise) then K1 — which also unblocks
+  K6's climb-blocked-twin fact (the four-card ball is otherwise
+  banked); (4) the doc-side alignment note below lands in
+  macro_formalization.md §8.8 (append-only keep-§8.7-caveat).

@@ -943,3 +943,49 @@ channel — on 1,027 corpus states) and both 128-game verdict sweeps.
 - What this section does *not* claim: any sufficient-direction closed
   form on the diagonal core (§8.4), or completeness of depth-≤ 1
   channels there — the crease histogram is the honest boundary.
+
+### 8.8 Lean status addendum (2026-10-05, the K2 farm session)
+
+Appended keep-§8.1–§8.7-untouched per the ledger discipline; this
+subsection is the Lean-side status the section above has been
+awaiting (ledger C15).
+
+- **K2's Lean obligation is discharged**: `K2_tableau_goal_dead`
+  (lean-model/Klondike/Kills.lean) — the §8.5 kill as a closure
+  invariant over `safeAccommodates`.  Both receivers failing the
+  root visibility test (not root-visible, and ranked at-or-above
+  their suits' root heights — the un-worry-back-able bound of the
+  keystone's second disjunct) pins `st'.canPlace X b = false` at
+  every closure state.  Route: the anchor arm of `canPlace` needs a
+  king (excluded — the empty-pile gate stays K5's jurisdiction); the
+  tableau arm's visible base `d` is a receiver (`canSitOn`-iff), and
+  the closure's visibility bound (the shared
+  `vis_of_safeAccommodates` keystone, stated by the sibling session)
+  contradicts both death conjuncts.  The proof cites the keystone as
+  a premise — keystone-tainted (`sorryAx`) until that row lands, at
+  which point it auto-cleans without re-proof.
+- **§8.1 is now DEFINED in Lean by the formula**
+  (lean-model/Klondike/Movability.lean): `Card.movableOf` is the
+  Boolean algebra exactly as displayed in §8.1 — the under-pair as
+  `Card.underPair` (the twin pair at `rank(c) − 1`, opposite color —
+  the engine's `reduce_rank_swap_color`/`swap_suit` pair, named
+  members and order), `free = vis ∧ ¬locked` (`State.free`), aces
+  movable whenever the type-pair is visible (`movableOf_ace`), the
+  ×0b11 type-pair property PROVEN (`movableOf_flipSuit`), and the
+  `or_vis` door — §8.1's first conjunct — as `orVis_of_movableOf`,
+  the formal premise of §8.5's K2/K6 receiver arguments.
+- **The §8.7 owed equivalence is STATED, not claimed**:
+  `Mask.bottomMask_matches_movableOf` (same file) — the engine's
+  `bottom_mask_of` transcribed onto little-endian position words
+  (the `Card.maskIndex` layout: `4 · rank + code` with the color bit
+  xored by the rank parity, src/card.rs) with the mask arithmetic's
+  shape (`>>> 1` twin reads, `<<< 4` under-pair reads, the ALT cut,
+  the ×0b11 spread) as DEFINITIONS, and one-paragraph per-position
+  decode plan in the docstring.  The Rust instrument
+  `bm_algebra_matches` remains the code-side binding; this Lean row
+  is the standing caveat's formal debt.
+- Open rows unchanged by this session: the keystone,
+  `State.frontier_spec`, K1 (FARM.md wave-12); K6's
+  "movability-algebra encoding" prerequisite named in the wave-12 row
+  is banked (see above), leaving K1's climb-blocked-twin fact as its
+  remaining prerequisite.

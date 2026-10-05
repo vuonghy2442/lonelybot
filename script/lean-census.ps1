@@ -18,8 +18,18 @@ $baseline = @{
                         # (least_redundantStack_dominant PROVEN with the +hsafe
                         # repair, per its wave-11 concern, by the parallel
                         # session 2026-09-13)
-  'Kills.lean'     = 4  # vis_of_safeAccommodates (keystone), State.frontier_spec,
-                        # K1_stack_goal_dead, K2_tableau_goal_dead
+  'Kills.lean'     = 3  # vis_of_safeAccommodates (keystone), State.frontier_spec,
+                        # K1_stack_goal_dead — K2_tableau_goal_dead PROVEN
+                        # 2026-10-05 (wave-12 K2 session; keystone-tainted:
+                        # #print axioms K2_tableau_goal_dead = [propext, sorryAx,
+                        # Quot.sound], the sorryAx arriving via the keystone)
+  'Movability.lean' = 1  # +wave-12 K2 session (2026-10-05): §8.1's movability
+                        # algebra, Klondike/Movability.lean — the single open row
+                        # is Mask.bottomMask_matches_movableOf, the §8.7 owed
+                        # equivalence (the engine's mask arithmetic vs the
+                        # formula; the Rust side is already bound by
+                        # bm_algebra_matches) — plan in the docstring.
+                        # Everything else in the file is proven, axiom-clean.
   'Restriction.lean' = 2  # solvableEngine_iff_solvable_of_reachable (B2),
                         # engine_replay_of_pilePile (the replay step)
   'TwinSwap.lean'  = 0  # Board.aboveOf_congr_off PROVEN 2026-09-14 via the

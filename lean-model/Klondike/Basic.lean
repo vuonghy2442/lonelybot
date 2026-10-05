@@ -31,6 +31,18 @@ theorem Color.eq_of_ne_black {c : Color} (h : c ≠ Color.black) : c = Color.red
   | red => rfl
   | black => exact absurd rfl h
 
+/-- Color negation.  RELOCATED 2026-10-05 from Realizability.lean —
+the §8.1 movability algebra (Klondike/Movability.lean, wave-12 K2)
+needs the under-pair's color geometry upstream of State. -/
+def Color.flip : Color → Color
+  | .red => .black
+  | .black => .red
+
+/-- The two colors: a color different from `κ` is its flip.  RELOCATED
+2026-10-05 from Realizability.lean (with `Color.flip`). -/
+theorem color_ne_flip {κ κ' : Color} (h : κ ≠ κ') : κ = κ'.flip := by
+  cases κ <;> cases κ' <;> simp [Color.flip] at h ⊢
+
 /-- A suit, factored as a color plus a pair index. -/
 structure Suit : Type where
   /-- The color — everything the tableau rules see. -/
@@ -101,6 +113,30 @@ def Rank.all : List Rank :=
   [.ace, .two, .three, .four, .five, .six, .seven, .eight, .nine, .ten, .jack, .queen, .king]
 
 theorem Rank.mem_all (r : Rank) : r ∈ Rank.all := by cases r <;> simp [Rank.all]
+
+/-- Rank predecessor (aces have none).  RELOCATED 2026-10-05 from
+Realizability.lean — the §8.1 movability algebra
+(Klondike/Movability.lean, wave-12 K2) needs the under-pair's rank
+geometry upstream of State. -/
+def Rank.pred : Rank → Option Rank
+  | .ace => none
+  | .two => some .ace
+  | .three => some .two
+  | .four => some .three
+  | .five => some .four
+  | .six => some .five
+  | .seven => some .six
+  | .eight => some .seven
+  | .nine => some .eight
+  | .ten => some .nine
+  | .jack => some .ten
+  | .queen => some .jack
+  | .king => some .queen
+
+/-- Rank predecessor ↔ the numeric view.  RELOCATED 2026-10-05 from
+Realizability.lean (with `Rank.pred`). -/
+theorem rank_pred_iff (r r' : Rank) : r.pred = some r' ↔ r'.toIdx + 1 = r.toIdx := by
+  cases r <;> cases r' <;> simp [Rank.pred, Rank.toIdx]
 
 /-- A playing card. -/
 structure Card : Type where

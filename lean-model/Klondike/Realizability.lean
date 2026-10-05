@@ -15,26 +15,9 @@ truthful, and the parity lemma is its counting core:
 /-- The card's type: what the tableau rules see. -/
 def Card.typeOf (c : Card) : Rank × Color := (c.rank, c.suit.color)
 
-/-- Color negation. -/
-def Color.flip : Color → Color
-  | .red => .black
-  | .black => .red
-
-/-- Rank predecessor (aces have none). -/
-def Rank.pred : Rank → Option Rank
-  | .ace => none
-  | .two => some .ace
-  | .three => some .two
-  | .four => some .three
-  | .five => some .four
-  | .six => some .five
-  | .seven => some .six
-  | .eight => some .seven
-  | .nine => some .eight
-  | .ten => some .nine
-  | .jack => some .ten
-  | .queen => some .jack
-  | .king => some .queen
+-- (RELOCATED 2026-10-05 → Basic.lean: `Color.flip`, `color_ne_flip`,
+--  `Rank.pred`, `rank_pred_iff` — the wave-12 K2 session's Movability
+--  substrate needs the under-pair geometry upstream of State.)
 
 /-- The type of the cards that can sit directly on type-`t` cards
 (`None` for aces) — their `t−4`. -/
@@ -89,16 +72,10 @@ theorem placedBelow_ace (bd : Board) (κ : Color) :
 The finite-cardinality plumbing — `NoDupP`, the bijection count
 `length_eq_of_bijection`, the filter splits, the universe's
 distinctness — lives in `Klondike.Kit`.  What stays here are the
-card-rule lemmas the parity lemma's proof reduces to.
+card-rule lemmas the parity lemma's proof reduces to (`color_ne_flip`
+and `rank_pred_iff` moved to Basic.lean — see the relocation note
+above).
 -/
-
-/-- The two colors: a color different from `κ` is its flip. -/
-theorem color_ne_flip {κ κ' : Color} (h : κ ≠ κ') : κ = κ'.flip := by
-  cases κ <;> cases κ' <;> simp [Color.flip] at h ⊢
-
-/-- Rank predecessor ↔ the numeric view. -/
-theorem rank_pred_iff (r r' : Rank) : r.pred = some r' ↔ r'.toIdx + 1 = r.toIdx := by
-  cases r <;> cases r' <;> simp [Rank.pred, Rank.toIdx]
 
 /-- Edge legality transports types: what sits on `d` has exactly
 `d`'s below-type. -/

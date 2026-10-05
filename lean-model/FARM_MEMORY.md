@@ -2241,3 +2241,28 @@ tree).
   run_root_of_chain, card_base) + TwinSimulation.lean (the [M] assembly + both bridges + the rows; the Restriction import moves there);
   MergeFire.lean will need `import Klondike.BoardWalk` when the walk kit moves (it consumes RunChain + run_root_of_chain + card_base but does
   not import TwinQuotient).
+
+## Kills/Movability — the K2 session's paid facts (2026-10-05)
+
+- CENSUS TRAP: lean-census.ps1 greps the literal text `":= sorry"` in
+  .lean sources — it counts DOC-COMMENT mentions too. Never write that
+  string in prose/docstrings; say "the sorry marker".
+- Dot-projection binds to the first EXPLICIT ARG's type, not the def's
+  namespace: `def Card.suitCode (s : Suit)` gives NO `s.suitCode` —
+  name it `Suit.code`. (FARM.md's card has the State half only.)
+- `Bool.eq_false_or_eq_true b : b = true ∨ b = false` — TRUE branch
+  FIRST. `Bool.xor` has infix `^^` (Bool.xor_comm exists).
+- Twin identification is NOT rfl at variable suits: `flipSuit (t)` of
+  a card whose suit is symbolic reduces to `!!p`, which is match-stuck
+  at a variable Bool — close twin-shape equalities with
+  `simp [Card.flipSuit, Suit.flipPair, Bool.not_not]` (keep
+  Card.flipSuit_flipSuit in the set), and state under-pair shape
+  lemmas first (`underPair_of_pred`, then a `_flipSuit_of_pred` twin
+  of it) so consumers never fumble the identification.
+- The K-rows' canPlace kit lives in Move.lean: `canPlace_inl_iff`,
+  `canPlace_inr_iff`, `king_of_canPlace_inl`, `isVis_of_canPlace_inr`,
+  `canSitOn_of_canPlace_inr` — K2's whole proof is that kit +
+  mem_receivers_iff + the keystone + omega.
+- Relocation executed (the wave-14 pattern): `Color.flip`,
+  `color_ne_flip`, `Rank.pred`, `rank_pred_iff` Realizability →
+  Basic.lean verbatim; Movability.lean imports State only (low DAG).
