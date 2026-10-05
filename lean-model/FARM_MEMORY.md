@@ -2518,3 +2518,64 @@ corner's cell identification). Pins: `State.mid_access_of_noSeat` (the no-landin
   bare rw first. And `run_split_bind` will not fire on `[a, b] ++ ms` (rw is syntactic): pre-rewrite with
   `rw [show [a, b] ++ ms = [a] ++ ([b] ++ ms) from rfl] at h` - the append normal forms agree by rfl, but only the show makes the
   pattern visible.
+
+## Session note — the succ_labeled witness session (2026-10-05, wave 19: the anchored-head unseat REFUTED-with-witness)
+
+NEXT ticket 1 of C2Streamlined's wave-18 handoff. No sorries (census 12 unchanged, pinned OK). New witness:
+`witnesses/SuccLabeledWitness.lean` - `SuccLabeled.wk_succ_labeled_as_stated_false`, decide-anchored, axioms
+[propext, Classical.choice, Quot.sound]. Came out via lake-env-lean first, then `lake build Klondike Witnesses` green
+(66 jobs; the glob picks up every witnesses/*.lean - NO facade import needed, per the umbrella's own doc).
+
+THE DATUM: the as-stated P0 (every Draw-commitment macro successor labeled by a channel live at the ROOT) is FALSE,
+and no re-scoping of the current five labels covers the route. Countermodel (extends C2KingAnchorWitness's empty-board
+family - keep its pristine zero-heights/spade-blocked-stock skeleton, CHANGE the board): a WF state with ALL SEVEN
+ANCHORS OCCUPIED each by its own dealt pile HEAD (board_edges' deal-adjacency clause `(piles a).head? = some c`
+licenses the seat - NON-KING heads are legal there!), heads non-spade (♥A ♦2 ♣5..♣9), ♥A the only removable head (an
+ace at foundation height 0). Route: `pileStack ♥A` unseats through the anchor's head seat (the head's rank-dig),
+anchor p0 frees, ♠K commits onto it (macroStep via run_singleton + applyDrawTo_iff at the detached-board state; the
+commit needs uMid's WF - apply_wf of the unseat - for reachablePos_step1). At the root ALL FIVE channels die:
+direct/dig/borrow on receivers_king_nil; hole on the occupied anchors (uOccupied); toStack by the SPADE FREEZE:
+invariant (heights spade = 0 AND no spade seated) survives pileStack (a spade source would need a seated ♠A - the
+seat half) and stackPile (a spade source needs rank+1 = heights spade = 0 - the height half), so the 12-run's
+applyDrawStackTo guard stays dead along EVERY accommodates-play. STATE THE FREEZE FOR A GENERAL START STATE (the
+induction must quantify st INSIDE the play induction - uFreeze_step once, freeze_run per play - or the cons-tail
+cannot re-enter with the successor's invariant; a fixed-st induction motive silently proves only the prefix).
+Channel characterization + candidate sixth atom `anchorHead a` (liveness: a REMOVABLE anchored head, ∃ c,
+topOf (inl a) = some c ∧ c.rank.toIdx = heights c.suit ∧ topOf (inr c) = none; pin `[anchorHead a]`) live in the
+witness docstring; the Label-list decision is orchestrator + sibling-C2 scope (C2Streamlined untouched). For the
+orchestrator: ADD the channel or re-scope the liveness reads; a per-route restatement of succ_labeled is the wider
+edit. Docs: append-only §7 appendix in docs/macro_formalization.md points at the datum.
+
+Traps this session hit, for the next farmer:
+
+- LEAN 4.34 STRUCTURE-INSTANCE PARSE TRAP (the big one): `{ src with field := v,` - the FIRST field ON the
+  `{ src with ...` line - fails parse with "unexpected identifier; expected '}'" AT THE COMMA, while the same text
+  on ONE line parses. Multi-line `{ src with ... }` MUST put `with` at END-OF-LINE (library style:
+  `{ uState with\n    board := .., heights := .. }`). The parse failure CASCADES SILENTLY: the downstream 'rfl
+  failed' at the def literal and a spurious 'depends on [.. sorryAx ..]' in the same region were the un-parsed
+  def's fallout, not real defeq problems. Diagnose parse-vs-elab BEFORE chasing unification (isolate the snippet in
+  a scratch root-level file and lake-env-lean it).
+- rw-ON-PROJECTION, KingAnchor's rule tightened for NON-EMPTY boards: `uState.board.topOf b` does NOT rw with a
+  `uBoard.topOf`-lemma (both reduce to the same function, but rw is SYNTACTIC) - bridge with the defeq-cast
+  `have h' : uBoard.topOf b = some c := hb` FIRST, consume rw on h'. Same for isVis-typed premises (cast to the
+  `(bottomOf c).isSome` shape before rw-ing the bottomOf), and for anchor-occupancy: `rw [hocc] at hfree;
+  simp at hfree` works where a bare `Option.noConfusion (Eq.trans ..)` TERM fails (the elaborator cannot unify
+  noConfusion's motive in term mode against False).
+- posOf/membership: after `rw [hc' : c = uHead a]` do NOT `show Cycle.findFirstIdx ... = none` before
+  `Cycle.posOf_eq_none` - the show-unfold orphans the Cycle's cursor as a metavariable ("Expected type must not
+  contain metavariables"). Keep the goal as `st.stock.posOf (uHead a) = none` and hand posOf_eq_none a membership
+  proof (`show uHead a ∉ uStockList by cases a <;> decide`; the defeq st.stock.cards = uStockList is accepted at
+  the argument).
+- `simp_all` does NOT discriminate Card-literal equalities (`h : H .ace = D .two` survives simp_all [uHead]; Card
+  is a flat structure, injection needs decide): head-distinctness by
+  `cases a <;> cases a' <;> first | rfl | exact absurd h (by decide)`.
+- `rcases ... with rfl | h` is the syntax (`into` is not); for the tail arm of a cons-membership split,
+  `exact absurd h (by simp)` (h : m ∈ [] - `List.mem_singleton.mp` is for [x]-shaped hypotheses).
+- omega needs the NUMERAL on both atoms: after freeze, `h12 : (S .king).rank.toIdx = st'.heights (S .king).suit`
+  + `h0 : st'.heights Suit.spade = 0` do NOT omega alone (x = 0 is satisfiable) - add
+  `have hk12 : (S .king).rank.toIdx = 12 := rfl` and rw ONE party's suit-projection to the syntactic `Suit.spade`.
+- SHIPPED REUSABLES (this file's namespace, import Klondike.C2Streamlined only): `applyDrawStackTo_heights`
+  (guard extraction from a fired applyDrawStackTo: cases hp : reachablePos, the have-h'-cast to the ite-liteal
+  per Macro.lean's own iff-proof, then ite_eq_left/right), and the freeze-invariant shape
+  `(heights σ = 0 ∧ ∀ c, c.suit = σ → bottomOf c = none)` closed under the pileStack/stackPile one-steps - any
+  suit-freeze goal (the B-side anchored-head families) can re-derive it this way.

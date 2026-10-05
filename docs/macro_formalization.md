@@ -1160,3 +1160,26 @@ the rung-gating of the class joins, and the L1/L2 corner), the first
 two being REPAIRS the corpus regime suggests are harmless (the
 sweep-merged measurement never separates what the rung premise
 joins).
+
+### §7 appendix (2026-10-05, wave 19) — the channel-list gap is
+### witnessed: the anchored-head unseat
+
+The wave-18 addendum's first residual — "the channel-list gap for
+king-anchor landings" — is now a prover-confirmed datum rather than an
+analytic expectation: `witnesses/SuccLabeledWitness.lean`
+(`wk_succ_labeled_as_stated_false`, decide-anchored, axioms
+`[propext, Classical.choice, Quot.sound]`) refutes the as-stated P0 in
+the exact wave-12/17 spelling.  The countermodel: a WF state whose
+seven anchors are all occupied by their own dealt (non-spade) pile
+heads, height-zero foundations, ♠K drawn first — the accommodation
+`pileStack ♥A` unseats through an anchor's head seat (the head-ace's
+rank-dig at height 0), and the king lands on the vacated anchor, a
+macro successor labeled by NOTHING: `direct`/`dig`/`borrow` die on the
+king's empty receiver set, `hole` dies at the root (no free anchor),
+`toStack` dies by the spade-freeze invariant (no visible spade can
+ever climb, so the stack arm's 12-rung guard stays dead along every
+accommodation).  The one-paragraph channel characterization and the
+candidate sixth channel (`anchorHead a`, liveness reading a *removable
+anchored head* rather than a free anchor, pin `[anchorHead a]`) live in
+the witness's docstring — the Label-list decision itself is
+orchestrator scope (C2Streamlined untouched by that session).
