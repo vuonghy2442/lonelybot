@@ -1694,3 +1694,114 @@ NEXT (tickets this verdict enables, in order):
 3. (wave-18's standing tickets 1-4 unchanged.)
 
 
+
+## wave 20 (2026-10-05) — the C2 restoration: the five gated universals in their honest regimes, and the reachable-corner countermodels that bound them
+
+Session: farm-c2-restoration (this wave-20 branch).  `lake build Klondike
+Witnesses` green; census unchanged at 12 (C2Streamlined 0 — sorry-free).
+
+THE TWO-FOLD ANSWER this wave gives the wave-19B ticket 1 ("prove the
+reach-gated universals, all five"):
+
+**(A) THE GATED UNIVERSALS DO NOT HOLD NAIVELY — the reachable corner
+is its own countermodel family** (`witnesses/SuccLabeledWitness.lean`,
+the reachable-corner addendum — decide-anchored, all axiom-clean):
+`rState` is the dealt INITIAL state of an honest 52-card deal (reach:
+`rState_reachable`, the EMPTY play — no fence can bite; ♠K drawn
+first; every pile's top dealt card a non-spade so the spade suit is
+frozen) with ♥A — pile 0's single card — UNCOVERED ON ITS ANCHOR at
+foundation height 0.  There:
+
+- the anchored-ace promotion route fires (`rUnseat`, `rStep`): the
+  `Draw(♠K)` commitment lands the king on the vacated anchor while
+  every current channel fails to label the successor
+  (`rSucc_unlabeled`; `hole` is LIVE at the root but its empty-window
+  signature cannot name a promotion successor — the heart height
+  separation `rRoute_not_hole`): **`wk_succ_labeled_reachable_false`**
+  — the wave-19B "RESTORED under hreach" reading for succ_labeled was
+  wrong (it fenced only the pristine shape);
+- AND the same root splits the four class universals' gated readings
+  too: with six free anchors, three root tableau landings of the
+  frozen king are pairwise closure-separated (`rLand_split`, the
+  frozen-seat invariant `rFrozen_seat_step/_run` — pileStack ♠K needs
+  rung 12 against the frozen 0; no non-king spade can ever seat;
+  stackPile cannot land on the occupied anchor) while all three go
+  through the live, P2-safe `hole` label with empty windows:
+  **`wk_c2_reachable_false`**, **`wk_same_pin_reachable_false`**,
+  **`wk_p2_direct_reachable_false`**, **`wk_crease_reachable_false`**.
+  The wave-19B per-pillar table is revised in-file
+  (witnesses/KingAnchorReachProbe.lean's verdict table + its
+  docstring).
+
+THE LABEL-DECISION INPUT (the wave-20 ticket 3, recorded in the
+addendum's header): the anchored-head unseat route is NOT a pristine
+countermodel artifact — it occurs at zero-move-reachable dealt
+initial states, so the five-channel completeness fails ON the
+fragment the engine plays.  Repair routes stand as wave-19A listed
+them, now with reachability evidence: (a) the `anchorHead a` channel
+atom, or (b) the context-irreversibility window gate (under which the
+promotion is its own commit and the successor IS hole-labeled at the
+shifted root — `uShifted_hole_cover`).  Engine-side harness tickets
+(out of Lean's reach, for the orchestrator): (1) the corpus sweep
+for frozen-suit stocked kings at ≥2-free-anchor states (wave-18's
+standing ticket — now known REACHABLE, frequency unknown); (2) the
+frequency of uncovered promotable anchored heads (any rank-mate
+head on an anchor) alongside a frozen drawn king — the route's
+real-world urgency.
+
+**(B) WHAT IS PROVEN — the honest regimes** (all in
+`Klondike/C2Streamlined.lean` §15, sorry-free, census-clean; the
+packing: the weak-corner corpus shape, no rung where the corpus says
+so):
+
+- `heights_of_applyDrawStackTo` — the stack commit's own guard,
+  extracted (the rung read out of any stack-arm successor);
+- `king_tableau_base` — a king's tableau placements are exactly the
+  free anchors;
+- `same_pin_hole_oneAnchor` — the same-pin universal's weak-corner
+  restoration: two `hole`-through successors at ≤1-free-anchor states
+  join; NO rung, NO WF (the corpus's climb-blocked corners need
+  exactly this);
+- `labelLive_of_king_frozen` + `succThrough_king_frozen_join` +
+  **`c2_two_option_king_frozen`** — the ≤2-count universal at the
+  frozen one-anchor king corner, FULLY proven modulo the labelings
+  (the P0 content stays a premise — the addendum shows it is not
+  gate-dischargeable);
+- `crease_stack_deterministic` + **`crease_absorbed_reachable`** —
+  the crease's equal-window half: two same-channel windows that end
+  at the SAME accommodation state (`hwin : u = u'` — the free-float
+  residue isolated as an explicit premise, honestly replacing the
+  refuted Sublist-alone claim) with the rung at the shared end join
+  (tableau arms by `commitTableau_class`, stack arm by determinism);
+  `initialReachable` supplies the end state's WF along the window;
+- **`c2_two_option_reachable`** — the reach-gated conditional
+  umbrella: the gate discharges `st.WF` and nothing else (the four
+  play-level premises stay — by (A) they are not gate-dischargeable);
+- **`p2_direct_class_king_oneAnchor_reachable`** — the P2-direct
+  universal's weak-corner restoration, gated (WF from reach; the
+  stack arm forces its own rung via the extraction above, so §12.5's
+  roundtrip applies).
+
+HYGIENE (wave-19B ticket 2, DONE): the replicas are retired —
+`wDeal`/`wState`/`wSucc`/`wS_shape`/`wBoard`/`wS_bot_none`
+(C2KingAnchorWitness) and `uState` (SuccLabeledWitness) are public;
+the three verdicts are restated AT THE ORIGINALS
+(`KingAnchorReach.wState_not_initialReachable`,
+`.wSucc_not_initialReachable (a)`, `.uState_not_initialReachable`,
+all axiom-clean); the probe's replica sections are deleted; the
+deal-fold forward seating theorem moved into the lib
+(`Klondike/Initial.lean`: `initialBoard_seats` + `getLast?_of_index`,
+public); the probe now imports `Witnesses.SuccLabeledWitness` (the
+second witness-file cross-import after the wave-19B facade, acyclic).
+
+CENSUS DELTA: NONE — 12 pinned, C2Streamlined 0, witnesses uncounted.
+
+NEXT (tickets):
+1. Orchestrator: the Label channel-list decision (a) `anchorHead`
+   vs (b) the window gate — now with the reachable-corner evidence
+   attached; the engine-side corpus sweeps (1)/(2) above as harness
+   tickets.
+2. The spend-channel free-float (`hpin`/`hp2` for dig/borrow at
+   rung) — wave-19's tickets 1-2 stand, now scoped by §15's regimes.
+3. `c2_two_option_reachable`'s premise discharge fragments: any new
+   proven regime (a new shape class) slots straight into §15's list.

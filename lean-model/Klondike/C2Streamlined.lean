@@ -1992,4 +1992,267 @@ theorem stack_channel_raise_mem {st : State} (hwf : st.WF) {X : Card}
     stack_raise_deterministic hlt α₀ u₀ hrun₀ hall₀ hrk₀
   exact ⟨R, u₀, α₀, hRs, hRr, hrun₀, hall₀, hRm, hstack⟩
 
+/-! ## §15. The wave-20 restorations — the reach-gated universals
+in their honest regimes
+
+The wave-19B probe (`witnesses/KingAnchorReachProbe.lean`) fenced the
+pristine corners off the dealt-reachable fragment, and its FARM row
+licensed "restored under hreach" readings of the five refuted
+universals.  The wave-20 session then built the reachability corner
+witnesses themselves (`Witnesses.SuccLabeledWitness`, the
+reachable-corner addendum): the naive gated readings FAIL — the
+pristine SHAPES are unreachable, but the reachable fragment presents
+the same content at dealt initial states (a frozen-suit stocked king
+with two free anchors splits; the anchored-ace unseat route delivers
+a macro successor no root-live channel names).  What is therefore
+RESTORED is each universal *in its honest regime*, stated here:
+
+* the **weak-corner regime** — `X` a king of a frozen suit (the
+  `toStack` channel dead), at most one free anchor (the corpus's
+  weak corners: `hone`), any two labeled successors (`hlab`): the
+  ONLY surviving live channel is `hole`, whose signature play is
+  empty, so both successors commit at the root onto the ONE free
+  anchor, and are EQUAL — `c2_two_option_king_frozen` proves the
+  two-option bound with NO rung, NO WF, NO play-level premises
+  (`succThrough_king_frozen_join` is the join it rides on, and
+  `same_pin_hole_oneAnchor` the same-pin one below it; the P2 form
+  is `p2_direct_class_king_oneAnchor_reachable`, where the gate
+  supplies the WF via `initialReachable_visClean`);
+* the **conditional umbrella** — `c2_two_option_reachable`: the gate
+  discharges `st.WF` and nothing else; the four play-level premises
+  stay (the addendum's witnesses show `hlab` is NOT gate-dischargeable
+  — a reachable macro successor can be labeled by nothing in the
+  current channel list — so the umbrella is honestly conditional);
+* the **crease's equal-window half** — `crease_absorbed_reachable`:
+  two same-channel windows that END AT THE SAME accommodation state
+  (`hwin : u = u'`, the free-float residue isolated as an explicit
+  premise — the refuted original claimed the absorption from a
+  Sublist alone, which `u = u'` here honestly replaces) with the rung
+  at the shared end: the tableau arms join by `commitTableau_class`,
+  the stack arm by determinism (`crease_stack_deterministic`).
+
+The stack arm's rung extraction (the stack commit's own guard, read
+out of its successor fact) is `heights_of_applyDrawStackTo` — used
+by the P2 weak-corner form where a stack-committed `sd` forces the
+rung that `p2_join_zeroSpend_rung` demands. -/
+
+/-- The stack commitment's guard, extracted: if the safe-stack
+`Draw(X)` commitment fired at `st`, the card was stackable at its
+rung there. -/
+theorem heights_of_applyDrawStackTo {st : State} {X : Card} {s : State}
+    (h : st.applyDrawStackTo X = some s) :
+    X.rank.toIdx = st.heights X.suit := by
+  simp only [State.applyDrawStackTo] at h
+  cases hp : st.reachablePos X with
+  | none => rw [hp] at h; exact absurd h (by simp)
+  | some i =>
+      rw [hp] at h
+      have h' : (if X.rank.toIdx = st.heights X.suit then
+          some { st with
+            stock := (st.stock.drawTo i).removeAt i,
+            heights := fun s => if s = X.suit then st.heights s + 1 else st.heights s }
+          else none) = some s := h
+      by_cases hrk : X.rank.toIdx = st.heights X.suit
+      · exact hrk
+      · rw [ite_eq_right hrk] at h'; exact absurd h' (by simp)
+
+/-- A king's tableau placements are exactly the free anchors (kings
+have no receivers, and canPlace is free-base + king on anchors). -/
+theorem king_tableau_base {st : State} {X : Card} (hK : X.rank = Rank.king)
+    {b : Base} (hcp : st.canPlace X b = true) :
+    ∃ a : Anchor, b = Sum.inl a ∧ st.board.topOf (Sum.inl a) = none := by
+  cases b with
+  | inl a => exact ⟨a, rfl, (canPlace_inl_iff.mp hcp).1⟩
+  | inr Y => exact absurd (canSitOn_of_canPlace_inr hcp) (receivers_king_nil hK)
+
+/-- **The same-pin universal at the weak corner** — two successors
+through the `hole` channel at a state with at most one free anchor
+join, with NO rung premise and NO WF: the hole signature play is
+empty, both commits sit at the root, and a king's bases are anchors,
+so both landings are the landing on THE free anchor — the same
+`applyDrawTo`, hence the same successor.  This is the honest
+restoration of `same_pin_closureEq` for the channel and shape the
+corpus weak corners actually present (a climb-blocked king needs no
+rung here — that is the point). -/
+theorem same_pin_hole_oneAnchor {st : State} {X : Card} (hK : X.rank = Rank.king)
+    (hone : ∀ a a' : Anchor, st.board.topOf (Sum.inl a) = none →
+      st.board.topOf (Sum.inl a') = none → a = a')
+    {s s' : State} (h₁ : SuccThrough st X Label.hole s)
+    (h₂ : SuccThrough st X Label.hole s') : closureEq s s' := by
+  obtain ⟨b, hcp, hto⟩ := succThrough_zeroSpend h₁ (Or.inr rfl)
+  obtain ⟨b', hcp', hto'⟩ := succThrough_zeroSpend h₂ (Or.inr rfl)
+  obtain ⟨a, rfl, hfree⟩ := king_tableau_base hK hcp
+  obtain ⟨a', ha'b, hfree'⟩ := king_tableau_base hK hcp'
+  rw [ha'b] at hto'
+  have haa : a = a' := hone a a' hfree hfree'
+  rw [← haa] at hto'
+  have hss : s = s' := Option.some.inj (hto.symm.trans hto')
+  rw [hss]
+  exact closureEq_refl s'
+
+/-- At a frozen-suit king corner, every live channel is the hole: the
+receiver channels die on `receivers_king_nil`, the stack channel on
+the freeze premise (the honest spelling of "climb-blocked": no
+accommodation sequence could raise the suit, so `toStack` is dead
+exactly when the climb is frozen — `witnesses/SuccLabeledWitness`'s
+freeze argument is its engine-side evidence). -/
+theorem labelLive_of_king_frozen {st : State} {X : Card} (hK : X.rank = Rank.king)
+    (hfroz : ¬ LabelLive st X Label.toStack) {r : Label X}
+    (hlive : LabelLive st X r) : r = Label.hole := by
+  cases r with
+  | direct =>
+      obtain ⟨Y, hd⟩ := hlive
+      exact absurd hd.hY (receivers_king_nil hK)
+  | dig =>
+      obtain ⟨Y, hd⟩ := hlive
+      exact absurd hd.hY (receivers_king_nil hK)
+  | borrow p =>
+      obtain ⟨hp, -⟩ := hlive
+      exact absurd hp (receivers_king_nil hK)
+  | hole => rfl
+  | toStack => exact absurd hlive hfroz
+
+/-- **The frozen-corner join**: at a frozen-suit king corner with at
+most one free anchor, ANY two channel-labeled successors join — both
+labels are forced to `hole`, and the same-pin one-anchor fact
+closes. -/
+theorem succThrough_king_frozen_join {st : State} {X : Card}
+    (hK : X.rank = Rank.king)
+    (hone : ∀ a a' : Anchor, st.board.topOf (Sum.inl a) = none →
+      st.board.topOf (Sum.inl a') = none → a = a')
+    (hfroz : ¬ LabelLive st X Label.toStack)
+    {s s' : State}
+    (h₁ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s)
+    (h₂ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s') :
+    closureEq s s' := by
+  obtain ⟨r₁, hl₁, ht₁⟩ := h₁
+  obtain ⟨r₂, hl₂, ht₂⟩ := h₂
+  rw [labelLive_of_king_frozen hK hfroz hl₁] at ht₁
+  rw [labelLive_of_king_frozen hK hfroz hl₂] at ht₂
+  exact same_pin_hole_oneAnchor hK hone ht₁ ht₂
+
+/-- **The ≤2-count universal at the weak corner, fully proven**:
+three channel-labeled successors of the `Draw(X)` commitment at a
+frozen-suit king corner with at most one free anchor contain a
+closure-equal pair — under the labeled-successor reading (the P0
+content stays a premise: the addendum shows it is not
+gate-dischargeable).  NO rung, NO WF, NO further play-level
+premises.  (The chosen realizing disjunct consumes the first two
+labelings; the third successor joins everything by the same
+`succThrough_king_frozen_join`.) -/
+theorem c2_two_option_king_frozen {st : State} {X : Card}
+    (hK : X.rank = Rank.king)
+    (hone : ∀ a a' : Anchor, st.board.topOf (Sum.inl a) = none →
+      st.board.topOf (Sum.inl a') = none → a = a')
+    (hfroz : ¬ LabelLive st X Label.toStack)
+    {s₁ s₂ s₃ : State}
+    (h₁ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s₁)
+    (h₂ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s₂)
+    (_h₃ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s₃) :
+    closureEq s₁ s₂ ∨ closureEq s₁ s₃ ∨ closureEq s₂ s₃ :=
+  Or.inl (succThrough_king_frozen_join hK hone hfroz h₁ h₂)
+
+/-- The stack arm is deterministic per state: two equal-window stack
+successors are the same successor — the crease's `toStack` content,
+with no rung and no window data at all. -/
+theorem crease_stack_deterministic {u : State} {X : Card} {s s' : State}
+    (hs : u.applyDrawStackTo X = some s) (hs' : u.applyDrawStackTo X = some s') :
+    closureEq s s' := by
+  have h : s = s' := Option.some.inj (hs.symm.trans hs')
+  rw [h]
+  exact closureEq_refl s'
+
+/-- **The crease universal's honest gated form**: two same-channel
+windows with their channel's signature moves — under the labeled
+shape of the refuted original but with the free-float residue
+isolated as the EXPLICIT premise `hwin : u = u'` (the original
+claimed absorption from `α.Sublist α'` alone; the pristine refutation
+fell there, and here the reconciliation of the windows' ends is
+exactly what is assumed) — join whenever the shared end state shows
+the rung.  `initialReachable` supplies the end state's WF along the
+window (`run_visClean`).  The tableau arms join by
+`commitTableau_class` at the shared end; the stack arm by
+determinism. -/
+theorem crease_absorbed_reachable {st : State} (hreach : initialReachable st)
+    {X : Card} {r : Label X} {s s' : State} {α α' : List Move} {u u' : State}
+    (hα : st.run α = some u) (_hallα : ∀ m ∈ α, m.isAccommodation = true)
+    (harmα : commitArmOf u X r s)
+    (hα' : st.run α' = some u') (_hallα' : ∀ m ∈ α', m.isAccommodation = true)
+    (harmα' : commitArmOf u' X r s')
+    (hwin : u = u')
+    (hrk : X.rank.toIdx = u.heights X.suit) :
+    closureEq s s' := by
+  obtain ⟨hwf, hv⟩ := initialReachable_visClean hreach
+  have hwfu : u.WF := (run_visClean α st u hwf hv hα).1
+  subst hwin
+  cases r with
+  | direct | dig | borrow p | hole =>
+      exact commitTableau_class hwfu hrk harmα harmα'
+  | toStack =>
+      exact crease_stack_deterministic harmα harmα'
+
+/-- **The reach-gated conditional umbrella** — the two-option bound on
+the dealt-reachable fragment: the gate discharges `st.WF`
+(`initialReachable_visClean`) and NOTHING else; the four play-level
+premises of §12 stay premises.  The reachable-corner addendum
+(`Witnesses.SuccLabeledWitness`) calibrated this honestly: `hlab` is
+NOT gate-dischargeable (a reachable macro successor can be labeled by
+nothing in the current channel list — the anchored-ace unseat
+route), and `hpin`/`hp2` are not either (the frozen-suit king's
+landings are closure-split at reachable two-anchor states).  The
+proven regimes are this theorem's hypotheses' discharged fragments:
+§12.5 (zero-spend, rung) and the weak-corner theorems above. -/
+theorem c2_two_option_reachable {st : State} (hreach : initialReachable st)
+    {X : Card} {s₁ s₂ s₃ : State}
+    (h₁ : macroStep st (MacroMove.drawCommit X) s₁)
+    (h₂ : macroStep st (MacroMove.drawCommit X) s₂)
+    (h₃ : macroStep st (MacroMove.drawCommit X) s₃)
+    (hlab₁ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s₁)
+    (hlab₂ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s₂)
+    (hlab₃ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s₃)
+    (hp2 : ∀ {sd : State}, commitApplies st (MacroMove.drawCommit X) sd →
+      ∀ {r : Label X} {s : State}, SuccThrough st X r s →
+      P2Safe st X r → closureEq sd s)
+    (hpin : ∀ {r : Label X} {s s' : State}, LabelLive st X r →
+      SuccThrough st X r s → SuccThrough st X r s' → closureEq s s')
+    (hball : (¬∃ sd, commitApplies st (MacroMove.drawCommit X) sd) →
+      ∀ {rₐ r_b : Label X} {s₀ sₐ s_b : State},
+      LabelLive st X Label.toStack → SuccThrough st X Label.toStack s₀ →
+      LabelLive st X rₐ → SuccThrough st X rₐ sₐ →
+      LabelLive st X r_b → SuccThrough st X r_b s_b →
+      rₐ ≠ r_b →
+      closureEq s₀ sₐ ∨ closureEq s₀ s_b ∨ closureEq sₐ s_b) :
+    closureEq s₁ s₂ ∨ closureEq s₁ s₃ ∨ closureEq s₂ s₃ :=
+  c2_two_option (initialReachable_visClean hreach).1
+    h₁ h₂ h₃ hlab₁ hlab₂ hlab₃ hp2 hpin hball
+
+/-- **The P2-direct universal at the weak corner, gated**: a
+root-committed successor joins a `hole`-through successor at a
+frozen-king one-anchor reachable corner.  The tableau-arm commit
+lands on the one free anchor — the same landing as the successor's,
+hence equal; the stack-arm commit forces its own rung
+(`heights_of_applyDrawStackTo`), so §12.5's roundtrip
+(`p2_join_zeroSpend_rung`) applies.  This is the honest gated
+restoration of `p2_direct_class` for the weak-corner shape. -/
+theorem p2_direct_class_king_oneAnchor_reachable {st : State}
+    (hreach : initialReachable st) {X : Card} (hK : X.rank = Rank.king)
+    (hone : ∀ a a' : Anchor, st.board.topOf (Sum.inl a) = none →
+      st.board.topOf (Sum.inl a') = none → a = a')
+    {sd s_p : State} (hsd : commitApplies st (MacroMove.drawCommit X) sd)
+    (hth : SuccThrough st X Label.hole s_p) : closureEq sd s_p := by
+  have hwf := (initialReachable_visClean hreach).1
+  rcases (commitApplies_draw_cases st X sd).mp hsd with ⟨b, hcp, hto⟩ | hstack
+  · obtain ⟨a, rfl, hfree⟩ := king_tableau_base hK hcp
+    obtain ⟨b', hcp', hto'⟩ := succThrough_zeroSpend hth (Or.inr rfl)
+    obtain ⟨a', ha'b, hfree'⟩ := king_tableau_base hK hcp'
+    rw [ha'b] at hto'
+    have haa : a = a' := hone a a' hfree hfree'
+    rw [← haa] at hto'
+    have hss : sd = s_p := Option.some.inj (hto.symm.trans hto')
+    rw [hss]
+    exact closureEq_refl s_p
+  · have hrk : X.rank.toIdx = st.heights X.suit :=
+      heights_of_applyDrawStackTo hstack
+    exact p2_join_zeroSpend_rung hwf hrk (Or.inr rfl) hsd hth
+
 end Klondike.C2

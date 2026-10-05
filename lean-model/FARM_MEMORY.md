@@ -2814,3 +2814,50 @@ REUSABLE SHARDS (this file, importable as `Witnesses.KingAnchorReachProbe` via t
 - `board_edges`'s inr-clause DOES rcases-split directly at a constructor scrutinee (`Sum.inr L`): the match iota-reduces under rcases, no
   `simp only` prologue needed - `rcases (hwf.board_edges (Sum.inr L) H hcover).2 with hbur | ⟨-, hfit⟩` lands the buried-base ∃ (with the
   deal-adjacency LIST SHAPE `piles a = t ++ L :: H :: rest` ready to re-export) or the canSitOn contra.
+## wave 20 note (2026-10-05, farm-c2-restoration session)
+
+- The wave-19B "RESTORED under hreach" reading needed the revision the hard way:
+  reachability fences exclude pristine SHAPES (empty board, zero depths), not
+  CHANNEL CONTENT.  The dealt INITIAL state of an honest deal (empty-play
+  reachable) presents the frozen-suit stocked king + ≥2 free anchors (six of
+  them) AND the uncovered anchored-ace promotion route — the five gated
+  universals fall THERE (witnesses/SuccLabeledWitness.lean: five
+  wk_*_reachable_false, all [propext, Classical.choice, Quot.sound]).
+  LESSON: before "restoring under a domain restriction", ask what the DOMAIN
+  ITSELF (not the refuting witness) presents — the initial state is usually
+  the strongest reachable exhibit and needs no play at all.
+- The frozen-seat separation lemma (rFrozen_seat_step/_run) is the reusable
+  lift of the pristine witness's "every accommodation move is dead" into
+  "every accommodation move preserves the frozen king's seat": pairwise
+  closure-separation needs only the INVARIANT (heights stay 0 / no non-king
+  spade seats / the king's topOf base), not full deadness.
+- decide CAN evaluate the deal-fold board cheaply (topOf/bottomOf on
+  Anchor.all.foldl of literal attaches): rSeat0/rNoCoverAce/rFree1-3 are one
+  `by decide` each.  The QUANTIFIED freeze (forall spade c, bottomOf c = none)
+  still needs the edge analysis (initialBoard_topOf + per-pile rfl-top facts)
+  — abstract c defeats decide.
+- ELABORATION TRAPS (this wave's, for the ledger in addition to wave-19's):
+  (1) rcases `-` CLEARS the hypothesis in that slot — clearing an ∃-variable
+  (i) that a LATER slot's type mentions (the successor shape hs : s =
+  {st with ... stock := ⟨removeIdx st.stock.cards i, i⟩}) silently breaks the
+  later introductions with confusing "unknown identifier" cascades.  Name
+  every ∃ variable the later shapes mention; `-` only the proofs.
+  (2) `rw [h : a = b] at H` on the WRONG hypothesis list errors even when the
+  pattern exists elsewhere (SuccThrough's α lives in hrun's TYPE, NOT in the
+  destructed arm hypothesis's type) — rw only at the hypotheses that mention
+  it.
+  (3) `rw [hs]` where hs : X = {expr-DEFEQ-rfl-to-goal} AUTO-CLOSES with its
+  trailing rfl — the next line's bare `rfl` then errors "No goals" (matches
+  wave-19's trap (5); it generalizes to shape-lemmas: any rw whose result is
+  iota-trivial closes).
+  (4) Board.attach_topOf takes the inequality as (β ≠ b) — the β-side FIRST
+  (Ne.symm discipline); Board.detach_topOf is (bd) (b) TWO explicit args,
+  `_`-underscores leave it as a ∀-lambda that fails the expected-type.
+  (5) Splicing 300+ line file sections with PowerShell line-ranges: keep the
+  pristine file (git show HEAD:path) as the edit SOURCE and assemble from
+  measured marker lines — hand-editing insides drifted once (a stray draft
+  note) and the restore cost more than the whole splice.
+- PROCESS: the worktree sat at an old base AGAIN (fast-forward to de37861
+  first); the wave-20 boss task's "DONE" list (per-universal theorem
+  names + file:line) is in FARM.md's wave-20 row; sub-100ms retries never
+  hit the .olean.private contention this session.

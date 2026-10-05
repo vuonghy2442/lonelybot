@@ -65,8 +65,10 @@ private def wStockList : List Card :=
 
 /-- The witness deal: 28 pile cards (1+2+…+7), 24 stock cards, all 52
 distinct.  The pile content is never consulted below — with an empty
-board and zero depths the pile cards sit in no zone of the game. -/
-private def wDeal : Deal where
+board and zero depths the pile cards sit in no zone of the game.
+(Public since wave-20: the reachability probe cites the deal and the
+state directly — the replica spellings are retired.) -/
+def wDeal : Deal where
   piles := fun a =>
     match a with
     | .p0 => [S .ace]
@@ -79,8 +81,9 @@ private def wDeal : Deal where
   stock := wStockList
 
 /-- The witness state: pristine — empty board, zero heights, zero
-depths, the full spade-blocked stock, draw step 1. -/
-private def wState : State where
+depths, the full spade-blocked stock, draw step 1.  (Public since
+wave-20, same reason as `wDeal`.) -/
+def wState : State where
   deal := wDeal
   board := Board.empty
   heights := fun _ => 0
@@ -153,12 +156,15 @@ private theorem wState_wf : wState.WF := by
 /-! ## The commitment's anchor landings -/
 
 /-- The landing successor on anchor `a` (all seven fire; only `p₀`,
-`p₁`, `p₂` are used below). -/
-private def wSucc (a : Anchor) : State :=
+`p₁`, `p₂` are used below).  (Public since wave-20 — the probe's
+landing-successor verdict is stated at it.) -/
+def wSucc (a : Anchor) : State :=
   (wState.applyDrawTo (S .king) (Sum.inl a)).getD wState
 
-/-- The one-edge board the king's landing builds on the empty board. -/
-private def wBoard (a : Anchor) : Board where
+/-- The one-edge board the king's landing builds on the empty board.
+(Public since wave-20 — the probe's landing-successor verdict reads
+its tops.) -/
+def wBoard (a : Anchor) : Board where
   topOf := fun b => if b = Sum.inl a then some (S .king) else none
   inj := by
     intro b₁ b₂ c h₁ h₂
@@ -213,8 +219,10 @@ private theorem wSucc_apply (a : Anchor) :
         rfl
       rw [hw]
 
-/-- The landing state: the spliced stock and the one-edge board. -/
-private theorem wS_shape (a : Anchor) :
+/-- The landing state: the spliced stock and the one-edge board.
+(Public since wave-20 — the probe's verdict transfer rewrites with
+it.) -/
+theorem wS_shape (a : Anchor) :
     wSucc a =
       { wState with board := wBoard a, stock := ⟨Cycle.removeIdx wState.stock.cards 0, 0⟩ } := by
   obtain ⟨i, bd, hpos, hatt, hs⟩ := applyDrawTo_eq (wSucc_apply a)
@@ -241,8 +249,9 @@ private theorem wS_heights (a : Anchor) :
   rw [wS_shape]
   rfl
 
-/-- Only the king is seated on the landing state. -/
-private theorem wS_bot_none (a : Anchor) {c : Card} (h : c ≠ S .king) :
+/-- Only the king is seated on the landing state.  (Public since
+wave-20 — the probe's verdict transfer consumes it.) -/
+theorem wS_bot_none (a : Anchor) {c : Card} (h : c ≠ S .king) :
     (wSucc a).board.bottomOf c = none := by
   refine (Board.bottomOf_eq_none _ c).mpr (fun b hb => ?_)
   have htb := wS_board a b

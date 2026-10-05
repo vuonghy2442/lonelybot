@@ -65,6 +65,18 @@ alternatives (re-scoping `hole`'s liveness to the accommodated state,
 or re-stating `succ_labeled` per-route) are strictly wider edits.  The
 decision itself belongs to the sibling C2 session which owns
 `C2Streamlined`'s channel list; this file only fixes the datum.
+
+## The wave-20 addendum (the file's second half)
+
+The question was only half-answered by the pristine `uState`: under
+the initialReachable gate the wave-19B row called this universal
+RESTORED.  The reachable-corner addendum below revises that: the
+route shape occurs at the dealt INITIAL state of an honest deal
+(zero-move reachable), so the GATED succ_labeled still fails — and
+the same root splits the four gated class universals too
+(`wk_succ_labeled_reachable_false` and the four
+`wk_*_reachable_false` theorems; the Label-decision input for the
+orchestrator is recorded in the addendum's header).
 -/
 
 open Klondike.C2
@@ -188,8 +200,10 @@ private def uDeal : Deal where
   stock := uStockList
 
 /-- The witness state: the anchored heads on every anchor, pristine
-heights/depths, draw step 1, ♠K drawn first. -/
-private def uState : State where
+heights/depths, draw step 1, ♠K drawn first.  (Public since wave-20:
+the reach probe's verdict is stated at it, replacing the replica
+spelling.) -/
+def uState : State where
   deal := uDeal
   board := uBoard
   heights := fun _ => 0
@@ -789,6 +803,623 @@ theorem uShifted_hole_cover :
    ⟨uMid, [], rfl, (fun _ hm => by simp at hm),
      ⟨Sum.inl Anchor.p0, uMid_canPlace, uSucc_apply⟩, rfl⟩⟩
 
+
+/-! ## The reachable-corner addendum (wave-20) — the route shapes live
+ON the dealt-reachable fragment
+
+This section is the decide-first outcome of the wave-20 ticket: does
+any *dealt-reachable* configuration admit the witness route shape?
+`rState` answers YES in the strongest possible form — **the dealt
+initial state of an honest 52-card deal**, reached by the EMPTY play:
+
+* the state is `State.initial rDeal 1`, so `rState_reachable` is the
+  zero-move reachability exhibit — no countermodel construction, no
+  hand-crafted matching; the wave-19B fence (all depths zero, all
+  heights zero, empty board) cannot bite, the deal is honest and the
+  board is the deal-fold itself;
+* ♠K sits at the stock's first reachable slot (`rState_pos`), the
+  spade suit is FROZEN (heights 0 and no spade seated at the dealt
+  board — every pile's top dealt card is a non-spade,
+  `rSpades_unseated`), so the stack channel stays dead along every
+  accommodation walk (`rFrozenToStack` — the very same freeze
+  argument as §`uState`'s, reused file-locally);
+* ♠A hides beneath ♥2 in pile 1 while ♥A — pile 0's single dealt
+  card — sits UNCOVERED ON ITS ANCHOR at foundation height 0: the
+  one-move promotion `pileStack ♥A` (the anchored head's rank-dig)
+  is a legal accommodation window (`rUnseat`), it unseats THROUGH
+  THE ANCHOR, and the `Draw(♠K)` commitment then lands the king on
+  the vacated anchor (`rStep`) — the anchored-head unseat route,
+  live at a REACHABLE root;
+* every channel of the current five-element list fails to label that
+  successor (`rSucc_unlabeled`): `direct`/`dig`/`borrow p` die on
+  `receivers_king_nil`, `toStack` on the freeze, and `hole` — though
+  LIVE at the root (six anchors sit free below the dealt seats) —
+  cannot name the successor, because the hole signature demands the
+  EMPTY window while the promotion successor's heart height is 1
+  against every root commit's 0 (`rRoute_not_hole`).
+
+Hence `wk_succ_labeled_reachable_false`: the initialReachable-GATED
+`succ_labeled` is refuted, not restored — the wave-19B "RESTORED
+under hreach" reading holds only against the pristine family itself.
+
+**AND, BESIDE IT, the same root splits the four class universals'
+gated readings too**: with six free anchors and the king
+frozen-climb-blocked, three root tableau landings of `Draw(♠K)`
+(`rLand p1`, `rLand p2`, `rLand p3`) are pairwise closure-separated
+(`rLand_split` — below a landed king the frozen suit can never move:
+`pileStack ♠K` needs rung 12 against the frozen 0, no other spade
+can ever be seated or founded along the accommodation fragment, and
+`stackPile` cannot land on the occupied anchor) — while all three go
+through the LIVE, P2-safe `hole` channel at the root with empty
+signature windows.  So the naive initialReachable-gated
+`c2_two_option` (the ≤2 count), `same_pin_closureEq`,
+`p2_direct_class`, and `crease_chain_absorbed` are refuted at
+reachable states as well (`wk_c2_reachable_false`,
+`wk_same_pin_reachable_false`, `wk_p2_direct_reachable_false`,
+`wk_crease_reachable_false`).  What IS proven — where the real
+content lives — are the regimes of `Klondike.C2Streamlined` §12.5
+(the zero-spend rung derivations) and §15 (the at-most-one-free-anchor
+frozen-king corner): at THIS root neither applies (six free anchors),
+which is exactly the shape gap the engine-side corpus (seed 26's weak
+corners, ONE free anchor) never presents.
+
+**THE LABEL-DECISION INPUT for the orchestrator** (this wave's
+ticket item 3; the channel-list edit itself is out of scope here):
+the anchored-head unseat route is NOT a countermodel-corner artifact
+of the pristine witness family — it occurs at zero-move-reachable
+dealt initial states, so the five-channel completeness FAILS on the
+fragment the engine actually plays.  The repair options stand, now
+with reachability evidence attached: (a) extend the channel list
+with the `anchorHead a` atom (the vacated anchor's seat — the route's
+minimal enabling pinning; note the label cannot be `hole`: hole
+liveness at the root does not cover promotion successors, by the
+heights separation in `rRoute_not_hole`), or (b) gate the window
+relation (`macroStep`'s `accommodates`) on context-irreversibility —
+under that reading the promotion is its own commit (§`uPromotionPermanent`
+shows the permanence), the route regroups as [promote ♥A, then
+`Draw ♠K`], and the successor IS hole-labeled at the shifted root
+(`uShifted_hole_cover`).  The engine-side questions this session
+cannot decide in Lean (harness tickets for the orchestrator):
+(1) how often played engine games present the frozen-suit
+stocked-king-plus-six-free-anchors shape (the corpus sweep; wave-18's
+"≥2 free anchors" ticket stays open), and (2) the frequency of
+uncovered promoted anchors (any suit's ace or rank-mate head on an
+anchor at its foundation height) alongside a frozen drawn king —
+the route's real-world urgency calibration. -/
+
+private def rStockList : List Card :=
+  [S .king] ++
+  [C .ace, C .two, C .three, C .four, C .five, C .six, C .seven,
+   C .eight, C .nine, C .ten, C .jack, C .queen, C .king] ++
+  [H .king] ++
+  [D .ace, D .six, D .seven, D .eight, D .nine, D .ten, D .jack, D .queen, D .king]
+
+/-- The reachable-corner deal: every pile's top dealt card (the last
+element) is a non-spade, twelve low spades hide in the buried slices,
+♠K heads the stock — 1+2+…+7 pile cards, a 24-card stock, all 52
+distinct. -/
+private def rDeal : Deal where
+  piles := fun a =>
+    match a with
+    | .p0 => [H .ace]
+    | .p1 => [S .ace, H .two]
+    | .p2 => [S .two, S .three, H .three]
+    | .p3 => [S .four, S .five, S .six, H .four]
+    | .p4 => [S .seven, S .eight, S .nine, S .ten, H .five]
+    | .p5 => [S .jack, S .queen, H .six, H .seven, H .eight, H .nine]
+    | .p6 => [H .ten, H .jack, H .queen, D .two, D .three, D .four, D .five]
+  stock := rStockList
+
+/-- The reachable corner: `rDeal`'s dealt initial state at draw step
+1 — the empty play away from the deal itself. -/
+private def rState : State := State.initial rDeal 1
+
+private theorem rDeal_wf : rDeal.WF := by
+  refine ⟨fun a => ?_, by decide, ?_⟩
+  · cases a <;> decide
+  · intro i j hi hj heq
+    have hflat : (Anchor.all.flatMap rDeal.piles).length = 28 := by decide
+    have hstock : rDeal.stock.length = 24 := by decide
+    rw [List.length_append, hflat, hstock] at hi hj
+    have hall : ∀ i ∈ List.range 52, ∀ j ∈ List.range 52,
+        (Anchor.all.flatMap rDeal.piles ++ rDeal.stock)[i]? =
+          (Anchor.all.flatMap rDeal.piles ++ rDeal.stock)[j]? → i = j := by decide
+    exact hall i (List.mem_range.mpr hi) j (List.mem_range.mpr hj) heq
+
+/-- **The zero-move reachability exhibit**: the corner state is dealt,
+literally — `initialReachable` by the empty play. -/
+theorem rState_reachable : initialReachable rState :=
+  ⟨rDeal, 1, [], rDeal_wf, by decide, by rfl⟩
+
+private theorem rState_wf : rState.WF := initial_wf rDeal_wf (by decide)
+
+private theorem rHeights0 (s : Suit) : rState.heights s = 0 := rfl
+
+/-- The drawn king: ♠K at the stock's first reachable position. -/
+private theorem rState_pos : rState.reachablePos (S .king) = some 0 := by
+  rw [State.reachablePos_step1 rState_wf rfl (S .king)]
+  rfl
+
+/-! ### The dealt board facts (kernel-decided where the search is finite;
+the freeze by the edge analysis) -/
+
+/-- Pile 0's single dealt card — the ace of hearts — sits directly on
+its anchor, uncovered. -/
+private theorem rSeat0 : rState.board.topOf (Sum.inl Anchor.p0) = some (H .ace) := by
+  decide
+
+private theorem rNoCoverAce : rState.board.topOf (Sum.inr (H .ace)) = none := by
+  decide
+
+private theorem rFree1 : rState.board.topOf (Sum.inl Anchor.p1) = none := by decide
+private theorem rFree2 : rState.board.topOf (Sum.inl Anchor.p2) = none := by decide
+private theorem rFree3 : rState.board.topOf (Sum.inl Anchor.p3) = none := by decide
+
+/-- The piles' dealt tops, exposed for the freeze argument. -/
+private theorem rTopLast (a : Anchor) : (rDeal.piles a).getLast? =
+    some (match a with
+      | .p0 => H .ace
+      | .p1 => H .two
+      | .p2 => H .three
+      | .p3 => H .four
+      | .p4 => H .five
+      | .p5 => H .nine
+      | .p6 => D .five) := by
+  cases a <;> rfl
+
+/-- **The freeze at the corner**: no spade is seated on the dealt
+board — every seated card is a pile's top dealt card, and all seven
+tops are non-spades — so (with all heights 0) the spade suit can never
+be founded, ever, along the accommodation fragment. -/
+private theorem rSpades_unseated (c : Card) (hcs : c.suit = Suit.spade) :
+    rState.board.bottomOf c = none := by
+  refine (Board.bottomOf_eq_none _ _).mpr (fun b hb => ?_)
+  obtain ⟨a, -, -, hgt⟩ := initialBoard_topOf rDeal b c hb
+  cases a
+  · rw [rTopLast Anchor.p0] at hgt
+    have hc : c = H .ace := (Option.some.inj hgt).symm
+    rw [hc] at hcs
+    exact absurd hcs (by decide)
+  · rw [rTopLast Anchor.p1] at hgt
+    have hc : c = H .two := (Option.some.inj hgt).symm
+    rw [hc] at hcs
+    exact absurd hcs (by decide)
+  · rw [rTopLast Anchor.p2] at hgt
+    have hc : c = H .three := (Option.some.inj hgt).symm
+    rw [hc] at hcs
+    exact absurd hcs (by decide)
+  · rw [rTopLast Anchor.p3] at hgt
+    have hc : c = H .four := (Option.some.inj hgt).symm
+    rw [hc] at hcs
+    exact absurd hcs (by decide)
+  · rw [rTopLast Anchor.p4] at hgt
+    have hc : c = H .five := (Option.some.inj hgt).symm
+    rw [hc] at hcs
+    exact absurd hcs (by decide)
+  · rw [rTopLast Anchor.p5] at hgt
+    have hc : c = H .nine := (Option.some.inj hgt).symm
+    rw [hc] at hcs
+    exact absurd hcs (by decide)
+  · rw [rTopLast Anchor.p6] at hgt
+    have hc : c = D .five := (Option.some.inj hgt).symm
+    rw [hc] at hcs
+    exact absurd hcs (by decide)
+
+/-! ### The route: the promotion window and the king's landing -/
+
+private def rMid : State :=
+  { rState with
+    board := rState.board.detach (Sum.inl Anchor.p0),
+    heights := fun s => if s = (H .ace).suit then rState.heights s + 1
+      else rState.heights s }
+
+/-- The anchored ace leaves — its rank-dig (foundation height 0) is
+the unseat route's one-move window. -/
+private theorem rUnseat : rState.apply (Move.pileStack (H .ace)) = some rMid := by
+  rw [apply_pileStack_iff]
+  exact ⟨rNoCoverAce, Sum.inl Anchor.p0, (Board.bottomOf_eq _ _ _).mpr rSeat0, rfl, rfl⟩
+
+private theorem rMid_wf : rMid.WF := apply_wf rState_wf _ _ rUnseat
+
+private theorem rMid_canPlace :
+    rMid.canPlace (S .king) (Sum.inl Anchor.p0) = true := by
+  rw [canPlace_inl_iff]
+  exact ⟨Board.detach_topOf rState.board (Sum.inl Anchor.p0), rfl⟩
+
+/-- The freeze rides the promotion window (the file-local
+`freeze_run`): no spade is seated at the landed-king's window state. -/
+private theorem rMid_bottomOf_king : rMid.board.bottomOf (S .king) = none := by
+  obtain ⟨-, hns⟩ := freeze_run [Move.pileStack (H .ace)] rState (rHeights0 _)
+    rSpades_unseated rMid
+    (by
+      intro m hm
+      rcases List.mem_cons.mp hm with rfl | hm
+      · rfl
+      · exact absurd hm (by simp))
+    (by rw [run_singleton]; exact rUnseat)
+  exact hns (S .king) rfl
+
+private theorem rMid_pos : rMid.reachablePos (S .king) = some 0 := by
+  rw [State.reachablePos_step1 rMid_wf rfl (S .king)]
+  rfl
+
+/-- The route's successor: the king on the vacated anchor, heart
+height 1 (the promotion's foundation bump). -/
+private def rSucc : State :=
+  (rMid.applyDrawTo (S .king) (Sum.inl Anchor.p0)).getD rMid
+
+private theorem rSucc_apply :
+    rMid.applyDrawTo (S .king) (Sum.inl Anchor.p0) = some rSucc := by
+  have hne : rMid.board.attach (Sum.inl Anchor.p0) (S .king) ≠ none :=
+    (Board.attach_eq_some_iff _ _ _).mpr ⟨Board.detach_topOf rState.board
+      (Sum.inl Anchor.p0), rMid_bottomOf_king⟩
+  cases hatt : rMid.board.attach (Sum.inl Anchor.p0) (S .king) with
+  | none => exact absurd hatt hne
+  | some bd =>
+      have hto : rMid.applyDrawTo (S .king) (Sum.inl Anchor.p0) = some
+          { rMid with board := bd, stock := (rMid.stock.drawTo 0).removeAt 0 } :=
+        applyDrawTo_iff.mpr ⟨0, bd, rMid_pos, hatt, rfl⟩
+      cases h : rMid.applyDrawTo (S .king) (Sum.inl Anchor.p0) with
+      | none =>
+          have h2 := hto
+          rw [h] at h2
+          exact absurd h2 (by simp)
+      | some s' =>
+          have hw : rSucc = s' := by
+            show (rMid.applyDrawTo (S .king) (Sum.inl Anchor.p0)).getD rMid = s'
+            rw [h]
+            rfl
+          rw [hw]
+
+/-- **The route IS a macro successor of the commitment** — the window
+is the promotion, the arm is the tableau landing on the vacated
+anchor. -/
+theorem rStep : macroStep rState (MacroMove.drawCommit (S .king)) rSucc := by
+  refine ⟨rMid, ⟨[Move.pileStack (H .ace)], ?_, ?_⟩,
+    ⟨Sum.inl Anchor.p0, Or.inl ⟨rMid_canPlace, rSucc_apply⟩⟩⟩
+  · rw [run_singleton]
+    exact rUnseat
+  · intro m hm
+    rcases List.mem_cons.mp hm with rfl | hm
+    · rfl
+    · exact absurd hm (by simp)
+
+/-! ### Every current channel fails to label the route -/
+
+private theorem rKingNoReceivers (p : Card) (h : canSitOn (S .king) p = true) :
+    False := receivers_king_nil rfl h
+
+private theorem rFrozenToStack (r s : State)
+    (hacc : accommodates rState r) (hfire : r.applyDrawStackTo (S .king) = some s) :
+    False := by
+  obtain ⟨play, hrun, hall⟩ := hacc
+  obtain ⟨h0, -⟩ := freeze_run play rState (rHeights0 _) rSpades_unseated r hall hrun
+  have h12 := applyDrawStackTo_heights r (S .king) s hfire
+  have hk12 : (S .king).rank.toIdx = 12 := rfl
+  have hsp : (S .king).suit = Suit.spade := rfl
+  rw [hsp] at h12
+  omega
+
+private theorem rMid_heights_heart : rMid.heights Suit.heart = 1 := by
+  show (if Suit.heart = (H .ace).suit then rState.heights Suit.heart + 1
+      else rState.heights Suit.heart) = 1
+  have h0 : rState.heights Suit.heart = 0 := rfl
+  by_cases hc : Suit.heart = (H .ace).suit
+  · rw [ite_eq_left hc, h0]
+  · exact absurd rfl hc
+
+private theorem rSucc_heights_heart : rSucc.heights Suit.heart = 1 := by
+  obtain ⟨i, bd, -, -, hs⟩ := applyDrawTo_eq rSucc_apply
+  rw [hs]
+  exact rMid_heights_heart
+
+/-- The live hole channel still cannot NAME the route successor: the
+hole signature demands the empty window, so the commit would sit at
+the root — but every root commit's heart height is the dealt 0, and
+the promotion successor's is 1.  (Hole LIVEness is hereby orthogonal
+to the route: six free anchors do not save the labeling.) -/
+private theorem rRoute_not_hole : ¬ SuccThrough rState (S .king) Label.hole rSucc := by
+  rintro ⟨u, α, hrun, -, harm, hsig⟩
+  have hα : α = [] := hsig
+  rw [hα] at hrun
+  rw [(run_nil_elim hrun).symm] at harm
+  obtain ⟨b, -, hto⟩ := harm
+  obtain ⟨i, bd, -, -, hs⟩ := applyDrawTo_eq hto
+  have h1 : rSucc.heights Suit.heart = rState.heights Suit.heart := by
+    rw [hs]
+  rw [rSucc_heights_heart, rHeights0] at h1
+  exact absurd h1 (by decide)
+
+private theorem rSucc_unlabeled (r : Label (S .king)) :
+    ¬ (LabelLive rState (S .king) r ∧ SuccThrough rState (S .king) r rSucc) := by
+  rintro ⟨hlive, hthru⟩
+  cases r with
+  | direct =>
+      obtain ⟨Y, hd⟩ := hlive
+      exact rKingNoReceivers Y hd.hY
+  | dig =>
+      obtain ⟨Y, hd⟩ := hlive
+      exact rKingNoReceivers Y hd.hY
+  | borrow p =>
+      obtain ⟨hp, -⟩ := hlive
+      exact rKingNoReceivers p hp
+  | hole => exact rRoute_not_hole hthru
+  | toStack =>
+      obtain ⟨r', s', hacc, hfire⟩ := hlive
+      exact rFrozenToStack r' s' hacc hfire
+
+/-- **The gated `succ_labeled` is REFUTED**: on the dealt-reachable
+fragment there is a WF state — the dealt initial state of an honest
+deal — whose `Draw(♠K)` commitment has a macro successor (the
+anchored-ace promotion route) that NO channel of the current
+five-element list labels. -/
+theorem wk_succ_labeled_reachable_false :
+    ¬ (∀ (st : State) (X : Card) (s : State), initialReachable st → st.WF →
+        macroStep st (MacroMove.drawCommit X) s →
+        ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s) := by
+  intro h
+  obtain ⟨r, hlive, hthru⟩ :=
+    h rState (S .king) rSucc rState_reachable rState_wf rStep
+  exact rSucc_unlabeled r ⟨hlive, hthru⟩
+
+/-! ### The four class universals' gated readings fall here too -/
+
+private def rLand (a : Anchor) : State :=
+  (rState.applyDrawTo (S .king) (Sum.inl a)).getD rState
+
+private theorem rLand_apply (a : Anchor)
+    (hfree : rState.board.topOf (Sum.inl a) = none) :
+    rState.applyDrawTo (S .king) (Sum.inl a) = some (rLand a) := by
+  have hne : rState.board.attach (Sum.inl a) (S .king) ≠ none :=
+    (Board.attach_eq_some_iff _ _ _).mpr ⟨hfree, rSpades_unseated (S .king) rfl⟩
+  cases hatt : rState.board.attach (Sum.inl a) (S .king) with
+  | none => exact absurd hatt hne
+  | some bd =>
+      have hto : rState.applyDrawTo (S .king) (Sum.inl a) = some
+          { rState with board := bd, stock := (rState.stock.drawTo 0).removeAt 0 } :=
+        applyDrawTo_iff.mpr ⟨0, bd, rState_pos, hatt, rfl⟩
+      cases h : rState.applyDrawTo (S .king) (Sum.inl a) with
+      | none =>
+          have h2 := hto
+          rw [h] at h2
+          exact absurd h2 (by simp)
+      | some s' =>
+          have hw : rLand a = s' := by
+            show (rState.applyDrawTo (S .king) (Sum.inl a)).getD rState = s'
+            rw [h]
+            rfl
+          rw [hw]
+
+private theorem rCanPlace (a : Anchor) (hfree : rState.board.topOf (Sum.inl a) = none) :
+    rState.canPlace (S .king) (Sum.inl a) = true :=
+  canPlace_inl_iff.mpr ⟨hfree, rfl⟩
+
+private theorem rTableau (a : Anchor) (hfree : rState.board.topOf (Sum.inl a) = none) :
+    CommitTableau rState (S .king) (rLand a) :=
+  ⟨Sum.inl a, rCanPlace a hfree, rLand_apply a hfree⟩
+
+private theorem rStepLand (a : Anchor) (hfree : rState.board.topOf (Sum.inl a) = none) :
+    macroStep rState (MacroMove.drawCommit (S .king)) (rLand a) := by
+  refine ⟨rState, ⟨[], rfl, fun _ hm => by simp at hm⟩, ?_⟩
+  exact ⟨Sum.inl a, Or.inl ⟨rCanPlace a hfree, rLand_apply a hfree⟩⟩
+
+private theorem rLand_holeThrough (a : Anchor)
+    (hfree : rState.board.topOf (Sum.inl a) = none) :
+    SuccThrough rState (S .king) Label.hole (rLand a) :=
+  ⟨rState, [], rfl, (fun _ hm => by simp at hm), rTableau a hfree, rfl⟩
+
+private theorem rLand_holeLive :
+    LabelLive rState (S .king) Label.hole :=
+  ⟨Anchor.p1, rfl, rFree1⟩
+
+/-- The landed-king state's shape facts: the spade height still 0, no
+spade but the king seated, the king on its anchor's base. -/
+private theorem rLand_seated (a : Anchor)
+    (hfree : rState.board.topOf (Sum.inl a) = none) :
+    (rLand a).heights Suit.spade = 0 ∧
+    (∀ c : Card, c.suit = Suit.spade → c ≠ S .king →
+      (rLand a).board.bottomOf c = none) ∧
+    (rLand a).board.topOf (Sum.inl a) = some (S .king) := by
+  obtain ⟨i, bd, -, hatt, hs⟩ := applyDrawTo_eq (rLand_apply a hfree)
+  rw [hs]
+  refine ⟨rfl, ?_, ?_⟩
+  · intro c hcs hcK
+    rw [bottomOf_attach_of_ne hatt hcK]
+    exact rSpades_unseated c hcs
+  · exact Board.attach_topOf _ _ _ hatt
+
+/-- **The frozen seat invariant, one step**: an accommodation move
+below a landed frozen-suit king never raises the spade height (only a
+seated spade at the rung could found; no non-king spade ever seats,
+and the king itself needs rung 12 against 0), never seats a non-king
+spade (the only seating move is `stackPile`, which demands
+foundedness no spade can reach), and never moves the king (its
+unseating `pileStack` is dead; a `stackPile` cannot land on the
+occupied anchor). -/
+private theorem rFrozen_seat_step (st t : State) (a : Anchor) (m : Move)
+    (hm : m.isAccommodation = true) (hap : st.apply m = some t)
+    (h0 : st.heights Suit.spade = 0)
+    (hns : ∀ c : Card, c.suit = Suit.spade → c ≠ S .king → st.board.bottomOf c = none)
+    (hK : st.board.topOf (Sum.inl a) = some (S .king)) :
+    t.heights Suit.spade = 0 ∧
+    (∀ c : Card, c.suit = Suit.spade → c ≠ S .king → t.board.bottomOf c = none) ∧
+    t.board.topOf (Sum.inl a) = some (S .king) := by
+  cases m with
+  | draw => simp [Move.isAccommodation] at hm
+  | reveal a' => simp [Move.isAccommodation] at hm
+  | deckPile c b => simp [Move.isAccommodation] at hm
+  | deckStack c => simp [Move.isAccommodation] at hm
+  | pilePile c b => simp [Move.isAccommodation] at hm
+  | pileStack c =>
+      rw [apply_pileStack_iff] at hap
+      obtain ⟨htopn, b, hbot, hrk, rfl⟩ := hap
+      by_cases hcs : c.suit = Suit.spade
+      · exfalso
+        by_cases hck : c = S .king
+        · rw [hck] at hrk
+          have h12 : (S .king).rank.toIdx = 12 := rfl
+          have hsp : (S .king).suit = Suit.spade := rfl
+          rw [hsp] at hrk
+          omega
+        · have hnone := hns c hcs hck
+          rw [hnone] at hbot
+          exact absurd hbot (by simp)
+      · have hstb : st.board.topOf b = some c := (Board.bottomOf_eq st.board c b).mp hbot
+        have hb : b ≠ Sum.inl a := by
+          intro hcon
+          rw [hcon] at hstb
+          have hkc : c = S .king :=
+            Option.some.inj (hstb.symm.trans hK)
+          exact hcs (by rw [hkc]; rfl)
+        refine ⟨by
+            show (if Suit.spade = c.suit then st.heights Suit.spade + 1
+                else st.heights Suit.spade) = 0
+            rw [ite_eq_right (fun hh => hcs hh.symm), h0], ?_, ?_⟩
+        · intro c' hc's hc'K
+          have hc'c : c' ≠ c := fun hh => hcs (by rw [← hh]; exact hc's)
+          rw [bottomOf_detach_ne hstb hc'c]
+          exact hns c' hc's hc'K
+        · show (st.board.detach b).topOf (Sum.inl a) = some (S .king)
+          rw [Board.detach_topOf_ne st.board b (Sum.inl a) (Ne.symm hb)]
+          exact hK
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at hap
+      obtain ⟨hg, hcp, bd, hatt, rfl⟩ := hap
+      by_cases hcs : c.suit = Suit.spade
+      · exfalso
+        rw [hcs] at hg
+        omega
+      · have hb : b ≠ Sum.inl a := by
+          intro hcon
+          have hse := topOf_of_canPlace hcp
+          rw [hcon] at hse
+          rw [hK] at hse
+          exact absurd hse (by simp)
+        refine ⟨by
+            show (if Suit.spade = c.suit then st.heights Suit.spade - 1
+                else st.heights Suit.spade) = 0
+            rw [ite_eq_right (fun hh => hcs hh.symm), h0], ?_, ?_⟩
+        · intro c' hc's hc'K
+          have hc'c : c' ≠ c := fun hh => hcs (by rw [← hh]; exact hc's)
+          rw [bottomOf_attach_of_ne hatt hc'c]
+          exact hns c' hc's hc'K
+        · show bd.topOf (Sum.inl a) = some (S .king)
+          rw [Board.attach_topOf_ne st.board b c hatt (Ne.symm hb)]
+          exact hK
+
+/-- The invariant rides every accommodation play from a landed king. -/
+private theorem rFrozen_seat_run (a : Anchor) : ∀ (play : List Move)
+    (st t : State), (∀ m ∈ play, m.isAccommodation = true) → st.run play = some t →
+    st.heights Suit.spade = 0 →
+    (∀ c : Card, c.suit = Suit.spade → c ≠ S .king → st.board.bottomOf c = none) →
+    st.board.topOf (Sum.inl a) = some (S .king) →
+    t.heights Suit.spade = 0 ∧
+    (∀ c : Card, c.suit = Suit.spade → c ≠ S .king → t.board.bottomOf c = none) ∧
+    t.board.topOf (Sum.inl a) = some (S .king) := by
+  intro play
+  induction play with
+  | nil =>
+      intro st t _ hrun h0 hns hK
+      have he : st = t := Option.some.inj hrun
+      subst he
+      exact ⟨h0, hns, hK⟩
+  | cons m ms ih =>
+      intro st t hall hrun h0 hns hK
+      obtain ⟨v, hmstep, hmsrun⟩ := run_cons_elim hrun
+      obtain ⟨h0v, hnsv, hKv⟩ := rFrozen_seat_step st v a m
+        (hall m (by simp)) hmstep h0 hns hK
+      exact ih v t (fun m' hm' => hall m' (List.mem_cons_of_mem _ hm')) hmsrun h0v hnsv hKv
+
+/-- **The split**: two different anchor landings of the same frozen
+king cannot be reconciled — any accommodation walk below one landing
+keeps the king on ITS anchor (the invariant), while the other
+landing's board shows that anchor bare. -/
+private theorem rLand_split (a a' : Anchor) (h : a ≠ a')
+    (hfree : rState.board.topOf (Sum.inl a) = none)
+    (hfree' : rState.board.topOf (Sum.inl a') = none) :
+    ¬ accommodates (rLand a) (rLand a') := by
+  rintro ⟨play, hrun, hall⟩
+  have hbase := rLand_seated a hfree
+  obtain ⟨-, -, hKend⟩ := rFrozen_seat_run a play (rLand a) (rLand a') hall hrun
+    hbase.1 hbase.2.1 hbase.2.2
+  obtain ⟨i, bd, -, hatt, hs⟩ := applyDrawTo_eq (rLand_apply a' hfree')
+  have hcon : (rLand a').board.topOf (Sum.inl a) = none := by
+    rw [hs]
+    show bd.topOf (Sum.inl a) = none
+    rw [Board.attach_topOf_ne _ _ _ hatt (fun hh => h (Sum.inl.inj hh))]
+    exact hfree
+  rw [hKend] at hcon
+  exact absurd hcon (by simp)
+
+/-- **The gated `c2_two_option` (the ≤2 count) is REFUTED**: three
+pairwise closure-separated macro successors of one commitment at a
+dealt-reachable state. -/
+theorem wk_c2_reachable_false :
+    ¬ (∀ (st : State) (X : Card) (s₁ s₂ s₃ : State), initialReachable st → st.WF →
+        macroStep st (MacroMove.drawCommit X) s₁ →
+        macroStep st (MacroMove.drawCommit X) s₂ →
+        macroStep st (MacroMove.drawCommit X) s₃ →
+        closureEq s₁ s₂ ∨ closureEq s₁ s₃ ∨ closureEq s₂ s₃) := by
+  intro h
+  rcases h rState (S .king) (rLand Anchor.p1) (rLand Anchor.p2) (rLand Anchor.p3)
+      rState_reachable rState_wf
+      (rStepLand Anchor.p1 rFree1) (rStepLand Anchor.p2 rFree2) (rStepLand Anchor.p3 rFree3) with
+    q | q | q
+  · exact rLand_split Anchor.p1 Anchor.p2 (by decide) rFree1 rFree2 q.1
+  · exact rLand_split Anchor.p1 Anchor.p3 (by decide) rFree1 rFree3 q.1
+  · exact rLand_split Anchor.p2 Anchor.p3 (by decide) rFree2 rFree3 q.1
+
+/-- **The gated `same_pin_closureEq` is REFUTED**: the hole channel is
+live at the root and both landings go through it (empty signature
+windows), and they stay closure-split. -/
+theorem wk_same_pin_reachable_false :
+    ¬ (∀ (st : State) (X : Card) (r : Label X) (s s' : State), initialReachable st →
+        st.WF → LabelLive st X r → SuccThrough st X r s →
+        SuccThrough st X r s' → closureEq s s') := by
+  intro h
+  exact rLand_split Anchor.p1 Anchor.p2 (by decide) rFree1 rFree2
+    (h rState (S .king) Label.hole (rLand Anchor.p1) (rLand Anchor.p2)
+      rState_reachable rState_wf rLand_holeLive
+      (rLand_holeThrough Anchor.p1 rFree1) (rLand_holeThrough Anchor.p2 rFree2)).1
+
+/-- **The gated `p2_direct_class` is REFUTED**: the direct commit on
+anchor 1, the safe hole-channel successor on anchor 2, no class join. -/
+theorem wk_p2_direct_reachable_false :
+    ¬ (∀ (st : State) (X : Card) (sd s_p : State) (r : Label X), initialReachable st →
+        st.WF → commitApplies st (MacroMove.drawCommit X) sd →
+        SuccThrough st X r s_p → P2Safe st X r →
+        closureEq sd s_p) := by
+  intro h
+  have hsd : commitApplies rState (MacroMove.drawCommit (S .king)) (rLand Anchor.p1) :=
+    ⟨Sum.inl Anchor.p1, Or.inl ⟨rCanPlace Anchor.p1 rFree1,
+      rLand_apply Anchor.p1 rFree1⟩⟩
+  exact rLand_split Anchor.p1 Anchor.p2 (by decide) rFree1 rFree2
+    (h rState (S .king) (rLand Anchor.p1) (rLand Anchor.p2) Label.hole
+      rState_reachable rState_wf hsd (rLand_holeThrough Anchor.p2 rFree2) trivial).1
+
+/-- **The gated `crease_chain_absorbed` is REFUTED**: both windows
+empty (sublist-reflexive), both arms the hole-channel tableau commit
+at the root, and the class join fails. -/
+theorem wk_crease_reachable_false :
+    ¬ (∀ (st : State) (X : Card) (r : Label X) (s s' : State)
+        (α α' : List Move) (u u' : State), initialReachable st → st.WF →
+        LabelLive st X r →
+        st.run α = some u → (∀ m ∈ α, m.isAccommodation = true) →
+        commitArmOf u X r s → LabelSig X r α →
+        st.run α' = some u' → (∀ m ∈ α', m.isAccommodation = true) →
+        commitArmOf u' X r s' → LabelSig X r α' →
+        List.Sublist α α' →
+        closureEq s s') := by
+  intro h
+  have hrfl : rState.run [] = some rState := rfl
+  have hnul : ∀ m ∈ ([] : List Move), m.isAccommodation = true :=
+    fun _ hm => by simp at hm
+  exact rLand_split Anchor.p1 Anchor.p2 (by decide) rFree1 rFree2
+    (h rState (S .king) Label.hole (rLand Anchor.p1) (rLand Anchor.p2)
+      [] [] rState rState rState_reachable rState_wf rLand_holeLive
+      hrfl hnul (rTableau Anchor.p1 rFree1) rfl
+      hrfl hnul (rTableau Anchor.p2 rFree2) rfl
+      List.Sublist.slnil).1
 end SuccLabeled
 
 #print axioms SuccLabeled.wk_succ_labeled_as_stated_false
@@ -796,3 +1427,10 @@ end SuccLabeled
 #print axioms SuccLabeled.uUnseat_safeAccommodates
 #print axioms SuccLabeled.uPromotionPermanent
 #print axioms SuccLabeled.uShifted_hole_cover
+#print axioms SuccLabeled.rState_reachable
+#print axioms SuccLabeled.rStep
+#print axioms SuccLabeled.wk_succ_labeled_reachable_false
+#print axioms SuccLabeled.wk_c2_reachable_false
+#print axioms SuccLabeled.wk_same_pin_reachable_false
+#print axioms SuccLabeled.wk_p2_direct_reachable_false
+#print axioms SuccLabeled.wk_crease_reachable_false
