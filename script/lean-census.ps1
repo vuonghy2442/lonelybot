@@ -75,8 +75,19 @@ $baseline = @{
   # PROVEN). stack_ball_corner's content survives as the hball premise
   # (believed true, never refuted, still unpinned):
   'C2Streamlined.lean' = 0  # wave-18: the pillar rows are gone — 4 refuted
-                            # with the witness, 1 re-homed as a premise; the
-                            # file is sorry-free and axiom-clean
+                             # with the witness, 1 re-homed as a premise; the
+                             # file is sorry-free and axiom-clean
+  # +wave-18 (the catchup-residue session, 2026-10-05; FARM.md wave-18 — the
+  # L1/O3(ii) general mixed window + its iff LANDED, TwinSwapCompletion owned
+  # in place; the two remaining are the named reductions with in-file plans):
+  'TwinSwapCompletion.lean' = 2  # State.mid_access_of_noSeat (the no-landing ->
+                                 #   haccess derivation at engine corpora — the
+                                 #   model half of the §8 audit),
+                                 # State.sweep_covered_corner_safety (the §6.5
+                                 #   covered-corner sweep-word safety — reduce to
+                                 #   the both-occupied exchange family; the cell
+                                 #   identification exchangeTwinCargo_flip_cover
+                                 #   is PROVEN ax-clean)
 }
 
 $drift = $false

@@ -1,20 +1,21 @@
 # The proof farm — handoff document
 
-**Census: 10 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
-· Movability 0 · C2Streamlined 0 · Restriction 2 · TwinExchange 1
-· TwinQuotient 2, TwinSwapCompletion 0; zero bullets; waves 12/17
-merge base (K1+K2+T+C2 sessions, 2026-10-05), then §8.7 closed by the
-movability-equivalence session and the C2 pillar set closed/refuted by
-the C2-closure session, both 2026-10-05).  Wave-18's C2 refute-probe
-found FOUR of the five wave-17 pillars FALSE as stated
-(C2KingAnchorWitness; the as-stated c2_two_option among them — the
-unstackable-at-rung corner the engine corpus never reaches); in their
-place stand the PROVEN `commitTableau_class` (the destination
-collapse at the commitment level, the stackable-rung regime) and the
-CONDITIONAL `c2_two_option` whose hypotheses spell the play-level
-content explicitly.  Pinned by
+**Census: 12 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
+· Movability 0 · C2Streamlined 0 · TwinSwapCompletion 2
+· Restriction 2 · TwinExchange 1 · TwinQuotient 2; zero bullets;
+waves 12/17 base + all four wave-18 sessions, 2026-10-05: §8.7 closed
+by movability-equivalence; the C2 pillar set refute-probed — FOUR of
+the five wave-17 pillars FALSE as stated (C2KingAnchorWitness; the
+as-stated c2_two_option among them — the unstackable-at-rung corner
+the engine corpus never reaches), in their place the PROVEN
+`commitTableau_class` (the destination collapse at the commitment
+level, the stackable-rung regime) and the CONDITIONAL
+`c2_two_option` with the play-level content as explicit premises; and
+the T catchup-residue session's mixed-mid window proven (`solvable_
+swapTwin_mixed(_run/_back)`), leaving the two believed-true pins
+`mid_access_of_noSeat` + `sweep_covered_corner_safety`).  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 10 are
+any NEW sorry or the return of a refuted constant.  All 12 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -1223,5 +1224,136 @@ no helper file was needed.
 4. engine-side: probe the corpus for the climb-blocked stocking
    corner (three free anchors + climb-blocked stocked king) to bound
    how far §7's measured claim reaches beyond the proven regime.
+## Wave 18 — T's catchup-residue: the L1/O3(ii) general window LANDED
+(landed 2026-10-05, the catchup-residue farm session; TwinSwapCompletion
+owned in place at macro-game HEAD)
+
+The wave-17 T session's NEXT list, executed: items 1–2 PROVEN in full,
+item 3 half proven + half pinned as the named reduction, item 4's
+reduction IDENTIFIED (proven at the cell level) + pinned.  Census
+16 → 18 (two believed-true pinning sorries, TwinSwapCompletion 0 → 2).
+
+**PROVEN (all in `Klondike/TwinSwapCompletion.lean`, axiom-clean,
+zero sorry; file grew 620 → 1351 lines)**:
+
+- **The mixed-mid predicate** `Move.twinMid` (TwinSwapCompletion:667):
+  `true` iff every `pileStack`/`deckStack`/`stackPile` in the move is
+  of a card off the twin's own suit AND off the pair; `draw`, `reveal`,
+  `deckPile`, `pilePile` ride unconditionally.  This subsumes the pure
+  catch-up family (`catchup_mem_twinMid`: below-rank low-suit cards are
+  off-pair by rank), the separated window's ORTHO moves, and the LOW
+  suit's worry-backs and raises (the twin's firing does not touch the
+  low suit's height, so their guards transfer verbatim).  NOTE: the
+  predicate is deliberately ONE-SIDED in its suit condition, hence NOT
+  flip-dual — the `_back` states its premises at the flipped roles
+  directly (the prover caught my first flip-dual lemma as FALSE: a
+  `t`-suit non-pair card is `twinMid t`-excluded but
+  `twinMid t.flipSuit`-legal — correct, since at the flipped window
+  the divergent suit is the other one).
+- **Six per-kind exchange steps** (`twin_fire_exchange_draw/_deckStack/
+  _deckPile/_stackPile/_pilePile/_reveal`, :733-1160): each takes the
+  twin's guarded firing at `S` and the mid move firing on BOTH sides,
+  and concludes the twin fires at the moved state landing EXACTLY the
+  moved successor.  The vacated-seat landing (base = β) and the
+  covered-twin landing (base = `Sum.inr t`) are DERIVED from the two
+  firings — a β-landing cannot fire at `S` (the cell holds the twin),
+  a twin-seat landing cannot fire at `B` (the fired twin is unseated,
+  invisible as a base) — so `haccess` really is the no-landing premise
+  in executable form, exactly as the ticket guessed.  The `pilePile`
+  step (:920) covers the twin RIDING INSIDE the moved run (internal
+  edges ride; only two root cells are written).  The `reveal` step
+  (:1014) is the sole `hwf` consumer: `vis_not_hidden` keeps the
+  seated twin out of every hidden slice, so a mid reveal cannot seat
+  the boundary card onto it (the covered-twin corner as a MID move —
+  the shape witness B blocks).
+- **The general reorder** `pileStack_mid_reorder` (:1078): the MIXED
+  mid commutes with the twin's stacking — induction over the mid
+  dispatching to the per-kind steps (`pileStack` case = the existing
+  `apply_pileStack_pileStack_exchange`), carrying WF and the twin's
+  captured firing along the prefixes; the replayed mid fires the twin
+  into exactly the source's mid successor.
+- **Item 1, the general window** `State.solvable_swapTwin_mixed`
+  TwinSwapCompletion:1140; `_run` packaging :1224): source wins via
+  [prefix; stack t; MIXED mid; stack t'; tail] + `haccess` + `hwf`
+  ⟹ `(st.swapTwin t).solvableFrom`.  Same twinSkew/crossTwin spine as
+  the pure window — the reorder feeds `hCshape`, and the low rung at
+  `M₀` (`hC₀low`) is now DERIVED (the twin's firing preserves the low
+  suit's height, and the source's own second bracket pins it) — no
+  per-card catch-up list needed anymore.
+- **Item 2, the iff's backward half** `State.solvable_swapTwin_mixed_back`
+  (:1289): the mirror-side hypothesis in the BETWEEN shape (at
+  `(st.swapTwin t)` with roles flipped) ⟹ `st.solvableFrom`, by the
+  forward window at the flipped twin + the involution.  The honest
+  boundary (in-file, and the recorded successor ticket): the
+  CATCH-UP-FIRST mirror plays need the catch-up-first→between
+  DEFERRAL, and the deferral is *not* free — moving the mirror's
+  first stacking across its catch-up needs the pre-catch-up
+  fireability license (a catch-up card may sit ON that twin, uncovered
+  only mid-catch-up — the flipped witness-A corner), and the
+  post-stacking tail runs in the mirror's play at a state the
+  forward window's `haccess` knows nothing about.  That deferral
+  (L1(ii) at the mirror) is the next wave's first ticket.
+- **Item 3's proven half** — the twin-suit worry-back discipline:
+  `twin_fire_tSuit_stackPile_impossible` (:1328) and
+  `twin_fire_tSuit_pileStack_impossible` (:1348): a foundation move
+  reading the TWIN'S OWN suit cannot fire on both sides of the
+  exchange at all (the ±1 rung offset) — the `twinMid` exclusion is
+  contentful, not convenience; the LOW suit's worry-backs RIDE (are
+  `twinMid`-legal and handled by the `stackPile` exchange step).
+  `run_worryback_pair_excise` (:1369): an adjacent
+  [worry-back, re-stack] pair nets to the identity
+  (`stackPile_pileStack_return`), so excursion-shaped worry-backs
+  lift out of any winning run — inside or beside the window.
+
+**PINNED (2 sorries, each with its one-paragraph plan in-file; census
+TwinSwapCompletion 0 → 2)**:
+
+- `State.mid_access_of_noSeat` (TwinSwapCompletion:1443) — the
+  `haccess` DERIVATION at the no-landing premise, the model half of
+  item 3's engine-corpus audit: given the source's own mid plus the
+  per-seat exclusions (landing bases off β and off `Sum.inr t`),
+  the whole mid replays at the pre-firing state AND lands on the
+  source's successor.  Plan (in-file): the B→A mirror of the six
+  exchange steps; the genuinely new piece is the `pilePile`
+  walk-extension (`x ∈ aboveOf_A z → x ∈ aboveOf_B z ∨ x = t`, by the
+  `aboveOf_go` induction — the A-walk reads β, gains t, stops at the
+  bare seat); the reveal needs the state-dependent `hiddenBase`
+  exclusion.  The corpus half — which reached states' between-mids
+  satisfy the seat exclusions — is §8's audit (the histogram pull).
+- `State.sweep_covered_corner_safety` (TwinSwapCompletion:1533) —
+  §6.5's semantic obligation AT the covered corner (item 4): the
+  covered corner and its exchange image are solvability-equivalent, so
+  the sweep's deterministic lowest-first pick never UNIQUELY loses a
+  win at the ambiguous pair.  The reduction's IDENTIFICATION half is
+  PROVEN: `exchangeTwinCargo_flip_cover` (TwinSwapCompletion:1486) —
+  at the corner, `st.exchangeTwinCargo L` has exactly the flipped cell
+  readings (the two identity-resolutions of the word are the two
+  exchange-images; note the raw seat-swap rides the cover card's
+  VALUE to its own seat — why the safety must route through the
+  discipline kit, not a literal symmetry).  Plan (in-file): WF forces
+  the corner to be deal-adjacent (`canSitOn` dies at the mate's own
+  rank); every win must dislodge the covering mate (extraction +
+  `unseats_imp_pileStack`); at the dislodged/bare pair the PROVEN
+  `twin_stack_order_exchange_catchup` +
+  `solvable_cargoTwin_exchange_licensed`/`_of_visClean` family
+  supplies the equivalence; the residue inside that is the
+  LICENSE-FIT while the mate still sits (the w15fithole rider-detour
+  class).
+
+NEXT (tickets, in order):
+1. The catch-up-first→between DEFERRAL at the mirror (the `mixed_back`
+   completion): pre-catch-up fireability license + the post-stacking
+   tail's access — L1(ii) with the window machinery now in place
+   (reuse the six transfer steps in the A→B direction).
+2. `State.mid_access_of_noSeat`'s plan: the B→A transfers + the
+   `aboveOf` walk-extension lemma; then §8's landing-site histogram
+   pull (engine corpus: do between-mids ever land on the twin seats?).
+3. `State.sweep_covered_corner_safety`'s plan: the deal-adjacent
+   license-fit (or dislodge-first normalization), reducing the
+   §6.5 covered corner into the proven exchange family.
+4. Optional probe: a decide-anchored witness for the ON-PAIR shuttle
+   corner (a `pileStack t'`/`deckStack t'` inside the mid is
+   source-inconsistent — the second bracket's rung pin; a small
+   `#eval` cast would document it).
 
 
