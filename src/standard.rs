@@ -95,8 +95,16 @@ impl StandardSolitaire {
         }
     }
 
+    /// Builds a midgame position from tableau piles, foundation heights and
+    /// the remaining deck/waste.
+    ///
+    /// # Panics
+    ///
+    /// When `validate` is true, panics unless the piles, foundation and deck
+    /// together contain every card exactly once and all foundation heights
+    /// are within range. The deck itself must satisfy [`Deck::from_midgame`].
     #[must_use]
-    pub fn from_midgame (
+    pub fn from_midgame(
         hidden_piles: [ArrayVec<Card, N_HIDDEN_MAX>; N_PILES as usize],
         open_piles: [ArrayVec<Card, N_OPEN_MAX>; N_PILES as usize],
         stack: [u8; N_SUITS as usize],
@@ -107,16 +115,29 @@ impl StandardSolitaire {
             // If validate is true, we will check that the provided piles, stack, and deck contain all cards exactly once
             let mut card_counts = [[0u8; N_RANKS as usize]; N_SUITS as usize];
             let mut check_card = |c: Card| {
-                assert!(c.suit() < N_SUITS && c.rank() < N_RANKS, "Invalid card: {c:?}");
-                assert!(card_counts[c.suit() as usize][c.rank() as usize] == 0, "Duplicate card: {c:?}");
+                assert!(
+                    c.suit() < N_SUITS && c.rank() < N_RANKS,
+                    "Invalid card: {c:?}"
+                );
+                assert!(
+                    card_counts[c.suit() as usize][c.rank() as usize] == 0,
+                    "Duplicate card: {c:?}"
+                );
                 card_counts[c.suit() as usize][c.rank() as usize] += 1;
             };
             // Add all cards to the counts
-            hidden_piles.iter().for_each(|pile| pile.iter().for_each(|&c| check_card(c)));
-            open_piles.iter().for_each(|pile| pile.iter().for_each(|&c| check_card(c)));
+            hidden_piles
+                .iter()
+                .for_each(|pile| pile.iter().for_each(|&c| check_card(c)));
+            open_piles
+                .iter()
+                .for_each(|pile| pile.iter().for_each(|&c| check_card(c)));
             deck.iter_all().for_each(|(_, card, _)| check_card(card));
             stack.iter().enumerate().for_each(|(suit, &rank)| {
-                assert!(suit < N_SUITS as usize && rank <= N_RANKS, "Invalid stack: suit {suit}, rank {rank}");
+                assert!(
+                    suit < N_SUITS as usize && rank <= N_RANKS,
+                    "Invalid stack: suit {suit}, rank {rank}"
+                );
                 for r in 0..rank {
                     let c = Card::new(r, suit as u8);
                     check_card(c);
@@ -130,16 +151,13 @@ impl StandardSolitaire {
             });
         }
 
-
-        return Self {
+        Self {
             hidden_piles,
             final_stack: Stack::from_s(stack),
-            deck: deck,
+            deck,
             piles: open_piles,
-        };
+        }
     }
-
-
 
     #[must_use]
     pub const fn is_win(&self) -> bool {

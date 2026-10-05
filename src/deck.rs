@@ -29,12 +29,22 @@ pub enum Drawable {
 }
 
 impl Deck {
-
-    /// Creates a Deck from a midgame state where some cards may have already been removed.
-    /// - "current_cards": The sequence of cards currently in waste + stock.
-    /// - "draw_cur": The number of cards currently in the waste pile.
-    /// - "draw_step": The draw rule (e.g., draw 1 or draw 3).
-    /// - "full_deck_template": The complete array of all N_DECK_CARDS used at game start (needed for mapping).
+    /// Creates a [`Deck`] from a midgame state where some cards may have
+    /// already been removed (drawn into the tableau or foundations).
+    ///
+    /// - `current_cards`: the cards currently in waste + stock, ordered as
+    ///   they appear in `full_deck_template` (waste first, then stock). Any
+    ///   deck position reachable by play preserves this order.
+    /// - `draw_cur`: The number of cards currently in the waste pile.
+    /// - `draw_step`: The draw rule (e.g., draw 1 or draw 3).
+    /// - `full_deck_template`: The complete array of all N_DECK_CARDS cards
+    ///   used at game start (the position/index mapping is derived from it).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `current_cards` is not ordered as in the template, contains
+    /// a card missing from the template, or if `draw_cur` exceeds the number
+    /// of supplied cards. A template with duplicated cards is rejected too.
     #[must_use]
     pub fn from_midgame(
         current_cards: &[Card],
@@ -45,23 +55,44 @@ impl Deck {
         // 1. Build the global map using the original template
         let mut map = [!0u8; N_CARDS as usize];
         for (i, c) in full_deck_template.iter().enumerate() {
+            let idx = c.mask_index() as usize;
+            assert!(map[idx] == !0u8, "Duplicate card in deck template: {c:?}");
             #[allow(clippy::cast_possible_truncation)]
             {
-                map[c.mask_index() as usize] = i as u8;
+                map[idx] = i as u8;
             }
         }
         // 2. Compute the bitmask for the cards currently present in the deck/waste
+        assert!(
+            draw_cur as usize <= current_cards.len(),
+            "draw_cur ({draw_cur}) is larger than the supplied deck ({})",
+            current_cards.len()
+        );
+
         let mut mask: u32 = 0;
+        let mut prev_pos: Option<u8> = None;
         for c in current_cards {
             let pos = map[c.mask_index() as usize];
             assert!(pos != !0u8, "Card not found in deck template");
+            assert!(
+                prev_pos.is_none_or(|p| p < pos),
+                "current_cards must preserve the deck template order (waste first, then stock), {c:?} is out of place"
+            );
+            prev_pos = Some(pos);
             mask |= 1u32 << pos;
         }
 
         let mut deck = ArrayVec::new();
-        deck.try_extend_from_slice(current_cards).expect("Too many cards for ArrayVec");
+        deck.try_extend_from_slice(current_cards)
+            .expect("Too many cards for ArrayVec");
 
-        Self { deck, draw_step, draw_cur, mask, map }
+        Self {
+            deck,
+            draw_step,
+            draw_cur,
+            mask,
+            map,
+        }
     }
 
     #[must_use]
@@ -376,7 +407,7 @@ impl Deck {
 
 #[cfg(test)]
 mod tests {
-    use rand::{RngExt, SeedableRng, rngs::SmallRng};
+    use rand::{rngs::SmallRng, RngExt, SeedableRng};
 
     use crate::shuffler::default_shuffle;
 
@@ -451,5 +482,59 @@ mod tests {
                 assert_eq!(deck.len(), N_DECK_CARDS);
             }
         }
+    }
+
+    #[test]
+    fn test_from_midgame_roundtrip() {
+        let cards = default_shuffle(12);
+        let cards = cards[..N_DECK_CARDS as usize].try_into().unwrap();
+
+        let mut deck = Deck::new(cards, NonZeroU8::new(3).unwrap());
+        assert!(deck.is_pure());
+        deck.deal_once();
+        deck.deal_once();
+        deck.pop_next();
+        deck.pop_next();
+
+        // the internal order (waste + stock) is exactly what from_midgame expects
+        let order: Vec<Card> = deck.iter().collect();
+        let draw_cur = deck.get_offset();
+        let rebuilt = Deck::from_midgame(&order, draw_cur, deck.draw_step(), &cards);
+
+        assert!(rebuilt.equivalent_to(&deck));
+        assert_eq!(rebuilt.encode(), deck.encode());
+    }
+
+    #[test]
+    #[should_panic(expected = "must preserve the deck template order")]
+    fn test_from_midgame_rejects_unordered_input() {
+        let cards = default_shuffle(13);
+        let cards: [Card; N_DECK_CARDS as usize] =
+            cards[..N_DECK_CARDS as usize].try_into().unwrap();
+
+        let reversed: Vec<Card> = cards.iter().rev().copied().collect();
+        Deck::from_midgame(&reversed, 0, NonZeroU8::new(1).unwrap(), &cards);
+    }
+
+    #[test]
+    #[should_panic(expected = "larger than the supplied deck")]
+    fn test_from_midgame_rejects_invalid_draw_cur() {
+        let cards = default_shuffle(14);
+        let cards: [Card; N_DECK_CARDS as usize] =
+            cards[..N_DECK_CARDS as usize].try_into().unwrap();
+
+        let full: Vec<Card> = cards.to_vec();
+        Deck::from_midgame(&full, N_DECK_CARDS + 1, NonZeroU8::new(1).unwrap(), &cards);
+    }
+
+    #[test]
+    #[should_panic(expected = "Duplicate card in deck template")]
+    fn test_from_midgame_rejects_duplicated_template() {
+        let cards = default_shuffle(15);
+        let mut cards: [Card; N_DECK_CARDS as usize] =
+            cards[..N_DECK_CARDS as usize].try_into().unwrap();
+        cards[N_DECK_CARDS as usize - 1] = cards[0];
+
+        Deck::from_midgame(&[cards[0]], 0, NonZeroU8::new(1).unwrap(), &cards);
     }
 }

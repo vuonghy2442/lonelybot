@@ -3,6 +3,7 @@
 pub mod card;
 pub mod convert;
 pub mod deck;
+pub mod dependencies;
 pub mod engine;
 pub mod formatter;
 pub mod graph;
@@ -19,5 +20,4 @@ pub mod standard;
 pub mod state;
 pub mod tracking;
 pub mod traverse;
-pub mod dependencies;
 mod utils;
