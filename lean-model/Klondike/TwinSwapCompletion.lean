@@ -618,3 +618,924 @@ theorem twin_stack_order_exchange_catchup {st : State} {L H : Card}
     simp only [State.run, hD₀]
   rw [hr1]
   exact run_append_some (by simp only [State.run, hexchange]) hp₂
+
+/-! ## L1/O3(ii) — the general window: catch-up MIXED with ortho moves
+
+The pure catch-up window above reorders a mid made only of the low
+suit's exact-rung `pileStack`s.  The general window (L1/O3 part (ii))
+allows the mid to MIX those catch-up cards with ortho twin moves —
+draws, reveals, `deckPile`/`pilePile`/`stackPile` landings, and
+foundation moves of cards off the twin's own suit — as long as every
+mid move stays off the twin pair and (for the three height-reading
+kinds) off the twin's suit.  The obstruction the FARM queue records is
+genuine: an ortho move landing onto the twin's vacated base seat fires
+only on the source side (the twin still occupies the seat before the
+reorder), and the `haccess` premise is exactly what such landings
+break (witness A's shape); a landing onto the twin itself is the
+covered-twin corner (witness B's shape), and it dies on the source
+side already — a fired twin is unseated, hence invisible as a
+`canPlace` base.  So `haccess` — the mid is replayable at the
+pre-firing state — is the no-landing premise in its executable form,
+and the whole window rides the EXCHANGE-shaped reorder below instead
+of the pure one.
+
+The engine is a per-kind one-step exchange: given the twin's guarded
+firing at `S` and a mid move `m` firing on BOTH sides, the twin fires
+at the moved state landing exactly on the moved successor.  The
+`pileStack` case is the existing `apply_pileStack_pileStack_exchange`
+(one lemma serves the catch-up cards and every off-suit `pileStack`);
+the six other kinds get one lemma each.  The covered-twin and
+vacated-seat divergences are DERIVED from the two firings, never
+premised: a landing base occupied by `t` cannot fire at `S` (the cell
+reads `none`), and a landing on `t`'s own seat cannot fire at `B` (no
+visible base card).  The lone exception is `reveal`: its attach base
+is the pile's hidden second-from-top card — deal data, not board
+occupancy — so a junk state could hide the twin itself in a hidden
+slice and seat the boundary card on top of it on BOTH sides.  WF's
+`vis_not_hidden` kills exactly that (the fired twin is seated, hence
+visible, hence in no hidden slice), so the reveal step is the one
+place the general window carries `hwf`. -/
+
+/-- The mixed-mid predicate: `true` iff the move can ride the general
+window's mid.  The three height-reading kinds demand the moved card be
+off the twin's suit (its guard reads `heights`, which the twin's firing
+bumps — the exchange needs the guard to read the same height on both
+sides) and off the twin pair (the mirror leg needs `cleanTwin`; an
+on-pair foundation move in the mid is the shuttle corner recorded as
+the residue).  Everything else — `draw`, `reveal`, `deckPile`,
+`pilePile` — is unconditionally mid-safe. -/
+def Move.twinMid (t : Card) : Move → Bool
+  | .pileStack c | .deckStack c | .stackPile c _ =>
+      decide (c.suit ≠ t.suit ∧ c ≠ t.flipSuit)
+  | _ => true
+
+theorem Move.twinMid_pileStack (t c : Card) :
+    Move.twinMid t (Move.pileStack c) = true ↔
+      c.suit ≠ t.suit ∧ c ≠ t.flipSuit := by
+  simp [Move.twinMid]
+
+theorem Move.twinMid_deckStack (t c : Card) :
+    Move.twinMid t (Move.deckStack c) = true ↔
+      c.suit ≠ t.suit ∧ c ≠ t.flipSuit := by
+  simp [Move.twinMid]
+
+theorem Move.twinMid_stackPile (t c : Card) (b : Base) :
+    Move.twinMid t (Move.stackPile c b) = true ↔
+      c.suit ≠ t.suit ∧ c ≠ t.flipSuit := by
+  simp [Move.twinMid]
+
+@[simp] theorem Move.twinMid_draw (t : Card) :
+    Move.twinMid t Move.draw = true := rfl
+
+@[simp] theorem Move.twinMid_reveal (t : Card) (a : Anchor) :
+    Move.twinMid t (Move.reveal a) = true := rfl
+
+@[simp] theorem Move.twinMid_deckPile (t : Card) (c : Card) (b : Base) :
+    Move.twinMid t (Move.deckPile c b) = true := rfl
+
+@[simp] theorem Move.twinMid_pilePile (t : Card) (c : Card) (b : Base) :
+    Move.twinMid t (Move.pilePile c b) = true := rfl
+
+/-- Every mixed-mid move is CLEAN for the pair exchange (the mirror
+leg of the window needs it). -/
+theorem Move.twinMid_clean {t : Card} {m : Move} (hm : Move.twinMid t m = true) :
+    Move.cleanTwin t m = true := by
+  cases m with
+  | draw | reveal _ | deckPile _ _ | pilePile _ _ => rfl
+  | deckStack c =>
+      obtain ⟨hsu, h₂⟩ := (Move.twinMid_deckStack t c).mp hm
+      show Card.offPair t c = true
+      exact Card.offPair_true (fun h => hsu (by rw [h])) (fun h => h₂ (by rw [h]))
+  | pileStack c =>
+      obtain ⟨hsu, h₂⟩ := (Move.twinMid_pileStack t c).mp hm
+      show Card.offPair t c = true
+      exact Card.offPair_true (fun h => hsu (by rw [h])) (fun h => h₂ (by rw [h]))
+  | stackPile c b =>
+      obtain ⟨hsu, h₂⟩ := (Move.twinMid_stackPile t c b).mp hm
+      show Card.offPair t c = true
+      exact Card.offPair_true (fun h => hsu (by rw [h])) (fun h => h₂ (by rw [h]))
+
+/-- The pure catch-up family rides the mixed mid (below-rank cards are
+off the pair; the low suit is off the twin's suit). -/
+theorem catchup_mem_twinMid {t : Card} {cu : List Move}
+    (hcu : ∀ m ∈ cu, ∃ c, m = Move.pileStack c ∧
+      c.suit = t.flipSuit.suit ∧ c.rank.toIdx < t.rank.toIdx) :
+    ∀ m ∈ cu, Move.twinMid t m = true := by
+  intro m hm
+  obtain ⟨c, hmc, hsu, hlt⟩ := hcu m hm
+  have hsne : t.flipSuit.suit ≠ t.suit := fun h => Suit.flipPair_ne t.suit h
+  rw [hmc]
+  refine (Move.twinMid_pileStack t c).mpr ⟨fun hcon => hsne (hsu.symm.trans hcon), ?_⟩
+  intro hcon
+  rw [hcon] at hlt
+  rw [Card.flipSuit_rank] at hlt
+  omega
+
+/-! ### The per-kind exchange steps
+
+Each lemma takes the twin's guarded firing at `S` (landing `B`) and the
+mid move's firing on BOTH sides, and concludes the twin fires at the
+moved state with landing EXACTLY the moved successor — the reorder's
+induction step. -/
+
+/-- The `draw` exchange: draws touch only the stock cursor, which the
+twin's firing does not read. -/
+theorem twin_fire_exchange_draw {S B S₁ T₁ : State} {t : Card}
+    (hB : S.apply (Move.pileStack t) = some B)
+    (hS : S.apply Move.draw = some S₁)
+    (hT : B.apply Move.draw = some T₁) :
+    S₁.apply (Move.pileStack t) = some T₁ := by
+  rw [apply_draw_iff] at hS hT
+  obtain rfl := hS
+  obtain rfl := hT
+  rw [apply_pileStack_iff] at hB
+  obtain ⟨htop, β, hβ, hrk, hBshape⟩ := hB
+  refine apply_pileStack_iff.mpr ⟨htop, β, hβ, hrk, ?_⟩
+  rw [hBshape]
+
+/-- The `deckStack` exchange: the moved card's suit is off the twin's
+suit, so its rung guard reads the same height on both sides and the
+two height bumps commute. -/
+theorem twin_fire_exchange_deckStack {S B S₁ T₁ : State} {t c : Card}
+    (hsu : c.suit ≠ t.suit)
+    (hB : S.apply (Move.pileStack t) = some B)
+    (hS : S.apply (Move.deckStack c) = some S₁)
+    (hT : B.apply (Move.deckStack c) = some T₁) :
+    S₁.apply (Move.pileStack t) = some T₁ := by
+  rw [apply_deckStack_iff] at hS hT
+  obtain ⟨-, -, hS₁⟩ := hS
+  obtain ⟨-, -, hT₁⟩ := hT
+  rw [hS₁, hT₁]
+  rw [apply_pileStack_iff] at hB
+  obtain ⟨htop, β, hβ, hrk, hBshape⟩ := hB
+  refine apply_pileStack_iff.mpr ⟨htop, β, hβ, ?_, ?_⟩
+  · show t.rank.toIdx =
+      (if t.suit = c.suit then S.heights t.suit + 1 else S.heights t.suit)
+    rw [ite_eq_right (fun h => hsu h.symm)]
+    exact hrk
+  · rw [hBshape]
+    apply state_ext
+    · rfl
+    · rfl
+    · funext s
+      show (if s = c.suit then
+          (if s = t.suit then S.heights s + 1 else S.heights s) + 1
+        else if s = t.suit then S.heights s + 1 else S.heights s)
+        = (if s = t.suit then
+          (if s = c.suit then S.heights s + 1 else S.heights s) + 1
+        else if s = c.suit then S.heights s + 1 else S.heights s)
+      by_cases h1 : s = t.suit
+      · rw [ite_eq_right (fun hh => hsu (hh.symm.trans h1)),
+          ite_eq_left h1, ite_eq_left h1,
+          ite_eq_right (fun hh => hsu (hh.symm.trans h1))]
+      · rw [ite_eq_right h1, ite_eq_right h1]
+    · rfl
+    · rfl
+    · rfl
+
+/-- The `deckPile` exchange: the drawn card's landing cell is neither
+the twin's base (occupied at `S`) nor the twin's own seat (the fired
+twin is unseated, hence invisible as a base at `B`) — both excluded by
+the firings themselves — so the attach commutes with the twin's
+detach, and the stock splice is untouched by the firing. -/
+theorem twin_fire_exchange_deckPile {S B S₁ T₁ : State} {t X : Card} {b : Base}
+    (hB : S.apply (Move.pileStack t) = some B)
+    (hS : S.apply (Move.deckPile X b) = some S₁)
+    (hT : B.apply (Move.deckPile X b) = some T₁) :
+    S₁.apply (Move.pileStack t) = some T₁ := by
+  rw [apply_pileStack_iff] at hB
+  obtain ⟨htop, β, hβ, hrk, hBshape⟩ := hB
+  rw [apply_deckPile_iff] at hS
+  obtain ⟨-, hcp, bdS, hattS, hS₁⟩ := hS
+  rw [apply_deckPile_iff] at hT
+  obtain ⟨-, hcpB, bdT, hattT, hT₁⟩ := hT
+  rw [hS₁, hT₁]
+  have hβtop : S.board.topOf β = some t := (Board.bottomOf_eq S.board t β).mp hβ
+  have hBbot : B.board.bottomOf t = none := by
+    rw [hBshape]; exact Board.bottomOf_detach_self hβtop
+  have hbfree : S.board.topOf b = none := topOf_of_canPlace hcp
+  have hbβ : b ≠ β := fun hcon => by
+    rw [hcon] at hbfree; rw [hβtop] at hbfree; exact absurd hbfree (by simp)
+  have hbt : b ≠ Sum.inr t := by
+    intro hcon
+    rw [hcon] at hcpB
+    obtain ⟨-, hvis, -⟩ := canPlace_inr_iff.mp hcpB
+    rw [show B.isVis t = (B.board.bottomOf t).isSome from rfl, hBbot] at hvis
+    simp at hvis
+  rw [hBshape] at hattT
+  have hattT' : (S.board.detach β).attach b X = some bdT := hattT
+  have hbord : bdT = bdS.detach β :=
+    (attach_detach_comm hbβ hattS hattT').symm
+  refine apply_pileStack_iff.mpr ⟨?_, β, ?_, hrk, ?_⟩
+  · show bdS.topOf (Sum.inr t) = none
+    rw [Board.attach_topOf_ne _ _ _ hattS (Ne.symm hbt)]
+    exact htop
+  · show bdS.bottomOf t = some β
+    refine (Board.bottomOf_eq _ _ _).mpr ?_
+    rw [Board.attach_topOf_ne _ _ _ hattS (Ne.symm hbβ)]
+    exact hβtop
+  · rw [hBshape]
+    apply state_ext
+    · rfl
+    · exact hbord
+    · funext s
+      rfl
+    · rfl
+    · rfl
+    · rfl
+
+/-- The `stackPile` exchange: the worry-back of an off-suit card.  Its
+rung guard reads the moved card's suit (off the twin's suit, so the
+same height on both sides), and the landing exclusions are derived
+exactly as in the `deckPile` exchange. -/
+theorem twin_fire_exchange_stackPile {S B S₁ T₁ : State} {t c : Card} {b : Base}
+    (hsu : c.suit ≠ t.suit)
+    (hB : S.apply (Move.pileStack t) = some B)
+    (hS : S.apply (Move.stackPile c b) = some S₁)
+    (hT : B.apply (Move.stackPile c b) = some T₁) :
+    S₁.apply (Move.pileStack t) = some T₁ := by
+  rw [apply_pileStack_iff] at hB
+  obtain ⟨htop, β, hβ, hrk, hBshape⟩ := hB
+  rw [apply_stackPile_iff] at hS
+  obtain ⟨-, hcp, bdS, hattS, hS₁⟩ := hS
+  rw [apply_stackPile_iff] at hT
+  obtain ⟨-, hcpB, bdT, hattT, hT₁⟩ := hT
+  rw [hS₁, hT₁]
+  have hβtop : S.board.topOf β = some t := (Board.bottomOf_eq S.board t β).mp hβ
+  have hBbot : B.board.bottomOf t = none := by
+    rw [hBshape]; exact Board.bottomOf_detach_self hβtop
+  have hbfree : S.board.topOf b = none := topOf_of_canPlace hcp
+  have hbβ : b ≠ β := fun hcon => by
+    rw [hcon] at hbfree; rw [hβtop] at hbfree; exact absurd hbfree (by simp)
+  have hbt : b ≠ Sum.inr t := by
+    intro hcon
+    rw [hcon] at hcpB
+    obtain ⟨-, hvis, -⟩ := canPlace_inr_iff.mp hcpB
+    rw [show B.isVis t = (B.board.bottomOf t).isSome from rfl, hBbot] at hvis
+    simp at hvis
+  rw [hBshape] at hattT
+  have hattT' : (S.board.detach β).attach b c = some bdT := hattT
+  have hbord : bdT = bdS.detach β :=
+    (attach_detach_comm hbβ hattS hattT').symm
+  refine apply_pileStack_iff.mpr ⟨?_, β, ?_, ?_, ?_⟩
+  · show bdS.topOf (Sum.inr t) = none
+    rw [Board.attach_topOf_ne _ _ _ hattS (Ne.symm hbt)]
+    exact htop
+  · show bdS.bottomOf t = some β
+    refine (Board.bottomOf_eq _ _ _).mpr ?_
+    rw [Board.attach_topOf_ne _ _ _ hattS (Ne.symm hbβ)]
+    exact hβtop
+  · show t.rank.toIdx =
+      (if t.suit = c.suit then S.heights t.suit - 1 else S.heights t.suit)
+    rw [ite_eq_right (fun h => hsu h.symm)]
+    exact hrk
+  · rw [hBshape]
+    apply state_ext
+    · rfl
+    · exact hbord
+    · funext s
+      show (if s = c.suit then
+          (if s = t.suit then S.heights s + 1 else S.heights s) - 1
+        else if s = t.suit then S.heights s + 1 else S.heights s)
+        = (if s = t.suit then
+          (if s = c.suit then S.heights s - 1 else S.heights s) + 1
+        else if s = c.suit then S.heights s - 1 else S.heights s)
+      by_cases h1 : s = t.suit
+      · rw [ite_eq_right (fun hh => hsu (hh.symm.trans h1)),
+          ite_eq_left h1, ite_eq_left h1,
+          ite_eq_right (fun hh => hsu (hh.symm.trans h1))]
+      · rw [ite_eq_right h1, ite_eq_right h1]
+    · rfl
+    · rfl
+    · rfl
+
+/-- The `pilePile` exchange: the run move.  The run head is not the
+twin (a run head must be seated, and the twin is unseated at `B`); the
+detach cell (the head's own base) is not the twin's base (their tops
+differ); the landing cell is neither the twin's base (occupied at
+`S`) nor the twin's own seat (no visible base at `B`) — every
+exclusion derives from the two firings, including when the twin rides
+inside the moved run at `S` (the internal edges ride the move
+unchanged, and the twin's base cell is never written). -/
+theorem twin_fire_exchange_pilePile {S B S₁ T₁ : State} {t z : Card} {b : Base}
+    (hB : S.apply (Move.pileStack t) = some B)
+    (hS : S.apply (Move.pilePile z b) = some S₁)
+    (hT : B.apply (Move.pilePile z b) = some T₁) :
+    S₁.apply (Move.pileStack t) = some T₁ := by
+  rw [apply_pileStack_iff] at hB
+  obtain ⟨htop, β, hβ, hrk, hBshape⟩ := hB
+  rw [apply_pilePile_iff] at hS
+  obtain ⟨b₀, hbot, hne, hcmr, bdS, hattS, hS₁⟩ := hS
+  rw [apply_pilePile_iff] at hT
+  obtain ⟨b₀', hbot', hne', hcmr', bdT, hattT, hT₁⟩ := hT
+  rw [hS₁, hT₁]
+  rw [hBshape] at hbot' hattT
+  have hβtop : S.board.topOf β = some t := (Board.bottomOf_eq S.board t β).mp hβ
+  have hzT : (S.board.detach β).bottomOf t = none := Board.bottomOf_detach_self hβtop
+  have hBbot : B.board.bottomOf t = none := by
+    rw [hBshape]; exact Board.bottomOf_detach_self hβtop
+  have hzne : z ≠ t := by
+    intro hcon
+    rw [hcon] at hbot'
+    have hc : (S.board.detach β).bottomOf t = some b₀' := hbot'
+    rw [hzT] at hc
+    exact absurd hc (by simp)
+  have hb₀' : b₀' = b₀ := by
+    have hzB' : (S.board.detach β).topOf b₀' = some z :=
+      (Board.bottomOf_eq _ z b₀').mp hbot'
+    by_cases hβb₀ : b₀' = β
+    · rw [hβb₀, Board.detach_topOf] at hzB'
+      exact absurd hzB' (by simp)
+    · have hzS : S.board.topOf b₀' = some z := by
+        rw [← Board.detach_topOf_ne S.board β b₀' hβb₀]
+        exact hzB'
+      exact S.board.inj b₀' b₀ z hzS ((Board.bottomOf_eq S.board z b₀).mp hbot)
+  rw [hb₀'] at hattT
+  have hb₀β : b₀ ≠ β := by
+    intro hcon
+    have hh := (Board.bottomOf_eq S.board z b₀).mp hbot
+    rw [hcon] at hh
+    exact hzne (Option.some.inj (hh.symm.trans hβtop))
+  have hcpS : S.canPlace z b = true := by
+    cases b with
+    | inl a => exact canMoveRun_inl_iff.mp hcmr
+    | inr d => exact (canMoveRun_inr_iff.mp hcmr).1
+  have hcpB : B.canPlace z b = true := by
+    cases b with
+    | inl a => exact canMoveRun_inl_iff.mp hcmr'
+    | inr d => exact (canMoveRun_inr_iff.mp hcmr').1
+  have hbfree : S.board.topOf b = none := topOf_of_canPlace hcpS
+  have hbβ : b ≠ β := fun hcon => by
+    rw [hcon] at hbfree; rw [hβtop] at hbfree; exact absurd hbfree (by simp)
+  have hbt : b ≠ Sum.inr t := by
+    intro hcon
+    rw [hcon] at hcpB
+    obtain ⟨-, hvis, -⟩ := canPlace_inr_iff.mp hcpB
+    rw [show B.isVis t = (B.board.bottomOf t).isSome from rfl, hBbot] at hvis
+    simp at hvis
+  have hb₀t : b₀ ≠ Sum.inr t := by
+    intro hcon
+    have hh := (Board.bottomOf_eq S.board z b₀).mp hbot
+    rw [hcon, htop] at hh
+    exact absurd hh (by simp)
+  have hattT' : ((S.board.detach β).detach b₀).attach b z = some bdT := hattT
+  have hdet : (S.board.detach β).detach b₀ = (S.board.detach b₀).detach β :=
+    Board.detach_detach_comm S.board β b₀ (Ne.symm hb₀β)
+  rw [hdet] at hattT'
+  have hbord : bdT = bdS.detach β :=
+    (attach_detach_comm hbβ hattS hattT').symm
+  refine apply_pileStack_iff.mpr ⟨?_, β, ?_, hrk, ?_⟩
+  · show bdS.topOf (Sum.inr t) = none
+    rw [Board.attach_topOf_ne _ _ _ hattS (Ne.symm hbt),
+      Board.detach_topOf_ne _ _ _ (Ne.symm hb₀t)]
+    exact htop
+  · show bdS.bottomOf t = some β
+    refine (Board.bottomOf_eq _ _ _).mpr ?_
+    rw [Board.attach_topOf_ne _ _ _ hattS (Ne.symm hbβ),
+      Board.detach_topOf_ne _ _ _ (Ne.symm hb₀β)]
+    exact hβtop
+  · rw [hBshape]
+    apply state_ext
+    · rfl
+    · exact hbord
+    · funext s
+      rfl
+    · rfl
+    · rfl
+    · rfl
+
+/-- The `reveal` exchange — the one step that needs WF.  The reveal's
+attach base is the pile's hidden second-from-top card, which is deal
+data rather than board occupancy; without WF a junk state could hide
+the twin itself in a pile's hidden slice and seat the boundary card on
+top of it on BOTH sides (the covered-twin corner as a mid move).  WF's
+`vis_not_hidden` pins the seated twin outside every hidden slice, and
+the remaining exclusions (the base cells) derive from the firings. -/
+theorem twin_fire_exchange_reveal {S B S₁ T₁ : State} {t : Card} {a : Anchor}
+    (hwf : S.WF)
+    (hB : S.apply (Move.pileStack t) = some B)
+    (hS : S.apply (Move.reveal a) = some S₁)
+    (hT : B.apply (Move.reveal a) = some T₁) :
+    S₁.apply (Move.pileStack t) = some T₁ := by
+  rw [apply_pileStack_iff] at hB
+  obtain ⟨htop, β, hβ, hrk, hBshape⟩ := hB
+  rw [apply_reveal_iff] at hS
+  obtain ⟨r, bdS, htopH, hbare, hattS, hS₁⟩ := hS
+  rw [apply_reveal_iff] at hT
+  obtain ⟨r', bdT, htopH', hbare', hattT, hT₁⟩ := hT
+  rw [hS₁, hT₁]
+  have hth' : S.topHidden a = B.topHidden a := by rw [hBshape]; rfl
+  rw [← hth'] at htopH'
+  have hr'r : r' = r := Option.some.inj (htopH'.symm.trans htopH)
+  rw [hr'r] at hattT
+  rw [hBshape] at hattT
+  have htvis : S.isVis t = true := by
+    show (S.board.bottomOf t).isSome = true
+    rw [hβ]
+    rfl
+  have hthid : ∀ a', t ∉ S.hidden a' := hwf.vis_not_hidden t htvis
+  have hbb : S.hiddenBase a ≠ Sum.inr t :=
+    fun hcon => hthid a (State.mem_hidden_of_hiddenBase hcon)
+  have hβtop : S.board.topOf β = some t := (Board.bottomOf_eq S.board t β).mp hβ
+  have hbbβ : S.hiddenBase a ≠ β := by
+    intro hcon
+    obtain ⟨hfree, -⟩ := (Board.attach_eq_some_iff S.board (S.hiddenBase a) r).mp
+      (by rw [hattS]; simp)
+    rw [hcon] at hfree
+    rw [hβtop] at hfree
+    exact absurd hfree (by simp)
+  have hattT' : (S.board.detach β).attach (S.hiddenBase a) r = some bdT := hattT
+  have hbord : bdT = bdS.detach β :=
+    (attach_detach_comm hbbβ hattS hattT').symm
+  refine apply_pileStack_iff.mpr ⟨?_, β, ?_, hrk, ?_⟩
+  · show bdS.topOf (Sum.inr t) = none
+    rw [Board.attach_topOf_ne _ _ _ hattS (Ne.symm hbb)]
+    exact htop
+  · show bdS.bottomOf t = some β
+    refine (Board.bottomOf_eq _ _ _).mpr ?_
+    rw [Board.attach_topOf_ne _ _ _ hattS (Ne.symm hbbβ)]
+    exact hβtop
+  · rw [hBshape]
+    apply state_ext
+    · rfl
+    · exact hbord
+    · funext s
+      rfl
+    · funext a'
+      rfl
+    · rfl
+    · rfl
+/-- **The general reorder (L1/O3(ii) cornerstone)**: the MIXED mid
+commutes with the twin's stacking — given the twin's guarded firing at
+`A`, the mid's run at the pre-firing state (the accessibility
+license, `haccess` in the window) and the source's own mid (the
+second license), the twin fires AFTER the replayed mid landing
+EXACTLY on the source's mid successor.  Induction over the mid, one
+exchange step per move kind; the `pileStack` case is the existing
+one-step exchange (which already serves the catch-up cards and every
+off-suit `pileStack`).  `hwf` is carried along the prefixes: the
+reveal step is its only consumer (`vis_not_hidden` at each prefix). -/
+theorem pileStack_mid_reorder {t : Card} :
+    ∀ (mid : List Move) (A B M₀ C : State),
+    (∀ m ∈ mid, Move.twinMid t m = true) →
+    A.WF →
+    A.apply (Move.pileStack t) = some B →
+    A.run mid = some M₀ →
+    B.run mid = some C →
+    M₀.apply (Move.pileStack t) = some C := by
+  intro mid
+  induction mid with
+  | nil =>
+      intro A B M₀ C _ _ h₁ hA hB
+      rw [← run_nil_elim hA, ← run_nil_elim hB]
+      exact h₁
+  | cons m ms ih =>
+      intro A B M₀ C hmid hwf h₁ hA hB
+      obtain ⟨A₁, hmA, hrest⟩ := run_cons_elim hA
+      obtain ⟨B₁, hmB, hrest'⟩ := run_cons_elim hB
+      have hwfA₁ : A₁.WF := apply_wf hwf m A₁ hmA
+      have hmtop : Move.twinMid t m = true := hmid m List.mem_cons_self
+      have hstep : A₁.apply (Move.pileStack t) = some B₁ := by
+        cases m with
+        | draw => exact twin_fire_exchange_draw h₁ hmA hmB
+        | reveal a' => exact twin_fire_exchange_reveal hwf h₁ hmA hmB
+        | deckPile x b' => exact twin_fire_exchange_deckPile h₁ hmA hmB
+        | deckStack x =>
+            obtain ⟨hsu, -⟩ := (Move.twinMid_deckStack t x).mp hmtop
+            exact twin_fire_exchange_deckStack hsu h₁ hmA hmB
+        | pileStack x =>
+            obtain ⟨hsu, -⟩ := (Move.twinMid_pileStack t x).mp hmtop
+            exact apply_pileStack_pileStack_exchange hsu h₁ hmA hmB
+        | stackPile x b' =>
+            obtain ⟨hsu, -⟩ := (Move.twinMid_stackPile t x b').mp hmtop
+            exact twin_fire_exchange_stackPile hsu h₁ hmA hmB
+        | pilePile x b' => exact twin_fire_exchange_pilePile h₁ hmA hmB
+      exact ih A₁ B₁ M₀ C (fun m' hm' => hmid m' (List.mem_cons_of_mem _ hm'))
+        hwfA₁ hstep hrest hrest'
+
+/-! ### The general window (L1/O3(ii)), its packaging, and its mirror -/
+
+/-- **L1/O3(ii), the general window**: if the source game wins via
+[prefix; stack t; MIXED-MID; stack t'; tail] — the mid mixing the low
+suit's catch-up `pileStack`s with ortho twin moves (every move
+`twinMid`: no foundation move of a `t`-suit card, nothing on the pair) —
+and the mid is replayable at the pre-firing state (`haccess`, the
+no-landing premise in executable form: witness A is exactly a catch-up
+card buried under the twin, and an ortho landing onto the twin's
+vacated base breaks the same premise), then the EXCHANGED game is
+solvable: it plays [prefix*; mid*; stack t'; stack t; tail*] — the
+mid rides the clean mirror, the first stacking lands the cross-skew at
+the RE-ALIGNED rung, and the second re-syncs onto `D.swapTwin t` (the
+same twinSkew/crossTwin spine as the pure window, fed by the general
+reorder).
+
+The `hwf` premise is the reveal-corner repair: `vis_not_hidden` keeps
+the seated twin out of every hidden slice, so a mid `reveal` cannot
+seat the boundary card onto it.  Note the honest boundary: the mid
+predicate is ONE-SIDED in the suit condition (the LOW suit's
+foundation moves are allowed — its catch-up `deckStack`s and
+worry-backs read the low height, which the twin's firing does not
+touch), so the predicate is NOT flip-dual; the `_back` below states
+its premises at the flipped roles directly. -/
+theorem State.solvable_swapTwin_mixed {st : State} {t : Card}
+    {p₁ mid p₂ : List Move} {A B C D W : State}
+    (hwf : st.WF)
+    (hc₁ : ∀ m ∈ p₁, Move.cleanTwin t m = true)
+    (hc₂ : ∀ m ∈ p₂, Move.cleanTwin t m = true)
+    (hmid : ∀ m ∈ mid, Move.twinMid t m = true)
+    (hp₁ : st.run p₁ = some A)
+    (hf₁ : A.apply (Move.pileStack t) = some B)
+    (hmidB : B.run mid = some C)
+    (hf₂ : C.apply (Move.pileStack t.flipSuit) = some D)
+    (hp₂ : D.run p₂ = some W)
+    (haccess : ∃ M₀, A.run mid = some M₀)
+    (hwin : W.isWin = true) :
+    (st.swapTwin t).solvableFrom := by
+  obtain ⟨M₀, hA_mid⟩ := haccess
+  have hwfA : A.WF := run_wf p₁ st A hp₁ hwf
+  -- the reorder: the twin fires after the replayed mid, landing on C
+  have hreor := pileStack_mid_reorder mid A B M₀ C hmid hwfA hf₁ hA_mid hmidB
+  rw [apply_pileStack_iff] at hreor
+  obtain ⟨htop₀, β₀, hβ₀, hrk₀, hCshape⟩ := hreor
+  rw [apply_pileStack_iff] at hf₂
+  obtain ⟨htop', β', hβ', hrk', hDshape⟩ := hf₂
+  have hsne : t.flipSuit.suit ≠ t.suit := fun h => Suit.flipPair_ne t.suit h
+  -- the rung alignments the twinSkew/crossTwin spine needs
+  have hC₀low : M₀.heights t.flipSuit.suit = t.rank.toIdx := by
+    have h1 : t.flipSuit.rank.toIdx = C.heights t.flipSuit.suit := hrk'
+    have h2 : C.heights t.flipSuit.suit = M₀.heights t.flipSuit.suit := by
+      rw [hCshape]
+      show (if t.flipSuit.suit = t.suit then M₀.heights t.flipSuit.suit + 1
+        else M₀.heights t.flipSuit.suit) = _
+      rw [ite_eq_right hsne]
+    rw [Card.flipSuit_rank] at h1
+    omega
+  have halign₁ : M₀.heights t.suit = M₀.heights t.flipSuit.suit := by
+    rw [hrk₀.symm, hC₀low]
+  have halign₂ : C.heights t.suit = C.heights t.flipSuit.suit + 1 := by
+    have e1 : C.heights t.suit = M₀.heights t.suit + 1 := by
+      rw [hCshape]
+      show (if t.suit = t.suit then M₀.heights t.suit + 1 else M₀.heights t.suit) = _
+      rw [ite_eq_left rfl]
+    have e2 : C.heights t.flipSuit.suit = M₀.heights t.flipSuit.suit := by
+      rw [hCshape]
+      show (if t.flipSuit.suit = t.suit then M₀.heights t.flipSuit.suit + 1
+        else M₀.heights t.flipSuit.suit) = _
+      rw [ite_eq_right hsne]
+    rw [e2, hC₀low, hrk₀]
+    omega
+  -- the mirror play, segment by segment
+  have hmidcl : ∀ m ∈ p₁ ++ mid, Move.cleanTwin t m = true := by
+    intro m hm
+    rcases List.mem_append.mp hm with h | h
+    · exact hc₁ m h
+    · exact Move.twinMid_clean (hmid m h)
+  have hseg : st.run (p₁ ++ mid) = some M₀ := run_append_some hp₁ hA_mid
+  have hM₁ : (st.swapTwin t).run ((p₁ ++ mid).map (Move.swapTwin t))
+      = some (M₀.swapTwin t) := by
+    rw [run_swapTwin_clean t st (p₁ ++ mid) hmidcl, hseg]
+    rfl
+  have hrunskew : (M₀.swapTwin t).run [Move.pileStack t.flipSuit]
+      = some (M₀.twinSkew t β₀) := by
+    simp only [State.run, State.apply_swapTwin_stack_flip htop₀ hβ₀ hC₀low]
+  have hskew : M₀.twinSkew t β₀ = C.crossTwin t :=
+    State.twinSkew_eq_crossTwin hCshape halign₁
+  have hM₁' : (st.swapTwin t).run
+      ((p₁ ++ mid).map (Move.swapTwin t) ++ [Move.pileStack t.flipSuit])
+      = some (C.crossTwin t) := by
+    rw [run_split_bind, hM₁]
+    show (M₀.swapTwin t).run [Move.pileStack t.flipSuit] = some (C.crossTwin t)
+    rw [hrunskew, hskew]
+  have hM₃ : (C.crossTwin t).run [Move.pileStack t] = some (D.swapTwin t) := by
+    simp only [State.run, State.apply_crossTwin_stack htop' hβ' hrk' halign₂ hDshape]
+  have hM₄ : (D.swapTwin t).run (p₂.map (Move.swapTwin t))
+      = some (W.swapTwin t) := by
+    rw [run_swapTwin_clean t D p₂ hc₂, hp₂]
+    rfl
+  have hwin' : (W.swapTwin t).isWin = true := by
+    simp only [State.isWin, swapTwin_heights]
+    exact hwin
+  refine ⟨((p₁ ++ mid).map (Move.swapTwin t) ++ [Move.pileStack t.flipSuit])
+      ++ ([Move.pileStack t] ++ p₂.map (Move.swapTwin t)), W.swapTwin t, ?_, hwin'⟩
+  exact run_append_some hM₁' (run_append_some hM₃ hM₄)
+
+/-- The packaged form of the general window: the source play as one
+run. -/
+theorem State.solvable_swapTwin_mixed_run {st : State} {t : Card}
+    {p₁ mid p₂ : List Move} {W : State}
+    (hwf : st.WF)
+    (hc₁ : ∀ m ∈ p₁, Move.cleanTwin t m = true)
+    (hc₂ : ∀ m ∈ p₂, Move.cleanTwin t m = true)
+    (hmid : ∀ m ∈ mid, Move.twinMid t m = true)
+    (haccess : ∀ A, st.run p₁ = some A → ∃ M₀, A.run mid = some M₀)
+    (hrun : st.run (p₁ ++ [Move.pileStack t] ++ mid
+      ++ [Move.pileStack t.flipSuit] ++ p₂) = some W)
+    (hwin : W.isWin = true) :
+    (st.swapTwin t).solvableFrom := by
+  simp only [List.append_assoc] at hrun
+  rw [run_split_bind st p₁
+    ([Move.pileStack t] ++ (mid ++ ([Move.pileStack t.flipSuit] ++ p₂)))] at hrun
+  cases hA : st.run p₁ with
+  | none => rw [hA] at hrun; simp at hrun
+  | some A =>
+    rw [hA] at hrun
+    have hrun1 : A.run ([Move.pileStack t] ++ (mid ++ ([Move.pileStack t.flipSuit] ++ p₂)))
+        = some W := hrun
+    rw [run_split_bind A [Move.pileStack t]
+      (mid ++ ([Move.pileStack t.flipSuit] ++ p₂))] at hrun1
+    simp only [State.run] at hrun1
+    cases hB₀ : A.apply (Move.pileStack t) with
+    | none => rw [hB₀] at hrun1; simp at hrun1
+    | some B =>
+      rw [hB₀] at hrun1
+      have hrun2 : B.run (mid ++ ([Move.pileStack t.flipSuit] ++ p₂)) = some W := hrun1
+      rw [run_split_bind B mid
+        ([Move.pileStack t.flipSuit] ++ p₂)] at hrun2
+      cases hC : B.run mid with
+      | none => rw [hC] at hrun2; simp at hrun2
+      | some C =>
+        rw [hC] at hrun2
+        have hrun3 : C.run ([Move.pileStack t.flipSuit] ++ p₂) = some W := hrun2
+        rw [run_split_bind C [Move.pileStack t.flipSuit] p₂] at hrun3
+        simp only [State.run] at hrun3
+        cases hD₀ : C.apply (Move.pileStack t.flipSuit) with
+        | none => rw [hD₀] at hrun3; simp at hrun3
+        | some D =>
+          rw [hD₀] at hrun3
+          have hWD : D.run p₂ = some W := hrun3
+          obtain ⟨M₀, hA_mid⟩ := haccess A hA
+          exact State.solvable_swapTwin_mixed hwf hc₁ hc₂ hmid hA hB₀ hC hD₀ hWD
+            ⟨M₀, hA_mid⟩ hwin
+
+/-- **The catch-up iff, backward half (L1/O3(ii) mirrored)**: the
+general window at the flipped twin, composed with the involution —
+the hypotheses are stated directly at the flipped roles the mirror
+game actually has (the state `(st.swapTwin t)` whose first stackable
+twin is `t.flipSuit`), because the one-sided suit condition of
+`twinMid` is NOT flip-dual: a `t`-suit foundation move is legal in
+the MIRROR's mid (it reads the mirror's low suit, which the mirror's
+twin firing does not bump).
+
+The between-shaped hypothesis this carries is the honest half of the
+iff.  The catch-up-FIRST mirror plays — the shape the forward window
+CONSTRUCTS — need the CATCH-UP-FIRST-TO-BETWEEN DEFERRAL first, and
+the deferral is not free: moving the mirror's first stacking across
+its catch-up requires the pre-catch-up fireability license (a catch-up
+card can be sitting ON that twin, uncovered only mid-catch-up — the
+flipped witness-A corner), and the tail beyond the stacking runs at
+the post-stacking state in the mirror's play, so replaying it at the
+pre-stacking state needs its own access (the flipped no-landing class).
+The deferral is the recorded successor ticket. -/
+theorem State.solvable_swapTwin_mixed_back {st : State} {t : Card}
+    {q₁ mid q₂ : List Move} {W : State}
+    (hwf : (st.swapTwin t).WF)
+    (hc₁ : ∀ m ∈ q₁, Move.cleanTwin t.flipSuit m = true)
+    (hc₂ : ∀ m ∈ q₂, Move.cleanTwin t.flipSuit m = true)
+    (hmid : ∀ m ∈ mid, Move.twinMid t.flipSuit m = true)
+    (hrun : (st.swapTwin t).run (q₁ ++ [Move.pileStack t.flipSuit] ++ mid
+      ++ [Move.pileStack t] ++ q₂) = some W)
+    (haccess : ∀ A', (st.swapTwin t).run q₁ = some A' → ∃ M₀, A'.run mid = some M₀)
+    (hwin : W.isWin = true) :
+    st.solvableFrom := by
+  have hrun' : (st.swapTwin t).run (q₁ ++ [Move.pileStack t.flipSuit] ++ mid
+      ++ [Move.pileStack t.flipSuit.flipSuit] ++ q₂) = some W := by
+    rw [Card.flipSuit_flipSuit]
+    exact hrun
+  have h := State.solvable_swapTwin_mixed_run (st := st.swapTwin t) (t := t.flipSuit)
+    hwf hc₁ hc₂ hmid haccess hrun' hwin
+  rw [State.swapTwin_flipSuit, State.swapTwin_swapTwin] at h
+  exact h
+
+/-! ## Item 3 — twin-suit worry-backs in the window
+
+Two facts discipline the window's mid.  First, the EXCLUDED family is
+excluded CONTENTFULLY: a foundation move READING the twin's own suit
+cannot fire on both sides of the exchange at all — the height the
+twin's firing creates is a one-rung offset, and the ±1 is not
+satisfiable both ways (the low suit's worry-backs and raises, by
+contrast, RIDE the window: `twinMid` admits them, and the exchange
+steps transfer their guards verbatim since the twin's firing does not
+touch the low suit's height).  Second, the worry-backs that occur in
+real winning plays are EXCURSION-SHAPED — [stackPile c b, pileStack c]
+is an unconditional identity pair — so they lift out of the mid whole,
+on either side of the window. -/
+
+/-- **A `t`-suit worry-back cannot fire on both sides of the
+exchange**: the twin's firing pins the `t`-suit height to its own
+rung at `S` and one above at `B`, and the worry-back's un-stack guard
+(`toIdx c + 1 = heights`) is a fixed point between the two — no card
+of the twin's own rank-neighborhood satisfies both readings. -/
+theorem twin_fire_tSuit_stackPile_impossible {S B S₁ T₁ : State} {t c : Card} {b : Base}
+    (hB : S.apply (Move.pileStack t) = some B)
+    (hS : S.apply (Move.stackPile c b) = some S₁)
+    (hT : B.apply (Move.stackPile c b) = some T₁)
+    (hsu : c.suit = t.suit) : False := by
+  rw [apply_pileStack_iff] at hB
+  obtain ⟨-, htβ, -, -, hBshape⟩ := hB
+  rw [apply_stackPile_iff] at hS hT
+  obtain ⟨hg, -, -, -, -⟩ := hS
+  obtain ⟨hg', -, -, -, -⟩ := hT
+  have hbc : B.heights c.suit = S.heights c.suit + 1 := by
+    rw [hBshape]
+    show (if c.suit = t.suit then S.heights c.suit + 1 else S.heights c.suit) = _
+    rw [ite_eq_left hsu]
+  omega
+
+/-- The same one-rung contradiction for the `t`-suit raise kind
+(`pileStack` of a card of the twin's own suit): the raise's rung guard
+pins the card to the twin's height at `S`, which the twin's own
+firing has already left behind at `B`. -/
+theorem twin_fire_tSuit_pileStack_impossible {S B S₁ T₁ : State} {t c : Card}
+    (hB : S.apply (Move.pileStack t) = some B)
+    (hS : S.apply (Move.pileStack c) = some S₁)
+    (hT : B.apply (Move.pileStack c) = some T₁)
+    (hsu : c.suit = t.suit) : False := by
+  rw [apply_pileStack_iff] at hB
+  obtain ⟨-, htβ, -, -, hBshape⟩ := hB
+  rw [apply_pileStack_iff] at hS hT
+  obtain ⟨-, hcβ, -, hg, -⟩ := hS
+  obtain ⟨-, hdβ, -, hg', -⟩ := hT
+  have hbc : B.heights c.suit = S.heights c.suit + 1 := by
+    rw [hBshape]
+    show (if c.suit = t.suit then S.heights c.suit + 1 else S.heights c.suit) = _
+    rw [ite_eq_left hsu]
+  omega
+
+/-- The identity-excursion lift: an adjacent
+[worry-back, re-stack] pair nets to the identity on states
+(`stackPile_pileStack_return`), so it can be excised from any winning
+run without changing the outcome — the worry-backs that DO occur in
+winning plays (inside or besides the window) ride this. -/
+theorem run_worryback_pair_excise (c : Card) (b : Base) (m₀ m₁ : List Move)
+    {st W : State} (hwf : st.WF)
+    (hrun : st.run (m₀ ++ [Move.stackPile c b, Move.pileStack c] ++ m₁) = some W) :
+    st.run (m₀ ++ m₁) = some W := by
+  simp only [List.append_assoc] at hrun
+  rw [run_split_bind st m₀
+    ([Move.stackPile c b, Move.pileStack c] ++ m₁)] at hrun
+  cases hS : st.run m₀ with
+  | none => rw [hS] at hrun; simp at hrun
+  | some S =>
+    rw [hS] at hrun
+    have hrest : S.run ([Move.stackPile c b, Move.pileStack c] ++ m₁) = some W := hrun
+    rw [show [Move.stackPile c b, Move.pileStack c] ++ m₁
+          = [Move.stackPile c b] ++ ([Move.pileStack c] ++ m₁) from rfl] at hrest
+    rw [run_split_bind S [Move.stackPile c b]
+      ([Move.pileStack c] ++ m₁)] at hrest
+    simp only [State.run] at hrest
+    cases hs₁ : S.apply (Move.stackPile c b) with
+    | none => rw [hs₁] at hrest; simp at hrest
+    | some s₁ =>
+      rw [hs₁] at hrest
+      have hrest₂ : s₁.run ([Move.pileStack c] ++ m₁) = some W := hrest
+      rw [run_split_bind s₁ [Move.pileStack c] m₁] at hrest₂
+      simp only [State.run] at hrest₂
+      cases hs₂ : s₁.apply (Move.pileStack c) with
+      | none => rw [hs₂] at hrest₂; simp at hrest₂
+      | some s₂ =>
+        rw [hs₂] at hrest₂
+        have htail : s₂.run m₁ = some W := hrest₂
+        have hret := stackPile_pileStack_return (run_wf m₀ st S hS hwf) hs₁
+        have hS₂ : s₂ = S := (Option.some.inj (hret.symm.trans hs₂)).symm
+        rw [hS₂] at htail
+        exact run_append_some hS htail
+
+/-! ## The haccess derivation at engine corpora — the open reduction
+
+`haccess` — the mid is replayable at the pre-firing state — is the
+window's no-landing premise in executable form.  The model-level
+reduction below says: at WF, the source's own mid plus the per-seat
+exclusions (`noSeat` — the landing bases off the twin's vacated base
+`β` and off the twin's own seat) DERIVE the replay.  The engine-corpus
+half — which reached states' mids satisfy `noSeat` — is §8's audit
+(the 69 ambiguous orderings of the corpus live in the stack component
+only, but the landing-site histogram for between-mids has not yet been
+pulled); this sorry is the model side of that audit's certificate. -/
+
+/-- **REDUCTION (planned)**: no mid move may land on (or walk through)
+the twin's seats — then the whole mid replays at the pre-firing
+state and lands on the source's mid successor through the twin's
+possibly-fatal firing.
+
+PLAN: the mirror of the six exchange steps, run in the B-to-A
+direction: per move kind, the guard reads at the A-side equal the
+B-side's at every cell the two states differ on (β holds the twin at
+A and is empty at B; the twin is visible-seated at A and off-board at
+B), given the two cell exclusions — which are PREMISED here (the
+exchange steps DERIVE them from the two firings; here the A-firing is
+the goal, so they must come from the corpus audit or an explicit
+premise).  The per-kind transfers are the converses of
+`twin_fire_exchange_*`; the sole genuinely new piece is the
+`pilePile` walk extension — `x ∈ aboveOf_A z → x ∈ aboveOf_B z ∨ x = t`
+(the A-walk reads β, gains t, and stops: `t`'s own seat is bare by the
+twin's firing guard) via the `Board.aboveOf_go` induction with the
+seed/mono kit, feeding the self-landing transfer (the landing's base
+card is not `t` — it is invisible at B).  The `reveal` needs the
+state-dependent variant of the no-seat premise (its attach base is
+`hiddenBase a`, deal data, not a program constant): the landed form
+adds `hiddenBase a ≠ β ∧ hiddenBase a ≠ Sum.inr t` per mid reveal,
+derived from WF-`vis_not_hidden` exactly as in
+`twin_fire_exchange_reveal`.  Both halves of the conclusion then
+compose: the replay run exists (the A-side firings, inductively), and
+its end fires the twin into the source's `C` (the reorder above, run
+at the now-available firings — `pileStack_mid_reorder` applies
+verbatim). -/
+theorem State.mid_access_of_noSeat {st : State} {t : Card}
+    {p₁ mid : List Move} {A B C : State} {β : Base}
+    (hwf : st.WF)
+    (hp₁ : st.run p₁ = some A)
+    (hf₁ : A.apply (Move.pileStack t) = some B)
+    (hβ : A.board.bottomOf t = some β)
+    (hmid : ∀ m ∈ mid, Move.twinMid t m = true)
+    (hBmid : B.run mid = some C)
+    (hnoseat : ∀ m ∈ mid, ∀ b : Base,
+      (match m with
+       | .deckPile _ b' => b = b'
+       | .stackPile _ b' => b = b'
+       | .pilePile _ b' => b = b'
+       | _ => False) →
+      b ≠ β ∧ b ≠ Sum.inr t) :
+    ∃ M₀, A.run mid = some M₀ ∧ M₀.apply (Move.pileStack t) = some C := sorry
+
+/-! ## §6.5 residue — the covered-twin corner's sweep-word safety
+
+At the ambiguous-twin corner (`canonicalize`'s confluence gap: both
+twins visible, one covered, `present=2, placed=1`), the word-level
+sweep must CHOOSE which twin is the covered one, and §6.5 pins the
+semantic obligation: the chosen reading never uniquely loses wins.
+The model-side corner at WF is the DEALT-ADJACENT mate — the twin
+pair dealt consecutively in one pile, the upper mate sitting on the
+lower's seat — because `canSitOn` is false at the mate's own rank
+(same rank, unlike a fitting cover), so deal-adjacency is the only WF
+justification for the cover edge.  The two word-readings of the
+corner are exchange-conjugate: `exchangeTwinCargo L` swaps the two
+twin cells (the raw seat relabel, `Board.exchangeTwin_topOf`), so the
+covered corner maps to its flipped cover. -/
+
+/-- The covered corner's exchange image IS the flipped cover: at the
+ambiguous corner the cell readings of `st.exchangeTwinCargo L` are
+the corner's cells with the twin pair exchanged — the two
+identity-resolutions of the word are the two exchange-images.
+
+Note the image's own-seat cell: the exchange is the RAW seat swap
+(no card relabel on values), so the covering mate's VALUE rides to
+its own seat — for the word level this is immaterial (the word reads
+placedness, not identities), but it is why the SAFETY reduction
+below must route through the discipline kit rather than a pure
+literal symmetry. -/
+theorem exchangeTwinCargo_flip_cover {st : State} {L H : Card}
+    (htwin : H = L.flipSuit)
+    (hcover : st.board.topOf (Sum.inr L) = some H)
+    (hHseat : st.board.topOf (Sum.inr H) = none) :
+    (st.exchangeTwinCargo L).board.topOf (Sum.inr L) = none ∧
+    (st.exchangeTwinCargo L).board.topOf (Sum.inr H) = some H := by
+  constructor
+  · show st.board.topOf (Base.swapTwin L (Sum.inr L)) = none
+    have h : Base.swapTwin L (Sum.inr L) = Sum.inr H := by
+      show Sum.inr (Card.swapTwin L L) = Sum.inr H
+      rw [Card.swapTwin_self_left, htwin]
+    rw [h, hHseat]
+  · show st.board.topOf (Base.swapTwin L (Sum.inr H)) = some H
+    have h : Base.swapTwin L (Sum.inr H) = Sum.inr L := by
+      show Sum.inr (Card.swapTwin L H) = Sum.inr L
+      rw [show Card.swapTwin L H = L from by rw [htwin]; exact Card.swapTwin_self_right L]
+    rw [h, hcover]
+
+/-- **§6.5's semantic safety at the covered corner (planned)**: the
+covered corner and its exchange image — the two identity-resolutions
+of the ambiguous word — are solvability-equivalent, so the sweep's
+deterministic lowest-first choice can never UNIQUELY lose a win at
+the AMBIGUOUS corner.  Reduces to the both-occupied exchange family
+at the covered seat.
+PLAN: (1) WF forces the corner to be deal-adjacent: the cover edge's
+base condition (`board_edges`) needs the buried-base clause (the pair
+dealt consecutively), since the canSitOn clause dies on the mate's
+rank arithmetic (`canSitOn H L` demands `toIdx H + 1 = toIdx L`,
+false at the shared rung). (2) Every winning line must dislodge the
+covering mate: the extraction discipline (Theorems §12.1) plus
+`unseats_imp_pileStack` — to stack the covered twin `L` the mate must
+leave its seat first, and the mate's own stacking is the H-first
+window this file already proves sound; normalize the corner by the
+mate's first departure (its own `pileStack` at the rung, or the
+tableau move a winning line starts with). (3) At the dislodged shape
+both twin cells are bare and the pair enters the PROVEN family:
+`twin_stack_order_exchange_catchup` (the same-state order exchange,
+the same-state half of the safety) and
+`solvable_cargoTwin_exchange_licensed`/`_bare`/`_of_visClean` (the
+both-occupied/bare iff) supply the equivalence; the exchange image is
+matched by `exchangeTwinCargo_flip_cover` above, so both readings
+reduce to the bare-pair exchange at the covered seat. (4) The residue
+inside (3) is the LICENSE-FIT at the dealt-adjacent cover while the
+mate still sits (the cargo of the covered seat is the twin itself —
+the w15fithole rider-detour class): its arrow is the w15-style
+exchange extension or the normalization in (2) applied BEFORE the
+exchange; pick by which corpus corner the audit finds. -/
+theorem State.sweep_covered_corner_safety {st : State} {L H : Card}
+    (hwf : st.WF)
+    (htwin : H = L.flipSuit)
+    (hcover : st.board.topOf (Sum.inr L) = some H)
+    (hHseat : st.board.topOf (Sum.inr H) = none) :
+    st.solvableFrom ↔ (st.exchangeTwinCargo L).solvableFrom := sorry
+
+
+

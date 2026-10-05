@@ -2374,3 +2374,43 @@ tree).
 - CANONICAL REPEATS conf irmed: `rw [apply_deckPile_iff] at hcom` + `obtain ⟨_, hcp, bd', hatt, hs₂⟩ := hcom` + `rw [hs₂]` is the fast path
   for committed-state residues; `attach_topOf_ne`/`bottomOf_attach_of_ne` (Board/Macro) + `bottomOf_detach_ne`/`founded_not_covered`
   (C2Streamlined, PROVEN) make the one-step "still legal" cores painless - NO walk machinery needed at the one-step level.
+
+## Session note — the catchup-residue session (2026-10-05, TwinSwapCompletion owned in place; L1/O3(ii) general window LANDED)
+
+The wave-18 session (the wave-17 T NEXT list 1-4). Census 16 -> 18 (two planned pins in TwinSwapCompletion). New proven core:
+`Move.twinMid` (mixed-mid predicate), six `twin_fire_exchange_*` per-kind steps, `pileStack_mid_reorder` (the mixed-window
+cornerstone), `State.solvable_swapTwin_mixed` (+`_run`), `State.solvable_swapTwin_mixed_back`, the t-suit impossibility pair
+(`twin_fire_tSuit_stackPile/_pileStack_impossible`), `run_worryback_pair_excise`, `exchangeTwinCargo_flip_cover` (the covered
+corner's cell identification). Pins: `State.mid_access_of_noSeat` (the no-landing -> haccess reduction), `State.sweep_covered_corner_safety`
+(the 6.5 covered-corner equivalence via the exchange family). Traps this session hit, for the next farmer:
+
+- EXISTENTIAL-WITNESS DASHES: `obtain ⟨-, -, -, -, NAME⟩` SILENTLY MISBINDS when one of the `-` slots is an `∃`-WITNESS (`B` b of
+  `apply_pileStack_iff`'s `∃ b, ...`): the obtain "succeeds" but NAME ends up unbound->"unknown identifier" AT ITS FIRST USE (not at the
+  obtain). NAME EVERY `∃`-WITNESS (`obtain ⟨-, htb, -, -, hBshape⟩ := hB`): cheap insurance; the dash is fine for plain `∧`-conjuncts.
+- THE IFF-GUARD READS THE PRE-MOVE STATE: in `apply_*_iff`, every guard conjunct is stated at `st` (the SOURCE), NOT at `st'` - e.g.
+  `apply_stackPile_iff`'s FIRST conjunct is `c.rank.toIdx + 1 = st.heights c.suit` at `st`. Reading the shape-binding `st' = {...}` as a
+  fact about the successor's heights and feeding it to omega produces "a >= 0" non-theorems. ALSO mind the slot ORDER: `apply_pileStack_iff`
+  is (topOf | ∃ b, bottomOf | RANK | shape) - the rank is SLOT 4, not slot 1.
+- ITE-RESOLUTION ORDER IS GOAL-TRAVERSAL, NOT YOUR SEMANTIC PLAN: in the four-if heights-commutation goals (t-bump over c-bump), rewriting
+  with `ite_eq_left h` / `ite_eq_right ¬h` fires on the FIRST `if` matching the LEMMA'S CONDITION SHAPE, in left-to-right goal traversal -
+  the correct sequence for `(if c then (if t then ..) else (if t then ..)) = (if t then (if c then ..) else (if c then ..))` at `h1 : s = t.suit`
+  is [resolve LHS's outer `if c` (ite_eq_right, via hsu), LHS's inner `if t` (ite_eq_left h1), RHS's OUTER `if t` (ite_eq_left h1!),
+  RHS's inner `if c` (ite_eq_right)] - resolving the RHS inner before the RHS outer type-errors. Write the four-if show EXPLICITLY first
+  (the `show` fixes both sides' normal form), then the rw order is mechanical.
+- `rw [hBshape]`-BEFORE-THE-HAVE-CAST: the defeq-cast `have h' : (S.board.detach β).attach b X = some bdT := hattT` FAILS while `B` is
+  an opaque variable (`B.board` does not reduce); do `rw [hBshape] at hattT` FIRST (B becomes a literal; the projection iota-reduces at
+  the ascription check). Same for `B.heights`/`B.board.bottomOf`-facts used in `absurd` (absurd unifies the FIRST arg and demands the
+  second against its negation - an Eq-vs-Eq absurd is a type error; `rw [hzT] at hc; exact absurd hc (by simp)` instead).
+- ONE-SIDED SUIT CONDITIONS ARE NOT FLIP-DUAL: `Move.twinMid t` (c.suit != t.suit AND c != t.flipSuit) is NOT equal to `twinMid t.flipSuit`
+  - a t-suit non-pair card is `twinMid t`-ILLEGAL but `twinMid t.flipSuit`-LEGAL (at the flipped window the divergent suit is the OTHER
+  one). The prover caught my `twinMid_flipSuit` as false; the `_back` therefore states its premises at the flipped roles DIRECTLY (no
+  translation from source-side names; `cleanTwin`/`orthoTwin` DO have flip-duals, `twinMid` deliberately does not).
+- `State.wf_run` is UNREACHABLE from TwinQuotient's import chain (it lives in TwinBridge, imported only via MergeFire/TwinCollapse);
+  use `run_wf` from Progress (reachable): `run_wf p₁ st A hp₁ hwf` - FOUR EXPLICIT ARGS (play, st, st', hrun), then hwf.
+- CENSUS-VISIBLE SORRIES: farm census greps `:= sorry$` - a `by sorry` block is INVISIBLE to it. Always end pinned theorems with
+  `:= sorry`, not `:= by sorry` (the FARM row says the count, the grep must agree).
+- FREE WINS: the draw exchange's whole state-eq is DEFEQ through two levels of with-update literals - a single `rw [hBshape]` closes
+  it by rw's auto-rfl (no state_ext, no slots); when the last-slot goal is `lit1 = lit2` over re-bracketed `{S with ...}`-chains, TRY the
+  bare rw first. And `run_split_bind` will not fire on `[a, b] ++ ms` (rw is syntactic): pre-rewrite with
+  `rw [show [a, b] ++ ms = [a] ++ ([b] ++ ms) from rfl] at h` - the append normal forms agree by rfl, but only the show makes the
+  pattern visible.
