@@ -844,3 +844,66 @@ time alongside the cruxes; NOT ahead of them.
 - **Repo-root clutter**: `a_*.txt` ×5, `fail_*.txt`, logs, notebooks,
   `src/bit_deck_no_bmi2.rs` (orphan Rust in src/) — ignore rules or
   delete. (lean-verify/ was deleted 2026-09-13 — row closed.)
+
+## 2026-10-05 SESSION — Theorem T's O1/O3 slice LANDED (wave 17)
+
+MISSION: T's open O1 (locality) + O3 (the asymmetric boundary) + the
+§6.5 canonicalization corollary, in a fresh worktree branched at
+macro-game HEAD (the spawned branch sat at pre-macro dc41b8e —
+ff-only merge first, nothing unique lost).  T's status at entry:
+the global relabeling form PROVEN (`solvable_relabel`/`_flipAll`,
+Tier [P]); the local pair exchange licensed — adjacent
+(`solvable_swapTwin_paired`/`_back`) and ortho-separated
+(`solvable_swapTwin_separated`/`_back`) PROVEN; the [H] both-occupied
+iff at visClean PROVEN; the seat-swap itself REFUTED; L1/O3's residue
+(ii) — twin-suit activity BETWEEN the stackings — open.
+
+LANDED — all NEW in `Klondike/TwinSwapCompletion.lean` (registered in
+the umbrella; sorry-free; census 14 PINNED; axiom-clean
+[propext, Quot.sound] per `#print axioms`):
+
+- **O1, destination collapse (resolved minimal form)** —
+  `State.solvable_twinDestination_collapse`: at WF, twin-destination
+  `deckPile` landings of one drawn card (`inr Y` vs `inr Y.flipSuit`)
+  are solvability-equivalent — one `pilePile` transfer each way with
+  the landing closing EXACTLY (the vacated seat's `attach ∘ detach =
+  id`, new helper `Board.attach_detach_cancel`); the WF premise kills
+  the phantom-stack leg (`State.topOf_inr_eq_none` + new
+  `Cycle.prev_mem`/`State.stock_prev_not_mem_hidden`).  §4's
+  observation CONFIRMED: C2's collapse needs NO cross-pile swap.
+- **O3, the pure catch-up window** — `State.solvable_swapTwin_catchup`
+  (+ `_run` packaging): f(t.suit) = r but f(t̄.suit) < r — one twin
+  stackable now, the other not — the low suit raised between the two
+  stackings by a pure exact-rung prefix `cu`.  Engine: new
+  `apply_pileStack_pileStack_exchange` (off-suit `pileStack`s
+  commute; every guard transfer is derived from the two firings — no
+  case split) + `pileStack_catchup_reorder` (the window's cornerstone:
+  the catch-up segment commutes with the twin's firing, the reordered
+  landing EXACTLY the source's mid successor), then the
+  twinSkew/crossTwin spine re-used with the re-aligned rung
+  (`halign₁` from the catch-up's reach).  `haccess` = the per-card
+  accessibility license (the catch-up runnable at the pre-firing
+  state) — "subject to per-card accessibility" made formal.
+- **§6.5 instance** — `twin_stack_order_exchange_catchup`: the
+  SAME-STATE order exchange: a win via [prefix; stack H; cu; stack L;
+  tail] reshapes into [prefix; cu; stack L; stack H; tail] landing on
+  the SAME successor — the sweep's lowest-first canonicalization
+  never uniquely loses wins at this window.
+- **witnesses/TwinCompletionWitness.lean** (decide-anchored,
+  axiom-clean): BOTH licenses machine-checked necessary — (A) a
+  catch-up card dealt under the twin (window play fires, reorder
+  blocked: the `haccess` premise is real); (B) the covered-twin corner
+  (mate seated on the twin: the L-first firing blocked at equal
+  rungs — §6.5's "one covered" residue is real).
+
+NEXT (tickets, in order):
+1. L1/O3(ii) general window: mids MIXING ortho moves with the catch-up
+   — the obstruction is an ortho landing onto the vacated twin seat
+   (same shape as witness B); needs either a no-landing premise or the
+   W15-style exchange (canonicalize the landing's read).
+2. Twin-suit worry-backs in the window; the `haccess` DERIVATION at
+   engine corpora (reached states' board discipline).
+3. The catch-up iff (the `_back` form needs the catch-up-first→between
+   DEFERRAL — L1(ii) again on the mirror side).
+4. §6.5 residue: the covered-twin corner's sweep-word safety (reduce
+   to the both-occupied exchange family at the covered seat).

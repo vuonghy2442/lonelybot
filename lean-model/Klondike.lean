@@ -24,4 +24,5 @@ import Klondike.TwinBridge
 import Klondike.MergeFire
 import Klondike.TwinCollapse
 import Klondike.Frame
+import Klondike.TwinSwapCompletion
 import Klondike.Tactics

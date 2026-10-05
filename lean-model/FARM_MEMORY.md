@@ -2241,3 +2241,24 @@ tree).
   run_root_of_chain, card_base) + TwinSimulation.lean (the [M] assembly + both bridges + the rows; the Restriction import moves there);
   MergeFire.lean will need `import Klondike.BoardWalk` when the walk kit moves (it consumes RunChain + run_root_of_chain + card_base but does
   not import TwinQuotient).
+
+## TwinSwapCompletion.lean - T O1/O3 window LANDED sorry-free (2026-10-05)
+
+- NEW axiom-clean [propext, Quot.sound]: State.solvable_twinDestination_collapse (+hwf),
+  apply_pileStack_pileStack_exchange (off-suit pileStacks commute - ALL guard transfers derive from
+  the two firings own guards; no beta case-split), pileStack_catchup_reorder (induction on cu; BOTH
+  cu-runs are premises), State.solvable_swapTwin_catchup(_run), twin_stack_order_exchange_catchup.
+  Helpers: Board.attach_detach_cancel, Board.detach_detach_comm, Cycle.prev_mem,
+  State.stock_prev_not_mem_hidden. Witness: TwinCompletionWitness (decide-anchored).
+- SYNTAX: `A ++ B ++ C ++ D` surface lists did NOT match run_split_bind patterns spelled right-assoc;
+  the FIX was the separated proof preamble load-bearing `simp only [List.append_assoc] at h` FIRST
+  (both in hypotheses and on goals). After `rw [run_split_bind st l1 l2] at h` + `cases hA : st.run l1`,
+  the `(some A).bind f` form does NOT expose A.run l2 to rw - use the type-ascription
+  `have h1 : A.run l2 = some W := hrun` (defeq does the reduction).
+- `List.mem_iff_getElem?` is `a in l <-> exists i, l[i]? = some a` - TWO slots, the bound is NOT a slot
+  (getElem?_eq_some_iff is a plain conj, not an exists: `(mp h).1` does NOT give an index).
+- Board.record-projection: after `rw [shape-eq]` on States, `show` the `{S with ...}.board`-projected
+  form explicitly, then attach/detach lemmas fire. attach_topOf/attach_topOf_ne's attach-eq arg must
+  have its OUTPUT board already visible in the goal - rewrite `A.board = bdA := by rw [hAeq]` FIRST
+  (bare `rw [hAeq]` closes that goal; adding `rfl` errors no-goals). twinSkew/crossTwin spine composes
+  with the reorder conclusion verbatim (hshape == hreor's extracted shape).
