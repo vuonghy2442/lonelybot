@@ -1031,6 +1031,12 @@ awaiting (ledger C15).
   wave (§8.8), so the `sorryAx` annotation above is discharged in the
   merged tree — `K2_tableau_goal_dead` is axiom-clean through the
   proven keystone, and the open-rows list shrinks accordingly.)*
+
+  *(Follow-up, same day: the §8.7 owed equivalence
+  `Mask.bottomMask_matches_movableOf` is PROVEN (the wave-18
+  movability session, Movability.lean — census-0 in that file), so the
+  standing caveat of §8.7 is discharged on the Lean side; what remains
+  is only the shipped Rust-side binding, `bm_algebra_matches`.)*
 ## 9. Session addendum (2026-10-05): T's O1 and O3, at the model level
 
 Append-only record of the wave-17 session (lean-model worktree
