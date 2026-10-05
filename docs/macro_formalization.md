@@ -1031,3 +1031,84 @@ awaiting (ledger C15).
   wave (§8.8), so the `sorryAx` annotation above is discharged in the
   merged tree — `K2_tableau_goal_dead` is axiom-clean through the
   proven keystone, and the open-rows list shrinks accordingly.)*
+## 9. Session addendum (2026-10-05): T's O1 and O3, at the model level
+
+Append-only record of the wave-17 session (lean-model worktree
+`farm-twins-o1-o3`, branch fast-forwarded to macro-game HEAD at start).
+Everything below is machine-checked in `Klondike/TwinSwapCompletion.lean`
+(sorry-free, axiom-clean `[propext, Quot.sound]`), with the necessity
+witnesses in `witnesses/TwinCompletionWitness.lean`.
+
+### 9.1 O1 (destination collapse) — resolved, minimal form
+
+§4's observation is confirmed: the instance C2 consumes — "X lands on
+top Y vs twin top Ȳ produce the SAME Encode" — needs **no cross-pile
+twin swap at all**. At the model level the two landings are
+ONE `pilePile` apart, each way, with the transfer landing exactly on
+the direct landing's post-state:
+
+> `State.solvable_twinDestination_collapse` — at a WF state, if the
+> drawn card X can land on either twin top (`deckPile X (inr Y)`,
+> `deckPile X (inr Y.flipSuit)`), the two post-states are
+> solvability-equivalent.
+
+The WF premise is the standard repair shape (it kills the
+phantom-stack-over-a-stock-card leg; the witness-side necessity of
+that premise is inherited from the existing exchange family's
+junk-board findings). The cross-pile position swap (the local pair
+`exchange of T) remains the licensed family — adjacent (paired),
+ortho-separated, plus the catch-up window below — with the
+unconditional seat-swap refutation unchanged
+(`witnesses/TwinSwapWitness.lean`).
+
+### 9.2 O3 (the boundary) — the pure catch-up window
+
+The interleaving lemma is extended to the asymmetric case
+f(♠) = r−1 but f(♣) < r−1 — one twin stackable now, the other not:
+
+> `State.solvable_swapTwin_catchup` — if the source wins by stacking t
+> (its suit at the rung), raising the low suit in between by a pure
+> prefix `cu` of exact-rung `pileStack`s (low-suit cards below the twin
+> rank), and stacking t̄; and the catch-up is playable at the
+> pre-firing state itself (`haccess` — per-card accessibility); then
+> the exchanged game is solvable, by the explicit mirror play
+> [prefix*; catch-up; stack t̄; stack t].
+
+"Build the low suit's prefix raise by the same unbury structure the
+winning play used for the high suit" becomes the **reorder lemma**
+(`pileStack_catchup_reorder`): off-suit `pileStack`s commute with the
+twin's firing (the one-step stone being
+`apply_pileStack_pileStack_exchange`), so the catch-up segment plays
+BEFORE the first stacking, on the same board reads, and the reordered
+firing lands on exactly the source's mid successor. The spine then
+re-uses the twinSkew/crossTwin machinery of the separated case at the
+re-aligned rung — the catch-up is what puts the low suit at
+`halign₁`.
+
+**Precise residue** (sharper than at session entry):
+(i) mids MIXING ortho moves with the catch-up — the obstruction is an
+ortho *landing onto the vacated twin seat* (the covered- Corner of
+§9.3's witness B in landing form); (ii) twin-suit worry-backs during
+the window; (iii) the derivation of `haccess` at engine corpora; and
+(iv) the two-sided iff, which needs the catch-up-first→between
+deferral.
+
+### 9.3 §6.5 (canonicalization safety) — the closed instance and the real corner
+
+> `twin_stack_order_exchange_catchup` — if the game wins by stacking
+> the HIGH twin first with a low-suit catch-up between the two
+> stackings, then it ALSO wins by stacking the LOW twin first
+> ([prefix; catch-up; stack L; stack H; tail]), landing on the same
+> successor — the sweep's lowest-first canonical choice never
+> uniquely loses wins at this window.
+
+Both licenses carried by these theorems are **genuine**
+(`witnesses/TwinCompletionWitness.lean`, decide-anchored): (A) a
+catch-up card dealt directly under the twin is unstackable until the
+twin's own stacking frees it — the window play exists, the reorder
+does not; (B) the *covered-twin corner* — the mate seated on the twin
+blocks the L-first firing even at equal rungs. The §6.5 sweep's
+ambiguity residue therefore confines to (B)'s configuration (both
+twins visible, one covered), which the sweep must already keep
+unflipped — the next queue item is the covered-seat reduction via the
+wave-15 both-occupied exchange family.
