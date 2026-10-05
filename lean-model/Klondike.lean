@@ -15,6 +15,7 @@ import Klondike.Bridge
 import Klondike.Initial
 import Klondike.Kills
 import Klondike.Restriction
+import Klondike.Construction
 import Klondike.TwinSwap
 import Klondike.TwinExchange
 import Klondike.TwinAgnostic

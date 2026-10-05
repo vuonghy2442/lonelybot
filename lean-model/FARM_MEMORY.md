@@ -2861,3 +2861,64 @@ REUSABLE SHARDS (this file, importable as `Witnesses.KingAnchorReachProbe` via t
   first); the wave-20 boss task's "DONE" list (per-universal theorem
   names + file:line) is in FARM.md's wave-20 row; sub-100ms retries never
   hit the .olean.private contention this session.
+## Session note (2026-10-05, the wave-20 third-lane session - Restriction infrastructure + the endgame construction fragment)
+
+- THE IFF IS SMALL: initialReachableR_of_run (list induction over 
+un, one step-constructor per move) + the forward direction by
+  derivation induction exhibiting play ++ [m] (the composite closes via 
+un_append then 
+un_singleton - do NOT try to unfold 
+un on
+  play ++ [m]: List.append on a variable play cannot iota-reduce; 
+w [run_append, hrun] then show s₀.run [m] = some s₁ (bind-of-some
+  is DEFEQ, the show-cast absorbs it) then 
+w [run_singleton]).
+- MIGRATION PATTERN (Task A): a fence is refit by picking the packaged invariant I := fun st => st.WF ∧ P st (WF rides along whenever the
+  per-step lemma reads pply_wf, e.g. pply_accounted's reveal arm); hinit = initial_wf + initial_* of P, hstep = pply_wf +
+  pply_*.  ReachFences.lean re-derives the probe's accounted fence AND its seat theorem verbatim through the combinator; the probe itself
+  stays untouched (per-file isolation), the addendum imports it (the facade cross-import precedent).
+- THE CONSTRUCTION'S KEY SHAPE (Task B fragment 1): the deal is FORCED (
+un preserves deal/drawStep, so the witness deal IS st.deal and
+  the witness step IS st.drawStep) - the only freedom is the play, so at draw step 1 there is NO scheduling obstruction (pure draws reach any
+  position: advance, or to the pass end + wrap + re-advance) and the only TRUE content is the per-edge shape (the I₀ catalogue) plus the
+  topological order = the RANK-TIER DESCENT: a stock rider's base is always a tail or a canSitOn-fitted ONE-RANK-HIGHER card (deal-adjacency
+  is unavailable to stock cards - piles_stock_disj kills that oard_edges arm), so descending-rank processing makes every step legal.  The
+  schedule is stock.filter DATA (tier lists) - no choice operator anywhere; all constructions stay axiom-clean [propext, Quot.sound].
+- CURSOR BYTE RESOLVES ITSELF: 
+ound_deckPile's consuming deckPile runs 
+emoveAt (cursor - 1) at cursor i + 1, so every round lands
+  cursor = i (the consumed position); the LAST stock card left sits at position 0, its round lands cursor 0 with the card list empty - the
+  empty target cycle falls out with zero bookkeeping (fragment 2's problem is only the NONempty target cycle).
+- FRAMEOK IS THE REUSABLE CORE: fields deal/depths/heights/drawStep fixed; tops ⇒ (target tops of processed-or-tail); tops ⇐; cycle cards =
+  exactly the unprocessed stock (VALUE-membership char, mem_removeIdx_iff - no position tracking anywhere); done ⊆ stock; noDup; cursor ≤
+  length.  rame_step refreshes it through the attach-splice; the tier and ladder inductions only reshuffle membership bookkeeping.
+- THE LEAN FIGHT LIST (for whoever continues): (a) Option.some.inj h needs the LHS reduced first (simp only [State.run] at h) or it
+  type-fails on stuck projections; (b)   + b does NOT whnf to  under 
+fl at a stuck match - always Nat.zero_add-rewrite, never
+  
+fl; (c) Nat.add recurses on the SECOND argument, so  + 1 + b needs an omega-proven have + rw (never rom rfl); (d) if_pos/if_neg
+  still elicit deprecation warnings - the corpus tolerates them, stay consistent; (e) List.Nodup has NO of_sublist/nodup_append in core
+  Lean 4.34 (no Mathlib) - Construction carries its own 
+odup_of_noDupCards (index-wise def → Nodup, needs the LENGTH bounds of
+  
+oDupCards fed to every h-application, and a (a::t)[0]? = (a::t)[k+1]? combined-eq have, not two separate ones),
+  List.filter_nodup, 
+odup_append_intro; (f) dot-notation hpe.riderSeat failed to resolve against a DEF-typed Prop inside the same
+  namespace - write the qualified PristineEndgame.riderSeat hpe hcs form; (g) structure-eta show-casts (show (⟨L, j⟩ : Cycle Card).dealOnce 1
+  = ⟨L, j+1⟩) are the reliable way past stuck field projections - but 
+w cannot match under the projections, so FIRST simp only
+  [Cycle.dealOnce], THEN split, THEN 
+ext h => ... with omega on the branch conditions (the projections reduce under simp, not under rw);
+  (h) 
+w [hseg] into an ∃w' seg goal does not work - the witness state is KNOWN from 
+ound_deckPile's statement ({w with board := bd,
+  stock := ⟨removeIdx, i⟩}), refine it FIRST then prove FrameOK from the projections; (i) un ... => by - the y is MANDATORY when the
+  lambda body runs tactics (bullets confuse the parser otherwise); (j) PowerShell -replace with apostrophes in Lean code is a quoting trap -
+  use the edit tool.
+- THE RUNNING-META CORRIGENDUM the brief anticipated: the orchestrator's sketch chose the deal's stock order - impossible here precisely
+  because 
+un fixes the deal; the corrected scheme (draw-1 any-position access) makes THAT freedom unnecessary.  The "mod-3 alignment / pad
+  draws" analysis belongs to fragment 2 (stockful targets at drawStep > 1), where Pace.maskPos bites; fragment 1 carried none of it and
+  landed accordingly.
+- DEPRIVATIZE TICKET (one word, standing): KingAnchorReachProbe's initialBoard_seats - Construction re-proves it as ~120 lines
+  (initial_seats); with the name public the replica retires.
