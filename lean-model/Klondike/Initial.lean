@@ -151,6 +151,226 @@ theorem initialBoard_topOf (d : Deal) (b : Base) (c : Card)
   · rw [Board.empty_topOf] at hold; simp at hold
   · exact hex
 
+/-! ## The initial board seats every pile's top (the construction half)
+
+`initialBoard_topOf` above analyzes an edge; the converse — the fold
+really writes every pile's top seat — is the forward seating theorem
+the reachability fence (witnesses/KingAnchorReachProbe.lean) and the
+wave-20 reachable-corner work need.  The proof carries the fold's
+running image: every written seat is a processed pile's top dealt
+card at its own `initBase`, every processed pile's top sits at its
+base.  (Moved from the reach probe, wave-20, where it was private and
+in-file; unchanged otherwise.) -/
+
+/-- The last element, by its index (the element at `length - 1` is the
+last) — the converse of `getLast?_index`. -/
+theorem getLast?_of_index : ∀ (l : List Card) (c : Card),
+    l[l.length - 1]? = some c → l.getLast? = some c := by
+  intro l
+  induction l with
+  | nil => intro c h; simp at h
+  | cons x t ih =>
+      intro c h
+      cases t with
+      | nil =>
+          have hxc : x = c := by
+            have hh := h
+            simp only [List.length_cons, List.length_nil] at hh
+            exact Option.some.inj hh
+          rw [hxc]
+          rfl
+      | cons y u =>
+          have hc : (y :: u)[(y :: u).length - 1]? = some c := by
+            have hh := h
+            rw [show (x :: y :: u).length - 1 = ((y :: u).length - 1) + 1 from by
+                simp only [List.length_cons]
+                omega] at hh
+            rw [List.getElem?_cons_succ] at hh
+            exact hh
+          have hlast : (y :: u).getLast? = some c := ih c hc
+          have hcons : (x :: y :: u).getLast? = (y :: u).getLast? := rfl
+          rw [hcons]
+          exact hlast
+
+/-- The running board image during the initial dealing: every seat
+written so far is a processed pile's top dealt card at its own base,
+and every processed pile's top sits at its base. -/
+private def InitImg (d : Deal) (proc : List Anchor) (bd : Board) : Prop :=
+  (∀ a ∈ proc, bd.topOf (initBase d a) = (d.piles a).getLast?) ∧
+  (∀ b c, bd.topOf b = some c →
+    ∃ a, a ∈ proc ∧ b = initBase d a ∧ (d.piles a).getLast? = some c)
+
+private theorem initImg_empty : InitImg d [] Board.empty := by
+  refine ⟨fun a ha => absurd ha (by simp), ?_⟩
+  intro b c hb
+  rw [Board.empty_topOf] at hb
+  exact absurd hb (by simp)
+
+/-- The pile index decides the anchor. -/
+private theorem anchor_toIdx_inj {a a' : Anchor} (h : a.toIdx = a'.toIdx) :
+    a = a' := by
+  cases a <;> cases a' <;> simp_all [Anchor.toIdx]
+
+/-- The dealt under-card form of `initBase`: an anchor for `p0`, the
+under-card otherwise (WF pile lengths keep the index in range). -/
+private theorem initBase_shape (d : Deal) (hd : d.WF) (a : Anchor) :
+    a = Anchor.p0 ∨ ∃ u, initBase d a = Sum.inr u ∧ u ∈ d.piles a := by
+  cases hti : a.toIdx with
+  | zero => exact Or.inl (anchor_toIdx_inj hti)
+  | succ k =>
+      refine Or.inr ?_
+      have hlen : (d.piles a).length = k + 2 := by rw [hd.1 a, hti]
+      cases hgt : (d.piles a)[k]? with
+      | none =>
+          have hbad := List.getElem?_eq_none_iff.mp hgt
+          rw [hlen] at hbad
+          exact absurd hbad (by omega)
+      | some u =>
+          refine ⟨u, ?_, ?_⟩
+          · show initBase d a = Sum.inr u
+            simp only [initBase, hti, hgt]
+          · exact List.mem_iff_getElem?.mpr ⟨k, hgt⟩
+
+/-- `initBase` is injective in the anchor at a WF deal. -/
+private theorem initBase_eq_of_eq (d : Deal) (hd : d.WF) {a a' : Anchor}
+    (h : initBase d a = initBase d a') : a = a' := by
+  have hp0 : initBase d Anchor.p0 = Sum.inl Anchor.p0 := rfl
+  rcases initBase_shape d hd a with hap | ⟨u, hu, hmu⟩
+  · rcases initBase_shape d hd a' with hap' | ⟨u', hu', hmu'⟩
+    · rw [hap, hap']
+    · rw [hap, hp0, hu'] at h
+      exact absurd h (by simp)
+  · rcases initBase_shape d hd a' with hap' | ⟨u', hu', hmu'⟩
+    · rw [hu, hap', hp0] at h
+      exact absurd h (by simp)
+    · rw [hu, hu'] at h
+      have huu : u = u' := Sum.inr.inj h
+      have hmu2 : u ∈ d.piles a' := by rw [huu]; exact hmu'
+      exact Deal.piles_disj hd hmu hmu2
+
+/-- The next pile's base is free in the running board: all written seats
+belong to processed piles. -/
+private theorem initBase_free (d : Deal) (hd : d.WF) {proc : List Anchor}
+    {bd : Board} (himg : InitImg d proc bd) {a₀ : Anchor} (hnot : a₀ ∉ proc) :
+    bd.topOf (initBase d a₀) = none := by
+  cases hocc : bd.topOf (initBase d a₀) with
+  | none => rfl
+  | some c =>
+      exfalso
+      obtain ⟨a, ham, hbase, -⟩ := himg.2 _ c hocc
+      exact hnot (by rw [initBase_eq_of_eq d hd hbase]; exact ham)
+
+/-- One deal step of the initial fold preserves (and extends) the
+board image. -/
+private theorem initStep_preserves_Img (d : Deal) (hd : d.WF)
+    {proc : List Anchor} {bd : Board} {a₀ : Anchor}
+    (himg : InitImg d proc bd) (hnot : a₀ ∉ proc) :
+    InitImg d (a₀ :: proc) (initStep d bd a₀) := by
+  obtain ⟨h1, h2⟩ := himg
+  cases hgt : (d.piles a₀).getLast? with
+  | none =>
+      have hstep : initStep d bd a₀ = bd := by simp only [initStep, hgt]
+      rw [hstep]
+      refine ⟨?_, ?_⟩
+      · intro a ha
+        rcases List.mem_cons.mp ha with rfl | hap
+        · rw [initBase_free d hd ⟨h1, h2⟩ hnot, hgt]
+        · exact h1 a hap
+      · intro b c hb
+        obtain ⟨a, ham, hbase, hlast⟩ := h2 b c hb
+        exact ⟨a, List.mem_cons_of_mem _ ham, hbase, hlast⟩
+  | some top =>
+      have hfree := initBase_free d hd ⟨h1, h2⟩ hnot
+      have hbotnone : bd.bottomOf top = none := by
+        refine (Board.bottomOf_eq_none bd top).mpr (fun b' hb => ?_)
+        obtain ⟨a, ham, hb, hlast⟩ := h2 b' top hb
+        have hmema : top ∈ d.piles a := mem_of_getLast hlast
+        have hmem0 : top ∈ d.piles a₀ := mem_of_getLast hgt
+        have hae := Deal.piles_disj hd hmem0 hmema
+        rw [← hae] at ham
+        exact hnot ham
+      have hattach : bd.attach (initBase d a₀) top ≠ none :=
+        (Board.attach_eq_some_iff bd (initBase d a₀) top).mpr ⟨hfree, hbotnone⟩
+      cases hatt : bd.attach (initBase d a₀) top with
+      | none => rw [hatt] at hattach; exact absurd hattach (by simp)
+      | some bd' =>
+          have hstep : initStep d bd a₀ = bd' := by
+            simp only [initStep, hgt, hatt, Option.getD]
+          rw [hstep]
+          refine ⟨?_, ?_⟩
+          · intro a ha
+            rcases List.mem_cons.mp ha with hhead | hap
+            · rw [hhead]
+              rw [Board.attach_topOf bd (initBase d a₀) top hatt, hgt]
+            · have hne : initBase d a ≠ initBase d a₀ := by
+                intro hcon
+                exact hnot (by
+                  have heq := (initBase_eq_of_eq d hd hcon).symm
+                  rw [heq]
+                  exact hap)
+              rw [Board.attach_topOf_ne bd (initBase d a₀) top hatt hne]
+              exact h1 a hap
+          · intro b c hb
+            by_cases hbb : b = initBase d a₀
+            · rw [hbb, Board.attach_topOf bd (initBase d a₀) top hatt,
+                Option.some.injEq] at hb
+              exact ⟨a₀, (by simp), hbb, by rw [← hb]; exact hgt⟩
+            · rw [Board.attach_topOf_ne bd (initBase d a₀) top hatt hbb] at hb
+              obtain ⟨a, ham, hbase, hlast⟩ := h2 b c hb
+              exact ⟨a, List.mem_cons_of_mem _ ham, hbase, hlast⟩
+
+/-- The fold driver: the whole dealing sequence boards every pile's top
+card. -/
+private theorem initFold_img_aux (d : Deal) (hd : d.WF) :
+    ∀ (as proc : List Anchor) (bd : Board),
+    as.Nodup → proc.Nodup → (∀ a ∈ as, a ∉ proc) →
+    (∀ a ∈ as, a ∈ Anchor.all) → (∀ a ∈ proc, a ∈ Anchor.all) →
+    InitImg d proc bd →
+    InitImg d (as.reverse ++ proc) (as.foldl (initStep d) bd) := by
+  intro as
+  induction as with
+  | nil =>
+      intro proc bd _ _ _ _ _ himg
+      exact himg
+  | cons a₀ rest ih =>
+      intro proc bd hnd hndp hdis hallp hallproc himg
+      have hstep := initStep_preserves_Img d hd himg (hdis a₀ (by simp))
+      obtain ⟨ha0nr, hndr⟩ := List.nodup_cons.mp hnd
+      have hproc' : (a₀ :: proc).Nodup :=
+        List.nodup_cons.mpr ⟨hdis a₀ (by simp), hndp⟩
+      have hdis' : ∀ a ∈ rest, a ∉ a₀ :: proc := by
+        intro a har hap
+        rcases List.mem_cons.mp hap with heq | happ
+        · rw [heq] at har
+          exact ha0nr har
+        · exact hdis a (List.mem_cons_of_mem _ har) happ
+      have hallas : ∀ a ∈ rest, a ∈ Anchor.all :=
+        fun a har => hallp a (List.mem_cons_of_mem _ har)
+      have hallproc' : ∀ a ∈ a₀ :: proc, a ∈ Anchor.all := by
+        intro a hap
+        rcases List.mem_cons.mp hap with heq | hp
+        · rw [heq]
+          exact a₀.mem_all
+        · exact hallproc a hp
+      have hmm := ih (a₀ :: proc) (initStep d bd a₀) hndr hproc' hdis'
+        hallas hallproc' hstep
+      rw [show (a₀ :: rest).reverse ++ proc = rest.reverse ++ a₀ :: proc from by
+        rw [List.reverse_cons, List.append_assoc, List.cons_append, List.nil_append]]
+      exact hmm
+
+/-- **The forward seating theorem**: the initial board seats every
+pile's top dealt card at its base (the construction half of
+`initialBoard_topOf`). -/
+theorem initialBoard_seats (d : Deal) (hd : d.WF) (a : Anchor) :
+    (initialBoard d).topOf (initBase d a) = (d.piles a).getLast? := by
+  have hall := initFold_img_aux d hd Anchor.all [] Board.empty
+    (by decide) (by decide)
+    (fun _ _ ha => absurd ha (by simp))
+    (fun a _ => a.mem_all) (fun _ ha => absurd ha (by simp))
+    initImg_empty
+  refine hall.1 a ?_
+  exact List.mem_reverse.mpr a.mem_all
+
 /-- A pile of length `k + 2` whose last is `c` and whose `k`-th card
 is `under` decomposes with `under` directly beneath `c`. -/
 theorem decompose_last : ∀ (k : Nat) (l : List Card) (u c : Card),

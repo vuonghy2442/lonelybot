@@ -115,3 +115,40 @@ All axiom-clean (the standard trio), all built by
   The first witness imported by the root facade (`Witnesses.lean`)
   so the verdicts are citable without glob spelunking.
 
+
+## Status addendum (2026-10-05, wave 20)
+
+`lake build Klondike Witnesses` green; census 12 pinned unchanged.
+
+- `KingAnchorReachProbe.lean` (wave-20 rework of the wave-19B probe,
+  LIVE): the three reach verdicts restated AT THE DEPRIVATIZED
+  originals — `wState/wSucc/uState_not_initialReachable` — with the
+  replica sections deleted; the fence machinery (`accounted`,
+  `pileCards_seated_of_initialReachable`,
+  `unseated_pileCard_unreachable`) unchanged; the verdict table
+  REVISED (the wave-19B "RESTORED under hreach" readings withdrawn —
+  see the next item).  The probe imports
+  `Witnesses.SuccLabeledWitness` (the second witness-file
+  cross-import after the facade, acyclic) for the `uState` verdict.
+- `C2KingAnchorWitness.lean` (hygiene, LIVE): `wDeal`/`wState`/
+  `wSucc`/`wS_shape`/`wBoard`/`wS_bot_none` deprivatized so the
+  verdicts cite the countermodel itself.
+- `SuccLabeledWitness.lean` (wave-20 addendum, LIVE): the
+  reachable-corner countermodels — `rState` (a dealt INITIAL state,
+  empty-play reachable) presents BOTH the anchored-ace unseat route
+  (`rStep`, unlabeled by all five channels:
+  `wk_succ_labeled_reachable_false`) AND the frozen-king six-anchor
+  split (`wk_c2/_same_pin/_p2_direct/_crease_reachable_false`).  The
+  Label-decision input (the `anchorHead` channel vs the window gate)
+  is recorded in the addendum's header for the orchestrator.
+- `Klondike/Initial.lean` (lib): the deal-fold forward seating
+  theorem now lives in the lib (`initialBoard_seats`,
+  `getLast?_of_index`), moved from the probe's private section.
+- `Klondike/C2Streamlined.lean` §15 (lib, sorry-free): the honest
+  regimes — `c2_two_option_king_frozen`,
+  `succThrough_king_frozen_join`, `same_pin_hole_oneAnchor`,
+  `p2_direct_class_king_oneAnchor_reachable`,
+  `crease_absorbed_reachable`, `crease_stack_deterministic`,
+  `c2_two_option_reachable`, plus the helpers
+  (`heights_of_applyDrawStackTo`, `king_tableau_base`,
+  `labelLive_of_king_frozen`).
