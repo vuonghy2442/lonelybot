@@ -18,13 +18,21 @@ $baseline = @{
                         # (least_redundantStack_dominant PROVEN with the +hsafe
                         # repair, per its wave-11 concern, by the parallel
                         # session 2026-09-13)
-  'Kills.lean'     = 1  # K2_tableau_goal_dead remains.  PROVEN 2026-10-05 (the k1
-                        # farm session, FARM.md wave-12): vis_of_safeAccommodates
-                        # (keystone), State.frontier_spec, K1_stack_goal_dead —
-                        # sorry-free, no WF hypothesis, with machinery
-                        # vis_shadow_play / climb_firstPassage / find?_prefix_false
-                        # / Rank.all_split_filter / vis_of_pileStack /
-                        # vis_of_stackPile shipped in Kills.lean
+  'Kills.lean'     = 0  # wave-12 COMPLETE (K1 + K2 sessions, merged 2026-10-05):
+                        # vis_of_safeAccommodates (keystone), State.frontier_spec,
+                        # K1_stack_goal_dead — sorry-free, no WF (K1 session;
+                        # machinery vis_shadow_play / climb_firstPassage /
+                        # find?_prefix_false / Rank.all_split_filter /
+                        # vis_of_pileStack / vis_of_stackPile shipped) — and
+                        # K2_tableau_goal_dead PROVEN (K2 session; the K1
+                        # keystone discharges its sorryAx taint in the merge)
+  'Movability.lean' = 1  # +wave-12 K2 session (2026-10-05): §8.1's movability
+                        # algebra, Klondike/Movability.lean — the single open row
+                        # is Mask.bottomMask_matches_movableOf, the §8.7 owed
+                        # equivalence (the engine's mask arithmetic vs the
+                        # formula; the Rust side is already bound by
+                        # bm_algebra_matches) — plan in the docstring.
+                        # Everything else in the file is proven, axiom-clean.
   'Restriction.lean' = 2  # solvableEngine_iff_solvable_of_reachable (B2),
                         # engine_replay_of_pilePile (the replay step)
   'TwinSwap.lean'  = 0  # Board.aboveOf_congr_off PROVEN 2026-09-14 via the

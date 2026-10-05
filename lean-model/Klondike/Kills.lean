@@ -541,11 +541,42 @@ non-kings)**: if neither receiver can ever surface in the closure
 no worry-back can surface it — the keystone's second disjunct), `X`
 has no legal tableau placement anywhere in the closure.
 
-TODO(proof) [E]: `canPlace X b = true` at a closure state case-splits
-on `b`: `inl` needs a king, killed by `hking`; `inr d` gives
-`isVis d ∧ canSitOn X d`, `Card.mem_receivers_iff` puts `d` in the
-receiver set, and `vis_of_safeAccommodates` contradicts `hrecv d`. -/
+PROOF LANDED 2026-10-05 (the wave-12 K2 farm session; the row's own
+`sorry` marker is discharged — but the proof is
+keystone-tainted until `vis_of_safeAccommodates` lands:
+`#print axioms` carries `sorryAx` through it): the staged route —
+`canPlace X b = true` case-splits on `b`: the anchor arm
+(`canPlace_inl_iff`) needs a king, killed by `hking`; the tableau arm
+is `d` visible (`isVis_of_canPlace_inr`) with `X` fitting
+(`canSitOn_of_canPlace_inr`), `Card.mem_receivers_iff` puts `d` in
+the receiver set, and the keystone `vis_of_safeAccommodates`
+contradicts `hrecv d` both ways (root-visible contra the first
+conjunct; the worry-back range `rank < h₀` contra the second, which
+bounds the receiver out of it by the root heights — the engine's
+`dead` test `!root.vis ∧ !root-stacked`).  This is the §8.5
+visibility door: the engine-side reading is the receiver *pair*
+(`or_vis` on it, §8.1's first conjunct — `Card.orVis_of_movableOf`,
+Klondike/Movability.lean); the model's `canPlace` reads the pair's
+visible members directly, and both receivers being dead pins the
+pair invisible at every closure word.
+
+Kings are excluded (the empty-pile gate — K5's jurisdiction, not
+K2's): the anchor arm is the *only* king opening, and it has no
+receiver to kill. -/
 theorem K2_tableau_goal_dead {st : State} {X : Card} (hking : X.rank ≠ Rank.king)
     (hrecv : ∀ r, r ∈ X.receivers →
       st.isVis r = false ∧ st.heights r.suit ≤ r.rank.toIdx) :
-    ∀ st' : State, safeAccommodates st st' → ∀ b : Base, st'.canPlace X b = false := sorry
+    ∀ st' : State, safeAccommodates st st' → ∀ b : Base, st'.canPlace X b = false := by
+  intro st' hacc b
+  rcases Bool.eq_false_or_eq_true (st'.canPlace X b) with h | h
+  · exfalso
+    cases b with
+    | inl a => exact hking (king_of_canPlace_inl h)
+    | inr d =>
+        obtain ⟨-, hvis', hcs⟩ := canPlace_inr_iff.mp h
+        obtain ⟨hvis0, hrk⟩ := hrecv d ((Card.mem_receivers_iff X d).mpr hcs)
+        rcases vis_of_safeAccommodates hacc d hvis' with h1 | h2
+        · rw [h1] at hvis0
+          simp at hvis0
+        · omega
+  · exact h
