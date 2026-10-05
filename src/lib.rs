@@ -13,6 +13,7 @@ pub mod moves;
 pub mod pruning;
 pub mod shuffler;
 pub mod solver;
+pub mod solvitaire;
 pub mod stack;
 pub mod standard;
 pub mod state;

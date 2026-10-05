@@ -2,7 +2,7 @@ use std::num::NonZeroU8;
 
 use arrayvec::ArrayVec;
 use lonelybot::{card::Card, deck::{Deck, N_PILES}, solver::{SearchResult, solve}, standard::{N_HIDDEN_MAX, N_OPEN_MAX, StandardSolitaire}, state::Solitaire};
-use lonecli::solvitaire::Solvitaire;
+use lonelybot::solvitaire::Solvitaire;
 use serde_json::{Value, json};
 
 
