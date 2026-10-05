@@ -11,6 +11,13 @@ pile").  B2 is the claim that this restriction loses nothing: a dealt
 game is winnable in the full physical game iff it is winnable with the
 engine's move set.
 
+Besides B2, this file carries the reachability fences: the recurrence
+presentation and the combinator (`initialReachableR`), `visClean`,
+`anchorOK`, `cleanStacks` — and, from wave 21 (fragment 2's needs),
+the stock-side fences `stockAccounted`, `cycleSelective` and
+`seatedOrigins`, proven through the same combinator (see the section
+below).
+
 **Why the naive form died** (witnesses/EngineWitness.lean, archived in
 FARM.md's REFUTED section): the model's `reveal` is *bare-trigger* —
 it seats the boundary card only while a visible card still sits on it —
@@ -31,25 +38,25 @@ needed for this skeleton.
 ## Proof route (the B2 main induction)
 
 `←` of the headline is `solvable_of_engine` (Move.lean, proven).  `→`
-is well-founded induction on `cascadeMeasure` (Dominance.lean —
-proven, with `cascade_escape_progress`): at each state, case-split on
-the first move of a winning play; every engine move is verbatim; a
-`pilePile c b` is replayed per the step lemma below, and the escapes
-(strict measure drops) are what make the induction well-founded rather
-than circular.
+factors through the head-oracle induction
+`solvableEngine_of_reachable_play` (wave 21: a plain induction on the
+winning play's length — every engine move recurses, every pile-to-pile
+head goes straight to the oracle) plus the single named residue
+`replay_head_residue` (the per-move α-invariance content, its case
+ledger recorded at its site).  The former cascadeMeasure plan is
+retired: no measure on mid-game states is needed, because the
+pile-to-pile head does not recurse at all.
 
-The step's cases (the EngineWitness shapes are the fence posts):
+The residue's cases (the EngineWitness shapes are the fence posts):
 1. **returnable base** (`canReturnBase`): the `stackPile`/`pileStack`
    detour — proven kits: `stackPile_pileStack_cancel`,
    `pileStack_comm_*` squares, `solvable_of_stackPile`.
 2. **locked boundary carry** (the EngineWitness shape): the run sits
    on the hidden boundary — the worry-back ban routes through B4's
-   `solvable_of_pileStack` (sorried crux, Theorems.lean) plus the
-   rank-mate twin argument above.
-3. **the deadlock escape hatch**: if a full-deck probe ever replays
-   the EngineWitness state from `State.initial wdeal 1`, this file's
-   statements fall and the model needs the run-carrying-reveal repair
-   (track R, design decision — recorded in FARM.md).
+   `solvable_of_pileStack'` (Theorems; the `rungNormal_or_forcedPark`
+   residue rides there) plus the rank-mate twin argument above.
+3. **the deadlock escape hatch**: EMPTY — see the refute-first gate
+   below.
 
 Refute-first gate: reachability probe - reconstruct the EngineWitness
 state by a play from `State.initial wdeal 1`.  **CLOSED 2026-09-15 -
@@ -161,36 +168,164 @@ theorem invariant_of_initialReachable {I : State → Prop}
     ∀ st, initialReachable st → I st := fun st hr =>
   invariant_of_initialReachableR hinit hstep st (initialReachableR_iff.mpr hr)
 
-/-- **B2, the engine's license**: on states reached from a deal, the
-full physical game and the engine's restricted move set have the same
-solvability.  The `→` direction is `solvable_of_engine` (proven);
-`←` is the restriction.
+/-! ### The B2 induction skeleton and the replay residue
 
-TODO(proof) **[H]**: the well-founded `cascadeMeasure` induction whose
-per-move replay is `engine_replay_of_pilePile` below (plus the B4 crux
-for the boundary-carry case).  Witness fence: `EngineWitness`'s state
-must not satisfy `initialReachable` — the refute-first probe above
-decides whether this statement stands as written. -/
+**B2, the engine's license**: on states reached from a deal, the full
+physical game and the engine's restricted move set have the same
+solvability.  The `→` direction is `solvable_of_engine` (proven);
+`←` factors through the head-oracle induction below plus the single
+named residue `replay_head_residue` (the unpacked per-move content —
+the wave-21 refinement of the two former pinned `[H]`s into one).
+The witness fence held: `EngineWitness.wstate_not_reachable` (the
+wave-19B refute-first probe) keeps the statement's reachable fragment
+clear of the deadlock corner; the residue's case ledger is recorded at
+its site. -/
+
+/-- **The head-oracle induction** (the former cascadeMeasure plan,
+wave-21 form): if every winning play whose FIRST move is a
+pile-to-pile replays engine-only at its head, then every
+dealt-reachable winning state is engine-solvable.  The induction is
+on the winning play's length — every engine move recurses
+(reachability and WF ride along: `initialReachableR.step`, `apply_wf`),
+and every pile-to-pile head goes straight to the oracle (no recursion
+at all — that is why a plain length induction suffices and no measure
+on the mid-game states is needed). -/
+theorem solvableEngine_of_reachable_play {st : State}
+    (hreach : initialReachable st) (hwf : st.WF)
+    (H : ∀ (s' : State) (c : Card) (b : Base) (rest : List Move),
+      initialReachable s' → s'.WF → s'.legal (Move.pilePile c b) = true →
+      ∀ w, s'.run (Move.pilePile c b :: rest) = some w → w.isWin = true →
+      s'.solvableEngine)
+    (hsol : st.solvableFrom) : st.solvableEngine := by
+  obtain ⟨play, w, hrun, hwin⟩ := hsol
+  have main : ∀ (n : Nat) (s : State) (π : List Move),
+      initialReachable s → s.WF → π.length ≤ n →
+      ∀ w', s.run π = some w' → w'.isWin = true → s.solvableEngine := by
+    intro n
+    induction n with
+    | zero =>
+        intro s π hreach' hwf' hlen w' hrun' hwin'
+        have hnil : π = [] := by
+          cases π with
+          | nil => rfl
+          | cons m ms => simp at hlen
+        rw [hnil] at hrun'
+        simp only [State.run] at hrun'
+        have heq : s = w' := Option.some.inj hrun'
+        subst heq
+        have hnone : ∀ m : Move, m ∈ ([] : List Move) → m.isEngine = true := by
+          intro m hm
+          simp at hm
+        exact ⟨[], hnone, s, rfl, hwin'⟩
+    | succ n ih =>
+        intro s π hreach' hwf' hlen w' hrun' hwin'
+        cases hπ : π with
+        | nil =>
+            rw [hπ] at hrun'
+            simp only [State.run] at hrun'
+            have heq : s = w' := Option.some.inj hrun'
+            subst heq
+            have hnone : ∀ m : Move, m ∈ ([] : List Move) → m.isEngine = true := by
+              intro m hm
+              simp at hm
+            exact ⟨[], hnone, s, rfl, hwin'⟩
+        | cons m ms =>
+            rw [hπ] at hrun' hlen
+            obtain ⟨s₂, hap, hrest, -⟩ := run_cons_inv hrun'
+            have hmslen : ms.length ≤ n := by simp at hlen; omega
+            have hlegal : s.legal m = true := by
+              simp only [State.legal, Option.isSome_iff_exists]
+              exact ⟨s₂, hap⟩
+            by_cases heng : m.isEngine = true
+            · obtain ⟨τ, hallτ, w'', hrunτ, hwin''⟩ :=
+                ih s₂ ms
+                  (initialReachableR_iff.mp
+                    (initialReachableR.step s m s₂ hap (initialReachableR_iff.mpr hreach')))
+                  (apply_wf hwf' m s₂ hap)
+                  hmslen w' hrest hwin'
+              refine ⟨m :: τ, ?_, w'', ?_, hwin''⟩
+              · intro x hx
+                rcases List.mem_cons.mp hx with rfl | hx'
+                · exact heng
+                · exact hallτ x hx'
+              · show s.run (m :: τ) = some w''
+                simp only [State.run, hap]
+                exact hrunτ
+            · cases m with
+              | draw => rw [Move.isEngine] at heng; simp at heng
+              | reveal a => rw [Move.isEngine] at heng; simp at heng
+              | deckPile c b => rw [Move.isEngine] at heng; simp at heng
+              | deckStack c => rw [Move.isEngine] at heng; simp at heng
+              | pileStack c => rw [Move.isEngine] at heng; simp at heng
+              | stackPile c b => rw [Move.isEngine] at heng; simp at heng
+              | pilePile c b => exact H s c b ms hreach' hwf' hlegal w' hrun' hwin'
+  exact main play.length st play hreach hwf (Nat.le_refl _) w hrun hwin
+
+/-- **The replay residue** (the single remaining `[H]` of the
+Restriction program; the wave-21 refinement of the two former pinned
+rows): at a dealt-reachable state, a legal pile-to-pile that heads a
+winning play can be replayed engine-only.  This is precisely the
+α-invariance content of the no-pile-to-pile restriction
+(docs/no_pile_to_pile.md §4) localized to one head move — the
+case-split ledger:
+
+* **case 1 (returnable base / free routing)**: the run's root rides a
+  seat whose worry-back channel is available — assemble from
+  `stackPile_pileStack_cancel` (Dominance, the excursion pair nets to
+  identity), the `pileStack_comm_*` squares (Theorems) and the
+  foundation roundtrips (`solvable_of_pileStack_return`,
+  `stackPile_pileStack_return`), routing the root through its
+  foundation rung.
+* **case 2 (locked boundary carry — the EngineWitness shape)**: the
+  root sits on the hidden boundary; the worry-back ban routes through
+  B4's crux `solvable_of_pileStack'` (Theorems; its unlocked-sitter
+  gate is the `hnotlock` hedge, the `rungNormal_or_forcedPark` residue
+  rides there), plus `solvable_flipAll` for the twin placement under
+  the both-heights-equal license (as `twinPair_placement_equi`).
+* **case 3 (the deadlock escape hatch)**: the probe is closed —
+  `EngineWitness.wstate_not_reachable` (the wave-19B refute-first
+  probe; all five refutation corners are off the dealt-reachable
+  fragment).
+
+The residue is genuinely open: the model's reveal is bare-trigger, so
+the paper's run-carrying reveal is NOT available wholesale; what must
+close instead is the arrangement-tail rewrite (the concretization /
+reshape lemma, docs/no_pile_to_pile.md §5 [ ]) for the tail after the
+head's park — the honest state of the art, now in one place. -/
+private theorem replay_head_residue {st : State}
+    (hreach : initialReachable st) (hwf : st.WF)
+    {c : Card} {b : Base} {rest : List Move} {w : State}
+    (hlegal : st.legal (Move.pilePile c b) = true)
+    (hrun : st.run (Move.pilePile c b :: rest) = some w)
+    (hwin : w.isWin = true) :
+    st.solvableEngine := sorry
+
+/-- **B2, the engine's license** — the pinned statement, proven modulo
+the named residue above: on states reached from a deal, the full
+physical game and the engine's restricted move set have the same
+solvability. -/
 theorem solvableEngine_iff_solvable_of_reachable {st : State}
     (hreach : initialReachable st) (hwf : st.WF) :
-    st.solvableFrom ↔ st.solvableEngine := sorry
+    st.solvableFrom ↔ st.solvableEngine := by
+  constructor
+  · intro hsol
+    exact solvableEngine_of_reachable_play hreach hwf
+      (fun s' c b rest hreach' hwf' hlegal w' hrun' hwin' =>
+        replay_head_residue hreach' hwf' hlegal hrun' hwin')
+      hsol
+  · intro heng
+    exact solvable_of_engine heng
 
-/-- **The replay step**: from a dealt-reachable state, a winning play
-headed by a pile-to-pile move can be replaced by an engine-only win —
-every pile-to-pile is implicit.
-
-TODO(proof) **[H]**: case-split per the header's ledger.  Case 1 is
-assembled from proven pieces (`stackPile_pileStack_cancel` +
-`pileStack_comm_*` + the roundtrips); case 2 reduces to the B4 crux
-`solvable_of_pileStack` — note its `hnotlock` gate matches exactly the
-boundary-carry shape here (a locked sitter IS the EngineWitness
-trigger); case 3 is the probe's alarm.  The twin placement in case 2's
-endgame cites `solvable_flipAll` under the both-heights-equal license —
-the same pattern as `twinPair_placement_equi`. -/
+/-- **The replay step**: from a dealt-reachable state, any winning
+witness with a legal pile-to-pile is engine-solvable — every
+pile-to-pile is implicit.  A corollary of the license above; the
+legality hypothesis is not needed for this shape (the license covers
+the whole state) and is kept for the statement's published form. -/
 theorem engine_replay_of_pilePile {st : State}
     (hreach : initialReachable st) (hwf : st.WF) {c : Card} {b : Base}
-    (hlegal : st.legal (Move.pilePile c b) = true)
-    (hsol : st.solvableFrom) : st.solvableEngine := sorry
+    (_hlegal : st.legal (Move.pilePile c b) = true)
+    (hsol : st.solvableFrom) : st.solvableEngine :=
+  (solvableEngine_iff_solvable_of_reachable hreach hwf).mp hsol
 
 /-! ## The clean-stacks theorem
 
@@ -545,6 +680,535 @@ theorem initialReachable_anchorOK {st : State} (hreach : initialReachable st) :
   intro a c htop
   exact ((initialReachable_visClean hreach).1.board_edges (Sum.inl a) c htop).2
 
+/-! ## The stock-side fences (wave-21, fragment 2's distillate needs)
+
+The fragment-2 sufficiency construction (Construction.lean) consumes
+exactly the deal's stock cards that are *not* in the target's cycle.
+Its distillate therefore needs three reachability fences beyond
+`visClean`/`anchorOK` — each an invariant seeded at the dealt initial
+state and preserved by one legal move, so each is proven through the
+generic combinator (Task A's `invariant_of_initialReachable`):
+
+* `stockAccounted` — stock-card conservation: every dealt stock card
+  is in the cycle, visible on the tableau, or on a foundation.  The
+  cycle only ever loses cards (spliced out by `deckPile` onto the
+  board, by `deckStack` onto the foundation); a seated card never
+  vanishes (boards only rewire), a founded card never vanishes
+  (heights move by one rank at a time, the vacancy card being unique).
+* `cycleSelective` — the end-state deck order: the cycle's card list
+  is the deal's stock with the consumed cards spliced out, so it is
+  precisely the *selection in deal order* of its own members —
+  `st.stock.cards = st.deal.stock.filter (fun x => decide (x ∈
+  st.stock.cards))`.  This is the list-level content behind the
+  construction's final filter match; splices never reorder.
+* `seatedOrigins` — every visible or founded card is one of the
+  deal's cards, with the pile/stock origin tracking each new seat:
+  `reveal` seats a pile card, `deckPile` seats a stock card,
+  `stackPile` re-seats a founded card, `pileStack` founds a seated
+  one — so the origin survives the whole move set.
+-/
+
+/-- **Stock-card conservation**: every dealt stock card is in the
+cycle, visible on the tableau, or on a foundation — never destroyed,
+never duplicated into the piles. -/
+def State.stockAccounted (st : State) : Prop :=
+  ∀ c ∈ st.deal.stock, c ∈ st.stock.cards ∨ st.isVis c = true ∨ st.onFound c = true
+
+theorem stockAccounted_initial (d : Deal) (s : Nat) :
+    (State.initial d s).stockAccounted := by
+  intro c hc
+  exact Or.inl hc
+
+/-- The waste top's index facts: the cursor and the card under it. -/
+theorem prev_cursor {cy : Cycle Card} {c : Card} (h : cy.prev = some c) :
+    cy.cursor ≠ 0 ∧ cy.cards[cy.cursor - 1]? = some c := by
+  simp only [Cycle.prev] at h
+  split at h
+  · exact absurd h (by simp)
+  · exact ⟨by omega, h⟩
+
+theorem stockAccounted_apply {st st' : State}
+    (h : st.stockAccounted) {m : Move} (happ : st.apply m = some st') :
+    st'.stockAccounted := by
+  intro x hx
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at happ
+      obtain ⟨rfl⟩ := happ
+      rcases h x hx with hc | hv | hf
+      · exact Or.inl (by rw [Cycle.dealOnce_cards]; exact hc)
+      · exact Or.inr (Or.inl hv)
+      · exact Or.inr (Or.inr hf)
+  | reveal a =>
+      rw [apply_reveal_iff] at happ
+      obtain ⟨r, bd, htop, -, hatt, rfl⟩ := happ
+      rcases h x hx with hc | hv | hf
+      · exact Or.inl hc
+      · refine Or.inr (Or.inl ?_)
+        show (bd.bottomOf x).isSome = true
+        by_cases hxr : x = r
+        · rw [hxr, (Board.bottomOf_eq bd r (st.hiddenBase a)).mpr (Board.attach_topOf _ _ _ hatt)]
+          rfl
+        · exact bottomOf_isSome_attach hatt hv
+      · exact Or.inr (Or.inr hf)
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at happ
+      obtain ⟨hp, -, bd, hatt, rfl⟩ := happ
+      have hcur := prev_cursor hp
+      by_cases hmem' : x ∈ Cycle.removeIdx st.stock.cards (st.stock.cursor - 1)
+      · exact Or.inl hmem'
+      · by_cases hcyc : x ∈ st.stock.cards
+        · by_cases hxc'' : x = c
+          · have hxc : x = c := hxc''
+            refine Or.inr (Or.inl ?_)
+            rw [hxc]
+            show (bd.bottomOf c).isSome = true
+            rw [(Board.bottomOf_eq bd c b).mpr (Board.attach_topOf _ _ _ hatt)]
+            rfl
+          · exact absurd (Cycle.mem_removeIdx_of_ne _ _ x c hcur.2 hxc'' hcyc) hmem'
+        · rcases h x hx with hc | hv | hf
+          · exact absurd hc hcyc
+          · refine Or.inr (Or.inl ?_)
+            exact bottomOf_isSome_attach hatt hv
+          · exact Or.inr (Or.inr hf)
+  | deckStack c =>
+      rw [apply_deckStack_iff] at happ
+      obtain ⟨hp, hrk, rfl⟩ := happ
+      have hcur := prev_cursor hp
+      by_cases hmem' : x ∈ Cycle.removeIdx st.stock.cards (st.stock.cursor - 1)
+      · exact Or.inl hmem'
+      · by_cases hcyc : x ∈ st.stock.cards
+        · by_cases hxc'' : x = c
+          · refine Or.inr (Or.inr ?_)
+            rw [hxc'']
+            show decide (c.rank.toIdx <
+              (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit)) = true
+            rw [ite_eq_left rfl]
+            exact decide_eq_true (by omega)
+          · exact absurd (Cycle.mem_removeIdx_of_ne _ _ x c hcur.2 hxc'' hcyc) hmem'
+        · rcases h x hx with hc | hv | hf
+          · exact absurd hc hcyc
+          · exact Or.inr (Or.inl hv)
+          · refine Or.inr (Or.inr ?_)
+            show decide (x.rank.toIdx <
+              (if x.suit = c.suit then st.heights x.suit + 1 else st.heights x.suit)) = true
+            have hlt : x.rank.toIdx < st.heights x.suit := by
+              have hf' : decide (x.rank.toIdx < st.heights x.suit) = true := hf
+              exact of_decide_eq_true hf'
+            by_cases hsc : x.suit = c.suit
+            · rw [ite_eq_left hsc]
+              exact decide_eq_true (by omega)
+            · rw [ite_eq_right hsc]
+              exact decide_eq_true (by omega)
+  | pileStack c =>
+      rw [apply_pileStack_iff] at happ
+      obtain ⟨-, b, hb, hrk, rfl⟩ := happ
+      have hbot : st.board.topOf b = some c := (Board.bottomOf_eq st.board c b).mp hb
+      rcases h x hx with hc | hv | hf
+      · exact Or.inl hc
+      · by_cases hxc : x = c
+        · refine Or.inr (Or.inr ?_)
+          rw [hxc]
+          show decide (c.rank.toIdx <
+            (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit)) = true
+          rw [ite_eq_left rfl]
+          exact decide_eq_true (by omega)
+        · refine Or.inr (Or.inl ?_)
+          show ((st.board.detach b).bottomOf x).isSome = true
+          rw [bottomOf_detach_ne hbot hxc]
+          exact hv
+      · refine Or.inr (Or.inr ?_)
+        show decide (x.rank.toIdx <
+          (if x.suit = c.suit then st.heights x.suit + 1 else st.heights x.suit)) = true
+        have hlt : x.rank.toIdx < st.heights x.suit := by
+          have hf' : decide (x.rank.toIdx < st.heights x.suit) = true := hf
+          exact of_decide_eq_true hf'
+        by_cases hsc : x.suit = c.suit
+        · rw [ite_eq_left hsc]
+          exact decide_eq_true (by omega)
+        · rw [ite_eq_right hsc]
+          exact decide_eq_true (by omega)
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at happ
+      obtain ⟨hrk, -, bd, hatt, rfl⟩ := happ
+      rcases h x hx with hc | hv | hf
+      · exact Or.inl hc
+      · refine Or.inr (Or.inl ?_)
+        exact bottomOf_isSome_attach hatt hv
+      · by_cases hxc : x = c
+        · refine Or.inr (Or.inl ?_)
+          rw [hxc]
+          show (bd.bottomOf c).isSome = true
+          rw [(Board.bottomOf_eq bd c b).mpr (Board.attach_topOf _ _ _ hatt)]
+          rfl
+        · refine Or.inr (Or.inr ?_)
+          show decide (x.rank.toIdx <
+            (if x.suit = c.suit then st.heights x.suit - 1 else st.heights x.suit)) = true
+          have hlt : x.rank.toIdx < st.heights x.suit := by
+            have hf' : decide (x.rank.toIdx < st.heights x.suit) = true := hf
+            exact of_decide_eq_true hf'
+          by_cases hsc : x.suit = c.suit
+          · rw [ite_eq_left hsc]
+            have hhh : st.heights x.suit = st.heights c.suit := by rw [hsc]
+            have hne : x.rank.toIdx ≠ c.rank.toIdx := by
+              intro hcon
+              exact hxc (by
+                cases x with
+                | mk sx rx =>
+                    cases c with
+                    | mk sc rc =>
+                        rw [Card.mk.injEq]
+                        exact ⟨hsc, Rank.toIdx_inj hcon⟩)
+            exact decide_eq_true (by omega)
+          · rw [ite_eq_right hsc]
+            exact decide_eq_true (by omega)
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at happ
+      obtain ⟨b₀, hb, hbne, hcmr, bd, hatt, rfl⟩ := happ
+      have hbot₀ : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp hb
+      have hfree : st.board.topOf b = none := topOf_of_canPlace (canPlace_of_canMoveRun hcmr)
+      rcases h x hx with hcyc | hv | hf
+      · exact Or.inl hcyc
+      · refine Or.inr (Or.inl ?_)
+        show (bd.bottomOf x).isSome = true
+        cases hbx : st.board.bottomOf x with
+        | none =>
+            exfalso
+            have hv' : (st.board.bottomOf x).isSome = true := hv
+            rw [hbx] at hv'
+            simp at hv'
+        | some b' =>
+            have hb'top : st.board.topOf b' = some x :=
+              (Board.bottomOf_eq st.board x b').mp hbx
+            by_cases hbb' : b' = b₀
+            · have hxc : x = c := by
+                rw [hbb'] at hb'top
+                exact Option.some.inj (hb'top.symm.trans hbot₀)
+              rw [hxc]
+              rw [(Board.bottomOf_eq bd c b).mpr (Board.attach_topOf _ _ _ hatt)]
+              rfl
+            · have hb'b : b' ≠ b := by
+                intro hcon
+                rw [hcon] at hb'top
+                rw [hb'top] at hfree
+                exact absurd hfree (by simp)
+              have hdiag : bd.topOf b' = some x := by
+                rw [Board.attach_topOf_ne _ _ _ hatt hb'b,
+                  Board.detach_topOf_ne st.board b₀ b' hbb']
+                exact hb'top
+              rw [(Board.bottomOf_eq bd x b').mpr hdiag]
+              rfl
+      · exact Or.inr (Or.inr hf)
+
+/-- Every dealt-reachable state conserves its deal's stock cards. -/
+theorem stockAccounted_of_initialReachable {st : State}
+    (hr : initialReachable st) : st.stockAccounted :=
+  invariant_of_initialReachable
+    (I := fun st => st.stockAccounted)
+    (fun d s _ _ => stockAccounted_initial d s)
+    (fun _ _ _ hap h => stockAccounted_apply h hap)
+    st hr
+
+/-! ### The end-state deck order -/
+
+/-- **The end-state deck order** (the construction's final deck match,
+necessity side): the cycle's card list is its own membership
+*selection in deal order* — splices never reorder, so the cycle is
+the deal's stock with the consumed cards filtered out. -/
+def State.cycleSelective (st : State) : Prop :=
+  st.stock.cards = st.deal.stock.filter fun x => decide (x ∈ st.stock.cards)
+
+theorem cycleSelective_initial (d : Deal) (s : Nat) (hd : d.WF) :
+    (State.initial d s).cycleSelective := by
+  show d.stock = d.stock.filter fun x => decide (x ∈ d.stock)
+  exact filter_mem_idem d.stock (noDupCards_append_right hd.2.2)
+
+/-- The splice-selection step: at a selective cycle, splicing out any
+position keeps the cycle selective (a splice is a membership filter,
+and membership filters compose). -/
+theorem splice_selective {full L : List Card} {i : Nat}
+    (hnd : noDupCards L) (h : L = full.filter fun x => decide (x ∈ L)) :
+    Cycle.removeIdx L i
+      = full.filter fun x => decide (x ∈ Cycle.removeIdx L i) := by
+  obtain ⟨R, hR⟩ : ∃ R, R = Cycle.removeIdx L i := ⟨_, rfl⟩
+  rw [← hR]
+  have e1 : R = L.filter fun x => decide (x ∈ R) := by
+    rw [hR]
+    exact removeIdx_filter_mem _ _ hnd
+  have e2 : L.filter (fun x => decide (x ∈ R))
+      = full.filter (fun x => decide (x ∈ R)) := by
+    rw [h, List.filter_filter]
+    refine List.filter_congr fun x hx => ?_
+    by_cases hxR : x ∈ R
+    · have hxL : x ∈ L := by
+        rw [hR] at hxR
+        exact Cycle.mem_removeIdx _ _ hxR
+      simp [hxL, hxR]
+    · simp [hxR]
+  exact e1.trans e2
+
+theorem cycleSelective_apply {st st' : State} (hwf : st.WF)
+    (h : st.cycleSelective) {m : Move} (happ : st.apply m = some st') :
+    st'.cycleSelective := by
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at happ
+      obtain ⟨rfl⟩ := happ
+      show (Cycle.dealOnce st.drawStep st.stock).cards
+          = st.deal.stock.filter
+              fun x => decide (x ∈ (Cycle.dealOnce st.drawStep st.stock).cards)
+      rw [Cycle.dealOnce_cards]
+      exact h
+  | reveal a =>
+      rw [apply_reveal_iff] at happ
+      obtain ⟨-, -, -, -, -, rfl⟩ := happ
+      exact h
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at happ
+      obtain ⟨-, -, -, -, rfl⟩ := happ
+      exact splice_selective hwf.stock_wf.1 h
+  | deckStack c =>
+      rw [apply_deckStack_iff] at happ
+      obtain ⟨-, -, rfl⟩ := happ
+      exact splice_selective hwf.stock_wf.1 h
+  | pileStack c =>
+      rw [apply_pileStack_iff] at happ
+      obtain ⟨-, -, -, -, rfl⟩ := happ
+      exact h
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at happ
+      obtain ⟨-, -, -, -, rfl⟩ := happ
+      exact h
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at happ
+      obtain ⟨-, -, -, -, -, _, rfl⟩ := happ
+      exact h
+
+/-- Every dealt-reachable state's cycle is the in-order selection of
+its own members from the deal's stock. -/
+theorem cycleSelective_of_initialReachable {st : State}
+    (hr : initialReachable st) : st.cycleSelective :=
+  (invariant_of_initialReachable
+    (I := fun st => st.WF ∧ st.cycleSelective)
+    (fun d s hdw hs => ⟨initial_wf hdw hs, cycleSelective_initial d s hdw⟩)
+    (fun _ _ m hap h => ⟨apply_wf h.1 m _ hap, cycleSelective_apply h.1 h.2 hap⟩)
+    st hr).2
+
+/-! ### The seated origins -/
+
+/-- **Seated origins**: every visible or founded card is one of the
+deal's cards — a pile card or a stock card.  The origin is created by
+the deal and never invented by a move: `reveal` seats a pile card,
+`deckPile` seats a stock card, `deckStack`/`pileStack` found stock/
+seated cards, `stackPile` re-seats a founded card. -/
+def State.seatedOrigins (st : State) : Prop :=
+  ∀ c, st.isVis c = true ∨ st.onFound c = true →
+    (∃ a, c ∈ st.deal.piles a) ∨ c ∈ st.deal.stock
+
+theorem seatedOrigins_initial (d : Deal) (s : Nat) :
+    (State.initial d s).seatedOrigins := by
+  intro c hc
+  rcases hc with hv | hf
+  · refine Or.inl ?_
+    have hex : ∃ b, (State.initial d s).board.topOf b = some c := by
+      simp only [State.isVis] at hv
+      cases hbot : ((State.initial d s).board.bottomOf c) with
+      | none => rw [hbot] at hv; simp at hv
+      | some b => exact ⟨b, (Board.bottomOf_eq _ _ _).mp hbot⟩
+    obtain ⟨b, hb⟩ := hex
+    obtain ⟨a, -, -, hgt⟩ := initialBoard_topOf d b c hb
+    exact ⟨a, mem_of_getLast hgt⟩
+  · exfalso
+    have h0 : (State.initial d s).heights c.suit = 0 := rfl
+    have hlt : c.rank.toIdx < (State.initial d s).heights c.suit := of_decide_eq_true hf
+    rw [h0] at hlt
+    omega
+
+theorem seatedOrigins_apply {st st' : State} (hwf : st.WF)
+    (h : st.seatedOrigins) {m : Move} (happ : st.apply m = some st') :
+    st'.seatedOrigins := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, ⟨-, hmem⟩⟩ := id hwf
+  intro x hx
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at happ
+      obtain ⟨rfl⟩ := happ
+      exact h x hx
+  | reveal a =>
+      rw [apply_reveal_iff] at happ
+      obtain ⟨r, bd, htop, -, hatt, rfl⟩ := happ
+      rcases hx with hv | hf
+      · by_cases hxr : x = r
+        · have hmemr : r ∈ st.hidden a := mem_of_getLast htop
+          rw [hxr]
+          exact Or.inl ⟨a, List.take_subset _ _ hmemr⟩
+        · refine h x (Or.inl ?_)
+          exact bottomOf_isSome_attach_of_ne hatt hxr hv
+      · exact h x (Or.inr hf)
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at happ
+      obtain ⟨hp, -, bd, hatt, rfl⟩ := happ
+      have hcur := prev_cursor hp
+      rcases hx with hv | hf
+      · by_cases hxc : x = c
+        · refine Or.inr ?_
+          rw [hxc]
+          exact hmem c (List.mem_iff_getElem?.mpr ⟨st.stock.cursor - 1, hcur.2⟩)
+        · refine h x (Or.inl ?_)
+          exact bottomOf_isSome_attach_of_ne hatt hxc hv
+      · exact h x (Or.inr hf)
+  | deckStack c =>
+      rw [apply_deckStack_iff] at happ
+      obtain ⟨hp, hrk, rfl⟩ := happ
+      rcases hx with hv | hf
+      · exact h x (Or.inl hv)
+      · by_cases hsc : x.suit = c.suit
+        · have hlt : x.rank.toIdx <
+              (if x.suit = c.suit then st.heights x.suit + 1 else st.heights x.suit) :=
+              of_decide_eq_true hf
+          rw [ite_eq_left hsc] at hlt
+          rcases Nat.lt_or_ge x.rank.toIdx (st.heights x.suit) with hlt' | hge
+          · exact h x (Or.inr (by
+              show decide (x.rank.toIdx < st.heights x.suit) = true
+              exact decide_eq_true hlt'))
+          · have hhh : st.heights x.suit = st.heights c.suit := by rw [hsc]
+            have hxc' : x = c := by
+              cases x with
+              | mk sx rx =>
+                  cases c with
+                  | mk sc rc =>
+                      have hsu : sx = sc := hsc
+                      have hhs : st.heights sx = st.heights sc := by rw [hsu]
+                      have hlt' : rx.toIdx < st.heights sx + 1 := hlt
+                      have hge' : st.heights sx ≤ rx.toIdx := by omega
+                      have hrk' : rc.toIdx = st.heights sc := by omega
+                      rw [Card.mk.injEq]
+                      refine ⟨hsu, Rank.toIdx_inj (by omega)⟩
+            rw [hxc']
+            exact Or.inr (hmem c
+              (List.mem_iff_getElem?.mpr ⟨st.stock.cursor - 1, (prev_cursor hp).2⟩))
+        · have hlt : x.rank.toIdx <
+            (if x.suit = c.suit then st.heights x.suit + 1 else st.heights x.suit) :=
+            of_decide_eq_true hf
+          rw [ite_eq_right hsc] at hlt
+          exact h x (Or.inr (by
+            show decide (x.rank.toIdx < st.heights x.suit) = true
+            exact decide_eq_true hlt))
+  | pileStack c =>
+      rw [apply_pileStack_iff] at happ
+      obtain ⟨-, b, hb, hrk, rfl⟩ := happ
+      have hbot : st.board.topOf b = some c := (Board.bottomOf_eq st.board c b).mp hb
+      have hcvis : st.isVis c = true := by
+        show (st.board.bottomOf c).isSome = true
+        rw [hb]
+        rfl
+      rcases hx with hv | hf
+      · by_cases hxc : x = c
+        · exfalso
+          have hseated : ((st.board.detach b).bottomOf x).isSome = true := hv
+          rw [hxc] at hseated
+          rw [Board.bottomOf_detach_self hbot] at hseated
+          simp at hseated
+        · refine h x (Or.inl ?_)
+          show (st.board.bottomOf x).isSome = true
+          have hv' : ((st.board.detach b).bottomOf x).isSome = true := hv
+          rw [bottomOf_detach_ne hbot hxc] at hv'
+          exact hv'
+      · by_cases hxc : x = c
+        · rw [hxc]
+          exact h c (Or.inl hcvis)
+        · refine h x (Or.inr ?_)
+          show decide (x.rank.toIdx < st.heights x.suit) = true
+          have hlt : x.rank.toIdx <
+              (if x.suit = c.suit then st.heights x.suit + 1 else st.heights x.suit) :=
+              of_decide_eq_true hf
+          by_cases hsc : x.suit = c.suit
+          · rw [ite_eq_left hsc] at hlt
+            have hhh : st.heights x.suit = st.heights c.suit := by rw [hsc]
+            have hne : x.rank.toIdx ≠ c.rank.toIdx := by
+              intro hcon
+              exact hxc (by
+                cases x with
+                | mk sx rx =>
+                    cases c with
+                    | mk sc rc =>
+                        rw [Card.mk.injEq]
+                        exact ⟨hsc, Rank.toIdx_inj hcon⟩)
+            exact decide_eq_true (by omega)
+          · rw [ite_eq_right hsc] at hlt
+            exact decide_eq_true (by omega)
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at happ
+      obtain ⟨hrk, -, bd, hatt, rfl⟩ := happ
+      rcases hx with hv | hf
+      · by_cases hxc : x = c
+        · refine h x (Or.inr ?_)
+          rw [hxc]
+          show decide (c.rank.toIdx < st.heights c.suit) = true
+          exact decide_eq_true (by omega)
+        · refine h x (Or.inl ?_)
+          exact bottomOf_isSome_attach_of_ne hatt hxc hv
+      · refine h x (Or.inr ?_)
+        show decide (x.rank.toIdx < st.heights x.suit) = true
+        have hlt : x.rank.toIdx <
+            (if x.suit = c.suit then st.heights x.suit - 1 else st.heights x.suit) :=
+            of_decide_eq_true hf
+        by_cases hsc : x.suit = c.suit
+        · rw [ite_eq_left hsc] at hlt
+          exact decide_eq_true (by omega)
+        · rw [ite_eq_right hsc] at hlt
+          exact decide_eq_true (by omega)
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at happ
+      obtain ⟨b₀, hb, hbne, hcmr, bd, hatt, rfl⟩ := happ
+      have hbot₀ : st.board.topOf b₀ = some c :=
+        (Board.bottomOf_eq st.board c b₀).mp hb
+      have hfree : st.board.topOf b = none :=
+        topOf_of_canPlace (canPlace_of_canMoveRun hcmr)
+      rcases hx with hv | hf
+      · cases hbx : st.board.bottomOf x with
+        | some b'' =>
+            refine h x (Or.inl ?_)
+            show (st.board.bottomOf x).isSome = true
+            rw [hbx]
+            rfl
+        | none =>
+            exfalso
+            have hseated : (bd.bottomOf x).isSome = true := hv
+            cases hbd : bd.bottomOf x with
+            | none => rw [hbd] at hseated; simp at hseated
+            | some b'' =>
+                have hb''top : bd.topOf b'' = some x :=
+                  (Board.bottomOf_eq bd x b'').mp hbd
+                by_cases hbb : b'' = b
+                · have hxc : x = c := by
+                    rw [hbb] at hb''top
+                    exact Option.some.inj (hb''top.symm.trans (Board.attach_topOf _ _ _ hatt))
+                  subst hxc
+                  rw [hb] at hbx
+                  simp at hbx
+                · by_cases hbb₀ : b'' = b₀
+                  · rw [hbb₀] at hb''top
+                    rw [Board.attach_topOf_ne _ _ _ hatt hbne,
+                      Board.detach_topOf] at hb''top
+                    simp at hb''top
+                  · rw [Board.attach_topOf_ne _ _ _ hatt hbb,
+                      Board.detach_topOf_ne st.board b₀ b'' hbb₀] at hb''top
+                    have hbbx : st.board.bottomOf x = some b'' :=
+                      (Board.bottomOf_eq st.board x b'').mpr hb''top
+                    rw [hbbx] at hbx
+                    simp at hbx
+      · exact h x (Or.inr hf)
+
+/-- Every dealt-reachable state seats only the deal's cards. -/
+theorem seatedOrigins_of_initialReachable {st : State}
+    (hr : initialReachable st) : st.seatedOrigins :=
+  (invariant_of_initialReachable
+    (I := fun st => st.WF ∧ st.seatedOrigins)
+    (fun d s hdw hs => ⟨initial_wf hdw hs, seatedOrigins_initial d s⟩)
+    (fun _ _ m hap h => ⟨apply_wf h.1 m _ hap, seatedOrigins_apply h.1 h.2 hap⟩)
+    st hr).2
+
 /-- The walk collects only rank-descending cards: at a board whose
 every edge with a visible base is clean (`canSitOn`), each member of
 a run is strictly below the root in rank.  Fuel induction carrying
@@ -716,3 +1380,4 @@ theorem merge_rooted_impossible_of_visClean {st a₁ : State} {t z' c : Card} {b
   have hlt := rank_lt_of_mem_aboveOf hv hvz' hdz'
   rw [Card.flipSuit_rank] at hrk'
   omega
+

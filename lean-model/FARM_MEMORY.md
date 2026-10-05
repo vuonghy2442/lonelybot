@@ -5875,3 +5875,96 @@ survives.
 (12) `rw` mid-list failure cascading DON'T necessarily mean the shape
 was wrong: a failed rw leaves the goal open so EVERYTHING after reports
 "unsolved goals" — fix the first reported rw, rebuild, re-read.
+
+## Wave 21 note (2026-10-05, restriction-final session) — fragment 2 (stockful) + the B2 skeleton; what landed and the honest residues
+
+SESSION SHAPE (two fronts, one card): (1) sufficiency fragment 2 over
+states with LOADED cycles, landing Construction.lean's
+`StockfulEndgame.initialReachable` + the assembled flights-iff, with
+three new reachability fences in Restriction.lean; (2) the B2 license
+pair restructured to a PROVEN skeleton (`solvableEngine_of_reachable_play`,
+ax-clean) + ONE finer named residue (`replay_head_residue`).  Census 11
+-> 10; Restriction 2 -> 1 (baseline updated with the proofs in hand).
+
+DESIGN NOTES THAT GENERALIZE (for the next farm sessions):
+
+(A) The stockful construction's frame upgrade: fragment 1's SET-shaped
+cycle invariant (`x ∈ w.stock.cards ↔ x ∈ st.deal.stock ∧ x ∉ done`)
+is NOT enough for a loaded target — the end-state deck match needs
+LIST equality.  Frame2's identity (`w.stock.cards =
+st.deal.stock.filter fun x => !(done.contains x)`) composes with
+Kit's `removeIdx_filter_mem` and `filter_mem_self`: a splice IS a
+membership filter, so `splice_selective` (Restriction.lean:929)
+refreshes the invariant per consume round with zero list surgery.
+The final match then reduces to a `List.filter_congr` over the
+membership iff `done_final ≡ Away` — the rank-chain catalogue
+(`chainAway_mem_iff`) supplies it tier-by-tier.
+
+(B) The phase knob at draw step 1: the last consume lands the cursor
+at the consumed card's position; the (len - cur) + 1 + target rotation
+(walk to the pass end, wrap, advance) lands ANY phase — the uniform
+`iterDraw` composition in Construction.lean:1776.  At draw step 3 the
+batch discipline (which cards sit at batch tops) genuinely constrains
+the schedule — the standalone arithmetic is staged at the file's tail
+(`dealOnce_step_any/tail_any/wrap_any`, `iterRemoveTop_spec`); the
+compose-into-the-construction is the next rung's fight.
+
+(C) The B2 restructuring discipline: a pinned `:= sorry` statement pair
+whose content overlaps should be factored as PROVEN-skeleton +
+strictly-finer residue — the skeleton induction consumes the
+"engines recurse / pilePiles don't" asymmetry so ALL the depth lives
+in one head-shaped oracle (no mid-game measure bookkeeping at all —
+the cascadeMeasure plan's hard edge from the wave-20 note dissolved).
+The census pin then strictly decreases and every future session
+attacks ONE named residue with its in-file ledger.
+
+LEAN-4.34-NO-MATHLIB PITFALLS RE-HIT (census-relevant):
+- `by_contra` does NOT exist; use `by_cases h : P` then
+  `exact absurd ...` on the negative ball.
+- `List.mem_iff_getElem?` destructuring with all three fields at once
+  CAN hit dependent-elimination noise; the repo's own idiom is
+  `obtain ⟨k, hk⟩` + `(List.getElem?_eq_some_iff.mp hk).1`.
+- The DecidableEq-Card membership instance and `List.contains` are
+  bridged by core's `List.contains_iff_mem` (named `contains_iff`,
+  the old name deprecated): build every raw-Boolean filter
+  (`!(done.contains x)`) decision-side with `contains_true_iff_mem` /
+  `contains_false_iff_notMem` + `decide_mem_eq_contains` (the decide
+  side reads contains) — no bespoke pigeonhole.
+- `List.filter_eq_self` is `(filter p l = l) ↔ (∀ x ∈ l, p x = true)`
+  — `.mpr` from the universal to the equation, `.symm` for the goal's
+  orientation; `.mp` is the other leg and mis-elaborates on a
+  lambda-shaped argument.
+- anonymous-constructor `⟨play, hall, w', hrun, hwin⟩` for
+  `∃ play, (∀ m ∈ play, P m) ∧ ∃ st', run ∧ win` FLATTENS five slots
+  when the expected type's inner structure matches; with a `by`-block
+  in a slot, elaborate per-slot (`refine ⟨_, ?_, _, ?_, _⟩`) — the
+  underscores in `fun x _ => ?_` inside `List.filter_congr` do NOT
+  become goals, but a wrong-side refine leaves NAMELESS duplicates
+  that read as "unsolved goals" far from the cause (FARM_MEMORY (12)
+  generalizes: fix the FIRST reported tactic).
+- `rw [h] at h'` with `h : x = valuable` on hypotheses that CONTAIN
+  the rewritten symbol inside their own lambda CAN loop or mangle the
+  consumer side: prefer the R-fresh pattern (`obtain ⟨R, hR⟩ : ∃ R,
+  R = ... := ⟨_, rfl⟩`, rewrite to R, prove the two pieces, `exact
+  e1.trans e2`) — this is splice_selective's proof shape.
+- `rw [show a = b from rfl]` with `a`/`b` Nat-associativity variants
+  (`j + (k + 1)` vs `j + k + 1`) is DEFEQ but not syntactic: normalize
+  FIRST when a subsequent `rw [hstep]` pattern-matches the spelling.
+- `Nat.add n 0 ≡ n` is rfl (iota on the second arg), so `j + 0`
+  self-normalizes under `show`; `0 + j` does NOT (the recursion is on
+  the first arg) — `iterDraw_lt`-shaped conclusions need the
+  `Nat.zero_add` rewrite or a `h3`-shaped ascription.
+
+WHAT IS GENUINELY STILL OPEN (the honest ledger, for the next card):
+- `replay_head_residue` (Restriction.lean:295) — the per-move
+  α-invariance at a pile-to-pile head; the in-file case ledger names
+  the kits; the open core is the concretization/reshape lemma for the
+  arrangement-tail after the head's park (docs/no_pile_to_pile.md §5,
+  the [ ] item), which also carries the B4 forcedPark residue
+  (Theorems.lean:4217).
+- The draw-3 flight for the stockful fragment (FARM ticket 1): the
+  batch kit is staged standalone; wiring it into Frame2's consume
+  discipline (batch-top reachability of the scheduled cards) is the
+  fragment's next rung.
+- The evacuation geometry (reveals/foundations) — unchanged from
+  FARM ticket 1's launch list.

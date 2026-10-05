@@ -1974,3 +1974,80 @@ the image's OWN mate moves are all dodges while parked).
 Build: `lake build Klondike Witnesses` green (67 jobs, macro-game HEAD
 7121529); census pinned OK (11 total, TwinSwapCompletion 1, zero
 bullets).  No new sorry introduced; no refuted constant touched.
+
+## Wave 21 — the Restriction program: fragment 2 (the stockful endgame) + the B2 license assembled (landed 2026-10-05, the restriction-final farm session at macro-game HEAD a2672c7)
+
+Both fronts LANDED; census 11 -> 10 pinned (Restriction 2 -> 1 — the
+two former pinned rows are PROVEN modulo one strictly finer residue;
+baseline updated with the proofs in hand; no refuted constant touched).
+
+**LANDED — front 1: fragment 2, the stockful sufficiency
+(Klondike/Construction.lean) + its fences (Klondike/Restriction.lean):**
+
+- the three stock-side fences (Restriction.lean, proven through Task
+  A's combinator): `State.stockAccounted` (:714 — every deal-stock
+  card is in the cycle, visible, or founded), `State.cycleSelective`
+  (:918 — the cycle is its own in-order membership selection from the
+  deal's stock; splices never reorder; `splice_selective` :929 is the
+  a-splice-is-a-filter refresh), `State.seatedOrigins` (:1004 — every
+  visible or founded card is one of the deal's cards, with its
+  pile/stock origin); the wires (:904/:989/:1204) are all [propext,
+  Classical.choice, Quot.sound];
+- the stockful construction (Construction.lean): `Away` (:1159 — the
+  consuming set: the deal's stock minus the target cycle), the
+  `StockfulEndgame` distillate Iₛ (:1206 — the pristine flights + the
+  away-seated edge catalogue WITH the anchor-rider arm + the order
+  fence), `Frame2` (:1255 — the frame's cycle bookkeeping upgraded to
+  a LIST identity, the end-state deck match's data),
+  `StockfulEndgame.riderSeat2` (:1229), `frame_step2` (:1416 — the
+  consume round, base-generic: a card base (tail or processed away
+  rider) or a free anchor for kings), `frame_tier2` / `frame_ladder2`
+  (:1571/:1619 — the away rank-tier descent), and
+  **`StockfulEndgame.initialReachable` (:1704) — Iₛ → initialReachable
+  PROVEN, axiom-clean [propext, Quot.sound]** (the construction
+  consumes the away cards in tier descent, rotates the cursor onto
+  the target phase with the pure-draw tail, and the deck match closes
+  through the filter identities);
+- **`StockfulEndgame_iff_initialReachable` (:1919) — the assembled
+  iff**: under the four pristine flights (draw step 1, no reveals, no
+  foundations, tail seats kept) the distillate IS dealt-reachability;
+  necessity decoded from the standing fences (`tail_of_vis_pile`
+  :1885 is the no-reveal take-boundary decode; the away-seated arm
+  from `stockAccounted`; the catalogue from `board_edges` +
+  `seatedOrigins`); [propext, Classical.choice, Quot.sound];
+- the batch-step offset kit, standalone (the file's tail):
+  `Cycle.dealOnce_step_any` / `dealOnce_tail_any` /
+  `Cycle.dealOnce_wrap_any` (:2017/:2028/:2038 — the mid-pass full
+  batch, the clamped tail draw whose position is determined by the
+  pass length alone, the position-only wrap) and
+  **`Cycle.iterRemoveTop_spec` (:2091 — the batch-reversal arithmetic
+  as a list identity**: the drawn batch's cards leave the waste
+  top-first, LIFO, the pass body untouched), all axiom-clean — the
+  offset lemma's content staged for the draw-3 flight (the next rung
+  per FARM ticket 1).
+
+**LANDED — front 2: the B2 license (Klondike/Restriction.lean):**
+
+- `solvableEngine_of_reachable_play` (:193) — the head-oracle
+  induction, PROVEN axiom-clean [propext, Quot.sound]: induction on
+  the winning play's LENGTH; engine moves recurse (reachability + WF
+  ride along), a pile-to-pile head goes straight to the oracle with
+  no recursion — the former cascadeMeasure plan retired (no measure
+  on mid-game states is needed);
+- `replay_head_residue` (:295) — the ONE remaining pinned [H] (the
+  two former rows grew this strictly finer residue):
+  `solvableEngine_iff_solvable_of_reachable` (:307) and
+  `engine_replay_of_pilePile` (:324) are PROVEN modulo it, both
+  assembling the skeleton + residue; case 3 stays CLOSED by the
+  wave-19B probe (`EngineWitness.wstate_not_reachable`); the residue's
+  in-file ledger records the case-1/case-2 kits (returnable base:
+  `stackPile_pileStack_cancel` + the `pileStack_comm_*` squares +
+  the roundtrips; boundary carry: B4's `solvable_of_pileStack'` + the
+  twin placement) and the honest open edge — the arrangement-tail
+  rewrite (the concretization/reshape lemma, docs/no_pile_to_pile.md
+  §5 [ ]) for the tail after the head's park.
+
+Build: `lake build` green over Restriction/Construction + the witness
+facade (the probe/fences build clean against the re-scoped
+statements); census pinned OK at 10 (Restriction 1, zero bullets); no
+new deprecation warnings in the new code; no refuted constant touched.
