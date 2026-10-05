@@ -42,19 +42,36 @@ max 2 classes per commitment, 1,102 of the singles mixed-kind.
   closing precisely the `{dig, borrow, borrow̄}` corner);
 - the worry-ray confinement (§7's stretch core: `InRay` + the rank,
   alternation and twin-pair theorems);
-- the **main theorem's assembly** (`c2_two_option`): proven against
-  five precisely-stated play-level pillars.
+- the **main theorem's assembly** (`c2_two_option`): the two-option
+  bound, CONDITIONAL on five precisely-stated play-level premises
+  (the wave-18 restructure: the five wave-17 pillars were
+  refute-probed, FOUR FALSE as stated —
+  `witnesses/C2KingAnchorWitness.lean`; the plans of the
+  formerly-pinned rows live in §11, and the surviving proven half of
+  the destination collapse is `commitTableau_class`, the
+  stackable-rung regime);
 
-**The sorried residue** (each with its proof plan in the docstring):
-`succ_labeled` (P0: §6.4's channel-list completeness — the labeling),
-`p2_direct_class` (P2's class half), `same_pin_closureEq` (P3's class
-half + the float-noise collapse), `crease_chain_absorbed` (the known
-crease — "the one line still requiring a line-force proof"), and
-`stack_ball_corner` (the L1/L2-diligence residue corner).  The main
-theorem marks exactly where each enters.  The convolution with
-`macro_direct_matches_oracle` (5129 evaluations, 0 fabricated / 0
-missed, the BFS fallback at 27/5129) is the empirical companion for
-the pillars.
+and **the wave-19 rung re-scope** (§12.5 and §14):
+
+- the zero-spend channels' premise content **derived from the rung
+  premise** — `pin_join_zeroSpend_rung` for `hpin` and
+  `p2_join_zeroSpend_rung` for `hp2` (the stack arm of the root
+  commit joins by a two-move worried-back roundtrip, §6.7's
+  late-`PileStack X` merge as a proof) — with the derived-scope bound
+  itself: `c2_two_option_zeroSpend_rung`, no play-level premises;
+- `hball`'s proven core (§14): the pacing guard's accommodation
+  invariance (`reachablePos_of_accommodation(_run)`), the per-move
+  heights step law (`heights_step_accommodation`), **F2's
+  deterministic raise** (`raise_crossing_mem` — any upward crossing
+  of a suit's standing level fires the same-suit rank-index-pinned
+  `pileStack`), the corner's derived world (`stack_channel_world`),
+  and the stack-channel witness's forced final raise
+  (`stack_raise_deterministic`, `stack_channel_raise_mem`) with the
+  ball-avoidance hygiene (`raise_card_off_ball`).
+
+The convolution with `macro_direct_matches_oracle` (5129 evaluations,
+0 fabricated / 0 missed, the BFS fallback at 27/5129) is the empirical
+companion for the premises.
 
 **Scope note (model reality).**  The model's macro game
 (`Klondike/Macro.lean`) has the `Draw` commitment with its two outcome
@@ -1345,6 +1362,235 @@ theorem c2_two_option {st : State} (hwf : st.WF) {X : Card}
             · exact Or.inr (Or.inr (closureEq_symm q))
             · exact Or.inl q
 
+/-! ## §12.5. The rung re-scope (wave-19): the premises' derivable
+fragments
+
+The wave-18 restructure left the play-level content of §7's theorem
+as the explicit premises of `c2_two_option`, and the king-anchor
+witness showed the UNGUARDED forms of `hpin`/`hp2` are false
+(the climb-blocked stocked king's anchor landings are
+closure-separated — the failure is exactly the rung premise).  This
+section makes the re-scope precise for a class of channels wide
+enough to contain the witness's own corner: the **zero-spend
+channels** (`direct`, `hole`), whose `LabelSig` is `α = []`.
+
+The derivations carry the rung premise AT THE ROOT
+(`X.rank.toIdx = st.heights X.suit`) and nothing else play-level:
+
+* `succThrough_zeroSpend` — the empty signature forces the whole
+  channel play empty, so both the arm and its commit sit at `st`
+  (with `through_direct_hole_commits`, this is also why the
+  direct-absent world of §12 cannot present a zero-spend label);
+* `pin_join_zeroSpend_rung` — `hpin`'s content for these channels
+  IS `commitTableau_class` at the shared root;
+* `p2_join_zeroSpend_rung` — `hp2`'s content: the tableau arm of the
+  root commit is `commitTableau_class` again, and the STACK arm of
+  the root commit joins by the two-move worried-back roundtrip
+  (`stackPile X b` rebuilds the tableau successor exactly, `pileStack
+  X` returns it) — §6.7's "late `PileStack(X)` merge" (the 1,102
+  mixed-kind single-class commitments) as a proof;
+* `c2_two_option_zeroSpend_rung` — the derived-scope bound itself:
+  three zero-spend-labeled successors contain a closure-equal pair,
+  with NO play-level premises left.
+
+What stays out (the honest residue, per §11's plans): the spend
+channels (`dig`, `borrow p`) and the stack channel's same-pin cases,
+where two witnesses' plays may end at different accommodation states
+— the free-float reconciliation (α₁ ≠ α₂) plus the crease chains.
+The rung premise at the root does not reach there: a witness's play
+can raise and re-drop a suit past the rung.  These remain premises
+of `c2_two_option`. -/
+
+/-- The zero-spend channels' witnesses commit at the root: both
+`direct` and `hole` demand the EMPTY accommodation (their `LabelSig`
+is `α = []`), so the channel play collapses and the tableau arm (the
+only arm these channels serve) fires at `st` itself. -/
+theorem succThrough_zeroSpend {st : State} {X : Card} {r : Label X}
+    {s : State} (h : SuccThrough st X r s)
+    (he : r = Label.direct ∨ r = Label.hole) :
+    CommitTableau st X s := by
+  obtain ⟨u, α, hrun, _, harm, hsig⟩ := h
+  rcases he with he | he
+  · rw [he] at harm hsig
+    have hα : α = [] := hsig
+    rw [hα] at hrun
+    rw [(run_nil_elim hrun).symm] at harm
+    exact harm
+  · rw [he] at harm hsig
+    have hα : α = [] := hsig
+    rw [hα] at hrun
+    rw [(run_nil_elim hrun).symm] at harm
+    exact harm
+
+/-- **`hpin`'s derivable half** (wave-19): two successors through one
+zero-spend channel join, at a WF state where `X` is stackable at its
+rung.  The zero-spend signature puts both commits at the ROOT, so
+this is `commitTableau_class` applied at `st` — `LabelLive` is not
+even consulted.  The unstackable corner (the king-anchor witness's
+split) is exactly the rung premise's failure, and no other
+play-level premise is needed for these channels. -/
+theorem pin_join_zeroSpend_rung {st : State} (hwf : st.WF) {X : Card}
+    (hrk : X.rank.toIdx = st.heights X.suit)
+    {r : Label X} (he : r = Label.direct ∨ r = Label.hole)
+    {s s' : State} (h₁ : SuccThrough st X r s)
+    (h₂ : SuccThrough st X r s') : closureEq s s' :=
+  commitTableau_class hwf hrk (succThrough_zeroSpend h₁ he)
+    (succThrough_zeroSpend h₂ he)
+
+/-- **`hp2`'s derivable half** (wave-19): every zero-spend-labeled
+successor joins EVERY root commit's class, at a WF state where `X` is
+stackable at its rung — both arms of the root commitment.  The
+tableau arm of the root commit is `commitTableau_class` at the shared
+root.  The STACK arm of the root commit joins by the worried-back
+roundtrip: `stackPile X b` (the un-stack guard holds — the stack
+commit itself bumped the rank edge) rebuilds the tableau successor
+EXACTLY — same board (the landing's `attach`), same stock splice (both
+arms jump the SAME reachable position), bump/drop heights cancelling
+at `X`'s suit — and `pileStack X` (legal: `X` freshly topped at its
+own rung) returns it.  This is §6.7's "late `PileStack(X)` merge" (the
+corpus's 1,102 mixed-kind single-class commitments) as a proof. -/
+theorem p2_join_zeroSpend_rung {st : State} (hwf : st.WF) {X : Card}
+    (hrk : X.rank.toIdx = st.heights X.suit)
+    {r : Label X} (he : r = Label.direct ∨ r = Label.hole)
+    {sd s : State} (hsd : commitApplies st (MacroMove.drawCommit X) sd)
+    (hth : SuccThrough st X r s) : closureEq sd s := by
+  have hs : CommitTableau st X s := succThrough_zeroSpend hth he
+  obtain ⟨b, hcp, hto⟩ := hs
+  obtain ⟨i, bd, hpos, hatt, hslit⟩ := applyDrawTo_iff.mp hto
+  -- the landing base is never X's own seat (a card does not fit itself)
+  have hbX : b ≠ Sum.inr X := by
+    cases b with
+    | inl a => exact sumInl_ne_sumInr
+    | inr d =>
+        intro hcon
+        have hd : d = X := Sum.inr.inj hcon
+        have hfit := canSitOn_of_canPlace_inr hcp
+        rw [hd] at hfit
+        obtain ⟨hr, -⟩ := (canSitOn_eq X X).mp hfit
+        omega
+  -- X rides no stack at st: unplaced (the attach guard) and out of
+  -- every hidden slice (stocked, via the reachable-position guard)
+  have hbox : st.board.bottomOf X = none :=
+    ((Board.attach_eq_some_iff _ _ _).mp (by rw [hatt]; simp)).2
+  have hstockmem : X ∈ st.stock.cards :=
+    Pace.mem_of_posOf st.stock.cards st.stock.cursor X i
+      (reachablePos_posOf hpos)
+  have hhid : ∀ a, X ∉ st.hidden a :=
+    fun a => stocked_not_mem_hidden hwf hstockmem
+  have hXtop : st.board.topOf (Sum.inr X) = none :=
+    State.topOf_inr_eq_none hwf hbox hhid
+  rcases (commitApplies_draw_cases st X sd).mp hsd with htab | hstack
+  · -- both are root tableau commits: the destination collapse applies
+    exact commitTableau_class hwf hrk htab ⟨b, hcp, hto⟩
+  · -- the stack commit at the root: the worried-back roundtrip joins
+    obtain ⟨i', hrpos', hrk', hsdlit⟩ := applyDrawStackTo_iff.mp hstack
+    have hii : i = i' := Option.some.inj (hpos.symm.trans hrpos')
+    rw [← hii] at hsdlit
+    -- the stack commit's per-suit height read (bumped at X's suit)
+    have hsdh : ∀ σ : Suit, sd.heights σ =
+        (if σ = X.suit then st.heights σ + 1 else st.heights σ) := by
+      intro σ
+      rw [hsdlit]
+    have hedge : X.rank.toIdx + 1 = sd.heights X.suit := by
+      have h1 := hsdh X.suit
+      rw [ite_eq_left rfl] at h1
+      rw [h1, hrk']
+    -- the stack commit wrote neither the board nor the pacing guard
+    have hbdSD : sd.board = st.board := by rw [hsdlit]
+    have hcpSD : sd.canPlace X b = true := by
+      rw [canPlace_board_congr hbdSD]
+      exact hcp
+    have hattSD : sd.board.attach b X = some bd := by
+      rw [hbdSD]
+      exact hatt
+    -- forward: the stack commit worries X back onto the base
+    have hfwd : sd.apply (Move.stackPile X b) = some s := by
+      rw [apply_stackPile_iff]
+      refine ⟨hedge, hcpSD, bd, hattSD, ?_⟩
+      apply state_ext
+      · rw [hslit, hsdlit]
+      · rw [hslit, hsdlit]
+      · -- heights: the bump and the drop cancel at X's suit
+        funext σ
+        rw [hslit]
+        show st.heights σ =
+          (if σ = X.suit then sd.heights σ - 1 else sd.heights σ)
+        by_cases hσ : σ = X.suit
+        · rw [hσ, ite_eq_left rfl]
+          have h1 := hsdh X.suit
+          rw [ite_eq_left rfl] at h1
+          rw [h1]
+          omega
+        · rw [ite_eq_right hσ, hsdh σ, ite_eq_right hσ]
+      · rw [hslit, hsdlit]
+      · -- stock: both commitments jump the same reachable position
+        rw [hslit, hsdlit]
+      · rw [hslit, hsdlit]
+    -- reverse: `pileStack X` at the landed successor returns it
+    have hsb : s.board = bd := by rw [hslit]
+    have hstop : s.board.topOf (Sum.inr X) = none := by
+      rw [hsb]
+      exact (Board.attach_topOf_ne _ _ _ hatt (Ne.symm hbX)).trans hXtop
+    have hsbot : s.board.bottomOf X = some b := by
+      rw [hsb]
+      exact (Board.bottomOf_eq _ _ _).mpr (Board.attach_topOf _ _ _ hatt)
+    have hrung : X.rank.toIdx = s.heights X.suit := by
+      rw [hslit]
+      exact hrk
+    have hrev : s.apply (Move.pileStack X) = some sd := by
+      rw [apply_pileStack_iff]
+      refine ⟨hstop, b, hsbot, hrung, ?_⟩
+      apply state_ext
+      · rw [hsdlit, hslit]
+      · -- board: the detach cancels the landing's attach
+        rw [hsdlit, hslit]
+        exact (Board.attach_detach_cancel hatt).symm
+      · -- heights: the drop and the bump cancel at X's suit
+        rw [hsdlit, hslit]
+      · rw [hsdlit, hslit]
+      · rw [hsdlit, hslit]
+      · rw [hsdlit, hslit]
+    refine ⟨⟨[Move.stackPile X b], ?_, ?_⟩,
+      ⟨[Move.pileStack X], ?_, ?_⟩⟩
+    · rw [run_singleton]
+      exact hfwd
+    · intro m hm
+      rw [List.mem_singleton.mp hm]
+      rfl
+    · rw [run_singleton]
+      exact hrev
+    · intro m hm
+      rw [List.mem_singleton.mp hm]
+      rfl
+
+/-- **The derived-scope two-option bound** (wave-19): at a
+stackable-at-rung WF state, three successors of the `Draw(X)`
+commitment all zero-spend-labeled contain a closure-equal pair — every
+play-level premise of §12's conditional is discharged for this scope
+(the register is not even consulted: any one zero-spend labeling
+forces a root commit by `through_direct_hole_commits`, and all
+zero-spend-labeled successors join EVERY root commit's class). -/
+theorem c2_two_option_zeroSpend_rung {st : State} (hwf : st.WF)
+    {X : Card} (hrk : X.rank.toIdx = st.heights X.suit)
+    {s₁ s₂ s₃ : State}
+    (_h₁ : macroStep st (MacroMove.drawCommit X) s₁)
+    (_h₂ : macroStep st (MacroMove.drawCommit X) s₂)
+    (_h₃ : macroStep st (MacroMove.drawCommit X) s₃)
+    (_hl₁ : ∃ r : Label X, (r = Label.direct ∨ r = Label.hole) ∧
+      LabelLive st X r ∧ SuccThrough st X r s₁)
+    (_hl₂ : ∃ r : Label X, (r = Label.direct ∨ r = Label.hole) ∧
+      LabelLive st X r ∧ SuccThrough st X r s₂)
+    (_hl₃ : ∃ r : Label X, (r = Label.direct ∨ r = Label.hole) ∧
+      LabelLive st X r ∧ SuccThrough st X r s₃) :
+    closureEq s₁ s₂ ∨ closureEq s₁ s₃ ∨ closureEq s₂ s₃ := by
+  obtain ⟨r₁, he₁, -, hth₁⟩ := _hl₁
+  obtain ⟨r₂, he₂, -, hth₂⟩ := _hl₂
+  obtain ⟨sd, hsd⟩ := through_direct_hole_commits hth₁ he₁
+  have q₁ := p2_join_zeroSpend_rung hwf hrk he₁ hsd hth₁
+  have q₂ := p2_join_zeroSpend_rung hwf hrk he₂ hsd hth₂
+  exact Or.inl ⟨accommodates_trans q₁.2 q₂.1,
+    accommodates_trans q₂.2 q₁.1⟩
+
 /-! ## §13. The stretch corollary — the worry ray's two-suit
 confinement (PROVEN) -/
 
@@ -1450,5 +1696,300 @@ theorem inRay_bounded {X : Card} {n : Nat} {c : Card}
   have hr := inRay_rank X n c h
   have hlt := Rank.toIdx_lt c.rank
   omega
+
+/-! ## §14. `stack_ball_corner` (the `hball` premise) — the raise-ray
+geometry, the proven core
+
+The one never-refuted pillar (§11's L1/L2-diligence corner): direct
+absent, the stack channel live, two distinct ball pins live — the
+three-class shape to be excluded pairwise.  The plan's central
+mechanism is F2's same-suit determinism of the prefix raise; its core
+is now proven:
+
+1. `reachablePos_of_accommodation(_run)` — accommodation moves never
+   touch the stock cycle or the draw step, so the commitment pacing
+   guard is invariant along every accommodation play;
+2. `heights_step_accommodation` — the per-move step law: a suit's
+   standing height changes only at a same-suit `pileStack` (+1, with
+   the fired card's rank-index pinned by the move's own guard to the
+   standing level) or a same-suit `stackPile` (-1);
+3. `raise_crossing_mem` — **F2's deterministic raise**: an
+   accommodation play that crosses standing level `k` of `X`'s own
+   suit upward fires, somewhere in its course, the `pileStack` of the
+   UNIQUE `X`-suit card at rank-index `k` (at the first passage the
+   standing height IS `k`, and the `pileStack` guard forces both the
+   suit and the rank-index).
+
+`stack_channel_world` assembles the corner's own precondition: WF +
+the stack channel live + direct absent FORCE `X` reachable in the
+stock and the standing height of `X`'s suit strictly below `X`'s
+rank (a founded card is never stocked; a rung-matched reachable card
+would fire the stack commit) — the raise content is present, not
+degenerate.  `stack_raise_deterministic` and `stack_channel_raise_mem`
+then deliver the named fact the residue analysis needs: EVERY
+stack-channel witness's play fires the `pileStack` of `X`'s same-suit
+rank-mate (the `X`-suit card one below `X`'s rank-index) — the final
+raise that delivered `X`'s stackability — with
+`raise_card_off_ball` the hygiene that this raise spends strictly
+inside `X`'s own suit-column, never the twin's seat, never a
+receiver, and never a pin's own signature card (the twin's suit is
+the pair-flip, a borrow parent's suit the opposite color).
+
+**The honest residue**, made precise: the deterministic raise must,
+at its firing moment, find the rank-mate visible and un-covered, and
+the moves that FREE it are the corner's actual content — reconciling
+those freeing moves (the multi-rank dig/borrow chains of §11's
+crease) with the two live pins' own witnessing plays is exactly the
+free-float/crease residue of §12.5.  What is proven here bounds every
+resolution: the stack channel cannot be witnessed without consuming
+the one same-suit raise chain, so the three successors share a common
+spine. -/
+
+/-- Accommodation moves never touch the stock cycle or the draw step:
+the commitment pacing guard `reachablePos` is invariant along them. -/
+theorem reachablePos_of_accommodation {st s₁ : State} {m : Move}
+    (h : st.apply m = some s₁) (c : Card)
+    (hm : m.isAccommodation = true) :
+    s₁.reachablePos c = st.reachablePos c := by
+  cases m with
+  | draw => simp [Move.isAccommodation] at hm
+  | reveal a => simp [Move.isAccommodation] at hm
+  | deckPile c b => simp [Move.isAccommodation] at hm
+  | deckStack c => simp [Move.isAccommodation] at hm
+  | pilePile c b => simp [Move.isAccommodation] at hm
+  | pileStack c =>
+      rw [apply_pileStack_iff] at h
+      obtain ⟨_, b, _, _, hshape⟩ := h
+      rw [hshape]
+      rfl
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at h
+      obtain ⟨_, _, bd, _, hshape⟩ := h
+      rw [hshape]
+      rfl
+
+/-- The play form of the pacing-guard invariance. -/
+theorem reachablePos_of_accommodation_run (u : State) (c : Card) :
+    ∀ (α : List Move) (st : State), st.run α = some u →
+    (∀ m ∈ α, m.isAccommodation = true) →
+    u.reachablePos c = st.reachablePos c := by
+  intro α
+  induction α with
+  | nil =>
+      intro st hrun _
+      rw [(run_nil_elim hrun).symm]
+  | cons m ms ih =>
+      intro st hrun hall
+      obtain ⟨v, hmstep, hmsrun⟩ := run_cons_elim hrun
+      rw [ih v hmsrun (fun m' hm' => hall m' (List.mem_cons_of_mem _ hm'))]
+      rw [reachablePos_of_accommodation hmstep c (hall m List.mem_cons_self)]
+
+/-- The accommodation step law for one suit's standing height: only a
+same-suit `pileStack` raises it (by exactly one, the fired card's
+rank-index pinned by the move's guard to the standing level), only a
+same-suit `stackPile` lowers it. -/
+theorem heights_step_accommodation {st s₁ : State} {m : Move}
+    (h : st.apply m = some s₁) (X : Card)
+    (hm : m.isAccommodation = true) :
+    s₁.heights X.suit = st.heights X.suit ∨
+    (∃ c, m = Move.pileStack c ∧ c.suit = X.suit ∧
+      c.rank.toIdx = st.heights X.suit ∧
+      s₁.heights X.suit = st.heights X.suit + 1) ∨
+    (∃ c b, m = Move.stackPile c b ∧ c.suit = X.suit ∧
+      s₁.heights X.suit + 1 = st.heights X.suit) := by
+  cases m with
+  | draw => simp [Move.isAccommodation] at hm
+  | reveal a => simp [Move.isAccommodation] at hm
+  | deckPile c b => simp [Move.isAccommodation] at hm
+  | deckStack c => simp [Move.isAccommodation] at hm
+  | pilePile c b => simp [Move.isAccommodation] at hm
+  | pileStack c =>
+      rw [apply_pileStack_iff] at h
+      obtain ⟨_, b, _, hrk', hshape⟩ := h
+      by_cases hsc : c.suit = X.suit
+      · refine Or.inr (Or.inl ⟨c, rfl, hsc, ?_, ?_⟩)
+        · rw [hsc] at hrk'
+          exact hrk'
+        · rw [hshape]
+          show (if X.suit = c.suit then st.heights X.suit + 1
+              else st.heights X.suit) = st.heights X.suit + 1
+          rw [ite_eq_left hsc.symm]
+      · refine Or.inl ?_
+        rw [hshape]
+        show (if X.suit = c.suit then st.heights X.suit + 1
+            else st.heights X.suit) = st.heights X.suit
+        rw [ite_eq_right (fun hh => hsc hh.symm)]
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at h
+      obtain ⟨hrk'', _, bd, _, hshape⟩ := h
+      by_cases hsc : c.suit = X.suit
+      · refine Or.inr (Or.inr ⟨c, b, rfl, hsc, ?_⟩)
+        rw [hshape]
+        show ((if X.suit = c.suit then st.heights X.suit - 1
+            else st.heights X.suit) + 1) = st.heights X.suit
+        rw [ite_eq_left hsc.symm]
+        rw [hsc] at hrk''
+        omega
+      · refine Or.inl ?_
+        rw [hshape]
+        show (if X.suit = c.suit then st.heights X.suit - 1
+            else st.heights X.suit) = st.heights X.suit
+        rw [ite_eq_right (fun hh => hsc hh.symm)]
+
+/-- **F2's deterministic raise** — the same-suit determinism: an
+accommodation play that crosses standing level `k` of `X`'s own suit
+upward — at or below `k` at the start, strictly above at the end —
+fires somewhere in its course the `pileStack` of the (unique) `X`-suit
+card at rank-index `k`.  The crossing move is forced: at the first
+passage above `k` the standing height IS `k`, and the `pileStack`
+guard pins the fired card's suit to `X`'s and its rank-index to
+exactly `k`. -/
+theorem raise_crossing_mem {X : Card} {k : Nat} :
+    ∀ (α : List Move) (st u : State),
+    st.heights X.suit ≤ k → st.run α = some u → k < u.heights X.suit →
+    (∀ m ∈ α, m.isAccommodation = true) →
+    ∃ R : Card, R.suit = X.suit ∧ R.rank.toIdx = k ∧
+      Move.pileStack R ∈ α := by
+  intro α
+  induction α with
+  | nil =>
+      intro st u h₀ hrun hkEnd _
+      rw [(run_nil_elim hrun).symm] at hkEnd
+      omega
+  | cons m ms ih =>
+      intro st u h₀ hrun hkEnd hall
+      obtain ⟨v, hmstep, hmsrun⟩ := run_cons_elim hrun
+      rcases heights_step_accommodation hmstep X
+          (hall m List.mem_cons_self) with
+        hsame | ⟨c, hmEq, hcs, hcrk, hbump⟩ | ⟨c, b, hmEq, hcs, hdrop⟩
+      · obtain ⟨R, hRs, hRr, hRm⟩ :=
+          ih v u (by omega) hmsrun hkEnd
+            (fun m' hm' => hall m' (List.mem_cons_of_mem _ hm'))
+        exact ⟨R, hRs, hRr, List.mem_cons_of_mem _ hRm⟩
+      · by_cases hlt : v.heights X.suit < k + 1
+        · obtain ⟨R, hRs, hRr, hRm⟩ :=
+            ih v u (by omega) hmsrun hkEnd
+              (fun m' hm' => hall m' (List.mem_cons_of_mem _ hm'))
+          exact ⟨R, hRs, hRr, List.mem_cons_of_mem _ hRm⟩
+        · -- the crossing happens at m itself: pre-height exactly k
+          refine ⟨c, hcs, ?_, List.mem_cons.mpr (Or.inl hmEq.symm)⟩
+          have hpre : st.heights X.suit = k := by omega
+          rw [hpre] at hcrk
+          exact hcrk
+      · obtain ⟨R, hRs, hRr, hRm⟩ :=
+          ih v u (by omega) hmsrun hkEnd
+            (fun m' hm' => hall m' (List.mem_cons_of_mem _ hm'))
+        exact ⟨R, hRs, hRr, List.mem_cons_of_mem _ hRm⟩
+
+/-- The twin's suit is never `X`'s own suit (the pair-flip moves
+within the color; the raise/pin suit analysis needs the separation). -/
+theorem flipSuit_suit_ne (X : Card) : X.flipSuit.suit ≠ X.suit := by
+  intro h
+  rcases X with ⟨⟨c, p⟩, r⟩
+  cases p <;> simp_all [Card.flipSuit, Suit.flipPair]
+
+/-- The deterministic raise's card is outside the commitment's
+two-type ball, and the pins' own signature cards spend other suits:
+the twin's suit is the pair-flip of `X`'s, a receiver parent's suit
+is the opposite color's — never `X`'s own suit — so no pin's signature
+move can ever double as one of the raise's own-suit spends. -/
+theorem raise_card_off_ball {X R p : Card}
+    (hRs : R.suit = X.suit) (hRr : R.rank.toIdx + 1 = X.rank.toIdx)
+    (hp : canSitOn X p = true) :
+    R ≠ X ∧ R ≠ X.flipSuit ∧ R ≠ p ∧ p.suit ≠ X.suit ∧
+      R.suit ≠ X.flipSuit.suit := by
+  obtain ⟨-, hcol⟩ := (canSitOn_eq X p).mp hp
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · intro hcon
+    rw [hcon] at hRr
+    omega
+  · intro hcon
+    rw [hcon] at hRr
+    simp only [Card.flipSuit_rank] at hRr
+    omega
+  · intro hcon
+    obtain ⟨hzr, -⟩ := (canSitOn_eq X p).mp hp
+    rw [← hcon] at hzr
+    omega
+  · intro hcon
+    exact hcol (by rw [hcon])
+  · rw [hRs]
+    exact (flipSuit_suit_ne X).symm
+
+/-- **The corner's derived world**: at a WF state with the stack
+channel live but NO root commit, the drawn card is reachable in the
+stock and its suit's standing height is strictly BELOW its rank — a
+founded card is never stocked, and a rung-matched reachable card would
+fire the stack commit itself.  The raise content of the corner is
+genuinely present, never degenerate. -/
+theorem stack_channel_world {st : State} (hwf : st.WF) {X : Card}
+    (hno : ¬ ∃ sd, commitApplies st (MacroMove.drawCommit X) sd)
+    (hlive : LabelLive st X Label.toStack) :
+    st.heights X.suit < X.rank.toIdx ∧ ∃ i, st.reachablePos X = some i := by
+  have hL : ∃ st' s'', accommodates st st' ∧
+      st'.applyDrawStackTo X = some s'' := hlive
+  obtain ⟨st', s'', hacc, hstack⟩ := hL
+  obtain ⟨α, hαrun, hαall⟩ := hacc
+  obtain ⟨i', hpos', _, _⟩ := applyDrawStackTo_iff.mp hstack
+  have hpos : st.reachablePos X = some i' :=
+    (reachablePos_of_accommodation_run st' X α st hαrun hαall).symm.trans hpos'
+  by_cases hgt : X.rank.toIdx < st.heights X.suit
+  · exfalso
+    have hstockmem : X ∈ st.stock.cards :=
+      Pace.mem_of_posOf st.stock.cards st.stock.cursor X i'
+        (reachablePos_posOf hpos)
+    have hfg := hwf.founds_gone X hgt
+    have hp : st.stock.posOf X = some i' := reachablePos_posOf hpos
+    rw [hfg.2.1] at hp
+    exact absurd hp (by simp)
+  · by_cases hlt : st.heights X.suit < X.rank.toIdx
+    · exact ⟨hlt, i', hpos⟩
+    · exfalso
+      have hheq : st.heights X.suit = X.rank.toIdx := by omega
+      refine hno ⟨{ st with
+        stock := (st.stock.drawTo i').removeAt i',
+        heights := fun s => if s = X.suit then st.heights s + 1
+          else st.heights s }, ?_⟩
+      rw [commitApplies_draw_cases]
+      exact Or.inr (applyDrawStackTo_iff.mpr ⟨i', hpos, hheq.symm, rfl⟩)
+
+/-- Every rung-matched accommodation play from a below-rung standing
+height fires the same FINAL raise: `X`'s same-suit rank-mate (the
+`X`-suit card one below `X`'s rank-index) has its `pileStack` somewhere
+in the play — no two witnesses can differ in which card delivered the
+final raise. -/
+theorem stack_raise_deterministic {st : State} {X : Card}
+    (h₀ : st.heights X.suit < X.rank.toIdx)
+    (α : List Move) (u : State)
+    (hrun : st.run α = some u) (hall : ∀ m ∈ α, m.isAccommodation = true)
+    (hrung : X.rank.toIdx = u.heights X.suit) :
+    ∃ R : Card, R.suit = X.suit ∧ R.rank.toIdx + 1 = X.rank.toIdx ∧
+      Move.pileStack R ∈ α := by
+  obtain ⟨R, hRs, hRk, hRm⟩ :=
+    raise_crossing_mem (X := X) (k := X.rank.toIdx - 1) α st u (by omega)
+      hrun (by omega) hall
+  refine ⟨R, hRs, ?_, hRm⟩
+  omega
+
+/-- The stack-channel witness's play crosses the raise levels: the
+deterministic final raise is IN the successor's own accommodation
+play, whose end state is rung-matched and fires the stack commit onto
+exactly that successor. -/
+theorem stack_channel_raise_mem {st : State} (hwf : st.WF) {X : Card}
+    (hno : ¬ ∃ sd, commitApplies st (MacroMove.drawCommit X) sd)
+    {s₀ : State} (hth : SuccThrough st X Label.toStack s₀) :
+    ∃ (R : Card) (u₀ : State) (α : List Move),
+      R.suit = X.suit ∧ R.rank.toIdx + 1 = X.rank.toIdx ∧
+      st.run α = some u₀ ∧ (∀ m ∈ α, m.isAccommodation = true) ∧
+      Move.pileStack R ∈ α ∧ u₀.applyDrawStackTo X = some s₀ := by
+  obtain ⟨u₀, α₀, hrun₀, hall₀, harm₀, _⟩ := hth
+  have hstack : u₀.applyDrawStackTo X = some s₀ := harm₀
+  have hL : LabelLive st X Label.toStack :=
+    ⟨u₀, s₀, ⟨α₀, hrun₀, hall₀⟩, hstack⟩
+  obtain ⟨hlt, _⟩ := stack_channel_world hwf hno hL
+  obtain ⟨i₀, _, hrk₀, _⟩ := applyDrawStackTo_iff.mp hstack
+  obtain ⟨R, hRs, hRr, hRm⟩ :=
+    stack_raise_deterministic hlt α₀ u₀ hrun₀ hall₀ hrk₀
+  exact ⟨R, u₀, α₀, hRs, hRr, hrun₀, hall₀, hRm, hstack⟩
 
 end Klondike.C2

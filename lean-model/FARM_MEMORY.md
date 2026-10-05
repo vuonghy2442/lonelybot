@@ -2579,3 +2579,77 @@ Traps this session hit, for the next farmer:
   per Macro.lean's own iff-proof, then ite_eq_left/right), and the freeze-invariant shape
   `(heights σ = 0 ∧ ∀ c, c.suit = σ → bottomOf c = none)` closed under the pileStack/stackPile one-steps - any
   suit-freeze goal (the B-side anchored-head families) can re-derive it this way.
+## Session note (2026-10-05) - the C2-rescope session (Klondike/C2Streamlined.lean; wave 19: the rung re-scope + the raise-ray core)
+
+Landed: succThrough_zeroSpend, pin_join_zeroSpend_rung, p2_join_zeroSpend_rung,
+c2_two_option_zeroSpend_rung (hpin/hp2 DERIVED for direct/hole under the root rung;
+the stack arm via the two-move worried-back roundtrip), and hball's core: reachablePos_
+of_accommodation(_run), heights_step_accommodation, raise_crossing_mem (F2's deterministic
+raise), stack_channel_world, stack_raise_deterministic, stack_channel_raise_mem,
+raise_card_off_ball. Census 12 pinned (ZERO new sorries, C2Streamlined 0; all proofs).
+Full row in FARM.md wave 19. Axiom profiles: the 12.5 family [propext, Quot.sound]; the
+raise family [propext, Classical.choice, Quot.sound] (K1-profile).
+
+TACTIC LORE (all machine-confirmed this session):
+
+- BY-BLOCKS INSIDE ANONYMOUS CONSTRUCTORS MIS-PARSE: `exact <| [p], by rw [..]; exact h,
+  by intro m hm; .., [p2], by .. |>` against a nested (and/or-exists)-tree mis-flattens -
+  symptoms: `Tactic 'introN' failed: There are no additional binders` plus hangover goals
+  like `goal s.run sorry = some sd`. WORKING SHAPE: `refine <<[w1], ?_, ?_>, [w2], ?_, ?_>>`
+  + plain bullets - zero by-blocks in term position.
+- INDUCTION WITH A RUN-PLAY: do NOT mix `revert st` + `induction a` with hypotheses that
+  mention BOTH a and st (hrun/hall): induction auto-generalizes the a-dependent hall into
+  the IH as a LEADING binder and the arg order flips under you (error: `the argument v :
+  State ... expected forall m in ms -> ...`). WORKING SHAPE (raise_crossing-style):
+  state the lemma with the play FIRST inside a top-level forall - `theorem foo
+  (u : State) (c : Card) : forall (a : List Move) (st : State), st.run a = some u ->
+  (forall m in a, isAccommodation) -> concl := by intro a; induction a with` - then every
+  case's `intro st hrun hall` uses THE MOTIVE'S OWN binder order and `ih v hmsrun
+  (hall-slice)` binds correctly.
+- NAMED-IMPLICIT ABOVE THE forall: a lemma with implicit {X} whose instantiation is only
+  decidable from a LATER argument leaves X a METAVARIABLE when you pass `(k := X.rank.toIdx
+  - 1)` and by-omega slots (omega then reports bizarre `st.heights (Card.suit ?m)`
+  constraints). Always pass `(X := X)` explicitly at such call sites.
+- DIRECTION TRAPS PAID TWICE: run_nil_elim gives `st = u` - rewriting the END state in a
+  hypothesis wants `.symm` (rw [(run_nil_elim hrun).symm] at hEnd); a Ne-goal after
+  `rw [hRs]` can come out FLIPPED - close with `(flipSuit_suit_ne X).symm`-style Ne.symm.
+- PROJ-OF-LITERAL AUTO-RFL, now banked for the state_ext slots: chained `rw [hslit,
+  hsdlit]` (state = nested {st with ...} equalities) closes the deal/board/depths/stock/
+  drawStep slots BY RW'S OWN AUTO-RFL (both sides bottom out at identical terms through
+  nested with-updates) - NO explicit rfl needed; the two iff-emitted stock normalizations
+  applyDrawTo_iff/applyDrawStackTo_iff produce the SAME `(st.stock.drawTo i).removeAt i`
+  (the reachable indices equalize via Option.some.inj), so the stock slot is that splice
+  both sides - no Cycle.removeIdx bridge when everything comes from iff-unpacks. Heights
+  slots still need the per-suit helper + show-normalized if + ite_eq_left/right casework.
+- NAMESPACED HELPERS: Board.attach_detach_cancel and State.topOf_inr_eq_none need their
+  prefixes inside namespace Klondike.C2; bare names are unknown identifiers.
+- #print axioms PROBE DISCIPLINE: appending `#print axioms Klondike.C2.<name>` lines at
+  file end prints profiles under `lake env lean Klondike/C2Streamlined.lean` - count them
+  and strip ALL before commit (they do not belong in the library).
+- WITNESS DASHES re-confirmed: obtain-slots against iff-shapes: applyDrawTo_iff has TWO
+  exists-witnesses then three conjuncts (5 slots), applyDrawStackTo_iff ONE witness then
+  three (4 slots), apply_pileStack_iff one witness between four conjuncts (5 slots).
+  Miscounted slots bind a PAIR to the last name - the rw on it then fails far away.
+
+FINDINGS:
+
+- The zero-spend channels cannot label anything in the direct-absent world
+  (through_direct_hole_commits turns any zero-spend label into a root commit) - so the
+  derived-scope corollary's case tree is one branch, and the register is never consulted.
+- hball's world IS derivable (stack_channel_world): WF + toStack live + direct absent
+  forces X reachable and the suit height strictly below the rank - the raise content is
+  never degenerate; every stack-channel witness then FIRES the same-suit rank-mate
+  raise (stack_raise_deterministic) - the shared spine any pairwise resolution of the
+  corner builds on. The crease/free-float residue is exactly the enablers' reconciliation.
+- Peer-context (both orchestrator peer-requests failed delivery - sender no longer
+  available; content preserved in FARM.md wave-19 row): the reach-probe interop map
+  (no domain premise needed by my theorems; hlab is the absorbable target; the weak
+  reachable corner cannot revive the as-stated hpin/hp2 refutations - they need >=2
+  simultaneously-free anchors), and the SuccLabeledWitness datum (merged 58448d7 past
+  this branch's base; my ticket-1/2 derivations consume no P0 content, so the channel
+  decision is independent of this session's landing).
+- WORKTREE/WEATHER: fourth session in a row hitting the fresh-worktree-at-dc41b8e gotcha
+  (no lean-model/; `git merge --ff-only b99ad47` clean fixed). Cold-build olean-weather:
+  transient `failed to read file ... olean(.private)` failures on the shared elan
+  toolchain - the plain-retry protocol banked everything; a REAPED background start's
+  partial artifacts resumed correctly (no lake clean, no PID kills needed).
