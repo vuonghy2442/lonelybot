@@ -26,13 +26,16 @@ $baseline = @{
                         # vis_of_pileStack / vis_of_stackPile shipped) — and
                         # K2_tableau_goal_dead PROVEN (K2 session; the K1
                         # keystone discharges its sorryAx taint in the merge)
-  'Movability.lean' = 1  # +wave-12 K2 session (2026-10-05): §8.1's movability
-                        # algebra, Klondike/Movability.lean — the single open row
-                        # is Mask.bottomMask_matches_movableOf, the §8.7 owed
-                        # equivalence (the engine's mask arithmetic vs the
-                        # formula; the Rust side is already bound by
-                        # bm_algebra_matches) — plan in the docstring.
-                        # Everything else in the file is proven, axiom-clean.
+  'Movability.lean' = 0  # §8.7 PAID 2026-10-05 (movability-equivalence session):
+                        # Mask.bottomMask_matches_movableOf PROVEN — the engine's
+                        # mask arithmetic IS §8.1's formula, per card, at every
+                        # (vis, locked) grid, by the docstring's decode plan (the
+                        # layout battery as grid decides, the owner-unique reads
+                        # via maskIndex injectivity, the 16-case §8.1 skeleton,
+                        # the pair-true twins routed through movableOf_flipSuit).
+                        # File sorry-free, theorem chain axiom-clean
+                        # [propext, Quot.sound].  The Rust side stays bound by
+                        # bm_algebra_matches (src-side, shipped).
   'Restriction.lean' = 2  # solvableEngine_iff_solvable_of_reachable (B2),
                         # engine_replay_of_pilePile (the replay step)
   'TwinSwap.lean'  = 0  # Board.aboveOf_congr_off PROVEN 2026-09-14 via the

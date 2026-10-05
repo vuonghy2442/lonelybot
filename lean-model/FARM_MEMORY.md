@@ -2374,3 +2374,52 @@ tree).
 - CANONICAL REPEATS conf irmed: `rw [apply_deckPile_iff] at hcom` + `obtain ⟨_, hcp, bd', hatt, hs₂⟩ := hcom` + `rw [hs₂]` is the fast path
   for committed-state residues; `attach_topOf_ne`/`bottomOf_attach_of_ne` (Board/Macro) + `bottomOf_detach_ne`/`founded_not_covered`
   (C2Streamlined, PROVEN) make the one-step "still legal" cores painless - NO walk machinery needed at the one-step level.
+
+## Movability.lean sorry-free — the §8.7 equivalence session (2026-10-05)
+
+- THE MASK-GRID SHAPE that worked (and the one that did NOT): for grid lemmas whose statement pins a
+  present pred rank r (maskIndex_underPair_positions), DO NOT run `cases col <;> cases p <;> cases rk
+  <;> simp_all [defs] <;> decide` — simp_all normalizes `rk.pred = some r` to `LIT = r` and then
+  STOPS: an equation `ctor = var` with the var free in the goal is NOT auto-substituted, `decide`
+  dies with "Expected type must not contain free variables" (probe-verified).  WORKING SHAPE:
+  `rcases c with ⟨⟨col, p⟩, rk⟩`, peel the Bool by `have hp : p = false := hpair` (have-typing is
+  proj-defeq-tolerant) then `subst hp`, derive the rank relation with `(rank_pred_iff _ _).mp hpred`
+  (the same defeq eats the hypothesis's projections), case ONLY the color, `simp only [defs]`,
+  finish per conjunct with omega (see the omega trap below).  The other layout facts (lt64, lt4,
+  ge4, even, odd, the twin adjacency, inj bounds) stay pure `rcases <;> cases … <;> simp_all [defs]
+  <;> decide` — those arms are fully closed per case, decide never strands.
+- TWO PROVER QUIRKS THAT INJECT `Classical.choice` (both probe-pinned; split them out when a row
+  must stay [propext, Quot.sound]):
+  (a) omega on a CONJUNCTION-shaped goal (`X ∧ Y := by omega`) pulls Classical.choice — even when
+  every hypothesis is a clean mod-by-literal linear fact.  Split first: two plain equations
+  (`have h1 : … := by omega`, `have h2 : … := by omega`) or `refine ⟨?_, ?_⟩ <;> omega` are clean.
+  (b) the GENERIC beq lemmas (`beq_self_eq_true`, bare `simp` closing `(x == y) = true` forms) ride
+  the `LawfulBEq Nat` instance, which is choice-tainted in 4.34 — even
+  `(n == n) = true := beq_self_eq_true n` profiles with Classical.choice.  THE CLEAN LANE: Nat `==`
+  is decide-backed, so `decide_eq_true_iff.mpr rfl` proves `(n == n) = true` [propext] and
+  `decide_eq_true_iff.mp h` converts `(x == y) = true` to `x = y` [propext].  `Nat.beq`/`Nat.beq_refl`
+  do NOT typecheck against `==` (different BEq: the instance is decide-shaped, not Nat.beq-shaped).
+  (`simpa using h` on a plain `(x == x) = true` hypothesis was ALSO clean — the taint enters via the
+  self-lemma path simp prefers mid-expression.)
+- `cases h : e` REWRITES e IN THE OTHER HYPOTHESES TOO, not just the goal (K1 recorded the goal
+  side; the hypothesis side bites later `rw` patterns and read-lemma targets two steps down).
+  After `cases hf : f d`, the goal's `f d` occurrences are already case-rewritten, so `rw [hf]`
+  afterwards fails
+  "pattern not found" and `rw [a, b]` lists can die mid-sequence leaving a half-rewritten goal —
+  prefer `exact h`/`exact hany` compositions once the scrutinee is case-split (`exact hw`,
+  `rfl` arms), or plan the rw list against the POST-cases shape.
+- UNFOLDING A MATCH-DEF (`Card.movableOf`) by `rw` is a dead end when you must also rewrite INSIDE
+  the match scrutinee (the def hides `Card.underPair` syntactically).  ONE `simp only [Card.movableOf,
+  Card.underPair_of_pred hpred]` pass does all three: unfolds the def, exposes the scrutinee, rewrites
+  it, and iota-reduces the match on the some-literal — bottomMask_matches_movableOf's finisher
+  rides exactly that plus a 16-case skeleton rw (X = X closes at rw's trailing rfl).
+- THE ENGINE WORD's LOCKED-FREE GEOMETRY (record for K6): `bottom_mask_of` reads `locked` ONLY inside
+  the under-pair `free` cut (positions i-4 and i-3); `xor_vis`/`or_vis` read `vis` alone at the self
+  and twin positions.  A read lemma battery over a mask-word like this wants four read-theorems
+  (self, twin, u1, u2 — all vis-side) plus two more per under-pair member for the locked-word —
+  NOT self/twin locked reads; they do not exist in the word.
+- `if_pos`/`if_neg` DEPRECATION WARNINGS stand (Use ite_eq_left/ite_eq_right next era) — Cycle.lean
+  already ships them; tolerated, no action.
+- INFRA: the ff-only merge to macro-game HEAD handled the fresh-worktree-at-dc41b8e confusion the
+  third time in a row now (wave-17 T session and K1 both hit it) — the lean-census.ps1 Movability pin
+  is 1 → 0; global census 16 → 15.

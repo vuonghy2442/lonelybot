@@ -1,11 +1,12 @@
 # The proof farm — handoff document
 
-**Census: 16 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
-· Movability 1 · C2Streamlined 5 · Restriction 2 · TwinExchange 1
-· TwinQuotient 2, TwinSwapCompletion 0; zero bullets;
-wave-12 + wave-17 merge, K1+K2+T+C2 sessions, 2026-10-05).  Pinned by
+**Census: 15 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
+· Movability 0 · C2Streamlined 5 · Restriction 2 · TwinExchange 1
+· TwinQuotient 2, TwinSwapCompletion 0; zero bullets; waves 12/17
+merge base (K1+K2+T+C2 sessions, 2026-10-05), then §8.7 closed by the
+movability-equivalence session 2026-10-05).  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 16 are
+any NEW sorry or the return of a refuted constant.  All 15 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -1054,3 +1055,52 @@ pairing analysis, P1 closing the overlap.  §7's "∎ (modulo the crease
 and the L1/L2 count tables)" is now formal graph structure: the crease
 and the corner are the two named lemmas the assembly cites.
 
+
+## Session note (2026-10-05 — §8.7 PAID: `Mask.bottomMask_matches_movableOf` PROVEN, Movability.lean sorry-free)
+
+- **The owed equivalence is closed** (Movability:565): the engine's
+  `bottom_mask_of` mask arithmetic and §8.1's `Card.movableOf` formula
+  agree, per card, at every `(vis, locked)` grid — the Lean half of the
+  Rust `bm_algebra_matches` binding.  The whole banked K-row dependency
+  chain is now Lean-side sorry-free up to the (separate, shipped
+  Rust-side) test.  Census: Movability 1 → 0 (global 16 → 15), pinned
+  OK; the row's chain `[propext, Quot.sound]` per `#print axioms`.
+- **The proof is the docstring decode plan, made lemma-shaped**:
+  - step 1, layout (grid `decide`s, no classically-tainted helpers):
+    `Card.maskIndex_inj` (Movability:249 — owner uniqueness via the
+    mod-4 decode: rank block by division-by-4-bounds + `Suit.code_inj`,
+    both omegas), `Card.even_maskIndex` / `Card.odd_maskIndex` (bit 0 IS
+    the pair bit — the ALT gate's semantics), the twin adjacency
+    `Card.maskIndex_flip_pair_false` / `Card.maskIndex_flip_pair_true`
+    (`maskIndex flip = maskIndex ± 1`), `Card.maskIndex_lt64` (no u64
+    truncation event ever: 52 + 4 < 64), `Card.maskIndex_lt4` /
+    `Card.maskIndex_ge4` (the `<<< 4` guard splits aces exactly), and
+    `Card.maskIndex_underPair_positions` (Movability:321 — the `± 4`
+    block arithmetic lands the two under-pair reads on the two sitters;
+    color cases + per-conjunct omega over `rank_pred_iff`, NOT a
+    52-by-13 `simp_all` grid — that route strands the pred rank free,
+    see FARM_MEMORY).
+  - step 2, reads: `Mask.maskOf_maskIndex` (Movability:392 — the owner
+    reads its own bit: `List.any_eq_true` + injectivity, the
+    `decide_eq_true_iff` beq lane), `Mask.alt_of_even` / `alt_of_odd`
+    (the ALT gates), the definitional zeta bridge `Mask.bottomMask_eq`
+    into a private no-`let` `coreWord` (Movability:444), and private
+    `spread_even` (the `× 0b11` twin arm under an even position dies by
+    the ALT parity — the position's own bit is everything).
+  - step 3, finish: private `bm_skeleton` — the xor chain equals the
+    blocked-unders form over the same four bits (16-case Bool
+    exhaustion, `movable_pair_symm`'s own trick, one lemma up);
+    aces underflow to zero (`movableOf_ace`); the pair-`true` question
+    routes through `movableOf_flipSuit` + the spread parity
+    (`bm_rep` at Movability:476 is the pair-`false` representative
+    decode; the main theorem's odd arm is three rewrites on it).
+- **A companion reading of the word, for the consumers**: the
+  engine word reads `locked` ONLY inside the under-pair `free` cut —
+  `xor_vis` / `or_vis` read `vis` alone at the self and twin positions.
+  K6's receiver-side questions never need a self-position locked read.
+- **Next tickets**: (1) K6 fully unblocked — K1 + K2 + the §8.1
+  substrate + the §8.7 equivalence have all landed; statable and
+  provable off `State.movable`; (2) the doc-side alignment (§8.8 note
+  in macro_formalization.md, plus the C15 ledger row) is now
+  updatable — this row discharges the "parity debt" those
+  entries hedge on; (3) nothing else in Movability.lean remains.
