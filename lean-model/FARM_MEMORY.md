@@ -2861,3 +2861,93 @@ REUSABLE SHARDS (this file, importable as `Witnesses.KingAnchorReachProbe` via t
   first); the wave-20 boss task's "DONE" list (per-universal theorem
   names + file:line) is in FARM.md's wave-20 row; sub-100ms retries never
   hit the .olean.private contention this session.
+
+## Wave-20 finisher (sweep-cover session, 2026-10-05) — TwinSwapCompletion dodge machinery
+
+ARCHITECTURE (for the successor on `sweep_covered_corner_safety`): the
+reduction runs the corner and `st.exchangeTwinCargo L` as TWO THREADS.
+The image's mate sits ON ITS OWN CELL (`exchangeTwinCargo_flip_cover`
+names the shape the swap puts it in: H@H⁺) — the image is NOT WF (the
+self-edge can be justified by neither board_edges clause; flipAll has
+the same corner orbit), so all image-side lemmas are state-level.
+Three load-bearing facts now PAID: (1) the image's run above the mate
+is `[H]` (`exchangeTwinCargo_aboveOf_mate_self`) — every pilePile-onto-host
+guard transfers; (2) `canSitOn` is TWIN-BLIND in the host
+(`canSitOn_swapTwin_right`: `canSitOn X L = canSitOn X H` since twins
+share rank AND color) — riders-on-the-mate relabel to riders-on-L; a
+fitting host of the mate is never the mate or its twin... no, never
+the MATE (`canSitOn_ne_of_fits_mate`); (3) the mate-dodge CONVERGES:
+`(S.exchangeTwinCargo L).apply (pilePile H b) = some (S₁.exchangeTwinCargo H)`
+always, and `= some S₁` when no rider (`covered_dodge_merges_clean`).
+The dodge base b is always off both twin cells (derived from the firing:
+covered cell occupied + `canSitOn_self`).  THE REMAINING CORNERS, scoped
+by analysis not yet proofs: (a) the direct-found mate (`pileStack H` as
+the first clearing): the image breaks to a PARKED thread one rung
+behind; the hoped-for bridge is the deferred-unpark hijack — when the
+crossed-(h+1) host p (black-6 class for a red H) is founded via a SEATED
+pileStack in the source tail, that same moment in the mirrored thread
+offers `pilePile H (inr p)` legally (the guard is state-free: fit by
+rank/color, freeness by the pileStack's own guard, run-check by [H]);
+the honest lurking counterexample class is when BOTH crossed hosts are
+deckStack-founded (never seated) — refute-first that corner before
+forcing the sub-claim; (b) L HIDDEN (a pile's hidden boundary) kills
+the fithole relabel (`isVis L` fails in the image — the mate can host
+riders the mirror cannot) and enables image-only reveals at L's
+boundary — the π₁-replay must case on L placed vs hidden; (c) WF
+board_edges buries the [L,H,X] three-layer pile: the L-H adjacency and
+the H-X adjacency CANNOT both be buried-deal-justified in the deals
+(cards appear once), so deal-adjacent riders on the mate have fit-free
+structure only when X is H's pile-successor — the vis_not_hidden +
+one-pile-per-card discipline is the wedge.
+
+ELABORATION TRAPS (this session, in addition to wave-19/20 lists):
+(1) DOT-notation on `Sum.inr`-headed expressions FAILS (elaborator
+looks up `Sum.swapTwin`): `(Sum.inr d).swapTwin L` errors "Invalid
+field"; use the PREFIX `Base.swapTwin L (Sum.inr d)` everywhere (the
+`(x : Base)` annotation does NOT save the dot form).
+(2) The `rw [← htwin]` direction for `L.flipSuit`-side goals: `rw
+[htwin]` rewrites H-occurrences; a goal `b ≠ Sum.inr L.flipSuit` needs
+`← htwin` (pattern-H.flipSuit <- H).  Hit it in THREE filler slots of
+`Base.swapTwin_eq_self`/`Card.swapTwin_of_ne`; each h₂-filler is
+`(by rw [← htwin]; exact ...)` or `(by rw [← hHL]; exact ...)`.
+(3) `have hLH : Sum.inr L ≠ Sum.inr H` under a pending ПОSTPONED-goal
+refine can fail alpha-synthesis ("don't know how to synthesize
+implicit argument α") even when the same have compiles earlier in the
+file — annotate `(Sum.inr L : Base)`, or hoist the have ABOVE the
+refine.
+(4) Haves/obtains AFTER a `refine ... ?_ ?_` attach to the FIRST open
+goal ONLY; the second bullet errors "unknown identifier" for locals
+introduced below the refine — hoist unpacking+haves BEFORE multi-goal
+refines (covered_dodge_merges_clean's body shape).
+(5) `rw [aboveOf_go_succ, hread]` leaves a stuck `match some H` — a
+`dsimp only` is needed BETWEEN the rw and the ite-rewrite (re-confirmed;
+wave-19's trap).  For the "mate-stops-the-walk" one-liner: `main` need
+not induct on n — the FIRST step suffices
+(rw-chain closes at ite_eq_left, no ih use).
+(6) `[H].contains H = true` / `= rfl` fails on variable H (BEq does not
+reduce) — `(by simp)` decides; `[H].contains d = false` for d ≠ H is
+`by simp [hd]`.
+(7) After `rw [Sum.inr.inj h] at htwin` the L is GONE (htwin becomes
+`H = H.flipSuit`), so the closer is `Card.flipSuit_ne H htwin.symm`,
+not `... L ...`.
+(8) `refine (A_iff).mpr (B_iff).mpr ⟨...⟩` NESTED-iff-as-argument
+elaborates with unresolved metavars even after a `show`; use
+`refine (A_iff (st := S.exchangeTwinCargo L)).mpr ?_` one level per
+line, with the named implicit, or `.mpr ⟨?_, ?_⟩` shapes term-by-term.
+(9) ∃-binders with mixed types: `∃ (π₁ m π₂ : List Move)` forces
+m : List Move — annotate per variable
+`∃ (π₁ : List Move) (m : Move) (π₂ : List Move)`.
+(10) `Option.map`-casts: `rw [Board.bottomOf_exchangeTwin, hb₀]` then
+step by `show`: (a) the full map-application, (b) `some (Base.swapTwin
+L (Sum.inr L))` (iota), (c) the `Sum.map id`-unfold
+`some (Sum.inr (Card.swapTwin L L))` — then Card-level rewrites.
+(11) The board identification dance (bdT vs bd.exchangeTwin H) NEVER
+rewrites the state-level projection: open with
+`show bdT.topOf z = bd.topOf (Base.swapTwin H z)` first; the four
+cases (z = b / inr L / inr H / off-pair) each go by
+attach_topOf_ne + detach_topOf_ne chains; the Sbd_off/Tbd_off
+off-pair packages FIRST, then by_cases, is the composition that
+survives.
+(12) `rw` mid-list failure cascading DON'T necessarily mean the shape
+was wrong: a failed rw leaves the goal open so EVERYTHING after reports
+"unsolved goals" — fix the first reported rw, rebuild, re-read.

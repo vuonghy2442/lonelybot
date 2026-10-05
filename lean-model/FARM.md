@@ -1805,3 +1805,78 @@ NEXT (tickets):
    rung) — wave-19's tickets 1-2 stand, now scoped by §15's regimes.
 3. `c2_two_option_reachable`'s premise discharge fragments: any new
    proven regime (a new shape class) slots straight into §15's list.
+
+## Wave 20 finisher — the covered corner's dodger convergence + the audits (2026-10-05, the sweep-cover-finisher farm session; TwinSwapCompletion pinned 1, census 11 pinned)
+
+TARGET: `State.sweep_covered_corner_safety` (the file's last sorry).  NOT
+closed — the census stays 11 / TwinSwapCompletion 1 (the pin's single
+sorry, re-anchored in-file on the new paid pieces).  What LANDED is the
+reduction's ENGINE, thirteen free-standing theorems, all axiom-clean
+[propext, Quot.sound] (no sorry anywhere in them), all in
+TwinSwapCompletion.lean:
+
+**The conjugation kit** (the exchange-image analysis, state-level, no WF):
+- `canSitOn_self` (:2738) — the self-fit's rank arithmetic (the receiver
+  of `canSitOn_antisymm`); the corner's own-cell landings die on it.
+- `exchangeTwinCargo_isVis` (:2744) — the seat swap preserves every
+  card's visibility (`bottomOf` commutes with the base swap).
+- `exchangeTwinCargo_aboveOf_mate_self` (:2759) — in the image the mate
+  sits only at its own cell, so the run above it is the ONE-STEP
+  SELF-CYCLE `[H]`: the image's `pilePile`-onto-the-mate self-landing
+  guards pass whenever the host is not the mate.
+- `canSitOn_ne_of_fits_mate` (:2783) — a fitting host of the mate is
+  never the mate.
+- `exchangeTwinCargo_id_of_bare_pair` (:2999) — at a state whose two
+  twin cells read `none`, the exchange is the identity (the merge
+  corollary's closer).
+
+**The run audits (the plan's step (2), now COMPLETE)**:
+- `sweep_covered_corner_L_tableau` (:2803) — WF pins the covered twin to
+  §12.1's classes (the edge clause's base condition: hidden boundary or
+  placed; the fit clause dies on the shared rung).
+- `sweep_covered_corner_wins_stack_L` (:2823) — every winning line
+  STACKS the covered twin (§12.1's extraction at the corner).
+- `covered_cell_after_move` (:2839) — one step leaves the covered cell
+  still-mate-or-empty (attaches only write free cells; the detach
+  kinds empty exactly the moved card's own base).
+- `exists_covered_first_clearing` (:2928) + `sweep_covered_corner_first_clearing`
+  (:2967) — the first clearing moment EXISTS and is the MATE's own move
+  (composed with the PAID keystone `vacated_covered_cell_imp_mate_move`).
+
+**The dodge convergence (the reduction's (3), its engine)**:
+- `covered_dodge_converges` (:3039) — at the covered corner, the mate's
+  dodge `pilePile H b` fires in the EXCHANGE IMAGE TOO (guards: the
+  free/fit/king/vis guards transfer — `exchangeTwinCargo_isVis` and the
+  state-free fits; the self-landing run check reads the image's
+  self-cycle run), and the image's result is the source's result
+  EXCHANGED AT THE MATE: `(S.exchangeTwinCargo L).apply (pilePile H b)
+  = some (S₁.exchangeTwinCargo H)` — the cross identification (the
+  covering cargo IS the twin, so the post-dodge two-cell swap is the
+  exchange at `H`).  The dodge base is off both twin cells (derived:
+  the covered cell is occupied; `canSitOn_self` kills the own-cell).
+- `covered_dodge_merges_clean` (:3182) — at the CLEAN corner (no rider on
+  the mate) the two results are LITERALLY EQUAL: the threads merge.
+- `sweep_covered_corner_dodge_first_forward` (:3229) — the π₁ = []
+  instance CLOSED: a winning line whose FIRST move is the mate's dodge
+  transfers verbatim to the image (the image plays the same dodge,
+  lands on the source's post-dodge state, wins with the same tail).
+
+THE RESIDUE (the pin's in-file plan re-anchored, three named pieces):
+(i) the π₁ pre-dodge replay — per-kind mirrors for the prefix before the
+first clearing (riders-on-the-mate landings relabel to landings on `L`
+by the twin-blind fit `canSitOn_swapTwin_right`; the `L`-hidden boundary
+and the deal-adjacent rider corners are the honest sub-classes);
+(ii) the `pileStack H` clearing — the mate founds directly; the image's
+thread breaks to the one-rung-behind parked shape; the bridge is the
+DEFERRED-UNPARK construction (the `p`-moment hijack at the crossed-`(h+1)`
+host's seated moments) or a witness-shaped obstruction — refute-first
+this sub-claim before forcing (a deckStack-founded pair of crossed hosts
+is the candidate corner);
+(iii) the reverse leg's mirror conditions (the image's plays may stack
+`L` or land on `L` while the mate is parked — the dual of (ii); the
+dodge-first instance's converse already holds at the π₁-less shape since
+the image's OWN mate moves are all dodges while parked).
+
+Build: `lake build Klondike Witnesses` green (67 jobs, macro-game HEAD
+7121529); census pinned OK (11 total, TwinSwapCompletion 1, zero
+bullets).  No new sorry introduced; no refuted constant touched.

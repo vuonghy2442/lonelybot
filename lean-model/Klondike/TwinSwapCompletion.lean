@@ -2723,35 +2723,562 @@ theorem vacated_covered_cell_imp_mate_move {st s' : State} {m : Move} {L H : Car
             Board.detach_topOf_ne _ _ _ (Ne.symm hb), htop] at hcon
           exact absurd hcon (by simp)
 
+/-! ### The exchange-conjugation identities (wave 20)
+
+The safety's reduction runs the covered corner and its exchange image
+as TWO THREADS of one play, and the threads' shared engine is a small
+kit of per-card conjugation identities for `exchangeTwinCargo`: the
+visibility preservation (the swapped cells re-seat their occupants), and
+the self-cover corner's run structure — in the exchange image the mate
+sits only at its own cell, so the run above it is the one-step
+self-cycle.  These are state-level facts, no WF consumed. -/
+
+/-- A card never fits onto itself (the rank arithmetic of
+`canSitOn` at the shared rung — the receiver of the antisymmetry law). -/
+theorem canSitOn_self {c : Card} : canSitOn c c ≠ true := fun h =>
+  canSitOn_antisymm h h
+
+/-- The seat exchange preserves every card's VISIBILITY: `bottomOf`
+commutes with the base swap (an `Option.map`), so a card is seated in
+the image exactly when it was seated in the source. -/
+theorem exchangeTwinCargo_isVis {S : State} {t d : Card} :
+    (S.exchangeTwinCargo t).isVis d = S.isVis d := by
+  show ((S.board.exchangeTwin t).bottomOf d).isSome = (S.board.bottomOf d).isSome
+  rw [Board.bottomOf_exchangeTwin]
+  cases S.board.bottomOf d with
+  | none => rfl
+  | some b => simp
+
+/-- **In the exchange image the mate's own run is the self-cycle
+alone**: the image's run above the mate `H` reads the mate at its own
+cell (the raw seat swap put it there — the covered cell renames to
+`Sum.inr H`), then stops on the accumulator check.  Consequence below:
+no card other than `H` itself is ever IN the image's run above `H`, so
+the self-landing guard of any `pilePile` onto the image's mate passes
+whenever its host is not the mate. -/
+theorem exchangeTwinCargo_aboveOf_mate_self {S : State} {L H : Card}
+    (htwin : H = L.flipSuit)
+    (hcover : S.board.topOf (Sum.inr L) = some H) :
+    ((S.exchangeTwinCargo L).board.aboveOf H) = [H] := by
+  have hread : (S.board.exchangeTwin L).topOf (Sum.inr H) = some H := by
+    rw [Board.exchangeTwin_topOf]
+    show S.board.topOf (Sum.inr (Card.swapTwin L H)) = some H
+    rw [show Card.swapTwin L H = L from by rw [htwin]; exact Card.swapTwin_self_right L]
+    exact hcover
+  -- once the mate is in the accumulator, every further step stops
+  have main : ∀ (n : Nat) (acc : List Card), acc.contains H = true →
+      Board.aboveOf.go (S.board.exchangeTwin L) (n + 1) (Sum.inr H) acc = acc := by
+    intro n acc hc
+    rw [aboveOf_go_succ, hread]
+    dsimp only
+    rw [ite_eq_left hc]
+  show Board.aboveOf.go (S.board.exchangeTwin L) (51 + 1) (Sum.inr H) ([] : List Card) = [H]
+  rw [aboveOf_go_succ, hread]
+  dsimp only
+  rw [ite_eq_right (by simp)]
+  exact main 50 [H] (by simp)
+
+/-- The self-cover exclusion: a card fitting on the mate is never the
+mate itself (the self-fit's rank arithmetic). -/
+theorem canSitOn_ne_of_fits_mate {H d : Card}
+    (hfit : canSitOn H d = true) : d ≠ H := by
+  obtain ⟨hrk, -⟩ := (canSitOn_eq H d).mp hfit
+  intro hcon
+  rw [hcon] at hrk
+  omega
+
+/-! ### The run audits at the covered corner (wave 20)
+
+Plan (2)'s remaining half: the §12.1 extraction at the corner (every
+winning line STACKS the covered twin `L`), and the first-clearing audit
+(the moment the covered cell `Sum.inr L` first reads `none` is the MATE's
+own departure).  Both are consumed by the reduction below; both are
+free-standing. -/
+
+/-- **WF pins the covered twin to the tableau classes**: the cover edge
+at `Sum.inr L` must be justified by `board_edges`, and its two clauses
+put `L` in §12.1's classes — the buried-base clause's base condition
+(`L` is some pile's hidden boundary, or `L` is itself placed), or the
+fitting clause (which also demands `L` placed). -/
+theorem sweep_covered_corner_L_tableau {st : State} {L H : Card}
+    (hwf : st.WF) (htwin : H = L.flipSuit)
+    (hcover : st.board.topOf (Sum.inr L) = some H) :
+    st.isVis L = true ∨ ∃ a, L ∈ st.hidden a := by
+  have hedge := hwf.board_edges (Sum.inr L) H hcover
+  rcases hedge.2 with hbur | ⟨hplaced, hfit⟩
+  · rcases hbur with ⟨a, t, rest, hpiles, hbase⟩
+    rcases hbase with ⟨a', htop⟩ | hvis
+    · exact Or.inr ⟨a', mem_of_getLast htop⟩
+    · exact Or.inl hvis
+  · exfalso
+    obtain ⟨hrk, -⟩ := (canSitOn_eq H L).mp hfit
+    have hL : L.rank.toIdx = H.rank.toIdx := by
+      rw [htwin, Card.flipSuit_rank]
+    omega
+
+/-- **The run audit (a): every winning play from the covered corner
+STACKS the covered twin** — `L` is a tableau card at WF (the lemma
+above), so §12.1's extraction applies.  The `pileStack L` guard reads
+the covered cell empty, which is the first-clearing audit's anchor. -/
+theorem sweep_covered_corner_wins_stack_L {st : State} {L H : Card} {S : State}
+    {play : List Move}
+    (hwf : st.WF) (htwin : H = L.flipSuit)
+    (hcover : st.board.topOf (Sum.inr L) = some H)
+    (hrun : st.run play = some S) (hwin : S.isWin = true) :
+    Move.pileStack L ∈ play := by
+  rcases sweep_covered_corner_L_tableau hwf htwin hcover with hvis | ⟨a, hin⟩
+  · exact State.pileStack_mem_of_win hwf hrun hwin hvis
+  · exact State.pileStack_mem_of_win_hidden hwf hrun hwin hin
+
+/-- One step at the covered corner: a move leaves the covered cell in
+exactly two shapes — still the mate, or empty.  The attach kinds only
+write free cells (the covered cell is occupied, so an attach onto it
+cannot fire), the board-inert kinds do not touch it, and the detach
+kinds write exactly the moved card's own base — so the covered cell
+empties only when its occupant IS the moved card. -/
+theorem covered_cell_after_move {st st' : State} {m : Move} {L H : Card}
+    (happly : st.apply m = some st')
+    (hcover : st.board.topOf (Sum.inr L) = some H) :
+    st'.board.topOf (Sum.inr L) = some H ∨ st'.board.topOf (Sum.inr L) = none := by
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at happly
+      obtain rfl := happly
+      exact Or.inl hcover
+  | reveal a =>
+      rw [apply_reveal_iff] at happly
+      obtain ⟨r, bd, -, -, hatt, rfl⟩ := happly
+      have hf : st.board.topOf (st.hiddenBase a) = none := attach_frees hatt
+      by_cases hb : st.hiddenBase a = Sum.inr L
+      · rw [hb] at hf
+        rw [hf] at hcover
+        exact absurd hcover (by simp)
+      · refine Or.inl ?_
+        show bd.topOf (Sum.inr L) = some H
+        rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb)]
+        exact hcover
+  | deckPile X b =>
+      rw [apply_deckPile_iff] at happly
+      obtain ⟨-, -, bd, hatt, rfl⟩ := happly
+      have hf : st.board.topOf b = none := attach_frees hatt
+      by_cases hb : b = Sum.inr L
+      · rw [hb] at hf
+        rw [hf] at hcover
+        exact absurd hcover (by simp)
+      · refine Or.inl ?_
+        show bd.topOf (Sum.inr L) = some H
+        rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb)]
+        exact hcover
+  | deckStack c =>
+      rw [apply_deckStack_iff] at happly
+      obtain ⟨-, -, rfl⟩ := happly
+      exact Or.inl hcover
+  | pileStack c =>
+      rw [apply_pileStack_iff] at happly
+      obtain ⟨-, b₀, -, -, rfl⟩ := happly
+      by_cases hb : b₀ = Sum.inr L
+      · refine Or.inr ?_
+        show (st.board.detach b₀).topOf (Sum.inr L) = none
+        rw [hb, Board.detach_topOf]
+      · refine Or.inl ?_
+        show (st.board.detach b₀).topOf (Sum.inr L) = some H
+        rw [Board.detach_topOf_ne _ _ _ (Ne.symm hb)]
+        exact hcover
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at happly
+      obtain ⟨-, -, bd, hatt, rfl⟩ := happly
+      have hf : st.board.topOf b = none := attach_frees hatt
+      by_cases hb : b = Sum.inr L
+      · rw [hb] at hf
+        rw [hf] at hcover
+        exact absurd hcover (by simp)
+      · refine Or.inl ?_
+        show bd.topOf (Sum.inr L) = some H
+        rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb)]
+        exact hcover
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at happly
+      obtain ⟨b', hb', hne, hcmr, bd, hatt, rfl⟩ := happly
+      have hf : (st.board.detach b').topOf b = none := attach_frees hatt
+      by_cases hb' : b' = Sum.inr L
+      · have hcb : Sum.inr L ≠ b := by rw [hb'] at hne; exact hne
+        have hstep : (st.board.detach b').topOf (Sum.inr L) = none := by
+          rw [hb', Board.detach_topOf]
+        refine Or.inr ?_
+        show bd.topOf (Sum.inr L) = none
+        rw [Board.attach_topOf_ne _ _ _ hatt hcb]
+        exact hstep
+      · by_cases hbb : b = Sum.inr L
+        · rw [hbb] at hf
+          rw [Board.detach_topOf_ne _ _ _ (Ne.symm hb')] at hf
+          rw [hcover] at hf
+          exact absurd hf (by simp)
+        · refine Or.inl ?_
+          show bd.topOf (Sum.inr L) = some H
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hbb),
+            Board.detach_topOf_ne _ _ _ (Ne.symm hb')]
+          exact hcover
+
+/-- **The first-clearing audit**: if a play from the covered corner
+reaches a state where the covered cell reads `none`, then the play
+factors as `π₁ ++ m :: π₂` where the pre-state still seats the mate and
+`m` vacates the cell — the first such moment exists, and the mate never
+left the cell before it (a cell changes occupant only through an empty
+intermediate, the step lemma above). -/
+theorem exists_covered_first_clearing {L H : Card} :
+    ∀ (play : List Move) (st S : State),
+    st.board.topOf (Sum.inr L) = some H →
+    st.run play = some S →
+    S.board.topOf (Sum.inr L) = none →
+    ∃ (π₁ : List Move) (m : Move) (π₂ : List Move) (S₀ S₁ : State),
+      play = π₁ ++ m :: π₂ ∧
+      st.run π₁ = some S₀ ∧
+      S₀.board.topOf (Sum.inr L) = some H ∧
+      S₀.apply m = some S₁ ∧
+      S₁.board.topOf (Sum.inr L) = none := by
+  intro play
+  induction play with
+  | nil =>
+      intro st S hcover hrun hend
+      obtain rfl : st = S := run_nil_elim hrun
+      rw [hcover] at hend
+      exact absurd hend (by simp)
+  | cons m ms ih =>
+      intro st S hcover hrun hend
+      obtain ⟨S₁, hm, hrest⟩ := run_cons_elim hrun
+      rcases covered_cell_after_move hm hcover with hkeep | hclear
+      · obtain ⟨π₁, m', π₂, S₀, S₁', hfact, hrun₁, hcover₀, hap, hclear₁⟩ :=
+          ih S₁ S hkeep hrest hend
+        refine ⟨m :: π₁, m', π₂, S₀, S₁', ?_, ?_, hcover₀, hap, hclear₁⟩
+        · exact congrArg (fun l => m :: l) hfact
+        · show (match st.apply m with
+              | some st' => st'.run π₁
+              | none => none) = some S₀
+          rw [hm]
+          exact hrun₁
+      · exact ⟨[], m, ms, st, S₁, rfl, rfl, hcover, hm, hclear⟩
+
+/-- **The first clearing is the mate's own move** — the audit composed
+with the dislodge-shape keystone: the vacating move carries the mate's
+own card (`pilePile H b` or `pileStack H`).  This is the plan's (2),
+complete: a winning line's first clearing of the covered seat is a MATE
+move, and the moment exists whenever the line stacks `L` (§12.1's
+extraction supplies the none-reading anchor state). -/
+theorem sweep_covered_corner_first_clearing {st S : State} {L H : Card}
+    {play : List Move}
+    (hcover : st.board.topOf (Sum.inr L) = some H)
+    (hrun : st.run play = some S)
+    (hend : S.board.topOf (Sum.inr L) = none) :
+    ∃ (π₁ : List Move) (m : Move) (π₂ : List Move) (S₀ S₁ : State) (b : Base),
+      play = π₁ ++ m :: π₂ ∧
+      st.run π₁ = some S₀ ∧
+      S₀.board.topOf (Sum.inr L) = some H ∧
+      S₀.apply m = some S₁ ∧
+      S₁.board.topOf (Sum.inr L) = none ∧
+      (m = Move.pilePile H b ∨ m = Move.pileStack H) := by
+  obtain ⟨π₁, m, π₂, S₀, S₁, hfact, hrun₁, hcover₀, hap, hclear₁⟩ :=
+    exists_covered_first_clearing play st S hcover hrun hend
+  have hten : S₀.board.bottomOf H = some (Sum.inr L) :=
+    (Board.bottomOf_eq S₀.board H (Sum.inr L)).mpr hcover₀
+  obtain ⟨b, hmate⟩ := vacated_covered_cell_imp_mate_move hap hten hclear₁
+  exact ⟨π₁, m, π₂, S₀, S₁, b, hfact, hrun₁, hcover₀, hap, hclear₁, hmate⟩
+
+/-! ### The mate's dodge: the two threads' convergence (wave 20)
+
+The exchange image's dislodge counterpart of the source's mate-dodge:
+the SAME `pilePile H b` fires in the image (the mate leaves its parked
+cell for the same base), and the two results stand in the EXCHANGE
+relation at the MATE — the cross-identification (the covering cargo of
+the corner IS the twin itself, so the post-dodge seat-swap is the
+exchange at `H`).  At the clean corner (no rider on the mate) the two
+results are literally EQUAL: the threads merge, and everything after
+the merge is shared. -/
+
+/-- At a state whose two twin cells read `none`, the exchange is the
+identity (the swap swaps two empty cells). -/
+theorem exchangeTwinCargo_id_of_bare_pair {S : State} {t : Card}
+    (hb : S.board.topOf (Sum.inr t) = none)
+    (hb' : S.board.topOf (Sum.inr t.flipSuit) = none) :
+    S.exchangeTwinCargo t = S := by
+  apply state_ext
+  · rfl
+  · apply Board.ext_topOf
+    funext b
+    rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf]
+    by_cases hbl : b = Sum.inr t
+    · rw [hbl]
+      show S.board.topOf (Sum.inr (Card.swapTwin t t)) = S.board.topOf (Sum.inr t)
+      rw [Card.swapTwin_self_left, hb', hb]
+    · by_cases hbr : b = Sum.inr t.flipSuit
+      · rw [hbr]
+        show S.board.topOf (Sum.inr (Card.swapTwin t t.flipSuit)) =
+          S.board.topOf (Sum.inr t.flipSuit)
+        rw [Card.swapTwin_self_right, hb, hb']
+      · rw [Base.swapTwin_eq_self hbl hbr]
+  · rfl
+  · rfl
+  · rfl
+  · rfl
+
+/-- **The mate's dodge converges the threads** (the reduction's engine,
+wave 20): at the covered corner, if the mate's dodge `pilePile H b`
+fires in the source, then the SAME dodge fires in the exchange image —
+the mate leaves its parked cell for the same base — and the image's
+result stands in the EXCHANGE relation at the MATE: the cross
+identification.  The covering cargo of the corner IS the twin itself,
+so the two-thread consequence of the dodge is the seat swap of the two
+twin cells read at `H` (`S₁.exchangeTwinCargo H`).
+
+Guard transfer: the fit/rank/king/visibility guards are state-free or
+preserved by `exchangeTwinCargo_isVis`; the self-landing run guard
+reads the image's run above the mate, which is the self-cycle alone
+(`exchangeTwinCargo_aboveOf_mate_self`).  The dodge base is off both
+twin cells (the covered cell is occupied, and the self-fit
+`canSitOn H H` is false), so the cells the dodge writes agree between
+the threads. -/
+theorem covered_dodge_converges {S : State} {L H : Card} {b : Base} {S₁ : State}
+    (htwin : H = L.flipSuit)
+    (hcover : S.board.topOf (Sum.inr L) = some H)
+    (hdodge : S.apply (Move.pilePile H b) = some S₁) :
+    (S.exchangeTwinCargo L).apply (Move.pilePile H b) = some (S₁.exchangeTwinCargo H) := by
+  have hHL : L = H.flipSuit := by rw [htwin, Card.flipSuit_flipSuit]
+  rw [apply_pilePile_iff] at hdodge
+  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, hshape⟩ := hdodge
+  have hb₀L : b₀ = Sum.inr L := by
+    have h₁ : S.board.topOf b₀ = some H := (Board.bottomOf_eq S.board H b₀).mp hb₀
+    exact S.board.inj b₀ (Sum.inr L) H h₁ hcover
+  subst hb₀L
+  -- the dodge base is off both twin cells
+  have hbL : b ≠ Sum.inr L := fun h => hne h.symm
+  have hbH : b ≠ Sum.inr H := by
+    intro hcon
+    cases b with
+    | inl a => exact absurd hcon (by simp)
+    | inr d =>
+        have hcp : S.canPlace H (Sum.inr d) = true := (canMoveRun_inr_iff.mp hcmr).1
+        have hfit := (canPlace_inr_iff.mp hcp).2.2
+        rw [Sum.inr.inj hcon] at hfit
+        exact canSitOn_self hfit
+  have hbσL : b.swapTwin L = b := Base.swapTwin_eq_self hbL (by rw [← htwin]; exact hbH)
+  have hbσH : b.swapTwin H = b := Base.swapTwin_eq_self hbH (by rw [← hHL]; exact hbL)
+  -- the exchange image's mate seat: the mate sits at its own cell
+  have hread : (S.board.exchangeTwin L).topOf (Sum.inr H) = some H := by
+    rw [Board.exchangeTwin_topOf]
+    show S.board.topOf (Sum.inr (Card.swapTwin L H)) = some H
+    rw [show Card.swapTwin L H = L from by rw [htwin]; exact Card.swapTwin_self_right L]
+    exact hcover
+  -- the image's firing: bottomOf, the free-and-fit guards, the attach
+  have hbotT : (S.exchangeTwinCargo L).board.bottomOf H = some (Sum.inr H) := by
+    rw [State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin, hb₀]
+    show Option.map (fun x => Base.swapTwin L x) (some (Sum.inr L)) = some (Sum.inr H)
+    show some (Base.swapTwin L (Sum.inr L)) = some (Sum.inr H)
+    show some (Sum.inr (Card.swapTwin L L)) = some (Sum.inr H)
+    rw [Card.swapTwin_self_left, htwin]
+  have haboveT : ((S.exchangeTwinCargo L).board.aboveOf H) = [H] :=
+    exchangeTwinCargo_aboveOf_mate_self htwin hcover
+  have hreadL : (S.board.exchangeTwin L).topOf (Sum.inr L) = S.board.topOf (Sum.inr H) := by
+    rw [Board.exchangeTwin_topOf]
+    show S.board.topOf (Sum.inr (Card.swapTwin L L)) = S.board.topOf (Sum.inr H)
+    rw [Card.swapTwin_self_left, htwin]
+  have hLH : (Sum.inr L : Base) ≠ Sum.inr H := by
+    intro h
+    rw [Sum.inr.inj h] at htwin
+    exact Card.flipSuit_ne H htwin.symm
+  have hbHT : Sum.inr H ≠ b := fun h => hbH h.symm
+  -- the image's firing guards at `b`
+  have hcpS : S.canPlace H b = true := by
+    cases b with
+    | inl a => exact canMoveRun_inl_iff.mp hcmr
+    | inr d => exact (canMoveRun_inr_iff.mp hcmr).1
+  have hfreeT : (S.exchangeTwinCargo L).board.topOf b = none := by
+    rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hbσL]
+    exact topOf_of_canPlace hcpS
+  have hcmrT : (S.exchangeTwinCargo L).canMoveRun H b = true := by
+    cases b with
+    | inl a =>
+        obtain ⟨hfree, hking⟩ := canPlace_inl_iff.mp hcpS
+        refine (canMoveRun_inl_iff (st := S.exchangeTwinCargo L)).mpr ?_
+        refine (canPlace_inl_iff (st := S.exchangeTwinCargo L)).mpr ⟨?_, hking⟩
+        rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
+          show Base.swapTwin L (Sum.inl a) = Sum.inl a from rfl]
+        exact hfree
+    | inr d =>
+        obtain ⟨hfree, hvis, hfit⟩ := (canPlace_inr_iff).mp ((canMoveRun_inr_iff.mp hcmr).1)
+        have hdL : d ≠ L := by intro h; exact hbL (by rw [h])
+        have hdH : d ≠ H := canSitOn_ne_of_fits_mate hfit
+        have hzσ : Base.swapTwin L (Sum.inr d) = Sum.inr d := by
+          show Sum.inr (Card.swapTwin L d) = Sum.inr d
+          rw [Card.swapTwin_of_ne hdL (by rw [← htwin]; exact hdH)]
+        refine (canMoveRun_inr_iff (st := S.exchangeTwinCargo L)).mpr ⟨?_, ?_⟩
+        · refine (canPlace_inr_iff (st := S.exchangeTwinCargo L)).mpr ⟨?_, ?_, hfit⟩
+          · rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf, hzσ]
+            exact hfree
+          · rw [exchangeTwinCargo_isVis]
+            exact hvis
+        · rw [haboveT]
+          simp [hdH]
+  -- the image's attach and firing
+  have hfreeT' : ((S.exchangeTwinCargo L).board.detach (Sum.inr H)).topOf b = none := by
+    rw [Board.detach_topOf_ne _ _ _ hbH]
+    exact hfreeT
+  have hbotT' : ((S.exchangeTwinCargo L).board.detach (Sum.inr H)).bottomOf H = none :=
+    Board.bottomOf_detach_self hread
+  obtain ⟨bdT, hattT⟩ := Option.ne_none_iff_exists'.mp
+    ((Board.attach_eq_some_iff _ _ _).mpr ⟨hfreeT', hbotT'⟩)
+  have hneT : Sum.inr H ≠ b := fun h => hbH h.symm
+  have hfire : (S.exchangeTwinCargo L).apply (Move.pilePile H b)
+      = some { S.exchangeTwinCargo L with board := bdT } :=
+    apply_pilePile_iff.mpr ⟨Sum.inr H, hbotT, hneT, hcmrT, bdT, hattT, rfl⟩
+  subst hshape
+  rw [hfire]
+  refine congrArg some ?_
+  -- the cross identification: `bdT` is `bd` seat-swapped at `H`
+  apply state_ext
+  · rfl
+  · apply Board.ext_topOf
+    funext z
+    show bdT.topOf z = bd.topOf (Base.swapTwin H z)
+    have Sbd_off : ∀ z : Base, z ≠ b → z ≠ Sum.inr L →
+        bd.topOf z = S.board.topOf z := by
+      intro z hzb hzL
+      rw [Board.attach_topOf_ne _ _ _ hatt hzb, Board.detach_topOf_ne _ _ _ hzL]
+    have Tbd_off : ∀ z : Base, z ≠ b → z ≠ Sum.inr H →
+        bdT.topOf z = (S.board.exchangeTwin L).topOf z := by
+      intro z hzb hzH
+      rw [Board.attach_topOf_ne _ _ _ hattT hzb, Board.detach_topOf_ne _ _ _ hzH]
+      rfl
+    by_cases hzb : z = b
+    · rw [hzb, Board.attach_topOf _ _ _ hattT, hbσH]
+      exact (Board.attach_topOf _ _ _ hatt).symm
+    · by_cases hzL : z = Sum.inr L
+      · have hzσLH : Base.swapTwin H (Sum.inr L) = Sum.inr H := by
+          show Sum.inr (Card.swapTwin H L) = Sum.inr H
+          rw [show Card.swapTwin H L = H from by rw [hHL]; exact Card.swapTwin_self_right H]
+        rw [hzL, hzσLH, Tbd_off (Sum.inr L) hne hLH, hreadL,
+          Sbd_off (Sum.inr H) hbHT hLH.symm]
+      · by_cases hzH : z = Sum.inr H
+        · have hzσHH : Base.swapTwin H (Sum.inr H) = Sum.inr L := by
+            show Sum.inr (Card.swapTwin H H) = Sum.inr L
+            rw [Card.swapTwin_self_left, hHL]
+          rw [hzH, hzσHH, Board.attach_topOf_ne _ _ _ hattT hneT, Board.detach_topOf,
+            Board.attach_topOf_ne _ _ _ hatt hne, Board.detach_topOf]
+        · rw [Tbd_off z hzb hzH, Board.exchangeTwin_topOf]
+          rw [show Base.swapTwin L z = z from
+              Base.swapTwin_eq_self hzL (by rw [← htwin]; exact hzH),
+            show Base.swapTwin H z = z from
+              Base.swapTwin_eq_self hzH (by rw [← hHL]; exact hzL)]
+          rw [Sbd_off z hzb hzL]
+  · rfl
+  · rfl
+  · rfl
+  · rfl
+
+/-- **The clean-corner corollary: the two threads MERGE.**  With no
+rider on the mate (`Sum.inr H` reads `none`), the dodge's two results are
+LITERALLY equal — the cross identification collapses by
+`exchangeTwinCargo_id_of_bare_pair` — so everything after the mate's
+departure is shared by the two readings: the covered corner and its
+exchange image are one game from the dislodge moment on. -/
+theorem covered_dodge_merges_clean {S : State} {L H : Card} {b : Base} {S₁ : State}
+    (htwin : H = L.flipSuit)
+    (hcover : S.board.topOf (Sum.inr L) = some H)
+    (hHseat : S.board.topOf (Sum.inr H) = none)
+    (hdodge : S.apply (Move.pilePile H b) = some S₁) :
+    (S.exchangeTwinCargo L).apply (Move.pilePile H b) = some S₁ := by
+  have h := covered_dodge_converges htwin hcover hdodge
+  rw [apply_pilePile_iff] at hdodge
+  obtain ⟨b₀, hb₀, hne, hcmr, bd, hatt, hshape⟩ := hdodge
+  have hb₀L : b₀ = Sum.inr L := by
+    have h₁ : S.board.topOf b₀ = some H := (Board.bottomOf_eq S.board H b₀).mp hb₀
+    exact S.board.inj b₀ (Sum.inr L) H h₁ hcover
+  subst hb₀L
+  subst hshape
+  have hHL : L = H.flipSuit := by rw [htwin, Card.flipSuit_flipSuit]
+  have hLH : (Sum.inr L : Base) ≠ Sum.inr H := by
+    intro h
+    rw [Sum.inr.inj h] at htwin
+    exact Card.flipSuit_ne H htwin.symm
+  have hbH : b ≠ Sum.inr H := by
+    intro hcon
+    cases b with
+    | inl a => exact absurd hcon (by simp)
+    | inr d =>
+        have hcp : S.canPlace H (Sum.inr d) = true := (canMoveRun_inr_iff.mp hcmr).1
+        have hfit := (canPlace_inr_iff.mp hcp).2.2
+        rw [Sum.inr.inj hcon] at hfit
+        exact canSitOn_self hfit
+  rw [h]
+  refine congrArg some (exchangeTwinCargo_id_of_bare_pair ?_ ?_)
+  · show bd.topOf (Sum.inr H) = none
+    rw [Board.attach_topOf_ne _ _ _ hatt (fun h => hbH h.symm),
+      Board.detach_topOf_ne _ _ _ (fun h => hLH h.symm)]
+    exact hHseat
+  · rw [← hHL]
+    show bd.topOf (Sum.inr L) = none
+    rw [Board.attach_topOf_ne _ _ _ hatt hne]
+    exact Board.detach_topOf _ _
+
+/-- **The dodge-first instance, PAID (the safety's first independently
+closed window)**: if a winning line exists whose FIRST move is the
+mate's own dodge, the exchange image is solvable too — the image plays
+the SAME dodge first, lands LITERALLY on the source's post-dodge state
+(`covered_dodge_merges_clean`), and wins with the source's own tail.
+The covered corner and its image are one game from the dislodge moment
+on; this is the assembly's π₁ = [] case — the class the general
+reduction (the π₁ pre-dodge replay) narrows to once the mirrors land. -/
+theorem sweep_covered_corner_dodge_first_forward {st S₁ : State} {L H : Card} {b : Base}
+    (htwin : H = L.flipSuit)
+    (hcover : st.board.topOf (Sum.inr L) = some H)
+    (hHseat : st.board.topOf (Sum.inr H) = none)
+    (hdodge : st.apply (Move.pilePile H b) = some S₁)
+    (hsol : S₁.solvableFrom) :
+    (st.exchangeTwinCargo L).solvableFrom := by
+  obtain ⟨π, w, hrun, hwin⟩ := hsol
+  have hmerge : (st.exchangeTwinCargo L).apply (Move.pilePile H b) = some S₁ :=
+    covered_dodge_merges_clean htwin hcover hHseat hdodge
+  refine ⟨Move.pilePile H b :: π, w, ?_, hwin⟩
+  show (match (st.exchangeTwinCargo L).apply (Move.pilePile H b) with
+    | some st' => st'.run π
+    | none => none) = some w
+  rw [hmerge]
+  exact hrun
+
 /-- **§6.5's semantic safety at the covered corner (planned)**: the
 covered corner and its exchange image — the two identity-resolutions
 of the ambiguous word — are solvability-equivalent, so the sweep's
 deterministic lowest-first choice can never UNIQUELY lose a win at
 the AMBIGUOUS corner.  Reduces to the both-occupied exchange family
 at the covered seat.
-PLAN (two steps PAID as free-standing theorems ahead of the
-reduction — see the paid-pieces subsection above): (1) **PAID** —
-`sweep_covered_corner_deal_adjacent` (:2613): WF forces the corner to
-be deal-adjacent, since the canSitOn clause dies on the mate's own
-rank arithmetic (`canSitOn H L` demands `toIdx H + 1 = toIdx L`,
-false at the shared rung). (2) **KEYSTONE PAID** —
-`vacated_covered_cell_imp_mate_move` (:2638): every clearing of the
-covered seat is a MATE move (`pilePile H _` dodge or `pileStack H`);
-the remaining half of (2) is the run-audit that a winning line STACKS
-`L` (the Theorems §12.1 extraction at this corner), which forces a
-first clearing moment — normalize there. (3) At the dislodged shape
-both twin cells are bare and the pair enters the PROVEN family:
-`twin_stack_order_exchange_catchup` (the same-state order exchange,
-the same-state half of the safety) and
-`solvable_cargoTwin_exchange_licensed`/`_bare`/`_of_visClean` (the
-both-occupied/bare iff) supply the equivalence; the exchange image is
-matched by `exchangeTwinCargo_flip_cover` above, so both readings
-reduce to the bare-pair exchange at the covered seat. (4) The residue
-inside (3) is the LICENSE-FIT at the dealt-adjacent cover while the
-mate still sits (the cargo of the covered seat is the twin itself —
-the w15fithole rider-detour class): its arrow is the w15-style
-exchange extension or the normalization in (2) applied BEFORE the
-exchange; pick by which corpus corner the audit finds. -/
+PLAN RE-ANCHORED (wave 20, this session; three named pieces PAID below
+the original (1)/(2), plus the dodge convergence engine): (1) **PAID**
+`sweep_covered_corner_deal_adjacent` (:2613). (2) **KEYSTONE PAID**
+`vacated_covered_cell_imp_mate_move` (:2638), and its run-audit
+remainder is NOW PAID TOO: `sweep_covered_corner_wins_stack_L` +
+`sweep_covered_corner_first_clearing` — every winning line stacks the
+covered twin (§12.1 at the corner via `sweep_covered_corner_L_tableau`),
+so a first clearing of the covered cell exists and is the mate's own
+move. (3) **THE DODGE CONVERGENCE, PAID** — `covered_dodge_converges` /
+`covered_dodge_merges_clean`: at the mate-DODGE clearing the image
+plays the same dodge and the two threads MERGE (clean) or stand in the
+exchange-at-`H` relation (with riders, via `exchangeTwinCargo_id_of_bare_pair`
+and the conjugation kit `exchangeTwinCargo_isVis` /
+`exchangeTwinCargo_aboveOf_mate_self` / `canSitOn_self`); the π₁ = []
+instance is CLOSED as `sweep_covered_corner_dodge_first_forward`. THE
+REMAINING RESIDUE, three precisely-named pieces: (i) **the π₁ pre-dodge
+replay** — the prefix before the first clearing must mirror into the
+image (per-kind mirrors; the rider-on-mate landings relabel to landings
+on `L` by the twin-blind fit `canSitOn_swapTwin_right`; the
+`L`-hidden boundary and the deal-adjacent rider corners are the honest
+sub-classes); (ii) **the `pileStack H` clearing** — the mate founds
+directly, the covered thread breaks to the one-rung-behind parked
+thread; its bridge needs the deferred-unpark construction (the
+`p`-moment hijack: the crossed-`(h+1)` host's seated moments mirror,
+so the image unparks there — or a witness-shaped obstruction); (iii)
+**the reverse leg's mirror conditions** — the image-side plays may
+stack `L` or land on `L` while the mate is parked (`exchangeTwinCargo_flip_cover`
+identifies the cells), the dual of (ii); both reduce to the same
+dodge-at-some-moment shape. Every sorry carries this plan; the census
+pin stays here alone. -/
 theorem State.sweep_covered_corner_safety {st : State} {L H : Card}
     (hwf : st.WF)
     (htwin : H = L.flipSuit)
