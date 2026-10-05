@@ -1256,3 +1256,55 @@ open (the corpus's weak corners are dealt-reachable — the seed-26
 family), so their wave-20 proofs carry content; the fences,
 the per-pillar table, and the tickets the verdicts enable live in
 FARM.md's wave-19B section and the probe file's docstring.
+
+### §9 (wave-21) The pile transposition Π: pristine content-collapses, reachable survives — the position fibration
+
+This addendum appends the wave-21 result to §8's reachable-corner
+(anchored-head route) discussion.  The formal machinery is
+`Klondike/PileSwap.lean` (the position analogue of the twin/suit
+fibration): permuting whole tableau piles — visible runs, hidden
+stacks (the deal slices travel with the depths), and every anchor
+seat — is an involutive, WF-soft action commuting with the engine
+(`apply_swapPiles`), so solvability is invariant
+(`solvable_swapPiles_iff`, state-universal, no WF premise).  The
+witness cash-in is `witnesses/PileSwapConsequences.lean`:
+
+* **The pristine collapse** (`KingAnchor.pileSwap_wSucc_washed`,
+  `KingAnchor.pileSwap_all_landings`): the seven closure-separated
+  anchor landings of §8's pristine board are ONE solvable future
+  class up to Π — transposing `wSucc a₁` by `a₁ ↔ a₂` and washing
+  the (inert, depths-zero) deal back *is* `wSucc a₂`.  The wave-18
+  refutation stands literally (seven labeled classes); its content
+  is one class: the labeled state space strictly refines the
+  solvable-content quotient at this corner.
+* **The reachable survives** (`ReachCorner.sLand_swapRelated_iff`,
+  `ReachCorner.rState_survives`): at the dealt initial corner the
+  hidden stacks are pairwise distinct (`ReachCorner.sHidden_distinct`,
+  decide-anchored), so no pile transposition relates two different
+  king landings — a swap-relation between same-deal states forces
+  the trivial transposition (`swapPiles_eq_sameDeal_forced_eq`,
+  because a WF deal's slices have pairwise distinct lengths).  The
+  wave-20 reachable refutations are content-real: the anchored-head
+  route's countermodels do not collapse under Π.
+* **The first-cut graded bound**
+  (`emptyPiles_kingLandings_collapse`): at any state whose piles are
+  all fully empty, the king landings on ANY two anchors are
+  equi-solvable — the k vacant anchors form one swap-class, so the
+  closure-separated king futures bounded by swap-classes are at
+  most ONE up to content, not k.  The graded refinement's general
+  statement (k vacant anchors ≤ m content-classes of vacant
+  anchors) is recorded as the next cut's shape.
+* **The WF finding** (`swapPiles_dealWF_blocked`,
+  `State.wfsoft_swapPiles_iff`): `Deal.WF`'s shape clause is pinned
+  to the seven slots (distinct sizes), so NO nontrivial pile
+  transposition preserves standard-deal WF — the swapped state is a
+  coherent game position (the equivalence holds without WF), but not
+  a standard deal; the ten non-deal conjuncts transfer both ways,
+  and the transposed flatMap distinctness is this wave's open pin
+  (no consumer needs it).
+
+The pristine `wState` corner and the reachable `rState` corner
+(SuccLabeledWitness) are the two pure instances of the graded
+phenomenon: identical anchors are freely permutable when every pile
+is fully empty; distinguishable hidden content blocks Π and keeps
+the anchored-head landings content-real.

@@ -28,3 +28,17 @@ import Klondike.Frame
 import Klondike.TwinSwapCompletion
 import Klondike.Tactics
 import Klondike.C2Streamlined
+import Klondike.PileSwap
+
+/-!
+# The pile swap — the position-level symmetry Π (wave-21)
+
+`Klondike/PileSwap.lean` is the position analogue of the twin/suit
+fibration: permuting whole tableau piles (visible runs, hidden
+stacks, anchor seats) preserves solvability (`solvable_swapPiles_iff`),
+state-universally.  Its pristine degeneracy (`State.depthsZero`,
+`State.solvableFrom_setDeal_iff_of_depthsZero`) and same-deal
+obstruction (`swapPiles_eq_sameDeal_forced_eq`) carry the wave-21
+witnesses; the deal-shape WF finding is recorded in the file's
+header.  Witness: `witnesses/PileSwapConsequences.lean`.
+-/

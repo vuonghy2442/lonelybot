@@ -2861,3 +2861,51 @@ REUSABLE SHARDS (this file, importable as `Witnesses.KingAnchorReachProbe` via t
   first); the wave-20 boss task's "DONE" list (per-universal theorem
   names + file:line) is in FARM.md's wave-20 row; sub-100ms retries never
   hit the .olean.private contention this session.
+
+## wave 21 note (2026-10-05, farm-pile-swap-symmetry session)
+
+Sub-session (this card only: Klondike/PileSwap.lean + witnesses/PileSwapConsequences.lean).
+Both new files are sorry-free/axiom-clean (pins: [propext, (Classical.choice,) Quot.sound]);
+census 11 unchanged.  FARM.md wave-21 row has the deliverable names; doc §9 is the
+cross-referenced addendum.  Base: fast-forward 197 commits to 7121529 first (worktree
+again started stale); one std::bad_alloc on cold build → plain retry per the card.
+
+ELABORATION TRAPS (add to the ledger):
+(6) DECIDABLE-INSTANCE FRAGILITY: ite_eq_left/right-pattern rw with ?meta INSTANCES pin to
+  the FIRST matched ite's instance when TWO same-spelled ites sit in one goal — the second
+  never rewrites ("pattern not found" while the display SHOWS it).  Fix: DOUBLE the rw
+  (rw [ite_eq_left h, ite_eq_left h]) so the second rw re-elaborates a fresh instance.  The
+  same fragility bites `show` that RESPELLS a folded condition (Base.swapBase (Sum.inl x)
+  vs the unfolded Sum.inl (Anchor.swap i j x)) — the kept goal carries the FOLDED instance,
+  so rewrites on the unfolded spelling fail "not type-correct under implicit transparency".
+  Escapes used: keep the FOLDED spelling everywhere and rw on it (Base.swaapBase_inl-style);
+  or go instance-free (attach_topOf/_ne + by_cases on the pre-ite facts — the
+  attach_empty_conj proof pattern).
+(7) match-ARM ORDER matters for writes: source defs whose arms are SOME-first
+  (applyPilePile's | some bd => ... | none => none) are NOT defeq to the conventional
+  | none | none | some | spelling in a `show` — the show DEF-ACCEPTS(δ iota) but the
+  later rfl/rw chains stall.  MIRROR the source arm order bit-for-bit in unfolding shows.
+(8) `cases h : e` SUBSTITUTES e in the goal but leaves the match UNREDUCED — after cases,
+  a fresh `show` (iota-reduced body built from the case facts) is the reliable next step;
+  `refine state_ext rfl...` on un-shown post-case arms fails on stale meta-instances.
+(9) Bridge-column rule BITES MULTI-LINE RECORDS IN TACTIC ARGUMENTS TOO (not only source
+  files): { x with f := v, ... } elaborated inside show/have must start its first field on
+  its own line at the anchor column — a first field on the `{ x with` line is a parse
+  error "unexpected '}'" that cascades into bogus type mismatches dozens of lines away.
+(10) `obtain ⟨bd0, hc⟩` after `cases hc : e with | some bd0` — the cases already abstracted
+  e INTO `some bd0` in the goal, so the ∃ goal is `some bd0 = some ?`; provide rfl, not hc.
+(11) state_ext takes SIX hypothesis args — a `refine state_ext rfl ?_ rfl ?_ rfl` (five)
+  leaves the drawStep eq as a leftover function and reports a bizarre partial-application
+  type error; count the slots (deal, board, heights, depths, stock, drawStep).
+(12) The interactively painless per-arm pattern for Option-guarded apply lemmas: outer
+  two-sided `show (match scrutinee with ...) = Option.map f (match scrutinee with ...)`,
+  rw both scrutinee-sidesonto the same spelling, `cases` the scrutinee (substitutes BOTH
+  sides), per-arm two-sided `show (if COND then X else Y) = Option.map f (if COND then X'
+  else Y')`, `by_cases COND`, DOUBLE ite rewrites, final rfl.  Long but mechanical; used
+  six times in State.apply_setDeal_eq_of_depthsZero with zero exotic tactics.
+
+OPEN PINS (recorded, unconsumed this wave): transposed flatMap noDupCards for Deal.WF
+(block-permutation argument — no consumer); the general graded bound (k vacant ≤ m
+content-classes) beyond the all-empty first cut; harness ticket for the orchestrator's
+SuccLabeledWitness track: an empirical rDeal-family print/multiset probe to pair with
+ReachCorner.sHidden_distinct (none run from here — no #eval).
