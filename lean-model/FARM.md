@@ -1643,3 +1643,89 @@ NEXT (tickets this verdict enables, in order):
 3. (wave-18's standing tickets 1-4 unchanged.)
 
 
+## Wave 20 (third lane) — Restriction completion: the initialReachableR
+infrastructure + fragment 1 of the sufficiency construction (landed
+2026-10-05, the restriction-completion farm session at macro-game
+HEAD de37861)
+
+Task A (the induction infrastructure) and Task B fragment 1 (the
+endgame construction) LANDED, both sorry-free; census unchanged at 12
+pinned (Restriction pinned 2 — the B2 rows untouched).
+
+**LANDED — Task A, the recurrence infrastructure (Restriction.lean):**
+
+- initialReachableR — the inductive presentation of dealt
+  reachability (the dealt initials, closed under one legal move);
+  no play data in the derivations — the shape every gate-proof
+  consumes;
+- initialReachableR_of_run / initialReachable_of_initialReachableR
+  / **initialReachableR_iff** [propext, Quot.sound] — the iff: the
+  recurrence presents every deposit (play folded constructor-by-
+  constructor via un_append/un_singleton) and every deposit
+  replays along the recurrence (list induction over un);
+- **invariant_of_initialReachableR / invariant_of_initialReachable**
+  [propext, Quot.sound] — **the generic combinator**: the campaign's
+  future reachability gates take invariant-preservation form
+  (I (initial d s) + per-step preservation ⇒ ∀ st, initialReachable
+  st → I st) — no gate ever re-proves a run-induction;
+- initialReachable_visClean REFIT onto the combinator (pattern
+  proof #1); un_visClean retained for non-initial run shapes;
+- **witnesses/ReachFences.lean** (new addendum) — pattern proof #2:
+  the wave-19B conservation fence re-derived through the combinator
+  (ccounted_of_initialReachable with WF riding along), the probe's
+  seat theorem and dead-corner reading re-attached unchanged.  The
+  per-file isolation rule held (NEW file; the probe untouched); the
+  addendum imports the probe, reusing its public ccounted-kit as
+  the per-step and seed lemmas.
+
+**LANDED — Task B fragment 1 (Klondike/Construction.lean, new):**
+
+- The draw-iteration kit at draw step 1: Cycle.iterDraw (+ self-
+  composition iterDraw_add, the within-pass advance iterDraw_lt,
+  the wrap excursion iterDraw_wrap through the pass end), the
+  posOf→getElem? value bridge, un_replicate_draw;
+- **ound_deckPile** [propext, Quot.sound] — the consume round:
+  from any cursor, pure draws bring the target card to the waste top
+  (advance, or: to the pass end, wrap, re-advance) and one deckPile
+  splices it out onto its base; the cursor always lands AT the
+  consumed position i — the fragment-1 cycle byte resolves itself
+  (the last card left sits at position 0, so the delivered cycle is
+  ⟨[], 0⟩ with no bookkeeping);
+- initial_seats — every pile's top dealt card (the *tail*) sits at
+  its initBase on the initial board (the probe's private fold
+  re-proved here; deprivatize ticket below);
+- **PristineEndgame** — the fragment-1 distillate I₀ with
+  per-conjunct provenance in the file header: deal.WF, WF, empty
+  cycle, drawStep 1, no reveals (depths = toIdx), no foundations
+  (heights = 0), tail seats kept, the edge catalogue (every edge
+  is a kept tail edge or a stock rider on a tail-or-rider card
+  base), every stock card seated.  iderSeat decodes it: every
+  stock card sits canSitOn-fitted one rank up (deal-adjacency is
+  unavailable to stock cards, so oard_edges forces the fit);
+- **rame_step / rame_tier / rame_ladder / the main theorem
+  PristineEndgame.initialReachable** [propext, Quot.sound] — the
+  construction: a FrameOK worklist invariant between the dealt
+  initial state and the target (current tops = the target's tops of
+  processed-or-tail cards; current cycle = exactly the unprocessed
+  stock), one consume round per stock card, in the
+  **rank-tier descent** (tier 12 first — a rider's base is a tail or
+  a one-rank-higher rider, so descending-rank processing makes every
+  deckPile legal; the schedule is stock.filter data, no choice).
+  All new lemmas axioms [propext, Quot.sound].
+
+**NEXT (tickets):**
+1. Fragment 2 (stockful): keep the cycle byte (the end-state deck
+   contents ≈ the target's), the batch constraints at draw step
+   s > 1, and the reveal/foundation channels (the evacuation
+   geometry — the launch precondition hidden-count(p) + 1 shapes);
+   the scaffolding (iterDraw, ound_deckPile, FrameOK) is
+   reusable as-is.
+2. Fragment 3: the assembled iff I ↔ initialReachable against the
+   full distilled I — needs fragments 1+2 plus the necessity forks
+   already proven in Restriction/probes.
+3. One-word orchestrator edit (standing from wave-19B): deprivatize
+   the probe's initialBoard_seats (my initial_seats becomes a
+   one-line cite; retire the ~120-line replica).
+4. B2's replay induction (Restriction rows, [H]): the combinator
+   now supplies the shape; ngine_replay_of_pilePile's in-file plan
+   stands.
