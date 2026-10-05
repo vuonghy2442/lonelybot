@@ -1,10 +1,11 @@
 # The proof farm — handoff document
 
-**Census: 11 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
-· Movability 1 · Restriction 2 · TwinExchange 1 · TwinQuotient 2;
-zero bullets; wave-12 merge, K1+K2 sessions 2026-10-05).  Pinned by
+**Census: 16 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
+· Movability 1 · C2Streamlined 5 · Restriction 2 · TwinExchange 1
+· TwinQuotient 2, TwinSwapCompletion 0; zero bullets;
+wave-12 + wave-17 merge, K1+K2+T+C2 sessions, 2026-10-05).  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 11 are
+any NEW sorry or the return of a refuted constant.  All 16 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
