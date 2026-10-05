@@ -2764,3 +2764,37 @@ REUSABLE SHARDS (this file, importable as `Witnesses.KingAnchorReachProbe` via t
   .olean.private machine-contention errors ~4 times - plain retry, never debug them; and budget the session's last 15% for
   FARM.md + FARM_MEMORY.md + the commit - the wave-18 report nearly went uncommitted again (machinery drafted in-tree > perfect
   proof in a crashed session).
+
+### wave-20 (TwinSwapCompletion: mid_access_of_noSeat PROVEN - the attic draft's reinstatement) - session notes for successors
+
+- THE BIG ONE: `State.mid_access_of_noSeat` is PROVEN, axiom-clean [propext, Classical.choice, Quot.sound] (TwinSwapCompletion:2503).
+  The wave-19 attic draft reinstated verbatim (splice at the pinned block; git rm attic/MidAccessDraft.lean per its own header) and
+  elaborated: ~44 error reports -> 0 in four passes.  The orchestrator licensed an initialReachable-gated fallback this wave; it was
+  NOT needed - the unconditional repaired statement went through.  The corpus half (do reached states' between-mids satisfy the
+  noSeat exclusions - or is it vacuous at the corpus?) is still §8's histogram ticket, orchestrator/harness scope.
+- THE WAVE-19 TRAP-1 HOIST IS WRONG AS WRITTEN: `have swit : State := { S with ... }` makes swit OPAQUE to unification - every
+  TwinReplayTrace slot then fails literal-projection (`swit.board.topOf beta` cannot reduce to `S.board.topOf beta`).  The right
+  hoist is `let swit : State := { ... }` (7 sites) - the let-value is zeta-visible and every literal projection reduces; `rw`/`show`
+  see through it.  Keep the `have`-form ONLY if you never project the state in a slot.
+- THIS LEAN BUILD REJECTS MULTI-LINE STRUCTURE INSTANCES, FULL STOP: `{ S with f := v,` (comma at end of line, next field indented)
+  is a PARSE error ("unexpected identifier; expected '}'" at the comma), everywhere - not just inside anonymous constructors.  Probe-
+  confirmed on a scratch file; single-line instances parse fine.  All 6 draft sites folded to one line each.
+- WALK-LEMMA SHAPE (aboveOf_twin_delta, the pattern for any fuel-induction through Board.aboveOf.go): after `rw [aboveOf_go_succ
+  S.board, aboveOf_go_succ S'.board, hseat-reads]`, the goal is a MATCH on `some c`/`none` on BOTH sides; `show` cannot smash match
+  scrutinees (defeq DOES reduce match-on-constructor, `show` flinched anyway in the dsimp-free draft) - `dsimp only` iota-reduces them
+  cleanly, THEN rw the ites.  `rfl` CANNOT close `A ∨ B` even when A is `rfl`: refine `Or.inl`/`Or.inr` FIRST (the draft's off-beta
+  arms forgot this - errors at the shows, not at the goal).  `cases n with | succ n' =>` REPLACES n by `n' + 1` in every show (unknown
+  identifier `n`); and the off-beta hcon-false arm does NOT refine at all - `exact ih (Sum.inr c) (c :: acc)` lands the whole IH-Or
+  into the goal-Or because the shapes agree literally.
+- REVEAL DECREMENTS THE SPECIFIC PILE: the corpus literal is `depths := fun x => if x = a' then S.depths a' - 1 else S.depths x`
+  (revealed ANCHOR in the then-branch, not the binder) - the draft's `S.depths x - 1` form is pointwise-equal but NOT defeq; rw
+  [hshape]-then-rfl only closes with the corpus form anchored (`depths_mono_move`'s reveal arm is the worked example; note its
+  by_cases arm then wants `rw [ite_eq_left h, h]` before omega).
+- `Board.bottomOf_eq bd c b : bd.bottomOf c = some b ↔ bd.topOf b = some c`: `.mp` goes bottomOf->topOf; going from a topOf-fact to
+  the bottomOf-fact is `.mpr` (the draft had .mp in pilePile's hzt - backwards).  `absurd` binds its SECOND argument at the NEGATION
+  of the FIRST'S orientation: `absurd (Option.some.inj h).symm hxb` - watch which side of the Ne the havoc sits on.
+- The `¬(X = true) -> X = false` finish in a Bool context: `Bool.not_eq_true` is UNKNOWN in this core (and `Bool.not_eq_true'` does
+  not fire); use `cases hhv : X with | false => rfl | true => exact absurd hhv hhc` - `cases h : e` substitutes only the GOAL's
+  occurrences, the hypothesis keeps `X` raw, so `absurd hhv hhc` closes the true arm.
+- ORCHESTRATION: mid_access's pin row is now a strikethrough-PROVEN row; sweep_covered_corner_safety is TwinSwapCompletion's LAST pin
+  (census 11, base 12).  Mex/engine histogram ask (landing-site audit) is NEXT 1.

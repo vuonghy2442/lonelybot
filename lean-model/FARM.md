@@ -1,7 +1,7 @@
 # The proof farm — handoff document
 
-**Census: 12 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
-· Movability 0 · C2Streamlined 0 · TwinSwapCompletion 2
+**Census: 11 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
+· Movability 0 · C2Streamlined 0 · TwinSwapCompletion 1
 · Restriction 2 · TwinExchange 1 · TwinQuotient 2; zero bullets;
 waves 12/17 base + all four wave-18 sessions + the wave-19 C2
 re-scope, 2026-10-05: §8.7 closed
@@ -20,9 +20,16 @@ under the root rung (the bound itself premise-free at zero-spend
 labelings — `c2_two_option_zeroSpend_rung`) and the raise-ray core
 PROVEN (the pacing-guard invariance, F2's deterministic raise, the
 corner's derived world, every stack-channel witness's forced
-same-suit rank-mate `pileStack`).  Pinned by
+same-suit rank-mate `pileStack`); and the wave-20
+midaccess-reinstatement session: `State.mid_access_of_noSeat` PROVEN
+(the repaired no-landing → haccess reduction at the covered seats —
+the wave-19 attic draft reinstated into TwinSwapCompletion.lean and
+elaborated to green, axiom-clean; the model half of §8's landing-site
+audit — the corpus histogram half remains the harness ticket),
+leaving TwinSwapCompletion pinned at `sweep_covered_corner_safety`
+alone.  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 12 are
+any NEW sorry or the return of a refuted constant.  All 11 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -1312,27 +1319,22 @@ zero sorry; file grew 620 → 1351 lines)**:
   (`stackPile_pileStack_return`), so excursion-shaped worry-backs
   lift out of any winning run — inside or beside the window.
 
-**PINNED (2 sorries, each with its one-paragraph plan in-file; census
-TwinSwapCompletion 0 → 2)**:
+**PINNED (1 sorry, its one-paragraph plan in-file; census
+TwinSwapCompletion 2 → 1)**:
 
-- `State.mid_access_of_noSeat` (TwinSwapCompletion:1443) — the
-  `haccess` DERIVATION at the no-landing premise, the model half of
-  item 3's engine-corpus audit: given the source's own mid plus the
-  per-seat exclusions (landing bases off β and off `Sum.inr t`),
-  the whole mid replays at the pre-firing state AND lands on the
-  source's successor.  Plan (in-file): the B→A mirror of the six
-  exchange steps; the genuinely new piece is the `pilePile`
-  walk-extension (`x ∈ aboveOf_A z → x ∈ aboveOf_B z ∨ x = t`, by the
-  `aboveOf_go` induction — the A-walk reads β, gains t, stops at the
-  bare seat); the reveal needs the state-dependent `hiddenBase`
-  exclusion.  The corpus half — which reached states' between-mids
-  satisfy the seat exclusions — is §8's audit (the histogram pull).
-- `State.sweep_covered_corner_safety` (TwinSwapCompletion:1533) —
+- ~~`State.mid_access_of_noSeat`~~ — **PROVEN (wave 20)**, axiom-clean
+  (`[propext, Classical.choice, Quot.sound]`): the repaired no-landing
+  → haccess derivation at the covered seats — the wave-19 attic draft
+  reinstated into TwinSwapCompletion.lean and elaborated to green
+  (TwinSwapCompletion:2503).  The corpus half — which reached states'
+  between-mids satisfy the repaired `noSeat` — remains §8's audit (the
+  histogram pull; see NEXT 1).
+- `State.sweep_covered_corner_safety` (TwinSwapCompletion:2627) —
   §6.5's semantic obligation AT the covered corner (item 4): the
   covered corner and its exchange image are solvability-equivalent, so
   the sweep's deterministic lowest-first pick never UNIQUELY loses a
   win at the ambiguous pair.  The reduction's IDENTIFICATION half is
-  PROVEN: `exchangeTwinCargo_flip_cover` (TwinSwapCompletion:1486) —
+  PROVEN: `exchangeTwinCargo_flip_cover` (TwinSwapCompletion:2580) —
   at the corner, `st.exchangeTwinCargo L` has exactly the flipped cell
   readings (the two identity-resolutions of the word are the two
   exchange-images; note the raw seat-swap rides the cover card's
@@ -1348,25 +1350,61 @@ TwinSwapCompletion 0 → 2)**:
   class).
 
 NEXT (tickets, in order):
-1. ~~The catch-up-first→between DEFERRAL at the mirror~~ — PAID
-   (wave 19; see the wave-19 row below).
-2. `State.mid_access_of_noSeat` — REPAIRED + DRAFTED (wave 19; the
-   statement was false as wave-18 pinned it — see the wave-19 row);
-   successor: reinstate `attic/MidAccessDraft.lean` into
-   TwinSwapCompletion.lean and finish the elaboration.  Then §8's
-   landing-site histogram pull (engine corpus: do between-mids ever
-   land on the twin seats?).
-3. `State.sweep_covered_corner_safety`'s plan: the deal-adjacent
+1. §8's landing-site histogram pull (the corpus half of the PROVEN
+   `mid_access_of_noSeat`, orchestrator/harness scope: do the reached
+   states' between-mids ever land on the twin seats — the repaired
+   `noSeat` exclusion set — or is the exclusion vacuous at the
+   corpus?).
+2. `State.sweep_covered_corner_safety`'s plan: the deal-adjacent
    license-fit (or dislodge-first normalization), reducing the
    §6.5 covered corner into the proven exchange family.
-4. Optional probe: a decide-anchored witness for the ON-PAIR shuttle
+3. Optional probe: a decide-anchored witness for the ON-PAIR shuttle
    corner (a `pileStack t'`/`deckStack t'` inside the mid is
    source-inconsistent — the second bracket's rung pin; a small
    `#eval` cast would document it).
-5. Optional: the swapTwin-WF preservation lemma (`st.WF →
+4. Optional: the swapTwin-WF preservation lemma (`st.WF →
    (st.swapTwin t).WF` — deal/stock relabeling + board conjugation),
    which would let the mixed iff stand on `st.WF` alone and drop
    `_back`'s mirror-side WF premise.
+
+### Wave-20 (2026-10-05, the midaccess-reinstatement session; file
+TwinSwapCompletion.lean at pin 1, census 11 GREEN)
+
+TARGET — `State.mid_access_of_noSeat`: **PROVEN, axiom-clean**
+(`[propext, Classical.choice, Quot.sound]`; the no-sorry
+alternative to wave 19's pin, FARM row :2503).  The wave-19 attic
+draft is reinstated into TwinSwapCompletion.lean and git-rm'd per its
+own landing plan; the shaped machinery — `TwinReplayTrace` (the
+pair-delta invariant), `twinReplayTrace_of_firing`, the seven B→A
+transfer mirrors, the `aboveOf_twin_delta` walk delta, the
+`deal_stable`/`depths_mono`/`heights_tSuit_stable` shape lemmas, and
+the `mid_access_chain` induction — now elaborates silhouette and
+all.  The from-draft distance was the elaboration polish the draft's
+header foresaw, in three families: (a) this Lean version rejects
+multi-line structure instances outright (6 one-line folds); (b) the
+draft's `have`-bound pair states were opaque to unification, so every
+literal-projection slot failed (7 sites; the states now ride as
+`let`-bound instances, the field projections reduce); (c) the local
+fixes the header listed plus their neighbors — the walk lemma's
+Or-refinement ordering (a `match`-on-constructor goal needs one
+`dsimp only` before the ite rewrites; `rfl` cannot close an Or), the
+corpus's reveal-decrement shape (`S.depths a'` in the then-branch),
+two `bottomOf_eq` orientations, a `rw [← hbase]` direction, the
+chain's nil-case intro off-by-one (the 6th hypothesis slot), the
+IH's `hno` needed restricting to the tail list in all seven succ
+arms, and the main assembly's `drawStep` slot wanted the dropped
+12th trace component (`hdsM`) rather than `rfl`.  The
+orchestrator's initialReachable-gated fallback was licensed this
+wave but NOT consumed: the unconditional repaired statement went
+through.  The engine-corpus half of the §8 audit (the landing-site
+histogram, whether the repaired `noSeat` exclusions are ever live at
+reached states) is the NEXT ticket, harness scope; witness C's
+rung-pin corner (TwinCompletionWitness:169) stays the on-record
+decide anchor.
+
+TO COME (same session): `State.sweep_covered_corner_safety` attacked
+per its in-file plan — see the row's tail after the session's second
+commit.
 
 ### Wave-19 (2026-10-05, the t-iff-complete session; file
 TwinSwapCompletion.lean at pin 2, census 12 GREEN)

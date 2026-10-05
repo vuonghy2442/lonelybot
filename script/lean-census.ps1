@@ -80,9 +80,13 @@ $baseline = @{
   # +wave-18 (the catchup-residue session, 2026-10-05; FARM.md wave-18 — the
   # L1/O3(ii) general mixed window + its iff LANDED, TwinSwapCompletion owned
   # in place; the two remaining are the named reductions with in-file plans):
-  'TwinSwapCompletion.lean' = 2  # State.mid_access_of_noSeat (the no-landing ->
-                                 #   haccess derivation at engine corpora — the
-                                 #   model half of the §8 audit),
+   'TwinSwapCompletion.lean' = 1  # wave-20 (midaccess-reinstatement session,
+                                 # 2026-10-05): State.mid_access_of_noSeat
+                                 # PROVEN ax-clean (the repaired no-landing ->
+                                 # haccess derivation, drafted wave 19 in the
+                                 # attic, reinstated + elaborated; depends on
+                                 # [propext, Classical.choice, Quot.sound]).
+                                 # Remaining:
                                  # State.sweep_covered_corner_safety (the §6.5
                                  #   covered-corner sweep-word safety — reduce to
                                  #   the both-occupied exchange family; the cell
