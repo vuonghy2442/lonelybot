@@ -2798,3 +2798,19 @@ REUSABLE SHARDS (this file, importable as `Witnesses.KingAnchorReachProbe` via t
   occurrences, the hypothesis keeps `X` raw, so `absurd hhv hhc` closes the true arm.
 - ORCHESTRATION: mid_access's pin row is now a strikethrough-PROVEN row; sweep_covered_corner_safety is TwinSwapCompletion's LAST pin
   (census 11, base 12).  Mex/engine histogram ask (landing-site audit) is NEXT 1.
+- SWEEP PAID PIECES + CELL-CASING RECIPE (wave 20's second batch): `sweep_covered_corner_deal_adjacent` + `vacated_covered_cell_imp_mate_move`
+  (TwinSwapCompletion:2613/:2638) land the safety plan's (1) + (2)-keystone.  The per-move-kind CELL-CHANGE casing (the
+  vacated-covered-cell analysis) rides three facts, reuse them verbatim for any "which moves can change a given cell reading" audit:
+  attach-kinds (reveal/deckPile/stackPile) can only FILL free cells (`attach_frees`, TwinCollapse — IMPORT IT, it is NOT in TwinQuotient's
+  chain), board-inert kinds (draw/deckStack) preserve `board` verbatim, and the detach kinds empty exactly the moved card's own base — so a
+  vacated cell's tenant names the mover, and Equal tenants is `Option.some.inj` AFTER symm-matching the flipped orientation (the elaborator
+  fixes `Option.some.inj`'s binders from the GOAL orientation - `(Option.some.inj hc).symm`, not `Option.some.inj hc`).  In the by_cases
+  branches: `rw [hb] at hf` FIRST (substitute the cell into the frees-fact by hypothesis, never by pattern), then `rw [hf] at htop`, then
+  `by simp` on the resulting `none = some x`.
+- `rw [htwin, Card.flipSuit_rank]` (FORWARD) is the twin-rank alignment: `rw [← htwin]` on a goal mentioning `H.rank` alone does nothing -
+  `htwin : H = L.flipSuit` rewrites H-occurrences to the flipSuit-form, and `Card.flipSuit_rank : x.flipSuit.rank = x.rank` then closes.
+  For the rank contradiction itself: `canSitOn_eq`'s first conjunct (`toIdx H + 1 = toIdx L`) + `omega` after the alignment - no color
+  analysis needed.
+- `board_edges`'s inr-clause DOES rcases-split directly at a constructor scrutinee (`Sum.inr L`): the match iota-reduces under rcases, no
+  `simp only` prologue needed - `rcases (hwf.board_edges (Sum.inr L) H hcover).2 with hbur | ⟨-, hfit⟩` lands the buried-base ∃ (with the
+  deal-adjacency LIST SHAPE `piles a = t ++ L :: H :: rest` ready to re-export) or the canSitOn contra.

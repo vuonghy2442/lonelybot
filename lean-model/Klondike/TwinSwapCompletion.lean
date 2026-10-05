@@ -1,4 +1,5 @@
 import Klondike.TwinQuotient
+import Klondike.TwinCollapse
 
 /-!
 # Theorem T, completed slices — O1 (destination collapse) and O3 (the asymmetric boundary)
@@ -2595,23 +2596,150 @@ theorem exchangeTwinCargo_flip_cover {st : State} {L H : Card}
       rw [show Card.swapTwin L H = L from by rw [htwin]; exact Card.swapTwin_self_right L]
     rw [h, hcover]
 
+/-! ### The paid pieces (wave 20)
+
+The safety's plan steps (1) and (2) land as free-standing theorems
+ahead of the reduction itself, so the pin's residue is only the
+assembly (3) and the license-fit (4). -/
+
+/-- **The covered corner is deal-adjacent at WF (plan step (1), PAID)**:
+the covering mate's cover edge can never be justified by the `canSitOn`
+clause — its rank arithmetic (`toIdx H + 1 = toIdx L`) dies at the
+twin's shared rank, regardless of the color conjunct — so WF's
+`board_edges` must attribute the edge to the buried-base clause: the
+pair was dealt consecutively, `L :: H` adjacent in some deal pile
+(the plan's premise for every license-fit analysis: the mate is the
+DEAL's neighbor, not a fitting cover). -/
+theorem sweep_covered_corner_deal_adjacent {st : State} {L H : Card}
+    (hwf : st.WF)
+    (htwin : H = L.flipSuit)
+    (hcover : st.board.topOf (Sum.inr L) = some H) :
+    ∃ a t rest, st.deal.piles a = t ++ L :: H :: rest := by
+  have hedge := hwf.board_edges (Sum.inr L) H hcover
+  rcases hedge.2 with hbur | ⟨-, hfit⟩
+  · obtain ⟨a, t, rest, hpiles, -⟩ := hbur
+    exact ⟨a, t, rest, hpiles⟩
+  · exfalso
+    obtain ⟨hrk, -⟩ := (canSitOn_eq H L).mp hfit
+    have hL : L.rank.toIdx = H.rank.toIdx := by
+      rw [htwin, Card.flipSuit_rank]
+    omega
+
+/-- **A vacated covered cell forces the mate's own move (plan step
+(2)'s keystone, PAID)**: if the covered seat `Sum.inr L` — held by the
+covering mate `H` — reads EMPTY after a move, the move was the mate's
+own departure: `pilePile H b` (the dodge aside) or `pileStack H` (the
+direct foundationing).  The board-inert and attach-kind moves cannot
+empty a cell (attach can only FILL a free one, and the covered cell is
+occupied), and the detach-kind moves empty exactly the moved card's
+own base — so for the covered cell THAT card IS the mate.  This is
+the dislodge-shape audit the safety's normalization rides: a winning
+line's first clearing of the covered seat is a MATE move. -/
+theorem vacated_covered_cell_imp_mate_move {st s' : State} {m : Move} {L H : Card}
+    (happly : st.apply m = some s')
+    (hten : st.board.bottomOf H = some (Sum.inr L))
+    (hvac : s'.board.topOf (Sum.inr L) = none) :
+    ∃ b : Base, m = Move.pilePile H b ∨ m = Move.pileStack H := by
+  have htop : st.board.topOf (Sum.inr L) = some H :=
+    (Board.bottomOf_eq st.board H (Sum.inr L)).mp hten
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at happly
+      obtain rfl := happly
+      have hcon : st.board.topOf (Sum.inr L) = none := hvac
+      rw [htop] at hcon
+      exact absurd hcon (by simp)
+  | reveal a =>
+      rw [apply_reveal_iff] at happly
+      obtain ⟨r, bd, -, -, hatt, rfl⟩ := happly
+      have hf : st.board.topOf (st.hiddenBase a) = none := attach_frees hatt
+      by_cases hb : st.hiddenBase a = Sum.inr L
+      · rw [hb] at hf
+        rw [hf] at htop
+        exact absurd htop (by simp)
+      · have hcon : bd.topOf (Sum.inr L) = none := hvac
+        rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb), htop] at hcon
+        exact absurd hcon (by simp)
+  | deckPile X b =>
+      rw [apply_deckPile_iff] at happly
+      obtain ⟨-, -, bd, hatt, rfl⟩ := happly
+      have hf : st.board.topOf b = none := attach_frees hatt
+      by_cases hb : b = Sum.inr L
+      · rw [hb] at hf
+        rw [hf] at htop
+        exact absurd htop (by simp)
+      · have hcon : bd.topOf (Sum.inr L) = none := hvac
+        rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb), htop] at hcon
+        exact absurd hcon (by simp)
+  | deckStack c =>
+      rw [apply_deckStack_iff] at happly
+      obtain ⟨-, -, rfl⟩ := happly
+      have hcon : st.board.topOf (Sum.inr L) = none := hvac
+      rw [htop] at hcon
+      exact absurd hcon (by simp)
+  | pileStack c =>
+      rw [apply_pileStack_iff] at happly
+      obtain ⟨-, b₀, hb₁, -, rfl⟩ := happly
+      by_cases hb : b₀ = Sum.inr L
+      · have hcH : c = H := by
+          have hc : st.board.topOf (Sum.inr L) = some c :=
+            (Board.bottomOf_eq st.board c (Sum.inr L)).mp (by rw [← hb]; exact hb₁)
+          rw [htop] at hc
+          exact (Option.some.inj hc).symm
+        subst hcH
+        exact ⟨b₀, Or.inr rfl⟩
+      · have hcon : (st.board.detach b₀).topOf (Sum.inr L) = none := hvac
+        rw [Board.detach_topOf_ne _ _ _ (Ne.symm hb), htop] at hcon
+        exact absurd hcon (by simp)
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at happly
+      obtain ⟨-, -, bd, hatt, rfl⟩ := happly
+      have hf : st.board.topOf b = none := attach_frees hatt
+      by_cases hb : b = Sum.inr L
+      · rw [hb] at hf
+        rw [hf] at htop
+        exact absurd htop (by simp)
+      · have hcon : bd.topOf (Sum.inr L) = none := hvac
+        rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hb), htop] at hcon
+        exact absurd hcon (by simp)
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at happly
+      obtain ⟨b', hb', -, -, bd, hatt, rfl⟩ := happly
+      by_cases hb : b' = Sum.inr L
+      · have hcH : c = H := by
+          have hc : st.board.topOf (Sum.inr L) = some c :=
+            (Board.bottomOf_eq st.board c (Sum.inr L)).mp (by rw [← hb]; exact hb')
+          rw [htop] at hc
+          exact (Option.some.inj hc).symm
+        subst hcH
+        exact ⟨b, Or.inl rfl⟩
+      · have hf : (st.board.detach b').topOf b = none := attach_frees hatt
+        by_cases hbb : b = Sum.inr L
+        · rw [hbb] at hf
+          rw [Board.detach_topOf_ne _ _ _ (Ne.symm hb), htop] at hf
+          exact absurd hf (by simp)
+        · have hcon : bd.topOf (Sum.inr L) = none := hvac
+          rw [Board.attach_topOf_ne _ _ _ hatt (Ne.symm hbb),
+            Board.detach_topOf_ne _ _ _ (Ne.symm hb), htop] at hcon
+          exact absurd hcon (by simp)
+
 /-- **§6.5's semantic safety at the covered corner (planned)**: the
 covered corner and its exchange image — the two identity-resolutions
 of the ambiguous word — are solvability-equivalent, so the sweep's
 deterministic lowest-first choice can never UNIQUELY lose a win at
 the AMBIGUOUS corner.  Reduces to the both-occupied exchange family
 at the covered seat.
-PLAN: (1) WF forces the corner to be deal-adjacent: the cover edge's
-base condition (`board_edges`) needs the buried-base clause (the pair
-dealt consecutively), since the canSitOn clause dies on the mate's
+PLAN (two steps PAID as free-standing theorems ahead of the
+reduction — see the paid-pieces subsection above): (1) **PAID** —
+`sweep_covered_corner_deal_adjacent` (:2613): WF forces the corner to
+be deal-adjacent, since the canSitOn clause dies on the mate's own
 rank arithmetic (`canSitOn H L` demands `toIdx H + 1 = toIdx L`,
-false at the shared rung). (2) Every winning line must dislodge the
-covering mate: the extraction discipline (Theorems §12.1) plus
-`unseats_imp_pileStack` — to stack the covered twin `L` the mate must
-leave its seat first, and the mate's own stacking is the H-first
-window this file already proves sound; normalize the corner by the
-mate's first departure (its own `pileStack` at the rung, or the
-tableau move a winning line starts with). (3) At the dislodged shape
+false at the shared rung). (2) **KEYSTONE PAID** —
+`vacated_covered_cell_imp_mate_move` (:2638): every clearing of the
+covered seat is a MATE move (`pilePile H _` dodge or `pileStack H`);
+the remaining half of (2) is the run-audit that a winning line STACKS
+`L` (the Theorems §12.1 extraction at this corner), which forces a
+first clearing moment — normalize there. (3) At the dislodged shape
 both twin cells are bare and the pair enters the PROVEN family:
 `twin_stack_order_exchange_catchup` (the same-state order exchange,
 the same-state half of the safety) and

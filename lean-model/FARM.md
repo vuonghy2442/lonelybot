@@ -1329,25 +1329,28 @@ TwinSwapCompletion 2 → 1)**:
   (TwinSwapCompletion:2503).  The corpus half — which reached states'
   between-mids satisfy the repaired `noSeat` — remains §8's audit (the
   histogram pull; see NEXT 1).
-- `State.sweep_covered_corner_safety` (TwinSwapCompletion:2627) —
+- `State.sweep_covered_corner_safety` (TwinSwapCompletion:2755) —
   §6.5's semantic obligation AT the covered corner (item 4): the
   covered corner and its exchange image are solvability-equivalent, so
   the sweep's deterministic lowest-first pick never UNIQUELY loses a
   win at the ambiguous pair.  The reduction's IDENTIFICATION half is
-  PROVEN: `exchangeTwinCargo_flip_cover` (TwinSwapCompletion:2580) —
+  PROVEN: `exchangeTwinCargo_flip_cover` (TwinSwapCompletion:2581) —
   at the corner, `st.exchangeTwinCargo L` has exactly the flipped cell
   readings (the two identity-resolutions of the word are the two
   exchange-images; note the raw seat-swap rides the cover card's
   VALUE to its own seat — why the safety must route through the
-  discipline kit, not a literal symmetry).  Plan (in-file): WF forces
-  the corner to be deal-adjacent (`canSitOn` dies at the mate's own
-  rank); every win must dislodge the covering mate (extraction +
-  `unseats_imp_pileStack`); at the dislodged/bare pair the PROVEN
-  `twin_stack_order_exchange_catchup` +
-  `solvable_cargoTwin_exchange_licensed`/`_of_visClean` family
-  supplies the equivalence; the residue inside that is the
-  LICENSE-FIT while the mate still sits (the w15fithole rider-detour
-  class).
+  discipline kit, not a literal symmetry).  PLAN, two steps PAID as
+  free-standing theorems (wave 20): `sweep_covered_corner_deal_adjacent`
+  (:2613 — WF forces the corner to be deal-adjacent; the `canSitOn`
+  clause dies at the twin's shared rank) and
+  `vacated_covered_cell_imp_mate_move` (:2638 — every clearing of
+  the covered seat is a MATE move: `pilePile H _` or `pileStack H`);
+  remaining: the §12.1 stack-extraction audit (a winning line STACKS
+  `L`, forcing a first clearing moment), the dislodged/bare-pair
+  assembly through `twin_stack_order_exchange_catchup` +
+  `solvable_cargoTwin_exchange_licensed`/`_of_visClean`, and the
+  LICENSE-FIT residue while the mate still sits (the w15fithole
+  rider-detour class).
 
 NEXT (tickets, in order):
 1. §8's landing-site histogram pull (the corpus half of the PROVEN
@@ -1402,9 +1405,19 @@ reached states) is the NEXT ticket, harness scope; witness C's
 rung-pin corner (TwinCompletionWitness:169) stays the on-record
 decide anchor.
 
-TO COME (same session): `State.sweep_covered_corner_safety` attacked
-per its in-file plan — see the row's tail after the session's second
-commit.
+TO COME (same session), second batch: `State.sweep_covered_corner_safety`
+attacked per its in-file plan — steps (1) and (2)-keystone land as
+free-standing theorems ahead of the reduction:
+`sweep_covered_corner_deal_adjacent` (the corner is DEALT-ADJACENT at
+WF — the twin rank kills the `canSitOn` clause of `board_edges`, so
+the buried-base deal-adjacency is the only justification) and
+`vacated_covered_cell_imp_mate_move` (every clearing of the covered
+seat is a MATE move — `pilePile H _` dodge or `pileStack H`; the
+attach kinds can only FILL free cells and the detach kinds empty the
+moved card's own base, so the mover IS the mate).  The pin keeps its
+sorry with the plan re-anchored on the paid pieces (the residue: the
+§12.1 stack-extraction audit at the corner, the bare-pair assembly
+(3), and the w15fithole license-fit (4)); census stays at 11.
 
 ### Wave-19 (2026-10-05, the t-iff-complete session; file
 TwinSwapCompletion.lean at pin 2, census 12 GREEN)
