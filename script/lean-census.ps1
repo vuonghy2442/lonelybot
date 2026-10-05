@@ -55,18 +55,25 @@ $baseline = @{
                          # and solvable_of_exchange_merge_rooted (:2997) — the
                          # [H] crux at WF (FARM.md wave-15 row: normalization or
                          # B&G piecewise bookkeeping)
-  # +wave-17 (C2-streamlined session, 2026-10-05; FARM.md Wave-17 / the §7
-  # two-option commitment scaffold — Klondike/C2Streamlined.lean): the five
-  # play-level pillars specified by docs/macro_formalization.md §7, each with
-  # an in-file PROOF PLAN; everything finite/arithmetic around them is PROVEN
-  # (P1, the register, the one-step P2 cores, the ray confinement, and the
-  # main theorem's case assembly P1–P3 against these pillars):
-  'C2Streamlined.lean' = 5  # succ_labeled (P0 labeling — §6.4 extraction + crease),
-                           # p2_direct_class (P2 class half — the reproducible scar),
-                           # same_pin_closureEq (P3/float class half),
-                           # crease_chain_absorbed (§7's named crease — the
-                           #   line-force lemma, cited by same_pin_closureEq's plan),
-                           # stack_ball_corner (the L1/L2-diligence residue)
+  # +wave-17 (C2-streamlined session, 2026-10-05) landed the five play-level
+  # pillars with proof plans. +wave-18 (the 2026-10-05 C2-closure session;
+  # FARM.md Wave-18 row) refute-probed them: FOUR were FALSE as stated and
+  # left the library per the refutation protocol — succ_labeled,
+  # p2_direct_class, same_pin_closureEq, crease_chain_absorbed, and with them
+  # the as-stated c2_two_option (witnesses/C2KingAnchorWitness.lean: a
+  # climb-blocked stocked king whose anchor landings are pairwise
+  # closure-separated; the negated as-stated universals live there as
+  # wk_c2 / wk_same_pin / wk_p2_direct / wk_crease_as_stated_false). In their
+  # place: commitTableau_class (C2Streamlined §9.5 — the destination collapse
+  # at the commitment level, the stackable-rung regime, PROVEN via the
+  # two-move foundation shuttle) and the CONDITIONAL c2_two_option whose
+  # hypotheses spell the play-level content explicitly (the hlab/hp2/hpin/
+  # hball premises; the register/pigeonhole/arm-labeling assembly stays
+  # PROVEN). stack_ball_corner's content survives as the hball premise
+  # (believed true, never refuted, still unpinned):
+  'C2Streamlined.lean' = 0  # wave-18: the pillar rows are gone — 4 refuted
+                            # with the witness, 1 re-homed as a premise; the
+                            # file is sorry-free and axiom-clean
 }
 
 $drift = $false

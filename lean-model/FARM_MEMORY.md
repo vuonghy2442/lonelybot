@@ -2374,3 +2374,60 @@ tree).
 - CANONICAL REPEATS conf irmed: `rw [apply_deckPile_iff] at hcom` + `obtain ⟨_, hcp, bd', hatt, hs₂⟩ := hcom` + `rw [hs₂]` is the fast path
   for committed-state residues; `attach_topOf_ne`/`bottomOf_attach_of_ne` (Board/Macro) + `bottomOf_detach_ne`/`founded_not_covered`
   (C2Streamlined, PROVEN) make the one-step "still legal" cores painless - NO walk machinery needed at the one-step level.
+
+### Session 2026-10-05 (later) — C2-closure finisher (wave 18): refute-first fired again; the four-pillar falsity + the collapse's proven half
+
+Summary of the wave-18 receipts (full row in FARM.md; witnesses/C2KingAnchorWitness.lean):
+`p2_direct_class`, `same_pin_closureEq`, `crease_chain_absorbed` and the as-stated `c2_two_option` are FALSE
+(the king-anchor witness); `succ_labeled` is analytically false (the channelList gap - the anchored-head
+unseating); `stack_ball_corner` never refuted. Proven in their place: `commitTableau_shuttle`/`commitTableau_class`
+(the destination collapse at the commitment level, rung-gated) and the conditional `c2_two_option`
+(hlab/hp2/hpin/hball premises). Census 16 -> 11.
+
+TACTIC LORE added by this session (all machine-confirmed):
+
+- WORKTREE TRAP: a fresh farm worktree spawned from the WRONG BASE (main repo HEAD, not macro-game HEAD)
+  silently lacks lean-model/ entirely. `git log --oneline -3` + `Test-Path lean-model` FIRST. The fix was
+  `git reset --hard macro-game` on my own clean fresh branch (no local work to lose).
+- CONTENTION IS REAL: stale lake trees from a reaped background start keep file handles on the shared
+  elan toolchain oleans -> EVERY (parallel) build dies on transient `failed to read file ...olean(.private)`.
+  `Get-Process lake,lean` and kill YOUR OWN stale PIDs (match StartTime to your session) - other sessions'
+  trees are not yours to kill. After that the "plain retry" lore holds.
+- `State.topOf_inr_eq_none` + `Board.attach_detach_cancel` (TwinSwapCompletion import) are the two-move
+  shuttle's load-bearing imports; C2Streamlined imports Klondike.TwinSwapCompletion (one DAG edge) and the
+  UMBRELLA LINE MOVES to the bottom (imports resolve transitively, order is cosmetic but keep it tidy).
+- rcasSlots: DO NOT write `-` (dash) binders for an iffy's witness slots mixed with named tails - hshape
+  silently unbound -> "Unknown identifier hshape.symm" two lines later. The robust form is two-step:
+  `have h := iff.mp hyp; obtain ⟨b', hb', hrk', hshape⟩ := h.2` (or `.2.2` for the stackPile shape),
+  then `Option.some.inj`-equate the witness to the intended one and `rw [witness-eq] at hshape` - the iffy
+  states the successor as an EXISTENTIAL witness board, and `Eq.symm hshape` gives literal = state, so the
+  r-w direction for "state = literal" is `exact hshape` (NOT `.symm` - Eq.symm hshape : literal = state).
+- Record-eta: `rw [eq]` where eq : state = {lit} CLOSES proj-of-literal goals by auto-rfl (trailing `rfl`
+  after `rw [hshape-lit]` errors "No goals"). Same closure eats `exact h` after `rw [hw]` when hw : var = lit.
+  BUT the same `rw` of the LITERAL-shape into `{ with-literal}.stock` (drawTo/removeAt form) does NOT auto-rfl
+  when the literal mentions a NESTED cycle constructor - write the stock literal in the SAME normalization
+  the iff-lemma emits (`applyDrawTo_iff` emits `(st.stock.drawTo i).removeAt i`, `applyDrawTo_eq` emits
+  `{ cards := Cycle.removeIdx ... , cursor := i }` - pick per-consumer, they are NOT syntactically equal;
+  `Cycle.removeAt_drawTo` bridges).
+- `decide` on `(st.applyDrawTo c b).isSome = true` STICKS: the depth of reachablePos's dite + maskPos eval
+  exceeds the decide-whnf budget. Constructive route that WORKS: `State.reachablePos_step1 hwf rfl c` +
+  `posOf-of-head = rfl` + `applyDrawTo_iff.mpr ⟨0, board-lit, hreach, hattach, rfl⟩` + a getD-pin.
+  `Board.attach`s DITE: `unfold Board.attach` + `rw [dif_pos h1, dif_pos h2]` (dif_pos is the dite one,
+  if_pos/ite_eq_left the plain-ite; all three deprecated-name-swapped in 4.34, use ite_eq_* / dite_eq_*).
+- Board-literal equality: records with Prop fields compare via `congrArg some (Board.ext_topOf (funext ...))`
+  per-BASE casework (update_self/update_ne) - never try rfl on the raw records (the inj field's proof terms
+  differ; kernel defeq does not include proof-irrelevance for structure literals).
+- WF-construction bullets: `State.WF.intro` is NAMESPACED (State.WF.intro); the conjuncts read
+  `st-PROJECTIONS` that rw/simp cannot unfold - pre-cast each with `have h : wState.board.topOf b = none :=
+  rfl`-style (defeq is fine, rw/simp are not) or `show` the def-unfolded form first. `noDupCards` is a
+  Prop over indexed getElem?-pairs: the stock_wf slot is `fun i j hi hj heq => ...` (decide the range-bounded
+  form once andapply).
+- The as-stated refutations live as NEGATED Universals in the witness (wk_c2_as_stated_false etc., citing
+  only surviving constants) - that pattern keeps Witnesses GREEN forever, unlike citing deleted names.
+- CENSUS-DANGER: writing a `sorry` placeholder "temporarily" inside a WITNESS leak sorryAx into #print axioms;
+  the refutation corollaries must come out [propext, Classical.choice, Quot.sound]-clean or they are not receipts.
+
+Findings for the next session (see FARM Wave 18 next tickets): (1) the king-anchor-head witness for
+succ_labeled; (2) re-scope hpin/hp2 statements around the rung premise; (3) stack_ball_corner (hball) is the
+one never-refuted pillar - raise-ray geometry; (4) probe the engine corpus for the climb-blocked stocking corner.
+

@@ -1112,3 +1112,45 @@ ambiguity residue therefore confines to (B)'s configuration (both
 twins visible, one covered), which the sweep must already keep
 unflipped — the next queue item is the covered-seat reduction via the
 wave-15 both-occupied exchange family.
+
+---
+
+## §7 addendum (2026-10-05, wave 18) — the model-side pillar probe: four of five universals false; the collapse's proven half
+
+The wave-17 model scaffold pinned five play-level universals behind
+the streamlined two-option bound. The wave-18 refute-first pass
+(witnesses/C2KingAnchorWitness.lean, axiom-clean) found FOUR of them
+false as stated in the free model semantics, plus the assembled
+`c2_two_option` itself: on a pristine WF state — empty board, all
+foundations at zero, a spade-blocked stock carrying ♠K — the king
+commits to seven pairwise closure-separated anchor landings, because
+an unstackable-at-its-rung target can never leave its landed seat
+(only pileStack ever unseats a card, and the frozen spade height
+keeps that guard dead along every accommodation walk). The engine
+corpus never showed this corner because the class counting ran on
+sweep-canonicalized samples — a target stackable at its rung has
+every landing swept to ONE post-state.
+
+What survived, and what is now proven instead:
+
+- the destination collapse's TRUE half is the stackable-rung regime:
+  `Klondike.C2.commitTableau_class` — the two tableau landings of
+  the same drawn card at one state are closure-equal whenever the
+  card is stackable at its rung, by the two-move foundation shuttle
+  `[pileStack X; stackPile X b]` (TwinSwapCompletion's
+  attach_detach_cancel + topOf_inr_eq_none doing the boarding). This
+  covers the destination twins AND the king-anchor pairs;
+- the two-option bound survives as the CONDITIONAL
+  `Klondike.C2.c2_two_option`: same conclusion, with the play-level
+  content as explicit premises (the P0 labelings, the P2 class-join,
+  the same-pin join, the L1/L2-residue corner — the one pillar never
+  refuted). The poset register, the pigeonhole, and the
+  arms-cannot-label step stay proven verbatim.
+
+Model-side status of §7's own sharpness claims (⧗ items) after this
+pass: ∎ (modulo the crease and the L1/L2 count tables) is superseded —
+modulo list is now (the channel-list gap for king-anchor landings,
+the rung-gating of the class joins, and the L1/L2 corner), the first
+two being REPAIRS the corpus regime suggests are harmless (the
+sweep-merged measurement never separates what the rung premise
+joins).

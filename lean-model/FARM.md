@@ -1,11 +1,18 @@
 # The proof farm — handoff document
 
-**Census: 16 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
-· Movability 1 · C2Streamlined 5 · Restriction 2 · TwinExchange 1
-· TwinQuotient 2, TwinSwapCompletion 0; zero bullets;
-wave-12 + wave-17 merge, K1+K2+T+C2 sessions, 2026-10-05).  Pinned by
+**Census: 11 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
+· Movability 1 · C2Streamlined 0 · Restriction 2 · TwinExchange 1
+· TwinQuotient 2, TwinSwapCompletion 0; zero bullets; wave-18
+C2-closure session, 2026-10-05 — the C2 pillar set was
+refute-probed: FOUR of the five wave-17 pillars were FALSE as
+stated and left the library per the refutation protocol
+(C2KingAnchorWitness; the as-stated c2_two_option among them), and
+in their place stand the PROVEN `commitTableau_class` (the
+destination collapse at the commitment level, the stackable-rung
+regime) and the CONDITIONAL `c2_two_option` whose hypotheses spell
+the play-level content explicitly).  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 16 are
+any NEW sorry or the return of a refuted constant.  All 11 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -738,6 +745,46 @@ statement, a proof, and an orchestrator decision.
    refuted transitively.  The proven → survives as `toEngine_simulates`
    (Bridge.lean).
 
+Removed 2026-10-05 (wave-18, the C2-closure session; same laundering
+hazard).  All four cite ONE witness —
+[witnesses/C2KingAnchorWitness.lean](witnesses/C2KingAnchorWitness.lean):
+a pristine WF state (empty board, all foundations 0, standard deal,
+the four kings + clubs + high diamonds as the spade-blocked stock)
+where `♠K` commits to SEVEN pairwise closure-separated anchor
+landings (no pileStack of the landed king can ever fire — spade
+height is frozen at 0; no accommodation move ever unseats it).  The
+negated as-stated spellings live in the witness as
+`wk_c2_as_stated_false`, `wk_same_pin_as_stated_false`,
+`wk_p2_direct_as_stated_false`, `wk_crease_as_stated_false`
+(axiom-clean, no sorry):
+
+4. `succ_labeled` (was C2Streamlined.lean, wave-17's P0) — every
+   macro successor labeled by a channel live-at-root.  REFUTED: the
+   channel list misses the anchored-head unseating (a seated pile
+   head leaves by its rung-dig, the king lands on the vacated anchor
+   — hole-shaped at the end state, dead at the root, no free anchor
+   there).  Repair routes: add the king-anchor channel to `Label`
+   (a generator change; orchestrator scope), or guard the statement
+   to king-free/root-live states.  Analytic countermodel; witness
+   pending (the king-anchor witness above covers the other four —
+   this fifth poles as the next ticket).
+5. `p2_direct_class` / `same_pin_closureEq` / `crease_chain_absorbed`
+   (was C2Streamlined.lean, wave-17's P2/P3/crease) and with them
+   the as-stated `c2_two_option` — every tableau-arm successor of
+   the same stocked card asked to join ONE closure class.  REFUTED:
+   an unstackable-at-its-rung target can never leave its landed
+   seat (only `pileStack` unseats a card), so two landings are
+   genuinely closure-split — no local guard on the witnesses'
+   hypotheses fixes it short of the rung premise.  Repair routes:
+   the rung premise `X.rank.toIdx = st.heights X.suit` on the
+   class-join claims — exactly the regime PROVEN in
+   `commitTableau_class` (C2Streamlined §9.5: the destination
+   collapse at the commitment level, the two-move foundation
+   shuttle, axiom-clean) — plus, for `succ_labeled`-labeled plays,
+   the free-float residue work still open; `stack_ball_corner`
+   (the fifth pillar) was never refuted and survives as the `hball`
+   premise of the repaired conditional `c2_two_option`.
+
 ## Consolidation-3 queue (before wave 11 farming)
 
 Duplication is compounding — canonicalize into Kit/Cycle per the DAG:
@@ -1053,4 +1100,77 @@ and `{borrow + borrow̄}` live-set claims are exactly the register's
 pairing analysis, P1 closing the overlap.  §7's "∎ (modulo the crease
 and the L1/L2 count tables)" is now formal graph structure: the crease
 and the corner are the two named lemmas the assembly cites.
+
+## Wave 18 — C2 closure: the pillar set refute-probed, the collapse's
+proven half landed (2026-10-05, the C2-closure finisher session)
+
+The wave-17 pillars were taken to the prover with wave-12/17's merged
+weapons (TwinSwapCompletion's `attach_detach_cancel` +
+`State.topOf_inr_eq_none`, Movability/Kills upstream).  The
+refute-first gate FIRED: **four of the five universal pillars are
+FALSE as stated** (REFUTED §4–§5 above;
+`witnesses/C2KingAnchorWitness.lean` — one pristine WF state where a
+climb-blocked stocked king's anchor landings are pairwise
+closure-separated, killing `p2_direct_class`, `same_pin_closureEq`,
+`crease_chain_absorbed` and the as-stated `c2_two_option` at once;
+`succ_labeled` falls to the channel-list gap, witness pending).
+The engine corpus never showed the corner because its class counting
+ran on SWEEP-CANONICALIZED samples — a stackable-at-rung target has
+every landing swept to one post-state, which is precisely the
+PROVEN regime below.
+
+**PROVEN this wave (axiom-clean, no sorry)**:
+
+- `stocked_not_mem_hidden` (C2Streamlined:782) — the membership form
+  of the stock/hidden-pile disjointness (the wave-17 kit had only
+  the `prev` form);
+- `commitTableau_shape` (C2Streamlined:794) — the tableau arm's
+  commit unpacked (reachable position, attach, successor literal);
+- **`commitTableau_shuttle`** (C2Streamlined:806) — the one-way
+  foundation shuttle: from one committed landing of a stackable drawn
+  card, `[pileStack X; stackPile X b₂]` reaches the OTHER commit's
+  successor exactly (the board is `attach_detach_cancel` away from
+  the same source, the bump-and-drop heights cancel at X's suit, the
+  stock is the same splice — the guard's reachable position is the
+  state's own);
+- **`commitTableau_class`** (C2Streamlined:968) — the destination
+  collapse at the commitment level: the two tableau-arm successors
+  of the same drawn card at one WF state are `closureEq` whenever
+  the card is stackable at its rung.  This covers both destination
+  twins AND (for kings) free-anchor pairs, and is exactly the
+  within-channel twin choice of §6.3's class computation — the
+  model-side proof the wave-17 plan wanted from T's machinery, and
+  the load-bearing half for any future repaired same-pin statement;
+- **`c2_two_option` (conditional form)** (C2Streamlined:1221) — the
+  main theorem rebuilt: same conclusion, with the play-level content
+  as EXPLICIT premises (`hlab₁ hlab₂ hlab₃` the P0 labelings, `hp2`
+  the P2 class-join, `hpin` the same-pin join, `hball` the
+  L1/L2-residue corner, never refuted).  The wave-17 assembly — the
+  register, the pigeonhole, `through_direct_hole_commits`'
+  arms-cannot-label step — stays PROVEN verbatim against the
+  premises.
+
+**Census delta**: C2Streamlined 5 → 0; total 16 → 11 (script +
+header updated together).  `Klondike.C2Streamlined` now imports
+`Klondike.TwinSwapCompletion` (one DAG edge, umbrella order fixed);
+no helper file was needed.
+
+**Next tickets** (the honest path to the wave-17 ambition):
+
+1. `succ_labeled`'s channel gap: build the king-anchor-head witness
+   (analytic in REFUTED §4), then either extend `Label` with the
+   king-anchor channel (generator change — orchestrator sign-off,
+   the §6.4 case list is §7's spine) or guard P0;
+2. the repaired same-pin program: `hpin` under the rung premise is
+   exactly `commitTableau_class` at equal accommodations — the open
+   content is the free-float residue (α₁ ≠ α₂) and the crease chains;
+   re-scope `hpin`/`hp2`'s statements around the rung premise first
+   (the witness makes the unguarded form provably false);
+3. `stack_ball_corner`/`hball`: the one never-refuted pillar — the
+   raise-ray geometry per §11's plan; closing it turns the
+   no-direct branch of the conditional theorem unconditional there;
+4. engine-side: probe the corpus for the climb-blocked stocking
+   corner (three free anchors + climb-blocked stocked king) to bound
+   how far §7's measured claim reaches beyond the proven regime.
+
 
