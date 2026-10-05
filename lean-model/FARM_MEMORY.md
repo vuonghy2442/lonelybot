@@ -2518,3 +2518,42 @@ corner's cell identification). Pins: `State.mid_access_of_noSeat` (the no-landin
   bare rw first. And `run_split_bind` will not fire on `[a, b] ++ ms` (rw is syntactic): pre-rewrite with
   `rw [show [a, b] ++ ms = [a] ++ ([b] ++ ms) from rfl] at h` - the append normal forms agree by rfl, but only the show makes the
   pattern visible.
+
+### wave-19 (TwinSwapCompletion: the deferral + mid_access repair + witness C) - session notes for successors
+
+- THE BIG ONE, target 1: the catch-up-first-to-between DEFERRAL closes LICENSE-FREE through the EMPTY MID.  `_back`'s window only
+  restricts the between-mid (`twinMid t'`); `q1` is gated by `cleanTwin t'` alone, which bans ON-PAIR FOUNDATION moves only - the
+  t'-suit catch-up raises are off-pair by RANK.  So the constructed mirror play `q1 ++ [stack t'; stack t] ++ q2` IS the between
+  window with mid := [] - `solvable_swapTwin_mixed_back_catchupfirst` is a literal re-bracket of `_back`.  The licensed literal
+  split (the mid itself between the stackings) is REFUTABLE: the RUNG PIN (stack t' fires only after the catch-up raises its suit)
+  plus the flipped witness-A seat corner - witness C (witnesses/TwinCompletionWitness.lean) is the decide anchor.  Do not spend a
+  successor ticket on licenses for that split; there are none.
+- mid_access_of_noSeat was FALSE AS PINNED: two missing exclusion classes (pileStack seats b = inr c; the reveal boundary
+  chain b = inl a | A.hiddenBase a | inr r for r in A.hidden a).  The repaired statement + a full ~700-line proof DRAFT live in
+  the file pin + attic/MidAccessDraft.lean (NOT built; reinstating is the successor's job; ~25 local elaboration errors remain).
+- ELABORATION TRAPS hit this wave (all cost real time):
+  (1) `refine <{ S with f := ..., g := ... }, ?_, ?_> - the multiline structure literal inside an anonymous constructor
+  DOES NOT PARSE (the parser gives "unexpected identifier; expected '}'" and a phantom "Exists.intro has 2 explicit fields"
+  error).  Hoist: `have swit : State := { ... }` then `refine <swit, ?_, ?_>`; the trailing `rfl` shape-slot still sees through
+  the local def.
+  (2) `obtain <...> := by cases m with | draw => exact ... - the per-arms got checked against the FIRST arm's specialized goal
+  (`expected ... Move.draw`) - do NOT case-split inside a term-obtain's `by`; do `cases m with` at tactic level and write each
+  arm's own obtain + tail (duplication is fine).
+  (3) `cases h : e with` DOES substitute e in the goal - but ONLY where it OCCURS: in `bottomOf c = bdB.bottomOf c` the LHS got
+  `none`/`some b1` substituted, so the provided proof needed `.symm` in ONE lemma and not in the OTHER (whose goal had e on the
+  RHS).  Check which side your `cases h :` lands on before adding `.symm`s.
+  (4) `hccLo.cells b hne : S.topOf b = S'.topOf b` rewrites the GOAL S->S' FORWARD (`rw [hcells ...]`) when you are feeding an
+  S'-shaped hypothesis into an S-shaped goal.  I wrote half the mirrors with `rw [<- hcells ...]` and every one was backwards.
+  (5) rw AUTO-CLOSES with rfl: a multiline `rw [hshape]` + next-line bare `rfl` errors "No goals to be solved".  One-line
+  `rw [hshape]; try rfl` is safe everywhere; the multiline form needs the dangling rfl deleted by hand.
+  (6) `List.mem_cons_self` takes NO explicit args in this core (bare `hmid m Set.List.mem_cons_self`-style); `simp` closes
+  `none = some c` but NOT `true = false` - use `Bool.noConfusion` for the latter.
+  (7) `subst h : x = t` may eliminate the THEOREM-side variable (beta vanished; "unknown identifier beta"): name the eq so that
+  the RHEMA var is the local you want gone, or rewrite inside the hypotheses instead of substituting.
+  (8) Long literal-projection goals (`{S with ...}.f x`) sometimes need `show` (defeq/iota) and sometimes the per-arm
+  `have hdeq : S1.f = fun x => ... := by rw [hshape]; rfl` + `rw [hdeq]` route when show flinches; the depths/reveal arm of
+  depths_mono_move is the worked example.
+- PROCESS: the worktree sat at an old commit (fast-forward to b99ad47 FIRST - gotcha confirmed again); the cold build hit the
+  .olean.private machine-contention errors ~4 times - plain retry, never debug them; and budget the session's last 15% for
+  FARM.md + FARM_MEMORY.md + the commit - the wave-18 report nearly went uncommitted again (machinery drafted in-tree > perfect
+  proof in a crashed session).

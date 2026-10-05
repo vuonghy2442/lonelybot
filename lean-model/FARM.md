@@ -1341,13 +1341,14 @@ TwinSwapCompletion 0 → 2)**:
   class).
 
 NEXT (tickets, in order):
-1. The catch-up-first→between DEFERRAL at the mirror (the `mixed_back`
-   completion): pre-catch-up fireability license + the post-stacking
-   tail's access — L1(ii) with the window machinery now in place
-   (reuse the six transfer steps in the A→B direction).
-2. `State.mid_access_of_noSeat`'s plan: the B→A transfers + the
-   `aboveOf` walk-extension lemma; then §8's landing-site histogram
-   pull (engine corpus: do between-mids ever land on the twin seats?).
+1. ~~The catch-up-first→between DEFERRAL at the mirror~~ — PAID
+   (wave 19; see the wave-19 row below).
+2. `State.mid_access_of_noSeat` — REPAIRED + DRAFTED (wave 19; the
+   statement was false as wave-18 pinned it — see the wave-19 row);
+   successor: reinstate `attic/MidAccessDraft.lean` into
+   TwinSwapCompletion.lean and finish the elaboration.  Then §8's
+   landing-site histogram pull (engine corpus: do between-mids ever
+   land on the twin seats?).
 3. `State.sweep_covered_corner_safety`'s plan: the deal-adjacent
    license-fit (or dislodge-first normalization), reducing the
    §6.5 covered corner into the proven exchange family.
@@ -1355,5 +1356,73 @@ NEXT (tickets, in order):
    corner (a `pileStack t'`/`deckStack t'` inside the mid is
    source-inconsistent — the second bracket's rung pin; a small
    `#eval` cast would document it).
+5. Optional: the swapTwin-WF preservation lemma (`st.WF →
+   (st.swapTwin t).WF` — deal/stock relabeling + board conjugation),
+   which would let the mixed iff stand on `st.WF` alone and drop
+   `_back`'s mirror-side WF premise.
+
+### Wave-19 (2026-10-05, the t-iff-complete session; file
+TwinSwapCompletion.lean at pin 2, census 12 GREEN)
+
+TARGET 1 — THE MIRROR-SIDE DEFERRAL: **PAID, license-free**.  The
+honest resolution: `_back`'s window restricts the BETWEEN-MID
+(`twinMid t'`) but never restricts `q₁` (only `cleanTwin t'` — which
+bans ON-PAIR FOUNDATION moves only; `t'`-suit raises are off-pair by
+rank), so a catch-up-first mirror play — `q₁` swallowing the whole
+catch-up-containing prefix, the two twin stackings ADJACENT —
+RE-BRACKETS VERBATIM as the between window with the EMPTY mid:
+`State.solvable_swapTwin_mixed_back_catchupfirst` (PROVEN, no
+license consumed).  The LICENSED literal split (the mid itself
+re-seated between the stackings) is REFUTED at the asymmetric
+window: the rung pin (the catch-up is what raises the first-stacked
+twin's suit to its rung) + the flipped witness-A SEAT corner — a
+catch-up card sitting ON the twin, uncovered only by its own raise
+mid-catch-up — see **witness C**
+(witnesses/TwinCompletionWitness.lean, decide-anchored: the
+catch-up-first bracket [raise ♥3; raise ♥4; stack ♥5] fires; the
+pre-catch-up `stack ♥5` is seat- and rung-blocked).  Wave-18's
+"deferral is the recorded successor ticket" is closed: no license is
+needed and none carries the literal split.  The `_back` docstring
+and the file's section note carry the history.
+
+TARGET 2 — `State.mid_access_of_noSeat`: **REPAIRED, not closed**.
+Wave-19's guard audit found the wave-18 pin FALSE AS STATED (two
+exclusion classes missing): (a) `pileStack` SEATS — the twin may sit
+ON a mid raise card (`β = Sum.inr c`; witness A's own corner, live
+at WF via `board_edges` deal-adjacency); (b) REVEAL cells — the
+boundary's own seat (a twin dealt onto the hidden boundary) and
+the attach base (a twin-king on a one-hidden-card pile's anchor
+blocks `hiddenBase a = β`-shaped reveals).  The repaired statement
+(statically excluding, per mid reveal: the anchor, `A.hiddenBase a`,
+and every seat of every card of `A.hidden a` — the current AND all
+future boundaries/attach cells of the pile's reveal chain, sound
+because `mem_of_getLast` + take-mono keep later boundaries inside
+the shrinking prefix) is IN-FILE, still sorry'd (the file's pin count
+is unchanged at 2 — this is a re-pin of the same theorem, with its
+one-paragraph plan in-file per the census rules).  The FULL ~700-line
+proof is drafted in `attic/MidAccessDraft.lean` (NOT built; nothing
+imports it): the `TwinReplayTrace` pair-delta invariant, its base
+case off the twin's firing, the seven B→A transfer mirrors (the
+`pilePile` one through the `aboveOf_twin_delta` walk delta — the
+A-side run gains at most the twin as its head — plus the
+`heights_tSuit_stable`/`deal_stable_move`/`depths_mono_move` shape
+lemmas and the `mid_access_chain` induction).  Remaining: ~25 local
+elaboration fixes (literal-projection `show` orientations, a few
+`rw` directions); the successor reinstates it into
+TwinSwapCompletion.lean, fixes those, git-rms the attic file.
+
+TARGET 3 — `State.sweep_covered_corner_safety`: NOT attempted this
+wave (budget went to targets 1–2); the ticket-3 plan stands as
+written, and per this wave's finding the LICENSE-FIT residue should
+be scoped against the same cleanTwin-swallows-the-catch-up reading
+that closed target 1 (the transfer family already constrains only
+the between-mid; the dislodge-first normalization remains the
+plan's (2)).
+
+Census: 12 total, TwinSwapCompletion pinned 2 (mid_access_of_noSeat
+repaired/re-pinned + sweep_covered_corner_safety), inventory OK.
+Build: `lake build Klondike Witnesses` green (fresh full build at
+macro-game HEAD; the "expected Given the worktree sits at an old
+base" gotcha hit — fast-forwarded to b99ad47 first).
 
 

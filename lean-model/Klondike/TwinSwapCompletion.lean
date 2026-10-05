@@ -1277,15 +1277,21 @@ the MIRROR's mid (it reads the mirror's low suit, which the mirror's
 twin firing does not bump).
 
 The between-shaped hypothesis this carries is the honest half of the
-iff.  The catch-up-FIRST mirror plays — the shape the forward window
-CONSTRUCTS — need the CATCH-UP-FIRST-TO-BETWEEN DEFERRAL first, and
-the deferral is not free: moving the mirror's first stacking across
-its catch-up requires the pre-catch-up fireability license (a catch-up
-card can be sitting ON that twin, uncovered only mid-catch-up — the
-flipped witness-A corner), and the tail beyond the stacking runs at
-the post-stacking state in the mirror's play, so replaying it at the
-pre-stacking state needs its own access (the flipped no-landing class).
-The deferral is the recorded successor ticket. -/
+iff.  Wave 18 recorded the catch-up-FIRST mirror plays — the shape the
+forward window CONSTRUCTS — as needing a CATCH-UP-FIRST-TO-BETWEEN
+DEFERRAL under two licenses (pre-catch-up fireability + the
+post-stacking tail's access).  Wave 19 resolved it honestly: the
+LICENSED literal split (the mid itself re-seated between the stackings)
+is REFUTED at the asymmetric window — the rung pin (the catch-up is
+what raises the first-stacked twin's suit to its rung) and the flipped
+witness-A seat corner (a catch-up card sitting ON that twin, uncovered
+only mid-catch-up — witness C,
+witnesses/TwinCompletionWitness.lean) kill the pre-catch-up
+fireability — but NO license is needed after all: `q₁` never forbade
+the catch-up (only ON-PAIR foundation moves are unclean), so the
+catch-up-first play re-brackets verbatim as the between window with
+the EMPTY mid.  That re-bracketing is
+`State.solvable_swapTwin_mixed_back_catchupfirst` below. -/
 theorem State.solvable_swapTwin_mixed_back {st : State} {t : Card}
     {q₁ mid q₂ : List Move} {W : State}
     (hwf : (st.swapTwin t).WF)
@@ -1305,6 +1311,58 @@ theorem State.solvable_swapTwin_mixed_back {st : State} {t : Card}
     hwf hc₁ hc₂ hmid haccess hrun' hwin
   rw [State.swapTwin_flipSuit, State.swapTwin_swapTwin] at h
   exact h
+
+/-! ### The catch-up-first→between deferral — resolved (wave 19)
+
+Wave 18's successor ticket asked for the deferral with two licenses.
+The honest resolution cuts both ways:
+
+* The LICENSED half — the literal between split, `[q₁; stack t'; MID;
+  stack t; q₂]` with the mirror's ACTUAL mid re-seated between the two
+  stackings — needs `stack t'` to fire BEFORE the mid, and at the
+  asymmetric window that fails STRUCTURALLY: the mid's catch-up raises
+  are exactly what lifts `t'`'s suit to its rung, so pre-mid the rung
+  guard fails; and even when the heights align, the mate can be
+  covered (witness C: a catch-up card dealt onto the twin, uncovered
+  only by its own raise mid-catch-up — the flipped witness-A corner).
+  The pre-catch-up fireability license is REFUTABLE as stated; no
+  license carries the literal split, and none is needed.
+* The FREE half — the only one the iff ever wanted: `solvable_swapTwin_mixed_back`
+  restricts the BETWEEN-MID (`twinMid t'`) but never restricts `q₁`
+  (only `cleanTwin t'`, which forbids ON-PAIR FOUNDATION moves only —
+  `t'`-suit raises are `t`-off-pair by rank).  So a catch-up-first
+  mirror play `q₁ ++ [stack t', stack t] ++ q₂` — with the whole
+  catch-up-containing prefix swallowed into `q₁` and the two stackings
+  ADJACENT — IS the between window with the EMPTY mid, and `_back`
+  applies verbatim.  Composed with the forward window (whose constructed
+  mirror play has exactly this shape), wave 18's iff closes at the
+  clean class with no deferral license consumed. -/
+
+/-- **The catch-up-first→between deferral, the free half (L1(ii)'s
+mirror completion — wave 19)**: a MIRROR play of the catch-up-first
+shape — `q₁` arbitrary clean (it may — and at the asymmetric window
+it must — carry the whole catch-up: `t'`-suit raises are off-pair by
+rank), the two twin stackings ADJACENT, then the clean tail — makes
+`st` solvable: the play re-brackets as `solvable_swapTwin_mixed_back`'s
+between window with the EMPTY mid, and `_back` applies verbatim.
+No deferral license is consumed; see the section note above for why
+the licensed literal split is unavailable at the asymmetric window
+(witness C) and unnecessary for the iff. -/
+theorem State.solvable_swapTwin_mixed_back_catchupfirst {st : State} {t : Card}
+    {q₁ q₂ : List Move} {W : State}
+    (hwf : (st.swapTwin t).WF)
+    (hc₁ : ∀ m ∈ q₁, Move.cleanTwin t.flipSuit m = true)
+    (hc₂ : ∀ m ∈ q₂, Move.cleanTwin t.flipSuit m = true)
+    (hrun : (st.swapTwin t).run (q₁ ++ [Move.pileStack t.flipSuit,
+      Move.pileStack t] ++ q₂) = some W)
+    (hwin : W.isWin = true) :
+    st.solvableFrom := by
+  refine State.solvable_swapTwin_mixed_back (mid := []) hwf hc₁ hc₂
+    (by simp) ?_ (fun A' _ => ⟨A', rfl⟩) hwin
+  have hrun' : (st.swapTwin t).run (q₁ ++ [Move.pileStack t.flipSuit]
+      ++ ([] : List Move) ++ [Move.pileStack t] ++ q₂) = some W := by
+    simpa using hrun
+  exact hrun'
 
 /-! ## Item 3 — twin-suit worry-backs in the window
 
@@ -1400,46 +1458,76 @@ theorem run_worryback_pair_excise (c : Card) (b : Base) (m₀ m₁ : List Move)
         rw [hS₂] at htail
         exact run_append_some hS htail
 
-/-! ## The haccess derivation at engine corpora — the open reduction
+/-! ## The haccess derivation at engine corpora — the no-landing
+reduction, REPAIRED and pinned (wave 19)
 
 `haccess` — the mid is replayable at the pre-firing state — is the
 window's no-landing premise in executable form.  The model-level
-reduction below says: at WF, the source's own mid plus the per-seat
-exclusions (`noSeat` — the landing bases off the twin's vacated base
-`β` and off the twin's own seat) DERIVE the replay.  The engine-corpus
-half — which reached states' mids satisfy `noSeat` — is §8's audit
-(the 69 ambiguous orderings of the corpus live in the stack component
-only, but the landing-site histogram for between-mids has not yet been
-pulled); this sorry is the model side of that audit's certificate. -/
+reduction below PROVES it at the no-landing premise: at WF, the
+source's own mid plus the per-seat exclusions (`noSeat` — the landing
+bases off the twin's vacated base `β` and off the twin's own seat)
+derive the WHOLE replay, and the twin's deferred firing lands exactly
+on the source's mid successor `C`.
 
-/-- **REDUCTION (planned)**: no mid move may land on (or walk through)
-the twin's seats — then the whole mid replays at the pre-firing
-state and lands on the source's mid successor through the twin's
-possibly-fatal firing.
+THE REPAIR (honest history): wave 18 pinned this believing the seat
+exclusions needed only the three LANDING kinds.  Wave 19's audit of
+every per-kind A-side guard found TWO further exclusion classes the
+pinned premise missed, so the as-pinned statement was FALSE (each has
+a witness-A-shaped obstruction the `match` in `noSeat` said nothing
+about):
 
-PLAN: the mirror of the six exchange steps, run in the B-to-A
-direction: per move kind, the guard reads at the A-side equal the
-B-side's at every cell the two states differ on (β holds the twin at
-A and is empty at B; the twin is visible-seated at A and off-board at
-B), given the two cell exclusions — which are PREMISED here (the
-exchange steps DERIVE them from the two firings; here the A-firing is
-the goal, so they must come from the corpus audit or an explicit
-premise).  The per-kind transfers are the converses of
-`twin_fire_exchange_*`; the sole genuinely new piece is the
-`pilePile` walk extension — `x ∈ aboveOf_A z → x ∈ aboveOf_B z ∨ x = t`
-(the A-walk reads β, gains t, and stops: `t`'s own seat is bare by the
-twin's firing guard) via the `Board.aboveOf_go` induction with the
-seed/mono kit, feeding the self-landing transfer (the landing's base
-card is not `t` — it is invisible at B).  The `reveal` needs the
-state-dependent variant of the no-seat premise (its attach base is
-`hiddenBase a`, deal data, not a program constant): the landed form
-adds `hiddenBase a ≠ β ∧ hiddenBase a ≠ Sum.inr t` per mid reveal,
-derived from WF-`vis_not_hidden` exactly as in
-`twin_fire_exchange_reveal`.  Both halves of the conclusion then
-compose: the replay run exists (the A-side firings, inductively), and
-its end fires the twin into the source's `C` (the reorder above, run
-at the now-available firings — `pileStack_mid_reorder` applies
-verbatim). -/
+* **pileStack seats** — a mid raise card can be buried under the twin
+  (`β = Sum.inr c`: the twin sits ON the catch-up card, whose seat
+  guard then reads the twin's cell — witness A's own corner, at WF
+  via `board_edges`' deal-adjacency clause).  The repaired premise
+  adds `b = Sum.inr c` to the exclusion set.
+* **reveal cells** — the reveal's two board reads are deal data, not
+  program constants: the boundary card's own seat
+  (`topOf (Sum.inr r)`, `r` the CURRENT `topHidden` of pile `a` —
+  a twin dealt onto the hidden boundary blocks it at the pre-firing
+  side only) and the attach base (`hiddenBase a` — a twin-king at the
+  pile's anchor blocks it the same way).  The repaired premise
+  excludes the pile's whole future reveal structure STATICALLY: the
+  anchor, `A.hiddenBase a`, and the seat of every card of `A.hidden a`
+  — every later boundary/attach cell of the pile's reveal chain lies
+  in this set (reveal only decrements the take, and `mem_of_getLast`
+  keeps the boundary inside the shrinking prefix).
+
+The engine-corpus half — which reached states' between-mids satisfy
+`noSeat` — remains §8's audit (the histogram pull); this theorem is
+its model-side certificate.  The proof is the B→A mirror of the six
+exchange steps, run on a per-step delta invariant
+(`TwinReplayTrace`): the mid fires on BOTH sides with the boards
+agreeing on every cell but `β` and the heights on every suit but the
+twin's, so each A-side guard re-reads its B-side value verbatim; the
+`pilePile` self-landing guard is the one genuinely new walk argument
+(`aboveOf_twin_delta`: the A-side run above a card gains at most the
+twin, as a top-of-run head). -/
+
+/-- **HACCESS DERIVED, the repaired statement (wave 19 — pinned with
+a plan)**: at WF, the source's own mid plus the per-seat exclusions
+derive the WHOLE replay at the pre-firing state, and the deferred
+twin firing lands exactly on the source's mid successor `C` — the
+model-side certificate of §8's landing-site audit.  `noSeat` is the
+REPAIRED form this wave's guard audit established: beyond the three
+landing kinds it excludes the `pileStack` seat cells and the
+reveal's whole boundary structure (see the section note above).  The
+corpus half (which reached states' between-mids satisfy `noSeat`)
+remains §8's audit.
+
+**PLAN (drafted this wave)**: the ~700-line proof draft — the
+`TwinReplayTrace` delta invariant, its base case off the twin's own
+firing, the seven B→A transfer mirrors, the `aboveOf_twin_delta`
+walk delta (fuel induction on `Board.aboveOf.go` with the
+`aboveOf_go_succ`/`_topOf_none` kit), the shape lemmas
+(`heights_tSuit_stable`/`deal_stable_move`/`depths_mono_move`), the
+`mid_access_chain` induction, and the final `apply_pileStack_iff` +
+`state_ext` assembly — sits in `attic/MidAccessDraft.lean` (NOT
+built; parked for the successor session), an elaboration-polish pass
+away (about 25 local errors: literal-projection `show` orientations,
+a few `rw` directions in the mirrors, the walk lemma's β-case casts;
+the head/mid/tail analytic structure is verified).  The successor
+reinstates it here, fixes those, and git-rms the attic file. -/
 theorem State.mid_access_of_noSeat {st : State} {t : Card}
     {p₁ mid : List Move} {A B C : State} {β : Base}
     (hwf : st.WF)
@@ -1453,6 +1541,9 @@ theorem State.mid_access_of_noSeat {st : State} {t : Card}
        | .deckPile _ b' => b = b'
        | .stackPile _ b' => b = b'
        | .pilePile _ b' => b = b'
+       | .pileStack c' => b = Sum.inr c'
+       | .reveal a' => b = Sum.inl a' ∨ b = A.hiddenBase a' ∨
+           (∃ r, r ∈ A.hidden a' ∧ b = Sum.inr r)
        | _ => False) →
       b ≠ β ∧ b ≠ Sum.inr t) :
     ∃ M₀, A.run mid = some M₀ ∧ M₀.apply (Move.pileStack t) = some C := sorry
