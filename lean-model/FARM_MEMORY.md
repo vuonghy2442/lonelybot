@@ -2241,3 +2241,41 @@ tree).
   run_root_of_chain, card_base) + TwinSimulation.lean (the [M] assembly + both bridges + the rows; the Restriction import moves there);
   MergeFire.lean will need `import Klondike.BoardWalk` when the walk kit moves (it consumes RunChain + run_root_of_chain + card_base but does
   not import TwinQuotient).
+
+## 2026-10-05 - the C2-streamlined session (Klondike/C2Streamlined.lean; wave-17)
+
+- MACROFILE TRAP: Macro.lean's `commitApplies`/`macroStep`/`macroSteps` are ROOT-named (no `namespace Macro`); inside `namespace Klondike.C2`
+  saying `Macro.commitApplies` is an UNKNOWN-IDENTIFIER error, not a resolution. Bare `commitApplies` resolves.
+- `commitApplies`' drawCommit arm PARSES `∃ b, ((canPlace c b ∧ applyDrawTo c b = some st'') ∨ applyDrawStackTo c = some st'')` - the ∨
+  BINDS INSIDE the ∃ (precedence: the body extends to end of term). A CommitTableau-shaped disjunct extraction: `have h2 : (∃ b, A ∧ B ∨ C) := h`
+  (defeq cast THROUGH the match iota - works), then `obtain ⟨b, hb⟩`, `rcases hb`; reverse direction supplies `⟨b, Or.inl hb⟩` and
+  `⟨any-base, Or.inr h⟩` (any Base witness when the ∨ picks the right arm, e.g. `Sum.inl Anchor.p0`). A `show A ↔ _` with an unbound RHS
+  metavariable fails the defeq check confusingly - show BOTH sides, or better use the constructor + cast form.
+- DOCSTRING-CLOSER ACCIDENT (cost ~1 build cycle): the sequence `-` + `/` ANYWHERE closes the docstring/comment mid-line. Writing
+  "dig-/borrow-/`toStack`" in prose (the slash-separated habit) killed the docstring at `dig-/` and derailed the parser with a misleading
+  "unexpected identifier; expected 'theorem'" at that column many lines below the earlier errors. Use commas ("dig-, borrow- or").
+- DEF-BY-MATCH + rcases (`LabelLive st X r`, a match on `r`): `obtain`/`rcases` on the raw hypothesis FAILS ("is not an inductive datatype")
+  even after `cases r` armed the ctor - the hyp displays the stuck match. THE CURE: defeq-cast first, two forms BOTH working:
+  `have h2 : ∃ Y, DigLive st X Y := hlive`, and the inline ascription `obtain ⟨_, hbl⟩ := (h₂ : ∃ hp : ..., BorrowLive st X p₂)`. But when the
+  scrutinee is still a VARIABLE under an equality hypothesis (`killH`, `hlive : LabelLive st X r` + `he : r = Label.hole`), cast FIRST
+  `rw [he] at hlive` THEN the cast (the rw makes the match iota-reducible).
+- `Sum.noConfusion h` / `Option.noConfusion h` FAIL to elaborate in tactic position under v4.34 (result-type metavariable stuck, "expected
+  Eq ?m ?m"). The working ctor-clash idiom IS `nomatch h` (term position, e.g. `fun h => nomatch h` making named lemmas). C2Streamlined now
+  carries `sumInl_ne_sumInr`/`sumInr_ne_sumInl`; NOTE TwinCollapse holds `base_inl_ne_inr`-style helpers but sits ABOVE Macro in the DAG -
+  a Macro-level file cannot import them; CONSOLIDATION TICKET: promote the pair to Board.lean.
+- For falsity off a Bool contrast: `rw [hv] at hcast` (where `hcast : st.isVis d = true` by the `(show T from e)`-free have-cast, `exact hbot`)
+  closing via `Bool.noConfusion hcast` after the rw - the `Option`-side none/some clash closes with `exact absurd hstock (by simp)`.
+- `Rank.toIdx_lt` TAKES A RANK (`Rank.toIdx_lt z.rank`); passing the Card is a type mismatch. `Rank.toIdx_inj` for rank-equality via toIdx;
+  omega reads the toIdx-projection hypotheses only when already toIdx-typed (the (canSitOn_eq ...).mp-sliced facts are; re-derive
+  per-site if constructing them).
+- `List.Sublist`'s `<+` NOTATION is unavailable at core-offset: write the qualified `List.Sublist α α'` in binders.
+- `set` IS MATHLIB-ONLY - NOT here. For goal-literal folding: `rw [hs₂]` (the successor-eq) then keep writing the FULL literal's `have`s with
+  explicit `({ st with ... } : State).field` types; `exact` accepts the defeq casts at the iff-slots (proj-of-literal iota at default works,
+  but `rw` does NOT see through `{lit}.field` - `show`-normalize each slot before any rw).
+- Twin-pair composition discipline (`Card.flipSuit_eq_of_color_rank` to name the ball's second member): to conclude `z = z₂` from
+  `z ≠ z₁` + `z₂ = z₁.flipSuit` (hpair), call with a := z₁, b := z (the UNSYMmed color/rank facts + `fun hh => hzz hh.symm`) giving
+  `z = z₁.flipSuit`, then `.trans hpair.symm`. Getting the direction wrong type-errors at the `.trans`, not at the call - symmetric-looking
+  garbage compiles only in one direction, mind it.
+- CANONICAL REPEATS conf irmed: `rw [apply_deckPile_iff] at hcom` + `obtain ⟨_, hcp, bd', hatt, hs₂⟩ := hcom` + `rw [hs₂]` is the fast path
+  for committed-state residues; `attach_topOf_ne`/`bottomOf_attach_of_ne` (Board/Macro) + `bottomOf_detach_ne`/`founded_not_covered`
+  (C2Streamlined, PROVEN) make the one-step "still legal" cores painless - NO walk machinery needed at the one-step level.

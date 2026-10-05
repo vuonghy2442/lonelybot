@@ -844,3 +844,71 @@ time alongside the cruxes; NOT ahead of them.
 - **Repo-root clutter**: `a_*.txt` ×5, `fail_*.txt`, logs, notebooks,
   `src/bit_deck_no_bmi2.rs` (orphan Rust in src/) — ignore rules or
   delete. (lean-verify/ was deleted 2026-09-13 — row closed.)
+
+## Wave 17 — C2-streamlined: §7's two-option commitment scaffold
+(scaffolded 2026-10-05, the C2-streamlined farm session)
+
+`docs/macro_formalization.md` §7, model side — the campaign's central
+theorem as a poset-counting argument.  **Land**: `Klondike/C2Streamlined.lean`
+(registered in Klondike.lean), building on the C2-model seed (Macro.lean's
+`applyDrawTo` line), §6.2's locality (`Card.only_blocker_is_twin`,
+reused, not duplicated — its argument order is *coverer-first*: see
+`coverer_fitted_twin`), and the destination/seat kit
+(`canPlace_inr_iff`/`topOf_of_canPlace`/`canSitOn_of_canPlace_inr`,
+Move.lean).  The engine anchor (`macro_game.rs` channels `core_run`,
+`closure_classes`/`closure_contains`, `collapse_pick`; the 16,791-row
+histogram `[_, 16777, 14, 0, 0]`) was read for definition alignment
+only; `src/` untouched.
+
+**PROVEN (axiom-clean, the small core)**:
+
+- the two-type ball: `receivers_twin_pair` (F1/§6.2 "never a third
+  suit"), `receivers_king_nil`;
+- **P1 in full**: `founded_not_covered` (a foundation-passed card sits
+  under nothing — `board_edges`' base-clauses ∨ `founds_gone`), the
+  twin `founded_unseated`, and `p1_bothBorrows_noDig` (both borrows
+  live kill the dig — §6.7's exclusion `borrowable: 2 ⟹ dig: false`);
+- §6.2's in-flight half for stocked targets: `coverer_is_twin
+  fitted_twin` + `coverer_is_twin_of_stocked`;
+- the one-step channel semantics `digOpens`/`borrowOpens` (the pins
+  really enable the direct landing) and **P2's one-step cores**
+  `p2_core_dig`/`p2_core_borrow` (the direct commit provably never
+  disturbs a dig's or borrow's own enabling facts — the base collisions
+  die by rank arithmetic);
+- the **register** `register_le_two` — §7's finite lemma: three live
+  ball pinnings contain two equal ones (king gate →
+  `receivers_king_nil`; the borrow pigeonhole → the twin pair; P1
+  closes the `{dig, borrow, borrow̄}` corner);
+- the stretch's ray core: `InRay` + `inRay_rank`, `inRay_color` (the
+  parity alternation), `inRay_color_rel`/`inRay_same_color`,
+  `inRay_twin_pair` (the per-level twin-pair confinement — "runs may
+  repeat suits; only colors alternate"), `inRay_bounded` (kings
+  terminate the ray);
+- the **main theorem's assembly**: `c2_two_option` — three successors
+  of a `drawCommit` always contain a closure-equal pair, by case
+  analysis over the pillar-labeled pinnings (P2's world / the
+  pin-sharing / the register's refutation / `stack_ball_corner`).
+
+**The 5 sorried pillars** (each with its full PROOF PLAN in-file;
+census baseline updated 14 → 19, this file 5):
+
+| item | file:line | tag | route |
+|---|---|---|---|
+| `succ_labeled` (P0: §6.4's channel completeness — every successor labeled by a minimal live pinning) | C2Streamlined:924 | **[H]** | α-decomposition (A2) + the residence-class stability (hidden never seated by α) + fitted-coverer forcing at the cover's seating + `unseats_imp_pileStack` for the vacate | 
+| `p2_direct_class` (P2's class half — the scar reproducible in the same closure) | C2Streamlined:957 | **[H]** | the one-step cores lifted to plays; `comm_deckPile_pileStack`/`_stackPile` or `commute_of_disjoint_frames`; destination-collapse (macro_parking P) for base variance; the late `PileStack X` for the safe stack arm |
+| `same_pin_closureEq` (P3's class half + the §6.3 float-noise collapse) | C2Streamlined:984 | **[H]** | equal-spend free-float reconciliation (`aboveOf_congr_off` walks); nested chains → the crease; the within-channel twin choice → the local exchange/destination collapse |
+| `crease_chain_absorbed` (§7's named crease — "the one line still requiring a line-force proof"; `c2_two_option`'s same-pin cases route here) | C2Streamlined:1016 | **[H]** | the line-force: `InRay` per-level twin confinement + per-level `only_blocker_is_twin` ⟹ deep landings never covered by the shallow commit ⟹ the deep `stackPile`s re-fire post-commit (MergeFire's `merge_refires_*` walk kit) and cancel (`stackPile_pileStack_cancel`) |
+| `stack_ball_corner` (the L1/L2-diligence residue: raise-stack + two distinct live pins) | C2Streamlined:1045 | [H] | the raise chain is itself a same-suit-deterministic (F2) dig/borrow ray into one of the two live balls ⟹ the stack successor reproduces in that pin's class; the count is the L1/L2 table (no corpus third class) |
+
+**Session notes**: `closureEq` is stated as *mutual* accommodation
+reachability (the model's `accommodates` is not known symmetric — the
+Rust `closure_contains` leans on reversibility's symmetry; P2/P3
+adjuvant lemmas must mind the direction).  The `Label` set is
+`{direct, dig, borrow p, hole, toStack}` — five, not §7's four: the
+stack *residence* is not a resource spend (its raise-residue is priced
+in `LabelLive.toStack` + the crease) — the doc's `{dig + one borrow}`
+and `{borrow + borrow̄}` live-set claims are exactly the register's
+pairing analysis, P1 closing the overlap.  §7's "∎ (modulo the crease
+and the L1/L2 count tables)" is now formal graph structure: the crease
+and the corner are the two named lemmas the assembly cites.
+

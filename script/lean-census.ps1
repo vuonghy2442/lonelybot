@@ -37,11 +37,23 @@ $baseline = @{
                         # the exchangeTwin substrate + both transfer
                         # identifications are proven, axiom-clean
   'TwinQuotient.lean' = 2  # +wave-15 quotient layer (commit 9a40232): the licensed
-                        # iff + assembly PROVEN; the two remaining are the MERGE
-                        # bridges — solvable_of_exchange_merge (TwinQuotient:646)
-                        # and solvable_of_exchange_merge_rooted (:2997) — the
-                        # [H] crux at WF (FARM.md wave-15 row: normalization or
-                        # B&G piecewise bookkeeping)
+                         # iff + assembly PROVEN; the two remaining are the MERGE
+                         # bridges — solvable_of_exchange_merge (TwinQuotient:646)
+                         # and solvable_of_exchange_merge_rooted (:2997) — the
+                         # [H] crux at WF (FARM.md wave-15 row: normalization or
+                         # B&G piecewise bookkeeping)
+  # +wave-17 (C2-streamlined session, 2026-10-05; FARM.md Wave-17 / the §7
+  # two-option commitment scaffold — Klondike/C2Streamlined.lean): the five
+  # play-level pillars specified by docs/macro_formalization.md §7, each with
+  # an in-file PROOF PLAN; everything finite/arithmetic around them is PROVEN
+  # (P1, the register, the one-step P2 cores, the ray confinement, and the
+  # main theorem's case assembly P1–P3 against these pillars):
+  'C2Streamlined.lean' = 5  # succ_labeled (P0 labeling — §6.4 extraction + crease),
+                           # p2_direct_class (P2 class half — the reproducible scar),
+                           # same_pin_closureEq (P3/float class half),
+                           # crease_chain_absorbed (§7's named crease — the
+                           #   line-force lemma, cited by same_pin_closureEq's plan),
+                           # stack_ball_corner (the L1/L2-diligence residue)
 }
 
 $drift = $false
