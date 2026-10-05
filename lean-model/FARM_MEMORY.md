@@ -2241,3 +2241,50 @@ tree).
   run_root_of_chain, card_base) + TwinSimulation.lean (the [M] assembly + both bridges + the rows; the Restriction import moves there);
   MergeFire.lean will need `import Klondike.BoardWalk` when the walk kit moves (it consumes RunChain + run_root_of_chain + card_base but does
   not import TwinQuotient).
+
+## Session note (2026-10-05, the K1 farm session - the keystone/frontier/K1 trio PROVEN, Kills.lean sorry-free except K2)
+
+- THE TRIO IS CLOSED: vis_of_safeAccommodates (Kills:97) + State.frontier_spec (Kills:160) + K1_stack_goal_dead (Kills:316), with the
+  reusable export climb_firstPassage (the first-passage firing, generalized play start) and the vis one-steps. Architecture worth reusing:
+  state the play induction with a GENERALIZED PLAY START (`vis_shadow_play : forall iota ms rho, iota.run ms = ...`) and per-move ONE-STEP
+  transports proved standalone (vis_of_pileStack/vis_of_stackPile); the four-rcases composition then needs no WF, no getD-juggling, and
+  each accommodation arm is one obtain + two step-lemmas + one IH call. K1's pre-passage invariance rides the EXISTING lockedness_pileStack/
+  lockedness_stackPile pair (Theorems) for seat+lockedness, plus the card-immobility observation (a stackPile of ccard needs it
+  foundation-side - impossible below its own rank; a pileStack of it IS the passage) - no new invariants needed.
+- TACTIC BAIL: `by_contra` DOES NOT EXIST in core-no-Mathlib 4.34, and `by_cases` on Prop-premises LOST ITS HYPOTHESIS NAME in several
+  post-obtain contexts ("unknown identifier hxc" while micro-versions compiled). The everywhere-solid replacement: `cases h : decide (P)
+  with | true => have h' := of_decide_eq_true h ... | false => have hn : ¬P := by intro hcon; rw [hcon] at h; exact absurd h (by simp)`. For
+  the by_contra shape over a Nat-LE goal: `cases hc : decide (a <= b) | true => exact of_decide_eq_true hc | false => ...` and derive
+  `¬(a <= b)` via `have hdt : decide (a <= b) = true := decide_eq_true hcon; rw [hc] at hdt; exact absurd hdt (by simp)` (rw-at-trap: hcon
+  is a LE-Prop, NOT rw-able; the decide-eq is).
+- CORE absurd ORDER IS POSITIVE FIRST: `absurd (h1 : a) (h2 : ¬a) : b` - the Mathlib intuition (`absurd h hnot`) is right, but every
+  defensive instinct to pass the negation first is wrong here.
+- `cases h : <scrutinee>` REWRITES THE SCRUTINEE IN THE GOAL TOO: after `cases hv : st.isVis c with | true` the goal's `st.isVis c`
+  occurrences have become `true` - provide `⟨rfl, rfl⟩` not `⟨hv, hl⟩` (the hypothesis is for hypotheses only).
+- rcases/obtain `(... , rfl)` ELIMINATES THE VARIABLE: obtain-with-rfl on `sigma = {literal}` deletes sigma everywhere, and later `sigma`
+  references fail as "unknown identifier" (this cost an hour of confusion). When later proof text needs the state abstract (IH calls,
+  compositions), obtain the EQUATION instead (`obtain ⟨..., hslit⟩`), keep sigma, and rw hslit into individual hypotheses/goal-slots only
+  where the literal is needed (heights bump/drop rewrites). Note `heights_bump_self`-style rewrites then apply to `sigma.heights c.suit` via
+  `have hob : sigma.heights c.suit = ... := by rw [hslit, hsc']; exact heights_bump_self` - REWRITE THE GOAL, reconstruct with the lemma.
+- SUBST DIRECTION IS NOT YOURS: `subst h` with `h : x = ccard` may delete the wrong name mid-proof. To control direction, `rw [<- h]` on
+  the GOAL (all ccard-occurrences become x-occurrences), then never mention the dead name.
+- OMEGA SEES OPAQUE FUNCTION ATOMS: `f s1` and `f s2` are UNRELATED to omega even with `s1 = s2` in context - bridge explicitly
+  (`have hhe : f s1 = f s2 := by rw [hs]`). Likewise after `obtain ⟨s1, r1⟩ := x`, hypos about `x.suit` do NOT become `s1`-syntactic:
+  cast them with typed haves (`have hs : s1 = s2 := hxs'.trans hcc.symm` works because have-PATTERNS are defeq-tolerant) before omega;
+  `Rank.toIdx_inj (by omega)` then closes rank equality from the bridged facts.
+- FILTER/FIND? VERSUS AUTO-DECIDED PREDS: the frontier def's `fun r => st.heights s <= r.toIdx` elaborates as `fun r => decide (...)` -
+  write `decide (...)` EXPLICITLY in custom lemma statements or rw patterns will not match. And `rw [<- List.filter_cons_of_pos hQ]`
+  mis-unifies through the decide instance - instead state a TYPED bridge `have hcons : (b :: L).filter p = b :: L.filter p :=
+  List.filter_cons_of_pos hQ` and `rw [<- hcons]`. The whole minimality run for find? over Rank.all needs ONLY core: find?_append +
+  Option.some_or/none_or/eq_some_iff + find?_eq_some_iff_append (the no-earlier-hit split!) + find?_eq_none + filter_append + filter_filter
+  + mem_filter + filter_eq_self; the one bespoke piece is find?_prefix_false (Kills) and Rank.all_split_filter (the 13-way `cases b <;>
+  decide` - closed identities, no Seq/sortedness machinery needed).
+- LAKE 5.0 (Lean 4.34): bare `lake build` prints "no targets specified and no default targets configured ... Nothing to build" - a SILENT
+  no-op, not a build. Use `lake build Klondike Witnesses`. Also: a failing build retried in-parallel with a git reset of the tree can leave
+  phantom "failed to read .olean.private" transient toolchain errors - plain retry fixes them.
+- WORKTREE GOTCHA: fresh farm worktrees cut from an ancestor of macro-game HEAD DO NOT CONTAIN lean-model/ (it is untracked at the ancestor,
+  tracked at macro-game HEAD). If your task file set is missing, `git reset --hard macro-game HEAD sha` the branch (farm branches sit at
+  macro-game HEAD) BEFORE building, and check `git status` for a `?? lean-model/` straggler from a robocopy.
+- Axiom bookending: the keystone/frontier/one-steps are [propext, Quot.sound]; climb_firstPassage/K1_stack_goal_dead additionally pull
+  Classical.choice (the by_contra-shaped decide split at K1's tail and the card-uniqueness omega splits - consistent with EngineReachProbe's
+  profile, noted in the FARM row).

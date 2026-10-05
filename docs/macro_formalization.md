@@ -943,3 +943,41 @@ channel — on 1,027 corpus states) and both 128-game verdict sweeps.
 - What this section does *not* claim: any sufficient-direction closed
   form on the diagonal core (§8.4), or completeness of depth-≤ 1
   channels there — the crease histogram is the honest boundary.
+
+### 8.8 Addendum (2026-10-05, the K1 farm session) — K1's Lean rows closed
+
+The K1-side obligations of the status list above ("K1/K2 (ledger C15)
+are [~]", "the Lean obligations are K1's first-passage induction") are
+now met on the model side, sorry-free and with no WF hypothesis (the
+wave-12 plan's guess held).  Proven in `lean-model/Klondike/Kills.lean`
+(axioms `[propext, Quot.sound]`; K1's assembly additionally uses
+`Classical.choice`, matching the repo's existing witness profiles):
+
+- `vis_of_safeAccommodates` (the shared keystone — every closure-visible
+  card was root-visible or root-foundation), via the play induction
+  `vis_shadow_play` carrying the foundation-side shadow through a
+  generalized play start, and the one-step laws
+  `vis_of_pileStack`/`vis_of_stackPile`.
+- `State.frontier_spec` (the frontier's witness: in-range, blocked,
+  minimal), via core's `find?` split lemmas plus the two bespoke facts
+  `find?_prefix_false` and `Rank.all_split_filter`.
+- `climb_firstPassage` (the first-passage firing statement itself, now
+  an exported theorem: a suit height that rose past `k` fired the
+  `k`-card somewhere, visible and unlocked there, with seat and
+  lockedness root-invariant until then) — K6's climb-blocked-twin test
+  and future prefix-conditioned rows should consume it directly.
+- `K1_stack_goal_dead`: with `frontier(s) < rank(X)` the suit never
+  climbs past `rank(X)` anywhere in the closure — the fired frontier
+  card would be root-visible-and-root-unlocked, contradicting its own
+  blockedness.
+
+Definitional deltas found while aligning with `goal_dead` (K1 arm,
+src/macro_game/mod.rs): none semantic.  The Lean premise
+`st.frontier X.suit < X.rank.toIdx` subsumes the engine's explicit
+`h₀(X) ≥ rank(X) ⇒ no kill` descent guard (on heights ≤ 13 a descent
+forces `frontier ≥ h₀ > rank`, so the premise is never satisfiable);
+the 13 = open-climb encoding and the first-blocked-rank reading agree
+bit for bit.  The standing caveat of §8.7 still applies verbatim: the
+model's `isVis`/`isLocked` are the formalization-side predicates, and
+their equality with the engine's word masks (`words_at`) remains the
+separate bridge debt — unchanged by this work.

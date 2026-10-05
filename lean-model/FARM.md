@@ -1,9 +1,10 @@
 # The proof farm — handoff document
 
-**Census: 12 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 4
-· Restriction 2 · TwinExchange 1; zero bullets).  Pinned by
-`pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 12 are
+**Census: 11 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 1
+· Restriction 2 · TwinExchange 1 · TwinQuotient 2; zero bullets).
+Pinned by
+`pwsh script/lean-census.ps1` — it fails on
+any NEW sorry or the return of a refuted constant.  All 11 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -149,11 +150,30 @@ the `ClosureCtx.frontier` mirror), `Rank.toIdx_inj` homed upstream.
 
 Work order: the keystone first — the two K-rows consume it.
 
+**K1 LANDED 2026-10-05 (the k1 farm session, branch
+farm/k1-stack-kill)**: the keystone, the frontier spec, and the K1 row
+are proven, sorry-free, no WF hypothesis (as planned) — axioms
+`[propext, Quot.sound]` for the keystone/frontier/vis steps,
+`[propext, Classical.choice, Quot.sound]` for the climb/K1
+(the first-passage induction's card-uniqueness split pulls the
+choicer).  New machinery shipped with the proofs (all in Kills.lean,
+all reusable downstream): the `find?` prefix law
+`find?_prefix_false`, the rank split `Rank.all_split_filter`, the
+one-step vis laws `vis_of_pileStack`/`vis_of_stackPile`, the play
+induction `vis_shadow_play` (the shadow carried explicitly), and the
+exported first-passage firing `climb_firstPassage` — K6's
+"climb-blocked twin" and any future prefix-conditioned row should
+start from these.  Rust deltas found while aligning: none semantic —
+the Lean premise `frontier < rank` subsumes the engine's explicit
+`h₀ ≥ rank ⟹ no kill` descent guard (descents force
+`frontier ≥ h₀ > rank`), and the engine's `locked` mask vs the
+model's `isLocked` is the standard bridge-debt noted in §8.7.
+
 | item | file:line | tag | route |
 |---|---|---|---|
-| `vis_of_safeAccommodates` | Kills:40 | [M] | play induction; the foundation-side shadow (closure-foundation ⊆ root-foundation ∪ root-vis) is the carry; `stackPile`'s new visible comes from the firing foundation |
-| `State.frontier_spec` | Kills:52 | [M] | `find?` spec over the `toIdx`-filtered `Rank.all`; minimality needs the filtered list's `toIdx`-sortedness (decide-able list fact) |
-| `K1_stack_goal_dead` | Kills:75 | [M] | keystone + frontier_spec + the climb lemma (heights rose past `k` ⟹ rank `k` was `pileStack`-fired; play induction) |
+| `vis_of_safeAccommodates` | Kills:259 | **done**(K1 session 2026-10-05) | `vis_shadow_play` (Kills:130): induction with a *generalized play start*, carrying the foundation-side shadow (`vis` + `onFound` both bounded vs the start); `pileStack`'s new foundation card IS the fired card (root-visible by its guard), `stackPile`'s new visible IS root-foundation (un-stack guard) — safety unused, no WF |
+| `State.frontier_spec` | Kills:275 | **done**(K1 session 2026-10-05) | core's `find?_eq_some_iff_append` names the witness + blockedness; minimality via `find?_prefix_false` (Kills:42) over the `filter_append`/`filter_cons` reassembly around `Rank.all_split_filter` (Kills:67, the 13-way decide) |
+| `K1_stack_goal_dead` | Kills:501 | **done**(K1 session 2026-10-05) | `climb_firstPassage` (Kills:357): heights past `k` ⟹ the `k`-card was `pileStack`-fired, visible (apply guard) + unlocked (play safety) at the firing state, seat/lockedness root-invariant until then (lockedness lemmas + card-immobility below its rank); the firing contradicts the frontier witness's blockedness both ways |
 | `K2_tableau_goal_dead` | Kills:89 | [E] | `canPlace` case-split; king excluded by `hking`; `inr d` ⇒ `d ∈ receivers` (mem_receivers_iff) ⇒ keystone contradicts `hrecv` |
 
 **Not yet statable (prerequisites, then come back)** — text rows, do
