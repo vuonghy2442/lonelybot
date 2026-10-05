@@ -5875,3 +5875,130 @@ survives.
 (12) `rw` mid-list failure cascading DON'T necessarily mean the shape
 was wrong: a failed rw leaves the goal open so EVERYTHING after reports
 "unsolved goals" — fix the first reported rw, rebuild, re-read.
+
+## wave 21 note (2026-10-05, farm-pile-swap-symmetry session)
+
+Sub-session (this card only: Klondike/PileSwap.lean + witnesses/PileSwapConsequences.lean).
+Both new files are sorry-free/axiom-clean (pins: [propext, (Classical.choice,) Quot.sound]);
+census 11 unchanged.  FARM.md wave-21 row has the deliverable names; doc §9 is the
+cross-referenced addendum.  Base: fast-forward 197 commits to 7121529 first (worktree
+again started stale); one std::bad_alloc on cold build → plain retry per the card.
+
+ELABORATION TRAPS (add to the ledger):
+(6) DECIDABLE-INSTANCE FRAGILITY: ite_eq_left/right-pattern rw with ?meta INSTANCES pin to
+  the FIRST matched ite's instance when TWO same-spelled ites sit in one goal — the second
+  never rewrites ("pattern not found" while the display SHOWS it).  Fix: DOUBLE the rw
+  (rw [ite_eq_left h, ite_eq_left h]) so the second rw re-elaborates a fresh instance.  The
+  same fragility bites `show` that RESPELLS a folded condition (Base.swapBase (Sum.inl x)
+  vs the unfolded Sum.inl (Anchor.swap i j x)) — the kept goal carries the FOLDED instance,
+  so rewrites on the unfolded spelling fail "not type-correct under implicit transparency".
+  Escapes used: keep the FOLDED spelling everywhere and rw on it (Base.swaapBase_inl-style);
+  or go instance-free (attach_topOf/_ne + by_cases on the pre-ite facts — the
+  attach_empty_conj proof pattern).
+(7) match-ARM ORDER matters for writes: source defs whose arms are SOME-first
+  (applyPilePile's | some bd => ... | none => none) are NOT defeq to the conventional
+  | none | none | some | spelling in a `show` — the show DEF-ACCEPTS(δ iota) but the
+  later rfl/rw chains stall.  MIRROR the source arm order bit-for-bit in unfolding shows.
+(8) `cases h : e` SUBSTITUTES e in the goal but leaves the match UNREDUCED — after cases,
+  a fresh `show` (iota-reduced body built from the case facts) is the reliable next step;
+  `refine state_ext rfl...` on un-shown post-case arms fails on stale meta-instances.
+(9) Bridge-column rule BITES MULTI-LINE RECORDS IN TACTIC ARGUMENTS TOO (not only source
+  files): { x with f := v, ... } elaborated inside show/have must start its first field on
+  its own line at the anchor column — a first field on the `{ x with` line is a parse
+  error "unexpected '}'" that cascades into bogus type mismatches dozens of lines away.
+(10) `obtain ⟨bd0, hc⟩` after `cases hc : e with | some bd0` — the cases already abstracted
+  e INTO `some bd0` in the goal, so the ∃ goal is `some bd0 = some ?`; provide rfl, not hc.
+(11) state_ext takes SIX hypothesis args — a `refine state_ext rfl ?_ rfl ?_ rfl` (five)
+  leaves the drawStep eq as a leftover function and reports a bizarre partial-application
+  type error; count the slots (deal, board, heights, depths, stock, drawStep).
+(12) The interactively painless per-arm pattern for Option-guarded apply lemmas: outer
+  two-sided `show (match scrutinee with ...) = Option.map f (match scrutinee with ...)`,
+  rw both scrutinee-sidesonto the same spelling, `cases` the scrutinee (substitutes BOTH
+  sides), per-arm two-sided `show (if COND then X else Y) = Option.map f (if COND then X'
+  else Y')`, `by_cases COND`, DOUBLE ite rewrites, final rfl.  Long but mechanical; used
+  six times in State.apply_setDeal_eq_of_depthsZero with zero exotic tactics.
+
+OPEN PINS (recorded, unconsumed this wave): transposed flatMap noDupCards for Deal.WF
+(block-permutation argument — no consumer); the general graded bound (k vacant ≤ m
+content-classes) beyond the all-empty first cut; harness ticket for the orchestrator's
+SuccLabeledWitness track: an empirical rDeal-family print/multiset probe to pair with
+ReachCorner.sHidden_distinct (none run from here — no #eval).
+
+## wave 21 note (2026-10-05, farm-pile-quotient session)
+
+Sub-session (this card only: Klondike/PileQuotient.lean +
+witnesses/PileQuotientCorollaries.lean; consumed
+farm/pile-swap-symmetry db46979, merge FARM double-append resolved
+both-kept: FARM.md row beneath the sibling's 21-row, FARM_MEMORY
+keeping the HEAD ledger + the sibling tail-append verbatim).
+
+REUSABLE-ZONE QUIRKS (all verified, all reproducible):
+
+- **NO `EqvGen` IN CORE** (Lean 4.34 toolchain): every phase-1 draft
+  written against `EqvGen` failed with `Unknown identifier` — and the
+  failure mode is SILENT-at-scale: `lake build ... | Select-Object
+  -Last 30` shows the TAIL of the error list first (79-line files,
+  30-error windows); the §-by-§ "green" reads earlier in the session
+  were TAIL ILLUSIONS.  Always `| Out-File` the full log and grep
+  `error:`.  The hand-rolled spine (`inductive EqvClosure` with
+  `refl/single/trans`) is 4 lines and every induction argument then
+  works with plain `induction h with | refl x | @single x y ... |
+  @trans ...`; SYMMETRY IS NOT CONSTRUCTOR-GENERIC for the raw
+  RT-closure — prove one `symm` per orbit from the step relation's
+  own symmetry.
+- **`Quot.sound` orientation subtlety**: for `mk a' = mk a` (a' the
+  moved side) `Quot.sound` consumes `PileSwapOrbit a'` → witness
+  `a = a'.move` — the INvolution lemma, NOT `rfl`.  The reverse
+  (`mk_eq_mk`) is the one to use everywhere else.  For the CONVERSE
+  (`mk`-equality → relation) there is no `Quot.exact` here either:
+  the orbit-through-a { isa itself a sound `Quot.lift`
+  (propext pair over trans/symm), so `Quot.lift
+  (fun x => Orbit a x) ...` at both classes splits the equality into
+  `Orbit a a = Orbit a b` with `refl` on the left — 12 lines, no
+  classical.
+- **Or-slot grammar for right-nested disjunctions** (the pigeonhole
+  conclusion shapes): placing X in slot k of N takes (k−1) × `Or.inr`
+  + `Or.inl X` for k < N but (N−1) × `Or.inr` + X PLAIN for the LAST
+  slot (Y-check: `Or.inl X : X ∨ ?b` cannot fit a tail-less slot).
+  Encoding the last slot with a stray `Or.inl` produces a
+  type-mismatch ERROR RECOVERED AS A SORRY: the declaration compiles
+  with `sorryAx` inside and NO `declaration uses sorry` warning —
+  the pins (`#print axioms` + `#guard_msgs`) are what caught it.
+  `by show ...; rw [...]` term-blocks inside the `Or.inr` chain
+  anchor the elaborator and avoid the miscount entirely.
+- **foldl-vs-foldr for induced permutations**: a state chain folded
+  left (list order = application order) INDUCES right-composed index
+  permutations: `(A (p :: L) st).piles a = st.piles (A (p :: L) a)`
+  holds ONLY with `Anchor.applySwaps`/`Base.applySwaps` as `foldr`
+  (head conjugates LAST).  With foldl on BOTH sides the per-field
+  lemma is FALSE (numerical counterexample: [σ02, σ01] at p0 reads
+  p1 vs p2) — and the counterexample-invisible error is a
+  steps-mismatch deep in the induction.  Rrule of thumb: the
+  `rw [chain-cons, ih, step-lemma]`-with-`rfl`-closers pattern closes
+  by DEFEQ only in the foldr composition.
+- **rw discipline**: `rw [h] at hc` where `hc` mentions only the
+  RHS-most term REQUIRES `rw [← h]` to rewrite INTO the structure
+  (`rw [hse'] at hc` fails "pattern not found" when `hc : mk t = c`
+  and `hse' : s.move = t` — use `← hse'`).  `rw [...]` chains leaving
+  `(st.move ...).field = st.field` goals close by `rfl` ONLY as a
+  SEPARATE line — the in-chain auto-rfl runs at instances
+  transparency and fails through the `State.move` def — the explicit
+  `rfl` at default transparency succeeds.
+- **Same-deal setDeal eta**: `st.setDeal st.deal = st` IS `rfl` in
+  tactic mode, but `rw [State.setDeal_setDeal]`-chains reach it
+  WITHOUT unfolding: after ONE setDeal_setDeal the goal
+  `st.setDeal st.deal = st` must be closed by an explicit `rfl`
+  line (the rw-auto-rfl misses it; the second
+  `rw [State.setDeal_setDeal]` in the same chain errors
+  pattern-not-found).
+- **C2 namespace**: everything in C2Streamlined §3+ lives under
+  `namespace Klondike.C2` — `open Klondike.C2` after the import, or
+  `closureEq` & co. become autoImplicit junk variables ("Function
+  expected at closureEq" cascades of 20+ errors).
+- **The merge protocol worked end-to-end**: snapshotted the sibling's
+  uncommitted interfaces at session start, drafted against them, and
+  the final `git merge farm/pile-swap-symmetry --no-edit` (after
+  dropping the stale copies + restoring the umbrella) auto-merged
+  Klondike.lean and produced ONLY the two expected FARM double-append
+  conflicts.  Zero interface drift between their work-in-progress and
+  their commit.

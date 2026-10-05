@@ -1974,3 +1974,167 @@ the image's OWN mate moves are all dodges while parked).
 Build: `lake build Klondike Witnesses` green (67 jobs, macro-game HEAD
 7121529); census pinned OK (11 total, TwinSwapCompletion 1, zero
 bullets).  No new sorry introduced; no refuted constant touched.
+
+## Wave-21 (2026-10-05, the pile-symmetry session; files Klondike/PileSwap.lean
++ witnesses/PileSwapConsequences.lean new, umbrella Klondike.lean registered, census 11 GREEN unchanged)
+
+**Π: the position-level pile transposition.**  `Anchor.swap i j` ↔
+`Base.swapBase` ↔ `Board.mapByPileSwap` ↔ `State.swapPiles` +
+`Move.swapM` co-action: inverting two whole piles (visible runs,
+hidden stacks/depths, anchor seats — card seats ride; stock, heights,
+draw step fixed).  Involutions proven; **`apply_swapPiles`** commutes
+the engine per move with `State.swapPiles_with` component-assembly;
+`run_swapPiles` lifts it, **`solvable_swapPiles_iff`** (PileSwap.lean:851)
+is state-universal (no WF premise — the engine never reads the deal
+shape); `solvableEngine_swapPiles_iff` likewise.  **THE WF FINDING**:
+`Deal.WF`'s shape clause is pinned to the seven slots (distinct sizes),
+so no nontrivial transposition preserves deal WF
+(`swapPiles_dealWF_blocked`, PileSwap.lean:1301); the ten other
+conjuncts transfer via `State.wfsoft_swapPiles_iff` (WFsoft), the
+transposed flatMap distinctness is the wave's open pin (unconsumed).
+
+**Pristine degeneracy + same-deal obstruction.**  `State.depthsZero`:
+at all-hidden-empty states the deal is inert
+(`State.solvableFrom_setDeal_iff_of_depthsZero` — reveal dead, no
+other move consults the deal).  `swapPiles_eq_sameDeal_forced_eq`:
+swap-related same-deal states force `i = j` (WF slice lengths are
+pairwise distinct) — the survival mechanism below.
+
+**The two verdicts** (witnesses/PileSwapConsequences.lean):
+* **PRISTINE CONTENT-COLLAPSES** — `KingAnchor.pileSwap_wSucc_washed`
+  (:160; transposing `wSucc a₁` by `a₁↔a₂` and washing the inert deal IS
+  `wSucc a₂` via `wBoard_mapByPileSwap` :142), `KingAnchor.pileSwap_all_landings`
+  (:181) and `pileSwap_all_landings'` (:204, any two landing states):
+  the wave-18 seven-landings refutation stands literally (labeled
+  classes) but its content is ONE solvable future up to Π — the
+  pristine board's piles are all fully empty, so anchor names carry
+  no distinguishing content.
+* **rSTATE SURVIVES** — `ReachCorner.sState = State.initial wDeal 1`
+  (rState replica on the public deal; rState is private in
+  SuccLabeledWitness), `sHidden_distinct` (:243, decide-anchored
+  pairwise hidden distinctness), `sLand_swapRelated_iff` (:349):
+  swap-related landings force `i = j ∧ a = b`;
+  `rState_survives` (:380): NO transposition relates two landings on
+  different free anchors — the wave-20 reachable refutations are
+  CONTENT-REAL; the anchored-head route's separation survives the Π
+  quotient.  (Harness ticket: an empirical per-corner probe —
+  rDeal-family multiset/print distinctness — belongs to the
+  orchestrator's SuccLabeledWitness track; none was run here.)
+* **First-cut graded bound** — `emptyPiles_kingLandings_collapse`
+  (:397): at ANY all-fully-empty-pile state, king landings on any two
+  anchors are equi-solvable (k vacant anchors refine to m = 1
+  swap-class); the general k ≤ m statement is the next cut's shape.
+
+Axioms: all pins `[propext, (Classical.choice,) Quot.sound]; zero
+sorryAx in both new files — census pins 11 unchanged).  Doc:
+macro_formalization.md §9 addendum cross-referencing the §8
+reachable-corner discussion.
+
+## Wave-21 (2026-10-05, the pile-quotient session; files
+Klondike/PileQuotient.lean + witnesses/PileQuotientCorollaries.lean new,
+umbrella Klondike.lean registered after the pile-symmetry block, census
+11 GREEN unchanged — the wave's ritual: no lib sorry touched, zero new)
+
+CONSUMES farm/pile-swap-symmetry db46979 (merged; the FARM double-append
+resolved both-kept).
+
+**THE SETOID (PileQuotient.lean §0–§1).**  The equivalence closure of
+the pile transpositions: `PileSwapStep` (:95) → `PileSwapOrbit` (:99,
+the LOCAL `EqvClosure` spine :86 — **finding: this toolchain's core
+exports NO `EqvGen`**; the inductive with `refl/single/trans` is
+hand-rolled, each orbit proves its own `symm` (:103, :302) from its
+step relation's symmetry), `pileSwapSetoid` (:117, an explicit
+`Setoid` VALUE — deliberately no global instance) and the class type
+`PileClass` (:123) with the soundness kit (`mk_pileSwapPiles` :129,
+`mk_eq_mk` :134) and the HOMEMADE `Quot.exact` (`PileClass.exact` :140
+— the orbit-through-a is itself a sound `Quot.lift`, so `mk`-equality
+unfolds into the relation; likewise `PileContentClass.exact` :340).
+
+**THE MOVE-SET DESCENTS (§2, §4).**  A fixed move does not descend —
+Π conjugates it (`apply_swapPiles`) — but the SET of engine successors
+does: `engineSuccSet_swapPiles` (:192; `sub` :174 =
+`apply_swapPiles`+`swapM_swapM`+`swapM_isEngine`), closure lift
+`engineSuccSet_orbit` (:204), the well-defined class dynamics
+`EngineSuccQ` (:216)/`engineSuccQ_mk_iff` (:221); the content
+twins `EngineSuccCW` (:499) with the inert-deal wash (`_setDeal_sub`
+:424 via the sibling's `apply_setDeal_eq_of_depthsZero`).
+
+**THE VERDICTS LIFT, BOTH DIRECTIONS (§3, §4).**  `solvableQ` (:253)/
+`solvableEngineQ` (:282) via closure induction over
+`solvable_swapPiles_iff`/`solvableEngine_swapPiles_iff`;
+`solvableCW` (:552)/`solvableEngineCW` (:578) over the content orbits
+(the wash step needs the NEW `solvableEngine_setDeal_iff_of_depthsZero`
+:511 — the sibling proved the solvability side only).
+
+**THE SECOND SETOID — THE CONTENT QUOTIENT (§4).**  `PileContentStep`
+(:295) extends the step relation with `State.setDeal` overwrites AT
+all-emptied states (where the deal is inert), so pristine-like boards
+can be compared by CONTENT.  Two structure theorems calve the
+quotients: `depthsZero_contentOrbit_iff` (:389 — the emptied-ness
+flag is a class invariant) and **the off-fragment purity**
+`pileSwapOrbit_of_contentOrbit_of_not_depthsZero` (:399) — off the
+emptied fragment the wash never fires: content classes = pure-Π
+orbits.
+
+**THE PRISTINE COLLAPSE AS ONE ORBIT (§5).**  The sibling's
+pristine equi-solvability, restated AT THE SETOID: at any
+depthsZero/empty-board state, the Draw-commitment landings on ANY two
+anchors are the SAME content class (`emptyPiles_land_content_eq`
+:622 — the washed transposition of one landing IS the other; the
+board conjugation `attach_empty_mapByPileSwap` :600 over
+`Board.empty`).  All usable anchor candidates: ONE orbit.
+
+**THE SAME-DEAL FIBER (§6) — orbit-structural survival.**  Every
+orbit is a concrete chain: `pileSwapOrbit_exists_applySwaps` (:782)
+over foldl state chains with the composed index permutation
+(`Anchor.applySwaps` :669, FOLDR — the induced reading composes
+reverse), the per-field calculi (:683–:779), and the capstone
+`applySwaps_eq_of_same_deal` (:804): a chain returning the WF deal
+to itself composes to the identity (slot lengths are distinct —
+`Anchor.toIdx_inj`), so `pileSwapOrbit_sameDeal_eq` (:841) — and
+`pileContentOrbit_sameDeal_eq` (:859) off the emptied fragment.
+
+**THE WITNESS (PileQuotientCorollaries.lean).**
+* (i) The trivial descents — `closureEq_solvableCW_iff` (:69: an
+  accommodation class-equality is invisible to the quotient verdict
+  — the plays ARE the reaches, `solvable_iff_mutuallyReaches`):
+  `commitTableau_class_fate` (:80, cite `commitTableau_class`),
+  `crease_stack_fate` (:90, cite `crease_stack_deterministic`),
+  `c2_two_option_fate` (:99, cite `c2_two_option` — the three-futures
+  bound survives the quotient verbatim).
+* (a) THE FIRST CUT, CLEAN (§2) — at a pristine-like commitment any
+  THREE futures contain a same-class pair
+  (`pristine_commit_firstCut` :176 — ≤ 2 classes: the deterministic
+  stack arm + the anchor arm's ONE orbit), and ANY FOUR likewise
+  (`pristine_commit_firstCut_graded` :210 — the literal 2 + 1
+  pigeonhole), read through the verdict in
+  `pristine_commit_firstCut_fates` (:260).  The 2 counts the
+  non-anchor channels (stack arm; receiver-tableau — DEAD at empty
+  boards: `commitTab_anchor_of_emptyBoard` :138), the 1 is the
+  single anchor-content orbit.
+* (b) The survival is orbit-structural (§3):
+  `sameDeal_content_separated` (:286) — same-deal, WF-dealt,
+  not-all-emptied states are content-related only when equal; with
+  the sibling's `ReachCorner.sLand_swapRelated_iff` +
+  `rState_survives` premises met at the reached corner, the
+  wave-20 countermodels survive the FULL content quotient, not just
+  single transpositions.
+
+Axioms: thirteen pins, all `[propext, Quot.sound]` except
+`c2_two_option_fate` inheriting `c2_two_option`'s own blessed
+`[propext, Classical.choice, Quot.sound]`.  Zero sorryAx (the file's
+sorryAx-free-ness is LIVE evidence: a leaf Or-slot typo briefly
+survived as error-recovery sorryAx and the pins caught it).
+
+Build: targeted `lake build Klondike.PileQuotient
+Witnesses.PileQuotientCorollaries Witnesses.PileSwapConsequences` green
+at merge HEAD (32 jobs); full-library runs hit the sibling sessions'
+`.olean.private` toolchain-contention weather — poll, per FARM_MEMORY.
+NEXT TICKETS: (1) the full orbit-count bound (2 + #swap-orbits at
+NOT-all-empty anchors — carve the anchor-content equivalence classes
+at a general commitment state); (2) the interaction with the
+non-king count card (the sibling lane: anchor candidates under the
+non-king receiver channels — the landing-forcing
+`commitTab_anchor_of_emptyBoard` is the seam); (3) the sibling's
+open pin (transposed block-concatenation distinctness for
+`noDupCards`) would un-block `wfsoft`-level quotientWF discourse.
