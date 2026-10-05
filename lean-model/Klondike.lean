@@ -11,7 +11,6 @@ import Klondike.Dominance
 import Klondike.Progress
 import Klondike.Realizability
 import Klondike.Macro
-import Klondike.C2Streamlined
 import Klondike.Bridge
 import Klondike.Initial
 import Klondike.Kills
@@ -28,3 +27,4 @@ import Klondike.TwinCollapse
 import Klondike.Frame
 import Klondike.TwinSwapCompletion
 import Klondike.Tactics
+import Klondike.C2Streamlined

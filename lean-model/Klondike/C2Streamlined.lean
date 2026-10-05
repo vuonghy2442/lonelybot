@@ -1,4 +1,5 @@
 import Klondike.Macro
+import Klondike.TwinSwapCompletion
 
 /-!
 # C2, streamlined — closures as coordinates, commitments as pinnings
@@ -751,6 +752,227 @@ theorem p2_core_borrow {st : State} (hwf : st.WF) {X p : Card}
       rw [apply_stackPile_iff]
       exact ⟨hb.htop, hcpC, bd'', hatt2, rfl⟩
 
+/-! ## §9.5. The destination collapse at the commitment level (PROVEN)
+
+T's destination collapse (TwinSwapCompletion's O1), lifted to the
+commitment level and the `closureEq` relation: the *same drawn card's*
+two tableau landings — on either destination twin, or (for a king) on
+either free anchor — are ONE closure class whenever the card is
+stackable at its suit's rung.  The reversible shuttle is the two-move
+foundation round trip `[pileStack X; stackPile X b₂]`, and it lands on
+EXACTLY the second commit's successor (the board is the same attach
+away from the same source board — `attach_detach_cancel` — the
+heights bump-and-drop cancels at `X`'s suit, and the stock is the same
+splice because the guard's reachable position is the state's own).
+
+This is the workhorse of §6.3's free-float collapse at equal
+commitment states, and the honest within-channel twin choice: what
+the class computation may quotient without a cross-pile swap.  The
+BOUNDARY is equally explicit: without the rung, the landed card can
+never leave its seat by accommodation moves (only `pileStack` unseats
+a card — `unseats_imp_pileStack`'s taxonomy), and the two landings are
+genuinely closure-separated; `witnesses/C2KingAnchorWitness.lean` pins
+that corner (a climb-blocked stocked king whose anchor landings are
+pairwise closure-separated), so the rung premise below is load-bearing
+on both sides of the collapse. -/
+
+/-- A stocked card is never a pile's hidden boundary — the membership
+form of the `stock_prev_not_mem_hidden` fact (the deal's piles and
+stock are disjoint, so no pile slice contains a cycle card). -/
+theorem stocked_not_mem_hidden {st : State} (hwf : st.WF) {c : Card}
+    (hmem : c ∈ st.stock.cards) {a : Anchor} : c ∉ st.hidden a := by
+  intro hc
+  have hndeal : c ∈ st.deal.stock := hwf.stock_wf.2 c hmem
+  have hpile : c ∈ st.deal.piles a :=
+    List.take_subset _ _ (show c ∈ (st.deal.piles a).take (st.depths a) from hc)
+  exact noDupCards_append_disj ((hwf.deal_wf).2.2)
+    (List.mem_flatMap.mpr ⟨a, Anchor.mem_all a, hpile⟩) hndeal
+
+/-- The tableau arm's commit unpacks into the reachable position, the
+attach, and the successor literal (the `applyDrawTo_eq` shape, with
+`CommitTableau`'s own canPlace witness). -/
+theorem commitTableau_shape {u : State} {X : Card} {s : State}
+    (h : CommitTableau u X s) :
+    ∃ b i bd, u.canPlace X b = true ∧ u.reachablePos X = some i ∧
+      u.board.attach b X = some bd ∧
+      s = { u with board := bd, stock := ⟨Cycle.removeIdx u.stock.cards i, i⟩ } := by
+  obtain ⟨b, hcp, hto⟩ := h
+  obtain ⟨i, bd, hpos, hatt, hs⟩ := applyDrawTo_eq hto
+  exact ⟨b, i, bd, hcp, hpos, hatt, hs⟩
+
+/-- The one-way shuttle: from one committed landing of a stackable
+drawn card, the accommodation play `[pileStack X; stackPile X b₂]`
+reaches the OTHER commit's successor exactly. -/
+theorem commitTableau_shuttle {u : State} (hwf : u.WF) {X : Card}
+    (hrk : X.rank.toIdx = u.heights X.suit)
+    {s s' : State} (hs : CommitTableau u X s) (hs' : CommitTableau u X s') :
+    ∃ play : List Move, (∀ m ∈ play, m.isAccommodation = true) ∧
+      s.run play = some s' := by
+  obtain ⟨b₁, hcp₁, hto₁⟩ := hs
+  obtain ⟨i, bd₁, hpos₁, hatt₁, hshape₁⟩ := applyDrawTo_eq hto₁
+  obtain ⟨b₂, hcp₂, hto₂⟩ := hs'
+  obtain ⟨i', bd₂, hpos₂, hatt₂, hshape₂⟩ := applyDrawTo_eq hto₂
+  have hii : i = i' := Option.some.inj (hpos₁.symm.trans hpos₂)
+  rw [← hii] at hshape₂
+  -- X rides no stack at the commit state: unplaced (the attach guard),
+  -- off every hidden slice (stocked), so nothing sits on it
+  have hbox : u.board.bottomOf X = none :=
+    ((Board.attach_eq_some_iff _ _ _).mp (by rw [hatt₁]; simp)).2
+  have hhid : ∀ a, X ∉ u.hidden a :=
+    fun a => stocked_not_mem_hidden hwf
+      (Pace.mem_of_posOf u.stock.cards u.stock.cursor X i (reachablePos_posOf hpos₁))
+  have hXtop : u.board.topOf (Sum.inr X) = none :=
+    State.topOf_inr_eq_none hwf hbox hhid
+  -- the first landing's base is never X's own seat
+  have hb₁ : b₁ ≠ Sum.inr X := by
+    cases b₁ with
+    | inl a => exact sumInl_ne_sumInr
+    | inr d =>
+        intro hcon
+        have hd : d = X := Sum.inr.inj hcon
+        have hfit := canSitOn_of_canPlace_inr hcp₁
+        rw [hd] at hfit
+        obtain ⟨hr, -⟩ := (canSitOn_eq X X).mp hfit
+        omega
+  -- the committed state's shape facts
+  have hsb : s.board = bd₁ := by rw [hshape₁]
+  have hsh : s.heights X.suit = u.heights X.suit := by rw [hshape₁]
+  have hstopX : s.board.topOf (Sum.inr X) = none := by
+    rw [hsb, Board.attach_topOf_ne _ _ _ hatt₁ (Ne.symm hb₁)]
+    exact hXtop
+  have hsbotX : s.board.bottomOf X = some b₁ := by
+    rw [hsb]
+    exact (Board.bottomOf_eq _ _ _).mpr (Board.attach_topOf _ _ _ hatt₁)
+  have hrkXs : X.rank.toIdx = s.heights X.suit := by rw [hsh]; exact hrk
+  -- move 1: the landed card worries back onto the foundation
+  obtain ⟨t, hmove1⟩ :
+      ∃ t, s.apply (Move.pileStack X) = some t := by
+    refine ⟨{ s with
+      board := s.board.detach b₁,
+      heights := fun σ => if σ = X.suit then s.heights σ + 1 else s.heights σ }, ?_⟩
+    rw [apply_pileStack_iff]
+    exact ⟨hstopX, b₁, hsbotX, hrkXs, rfl⟩
+  have htlit : t = { s with
+      board := s.board.detach b₁,
+      heights := fun σ => if σ = X.suit then s.heights σ + 1 else s.heights σ } := by
+    have h := apply_pileStack_iff.mp hmove1
+    obtain ⟨b', hb', hrk', hshape⟩ := h.2
+    have hb'eq : b' = b₁ := Option.some.inj (hb'.symm.trans hsbotX)
+    rw [hb'eq] at hshape
+    exact hshape
+  have htb : t.board = u.board := by
+    rw [htlit]
+    show (s.board.detach b₁) = u.board
+    rw [hsb]
+    exact Board.attach_detach_cancel hatt₁
+  have htrk : X.rank.toIdx + 1 = t.heights X.suit := by
+    rw [htlit]
+    show X.rank.toIdx + 1 =
+      (if X.suit = X.suit then s.heights X.suit + 1 else s.heights X.suit)
+    rw [ite_eq_left rfl, hsh]
+    exact congrArg _ hrk
+  -- the other commit's placement guard survives the shuttle's midpoint
+  have hcpT : t.canPlace X b₂ = true := by
+    cases b₂ with
+    | inl a =>
+        obtain ⟨h1, h2⟩ := canPlace_inl_iff.mp hcp₂
+        exact canPlace_inl_iff.mpr ⟨by rw [htb]; exact h1, h2⟩
+    | inr d =>
+        obtain ⟨h1, h2, h3⟩ := canPlace_inr_iff.mp hcp₂
+        refine canPlace_inr_iff.mpr ⟨by rw [htb]; exact h1, ?_, h3⟩
+        show (t.board.bottomOf d).isSome = true
+        rw [htb]
+        exact h2
+  -- move 2: back onto the other commit's base
+  obtain ⟨w, hmove2⟩ :
+      ∃ w, t.apply (Move.stackPile X b₂) = some w := by
+    refine ⟨{ t with
+      board := bd₂,
+      heights := fun σ => if σ = X.suit then t.heights σ - 1 else t.heights σ }, ?_⟩
+    rw [apply_stackPile_iff]
+    refine ⟨htrk, hcpT, bd₂, ?_, rfl⟩
+    rw [htb]
+    exact hatt₂
+  have hwlit : w = { t with
+      board := bd₂,
+      heights := fun σ => if σ = X.suit then t.heights σ - 1 else t.heights σ } := by
+    have h := apply_stackPile_iff.mp hmove2
+    obtain ⟨bd', hatt', hshape⟩ := h.2.2
+    have hbd'eq : bd' = bd₂ := by
+      rw [htb] at hatt'
+      exact Option.some.inj (hatt'.symm.trans hatt₂)
+    rw [hbd'eq] at hshape
+    exact hshape
+  -- the shuttle's end state IS the other commit's successor
+  have hw_eq : w = s' := by
+    apply state_ext
+    · -- deal
+        have h1 : w.deal = t.deal := by rw [hwlit]
+        have h2 : t.deal = s.deal := by rw [htlit]
+        have h3 : s.deal = u.deal := by rw [hshape₁]
+        have h4 : s'.deal = u.deal := by rw [hshape₂]
+        rw [h1, h2, h3, ← h4]
+    · -- board
+        have h1 : w.board = bd₂ := by rw [hwlit]
+        have h2 : s'.board = bd₂ := by rw [hshape₂]
+        rw [h1, h2]
+    · -- heights: the bump and the drop cancel at X's suit
+        funext σ
+        have hw : w.heights σ =
+            (if σ = X.suit then t.heights σ - 1 else t.heights σ) := by
+          rw [hwlit]
+        have ht : t.heights σ =
+            (if σ = X.suit then s.heights σ + 1 else s.heights σ) := by
+          rw [htlit]
+        have hs'lit : s'.heights σ = u.heights σ := by rw [hshape₂]
+        have hslit : s.heights σ = u.heights σ := by rw [hshape₁]
+        rw [hw, ht, hslit, hs'lit]
+        by_cases hσ : σ = X.suit
+        · rw [ite_eq_left hσ, ite_eq_left hσ]
+          omega
+        · rw [ite_eq_right hσ, ite_eq_right hσ]
+    · -- depths
+        have h1 : w.depths = t.depths := by rw [hwlit]
+        have h2 : t.depths = s.depths := by rw [htlit]
+        have h3 : s.depths = u.depths := by rw [hshape₁]
+        have h4 : s'.depths = u.depths := by rw [hshape₂]
+        rw [h1, h2, h3, ← h4]
+    · -- stock: both commits splice the same position
+        have h1 : w.stock = t.stock := by rw [hwlit]
+        have h2 : t.stock = s.stock := by rw [htlit]
+        have h3 : s.stock = ⟨Cycle.removeIdx u.stock.cards i, i⟩ := by rw [hshape₁]
+        have h4 : s'.stock = ⟨Cycle.removeIdx u.stock.cards i, i⟩ := by rw [hshape₂]
+        rw [h1, h2, h3, h4]
+    · -- drawStep
+        have h1 : w.drawStep = t.drawStep := by rw [hwlit]
+        have h2 : t.drawStep = s.drawStep := by rw [htlit]
+        have h3 : s.drawStep = u.drawStep := by rw [hshape₁]
+        have h4 : s'.drawStep = u.drawStep := by rw [hshape₂]
+        rw [h1, h2, h3, ← h4]
+  refine ⟨[Move.pileStack X, Move.stackPile X b₂], ?_, ?_⟩
+  · intro m hm
+    rcases List.mem_cons.mp hm with h | h
+    · rw [h]; rfl
+    · rw [List.mem_singleton.mp h]; rfl
+  · simp only [State.run, hmove1, hmove2]
+    exact congrArg some hw_eq
+
+/-- **The destination collapse at the commitment level** (§6.3's
+within-channel twin choice, the provable half): the two tableau-arm
+successors of the same drawn card at one WF state are `closureEq`
+whenever the card is stackable at its suit's rung — the shuttle runs
+both ways through the foundation.  This covers both destination twins
+and (for kings) the free-anchor pairs; the rung premise is
+load-bearing — without it the landings are closure-separated
+(`witnesses/C2KingAnchorWitness.lean`). -/
+theorem commitTableau_class {u : State} (hwf : u.WF) {X : Card}
+    (hrk : X.rank.toIdx = u.heights X.suit)
+    {s s' : State} (hs : CommitTableau u X s) (hs' : CommitTableau u X s') :
+    closureEq s s' := by
+  obtain ⟨p₁, hall₁, hrun₁⟩ := commitTableau_shuttle hwf hrk hs hs'
+  obtain ⟨p₂, hall₂, hrun₂⟩ := commitTableau_shuttle hwf hrk hs' hs
+  exact ⟨⟨p₁, hrun₁, hall₁⟩, ⟨p₂, hrun₂, hall₂⟩⟩
+
 /-! ## §10. The poset register (§7's finite lemma, PROVEN) -/
 
 /-- §7's finite lemma: among three live ball pinnings some two
@@ -884,250 +1106,190 @@ theorem register_le_two {st : State} {X : Card} (hwf : st.WF)
                 · exact Or.inr (Or.inl (by rw [h']))
                 · exact Or.inr (Or.inr (Or.inl (by rw [h'])))
 
-/-! ## §11. The play-level pillars (the sorried residue)
+/-! ## §11. The play-level content — from pinned claims to premises
 
-Each is precisely stated with its proof plan; `c2_two_option` marks
-exactly where each enters. -/
+The wave-17 pillar set pinned five play-level universals here as
+open rows with proof plans.  The 2026-10-05 C2-closure session
+refute-probed them and found **four of the five FALSE as stated** in
+the free model semantics
+(`witnesses/C2KingAnchorWitness.lean`: a climb-blocked stocked king
+on a pristine WF state — one spade-blocked stock, seven free anchors,
+all foundations at zero — whose anchor landings are pairwise
+closure-separated because `pileStack` of the landed king is dead
+along every accommodation walk; the negated as-stated universals are
+`wk_c2_as_stated_false`, `wk_same_pin_as_stated_false`,
+`wk_p2_direct_as_stated_false`, `wk_crease_as_stated_false`):
 
-/-- **P0 — the labeling** (§6.4's channel-list completeness `[~]`;
-§7's "labeled by the minimal pinnings"): every macro successor of the
-`Draw(X)` commitment is reached through some channel whose atom is
-live at the commitment's root state.
+* `succ_labeled` (P0): the channel list is incomplete for the model's
+  king-unseat/an.channel taxonomy — a pile head seated on an anchor
+  leaves by its rank-dig and the king lands on the vacated anchor,
+  which is `hole`-shaped at the end state but dead at the root
+  (no free anchor there), so no `LabelLive`-at-`st` channel names it;
+* `p2_direct_class` / `same_pin_closureEq` / `crease_chain_absorbed`:
+  every tableau-arm successor of the same stocked card is asked to
+  join one class, but an **unstackable-at-its-rung** target can never
+  leave its landed seat by accommodation moves (only `pileStack`
+  ever unseats a card), so two landings are genuinely closure-split;
+* the assembled `c2_two_option` inherited the same hole.
 
-PROOF PLAN.  From `hstep`'s accommodation (A2: `pileStack`/`stackPile`
-only), classify the commit's landing at the end state.  Tableau arm:
-the base is a receiver `Y` (a fitted landing; anchor landings for
-kings are the hole) — `Y`'s residence class is stable under the
-accommodation (hidden cards are never seated by `α`, visible cards
-stay visible, founded cards are worried back only through their
-suit's top segment, F2), so at `st` the destination was: a free top
-(`direct`: take the empty spend, `LabelSig.direct`'s `α = []`);
-covered — the coverer is a fitted seating by `board_edges` unless
-deal-adjacent, and the extraction of §6.4 applied at the cover's
-seating move gives fittedness, hence `twin X`
-(`only_blocker_is_twin` + the in-flight half
-`coverer_is_twin_of_stocked`) — `dig`, witnessed by the vacating
-`pileStack (twin X)` inside `α` (if the coverer left by `stackPile`
-it was itself worried from a foundation — impossible at a covered
-seat — so it left by `pileStack`, and `unseats_imp_pileStack` (TwinSwap
-kit) forces the vacate); or a foundation top (`borrow p`: the
-`stackPile p` in `α` witnessed the worry-back, and
-`BorrowLive st X p'` holds for the `p'` actually seated — the ray head
-`InRay X 1`).  Multi-spend plays label by the shallowest spend
-(`crease_chain_absorbed`'s depth-ordering; the dig-vs-borrow conflict
-cases resolve by P1 — a play that both digs and borrows lives under
-the dig).  Stack arm: `toStack`, empty `LabelSig` (its residue is the
-raise chain, priced in `LabelLive.toStack` + the crease).  Empirical
-companion: `macro_transitions_direct` — 5,129 evaluations, 0 fabricated
-/ 0 missed, the bounded BFS absorbing exactly the chained crease at
-27/5129. -/
-theorem succ_labeled {st : State} (hwf : st.WF) {X : Card} {s : State}
-    (hstep : macroStep st (MacroMove.drawCommit X) s) :
-    ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s := sorry
+The statements left the library per the refutation protocol; the
+**proven half of the destination collapse** — the stackable-rung
+regime, where the join is the two-move foundation shuttle — is
+`commitTableau_class` above (§9.5), which is exactly the engine's
+safe-sweep canonicalization regime.
 
-/-- **P2, class half** (§7: "direct, when present, dominates every
-pinning — the scar is reproducible in the same closure"): a successor
-through any `P2Safe` channel is closure-equal to the direct-committed
-successor.
+The five requests survive as the EXPLICIT PREMISES of `c2_two_option`
+below, whose assembly (the register, the pigeonhole, the
+arms-cannot-label step) was and stays PROVEN.  The plans of the
+formerly-pinned rows follow, as the open-program record — what a
+future C2 pass must prove or re-scope to close each premise.
 
-PROOF PLAN.  `succ_labeled` extracts the pinned successor's witness
-`α`; the goal is `closureEq sd s_p`, i.e. two reversible plays: (→)
-from `sd`, re-run `α` — each of its steps is still legal after `X`'s
-landing by the same analysis as `p2_core_dig`/`p2_core_borrow` (the
-landing writes only `{type X, type X+4}` masks: §6.7's interaction
-ball; each step's guards live outside the touched seats, or the step
-IS the channel whose survival the cores prove), then the commitment
-fires again at the reached state (`drop` the spent channel's step and
-commit — `digOpens`/`borrowOpens` give the landing shape); then
-`comm_deckPile_pileStack` / `comm_deckPile_stackPile` (Commutation) or
-`commute_of_disjoint_frames` (Frame) reorder to normalize; (←) the
-reverse replay: from the pinned successor, the `stackPile`-steps of
-`α` undo worry-backs at blocks where `X` is not placed, the
-`pileStack`-steps undo by the cancel kit (`stackPile_pileStack_cancel`)
-where the landing is free — the residue cases are exactly the crease's
-(line-force) and their class-shares are the crease's conclusion —
-alternatively route both through the "spend then commit" vs "commit
-then spend" commutation of the two orders and close by
-`solvable_iff_mutuallyReaches`-style run bookkeeping (`run_append`,
-`State.run_append`).  The stack arm under `P2Safe .toStack` merges by
-the **late** `PileStack X`: the tableau landing writes no heights, so
-an at-`st`-stackable `X` stacks off its landed seat — the 1,102
-mixed-kind singles (P3's merge clause; the reversible `pileStack`
-joins the classes).  WF carries `apply_wf` across every replay. -/
-theorem p2_direct_class {st : State} (hwf : st.WF) {X : Card} {sd : State}
-    (hfired : commitApplies st (MacroMove.drawCommit X) sd)
-    {r : Label X} {s_p : State}
-    (hth : SuccThrough st X r s_p) (hsafe : P2Safe st X r) :
-    closureEq sd s_p := sorry
+**P0 — the labeling** (§6.4's channel-list completeness; now the
+`hlab` premises): every macro successor of the `Draw(X)` commitment
+is reached through some channel whose atom is live at the
+commitment's root state.  PLAN: from `hstep`'s accommodation
+(`pileStack`/`stackPile` only), classify the commit's landing at the
+end state; tableau arm — receiver landings by the §6.4 extraction
+(direct/dig/borrow by the coverer's `only_blocker_is_twin` and the
+worry-back ray), king landings on free anchors (hole); stack arm —
+`toStack`.  The prover-side gap (the king-anchor channel above) must
+be added to the channel list or the guard added first.
 
-/-- **P3 + the crease + the float noise, class half**: successors
-through the *same* channel pin are closure-equal — the class
-difference is the residue identity, and equal minimal pins leave only
-reversible variation.
+**P2, class half** (premise `hp2`): a successor through any `P2Safe`
+channel is closure-equal to the direct-committed successor.  PLAN:
+the `p2_core_dig`/`p2_core_borrow` one-step cores lifted to plays by
+the Commutation/Frame reorder kit, with the crease residue for
+chains; the late-`PileStack X` merge handles the stack arm under
+`P2Safe .toStack` (the tableau landing writes no heights).
 
-PROOF PLAN.  Extract both witnesses `α₁`, `α₂`.
-(i) Equal spend-structure — the free-float collapse of §6.3: the two
-accommodations differ only in floats outside the commitment's
-two-type ball, whose flip-legality masks are untouched by the commit
-(Lemma B's write set), so the difference plays reconcile post-commit:
-`accommodates` both ways via `run_append`, with per-step legality
-from the ball-write analysis and `aboveOf_congr_off`-style walk
-congruence.  (ii) Nested/chained — `crease_chain_absorbed` (cited as
-a whole).  (iii) The twin choice inside one channel — the parent
-worried back is one of the twin pair, and the two choices join by the
-destination-collapse/parking pair of lemmas (macro_parking.md Lemma
-P's model-side twin: same landings modulo a local cargo exchange;
-`State.solvable_cargoTwin_transfer` machinery, or — at equal
-foundation heights — `Theorems.lean`'s twin kit per `solvable_flipAll`).
-The measured companion: §6.3's 8-state float grids never exceeded one
-class per pin. -/
-theorem same_pin_closureEq {st : State} (hwf : st.WF) {X : Card} {r : Label X}
-    (hlive : LabelLive st X r) {s s' : State}
-    (h₁ : SuccThrough st X r s) (h₂ : SuccThrough st X r s') :
-    closureEq s s' := sorry
+**P3, class half** (premise `hpin`): successors through the same
+channel pin are closure-equal.  PLAN: the free-float collapse —
+equal spend structures differ only in floats outside the
+commitment's two-type ball, whose legality masks the commit does not
+touch; nested/chained residues by the depth ordering (the crease).
+The within-channel twin choice, when the target is stackable at its
+rung, is PROVEN — `commitTableau_class`; the unstackable corner is
+the witness's split, so a future honest statement must carry the
+rung premise.
 
-/-- **§7's known crease — "the one line still requiring a line-force
-proof"**: multi-rank dig/borrow chains of depth > 1 attach to a single
-parent side, and are absorbed by the shallower pinning (depth
-ordered).  A chain accommodation `α'` that *contains* the shallow
-spend `α` enables through the same label at the same root, and leaves
-a closure-equal successor: the deep segment's residue is reproducible
-and erasable inside the shallow class.
+**The crease** (formerly `crease_chain_absorbed`; folded into `hpin`
+and `hp2`'s plans): multi-rank dig/borrow chains attach to a single
+parent side and are absorbed by the shallower pinning; the
+`InRay`-confinement + `merge_refires_*` walk + the
+`stackPile_pileStack_cancel` cancellation, depth-ordered.
 
-PROOF PLAN (a line-force argument along the chain).  The chain is an
-ascending ray on one parent side — `InRay X` makes each level's
-candidates exactly one twin pair, colors alternating — so the deeper
-spend's landing targets (the ray's next levels, ranks `+2, +3, …`)
-are never covered by the shallow commit: the commit covers only
-`type(X+4)` (Lemma B), while the deeper levels' coverers are the
-level's own twins (`only_blocker_is_twin` per level, the §6.2
-arithmetic instantiated at each rank).  Hence every `stackPile` of the
-deep segment re-fires post-commit (the `p2_core_borrow` analysis
-lifted one rank, with `merge_refires_mixed`'s walk-entry kit —
-`RunChain`/`aboveOf_run_root_of_chain`, MergeFire — carrying the
-contains-guard), the un-digging `pileStack`s cancel pairwise
-(`stackPile_pileStack_cancel` at the freed blocks), and the two
-successors reconcile by `run_append` bookkeeping.  Depth-ordering: at
-each level the shallow spend dominates because the deep landings are
-strictly-higher-rank seats untouched by the shallower write — `omega`
-on the rank grades.  Companion: the bounded-neighborhood BFS in
-`core_run` fires on 27/5129 commitments and always closes; the
-`#[cfg(test)]` corpus has no depth-`>1` countersample. -/
-theorem crease_chain_absorbed {st : State} (hwf : st.WF) {X : Card}
-    {r : Label X} (hlive : LabelLive st X r)
-    {s s' : State} {α α' : List Move} {u u' : State}
-    (hα : st.run α = some u) (haccα : ∀ m ∈ α, m.isAccommodation = true)
-    (hfireα : commitArmOf u X r s) (hsigα : LabelSig X r α)
-    (hα' : st.run α' = some u') (haccα' : ∀ m ∈ α', m.isAccommodation = true)
-    (hfireα' : commitArmOf u' X r s') (hsigα' : LabelSig X r α')
-    (hdeep : List.Sublist α α') :
-    closureEq s s' := sorry
-
-/-- **The L1/L2-diligence residue corner** (§7's "∎ (modulo … the
-L1/L2 count tables)"): when direct is absent, the stack arm is
-reached only through raises, and two *distinct* ball pins are
+**The L1/L2-diligence residue corner** (premise `hball`; the one row
+never refuted and believed true): when direct is absent, the stack
+arm is reached only through raises, and two distinct ball pins are
 simultaneously live — the three-class shape the streamlined argument
-must exclude pairwise.
-
-PROOF PLAN.  The `toStack` accommodation is a raise chain: every
-missing prefix card needs "the very same one-card dig, descending"
-(§6.4), i.e. the raise chain is itself a dig/borrow ray over the
-ball's two suits — so it spends into one of the two live pins' balls,
-and the stack successor reproduces inside that pin's class (the
-crease's depth-order instantiated at the prefix ranks: the prefix
-raise is same-suit deterministic by F2 — only prefix digs exist, the
-segment lands whole — so the raise geometry is unique per suit, and
-`InRay`'s twin-pair confinement bounds the suit choice to the pair).
-The L1/L2 tables are the remaining obligation: at most one
-raise-geometry survives per ball, which is the count never exceeded
-in §6.3's 16,791-point histogram (the `[_, 16777, 14, 0, 0]` tail
-has no third class). -/
-theorem stack_ball_corner {st : State} (hwf : st.WF) {X : Card}
-    (hdf : ¬∃ sd, commitApplies st (MacroMove.drawCommit X) sd)
-    {s₀ sₐ s_b : State}
-    (l₀ : LabelLive st X Label.toStack) (t₀ : SuccThrough st X Label.toStack s₀)
-    {rₐ r_b : Label X}
-    (lₐ : LabelLive st X rₐ) (tₐ : SuccThrough st X rₐ sₐ)
-    (l_b : LabelLive st X r_b) (t_b : SuccThrough st X r_b s_b)
-    (hne : rₐ ≠ r_b) :
-    closureEq s₀ sₐ ∨ closureEq s₀ s_b ∨ closureEq sₐ s_b := sorry
+must exclude pairwise, by the raise-chain geometry (the prefix raise
+is same-suit deterministic, so the raise spends into one of the two
+live pins' balls and the stack successor reproduces inside that
+pin's class). -/
 
 /-! ## §12. The theorem (the two-option commitment bound) -/
 
-/-- **C2, streamlined** (§7): a commitment has at most two macro
-successors — every three successors of the `Draw(X)` commitment
-contain a closure-equal pair.
+/-- **C2, streamlined, the conditional form** (§7): a commitment has
+at most two macro successors — every three successors of the
+`Draw(X)` commitment contain a closure-equal pair — CONDITIONAL on
+the play-level content, which is stated as explicit premises (the
+wave-17 pillars, four of which were refuted as UNIVERal claims by
+`witnesses/C2KingAnchorWitness.lean` and left the library; see §11
+above for the record and the plans, and `commitTableau_class` for
+the proven half of the destination collapse):
 
-The assembly is proven; the play-level charge sits entirely in the
-pillars: `succ_labeled` labels the three; with the direct commit
-fired, **P2** (`p2_direct_class`) joins every `P2Safe`-labeled
-successor to the direct one (the unsafe residue is the raise-stack
-class, and any two of those share the `toStack` pin —
-`same_pin_closureEq`); with direct absent, the labels are dig-,
-borrow- or `toStack`-shaped (the zero-spend arms would have committed,
-`through_direct_hole_commits`), so a shared pin gives
-`same_pin_closureEq`, three pairwise-distinct ball pins is refuted by
-the **register** (`register_le_two`), and the remaining
-`toStack`-plus-two-distinct-pins shape is exactly
-`stack_ball_corner`.  P1 closes the register itself
-(`p1_bothBorrows_noDig`). -/
+* `hlab₁ hlab₂ hlab₃` — the run-P0 content: each successor is
+  labeled by a channel live at the commitment's root;
+* `hp2` — the P2 class-join: every `P2Safe`-labeled successor joins
+  any direct commit's class;
+* `hpin` — the P3 same-pin join: two successors through one live
+  channel pin are closure-equal (the *proven* regime: when the drawn
+  card is stackable at its rung and the accommodations coincide,
+  `commitTableau_class` IS this premise, unconditionally);
+* `hball` — the L1/L2-diligence corner (believed true, unrefuted):
+  with direct absent, the stack arm and two distinct ball pins
+  resolve pairwise.
+
+The assembly — the register (`register_le_two`), the pigeonhole,
+and `through_direct_hole_commits`' arms-cannot-label step (`harms`,
+built from P1's `p1_bothBorrows_noDig` closing the register itself)
+— was proven in wave 17 and stays proven here: given the premises,
+the case tree below is complete.  Stripping the premises re-offers
+exactly the refuted as-stated theorem, so a future C2 pass closes
+each premise (or re-scopes it) per §11's plans and deletes the
+corresponding hypothesis here. -/
 theorem c2_two_option {st : State} (hwf : st.WF) {X : Card}
     {s₁ s₂ s₃ : State}
-    (h₁ : macroStep st (MacroMove.drawCommit X) s₁)
-    (h₂ : macroStep st (MacroMove.drawCommit X) s₂)
-    (h₃ : macroStep st (MacroMove.drawCommit X) s₃) :
+    (_h₁ : macroStep st (MacroMove.drawCommit X) s₁)
+    (_h₂ : macroStep st (MacroMove.drawCommit X) s₂)
+    (_h₃ : macroStep st (MacroMove.drawCommit X) s₃)
+    (hlab₁ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s₁)
+    (hlab₂ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s₂)
+    (hlab₃ : ∃ r : Label X, LabelLive st X r ∧ SuccThrough st X r s₃)
+    (hp2 : ∀ {sd : State}, commitApplies st (MacroMove.drawCommit X) sd →
+      ∀ {r : Label X} {s : State}, SuccThrough st X r s →
+      P2Safe st X r → closureEq sd s)
+    (hpin : ∀ {r : Label X} {s s' : State}, LabelLive st X r →
+      SuccThrough st X r s → SuccThrough st X r s' → closureEq s s')
+    (hball : (¬∃ sd, commitApplies st (MacroMove.drawCommit X) sd) →
+      ∀ {rₐ r_b : Label X} {s₀ sₐ s_b : State},
+      LabelLive st X Label.toStack → SuccThrough st X Label.toStack s₀ →
+      LabelLive st X rₐ → SuccThrough st X rₐ sₐ →
+      LabelLive st X r_b → SuccThrough st X r_b s_b →
+      rₐ ≠ r_b →
+      closureEq s₀ sₐ ∨ closureEq s₀ s_b ∨ closureEq sₐ s_b) :
     closureEq s₁ s₂ ∨ closureEq s₁ s₃ ∨ closureEq s₂ s₃ := by
-  obtain ⟨r₁, hl₁, ht₁⟩ := succ_labeled hwf h₁
-  obtain ⟨r₂, hl₂, ht₂⟩ := succ_labeled hwf h₂
-  obtain ⟨r₃, hl₃, ht₃⟩ := succ_labeled hwf h₃
+  obtain ⟨r₁, hl₁, ht₁⟩ := hlab₁
+  obtain ⟨r₂, hl₂, ht₂⟩ := hlab₂
+  obtain ⟨r₃, hl₃, ht₃⟩ := hlab₃
   by_cases hd : ∃ sd, commitApplies st (MacroMove.drawCommit X) sd
   · -- P2's world: every safe successor joins the direct class
     obtain ⟨sd, hsd⟩ := hd
     by_cases h1s : P2Safe st X r₁
     · by_cases h2s : P2Safe st X r₂
       · by_cases h3s : P2Safe st X r₃
-        · have q₁ := p2_direct_class hwf hsd ht₁ h1s
-          have q₂ := p2_direct_class hwf hsd ht₂ h2s
+        · have q₁ := hp2 hsd ht₁ h1s
+          have q₂ := hp2 hsd ht₂ h2s
           exact Or.inl ⟨accommodates_trans q₁.2 q₂.1,
             accommodates_trans q₂.2 q₁.1⟩
         · have e₃ : r₃ = Label.toStack := unsafe_is_toStack h3s
           rw [e₃] at hl₃ ht₃
-          have q₁ := p2_direct_class hwf hsd ht₁ h1s
-          have q₂ := p2_direct_class hwf hsd ht₂ h2s
+          have q₁ := hp2 hsd ht₁ h1s
+          have q₂ := hp2 hsd ht₂ h2s
           exact Or.inl ⟨accommodates_trans q₁.2 q₂.1,
             accommodates_trans q₂.2 q₁.1⟩
       · by_cases h3s : P2Safe st X r₃
-        · have q₁ := p2_direct_class hwf hsd ht₁ h1s
-          have q₃ := p2_direct_class hwf hsd ht₃ h3s
+        · have q₁ := hp2 hsd ht₁ h1s
+          have q₃ := hp2 hsd ht₃ h3s
           exact Or.inr (Or.inl ⟨accommodates_trans q₁.2 q₃.1,
             accommodates_trans q₃.2 q₁.1⟩)
         · have e₂ : r₂ = Label.toStack := unsafe_is_toStack h2s
           have e₃ : r₃ = Label.toStack := unsafe_is_toStack h3s
           rw [e₂] at hl₂ ht₂
           rw [e₃] at hl₃ ht₃
-          exact Or.inr (Or.inr (same_pin_closureEq hwf hl₂ ht₂ ht₃))
+          exact Or.inr (Or.inr (hpin hl₂ ht₂ ht₃))
     · by_cases h2s : P2Safe st X r₂
       · by_cases h3s : P2Safe st X r₃
-        · have q₂ := p2_direct_class hwf hsd ht₂ h2s
-          have q₃ := p2_direct_class hwf hsd ht₃ h3s
+        · have q₂ := hp2 hsd ht₂ h2s
+          have q₃ := hp2 hsd ht₃ h3s
           exact Or.inr (Or.inr ⟨accommodates_trans q₂.2 q₃.1,
             accommodates_trans q₃.2 q₂.1⟩)
         · have e₁ : r₁ = Label.toStack := unsafe_is_toStack h1s
           have e₃ : r₃ = Label.toStack := unsafe_is_toStack h3s
           rw [e₁] at hl₁ ht₁
           rw [e₃] at hl₃ ht₃
-          exact Or.inr (Or.inl (same_pin_closureEq hwf hl₁ ht₁ ht₃))
+          exact Or.inr (Or.inl (hpin hl₁ ht₁ ht₃))
       · by_cases h3s : P2Safe st X r₃
         · have e₁ : r₁ = Label.toStack := unsafe_is_toStack h1s
           have e₂ : r₂ = Label.toStack := unsafe_is_toStack h2s
           rw [e₁] at hl₁ ht₁
           rw [e₂] at hl₂ ht₂
-          exact Or.inl (same_pin_closureEq hwf hl₁ ht₁ ht₂)
+          exact Or.inl (hpin hl₁ ht₁ ht₂)
         · have e₁ : r₁ = Label.toStack := unsafe_is_toStack h1s
           have e₂ : r₂ = Label.toStack := unsafe_is_toStack h2s
           rw [e₁] at hl₁ ht₁
           rw [e₂] at hl₂ ht₂
-          exact Or.inl (same_pin_closureEq hwf hl₁ ht₁ ht₂)
+          exact Or.inl (hpin hl₁ ht₁ ht₂)
   · -- direct absent: the zero-spend arms cannot label
     have harms : ∀ (r : Label X) (s : State),
         r = Label.direct ∨ r = Label.hole → ¬ SuccThrough st X r s := by
@@ -1135,13 +1297,13 @@ theorem c2_two_option {st : State} (hwf : st.WF) {X : Card}
       exact hd (through_direct_hole_commits hth he)
     by_cases h12 : r₁ = r₂
     · rw [h12] at ht₁
-      exact Or.inl (same_pin_closureEq hwf hl₂ ht₁ ht₂)
+      exact Or.inl (hpin hl₂ ht₁ ht₂)
     · by_cases h13 : r₁ = r₃
       · rw [h13] at ht₁
-        exact Or.inr (Or.inl (same_pin_closureEq hwf hl₃ ht₁ ht₃))
+        exact Or.inr (Or.inl (hpin hl₃ ht₁ ht₃))
       · by_cases h23 : r₂ = r₃
         · rw [h23] at ht₂
-          exact Or.inr (Or.inr (same_pin_closureEq hwf hl₃ ht₂ ht₃))
+          exact Or.inr (Or.inr (hpin hl₃ ht₂ ht₃))
         · -- pairwise distinct: a toStack must be present, else the
           -- register refutes the shape outright
           have hstack : r₁ = Label.toStack ∨ r₂ = Label.toStack ∨
@@ -1165,19 +1327,19 @@ theorem c2_two_option {st : State} (hwf : st.WF) {X : Card}
           -- distinct ball pins
           rcases hstack with e | e | e
           · rw [e] at hl₁ ht₁
-            rcases stack_ball_corner hwf hd hl₁ ht₁ hl₂ ht₂ hl₃ ht₃ h23 with
+            rcases hball hd hl₁ ht₁ hl₂ ht₂ hl₃ ht₃ h23 with
               q | q | q
             · exact Or.inl q
             · exact Or.inr (Or.inl q)
             · exact Or.inr (Or.inr q)
           · rw [e] at hl₂ ht₂
-            rcases stack_ball_corner hwf hd hl₂ ht₂ hl₁ ht₁ hl₃ ht₃ h13 with
+            rcases hball hd hl₂ ht₂ hl₁ ht₁ hl₃ ht₃ h13 with
               q | q | q
             · exact Or.inl (closureEq_symm q)
             · exact Or.inr (Or.inr q)
             · exact Or.inr (Or.inl q)
           · rw [e] at hl₃ ht₃
-            rcases stack_ball_corner hwf hd hl₃ ht₃ hl₁ ht₁ hl₂ ht₂ h12 with
+            rcases hball hd hl₃ ht₃ hl₁ ht₁ hl₂ ht₂ h12 with
               q | q | q
             · exact Or.inr (Or.inl (closureEq_symm q))
             · exact Or.inr (Or.inr (closureEq_symm q))
