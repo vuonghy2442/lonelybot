@@ -1183,3 +1183,28 @@ candidate sixth channel (`anchorHead a`, liveness reading a *removable
 anchored head* rather than a free anchor, pin `[anchorHead a]`) live in
 the witness's docstring — the Label-list decision itself is
 orchestrator scope (C2Streamlined untouched by that session).
+
+### §7 addendum-2 (2026-10-05, wave 19B) — the reachability verdicts:
+### the five corners are off the dealt-reachable fragment
+
+The restoration datum the two wave-19 witness sessions left open is
+now machine-checked: `witnesses/KingAnchorReachProbe.lean`
+(`KingAnchorReach.pileCards_seated_of_initialReachable`,
+`.wstate_not_initialReachable`, `.wsucc_not_initialReachable`,
+`.ustate_not_initialReachable`, axioms `[propext, Classical.choice,
+Quot.sound]`) proves that every refutation root of the wave-18
+four-pillar falsity pass and the wave-19A anchored-head witness —
+and each of the seven king-landing successors — is *not*
+`initialReachable`: no dealt game can replay them.  The obstruction
+is pile-card conservation (at a dealt-reachable state with zero
+depths and zero heights all 28 dealt pile cards must be visible;
+the pristine board shows none, each landing shows only the stocked
+♠K, the anchored-head board only its seven heads), not stock
+composition — both witness deals are honest 52-card deals.  Every
+initialReachable-gated restatement of the five refuted universals
+is therefore beyond this witness family: all five verdicts read
+RESTORED UNDER HREACH.  The gated universals themselves remain
+open (the corpus's weak corners are dealt-reachable — the seed-26
+family), so their wave-20 proofs carry content; the fences,
+the per-pillar table, and the tickets the verdicts enable live in
+FARM.md's wave-19B section and the probe file's docstring.

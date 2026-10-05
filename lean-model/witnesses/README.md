@@ -91,3 +91,27 @@ The evidence for every adjudicated refutation in FARM_MEMORY.md that
 names a witness file lives here (the `Temp\opencode` paths in older
 entries referred to the ephemeral system temp and resolve to this
 archive).
+
+## Status addendum (2026-10-05, waves 18-19)
+
+All axiom-clean (the standard trio), all built by
+`lake build Witnesses`:
+
+- `EngineReachProbe.lean` (wave 18, LIVE): the engine gate root
+  `wstate` is not `initialReachable` — the four-way probe invariant
+  against the FULL move set.
+- `C2KingAnchorWitness.lean` (wave 18, LIVE): the pristine-board
+  countermodels of the four as-stated C2 universals
+  (`wk_c2`, `wk_same_pin`, `wk_p2_direct`, `wk_crease`).
+- `SuccLabeledWitness.lean` (wave 19A, LIVE): the anchored-head
+  countermodel of as-stated `succ_labeled`
+  (`wk_succ_labeled_as_stated_false`).
+- `KingAnchorReachProbe.lean` (wave 19B, LIVE): the reachability
+  verdicts — the three replica roots (`wstate`, `wsucc a`, `ustate`)
+  and both witness families' countermodel states are NOT
+  `initialReachable` (`KingAnchorReach.pileCards_seated_of_
+  initialReachable` is the reusable fence; per-pillar RESTORED-under-
+  hreach table in the file's docstring and FARM.md's wave-19B row).
+  The first witness imported by the root facade (`Witnesses.lean`)
+  so the verdicts are citable without glob spelunking.
+

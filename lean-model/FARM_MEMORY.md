@@ -2579,3 +2579,76 @@ Traps this session hit, for the next farmer:
   per Macro.lean's own iff-proof, then ite_eq_left/right), and the freeze-invariant shape
   `(heights σ = 0 ∧ ∀ c, c.suit = σ → bottomOf c = none)` closed under the pileStack/stackPile one-steps - any
   suit-freeze goal (the B-side anchored-head families) can re-derive it this way.
+
+### Session 2026-10-05 (wave 19B) — C2 reachability probe: the five refutation corners are outside the dealt-reachable fragment (all five verdicts: restored under hreach)
+
+Deliverable: `witnesses/KingAnchorReachProbe.lean` (root namespace `KingAnchorReach`),
+facade import added to `Witnesses.lean` (the FIRST witness-facade cross-import; safe chain
+documented in the umbrella comment).  `lake build Klondike Witnesses` green.  The verdict
+table + obstruction classes live in FARM.md's wave-19B section and the probe file's own
+docstring.  TRAPS hit this session (new, not in the ledger before):
+
+- `rcases ... with rfl | hap` on a cons-membership split where the head-eq is `a = a₀`
+  (BOTH free vars) ELIMINATES a₀, not a - every later reference to a₀ errors
+  unknownIdentifier.  Same for `subst` on `a = a₀`.  FIX: anonymous binder `rcases ... with
+  hhead | hap` + goal-side `rw [hhead]`; for goal+hypothesis transfer `rw [haa] at hhid ⊢`
+  (rw does not substitute, it only rewrites - that is exactly what is wanted here).
+- SUCCESSOR-ITE under the reveal literal: `show q ∈ (deal.piles a₀).take (st.depths a₀ - 1)`
+  FAILS against `{depths := fun a' => if a' = a₀ then ...}` - the ite's DecidableEq instance
+  is STUCK on symbolic a₀, so the defeq check cannot reduce.  FIX: show the if-form
+  `(if a₀ = a₀ then st.depths a₀ - 1 else st.depths a₀)` then `rw [ite_eq_left rfl]`
+  (extends EngineReachProbe's cons-literal lore: the Ek probe could decide its literals;
+  symbolic anchors cannot).
+- `Option.some.inj`-chain elaboration ORDER: a bare `Option.some.inj (hget.trans hgetr.symm)`
+  picked the unifier wrong ("Eq.symm hgetr : some r = ... but expected some q = ?m").  FIX:
+  wrap in a `have ... := by` block and make the trans DIRECTION explicit
+  (`hget.symm.trans hgetr`).
+- `by decide` inside an ∃-witness slot whose statement mentions a THEOREM-BOUND anchor
+  (`S .ace ∈ (wsucc a).deal.piles Anchor.p0`): "Expected type must not contain free
+  variables" even though the membership is a-independent.  FIX: strip the binder first via
+  a defeq show-cast (`by show S .ace ∈ wDeal.piles Anchor.p0; decide`) - the show is legal
+  because the state-projection chain does not depend on a.
+- `by decide : noDupCards (Cycle.removeIdx wStockList 0)` cannot synthesize Decidable for the
+  spliced literal.  FIX: certify the UNSPLICED list with the bounded-range decide
+  (`∀ i j ∈ range 24, ...`), then `Kit.noDupCards_removeIdx` (root, Kit.lean:534) does the
+  splice.  General lore: for noDupCards at a computed list, look for the Kit transfer before
+  deciding.
+- CRASHED-PREDECESSOR RECOVERY: this session inherited its own predecessor's UNCOMPILED,
+  UNTRACKED probe file (~750 lines, structurally correct, ~20 build errors).  Line-slip
+  classes found in it: the four above, plus `rw [hu] at h` where hu is a MEMBERSHIP not an
+  eq (read the obtain-slot names after copy-paste of a mirrored proof), 9-name `intro` for
+  an 8-binder theorem (introN fails on the leftover name AFTER all contexts print - count
+  the arrows in the pretty-printed signature, not the bullet count), and `rw [hbb] at this`
+  where `this` already is in the hbb-RHS shape (direction slip; rw pattern is hbb's LHS).
+  One discipline note to my later self: do NOT "scaffold then fill" a big bullet block with
+  placeholder tactics - a half-written stub lived in the file for two edits this session;
+  write the full block in one edit (the census/scanner lore exists for a reason).
+- TOOLCHAIN-FILE STORM (extends K2's lore): a full rebuild after a git-refresh retried
+  failed THREE times - each run exactly the 8 re-elaborating leaves died at 1.4s on a
+  DIFFERENT random `*.olean.private`, no lean/lake process alive, direct .NET reads
+  fine.  FIX: warm ALL 2518 `.olean.private` files (PowerShell open/read/close pass),
+  then build the failing TARGETS SERIALLY (each alone went green instantly).  When "plain
+  retry" does not converge, warm-then-serialize.
+
+REUSABLE SHARDS (this file, importable as `Witnesses.KingAnchorReachProbe` via the facade):
+- `KingAnchorReach.accounted`/`apply_accounted` (7 moves)/`run_accounted`/`initial_accounted`:
+  the pile-card conservation invariant (hidden ∨ visible ∨ founded) - the cleanest
+  reachability fence shape so far; maintenance needs WF only for reveal's boundary-index
+  extraction (topHidden_get).
+- `KingAnchorReach.pileCards_seated_of_initialReachable` + `unseated_pileCard_unreachable`:
+  the dead-corner fence.  Any restoration needing "zero-depths zero-heights ⇒ something is
+  visible" cites it directly.
+- `initialBoard_seats` (private; make public on request): the FORWARD initial-board seating
+  theorem (every pile's top card sits at its `initBase`) - needed anywhere an initial-board
+  argument requires the topOf image, which `initialBoard_topOf` (the converse) cannot
+  provide.  Proof shape: an InitImg image-induction over the deal fold with
+  `initBase` injectivity (deal distinctness) for the freeness of each seat.
+- In-file bottomOf-transfer toolkit (private): `bottomOf_isSome_pilePile` - visibility
+  survives a one-run board rewrite (root NE re-seat, riders keep their seats, the freed
+  landing base is the only new seat) - the pilePile image preservation anyone doing
+  board-rewrite invariants will want.
+- The verdict theorems carry WF EXHIBITS (`wstate_wf`, `wsucc_wf`, `ustate_wf` replicas):
+  the fence separates two INHABITED worlds - the corners exist in the WF universe, they
+  just are not dealt-reachable.  Cite this pattern whenever someone claims an unreachable
+  premise makes a gated statement vacuous.
+
