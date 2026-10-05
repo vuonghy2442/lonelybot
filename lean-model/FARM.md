@@ -1501,5 +1501,76 @@ NEXT (tickets):
    the `run_nil_elim`/`run_cons_elim` induction idiom into
    Tactics.lean macros (three-plus uses now recorded in
    FARM_MEMORY's wave-19 note).
+---
+
+## wave 19B (2026-10-05) — the C2 reachability probe: all five refutation corners live OFF the dealt-reachable fragment
+
+Session: farm-kinganchor-reach-probe.  Content:
+`witnesses/KingAnchorReachProbe.lean` (root, glob-registered; facade
+import added — see below).  `lake build Klondike Witnesses` green;
+census unchanged (witnesses not counted, no Klondike file touched).
+
+THE DATUM the wave-18 falsity pass and the wave-19A anchored-head
+witness left open: can any of the five negated universals' countermodel
+states be *reached from a dealt game* (`initialReachable`,
+Restriction.lean)?  Answer: NO, at every root AND at every king-landing
+successor — so every initialReachable-gated restatement of the five
+universals is beyond this witness family's reach:
+
+- wk_c2            — RESTORED under hreach (pristine root unreachable)
+- wk_same_pin      — RESTORED under hreach (same root)
+- wk_p2_direct     — RESTORED under hreach (same root; all seven
+  landing successors also unreachable, so successor-side reachability
+  premises are safe from this family too)
+- wk_crease        — RESTORED under hreach (same root)
+- wk_succ_labeled  — RESTORED under hreach (anchored-heads root
+  unreachable: the board seats only the seven heads, ♠A buried in
+  p1 nowhere)
+
+OBSTRUCTION CLASS: (b) pile-structure conservation, not (a) stock
+composition.  Both witness deals are honest 52-card deals (spade count
+closes: twelve pile spades + the stocked ♠K).  The new fence
+`KingAnchorReach.pileCards_seated_of_initialReachable`: at a
+dealt-reachable state with all depths and heights zero, EVERY dealt
+pile card is visible (28 buried cards cannot all vanish).  Backed by:
+
+- `KingAnchorReach.accounted` + `apply_accounted` (all seven moves) +
+  `run_accounted` + `initial_accounted` — the conservation invariant:
+  along any play every pile card stays hidden, visible, or founded
+  (the stock cycle never gains cards and starts deal-disjoint from
+  the piles; `reveal`'s boundary-one-reveal, the pilePile image
+  preservation, the bump/drop uniqueness arguments).
+- `initialBoard_seats` (private, in-file): the forward seating theorem
+  the initial case needs — the deal fold boards EVERY pile's top card
+  at its `initBase` (InitImg image induction over the fold; initBase
+  injectivity from deal distinctness).  Reusable far beyond this file.
+- Three public replica verdicts, each with a WF exhibit so the fence
+  separates two genuinely inhabited worlds:
+  `KingAnchorReach.wstate_not_initialReachable`,
+  `.wsucc_not_initialReachable (a)`, `.ustate_not_initialReachable`
+  (axioms [propext, Classical.choice, Quot.sound]).  The replicas are
+  field-identical spellings of the read-only witnesses' private
+  states — verdicts are stated at the replicas because the originals
+  are private (ticket below to retire them).
+- Facade: `Witnesses.lean` now imports the probe — the FIRST
+  witness-facade cross-import, chain-checked namespace-hygienic in the
+  umbrella comment — so wave-20 cites the verdicts directly.
+
+CAVEAT for the wave-20 restorer: "restored" here means the witnesses
+no longer counterexample the gated statements.  The gated universals
+themselves are OPEN: the corpus's weak corners (a lone climb-blocked
+anchored king, 12 states in 5 seeds — seed 26, ♣K on p1) ARE
+dealt-reachable, so the gated proofs carry real content.
+
+NEXT (tickets this verdict enables, in order):
+1. Prove the reach-gated universals (all five) — `commitTableau_class`
+   carries the stackable-rung half; the label-completion route
+   (wave-19A's `anchorHead a` channel decision) carries succ_labeled;
+   the fence licenses the pristine-corner premise re-scope.
+2. One-word orchestrator edit, then retire the replicas: deprivatize
+   `wState`/`wDeal` in C2KingAnchorWitness and `uState` in
+   SuccLabeledWitness (private def → def); with the names public the
+   replica-unreachability theorems transfer by one-line rfl.
+3. (wave-18's standing tickets 1-4 unchanged.)
 
 
