@@ -1974,3 +1974,57 @@ the image's OWN mate moves are all dodges while parked).
 Build: `lake build Klondike Witnesses` green (67 jobs, macro-game HEAD
 7121529); census pinned OK (11 total, TwinSwapCompletion 1, zero
 bullets).  No new sorry introduced; no refuted constant touched.
+
+## wave 21 (2026-10-05) — the engine-side corpus probes: the ≥2-anchor frozen-king world, the unseat route's urgency, the promotion-irreversibility rate
+
+Session: farm-corpus-probes (measurement only — no Lean file, no in-repo
+Rust touched; census delta NONE, nothing rebuilt on the model side).
+Artifacts: **lean-model/probe-results/corpus-results.md** — the full
+tables, histograms, concrete examples, and the operationalizations stated
+against `twinMid`/`noSeat`/`irreversibleAt` for the orchestrator to
+reconcile.  FARM_MEMORY carries the harness-quirk note (the modes, the
+K+ set-candidate gotcha, the underlyer-seat fact).
+
+Engine: the issue-15 micro engine (`fix/issue-15-least-stack-worry-backs`
+@ 10e62f8) through the repro15 harness, modes `frozen2`/`urgency`/`irrev`
+(corner mode untouched; re-run as control, reproducing wave-19B's numbers
+exactly — 5 seeds / 12 states / seed 26 ♣K, all at 1 empty pile).  Corpus:
+`default_shuffle` seeds 2..302 — the corner corpus, greedy PS>DS>DP>R>SP
+trajectories with concrete-board lockstep asserts — extended 2..1002.
+All numbers distinct-state-weighted unless marked visited.
+
+THREE HEADLINE NUMBERS (the wave-20 label-decision harness tickets):
+
+1. **FROZEN KING AT ≥2 FREE ANCHORS — real but small: 29 of 300 seeds
+   (9.7%; 96/1000), 75 distinct states (345)** of buried climb-blocked
+   kings at ≥2 genuinely empty piles; the ≥1-anchor world is 1008 distinct
+   states over 173 seeds, so the regime the ≤1-anchor theorems
+   (`same_pin_hole_oneAnchor`, `c2_two_option_king_frozen`) leave open is
+   7.4% of the blocked-king world, concentrated at exactly 2 empty piles.
+2. **ROUTE URGENCY — 37 of 300 seeds (122/1000), 82 distinct states
+   (267)** carry a frozen drawn/tableau king + an uncovered promotable
+   anchored head at ≥1 free anchor; the immediately-landable strict
+   variant (waste-top king — only waste kings can reach an anchor in this
+   engine) 11 seeds (41).  Every promotable head was also the engine's own
+   raw PileStack offer (279/279 at 1000 seeds) — the model-side
+   `anchorHead` reading and the engine's generator agree exactly.
+3. **CONTEXT-IRREVERSIBILITY — 32.22% of distinct-state raw PileStack
+   candidates leave no immediate raw worry-back at the post-promotion
+   state (35.38% at 1000; visit-weighted 1.34%)** — the window-gate (b)
+   engine cost, and an upper bound on the Lean `irreversibleAt`
+   (Theorems.lean:138) rate.  The lettered receiver-exists-NOW check
+   gives 78.4% and overstates 2.4x: every landed (above-anchor) promotion
+   is one-step reversible onto its own underlyer by construction (0 of
+   129,940 visited landed candidates engine-irreversible).  Irreversibility
+   lives in anchor promotions of non-king heads (1729/2595 anchor-alone at
+   1000); king promotions are never engine-irreversible (0/143 — the
+   freed anchor always takes the king back).
+
+ORCHESTRATOR READING for route (a) `anchorHead` vs (b) the window gate:
+the unseat route's raw material is a 4–12%-of-deals phenomenon (strictness
+dependent); a gate built at the engine's reverse-offer strength would close
+windows on ~a third of distinct promotion seatings (diststate cost), a
+gate built at the lettered NOW strength would misfire on half; king
+landings are the reversible-except-route class both routes treat
+identically.  Numbers, examples, and bounds: the results file.
+
