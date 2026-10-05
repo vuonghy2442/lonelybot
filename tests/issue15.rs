@@ -4,13 +4,15 @@
 //! standard Klondike (draw three) positions:
 //!
 //! 1. `gen_moves::<true>`'s least-stack cascade (C7) withheld worry-backs
-//!    while a card waited for the foundation — the `(least_stack - 1)`
-//!    mask-order filter (src/state.rs). Deal D is the whole-deal witness:
-//!    even a pruner-free search exhausted the crippled move graph and
-//!    concluded `Unsolvable`. The fix removes that one term; the γ probe
-//!    (widening the window to the least card's rank) was measured and does
-//!    NOT fix D — D's scaffold worry-backs (`SP K♥`, `SP Q♣`) sit at ranks
-//!    above the least pending card.
+//!    while a card waited for the foundation — twice: the `(least_stack - 1)`
+//!    mask-order filter (src/state.rs) and the "double card color" tail's
+//!    full zeroing of `stack_pile`. Deal D is the whole-deal witness for the
+//!    first: even a pruner-free search exhausted the crippled move graph and
+//!    concluded `Unsolvable`. The fix removes the term and re-opens the
+//!    double-color tail; the γ probe (widening the window to the least
+//!    card's rank) was measured and does NOT fix D — D's scaffold
+//!    worry-backs (`SP K♥`, `SP Q♣`) sit at ranks above the least pending
+//!    card.
 //! 2. `FullPruner`'s path-dependent rules (reveal-context, last-draw
 //!    streak) wrongly refuted X/Y-class positions. The safe default
 //!    (`solver::solve`) now runs the cycle filter only; `solve_risky`
@@ -38,6 +40,7 @@ const TO_Y: &str = "PS 9♣,PS 10♣,PS J♣";
 const TO_M: &str = "R Q♥,PS 10♦,PS J♥,PS Q♥,PS K♥,R Q♦,PS Q♣,R Q♠,R K♦,SP K♥";
 const TO_Z: &str = "R Q♥,PS 10♦,PS J♥,PS Q♥,PS K♥,R Q♦,PS Q♣,R Q♠,R K♦,SP K♥,SP Q♣";
 const DEAL_D: &str = "9♣ 9♦ 8♣ 9♥ 8♥ Q♣ K♣ 10♣ J♣ 10♥ K♠ K♦ J♥ 10♦ Q♥ J♠ 10♠ 8♠ 9♠ Q♠ Q♦ 7♥ 7♦ 7♣ 7♠ 6♠ 6♣ 6♦ K♥ J♦ 5♣ 8♦ 6♥ 5♠ 5♥ 5♦ A♥ A♦ A♣ A♠ 2♥ 2♦ 2♣ 2♠ 3♥ 3♦ 3♣ 3♠ 4♥ 4♦ 4♣ 4♠";
+const D_LINE: &str = "R 9♣,DP 5♣,DP 4♥,DP 3♣,DP 2♥,DP 8♦,DP J♦,DP K♥,R Q♣,DS A♦,DS A♥,PS 2♥,DS A♠,DS A♣,DS 2♣,PS 3♣,DP 3♠,DS 2♠,PS 3♠,DS 2♦,DS 4♠,DS 4♣,DS 3♦,DS 3♥,PS 4♥,PS 5♣,DS 4♦,DS 5♦,PS 6♦,PS 6♣,DS 5♥,DS 5♠,PS 6♠,PS 7♠,PS 7♣,PS 7♦,PS 8♦,DS 6♥,PS 7♥,PS 8♣,PS 8♥,PS 9♥,PS 9♦,PS 9♣,PS 10♥,R J♣,PS 10♣,PS J♣,R Q♥,PS 10♦,PS J♦,PS Q♣,PS Q♦,R Q♠,R J♥";
 
 fn parse_card(t: &str) -> Card {
     let suits = ["♥", "♦", "♣", "♠"] as [&str; 4];
@@ -142,5 +145,36 @@ fn z_dominance_generator_offers_the_worry_back() {
             .iter()
             .any(|m| matches!(m, Move::StackPile(c) if *c == jc)),
         "the least-branch fix must keep SP J♣ visible to the dominance search"
+    );
+}
+
+#[test]
+fn double_color_pending_keeps_worry_backs() {
+    // The "double card color" tail of the least-stack cascade (§5.6) used
+    // to zero stack_pile when the pending and soon-stackable cards covered
+    // both suits of one color, withholding raw-legal worry-backs that a
+    // winning line may need. This state is deal D after step 55 of the
+    // winning play plus an early PS J♥ and the first import SP Q♣: the
+    // pending pair {Q♣, Q♥} spans both colors and K♦ (the least pair's
+    // landing parent, ♦'s next needed) covers the remaining red suit, so
+    // the else branch fires — and must still offer SP J♣.
+    let mut e = engine(DEAL_D);
+    for m in D_LINE.split(',').take(55) {
+        play(&mut e, m);
+    }
+    play(&mut e, "PS J♥");
+    play(&mut e, "SP Q♣");
+    let jc = parse_card("J♣");
+    assert!(
+        e.list_moves()
+            .iter()
+            .any(|m| matches!(m, Move::StackPile(c) if *c == jc)),
+        "SP J♣ must be raw-legal in the double-color configuration"
+    );
+    assert!(
+        e.list_moves_dom()
+            .iter()
+            .any(|m| matches!(m, Move::StackPile(c) if *c == jc)),
+        "the double-color tail must keep the worry-back SP J♣ offered"
     );
 }

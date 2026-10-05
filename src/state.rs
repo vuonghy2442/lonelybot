@@ -296,8 +296,12 @@ impl Solitaire {
                     },
                 )
             } else {
-                // double card color
-                (0, least_stack, 0, 0)
+                // double card color — same C7 family as the removed cutoff
+                // above (issue #15): zeroing the worry-backs here withholds
+                // landing pads exactly when one whole color is covered by
+                // pending / soon-stackable cards (probe-measured: raw-legal
+                // SP J♣ withheld with {Q♣, Q♥} pending and K♦ soon-stackable)
+                (stack_pile, least_stack, 0, 0)
             }
         };
 
