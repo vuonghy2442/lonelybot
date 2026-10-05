@@ -3,7 +3,8 @@
 **Census: 12 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
 · Movability 0 · C2Streamlined 0 · TwinSwapCompletion 2
 · Restriction 2 · TwinExchange 1 · TwinQuotient 2; zero bullets;
-waves 12/17 base + all four wave-18 sessions, 2026-10-05: §8.7 closed
+waves 12/17 base + all four wave-18 sessions + the wave-19 C2
+re-scope, 2026-10-05: §8.7 closed
 by movability-equivalence; the C2 pillar set refute-probed — FOUR of
 the five wave-17 pillars FALSE as stated (C2KingAnchorWitness; the
 as-stated c2_two_option among them — the unstackable-at-rung corner
@@ -13,7 +14,13 @@ level, the stackable-rung regime) and the CONDITIONAL
 `c2_two_option` with the play-level content as explicit premises; and
 the T catchup-residue session's mixed-mid window proven (`solvable_
 swapTwin_mixed(_run/_back)`), leaving the two believed-true pins
-`mid_access_of_noSeat` + `sweep_covered_corner_safety`).  Pinned by
+`mid_access_of_noSeat` + `sweep_covered_corner_safety`); and the
+wave-19 C2 re-scope: `hpin`/`hp2` DERIVED for the zero-spend channels
+under the root rung (the bound itself premise-free at zero-spend
+labelings — `c2_two_option_zeroSpend_rung`) and the raise-ray core
+PROVEN (the pacing-guard invariance, F2's deterministic raise, the
+corner's derived world, every stack-channel witness's forced
+same-suit rank-mate `pileStack`).  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
 any NEW sorry or the return of a refuted constant.  All 12 are
 believed-true open theorems with routes below.
@@ -1355,5 +1362,144 @@ NEXT (tickets, in order):
    corner (a `pileStack t'`/`deckStack t'` inside the mid is
    source-inconsistent — the second bracket's rung pin; a small
    `#eval` cast would document it).
+
+## Wave 19 — C2 re-scope: the rung premise's derivations + the
+raise-ray core (landed 2026-10-05, the C2-rescope farm session;
+C2Streamlined owned in place at macro-game b99ad47)
+
+The wave-18 C2-closure NEXT list, items 2–3 executed, item 1
+(`succ_labeled`'s channel decision) delivered as the analysis below —
+orchestrator scope, per REFUTED §4; item 4 (engine corpus probe)
+untouched.  All new content is PROOFS (zero new sorries; census pinned
+12 / C2Streamlined 0 — the header updated together).
+
+**LANDED — item 2, the `hpin`/`hp2` rung re-scope (C2Streamlined
+§12.5):**
+
+- `succThrough_zeroSpend` [propext, Quot.sound] — the zero-spend
+  channels (`direct`, `hole`) demand the EMPTY accommodation (their
+  `LabelSig` is `α = []`), so their witnesses commit AT THE ROOT (and
+  with `through_direct_hole_commits`: the direct-absent world cannot
+  present a zero-spend label at all);
+- `pin_join_zeroSpend_rung` [propext, Quot.sound] — **`hpin` DERIVED
+  for the zero-spend channels** under the root-rung premise: both
+  witnesses commit at `st`, so the same-pin join IS
+  `commitTableau_class` at the root — the rung-carrying re-scope the
+  wave-18 row called for, now a theorem (the king-anchor witness's
+  split is exactly this rung's failure; un-refuted corner closed);
+- `p2_join_zeroSpend_rung` [propext, Quot.sound] — **`hp2` DERIVED for
+  the zero-spend channels**: every root commit's arm joins — the
+  tableau arm by `commitTableau_class`, the STACK arm by the two-move
+  worried-back roundtrip (`stackPile X b` rebuilds the tableau
+  successor exactly: same attach, same stock splice — both arms jump
+  the SAME reachable position —, bump/drop heights cancelling;
+  `pileStack X` returns it) — §6.7's empirical "late `PileStack(X)`
+  merge" (the 1,102 mixed-kind single-class commitments) as a proof;
+- `c2_two_option_zeroSpend_rung` [propext, Quot.sound] — the
+  derived-scope bound itself: three zero-spend-labeled successors
+  contain a closure-equal pair with NO play-level premises (any one
+  zero-spend label forces a root commit; all such successors join
+  every root commit's class — the register is not even consulted).
+
+**LANDED — item 3, the raise-ray core (`hball`, C2Streamlined §14):**
+
+- `reachablePos_of_accommodation(_run)` [propext, Quot.sound] —
+  accommodations never touch the stock cycle or draw step: the
+  commitment pacing guard is invariant along every accommodation play
+  (the denominator behind the stack-channel witness's reachability
+  being the ROOT's);
+- `heights_step_accommodation` [propext, Quot.sound] — the per-move
+  step law: a suit's standing height moves only at a same-suit
+  `pileStack` (+1, the fired card's rank-index pinned by the move's
+  guard to the standing level) or a same-suit `stackPile` (-1);
+- `raise_crossing_mem` [propext, Classical.choice, Quot.sound] —
+  **F2's deterministic raise**: any accommodation play crossing
+  standing level `k` of `X`'s own suit upward fires, somewhere in its
+  course, the `pileStack` of the (unique) `X`-suit card at
+  rank-index `k` — first-passage analysis, the crossing move's own
+  guard forcing suit and rank-index into the witness;
+- `stack_channel_world` [propext, Quot.sound] — the corner's derived
+  shape: WF + stack channel live + direct absent FORCE `X` reachable
+  and the suit's standing height strictly BELOW `X`'s rank (a founded
+  card is never stocked; a rung-matched reachable card would fire the
+  stack commit) — the raise content is present, never degenerate;
+- `stack_raise_deterministic` + `stack_channel_raise_mem`
+  [propext, Classical.choice, Quot.sound] — every stack-channel
+  witness's play fires the `pileStack` of `X`'s SAME-SUIT RANK-MATE
+  (the `X`-suit card one below `X`'s rank-index) — the same final
+  raise for every witness, exposed with its own play and stack
+  commit; the residue analysis's shared spine;
+- `raise_card_off_ball` + `flipSuit_suit_ne` [propext, Quot.sound /
+  propext] — the hygiene: the raise spends strictly inside `X`'s
+  suit-column — never the twin's seat (the pair-flip suit), never a
+  receiver (rank above), never a borrow pin's own signature card
+  (opposite color).
+
+**The honest residues, named for the next pass** (in-file §12.5/§14):
+
+- `hpin`/`hp2` for the SPEND channels (`dig`, `borrow p`) and the
+  stack channel's same-pin case: the free-float reconciliation (two
+  witnesses' plays α₁ ≠ α₂ ending at different accommodation states)
+  plus the crease chains — the root rung does not reach these (plays
+  can raise/re-drop a suit past the rung);
+- `hball`'s full content: reconciling the raise's ENABLERS (the moves
+  freeing the rank-mate at its firing state) with the two live pins'
+  own witnessing plays — exactly the crease/free-float residue; what
+  is proven bounds every resolution: no stack-channel witness exists
+  without consuming the one same-suit raise chain.
+
+**Item 1 — the `succ_labeled` channel decision (analysis; the
+witness itself is the sibling session's `witnesses/SuccLabeledWitness.lean`,
+merged 58448d7 on macro-game, past this branch's base):** the
+anchored-head unseating corner is now witness-backed (seven occupied
+anchors, one removable non-spade head, the spade-freeze invariant
+closed under both accommodation moves — every root label dead while
+the king lands on the vacated anchor).  The decision list, both routes
+surrounding the five-element poset: (a) extend `Label` with the
+king-anchor/unseat channel — a generator change through the whole
+surface (`Label`, `labelPin`, `LabelLive`, `LabelSig`, `commitArmOf`,
+`register_le_two`'s live-set, the conditional's `hlab` spellings);
+needs orchestrator sign-off; (b) guard P0's labelings to root-live
+channels only (the conditional stays sound; its labeling premise
+hardens; the orphan successors stay outside the theorem).  This
+session's derivations are untouched either way: they take their
+labelings as premises and consume no P0 content.
+
+**initialReachability interop** (per the reach-probe sibling's ask,
+its session no longer reachable at reply time — recorded here): my
+theorems need NO domain hypothesis — state-universal under the LOCAL
+rung premise, which reachability neither implies nor needs; the
+absorbable premise is `hlab`'s channel-list gap (the natural
+`initialReachable` repair target via Restriction's fences); the
+as-stated `hpin`/`hp2` refutations need ≥ 2 simultaneously-free
+anchors for a climb-blocked stocked king, so the WEAK reachable
+corner (one free anchor) cannot revive them — an
+initialReachable-scoped `c2_two_option` is live and orthogonal to the
+rung-scoped derivations; `hball`'s free-float residue is play-level,
+not expectably absorbable by reachability.  The spade-freeze
+invariant is the suggested composition-counting target for the
+probe session's per-pillar table (five pillars: `wk_c2` /
+`wk_same_pin` / `wk_p2_direct` / `wk_crease` / `wk_succ_labeled`).
+
+**Census delta: NONE** — 12 pinned, C2Streamlined 0; `lake build
+Klondike Witnesses` green at this branch.
+
+NEXT (tickets):
+1. The spend-channel free-float: reconcile two dig/borrow-channel
+   witnesses whose plays end rung-matched (the α₁ ≠ α₂ collapse under
+   the two-type ball locality — §11's P3 plan with the zero-spend half
+   now proven); decide-first against the king-anchor family.
+2. `hball`'s residue: the raise's enabler analysis (who covers the
+   rank-mate at the root, which pin's signature frees it) — with
+   `stack_raise_deterministic` in hand the two witnesses share one
+   spine, so the pairwise resolution reduces to the crease's
+   depth-ordering.
+3. Orchestrator: the `Label` channel-list extension vs P0 guard
+   (decision list above); the engine-side climb-blocked stocking
+   probe (wave-18 item 4, still unowned).
+4. Optional polish: promote the state_ext-literal slot chains and
+   the `run_nil_elim`/`run_cons_elim` induction idiom into
+   Tactics.lean macros (three-plus uses now recorded in
+   FARM_MEMORY's wave-19 note).
 
 

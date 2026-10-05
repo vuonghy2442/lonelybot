@@ -1160,3 +1160,52 @@ the rung-gating of the class joins, and the L1/L2 corner), the first
 two being REPAIRS the corpus regime suggests are harmless (the
 sweep-merged measurement never separates what the rung premise
 joins).
+
+### §7 addendum (2026-10-05, wave 19) - the rung re-scope made theorem; the raise-ray core
+
+The wave-18 restructure's honest follow-ups - re-scoping the
+play-level premises around the rung premise wherever derivable, and
+the never-refuted pillar's deterministic core - are now proven in
+`lean-model/Klondike/C2Streamlined.lean`, sorry-free (census 12
+unchanged; the 12.5 family axiom-clean [propext, Quot.sound]):
+
+- **The zero-spend channels' premise content is DERIVED from the rung
+  premise at the root** (`succThrough_zeroSpend`,
+  `pin_join_zeroSpend_rung`, `p2_join_zeroSpend_rung`): for
+  `direct`/`hole`-labeled successors, both the P3 same-pin join and
+  the P2 class-join reduce to the destination collapse at the shared
+  root -- for EITHER arm of the root commit, the stack arm via the
+  two-move worried-back roundtrip (`stackPile X b` rebuilding the
+  tableau successor exactly, `pileStack X` returning it). This is
+  the model-side proof of §6.7's "late `PileStack(X)` merge" (the
+  1,102 mixed-kind single-class commitments), and it yields the
+  derived-scope bound `c2_two_option_zeroSpend_rung`: at a
+  stackable-at-rung state, three zero-spend-labeled successors always
+  contain a closure-equal pair, with no play-level premises at all.
+- **The raise-ray geometry of the L1/L2 corner is now formal**
+  (`reachablePos_of_accommodation(_run)`,
+  `heights_step_accommodation`, `raise_crossing_mem`,
+  `stack_channel_world`, `stack_raise_deterministic`,
+  `stack_channel_raise_mem`, `raise_card_off_ball`): F2's same-suit
+  determinism holds in its strong form -- any accommodation play
+  crossing a suit's standing level upward fires the `pileStack` of
+  the one same-suit rank-index-matched card (the crossing move's own
+  guard is the witness), and hence every stack-channel witness of a
+  target consumes the same final raise: the target's same-suit
+  rank-mate. The corner's world is never degenerate (direct absent +
+  stack channel live forces the target reachable and its suit below
+  its rank), and the raise's spends avoid the two-type ball outright
+  (suit-disjoint from the twin's pair-flip and from the receivers'
+  opposite color).
+
+The ∎ modulo list of the wave-18 addendum therefore narrows to: the
+channel-list gap for king-anchor landings (the orchestrator decision,
+now with the witness in the library's witness family), the
+rung-gating of the class joins -- DISCHARGED this wave for the
+zero-spend channels, with the spend channels' free-float
+reconciliation (`a1 <> a2`) plus the crease chains remaining -- and
+the L1/L2 corner, whose deterministic raise core is now proven (its
+residue: reconciling the raise's enablers with the two live pins'
+own witnessing plays). no third class was ever observed, and the
+conditional theorem's premise surface is smaller than at any
+previous point in the campaign.
