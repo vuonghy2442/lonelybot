@@ -2,6 +2,7 @@ import Orig.Basic
 import Orig.State
 import Orig.Play
 import Orig.Fate
+import Orig.Integrity
 import Orig.Twin
 import Orig.Macro
 import Orig.Mono
