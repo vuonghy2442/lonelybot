@@ -1736,3 +1736,37 @@ private theorem stackRun_final_eq_canon_aux (N : Nat) :
                       show canonAux 53 s_d = canonAux 52 s_d
                       exact canonAux_stable 52 53 s_d
                         (by have := stackFuel_le_52 s_d; omega) (by omega)
+
+/-- **CLAIM 1 (`canon_unique`)**: any two maximal licensed runs
+from a `WF` state end at the same state. -/
+theorem canon_unique {u : State} (hwf : u.WF)
+    {l₁ l₂ : List Move} {w₁ w₂ : State}
+    (hr₁ : StackRun u l₁ w₁) (hf₁ : Final w₁)
+    (hr₂ : StackRun u l₂ w₂) (hf₂ : Final w₂) :
+    w₁ = w₂ := by
+  have h1 := stackRun_final_eq_canon_aux 52 u l₁ w₁ hwf (stackFuel_le_52 u) hr₁ hf₁
+  have h2 := stackRun_final_eq_canon_aux 52 u l₂ w₂ hwf (stackFuel_le_52 u) hr₂ hf₂
+  rw [h1, h2]
+
+/-- Any licensed lift preserves the canonical level. -/
+theorem canon_lift_step {st : State} {c : Card} {s' : State}
+    (hwf : st.WF) (hc : CanRaise st c)
+    (hstep : State.step st (Move.tabToFound c) = some s') :
+    canon s' = canon st := by
+  obtain ⟨l', hrun', hfin'⟩ := canon_run s'
+  have hcomp : StackRun st (Move.tabToFound c :: l') (canon s') :=
+    StackRun.cons hc (IsRaise.tabToFound c) hstep hrun'
+  have := stackRun_final_eq_canon_aux 52 st (Move.tabToFound c :: l') (canon s')
+    hwf (stackFuel_le_52 st) hcomp hfin'
+  rw [← this]
+
+/-- The canonical form is idempotent. -/
+theorem canon_idempotent (st : State) : canon (canon st) = canon st := by
+  obtain ⟨l, hrun, hfin⟩ := canon_run st
+  show canonAux 53 (canon st) = canon st
+  rw [canonAux_final hfin]
+
+/-- The canonical form is `Final`. -/
+theorem canon_is_final (st : State) : Final (canon st) := by
+  obtain ⟨l, hrun, hfin⟩ := canon_run st
+  exact hfin
