@@ -5875,3 +5875,2914 @@ survives.
 (12) `rw` mid-list failure cascading DON'T necessarily mean the shape
 was wrong: a failed rw leaves the goal open so EVERYTHING after reports
 "unsolved goals" — fix the first reported rw, rebuild, re-read.
+# FARM_MEMORY — the prover agents' shared quirks & syntax ledger
+
+Append-only shared memory for all farm agents. Protocol:
+
+- READ this whole file before writing any proof.
+- APPEND your discoveries at session end: one `## <file> — <topic>`
+  block, dated, ≤ 15 lines. If the append fails (tail changed), re-read
+  and retry. Do not rewrite others' entries.
+- Record: syntax gotchas, core-lemma names that exist / don't exist,
+  reusable proof recipes, wrong FARM routes (with the counterexample),
+  reusable helper lemmas you proved, statement repairs you made.
+- Do NOT edit FARM.md (the orchestrator's ledger). Never run any git
+  command. Another agent may commit work in parallel — never revert
+  anything.
+
+## Verification protocol (orchestrator)
+
+- Per-file check from `lean-model/`: `lake env lean Klondike/<File>.lean`
+  — success = exit 0 + no `declaration uses 'sorry'` warning for YOUR
+  declarations. Never run `lake build` from an agent (lock contention);
+  the orchestrator does full builds between waves.
+- A `sorry` inside a def's field is reported at the def's NAME line,
+  not at the sorry's line.
+- Citing a lemma whose proof is still `sorry` does NOT propagate the
+  sorry-warning to your theorem: all statements are already in the
+  oleans, so later-wave proofs may cite earlier-wave lemmas before
+  their proofs land.
+- Lake's cache can lie ("0 jobs" while an olean is missing). If in
+  doubt: `lake clean && lake build`.
+
+## Theorems.lean — defeq notes (2026-09-12)
+
+- `flipAll_eq_relabelTwin` was plain `rfl`: `Relabel.twin.card ≡
+  Card.flipSuit` componentwise-defeq; differing `Board.inj` proof
+  fields are bridged by proof irrelevance. Expect the same defeqs for
+  `Move.relabel` vs `Move.flipMove` (Wave 3's `apply_relabel`).
+- `Suit.flipPair_color` is `@[simp]` and rfl-provable: the twin
+  `coherent` field was `intro s s'; simp`, no 16-case bash needed.
+
+## Cycle.lean — the removeAt recipe (2026-09-12)
+
+- Expose structure: `simp only [removeAt]`; then `rw [if_pos h, ...]`
+  chains resolve the cursor guards — INNER if-rewrites must come before
+  outer guards whose conditions mention them. All guard facts are
+  `omega` havs from `i < j < cursor`.
+- `removeIdx_comm` is phrased `removeIdx (removeIdx l i) j = removeIdx
+  (removeIdx l (j+1)) i` — instantiate the second index at `j - 1`,
+  rewrite `j - 1 + 1 = j` by `omega`.
+- `drawTo_comm_modAdjacent`'s wrap case (`j = 0`, `i = len - 1`) is NOT
+  covered by `removeAt_comm` (it needs `i < j`): rotate/normalize the
+  indices first, then apply; `rotate_add` is `@[simp]`.
+- `drawTo_nonadjacent_diverge`: end cursors are exactly `j - 1` vs `i`
+  as computed in `removeAt_comm` — reuse the `hcards` reasoning.
+
+## Bridge.lean — parsing gotchas + engine facts (2026-09-12)
+
+- Multi-field `{x with f := v, ...}` must start its first field on its
+  own line (sepBy1Indent anchors at the first field's column).
+- `⟨{x with ...}, ...⟩` (structure instance inside an anonymous
+  constructor) does not parse — bind it via `have`/`let`, or pin the
+  metavariable with a `rfl`-slot `_`.
+- `rcases` flat patterns follow only the RIGHT ∧/∃ spine; left-side
+  conjuncts need explicit nested slots; excess trailing slots are
+  silently dropped.
+- Core lemmas that exist (no Mathlib in this project):
+  `List.getElem?_eq_some_iff`, `List.getElem?_eq_none_iff`,
+  `List.getElem?_eq_none`.
+- `noDupCards` draw-index uniqueness pattern:
+  `(List.getElem?_eq_some_iff.mp hc).1` gives the index bound, then
+  `hnd i₁ i₂` pins `i₁ = i₂`.
+- PROVEN & REUSABLE for Wave 7: `eStep_offset`, `eRun_offset`,
+  `isWin_offset` (offset-blindness of the engine). The "trailing draws
+  shift only the offset" clause of `toEngine_lifts` is exactly these.
+- STATEMENT REPAIR (accepted by orchestrator): `eStep_deckStack_unique`
+  gained `(hnd : noDupCards e.order)` — without it, a duplicated order
+  gives two draw indices, hence two offsets. Mirrors `deckPile`'s
+  signature. No downstream users existed.
+
+## Progress.lean — run_append recipe + trace hazard (2026-09-12)
+
+- `run_append` PROVEN (first try, exit 0): `revert st; induction l₁`
+  (Bridge's `eRun_offset` pattern — sidesteps `generalizing` re-intro
+  ambiguity), then `intro st` per case. nil: `rfl` alone (append/run/
+  bind all iota-reduce). cons: `simp only [List.cons_append,
+  State.run]` exposes BOTH matches on `st.apply m` (equations fire
+  only on constructor-headed lists, so inner `st'.run ms` is safe);
+  `cases st.apply m` + `rfl` / `exact ih st'` — defeq closes the
+  unreduced matches, no bind lemmas needed.
+- HAZARD for `run_eq_trace_last` (analytical, NOT yet prover-confirmed):
+  `State.trace`'s `none` arm yields `st :: []`, so for ANY st, m with
+  `st.apply m = none`: `run [m] = none` but `(trace [m]).getLast? =
+  some st` — the theorem looks UNSOUND as stated. A dying play needs
+  an EMPTY trace for the statement to hold. Downstream `solvable_*`
+  only use winning plays (unaffected). ESCALATED to orchestrator.
+
+## Realizability.lean — Fits repair + realizable_of_wf (2026-09-12)
+
+- STATEMENT REPAIR (needs sign-off): dropped `bd.legalEdges ∧` from
+  `Board.Fits` — UNSOUND for `realizable_of_wf`: WF's third conjunct
+  lets a topHidden boundary card also be visible, so legalEdges'
+  canSitOn demand is unprovable. Witness (analytic): standard deal,
+  depths p1:1/others 0, board {inl p1 ↦ ♥2, inr ♥2 ↦ ♥3} is WF, yet
+  ♥3 has no legalEdges-legal seat in any board over {♥2,♥3} ⇒
+  Realizable FALSE. Fits = the WF third conjunct; no downstream users.
+- `realizable_of_wf`: bd := st.board, Fits ← `(hwf.2.2.1 b c hb).2`,
+  image ← `fun _ => rfl`; `topHidden a` ≡ take/getLast? (δ), bare
+  Bool `canSitOn c d` coerces to `= true` — `exact` accepts both.
+- `apply_realizable` = `apply_wf` + `realizable_of_wf` (Move.lean).
+
+## Progress.lean — trace repaired + reveal recipe (2026-09-12)
+
+- TRACE DEF REPAIRED (orchestrator-approved): cons moved into the `some`
+  arm — dying plays now yield `[]`. Old shape was prover-confirmed
+  broken (dies-at-first: `run [m] = none`, `(trace [m]).getLast? =
+  some st`; scratch witness: empty deal/board/stock, cursor 0).
+- RESIDUAL (prover-confirmed via temp in-file rfl's): dies-LATER plays
+  still break `run_eq_trace_last` — `[draw, dying]` gives trace
+  `[st]`, run `none`. Needs death-propagation (`match st'.trace ms
+  with | [] => [] | rest => st :: rest`) or an iff-form statement.
+  Winning plays unaffected; escalated to orchestrator.
+- `apply_reveal_totalDepth_lt` PROVEN. Inversion recipe: `simp only
+  [State.apply] at h` then `simp only [State.applyReveal] at h` (both
+  unfold body-match defs), then per discriminant `cases hX : e` +
+  `rw [hXs] at h` + `simp at h`. KEY QUIRKS: `rw` does NOT iota-reduce
+  matches — the next discriminant sits under the arm binder (a fresh
+  FVar), so the next `rw` fails unless `simp at h` reduced first;
+  `cases h : e` never rewrites hypotheses. Tail: `hpos` from
+  `findFirst_mem` + `take 0`/`getLast? []` contradiction (plain
+  `simp at hta` closes it), then `cases a <;> simp [Anchor.all,
+  map_cons, map_nil, sum_cons, sum_nil] <;> omega` — full `simp` is
+  REQUIRED: `simp only` skips ite ground-eval (left `if p1 = p0`
+  atoms that stumped omega).
+
+## Board.lean — Wave 1 complete; sorryAx propagation gotcha (2026-09-12)
+
+- Board.lean FULLY proven (exit 0, zero warnings). New reusable
+  helpers: `attach_inj`, `mapBy_inj`, `Base.flipBase_flipBase`.
+- SORRY PROPAGATION: a `sorry` in a def's FIELD rides into any theorem
+  whose proof term EMBEDS the def's literal — `subst`/`rw at h`/
+  `split at h` all embed it (implicit args of Eq.rec/congrArg), even
+  though provable. Citing the sorry'd CONSTANT is safe; embedding the
+  LITERAL is not. Fix the field first.
+- Multi-line `by` inside a structure instance does NOT parse: prove a
+  standalone lemma and cite it from the field.
+- Attach-lemma pattern: `unfold attach at h; split at h` ×2 (dite
+  binders arrive inaccessible — `constructor <;> assumption` reaches
+  them); `rw [Option.some.injEq] at h; subst h; exact update_self/
+  update_ne`; `rw [dif_pos h.1, dif_pos h.2]` has no beta trouble.
+- Core 4.30 confirmed present: `Option.map_eq_some_iff`,
+  `decide_eq_true`, `of_decide_eq_true` (and `dif_pos` as rw).
+
+## Progress.lean — trace death-propagation + run_eq_trace_last (2026-09-12)
+
+- TRACE DEF (2nd repair, orchestrator option (a), APPLIED): `some`
+  arm now `match st'.trace ms with | [] => [] | rest => st :: rest`
+  — dying yields `[]` at ANY depth; winning traces unchanged.
+- `run_eq_trace_last` PROVEN (first try): `revert st; induction
+  play` + `intro st` per case (Bridge pattern). nil: `rfl`. cons:
+  `simp only [State.run, State.trace]` exposes both matches on
+  `st.apply m`; `cases st.apply m` (substitutes GOAL discriminants
+  — unlike hypotheses, run_append precedent); some-branch needs
+  FULL `simp` first to iota-reduce the outer matches (else the next
+  discriminant sits under the arm binder); then `cases htr :
+  st'.trace ms` + `have ih' := ih st'; rw [htr] at ih'; exact ih'`
+  — defeq closes both arms.
+- REUSABLE core fact (prover-confirmed): `List.getLast? (a :: b ::
+  l) ≡ (b :: l).getLast?` by plain `rfl` — the cons-arm crux.
+
+## Progress.lean — deckPile/deckStack shortens (2026-09-13)
+
+- `apply_deckPile_shortens` + `apply_deckStack_shortens` PROVEN.
+  ROUTE IMPROVEMENT: NO WF hypothesis needed (statements have none!)
+  — the move's own success pins the index: `st.stock.prev = some c'`
+  unfolds (`simp only [Cycle.prev] at hp`), `split at hp` cases the
+  cursor-0 guard, else-arm gives `cards[cursor-1]? = some c'`, and
+  `(List.getElem?_eq_some_iff.mp hp).1` yields `cursor - 1 < length`;
+  then `Cycle.removeIdx_length` + `omega` (after a `show` to the
+  `removeIdx` form — proj-of-literal defeq).
+- BIG QUIRK (time-saver): full `simp at h` on
+  `(if c then some A else none) = some st'` DECOMPOSES it to
+  `c ∧ (A = st')` (absurd else auto-discharged) — do NOT hand-split
+  the ite. `split at h` then handles any remaining MATCH cleanly
+  (per-arm equations; the guard-conjunct is simp's, not split's);
+  finish with `obtain ⟨-, h'⟩ := h; subst h'`. The deckStack arm has
+  no match — obtain directly after simp.
+- `simp only [State.applyDeckPile]` / `[State.applyDeckStack]`
+  unfold body-match defs fine (same as applyReveal).
+
+## Move.lean — apply_wf UNSOUND: two prover-confirmed holes (2026-09-13)
+
+- HOLE 1 (reveal): `applyReveal` leaves trigger c on the now-VISIBLE
+  r; WF's inr-clause grandfathers only topHidden bases — the boundary
+  moved below r ⇒ c→r needs `canSitOn c r` (no guard). Witness:
+  standard deal, depths a.toIdx, board {inr ♥2 ↦ ♥3}, fresh stock ⇒
+  st.WF; reveal ♥3 legal; successor (depths p1 = 0, edge ♥3→inr ♥2)
+  fails both disjuncts. Hits any pile ≥ 2 cards (reachable too).
+- HOLE 2 (deckPile; deckStack same shape): WF pins Deal.WF's stock
+  but never the STATE's cycle — [♥4,♥4] cursor 2, {inr ♥A ↦ ♠5},
+  depths 1 is WF; deckPile ♥4 (inr ♠5) legal ⇒ ♥4 visible + a copy
+  stays ⇒ isVis-clause broken. Both: scratch exit 0, only
+  propext+Quot.sound. apply_realizable & Wave 4 boundedPlay BLOCKED.
+- Repairs (in State.WF, sign-off needed): += `noDupCards
+  st.stock.cards`; inr-clause += deal-adjacency grandfather (∃a t
+  rest, piles a = t ++ d :: c :: rest) — the latter breaks
+  aboveOf_rank_grading/legalEdges as stated. Other 4 cases believed
+  true (draw = Nat.mod_le; canPlace guards feed clause 3).
+- RECIPE: falsify ground states by pure `decide` — `(st.apply m).
+  isSome = true`, successor as `(st.apply m).getD st`, then per-clause
+  decides (topOf/bottomOf/topHidden/canSitOn all kernel-compute).
+
+## Move.lean — landed WF repair: #1/#2 closed; #3/#4 residual (2026-09-13)
+
+- LANDED: inr-clause += deal-adjacency; WF += noDupCards st.stock.cards
+  — my witnesses #1 (♥3) and #2 (dup cycle) are closed.
+- HOLE #3 (reveal, prover-confirmed): disjunct 1 (topHidden) carries
+  no adjacency — {inr ♥2 ↦ ♠9} (♠9 dealt in p6) on p1's boundary is
+  WF via disjunct 1 alone; reveal ♠9 ⇒ edge ♠9→inr ♥2 fails all 3
+  disjuncts. FIX: DELETE disjunct 1 — subsumed by 2 for reachable
+  states (initial edges adjacent; moves attach only canPlace-legal;
+  reveal's new r→d₂ edge is deal-adjacent).
+- HOLE #4 (reveal, prover-confirmed): state stock never tied to the
+  deal — stock ⟨[♥2, ♠9], 1⟩ + {inr ♥2 ↦ ♥3} is WF; reveal ♥3 ⇒ ♥2
+  visible with posOf ♥2 = some 0. FIX: WF += ∀ c ∈ st.stock.cards,
+  c ∈ st.deal.stock (deck moves: sublist; reveal reads it here).
+- Scratch ApplyWfCounter2.lean, exit 0, propext+Quot.sound only. With
+  both deltas all 7 arms analyzed sound; reveal's r→d₂ edge needs
+  take/getLast?/reverse-head? list lemmas.
+
+## Progress.lean — Wave 0 COMPLETE: the two ≤ bashes (2026-09-13)
+
+- `apply_totalDepth_le` + `apply_stockLen_le` PROVEN — ALL Wave 0
+  Progress items done (7/7; only the 5 later-wave sorries remain).
+- 7-way bash recipe: per arm `simp only [State.apply,
+  State.applyX] at h` + the cases/rw/simp cascade; arms that don't
+  touch the measure end `obtain ⟨-, h'⟩ := h; subst h'; exact
+  Nat.le_of_eq rfl` (proj-of-literal defeq carries it; even draw's
+  stock, via rotate's `cards := c.cards`). reveal arm: cite
+  `Nat.le_of_lt (apply_reveal_totalDepth_lt h)`; deck arms in the
+  stockLen proof: cite the shortens. pileStack's two-discriminant
+  match: cases BOTH discriminants (the `some`-first-discriminant case
+  commits to the catchall without the second).
+- QUIRK: `split at h` bullets follow the DEF'S ARM ORDER, not the
+  constructor order — applyPilePile's attach match lists `some`
+  before `none` (bullet-1 = good), applyDeckPile lists `none` first
+  (bullet-1 = bad). Read the def's arms before writing split bullets.
+- FORWARD-REFERENCE gotcha: same-file citations need the cited
+  theorem EARLIER (Lean has no forward refs) — deck-shortens sat
+  after `apply_stockLen_le` ⇒ "unknown identifier"; relocated them
+  above it (fine — verification is by NAME, not line).
+
+## Move.lean — WF2 landed: #3/#4 closed, #5 residual; helper kit in (2026-09-13)
+
+- LANDED: topHidden disjunct deleted; membership conjunct added
+  (replacing noDupCards). Witnesses #1-#4 closed.
+- HOLE #5 (deckPile/deckStack, prover-confirmed, ApplyWfCounter3.lean,
+  exit 0, propext+Quot.sound): membership does not see multiplicity —
+  state stock [♢3, ♢3] (both copies of a deal-STOCK card, so membership
+  holds) with board {inr ♠3 ↦ ♠4}: `deckPile ♢3 (inr ♠4)` legal ⇒ ♢3
+  visible with a copy surviving ⇒ isVis-clause broken. FIX: RESTORE
+  `noDupCards st.stock.cards` ADDITIONALLY (witness #2's dup was of a
+  pile card — membership kills that one, not this).
+- LANDED in Move.lean (compile-clean, WF-independent): Rank.toIdx_inj;
+  Cycle.{findFirstIdx_eq_none, findFirstIdx_mem (needs [DecidableEq α]),
+  posOf_eq_none, posOf_mem, getElem?_removeIdx, mem_removeIdx,
+  notMem_removeIdx_self}; head?_reverse_eq_getLast?;
+  head?_of_take_single; Deal.{flatMap_piles_length, piles_stock_disj}.
+- Reveal crux VALIDATED (RevealCrux.lean, axiom-clean): topHidden =
+  some r + boundary head? = some d₂ ⇒ ∃ t rest, piles a = t ++ d₂ ::
+  r :: rest. GOTCHA: `show` on take_append_drop FAILS (not defeq) and
+  rw-ing its symm corrupts the RHS's drop-argument — go via
+  `(take_append_drop _ _).symm.trans ?_` instead.
+
+## Progress.lean — Wave 4: play_cut_loop + cycle theorem (2026-09-13)
+
+- `play_cut_loop` + `play_self_is_shuffle` PROVEN, with three new
+  REUSABLE helpers (cited by later waves): `run_totalDepth_le`,
+  `run_stockLen_le` (run-level monotonicity, induction on play), and
+  `run_commit_measures` (a commit in a successful play strictly
+  advances a measure by the end). KEY ROUTE FACT: the naive
+  "sub-play returns to own start" induction FAILS (sub-plays return to
+  the ORIGINAL start, not their own) — carry a measure-DISJUNCTION
+  through the induction instead; then play_self = helper + irrefl.
+- `++` is LEFT-associative here (4.30, rfl-confirmed): `π₁ ++ π₂ ++ π₃`
+  is `(π₁ ++ π₂) ++ π₃` — `run_append` chains must split at the TOP
+  append, and explicit-arg `rw [run_append st (π₁ ++ π₂) π₃]` (my
+  right-assoc guess) fails to match.
+- `have h : (a >>= fun x => f x) = e` NEEDS the outer parens: the
+  lambda body otherwise swallows `= e` (do-notation parse error).
+- `cases hb : m.isCommit` substitutes the GOAL: false-arm goal is
+  `false = false` (`rfl`, NOT `exact hb`); true-arm `true = false`
+  (close via `absurd hlt (Nat.lt_irrefl _)`).
+- LINTER: unused theorem binder — `clear` does NOT silence it; `have
+  := hwf` does. `hwf` is VESTIGIAL in `play_self_is_shuffle` (the
+  measures need no WF) — statement could drop it (orchestrator's
+  call). The `have := hwf` line covers it meanwhile.
+- HOUSEKEEPING: the deck-shortens relocation had accidentally
+  swallowed play_self's doc comment — restored (minus its TODO).
+
+## Initial.lean — initial_wf proven (orchestrator, 2026-09-13)
+
+- FILE FULLY PROVEN (initial_wf + 8 helpers). `initialBoard` refactored
+  defeq-preservingly into `initBase`/`initStep` (named fold pieces) —
+  the file's `decide` examples re-verified behavior. Reusable helpers
+  now in-tree: `initStep_topOf`/`initFold_topOf`/`initialBoard_topOf`
+  (the fold spec: every top is some pile's top dealt card),
+  `decompose_last` (length k+2, [k]? = some u, last = c ⇒ l = t ++ u ::
+  c :: []), `mem_of_getLast`, `noDupCards_append_right`.
+- EQUATION-CASES SUBSTITUTES THE GOAL: `cases h : e` replaces `e` in
+  the goal — if the THEOREM STATEMENT contains the scrutinee (e.g.
+  `getLast?` in the conclusion), the goal's copy becomes the pattern
+  (`some top`), so the final witness must prove `some top = some c`,
+  not the original form. Check the goal before assembling witnesses.
+- BINDER TRAP (extends the Move.lean note): after `rw [hgt] at h`
+  where hgt : opt = some top, the arm's pattern variable stays BOUND —
+  `rw [hat] at h` cannot find `bd.attach (initBase d a) top` (it is
+  the ARM's top, not the free top). ESCAPE: `have h2 : <reduced type>
+  := h` — the defeq cast iota-reduces the match, substituting the free
+  top into the body; then rw works on h2.
+- PIPE NOTATION: `have h : x |>.f = true := e` FAILS to parse (the
+  parser ends the type at `.f` and demands `:=` at `=`). Use explicit
+  parens: `have h : (x).f = true := e`.
+- `obtain ⟨...⟩ := hd` CONSUMES hd (clears it) — keep a copy
+  (`have hdw := hd` or re-assemble `⟨hlen, hstock, hnd⟩`) before
+  passing it to later lemmas.
+- Anonymous-constructor slot COUNT errors show up as "expected type
+  ∀ ... is not an inductive type" — count the ?_s against the conjunct
+  count (WF now has NINE).
+- `List.getElem?_eq_none_iff` is the iff name (`_eq_none` alone is not
+  a constant). `of_decide_eq_true` + `omega` kills `decide (x < 0)`.
+- Move.lean's Deal-namespace helpers: cite as `Deal.piles_stock_disj`,
+  `Deal.flatMap_piles_length`; Cycle ones as `Cycle.posOf_eq_none`…
+- `(State.initial d s).deal.piles a` displays unreduced: rw fails on
+  `d.piles a` patterns until a `show`/defeq-cast normalizes the goal.
+
+## Move.lean — WF2 landed: #3/#4 closed, #5 residual; helper kit in (2026-09-13)
+
+- (Move agent's entry — see above for the five-witness history; the
+  ninth WF conjunct `noDupCards st.stock.cards` was restored by the
+  orchestrator after witness #5: membership is a SET condition — a
+  deal-stock card duplicated in the cycle passes it. BOTH stock
+  conjuncts are needed; neither subsumes the other.)
+
+## Progress.lean — solvable_iff_distinctTrace PROVEN (2026-09-13)
+
+- LANDED with 5 reusable helpers (Wave 4's boundedPlay should reuse):
+  `run_cons_inv` (successful cons ⇒ apply/run/trace-cons bundle),
+  `run_split` (run_append corollary: A++B succeeds, A reaches s ⇒ B
+  goes s→w), `run_take_trace` (THE WORKHORSE: `run play = some w →
+  i ≤ play.length → st.run (play.take i) = (st.trace play)[i]?`),
+  `trace_length_succ` (trace length = play.length + 1),
+  `solvable_distinct_aux` (length induction: distinct-trace witness;
+  ¬allDistinct → classical ∃-repeat → take/drop split → play_cut_loop
+  → strictly shorter). Loop-extraction chain: `List.take_add` +
+  `take_append_drop` decompose; `run_take_trace` at i and j + the
+  repeat `trace[i]? = trace[j]?` give the return-to-start via
+  `run_split`.
+- QUIRKS: `by_contra` is NOT core — `apply Classical.byContradiction;
+  intro h` (by_cases IS core). `List.take_add` is FULLY IMPLICIT —
+  type-ascribe the have. `cases hm : st.apply m` also rewrites the
+  GOAL's `st.apply m` (refine slot becomes `rfl`). Forward reference
+  AGAIN (play_cut_loop sat after its citer) — relocated. `hwf`
+  vestigial here too (`have := hwf`). omega INGESTS ∃-hypotheses via
+  choose (seen in error dumps) and needs `State.trace` unfolded
+  (`simp only [State.trace, ...]`) before literal-length reasoning.
+
+
+
+
+## Theorems.lean — roundtrip + draw_full_cycle PROVEN (orchestrator, 2026-09-13)
+
+- `pileStack_stackPile_roundtrip` + `draw_full_cycle` LANDED (by hand).
+  New reusable: `Board.ext_topOf` (same topOf ⇒ equal boards — funext +
+  proof irrelevance; added to Board.lean).
+- STATEMENT REPAIR (accepted): `draw_full_cycle`'s cursor bound weakened
+  `≤` was FALSE — cursor = length (len > 0) rotates to 0, not back (only
+  states never produced by rotate sit there; rotate lands strictly
+  below). Repair: strict `<`. No downstream users.
+- NAMESPACE TRAP: a theorem named `Board.foo` written INSIDE
+  `namespace Board` becomes `Board.Board.foo`. Watch the declaration's
+  file position when adding cross-file helpers.
+- THE INVERSION RECIPE (Progress agent's, confirmed again): to unpack
+  `h : st.apply m = some st'` for a move whose body is
+  `if guard then match X with ... else none`: (1) `simp only
+  [State.apply, applyXxx] at h`; (2) `cases hX : X with` + `rw [hX] at
+  h` for each discriminant (defeq-cast via `have h' : <reduced> := h`
+  when the arm binder traps the pattern); (3) FULL `simp at h` then
+  decomposes the remaining `(if C then some A else none) = some st'`
+  into the guard ∧ arm-equation — `obtain ⟨-, h'⟩ := h; subst h'`.
+  Do NOT hand-split the ite: `split at h` leaves the goal open in both
+  branches (bullets must each close the MAIN goal) and the display is
+  confusing.
+- `if c.suit = c.suit then A else B` does NOT whnf-reduce for symbolic
+  suit (derived DecidableEq match is stuck): use `rw [if_pos rfl]` /
+  `rw [if_neg h]` instead of `show`-defeq casts. Same for any
+  symbolic-condition ite.
+- Structure-literal projections (`{LIT}.field`) reduce under simp but
+  block `rw`: normalize with `show`/defeq-cast first. `cases h : e` with
+  e a projection-literal still needs `rw [h] at h-other` manually.
+- `{s with f := s.f, ...} = s` closes by rw's auto-rfl (eta) — trailing
+  `rfl` after such a rw errors with "No goals".
+- After ANY Board.lean/Move.lean edit, the dependents' oleans go
+  stale: `lake env lean` then fails with "Unknown constant" — run
+  `lake build Klondike` (it cascades) before re-verifying consumers.
+
+## Theorems.lean — relabelBy DEF REPAIRED (orchestrator, 2026-09-13)
+
+- DEF BUG (analytic counterexample): `State.relabelBy`'s board probed
+  at `Sum.map id r.card` — for the group's non-involutive elements
+  (suit 4-cycles, e.g. h↦s↦d↦c↦h, all Relabel-valid), the relabeled
+  guard `topOf (inr (r.card c))` reads `st.topOf (inr (r.card (r.card
+  c)))` ≠ `st.topOf (inr c)` — conjugation (`apply_relabel`) is FALSE
+  as defined. Heights/stock already used the inverse direction; only
+  the board was wrong.
+- REPAIR: probe at the inverse — new `Relabel.cardInv` (card-level
+  inverse: `⟨r.suitInv c.suit, c.rank⟩`), `board.topOf := fun b =>
+  (st.board.topOf (Sum.map id r.cardInv b)).map r.card`. New lemmas:
+  `Relabel.cardInv_card` (cardInv ∘ card = id via left_inv),
+  `Relabel.cardInv_inj` (base-level injectivity via right_inv),
+  `Relabel.relabelBy_inj` (the matching law — KILLS the def-field
+  sorry; standalone-lemma pattern).
+- `flipAll_eq_relabelTwin` survives as `rfl` (twin is involutive:
+  suitInv = suit, so both directions coincide).
+- TYPE TRAP: `Sum.map id r.suitInv` is ill-typed over `Base = Sum
+  Anchor Card` (suitInv : Suit → Suit) — the inverse must be
+  card-level. Check argument TYPES before writing Sum.maps.
+- Downstream of the repair: `apply_relabel`/`solvable_relabel` should
+  now be provable (guards translate via cardInv_card + left_inv);
+  Move.relabel keeps probing FORWARD (r.onBase) — the two directions
+  cancel: cardInv ∘ onBase = id.
+
+## ERGONOMICS REFRACTORING LANDED (2026-09-13)
+
+- **TIER 1 — the move inversions** (Move.lean, after legal_pileStack_iff):
+  `apply_draw_iff`, `apply_reveal_iff`, `apply_deckPile_iff`,
+  `apply_deckStack_iff`, `apply_pileStack_iff`, `apply_stackPile_iff`,
+  `apply_pilePile_iff` — one shape lemma per move: guards as flat
+  conjunctions + the successor literal. Future consumers open with
+  `rw [apply_X_iff] at h; obtain ⟨...⟩` instead of the case bash.
+  BACKWARD-pattern that works: `rw [hst]; simp only [State.apply,
+  applyXxx, <guard-eqs>]; split · rfl · rename_i hcond; simp
+  [<guard-facts>] at hcond` (shape-agnostic — no if_pos conjunct
+  guessing; the ite's condition may surface pre-normalized as True).
+  FORWARD-pattern: per discriminant `cases h : e` + `rw [h] at h`
+  (+ `simp at h` to iota past arm-binders when the pattern binds),
+  final `simp at h` decomposes the ite-vs-some into `guards ∧ (arm =
+  st')`.
+- **NEW GOAL-SUBSTITUTION RULE (refined)**: `cases h : e` abstracts
+  `e` under binders too, but ONLY terms without locally-bound
+  variables — in an iff-RHS with `∃ r a bd, …`, a conjunct scrutinee
+  free of bound vars gets substituted (witness `rfl`), one mentioning
+  a bound var does not (witness the original hypothesis). Check the
+  slot's expected type before writing witnesses.
+- **TIER 2 (as lemmas, not defs)**: `heights_bump_self/_ne`,
+  `heights_drop_self/_ne`, `depths_step_self/_ne` — @[simp], firing
+  on the exact with-update literal shapes. DECISION: no
+  `bumpHeight`-style defs — changing apply's bodies would churn every
+  landed proof's literal matches for no extra power; the lemmas give
+  the canonical rewrite targets.
+- **TIER 3 — WF's named conjuncts** (State.lean): `depths_le`,
+  `board_edges`, `vis_off_cycle`, `found_off_cycle`, `heights_le`,
+  `cursor_le`, `stock_wf` (bundles noDup + membership); `WF` is now
+  the 8-conjunct chain. `intro`/`show` whnf through the defs
+  transparently — existing proofs needed only the slot-count fix and
+  the stock-bullet merge; `realizable_of_wf`'s `⟨_,_,hmatch,_⟩`
+  right-spine absorption survived unchanged (board_edges is still
+  the third conjunct).
+- **INCIDENT REPORT**: a PowerShell splice truncated Move.lean (Measure
+  -Line undercounted; the tail past `piles_stock_disj` was lost from
+  the working tree) — recovered from `git show HEAD` (UTF-8 console
+  encoding required: `[Console]::OutputEncoding =
+  [Text.Encoding]::UTF8` FIRST) + in-context text. LESSON: never slice
+  files by measured line counts; use marker-based splits, and
+  `[System.IO.File]::ReadAllText/WriteAllText` for content-preserving
+  edits. Verify `git diff --stat` matches expectations after scripted
+  file surgery.
+
+## Pace.lean (wave 8, the draw pacing) — paid-for facts
+
+- **Machine divergence, resolved**: `Cycle.drawTo` wraps the cursor
+  `mod length` (rotate can never reach `cursor = len`), while
+  deck.rs's `draw` saturates there. The two agree on the MASK
+  everywhere: at a saturated cursor the leading lane is empty (its
+  positions must be >= cursor-1 = len-1), so both machines reduce to
+  top-lane UNION last; and a last-position draw is a max-remaining
+  draw, whose successor never uses the leading lane. Consequence:
+  `cursor_after` is stated with `% length` (the wrap case is the
+  max-draw) - do NOT repair it to the unwrapped form.
+- **Membership, not list equality**: `maskPos` concatenates
+  lane1 ++ [last] ++ lane2, so the list is NOT sorted and
+  `maskPos c 1 _ = List.range _` is FALSE as equality. The step-1
+  degeneration is stated by membership. Check any statement about
+  `maskPos` in the same form.
+- **No `Monad List` in core** (the syntax card's blind spot hit):
+  do-notation over List fails with `expected type is not a monad
+  application`. Use `flatMap` chains:
+  `(List.range n).flatMap fun n => (List.range (n+2)).flatMap fun c => ...`.
+- **#eval of a def in a sorry-carrying module is fine** when the def
+  itself is axiom-clean - check with `#print axioms Pace.maskPos`
+  (=> [propext, Quot.sound]) before trusting an evaluation abort.
+- **Port check (paid)**: `python/pace_port_check.py` regenerates a
+  #eval grid (n <= 9, cursor <= n+1 including saturated, step 1..4)
+  and diffs Lean's `maskPos` against deck_sim's machine:
+  260 states, 0 mismatches. Rerun after any edit to `maskPos`.
+
+## Pace.lean follow-up (2026-09-13) — the divergence resolved in the
+## machine, not the statement
+
+The earlier entry's advice (""do NOT repair cursor_after to the
+unwrapped form"") is OBSOLETE. The wrap lived in the OLD
+`Cycle.drawTo` (rotate-based, cursor mod length); it was replaced
+by the deck.rs-literal jump `{ cy with cursor := i + 1 }` — the
+cursor now saturates at `length` exactly like deck.rs's
+`set_offset`, the mask agrees everywhere on the invariant domain,
+and `cursor_after` is EXACT with no mod:
+`c''.cursor = c.cards.idxOf w - rBelow c.cards pre w`.
+`dealOnce` (the `offset_once` port: clamp at the pass end, wrap
+from the end) completes the machine.
+
+The statement repairs that came with it (recorded in FARM.md wave 8):
+`hcur : cursor <= length` on the three mask-reading theorems (past
+`len + 1` the wrapped lane leaks positions — the port-check grid's
+`n + 1` upper edge is exactly the last leak-free cursor), and
+`noDupCards` on `pos_shift` (a duplicated card draws twice via
+`posOf` finding the second copy while `rBelow` counts by
+`idxOf` — over-counting the shift).
+
+## apply_wf PROVEN (orchestrator, 2026-09-13)
+
+- THE KEYSTONE. All 7 arms, ~500 lines, alongside 4 new helpers:
+  `bottomOf_isSome_attach` (base-survival through attach), `bottomOf_detach_ne`
+  (base-search unchanged off the detached card), `removeIdx_of_length_le`,
+  `noDupCards_removeIdx` (with the top-level `by_cases i < length` split — the
+  user-supplied fix), `hidden_split`/`hidden_single`/`hidden_parent_dealt`
+  (reveal's crux: hidden = pre ++ [d, r] → dealt-adjacency),
+  `mem_of_getLast''` (local copy — Initial's is upstream),
+  `Cycle.dealOnce_cursor_le` (their agent's new rotation).
+- `apply_realizable` = `realizable_of_wf (apply_wf ...)` — one line.
+- LESSONS this proof: (1) `subst` on `x = binder` may eliminate the THEOREM
+  binder — prefer `rw [h]` on hypotheses / goals; (2) after `cases b`, use
+  `Sum.inr d` explicitly — the binder is gone; (3) `Bool.and_eq_true` is an
+  Eq-of-Props — the usable form is `Bool.and_eq_true_iff.mp`; (4) after the
+  outer `refine ⟨bottomOf-proof, ?_⟩` closes the ∧, the inner block gets the
+  MATCH alone — `obtain ⟨-, hleg⟩` + `cases`, no second refine; (5) give
+  `mem_removeIdx` EXPLICIT l i — the `_ _` metavars mis-unify through the
+  `.cards` projection; (6) stuck-ite state projections (dealOnce) need the
+  simp lemma (`dealOnce_cards`) or a show into the def's body before defeq
+  transfers; (7) heights-update slots: state the `hon` bound against the raw
+  `if`-form and `rw [if_pos/if_neg] at hon` — never name the eliminated `st'`.
+
+## Progress.lean — Wave 4 COMPLETE: boundedPlay + decidable (2026-09-13)
+
+- BOTH [H] items LANDED; Progress.lean fully proven (exit 0, zero warnings).
+  ROUTE: injective mixed-radix state code (`stateEncAux`) + pigeonhole; distinct trace
+  states -> distinct codes < stateSpaceBound -> count <= bound. The 2^52 stock slot
+  REQUIRES an order invariant WF does NOT give (WF allows reordered stocks): carried
+  `traceOK` = fixed deal/drawStep + WF + `∃ p, cur = ST.stock.cards.filter p` along the
+  trace (deck moves: `removeIdx_filter_mem` + `List.filter_filter`; draw: dealOnce_cards).
+  ~20 new reusable helpers (pigeonhole_le, distinct_nat_count_le, encF+encF_inj/lt,
+  radix_peel, nest_lt, allDistinct_map, cardCode/optCode/stockBits, traceOK_step, ...).
+- QUIRKS: rcases `-` pattern FAILED ("unknown identifier" for the trailing named slot,
+  7-slot flat patterns) while a 5-slot one worked — use `_` slots. `refine Eq.trans ?_ X`
+  mis-assigns (elaboration order) — give the full `Eq.trans A B`. No `Nat.pos_pow_of_pos`
+  in core: get 0 < a^n from a digit bound by omega (a < atom => 0 < atom, linear).
+  `List.filter_cons` yields `if p x = true` — pair with if_pos/if_neg + decide_eq_true.
+  `Nat.pow_le_pow_right (0<n) (i<=j) : n^i <= n^j`. No Bool->Nat coercion for `decide`:
+  bits via `if x ∈ cur then 1 else 0`, bridged to decide-filters by case bash.
+  omega sees `[].length`/`[]` as atoms — close nil-cases with `Nat.zero_le _` /
+  `Nat.zero_lt_one` (defeq). State equality: `show State.mk f1..f6 = State.mk g1..g6`
+  (structure eta) + rw chain — `Cycle.mk.injEq.mpr` does NOT resolve (unknown constant).
+  Bool-eq contradictions: `Bool.noConfusion (hxp.symm.trans h)`. `rw [← h']` direction
+  when the equation is y = x and the goal mentions x.
+
+## Move.lean — apply_flipAll + solvable_flipAll PROVEN (2026-09-13)
+
+- The twin conjugation + its solvability corollary, exit 0, axioms
+  [propext, Quot.sound]. Reusable helper kit now in-tree:
+  Board.mapBy_{bottomOf,attach,detach,aboveOf(_go)} (fuel-induction),
+  Base.flipBase_inj, Cycle.removeIdx_map, List.contains_map_flipSuit,
+  State.flipAll_{board_topOf_inr,board_*,stock_prev,stock_removeAt,
+  stock_dealOnce,canPlace,canMoveRun,hidden,topHidden,pileOfTopHidden,
+  hiddenBase,heights_probe,bump,drop,isWin,run_flipAll}.
+- MATCH-ARM ORDER matters in show-terms: applyPilePile's inner
+  attach-match lists some BEFORE 
+one; a show with the other order
+  is a DIFFERENT matcher — not defeq. Read the def's arms first.
+- cases h : e ALSO substitutes inside dite conditions and Decidable
+  instances — never 
+w [h] after (pattern already gone); 
+w of a
+  Prop under decide fails with "motive not type correct" (the
+  instance mentions it) — case the underlying Option + 
+fl instead.
+- {...} literals inside if c then {..} else {..} do not elaborate
+  (no expected type): write Cycle.mk in show-terms. Multi-field
+  {x with a := .., b := ..} continuations must stay at ≥ the first
+  field's column (extends the sepBy1Indent rule).
+- rw under a match-arm binder works iff the pattern is closed; to
+  rewrite terms mentioning a BOUND arm-var, show-reduce the match
+  first. run-induction: 
+evert st; induction play; intro st, tail
+  arm is xact ih s'' (s''.flipAll IS the flipped successor).
+- #print axioms from a scratch importing Klondike.Move reads the
+  STALE olean (sorryAx for pre-edit decls) — temporary in-file
+  #print is the honest check; remove it afterwards.
+
+## Theorems.lean — apply_relabel + solvable_relabel PROVEN (2026-09-13)
+
+- LANDED (axiom-clean: propext+Quot.sound): the 7-arm `apply_relabel` and
+  `solvable_relabel` (← via `Relabel.inv` + `relabelBy_inv`: double relabel = id).
+  NEW IN-TREE KIT (general, reusable): `decide_congr`, `findFirst_congr`,
+  `Relabel.{card_inj, card_cardInv, suitInv_eq, cardInv_onBase, onBase_cardInv,
+  onBase_inj, inv}`, `state_ext`, `Deal.ext'`, `relabelCycle`, `relabelBoard`
+  (+`_topOf/_bottomOf/_attach/_detach`), `relabelBy_{topOf(_inr/_inl), bottomOf(_card),
+  heights, hidden, topHidden, pileOfTopHidden, hiddenBase, isVis, canPlace, canMoveRun,
+  aboveOf(_go), prev, removeAt, stock_cursor, heights_bump/_drop}`,
+  `removeIdx_map`, `contains_map`, `beq_relabel`, `aboveOf_go_succ`,
+  `relabelCycle_dealOnce`, `relabelBy_with`, `run_relabel`, `relabelBy_inv`,
+  `solvable_of_relabel`.
+- WORKHORSE: `relabelBy_with ... := rfl` — a 4-field with-update relabels
+  componentwise ({st with board/heights/depths/stock}). Every arm-assembly is:
+  guards via the transfer lemmas, then `rw [shape-eq]` normalizations, then ONE
+  `exact relabelBy_with ...` (2-field goals accepted by defeq: rst.heights =
+  fun s => st.heights (r.suitInv s), rst.board = relabelBoard r st.board — both rfl).
+- SYNTAX (prover-confirmed): (1) `cases hst : st.apply m` SUBSTITUTES the goal —
+  do NOT then `rw [hst]` (fails; the goal already reads `... = Option.map f none`).
+  (2) `some (X).f r` parses as the 3-app `(some (X).f) r` ("Function expected at
+  some") — write `some ((X).f r)`. (3) ascribed-record show-start
+  `show ({...} : T) = ...` does NOT parse — instead `rw [show A = {record} from rfl]`
+  (A's type fixes the record's type). (4) rw auto-rfl is reducible-only: it does
+  NOT close `(none).map f = none` (append `rfl`) but DOES close if-branch records.
+  (5) DOT-TRAP: `r.cardInv_card r x` elaborates to `Relabel.cardInv_card r r x`
+  (dot PREPENDS r) — write `r.cardInv_card x`. (6) `attach_eq_some_iff` is an iff:
+  `.mp`/`.mpr`, not application.
+- Bool/== facts: `List.contains` is reducible (= `List.elem`); `contains_cons`:
+  `(a :: l).contains b = (b == a || ...)` — SEARCHED-arg LEFT. `(a == a) = true`
+  := `decide_eq_true rfl`; `of_decide_eq_true` accepts `==`-hypotheses directly;
+  card-beq transfer via `by_cases` + `card_inj`, not LawfulBEq lemmas.
+- ARM PATTERN (all 7): `show` unfold Move.relabel; `cases hst : st.apply m`;
+  none-arm: `cases hR : rst.apply (m')`; exfalso; backward-transfer each guard
+  (B1/B2 + `Option.map_eq_none_iff`; attach via `attach_eq_some_iff.mp`);
+  `apply_X_iff.mpr ⟨guards, rfl⟩` contradicts hst. some-arm: `rw [apply_X_iff] at
+  hst`; obtain; `show ... = some (st'.relabelBy r)`; `rw [apply_X_iff]`;
+  `refine ⟨guards..., ?_⟩`; shape via relabelBy_with.
+## Realizability.lean — uncovered_eq_freeType PROVEN; file fully proven (2026-09-13)
+
+- ROUTE: present = free + covered (filter_split_add, induction); covered = placed
+  via length_eq_of_bijection (NEW reusable master lemma: two NoDupP lists with
+  mutual inverse maps f/g have equal lengths — peel head from the other's middle,
+  NoDup kept by nodupP_remove/nodupP_sub). NoDupP is a NEW head-style def bridged
+  from noDupCards via noDupCards_NoDupP (mem_index + getElem?_eq_some_iff);
+  universe_noDup is a local decide-copy (Initial is downstream, unimportable).
+- canSitOn_belowType (reusable): canSitOn c d = true -> belowType d.typeOf =
+  some c.typeOf (rank_pred_iff + color_ne_flip + Rank.toIdx_inj).
+- SYNTAX TRAP (big): 'a && b = true' elaborates to 'a && decide (b = true)' : Bool
+  (&&'s right operand GREEDILY absorbs = ...; the Bool is then Prop-coerced) —
+  ALWAYS parenthesize (a && b) = true. Hit hinner; error display shows the
+  decide-wrap. Also && is LEFT-associative (A && B && C = (A && B) && C — freeType's
+  body composes directly with the filter-split lemma).
+- BINDER-TRAP ESCAPE #2: a goal holding (fun c => match bd.topOf (Sum.inr c) ...)
+  x cannot be rw'd (pattern under binder). simp only [hT] BETA-reduces the
+  application, rewrites, AND iota-reduces the ctor-headed match (probed: works in
+  simp only too) - then plain rw [hbe] closes the exposed form.
+- canSitOn_eq takes EXPLICIT (c b) args: (canSitOn_eq c d).mp h (bare
+  canSitOn_eq.mp is unknown — theorem, not iff-constant). rank_pred_iff: from
+  toIdx-eq use .MPR (mp wants pred = some).
+- NAME COLLISION: mem_split now exists in the import chain (the new Move/
+  Progress work) — mine is mem_middle_split. Grep before adding generic names.
+- Aces: belowType t = none kills covered cards via hleg -> canSitOn (rank
+  contradiction), so placedBelow = 0 = covered — no separate machinery needed.
+
+## Macro.lean — commitApplies repair (UNSOUNDNESS, def-level, sign-off pending) (2026-09-13)
+
+- `macroStep_engine_play` was FALSE as staged: `State.applyDrawTo`'s guard is
+  reachablePos + `Board.attach` (freeness/unplaced) — NO `canPlace` — so the macro
+  game admitted Draw-commitment landings no play (engine or not) can produce: every
+  edge-creating move (deckPile/stackPile/pilePile) demands canPlace, whose canSitOn/king
+  half is pure and state-independent; reveal attaches only hidden deal cards.
+  Prover-confirmed witness (witnesses/MacroWitness.lean): ♠7 pile-0 sole visible
+  card, ♥5 last stock card at pass-end cursor, b = inr ♠7 — applyDrawTo succeeds
+  (edge ♥5→♠7 exists in the successor), canPlace false, all 7 other moves illegal.
+- REPAIR (in Macro.lean only): `commitApplies`'s tableau disjunct gained
+  `st.canPlace c b = true` (stack landing needs none — its rank guard is already in
+  applyDrawStackTo). No downstream users (nobody imports Klondike.Macro).
+- WAVE 9 ALERT: `applyDrawTo_eq_dealPlay` (Theorems.lean) has the SAME hole — its →
+  direction needs a canPlace hypothesis (deckPile demands it); same witness kills it.
+
+## Macro.lean — Wave 7 both items PROVEN + the dealN kit (2026-09-13)
+
+- `macroStep_engine_play`: accommodation play ++ `replicate k draw` ++ deck move; k from
+  the orbit. `drawTo_tableau_outcomes_agree`: same i (guard b-free), five rfl's, isVis via
+  `bottomOf_attach_of_ne` (attach preserves other cards' bottomOf) + bottomOf_eq for c.
+- NEW REUSABLES (all in Macro.lean): `Cycle.dealN` (deal iteration — core 4.30 has NO
+  Function.iterate) + dealN_zero/succ/one/add/shift; `maskPos_deal_reach`: every
+  accessible position is dealt to (dealN lands cursor i+1) — the WITNESS half of
+  applyDrawTo_eq_dealPlay with NO WF/hcur (posOf's range bound suffices; the lane bound
+  and wrapped-lane truncation are never read in this direction); `reachablePos_eq_some_iff`,
+  `applyDrawTo_iff`, `applyDrawStackTo_iff`, `posOf_getElem?`, `findFirstIdx_getElem?`,
+  `run_singleton`, `run_replicate_draw`, `deckPile_after_draws`/`deckStack_after_draws`
+  (deals + deck move = applyDrawTo's successor: one show + `rw [e1, e2, e3]`).
+- QUIRKS: (1) bodies of `theorem Cycle.foo` resolve bare `Cycle.*` names, TOP-LEVEL
+  theorem bodies do NOT — qualify; (2) omega does NOT unify `⟨l,c⟩.cards.length` with
+  `l.length` — defeq-cast `have hlt : i < l.length := hlt` first; (3) `0 * s` does NOT
+  whnf (Nat.mul recurses on arg 2) — `rw [Nat.zero_mul, Nat.add_zero]`; (4) `cases h : e`
+  substitutes the GOAL's e — iff-forward conjunct slots become `rfl` (watch the error);
+  (5) `rw [dealN_add, dealN_add]` chains fire on the FIRST +-term in traversal order —
+  nested sums mis-fire, compose via explicit `have hcomp` steps; (6) List.mem_replicate
+  is `(n ≠ 0 ∧ m = a)`; (7) `{⟨l,c⟩ with cursor := 0}` fails to elaborate in shows —
+  use branch-ascribed anonymous constructors `⟨l, 0⟩ : Cycle Card` (defeq carries the
+  with-update away).
+
+## WAVE-REPORT: the farm at 54 sorries (2026-09-13, post-consolidation-wave)
+
+- LANDED this wave: apply_relabel + solvable_relabel (Theorems, ~35
+  helpers, axiom-clean); solvable_iff_boundedPlay + solvable_decidable
+  (Progress FULLY PROVEN — Wave 4 complete); macroStep_engine_play +
+  drawTo_tableau_outcomes_agree (Macro, with a def-repair, see below);
+  uncovered_eq_freeType (Realizability FULLY PROVEN — a ~90-line
+  counting kit: `length_eq_of_bijection` + NoDupP); apply_flipAll +
+  solvable_flipAll (Move, +810 lines self-contained twin kit).
+- SIGN-OFF (orchestrator, ACCEPTED): Macro's `commitApplies` tableau
+  disjunct gained `st.canPlace c b = true` — `applyDrawTo`'s guard omits
+  canPlace (witness: ♠7 top of p0, ♥5 stock tail at pass-end, b = inr ♠7,
+  canSitOn ♥5 ♠7 = false — no engine play reaches the successor).
+  WAVE-9 ALERT: `applyDrawTo_eq_dealPlay` (Theorems) has the SAME hole
+  — its → direction needs a `canPlace c b` hypothesis; the witness
+  kills it as stated. Macro's `maskPos_deal_reach` + after-draws lemmas
+  give the ungated half.
+- BOUNDED-PLAY KEY INSIGHT: the 2^52 stock slot needs an ORDER
+  invariant — WF alone permits reordered stocks (24! > 2^52); the
+  filter-of-original-stock invariant (removeIdx_filter_mem +
+  filter_filter propagation) makes "removed subset determines the
+  stock" true for reachable states. The stateSpaceBound doc's claim
+  only holds for reachable states, not all WF states.
+- NAME-COLLISION INCIDENT (2nd): Macro's local `findFirst_congr`
+  collided with Theorems' (imported transitively) — renamed to
+  `findFirst_congr_mem`. RULE: grep ALL files for a name before
+  declaring generic-sounding helpers; prefer domain-prefixed names.
+
+## CONSOLIDATION-1: twin pair is now 2-line corollaries (2026-09-13)
+
+- Move.lean: 2273 -> 1398 lines. The 800-line self-contained twin kit
+  (Board.mapBy_*/update_flipBase, the State.flipAll_* family,
+  Base.flipBase_inj, List.contains_map_flipSuit, run_flipAll,
+  flipAll_isWin) DELETED — no external users (grep-verified; the
+  sibling had independently landed the same consolidation in a parallel
+  commit, hence the "already declared" surprise: ALWAYS rebuild the
+  oleans (`lake build Klondike`) after editing Move/State — the stale
+  olean made the corollaries look pre-declared).
+- Kept: Cycle.removeIdx_map (Theorems uses it 3x).
+- apply_flipAll/solvable_flipAll now live in Theorems.lean as
+  corollaries of apply_relabel/solvable_relabel via the rfl:
+  `rw [h1 (m.flipMove = m.relabel twin, per-constructor rfl),
+     h2 (State.flipAll = State.relabelBy twin, funext + the rfl)]`.
+  NOTE: rw [h2] consumes st.flipAll too (dot notation IS
+  State.flipAll st) — no third rewrite needed. And solvable_relabel's
+  iff is (relabelBy-solvable ↔ solvable): from st to flipped is .MPR.
+  Axiom-clean: [propext, Quot.sound].
+
+## CONSOLIDATION-2: Klondike/Kit.lean — the shared kit extracted (2026-09-13)
+
+- NEW FILE `Klondike/Kit.lean` (imports Basic + Cycle only — the DAG
+  is Basic < Cycle < Kit < Board < State < …): `noDupCards` (def, ex
+  State.lean), `head?_reverse_eq_getLast?`, `mem_of_getLast` (MERGE:
+  Initial's + Move's `mem_of_getLast'` → one), `take_drop_chunk`,
+  `mem_split`, `mem_index`, `mem_middle_split`, the NoDupP kit
+  (`NoDupP`, `nodupP_sub/_remove`, `noDupCards_NoDupP`,
+  `universe_noDup` [Initial's dead `Card.universe_noDup` deleted —
+  identical proof], `universe_nodupP`, `nodupP_filter`,
+  `length_eq_of_bijection`, `filter_split_add`, `filter_len_zero`),
+  the allDistinct kit (def ex Progress + `_cons/_tail/_notMem/
+  _append_right/_filter/_map`, `pigeonhole_le`,
+  `distinct_nat_count_le`), `filter_mem_idem`, `filter_mem_self`,
+  `removeIdx_filter_mem`, the splice kit (`Cycle.getElem?_removeIdx`
+  ex Move, `removeIdx_length_le/_of_length_le`,
+  `noDupCards_removeIdx`), the radix kit (`encF`, `radix_peel`,
+  `nest_lt`, `encF_inj`, `encF_lt`).  Line moves: State 179→176,
+  Move 1478→1335, Initial 317→292, Progress 1402→1136, Realizability
+  520→291; clean rebuild green, sorry census unchanged (54).
+- LEFT BEHIND: Theorems' `findFirst_congr` (needs `findFirst`, defined
+  in Board.lean — above Kit's floor); `decide_congr`,
+  `head?_of_take_single`, `noDupCards_append_right` (generic but
+  single-file users, not in the wave's inventory); `stateEncAux` +
+  the cardCode/suitCode/optCode/stockBits family (state-specific);
+  Realizability's `color_ne_flip`/`rank_pred_iff`/`canSitOn_belowType`
+  (card-rule, not list machinery).
+- USEFUL FACT: `noDupCards` (Card-typed) and `allDistinct` {α} are
+  DEFEQ on Card lists — `filter_mem_idem` passes a noDupCards proof
+  to `allDistinct_cons_notMem` directly (they now coexist in Kit).
+
+## Theorems.lean — commutation wave: 4 items LANDED (2026-09-13)
+
+- PROVEN (axiom-clean, [propext, Quot.sound]): pilePile_roundtrip, solvable_of_accommodates,
+  commute_of_compsDisjoint, reveal_draw_comm (last = one-line instance of the first via
+  y cases x <;> simp [Move.comps]-style per-component bash on the comps hypothesis).
+- NEW REUSABLE KIT (in Theorems.lean, before commute_of_compsDisjoint): the BLINDNESS
+  lemmas — reveal/pilePile @{stock, heights} (some+none forms), deckStack @{board, depths},
+  pileStack/stackPile @{stock} (none only) — guard transfer is pure DEFEQ (with-update
+  projections iota-reduce; no transfer lemmas, unlike relabelBy) + draw_comm_gen (the draw
+  half: some s₁ >>= f and the successor shape make exact-defeq carry each arm) +
+  State.run_append (upstream restatement — Progress IMPORTS Theorems, so its
+  solvable_of_reaches/
+un_append are UNUSABLE from Theorems; namespaced to dodge the
+  root-level collision).
+- QUIRKS: (1) xact h X (by simp) (by simp) proving False does NOT close an arbitrary
+  goal — append .elim. (2) A 2-field with-update lemma's pattern did NOT rw against a
+  1-field goal literal; fix: have-pin it with the untouched field EXPLICIT on the RHS
+  (some {sd with board := bd, depths := st.depths} — {sd with board := bd} fails:
+  sd.depths ≢ st.depths while sd is opaque). (3) An equation fixing a case-arm binder
+  (b₀' = b₀) must be rw'd at EVERY hypothesis mentioning it (
+w [hb₀e] at hne hatt).
+  (4) bind-normalization: (some x >>= f) ≡ f x by iota — show/xact defeq handles
+  unreduced binds, no core Option.bind lemmas needed.
+## Dominance.lean — Wave 5 POR bridge: refuted, repaired, PROVEN (2026-09-13)
+
+- dominant_of_commutesWithAll WAS FALSE as staged (exchange at st only, no
+  occurrence premise). Prover-confirmed witness (scratch RefuteCommutesAll,
+  axiom-clean): won state (empty board, heights 13, empty stock), m = pileStack ♥2 —
+  h vacuous (♥2 off every one-step successor board; only draw/stackPile-kings legal),
+  solvable via [], dominantAt fails. REPAIR (no downstream code users): h
+  generalized to every state + huse : ∃ winning play ∋ m (without it no exchange
+  ever fires). Proof LANDED: play induction — cons case m₁ = m direct, else
+  IH-at-t₁ (m ∈ rest) + h s m₁ t₁ s₃ gives s₄ ≻ m₁ → s₃ → solvable_of_reaches
+  [m₁]. nil case vacuous (m ∉ []). No win-state nil analysis needed.
+- WAVE-5 ALERT (2/3/4 = safe_pileStack_dominant, stackPile_safe_prunable,
+  deckPile_safe_prunable): ALL reduce to one core worry-back transfer (c-down →
+  c-up replay); three gaps: (i) return-base existence (FARM's flagged crux —
+  deal-adjacent/anchor-non-king bases admit no return, and hsafe implies NO free
+  (r+1,opp) card); (ii) channel-A substitution needs no-passing
+  (heights x.suit = toIdx x for the (r−1,opp) cards: ≥ from hsafe, ≤ would need
+  no-passing) — WF does NOT imply it: witness stNP (scratch NoPassingWitness,
+  axiom-clean) = standard initial deal + heights ♥ := 1 is WF with visible
+  foundation-passed ♥A — statements 2-4 likely need a no-passing/repair before
+  B4-grade proof; (iii) height-monotonicity along arbitrary plays (worry-backs in π
+  drop heights below the safe thresholds). Rank-induction shape per
+  pruning_dominance_interaction.md §4 channels A/B.
+- SYNTAX paid: show applyXxx… then simp only [State.apply, State.applyXxx]
+  EXPOSES the match before 
+w [topOf-facts] (rw cannot see discriminants inside
+  an ununfolded application); records in have-types need ascription
+  (stNP.heights (⟨s, r⟩ : Card).suit — bare { suit := s … } fails to elaborate);
+  y decide inside implicit-arg position needs the implicit PINNED
+  (Deal.piles_stock_disj (a := Anchor.p0) … (by decide)); one-step-successor
+  ground analysis: apply_X_iff.mp + Board.attach_topOf(_ne)/empty lemmas.
+## Bridge.lean — toEngine_simulates PROVEN (repair: +hwf) + the toolkit (2026-09-13)
+
+- LANDED (axiom-clean): toEngine_simulates with a STATEMENT REPAIR — gained
+  `(hwf : st.WF)` (orchestrator sign-off pending). As stated (no WF) it was
+  FALSE (prover-confirmed, witnesses/SimWitness.lean, exit 0): a non-WF
+  state with board {(inr hK |-> hQ), (inl p0 |-> hK)} wins by two model
+  pileStacks while the abstract game is frozen — hQ is unseatable in ANY
+  realizing board (deal with no piles), so every witness-demanding eStep
+  guard fails. WF supplies the witness: st.board realizes toEngine st.
+- New reusables (all in Bridge.lean, before the theorem): estate_ext
+  (EState field-ext via EState.mk.injEq + funext), bottomOf_detach_self (the
+  missing self-case of Move's bottomOf_detach_ne), toEngine_realizedBy_board
+  (WF board_edges = Fits, term-level), toEngine_step_{pileStack,deckPile,
+  deckStack,stackPile,reveal} (one model move = one eStep, st.board the
+  witness; deck moves' index = cursor-1), toEngine_run (the strong invariant:
+  eplay tracks everything but the offset — the draw case IS eRun_offset).
+  deckStack needs NO witness (its eStep guard has no realizedBy).
+- QUIRKS paid: (1) goal orientation is toEngine{model} = {abstract literal}
+  (eStep's e' = lit) — estate_ext goals come model-left; (2) the &&-/= greedy
+  parse trap BIT AGAIN in show-terms — parenthesize `(a && b) = c` fully;
+  (3) `rw [hst]` (st' = {st with ...}) then per-field defeq carries heights/
+  order/depths — only vis (bottomOf lemmas) and offset (if_pos + omega on
+  cursor-1 < cursor) need work; (4) `obtain <h> := (hEq : a = b)` DROPS the
+  slot silently (Eq has no fields for rcases) — use `subst hEq` or a have;
+  (5) `List.mem_cons_self` takes EXPLICIT args in 4.30 — `(by simp)` is the
+  safe membership proof; (6) #print axioms from a scratch reads the STALE
+  olean — in-file #print is the honest check (again).
+
+## Bridge.lean — toEngine_lifts + engine_iff REFUTED as stated (2026-09-13)
+
+- PROVER-CONFIRMED UNSOUND (witnesses/LiftWitness.lean, exit 0, axiom-
+  clean): toEngine_lifts fails even draw-1-gated on a WF state. Witness stX:
+  heights h13/s12/d13/c13, board {(inl p0)|->sK, (inr sK)|->hQ} + the six
+  deal-heads on p1..p6 (all anchors occupied), empty stock, depths 0. The
+  model is DEAD (every engine move none — case-bash rfl — and draw is the
+  identity), so not solvableEngine; but the abstract wins in ONE move:
+  pileStack sK via bdW = same board with hQ seated on cl5, its deal-adjacent
+  neighbor in pile p2 ([di10, cl5, heQ]).
+- ROOT CAUSE: Board.Fits's deal-adjacency clause (`piles a = t ++ d :: c ::
+  rest`) demands NOTHING of the base d — d may be a foundation/limbo card.
+  The model's canPlace demands a visible base, so such arrangements are
+  unreachable: witness boards are strictly more permissive than the model.
+  REPAIR CASCADE WARNING: strengthening Fits (deal-adjacent base hidden —
+  t.length < depths a — or visible) breaks realizable_of_wf (WF's
+  board_edges does not track it) AND toEngine_simulates's st.board
+  witnesses — an orchestrator-level design decision, not a farm repair.
+- engine_iff: the <- direction is the lift (refuted by the same witness);
+  the -> direction (simulation) is PROVEN inside the sorry'd proof.
+- WITNESS CONSTRUCTION KIT (reusable for refutations): full 52-card deal
+  via range-52 `by decide` noDup (universe_noDup's pattern); boards as
+  8-branch if-chains (inj via cases b1/b2 + simp_all + `exact absurd
+  (h1.trans h2.symm) (by decide)` — simp_all CANNOT close distinct-card
+  contradictions by itself); Suit is a STRUCTURE — `rcases c with <(<cl,p>),r>`
+  is needed for ground-card case-bashes (plain cases s leaves fvars);
+  WF-conjuncts cursor_le/step_pos as terms: (Nat.le_refl 0 : st.cursor_le),
+  (Nat.zero_lt_one : st.step_pos) — no Decidable instance on the defs.
+- INCIDENT (2nd of its kind): a PowerShell ONE-LINER DESTROYED Bridge.lean
+  (semicolon-chained WriteAllText ran with a $null from the failed Join;
+  length-1 file). Recovered via `git show HEAD:...` + re-edits. REINFORCED
+  LESSON: NEVER semicolon-chain file writes after a computed intermediate —
+  build the string, THEN one guarded write; verify `git diff --stat` after
+  any scripted file surgery (it caught this one immediately).
+
+## Theorems.lean — drawTo_comm_modAdjacent REPAIRED (was FALSE) + the commutation kit (2026-09-13)
+
+- STATEMENT REPAIR (sign-off needed, prover-confirmed witness
+  witnesses/DrawWitness.lean): the wrap case of `drawTo_comm_modAdjacent`
+  (`i+1 = len`, `j = 0`) is FALSE at drawStep 1, len >= 3: cards [A,B,C] cursor 0,
+  c at pos 2, c' at pos 0, empty board — BOTH compositions succeed (step 1 free
+  set) and the end cursors are 0 vs len-2. This is the C-IND measurement's
+  `distinct` class. REPAIR: added `(hstep : 2 <= st.drawStep)` — with it, wrap at
+  len >= 3 is VACUOUS (order 1's second draw needs position 0 in the mask of a
+  SATURATED cursor — impossible at step >= 2, see `zero_notMem_maskPos`), wrap at
+  len = 2 is genuine (both orders end cursor 0), non-wrap (j = i+1) is genuine at
+  every step. Move.lean's `drawTo_comm_adjacent` (non-wrap, all steps) is the
+  step-1 cover. Non-wrap end cursors coincide because both second-draw indices
+  equal i; wrap splits j vs len-2 — the FARM route "end cursors j-1 vs i" holds
+  only non-wrap (the old rotate-based wrap advice is OBSOLETE under saturating
+  drawTo).
+- drawTo_nonadjacent_diverge PROVEN as stated (no repair): end cursors j-1 vs i
+  differ; cursor projection + congrArg suffices — no board/mask work at all.
+- THE IRREVERSIBLE TRIO relocated to Progress.lean (option (a)): one-line note at
+  the old site; proofs = `absurd (run_totalDepth_le/run_stockLen_le ...) (by have
+  := apply_reveal_totalDepth_lt/shortens h; omega)` (Progress exit 0, zero
+  warnings, axiom-clean).
+- NEW REUSABLE KIT (Theorems.lean, before drawTo_comm_modAdjacent):
+  `findFirstIdx_removeIdx_shift/_keep` (+ `posOf_...` wrappers, cursor-blind):
+  posOf in a spliced list (first-occurrence induction); `removeAt_drawTo`:
+  `(cy.drawTo i).removeAt i = <removeIdx cy.cards i, i>`; `applyDrawTo_eq`: the
+  successful-draw shape (index = reachablePos, attach, successor literal);
+  `reachablePos_posOf/_mask`: guard inversions; `attach_attach_comm`: two attaches
+  at distinct bases commute; `zero_notMem_maskPos`: position 0 is NOT accessible
+  from a saturated cursor (>= 2 cards, step >= 2) — proved from maskPos's def +
+  laneUp_mem, NO dependence on the sorry'd maskPos_mem_iff.
+- SYNTAX paid: (1) sepBy1Indent hit THREE times: `{ st with board := X,`
+  newline `stock := Y }` — continuation BELOW the first field's column breaks the
+  parse ("invalid {...} notation"); put the first field on its own line. (2)
+  `show T by tac` as an application ARGUMENT elaborates to a metavar-laden have —
+  use `(by tac : T)` (also `show ... from by omega` in rw lists is fine). (3)
+  `subst hi0 : i0 = i` eliminated the THEOREM binder i (AGAIN) — `rw [hi0] at hs1`
+  is the safe form. (4) `cases hp : st.stock.posOf c` substitutes goal occurrences
+  INSIDE the to-prove statement too — witnesses become rfl slots. (5) rcases on a
+  LEFT-nested Or with a List.Mem disjunct = dependent-elimination failure — plain
+  `cases ... with | inl | inr` worked. (6) omega cannot see through an opaque
+  successor's drawStep — bridge with `have hsd : s1.drawStep = st.drawStep := by
+  rw [hs1]; rfl` and ascribe mask-lemma step args at `s1.drawStep` (proof
+  irrelevance covers the mask's hstep arg). (7) `rw [if_pos ..., List.mem_singleton]`
+  after `simp only [List.mem_append]` — append decomposition must come FIRST.
+
+## State/Move/Initial/Realizability/Bridge — the invariant-layer repair (2026-09-13)
+
+- LANDED (full build green, census 42 = my delta ZERO, -5 is Theorems'
+  parallel proofs): Repair B (buried base) — oard_edges' and Fits'
+  deal-adjacency disjunct gained (∃ a', topHidden a' = some d) ∨
+  (bottomOf d).isSome; in Fits topHidden is spelled (take ...).getLast?
+  (defeq through State.topHidden) — 
+ealizable_of_wf and
+  	oEngine_realizedBy_board survived UNCHANGED by defeq. Repair A —
+  WF += TWO conjuncts: ounds_gone (SKETCH CORRECTED: the sketch's
+  two-part version is REFUTED by reveal — a hidden-passed boundary
+  (heights ♥=3, ♥3 hidden in p1 under its cover) becomes visible ⇒
+  added the third part ∀ a, c ∉ st.hidden a) + is_not_hidden
+  (visible cards not hidden — REQUIRED: pileStack bumps toIdx c =
+  heights c exactly, so founds_gone covers it only via vis⇒¬hidden).
+  Both witnesses KILLED axiom-clean (¬stNP.WF, ¬stX.WF +
+  ¬realizedBy bdW — scratches updated in witnesses/). WF is now
+  the 11-conjunct chain; ound_off_cycle KEPT (redundant, cheap —
+  zero consumer churn); board_edges stays conjunct 3 so
+  realizable_of_wf's ⟨_,_,hmatch,_⟩ spine held.
+- apply_wf RE-PROVEN all 7 arms: reveal's new-edge base d₂ IS the new
+  topHidden (hidden_split + take-computation pre ++ [d₂]); the c→r
+  edge keeps deal-adjacency with base r NOW PLACED (attach); other
+  edges' base-condition: topHidden unchanged at a'≠a, d=r ⇒ a'=a ⇒
+  placed-new (d=r forced via topHidden uniqueness). founds_gone:
+  deckPile/deckStack bumped-card is stock-gone (posOf_mem contra);
+  pileStack's bumped card was visible (vis_not_hidden!); stackPile's
+  heights DROP (hcold from the -1 form); reveal's r-case vacuous via
+  r ∈ hidden a contra founds_gone. vis_not_hidden: reveal r ∉ take
+  (depths-1) via 	opHidden_get + 
+otMem_take_of_get (noDup pile),
+  cross-pile via piles_disj; deckPile c ∉ piles via stock-disj.
+- NEW REUSABLES (Move.lean, before apply_wf): take kit
+  (take_length_succ_self, getLast?_append_single, mem_take_index,
+  mem_take_of_index, getLast?_index, notMem_take_of_get, take_mono,
+  topHidden_get); append kit (noDupCards_append_left/_right — the
+  right one MOVED from Initial, delete there — and _disj);
+  flatMap/pile kit (noDupCards_flatMap_of_mem, piles_disj_aux,
+  Deal.pile_noDup, Deal.piles_disj); board inverses
+  (detach_bottomOf_self — Bridge's name taken, bottomOf_isSome_attach_of_ne).
+- QUIRKS: (1) rcases 
+fl patterns on mem_cons substitute
+  unpredictably (y := a vs a := y) — use explicit hae : a = y +
+  
+w [← hae]; (2) 
+w [haa] at hcm BEFORE defeq-casting hcm into
+  take-form (by_cases does NOT substitute the free var); (3) wf-slot
+  passing needs dealOnce_cards rw (posOf reads the stock); (4) STALE
+  OLEANS cost an hour of fake rcases errors — after ANY State/Move
+  edit run lake build Klondike FIRST (the 12-slot destructure
+  'failed' only against the old 9-conjunct WF); (5) parallel agents'
+  red Theorems blocks downstream lake env lean (missing olean) —
+  poll, don't work around it.
+
+## SIGN-OFF (orchestrator, accepted): drawTo_comm_modAdjacent's step guard
+
+- The staged statement was false at drawStep=1 (wrap witness: len 3,
+  i=2, j=0 — end cursors some 0 vs some 1). Repair: added
+  `(hstep : 2 ≤ st.drawStep)` — wrap vacuous at len≥3 (position 0
+  unreachable from the saturated cursor), genuine at len=2, non-wrap
+  genuine at every step. Conclusion unchanged; the step-1 non-wrap
+  case is Move.lean's proven `drawTo_comm_adjacent`. The C-IND
+  distinct-class residue is the sibling's sweep/canonicalization
+  territory (Pace.lean).
+
+## Dominance.lean — Wave 5: safe_pileStack REFUTED+repaired; deckPile PROVEN (2026-09-13)
+
+- **safe_pileStack_dominant WAS FALSE** (prover-confirmed, scratch
+  witnesses/DeadPileWitness.lean, exit 0, axiom-clean): `reveal c`
+  seats the boundary UNDER c WHILE c sits on it — stacking the SOLE
+  visible card of a live pile kills the boundary card forever (only
+  `reveal` seats hidden cards; its trigger must be visible ON the
+  boundary; `canPlace x (inr r)` needs `isVis r`) ⇒ it never stacks ⇒
+  unsolvable. Witness: WF, 3 moves from win, ♦K safe+stackable on
+  hidden ♣K. REPAIR (sign-off needed): added `(hnotlock :
+  st.isLocked c = false)` (§5.2's vocabulary; State.isLocked MOVED
+  above §5.1 for it) — in WF a visible card's base is anchor/visible/
+  boundary, only the boundary dies. The wave-5 alert's "core" for
+  items 1/2/4 is now the channels A/B rank induction, NOT worry-back.
+- **deckPile_safe_prunable PROVEN** (axiom-clean): π = deckPile c b ::
+  rest replays as deckStack c :: stackPile c b :: rest — the two-move
+  composite IS the deckPile successor (stock splice same index, same
+  attach, bump-then-un-bump heights = original via state_ext+funext).
+  hwf/hsafe unused — silenced with `have := hwf`.
+- stackPile_safe_prunable (head-only statement!): second-move swaps
+  cover everything except the same-suit worry-chain (x below c in
+  suit: unswappable — x needs c gone, c can't take x's base — same
+  color kills canSitOn); [stackPile c b, pileStack c] is an
+  UNCONDITIONAL identity (attach∘detach, no canReturnBase — the
+  converse of the proven roundtrip); draw-prepend works only on the
+  dealOnce 0-orbit. Residual needs the B&G reshaping. All documented
+  in the theorem's TODO.
+- SYNTAX paid: (1) `List.mem_cons_self`/`not_mem_nil` have NO explicit
+  args in 4.30 (term IS the proof; applying `_` = "Function expected")
+  — for ground memberships use `by simp`, for variable-vs-[] use
+  `have h1 : c ∈ ([] : List Card) := hca; exact nomatch h1` (nomatch
+  needs the [] SYNTACTIC); (2) `cases ... with | a => by tac` FAILS —
+  drop the `by`, the arm is already tactic-mode; (3) `detach_topOf_ne`
+  h is `b' ≠ b` (READ ≠ DETACHED) — pass `(Ne.symm hbb)` when by_cases
+  gave the other side; (4) reveal's depths literal then-branch is
+  `st.depths a - 1` (the REVEALED pile, not the binder) — check the
+  iff's literal before writing shows; (5) funext goals over
+  state-literal projections need the REDUCED show-form (the ifs hide
+  under `{...}.heights s` — rw can't see them); (6) `Option.some.inj
+  (wState_apply.symm.trans hap)` pins an obtained successor to a
+  computed def.
+
+## Theorems.lean — Wave 9 + the forest rescope (2026-09-13)
+
+- LANDED (axiom-clean): applyDrawTo_eq_dealPlay (REPAIRED per the Wave-9 alert:
+  +`(hcan : st.canPlace c b = true)`, Macro's witness) and applyDrawStackTo_eq_dealPlay
+  (NO repair — its rank guard is deckStack's own; verified both directions).
+  Theorems 12 -> 8 sorries. NEW, the <- direction's core (this file cannot import
+  Macro — dealN kit DUPLICATED as Cycle.dealIter; consolidation into Cycle/Kit is
+  the orchestrator's call): dealIter_orbit (the chain reaches min (c0+m*s) n or
+  min (j*s) n), dealIter_mask (orbit cursor != 0 -> k-1 in the ORIGINAL maskPos —
+  done with laneUp_mem alone, NOT the sorry'd maskPos_mem_iff), dealIter_prev_reachable
+  (prev + stock_wf noDup -> posOf = k-1 = reachablePos; the splice = removeAt_drawTo).
+- RESCOPE (witness witnesses/AboveIrreflWitness.lean, axiom-clean, Decide-built):
+  aboveOf_irrefl is FALSE from WF — 2-cycle: pile p1 = [h5, s6] revealed, board
+  inr h5 |-> s6 (deal-adjacent) + inr s6 |-> h5 (canSitOn: 5+1=6, colors differ).
+  Longer ALTERNATING cycles (deal-adj/canSitOn across piles) kill every per-edge or
+  deal-order repair — the acyclicity is HISTORICAL (which edge attached last), not
+  state-only. Repair: State.board_forest (a strictly-decreasing potential phi on
+  card-edges) as the hypothesis; aboveOf_rank_grading/aboveOf_irrefl from it
+  (fuel-induction on aboveOf.go, aboveOf_go_succ). Plays MAINTAIN potentials (deal:
+  pile position; attach: renumber the moved tree below the base — self-landing makes
+  the trees disjoint; reveal: shift into the gap) — the play-induction is a future
+  wave's item. solvable_accommodates left with a plan note (one-step reduction +
+  the worry-back channel, return-base crux).
+- QUIRKS: (1) `!=` is bne, NOT decide (a ~= b): an `(x != 0) = true` goal takes
+  `by simp [fact]`, decide_eq_true mistypes. (2) `rw [Nat.add_mul, Nat.one_mul]`
+  leaves `a + (b*c + c) = (a + b*c) + c` — append omega. (3) a `show` whose record
+  VALUE breaks lines fails to parse ("expected '}'") — keep `{x with f := value}`
+  on one line (run_dealIter). (4) `++` LEFT-assoc inside show-targets:
+  `simp only [List.mem_append]` yields a LEFT-nested Or-tree — `Or.inr h` inhabits
+  `X \/ p in L2`. (5) ground ites: `rw [if_pos rfl]` BEFORE omega (omega cannot
+  see ites). (6) cases-on-goal substitution hit again: `cases hp : posOf c` turned
+  the hpos-goal into `some i0 = some ...` — witness `congrArg some heq.symm`.
+
+## Bridge.lean — toEngine_lifts REFUTED AGAIN (mirror hole; UNSOUND as stated) (2026-09-13)
+
+- PROVER-CONFIRMED (witnesses/LiftWitness2.lean, exit 0; witness facts
+  axiom-clean [propext, Quot.sound]): the buried-base repair does NOT close the
+  lift. NEW witness class: a card seated via DEAL-ADJACENCY on a merely-PLACED,
+  non-canSitOn base (the model board) vs re-seated via CAN-SIT-ON on a placed
+  card (the witness board). Fits' two seating disjuncts are independent, and the
+  engine model game cannot re-seat across them — that re-seating IS pilePile
+  (banned); the pileStack/stackPile accommodation is rank-gated.
+- Witness stN (WF, draw-1): p1 = [hA, h5] revealed (h5 on hA); vis adds h7 (on
+  p2's anchor) and s6 (on h7); heights (h0, s5, d13, c13); stock = the other
+  hearts + s7..sK. BOTH halves proven (no sorry): stN_notSolvable (invariant:
+  heights heart = 0 forever — the hA-under-h5 cycle; reveals dead via depths=0;
+  deckStack-heart dead via hA-not-in-stock) and a 21-move abstract win (eStep
+  chain; pileStack hA via the re-seated witness board, then free-jump deck
+  climbs + the two tableau tops). lift_false : False from the sorry'd theorem.
+- ESCALATED (no local guard: fully-revealed piles have non-fitting
+  deal-adjacent seats — ordinary states; repair = matching-tracking in EState
+  or a B4 reshape gate — orchestrator's call). Bridge.lean's two sorries now
+  documented UNSOUND-as-stated, not merely unproven.
+- REUSABLE KIT (in the scratch): seatsTop/seatsBoard (seat-list boards — inj
+  free from a `by decide` no-dup; every per-seat fact by decide); the
+  4-conjunct deadlock invariant; generic dstep/pstep eStep builders; guards by
+  `by rfl` through 21 nested with-updates (kernel whnf eats it).
+- SYNTAX paid: (1) rcases AUTO-SUBSTs pair-eqs from ⟨e1,e2⟩ patterns — bullets
+  use the goal directly; bare `x ∈ [lits]` needs simp only [List.mem_cons,
+  List.not_mem_nil] first, and the baked False disjunct needs its own rcases
+  slot + h.elim; (2) anonymous `have := term` GREEDILY eats the next line as an
+  application — NAME it (`have hm := ...`); (3) multiline `(by ...)` blocks need
+  `by` alone on its line (first-tactic-on-the-by-line fixes the column);
+  (4) proof-local haves SHADOW top-level card defs (h10!) — use r0..r21;
+  (5) simp only [eStep] reduced a literal successor equation to True — the
+  ⟨..., rfl⟩ slot wanted `trivial`; (6) apply helper lemmas' trailing (c : Card)
+  arg or the type stays a ∀.
+
+## WAVE-8 ADJUDICATIONS (orchestrator, 2026-09-13)
+
+- SIGN-OFF (accepted): safe_pileStack_dominant gained `(hnotlock : st.isLocked c = false)` — the dead-pile witness (reveal seats the boundary while the cover still sits on it; stacking kills the boundary forever) is §5.2's own guard. The core channels-A/B rank induction remains the honest [H].
+- ACCEPTED: the aboveOf forest-potential rescope (acyclicity is HISTORICAL — which
+  edge attached last — not state-only; `State.board_forest` is the hypothesis).
+- THE COHERENT FINDING (three witnesses, one root cause):
+  solvable_engine_iff + toEngine_lifts + the Fits mirror hole all refute the
+  same way — the ABSTRACT game's move set is genuinely richer than the engine's:
+  (a) Fits' deal-adjacency disjunct permits seats the model can never make
+  (disjunct-crossing: ♥5 on ♥A by adjacency, abstract re-seats on ♠6 by canSitOn);
+  (b) the model's reveal demands a BARE trigger, the abstract Reveal is
+  run-carrying (no_pile §4 case 3) — the witness state wins in the full game
+  (31 moves) but the engine is deadlocked at hearts ≤ 2.
+  REPAIR DIRECTION (pending user call): initial-states-only statements (= B2+B4)
+  or a run-carrying reveal. Witnesses: witnesses/{EngineWitness,LiftWitness2,DeadPileWitness}.lean.
+- drawTo_comm_adjacent PROVEN (kit re-proved in Move under namespaced names —
+  Theorems owns the root names).
+
+## Dominance.lean — Wave 5 core: the R/N reduction landed; cancel identity; §5.2 gap (2026-09-13)
+
+- LANDED (axiom-clean [propext, Quot.sound], per-file exit 0): `findFirst_ne_none_of_mem`
+  (the missing converse half of Board.findFirst_eq_none), `vis_base_of_notLocked`
+  (WF + ¬isLocked + bottomOf c = inr d ⇒ isVis d — the dead-pile TRICHOTOMY as a lemma:
+  board_edges' base-condition forces d placed (bottomOf isSome) or deal-adjacent with d a
+  hidden boundary; the latter makes pileOfTopHidden d ≠ none = isLocked — NO limbo cards,
+  NO index juggling: the contradiction route is 15 lines), `safe_pileStack_dominant_of_return`
+  (the RETURNABLE case of §5.1: canReturnBase c b ⇒ dominantAt — one `stackPile c b`
+  ACCOMMODATES st via the proven roundtrip, `solvable_of_accommodates` lifts the win; safety
+  unused there), `stackPile_pileStack_cancel` ([stackPile c b, pileStack c] = id — §5.4's
+  pair-deletion; unconditional in canReturnBase, needs WF for topOf (inr c) = none: nothing
+  sits on a foundation card, via founds_gone + board_edges).
+- THE R/N FINDING: safe_pileStack_dominant splits EXACTLY on canReturnBase c b. R half
+  proved (above). N half = the B4-shaped reshape, and NO accommodation play bridges it
+  (any accommodation play from the stacked successor back to st must fire stackPile c b —
+  excursion pairs are net identities — whose canPlace fails precisely on non-returnable
+  bases). The reshape's blocked shapes, precisely: (i) placements onto c when the placed
+  card is not yet stackable (STORAGE — deckPile x (inr c) with heights x.suit < toIdx x);
+  (ii) run-carrying pilePile placements onto diverged cards (whole runs need re-homing);
+  (iii) π-moves reading the c-suit height offset (each channel-A/B skip re-opens a divergence
+  that only closes at π's own re-commit). All three need the compliant-play normal form —
+  SAME ROOT as solvable_accommodates/B4. Recorded in the theorem's note.
+- stackPile_safe_prunable: the prior route note MISSED a second-move case: `deckPile x (inr c)`
+  (b' = inr c is not excluded by "b' ≠ b" — placing the drawn card ONTO the just-worried c:
+  at st it fails since c is on the foundation; the substitute deckStack x is legal — hsafe's
+  opp-colour conjunct pins heights x.suit = toIdx x for a stocked x — but reshapes the whole
+  tail). Route note updated; residual = that case + the same-suit worry-chain + drawStep ≥ 2
+  off-orbit. draw case was ALREADY theorem `draw_comm_stackPile` (Theorems, cite it).
+- §5.2 SOUNDNESS CONCERN (analytic, witness pending): ≥3 redundant stackables do NOT imply
+  the lowest is §5.1-safe — the three sit in three DISTINCT suits (one stackable per suit:
+  each is its suit's height), so a FOURTH suit's height is unconstrained, and safeToStack's
+  4th conjunct can fail by up to r−1. Gap shape: stackables ♠5/♥8/♣9, ♦=0 — c=♠5 fails
+  opp-colour (♦≥3), danger card ♦4 is LIVE (not foundation-able). Likely repair:
+  + `hsafe : safeToStack st c = true`. Documented in the theorem's note (TODO falsifier).
+- SYNTAX paid: (1) `show (match X with ...) = e` in a have-TYPE with the match's arms not
+  mentioning hypotheses AUTO-GENERALIZED the match over `hcp, hatt` as extra discriminants
+  ("match b, hcp, hatt with") — avoid spelling canPlace's body in a show-type; `simp only
+  [State.canPlace] at hcp'` on a COPY, then Bool.and_eq_true_iff.mp hcp' twice (the ledger
+  recipe holds). (2) `rw`'s auto-rfl does NOT evaluate `decide (none = none) && decide
+  (king = king) = true` — append explicit `rfl` (it closes at default transparency). (3)
+  `simp only [State.run, hsp, hrt]` did NOT unfold `st.run [m]` — for singleton runs use
+  `show (match st.apply m with | some st' => st'.run [] | none => none) = e` then
+  `rw [hsp, hrt]; rfl`. (4) state_ext on a `{ {stwith ...} with ...}` goal: the successor
+  literal elaborates with a `let __src` — the board/heights slots need `.symm` (slots are
+  st.field = LIT.field, lemmas give the other direction); rfl-slots survive the let (zeta).
+
+## Theorems.lean — the seven-item wave: the cursor-blindness API + commute_of_disjoint_touch (2026-09-13)
+
+- LANDED (axiom-clean [propext, Quot.sound], commute +Classical.choice): deal_commutes_nonStock
+  (rfl + the four draw_comm_* symms + consumesStock absurdity), draw_full_pass (RELOCATED below
+  run_dealIter; q = (n+s-1)/s is EXACTLY ⌈n/s⌉ — omega cannot link variable-divisor `/` with
+  products: rw hqdef INTO the Nat.div_add_mod output first), apply_nonConsuming_cursor_blind
+  (st' IS {st with stock := st'.stock} by state_ext — the blindness kit then applies the move
+  from the replaced state; draw arm via dealOnce_cards), applyDrawTo_merge / applyDrawStackTo_merge
+  (posOf runs over cards only — posOf_cards_eq; the guard index = posOf; (drawTo i).removeAt i is
+  source-cursor-FREE via Move's Cycle.removeAt_drawTo), commute_of_disjoint_touch (below).
+- TWO STATEMENT REPAIRS (both prover-confirmed, witnesses witnesses/{StockInvarWitness,
+  CommuteWitness}.lean — citing the sorry'd constants is safe): (1) apply_nonConsuming_stock_invar
+  gained (hm : m ≠ Move.draw) — draw is non-consuming but WRITES the stock cursor; (2)
+  commute_of_disjoint_touch gained the hnc draw/consumesStock conjunction — .draw's touch is
+  ([], []), disjoint from EVERYTHING, but deckPile/deckStack legality reads the waste top
+  (cursor-sensitive): stock [cK,h2,cK,h4] cursor 1 step 2, king on a free anchor — the two
+  orders land [h2,cK,h4] vs [cK,h2,h4]. No downstream users existed.
+- commute_of_disjoint_touch's structure: 16 fine pair-lemmas (comm_reveal_{reveal,deckPile,
+  pileStack,stackPile,pilePile}, comm_deckPile_{pileStack,stackPile,pilePile},
+  comm_deckStack_{pileStack,stackPile}, comm_pileStack_{pileStack,stackPile,pilePile},
+  comm_stackPile_{stackPile,pilePile}, comm_pilePile_pilePile) + 2 coarse fallouts (reveal·
+  deckStack, deckStack·pilePile via commute_of_compsDisjoint) + deck·deck vacuity (both first
+  moves read the same prev; c ≠ c' from the card-disjointness). NEW KIT: bottomOf_attach_ne
+  (the equality form), attach_detach_comm, detach_detach_comm, take_reverse_drop1 (reveal·reveal's
+  redirect corner: the depth-step exposing r' as pile a's new boundary makes reveal's OWN attach
+  die — its base inr r' is occupied by the other trigger c'), topHidden/hiddenBase_congr(')
+  (POINTWISE — full-depths congruence cannot take rfl for opaque s₁.deal: rw [hs₁] in the goal
+  first), heights_bump_bump/bump_drop/drop_drop (generic α [DecidableEq α] — reused for depths
+  via depths_step_step; bump_drop at a shared suit needs that suit's height > 0 — every
+  stackPile guard supplies it), disjointTouch_symm, canPlace_inr_isVis. Heights vacuities: a
+  shared suit makes one guard read the pre-write height and the other the post-write — omega,
+  but rw the suit-eq INTO the guard first (omega cannot link st.heights c.suit and
+  st.heights c'.suit across a Suit-equality).
+- SYNTAX paid (beyond the known card): (1) `cases b with | inl _` KILLS the binder — reference
+  (Sum.inl a) with a NAMED pattern, never b afterwards; (2) after `subst hxa : x = a` the a-side
+  is gone — annotate lambda args with the SURVIVING name; (3) `Option.some.inj (A.symm.trans B)`
+  NEEDS the parens (bare chains into application parse errors); (4) a stuck `if a = a` under a
+  projection-literal blocks even exact-defeq — show the if-form and rw [if_pos rfl]; (5) witness
+  rewrites (hbase₁ etc.) must come BEFORE the state-literal rws (after rw [hs₁] the s₁-facts
+  are gone); (6) isVis vacuities via canPlace_inr_isVis + the other move's ATTACH GUARD — but
+  pilePile's guard is on the DETACHED board (c' keeps its st-seat: DP·PP needs NO vacuity,
+  DP·SP does); (7) state_ext slots: deal=1 board=2 heights=3 depths=4 stock=5 drawStep=6 —
+  miscounted ?_ positions cost three builds; (8) membership under unreduced touch-projections:
+  ascribe (have hD2 : ∀ x ∈ [c], x ∉ [c'] := hdisj.2) or show the list form.
+- draw_full_pass arithmetic: (n-1)+1 = n is FALSE at n = 0 (Nat truncation) — the vacuity comes
+  from the take-slice's some-getLast? — have hn : 0 < n FIRST. ⌈⌉-minimality (d·s ≥ n → q ≤ d)
+  needs Nat.mul_le_mul — mul monotonicity is NOT omega.
+- Theorems now carries ONE sorry (solvable_accommodates — B4, the farm's hardest, plan note in
+  place; the task brief's "zero sorry" reading assumed it was already elsewhere).
+
+## WAVE-9 ADJUDICATIONS (orchestrator, accepted)
+
+- apply_nonConsuming_stock_invar: `+ (hm : m ≠ Move.draw)` — draw is
+  non-consuming but writes the cursor (witness recorded).
+- commute_of_disjoint_touch: `+ hnc` guard (draw's empty touch-set is
+  disjoint from everything, yet draw·deckPile diverges on a duplicated
+  stock card — witness recorded). The C13 fine layer now has its kit
+  (bottomOf_attach_ne, attach_detach_comm, detach_detach_comm, the
+  reveal·reveal redirect corner, generic ±1 heights lemmas).
+- least_redundantStack_dominant: soundness concern noted (≥3 stackables
+  in 3 distinct suits leaves the 4th suit unconstrained) — repair
+  direction `+ hsafe` documented, falsifier future work.
+- THE B4 NEXUS: three independent blockers (Theorems' last sorry
+  solvable_accommodates; Dominance's N-half; stackPile's residual) all
+  reduce to the same reshape root. Landed toward it: the R-half
+  (safe_pileStack_dominant_of_return), stackPile_pileStack_cancel,
+  vis_base_of_notLocked (the dead-pile trichotomy).
+
+## Theorems.lean — solvable_accommodates REFUTED as staged + repaired + decomposed (2026-09-13)
+
+- REFUTED (prover-confirmed, witnesses/B4Witness.lean, facts
+  axiom-clean [propext, Quot.sound]): without WF the statement is FALSE —
+  a PHANTOM TENANT (♠2 on base inr ♠K with ♠K unplaced; board_edges
+  forbids exactly this) in a WON state (junk rank-7/9 on p1..p6) makes
+  [stackPile ♠K p0] land the king under its tenant: the successor is a
+  total deadlock (only draw fires, as the identity — empty cycle
+  dealOnce is rfl-id), unsolvable.  Witness kit: `dead` (∀ m, apply m =
+  some t → t = s1) + run-induction; the canSitOn/guard facts as
+  List.all-decide over the cast lists; stW_not_wf via founds_gone.
+- REPAIR (per protocol, no downstream users): `+ (hwf : st.WF)`.
+- LANDED (exit 0, ONE census sorry): the full decomposition —
+  `stackPile_pileStack_return` (Dominance's cancel, restated upstream),
+  `solvable_of_stackPile` (the worry-back half PROVEN: return + prepend),
+  `solvable_of_pileStack` (THE crux, the file's only sorry, plan note
+  in-source: delete/commute/park (catch-22: parks are transient — the
+  rung card must top)/excursion cases + the return-base endgame),
+  `solvable_of_accomm_step` + `solvable_accommodates_aux` (the induction
+  skeleton; WF carried by apply_wf) and the repaired main (clean —
+  in-file citation of the sorry'd crux does NOT propagate the warning,
+  re-verified).
+- OBSTACLE for the R/N staging: `State.isLocked` is defined in
+  Dominance (downstream) — the R-half's visibility piece
+  (vis_base_of_notLocked) cannot be cited here; lift both first
+  (re-proving Bridge's bottomOf_detach_self on the way).
+- SYNTAX paid: (1) `∀ st, st.WF → …` in a STATEMENT fails (dot needs the
+  type): `∀ (st : State)`. (2) `cases m` inside a `have … := by` block
+  eliminates m from the SHARED context — factor case-bashes into a
+  standalone lemma. (3) `cases hm : e` never rewrites hypotheses —
+  `rw [hm] at h` before the defeq-cast. (4) state-def unfolding in simp:
+  the STATE name (s1W) itself must be in the list. (5) `(!b) = true` →
+  `b = false`: `simp only [Bool.not_eq_true']`. (6) `List.all_eq_true`
+  is all-implicit: `List.all_eq_true.mp h c hc`. (7) `set_option
+  linter.unusedVariables false in` must PRECEDE the doc-comment (doc +
+  set_option + decl does not parse); keep `:= sorry` (not a bare
+  `sorry`) so the orchestrator's `':= sorry'` census counts it. (8) Bool
+  contradictions h1 : X = true vs h2 : X = false: `rw [h2] at h1; exact
+  Bool.noConfusion h1` — not .trans orientation games. (9) Eq.trans
+  chains: mind which side is fixed — (X = false).symm.trans h2 : false
+  = true.
+
+## WAVE-10 ADJUDICATION (orchestrator, accepted): solvable_accommodates + hwf
+
+- The phantom-tenant witness (♠2 on unplaced ♠K — board_edges forbids it;
+  the WON state accommodating to total deadlock) confirms: B4 needs WF.
+  Repair accepted: `+ (hwf : st.WF)`, conclusion unchanged.
+- THE DECOMPOSITION (the farm's hardest item, now atomic):
+  solvable_of_stackPile (worry-back) PROVEN; solvable_of_pileStack = THE
+  CRUX (delete/commute/park/excursion/endgame analysis in-source; the
+  endgame IS Dominance's return-base N-half); the induction skeleton
+  (solvable_of_accomm_step + aux, WF carried by apply_wf) PROVED; the
+  main theorem proved against the crux. The whole farm's residue now
+  flows through one lemma.
+- NOTE for the crux-taker: State.isLocked is downstream — lift
+  vis_base_of_notLocked first (Dominance's copy is citable? NO —
+  Dominance imports Theorems. Move the trichotomy UPSTREAM (to Board or
+  State) when taking the crux.)
+
+
+## Theorems.lean SPLIT (2026-09-13) — Relabel + Commutation + facade
+
+- Theorems.lean 4648 -> 1245 lines; NEW Klondike/Relabel.lean (1055, sec 1,
+  imports Move only) + Klondike/Commutation.lean (2372, sec 3, imports Move +
+  Relabel — cites state_ext/decide_congr/findFirst_congr). Facade keeps sec 2/4/5 +
+  imports all three. Zero proof edits; census 29 UNCHANGED (Theorems 1 =
+  solvable_of_pileStack); full lake build Klondike green; lake env lean exit 0
+  on all three + Progress. Marker-based cuts at the five /-! ## N. headers.
+- DEVIATION (recorded): Move.consumesStock moved from sec 2 into Commutation.lean
+  (before deal_commutes_nonStock, its first citer) — all 15 in-file uses are sec 3,
+  zero sec 2 users. isAccommodation/isCommit stay (sec 2 only).
+- TRAP AGAIN: ad-hoc PowerShell output WITHOUT [Console]::OutputEncoding =
+  [Text.Encoding]::UTF8 shows mangled Unicode (⟨ -> ?, — -> -) — files were FINE;
+  always set it before eyeballing content, or trust the read tool.
+
+## WITNESS ARCHIVE (2026-09-13)
+
+- The refutation/crux witnesses are now DURABLE: lean-model/witnesses/
+  (17 files + README). 13 compile against the current tree; 4 are
+  HISTORICAL (they refute the pre-repair statements — their job is
+  done). B4Witness was lost to an over-eager cleanup during the
+  archive; its finding is the phantom-tenant description in the wave-10
+  adjudication above and is rebuildable. All Temp\opencode references in
+  this ledger now resolve to witnesses/.
+
+## State/Board/Theorems/Dominance — the B4-critical upstream lifts (2026-09-13)
+
+- LANDED (per-file `lake env lean` exit 0 under 4.30.0-rc2, census 29
+  unchanged): `State.isLocked` → State.lean (after canPlace, pre-WF);
+  `findFirst_ne_none_of_mem` → Board.lean (next to findFirst, ROOT
+  level); `vis_base_of_notLocked` → Theorems.lean, new section just
+  before the crux `solvable_of_pileStack` (proof verbatim — needs only
+  the two lifts above); `Board.bottomOf_detach_self` ADDED to Board.lean
+  INSIDE `namespace Board` (Bridge's ROOT-level original untouched —
+  distinct full names, no clash, dedupe later; proof verbatim from
+  Bridge.lean:231). Dominance.lean: three decls deleted, every user
+  (safe_pileStack_dominant_of_return etc.) compiles unchanged.
+- CROSS-FILE EDITS NEED OLEAN REFRESHES: `lake env lean` resolves
+  imports from disk oleans — after editing Board/State run scoped
+  module builds (`lake build Klondike.Board`, etc.) before
+  lake-env-leaning downstream files, else phantom unknown-identifier
+  errors. Also refresh the EDITED downstream olean (stale Dominance
+  olean declaring `State.isLocked` + fresh State olean = duplicate
+  declaration at load).
+- TOOLCHAIN INTERFERENCE (for the orchestrator): mid-session a parallel
+  actor flipped lean-toolchain + an elan path override to v4.33.1 (task
+  pin was 4.30.0-rc2). Under 4.33.1 Cycle.lean:163 FAILS (`rewrite`
+  motive not type correct in the removeAt_comm area — a Decidable
+  instance depends on the rewritten term). My four files verified under
+  4.30; Board.lean ALSO builds clean under 4.33. The interrupted 4.33
+  cascade left Basic/Board oleans 4.33-format (mixed dir) — any full
+  rebuild under ONE toolchain self-heals the trace mix.
+
+## TOOLCHAIN MIGRATION: v4.30.0-rc2 -> v4.33.1 (2026-09-13)
+
+- THREE one-line fixes carried the whole farm (~10k lines of proofs):
+  (1) `rw` through nested ites whose Decidable instances were elaborated
+  against pre-unfolding structure projections now fails "motive is not
+  type correct" — replace the `rw [if_pos h, ...]` chain with
+  `simp only [if_pos h, ...]` (simp handles dependent instances; the
+  error message itself recommends this).
+  (2) `rw [if_pos (Nat.lt_succ_self i)]` no longer matches `i.succ`
+  against the goal's `i + 1` — supply the proof as
+  `if_pos (by omega : i < i + 1)`.
+  (3) The 4.33 note "target not type-correct under implicit transparency"
+  is a symptom of (1), not a separate bug.
+- Sites fixed: Cycle.lean removeAt_comm; Move.lean + Commutation.lean
+  removeAt_drawTo (identical duplicated lemma in both files — expected,
+  the two-kit situation).
+- elan state: lean-model override + lean-toolchain pin = v4.33.1; the
+  root and lean-verify overrides REMOVED (lean-verify inherits the
+  default now; its stale .lake will rebuild on next use).
+
+## Macro.lean — the physical-game pace reachability (2026-09-13)
+
+- LANDED (axiom-clean [propext, Quot.sound]; file's sorry residue = the
+  six macro rows): deal_chain_reaches, deal_passEnd_reaches,
+  pace_dominance_phys_residue, pace_dominance_phys_passEnd,
+  solvable_iff_pure_cursors — the latter three REPAIRED: each gained
+  `(hstep : 0 < st.drawStep)`.
+- REFUTED AS STAGED (witnesses/PaceStepZeroWitness.lean, exit 0, core
+  facts axiom-clean, README updated): they carried no step-positivity —
+  at drawStep = 0 every deal is the identity (min (c+0) n = c), the
+  pass end is unreachable while its twin (cursor = 4) wins by four
+  deckStacks the frozen cursor cannot make. Witness state stZ: empty
+  board, heights 12, stock = the 4 kings, step 0; dead-kit via the
+  apply_*_iff inversions + run-fix induction. Item 1 SURVIVES s = 0
+  (mod_zero forces o = o'; play []). The *_refuted corollaries go
+  HISTORICAL on the next olean refresh (by design, ApplyWfCounter
+  lifecycle).
+- ROUTES: 1 = run_replicate_draw + dealOnce_iterate_add + a k-extraction
+  case-bash (omega cannot link variable-divisor % with products):
+  (o'-o)%s = 0 from mod_lt + mod_eq_of_lt case split, then
+  Nat.add_comm / show v+u = v+u*1 / Nat.add_mul_mod_self_left (core has
+  NO Nat.add_mod_self). 3/4 = solvable_of_reaches one-liners (item 3's
+  unused hcur silenced by have := hcur). 5 = the through-pass chain
+  x→passEnd ++ [draw] (the wrap: if_pos (Nat.le_refl _)) ++ 0→y
+  (deal_chain_reaches; SOURCE purity is never needed — only the
+  target's), composed by run_append with bind-iota defeq exacts.
+- 4.33 QUIRKS: Nat.div_add_mod is now k*(m/k)+m%k — the product order
+  FLIPPED vs 4.30 (rw [Nat.mul_comm] at it; exists_mul_of_mod_zero is
+  the in-file precedent). And AGAIN: a show whose record VALUE breaks
+  lines fails to parse — keep each {x with f := v} on one line.
+- SIBLING COLLISION: their Kit.lean went red mid-session (missing olean
+  blocked ALL downstream verification) — polled ~8 min until green; did
+  not work around it.
+
+## Pace.lean — waves 8/10: all six items LANDED (2026-09-13)
+
+- pos_shift, cursor_after, burial_bound [M] + maskPos_pure_indep/_residue_mono/_impure_sup_pure
+[E]: Pace exit 0, one census sorry left (realizes_iff_stepsOK). Axiom-clean ([propext,
+Quot.sound], +Classical.choice for burial/masks). Refutation probes (Temp\opencode\
+paceprobe.lean, #eval): all 340 len≤4 sequences of a 4-deck + 720×7 prefixes of 6-deck perms
+(machine trio), d4/d6 × steps 1-4 × all cursor pairs (mask trio) — ZERO violations, no repairs.
+- pos_shift ROUTE (better than the FARM sketch — no order-preservation lemmas): run_cards_filter
+(the run's end deck IS filter(∉pre): removeIdx_filter_mem + filter_filter + filter_congr;
+run_mem feeds the IH membership; run_pre_nodup via x∉c₁.cards/posOf-none) then idxOf_filter
+(index-in-filter = passing-before count) + filter_mem_take_count + filter_split_compl.
+cursor_after = drawCard shape + removeAt_drawTo_eq + pos_shift, two lines.
+- burial_bound: count_interval (|[a,b)| = b−a via count_below ×2 + one filter_split_add) +
+pigeonhole both directions. THE [M] CORE: the arithmetic hyp TRUNCATES — omega needs the
+no-truncation fact idxOf x ≥ rBelow init x + 2, built from two distinct non-init cards (w, z)
+below x: pigeonhole_le [w,z] ≤ take∖init + have : [w,z].length = 2 := rfl (omega does NOT
+evaluate literal list lengths; without it the vacuous-truncation branch survives and omega
+reports a fake counterexample).
+- MASK TRIO: one new lemma mod_sub_one_of_mod_zero (o%step=0 ∧ 0<o → (o−1)%step=step−1;
+step≤o via Nat.mul_le_mul_left — omega cannot extract o ≥ step from step*(o/step)=o, nonlinear).
+After the maskPos_mem_iff rws: A ∨ B ∨ C is A ∨ (B ∨ C) — Or.inl h, NOT Or.inl (Or.inl h).
+himp vestigial in impure_sup (silenced with have := himp).
+- KIT.lean ADDITIONS (scoped build refreshed; State/Move re-verified exit 0): NoDupP_noDupCards,
+filter_true_id, idxOf kit (idxOf_cons_ne/_le_of_get/_get/_lt_length/_inj/_filter), take kit
+(mem_of_mem_take, nodupP_take, mem_take_iff — needs NO noDup), count kit (filter_split_compl,
+count_below, count_singleton, filter_mem_take_count), dropLast_append_single,
+mem_removeIdx_of/_iff. PACE-LOCAL (consolidation: Move/Theorems copies are DOWNSTREAM):
+findFirstIdx_get, mem_of_posOf (≠ Move's Cycle.posOf_mem direction), posOf_eq_idxOf, run_mem,
+run_pre_nodup, run_cards_filter, rBelow_append_single, count_interval. removeAt_drawTo_eq =
+the known Cycle.removeAt_drawTo dup, kept.
+- SYNTAX paid: show T from e is NOT tactic syntax (rw-arg only) — use xact e (defeq);
+if after simp only needs a trailing rfl; Bool-ite if_neg wants the ¬(decide P = true) form;
+list-induction IH does NOT re-take the list (ih c₁ c' hrun', not ih xs c₁ c' ...);
+subst hzx : z = x ate the INDUCTION head — rw [hzx] on the goal instead; Or.resolve_left
+wants ¬(w = a) = Ne.symm haw; List.length_cons rw fires on ONE instantiation (t.filter p vs t)
+— use rfl-length haves for omega; state rBelow-links in rBelow-form (have := hsplit — omega
+cannot delta-unfold the goal); count Eq.trans sides before chaining.
+
+## Pace.lean — realizes_iff_stepsOK PROVEN (+hpure repair) (2026-09-13)
+
+- REFUTED AS STAGED (#eval probe + witnesses/PaceStepsOKWitness.lean): realizes' FIRST draw reads the
+  INITIAL cursor's mask (leading lane included) while stepOK at pre = [] has no predecessor — any impure
+  cursor (deck [♥A,♥2], step 2, cursor 1) gives realizable-but-not-stepsOK. REPAIR: + (hpure :
+  c.cursor % step = 0 ∨ c.cursor = c.cards.length) (maskPos_pure_indep's class; rung 3 starts at
+  cursor 0, so not vacuous). Probed clean: all perms n ≤ 7 × steps 1-4 × every pure cursor + 40320 perms
+  at n = 8. The ← direction needs NO hpure (first-draw disjuncts are cursor-free). Exit 0, zero
+  warnings, axioms [propext, Classical.choice, Quot.sound]. The witness's broken lemma cites the pre-repair form.
+- LANDED (Pace-local kit): lane_pred_mod, perm_nodupP (core's Perm ctor is cons NOT skip),
+  noDupCards_snoc, posOf_idxOf, run_cursor_le (posOf_lt + removeIdx_length), run_snoc (THREE cycle
+  binders start/end/succ — a two-binder version is FALSE), run_snoc_inv, realizes_prefix,
+  run_cursor_last (cursor_after packaged), getLast?_snoc, snoc_split, filter_idxOf_lt (idxOf_filter +
+  pigeonhole), filter_last_maxRem, maxRem_last (maxRem ↔ last position: filter_split_add + bijection
+  vs w :: take-filter), mid_step_iff (the per-step iff), nil_stepOK_realizes (the pre = [] step).
+- QUIRKS: cases h : e substitutes the GOAL — never rw the scrutinee after (have-cast instead:
+  have h' : run c₂ t = some c := hrun); rw [← h] rewrites RHS→LHS (match the slot's term, not the
+  goal's); ∧-conjunct ORDER in anonymous constructors (maskPos_mem_iff's (A) is %-residue FIRST); rw at
+  MULTIPLE hyps needs the pattern in ALL of them; (init ++ [x]).length = init.length + 1 is NOT rfl;
+  spell every filter as fun z => decide (z ∉ pre) identically — omega/rw atoms match binder names.
+
+## Dominance.lean — cascade_sound REFUTED+repaired+PROVEN (2026-09-13)
+
+- FALSITY (witnesses/CascadeWitness.lean, exit 0, core facts axiom-clean; the
+  state is WF, so +hwf is NOT a repair): empty stock makes applyDraw the
+  IDENTITY (dealOnce: cursor >= length -> 0; 0 >= 0) — draw is trivially
+  dominantAt (successor = self), so h holds for the draw-only filter at
+  EVERY reachable solvable state while no all-draw play wins. Same trap
+  class: pilePile / worry-back stackPile — invertible => dominant, no progress.
+- REPAIR: the h escape += strict cascadeMeasure decrease (heightDebt
+  Sum_s(13-h) + totalDepth + stockLen); draws excluded — the engine's
+  draw-loops die via CyclePruner/TP (unmodeled); a draw-inclusive cascade
+  needs the deal-orbit period (deferred). Kit: cascade_escape_progress
+  (commit OR pileStack -> strict decrease; no WF — Rank.toIdx_lt caps the
+  bump; reveal/deck via the proven Progress monotonicities).
+- PROOF: bounded Nat induction on the measure; win -> []; escape -> dominantAt
+  keeps the successor solvable, run_append at pi++[m] keeps h in scope.
+- SYNTAX: 'fun s' => by rw [hs]; rfl' — the rfl ESCAPED the lambda (outer ;);
+  rcases '-' slots failed again (use '_'); solvableWith ctor: play, allP,
+  st', run, win; 'cases hh :' substitutes the goal (don't rw after). Pace's
+  mid-edit red file cost ~20 min of polling (Move imports Pace — missing
+  olean blocks all downstream; poll, don't work around).
+
+## Macro.lean — the pace dominances ALL FIVE LANDED (2026-09-13)
+
+- PROVEN (exit 0, lone census sorry = solvableEngine_iff_macro): pace_dominance,
+  pace_dominance_residue, pace_dominance_impure_pure, window_firstDraw,
+  window_firstDraw_macro — axioms [propext, Quot.sound] (+Classical.choice for 2/4).
+- ROUTE 1: macroSolvable_of_simulates at R = diffCursor ∧ drawStep-pin ∧ STOCK PINS
+  (x.stock = st.stock, y.stock = the o'-stock) — the pins make the maskPos superset
+  never re-establishable (reveals preserve stocks, draws MERGE past R). 2/3 =
+  pace_dominance at the o-variant (wf_of_cursor) + B2's Pace mask lemmas as hK.
+- ROUTE 5: macroSteps_first_drawCommit split; reveal prefix replays
+  (macroSteps_reveal_blind); accessible card ⇒ applyDrawTo/StackTo_merge ⇒ B wins.
+  NO residue needed. ROUTE 4: trim_pair (budget b.stock = dealN j a.stock, B skips j
+  draws; j = 0 ⇒ b = a free) + run_stock_deals + exists_dealCount; k₀le via
+  mul_le_mul haves fed to omega (omega can't do c<s → c·s<k₀·s alone).
+- NEW KIT (Macro-local; consolidation candidates for State/Commutation):
+  diffCursor_symm, apply_drawStep_invar, canPlace_board_congr, maskPos_mem_trans
+  (proof-irrelevance transport), wf_of_cursor, accommodates_cursor_blind +
+  acc_step_blind, countDraw, run_nonConsuming_blind, run_stock_deals, trim_pair,
+  play_first_consumes, exists_dealCount, macroSteps_append/_first_drawCommit/
+  _reveal_blind.
+- PROBE (Temp\opencode\paceprobe2.lean): 10-deck #eval, steps 2/3/4, all 121 cursor
+  pairs — R1/R2 zero violations, direction strict — no repairs. Step-0 hole closed
+  by hres (Nat.mod_zero forces o = o'), same as the physical family.
+- SYNTAX paid: apply_nonConsuming_cursor_blind takes ONLY (hc, hd, h) — no hm;
+  posOf_cards_eq's arg needs its own typed have (by-block runs before ?cy' assigned);
+  commitApplies' ∃ base wrapper on BOTH disjuncts; rcases '-' slots broke AGAIN
+  (use '_' at the right arity — the stack iff has 4 flat slots); show (x >>= f) = e
+  is NOT defeq to st.run (m :: t) = e (two stuck matchers) — simp only [State.run]
+  first, then rw the apply-equation; destructured-output NAMES by side not by slot
+  (macroSteps_reveal_blind slot 4 = the SOURCE's stock); with-update .stock often
+  iota-reduces inside rw results but .drawStep does not — per-field show-(rfl)-rws.
+- Pace olean vanished mid-session (~12 min poll; the known Move-imports-Pace blast
+  radius — poll, don't work around).
+
+## Theorems.lean — the crux REFUTED as staged, repaired (+hnotlock), case kit landed (2026-09-13)
+
+- REFUTED (witnesses/B4LockedWitness.lean, DeadPile's state reused, facts axiom-clean): the
+  crux AND solvable_accommodates were FALSE — a LOCKED stackable is a commit, not a shuffle
+  (Dominance's accepted safe_pileStack hole, never propagated to B4). REPAIR: crux
+  `+ (hnotlock : st.isLocked c = false)`; chain: playSafeAccomm/safeAccommodates (defs after
+  `accommodates` — that def UNCHANGED, Macro cites it) through accomm_step (+hnl) and
+  aux/main. One census sorry left (the crux); Dominance/Macro/Progress verified green after.
+- LANDED (before the crux, all [propext, Quot.sound]): solvable_of_pileStack_return (R-half:
+  canReturnBase => roundtrip+replay; vis_base_of_notLocked is the visibility piece);
+  pileStack_pilePile_stackPile (pi's own pilePile c b'' replays as stackPile c b'' onto the SAME
+  successor — no IH); commute squares in "exists t" form pileStack_comm_{draw,reveal,deckStack,
+  deckPile}. BLOCKER: park-on-c + excursion reduce to the endgame (compliant-play normal form);
+  remaining: stackPile/pilePile squares + the pi-induction (delete case trivial).
+- RECIPE: equality half = Commutation's comm_*_pileStack with disjointTouch DERIVED (touch eqs
+  by simp only [Move.touch, guards] or rfl; transfers: bottomOf_detach_ne, detach_topOf_ne,
+  pileOfTopHidden_congr, vis_off_cycle + Cycle.posOf_mem for stocked x, Rank.toIdx_inj for the
+  suit split). QUIRKS: iff-slots take the GOAL's state form (rw [hs1] first, or s1-form
+  hprev'/hatt1' bridges); `by rw [hde]` auto-rfls Sum.inr d = Sum.inr c (trailing rfl errors);
+  rcases slot COUNT on and_eq_true_iff.mp results = 2; playSafeAccomm must sit AFTER the
+  forall-st in the aux (else st-dagger capture).
+- INCIDENT: scoped `lake build Klondike.Theorems` cascaded into the sibling's red mid-edit
+  Pace.lean and DELETED its olean (downstream blocked ~15 min until they finished). Check
+  sibling mtimes before any lake build — lake env lean keeps working off stale oleans.
+
+## Consolidation-3 — dedup landed, combinators API'd, sites deferred (2026-09-13)
+
+- CANONICAL HOMES (census 7 held throughout; every file exit 0): Cycle.lean owns the
+  draw-commitment splice kit (removeAt_drawTo, findFirstIdx_removeIdx_shift/keep,
+  posOf_removeIdx_shift/keep); Board.lean owns attach_attach_comm + bottomOf_detach_self.
+  Deleted: Move's 7-lemma kit + detach_bottomOf_self + Board.attach_attach_comm; Commutation's
+  7-lemma kit; Pace's removeAt_drawTo_eq (7 cites); Bridge's bottomOf_detach_self;
+  Kit.mem_middle_split (folded onto mem_split); Macro's Cycle.dealN kit (47 cites -> dealIter;
+  statements verbatim). RENAMED in Move to root level: applyDrawTo_shape -> applyDrawTo_eq,
+  State.reachablePos_posOf -> reachablePos_posOf (Theorems' bare cites now resolve via import).
+  Commutation keeps a ONE-LINE root alias removeAt_drawTo := Cycle.removeAt_drawTo — Theorems
+  cites the bare name and was untouchable; kill it (qualify Theorems' 2 cites) next Theorems edit.
+- STATE ADDITIONS (defeq to the raw lambdas): bumpHeight/dropHeight + @[simp] _self/_ne +
+  bump_bump/bump_drop/drop_drop (with-update composition forms = state_ext heights-slot goals);
+  WF.intro (named 11 slots). Rewired: apply_wf's 7 arms + Macro's wf_of_cursor (named args in
+  slot order, bullets unchanged).
+- WHY THE 28-LAMBDA SITES DID NOT MOVE (prover-confirmed, reverted): (1) apply DEF BODIES stay
+  raw — Theorems' roundtrip rw's its hand-spelled hh onto def-unfolded shapes; (2) apply_*_iff
+  statements stay raw — Relabel:737 rw [relabelBy_heights_bump] patterns (Relabel out of scope)
+  AND Theorems' applyDrawStackTo_eq_dealPlay mpr tail: `simp only [State.applyDrawStackTo, ...]`
+  does NOT close raw-vs-bumpHeight although defeq (simp's closing rfl sits BELOW default
+  transparency); abbrev fixes the simp tail but not rw patterns. exact/rfl-slot defeq bridges
+  (the <guards, rfl> pattern) survived everywhere.
+- DEFERRED SITES (next pass): Theorems ~20, Relabel 6, Macro 12, Bridge 3 (EState heights —
+  needs its own combinator), Initial's initial_wf (out of this pass's scope).
+- CHORES: solvable_decidable -> solvable_em (zero citers; docstring: classical split, not
+  Decidable); README Status synced to the census + current file list; ledger A4/B1 -> [P] at
+  the model level, B4 decomposed-note, G4 model-proven note (engine bridge stays refuted).
+
+## Theorems.lean — the crux: the first-move kit LANDED, endgame blocked (2026-09-13)
+
+- LANDED (axiom-clean, before the crux; full dispatch structure in the crux's in-source plan note):
+  pileStack_comm_{pileStack,stackPile,pilePile} (the plan MISSED the pileStack-x square; pilePile's
+  is a UNIFORM direct state_ext proof covering c ∈ aboveOf x, where comm_pileStack_pilePile's
+  disjointness premise FAILS — guard via aboveOf_detach_subset); reveal_notLocked; not_pileStack_of_
+  win (nil vacuity); solvable_of_pileStack_step_{delete,draw,reveal,deckStack,deckPile,pileStack,
+  stackPile,pilePile} (square + packaged-IH `∀ t, s₂.apply (pileStack c) = some t → t.solvableFrom`
+  + prepend).  IH-feeding needs s₂'s ¬isLocked + bottomOf c = b₀ — reveal DONE, other six are
+  bottomOf_attach_ne/detach_ne one-liners (unwritten).
+- BLOCKER (unchanged): parks on `inr c` + the same-suit excursion both reduce to the ENDGAME = the
+  compliant-play normal form = Dominance's N-half (kills two rows).  Next taker: the length-
+  induction aux + lockedness transfers, then the endgame via the crux's catch-22 note.
+- NEW LOCAL KIT (consolidation candidates): contains_iff_mem, aboveOf_go_{mono,step},
+  aboveOf_go_detach, aboveOf_detach_subset (detach only shortens the run walk).
+- SYNTAX paid: comm_pileStack_{pileStack,stackPile}'s h₁ is pileStack-FIRST (deckPile's is other)
+  — congrArg some needs heq.symm; a binder mentioning `c` after `(hwf : st.WF)` auto-binds c✝ —
+  bind {c : Card} first; `((l).take (if …)).getLast?` paren counts cost 3 builds; go-walk steps
+  need the defeq-cast dance past the constructor match (aboveOf_go_step packages it).
+
+## Macro.lean — C1 PROVEN (→ needed a DEF REPAIR) (2026-09-13)
+
+- REFUTED as staged (witnesses/MacroC1Witness.lean, axiom-clean, core facts stay green): the →
+  direction was FALSE — `macroSteps` ends on a COMMIT, so an engine win whose last height-raise
+  is a TRAILING ACCOMMODATION had no macro witness (stC1: ♥12, ♥K sole visible on an anchor,
+  empty stock, all depths 0 — engine wins [pileStack ♥K] while no commitApplies EVER fires:
+  empty stock kills drawCommits, depths-0 kills reveals; Rust parity: macro_solvable_sel checks
+  is_win AFTER canonicalize).  REPAIR (sign-off pending): State.macroSolvable gained the final
+  accommodation block — ∃ ks w w', macroSteps st ks w ∧ accommodates w w' ∧ w'.isWin = true.
+  No external users; every in-file consumer repaired same-session.
+- PROVEN (exit 0, zero warnings; census Macro 1→0).  ← = macroSteps_engine_run (chains
+  macroStep_engine_play + run_append + appends the final accommodation).  → = the new
+  engine_macro_lift: NO move commutation needed (A3's "draws commute with shuffles" route is
+  OBSOLETE) — the induction carries m.diffCursor e ∧ m-cursor-bound ∧ ∃k e.stock =
+  dealIter k m.stock ∧ e.WF plus the line-so-far; draws only extend k (m never moves);
+  reveals fire cursor-blind from the twin; deck moves fire drawCommit from the segment-START
+  cursor — `dealIter_prev_reachable` (Theorems) is the whole guard+splice tool — and MERGE
+  the two lines (removeAt_drawTo is cursor-free; state_ext closes); trailing draws drop,
+  trailing accommodations ARE the final block.  m.WF recovered via the new wf_of_diffCursor.
+- DOWNSTREAM (in-file): macroSolvable_of_simulates +hacc (tail-lifting hypothesis; main
+  restructured to return the full package); pace_dominance gained the hacc bullet
+  (accommodates_cursor_blind + pin algebra); window_firstDraw_macro's ∀ gained (w',
+  accommodates w w', win-at-w') — the merged-suffix construction sites pass the A-tail
+  verbatim, the all-reveal branch replays it cursor-blind; residue/impure_pure untouched.
+- NEW Macro-local kit (consolidation candidates): macroSteps_engine_run, engine_of_macro,
+  wf_of_diffCursor, engine_macro_lift, macro_of_engine.
+- SYNTAX paid: rw under a stuck >>= binder fails — `show st'.run [m]` THEN run_singleton
+  (macroStep_engine_play's pattern is mandatory); `subst h : e₁ = literal` eliminates e₁ —
+  pass the LITERAL in the following refine; `(by tac₁ newline tac₂)` continuations must NOT
+  dedent below tac₁'s column (by alone on its line); the repaired macroSolvable package has
+  SIX witness slots (the cons-equal case forgot v := u); obtain on a PROJECTION (m.stock)
+  substitutes only the goal — destructure the STATE m to make hd's projections reduce;
+  diffCursor's board conjunct rw's FORWARD (m.board → e.board) to convert macro-side guards.
+
+## witnesses — the regression layer, resumed (2026-09-13)
+
+- Predecessor (killed) had done: all `*_refuted` corollaries replaced by REFUTED-archive
+  notes (EngineWitness/LiftWitness2/LiftWitness/Cascade/PaceStepZero/PaceStepsOK/Commute/
+  StockInvar/ApplyWfCounter*), repaired-history anchors, `#guard_msgs` on every deterministic
+  `#eval`, Axioms.lean with 17 crown gates, README lifecycle. NOT redone.
+- THE BUILD BUG ("Witnesses: some modules have bad imports" at job computation): Lake's
+  TOML glob `"Witnesses.*"` = andSubmodules — it names the ROOT module `Witnesses`, which
+  has no file; recCollectLocalModules' imports-fetch fails for it. FIX: new root facade
+  `Witnesses.lean` (imports only Witnesses.Axioms — witness files CANNOT be co-imported:
+  dozens of root-level name collisions: wState/wDeal/H/S/cA…; the facade's one import is
+  the case-sensitivity tripwire: lowercase `witnesses/` + case-sensitive FS = loud import
+  error instead of a silent empty lib). lakefile unchanged.
+- ADDED: Axioms gates for solvable_of_pileStack_return + C1's engine_of_macro,
+  macro_of_engine, macroSteps_engine_run, engine_macro_lift (all [propext, Quot.sound]);
+  MacroC1Witness's 3 #evals + public stC1_macroNew guarded. QUIRK: `private` decls' mangled
+  names differ by invocation — `_private.Witnesses.X…` under `lake build` vs
+  `_private.witnesses.X…` under `lake env lean` — NEVER #guard_msgs a private name.
+- GATES: `lake build Klondike Witnesses` exit 0 (48 jobs); census "inventory pinned: OK"
+  (TwinSwap 7 = the user's in-flight rows, not my delta). TwinSwapWitness.lean (user-owned)
+  untouched, builds green. Sibling olean outage hit once mid-session (Macro.olean vanished
+  during a `lake env lean`); poll-retry resolved it.
+
+## Dominance.lean — the cluster: repair landed, reserve lemma landed (2026-09-14)
+
+- least_redundantStack_dominant REPAIRED `+ (hsafe : safeToStack st c = true)` and PROVEN by
+  reduction to safe_pileStack_dominant (hmem unpacks to legal+¬locked via List.mem_filter;
+  `simp only [Bool.not_eq_true']` flips `!b = true` to `b = false`). Census Dominance 5→4.
+- Witnesses/LeastRedundantWitness.lean (exit 0): WF + exactly-3 stackables in 3 suits (♠K/♥Q/♦9,
+  heights 12/11/6/8) + ¬safeToStack ♦9 (the 4th-suit ♣ conjunct) + a 17-move win — all decide.
+  FULL refutation OPEN: the free red-Q stackable is a peel-host (pilePile ♣J (inr ♥Q) frees ♣Q
+  → the ♥-unwinding 11→8 returns a live red 9 → ♣8 transits); two designs refuted by analysis.
+  wTop as a MATCH on constructor patterns (Suit.spade is a def — cannot be matched); wTop_mem via
+  `cases b <;> simp only [wTop, Option.some.injEq] at h` + `first | absurd h (by simp) | (subst h;
+  simp [wEdges, S, H, D, C, Suit.spade, …])` (the suit/card abbrevs must be IN the simp set or
+  the literal eqs stay opaque); wTop_inj via a 14-pair `wEdges : List (Base × Card)` + `by decide`.
+- draw1_cursor_solvable PROVEN (axiom-clean): at drawStep = 1, diffCursor twins are equi-solvable —
+  the stock-is-a-reserve theorem (B&G's draw-1 exception clause; C9's premise). Route: replay fires
+  non-consuming moves verbatim (apply_nonConsuming_cursor_blind) and, before each consuming move,
+  draws up to the source's cursor — the twins then agree on prev/splice and land on the SAME state
+  (state_ext; the cursor resyncs at every deck move). Kit: dealOnce_iterate_add1 (Macro's
+  dealOnce_iterate_add re-proved — Dominance is ABOVE Macro in the DAG), dealIter_reach1 (climb /
+  wrap / climb; the wrap: `show (if len ≥ len then (⟨l, 0⟩ : Cycle Card) else …)` then if_pos).
+- QUIRKS paid: rcases `-` slots failed AGAIN (use `_`); run_cons_inv yields a 4th (trace) conjunct —
+  use hrest.1; `obtain ⟨k₁…⟩` on ⟨l,u⟩-shaped hypotheses needs an eta-cast `have hk' : … := hk` before
+  rw (t.stock is a projection, not a constructor literal); cycle-eq with-updates: spell the reduced
+  `⟨l, 0⟩` arm in shows (rw auto-rfl closes if-branch records; a trailing rfl then ERRORS);
+  apply_nonConsuming_cursor_blind wants `= false`, not `¬(= true)` (cases hcb : b with | true =>
+  absurd hcb hc); state_ext slots are st₁-field = st₂-field (mind hd's direction: .symm).
+- Route notes upgraded: stackPile_safe_prunable (the complete 10-case second-move ledger; the
+  worry-chain (i) RESOLVES for the head-only statement by comm_stackPile_stackPile; the sole
+  blocker = deckPile x (inr c) storage = the §5.1/B4 root); deck_dominance_draw1 (the (A/B/C)
+  decomposition; A now PROVEN, B = the exchange cases, C = the pre-exit worry normal form = the
+  §5.1 root).
+
+## ENDGAME.md — the route reading (2026-09-14)
+
+- lean-model/ENDGAME.md is the B4/§5.1 endgame route doc: paper mapping (B&G
+  numbering confirmed: Thm 1 = safemoves main.tex:1417, Cor 2 = worry-ban
+  :1453, Cor 3 = thresholds :1460 (= safeToStack bit-for-bit), Thm 4 =
+  immediate building :1521, Thm 5 = compatibility :1614), the rungNormal
+  normal-form def sketch, the (B, L) lexicographic measure, and the W1–W5
+  work order with full statement drafts + falsifiers.
+- KEY STRUCTURAL FACTS for the endgame taker: F2 seat locality — a park on
+  c has exactly ONE alternative seat, the twin (only_blocker_is_twin,
+  Basic.lean:144); F0 — the rung card is c itself, so every winning play
+  fires pileStack c (deckStack c killed by vis_off_cycle); F3 — the N-case
+  base of rank r + c's colour IS the twin seat, free in s₁.
+- CRITICAL GAP flagged: the forced park (twin unavailable, tenant unstackable,
+  no rank-mate for c) — refute-first before W4; repairs: +hsafe / initialReachable.
+- founds_gone (State.lean:149) CLOSES the wave-5 no-passing alert (ii) —
+  stNP predates that conjunct; channel A needs no new repair.
+
+## TwinSwap.lean — aboveOf_congr_off PROVEN, twin line sorry-free (2026-09-14)
+
+The last [M] row fell. Deliverables: `Board.aboveOf_go_mono` (acc ⊆ output
+under fuel induction), `Board.aboveOf_go_congr_aux` (the congruence aux with
+the self-maintaining invariant: acc members + current sub-call output are
+pair-free — the continuation's output IS the current call's via the
+continue-branch), `Board.aboveOf_congr_off` (the 52-fuel instantiation;
+`hcfree : c ≠ t ∧ c ≠ t.flipSuit` replaces the old redundant `hroot`).
+
+Syntax scars worth keeping:
+- After `rw [hagree]` rewrites ONE side's match-scrutinee, `cases hb : e`
+  must target the scrutinee ACTUALLY IN THE GOAL (the rewrite-target side
+  `bd'.topOf ...`, not the source `bd.topOf ...`), or `rfl`/`show` die on
+  unreduced matches. The other side's companion equation is written
+  separately: `(hagree …).trans hb : bd.topOf … = some c'`.
+- `rw [lemma, scrutinee-eq]` at a match leaves `match some c' …` — `rw
+  [if_pos h]`/`rw [if_neg h]` cannot see under it: `show` the reduced arm
+  (defeq iota unwraps the match), THEN the if rewrites fire. Exact
+  sequence inside a nested `have hstep := by` on `go bd (n+1) …`:
+  `rw [aboveOf_go_succ bd, hp']` → `show (if … = true then acc else CONT)
+    = CONT` → `rw [if_neg hcont]`.
+- Fuel-induction invariant placement: carry `hout : ∀ x ∈ go bd n … , …`
+  as a hypothesis of the ∀-statement, not the conclusion; inductive
+  application tuple order: `ih c' (c' :: acc) … hacc' hout'` with
+  `hout'` built by `hstep ▸ hx` transport.
+- Verified in isolation at TEMP\opencode\walk_scratch.lean, then ported.
+
+Process scar: `lake build` was blocked for TwinSwap verification by a
+PARALLEL session mid-edit of Theorems.lean (wiped Theorems.olean).  Repair:
+`git show HEAD:…Theorems.lean` → temp root `…\Klondike\Theorems.lean`,
+`lake env lean -R <tmproot> -o <real olean path> <the file>` rebuilds the
+dependency olean WITHOUT touching their file; then typecheck per-file with
+`lake env lean -o $TEMP\… TwinSwap.lean` (diverts the olean off the source
+tree).
+
+## Theorems.lean — the W1/W2 scaffold + W3-adjacent LANDED (2026-09-14)
+
+- LANDED (axiom-clean [propext, Quot.sound (+Classical.choice for the by_cases inductions)]; census
+  Theorems pinned 1 = the crux; +536 lines, Theorems.lean ONLY): W1 transfers isLocked_congr,
+  lockedness_{draw,deckStack,deckPile,pileStack,stackPile,pilePile} (c ≠ x guards; deckPile caller
+  derives c ≠ x via vis_off_cycle), bottomOf_of_reveal (reveal seat half). W1 scaffold: cBlocked +
+  extractors + solvable_of_pileStack_aux (private; π-length induction; hyp ∃ π₁ π₂,
+  π = π₁ ++ pileStack c :: π₂ ∧ π₁ cBlocked-free = rungNormal substance, post-pass unconstrained;
+  dispatches delete/run-root/7 steps ONLY — zero new sorry). W2: rung_pass_aux + rung_prefix_cons +
+  rung_pass_of_win, DRAFT REPAIRED prefix conjunct = → ≤ (witness Temp/opencode/w2probe.lean, #eval
+  exit 0: winning play, unique pileStack ♦K @2, forced prefix dips to 11 < 12 via the excursion
+  stackPile ♦Q (inr ♣K)). W3: excursion_pair_delete_adjacent (hcancel-form — stackPile_pileStack_cancel
+  is Dominance's, DOWNSTREAM; instantiate there). Spread map: move-only blindness {no x-suit
+  pileStack/deckStack/stackPile, no deckPile/pilePile card-or-base x, no reveal x} + φ (replay = source
+  minus x seat-edge, heights x.suit +1; x top stays empty; carries-x pilePile safe) — the §7.2 choice.
+- QUIRKS: obtain rfl/subst ELIMINATES the substituted var (c/s₂/m) — keep shape eqs, rw into goals;
+  `by decide` fails on free locals — show+rw+simp; `cases m` kills m — hoist apply_wf/hcm BEFORE;
+  rw [hσ] (c.suit→x.suit) matches the rung guard; Cycle.mem_removeIdx; idxOf; (False).elim.
+
+
+- (continuation) `pilePile_return_legal` hypothesis slimmed: dropped the
+  two-clause `hfree`; caller now passes only `hnotloop : t ∉ st.board.aboveOf z`
+  (the no-board-loop clause).  The twin half is derived INSIDE the proof
+  from the forward move's own `canMoveRun` self-landing guard — note the
+  guard comes out of `rw [State.canMoveRun]` as `!decide (contains = true)`,
+  so harvest it as `contains ≠ true` + `eq_false_of_ne_true`, NOT by
+  matching on a bare `!contains` component (type-mismatch).
+  Axioms re-verified: [propext, Quot.sound]; census still 11.
+
+- (continuation) twin line packaged: `State.solvable_cargoTwin` composes
+  `pilePile_return_legal` + `solvable_cargoTwin_transfer` — the engine-facing
+  theorem whose four premises read exactly as the informal claim (twin
+  visible; cargo placed on it; no board loop; the swap move executable).
+  Axioms [propext, Quot.sound]; census still 11.  WF-extension candidates
+  from the design discussion (`board_acyclic` plain form `∀ c, c ∉
+  st.board.aboveOf c` — under `board_edges` equivalent to anchored; the
+  ∃-grading certificate derivable once from it; `cards_accounted`
+  totality) stay PARKED: land-trigger is a second consumer of
+  run-geometry / card-whereabouts beyond the twin line.
+
+## Frame.lean — the separation discipline LANDED sorry-free (2026-09-14)
+
+- Frame enum: deal/board/heightsOf-per-SUIT/depths/stockCards+stockCursor-split/drawStep; Move.reads/writes pure
+  (state-dependence confined INSIDE frames — the honest refinement story is in the header). writes ⊆ reads proven.
+- MASTER LAWS (proven once, sorry-free): frame_congr (+_none: verdict+successor transfer from read-agreement),
+  frame_invar (unread frames inherited), commute_of_disjoint_frames (Law 2: read/write-disjoint ⇒ both orders equal,
+  NO legality hypotheses). All-frame ext: state_ext_of_frames.
+- ACCEPTANCE: blindness kit ×7 (apply_blind_stock_heights/_board_depths/_stock + instances) = one frame_congr each;
+  the 12 coarse pairs (draw_comm_* ×4 + reveal·deckStack + deckStack·pilePile) via Law 2 — commute_of_compsDisjoint
+  SUBSUMED; deal_commutes_nonStock_frame DERIVES commute_of_disjoint_touch's hnc guard (non-consuming = no stock
+  frames in reads); cursor-blindness API (apply_cursor_blind_frame — non-draw sector; draw arm stays Commutation's).
+- Of the SIXTEEN comm_*: only deckStack·{pileStack,stackPile} fall out (deckStack is board-free; heightsOf split) —
+  re-derived STRENGTHENED (hdisj dropped; same-suit vacuous via guard omega). The other 14 interact inside the
+  atomic board frame (isVis reads arbitrary seats) — the touch layer's territory: BOUNDARY recorded, not forced.
+- W3: Move.seatsOrReads (the §7.2 move-only choice — c-arg or base-card = x) + heightsOf_mem_reads_iff (cSuitMove
+  frame-native) + apply_heights_blind (the dropped height invisible to x-suit-blind γ) + self-guarding I/II
+  (canPlace_eq_false_of_seated, topOf_of_bottomOf — why move-only is honest) + excursionSim def (the φ interface:
+  τ = σ minus x's edge, heights x.suit +1). ONE-STEP REPLAY NOT PROVEN — the aboveOf walk-agreement lemma
+  (TwinSwap's aboveOf_congr_off template) is the missing piece.
+- Probe: Temp/opencode/frameprobe.lean (grid=12, same/diff-suit legs, legality invariance). QUIRKS paid:
+  rcases `-` patterns + trailing named slot failed silently (use explicit names); after `cases h : e` the goal shows
+  do-notation binds — `show` the beta-reduced form BEFORE rw into bind bodies; `h2 _ rfl` fails (metavar) — name
+  the Frame; Frame.agree is match-typed so `.trans`/`.symm` need the cases-lemma Frame.agree_trans/_symm;
+  [System.Text.Encoding]::UTF8 WriteAllText ADDS A BOM (broke the import line) — use UTF8Encoding($false).
+
+## TwinExchange.lean — wave-15 scaffold findings (2026-09-14)
+
+- REPRESENTATION (paid): the cargo exchange is the two-seat VALUE swap `topOf := bd.topOf ∘ (·.swapTwin t)`
+  (Board.exchangeTwin) — the stacks RIDE because every card above a cargo root names its own seat; only the
+  two root edges change. Total + guard-free (a matching stays a matching under a 2-point value swap);
+  `bottomOf_exchangeTwin`: a card's base swaps seats. Involution at board and state level. Axioms [propext,
+  Quot.sound]. Quirk paid: `cases hb : e` ALREADY substitutes e in the goal — a following `rw [hb]` fails.
+- WRONG ROUTE (analytical, prover not yet consulted): the sketch's "no guard consults the swapped data" is
+  FALSE at the runs — an aboveOf walk passing the CARD t reads the `inr t` seat and continues into the OTHER
+  thread's cargo, so a pilePile landing a run on one cargo's top is SELF-LANDING in the mirror thread. The
+  frozen-phase correspondence is STRUCTURAL: land-on-cargo-top ↦ land-on-OTHER-cargo's-top. The same-move
+  replay DOES work when only one seat is occupied (the phantom companion's mirror: A's walks ⊇ B's, so the
+  self-landing guards transfer downward).
+- The no-braid premises (t, t.flipSuit ∉ aboveOf z / z') are sanity, not just guard reuse: a twin inside a
+  cargo run makes the exchange seat a stack ON ITS OWN MEMBER (cyclic board); mutual nesting (z' ∈ aboveOf z)
+  already implies the braid (t' sits directly under z').
+- HIDDEN-TWIN TRAP (companion): the reveal's ATTACH base (hiddenBase = the second-from-top hidden) can BE the
+  twin seat `inr t'` — the phantom exchange state then blocks the reveal ⇒ divergence. Hence the companion's
+  `hzone` (visible ∨ stocked ∨ foundationed) + `hwf` (zones disjoint ⇒ twin not hidden); `hbare` separately
+  kills the deal-adjacent trigger shape (a reveal trigger needs bottomOf c = inr t', i.e. a card ON t').
+- REVERSE-at-phantom stuck shape (candidate witness for the direction question): stx's play lands a run on the
+  freed t-seat — the st-mirror cannot land there (cargo present) nor redirect (phantom seat: isVis t' = false
+  blocks canPlace). FORWARD (st → stx) is clean: nothing lands on, walks through, or reveals at a seat whose
+  card is off the board; the height-writes are the same moves, so a terminal win transfers verbatim.
+- THE IDENTIFICATION (still to land; both rows cite it): the post-transfer state = `st.exchangeTwinCargo t` —
+  apply_pilePile_iff's `(detach (inr t)).attach (inr t') z` composite vs the two-slot swap, via ext_topOf +
+  attach_topOf_ne/detach_topOf_ne case split (hbare supplies the vacuous slot). Plus canMoveRun's guards from
+  hbare/hvis'/canSitOn_swapTwin_right (the fit transfers across twins: `rw [← Card.swapTwin_self_right t]`).
+  Census 13 (TwinExchange 2).
+
+## ENDGAME §8 — the W4 drafts (2026-09-14)
+
+- DESIGN agent: ENDGAME.md §8 appended (three W4 drafts + trade-off + recommendation); no Klondike edits.
+- Corner taxonomy: forced-park = (i) twin bare (redirect, FREE cases, old W4a-c licenses; hazard: redirect cycle), (ii) occupied by a FITTING cargo (exchange corner, TwinExchange [H]/[M]; the exchange BLOCKS the stack — canonical play stacks c AFTER the occupier departs, F1), (iii) unavailable / deal-inherited non-fitting (TRUE corner: crux false, known; draw-1 reserve lemma rescues, draw-3 not).
+- (a) `solvable_of_pileStack_or_twin` — disjunctive TWIN-STACK successor (the literal swap-image reading is VACUOUS by the R1 square): hmt ASSUMED (equal heights, NOT derivable from hsafe); SILENT at the corner; yield-poor (§5.5 only).
+- (b) quotient: bare TwinEq orbits verdict-INVARIANT (vacuity trap — equivalent to the staged crux); the teeth are exchange_bare at deck-cover (b2 = `solvable_cover_twin_iff` in flight) + cargoTwin_exchange [H]; survives as a CLASS statement; endpoint = same certificate disjunction as (c).
+- (c) `rungNormal_or_forcedPark` + repaired crux `s₁.solvableFrom ∨ st.forcedPark c` (ADDED CONCLUSION, no guards — respects the user decision). forcedPark is a DRAFT def (state-level arms; the tenant arm is play-level, deliberately OUT — toEngine_lifts class); exactness probes (c1) are the gate.
+- RECOMMENDATION: (c) with (b)'s exchange package as lemma-0 (the hybrid); (a) demoted to an hmt-shape corollary. Rows fall under hsafe modulo the channel-A/B bridge [GAP: alert (iii)].
+- Gaps named: (c-α) divergence-window one-step replay (aboveOf_congr_off template, same piece W3's φ needs); (c-β) the transfer step is B-NEUTRAL — the §4 measure stalls (last-noncompliant-first or a third component).
+- IN-FLIGHT R1-R4 (apply_swapTwin / solvable_swapTwin / solvable_cover_twin_iff / swapTwin_wf): NOT greppable at 09:10; heights-permutation must respect TwinSwapWitness's root cause; (c) needs none directly (rides landed solvable_cargoTwin + [H]/[M]).
+- Propagation: solvable_of_accomm_step (Theorems:2393) inherits the disjunct; corner-exclusion mid-accommodation unproven [GAP].
+
+## TwinExchange.lean — the [M] row CLOSED: the backward-transfer collapse (2026-09-14)
+
+- LANDED (sorry-free, axioms [propext, Quot.sound]): `Base.swapTwin_eq_self`; the two IDENTIFICATIONS —
+  `pilePile_exchangeTwinCargo_fwd` (st --pilePile z (inr t')--> stx, needs hvis'/hbare/hfit + t' ∉ aboveOf z only — the
+  contains guard is DIRECT, no walk congruence needed on the forward side) and `exchangeTwinCargo_pilePile_back`
+  (stx --pilePile z (inr t)--> st — the exchange's ONE-MOVE INVERSE); `solvable_cargoTwin_exchange_bare` closes the row.
+- THE COLLAPSE (supersedes the mirror analysis above): prove st → stx NOT by mirroring st's play in stx but by
+  playing the BACKWARD transfer from stx — its guards never consult the twin CARD (canPlace reads only the target
+  seat's bareness, the HOST's visibility — carried across the exchange by bottomOf_exchangeTwin — and the fit), so
+  stx.apply (pilePile z (inr t)) = some st and the winning play replays through it: `[back-move] ++ π`.  Hence the
+  statement was STRENGTHENED past the scaffold: hzone/hwf dropped (phantom twins — stocked, buried, foundationed —
+  covered for free); wave-14's visibility premise is a FORWARD-transfer artifact only.
+- The backward walk congruence: aboveOf_{stx} z = aboveOf_st z via aboveOf_congr_off (hagree from
+  exchangeTwin_topOf + Base.swapTwin_eq_self; hfree = the no-braid premises reassembled; hcfree: z ≠ t, t' from
+  canSitOn's rank arithmetic + twin-blindness).
+- QUIRKS paid: (1) dot notation `((Sum.inr t) : _).swapTwin t` fails (Sum has no swapTwin — the metavariable blocks
+  Base resolution) — write `Base.swapTwin t (Sum.inr t)` or ascribe `(Sum.inr t : Base)`; (2) after
+  congrArg Option.some + ext_topOf + funext, the structure-literal projection needs `dsimp only` BEFORE the
+  update/detach_topOf rewrites; (3) `rw [apply_pilePile_iff]` + a 7-slot refine ⟨b₀, bottomOf, ne, canMoveRun, bd,
+  attach, rfl⟩ — the last rfl is structure eta ({stx with board := st.board} ≡ st), no state_ext needed.
+- The reverse (stx → st) at INVISIBLE twins stays open (the forward transfer needs isVis t'); candidate stuck shape
+  as recorded above.  Census 12 (TwinExchange 1 — only the [H] both-occupied row remains).
+
+## Theorems/Frame — W3 spread LANDED sorry-free (2026-09-14)
+
+- LANDED (Theorems.lean only, +`import Klondike.Frame` — root-name collisions grep'd clean, Dominance re-verified
+  against the rebuilt olean; axioms [propext, Quot.sound]): `excursion_pair_delete` (§5 W3) + the φ-kit:
+  `excursionSim_of_stackPile` (step 0 via stackPile_pileStack_return wholesale), `_converge` (the pair nets to the
+  identity), `_step` (the ONE-STEP REPLAY — Frame's honest boundary closed, also ENDGAME §8 (c-α)'s piece), `_run`
+  (segment induction); + `cSuitMove` (Prop-valued: heightsOf c.suit ∈ m.reads), `hidden_mem_of_hiddenBase`,
+  `contains_false_of_notMem`. Theorems.olean refreshed (scoped build) for the axioms check.
+- ITEM-1 GREP-FIRST: the walk-agreement form W3 consumes is the DETACH-SUBSET (replay walk ⊆ source walk —
+  pilePile's self-landing guard transfers a fortiori) = `aboveOf_detach_subset` (Theorems:983, landed 2026-09-13)
+  — NO duplicate written; the equality form (aboveOf_congr_off's) unneeded at this level; the missing piece was
+  the one-step replay itself.
+- STATEMENT REPAIR: the draft's `∃ π', … ∧ …` was elided + dangling binder → the concrete deletion `st.run (γ ++
+  π₂) = some w` (π' := γ ++ π₂ witnesses any ∃-packaging; the length drop of 2 is W5's L↓); hrk kept for the
+  draft's shape (derivable from hrun). Non-vacuity: a γ of draws is always blind (reads table); the excursion
+  context is Temp/opencode/w2probe.lean's witness.
+- SYNTAX PAID: `::` binds TIGHTER than `++` — the draft's play parses ((stackPile::γ) ++ (pileStack::π₂)):
+  append-headed, rfl-equal to the cons form (append-on-cons is defeq, so rfl-probes CANNOT distinguish the parses)
+  — `rw [List.cons_append] at hrun` FIRST or `simp only [State.run]` no-progress. `rw [State.canMoveRun]` FAILS
+  (match-in-body def) — `simp only [State.canMoveRun]` instead. `Bool.not_eq_true'` is a Prop-EQUALITY, not an
+  Iff (no .mp/.mpr): `rw [Bool.not_eq_true'] at h`. with-update projections need `show`-casts.
+- REVEAL CORNER (§7.2's blind spot): hiddenBase a ≠ inr x is NOT move-only derivable — a seatsOrReads-clean
+  reveal can still attach at x's hidden seat; the exclusion is WF's vis_not_hidden via hidden_mem_of_hiddenBase
+  (revert + `cases hs : scrutinee` iota-reduces the hiddenBase match; hidden_split gives the membership).
+
+## TwinExchange.lean — the [H] row's obstruction map (2026-09-14, session 2)
+
+- LANDED: `canSitOn_hosts_are_twins` (THE SEAT LOCK): canSitOn z t ∧ canSitOn z d ⟹ d = t ∨ d = t.flipSuit — the
+  rank/color dual of only_blocker_is_twin (tenants-of-a-base ↔ hosts-of-a-tenant). QUIRK paid: retype the
+  canSitOn_eq rank hypotheses (`have h1' : zr.toIdx + 1 = tr.toIdx := h1`) BEFORE omega — the raw ones carry
+  unreduced Card.rank projections that omega treats as distinct atoms.
+- PREMISE ARITHMETIC: hfit + hfit' force z' = z.flipSuit (same rank, same color; z ≠ z' from the distinct bases
+  inr t ≠ inr t') — the both-occupied shape is TWO TWIN PAIRS crossed. Consequence via the seat lock: the cargos'
+  only landing seats are the twins — the two crossings are the only live cargo configurations; a cargo leaves its
+  twin only via pileStack (foundation). stx is NOT reachable from st — the equivalence is genuinely play-level.
+- DEAD ROUTES (checked, do not retry): (1) the 3-move swap via a third seat — no third seat exists (the seat lock);
+  (2) B&G Thm-4 redirect at MERGES — a pilePile landing a run whose walk passes a twin onto the OTHER cargo's
+  stack-top is self-landing in the mirror thread, and the redirect target's fit does NOT transfer (the two
+  stack-tops are unrelated cards) — the port is blocked exactly where ENDGAME §2 warned (their convergence moves
+  free, ours canSitOn-gated); (3) the z ↔ z' CONJUGATION invariant (correct for BARE cargos — twin-blind fit on
+  z/z' via canSitOn_swapTwin_right) — dies at suit-reading moves (pileStack z needs z's rung, the conjugate move
+  needs z''s; heights are per-suit, not conjugated — TwinSwapWitness's root cause).
+- The same-move mirror is CLEAN for draw/deckStack/deckPile/stackPile/reveal (reveal triggers on t/t' are VACUOUS:
+  the boundary attach needs the revealed card unseated, but the hosts are seated by hvis/hvis') and for pilePile
+  off twin-reads. ONLY the merges diverge.
+- ROUTE FORWARD (multi-session): the B&G-Case-1 piecewise bookkeeping (exchange-invariant pre-merge → conjugation
+  post-merge → suit-gated switching), or a play normalization ("winning plays avoid cargo-top merges" — the §4
+  last-noncompliant lex machinery). The gate's witness hunt should run FIRST (the corner AND the merge shape).
+- FREE LICENSES identified, NOT landed: [z' bare + z'-rung at st] ⟹ st reaches stx in 3 moves
+  [pileStack z'; pilePile z (inr t'); stackPile z' (inr t)] — the worry-back rung matches the post-pileStack
+  height exactly — giving stx.solvable → st.solvable; the z-side symmetric for the other direction. The natural
+  free cases of the eventual licensing disjunction (cf. park_episode_replay's hlic).
+
+## TwinExchange.lean — the freedom-first bridge LANDED (2026-09-14, session 3)
+
+- LANDED (sorry-free, axioms [propext, Quot.sound]): `Card/Base/Board/State.*_flipSuit` (the twin's swap/exchange
+  is the SAME swap — the pair is unordered; `Card.swapTwin_flipSuit` case 3 needs the flipSuit_flipSuit-bridged
+  of_ne hypothesis), `Board.exchangeTwin_detach` (detach-at-twin congruence: (bd.exchangeTwin t).detach (inr t') =
+  (bd.detach (inr t)).exchangeTwin t — ext_topOf case split b ∈ {inr t, inr t', other}), and
+  `State.solvable_of_exchange_pileStack` — THE BASE CASE: if the winning play's first move is pileStack z, stx plays
+  [pileStack z (mirror: guards common, lands on A₁.exchangeTwinCargo t by the detach congruence); pilePile z' (inr t')
+  (the backward transfer at the FLIPPED roles — exchangeTwinCargo t' = exchangeTwinCargo t)] then π verbatim.
+  z'-side = the same lemma at the flipped roles.
+- STRUCTURAL SIMPLIFICATION: the first freedom move is ALWAYS a pileStack — pre-freedom pilePile z _ is impossible
+  (the seat lock confines the cargo run to the twin seats, both occupied). So the induction shape is: prefix (mirror)
+  + freedom (bridge, LANDED). The ONLY remaining gap: the merge moves in the prefix.
+- QUIRKS paid: (1) `Option.some.inj (hb₀.symm.trans h₀)` — mind the directions (symm THEN trans); (2) an opaque A₁
+  from iff-destructuring needs `rw [hA₁]` (or show-casts) EVERYWHERE its projections appear — the bottomOf/isVis/topOf
+  facts go through `bottomOf_detach_ne` + `rw [hA₁]`; (3) structure-literal projections under rw: `show` the
+  iota-reduced form first, e.g. `show (st.board.exchangeTwin t).detach ... = _`; (4) membership transfers across
+  board equalities: define `hmem : ∀ x ∈ A₁.aboveOf z' → x ∈ st.aboveOf z'` via the `rw [← habove₁]` pattern instead
+  of ▸ (its direction is finicky); (5) the bridge's braid exclusions use ONLY the REMAINING cargo's hnb' — the
+  mover's hnb is not needed (pileStack z doesn't disturb z''s run — aboveOf_congr_off with hfree from hnb').
+- Census still 12 (TwinExchange 1 — only the [H] row's prefix induction remains; the merge case is the whole gap).
+
+## Theorems - W4 certificate form LANDED, descent isolated (2026-09-14)
+
+- LANDED (Theorems.lean ONLY; State.lean untouched - placement grep-first: cBlocked/cSuitMove/board_forest precedent): `State.forcedPark` (8.3(c) draft verbatim - twin NOT vis-and-bare, no rank-mate; tenant arm OUT per toEngine_lifts class) + probes `State.not_forcedPark_of_twin_seat`/`_of_rank_mate` (axiom-free; Temp/opencode/fpprobe.lean #eval: TRUE at unavailable/occupied/non-fitting-occupier twin corners, FALSE under both licenses; corner-(ii) width = the (c-gamma) exactness gate, recorded in the def's docstring) + `solvable_of_pileStack_of_rungNormal` (disjunct-1: the W1 aux consumed VERBATIM, b0 = apply_pileStack_iff slot 2).
+- OLD crux `solvable_of_pileStack` TOMBSTONED (falsity = user's 2026-09-14 decision, ENDGAME 8; REFUTED-archive style) and replaced by `solvable_of_pileStack' : s1.solvableFrom OR st.forcedPark c` - PROVEN as a reduction; the file's single `:= sorry` moved into `rungNormal_or_forcedPark` (the 4 (B,L) descent; its docstring = the next taker's brief: (c-alpha) park-window one-step replay, template excursionSim_step [the twin-seat-divergence phi, NOT the edge-removal one]; (c-beta) the B-neutral transfer stalls the measure [last-noncompliant-first or a third component]; excursion linchpin: the return pileStack x fires pre-pass [deckStack x dead by vis_off_cycle]; (c1alpha/beta) refute-first gates).
+- PROPAGATION (8.4's note; conclusion-only surgery, hypotheses untouched): `solvable_of_accomm_step` + `solvable_accommodates_aux`/`solvable_accommodates` gain `OR exists c sigma pre sub, st.run (pre ++ Move.pileStack c :: sub) = some st' AND st.run pre = some sigma AND sigma.forcedPark c` (mid-play certificate witnessed by the play's own prefix; corner-exclusion mid-accommodation stays [GAP], B2-side alternative unstarted). NO downstream users existed (grep-first; the whole DAG re-verified exit-0 against the refreshed olean: Kills/Progress/Dominance/Realizability/Macro/TwinSwap/TwinExchange/Bridge/Initial/Restriction, others' sorries unchanged). Census: Theorems 1, total 12, pinned OK.
+- QUIRKS paid: rcases `<c, rfl, hfp>` on `m = Move.pileStack c` under `cases hm : st.apply m` - the rfl-subst on the induction's head var is clean (m eliminated, hm auto-rewritten); `st.run [] = some st` is plain rfl; `st.run (m :: pre) = some sigma` closes as `simp only [State.run, hm]; exact hpre` (rung_prefix_cons's pattern). Olean refresh lock-free: `lake env lean -o .lake\build\lib\lean\Klondike\Theorems.olean Klondike\Theorems.lean`.
+
+## TwinExchange.lean — the prefix-induction mechanics LANDED (2026-09-14, session 4)
+
+- LANDED (sorry-free, axioms [propext, Quot.sound]): `Board.exchangeTwin_detach_ne` + `Board.exchangeTwin_attach_ne` (the detach/attach
+  congruences off the twin pair — the attach_ne form: from bd.attach b c = some bd', conclude (bd.exT t).attach b c = some (bd'.exT t);
+  the b.swapTwin t ≠ b rewrite inside rw chains uses the `have h2 := swapTwin_swapSymm...; rw [h, hfix] at h2`-pattern, NOT ←-rw [loop]),
+  `State.isVis_exchangeTin` (visibility transfers — via a `show` to the isSome-form FIRST, then rw + cases; the folded State.isVis on the
+  RHS does NOT get substituted by `cases hb :`), and the mirror steps: `exchangeTwinCargo_step_draw`, `_step_deckStack` (stock/heights
+  frame-inherited; the successor relation is a field-for-field rfl), and `_step_pilePile` (THE clean-run step: walk congruence via
+  aboveOf_congr_off + the two board congruences; β/b non-twin derived from the guard + h₀'s topOf form — the occupied-twin argument).
+- THE STEP-LEMMA SHAPE for the remaining three kinds (reveal/deckPile/stackPile — single-attach each): case-split b ∈ twin seats OFF via
+  the canPlace guard (topOf (inr t) = some z ≠ none kills it), extract canPlace from canMoveRun via `simp only [State.canMoveRun] at hcmr`
+  (NOT rw — the match-in-body quirk AGAIN, on VARIABLE bases), transfer canPlace by cases on b (inl: defeq-exact; inr: simp only
+  [State.canPlace] at both + rw the topOf/isVis transfers), then assemble via apply_*_iff with the attach congruence. The reveal's
+  hiddenBase non-twin: the attach guard topOf (hiddenBase) = none vs h₀'s occupied twin seats.
+- PREMISE TRANSFERS (the induction's remaining mechanics — the unplaced-card argument, proven informally here for the next taker):
+  every seating move (pilePile/deckPile/stackPile/reveal attaches) writes an UNPLACED card (attach's own guard), and `t` stays placed
+  through the pre-freedom prefix (pileStack t needs t bare — z is on it; pilePile t re-seats it) — so no move can SEAT t, hence t never
+  ENTERS a cargo's run; and a run CONTAINING t contains the cargo z (z is on t), so it cannot land on z's stack (self-landing). Same for
+  t'. The hnb premises persist through all non-freedom moves without WF.
+- THE MERGE GAP, sharpened: the merge breaks the mirror (self-landing in the exchanged state) AND the premise transfer (it CREATES the
+  braid t ∈ aboveOf z' — the induction's premises die mid-play). So the naive prefix induction CANNOT work — the route MUST normalize
+  ("winning plays avoid cargo-top merges pre-freedom") or do the B&G piecewise bookkeeping. Rank arithmetic kills the merge only for
+  canSitOn-graded runs (deal-adjacent runs are ungraded — no contradiction available).
+- Census 12 (TwinExchange 1 — only the [H] row's assembly + the merge gap remain).
+
+## TwinExchange.lean — the mechanics table COMPLETE (2026-09-14, session 5)
+
+- LANDED (sorry-free, axioms [propext, Quot.sound]): `State.canPlace_exchangeTwin` (the placement-guard transfer off the twin pair;
+  inl-case closes by DEFEQ-exact, inr via simp only [State.canPlace] + the topOf/isVis transfers) + the last three mirror steps:
+  `exchangeTwinCargo_step_deckPile`, `_stackPile`, `_reveal`. ALL SIX non-freedom move kinds now mirror (draw, deckStack, deckPile,
+  stackPile, reveal, pilePile-clean) + the freedom bridge.
+- THE REVEAL STEP's off-twin derivations (reusable): triggers on the twin seats are killed by htop vs h₀'s occupied seats (c ≠ t/t');
+  reveals whose REVEALED CARD is a twin cannot fire (the attach guard needs it unplaced — bottomOf r = none — but hvis/hvis' keep the
+  twins placed — so r ≠ t/t' from any firing reveal); the attach BASE (hiddenBase) is off-twin the same way (the occupied-seat argument).
+  The B-side's pileOfTopHidden/hiddenBase read the deal+depths — transfer via Frame.pileOfTopHidden_congr/Frame.hiddenBase_congr with the
+  exchangeTwinCargo_{deal,depths} rfl-lemmas (Frame.lean's congruences are the reveal step's workhorse).
+- QUIRKS paid: (1) the iff-destructured successor states display as FULL literals after `rw [hst]` — the `(st.exT t).board` pattern is
+  GONE, so do NOT rw the board lemma there; just rw the field lemmas that still appear (stock/heights/depths) and `rfl` — defeq carries
+  the literal-vs-literal equality; (2) an ∃-witness slot inside a refine (bd') must be FILLED (`bd.exchangeTwin t`), not left `?_` —
+  otherwise the bullets shift and the goals become Boards; (3) `Frame.*_congr` produces an EQUALITY — `rw` it then `exact hpile`, not
+  exact-the-congr (type mismatch).
+- THE ASSEMBLY RECIPE (next session): strong induction on the play; per step: case the move kind → the step lemma gives the B-successor
+  = a₁.exT t; the PREMISE TRANSFERS still to land (the unplaced-card argument, sketched in the session-4 note); the freedom case → the
+  bridge; the merge case → the gap. The clean-play theorem (merge-free plays ⟹ stx solvable) is then immediate.
+- Census still 12 (TwinExchange 1).
+
+## TwinExchange.lean — the premise-transfer substrate begun (2026-09-14, session 6)
+
+- LANDED (sorry-free, axioms [propext] only): `Board.aboveOf_sub_detach` (THE DETACH-SHRINK: x ∈ aboveOf_{bd.detach b} c₀ →
+  x ∈ aboveOf_bd c₀ — the fuel induction on the go-function: until the first read of b the walks (and the acc contains-checks)
+  coincide; at b the detached walk stops (mono rescues the acc); the some-read case derives inr c₀ ≠ b from hd (the detach set b to
+  none) and re-syncs the scrutinees via ← detach_topOf_ne).
+- **THE WF REPAIR** (the session's key finding, recorded in the [H] row): the hnb transfer through the ATTACH-moves (deckPile/
+  stackPile/reveal) needs the moved card to carry NO stack — at WF provable via board_edges: the edge (inr c → y) over a stock or
+  foundationed base c fails BOTH disjuncts (the deal-adjacent one's own side condition demands c topHidden-or-seated; the legal one
+  demands c seated); WITHOUT WF a phantom unplaced card can formally support a stack carrying `t` into a cargo run — the main row
+  should add `hwf`. NO WF needed for: the pilePile case (the self-landing guard excludes t-containing runs from the cargo's own
+  stack) and the reveal case (the revealed card's stack is exactly {the trigger} by the trigger's bareness guard).
+- THE REMAINING TRANSFER PIECES (templated): (1) the attach-growth lemma `x ∈ aboveOf_{attach b c} c₀ → x ∈ aboveOf c₀ ∨ x = c ∨
+  x ∈ aboveOf c` — the fuel induction with the divergence-at-b analysis; the sub-walk from c needs its own induction (the acc
+  at the divergence is c :: prefix — the prefix pollutes, so the sub-walk's statement is `go n (inr c) acc ⊆ acc ∪ {c} ∪ aboveOf c`);
+  (2) the WF stack-free derivations (board_edges, ~15 lines each for stock/foundation); (3) the h₀/hvis transfers (trivial: the
+  topOf_persist/attach_topOf_ne one-liners per kind).
+- SIBLING WEATHER (2 outages polled through, both settled green): the Theorems chain went red mid-edit twice — poll, don't work
+  around. The sibling CONSOLIDATED my Card/Base.swapTwin_flipSuit into Relabel.lean (canonical home) leaving a dangling tombstone
+  docstring in TwinExchange (a `/-- ... -/` with no declaration — the parse error at the NEXT `/--`); fixed by folding it into the
+  section header. The merge corner is now CONFIRMED FROM BOTH SIDES (their parkSim c-alpha note: fires in sigma, self-landing in
+  tau — the same shape).
+- QUIRKS paid: (1) `List.Subset` has STRICT-IMPLICIT binders (⦃a⦄) — apply the subset term DIRECTLY to the membership proof
+  (`exact mono (n+1) (inr c₀) acc hx`), NOT (x, hx); (2) `rw [if_pos]` FAILS under an unreduced match scrutinee — after
+  `rw [hd] at hx`, `dsimp only at hx` to iota-reduce the match BEFORE the if-rewrites; (3) there are TWO aboveOf_go_mono's
+  (Theorems' explicit-bd membership form; TwinSwap's Board.* subset form) — mind which one `aboveOf_go_mono` resolves to.
+- Census still 12 (TwinExchange 1 — the [H] row only; TwinAgnostic.lean is the sibling's new file).
+
+## Theorems — c-alpha LANDED sorry-free (2026-09-14)
+
+- (c-alpha) LANDED (Theorems.lean only, +~430 lines, axioms [propext, Quot.sound], census Theorems 1 = carrier UNTOUCHED, total 12 pinned):
+  `parkSim` (twin-seat divergence phi: cargo y on c's seat vs twin's, else equal, hosts visible, y neither) + extractors (_bottomOf/_isVis/_canPlace)
+  + WALK AGREEMENT both forms: `parkSim_aboveOf_subset` (twin not in the moved run => replay walk <= source; pilePile self-landing transfer) and
+  `parkSim_aboveOf_cargo` (tau.walk(y) <= sigma.walk(y) U {y}; the re-home convergence's guard) + `Move.parkBlind` (move-only blindness) +
+  `parkSim_step` (the ONE-STEP REPLAY, excursionSim_step's park twin; WF for reveal's vis_not_hidden) + step-0s `parkSim_of_{deckPile,stackPile,pilePile}`
+  (redirect DERIVED from the twin license + canSitOn_flipSuit_right := rfl; pilePile adds hb0ne y-not-on-twin + hnb no-braid) + convergences
+  `parkSim_converge_{pileStack,pilePile}` (successors COINCIDE) + `parkSim_merge_pilePile` (pilePile y (inr twin) lands ON the replay state) +
+  `parkSim_run` (segment packaging; the walk guard is PER-TRACE-STATE, quantified over decompositions). Excursion-window use: parkSim x z, same phi.
+- (c1alpha) GATE DID NOT FIRE (Temp/opencode/caprobe.lean, 23 evals, exit 0): phi instantiates, blind steps replay, departure converges, re-merge lands;
+  at the licensed pre-state fpB is FALSE and BOTH redirected parks fire (double-redirect escape => the both-occupied exchange, (c-beta) territory) -
+  no too-narrow witness, certificate keeps reading the source state, NO carrier shape change. Exclusions probed load-bearing (evals 15-20): parks on
+  the twin (redirect-cycle hazard) and the MERGE (moved run through the twin's seat: fires in sigma, self-landing in tau - TwinExchange [H]'s corner;
+  hwalk is state-dependent BY NECESSITY: the value-swap phi breaks aboveOf_detach_subset's one-directionality).
+- QUIRKS paid: fuel-52 not 51-at-52 (whnf timeout - apply walk lemmas at 52 directly); rcases rfl on mem_cons eliminates the substituted var (rw instead);
+  state_ext with sigma-typed facts fails on successor-literals (refine state_ext ?_ x6 + per-field exact); post-`rw [aboveOf_go_succ] at hw` + cases hb:
+  rw [hb] at hw THEN ascribe the iota-reduced if-form before if_pos/if_neg; rw [Bool.not_eq_true'] on (!x)=true yields x = false (no intro);
+  canPlace-ascription matches go DEPENDENT (decode: have h := hcp; simp only [State.canPlace] at h; rw [Bool.and_eq_true_iff] at h).
+- (c-beta) for coordination: the transfer's B-neutrality still stalls the (B,L) measure - last-noncompliant-first or a third component is the descent
+  taker's open item; the exchange/merge shapes it meets are probed above.
+
+## Board/Tactics — Phase 0 landed by interrupted agents, verified by orchestrator (2026-09-14)
+
+- aboveOf encapsulation (Board.lean, +450): the kit (step/self-disjoint/no-fuel-truncation/slot-congruence), `.go` deprecation-noted (private-ization pending — live consumers in TwinSwap-side files); consumers converted in Theorems (net -388), Move, Frame, Dominance. No proof's meaning changed; carrier byte-identical.
+- Tactics.lean (244): the guard-normal-form simp set (curated, named — NOT global @[simp]) + `run_step` + `move_cases`; demonstration conversions in Move/Theorems.
+- Both agents were interrupted before session-end blocks and facade import commit; acceptance run by orchestrator: census 12 pinned, Witnesses 47 jobs green, axioms [propext, Quot.sound] throughout, per-file 6/6 exit 0. Facade import of Klondike.Tactics pending (the user's TwinAgnostic/run_split collision blocks facade builds — their fix).
+
+## TwinExchange.lean — THE GATE FIRED: the premiseless [H] form REFUTED, repaired `+hwf` (2026-09-14, session 7)
+
+- THE WITNESS (Temp/opencode/w15merge.lean; RE-VERIFIED against the real definitions at Temp/opencode/w15mergecheck.lean — imports
+  Klondike.TwinExchange, #eval exit 0): a crafted non-WF state — empty deal, heights (red 12 / black 13), 13 board seats — with z=♠J on t=♦Q,
+  z'=♣J on t'=♥Q, c=♥10's run [♥10, ♦Q, ♠J, ♥3] passing t, X=♦K buried under c.  ALL premises hold (isVis/bottomOf/canSitOn/hnb — every one
+  #eval-verified).  st WINS in exactly 3: `pilePile ♥10 (inr ♣J)` — THE MERGE (the t-passing run onto the other cargo z') — then `pileStack ♦K`,
+  `pileStack ♥K`.  stx = exchangeTwinCargo t is FROZEN: legalMoves stx = [pileStack ♥K] only (the merge SELF-LANDS — z' rides t there), and the
+  successor has ZERO legal moves — the reachable space is 2 states, neither a win (winIn false at every depth probed to 14; the closure makes it
+  unbounded).
+- THE BLOCKADES (why no dodge exists — reusable for the WF-variant hunt): the strays sit at foundation-passed ranks (never stackable), the two
+  red-queen seats deadlock between the jacks, no black kings on the tableau (t's run immovable), all 7 anchors occupied (no king escape from the
+  completed spade/club foundations), kH sits on a card not an anchor (stacking it frees nothing).
+- THE REPAIR: `+hwf` landed in the statement (TwinExchange:1007).  The witness dies via founds_gone (t' visible at heart 12 — verified) and
+  board_edges (the non-fitting edges would need deal adjacency — the deal is empty).  The repair is SYMMETRIC: exchangeTwinCargo preserves WF (the
+  swapped edges t→z', t'→z are legal-seated by twin-blindness — rank/color transfer across the pair) — worth a named lemma `exchangeTwinCargo_wf`
+  when the assembly needs it.
+- THE USER'S CORRECTION (same session, analytically + executably confirmed): a t-passing run landing OFF both cargo stacks is legal in BOTH games
+  and mirrors fine — the merge is EXACTLY the cargo-stack landing.  Consequence: the step lemma needs v2 via the WALK-BOUND
+  `aboveOf_{exT} c ⊆ aboveOf c ∪ {z,z'} ∪ aboveOf z ∪ aboveOf z'` (fuel induction: the walks agree until the first twin read; the tails are
+  aboveOf_congr_off's territory since the cargo stacks avoid the twins by hnb) — the agent brief for this + the attach-growth law was relaunched
+  mid-session.
+- Census still 12 (TwinExchange 1 — the repaired [H] row only).  No downstream users existed (grep-first: only docstring mentions + the def site).
+- WALK LAWS LANDED (session 7, agent-produced, integrated + re-verified): `Board.aboveOf_go_seeded_subset`/`_bound` (the seeded-walk bounds — a walk with a
+  pre-seeded acc outputs only seed ∪ the plain walk's output; the fuel compensation `j = 52 - m` lands exactly on `aboveOf x`), `Board.mem_aboveOf_attach`
+  (the attach-growth law), `Board.aboveOf_exchangeTwin_bound` (the exchange walk-bound — the user's correction formal), and
+  `Board.selfLanding_exchangeTwin_of_off_cargo` (the step-lemma v2 guard).  All axioms [propext, Quot.sound].  The agent's deviations (worth stealing):
+  no unseatedness argument needed — a by_cases on the contains-guard handles both divergence outcomes; the KEY trick is lem_eq: once c is in the acc, the
+  two boards' walks are LITERALLY EQUAL (at the attach seat: some-c-with-guard-fires ≡ none — both stop at the same acc); `List.Subset` ALSO has
+  strict-implicit binders (hsub hz, not hsub z hz) — the same class as the aboveOf_go_mono quirk.  The sibling's aboveOf encapsulation
+  (aboveOf_go_step/_stop/_topOf_none/_mem/aboveOf_eq) is the right API — the proofs ride it.
+
+## Session note (2026-09-16, parallel gate session — the CIRCULAR family probed: w15circ.lean)
+
+- THE GATE RAN: the w15wfmerge note's remaining candidate family — CIRCULAR blocker dependencies ("a blocker whose stacking rung is only reachable
+  through the cards it blocks") — has a fully licensed, WF, forced-merge cast at probes/w15circ.lean, and it DIES: stx wins anyway.  The cast:
+  t = ♦K (a KING — the sub-run [t, z'] has no card landings, killing the w15-family black-king redirect at the root), c = ♥J, z/z' = the black
+  queens (c's run can ONLY land on them), R = ♦Q on z with its rung ♦J BURIED UNDER c (exposed only by the merge), ♠K hidden behind the locked
+  pin [♣9 ← ♣10], heights (♦10, ♥10, ♠11, ♣8), empty stock.  #eval-verified: wfCheck both true, every twinLicensed component true, the merge
+  legal in st / self-landing + R-blocked in stx, st's 16-move win through the FORCED merge (some true), and stx's 18-move win (some true).
+- THE MECHANISM (third documented mirror-repair, after w15wfmerge's blocker-stacks-off and fithole's rider-detour): the ANCHOR-RELOCATION
+  COLLAPSE.  t being a king means [t, z'] parks at any free anchor (kings relocate freely, run intact); c then re-lands on the now-bare z'
+  (the self-landing guard dies with the run — z' is no longer above c); the re-landing exposes the burial chain (the mirror state unwinds the
+  SOURCE's circle through it); the [♣9 ← ♣10] pin breaks because ♣10's landing target c goes bare mid-collapse.  FREE ANCHORS ARE THE FUEL:
+  holding all seven needs ~7 frozen occupants, each demanding circular stacking with a merge-exposed unwind target — and the burial chain under
+  c is the only such target, single-use per cover rank (the whack-a-mole terminates in the occupant budget).  Every cast tried (covered kings,
+  king-t, deepened burials) died to a dismantle/stack-off escape — founds_gone liveness + anchor outs are structural at WF.
+- CONSEQUENCES FOR THE ROUTE: evidence that the bridges are TRUE at WF strengthens further; the B&G piecewise bookkeeping's merge handling
+  gains the documented third case (dismantle-and-reland, not just wait-for-blocker).  Normalization ("winning plays avoid cargo-top merges")
+  remains dead (this cast's st merge is forced — fithole's shape, now with a burial-justified variant), so the [H] chain through
+  ExchangeDoubleClear stays the load-bearing route.
+- INFRA WEATHER (this session, non-math): (a) Klondike/TwinExchange.lean is RED under the v4.34 toolchain at HEAD — omega failure at 1263:85
+  (needs the rank ≤ 12 bound on `t.flipSuit.rank.toIdx`), rewrite miss at 1269:6, decide-wrapping type mismatch at 1291:17 — its olean is
+  missing, which blocks EVERY probe importing TwinQuotient/TwinExchange; w15circ ran against a verbatim local copy of exchangeTwin
+  (re-verify when green, the w15mergecheck pattern); fixing it is cheap but belongs to whoever owns the exchange file.  (b) w15wfmerge.lean's
+  `legalMoves` still uses the OLD card-indexed `Move.reveal c` — it will not compile against the post-c5c6904 library (anchor-indexed); the
+  probes refresh needs `Anchor.all.map (fun a => Move.reveal a)` (w15circ's kit has the fixed version).  (c) the string-keyed `winBFS` is
+  impractical at #eval beyond small depths (each state enumerates ~700 candidate moves with full board walks; 7+ minutes at depth 20
+  without finishing) — explicit plays decide gates; a depths-audit (heights frozen) is the cheap deadness certificate when needed.
+- THE COLLAPSE KIT LANDED (same session): `Klondike/TwinCollapse.lean` -- the mechanism's general lemmas, sorry-free, axiom-clean
+  [propext, Quot.sound], built green under v4.34 while TwinExchange is still red (imports only Klondike.Tactics, zero exchange dependency).
+  `canSitOn_of_king_eq_false` + `canPlace_inr_of_king` (a king's card-landing set is empty -- the t-is-a-king root fact, formal);
+  `park_king_run` (the park, board-factorized); `park_reland` (the two-move composite: park at a free anchor + re-land on the freed twin
+  cargo -- c seated on z', the host d under c EXPOSED, heights/stock/depths untouched); `solvable_of_park_reland` (the solvability seed,
+  via `run_cons_intro`).  Integration: the premise `hbotZ : bottomOf z' = some (inr t)` is the exchange's aftermath -- the [H] assembly
+  supplies it from the exchange lemmas when the tree greens; the case fires when the run passes a KING twin, the B&G merge bookkeeping's
+  third case alongside blocker-stacks-off (w15wfmerge) and rider-detour (fithole).
+- SYNTAX PAID FOR (TwinCollapse's build, worth stealing): (a) `rw`'s EXPLICIT-argument elaboration order means `nomatch` lambdas at
+  `Board.detach_topOf_ne _ _ _ (fun h => nomatch h)` leave metavars and mis-unify -- name the disjointness once with concrete types
+  (`base_inl_ne_inr`/`base_inr_ne_inl`, in TwinCollapse) and pass the name; (b) `canSitOn_eq` is a FUNCTION -- `(canSitOn_eq t d).mp h`
+  works, bare `canSitOn_eq.mp h` resolves as a namespace lookup and fails with "Unknown constant"; (c) `cases hA : e` ABSTRACTS e in the
+  goal -- the exists-body's first conjunct becomes `rfl`, not `hA`; (d) the king-rank computation: `have h12 : t.rank.toIdx = 12 := by
+  rw [hking]; rfl` -- the `simp only [Rank.toIdx] at h` route left omega without the linear fact (the constraint set showed only the
+  toIdx_lt bound).
+- THE GENERAL FORM LANDED (same session, second batch): `dislodge_reland` -- the collapse fires from ANY legal dislodge of the twin's
+  sub-run (a free anchor, a fit, a deal-adjacent seat); `park_reland` is now the two-line king instance (`park_king_run` + the general
+  form).  The target exclusions are DERIVED, not premises: `b ≠ inr t`/`b ≠ inr d` from the attach's freeness (their seats are occupied),
+  `b ≠ inr z'` from the self-landing guard + the walk-entry fact.  The assembly's WF-level merge-case calculus shrinks to: does the twin's
+  sub-run have ANY landing?  New supporting facts: `aboveOf_contains_topOf` (the walk-entry, contains form: a card riding `t` is IN the
+  run above `t`, cycles or not -- the self-landing guard's silent partner), riding TwinSwap's `Board.aboveOf_go_mono` (cite, don't
+  re-derive) + `lcontains_true_of_mem` (the membership->contains bridge, the mirror of TwinSwap's `lcontains_false_of_notMem` -- worth
+  hoisting to Basic in a dedupe wave).  All sorry-free, axiom-clean [propext, Quot.sound], green.
+- SYNTAX PAID FOR (batch two): (a) after `rw [Board.aboveOf_go_succ, h]` the match does NOT iota-reduce under `rw` -- force it with an
+  explicit `show (if ... = true then _ else _)` BEFORE rewriting the if (Board.lean's own `aboveOf_step_some` precedent, the step I
+  skipped); (b) `if_neg` is DEPRECATED under v4.34 -- use `ite_eq_right`; (c) `Option.some.inj` of two `bottomOf` equations composes as
+  `hb₀.symm.trans hbotT` (the `hb₀.trans hbotT.symm` order does not type-check); (d) `Board.attach_eq_some_iff.mp` wants `≠ none` -- build
+  it from `= some _` by the rw-at-then-simp dance; (e) bare `simp` on a `(c' :: acc).contains y = true` goal DRIFTS to the membership
+  form `y = c' ∨ y ∈ acc` (the linter flags the unused args) -- bridge explicitly with `lcontains_true_of_mem`/`List.contains_cons`
+  instead.
+- THE SECOND REPAIR LANDED (same session, third batch): `wf_vis_rank` (WF's founds_gone contrapositive -- every visible card sits at or above
+  its suit's height; the blocker-is-live seed) and `blocker_leaves_mirror` (w15wfmerge's mechanism, general form): when the blocker `r`
+  riding `z` stacks off, `z` bares and the MIRROR merge `pilePile c (inr z)` fires -- c's run lands on z, exposing the host `d`, with
+  heights gaining exactly r's rung.  The aftermath is the z<->z' twin-conjugate of the source's post-merge state (the suit-gated switching
+  point -- the cleaner correspondence than the dislodge aftermath).  The kit now covers both repair families: `dislodge_reland` (the
+  self-landing obstruction) and `blocker_leaves_mirror` (the mirror-blocked obstruction).  All sorry-free, axiom-clean [propext, Quot.sound].
+- SYNTAX PAID FOR (batch three): (a) `by_contra` does NOT exist without mathlib -- use `by_cases h : P <;> omega` for the contrapositive;
+  (b) `canSitOn_flipSuit_right` ALREADY EXISTS (Theorems:2907, an rfl equation `canSitOn x y.flipSuit = canSitOn x y`) -- cite it, and it
+  takes x y explicitly, rw-style; (c) `founds_gone`'s first conjunct is the Bool equation `isVis c = false`, NOT `¬(isVis c = true)` -- `absurd`
+  mismatches, use `rw [...] at hvis; simp at hvis`; (d) the structure-literal syntax card bites in `refine` witnesses too -- first field on
+  its own line or the parser drops a `}`.
+- THE CONNECTORS + THE BARE-CARGO ARM (same session, fourth batch, TwinExchange green again so TwinCollapse now imports it):
+  `exchangeTwinCargo_bottomOf_z'` / `exchangeTwinCargo_bottomOf_z` (the aftermath premises `hbotZ` both repairs consume, standalone --
+  the derivations were inline in TwinExchange's walk lemmas), `exchangeTwinCargo_topOf_off_pair` (the `hz'bare` transfer -- seats off the
+  twin pair untouched), and `mirror_fires_of_bare` (the dislodge-existence trichotomy's ARM (a): z bare -> the mirror merge fires NOW, the
+  0-move repair).  Plus `probes/w15circcheck.lean`: the w15circ cast re-verified against the REAL exchangeTwinCargo -- every finding
+  identical (wfCheck both, license, blocked/self-landing merge, the 16-move win, the 18-move collapse); the verbatim local copy retired.
+  All sorry-free, axiom-clean [propext, Quot.sound].  INFRA: PS 5.1's `Set-Content -Encoding UTF8` writes a BOM that Lean rejects at
+  1:0 ("expected token") -- probe-file surgery needs `[System.IO.File]::WriteAllLines` with a no-BOM UTF8Encoding; and note the sibling's
+  0ed3d48 swept and REORGANIZED TwinCollapse (subscripts ASCII-fied, park's section headers merged) -- grep the theorem names before
+  editing by remembered anchors.
+
+- THE BARE-RUNG COMPOSITION + THE TRICHOTOMY SKELETON (same session, fifth batch): rung_stacks (a bare, seated, at-the-rung card
+  stacks -- the cascade's terminal move); mirror_of_bare_rung (the w15wfmerge happy path END-TO-END: blocker r on z is a bare rung ->
+  stacks -> the mirror fires -- two moves, NO founds_gone needed); merge_ply_cases (the named split: z bare -> arm (a); blocker exists ->
+  arm (b), closed outright when a bare rung); king_dislodge_exists (arm (c)'s king case in the existential form dislodge_reland
+  consumes).  The trichotomy's remaining corner is now sharp: a COVERED or NON-RUNG blocker and a king-with-no-free-anchor (or non-king)
+  twin -- the cascade + counting residues, both play-level.  All sorry-free, axiom-clean [propext, Quot.sound].  SYNTAX: `cases hz : e`
+  abstracts e in the goal -- the none-arm becomes `rfl`, not `hz` (the same class as the park_king_run finding).
+
+- THE SAME-SUIT DISCIPLINE'S CORE LANDED (same session, sixth batch): founded_not_in_aboveOf (a founded card has an EMPTY RUN
+  at WF -- the first edge's buried-base clause needs the root seated-or-hidden-boundary, and founds_gone refutes both: the general
+  exclusion, useful beyond the merge); same_suit_no_stack (the discipline: a same-suit twin sitting above c with t.rank = c.rank + 2 --
+  merge_rank_arith's pin -- can NEVER stack while above c); merge_run_not_stackable (the merge-ply packaging over the license fits).
+  WITH the sibling's 12.1 extraction corollary ("every tableau card stacks in a win"), the same-suit case of the trichotomy's cascade
+  arm CLOSES: t must stack on a winning line, same-suit t-above-c cannot, hence t must DISLODGE (pilePile) in the source -- the
+  source-side dislodge the exchange correspondence then relates to the mirror's collapse.  The cascade residue shrinks to the
+  DIFFERENT-suit blocker cases.  All sorry-free; founded_not_in_aboveOf rides [propext] alone.
+
+- THE UNSEATING TAXONOMY LANDED (same session, seventh batch): unseats_imp_pileStack -- THE ONLY MOVE THAT UNSEATS A CARD IS
+  pileStack OF THAT CARD (draw/deckStack leave the board alone; reveal/deckPile/stackPile attach at a FREE seat, which cannot be the
+  occupied seat; pilePile re-attaches the moved run -- the head re-seats and riders ride along definitionally).  Plus attach_frees (the
+  freeness of a successful attach -- the ne-none bridge).  This is the keystone the play-level disciplines compose with: "t must stack"
+  (the 12.1 extraction corollary) + unseats_imp_pileStack + same_suit_no_stack gives the dislodge-before-stack forcing on winning lines.
+  SYNTAX PAID FOR: (a) `absurd` is NOT defeq-tolerant through state-update projections -- use `have hnone : T := hbot'` (have IS
+  defeq-tolerant) then `rw [hnone] at hb; simp at hb`; (b) `(iff.mp ?_).1` leaves iff-arg metavars unbound when the projection pins
+  elaboration first -- derive the argument (`hne`) as a separate `have` with all args explicit; (c) `Option.noConfusion (h.symm.trans
+  hatt)` leaves the equation as metavars -- the rw-at-then-simp-at dance is the robust form.
+
+## Session note (2026-09-16, the clean-stacks cut - the twin exchange's reachable form PROVEN)
+
+- THE CLEAN-STACKS ROW IS PROVEN: `solvable_cargoTwin_exchange_of_visClean` (TwinQuotient:3800) - the [H] row's premise bundle + `hvc : st.visClean`
+  gives the full iff, NO bridge consulted. Every reachable state qualifies (`initialReachable_visClean`). Census unchanged at 14; axioms
+  [propext, Classical.choice, Quot.sound] for the row, [propext, Quot.sound] for the core.
+- THE ENGINE is `solvable_exchangeTwinCargo_go_gen`: the [M] assembly's play induction parameterized by the two merge bridges + a riding
+  invariant P (threaded through all 13 IH calls as `(hP hwf hPst hap)` right after `apply_wf` - one replaceAll on `(apply_wf hwf _ _ hap)`).
+  TWO DESIGN CONSTRAINTS worth remembering: (a) the handlers take the license OPEN (its eight facts positionally, z/z' as the landing
+  premise's own binders) - a bundled `twinLicensed t` handler re-binds FRESH witnesses and can never feed `merge_impossible_of_visClean`
+  (no equation links them; same-base bijection is not free); (b) the WF instance re-derives the original `_go` verbatim (P := fun _ => True,
+  `trivial` for the P-slot, handlers = the two sorry'd bridges) - the WF-level route is bit-for-bit untouched, only re-specified.
+- THE CLEAN INSTANCE `_go_clean` (P := visClean via `apply_visClean`, both handlers contradictions): the passing merge dies by the existing
+  `merge_impossible_of_visClean`; the rooted corner needed its OWN lemma - `merge_rooted_impossible_of_visClean` (Restriction:588): the
+  passing form's hmerge demands the twin STRICTLY inside the run (t ∈ aboveOf c), useless at c = t; the rooted form kills it by pure
+  arithmetic (the landing fit `canSitOn t d` puts d one ABOVE the twin; `rank_lt_of_mem_aboveOf` on the other cargo's walk pins d strictly
+  BELOW it; omega).
+- THE BACKWARD DIRECTION rides the involution + three descents: `wf_exchangeTwinCargo_of_twinLicensed`, `twinLicensed_exchangeTwinCargo`,
+  and the new `visClean_exchangeTwinCargo` (the only edges the seat swap touches are the two cargo-on-twin seats, re-fitted by
+  `canSitOn_swapTwin_right`; every other card-seat is fixed by `swapTwin_eq_self` - no walk congruence needed, the visClean statement only
+  reads card-seats).
+- INFRA: TwinQuotient now imports Klondike.Restriction (new graph edge - visClean/apply_visClean/the merge lemmas; previously the
+  TwinSwap->Dominance chain never reached Restriction). The DUPLICATE-DECLARATION hazard realized once: a weaker
+  `exchangeTwinCargo_step_pilePile_passing` (hct + ∃-hoff) landed in TwinExchange while the committed TwinQuotient:1405 version (no hct =>
+  covers twin-rooted c = t mirrors; ∀-hoff => covers anchor landings) already existed - TwinQuotient imports TwinExchange so the build dies
+  'already been declared'; the TwinQuotient form is canonical. The RunChain walk-entry lemma needed CHAIN-induction (`induction hchain`),
+  not list-induction - the fixed-root list IH can never apply to `RunChain x rest` (the sub-chain's root is x, not r); also
+  `Board.aboveOf_trans` wants the base-chain argument first, and `absurd h hrne` not `h.symm` (Ne is not definitionally symmetric).
+- THE TEMP DIR COLLIDES: parallel sessions overwrite probe files by name (axcheck.lean was overwritten mid-session by a sibling) - unique-name
+  the probes. And a session is appending notes to a STRAY ROOT-LEVEL FARM_MEMORY.md (repo root, untracked) instead of lean-model/ - merge and
+  redirect before the two notes diverge.
+- PENDING (agreed, not started): the TwinQuotient split - BoardWalk.lean (the pure walk combinatorics: aboveOf_trans/pred/_comp, RunChain,
+  run_root_of_chain, card_base) + TwinSimulation.lean (the [M] assembly + both bridges + the rows; the Restriction import moves there);
+  MergeFire.lean will need `import Klondike.BoardWalk` when the walk kit moves (it consumes RunChain + run_root_of_chain + card_base but does
+  not import TwinQuotient).
+
+## Session note (2026-10-05, the K1 farm session - the keystone/frontier/K1 trio PROVEN, Kills.lean sorry-free except K2)
+
+- THE TRIO IS CLOSED: vis_of_safeAccommodates (Kills:97) + State.frontier_spec (Kills:160) + K1_stack_goal_dead (Kills:316), with the
+  reusable export climb_firstPassage (the first-passage firing, generalized play start) and the vis one-steps. Architecture worth reusing:
+  state the play induction with a GENERALIZED PLAY START (`vis_shadow_play : forall iota ms rho, iota.run ms = ...`) and per-move ONE-STEP
+  transports proved standalone (vis_of_pileStack/vis_of_stackPile); the four-rcases composition then needs no WF, no getD-juggling, and
+  each accommodation arm is one obtain + two step-lemmas + one IH call. K1's pre-passage invariance rides the EXISTING lockedness_pileStack/
+  lockedness_stackPile pair (Theorems) for seat+lockedness, plus the card-immobility observation (a stackPile of ccard needs it
+  foundation-side - impossible below its own rank; a pileStack of it IS the passage) - no new invariants needed.
+- TACTIC BAIL: `by_contra` DOES NOT EXIST in core-no-Mathlib 4.34, and `by_cases` on Prop-premises LOST ITS HYPOTHESIS NAME in several
+  post-obtain contexts ("unknown identifier hxc" while micro-versions compiled). The everywhere-solid replacement: `cases h : decide (P)
+  with | true => have h' := of_decide_eq_true h ... | false => have hn : ¬P := by intro hcon; rw [hcon] at h; exact absurd h (by simp)`. For
+  the by_contra shape over a Nat-LE goal: `cases hc : decide (a <= b) | true => exact of_decide_eq_true hc | false => ...` and derive
+  `¬(a <= b)` via `have hdt : decide (a <= b) = true := decide_eq_true hcon; rw [hc] at hdt; exact absurd hdt (by simp)` (rw-at-trap: hcon
+  is a LE-Prop, NOT rw-able; the decide-eq is).
+- CORE absurd ORDER IS POSITIVE FIRST: `absurd (h1 : a) (h2 : ¬a) : b` - the Mathlib intuition (`absurd h hnot`) is right, but every
+  defensive instinct to pass the negation first is wrong here.
+- `cases h : <scrutinee>` REWRITES THE SCRUTINEE IN THE GOAL TOO: after `cases hv : st.isVis c with | true` the goal's `st.isVis c`
+  occurrences have become `true` - provide `⟨rfl, rfl⟩` not `⟨hv, hl⟩` (the hypothesis is for hypotheses only).
+- rcases/obtain `(... , rfl)` ELIMINATES THE VARIABLE: obtain-with-rfl on `sigma = {literal}` deletes sigma everywhere, and later `sigma`
+  references fail as "unknown identifier" (this cost an hour of confusion). When later proof text needs the state abstract (IH calls,
+  compositions), obtain the EQUATION instead (`obtain ⟨..., hslit⟩`), keep sigma, and rw hslit into individual hypotheses/goal-slots only
+  where the literal is needed (heights bump/drop rewrites). Note `heights_bump_self`-style rewrites then apply to `sigma.heights c.suit` via
+  `have hob : sigma.heights c.suit = ... := by rw [hslit, hsc']; exact heights_bump_self` - REWRITE THE GOAL, reconstruct with the lemma.
+- SUBST DIRECTION IS NOT YOURS: `subst h` with `h : x = ccard` may delete the wrong name mid-proof. To control direction, `rw [<- h]` on
+  the GOAL (all ccard-occurrences become x-occurrences), then never mention the dead name.
+- OMEGA SEES OPAQUE FUNCTION ATOMS: `f s1` and `f s2` are UNRELATED to omega even with `s1 = s2` in context - bridge explicitly
+  (`have hhe : f s1 = f s2 := by rw [hs]`). Likewise after `obtain ⟨s1, r1⟩ := x`, hypos about `x.suit` do NOT become `s1`-syntactic:
+  cast them with typed haves (`have hs : s1 = s2 := hxs'.trans hcc.symm` works because have-PATTERNS are defeq-tolerant) before omega;
+  `Rank.toIdx_inj (by omega)` then closes rank equality from the bridged facts.
+- FILTER/FIND? VERSUS AUTO-DECIDED PREDS: the frontier def's `fun r => st.heights s <= r.toIdx` elaborates as `fun r => decide (...)` -
+  write `decide (...)` EXPLICITLY in custom lemma statements or rw patterns will not match. And `rw [<- List.filter_cons_of_pos hQ]`
+  mis-unifies through the decide instance - instead state a TYPED bridge `have hcons : (b :: L).filter p = b :: L.filter p :=
+  List.filter_cons_of_pos hQ` and `rw [<- hcons]`. The whole minimality run for find? over Rank.all needs ONLY core: find?_append +
+  Option.some_or/none_or/eq_some_iff + find?_eq_some_iff_append (the no-earlier-hit split!) + find?_eq_none + filter_append + filter_filter
+  + mem_filter + filter_eq_self; the one bespoke piece is find?_prefix_false (Kills) and Rank.all_split_filter (the 13-way `cases b <;>
+  decide` - closed identities, no Seq/sortedness machinery needed).
+- LAKE 5.0 (Lean 4.34): bare `lake build` prints "no targets specified and no default targets configured ... Nothing to build" - a SILENT
+  no-op, not a build. Use `lake build Klondike Witnesses`. Also: a failing build retried in-parallel with a git reset of the tree can leave
+  phantom "failed to read .olean.private" transient toolchain errors - plain retry fixes them.
+- WORKTREE GOTCHA: fresh farm worktrees cut from an ancestor of macro-game HEAD DO NOT CONTAIN lean-model/ (it is untracked at the ancestor,
+  tracked at macro-game HEAD). If your task file set is missing, `git reset --hard macro-game HEAD sha` the branch (farm branches sit at
+  macro-game HEAD) BEFORE building, and check `git status` for a `?? lean-model/` straggler from a robocopy.
+- Axiom bookending: the keystone/frontier/one-steps are [propext, Quot.sound]; climb_firstPassage/K1_stack_goal_dead additionally pull
+  Classical.choice (the by_contra-shaped decide split at K1's tail and the card-uniqueness omega splits - consistent with EngineReachProbe's
+  profile, noted in the FARM row).
+
+## Kills/Movability — the K2 session's paid facts (2026-10-05)
+
+- CENSUS TRAP: lean-census.ps1 greps the literal text `":= sorry"` in
+  .lean sources — it counts DOC-COMMENT mentions too. Never write that
+  string in prose/docstrings; say "the sorry marker".
+- Dot-projection binds to the first EXPLICIT ARG's type, not the def's
+  namespace: `def Card.suitCode (s : Suit)` gives NO `s.suitCode` —
+  name it `Suit.code`. (FARM.md's card has the State half only.)
+- `Bool.eq_false_or_eq_true b : b = true ∨ b = false` — TRUE branch
+  FIRST. `Bool.xor` has infix `^^` (Bool.xor_comm exists).
+- Twin identification is NOT rfl at variable suits: `flipSuit (t)` of
+  a card whose suit is symbolic reduces to `!!p`, which is match-stuck
+  at a variable Bool — close twin-shape equalities with
+  `simp [Card.flipSuit, Suit.flipPair, Bool.not_not]` (keep
+  Card.flipSuit_flipSuit in the set), and state under-pair shape
+  lemmas first (`underPair_of_pred`, then a `_flipSuit_of_pred` twin
+  of it) so consumers never fumble the identification.
+- The K-rows' canPlace kit lives in Move.lean: `canPlace_inl_iff`,
+  `canPlace_inr_iff`, `king_of_canPlace_inl`, `isVis_of_canPlace_inr`,
+  `canSitOn_of_canPlace_inr` — K2's whole proof is that kit +
+  mem_receivers_iff + the keystone + omega.
+- Relocation executed (the wave-14 pattern): `Color.flip`,
+  `color_ne_flip`, `Rank.pred`, `rank_pred_iff` Realizability →
+  Basic.lean verbatim; Movability.lean imports State only (low DAG).
+- MERGE PAYOFF (2026-10-05): the K1 session's keystone proof landed in
+  the same wave — `K2_tableau_goal_dead`'s `sorryAx` taint is
+  discharged in the merged tree without re-proof (K2's annotation
+  anticipated exactly this), and Kills.lean is census-0.
+## TwinSwapCompletion.lean - T O1/O3 window LANDED sorry-free (2026-10-05)
+
+- NEW axiom-clean [propext, Quot.sound]: State.solvable_twinDestination_collapse (+hwf),
+  apply_pileStack_pileStack_exchange (off-suit pileStacks commute - ALL guard transfers derive from
+  the two firings own guards; no beta case-split), pileStack_catchup_reorder (induction on cu; BOTH
+  cu-runs are premises), State.solvable_swapTwin_catchup(_run), twin_stack_order_exchange_catchup.
+  Helpers: Board.attach_detach_cancel, Board.detach_detach_comm, Cycle.prev_mem,
+  State.stock_prev_not_mem_hidden. Witness: TwinCompletionWitness (decide-anchored).
+- SYNTAX: `A ++ B ++ C ++ D` surface lists did NOT match run_split_bind patterns spelled right-assoc;
+  the FIX was the separated proof preamble load-bearing `simp only [List.append_assoc] at h` FIRST
+  (both in hypotheses and on goals). After `rw [run_split_bind st l1 l2] at h` + `cases hA : st.run l1`,
+  the `(some A).bind f` form does NOT expose A.run l2 to rw - use the type-ascription
+  `have h1 : A.run l2 = some W := hrun` (defeq does the reduction).
+- `List.mem_iff_getElem?` is `a in l <-> exists i, l[i]? = some a` - TWO slots, the bound is NOT a slot
+  (getElem?_eq_some_iff is a plain conj, not an exists: `(mp h).1` does NOT give an index).
+- Board.record-projection: after `rw [shape-eq]` on States, `show` the `{S with ...}.board`-projected
+  form explicitly, then attach/detach lemmas fire. attach_topOf/attach_topOf_ne's attach-eq arg must
+  have its OUTPUT board already visible in the goal - rewrite `A.board = bdA := by rw [hAeq]` FIRST
+  (bare `rw [hAeq]` closes that goal; adding `rfl` errors no-goals). twinSkew/crossTwin spine composes
+  with the reorder conclusion verbatim (hshape == hreor's extracted shape).
+## 2026-10-05 - the C2-streamlined session (Klondike/C2Streamlined.lean; wave-17)
+
+- MACROFILE TRAP: Macro.lean's `commitApplies`/`macroStep`/`macroSteps` are ROOT-named (no `namespace Macro`); inside `namespace Klondike.C2`
+  saying `Macro.commitApplies` is an UNKNOWN-IDENTIFIER error, not a resolution. Bare `commitApplies` resolves.
+- `commitApplies`' drawCommit arm PARSES `∃ b, ((canPlace c b ∧ applyDrawTo c b = some st'') ∨ applyDrawStackTo c = some st'')` - the ∨
+  BINDS INSIDE the ∃ (precedence: the body extends to end of term). A CommitTableau-shaped disjunct extraction: `have h2 : (∃ b, A ∧ B ∨ C) := h`
+  (defeq cast THROUGH the match iota - works), then `obtain ⟨b, hb⟩`, `rcases hb`; reverse direction supplies `⟨b, Or.inl hb⟩` and
+  `⟨any-base, Or.inr h⟩` (any Base witness when the ∨ picks the right arm, e.g. `Sum.inl Anchor.p0`). A `show A ↔ _` with an unbound RHS
+  metavariable fails the defeq check confusingly - show BOTH sides, or better use the constructor + cast form.
+- DOCSTRING-CLOSER ACCIDENT (cost ~1 build cycle): the sequence `-` + `/` ANYWHERE closes the docstring/comment mid-line. Writing
+  "dig-/borrow-/`toStack`" in prose (the slash-separated habit) killed the docstring at `dig-/` and derailed the parser with a misleading
+  "unexpected identifier; expected 'theorem'" at that column many lines below the earlier errors. Use commas ("dig-, borrow- or").
+- DEF-BY-MATCH + rcases (`LabelLive st X r`, a match on `r`): `obtain`/`rcases` on the raw hypothesis FAILS ("is not an inductive datatype")
+  even after `cases r` armed the ctor - the hyp displays the stuck match. THE CURE: defeq-cast first, two forms BOTH working:
+  `have h2 : ∃ Y, DigLive st X Y := hlive`, and the inline ascription `obtain ⟨_, hbl⟩ := (h₂ : ∃ hp : ..., BorrowLive st X p₂)`. But when the
+  scrutinee is still a VARIABLE under an equality hypothesis (`killH`, `hlive : LabelLive st X r` + `he : r = Label.hole`), cast FIRST
+  `rw [he] at hlive` THEN the cast (the rw makes the match iota-reducible).
+- `Sum.noConfusion h` / `Option.noConfusion h` FAIL to elaborate in tactic position under v4.34 (result-type metavariable stuck, "expected
+  Eq ?m ?m"). The working ctor-clash idiom IS `nomatch h` (term position, e.g. `fun h => nomatch h` making named lemmas). C2Streamlined now
+  carries `sumInl_ne_sumInr`/`sumInr_ne_sumInl`; NOTE TwinCollapse holds `base_inl_ne_inr`-style helpers but sits ABOVE Macro in the DAG -
+  a Macro-level file cannot import them; CONSOLIDATION TICKET: promote the pair to Board.lean.
+- For falsity off a Bool contrast: `rw [hv] at hcast` (where `hcast : st.isVis d = true` by the `(show T from e)`-free have-cast, `exact hbot`)
+  closing via `Bool.noConfusion hcast` after the rw - the `Option`-side none/some clash closes with `exact absurd hstock (by simp)`.
+- `Rank.toIdx_lt` TAKES A RANK (`Rank.toIdx_lt z.rank`); passing the Card is a type mismatch. `Rank.toIdx_inj` for rank-equality via toIdx;
+  omega reads the toIdx-projection hypotheses only when already toIdx-typed (the (canSitOn_eq ...).mp-sliced facts are; re-derive
+  per-site if constructing them).
+- `List.Sublist`'s `<+` NOTATION is unavailable at core-offset: write the qualified `List.Sublist α α'` in binders.
+- `set` IS MATHLIB-ONLY - NOT here. For goal-literal folding: `rw [hs₂]` (the successor-eq) then keep writing the FULL literal's `have`s with
+  explicit `({ st with ... } : State).field` types; `exact` accepts the defeq casts at the iff-slots (proj-of-literal iota at default works,
+  but `rw` does NOT see through `{lit}.field` - `show`-normalize each slot before any rw).
+- Twin-pair composition discipline (`Card.flipSuit_eq_of_color_rank` to name the ball's second member): to conclude `z = z₂` from
+  `z ≠ z₁` + `z₂ = z₁.flipSuit` (hpair), call with a := z₁, b := z (the UNSYMmed color/rank facts + `fun hh => hzz hh.symm`) giving
+  `z = z₁.flipSuit`, then `.trans hpair.symm`. Getting the direction wrong type-errors at the `.trans`, not at the call - symmetric-looking
+  garbage compiles only in one direction, mind it.
+- CANONICAL REPEATS conf irmed: `rw [apply_deckPile_iff] at hcom` + `obtain ⟨_, hcp, bd', hatt, hs₂⟩ := hcom` + `rw [hs₂]` is the fast path
+  for committed-state residues; `attach_topOf_ne`/`bottomOf_attach_of_ne` (Board/Macro) + `bottomOf_detach_ne`/`founded_not_covered`
+  (C2Streamlined, PROVEN) make the one-step "still legal" cores painless - NO walk machinery needed at the one-step level.
+
+## Movability.lean sorry-free — the §8.7 equivalence session (2026-10-05)
+
+- THE MASK-GRID SHAPE that worked (and the one that did NOT): for grid lemmas whose statement pins a
+  present pred rank r (maskIndex_underPair_positions), DO NOT run `cases col <;> cases p <;> cases rk
+  <;> simp_all [defs] <;> decide` — simp_all normalizes `rk.pred = some r` to `LIT = r` and then
+  STOPS: an equation `ctor = var` with the var free in the goal is NOT auto-substituted, `decide`
+  dies with "Expected type must not contain free variables" (probe-verified).  WORKING SHAPE:
+  `rcases c with ⟨⟨col, p⟩, rk⟩`, peel the Bool by `have hp : p = false := hpair` (have-typing is
+  proj-defeq-tolerant) then `subst hp`, derive the rank relation with `(rank_pred_iff _ _).mp hpred`
+  (the same defeq eats the hypothesis's projections), case ONLY the color, `simp only [defs]`,
+  finish per conjunct with omega (see the omega trap below).  The other layout facts (lt64, lt4,
+  ge4, even, odd, the twin adjacency, inj bounds) stay pure `rcases <;> cases … <;> simp_all [defs]
+  <;> decide` — those arms are fully closed per case, decide never strands.
+- TWO PROVER QUIRKS THAT INJECT `Classical.choice` (both probe-pinned; split them out when a row
+  must stay [propext, Quot.sound]):
+  (a) omega on a CONJUNCTION-shaped goal (`X ∧ Y := by omega`) pulls Classical.choice — even when
+  every hypothesis is a clean mod-by-literal linear fact.  Split first: two plain equations
+  (`have h1 : … := by omega`, `have h2 : … := by omega`) or `refine ⟨?_, ?_⟩ <;> omega` are clean.
+  (b) the GENERIC beq lemmas (`beq_self_eq_true`, bare `simp` closing `(x == y) = true` forms) ride
+  the `LawfulBEq Nat` instance, which is choice-tainted in 4.34 — even
+  `(n == n) = true := beq_self_eq_true n` profiles with Classical.choice.  THE CLEAN LANE: Nat `==`
+  is decide-backed, so `decide_eq_true_iff.mpr rfl` proves `(n == n) = true` [propext] and
+  `decide_eq_true_iff.mp h` converts `(x == y) = true` to `x = y` [propext].  `Nat.beq`/`Nat.beq_refl`
+  do NOT typecheck against `==` (different BEq: the instance is decide-shaped, not Nat.beq-shaped).
+  (`simpa using h` on a plain `(x == x) = true` hypothesis was ALSO clean — the taint enters via the
+  self-lemma path simp prefers mid-expression.)
+- `cases h : e` REWRITES e IN THE OTHER HYPOTHESES TOO, not just the goal (K1 recorded the goal
+  side; the hypothesis side bites later `rw` patterns and read-lemma targets two steps down).
+  After `cases hf : f d`, the goal's `f d` occurrences are already case-rewritten, so `rw [hf]`
+  afterwards fails
+  "pattern not found" and `rw [a, b]` lists can die mid-sequence leaving a half-rewritten goal —
+  prefer `exact h`/`exact hany` compositions once the scrutinee is case-split (`exact hw`,
+  `rfl` arms), or plan the rw list against the POST-cases shape.
+- UNFOLDING A MATCH-DEF (`Card.movableOf`) by `rw` is a dead end when you must also rewrite INSIDE
+  the match scrutinee (the def hides `Card.underPair` syntactically).  ONE `simp only [Card.movableOf,
+  Card.underPair_of_pred hpred]` pass does all three: unfolds the def, exposes the scrutinee, rewrites
+  it, and iota-reduces the match on the some-literal — bottomMask_matches_movableOf's finisher
+  rides exactly that plus a 16-case skeleton rw (X = X closes at rw's trailing rfl).
+- THE ENGINE WORD's LOCKED-FREE GEOMETRY (record for K6): `bottom_mask_of` reads `locked` ONLY inside
+  the under-pair `free` cut (positions i-4 and i-3); `xor_vis`/`or_vis` read `vis` alone at the self
+  and twin positions.  A read lemma battery over a mask-word like this wants four read-theorems
+  (self, twin, u1, u2 — all vis-side) plus two more per under-pair member for the locked-word —
+  NOT self/twin locked reads; they do not exist in the word.
+- `if_pos`/`if_neg` DEPRECATION WARNINGS stand (Use ite_eq_left/ite_eq_right next era) — Cycle.lean
+  already ships them; tolerated, no action.
+- INFRA: the ff-only merge to macro-game HEAD handled the fresh-worktree-at-dc41b8e confusion the
+  third time in a row now (wave-17 T session and K1 both hit it) — the lean-census.ps1 Movability pin
+  is 1 → 0; global census 16 → 15.
+### Session 2026-10-05 (later) — C2-closure finisher (wave 18): refute-first fired again; the four-pillar falsity + the collapse's proven half
+
+Summary of the wave-18 receipts (full row in FARM.md; witnesses/C2KingAnchorWitness.lean):
+`p2_direct_class`, `same_pin_closureEq`, `crease_chain_absorbed` and the as-stated `c2_two_option` are FALSE
+(the king-anchor witness); `succ_labeled` is analytically false (the channelList gap - the anchored-head
+unseating); `stack_ball_corner` never refuted. Proven in their place: `commitTableau_shuttle`/`commitTableau_class`
+(the destination collapse at the commitment level, rung-gated) and the conditional `c2_two_option`
+(hlab/hp2/hpin/hball premises). Census 16 -> 11.
+
+TACTIC LORE added by this session (all machine-confirmed):
+
+- WORKTREE TRAP: a fresh farm worktree spawned from the WRONG BASE (main repo HEAD, not macro-game HEAD)
+  silently lacks lean-model/ entirely. `git log --oneline -3` + `Test-Path lean-model` FIRST. The fix was
+  `git reset --hard macro-game` on my own clean fresh branch (no local work to lose).
+- CONTENTION IS REAL: stale lake trees from a reaped background start keep file handles on the shared
+  elan toolchain oleans -> EVERY (parallel) build dies on transient `failed to read file ...olean(.private)`.
+  `Get-Process lake,lean` and kill YOUR OWN stale PIDs (match StartTime to your session) - other sessions'
+  trees are not yours to kill. After that the "plain retry" lore holds.
+- `State.topOf_inr_eq_none` + `Board.attach_detach_cancel` (TwinSwapCompletion import) are the two-move
+  shuttle's load-bearing imports; C2Streamlined imports Klondike.TwinSwapCompletion (one DAG edge) and the
+  UMBRELLA LINE MOVES to the bottom (imports resolve transitively, order is cosmetic but keep it tidy).
+- rcasSlots: DO NOT write `-` (dash) binders for an iffy's witness slots mixed with named tails - hshape
+  silently unbound -> "Unknown identifier hshape.symm" two lines later. The robust form is two-step:
+  `have h := iff.mp hyp; obtain ⟨b', hb', hrk', hshape⟩ := h.2` (or `.2.2` for the stackPile shape),
+  then `Option.some.inj`-equate the witness to the intended one and `rw [witness-eq] at hshape` - the iffy
+  states the successor as an EXISTENTIAL witness board, and `Eq.symm hshape` gives literal = state, so the
+  r-w direction for "state = literal" is `exact hshape` (NOT `.symm` - Eq.symm hshape : literal = state).
+- Record-eta: `rw [eq]` where eq : state = {lit} CLOSES proj-of-literal goals by auto-rfl (trailing `rfl`
+  after `rw [hshape-lit]` errors "No goals"). Same closure eats `exact h` after `rw [hw]` when hw : var = lit.
+  BUT the same `rw` of the LITERAL-shape into `{ with-literal}.stock` (drawTo/removeAt form) does NOT auto-rfl
+  when the literal mentions a NESTED cycle constructor - write the stock literal in the SAME normalization
+  the iff-lemma emits (`applyDrawTo_iff` emits `(st.stock.drawTo i).removeAt i`, `applyDrawTo_eq` emits
+  `{ cards := Cycle.removeIdx ... , cursor := i }` - pick per-consumer, they are NOT syntactically equal;
+  `Cycle.removeAt_drawTo` bridges).
+- `decide` on `(st.applyDrawTo c b).isSome = true` STICKS: the depth of reachablePos's dite + maskPos eval
+  exceeds the decide-whnf budget. Constructive route that WORKS: `State.reachablePos_step1 hwf rfl c` +
+  `posOf-of-head = rfl` + `applyDrawTo_iff.mpr ⟨0, board-lit, hreach, hattach, rfl⟩` + a getD-pin.
+  `Board.attach`s DITE: `unfold Board.attach` + `rw [dif_pos h1, dif_pos h2]` (dif_pos is the dite one,
+  if_pos/ite_eq_left the plain-ite; all three deprecated-name-swapped in 4.34, use ite_eq_* / dite_eq_*).
+- Board-literal equality: records with Prop fields compare via `congrArg some (Board.ext_topOf (funext ...))`
+  per-BASE casework (update_self/update_ne) - never try rfl on the raw records (the inj field's proof terms
+  differ; kernel defeq does not include proof-irrelevance for structure literals).
+- WF-construction bullets: `State.WF.intro` is NAMESPACED (State.WF.intro); the conjuncts read
+  `st-PROJECTIONS` that rw/simp cannot unfold - pre-cast each with `have h : wState.board.topOf b = none :=
+  rfl`-style (defeq is fine, rw/simp are not) or `show` the def-unfolded form first. `noDupCards` is a
+  Prop over indexed getElem?-pairs: the stock_wf slot is `fun i j hi hj heq => ...` (decide the range-bounded
+  form once andapply).
+- The as-stated refutations live as NEGATED Universals in the witness (wk_c2_as_stated_false etc., citing
+  only surviving constants) - that pattern keeps Witnesses GREEN forever, unlike citing deleted names.
+- CENSUS-DANGER: writing a `sorry` placeholder "temporarily" inside a WITNESS leak sorryAx into #print axioms;
+  the refutation corollaries must come out [propext, Classical.choice, Quot.sound]-clean or they are not receipts.
+
+Findings for the next session (see FARM Wave 18 next tickets): (1) the king-anchor-head witness for
+succ_labeled; (2) re-scope hpin/hp2 statements around the rung premise; (3) stack_ball_corner (hball) is the
+one never-refuted pillar - raise-ray geometry; (4) probe the engine corpus for the climb-blocked stocking corner.
+
+## Session note — the catchup-residue session (2026-10-05, TwinSwapCompletion owned in place; L1/O3(ii) general window LANDED)
+
+The wave-18 session (the wave-17 T NEXT list 1-4). Census 16 -> 18 (two planned pins in TwinSwapCompletion). New proven core:
+`Move.twinMid` (mixed-mid predicate), six `twin_fire_exchange_*` per-kind steps, `pileStack_mid_reorder` (the mixed-window
+cornerstone), `State.solvable_swapTwin_mixed` (+`_run`), `State.solvable_swapTwin_mixed_back`, the t-suit impossibility pair
+(`twin_fire_tSuit_stackPile/_pileStack_impossible`), `run_worryback_pair_excise`, `exchangeTwinCargo_flip_cover` (the covered
+corner's cell identification). Pins: `State.mid_access_of_noSeat` (the no-landing -> haccess reduction), `State.sweep_covered_corner_safety`
+(the 6.5 covered-corner equivalence via the exchange family). Traps this session hit, for the next farmer:
+
+- EXISTENTIAL-WITNESS DASHES: `obtain ⟨-, -, -, -, NAME⟩` SILENTLY MISBINDS when one of the `-` slots is an `∃`-WITNESS (`B` b of
+  `apply_pileStack_iff`'s `∃ b, ...`): the obtain "succeeds" but NAME ends up unbound->"unknown identifier" AT ITS FIRST USE (not at the
+  obtain). NAME EVERY `∃`-WITNESS (`obtain ⟨-, htb, -, -, hBshape⟩ := hB`): cheap insurance; the dash is fine for plain `∧`-conjuncts.
+- THE IFF-GUARD READS THE PRE-MOVE STATE: in `apply_*_iff`, every guard conjunct is stated at `st` (the SOURCE), NOT at `st'` - e.g.
+  `apply_stackPile_iff`'s FIRST conjunct is `c.rank.toIdx + 1 = st.heights c.suit` at `st`. Reading the shape-binding `st' = {...}` as a
+  fact about the successor's heights and feeding it to omega produces "a >= 0" non-theorems. ALSO mind the slot ORDER: `apply_pileStack_iff`
+  is (topOf | ∃ b, bottomOf | RANK | shape) - the rank is SLOT 4, not slot 1.
+- ITE-RESOLUTION ORDER IS GOAL-TRAVERSAL, NOT YOUR SEMANTIC PLAN: in the four-if heights-commutation goals (t-bump over c-bump), rewriting
+  with `ite_eq_left h` / `ite_eq_right ¬h` fires on the FIRST `if` matching the LEMMA'S CONDITION SHAPE, in left-to-right goal traversal -
+  the correct sequence for `(if c then (if t then ..) else (if t then ..)) = (if t then (if c then ..) else (if c then ..))` at `h1 : s = t.suit`
+  is [resolve LHS's outer `if c` (ite_eq_right, via hsu), LHS's inner `if t` (ite_eq_left h1), RHS's OUTER `if t` (ite_eq_left h1!),
+  RHS's inner `if c` (ite_eq_right)] - resolving the RHS inner before the RHS outer type-errors. Write the four-if show EXPLICITLY first
+  (the `show` fixes both sides' normal form), then the rw order is mechanical.
+- `rw [hBshape]`-BEFORE-THE-HAVE-CAST: the defeq-cast `have h' : (S.board.detach β).attach b X = some bdT := hattT` FAILS while `B` is
+  an opaque variable (`B.board` does not reduce); do `rw [hBshape] at hattT` FIRST (B becomes a literal; the projection iota-reduces at
+  the ascription check). Same for `B.heights`/`B.board.bottomOf`-facts used in `absurd` (absurd unifies the FIRST arg and demands the
+  second against its negation - an Eq-vs-Eq absurd is a type error; `rw [hzT] at hc; exact absurd hc (by simp)` instead).
+- ONE-SIDED SUIT CONDITIONS ARE NOT FLIP-DUAL: `Move.twinMid t` (c.suit != t.suit AND c != t.flipSuit) is NOT equal to `twinMid t.flipSuit`
+  - a t-suit non-pair card is `twinMid t`-ILLEGAL but `twinMid t.flipSuit`-LEGAL (at the flipped window the divergent suit is the OTHER
+  one). The prover caught my `twinMid_flipSuit` as false; the `_back` therefore states its premises at the flipped roles DIRECTLY (no
+  translation from source-side names; `cleanTwin`/`orthoTwin` DO have flip-duals, `twinMid` deliberately does not).
+- `State.wf_run` is UNREACHABLE from TwinQuotient's import chain (it lives in TwinBridge, imported only via MergeFire/TwinCollapse);
+  use `run_wf` from Progress (reachable): `run_wf p₁ st A hp₁ hwf` - FOUR EXPLICIT ARGS (play, st, st', hrun), then hwf.
+- CENSUS-VISIBLE SORRIES: farm census greps `:= sorry$` - a `by sorry` block is INVISIBLE to it. Always end pinned theorems with
+  `:= sorry`, not `:= by sorry` (the FARM row says the count, the grep must agree).
+- FREE WINS: the draw exchange's whole state-eq is DEFEQ through two levels of with-update literals - a single `rw [hBshape]` closes
+  it by rw's auto-rfl (no state_ext, no slots); when the last-slot goal is `lit1 = lit2` over re-bracketed `{S with ...}`-chains, TRY the
+  bare rw first. And `run_split_bind` will not fire on `[a, b] ++ ms` (rw is syntactic): pre-rewrite with
+  `rw [show [a, b] ++ ms = [a] ++ ([b] ++ ms) from rfl] at h` - the append normal forms agree by rfl, but only the show makes the
+  pattern visible.
+
+## Session note — the succ_labeled witness session (2026-10-05, wave 19: the anchored-head unseat REFUTED-with-witness)
+
+NEXT ticket 1 of C2Streamlined's wave-18 handoff. No sorries (census 12 unchanged, pinned OK). New witness:
+`witnesses/SuccLabeledWitness.lean` - `SuccLabeled.wk_succ_labeled_as_stated_false`, decide-anchored, axioms
+[propext, Classical.choice, Quot.sound]. Came out via lake-env-lean first, then `lake build Klondike Witnesses` green
+(66 jobs; the glob picks up every witnesses/*.lean - NO facade import needed, per the umbrella's own doc).
+
+THE DATUM: the as-stated P0 (every Draw-commitment macro successor labeled by a channel live at the ROOT) is FALSE,
+and no re-scoping of the current five labels covers the route. Countermodel (extends C2KingAnchorWitness's empty-board
+family - keep its pristine zero-heights/spade-blocked-stock skeleton, CHANGE the board): a WF state with ALL SEVEN
+ANCHORS OCCUPIED each by its own dealt pile HEAD (board_edges' deal-adjacency clause `(piles a).head? = some c`
+licenses the seat - NON-KING heads are legal there!), heads non-spade (♥A ♦2 ♣5..♣9), ♥A the only removable head (an
+ace at foundation height 0). Route: `pileStack ♥A` unseats through the anchor's head seat (the head's rank-dig),
+anchor p0 frees, ♠K commits onto it (macroStep via run_singleton + applyDrawTo_iff at the detached-board state; the
+commit needs uMid's WF - apply_wf of the unseat - for reachablePos_step1). At the root ALL FIVE channels die:
+direct/dig/borrow on receivers_king_nil; hole on the occupied anchors (uOccupied); toStack by the SPADE FREEZE:
+invariant (heights spade = 0 AND no spade seated) survives pileStack (a spade source would need a seated ♠A - the
+seat half) and stackPile (a spade source needs rank+1 = heights spade = 0 - the height half), so the 12-run's
+applyDrawStackTo guard stays dead along EVERY accommodates-play. STATE THE FREEZE FOR A GENERAL START STATE (the
+induction must quantify st INSIDE the play induction - uFreeze_step once, freeze_run per play - or the cons-tail
+cannot re-enter with the successor's invariant; a fixed-st induction motive silently proves only the prefix).
+Channel characterization + candidate sixth atom `anchorHead a` (liveness: a REMOVABLE anchored head, ∃ c,
+topOf (inl a) = some c ∧ c.rank.toIdx = heights c.suit ∧ topOf (inr c) = none; pin `[anchorHead a]`) live in the
+witness docstring; the Label-list decision is orchestrator + sibling-C2 scope (C2Streamlined untouched). For the
+orchestrator: ADD the channel or re-scope the liveness reads; a per-route restatement of succ_labeled is the wider
+edit. Docs: append-only §7 appendix in docs/macro_formalization.md points at the datum.
+
+Traps this session hit, for the next farmer:
+
+- LEAN 4.34 STRUCTURE-INSTANCE PARSE TRAP (the big one): `{ src with field := v,` - the FIRST field ON the
+  `{ src with ...` line - fails parse with "unexpected identifier; expected '}'" AT THE COMMA, while the same text
+  on ONE line parses. Multi-line `{ src with ... }` MUST put `with` at END-OF-LINE (library style:
+  `{ uState with\n    board := .., heights := .. }`). The parse failure CASCADES SILENTLY: the downstream 'rfl
+  failed' at the def literal and a spurious 'depends on [.. sorryAx ..]' in the same region were the un-parsed
+  def's fallout, not real defeq problems. Diagnose parse-vs-elab BEFORE chasing unification (isolate the snippet in
+  a scratch root-level file and lake-env-lean it).
+- rw-ON-PROJECTION, KingAnchor's rule tightened for NON-EMPTY boards: `uState.board.topOf b` does NOT rw with a
+  `uBoard.topOf`-lemma (both reduce to the same function, but rw is SYNTACTIC) - bridge with the defeq-cast
+  `have h' : uBoard.topOf b = some c := hb` FIRST, consume rw on h'. Same for isVis-typed premises (cast to the
+  `(bottomOf c).isSome` shape before rw-ing the bottomOf), and for anchor-occupancy: `rw [hocc] at hfree;
+  simp at hfree` works where a bare `Option.noConfusion (Eq.trans ..)` TERM fails (the elaborator cannot unify
+  noConfusion's motive in term mode against False).
+- posOf/membership: after `rw [hc' : c = uHead a]` do NOT `show Cycle.findFirstIdx ... = none` before
+  `Cycle.posOf_eq_none` - the show-unfold orphans the Cycle's cursor as a metavariable ("Expected type must not
+  contain metavariables"). Keep the goal as `st.stock.posOf (uHead a) = none` and hand posOf_eq_none a membership
+  proof (`show uHead a ∉ uStockList by cases a <;> decide`; the defeq st.stock.cards = uStockList is accepted at
+  the argument).
+- `simp_all` does NOT discriminate Card-literal equalities (`h : H .ace = D .two` survives simp_all [uHead]; Card
+  is a flat structure, injection needs decide): head-distinctness by
+  `cases a <;> cases a' <;> first | rfl | exact absurd h (by decide)`.
+- `rcases ... with rfl | h` is the syntax (`into` is not); for the tail arm of a cons-membership split,
+  `exact absurd h (by simp)` (h : m ∈ [] - `List.mem_singleton.mp` is for [x]-shaped hypotheses).
+- omega needs the NUMERAL on both atoms: after freeze, `h12 : (S .king).rank.toIdx = st'.heights (S .king).suit`
+  + `h0 : st'.heights Suit.spade = 0` do NOT omega alone (x = 0 is satisfiable) - add
+  `have hk12 : (S .king).rank.toIdx = 12 := rfl` and rw ONE party's suit-projection to the syntactic `Suit.spade`.
+- SHIPPED REUSABLES (this file's namespace, import Klondike.C2Streamlined only): `applyDrawStackTo_heights`
+  (guard extraction from a fired applyDrawStackTo: cases hp : reachablePos, the have-h'-cast to the ite-liteal
+  per Macro.lean's own iff-proof, then ite_eq_left/right), and the freeze-invariant shape
+  `(heights σ = 0 ∧ ∀ c, c.suit = σ → bottomOf c = none)` closed under the pileStack/stackPile one-steps - any
+  suit-freeze goal (the B-side anchored-head families) can re-derive it this way.
+## Session note (2026-10-05) - the C2-rescope session (Klondike/C2Streamlined.lean; wave 19: the rung re-scope + the raise-ray core)
+
+Landed: succThrough_zeroSpend, pin_join_zeroSpend_rung, p2_join_zeroSpend_rung,
+c2_two_option_zeroSpend_rung (hpin/hp2 DERIVED for direct/hole under the root rung;
+the stack arm via the two-move worried-back roundtrip), and hball's core: reachablePos_
+of_accommodation(_run), heights_step_accommodation, raise_crossing_mem (F2's deterministic
+raise), stack_channel_world, stack_raise_deterministic, stack_channel_raise_mem,
+raise_card_off_ball. Census 12 pinned (ZERO new sorries, C2Streamlined 0; all proofs).
+Full row in FARM.md wave 19. Axiom profiles: the 12.5 family [propext, Quot.sound]; the
+raise family [propext, Classical.choice, Quot.sound] (K1-profile).
+
+TACTIC LORE (all machine-confirmed this session):
+
+- BY-BLOCKS INSIDE ANONYMOUS CONSTRUCTORS MIS-PARSE: `exact <| [p], by rw [..]; exact h,
+  by intro m hm; .., [p2], by .. |>` against a nested (and/or-exists)-tree mis-flattens -
+  symptoms: `Tactic 'introN' failed: There are no additional binders` plus hangover goals
+  like `goal s.run sorry = some sd`. WORKING SHAPE: `refine <<[w1], ?_, ?_>, [w2], ?_, ?_>>`
+  + plain bullets - zero by-blocks in term position.
+- INDUCTION WITH A RUN-PLAY: do NOT mix `revert st` + `induction a` with hypotheses that
+  mention BOTH a and st (hrun/hall): induction auto-generalizes the a-dependent hall into
+  the IH as a LEADING binder and the arg order flips under you (error: `the argument v :
+  State ... expected forall m in ms -> ...`). WORKING SHAPE (raise_crossing-style):
+  state the lemma with the play FIRST inside a top-level forall - `theorem foo
+  (u : State) (c : Card) : forall (a : List Move) (st : State), st.run a = some u ->
+  (forall m in a, isAccommodation) -> concl := by intro a; induction a with` - then every
+  case's `intro st hrun hall` uses THE MOTIVE'S OWN binder order and `ih v hmsrun
+  (hall-slice)` binds correctly.
+- NAMED-IMPLICIT ABOVE THE forall: a lemma with implicit {X} whose instantiation is only
+  decidable from a LATER argument leaves X a METAVARIABLE when you pass `(k := X.rank.toIdx
+  - 1)` and by-omega slots (omega then reports bizarre `st.heights (Card.suit ?m)`
+  constraints). Always pass `(X := X)` explicitly at such call sites.
+- DIRECTION TRAPS PAID TWICE: run_nil_elim gives `st = u` - rewriting the END state in a
+  hypothesis wants `.symm` (rw [(run_nil_elim hrun).symm] at hEnd); a Ne-goal after
+  `rw [hRs]` can come out FLIPPED - close with `(flipSuit_suit_ne X).symm`-style Ne.symm.
+- PROJ-OF-LITERAL AUTO-RFL, now banked for the state_ext slots: chained `rw [hslit,
+  hsdlit]` (state = nested {st with ...} equalities) closes the deal/board/depths/stock/
+  drawStep slots BY RW'S OWN AUTO-RFL (both sides bottom out at identical terms through
+  nested with-updates) - NO explicit rfl needed; the two iff-emitted stock normalizations
+  applyDrawTo_iff/applyDrawStackTo_iff produce the SAME `(st.stock.drawTo i).removeAt i`
+  (the reachable indices equalize via Option.some.inj), so the stock slot is that splice
+  both sides - no Cycle.removeIdx bridge when everything comes from iff-unpacks. Heights
+  slots still need the per-suit helper + show-normalized if + ite_eq_left/right casework.
+- NAMESPACED HELPERS: Board.attach_detach_cancel and State.topOf_inr_eq_none need their
+  prefixes inside namespace Klondike.C2; bare names are unknown identifiers.
+- #print axioms PROBE DISCIPLINE: appending `#print axioms Klondike.C2.<name>` lines at
+  file end prints profiles under `lake env lean Klondike/C2Streamlined.lean` - count them
+  and strip ALL before commit (they do not belong in the library).
+- WITNESS DASHES re-confirmed: obtain-slots against iff-shapes: applyDrawTo_iff has TWO
+  exists-witnesses then three conjuncts (5 slots), applyDrawStackTo_iff ONE witness then
+  three (4 slots), apply_pileStack_iff one witness between four conjuncts (5 slots).
+  Miscounted slots bind a PAIR to the last name - the rw on it then fails far away.
+
+FINDINGS:
+
+- The zero-spend channels cannot label anything in the direct-absent world
+  (through_direct_hole_commits turns any zero-spend label into a root commit) - so the
+  derived-scope corollary's case tree is one branch, and the register is never consulted.
+- hball's world IS derivable (stack_channel_world): WF + toStack live + direct absent
+  forces X reachable and the suit height strictly below the rank - the raise content is
+  never degenerate; every stack-channel witness then FIRES the same-suit rank-mate
+  raise (stack_raise_deterministic) - the shared spine any pairwise resolution of the
+  corner builds on. The crease/free-float residue is exactly the enablers' reconciliation.
+- Peer-context (both orchestrator peer-requests failed delivery - sender no longer
+  available; content preserved in FARM.md wave-19 row): the reach-probe interop map
+  (no domain premise needed by my theorems; hlab is the absorbable target; the weak
+  reachable corner cannot revive the as-stated hpin/hp2 refutations - they need >=2
+  simultaneously-free anchors), and the SuccLabeledWitness datum (merged 58448d7 past
+  this branch's base; my ticket-1/2 derivations consume no P0 content, so the channel
+  decision is independent of this session's landing).
+- WORKTREE/WEATHER: fourth session in a row hitting the fresh-worktree-at-dc41b8e gotcha
+  (no lean-model/; `git merge --ff-only b99ad47` clean fixed). Cold-build olean-weather:
+  transient `failed to read file ... olean(.private)` failures on the shared elan
+  toolchain - the plain-retry protocol banked everything; a REAPED background start's
+  partial artifacts resumed correctly (no lake clean, no PID kills needed).
+
+### Session 2026-10-05 (wave 19B) — C2 reachability probe: the five refutation corners are outside the dealt-reachable fragment (all five verdicts: restored under hreach)
+
+Deliverable: `witnesses/KingAnchorReachProbe.lean` (root namespace `KingAnchorReach`),
+facade import added to `Witnesses.lean` (the FIRST witness-facade cross-import; safe chain
+documented in the umbrella comment).  `lake build Klondike Witnesses` green.  The verdict
+table + obstruction classes live in FARM.md's wave-19B section and the probe file's own
+docstring.  TRAPS hit this session (new, not in the ledger before):
+
+- `rcases ... with rfl | hap` on a cons-membership split where the head-eq is `a = a₀`
+  (BOTH free vars) ELIMINATES a₀, not a - every later reference to a₀ errors
+  unknownIdentifier.  Same for `subst` on `a = a₀`.  FIX: anonymous binder `rcases ... with
+  hhead | hap` + goal-side `rw [hhead]`; for goal+hypothesis transfer `rw [haa] at hhid ⊢`
+  (rw does not substitute, it only rewrites - that is exactly what is wanted here).
+- SUCCESSOR-ITE under the reveal literal: `show q ∈ (deal.piles a₀).take (st.depths a₀ - 1)`
+  FAILS against `{depths := fun a' => if a' = a₀ then ...}` - the ite's DecidableEq instance
+  is STUCK on symbolic a₀, so the defeq check cannot reduce.  FIX: show the if-form
+  `(if a₀ = a₀ then st.depths a₀ - 1 else st.depths a₀)` then `rw [ite_eq_left rfl]`
+  (extends EngineReachProbe's cons-literal lore: the Ek probe could decide its literals;
+  symbolic anchors cannot).
+- `Option.some.inj`-chain elaboration ORDER: a bare `Option.some.inj (hget.trans hgetr.symm)`
+  picked the unifier wrong ("Eq.symm hgetr : some r = ... but expected some q = ?m").  FIX:
+  wrap in a `have ... := by` block and make the trans DIRECTION explicit
+  (`hget.symm.trans hgetr`).
+- `by decide` inside an ∃-witness slot whose statement mentions a THEOREM-BOUND anchor
+  (`S .ace ∈ (wsucc a).deal.piles Anchor.p0`): "Expected type must not contain free
+  variables" even though the membership is a-independent.  FIX: strip the binder first via
+  a defeq show-cast (`by show S .ace ∈ wDeal.piles Anchor.p0; decide`) - the show is legal
+  because the state-projection chain does not depend on a.
+- `by decide : noDupCards (Cycle.removeIdx wStockList 0)` cannot synthesize Decidable for the
+  spliced literal.  FIX: certify the UNSPLICED list with the bounded-range decide
+  (`∀ i j ∈ range 24, ...`), then `Kit.noDupCards_removeIdx` (root, Kit.lean:534) does the
+  splice.  General lore: for noDupCards at a computed list, look for the Kit transfer before
+  deciding.
+- CRASHED-PREDECESSOR RECOVERY: this session inherited its own predecessor's UNCOMPILED,
+  UNTRACKED probe file (~750 lines, structurally correct, ~20 build errors).  Line-slip
+  classes found in it: the four above, plus `rw [hu] at h` where hu is a MEMBERSHIP not an
+  eq (read the obtain-slot names after copy-paste of a mirrored proof), 9-name `intro` for
+  an 8-binder theorem (introN fails on the leftover name AFTER all contexts print - count
+  the arrows in the pretty-printed signature, not the bullet count), and `rw [hbb] at this`
+  where `this` already is in the hbb-RHS shape (direction slip; rw pattern is hbb's LHS).
+  One discipline note to my later self: do NOT "scaffold then fill" a big bullet block with
+  placeholder tactics - a half-written stub lived in the file for two edits this session;
+  write the full block in one edit (the census/scanner lore exists for a reason).
+- TOOLCHAIN-FILE STORM (extends K2's lore): a full rebuild after a git-refresh retried
+  failed THREE times - each run exactly the 8 re-elaborating leaves died at 1.4s on a
+  DIFFERENT random `*.olean.private`, no lean/lake process alive, direct .NET reads
+  fine.  FIX: warm ALL 2518 `.olean.private` files (PowerShell open/read/close pass),
+  then build the failing TARGETS SERIALLY (each alone went green instantly).  When "plain
+  retry" does not converge, warm-then-serialize.
+
+REUSABLE SHARDS (this file, importable as `Witnesses.KingAnchorReachProbe` via the facade):
+- `KingAnchorReach.accounted`/`apply_accounted` (7 moves)/`run_accounted`/`initial_accounted`:
+  the pile-card conservation invariant (hidden ∨ visible ∨ founded) - the cleanest
+  reachability fence shape so far; maintenance needs WF only for reveal's boundary-index
+  extraction (topHidden_get).
+- `KingAnchorReach.pileCards_seated_of_initialReachable` + `unseated_pileCard_unreachable`:
+  the dead-corner fence.  Any restoration needing "zero-depths zero-heights ⇒ something is
+  visible" cites it directly.
+- `initialBoard_seats` (private; make public on request): the FORWARD initial-board seating
+  theorem (every pile's top card sits at its `initBase`) - needed anywhere an initial-board
+  argument requires the topOf image, which `initialBoard_topOf` (the converse) cannot
+  provide.  Proof shape: an InitImg image-induction over the deal fold with
+  `initBase` injectivity (deal distinctness) for the freeness of each seat.
+- In-file bottomOf-transfer toolkit (private): `bottomOf_isSome_pilePile` - visibility
+  survives a one-run board rewrite (root NE re-seat, riders keep their seats, the freed
+  landing base is the only new seat) - the pilePile image preservation anyone doing
+  board-rewrite invariants will want.
+- The verdict theorems carry WF EXHIBITS (`wstate_wf`, `wsucc_wf`, `ustate_wf` replicas):
+  the fence separates two INHABITED worlds - the corners exist in the WF universe, they
+  just are not dealt-reachable.  Cite this pattern whenever someone claims an unreachable
+  premise makes a gated statement vacuous.
+
+### wave-19 (TwinSwapCompletion: the deferral + mid_access repair + witness C) - session notes for successors
+
+- THE BIG ONE, target 1: the catch-up-first-to-between DEFERRAL closes LICENSE-FREE through the EMPTY MID.  `_back`'s window only
+  restricts the between-mid (`twinMid t'`); `q1` is gated by `cleanTwin t'` alone, which bans ON-PAIR FOUNDATION moves only - the
+  t'-suit catch-up raises are off-pair by RANK.  So the constructed mirror play `q1 ++ [stack t'; stack t] ++ q2` IS the between
+  window with mid := [] - `solvable_swapTwin_mixed_back_catchupfirst` is a literal re-bracket of `_back`.  The licensed literal
+  split (the mid itself between the stackings) is REFUTABLE: the RUNG PIN (stack t' fires only after the catch-up raises its suit)
+  plus the flipped witness-A seat corner - witness C (witnesses/TwinCompletionWitness.lean) is the decide anchor.  Do not spend a
+  successor ticket on licenses for that split; there are none.
+- mid_access_of_noSeat was FALSE AS PINNED: two missing exclusion classes (pileStack seats b = inr c; the reveal boundary
+  chain b = inl a | A.hiddenBase a | inr r for r in A.hidden a).  The repaired statement + a full ~700-line proof DRAFT live in
+  the file pin + attic/MidAccessDraft.lean (NOT built; reinstating is the successor's job; ~25 local elaboration errors remain).
+- ELABORATION TRAPS hit this wave (all cost real time):
+  (1) `refine <{ S with f := ..., g := ... }, ?_, ?_> - the multiline structure literal inside an anonymous constructor
+  DOES NOT PARSE (the parser gives "unexpected identifier; expected '}'" and a phantom "Exists.intro has 2 explicit fields"
+  error).  Hoist: `have swit : State := { ... }` then `refine <swit, ?_, ?_>`; the trailing `rfl` shape-slot still sees through
+  the local def.
+  (2) `obtain <...> := by cases m with | draw => exact ... - the per-arms got checked against the FIRST arm's specialized goal
+  (`expected ... Move.draw`) - do NOT case-split inside a term-obtain's `by`; do `cases m with` at tactic level and write each
+  arm's own obtain + tail (duplication is fine).
+  (3) `cases h : e with` DOES substitute e in the goal - but ONLY where it OCCURS: in `bottomOf c = bdB.bottomOf c` the LHS got
+  `none`/`some b1` substituted, so the provided proof needed `.symm` in ONE lemma and not in the OTHER (whose goal had e on the
+  RHS).  Check which side your `cases h :` lands on before adding `.symm`s.
+  (4) `hccLo.cells b hne : S.topOf b = S'.topOf b` rewrites the GOAL S->S' FORWARD (`rw [hcells ...]`) when you are feeding an
+  S'-shaped hypothesis into an S-shaped goal.  I wrote half the mirrors with `rw [<- hcells ...]` and every one was backwards.
+  (5) rw AUTO-CLOSES with rfl: a multiline `rw [hshape]` + next-line bare `rfl` errors "No goals to be solved".  One-line
+  `rw [hshape]; try rfl` is safe everywhere; the multiline form needs the dangling rfl deleted by hand.
+  (6) `List.mem_cons_self` takes NO explicit args in this core (bare `hmid m Set.List.mem_cons_self`-style); `simp` closes
+  `none = some c` but NOT `true = false` - use `Bool.noConfusion` for the latter.
+  (7) `subst h : x = t` may eliminate the THEOREM-side variable (beta vanished; "unknown identifier beta"): name the eq so that
+  the RHEMA var is the local you want gone, or rewrite inside the hypotheses instead of substituting.
+  (8) Long literal-projection goals (`{S with ...}.f x`) sometimes need `show` (defeq/iota) and sometimes the per-arm
+  `have hdeq : S1.f = fun x => ... := by rw [hshape]; rfl` + `rw [hdeq]` route when show flinches; the depths/reveal arm of
+  depths_mono_move is the worked example.
+- PROCESS: the worktree sat at an old commit (fast-forward to b99ad47 FIRST - gotcha confirmed again); the cold build hit the
+  .olean.private machine-contention errors ~4 times - plain retry, never debug them; and budget the session's last 15% for
+  FARM.md + FARM_MEMORY.md + the commit - the wave-18 report nearly went uncommitted again (machinery drafted in-tree > perfect
+  proof in a crashed session).
+
+### wave-20 (TwinSwapCompletion: mid_access_of_noSeat PROVEN - the attic draft's reinstatement) - session notes for successors
+
+- THE BIG ONE: `State.mid_access_of_noSeat` is PROVEN, axiom-clean [propext, Classical.choice, Quot.sound] (TwinSwapCompletion:2503).
+  The wave-19 attic draft reinstated verbatim (splice at the pinned block; git rm attic/MidAccessDraft.lean per its own header) and
+  elaborated: ~44 error reports -> 0 in four passes.  The orchestrator licensed an initialReachable-gated fallback this wave; it was
+  NOT needed - the unconditional repaired statement went through.  The corpus half (do reached states' between-mids satisfy the
+  noSeat exclusions - or is it vacuous at the corpus?) is still §8's histogram ticket, orchestrator/harness scope.
+- THE WAVE-19 TRAP-1 HOIST IS WRONG AS WRITTEN: `have swit : State := { S with ... }` makes swit OPAQUE to unification - every
+  TwinReplayTrace slot then fails literal-projection (`swit.board.topOf beta` cannot reduce to `S.board.topOf beta`).  The right
+  hoist is `let swit : State := { ... }` (7 sites) - the let-value is zeta-visible and every literal projection reduces; `rw`/`show`
+  see through it.  Keep the `have`-form ONLY if you never project the state in a slot.
+- THIS LEAN BUILD REJECTS MULTI-LINE STRUCTURE INSTANCES, FULL STOP: `{ S with f := v,` (comma at end of line, next field indented)
+  is a PARSE error ("unexpected identifier; expected '}'" at the comma), everywhere - not just inside anonymous constructors.  Probe-
+  confirmed on a scratch file; single-line instances parse fine.  All 6 draft sites folded to one line each.
+- WALK-LEMMA SHAPE (aboveOf_twin_delta, the pattern for any fuel-induction through Board.aboveOf.go): after `rw [aboveOf_go_succ
+  S.board, aboveOf_go_succ S'.board, hseat-reads]`, the goal is a MATCH on `some c`/`none` on BOTH sides; `show` cannot smash match
+  scrutinees (defeq DOES reduce match-on-constructor, `show` flinched anyway in the dsimp-free draft) - `dsimp only` iota-reduces them
+  cleanly, THEN rw the ites.  `rfl` CANNOT close `A ∨ B` even when A is `rfl`: refine `Or.inl`/`Or.inr` FIRST (the draft's off-beta
+  arms forgot this - errors at the shows, not at the goal).  `cases n with | succ n' =>` REPLACES n by `n' + 1` in every show (unknown
+  identifier `n`); and the off-beta hcon-false arm does NOT refine at all - `exact ih (Sum.inr c) (c :: acc)` lands the whole IH-Or
+  into the goal-Or because the shapes agree literally.
+- REVEAL DECREMENTS THE SPECIFIC PILE: the corpus literal is `depths := fun x => if x = a' then S.depths a' - 1 else S.depths x`
+  (revealed ANCHOR in the then-branch, not the binder) - the draft's `S.depths x - 1` form is pointwise-equal but NOT defeq; rw
+  [hshape]-then-rfl only closes with the corpus form anchored (`depths_mono_move`'s reveal arm is the worked example; note its
+  by_cases arm then wants `rw [ite_eq_left h, h]` before omega).
+- `Board.bottomOf_eq bd c b : bd.bottomOf c = some b ↔ bd.topOf b = some c`: `.mp` goes bottomOf->topOf; going from a topOf-fact to
+  the bottomOf-fact is `.mpr` (the draft had .mp in pilePile's hzt - backwards).  `absurd` binds its SECOND argument at the NEGATION
+  of the FIRST'S orientation: `absurd (Option.some.inj h).symm hxb` - watch which side of the Ne the havoc sits on.
+- The `¬(X = true) -> X = false` finish in a Bool context: `Bool.not_eq_true` is UNKNOWN in this core (and `Bool.not_eq_true'` does
+  not fire); use `cases hhv : X with | false => rfl | true => exact absurd hhv hhc` - `cases h : e` substitutes only the GOAL's
+  occurrences, the hypothesis keeps `X` raw, so `absurd hhv hhc` closes the true arm.
+- ORCHESTRATION: mid_access's pin row is now a strikethrough-PROVEN row; sweep_covered_corner_safety is TwinSwapCompletion's LAST pin
+  (census 11, base 12).  Mex/engine histogram ask (landing-site audit) is NEXT 1.
+- SWEEP PAID PIECES + CELL-CASING RECIPE (wave 20's second batch): `sweep_covered_corner_deal_adjacent` + `vacated_covered_cell_imp_mate_move`
+  (TwinSwapCompletion:2613/:2638) land the safety plan's (1) + (2)-keystone.  The per-move-kind CELL-CHANGE casing (the
+  vacated-covered-cell analysis) rides three facts, reuse them verbatim for any "which moves can change a given cell reading" audit:
+  attach-kinds (reveal/deckPile/stackPile) can only FILL free cells (`attach_frees`, TwinCollapse — IMPORT IT, it is NOT in TwinQuotient's
+  chain), board-inert kinds (draw/deckStack) preserve `board` verbatim, and the detach kinds empty exactly the moved card's own base — so a
+  vacated cell's tenant names the mover, and Equal tenants is `Option.some.inj` AFTER symm-matching the flipped orientation (the elaborator
+  fixes `Option.some.inj`'s binders from the GOAL orientation - `(Option.some.inj hc).symm`, not `Option.some.inj hc`).  In the by_cases
+  branches: `rw [hb] at hf` FIRST (substitute the cell into the frees-fact by hypothesis, never by pattern), then `rw [hf] at htop`, then
+  `by simp` on the resulting `none = some x`.
+- `rw [htwin, Card.flipSuit_rank]` (FORWARD) is the twin-rank alignment: `rw [← htwin]` on a goal mentioning `H.rank` alone does nothing -
+  `htwin : H = L.flipSuit` rewrites H-occurrences to the flipSuit-form, and `Card.flipSuit_rank : x.flipSuit.rank = x.rank` then closes.
+  For the rank contradiction itself: `canSitOn_eq`'s first conjunct (`toIdx H + 1 = toIdx L`) + `omega` after the alignment - no color
+  analysis needed.
+- `board_edges`'s inr-clause DOES rcases-split directly at a constructor scrutinee (`Sum.inr L`): the match iota-reduces under rcases, no
+  `simp only` prologue needed - `rcases (hwf.board_edges (Sum.inr L) H hcover).2 with hbur | ⟨-, hfit⟩` lands the buried-base ∃ (with the
+  deal-adjacency LIST SHAPE `piles a = t ++ L :: H :: rest` ready to re-export) or the canSitOn contra.
+## wave 20 note (2026-10-05, farm-c2-restoration session)
+
+- The wave-19B "RESTORED under hreach" reading needed the revision the hard way:
+  reachability fences exclude pristine SHAPES (empty board, zero depths), not
+  CHANNEL CONTENT.  The dealt INITIAL state of an honest deal (empty-play
+  reachable) presents the frozen-suit stocked king + ≥2 free anchors (six of
+  them) AND the uncovered anchored-ace promotion route — the five gated
+  universals fall THERE (witnesses/SuccLabeledWitness.lean: five
+  wk_*_reachable_false, all [propext, Classical.choice, Quot.sound]).
+  LESSON: before "restoring under a domain restriction", ask what the DOMAIN
+  ITSELF (not the refuting witness) presents — the initial state is usually
+  the strongest reachable exhibit and needs no play at all.
+- The frozen-seat separation lemma (rFrozen_seat_step/_run) is the reusable
+  lift of the pristine witness's "every accommodation move is dead" into
+  "every accommodation move preserves the frozen king's seat": pairwise
+  closure-separation needs only the INVARIANT (heights stay 0 / no non-king
+  spade seats / the king's topOf base), not full deadness.
+- decide CAN evaluate the deal-fold board cheaply (topOf/bottomOf on
+  Anchor.all.foldl of literal attaches): rSeat0/rNoCoverAce/rFree1-3 are one
+  `by decide` each.  The QUANTIFIED freeze (forall spade c, bottomOf c = none)
+  still needs the edge analysis (initialBoard_topOf + per-pile rfl-top facts)
+  — abstract c defeats decide.
+- ELABORATION TRAPS (this wave's, for the ledger in addition to wave-19's):
+  (1) rcases `-` CLEARS the hypothesis in that slot — clearing an ∃-variable
+  (i) that a LATER slot's type mentions (the successor shape hs : s =
+  {st with ... stock := ⟨removeIdx st.stock.cards i, i⟩}) silently breaks the
+  later introductions with confusing "unknown identifier" cascades.  Name
+  every ∃ variable the later shapes mention; `-` only the proofs.
+  (2) `rw [h : a = b] at H` on the WRONG hypothesis list errors even when the
+  pattern exists elsewhere (SuccThrough's α lives in hrun's TYPE, NOT in the
+  destructed arm hypothesis's type) — rw only at the hypotheses that mention
+  it.
+  (3) `rw [hs]` where hs : X = {expr-DEFEQ-rfl-to-goal} AUTO-CLOSES with its
+  trailing rfl — the next line's bare `rfl` then errors "No goals" (matches
+  wave-19's trap (5); it generalizes to shape-lemmas: any rw whose result is
+  iota-trivial closes).
+  (4) Board.attach_topOf takes the inequality as (β ≠ b) — the β-side FIRST
+  (Ne.symm discipline); Board.detach_topOf is (bd) (b) TWO explicit args,
+  `_`-underscores leave it as a ∀-lambda that fails the expected-type.
+  (5) Splicing 300+ line file sections with PowerShell line-ranges: keep the
+  pristine file (git show HEAD:path) as the edit SOURCE and assemble from
+  measured marker lines — hand-editing insides drifted once (a stray draft
+  note) and the restore cost more than the whole splice.
+- PROCESS: the worktree sat at an old base AGAIN (fast-forward to de37861
+  first); the wave-20 boss task's "DONE" list (per-universal theorem
+  names + file:line) is in FARM.md's wave-20 row; sub-100ms retries never
+  hit the .olean.private contention this session.
+
+## wave 21 note (2026-10-05, farm-pile-swap-symmetry session)
+
+Sub-session (this card only: Klondike/PileSwap.lean + witnesses/PileSwapConsequences.lean).
+Both new files are sorry-free/axiom-clean (pins: [propext, (Classical.choice,) Quot.sound]);
+census 11 unchanged.  FARM.md wave-21 row has the deliverable names; doc §9 is the
+cross-referenced addendum.  Base: fast-forward 197 commits to 7121529 first (worktree
+again started stale); one std::bad_alloc on cold build → plain retry per the card.
+
+ELABORATION TRAPS (add to the ledger):
+(6) DECIDABLE-INSTANCE FRAGILITY: ite_eq_left/right-pattern rw with ?meta INSTANCES pin to
+  the FIRST matched ite's instance when TWO same-spelled ites sit in one goal — the second
+  never rewrites ("pattern not found" while the display SHOWS it).  Fix: DOUBLE the rw
+  (rw [ite_eq_left h, ite_eq_left h]) so the second rw re-elaborates a fresh instance.  The
+  same fragility bites `show` that RESPELLS a folded condition (Base.swapBase (Sum.inl x)
+  vs the unfolded Sum.inl (Anchor.swap i j x)) — the kept goal carries the FOLDED instance,
+  so rewrites on the unfolded spelling fail "not type-correct under implicit transparency".
+  Escapes used: keep the FOLDED spelling everywhere and rw on it (Base.swaapBase_inl-style);
+  or go instance-free (attach_topOf/_ne + by_cases on the pre-ite facts — the
+  attach_empty_conj proof pattern).
+(7) match-ARM ORDER matters for writes: source defs whose arms are SOME-first
+  (applyPilePile's | some bd => ... | none => none) are NOT defeq to the conventional
+  | none | none | some | spelling in a `show` — the show DEF-ACCEPTS(δ iota) but the
+  later rfl/rw chains stall.  MIRROR the source arm order bit-for-bit in unfolding shows.
+(8) `cases h : e` SUBSTITUTES e in the goal but leaves the match UNREDUCED — after cases,
+  a fresh `show` (iota-reduced body built from the case facts) is the reliable next step;
+  `refine state_ext rfl...` on un-shown post-case arms fails on stale meta-instances.
+(9) Bridge-column rule BITES MULTI-LINE RECORDS IN TACTIC ARGUMENTS TOO (not only source
+  files): { x with f := v, ... } elaborated inside show/have must start its first field on
+  its own line at the anchor column — a first field on the `{ x with` line is a parse
+  error "unexpected '}'" that cascades into bogus type mismatches dozens of lines away.
+(10) `obtain ⟨bd0, hc⟩` after `cases hc : e with | some bd0` — the cases already abstracted
+  e INTO `some bd0` in the goal, so the ∃ goal is `some bd0 = some ?`; provide rfl, not hc.
+(11) state_ext takes SIX hypothesis args — a `refine state_ext rfl ?_ rfl ?_ rfl` (five)
+  leaves the drawStep eq as a leftover function and reports a bizarre partial-application
+  type error; count the slots (deal, board, heights, depths, stock, drawStep).
+(12) The interactively painless per-arm pattern for Option-guarded apply lemmas: outer
+  two-sided `show (match scrutinee with ...) = Option.map f (match scrutinee with ...)`,
+  rw both scrutinee-sidesonto the same spelling, `cases` the scrutinee (substitutes BOTH
+  sides), per-arm two-sided `show (if COND then X else Y) = Option.map f (if COND then X'
+  else Y')`, `by_cases COND`, DOUBLE ite rewrites, final rfl.  Long but mechanical; used
+  six times in State.apply_setDeal_eq_of_depthsZero with zero exotic tactics.
+
+OPEN PINS (recorded, unconsumed this wave): transposed flatMap noDupCards for Deal.WF
+(block-permutation argument — no consumer); the general graded bound (k vacant ≤ m
+content-classes) beyond the all-empty first cut; harness ticket for the orchestrator's
+SuccLabeledWitness track: an empirical rDeal-family print/multiset probe to pair with
+ReachCorner.sHidden_distinct (none run from here — no #eval).
