@@ -1,8 +1,8 @@
 # The proof farm — handoff document
 
-**Census: 11 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
+**Census: 10 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
 · Movability 0 · C2Streamlined 0 · TwinSwapCompletion 1
-· Restriction 2 · TwinExchange 1 · TwinQuotient 2; zero bullets;
+· Restriction 1 · TwinExchange 1 · TwinQuotient 2; zero bullets;
 waves 12/17 base + all four wave-18 sessions + the wave-19 C2
 re-scope, 2026-10-05: §8.7 closed
 by movability-equivalence; the C2 pillar set refute-probed — FOUR of
