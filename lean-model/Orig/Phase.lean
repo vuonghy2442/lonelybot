@@ -145,20 +145,33 @@ private theorem dealUpTo_lens (k : Nat) : ∀ (l : List Card),
   induction k with
   | zero =>
       intro l
-      simp only [State.dealUpTo, List.length_nil]
-      omega
+      refine ⟨?_, ?_⟩
+      · exact (Nat.min_eq_left (Nat.zero_le l.length)).symm
+      · exact Nat.zero_add l.length
   | succ k ih =>
       intro l
       cases l with
       | nil =>
-          have h0 :
-              State.dealUpTo (k+1) ([] : List Card) = (([] : List Card), ([] : List Card)) := rfl
-          rw [h0]
-          simp
+          refine ⟨?_, ?_⟩
+          · exact (Nat.min_eq_right (Nat.zero_le (k + 1))).symm
+          · rfl
       | cons c cs =>
           obtain ⟨h1, h2⟩ := ih cs
-          simp only [State.dealUpTo, List.length_cons]
-          omega
+          have hs1 : (State.dealUpTo (k + 1) (c :: cs)).1.length
+              = (State.dealUpTo k cs).1.length + 1 := rfl
+          have hs2 : (State.dealUpTo (k + 1) (c :: cs)).2.length
+              = (State.dealUpTo k cs).2.length := rfl
+          have hlen : List.length (c :: cs) = List.length cs + 1 := rfl
+          rw [hs1, hs2, hlen]
+          rcases Nat.lt_or_ge k cs.length with hlt | hge
+          · rw [Nat.min_eq_left (Nat.le_of_lt hlt)] at h1
+            refine ⟨?_, ?_⟩
+            · rw [h1, Nat.min_eq_left (Nat.succ_le_succ (Nat.le_of_lt hlt))]
+            · omega
+          · rw [Nat.min_eq_right hge] at h1
+            refine ⟨?_, ?_⟩
+            · rw [h1, Nat.min_eq_right (Nat.succ_le_succ hge)]
+            · omega
 
 /-- A full deal: when the list has no more than `k` cards, every card
 is dealt and nothing remains. -/
@@ -264,7 +277,7 @@ private theorem draw_cycleCount {x y : State} (hsuc : x.stepDraw = some y) :
     rw [hy]
   have hyS : y.stock = (State.dealUpTo r.drawStep r.stock).2 := by
     rw [hy]
-  obtain ⟨h1, h2⟩ := dealUpTo_lens r.drawStep r.stock
+  obtain ⟨_, h2⟩ := dealUpTo_lens r.drawStep r.stock
   have hcx : cycleCount x = x.stock.length + x.waste.length := rfl
   have hcy : cycleCount y = r.stock.length + r.waste.length := by
     show y.stock.length + y.waste.length = r.stock.length + r.waste.length
@@ -287,8 +300,13 @@ private theorem draw_dropStock {x y : State} (hsuc : x.stepDraw = some y)
     show (x.stock).length = 1 + t.length
     rw [hcon, List.length_cons]
     omega
-  rw [hyS]
-  omega
+  rcases Nat.lt_or_ge x.drawStep x.stock.length with hlt | hge
+  · rw [Nat.min_eq_left (Nat.le_of_lt hlt)] at h1
+    rw [hyS]
+    omega
+  · rw [Nat.min_eq_right hge] at h1
+    rw [hyS]
+    omega
 
 /-- The draw step is permanent: no move in the model re-labels the
 draw width. -/
@@ -333,9 +351,7 @@ private theorem draw_nil_inPhase {x y : State} (hst : x.stock = [])
     have hwr : (x.waste.reverse).length = x.waste.length := List.length_reverse
     obtain ⟨h1, h2⟩ := dealUpTo_lens x.drawStep x.waste.reverse
     rcases Nat.lt_or_ge x.drawStep x.waste.length with hlt | hge
-    · have hmin : min x.drawStep (x.waste.reverse).length = x.drawStep := by
-        rw [show (x.waste.reverse).length = x.waste.length from hwr]
-        omega
+    · rw [hwr, Nat.min_eq_left (Nat.le_of_lt hlt)] at h1
       have hyne : y.stock ≠ [] := by
         intro hc0
         have hc2 : (State.dealUpTo x.drawStep x.waste.reverse).2 = ([] : List Card) :=
@@ -346,15 +362,13 @@ private theorem draw_nil_inPhase {x y : State} (hst : x.stock = [])
       have hdec : inPhase y = decide (y.waste.length % y.drawStep = 0) := by
         simp only [inPhase, hys]
       have hywl : y.waste.length = x.drawStep := by
-        rw [hyW, List.length_append, List.length_reverse, List.length_nil, h1, hmin]
+        rw [hyW, List.length_append, List.length_reverse, List.length_nil, h1]
         omega
       have hyD : y.drawStep = x.drawStep := by
         rw [hy]
       rw [hdec, hywl, hyD]
       exact decide_eq_true (Nat.mod_self x.drawStep)
-    · have hmin : min x.drawStep (x.waste.reverse).length = (x.waste.reverse).length := by
-        rw [show (x.waste.reverse).length = x.waste.length from hwr]
-        omega
+    · rw [hwr, Nat.min_eq_right hge] at h1
       have hyv : y.stock = [] := by
         have hy0 : y.stock.length = 0 := by
           rw [hyS]
@@ -387,7 +401,7 @@ private theorem draw_keeps_inPhase {x y : State} (hsuc : x.stepDraw = some y)
       rw [hcon, List.length_cons]
       omega
     rcases Nat.lt_or_ge x.drawStep x.stock.length with hlt | hge
-    · have hmin : min x.drawStep x.stock.length = x.drawStep := by omega
+    · rw [Nat.min_eq_left (Nat.le_of_lt hlt)] at h1
       have hyne : y.stock ≠ [] := by
         intro hc0
         have hc2 : (State.dealUpTo x.drawStep x.stock).2 = ([] : List Card) :=
@@ -398,10 +412,10 @@ private theorem draw_keeps_inPhase {x y : State} (hsuc : x.stepDraw = some y)
       have hdec : inPhase y = decide (y.waste.length % y.drawStep = 0) := by
         simp only [inPhase, hys]
       have hywl : y.waste.length = x.drawStep + x.waste.length := by
-        rw [hyW, List.length_append, List.length_reverse, h1, hmin]
+        rw [hyW, List.length_append, List.length_reverse, h1]
       rw [hdec, hywl, hyD, Nat.add_mod_left]
       try exact decide_eq_true hres
-    · have hmin : min x.drawStep x.stock.length = x.stock.length := by omega
+    · rw [Nat.min_eq_right hge] at h1
       have hyv : y.stock = [] := by
         have hy0 : y.stock.length = 0 := by
           rw [hyS]
@@ -640,11 +654,19 @@ private theorem step_wasteNe_preserved {x y : State} (hd : 0 < x.drawStep)
           obtain ⟨c0, t0, hwcon⟩ := list_cons_of_ne_nil hw
           rw [hwcon, List.length_cons]
           omega
-        intro hc0
-        rw [hyW] at hc0
-        have hlen := congrArg List.length hc0
-        rw [List.length_append, List.length_reverse, List.length_nil] at hlen
-        omega
+        rcases Nat.lt_or_ge x.drawStep x.waste.length with hlt | hge
+        · rw [hwr, Nat.min_eq_left (Nat.le_of_lt hlt)] at h1
+          intro hc0
+          rw [hyW] at hc0
+          have hlen := congrArg List.length hc0
+          rw [List.length_append, List.length_reverse, List.length_nil] at hlen
+          omega
+        · rw [hwr, Nat.min_eq_right hge] at h1
+          intro hc0
+          rw [hyW] at hc0
+          have hlen := congrArg List.length hc0
+          rw [List.length_append, List.length_reverse, List.length_nil] at hlen
+          omega
       · obtain ⟨r, hrec, hrne, hy⟩ := draw_unfold hsuc
         have hxr : x = r := ((recycle_keep x hst).symm).trans hrec
         rw [← hxr] at hy
@@ -714,10 +736,17 @@ private theorem draw_pristine_s1 {st s₁ : State} (hd : 0 < st.drawStep)
     show (st.stock).length = 1 + t.length
     rw [hcon, List.length_cons]
     omega
-  intro hc0
-  have hlen := congrArg List.length hc0
-  rw [List.length_append, List.length_reverse, List.length_nil] at hlen
-  omega
+  rcases Nat.lt_or_ge st.drawStep st.stock.length with hlt | hge
+  · rw [Nat.min_eq_left (Nat.le_of_lt hlt)] at h1
+    intro hc0
+    have hlen := congrArg List.length hc0
+    rw [List.length_append, List.length_reverse, List.length_nil] at hlen
+    omega
+  · rw [Nat.min_eq_right hge] at h1
+    intro hc0
+    have hlen := congrArg List.length hc0
+    rw [List.length_append, List.length_reverse, List.length_nil] at hlen
+    omega
 
 /-- The invariant carried along a returning play, relative to the
 commitment origin `x₀`: a position either holds strictly fewer stock
@@ -806,21 +835,59 @@ private theorem run_inv_preserved : ∀ {play : List Move} {x₀ x w : State},
 
 /-! ## The theorem -/
 
-/-- With the draw step set to zero, every draw is the identity — the
-committee's positivity hypothesis (`0 < st.drawStep`) on the main
-theorem is genuinely necessary: at `drawStep = 0` the "commitment"
-returns immediately by the empty play. -/
-theorem drawStep_zero_reversible {st : State} (hne : st.stock ≠ [])
-    (hd : st.drawStep = 0) : reversibleAt st Move.draw := by
-  intro contra
+/-- The zero-width draw, as a computed step: the recycle is theidentity
+(no recycle fires) and the deal of zero cards changes nothing. -/
+private theorem drawStep_zero_draw {st : State} (hne : st.stock ≠ [])
+    (hd : st.drawStep = 0) : State.step st Move.draw = some st := by
   obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil hne
-  have hstep : st.stepDraw = some st := by
-    rw [State.stepDraw, show State.recycle st = st from recycle_keep st hne,
-      dealStock_eq_of_ne_nil st hne, hcon, hd,
-      show (State.dealUpTo 0 (c :: t)).1.reverse ++ st.waste = st.waste from rfl,
-      show (State.dealUpTo 0 (c :: t)).2 = (c :: t) from rfl,
-      ← hcon, ← hd]
-  exact absurd rfl (contra st [] hstep)
+  show st.stepDraw = some st
+  rw [State.stepDraw, show State.recycle st = st from recycle_keep st hne,
+    dealStock_eq_of_ne_nil st hne, hcon, hd,
+    show (State.dealUpTo 0 (c :: t)).1.reverse ++ st.waste = st.waste from rfl,
+    show (State.dealUpTo 0 (c :: t)).2 = (c :: t) from rfl,
+    ← hcon, ← hd]
+
+/-- The pass-end full-redeal, as a computed step: the recycle reverses
+the waste into the stock and the full deal deals it straight back. -/
+private theorem selfRecycle_draw {st : State} (hstock : st.stock = [])
+    (hw : st.waste ≠ []) (hsize : st.waste.length ≤ st.drawStep) :
+    State.step st Move.draw = some st := by
+  show st.stepDraw = some st
+  rw [State.stepDraw, recycle_nil st hstock hw]
+  have hrne : st.waste.reverse ≠ [] := by
+    intro hc
+    have hlen := congrArg List.length hc
+    rw [List.length_reverse, List.length_nil] at hlen
+    obtain ⟨c0, t0, hwcon0⟩ := list_cons_of_ne_nil hw
+    have h1 : 1 ≤ st.waste.length := by
+      rw [hwcon0, List.length_cons]
+      omega
+    omega
+  have hfull : State.dealStock { st with stock := st.waste.reverse, waste := [] } = some { st with stock := ([] : List Card), waste := (st.waste.reverse).reverse ++ ([] : List Card) } :=
+    dealStock_full (st := { st with stock := st.waste.reverse, waste := [] })
+      (by
+        show st.waste.reverse ≠ []
+        exact hrne)
+      (by
+        show (st.waste.reverse).length ≤ st.drawStep
+        rw [List.length_reverse]
+        exact hsize)
+  rw [hfull, List.reverse_reverse, List.append_nil, ← hstock]
+
+/-- **The zero-width no-op, witness form (primary).**  At `drawStep = 0`
+with cards in the stock every draw is the identity, so the empty play
+returns; the negative form `drawStep_zero_reversible` follows from this
+via `reversibleAt_of_W`. -/
+theorem drawStep_zero_reversibleW {st : State} (hne : st.stock ≠ [])
+    (hd : st.drawStep = 0) : reversibleAtW st Move.draw :=
+  ⟨st, [], drawStep_zero_draw hne hd, rfl⟩
+
+/-- With the draw step set to zero, every draw is the identity — the
+positivity hypothesis (`0 < st.drawStep`) on the main theorem is
+genuinely necessary.  Witness form: `drawStep_zero_reversibleW`. -/
+theorem drawStep_zero_reversible {st : State} (hne : st.stock ≠ [])
+    (hd : st.drawStep = 0) : reversibleAt st Move.draw :=
+  reversibleAt_of_W (drawStep_zero_reversibleW hne hd)
 
 /-- **Draws at offset positions are commitments.**  At a position with
 cards still in the stock whose waste sits strictly inside a deal
@@ -886,36 +953,22 @@ theorem draw_irreversible_of_wasteShape {st : State}
   · exact draw_irreversible_pristine hd hs hpr
   · exact draw_irreversible_offset hd hs hoff
 
-/-- **A constructive reversible base case.**  At the end of the stock
-with the whole cycle no bigger than one deal, the draw is a state-wise
-no-op: the recycle reverses the waste into the stock and the full deal
-deals it straight back.  The empty play witnesses reversibility. -/
+/-- **A constructive reversible base case, witness form (primary).**
+At the end of the stock with the whole cycle no bigger than one deal,
+the draw is a state-wise no-op, and the empty play returns; the
+negative form `draw_reversible_selfRecycle` follows from this via
+`reversibleAt_of_W`. -/
+theorem draw_reversible_selfRecycleW {st : State} (hstock : st.stock = [])
+    (hw : st.waste ≠ []) (hsize : st.waste.length ≤ st.drawStep) :
+    reversibleAtW st Move.draw :=
+  ⟨st, [], selfRecycle_draw hstock hw hsize, rfl⟩
+
+/-- The negative form of the pass-end full redeal.  Witness form:
+`draw_reversible_selfRecycleW`. -/
 theorem draw_reversible_selfRecycle {st : State} (hstock : st.stock = [])
     (hw : st.waste ≠ []) (hsize : st.waste.length ≤ st.drawStep) :
-    reversibleAt st Move.draw := by
-  intro contra
-  refine absurd rfl (contra st [] ?_)
-  show st.stepDraw = some st
-  rw [State.stepDraw, recycle_nil st hstock hw]
-  have hrne : st.waste.reverse ≠ [] := by
-    intro hc
-    have hlen := congrArg List.length hc
-    rw [List.length_reverse, List.length_nil] at hlen
-    obtain ⟨c0, t0, hwcon0⟩ := list_cons_of_ne_nil hw
-    have h1 : 1 ≤ st.waste.length := by
-      rw [hwcon0, List.length_cons]
-      omega
-    omega
-  have hfull : State.dealStock { st with stock := st.waste.reverse, waste := [] } = some { st with stock := ([] : List Card), waste := (st.waste.reverse).reverse ++ ([] : List Card) } :=
-    dealStock_full (st := { st with stock := st.waste.reverse, waste := [] })
-      (by
-        show st.waste.reverse ≠ []
-        exact hrne)
-      (by
-        show (st.waste.reverse).length ≤ st.drawStep
-        rw [List.length_reverse]
-        exact hsize)
-  rw [hfull, List.reverse_reverse, List.append_nil, ← hstock]
+    reversibleAt st Move.draw :=
+  reversibleAt_of_W (draw_reversible_selfRecycleW hstock hw hsize)
 
 /-! ## Generic ascent bridges -/
 
@@ -1224,5 +1277,9 @@ theorem draw_irreversible_offset_lex {st : State}
           rw [Nat.add_div_right _ hd]
           omega
       _ = D st := by rw [hDst, hchain]
+
+
+
+
 
 
