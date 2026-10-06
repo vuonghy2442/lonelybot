@@ -289,7 +289,8 @@ literal (no root, no shared tip, no σ-uniformity).  Corollaries: the
 twin-coarsened form ⟦sᵢ⟧ = ⟦sⱼ⟧ on `Quotient sameOrbitSetoid`, and
 the per-window count as a special case (window tips are class-mates).
 
-THE PROOF ARCHITECTURE (the residence calculus — proposed route):
+THE PROOF ARCHITECTURE (the residence calculus — corrected per the
+user 2026-10-06, second pass):
 1. RESIDENCES ARE KIND-INVARIANT under reversible dances: `c` moves
    pile↔pile only between fitting tops and pile↔foundation via the
    `noreveal tabToFound`/`foundToTab` round trip; waste→pile is a
@@ -299,19 +300,26 @@ THE PROOF ARCHITECTURE (the residence calculus — proposed route):
    firing tip; the waste-head residence is literally the waste top;
    under-`c` content is frozen (nothing below `c` moves without
    moving `c`).
-2. THE TWIN PAIR IS THE 2: pile residences of a non-king are
-   fitting tops — a twin pair at most (two suits per color), the
-   cross-moves making each box internally trivial (the pile2pile
-   dividend).  The class can feed `m` at most the two twin
-   residences; genuinely separated outcomes are exactly the
-   reveal-content differences of the two (the classic two-option,
-   now with a cause).
-3. TRANSPORT: same-residence tips have same-class outcomes (the
-   elsewhere-dance replays through `m` by per-kind commutation
-   squares); the work-heavy squares are precisely the FOUNDATION
-   excursions (`foundToTab`/`noreveal tabToFound` are the only
-   dance members that change foundation content) commuting past
-   raises/reveals.
+2. THE RESIDENCE WANDERING IS **ONE MACRO CLASS** (the user's
+   correction — NOT the source of the 2): moving `c` to either
+   twin is the same macro class (pile-to-pile is reversible), and
+   tableau-vs-foundation joins too (the `noreveal tabToFound`/
+   `foundToTab` round trips).  WHERE `c` fires from contributes NO
+   multiplicity; the residence calculus delivers the one-class
+   wandering lemma, and `m`'s guard merely selects the firing tips
+   inside that one class.
+3. THE 2 IS THE **ORDERING DICHOTOMY OF CRITICAL LOCAL SQUARES**:
+   a whole-dance difference between two firing tips either
+   transports entirely (every dance member zone-disjoint-or-
+   commuting ⇒ same-class outcomes, via the per-kind squares and
+   the wandering collapse of 2), or reduces to the local
+   NON-COMMUTING members.  Each critical interaction (expected
+   home: the foundation-excursion family on `c.suit`) has exactly
+   two ORDERING FACES — `m`-first vs `r`-first — and the outcome
+   class of a firing is its face; three firings over one class hit
+   at most two faces.  Where no square is critical the truth is
+   ≤ 1: a genuine two-face witness becomes the corpus's TIGHTNESS
+   datum, not its refutation.
 
 LOCKED CARDS: Residences (`Orig/Residence.lean`: movedCard,
 kind-invariance, twin-pair bound, pinned contexts) → Transport
