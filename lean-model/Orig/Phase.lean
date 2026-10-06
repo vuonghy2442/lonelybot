@@ -1331,3 +1331,725 @@ private theorem base_draw_shape {x : State} (hstock : x.stock = ([] : List Card)
 
 
 
+/-! ## The in-phase round trip -/
+
+/-- The additive take split: the first `i + j` cards of a deal-ordered
+list are the first `i`, then the next `j`.  The workhorse identity
+behind every drain and redeal step. -/
+private theorem take_drop_add {α : Type} : ∀ (i j : Nat) (l : List α),
+    l.take (i + j) = l.take i ++ (l.drop i).take j := by
+  intro i
+  induction i with
+  | zero =>
+      intro j l
+      simp
+  | succ i ih =>
+      intro j l
+      have hidx : i + 1 + j = i + j + 1 := by omega
+      rw [hidx]
+      cases l with
+      | nil => simp only [List.take_nil, List.drop_nil, List.nil_append]
+      | cons a t =>
+          show a :: t.take (i + j) = a :: (t.take i ++ (t.drop i).take j)
+          exact congrArg (a :: ·) (ih j t)
+
+/-- The redeal leaf split: one more dealt card is the current prefix
+plus a single card off the remaining stock. -/
+private theorem take_succ_split {α : Type} (l : List α) (n : Nat) :
+    l.take (n + 1) = l.take n ++ (l.drop n).take 1 :=
+  take_drop_add n 1 l
+
+/-- The additive drop split: dropping `j` more after dropping `i` is
+dropping `i + j`. -/
+private theorem drop_drop_add {α : Type} : ∀ (i j : Nat) (l : List α),
+    (l.drop i).drop j = l.drop (i + j) := by
+  intro i
+  induction i with
+  | zero =>
+      intro j l
+      simp
+  | succ i ih =>
+      intro j l
+      have hidx : i + 1 + j = i + j + 1 := by omega
+      rw [hidx]
+      cases l with
+      | nil => simp only [List.drop_nil]
+      | cons a t =>
+          show (t.drop i).drop j = t.drop (i + j)
+          exact ih j t
+
+/-- Take and drop recombine to the whole list — the partition
+totality of a deal. -/
+private theorem take_drop_append {α : Type} : ∀ (n : Nat) (l : List α),
+    l.take n ++ l.drop n = l := by
+  intro n
+  induction n with
+  | zero => intro l; simp
+  | succ m ih =>
+      intro l
+      cases l with
+      | nil => rfl
+      | cons a t =>
+          show a :: (t.take m ++ t.drop m) = a :: t
+          exact congrArg (a :: ·) (ih t)
+
+/-- Taking past (or exactly to) the end of a list takes the whole
+list — the clip that swallows every min. -/
+private theorem take_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
+    l.length ≤ n → l.take n = l := by
+  intro l
+  induction l with
+  | nil =>
+      intro n _
+      exact List.take_nil
+  | cons a t ih =>
+      intro n
+      intro h
+      match n with
+      | 0 =>
+          exact absurd h (by
+            have hx : (a :: t).length = t.length + 1 := rfl
+            omega)
+      | m + 1 =>
+          have hm : t.length ≤ m := by
+            have hx : (a :: t).length = t.length + 1 := rfl
+            omega
+          show a :: t.take m = a :: t
+          exact congrArg (a :: ·) (ih m hm)
+
+/-- Dropping past (or exactly to) the end of a list drops it to
+nothing. -/
+private theorem drop_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
+    l.length ≤ n → l.drop n = [] := by
+  intro l
+  induction l with
+  | nil =>
+      intro n _
+      exact List.drop_nil
+  | cons a t ih =>
+      intro n
+      intro h
+      match n with
+      | 0 =>
+          exact absurd h (by
+            have hx : (a :: t).length = t.length + 1 := rfl
+            omega)
+      | m + 1 =>
+          have hm : t.length ≤ m := by
+            have hx : (a :: t).length = t.length + 1 := rfl
+            omega
+          exact ih m hm
+
+/-- The prefix clip on an appended list: dropping past a known
+prefix returns the suffix. -/
+private theorem drop_append_prefix {α : Type} : ∀ (A B : List α),
+    (A ++ B).drop A.length = B := by
+  intro A
+  induction A with
+  | nil => intro B; rfl
+  | cons a t ih =>
+      intro B
+      show (t ++ B).drop t.length = B
+      exact ih B
+
+/-- The prefix clip on an appended list, take side: taking exactly
+through a known prefix returns the prefix. -/
+private theorem take_append_prefix {α : Type} : ∀ (A B : List α),
+    (A ++ B).take A.length = A := by
+  intro A
+  induction A with
+  | nil => intro B; rfl
+  | cons a t ih =>
+      intro B
+      show a :: (t ++ B).take t.length = a :: t
+      exact congrArg (a :: ·) (ih B)
+
+/-- The two dealt segments recombine under reversal: the dealt
+`n`-tail then the dealt prefix, reversed segmentwise and reappended,
+equal the whole list reversed. -/
+private theorem seg_reverse_merge {α : Type} (l : List α) (n : Nat) (w : List α) :
+    (l.drop n).reverse ++ (l.take n).reverse ++ w = l.reverse ++ w := by
+  rw [show l.reverse = (l.take n ++ l.drop n).reverse from
+        congrArg List.reverse (take_drop_append n l).symm,
+      List.reverse_append, List.append_assoc]
+
+/-- The stepwise dealt-pair merge: two consecutively dealt segments —
+the first `j` cards past position `i`, then the first `i` cards —
+recombine under reversal to the take `(i + j)`'s reversal. -/
+private theorem take_reverse_merge {α : Type} (l : List α) (i j : Nat) (w : List α) :
+    ((l.drop i).take j).reverse ++ (l.take i).reverse ++ w = (l.take (i + j)).reverse ++ w := by
+  rw [take_drop_add, List.reverse_append, List.append_assoc]
+
+/-- One draw followed by the rest of the play: the step projection of
+`State.run` specialized to the draw. -/
+private theorem run_draw_cons {x y : State} {rest : List Move}
+    (hstep : State.step x Move.draw = some y) :
+    x.run (Move.draw :: rest) = y.run rest := by
+  show (match State.step x Move.draw with
+      | some st' => State.run st' rest
+      | none => none) = State.run y rest
+  rw [hstep]
+
+/-- Append-glue for pure-draw plays: after `q` draws land at `z`, the
+following suffix continues from `z`. -/
+private theorem run_replicate_append :
+    ∀ (q : Nat) (x z : State) (rest : List Move),
+    x.run (List.replicate q Move.draw) = some z →
+    x.run (List.replicate q Move.draw ++ rest) = z.run rest := by
+  intro q
+  induction q with
+  | zero =>
+      intro x z rest h
+      have hx : (some x : Option State) = some z := h
+      injection hx with hx2
+      rw [← hx2]
+      rfl
+  | succ q ih =>
+      intro x z rest h
+      obtain ⟨y, hstep, hrest⟩ := State.run_cons h
+      show x.run (Move.draw :: (List.replicate q Move.draw ++ rest)) = z.run rest
+      rw [run_draw_cons hstep]
+      exact ih y z rest hrest
+
+/-- **The drain positions.**  From a state whose stock is `l`, `q`
+consecutive draws — each a full deal, so the running offset `n =
+q * drawStep` stays within the stock — move exactly those `n` cards
+from the stock's front to the waste's front, list-exact. -/
+private theorem drain_positions_one :
+    ∀ (q : Nat) (x : State) (n : Nat) (l : List Card),
+    0 < x.drawStep → n = q * x.drawStep → n ≤ l.length → x.stock = l →
+    x.run (List.replicate q Move.draw) = some
+      { x with stock := l.drop n, waste := (l.take n).reverse ++ x.waste } := by
+  intro q
+  induction q with
+  | zero =>
+      intro x n l _hd hn _hle hstock
+      have hn0 : n = 0 := by
+        rw [Nat.zero_mul] at hn
+        exact hn
+      subst hn0
+      show (some x : Option State) = some
+        { x with stock := l.drop 0, waste := (l.take 0).reverse ++ x.waste }
+      rw [List.drop_zero, List.take_zero, List.reverse_nil, List.nil_append,
+        ← hstock]
+  | succ q ih =>
+      intro x n l hd hn hle hstock
+      have hnsm : n = q * x.drawStep + x.drawStep := by
+        rw [Nat.succ_mul] at hn
+        exact hn
+      have hlne : l ≠ [] := by
+        intro hc
+        have hlen : l.length = 0 := by rw [hc]; simp
+        omega
+      have hsne : x.stock ≠ [] := by
+        intro hc
+        apply hlne
+        rw [← hstock]
+        exact hc
+      have hstep : State.step x Move.draw = some
+        { x with stock := x.stock.drop x.drawStep,
+                 waste := (x.stock.take x.drawStep).reverse ++ x.waste } :=
+        plain_draw_shape hsne
+      have hrep : List.replicate (q + 1) Move.draw
+          = Move.draw :: List.replicate q Move.draw := rfl
+      rw [hrep, run_draw_cons hstep, hstock]
+      have hle' : q * x.drawStep ≤ (l.drop x.drawStep).length := by
+        have h1 := List.length_drop (i := x.drawStep) (l := l)
+        omega
+      have hres := ih
+        { x with stock := l.drop x.drawStep,
+                 waste := (l.take x.drawStep).reverse ++ x.waste }
+        (q * x.drawStep) (l.drop x.drawStep) hd rfl hle' rfl
+      rw [hres]
+      have hSw : (show State from
+          { x with stock := l.drop x.drawStep,
+                   waste := (l.take x.drawStep).reverse ++ x.waste }).waste
+          = (l.take x.drawStep).reverse ++ x.waste := rfl
+      rw [hSw]
+      have hidx : x.drawStep + q * x.drawStep = n := by omega
+      rw [drop_drop_add x.drawStep (q * x.drawStep) l, hidx]
+      have hmerge : (List.take (q * x.drawStep) (List.drop x.drawStep l)).reverse
+            ++ ((List.take x.drawStep l).reverse ++ x.waste)
+          = (l.take (x.drawStep + q * x.drawStep)).reverse ++ x.waste := by
+        rw [take_drop_add, List.reverse_append, List.append_assoc]
+      rw [hmerge, hidx]
+
+/-- **The redeal positions.**  From a pass base (empty stock,
+nonempty waste), `k + 1` consecutive draws — the first recycles the
+waste into the stock reversed and deals, the rest drain that recycled
+stock at a full deal each, while the running offset `(k + 1) *
+drawStep` stays within the recycled length — move exactly that many
+cards back onto the waste, list-exact. -/
+private theorem base_positions_one :
+    ∀ (k : Nat) (x : State),
+    x.stock = ([] : List Card) → x.waste ≠ [] → 0 < x.drawStep →
+    (k + 1) * x.drawStep ≤ x.waste.length →
+    x.run (List.replicate (k + 1) Move.draw) = some
+      { x with stock := x.waste.reverse.drop ((k + 1) * x.drawStep),
+               waste := (x.waste.reverse.take ((k + 1) * x.drawStep)).reverse ++ ([] : List Card) } := by
+  intro k x hstock hw hd hsize
+  rw [Nat.succ_mul] at hsize
+  have hstep : State.step x Move.draw = some
+    { x with stock := x.waste.reverse.drop x.drawStep,
+             waste := (x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card) } :=
+    base_draw_shape hstock hw
+  rw [show List.replicate (k + 1) Move.draw
+        = Move.draw :: List.replicate k Move.draw from rfl,
+    run_draw_cons hstep]
+  have hle' : k * x.drawStep ≤ (x.waste.reverse.drop x.drawStep).length := by
+    have h1 := List.length_drop (i := x.drawStep) (l := x.waste.reverse)
+    have h2 : x.waste.reverse.length = x.waste.length := List.length_reverse
+    omega
+  have hres := drain_positions_one k
+    { x with stock := x.waste.reverse.drop x.drawStep,
+             waste := (x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card) }
+    (k * x.drawStep) (x.waste.reverse.drop x.drawStep) hd rfl hle' rfl
+  rw [hres]
+  have hSw : (show State from
+      { x with stock := x.waste.reverse.drop x.drawStep,
+               waste := (x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card) }).waste
+      = (x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card) := rfl
+  rw [hSw]
+  have hidx : x.drawStep + k * x.drawStep = (k + 1) * x.drawStep := by
+    rw [Nat.succ_mul]; omega
+  rw [drop_drop_add x.drawStep (k * x.drawStep) x.waste.reverse, hidx]
+  have hmerge : (List.take (k * x.drawStep)
+          (List.drop x.drawStep x.waste.reverse)).reverse
+        ++ ((List.take x.drawStep x.waste.reverse).reverse ++ ([] : List Card))
+      = ((List.take (x.drawStep + k * x.drawStep) x.waste.reverse).reverse
+          ++ ([] : List Card)) := by
+    rw [take_drop_add, List.reverse_append, List.append_assoc]
+  rw [hmerge, hidx]
+
+/-- **The short-stock full deal.**  With a nonempty stock shorter than
+the (positive) draw step, the deal empties the stock — the take clips
+the whole stock — and reverses its cards onto the waste, list-exact. -/
+private theorem draw_full_shape (x : State) (hne : x.stock ≠ [])
+    (hx : x.stock.length < x.drawStep) :
+    State.step x Move.draw = some
+      (State.mk x.found x.piles ([] : List Card) (x.stock.reverse ++ x.waste) x.drawStep) := by
+  have ge := Nat.le_of_lt hx
+  rw [show State.step x Move.draw = x.stepDraw from rfl, plain_draw_shape hne,
+    drop_ge_length x.stock x.drawStep ge, take_ge_length x.stock x.drawStep ge]
+
+/-- **The in-phase round trip, witness form.**  At a phase-aligned
+position with a positive draw step, cards left in the stock, and a
+nonempty whole number of deals in the waste, the draw is undone by an
+explicit pure-draw play: drain the committed stock to the pass base
+(as many whole deals as it holds, plus the boundary deal when its
+length is not a whole number of deals), then redeal exactly the
+waste's whole number of deals from the recycled pool — the two legs
+rotate the cycle's pool by exactly its own length, landing back on
+the origin.  The negative form `draw_reversible_inphase` follows
+from this via `reversibleAt_of_W`. -/
+theorem draw_reversible_inphaseW {st : State} (hd : 0 < st.drawStep)
+    (hs : st.stock ≠ []) (hw : st.waste ≠ []) (hph : inPhase st = true) :
+    reversibleAtW st Move.draw := by
+  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil hs
+  have hres0 : st.waste.length % st.drawStep = 0 := by
+    rw [inPhase_eq_decide_of_cons hcon] at hph
+    exact of_decide_eq_true hph
+  have hjd : st.drawStep * (st.waste.length / st.drawStep) = st.waste.length := by
+    have := Nat.div_add_mod st.waste.length st.drawStep
+    omega
+  have hstep : State.step st Move.draw = some
+      (State.mk st.found st.piles (st.stock.drop st.drawStep)
+        ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep) :=
+    plain_draw_shape hs
+  obtain ⟨w0, t0, hwcon⟩ := list_cons_of_ne_nil hw
+  have hw1 : 1 ≤ st.waste.length := by rw [hwcon, List.length_cons]; omega
+  have hp1 : 1 ≤ st.stock.length := by rw [hcon, List.length_cons]; omega
+  have hNl : (st.stock.reverse ++ st.waste).length
+      = st.stock.length + st.waste.length := by
+    rw [List.length_append, List.length_reverse]
+  have hpool : (st.stock.drop st.drawStep).reverse
+      ++ ((st.stock.take st.drawStep).reverse ++ st.waste)
+      = st.stock.reverse ++ st.waste := by
+    rw [show st.stock.reverse
+          = (st.stock.take st.drawStep ++ st.stock.drop st.drawStep).reverse from
+          congrArg List.reverse (take_drop_append st.drawStep st.stock).symm,
+      List.reverse_append, List.append_assoc]
+  -- the waste's whole number of deals, in successor form for the redeal leg
+  rcases hqj : st.waste.length / st.drawStep with _ | jk
+  · exfalso
+    rw [hqj, Nat.mul_zero] at hjd
+    omega
+  rw [hqj] at hjd
+  have hjd2 : (jk + 1) * st.drawStep = st.waste.length := by
+    rw [Nat.mul_comm]
+    exact hjd
+  -- the pass base's pool waste carries the whole cycle; it is not empty
+  have hwB : (st.stock.reverse ++ st.waste) ≠ [] := by
+    intro hc
+    rw [hc] at hNl
+    simp only [List.length_nil] at hNl
+    omega
+  have hsizeB : (jk + 1) * st.drawStep
+      ≤ (st.stock.reverse ++ st.waste).length := by rw [hNl]; omega
+  have hmfull :=
+    Nat.div_add_mod (st.stock.drop st.drawStep).length st.drawStep
+  have hmodlt : (st.stock.drop st.drawStep).length % st.drawStep < st.drawStep :=
+    Nat.mod_lt _ hd
+  by_cases hdr : (st.stock.drop st.drawStep).length % st.drawStep = 0
+  · -- the drain reaches the base at whole deals only
+    have hnA : (st.stock.drop st.drawStep).length
+        = ((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep := by
+      rw [Nat.mul_comm]
+      omega
+    have hDA := drain_positions_one
+      ((st.stock.drop st.drawStep).length / st.drawStep)
+      (State.mk st.found st.piles (st.stock.drop st.drawStep)
+        ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep)
+      (st.stock.drop st.drawStep).length
+      (st.stock.drop st.drawStep)
+      hd hnA (Nat.le_refl _) rfl
+    have hdrop0 : (st.stock.drop st.drawStep).drop
+        (st.stock.drop st.drawStep).length = [] :=
+      drop_ge_length _ _ (Nat.le_refl _)
+    have htake0 : (st.stock.drop st.drawStep).take
+        (st.stock.drop st.drawStep).length = st.stock.drop st.drawStep :=
+      take_ge_length _ _ (Nat.le_refl _)
+    have hSw1 : (State.mk st.found st.piles (st.stock.drop st.drawStep)
+        ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep).waste
+        = (st.stock.take st.drawStep).reverse ++ st.waste := rfl
+    refine ⟨State.mk st.found st.piles (st.stock.drop st.drawStep)
+        ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep,
+      List.replicate ((st.stock.drop st.drawStep).length / st.drawStep) Move.draw
+        ++ List.replicate (jk + 1) Move.draw,
+      hstep, ?_⟩
+    rw [run_replicate_append _ _ _ (List.replicate (jk + 1) Move.draw) hDA,
+      hdrop0, htake0, hSw1, hpool]
+    -- the redeal leg from the pass base
+    have hb := base_positions_one jk
+      (State.mk st.found st.piles ([] : List Card) (st.stock.reverse ++ st.waste) st.drawStep)
+      rfl hwB hd hsizeB
+    rw [hb]
+    -- the two final matches: the recycled pool splits back into st
+    have hz1w : (State.mk st.found st.piles ([] : List Card)
+        (st.stock.reverse ++ st.waste) st.drawStep).waste
+        = st.stock.reverse ++ st.waste := rfl
+    have hz1d : (State.mk st.found st.piles ([] : List Card)
+        (st.stock.reverse ++ st.waste) st.drawStep).drawStep
+        = st.drawStep := rfl
+    rw [hz1w, hz1d]
+    have hSpl : st.waste.reverse ++ st.stock
+        = (st.stock.reverse ++ st.waste).reverse := by
+      rw [List.reverse_append, List.reverse_reverse]
+    rw [← hSpl, hjd2, ← List.length_reverse, drop_append_prefix, take_append_prefix,
+      List.reverse_reverse, List.append_nil]
+  · -- the stock's remainder forces one boundary deal before the base
+    have hqB : ((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep
+        + (st.stock.drop st.drawStep).length % st.drawStep
+        = (st.stock.drop st.drawStep).length := by
+      have h := hmfull
+      rw [Nat.mul_comm] at h
+      exact h
+    -- the post-drain state, restated with flat fields
+    have hDB := drain_positions_one
+      ((st.stock.drop st.drawStep).length / st.drawStep)
+      (State.mk st.found st.piles (st.stock.drop st.drawStep)
+        ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep)
+      (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep)
+      (st.stock.drop st.drawStep)
+      hd rfl (by omega) rfl
+    have hDB2 : (State.mk st.found st.piles (st.stock.drop st.drawStep)
+          ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep).run
+        (List.replicate ((st.stock.drop st.drawStep).length / st.drawStep) Move.draw) = some
+      (State.mk st.found st.piles
+        ((st.stock.drop st.drawStep).drop
+          (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+        ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+            (List.drop st.drawStep st.stock)).reverse
+          ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+        st.drawStep) := by
+      have hXf : (State.mk st.found st.piles (st.stock.drop st.drawStep)
+          ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep).found
+          = st.found := rfl
+      have hXp : (State.mk st.found st.piles (st.stock.drop st.drawStep)
+          ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep).piles
+          = st.piles := rfl
+      have hXw : (State.mk st.found st.piles (st.stock.drop st.drawStep)
+          ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep).waste
+          = (st.stock.take st.drawStep).reverse ++ st.waste := rfl
+      have hXd : (State.mk st.found st.piles (st.stock.drop st.drawStep)
+          ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep).drawStep
+          = st.drawStep := rfl
+      rw [hDB, hXf, hXp, hXw, hXd]
+    -- the boundary draw acts on the post-drain state as a short-stock full deal
+    have hx₀ne : (st.stock.drop st.drawStep).drop
+        (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep) ≠ [] := by
+      intro hc
+      have hld := List.length_drop
+        (i := ((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep)
+        (l := st.stock.drop st.drawStep)
+      rw [hc] at hld
+      simp only [List.length_nil] at hld
+      omega
+    have hx₀len : ((st.stock.drop st.drawStep).drop
+        (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep)).length
+        < st.drawStep := by
+      have hld := List.length_drop
+        (i := ((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep)
+        (l := st.stock.drop st.drawStep)
+      rw [hld]
+      omega
+    have hBstep : State.step
+        (State.mk st.found st.piles
+          ((st.stock.drop st.drawStep).drop
+            (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+          ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+              (List.drop st.drawStep st.stock)).reverse
+            ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+          st.drawStep) Move.draw = some
+        (State.mk (State.mk st.found st.piles
+            ((st.stock.drop st.drawStep).drop
+              (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+            ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+                (List.drop st.drawStep st.stock)).reverse
+              ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+            st.drawStep).found
+          (State.mk st.found st.piles
+            ((st.stock.drop st.drawStep).drop
+              (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+            ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+                (List.drop st.drawStep st.stock)).reverse
+              ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+            st.drawStep).piles
+          ([] : List Card)
+          ((State.mk st.found st.piles
+              ((st.stock.drop st.drawStep).drop
+                (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+              ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+                  (List.drop st.drawStep st.stock)).reverse
+                ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+              st.drawStep).stock.reverse
+            ++ (State.mk st.found st.piles
+                ((st.stock.drop st.drawStep).drop
+                  (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+                ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+                    (List.drop st.drawStep st.stock)).reverse
+                  ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+                st.drawStep).waste)
+          (State.mk st.found st.piles
+            ((st.stock.drop st.drawStep).drop
+              (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+            ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+                (List.drop st.drawStep st.stock)).reverse
+              ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+            st.drawStep).drawStep) :=
+      draw_full_shape
+        (State.mk st.found st.piles
+          ((st.stock.drop st.drawStep).drop
+            (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+          ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+              (List.drop st.drawStep st.stock)).reverse
+            ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+          st.drawStep)
+        hx₀ne hx₀len
+    -- the y0 position from the boundary draw carries x₀'s flat fields by iota
+    have hySt : (show State from
+        State.mk st.found st.piles
+          ((st.stock.drop st.drawStep).drop
+            (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+          ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+              (List.drop st.drawStep st.stock)).reverse
+            ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+          st.drawStep).stock
+        = (st.stock.drop st.drawStep).drop
+            (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep) := rfl
+    have hyWs : (show State from
+        State.mk st.found st.piles
+          ((st.stock.drop st.drawStep).drop
+            (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep))
+          ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+              (List.drop st.drawStep st.stock)).reverse
+            ++ ((st.stock.take st.drawStep).reverse ++ st.waste))
+          st.drawStep).waste
+        = (List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+              (List.drop st.drawStep st.stock)).reverse
+            ++ ((st.stock.take st.drawStep).reverse ++ st.waste) := rfl
+    -- the boundary segments merge into the whole stock, reversed
+    have hpool2 : (((st.stock.drop st.drawStep).drop
+            (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep)).reverse
+          ++ ((List.take ((st.stock.drop st.drawStep).length / st.drawStep * st.drawStep)
+              (List.drop st.drawStep st.stock)).reverse
+            ++ ((st.stock.take st.drawStep).reverse ++ st.waste)))
+        = st.stock.reverse ++ st.waste := by
+      rw [show st.stock.reverse
+            = (st.stock.take st.drawStep ++ st.stock.drop st.drawStep).reverse from
+            congrArg List.reverse (take_drop_append st.drawStep st.stock).symm,
+        List.reverse_append,
+        show (st.stock.drop st.drawStep).reverse
+            = ((st.stock.drop st.drawStep).take
+                (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep)
+              ++ (st.stock.drop st.drawStep).drop
+                (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep)).reverse from
+            congrArg List.reverse
+              (take_drop_append
+                (((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep)
+                (st.stock.drop st.drawStep)).symm,
+        List.reverse_append]
+      simp only [List.append_assoc]
+    refine ⟨State.mk st.found st.piles (st.stock.drop st.drawStep)
+        ((st.stock.take st.drawStep).reverse ++ st.waste) st.drawStep,
+      List.replicate
+        ((st.stock.drop st.drawStep).length / st.drawStep) Move.draw
+        ++ (Move.draw :: List.replicate (jk + 1) Move.draw),
+      hstep, ?_⟩
+    rw [run_replicate_append _ _ _
+      (Move.draw :: List.replicate (jk + 1) Move.draw) hDB2,
+      run_draw_cons hBstep]
+    -- the boundary deal's position is the pass base with the merged pool
+    rw [hySt, hyWs, hpool2]
+    -- the redeal leg from the pass base
+    have hb := base_positions_one jk
+      (State.mk st.found st.piles ([] : List Card) (st.stock.reverse ++ st.waste) st.drawStep)
+      rfl hwB hd hsizeB
+    rw [hb]
+    -- the two final matches: the recycled pool splits back into st
+    have hz1w : (State.mk st.found st.piles ([] : List Card)
+        (st.stock.reverse ++ st.waste) st.drawStep).waste
+        = st.stock.reverse ++ st.waste := rfl
+    have hz1d : (State.mk st.found st.piles ([] : List Card)
+        (st.stock.reverse ++ st.waste) st.drawStep).drawStep
+        = st.drawStep := rfl
+    rw [hz1w, hz1d]
+    have hSpl : st.waste.reverse ++ st.stock
+        = (st.stock.reverse ++ st.waste).reverse := by
+      rw [List.reverse_append, List.reverse_reverse]
+    rw [← hSpl, hjd2, ← List.length_reverse, drop_append_prefix, take_append_prefix,
+      List.reverse_reverse, List.append_nil]
+
+
+
+
+
+
+/-- **The in-phase round trip, negative form.**  The constructive
+witness of `draw_reversible_inphaseW` exported through
+`reversibleAt_of_W`, keeping the negative row visible for the
+classification assembly. -/
+theorem draw_reversible_inphase {st : State} (hd : 0 < st.drawStep)
+    (hs : st.stock ≠ []) (hw : st.waste ≠ []) (hph : inPhase st = true) :
+    reversibleAt st Move.draw :=
+  reversibleAt_of_W (draw_reversible_inphaseW hd hs hw hph)
+
+/-- **The draw irreversibility classification.**  With a positive draw
+step and a nonempty stock, the draw is irreversible exactly when the
+position is not phase-aligned: either the waste is empty (the
+pristine draw opens a fresh cycle) or its length is not a whole
+number of deals (the misaligned draw desynchronizes the cycle).  The
+`st.stock ≠ []` hypothesis is deliberate: at an empty stock the
+statement degenerates, because every pass-base position is fully
+reversible through its own cycle and no waste-shape dichotomy
+survives there. -/
+theorem draw_irreversibility_class {st : State} (hd : 0 < st.drawStep)
+    (hs : st.stock ≠ []) :
+    irreversibleAt st Move.draw ↔
+      (st.waste = [] ∨ st.waste.length % st.drawStep ≠ 0) := by
+  constructor
+  · intro hirr
+    by_cases hw : st.waste = []
+    · exact Or.inl hw
+    · by_cases hres : st.waste.length % st.drawStep = 0
+      · exfalso
+        obtain ⟨c0, t0, hcon⟩ := list_cons_of_ne_nil hs
+        have hph : inPhase st = true := by
+          rw [inPhase_eq_decide_of_cons hcon, decide_eq_true hres]
+        exact not_reversibleAtW_of_irreversibleAt hirr
+          (draw_reversible_inphaseW hd hs hw hph)
+      · exact Or.inr hres
+  · intro hbad
+    rcases hbad with hpr | hoff
+    · exact draw_irreversible_pristine hd hs hpr
+    · exact draw_irreversible_offset hd hs hoff
+
+/-- **The draw-one base round trip.**  At the pass base (empty stock,
+nonempty waste) with unit draw step, the draw is undone by draining
+the recycled stock one card at a time: `waste.length - 1` draws cycle
+the whole waste pool back to its starting arrangement. -/
+private theorem draw_step_one_base (st : State)
+    (hst : st.stock = ([] : List Card)) (hw : st.waste ≠ [])
+    (hd : st.drawStep = 1) : reversibleAtW st Move.draw := by
+  have hstep0 := base_draw_shape hst hw
+  have hn : st.waste.length - 1 = (st.waste.length - 1) * st.drawStep := by
+    rw [hd]; omega
+  have hle : st.waste.length - 1 ≤ (st.waste.reverse.drop st.drawStep).length := by
+    have h1 := List.length_drop (i := st.drawStep) (l := st.waste.reverse)
+    have h2 : st.waste.reverse.length = st.waste.length := List.length_reverse
+    omega
+  have hD := drain_positions_one (st.waste.length - 1)
+    (State.mk st.found st.piles (st.waste.reverse.drop st.drawStep)
+      ((st.waste.reverse.take st.drawStep).reverse ++ ([] : List Card)) st.drawStep)
+    (st.waste.length - 1) (st.waste.reverse.drop st.drawStep)
+    (by rw [hd]; omega) hn hle rfl
+  refine ⟨State.mk st.found st.piles (st.waste.reverse.drop st.drawStep)
+      ((st.waste.reverse.take st.drawStep).reverse ++ ([] : List Card)) st.drawStep,
+    List.replicate (st.waste.length - 1) Move.draw, ?_, ?_⟩
+  · rw [show State.step st Move.draw = State.stepDraw st from rfl]
+    exact hstep0
+  · rw [hD]
+    have hSw : (State.mk st.found st.piles (st.waste.reverse.drop st.drawStep)
+        ((st.waste.reverse.take st.drawStep).reverse ++ ([] : List Card)) st.drawStep).waste
+        = (st.waste.reverse.take st.drawStep).reverse ++ ([] : List Card) := rfl
+    rw [hSw]
+    have hdrop1 : (st.waste.reverse.drop st.drawStep).drop (st.waste.length - 1)
+        = ([] : List Card) := by
+      have h1 := List.length_drop (i := st.drawStep) (l := st.waste.reverse)
+      have h2 : st.waste.reverse.length = st.waste.length := List.length_reverse
+      exact drop_ge_length _ _ (by omega)
+    rw [hdrop1]
+    have htake1 : (st.waste.reverse.drop st.drawStep).take (st.waste.length - 1)
+        = st.waste.reverse.drop st.drawStep := by
+      have h1 := List.length_drop (i := st.drawStep) (l := st.waste.reverse)
+      have h2 : st.waste.reverse.length = st.waste.length := List.length_reverse
+      exact take_ge_length _ _ (by omega)
+    rw [htake1]
+    have hpool3 : (st.waste.reverse.drop st.drawStep).reverse
+        ++ ((st.waste.reverse.take st.drawStep).reverse ++ ([] : List Card))
+        = st.waste ++ ([] : List Card) := by
+      rw [show st.waste ++ ([] : List Card)
+            = (st.waste.reverse.take st.drawStep
+                ++ st.waste.reverse.drop st.drawStep).reverse
+              ++ ([] : List Card) from
+            congrArg (· ++ ([] : List Card))
+              ((List.reverse_reverse st.waste).symm.trans
+                (congrArg List.reverse (take_drop_append st.drawStep st.waste.reverse).symm)),
+        List.reverse_append, List.append_assoc]
+    rw [hpool3,
+      show st.waste ++ ([] : List Card) = st.waste from List.append_nil st.waste,
+      show ([] : List Card) = st.stock from hst.symm]
+
+/-- **The draw-one sanity classification.**  With unit draw step and a
+legal draw, irreversibility is exactly pristine emptiness of the
+waste: at one card per deal every nonempty waste is phase-aligned
+(`n % 1 = 0`), so the in-phase round trip covers the stock-bearing
+positions and the draw-one base drain covers the pass-base positions. -/
+theorem drawStep_one_class {st : State} (hd : st.drawStep = 1)
+    (hly : ∃ s₁, State.step st Move.draw = some s₁) :
+    irreversibleAt st Move.draw ↔ st.waste = [] := by
+  have hdpos : 0 < st.drawStep := by rw [hd]; omega
+  constructor
+  · intro hirr
+    by_cases hw : st.waste = []
+    · exact hw
+    · exfalso
+      by_cases hst : st.stock = []
+      · exact not_reversibleAtW_of_irreversibleAt hirr
+          (draw_step_one_base st hst hw hd)
+      · obtain ⟨c0, t0, hcon⟩ := list_cons_of_ne_nil hst
+        have hres : st.waste.length % st.drawStep = 0 := by
+          rw [hd]
+          omega
+        have hph : inPhase st = true := by
+          rw [inPhase_eq_decide_of_cons hcon, decide_eq_true hres]
+        exact not_reversibleAtW_of_irreversibleAt hirr
+          (draw_reversible_inphaseW hdpos hst hw hph)
+  · intro hpr
+    obtain ⟨s₁, hs₁⟩ := hly
+    by_cases hst : st.stock = []
+    · exfalso
+      rw [show State.step st Move.draw = State.stepDraw st from rfl] at hs₁
+      rw [State.stepDraw, recycle_allEmpty st hst hpr, dealStock_nil st hst] at hs₁
+      exact absurd hs₁ (by simp)
+    · exact draw_irreversible_pristine hdpos hst hpr
