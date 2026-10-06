@@ -1576,12 +1576,12 @@ theorem canonAux_stable : ∀ (k b : Nat) (st : State),
   | succ k ih =>
       intro b st hle hkb
       cases b with
-      | zero => omega
+      | zero => exact absurd hkb (Nat.not_succ_le_zero k)
       | succ b' =>
           cases hp : pick st with
           | none =>
               have hfin : Final st := (pick_eq_none_iff_final st).1 hp
-              rw [canonAux_final hfin, canonAux_final hfin]
+              rw [canonAux_final hfin (b'+1), canonAux_final hfin (k+1)]
           | some c =>
               obtain ⟨s', hs'⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
               have hsat : satStep st = s' := satStep_some hp hs'
