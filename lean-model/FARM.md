@@ -2339,3 +2339,111 @@ gate built at the lettered NOW strength would misfire on half; king
 landings are the reversible-except-route class both routes treat
 identically.  Numbers, examples, and bounds: the results file.
 
+## Wave 21 — the non-king count: destinations, not joins (2026-10-06, the farm-non-king-count session; census 11 pinned, C2Streamlined 0)
+
+TARGET: the direction of the ≤2-futures count at NON-KING
+commitments — decide-first, then assemble what survives.
+
+**LANDED (step 1, `witnesses/NonKingWitness.lean` §`NK` — the non-king
+twin split; the probe ANSWERED, refutation landed):** `nkState` (WF,
+pristine, decide-anchored): X = ♠6 stocked at position 0, its two
+destination twins ♥7/♦7 as free dealt heads on anchors 0/1, all heights
+0 (the spade prefix is incomplete: 5 ≠ 0 — the shuttle vehicle is
+dead).  Both hosts placeable (`nkDirectLive1/2`), both landings are
+zero-spend macroSteps through the LIVE direct channel
+(`nkStep1/2`, `nkSuccThrough1/2`), every accommodation is dead at each
+landing (`nkS1/nkS2_stuck`) → `nk_split : ¬ closureEq nkS1 nkS2`
+(:657).  So the twin-receiver collapse DOES split without the rung —
+the count needs the stackability premise STATED, and the premise is
+load-bearing on the TWIN side too (the first witness beyond the
+king-anchor family).  The non-king readings of the wave-18 universals:
+`wk_nonking_twinCollapse_rung_false` (:676), `wk_nonking_samePin_
+direct_false` (:686), `wk_nonking_p2Direct_false` (:697) — all axioms
+[propext, Classical.choice, Quot.sound], no sorry.  AND the boundary
+datum: the count SURVIVES here without the rung —
+`nkSuccessorsExhaustTwo` (:758) shows the commitment has EXACTLY the
+two twin successors (the destination bound), `nkTwoOptionHoldsHere`
+(:784) gets the two-option pair trivially.  The non-king count is a
+DESTINATION-COUNT phenomenon, not a closure-join phenomenon: the rung
+buys the JOIN (`commitTableau_class`), never the count.
+
+**LANDED (step 1b, §`FF` — the free-float gap; both as-stated
+universals fall at non-kings):** `ffState` reuses the twin hosts plus
+a free anchored ♥A head; the one-move promotion `[pileStack ♥A]` is a
+legal accommodation window touching NOTHING in X's two-type ball, and
+the window successors `ffWin ♥7` / `ffWin ♦7` are macroSteps
+(`ffWinHeart_step`/`ffWinDiamond_step`).  `wk_nonking_succLabeled_
+false` (:1563): the five-channel labeling restricted to non-kings is
+FALSE — `ffWin ♥7` is named by NOTHING (hole: the king requirement;
+borrow: heights 0 need rank+1 = 0; dig: no receiver is covered by
+the never-seated twin; toStack: the spade freeze (SuccLabeledWitness's
+argument replayed file-locally); direct: LIVE at the root but the
+empty-window signature commits the ROOT state, whose heart height 0
+separates from the route's 1 — `ffSucc_not_direct`).  The window
+played IRRELEVANT content — no anchor, no king: a NEW failure route;
+the wave-19 "anchor phenomenon" reading of succ_labeled's refutation
+was incomplete.  `wk_nonking_c2_false` (:1637): the as-stated count
+universal (macroStep form) restricted to non-kings is FALSE — three
+pairwise closure-separated macro successors at ONE WF root (the root
+commit on ♥7 plus the two window commits; the window successors are
+accommodation-stuck (`ffWin_stuck`), split from the root commit by
+the heart height and from each other by the twin hosts).
+
+**LANDED (step 2 — P0's non-king kernel, `Klondike/C2Streamlined.lean`
+§16):** `labelLive_hole_nonKing_false` (:2312) +
+`succ_labeled_nonKing_root` (:2329) — the hole channel is dead for
+non-kings (HoleLive.hK), and every ROOT-commit successor of a non-king
+labels by `direct` (the base is a receiver via
+`commitTableau_base_nonKing`, live at the root through the canPlace
+data, named with the empty window) or `toStack` (live at the root by
+the commit's own firing, signature-free).  This is the honest
+restored content of P0 at non-kings; the free-float residue (:1563)
+records exactly what does not extend past root windows.
+
+**LANDED (step 3 — THE ASSEMBLY, C2Streamlined §16, all PROVEN
+sorry-free, axioms [propext, Quot.sound], per-piece census status in
+every docstring):**
+- `commitTableau_base_nonKing` (:2293): a non-king's tableau commit
+  lands on a receiver (the `king_of_canPlace_inl` dual — no anchors);
+- `commitTableau_eq_of_base_eq` (:2302): same-base commits are the
+  same successor;
+- `commitTableau_three_nonKing` (:2351): three into two boxes at the
+  tableau box — any three tableau commits at ONE state share receivers
+  pairwise (`receivers_twin_pair`), so two are EQUAL states; no WF,
+  no rung, no window data;
+- **`c2_two_option_nonKing` (:2394): the flagship count** —
+  (hwf : u.WF) + non-king + three `commitApplies` at ONE SHARED
+  accommodated state u ⇒ a closure-equal pair.  NO rung premise (the
+  only arm that joins twins extracts the rung from the stack
+  successor's own guard via `heights_of_applyDrawStackTo` +
+  `commitTableau_class`), NO register (P1/same-pin channel machinery
+  unused — three arms into {tableau, stack}: the tableau box
+  collapses by the destination bound or state-equality, the stack
+  box by `crease_stack_deterministic`);
+- `c2_two_option_nonKing_windows` (:2448): the explicit windowed
+  form.  The two premises are exactly the witness-proven
+  load-bearing ones: window uniformity (`wk_nonking_c2_false` —
+  floating windows add split successors) and the non-king
+  restriction (kings have the free anchors — C2KingAnchorWitness).
+
+Build: `lake build Klondike Witnesses` green (70 jobs, macro-game HEAD
+7121529); census pinned OK (11 total, C2Streamlined 0, zero
+bullets); no new sorry, no refuted constant touched, witnesses
+axiom-clean ([propext, Classical.choice, Quot.sound]), §16
+axiom-clean ([propext, Quot.sound]).
+
+**NEXT (tickets):**
+1. The free-float repair is now a channel-LIST decision with a
+   non-king refutation attached: a `windowContent` atom (the window's
+   own move multiset as a signature) or context-irreversibility
+   gating (the §B route regroups as its own commit) must fix BOTH the
+   king unseat route and the non-king free-float route, or the gated
+   reading is the only survivor.
+2. The label-restricted count probe: is "three LABELED successors ⇒
+   closure pair" false at non-kings too?  Needs a richer root (dig /
+   borrow / toStack live together with the direct hosts and the
+   raise content) — harness ticket; §16 does not need the answer
+   (the count there is arm-based, not label-based).
+3. The shared-window relaxation: per-window founder pairs for three
+   DIFFERENT u's at a non-king — open; needs a collapse of the
+   free-float witnesses first.
