@@ -69,6 +69,22 @@ The family (sorry-free, axiom targets `[propext, Quot.sound]`):
   `ReachCorner.sLand_swapRelated_iff`) upgrades from single steps
   to the FULL quotient: the countermodels' separation is
   orbit-structural (see `witnesses/PileQuotientCorollaries.lean`).
+* **§7 The anchor landings' orbit carving (wave-22, king-graded
+  kernel).**  The `Draw` commitment's ANCHOR landings carry a fully
+  carved orbit structure: at a WF-deal state two anchor landings are
+  pure-Π-related EXACTLY on anchor equality
+  (`drawLand_pileSwapOrbit_iff` — the §6 fiber read along
+  `applyDrawTo`), so each usable vacant anchor is its own orbit; on
+  the all-emptied fragment ANY two landings merge into one content
+  class with NO board-emptiness premise
+  (`drawLand_content_eq_of_depthsZero` — strictly generalizing §5's
+  `emptyPiles_land_content_eq`, whose empty board was a proof-route
+  artifact: the emptied fragment carries no anchor content at all),
+  and off it the content classes separate as well
+  (`drawLand_content_class_inj`, by §4 purity).  The induced
+  swap-orbit on usable vacant anchors — the king-side graded bound's
+  counting object — is therefore the identity relation on anchors
+  whenever deal content remains, and ONE class whenever it does not.
 -/
 
 /-! ## §0. The closure spine (the hand-rolled `EqvGen`)
@@ -861,3 +877,250 @@ theorem pileContentOrbit_sameDeal_eq {s₁ s₂ : State} (hd : s₁.deal.WF)
     (hdeal : s₂.deal = s₁.deal) : s₁ = s₂ :=
   pileSwapOrbit_sameDeal_eq hd
     (pileSwapOrbit_of_contentOrbit_of_not_depthsZero h hnz) hdeal
+
+/-! ## §7. The anchor landings' orbit carving (wave-22, king-graded kernel)
+
+The `Draw(X)` commitment's ANCHOR landings — the states
+`st.applyDrawTo X (Sum.inl a) = some L` — are the king-side graded
+bound's carriers (kings land on anchors only,
+`Klondike/C2Streamlined.lean`'s `king_tableau_base`).  This section
+carves their orbit structure through both quotients, as far as state
+content permits:
+
+* **The same-deal fiber at landings** (`drawLand_pileSwapOrbit_iff`)
+  — at a WF-deal state, two anchor landings are pure-Π-related
+  EXACTLY on anchor equality: the §6 capstone read along
+  `applyDrawTo` (the landing keeps the deal, so an orbit meeting
+  two landings meets the same-deal fiber), plus the seat readback
+  (the landing's own attach guard pins the card at its anchor-seat).
+  The induced swap-orbit on usable vacant anchors is therefore the
+  IDENTITY: each anchor its own orbit, the landing classes INDEXED
+  by the anchors.  Card-general — the king enters the graded bound
+  through the COVER (kings have no receiver landings), not the
+  separation.
+* **The content carve, both sides.**  Off the emptied fragment
+  (`drawLand_contentOrbit_eq_of_not_depthsZero`,
+  `drawLand_content_class_inj`) the content orbits coincide with the
+  pure orbits (§4 purity, now at landings), so anchor names are
+  content.  ON the emptied fragment the content classes of ANY two
+  landings MERGE (`drawLand_content_eq_of_depthsZero`) — with no
+  board-emptiness premise: the probe `probes/kingwash.lean` decided
+  this first (at a depthsZero state with a card-edge seated on a
+  card seat, the washed-swap composition equals the other landing
+  field by field), and the proof keeps only what the probe used —
+  the two anchor seats' emptiness (which the firings' own attach
+  guards carry) and the all-zero depths (which the wash needs).
+  This strictly generalizes §5's `emptyPiles_land_content_eq`: the
+  empty board there was a proof-route artifact.
+
+The induced content-orbit on usable vacant anchors is thus carved
+exactly: SINGLETONS while deal content remains, ONE class when every
+pile is fully emptied.  That is the full statement behind the first
+cut's pristine instance
+(`witnesses/PileQuotientCorollaries.lean` §2); the king-side graded
+bound — the `1 + #swap-orbits` futures count — is assembled over
+this kernel in `witnesses/PileQuotientOrbit.lean`. -/
+
+/-- The landing's field shape, packaged (the per-field readings of
+`applyDrawTo_eq`): a `Draw` landing rewrites board and stock only. -/
+theorem drawLand_shape {st : State} {X : Card} {b : Base} {L : State}
+    (h : st.applyDrawTo X b = some L) :
+    ∃ i bd, st.reachablePos X = some i ∧ st.board.attach b X = some bd ∧
+      L.deal = st.deal ∧ L.heights = st.heights ∧ L.depths = st.depths ∧
+      L.board = bd ∧
+      L.stock = ⟨Cycle.removeIdx st.stock.cards i, i⟩ := by
+  obtain ⟨i, bd, hpos, hatt, hs⟩ := applyDrawTo_eq h
+  subst hs
+  exact ⟨i, bd, hpos, hatt, rfl, rfl, rfl, rfl, rfl⟩
+
+/-- A Draw landing keeps the deal (the same-deal fiber's landing
+side). -/
+theorem drawLand_deal {st : State} {X : Card} {b : Base} {L : State}
+    (h : st.applyDrawTo X b = some L) : L.deal = st.deal := by
+  obtain ⟨-, -, -, -, hd, -, -, -, -⟩ := drawLand_shape h
+  exact hd
+
+/-- A Draw landing keeps the heights (the stack-vs-landing freshness
+reads the difference). -/
+theorem drawLand_heights {st : State} {X : Card} {b : Base} {L : State}
+    (h : st.applyDrawTo X b = some L) : L.heights = st.heights := by
+  obtain ⟨-, -, -, -, -, hh, -, -, -⟩ := drawLand_shape h
+  exact hh
+
+/-- The all-emptied flag is landing-invariant. -/
+theorem drawLand_depthsZero_iff {st : State} {X : Card} {b : Base} {L : State}
+    (h : st.applyDrawTo X b = some L) : st.depthsZero ↔ L.depthsZero := by
+  obtain ⟨-, -, -, -, -, -, hdepths, -, -⟩ := drawLand_shape h
+  constructor
+  · intro hz a
+    rw [hdepths]
+    exact hz a
+  · intro hz a
+    rw [← hdepths]
+    exact hz a
+
+/-- A transposition whose two anchor seats agree is the identity on
+the board — equal-content anchor seats are board-interchangeable. -/
+theorem Board.mapByPileSwap_eq_of_anchorSeats {bd : Board} {i j : Anchor}
+    (h : bd.topOf (Sum.inl i) = bd.topOf (Sum.inl j)) :
+    bd.mapByPileSwap i j = bd := by
+  refine Board.ext_topOf (funext (fun b => ?_))
+  show bd.topOf (b.swapBase i j) = bd.topOf b
+  cases b with
+  | inr c => rfl
+  | inl a =>
+      by_cases hai : a = i
+      · rw [hai, Base.swapBase_inl, Anchor.swap_self_left, h]
+      · by_cases haj : a = j
+        · rw [haj, Base.swapBase_inl, Anchor.swap_self_right, h.symm]
+        · rw [Base.swapBase_inl, Anchor.swap_eq_self i j hai haj]
+
+/-- The conjugated landing board: when the two anchor seats agree,
+the transposition of the `a₁`-landing's board is exactly the
+`a₂`-landing's board (`mapByPileSwap_attach` read at the agreeing
+seats). -/
+theorem attach_conj_of_anchorSeats {bd : Board} {a₁ a₂ : Anchor} {X : Card}
+    {bd₁ bd₂ : Board}
+    (h : bd.topOf (Sum.inl a₁) = bd.topOf (Sum.inl a₂))
+    (h₁ : bd.attach (Sum.inl a₁) X = some bd₁)
+    (h₂ : bd.attach (Sum.inl a₂) X = some bd₂) :
+    bd₁.mapByPileSwap a₁ a₂ = bd₂ := by
+  have hinv : bd.mapByPileSwap a₁ a₂ = bd :=
+    Board.mapByPileSwap_eq_of_anchorSeats h
+  have hc := mapByPileSwap_attach bd a₁ a₂ h₁
+  rw [hinv] at hc
+  have hbase : Base.swapBase (Sum.inl a₁) a₁ a₂ = Sum.inl a₂ := by
+    rw [Base.swapBase_inl, Anchor.swap_self_left]
+  rw [hbase] at hc
+  exact (Option.some.inj (h₂.symm.trans hc)).symm
+
+/-- **THE EMPTIED-FRAGMENT MERGE (no board premise).**  At an
+all-emptied state, the `Draw` landings of one card on any two firing
+anchor seats belong to ONE content class: the single washed
+transposition of one landing IS the other.  The seats' emptiness is
+carried by the firings' own attach guards, so NO board-emptiness
+premise survives — the probe `probes/kingwash.lean` decided this
+shape first.  Strictly generalizes §5's
+`emptyPiles_land_content_eq` (its `st.board = Board.empty` was a
+proof-route artifact). -/
+theorem drawLand_content_eq_of_depthsZero {st : State} {X : Card}
+    {a₁ a₂ : Anchor} {L₁ L₂ : State}
+    (hz : st.depthsZero)
+    (h₁ : st.applyDrawTo X (Sum.inl a₁) = some L₁)
+    (h₂ : st.applyDrawTo X (Sum.inl a₂) = some L₂) :
+    PileContentClass.mk L₁ = PileContentClass.mk L₂ := by
+  obtain ⟨i₁, bd₁, hp₁, hatt₁, hs₁⟩ := applyDrawTo_eq h₁
+  obtain ⟨i₂, bd₂, hp₂, hatt₂, hs₂⟩ := applyDrawTo_eq h₂
+  have hii : i₁ = i₂ := Option.some.inj (hp₁.symm.trans hp₂)
+  rw [hii] at hs₁
+  have hfree₁ : st.board.topOf (Sum.inl a₁) = none :=
+    ((Board.attach_eq_some_iff st.board (Sum.inl a₁) X).mp
+      (by rw [hatt₁]; simp)).1
+  have hfree₂ : st.board.topOf (Sum.inl a₂) = none :=
+    ((Board.attach_eq_some_iff st.board (Sum.inl a₂) X).mp
+      (by rw [hatt₂]; simp)).1
+  have hbcbd : bd₁.mapByPileSwap a₁ a₂ = bd₂ :=
+    attach_conj_of_anchorSeats (hfree₁.trans hfree₂.symm) hatt₁ hatt₂
+  have hzL₁ : L₁.depthsZero := (drawLand_depthsZero_iff h₁).mp hz
+  have hwash : (L₁.swapPiles a₁ a₂).setDeal st.deal = L₂ := by
+    rw [hs₁, hs₂]
+    refine state_ext rfl ?_ rfl ?_ rfl rfl
+    · show bd₁.mapByPileSwap a₁ a₂ = bd₂
+      exact hbcbd
+    · funext x
+      show st.depths (Anchor.swap a₁ a₂ x) = st.depths x
+      rw [hz x]
+      exact hz _
+  have hor : PileContentOrbit L₁ ((L₁.swapPiles a₁ a₂).setDeal st.deal) :=
+    EqvClosure.trans
+      (EqvClosure.single (Or.inl ⟨a₁, a₂, rfl⟩))
+      (EqvClosure.single (Or.inr ⟨State.depthsZero_swapPiles hzL₁ a₁ a₂, st.deal, rfl⟩))
+  rw [hwash] at hor
+  exact Quot.sound hor
+
+/-- **The same-deal fiber at anchor landings**: at a WF-deal state, a
+pure-Π relation between two anchor landings forces anchor equality —
+the class remembers the landing seat. -/
+theorem drawLand_pileSwapOrbit_eq {st : State} (hd : st.deal.WF) {X : Card}
+    {a₁ a₂ : Anchor} {L₁ L₂ : State}
+    (h₁ : st.applyDrawTo X (Sum.inl a₁) = some L₁)
+    (h₂ : st.applyDrawTo X (Sum.inl a₂) = some L₂)
+    (h : PileSwapOrbit L₁ L₂) : a₁ = a₂ := by
+  by_cases hne : a₁ = a₂
+  · exact hne
+  · exfalso
+    have hwf : L₁.deal.WF := by
+      rw [drawLand_deal h₁]
+      exact hd
+    have hdeal : L₂.deal = L₁.deal :=
+      (drawLand_deal h₂).trans (drawLand_deal h₁).symm
+    have hstate : L₁ = L₂ := pileSwapOrbit_sameDeal_eq hwf h hdeal
+    obtain ⟨-, bd₁, -, hatt₁, -, -, -, hbb₁, -⟩ := drawLand_shape h₁
+    obtain ⟨-, bd₂, -, hatt₂, -, -, -, hbb₂, -⟩ := drawLand_shape h₂
+    have hfree₂ : st.board.topOf (Sum.inl a₂) = none :=
+      ((Board.attach_eq_some_iff st.board (Sum.inl a₂) X).mp
+        (by rw [hatt₂]; simp)).1
+    have hseat₂ : L₂.board.topOf (Sum.inl a₂) = some X := by
+      rw [hbb₂]
+      exact Board.attach_topOf st.board (Sum.inl a₂) X hatt₂
+    have hnone₁ : L₁.board.topOf (Sum.inl a₂) = none := by
+      have hneB : (Sum.inl a₂ : Base) ≠ Sum.inl a₁ :=
+        fun hcon => hne (Sum.inl.inj hcon).symm
+      rw [hbb₁, Board.attach_topOf_ne st.board (Sum.inl a₁) X hatt₁ hneB]
+      exact hfree₂
+    rw [hstate] at hnone₁
+    rw [hseat₂] at hnone₁
+    exact absurd hnone₁ (by simp)
+
+/-- **The induced swap-orbit on anchor landings is trivial at WF-deal
+states**: two landings are pure-Π-related exactly when they land on
+the same anchor — each usable vacant anchor is its own orbit, and
+the landing classes are INDEXED by the usable anchors. -/
+theorem drawLand_pileSwapOrbit_iff {st : State} (hd : st.deal.WF) {X : Card}
+    {a₁ a₂ : Anchor} {L₁ L₂ : State}
+    (h₁ : st.applyDrawTo X (Sum.inl a₁) = some L₁)
+    (h₂ : st.applyDrawTo X (Sum.inl a₂) = some L₂) :
+    (PileSwapOrbit L₁ L₂) ↔ (a₁ = a₂) := by
+  constructor
+  · exact drawLand_pileSwapOrbit_eq hd h₁ h₂
+  · intro hc
+    subst hc
+    have hLL : L₁ = L₂ := Option.some.inj (h₁.symm.trans h₂)
+    rw [hLL]
+    exact EqvClosure.refl L₂
+
+/-- Distinct usable anchors carry distinct landing classes (the
+class-injectivity of the anchor landing map). -/
+theorem drawLand_pile_class_inj {st : State} (hd : st.deal.WF) {X : Card}
+    {a₁ a₂ : Anchor} {L₁ L₂ : State}
+    (h₁ : st.applyDrawTo X (Sum.inl a₁) = some L₁)
+    (h₂ : st.applyDrawTo X (Sum.inl a₂) = some L₂)
+    (hne : a₁ ≠ a₂) : PileClass.mk L₁ ≠ PileClass.mk L₂ := by
+  intro hcon
+  exact hne (drawLand_pileSwapOrbit_eq hd h₁ h₂ (PileClass.exact hcon))
+
+/-- Off the emptied fragment the content orbit is the pure orbit, at
+landings — the §4 purity exported through the firing shape. -/
+theorem drawLand_contentOrbit_eq_of_not_depthsZero {st : State} (hd : st.deal.WF)
+    (hnz : ¬ st.depthsZero) {X : Card} {a₁ a₂ : Anchor} {L₁ L₂ : State}
+    (h₁ : st.applyDrawTo X (Sum.inl a₁) = some L₁)
+    (h₂ : st.applyDrawTo X (Sum.inl a₂) = some L₂)
+    (h : PileContentOrbit L₁ L₂) : a₁ = a₂ := by
+  have hnzL : ¬ L₁.depthsZero :=
+    fun hz => hnz ((drawLand_depthsZero_iff h₁).mpr hz)
+  exact drawLand_pileSwapOrbit_eq hd h₁ h₂
+    (pileSwapOrbit_of_contentOrbit_of_not_depthsZero h hnzL)
+
+/-- **The content-class injectivity off the emptied fragment**: at a
+WF-deal, not-all-emptied state, the anchor landings of distinct
+usable anchors stay in distinct CONTENT classes — anchor names are
+content, and the wave-20 countermodels are content-real down to the
+class level. -/
+theorem drawLand_content_class_inj {st : State} (hd : st.deal.WF)
+    (hnz : ¬ st.depthsZero) {X : Card} {a₁ a₂ : Anchor} {L₁ L₂ : State}
+    (h₁ : st.applyDrawTo X (Sum.inl a₁) = some L₁)
+    (h₂ : st.applyDrawTo X (Sum.inl a₂) = some L₂)
+    (hne : a₁ ≠ a₂) : PileContentClass.mk L₁ ≠ PileContentClass.mk L₂ := by
+  intro hcon
+  exact hne (drawLand_contentOrbit_eq_of_not_depthsZero hd hnz h₁ h₂
+    (PileContentClass.exact hcon))

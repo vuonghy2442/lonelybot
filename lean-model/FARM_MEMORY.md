@@ -9053,3 +9053,28 @@ class of the window-gate decision is anchor promotions of non-king heads
 (67% of anchor-alone candidates at 1000 seeds) — king and landed
 promotions are reversible-in-one and the model side may take that as
 vacuous for the gate's semantics.
+
+## PileQuotient.lean/PileQuotientOrbit.lean — the king-orbit carve, wave 22 (2026-10-06)
+
+- DECIDE-FIRST PAYOFF, the reusable one: `emptyPiles_land_content_eq`'s
+  `st.board = Board.empty` premise was a ROUTE ARTIFACT.  Probed at a
+  depthsZero state carrying a card-seat edge, the washed-swap lands
+  field-by-field on the other landing.  What the merge truly needs:
+  the two anchor seats' none-agreement (carried by the FIRINGS' own
+  attach guards) + all-zero depths (for the wash).  Generalized lib lemma:
+  `drawLand_content_eq_of_depthsZero`; the carve boundary is exactly the
+  depthsZero flag (probe: board conjugates TRUE, depths FALSE at rState).
+- For L = {st with …} field-bundles, `subst hs` (the STATE identity) then
+  `exact ⟨…, rfl, rfl …⟩` beats per-slot `rw [hs]` — no auto-rfl flakes.
+- `(Sum.inl a : Base).swapBase i j` does NOT dot-resolve (elaborates in
+  Sum's namespace): spell `Base.swapBase (Sum.inl a) i j`.
+- `rw [h12] at hrk` with h12 : Rank.king.toIdx = 12 fails when hrk shows
+  `(S Rank.king).rank.toIdx` — the projection is NOT syntactically
+  reduced; state h12 with the projection spelled (`(S Rank.king).rank.toIdx = 12 := rfl`).
+- Depth-3 arm trees at a SIX-slot conclusion: the Or.inr miscount
+  (2-inrs where 3 belong) and rcases-named kᵢ cited OUT of their sibling
+  branch both surface as error-recovery SORRIES; the #guard_msgs pins
+  caught every one.  Count the inrs per the slot table (last slot PLAIN).
+- Build weather: the toolchain .olean.private storms beat full-parallel
+  `lake build` twice; `LAKE_JOBS='2'` + a 20s-spaced retry loop went
+  green on the 5th pass.  Poll-gap, not workaround.

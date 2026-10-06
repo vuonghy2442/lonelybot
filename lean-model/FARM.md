@@ -2339,3 +2339,92 @@ gate built at the lettered NOW strength would misfire on half; king
 landings are the reversible-except-route class both routes treat
 identically.  Numbers, examples, and bounds: the results file.
 
+
+## Wave 22 (2026-10-06, the king-orbit-bound session; files Klondike/PileQuotient.lean §7 added + witnesses/PileQuotientOrbit.lean new + probes/kingwash.lean new; census 10 GREEN unchanged, PileQuotient stays sorry-free)
+
+THE KING-SIDE HALF OF THE ANCHOR-GRADED TWO-OPTION BOUND, THROUGH
+THE PILE QUOTIENT (macro-game HEAD 1442e25; decide-first, then proof).
+
+**DECIDE-FIRST (probes/kingwash.lean, #eval):** the wave-21 first cut's
+board-emptiness premise is a ROUTE ARTIFACT — at a depthsZero state
+with a card-edge seated on a card seat, the washed-swap composition
+equals the other landing in EVERY field; at the not-emptied reachable
+corner the board still conjugates but the DEPTHS field is the blocker
+((true, false)).  The carve boundary is exactly the emptied-ness
+flag.  (Also: all seven pristine landings fire; sState's king places
+on exactly the six non-p0 anchors; the stack arm is dead there.)
+
+**THE LIB KERNEL (PileQuotient.lean §7) — the anchor landings' orbit
+carving, card-general, sorry-free:** `drawLand_shape` (:926, the field
+bundle: a Draw landing rewrites board/stock only), the emptied-fragment
+merge **with NO board premise** `drawLand_content_eq_of_depthsZero`
+(:1006 — strictly generalizes §5's `emptyPiles_land_content_eq`;
+mechanism: the firings' own attach guards give the two anchor seats'
+none-agreement, `Board.mapByPileSwap_eq_of_anchorSeats` :964 +
+`attach_conj_of_anchorSeats` :982 conjugate the landing board,
+`mapByPileSwap_attach` carries the swap), the same-deal fiber at
+landings `drawLand_pileSwapOrbit_eq` (:1044)/`_iff` (:1079 — the
+induced swap-orbit on usable vacant anchors is the IDENTITY at
+WF-deal states: equal classes force equal anchors, by the seat
+readback), `drawLand_pile_class_inj` (:1094), and the off-emptied
+content carve `drawLand_contentOrbit_eq_of_not_depthsZero` (:1104)/
+`drawLand_content_class_inj` (:1119, §4 purity exported through the
+firing shape).  THE ORBIT STRUCTURE IS FULLY CARVED: singletons while
+deal content remains, ONE class when every pile is fully emptied.
+
+**THE WITNESS (PileQuotientOrbit.lean) — the graded bound:**
+* §1 THE CANONICAL-LANDING PINCER, forced shape: the draft's "alive
+  or unreachable-aside" resolves UNCONDITIONALLY — `receivers_king_nil`
+  kills the receiver channels at kings CARD-LEVEL (`king_live_le_hole`
+  :100), so every live-labeled tableau future is the zero-spend hole
+  channel = the ROOT free-anchor landing (`king_live_tab_canonical`
+  :125; `king_landOutline` :87 re-spells `king_tableau_base`).  The
+  freeze premise is needed ONLY to kill the stack channel.
+* §2 THE GRADED BOUND: `kingLand`/`kingLandable`/`kingLandOrbit`
+  (:181/:185/:195, the induced-orbit object), `kingLandOrbit_iff`
+  :219 (the collapse at WF deals), the deterministic stack arm
+  (`kingStack_pair_class` :148) with the FRESHNESS
+  `kingStack_not_land_class` :157 (the heights bump meets no landing:
+  same-deal fiber + heights clash — the rung premise of
+  `commitTableau_class` drops out at the quotient), and **MAIN**
+  `king_pair_class_iff` :235 — two futures of a king Draw(X) commit
+  share the pile class EXACTLY on kind-equality (both stack, or the
+  same usable anchor).  That is the pair form of the count: classes ≡
+  {stack?} ∪ usable-anchors — 1 + #(swap-orbits among usable vacant
+  anchors) with singleton orbits at WF deals.
+* §3 THE PIGEONHOLES (merge-side only, NO WF): the weak corner
+  (`weak_corner_graded3` :283 + `_fates` :305 — the seed-26 ♣K shape,
+  any 3 futures), the measured two-empty-piles world
+  (`two_anchor_corner_graded4` :361, any 4 futures; the 3-into-2 core
+  `king_tabs3_pair_class` :321), and the frozen-corner singleton
+  `weak_corner_frozen_class` :421 — the quotient-graded subsumption of
+  `c2_two_option_king_frozen`'s conclusion (ALL live futures ONE
+  class, via the pincer; hypothesis shape consumed read-only for
+  calibration).
+* §4 THE MEASURED INSTANCES: the rState 6-anchor world — the cover
+  `rState_futures_sLand` :473 (every future is one of the six
+  landings; stack dead `rState_stack_dead` :459; p0 seated via
+  `initialBoard_seats` `rState_p0_seated` :449), the usability
+  iff `rState_kingLandable_iff` :493, and the TIGHTNESS: the six
+  landings pairwise class-distinct in BOTH quotients
+  (`rState_six_distinct` :513; `rState_six_content_distinct` :537 with
+  `rState_not_depthsZero` :527) — the graded bound's slack is ZERO at
+  the measured corner, and the wave-20 countermodels survive to the
+  class level.  The pristine 7-futures collapse at the induced orbit:
+  `pristine_oneContentClass` :562 (the sibling's washed-transposition
+  identity IS the two-step content orbit).
+
+RESIDUES (named, out of scope per the pincer's forced shape): (i) the
+toStack-labeled stack futures through accommodations — the crease
+free-float residue of C2 §12.5/§14, outside the root commit's two
+arms; (ii) the general-k pigeonhole as a Nat-counting combinatorial
+(k ≤ 2 and the six-anchor cover+tightness delivered fixed); (iii) the
+NON-WF-deal reading (repeated slices could merge anchors — no corpus
+deal is such).
+
+Axioms: sixteen pins, `[propext, Quot.sound]` for the count
+machinery; the four measured-corner instances `[propext,
+Classical.choice, Quot.sound]` (the siblings' decide-anchored exhibits
+— the same blessed sets).  Zero sorryAx; the census pins 10 GREEN.
+Build: `lake build Klondike Witnesses` green (73 jobs; the
+.olean.private weather needed LAKE_JOBS=2 + retries).
