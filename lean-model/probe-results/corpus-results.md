@@ -359,3 +359,134 @@ window gate): the unseat route's raw material is measurable-but-modest
 irreversibility concentrates, and a NOW-strength gate would overfire on
 landed promotions — the engine-side numbers support a gate defined at the
 engine's reverse-offer strength, if route (b) is taken.
+
+---
+
+# The ORIG merge probe — the escape-clause design's two-sidedness (wave 26)
+
+**Session:** farm-orig-merge-probe (the Lean-side #eval witness card; the
+only measurement artifact is `probes/origmerge.lean`, committed beside this
+section — no library file was touched).
+
+**Model under measurement:** the ORIG game (`Orig/State.lean`,
+`Orig/Play.lean` — the full physical move set, pile-to-pile run moves
+first-class).  Engine: an exhaustive legal-move generator exactly per the
+engine card's letter (`draw`; `wasteToFound`/`wasteToTab` at the waste top;
+`tabToFound` over pile tops; `foundToTab` over foundation tops × bases;
+`tabToTab` over all face-up cards × anchors+tops; every candidate
+filtered through `State.step`), driving a dedup'd BFS with a move budget
+that checks `isWin` at every visited state.  The exchange is the private
+local copy of the parallel card's operation (hosts via `pileHolding`,
+strictly-above suffixes swapped between the two host piles).  The merge
+classifier: a legal `tabToTab` whose moved run contains one host (rooted
+at-or-below it in its column) and whose base lands in the OTHER host's
+region.  A parameter scan of the whole witness-family (725 structurally
+legal casts, 239 st-winners) tuned the cast; both failure classes it
+exposed are reported below.  Every number is `#eval`-verified and gated:
+the script exits 0 only if all of them hold.
+
+## The merge-live witness (the disjunct-2 instance is LIVE at
+wild-not-colClean states)
+
+The cast `omSt` (crafted non-WF, the w15merge way — lying found heights;
+conservation is not claimed and not a premise):
+
+```
+p0 [HQ SJ HJ DK]   host ♥J mid-column; the below-host column is NOT
+                    runOK (the king-jack root is a junk non-descending
+                    tenant); the buried prefix ♥Q is the linchpin
+p1 [DJ DQ]          twin host ♦J; its suffix ♦Q is the merge base
+p2 [C2 HK]          the free heart climber
+p3..p6 [H2][H3][H4][H5]   stones; all seven piles occupied (no king escape)
+found: ♥ A..10 (10)   ♦ A..Q (12)   ♠ A..K (13)   ♣ A..K (13)
+```
+
+Premises, all executable: twin hosts face-up in distinct piles (`♥J` ∈
+p0, `♦J` ∈ p1); the protected set `{♥J, ♦J, ♦K, ♦Q}` (the hosts plus both
+strictly-above suffixes) occurs exactly once across the board zones;
+the host columns are dirty.
+
+- **The merge is legal and merge-shaped:** `t2t SJ@DQ` — its run
+  `[♠J, ♥J, ♦K]` contains the host `♥J` (rooted below it), and the base
+  `♦Q` is the other host's suffix card.  It is the ONLY merge-shaped
+  legal move at `omSt`.
+- **The winning play through the merge: exactly 5 moves, merge first:**
+  `t2t SJ@DQ ; t2f DK ; t2f HJ ; t2f HQ ; t2f HK` — all-foundations at
+  the end (lengths 13×4).  The linchpin is structural: the merged run
+  leaves `[♥Q]` alone in p0, and hearts' 12th can only arrive from that
+  exposed prefix seat.
+- **The exchange is live and FROZEN:** `swapTwinSuffixes` moves p1's
+  `[♦Q]` ON TOP of the host column and p0's `[♦K]` onto ♦J: the swapped
+  state is `p0 [HQ SJ HJ DQ]`, `p1 [DJ DK]`, distinct from `omSt`, and
+  **WINLESS — no win to depth 6 (706 distinct states) nor depth 7
+  (1,788), every one win-checked; the frontier never empties, so the
+  negative is horizon-limited to depth 7 and is reported as such.**  The
+  exhibited play's own move list cannot be run from the swapped state to
+  any win (it dies AT the merge: the transplanted ♦Q is no longer a pile
+  top).  The freeze mechanism is the designed one, ported from w15merge:
+  the crafted non-fitting tenant (the passed ♦Q) jams the host column,
+  and the twin-blind self-landing swallow of the ORIG step semantics
+  offers no rescue — the swallow needs `canSitOn ♠J ♥J`, false by the
+  rank-decoupling of base and hosts.
+
+## The degenerate-shuttle caveat (the design's honest boundary)
+
+The same state `omSt` ALSO has a 5-move winning play with NO
+merge-shaped move: `t2f DK ; t2f HJ ; t2t SJ@DQ ; t2f HQ ; t2f HK` — the
+host is popped first, and then the very same `t2t ♠J→♦Q` lands as a bare
+shuttle whose run `[♠J]` contains no host.  Same move; the classification
+is state-dependent.  That play's moves reach no win from the swapped
+state either — so the disjunct-1 (replay) branch cannot save it.  Consequence,
+recorded with the numbers: **the strict instance "every winning play
+either replays as a win or passes a merge" is REFUTED at the wild-state
+premises (hosts-distinct + regional uniqueness, no colClean) even with
+disjunct 2 genuinely live.**  The parameter scan confirms the structural
+cause at family scale: no scanned cast achieved load-bearing merge AND
+frozen exchange simultaneously — every frozen-exchange cast also admitted a
+merge-free (usually degenerate-shuttle) winner, and every load-bearing
+cast mirrored the load into the swapped world.
+
+## The colClean kill (the corollary side, made decidable)
+
+At a second crafted state with BOTH host columns clean
+(`p0 [SQ HJ C10 H9]`, `p1 [DJ S10]` — `runOK` true on both; the hosts
+again `♥J`/`♦J` in distinct piles, uniqueness intact), exhaustive
+enumeration of every legal move finds **NO merge-shaped `tabToTab`
+anywhere**.  That is the corollary's 3-line rank argument made executable:
+a clean host column forces `idx c = idx t + k` (k ≥ 0) for every run
+rooted at-or-below the host, while any fit onto the other host's region
+needs `idx c = idx z − 1` with `idx z ≤ idx t` (the other host itself, or
+a strictly-above suffix card of a clean, descending column) — a
+contradiction.  The same classifier flags the witness merge at `omSt`, so
+the negative is about the shape, not the classifier.
+
+## Headline numbers
+
+1. **The disjunct-2 instance is LIVE at wild-not-colClean states:** a
+   crafted witness with a legal merge (`t2t SJ@DQ`), a 5-move
+   all-foundations win routed through it (merge first; the merge IS the
+   load-setting move via the exposed prefix seat), and a live
+   suffix-swap whose exchange (706 states at depth 6, 1,788 at depth 7,
+   all win-checked) is winless to the probe's horizon.
+2. **No merge fires at colClean states up to the probe's horizon:**
+   exhaustive enumeration at the clean-cast state finds zero merge-shaped
+   legal moves (the rank argument, decide-checked).
+3. **The escape clause is NOT yet two-sided at the wild-state premises:**
+   the degenerate shuttle (5 moves, no merge-shaped move, replay also
+   dead) coexists at the very same witness ⇒ the strict disjunction is
+   refuted there.
+
+**For the pending engine decision** (premises floor of the
+`twin-exchange` escape clause): disjunct 2 is genuinely craftable and
+load-setting — the design works, and the exchanged world really is
+winless where the merge carried the win.  But the floor
+hosts-distinct + regional-uniqueness does NOT support the strict
+either/or: the state-dependent classification admits degenerate
+merge-free doubles, and the mirrored-load failure class shows the
+load-bearing recipe inverts through the exchange.  The card should
+conclude **premises floor needs strengthening** — either add the
+column-clean premise (where the merge never fires and the corollary side
+carries everything — the kill sanity above), or make the merge
+degeneration-robust (block the bare-shuttle-after-host-pop doubles); as
+stated, the merge disjunct is LIVE but the disjunction does not close at
+wild states.
