@@ -1563,3 +1563,68 @@ theorem canonAux_final_after_fuel : ∀ (n : Nat) (st : State),
           have hdrop : stackFuel s' + 1 ≤ stackFuel st :=
             stackFuel_step (IsRaise.tabToFound c) hs'
           exact ih s' (by omega)
+
+/-- Any two budgets above the fuel give the same saturation. -/
+theorem canonAux_stable : ∀ (k b : Nat) (st : State),
+    stackFuel st ≤ k → k ≤ b → canonAux b st = canonAux k st := by
+  intro k
+  induction k with
+  | zero =>
+      intro b st hle hkb
+      have h0 : stackFuel st = 0 := Nat.le_zero.mp hle
+      rw [canonAux_fuel_zero h0 b, canonAux_fuel_zero h0 0]
+  | succ k ih =>
+      intro b st hle hkb
+      cases b with
+      | zero => omega
+      | succ b' =>
+          cases hp : pick st with
+          | none =>
+              have hfin : Final st := (pick_eq_none_iff_final st).1 hp
+              rw [canonAux_final hfin, canonAux_final hfin]
+          | some c =>
+              obtain ⟨s', hs'⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
+              have hsat : satStep st = s' := satStep_some hp hs'
+              have hdrop : stackFuel s' + 1 ≤ stackFuel st :=
+                stackFuel_step (IsRaise.tabToFound c) hs'
+              rw [canonAux_succ, canonAux_succ, hsat]
+              exact ih b' s' (by omega) (by omega)
+
+/-- The canonical schedule is a stacking run ending `Final` —
+constructively: induction on the budget, building the move list in
+parallel with the saturation with the `StackRun` witnesses. -/
+theorem canonAux_run_fuel : ∀ (n : Nat) (st : State),
+    stackFuel st ≤ n → ∃ l : List Move,
+      StackRun st l (canonAux n st) ∧ Final (canonAux n st) := by
+  intro n
+  induction n with
+  | zero =>
+      intro st hle
+      have hp : pick st = none := pick_none_of_fuel_zero (Nat.le_zero.mp hle)
+      refine ⟨[], StackRun.nil st, ?_⟩
+      rw [canonAux_zero]
+      exact (pick_eq_none_iff_final st).1 hp
+  | succ n ih =>
+      intro st hle
+      cases hp : pick st with
+      | none =>
+          have hfin : Final st := (pick_eq_none_iff_final st).1 hp
+          rw [canonAux_succ, satStep_none hp, canonAux_final hfin n]
+          exact ⟨[], StackRun.nil st, hfin⟩
+      | some c =>
+          obtain ⟨s', hs'⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
+          have hsat : satStep st = s' := satStep_some hp hs'
+          have hdrop : stackFuel s' + 1 ≤ stackFuel st :=
+            stackFuel_step (IsRaise.tabToFound c) hs'
+          obtain ⟨l, hrun, hfin⟩ := ih s' (by omega)
+          rw [canonAux_succ, hsat]
+          exact ⟨Move.tabToFound c :: l,
+            StackRun.cons (pick_some_canRaise hp) (IsRaise.tabToFound c) hs' hrun, hfin⟩
+
+/-- From any state, the canonical schedule saturates and ends
+`Final` (52 lifts always suffice). -/
+theorem canon_run (st : State) : ∃ l : List Move, StackRun st l (canon st) ∧ Final (canon st) := by
+  have h := canonAux_run_fuel 53 st (by
+    have := stackFuel_le_52 st
+    omega)
+  exact h
