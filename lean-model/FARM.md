@@ -1,8 +1,8 @@
 # The proof farm — handoff document
 
-**Census: 11 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
+**Census: 10 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
 · Movability 0 · C2Streamlined 0 · TwinSwapCompletion 1
-· Restriction 2 · TwinExchange 1 · TwinQuotient 2; zero bullets;
+· Restriction 1 · TwinExchange 1 · TwinQuotient 2; zero bullets;
 waves 12/17 base + all four wave-18 sessions + the wave-19 C2
 re-scope, 2026-10-05: §8.7 closed
 by movability-equivalence; the C2 pillar set refute-probed — FOUR of
@@ -27,9 +27,15 @@ the wave-19 attic draft reinstated into TwinSwapCompletion.lean and
 elaborated to green, axiom-clean; the model half of §8's landing-site
 audit — the corpus histogram half remains the harness ticket),
 leaving TwinSwapCompletion pinned at `sweep_covered_corner_safety`
-alone.  Pinned by
+alone; and the wave-22 certify session: the pin SURVIVES as a
+CERTIFIED-B — the residue map is now a decision document (the class
+split + the reveal-channel divergence proved, the licensed family's
+seat at the corner closed permanently by the twin-fit hole, the
+witnesses decided, the three minimal premises named) — see the pin's docstring, the wave-22
+row, and witnesses/TwinCompletionWitness.lean sections D/E.  Pinned
+by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 11 are
+any NEW sorry or the return of a refuted constant.  All 10 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -2338,4 +2344,91 @@ windows on ~a third of distinct promotion seatings (diststate cost), a
 gate built at the lettered NOW strength would misfire on half; king
 landings are the reversible-except-route class both routes treat
 identically.  Numbers, examples, and bounds: the results file.
+
+## Wave 22 — the covered corner's CERTIFIED residue map (2026-10-06, the sweep-close-or-certify session; TwinSwapCompletion stays pinned 1, census pinned 10)
+
+SPAWN FIX (the known runner-guess bug, next strike): the worktree was
+minted at dc41b8e (origin/main — NO `lean-model/`); reset to
+macro-game HEAD 1442e25 (clean tree, zero unique commits lost) per
+the ledger's prescribed fix.  Sessions: grep for `lean-model/` at
+spawn before anything else.
+
+TARGET (binary mission): close or CERTIFY
+`State.sweep_covered_corner_safety` — the pin SURVIVES this wave as a
+certified decision document (level-B pass per the mission's census
+doctrine): the full statement-level certificate is the pin's
+docstring + witnesses/TwinCompletionWitness.lean's sections D/E
+(every claim decided there); the row's summary:
+
+WHY THE LICENSED FAMILY CAN NEVER SEAT THE CORNER (route (a) of the
+plan, closed by analysis): the covering cargo IS the mate — at the
+twins `canSitOn H L = false` (`covered_corner_mate_unfit`, PAID) —
+and the mate's own cell is bare (no `z'` cargo), so
+`solvable_cargoTwin_exchange_licensed` / `_of_visClean` / the bare
+companion all fail their premises at BOTH threads; the corner is not
+a licensed-family state in either reading, and at the reachable
+class the same hole kills the corridor's relabeled rider park
+(`canPlace x (inr H) = true` at the source /
+`canPlace x (inr L) = false` at the image — decided, witness D).
+
+LANDED (all free-standing, axiom-clean [propext, Quot.sound]):
+- `covered_corner_mate_unfit` (TwinSwapCompletion) — the
+  license-fit hole's rank core: the twin never fits its mate.
+- `sweep_covered_corner_visClean_class_A` (TwinSwapCompletion) — THE
+  CLASS SPLIT: at a `visClean` (hence every `initialReachable`)
+  corner, the covered twin is an UNSEATED HIDDEN REVEAL BOUNDARY
+  (`isVis L = false`, `topHidden a = some L`, `bottomOf L = none`) —
+  the wave-20/21 corridor premise `hid` is now a THEOREM at the
+  reach-gated form; the dual L-seated corner (class B) is
+  `board_edges`-legal but visClean-IMPOSSIBLE, hence unreachable from
+  every deal (witnessed: WF decided + `initialReachable wstE → False`
+  machine-checked).
+- `covered_corner_reveal_blocked` (TwinSwapCompletion) — a ridden
+  reveal boundary never flips: the source's reveal of `L` is
+  guard-dead while the mate rides, so (with only a reveal able to
+  seat a hidden card) the corridor premise `hmids`-conjunct 3 is
+  DERIVABLE all the way to the first clearing.
+- `sweep_covered_corner_image_reveal_fires` (TwinSwapCompletion) —
+  THE REVERSE LEG'S NEW CONTENT, formalized: the image's copy of the
+  same reveal guard reads `none`, so THE IMAGE'S REVEAL OF THE
+  COVERED TWIN FIRES (the ≥2-hidden shape; the under-card's cell
+  forced-bare at WF) — the reverse leg must simulate exactly these
+  image-early-`L` plays after first moving the mate (dodge needs a
+  fitted free base, found needs the rung).
+- Witness D (TwinCompletionWitness): the covered corner AT
+  `State.initial (Deal.ofList dlD) 1` — ANY deal dealing the twin
+  pair consecutively atop a pile carries the corner from the game's
+  first state (`example : initialReachable wstD`); decided there:
+  the corner reads, the license-fit hole, the rider-park asymmetry,
+  the reveal divergence, the dodge and its full-field clean merge
+  (`dodgeMergeEq`), the image's self-seat found block.
+- Witness E (TwinCompletionWitness): the class-B WF corner with the
+  CHANNEL INVERSION decided (source founds the mate / image's mate
+  frozen; source's L-stack mate-blocked / image's L-stack live) plus
+  the dodge-starvation statics — the exact state family the
+  unguarded statement must still win (no counterexample found; both
+  sides equally stuck at the exhibit, the iff holds vacuously).
+
+THE MINIMAL PREMISES (stated in the certificate): (P-i) the no-park
+discipline at the source — every solvable class-A corner wins by a
+line whose first clearing is the mate's dodge and whose pre-clearing
+segment never parks on `(inr H)` (conjunct 2 of `hmids`; conjuncts 1
+and 3 now derivable); (P-ii) the deferred-unpark of the found branch
+(REFUTE-FIRST candidate: both crossed hosts deckStack-founded);
+(P-iii) the dual of (P-i)+(P-ii) at the image, the reveal channel
+substituting for the park.  ENGINE-CORPUS GAP (the honest verdict):
+no existing harness mode measures pre-clearing parks or closed-target
+windows — the designated next probe task (witness D's `dlD` is a
+ready-made regression corpus state).  RECOMMENDATION:
+CONTINUE-THE-SIEGE — no counterexample to the ungated statement in
+three waves or at the witnesses; the three pieces are scoped lemma
+families over the paid corridor + Board conjugation kit, and this
+wave deleted two of the four open edges at the pin level.
+
+Build: `lake build Klondike Witnesses` green (73 jobs; one
+`.olean.private` contention retried clean); census pinned OK (10
+total, TwinSwapCompletion 1, zero bullets); `lake env lean` green on
+both owned files with the single pin warning.  No new sorry; no
+refuted constant touched; the new lemmas and witness examples carry
+no axioms beyond [propext, Quot.sound].
 

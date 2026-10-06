@@ -9053,3 +9053,59 @@ class of the window-gate decision is anchor promotions of non-king heads
 (67% of anchor-alone candidates at 1000 seeds) — king and landed
 promotions are reversible-in-one and the model side may take that as
 vacuous for the gate's semantics.
+
+## wave 22 note (2026-10-06, farm-sweep-close-or-certify session) — the certified residue map + the reveal-guard lesson
+
+- PROCESS: the worktree minted at an old base AGAIN (dc41b8e =
+  origin/main, no lean-model/) — the reset-to-macro-game-HEAD fix
+  works (clean tree, zero loss); ANY session must Test-Path
+  lean-model at spawn.  Build discipline that worked: scoped
+  `lake env lean Klondike/TwinSwapCompletion.lean` for theorem edits,
+  scoped `lake build Klondike.TwinSwapCompletion` to refresh the
+  olean BEFORE `lake env lean witnesses/...` (lake env lean does NOT
+  write oleans; full `lake build Klondike Witnesses` only twice).
+  One `.olean.private` contention at ApplyWfCounter3 — retried clean
+  (weather, not a fence).
+- ELABORATION TRAPS (this session, beyond the wave-20/21 lists):
+  (1) `obtain ⟨-, -, h⟩` against `A ∧ (∃ a, B ∧ C)` binds
+  h to the PAIR — use FOUR slots ⟨-, -, -, h⟩ (hit twice).
+  (2) `refine ⟨?_, ?_, ?_⟩` against `A ∧ (∃ a, B ∧ C)`
+  creates an Anchor HOLE; the rcases under it dies with "Or.casesOn
+  can only eliminate into Prop" — restructure to named haves first.
+  (3) `rw [hb]` does NOT auto-close `(some b).isSome = true` — a
+  trailing rfl is REQUIRED (and safe; no double-close).
+  (4) `L.flipSuit`-side goals need `rw [← htwin]` (re-confirmed).
+  (5) `x |>.head? == y` parses as a |> ((.head? == y)-section) —
+  parenthesize before piping.  (6) `#guard_msgs in #eval` REQUIRES
+  the `/-- info: <expected> -/` docstring — a spec-less guard FAILS
+  on the info message itself.  (7) `noDupCards <52-literal>` is not
+  decidable as stated (Nat-unbounded forall): use the
+  AboveIrreflWitness recipe — decide over `List.range 52` after the
+  `wl_length` rewrite.  (8) a bare `### ...` heading line = closed
+  docstring early: "unexpected token '#'" at parse — open `/-!`
+  sections explicitly.
+- THE REVEAL-GUARD FACT (the certificate's engine, reusable far past
+  this pin): `apply_reveal_iff`'s bareness guard reads the BOUNDARY
+  CARD'S OWN CELL `topOf (Sum.inr r) = none` — a RIDDEN boundary
+  never flips (`covered_corner_reveal_blocked`), and the image's
+  swapped copy of the same guard reads the source's MATE cell —
+  `sweep_covered_corner_image_reveal_fires`: the reveal channel is
+  the one non-symmetric guard family of the whole exchange program.
+- THE CLASS SPLIT (the reachability license, now formal):
+  `sweep_covered_corner_visClean_class_A` — at every visClean corner
+  the covered twin is an unseated hidden boundary; the L-seated
+  corner class is WF-legal but visClean-impossible, so
+  `initialReachable`-gated corner lemmas get both `hid` and
+  class-A FOR FREE (`initialReachable_visClean` is the only reach
+  fence needed).  The witness D fact for the corpus people: the
+  covered corner is `State.initial` itself for any deal dealing the
+  twin pair consecutively atop a pile — zero moves; `dlD`/`wstD` are
+  the ready-made regression/deal-statistics seeds.
+- ORCHESTRATION (for the next probe session): the two UNMEASURED
+  frequencies are (a) pre-clearing parks on `(inr H)` inside winning
+  lines (P-i's failure rate) and (b) closed-dodge-target windows at
+  found-branch clearings (P-ii's failure rate, the
+  deckStack-founded-crossed-hosts candidate) — neither is covered by
+  the wave-21 modes (frozen2/urgency/irrev); the corner corpus (5
+  seeds/12 states/seed-26 control) with a parks+targets mode is the
+  designated harness extension.

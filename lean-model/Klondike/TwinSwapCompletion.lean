@@ -3760,14 +3760,249 @@ theorem sweep_covered_corner_dodge_clearing_forward
   exact ⟨π₁ ++ [Move.pilePile H b] ++ π₂, W,
     run_append_some (run_append_some hrep hImg) hrest, hwin⟩
 
+/-! ### The wave-22 residue certificate: the class split + the channel map
+
+The pin's residue is now CERTIFIED as one reachability gate and two
+discipline-shaped premises, each anchored by a proved lemma below or
+a decided witness state (the full statement-level analysis:
+witnesses/TwinCompletionWitness.lean, sections D/E).
+
+* **THE CLASS SPLIT (proved).**  At `visClean` states — hence at every
+  `initialReachable` state (`initialReachable_visClean`) — the
+  covered corner is forced into the HIDDEN class:
+  `sweep_covered_corner_visClean_class_A` gives `isVis L = false`,
+  `topHidden a = some L`, `board.bottomOf L = none` — the wave-20/21
+  corridor premise `hid` is now a THEOREM at the reach-gated form.  The
+  dual L-SEATED corner (class B: `L` visible, the mate covering it) is
+  `board_edges`-legal at bare WF but `visClean`-IMPOSSIBLE — the
+  mate's cover never fits the twin (`covered_corner_mate_unfit`) — so
+  `run_visClean` makes it unreachable from every deal; the witness
+  file's section E exhibits the WF class-B state
+  (`initialReachable wstE → False` machine-checked) where the
+  image's `pileStack L` channel is live while the source's is
+  mate-blocked — the state family the ungated statement must still
+  win (no counterexample found in three waves; both sides are
+  equally stuck there, so the iff holds vacuously at the exhibit).
+* **THE LICENSE-FIT HOLE (decided, why the PROVEN exchange family
+  cannot seat the corner).**  The corner's covering cargo IS the mate:
+  `canSitOn H L = false` kills `hfit`, and the mate's own cell is
+  bare (no `z'` cargo), so `solvable_cargoTwin_exchange_licensed` /
+  `_of_visClean` / the bare companion all fail premises at BOTH
+  threads.  At class A the same hole reappears as the RIDER-UNMIRRORABLE
+  park: `canPlace x (Sum.inr H)` holds at the source but the
+  relabeled `canPlace x (Sum.inr L)` dies at the image on
+  `isVis L = false` (the w15fithole license-fit shape) — decided at
+  the witness.  The rider-unclean corridors therefore need the
+  mod-rider correspondence (a normalization), not the licensed family.
+* **THE REVEAL-CHANNEL DIVERGENCE (proved).**  At class A the
+  source's `reveal` of `L`'s pile is BLOCKED by the riding mate
+  (`covered_corner_reveal_blocked` reads `apply_reveal_iff`'s
+  own-cell guard — a ridden boundary never flips), while the image's
+  copy of the same guard reads `none`
+  (`exchangeTwinCargo_flip_cover`), so THE IMAGE'S REVEAL OF `L`
+  FIRES (`sweep_covered_corner_image_reveal_fires`, the ≥2-hidden
+  shape; the single-hidden/anchor variant is gated by the anchor's
+  freeness): the reverse leg must simulate image plays that open
+  `L`'s channels early while the source's mate still parks — the
+  source can only follow after moving `H` (a dodge needs a fitted
+  free base; a found needs the rung).  This one channel plus the
+  image's self-seated-mate found block (the dual of the forward
+  found-branch below) is the whole content of old residue (iii).
+* **WHAT REMAINS (the minimal premises, stated exactly).**  (i) *the
+  no-park discipline at the source* — every solvable class-A corner is
+  solvable by a winning line whose pre-clearing segment never parks a
+  rider on `Sum.inr H`; with conjuncts 1 and 3 of `hmids` now
+  derivable (`covered_corner_reveal_blocked` maintains
+  `bottomOf L = none` up to the first clearing, since only the reveal
+  can seat a hidden unseated card, and it is blocked precisely while
+  the cover stands; the first-clearing factorization maintains the
+  cover), conjunct 2 IS this premise; the general rider case is the
+  mod-rider correspondence.  (ii) *the deferred-unpark of the found
+  branch* — at the source's `pileStack H` clearing the image's mate is
+  self-seat-frozen and must dodge; the hoped bridge seats it when the
+  source's tail seats a crossed host (REFUTE-FIRST candidate: both
+  crossed hosts deckStack-founded — unprobed on the engine corpus;
+  static guard-reads decided at the witnesses).  (iii) *the dual of
+  (i)+(ii) at the image* — the same lemma families conjugated by the
+  Board conjugation kit, with the reveal channel substituting for the
+  park.  With (i) both dodge branches close through the PAID
+  corridor + merge (`sweep_covered_corner_dodge_clearing_forward`).
+  RECOMMENDATION (wave-22, to the orchestrator): CONTINUE-THE-SIEGE —
+  the reach-gate is non-vacuous (witness D: the corner is
+  `State.initial` itself for any deal placing the twin pair
+  consecutively atop a pile), no counterexample to the ungated
+  statement was found, and the three remaining pieces are scoped
+  lemma families with the corridor principle paid and reusable.  The
+  census pin stays here alone. -/
+
+/-- **The twin never fits its mate** — the license-fit hole's rank
+core: `canSitOn` demands a rank gap, and the twins share the rank
+(via `Card.ne_pair_of_canSitOn`'s second arm).  This is the one-line
+reason the corner's covering cargo (the mate itself) can never satisfy
+the licensed exchange family's `hfit`, and why every rider-level
+mirror at the covered pair runs through twin-blindness instead. -/
+theorem covered_corner_mate_unfit {L H : Card} (htwin : H = L.flipSuit) :
+    canSitOn H L ≠ true :=
+  fun h => (Card.ne_pair_of_canSitOn h).2 htwin
+
+/-- **At `visClean` states the covered corner is the HIDDEN class-A
+shape**: the covered twin is an unseated hidden reveal boundary.  The
+`board_edges` audit of the cover edge admits only the buried-base
+clause (the mate's own fit clause dies at the shared rank), and its
+base condition then forces `L` to be some pile's `topHidden` — while a
+seated `L` would make the edge a visClean violation (the unfit mate
+over a visible host).  Consequences: at every `initialReachable`
+corner (a) the corridor premise `hid : bottomOf L = none` HOLDS, (b)
+`L`'s reveal is the pile's own next offer (and see
+`covered_corner_reveal_blocked` for why it cannot fire while the mate
+rides), and (c) the L-seated corner of the old plan (class B) is
+unreachable — `covered_corner_mate_unfit` + `run_visClean`. -/
+theorem sweep_covered_corner_visClean_class_A {st : State} {L H : Card}
+    (hwf : st.WF) (hvc : st.visClean) (htwin : H = L.flipSuit)
+    (hcover : st.board.topOf (Sum.inr L) = some H) :
+    st.isVis L = false ∧ ∃ a, st.topHidden a = some L ∧
+      st.board.bottomOf L = none := by
+  have hunfit : canSitOn H L ≠ true :=
+    covered_corner_mate_unfit htwin
+  have hVis : st.isVis L ≠ true :=
+    fun hVisL => hunfit (hvc H L hcover hVisL)
+  have hVisF : st.isVis L = false := by
+    cases hL : st.isVis L with
+    | false => first | rfl | exact hL
+    | true => exact absurd hL hVis
+  have hEx : ∃ a, st.topHidden a = some L := by
+    obtain ⟨-, hleg⟩ := hwf.board_edges (Sum.inr L) H hcover
+    rcases hleg with ⟨a₀, t₀, rest₀, hpiles, hbase⟩ | ⟨hisL, hfit⟩
+    · rcases hbase with ⟨a₁, htop⟩ | hisL2
+      · exact ⟨a₁, htop⟩
+      · exfalso
+        have hisL2' : st.isVis L = true := hisL2
+        exact hunfit (hvc H L hcover hisL2')
+    · exact absurd hfit hunfit
+  have hBot : st.board.bottomOf L = none := by
+    cases hb : st.board.bottomOf L with
+    | none => first | rfl | exact hb
+    | some β =>
+        exfalso
+        have hisL : st.isVis L = true := by
+          show (st.board.bottomOf L).isSome = true
+          rw [hb]; rfl
+        exact hVis hisL
+  obtain ⟨a₁, htop⟩ := hEx
+  exact ⟨hVisF, a₁, htop, hBot⟩
+
+/-- **A ridden reveal boundary never flips**: at the covered corner,
+the source's `reveal` of `L`'s pile cannot fire — `apply_reveal_iff`'s
+bareness guard reads `L`'s OWN cell, and the mate sits there.  The
+mid-corridor twin therefore stays unseated for forced reasons: until
+the mate's first clearing, `L`'s only seating channel is closed.  (The
+exchange image's copy of the same guard reads the swapped cell —
+see `sweep_covered_corner_image_reveal_fires` for the divergence.) -/
+theorem covered_corner_reveal_blocked {st : State} {a : Anchor} {L H : Card}
+    (hcover : st.board.topOf (Sum.inr L) = some H)
+    (htop : st.topHidden a = some L) :
+    st.apply (Move.reveal a) = none := by
+  cases hap : st.apply (Move.reveal a) with
+  | none => first | rfl | exact hap
+  | some st' =>
+      exfalso
+      rw [apply_reveal_iff] at hap
+      obtain ⟨r, bd, htoph, hbar, -⟩ := hap
+      rw [Option.some.inj (htoph.symm.trans htop)] at hbar
+      rw [hcover] at hbar
+      exact absurd hbar (by simp)
+
+/-- **THE IMAGE'S REVEAL OF THE COVERED TWIN FIRES** — the reverse
+leg's extra channel, formalized: at a `visClean` (hence reachable)
+class-A corner whose boundary's under-card is a `Sum.inr d` (the
+≥2-hidden shape; the single-hidden/anchor variant is gated by the
+anchor cell's own freeness), the source cannot reveal `L` (ridden —
+`covered_corner_reveal_blocked`), but the exchange image CAN: the guard
+reads the swapped cell (bare, by `exchangeTwinCargo_flip_cover`), the
+under-card's cell is forced-bare at WF (a hidden non-boundary base
+justifies no edge: neither `topHidden` nor `bottomOf` disjunct lives),
+and `L`'s image `bottomOf` is still `none`.  The reverse leg of the
+safety must simulate exactly these image-early-`L` plays. -/
+theorem sweep_covered_corner_image_reveal_fires {st : State}
+    {L H d : Card} {a : Anchor}
+    (hwf : st.WF) (hvc : st.visClean) (htwin : H = L.flipSuit)
+    (hcover : st.board.topOf (Sum.inr L) = some H)
+    (hHseat : st.board.topOf (Sum.inr H) = none)
+    (hbase : st.hiddenBase a = Sum.inr d)
+    (htop : st.topHidden a = some L) :
+    ∃ st', (st.exchangeTwinCargo L).apply (Move.reveal a) = some st' := by
+  obtain ⟨-, -, -, hbotL⟩ :=
+    sweep_covered_corner_visClean_class_A hwf hvc htwin hcover
+  have hdL : d ≠ L := hiddenBase_ne_topHidden hwf hbase htop
+  -- the under-card d of the boundary L: hidden, hence never the
+  -- (visible) mate, and its cell forced-bare
+  have hdmem : d ∈ st.hidden a := by
+    obtain ⟨pre, hpre⟩ := hiddenBase_split hbase htop
+    rw [hpre]; simp
+  have hdH : d ≠ H := by
+    intro hcon
+    have hdmem' : H ∈ st.hidden a := by rw [← hcon]; exact hdmem
+    have hbH : st.board.bottomOf H = some (Sum.inr L) :=
+      (Board.bottomOf_eq st.board H (Sum.inr L)).mpr hcover
+    have hisH : st.isVis H = true := by
+      show (st.board.bottomOf H).isSome = true
+      rw [hbH]; rfl
+    exact hwf.vis_not_hidden H hisH a hdmem'
+  have hdBare : st.board.topOf (Sum.inr d) = none := by
+    cases hX : st.board.topOf (Sum.inr d) with
+    | none => first | rfl | exact hX
+    | some X =>
+        exfalso
+        obtain ⟨-, hlegX⟩ := hwf.board_edges (Sum.inr d) X hX
+        rcases hlegX with ⟨a', t', rest', hpilesX, hcondX⟩ | ⟨hisX, hfitX⟩
+        · rcases hcondX with ⟨a'', htop''⟩ | hisX2
+          · have hdP1 : d ∈ st.deal.piles a :=
+              List.take_subset (st.depths a) (st.deal.piles a) hdmem
+            have hdP2 : d ∈ st.deal.piles a'' :=
+              List.take_subset (st.depths a'') (st.deal.piles a'')
+                (mem_of_getLast htop'')
+            have haa : a'' = a := Deal.piles_disj hwf.deal_wf hdP2 hdP1
+            rw [haa] at htop''
+            have hcon : d = L :=
+              Option.some.inj (htop''.symm.trans htop)
+            exact hdL hcon
+          · have hisd : st.isVis d = true := hisX2
+            exact hwf.vis_not_hidden d hisd a hdmem
+        · have hisd : st.isVis d = true := hisX
+          exact hwf.vis_not_hidden d hisd a hdmem
+  -- the image's three guard reads, then the firing via the iff
+  have hfree : (st.exchangeTwinCargo L).board.topOf (Sum.inr d) = none := by
+    rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf]
+    have hσ : Base.swapTwin L (Sum.inr d) = Sum.inr d := by
+      show Sum.inr (Card.swapTwin L d) = Sum.inr d
+      rw [Card.swapTwin_of_ne hdL (by rw [← htwin]; exact hdH)]
+    rw [hσ]; exact hdBare
+  have hhb : st.hiddenBase a = Sum.inr d := hbase
+  have hfreeB : (st.exchangeTwinCargo L).board.topOf (st.hiddenBase a)
+      = none := by rw [hhb]; exact hfree
+  have hbot : (st.exchangeTwinCargo L).board.bottomOf L = none := by
+    rw [State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin, hbotL]
+    rfl
+  obtain ⟨bd', hatt'⟩ := Option.ne_none_iff_exists'.mp
+    ((Board.attach_eq_some_iff _ (st.hiddenBase a) L).mpr ⟨hfreeB, hbot⟩)
+  have hbar : (st.exchangeTwinCargo L).board.topOf (Sum.inr L) = none := by
+    rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf]
+    show st.board.topOf (Sum.inr (Card.swapTwin L L)) = none
+    rw [Card.swapTwin_self_left, ← htwin]
+    exact hHseat
+  refine ⟨{ st.exchangeTwinCargo L with
+      board := bd',
+      depths := fun a' => if a' = a then st.depths a - 1 else st.depths a' },
+    apply_reveal_iff.mpr ⟨L, bd', htop, hbar, hatt', rfl⟩⟩
+
 /-- **§6.5's semantic safety at the covered corner (planned)**: the
 covered corner and its exchange image — the two identity-resolutions
 of the ambiguous word — are solvability-equivalent, so the sweep's
 deterministic lowest-first choice can never UNIQUELY lose a win at
 the AMBIGUOUS corner.  Reduces to the both-occupied exchange family
 at the covered seat.
-PLAN RE-ANCHORED (wave 20, this session; three named pieces PAID below
-the original (1)/(2), plus the dodge convergence engine): (1) **PAID**
+PLAN RE-ANCHORED (wave 20; three named pieces PAID below the original
+(1)/(2), plus the dodge convergence engine): (1) **PAID**
 `sweep_covered_corner_deal_adjacent` (:2613). (2) **KEYSTONE PAID**
 `vacated_covered_cell_imp_mate_move` (:2638), and its run-audit
 remainder is NOW PAID TOO: `sweep_covered_corner_wins_stack_L` +
@@ -3775,45 +4010,25 @@ remainder is NOW PAID TOO: `sweep_covered_corner_wins_stack_L` +
 covered twin (§12.1 at the corner via `sweep_covered_corner_L_tableau`),
 so a first clearing of the covered cell exists and is the mate's own
 move. (3) **THE DODGE CONVERGENCE, PAID** — `covered_dodge_converges` /
-`covered_dodge_merges_clean`: at the mate-DODGE clearing the image
-plays the same dodge and the two threads MERGE (clean) or stand in the
-exchange-at-`H` relation (with riders, via `exchangeTwinCargo_id_of_bare_pair`
-and the conjugation kit `exchangeTwinCargo_isVis` /
-`exchangeTwinCargo_aboveOf_mate_self` / `canSitOn_self`); the π₁ = []
-instance is CLOSED as `sweep_covered_corner_dodge_first_forward`.
-WAVE 21: the residue RE-ANCHORED AGAIN — piece (i) is now PAID on the
-CLEAN CORRIDOR: `covered_clean_step` + `covered_clean_replay` (the
-same-move mirror: at a corridor state — covered cell the mate's, mate
-cell bare, covered twin UNSEATED (at WF this unseatedness is DERIVED:
-`board_edges` pins the covered twin to a pile's hidden boundary, and
-that closes its move/seat/stock/foundation channels) — every fireable
-move reads and writes only off-pair cells, so the exchange image runs
-the SAME move and stays the source's exchange, the `aboveOf` walks
-agreed via `Board.aboveOf_go_off_pair`), and
-`sweep_covered_corner_dodge_clearing_forward` assembles it with the
-dodge merge: the FORWARD LEG is closed whenever the first clearing is
-the mate's DODGE along a corridor-clean prefix (the empty prefix IS
-the wave-20 instance).  THE REMAINING RESIDUE, three sharply-named
-pieces: (i) *the rider-unclean corridors* — a prefix that parks a
-rider on the mate's cell mid-play needs the landing base RELABELED to
-`Sum.inr L`: legal whenever the covered twin is VISIBLE
-(`canSitOn_swapTwin_right` carries the fit), and IMPOSSIBLE at the
-hidden corner (the image cannot attach onto an unseated host — the
-w15fithole license-fit shape; the L-seated corner admitted by
-`board_edges`'s buried-base clause is the honest sub-class, note it is
-unreachable by the reveal order: a ridden boundary can never flip) —
-plus the corridor premises' derivations at the pin level (`hmids` from
-the first-clearing factorization and the covered cell's no-refill
-immutability); (ii) **the `pileStack H` clearing** — the mate founds
-directly, the covered thread breaks to the one-rung-behind parked
-thread; its bridge needs the deferred-unpark construction (the
-`p`-moment hijack: the crossed-`(h+1)` host's seated moments mirror,
-so the image unparks there — or a witness-shaped obstruction;
-REFUTE-FIRST the sub-claim, the candidate: a deckStack-founded pair of
-crossed hosts); (iii) **the reverse leg's mirror conditions** — the
-image-side plays may stack `L` or land on `L` while the mate is parked
-(`exchangeTwinCargo_flip_cover` identifies the cells), the dual of
-(ii); both reduce to the same dodge-at-some-moment shape. Every sorry
+`covered_dodge_merges_clean; the π₁ = [] instance is CLOSED as
+`sweep_covered_corner_dodge_first_forward`. WAVE 21: piece (i) PAID on
+the CLEAN CORRIDOR (`covered_clean_step` + `covered_clean_replay` +
+`sweep_covered_corner_dodge_clearing_forward`: the forward leg is
+closed whenever the first clearing is the mate's DODGE along a
+corridor-clean prefix). WAVE 22 — THE CERTIFIED RESIDUE MAP (the
+certificate section above; every remaining piece named, anchored,
+and recommended): (i) *the rider-unclean corridors* — premised at the
+no-park discipline (the w15fithole license-fit shape decides why the
+relabel cannot mirror: `canPlace x (inr L)` dies on the unseated
+host at the hidden class, while class B is visClean-unreachable);
+(ii) *the `pileStack H` clearing* — the deferred-unpark bridge or the
+deckStack-founded-crossed-hosts witness (REFUTE-FIRST on the engine
+corpus, unprobed); (iii) *the reverse leg* — THE REVEAL-CHANNEL
+DIVERGENCE is its whole new content
+(`covered_corner_reveal_blocked` / `_image_reveal_fires`), the dual
+of the found-branch's self-seat block; the class split
+(`sweep_covered_corner_visClean_class_A`) licenses the `hid`
+corridor premise for free at every reachable corner. Every sorry
 carries this plan; the census pin stays here alone. -/
 theorem State.sweep_covered_corner_safety {st : State} {L H : Card}
     (hwf : st.WF)
