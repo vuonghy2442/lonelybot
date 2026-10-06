@@ -272,12 +272,27 @@ def CommitOf (u : State) (c : Card) (s : State) : Prop :=
 
 ```lean
 theorem apply_two_macroOutcomes {t₁ t₂ t₃ : State} {m : Move} {s₁ s₂ s₃ : State}
-    (h₁₂ : RevEqW t₁ t₂) (h₁₃ : RevEqW t₁ t₃)
+    (h₁₂ : ⟦t₁⟧ = ⟦t₂⟧) (h₁₃ : ⟦t₁⟧ = ⟦t₃⟧)   -- ⟦·⟧ : Quotient sameOrbitSetoid, the
+                                              -- LANDED macro state: reversible journeys
+                                              -- ∪ twin conjugation
     (hnk : (movedCard m).rank ≠ Rank.king)
     (h₁ : State.step t₁ m = some s₁) (h₂ : State.step t₂ m = some s₂)
     (h₃ : State.step t₃ m = some s₃) :
-    RevEqW s₁ s₂ ∨ RevEqW s₁ s₃ ∨ RevEqW s₂ s₃
+    ⟦s₁⟧ = ⟦s₂⟧ ∨ ⟦s₁⟧ = ⟦s₃⟧ ∨ ⟦s₂⟧ = ⟦s₃⟧
 ```
+
+GRADING NOTE (the user's twin-choice correction, 2026-10-06): the
+canonicalization itself can fork — sometimes you must PICK either
+twin to put up / pull back as the substrate, and the two picks give
+outcomes that are TWIN-CONJUGATE, not `RevEqW`-connected.  So the
+revEqW-GRADED variant of this theorem is FALSE (the twin-choice
+triple — canonical, worried-♥, worried-♦ — has three `RevEqW`-
+distinct outcomes); the fourth disjunct of `sameOrbitSetoid`
+(earned by the Combine card's transitivity countermodel) is
+precisely what folds the twin pick and keeps the count at the
+{canonical, worried} pair.  The sameOrbit-graded form above is the
+theorem; the twin-choice triple is the corpus card's first-class
+certification datum.
 
 The hypothesis IS the macro state ("three micro states that can apply
 the same move and are connected by reversible move sequences" —
@@ -308,18 +323,77 @@ user 2026-10-06, second pass):
    multiplicity; the residence calculus delivers the one-class
    wandering lemma, and `m`'s guard merely selects the firing tips
    inside that one class.
-3. THE 2 IS THE **ORDERING DICHOTOMY OF CRITICAL LOCAL SQUARES**:
-   a whole-dance difference between two firing tips either
-   transports entirely (every dance member zone-disjoint-or-
-   commuting ⇒ same-class outcomes, via the per-kind squares and
-   the wandering collapse of 2), or reduces to the local
-   NON-COMMUTING members.  Each critical interaction (expected
-   home: the foundation-excursion family on `c.suit`) has exactly
-   two ORDERING FACES — `m`-first vs `r`-first — and the outcome
-   class of a firing is its face; three firings over one class hit
-   at most two faces.  Where no square is critical the truth is
-   ≤ 1: a genuine two-face witness becomes the corpus's TIGHTNESS
-   datum, not its refutation.
+3. THE 2 IS THE **ORDERING DICHOTOMY OF CRITICAL LOCAL SQUARES** —
+   and the critical family is THE WORRY-BACK PATTERN (the user named
+   it, 2026-10-06): the class's tours differ by canonicalization
+   maneuvers — stuff raised to the foundation, then a worry-card `x`
+   pulled BACK DOWN (`foundToTab x`) to serve as the substrate at
+   `m`'s landing site for the new card.  Before `m`, the excursion
+   round-trips freely — that is exactly why the tips are
+   class-mates.  The fork: in the WORRIED face `m`'s placement
+   consumes the substrate, killing the excursion's raise-back leg
+   (`x` buried under the landing / sandwiched below `c` in the
+   foundation / reveal-locked) — irreversibly visible after `m`;
+   in the CANONICAL face the leg still replays.  The criterion is
+   SITE-LEVEL BINARY — `m`'s landing site is either fed by a
+   worry-back or canonical, and at most one substrate occupies a
+   site, so all worry-cards collapse into the single worried face:
+   the ≤ 2 is robust because the excursion-vs-`m` ordering is
+   binary and local.  A whole-dance difference with no critical
+   member transports entirely (≤ 1 truth); a genuine two-face
+   witness (the worried face's return leg dying under a fired `m`)
+   is the corpus's TIGHTNESS    datum — the old w15/merge anatomy
+   and the `foundTotal_step_noworry` fragment discipline were
+   pointing at this pattern all along.
+
+   ### 3.0 THE CANONICALIZATION THEOREM — the macro state made decidable (user formulation 2026-10-06; the FIRST ticket, feeding §3.1)
+
+```lean
+-- Stackable: the waste head, or a pile top, whose suit rung is complete
+def Stackable (st : State) (c : Card) : Prop :=
+  st.nextUp c ∧ (st.wasteIs c ∨ ∃ a, st.pileOfTop c = some a)
+-- a stacking step = .tabToFound / .wasteToFound, the reveal riding along
+
+-- CLAIM 1 (confluence): all maximal stacking runs end at ONE final state
+theorem canon_unique (h₁ : StackRun u w₁) (h₂ : StackRun u w₂)
+    (hf₁ : Final w₁) (hf₂ : Final w₂) : w₁ = w₂
+
+-- CLAIM 2 (characterization): the macro state IS the canonical fiber
+theorem same_macro_iff :
+  SameMacroO u v ↔ (CanonState u ~ CanonState v   -- literal if the residue
+                    ∧ swCompat ...)               -- analysis lands literal;
+```
+
+Doctrine recorded from the formulating dialogue:
+- CANONICALIZATION IS FORK-FREE (user retraction of the earlier
+  twin-pick-forks-canonicalization claim): stack all stackables;
+  the worry-back/ladder material belongs to §3.1's commit side,
+  not here.
+- Proof route for claim 1: termination trivial (total foundation
+  length strictly rises, ≤ 52); confluence by MONOTONE
+  STACKABILITY — stacking is pure removal + foundation saturation
+  (never covers anything), so stackability once true stays true
+  until exercised, stacking c never blocks c', reveals only ADD
+  stackables.  THE SUBTLE CORNER: the waste pops only at the head,
+  so which prefix is consumed depends on foundation states during
+  the run — saturation-order-independence there is the real work
+  (the Phase machinery's territory).
+- CLAIM 2: SameMacroO (the canon fiber — definitional reading per
+  the user: "different macro ⇒ different canonical is from the
+  def") with the INVARANCE FAMILY proving the journey notions land
+  inside it: reversible single moves preserve the canonical level;
+  twin conjugation conjugates canon; in-phase stock/waste rotations
+  preserve it (swCompat = Phase's in-phase relation, pending the
+  user's confirm).  OPEN DESIGN QUESTION, MID-FLIGHT: literal
+  canon-equality vs the ⟦·⟧-wrapped form — a reversible cross-move
+  relocating an UNSTACKABLE run residue between twin hosts may
+  change the final canonical tableau (residue at z₁ vs z₂, twin
+  leftovers); the card must decide with evidence, exhibiting the
+  residue witness if literal fails.  The sameFate tie is DEFERRED.
+- The major theorem (§3.1) consumes this as its normalizer: its
+  hypothesis becomes the decidable canon-fiber check.
+
+
 
 LOCKED CARDS: Residences (`Orig/Residence.lean`: movedCard,
 kind-invariance, twin-pair bound, pinned contexts) → Transport
