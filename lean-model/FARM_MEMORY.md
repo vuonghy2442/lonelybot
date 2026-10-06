@@ -5875,3 +5875,84 @@ survives.
 (12) `rw` mid-list failure cascading DON'T necessarily mean the shape
 was wrong: a failed rw leaves the goal open so EVERYTHING after reports
 "unsolved goals" — fix the first reported rw, rebuild, re-read.
+
+## Wave 21 (non-king count session) — decide-first outcomes + elaboration traps
+
+DECIDE-FIRST OUTCOMES (both refutations PROVEN in Lean, not bench
+speculation):
+(1) The non-king twin split: `commitTableau_class`'s rung premise is
+    load-bearing at TWIN-RECEIVER landings (zero spend, direct-live
+    root, ♥7/♦7 dealt heads at anchors p0/p1, ♠6 stocked, all heights
+    0 — every accommodation dead below each landing):
+    witnesses/NonKingWitness.lean §NK, `nk_split`.
+(2) The free-float gap: `succ_labeled`'s failure is NOT an anchor
+    phenomenon — at a NON-KING root with direct LIVE, an irrelevant
+    accommodation window ([pileStack ♥A]) defeats the whole
+    five-element channel list (direct: the empty-window signature vs
+    the heart-height separation paper; toStack: the spade freeze;
+    dig/borrow dead at the root; hole: the king requirement).  The
+    same root defeats the as-stated count universal (three pairwise
+    closure-separated macro successors) — which is why §16's
+    flagship carries the shared-window premise: window
+    non-uniformity adds successors the destination bound cannot see.
+(3) The surviving count came out STRONGER than the mission's ideal:
+    `commitTableau_three_nonKing` produces EQUAL states (not merely
+    closureEq) with no WF and no rung, and `c2_two_option_nonKing`
+    needs no rung premise at all — the only arm that joins twins
+    extracts it from the stack successor's own guard.
+
+ELABORATION TRAPS (this session, in addition to the wave-19/20 lists):
+(1) rcases DASH slots + a trailing `rfl` slot work exactly as in
+    `uFreeze_step`'s shipped form, but NAMING the earlier slots can
+    silently break the `rfl` substitution of the successor variable:
+    when the shape component must substitute `t`, keep the
+    `obtain ⟨-, b, hbot, -, rfl⟩ := hap` form VERBATIM; when the
+    substitution is not needed, name every slot (mixed
+    dash-then-name 5-slot forms ate arguments: "unknown identifier"
+    for the named slot).  A name that shadows a LEMMA PARAMETER
+    (e.g. `htopn`) redirects every later call of that parameter.
+(2) `Option.some.inj h` needs h's LHS syntactically `some _`: after
+    `cases` into an Anchor matched through a `head a`-application,
+    iota does NOT fire — pre-normalize (`simp only [head] at h`) or
+    DEFEQ-cast (`have h' : some X = some c := h`).
+(3) `rw [lem] at h₁ h₂` instantiates lem's metavars at h₁ and then
+    cannot re-find the pattern at h₂ when the sites need different
+    instantiations: split per hypothesis.
+(4) `heights_of_applyDrawStackTo` ACCEPTS a `CommitStack`-typed
+    argument (defeq unfolds at the argument position), but
+    `crease_stack_deterministic`'s arguments DO NOT unify through
+    the `CommitStack` def: pre-cast with
+    `have hA : u.applyDrawStackTo X = some s₂ := k₂`, and name the
+    implicit `(s := s₂) (s' := s₃)` if the metavars settle backwards.
+(5) In an 8-branch commit-arm race, the DISJUNCT POSITION encodes
+    WHICH pair: annotate each `Or.inl/Or.inr` with its (sᵢ, sⱼ) pair
+    and write the branch comment BEFORE elaborating — the compiler
+    error prints the expected pair, which is the fastest correction
+    signal (it caught two misfiled stack-pair leaves here).
+(6) A match-defined `Anchor → Option Card` is injective only ON its
+    some-image: handle the none-head rows with an explicit
+    `head_none (h₁ : head a = none) (h₂ : head a = some c) : False`
+    helper and DEFEQ-cast per-anchor forms before
+    `Option.noConfusion`/`inj` (constructor heads only); `first |
+    rfl | absurd h₁ (by decide) | ...` chains FAIL to backtrack
+    inside `(by decide : ¬(some X = some c))` when c is open —
+    write per-case `exact` arms.
+(7) `if_pos rfl` cannot infer a PROJECTION condition
+    (`(H .seven).suit = Suit.heart`): name the condition first
+    (`have hs7 : (H .seven).suit = Suit.heart := rfl`) and pass
+    `if_pos hs7` / `if_neg (by decide : ...)` as a named have.
+(8) wf `board_edges` head cases: `refine ⟨(Board.bottomOf_eq _ _
+    _).mpr hb', ?_⟩` BEFORE `rw [hc]` — after the rw the unifier sees
+    the CONCRETE card and can no longer match hb''s variable-c form
+    (the uState_wf order is load-bearing, not cosmetic).
+(9) `show`-cast the goal into the board-FUNCTION's definition form
+    (`show ((ffBoard.detach ...))` instead of
+    `(ffState.board.detach ...)`) BEFORE a pattern
+    `rw [bottomOf_detach_ne ...]` whose board parameter is inferred
+    from an argument (the htop argument fixes ffBoard; the goal's
+    `ffState.board` is only defeq, not syntactic).
+(10) `Board.bottomOf_eq_none`'s proof obligation hands the
+     `topOf b = some c` FACT directly to the `fun b hb => ?_` arm —
+     do not re-derive it with `.mp` (the `.mp` direction consumes a
+     bottomOf fact, the direction error is silent until the
+     application mismatch surfaces).

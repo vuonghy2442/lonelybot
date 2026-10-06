@@ -2255,4 +2255,203 @@ theorem p2_direct_class_king_oneAnchor_reachable {st : State}
       heights_of_applyDrawStackTo hstack
     exact p2_join_zeroSpend_rung hwf hrk (Or.inr rfl) hsd hth
 
+/-! ## §16. The non-king count: destinations, not joins (wave-21)
+
+The wave-21 probes (`witnesses/NonKingWitness.lean`) pin the honest
+boundaries of the non-king side, dual to the king refutations of
+wave-18/19/20:
+
+* the rung premise of `commitTableau_class` is load-bearing even at
+  non-king TWIN landings reached with zero spend
+  (`wk_nonking_twinCollapse_rung_false`: ♥7/♦7 hosts, an incomplete
+  spade prefix, closure-separated landings);
+* the as-stated count and the as-stated `succ_labeled` are BOTH false
+  at non-kings too (`wk_nonking_c2_false`,
+  `wk_nonking_succLabeled_false`) — through a FREE-FLOAT window
+  (`[pileStack ♥A]`) that plays content no channel atom records;
+  window NON-uniformity adds successors the destination bound cannot
+  see.
+
+The assembled count below therefore carries exactly the two premises
+those witnesses show to be load-bearing — the non-king restriction
+(anchors dead, receivers bounded by the twin pair) and the shared
+commit window (one accommodated end state `u`, three `commitApplies`
+there).  It needs NO rung and NO register: three successors enter
+two per-window boxes (tableau, stack), the tableau box collapses
+pairwise by the destination bound (same-receiver commits are equal
+states, and the mixed case's tableau pair joins by `commitTableau_class`
+at the rung the stack successor itself supplies), the stack box by
+`crease_stack_deterministic`.  Statuses: every lemma in this section
+is PROVEN and sorry-free; the census pin (0 for this file) holds.
+-/
+
+/-- A non-king's tableau commit lands on a receiver — the dual of
+`king_tableau_base` (§15): the anchor arm demands a king by
+`king_of_canPlace_inl` (Move.lean:522), so only the twin-paired
+receiver bases remain (`receivers_twin_pair` below, the dual of
+`receivers_king_nil` for kings).  PROVEN, sorry-free; no WF, no rung. -/
+theorem commitTableau_base_nonKing {u : State} {X : Card} {b : Base}
+    (hNK : X.rank ≠ Rank.king) (hcp : u.canPlace X b = true) :
+    ∃ d : Card, b = Sum.inr d ∧ canSitOn X d = true := by
+  cases b with
+  | inl a => exact absurd (king_of_canPlace_inl hcp) hNK
+  | inr d => exact ⟨d, rfl, canSitOn_of_canPlace_inr hcp⟩
+
+/-- Two tableau commits through the same base are the same successor:
+`applyDrawTo` is a function.  PROVEN, sorry-free; no WF. -/
+theorem commitTableau_eq_of_base_eq {u : State} {X : Card} {b : Base} {s s' : State}
+    (hto : u.applyDrawTo X b = some s) (hto' : u.applyDrawTo X b = some s') :
+    s = s' :=
+  (Option.some.inj (hto.symm.trans hto'))
+
+/-- The hole channel is dead for non-kings — the `hole` live data
+demands the king (`HoleLive.hK`), the anchor-world half of the
+`LabelLive` channel list at a non-king commit (the receiver-world
+half is bounded by `receivers_twin_pair`, the dual of
+`receivers_king_nil`).  PROVEN, sorry-free; no WF. -/
+theorem labelLive_hole_nonKing_false {st : State} {X : Card}
+    (hNK : X.rank ≠ Rank.king) : ¬ LabelLive st X Label.hole := by
+  rintro ⟨a, ha⟩
+  exact absurd ha.hK hNK
+
+/-- **P0's non-king kernel**: every ROOT-commit successor of a
+non-king commitment is labeled — `direct` for the tableau arm (the
+base is a receiver by `commitTableau_base_nonKing`, live at the root
+through the `canPlace` data itself, named with the empty window) or
+`toStack` for the stack arm (live at the root by the commit's own
+firing, signature-free).  Together with
+`labelLive_hole_nonKing_false`: no `hole` ever appears.  The
+free-float boundary (windows with content outside the channel atoms)
+is the part of P0 that FAILS at non-kings
+(`wk_nonking_succLabeled_false`, witnesses/NonKingWitness.lean §B) —
+root windows are exactly the content where the restored labeling
+holds.  PROVEN, sorry-free; no WF. -/
+theorem succ_labeled_nonKing_root {st : State} {X : Card} (hNK : X.rank ≠ Rank.king)
+    {s : State} (hcom : commitApplies st (MacroMove.drawCommit X) s) :
+    ∃ r : Label X, (r = Label.direct ∨ r = Label.toStack) ∧
+      LabelLive st X r ∧ SuccThrough st X r s := by
+  rcases (commitApplies_draw_cases st X s).mp hcom with ⟨b, hcp, hto⟩ | hstack
+  · obtain ⟨d, ebd, -⟩ := commitTableau_base_nonKing hNK hcp
+    subst ebd
+    obtain ⟨htopn, hvis, hfit⟩ := canPlace_inr_iff.mp hcp
+    refine ⟨Label.direct, Or.inl rfl, ⟨d, ⟨hfit, htopn, hvis⟩⟩, ?_⟩
+    exact ⟨st, [], rfl, fun _ hm => by simp at hm, ⟨Sum.inr d, hcp, hto⟩, rfl⟩
+  · refine ⟨Label.toStack, Or.inr rfl,
+      ⟨st, s, ⟨[], rfl, fun _ hm => by simp at hm⟩, hstack⟩, ?_⟩
+    exact ⟨st, [], rfl, fun _ hm => by simp at hm, hstack, trivial⟩
+
+/-- **Three into two boxes, the tableau box**: any three tableau
+commits of a non-king at ONE state contain two that share their
+landing receiver — three distinct receivers would break the twin
+pair (`receivers_twin_pair`, §9.5).  The two surviving states are not
+merely closure-equal but EQUAL.  The non-king premise is
+load-bearing: kings have the free anchors too
+(`witnesses/C2KingAnchorWitness.lean`).  PROVEN, sorry-free; no WF,
+no rung, no window data. -/
+theorem commitTableau_three_nonKing {u : State} {X : Card} (hNK : X.rank ≠ Rank.king)
+    {s₁ s₂ s₃ : State} (h₁ : CommitTableau u X s₁) (h₂ : CommitTableau u X s₂)
+    (h₃ : CommitTableau u X s₃) :
+    s₁ = s₂ ∨ s₁ = s₃ ∨ s₂ = s₃ := by
+  obtain ⟨b₁, hcp₁, hto₁⟩ := h₁
+  obtain ⟨b₂, hcp₂, hto₂⟩ := h₂
+  obtain ⟨b₃, hcp₃, hto₃⟩ := h₃
+  obtain ⟨d₁, e₁, hfit₁⟩ := commitTableau_base_nonKing hNK hcp₁
+  obtain ⟨d₂, e₂, hfit₂⟩ := commitTableau_base_nonKing hNK hcp₂
+  obtain ⟨d₃, e₃, hfit₃⟩ := commitTableau_base_nonKing hNK hcp₃
+  subst e₁
+  subst e₂
+  subst e₃
+  by_cases h12 : d₁ = d₂
+  · refine Or.inl ?_
+    have hto₂' : u.applyDrawTo X (Sum.inr d₁) = some s₂ := by
+      rw [h12]; exact hto₂
+    exact commitTableau_eq_of_base_eq hto₁ hto₂'
+  · by_cases h13 : d₁ = d₃
+    · refine Or.inr (Or.inl ?_)
+      have hto₃' : u.applyDrawTo X (Sum.inr d₁) = some s₃ := by
+        rw [h13]; exact hto₃
+      exact commitTableau_eq_of_base_eq hto₁ hto₃'
+    · rcases receivers_twin_pair hfit₁ hfit₂ h12 hfit₃ with h' | h'
+      · exact absurd h' (fun hh => h13 hh.symm)
+      · refine Or.inr (Or.inr ?_)
+        have hto₃' : u.applyDrawTo X (Sum.inr d₂) = some s₃ := by
+          rw [← h']; exact hto₃
+        exact commitTableau_eq_of_base_eq hto₂ hto₃'
+
+/-- **The non-king count, assembled**: any three successors of a
+non-king `Draw(X)` commitment that commit AT ONE SHARED ACCOMMODATED
+STATE `u` contain a closure-equal pair.  The premises are exactly the
+witness-proven ones: window uniformity (`wk_nonking_c2_false` shows
+floating windows add split successors) and the non-king restriction
+(`commitTableau_three_nonKing`'s load-bearing half; kings have the
+free anchors).  The pigeonhole: three arms into {tableau, stack}; a
+repeated tableau arm collapses by the twin-pair destination bound
+(no rung needed), a repeated stack arm by `crease_stack_deterministic`,
+and the mixed case's tableau pair joins by `commitTableau_class` at
+the rung the stack successor's own guard supplies
+(`heights_of_applyDrawStackTo`).  PROVEN, sorry-free; `hwf` is only
+consulted in the mixed arm (the pigeonhole arms are WF-free). -/
+theorem c2_two_option_nonKing {u : State} (hwf : u.WF) {X : Card}
+    (hNK : X.rank ≠ Rank.king) {s₁ s₂ s₃ : State}
+    (h₁ : commitApplies u (MacroMove.drawCommit X) s₁)
+    (h₂ : commitApplies u (MacroMove.drawCommit X) s₂)
+    (h₃ : commitApplies u (MacroMove.drawCommit X) s₃) :
+    closureEq s₁ s₂ ∨ closureEq s₁ s₃ ∨ closureEq s₂ s₃ := by
+  rcases (commitApplies_draw_cases u X s₁).mp h₁ with t₁ | k₁
+  · rcases (commitApplies_draw_cases u X s₂).mp h₂ with t₂ | k₂
+    · rcases (commitApplies_draw_cases u X s₃).mp h₃ with t₃ | k₃
+      · -- (T,T,T): the twin-pair destination bound, no rung, no WF
+        rcases commitTableau_three_nonKing hNK t₁ t₂ t₃ with e | e | e
+        · exact Or.inl (by rw [e]; exact closureEq_refl _)
+        · exact Or.inr (Or.inl (by rw [e]; exact closureEq_refl _))
+        · exact Or.inr (Or.inr (by rw [e]; exact closureEq_refl _))
+      · -- (T,T,S): the stack successor's own rung joins the twins
+        exact Or.inl
+          (commitTableau_class hwf (heights_of_applyDrawStackTo k₃) t₁ t₂)
+    · rcases (commitApplies_draw_cases u X s₃).mp h₃ with t₃ | k₃
+      · -- (T,S,T)
+        exact Or.inr (Or.inl
+          (commitTableau_class hwf (heights_of_applyDrawStackTo k₂) t₁ t₃))
+      · -- (T,S,S)
+        have hA : u.applyDrawStackTo X = some s₂ := k₂
+        have hB : u.applyDrawStackTo X = some s₃ := k₃
+        exact Or.inr (Or.inr
+          (crease_stack_deterministic (u := u) (X := X) (s := s₂) (s' := s₃) hA hB))
+  · rcases (commitApplies_draw_cases u X s₂).mp h₂ with t₂ | k₂
+    · rcases (commitApplies_draw_cases u X s₃).mp h₃ with t₃ | k₃
+      · -- (S,T,T)
+        exact Or.inr (Or.inr
+          (commitTableau_class hwf (heights_of_applyDrawStackTo k₁) t₂ t₃))
+      · -- (S,T,S)
+        have hA : u.applyDrawStackTo X = some s₁ := k₁
+        have hB : u.applyDrawStackTo X = some s₃ := k₃
+        exact Or.inr (Or.inl
+          (crease_stack_deterministic (u := u) (X := X) (s := s₁) (s' := s₃) hA hB))
+    · rcases (commitApplies_draw_cases u X s₃).mp h₃ with t₃ | k₃
+      · -- (S,S,T)
+        exact Or.inl (crease_stack_deterministic
+          (show u.applyDrawStackTo X = some s₁ from k₁)
+          (show u.applyDrawStackTo X = some s₂ from k₂))
+      · -- (S,S,S)
+        exact Or.inl (crease_stack_deterministic
+          (show u.applyDrawStackTo X = some s₁ from k₁)
+          (show u.applyDrawStackTo X = some s₂ from k₂))
+
+/-- **The windowed form**: three macro successors, each named with a
+window that ends at the SAME accommodated state `u`, contain a
+closure-equal pair — the honest restatement of `c2_two_option`'s
+count at the non-king restriction.  `macroStep st k s` unfolds to an
+existential window; the uniform witness is the idealized engine-side
+reading (the macro game's canonical-window discipline), and
+`wk_nonking_c2_false` shows it cannot be dropped.  PROVEN,
+sorry-free; a trivial forward of the flagship. -/
+theorem c2_two_option_nonKing_windows {st u : State} (hwf : u.WF)
+    (hacc : accommodates st u) {X : Card} (hNK : X.rank ≠ Rank.king)
+    {s₁ s₂ s₃ : State}
+    (h₁ : commitApplies u (MacroMove.drawCommit X) s₁)
+    (h₂ : commitApplies u (MacroMove.drawCommit X) s₂)
+    (h₃ : commitApplies u (MacroMove.drawCommit X) s₃) :
+    closureEq s₁ s₂ ∨ closureEq s₁ s₃ ∨ closureEq s₂ s₃ :=
+  c2_two_option_nonKing hwf hNK h₁ h₂ h₃
+
 end Klondike.C2
