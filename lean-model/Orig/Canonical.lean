@@ -1628,3 +1628,111 @@ theorem canon_run (st : State) : ∃ l : List Move, StackRun st l (canon st) ∧
     have := stackFuel_le_52 st
     omega)
   exact h
+
+/-! ### CLAIM 1: confluence by Newman-style induction on the fuel -/
+
+/-- **CLAIM 1's engine**: every maximal licensed run from a `WF`
+state ends at `canon st` — by strong induction on the fuel.  The
+`nil` cases are final-state freezings; the `cons` cases are the
+c₀-equals-pick short-circuit and the c₀-differs-from-pick local
+diamond, both closing under the IH at the reduced fuel. -/
+private theorem stackRun_final_eq_canon_aux (N : Nat) :
+    ∀ (st : State) (l : List Move) (w : State),
+      st.WF → stackFuel st ≤ N → StackRun st l w → Final w → w = canon st := by
+  induction N with
+  | zero =>
+      intro st l w hwf hfuel hrun hfin
+      have hp : pick st = none := pick_none_of_fuel_zero (Nat.le_zero.mp hfuel)
+      have hfinal : Final st := (pick_eq_none_iff_final st).1 hp
+      cases hrun with
+      | nil s =>
+          show st = canonAux 53 st
+          rw [canonAux_final hfinal 53]
+      | @cons st1 m c s' rest w0 hc hm hstep hrest =>
+          exact absurd hc (hfinal c)
+  | succ N ih =>
+      intro st l w hwf hfuel hrun hfin
+      cases hp : pick st with
+      | none =>
+          have hfinal : Final st := (pick_eq_none_iff_final st).1 hp
+          cases hrun with
+          | nil s =>
+              show st = canonAux 53 st
+              rw [canonAux_final hfinal 53]
+          | @cons st1 m c s' rest w0 hc hm hstep hrest =>
+              exact absurd hc (hfinal c)
+      | some cd =>
+          have hcd : CanRaise st cd := pick_some_canRaise hp
+          obtain ⟨s_d, hs_d⟩ := raise_eq_some_of_canRaise st hcd
+          have hsat : satStep st = s_d := satStep_some hp hs_d
+          have hs_dstep : State.step st (Move.tabToFound cd) = some s_d := hs_d
+          have hf_s_d : stackFuel s_d + 1 ≤ stackFuel st :=
+            stackFuel_step (IsRaise.tabToFound cd) hs_d
+          have hwf_s_d : s_d.WF := lift_wf hwf hcd hs_d
+          cases hrun with
+          | nil s => exact absurd hcd (hfin cd)
+          | @cons st1 m c₀ s₁ rest w0 hc₀ hm hstep hrest =>
+              cases hm with
+              | tabToFound =>
+                  have hf_s₁ : stackFuel s₁ + 1 ≤ stackFuel st :=
+                    stackFuel_step (IsRaise.tabToFound c₀) hstep
+                  have hwf_s₁ : s₁.WF := lift_wf hwf hc₀ hstep
+                  by_cases heq : c₀ = cd
+                  · -- same first card: the successors coincide
+                      subst heq
+                      have hsame : s₁ = s_d :=
+                        Option.some.inj (hstep.symm.trans hs_dstep)
+                      rw [hsame] at hrest
+                      have hw_eq := ih s_d rest w hwf_s_d (by omega) hrest hfin
+                      rw [hw_eq]
+                      show canon s_d = canonAux 53 st
+                      rw [canonAux_succ, hsat]
+                      show canonAux 53 s_d = canonAux 52 s_d
+                      exact canonAux_stable 52 53 s_d
+                        (by have := stackFuel_le_52 s_d; omega) (by omega)
+                  · -- different first cards: the local diamond
+                      have hne : c₀ ≠ cd := heq
+
+                      -- the surviving licenses after each first step
+                      have hcr₁ : CanRaise s₁ cd :=
+                        canRaise_lifted hwf hcd hc₀ (fun h => heq h.symm) hstep
+                      have hcr₀ : CanRaise s_d c₀ :=
+                        canRaise_lifted hwf hc₀ hcd hne hs_dstep
+
+                      -- the diamond
+                      obtain ⟨m, hm₁, hm₂, -, -⟩ :=
+                        lift_comm hwf hc₀ hcd hne hstep hs_dstep
+
+                      -- canon schedule from the midpoint
+                      obtain ⟨lₘ, hrunₘ, hfinₘ⟩ := canon_run m
+
+                      -- composite from s₁: cd-lift, then canon from m
+                      have hcomp₁ : StackRun s₁ (Move.tabToFound cd :: lₘ) (canon m) :=
+                        StackRun.cons hcr₁ (IsRaise.tabToFound cd) hm₁ hrunₘ
+
+                      -- composite from s_d: c₀-lift, then canon from m
+                      have hcomp₀ : StackRun s_d (Move.tabToFound c₀ :: lₘ) (canon m) :=
+                        StackRun.cons hcr₀ (IsRaise.tabToFound c₀) hm₂ hrunₘ
+
+                      -- IH at s₁ through the composite
+                      have hcm₁ : canon m = canon s₁ :=
+                        ih s₁ (Move.tabToFound cd :: lₘ) (canon m)
+                          hwf_s₁ (by have := hf_s₁; omega) hcomp₁ hfinₘ
+
+                      -- IH at s_d through the composite
+                      have hcm₀ : canon m = canon s_d :=
+                        ih s_d (Move.tabToFound c₀ :: lₘ) (canon m)
+                          hwf_s_d (by have := hf_s_d; omega) hcomp₀ hfinₘ
+
+                      -- the original run's tail
+                      have hw_eq : w = canon s₁ :=
+                        ih s₁ rest w hwf_s₁ (by have := hf_s₁; omega) hrest hfin
+
+                      -- assemble: w = canon s₁ = canon m = canon s_d = canon st
+                      rw [hw_eq, ← hcm₁, hcm₀]
+                      -- goal: canon s_d = canon st
+                      show canon s_d = canonAux 53 st
+                      rw [canonAux_succ, hsat]
+                      show canonAux 53 s_d = canonAux 52 s_d
+                      exact canonAux_stable 52 53 s_d
+                        (by have := stackFuel_le_52 s_d; omega) (by omega)
