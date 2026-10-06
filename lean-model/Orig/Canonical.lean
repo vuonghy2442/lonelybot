@@ -502,3 +502,237 @@ theorem stackRun_length_le_52 {st : State} {l : List Move} {w : State}
   have h1 := stackRun_length_le_fuel h
   have h2 := stackFuel_le_52 st
   omega
+
+/-! ## The occurrence kit at `WF` states
+
+The fences of this chapter consume the occurrence half of `WF`:
+every real card sits in exactly one place.  The zone algebra below
+re-derives, privately and locally, the small pieces the count
+transport needs — the siblings of `Orig.Integrity`'s private
+occurrence machinery are listed for the harvest desk's dedup.
+-/
+
+/-- The list-map congruence used to shuffle zone functions. -/
+private theorem map_congr_eq {α β : Type} {l : List α} {f g : α → β}
+    (h : ∀ x ∈ l, f x = g x) : l.map f = l.map g := by
+  induction l with
+  | nil => rfl
+  | cons y t ih =>
+      have h1 : f y = g y := h y (by simp)
+      have h2 := ih (fun z hz => h z (by simp [hz]))
+      simp only [List.map_cons, h1, h2]
+
+/-- The flat-map append split (same lemma as `Orig.Integrity`'s
+private `flatMapAppend` and witnesses elsewhere; a dedup
+candidate). -/
+private theorem flatMap_append {α β : Type} (f : α → List β) :
+    ∀ (A B : List α), List.flatMap f (A ++ B) = List.flatMap f A ++ List.flatMap f B := by
+  intro A
+  induction A with
+  | nil => intro B; rfl
+  | cons x t ih =>
+      intro B
+      show f x ++ List.flatMap f (t ++ B) = (f x ++ List.flatMap f t) ++ List.flatMap f B
+      rw [ih, List.append_assoc]
+
+/-- The filtered flat map length, split at a list boundary. -/
+private theorem flat_filter_length_split {x : Card} :
+    ∀ (Z1 Z2 : List (List Card)),
+    (((Z1 ++ Z2).flatMap id).filter fun y => decide (y = x)).length =
+    ((Z1.flatMap id).filter fun y => decide (y = x)).length +
+    ((Z2.flatMap id).filter fun y => decide (y = x)).length := by
+  intro Z1 Z2
+  show (((Z1 ++ Z2).flatMap id).filter fun y => decide (y = x)).length =
+    ((Z1.flatMap id).filter fun y => decide (y = x)).length +
+    ((Z2.flatMap id).filter fun y => decide (y = x)).length
+  rw [flatMap_append, List.filter_append, List.length_append]
+
+/-- Each occurrence of `c` contributes one to the filtered count
+(`Orig.Integrity`'s private `count_filter_pos`; dedup candidate). -/
+private theorem count_filter_pos {c : Card} :
+    ∀ {l : List Card}, c ∈ l → 1 ≤ (l.filter fun y => decide (y = c)).length := by
+  intro l hmem
+  have hm : c ∈ l.filter fun y => decide (y = c) := List.mem_filter.2 ⟨hmem, by simp⟩
+  exact List.length_pos_of_mem hm
+
+/-- A card with no occurrence filters to length zero. -/
+private theorem filter_length_zero_of_not_mem {c : Card} : ∀ {l : List Card},
+    ¬ c ∈ l → (l.filter fun y => decide (y = c)).length = 0 := by
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons x t ih =>
+      intro h
+      cases hxc : decide (x = c) with
+      | true =>
+          have hx : x = c := of_decide_eq_true hxc
+          have hxmem : c ∈ x :: t := by simp [hx]
+          exact absurd hxmem h
+      | false =>
+          rw [List.filter_cons,
+            ite_eq_right (show ¬(decide (x = c) = true) from by rw [hxc]; simp)]
+          exact ih (fun hm => h (List.mem_cons_of_mem _ hm))
+
+/-- The zero-terminal filter of a card under `if`-free tails. -/
+private theorem filter_snoc_card {x c : Card} : ∀ {l : List Card},
+    ((l ++ [c]).filter fun y => decide (y = x)).length =
+    (l.filter fun y => decide (y = x)).length +
+    (if x = c then 1 else 0) := by
+  intro l
+  have hsplit : ((l ++ [c]).filter fun y => decide (y = x)).length =
+      (l.filter fun y => decide (y = x)).length +
+      ([c].filter fun y => decide (y = x)).length := by
+    rw [List.filter_append, List.length_append]
+  rw [hsplit]
+  cases hxc : (decide (x = c)) with
+  | true =>
+      have hx : x = c := of_decide_eq_true hxc
+      rw [hx]
+      have hfc : ([c].filter fun y => decide (y = c)) = [c] := by
+        show (c :: ([] : List Card)).filter (fun y => decide (y = c)) = [c]
+        rw [List.filter_cons, show decide (c = c) = true from decide_eq_true rfl]
+        rfl
+      rw [hfc, ite_eq_left rfl]
+      rfl
+  | false =>
+      have hnc : ¬ (x = c) := by
+        intro heq
+        rw [heq] at hxc
+        exact absurd hxc (by simp)
+      have hfc : ([c].filter fun y => decide (y = x)) = [] := by
+        show (c :: ([] : List Card)).filter (fun y => decide (y = x)) = []
+        rw [List.filter_cons,
+          show decide (c = x) = false from decide_eq_false (fun heq => hnc heq.symm)]
+        rfl
+      rw [hfc, ite_eq_right hnc]
+      show (l.filter fun y => decide (y = x)).length + 0 =
+        (l.filter fun y => decide (y = x)).length + 0
+      rfl
+
+/-! ### Zone splits and per-slot transports -/
+
+private def preAnchors : Anchor → List Anchor
+  | .p0 => [] | .p1 => [.p0] | .p2 => [.p0, .p1] | .p3 => [.p0, .p1, .p2]
+  | .p4 => [.p0, .p1, .p2, .p3] | .p5 => [.p0, .p1, .p2, .p3, .p4]
+  | .p6 => [.p0, .p1, .p2, .p3, .p4, .p5]
+
+private def sufAnchors : Anchor → List Anchor
+  | .p0 => [.p1, .p2, .p3, .p4, .p5, .p6] | .p1 => [.p2, .p3, .p4, .p5, .p6]
+  | .p2 => [.p3, .p4, .p5, .p6] | .p3 => [.p4, .p5, .p6]
+  | .p4 => [.p5, .p6] | .p5 => [.p6] | .p6 => []
+
+/-- (A private copy of `Orig.Integrity`'s same-named private; a dedup
+candidate.) -/
+private theorem anchor_split (a : Anchor) :
+    Anchor.all = preAnchors a ++ [a] ++ sufAnchors a := by cases a <;> rfl
+
+private def preSuits : Suit → List Suit
+  | .spade => [] | .heart => [.spade] | .diamond => [.spade, .heart]
+  | .club => [.spade, .heart, .diamond]
+
+private def sufSuits : Suit → List Suit
+  | .spade => [.heart, .diamond, .club] | .heart => [.diamond, .club]
+  | .diamond => [.club] | .club => []
+
+private theorem suit_split (σ : Suit) :
+    Suit.all = preSuits σ ++ [σ] ++ sufSuits σ := by cases σ <;> rfl
+
+private theorem pre_suits_ne (σ : Suit) : ∀ τ ∈ preSuits σ, τ ≠ σ := by
+  cases σ <;> intro τ hτ heq <;> rw [heq] at hτ <;> simp [preSuits] at hτ
+
+private theorem suf_suits_ne (σ : Suit) : ∀ τ ∈ sufSuits σ, τ ≠ σ := by
+  cases σ <;> intro τ hτ heq <;> rw [heq] at hτ <;> simp [sufSuits] at hτ
+
+private theorem pre_anchors_ne (a : Anchor) : ∀ a' ∈ preAnchors a, a' ≠ a := by
+  cases a <;> intro a' ha' heq <;> rw [heq] at ha' <;> simp [preAnchors] at ha'
+
+private theorem suf_anchors_ne (a : Anchor) : ∀ a' ∈ sufAnchors a, a' ≠ a := by
+  cases a <;> intro a' ha' heq <;> rw [heq] at ha' <;> simp [sufAnchors] at ha'
+
+/-- One pile's whole zone, hidden cards under face up. -/
+private def pileZone (st : State) (a : Anchor) : List Card :=
+  (st.piles a).hidden ++ (st.piles a).faceUp
+
+/-- The flat-map congruence over zone functions. -/
+private theorem flat_congr {α β : Type} {l : List α} {f g : α → List β}
+    (h : ∀ x ∈ l, f x = g x) : l.flatMap f = l.flatMap g := by
+  induction l with
+  | nil => rfl
+  | cons y t ih =>
+      have h1 : f y = g y := h y (by simp)
+      have h2 := ih (fun z hz => h z (by simp [hz]))
+      show f y ++ List.flatMap f t = g y ++ List.flatMap g t
+      rw [h1, h2]
+
+/-- The zones, cut down the middle at two winner slots: the `σ`
+foundation and the `a` pile zone. -/
+private theorem zones_split_two_slots (st : State) (σ : Suit) (a : Anchor) :
+    st.zones =
+      (preSuits σ).map st.found ++ [st.found σ] ++ (sufSuits σ).map st.found ++
+      (preAnchors a).map (fun x => pileZone st x) ++ [pileZone st a] ++
+      (sufAnchors a).map (fun x => pileZone st x) ++ [st.stock, st.waste] := by
+  cases σ <;> cases a <;> rfl
+
+/-- The count contribution of a group of zones. -/
+private def zoneCount (Z : List (List Card)) (x : Card) : Nat :=
+  ((Z.flatMap id).filter fun y => decide (y = x)).length
+
+private theorem cardCount_split (st : State) {x : Card} {Z1 Z2 : List (List Card)}
+    (h : st.zones = Z1 ++ Z2) :
+    st.cardCount x = zoneCount Z1 x + zoneCount Z2 x := by
+  show (((st.zones.flatMap id).filter fun y => decide (y = x)).length) =
+    zoneCount Z1 x + zoneCount Z2 x
+  rw [h, flatMap_append, List.filter_append, List.length_append]
+  rfl
+
+/-- The count of one zone: the flat census is the per-zone sum. -/
+private theorem zoneCount_coll {Z : List (List Card)} (x : Card) :
+    zoneCount Z x = (Z.map fun z => (z.filter fun y => decide (y = x)).length).sum := by
+  unfold zoneCount
+  induction Z with
+  | nil => rfl
+  | cons z t ih =>
+      show ((z ++ t.flatMap id).filter fun y => decide (y = x)).length =
+        ((z.filter fun y => decide (y = x)).length +
+          (t.map fun z => (z.filter fun y => decide (y = x)).length).sum)
+      rw [List.filter_append, List.length_append, ih]
+
+/-- A zone group containing a membership-bearing zone list
+contributes at least one. -/
+private theorem zoneCount_ge_of_mem {Z : List (List Card)} {z : List Card} {c : Card}
+    (hzin : z ∈ Z) (hmem : c ∈ z) : 1 ≤ zoneCount Z c := by
+  induction Z with
+  | nil => cases hzin
+  | cons y t ih =>
+      rcases (List.mem_cons.mp hzin) with rfl | hm
+      · show 1 ≤ ((z ++ t.flatMap id).filter fun u => decide (u = c)).length
+        rw [List.filter_append, List.length_append]
+        have h1 := count_filter_pos hmem
+        omega
+      · have h1 := ih hm
+        rw [zoneCount] at h1
+        show 1 ≤ ((y ++ t.flatMap id).filter fun u => decide (u = c)).length
+        rw [List.filter_append, List.length_append]
+        omega
+
+/-- A zone group holding `c` in a cons leaf contributes at least
+the leaf's count: cons-guarded lowering. -/
+private theorem zoneCount_cons_lower {z : List Card} {Z : List (List Card)} {c : Card}
+    (hle : 1 ≤ (z.filter fun y => decide (y = c)).length) :
+    1 ≤ zoneCount (z :: Z) c := by
+  show 1 ≤ ((z ++ Z.flatMap id).filter fun y => decide (y = c)).length
+  rw [List.filter_append, List.length_append]
+  omega
+
+/-- The plain two-part filter split. -/
+private theorem filter_len_split {x : Card} : ∀ {l1 l2 : List Card},
+    ((l1 ++ l2).filter fun y => decide (y = x)).length =
+    (l1.filter fun y => decide (y = x)).length +
+    (l2.filter fun y => decide (y = x)).length := by
+  intro l1 l2
+  rw [List.filter_append, List.length_append]
+
+
+
+
+
