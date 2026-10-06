@@ -6,6 +6,7 @@ import Orig.Integrity
 import Orig.Twin
 import Orig.Macro
 import Orig.Mono
+import Orig.Irreversible
 import Orig.Phase
 import Orig.Combine
 
@@ -69,11 +70,14 @@ Chapter plan (each later chapter is a derived construction):
      descent kit, `canPlace` self-safety);
    - the irreversibility classification: tabulating each move
      against the three measures and instantiating the bridge.  The
-     measure tables (`Orig.Irreversible`, in flight) feed this
-     bridge; the draw rows are `Orig.Phase` above.  The remaining
-     work: the undo witnesses for the reversible half (worry-back
-     round trips), the foundTotal no-worry row, and the
-     classification assembly;
+     measure tables are banked in `Orig.Irreversible` (the three
+     per-move tables with the reveal/noreveal rigor legs, the
+     `foundTotal` no-worry row, and the undo witnesses —
+     `foundToTab_undo`, `tabToFound_undo_under`,
+     `tabToFound_undo_bare` — with their `reversibleAt` twins);
+     the draw rows are `Orig.Phase` above.  The remaining work: the
+     classification assembly — the decidable per-move oracle, and
+     the scrub of `win_iff_macro`'s single `by_cases` through it;
    - the arrangement-blind abstraction `α` and its replay license —
      the bridge to `Klondike.*`;
    - the futures count: a commitment leaves at most two
