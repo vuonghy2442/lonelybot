@@ -48,31 +48,61 @@ establishes.
     foundation prefix — and the search pin by
     `wf_found_not_pileTop`), so the shape is exactly the negated
     legality guard.
+  * `tabToTabClass` *(tranche two)* — the `.tabToTab` rows:
+    illegal rows (refused head search or placement guard) vacuous,
+    the reveal row a commitment (the hidden total strictly drops),
+    the bare seat split at the king (`tabToTab_undo_bare`
+    reseatings for kings, `tabToTab_irreversible_of_bare_nonking`
+    for the rest), the under row reversible at WF through
+    `tabToTab_undo_under` — the mirror-move undos stated
+    wild-state with each premise excluding a documented corner
+    (`hhold` the undo's own head search, `hseat` the move's inner
+    placement search at the half-updated board, `hcN`/`hzOnly`/
+    `hzK` the occurrence-uniqueness pins), the WF grind
+    discharging every premise through the conservation invariant.
   * `drawClass` — pristine and offset positions irreversible
     (Phase's `draw_irreversibility_class`), in-phase and pass-base
     positions reversible (Phase's `draw_reversible_inphaseW`,
     `draw_reversible_selfRecycleW`, and the pass-base drain above),
     the both-empty draw illegal.
+* **The assembled oracle** *(tranche two)* — `irreversibleOf` (the
+  per-move Bool: draw from `drawIrr`, the waste rows trivially
+  true, the table moves from the three shape predicates) with its
+  WF-gated specification `irreversible_iff_of` and the decider
+  rider `decidable_irreversibleAt_of_wf` (a plain definition, not
+  an instance gate: at wild states the shape and the semantics
+  diverge in both directions — the fork exhibits).
+* **The de-choice** *(tranche two)* — the positional kit's last
+  `Classical.choice` carrier was the private `take_take_le` (the
+  `omega` closing the `List.take`-bearing zero cell); explicit
+  `Nat.not_succ_le_zero` / `Nat.le_of_succ_le_succ` cells replaced
+  it and the whole spine now audits at `[propext, Quot.sound]`.
+* **The WFRun-gated `win_macro_aux` companion** *(tranche two,
+  the scrub shape)* — `win_macro_aux_wf`: plays whose intermediate
+  states are all WF carry the successor's WF down the induction
+  as data (`WFRun.cons`), so the head split goes through the gated
+  oracle's Bool (`cases … irreversibleOf`) and audits
+  `[propext, Quot.sound]`; the classical head at
+  `Orig/Macro.lean:121` keeps its `by_cases` and its choice audit.
 
 ## What this tranche deliberately leaves open
 
-The `.tabToTab` noreveal rows (the one-move undos mirroring
-`tabToFound_undo_under`/`_bare` and with them `tabToTabClass`), the
-final `irreversibleOf : State → Move → Bool` assembly with its
-WF-gated iff `st.WF → (irreversibleAt st m ↔ irreversibleOf st m =
-true)` and the gated decider `decidable_irreversibleAt_of_wf`, the
-hand-built wild witnesses to the design fork, and the gated
-`win_macro_aux` companion are the remaining work of the ticket;
-the companion's planned shape and the scrub disposition are recorded
-below so the fork resolution is not lost.
+Step-preserved `WF` (`s₁.WF` from `st.WF` and `State.step`, all
+six move kinds) — the conservation ticket of `Orig.lean` — remains
+open; the `WFRun` companion carries each successor's WF as data
+so as not to depend on it.  A premiseless decider for the
+semantic predicate at wild states remains impossible by design
+(the freezer exhibit refutes the universal iff; the archive
+`Witnesses.ClassificationForkWitness` holds both corners).
 
 ## The design fork and the `win_macro_aux` scrub
 
 Two regimes are live for the oracle: the *universal* oracle (an
 iff at every state) and the *WF-gated* oracle.  The digestion of
-the landed corpus points to the corners that will decide it (each
-is a hand-built wild record in the witnesses' style, to be
-exhibited next tranche):
+the landed corpus points to the corners that decide it (each
+exhibited in tranche two as a hand-built wild record: see
+`Witnesses.ClassificationForkWitness` — the diadem and the
+freezer):
 
 * a doubled-king, miscounted-foundation corner where a noreveal
   `.tabToFound` has `canSitOn` true for the seat's card yet the
