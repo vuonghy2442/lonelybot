@@ -1,4 +1,5 @@
 import Orig.Fate
+import Orig.Integrity
 
 /-!
 # Orig — the single-step measure tables and the constructive undos
@@ -369,12 +370,6 @@ theorem putRun_piles_inr (st : State) (run : List Card) (z : Card) (k : Anchor)
 
 /-! ## Guard inversions -/
 
-/-- An `isEmpty` pile is exactly the pair of empties. -/
-theorem Pile.isEmpty_eq {p : Pile} (h : p.isEmpty = true) :
-    p.hidden = [] ∧ p.faceUp = [] := by
-  rcases p with ⟨hd, f⟩
-  cases hd <;> cases f <;> simp [Pile.isEmpty] at h <;> simp_all
-
 /-- The empty-seat placement guard: empty target, king card. -/
 theorem canPlace_inl {st : State} {c : Card} {a : Anchor}
     (h : st.canPlace c (Sum.inl a) = true) :
@@ -613,7 +608,7 @@ theorem putCard_hidden_eq {st : State} {c : Card} {b : Base}
   cases b with
   | inl a =>
       obtain ⟨hemp, -⟩ := canPlace_inl hcp
-      obtain ⟨hhd, -⟩ := Pile.isEmpty_eq hemp
+      obtain ⟨hhd, -⟩ := (Pile.isEmpty_eq _).mp hemp
       simp only [putCard_piles_inl]
       by_cases hae : a' = a
       · subst hae
@@ -709,12 +704,6 @@ private theorem Pile.isEmpty_eq_false_of_mem {p : Pile} {c : Card} (h : c ∈ p.
   cases f with
   | nil => cases h
   | cons x fs => cases hd <;> rfl
-
-/-- The `pileHolding` search is sound: `c` really is face up on the
-located pile. -/
-theorem pileHolding_mem {st : State} {c : Card} {a : Anchor}
-    (h : st.pileHolding c = some a) : c ∈ (st.piles a).faceUp :=
-  of_decide_eq_true (firstWhere_sound (p := fun a' => decide (c ∈ (st.piles a').faceUp)) h)
 
 /-- The strict witness lemma for flat maps, at hidden-total scale:
 dropping one pile's hidden count by one drops the total by at least
@@ -970,7 +959,7 @@ private theorem tabToTab_pile_eq (st : State) (a : Anchor) (c : Card) (b : Base)
   cases b with
   | inl a₁ =>
       obtain ⟨hemp, -⟩ := canPlace_inl hcp
-      obtain ⟨hhd1, -⟩ := Pile.isEmpty_eq hemp
+      obtain ⟨hhd1, -⟩ := (Pile.isEmpty_eq _).mp hemp
       have hfa : (st.piles a).isEmpty = false := Pile.isEmpty_eq_false_of_mem hmem
       have hne : a₁ ≠ a := by
         intro heq
@@ -1389,7 +1378,7 @@ theorem foundToTab_undo {st : State} {c : Card} {b : Base} {s₁ : State} {k : A
   rcases hseat with hb | ⟨z, hb, hz⟩
   · subst hb
     obtain ⟨hemp, -⟩ := canPlace_inl hcp
-    obtain ⟨hhd, hfu⟩ := Pile.isEmpty_eq hemp
+    obtain ⟨hhd, hfu⟩ := (Pile.isEmpty_eq _).mp hemp
     have hPk : s₁.piles k = ⟨[], [c]⟩ := by
       rw [hs]
       simp only [putCard_piles_inl]
