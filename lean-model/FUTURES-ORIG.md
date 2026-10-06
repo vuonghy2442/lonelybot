@@ -649,6 +649,44 @@ by the re-derived corpus.
 
 ## 7. The corpus re-derivation list (witnesses to re-derive physically)
 
+**STATUS 2026-10-06 — THE CORPUS IS RE-DERIVED** (four Witness-lib
+files, `360cd95`/`a69e253`/`c9d5896`/`1ab5611`, all `#eval`-recorded
+via `#guard_msgs` and decide-proved; every head `[propext, Quot.sound]`
+or fewer, zero Classical.choice; their verdicts recalibrate the fences:
+
+- **F1** OrigExchangeWitness (the physical w15merge): the
+  premiseless-exchange refutation SURVIVES as a wild-pair fence
+  (`xA_xB_notSameFate` — xA wins THROUGH the merge, xB frozen;
+  `wk_exchange_premiseless_false`) — but the **FIT-LADDER
+  CONTRADICTION** says more: a legal-edge helix is rank-impossible,
+  so the merge anatomy FORCES a braided wild slice — at `WF` the
+  merge killer is UNWRITABLE (§1(c) now witnessed).
+- **F2** OrigKingAnchorWitness: the old seven-landing split
+  COLLAPSES physically — landed kings `RevEqW`-RELINK between empty
+  anchors by one-move reversible relocations (`kaL_revEqW`) — the
+  §5.2 orbit expectation, witnessed; king-anchor splits are a
+  dead fence in the full game.
+- **F3** OrigNonKingWitness: `nk_draw_commit` (the draw is the
+  commit; `draw_irreversible_pristine` cited), the in-hand arms are
+  EXACTLY the twins, and **`nk_relinked : RevEqW nkS1 nkS2`** — the
+  engine's stack-only twin separation is physically refuted by the
+  landed card's shuttle — third independent confirmation of the
+  cross-move collapse (after §2-F3's supercession and the shuttle).
+- **F4** OrigLabeledWitness: the **NAIVE-TIP BARRIER**
+  (`lU0_noLanding` — the drawn ♠K has NO landing until the promotion
+  unseats it, `lT0_aceStep`) — the accommodation-maneuver datum the
+  ladder narrative needs; the ONE post-unseat landing is the
+  reachability lane's consumable; the competing-♦K/♣K census is
+  data.  Label anatomy stays vocab-absent pending the count.
+
+RESIDUE EVIDENCE for §3.0's open literal-vs-wrapped question: all
+crafted residues so far RE-LINK (`RevEqW`-level, not merely
+twin-conjugate) — supportive of the literal comparison, not
+conclusive.  The dedup overlaps with `Orig.Integrity` (marked
+private sections: decSt instances, canPlace unfolds, search
+extractions) stay parked per house discipline; the `decSt`
+(DecidableEq State) promotion rides the tidy ticket.
+
 Per the ticket's own words, before or alongside the formulations —
 expected difficulty and expected verdicts, all pre-cited:
 
