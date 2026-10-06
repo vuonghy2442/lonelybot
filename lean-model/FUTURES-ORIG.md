@@ -1,0 +1,607 @@
+# FUTURES-ORIG — the futures-count route map for the Orig chapter
+
+Doc-only design note (no Lean changes; no constant in the library is
+cited as sorry, every file:line was verified in this worktree at
+macro-game `d6b53fb`).  Purpose: settle-then-formulate support for the
+chapter's ticket 7, "the futures count: a commitment leaves at most two
+`sameFate`-distinct successors, per accommodation window — restated on
+the original game, with the `Klondike` witness corpus re-derived here
+first" (`lean-model/Orig.lean:77`, `Orig/Fate.lean:36`).  The old count
+theorem's formulation is an OPEN user decision (the five-wave count
+campaign: FARM.md waves 13–21); this note supplies the translations,
+the fences the refutation ledger dictates, and the candidate
+statements with their dependencies — a fresh card formulates from
+here, it does not re-derive the campaign.
+
+Reading order assumptions: `Orig/State.lean` (the physical position),
+`Orig/Play.lean` (the six moves, `State.step`), `Orig/Fate.lean`
+(`WinFrom`/`sameFate`/`succ`/`irreversibleAt`/`reversibleAtW`),
+`Orig/Macro.lean` (`ShufflePlay`/`MacroStep`/`MacroWin`/`win_iff_macro`),
+`Orig/Combine.lean` (`ShufflePlayW`/`RevEqW`/`sameOrbitSetoid`/the
+window re-basing), `Orig/Phase.lean` (the draw classification rows),
+`Orig/Mono.lean` (the measure bridges); the old corpus in
+`Klondike/Macro.lean`, `Klondike/C2Streamlined.lean`,
+`Klondike/Restriction.lean`, the twin-exchange family, and the
+witnesses cited by name below.
+
+In-flight siblings (dependencies, NOT citable files at this HEAD):
+the conservation tickets (step-preserves-`WF`, initial-of-`Deal.WF`)
+and search integrity are owned by the integrity card
+(`farm/orig-integrity`); the spine port (`winFrom_em`) by the
+progress-spine card (`farm/orig-progress-spine`); the physical
+reachability recurrence + the invariant-preservation combinator
+(`invariant_of_initialReachableR`'s analogue, the cleanliness gate) by
+the reachability card (`farm/orig-reach`); the non-draw irreversibility
+classification (`Orig.Irreversible`, registered as "in flight" at
+`Orig.lean:70`) by the irrev-repair card (`farm/orig-irrev-repair`).
+
+## 1. The vocabulary translation table, old → new
+
+| old (Klondike) | new (Orig) | the load-bearing remark |
+|---|---|---|
+| engine `State` (board function + `topOf` edge graph, `heights`/`depths`, stock `Cycle` + cursor) | physical `State` (`Orig/State.lean:137`): foundations as build-order lists, piles carrying their own `hidden`/`faceUp` (`Orig/State.lean:83`), stock/waste as lists, `Pile.revealTop` (`Orig/State.lean:101`) the automatic flip | the physical dividend, four-fold: (a) phantom/cyclic boards are UNSTATEABLE (`cardCount c = 1`, `Orig/State.lean:235`); (b) "foundation-passed" = FOUNDED (found s = `upCards.take n` is a `WF` conjunct, `Orig/State.lean:233`); (c) visible runs are per-pile lists with strict rank descent (`runOK`, `Orig/State.lean:126`) — the braided walk shapes of w15 cannot be written down; (d) the reveal is part of the moving move (`Pile.afterRunRemoved`, `Orig/State.lean:109`) — there is no reveal move at all |
+| `closureEq` (mutual `accommodates`, `Klondike/C2Streamlined.lean:245`; `Klondike/Theorems.lean:162`) | `sameFate` over `succ`-classes (`Orig/Fate.lean:50`) with the witness refinement `RevEqW` (mutual `ShufflePlayW`, `Orig/Combine.lean:118`; `RevEqW_sameFate`, `Orig/Combine.lean:222`) | the count's CONCLUSION grades at `sameFate` (the semantic verdict); the CONSTRUCTION delivers `RevEqW` (returning plays as data).  `RevEqW` is strictly finer than `sameFate` — §5.1 decides which grading the count speaks |
+| `macroStep_engine_play` (a macro step IS an engine play, `Klondike/Macro.lean:488`) | already physical by definition: `ShufflePlay_run` (`Orig/Macro.lean:44`) and `macro_win`'s assembly (`Orig/Macro.lean:128`) fold `MacroStep` into σ ++ [m] | the `isEngine` filter has no work to do — the full move set IS the game; C1's forward half is a definitional fold rather than a theorem |
+| accommodation window = the ∃ accommodated state inside `macroStep` (`Klondike/Macro.lean:53`) | the window is first-class DATA: `MacroStep st m st'' := ∃ st' σ, ShufflePlay st σ st' ∧ step st' m = some st'' ∧ irreversibleAt st' m` (`Orig/Macro.lean:71`) — σ explicit, tip `st'` (= u) explicit | free-float becomes a bookkeeping question: two successors may be named through different (σ, u)'s.  The uniform-window fix is to quantify (σ, u) OUTSIDE the successor claim (the old `c2_two_option_nonKing_windows`, `Klondike/C2Streamlined.lean:2448`, distilled this first) |
+| window/free-float semantics (floating windows add split successors: `wk_nonking_c2_false`, `witnesses/NonKingWitness.lean:1637`) | where floating windows land: a witness shuffle at the FRONT rebases any window without touching its tip — `MacroStep_of_RevEqW` (`Orig/Combine.lean:250`), `MacroWin_of_RevEqW` (`Orig/Combine.lean:262`): "the commit fires at an unchanged tip, the start slides" | so windows modulo `RevEqW`-at-the-start name identical successor claims; every OTHER pooling of distinct tips is the open §5.4 decision (the wave-21 NEXT-3 relaxation) |
+| channel labels `{direct, dig, borrow p, hole, toStack}` + `LabelLive` at the commitment ROOT (`Klondike/C2Streamlined.lean:212`, `:329`) + `SuccThrough` (`:399`) | no channel list survives: the enabling analysis reads the commit's own arms AT THE TIP u — `direct`: `u.canPlace c b` reads piles only (`Orig/State.lean:170`); `dig`: a `tabToFound` of the twin inside σ; `borrow p`: a `foundToTab p` inside σ; `hole`: the anchor arm `canPlace c (inl a)` (king + empty, `Orig/State.lean:172`); `toStack`: the foundation arm `wasteToFound c` (`Orig/Play.lean:99`) | the two root-live refutations (`witnesses/SuccLabeledWitness.lean:526`, `witnesses/NonKingWitness.lean:1563`) kill root-liveness labeling forever; the physical `MacroStep` definitionally names (σ, u), so the arm analysis is a case split, not a premise — P0 dissolves |
+| rung (`X.rank.toIdx = st.heights X.suit`) / spend (the `Res` atoms, `Klondike/C2Streamlined.lean:168`) | rung = `u.nextUp c` (`Orig/State.lean:201`); spend lives inside the window as the enabling moves named above; arms = the foundation arm (`wasteToFound`) vs the tableau arm (`wasteToTab`), the physical `commitArmOf` (`Klondike/C2Streamlined.lean:376` counterpart) | the rung is EXTRACTED from the foundation arm's own guard (`step u (wasteToFound c) = some s ⟹ nextUp u c`, `Orig/Play.lean:100` — the physical `heights_of_applyDrawStackTo`, `Klondike/C2Streamlined.lean:2042`) |
+| visClean (`Klondike/Restriction.lean:394`: every edge over a visible base fits; `initialReachable_visClean`, `Klondike/Restriction.lean:659`) | PROPOSED physical predicate below (§1.8) — the honest expectation: it collapses to `WF` plus a theorem | the three dirt families visClean guarded (phantom stacks, foundation-passed strays, in-pile braids) are all `WF`-theorems physically; the cross-pile crossed-twin shape (the w15 exchange corner) is REAL and stays a premise family of the exchange rows |
+| reachable gates: `initialReachable` (deposit, `Klondike/Restriction.lean:75`), `initialReachableR` (recurrence, `Klondike/Restriction.lean:93`), the `invariant_of_initialReachableR` combinator (`Klondike/Restriction.lean:152`, deposit form `:164`) | the physical `Deal.WF` (`Orig/State.lean:248`) + `State.initial` (`Orig/State.lean:256`) seed the same recurrence — the combinator port is the reachability card's `invariant_preservation` (in flight) | the wave-20 lesson travels INTACT: the gate discharges `WF` and nothing else (`c2_two_option_reachable`, `Klondike/C2Streamlined.lean:2205`; the reachable countermodels `witnesses/SuccLabeledWitness.lean:1357`); the count's non-king/windowing premises are NOT gate-dischargeable |
+
+### 1.8 The physical cleanliness candidate (PROPOSED)
+
+The old `visClean` was invented when the exchange rows' refutation
+repair needed to kill crafted states — the w15merge witness
+(`probes/w15merge.lean`; FARM_MEMORY:2073) lived at a NON-WF board
+(empty deal, heights past visible cards), and the killed shapes were
+exactly: phantom stacks (unplaced cards "supporting" runs:
+FARM_MEMORY:2023-2027), foundation-passed strays (FARM_MEMORY:2082),
+and braided walks (twin inside a cargo run: FARM_MEMORY:1837-1839).
+At the physical state, §1's dividend (a)–(c) makes every one of those
+unstateable at `WF`.  The remaining, genuinely non-free content — the
+founded-discipline that `founds_gone` carried — is provable outright:
+
+```lean
+-- PROPOSED (this note; never yet stated).  The physical reading of
+-- visClean: all visible runs braid-free.  Packaged as the
+-- downstream-facing fence; the paired card proves:
+--   (committed) the found-discipline conjunct is redundant at WF;
+--   (committed) survives every step at WF states.
+def State.visCleanO (st : State) : Prop :=
+  st.WF ∧
+  (∀ a c, c ∈ (st.piles a).faceUp →
+     st.foundHeight c.suit ≤ c.rank.toIdx)
+```
+
+- The found-discipline conjunct is a `WF`-theorem in embryo: if a
+  face-up `c` sat below its suit's height, the `WF` prefix conjunct
+  (`Orig/State.lean:233`) already has `c` founded, contradicting
+  conservation (`Orig/State.lean:235`).  It is packaged here so downstream
+  fences cite one name; a five-line card retires it into `WF`-land.
+- The preservation obligation is owed at three points: the
+  cleanliness GATE discharges through the combinator — seed
+  `visCleanO (State.initial d s)` from `Deal.WF` (the integrity card's
+  initial-`WF` ticket, `Orig.lean:63`), preserve along `State.step`
+  (the integrity card's `apply_wf` ticket, `Orig.lean:62`), and run the
+  reachability card's `invariant_preservation` (the
+  `invariant_of_initialReachableR` analogue, `Klondike/Restriction.lean:152`) —
+  the physical `initialReachable_visClean` (`Klondike/Restriction.lean:659`).
+  No gate ever re-proves a run induction.
+- What is deliberately NOT in the predicate: any cross-pile twin
+  clause.  The w15 exchange corner (cargo `z` seated on `t` in one
+  pile, `z`'s twin on `t`'s twin in another) is a legal, realizable
+  physical shape — it is a PREMISE FAMILY of the exchange rows, not a
+  cleanliness conjunct; the count candidates below never consult it.
+  Deciding evidence for keeping it out: the w15circ probe family
+  (`probes/w15circ.lean`, FARM_MEMORY:2104-2122) — at WF the crafted
+  forced-merge casts all DIE (the anchor-relocation collapse), so the
+  merge corner is expected to fall to irreversibility arguments, not
+  to a dirt predicate (open decision §5.5).
+
+## 2. The refutation ledger as formulation fences
+
+Formulation discipline: every old refutation below is a PERMANENT
+premise demand on the Orig statement.  For each: what died, where the
+witness lives (all citations verified at this HEAD), what it kills on
+the physical game, and the premise that must therefore appear.
+
+**F1 — the premiseless exchange dying at crafted states (w15merge).**
+Old: `solvable_cargoTwin_exchange` at `Klondike/TwinExchange.lean:1254`
+carries `hwf` precisely because the premiseless form was refuted at a
+crafted non-WF state (`probes/w15merge.lean`, the witness and its
+re-verification protocol recorded at FARM_MEMORY:2073-2075) — the win
+REQUIRES the merge while the exchanged state is frozen.
+Physical reading: the crafted state is UNSTATEABLE (§1.8), so the
+physical fence is weaker than the old one but not EMPTY: (a) any claim
+of the shape "crossed twin-pair positions are verdict-equivalent" must
+carry `hwf` (physically `st.WF`), which is what makes the physical
+twinLicensed analogue (`Klondike/TwinQuotient.lean:3702`'s license, physical
+spelling: both hosts face-up, both fits by `canSitOn`, the piles'
+emptiness facts) provable — the old `+hwf` repair (`+hvc` form PROVEN
+at `Klondike/TwinQuotient.lean:3800` with no bridges) is the template;
+(b) the count statements must NOT import exchange equivalences except
+at fenced shapes — Candidate A's route below consults none of them.
+PREMISES DICTATED: `hwf` on every exchange-flavored row; and nothing
+about the count beyond "do not lean on unfenced exchanges".
+
+**F2 — the king-anchor free-anchor corner.**
+Old: `wk_c2/same_pin/p2_direct/crease_as_stated_false`
+(`witnesses/C2KingAnchorWitness.lean:378`/`:395`/`:408`/`:422`): one
+pristine WF state, a climb-blocked stocked ♠K, seven free anchors, all
+landings pairwise closure-SEPARATED (the landed king can never leave).
+Physical reading: the landing splits' physical root is the automatic
+flip — the king lands on an empty pile (`canPlace c (inl a)`,
+`Orig/State.lean:172`), the pile's `faceUp` becomes `[c]`, and the first
+`tabToFound` that unseats it flips a hidden card permanently (the
+hidden count strictly descends — an `Orig/Mono.lean:82`/`:97`
+instantiation, one measure row of the irrev-repair card's tables).
+Different anchors flip different cards ⇒ distinguishable successors.
+It kills: every premiseless "≤2 via joins" at KING commitments, in
+EVERY grading — the revealed card is permanent, state-visible evidence.
+PREMISES DICTATED: the king side must go by the destination/orbit
+route (Candidate C), or be excluded (`hNK`, Candidate A).  The gate
+does not rescue it: the dealt-corner addendum (`rState_reachable`,
+`witnesses/SuccLabeledWitness.lean:931`; `wk_c2_reachable_false`,
+`:1357`; the split `rLand_split`, `:1337`) shows reachable roots split
+at six free anchors — reachability discharges `WF` only
+(FARM.md:1698-1751, (A) vs (B)).
+
+**F3 — the non-king twin split at the incomplete rung (nk_split).**
+Old: `nk_split`, `witnesses/NonKingWitness.lean:657` (+ the three
+non-king refutations `:676`/`:686`/`:697`): X = ♠6 stocked, its two
+destination twins ♥7/♦7 free, all heights 0 — both landings live, both
+stuck ⇒ closure-separated.  Boundary datum: the count SURVIVES here
+(`nkSuccessorsExhaustTwo`, `:758`; `nkTwoOptionHoldsHere`, `:784`) —
+the two-option pair holds because the commitment has exactly the two
+twin successors (a destination count, not a join).
+Physical reading: physically EXACTLY retrievable (§7's re-derivation
+list); the rung premise (`u.nextUp c` — the shuttle vehicle) is
+load-bearing on the TWIN side too.  It kills: every rung-less join
+claim (the `commitTableau_class` counterpart without `nextUp`), in
+every grading: the two landings are `RevEqW`-unrelated AND (at live
+states) fate-distinct; at states where both die, a `sameFate`-graded
+"join" is VACUOUSLY true — which is itself the measurement forcing
+the grading decision (§5.1).  PREMISES DICTATED: the shuttle row
+(Candidate B) carries the rung explicitly; count rows take the
+destination route.
+
+**F4 — the non-king free-float three-split (ffState).**
+Old: `wk_nonking_c2_false`, `witnesses/NonKingWitness.lean:1637`:
+THREE pairwise closure-separated macro successors at ONE WF non-king
+root — the root commit plus TWO window commits reached through
+windows playing "irrelevant" content (the ♥A promotion:
+`ffWin_stuck`, `:1422`; window successors genuine macro steps).  And
+`wk_nonking_succLabeled_false`, `:1563` — even the five-channel
+labeling restricted to non-kings is false (`ffSucc_unlabeled`,
+`:1532`: the promotion's heart-height change is named by NO root-live
+channel; `direct` LIVE at the root — `ffDirectLive`, `:1085` — but
+its empty-window signature commits the ROOT, whose heart height 0
+separates from the route's 1).
+Physical reading, with a crucial physical TIGHTENING: the ffState
+window contains the one-move PROMOTION `[pileStack ♥A]` — a
+foundation ascent, which in the physical game is `tabToFound` with
+`nextUp` — a COMMITMENT (an `Orig/Mono.lean` measure row; a strict
+measure move).  Physical `ShufflePlay` windows (`Orig/Macro.lean:36`)
+bar such moves AT EACH STEP: the physical free-float residue is
+strictly SMALLER than the old one.  What survives: windows may wander
+with `foundToTab` worry-backs, `tabToTab` re-homing, `tabToFound`-free
+content, and in-phase draws, ending at tips that carry different
+heart-heights — the ffState refutation's geometric residue (a
+`foundToTab`-float can temporary-divert a foundation) still splits.
+It kills: every count over free windows even at non-kings, and every
+residual root-liveness labeling.  PREMISES DICTATED: the per-window
+form — fix (σ, u) outside the successor claim; and the window
+vocabulary depends on the classification (the irrev-repair card) for
+what a physical window may contain at all.
+
+**F5 — succ_labeled's phantom anatomy (the unseat route).**
+Old: `wk_succ_labeled_as_stated_false`,
+`witnesses/SuccLabeledWitness.lean:526` (uState: all seven anchors
+occupied by dealt heads, ♠K stocked at position 0, spade-freeze): the
+window `pileStack ♥A` UNSEATS the anchored head, the king lands on the
+vacated anchor — hole-SHAPED at the tip, dead at the root; no
+`LabelLive`-at-`st` channel names it.  The missing-channel
+characterization (the `anchorHead` one-liner, `:59-64`) and the
+`(a) channel atom vs (b) window gate` decision list live at
+FARM.md:1571-1586 and FARM.md:1800-1803.
+Physical reading: P0 DISSOLVES — `MacroStep` (`Orig/Macro.lean:71`)
+definitionally names (σ, u); there is no root-live channel list to be
+incomplete.  The unseat route becomes an ordinary arm case at the tip
+(the anchor arm with a window that emptied an anchor — and note: a
+physical window can only EMPTY an anchor by moving its sole face-up
+card away, which flips its next hidden card — an irreversible exit,
+so such windows END the phase, they do not wander; the physical
+anatomy is sharper than the old one).  It kills: any attempt to port
+the `hlab` premise family into Orig.  PREMISES DICTATED: none — the
+formulation consequence is structural (arm analysis at the tip), and
+Candidate A/C bake it in.
+
+**F6 — the crease (the same-channel chains).**
+Old: `wk_crease_as_stated_false` (`witnesses/C2KingAnchorWitness.lean:422`) and
+the reachable crease `wk_crease_reachable_false`
+(`witnesses/SuccLabeledWitness.lean:1403`) killed the Sublist-alone absorption;
+the honest replacement `crease_absorbed_reachable`
+(`Klondike/C2Streamlined.lean:2176`) carries `hwin : u = u'` explicitly.  It
+kills the shape "two windows of one channel join because the second's
+accommodation list extends the first's".
+Physical reading: the physical counterpart of `hwin` is the
+endpoint-equality of windows; the ONLY general join mechanism between
+different endpoints is `RevEqW` — `MacroStep_of_RevEqW`
+(`Orig/Combine.lean:250`) re-bases at the FRONT; it says nothing
+about tips.  PREMISES DICTATED: any cross-window join claim cites
+`RevEqW`-class evidence (witness reversible plays), never chain
+containment.  The mixed-window candidate machinery (§4) is bound by
+this fence.
+
+**F7 — the cursor/pace fences (the window's draw side).**
+Old: `solvable_iff_pure_cursors` needed `0 < drawStep`
+(`Klondike/Macro.lean:1076`, the PaceStepZero repair) and
+`window_firstDraw(_macro)` (`Klondike/Macro.lean:1844`/`:1958`)
+located the exclusive window between cursors.  Physical: already
+RE-DERIVED — `draw_irreversible_offset` (`Orig/Phase.lean:900`) makes
+offset draws commitments; `draw_irreversible_pristine` (`:930`),
+`draw_irreversible_of_wasteShape` (`:948`),
+`draw_reversible_selfRecycle(W)` (`:961`/`:968`),
+`drawStep_zero_reversible(W)` (`:881`/`:888`), and the lex variant
+(`:1225`) are the rows.  PREMISES DICTATED: count statements quantify
+over windows with the Phase rows in hand; any "windows may draw"
+clause cites the classification (draw rows done; the in-phase
+round-trip head is the remaining Phase ticket per its file header).
+
+## 3. Candidate statements on Orig
+
+Three candidates + one assembly policy.  All per-window; all state
+commitments AT the tip u; all conclusions available in the two
+gradings (the §5.1 decision): constructive (`sᵢ = sⱼ ∨ RevEqW sᵢ sⱼ`,
+sameFate by `Orig/Combine.lean:222` + `Orig/Fate.lean:52`) or verdict
+(`sameFate sᵢ sⱼ`).  A shared spelling:
+
+```lean
+/-- The commit arms of the drawn card `c` at the window tip `u`:
+the tableau arm over any fitting base, and the foundation arm. -/
+def CommitOf (u : State) (c : Card) (s : State) : Prop :=
+  (∃ b, State.step u (Move.wasteToTab c b) = some s) ∨
+    State.step u (Move.wasteToFound c) = some s
+```
+
+### 3.1 Candidate A — the per-window non-king two-option (the flagship)
+
+```lean
+theorem two_option_window_nonKing {st u : State} {σ : List Move} {c : Card}
+    (hwin : ShufflePlay st σ u) (hwf : u.WF)
+    (htop : u.wasteIs c = true) (hNK : c.rank ≠ Rank.king)
+    {s₁ s₂ s₃ : State}
+    (h₁ : CommitOf u c s₁) (h₂ : CommitOf u c s₂) (h₃ : CommitOf u c s₃) :
+    s₁ = s₂ ∨ s₁ = s₃ ∨ s₂ = s₃ ∨          -- state equality (same arm, same base):
+    RevEqW s₁ s₂ ∨ RevEqW s₁ s₃ ∨ RevEqW s₂ s₃   -- the foundation shuttle
+```
+
+- **Threats to its premiseless form** (why each premise is there):
+  ffState (F4: drops the shared (σ, u) ⇒ the three-successor split
+  revives — this statement fixes the window OUTSIDE the claim);
+  the king-anchor family (F2: drops `hNK` ⇒ anchor-landing splits
+  revive — note `canPlace`'s clauses make the arms self-colored
+  physically: non-kings land only on card bases (`Orig/State.lean:172`),
+  kings only on anchors — `hNK` IS the tableau-arm restriction);
+  nkState (F3: attacks the SHUTTLE disjunct specifically — without the
+  nextUp-rung the two twin landings stay `RevEqW`-unrelated; Candidate
+  A survives it NOT through the shuttle but through the pigeonhole —
+  see the route).
+- **Route (the §16 re-make, physical)** — the old assembly at
+  `Klondike/C2Streamlined.lean:2394` already wrote this proof plan; the
+  physical pigeonhole: any three `CommitOf`-successors fall into
+  armed cases:
+  (T,T,T): the tableau hosts are pile TOPS fitting `c` — at most the
+  two rank+1/opposite-color cards exist at all (`canSitOn`
+  arithmetic, `Orig/Basic.lean:108`), each hosting pile is unique at
+  `WF` (search integrity, `Orig.lean:65-67` — the integrity card's
+  `pileOfTop`-uniqueness ticket), so two of three bases are EQUAL,
+  and same base + same waste ⇒ the SAME successor state (putCard
+  determinism, `Orig/State.lean:43`): first disjunct.  This is the physical
+  `commitTableau_three_nonKing` (`Klondike/C2Streamlined.lean:2351`) +
+  `receivers_twin_pair` (`Klondike/C2Streamlined.lean:127`).
+  (S,S,S)/(*,S,S)/(S,S,*): the foundation arm is one deterministic
+  move — ALL its successors are the same state.
+  (T,T,S) etc.: the foundation arm's own guard supplies the rung
+  (`step u (wasteToFound c) = some s ⟹ nextUp u c`, `Orig/Play.lean:100`)
+  and Candidate B joins the tableau pair — the physical
+  `heights_of_applyDrawStackTo` (`Klondike/C2Streamlined.lean:2042`) +
+  `commitTableau_class` (`Klondike/C2Streamlined.lean:985`) pattern.
+- **PREMISES the ledger prescribes**: `hwf` (F1/F2 class),
+  `hNK` (F2), shared window (F4).  NOTHING else — no rung (extracted),
+  no register/labels (F5), no window-content clause (F4 fixed u).
+- **Dependency chain**: MINIMAL — (i) the integrity card's tickets
+  (`apply_wf`, initial-`WF`, search-integrity) keep the world honest;
+  (ii) Candidate B (internal to the mixed cases); (iii) NOTHING from
+  the irreversibleAt classification (every join is witness-direct);
+  (iv) `RevEqW_sameFate` (in hand).  A fresh card can formulate A
+  FIRST and prove it modulo integrity, before any classification lands.
+
+### 3.2 Candidate B — the foundation shuttle (the rung join core)
+
+```lean
+theorem shuttle_join {u : State} {c : Card} {b₁ b₂ : Base}
+    (hwf : u.WF) (htop : u.wasteIs c = true) (hrung : u.nextUp c = true)
+    {s₁ s₂ : State} (h₁ : State.step u (Move.wasteToTab c b₁) = some s₁)
+    (h₂ : State.step u (Move.wasteToTab c b₂) = some s₂) :
+    RevEqW s₁ s₂ ∧ RevEqW s₂ s₁   -- one bundled round trip; see the route
+```
+
+- **Route**: the two-move physical round trip — at s₁ (on a card base:
+  `c` face-up pile-top, the pile nonempty beneath it since `c` is a
+  non-king on a card), `tabToFound c` fires (`nextUp c` + pile top),
+  landing a mid state whose foundation holds `c`; `foundToTab c b₂`
+  fires there (`canPlace c b₂` survives: piles were untouched), and
+  the result is literally s₂ (the waste/stock/pile/read books all
+  match: same splice, same chop-back).  The reverse direction is the
+  symmetric pair.  Both legs are `reversibleAtW` at their own states
+  (`Orig/Fate.lean:92`) — the shuttle IS a `RevEqW` witness pair,
+  which is why the conclusion is constructive-graded.
+- **Threats**: nk_split (F3 — `hrung` is the witness-proven
+  load-bearing premise; dropping it is exactly the refuted
+  `commitTableau_class`-without-rung form at NonKingWitness:676);
+  the crease family (F6 — no chain-form weakening);
+  king-anchor family (F2 — and here the exclusion is STRUCTURAL:
+  kings cannot land on card bases at all, so B needs no explicit
+  `hNK`; the reveal corner that killed the old unrestricted shuttle
+  (`afterRunRemoved`'s flip when `faceUp` empties — the physical root
+  of the king splits) is UNREACHABLE on B's domain).
+- **PREMISES**: `hwf`, the rung, card-bases only.  **Dependencies**:
+  integrity tickets only; witness-direct; classification-free.  This
+  is the smallest self-sufficient join row — the obvious FIRST COMMIT
+  for the formulating card.
+
+### 3.3 Candidate C — the king/anchor side (the frozen corner, graded)
+
+```lean
+theorem king_anchor_side {u : State} {c : Card}
+    (hwf : u.WF) (htop : u.wasteIs c = true) (hK : c.rank = Rank.king)
+    (hfrozen : FrozenSuit u c.suit)        -- no card of c.suit can ascend
+                                          -- (spade-freeze analogue)
+    {s₁ s₂ s₃ : State}
+    (h₁ : CommitOf u c s₁) (h₂ : CommitOf u c s₂) (h₃ : CommitOf u c s₃):
+    ... -- the regime-staged conclusion below
+```
+
+- **The physical anatomy replacing the old proof split**: under `hK`
+  the tableau arm over card bases is dead (`canSitOn` arithmetic),
+  so the successors are: the foundation arm whenever the suit has
+  ascended to the king's rung (unique, deterministic) and the ANCHOR
+  landings — one per genuinely-empty pile `{a : u.piles a | isEmpty}`,
+  each flipping the anchor's next hidden card (a strict descent in
+  the hidden-count measure — an `Orig.Mono` commitment row).
+  Anchor-landing states pair up: s(a), s(a′) carry the two revealed
+  cards hₐ, hₐ′ — EQUAL iff the anchors' flips coincide (impossible
+  at a state where they're distinct) ⇒ pairwise `RevEqW`-unrelated,
+  and fate-distinct whenever the reveals play differently.
+- **The physical proof-plan split is graded by regimes** (all named,
+  none fully settled — this candidate is a program, not a single
+  sprint): (i) the ONE-anchor regime (≤ 1 genuinely empty pile —
+  the wave-19 corpus register proportions FARM.md:2309-2314) has at
+  most ONE anchor successor ⇒ at most TWO classes trivially
+  (the physical `same_pin_hole_oneAnchor`, `Klondike/C2Streamlined.lean:2077`);
+  (ii) the FROZEN one-anchor corner gets the
+  `c2_two_option_king_frozen` (`Klondike/C2Streamlined.lean:2143`) treatment
+  with the flip extracted; (iii) the multi-anchor worlds go by the
+  pile-permutation symmetry — physically a relabeling of `Anchor`
+  commutes with `step`/`run`/`isWin`/`WF` (the wave-22 content: the
+  "(2 + 1)" grading of `pristine_commit_firstCut`,
+  `witnesses/PileQuotientCorollaries.lean:176`, its four-futures
+  grading `:210`, the fates reading `:260` — physical counterpart
+  nearly free since pile transposition is an honest state symmetry
+  here, not a quotient construction).
+- **Threats**: the rState reachable corner (F2/wave-20 addendum —
+  `witnesses/SuccLabeledWitness.lean:1156`/`:1357`) — a DEALT-INITIAL state
+  presenting six usable anchors: gates do not fence this; C must
+  carry real regime or symmetry content.  The corpus numbers are the
+  evidence for the regime order (§5.2).
+- **Dependencies**: the irrev-repair card (the flip/hidden measure
+  row — the revealed-permanence classification), integrity, and for
+  the frozen definition either a physical spade-freeze port (the
+  `witnesses/SuccLabeledWitness.lean:32-40` argument replayed physically — its
+  state-level walk survives the physical translation wholesale) or its
+  classification-side derivation.
+
+### 3.4 Assembly policy (the gated umbrella, `c2_two_option_reachable`'s port)
+
+```lean
+theorem two_option_reachable {st : State} (hreach : InitialReachableO st) ...
+```
+with the same conclusion as A over windows at `u` reachable from `st`,
+is the LAST row, assembled from regimes: the gate discharges `u.WF`
+(and `visCleanO`) via the reachability card's combinator and NOTHING
+else (the `c2_two_option_reachable`
+`Klondike/C2Streamlined.lean:2205` pattern, wave-20's honest regime list
+FARM.md:1778-1783).  Each new proven regime "slots straight in"
+(FARM.md:1806-1807).  The one arm with NO Orig analogue yet: the
+never-refuted `hball` residue (the stack-plus-two-live-balls corner,
+`Klondike/C2Streamlined.lean:1251`) — physically the worry-ray geometry of the
+`stack_ball_corner` plan (`Klondike/C2Streamlined.lean:1700`).  STATE IT OPEN:
+the physical raise-ray (deterministic same-suit rank-mate ascent —
+physically: founding a rung-matched card is unique per suit) is
+expected-true-unproven; the formulating card names it, does not
+pretend it.
+
+## 4. The window-content atom, translated to physical windows
+
+Wave-21's ticket 1 (FARM.md:2435-2441) asks for a `windowContent`
+atom — the window's own move multiset as a signature — to fix BOTH
+the king unseat route and the non-king free-float lane, or else keep
+the gated reading.  Translated:
+
+**σ : List Move is already the natural free signature, because the
+physical `MacroStep` carries windows as DATA.** The old atom's job
+(label successors the root-channel list cannot name) is done away
+with by the arm analysis at the tip (F5).  The atom's REMAINING job
+in Orig is one step harder: deciding WHICH windows to pool — the
+wave-21 NEXT-3 relaxation (FARM.md:2447-2449: per-window founder pairs
+for three DIFFERENT u's), which is exactly the question the free-float
+refutations left open.
+
+What the atom must quotient away, and why:
+
+1. **Front differences** — MANDATORY: `MacroStep_of_RevEqW`
+   (`Orig/Combine.lean:250`) re-bases any window along a witness
+   shuffle at its start; two windows differing by a `RevEqW` at the
+   front name provably-identical successor claims.  An atom finer
+   than this re-opens the free-float disease INSIDE the signature.
+2. **Excursion-pair noise** — MANDATORY: a window and itself with a
+   `[foundToTab c b; tabToFound c]`-shaped reversible round-trip
+   inserted or deleted net to the same state along the same
+  observations (the cancel identities: the excursion pair's
+  `stackPile_pileStack_return`-shaped net-zero, recorded beside
+  `run_worryback_pair_excise` at FARM.md:1316).  The multiset
+  COUNTS such pairs — it must not distinguish on them.
+3. **Endpoint identifications** — OPEN, THE OBSERVED LOAD-BEARING
+   RESIDUE: pooling `RevEqW u u'` related tips (same commit move,
+   both windows shuffle-linked there) is NOT covered by Combine:250 —
+    that lemma moves starts, never tips.  The deciding evidence: ffWin
+    (tips whose commit-relevant reads differ — the heart height —
+    MUST stay distinguished: `ffSucc_unlabeled`,
+    `witnesses/NonKingWitness.lean:1532`) versus w15circ (suggests at WF extra
+    content tends to be absorbable — the anchor-relocation collapse,
+    FARM_MEMORY:2112-2118); between them, the boundary is the
+    classification of the window's own content — a promotion cannot
+    occur inside a physical window at all (it is irreversible;
+    ShufflePlay bars it), so the ffState cast itself becomes
+    UNSTATEABLE physically: the physical atom question is strictly
+    about worry-back/re-home/in-phase-draw differences.
+   Whether ANY surviving physical float separates tips is a
+   CORPUS QUESTION (§7, first re-derivation list item).
+4. **Draw-copy blindness** — like the old cursor-blindness
+   (`accommodates_cursor_blind`, `Klondike/Macro.lean:717`): the
+   same effective window drawn at different in-phase cursors must
+   pool; the Phase rows (in-phase draws reversible, offset draws
+   barred from windows) make this a FINER residual than the old
+   mask arithmetic — the draw-arm analysis falls out of the
+   classification, not from the atom.
+
+Net formulation advice: state every count per-window (exact sigma
+shared); treat the atom ONLY as the future relaxation device — the
+equivalence-closure of rules 1, 2 (sound unconditionally by
+Combine:250 + the cancel identities) with 3, 4 added when decided
+by the re-derived corpus.
+
+## 5. Open design decisions, each with the deciding evidence named
+
+1. **The count's grading: constructive (state-equality ∨ `RevEqW`) vs
+   verdict (`sameFate`).**  `sameFate` is the chapter plan's own coin
+   ("two `sameFate`-distinct successors", `Orig.lean:77-79`) and
+   matches the physical vocabulary; BUT it is observable-cheap at dead
+   pairs (any two
+   unwinnable successors are `sameFate`), which is exactly what
+   the nkState corner exhibits (nkSuccessorsExhaustTwo is a genuine
+   count but its sameFate reading there is carried trivially).
+   Candidate A/C above are stated constructive-graded with the
+   sameFate form as the corollary — the wave-22 precedent (counts on
+   constructive classes, verdicts read through:
+   `closureEq_solvableCW_iff`, `witnesses/PileQuotientCorollaries.lean:69`;
+   `c2_two_option_fate`, `:99`) supports this.  DECIDING EVIDENCE:
+   find (or fail to find, corpus-side) a physical state with three
+   LIVE sameFate-distinct commit-successors at one window — that
+   witness separates the gradings; none exists yet.
+2. **The king corner's route: regime premises vs anchor-orbit
+   symmetry.**  DECIDING EVIDENCE: the wave-21 corpus numbers —
+   the ≥2-anchor regime is 7.4% of the blocked-king world
+   (FARM.md:2309-2314), the unseat route's raw material a 4-12%
+   phenomenon with king landings the reversible-except-route class
+   (FARM.md:2334-2340) — and the reachability fact that the rState
+   corner is zero-move reachable (F2).  If the orbit route (3.3(iii))
+   lands cheap, spend no time on graded regimes beyond one-anchor.
+3. **Exchange rows: sequenced before or after the count.**  The
+   fences dictate the count never consults unfenced exchanges (F1);
+   Candidate A's route, scope-excluding the exchange family, says
+   count first.  DECIDING EVIDENCE: the w15 corpus re-derivation
+   (§7) — if the physical exchange rows land WITHOUT new premises
+   (expected: the w15circ collapse), they may be scheduled any time;
+   if they demand premises, the count must not wait on them.
+4. **The endpoint-pooling atom (§4.3).**  OPEN; deciding evidence:
+   the re-derived ffWin question (does ANY physical float separate
+   tips?) + the in-flight in-phase round trip (Phase's remaining
+   ticket), which decides how much of the old cursor-window residue
+   survives at all.
+5. **`visCleanO`'s final shape.**  Keep the packaged predicate or
+   retire the conjunction into WF-land after the five-line card.
+   DECIDING EVIDENCE: the first physical exchange card's fence
+   inventory — if the merge-corner fences need only `WF` + Mono
+   measure rows, retire; if a genuine cross-pile discipline
+    surfaces, keep and strengthen.  (The old evidence — the refit of
+    `initialReachable_visClean` onto the combinator, recorded at
+    FARM.md:1836 with the lemma at `Klondike/Restriction.lean:659` —
+    says the combinator route works either way.)
+6. **Which irreversibility facts the window vocabulary may assume.**
+   The windows quantified over in A/B/C are THEORIES about
+   `ShufflePlay`; as the classification lands, richer windows become
+   provable (in-phase draws, worry-back content).  DECIDING EVIDENCE:
+   the irrev-repair card's tables (the non-draw rows: flips,
+   foundToTab reversibility, the foundTotal no-worry row per
+   `Orig.lean:71-73`) — richer windows = stronger counts; none of
+   A/B/C's STATEMENTS change.
+
+## 6. Tickets for the formulating card (the recommended order)
+
+1. THE RESCUE ORDER: B first (the shuttle — smallest, witness-direct,
+   needs no dependencies), then A (the flagship; integrity + B), then C
+   by regimes (one-anchor + frozen first), then the gated umbrella.
+2. The corpus re-derivation FIRST (per `Orig.lean:78-80`, "the
+   `Klondike` witness corpus re-derived here first") — §7's list.
+3. The five-line card: `visCleanO` found-discipline redundancy
+   (the cleanliness gate discharge via the reachability card's
+   `invariant_preservation`).
+4. The flip/hidden-count Mono instantiation (revealed-permanence) —
+   shipped to the irrev-repair card's measure tables if that card
+   takes it; else owned by C's card.
+5. The open arm named honestly in every gated assembly: the physical
+   raise-ray residue (`stack_ball_corner`'s port — expected-true,
+   unformalized; no sorry stubs in stubs' clothing).
+
+## 7. The corpus re-derivation list (witnesses to re-derive physically)
+
+Per the ticket's own words, before or alongside the formulations —
+expected difficulty and expected verdicts, all pre-cited:
+
+- nkState + nkSplit (NonKingWitness:657-758): STRAIGHTFORWARD to
+  re-cast (pristine physical deals; every prior witness ingredient is
+  physical already — a spade stock card, twin dealt heads, heights
+  0).  Expected verdict: the split lands verbatim in the
+  constructive grading; the `sameFate` reading collapses to trivial
+  at the dead pair — the grading separator (§5.1) this corpus
+  provides for free.
+- ffState (NonKingWitness:1563-1665): the CAST ITSELF
+  SELF-DESTRUCTS physically (the promotion inside the window is a
+  commitment — barred from `ShufflePlay`); the re-derivation is the
+  NEW search for a warrant-borne float (worry-back/re-home/phase-draw
+  content separating tips) — deciding §4.3/§5.4.  Either outcome is
+  publishable: no float ⇒ coarser pooling is sound; a float ⇒ the
+  uniform-window premise is load-bearing in the physical regime too.
+- rState (SuccLabeledWitness:931, the addendum): nearly verbatim —
+  it is a dealt INITIAL state; the addendum's split and unseat
+  arguments (rStep:1077, rSucc_unlabeled:1133, rLand_split:1337,
+  rFrozen_seat_step:1239) translate to physical flips and guards.
+  Expected verdict: the splits LAND (the physical game is faithful
+  here) — this corpus anchors C's regime premises.
+- C2KingAnchorWitness (the pristine world, :378-:422): re-castable;
+  the pristine stock/freeze arguments are physical; expected
+  verdict: splits land (the flip differences), and the wave-19B
+  reachability verdict (`witnesses/KingAnchorReachProbe.lean:435`/`:449`/`:473`)
+  awaits the physical combinator's own unreachability rows once the
+  reachability card lands.
+- The w15 family (probes/w15merge.lean, w15circ.lean,
+  w15wfmerge.lean; FARM_MEMORY:2073, :2104): the merge witness is
+  UNSTATEABLE physically (F1 — the crafted state violates WF); the
+  re-derivation is the WF-recast hunt (the w15circ pattern), with
+  the EXPECTED outcome per the collapse kit (FARM_MEMORY:2112-2122
+  and `Klondike/TwinCollapse.lean`'s anchor-relocation lemma family):
+  the casts die at WF — the physical exchange rows are expected to
+  be premise-light (hwf and twinLicense only).  Schedule late
+  (§5.3).
+
+*Coda — what the note deliberately did not do*: no Lean was touched;
+no channel list was resurrected; the `anchorHead` atom question
+(SuccLabeledWitness:46-67, "orchestrator scope") is DEFERRED to the
+old-side orchestrator — the physical design dissolves its motivation,
+but the decision there is not this note's to make.  House doc
+discipline: this file adds no sorries, cites none, and should be read
+against `witnesses/README.md`'s regression-layer protocol
+(`witnesses/README.md:13-22`) and the census header (FARM.md:3).
