@@ -2853,4 +2853,64 @@ theorem drawClass {st : State} (hwf : st.WF) :
             exact draw_irreversible_offset hd hne
               (of_decide_eq_true hshape)
 
+/-! ## The assembled oracle
+-/
+
+/-- The per-move oracle shape, assembled out of the classification
+rows: the draw row from `drawIrr`, the waste rows trivially true
+(the cycle count drops on every legal waste move, no gate), and
+the three table moves from their shape predicates.  At `WF`
+states `irreversible_iff_of` makes this decide the semantic
+predicate exactly, and `decidable_irreversibleAt_of_wf` converts
+the iff into a choice-free `Decidable`.  Deliberately *not* a
+global instance-gate: at wild states the shape and the semantics
+diverge in both directions — the design fork's witnessed corners
+(the witness archive) — so the predicate is only an oracle where
+the position is known to be `WF`. -/
+def irreversibleOf (st : State) (m : Move) : Bool :=
+  match m with
+  | .draw => drawIrr st
+  | .wasteToFound _ => true
+  | .wasteToTab _ _ => true
+  | .tabToFound c => tabToFoundIrr st c
+  | .foundToTab c b => foundToTabIrr st c b
+  | .tabToTab c b => tabToTabIrr st c b
+
+/-- The oracle's WF-gated specification: at a `WF` state the bool
+assembly decides the semantic irreversibility predicate exactly,
+constructor by constructor through the landed classifications. -/
+theorem irreversible_iff_of {st : State} (hwf : st.WF) (m : Move) :
+    irreversibleAt st m ↔ irreversibleOf st m = true := by
+  cases m with
+  | draw => exact drawClass hwf
+  | wasteToFound c =>
+      constructor
+      · intro _
+        rfl
+      · intro _
+        exact irreversibleAt_wasteToFound st c
+  | wasteToTab c b =>
+      constructor
+      · intro _
+        rfl
+      · intro _
+        exact irreversibleAt_wasteToTab st c b
+  | tabToFound c => exact tabToFoundClass hwf c
+  | foundToTab c b => exact foundToTabClass hwf c b
+  | tabToTab c b => exact tabToTabClass hwf c b
+
+/-- The decider rider: at `WF` states the semantic predicate
+`irreversibleAt st m` is decidable through the oracle's iff —
+no `Classical.choice` anywhere in the decision.  Stated as a
+plain definition (an instance gate would claim decidability at
+wild states, where the shape and the semantics diverge). -/
+def decidable_irreversibleAt_of_wf {st : State} (hwf : st.WF) (m : Move) :
+    Decidable (irreversibleAt st m) := by
+  cases h : irreversibleOf st m with
+  | true => exact isTrue ((irreversible_iff_of hwf m).mpr h)
+  | false =>
+      exact isFalse (fun hirr => by
+        rw [(irreversible_iff_of hwf m).mp hirr] at h
+        exact Bool.noConfusion h)
+
 
