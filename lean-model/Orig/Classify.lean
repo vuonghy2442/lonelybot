@@ -578,7 +578,13 @@ private theorem take_length_min {α : Type} (l : List α) : ∀ (n : Nat),
           omega
 
 /-- Taking no deeper than an earlier take reaches the same
-prefix. -/
+prefix.  (Tranche two's de-choice: the landed proof closed the
+`m' + 1 ≤ 0` cell with `omega`, and that `omega` call — atomizing a
+`List.take`-bearing equation — is the single `Classical.choice`
+carrier of the whole tranche-one spine, located by an
+environment-wide private-constant axiom survey; `Suit.upCards_length`
+was clean, the wrong suspect.  The explicit `Nat.not_succ_le_zero` /
+`Nat.le_of_succ_le_succ` cells audit axiom-free.) -/
 private theorem take_take_le {α : Type} (l : List α) : ∀ (m n : Nat), m ≤ n →
     (l.take n).take m = l.take m := by
   induction l with
@@ -589,10 +595,10 @@ private theorem take_take_le {α : Type} (l : List α) : ∀ (m n : Nat), m ≤ 
       | 0 => intro _; rfl
       | m' + 1 =>
           match n with
-          | 0 => intro hle; omega
+          | 0 => intro hle; exact absurd hle (Nat.not_succ_le_zero m')
           | n' + 1 =>
-              intro _
-              exact congrArg (x :: ·) (ih (m') (n') (by omega))
+              intro hle
+              exact congrArg (x :: ·) (ih (m') (n') (Nat.le_of_succ_le_succ hle))
 
 /-- Taking to a list's own length is the identity. -/
 private theorem take_length_self {α : Type} (l : List α) : l.take l.length = l := by
