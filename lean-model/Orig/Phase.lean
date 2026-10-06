@@ -1283,3 +1283,51 @@ theorem draw_irreversible_offset_lex {st : State}
 
 
 
+
+/-! ## The orbit scaffolding: the draw at exact depth -/
+
+/-- The exact split of `dealUpTo` into take and drop: dealing `k` cards
+from the front is taking `k` (clipped by `List.take` itself) and
+dropping `k`. -/
+private theorem dealUpTo_eq_take_drop (k : Nat) : ∀ (l : List Card),
+    State.dealUpTo k l = (l.take k, l.drop k) := by
+  induction k with
+  | zero => intro l; rfl
+  | succ k ih =>
+      intro l
+      cases l with
+      | nil => rfl
+      | cons c cs =>
+          rw [State.dealUpTo, ih cs]
+          rfl
+
+/-- One plain draw (the stock is nonempty, so no recycle fires): the
+head card moves stock-to-waste, list-exact. -/
+private theorem plain_draw_shape {x : State} (hne : x.stock ≠ []) :
+    x.stepDraw = some
+      { x with stock := x.stock.drop x.drawStep,
+               waste := (x.stock.take x.drawStep).reverse ++ x.waste } := by
+  rw [State.stepDraw, show State.recycle x = x from recycle_keep x hne,
+    dealStock_eq_of_ne_nil x hne, dealUpTo_eq_take_drop]
+
+/-- One pass-end draw (the stock is empty and the waste nonempty, so
+the recycle fires): the waste becomes the stock reversed, and one clipped
+deal moves back onto the waste. -/
+private theorem base_draw_shape {x : State} (hstock : x.stock = ([] : List Card))
+    (hw : x.waste ≠ []) :
+    x.stepDraw = some
+      { x with stock := x.waste.reverse.drop x.drawStep,
+               waste := (x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card) } := by
+  have hrne : x.waste.reverse ≠ [] := by
+    intro hc
+    have hlen := congrArg List.length hc
+    rw [List.length_reverse, List.length_nil] at hlen
+    obtain ⟨c0, t0, hwcon0⟩ := list_cons_of_ne_nil hw
+    have h1 : 1 ≤ x.waste.length := by
+      rw [hwcon0, List.length_cons]; omega
+    omega
+  rw [State.stepDraw, recycle_nil x hstock hw,
+    dealStock_eq_of_ne_nil _ hrne, dealUpTo_eq_take_drop]
+
+
+
