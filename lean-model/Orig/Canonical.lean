@@ -1201,6 +1201,83 @@ theorem stackRun_wf {st : State} (hwf : st.WF) {l : List Move} {w : State}
         exact hstep
       exact ih (lift_wf hwf hc hstep')
 
+/-! ### Monone stackability: the license survives another lift -/
+
+/-- Two rung-ready cards of one suit would be one card. -/
+private theorem nextUp_suit_disjoint {st : State} {c d : Card}
+    (hc : st.nextUp c = true) (hd : st.nextUp d = true) (hne : c ≠ d) :
+    c.suit ≠ d.suit := by
+  intro hs
+  apply hne
+  have h1 : c.rank.toIdx = st.foundHeight c.suit := of_decide_eq_true hc
+  have h2 : d.rank.toIdx = st.foundHeight d.suit := of_decide_eq_true hd
+  have h3 : st.foundHeight c.suit = st.foundHeight d.suit := by rw [hs]
+  have h4 : c.rank.toIdx = d.rank.toIdx := by omega
+  have h5 : c.rank = d.rank := Rank.toIdx_inj h4
+  show c = d
+  rcases c with ⟨s, r⟩
+  rcases d with ⟨s', r'⟩
+  have h1 : s = s' := hs
+  have h2 : r = r' := h5
+  rw [h1, h2]
+
+/-- The foundation projection of a `setFound`. -/
+private theorem setFound_field (st : State) (s : Suit) (l : List Card) (σ : Suit) :
+    (st.setFound s l).found σ = if σ = s then l else st.found σ := by
+  by_cases hσ : σ = s
+  · rw [hσ, ite_eq_left rfl]
+    exact setFound_found_self st s l
+  · rw [ite_eq_right hσ]
+    exact setFound_found_ne st s l σ hσ
+
+/-- **(2a) Monotone stackability for the license**: after a
+licensed lift of another card, `c`'s license survives — its suit's
+foundation is untouched (different suit by rung injectivity), its
+seat's shape is untouched (a different anchor, since two tops of
+one pile would be one card), and the pile-top search still pins
+the same seat. -/
+theorem canRaise_lifted {st : State} {c d : Card} {s' : State}
+    (hwf : st.WF) (hc : CanRaise st c) (hd : CanRaise st d) (hne : c ≠ d)
+    (hstep : State.step st (Move.tabToFound d) = some s') :
+    CanRaise s' c := by
+  obtain ⟨hnc, ac, hpc, hsc⟩ := hc
+  obtain ⟨-, ad', hpd', hshape⟩ := step_tabToFound_inv hstep
+  have hs'wf : s'.WF := lift_wf hwf hd hstep
+  obtain ⟨hnd, ad, hpd, -⟩ := hd
+  rw [hpd] at hpd'
+  injection hpd' with hdd
+  rw [← hdd] at hshape
+  -- the seats differ (two tops of one pile would be one card)
+  have hane : ac ≠ ad := by
+    intro heq
+    apply hne
+    have t1 := pileOfTop_top hpc
+    have t2 := pileOfTop_top hpd
+    rw [heq] at t1
+    exact Option.some.inj (t1.2.symm.trans t2.2)
+  have hsd : c.suit ≠ d.suit := nextUp_suit_disjoint hnc hnd hne
+  have hnp : (s').nextUp c = true := by
+    have hF := (raise_foundTransport hstep).2
+    show decide (c.rank.toIdx = ((s').found c.suit).length) = true
+    rw [hF c.suit, ite_eq_right hsd]
+    exact hnc
+  have hpac : (s').piles ac = st.piles ac := by
+    rw [hshape]
+    show (if ac = ad then
+        Pile.afterRunRemoved (st.piles ad) (chop (st.piles ad).faceUp)
+        else st.piles ac) = _
+    rw [ite_eq_right hane]
+  have hsr : (s').pileOfTop c = some ac :=
+    (pileOfTop_eq_some_iff hs'wf).2 (by
+      show ((s').piles ac).top = some c
+      rw [hpac]
+      exact (pileOfTop_eq_some_iff hwf).1 hpc)
+  have hshp : chop ((s').piles ac).faceUp ≠ [] ∨
+      ((s').piles ac).hidden = [] ∧ c.rank = Rank.king := by
+    rw [hpac]
+    exact hsc
+  exact ⟨hnp, ac, hsr, hshp⟩
+
 
 
 
