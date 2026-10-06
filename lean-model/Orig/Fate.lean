@@ -43,7 +43,7 @@ def Reach (s s' : State) : Prop := ∃ play, s.run play = some s'
 
 /-- Winnability of a position — the verdict. -/
 def WinFrom (s : State) : Prop :=
-  ∃ play w, s.run play = some w ∧ w.isWin
+  ∃ play w, s.run play = some w ∧ w.isWin = true
 
 /-- Two positions with the same verdict — the primitive "same
 future". -/

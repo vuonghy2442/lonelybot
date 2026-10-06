@@ -60,21 +60,34 @@ def putRun (st : State) (run : List Card) (b : Base) : State :=
 
 /-! ## The draw -/
 
-/-- Recycle the waste into the stock when the stock is empty, then
-deal up to `drawStep` cards. -/
-def stepDraw (st : State) : Option State :=
-  let st' :=
-    match st.stock with
-    | [] =>
-        match st.waste with
-        | [] => st
-        | w => { st with stock := w.reverse, waste := [] }
-    | _ => st
-  match st'.stock with
+/-- Deal up to `k` cards from `l`: the dealt cards, in deal order, and
+the rest. -/
+def dealUpTo (k : Nat) (l : List Card) : List Card × List Card :=
+  match k, l with
+  | 0, _ => ([], l)
+  | _+1, [] => ([], l)
+  | k+1, c :: cs => let r := dealUpTo k cs; (c :: r.1, r.2)
+
+/-- Recycle the waste into the stock, if the stock is empty. -/
+def recycle (st : State) : State :=
+  match st.stock with
+  | [] =>
+      match st.waste with
+      | [] => st
+      | w => { st with stock := w.reverse, waste := [] }
+  | _ => st
+
+/-- Deal from a nonempty stock into the waste. -/
+def dealStock (st : State) : Option State :=
+  match st.stock with
   | [] => none
   | s =>
-      let n := Nat.min st'.drawStep s.length
-      some { st' with stock := s.drop n, waste := (s.take n).reverse ++ st'.waste }
+      let d := dealUpTo st.drawStep s
+      some { st with stock := d.2, waste := d.1.reverse ++ st.waste }
+
+/-- Recycle the waste into the stock when the stock is empty, then
+deal up to `drawStep` cards. -/
+def stepDraw (st : State) : Option State := dealStock st.recycle
 
 /-! ## The step function -/
 
@@ -135,5 +148,17 @@ def run (st : State) : List Move → Option State
       match State.step st m with
       | some st' => State.run st' ms
       | none => none
+
+/-- Decomposition of a `run` step for proofs. -/
+theorem run_cons {st : State} {m : Move} {rest : List Move} {w : State}
+    (h : st.run (m :: rest) = some w) :
+    ∃ s₁, State.step st m = some s₁ ∧ s₁.run rest = some w := by
+  cases hstep : State.step st m with
+  | none =>
+      rw [show st.run (m :: rest) = none by simp only [State.run, hstep]] at h
+      exact absurd h (by simp)
+  | some s₁ =>
+      refine ⟨s₁, rfl, ?_⟩
+      simpa only [State.run, hstep] using h
 
 end State

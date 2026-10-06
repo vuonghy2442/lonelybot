@@ -30,18 +30,25 @@ def Anchor.toIdx : Anchor → Nat
 pile-top card. -/
 abbrev Base := Sum Anchor Card
 
-/-- The first anchor satisfying `p`, if any.  At `WF` states the
-match is unique (a later chapter proves this); on arbitrary states
-the first wins. -/
-def pickAnchor (p : Anchor → Bool) : Option Anchor :=
-  if p .p0 then some .p0
-  else if p .p1 then some .p1
-  else if p .p2 then some .p2
-  else if p .p3 then some .p3
-  else if p .p4 then some .p4
-  else if p .p5 then some .p5
-  else if p .p6 then some .p6
-  else none
+/-- The first item of `l` satisfying `p`. -/
+def firstWhere {α : Type} (p : α → Bool) : List α → Option α
+  | [] => none
+  | x :: t =>
+      match p x with
+      | true => some x
+      | false => firstWhere p t
+
+theorem firstWhere_sound {α : Type} (p : α → Bool) :
+    ∀ {l : List α} {x : α}, firstWhere p l = some x → p x = true
+  | [], _, h => by simp [firstWhere] at h
+  | y :: t, _, h => by
+      rw [firstWhere] at h
+      split at h
+      · rename_i hy
+        injection h with hxy
+        subst hxy
+        exact hy
+      · exact firstWhere_sound p h
 
 /-! ## List helpers (self-contained) -/
 
@@ -72,6 +79,7 @@ def fromCard (c : Card) : List Card → List Card
 /-- One tableau pile.  `hidden` keeps the next-to-flip card at its
 head; `faceUp` is bottom-first, so the pile top is the *last* element
 of `faceUp`. -/
+@[ext]
 structure Pile : Type where
   hidden : List Card
   faceUp : List Card
@@ -125,6 +133,7 @@ def runOK : List Card → Bool
 /-- A game position.  Everything the physical game needs is here:
 the foundations as built-up lists, the piles with their own hidden
 cards, the stock in draw order, the waste with its top at the head. -/
+@[ext]
 structure State : Type where
   /-- Cards built onto each foundation, in build order (ace first,
   top last). -/
@@ -148,11 +157,11 @@ def topOf (st : State) (a : Anchor) : Option Card := (st.piles a).top
 
 /-- The pile whose top card is `z`, if any. -/
 def pileOfTop (st : State) (z : Card) : Option Anchor :=
-  pickAnchor fun a => decide (st.topOf a = some z)
+  firstWhere (fun a => decide (st.topOf a = some z)) Anchor.all
 
 /-- The pile holding `c` face up, if any. -/
 def pileHolding (st : State) (c : Card) : Option Anchor :=
-  pickAnchor fun a => decide (c ∈ (st.piles a).faceUp)
+  firstWhere (fun a => decide (c ∈ (st.piles a).faceUp)) Anchor.all
 
 /-- May `c` be placed on `b` right now?  A king onto an empty
 position; otherwise onto a pile top it fits under.  The fit rules
@@ -171,6 +180,22 @@ def wasteIs (st : State) (c : Card) : Bool :=
   match st.waste with
   | [] => false
   | c' :: _ => decide (c' = c)
+
+/-- The waste top test at an empty waste. -/
+theorem wasteIs_nil {st : State} {c : Card} (h : st.waste = []) :
+    st.wasteIs c = false := by
+  rw [show st.wasteIs c =
+      (match st.waste with
+        | [] => false
+        | c' :: _ => decide (c' = c)) from rfl, h]
+
+/-- The waste top test at a nonempty waste: it compares the heads. -/
+theorem wasteIs_cons {st : State} {x : Card} {t : List Card} (h : st.waste = x :: t)
+    (c : Card) : st.wasteIs c = decide (x = c) := by
+  rw [show st.wasteIs c =
+      (match st.waste with
+        | [] => false
+        | c' :: _ => decide (c' = c)) from rfl, h]
 
 /-- Is `c` the next card for its suit's foundation? -/
 def nextUp (st : State) (c : Card) : Bool :=
