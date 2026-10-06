@@ -56,10 +56,14 @@ Chapter plan (each later chapter is a derived construction):
    cycle-count drop); the packaging
    `draw_irreversible_of_wasteShape`; the constructive base
    `draw_reversible_selfRecycle`; `drawStep_zero_reversible` — the
-   `0 < drawStep` premise proven genuinely necessary (WF-free
-   statements: draws are the identity at zero).  The in-phase
-   reversible round trip (drain + redeal) and the head `iff` are
-   still on the card.
+    `0 < drawStep` premise proven genuinely necessary (WF-free
+    statements: draws are the identity at zero).  The in-phase
+    round trip and the head classification are banked: the witness
+    `draw_reversible_inphaseW` with `draw_reversible_inphase`, and
+    the classification pair `draw_irreversibility_class` (whose
+    `st.stock ≠ []` premise is load-bearing — the iff degenerates
+    at empty stock, the degeneration documented in the docstring)
+    and `drawStep_one_class`.
 7. Tickets, in dependency order:
    - `step` preserves `State.WF` (the conservation invariant, all
      six move kinds);
