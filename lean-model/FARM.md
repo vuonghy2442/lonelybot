@@ -1,10 +1,17 @@
 # The proof farm — handoff document
 
-**Census: 11 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
+**Census: 10 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
 · Movability 0 · C2Streamlined 0 · TwinSwapCompletion 1
-· Restriction 2 · TwinExchange 1 · TwinQuotient 2; zero bullets;
-waves 12/17 base + all four wave-18 sessions + the wave-19 C2
-re-scope, 2026-10-05: §8.7 closed
+· Restriction 1 · TwinExchange 1 · TwinQuotient 2; zero bullets;
+wave-22 (2026-10-06, the b2-residue session): the wave-21
+`replay_head_residue` SHARPENED — its bare-at-rung half is PROVEN
+machinery (`pilePile_via_foundation` + the measure skeleton
+`replay_head_len`), both B2 rows (statements unchanged) now rest on
+the single named `arrangement_tail_residue` alone (the off-rung bare
+relocation + the covered carrier — no_pile_to_pile.md §5's
+arrangement-tail rewrite; the wave-22 paragraph plan at its site —
+see the row below); the predating waves 12/17 base + the wave-18/19/20/21
+history, 2026-10-05: §8.7 closed
 by movability-equivalence; the C2 pillar set refute-probed — FOUR of
 the five wave-17 pillars FALSE as stated (C2KingAnchorWitness; the
 as-stated c2_two_option among them — the unstackable-at-rung corner
@@ -29,7 +36,7 @@ audit — the corpus histogram half remains the harness ticket),
 leaving TwinSwapCompletion pinned at `sweep_covered_corner_safety`
 alone.  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 11 are
+any NEW sorry or the return of a refuted constant.  All 10 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -2338,4 +2345,68 @@ windows on ~a third of distinct promotion seatings (diststate cost), a
 gate built at the lettered NOW strength would misfire on half; king
 landings are the reversible-except-route class both routes treat
 identically.  Numbers, examples, and bounds: the results file.
+
+## Wave 22 — the B2 residue decomposed: the bare-at-rung detour landed, the arrangement-tail residue named (2026-10-06, the b2-residue session at macro-game HEAD 1442e25)
+
+The license's last `[H]` did NOT close in one blow — the wave-21
+residue contains the paper's open §4/§5 fight (the arrangement-tail
+rewrite), downstream-blocked by Theorems' pinned
+`rungNormal_or_forcedPark` and TwinQuotient's pinned merge bridges.
+Per the session's mandate (discharge, else shrink to the sharpest
+NAMED single residue with a paragraph plan), the wave SPLIT the head
+case and PROVED what the kit already reaches.  Census holds at 10;
+Restriction stays pinned 1 — the pin's name and content sharpened.
+
+**LANDED (Klondike/Restriction.lean, the residue's case-1 closure):**
+
+- **`pilePile_via_foundation` (:291)** — the bare-at-rung detour,
+  axiom-clean [propext, Quot.sound], a STATE-LEVEL identity (no
+  reachable-fragment premise): a legal `pilePile c b` whose run is
+  EMPTY (`topOf (Sum.inr c) = none`) and whose root sits exactly at
+  its foundation rung replays engine-only —
+  `[pileStack c; stackPile c b]` lands on the VERY pilePile successor
+  (the dig bumps the root's own suit by one, the worry-back
+  round-trips the heights to the original, and the attach performed is
+  the head's own `bd` — `canPlace` survives the excursion because the
+  dig touches neither the landing seat nor the base card's seat; for
+  LOCKED roots the excursion is transient, so the dead-pile hazard
+  never engages).  This supersedes the wave-21 case-1 plan's B4-flavored
+  route: no `canReturnBase`, no commute squares, no
+  `solvable_of_pileStack'`, no twin lemma — the successor restores the
+  head's arrangement bit for bit, so `rest` replays verbatim.
+- **`replay_head_len` (:470)** — the measure form of the head-oracle
+  induction: strong induction on the winning play's length; engine
+  moves consume and recurse (reachability + WF ride along); EVERY
+  pilePile head is resolved AT the head by the geometry split —
+  bare-at-rung → the detour, then recurse on the tail; else → the
+  residue.  Discharges the wave-21 oracle-pattern's hypothesis-shaped
+  circularity by the measure, and gives `replay_head_residue` (:556,
+  wave-21 statement, now PROVEN) as a one-liner.
+- **`arrangement_tail_residue` (:448)** — THE remaining pinned [H],
+  private, the sharpened form: the residue premises plus the
+  geometry EXCLUSION (root not bare-at-rung).  Remaining content =
+  the off-rung bare relocation (the engine's only tableau exit is the
+  rung-matched pileStack — the head must be deferred: pure-arrangement
+  tails, or locked-shape dig re-timing) + the covered carrier (no
+  single engine move relocates a run; peel members one at a time, each
+  bare AND at-rung at peel time).  The three-part paragraph plan at its
+  site: (1) the shadow-replay lemma (α-equal lineages; `isWin` reads
+  foundations only; the interference census at the two traded seats;
+  `python/phantom_replay.py` the falsifier harness — off-rung
+  deferral family UNFENCED, the refute-first gate for the next taker);
+  (2) the at-rung cargo chain (peel top-first / re-seat bottom-first —
+  closes TODAY's machinery given the every-member-at-rung premise);
+  (3) the Endgame bridge once `rungNormal_or_forcedPark` lands.
+- Both B2 rows — `solvableEngine_iff_solvable_of_reachable` (:570)
+  and `engine_replay_of_pilePile` (:587), statements BYTE-IDENTICAL
+  to wave 21 — still assemble exactly as staged;
+  [propext, sorryAx, Quot.sound] through the single named residue.
+  Case 3 stays CLOSED by the wave-19B probe
+  (`EngineWitness.wstate_not_reachable`).
+
+Build: `lake build Klondike Witnesses` green (73 jobs); census pinned
+OK (10 total, Restriction 1 — the pin's comment updated to name
+`arrangement_tail_residue`); FARM header refreshed to 10; no new
+sorry introduced; no refuted constant touched; zero new deprecation
+warnings in the new code.
 

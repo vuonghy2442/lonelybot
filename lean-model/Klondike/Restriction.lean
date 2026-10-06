@@ -42,19 +42,28 @@ factors through the head-oracle induction
 `solvableEngine_of_reachable_play` (wave 21: a plain induction on the
 winning play's length — every engine move recurses, every pile-to-pile
 head goes straight to the oracle) plus the single named residue
-`replay_head_residue` (the per-move α-invariance content, its case
-ledger recorded at its site).  The former cascadeMeasure plan is
-retired: no measure on mid-game states is needed, because the
-pile-to-pile head does not recurse at all.
+(`replay_head_residue`; the wave-21 form was split by the wave-22
+session — see below).  The former cascadeMeasure plan is retired: no
+measure on mid-game states is needed, because the pile-to-pile head
+does not recurse at all.
 
-The residue's cases (the EngineWitness shapes are the fence posts):
-1. **returnable base** (`canReturnBase`): the `stackPile`/`pileStack`
-   detour — proven kits: `stackPile_pileStack_cancel`,
-   `pileStack_comm_*` squares, `solvable_of_stackPile`.
-2. **locked boundary carry** (the EngineWitness shape): the run sits
-   on the hidden boundary — the worry-back ban routes through B4's
-   `solvable_of_pileStack'` (Theorems; the `rungNormal_or_forcedPark`
-   residue rides there) plus the rank-mate twin argument above.
+Wave 22 closed case 1 outright and sharpened what remains: the head
+resolution is now the **measure form** `replay_head_len` — a strong
+induction on the winning play's length whose pile-to-pile head is
+resolved AT the head by the geometry split:
+
+1. **the bare-at-rung relocation** (case 1, the returnable base —
+   PROVEN, wave 22): the run is empty and its root sits exactly at its
+   foundation rung — the two engine moves `pileStack c; stackPile c b`
+   land on the very pile-to-pile successor
+   (`pilePile_via_foundation`: the dig bumps, the worry-back
+   round-trips the heights and moves the single edge exactly as the
+   head did; no reachable-fragment premise, no B4 crux, no twin lemma
+   needed).
+2. **everything else** — the off-rung bare relocation and the covered
+   carrier — is the named residue `arrangement_tail_residue`, the
+   per-move α-invariance content (docs/no_pile_to_pile.md §4/§5): its
+   case ledger and paragraph plan at its site.
 3. **the deadlock escape hatch**: EMPTY — see the refute-first gate
    below.
 
@@ -172,14 +181,20 @@ theorem invariant_of_initialReachable {I : State → Prop}
 
 **B2, the engine's license**: on states reached from a deal, the full
 physical game and the engine's restricted move set have the same
-solvability.  The `→` direction is `solvable_of_engine` (proven);
-`←` factors through the head-oracle induction below plus the single
-named residue `replay_head_residue` (the unpacked per-move content —
-the wave-21 refinement of the two former pinned `[H]`s into one).
-The witness fence held: `EngineWitness.wstate_not_reachable` (the
+solvability.  The `→` direction is `solvable_of_engine` (proven); `←`
+factors through the head-oracle induction below plus the single named
+residue `replay_head_residue` (the unpacked per-move content — the
+wave-21 refinement of the two former pinned `[H]`s into one).  The
+witness fence held: `EngineWitness.wstate_not_reachable` (the
 wave-19B refute-first probe) keeps the statement's reachable fragment
-clear of the deadlock corner; the residue's case ledger is recorded at
-its site. -/
+clear of the deadlock corner.
+
+Wave 22 decomposed the residue: the bare-at-rung head case is now
+PROVEN machinery (`pilePile_via_foundation` + the measure skeleton
+`replay_head_len` below), and what remains is the single sharpened
+residue `arrangement_tail_residue` — the relocation shapes the
+foundation detour cannot reach, with the plan at its site.  The census
+pin names it; the two B2 rows assemble exactly as in wave 21. -/
 
 /-- **The head-oracle induction** (the former cascadeMeasure plan,
 wave-21 form): if every winning play whose FIRST move is a
@@ -261,44 +276,291 @@ theorem solvableEngine_of_reachable_play {st : State}
               | pilePile c b => exact H s c b ms hreach' hwf' hlegal w' hrun' hwin'
   exact main play.length st play hreach hwf (Nat.le_refl _) w hrun hwin
 
-/-- **The replay residue** (the single remaining `[H]` of the
-Restriction program; the wave-21 refinement of the two former pinned
-rows): at a dealt-reachable state, a legal pile-to-pile that heads a
-winning play can be replayed engine-only.  This is precisely the
-α-invariance content of the no-pile-to-pile restriction
-(docs/no_pile_to_pile.md §4) localized to one head move — the
-case-split ledger:
+/-- **The bare-at-rung detour** (wave 22, the residue's case-1
+closure): a legal pile-to-pile whose run is EMPTY (`hbare`) and whose
+root sits exactly at its foundation rung (`hrung`) replays engine-only,
+the two engine moves landing on the head's very successor — the root
+rides the foundation up (`pileStack`), the worry back down
+(`stackPile`), the heights round-tripping to the original while the
+board moves the single edge exactly as the head did.  Neither the dig
+nor the return is a commitment here: the excursion is transient, so
+the dead-pile hazard for locked roots never engages (the boundary
+stays covered only between the two moves, and the successor restores
+the head's arrangement bit for bit).  A state-level identity — no
+reachable-fragment premise, so no fence is consumed. -/
+theorem pilePile_via_foundation {st : State} {c : Card} {b : Base} {s₁ : State}
+    (hhead : st.apply (Move.pilePile c b) = some s₁)
+    (hbare : st.board.topOf (Sum.inr c) = none)
+    (hrung : c.rank.toIdx = st.heights c.suit) :
+    st.run [Move.pileStack c, Move.stackPile c b] = some s₁ := by
+  rw [apply_pilePile_iff] at hhead
+  obtain ⟨b₀, hbot, hbne, hcmr, bd, hatt, rfl⟩ := hhead
+  have hstcp : st.canPlace c b = true := canPlace_of_canMoveRun hcmr
+  -- leg 1: the dig (the bare root, exactly at its rung, leaves)
+  have hPS : st.apply (Move.pileStack c) = some
+      { st with
+        board := st.board.detach b₀,
+        heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s } :=
+    (apply_pileStack_iff).mpr ⟨hbare, b₀, hbot, hrung, rfl⟩
+  -- leg 2's rung: the dig bumped the root's own foundation by one
+  have hMrung : c.rank.toIdx + 1 = { st with
+        board := st.board.detach b₀,
+        heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }.heights c.suit := by
+    show c.rank.toIdx + 1 =
+      (if c.suit = c.suit then st.heights c.suit + 1 else st.heights c.suit)
+    rw [ite_eq_left rfl]
+    omega
+  -- leg 2's landing rule: the dig touched neither the landing seat nor
+  -- the base card's seat (only the root's own base went empty)
+  have hMcp : { st with
+        board := st.board.detach b₀,
+        heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }.canPlace c b = true := by
+    cases b with
+    | inl a =>
+        obtain ⟨htopl, hking⟩ := canPlace_inl_iff.mp hstcp
+        refine (canPlace_inl_iff).mpr ⟨?_, hking⟩
+        show (st.board.detach b₀).topOf (Sum.inl a) = none
+        rw [Board.detach_topOf_ne st.board b₀ (Sum.inl a)
+          (fun hcon => hbne hcon.symm)]
+        exact htopl
+    | inr d =>
+        obtain ⟨htopd, hvis, hcs⟩ := canPlace_inr_iff.mp hstcp
+        have hdc : d ≠ c := by
+          intro hcon
+          have hrank := (canSitOn_eq c d).mp hcs |>.1
+          rw [hcon] at hrank
+          omega
+        refine (canPlace_inr_iff).mpr ⟨?_, ?_, hcs⟩
+        · show (st.board.detach b₀).topOf (Sum.inr d) = none
+          rw [Board.detach_topOf_ne st.board b₀ (Sum.inr d)
+            (fun hcon => hbne hcon.symm)]
+          exact htopd
+        · show ((st.board.detach b₀).bottomOf d).isSome = true
+          have hvis' : (st.board.bottomOf d).isSome = true := hvis
+          cases hbotd : st.board.bottomOf d with
+          | none => rw [hbotd] at hvis'; simp at hvis'
+          | some β =>
+              have hβtop : st.board.topOf β = some d :=
+                (Board.bottomOf_eq st.board d β).mp hbotd
+              have hβ : β ≠ b₀ := by
+                intro hcon
+                rw [hcon] at hβtop
+                have hb₀top : st.board.topOf b₀ = some c :=
+                  (Board.bottomOf_eq st.board c b₀).mp hbot
+                exact hdc (Option.some.inj (hβtop.symm.trans hb₀top))
+              rw [(Board.bottomOf_eq (st.board.detach b₀) d β).mpr
+                (by rw [Board.detach_topOf_ne st.board b₀ β hβ]; exact hβtop)]
+              rfl
+  -- leg 2: the worry back, landing at the head's own landing base —
+  -- the attach performed is the very one the head performed
+  have hatt' : { st with
+        board := st.board.detach b₀,
+        heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }.board.attach b c = some bd :=
+    hatt
+  have hSP := (apply_stackPile_iff).mpr ⟨hMrung, hMcp, bd, hatt', rfl⟩
+  -- the composite lands on the head's own successor
+  have hrun : st.run [Move.pileStack c, Move.stackPile c b] = some
+      { { st with
+          board := st.board.detach b₀,
+          heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s } with
+        board := bd,
+        heights := fun s => if s = c.suit then
+          { st with
+            board := st.board.detach b₀,
+            heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }.heights s - 1
+          else
+          { st with
+            board := st.board.detach b₀,
+            heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s }.heights s } :=
+    run_cons_intro hPS (run_cons_intro hSP rfl)
+  rw [hrun]
+  refine congrArg some ?_
+  refine state_ext rfl rfl ?_ rfl rfl rfl
+  show (fun s => if s = c.suit then
+      (fun s => if s = c.suit then st.heights s + 1 else st.heights s) s - 1
+    else (fun s => if s = c.suit then st.heights s + 1 else st.heights s) s) = st.heights
+  funext s
+  show (if s = c.suit then
+      (if s = c.suit then st.heights s + 1 else st.heights s) - 1
+    else (if s = c.suit then st.heights s + 1 else st.heights s)) = st.heights s
+  by_cases hsc : s = c.suit
+  · rw [ite_eq_left hsc, ite_eq_left hsc]
+    omega
+  · rw [ite_eq_right hsc, ite_eq_right hsc]
 
-* **case 1 (returnable base / free routing)**: the run's root rides a
-  seat whose worry-back channel is available — assemble from
-  `stackPile_pileStack_cancel` (Dominance, the excursion pair nets to
-  identity), the `pileStack_comm_*` squares (Theorems) and the
-  foundation roundtrips (`solvable_of_pileStack_return`,
-  `stackPile_pileStack_return`), routing the root through its
-  foundation rung.
-* **case 2 (locked boundary carry — the EngineWitness shape)**: the
-  root sits on the hidden boundary; the worry-back ban routes through
-  B4's crux `solvable_of_pileStack'` (Theorems; its unlocked-sitter
-  gate is the `hnotlock` hedge, the `rungNormal_or_forcedPark` residue
-  rides there), plus `solvable_flipAll` for the twin placement under
-  the both-heights-equal license (as `twinPair_placement_equi`).
-* **case 3 (the deadlock escape hatch)**: the probe is closed —
-  `EngineWitness.wstate_not_reachable` (the wave-19B refute-first
-  probe; all five refutation corners are off the dealt-reachable
-  fragment).
+/-- **The arrangement-tail residue** (wave 22; the single remaining
+`[H]` of the Restriction program — the sharpened form of wave-21's
+`replay_head_residue`, which closed its bare-at-rung half): at a
+dealt-reachable state, a legal pile-to-pile that heads a winning play
+and lies OUTSIDE the detour's geometry (the root is not a bare card at
+its foundation rung — `hgeo`) still replays engine-only.  What remains
+is exactly the two shapes the foundation detour cannot reach:
 
-The residue is genuinely open: the model's reveal is bare-trigger, so
-the paper's run-carrying reveal is NOT available wholesale; what must
-close instead is the arrangement-tail rewrite (the concretization /
-reshape lemma, docs/no_pile_to_pile.md §5 [ ]) for the tail after the
-head's park — the honest state of the art, now in one place. -/
-private theorem replay_head_residue {st : State}
+* **the off-rung bare relocation** (`hbare` holds, `hrung` fails): the
+  root is bare but below its rung — the engine's only tableau exit is
+  the rung-matched `pileStack`, so the head must be *deferred*: either
+  the tail never reads the vacated seat (pure arrangement), or the tail
+  needs the boundary dig the head performed, which the engine can only
+  re-time — dig when the rung rises.
+* **the covered carrier** (`hbare` fails): the run is not empty — the
+  model's bare-trigger `reveal` and bare-only `pileStack` have no
+  single engine move that relocates a run; the engine must peel the
+  members one at a time, each bare AND at-rung at peel time (Endgame
+  territory: Theorems' pinned `rungNormal_or_forcedPark` rides
+  `solvable_of_pileStack'`; the twin-landing shapes need TwinQuotient's
+  pinned merge bridges).
+
+Plan (the next taker's brief): the honest fight is
+docs/no_pile_to_pile.md §5's arrangement-tail rewrite, sharpened by
+the α-invariance slogan the corpus already validates (the 1M-seed
+cross-checks; python/phantom_replay.py is the falsifier harness):
+
+1. **the shadow-replay lemma**: the head's successor and the source
+   are α-equal (board edges aside, every field identical; the boards
+   differ only at the two traded seats), and `isWin` reads foundations
+   only — so a source-side shadow replay of the tail that never reads
+   the vacated seat wins outright.  Two obligations: the per-move
+   interference census (moves reading the traded seats are the only
+   divergence: `deckPile`/`stackPile` landings at the root's old base,
+   `pileStack` of the newly bare under-card, `reveal` needs over the
+   vacated boundary) and the merge event (the tail's own `pilePile c ⋅`
+   re-homing the root, where both lineages re-converge — the
+   `w15circ`/`w15circcheck` probes hold the circular-rewrite
+   counterexamples).
+2. **the at-rung cargo chain**: an immediate sharpening available
+   TODAY's machinery — add the every-member-at-rung premise and this
+   arm closes by induction over the `aboveOf` chain
+   (`pilePile_via_foundation` composed per member: peel top-first,
+   re-seat bottom-first, each `stackPile`'s landing rule the very edge
+   the head moved).
+3. **the Endgame bridge** once Theorems' `rungNormal_or_forcedPark`
+   lands: the locked-shape dig-deferral reduces to the crux's
+   rung-normal decompositions plus the twin placement
+   (`solvable_flipAll` under the both-heights-equal license).
+
+Refute-first gates for the taker: `EngineWitness.wstate_not_reachable`
+(the wave-19B probe) keeps this statement's fragment clear of the
+reveal-deadlock corner, but the OFF-RUNG DEFERRAL family is unfenced —
+probe reachable states where a winning tail reads the vacated seat
+BEFORE any rung rises; a reachable counterexample there rescores B2 to
+UNSOUND-with-witness per the house protocol. -/
+private theorem arrangement_tail_residue {st : State}
     (hreach : initialReachable st) (hwf : st.WF)
     {c : Card} {b : Base} {rest : List Move} {w : State}
     (hlegal : st.legal (Move.pilePile c b) = true)
     (hrun : st.run (Move.pilePile c b :: rest) = some w)
-    (hwin : w.isWin = true) :
+    (hwin : w.isWin = true)
+    (hgeo : st.board.topOf (Sum.inr c) ≠ none ∨
+      c.rank.toIdx ≠ st.heights c.suit) :
     st.solvableEngine := sorry
+
+/-- **The measure form of the head-oracle induction** (wave 22): every
+dealt-reachable winning play replays engine-only — strong induction on
+the play's length.  Engine moves consume the head and recurse on the
+shorter tail (reachability and WF ride along: `initialReachableR.step`,
+`apply_wf`); a pile-to-pile head is resolved AT the head by the
+geometry split — the bare-at-rung detour lands the two engine moves on
+the head's own successor and recurses on the tail; everything else is
+`arrangement_tail_residue`.  This is the wave-21 skeleton's
+measure-refinement: the residue inside it is only ever invoked at a
+full remaining play, never mid-recursion, so the residue's own proof
+below may cite this theorem — the circularity the wave-21 oracle
+pattern avoided by hypothesis is discharged here by the measure. -/
+private theorem replay_head_len : ∀ (n : Nat) (st : State) (π : List Move) (w : State),
+    π.length ≤ n → initialReachable st → st.WF →
+    st.run π = some w → w.isWin = true → st.solvableEngine := by
+  intro n
+  induction n with
+  | zero =>
+      intro st π w hlen hreach hwf hrun hwin
+      cases hπ : π with
+      | nil =>
+          rw [hπ] at hrun
+          have heq : st = w := run_nil_elim hrun
+          subst heq
+          refine ⟨[], ?_, st, rfl, hwin⟩
+          intro m hm
+          exact absurd hm (by simp)
+      | cons m ms => rw [hπ] at hlen; simp at hlen
+  | succ n ih =>
+      intro st π w hlen hreach hwf hrun hwin
+      cases hπ : π with
+      | nil =>
+          rw [hπ] at hrun
+          have heq : st = w := run_nil_elim hrun
+          subst heq
+          refine ⟨[], ?_, st, rfl, hwin⟩
+          intro m hm
+          exact absurd hm (by simp)
+      | cons m ms =>
+          rw [hπ] at hrun hlen
+          obtain ⟨s₂, hap, hrest⟩ := run_cons_elim hrun
+          have hmslen : ms.length ≤ n := by simp at hlen; omega
+          have hreachstep : initialReachable s₂ :=
+            initialReachableR_iff.mp
+              (initialReachableR.step st m s₂ hap (initialReachableR_iff.mpr hreach))
+          have hwfs₂ : s₂.WF := apply_wf hwf m s₂ hap
+          by_cases heng : m.isEngine = true
+          · obtain ⟨τ, hallτ, w'', hrunτ, hwin''⟩ :=
+              ih s₂ ms w hmslen hreachstep hwfs₂ hrest hwin
+            refine ⟨m :: τ, ?_, w'', ?_, hwin''⟩
+            · intro x hx
+              rcases List.mem_cons.mp hx with rfl | hx'
+              · exact heng
+              · exact hallτ x hx'
+            · show st.run (m :: τ) = some w''
+              simp only [State.run, hap]
+              exact hrunτ
+          · cases m with
+            | draw => rw [Move.isEngine] at heng; simp at heng
+            | reveal a => rw [Move.isEngine] at heng; simp at heng
+            | deckPile c b => rw [Move.isEngine] at heng; simp at heng
+            | deckStack c => rw [Move.isEngine] at heng; simp at heng
+            | pileStack c => rw [Move.isEngine] at heng; simp at heng
+            | stackPile c b => rw [Move.isEngine] at heng; simp at heng
+            | pilePile c b =>
+                have hlegal : st.legal (Move.pilePile c b) = true := by
+                  simp only [State.legal, Option.isSome_iff_exists]
+                  exact ⟨s₂, hap⟩
+                by_cases hbare : st.board.topOf (Sum.inr c) = none
+                · by_cases hrung : c.rank.toIdx = st.heights c.suit
+                  · -- case 1, wave 22: the foundation detour lands on
+                    -- the head's own successor; recurse on the tail
+                    have hdetour : st.run [Move.pileStack c, Move.stackPile c b] = some s₂ :=
+                      pilePile_via_foundation hap hbare hrung
+                    obtain ⟨τ, hallτ, w'', hrunτ, hwin''⟩ :=
+                      ih s₂ ms w hmslen hreachstep hwfs₂ hrest hwin
+                    refine ⟨[Move.pileStack c, Move.stackPile c b] ++ τ, ?_, w'', ?_, hwin''⟩
+                    · intro x hx
+                      rcases List.mem_append.mp hx with hx' | hx'
+                      · rcases List.mem_cons.mp hx' with rfl | hxs
+                        · rfl
+                        · rcases List.mem_cons.mp hxs with rfl | hxnil
+                          · rfl
+                          · simp at hxnil
+                      · exact hallτ x hx'
+                    · rw [run_append, hdetour]
+                      exact hrunτ
+                  · exact arrangement_tail_residue hreach hwf hlegal hrun hwin (Or.inr hrung)
+                · exact arrangement_tail_residue hreach hwf hlegal hrun hwin (Or.inl hbare)
+
+/-- **The replay residue** (the wave-21 statement, proven wave 22
+modulo the sharpened `arrangement_tail_residue`): at a dealt-reachable
+state, a legal pile-to-pile that heads a winning play can be replayed
+engine-only.  The head's bare-at-rung half is discharged by the
+measure skeleton above; the off-rung and covered-carrier half is the
+named residue.  The legality premise is kept for the published
+oracle-shape (the skeleton's `H` hands it over); the proof itself
+reads the head off the run. -/
+private theorem replay_head_residue {st : State}
+    (hreach : initialReachable st) (hwf : st.WF)
+    {c : Card} {b : Base} {rest : List Move} {w : State}
+    (_hlegal : st.legal (Move.pilePile c b) = true)
+    (hrun : st.run (Move.pilePile c b :: rest) = some w)
+    (hwin : w.isWin = true) :
+    st.solvableEngine :=
+  replay_head_len (rest.length + 1) st (Move.pilePile c b :: rest) w
+    (by simp only [List.length_cons]; omega) hreach hwf hrun hwin
 
 /-- **B2, the engine's license** — the pinned statement, proven modulo
 the named residue above: on states reached from a deal, the full

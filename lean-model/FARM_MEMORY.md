@@ -9053,3 +9053,79 @@ class of the window-gate decision is anchor promotions of non-king heads
 (67% of anchor-alone candidates at 1000 seeds) — king and landed
 promotions are reversible-in-one and the model side may take that as
 vacuous for the gate's semantics.
+
+## Restriction.lean — wave 22: the B2 residue decomposed; syntax paid (2026-10-06)
+
+Session: farm/b2-residue at macro-game HEAD 1442e25.  The wave-21
+`replay_head_residue` was SHARPENED, not closed: what proved reachable
+with today's kit is now machinery; the remainder is one named sorry,
+`arrangement_tail_residue` (private, Restriction.lean:448), carrying the
+geometry exclusion (root NOT bare-at-rung) and a three-part paragraph
+plan.  Census total stays 10; Restriction stays 1 (pin comment updated).
+
+KEY INSIGHT (the one that unlocked the structure): `State.isWin` reads
+HEIGHTS ONLY — so the residue never needs to reproduce the full-game
+board, only foundation outcomes.  And `Board.attach`/`detach` are
+SINGLE-EDGE updates (`detach b` clears base b's slot only; `attach b c`
+checks `topOf b = none ∧ bottomOf c = none`, writes one slot), so
+`pilePile c b` moves exactly the edge `b₀ ↦ c → b` and the detour
+`[pileStack c; stackPile c b]` provably lands on the same successor
+when c is bare and at-rung — `pilePile_via_foundation` (Restriction:291,
+public, axiom-clean [propext, Quot.sound]).  The worry-back landing rule
+survives the dig because `detach b₀` changes ONLY `topOf b₀` (and
+`bottomOf c`): every other seat/visibility fact is untouched — prove
+`canPlace` at the mid-state by case-splitting the target base and
+chasing `Board.bottomOf_eq` (the base card's own seat is never the dug
+base: `st.topOf b₀ = some c` forces `β ≠ b₀` unless `d = c`, killed by
+`canSitOn`'s rank+1).
+
+STRUCTURE (worth copying for any head-resolving induction): the wave-21
+oracle pattern (skeleton takes H as a FUNCTION argument) makes the
+residue's own proof unable to cite the skeleton without a length
+parameter — H-instances lose their provenance the moment they are
+passed opaquely.  Fix: `replay_head_len` (Restriction:470) — strong
+induction ON THE PLAY LENGTH, resolving each pilePile head AT the head
+by the geometry split (detour → recurse on the tail shorter; else → the
+named residue).  The residue theorem is then a one-liner delegation.
+The wave-21 skeleton stays (the iff still assembles through it), now
+proven machinery instead of the load-bearing step.
+
+SYNTAX PAID (Restriction-specific, paid so you don't have to):
+
+(1) The nested-record heights goal (the `{MID with ...}` composite
+equal to `{st with board := bd}`): `refine state_ext rfl rfl ?_ rfl
+rfl rfl` then `show (fun s => if s = c.suit then (fun s => ...) s - 1
+else ...) = st.heights` FIRST (the show zeta/beta-crushes the
+projected literals), `funext s`, then a SECOND `show` of the fully
+beta-crushed ite tree, then `rw [ite_eq_left hsc, ite_eq_left hsc]` /
+`rw [ite_eq_right hsc, ite_eq_right hsc]` (one per ite level —
+`ite_eq_left h` rewrites ONLY the instance it first matches, ALL
+occurrences of THAT instance).  Do NOT `subst` before the rw: post-subst
+the self-conditional ites stop matching `ite_eq_left rfl` (the
+Decidable instance elaborates under the equality), which is why the
+house pattern (State.lean's `bump_drop` at :308) keeps `s` and rewrites
+with the case proof.  `simp only [ite_eq_left rfl]` will NOT fire on
+the projection-literal goal either (too much zeta junk left over).
+(2) `run_cons_intro`-chains commute: `run_cons_intro hPS
+(run_cons_intro hSP rfl)` builds a two-element list-run when `_hPS`/
+`_hSP` come from the `apply_*_iff` `.mpr` with the successor spelled as
+the EXACT literal the iff prints (pass `rfl` as the last slot so
+the `?st'` unifies rather than re-spelling).
+(3) `(apply_stackPile_iff).mpr ⟨hrung, hcp, bd, hatt, rfl⟩` with the
+mid-state spelled inline works WITHOUT naming the mid-state; the
+result's successor literal appears in `hSP`'s type, and the final
+`state_ext` handles it.
+(4) `rw [run_append, hdetour]; exact hrunτ` composes detour+tail:
+`(some s₂ >>= fun s => s.run τ)` is DEFEQ to `s₂.run τ` — no
+`Option.bind` lemma needed.
+(5) `ih` on a `∀ (st) (π) (w), π.length ≤ n → ...` statement: the
+argument order is st π w hlen hreach hwf hrun hwin — write the call
+with w BEFORE hlen (lost 10 minutes to `ih s₂ ms hmslen ...`).
+
+NEXT TAKER (sharpest-first): the plan at `arrangement_tail_residue`'s
+site — (1) the shadow-replay lemma (the off-rung deferral family is
+UNFENCED — probe it reachable-state-first per the house protocol;
+`python/phantom_replay.py` is the harness), (2) the at-rung cargo chain
+(closes TODAY: peel top-first, re-seat bottom-first, `aboveOf` chain
+induction), (3) the Endgame bridge behind Theorems'
+`rungNormal_or_forcedPark`.

@@ -36,14 +36,19 @@ $baseline = @{
                         # File sorry-free, theorem chain axiom-clean
                         # [propext, Quot.sound].  The Rust side stays bound by
                         # bm_algebra_matches (src-side, shipped).
-  'Restriction.lean' = 1  # wave-21 (fragment-2 session, 2026-10-05): the two
-                        # pinned rows are PROVEN modulo ONE named, finer-grained
-                        # residue — solvableEngine_iff_solvable_of_reachable and
-                        # engine_replay_of_pilePile assemble from the PROVEN
-                        # head-oracle skeleton solvableEngine_of_reachable_play
-                        # (axiom-clean [propext, Quot.sound]) plus the private
-                        # replay_head_residue (the per-move α-invariance; plan
-                        # at its site; case 3 closed by the wave-19B probe).
+  'Restriction.lean' = 1  # wave-22 (b2-residue session, 2026-10-06): the residue
+                         # SHARPENED — the bare-at-rung head case is PROVEN
+                         # (pilePile_via_foundation: the two-move foundation detour
+                         # lands on the very pilePile successor, axiom-clean
+                         # [propext, Quot.sound]; the measure skeleton
+                         # replay_head_len resolves each pilePile head by the
+                         # geometry split).  Both B2 rows (statements unchanged
+                         # from wave 21) now rest on the single named
+                         # arrangement_tail_residue ALONE (the off-rung bare
+                         # relocation + the covered carrier — precisely
+                         # no_pile_to_pile.md §5's arrangement-tail rewrite;
+                         # the wave-22 paragraph plan at its site; case 3 stays
+                         # closed by the wave-19B probe).
   'TwinSwap.lean'  = 0  # Board.aboveOf_congr_off PROVEN 2026-09-14 via the
                         # fuel-induction congruence (Board.aboveOf_go_congr_aux)
                         # + acc-monotonicity (Board.aboveOf_go_mono); the twin
