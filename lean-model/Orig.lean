@@ -63,9 +63,10 @@ Chapter plan (each later chapter is a derived construction):
    - `step` preserves `State.WF` (the conservation invariant, all
      six move kinds);
    - `State.initial` of a `Deal.WF` deal is `WF`;
-   - search integrity at `WF` states (`pileOfTop`/`pileHolding`
-     unique), and the self-blocking facts that make `canPlace` safe
-     without cross-pile side conditions;
+   - ~~search integrity at `WF` states~~ — **done**: banked in
+     `Orig.Integrity` (`pileOfTop`/`pileHolding` exactness and
+     injectivity, the occurrence-uniqueness bundles, the `runOK`
+     descent kit, `canPlace` self-safety);
    - the irreversibility classification: tabulating each move
      against the three measures and instantiating the bridge.  The
      measure tables (`Orig.Irreversible`, in flight) feed this
@@ -78,5 +79,6 @@ Chapter plan (each later chapter is a derived construction):
    - the futures count: a commitment leaves at most two
      `sameFate`-distinct successors, per accommodation window —
      restated on the original game, with the `Klondike` witness
-     corpus re-derived here first.
+     corpus re-derived here first (the formulation route map and
+     fence ledger: `FUTURES-ORIG.md`).
 -/
