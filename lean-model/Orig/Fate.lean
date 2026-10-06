@@ -75,3 +75,34 @@ def irreversibleAt (st : State) (m : Move) : Prop :=
 
 /-- A move that is not a commitment: undoable in place. -/
 def reversibleAt (st : State) (m : Move) : Prop := ¬ irreversibleAt st m
+
+/-- The witness form of reversible: the move is legal and an
+explicit play returns to the origin.  This is the constructive
+content of `reversibleAt` — the program's reversible rows are
+proved by producing these witnesses.  The two lemmas relating the
+forms below are intuitionistic and axiom-free; the unconditioned
+iff between the negative and witness forms is deliberately NOT
+stated, because it is the one step that drags `Classical.choice`
+through the vocabulary (pushing a negation through a universal
+into an existential).  The program never needs that bridge: every
+classification row supplies the effective dichotomy itself — a
+decidable shape on the state proves `irreversibleAt` on one side
+and hands an explicit witness (`reversibleAtW`) on the other, and
+`irreversibleAt ∧ reversibleAtW` is refuted by the lemmas. -/
+def reversibleAtW (st : State) (m : Move) : Prop :=
+  ∃ s₁ play, State.step st m = some s₁ ∧ s₁.run play = some st
+
+/-- A witness proves the negative form — intuitionistic, no
+axioms. -/
+theorem reversibleAt_of_W {st : State} {m : Move} (h : reversibleAtW st m) :
+    reversibleAt st m := by
+  obtain ⟨s₁, play, hstep, hrun⟩ := h
+  intro contra
+  exact contra s₁ play hstep hrun
+
+/-- A commitment refutes every witness — intuitionistic, no
+axioms. -/
+theorem not_reversibleAtW_of_irreversibleAt {st : State} {m : Move}
+    (h : irreversibleAt st m) : ¬ reversibleAtW st m := by
+  rintro ⟨s₁, play, hstep, hrun⟩
+  exact absurd hrun (h s₁ play hstep)
