@@ -683,6 +683,21 @@ by the re-derived corpus.
    stays gated on the refuted-converse corpus until the bridge's
    formulation is cut whole — the day's lesson about unsettled
    formulations.
+7. THE RUNOK RELAXATION AUDIT (user instinct, 2026-10-06): the 141
+   `runOK` citations (Reach 56, TwinExchange 38, Integrity 27,
+   Classify 17, State 3) cluster in ONE pattern — the seam kit:
+   `runOK` is the state-carried memory of placement-guard history
+   (reveals only produce singletons, so the invariant captures
+   exactly the placement trace, nothing more).  Relaxation is
+   structurally cheap: Reach generalizes verbatim (non-creation
+   proofs), and the concentrated consumers (undo under-rows,
+   exchange joints, Classify's cells) re-absorb the fits as
+   explicit `canSitOn` premises — `canSitOn` is ALREADY the variant
+   parameter, `runOK` only its remembered trace.  SEQUENCED: not
+   now (four in-flight cards cite `WF` in every proof); post-
+   landing as a SEAM-REDUCTION REFACTOR ticket (`WF0` = prefix +
+   census + drawStep, ⊕ the fit-memory conjunct) whenever the
+   solitaire-variant transport question becomes real.
 
 ## 7. The corpus re-derivation list (witnesses to re-derive physically)
 
