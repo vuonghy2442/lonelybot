@@ -6,6 +6,7 @@ import Orig.Twin
 import Orig.Macro
 import Orig.Mono
 import Orig.Phase
+import Orig.Combine
 
 /-!
 # Orig — the original game
