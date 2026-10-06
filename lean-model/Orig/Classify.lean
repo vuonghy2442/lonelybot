@@ -415,6 +415,33 @@ private theorem fromCard_nil_of_not_mem {c : Card} : ∀ {l : List Card}, c ∉ 
       show fromCard c (y :: t) = []
       rw [fromCard, ite_eq_right hy, ih ht]
 
+/-- The run from `c` of a run that starts at `c` is the run. -/
+private theorem fromCard_head_eq {c : Card} {t : List Card} :
+    fromCard c (c :: t) = c :: t := by
+  rw [fromCard, ite_eq_left rfl]
+
+/-- The below-part of a run that starts at `c` is empty. -/
+private theorem below_head_eq {c : Card} {t : List Card} :
+    below c (c :: t) = [] := by
+  rw [below, ite_eq_left rfl]
+
+/-- A card present in a list has a nonempty run from it — the
+`.tabToTab` step guard's nonemptiness, at one line. -/
+private theorem fromCard_ne_of_mem {c : Card} : ∀ {l : List Card},
+    c ∈ l → fromCard c l ≠ [] := by
+  intro l
+  induction l with
+  | nil => intro hmem; cases hmem
+  | cons y t ih =>
+      intro hmem
+      rw [fromCard]
+      split
+      · exact List.cons_ne_nil _ _
+      · rename_i hy
+        rcases List.mem_cons.1 hmem with heq | hta
+        · exact absurd heq.symm hy
+        · exact ih hta
+
 /-- The tail of a legal run is legal. -/
 private theorem runOK_cons_tail {x : Card} {t : List Card}
     (h : runOK (x :: t) = true) : runOK t = true := by
@@ -434,6 +461,44 @@ private theorem runOK_append_left : ∀ (A B : List Card),
   | cons y t ih =>
       intro B h
       exact ih B (runOK_cons_tail h)
+
+/-- Every prefix of a legal run is legal — the right-degradation of
+`runOK` under append, the other half used by the `.tabToTab` under
+row (the snoc-adjacent fit of `runOK_adjacent_snoc` needs the
+prefix `P ++ [c]` legal while the step hypothesis only hands over
+`P ++ c :: T`). -/
+private theorem runOK_append_right : ∀ (A B : List Card),
+    runOK (A ++ B) = true → runOK A = true := by
+  intro A
+  induction A with
+  | nil => intro _ _; rfl
+  | cons y t ih =>
+      intro B h
+      match t with
+      | [] => rfl
+      | w :: t' =>
+          have h' : runOK (y :: w :: (t' ++ B)) = true := h
+          rw [runOK, Bool.and_eq_true] at h' ⊢
+          exact ⟨h'.1, ih B h'.2⟩
+
+/-- In a legal run, every tail card sits strictly below the head in
+rank — a farm copy of `Orig.Integrity`'s private descent member
+(dedup-marked; the upstream copy stays private in its file). -/
+private theorem runOK_head_lt : ∀ {t : List Card} {x y : Card},
+    runOK (x :: t) = true → y ∈ t → y.rank.toIdx < x.rank.toIdx := by
+  intro t
+  induction t with
+  | nil => intro x y _ hmem; cases hmem
+  | cons w t' ih =>
+      intro x y hok hmem
+      rw [runOK, Bool.and_eq_true] at hok
+      obtain ⟨hsit, hrest⟩ := hok
+      obtain ⟨heq, -⟩ := (canSitOn_eq w x).mp hsit
+      have hwlt : w.rank.toIdx < x.rank.toIdx := by omega
+      rcases List.mem_cons.1 hmem with rfl | hyt
+      · exact hwlt
+      · have := ih hrest hyt
+        omega
 
 /-- The seam fit: in a legal face-up run, each card fits on its
 immediate predecessor, anywhere in the list. -/
@@ -1403,7 +1468,591 @@ theorem draw_passBase_reversibleW {st : State}
         take_drop_join, List.reverse_reverse]
     refine congrArg some (State.ext rfl rfl hstock.symm hwE rfl)
 
+/-! ## The `.tabToTab` mirror-move undos
+
+A successful `.tabToTab` is undone by moving the very run back.
+Both undo lemmas are stated with local premises (no `State.WF`
+anywhere), each excluding a genuine wild-state corner, mirroring
+the `foundToTab_undo` / `tabToFound_undo_under` discipline of
+`Orig.Irreversible`: the searches of the *successor* (and, one
+level down, of the successor after its own run removal) consult
+the whole position, and a doubled card or a self-aimed landing can
+send them elsewhere.  At `WF` states every premise below is
+discharged by the card-count uniqueness and the `runOK` fit — that
+is `tabToTabClass`. -/
+
+/-- A no-hidden run removal of an emptied pile is the empty pile
+(farm copy of `Orig.Irreversible`'s private helper; dedup at
+merge). -/
+private theorem afterRunRemoved_empty_eq' (p : Pile) (h : p.hidden = []) :
+    Pile.afterRunRemoved p ([] : List Card) = ⟨[], ([] : List Card)⟩ := by
+  rcases p with ⟨hlist, flist⟩
+  cases hlist with
+  | nil => rfl
+  | cons x xs => exact absurd h (by simp)
+
+/-- A refused `.tabToTab` head search makes the move vacuously
+irreversible. -/
+private theorem step_tabToTab_none_of_holding {st : State} {c : Card} {b : Base}
+    (h : st.pileHolding c = none) : State.step st (Move.tabToTab c b) = none := by
+  simp only [State.step, h]
+
+/-- A refused placement guard makes the move vacuously irreversible. -/
+private theorem step_tabToTab_none_of_cp {st : State} {c : Card} {b : Base} {a : Anchor}
+    (hh : st.pileHolding c = some a) (h : st.canPlace c b = false) :
+    State.step st (Move.tabToTab c b) = none := by
+  simp only [State.step, hh]
+  rw [ite_eq_right (fun hcond => by rw [h] at hcond; exact Bool.noConfusion hcond)]
+
+/-- A passing `.tabToTab` guard produces the recorded successor
+(the run from the head card is nonempty because the head is
+present). -/
+private theorem step_tabToTab_some {st : State} {c : Card} {b : Base} {a : Anchor}
+    (hh : st.pileHolding c = some a) (hcp : st.canPlace c b = true) :
+    ∃ s₁, State.step st (Move.tabToTab c b) = some s₁ := by
+  have hmem : c ∈ (st.piles a).faceUp := pileHolding_mem hh
+  have hne : fromCard c (st.piles a).faceUp ≠ [] := fromCard_ne_of_mem hmem
+  refine ⟨(st.setPile a
+      (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+    (fromCard c (st.piles a).faceUp) b, ?_⟩
+  simp only [State.step, hh, hcp]
+  cases hList : fromCard c (st.piles a).faceUp with
+  | nil => exact absurd hList hne
+  | cons w r => rfl
+
+/-- The shared restoration body of the bare `.tabToTab` undo:
+at `s₁` — read through the two exhumed facts `hs₁A` (the emptied
+source seat) and `hs₁K` (the landing pile's exact successor
+content) — the mirror move `.tabToTab c (Sum.inl a)` returns the
+origin in one step.  Local (wild-state) lemma; every premise is
+discharged at `WF` states by the classification. -/
+private theorem tabToTab_bare_rtp {st : State} {c : Card} {b : Base} {a k : Anchor}
+    {tr : List Card} {s₁ : State}
+    (hs₁ : s₁ = (st.setPile a ⟨[], ([] : List Card)⟩).putRun
+      (fromCard c (st.piles a).faceUp) b)
+    (hrt : fromCard c (st.piles a).faceUp = c :: tr)
+    (hface : (st.piles a).faceUp = c :: tr)
+    (hhidden : (st.piles a).hidden = [])
+    (hking : c.rank = Rank.king)
+    (hhold : s₁.pileHolding c = some k)
+    (hs₁A : s₁.piles a = ⟨[], ([] : List Card)⟩)
+    (hs₁K : s₁.piles k = ⟨(st.piles k).hidden,
+      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp⟩)
+    (hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y)
+    (hcN : c ∉ (st.piles k).faceUp)
+    (hka : k ≠ a)
+    (hKE : (st.piles k).faceUp = [] → (st.piles k).hidden = []) :
+    s₁.run [Move.tabToTab c (Sum.inl a)] = some st := by
+  -- successor accessor facts
+  have hsF : ∀ σ, s₁.found σ = st.found σ := by
+    intro σ
+    rw [hs₁, putRun_found, setPile_found]
+  have hsS : s₁.stock = st.stock := by rw [hs₁, putRun_stock, setPile_stock]
+  have hsW : s₁.waste = st.waste := by rw [hs₁, putRun_waste, setPile_waste]
+  have hsD : s₁.drawStep = st.drawStep := by
+    rw [hs₁, putRun_drawStep, setPile_drawStep]
+  -- the landing pile read, as the mirror needs it
+  have hKfaceUp : (s₁.piles k).faceUp =
+      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp :=
+    congrArg (fun p => p.faceUp) hs₁K
+  have hKhidden : (s₁.piles k).hidden = (st.piles k).hidden :=
+    congrArg (fun p => p.hidden) hs₁K
+  have hexcl := below_fromCard_excl (c := c) ((st.piles k).faceUp)
+    (fromCard c (st.piles a).faceUp) hcN
+  have hbelowK : below c (s₁.piles k).faceUp = (st.piles k).faceUp := by
+    have h1 : below c (s₁.piles k).faceUp
+        = below c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
+      rw [hKfaceUp]
+    rw [h1, hexcl.1, hrt, below_head_eq, List.append_nil]
+  have hrunK : fromCard c (s₁.piles k).faceUp = c :: tr := by
+    have h1 : fromCard c (s₁.piles k).faceUp
+        = fromCard c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
+      rw [hKfaceUp]
+    rw [h1, hexcl.2, hrt, fromCard_head_eq]
+  have hcp1 : s₁.canPlace c (Sum.inl a) = true := by
+    show ((s₁.piles a).isEmpty && decide (c.rank = Rank.king)) = true
+    rw [hs₁A, decide_eq_true hking]
+    rfl
+  have hstep2 : State.step s₁ (Move.tabToTab c (Sum.inl a)) = some st := by
+    simp only [State.step, hhold, hcp1, hrunK]
+    refine congrArg some (?_ :
+      (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+          (below c (s₁.piles k).faceUp))).putRun (c :: tr) (Sum.inl a) = st)
+    rw [show (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+        (below c (s₁.piles k).faceUp))).putRun (c :: tr) (Sum.inl a)
+        = (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+            (below c (s₁.piles k).faceUp))).setPile a
+            ⟨[], c :: tr⟩ from rfl]
+    refine State.ext (funext fun σ => ?_) (funext fun y => ?_) ?_ ?_ ?_
+    · rw [setPile_found, setPile_found, hsF σ]
+    · by_cases hya : y = a
+      · rw [hya]
+        show (if a = a then ⟨[], c :: tr⟩
+          else (if a = k then
+              Pile.afterRunRemoved (s₁.piles k) (below c (s₁.piles k).faceUp)
+            else s₁.piles a)) = st.piles a
+        rw [ite_eq_left rfl]
+        refine Pile.ext ?_ ?_
+        · rw [hhidden]
+        · rw [hface]
+      · by_cases hyk : y = k
+        · rw [hyk]
+          show (if k = a then ⟨[], c :: tr⟩
+            else (if k = k then
+                Pile.afterRunRemoved (s₁.piles k) (below c (s₁.piles k).faceUp)
+              else s₁.piles k)) = st.piles k
+          rw [ite_eq_right hka, ite_eq_left rfl, hbelowK]
+          cases hF2 : (st.piles k).faceUp with
+          | nil =>
+              rw [afterRunRemoved_empty_eq' _ (hKhidden.trans (hKE hF2))]
+              exact Pile.ext (hKE hF2).symm hF2.symm
+          | cons w r₂ =>
+              exact Pile.ext hKhidden hF2.symm
+        · show (if y = a then ⟨[], c :: tr⟩
+            else (if y = k then
+                Pile.afterRunRemoved (s₁.piles k) (below c (s₁.piles k).faceUp)
+              else s₁.piles y)) = st.piles y
+          rw [ite_eq_right hya, ite_eq_right hyk]
+          exact hkeep y hya hyk
+    · exact hsS
+    · exact hsW
+    · exact hsD
+  simp only [State.run, hstep2]
+
+/-- **The bare `.tabToTab` undo, witness form (primary).**  A
+successful `.tabToTab` that empties its source pile outright
+(`hpre` : nothing sits below the run head; `hhidden` : no hidden
+cards under it — so the run out is the pile's whole face-up
+content) is undone by the mirror move: run back onto the emptied
+seat, `.tabToTab c (Sum.inl a)`.
+
+The premises are local (no `State.WF` anywhere) and each excludes
+a genuine wild-state corner:
+
+* `hking` — the empty-seat placement demands a king; nothing at a
+  wild state ties the run head's rank to the seat it left.
+* `hhold` — the undo's own head search must locate the run at the
+  landing pile `k`; a doubled `c` face up in an earlier pile would
+  send the undo's removal at the wrong seat.
+* `hseat` — the move's own inner placement search, run at the
+  half-updated board `st.setPile a ⟨[], []⟩` (the source seat
+  already emptied), pins the landing pile `k` — the `.tabToTab`
+  analogue of `foundToTab_undo`'s search pin.  At a wild state the
+  removal changes what that inner search sees; the premise hands
+  the undo the landing seat as data.
+* `hkeep` — every pile other than the source seat and the landing
+  pile is untouched.
+* `hcN` — the landing pile's prior content does not itself hold
+  `c` (at a wild state it could, and the undo's removal at `k`
+  would then cut into preexisting content); it also forces
+  `k ≠ a`. -/
+theorem tabToTab_undo_bare {st : State} {c : Card} {b : Base} {a k : Anchor} {s₁ : State}
+    (hstep : State.step st (Move.tabToTab c b) = some s₁)
+    (hh : st.pileHolding c = some a)
+    (hpre : below c (st.piles a).faceUp = [])
+    (hhidden : (st.piles a).hidden = [])
+    (hking : c.rank = Rank.king)
+    (hhold : s₁.pileHolding c = some k)
+    (hseat : b = Sum.inl k ∨ ∃ z', b = Sum.inr z' ∧
+      (st.setPile a ⟨[], ([] : List Card)⟩ : State).pileOfTop z' = some k)
+    (hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y)
+    (hcN : c ∉ (st.piles k).faceUp) :
+    reversibleAtW st (Move.tabToTab c b) := by
+  obtain ⟨a₀, hh₀, hcp, hfr, hs₁⟩ := step_tabToTab_inv hstep
+  rw [hh] at hh₀
+  injection hh₀ with haa
+  subst haa
+  obtain ⟨tr, hrt⟩ := fromCard_head rfl hfr
+  have hface : (st.piles a).faceUp = c :: tr := by
+    have hj := below_join (c := c) ((st.piles a).faceUp)
+    rw [hpre, List.nil_append] at hj
+    rw [← hj, hrt]
+  have hka : k ≠ a := fun hcon => hcN (by rw [hcon]; exact pileHolding_mem hh)
+  -- the emptied source pile, as a literal
+  have haremf : Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp) =
+      ⟨[], ([] : List Card)⟩ := by
+    rw [hpre]
+    exact afterRunRemoved_empty_eq' _ hhidden
+  rw [haremf] at hs₁
+  have hmidK : (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k = st.piles k := by
+    show (if k = a then ⟨[], ([] : List Card)⟩ else st.piles k) = _
+    rw [ite_eq_right hka]
+  have hs₁A : s₁.piles a = ⟨[], ([] : List Card)⟩ := by
+    rw [hs₁]
+    rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
+    · rw [putRun_piles_inl]
+      show (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+        else (st.setPile a ⟨[], ([] : List Card)⟩).piles a) = _
+      rw [ite_eq_right (Ne.symm hka)]
+      show (if a = a then ⟨[], ([] : List Card)⟩ else st.piles a) = _
+      rw [ite_eq_left rfl]
+    · rw [putRun_piles_inr _ _ _ _ hmidPin]
+      show (if a = k then
+          { (st.setPile a ⟨[], ([] : List Card)⟩).piles k with
+            faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩).piles k).faceUp
+              ++ fromCard c (st.piles a).faceUp }
+          else (st.setPile a ⟨[], ([] : List Card)⟩).piles a) = _
+      rw [ite_eq_right (Ne.symm hka)]
+      show (if a = a then ⟨[], ([] : List Card)⟩ else st.piles a) = _
+      rw [ite_eq_left rfl]
+  have hs₁K : s₁.piles k = ⟨(st.piles k).hidden,
+      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp⟩ := by
+    rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
+    · rw [hs₁, putRun_piles_inl]
+      show (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+        else (st.setPile a ⟨[], ([] : List Card)⟩).piles k) = _
+      rw [ite_eq_left rfl]
+      obtain ⟨hhE, hfE⟩ := (Pile.isEmpty_eq _).mp (canPlace_inl hcp).1
+      refine Pile.ext ?_ ?_
+      · rw [hhE]
+      · rw [hfE, List.nil_append]
+    · rw [hs₁, putRun_piles_inr _ _ _ _ hmidPin]
+      show (if k = k then
+          { (st.setPile a ⟨[], ([] : List Card)⟩).piles k with
+            faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩).piles k).faceUp
+              ++ fromCard c (st.piles a).faceUp }
+          else (st.setPile a ⟨[], ([] : List Card)⟩).piles k) = _
+      rw [ite_eq_left rfl, hmidK]
+  have hKE : (st.piles k).faceUp = [] → (st.piles k).hidden = [] := by
+    rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
+    · intro _
+      exact (Pile.isEmpty_eq _).mp (canPlace_inl hcp).1 |>.1
+    · intro hcon
+      have hne := (pileOfTop_top hmidPin).1
+      rw [hmidK] at hne
+      exact absurd hcon hne
+  exact ⟨s₁, [Move.tabToTab c (Sum.inl a)], hstep,
+    tabToTab_bare_rtp hs₁ hrt hface hhidden hking hhold hs₁A hs₁K hkeep hcN hka hKE⟩
+
+/-- The negative form of the bare `.tabToTab` undo.  Witness
+form: `tabToTab_undo_bare`. -/
+theorem tabToTab_reversible_bare {st : State} {c : Card} {b : Base} {a k : Anchor}
+    {s₁ : State}
+    (hstep : State.step st (Move.tabToTab c b) = some s₁)
+    (hh : st.pileHolding c = some a)
+    (hpre : below c (st.piles a).faceUp = [])
+    (hhidden : (st.piles a).hidden = [])
+    (hking : c.rank = Rank.king)
+    (hhold : s₁.pileHolding c = some k)
+    (hseat : b = Sum.inl k ∨ ∃ z', b = Sum.inr z' ∧
+      (st.setPile a ⟨[], ([] : List Card)⟩ : State).pileOfTop z' = some k)
+    (hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y)
+    (hcN : c ∉ (st.piles k).faceUp) :
+    reversibleAt st (Move.tabToTab c b) :=
+  reversibleAt_of_W (tabToTab_undo_bare hstep hh hpre hhidden hking hhold hseat hkeep hcN)
+
+/-- The shared restoration body of the under `.tabToTab` undo:
+at `s₁`, with the seat card `z` pinned (`hz`), the fit `hsit`,
+the successor-side search facts (`hzOnly`-derived), and the
+landing pile's own search pin, the mirror move `.tabToTab c
+(Sum.inr z)` — run back onto the card it left — returns `st`.
+Local (wild-state) lemma; every premise is discharged at `WF`
+states by the classification. -/
+private theorem tabToTab_under_rtp {st : State} {c : Card} {b : Base} {a k : Anchor}
+    {z : Card} {tr : List Card} {s₁ : State}
+    (hs₁ : s₁ = (st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+      (fromCard c (st.piles a).faceUp) b)
+    (hrt : fromCard c (st.piles a).faceUp = c :: tr)
+    (hz : lastOf (below c (st.piles a).faceUp) = some z)
+    (hsit : canSitOn c z = true)
+    (hhold : s₁.pileHolding c = some k)
+    (hsA : s₁.piles a = ⟨(st.piles a).hidden, below c (st.piles a).faceUp⟩)
+    (hs₁K : s₁.piles k = ⟨(st.piles k).hidden,
+      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp⟩)
+    (hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y)
+    (hcN : c ∉ (st.piles k).faceUp)
+    (hka : k ≠ a)
+    (hzOnly : ∀ y, y ≠ a → (s₁.piles y).top ≠ some z)
+    (hzK : (st.piles k).top ≠ some z)
+    (hKE : (st.piles k).faceUp = [] → (st.piles k).hidden = []) :
+    s₁.run [Move.tabToTab c (Sum.inr z)] = some st := by
+  -- successor accessor facts
+  have hsF : ∀ σ, s₁.found σ = st.found σ := by
+    intro σ
+    rw [hs₁, putRun_found, setPile_found]
+  have hsS : s₁.stock = st.stock := by rw [hs₁, putRun_stock, setPile_stock]
+  have hsW : s₁.waste = st.waste := by rw [hs₁, putRun_waste, setPile_waste]
+  have hsD : s₁.drawStep = st.drawStep := by
+    rw [hs₁, putRun_drawStep, setPile_drawStep]
+  -- the landing pile read, as the mirror needs it
+  have hKfaceUp : (s₁.piles k).faceUp =
+      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp :=
+    congrArg (fun p => p.faceUp) hs₁K
+  have hKhidden : (s₁.piles k).hidden = (st.piles k).hidden :=
+    congrArg (fun p => p.hidden) hs₁K
+  have hexcl := below_fromCard_excl (c := c) ((st.piles k).faceUp)
+    (fromCard c (st.piles a).faceUp) hcN
+  have hbelowK : below c (s₁.piles k).faceUp = (st.piles k).faceUp := by
+    have h1 : below c (s₁.piles k).faceUp
+        = below c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
+      rw [hKfaceUp]
+    rw [h1, hexcl.1, hrt, below_head_eq, List.append_nil]
+  have hrunK : fromCard c (s₁.piles k).faceUp = c :: tr := by
+    have h1 : fromCard c (s₁.piles k).faceUp
+        = fromCard c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
+      rw [hKfaceUp]
+    rw [h1, hexcl.2, hrt, fromCard_head_eq]
+  -- the base search pins, first at s₁, then after the mirror's own removal
+  have haTop : (s₁.piles a).top = some z := by
+    show lastOf ((s₁.piles a).faceUp) = some z
+    rw [show (s₁.piles a).faceUp = below c (st.piles a).faceUp from
+      congrArg (fun p => p.faceUp) hsA]
+    exact hz
+  have hsTop : s₁.pileOfTop z = some a := by
+    show firstWhere (fun x => decide ((s₁.piles x).top = some z)) Anchor.all = some a
+    exact firstWhere_find (Anchor.mem_all a) (decide_eq_true haTop)
+      (fun y hy hyne => decide_false_of_not (hzOnly y hyne))
+  have hmidA : (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+      (below c (s₁.piles k).faceUp)) : State).piles a = s₁.piles a := by
+    show (if a = k then Pile.afterRunRemoved (s₁.piles k)
+        (below c (s₁.piles k).faceUp) else s₁.piles a) = _
+    rw [ite_eq_right (Ne.symm hka)]
+  have hmidTop : ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+      (below c (s₁.piles k).faceUp)) : State).piles a).top = some z := by
+    rw [hmidA]
+    exact haTop
+  have hknotN : ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+      (below c (s₁.piles k).faceUp)) : State).piles k).top ≠ some z := by
+    show (if k = k then Pile.afterRunRemoved (s₁.piles k)
+        (below c (s₁.piles k).faceUp) else s₁.piles k).top ≠ some z
+    rw [ite_eq_left rfl, hbelowK]
+    cases hF2 : (st.piles k).faceUp with
+    | nil =>
+        rw [afterRunRemoved_empty_eq' _ (hKhidden.trans (hKE hF2))]
+        intro htop
+        nomatch htop
+    | cons w r₂ =>
+        exact fun htop => hzK (show (st.piles k).top = some z from by
+          show lastOf ((st.piles k).faceUp) = some z
+          rw [hF2]
+          exact htop)
+  have hzN' : (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+      (below c (s₁.piles k).faceUp)) : State).pileOfTop z = some a :=
+    topPin2 hmidTop (fun y hya hyk => by
+      show (if y = k then Pile.afterRunRemoved (s₁.piles k)
+          (below c (s₁.piles k).faceUp) else s₁.piles y) = s₁.piles y
+      rw [ite_eq_right hyk])
+      hknotN (fun y hya _ => hzOnly y hya)
+  have hcp1 : s₁.canPlace c (Sum.inr z) = true := by
+    show (match s₁.pileOfTop z with
+      | some _ => canSitOn c z | none => false) = true
+    rw [hsTop]
+    exact hsit
+  have hstep2 : State.step s₁ (Move.tabToTab c (Sum.inr z)) = some st := by
+    simp only [State.step, hhold, hcp1, hrunK]
+    refine congrArg some (?_ :
+      (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+          (below c (s₁.piles k).faceUp))).putRun (c :: tr) (Sum.inr z) = st)
+    refine State.ext (funext fun σ => ?_) (funext fun y => ?_) ?_ ?_ ?_
+    · rw [putRun_found, setPile_found, hsF σ]
+    · by_cases hya : y = a
+      · rw [hya, putRun_piles_inr _ _ _ _ hzN']
+        show (if a = a then
+            { (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+                (below c (s₁.piles k).faceUp)) : State).piles a with
+              faceUp := ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+                  (below c (s₁.piles k).faceUp)) : State).piles a).faceUp ++ c :: tr }
+            else (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+                (below c (s₁.piles k).faceUp)) : State).piles a) = st.piles a
+        rw [ite_eq_left rfl, hmidA]
+        refine Pile.ext ?_ ?_
+        · exact congrArg (fun p => p.hidden) hsA
+        · have hj := below_join (c := c) ((st.piles a).faceUp)
+          rw [hrt] at hj
+          rw [show (s₁.piles a).faceUp = below c (st.piles a).faceUp from
+            congrArg (fun p => p.faceUp) hsA]
+          exact hj
+      · by_cases hyk : y = k
+        · rw [hyk, putRun_piles_inr _ _ _ _ hzN']
+          show (if k = a then
+              { (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+                  (below c (s₁.piles k).faceUp)) : State).piles a with
+                faceUp := ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+                    (below c (s₁.piles k).faceUp)) : State).piles a).faceUp ++ c :: tr }
+              else (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+                  (below c (s₁.piles k).faceUp)) : State).piles k) = st.piles k
+          rw [ite_eq_right hka]
+          show (if k = k then Pile.afterRunRemoved (s₁.piles k)
+              (below c (s₁.piles k).faceUp) else s₁.piles k) = st.piles k
+          rw [ite_eq_left rfl, hbelowK]
+          cases hF2 : (st.piles k).faceUp with
+          | nil =>
+              rw [afterRunRemoved_empty_eq' _ (hKhidden.trans (hKE hF2))]
+              exact Pile.ext (hKE hF2).symm hF2.symm
+          | cons w r₂ =>
+              exact Pile.ext hKhidden hF2.symm
+        · rw [putRun_piles_inr _ _ _ _ hzN']
+          show (if y = a then
+              { (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+                  (below c (s₁.piles k).faceUp)) : State).piles a with
+                faceUp := ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+                    (below c (s₁.piles k).faceUp)) : State).piles a).faceUp ++ c :: tr }
+              else (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+                  (below c (s₁.piles k).faceUp)) : State).piles y) = st.piles y
+          rw [ite_eq_right hya]
+          show (if y = k then Pile.afterRunRemoved (s₁.piles k)
+              (below c (s₁.piles k).faceUp) else s₁.piles y) = st.piles y
+          rw [ite_eq_right hyk]
+          exact hkeep y hya hyk
+    · rw [putRun_stock, setPile_stock]
+      exact hsS
+    · rw [putRun_waste, setPile_waste]
+      exact hsW
+    · rw [putRun_drawStep, setPile_drawStep]
+      exact hsD
+  simp only [State.run, hstep2]
+
+/-- **The under-seat `.tabToTab` undo, witness form (primary).**  A
+successful no-reveal `.tabToTab` whose source pile keeps face-up
+content below the moved run (`hz` pins that content's top card,
+`z`) is undone by the mirror move: run back onto `z`,
+`.tabToTab c (Sum.inr z)`.
+
+The premises are local (no `State.WF` anywhere) and each excludes
+a genuine wild-state corner (mirroring
+`tabToFound_undo_under`'s discipline):
+
+* `hsit` — `canSitOn c z` does *not* follow from the step at a
+  wild state: the source run may be freely stacked there.
+* `hhold` — the undo's own head search must locate the run at the
+  landing pile `k`.
+* `hseat` — the move's own inner placement search, run at the
+  half-updated board (source pile already chopped), pins the
+  landing pile `k`.
+* `hkeep` — every pile other than the source seat and the landing
+  pile is untouched.
+* `hcN` — the landing pile's prior content does not itself hold
+  `c` (the undo's reassembly at `k` would otherwise cut into
+  preexisting content); it also forces `k ≠ a`.
+* `hzOnly` — at the successor, `z` tops the source seat and no
+  other pile (a wild successor could hold another `z`-topping pile
+  earlier in the search order).
+* `hzK` — the landing pile's own prior top is not `z` (the
+  mirror's placement asks for `z` through a search that the
+  half-restored board presents the landing pile's top to). -/
+theorem tabToTab_undo_under {st : State} {c : Card} {b : Base} {a k : Anchor} {z : Card}
+    {s₁ : State}
+    (hstep : State.step st (Move.tabToTab c b) = some s₁)
+    (hh : st.pileHolding c = some a)
+    (hz : lastOf (below c (st.piles a).faceUp) = some z)
+    (hsit : canSitOn c z = true)
+    (hhold : s₁.pileHolding c = some k)
+    (hseat : b = Sum.inl k ∨ ∃ z', b = Sum.inr z' ∧
+      (st.setPile a (Pile.afterRunRemoved (st.piles a)
+        (below c (st.piles a).faceUp)) : State).pileOfTop z' = some k)
+    (hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y)
+    (hcN : c ∉ (st.piles k).faceUp)
+    (hzOnly : ∀ y, y ≠ a → (s₁.piles y).top ≠ some z)
+    (hzK : (st.piles k).top ≠ some z) :
+    reversibleAtW st (Move.tabToTab c b) := by
+  obtain ⟨a₀, hh₀, hcp, hfr, hs₁⟩ := step_tabToTab_inv hstep
+  rw [hh] at hh₀
+  injection hh₀ with haa
+  subst haa
+  obtain ⟨tr, hrt⟩ := fromCard_head rfl hfr
+  have hka : k ≠ a := fun hcon => hcN (by rw [hcon]; exact pileHolding_mem hh)
+  have hprene : below c (st.piles a).faceUp ≠ [] := by
+    intro hcon
+    rw [hcon] at hz
+    exact absurd hz (by simp [lastOf])
+  -- the source seat keeps its hidden cards and its below part (no
+  -- reveal: the below part is nonempty)
+  have hsA : s₁.piles a = ⟨(st.piles a).hidden, below c (st.piles a).faceUp⟩ := by
+    rw [hs₁]
+    rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
+    · rw [putRun_piles_inl]
+      show (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+        else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp)) : State).piles a) = _
+      rw [ite_eq_right (Ne.symm hka)]
+      show (if a = a then Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp) else st.piles a) = _
+      rw [ite_eq_left rfl]
+      cases hF : below c (st.piles a).faceUp with
+      | nil => exact absurd hF hprene
+      | cons w t₂ => rfl
+    · rw [putRun_piles_inr _ _ _ _ hmidPin]
+      show (if a = k then
+          { (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles k with
+            faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles k).faceUp
+              ++ fromCard c (st.piles a).faceUp }
+          else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles a) = _
+      rw [ite_eq_right (Ne.symm hka)]
+      show (if a = a then Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp) else st.piles a) = _
+      rw [ite_eq_left rfl]
+      cases hF : below c (st.piles a).faceUp with
+      | nil => exact absurd hF hprene
+      | cons w t₂ => rfl
+  have hs₁K : s₁.piles k = ⟨(st.piles k).hidden,
+      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp⟩ := by
+    rw [hs₁]
+    rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
+    · rw [putRun_piles_inl]
+      show (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+        else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp)) : State).piles k) = _
+      rw [ite_eq_left rfl]
+      obtain ⟨hhE, hfE⟩ := (Pile.isEmpty_eq _).mp (canPlace_inl hcp).1
+      refine Pile.ext ?_ ?_
+      · rw [hhE]
+      · rw [hfE, List.nil_append]
+    · rw [putRun_piles_inr _ _ _ _ hmidPin]
+      show (if k = k then
+          { (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles k with
+            faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles k).faceUp
+              ++ fromCard c (st.piles a).faceUp }
+          else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles k) = _
+      rw [ite_eq_left rfl]
+      have hmidK : (st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp)) : State).piles k = st.piles k := by
+        show (if k = a then Pile.afterRunRemoved (st.piles a)
+            (below c (st.piles a).faceUp) else st.piles k) = _
+        rw [ite_eq_right hka]
+      rw [hmidK]
+  have hKE : (st.piles k).faceUp = [] → (st.piles k).hidden = [] := by
+    rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
+    · intro _
+      exact (Pile.isEmpty_eq _).mp (canPlace_inl hcp).1 |>.1
+    · intro hcon
+      have hne := (pileOfTop_top hmidPin).1
+      rw [show (st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp)) : State).piles k = st.piles k from by
+        show (if k = a then Pile.afterRunRemoved (st.piles a)
+            (below c (st.piles a).faceUp) else st.piles k) = _
+        rw [ite_eq_right hka]] at hne
+      exact absurd hcon hne
+  exact ⟨s₁, [Move.tabToTab c (Sum.inr z)], hstep,
+    tabToTab_under_rtp hs₁ hrt hz hsit hhold hsA hs₁K hkeep hcN hka hzOnly hzK hKE⟩
+
+/-- The negative form of the under `.tabToTab` undo.  Witness
+form: `tabToTab_undo_under`. -/
+theorem tabToTab_reversible_under {st : State} {c : Card} {b : Base} {a k : Anchor}
+    {z : Card} {s₁ : State}
+    (hstep : State.step st (Move.tabToTab c b) = some s₁)
+    (hh : st.pileHolding c = some a)
+    (hz : lastOf (below c (st.piles a).faceUp) = some z)
+    (hsit : canSitOn c z = true)
+    (hhold : s₁.pileHolding c = some k)
+    (hseat : b = Sum.inl k ∨ ∃ z', b = Sum.inr z' ∧
+      (st.setPile a (Pile.afterRunRemoved (st.piles a)
+        (below c (st.piles a).faceUp)) : State).pileOfTop z' = some k)
+    (hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y)
+    (hcN : c ∉ (st.piles k).faceUp)
+    (hzOnly : ∀ y, y ≠ a → (s₁.piles y).top ≠ some z)
+    (hzK : (st.piles k).top ≠ some z) :
+    reversibleAt st (Move.tabToTab c b) :=
+  reversibleAt_of_W (tabToTab_undo_under hstep hh hz hsit hhold hseat hkeep hcN hzOnly hzK)
+
 /-! ## The oracle shapes and their classification rows -/
+
 
 /-- An illegal move is vacuously irreversible: no successor ever
 exists to return from. -/
