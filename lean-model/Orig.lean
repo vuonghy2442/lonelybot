@@ -11,6 +11,7 @@ import Orig.Irreversible
 import Orig.Phase
 import Orig.Combine
 import Orig.Shuttle
+import Orig.Encode
 
 /-!
 # Orig — the original game
