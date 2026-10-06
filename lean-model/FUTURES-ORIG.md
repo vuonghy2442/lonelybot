@@ -152,19 +152,22 @@ Old: `nk_split`, `witnesses/NonKingWitness.lean:657` (+ the three
 non-king refutations `:676`/`:686`/`:697`): X = ♠6 stocked, its two
 destination twins ♥7/♦7 free, all heights 0 — both landings live, both
 stuck ⇒ closure-separated.  Boundary datum: the count SURVIVES here
-(`nkSuccessorsExhaustTwo`, `:758`; `nkTwoOptionHoldsHere`, `:784`) —
-the two-option pair holds because the commitment has exactly the two
-twin successors (a destination count, not a join).
-Physical reading: physically EXACTLY retrievable (§7's re-derivation
-list); the rung premise (`u.nextUp c` — the shuttle vehicle) is
-load-bearing on the TWIN side too.  It kills: every rung-less join
-claim (the `commitTableau_class` counterpart without `nextUp`), in
-every grading: the two landings are `RevEqW`-unrelated AND (at live
-states) fate-distinct; at states where both die, a `sameFate`-graded
-"join" is VACUOUSLY true — which is itself the measurement forcing
-the grading decision (§5.1).  PREMISES DICTATED: the shuttle row
-(Candidate B) carries the rung explicitly; count rows take the
-destination route.
+(`nkSuccessorsExhaustTwo`, `:758`; `nkTwoOptionHoldsHere`, `:784`).
+Physical reading: **SUPERSEDED (2026-10-06, the user's reformulation)
+— the split does NOT transport.**  The physical game's unrestricted
+`tabToTab` joins the twin landings by ONE cross-move plus its mirror,
+RUNGLESSLY: from the ♠6-on-♥7 landing, the ♦7 host is still a pile
+top (its pile untouched by the landing), `canSitOn ♠6 ♦7` is the same
+fit both step hypotheses already carry, and the moved run is [♠6]
+over a nonempty below-run ⇒ noreveal, reversible by its mirror.  The
+rung was an artifact of the engine's restricted move set, not game
+truth.  nkState re-casts as the corpus's POSITIVE datum: exhibit the
+cross-move CLOSING the old gap, not a split.  What survives of F3:
+the rung stays load-bearing only inside Candidate B's own statement,
+where the foundation arm's guard extracts it.  PREMISES DICTATED
+(updated): the count's (T,T) leg takes the CROSS-MOVE join
+(Candidate A′ below); the destination-bound/pigeonhole apparatus of
+the old §16 assembly is RETIRED.
 
 **F4 — the non-king free-float three-split (ffState).**
 Old: `wk_nonking_c2_false`, `witnesses/NonKingWitness.lean:1637`:
@@ -265,58 +268,62 @@ def CommitOf (u : State) (c : Card) (s : State) : Prop :=
     State.step u (Move.wasteToFound c) = some s
 ```
 
-### 3.1 Candidate A — the per-window non-king two-option (the flagship)
+### 3.1 THE MAJOR THEOREM — a non-king move is (at most) TWO-well-defined on macro states (user formulation 2026-10-06; supersedes A/A′ and the windowed count)
 
 ```lean
-theorem two_option_window_nonKing {st u : State} {σ : List Move} {c : Card}
-    (hwin : ShufflePlay st σ u) (hwf : u.WF)
-    (htop : u.wasteIs c = true) (hNK : c.rank ≠ Rank.king)
-    {s₁ s₂ s₃ : State}
-    (h₁ : CommitOf u c s₁) (h₂ : CommitOf u c s₂) (h₃ : CommitOf u c s₃) :
-    s₁ = s₂ ∨ s₁ = s₃ ∨ s₂ = s₃ ∨          -- state equality (same arm, same base):
-    RevEqW s₁ s₂ ∨ RevEqW s₁ s₃ ∨ RevEqW s₂ s₃   -- the foundation shuttle
+theorem apply_two_macroOutcomes {t₁ t₂ t₃ : State} {m : Move} {s₁ s₂ s₃ : State}
+    (h₁₂ : RevEqW t₁ t₂) (h₁₃ : RevEqW t₁ t₃)
+    (hnk : (movedCard m).rank ≠ Rank.king)
+    (h₁ : State.step t₁ m = some s₁) (h₂ : State.step t₂ m = some s₂)
+    (h₃ : State.step t₃ m = some s₃) :
+    RevEqW s₁ s₂ ∨ RevEqW s₁ s₃ ∨ RevEqW s₂ s₃
 ```
 
-- **Threats to its premiseless form** (why each premise is there):
-  ffState (F4: drops the shared (σ, u) ⇒ the three-successor split
-  revives — this statement fixes the window OUTSIDE the claim);
-  the king-anchor family (F2: drops `hNK` ⇒ anchor-landing splits
-  revive — note `canPlace`'s clauses make the arms self-colored
-  physically: non-kings land only on card bases (`Orig/State.lean:172`),
-  kings only on anchors — `hNK` IS the tableau-arm restriction);
-  nkState (F3: attacks the SHUTTLE disjunct specifically — without the
-  nextUp-rung the two twin landings stay `RevEqW`-unrelated; Candidate
-  A survives it NOT through the shuttle but through the pigeonhole —
-  see the route).
-- **Route (the §16 re-make, physical)** — the old assembly at
-  `Klondike/C2Streamlined.lean:2394` already wrote this proof plan; the
-  physical pigeonhole: any three `CommitOf`-successors fall into
-  armed cases:
-  (T,T,T): the tableau hosts are pile TOPS fitting `c` — at most the
-  two rank+1/opposite-color cards exist at all (`canSitOn`
-  arithmetic, `Orig/Basic.lean:108`), each hosting pile is unique at
-  `WF` (search integrity, `Orig.lean:65-67` — the integrity card's
-  `pileOfTop`-uniqueness ticket), so two of three bases are EQUAL,
-  and same base + same waste ⇒ the SAME successor state (putCard
-  determinism, `Orig/State.lean:43`): first disjunct.  This is the physical
-  `commitTableau_three_nonKing` (`Klondike/C2Streamlined.lean:2351`) +
-  `receivers_twin_pair` (`Klondike/C2Streamlined.lean:127`).
-  (S,S,S)/(*,S,S)/(S,S,*): the foundation arm is one deterministic
-  move — ALL its successors are the same state.
-  (T,T,S) etc.: the foundation arm's own guard supplies the rung
-  (`step u (wasteToFound c) = some s ⟹ nextUp u c`, `Orig/Play.lean:100`)
-  and Candidate B joins the tableau pair — the physical
-  `heights_of_applyDrawStackTo` (`Klondike/C2Streamlined.lean:2042`) +
-  `commitTableau_class` (`Klondike/C2Streamlined.lean:985`) pattern.
-- **PREMISES the ledger prescribes**: `hwf` (F1/F2 class),
-  `hNK` (F2), shared window (F4).  NOTHING else — no rung (extracted),
-  no register/labels (F5), no window-content clause (F4 fixed u).
-- **Dependency chain**: MINIMAL — (i) the integrity card's tickets
-  (`apply_wf`, initial-`WF`, search-integrity) keep the world honest;
-  (ii) Candidate B (internal to the mixed cases); (iii) NOTHING from
-  the irreversibleAt classification (every join is witness-direct);
-  (iv) `RevEqW_sameFate` (in hand).  A fresh card can formulate A
-  FIRST and prove it modulo integrity, before any classification lands.
+The hypothesis IS the macro state ("three micro states that can apply
+the same move and are connected by reversible move sequences" —
+`RevEqW` carries the dances as data); the conclusion IS the ≤-2
+("at least two outcomes share a macro state"): **the window
+premise is deleted, not fenced** — F4's float is absorbed by the
+∃ inside `RevEqW`, and "regardless of the current micro state" is
+literal (no root, no shared tip, no σ-uniformity).  Corollaries: the
+twin-coarsened form ⟦sᵢ⟧ = ⟦sⱼ⟧ on `Quotient sameOrbitSetoid`, and
+the per-window count as a special case (window tips are class-mates).
+
+THE PROOF ARCHITECTURE (the residence calculus — proposed route):
+1. RESIDENCES ARE KIND-INVARIANT under reversible dances: `c` moves
+   pile↔pile only between fitting tops and pile↔foundation via the
+   `noreveal tabToFound`/`foundToTab` round trip; waste→pile is a
+   commit (never in a dance), so the firing tips hold `c` in one
+   RESIDENCE KIND.  The move's own guard pins the rest: raises pin
+   the foundation at `c.suit` to the exact rung content at every
+   firing tip; the waste-head residence is literally the waste top;
+   under-`c` content is frozen (nothing below `c` moves without
+   moving `c`).
+2. THE TWIN PAIR IS THE 2: pile residences of a non-king are
+   fitting tops — a twin pair at most (two suits per color), the
+   cross-moves making each box internally trivial (the pile2pile
+   dividend).  The class can feed `m` at most the two twin
+   residences; genuinely separated outcomes are exactly the
+   reveal-content differences of the two (the classic two-option,
+   now with a cause).
+3. TRANSPORT: same-residence tips have same-class outcomes (the
+   elsewhere-dance replays through `m` by per-kind commutation
+   squares); the work-heavy squares are precisely the FOUNDATION
+   excursions (`foundToTab`/`noreveal tabToFound` are the only
+   dance members that change foundation content) commuting past
+   raises/reveals.
+
+LOCKED CARDS: Residences (`Orig/Residence.lean`: movedCard,
+kind-invariance, twin-pair bound, pinned contexts) → Transport
+(`Orig/Transport.lean`: the commutation squares, foundation
+diamonds, same-residence transport) → Assembly (the theorem +
+pigeonhole-3 + quotient corollaries).  Corpus note: a physical
+2-outcome exhibit (twin residences with differing reveals) is
+TIGHTNESS data now, not a threat; `ffState` cannot inhabit the
+hypothesis (promotions are barred inside physical windows).
+DEPENDENCIES: the classification oracle (in flight — dances are
+made of the moves it certifies reversible), Shuttle/TwinExchange
+relocation lemmas, Integrity search pins, `RevEqW` as data.
 
 ### 3.2 Candidate B — the foundation shuttle (the rung join core)
 
@@ -541,9 +548,11 @@ by the re-derived corpus.
 
 ## 6. Tickets for the formulating card (the recommended order)
 
-1. THE RESCUE ORDER: B first (the shuttle — smallest, witness-direct,
-   needs no dependencies), then A (the flagship; integrity + B), then C
-   by regimes (one-anchor + frozen first), then the gated umbrella.
+1. THE RESCUE ORDER (updated 2026-10-06, second revision): B is
+   LANDED (Orig.Shuttle, `67dfbf1`); the non-king lane is now THE
+   MAJOR THEOREM (§3.1): Residences → Transport → Assembly, then C
+   by regimes (one-anchor + frozen first), then the gated umbrella
+   — whose non-king leg is the major theorem itself.
 2. The corpus re-derivation FIRST (per `Orig.lean:78-80`, "the
    `Klondike` witness corpus re-derived here first") — §7's list.
 3. The five-line card: `visCleanO` found-discipline redundancy
