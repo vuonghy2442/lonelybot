@@ -2913,4 +2913,66 @@ def decidable_irreversibleAt_of_wf {st : State} (hwf : st.WF) (m : Move) :
         rw [(irreversible_iff_of hwf m).mp hirr] at h
         exact Bool.noConfusion h)
 
+/-! ## The WFRun-gated `win_macro_aux` companion
+-/
+
+/-- A play along which every intermediate state is `WF`: each
+`cons` carries the successor's `WF` as data (step-preserved `WF`
+is `Orig.lean`'s open ticket; the witness carries it), the head
+split of the macro induction then never needs `by_cases`. -/
+inductive WFRun : State → List Move → State → Prop
+  | nil (st : State) (hwf : st.WF) : WFRun st [] st
+  | cons {st s₁ w : State} {m : Move} {rest : List Move}
+      (hwf : st.WF) (hstep : State.step st m = some s₁)
+      (hwf₁ : s₁.WF) (hrest : WFRun s₁ rest w) : WFRun st (m :: rest) w
+
+/-- A `WFRun` is, in particular, a run. -/
+theorem WFRun_run {st : State} {play : List Move} {w : State}
+    (h : WFRun st play w) : st.run play = some w := by
+  induction h with
+  | nil st hwf => rfl
+  | @cons st s₁ w m rest hwf hstep hwf₁ hrest ih =>
+      show st.run (m :: rest) = some w
+      rw [show st.run (m :: rest) = (match State.step st m with
+        | some st' => st'.run rest
+        | none => none) from rfl, hstep]
+      exact ih
+
+/-- **The WFRun-gated `win_macro_aux` companion.**  With the play
+carrying WF at every intermediate state, the macro induction's
+head split goes through the gated oracle's Bool — decidable and
+choice-free — instead of the classical `by_cases`: the classical
+head at `Orig/Macro.lean:121` keeps its `by_cases` and its
+`[propext, Classical.choice, Quot.sound]` audit; this companion is
+the honest scrub shape for WF-anchored plays (step-preserved `WF`
+being `Orig.lean`'s open ticket, the `WFRun` witness carries each
+successor's WF down the induction). -/
+theorem win_macro_aux_wf : ∀ (play : List Move) (origin cur w : State)
+    (pre : List Move),
+    WFRun cur play w → ShufflePlay origin pre cur → w.isWin = true →
+    ∃ w', MacroWin origin w' := by
+  intro play
+  induction play with
+  | nil =>
+      intro origin cur w pre hrun hs hwin
+      cases hrun with
+      | nil st hwf => exact ⟨_, MacroWin.finish hs hwin⟩
+  | cons m rest ih =>
+      intro origin cur w pre hrun hs hwin
+      cases hrun with
+      | @cons _ s₁ _ _ _ hwf hstep hwf₁ hrest =>
+          -- the gated, choice-free split: the Bool decides
+          cases hshape : irreversibleOf cur m with
+          | true =>
+              obtain ⟨w', hw'⟩ := ih s₁ s₁ w [] hrest (ShufflePlay.nil s₁) hwin
+              exact ⟨w', MacroWin.phase ⟨cur, pre, hs, hstep,
+                (irreversible_iff_of hwf m).mpr hshape⟩ hw'⟩
+          | false =>
+              have hrev : reversibleAt cur m := fun hirr => by
+                rw [(irreversible_iff_of hwf m).mp hirr] at hshape
+                exact Bool.noConfusion hshape
+              exact ih origin s₁ w (pre ++ [m]) hrest
+                (ShufflePlay_snoc hs hrev hstep) hwin
+
+
 
