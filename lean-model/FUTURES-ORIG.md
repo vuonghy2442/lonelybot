@@ -646,6 +646,19 @@ by the re-derived corpus.
 5. The open arm named honestly in every gated assembly: the physical
    raise-ray residue (`stack_ball_corner`'s port — expected-true,
    unformalized; no sorry stubs in stubs' clothing).
+6. The α-bridge (Orig.lean ticket 5) gets its CONSERVATION TRANSPORT
+   lemma named in advance (user instinct, 2026-10-06): for any
+   physical realization `p` of an old-WF engine state `st` (the B1
+   data, `Klondike/Realizability`), `p.WF` holds — the old six-
+   conjunct zone bookkeeping (`vis_off_cycle`/`found_off_cycle`/
+   `founds_gone`/`vis_not_hidden`/`stock_wf`/deal-noDup)
+   transports to the ONE census (`cardCount = 1`) under
+   realizability.  Cheap once the decode exists; rides INSIDE the
+   bridge card, never a standalone card.  The verdict
+   correspondence (`solvable st ↔ ∃ p realizing st, WinFrom p`)
+   stays gated on the refuted-converse corpus until the bridge's
+   formulation is cut whole — the day's lesson about unsettled
+   formulations.
 
 ## 7. The corpus re-derivation list (witnesses to re-derive physically)
 
