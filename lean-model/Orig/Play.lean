@@ -1,0 +1,139 @@
+import Orig.State
+
+/-!
+# The original game — moves
+
+The full physical rule set, with no restrictions: pile-to-pile run
+moves are first-class, the reveal is automatic (flipping the newly
+exposed card is part of the move that uncovers it, never a move of
+its own), and the draw recycles the waste when the stock runs out.
+
+Conventions (standard software Klondike):
+
+* a draw deals up to `drawStep` cards — fewer if the (possibly
+  recycled) stock runs short; it never recycles mid-draw;
+* only a pile's top card may go to a foundation;
+* a face-up card and everything above it move together as a run;
+* the waste returns to the stock reversed, so the oldest passed card
+  is dealt first after a recycle.
+-/
+
+/-- A move of the original game. -/
+inductive Move : Type where
+  /-- Deal from the stock to the waste, recycling first if the stock
+  is empty. -/
+  | draw
+  /-- The waste top onto its foundation. -/
+  | wasteToFound (c : Card)
+  /-- The waste top onto the tableau. -/
+  | wasteToTab (c : Card) (b : Base)
+  /-- A pile top onto its foundation. -/
+  | tabToFound (c : Card)
+  /-- A foundation top back down onto the tableau. -/
+  | foundToTab (c : Card) (b : Base)
+  /-- The face-up run headed by `c` onto another pile. -/
+  | tabToTab (c : Card) (b : Base)
+  deriving DecidableEq
+
+namespace State
+
+/-! ## Placement helpers -/
+
+/-- Put a single card onto base `b` (assumes `State.canPlace`). -/
+def putCard (st : State) (c : Card) (b : Base) : State :=
+  match b with
+  | .inl a => st.setPile a ⟨[], [c]⟩
+  | .inr z =>
+      match st.pileOfTop z with
+      | some k => st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] }
+      | none => st
+
+/-- Put a run onto base `b` (assumes `State.canPlace` for the run's
+head; the run keeps its order, so the moving head lands lowest). -/
+def putRun (st : State) (run : List Card) (b : Base) : State :=
+  match b with
+  | .inl a => st.setPile a ⟨[], run⟩
+  | .inr z =>
+      match st.pileOfTop z with
+      | some k => st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run }
+      | none => st
+
+/-! ## The draw -/
+
+/-- Recycle the waste into the stock when the stock is empty, then
+deal up to `drawStep` cards. -/
+def stepDraw (st : State) : Option State :=
+  let st' :=
+    match st.stock with
+    | [] =>
+        match st.waste with
+        | [] => st
+        | w => { st with stock := w.reverse, waste := [] }
+    | _ => st
+  match st'.stock with
+  | [] => none
+  | s =>
+      let n := Nat.min st'.drawStep s.length
+      some { st' with stock := s.drop n, waste := (s.take n).reverse ++ st'.waste }
+
+/-! ## The step function -/
+
+/-- The deterministic physical move function: `some s'` when `m` is
+legal at `st`, `none` otherwise. -/
+def step (st : State) (m : Move) : Option State :=
+  match m with
+  | .draw => st.stepDraw
+  | .wasteToFound c =>
+      if st.wasteIs c && st.nextUp c then
+        match st.waste with
+        | _ :: ws => some { st.setFound c.suit (st.found c.suit ++ [c]) with waste := ws }
+        | [] => none
+      else none
+  | .wasteToTab c b =>
+      if st.wasteIs c && st.canPlace c b then
+        match st.waste with
+        | _ :: ws => some { st.putCard c b with waste := ws }
+        | [] => none
+      else none
+  | .tabToFound c =>
+      if st.nextUp c then
+        match st.pileOfTop c with
+        | none => none
+        | some a =>
+            let p := st.piles a
+            some { st.setFound c.suit (st.found c.suit ++ [c]) with
+                     piles := fun a' =>
+                       if a' = a then Pile.afterRunRemoved p (chop p.faceUp)
+                       else st.piles a' }
+      else none
+  | .foundToTab c b =>
+      match st.foundTop c.suit with
+      | some c' =>
+          if decide (c' = c) && st.canPlace c b then
+            some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
+          else none
+      | none => none
+  | .tabToTab c b =>
+      match st.pileHolding c with
+      | none => none
+      | some a =>
+          if st.canPlace c b then
+            match fromCard c (st.piles a).faceUp with
+            | [] => none
+            | run =>
+                let pre := below c (st.piles a).faceUp
+                some ((st.setPile a (Pile.afterRunRemoved (st.piles a) pre)).putRun run b)
+          else none
+
+/-- Is `m` a legal move at `st`? -/
+def legal (st : State) (m : Move) : Bool := (State.step st m).isSome
+
+/-- Playing a sequence of moves; `some st` at the empty play. -/
+def run (st : State) : List Move → Option State
+  | [] => some st
+  | m :: ms =>
+      match State.step st m with
+      | some st' => State.run st' ms
+      | none => none
+
+end State

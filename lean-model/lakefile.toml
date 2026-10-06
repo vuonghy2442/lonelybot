@@ -7,3 +7,6 @@ name = "Klondike"
 [[lean_lib]]
 name = "Witnesses"
 globs = ["Witnesses.*"]
+
+[[lean_lib]]
+name = "Orig"
