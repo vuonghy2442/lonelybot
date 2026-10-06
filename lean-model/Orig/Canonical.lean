@@ -5,100 +5,117 @@ import Orig.Combine
 /-!
 # Orig — the canonicalization theorem
 
-`FUTURES-ORIG.md` §3.0, the program's FIRST ticket: the
-canonicalization theorem that makes *same macro state* decidable, on
-the stacking system that contains NO draws — only the two raises
-(`.tabToFound` / `.wasteToFound`, the reveal riding along as always).
+`FUTURES-ORIG.md` §3.0, the program's FIRST ticket, in the
+formulation the user locked mid-card on 2026-10-06 (superseding
+§3.0's sketch and the first M1 landing: *we only limit ourselves to
+REVERSIBLE stacking, and at the same time we show the canonical
+state is also in the same macro state, because everything is
+reversible*).
 
-## The stacking system
+## The stacking system (V2: reversible stacking only)
 
-* `Stackable st c` — `st.nextUp c` and `c` is the waste head or a
-  pile top (the user's verbatim formulation).  `stackableB` is its
-  decidable probe, `pick` the first stackable in universe order.
-* `IsRaise m c` — `m` is one of the two raises of `c`;
-  `raise st c` the residence-determined stacking step of a card.
-* `StackRun st l w` — zero or more stacking steps, as an inductive
-  relation over the move list (the explicit schedule).
-* `Final st` — no card is stackable: the saturated, canonical shape.
+The canonicalizer contains only raises that are reversible at
+their own state — each step carries its one-move undo from the
+landed witness family (`Orig.Irreversible`):
+
+* a tableau raise of a rung-ready pile top whose seat survives as a
+  refillable base — the *under-seat* license
+  (`chop (st.piles a).faceUp ≠ []`: undo by `foundToTab` onto the
+  exposed base, `tabToFound_undo_under`), or
+  the *bare king* license (`(st.piles a).hidden = [] ∧
+  c.rank = .king`: undo slides the king back onto the emptied
+  seat, `tabToFound_undo_bare`).
+
+Explicitly EXCLUDED by the correction:
+
+* revealing raises — a reveal strictly drops `hiddenTotal`, which
+  no play ever raises, so a revealing step is a commitment: it
+  crosses the macro boundary, and the fiber would split
+  RevEqW-class-mates (a saturated mate obtained by reversibly
+  COVERING the raisable top saturates differently, at a different
+  hidden total — the two canons would be unjoinable);
+* bare non-king raises — the emptied seat admits no non-king
+  placement, the undo's `canPlace` guard dies, same split;
+* waste raises — `wasteToFound` strictly drops `cycleCount` (never
+  raised by any play): a popped card can never return to the
+  waste head, so pops are commitments and stay out.
+
+So the waste (and stock) are untouched by the canonicalizer
+throughout, `Final` means *no licensed raise remains* (a saturated
+state may still hold a raw-stackable waste head), and §3.0's
+waste-prefix corner leaves CLAIM 1 entirely — it cannot arise in a
+system with no pops.
+
+Definitions:
+
+* `Stackable` — the RAW §3.0 reading (rung complete, waste head or
+  pile top), kept for reference and later chapters;
+* `CanRaise` — the license (rung + seat + under/bare-king shape);
+  `canRaiseB` its decidable probe, `pick` the first licensed card
+  in universe order;
+* `IsRaise m c` — the licensed move (`Move.tabToFound c`);
+  `raise st c` the fired licensed lift;
+* `StackRun st l w` — zero or more licensed lifts, inductive over
+  the move list;
+* `Final st` — no licensed lift remains.
 
 ## Termination (CLAIM 1's measure side)
 
 `stackFuel` — the total remaining foundation climb, `Σ_s (13 -
-foundHeight s)` with truncated subtraction: every stacking step
+foundHeight s)` with truncated subtraction: every licensed lift
 strictly drops it (the raised card's suit gains one rung, so the
-same card can never be raised twice in one run), it never exceeds
-52, and therefore every stacking run is at most 52 moves long
-(`stackRun_length_le_fuel`, `stackRun_length_le_52`).
+same card is never lifted twice in one run), it never exceeds 52,
+and therefore every stacking run is at most 52 moves long
+(`stackRun_length_le_fuel`, `stackRun_length_le_52`).  Wild-safe
+at every state: `nextUp` alone pins the rung index below 13.
 
 ## CLAIM 1 (`canon_unique`)
 
-All maximal stacking runs from a position whose cards sit in
-exactly one place each (`NoDup`, the occurrence half of `WF`)
-end at the same state.  `canon` is the deterministic saturator
-(`canonAux` at budget 52), and `stackRun_final_eq_canon` proves any
-run ending `Final` ends at `canon st`.  The monotone engine under
-it, per the doctrine recorded in §3.0:
+All maximal licensed runs from a `WF` position end at the same
+state: `stackRun_final_eq_canon` — every run ending `Final` ends
+at `canon st` — via the literal local diamonds (`lift_diamond`:
+two lifts of different cards touch disjoint suits and disjoint
+anchors, so both orders land at the same state) and fuel
+induction.  The `WF` fence (equivalently for this chapter: the
+cardCount half) is load-bearing: the private wild witness at the
+bottom of this file exhibits a duplicated-card position whose two
+maximal licensed runs end at different states (the search hijack:
+a duplicated card's `pileOfTop` pins the wrong bare seat and
+freezes the license).
 
-* monotone stackability — `stackable_step`: once stackable, still
-  stackable after any *other* card's raise (nothing is ever placed
-  onto a tableau, so nothing is ever covered; the waste is consumed
-  only at the head);
-* `stack_diamond` — two raises of *different* stackable cards
-  commute literally (disjoint suits, disjoint zones): both orders
-  land at the same state;
-* `stackable_step_new` — the decomposition: a raise may only
-  *add* the newly exposed top of the touched pile, or the newly
-  uncovered waste head, as stackable candidates.
+## The core new theorem (the user's second clause)
 
-The `NoDup` premise is load-bearing: the private wild witness at
-the bottom of this file exhibits a position with a duplicated card
-whose two maximal runs end at genuinely different states.
+`canon_reversibleW : u.WF → ShufflePlayW u (canonical schedule)
+(canon u)` — every licensed lift is `reversibleAtW` at `WF`
+states (the landed undo family, premises discharged by the license
+and WF), so the whole saturation is a witness shuffle with the
+reverse ladder for the return; hence
 
-## CLAIM 2 (the characterization)
+* `canon_class : u.WF → RevEqW u (canon u)` — the canonical state
+  is INSIDE the state's own reversible orbit: same macro state,
+  literally;
+* `canonQ_of_orbit` — the uniform fiber spine: `WF` states in one
+  `sameOrbitSetoid` orbit have equal wrapped canons.
 
-`SameMacroO u v` is DEFINED as the canonical fiber (the user's
-definitional reading: different macro ⇒ different canonical comes
-from the definition):
+Because of the spine, CLAIM 2's invariance family lands through
+one argument shape (whatever proves two states ⟦·⟧-equal proves
+their canons ⟦·⟧-equal):
 
-```lean
-def SameMacroO (u v : State) : Prop :=
-  ⟦canon u⟧ = ⟦canon v⟧ ∧ SWComp u v
-```
-
-with `⟦·⟧` over the LANDED 4-disjunct `sameOrbitSetoid`
-(`Orig.Combine`), and `SWComp u v` the hypothesis-named
-stock/waste compatibility whose default here is the in-phase
-rotation closure `SWRot` built from Phase's in-phase relation
-(the user's pending confirm — restating `SWComp` re-points the
-family below without touching the statements).  The invariance
-family proves the journey notions land inside the fiber:
-
-* (i) reversible rearrangements at a saturated state:
-  `canon_foundToTab_absorb` (a descent is re-absorbed: canon
-  literally unchanged), `final_raise_blocked` (no raise fires at
-  a saturated state), `sameMacro_tabToTab_quiet` (the residue
-  relocation preserves the wrapped level — the literal level
-  FAILS here, by the private twin-residue witness; that witness is
-  the evidence for the ⟦·⟧-wrapped form of the fiber and is this
-  card's answer to the open design question);
-* (ii) twin conjugation conjugates canon:
-  `canon_twinMap : canon (twinMap u) = twinMap (canon u)`, and
-  `sameMacro_twin`;
-* (iii) in-phase stock/waste rotations preserve the wrapped canon
-  under the pool blockade `poolLapped` (cards in the draw cycle
-  already lapped by their foundations — the hypothesis that makes
-  the saturation draw-equivariant): `sameMacro_rot` and the
-  chain/corollary heads below it.
-
-The honest residuals, both with private crafted witnesses:
-
-* the *exposure* residual (relocation): a reversible cross-move at
-  a saturated state can EXPOSE a newly stackable card, and the
-  re-saturation then breaks even the wrapped level — witness
-  `wk_exposure` — so family (i) carries the quietness premise
-  `Final s` honestly, not for free;
-* the twin-residue relocation shows the wrapped comparison is
-  genuinely necessary: `wk_residue_relocate`.
+* `sameMacro_liftStep` — a licensed lift step;
+* `sameMacro_foundToTab` — a reversible descent;
+* `sameMacro_tabToTab_quiet` — a reversible residue relocation
+  (the LITERAL canon level still fails on the twin-residue
+  relocation — private witness at the bottom of the file — which
+  is the evidence for the wrapped ⟦·⟧ form of the fiber and this
+  card's answer to §3.0's open design question);
+* `sameMacro_twin`, with the structural conjugation
+  `canon (twinMap u) = twinMap (canon u)`;
+* `sameMacro_swRot` — in-phase stock/waste rotations, through
+  `SWComp u v`, the hypothesis-named draw-zone relation whose
+  default is the witness-backed rotation closure built from
+  Phase's in-phase relation (the user's pending confirm —
+  restating `SWComp` re-points the family below without touching
+  the statements).
 
 `sameFate` tie: DEFERRED, out of scope for this card (§3.0
 explicitly parks it); nothing here speaks to `sameFate`.
@@ -108,43 +125,37 @@ explicitly parks it); nothing here speaks to `sameFate`.
 The exact heads the next card consumes, as this file's public
 surface:
 
-* `Stackable`, `stackableB`, `pick`, `IsRaise`, `raise`
-  (the stacking system);
-* `StackRun st l w`, `Final st`
-  (`stackRun_length_le_fuel`, `stackRun_length_le_52`);
-* `NoDup` (the occurrence fence) + `raise_noDup`,
-  `stackRun_noDup`;
-* CLAIM 1: `canon st`, `canon_final`, `canon_run`,
-  `stackRun_final_eq_canon`, `canon_unique`;
-* CLAIM 2: `SameMacroO`, `same_macro_iff`, and the invariance
-  family `canon_foundToTab_absorb`, `final_raise_blocked`,
-  `sameMacro_tabToTab_quiet`, `canon_twinMap`, `sameMacro_twin`,
-  `sameMacro_rot`, `sameMacro_swRot`;
+* the stacking system: `Stackable`, `CanRaise`, `canRaiseB`,
+  `pick`, `IsRaise`, `raise`, `StackRun st l w`, `Final st`;
+* termination: `stackFuel`, `stackRun_length_le_fuel`,
+  `stackRun_length_le_52`;
+* CLAIM 1: `canon st`, `canon_run`, `stackRun_final_eq_canon`,
+  `canon_unique`;
+* the class spine: `liftStep_reversibleW`, `canon_reversibleW`,
+  `canon_class`, `canonQ_of_orbit`;
+* CLAIM 2: `SameMacroO`, `same_macro_iff`, the family
+  `sameMacro_liftStep`, `sameMacro_foundToTab`,
+  `sameMacro_tabToTab_quiet`, `sameMacro_twin`, `canon_twinMap`,
+  `sameMacro_swRot`;
 * the witnesses are PRIVATE — evidence, not surface.
 
 Axiom discipline: `[propext, Quot.sound]` at worst, zero
 `Classical.choice`, zero `sorry`, no `native_decide`; `simp` is
 avoided on decision-shaped goals in favor of the
-`ite_eq_left/right` + `omega` idiom (**the `ite_eq_left`/`ite_eq_right`
-+ `omega` idiom is used throughout; `if_pos`/`if_neg` are
-deprecated at this toolchain**); per-declaration `#print axioms`
-audit at file bottom.
+`ite_eq_left`/`ite_eq_right` + `omega` idiom; per-declaration
+`#print axioms` audit at file bottom.
 -/
 
-/-! ## Stackable -/
+/-! ## The raw notion (§3.0's verbatim reading) -/
 
 /-- The decidable probe matching `Stackable`. -/
 def stackableB (st : State) (c : Card) : Bool :=
   st.nextUp c && (st.wasteIs c || (st.pileOfTop c).isSome)
 
-/-- A card is *stackable*: its suit rung is complete and it sits
-at the waste head or on a pile top. -/
+/-- A card is *stackable* in the raw §3.0 sense: its suit rung is
+complete and it sits at the waste head or on a pile top. -/
 def Stackable (st : State) (c : Card) : Prop :=
   st.nextUp c = true ∧ (st.wasteIs c = true ∨ ∃ a, st.pileOfTop c = some a)
-
-/-- The FIRE of saturation: no stackable cards anywhere.  (Defined
-early: the `pick` bridge reads it.) -/
-def Final (st : State) : Prop := ∀ c, ¬ Stackable st c
 
 /-- The probe agrees with the relation. -/
 theorem stackableB_true_iff {st : State} {c : Card} :
@@ -166,114 +177,135 @@ theorem stackableB_true_iff {st : State} {c : Card} :
             rw [hp] at h2
             exact absurd h2 (by simp)
   · rintro ⟨hn, hw | ⟨a, ha⟩⟩
-    · show stackableB st c = true
-      rw [stackableB, hn, hw]
-      rfl
-    · show stackableB st c = true
-      rw [stackableB, hn, ha]
-      cases st.wasteIs c
-      · rfl
-      · rfl
+    · simp only [stackableB, hn, hw, Bool.true_and, Bool.true_or]
+    · have hisSome : (st.pileOfTop c).isSome = true := by
+        rw [ha]
+        rfl
+      simp only [stackableB, hn, hisSome, Bool.true_and, Bool.or_true]
 
-/-- The first stackable in universe order. -/
+/-! ## The license -/
+
+/-- The reversible-stacking license: the card's rung is ready, it
+tops a pile, and its seat survives as a refillable base —
+under-seat (the face-up run keeps a card below, so the undo
+`foundToTab` lands on that base), or bare king (the emptied seat
+readmits the king by `canPlace`).  Revealing lifts and bare
+non-king lifts are barred (they are commitments of the physical
+game), and the waste is no part of the canonicalizer at all. -/
+def CanRaise (st : State) (c : Card) : Prop :=
+  st.nextUp c = true ∧ ∃ a, st.pileOfTop c = some a ∧
+    (chop (st.piles a).faceUp ≠ [] ∨
+      ((st.piles a).hidden = [] ∧ c.rank = Rank.king))
+
+/-- The decidable probe of the license. -/
+def canRaiseB (st : State) (c : Card) : Bool :=
+  st.nextUp c &&
+  match st.pileOfTop c with
+  | none => false
+  | some a =>
+      decide (chop (st.piles a).faceUp ≠ []) ||
+      (decide ((st.piles a).hidden = []) && decide (c.rank = Rank.king))
+
+/-- The probe agrees with the license. -/
+theorem canRaiseB_true_iff {st : State} {c : Card} :
+    canRaiseB st c = true ↔ CanRaise st c := by
+  constructor
+  · intro h
+    rw [canRaiseB] at h
+    rw [Bool.and_eq_true] at h
+    refine ⟨h.1, ?_⟩
+    cases hp : st.pileOfTop c with
+    | some a =>
+        simp only [hp] at h
+        rw [Bool.or_eq_true] at h
+        refine ⟨a, rfl, ?_⟩
+        rcases h.2 with h2 | h2
+        · left
+          exact of_decide_eq_true h2
+        · rw [Bool.and_eq_true] at h2
+          right
+          exact ⟨of_decide_eq_true h2.1, of_decide_eq_true h2.2⟩
+    | none =>
+        simp only [hp] at h
+        exact absurd h.2 (by simp)
+  · rintro ⟨hn, a, hp, (hpre | ⟨hhid, hk⟩)⟩
+    · rw [canRaiseB, hn, hp]
+      simp only [Bool.true_and]
+      rw [Bool.or_eq_true]
+      exact Or.inl (decide_eq_true hpre)
+    · rw [canRaiseB, hn, hp]
+      simp only [Bool.true_and]
+      rw [Bool.or_eq_true, Bool.and_eq_true]
+      exact Or.inr ⟨decide_eq_true hhid, decide_eq_true hk⟩
+
+/-- The FIRE of saturation: no licensed lift remains. -/
+def Final (st : State) : Prop := ∀ c, ¬ CanRaise st c
+
+/-- The first licensed card in universe order. -/
 def pick (st : State) : Option Card :=
-  firstWhere (stackableB st) Card.universe
+  firstWhere (canRaiseB st) Card.universe
 
-/-- Every candidate failing gives `none`. -/
-private theorem firstWhere_none_of_all {p : Card → Bool} :
-    ∀ (l : List Card), (∀ c ∈ l, p c = false) → firstWhere p l = none := by
-  intro l
-  induction l with
-  | nil => intro _; rfl
-  | cons x t ih =>
-      intro h
-      simp only [firstWhere, h x (by simp)]
-      exact ih (fun c hc => h c (by simp [hc]))
-
-/-- A `none` search means every candidate failed. -/
+/-- Every card is a search candidate: a `none` result means every
+candidate failed. -/
 private theorem firstWhere_none_complete {p : Card → Bool} :
-    ∀ (l : List Card), firstWhere p l = none → ∀ c ∈ l, p c = false := by
+    ∀ {l : List Card}, firstWhere p l = none → ∀ c ∈ l, p c = false := by
   intro l
   induction l with
   | nil => intro _ c hc; exact absurd hc (by simp)
   | cons x t ih =>
       intro h c hc
-      simp only [firstWhere] at h
+      rw [firstWhere] at h
       split at h
-      · exact absurd h (by simp)
+      · rename_i hp
+        exact absurd h (by simp)
       · rename_i hp
         rcases (List.mem_cons.mp hc) with rfl | hm
         · exact hp
         · exact ih h c hm
 
-/-- No stackable cards anywhere: the `none` reading of `pick`. -/
+/-- Every candidate failing gives `none`. -/
+private theorem firstWhere_none_of_all {p : Card → Bool} :
+    ∀ {l : List Card}, (∀ c ∈ l, p c = false) → firstWhere p l = none := by
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons x t ih =>
+      intro h
+      rw [firstWhere, h x (by simp), ih (fun c hc => h c (by simp [hc]))]
+
+/-- No licensed lift anywhere: the `none` reading of `pick`. -/
 theorem pick_eq_none_iff_final (st : State) :
     pick st = none ↔ Final st := by
   constructor
-  · intro h c hstab
-    have hall := firstWhere_none_complete Card.universe h c (Card.mem_universe c)
-    rw [show stackableB st c = true from stackableB_true_iff.2 hstab] at hall
+  · intro h c hlic
+    have hall := firstWhere_none_complete (p := canRaiseB st)
+      (l := Card.universe) h c (Card.mem_universe c)
+    rw [show canRaiseB st c = true from canRaiseB_true_iff.2 hlic] at hall
     exact absurd hall (by simp)
   · intro h
-    refine firstWhere_none_of_all Card.universe (fun c _ => ?_)
-    cases hb : stackableB st c with
-    | true => exact absurd (stackableB_true_iff.1 hb) (h c)
-    | false => rfl
+    exact firstWhere_none_of_all (p := canRaiseB st) (fun c _ => by
+      cases hb : canRaiseB st c with
+      | true => exact absurd (canRaiseB_true_iff.1 hb) (h c)
+      | false => rfl)
 
-/-- A `some` from `pick` is stackable. -/
-theorem pick_some_stackable {st : State} {c : Card} (h : pick st = some c) :
-    Stackable st c :=
-  stackableB_true_iff.1 (firstWhere_sound _ h)
+/-- A `some` from `pick` is licensed. -/
+theorem pick_some_canRaise {st : State} {c : Card} (h : pick st = some c) :
+    CanRaise st c :=
+  canRaiseB_true_iff.1 (firstWhere_sound _ h)
 
-/-! ## Raises -/
+/-! ## Licensed lifts -/
 
-/-- A stacking move for `c`: one of the two raises. -/
+/-- A licensed move is always the tableau raise; waste raises are
+outside the canonicalizer (the user's correction: a pop drops the
+cycle count irreversibly). -/
 inductive IsRaise : Move → Card → Prop
   | tabToFound (c : Card) : IsRaise (Move.tabToFound c) c
-  | wasteToFound (c : Card) : IsRaise (Move.wasteToFound c) c
 
-/-- The stacking step of `c`: the tableau raise when `c` is a pile
-top, else the waste raise. -/
+/-- The licensed stacking step of `c`, as an optional successor. -/
 def raise (st : State) (c : Card) : Option State :=
-  match st.pileOfTop c with
-  | some _ => st.step (Move.tabToFound c)
-  | none => st.step (Move.wasteToFound c)
+  st.step (Move.tabToFound c)
 
-/-- The tableau-resident reading of the stacking step. -/
-theorem raise_of_pileOfTop (st : State) (c : Card) (a : Anchor)
-    (hp : st.pileOfTop c = some a) :
-    raise st c = st.step (Move.tabToFound c) := by
-  show (match st.pileOfTop c with
-    | some _ => st.step (Move.tabToFound c)
-    | none => st.step (Move.wasteToFound c)) = _
-  rw [hp]
-
-/-- The waste-resident reading of the stacking step. -/
-theorem raise_of_pileOfTop_none (st : State) (c : Card)
-    (hp : st.pileOfTop c = none) :
-    raise st c = st.step (Move.wasteToFound c) := by
-  show (match st.pileOfTop c with
-    | some _ => st.step (Move.tabToFound c)
-    | none => st.step (Move.wasteToFound c)) = _
-  rw [hp]
-
-/-- A successful waste raise, as a shape lemma. -/
-private theorem step_wasteToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.wasteToFound c) = some s') :
-    (st.wasteIs c && st.nextUp c) = true ∧
-    ∃ x xs, st.waste = x :: xs ∧
-      s' = { st.setFound c.suit (st.found c.suit ++ [c]) with waste := xs } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hg
-    split at h
-    · rename_i _ x xs hw
-      injection h with hEq
-      exact ⟨hg, x, xs, hw, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful tableau raise, as a shape lemma. -/
+/-- A successful tableau lift, as a shape lemma. -/
 private theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
     (h : State.step st (Move.tabToFound c) = some s') :
     st.nextUp c = true ∧
@@ -293,21 +325,8 @@ private theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
   · exact absurd h (by simp)
 
 /-- The foundation transport through a `setFound`, at the
-waste-updated raise shape. -/
-private theorem found_waste_shape (st : State) (c : Card) (xs : List Card) (σ : Suit) :
-    ({ st.setFound c.suit (st.found c.suit ++ [c]) with waste := xs } : State).found σ
-      = if σ = c.suit then st.found c.suit ++ [c] else st.found σ := by
-  show (st.setFound c.suit (st.found c.suit ++ [c])).found σ = _
-  by_cases hσ : σ = c.suit
-  · subst hσ
-    rw [ite_eq_left rfl]
-    exact setFound_found_self st c.suit (st.found c.suit ++ [c])
-  · rw [ite_eq_right hσ]
-    exact setFound_found_ne st c.suit _ σ hσ
-
-/-- The foundation transport through a `setFound`, at the
-piles-updated raise shape. -/
-private theorem found_tab_shape (st : State) (c : Card) (a : Anchor) (σ : Suit) :
+piles-updated lift shape. -/
+private theorem found_lift_shape (st : State) (c : Card) (a : Anchor) (σ : Suit) :
     ({ st.setFound c.suit (st.found c.suit ++ [c]) with
        piles := fun a' =>
          if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
@@ -315,38 +334,24 @@ private theorem found_tab_shape (st : State) (c : Card) (a : Anchor) (σ : Suit)
       = if σ = c.suit then st.found c.suit ++ [c] else st.found σ := by
   show (st.setFound c.suit (st.found c.suit ++ [c])).found σ = _
   by_cases hσ : σ = c.suit
-  · subst hσ
-    rw [ite_eq_left rfl]
+  · rw [ite_eq_left hσ, hσ]
     exact setFound_found_self st c.suit (st.found c.suit ++ [c])
   · rw [ite_eq_right hσ]
     exact setFound_found_ne st c.suit _ σ hσ
 
-/-- The foundation transport of any fired raise: the raised suit
+/-- The foundation transport of any licensed lift: the raised suit
 gains one rung, every other foundation is untouched. -/
-theorem raise_foundTransport {st : State} {m : Move} {c : Card} {s' : State}
-    (hm : IsRaise m c) (hstep : State.step st m = some s') :
+theorem raise_foundTransport {st : State} {c : Card} {s' : State}
+    (hstep : State.step st (Move.tabToFound c) = some s') :
     st.nextUp c = true ∧
     ∀ σ, s'.found σ =
       if σ = c.suit then st.found c.suit ++ [c] else st.found σ := by
-  cases hm with
-  | tabToFound =>
-      obtain ⟨hn, a, hp, hs⟩ := step_tabToFound_inv hstep
-      refine ⟨hn, fun σ => ?_⟩
-      rw [hs]
-      exact found_tab_shape st c a σ
-  | wasteToFound =>
-      obtain ⟨hg, x, xs, hw, hs⟩ := step_wasteToFound_inv hstep
-      have hn : st.nextUp c = true := by
-        cases hn : st.nextUp c with
-        | true => rfl
-        | false =>
-            rw [hn] at hg
-            exact absurd hg (by simp)
-      refine ⟨hn, fun σ => ?_⟩
-      rw [hs]
-      exact found_waste_shape st c xs σ
+  obtain ⟨hn, a, hp, hs⟩ := step_tabToFound_inv hstep
+  refine ⟨hn, fun σ => ?_⟩
+  rw [hs]
+  exact found_lift_shape st c a σ
 
-/-- The heights a raise writes: one suit up one, others level. -/
+/-- The heights a licensed lift writes: one suit up one, others level. -/
 theorem raise_foundHeight {st : State} {c : Card} {s' : State}
     (hF : ∀ σ, s'.found σ =
       if σ = c.suit then st.found c.suit ++ [c] else st.found σ) :
@@ -362,41 +367,25 @@ theorem raise_foundHeight {st : State} {c : Card} {s' : State}
   show (s'.found σ).length = (st.found σ).length
   rw [hF σ, ite_eq_right hσ]
 
-/-- A stackable card's raise fires, at any state. -/
-theorem raise_eq_some_of_stackable (st : State) {c : Card} (h : Stackable st c) :
+/-- A licensed card's lift fires, at any state. -/
+theorem raise_eq_some_of_canRaise (st : State) {c : Card} (h : CanRaise st c) :
     ∃ s', raise st c = some s' := by
-  cases hp : st.pileOfTop c with
-  | some a =>
-      refine ⟨{ st.setFound c.suit (st.found c.suit ++ [c]) with
-        piles := fun a' =>
-          if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-          else st.piles a' }, ?_⟩
-      have hstep : st.step (Move.tabToFound c) = some { st.setFound c.suit (st.found c.suit ++ [c]) with
-        piles := fun a' =>
-          if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-          else st.piles a' } := by
-        simp only [State.step, h.1, hp, ite_true]
-      rw [raise_of_pileOfTop st c a hp, hstep]
-  | none =>
-      rcases h.2 with hw | ⟨k, hk⟩
-      · obtain ⟨xs, hws⟩ := wasteIs_head hw
-        refine ⟨{ st.setFound c.suit (st.found c.suit ++ [c]) with waste := xs }, ?_⟩
-        have hstep : st.step (Move.wasteToFound c)
-            = some { st.setFound c.suit (st.found c.suit ++ [c]) with waste := xs } := by
-          simp only [State.step, hw, h.1, Bool.and_true, ite_true, hws]
-        rw [raise_of_pileOfTop_none st c hp, hstep]
-      · exfalso
-        rw [hp] at hk
-        simp at hk
+  obtain ⟨hn, a, hp, -⟩ := h
+  refine ⟨{ st.setFound c.suit (st.found c.suit ++ [c]) with
+    piles := fun a' =>
+      if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+      else st.piles a' }, ?_⟩
+  show st.step (Move.tabToFound c) = _
+  simp only [State.step, hn, hp, ite_true]
 
 /-! ## Runs -/
 
-/-- A stacking run: zero or more raise steps, each card stackable
-at its own state, recorded over the explicit move list. -/
+/-- A stacking run: zero or more licensed lifts, each recorded over
+the explicit move list. -/
 inductive StackRun : State → List Move → State → Prop
   | nil (st : State) : StackRun st [] st
   | cons {st : State} {m : Move} {c : Card} {s' : State} {rest : List Move} {w : State}
-      (hc : Stackable st c) (hm : IsRaise m c)
+      (hc : CanRaise st c) (hm : IsRaise m c)
       (hstep : State.step st m = some s')
       (hrest : StackRun s' rest w) :
       StackRun st (m :: rest) w
@@ -413,46 +402,46 @@ def stackFuel (st : State) : Nat := (Suit.all.map (suitGap st)).sum
 private theorem sum_map_le {α : Type} (l : List α) (f g : α → Nat)
     (h : ∀ x, f x ≤ g x) : (l.map f).sum ≤ (l.map g).sum := by
   induction l with
-  | nil => simp only [List.map_nil, List.sum_nil]; omega
+  | nil => exact Nat.le_refl 0
   | cons x t ih =>
       have h1 : f x ≤ g x := h x
       have h2 := ih
       simp only [List.map_cons, List.sum_cons]
       omega
 
-/-- The pointwise-sum strict domination, witnessed.  The dichotomy
-comes from the membership split (`List.mem_cons`), never a
-`by_cases` on an abstract element type — so the lemma is
-constructive. -/
+/-- The pointwise-sum strict domination, witnessed, with the
+membership split done by `List.mem_cons` — no `by_cases` on an
+abstract element type. -/
 private theorem sum_map_lt {α : Type} (l : List α) (f g : α → Nat) (w : α)
     (hw : w ∈ l) (hle : ∀ x, f x ≤ g x) (hlt : f w + 1 ≤ g w) :
     (l.map f).sum + 1 ≤ (l.map g).sum := by
   induction l with
   | nil => exact absurd hw (by simp)
   | cons x t ih =>
-      simp only [List.map_cons, List.sum_cons]
-      rcases (List.mem_cons.mp hw) with rfl | hwt
-      · have h2 := sum_map_le t f g (fun y => hle y)
-        have h3 : f w ≤ g w := hle w
+      rcases (List.mem_cons.mp hw) with h' | h'
+      · rw [h'] at hlt
+        have h2 := sum_map_le t f g hle
+        simp only [List.map_cons, List.sum_cons]
         omega
-      · have h2 := ih hwt
+      · have h2 := ih h'
         have h3 : f x ≤ g x := hle x
+        simp only [List.map_cons, List.sum_cons]
         omega
 
-/-- Every raise strictly drops the stacking fuel: the raised
-card's suit climbs one rung, and a stackable card's rung index is
-always below 13, so the saturating gap shrinks by one. -/
+/-- Every licensed lift strictly drops the stacking fuel: the
+raised card's suit climbs one rung, and a rung-ready card's index
+is always below 13, so the saturating gap shrinks by one. -/
 theorem stackFuel_raise_lt {st : State} {c : Card} {s' : State}
-    (hc : Stackable st c) (hF : ∀ σ, s'.found σ =
+    (hn : st.nextUp c = true) (hF : ∀ σ, s'.found σ =
       if σ = c.suit then st.found c.suit ++ [c] else st.found σ) :
     stackFuel s' + 1 ≤ stackFuel st := by
   have htran := raise_foundHeight hF
-  have hrung : st.foundHeight c.suit < 13 := by
-    have h2 : c.rank.toIdx = st.foundHeight c.suit := of_decide_eq_true hc.1
-    have h3 := Rank.toIdx_lt c.rank
-    omega
   have hlt : suitGap s' c.suit + 1 ≤ suitGap st c.suit := by
     show (13 - s'.foundHeight c.suit) + 1 ≤ 13 - st.foundHeight c.suit
+    have h1 : st.foundHeight c.suit < 13 := by
+      have h2 : c.rank.toIdx = st.foundHeight c.suit := of_decide_eq_true hn
+      have h3 := Rank.toIdx_lt c.rank
+      omega
     rw [htran.1]
     omega
   refine sum_map_lt Suit.all (suitGap s') (suitGap st) c.suit (Suit.mem_all c.suit)
@@ -460,11 +449,15 @@ theorem stackFuel_raise_lt {st : State} {c : Card} {s' : State}
   show suitGap s' s ≤ suitGap st s
   by_cases hs : s = c.suit
   · subst hs
+    have h1 : st.foundHeight c.suit < 13 := by
+      have h2 : c.rank.toIdx = st.foundHeight c.suit := of_decide_eq_true hn
+      have h3 := Rank.toIdx_lt c.rank
+      omega
+    have hg := htran.1
     show 13 - s'.foundHeight c.suit ≤ 13 - st.foundHeight c.suit
-    have h4 := htran.1
     omega
-  · show 13 - s'.foundHeight s ≤ 13 - st.foundHeight s
-    rw [htran.2 s hs]
+  · have hg := (htran.2 s hs).symm
+    show 13 - s'.foundHeight s ≤ 13 - st.foundHeight s
     omega
 
 /-- The fuel never exceeds 52: four suits climbed at most 13 each. -/
@@ -479,11 +472,15 @@ theorem stackFuel_le_52 (st : State) : stackFuel st ≤ 52 := by
   have h4 : suitGap st .club ≤ 13 := Nat.sub_le _ _
   omega
 
-/-- Every fired raise of a stackable card drops the fuel. -/
+/-- Every fired licensed lift drops the fuel. -/
 theorem stackFuel_step {st : State} {m : Move} {c : Card} {s' : State}
-    (hc : Stackable st c) (hm : IsRaise m c) (hstep : State.step st m = some s') :
-    stackFuel s' + 1 ≤ stackFuel st :=
-  stackFuel_raise_lt hc (raise_foundTransport hm hstep).2
+    (hm : IsRaise m c) (hstep : State.step st m = some s') :
+    stackFuel s' + 1 ≤ stackFuel st := by
+  have hstep' : State.step st (Move.tabToFound c) = some s' := by
+    cases hm
+    exact hstep
+  obtain ⟨hn, hF⟩ := raise_foundTransport hstep'
+  exact stackFuel_raise_lt hn hF
 
 /-- No stacking run is longer than the fuel: the constructive
 termination statement. -/
@@ -493,13 +490,13 @@ theorem stackRun_length_le_fuel {st : State} : ∀ {l : List Move} {w : State},
   induction h with
   | nil s => exact Nat.zero_le _
   | @cons st m c s' rest w hc hm hstep hrest ih =>
-      have h1 := stackFuel_step hc hm hstep
+      have h1 := stackFuel_step hm hstep
       have h2 : rest.length ≤ stackFuel s' := ih
       show (m :: rest).length ≤ stackFuel st
       simp only [List.length_cons]
       omega
 
-/-- Any maximal stacking run contains at most 52 moves. -/
+/-- Any maximal licensed run contains at most 52 moves. -/
 theorem stackRun_length_le_52 {st : State} {l : List Move} {w : State}
     (h : StackRun st l w) : l.length ≤ 52 := by
   have h1 := stackRun_length_le_fuel h
