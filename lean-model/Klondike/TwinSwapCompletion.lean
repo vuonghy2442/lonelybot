@@ -3243,6 +3243,523 @@ theorem sweep_covered_corner_dodge_first_forward {st S₁ : State} {L H : Card} 
   rw [hmerge]
   exact hrun
 
+/-! ### The clean-corridor π₁ replay (wave 21)
+
+Residue piece (i) of the safety's plan — the prefix replay before the
+mate's first clearing — paid at the CLEAN CORRIDOR: a prefix whose every
+intermediate state keeps the corner shape (the covered cell still the
+mate's, the mate's own cell bare, the covered twin unseated) at WF.  The
+mirror of each source move is then the SAME move: the corridor excludes
+exactly the moves that would need a base relabel — the mate's own moves
+are the clearing (`hkeep`), a landing on the mate's cell would break its
+bareness (`hkeep'`), a landing on the covered cell is attach-blocked
+(occupied), and the unseated covered twin can neither move nor be
+seated (`hid`; at WF `board_edges` pins it to a pile's hidden boundary,
+the deal-adjacent cover's only justification) — so every fireable move
+reads and writes only cells where the exchange image agrees with the
+source, and the same move fires there with the image staying the
+source's exchange.  The final assembly combines the replay with the
+wave-20 dodge merge: the safety's forward leg for every winning line
+whose first clearing of the covered seat is the mate's DODGE along a
+clean corridor. -/
+
+/-- The seat exchange commutes with a detach at a cell off the twin
+pair (the image of a cleared cell is the cleared cell of the image). -/
+theorem Board.exchangeTwin_detach_off {bd : Board} {t : Card} {β : Base}
+    (h₁ : β ≠ Sum.inr t) (h₂ : β ≠ Sum.inr t.flipSuit) :
+    (bd.exchangeTwin t).detach β = (bd.detach β).exchangeTwin t := by
+  apply Board.ext_topOf
+  funext x
+  have hfix : β.swapTwin t = β := Base.swapTwin_eq_self h₁ h₂
+  by_cases hxβ : x = β
+  · rw [hxβ, Board.detach_topOf, Board.exchangeTwin_topOf, hfix, Board.detach_topOf]
+  · have hσx : x.swapTwin t ≠ β := by
+      intro hcon
+      refine hxβ ?_
+      have := congrArg (fun b => b.swapTwin t) hcon
+      rwa [Base.swapTwin_swapTwin, hfix] at this
+    rw [Board.detach_topOf_ne _ _ _ hxβ, Board.exchangeTwin_topOf,
+      Board.exchangeTwin_topOf, Board.detach_topOf_ne _ _ _ hσx]
+
+/-- The seat exchange commutes with an attach at a cell off the twin
+pair. -/
+theorem Board.exchangeTwin_attach_off {bd bd' : Board} {t : Card} {β : Base} {r : Card}
+    (h₁ : β ≠ Sum.inr t) (h₂ : β ≠ Sum.inr t.flipSuit)
+    (hatt : bd.attach β r = some bd') :
+    (bd.exchangeTwin t).attach β r = some (bd'.exchangeTwin t) := by
+  obtain ⟨hfree, hbot⟩ := (Board.attach_eq_some_iff bd β r).mp (by rw [hatt]; simp)
+  have hfix : β.swapTwin t = β := Base.swapTwin_eq_self h₁ h₂
+  have hfreeI : (bd.exchangeTwin t).topOf β = none := by
+    rw [Board.exchangeTwin_topOf, hfix]; exact hfree
+  have hbotI : (bd.exchangeTwin t).bottomOf r = none := by
+    rw [Board.bottomOf_exchangeTwin, hbot]; rfl
+  obtain ⟨bd'', hatt''⟩ := Option.ne_none_iff_exists'.mp
+    ((Board.attach_eq_some_iff _ _ _).mpr ⟨hfreeI, hbotI⟩)
+  rw [hatt'']
+  refine congrArg some ?_
+  apply Board.ext_topOf
+  funext x
+  by_cases hσx : x.swapTwin t = β
+  · have hxβ : x = β := by
+      have := congrArg (fun b => b.swapTwin t) hσx
+      rwa [Base.swapTwin_swapTwin, hfix] at this
+    rw [hxβ, Board.attach_topOf _ _ _ hatt'', Board.exchangeTwin_topOf, hfix,
+      Board.attach_topOf _ _ _ hatt]
+  · have hxβ : x ≠ β := fun hcon => hσx (by rw [hcon, hfix])
+    rw [Board.attach_topOf_ne _ _ _ hatt'' hxβ, Board.exchangeTwin_topOf,
+      Board.exchangeTwin_topOf, Board.attach_topOf_ne _ _ _ hatt hσx]
+
+/-- An attach keeps an unseated card unseated (the attached value
+differs from it). -/
+theorem Board.bottomOf_none_attach_off {bd bd' : Board} {β : Base} {r L : Card}
+    (hatt : bd.attach β r = some bd') (hr : r ≠ L)
+    (hbot : bd.bottomOf L = none) : bd'.bottomOf L = none := by
+  refine (Board.bottomOf_eq_none _ _).mpr (fun b hb' => ?_)
+  by_cases hb : b = β
+  · rw [hb, Board.attach_topOf _ _ _ hatt] at hb'
+    exact hr (Option.some.inj hb')
+  · rw [Board.attach_topOf_ne _ _ _ hatt hb] at hb'
+    exact (Board.bottomOf_eq_none _ _).mp hbot b hb'
+
+/-- A detach keeps an unseated card unseated (a cleared cell cannot
+seat it either). -/
+theorem Board.bottomOf_none_detach_off {bd : Board} {β : Base} {L : Card}
+    (hbot : bd.bottomOf L = none) : (bd.detach β).bottomOf L = none := by
+  refine (Board.bottomOf_eq_none _ _).mpr (fun b hb' => ?_)
+  by_cases hb : b = β
+  · rw [hb, Board.detach_topOf] at hb'; simp at hb'
+  · rw [Board.detach_topOf_ne _ _ _ hb] at hb'
+    exact (Board.bottomOf_eq_none _ _).mp hbot b hb'
+
+/-- **The walk stays off the pair at a corner whose covered twin is
+unseated**: walking up from any card off the pair, no board read ever
+yields the covered twin (it is unseated — no cell hosts it) or the mate
+(only its own covered cell hosts it, and the walk reads that cell only
+from the covered twin itself, which the walk never reaches).  Used to
+see that the run guards' `aboveOf` walks agree between the source and
+its exchange image at the corner. -/
+theorem Board.aboveOf_go_off_pair {bd : Board} {L H : Card}
+    (hcover : bd.topOf (Sum.inr L) = some H)
+    (hid : bd.bottomOf L = none) :
+    ∀ (n : Nat) (x : Card) (acc : List Card),
+      x ≠ L → x ≠ H →
+      (∀ y ∈ acc, y ≠ L ∧ y ≠ H) →
+      ∀ z ∈ Board.aboveOf.go bd n (Sum.inr x) acc, z ≠ L ∧ z ≠ H := by
+  intro n
+  induction n with
+  | zero =>
+      intro x acc hxL hxH hacc z hz
+      have hz2 : z ∈ acc := hz
+      exact hacc z hz2
+  | succ n ih =>
+      intro x acc hxL hxH hacc z hz
+      rw [Board.aboveOf_go_succ] at hz
+      cases hread : bd.topOf (Sum.inr x) with
+      | none =>
+          rw [hread] at hz
+          have hz2 : z ∈ acc := hz
+          exact hacc z hz2
+      | some y =>
+          rw [hread] at hz
+          by_cases hcy : acc.contains y = true
+          · have hz2 : z ∈ (if acc.contains y = true then acc
+                else Board.aboveOf.go bd n (Sum.inr y) (y :: acc)) := hz
+            rw [ite_eq_left hcy] at hz2
+            exact hacc z hz2
+          · have hz2 : z ∈ (if acc.contains y = true then acc
+                else Board.aboveOf.go bd n (Sum.inr y) (y :: acc)) := hz
+            rw [ite_eq_right hcy] at hz2
+            have hyL : y ≠ L := by
+              intro hyl; rw [hyl] at hread
+              have h₁ : bd.bottomOf L = some (Sum.inr x) :=
+                (Board.bottomOf_eq bd L (Sum.inr x)).mpr hread
+              rw [hid] at h₁; simp at h₁
+            have hyH : y ≠ H := by
+              intro hyh; rw [hyh] at hread
+              exact hxL (Sum.inr.inj (bd.inj (Sum.inr x) (Sum.inr L) H hread hcover))
+            exact ih y (y :: acc) hyL hyH
+              (by intro z' hz'
+                  rcases List.mem_cons.mp hz' with h | hmem'
+                  · exact ⟨by rw [h]; exact hyL, by rw [h]; exact hyH⟩
+                  · exact hacc z' hmem') z hz2
+
+/-- **The clean-corridor step** (the π₁ replay's engine): at a WF
+clean-corner state — the covered cell the mate's, the mate's own cell
+bare, the covered twin unseated — any move that PRESERVES the corridor
+shape (`hkeep`/`hkeep'`) mirrors VERBATIM into the exchange image: the
+same move fires there and the image stays the source's exchange.  The
+corridor's shape exclusions are exactly the relabel cases: the mate's
+own moves would empty the covered cell (`hkeep` kills them), landings on
+the mate's cell would break its bareness (`hkeep'`), and landings on the
+covered cell are attach-blocked (occupied); everything else reads and
+writes only off-pair cells, where the two threads agree — and the
+unseaten covered twin keeps the `aboveOf` walks off the pair, so even
+the run guards read the same values.  The unseaten covered twin also
+survives the step (the second conjunct): nothing can attach it, and at
+WF the stock and foundation channels are closed to it. -/
+theorem covered_clean_step {T T₁ : State} {m : Move} {L H : Card}
+    (hwf : T.WF) (htwin : H = L.flipSuit)
+    (hcover : T.board.topOf (Sum.inr L) = some H)
+    (hclean : T.board.topOf (Sum.inr H) = none)
+    (hid : T.board.bottomOf L = none)
+    (hap : T.apply m = some T₁)
+    (hkeep : T₁.board.topOf (Sum.inr L) = some H)
+    (hkeep' : T₁.board.topOf (Sum.inr H) = none) :
+    (T.exchangeTwinCargo L).apply m = some (T₁.exchangeTwinCargo L) ∧
+    T₁.board.bottomOf L = none := by
+  have isVisH : T.isVis H = true := by
+    show (T.board.bottomOf H).isSome = true
+    rw [(Board.bottomOf_eq T.board H (Sum.inr L)).mpr hcover]
+    rfl
+  -- at WF the covered corner pins the covered twin to a hidden boundary
+  have hLbound : ∃ a', T.topHidden a' = some L := by
+    have hedge := hwf.board_edges (Sum.inr L) H hcover
+    rcases hedge.2 with hbur | ⟨-, hfit⟩
+    · obtain ⟨a, t, rest, hpiles, hbase⟩ := hbur
+      rcases hbase with ⟨a', htop⟩ | hvis
+      · exact ⟨a', htop⟩
+      · rw [hid] at hvis; simp at hvis
+    · exfalso
+      obtain ⟨hrk, -⟩ := (canSitOn_eq H L).mp hfit
+      have hrank : L.rank.toIdx = H.rank.toIdx := by rw [htwin, Card.flipSuit_rank]
+      omega
+  obtain ⟨a₀, hLa₀⟩ := hLbound
+  have hLhidden : L ∈ T.hidden a₀ := mem_of_getLast hLa₀
+  -- the exchange image agrees with the source off the pair
+  have htopOff : ∀ x : Card, x ≠ L → x ≠ H →
+      (T.exchangeTwinCargo L).board.topOf (Sum.inr x) = T.board.topOf (Sum.inr x) := by
+    intro x hxL hxH
+    have hxFS : x ≠ L.flipSuit := by
+      intro h; apply hxH; rw [h, htwin]
+    rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
+      show Base.swapTwin L (Sum.inr x) = Sum.inr x from
+        Base.swapTwin_eq_self (fun h => hxL (Sum.inr.inj h))
+          (fun h => hxFS (Sum.inr.inj h))]
+  have hbotOff : ∀ c : Card, c ≠ L → c ≠ H →
+      (T.exchangeTwinCargo L).board.bottomOf c = T.board.bottomOf c := by
+    intro c hcL hcH
+    rw [State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin]
+    cases hb : T.board.bottomOf c with
+    | none => rfl
+    | some b =>
+        have hbL : b ≠ Sum.inr L := by
+          intro h
+          have h₁ : T.board.topOf b = some c := (Board.bottomOf_eq T.board c b).mp hb
+          rw [h] at h₁; rw [hcover] at h₁
+          exact absurd (Option.some.inj h₁).symm hcH
+        have hbFS : b ≠ Sum.inr L.flipSuit := by
+          intro h
+          have h₁ : T.board.topOf b = some c := (Board.bottomOf_eq T.board c b).mp hb
+          rw [h] at h₁; rw [← htwin] at h₁; rw [hclean] at h₁
+          exact absurd h₁ (by simp)
+        show some (b.swapTwin L) = some b
+        rw [Base.swapTwin_eq_self hbL hbFS]
+  have hcpOff : ∀ (c : Card) (b : Base), b ≠ Sum.inr L → b ≠ Sum.inr L.flipSuit →
+      T.canPlace c b = true → (T.exchangeTwinCargo L).canPlace c b = true := by
+    intro c b hbL hbFS hcp
+    cases b with
+    | inl a =>
+        obtain ⟨hfree, hking⟩ := canPlace_inl_iff.mp hcp
+        refine canPlace_inl_iff.mpr ⟨?_, hking⟩
+        rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf]
+        exact hfree
+    | inr d =>
+        obtain ⟨hfree, hvis, hfit⟩ := canPlace_inr_iff.mp hcp
+        refine canPlace_inr_iff.mpr ⟨?_, ?_, hfit⟩
+        · rw [State.exchangeTwinCargo_board, Board.exchangeTwin_topOf,
+            Base.swapTwin_eq_self hbL hbFS]
+          exact hfree
+        · rw [exchangeTwinCargo_isVis]; exact hvis
+  cases m with
+  | draw =>
+      rw [apply_draw_iff] at hap
+      obtain rfl := hap
+      exact ⟨apply_draw_iff.mpr rfl, hid⟩
+  | reveal a =>
+      rw [apply_reveal_iff] at hap
+      obtain ⟨r, bd, htop, hbare, hatt, rfl⟩ := hap
+      have hrL : r ≠ L := by
+        intro h; rw [h] at hbare; rw [hcover] at hbare; simp at hbare
+      have hrH : r ≠ H := by
+        intro h; rw [h] at htop
+        exact absurd (mem_of_getLast htop) (hwf.vis_not_hidden H isVisH a)
+      obtain ⟨hfreeB, -⟩ := (Board.attach_eq_some_iff T.board (T.hiddenBase a) r).mp
+        (by rw [hatt]; simp)
+      have hβL : T.hiddenBase a ≠ Sum.inr L := by
+        intro h; rw [h] at hfreeB; rw [hcover] at hfreeB; simp at hfreeB
+      have hβFS : T.hiddenBase a ≠ Sum.inr L.flipSuit := by
+        intro h
+        have hread : bd.topOf (Sum.inr L.flipSuit) = some r := by
+          rw [← h]; exact Board.attach_topOf _ _ _ hatt
+        rw [← htwin] at hread
+        have hpost : bd.topOf (Sum.inr H) = none := hkeep'
+        rw [hread] at hpost; simp at hpost
+      refine ⟨?_, ?_⟩
+      · rw [apply_reveal_iff]
+        refine ⟨r, bd.exchangeTwin L, htop, ?_, ?_, rfl⟩
+        · rw [htopOff r hrL hrH]; exact hbare
+        · rw [State.exchangeTwinCargo_board]
+          exact Board.exchangeTwin_attach_off hβL hβFS hatt
+      · exact Board.bottomOf_none_attach_off hatt hrL hid
+  | deckPile c b =>
+      rw [apply_deckPile_iff] at hap
+      obtain ⟨hprev, hcp, bd, hatt, rfl⟩ := hap
+      have hcL : c ≠ L := by
+        intro h; rw [h] at hprev
+        exact absurd hLhidden (State.stock_prev_not_mem_hidden hwf hprev (a := a₀))
+      have hcH : c ≠ H := by
+        intro h
+        have h₁ := Cycle.posOf_mem (Cycle.prev_mem hprev)
+        rw [h] at h₁
+        rw [hwf.vis_off_cycle H isVisH] at h₁
+        simp at h₁
+      have hbL' : b ≠ Sum.inr L := by
+        intro h
+        have h₁ : T.board.topOf (Sum.inr L) = none := by
+          rw [← h]; exact topOf_of_canPlace hcp
+        rw [hcover] at h₁; simp at h₁
+      have hbFS' : b ≠ Sum.inr L.flipSuit := by
+        intro h
+        have hread : bd.topOf (Sum.inr L.flipSuit) = some c := by
+          rw [← h]; exact Board.attach_topOf _ _ _ hatt
+        rw [← htwin] at hread
+        have hpost : bd.topOf (Sum.inr H) = none := hkeep'
+        rw [hread] at hpost; simp at hpost
+      refine ⟨?_, ?_⟩
+      · rw [apply_deckPile_iff]
+        refine ⟨hprev, hcpOff c b hbL' hbFS' hcp, bd.exchangeTwin L, ?_, rfl⟩
+        · rw [State.exchangeTwinCargo_board]
+          exact Board.exchangeTwin_attach_off hbL' hbFS' hatt
+      · exact Board.bottomOf_none_attach_off hatt hcL hid
+  | deckStack c =>
+      rw [apply_deckStack_iff] at hap
+      obtain ⟨hprev, hrk, rfl⟩ := hap
+      exact ⟨apply_deckStack_iff.mpr ⟨hprev, hrk, rfl⟩, hid⟩
+  | pileStack c =>
+      rw [apply_pileStack_iff] at hap
+      obtain ⟨htop, b₀, hb, hrk, rfl⟩ := hap
+      have hcH : c ≠ H := by
+        intro h; rw [h] at hb
+        have hHbot : T.board.bottomOf H = some (Sum.inr L) :=
+          (Board.bottomOf_eq T.board H (Sum.inr L)).mpr hcover
+        have hb₀ : b₀ = Sum.inr L := Option.some.inj (hb.symm.trans hHbot)
+        have hclr : (T.board.detach b₀).topOf (Sum.inr L) = none := by
+          rw [hb₀]; exact Board.detach_topOf _ _
+        have hpost : (T.board.detach b₀).topOf (Sum.inr L) = some H := hkeep
+        rw [hclr] at hpost; simp at hpost
+      have hcL : c ≠ L := by
+        intro h; rw [h] at htop; rw [hcover] at htop; simp at htop
+      have hb₀L : b₀ ≠ Sum.inr L := by
+        intro h; rw [h] at hb
+        have h₁ : T.board.topOf (Sum.inr L) = some c :=
+          (Board.bottomOf_eq T.board c (Sum.inr L)).mp hb
+        rw [hcover] at h₁
+        exact absurd (Option.some.inj h₁).symm hcH
+      have hb₀FS : b₀ ≠ Sum.inr L.flipSuit := by
+        intro h; rw [h] at hb
+        have h₁ : T.board.topOf (Sum.inr L.flipSuit) = some c :=
+          (Board.bottomOf_eq T.board c (Sum.inr L.flipSuit)).mp hb
+        rw [← htwin] at h₁; rw [hclean] at h₁; simp at h₁
+      refine ⟨?_, ?_⟩
+      · rw [apply_pileStack_iff]
+        refine ⟨by rw [htopOff c hcL hcH]; exact htop, b₀, ?_, hrk, ?_⟩
+        · rw [State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin, hb]
+          show some (b₀.swapTwin L) = some b₀
+          rw [Base.swapTwin_eq_self hb₀L hb₀FS]
+        · rw [State.exchangeTwinCargo_board, Board.exchangeTwin_detach_off hb₀L hb₀FS]
+          rfl
+      · exact Board.bottomOf_none_detach_off hid
+  | stackPile c b =>
+      rw [apply_stackPile_iff] at hap
+      obtain ⟨hrk, hcp, bd, hatt, rfl⟩ := hap
+      have hcL : c ≠ L := by
+        intro h; rw [h] at hrk
+        have hlt : L.rank.toIdx < T.heights L.suit := by omega
+        exact absurd hLhidden ((hwf.founds_gone L hlt).2.2 a₀)
+      have hcH : c ≠ H := by
+        intro h; rw [h] at hrk
+        have hlt : H.rank.toIdx < T.heights H.suit := by omega
+        have hvc := (hwf.founds_gone H hlt).1
+        rw [hvc] at isVisH; simp at isVisH
+      have hbL' : b ≠ Sum.inr L := by
+        intro h
+        have h₁ : T.board.topOf (Sum.inr L) = none := by
+          rw [← h]; exact topOf_of_canPlace hcp
+        rw [hcover] at h₁; simp at h₁
+      have hbFS' : b ≠ Sum.inr L.flipSuit := by
+        intro h
+        have hread : bd.topOf (Sum.inr L.flipSuit) = some c := by
+          rw [← h]; exact Board.attach_topOf _ _ _ hatt
+        rw [← htwin] at hread
+        have hpost : bd.topOf (Sum.inr H) = none := hkeep'
+        rw [hread] at hpost; simp at hpost
+      refine ⟨?_, ?_⟩
+      · rw [apply_stackPile_iff]
+        refine ⟨hrk, hcpOff c b hbL' hbFS' hcp, bd.exchangeTwin L, ?_, rfl⟩
+        · rw [State.exchangeTwinCargo_board]
+          exact Board.exchangeTwin_attach_off hbL' hbFS' hatt
+      · exact Board.bottomOf_none_attach_off hatt hcL hid
+  | pilePile c b =>
+      rw [apply_pilePile_iff] at hap
+      obtain ⟨b₀, hb, hne, hcmr, bd, hatt, rfl⟩ := hap
+      have hcL : c ≠ L := by
+        intro h; rw [h] at hb; rw [hid] at hb; simp at hb
+      have hcH : c ≠ H := by
+        intro h; rw [h] at hb
+        have hHbot : T.board.bottomOf H = some (Sum.inr L) :=
+          (Board.bottomOf_eq T.board H (Sum.inr L)).mpr hcover
+        have hb₀ : b₀ = Sum.inr L := Option.some.inj (hb.symm.trans hHbot)
+        rw [hb₀] at hne
+        have hpost : bd.topOf (Sum.inr L) = none := by
+          rw [Board.attach_topOf_ne _ _ _ hatt hne, hb₀]
+          exact Board.detach_topOf _ _
+        have hsome : bd.topOf (Sum.inr L) = some H := hkeep
+        rw [hpost] at hsome; simp at hsome
+      have hb₀L : b₀ ≠ Sum.inr L := by
+        intro h; rw [h] at hb
+        have h₁ : T.board.topOf (Sum.inr L) = some c :=
+          (Board.bottomOf_eq T.board c (Sum.inr L)).mp hb
+        rw [hcover] at h₁
+        exact absurd (Option.some.inj h₁).symm hcH
+      have hb₀FS : b₀ ≠ Sum.inr L.flipSuit := by
+        intro h; rw [h] at hb
+        have h₁ : T.board.topOf (Sum.inr L.flipSuit) = some c :=
+          (Board.bottomOf_eq T.board c (Sum.inr L.flipSuit)).mp hb
+        rw [← htwin] at h₁; rw [hclean] at h₁; simp at h₁
+      have hbL' : b ≠ Sum.inr L := by
+        intro h
+        have h₁ : T.board.topOf (Sum.inr L) = none := by
+          rw [← h]; exact topOf_of_canPlace (canPlace_of_canMoveRun hcmr)
+        rw [hcover] at h₁; simp at h₁
+      have hbFS' : b ≠ Sum.inr L.flipSuit := by
+        intro h
+        have hread : bd.topOf (Sum.inr L.flipSuit) = some c := by
+          rw [← h]; exact Board.attach_topOf _ _ _ hatt
+        rw [← htwin] at hread
+        have hpost : bd.topOf (Sum.inr H) = none := hkeep'
+        rw [hread] at hpost; simp at hpost
+      -- the run guard's walk agrees: the walk stays off the pair
+      have hmemR : ∀ z ∈ T.board.aboveOf c, z ≠ L ∧ z ≠ H := by
+        intro z hz
+        have hz' : z ∈ Board.aboveOf.go T.board 52 (Sum.inr c) ([] : List Card) := hz
+        exact Board.aboveOf_go_off_pair hcover hid 52 c [] hcL hcH (by simp) z hz'
+      have hrwo : (T.exchangeTwinCargo L).board.aboveOf c = T.board.aboveOf c :=
+        Board.aboveOf_congr (fun x hx => by
+          rcases List.mem_cons.mp hx with h | hx'
+          · rw [h]; exact (htopOff c hcL hcH).symm
+          · obtain ⟨hxL, hxH⟩ := hmemR x hx'
+            exact (htopOff x hxL hxH).symm)
+      have hrw : (T.board.exchangeTwin L).aboveOf c = T.board.aboveOf c := by
+        rw [← State.exchangeTwinCargo_board]; exact hrwo
+      refine ⟨?_, ?_⟩
+      · rw [apply_pilePile_iff]
+        have hcp' := canPlace_of_canMoveRun hcmr
+        refine ⟨b₀, ?_, hne, ?_, bd.exchangeTwin L, ?_, rfl⟩
+        · rw [State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin, hb]
+          show some (b₀.swapTwin L) = some b₀
+          rw [Base.swapTwin_eq_self hb₀L hb₀FS]
+        · cases b with
+          | inl a => exact canMoveRun_inl_iff.mpr (hcpOff c (Sum.inl a) hbL' hbFS' hcp')
+          | inr d =>
+              refine (canMoveRun_inr_iff (st := T.exchangeTwinCargo L)).mpr
+                ⟨hcpOff c (Sum.inr d) hbL' hbFS' hcp', ?_⟩
+              rw [State.exchangeTwinCargo_board, hrw]
+              exact (canMoveRun_inr_iff.mp hcmr).2
+        · rw [State.exchangeTwinCargo_board, Board.exchangeTwin_detach_off hb₀L hb₀FS]
+          exact Board.exchangeTwin_attach_off hbL' hbFS' hatt
+      · exact Board.bottomOf_none_attach_off hatt hcL
+          (Board.bottomOf_none_detach_off hid)
+
+/-- **The clean-corridor π₁ replay**: a prefix run from the covered
+corner to a still-covered state, all of whose intermediate states keep
+the corner shape, replays VERBATIM in the exchange image — the image
+runs the same prefix and lands on the source's end state, exchanged.
+The `hmids` premise is the corridor: every prefix's end state keeps the
+covered cell the mate's, the mate's own cell bare, and the covered twin
+unseated. -/
+theorem covered_clean_replay {L H : Card} :
+    ∀ (π : List Move) (T T' : State),
+      T.WF → H = L.flipSuit →
+      T.board.topOf (Sum.inr L) = some H →
+      T.board.topOf (Sum.inr H) = none →
+      T.board.bottomOf L = none →
+      T.run π = some T' →
+      (∀ (πa πb : List Move), π = πa ++ πb →
+        ∃ Tm, T.run πa = some Tm ∧
+          Tm.board.topOf (Sum.inr L) = some H ∧
+          Tm.board.topOf (Sum.inr H) = none ∧
+          Tm.board.bottomOf L = none) →
+      (T.exchangeTwinCargo L).run π = some (T'.exchangeTwinCargo L) := by
+  intro π
+  induction π with
+  | nil =>
+      intro T T' hwf htwin hcover hclean hid hrun hmids
+      obtain rfl := run_nil_elim hrun
+      rfl
+  | cons m ms ih =>
+      intro T T' hwf htwin hcover hclean hid hrun hmids
+      obtain ⟨S₁, hap, hrest⟩ := run_cons_elim hrun
+      -- the corridor's next state (the one-move prefix's end)
+      obtain ⟨A, hrunA, hcellA, hcleanA, hidA⟩ := hmids [m] ms (by simp)
+      obtain ⟨Sx, hapx, hrestx⟩ := run_cons_elim hrunA
+      have hAX : A = S₁ := by
+        have hnil : Sx.run [] = some A := hrestx
+        rw [show Sx = S₁ from Option.some.inj (hapx.symm.trans hap)] at hnil
+        obtain rfl := run_nil_elim hnil
+        rfl
+      rw [hAX] at hcellA hcleanA hidA
+      obtain ⟨hstep, hid₁⟩ :=
+        covered_clean_step hwf htwin hcover hclean hid hap hcellA hcleanA
+      have hmids' : ∀ (πa πb : List Move), ms = πa ++ πb →
+          ∃ Tm, S₁.run πa = some Tm ∧
+            Tm.board.topOf (Sum.inr L) = some H ∧
+            Tm.board.topOf (Sum.inr H) = none ∧
+            Tm.board.bottomOf L = none := by
+        intro πa πb hsplit
+        obtain ⟨Tm, hrunπ, hcell', hcl', hidd'⟩ := hmids (m :: πa) πb (by simp [hsplit])
+        obtain ⟨Sy, hapy, hresty⟩ := run_cons_elim hrunπ
+        have hSy : Sy = S₁ := Option.some.inj (hapy.symm.trans hap)
+        rw [hSy] at hresty
+        exact ⟨Tm, hresty, hcell', hcl', hidd'⟩
+      exact run_cons_intro hstep
+        (ih S₁ T' (apply_wf hwf m S₁ hap) htwin hcellA hcleanA hid₁ hrest hmids')
+
+/-- **The dodge-clearing forward leg (the safety's assembly, clean
+corridor)**: a winning line whose first clearing of the covered seat is
+the mate's DODGE — factorized as a corridor prefix `π₁`, the dodge, and
+the tail — transfers to the exchange image: the image replays `π₁`
+verbatim (the clean-corridor replay), plays the SAME dodge and lands
+LITERALLY on the source's post-dodge state (the clean merge), and wins
+with the source's own tail.  This is the forward half of
+`sweep_covered_corner_safety` for the dodge branch; the wave-20
+π₁ = [] instance `sweep_covered_corner_dodge_first_forward` above *is*
+its empty-corridor special case. -/
+theorem sweep_covered_corner_dodge_clearing_forward
+    {st S₀ S₁ W : State} {L H : Card} {b : Base} {π₁ π₂ : List Move}
+    (hwf : st.WF) (htwin : H = L.flipSuit)
+    (hcover : st.board.topOf (Sum.inr L) = some H)
+    (hclean : st.board.topOf (Sum.inr H) = none)
+    (hid : st.board.bottomOf L = none)
+    (hp₁ : st.run π₁ = some S₀)
+    (hmids : ∀ (πa πb : List Move), π₁ = πa ++ πb →
+      ∃ Tm, st.run πa = some Tm ∧
+        Tm.board.topOf (Sum.inr L) = some H ∧
+        Tm.board.topOf (Sum.inr H) = none ∧
+        Tm.board.bottomOf L = none)
+    (hdodge : S₀.apply (Move.pilePile H b) = some S₁)
+    (hrest : S₁.run π₂ = some W) (hwin : W.isWin = true) :
+    (st.exchangeTwinCargo L).solvableFrom := by
+  obtain ⟨Tm, hrunT, hcell₀, hcl₀, hid₀⟩ := hmids π₁ [] (by simp)
+  have hTm : Tm = S₀ := Option.some.inj (hrunT.symm.trans hp₁)
+  rw [hTm] at hcell₀ hcl₀
+  have hrep := covered_clean_replay π₁ st S₀ hwf htwin hcover hclean hid hp₁ hmids
+  have hmerge : (S₀.exchangeTwinCargo L).apply (Move.pilePile H b) = some S₁ :=
+    covered_dodge_merges_clean htwin hcell₀ hcl₀ hdodge
+  have hImg : (S₀.exchangeTwinCargo L).run [Move.pilePile H b] = some S₁ :=
+    run_cons_intro hmerge rfl
+  exact ⟨π₁ ++ [Move.pilePile H b] ++ π₂, W,
+    run_append_some (run_append_some hrep hImg) hrest, hwin⟩
+
 /-- **§6.5's semantic safety at the covered corner (planned)**: the
 covered corner and its exchange image — the two identity-resolutions
 of the ambiguous word — are solvability-equivalent, so the sweep's
@@ -3263,22 +3780,41 @@ plays the same dodge and the two threads MERGE (clean) or stand in the
 exchange-at-`H` relation (with riders, via `exchangeTwinCargo_id_of_bare_pair`
 and the conjugation kit `exchangeTwinCargo_isVis` /
 `exchangeTwinCargo_aboveOf_mate_self` / `canSitOn_self`); the π₁ = []
-instance is CLOSED as `sweep_covered_corner_dodge_first_forward`. THE
-REMAINING RESIDUE, three precisely-named pieces: (i) **the π₁ pre-dodge
-replay** — the prefix before the first clearing must mirror into the
-image (per-kind mirrors; the rider-on-mate landings relabel to landings
-on `L` by the twin-blind fit `canSitOn_swapTwin_right`; the
-`L`-hidden boundary and the deal-adjacent rider corners are the honest
-sub-classes); (ii) **the `pileStack H` clearing** — the mate founds
+instance is CLOSED as `sweep_covered_corner_dodge_first_forward`.
+WAVE 21: the residue RE-ANCHORED AGAIN — piece (i) is now PAID on the
+CLEAN CORRIDOR: `covered_clean_step` + `covered_clean_replay` (the
+same-move mirror: at a corridor state — covered cell the mate's, mate
+cell bare, covered twin UNSEATED (at WF this unseatedness is DERIVED:
+`board_edges` pins the covered twin to a pile's hidden boundary, and
+that closes its move/seat/stock/foundation channels) — every fireable
+move reads and writes only off-pair cells, so the exchange image runs
+the SAME move and stays the source's exchange, the `aboveOf` walks
+agreed via `Board.aboveOf_go_off_pair`), and
+`sweep_covered_corner_dodge_clearing_forward` assembles it with the
+dodge merge: the FORWARD LEG is closed whenever the first clearing is
+the mate's DODGE along a corridor-clean prefix (the empty prefix IS
+the wave-20 instance).  THE REMAINING RESIDUE, three sharply-named
+pieces: (i) *the rider-unclean corridors* — a prefix that parks a
+rider on the mate's cell mid-play needs the landing base RELABELED to
+`Sum.inr L`: legal whenever the covered twin is VISIBLE
+(`canSitOn_swapTwin_right` carries the fit), and IMPOSSIBLE at the
+hidden corner (the image cannot attach onto an unseated host — the
+w15fithole license-fit shape; the L-seated corner admitted by
+`board_edges`'s buried-base clause is the honest sub-class, note it is
+unreachable by the reveal order: a ridden boundary can never flip) —
+plus the corridor premises' derivations at the pin level (`hmids` from
+the first-clearing factorization and the covered cell's no-refill
+immutability); (ii) **the `pileStack H` clearing** — the mate founds
 directly, the covered thread breaks to the one-rung-behind parked
 thread; its bridge needs the deferred-unpark construction (the
 `p`-moment hijack: the crossed-`(h+1)` host's seated moments mirror,
-so the image unparks there — or a witness-shaped obstruction); (iii)
-**the reverse leg's mirror conditions** — the image-side plays may
-stack `L` or land on `L` while the mate is parked (`exchangeTwinCargo_flip_cover`
-identifies the cells), the dual of (ii); both reduce to the same
-dodge-at-some-moment shape. Every sorry carries this plan; the census
-pin stays here alone. -/
+so the image unparks there — or a witness-shaped obstruction;
+REFUTE-FIRST the sub-claim, the candidate: a deckStack-founded pair of
+crossed hosts); (iii) **the reverse leg's mirror conditions** — the
+image-side plays may stack `L` or land on `L` while the mate is parked
+(`exchangeTwinCargo_flip_cover` identifies the cells), the dual of
+(ii); both reduce to the same dodge-at-some-moment shape. Every sorry
+carries this plan; the census pin stays here alone. -/
 theorem State.sweep_covered_corner_safety {st : State} {L H : Card}
     (hwf : st.WF)
     (htwin : H = L.flipSuit)

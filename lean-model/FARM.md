@@ -2214,3 +2214,75 @@ Build: `lake build` green over Restriction/Construction + the witness
 facade (the probe/fences build clean against the re-scoped
 statements); census pinned OK at 10 (Restriction 1, zero bullets); no
 new deprecation warnings in the new code; no refuted constant touched.
+## Wave 21 — the covered corner's clean-corridor π₁ replay (2026-10-06, the sweep-final session; TwinSwapCompletion stays pinned 1, census pinned 11)
+
+SPAWN FIX (the known runner-guess bug, third strike): the worktree was
+minted with farm/sweep-final at dc41b8e = origin/main HEAD — a tree
+with NO model at all (no lean-model/, none of the wave-20 kit);
+re-minted by reset to macro-game HEAD a2672c7 (the wave-20 base
+7121529's descendant) per the ledger's prescribed fix (clean tree,
+zero unique commits lost).  Sessions: verify your branch's HEAD
+carries lean-model before anything else.
+
+TARGET: `State.sweep_covered_corner_safety` — NOT closed this wave (the
+honest terminus below); the pin keeps its single sorry and its in-file
+plan is RE-ANCHORED on this wave's landed pieces.
+
+LANDED (all free-standing, axiom-clean [propext, Quot.sound]):
+- `Board.exchangeTwin_detach_off` (:3268) / `Board.exchangeTwin_attach_off`
+  (:3286) — the two-seat exchange commutes with detach/attach at any
+  cell off the twin pair (the mirror's board bookkeeping).
+- `Board.bottomOf_none_attach_off` (:3314) /
+  `Board.bottomOf_none_detach_off` (:3326) — an unseated card stays
+  unseated under any cell write (the covered twin's corridor
+  invariant's maintenance).
+- `Board.aboveOf_go_off_pair` (:3341) — walks stay off the pair at a
+  corner whose covered twin is unseated (no cell hosts it; only its own
+  covered cell hosts the mate) — consumed via `Board.aboveOf_congr`,
+  giving the run guards' walk agreement between the threads.
+- `covered_clean_step` (:3400) — THE SAME-MOVE MIRROR at a
+  clean-corridor state: any move that preserves the corridor shape
+  fires VERBATIM in the exchange image, and the image stays the
+  source's exchange.  The corridor's exclusions are exactly the relabel
+  cases (the mate's own moves are the clearing; mate-cell landings
+  break the corridor; covered-cell landings are attach-blocked); at WF
+  `board_edges` DERIVES the covered twin's unseatedness (the
+  deal-adjacent cover pins it to a pile's hidden boundary), closing its
+  move/seat/stock/foundation channels — the whole seven-kind dispatch
+  is then off-pair cell bookkeeping.
+- `covered_clean_replay` (:3680) — the corridor packaged as a premise
+  (`hmids`: every prefix's end state keeps the corner shape) and the
+  replay by induction: the image runs the SAME prefix and lands on the
+  source's pre-clearing state, exchanged.
+- `sweep_covered_corner_dodge_clearing_forward` (:3737) — the forward
+  DODGE-branch assembly: replay + `covered_dodge_merges_clean` — the
+  image plays the same dodge and lands LITERALLY on the source's
+  post-dodge state, then wins with the source's own tail.  The wave-20
+  π₁ = [] instance is its empty-corridor special case.
+
+THE HONEST BOUNDARY (next tickets, sharpest-first):
+(1) residue (i)'s rider-unclean corridors — a prefix that parks a rider
+on the mate's cell mid-play needs the landing RELABELED to `Sum.inr L`:
+legal whenever the covered twin is VISIBLE (`canSitOn_swapTwin_right`
+carries the fit), impossible at the hidden corner (no image move can
+attach onto an unseated host — the w15fithole license-fit shape; the
+L-seated corner admitted by `board_edges`'s buried-base clause is the
+honest sub-class, and it is unreachable by the reveal order: a ridden
+boundary can never flip);
+(2) the corridor premises' derivations at the pin level — `hmids` from
+the first-clearing factorization plus the covered cell's no-refill
+immutability (once the mate leaves at the hidden corner, nothing can
+attach to the covered cell and the mate itself is canSitOn-blocked
+from returning);
+(3) the `pileStack H` clearing branch — the deferred-unpark or a
+witness-shaped obstruction (candidate: a deckStack-founded pair of
+crossed hosts; REFUTE-FIRST before forcing);
+(4) the reverse leg (the dual corridor at the image; the image's own
+mate moves while parked are all dodges) + the final iff assembly over
+(1)-(4).
+
+Build: `lake build Klondike Witnesses` green (69 jobs, macro-game HEAD
+a2672c7); census pinned OK (11 total, TwinSwapCompletion 1, zero
+bullets); `lake env lean Klondike/TwinSwapCompletion.lean` green with
+the single pin warning.  No new sorry introduced; no refuted constant
+touched; all new lemmas [propext, Quot.sound].

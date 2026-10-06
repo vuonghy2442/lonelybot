@@ -8958,3 +8958,38 @@ WHAT IS GENUINELY STILL OPEN (the honest ledger, for the next card):
   fragment's next rung.
 - The evacuation geometry (reveals/foundations) — unchanged from
   FARM ticket 1's launch list.
+
+## TwinSwapCompletion.lean — the clean-corridor mirror's mechanics (wave 21, 2026-10-06)
+
+- THE CORRIDOR PRINCIPLE (reusable for the whole twin-exchange family):
+  at an exchange-conjugated pair of states, the moves needing a base
+  RELABEL are exactly the ones writing the pair cells; a corridor
+  premise forbidding those (here: the mate's own moves = the clearing,
+  mate-cell landings, covered-cell landings) reduces every remaining
+  move to SAME-MOVE bookkeeping — cells agree off the pair, plus
+  `Board.exchangeTwin_attach_off`/`_detach_off` (added :3268/:3286),
+  `bottomOf_none_(attach|detach)_off`, and the aboveOf congruence.
+- THE WALK-STAYS-OFF-PAIR trick: at (hcover : topOf (inr L) = some H,
+  hid : bottomOf L = none) no aboveOf walk from an off-pair card ever
+  reads the pair cells — `Board.aboveOf_go_off_pair` (:3341) carries
+  the go-induction (H-kill: `bd.inj` against hcover; L-kill:
+  bottomOf_eq against hid); consume via `Board.aboveOf_congr`, never
+  by hand.
+- `subst`/`rcases rfl` on a THEOREM-binder card variable (L/H/c)
+  ELIMINATES the binder and kills later references ("unknown
+  identifier H") — use `rw [h] at <hyp>` instead (covered_clean_step's
+  kills).  Likewise `some bd'.exchangeTwin t` parses as
+  `(some bd').exchangeTwin` — parenthesize.  `cases hb : e` substitutes
+  e in the GOAL only: hypotheses need `rw [hb] at h`, and writing BOTH
+  the cases and a goal-rw fails "did not find occurrence".
+- After `rw [apply_pilePile_iff]` the guard-slot goals keep the
+  `(st.exchangeTwinCargo t).board` SPELLING while derived haves display
+  `(T.board.exchangeTwin L)` — a rewrite spelled one way cannot fire on
+  the other: keep derived haves in the BOARD spelling and normalize the
+  slot goal first (`rw [State.exchangeTwinCargo_board, hrw]`);
+  per-refine spelings flip — always re-check the goal text.
+- The attach produce-form plus result identification:
+  `Option.ne_none_iff_exists'.mp ((Board.attach_eq_some_iff _ _ _).mpr
+  ⟨hfree, hbot⟩)` then `rw [hatt'']; refine congrArg some ?_` +
+  `Board.ext_topOf` per cell — the wave-20 pattern extends verbatim to
+  the off-pair commutation lemmas.
