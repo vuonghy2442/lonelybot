@@ -8993,3 +8993,63 @@ WHAT IS GENUINELY STILL OPEN (the honest ledger, for the next card):
   ⟨hfree, hbot⟩)` then `rw [hatt'']; refine congrArg some ?_` +
   `Board.ext_topOf` per cell — the wave-20 pattern extends verbatim to
   the off-pair commutation lemmas.
+
+## Session note (2026-10-05) — the wave-21 corpus-probe session (engine-side measurement, repro15 harness quirks)
+
+MEASUREMENT INFRA (repro15 harness, outside the repo, micro engine =
+fix/issue-15-least-stack-worry-backs @ 10e62f8).  New modes added to the
+harness (corner mode untouched — it reproduces wave-19B's numbers exactly,
+5 seeds / 12 states / seed 26 ♣K at seeds 2..302, use it as the
+regression control any time the harness changes): `frozen2` (buried
+climb-blocked king at ≥N free anchors), `urgency` (frozen visible king +
+promotable anchored head + free anchor), `irrev` (PileStack
+candidate reversibility, three checks + class table).
+`REPRO_SEEDS=<n>` scales the corpus (default 300; seeds 2..2+n);
+results in lean-model/probe-results/corpus-results.md.  Quirks learned,
+for any future session that drives the raw engine over corpora:
+
+(1) The abstract state's K+ form tracks each pile's BOTTOM VISIBLE card
+(the anchor / `Hidden`'s window top) + the strictly-buried cards in order,
+but the visible cards ABOVE the anchor as an unordered SET.  A raw
+offered `PileStack` candidate therefore need NOT be a concrete pile top:
+it can be covered-landed (mid-stratum) or anchor-covered; the concrete
+replay (`convert_moves`) relocates the covering run first, and if no
+receiver exists for that run the conversion FAILS even though the
+abstract engine offered the move.  Classify candidates before assuming
+concrete pile tops: anchor-alone / anchor-covered / top-landed /
+covered-landed (see `irrev`'s `cls`).  Observed at 1000 seeds: 246
+covered-landed + 99 anchor-covered distinct candidates — not rare enough
+to ignore, not common enough to dominate.
+
+(2) Every landed (above-anchor) promotion is ONE-STEP REVERSIBLE onto its
+own underlyer by construction (the concrete piles descend alternately, so
+the card beneath a movable card is always a legal receiver once the mover
+leaves).  The engine agrees: raw `SP c` re-offered immediately in
+129,940 of 129,940 visited landed cases at 1000 seeds.  Consequence: any
+"promotion permanence" probe that only checks for receivers among the
+CURRENT tops overcounts ~2.4x (78% vs the true 32–35%); always count the
+seat the move itself exposes (underlyer / flipped anchor card / freed
+anchor).  King promotions are never engine-irreversible (0/143 distinct —
+the freed anchor takes the king back).
+
+(3) Greedy trajectories 2-CYCLE (an `SP c` worry-back followed by `PS c`
+when nothing else fires), so visit-weighted state counts inflate ~12–40x.
+Dedupe by a full concrete state key (foundations + both strata of every
+pile + waste order + stock) before quoting "number of states"; the probes
+report both weights and they differ by an order of magnitude.
+
+(4) The engine's raw king-DROP gate (`free_pile` in `gen_moves`) counts
+COVERED visible kings as occupying a pile (`get_extended_top_mask`), so a
+concrete-empty pile can coexist with king landing moves withheld —
+K+-conservative, fine for play but do not read it as the concrete
+"genuinely empty piles" predicate; that one is hidden-stratum empty AND
+visible-stratum empty on the concrete board.
+
+(5) Micro-engine proxies vs the Lean side (for whoever does §8's corpus
+histogram next): engine-reversible (a raw worry-back offered
+post-promotion) implies NOT `irreversibleAt` (Theorems.lean:138), so any
+no-worry-back fraction is an UPPER bound on the Lean rate; the affected
+class of the window-gate decision is anchor promotions of non-king heads
+(67% of anchor-alone candidates at 1000 seeds) — king and landed
+promotions are reversible-in-one and the model side may take that as
+vacuous for the gate's semantics.
