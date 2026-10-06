@@ -1444,10 +1444,122 @@ theorem lift_comm {st : State} {c d : Card} {xc xd : State}
   rw [← h12] at hm2
   exact ⟨M1, hm1, hm2, hd', hc'⟩
 
+/-! ### The canonicalizer -/
 
+/-- One saturation step: lift the first licensed card in universe
+order; a state with no license holds. -/
+def satStep (st : State) : State :=
+  match pick st with
+  | none => st
+  | some c => (raise st c).getD st
 
+/-- The deterministic saturator at budget `n`. -/
+def canonAux : Nat → State → State
+  | 0, st => st
+  | n+1, st => canonAux n (satStep st)
 
+/-- The canonical form of a state: the saturator run to
+exhaustion — 52 lifts always suffice, since every lift strictly
+drops the fuel and the fuel never exceeds 52. -/
+def canon (st : State) : State := canonAux 53 st
 
+theorem satStep_none {st : State} (h : pick st = none) : satStep st = st := by
+  simp only [satStep, h]
 
+theorem satStep_some {st : State} {c : Card} {s' : State}
+    (h : pick st = some c) (hs : raise st c = some s') :
+    satStep st = s' := by
+  simp only [satStep, h, hs]
+  rfl
 
+/-- The fuel sum, cut around one suit. -/
+private theorem nat_sum_suits_inv (g : Suit → Nat) (s : Suit) :
+    (Suit.all.map g).sum =
+    ((preSuits s).map g).sum + (g s + ((sufSuits s).map g).sum) := by
+  have hsplit : (preSuits s ++ [s] ++ sufSuits s).map g =
+      ((preSuits s).map g) ++ (g s :: ((sufSuits s).map g)) := by
+    cases s <;> rfl
+  rw [suit_split s, hsplit, List.sum_append, List.sum_cons]
 
+/-- A rung-ready card's suit gap is positive. -/
+theorem suitGap_pos_of_nextUp {st : State} {c : Card} (hn : st.nextUp c = true) :
+    1 ≤ suitGap st c.suit := by
+  have h2 : c.rank.toIdx = st.foundHeight c.suit := of_decide_eq_true hn
+  have hlt := Rank.toIdx_lt c.rank
+  rw [h2] at hlt
+  show 1 ≤ (13 - st.foundHeight c.suit)
+  omega
+
+theorem pick_none_of_fuel_zero {st : State} (h : stackFuel st = 0) :
+    pick st = none := by
+  refine firstWhere_none_of_all (p := canRaiseB st) (fun c _ => ?_)
+  cases hb : canRaiseB st c with
+  | false => rfl
+  | true =>
+      obtain ⟨hn, -, -, -⟩ := canRaiseB_true_iff.1 hb
+      have hg := suitGap_pos_of_nextUp hn
+      have hinv := nat_sum_suits_inv (suitGap st) c.suit
+      have hpre : 0 ≤ ((preSuits c.suit).map (suitGap st)).sum := Nat.zero_le _
+      have hsuf : 0 ≤ ((sufSuits c.suit).map (suitGap st)).sum := Nat.zero_le _
+      have hz := h
+      rw [stackFuel] at hz
+      omega
+
+theorem fuel_pos_of_canRaise {st : State} {c : Card} (hcr : CanRaise st c) :
+    1 ≤ stackFuel st := by
+  have h1 : 1 ≤ suitGap st c.suit := suitGap_pos_of_nextUp hcr.1
+  have hinv := nat_sum_suits_inv (suitGap st) c.suit
+  have hpre : 0 ≤ ((preSuits c.suit).map (suitGap st)).sum := Nat.zero_le _
+  have hsuf : 0 ≤ ((sufSuits c.suit).map (suitGap st)).sum := Nat.zero_le _
+  rw [stackFuel, hinv]
+  omega
+
+theorem canonAux_zero (st : State) : canonAux 0 st = st := rfl
+
+theorem canonAux_succ (n : Nat) (st : State) :
+    canonAux (n+1) st = canonAux n (satStep st) := rfl
+
+/-- A frozen (fuel-zero) state never changes under the saturator. -/
+theorem canonAux_fuel_zero {st : State} (h : stackFuel st = 0) :
+    ∀ b, canonAux b st = st := by
+  intro b
+  induction b with
+  | zero => rfl
+  | succ b ih =>
+      rw [canonAux_succ, satStep_none (pick_none_of_fuel_zero h)]
+      exact ih
+
+/-- A final state never changes under the saturator. -/
+theorem canonAux_final {st : State} (hfin : Final st) :
+    ∀ n, canonAux n st = st := by
+  intro n
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+      rw [canonAux_succ, satStep_none ((pick_eq_none_iff_final st).2 hfin)]
+      exact ih
+
+/-- Saturation within the budget: a state with at most `n` fuel is
+saturated after at most `n` steps. -/
+theorem canonAux_final_after_fuel : ∀ (n : Nat) (st : State),
+    stackFuel st ≤ n → Final (canonAux n st) := by
+  intro n
+  induction n with
+  | zero =>
+      intro st hle
+      rw [canonAux_zero]
+      exact (pick_eq_none_iff_final st).1 (pick_none_of_fuel_zero (Nat.le_zero.mp hle))
+  | succ n ih =>
+      intro st hle
+      rw [canonAux_succ]
+      cases hp : pick st with
+      | none =>
+          have hfin : Final st := (pick_eq_none_iff_final st).1 hp
+          rw [satStep_none hp, canonAux_final hfin]
+          exact hfin
+      | some c =>
+          obtain ⟨s', hs'⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
+          rw [satStep_some hp hs']
+          have hdrop : stackFuel s' + 1 ≤ stackFuel st :=
+            stackFuel_step (IsRaise.tabToFound c) hs'
+          exact ih s' (by omega)
