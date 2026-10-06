@@ -2447,3 +2447,57 @@ axiom-clean ([propext, Quot.sound]).
 3. The shared-window relaxation: per-window founder pairs for three
    DIFFERENT u's at a non-king — open; needs a collapse of the
    free-float witnesses first.
+
+## Wave 22 — the Orig local-twin-exchange quotient (2026-10-06, the orig-exch-quotient session; census untouched — the pin covers Klondike/ only)
+
+The quotient the local twin exchange's license demands, built Orig-side
+on the proven row (`twin_exchange_bare_iff`, the one-bare iff): the
+chapter is `Orig/TwinExchangeQuotient.lean`, sorry-free, wired into the
+root via `Orig.lean`'s import.
+
+- **§1 the license** — `TwinExchOK` is exactly the bare row's premise
+  bundle (WF, both twin hosts located face-up in DISTINCT piles, at
+  least one bare; both-bare rides free — the exchange is the identity
+  there).  `TwinExchOK_exchangeTwin` descends the license through the
+  exchange: WF by `State.wf_exchangeTwin`, the hosts keep their piles
+  by `State.exchangeTwin_hosts_stable`, and the bare clause SWAPS
+  sides by the `aboveIn` slot laws (`State.exchangeTwin_aboveIn_self/
+  _other`) — the exchange is an honest symmetry of the license.
+- **§2 the chain** — `ExchStep` (one licensed exchange) and `ExchChain`
+  (the cons-carried closure, `ShufflePlayW`'s shape: every step
+  explicit, inductions re-root along the tail);
+  `ExchChain_append` concatenates, `ExchStep_symm`/`ExchChain_symm`
+  invert each step through `State.exchangeTwin_invol`.  The
+  both-occupied shape is deliberately NOT a step: the chain never
+  crosses TwinExchange's declared open row.
+- **§3 the descent** — `ExchStep_sameFate` (the bare iff repackaged)
+  and `ExchChain_sameFate` (chain induction).
+- **§4 the quotient** — `exchSetoid` / `ExchOrbit` / `WinFromQ₃`, the
+  third of the family (`WinFromQ` on the twin relabeling, `WinFromQ₂`
+  on the same-orbit classes, this one on the licensed-exchange
+  classes), with the class workhorses: `ExchOrbit.mk_exchangeTwin` (one
+  licensed exchange does not move the class),
+  `ExchOrbit.mk_eq_mk` / `ExchOrbit.exact` (equal classes carry a
+  chain — the homemade `Quot.exact`, `PileClass.exact`'s device),
+  `winFromQ₃_mk_iff` (lift-on-`mk` is definitionally transparent, the
+  `WinFromQ₂` `show` device), `twin_exch_quotient` (the
+  `twin_quotient` analogue) and `twin_exchange_fate_of_classEq` (class
+  equality alone transfers the verdict).
+- API note (probe-settled, core v4.34.1): `Quotient.mk`'s setoid
+  argument is EXPLICIT; `Quotient.sound` accepts the plain relation
+  with the `≈`-instance resolved by unification (no ambiguity against
+  the twin relabeling's `twinSetoid` in scope); lift-on-`mk` defeq is
+  live — the chapter avoids `≈` syntax entirely, per Combine.lean's
+  multi-instance discipline.
+
+FUTURE (recorded in the chapter's header): the engine successor-set
+descent (a Klondike-side bridge question); the `RevEqW` refinement —
+each licensed bare exchange is a one-move witness shuffle in both
+directions, which would land every chain inside `sameOrbitSetoid`'s
+classes — blocked on TwinExchange's private
+`step_realize_fwd`/`step_realize_bwd` going public; and the
+both-occupied row, which would widen the license.
+
+Build: `lake build Orig` green (18 jobs); axioms probe over the ten
+exported theorems: all `[propext, Quot.sound]` (no `Classical.choice`,
+no sorry).  No refuted constant touched.

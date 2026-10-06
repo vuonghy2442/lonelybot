@@ -14,6 +14,7 @@ import Orig.Combine
 import Orig.Shuttle
 import Orig.Encode
 import Orig.Classify
+import Orig.Reach
 
 /-!
 # Orig — the original game
