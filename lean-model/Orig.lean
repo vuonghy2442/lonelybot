@@ -10,6 +10,7 @@ import Orig.Mono
 import Orig.Irreversible
 import Orig.Phase
 import Orig.Combine
+import Orig.Shuttle
 
 /-!
 # Orig — the original game
