@@ -1278,6 +1278,172 @@ theorem canRaise_lifted {st : State} {c d : Card} {s' : State}
     exact hsc
   exact ⟨hnp, ac, hsr, hshp⟩
 
+/-! ### The local diamond: licensed lifts commute literally -/
+
+/-- The join comparison: two licensed lifts of different cards
+update disjoint suits and disjoint seats, so the two composite
+states coincide field by field. -/
+private theorem lift_join_eq (st xc xd : State) (c d : Card) (ac ad : Anchor)
+    (hsd : c.suit ≠ d.suit) (hane : ac ≠ ad)
+    (hxcF : ∀ σ, xc.found σ = if σ = c.suit then st.found c.suit ++ [c] else st.found σ)
+    (hxdF : ∀ σ, xd.found σ = if σ = d.suit then st.found d.suit ++ [d] else st.found σ)
+    (hxcP : ∀ a, xc.piles a = if a = ac then
+        Pile.afterRunRemoved (st.piles ac) (chop (st.piles ac).faceUp) else st.piles a)
+    (hxdP : ∀ a, xd.piles a = if a = ad then
+        Pile.afterRunRemoved (st.piles ad) (chop (st.piles ad).faceUp) else st.piles a)
+    (hxcS : xc.stock = st.stock) (hxcW : xc.waste = st.waste) (hxcD : xc.drawStep = st.drawStep)
+    (hxdS : xd.stock = st.stock) (hxdW : xd.waste = st.waste) (hxdD : xd.drawStep = st.drawStep)
+    (M1 : State)
+    (hM1 : M1 = { xc.setFound d.suit (xc.found d.suit ++ [d]) with
+        piles := fun a => if a = ad then
+          Pile.afterRunRemoved (xc.piles ad) (chop (xc.piles ad).faceUp)
+          else xc.piles a })
+    (M2 : State)
+    (hM2 : M2 = { xd.setFound c.suit (xd.found c.suit ++ [c]) with
+        piles := fun a => if a = ac then
+          Pile.afterRunRemoved (xd.piles ac) (chop (xd.piles ac).faceUp)
+          else xd.piles a }) :
+    M1 = M2 := by
+  have hxoad : xc.piles ad = st.piles ad := by
+    rw [hxcP ad, ite_eq_right (fun h => hane h.symm)]
+  have hdoad : xd.piles ad =
+      Pile.afterRunRemoved (st.piles ad) (chop (st.piles ad).faceUp) := by
+    rw [hxdP ad, ite_eq_left rfl]
+  have hdoac : xd.piles ac = st.piles ac := by
+    rw [hxdP ac, ite_eq_right hane]
+  rw [hM1, hM2]
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · show ((xc.setFound d.suit (xc.found d.suit ++ [d])).found σ) =
+        ((xd.setFound c.suit (xd.found c.suit ++ [c])).found σ)
+    rw [setFound_field, setFound_field]
+    by_cases hσc : σ = c.suit
+    · rw [hσc, ite_eq_right hsd, hxcF c.suit, ite_eq_left rfl,
+        ite_eq_left rfl, hxdF c.suit, ite_eq_right hsd]
+    · by_cases hσd : σ = d.suit
+      · rw [hσd, ite_eq_left rfl, hxcF d.suit, ite_eq_right (fun h => hsd h.symm),
+          ite_eq_right (fun h => hsd h.symm), hxdF d.suit, ite_eq_left rfl]
+      · rw [ite_eq_right hσd, hxcF σ, ite_eq_right hσc, hxdF σ,
+          ite_eq_right hσc, ite_eq_right hσd]
+  · -- piles projection: project through the record lets, then case
+    show ((fun x => if x = ad then
+        Pile.afterRunRemoved (xc.piles ad) (chop (xc.piles ad).faceUp)
+        else xc.piles x) a) = ((fun x => if x = ac then
+        Pile.afterRunRemoved (xd.piles ac) (chop (xd.piles ac).faceUp)
+        else xd.piles x) a)
+    show (if a = ad then
+        Pile.afterRunRemoved (xc.piles ad) (chop (xc.piles ad).faceUp)
+        else xc.piles a) = (if a = ac then
+        Pile.afterRunRemoved (xd.piles ac) (chop (xd.piles ac).faceUp)
+        else xd.piles a)
+    rw [hxcP a, hxdP a]
+    rw [hxoad, hdoac]
+    by_cases ha : a = ad
+    · rw [ha, ite_eq_left rfl, ite_eq_left rfl,
+        ite_eq_right (fun h => hane h.symm)]
+    · rw [ite_eq_right ha]
+      by_cases hac : a = ac
+      · rw [hac, ite_eq_left rfl, ite_eq_left rfl]
+      · rw [ite_eq_right hac, ite_eq_right hac, ite_eq_right ha]
+  · show ((xc.setFound d.suit (xc.found d.suit ++ [d])).stock) =
+        ((xd.setFound c.suit (xd.found c.suit ++ [c])).stock)
+    rw [setFound_stock, setFound_stock, hxcS, hxdS]
+  · show ((xc.setFound d.suit (xc.found d.suit ++ [d])).waste) =
+        ((xd.setFound c.suit (xd.found c.suit ++ [c])).waste)
+    rw [setFound_waste, setFound_waste, hxcW, hxdW]
+  · show ((xc.setFound d.suit (xc.found d.suit ++ [d])).drawStep) =
+        ((xd.setFound c.suit (xd.found c.suit ++ [c])).drawStep)
+    rw [setFound_drawStep, setFound_drawStep, hxcD, hxdD]
+
+/-- **(2) The local diamond**: two licensed lifts of different
+cards, in either order, land at literally the same state — the
+join comparison above.  This is the commutation the confluence
+induction pivots on. -/
+theorem lift_comm {st : State} {c d : Card} {xc xd : State}
+    (hwf : st.WF) (hc : CanRaise st c) (hd : CanRaise st d) (hne : c ≠ d)
+    (hstepc : State.step st (Move.tabToFound c) = some xc)
+    (hstepd : State.step st (Move.tabToFound d) = some xd) :
+    ∃ m : State, State.step xc (Move.tabToFound d) = some m ∧
+      State.step xd (Move.tabToFound c) = some m ∧
+      CanRaise xc d ∧ CanRaise xd c := by
+  have hxcwf : xc.WF := lift_wf hwf hc hstepc
+  have hxdwf : xd.WF := lift_wf hwf hd hstepd
+  -- the surviving licenses on both sides
+  have hd' : CanRaise xc d := canRaise_lifted hwf hd hc (fun h => hne h.symm) hstepc
+  have hc' : CanRaise xd c := canRaise_lifted hwf hc hd hne hstepd
+  obtain ⟨hnc, ac, hpc, -⟩ := hc
+  obtain ⟨-, ac0, hpc0, xcshape⟩ := step_tabToFound_inv hstepc
+  rw [hpc] at hpc0
+  injection hpc0 with hca0
+  subst hca0
+  obtain ⟨hnd, ad, hpd, -⟩ := hd
+  obtain ⟨-, ad0, hpd0, xdshape⟩ := step_tabToFound_inv hstepd
+  rw [hpd] at hpd0
+  injection hpd0 with hda0
+  subst hda0
+  have hsd : c.suit ≠ d.suit := nextUp_suit_disjoint hnc hnd hne
+  have hane : ac ≠ ad := by
+    intro heq
+    apply hne
+    have t1 := pileOfTop_top hpc
+    have t2 := pileOfTop_top hpd
+    rw [heq] at t1
+    exact Option.some.inj (t1.2.symm.trans t2.2)
+  -- their fired steps, with the seat anchors pinned to the originals
+  obtain ⟨M1, hm1⟩ := raise_eq_some_of_canRaise xc hd'
+  obtain ⟨M2, hm2⟩ := raise_eq_some_of_canRaise xd hc'
+  obtain ⟨-, adM1, hpin1, m1shape⟩ := step_tabToFound_inv hm1
+  obtain ⟨-, acM2, hpin2, m2shape⟩ := step_tabToFound_inv hm2
+  -- pin M1's inv anchor: the search at xc still finds d's seat, since c's
+  -- lift touched only ac ≠ ad
+  have hxcPad : xc.pileOfTop d = some ad := by
+    refine (pileOfTop_eq_some_iff hxcwf).2 ?_
+    rw [xcshape]
+    show (if ad = ac then
+        Pile.afterRunRemoved (st.piles ac) (chop (st.piles ac).faceUp)
+        else st.piles ad).top = some d
+    rw [ite_eq_right (fun h => hane h.symm)]
+    exact (pileOfTop_eq_some_iff hwf).1 hpd
+  have hxdPac : xd.pileOfTop c = some ac := by
+    refine (pileOfTop_eq_some_iff hxdwf).2 ?_
+    rw [xdshape]
+    show (if ac = ad then
+        Pile.afterRunRemoved (st.piles ad) (chop (st.piles ad).faceUp)
+        else st.piles ac).top = some c
+    rw [ite_eq_right hane]
+    exact (pileOfTop_eq_some_iff hwf).1 hpc
+  rw [pileOfTop_inj hpin1 hxcPad] at m1shape
+  rw [pileOfTop_inj hpin2 hxdPac] at m2shape
+  -- the six transports
+  have hxcF := (raise_foundTransport hstepc).2
+  have hxdF := (raise_foundTransport hstepd).2
+  have hxcP : ∀ a, xc.piles a = if a = ac then
+      Pile.afterRunRemoved (st.piles ac) (chop (st.piles ac).faceUp)
+      else st.piles a := by
+    intro a
+    rw [xcshape]
+  have hxdP : ∀ a, xd.piles a = if a = ad then
+      Pile.afterRunRemoved (st.piles ad) (chop (st.piles ad).faceUp)
+      else st.piles a := by
+    intro a
+    rw [xdshape]
+  have hxcS : xc.stock = st.stock := by
+    rw [xcshape]; exact setFound_stock st c.suit (st.found c.suit ++ [c])
+  have hxcW : xc.waste = st.waste := by
+    rw [xcshape]; exact setFound_waste st c.suit (st.found c.suit ++ [c])
+  have hxcD : xc.drawStep = st.drawStep := by
+    rw [xcshape]; exact setFound_drawStep st c.suit (st.found c.suit ++ [c])
+  have hxdS : xd.stock = st.stock := by
+    rw [xdshape]; exact setFound_stock st d.suit (st.found d.suit ++ [d])
+  have hxdW : xd.waste = st.waste := by
+    rw [xdshape]; exact setFound_waste st d.suit (st.found d.suit ++ [d])
+  have hxdD : xd.drawStep = st.drawStep := by
+    rw [xdshape]; exact setFound_drawStep st d.suit (st.found d.suit ++ [d])
+  have h12 : M1 = M2 :=
+    lift_join_eq st xc xd c d ac ad hsd hane hxcF hxdF hxcP hxdP
+      hxcS hxcW hxcD hxdS hxdW hxdD M1 m1shape M2 m2shape
+  rw [← h12] at hm2
+  exact ⟨M1, hm1, hm2, hd', hc'⟩
+
 
 
 
