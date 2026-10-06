@@ -5,6 +5,7 @@ import Orig.Fate
 import Orig.Integrity
 import Orig.Twin
 import Orig.TwinExchange
+import Orig.TwinExchangeQuotient
 import Orig.Macro
 import Orig.Mono
 import Orig.Irreversible
@@ -12,6 +13,7 @@ import Orig.Phase
 import Orig.Combine
 import Orig.Shuttle
 import Orig.Encode
+import Orig.Classify
 
 /-!
 # Orig — the original game
