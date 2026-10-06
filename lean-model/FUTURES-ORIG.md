@@ -346,22 +346,46 @@ user 2026-10-06, second pass):
    and the `foundTotal_step_noworry` fragment discipline were
    pointing at this pattern all along.
 
-   ### 3.0 THE CANONICALIZATION THEOREM — the macro state made decidable (user formulation 2026-10-06; the FIRST ticket, feeding §3.1)
+   ### 3.0 THE CANONICALIZATION THEOREM — the macro state made decidable (user formulation 2026-10-06; the FIRST ticket, feeding §3.1) — **V2 REVISION (2026-10-06, user-endorsed mid-flight): the canonicalizer takes REVERSIBLE stacking only**
+
+**V2 doctrine**: a raise enters the canonicalizer exactly when it
+carries its own one-move reversible undo from the landed family —
+under-seat raises (`pre ≠ []`, undo = `foundToTab` onto the exposed
+base, per `tabToFound_undo_under`) or bare-KING raises (undo slides
+the king back, per `tabToFound_undo_bare`).  OUT: revealing raises
+(`hiddenTotal` strictly drops — never rises: a commitment), bare
+NON-KING raises (the seat-physics rows — they split the fiber),
+and waste pops (`wasteToFound` strictly drops `cycleCount`, which no
+play raises — the measure tables arbitrate this design).  The
+canonicalizer leaves the whole stock/waste zone untouched; a
+saturated state may still hold a raw-stackable waste head.
+
+Consequences (the V2 dividend):
+- **THE NEW CORE THEOREM is `canon_in_class`**: `u ⟶* canon u` is a
+  `ShufflePlayW` (each licensed raise carries `reversibleAtW` from
+  the undo family; the reverse undo-ladder composes the return), so
+  ⟨⟦canon u⟧ = ⟦u⟧⟧ — the canonical form is a DISTINGUISHED MEMBER
+  of its macro class, not a commit-shifted descendant.
+- CLAIM 1 stands with its waste-prefix corner EVAPORATED (no pops ⇒
+  no prefix consumption); order-independence of the licensed
+  subsystem is fuel + literal diamonds.
+- CLAIM 2 collapses into compositionality around `canon_in_class`
+  (any reversible journey gives equal wrapped canons by passing
+  through canon; same-macro iff equal-wrapped-canon + swComp),
+  with the relocation-residue witness still Demoting literal
+  canon-equality to the ⟦·⟧-wrapped form.
 
 ```lean
--- Stackable: the waste head, or a pile top, whose suit rung is complete
-def Stackable (st : State) (c : Card) : Prop :=
-  st.nextUp c ∧ (st.wasteIs c ∨ ∃ a, st.pileOfTop c = some a)
--- a stacking step = .tabToFound / .wasteToFound, the reveal riding along
-
--- CLAIM 1 (confluence): all maximal stacking runs end at ONE final state
+-- CLAIM 1 (confluence, licensed subsystem)
 theorem canon_unique (h₁ : StackRun u w₁) (h₂ : StackRun u w₂)
     (hf₁ : Final w₁) (hf₂ : Final w₂) : w₁ = w₂
 
--- CLAIM 2 (characterization): the macro state IS the canonical fiber
+-- THE CORE (class membership)
+theorem canon_in_class (h : StackRun u (canon u)) : ⟦canon u⟧ = ⟦u⟧
+
+-- CLAIM 2 (characterization, composed)
 theorem same_macro_iff :
-  SameMacroO u v ↔ (CanonState u ~ CanonState v   -- literal if the residue
-                    ∧ swCompat ...)               -- analysis lands literal;
+  SameMacroO u v ↔ (⟦canon u⟧ ≈ ⟦canon v⟧ ∧ swComp …)
 ```
 
 Doctrine recorded from the formulating dialogue:
