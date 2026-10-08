@@ -342,6 +342,38 @@ making "double same color", which would in turn create three unnecessary
 stackables. TODO(vuong): the full informal argument for this cascade —
 it is the most intricate dominance in the file.
 
+**Update (2026-10-05, issue #15):** the `(least_stack - 1)` worry-back
+conjunct is removed. It passed worry-backs only below the least pending
+card *in mask-index order* — an encoding accident, not game semantics
+(it blocked worry-backs of the same rank across colors, e.g. `SP J♣`
+while `J♦` waited for the foundation). Deal 157007…, the #15 witness,
+is wrongly refuted pruner-free by this filter: the win must worry `J♣`
+back onto `Q♦` to land `10♦` under `9♠` *while other cards remain
+foundation-able*, and the cutoff blocks that exit at every state of the
+stretch, so the search exhausts the crippled graph. The rank-window
+repair (worry-backs of rank ≤ the least's rank, keeping `suit_filter`
+and `triple_stackable`) was measured and does **not** fix D — the
+scaffold worry-backs (`SP K♥`, `SP Q♣`) sit one and two ranks above the
+least pending card — so any capped window must fail; the term is simply
+removed. Cost: nil (20-deal bench: byte-identical visit counts on 15/20
+seeds, worst +0.5%; deal D itself got ~1000× cheaper to solve).
+  The witnesses are pinned in tests/issue15.rs.
+
+  **Update 2 (same day):** the *tail* of the cascade — the "double card
+  color" case that fires when no suit of one whole color is clear of
+  pending/soon-stackable cards — used to zero `stack_pile` entirely
+  (`(0, least_stack, 0, 0)`). A probe measured the same deferral fallacy
+  there, with no rank arithmetic involved: with the pending pair
+  `{Q♣, Q♥}` spanning both colors and `K♦` (the least pair's landing
+  parent) soon-stackable, a raw-legal `SP J♣` that a winning line may need
+  was withheld. That zeroing is removed as well — worry-backs are now
+  never withheld anywhere inside the least-stack cascade. Cost measured:
+  nil again (the 20-deal bench re-run is visit-for-visit identical to the
+  pre-widening run; deal D still solves in ~420 visits). The cascade's
+  surviving restrictions (only-lowest-up, `suit_filter`,
+  `!triple_stackable`, the twin-pair (§5.5) zeroing and the ≥3 branch)
+  move to the proof agenda — see the ledger C7 row.
+
 ### 5.7 King and empty-pile rules
 
 - Kings only enter `free_slot` when a pile is actually free

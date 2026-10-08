@@ -1,7 +1,7 @@
 use core::time::Duration;
 use lonelybot::{
     graph::{graph_with_tracking, Graph},
-    solver::{solve_with_tracking, HistoryVec, SearchResult},
+    solver::{solve_risky_with_tracking, solve_with_tracking, HistoryVec, SearchResult},
     state::Solitaire,
     tracking::TerminateSignal,
     traverse::Control,
@@ -36,6 +36,7 @@ impl TerminateSignal for TermSignal<'_> {
 pub(crate) fn run_solve(
     mut g: Solitaire,
     verbose: bool,
+    risky: bool,
     term_signal: &Arc<AtomicBool>,
 ) -> (SearchResult, AtomicSearchStats, Option<HistoryVec>) {
     let ss = Arc::new(AtomicSearchStats::new());
@@ -49,13 +50,23 @@ pub(crate) fn run_solve(
         thread::Builder::new()
             .stack_size(STACK_SIZE)
             .spawn(move || {
-                let res = solve_with_tracking(
-                    &mut g,
-                    ss_clone.as_ref(),
-                    &TermSignal {
-                        term_signal: term.as_ref(),
-                    },
-                );
+                let res = if risky {
+                    solve_risky_with_tracking(
+                        &mut g,
+                        ss_clone.as_ref(),
+                        &TermSignal {
+                            term_signal: term.as_ref(),
+                        },
+                    )
+                } else {
+                    solve_with_tracking(
+                        &mut g,
+                        ss_clone.as_ref(),
+                        &TermSignal {
+                            term_signal: term.as_ref(),
+                        },
+                    )
+                };
                 send.send(()).ok();
                 res
             })

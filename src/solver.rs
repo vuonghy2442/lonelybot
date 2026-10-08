@@ -1,11 +1,12 @@
 use crate::{
     moves::Move,
-    pruning::FullPruner,
+    pruning::{CyclePruner, FullPruner, Pruner},
     state::{Encode, Solitaire},
     tracking::{DefaultTerminateSignal, EmptySearchStats, SearchStatistics, TerminateSignal},
     traverse::{traverse, Callback, Control, TpTable},
 };
 use arrayvec::ArrayVec;
+use core::marker::PhantomData;
 
 // before every progress you'd do at most 2*N_RANKS move
 // and there would only be N_FULL_DECK + N_HIDDEN progress step
@@ -21,15 +22,16 @@ pub enum SearchResult {
     Crashed,
 }
 
-struct SolverCallback<'a, S: SearchStatistics, T: TerminateSignal> {
+struct SolverCallback<'a, S: SearchStatistics, T: TerminateSignal, P: Pruner> {
     history: HistoryVec,
     stats: &'a S,
     sign: &'a T,
     result: SearchResult,
+    marker: PhantomData<P>,
 }
 
-impl<S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'_, S, T> {
-    type Pruner = FullPruner;
+impl<S: SearchStatistics, T: TerminateSignal, P: Pruner> Callback for SolverCallback<'_, S, T, P> {
+    type Pruner = P;
     fn on_win(&mut self, _: &Solitaire) -> Control {
         self.result = SearchResult::Solved;
         Control::Halt
@@ -50,7 +52,7 @@ impl<S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'_, S,
         Control::Ok
     }
 
-    fn on_do_move(&mut self, _: &Solitaire, m: Move, _: Encode, _: &FullPruner) -> Control {
+    fn on_do_move(&mut self, _: &Solitaire, m: Move, _: Encode, _: &P) -> Control {
         self.history.push(m);
         Control::Ok
     }
@@ -63,7 +65,7 @@ impl<S: SearchStatistics, T: TerminateSignal> Callback for SolverCallback<'_, S,
     }
 }
 
-pub fn solve_with_tracking<S: SearchStatistics, T: TerminateSignal>(
+fn solve_with<S: SearchStatistics, T: TerminateSignal, P: Pruner + Default>(
     game: &mut Solitaire,
     stats: &S,
     sign: &T,
@@ -75,9 +77,10 @@ pub fn solve_with_tracking<S: SearchStatistics, T: TerminateSignal>(
         stats,
         sign,
         result: SearchResult::Unsolvable,
+        marker: PhantomData,
     };
 
-    traverse(game, &FullPruner::default(), &mut tp, &mut callback);
+    traverse(game, &P::default(), &mut tp, &mut callback);
 
     let result = callback.result;
 
@@ -88,6 +91,33 @@ pub fn solve_with_tracking<S: SearchStatistics, T: TerminateSignal>(
     }
 }
 
+/// The safe default: only the reversible-cycle filter runs, so the search
+/// explores every move the dominance generator offers, and an `Unsolvable`
+/// verdict does not depend on the path taken to reach a state.
+pub fn solve_with_tracking<S: SearchStatistics, T: TerminateSignal>(
+    game: &mut Solitaire,
+    stats: &S,
+    sign: &T,
+) -> (SearchResult, Option<HistoryVec>) {
+    solve_with::<S, T, CyclePruner>(game, stats, sign)
+}
+
+/// `solve_with_tracking` with the aggressive pruner: faster, but the
+/// path-dependent rules (reveal-context, last-draw streak) can wrongly
+/// refute winnable games, as in issue #15.
+pub fn solve_risky_with_tracking<S: SearchStatistics, T: TerminateSignal>(
+    game: &mut Solitaire,
+    stats: &S,
+    sign: &T,
+) -> (SearchResult, Option<HistoryVec>) {
+    solve_with::<S, T, FullPruner>(game, stats, sign)
+}
+
 pub fn solve(game: &mut Solitaire) -> (SearchResult, Option<HistoryVec>) {
     solve_with_tracking(game, &EmptySearchStats {}, &DefaultTerminateSignal {})
+}
+
+/// `solve` with the aggressive pruner — see `solve_risky_with_tracking`.
+pub fn solve_risky(game: &mut Solitaire) -> (SearchResult, Option<HistoryVec>) {
+    solve_risky_with_tracking(game, &EmptySearchStats {}, &DefaultTerminateSignal {})
 }

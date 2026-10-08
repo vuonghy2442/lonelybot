@@ -251,14 +251,14 @@ fn print_moves_minimal_klondike(moves: &StandardHistoryVec) {
     }
 }
 
-fn test_solve(seed: &Seed, draw_step: NonZeroU8, terminated: &Arc<AtomicBool>) {
+fn test_solve(seed: &Seed, draw_step: NonZeroU8, risky: bool, terminated: &Arc<AtomicBool>) {
     let shuffled_deck = shuffle(seed);
 
     let g: Solitaire = Solitaire::new(&shuffled_deck, draw_step);
     let mut g_standard = StandardSolitaire::from(&g);
 
     let now = Instant::now();
-    let res = solver::run_solve(g, true, terminated);
+    let res = solver::run_solve(g, true, risky, terminated);
     println!("Run in {} ms", now.elapsed().as_secs_f64() * 1000f64);
     println!("Statistic\n{}", res.1);
     match res.0 {
@@ -323,7 +323,7 @@ fn rand_solve(seed: &Seed, draw_step: NonZeroU8, start_seed: u64, terminated: &A
     println!("{}", Solvitaire(game.state().into()));
 
     let now = Instant::now();
-    let res = solver::run_solve(game.into_state(), true, terminated);
+    let res = solver::run_solve(game.into_state(), true, false, terminated);
     println!("Run in {} ms", now.elapsed().as_secs_f64() * 1000f64);
     println!("Statistic\n{}", res.1);
     match res.0 {
@@ -426,7 +426,7 @@ fn solve_loop(org_seed: &Seed, draw_step: NonZeroU8, terminated: &Arc<AtomicBool
         let g = Solitaire::new(&shuffled_deck, draw_step);
 
         let now = Instant::now();
-        let (res, stats, _) = solver::run_solve(g, false, terminated);
+        let (res, stats, _) = solver::run_solve(g, false, false, terminated);
         match res {
             SearchResult::Solved => cnt_solve += 1,
             SearchResult::Terminated => cnt_terminated += 1,
@@ -507,10 +507,16 @@ enum Commands {
         draw_step: NonZeroU8,
     },
 
+    /// Solve a deal. Defaults to the safe search (no path-dependent
+    /// pruning rules); --risky enables the FullPruner rules, which are
+    /// faster but can wrongly refute winnable games (issue #15).
     Solve {
         #[command(flatten)]
         seed: StringSeed,
         draw_step: NonZeroU8,
+        /// use the aggressive pruner; faster but unsound in known cases
+        #[arg(long)]
+        risky: bool,
     },
 
     RandSolve {
@@ -569,8 +575,8 @@ fn main() {
 
             println!("{}", Solvitaire(g));
         }
-        Commands::Solve { seed, draw_step } => {
-            test_solve(&seed.into(), *draw_step, &handling_signal());
+        Commands::Solve { seed, draw_step, risky } => {
+            test_solve(&seed.into(), *draw_step, *risky, &handling_signal());
         }
         Commands::RandSolve {
             seed,

@@ -64,17 +64,23 @@ column records that.
 |---|---|---|---|---|---|
 | C1 | Forced safe stack (5.1) — Keller's rule, opp ≥ r−1, twin ≥ r−2 | Blake & Gent App. B.1 (standard game); channels A/B decomposition in interaction doc §4 | [P] external; [~] effective here until ported | B-theorem (port bridge, no_pile §8) | port via B4 + set abstraction |
 | C2 | Worry-back ban (5.4), incl. compatibility with C1 | Blake & Gent §5.4.1 + Thm. 5 (standard game) | [P] external; [~] effective | C1, B | same port |
-| C3 | ≥3 redundant stackables → lowest only (5.2) | interaction doc Table 1: reduces to C1+C2 + stack-stack commutation | [~] | C1, C2, A4 | writeup, then Lean |
+| C3 | ≥3 redundant stackables → lowest only (5.2) | interaction doc Table 1: reduces to C1+C2 + stack-stack commutation; **note (issue #15 audit)**: the branch only ever fires when *no* pending card is C1-safe (the §5.1 early return consumes those first), so C1's argument cannot cover it; the Lean repair (`least_redundantStack_dominant + hsafe` on the macro campaign) is vacuous at exactly these states — the rule is a pump-an-unsafe-card canonicalization whose closure-exit survival is unproven | [ ] | A4, C1, C2 | writeup, then Lean; witness-hunt via the falsifier sweep |
 | C4 | Deck dominance, draw-1 (5.3 partial) | published stock≈reserve exception (B&G §5.4.1) | [P] external; [~] effective | B | same port |
 | C5 | Deck dominance, draw ≥ 2 (`is_pure` last card) | two-sentence purity sketch (method §5.3); exceeds a published warning | [ ] | — | the writeup owed (TODO), then differential test |
 | C6 | Twin-pair collapse (5.5) | T-equivalence + free_slot = placements onto the pair (L1); dropped KING_MASK rescued by drain-safes-first | [~] (T survives; drain-safes ⟂) | A4, E2 | T proof (shared spine); the drain-safes rescue dies with the D-layer — Phase 2 must re-derive the king exemption inside the accommodation solver |
-| C7 | Least-stack cascade (5.6) | intent comments only (src/state.rs:222-286) | [ ] | A4, C3 | the TODO(vuong) writeup — the least-argued rule left |
+| C7 | Least-stack cascade (5.6) — **partially refuted**: the `(least_stack - 1)` worry-back filter, and the "double card color" tail's full zeroing of `stack_pile` | issue #15 (deal D: pruner-free search exhausts the crippled graph and wrongly says `Unsolvable`); the mask-order cutoff withheld worry-backs (e.g. SP J♣) while J♦ waited for the foundation; the tail probe-measured the same deferral fallacy without rank arithmetic (raw-legal SP J♣ withheld under pending `{Q♣, Q♥}` + soon-stackable K♦); the pump/ordering part is retained; the rank-window repair (γ probe, worry-backs of rank ≤ least's rank) was measured and does NOT fix D — D's scaffold worry-backs (SP K♥, SP Q♣) sit at ranks above the least pending card | [~] fixed in code (src/state.rs: term removed + tail re-opened; witnesses pinned in tests/issue15.rs); remaining: `suit_filter`, `!triple_stackable`, the twin-pair (§5.5) zeroing, the ≥3 branch | A4, C3 | writeup, then Lean |
 | C8 | King / empty-pile rules (5.7) | = B3 + the free_slot king gate | [x] | B3 | — |
 
 ## D. The pruners (method.md §6, last_draw_rules.md)
 
 Row IDs D1–D5 here are pruner rules — **not** the deck-offset lemmas D1–D3
 of last_draw_rules.md; cross-references always name their doc.
+
+Since the issue-#15 fix, the tiers are split: `solver::solve` runs D1 only
+(the safe default — D2–D5 are path-dependent and no known-state argument
+covers them); the full set D1–D5 remains available as `solver::solve_risky`
+/ lonecli `--risky`, accepting the refutations of issue #15's X/Y-class
+witnesses as documented risk while the formalization work catches up.
 
 | # | Claim | Argued in | Tier | Depends on | Closed by |
 |---|---|---|---|---|---|

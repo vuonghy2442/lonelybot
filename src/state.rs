@@ -279,8 +279,13 @@ impl Solitaire {
                     | if suit_unstack[3] { SUIT_MASK[2] } else { 0 });
 
                 (
-                    // the new stacked card should be decreasing :)
-                    stack_pile & suit_filter & (least_stack - 1) & !triple_stackable,
+                    // δ: only (least_stack - 1) is removed — the mask-order
+                    // cutoff withheld worry-backs such as J♣ while J♦ waited
+                    // for the foundation; any rank-capped replacement fails:
+                    // deal D's scaffold worry-backs (SP K♥/SP Q♣ while J♦ is
+                    // lowest-pending) sit at ranks above the least's (issue
+                    // #15, ledger C7 — γ probe measured, 2026-10-05)
+                    stack_pile & suit_filter & !triple_stackable,
                     least_stack,
                     0,
                     // only unlocking new stuff when doesn't have both color in the same rank
@@ -291,8 +296,12 @@ impl Solitaire {
                     },
                 )
             } else {
-                // double card color
-                (0, least_stack, 0, 0)
+                // double card color — same C7 family as the removed cutoff
+                // above (issue #15): zeroing the worry-backs here withholds
+                // landing pads exactly when one whole color is covered by
+                // pending / soon-stackable cards (probe-measured: raw-legal
+                // SP J♣ withheld with {Q♣, Q♥} pending and K♦ soon-stackable)
+                (stack_pile, least_stack, 0, 0)
             }
         };
 
