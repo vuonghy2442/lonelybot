@@ -1,7 +1,6 @@
 #![forbid(unsafe_code)]
 
 mod solver;
-mod solvitaire;
 mod tracking;
 mod tui;
 
@@ -18,7 +17,7 @@ use lonelybot::state::{Encode, Solitaire};
 use lonelybot::tracking::DefaultTerminateSignal;
 use lonelybot::traverse::Control;
 use rand::prelude::*;
-use solvitaire::Solvitaire;
+use lonelybot::solvitaire::Solvitaire;
 use std::collections::HashSet;
 use std::fs::File;
 use std::num::NonZeroU8;

@@ -36,8 +36,8 @@ impl StandardMove {
     }
 }
 
-const N_HIDDEN_MAX: usize = (N_PILES - 1) as usize;
-
+pub const N_HIDDEN_MAX: usize = (N_PILES - 1) as usize;
+pub const N_OPEN_MAX: usize = N_RANKS as usize;
 const N_PLY_MAX: usize = 1024;
 
 pub type HiddenVec = ArrayVec<Card, N_HIDDEN_MAX>;
@@ -92,6 +92,70 @@ impl StandardSolitaire {
                 tmp.push(cards[i * (i + 1) / 2 + i]);
                 tmp
             }),
+        }
+    }
+
+    /// Builds a midgame position from tableau piles, foundation heights and
+    /// the remaining deck/waste.
+    ///
+    /// # Panics
+    ///
+    /// When `validate` is true, panics unless the piles, foundation and deck
+    /// together contain every card exactly once and all foundation heights
+    /// are within range. The deck itself must satisfy [`Deck::from_midgame`].
+    #[must_use]
+    pub fn from_midgame(
+        hidden_piles: [ArrayVec<Card, N_HIDDEN_MAX>; N_PILES as usize],
+        open_piles: [ArrayVec<Card, N_OPEN_MAX>; N_PILES as usize],
+        stack: [u8; N_SUITS as usize],
+        deck: Deck,
+        validate: bool,
+    ) -> Self {
+        if validate {
+            // If validate is true, we will check that the provided piles, stack, and deck contain all cards exactly once
+            let mut card_counts = [[0u8; N_RANKS as usize]; N_SUITS as usize];
+            let mut check_card = |c: Card| {
+                assert!(
+                    c.suit() < N_SUITS && c.rank() < N_RANKS,
+                    "Invalid card: {c:?}"
+                );
+                assert!(
+                    card_counts[c.suit() as usize][c.rank() as usize] == 0,
+                    "Duplicate card: {c:?}"
+                );
+                card_counts[c.suit() as usize][c.rank() as usize] += 1;
+            };
+            // Add all cards to the counts
+            hidden_piles
+                .iter()
+                .for_each(|pile| pile.iter().for_each(|&c| check_card(c)));
+            open_piles
+                .iter()
+                .for_each(|pile| pile.iter().for_each(|&c| check_card(c)));
+            deck.iter_all().for_each(|(_, card, _)| check_card(card));
+            stack.iter().enumerate().for_each(|(suit, &rank)| {
+                assert!(
+                    suit < N_SUITS as usize && rank <= N_RANKS,
+                    "Invalid stack: suit {suit}, rank {rank}"
+                );
+                for r in 0..rank {
+                    let c = Card::new(r, suit as u8);
+                    check_card(c);
+                }
+            });
+            // Check that every card is present exactly once
+            card_counts.iter().enumerate().for_each(|(suit, ranks)| {
+                ranks.iter().enumerate().for_each(|(rank, &count)| {
+                    assert!(count == 1, "Missing card: suit {suit}, rank {rank}");
+                });
+            });
+        }
+
+        Self {
+            hidden_piles,
+            final_stack: Stack::from_s(stack),
+            deck,
+            piles: open_piles,
         }
     }
 

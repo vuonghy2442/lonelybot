@@ -13,6 +13,13 @@ impl Stack {
     }
 
     #[must_use]
+    pub(crate) const fn from_s(s: [u8; N_SUITS as usize]) -> Self {
+        // packs one foundation height per nibble; values above 15 would bleed
+        // into the neighbouring suit (see the validation in from_midgame)
+        Self((s[0] as u16) | ((s[1] as u16) << 4) | ((s[2] as u16) << 8) | ((s[3] as u16) << 12))
+    }
+
+    #[must_use]
     pub(crate) const fn mask(self) -> u64 {
         let s = self.get_s();
 
