@@ -26,6 +26,16 @@ lemma.  Convenience projections of `State.WF`
 `Pile.isEmpty_eq` ride along as the one-liners downstream cards
 quote.
 
+The census inversion is completed in all directions: the same-pile
+half (`mem_faceUp_not_hidden` / `mem_hidden_not_faceUp` — a face-up
+card is never its own pile's hidden card, and conversely), the
+foundation/stock/waste sides (`mem_found_unique`,
+`mem_stock_unique`, `mem_waste_unique`), and the compound one-liners
+the exchange rows cite (`mem_faceUp_only` / `mem_hidden_only`: one
+membership pins every other zone at once).  The pack is
+dedup-marked against `Orig/TwinExchange.lean`'s private count kit
+(its `ccn` mirrors and the `hZP`-style double-count idiom).
+
 Constructivity: the searches carry decidable predicates and the
 counts are finite list arithmetic — every theorem here audits
 `[propext, Quot.sound]` or fewer; nothing drags `Classical.choice`.
@@ -253,6 +263,230 @@ theorem mem_hidden_unique {st : State} {c : Card} {a : Anchor} (hwf : st.WF)
   intro a' hne
   obtain ⟨hh, hs, hw, hf⟩ := mem_pile_unique hwf (Or.inl hmem)
   exact ⟨(hh a' hne).1, (hh a' hne).2, hs, hw, hf⟩
+
+/-! ## The same-pile and cross-side inversions
+
+`mem_pile_unique` and its two projections exclude a card from every
+*other* pile and from the stock, waste, and foundations — but not
+from its own pile's other part, and the foundation/stock/waste sides
+have no pack of their own.  This section completes the census
+inversion so that one membership anywhere pins the card's location
+everywhere; the exchange rows then cite the pack instead of
+re-deriving double-count arguments (the `hZP`-style idiom in
+`Orig/TwinExchange.lean`'s realization proofs, dedup-marked for the
+tidy card against its private count kit).
+-/
+
+/-! ### The found-side splits -/
+
+/-- The suits before `s` in enumeration order. -/
+private def preSuits : Suit → List Suit
+  | .spade => []
+  | .heart => [.spade]
+  | .diamond => [.spade, .heart]
+  | .club => [.spade, .heart, .diamond]
+
+/-- The suits after `s` in enumeration order. -/
+private def sufSuits : Suit → List Suit
+  | .spade => [.heart, .diamond, .club]
+  | .heart => [.diamond, .club]
+  | .diamond => [.club]
+  | .club => []
+
+private theorem suit_split (s : Suit) :
+    Suit.all = preSuits s ++ [s] ++ sufSuits s := by
+  cases s <;> rfl
+
+private theorem suit_ne_mem {s s' : Suit} (hne : s' ≠ s) :
+    s' ∈ preSuits s ∨ s' ∈ sufSuits s := by
+  cases s <;> cases s' <;> simp_all [preSuits, sufSuits]
+
+private theorem zones_split_found_pre (st : State) (s : Suit) :
+    st.zones = (preSuits s).map st.found ++
+      (st.found s :: ((sufSuits s).map st.found ++
+        (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]))) := by
+  have h1 : Suit.all = preSuits s ++ [s] ++ sufSuits s := suit_split s
+  have h2 : [s].map st.found = [st.found s] := rfl
+  rw [show st.zones = Suit.all.map st.found ++
+      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) from rfl,
+    h1, List.map_append, List.map_append, h2]
+  simp only [List.append_assoc]
+  rfl
+
+private theorem zones_split_found_suf (st : State) (s : Suit) :
+    st.zones = ((preSuits s).map st.found ++ [st.found s]) ++
+      ((sufSuits s).map st.found ++
+        (Anchor.all.map (pileZone st) ++ [st.stock, st.waste])) := by
+  have h1 : Suit.all = preSuits s ++ [s] ++ sufSuits s := suit_split s
+  have h2 : [s].map st.found = [st.found s] := rfl
+  rw [show st.zones = Suit.all.map st.found ++
+      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) from rfl,
+    h1, List.map_append, List.map_append, h2]
+  simp only [List.append_assoc]
+
+/-! ### The missing pair contradictions -/
+
+private theorem wf_two_founds_ne {st : State} {c : Card} {s s' : Suit} (hwf : st.WF)
+    (hf : c ∈ st.found s) (hf' : c ∈ st.found s') (hne : s' ≠ s) : False := by
+  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
+  have h2 : 2 ≤ st.cardCount c := by
+    rcases suit_ne_mem hne with hpre | hsuf
+    · refine count_ge_two_of_split (zones_split_found_pre st s) ?_ ?_
+      · exact (List.mem_flatMap).2 ⟨st.found s', found_mem_map hpre, hf'⟩
+      · exact (List.mem_flatMap).2 ⟨st.found s, List.mem_cons.2 (Or.inl rfl), hf⟩
+    · refine count_ge_two_of_split (zones_split_found_suf st s) ?_ ?_
+      · exact (List.mem_flatMap).2 ⟨st.found s,
+          (List.mem_append).2 (Or.inr (List.mem_cons.2 (Or.inl rfl))), hf⟩
+      · exact (List.mem_flatMap).2 ⟨st.found s',
+          (List.mem_append).2 (Or.inl (found_mem_map hsuf)), hf'⟩
+  omega
+
+private theorem wf_found_stock_ne {st : State} {c : Card} {s : Suit} (hwf : st.WF)
+    (hf : c ∈ st.found s) (hs : c ∈ st.stock) : False := by
+  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
+  have hsplit : st.zones = Suit.all.map st.found ++
+      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) := rfl
+  have h2 : 2 ≤ st.cardCount c :=
+    count_ge_two_of_split hsplit
+      ((List.mem_flatMap).2 ⟨st.found s, found_mem_map (Suit.mem_all s), hf⟩)
+      ((List.mem_flatMap).2 ⟨st.stock,
+        (List.mem_append).2 (Or.inr (List.mem_cons.2 (Or.inl rfl))), hs⟩)
+  omega
+
+private theorem wf_found_waste_ne {st : State} {c : Card} {s : Suit} (hwf : st.WF)
+    (hf : c ∈ st.found s) (hw : c ∈ st.waste) : False := by
+  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
+  have hz0 : st.zones = Suit.all.map st.found ++
+      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) := rfl
+  have hsplit : st.zones = (Suit.all.map st.found ++
+        (Anchor.all.map (pileZone st) ++ [st.stock])) ++ [st.waste] := by
+    refine hz0.trans ?_
+    simp only [List.append_assoc]
+    rfl
+  have h2 : 2 ≤ st.cardCount c :=
+    count_ge_two_of_split hsplit
+      ((List.mem_flatMap).2 ⟨st.found s, (List.mem_append).2
+        (Or.inl (found_mem_map (Suit.mem_all s))), hf⟩)
+      ((List.mem_flatMap).2 ⟨st.waste, List.mem_cons.2 (Or.inl rfl), hw⟩)
+  omega
+
+private theorem wf_stock_waste_ne {st : State} {c : Card} (hwf : st.WF)
+    (hst : c ∈ st.stock) (hw : c ∈ st.waste) : False := by
+  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
+  have hz0 : st.zones = Suit.all.map st.found ++
+      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) := rfl
+  have hsplit : st.zones = (Suit.all.map st.found ++
+        (Anchor.all.map (pileZone st) ++ [st.stock])) ++ [st.waste] := by
+    refine hz0.trans ?_
+    simp only [List.append_assoc]
+    rfl
+  have h2 : 2 ≤ st.cardCount c :=
+    count_ge_two_of_split hsplit
+      ((List.mem_flatMap).2 ⟨st.stock, (List.mem_append).2
+        (Or.inr ((List.mem_append).2 (Or.inr (List.mem_cons.2 (Or.inl rfl))))), hst⟩)
+      ((List.mem_flatMap).2 ⟨st.waste, List.mem_cons.2 (Or.inl rfl), hw⟩)
+  omega
+
+/-! ### The intra-pile double count -/
+
+private theorem flatMapSingleton {α β : Type} (f : α → List β) (x : α) :
+    List.flatMap f [x] = f x := by
+  simp [List.flatMap]
+
+private theorem count_ge_two_pile_self {st : State} {c : Card} {a : Anchor}
+    (hh : c ∈ (st.piles a).hidden) (hf : c ∈ (st.piles a).faceUp) :
+    2 ≤ st.cardCount c := by
+  have hsplit := zones_split_suf st a
+  have hmid : 2 ≤ ((pileZone st a).filter fun x => decide (x = c)).length := by
+    show 2 ≤ (List.filter (fun x => decide (x = c))
+        ((st.piles a).hidden ++ (st.piles a).faceUp)).length
+    rw [List.filter_append, List.length_append]
+    have h1 := count_filter_pos hh
+    have h2 := count_filter_pos hf
+    omega
+  have hflat : st.zones.flatMap id =
+      ((Suit.all.map st.found ++ (preAnchors a).map (pileZone st)).flatMap id ++
+        pileZone st a) ++
+      ((sufAnchors a).map (pileZone st) ++ [st.stock, st.waste]).flatMap id := by
+    rw [hsplit, flatMapAppend, flatMapAppend, flatMapSingleton]
+    rfl
+  show 2 ≤ ((st.zones.flatMap id).filter fun x => decide (x = c)).length
+  rw [hflat, List.filter_append, List.filter_append,
+    List.length_append, List.length_append]
+  omega
+
+/-! ### The completed inversion -/
+
+/-- A face-up card never lies in its own pile's hidden cards — the
+same-pile half of the census inversion (the cross-pile half is
+`mem_faceUp_unique`). -/
+theorem mem_faceUp_not_hidden {st : State} {c : Card} {a : Anchor} (hwf : st.WF)
+    (h : c ∈ (st.piles a).faceUp) : c ∉ (st.piles a).hidden := by
+  intro hcon
+  have h1 : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
+  have h2 : 2 ≤ st.cardCount c := count_ge_two_pile_self hcon h
+  omega
+
+/-- A hidden card never lies in its own pile's face-up run. -/
+theorem mem_hidden_not_faceUp {st : State} {c : Card} {a : Anchor} (hwf : st.WF)
+    (h : c ∈ (st.piles a).hidden) : c ∉ (st.piles a).faceUp := by
+  intro hcon
+  have h1 : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
+  have h2 : 2 ≤ st.cardCount c := count_ge_two_pile_self h hcon
+  omega
+
+/-- One face-up membership pins the card's location everywhere: no
+other pile (either part), not its own pile's hidden cards, not
+stocked, not wasted, not on any foundation — the compound form the
+exchange rows cite in place of a count re-derivation. -/
+theorem mem_faceUp_only {st : State} {c : Card} {a : Anchor} (hwf : st.WF)
+    (h : c ∈ (st.piles a).faceUp) :
+    (∀ a' ≠ a, c ∉ (st.piles a').hidden ∧ c ∉ (st.piles a').faceUp) ∧
+      c ∉ (st.piles a).hidden ∧ c ∉ st.stock ∧ c ∉ st.waste ∧
+      ∀ s, c ∉ st.found s := by
+  obtain ⟨hh, hs, hw, hf⟩ := mem_pile_unique hwf (Or.inr h)
+  exact ⟨hh, mem_faceUp_not_hidden hwf h, hs, hw, hf⟩
+
+/-- One hidden membership pins the card's location everywhere. -/
+theorem mem_hidden_only {st : State} {c : Card} {a : Anchor} (hwf : st.WF)
+    (h : c ∈ (st.piles a).hidden) :
+    (∀ a' ≠ a, c ∉ (st.piles a').hidden ∧ c ∉ (st.piles a').faceUp) ∧
+      c ∉ (st.piles a).faceUp ∧ c ∉ st.stock ∧ c ∉ st.waste ∧
+      ∀ s, c ∉ st.found s := by
+  obtain ⟨hh, hs, hw, hf⟩ := mem_pile_unique hwf (Or.inl h)
+  exact ⟨hh, mem_hidden_not_faceUp hwf h, hs, hw, hf⟩
+
+/-- A foundation card is nowhere else: in no pile (either part), not
+stocked, not wasted, and on no other foundation. -/
+theorem mem_found_unique {st : State} {c : Card} {s : Suit} (hwf : st.WF)
+    (h : c ∈ st.found s) :
+    (∀ a, c ∉ (st.piles a).hidden ∧ c ∉ (st.piles a).faceUp) ∧
+      c ∉ st.stock ∧ c ∉ st.waste ∧ ∀ s' ≠ s, c ∉ st.found s' := by
+  refine ⟨fun a => ⟨fun hcon => wf_pile_found_ne hwf ((List.mem_append).2 (Or.inl hcon)) h,
+      fun hcon => wf_pile_found_ne hwf ((List.mem_append).2 (Or.inr hcon)) h⟩,
+    fun hcon => wf_found_stock_ne hwf h hcon,
+    fun hcon => wf_found_waste_ne hwf h hcon,
+    fun s' hne hcon => wf_two_founds_ne hwf h hcon hne⟩
+
+/-- A stock card is nowhere else. -/
+theorem mem_stock_unique {st : State} {c : Card} (hwf : st.WF)
+    (h : c ∈ st.stock) :
+    (∀ a, c ∉ (st.piles a).hidden ∧ c ∉ (st.piles a).faceUp) ∧
+      c ∉ st.waste ∧ ∀ s, c ∉ st.found s := by
+  refine ⟨fun a => ⟨fun hcon => wf_pile_stock_ne hwf ((List.mem_append).2 (Or.inl hcon)) h,
+      fun hcon => wf_pile_stock_ne hwf ((List.mem_append).2 (Or.inr hcon)) h⟩,
+    fun hcon => wf_stock_waste_ne hwf h hcon,
+    fun s hcon => wf_found_stock_ne hwf hcon h⟩
+
+/-- A waste card is nowhere else. -/
+theorem mem_waste_unique {st : State} {c : Card} (hwf : st.WF)
+    (h : c ∈ st.waste) :
+    (∀ a, c ∉ (st.piles a).hidden ∧ c ∉ (st.piles a).faceUp) ∧
+      c ∉ st.stock ∧ ∀ s, c ∉ st.found s := by
+  refine ⟨fun a => ⟨fun hcon => wf_pile_waste_ne hwf ((List.mem_append).2 (Or.inl hcon)) h,
+      fun hcon => wf_pile_waste_ne hwf ((List.mem_append).2 (Or.inr hcon)) h⟩,
+    fun hcon => wf_stock_waste_ne hwf hcon h,
+    fun s hcon => wf_found_waste_ne hwf hcon h⟩
 
 /-! ## `firstWhere` completeness -/
 
