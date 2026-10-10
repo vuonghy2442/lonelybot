@@ -159,15 +159,6 @@ private theorem afterRunRemoved_congr_pile {p q : Pile} {pre : List Card}
     Pile.afterRunRemoved p pre = Pile.afterRunRemoved q pre :=
   afterRunRemoved_congr p.hidden p.faceUp q.hidden q.faceUp pre hh
 
-/-- The nonempty-pre branch: the written pile keeps the hidden deck
-and takes the prefix as its whole face-up run.  (Dedup-marked against
-`Orig/TwinExchange.lean`'s private `afterRunRemoved_ne`.) -/
-private theorem afterRunRemoved_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
-    Pile.afterRunRemoved p pre = { p with faceUp := pre } := by
-  cases pre with
-  | nil => exact absurd rfl h
-  | cons w ws => rfl
-
 private theorem putRun_eq_inl (st : State) (run : List Card) (a : Anchor) :
     st.putRun run (Sum.inl a) = st.setPile a ⟨[], run⟩ := rfl
 
@@ -193,12 +184,6 @@ private theorem putCard_eq_inr {st : State} {c z : Card} {k : Anchor}
 private theorem canPlace_inl_eq (st : State) (c : Card) (a : Anchor) :
     st.canPlace c (Sum.inl a) =
       ((st.piles a).isEmpty && decide (c.rank = Rank.king)) := rfl
-
-private theorem canPlace_inr_eq (st : State) (c z : Card) :
-    st.canPlace c (Sum.inr z) =
-      (match st.pileOfTop z with
-       | some _ => canSitOn c z
-       | none => false) := rfl
 
 /-! ## §1. The list kit (private) -/
 
@@ -815,17 +800,6 @@ private theorem canSitOn_self_false (x : Card) : canSitOn x x = false := by
   | true =>
       exfalso
       obtain ⟨hr, -⟩ := (canSitOn_eq x x).mp hb
-      omega
-
-/-- A fitting card is distinct from its host. -/
-private theorem ne_of_canSitOn {z y : Card} (h : canSitOn z y = true) : z ≠ y := by
-  intro hcon
-  subst hcon
-  cases hb : canSitOn z z with
-  | false => rw [hb] at h; exact absurd h (by simp)
-  | true =>
-      exfalso
-      obtain ⟨hr, -⟩ := (canSitOn_eq z z).mp hb
       omega
 
 private theorem rank_ne_king_of_lt {r : Rank} (h : r.toIdx < 12) : r ≠ Rank.king := by

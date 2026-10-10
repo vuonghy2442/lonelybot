@@ -199,14 +199,6 @@ private theorem step_tabToTab_canPlace {st st' : State} {c : Card} {b : Base}
       | false => rw [hp] at h; simp at h
       | true => rfl
 
-/-- The `canPlace` guard on a card base (the `inr` branch: the base
-must be a live pile top, and the demand is the tableau fit). -/
-private theorem canPlace_inr_eq (st : State) (c z : Card) :
-    st.canPlace c (Sum.inr z) =
-      (match st.pileOfTop z with
-       | some _ => canSitOn c z
-       | none => false) := rfl
-
 private theorem canPlace_inr_of_true {st : State} {c d : Card}
     (h : st.canPlace c (Sum.inr d) = true) : canSitOn c d = true := by
   rw [canPlace_inr_eq] at h

@@ -622,14 +622,6 @@ private theorem runOK_append_fit : ∀ (l : List Card) (c z : Card) (r : List Ca
 
 /-! ## Private kit: state projections and guard unpackings -/
 
-private theorem setPile_piles_self {st : State} {a : Anchor} {p : Pile} :
-    (st.setPile a p).piles a = p :=
-  show (if a = a then p else st.piles a) = p from ite_eq_left rfl
-
-private theorem setPile_piles_ne {st : State} {a a' : Anchor} {p : Pile} (h : a' ≠ a) :
-    (st.setPile a p).piles a' = st.piles a' :=
-  show (if a' = a then p else st.piles a') = _ from ite_eq_right h
-
 private theorem setFound_found_self {st : State} {s : Suit} {l : List Card} :
     (st.setFound s l).found s = l :=
   show (if s = s then l else st.found s) = l from ite_eq_left rfl

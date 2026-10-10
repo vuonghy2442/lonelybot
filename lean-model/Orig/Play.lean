@@ -162,3 +162,43 @@ theorem run_cons {st : State} {m : Move} {rest : List Move} {w : State}
       simpa only [State.run, hstep] using h
 
 end State
+
+/-! ## Update readers
+
+The located readers for `State.putCard` / `State.putRun`, and the
+found-passthrough trio (`setPile_found` in `Orig/State.lean`,
+`putCard_inl_found` / `putCard_inr_found` here) — staged for the
+`foundToTab` transport row, and dedup-marked against the private
+copies in the exchange chapters. -/
+
+/-- `putCard` to an empty seat writes no foundation. -/
+theorem putCard_inl_found {st : State} (c : Card) (a : Anchor) :
+    (st.putCard c (Sum.inl a)).found = st.found := rfl
+
+/-- `putCard`, wherever it lands, writes no foundation. -/
+theorem putCard_inr_found {st : State} (c z : Card) :
+    (st.putCard c (Sum.inr z)).found = st.found := by
+  show (match st.pileOfTop z with
+    | some k => st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] }
+    | none => st).found = st.found
+  cases h : st.pileOfTop z <;> rfl
+
+/-- The located `putCard`: the top-directed landing appends the card
+at the located pile. -/
+theorem putCard_inr_eq {st : State} {c z : Card} {k : Anchor}
+    (h : st.pileOfTop z = some k) :
+    st.putCard c (Sum.inr z) =
+    st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } := by
+  rw [show st.putCard c (Sum.inr z) =
+    st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } from by
+    simp only [State.putCard, h]]
+
+/-- The located `putRun`: the top-directed landing appends the run at
+the located pile. -/
+theorem putRun_inr_eq {st : State} {run : List Card} {z : Card} {k : Anchor}
+    (h : st.pileOfTop z = some k) :
+    st.putRun run (Sum.inr z) =
+    st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run } := by
+  rw [show st.putRun run (Sum.inr z) =
+    st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run } from by
+    simp only [State.putRun, h]]

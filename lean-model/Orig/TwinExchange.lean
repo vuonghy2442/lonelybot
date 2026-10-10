@@ -779,31 +779,6 @@ theorem Card.twin_ne (c : Card) : c.twin ≠ c := by
       _ = c.suit := by rw [hcon]
   exact Suit.twin_ne c.suit hs
 
-/-- A fitting card is distinct from its host. -/
-private theorem ne_of_canSitOn {z y : Card} (h : canSitOn z y = true) : z ≠ y := by
-  intro hcon
-  subst hcon
-  simp only [canSitOn_eq] at h
-  omega
-
-/-- `afterRunRemoved` at a nonempty prefix keeps the hidden deck andrelocates the face-up run to the prefix alone. -/
-private theorem afterRunRemoved_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
-    Pile.afterRunRemoved p pre = { p with faceUp := pre } := by
-  cases pre with
-  | nil => exact absurd rfl h
-  | cons w ws => rfl
-private theorem canPlace_inr_eq {st : State} {c z : Card} {k : Anchor}
-    (h : st.pileOfTop z = some k) :
-    st.canPlace c (Sum.inr z) = canSitOn c z := by
-  rw [show st.canPlace c (Sum.inr z) = canSitOn c z from by
-    simp only [State.canPlace, h]]
-private theorem putRun_inr_eq {st : State} {run : List Card} {z : Card} {k : Anchor}
-    (h : st.pileOfTop z = some k) :
-    st.putRun run (Sum.inr z) =
-    st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run } := by
-  rw [show st.putRun run (Sum.inr z) =
-    st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run } from by
-    simp only [State.putRun, h]]
 private theorem exists_cons {l : List Card} (h : l ≠ []) :
     ∃ z r, l = z :: r := by
   cases hl : l with
@@ -849,25 +824,6 @@ private theorem not_mem_below_of_cargo {st : State} {z t : Card} {a : Anchor}
     omega
   have := cardCount_ge_of_zone (Anchor.mem_all a) h2
   omega
-
-/-- A pile update leaves every other pile's top alone. -/
-private theorem setPile_topOf_ne {st : State} {k b : Anchor} {Q : Pile} (h : k ≠ b) :
-    (st.setPile b Q).topOf k = st.topOf k := by
-  show (if k = b then Q else st.piles k).top = st.topOf k
-  rw [ite_eq_right h]
-  rfl
-
-/-- A pile update leaves every other pile alone. -/
-private theorem setPile_piles_ne {st : State} {k b : Anchor} {Q : Pile} (h : k ≠ b) :
-    (st.setPile b Q).piles k = st.piles k := by
-  show (if k = b then Q else st.piles k) = st.piles k
-  rw [ite_eq_right h]
-
-/-- A pile update writes exactly the given pile. -/
-private theorem setPile_piles_self (st : State) (b : Anchor) (Q : Pile) :
-    (st.setPile b Q).piles b = Q := by
-  show (if b = b then Q else st.piles b) = Q
-  rw [ite_eq_left rfl]
 
 /-- The tabToTab branch of `State.step`, read at an explicit locatedshape. -/
 private theorem step_tabToTab_eq {st : State} {z : Card} {b : Base} {a : Anchor}
@@ -1170,7 +1126,7 @@ private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
   have hptb : st.pileOfTop t.twin = some a' :=
     (pileOfTop_eq_some_iff hwf).mpr htopb
   have hcp : st.canPlace z (Sum.inr t.twin) = true := by
-    rw [canPlace_inr_eq hptb]
+    rw [canPlace_inr_located hptb]
     exact hfit
   have hphz : st.pileHolding z = some a := (pileHolding_eq_some_iff hwf).mpr hZfa
   -- the run below the cargo head, and the prefix after the lift
@@ -1297,7 +1253,7 @@ private theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
     (pileOfTop_eq_some_iff hwf').mpr htopa
   -- placement and searches at the exchanged state
   have hcp : (st.exchangeTwin t).canPlace z (Sum.inr t) = true := by
-    rw [canPlace_inr_eq hpta]
+    rw [canPlace_inr_located hpta]
     exact hjt
   have hrun : fromCard z (((st.exchangeTwin t).piles a').faceUp) = z :: rest := by
     rw [State.exchangeTwin_pile_other h₁ h₂ hne]

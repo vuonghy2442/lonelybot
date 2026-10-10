@@ -261,3 +261,60 @@ def initial (d : State.Deal) (drawStep : Nat) : State :=
     drawStep := drawStep }
 
 end State
+
+/-! ## Record readers
+
+The update lemmas for `State.setPile`, `State.canPlace` and
+`Pile.afterRunRemoved`, landed beside the defs so the exchange
+chapters cite them once instead of carrying private copies (the
+copies in `Orig/TwinExchange.lean` and `Orig.TwinExchangeBoth` are
+dedup-marked against this section). -/
+
+/-- A pile update leaves every other pile's top alone. -/
+theorem setPile_topOf_ne {st : State} {k b : Anchor} {Q : Pile} (h : k ≠ b) :
+    (st.setPile b Q).topOf k = st.topOf k := by
+  show (if k = b then Q else st.piles k).top = st.topOf k
+  rw [ite_eq_right h]
+  rfl
+
+/-- A pile update leaves every other pile alone. -/
+theorem setPile_piles_ne {st : State} {k b : Anchor} {Q : Pile} (h : k ≠ b) :
+    (st.setPile b Q).piles k = st.piles k := by
+  show (if k = b then Q else st.piles k) = st.piles k
+  rw [ite_eq_right h]
+
+/-- A pile update writes exactly the given pile. -/
+theorem setPile_piles_self {st : State} {a : Anchor} {p : Pile} :
+    (st.setPile a p).piles a = p :=
+  show (if a = a then p else st.piles a) = p from ite_eq_left rfl
+
+/-- A pile update writes no foundation. -/
+theorem setPile_found (st : State) (a : Anchor) (p : Pile) :
+    (st.setPile a p).found = st.found := rfl
+
+/-- The empty-seat branch of the placement guard. -/
+theorem canPlace_inl_unfold (st : State) (c : Card) (a : Anchor) :
+    st.canPlace c (Sum.inl a) =
+      ((st.piles a).isEmpty && decide (c.rank = Rank.king)) := rfl
+
+/-- The top-directed branch of the placement guard, unfolded. -/
+theorem canPlace_inr_eq (st : State) (c : Card) (z : Card) :
+    st.canPlace c (Sum.inr z) =
+      (match st.pileOfTop z with
+       | some _ => canSitOn c z
+       | none => false) := rfl
+
+/-- The top-directed branch, already located: the guard is the fit. -/
+theorem canPlace_inr_located {st : State} {c z : Card} {k : Anchor}
+    (h : st.pileOfTop z = some k) :
+    st.canPlace c (Sum.inr z) = canSitOn c z := by
+  rw [show st.canPlace c (Sum.inr z) = canSitOn c z from by
+    simp only [State.canPlace, h]]
+
+/-- `afterRunRemoved` at a nonempty prefix keeps the hidden deck and
+relocates the face-up run to the prefix alone. -/
+theorem afterRunRemoved_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
+    Pile.afterRunRemoved p pre = { p with faceUp := pre } := by
+  cases pre with
+  | nil => exact absurd rfl h
+  | cons w ws => rfl

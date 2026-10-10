@@ -243,10 +243,6 @@ theorem setPile_stock (st : State) (a : Anchor) (p : Pile) :
 theorem setPile_waste (st : State) (a : Anchor) (p : Pile) :
     (st.setPile a p).waste = st.waste := rfl
 
-/-- `setPile` keeps the foundations. -/
-theorem setPile_found (st : State) (a : Anchor) (p : Pile) :
-    (st.setPile a p).found = st.found := rfl
-
 /-- `setPile` keeps the draw step. -/
 theorem setPile_drawStep (st : State) (a : Anchor) (p : Pile) :
     (st.setPile a p).drawStep = st.drawStep := rfl

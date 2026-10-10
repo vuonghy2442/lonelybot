@@ -125,14 +125,6 @@ private theorem step_wasteToTab_inv {u : State} {c : Card} {b : Base}
       exact ⟨wsl, hcon, h.symm⟩
   · simp at h
 
-/-- With the search's answer in hand, an `inr` placement is exactly
-a `setPile` onto the found pile. -/
-private theorem putCard_inr_eq {st : State} {c z : Card} {k : Anchor}
-    (h : st.pileOfTop z = some k) :
-    st.putCard c (.inr z) =
-      st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } := by
-  rw [State.putCard, h]
-
 /-- A single-card placement keeps the found, the stock, the waste,
 and the draw step verbatim. -/
 private theorem putCard_keep {st : State} {c : Card} {b : Base} :

@@ -771,3 +771,14 @@ theorem canPlace_inl_target_pile_ne {st : State} {c : Card} {a b : Anchor}
   rw [hfu] at hmem
   exact absurd hmem (by simp)
 
+/-! ## Card-fit arithmetic -/
+
+/-- A fitting card is distinct from its host.  The rank half of the
+fit ladder (the other ladder steps live in the exchange chapters'
+kill families, dedup-marked against this home). -/
+theorem ne_of_canSitOn {z y : Card} (h : canSitOn z y = true) : z ≠ y := by
+  intro hcon
+  subst hcon
+  simp only [canSitOn_eq] at h
+  omega
+
