@@ -1730,3 +1730,47 @@ theorem canonEdge_draw_shape {C : State} {D : SameOrbit} (e : CanonEdge C D)
 #print axioms rootFreedAnchor
 #print axioms CanonLabel
 #print axioms CanonEdge.label
+/-- The vacate cell predicates carry the move as a family index; this
+non-indexed restatement lets the row unpack a cell against a
+structure-field move. -/
+private theorem VacateCell_shape {u : State} {a : Anchor} {m : Move}
+    (h : VacateCellAt u a m) :
+    (∃ c, m = Move.tabToFound c ∧ u.pileOfTop c = some a ∧
+        chop (u.piles a).faceUp = [] ∧ (u.piles a).hidden = [] ∧
+        c.rank ≠ Rank.king) ∨
+    (∃ c b, m = Move.tabToTab c b ∧ u.pileHolding c = some a ∧
+        below c (u.piles a).faceUp = [] ∧ (u.piles a).hidden = [] ∧
+        c.rank ≠ Rank.king) := by
+  cases h with
+  | tabToFound hloc hpre hhd hnk =>
+      exact Or.inl ⟨_, rfl, hloc, hpre, hhd, hnk⟩
+  | tabToTab hloc hpre hhd hnk =>
+      exact Or.inr ⟨_, _, rfl, hloc, hpre, hhd, hnk⟩
+
+/-- The label-assembly spine of the vacate row: both tests die, and the
+seat-difference read is exactly the freed seat. -/
+private theorem vacate_spine {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    (hcycC : cycleCount e.w = cycleCount C)
+    (hnhC : hiddenTotal e.w = hiddenTotal C)
+    {a : Anchor} (hRootNe : nzRoot C a ≠ nzRoot e.w a)
+    (hElseR : ∀ a', a' ≠ a → nzRoot C a' = nzRoot e.w a') :
+    e.label = EdgeLabel.stackEvent a := by
+  show CanonLabel C e.w = EdgeLabel.stackEvent a
+  have hRead : rootFreedAnchor C e.w = some a := by
+    unfold rootFreedAnchor
+    refine firstWhere_find (p :=
+      fun a' => decide (nzRoot C a' ≠ nzRoot e.w a')) ?_ ?_ ?_
+    · exact Anchor.mem_all a
+    · exact decide_eq_true hRootNe
+    · intro y _ hne
+      by_cases hy : y = a
+      · exact absurd hy hne
+      · show decide (nzRoot C y ≠ nzRoot e.w y) = false
+        rw [decide_eq_false]
+        intro hne2
+        rw [← hElseR y hy] at hne2
+        exact hne2 rfl
+  unfold CanonLabel
+  rw [hcycC, ite_eq_right (Nat.lt_irrefl (cycleCount C))]
+  rw [hnhC, ite_eq_right (Nat.lt_irrefl (hiddenTotal C))]
+  rw [hRead]
