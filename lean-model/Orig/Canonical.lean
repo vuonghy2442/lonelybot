@@ -605,13 +605,6 @@ private theorem flat_filter_length_split {x : Card} :
     ((Z2.flatMap id).filter fun y => decide (y = x)).length
   rw [flatMap_append, List.filter_append, List.length_append]
 
-/-- Each occurrence of `c` contributes one to the filtered count
-(`Orig.Integrity`'s private `count_filter_pos`; dedup candidate). -/
-private theorem count_filter_pos {c : Card} :
-    ∀ {l : List Card}, c ∈ l → 1 ≤ (l.filter fun y => decide (y = c)).length := by
-  intro l hmem
-  have hm : c ∈ l.filter fun y => decide (y = c) := List.mem_filter.2 ⟨hmem, by simp⟩
-  exact List.length_pos_of_mem hm
 
 /-- A card with no occurrence filters to length zero. -/
 private theorem filter_length_zero_of_not_mem {c : Card} : ∀ {l : List Card},

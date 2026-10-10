@@ -47,12 +47,6 @@ the main theorem.
 
 /-! ## Small helpers -/
 
-/-- A nonempty list splits at its head. -/
-private theorem list_cons_of_ne_nil {α : Type} {l : List α} (h : l ≠ []) :
-    ∃ x t, l = x :: t := by
-  cases l with
-  | nil => exact absurd rfl h
-  | cons x t => exact ⟨x, t, rfl⟩
 
 /-- A non-`none` option carries a value. -/
 private theorem option_some_of_ne_none {α : Type} {o : Option α} (h : o ≠ none) :

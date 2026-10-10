@@ -1,4 +1,5 @@
 import Orig.Combine
+import Orig.Integrity
 
 /-!
 # Orig.Reach — the reachability spine and the reachable⇒WF fence
@@ -794,12 +795,6 @@ private theorem step_tabToTab_inv {st st' : State} {c : Card} {b : Base}
 
 /-! ## Private kit: the draw, and pile update shapes -/
 
-private theorem list_cons_of_ne_nil {α : Type} {l : List α} (h : l ≠ []) :
-    ∃ x t, l = x :: t := by
-  cases l with
-  | nil => exact absurd rfl h
-  | cons x t => exact ⟨x, t, rfl⟩
-
 private theorem recycle_allEmpty (st : State) (h1 : st.stock = []) (h2 : st.waste = []) :
     State.recycle st = st := by
   simp only [State.recycle, h1, h2]
@@ -901,28 +896,6 @@ private theorem putRun_eq_inr {st : State} {run : List Card} {z : Card} {k : Anc
     | some k' => st.setPile k' { st.piles k' with faceUp := (st.piles k').faceUp ++ run }
     | none => st) = _
   rw [h]
-
-/-- Completeness of `firstWhere` (isolation copy of the Integrity
-private; the re-search step of `tabToTab` needs it at an unproven
-intermediate state). -/
-private theorem firstWhere_find {p : Anchor → Bool} :
-    ∀ {l : List Anchor} {a : Anchor}, a ∈ l → p a = true →
-      (∀ x ∈ l, x ≠ a → p x = false) → firstWhere p l = some a := by
-  intro l
-  induction l with
-  | nil => intro a hmem; cases hmem
-  | cons x t ih =>
-      intro a hmem hp hfull
-      by_cases hax : a = x
-      · subst hax
-        rw [firstWhere, hp]
-      · have hpx : p x = false :=
-          hfull x (List.mem_cons.2 (Or.inl rfl)) (fun h => hax h.symm)
-        rcases List.mem_cons.1 hmem with heq | hta
-        · exact absurd heq hax
-        · rw [firstWhere, hpx]
-          exact ih hta hp (fun y hy hyne =>
-            hfull y (List.mem_cons.2 (Or.inr hy)) hyne)
 
 /-! ## Private kit: the deal and the dealt piles -/
 
@@ -1207,12 +1180,6 @@ private theorem pileOfTop_top {st : State} {z : Card} {a : Anchor}
   have h3 : st.topOf a = some z := of_decide_eq_true h2
   exact h3
 
-/-- The search soundness fact the pile-holding fit needs. -/
-private theorem pileHolding_mem {st : State} {c : Card} {a : Anchor}
-    (h : st.pileHolding c = some a) : c ∈ (st.piles a).faceUp := by
-  have h' : firstWhere (fun a' => decide (c ∈ (st.piles a').faceUp)) Anchor.all = some a := h
-  have h2 := firstWhere_sound (fun a' => decide (c ∈ (st.piles a').faceUp)) h'
-  exact of_decide_eq_true h2
 
 /-- An empty pile has both fields empty. -/
 private theorem pile_isEmpty {p : Pile} (h : p.isEmpty = true) :

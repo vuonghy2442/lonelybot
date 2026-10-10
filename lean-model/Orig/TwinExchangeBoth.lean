@@ -782,11 +782,6 @@ candidate bases are the two occupied seats, neither a live top), the
 hosts are not pile tops, and the within-thread fits rule out the
 cross-landings by rank. -/
 
-private theorem decide_false_of_not {p : Prop} [Decidable p] (h : ¬p) :
-    decide p = false := by
-  cases hd : decide p with
-  | false => rfl
-  | true => exact absurd (of_decide_eq_true hd) h
 
 /-- A card never sits on itself.  (Dedup-marked against
 `Orig/TwinExchange.lean`'s private companions.) -/

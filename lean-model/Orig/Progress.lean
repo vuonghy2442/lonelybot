@@ -591,12 +591,6 @@ theorem win_iff_distinctTrace {st : State} :
 
 /-! ## The encode consumption (M3) -/
 
-/-- A nonempty list has a head. -/
-private theorem list_cons_of_ne_nil {l : List Card} (h : l ≠ []) :
-    ∃ x t, l = x :: t := by
-  cases l with
-  | nil => exact absurd rfl h
-  | cons x t => exact ⟨x, t, rfl⟩
 
 /-- Reversal never annihilates a cons. -/
 private theorem reverse_cons_ne_nil (x : Card) (t : List Card) :

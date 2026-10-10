@@ -283,13 +283,6 @@ private theorem step_tabToTab_inv {st : State} {c : Card} {b : Base} {s' : State
 
 /-! ## Small private kit -/
 
-/-- A nonempty list splits at its head. -/
-private theorem list_cons_of_ne_nil {α : Type} {l : List α} (h : l ≠ []) :
-    ∃ x t, l = x :: t := by
-  cases l with
-  | nil => exact absurd rfl h
-  | cons x t => exact ⟨x, t, rfl⟩
-
 /-- A non-`none` option carries a value. -/
 private theorem option_some_of_ne_none {α : Type} {o : Option α} (h : o ≠ none) :
     ∃ v, o = some v := by
@@ -570,34 +563,7 @@ private theorem runOK_adjacent_snoc {P : List Card} {z c : Card}
   rw [hc1.trans hc2] at hok
   exact runOK_seam _ _ hok
 
-/-- The firstWhere-soundness adjunct: a refuted proposition decides
-false. -/
-private theorem decide_false_of_not {p : Prop} [Decidable p] (h : ¬p) :
-    decide p = false := by
-  cases hdec : decide p with
-  | true => exact absurd (of_decide_eq_true hdec) h
-  | false => rfl
 
-/-- Completeness of `firstWhere`: the anchor satisfying the
-predicate is found when every other anchor in the list fails it. -/
-private theorem firstWhere_find {p : Anchor → Bool} :
-    ∀ {l : List Anchor} {a : Anchor}, a ∈ l → p a = true →
-      (∀ x ∈ l, x ≠ a → p x = false) → firstWhere p l = some a := by
-  intro l
-  induction l with
-  | nil => intro a hmem; cases hmem
-  | cons x t ih =>
-      intro a hmem hp hfull
-      by_cases hax : a = x
-      · subst hax
-        rw [firstWhere, hp]
-      · have hpx : p x = false :=
-          hfull x (List.mem_cons.2 (Or.inl rfl)) (fun h => hax h.symm)
-        rcases List.mem_cons.1 hmem with heq | hta
-        · exact absurd heq hax
-        · rw [firstWhere, hpx]
-          exact ih hta hp (fun y hy hyne =>
-            hfull y (List.mem_cons.2 (Or.inr hy)) hyne)
 
 /-! ## The found-vs-pile occurrence kit -/
 
@@ -615,13 +581,6 @@ private theorem flatMapAppend {α β : Type} (f : α → List β) :
       show f x ++ List.flatMap f (t ++ B) = (f x ++ List.flatMap f t) ++ List.flatMap f B
       rw [ih, List.append_assoc]
 
-/-- Each occurrence of `c` in a list contributes one to the filtered
-count. -/
-private theorem count_filter_pos {c : Card} :
-    ∀ {l : List Card}, c ∈ l → 1 ≤ (l.filter fun x => decide (x = c)).length := by
-  intro l hmem
-  have hm : c ∈ l.filter fun x => decide (x = c) := List.mem_filter.2 ⟨hmem, by simp⟩
-  exact List.length_pos_of_mem hm
 
 /-- Two occurrences in separate flatMap blocks make the count at
 least two. -/

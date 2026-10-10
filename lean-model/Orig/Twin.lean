@@ -1,4 +1,5 @@
 import Orig.Fate
+import Orig.Integrity
 
 /-!
 # Orig — the twin swap and the twin quotient
@@ -321,10 +322,6 @@ private theorem decide_map_eq {x : Option Card} {c : Card} :
   show decide (Card.twin c ∈ (st.piles a).faceUp.map Card.twin)
       = decide (c ∈ (st.piles a).faceUp)
   simp [mem_map_twin]
-
-private theorem pileHolding_mem {st : State} {c : Card} {a : Anchor}
-    (h : st.pileHolding c = some a) : c ∈ (st.piles a).faceUp :=
-  of_decide_eq_true (firstWhere_sound (p := fun a' => decide (c ∈ (st.piles a').faceUp)) h)
 
 @[ simp] theorem State.canPlace_twinMap (st : State) (c : Card) (b : Base) :
     st.twinMap.canPlace c.twin b.twinMap = st.canPlace c b := by

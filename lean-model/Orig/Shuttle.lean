@@ -53,41 +53,8 @@ in-flight `Orig.Irreversible` card.  They live here privately so
 this card imports nothing unmerged; at harvest, promote or delete
 against the canonical versions. -/
 
-/-- Refuting a decidable proposition turns the decision literal off. -/
-private theorem decide_false_of_not {p : Prop} [Decidable p] (h : ¬p) :
-    decide p = false := by
-  cases hdec : decide p with
-  | true => exact absurd (of_decide_eq_true hdec) h
-  | false => rfl
 
-/-- Completeness of `firstWhere`: the anchor satisfying the
-predicate is found when every other anchor in the list fails it. -/
-private theorem firstWhere_find {p : Anchor → Bool} :
-    ∀ {l : List Anchor} {a : Anchor}, a ∈ l → p a = true →
-      (∀ x ∈ l, x ≠ a → p x = false) → firstWhere p l = some a := by
-  intro l
-  induction l with
-  | nil => intro a hmem; cases hmem
-  | cons x t ih =>
-      intro a hmem hp hfull
-      by_cases hax : a = x
-      · subst hax
-        rw [firstWhere, hp]
-      · have hpx : p x = false :=
-          hfull x (List.mem_cons.2 (Or.inl rfl)) (fun h => hax h.symm)
-        rcases List.mem_cons.1 hmem with heq | hta
-        · exact absurd heq hax
-        · rw [firstWhere, hpx]
-          exact ih hta hp (fun y hy hyne =>
-            hfull y (List.mem_cons.2 (Or.inr hy)) hyne)
 
-/-- A nonempty list is a cons. -/
-private theorem list_cons_of_ne_nil {α : Type} :
-    ∀ {l : List α}, l ≠ [] → ∃ x t, l = x :: t := by
-  intro l
-  cases l with
-  | nil => intro h; exact absurd rfl h
-  | cons x t => intro _; exact ⟨x, t, rfl⟩
 
 /-- Everything a legal `wasteToTab` needs and hands back: the
 guard, and the splice `s = { u.putCard c b with waste := ws }`. -/

@@ -50,6 +50,51 @@ theorem firstWhere_sound {α : Type} (p : α → Bool) :
         exact hy
       · exact firstWhere_sound p h
 
+/-!
+### The house trivia kit
+
+The decide bridge, the search-completeness lemma, and the nonempty
+cons split — each formerly carried as a private copy by four or five
+chapters (Classify / Integrity / Shuttle / Phase / Progress / Reach /
+Canonical / TwinExchangeBoth); landed here beside `firstWhere` so
+they cite one home.
+-/
+
+/-- `decide` reads off a refuted proposition. -/
+theorem decide_false_of_not {p : Prop} [Decidable p] (h : ¬p) :
+    decide p = false := by
+  cases hdec : decide p with
+  | true => exact absurd (of_decide_eq_true hdec) h
+  | false => rfl
+
+/-- Completeness of `firstWhere`: the item satisfying the predicate
+is found when every other item of the list fails it. -/
+theorem firstWhere_find {α : Type} [DecidableEq α] {p : α → Bool} :
+    ∀ {l : List α} {a : α}, a ∈ l → p a = true →
+      (∀ x ∈ l, x ≠ a → p x = false) → firstWhere p l = some a := by
+  intro l
+  induction l with
+  | nil => intro a hmem; cases hmem
+  | cons x t ih =>
+      intro a hmem hp hfull
+      by_cases hax : a = x
+      · subst hax
+        rw [firstWhere, hp]
+      · have hpx : p x = false :=
+          hfull x (List.mem_cons.2 (Or.inl rfl)) (fun h => hax h.symm)
+        rcases List.mem_cons.1 hmem with heq | hta
+        · exact absurd heq hax
+        · rw [firstWhere, hpx]
+          exact ih hta hp (fun y hy hyne =>
+            hfull y (List.mem_cons.2 (Or.inr hy)) hyne)
+
+/-- Every nonempty list is a cons. -/
+theorem list_cons_of_ne_nil {α : Type} {l : List α} (h : l ≠ []) :
+    ∃ x t, l = x :: t := by
+  cases l with
+  | nil => exact absurd rfl h
+  | cons x t => exact ⟨x, t, rfl⟩
+
 /-! ## List helpers (self-contained) -/
 
 /-- The last element of a list. -/
@@ -365,3 +410,11 @@ theorem afterRunRemoved_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
   cases pre with
   | nil => exact absurd rfl h
   | cons w ws => rfl
+
+/-- Each occurrence of `c` in a list contributes one to the filtered
+count — the bridge every `cardCount` proof rides. -/
+theorem count_filter_pos {c : Card} :
+    ∀ {l : List Card}, c ∈ l → 1 ≤ (l.filter fun x => decide (x = c)).length := by
+  intro l hmem
+  have hm : c ∈ l.filter fun x => decide (x = c) := List.mem_filter.2 ⟨hmem, by simp⟩
+  exact List.length_pos_of_mem hm

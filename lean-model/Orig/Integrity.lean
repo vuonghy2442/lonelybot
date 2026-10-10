@@ -109,14 +109,6 @@ private theorem flatMapAppend {α β : Type} (f : α → List β) :
       show f x ++ List.flatMap f (t ++ B) = (f x ++ List.flatMap f t) ++ List.flatMap f B
       rw [ih, List.append_assoc]
 
-/-- Each occurrence of `c` in a list contributes one to the filtered
-count. -/
-private theorem count_filter_pos {c : Card} :
-    ∀ {l : List Card}, c ∈ l → 1 ≤ (l.filter fun x => decide (x = c)).length := by
-  intro l hmem
-  have hm : c ∈ l.filter fun x => decide (x = c) := List.mem_filter.2 ⟨hmem, by simp⟩
-  exact List.length_pos_of_mem hm
-
 /-- Two card occurrences in separate flatMap blocks make the count
 at least two. -/
 private theorem count_ge_two_of_split {st : State} {c : Card} {A B : List (List Card)}
@@ -489,33 +481,6 @@ theorem mem_waste_unique {st : State} {c : Card} (hwf : st.WF)
     fun s hcon => wf_found_waste_ne hwf hcon h⟩
 
 /-! ## `firstWhere` completeness -/
-
-private theorem decide_false_of_not {p : Prop} [Decidable p] (h : ¬p) :
-    decide p = false := by
-  cases hdec : decide p with
-  | true => exact absurd (of_decide_eq_true hdec) h
-  | false => rfl
-
-/-- Completeness of `firstWhere`: the anchor satisfying the predicate
-is found when every other anchor in the list fails it. -/
-private theorem firstWhere_find {p : Anchor → Bool} :
-    ∀ {l : List Anchor} {a : Anchor}, a ∈ l → p a = true →
-      (∀ x ∈ l, x ≠ a → p x = false) → firstWhere p l = some a := by
-  intro l
-  induction l with
-  | nil => intro a hmem; cases hmem
-  | cons x t ih =>
-      intro a hmem hp hfull
-      by_cases hax : a = x
-      · subst hax
-        rw [firstWhere, hp]
-      · have hpx : p x = false :=
-          hfull x (List.mem_cons.2 (Or.inl rfl)) (fun h => hax h.symm)
-        rcases List.mem_cons.1 hmem with heq | hta
-        · exact absurd heq hax
-        · rw [firstWhere, hpx]
-          exact ih hta hp (fun y hy hyne =>
-            hfull y (List.mem_cons.2 (Or.inr hy)) hyne)
 
 /-! ## The holding search -/
 
