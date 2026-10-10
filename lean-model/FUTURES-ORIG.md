@@ -401,11 +401,60 @@ cell bypasses it with c literally in hand).  WHAT IT BUYS:
 "the branches of a macro state" gains its clean predicate (the
 CanonEdge successor-class set at C; the per-card count reads
 c's schemes reach ≤ 2 classes); the window ambiguity dies
-definitionally (every edge anchored at one fixed
-representative — "regardless of micro state" becomes
-definitional); and the solver-level reading: the macro graph is
-a well-defined labeled graph (canonical vertices, commit-scheme
-edges).
+ definitionally (every edge anchored at one fixed
+ representative — "regardless of micro state" becomes
+ definitional); and the solver-level reading: the macro graph is
+ a well-defined labeled graph (canonical vertices, commit-scheme
+ edges).
+
+**THE EDGE-LABELING THEOREM (the user's proposal, refined through
+the 2026-10-10 dialogue; the assembly's SECOND milestone, ahead of
+the count): every directly-adjacent class pair carries a UNIQUE
+label, and the label alphabet is TRIpartite (user's final form):
+`draw` | `wasteToTab`-family (the waste-card entry, card-orbit
+labeled) | `reveal a specific stack` (the tableau family,
+POSITION-labeled).  THE TWIN PRINCIPLE DIVIDING THE ALPHABET:
+the conjugation permutes CARD IDs only and FIXES the position
+structure — so POSITION-valued labels are twin-blind BY
+CONSTRUCTION (no orbit device), while the waste family's label
+must touch card values (its source is the single-zone waste, no
+position to name) and is the card-orbit {c, c.twin} + kind
+(raise-vs-land).  THE FAMILIES UNDER THE THIRD LABEL: the
+reveal-move names the revealed stack's position (the revealed
+card is pinned in the successor profile — the position NAMES the
+event); the VACATE rides the same positional family as the
+degenerate no-reveal case (emptying the stack rather than
+revealing-through — the freed anchor is the position).  WHY
+UNIQUEENESS HOLDS: labels are CLASS-PAIR FINGERPRINTS — (1) the
+guard measures are class-invariants (the never-rise rows are
+stronger than class-invariance), so the edge's (∆cycleCount,
+∆hiddenTotal, foundation-deltas) separates draw vs waste-entry
+vs tableau-family; (2) within waste-entry the card is pinned by
+ARITHMETIC (at canonical A only the suite's next-up card is
+rung-raiseable — B's foundation-delta identifies c = upCards σ
+[B's height] literally; the landing case pins c as the new
+visible entry); within the tableau family the event's stack is
+read off the source-side profile delta; (3) well-definedness is
+functionality of the fingerprint map (final A, final B) — the
+same anchor every time, which is exactly what CanonEdge buys.
+THE DRAW-VS-CARD DISJOINTNESS is a small milestone cell (the
+phase-delta argument).  THE COUNT-ANATOMY BONUS: reveal-moves
+from CANONICAL states have their raise-arm STRUCTURALLY DEAD
+(the departing run's head is the faceUp BOTTOM — never a
+licensed raise target — and the run's top was never
+licensed-raiseable, the saturation consumed all such), so the
+reveal family branches PURELY over the departed run's twin-pair
+landing: ≤ 2, residue-exceptions only — cleaner than the waste
+case's rung-split (there the rung case collapses everything to
+1; here it cannot occur); the per-label count anatomy is
+UNIFORM: each label's event has at most 2 outcome classes, the
+residue profile deciding the collapse to 1.  THE ONE HONEST
+CAVEAT (recorded with the anchor language): canon is a function
+on STATES, not a unique class representative — the residue
+exhibit proved a class can hold two genuinely different Final
+states — so class-level statements say "anchor canon A, read the
+pair, PROVE class-invariance," never "the representative of
+the class."
 
 ```lean
 theorem apply_two_macroOutcomes {t₁ t₂ t₃ : State} {m : Move} {s₁ s₂ s₃ : State}
