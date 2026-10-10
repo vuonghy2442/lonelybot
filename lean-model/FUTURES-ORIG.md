@@ -698,6 +698,24 @@ by the re-derived corpus.
    landing as a SEAM-REDUCTION REFACTOR ticket (`WF0` = prefix +
    census + drawStep, ⊕ the fit-memory conjunct) whenever the
    solitaire-variant transport question becomes real.
+8. THE COMMUTE KIT (user question 2026-10-10, sequenced deliberately
+   AFTER the in-flight consumers): Orig/Commute.lean as an
+   EXTRACUTION-UNIFICATION card, not a parallel derivation — the
+   raw material arrives inline with canon-core's per-cell
+   transported moves and the mirroring engine's g-induction legs;
+   plus the parked Transport draft (2405b1b, 13 theorems, the
+   zoneDisjoint→square predicate) as seed; plus the target-clash
+   counterexample with its trough-transport (foundToTab x (inr z)
+   vs tabToFound z — either order blocks the other; the routed
+   move r* = undo-c ∘ r).  The kit's OWN new content is one
+   piece: the master disjointness schema (disjoint write-sets +
+   co-fire ⇒ literal commutation, the zone-effect-indexed
+   statement subsuming the draws-rows and cross-suit rows) +
+   the zone-effect index itself (each move kind's write-set) +
+   the consumers' digest.  DO NOT grow the full 6×6 lattice —
+   scope = consumed pairs only.  The major-theorem assembly card
+   waits one cycle for this kit so it CITES the schema instead of
+   writing the fourth inline copy.
 
 ## 7. The corpus re-derivation list (witnesses to re-derive physically)
 
