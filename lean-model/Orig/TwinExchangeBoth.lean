@@ -45,15 +45,27 @@ every line re-proved physically, zero engine vocabulary):
   the same move transports, and the landed bare row
   (`twin_exchange_bare_iff`) closes the tail.
 * **§6** the g-simulation — `exchange_go_gen`, the play induction
-  parameterized by a riding invariant `P` and the two merge-corner
-  kill bridges, exactly the old assembly's shape; the instance rides
-  `P := fun _ => True` and turns the bridges into the two walls.
-* **§7** the theorem — forward through the simulation, backward
-  through the involution (the license descends through the exchange).
-* **§8** the quotient-widening corollary — the general license
-  (bare-or-both-occupied), its descent, and the `WinFromQ₃` verdict
-  row that extends `ExchOrbit.mk_exchangeTwin`'s content to the
-  general license.
+  parameterized by the riding license grade and the per-move and
+  freedom slots (the v5 census parameter shape: the riding
+  invariant is `BothOcc` itself; the old assembly's two
+  merge-corner bridges instantiate to the landed walls, already
+  consumed as the bridge shapes inside the `tabToTab` row); the
+  instance rides `P := BothOcc` with the six-row dispatch as the
+  ride and the landed bare row as the freedom tail.
+* **§7** the theorem — `twin_exchange_both_iff`, forward through
+  the simulation, backward through the involution, with the
+  license descending through the exchange (`bothOcc_exchangeTwin`).
+* **§8** the quotient-widening corollary — `TwinExchGen` (the
+  general license, bare-or-both-occupied), its descent
+  (`TwinExchGen_exchangeTwin`), and the `WinFromQ₃` verdict row
+  (`ExchOrbit.winFromQ₃_exchangeTwin_gen`) that extends
+  `ExchOrbit.mk_exchangeTwin`'s content to the general license.
+
+The row program is COMPLETE: six transport rows, the g-simulation,
+the both-occupied iff and the quotient-widening corollary all
+landed with zero `sorry`; the both-occupied twin exchange preserves
+the verdict, and the licensed-exchange classes carry it at the
+general license.
 
 Discipline: zero `sorry`, zero `native_decide`, zero
 `Classical.choice` (per-lemma audits run externally); axiom targets
@@ -4875,3 +4887,251 @@ theorem exch_step_tabToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
       · have hmir := bothOcc_mirror hbocc
         rwa [Card.twin_twin] at hmir
     · exact exch_step_tabToTab_core hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep ha hcp hs₁ hB
+
+/-! ## §6. The g-simulation
+
+The play-level induction of the old engine's assembly route
+(`Klondike/TwinQuotient.lean:3109`,
+`State.solvable_exchangeTwinCargo_go_gen` — read as a route map
+only, every line re-proved physically, zero engine vocabulary),
+translated onto the six landed rows.  The parameterization keeps
+the old assembly's discipline — a riding license grade taken as a
+parameter with the per-move transport as its slot content, the
+freedom event handed to its own slot — and drops what the rows
+made un-openable: the two merge-corner kill bridges, taken in the
+engine with the license OPEN because the handlers had to feed
+impossibility lemmas a packed license could not, instantiate here
+to the landed walls (`merge_impossible_of_WF` /
+`merge_rooted_impossible_of_WF`), already consumed as the bridge
+shapes inside the `tabToTab` row.  The sixth row's totality is the
+whole of it: the ride never meets a merge corner mid-play, so the
+g-simulation carries no merge-corner handler at all.  The riding
+invariant is the license itself — the v5 census verdict, maximal
+for the move family: on the both-occupied instance `P := BothOcc`,
+re-seated at every step by the five commute rows and re-issued or
+bare-handed by the freedom row, whose `BareLic` tail the free slot
+closes through the landed bare row — which consumes the bare
+packet at the successor's own facts, so no witness of the outer
+license is ever re-bound across a handler boundary (the M5e
+lesson, held here by making the rows themselves the walls'
+consumers). -/
+
+/-- The per-move dispatch: at the licensed shape every legal step
+transports — the exchanged state fires the same move and lands at
+the exchanged successor — and the license disposition is the rows'
+exact one.  The five commute rows hand `BothOcc` back at `s₁`; the
+freedom row hands either the re-seated license or the bare packet. -/
+private theorem exch_step_all {st s₁ : State} {m : Move} {t : Card}
+    (hwf : st.WF) (hbo : BothOcc st t) (hstep : st.step m = some s₁) :
+    ((st.exchangeTwin t).step m = some (s₁.exchangeTwin t)) ∧
+      (BothOcc s₁ t ∨ BareLic s₁ t) := by
+  obtain ⟨α, β, z, z', Bα, B', Sa, Sa', h₁, h₂, hne, hsα, hsβ, hfit, hfit',
+    -, -, -, -⟩ := hbo
+  cases m with
+  | draw =>
+      obtain ⟨hA, hB⟩ := exch_step_draw hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+  | wasteToFound c =>
+      obtain ⟨hA, hB⟩ :=
+        exch_step_wasteToFound hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+  | wasteToTab c b =>
+      obtain ⟨hA, hB⟩ := exch_step_wasteToTab hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+  | tabToFound c =>
+      exact exch_step_tabToFound hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+  | foundToTab c b =>
+      obtain ⟨hA, hB⟩ := exch_step_foundToTab hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+  | tabToTab c b =>
+      obtain ⟨hA, hB⟩ := exch_step_tabToTab hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+
+/-- **The g-simulation.**  The play induction over a winning play's
+move list: `hride` is the move-family contract (every legal step
+commutes with the exchange, and either re-seats the riding license
+or issues the bare packet), `hfree` is the freedom-tail closure
+(the bare packet takes the successor's verdict).  The terminal case
+closes through `State.isWin_exchangeTwin`; the merge corners never
+appear because the sixth row made the `tabToTab` arm total. -/
+theorem exchange_go_gen
+    (P : State → Card → Prop)
+    (hride : ∀ {st s₁ : State} {t : Card} {m : Move},
+      st.WF → P st t → st.step m = some s₁ →
+      ((st.exchangeTwin t).step m = some (s₁.exchangeTwin t)) ∧
+        (P s₁ t ∨ BareLic s₁ t))
+    (hfree : ∀ {s₁ : State} {t : Card},
+      s₁.WF → BareLic s₁ t → WinFrom s₁ → WinFrom (s₁.exchangeTwin t)) :
+    ∀ (play : List Move) (st : State) (t : Card),
+      st.WF → P st t →
+      (∃ w, st.run play = some w ∧ w.isWin = true) →
+      WinFrom (st.exchangeTwin t) := by
+  intro play
+  induction play with
+  | nil =>
+      intro st t hwf _hP ⟨w, hrun, hwin⟩
+      have hw : st = w := Option.some.inj hrun
+      subst hw
+      refine ⟨[], st.exchangeTwin t, rfl, ?_⟩
+      rw [State.isWin_exchangeTwin]
+      exact hwin
+  | cons m ms ih =>
+      intro st t hwf hP ⟨w, hrun, hwin⟩
+      obtain ⟨s₁, hap, hrest⟩ := State.run_cons hrun
+      obtain ⟨htrans, hp₁⟩ := hride hwf hP hap
+      rcases hp₁ with hP₁ | hbare
+      · exact WinFrom_of_succ ⟨m, htrans⟩
+          (ih s₁ t (step_wf hwf hap) hP₁ ⟨w, hrest, hwin⟩)
+      · exact WinFrom_of_succ ⟨m, htrans⟩
+          (hfree (step_wf hwf hap) hbare ⟨ms, w, hrest, hwin⟩)
+
+/-! ## §7. The both-occupied iff
+
+The card the module was declared for: at the licensed
+both-occupied shape the local twin exchange preserves the verdict,
+both directions.  Forward is the g-simulation at the `BothOcc`
+instance.  Backward replays the forward direction AT the exchanged
+state, where the license has descended (this is the both-occupied
+grade of `TwinExchOK_exchangeTwin` — the slots swap, the splices
+cross, the fits re-read twin-blindly, the braid family re-derives
+at the crossed splices), and the involution folds the
+twice-exchanged state back onto the original. -/
+
+/-- **The license descent.**  The both-occupied license is an honest
+symmetry of the exchange — the hosts keep their piles
+(`exch_hosts`), the written records keep each pile's hidden deck
+and below-prefix with the OTHER thread's cargo riding on top
+(`exch_pile_self_record` / `exch_pile_other_record`), the crossed
+fits re-read through the twin-blindness of the sit rules
+(`canSitOn_twin_right`), and the braid family re-derives at the
+crossed splices through `braid_splice` (WF-automatic once the
+spliced shapes and fits are in place). -/
+theorem bothOcc_exchangeTwin {st : State} {t : Card}
+    (hwf : st.WF) (hbo : BothOcc st t) :
+    BothOcc (st.exchangeTwin t) t := by
+  obtain ⟨α, β, z, z', Bα, B', Sa, Sa', h₁, h₂, hne, hsα, hsβ, hfit, hfit',
+    -, -, -, -⟩ := hbo
+  have hσwf : (st.exchangeTwin t).WF := State.wf_exchangeTwin hwf h₁ h₂ hne
+  obtain ⟨h₁σ, h₂σ⟩ := exch_hosts hwf h₁ h₂ hne
+  have hsασ : ((st.exchangeTwin t).piles α).faceUp = Bα ++ [t, z'] ++ Sa' := by
+    rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ]
+  have hsβσ : ((st.exchangeTwin t).piles β).faceUp = B' ++ [t.twin, z] ++ Sa := by
+    rw [exch_pile_other_record hwf h₁ h₂ hne hsα hsβ]
+  have hfitX : canSitOn z' t = true := by
+    rw [← canSitOn_twin_right z' t]
+    rw [show { t with suit := t.suit.twin } = t.twin from rfl]
+    exact hfit'
+  have hfitX' : canSitOn z t.twin = true := by
+    rw [show t.twin = { t with suit := t.suit.twin } from rfl, canSitOn_twin_right z t]
+    exact hfit
+  have hb := braid_splice hσwf h₁σ h₂σ hne hsασ hsβσ hfitX hfitX'
+  exact ⟨α, β, z', z, Bα, B', Sa', Sa, h₁σ, h₂σ, hne, hsασ, hsβσ,
+    hfitX, hfitX', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩
+
+/-- The g-simulation's both-occupied instance: the six rows are the
+ride, and the freedom tail is the landed bare row reading its bare
+packet at the successor's own facts. -/
+private theorem exchange_go {st : State} {t : Card}
+    (hwf : st.WF) (hbo : BothOcc st t) :
+    WinFrom st → WinFrom (st.exchangeTwin t) := by
+  intro hwin
+  obtain ⟨play, w, hrun, hwinw⟩ := hwin
+  refine exchange_go_gen BothOcc exch_step_all ?_ play st t hwf hbo
+    ⟨w, hrun, hwinw⟩
+  intro s₂ t' hwf₁ hbare hwin₁
+  obtain ⟨a, a', h₁, h₂, hne, hbare'⟩ := hbare
+  exact (twin_exchange_bare_iff hwf₁ h₁ h₂ hne hbare').1 hwin₁
+
+/-- **The both-occupied exchange iff.**  At a well-formed state with
+BOTH twin hosts located face-up in distinct piles, both `aboveIn`
+slots headed by a fitted cargo, and the braid clauses — neither
+twin seat above either cargo — the local twin exchange preserves
+the verdict: `st` is winning iff the exchanged state is.  The
+premise shape is the bare row's dialect; the proof is the
+simulation forward and, through the descended license and the
+involution, the simulation read at the exchanged state backward. -/
+theorem twin_exchange_both_iff {st : State} {t z z' : Card} {a a' : Anchor}
+    {Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some a) (h₂ : st.pileHolding t.twin = some a')
+    (hne : a ≠ a')
+    (h₀ : aboveIn t ((st.piles a).faceUp) = z :: Sa)
+    (h₀' : aboveIn t.twin ((st.piles a').faceUp) = z' :: Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true)
+    (hnb : t ∉ aboveIn z ((st.piles a).faceUp) ∧
+      t.twin ∉ aboveIn z ((st.piles a).faceUp))
+    (hnb' : t ∉ aboveIn z' ((st.piles a').faceUp) ∧
+      t.twin ∉ aboveIn z' ((st.piles a').faceUp)) :
+    WinFrom st ↔ WinFrom (st.exchangeTwin t) := by
+  have hbo : BothOcc st t := bothOcc_of h₁ h₂ hne h₀ h₀' hfit hfit' hnb hnb'
+  constructor
+  · intro hwin
+    exact exchange_go hwf hbo hwin
+  · intro hwinσ
+    have hσbo : BothOcc (st.exchangeTwin t) t := bothOcc_exchangeTwin hwf hbo
+    have hgo : WinFrom ((st.exchangeTwin t).exchangeTwin t) :=
+      exchange_go (State.wf_exchangeTwin hwf h₁ h₂ hne) hσbo hwinσ
+    rwa [State.exchangeTwin_invol h₁ h₂ hne
+      (hwf.cardCount_eq (Card.mem_universe t))
+      (hwf.cardCount_eq (Card.mem_universe t.twin))] at hgo
+
+/-! ## §8. The quotient-widening corollary
+
+The full-setoid card the campaign was named for.  `TwinExchQuotient`
+carried the verdict onto the licensed-exchange classes at the BARE
+license only (`TwinExchOK`, `ExchOrbit.mk_exchangeTwin`,
+`winFromQ₃_mk_iff`); the both-occupied row was its declared open
+future — "the chain never crosses it".  Here the license widens:
+the general grade `TwinExchGen` (bare or both-occupied) descends
+through the exchange — the bare half through
+`TwinExchOK_exchangeTwin`, the both half through
+`bothOcc_exchangeTwin` — and the `WinFromQ₃` verdict row extends
+`ExchOrbit.mk_exchangeTwin`'s content to the general license: one
+licensed exchange of EITHER grade transfers the class verdict, the
+VERDICT content — through `winFromQ₃_mk_iff`'s definitional
+transparency on both sides of the two landed iffs. -/
+
+/-- The general license: bare (`TwinExchOK`) or both-occupied
+(`WF ∧ BothOcc`) — the two grades the two landed iffs serve. -/
+def TwinExchGen (st : State) (t : Card) : Prop :=
+  TwinExchOK st t ∨ st.WF ∧ BothOcc st t
+
+/-- The general license descends through the exchange: each grade
+has its own descent, and both halves are landed — the bare through
+`TwinExchOK_exchangeTwin` (the quotient module's own machinery),
+the both-occupied through `bothOcc_exchangeTwin` (the §7 descent). -/
+theorem TwinExchGen_exchangeTwin {st : State} {t : Card} (h : TwinExchGen st t) :
+    TwinExchGen (st.exchangeTwin t) t := by
+  rcases h with hok | ⟨hwf, hbo⟩
+  · exact Or.inl (TwinExchOK_exchangeTwin hok)
+  · have hσbo := bothOcc_exchangeTwin hwf hbo
+    obtain ⟨_α, _β, _z, _z', _Bα, _B', _Sa, _Sa', h₁, h₂, hne,
+      _hsα, _hsβ, _hfit, _hfit', _hb1, _hb2, _hb1', _hb2'⟩ := hbo
+    exact Or.inr ⟨State.wf_exchangeTwin hwf h₁ h₂ hne, hσbo⟩
+
+/-- **The quotient-widening verdict row.**  `ExchOrbit.mk_exchangeTwin`'s
+content, extended to the general license: one licensed exchange of
+either grade does not disturb the class verdict.  The bare branch is
+the landed bare iff through `winFromQ₃_mk_iff`'s transparency; the
+both-occupied branch unpacks the license and reads the splice shapes
+into the iff's premise dialect (`aboveIn_splice_head` off
+`wf_splice_book`'s occurrence pin). -/
+theorem ExchOrbit.winFromQ₃_exchangeTwin_gen {st : State} {t : Card}
+    (h : TwinExchGen st t) :
+    WinFromQ₃ (ExchOrbit.mk st) ↔
+      WinFromQ₃ (ExchOrbit.mk (st.exchangeTwin t)) := by
+  rcases h with hok | ⟨hwf, hbo⟩
+  · obtain ⟨hwf, a, a', h₁, h₂, hne, hbare⟩ := hok
+    exact winFromQ₃_mk_iff.trans
+      ((twin_exchange_bare_iff hwf h₁ h₂ hne hbare).trans winFromQ₃_mk_iff.symm)
+  · obtain ⟨α, β, z, z', Bα, B', Sa, Sa', h₁, h₂, hne, hsα, hsβ, hfit, hfit',
+      hb1, hb2, hb1', hb2'⟩ := hbo
+    have h₀ : aboveIn t ((st.piles α).faceUp) = z :: Sa := by
+      rw [hsα]
+      exact aboveIn_splice_head (wf_splice_book hwf hsα).2.1
+    have h₀' : aboveIn t.twin ((st.piles β).faceUp) = z' :: Sa' := by
+      rw [hsβ]
+      exact aboveIn_splice_head (wf_splice_book hwf hsβ).2.1
+    exact winFromQ₃_mk_iff.trans
+      ((twin_exchange_both_iff hwf h₁ h₂ hne h₀ h₀' hfit hfit' ⟨hb1, hb2⟩ ⟨hb1', hb2'⟩).trans
+        winFromQ₃_mk_iff.symm)
