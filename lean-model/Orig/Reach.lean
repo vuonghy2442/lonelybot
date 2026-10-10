@@ -364,7 +364,7 @@ private theorem chop_snoc : ∀ (l : List Card) (x : Card),
       show y :: chop ((z :: t) ++ [x]) = y :: z :: t
       rw [ih]
 
-private theorem lastOf_eq_snoc : ∀ (l : List Card) {c : Card},
+private theorem lastOf_eq_chop_snoc : ∀ (l : List Card) {c : Card},
     lastOf l = some c → l = chop l ++ [c]
   | [], _, h => absurd h (by simp [lastOf])
   | [y], c, h => by
@@ -372,7 +372,7 @@ private theorem lastOf_eq_snoc : ∀ (l : List Card) {c : Card},
       subst h'
       rfl
   | x :: y :: t, c, h => by
-      have ihv := lastOf_eq_snoc (y :: t) (show lastOf (y :: t) = some c from h)
+      have ihv := lastOf_eq_chop_snoc (y :: t) (show lastOf (y :: t) = some c from h)
       show x :: y :: t = (x :: chop (y :: t)) ++ [c]
       rw [ihv, chop_snoc]
       rfl
@@ -948,7 +948,7 @@ private theorem ofDealt_cnt (l : List Card) (h : l ≠ []) (c₀ : Card) :
     rw [hhid, hface, ← chop_eq_take l]
   have hstep2 : cnt c₀ ((chop l).reverse ++ [x]) = cnt c₀ (chop l ++ [x]) := by
     simp only [cnt_snoc, cnt_singleton, cnt_reverse]
-  rw [hstep1, hstep2, ← lastOf_eq_snoc l hlast]
+  rw [hstep1, hstep2, ← lastOf_eq_chop_snoc l hlast]
 
 /-! ## The conservation fence at the deal -/
 
@@ -1554,7 +1554,7 @@ private theorem tabToFound_wf {st st' : State} {c : Card}
     rw [cardCount_zones]
     have hlastc : lastOf (st.piles a).faceUp = some c := pileOfTop_top hpstop
     have hsnoc : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] :=
-      lastOf_eq_snoc _ hlastc
+      lastOf_eq_chop_snoc _ hlastc
     have hpcnt : cntFlat c₀
           (Anchor.all.map fun j => (st'.piles j).hidden ++ (st'.piles j).faceUp)
         + cnt c₀ [c]
@@ -1614,7 +1614,7 @@ private theorem foundToTab_wf {st st' : State} {c : Card} {b : Base}
   have hc'' : st.foundTop c.suit = some c := hft.trans (congrArg some hc'c)
   have hlast : lastOf (st.found c.suit) = some c := foundTop_lastOf hc''
   have hsnocf : st.found c.suit = chop (st.found c.suit) ++ [c] :=
-    lastOf_eq_snoc _ hlast
+    lastOf_eq_chop_snoc _ hlast
   have hR : ∀ c₀, cnt c₀ (st.found c.suit)
       = cnt c₀ (chop (st.found c.suit)) + cnt c₀ [c] := by
     intro c₀

@@ -544,54 +544,6 @@ theorem pileHolding_inj {st : State} {c : Card} {a a' : Anchor}
   rw [h] at h'
   injection h' with h''
 
-/-! ## The lastOf mini-kit -/
-
-private theorem lastOf_mem : ∀ {l : List Card} {c : Card},
-    lastOf l = some c → c ∈ l := by
-  intro l
-  induction l with
-  | nil => intro c h; exact absurd h (by simp [lastOf])
-  | cons x t ih =>
-      intro c h
-      cases t with
-      | nil =>
-          have hx : some x = some c := h
-          injection hx with hxc
-          subst hxc
-          exact List.mem_cons.2 (Or.inl rfl)
-      | cons y t' =>
-          exact List.mem_cons.2 (Or.inr (ih h))
-
-private theorem lastOf_snoc : ∀ {front : List Card} {c : Card},
-    lastOf (front ++ [c]) = some c := by
-  intro front
-  induction front with
-  | nil => intro c; rfl
-  | cons x t ih =>
-      intro c
-      cases t with
-      | nil => rfl
-      | cons y t' => exact ih (c := c)
-
-private theorem lastOf_eq_snoc : ∀ {l : List Card} {c : Card},
-    lastOf l = some c → ∃ front, l = front ++ [c] := by
-  intro l
-  induction l with
-  | nil => intro c h; exact absurd h (by simp [lastOf])
-  | cons x t ih =>
-      intro c h
-      cases t with
-      | nil =>
-          have hx : some x = some c := h
-          injection hx with hxc
-          subst hxc
-          exact ⟨[], rfl⟩
-      | cons y t' =>
-          obtain ⟨front, hfe⟩ := ih h
-          refine ⟨x :: front, ?_⟩
-          show x :: (y :: t') = x :: (front ++ [c])
-          rw [hfe]
-
 namespace Pile
 
 /-- A pile's top is its face-up list's last element. -/

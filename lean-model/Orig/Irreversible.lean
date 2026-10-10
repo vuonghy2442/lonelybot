@@ -147,20 +147,6 @@ theorem foundTotal_mono {s s' : State}
 
 /-! ## List-end helpers -/
 
-/-- The last element of a snoc. -/
-theorem lastOf_snoc : ∀ (l : List Card) (c : Card), lastOf (l ++ [c]) = some c := by
-  intro l
-  induction l with
-  | nil => intro c; rfl
-  | cons x t ih =>
-      intro c
-      cases t with
-      | nil => rfl
-      | cons y t' =>
-          have h2 : lastOf ((x :: y :: t') ++ [c]) = lastOf ((y :: t') ++ [c]) := rfl
-          rw [h2]
-          exact ih c
-
 /-- Snoc drops only the snocced element under `chop`. -/
 theorem chop_snoc : ∀ (l : List Card) (c : Card), chop (l ++ [c]) = l := by
   intro l
@@ -1467,7 +1453,7 @@ theorem tabToFound_undo_under {st : State} {c : Card} {a : Anchor} {z : Card} {s
   have hft : s₁.foundTop c.suit = some c := by
     show lastOf (s₁.found c.suit) = some c
     rw [hs₁found]
-    exact lastOf_snoc _ c
+    exact lastOf_snoc
   have hcp : s₁.canPlace c (Sum.inr z) = true := by
     simp only [State.canPlace, hsearch]
     exact hsit
@@ -1567,7 +1553,7 @@ theorem tabToFound_undo_bare {st : State} {c : Card} {a : Anchor} {s₁ : State}
   have hft : s₁.foundTop c.suit = some c := by
     show lastOf (s₁.found c.suit) = some c
     rw [hs₁found]
-    exact lastOf_snoc _ c
+    exact lastOf_snoc
   have hface : (st.piles a).faceUp = [c] := by
     obtain ⟨-, hlastc⟩ := pileOfTop_top hpa
     have hc0 : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] := lastOf_chop hlastc

@@ -151,23 +151,6 @@ theorem aboveIn_subset_mem {t : Card} {l : List Card} {x : Card}
   have h' : x ∈ (fromCard t l).tail := h
   exact fromCard_subset_mem (tail_mem h')
 
-/-! ## lastOf kit -/
-private theorem lastOf_mem : ∀ {l : List Card} {x : Card},
-    lastOf l = some x → x ∈ l
-  | [], _, h => by simp [lastOf] at h
-  | [y], _, h => by
-      rw [lastOf] at h
-      cases h
-      exact List.mem_cons_self ..
-  | y :: z :: zs, _, h => by
-      rw [show lastOf (y :: z :: zs) = lastOf (z :: zs) from rfl] at h
-      exact List.mem_cons_of_mem _ (lastOf_mem h)
-private theorem lastOf_append_singleton : ∀ (l : List Card) (x : Card),
-    lastOf (l ++ [x]) = some x
-  | [], _ => rfl
-  | [_], _ => rfl
-  | _ :: z :: zs, x => lastOf_append_singleton (z :: zs) x
-
 /-! ## runOK kit -/
 theorem runOK_cons_cons (x y : Card) (t : List Card) :
     runOK (x :: y :: t) = (canSitOn y x && runOK (y :: t)) := rfl
@@ -1114,7 +1097,7 @@ private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
   -- searches and placements at st
   have htopb : st.topOf a' = some t.twin := by
     show lastOf ((st.piles a').faceUp) = some t.twin
-    rw [hfa', lastOf_append_singleton]
+    rw [hfa', lastOf_snoc]
   have hptb : st.pileOfTop t.twin = some a' :=
     (pileOfTop_eq_some_iff hwf).mpr htopb
   have hcp : st.canPlace z (Sum.inr t.twin) = true := by
@@ -1148,7 +1131,7 @@ private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
     · exact Anchor.mem_all a'
     · rw [setPile_topOf_ne (Ne.symm hne)]
       show lastOf ((st.piles a').faceUp) = some t.twin
-      rw [hfa', lastOf_append_singleton]
+      rw [hfa', lastOf_snoc]
     · intro j hj
       by_cases hja : j = a
       · exfalso
@@ -1158,7 +1141,7 @@ private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
             = some t.twin := hj
         rw [setPile_piles_self] at hjb
         have hjc : lastOf (below t ((st.piles a).faceUp) ++ [t]) = some t.twin := hjb
-        rw [lastOf_append_singleton] at hjc
+        rw [lastOf_snoc] at hjc
         exact Card.twin_ne t (Option.some.inj hjc).symm
       · by_cases hja' : j = a'
         · exact hja'
@@ -1240,7 +1223,7 @@ private theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
     show lastOf (((st.exchangeTwin t).piles a).faceUp) = some t
     rw [State.exchangeTwin_pile_self h₁ h₂ hne, hS']
     show lastOf (below t ((st.piles a).faceUp) ++ [t]) = some t
-    exact lastOf_append_singleton _ _
+    exact lastOf_snoc
   have hpta : (st.exchangeTwin t).pileOfTop t = some a :=
     (pileOfTop_eq_some_iff hwf').mpr htopa
   -- placement and searches at the exchanged state
@@ -1280,7 +1263,7 @@ private theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
       show lastOf ((st.exchangeTwin t).piles a).faceUp = some t
       rw [State.exchangeTwin_pile_self h₁ h₂ hne, hS']
       show lastOf (below t ((st.piles a).faceUp) ++ [t]) = some t
-      exact lastOf_append_singleton _ _
+      exact lastOf_snoc
     · intro j hj
       by_cases hja : j = a
       · exact hja
@@ -1293,7 +1276,7 @@ private theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
               = some t := hj
           rw [setPile_piles_self] at hjb
           have hjc : lastOf (below t.twin ((st.piles a').faceUp) ++ [t.twin]) = some t := hjb
-          rw [lastOf_append_singleton] at hjc
+          rw [lastOf_snoc] at hjc
           exact Card.twin_ne t (Option.some.inj hjc)
         · rw [setPile_topOf_ne hja'] at hj
           have hjb : ((st.exchangeTwin t).piles j).top = some t := hj

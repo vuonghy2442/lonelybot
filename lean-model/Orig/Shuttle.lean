@@ -81,18 +81,6 @@ private theorem firstWhere_find {p : Anchor → Bool} :
           exact ih hta hp (fun y hy hyne =>
             hfull y (List.mem_cons.2 (Or.inr hy)) hyne)
 
-/-- The last element of a snoc. -/
-private theorem lastOf_snoc : ∀ {front : List Card} {c : Card},
-    lastOf (front ++ [c]) = some c := by
-  intro front
-  induction front with
-  | nil => intro c; rfl
-  | cons x t ih =>
-      intro c
-      cases t with
-      | nil => rfl
-      | cons y t' => exact ih (c := c)
-
 /-- A nonempty list is a cons. -/
 private theorem list_cons_of_ne_nil {α : Type} :
     ∀ {l : List α}, l ≠ [] → ∃ x t, l = x :: t := by

@@ -58,6 +58,53 @@ def lastOf : List Card → Option Card
   | [c] => some c
   | _ :: c :: t => lastOf (c :: t)
 
+/-- The last element of a list belongs to it.  (The house `lastOf`
+kit — landed beside the def so the five former private copies across
+the exchange chapters cite one home; Reach's chop-flavored
+`lastOf_eq_chop_snoc` keeps its own name.) -/
+theorem lastOf_mem : ∀ {l : List Card} {c : Card},
+    lastOf l = some c → c ∈ l
+  | [], _, h => by simp [lastOf] at h
+  | [y], _, h => by
+      rw [lastOf] at h
+      cases h
+      exact List.mem_cons_self ..
+  | y :: z :: zs, _, h => by
+      rw [show lastOf (y :: z :: zs) = lastOf (z :: zs) from rfl] at h
+      exact List.mem_cons_of_mem _ (lastOf_mem h)
+
+/-- The last element of a snoc. -/
+theorem lastOf_snoc : ∀ {front : List Card} {c : Card},
+    lastOf (front ++ [c]) = some c := by
+  intro front
+  induction front with
+  | nil => intro c; rfl
+  | cons x t ih =>
+      intro c
+      cases t with
+      | nil => rfl
+      | cons y t' => exact ih (c := c)
+
+/-- A list with a last element is a snoc. -/
+theorem lastOf_eq_snoc : ∀ {l : List Card} {c : Card},
+    lastOf l = some c → ∃ front, l = front ++ [c] := by
+  intro l
+  induction l with
+  | nil => intro c h; exact absurd h (by simp [lastOf])
+  | cons x t ih =>
+      intro c h
+      cases t with
+      | nil =>
+          have hx : some x = some c := h
+          injection hx with hxc
+          subst hxc
+          exact ⟨[], rfl⟩
+      | cons y t' =>
+          obtain ⟨front, hfe⟩ := ih h
+          refine ⟨x :: front, ?_⟩
+          show x :: (y :: t') = x :: (front ++ [c])
+          rw [hfe]
+
 /-- A list without its last element. -/
 def chop : List Card → List Card
   | [] => []

@@ -830,24 +830,6 @@ private theorem same_rank_same_color {d u : Card}
   · refine Or.inr ?_
     simp only [Card.twin, hs, hr']
 
-/-- The last element of a list is in it.  (Dedup-marked against the
-private `lastOf` kits of `Orig/TwinExchange.lean` and `Orig/Reach.lean`.) -/
-private theorem lastOf_mem {x : Card} : ∀ {l : List Card}, lastOf l = some x → x ∈ l := by
-  intro l
-  induction l with
-  | nil => intro h; exact absurd h (by simp [lastOf])
-  | cons y ys ih =>
-      intro h
-      cases ys with
-      | nil =>
-          have hx : some y = some x := h
-          injection hx with hxy
-          subst hxy
-          exact List.mem_cons_self ..
-      | cons w ws =>
-          rw [show lastOf (y :: w :: ws) = lastOf (w :: ws) from rfl] at h
-          exact List.mem_cons_of_mem _ (ih h)
-
 /-- The two cargo fits put both cargos one rank under their seats;
 twin seats share the rank. -/
 theorem twin_fit_ranks {t z z' : Card}

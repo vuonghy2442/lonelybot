@@ -323,21 +323,6 @@ private theorem lastOf_cons_ne_none : ∀ (l : List Card), ∀ (x : Card),
       intro x h
       exact ih y h
 
-/-- The last element of a list belongs to it. -/
-private theorem lastOf_mem {l : List Card} {z : Card} (h : lastOf l = some z) :
-    z ∈ l := by
-  induction l with
-  | nil => simp [lastOf] at h
-  | cons x t ih =>
-      cases t with
-      | nil =>
-          have hx : some x = some z := h
-          injection hx with hzc
-          subst hzc
-          exact List.mem_cons.2 (Or.inl rfl)
-      | cons y t' =>
-          exact List.mem_cons.2 (Or.inr (ih h))
-
 /-- Every element of `chop` is an element. -/
 private theorem chop_mem {l : List Card} {x : Card} (h : x ∈ chop l) : x ∈ l := by
   induction l with
@@ -2422,7 +2407,7 @@ theorem foundToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
                         else st.piles k).top = some c
                     rw [ite_eq_left rfl]
                     show lastOf ((st.piles k).faceUp ++ [c]) = some c
-                    exact lastOf_snoc (st.piles k).faceUp c
+                    exact lastOf_snoc
                   exact topPin hothers htop2 hnost
                 exact not_reversibleAtW_of_irreversibleAt hirr
                   (foundToTab_undo hs hnext hsearch (Or.inr ⟨z, rfl, hz⟩))
@@ -2529,7 +2514,7 @@ theorem foundToTab_reversibleAtW_of_legal_wf {st : State} {c : Card} {b : Base}
               else st.piles k).top = some c
           rw [ite_eq_left rfl]
           show lastOf ((st.piles k).faceUp ++ [c]) = some c
-          exact lastOf_snoc (st.piles k).faceUp c
+          exact lastOf_snoc
         exact topPin hothers htop2 hnost
       exact foundToTab_undo hs hnext hsearch (Or.inr ⟨z, rfl, hz⟩)
 
