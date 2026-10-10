@@ -2205,8 +2205,7 @@ undo-ladder composes the return — so `⟦canon u⟧ = ⟦u⟧`: the
 canonical form is a DISTINGUISHED MEMBER of its macro class, not a
 commit-shifted descendant. -/
 theorem canon_in_class {u : State} (hwf : u.WF) : ⟦canon u⟧ = ⟦u⟧ :=
-  Quotient.sound (Or.inr (Or.inr (Or.inl (canon_class hwf))) :
-    sameOrbitSetoid.r (canon u) u)
+  Quotient.sound (canon_class hwf)
 
 /-- **The uniform fiber spine**: `WF` positions in one
 `sameOrbitSetoid` orbit have equal wrapped canons — "whatever proves
@@ -2499,14 +2498,12 @@ theorem canon_twinMap {u : State} (hwf : u.WF) :
   have h1 := canon_unique hwft (stackRun_twinMap hrun) (final_twinMap hfin) hrun₂ hfin₂
   exact h1.symm
 
-/-- **Twin conjugation lands inside the canon fiber**: the canonical
-form of the twin position class-matches the canonical form (the
-conjugation `canon_twinMap` plus the setoid's own twin disjunct). -/
-theorem sameMacro_twin {u : State} (hwf : u.WF) :
-    ⟦canon u⟧ = ⟦canon (State.twinMap u)⟧ := by
-  rw [canon_twinMap hwf]
-  exact Quotient.sound (show sameOrbitSetoid.r (canon u) (State.twinMap (canon u)) from
-    Or.inr (Or.inl rfl))
+/- RETIRED at the rev-closure decision (2026-10-10): the twin
+conjugation is no longer an identification inside the macro state.
+It survives as the AUTOMORPHISM: `canon_twinMap` (the function
+equation above) on the canonical forms, and `RevEqW_twin_pair` on
+the classes — conjugate positions sit in distinct macro classes
+with equal verdicts (`twin_fate`). -/
 
 /-! ## The draw zone under witness journeys (swComp)
 
@@ -2527,15 +2524,11 @@ def drawPool (st : State) : List Card := st.stock.reverse ++ st.waste
 
 /-- **The hypothesis-named draw-zone compatibility** (`swComp` in
 `FUTURES-ORIG.md` §3.0): the journey-necessary residue of a
-same-orbit journey — pools equal literally or through the twin
-relabeling, phase line agreeing.  Its strict witness refinement
-`SWRotW` below is the rotation closure the §3.0 family's `swRot`
-member takes as its hypothesis (the user's pending confirm;
-restating the relation re-points the family without touching the
-statements). -/
+same-orbit journey — pools equal literally, phase line agreeing
+(rev-closure form: the conjugate-pool disjunct retired with the
+twin identification — rev-journeys never relabel). -/
 def SWComp (u v : State) : Prop :=
-  (drawPool v = drawPool u ∨ drawPool v = (drawPool u).map Card.twin)
-    ∧ inPhase u = inPhase v
+  drawPool v = drawPool u ∧ inPhase u = inPhase v
 
 /-- A witness shuffle consisting only of draws. -/
 def DrawPlayW (u : State) (play : List Move) (v : State) : Prop :=
@@ -2994,34 +2987,13 @@ private theorem shuffleW_zone {x : State} (hd : 0 < x.drawStep) :
           exact shuffleW_leg hd hw₁ hsuc hrest fun hd' hrest' => ih hd' hrest'
 
 /-- **The journey-necessary draw-zone residue**: at a `WF` position,
-every same-orbit companion shares the pool (literally or through the
-twin relabeling) and the phase line. -/
+every same-orbit companion shares the pool and the phase line. -/
 theorem swComp_of_orbit {u v : State} (huwf : u.WF)
     (h : sameOrbitSetoid.r u v) : SWComp u v := by
   have hd : 0 < u.drawStep := huwf.2.2.2
-  have htw : ∀ (z : State), drawPool (State.twinMap z) = (drawPool z).map Card.twin :=
-    drawPool_twinMap
-  have hmaptwin : ∀ (l : List Card), (l.map Card.twin).map Card.twin = l := by
-    intro l
-    induction l with
-    | nil => rfl
-    | cons x t ih => rw [List.map_cons, List.map_cons, ih, Card.twin_twin x]
-  rcases h with rfl | htwin | hrev | hrevt
-  · exact ⟨Or.inl rfl, rfl⟩
-  · rw [htwin]
-    exact ⟨Or.inr (drawPool_twinMap u), (inPhase_twin_map u).symm⟩
-  · obtain ⟨σ, hσ, τ, hτ⟩ := hrev
-    obtain ⟨hp1, hp2, -⟩ := shuffleW_zone hd hτ
-    exact ⟨Or.inl hp1, hp2.symm⟩
-  · obtain ⟨σ, hσ, τ, hτ⟩ := hrevt
-    obtain ⟨hp1, hp2, -⟩ := shuffleW_zone hd hτ
-    have hp1' : (drawPool v).map Card.twin = drawPool u := by
-      rw [← htw v]
-      exact hp1
-    refine ⟨Or.inr ?_, ?_⟩
-    · rw [← hmaptwin (drawPool v), ← hp1']
-    · rw [(inPhase_twin_map v).symm]
-      exact hp2.symm
+  obtain ⟨σ, hσ, τ, hτ⟩ := h
+  obtain ⟨hp1, hp2, -⟩ := shuffleW_zone hd hτ
+  exact ⟨hp1, hp2.symm⟩
 
 /-! ## §3.0 CLAIM 2 — the macro class, characterized
 
@@ -3073,7 +3045,7 @@ theorem sameMacro_foundToTab {u v : State} {c : Card} {b : Base}
     (hstep : State.step u (Move.foundToTab c b) = some v)
     (hback : State.step v (Move.tabToFound c) = some u) :
     ⟦canon u⟧ = ⟦canon v⟧ :=
-  canonQ_of_orbit huwf hvwf (Or.inr (Or.inr (Or.inl (oneMoveRevEqW hback hstep))))
+  canonQ_of_orbit huwf hvwf (oneMoveRevEqW hback hstep)
 
 /-- **A quiet residue relocation preserves the wrapped canon** — THE
 LITERAL-DEMOtion member: the hypothesis is the reversible relocation
@@ -3089,7 +3061,7 @@ theorem sameMacro_tabToTab_quiet {u v : State} {c : Card} {b b' : Base}
     (hstep : State.step u (Move.tabToTab c b) = some v)
     (hback : State.step v (Move.tabToTab c b') = some u) :
     ⟦canon u⟧ = ⟦canon v⟧ :=
-  canonQ_of_orbit huwf hvwf (Or.inr (Or.inr (Or.inl (oneMoveRevEqW hback hstep))))
+  canonQ_of_orbit huwf hvwf (oneMoveRevEqW hback hstep)
 
 /-- **In-phase stock/waste rotations preserve the wrapped canon**
 through `SWRotW`: draws-only witness rounds are literal `RevEqW`
@@ -3102,8 +3074,7 @@ plays). -/
 theorem sameMacro_swRot {u v : State} (huwf : u.WF) (hvwf : v.WF)
     (hrot : SWRotW u v) : ⟦canon u⟧ = ⟦canon v⟧ := by
   obtain ⟨σ, τ, hσ, hτ⟩ := hrot
-  exact canonQ_of_orbit huwf hvwf
-    (Or.inr (Or.inr (Or.inl ⟨τ, hτ.1, σ, hσ.1⟩)))
+  exact canonQ_of_orbit huwf hvwf ⟨τ, hτ.1, σ, hσ.1⟩
 
 /-- **CLAIM 2, the characterization**: at `WF` positions, same
 macro class ⟺ equal wrapped canonical forms AND the
@@ -3379,11 +3350,11 @@ private theorem residue_reloc_exhibit :
   refine ⟨resU_wf, resV_wf, resForth, resBack, ?_, ?_, ?_, ?_, ?_⟩
   · decide
   · decide
-  · exact Quotient.sound (Or.inr (Or.inr (Or.inl (oneMoveRevEqW resBack resForth))))
+  · exact Quotient.sound (oneMoveRevEqW resBack resForth)
   · intro hc
     rw [show canon resU = resU from by decide, show canon resV = resV from by decide] at hc
     exact absurd hc (by decide)
-  · exact ⟨Or.inl rfl, rfl⟩
+  · exact ⟨rfl, rfl⟩
 
 end WitnessExhibits
 
@@ -3413,7 +3384,6 @@ bridge. -/
 #print axioms final_twinMap
 #print axioms stackRun_twinMap
 #print axioms canon_twinMap
-#print axioms sameMacro_twin
 #print axioms drawPool_twinMap
 #print axioms swComp_of_orbit
 #print axioms oneMoveRevEqW

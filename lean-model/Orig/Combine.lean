@@ -17,14 +17,17 @@ The combination chapter: the witness-form reversible quotient
 * `RevEqW` — positions joined by witness shuffles in both
   directions.  The verdict descends:
   `RevEqW_sameFate`.
-* `sameOrbitSetoid` — the join of the twin relabeling with
-  `RevEqW`.  Two positions are related when they are equal, twin,
-  `RevEqW`-related, or `RevEqW`-related through a twin.  All four
-  disjuncts are necessary: the twin of a `RevEqW`-class is again a
-  class, so a twin hop followed by a class hop composes back into a
-  plain `RevEqW` hop between source and target — a disjunct the
-  2-disjunct "equal or twin-class" shape drops, and that shape is
-  therefore not transitive.
+* `sameOrbitSetoid` — the macro state: the witness reversible
+  quotient itself (the REV-CLOSURE, user decision 2026-10-10).
+  Two positions are related exactly when a witness reversible
+  journey connects them in both directions.  The twin relabeling
+  is NOT an identification here: no play relabels a suit, so
+  conjugate positions sit in distinct classes, related by the
+  `RevEqW_twin_pair` AUTOMORPHISM — the class-world symmetry
+  kept as a verdict-preserving action (`twin_fate`), not folded
+  identity.  The local twin exchanges are already inside the
+  rev-closure: their licensed realization is a one-move
+  `tabToTab` each way.
 * The macro descent: `MacroStep_of_RevEqW`, `MacroWin_of_RevEqW` —
   a witness shuffle at the front rebases any window without
   touching its tip; the rebase slides only the start, so the inner
@@ -143,74 +146,19 @@ theorem RevEqW_twin_pair {s s' : State} (h : RevEqW s s') :
   exact ⟨σ.map Move.twinMove, ShufflePlayW_twin hσ,
     τ.map Move.twinMove, ShufflePlayW_twin hτ⟩
 
-/-! ## The twin-extended setoid -/
+/-! ## The macro-state setoid -/
 
-/-- The same-orbit setoid: the join of the twin relabeling
-(`Orig.twinSetoid`'s relation) with the witness reversible
-quotient.  Two positions are related when equal, twin,
-`RevEqW`-related, or `RevEqW`-related through a twin. -/
+/-- The same-orbit setoid: THE MACRO STATE — the witness reversible
+quotient (the rev-closure, user decision 2026-10-10).  Two
+positions are related exactly when witness reversible journeys
+run both ways.  The twin relabeling descends to an AUTOMORPHISM
+on the classes (`RevEqW_twin_pair`), not an identification: no
+play relabels a suit, so conjugate positions keep distinct macro
+states, matching verdicts through `twin_fate`. -/
 instance sameOrbitSetoid : Setoid State where
-  r a b := a = b ∨ b = a.twinMap ∨ RevEqW b a ∨ RevEqW b.twinMap a
-  iseqv := by
-    constructor
-    · intro a
-      exact Or.inl rfl
-    · rintro a b (h1 | h2 | h3 | h4)
-      · exact Or.inl h1.symm
-      · refine Or.inr (Or.inl ?_)
-        have hb := congrArg State.twinMap h2
-        rw [State.twinMap_twinMap a] at hb
-        exact hb.symm
-      · exact Or.inr (Or.inr (Or.inl (RevEqW_symm h3)))
-      · refine Or.inr (Or.inr (Or.inr ?_))
-        have h := RevEqW_twin_pair h4
-        rw [State.twinMap_twinMap b] at h
-        exact RevEqW_symm h
-    · rintro a b c (h1 | h2 | h3 | h4) (k1 | k2 | k3 | k4)
-      · exact Or.inl (h1.trans k1)
-      · subst h1
-        exact Or.inr (Or.inl k2)
-      · subst h1
-        exact Or.inr (Or.inr (Or.inl k3))
-      · subst h1
-        exact Or.inr (Or.inr (Or.inr k4))
-      · subst k1
-        exact Or.inr (Or.inl h2)
-      · subst h2
-        rw [State.twinMap_twinMap a] at k2
-        exact Or.inl k2.symm
-      · rw [h2] at k3
-        refine Or.inr (Or.inr (Or.inr ?_))
-        have h := RevEqW_twin_pair k3
-        rw [State.twinMap_twinMap a] at h
-        exact h
-      · rw [h2] at k4
-        refine Or.inr (Or.inr (Or.inl ?_))
-        have h := RevEqW_twin_pair k4
-        rw [State.twinMap_twinMap c, State.twinMap_twinMap a] at h
-        exact h
-      · subst k1
-        exact Or.inr (Or.inr (Or.inl h3))
-      · subst k2
-        refine Or.inr (Or.inr (Or.inr ?_))
-        rw [State.twinMap_twinMap b]
-        exact h3
-      · exact Or.inr (Or.inr (Or.inl (RevEqW_trans k3 h3)))
-      · exact Or.inr (Or.inr (Or.inr (RevEqW_trans k4 h3)))
-      · subst k1
-        exact Or.inr (Or.inr (Or.inr h4))
-      · subst k2
-        exact Or.inr (Or.inr (Or.inl h4))
-      · exact Or.inr (Or.inr (Or.inr (RevEqW_trans (RevEqW_twin_pair k3) h4)))
-      · refine Or.inr (Or.inr (Or.inl ?_))
-        have h5 : RevEqW c.twinMap a.twinMap :=
-          RevEqW_trans k4 (by
-            have h := RevEqW_twin_pair h4
-            rw [State.twinMap_twinMap b] at h
-            exact h)
-        have h6 := RevEqW_twin_pair h5
-        rw [State.twinMap_twinMap c, State.twinMap_twinMap a] at h6
-        exact h6
+  r a b := RevEqW b a
+  iseqv := ⟨fun a => RevEqW_refl a, fun h => RevEqW_symm h,
+    fun h k => RevEqW_trans k h⟩
 
 /-- Positions modulo the same-orbit relation. -/
 abbrev SameOrbit := Quotient sameOrbitSetoid
@@ -354,44 +302,18 @@ theorem MacroWin_twin {st w : State} (h : MacroWin st w) :
 /-- The orbit relation refines `sameFate`: every identification the
 setoid makes preserves the verdict. -/
 theorem sameFate_orbit {a b : State} (h : sameOrbitSetoid.r a b) :
-    sameFate a b := by
-  rcases h with rfl | h2 | h3 | h4
-  · exact Iff.rfl
-  · subst h2
-    exact twin_fate a
-  · exact (RevEqW_sameFate h3).symm
-  · exact (RevEqW_sameFate h4).symm.trans (twin_fate b).symm
+    sameFate a b := (RevEqW_sameFate h).symm
 
 /-- The macro verdict descends onto the orbit: a phased win exists
 at one member of the orbit iff it exists at the other. -/
 theorem MacroWin_sameFate_descend {a b : State} (h : sameOrbitSetoid.r a b) :
     (∃ w, MacroWin a w) ↔ (∃ w, MacroWin b w) := by
-  rcases h with rfl | h2 | h3 | h4
-  · exact Iff.rfl
-  · subst h2
-    constructor
-    · rintro ⟨w, hw⟩
-      exact ⟨w.twinMap, MacroWin_twin hw⟩
-    · rintro ⟨w, hw⟩
-      have h' := MacroWin_twin hw
-      rw [State.twinMap_twinMap a] at h'
-      exact ⟨_, h'⟩
-  · constructor
-    · rintro ⟨w, hw⟩
-      obtain ⟨σ, hσ, ν, hν⟩ := h3
-      exact ⟨w, MacroWin_of_RevEqW hw hσ⟩
-    · rintro ⟨w, hw⟩
-      obtain ⟨σ, hσ, ν, hν⟩ := h3
-      exact ⟨w, MacroWin_of_RevEqW hw hν⟩
-  · constructor
-    · rintro ⟨w, hw⟩
-      obtain ⟨σ, hσ, ν, hν⟩ := h4
-      have h' := MacroWin_twin (MacroWin_of_RevEqW hw hσ)
-      rw [State.twinMap_twinMap b] at h'
-      exact ⟨_, h'⟩
-    · rintro ⟨w, hw⟩
-      obtain ⟨σ, hσ, ν, hν⟩ := h4
-      exact ⟨_, MacroWin_of_RevEqW (MacroWin_twin hw) hν⟩
+  obtain ⟨σ, hσ, ν, hν⟩ := h
+  constructor
+  · rintro ⟨w, hw⟩
+    exact ⟨w, MacroWin_of_RevEqW hw hσ⟩
+  · rintro ⟨w, hw⟩
+    exact ⟨w, MacroWin_of_RevEqW hw hν⟩
 
 /-! ## The quotient lifts -/
 
