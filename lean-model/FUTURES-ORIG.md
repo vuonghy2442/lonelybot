@@ -1072,6 +1072,61 @@ same family:
   compliant-less corner for (C); a (B) square that is not an
   equality/sameCycle landing.
 
+**STATUS 2026-10-10 (the farm-orig-dom-c-normform session) — (C) IS A
+PROVEN SKELETON.**  `draw1_compliant_normalForm` left the stub list:
+the normal-form case split is `normform_aux`'s (strong induction on
+the washing play with the rung-cycle bundle `{WF, drawStep = 1,
+nextUp c, c in the stock or waste}` — the nil play and the lone
+worry die on the cycle's win blockade `inCycle_notisWin`; an exit
+head is compliant verbatim; a clean head transfers the bundle and
+recurses; the ADJACENT window `[foundToTab x b; tabToFound x]`
+cancels through `foundToTab_return` — the two-step worry-undo
+identity at WF, proven — recursing two moves shorter at the same
+state).  ONE named residue remains for the row:
+`draw1_worry_spread_residue` — the window-spread world (a c-suit
+worry-back followed by a non-restack), whose route note owns:
+
+- the **window accounting**: the win founds `c` so the restack exists
+  in the window — but LOCATING it needs the §12.1 first-passage
+  family, not yet ported to Orig (the recorded gap);
+- the **spread squares**: the `wasteToFound y` square is LANDED
+  (`foundToTab_wasteToFound_square`, composite-equal, its
+  `putCard_piles_eq_of_eq` twin-carrier channel the pattern-kernel
+  for the rest); `draw` reduces to the recycle-triple channel
+  (`draw_unfold` at both states plus the three `recycle` readers);
+  `wasteToTab`/`foundToTab` square only off the worry-created seat
+  (the storage family); `tabToFound y` order-locks at base `inr y`;
+  `tabToTab` corners when the run passes through `x`; worry-worry
+  pairs never square (the second reads the post-first top — LIFO);
+- the **storage prong**: name-cites (N)'s
+  `tabToFound_dominant_of_ground` as the bare-floor win-lift, with
+  the slack analysis recorded — the repair wants `safeToFound`-at-x
+  by slack one under the root's `hsafe`; the engine does NOT carry
+  safety (an other-suit worry-back on a clean prefix can spend the
+  slack), so the residue either re-derives the slack at the window
+  or earns a premise repair; (C)'s statement keeps `hsafe` at the
+  root for exactly this prong.
+- **Refute-first gate (this row's stub)**:
+  `witnesses/OrigSpreadCoReal.lean` — the residue's premises co-fire
+  at a crafted WF draw-1 state (hearts/clubs one king short, spades
+  and diamonds complete) with a spread-shaped WINNING play
+  (`[worry ♥Q onto ♣K, draw, restack, c-exit stack, ♣K raise]`), the
+  repair's positive instance (the compliant two-moves-shorter play)
+  and the adjacent-pair identity, all decide-anchored; no
+  countermodel was findable by the bounded corner probes (the
+  52-card full search is outside decide reach) — the premises'
+  honesty is what the witness pins.
+- **Audits**: `draw1_compliant_normalForm` = [propext, sorryAx (via
+  `draw1_worry_spread_residue` ONLY), Quot.sound];
+  `draw1_worry_spread_residue` = [propext, sorryAx].  (N) does not
+  taint (C) directly (route-level citation only): when (N) lands, the
+  storage prong's win-lift half closes by citation, and the residue
+  stays the only sorry between (C) and the Harvester until its own
+  squares and window accounting land.  Orig stub count: FOUR
+  unchanged in number — the (C) stub was replaced by the (C)
+  residue (routes moved in, not out); census stays Klondike-pinned
+  per FARM.md.
+
 ## 8-prior. The both-occupied harvest (2026-10-10 earlier, branch `macro-game`)
 
 **STATUS 2026-10-10 — THE BOTH-OCCUPIED MIRRORING ENGINE IS ON MAIN

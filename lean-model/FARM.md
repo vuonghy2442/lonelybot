@@ -19,7 +19,27 @@ three named residues in; the physical port landed in Orig as
 sorries are the census-pinned four: `tabToFound_dominant_of_ground`,
 `draw1_sameCycle_sameFate`, `draw1_compliant_replay`,
 `draw1_compliant_normalForm` — routes at their sites; §5.1's R-halves
-ride the LANDED `tabToFound_undo_under/_bare` and are PROVEN)**);
+ride the LANDED `tabToFound_undo_under/_bare` and are PROVEN.
+**+wave-24 (cont., same day, the farm-orig-dom-c-normform session)**:
+(C) left the sorry list — `draw1_compliant_normalForm` landed as a
+PROVEN SKELETON over the ONE new named residue
+`draw1_worry_spread_residue` (the window-spread world: a c-suit
+worry-back first, a non-restack second; route note owns the §12.1
+first-passage gap, the corner-shaped remaining squares, and the
+storage prong's (N) citation) plus proven privates: the
+`normform_aux` engine (nil/exit/clean/adjacent arms proven on
+`foundToTab_return`, the two-step worry undo, and
+`inCycle_notisWin` — the cycle's win blockade), the LANDED
+`foundToTab_wasteToFound_square` (the pattern-kernel square, over the
+`putCard_piles_eq_of_eq` twin-carrier channel), and the
+fires/keeper/draw-cycle fuel; the Orig sorries are still four — (N),
+(A), (B), and the (C) residue that replaced the (C) stub — all
+routed, all mapped; the
+wave-24 (C)-gate refute attempt and the premises' co-realizability
+live at `witnesses/OrigSpreadCoReal.lean` (the spread-shaped win and
+the repair's positive instance pinned); audit:
+`draw1_compliant_normalForm` = [propext, sorryAx (via the residue
+only), Quot.sound]; row hash `<hash>`));
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the
