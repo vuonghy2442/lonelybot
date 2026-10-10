@@ -1446,6 +1446,222 @@ theorem canonEdge_label_waste {C : State} {D : SameOrbit} (e : CanonEdge C D)
     exact waste_entry_spine e (cycleCount_step_wasteToTab hstep) hcE hpE hwu
       hstock hww hspot
 
+/-- The label-assembly spine of the reveal row: the cycle test dies at
+the conserved count, the hidden test fires, and the hidden-difference
+read is exactly the departing seat (its hidden dropped a card, every
+other seat's is verbatim). -/
+private theorem reveal_spine {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    (hcycC : cycleCount e.w = cycleCount C)
+    (hhC : ∀ a, (e.u.piles a).hidden = (C.piles a).hidden)
+    (hltH : hiddenTotal e.w + 1 ≤ hiddenTotal C)
+    {a : Anchor} (hdropA : (e.w.piles a).hidden.length + 1
+      = (e.u.piles a).hidden.length)
+    (hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.u.piles a').hidden) :
+    e.label = EdgeLabel.stackEvent a := by
+  show CanonLabel C e.w = EdgeLabel.stackEvent a
+  have hRead : hiddenDropperAnchor C e.w = some a := by
+    unfold hiddenDropperAnchor
+    refine firstWhere_find (p :=
+      fun a' => decide ((e.w.piles a').hidden.length < (C.piles a').hidden.length)) ?_ ?_ ?_
+    · exact Anchor.mem_all a
+    · exact decide_eq_true (by
+        have huCa := hhC a
+        have : (e.u.piles a).hidden.length ≤ (C.piles a).hidden.length := by
+          rw [huCa]
+          exact Nat.le_refl _
+        omega)
+    · intro y _ hne
+      by_cases hy : y = a
+      · exact absurd hy hne
+      · show decide ((e.w.piles y).hidden.length < (C.piles y).hidden.length) = false
+        rw [decide_eq_false]
+        intro hlt
+        rw [hElse y hy, ← hhC y] at hlt
+        exact Nat.lt_irrefl _ hlt
+  unfold CanonLabel
+  rw [hcycC, ite_eq_right (Nat.lt_irrefl (cycleCount C))]
+  rw [ite_eq_left (show hiddenTotal e.w < hiddenTotal C by omega)]
+  rw [hRead]
+
+/-- The cell predicates carry the move as a family index; this
+non-indexed restatement lets the row unpack a cell against a
+structure-field move. -/
+private theorem RevealCell_shape {u : State} {a : Anchor} {m : Move}
+    (h : RevealCellAt u a m) :
+    (∃ c, m = Move.tabToFound c ∧ u.pileOfTop c = some a ∧
+        chop (u.piles a).faceUp = [] ∧ (u.piles a).hidden ≠ []) ∨
+    (∃ c b, m = Move.tabToTab c b ∧ u.pileHolding c = some a ∧
+        below c (u.piles a).faceUp = [] ∧ (u.piles a).hidden ≠ []) := by
+  cases h with
+  | tabToFound hloc hpre hhne => exact Or.inl ⟨_, rfl, hloc, hpre, hhne⟩
+  | tabToTab hloc hpre hhne => exact Or.inr ⟨_, _, rfl, hloc, hpre, hhne⟩
+
+/-- **The reveal row**: an edge whose single commitment is a reveal
+(the run departing a pile carries the pile's whole face-up content
+over a nonempty hidden stack, so the automatic flip fires) is
+stackEvent-labeled at THE seat it departs — the cycle test dies (the
+tab move keeps the zone and the pad keeps the count), the hidden test
+fires (the hidden stack lost its head), and the hidden-difference read
+is exactly that seat: `afterRunRemoved_hidden`'s head-drop disjunct
+gives the one-card loss at the seat while every other seat's hidden
+survives verbatim (the move touches one seat's pile only). -/
+theorem canonEdge_label_reveal {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    {a : Anchor} (hcell : RevealCellAt e.u a e.m) :
+    e.label = EdgeLabel.stackEvent a := by
+  obtain ⟨hcE, -, hhE, -⟩ := pad_data e
+  rcases RevealCell_shape hcell with
+    ⟨c, heqm, hloc, hpre, hhne⟩ | ⟨c, b, heqm, hloc, hpre, hhne⟩
+  · -- tabToFound
+    have hstep : e.u.step (Move.tabToFound c) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨-, a', hloc', hsucc⟩ := step_tabToFound_inv hstep
+    have ha' : a = a' := Option.some.inj (hloc.symm.trans hloc')
+    subst ha'
+    have hWa : (e.w.piles a).hidden =
+        (Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)).hidden := by
+      rw [hsucc]
+      show (if a = a then
+          Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)
+          else e.u.piles a).hidden = _
+      rw [ite_eq_left rfl]
+    have hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.u.piles a').hidden := by
+      intro a' hne
+      rw [hsucc]
+      show (if a' = a then
+          Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)
+          else e.u.piles a').hidden = _
+      rw [ite_eq_right hne]
+    rw [hpre] at hWa
+    have hdropA : (e.w.piles a).hidden.length + 1
+        = (e.u.piles a).hidden.length := by
+      rw [hWa]
+      rcases afterRunRemoved_hidden (e.u.piles a) [] with ⟨he, -⟩ | ⟨-, he, -⟩ |
+        ⟨-, he, hdrop⟩
+      · exact absurd rfl he
+      · exact absurd he hhne
+      · exact hdrop
+    have hhz : e.w.stock = e.u.stock ∧ e.w.waste = e.u.waste := by
+      rw [hsucc]
+      exact ⟨rfl, rfl⟩
+    have hdrop' : hiddenTotal e.w + 1 ≤ hiddenTotal e.u := by
+      refine hiddenTotal_mono_lt (a := a) (fun a' => ?_) ?_
+      · by_cases hne : a' = a
+        · rw [hne]; omega
+        · rw [hElse a' hne]
+          exact Nat.le_refl _
+      · rw [hdropA]
+        omega
+    exact reveal_spine e (by
+      rw [cycleCount_eq_of_stock_waste hhz.1 hhz.2]
+      exact hcE) hhE (Nat.le_trans hdrop' (Nat.le_of_eq (hiddenTotal_congr hhE)))
+      hdropA hElse
+  · -- tabToTab
+    have hstep : e.u.step (Move.tabToTab c b) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨a₀, hh, hcp, hfr, hsucc⟩ := step_tabToTab_inv hstep
+    have ha₀ : a = a₀ := Option.some.inj (hloc.symm.trans hh)
+    subst ha₀
+    -- the tip's seat a holds c face-up (the run head is real)
+    have hmem : c ∈ (e.u.piles a).faceUp := pileHolding_mem hloc
+    -- the arrival hidden at the departing seat is the removal state's,
+    -- and it drops one card (the flip); every other seat's is verbatim
+    have hWa : (e.w.piles a).hidden =
+        (Pile.afterRunRemoved (e.u.piles a) (below c (e.u.piles a).faceUp)).hidden := by
+      cases b with
+      | inl k =>
+          obtain ⟨hemp, -⟩ := canPlace_inl hcp
+          have hka : k ≠ a := by
+            intro hcon
+            rw [hcon] at hemp
+            have hfe := ((Pile.isEmpty_eq _).mp hemp).2
+            rw [hfe] at hmem
+            exact absurd hmem (by simp)
+          rw [hsucc, putRun_inl_piles (fun hc => hka hc.symm)]
+          exact congrArg Pile.hidden setPile_piles_self
+      | inr z =>
+          cases hz : (e.u.setPile a
+              (Pile.afterRunRemoved (e.u.piles a)
+                (below c (e.u.piles a).faceUp))).pileOfTop z with
+          | none =>
+              rw [hsucc, putRun_inr_none hz]
+              exact congrArg Pile.hidden (setPile_piles_self)
+          | some k =>
+              have hpR : ((e.u.setPile a
+                    (Pile.afterRunRemoved (e.u.piles a)
+                      (below c (e.u.piles a).faceUp))).piles a).hidden
+                  = (Pile.afterRunRemoved (e.u.piles a)
+                    (below c (e.u.piles a).faceUp)).hidden :=
+                congrArg Pile.hidden setPile_piles_self
+              by_cases hka : k = a
+              · have hza : (e.u.setPile a
+                    (Pile.afterRunRemoved (e.u.piles a)
+                      (below c (e.u.piles a).faceUp))).pileOfTop z = some a := hka ▸ hz
+                rw [hsucc, putRun_inr_landing hza]
+                show ({ ((e.u.setPile a
+                    (Pile.afterRunRemoved (e.u.piles a)
+                      (below c (e.u.piles a).faceUp))).piles a) with
+                    faceUp := ((e.u.setPile a
+                    (Pile.afterRunRemoved (e.u.piles a)
+                      (below c (e.u.piles a).faceUp))).piles a).faceUp ++
+                      fromCard c (e.u.piles a).faceUp } : Pile).hidden = _
+                exact hpR
+              · rw [hsucc, putRun_inr_piles_ne hz (fun hc => hka hc.symm)]
+                exact congrArg Pile.hidden (setPile_piles_self)
+    have hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.u.piles a').hidden := by
+      intro a' hne
+      cases b with
+      | inl k =>
+          obtain ⟨hemp, -⟩ := canPlace_inl hcp
+          by_cases hk' : a' = k
+          · rw [hsucc, hk', putRun_inl_landing]
+            show ([] : List Card) = (e.u.piles k).hidden
+            exact (((Pile.isEmpty_eq _).mp hemp).1).symm
+          · rw [hsucc, putRun_inl_piles hk']
+            rw [setPile_piles_ne hne]
+      | inr z =>
+          cases hz : (e.u.setPile a
+              (Pile.afterRunRemoved (e.u.piles a)
+                (below c (e.u.piles a).faceUp))).pileOfTop z with
+          | none =>
+              rw [hsucc, putRun_inr_none hz]
+              rw [setPile_piles_ne hne]
+          | some k =>
+              by_cases hk' : a' = k
+              · rw [hsucc, hk', putRun_inr_landing hz]
+                show (((e.u.setPile a
+                    (Pile.afterRunRemoved (e.u.piles a)
+                      (below c (e.u.piles a).faceUp))).piles k).hidden) = _
+                exact congrArg Pile.hidden
+                  (setPile_piles_ne (fun hc => hne (by rw [hk']; exact hc)))
+              · rw [hsucc, putRun_inr_piles_ne hz hk']
+                rw [setPile_piles_ne hne]
+    rw [hpre] at hWa
+    have hdropA : (e.w.piles a).hidden.length + 1
+        = (e.u.piles a).hidden.length := by
+      rw [hWa]
+      rcases afterRunRemoved_hidden (e.u.piles a) [] with ⟨he, -⟩ | ⟨-, he, -⟩ |
+        ⟨-, he, hdrop⟩
+      · exact absurd rfl he
+      · exact absurd he hhne
+      · exact hdrop
+    have hhz : e.w.stock = e.u.stock ∧ e.w.waste = e.u.waste := by
+      rw [hsucc]
+      exact ⟨putRun_stock _ _ _, putRun_waste _ _ _⟩
+    have hdrop' : hiddenTotal e.w + 1 ≤ hiddenTotal e.u := by
+      refine hiddenTotal_mono_lt (a := a) (fun a' => ?_) ?_
+      · by_cases hne2 : a' = a
+        · rw [hne2]; omega
+        · rw [hElse a' hne2]
+          exact Nat.le_refl _
+      · rw [hdropA]
+        omega
+    exact reveal_spine e (by
+      rw [cycleCount_eq_of_stock_waste hhz.1 hhz.2]
+      exact hcE) hhE (Nat.le_trans hdrop' (Nat.le_of_eq (hiddenTotal_congr hhE)))
+      hdropA hElse
+
 
 /-- A both-empty draw zone cannot produce a draw: recycle is the identity
 and there is nothing to deal (citing the public Play readers). -/
@@ -1503,6 +1719,7 @@ theorem canonEdge_draw_shape {C : State} {D : SameOrbit} (e : CanonEdge C D)
 #print axioms edge_label_unique
 #print axioms canonEdge_label_draw
 #print axioms canonEdge_label_waste
+#print axioms canonEdge_label_reveal
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
