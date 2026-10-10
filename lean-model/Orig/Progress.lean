@@ -903,3 +903,260 @@ one draw-step digit — exactly `53 ^ 1041`. -/
 theorem stateSpaceBound_eq : State.stateSpaceBound = 53 ^ 1041 := by
   show (53 ^ 52) ^ 20 * 53 = 53 ^ 1040 * 53
   rw [← Nat.pow_mul, show 52 * 20 = 1040 from rfl, ← Nat.pow_succ]
+
+/-! ## The assembly (M4) -/
+
+/-- The false `Bool` is not the true one — the guard-branch
+contradiction. -/
+private theorem bool_false_ne_true : (false : Bool) ≠ true := by decide
+
+/-- All fifty-nine bases: the seven empty positions and the
+fifty-two pile-top cards. -/
+def Base.universe : List Base :=
+  Anchor.all.map Sum.inl ++ Card.universe.map Sum.inr
+
+theorem Base.mem_universe (b : Base) : b ∈ Base.universe := by
+  cases b with
+  | inl a =>
+      exact List.mem_append_left _
+        (List.mem_map_of_mem (Anchor.mem_all a))
+  | inr z =>
+      exact List.mem_append_right _
+        (List.mem_map_of_mem (Card.mem_universe z))
+
+/-- The draw family. -/
+private def drawAll : List Move := [Move.draw]
+
+/-- The waste-to-foundation family, one move per card. -/
+private def wasteToFoundAll : List Move :=
+  Card.universe.map (Move.wasteToFound ·)
+
+/-- The waste-to-tableau family, one move per card and base. -/
+private def wasteToTabAll : List Move :=
+  Card.universe.flatMap fun c => Base.universe.map fun b => Move.wasteToTab c b
+
+/-- The pile-top-to-foundation family, one move per card. -/
+private def tabToFoundAll : List Move :=
+  Card.universe.map (Move.tabToFound ·)
+
+/-- The foundation-to-tableau family, one move per card and base. -/
+private def foundToTabAll : List Move :=
+  Card.universe.flatMap fun c => Base.universe.map fun b => Move.foundToTab c b
+
+/-- The pile-to-pile run family, one move per card and base. -/
+private def tabToTabAll : List Move :=
+  Card.universe.flatMap fun c => Base.universe.map fun b => Move.tabToTab c b
+
+/-- Every physical move of the game, the DFS's fixed search list:
+the draw, then two fifty-two-card foundation families and three
+fifty-two-by-fifty-nine tableau families, nested so each family is
+addressed by a single `mem_append` step. -/
+def Move.all : List Move :=
+  drawAll ++ (wasteToFoundAll ++ (wasteToTabAll ++ (tabToFoundAll
+    ++ (foundToTabAll ++ tabToTabAll))))
+
+theorem Move.mem_all (m : Move) : m ∈ Move.all := by
+  cases m with
+  | draw =>
+      have h : Move.draw ∈ drawAll := List.mem_cons_self ..
+      show Move.draw ∈ drawAll ++ _
+      exact List.mem_append.mpr (Or.inl h)
+  | wasteToFound c =>
+      have h : Move.wasteToFound c ∈ wasteToFoundAll :=
+        List.mem_map_of_mem (Card.mem_universe c)
+      show Move.wasteToFound c ∈ drawAll ++ _
+      refine List.mem_append.mpr (Or.inr ?_)
+      exact List.mem_append.mpr (Or.inl h)
+  | wasteToTab c b =>
+      have h : Move.wasteToTab c b ∈ wasteToTabAll :=
+        List.mem_flatMap.mpr ⟨c, Card.mem_universe c,
+          List.mem_map_of_mem (Base.mem_universe b)⟩
+      show Move.wasteToTab c b ∈ drawAll ++ _
+      refine List.mem_append.mpr (Or.inr ?_)
+      refine List.mem_append.mpr (Or.inr ?_)
+      exact List.mem_append.mpr (Or.inl h)
+  | tabToFound c =>
+      have h : Move.tabToFound c ∈ tabToFoundAll :=
+        List.mem_map_of_mem (Card.mem_universe c)
+      show Move.tabToFound c ∈ drawAll ++ _
+      refine List.mem_append.mpr (Or.inr ?_)
+      refine List.mem_append.mpr (Or.inr ?_)
+      refine List.mem_append.mpr (Or.inr ?_)
+      exact List.mem_append.mpr (Or.inl h)
+  | foundToTab c b =>
+      have h : Move.foundToTab c b ∈ foundToTabAll :=
+        List.mem_flatMap.mpr ⟨c, Card.mem_universe c,
+          List.mem_map_of_mem (Base.mem_universe b)⟩
+      show Move.foundToTab c b ∈ drawAll ++ _
+      refine List.mem_append.mpr (Or.inr ?_)
+      refine List.mem_append.mpr (Or.inr ?_)
+      refine List.mem_append.mpr (Or.inr ?_)
+      refine List.mem_append.mpr (Or.inr ?_)
+      exact List.mem_append.mpr (Or.inl h)
+  | tabToTab c b =>
+      have h : Move.tabToTab c b ∈ tabToTabAll :=
+        List.mem_flatMap.mpr ⟨c, Card.mem_universe c,
+          List.mem_map_of_mem (Base.mem_universe b)⟩
+      show Move.tabToTab c b ∈ drawAll ++ _
+      refine List.mem_append.mpr (Or.inr ?_)
+      refine List.mem_append.mpr (Or.inr ?_)
+      refine List.mem_append.mpr (Or.inr ?_)
+      refine List.mem_append.mpr (Or.inr ?_)
+      exact List.mem_append.mpr (Or.inr h)
+
+/-- The bounded DFS: `true` iff a win exists within `k` more moves — a
+total, constructive search over `Move.all`.  The depth is a parameter,
+never evaluated at the astronomical bound: the proofs below only
+recurse on its structure. -/
+def canWinB (k : Nat) (st : State) : Bool :=
+  match k with
+  | 0 => st.isWin
+  | k' + 1 =>
+      st.isWin ||
+      Move.all.any fun m =>
+        match State.step st m with
+        | some s' => canWinB k' s'
+        | none => false
+
+/-- The right disjunct survives a false left one — an `rw` inside the
+big `Move.all`-laden type would send the motive through the whole
+search list, so the step goes through this small helper instead. -/
+private theorem or_false_right' {b c : Bool} (h : (b || c) = true)
+    (hb : b = false) : c = true := by
+  rw [hb] at h
+  exact h
+
+/-- The DFS is sound: a `true` is always witnessed by a real winning
+play. -/
+theorem canWinB_win : ∀ (k : Nat) (st : State), canWinB k st = true → WinFrom st := by
+  intro k
+  induction k with
+  | zero =>
+      intro st h
+      exact ⟨[], st, rfl, h⟩
+  | succ k ih =>
+      intro st h
+      have hrw : (st.isWin || (Move.all.any fun m =>
+          match State.step st m with
+          | some s' => canWinB k s'
+          | none => false)) = true := h
+      cases hiw : st.isWin with
+      | true =>
+          exact ⟨[], st, rfl, hiw⟩
+      | false =>
+          have hany : (Move.all.any (fun m =>
+              match State.step st m with
+              | some s' => canWinB k s'
+              | none => false)) = true :=
+            or_false_right' hrw hiw
+          obtain ⟨m, _hmem, hp⟩ := List.any_eq_true.mp hany
+          cases hstep : State.step st m with
+          | none =>
+              rw [hstep] at hp
+              exact absurd hp bool_false_ne_true
+          | some s' =>
+              rw [hstep] at hp
+              exact WinFrom_of_succ ⟨m, hstep⟩ (ih s' hp)
+
+/-- The DFS is complete: any win within the depth bound is found. -/
+theorem canWinB_of_win : ∀ (k : Nat) (st : State) (play : List Move) (w : State),
+    st.run play = some w → w.isWin = true → play.length ≤ k → canWinB k st = true := by
+  intro k
+  induction k with
+  | zero =>
+      intro st play w hrun hwin hlen
+      cases play with
+      | nil =>
+          have he : st = w := Option.some.inj hrun
+          subst he
+          exact hwin
+      | cons m ms =>
+          have hl : (m :: ms).length = ms.length + 1 := by rw [List.length_cons]
+          rw [hl] at hlen
+          exact absurd hlen (by omega)
+  | succ k ih =>
+      intro st play w hrun hwin hlen
+      cases play with
+      | nil =>
+          have he : st = w := Option.some.inj hrun
+          subst he
+          show (st.isWin || (Move.all.any (fun m =>
+              match State.step st m with
+              | some s' => canWinB k s'
+              | none => false))) = true
+          rw [hwin]
+          rfl
+      | cons m ms =>
+          have hl : (m :: ms).length = ms.length + 1 := by rw [List.length_cons]
+          rw [hl] at hlen
+          have hk : ms.length ≤ k := by omega
+          obtain ⟨s', hstep, hrest⟩ := State.run_cons hrun
+          have hp : (match State.step st m with
+              | some s' => canWinB k s'
+              | none => false) = true := by
+            rw [hstep]
+            exact ih s' ms w hrest hwin hk
+          have hany : (Move.all.any (fun m' =>
+              match State.step st m' with
+              | some s' => canWinB k s'
+              | none => false)) = true :=
+            List.any_eq_true.mpr ⟨m, Move.mem_all m, hp⟩
+          show (st.isWin || (Move.all.any (fun m' =>
+              match State.step st m' with
+              | some s' => canWinB k s'
+              | none => false))) = true
+          rw [hany]
+          exact Bool.or_true _
+
+/-- **The bounded-play assembly**: at a `WF` state with the honest
+digit premise, a win exists iff a winning play shorter than the state
+space exists — loop-cutting plus the encode.  The corpus's
+negative-verdict license: any exhaustive search need only look
+`stateSpaceBound`-deep. -/
+theorem boundedPlay {st : State} (hwf : st.WF) (hd : st.drawStep < 53) :
+    WinFrom st ↔ ∃ play w, st.run play = some w ∧ w.isWin = true ∧
+      play.length < State.stateSpaceBound := by
+  constructor
+  · intro hwin
+    obtain ⟨play, w, hrun, hwinw, hdist⟩ := win_iff_distinctTrace.mp hwin
+    exact ⟨play, w, hrun, hwinw, distinct_trace_bound hwf hd hrun hdist⟩
+  · intro hbound
+    obtain ⟨play, w, hrun, hwinw, -⟩ := hbound
+    exact ⟨play, w, hrun, hwinw⟩
+
+/-- **The verdict's constructive excluded middle**: at a `WF` state with
+the honest digit premise, the verdict is decidable in the coarse
+sense — a total bounded DFS `Bool` over the depth bound, split by
+`cases` on the answer: the em is data, not `Classical.em`.  The
+giant bound is never decided or evaluated; only its inductive
+structure recurses. -/
+theorem winFrom_em (st : State) (hwf : st.WF) (hd : st.drawStep < 53) :
+    WinFrom st ∨ ¬ WinFrom st := by
+  cases hdfs : canWinB State.stateSpaceBound st with
+  | true =>
+      exact Or.inl (canWinB_win _ _ hdfs)
+  | false =>
+      refine Or.inr (fun hwin => ?_)
+      obtain ⟨play, w, hrun, hwinw, hb⟩ := (boundedPlay hwf hd).mp hwin
+      have hseen := canWinB_of_win State.stateSpaceBound st play w hrun hwinw
+        (Nat.le_of_lt hb)
+      rw [hseen] at hdfs
+      exact bool_false_ne_true hdfs.symm
+
+/-! ## The reachability bridge
+
+Every dealt-and-played state is `WF` (`initialReachable_wf`, cited
+from `Orig.Reach`), so the whole spine applies there — the deal's
+draw step is the honest parameter premise. -/
+
+/-- The bounded-play iff at every initial-reachable state. -/
+theorem initialReachable_boundedPlay {st : State} (h : initialReachable st)
+    (hd : st.drawStep < 53) :
+    WinFrom st ↔ ∃ play w, st.run play = some w ∧ w.isWin = true ∧
+      play.length < State.stateSpaceBound :=
+  boundedPlay (initialReachable_wf h) hd
+
+/-- The verdict's excluded middle at every initial-reachable state. -/
+theorem initialReachable_em {st : State} (h : initialReachable st)
+    (hd : st.drawStep < 53) : WinFrom st ∨ ¬ WinFrom st :=
+  winFrom_em st (initialReachable_wf h) hd
