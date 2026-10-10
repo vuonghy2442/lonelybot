@@ -165,19 +165,35 @@ character re-land at the next two landings.  What stands:
   the lift's business, the label reads the classes), and
   `canonLabel_orbit_indep` (the lift pays it once: `labelOf_pair` is
   `rfl`, and the label of the pair never reads the member).
-* **in flight**: the four determination rows, the family
-  disjointness cells, and the pair-move character — they re-land at
-  the next two landings over unchanged anatomy (the faces of the
-  moves are read at the member exactly as they were read at the
-  padding tip; the datum-carry rides the lift; the character's
-  converse directions ride the rows).
-* **milestone status**: the member-form restatement is in flight —
-  the kernel, the scheme, and the label surface stand green above;
-  the edge-labeling theorem's full arc re-lands complete over the
-  next two landings (the rows, then the character).  The downstream
-  work (§3.1's count program: the transport bridge and the per-arm
-  enumeration) consumes this module from outside and is not part of
-  it.
+* **proved, green** (the rows, re-landed): the four determination rows —
+  `tipEdge_label_draw` (a draw-commit edge is draw-labeled — no datum
+  changes, all three reads degenerate), the waste determination row
+  `tipEdge_label_waste` (wasteEntry-labeled with exactly the popped
+  card — the cycle drops and the pool-difference read pins the head,
+  uniquely by the pool arithmetic), the reveal determination row
+  `tipEdge_label_reveal` (stackEvent-labeled at the departing seat —
+  the cycle conserved, the hidden total drops, the hidden-difference
+  read is the seat), and the vacate determination row
+  `tipEdge_label_vacate` (stackEvent-labeled at the freed seat — both
+  tests die at the conserved counts and the seat-difference read is
+  the seat) — through the one-line lens `label_read` (the membership
+  transports plus `labelOf_pair`; the datum-carry the old `pad_data`
+  performed rides it) with the anatomy otherwise unchanged (the faces
+  of the moves read at the member exactly as they were read at the
+  padding tip), and the four disjointness cells
+  (`tipEdge_label_draw_ne`/`_waste_ne`/`_reveal_ne`/`_vacate_ne`: the
+  label families stay exclusive on the commit — draw never
+  card-labeled, waste never draw/stack-labeled, and the stack family —
+  reveal or vacate, the recorded merge — never draw/waste-labeled).
+* **in flight**: the pair-move character (`pair_move_character` with
+  its switch form) — it re-lands at the next landing over the rows
+  and the cells above.
+* **milestone status**: the member-form restatement is one landing
+  from complete — the kernel, the scheme, the label surface, the rows,
+  and the cells stand green above; the character closes next.  The
+  downstream work (§3.1's count program: the transport bridge and the
+  per-arm enumeration) consumes this module from outside and is not
+  part of it.
 
 ## The vacate cell is a genuine fourth signature — the honest boundary
 
@@ -1527,12 +1543,62 @@ paid once inside `datumOf`.) -/
 theorem edge_label_unique {C D : SameOrbit}
     (e₁ e₂ : TipEdge C D) : e₁.label = e₂.label := rfl
 
-/-! ## The rows' working kit (state-grade)
+/-! ## The determination rows (one commit family at a time)
 
-The determination rows re-land at the next landing; their working
-kit — the cell shape lemmas, the vacate-recycling family, the
-commit-kind cells below — stayed put (state-grade, scheme-free,
-undisturbed by the flip). -/
+The rows, re-landed at the member grade: the lens `label_read` turns
+the class fingerprint into the state-grade anatomy (the memberships
+transport the datum reads; `labelOf_pair` closes on the state
+fingerprint underneath), and every row then runs the old anatomy at
+(e.c, e.w) — the faces of the moves read at the member exactly as
+they were read at the padding tip.  The spines sit between the rows
+as before, now state-grade (the kit the rows share with the
+vacate-recycling family and the commit-kind cells). -/
+
+/-- **The label-read lens**: the class fingerprint reads at the member
+pair — the memberships (hmem at the source, cl at the landing) become
+pre-formed datum-level transports, and `labelOf_pair` closes on the
+state-grade view underneath; the datum-carry the old padding
+performed per edge now rides the class machinery, once, here. -/
+private theorem label_read {C D : SameOrbit} (e : TipEdge C D) :
+    e.label = CanonLabel e.c e.w := by
+  show labelOf (datumOf C) (datumOf D) = _
+  have hC : datumOf C = datumOf ⟦e.c⟧ := by rw [e.hmem]
+  have hD : datumOf D = datumOf ⟦e.w⟧ := by rw [e.cl]
+  rw [hC, hD]
+  exact labelOf_pair e.c e.w
+
+/-- **The draw row**: an edge whose single commitment is a draw is
+draw-labeled — the draw moves stock to waste within one reservoir, so
+no datum changes across the pair: the cycle test fails (the landing
+reads the member's count), the hidden test fails (the landing reads
+the member's total), and the seat read finds no differing root (the
+landing reads the member's roots) — the fingerprint degenerates to
+`draw`. -/
+theorem tipEdge_label_draw {C D : SameOrbit} (e : TipEdge C D)
+    (hm : e.m = Move.draw) : e.label = EdgeLabel.draw := by
+  rw [label_read]
+  have hsD : e.c.stepDraw = some e.w := by
+    have h1 : e.c.step e.m = some e.w := e.land
+    rw [hm] at h1
+    exact h1
+  have hpiles : e.w.piles = e.c.piles := stepDraw_piles hsD
+  have hcyc : cycleCount e.w = cycleCount e.c := stepDraw_cycle hsD
+  have hHT : hiddenTotal e.w = hiddenTotal e.c :=
+    hiddenTotal_congr (fun a => congrArg Pile.hidden (congrFun hpiles a))
+  have hnz : ∀ a, nzRoot e.c a = nzRoot e.w a :=
+    fun a => (nzRoot_congr_pile (congrFun hpiles a)).symm
+  unfold CanonLabel
+  rw [hcyc, hHT]
+  rw [ite_eq_right (Nat.lt_irrefl (cycleCount e.c))]
+  rw [ite_eq_right (Nat.lt_irrefl (hiddenTotal e.c))]
+  have hnone : rootFreedAnchor e.c e.w = none := by
+    unfold rootFreedAnchor
+    refine firstWhere_none_of_forall (fun a => decide (nzRoot e.c a ≠ nzRoot e.w a))
+      (fun a _ => ?_)
+    by_cases hEq : nzRoot e.c a = nzRoot e.w a
+    · exact decide_eq_false (fun hne => hne hEq)
+    · exact absurd (hnz a) hEq
+  rw [hnone]
 
 /-- **The waste row anatomy, state-grade**: the cycle test fires (the
 waste head is gone from the conserved count) and the pool read pins
@@ -1594,8 +1660,58 @@ private theorem waste_entry_spine {x w : State}
   unfold CanonLabel
   rw [ite_eq_left hlt, hread]
 
-/- (The waste determination row re-lands with its three siblings at
-the next landing, over the kit above.) -/
+/-- **The waste row**: an edge whose single commitment hands `c` out of
+the waste is wasteEntry-labeled with THAT card — the cycle strictly
+drops across the pair, and the pool-difference read is exactly the
+popped card (uniquely pinned by the pool arithmetic in the spine
+above; the WF ports are the member's field and `TipEdge.landing_wf`). -/
+theorem tipEdge_label_waste {C D : SameOrbit} (e : TipEdge C D)
+    {c : Card} (hwm : WasteOf c e.m) :
+    e.label = EdgeLabel.wasteEntry c := by
+  rw [label_read]
+  rcases hwm with heqm | ⟨b, heqm⟩
+  · have hstep : e.c.step (Move.wasteToFound c) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨xs, hwu, hsucc⟩ := step_wasteToFound_inv hstep
+    have hstock : e.w.stock = e.c.stock := by
+      rw [hsucc]
+      exact setFound_stock e.c c.suit (e.c.found c.suit ++ [c])
+    have hww : e.w.waste = xs := by rw [hsucc]
+    have hfound : c ∈ e.w.found c.suit := by
+      rw [hsucc]
+      show c ∈ (if c.suit = c.suit then e.c.found c.suit ++ [c] else e.c.found c.suit)
+      rw [ite_eq_left rfl]
+      exact List.mem_append_right _ (by simp)
+    exact waste_entry_spine e.hwf (TipEdge.landing_wf e)
+      (cycleCount_step_wasteToFound hstep) hwu hstock hww
+      (Or.inl ⟨c.suit, hfound⟩)
+  · have hstep : e.c.step (Move.wasteToTab c b) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨hcp, xs, hwu, hsucc⟩ := step_wasteToTab_inv hstep
+    have hstock : e.w.stock = e.c.stock := by
+      rw [hsucc]
+      exact putCard_stock e.c c b
+    have hww : e.w.waste = xs := by rw [hsucc]
+    have hspot : (∃ s, c ∈ e.w.found s) ∨ (∃ a, c ∈ (e.w.piles a).faceUp) := by
+      cases b with
+      | inl a₀ =>
+          refine Or.inr ⟨a₀, ?_⟩
+          rw [hsucc]
+          show c ∈ ((e.c.putCard c (Sum.inl a₀)).piles a₀).faceUp
+          rw [putCard_inl_landing]
+          exact by simp
+      | inr z =>
+          obtain ⟨k, hz, -⟩ := canPlace_inr hcp
+          refine Or.inr ⟨k, ?_⟩
+          rw [hsucc]
+          show c ∈ ((e.c.putCard c (Sum.inr z)).piles k).faceUp
+          rw [putCard_inr_landing hz]
+          show c ∈ (e.c.piles k).faceUp ++ [c]
+          exact List.mem_append_right _ (by simp)
+    exact waste_entry_spine e.hwf (TipEdge.landing_wf e)
+      (cycleCount_step_wasteToTab hstep) hwu hstock hww hspot
 
 /-- The label-assembly spine of the reveal row, state-grade: the cycle
 test dies at the conserved count, the hidden test fires, and the
@@ -1640,8 +1756,168 @@ private theorem RevealCell_shape {u : State} {a : Anchor} {m : Move}
   | tabToFound hloc hpre hhne => exact Or.inl ⟨_, rfl, hloc, hpre, hhne⟩
   | tabToTab hloc hpre hhne => exact Or.inr ⟨_, _, rfl, hloc, hpre, hhne⟩
 
-/- (The reveal determination row re-lands with its siblings at
-the next landing, over the kit above.) -/
+/-- **The reveal row**: an edge whose single commitment is a reveal
+(the run departing a pile carries the pile's whole face-up content
+over a nonempty hidden stack, so the automatic flip fires) is
+stackEvent-labeled at THE seat it departs — the cycle test dies (the
+tab move keeps the zone, so the landing reads the member's count),
+the hidden test fires (the hidden stack lost its head), and the
+hidden-difference read is exactly that seat:
+`afterRunRemoved_hidden`'s head-drop disjunct gives the one-card loss
+at the seat while every other seat's hidden survives verbatim (the
+move touches one seat's pile only). -/
+theorem tipEdge_label_reveal {C D : SameOrbit} (e : TipEdge C D)
+    {a : Anchor} (hcell : RevealCellAt e.c a e.m) :
+    e.label = EdgeLabel.stackEvent a := by
+  rw [label_read]
+  rcases RevealCell_shape hcell with
+    ⟨c, heqm, hloc, hpre, hhne⟩ | ⟨c, b, heqm, hloc, hpre, hhne⟩
+  · -- tabToFound
+    have hstep : e.c.step (Move.tabToFound c) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨-, a', hloc', hsucc⟩ := step_tabToFound_inv hstep
+    have ha' : a = a' := Option.some.inj (hloc.symm.trans hloc')
+    subst ha'
+    have hWa : (e.w.piles a).hidden =
+        (Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)).hidden := by
+      rw [hsucc]
+      show (if a = a then
+          Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)
+          else e.c.piles a).hidden = _
+      rw [ite_eq_left rfl]
+    have hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.c.piles a').hidden := by
+      intro a' hne
+      rw [hsucc]
+      show (if a' = a then
+          Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)
+          else e.c.piles a').hidden = _
+      rw [ite_eq_right hne]
+    rw [hpre] at hWa
+    have hdropA : (e.w.piles a).hidden.length + 1
+        = (e.c.piles a).hidden.length := by
+      rw [hWa]
+      rcases afterRunRemoved_hidden (e.c.piles a) [] with ⟨he, -⟩ | ⟨-, he, -⟩ |
+        ⟨-, he, hdrop⟩
+      · exact absurd rfl he
+      · exact absurd he hhne
+      · exact hdrop
+    have hhz : e.w.stock = e.c.stock ∧ e.w.waste = e.c.waste := by
+      rw [hsucc]
+      exact ⟨rfl, rfl⟩
+    have hdrop' : hiddenTotal e.w + 1 ≤ hiddenTotal e.c := by
+      refine hiddenTotal_mono_lt (a := a) (fun a' => ?_) ?_
+      · by_cases hne : a' = a
+        · rw [hne]; omega
+        · rw [hElse a' hne]
+          exact Nat.le_refl _
+      · rw [hdropA]
+        omega
+    exact reveal_spine (cycleCount_eq_of_stock_waste hhz.1 hhz.2)
+      hdrop' hdropA hElse
+  · -- tabToTab
+    have hstep : e.c.step (Move.tabToTab c b) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨a₀, hh, hcp, hfr, hsucc⟩ := step_tabToTab_inv hstep
+    have ha₀ : a = a₀ := Option.some.inj (hloc.symm.trans hh)
+    subst ha₀
+    -- the member's seat a holds c face-up (the run head is real)
+    have hmem : c ∈ (e.c.piles a).faceUp := pileHolding_mem hloc
+    -- the arrival hidden at the departing seat is the removal state's,
+    -- and it drops one card (the flip); every other seat's is verbatim
+    have hWa : (e.w.piles a).hidden =
+        (Pile.afterRunRemoved (e.c.piles a) (below c (e.c.piles a).faceUp)).hidden := by
+      cases b with
+      | inl k =>
+          obtain ⟨hemp, -⟩ := canPlace_inl hcp
+          have hka : k ≠ a := by
+            intro hcon
+            rw [hcon] at hemp
+            have hfe := ((Pile.isEmpty_eq _).mp hemp).2
+            rw [hfe] at hmem
+            exact absurd hmem (by simp)
+          rw [hsucc, putRun_inl_piles (fun hc => hka hc.symm)]
+          exact congrArg Pile.hidden setPile_piles_self
+      | inr z =>
+          cases hz : (e.c.setPile a
+              (Pile.afterRunRemoved (e.c.piles a)
+                (below c (e.c.piles a).faceUp))).pileOfTop z with
+          | none =>
+              rw [hsucc, putRun_inr_none hz]
+              exact congrArg Pile.hidden (setPile_piles_self)
+          | some k =>
+              have hpR : ((e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).piles a).hidden
+                  = (Pile.afterRunRemoved (e.c.piles a)
+                    (below c (e.c.piles a).faceUp)).hidden :=
+                congrArg Pile.hidden setPile_piles_self
+              by_cases hka : k = a
+              · have hza : (e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).pileOfTop z = some a := hka ▸ hz
+                rw [hsucc, putRun_inr_landing hza]
+                show ({ ((e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).piles a) with
+                    faceUp := ((e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).piles a).faceUp ++
+                      fromCard c (e.c.piles a).faceUp } : Pile).hidden = _
+                exact hpR
+              · rw [hsucc, putRun_inr_piles_ne hz (fun hc => hka hc.symm)]
+                exact congrArg Pile.hidden (setPile_piles_self)
+    have hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.c.piles a').hidden := by
+      intro a' hne
+      cases b with
+      | inl k =>
+          obtain ⟨hemp, -⟩ := canPlace_inl hcp
+          by_cases hk' : a' = k
+          · rw [hsucc, hk', putRun_inl_landing]
+            show ([] : List Card) = (e.c.piles k).hidden
+            exact (((Pile.isEmpty_eq _).mp hemp).1).symm
+          · rw [hsucc, putRun_inl_piles hk']
+            rw [setPile_piles_ne hne]
+      | inr z =>
+          cases hz : (e.c.setPile a
+              (Pile.afterRunRemoved (e.c.piles a)
+                (below c (e.c.piles a).faceUp))).pileOfTop z with
+          | none =>
+              rw [hsucc, putRun_inr_none hz]
+              rw [setPile_piles_ne hne]
+          | some k =>
+              by_cases hk' : a' = k
+              · rw [hsucc, hk', putRun_inr_landing hz]
+                show (((e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).piles k).hidden) = _
+                exact congrArg Pile.hidden
+                  (setPile_piles_ne (fun hc => hne (by rw [hk']; exact hc)))
+              · rw [hsucc, putRun_inr_piles_ne hz hk']
+                rw [setPile_piles_ne hne]
+    rw [hpre] at hWa
+    have hdropA : (e.w.piles a).hidden.length + 1
+        = (e.c.piles a).hidden.length := by
+      rw [hWa]
+      rcases afterRunRemoved_hidden (e.c.piles a) [] with ⟨he, -⟩ | ⟨-, he, -⟩ |
+        ⟨-, he, hdrop⟩
+      · exact absurd rfl he
+      · exact absurd he hhne
+      · exact hdrop
+    have hhz : e.w.stock = e.c.stock ∧ e.w.waste = e.c.waste := by
+      rw [hsucc]
+      exact ⟨putRun_stock _ _ _, putRun_waste _ _ _⟩
+    have hdrop' : hiddenTotal e.w + 1 ≤ hiddenTotal e.c := by
+      refine hiddenTotal_mono_lt (a := a) (fun a' => ?_) ?_
+      · by_cases hne2 : a' = a
+        · rw [hne2]; omega
+        · rw [hElse a' hne2]
+          exact Nat.le_refl _
+      · rw [hdropA]
+        omega
+    exact reveal_spine (cycleCount_eq_of_stock_waste hhz.1 hhz.2)
+      hdrop' hdropA hElse
 
 
 /-- The vacate cell predicates carry the move as a family index; this
@@ -1818,8 +2094,100 @@ private theorem vacate_inr_root_keep {st : State} {a : Anchor} {c : Card}
           rw [hsucc, putRun_inr_piles_ne hz hk', setPile_piles_ne hne]
         exact (nzRoot_congr_pile hPu).symm
 
-/- (The vacate determination row re-lands with its siblings at
-the next landing, over the kit above.) -/
+/-- **The vacate row**: an edge whose single commitment is a bare
+non-king departure from a hidden-free seat is stackEvent-labeled at
+THE seat it frees — the cycle and hidden tests both die (the move
+keeps the draw zone and every hidden list), and the seat-difference
+read is exactly that seat: its non-king root departs (the seat's
+face-up content — the mover at its head — leaves the pile bare), while
+every other seat's root survives (the tabToTab landing can only sit
+on an empty pile at the king guard — dead for a non-king mover — or
+on a located nonempty pile whose head outlives the appended run). -/
+theorem tipEdge_label_vacate {C D : SameOrbit} (e : TipEdge C D)
+    {a : Anchor} (hcell : VacateCellAt e.c a e.m) :
+    e.label = EdgeLabel.stackEvent a := by
+  rw [label_read]
+  rcases VacateCell_shape hcell with
+    ⟨c, heqm, hloc, hpre, hhd, hnk⟩ | ⟨c, b, heqm, hloc, hpre, hhd, hnk⟩
+  · -- tabToFound: the raise leaves the seat bare
+    have hstep : e.c.step (Move.tabToFound c) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨-, a', hloc', hsucc⟩ := step_tabToFound_inv hstep
+    have ha' : a = a' := Option.some.inj (hloc.symm.trans hloc')
+    subst ha'
+    obtain ⟨-, hlast⟩ := pileOfTop_top hloc
+    have hfeq : (e.c.piles a).faceUp
+        = chop (e.c.piles a).faceUp ++ [c] := lastOf_chop hlast
+    rw [hpre, List.nil_append] at hfeq
+    have hfaceUp : (e.c.piles a).faceUp = [c] := hfeq
+    have hWa : (e.w.piles a) = ⟨[], ([] : List Card)⟩ := by
+      rw [hsucc]
+      show (if a = a then
+          Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)
+          else e.c.piles a) = _
+      rw [ite_eq_left rfl, hpre]
+      exact afterRunRemoved_bare_empty hhd
+    have hElseP : ∀ a', a' ≠ a → (e.w.piles a') = (e.c.piles a') := by
+      intro a' hne
+      rw [hsucc]
+      show (if a' = a then
+          Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)
+          else e.c.piles a') = _
+      rw [ite_eq_right hne]
+    have hnh : ∀ a', (e.w.piles a').hidden = (e.c.piles a').hidden := by
+      intro a'
+      by_cases hne : a' = a
+      · rw [hne, hWa]
+        exact hhd.symm
+      · exact congrArg Pile.hidden (hElseP a' hne)
+    have hhz : e.w.stock = e.c.stock ∧ e.w.waste = e.c.waste := by
+      rw [hsucc]
+      exact ⟨rfl, rfl⟩
+    have huRoot : nzRoot e.c a = some c := by
+      rw [nzRoot_head hfaceUp, ite_eq_right hnk]
+    have hWaF : (e.w.piles a).faceUp = [] := congrArg Pile.faceUp hWa
+    have hwRootNone : nzRoot e.w a = none := nzRoot_nil hWaF
+    refine vacate_spine (cycleCount_eq_of_stock_waste hhz.1 hhz.2)
+      (hiddenTotal_congr hnh) ?_ ?_
+    · rw [huRoot, hwRootNone]
+      exact Option.some_ne_none c
+    · intro a' hne
+      rw [nzRoot_congr_pile (hElseP a' hne)]
+  · -- tabToTab: the empty-seat landing dies at the king guard
+    obtain ⟨a₂, hh, hcp, hfr, hsucc⟩ := step_tabToTab_inv (by
+      rw [← heqm]
+      exact e.land)
+    have ha₂ : a = a₂ := Option.some.inj (hloc.symm.trans hh)
+    subst ha₂
+    have hmem : c ∈ (e.c.piles a).faceUp := pileHolding_mem hloc
+    cases hbc : (e.c.piles a).faceUp with
+    | nil =>
+        rw [hbc] at hmem
+        exact absurd hmem (by simp)
+    | cons g t =>
+        have hgc : c = g := (head_eq_of_below_nil (by rw [← hbc]; exact hpre)).symm
+        subst hgc
+        have huRoot : nzRoot e.c a = some c := by
+          rw [nzRoot_head hbc, ite_eq_right hnk]
+        have hcycC : cycleCount e.w = cycleCount e.c := by
+          refine cycleCount_eq_of_stock_waste ?_ ?_
+          · rw [hsucc]
+            exact putRun_stock _ _ _
+          · rw [hsucc]
+            exact putRun_waste _ _ _
+        cases b with
+        | inl k =>
+            obtain ⟨-, hkng⟩ := canPlace_inl hcp
+            exact absurd hkng hnk
+        | inr z =>
+            refine vacate_spine hcycC
+              (hiddenTotal_congr (vacate_inr_hidden hsucc hpre hhd)) ?_ ?_
+            · rw [huRoot, vacate_inr_root_none hsucc hpre hhd]
+              exact Option.some_ne_none c
+            · intro a' hne'
+              rw [vacate_inr_root_keep hsucc a' hne']
+
 /-! ## The commit-kind cells (the character's working kit, state-grade) -/
 
 /-- The commit-kind shape for a `.tabToFound` tip: legality locates the
@@ -1883,9 +2251,77 @@ private theorem tabToTab_commit_cell {st : State} {c : Card} {b : Base} {w : Sta
               hIrr).elim
           · exact Or.inr (VacateCellAt.tabToTab hh hb hhid hking)
 
-/- (The four family disjointness cells and the pair-move character
-re-land at the next two landings: the cells over the rows, the
-character over the cells.  The commit-kind cells above stay.) -/
+/-! ## The family disjointness cells -/
+
+/-- **The draw disjointness cell**: a draw-commit edge is never
+card-labeled — the determination row reads the pair as `draw`, and the
+constructor disjointness of the label alphabet keeps the card-carrying
+families (waste entries, stack events) out of reach: the landing read
+all four datums verbatim, so neither card-carrying read fires. -/
+theorem tipEdge_label_draw_ne {C D : SameOrbit} (e : TipEdge C D)
+    (hm : e.m = Move.draw) :
+    (∀ c, e.label ≠ EdgeLabel.wasteEntry c) ∧
+    (∀ a, e.label ≠ EdgeLabel.stackEvent a) := by
+  have hL : e.label = EdgeLabel.draw := tipEdge_label_draw e hm
+  constructor
+  · intro c hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+  · intro a hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+
+/-- **The waste disjointness cell**: a waste-commit edge is never
+draw-labeled nor stack-labeled — the row reads the pair as the waste
+entry `wasteEntry c`, and the cycle test that fires for the waste exit
+dies for the draw (the draw conserves the draw zone) and for the stack
+family (whose rows ride the conserved count). -/
+theorem tipEdge_label_waste_ne {C D : SameOrbit} (e : TipEdge C D)
+    {c : Card} (hw : WasteOf c e.m) :
+    e.label ≠ EdgeLabel.draw ∧ (∀ a, e.label ≠ EdgeLabel.stackEvent a) := by
+  have hL : e.label = EdgeLabel.wasteEntry c := tipEdge_label_waste e hw
+  constructor
+  · intro hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+  · intro a hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+
+/-- **The reveal disjointness cell**: a reveal-commit edge is never
+draw-labeled nor waste-labeled — the row reads the pair as the stack
+event at the departing seat. -/
+theorem tipEdge_label_reveal_ne {C D : SameOrbit} (e : TipEdge C D)
+    {a : Anchor} (hcell : RevealCellAt e.c a e.m) :
+    e.label ≠ EdgeLabel.draw ∧ (∀ c, e.label ≠ EdgeLabel.wasteEntry c) := by
+  have hL : e.label = EdgeLabel.stackEvent a := tipEdge_label_reveal e hcell
+  constructor
+  · intro hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+  · intro c hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+
+/-- **The vacate disjointness cell**: same shape as the reveal's — the
+two sub-cells share the `stackEvent` constructor by the recorded merge
+(the degenerate no-reveal case of the reveal family), so what the
+label alphabet separates here is the stack family from draw and
+waste, never reveal-from-vacate. -/
+theorem tipEdge_label_vacate_ne {C D : SameOrbit} (e : TipEdge C D)
+    {a : Anchor} (hcell : VacateCellAt e.c a e.m) :
+    e.label ≠ EdgeLabel.draw ∧ (∀ c, e.label ≠ EdgeLabel.wasteEntry c) := by
+  have hL : e.label = EdgeLabel.stackEvent a := tipEdge_label_vacate e hcell
+  constructor
+  · intro hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+  · intro c hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+
+/- (The pair-move character and its switch form re-land at the next
+landing, over the rows and the cells above.) -/
 
 /-! ## The axiom audit (per-declaration) -/
 
@@ -1909,6 +2345,14 @@ character over the cells.  The commit-kind cells above stay.) -/
 #print axioms labelOf_pair
 #print axioms TipEdge.label
 #print axioms edge_label_unique
+#print axioms tipEdge_label_draw
+#print axioms tipEdge_label_waste
+#print axioms tipEdge_label_reveal
+#print axioms tipEdge_label_vacate
+#print axioms tipEdge_label_draw_ne
+#print axioms tipEdge_label_waste_ne
+#print axioms tipEdge_label_reveal_ne
+#print axioms tipEdge_label_vacate_ne
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
