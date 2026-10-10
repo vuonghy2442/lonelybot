@@ -303,11 +303,36 @@ arithmetic from the mirroring engine's kill family is the
 prototype).  THE HONEST BOUNDARY: the old three-live-successors
 ghost is re-hunted in the CANONICAL-PROFILE language — a profile
 witnessing a third class bounds the theorem; none found — the
-count.  ASSEMBLY MILESTONES: transport bridge (absorbs the kit) →
+ count.  ASSEMBLY MILESTONES: transport bridge (absorbs the kit) →
 profile lemmas (obstruction inventory, in-class clearing,
 hands-from-draw-pool) → per-arm enumeration (raise/direct/
 obstructed cells, the worry 2×2 mechanized) → the two-class count →
 the boundary note.
+
+**ARM-TYPING REFINEMENT (user, 2026-10-10, the case table's rows):**
+the commit families sort by BRANCH STRUCTURE, not by irreversibility
+cause.  UNIQUE-SUCCESSOR ARMS — committal draws (deterministic,
+no parameter — misaligned draws commit with exactly one successor,
+in-phase draws class-invisible: "not the issue"), wasteToFound (c
+pinned = waste top), tabToFound per firing — each contributes
+count-1 trivially; cite and move on.  BASE-CHOICE ARMS —
+wasteToTab c b and tabToTab c b — the ONLY cells needing the
+accommodation analysis (twin-pair hosts, worry lattice, obstruction
+inventory: the analysis-bearing surface is TWO move-kinds, not
+six).  THE FOURTH FAMILY (user's own seat-physics rows, 2026-10-10
+refinement of the tri-taxonomy): the BARE-NON-KING VACATE — a
+committed tabToTab of a dealt bare non-king off its anchor commits
+by seat physics alone (no reveal, no waste, no draw); in
+canonical-profile terms these are exactly the obstruction-inventory
+"bare non-king on an anchor" entries (deal-only sources — no move
+seats a non-king bare; one-way doors), same twin-pair base choice,
+distinctive successor signature: a FREED KING-SEAT (new landing
+capacity).  PRECISION LOCK (the two-option-card lesson): the ≤2
+claim is PER-MOVE — one fixed m across the class's m-legal tips
+visits at most two successor classes; the across-moves multiplicity
+at a single tip (several available reveals + vacates + waste
+placements) is NOT bounded by 2 and needs no bound — a phase
+commits one move and the theorem prices each choice.
 
 ```lean
 theorem apply_two_macroOutcomes {t₁ t₂ t₃ : State} {m : Move} {s₁ s₂ s₃ : State}
