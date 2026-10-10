@@ -330,9 +330,27 @@ distinctive successor signature: a FREED KING-SEAT (new landing
 capacity).  PRECISION LOCK (the two-option-card lesson): the ≤2
 claim is PER-MOVE — one fixed m across the class's m-legal tips
 visits at most two successor classes; the across-moves multiplicity
-at a single tip (several available reveals + vacates + waste
-placements) is NOT bounded by 2 and needs no bound — a phase
+ at a single tip (several available reveals + vacates + waste
+ placements) is NOT bounded by 2 and needs no bound — a phase
 commits one move and the theorem prices each choice.
+
+**THE RESERVOIR-TRANSIT UNIFICATION (user, 2026-10-10):**
+wasteToTab and the tabToTab-reveal are the SAME ANALYSIS OBJECT —
+new-card-ENTRY events from face-down reservoirs: the waste (entry
+position CHOSEN) vs the hidden zone (entry position PINNED at the
+source); both relocate other content only class-transparently
+(twin landing choices of freshly-mobile runs merge by the
+noreveal cross-shuttles EXCEPT at the residue-exhibit cells);
+the landed measure tables were reservoir-monotonicity all along
+(hiddenTotal never rises = the hidden reservoir never refills;
+cycleCount = waste-transit consumption) — so the per-move
+class-visible residue = (the new card's entry position mod
+twin-symmetry) + (the obstruction inventory delta), and the
+genuine branch source in both families is the same thing: the
+ACCOMMODATION-PREFIX FREEDOM — which reversible stretches from
+canon C make m launchable — priced by the SAME obstruction-inventory
+function.  The analysis-bearing case table is effectively ONE
+analysis with two position-polarity cases.
 
 ```lean
 theorem apply_two_macroOutcomes {t₁ t₂ t₃ : State} {m : Move} {s₁ s₂ s₃ : State}
