@@ -349,8 +349,36 @@ twin-symmetry) + (the obstruction inventory delta), and the
 genuine branch source in both families is the same thing: the
 ACCOMMODATION-PREFIX FREEDOM — which reversible stretches from
 canon C make m launchable — priced by the SAME obstruction-inventory
-function.  The analysis-bearing case table is effectively ONE
+ function.  The analysis-bearing case table is effectively ONE
 analysis with two position-polarity cases.
+
+**THE TWO-AXIS GRID (user's tabToTab+tabToFound merge, 2026-10-10):**
+the commit families decompose along TWO ORTHOGONAL AXES —
+SOURCE EFFECT (none / reveal / seat-door) × ARRIVAL (chosen
+twin-pair host / pinned / unique) — every family is a grid cell
+(tabToTab-reveal = reveal × chosen; tabToFound-reveal =
+reveal × unique — no base parameter, so its successor class is
+a function of the accommodation prefix alone, the prefix
+carrying only the same class-transparent-mod-residue clearing
+landings; the vacate = seat-door × chosen; wasteTo *
+= no-source × chosen/unique; draw = no-source × none).
+THE CONCRETE UNIFIER: both tabToTab and tabToFound go through
+the SAME afterRunRemoved machinery (pre = below-run, the same
+reveal rule, the same hiddenTotal guard) — ONE removal-reveal
+SPINE lemma, parameterized by the removed segment's depth
+([c] for the raise, fromCard c for the run), proven once;
+then THREE arrival-tail analyses (chosen / pinned / unique)
+proven once each.  Spine + three tails replaces six case
+studies — the user's merge is exactly one spine + two tails.
+THE MERGE'S CAUTIONS: the arrival tails differ in KIND of
+profile delta (tableau arrival = a POSITION ENTRY in the
+obstruction inventory; foundation arrival = a HEIGHT INCREMENT
+with the card leaving the inventory — the profile vocabulary
+carries both, a union not an identification); the depth
+parameterization keeps the moves' genuinely-different
+precondition sets separate; and NO merged move definition
+enters State.step — six constructors stay the semantics of
+record, the combination lives in the analysis layer only.
 
 ```lean
 theorem apply_two_macroOutcomes {t₁ t₂ t₃ : State} {m : Move} {s₁ s₂ s₃ : State}
