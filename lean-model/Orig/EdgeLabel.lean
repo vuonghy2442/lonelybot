@@ -1162,6 +1162,41 @@ theorem orbit_data {x y : State} (h : sameOrbitSetoid.r x y) (hwf : x.WF) :
   obtain ⟨c1, p1, h1, n1⟩ := shuffleW_data hτ
   exact ⟨shuffleW_wf_end hτ hwf, c1, p1, h1, n1⟩
 
+/-! ### The named invariant
+
+The four-datum conjunction bundled under one name — the macro-class
+invariant as a single citable predicate (the `BothOcc`/`BareLic`
+pattern applied to the datum family), with the three-tier restatement
+one line per rung.  The future chapter relocation hoists this block
+verbatim; consumers downstream of the count program cite the class
+form. -/
+
+/-- The four macro-class datums, bundled: what a macro class carries. -/
+def SameDatums (x y : State) : Prop :=
+  cycleCount y = cycleCount x ∧ drawPool y = drawPool x ∧
+    (∀ a, (y.piles a).hidden = (x.piles a).hidden) ∧
+    (∀ a, nzRoot y a = nzRoot x a)
+
+/-- The per-leg grade: each reversible witness leg preserves the
+bundle. -/
+theorem sameDatums_leg {x y : State} {m : Move}
+    (hw : reversibleAtW x m) (hstep : State.step x m = some y) :
+    SameDatums x y :=
+  leg_data hw hstep
+
+/-- The per-play grade: each witness shuffle preserves the bundle. -/
+theorem sameDatums_play {st z : State} {l : List Move}
+    (h : ShufflePlayW st l z) :
+    SameDatums st z :=
+  shuffleW_data h
+
+/-- The macro-state invariant: members of a macro class share the
+bundle (the WF accessor first, the datums beneath it). -/
+theorem sameDatums_orbit {x y : State} (h : sameOrbitSetoid.r x y) (hwf : x.WF) :
+    y.WF ∧ SameDatums x y := by
+  obtain ⟨hwf', h1, h2, h3, h4⟩ := orbit_data h hwf
+  exact ⟨hwf', h1, h2, h3, h4⟩
+
 /-! ## The CanonEdge normal form -/
 
 /-- The tip-anchored edge scheme, the machinery grade (§3.1): a macro
