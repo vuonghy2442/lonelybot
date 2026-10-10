@@ -1225,3 +1225,109 @@ private theorem draw_facts {st s₁ : State} (hstep : st.stepDraw = some s₁) :
     · have heq : s₁ = ds := Option.some.inj (hstep.symm.trans hds)
       rw [heq]
       exact ⟨hp.trans rp, hf.trans rf, hd.trans rd⟩
+
+/-- The draw is field-determined: two states that agree on stock,
+waste and draw step draw to outcomes that keep their own piles,
+found and draw step and share the dealt stock and waste. -/
+private theorem stepDraw_rel {u v u₁ : State}
+    (hstock : v.stock = u.stock) (hwaste : v.waste = u.waste)
+    (hdraw : v.drawStep = u.drawStep)
+    (hu : u.stepDraw = some u₁) :
+    ∃ v₁ : State, v.stepDraw = some v₁ ∧
+      v₁.piles = v.piles ∧ u₁.piles = u.piles ∧ v₁.found = v.found ∧
+      u₁.found = u.found ∧ v₁.drawStep = v.drawStep ∧ u₁.drawStep = u.drawStep ∧
+      v₁.stock = u₁.stock ∧ v₁.waste = u₁.waste := by
+  cases hus : u.stock with
+  | nil =>
+      cases huw : u.waste with
+      | nil =>
+          exfalso
+          have hdead : u.stepDraw = none := by
+            simp [State.stepDraw, State.dealStock, State.recycle, hus, huw]
+          rw [hdead] at hu
+          exact absurd hu (by simp)
+      | cons w ws =>
+          have hvs : v.stock = [] := hstock.trans hus
+          have hvw : v.waste = w :: ws := hwaste.trans huw
+          have hru : State.recycle u = { u with stock := (w :: ws).reverse, waste := [] } := by
+            simp [State.recycle, hus, huw]
+          have hrv : State.recycle v = { v with stock := (w :: ws).reverse, waste := [] } := by
+            simp [State.recycle, hvs, hvw]
+          rw [show u.stepDraw = State.dealStock (State.recycle u) from rfl, hru] at hu
+          cases hrr : (w :: ws).reverse with
+          | nil =>
+              have hd : State.dealStock { u with stock := (w :: ws).reverse, waste := [] } = none := by
+                rw [hrr]
+                rfl
+              rw [hd] at hu
+              exact absurd hu (by simp)
+          | cons r rs =>
+              rw [hrr] at hu hru hrv
+              have hfU : State.dealStock { u with stock := (r :: rs), waste := [] } =
+                  some { u with stock := (State.dealUpTo u.drawStep (r :: rs)).snd, waste := (State.dealUpTo u.drawStep (r :: rs)).fst.reverse ++ [] } := by
+                simp [State.dealStock]
+              have hu' : State.dealStock { u with stock := (r :: rs), waste := [] } = some u₁ := hu
+              have hui : u₁ = { u with stock := (State.dealUpTo u.drawStep (r :: rs)).snd, waste := (State.dealUpTo u.drawStep (r :: rs)).fst.reverse ++ [] } :=
+                Option.some.inj (hu'.symm.trans hfU)
+              rw [hui]
+              refine ⟨{ v with stock := (State.dealUpTo v.drawStep (r :: rs)).snd, waste := (State.dealUpTo v.drawStep (r :: rs)).fst.reverse ++ [] }, ?_, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_⟩
+              · rw [show v.stepDraw = State.dealStock (State.recycle v) from rfl, hrv]
+                simp [State.dealStock]
+              · rw [hdraw]
+              · rw [hdraw]
+  | cons s ss =>
+      have hvs : v.stock = s :: ss := hstock.trans hus
+      have hru : State.recycle u = u := by simp [State.recycle, hus]
+      have hrv : State.recycle v = v := by simp [State.recycle, hvs]
+      rw [show u.stepDraw = State.dealStock (State.recycle u) from rfl, hru] at hu
+      have hfU : State.dealStock u = some { u with stock := (State.dealUpTo u.drawStep (s :: ss)).snd, waste := (State.dealUpTo u.drawStep (s :: ss)).fst.reverse ++ u.waste } := by
+        simp [State.dealStock, hus]
+      have hui : u₁ = { u with stock := (State.dealUpTo u.drawStep (s :: ss)).snd, waste := (State.dealUpTo u.drawStep (s :: ss)).fst.reverse ++ u.waste } :=
+        Option.some.inj (hu.symm.trans hfU)
+      rw [hui]
+      refine ⟨{ v with stock := (State.dealUpTo v.drawStep (s :: ss)).snd, waste := (State.dealUpTo v.drawStep (s :: ss)).fst.reverse ++ v.waste }, ?_, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_⟩
+      · rw [show v.stepDraw = State.dealStock (State.recycle v) from rfl, hrv]
+        simp [State.dealStock, hvs]
+      · rw [hdraw]
+      · rw [hdraw, hwaste]
+
+/-- THE DRAW TRANSPORT: the draw commutes with the exchange and the
+license re-seats untouched (the draw never writes a pile). -/
+theorem exch_step_draw {st s₁ : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β) (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true)
+    (hstep : st.step Move.draw = some s₁) :
+    ((st.exchangeTwin t).step Move.draw) = some (s₁.exchangeTwin t) ∧ BothOcc s₁ t := by
+  have hs : st.stepDraw = some s₁ := by
+    rw [show st.stepDraw = st.step Move.draw from rfl]
+    exact hstep
+  obtain ⟨hpil, hfnd, hdrw⟩ := draw_facts hs
+  have hwf₁ : s₁.WF := step_wf hwf hstep
+  have h₁s : s₁.pileHolding t = some α := by
+    rw [pileHolding_congr hpil]
+    exact h₁
+  have h₂s : s₁.pileHolding t.twin = some β := by
+    rw [pileHolding_congr hpil]
+    exact h₂
+  have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by rw [hpil]; exact hsα
+  have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by rw [hpil]; exact hsβ
+  have hb := braid_splice hwf₁ h₁s h₂s hne hsαs hsβs hfit hfit'
+  refine ⟨?_, ⟨α, β, z, z', Bα, B', Sa, Sa', h₁s, h₂s, hne, hsαs, hsβs,
+    hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+  show (st.exchangeTwin t).stepDraw = some (s₁.exchangeTwin t)
+  obtain ⟨T, hT, hTp, hsp, hTf, hsf, hTd, hsd, hTsk, hTsw⟩ :=
+    stepDraw_rel (u := st) (v := st.exchangeTwin t) (u₁ := s₁)
+      State.exchangeTwin_stock State.exchangeTwin_waste
+      State.exchangeTwin_drawStep hs
+  have hTe : T = s₁.exchangeTwin t := by
+    apply State.ext
+    · exact hTf.trans (State.exchangeTwin_found.trans (hfnd.symm.trans State.exchangeTwin_found.symm))
+    · rw [hTp, exch_piles_congr hpil]
+    · exact hTsk.trans State.exchangeTwin_stock.symm
+    · exact hTsw.trans State.exchangeTwin_waste.symm
+    · exact hTd.trans (State.exchangeTwin_drawStep.trans (hdrw.symm.trans State.exchangeTwin_drawStep.symm))
+  rw [hT, hTe]
