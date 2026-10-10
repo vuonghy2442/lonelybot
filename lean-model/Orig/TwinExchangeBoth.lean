@@ -792,3 +792,229 @@ theorem exch_canPlace_congr {st : State} {t z z' : Card} {α β : Anchor}
                 | some _ => canSitOn c d
                 | none => false)
           rfl
+
+/-! ## §4. The kill family
+
+The seat lock and its arithmetic: while both seats host, no
+`tabToTab` rooted at a cargo head can fire (its only rank-and-color
+candidate bases are the two occupied seats, neither a live top), the
+hosts are not pile tops, and the within-thread fits rule out the
+cross-landings by rank. -/
+
+private theorem decide_false_of_not {p : Prop} [Decidable p] (h : ¬p) :
+    decide p = false := by
+  cases hd : decide p with
+  | false => rfl
+  | true => exact absurd (of_decide_eq_true hd) h
+
+/-- A card never sits on itself.  (Dedup-marked against
+`Orig/TwinExchange.lean`'s private companions.) -/
+private theorem canSitOn_self_false (x : Card) : canSitOn x x = false := by
+  cases hb : canSitOn x x with
+  | false => rfl
+  | true =>
+      exfalso
+      obtain ⟨hr, -⟩ := (canSitOn_eq x x).mp hb
+      omega
+
+/-- A fitting card is distinct from its host. -/
+private theorem ne_of_canSitOn {z y : Card} (h : canSitOn z y = true) : z ≠ y := by
+  intro hcon
+  subst hcon
+  cases hb : canSitOn z z with
+  | false => rw [hb] at h; exact absurd h (by simp)
+  | true =>
+      exfalso
+      obtain ⟨hr, -⟩ := (canSitOn_eq z z).mp hb
+      omega
+
+private theorem rank_ne_king_of_lt {r : Rank} (h : r.toIdx < 12) : r ≠ Rank.king := by
+  cases r <;> simp_all [Rank.toIdx]
+
+private theorem color_eq_of_ne_ne {x u v : Card}
+    (h1 : x.suit.color ≠ u.suit.color) (h2 : x.suit.color ≠ v.suit.color) :
+    u.suit.color = v.suit.color := by
+  rcases x with ⟨xs, xr⟩
+  rcases u with ⟨us, ur⟩
+  rcases v with ⟨vs, vr⟩
+  have h1' : ¬ (xs.color = us.color) := h1
+  have h2' : ¬ (xs.color = vs.color) := h2
+  show us.color = vs.color
+  cases xs <;> cases us <;> cases vs <;> first | rfl | simp_all [Suit.color] | rfl
+
+private theorem suit_color_eq {s s' : Suit} (h : s.color = s'.color) :
+    s = s' ∨ s = s'.twin := by
+  cases s <;> cases s' <;> simp_all [Suit.color, Suit.twin]
+
+/-- Two cards of the same rank and color are the suit-twin pair. -/
+private theorem same_rank_same_color {d u : Card}
+    (hr : d.rank = u.rank) (hc : d.suit.color = u.suit.color) :
+    d = u ∨ d = u.twin := by
+  obtain ⟨ds, dr⟩ := d
+  obtain ⟨us, ur⟩ := u
+  have hc' : ds.color = us.color := hc
+  have hr' : dr = ur := hr
+  have hs : ds = us ∨ ds = us.twin := suit_color_eq hc'
+  rcases hs with rfl | hs
+  · exact Or.inl (by rw [hr'])
+  · refine Or.inr ?_
+    simp only [Card.twin, hs, hr']
+
+/-- The last element of a list is in it.  (Dedup-marked against the
+private `lastOf` kits of `Orig/TwinExchange.lean` and `Orig/Reach.lean`.) -/
+private theorem lastOf_mem {x : Card} : ∀ {l : List Card}, lastOf l = some x → x ∈ l := by
+  intro l
+  induction l with
+  | nil => intro h; exact absurd h (by simp [lastOf])
+  | cons y ys ih =>
+      intro h
+      cases ys with
+      | nil =>
+          have hx : some y = some x := h
+          injection hx with hxy
+          subst hxy
+          exact List.mem_cons_self ..
+      | cons w ws =>
+          rw [show lastOf (y :: w :: ws) = lastOf (w :: ws) from rfl] at h
+          exact List.mem_cons_of_mem _ (ih h)
+
+/-- The two cargo fits put both cargos one rank under their seats;
+twin seats share the rank. -/
+theorem twin_fit_ranks {t z z' : Card}
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true) :
+    z.rank.toIdx + 1 = t.rank.toIdx ∧
+      z'.rank.toIdx + 1 = t.rank.toIdx ∧
+      z.rank.toIdx = z'.rank.toIdx := by
+  obtain ⟨h1, -⟩ := (canSitOn_eq z t).mp hfit
+  obtain ⟨h2, -⟩ := (canSitOn_eq z' t.twin).mp hfit'
+  rw [show t.twin.rank.toIdx = t.rank.toIdx from
+    congrArg Rank.toIdx (Card.twin_rank t)] at h2
+  omega
+
+/-- A rank-impossible sit. -/
+private theorem canSitOn_false_of {x y : Card}
+    (h : ¬ (x.rank.toIdx + 1 = y.rank.toIdx)) :
+    canSitOn x y = false := by
+  cases hb : canSitOn x y with
+  | false => rfl
+  | true => exact absurd ((canSitOn_eq x y).mp hb).1 h
+
+/-- The within-thread fit kills: a seat never fits its own cargo or
+the other thread's cargo (the fits would cycle the rank); the two
+cargos never interfit.  (A cargo DOES fit the other seat — `canSitOn`
+is twin-blind in its target — which is exactly why only the two
+occupied seats are the cargo's landing candidates.) -/
+theorem thread_fit_kills {t z z' : Card}
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true) :
+    canSitOn t z = false ∧ canSitOn t z' = false ∧
+      canSitOn t.twin z = false ∧ canSitOn t.twin z' = false ∧
+      canSitOn z z' = false ∧ canSitOn z' z = false := by
+  obtain ⟨h1, h2, h3⟩ := twin_fit_ranks hfit hfit'
+  have htt : t.twin.rank.toIdx = t.rank.toIdx :=
+    congrArg Rank.toIdx (Card.twin_rank t)
+  refine ⟨canSitOn_false_of (by omega), canSitOn_false_of (by omega),
+    canSitOn_false_of (by omega), canSitOn_false_of (by omega),
+    canSitOn_false_of (by omega), canSitOn_false_of (by omega)⟩
+
+/-- While both seats are occupied, neither host is a pile top. -/
+theorem hosts_not_top {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true) :
+    st.pileOfTop t = none ∧ st.pileOfTop t.twin = none := by
+  constructor
+  · cases hh : st.pileOfTop t with
+    | none => rfl
+    | some k =>
+        exfalso
+        have hktop : (st.piles k).top = some t := (pileOfTop_eq_some_iff hwf).mp hh
+        have htkm : t ∈ (st.piles k).faceUp := Pile.mem_of_top hktop
+        have hkα : k = α := by
+          by_cases hka : k = α
+          · exact hka
+          · exact absurd htkm (mem_faceUp_unique hwf (pileHolding_mem h₁) k hka).1
+        rw [hkα] at hktop
+        rw [top_splice_eq hsα] at hktop
+        rcases (List.mem_cons.mp (lastOf_mem hktop)) with heq | hsa
+        · exact ne_of_canSitOn hfit heq.symm
+        · exact absurd hsa (wf_splice_book hwf hsα).2.2.1
+  · cases hh : st.pileOfTop t.twin with
+    | none => rfl
+    | some k =>
+        exfalso
+        have hktop : (st.piles k).top = some t.twin := (pileOfTop_eq_some_iff hwf).mp hh
+        have htkm : t.twin ∈ (st.piles k).faceUp := Pile.mem_of_top hktop
+        have hkβ : k = β := by
+          by_cases hkb : k = β
+          · exact hkb
+          · exact absurd htkm (mem_faceUp_unique hwf (pileHolding_mem h₂) k hkb).1
+        rw [hkβ] at hktop
+        rw [top_splice_eq hsβ] at hktop
+        rcases (List.mem_cons.mp (lastOf_mem hktop)) with heq | hsa
+        · exact ne_of_canSitOn hfit' heq.symm
+        · exact absurd hsa (wf_splice_book hwf hsβ).2.2.1
+
+/-- The seat lock for one cargo head: a card that fits its occupied
+seat cannot be placed anywhere — the anchor arm dies at the king, the
+card arm's only rank-and-color candidates are the two occupied seats,
+and neither is a live top. -/
+private theorem seat_lock_one {st : State} {z t : Card}
+    (hfit : canSitOn z t = true)
+    (hnp : st.pileOfTop t = none ∧ st.pileOfTop t.twin = none)
+    (b : Base) : st.canPlace z b = false := by
+  cases b with
+  | inl a =>
+      obtain ⟨h1, -⟩ := (canSitOn_eq z t).mp hfit
+      have hlt : z.rank.toIdx < 12 := by
+        have := Rank.toIdx_lt t.rank
+        omega
+      have hking : z.rank ≠ Rank.king := rank_ne_king_of_lt hlt
+      cases hb : st.canPlace z (Sum.inl a) with
+      | false => rfl
+      | true =>
+          exfalso
+          rw [canPlace_inl_eq] at hb
+          cases hdd : decide (z.rank = Rank.king) with
+          | false => rw [hdd] at hb; simp at hb
+          | true => exact hking (of_decide_eq_true hdd)
+  | inr d =>
+      show (match st.pileOfTop d with
+            | some _ => canSitOn z d
+            | none => false) = false
+      cases hd : st.pileOfTop d with
+      | none => rfl
+      | some k =>
+          show canSitOn z d = false
+          cases hb : canSitOn z d with
+          | false => rfl
+          | true =>
+              exfalso
+              obtain ⟨hr1, hc1⟩ := (canSitOn_eq z t).mp hfit
+              obtain ⟨hr2, hc2⟩ := (canSitOn_eq z d).mp hb
+              have hc : d.suit.color = t.suit.color := color_eq_of_ne_ne hc2 hc1
+              have hdt : d = t ∨ d = t.twin :=
+                same_rank_same_color (Rank.toIdx_inj (by omega)) hc
+              rcases hdt with rfl | rfl
+              · rw [hnp.1] at hd
+                exact absurd hd (by simp)
+              · rw [hnp.2] at hd
+                exact absurd hd (by simp)
+
+/-- THE SEAT LOCK: at the both-occupied license, no `tabToTab` rooted
+at a cargo head can fire — `canPlace` of the head is false on every
+base. -/
+theorem seat_lock {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card} (b : Base)
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true) :
+    st.canPlace z b = false ∧ st.canPlace z' b = false := by
+  obtain ⟨hnp1, hnp2⟩ := hosts_not_top hwf h₁ h₂ hsα hsβ hfit hfit'
+  refine ⟨seat_lock_one hfit ⟨hnp1, hnp2⟩ b, seat_lock_one hfit' ?_ b⟩
+  rw [Card.twin_twin]
+  exact ⟨hnp2, hnp1⟩
