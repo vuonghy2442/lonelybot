@@ -48,6 +48,7 @@ core kit lemma (`List.take_add`) was found by audit to drag
 
 set_option maxRecDepth 2048
 set_option maxHeartbeats 1000000
+set_option exponentiation.threshold 2048
 
 /-! ## The private run kit -/
 
@@ -587,3 +588,318 @@ theorem win_iff_distinctTrace {st : State} :
   · intro h
     obtain ⟨play, w, hrun, hwinw, -⟩ := h
     exact ⟨play, w, hrun, hwinw⟩
+
+/-! ## The encode consumption (M3) -/
+
+/-- A nonempty list has a head. -/
+private theorem list_cons_of_ne_nil {l : List Card} (h : l ≠ []) :
+    ∃ x t, l = x :: t := by
+  cases l with
+  | nil => exact absurd rfl h
+  | cons x t => exact ⟨x, t, rfl⟩
+
+/-- Reversal never annihilates a cons. -/
+private theorem reverse_cons_ne_nil (x : Card) (t : List Card) :
+    (x :: t).reverse ≠ [] := by
+  intro hc
+  have hrev : (x :: t).reverse.reverse = ([] : List Card).reverse :=
+    congrArg List.reverse hc
+  rw [List.reverse_reverse] at hrev
+  exact cons_eq_nil_false hrev
+
+/-- Recycle shapes: the empty pool keeps everything, a nonempty waste
+flips, a nonempty stock is untouched. -/
+private theorem recycle_empty (st : State) (h1 : st.stock = []) (h2 : st.waste = []) :
+    State.recycle st = st := by
+  rw [show State.recycle st = (match st.stock with
+      | [] =>
+          match st.waste with
+          | [] => st
+          | w => { st with stock := w.reverse, waste := [] }
+      | _ => st) from rfl, h1, h2]
+
+private theorem recycle_waste (st : State) (h1 : st.stock = []) (h2 : st.waste ≠ []) :
+    State.recycle st = { st with stock := st.waste.reverse, waste := [] } := by
+  obtain ⟨x, t, hc⟩ := list_cons_of_ne_nil h2
+  rw [show State.recycle st = (match st.stock with
+      | [] =>
+          match st.waste with
+          | [] => st
+          | w => { st with stock := w.reverse, waste := [] }
+      | _ => st) from rfl, h1, hc]
+
+private theorem recycle_keep (st : State) (h : st.stock ≠ []) :
+    State.recycle st = st := by
+  obtain ⟨x, t, hc⟩ := list_cons_of_ne_nil h
+  rw [show State.recycle st = (match st.stock with
+      | [] =>
+          match st.waste with
+          | [] => st
+          | w => { st with stock := w.reverse, waste := [] }
+      | _ => st) from rfl, hc]
+
+/-- The deal out of a nonempty stock keeps the draw step. -/
+private theorem dealStock_drawStep (st : State) (h : st.stock ≠ []) :
+    ∃ st'', State.dealStock st = some st'' ∧ st''.drawStep = st.drawStep := by
+  obtain ⟨x, t, hc⟩ := list_cons_of_ne_nil h
+  rw [show State.dealStock st = (match st.stock with
+      | [] => none
+      | s =>
+          let d := State.dealUpTo st.drawStep s
+          some { st with stock := d.2, waste := d.1.reverse ++ st.waste }) from rfl, hc]
+  exact ⟨_, rfl, rfl⟩
+
+private theorem dealStock_none (st : State) (h : st.stock = []) :
+    State.dealStock st = none := by
+  rw [show State.dealStock st = (match st.stock with
+      | [] => none
+      | s =>
+          let d := State.dealUpTo st.drawStep s
+          some { st with stock := d.2, waste := d.1.reverse ++ st.waste }) from rfl, h]
+
+/-- The putters never touch the draw step. -/
+private theorem putCard_drawStep (st : State) (c : Card) (b : Base) :
+    (st.putCard c b).drawStep = st.drawStep := by
+  cases b with
+  | inl a => rfl
+  | inr z =>
+      rw [show st.putCard c (Sum.inr z) = (match st.pileOfTop z with
+        | some k => st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] }
+        | none => st) from rfl]
+      cases st.pileOfTop z with
+      | none => rfl
+      | some k => rfl
+
+private theorem putRun_drawStep (st : State) (run : List Card) (b : Base) :
+    (st.putRun run b).drawStep = st.drawStep := by
+  cases b with
+  | inl a => rfl
+  | inr z =>
+      rw [show st.putRun run (Sum.inr z) = (match st.pileOfTop z with
+        | some k => st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run }
+        | none => st) from rfl]
+      cases st.pileOfTop z with
+      | none => rfl
+      | some k => rfl
+
+/-- **No move touches the draw step**: the game parameter is conserved
+by every physical move — the honest digit premise travels unchanged
+along any play. -/
+private theorem step_drawStep {st st' : State} {m : Move}
+    (h : State.step st m = some st') : st'.drawStep = st.drawStep := by
+  cases m with
+  | draw =>
+      rw [show State.step st Move.draw = State.dealStock (State.recycle st) from rfl] at h
+      cases hs : st.stock with
+      | nil =>
+          cases hw : st.waste with
+          | nil =>
+              rw [recycle_empty st hs hw, dealStock_none st hs] at h
+              exact absurd h none_eq_some_false
+          | cons x t =>
+              rw [recycle_waste st hs
+                (fun hc => by rw [hw] at hc; exact cons_eq_nil_false hc)] at h
+              have hpos :
+                  ({ st with stock := st.waste.reverse, waste := [] } : State).stock ≠ [] := by
+                intro hc
+                rw [hw] at hc
+                exact reverse_cons_ne_nil x t hc
+              obtain ⟨st'', hst'', hdg⟩ :=
+                dealStock_drawStep _ hpos
+              rw [hst''] at h
+              have hsi : st'' = st' := Option.some.inj h
+              rw [hsi] at hdg
+              exact hdg
+      | cons x t =>
+          have hne : st.stock ≠ [] := fun hc => by
+            rw [hs] at hc; exact cons_eq_nil_false hc
+          rw [recycle_keep st hne] at h
+          obtain ⟨st'', hst'', hdg⟩ := dealStock_drawStep st hne
+          rw [hst''] at h
+          have hsi : st'' = st' := Option.some.inj h
+          rw [hsi] at hdg
+          exact hdg
+  | wasteToFound c =>
+      rw [show State.step st (Move.wasteToFound c) = (if st.wasteIs c && st.nextUp c then
+          match st.waste with
+          | _ :: ws => some { st.setFound c.suit (st.found c.suit ++ [c]) with waste := ws }
+          | [] => none
+        else none) from rfl] at h
+      cases hcp : st.wasteIs c && st.nextUp c with
+      | true =>
+          rw [hcp] at h
+          cases hwt : st.waste with
+          | nil => rw [hwt] at h; exact absurd h none_eq_some_false
+          | cons x ws =>
+              rw [hwt] at h
+              have hsi : { st.setFound c.suit (st.found c.suit ++ [c]) with waste := ws }
+                  = st' := Option.some.inj h
+              rw [← hsi]
+              rfl
+      | false => rw [hcp] at h; exact absurd h none_eq_some_false
+  | wasteToTab c b =>
+      rw [show State.step st (Move.wasteToTab c b) = (if st.wasteIs c && st.canPlace c b then
+          match st.waste with
+          | _ :: ws => some { st.putCard c b with waste := ws }
+          | [] => none
+        else none) from rfl] at h
+      cases hcp : st.wasteIs c && st.canPlace c b with
+      | true =>
+          rw [hcp] at h
+          cases hwt : st.waste with
+          | nil => rw [hwt] at h; exact absurd h none_eq_some_false
+          | cons x ws =>
+              rw [hwt] at h
+              have hsi : { st.putCard c b with waste := ws } = st' := Option.some.inj h
+              rw [← hsi]
+              exact putCard_drawStep st c b
+      | false => rw [hcp] at h; exact absurd h none_eq_some_false
+  | tabToFound c =>
+      rw [show State.step st (Move.tabToFound c) = (if st.nextUp c then
+          match st.pileOfTop c with
+          | none => none
+          | some a =>
+              let p := st.piles a
+              some { st.setFound c.suit (st.found c.suit ++ [c]) with
+                       piles := fun a' =>
+                         if a' = a then Pile.afterRunRemoved p (chop p.faceUp)
+                         else st.piles a' }
+        else none) from rfl] at h
+      cases hnp : st.nextUp c with
+      | false => rw [hnp] at h; exact absurd h none_eq_some_false
+      | true =>
+          rw [hnp] at h
+          cases hpt : st.pileOfTop c with
+          | none => rw [hpt] at h; exact absurd h none_eq_some_false
+          | some a =>
+              rw [hpt] at h
+              have hsi : { st.setFound c.suit (st.found c.suit ++ [c]) with
+                  piles := fun a' =>
+                    if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+                    else st.piles a' } = st' := Option.some.inj h
+              rw [← hsi]
+              rfl
+  | foundToTab c b =>
+      rw [show State.step st (Move.foundToTab c b) = (match st.foundTop c.suit with
+          | some c' =>
+              if decide (c' = c) && st.canPlace c b then
+                some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
+              else none
+          | none => none) from rfl] at h
+      cases hft : st.foundTop c.suit with
+      | none => rw [hft] at h; exact absurd h none_eq_some_false
+      | some c₀ =>
+          rw [hft] at h
+          -- iota-reduce the matched branch (`c' := c₀`), so the guard is free
+          have hfr : (if decide (c₀ = c) && st.canPlace c b then
+              some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
+            else none) = some st' := h
+          cases hb : decide (c₀ = c) && st.canPlace c b with
+          | false => rw [hb] at hfr; exact absurd hfr none_eq_some_false
+          | true =>
+              rw [hb] at hfr
+              have hsi : (st.setFound c.suit (chop (st.found c.suit))).putCard c b = st' :=
+                Option.some.inj hfr
+              rw [← hsi, putCard_drawStep]
+              rfl
+  | tabToTab c b =>
+      rw [show State.step st (Move.tabToTab c b) = (match st.pileHolding c with
+          | none => none
+          | some a =>
+              if st.canPlace c b then
+                match fromCard c (st.piles a).faceUp with
+                | [] => none
+                | run => some ((st.setPile a
+                  (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun run b)
+              else none) from rfl] at h
+      cases hph : st.pileHolding c with
+      | none => rw [hph] at h; exact absurd h none_eq_some_false
+      | some a =>
+          rw [hph] at h
+          -- iota-reduce the matched branch (`a' := a`)
+          have hbr : (if st.canPlace c b then
+              match fromCard c (st.piles a).faceUp with
+              | [] => none
+              | run => some ((st.setPile a
+                (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun run b)
+            else none) = some st' := h
+          cases hcp : st.canPlace c b with
+          | false => rw [hcp] at hbr; exact absurd hbr none_eq_some_false
+          | true =>
+              rw [hcp] at hbr
+              have hbr2 : (match fromCard c (st.piles a).faceUp with
+                  | [] => none
+                  | run => some ((st.setPile a
+                      (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+                      run b)) = some st' := hbr
+              cases hrun : fromCard c (st.piles a).faceUp with
+              | nil => rw [hrun] at hbr2; exact absurd hbr2 none_eq_some_false
+              | cons y ys =>
+                  rw [hrun] at hbr2
+                  have hsi : (st.setPile a
+                      (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+                      (y :: ys) b = st' := Option.some.inj hbr2
+                  rw [← hsi]
+                  exact putRun_drawStep _ (y :: ys) b
+
+/-- Along a successful run from a `WF` start, every trace state is
+`WF` and keeps the start's draw step. -/
+private theorem run_trace_states : ∀ (play : List Move) (st w : State),
+    st.run play = some w → st.WF → st.drawStep < 53 →
+    ∀ s ∈ playTrace st play, s.WF ∧ s.drawStep = st.drawStep := by
+  intro play
+  induction play with
+  | nil =>
+      intro st w _h hwf _hd s hs
+      have ht : playTrace st [] = [st] := rfl
+      rw [ht] at hs
+      have hsm : s = st := List.mem_singleton.mp hs
+      rw [hsm]
+      exact ⟨hwf, rfl⟩
+  | cons m ms ih =>
+      intro st w h hwf hd s hs
+      obtain ⟨s', hstep, hrest⟩ := State.run_cons h
+      rw [playTrace_stepCons hstep] at hs
+      have hwf' : s'.WF := step_wf hwf hstep
+      have hd' : s'.drawStep = st.drawStep := step_drawStep hstep
+      rcases List.mem_cons.mp hs with hsm | hs'
+      · rw [hsm]
+        exact ⟨hwf, rfl⟩
+      · have hds' : s'.drawStep < 53 := by
+          rw [hd']
+          exact hd
+        obtain ⟨hwfs, hds⟩ := ih s' w hrest hwf' hds' s hs'
+        exact ⟨hwfs, hds.trans hd'⟩
+
+/-- **The pigeonhole consumption**: a pairwise-distinct trace out of a
+`WF` start with the honest digit premise spends one state per code —
+every state re-reads off a distinct `stateEnc`, every code sits below
+`State.stateSpaceBound` — so the play is shorter than the state
+space. -/
+theorem distinct_trace_bound {st : State} (hwf : st.WF) (hd : st.drawStep < 53)
+    {play : List Move} {w : State} (hrun : st.run play = some w)
+    (hdist : allDistinct (playTrace st play)) :
+    play.length < State.stateSpaceBound := by
+  have hok := run_trace_states play st w hrun hwf hd
+  have hmap : allDistinct ((playTrace st play).map State.stateEnc) :=
+    allDistinct_map State.stateEnc hdist
+      (fun s hs s' hs' he => State.stateEnc_inj (hok s hs).1 (hok s' hs').1 he)
+  have hlt : ∀ v ∈ (playTrace st play).map State.stateEnc,
+      v < State.stateSpaceBound := by
+    intro v hv
+    obtain ⟨s, hs, rfl⟩ := List.mem_map.mp hv
+    obtain ⟨hwfs, hds⟩ := hok s hs
+    exact State.stateEnc_lt hwfs (by rw [hds]; exact hd)
+  have hcount := distinct_nat_count_le ((playTrace st play).map State.stateEnc)
+    State.stateSpaceBound hmap hlt
+  have hlen := trace_length_succ play st w hrun
+  have hmaplen : (List.map State.stateEnc (playTrace st play)).length
+      = (playTrace st play).length := List.length_map State.stateEnc
+  rw [hmaplen] at hcount
+  omega
+
+/-- The bound's numeric shape: twenty windows of `53 ^ 52` digits plus
+one draw-step digit — exactly `53 ^ 1041`. -/
+theorem stateSpaceBound_eq : State.stateSpaceBound = 53 ^ 1041 := by
+  show (53 ^ 52) ^ 20 * 53 = 53 ^ 1040 * 53
+  rw [← Nat.pow_mul, show 52 * 20 = 1040 from rfl, ← Nat.pow_succ]
