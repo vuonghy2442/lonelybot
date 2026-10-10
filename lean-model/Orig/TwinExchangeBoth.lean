@@ -1490,3 +1490,75 @@ theorem exch_step_wasteToFound {st s₁ : State} {t z z' : Card} {α β : Anchor
         rw [hs₁]
         rw [State.exchangeTwin_drawStep]
         rfl
+
+/-! ### §5.2 The search congruences at one written pile -/
+
+/-- firstWhere is determined pointwise by its predicate. -/
+private theorem firstWhere_congr' {p q : Anchor → Bool} :
+    ∀ (l : List Anchor), (∀ a : Anchor, p a = q a) →
+      firstWhere p l = firstWhere q l := by
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons a ls ih =>
+      intro hp
+      show (match p a with
+            | true => some a
+            | false => firstWhere p ls) =
+          (match q a with
+            | true => some a
+            | false => firstWhere q ls)
+      rw [hp a]
+      cases hpq : q a with
+      | true => rfl
+      | false => exact ih hp
+
+/-- A pile write at `κ` leaves every other pile alone. -/
+private theorem setPile_skips {st : State} {κ : Anchor} {p : Pile}
+    {j : Anchor} (hj : j ≠ κ) :
+    (st.setPile κ p).piles j = st.piles j := by
+  show (if j = κ then p else st.piles j) = st.piles j
+  rw [ite_false_eq hj]
+
+/-- Membership on the right of a single append. -/
+private theorem mem_append_single_iff {c x : Card} {l : List Card} (hx : x ≠ c) :
+    x ∈ l ++ [c] ↔ x ∈ l := by
+  constructor
+  · intro h
+    rcases (List.mem_append.mp h) with h | h
+    · exact h
+    · rcases (List.mem_cons.mp h) with heq | hnil
+      · exact absurd heq hx
+      · exact absurd hnil (by simp)
+  · intro h
+    exact List.mem_append.mpr (Or.inl h)
+
+/-- The holding search is untouched by appending one fresh card to a
+single pile, for any searched card distinct from the appended one. -/
+theorem pileHolding_append_congr {st s' : State} {κ : Anchor} {c x : Card}
+    (hκ : (s'.piles κ).faceUp = (st.piles κ).faceUp ++ [c])
+    (hskip : ∀ j : Anchor, j ≠ κ → s'.piles j = st.piles j)
+    (hne : x ≠ c) :
+    s'.pileHolding x = st.pileHolding x := by
+  have hfull : ∀ a : Anchor, (s'.piles a).faceUp = (st.piles a).faceUp ∨
+      (a = κ ∧ (s'.piles a).faceUp = (st.piles a).faceUp ++ [c]) := by
+    intro a
+    by_cases haj : a = κ
+    · exact Or.inr ⟨haj, haj ▸ hκ⟩
+    · exact Or.inl (by rw [← hskip a haj])
+  show firstWhere (fun a => decide (x ∈ (s'.piles a).faceUp)) Anchor.all = _
+  refine firstWhere_congr' Anchor.all ?_
+  intro a
+  cases hfull a with
+  | inl h => rw [h]
+  | inr h =>
+      rw [h.2]
+      cases hd : decide (x ∈ (st.piles a).faceUp) with
+      | true =>
+          have hmem : x ∈ (st.piles a).faceUp := of_decide_eq_true hd
+          rw [show decide (x ∈ (st.piles a).faceUp ++ [c]) = true from
+            decide_eq_true (List.mem_append.mpr (Or.inl hmem))]
+      | false =>
+          have h : ¬(x ∈ (st.piles a).faceUp) := of_decide_eq_false hd
+          rw [show decide (x ∈ (st.piles a).faceUp ++ [c]) = false from
+            decide_eq_false (fun hc => h ((mem_append_single_iff hne).mp hc))]
