@@ -2547,3 +2547,632 @@ theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
           rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁w]
         · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
           rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁d]
+
+
+/-! ### The chop kit (private, dedup-marked)
+
+The `tabToFound` transport reads the step's source-pile write through
+`chop` (the face-up run minus its top).  The two list facts it needs
+land here, in the shapes `Orig/Reach.lean`'s private copies already
+carry. -/
+
+/-- The chop drops a snoc's last card.  (Dedup-marked against
+`Orig/Reach.lean`'s private `chop_snoc`.) -/
+private theorem chop_snoc {l : List Card} {c : Card} :
+    chop (l ++ [c]) = l := by
+  induction l with
+  | nil => rfl
+  | cons w ws ih =>
+      cases ws with
+      | nil => rfl
+      | cons v vs =>
+          show w :: chop ((v :: vs) ++ [c]) = w :: (v :: vs)
+          rw [ih]
+
+/-- A list with a known last is its chop plus the snoc.  (Dedup-marked
+against `Orig/Reach.lean`'s private `lastOf_eq_chop_snoc`.) -/
+private theorem lastOf_eq_chop_snoc {l : List Card} {c : Card}
+    (h : lastOf l = some c) : l = chop l ++ [c] := by
+  induction l with
+  | nil => exact absurd h (by simp [lastOf])
+  | cons w ws ih =>
+      cases ws with
+      | nil =>
+          have hw : w = c := Option.some.inj (show (some w : Option Card) = some c from h)
+          subst hw
+          rfl
+      | cons v vs =>
+          have ihv := ih (show lastOf (v :: vs) = some c from h)
+          show w :: v :: vs = (w :: chop (v :: vs)) ++ [c]
+          rw [ihv, chop_snoc]
+          rfl
+
+/-- The tabToFound firing shape: the rung guard holds, the moved card
+is a located pile top, and the step state is the appended foundation
+with the source pile's face-up run chopped. -/
+private theorem step_tabToFound_shape {st s₁ : State} {c : Card}
+    (hstep : st.step (Move.tabToFound c) = some s₁) :
+    st.nextUp c = true ∧ ∃ κ : Anchor, st.pileOfTop c = some κ ∧
+      s₁ = { st.setFound c.suit (st.found c.suit ++ [c]) with
+               piles := fun a' =>
+                 if a' = κ then Pile.afterRunRemoved (st.piles κ) (chop (st.piles κ).faceUp)
+                 else st.piles a' } := by
+  cases hnu : st.nextUp c with
+  | false =>
+      rw [show st.step (Move.tabToFound c) = none from by
+        rw [step_tabToFound_eq, hnu]
+        rfl] at hstep
+      exact absurd hstep (by simp)
+  | true =>
+      rw [show st.step (Move.tabToFound c) =
+          (match st.pileOfTop c with
+           | none => none
+           | some a =>
+               some { st.setFound c.suit (st.found c.suit ++ [c]) with
+                        piles := fun a' =>
+                          if a' = a then
+                            Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+                          else st.piles a' }) from by
+        rw [step_tabToFound_eq, hnu]
+        rfl] at hstep
+      cases hpt : st.pileOfTop c with
+      | none => rw [hpt] at hstep; exact absurd hstep (by simp)
+      | some κ =>
+          rw [hpt] at hstep
+          injection hstep with hstep'
+          exact ⟨rfl, κ, rfl, hstep'.symm⟩
+
+/-- The bare-transfer license: the hosts stay located in distinct
+piles and at least one seat sits bare — the freedom event of the
+`tabToFound` transport row, in exactly the premise-shape the landed
+bare row (`twin_exchange_bare_iff`) consumes at the successor. -/
+def BareLic (st : State) (t : Card) : Prop :=
+  ∃ a a' : Anchor, st.pileHolding t = some a ∧ st.pileHolding t.twin = some a' ∧
+    a ≠ a' ∧ (aboveIn t ((st.piles a).faceUp) = [] ∨
+      aboveIn t.twin ((st.piles a').faceUp) = [])
+
+/-- THE TABTOFOUND TRANSPORT (THE FREEDOM ROW): pile-to-foundation
+commutes with the exchange — the rung guard reads only the foundation
+(`State.exchangeTwin_found`), so the σ-side fires, and its source-pile
+chop lands at the ANCHOR-SWAPPED mirror of the st-side source (the
+σ-side top table `exch_pileOfTop_swap`; a source away from both hosts
+stays put via `swapAnch_ne`).  The moved card joins the foundation at
+both states identically (the w2f per-suit table with `++[c]` in place
+of the chop).  The license conjunct turns disjunctive: a cargo-neutral
+chop re-seats the both-occupied license (the chopped pile is a
+non-cargo top — `hosts_not_top` keeps the seats, the splice suffix
+shrinks to its chop, the braid family re-derives at the chopped run via
+`braid_splice`, both host searches re-locate by the integrity iff),
+while the chop of a CARGO HEAD — necessarily at pile top, i.e.
+`Sa = []` (the top search pins the head to the empty suffix) — is the
+FREEDOM BREAKER: the both-occupied license dies at the vacated seat,
+the same move still transports, and the successor passes the landed
+bare row its premise (`BareLic s₁ t`). -/
+theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card} {c : Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β) (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true)
+    (hstep : st.step (Move.tabToFound c) = some s₁) :
+    ((st.exchangeTwin t).step (Move.tabToFound c)) = some (s₁.exchangeTwin t) ∧
+      (BothOcc s₁ t ∨ BareLic s₁ t) := by
+  obtain ⟨hnu, κ, hd, hs₁⟩ := step_tabToFound_shape hstep
+  have hwf₁ : s₁.WF := step_wf hwf hstep
+  have hnpt : st.pileOfTop t = none ∧ st.pileOfTop t.twin = none :=
+    hosts_not_top hwf h₁ h₂ hsα hsβ hfit hfit'
+  have hct : c ≠ t := fun hcon => by
+    rw [hcon] at hd
+    exact absurd hd (by rw [hnpt.1]; simp)
+  have hct' : c ≠ t.twin := fun hcon => by
+    rw [hcon] at hd
+    exact absurd hd (by rw [hnpt.2]; simp)
+  -- the pile write of the step, at the source and elsewhere
+  have hsκself : s₁.piles κ =
+      Pile.afterRunRemoved (st.piles κ) (chop (st.piles κ).faceUp) := by
+    rw [hs₁]
+    show (if κ = κ then Pile.afterRunRemoved (st.piles κ) (chop (st.piles κ).faceUp)
+            else st.piles κ) = _
+    rw [ite_true_eq rfl]
+  have hskip : ∀ j : Anchor, j ≠ κ → s₁.piles j = st.piles j := by
+    intro j hj
+    rw [hs₁]
+    show (if j = κ then Pile.afterRunRemoved (st.piles κ) (chop (st.piles κ).faceUp)
+            else st.piles j) = st.piles j
+    rw [ite_false_eq hj]
+  -- the σ-side guard and source: the rung reads the unexchanged
+  -- foundation, the top search answers at the swapped anchor
+  have hσnu : (st.exchangeTwin t).nextUp c = st.nextUp c := by
+    show decide (c.rank.toIdx = ((st.exchangeTwin t).found c.suit).length) = _
+    rw [State.exchangeTwin_found]
+    rfl
+  have hσpt : (st.exchangeTwin t).pileOfTop c = some (swapAnch α β κ) := by
+    rw [exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ c, hd]
+    rfl
+  -- the σ-side fire
+  rw [show State.step (st.exchangeTwin t) (Move.tabToFound c) =
+      some { (st.exchangeTwin t).setFound c.suit
+          ((st.exchangeTwin t).found c.suit ++ [c]) with
+          piles := fun a' =>
+            if a' = swapAnch α β κ then
+              Pile.afterRunRemoved ((st.exchangeTwin t).piles (swapAnch α β κ))
+                (chop ((st.exchangeTwin t).piles (swapAnch α β κ)).faceUp)
+            else (st.exchangeTwin t).piles a' } from by
+    rw [step_tabToFound_eq, hσnu.trans hnu, hσpt]
+    rfl]
+  rw [Option.some.injEq]
+  -- the source-pile dispatch
+  by_cases hκα : κ = α
+  · -- (Pα) the source is the host pile α
+    rw [hκα] at hd hsκself hskip
+    rw [hκα, swapAnch_left α β]
+    by_cases hcz : c = z
+    · -- the freedom: the cargo head z leaves the α seat
+      have hdz : st.pileOfTop z = some α := by rw [← hcz]; exact hd
+      have htopα : (st.piles α).top = some z := (pileOfTop_eq_some_iff hwf).mp hdz
+      have hSa : Sa = [] := by
+        by_cases hSa' : Sa = []
+        · exact hSa'
+        · exfalso
+          have hconS : z ∉ Sa := (wf_splice_book hwf hsα).2.2.2.2
+          have htopL : lastOf (z :: Sa) = some z := by
+            rw [← top_splice_eq hsα]; exact htopα
+          cases Sa with
+          | nil => exact absurd rfl hSa'
+          | cons y ys =>
+              exact hconS (lastOf_mem (show lastOf (y :: ys) = some z from htopL))
+      have hsαchop : chop ((st.piles α).faceUp) = Bα ++ [t] := by
+        rw [hsα, hSa, List.append_nil]
+        rw [show Bα ++ [t, z] = (Bα ++ [t]) ++ [z] from by
+            rw [List.append_assoc]; rfl, chop_snoc]
+      have hprene : chop ((st.piles α).faceUp) ≠ [] := fun hcon =>
+        absurd (show t ∈ chop ((st.piles α).faceUp) from by
+          rw [hsαchop]; exact List.mem_append.mpr (Or.inr (by simp))) (by
+          rw [hcon]; simp)
+      have hsαs' : (s₁.piles α).faceUp = Bα ++ [t] := by
+        rw [hsκself, afterRunRemoved_ne hprene, hsαchop]
+      have hidα : (s₁.piles α).hidden = (st.piles α).hidden := by
+        rw [hsκself, afterRunRemoved_ne hprene]
+      have hsβs' : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+        rw [show (s₁.piles β).faceUp = (st.piles β).faceUp from by
+            rw [hskip β (Ne.symm hne)]]
+        exact hsβ
+      have hbareα : aboveIn t ((s₁.piles α).faceUp) = [] := by
+        rw [hsαs']
+        exact aboveIn_cut_gen (wf_splice_book hwf hsα).2.1
+      have h₁s : s₁.pileHolding t = some α :=
+        (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hsαs']; exact List.mem_append.mpr (Or.inr (by simp)))
+      have h₂s : s₁.pileHolding t.twin = some β :=
+        (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hsβs']; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+      refine ⟨?_, Or.inr ⟨α, β, h₁s, h₂s, hne, Or.inl hbareα⟩⟩
+      apply State.ext
+      · funext s'
+        by_cases hs' : s' = c.suit
+        · rw [hs']
+          rw [setFound_found_self]
+          rw [congrFun State.exchangeTwin_found c.suit]
+          rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
+            congrFun State.exchangeTwin_found c.suit]
+          rw [hs₁]
+          exact setFound_found_self.symm
+        · rw [setFound_found_ne hs']
+          rw [congrFun State.exchangeTwin_found s']
+          rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
+            congrFun State.exchangeTwin_found s']
+          rw [hs₁]
+          exact (setFound_found_ne hs').symm
+      · funext j
+        show (if j = β then
+              Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
+                (chop ((st.exchangeTwin t).piles β).faceUp)
+              else (st.exchangeTwin t).piles j) =
+            (s₁.exchangeTwin t).piles j
+        by_cases hjβ : j = β
+        · rw [hjβ, ite_true_eq rfl,
+            exch_pile_other_record hwf h₁ h₂ hne hsα hsβ]
+          show Pile.afterRunRemoved ⟨(st.piles β).hidden, B' ++ [t.twin, z] ++ Sa⟩
+              (chop (B' ++ [t.twin, z] ++ Sa)) = _
+          rw [show B' ++ [t.twin, z] ++ Sa = (B' ++ [t.twin]) ++ [z] from by
+              rw [hSa, List.append_nil, List.append_assoc]; rfl,
+            chop_snoc,
+            afterRunRemoved_ne (show B' ++ [t.twin] ≠ [] from fun hcon =>
+              absurd (show t.twin ∈ B' ++ [t.twin] from
+                List.mem_append.mpr (Or.inr (by simp))) (by
+                rw [hcon]; simp)),
+            State.exchangeTwin_pile_other h₁s h₂s hne, hsβs',
+            below_splice (wf_splice_book hwf hsβ).2.1, hsαs',
+            aboveIn_cut_gen (wf_splice_book hwf hsα).2.1,
+            show (s₁.piles β).hidden = (st.piles β).hidden from by
+              rw [hskip β (Ne.symm hne)]]
+        · by_cases hjα : j = α
+          · rw [hjα, ite_false_eq hne,
+              exch_pile_self_record hwf h₁ h₂ hne hsα hsβ, splice_cons Bα Sa',
+              State.exchangeTwin_pile_self h₁s h₂s hne, hsαs',
+              below_cut_gen (wf_splice_book hwf hsα).2.1, hsβs',
+              aboveIn_splice_head (wf_splice_book hwf hsβ).2.1, hidα]
+          · rw [ite_false_eq hjβ,
+              show (s₁.exchangeTwin t).piles j = s₁.piles j from
+                State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+              hskip j hjα,
+              show (st.exchangeTwin t).piles j = st.piles j from
+                State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
+      · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+        rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
+        rfl
+      · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+        rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
+        rfl
+      · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+        rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
+        rfl
+    · -- the cargo-neutral chop inside the α run: Sa ≠ [] and its
+      -- last card is the moved one
+      have htopα : (st.piles α).top = some c := (pileOfTop_eq_some_iff hwf).mp hd
+      have hbl : lastOf Sa = some c := by
+        rw [top_splice_eq hsα] at htopα
+        cases Sa with
+        | nil =>
+            exact absurd
+              (Option.some.inj (show (some z : Option Card) = some c from htopα)).symm hcz
+        | cons y ys =>
+            exact htopα
+      have hsαchop : chop ((st.piles α).faceUp) = Bα ++ [t, z] ++ chop Sa := by
+        rw [hsα,
+          show Bα ++ [t, z] ++ Sa = (Bα ++ [t, z] ++ chop Sa) ++ [c] from by
+            rw [splice_snoc c, ← lastOf_eq_chop_snoc hbl],
+          chop_snoc]
+      have hprene : chop ((st.piles α).faceUp) ≠ [] := fun hcon =>
+        absurd (show t ∈ chop ((st.piles α).faceUp) from by
+          rw [hsαchop]; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1) (by
+          rw [hcon]; simp)
+      have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ chop Sa := by
+        rw [hsκself, afterRunRemoved_ne hprene, hsαchop]
+      have hidα : (s₁.piles α).hidden = (st.piles α).hidden := by
+        rw [hsκself, afterRunRemoved_ne hprene]
+      have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+        rw [show (s₁.piles β).faceUp = (st.piles β).faceUp from by
+            rw [hskip β (Ne.symm hne)]]
+        exact hsβ
+      have h₁s : s₁.pileHolding t = some α :=
+        (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hsαs]; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+      have h₂s : s₁.pileHolding t.twin = some β :=
+        (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hsβs]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+      have hb := braid_splice hwf₁ h₁s h₂s hne hsαs hsβs hfit hfit'
+      refine ⟨?_, Or.inl ⟨α, β, z, z', Bα, B', chop Sa, Sa', h₁s, h₂s, hne,
+        hsαs, hsβs, hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+      apply State.ext
+      · funext s'
+        by_cases hs' : s' = c.suit
+        · rw [hs']
+          rw [setFound_found_self]
+          rw [congrFun State.exchangeTwin_found c.suit]
+          rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
+            congrFun State.exchangeTwin_found c.suit]
+          rw [hs₁]
+          exact setFound_found_self.symm
+        · rw [setFound_found_ne hs']
+          rw [congrFun State.exchangeTwin_found s']
+          rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
+            congrFun State.exchangeTwin_found s']
+          rw [hs₁]
+          exact (setFound_found_ne hs').symm
+      · funext j
+        show (if j = β then
+              Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
+                (chop ((st.exchangeTwin t).piles β).faceUp)
+              else (st.exchangeTwin t).piles j) =
+            (s₁.exchangeTwin t).piles j
+        by_cases hjβ : j = β
+        · rw [hjβ, ite_true_eq rfl,
+            exch_pile_other_record hwf h₁ h₂ hne hsα hsβ]
+          show Pile.afterRunRemoved ⟨(st.piles β).hidden, B' ++ [t.twin, z] ++ Sa⟩
+              (chop (B' ++ [t.twin, z] ++ Sa)) = _
+          rw [show B' ++ [t.twin, z] ++ Sa = (B' ++ [t.twin, z] ++ chop Sa) ++ [c] from by
+              rw [splice_snoc c, ← lastOf_eq_chop_snoc hbl],
+            chop_snoc,
+            afterRunRemoved_ne (show B' ++ [t.twin, z] ++ chop Sa ≠ [] from fun hcon =>
+              absurd (show t.twin ∈ B' ++ [t.twin, z] ++ chop Sa from
+                (mem_splice_host (t := t.twin) (z := z) (B := B')).1) (by
+                rw [hcon]; simp)),
+            exch_pile_other_record hwf₁ h₁s h₂s hne hsαs hsβs,
+            show (s₁.piles β).hidden = (st.piles β).hidden from by
+              rw [hskip β (Ne.symm hne)]]
+        · by_cases hjα : j = α
+          · rw [hjα, ite_false_eq hne,
+              exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+              exch_pile_self_record hwf₁ h₁s h₂s hne hsαs hsβs, hidα]
+          · rw [ite_false_eq hjβ,
+              show (s₁.exchangeTwin t).piles j = s₁.piles j from
+                State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+              hskip j hjα,
+              show (st.exchangeTwin t).piles j = st.piles j from
+                State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
+      · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+        rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
+        rfl
+      · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+        rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
+        rfl
+      · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+        rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
+        rfl
+  · by_cases hκβ : κ = β
+    · -- (Pβ) the source is the twin host pile β
+      rw [hκβ] at hd hsκself hskip
+      rw [hκβ, swapAnch_right α β]
+      by_cases hcz' : c = z'
+      · -- the freedom: the cargo head z' leaves the β seat
+        have hdz' : st.pileOfTop z' = some β := by rw [← hcz']; exact hd
+        have htopβ : (st.piles β).top = some z' := (pileOfTop_eq_some_iff hwf).mp hdz'
+        have hSa' : Sa' = [] := by
+          by_cases hSaS : Sa' = []
+          · exact hSaS
+          · exfalso
+            have hconS : z' ∉ Sa' := (wf_splice_book hwf hsβ).2.2.2.2
+            have htopL : lastOf (z' :: Sa') = some z' := by
+              rw [← top_splice_eq hsβ]; exact htopβ
+            cases Sa' with
+            | nil => exact absurd rfl hSaS
+            | cons y ys =>
+                exact hconS (lastOf_mem (show lastOf (y :: ys) = some z' from htopL))
+        have hsβchop : chop ((st.piles β).faceUp) = B' ++ [t.twin] := by
+          rw [hsβ, hSa', List.append_nil]
+          rw [show B' ++ [t.twin, z'] = (B' ++ [t.twin]) ++ [z'] from by
+              rw [List.append_assoc]; rfl, chop_snoc]
+        have hprene : chop ((st.piles β).faceUp) ≠ [] := fun hcon =>
+          absurd (show t.twin ∈ chop ((st.piles β).faceUp) from by
+            rw [hsβchop]; exact List.mem_append.mpr (Or.inr (by simp))) (by
+            rw [hcon]; simp)
+        have hsβs' : (s₁.piles β).faceUp = B' ++ [t.twin] := by
+          rw [hsκself, afterRunRemoved_ne hprene, hsβchop]
+        have hidβ : (s₁.piles β).hidden = (st.piles β).hidden := by
+          rw [hsκself, afterRunRemoved_ne hprene]
+        have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+          rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
+              rw [hskip α hne]]
+          exact hsα
+        have hbareβ : aboveIn t.twin ((s₁.piles β).faceUp) = [] := by
+          rw [hsβs']
+          exact aboveIn_cut_gen (wf_splice_book hwf hsβ).2.1
+        have h₁s : s₁.pileHolding t = some α :=
+          (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hsαs]; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+        have h₂s : s₁.pileHolding t.twin = some β :=
+          (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hsβs']; exact List.mem_append.mpr (Or.inr (by simp)))
+        refine ⟨?_, Or.inr ⟨α, β, h₁s, h₂s, hne, Or.inr hbareβ⟩⟩
+        apply State.ext
+        · funext s'
+          by_cases hs' : s' = c.suit
+          · rw [hs']
+            rw [setFound_found_self]
+            rw [congrFun State.exchangeTwin_found c.suit]
+            rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
+              congrFun State.exchangeTwin_found c.suit]
+            rw [hs₁]
+            exact setFound_found_self.symm
+          · rw [setFound_found_ne hs']
+            rw [congrFun State.exchangeTwin_found s']
+            rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
+              congrFun State.exchangeTwin_found s']
+            rw [hs₁]
+            exact (setFound_found_ne hs').symm
+        · funext j
+          show (if j = α then
+                Pile.afterRunRemoved ((st.exchangeTwin t).piles α)
+                  (chop ((st.exchangeTwin t).piles α).faceUp)
+                else (st.exchangeTwin t).piles j) =
+              (s₁.exchangeTwin t).piles j
+          by_cases hjα : j = α
+          · rw [hjα, ite_true_eq rfl,
+              exch_pile_self_record hwf h₁ h₂ hne hsα hsβ]
+            show Pile.afterRunRemoved ⟨(st.piles α).hidden, Bα ++ [t, z'] ++ Sa'⟩
+                (chop (Bα ++ [t, z'] ++ Sa')) = _
+            rw [show Bα ++ [t, z'] ++ Sa' = (Bα ++ [t]) ++ [z'] from by
+                rw [hSa', List.append_nil, List.append_assoc]; rfl,
+              chop_snoc,
+              afterRunRemoved_ne (show Bα ++ [t] ≠ [] from fun hcon =>
+                absurd (show t ∈ Bα ++ [t] from
+                  List.mem_append.mpr (Or.inr (by simp))) (by
+                  rw [hcon]; simp)),
+              State.exchangeTwin_pile_self h₁s h₂s hne, hsαs,
+              below_splice (wf_splice_book hwf hsα).2.1, hsβs',
+              aboveIn_cut_gen (wf_splice_book hwf hsβ).2.1,
+              show (s₁.piles α).hidden = (st.piles α).hidden from by
+                rw [hskip α hne]]
+          · by_cases hjβ : j = β
+            · rw [hjβ, ite_false_eq (Ne.symm hne),
+                exch_pile_other_record hwf h₁ h₂ hne hsα hsβ, splice_cons B' Sa,
+                State.exchangeTwin_pile_other h₁s h₂s hne, hsβs',
+                below_cut_gen (wf_splice_book hwf hsβ).2.1, hsαs,
+                aboveIn_splice_head (wf_splice_book hwf hsα).2.1, hidβ]
+            · rw [ite_false_eq hjα,
+                show (s₁.exchangeTwin t).piles j = s₁.piles j from
+                  State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                hskip j hjβ,
+                show (st.exchangeTwin t).piles j = st.piles j from
+                  State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
+        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
+          rfl
+        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
+          rfl
+        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
+          rfl
+      · -- the cargo-neutral chop inside the β run: Sa' ≠ [] and its
+        -- last card is the moved one
+        have htopβ : (st.piles β).top = some c := (pileOfTop_eq_some_iff hwf).mp hd
+        have hbl' : lastOf Sa' = some c := by
+          rw [top_splice_eq hsβ] at htopβ
+          cases Sa' with
+          | nil =>
+              exact absurd
+                (Option.some.inj (show (some z' : Option Card) = some c from htopβ)).symm hcz'
+          | cons y ys =>
+              exact htopβ
+        have hsβchop : chop ((st.piles β).faceUp) = B' ++ [t.twin, z'] ++ chop Sa' := by
+          rw [hsβ,
+            show B' ++ [t.twin, z'] ++ Sa' = (B' ++ [t.twin, z'] ++ chop Sa') ++ [c] from by
+              rw [splice_snoc c, ← lastOf_eq_chop_snoc hbl'],
+            chop_snoc]
+        have hprene : chop ((st.piles β).faceUp) ≠ [] := fun hcon =>
+          absurd (show t.twin ∈ chop ((st.piles β).faceUp) from by
+            rw [hsβchop]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1) (by
+            rw [hcon]; simp)
+        have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ chop Sa' := by
+          rw [hsκself, afterRunRemoved_ne hprene, hsβchop]
+        have hidβ : (s₁.piles β).hidden = (st.piles β).hidden := by
+          rw [hsκself, afterRunRemoved_ne hprene]
+        have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+          rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
+              rw [hskip α hne]]
+          exact hsα
+        have h₁s : s₁.pileHolding t = some α :=
+          (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hsαs]; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+        have h₂s : s₁.pileHolding t.twin = some β :=
+          (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hsβs]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+        have hb := braid_splice hwf₁ h₁s h₂s hne hsαs hsβs hfit hfit'
+        refine ⟨?_, Or.inl ⟨α, β, z, z', Bα, B', Sa, chop Sa', h₁s, h₂s, hne,
+          hsαs, hsβs, hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+        apply State.ext
+        · funext s'
+          by_cases hs' : s' = c.suit
+          · rw [hs']
+            rw [setFound_found_self]
+            rw [congrFun State.exchangeTwin_found c.suit]
+            rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
+              congrFun State.exchangeTwin_found c.suit]
+            rw [hs₁]
+            exact setFound_found_self.symm
+          · rw [setFound_found_ne hs']
+            rw [congrFun State.exchangeTwin_found s']
+            rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
+              congrFun State.exchangeTwin_found s']
+            rw [hs₁]
+            exact (setFound_found_ne hs').symm
+        · funext j
+          show (if j = α then
+                Pile.afterRunRemoved ((st.exchangeTwin t).piles α)
+                  (chop ((st.exchangeTwin t).piles α).faceUp)
+                else (st.exchangeTwin t).piles j) =
+              (s₁.exchangeTwin t).piles j
+          by_cases hjα : j = α
+          · rw [hjα, ite_true_eq rfl,
+              exch_pile_self_record hwf h₁ h₂ hne hsα hsβ]
+            show Pile.afterRunRemoved ⟨(st.piles α).hidden, Bα ++ [t, z'] ++ Sa'⟩
+                (chop (Bα ++ [t, z'] ++ Sa')) = _
+            rw [show Bα ++ [t, z'] ++ Sa' = (Bα ++ [t, z'] ++ chop Sa') ++ [c] from by
+                rw [splice_snoc c, ← lastOf_eq_chop_snoc hbl'],
+              chop_snoc,
+              afterRunRemoved_ne (show Bα ++ [t, z'] ++ chop Sa' ≠ [] from fun hcon =>
+                absurd (show t ∈ Bα ++ [t, z'] ++ chop Sa' from
+                  (mem_splice_host (t := t) (z := z') (B := Bα)).1) (by
+                  rw [hcon]; simp)),
+              exch_pile_self_record hwf₁ h₁s h₂s hne hsαs hsβs,
+              show (s₁.piles α).hidden = (st.piles α).hidden from by
+                rw [hskip α hne]]
+          · by_cases hjβ : j = β
+            · rw [hjβ, ite_false_eq (Ne.symm hne),
+                exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                exch_pile_other_record hwf₁ h₁s h₂s hne hsαs hsβs, hidβ]
+            · rw [ite_false_eq hjα,
+                show (s₁.exchangeTwin t).piles j = s₁.piles j from
+                  State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                hskip j hjβ,
+                show (st.exchangeTwin t).piles j = st.piles j from
+                  State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
+        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
+          rfl
+        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
+          rfl
+        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
+          rfl
+    · -- (P0) the source is a pile away from both hosts
+      have hκA : κ ≠ α := hκα
+      have hκB : κ ≠ β := hκβ
+      rw [swapAnch_ne hκA hκB]
+      have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+        rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
+            rw [hskip α (Ne.symm hκA)]]
+        exact hsα
+      have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+        rw [show (s₁.piles β).faceUp = (st.piles β).faceUp from by
+            rw [hskip β (Ne.symm hκB)]]
+        exact hsβ
+      have h₁s : s₁.pileHolding t = some α :=
+        (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hsαs]; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+      have h₂s : s₁.pileHolding t.twin = some β :=
+        (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hsβs]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+      have hb := braid_splice hwf₁ h₁s h₂s hne hsαs hsβs hfit hfit'
+      refine ⟨?_, Or.inl ⟨α, β, z, z', Bα, B', Sa, Sa', h₁s, h₂s, hne,
+        hsαs, hsβs, hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+      apply State.ext
+      · funext s'
+        by_cases hs' : s' = c.suit
+        · rw [hs']
+          rw [setFound_found_self]
+          rw [congrFun State.exchangeTwin_found c.suit]
+          rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
+            congrFun State.exchangeTwin_found c.suit]
+          rw [hs₁]
+          exact setFound_found_self.symm
+        · rw [setFound_found_ne hs']
+          rw [congrFun State.exchangeTwin_found s']
+          rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
+            congrFun State.exchangeTwin_found s']
+          rw [hs₁]
+          exact (setFound_found_ne hs').symm
+      · funext j
+        show (if j = κ then
+              Pile.afterRunRemoved ((st.exchangeTwin t).piles κ)
+                (chop ((st.exchangeTwin t).piles κ).faceUp)
+              else (st.exchangeTwin t).piles j) =
+            (s₁.exchangeTwin t).piles j
+        by_cases hjκ : j = κ
+        · rw [hjκ, ite_true_eq rfl,
+            show (st.exchangeTwin t).piles κ = st.piles κ from
+              State.exchangeTwin_pile_ne h₁ h₂ hne hκA hκB,
+            show (s₁.exchangeTwin t).piles κ = s₁.piles κ from
+              State.exchangeTwin_pile_ne h₁s h₂s hne hκA hκB]
+          exact hsκself.symm
+        · by_cases hjα : j = α
+          · rw [hjα, ite_false_eq (Ne.symm hκA),
+              exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+              exch_pile_self_record hwf₁ h₁s h₂s hne hsαs hsβs,
+              show (s₁.piles α).hidden = (st.piles α).hidden from by
+                rw [hskip α (Ne.symm hκA)]]
+          · by_cases hjβ : j = β
+            · rw [hjβ, ite_false_eq (Ne.symm hκB),
+                exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                exch_pile_other_record hwf₁ h₁s h₂s hne hsαs hsβs,
+                show (s₁.piles β).hidden = (st.piles β).hidden from by
+                  rw [hskip β (Ne.symm hκB)]]
+            · rw [ite_false_eq hjκ,
+                show (s₁.exchangeTwin t).piles j = s₁.piles j from
+                  State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                hskip j hjκ,
+                show (st.exchangeTwin t).piles j = st.piles j from
+                  State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
+      · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+        rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
+        rfl
+      · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+        rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
+        rfl
+      · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+        rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
+        rfl
