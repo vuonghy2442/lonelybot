@@ -147,40 +147,6 @@ theorem foundTotal_mono {s s' : State}
 
 /-! ## List-end helpers -/
 
-/-- Snoc drops only the snocced element under `chop`. -/
-theorem chop_snoc : ∀ (l : List Card) (c : Card), chop (l ++ [c]) = l := by
-  intro l
-  induction l with
-  | nil => intro c; rfl
-  | cons x t ih =>
-      intro c
-      cases t with
-      | nil => rfl
-      | cons y t' =>
-          have e1 : chop ((x :: y :: t') ++ [c]) = x :: chop ((y :: t') ++ [c]) := rfl
-          have e2 : chop ((y :: t') ++ [c]) = y :: t' := ih c
-          rw [e1, e2]
-
-/-- A list with a known last element decomposes as `chop` plus that
-element — the foundation-prefix cancellation used by every undo. -/
-theorem lastOf_chop {c : Card} : ∀ {l : List Card}, lastOf l = some c → l = chop l ++ [c] := by
-  intro l
-  induction l with
-  | nil => intro h; exact absurd h (by simp [lastOf])
-  | cons x t ih =>
-      intro h
-      cases t with
-      | nil =>
-          have hx : lastOf [x] = some x := rfl
-          rw [hx, Option.some.injEq] at h
-          rw [h]
-          rfl
-      | cons y t' =>
-          have h2 : lastOf (y :: t') = some c := h
-          have h3 : y :: t' = chop (y :: t') ++ [c] := ih h2
-          have e1 : chop (x :: y :: t') = x :: chop (y :: t') := rfl
-          rw [e1, List.cons_append, ← h3]
-
 /-! ## Pile.afterRunRemoved -/
 
 /-- The hidden-cards trichotomy of the run removal: with a

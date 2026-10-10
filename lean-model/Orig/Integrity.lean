@@ -555,13 +555,6 @@ theorem pileOfTop_inj {st : State} {z : Card} {a a' : Anchor}
 
 /-! ## The `runOK` descent kit -/
 
-private theorem runOK_cons_tail {x : Card} {t : List Card}
-    (h : runOK (x :: t) = true) : runOK t = true := by
-  cases t with
-  | nil => rfl
-  | cons w t' =>
-      rw [runOK, Bool.and_eq_true] at h
-      exact h.2
 
 /-- Every card under a legal run's head sits strictly below the
 head in rank. -/

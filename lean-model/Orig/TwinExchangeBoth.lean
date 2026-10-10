@@ -2556,37 +2556,6 @@ The `tabToFound` transport reads the step's source-pile write through
 land here, in the shapes `Orig/Reach.lean`'s private copies already
 carry. -/
 
-/-- The chop drops a snoc's last card.  (Dedup-marked against
-`Orig/Reach.lean`'s private `chop_snoc`.) -/
-private theorem chop_snoc {l : List Card} {c : Card} :
-    chop (l ++ [c]) = l := by
-  induction l with
-  | nil => rfl
-  | cons w ws ih =>
-      cases ws with
-      | nil => rfl
-      | cons v vs =>
-          show w :: chop ((v :: vs) ++ [c]) = w :: (v :: vs)
-          rw [ih]
-
-/-- A list with a known last is its chop plus the snoc.  (Dedup-marked
-against `Orig/Reach.lean`'s private `lastOf_eq_chop_snoc`.) -/
-private theorem lastOf_eq_chop_snoc {l : List Card} {c : Card}
-    (h : lastOf l = some c) : l = chop l ++ [c] := by
-  induction l with
-  | nil => exact absurd h (by simp [lastOf])
-  | cons w ws ih =>
-      cases ws with
-      | nil =>
-          have hw : w = c := Option.some.inj (show (some w : Option Card) = some c from h)
-          subst hw
-          rfl
-      | cons v vs =>
-          have ihv := ih (show lastOf (v :: vs) = some c from h)
-          show w :: v :: vs = (w :: chop (v :: vs)) ++ [c]
-          rw [ihv, chop_snoc]
-          rfl
-
 /-- The tabToFound firing shape: the rung guard holds, the moved card
 is a located pile top, and the step state is the appended foundation
 with the source pile's face-up run chopped. -/
@@ -2822,7 +2791,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
       have hsαchop : chop ((st.piles α).faceUp) = Bα ++ [t, z] ++ chop Sa := by
         rw [hsα,
           show Bα ++ [t, z] ++ Sa = (Bα ++ [t, z] ++ chop Sa) ++ [c] from by
-            rw [splice_snoc c, ← lastOf_eq_chop_snoc hbl],
+            rw [splice_snoc c, ← lastOf_chop hbl],
           chop_snoc]
       have hprene : chop ((st.piles α).faceUp) ≠ [] := fun hcon =>
         absurd (show t ∈ chop ((st.piles α).faceUp) from by
@@ -2873,7 +2842,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
           show Pile.afterRunRemoved ⟨(st.piles β).hidden, B' ++ [t.twin, z] ++ Sa⟩
               (chop (B' ++ [t.twin, z] ++ Sa)) = _
           rw [show B' ++ [t.twin, z] ++ Sa = (B' ++ [t.twin, z] ++ chop Sa) ++ [c] from by
-              rw [splice_snoc c, ← lastOf_eq_chop_snoc hbl],
+              rw [splice_snoc c, ← lastOf_chop hbl],
             chop_snoc,
             afterRunRemoved_ne (show B' ++ [t.twin, z] ++ chop Sa ≠ [] from fun hcon =>
               absurd (show t.twin ∈ B' ++ [t.twin, z] ++ chop Sa from
@@ -3020,7 +2989,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
         have hsβchop : chop ((st.piles β).faceUp) = B' ++ [t.twin, z'] ++ chop Sa' := by
           rw [hsβ,
             show B' ++ [t.twin, z'] ++ Sa' = (B' ++ [t.twin, z'] ++ chop Sa') ++ [c] from by
-              rw [splice_snoc c, ← lastOf_eq_chop_snoc hbl'],
+              rw [splice_snoc c, ← lastOf_chop hbl'],
             chop_snoc]
         have hprene : chop ((st.piles β).faceUp) ≠ [] := fun hcon =>
           absurd (show t.twin ∈ chop ((st.piles β).faceUp) from by
@@ -3071,7 +3040,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
             show Pile.afterRunRemoved ⟨(st.piles α).hidden, Bα ++ [t, z'] ++ Sa'⟩
                 (chop (Bα ++ [t, z'] ++ Sa')) = _
             rw [show Bα ++ [t, z'] ++ Sa' = (Bα ++ [t, z'] ++ chop Sa') ++ [c] from by
-                rw [splice_snoc c, ← lastOf_eq_chop_snoc hbl'],
+                rw [splice_snoc c, ← lastOf_chop hbl'],
               chop_snoc,
               afterRunRemoved_ne (show Bα ++ [t, z'] ++ chop Sa' ≠ [] from fun hcon =>
                 absurd (show t ∈ Bα ++ [t, z'] ++ chop Sa' from

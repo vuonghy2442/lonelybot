@@ -477,14 +477,6 @@ private theorem fromCard_ne_of_mem {c : Card} : ∀ {l : List Card},
         · exact absurd heq.symm hy
         · exact ih hta
 
-/-- The tail of a legal run is legal. -/
-private theorem runOK_cons_tail {x : Card} {t : List Card}
-    (h : runOK (x :: t) = true) : runOK t = true := by
-  cases t with
-  | nil => rfl
-  | cons w t' =>
-      rw [runOK, Bool.and_eq_true] at h
-      exact h.2
 
 /-- Every suffix of a legal run is legal — the left-degradation of
 `runOK` under append. -/

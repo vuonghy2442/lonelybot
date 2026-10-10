@@ -356,27 +356,6 @@ private theorem lastOf_snoc' : ∀ (front : List Card) (c : Card),
       | nil => rfl
       | cons y t' => exact ih c
 
-private theorem chop_snoc : ∀ (l : List Card) (x : Card),
-    chop (l ++ [x]) = l
-  | [], x => rfl
-  | [y], x => rfl
-  | y :: z :: t, x => by
-      have ih := chop_snoc (z :: t) x
-      show y :: chop ((z :: t) ++ [x]) = y :: z :: t
-      rw [ih]
-
-private theorem lastOf_eq_chop_snoc : ∀ (l : List Card) {c : Card},
-    lastOf l = some c → l = chop l ++ [c]
-  | [], _, h => absurd h (by simp [lastOf])
-  | [y], c, h => by
-      have h' : y = c := Option.some.inj h
-      subst h'
-      rfl
-  | x :: y :: t, c, h => by
-      have ihv := lastOf_eq_chop_snoc (y :: t) (show lastOf (y :: t) = some c from h)
-      show x :: y :: t = (x :: chop (y :: t)) ++ [c]
-      rw [ihv, chop_snoc]
-      rfl
 
 private theorem lastOf_mem' : ∀ (l : List Card) {c : Card},
     lastOf l = some c → c ∈ l
@@ -542,20 +521,6 @@ private theorem runOK_two_true {x y : Card} {t : List Card}
     Bool.and_eq_true] at h
   exact h
 
-/-- Chopping the last card off a legal run leaves a legal run. -/
-private theorem runOK_chop : ∀ (l : List Card), runOK l = true → runOK (chop l) = true
-  | [], _ => rfl
-  | [x], _ => rfl
-  | x :: y :: t, h => by
-      obtain ⟨h1, h2⟩ := runOK_two_true h
-      have ih := runOK_chop (y :: t) h2
-      cases t with
-      | nil => rfl
-      | cons z t' =>
-          have ih' : runOK (y :: chop (z :: t')) = true := ih
-          show (canSitOn y x && runOK (y :: chop (z :: t'))) = true
-          rw [ih', h1]
-          rfl
 
 /-- Everything strictly below a member of a legal run is a legal
 run (the `below` half of the pile this card contributes). -/
@@ -865,7 +830,8 @@ private theorem ofDealt_cnt (l : List Card) (h : l ≠ []) (c₀ : Card) :
     rw [hhid, hface, ← chop_eq_take l]
   have hstep2 : cnt c₀ ((chop l).reverse ++ [x]) = cnt c₀ (chop l ++ [x]) := by
     simp only [cnt_snoc, cnt_singleton, cnt_reverse]
-  rw [hstep1, hstep2, ← lastOf_eq_chop_snoc l hlast]
+  have hdecomp : l = chop l ++ [x] := lastOf_chop hlast
+  rw [hstep1, hstep2, ← hdecomp]
 
 /-! ## The conservation fence at the deal -/
 
@@ -1456,7 +1422,7 @@ private theorem tabToFound_wf {st st' : State} {c : Card}
       | cons y t =>
           show runOK ((y :: t : List Card)) = true
           rw [← hchop]
-          exact runOK_chop _ (hpile a)
+          exact runOK_chop (hpile a)
     · rw [hpj j, ite_eq_right hj]
       exact hpile j
   · intro c₀ hc₀
@@ -1465,7 +1431,7 @@ private theorem tabToFound_wf {st st' : State} {c : Card}
     rw [cardCount_zones]
     have hlastc : lastOf (st.piles a).faceUp = some c := pileOfTop_top hpstop
     have hsnoc : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] :=
-      lastOf_eq_chop_snoc _ hlastc
+      lastOf_chop hlastc
     have hpcnt : cntFlat c₀
           (Anchor.all.map fun j => (st'.piles j).hidden ++ (st'.piles j).faceUp)
         + cnt c₀ [c]
@@ -1525,7 +1491,7 @@ private theorem foundToTab_wf {st st' : State} {c : Card} {b : Base}
   have hc'' : st.foundTop c.suit = some c := hft.trans (congrArg some hc'c)
   have hlast : lastOf (st.found c.suit) = some c := foundTop_lastOf hc''
   have hsnocf : st.found c.suit = chop (st.found c.suit) ++ [c] :=
-    lastOf_eq_chop_snoc _ hlast
+    lastOf_chop hlast
   have hR : ∀ c₀, cnt c₀ (st.found c.suit)
       = cnt c₀ (chop (st.found c.suit)) + cnt c₀ [c] := by
     intro c₀

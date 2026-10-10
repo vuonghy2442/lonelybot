@@ -418,3 +418,60 @@ theorem count_filter_pos {c : Card} :
   intro l hmem
   have hm : c ∈ l.filter fun x => decide (x = c) := List.mem_filter.2 ⟨hmem, by simp⟩
   exact List.length_pos_of_mem hm
+
+/-- The chop of a snoc drops only the snocced card. -/
+theorem chop_snoc {front : List Card} {c : Card} :
+    chop (front ++ [c]) = front := by
+  induction front with
+  | nil => rfl
+  | cons w ws ih =>
+      cases ws with
+      | nil => rfl
+      | cons v vs =>
+          show w :: chop ((v :: vs) ++ [c]) = w :: (v :: vs)
+          rw [ih]
+
+/-- A list with a known last element decomposes as its chop plus that
+element — the foundation-prefix cancellation every undo rides. -/
+theorem lastOf_chop {c : Card} : ∀ {l : List Card},
+    lastOf l = some c → l = chop l ++ [c] := by
+  intro l h
+  obtain ⟨front, hfe⟩ := lastOf_eq_snoc h
+  rw [hfe, chop_snoc]
+
+/-- The tail of a legal run is legal. -/
+theorem runOK_cons_tail {x : Card} {t : List Card}
+    (h : runOK (x :: t) = true) : runOK t = true := by
+  cases t with
+  | nil => rfl
+  | cons w t' =>
+      rw [runOK, Bool.and_eq_true] at h
+      exact h.2
+
+/-- Chopping the last card off a legal run leaves a legal run. -/
+theorem runOK_chop : ∀ {l : List Card}, runOK l = true → runOK (chop l) = true := by
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons x t ih =>
+      intro h
+      cases t with
+      | nil => rfl
+      | cons y t' =>
+          have hc0 : chop (x :: y :: t') = x :: chop (y :: t') := rfl
+          rw [hc0]
+          cases t' with
+          | nil =>
+              have hc1 : chop (y :: ([] : List Card)) = [] := rfl
+              rw [hc1]
+              rfl
+          | cons z t'' =>
+              have hexp : runOK (x :: y :: z :: t'') =
+                  (canSitOn y x && runOK (y :: z :: t'')) := rfl
+              rw [hexp, Bool.and_eq_true] at h
+              have hi := ih h.2
+              have hc2 : chop (y :: z :: t'') = y :: chop (z :: t'') := rfl
+              rw [hc2] at hi
+              show runOK (x :: y :: chop (z :: t'')) = true
+              rw [runOK, h.1, hi]
+              rfl

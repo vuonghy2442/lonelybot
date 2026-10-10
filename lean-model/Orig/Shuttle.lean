@@ -83,21 +83,6 @@ private theorem step_wasteToTab_inv {u : State} {c : Card} {b : Base}
 
 /-! ## This card's own kit -/
 
-/-- A snoc's `chop` is exactly its front — the splice the raise leg
-reads off the raised pile. -/
-private theorem chop_snoc : ∀ {front : List Card} {c : Card},
-    chop (front ++ [c]) = front := by
-  intro front
-  induction front with
-  | nil => intro c; rfl
-  | cons x t ih =>
-      intro c
-      cases t with
-      | nil => rfl
-      | cons y t' =>
-          show x :: chop ((y :: t') ++ [c]) = x :: (y :: t')
-          rw [ih (c := c)]
-
 /-- With a nonempty face-up remainder, removing the run keeps the
 pile below verbatim — no reveal fires. -/
 private theorem afterRunRemoved_pre_ne {p : Pile} {pre : List Card}

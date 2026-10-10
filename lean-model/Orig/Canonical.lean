@@ -813,33 +813,6 @@ private theorem take_snoc_get (n : Nat) : ∀ (l : List Card) (hl : n < l.length
           have e3 : ((y :: t) : List Card)[n + 1]'(by show n + 1 < t.length + 1; omega) = t[n] := rfl
           rw [e1, e2, e3, hrec, List.cons_append]
 
-/-- A legal run stays legal after chopping its top card. -/
-private theorem runOK_chop : ∀ {l : List Card}, runOK l = true → runOK (chop l) = true := by
-  intro l
-  induction l with
-  | nil => intro _; rfl
-  | cons x t ih =>
-      intro h
-      cases t with
-      | nil => rfl
-      | cons y t' =>
-          have hc0 : chop (x :: y :: t') = x :: chop (y :: t') := rfl
-          rw [hc0]
-          cases t' with
-          | nil =>
-              have hc1 : chop (y :: ([] : List Card)) = [] := rfl
-              rw [hc1]
-              rfl
-          | cons z t'' =>
-              have hexp : runOK (x :: y :: z :: t'') =
-                  (canSitOn y x && runOK (y :: z :: t'')) := rfl
-              rw [hexp, Bool.and_eq_true] at h
-              have hi := ih h.2
-              have hc2 : chop (y :: z :: t'') = y :: chop (z :: t'') := rfl
-              rw [hc2] at hi
-              show runOK (x :: y :: chop (z :: t'')) = true
-              rw [runOK, h.1, hi]
-              rfl
 
 /-- A legal run sits each card on the one below: the premise of
 the under-seat undo. -/
