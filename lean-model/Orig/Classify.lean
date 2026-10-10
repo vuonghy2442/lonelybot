@@ -150,6 +150,33 @@ are discharged by kernel computation.
 
 Private isolation copies of step inversions and list helpers are
 farm-normal and dedup at merge.
+
+## The witness-bridge continuation
+
+`reversibleAtW_of_reversible` closes the chapter's standing
+discipline at the `WF` gate: every reversible row carries its
+returning play as data.  The proof draws the map the oracle
+implies — the shape Bool reads `false`, and each false cell names
+a row whose witness already exists: the extracted heads beside
+their class cells (`tabToFound_reversibleAtW_under_wf`,
+`foundToTab_reversibleAtW_of_legal_wf`,
+`tabToTab_reversibleAtW_bare_king_wf`,
+`tabToTab_reversibleAtW_under_wf`), the immediate
+`tabToFound_undo_bare` cite at the bare-king seat, and the draw
+round trips (`draw_passBase_reversibleW`,
+`draw_reversible_inphaseW`).  **No honesty-clause gaps arose:**
+every false cell of the six-constructor table is witnessed, the
+always-`true` waste cells die by direct contradiction with their
+landed irreversibility rows, and the draw's zero-step round trip
+(`drawStep_zero_reversibleW`) is unreachable at `WF` — the draw
+step is positive there, so that cell stays a wild-state row.
+`reversibleAtW_iff_reversible` makes the two forms coincide
+exactly where `Orig/Fate.lean` deliberately refused to state the
+unconditioned iff.  The digest
+(`reversible_iff_of`, `step_return_of_false_wf`) is the consumer
+form for the count lanes and the canonicalizer's successors; the
+window reading is per-leg, `WFRun`-disciplined, while
+step-preserved `WF` remains `Orig.lean`'s open ticket.
 -/
 
 /-! ## Private copies of the step inversions -/
@@ -2245,6 +2272,60 @@ theorem tabToFoundClass {st : State} (hwf : st.WF) (c : Card) :
     · intro _
       exact irreversibleAt_of_illegal (step_tabToFound_none_of_nextUp hf)
 
+/-- **The under-row `.tabToFound` witness at `WF`, lifted.**  The
+witness construction `tabToFoundClass` embeds inline in its under
+row, lifted to a named `reversibleAtW`-producing head beside its
+cell — extraction, not re-derivation: the `runOK` seam fit and the
+successor's `pileOfTop` re-pin are the classification's own grind,
+restated so the witness bridge (end of file) closes without
+duplicating them.  The shape premises are exactly the shape Bool's
+false branch: next-up, the seat located, nonempty `chop` content
+below the moved card. -/
+theorem tabToFound_reversibleAtW_under_wf {st : State} {c : Card} {a : Anchor}
+    (hwf : st.WF) (hn : st.nextUp c = true) (ha : st.pileOfTop c = some a)
+    {z' : Card} {preT : List Card}
+    (hchop : chop (st.piles a).faceUp = z' :: preT) :
+    reversibleAtW st (Move.tabToFound c) := by
+  obtain ⟨s₁, hs₁⟩ := step_tabToFound_some hn ha
+  obtain ⟨zW, hzw0⟩ := lastOf_cons_some preT z'
+  have hzw : lastOf (chop (st.piles a).faceUp) = some zW := by
+    rw [hchop]
+    exact hzw0
+  have hsit : canSitOn c zW = true := by
+    refine runOK_adjacent_snoc hzw0 ?_
+    have hface : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] :=
+      lastOf_chop (pileOfTop_top ha).2
+    have hrunk : runOK (st.piles a).faceUp = true := hwf.2.1 a
+    rw [hface, hchop] at hrunk
+    exact hrunk
+  have hsearch : s₁.pileOfTop zW = some a := by
+    obtain ⟨-, a', hp', hs'⟩ := step_tabToFound_inv hs₁
+    have hae : a' = a := by
+      have hx : some a = some a' := ha.symm.trans hp'
+      injection hx with hxE
+      exact hxE.symm
+    rw [hs', hae]
+    have hothers : ∀ a₂, a₂ ≠ a →
+        ((({ found := fun σ => if σ = c.suit then st.found c.suit ++ [c] else st.found σ, piles := fun a'' => if a'' = a then (Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) : Pile) else st.piles a'', stock := st.stock, waste := st.waste, drawStep := st.drawStep } : State).piles) a₂) = st.piles a₂ := by
+      intro a₂ hne₂
+      show (if a₂ = a then
+          ((Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) : Pile))
+          else st.piles a₂) = st.piles a₂
+      rw [ite_eq_right hne₂]
+    have htop2 : ((({ found := fun σ => if σ = c.suit then st.found c.suit ++ [c] else st.found σ, piles := fun a'' => if a'' = a then (Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) : Pile) else st.piles a'', stock := st.stock, waste := st.waste, drawStep := st.drawStep } : State).piles a)).top = some zW := by
+      show (if a = a then
+          ((Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) : Pile))
+          else st.piles a).top = some zW
+      rw [ite_eq_left rfl]
+      show lastOf ((Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)).faceUp) = some zW
+      rw [afterRunRemoved_faceUp_ne (by
+          rw [hchop]; exact fun hh => absurd hh (by simp)), hchop]
+      exact hzw0
+    have hnost2 : ∀ a₂, a₂ ≠ a → (st.piles a₂).top ≠ some zW :=
+      fun a₂ hne₂ => wf_no_other_top hwf (chop_mem (lastOf_mem hzw)) a₂ hne₂
+    exact topPin hothers htop2 hnost2
+  exact tabToFound_undo_under hs₁ ha hzw hsit hsearch
+
 /-- A refused `.foundToTab` guard makes the move vacuously
 irreversible. -/
 private theorem step_foundToTab_none {st : State} {c' c : Card} {b : Base}
@@ -2384,6 +2465,73 @@ theorem foundToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
               intro hc
               rw [hd2, Bool.false_and] at hc
               exact absurd hc (by simp)))
+
+/-- **The legal `.foundToTab` witness at `WF`, lifted.**  The witness
+construction `foundToTabClass` embeds inline in its legal branch (the
+one cell where the shape reads false), lifted to a named
+`reversibleAtW`-producing head beside its cell — extraction, not
+re-derivation: the foundation-prefix arithmetic (`hnext` through
+`wf_found_chop_toIdx`) and the successor's `pileOfTop` re-pin (the
+card-count uniqueness excluding every other seat) are the
+classification's own grind, restated for the witness bridge below.
+Both bases (`b`) are handled inside, mirroring the class branch. -/
+theorem foundToTab_reversibleAtW_of_legal_wf {st : State} {c : Card} {b : Base}
+    (hwf : st.WF) (htop : st.foundTop c.suit = some c) (hcp : st.canPlace c b = true) :
+    reversibleAtW st (Move.foundToTab c b) := by
+  obtain ⟨s₁, hs⟩ := step_foundToTab_legal htop hcp
+  have hnext : (chop (st.found c.suit)).length = c.rank.toIdx :=
+    wf_found_chop_toIdx hwf htop
+  cases b with
+  | inl k =>
+      have hnost : ∀ a₂ : Anchor, a₂ ≠ k → (st.piles a₂).top ≠ some c :=
+        fun a₂ _ => @wf_found_not_pileTop st c a₂ c.suit hwf htop
+      have hsearch : s₁.pileOfTop c = some k := by
+        obtain ⟨-, -, -, -, hs'⟩ := step_foundToTab_inv hs
+        rw [hs']
+        have hothers : ∀ a₂, a₂ ≠ k →
+            ((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inl k)).piles a₂
+              = st.piles a₂ := by
+          intro a₂ hne₂
+          rw [putCard_piles_inl]
+          show (if a₂ = k then ((⟨[], [c]⟩ : Pile)) else st.piles a₂) = st.piles a₂
+          rw [ite_eq_right hne₂]
+        have htop2 : (((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inl k)).piles k).top
+            = some c := by
+          rw [putCard_piles_inl]
+          show (if k = k then ((⟨[], [c]⟩ : Pile)) else st.piles k).top = some c
+          rw [ite_eq_left rfl]
+          rfl
+        exact topPin hothers htop2 hnost
+      exact foundToTab_undo hs hnext hsearch (Or.inl rfl)
+  | inr z =>
+      obtain ⟨k, hz, -⟩ := canPlace_inr hcp
+      have hnost : ∀ a₂ : Anchor, a₂ ≠ k → (st.piles a₂).top ≠ some c :=
+        fun a₂ _ => @wf_found_not_pileTop st c a₂ c.suit hwf htop
+      have hsearch : s₁.pileOfTop c = some k := by
+        obtain ⟨-, -, -, -, hs'⟩ := step_foundToTab_inv hs
+        rw [hs']
+        have hz2 : (st.setFound c.suit (chop (st.found c.suit))).pileOfTop z
+            = some k := hz
+        have hothers : ∀ a₂, a₂ ≠ k →
+            ((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inr z)).piles a₂
+              = st.piles a₂ := by
+          intro a₂ hne₂
+          rw [putCard_piles_inr _ _ _ _ hz2]
+          show (if a₂ = k then
+              ({ st.piles k with faceUp := (st.piles k).faceUp ++ [c] } : Pile)
+              else st.piles a₂) = st.piles a₂
+          rw [ite_eq_right hne₂]
+        have htop2 : (((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inr z)).piles k).top
+            = some c := by
+          rw [putCard_piles_inr _ _ _ _ hz2]
+          show (if k = k then
+              ({ st.piles k with faceUp := (st.piles k).faceUp ++ [c] } : Pile)
+              else st.piles k).top = some c
+          rw [ite_eq_left rfl]
+          show lastOf ((st.piles k).faceUp ++ [c]) = some c
+          exact lastOf_snoc (st.piles k).faceUp c
+        exact topPin hothers htop2 hnost
+      exact foundToTab_undo hs hnext hsearch (Or.inr ⟨z, rfl, hz⟩)
 
 /-- The `.tabToTab` shape: the reveal row irreversible (the
 hidden total strictly drops); the bare row split at the king
@@ -2812,6 +2960,391 @@ theorem tabToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
               · intro hshape
                 exact absurd hshape (by simp)
 
+/-- **The bare-king `.tabToTab` witness at `WF`, lifted.**  The
+witness construction `tabToTabClass` embeds inline in its bare-seat
+king row, lifted to a named `reversibleAtW`-producing head beside
+its cell — extraction, not re-derivation: the emptied-source
+rewriting, the landing-pile occurrence-uniqueness pins, the
+successor's `pileHolding` re-pin, and — in the card-base case — the
+mid-board `pileOfTop` pin of the emptied seat are the
+classification's own grind, restated for the witness bridge below.
+The shape premises are exactly the shape Bool's false branch:
+run head located, placement legal, nothing below, no hidden cards,
+and the king.  Both bases (`b`) are handled inside, mirroring the
+class branch. -/
+theorem tabToTab_reversibleAtW_bare_king_wf {st : State} {c : Card} {b : Base}
+    {a : Anchor}
+    (hwf : st.WF) (hh : st.pileHolding c = some a) (hcp : st.canPlace c b = true)
+    (hbelow : below c (st.piles a).faceUp = []) (hhid : (st.piles a).hidden = [])
+    (hkng : c.rank = Rank.king) :
+    reversibleAtW st (Move.tabToTab c b) := by
+  obtain ⟨s₁, hs⟩ := step_tabToTab_some hh hcp
+  obtain ⟨a₂, hht, hct, hfr, hs₁⟩ := step_tabToTab_inv hs
+  have haeq : a₂ = a := by
+    have hx : some a = some a₂ := hh.symm.trans hht
+    injection hx with hxE
+    exact hxE.symm
+  rw [haeq] at hs₁ hfr
+  obtain ⟨tr, hrt⟩ := fromCard_head rfl hfr
+  rw [hbelow, afterRunRemoved_empty_eq' _ hhid] at hs₁
+  cases b with
+  | inl k =>
+      have hka : k ≠ a :=
+        canPlace_inl_target_pile_ne hcp (pileHolding_mem hh)
+      have hcN : c ∉ (st.piles k).faceUp :=
+        (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1
+      have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
+        intro y hya hyk
+        rw [hs₁, putRun_piles_inl]
+        show (if y = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles y)
+          = st.piles y
+        rw [ite_eq_right hyk]
+        show (if y = a then ⟨[], ([] : List Card)⟩ else st.piles y)
+          = st.piles y
+        rw [ite_eq_right hya]
+      have hca : c ∉ (s₁.piles a).faceUp := by
+        rw [hs₁, putRun_piles_inl]
+        show c ∉ (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles a).faceUp
+        rw [ite_eq_right (Ne.symm hka)]
+        show c ∉ (if a = a then ⟨[], ([] : List Card)⟩ else st.piles a).faceUp
+        rw [ite_eq_left rfl]
+        intro hcon
+        cases hcon
+      have hhk : c ∈ (s₁.piles k).faceUp := by
+        rw [hs₁, putRun_piles_inl]
+        show c ∈ (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
+        rw [ite_eq_left rfl, hrt]
+        exact List.mem_cons_self
+      have hhold : s₁.pileHolding c = some k :=
+        holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
+          (fun y hyk hya =>
+            (mem_faceUp_unique hwf (pileHolding_mem hh) y hya).1)
+      exact tabToTab_undo_bare hs hh hbelow hhid hkng hhold (Or.inl rfl)
+        hkeep hcN
+  | inr z' =>
+      obtain ⟨k, hk₀, -⟩ := canPlace_inr hcp
+      have hka : k ≠ a := fun hcon =>
+        canPlace_inr_target_pile_ne hwf hcp (pileHolding_mem hh)
+          (hk₀.trans (congrArg some hcon))
+      have hcN : c ∉ (st.piles k).faceUp :=
+        (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1
+      -- the mid pin: the source pile is topless at mid (it was
+      -- emptied), so the card search pins pile k alone
+      have hmidK : (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k
+          = st.piles k := by
+        show (if k = a then ⟨[], ([] : List Card)⟩ else st.piles k) = _
+        rw [ite_eq_right hka]
+      have hmidAtop : ((st.setPile a ⟨[], ([] : List Card)⟩ : State).piles a).top
+          ≠ some z' := by
+        show (if a = a then ⟨[], ([] : List Card)⟩ else st.piles a).top
+          ≠ some z'
+        rw [ite_eq_left rfl]
+        intro hcon
+        nomatch hcon
+      have hseatMid :
+          (st.setPile a ⟨[], ([] : List Card)⟩ : State).pileOfTop z'
+            = some k :=
+          topPin2 (by
+              rw [hmidK]
+              exact (pileOfTop_top hk₀).2)
+            (fun y hyk hya => by
+              show (if y = a then ⟨[], ([] : List Card)⟩
+                  else st.piles y) = st.piles y
+              rw [ite_eq_right hya])
+            hmidAtop (fun y hyk _ =>
+              wf_no_other_top hwf (lastOf_mem (pileOfTop_top hk₀).2) y hyk)
+      have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
+        intro y hya hyk
+        rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
+        show (if y = k then
+            { (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k with
+              faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
+                ++ fromCard c (st.piles a).faceUp }
+            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles y)
+          = st.piles y
+        rw [ite_eq_right hyk]
+        show (if y = a then ⟨[], ([] : List Card)⟩ else st.piles y)
+          = st.piles y
+        rw [ite_eq_right hya]
+      have hca : c ∉ (s₁.piles a).faceUp := by
+        rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
+        show c ∉ (if a = k then
+            { (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k with
+              faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
+                ++ fromCard c (st.piles a).faceUp }
+            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles a).faceUp
+        rw [ite_eq_right (Ne.symm hka)]
+        show c ∉ (if a = a then ⟨[], ([] : List Card)⟩ else st.piles a).faceUp
+        rw [ite_eq_left rfl]
+        intro hcon
+        cases hcon
+      have hhk : c ∈ (s₁.piles k).faceUp := by
+        rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
+        show c ∈ (if k = k then
+            { (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k with
+              faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
+                ++ fromCard c (st.piles a).faceUp }
+            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
+        rw [ite_eq_left rfl, hmidK, hrt]
+        exact (List.mem_append).2 (Or.inr List.mem_cons_self)
+      have hhold : s₁.pileHolding c = some k :=
+        holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
+          (fun y hyk hya =>
+            (mem_faceUp_unique hwf (pileHolding_mem hh) y hya).1)
+      exact tabToTab_undo_bare hs hh hbelow hhid hkng hhold
+        (Or.inr ⟨z', rfl, hseatMid⟩) hkeep hcN
+
+/-- **The under-row `.tabToTab` witness at `WF`, lifted.**  The
+witness construction `tabToTabClass` embeds inline in its under row
+(face-up content surviving below the moved run), lifted to a named
+`reversibleAtW`-producing head beside its cell — extraction, not
+re-derivation: the seat-card pin, the `runOK` seam fit, the
+landing-pile occurrence-uniqueness pins, the successor's
+`pileHolding` re-pin, the rank-exclusion grind of `hzOnly`, and —
+in the card-base case — the mid-board `pileOfTop` pin through the
+`z ≠ z'` occurrence split are the classification's own grind,
+restated for the witness bridge below.  The shape premises are
+exactly the shape Bool's false branch: run head located, placement
+legal, nonempty content below.  Both bases (`b`) are handled
+inside. -/
+theorem tabToTab_reversibleAtW_under_wf {st : State} {c : Card} {b : Base}
+    {a : Anchor}
+    (hwf : st.WF) (hh : st.pileHolding c = some a) (hcp : st.canPlace c b = true)
+    {z₀ : Card} {pre' : List Card}
+    (hbelow : below c (st.piles a).faceUp = z₀ :: pre') :
+    reversibleAtW st (Move.tabToTab c b) := by
+  obtain ⟨s₁, hs⟩ := step_tabToTab_some hh hcp
+  obtain ⟨a₂, hht, hct, hfr, hs₁⟩ := step_tabToTab_inv hs
+  have haeq : a₂ = a := by
+    have hx : some a = some a₂ := hh.symm.trans hht
+    injection hx with hxE
+    exact hxE.symm
+  rw [haeq] at hs₁ hfr
+  obtain ⟨tr, hrt⟩ := fromCard_head rfl hfr
+  obtain ⟨z, hz⟩ := lastOf_cons_some pre' z₀
+  have hzB : lastOf (below c (st.piles a).faceUp) = some z := by
+    rw [hbelow]
+    exact hz
+  have hzin : z ∈ below c (st.piles a).faceUp := lastOf_mem hzB
+  have hzmem : z ∈ (st.piles a).faceUp := below_mem hzin
+  have h1 := below_join (c := c) ((st.piles a).faceUp)
+  rw [hbelow, hrt] at h1
+  -- h1 : (z₀ :: pre') ++ (c :: tr) = (st.piles a).faceUp
+  have hrunOK0 : runOK ((st.piles a).faceUp) = true := hwf.runOK_of a
+  have hrunlit : runOK ((z₀ :: pre') ++ (c :: tr)) = true := by
+    rw [h1]
+    exact hrunOK0
+  have hrunTail : runOK (c :: tr) = true :=
+    runOK_append_left (z₀ :: pre') (c :: tr) hrunlit
+  have hfitpre : runOK (((z₀ :: pre') ++ [c]) ++ tr) = true := by
+    rw [List.append_assoc]
+    have hE : [c] ++ tr = c :: tr := by
+      rw [List.cons_append, List.nil_append]
+    rw [hE]
+    exact hrunlit
+  have hsit : canSitOn c z = true :=
+    runOK_adjacent_snoc hz
+      (runOK_append_right ((z₀ :: pre') ++ [c]) tr hfitpre)
+  cases b with
+  | inl k =>
+      have hka : k ≠ a :=
+        canPlace_inl_target_pile_ne hcp (pileHolding_mem hh)
+      have hcN : c ∉ (st.piles k).faceUp :=
+        (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1
+      have hzK : (st.piles k).top ≠ some z :=
+        wf_no_other_top hwf hzmem k hka
+      have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
+        intro y hya hyk
+        rw [hs₁, putRun_piles_inl]
+        show (if y = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+            else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles y)
+          = st.piles y
+        rw [ite_eq_right hyk]
+        show (if y = a then Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp) else st.piles y) = st.piles y
+        rw [ite_eq_right hya]
+      have hca : c ∉ (s₁.piles a).faceUp := by
+        rw [hs₁, putRun_piles_inl]
+        show c ∉ (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+            else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles a).faceUp
+        rw [ite_eq_right (Ne.symm hka)]
+        show c ∉ (if a = a then Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp) else st.piles a).faceUp
+        rw [ite_eq_left rfl, hbelow]
+        show c ∉ (z₀ :: pre')
+        rw [← hbelow]
+        exact below_not_mem_self _
+      have hhk : c ∈ (s₁.piles k).faceUp := by
+        rw [hs₁, putRun_piles_inl]
+        show c ∈ (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+            else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles k).faceUp
+        rw [ite_eq_left rfl, hrt]
+        exact List.mem_cons_self
+      have hhold : s₁.pileHolding c = some k :=
+        holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
+          (fun y hyk hya =>
+            (mem_faceUp_unique hwf (pileHolding_mem hh) y hya).1)
+      have hzOnly : ∀ y, y ≠ a → (s₁.piles y).top ≠ some z := by
+        intro y hya
+        by_cases hyk : y = k
+        · rw [hyk]
+          intro htop
+          have hmemK : z ∈ (s₁.piles k).faceUp := Pile.mem_of_top htop
+          have hkFu : (s₁.piles k).faceUp
+              = fromCard c (st.piles a).faceUp := by
+            rw [hs₁, putRun_piles_inl]
+            show (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
+                else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+                  (below c (st.piles a).faceUp)) : State).piles k).faceUp = _
+            rw [ite_eq_left rfl]
+          rw [hkFu, hrt] at hmemK
+          rcases List.mem_cons.1 hmemK with heq | htr2
+          · rw [heq] at hsit
+            obtain ⟨hrank, -⟩ := (canSitOn_eq c c).mp hsit
+            omega
+          · have hrk := runOK_head_lt hrunTail htr2
+            obtain ⟨hrank, -⟩ := (canSitOn_eq c z).mp hsit
+            omega
+        · intro htop
+          rw [hkeep y hya hyk] at htop
+          exact wf_no_other_top hwf hzmem y hya htop
+      exact tabToTab_undo_under hs hh hzB hsit hhold (Or.inl rfl)
+        hkeep hcN hzOnly hzK
+  | inr z' =>
+      obtain ⟨k, hk₀, -⟩ := canPlace_inr hcp
+      have hka : k ≠ a := fun hcon =>
+        canPlace_inr_target_pile_ne hwf hcp (pileHolding_mem hh)
+          (hk₀.trans (congrArg some hcon))
+      have hcN : c ∉ (st.piles k).faceUp :=
+        (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1
+      have hzK : (st.piles k).top ≠ some z :=
+        wf_no_other_top hwf hzmem k hka
+      have hz'mem : z' ∈ (st.piles k).faceUp :=
+        lastOf_mem (pileOfTop_top hk₀).2
+      have hnostK : ∀ y : Anchor, y ≠ k → (st.piles y).top ≠ some z' :=
+        fun y hy => wf_no_other_top hwf hz'mem y hy
+      have hmidK : (st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp)) : State).piles k = st.piles k := by
+        show (if k = a then Pile.afterRunRemoved (st.piles a)
+            (below c (st.piles a).faceUp) else st.piles k) = _
+        rw [ite_eq_right hka]
+      -- at mid, the source pile tops z (the below part survived),
+      -- and z ≠ z' by the occurrence uniqueness
+      have hmidAtop : ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp)) : State).piles a).top
+          ≠ some z' := by
+        show (if a = a then Pile.afterRunRemoved (st.piles a)
+            (below c (st.piles a).faceUp) else st.piles a).top ≠ some z'
+        rw [ite_eq_left rfl, hbelow]
+        show (⟨(st.piles a).hidden, z₀ :: pre'⟩ : Pile).top ≠ some z'
+        intro hcon
+        have hlt : lastOf (z₀ :: pre') = some z' := hcon
+        rw [hz] at hlt
+        injection hlt with hzz'
+        have hzc : z' ∈ (st.piles a).faceUp := by
+          rw [← hzz']
+          exact hzmem
+        exact absurd hz'mem ((mem_faceUp_unique hwf hzc k hka).1)
+      have hseatMid : (st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp)) : State).pileOfTop z' = some k :=
+        topPin2 (by
+            rw [hmidK]
+            exact (pileOfTop_top hk₀).2)
+          (fun y hyk hya => by
+            show (if y = a then Pile.afterRunRemoved (st.piles a)
+                (below c (st.piles a).faceUp) else st.piles y) = st.piles y
+            rw [ite_eq_right hya])
+          hmidAtop (fun y hyk _ => hnostK y hyk)
+      have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
+        intro y hya hyk
+        rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
+        show (if y = k then
+            { (st.setPile a (Pile.afterRunRemoved (st.piles a)
+                (below c (st.piles a).faceUp)) : State).piles k with
+              faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+                (below c (st.piles a).faceUp)) : State).piles k).faceUp
+                ++ fromCard c (st.piles a).faceUp }
+            else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles y)
+          = st.piles y
+        rw [ite_eq_right hyk]
+        show (if y = a then Pile.afterRunRemoved (st.piles a)
+            (below c (st.piles a).faceUp) else st.piles y) = st.piles y
+        rw [ite_eq_right hya]
+      have hca : c ∉ (s₁.piles a).faceUp := by
+        rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
+        show c ∉ (if a = k then
+            { (st.setPile a (Pile.afterRunRemoved (st.piles a)
+                (below c (st.piles a).faceUp)) : State).piles k with
+              faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+                (below c (st.piles a).faceUp)) : State).piles k).faceUp
+                ++ fromCard c (st.piles a).faceUp }
+            else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles a).faceUp
+        rw [ite_eq_right (Ne.symm hka)]
+        show c ∉ (if a = a then Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp) else st.piles a).faceUp
+        rw [ite_eq_left rfl, hbelow]
+        show c ∉ (z₀ :: pre')
+        rw [← hbelow]
+        exact below_not_mem_self _
+      have hhk : c ∈ (s₁.piles k).faceUp := by
+        rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
+        show c ∈ (if k = k then
+            { (st.setPile a (Pile.afterRunRemoved (st.piles a)
+                (below c (st.piles a).faceUp)) : State).piles k with
+              faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+                (below c (st.piles a).faceUp)) : State).piles k).faceUp
+                ++ fromCard c (st.piles a).faceUp }
+            else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp)) : State).piles k).faceUp
+        rw [ite_eq_left rfl, hmidK, hrt]
+        exact (List.mem_append).2 (Or.inr List.mem_cons_self)
+      have hhold : s₁.pileHolding c = some k :=
+        holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
+          (fun y hyk hya =>
+            (mem_faceUp_unique hwf (pileHolding_mem hh) y hya).1)
+      have hzOnly : ∀ y, y ≠ a → (s₁.piles y).top ≠ some z := by
+        intro y hya
+        by_cases hyk : y = k
+        · rw [hyk]
+          intro htop
+          have hmemK : z ∈ (s₁.piles k).faceUp := Pile.mem_of_top htop
+          have hkFu : (s₁.piles k).faceUp
+              = (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp := by
+            rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
+            show (if k = k then
+                { (st.setPile a (Pile.afterRunRemoved (st.piles a)
+                    (below c (st.piles a).faceUp)) : State).piles k with
+                  faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+                    (below c (st.piles a).faceUp)) : State).piles k).faceUp
+                    ++ fromCard c (st.piles a).faceUp }
+                else (st.setPile a (Pile.afterRunRemoved (st.piles a)
+                  (below c (st.piles a).faceUp)) : State).piles k).faceUp = _
+            rw [ite_eq_left rfl, hmidK]
+          rw [hkFu, hrt] at hmemK
+          have hzrun2 : z ∈ (st.piles k).faceUp ++ (c :: tr) := hmemK
+          rcases (List.mem_append).1 hzrun2 with hL | hR
+          · exact absurd hL ((mem_faceUp_unique hwf hzmem k hka).1)
+          · rcases List.mem_cons.1 hR with heq | htr2
+            · rw [heq] at hsit
+              obtain ⟨hrank, -⟩ := (canSitOn_eq c c).mp hsit
+              omega
+            · have hrk := runOK_head_lt hrunTail htr2
+              obtain ⟨hrank, -⟩ := (canSitOn_eq c z).mp hsit
+              omega
+        · intro htop
+          rw [hkeep y hya hyk] at htop
+          exact wf_no_other_top hwf hzmem y hya htop
+      exact tabToTab_undo_under hs hh hzB hsit hhold
+        (Or.inr ⟨z', rfl, hseatMid⟩) hkeep hcN hzOnly hzK
+
 /-! ## The draw shape -/
 
 /-- The draw shape: pristine or offset positions are irreversible,
@@ -3000,6 +3533,302 @@ theorem win_macro_aux_wf : ∀ (play : List Move) (origin cur w : State)
                 exact Bool.noConfusion hshape
               exact ih origin s₁ w (pre ++ [m]) hrest
                 (ShufflePlay_snoc hs hrev hstep) hwin
+
+
+
+
+/-! ## The witness bridge
+
+`Orig/Fate.lean`'s design note records that the *unconditioned*
+iff between the negative form (`reversibleAt`) and the witness
+form (`reversibleAtW`) would push a negation through a universal
+into an existential and drag `Classical.choice` through the
+vocabulary — so it is deliberately not stated there.  At a `WF`
+state the assembled oracle is that missing dichotomy, cell by
+cell, and this continuation draws the bridge's conclusion over it:
+**every reversible move at a `WF` state carries its returning play
+as data.**  The proof performs no new construction — it is the
+doctrine standing on the oracle:
+
+* a reversible move cannot read `true` on the shape (the oracle is
+  exact at `WF`: `irreversible_iff_of` would hand back
+  `irreversibleAt` against the hypothesis), so the shape Bool is
+  `false`;
+* each move kind's `false` cells name a specific reversible row
+  whose witness is already supplied — the extracted heads beside
+  their class cells (`tabToFound_reversibleAtW_under_wf`,
+  `foundToTab_reversibleAtW_of_legal_wf`,
+  `tabToTab_reversibleAtW_bare_king_wf`,
+  `tabToTab_reversibleAtW_under_wf`), the landed undo families
+  whose premises are immediate (`tabToFound_undo_bare` at the
+  bare-king seat), and the draw round trips
+  (`draw_passBase_reversibleW` for the pass base, phase's
+  `draw_reversible_inphaseW` for the phase-aligned stock-bearing
+  position);
+* every remaining row of the six-constructor table — the illegal
+  guards, the reveal rows, the bare seats of non-kings, the waste
+  rows (whose cells are constantly `true`) — reads `true` on the
+  shape at a state where the hypothesis forbids it, and dies by
+  `Bool.noConfusion` on the computed cell: vacuous, honestly, per
+  the landed guard analysis.  No apology is needed anywhere: a
+  `false` cell was reached, and every `false` cell is witnessed.
+
+The draw step's zero-width round trip (`drawStep_zero_reversibleW`)
+deliberately plays no role here: at a `WF` state the draw step is
+positive (`WF.drawStep_pos`), so the cell that row serves is
+unreachable through this gate — its world is the wild states.
+
+With the bridge, the two forms coincide *at the gate*
+(`reversibleAtW_iff_reversible`): exactly where `Fate.lean`
+refused to state the unconditioned iff, the WF-gated one is
+honest.  The digest below makes the bridge consumable by its
+clients: the count lanes, the canonicalizer's successor
+schedules, and the `ShufflePlayW`/`RevEqW` constructions (cited as
+`Combine`'s cons heads' supply).  The window-scale reading is
+per-leg by design — a `MacroStep` window's shuffle legs lift one
+leg at a time, each leg licensed by its own base state's `WF`
+(step-preserved `WF` is `Orig.lean`'s open ticket; the `WFRun`
+discipline above carries each leg's `WF` as data where a whole
+window is walked). -/
+
+/-- **The core bridge.**  At a `WF` state, every reversible move
+carries its returning play: from the negative form alone — no
+world data — the move's legality, its successor, and a play back
+to the origin are all produced.  This is the uniform supply the
+witness-carried constructions cite (`Combine`'s `ShufflePlayW.cons`
+heads, the count lanes' shuffle legs, the canonicalizer's
+reversible raises). -/
+theorem reversibleAtW_of_reversible {st : State} (hwf : st.WF) {m : Move}
+    (h : reversibleAt st m) : reversibleAtW st m := by
+  have hfalse : irreversibleOf st m = false := by
+    cases hshape : irreversibleOf st m with
+    | true => exact absurd ((irreversible_iff_of hwf m).mpr hshape) h
+    | false => rfl
+  cases m with
+  | draw =>
+      have hd : 0 < st.drawStep := hwf.drawStep_pos
+      rw [irreversibleOf] at hfalse
+      cases hstock : st.stock with
+      | nil =>
+          have hcell : drawIrr st = decide (st.waste = []) := by
+            rw [drawIrr, hstock]
+          rw [hcell] at hfalse
+          exact draw_passBase_reversibleW hstock (of_decide_eq_false hfalse) hd
+      | cons w t =>
+          have hcell : drawIrr st =
+              (decide (st.waste = []) || decide (st.waste.length % st.drawStep ≠ 0)) := by
+            rw [drawIrr, hstock]
+          rw [hcell] at hfalse
+          have hne : st.stock ≠ [] := by
+            intro hc
+            rw [hstock] at hc
+            exact absurd hc (by simp)
+          have hwF : decide (st.waste = []) = false := by
+            cases hA : decide (st.waste = []) with
+            | false => rfl
+            | true =>
+                rw [hA, Bool.true_or] at hfalse
+                exact Bool.noConfusion hfalse
+          have hw : st.waste ≠ [] := of_decide_eq_false hwF
+          have hresF : decide (st.waste.length % st.drawStep ≠ 0) = false := by
+            cases hB : decide (st.waste.length % st.drawStep ≠ 0) with
+            | false => rfl
+            | true =>
+                rw [hwF, Bool.false_or, hB] at hfalse
+                exact Bool.noConfusion hfalse
+          have hres : st.waste.length % st.drawStep = 0 := by
+            cases hN : st.waste.length % st.drawStep with
+            | zero => rfl
+            | succ k =>
+                have hne0 : st.waste.length % st.drawStep ≠ 0 := by
+                  rw [hN]
+                  exact Nat.succ_ne_zero k
+                rw [decide_eq_true hne0] at hresF
+                exact Bool.noConfusion hresF
+          have hph : inPhase st = true := by
+            rw [inPhase_eq_decide_of_cons hstock, decide_eq_true hres]
+          exact draw_reversible_inphaseW hd hne hw hph
+  | wasteToFound c =>
+      -- the always-true cells: a reversible state contradicts them
+      exact absurd (irreversibleAt_wasteToFound st c) h
+  | wasteToTab c b =>
+      exact absurd (irreversibleAt_wasteToTab st c b) h
+  | tabToFound c =>
+      rw [irreversibleOf] at hfalse
+      cases hn : st.nextUp c with
+      | true =>
+          cases hloc : st.pileOfTop c with
+          | none =>
+              have hcell : tabToFoundIrr st c = true := by
+                rw [tabToFoundIrr, hn, hloc]
+              rw [hcell] at hfalse
+              exact Bool.noConfusion hfalse
+          | some a =>
+              -- the reduced view at the located seat, discriminants free
+              -- for the deeper splits (the class proof's own hred)
+              have hred : tabToFoundIrr st c =
+                  (match chop (st.piles a).faceUp with
+                  | [] =>
+                      match (st.piles a).hidden with
+                      | [] => decide (c.rank ≠ Rank.king)
+                      | _ :: _ => true
+                  | _ :: _ => false) := by
+                rw [tabToFoundIrr, hn, hloc]
+              cases hchop : chop (st.piles a).faceUp with
+              | nil =>
+                  have hred' : tabToFoundIrr st c =
+                      (match (st.piles a).hidden with
+                      | [] => decide (c.rank ≠ Rank.king)
+                      | _ :: _ => true) := by
+                    rw [hred, hchop]
+                  cases hhidden : (st.piles a).hidden with
+                  | nil =>
+                      by_cases hkng : c.rank = Rank.king
+                      · -- the bare-king seat: immediate data, no grind needed
+                        obtain ⟨s₁, hs₁⟩ := step_tabToFound_some hn hloc
+                        exact tabToFound_undo_bare hs₁ hloc hchop hhidden hkng
+                      · have hcell : tabToFoundIrr st c = true := by
+                          rw [hred', hhidden, decide_eq_true hkng]
+                        rw [hcell] at hfalse
+                        exact Bool.noConfusion hfalse
+                  | cons hh1 t1 =>
+                      have hcell : tabToFoundIrr st c = true := by
+                        rw [hred', hhidden]
+                      rw [hcell] at hfalse
+                      exact Bool.noConfusion hfalse
+              | cons z' preT =>
+                  exact tabToFound_reversibleAtW_under_wf hwf hn hloc hchop
+      | false =>
+          have hcell : tabToFoundIrr st c = true := by
+            rw [tabToFoundIrr, hn]
+          rw [hcell] at hfalse
+          exact Bool.noConfusion hfalse
+  | foundToTab c b =>
+      rw [irreversibleOf] at hfalse
+      cases htop : st.foundTop c.suit with
+      | none =>
+          have hcell : foundToTabIrr st c b = true := by
+            rw [foundToTabIrr, htop]
+          rw [hcell] at hfalse
+          exact Bool.noConfusion hfalse
+      | some c' =>
+          by_cases hcc : c' = c
+          · rw [hcc] at htop
+            cases hcp : st.canPlace c b with
+            | false =>
+                have hcell : foundToTabIrr st c b = true := by
+                  rw [foundToTabIrr, htop]
+                  show (if c = c then !(st.canPlace c b) else true) = true
+                  rw [ite_eq_left rfl, hcp, Bool.not_false]
+                rw [hcell] at hfalse
+                exact Bool.noConfusion hfalse
+            | true =>
+                exact foundToTab_reversibleAtW_of_legal_wf hwf htop hcp
+          · have hcell : foundToTabIrr st c b = true := by
+              rw [foundToTabIrr, htop]
+              show (if c' = c then !(st.canPlace c b) else true) = true
+              rw [ite_eq_right hcc]
+            rw [hcell] at hfalse
+            exact Bool.noConfusion hfalse
+  | tabToTab c b =>
+      rw [irreversibleOf] at hfalse
+      cases hh : st.pileHolding c with
+      | none =>
+          have hcell : tabToTabIrr st c b = true := by
+            rw [tabToTabIrr, hh]
+          rw [hcell] at hfalse
+          exact Bool.noConfusion hfalse
+      | some a =>
+          cases hcp : st.canPlace c b with
+          | false =>
+              have hcell : tabToTabIrr st c b = true := by
+                rw [tabToTabIrr, hh, hcp]
+              rw [hcell] at hfalse
+              exact Bool.noConfusion hfalse
+          | true =>
+              have hred : tabToTabIrr st c b =
+                  (match below c (st.piles a).faceUp with
+                  | [] =>
+                      match (st.piles a).hidden with
+                      | [] => decide (c.rank ≠ Rank.king)
+                      | _ :: _ => true
+                  | _ :: _ => false) := by
+                rw [tabToTabIrr, hh, hcp]
+              cases hbelow : below c (st.piles a).faceUp with
+              | nil =>
+                  have hred' : tabToTabIrr st c b =
+                      (match (st.piles a).hidden with
+                      | [] => decide (c.rank ≠ Rank.king)
+                      | _ :: _ => true) := by
+                    rw [hred, hbelow]
+                  cases hhid : (st.piles a).hidden with
+                  | nil =>
+                      by_cases hkng : c.rank = Rank.king
+                      · exact tabToTab_reversibleAtW_bare_king_wf hwf hh hcp hbelow hhid hkng
+                      · have hcell : tabToTabIrr st c b = true := by
+                          rw [hred', hhid, decide_eq_true hkng]
+                        rw [hcell] at hfalse
+                        exact Bool.noConfusion hfalse
+                  | cons q1 t1 =>
+                      have hcell : tabToTabIrr st c b = true := by
+                        rw [hred', hhid]
+                      rw [hcell] at hfalse
+                      exact Bool.noConfusion hfalse
+              | cons z₀ pre' =>
+                  exact tabToTab_reversibleAtW_under_wf hwf hh hcp hbelow
+
+/-- **The complete witness iff, at the gate.**  At a `WF` state,
+witness-carrying *is* being reversible — the doctrine's
+witness-carried form of every reversible row, completed by the
+bridge above over the landed witness→semantic direction
+(`reversibleAt_of_W`).  This is precisely the iff `Orig/Fate.lean`
+deliberately left unstated ungated: honest exactly where the
+oracle decides. -/
+theorem reversibleAtW_iff_reversible {st : State} (hwf : st.WF) {m : Move} :
+    reversibleAtW st m ↔ reversibleAt st m :=
+  ⟨reversibleAt_of_W, reversibleAtW_of_reversible hwf⟩
+
+/-! ### The digest for the consumers
+
+Two- and three-line corollaries that make the bridge consumable
+where the classification is *read* rather than re-proved: the
+count lanes and the canonicalizer case on the shape Bool
+(`irreversibleOf`), and their `false` cells must hand back data;
+the `RevEqW`/`ShufflePlayW` constructions consume single reversible
+steps at known-`WF` tips. -/
+
+/-- The Bool-side pairing of the bridge: at a `WF` state the
+semantic form and the oracle's `false` cell are the same fact — the
+form to cite when the consumer has already split on the shape Bool
+(the canonicalizer's successor walks, the count lanes' cell
+tests). -/
+theorem reversible_iff_of {st : State} (hwf : st.WF) (m : Move) :
+    reversibleAt st m ↔ irreversibleOf st m = false := by
+  constructor
+  · intro h
+    cases hshape : irreversibleOf st m with
+    | true => exact absurd ((irreversible_iff_of hwf m).mpr hshape) h
+    | false => rfl
+  · intro hfalse hirr
+    rw [(irreversible_iff_of hwf m).mp hirr] at hfalse
+    exact Bool.noConfusion hfalse
+
+/-- **The window-leg supply.**  A step already taken at a `WF`
+state whose oracle cell reads `false` comes back: the returning
+play starts from the very successor the consumer holds.  This is
+the per-leg form in which a `MacroStep` window's shuffle legs are
+data-carrying — each leg cited with its own step; the window-scale
+walk stays `WFRun`-disciplined while step-preserved `WF` remains
+`Orig.lean`'s open ticket. -/
+theorem step_return_of_false_wf {st s₁ : State} {m : Move}
+    (hwf : st.WF) (hstep : State.step st m = some s₁)
+    (hfalse : irreversibleOf st m = false) :
+    ∃ play, s₁.run play = some st := by
+  have hrev : reversibleAt st m := (reversible_iff_of hwf m).mpr hfalse
+  obtain ⟨s₁', play, hstep', hrun⟩ := reversibleAtW_of_reversible hwf hrev
+  injection hstep'.symm.trans hstep with hss
+  rw [hss] at hrun
+  exact ⟨play, hrun⟩
 
 
 
