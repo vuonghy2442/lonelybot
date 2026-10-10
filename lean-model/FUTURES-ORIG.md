@@ -1072,6 +1072,33 @@ same family:
   compliant-less corner for (C); a (B) square that is not an
   equality/sameCycle landing.
 
+**UPDATE 2026-10-10 (B session, branch `farm/orig-dom-b-replay`) —
+(B)'s engine kit landed sorry-free; the assembly open.**  The draw-1
+`draw1_compliant_replay` keeps its named stub; the session landed
+the full private development the nine cases read, in
+`Orig/Dominance.lean`: the list surgery and the dealt composites
+(`drain_positions1`/`base_positions1`/`drain_run1`/`redeal_run1`,
+dedup-marked `Phase` ports), the two fronting engines —
+`front_stock` (c stocked at depth `|pre|`: `|pre|+1` drains, landing
+`⟨bump c, suffix, pre.reverse ++ waste⟩`) and `front_waste` (c
+wasted: drain + recycle-deal + `|postW|` deals, landing `⟨bump c,
+preW.reverse ++ stock, postW⟩`) — the raised-form spend step
+(`wtf_step_raised`), the `lower_foundToTab1` worry-back leg ported
+from Shuttle for the `wasteToTab c b` exit, and `bump2_comm` (the
+two foundation bumps commute at distinct suits).  Probed route
+corrections, recorded at the stub's STATUS note: (i) the induction
+is WF-free — the `π = []` corner is isWin-vs-nextUp alone
+(`toIdx < 13` against the 13-cap; no step-preserved WF anywhere,
+which is `Orig`'s open ticket anyway); (ii) the consuming-move
+squares land up to a pure-draw ROTATION of the same cycle (mutual
+reachability lifts the win with no transport), not up to
+`sameCycle` as the original note claimed; (iii) the one genuine
+(A) citation is the waste-form fronting's pristine corner
+(`postW = []`: the 13-slot is dealt back at the last recycle, the
+fronted twin's cut never re-closes) — a TIGHTER (A)-use than the
+route map's.  Axioms unchanged: `stock_dominance_draw1` still
+`[propext, sorryAx]` exactly through (B)+(C)+(A).
+
 ## 8-prior. The both-occupied harvest (2026-10-10 earlier, branch `macro-game`)
 
 **STATUS 2026-10-10 — THE BOTH-OCCUPIED MIRRORING ENGINE IS ON MAIN
