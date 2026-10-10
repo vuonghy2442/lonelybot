@@ -31,6 +31,19 @@ set, the macro (commitment) game, the futures counts — must be
 theorem, with the proof library in `Klondike/` cited through
 bridges, never baked into the definitions here.
 
+**THE SETOID FLIP (user decision, 2026-10-10)**: `sameOrbitSetoid`
+is the REV-CLOSURE (`RevEqW b a`), not the twin-blended 4-disjunct
+join. The wanted twin-blindness is local and move-achievable: every
+licensed twin exchange is one reversible `tabToTab` each way, already
+inside `RevEqW` — the game's own moves contain the local swap. The
+flip removes the GLOBAL relabeling identification (`A ~ twinMap A`),
+which no play can ever relate (moves do not relabel suits) — the
+count program's witnesses never used it. The conjugation survives
+as the AUTOMORPHISM (`RevEqW_twin_pair` on classes, `canon_twinMap`
+on canonical forms); conjugate positions sit in distinct macro
+classes with equal verdicts (`twin_fate` — external symmetry, not
+folded identity).
+
 Chapter plan (each later chapter is a derived construction):
 
 1. `Orig.Basic`, `Orig.State`, `Orig.Play` — the game: cards, piles,
