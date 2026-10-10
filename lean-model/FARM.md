@@ -39,7 +39,7 @@ wave-24 (C)-gate refute attempt and the premises' co-realizability
 live at `witnesses/OrigSpreadCoReal.lean` (the spread-shaped win and
 the repair's positive instance pinned); audit:
 `draw1_compliant_normalForm` = [propext, sorryAx (via the residue
-only), Quot.sound]; row hash `<hash>`));
+only), Quot.sound]; row hash `00b3ea1`));
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the

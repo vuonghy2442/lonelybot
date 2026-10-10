@@ -1072,7 +1072,8 @@ same family:
   compliant-less corner for (C); a (B) square that is not an
   equality/sameCycle landing.
 
-**STATUS 2026-10-10 (the farm-orig-dom-c-normform session) — (C) IS A
+**STATUS 2026-10-10 (the farm-orig-dom-c-normform session, row
+`00b3ea1` on `farm/orig-dom-c-normform`) — (C) IS A
 PROVEN SKELETON.**  `draw1_compliant_normalForm` left the stub list:
 the normal-form case split is `normform_aux`'s (strong induction on
 the washing play with the rung-cycle bundle `{WF, drawStep = 1,
