@@ -15,6 +15,8 @@ import Orig.Shuttle
 import Orig.Encode
 import Orig.Classify
 import Orig.Reach
+import Orig.Canonical
+import Orig.MergeWalls
 
 /-!
 # Orig — the original game
