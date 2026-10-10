@@ -1336,6 +1336,116 @@ theorem canonEdge_label_draw {C : State} {D : SameOrbit} (e : CanonEdge C D)
     · exact absurd (hnz a) hEq
   rw [hnone]
 
+/-- **The waste row spine**: the cycle test fires (the waste head is
+gone from the conserved count) and the pool read pins the head card —
+`c` is in the source pool and out of the landing's (the stock is
+untouched and the tail carries over, so `c` in the tail would sit
+twice in the landing — in the surviving waste and in its found/pile
+landing zone — which `mem_waste_unique` at the landing kills), and
+any other pool-difference card would have to come from the untouched
+stock or the surviving tail, both of which stay in the landing's pool. -/
+private theorem waste_entry_spine {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    (hcwlt : cycleCount e.w + 1 ≤ cycleCount e.u) (hcE : cycleCount e.u = cycleCount C)
+    (hpE : drawPool e.u = drawPool C) {c : Card} {xs : List Card}
+    (hwu : e.u.waste = c :: xs) (hstock : e.w.stock = e.u.stock)
+    (hww : e.w.waste = xs)
+    (hspot : (∃ s, c ∈ e.w.found s) ∨ (∃ a, c ∈ (e.w.piles a).faceUp)) :
+    e.label = EdgeLabel.wasteEntry c := by
+  show CanonLabel C e.w = EdgeLabel.wasteEntry c
+  have hwmem : c ∈ e.u.waste := by rw [hwu]; exact List.mem_cons_self
+  have hlt : cycleCount e.w < cycleCount C := by omega
+  have hcIn : c ∈ drawPool e.u := by
+    show c ∈ e.u.stock.reverse ++ e.u.waste
+    rw [hwu]
+    exact List.mem_append_right _ (by simp)
+  have hLpool : drawPool e.w = e.u.stock.reverse ++ xs := by
+    show e.w.stock.reverse ++ e.w.waste = _
+    rw [hstock, hww]
+  have hcOut : c ∉ drawPool e.w := by
+    rw [hLpool]
+    refine fun hmem => ?_
+    rcases (List.mem_append).1 hmem with hrev | hxs
+    · exact (mem_waste_unique e.tip_wf hwmem).2.1 (List.mem_reverse.mp hrev)
+    · have hcwmem : c ∈ e.w.waste := by rw [hww]; exact hxs
+      rcases hspot with ⟨s, hfs⟩ | ⟨a₀, hfa⟩
+      · exact (mem_waste_unique e.landing_wf hcwmem).2.2 s hfs
+      · exact ((mem_waste_unique e.landing_wf hcwmem).1 a₀).2 hfa
+  have hread : poolMissCard C e.w = some c := by
+    unfold poolMissCard
+    rw [show drawPool C = drawPool e.u from hpE.symm]
+    refine firstWhere_find (p :=
+      fun c' => decide (c' ∈ drawPool e.u ∧ c' ∉ drawPool e.w)) ?_ ?_ ?_
+    · exact Card.mem_universe c
+    · exact decide_eq_true ⟨hcIn, hcOut⟩
+    · intro y _ hne
+      show decide (y ∈ drawPool e.u ∧ y ∉ drawPool e.w) = false
+      rw [decide_eq_false]
+      refine fun hpred => ?_
+      obtain ⟨hyIn, hyOut⟩ := hpred
+      rcases (List.mem_append).1 hyIn with hstk | hws
+      · exact absurd (by
+          rw [hLpool]
+          exact List.mem_append_left _ hstk) hyOut
+      · rw [hwu] at hws
+        rcases (List.mem_cons).1 hws with hyeq | hyxs
+        · exact hne hyeq
+        · exact absurd (by
+            rw [hLpool]
+            exact List.mem_append_right _ hyxs) hyOut
+  unfold CanonLabel
+  rw [ite_eq_left hlt, hread]
+
+/-- **The waste row**: an edge whose single commitment hands `c` out of
+the waste is wasteEntry-labeled with THAT card — the cycle strictly
+drops across the pair, and the pool-difference read is exactly the
+popped card (uniquely pinned by the pool arithmetic above). -/
+theorem canonEdge_label_waste {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    {c : Card} (hwm : WasteOf c e.m) :
+    e.label = EdgeLabel.wasteEntry c := by
+  obtain ⟨hcE, hpE, -, -⟩ := pad_data e
+  rcases hwm with heqm | ⟨b, heqm⟩
+  · have hstep : e.u.step (Move.wasteToFound c) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨xs, hwu, hsucc⟩ := step_wasteToFound_inv hstep
+    have hstock : e.w.stock = e.u.stock := by
+      rw [hsucc]
+      exact setFound_stock e.u c.suit (e.u.found c.suit ++ [c])
+    have hww : e.w.waste = xs := by rw [hsucc]
+    have hfound : c ∈ e.w.found c.suit := by
+      rw [hsucc]
+      show c ∈ (if c.suit = c.suit then e.u.found c.suit ++ [c] else e.u.found c.suit)
+      rw [ite_eq_left rfl]
+      exact List.mem_append_right _ (by simp)
+    exact waste_entry_spine e (cycleCount_step_wasteToFound hstep) hcE hpE hwu
+      hstock hww (Or.inl ⟨c.suit, hfound⟩)
+  · have hstep : e.u.step (Move.wasteToTab c b) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨hcp, xs, hwu, hsucc⟩ := step_wasteToTab_inv hstep
+    have hstock : e.w.stock = e.u.stock := by
+      rw [hsucc]
+      exact putCard_stock e.u c b
+    have hww : e.w.waste = xs := by rw [hsucc]
+    have hspot : (∃ s, c ∈ e.w.found s) ∨ (∃ a, c ∈ (e.w.piles a).faceUp) := by
+      cases b with
+      | inl a₀ =>
+          refine Or.inr ⟨a₀, ?_⟩
+          rw [hsucc]
+          show c ∈ ((e.u.putCard c (Sum.inl a₀)).piles a₀).faceUp
+          rw [putCard_inl_landing]
+          exact by simp
+      | inr z =>
+          obtain ⟨k, hz, -⟩ := canPlace_inr hcp
+          refine Or.inr ⟨k, ?_⟩
+          rw [hsucc]
+          show c ∈ ((e.u.putCard c (Sum.inr z)).piles k).faceUp
+          rw [putCard_inr_landing hz]
+          show c ∈ (e.u.piles k).faceUp ++ [c]
+          exact List.mem_append_right _ (by simp)
+    exact waste_entry_spine e (cycleCount_step_wasteToTab hstep) hcE hpE hwu
+      hstock hww hspot
+
 
 /-- A both-empty draw zone cannot produce a draw: recycle is the identity
 and there is nothing to deal (citing the public Play readers). -/
@@ -1392,6 +1502,7 @@ theorem canonEdge_draw_shape {C : State} {D : SameOrbit} (e : CanonEdge C D)
 #print axioms canonLabel_orbit_indep
 #print axioms edge_label_unique
 #print axioms canonEdge_label_draw
+#print axioms canonEdge_label_waste
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
