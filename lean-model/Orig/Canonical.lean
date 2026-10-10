@@ -94,6 +94,9 @@ reverse ladder for the return; hence
 * `canon_class : u.WF → RevEqW u (canon u)` — the canonical state
   is INSIDE the state's own reversible orbit: same macro state,
   literally;
+* `canon_in_class : u.WF → ⟦canon u⟧ = ⟦u⟧` — §3.0's centerpiece,
+  stated in the quotient: the canonical form is a DISTINGUISHED
+  MEMBER of its macro class, not a commit-shifted descendant;
 * `canonQ_of_orbit` — the uniform fiber spine: `WF` states in one
   `sameOrbitSetoid` orbit have equal wrapped canons.
 
@@ -111,11 +114,15 @@ their canons ⟦·⟧-equal):
 * `sameMacro_twin`, with the structural conjugation
   `canon (twinMap u) = twinMap (canon u)`;
 * `sameMacro_swRot` — in-phase stock/waste rotations, through
-  `SWComp u v`, the hypothesis-named draw-zone relation whose
-  default is the witness-backed rotation closure built from
-  Phase's in-phase relation (the user's pending confirm —
-  restating `SWComp` re-points the family below without touching
-  the statements).
+  `SWRotW u v`, the witness-backed draws-only rotation closure built
+  from Phase's in-phase machinery, taken as the hypothesis; the
+  relation-named `SWComp u v` (the hypothesis-named `swComp` of
+  §3.0's sketch) is the journey-necessary draw-zone RESIDUE —
+  pools match literally or through the twin relabeling, phase line
+  agreeing — proven necessary by `swComp_of_orbit` and carried as
+  the second conjunct of `same_macro_iff` (the user's pending
+  confirm: restating `SWRotW`/`SWComp` re-points the family and
+  the iff's zone accounting without touching the statements).
 
 `sameFate` tie: DEFERRED, out of scope for this card (§3.0
 explicitly parks it); nothing here speaks to `sameFate`.
@@ -131,12 +138,19 @@ surface:
   `stackRun_length_le_52`;
 * CLAIM 1: `canon st`, `canon_run`, `stackRun_final_eq_canon`,
   `canon_unique`;
-* the class spine: `liftStep_reversibleW`, `canon_reversibleW`,
-  `canon_class`, `canonQ_of_orbit`;
-* CLAIM 2: `SameMacroO`, `same_macro_iff`, the family
-  `sameMacro_liftStep`, `sameMacro_foundToTab`,
+* the class spine: `liftStep_reversibleW`, `lift_undoW`,
+  `canon_reversibleW`, `canon_class`, `canon_in_class`,
+  `canonQ_of_orbit`, `oneMoveRevEqW` (the one-move round-trip
+  builder: the assembly card's hypothesis side instantiates it from
+  the promoted undo-step equations);
+* CLAIM 2: `SameMacroO`, `same_macro_iff` (the characterization:
+  at `WF`, same macro class ⟺ equal wrapped canons ∧ `SWComp`),
+  the family `sameMacro_liftStep`, `sameMacro_foundToTab`,
   `sameMacro_tabToTab_quiet`, `sameMacro_twin`, `canon_twinMap`,
-  `sameMacro_swRot`;
+  `sameMacro_swRot` (hypothesis `SWRotW`);
+* the draw-zone accounting: `drawPool`, `SWComp`, `SWRotW`,
+  `swComp_of_orbit`, `drawPool_twinMap`, and the twin bookkeeping
+  `twin_wf` / `canRaise_twinMap_iff` / `final_twinMap`;
 * the witnesses are PRIVATE — evidence, not surface.
 
 Axiom discipline: `[propext, Quot.sound]` at worst, zero
