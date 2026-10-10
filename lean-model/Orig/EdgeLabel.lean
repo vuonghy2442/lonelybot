@@ -1164,17 +1164,17 @@ theorem orbit_data {x y : State} (h : sameOrbitSetoid.r x y) (hwf : x.WF) :
 
 /-! ## The CanonEdge normal form -/
 
-/-- The canonical edge normal form (§3.1): a macro transition anchored
-at a canonical state is **witness padding from the Final/WF source +
-exactly one commitment + class closure**.  A macro transition does not
+/-- The tip-anchored edge scheme, the machinery grade (§3.1): a macro
+transition anchored at a WF state is **witness padding from the source
++ exactly one commitment + class closure**.  A macro transition does not
 have a unique underlying MOVE (the twin-landing merge is one edge, two
 moves), but it always has this form; the single commit slot is
 structural — `canonEdge_exits_source` shows the commit strictly exits
 its class, so multi-commit macro transitions would fail the closure
-here and every subsequent commit is its own edge. -/
-structure CanonEdge (C : State) (D : SameOrbit) where
-  /-- the anchor: the move chain starts from a Final, WF position -/
-  hfin : Final C
+here and every subsequent commit is its own edge.  Every theorem of
+this chapter holds at this grade (the rows never read the saturation
+field); the label algebra reads its fields flat. -/
+structure TipEdge (C : State) (D : SameOrbit) where
   /-- the anchor is well-formed (realizability) -/
   hwf : C.WF
   /-- the witness-padding tip -/
@@ -1190,6 +1190,15 @@ structure CanonEdge (C : State) (D : SameOrbit) where
   land : State.step u m = some w
   /-- the class closure: the target takes the landing's class -/
   cl : ⟦w⟧ = D
+
+/-- The saturated grade: a `TipEdge` anchored at a Final state (no
+licensed lift remains) — the canonical-form certificate the count
+program's successor discipline rides.  The current chapters state
+their theorems at this grade; the tip-grade restatements are the
+standing coupon, to be landed when a tip-anchor consumer appears. -/
+structure CanonEdge (C : State) (D : SameOrbit) extends TipEdge C D where
+  /-- the anchor is saturated: the canon stratum, no `CanRaise` lives -/
+  hfin : Final C
 
 /-- The tip and the landing inherit WF from the anchor (`step_wf`). -/
 theorem CanonEdge.tip_wf {C : State} {D : SameOrbit} (e : CanonEdge C D) :
