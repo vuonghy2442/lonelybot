@@ -102,9 +102,10 @@ invariants):
   starts non-pure: pristine or offset), plus the full label-map
   definitions (`nzRoot`, `EdgeLabel`, `WasteOf`, `RevealCellAt`,
   `VacateCellAt`, `poolMissCard`, `hiddenDropperAnchor`,
-  `rootFreedAnchor`, `CanonLabel`, `CanonEdge.label`) and the counting
-  kit (`wf_stockWaste_ne`, `wf_waste_head_unique`) the card-pinning
-  needs (the search-integrity tithe re-derived farm-privately).
+  `rootFreedAnchor`, `CanonLabel`, `CanonEdge.label`).  The card-pinning
+  census and the search reads ride the public packs (`Integrity`'s
+  census-pack and search iffs, `State`/`Play`'s trivia/reader kits) —
+  no farm-private recounting.
 * **next card** (the remaining cells of the theorem, consuming what is
   landed here): the per-commit signature tables at the four cells
   (cycle-drop + pool-difference for the waste exit; the head-drop for
@@ -242,113 +243,11 @@ private theorem step_foundToTab_inv {st : State} {c : Card} {b : Base} {s' : Sta
 
 /-! ## Private kit: list, pile, and search helpers -/
 
-/-- The counting helper: occurrences of `c` in a card list. -/
-private def cnt (c : Card) (l : List Card) : Nat :=
-  (l.filter fun x => decide (x = c)).length
-
-private theorem cnt_cons (c x : Card) (t : List Card) :
-    cnt c (x :: t) = (if x = c then 1 else 0) + cnt c t := by
-  by_cases hx : x = c
-  · subst hx
-    have h1 : cnt x (x :: t) = 1 + cnt x t := by
-      simp [cnt]; omega
-    rw [h1, ite_eq_left rfl]
-  · have h0 : cnt c (x :: t) = cnt c t := by
-      simp [cnt, hx]
-    rw [h0, ite_eq_right hx, Nat.zero_add]
-
-private theorem cnt_append (c : Card) : ∀ (l₁ l₂ : List Card),
-    cnt c (l₁ ++ l₂) = cnt c l₁ + cnt c l₂ := by
-  intro l₁
-  induction l₁ with
-  | nil => intro l₂; simp [cnt]
-  | cons x t ih =>
-      intro l₂
-      rw [List.cons_append, cnt_cons, cnt_cons, ih]
-      split <;> omega
-
-private theorem cnt_pos_of_mem {c : Card} : ∀ {l : List Card}, c ∈ l → 1 ≤ cnt c l := by
-  intro l
-  induction l with
-  | nil => intro h; exact absurd h (by simp)
-  | cons x t ih =>
-      intro h
-      rcases List.mem_cons.1 h with rfl | hm
-      · rw [cnt_cons, ite_eq_left rfl]; omega
-      · have := ih hm
-        rw [cnt_cons]
-        split <;> omega
-
-private theorem cnt_eq_zero_of_not_mem {c : Card} : ∀ {l : List Card}, c ∉ l → cnt c l = 0 := by
-  intro l
-  induction l with
-  | nil => intro _; rfl
-  | cons x t ih =>
-      intro h
-      rw [cnt_cons,
-        ite_eq_right (fun hxc => h (List.mem_cons.2 (Or.inl hxc.symm))),
-        ih (fun hm => h (List.mem_cons.2 (Or.inr hm)))]
-
-private theorem flatMapAppend' {α β : Type} (f : α → List β) :
-    ∀ (l₁ l₂ : List α), (l₁ ++ l₂).flatMap f = l₁.flatMap f ++ l₂.flatMap f := by
-  intro l₁
-  induction l₁ with
-  | nil => intro l₂; rfl
-  | cons x t ih =>
-      intro l₂
-      show f x ++ (t ++ l₂).flatMap f = (f x ++ t.flatMap f) ++ l₂.flatMap f
-      rw [ih, List.append_assoc]
-
-/-- The two-block flat map. -/
-private theorem flatMap_id_pair (s w : List Card) :
-    [s, w].flatMap id = s ++ w := by
-  show s ++ (w ++ ([] : List Card)) = s ++ w
-  rw [List.append_nil]
-
-/-- The card census splits off the stock and the waste: the two
-draw-zone blocks contribute additively to the conserved count. -/
-private theorem cardCount_split (st : State) (c : Card) :
-    ∃ k, st.cardCount c = k + cnt c st.stock + cnt c st.waste := by
-  refine ⟨(((Suit.all.map st.found ++ Anchor.all.map
-      fun a => (st.piles a).hidden ++ (st.piles a).faceUp).flatMap id).filter
-      fun x => decide (x = c)).length, ?_⟩
-  unfold State.cardCount State.zones
-  rw [flatMapAppend', flatMap_id_pair, List.filter_append, List.filter_append,
-    List.length_append, List.length_append]
-  have hcntS : cnt c st.stock
-      = (List.filter (fun x => decide (x = c)) st.stock).length := rfl
-  have hcntW : cnt c st.waste
-      = (List.filter (fun x => decide (x = c)) st.waste).length := rfl
-  rw [hcntS, hcntW]
-  omega
-
-/-- A card cannot sit in the stock and the waste at once (the
-conservation count is one). -/
-private theorem wf_stockWaste_ne {st : State} (hwf : st.WF) {c : Card}
-    (h1 : c ∈ st.stock) (h2 : c ∈ st.waste) : False := by
-  obtain ⟨k, hcc⟩ := cardCount_split st c
-  have h1' : 1 ≤ cnt c st.stock := cnt_pos_of_mem h1
-  have h2' : 1 ≤ cnt c st.waste := cnt_pos_of_mem h2
-  have := hwf.2.2.1 c (Card.mem_universe c)
-  omega
-
-/-- The waste head is the waste's only copy (the conservation count is
-one). -/
-private theorem wf_waste_head_unique {st : State} (hwf : st.WF) {c : Card} {xs : List Card}
-    (h : st.waste = c :: xs) (h2 : c ∈ xs) : False := by
-  obtain ⟨k, hcc⟩ := cardCount_split st c
-  have hc : cnt c st.waste = 1 + cnt c xs := by rw [h, cnt_cons, ite_eq_left rfl]
-  have hxs : 1 ≤ cnt c xs := cnt_pos_of_mem h2
-  have := hwf.2.2.1 c (Card.mem_universe c)
-  omega
-
-/-- A pile holding a face-up card is not empty. -/
-private theorem isEmpty_false_of_mem {p : Pile} {c : Card} (h : c ∈ p.faceUp) :
-    p.isEmpty = false := by
-  rcases p with ⟨hd, fq⟩
-  cases fq with
-  | nil => cases h
-  | cons x xs => cases hd <;> rfl
+/- The card census cross-zone facts ride the public Integrity pack
+(`mem_stock_unique`, `mem_waste_unique`, `mem_pile_unique`) and the
+search soundness/completeness ride the public State kit
+(`firstWhere_find`, `firstWhere_sound`, `firstWhere_none_complete`) —
+no farm-private recounting. -/
 
 /-- The bare-pile lemma: a run removal over an empty face-up remainder
 with no hidden cards leaves the bare empty pile. -/
@@ -430,50 +329,9 @@ private theorem fromCard_head_eq {c : Card} : ∀ {l : List Card}, c ∈ l →
           rw [ite_eq_right hxc]
           exact hrun
 
-/-- The first satisfier of a predicate on a list, given that the
-satisfier is unique. -/
-private theorem firstWhere_of_unique {α : Type} (p : α → Bool) :
-    ∀ {l : List α} {x : α}, x ∈ l → p x = true →
-      (∀ y ∈ l, p y = true → y = x) → firstWhere p l = some x := by
-  intro l
-  induction l with
-  | nil => intro x hmem; exact absurd hmem (by simp)
-  | cons z t ih =>
-      intro x hmem hx hun
-      cases hb : p z with
-      | true =>
-          have hzx : z = x := hun z (List.mem_cons.2 (Or.inl rfl)) hb
-          rw [firstWhere, hb, hzx]
-      | false =>
-          rw [firstWhere, hb]
-          have hxt : x ∈ t := by
-            rcases List.mem_cons.1 hmem with heq | hmt
-            · rw [heq] at hx; rw [hb] at hx; exact absurd hx (by simp)
-            · exact hmt
-          exact ih hxt hx fun y hy hpy => hun y (List.mem_cons.2 (Or.inr hy)) hpy
-
-/-- When every element fails the predicate, the search is `none`. -/
-private theorem firstWhere_none_of_forall {α : Type} (p : α → Bool) :
-    ∀ {l : List α}, (∀ x ∈ l, p x = false) → firstWhere p l = none := by
-  intro l
-  induction l with
-  | nil => intro _; rfl
-  | cons z t ih =>
-      intro h
-      rw [firstWhere, h z (List.mem_cons.2 (Or.inl rfl))]
-      exact ih fun x hx => h x (List.mem_cons.2 (Or.inr hx))
-
-/-- The setPile projection, applied (a form `rw` consumes directly). -/
-private theorem setPile_apply (st : State) (a : Anchor) (p : Pile) (a' : Anchor) :
-    (st.setPile a p).piles a' = if a' = a then p else st.piles a' := rfl
-
-/-- A nonempty list is cons-shaped (farm-private copy). -/
-private theorem list_cons_ne_nil {α : Type} : ∀ {l : List α}, l ≠ [] →
-    ∃ x t, l = x :: t := by
-  intro l
-  cases l with
-  | nil => intro h; exact absurd rfl h
-  | cons x t => intro _; exact ⟨x, t, rfl⟩
+/- The search reads ride the public State kit (`firstWhere_find`,
+`firstWhere_sound`, `firstWhere_none_complete`, `firstWhere_congr` in
+Twin) — consumed at the determination call sites. -/
 
 /-! ## The label alphabet and the seat-root datum -/
 
@@ -668,42 +526,15 @@ private theorem putCard_inr_piles_ne {st : State} {c : Card} {z : Card} {k a' : 
       else st.piles a') = st.piles a'
   exact ite_eq_right h
 
-/-- A guarded run placement keeps every pile's hidden list. -/
-private theorem putRun_hidden_cp {st : State} {c : Card} {b : Base}
-    (hcp : st.canPlace c b = true) (run : List Card) (a' : Anchor) :
-    ((st.putRun run b).piles a').hidden = (st.piles a').hidden := by
-  cases b with
-  | inl k =>
-      obtain ⟨hemp, -⟩ := canPlace_inl hcp
-      obtain ⟨hhd, -⟩ := (Pile.isEmpty_eq _).mp hemp
-      by_cases hh : a' = k
-      · subst hh
-        rw [putRun_inl_landing, ← hhd]
-      · rw [putRun_inl_piles hh]
-  | inr z =>
-      cases hz : st.pileOfTop z with
-      | none => rw [putRun_inr_none hz]
-      | some k =>
-          by_cases hh : a' = k
-          · subst hh
-            rw [putRun_inr_landing hz]
-          · rw [putRun_inr_piles_ne hz hh]
-
 /-! ## The journey data: what a witness leg can change -/
 
-/-- The deal cut reassembles (farm-private copy of the Canonical
-helper; dedup at merge). -/
+/-- The deal cut reassembles (citing the public take/drop reader). -/
 private theorem dealUpTo_append_copy (k : Nat) : ∀ (l : List Card),
     (State.dealUpTo k l).1 ++ (State.dealUpTo k l).2 = l := by
   intro l
-  induction k generalizing l with
-  | zero => cases l <;> rfl
-  | succ k ih =>
-      cases l with
-      | nil => rfl
-      | cons x t =>
-          show x :: ((State.dealUpTo k t).1 ++ (State.dealUpTo k t).2) = x :: t
-          exact congrArg (x :: ·) (ih t)
+  rw [dealUpTo_eq_take_drop k l]
+  show l.take k ++ l.drop k = l
+  exact List.take_append_drop k l
 
 /-- Recycling keeps the pool: the waste reversed ahead of nothing is
 the waste ahead of an empty stock. -/
@@ -913,9 +744,11 @@ private theorem leg_data {x y : State} {m : Move}
           (Pile.afterRunRemoved (x.piles a) (below c (x.piles a).faceUp))).piles a'
           = if a' = a then Pile.afterRunRemoved (x.piles a) (below c (x.piles a).faceUp)
             else x.piles a' := by
-        have h := setPile_apply x a
-          (Pile.afterRunRemoved (x.piles a) (below c (x.piles a).faceUp)) a'
-        exact h
+        by_cases ha : a' = a
+        · rw [ha, ite_eq_left rfl]
+          exact setPile_piles_self
+        · rw [ite_eq_right ha]
+          exact setPile_piles_ne ha
       refine ⟨cycleCount_eq_of_stock_waste hzone.1 hzone.2, pool_congr hzone.1 hzone.2, ?_⟩
       cases hbelow : below c (x.piles a).faceUp with
       | nil =>
@@ -1404,12 +1237,12 @@ def CanonEdge.label {C : State} {D : SameOrbit} (e : CanonEdge C D) : EdgeLabel 
 
 
 /-- A both-empty draw zone cannot produce a draw: recycle is the identity
-and there is nothing to deal. -/
+and there is nothing to deal (citing the public Play readers). -/
 private theorem stepDraw_bothEmpty_none {st : State}
     (h1 : st.stock = []) (h2 : st.waste = []) : st.stepDraw = none := by
   show State.dealStock st.recycle = none
-  rw [show st.recycle = st from by simp only [State.recycle, h1, h2]]
-  simp only [State.dealStock, h1]
+  rw [recycle_allEmpty st h1 h2]
+  exact dealStock_nil st h1
 
 /-- **A draw edge starts non-pure**: committed draws fire only at
 pristine (empty waste) or offset (misaligned waste) tips — the pass-base
@@ -1437,7 +1270,7 @@ theorem canonEdge_draw_shape {C : State} {D : SameOrbit} (e : CanonEdge C D)
     · by_cases h1 : e.u.stock = []
       · exact (hrev (draw_passBase_reversibleW h1 h2 hd)).elim
       · by_cases hres : e.u.waste.length % e.u.drawStep = 0
-        · obtain ⟨s, t, hcon⟩ := list_cons_ne_nil h1
+        · obtain ⟨s, t, hcon⟩ := list_cons_of_ne_nil h1
           have hph : inPhase e.u = true := by
             show (match e.u.stock with
               | [] => true
