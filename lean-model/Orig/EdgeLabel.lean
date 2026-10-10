@@ -2245,6 +2245,24 @@ theorem pair_move_character {C : State} {D : SameOrbit} (e : CanonEdge C D) :
         rw [haa0] at hloc
         exact Or.inr ⟨c₀, b₀, rfl, hloc⟩
 
+/-- The character in switch form: match on the label, read the move.
+Compiler-checked exhaustive over the tripartite alphabet (a fourth
+constructor would fail to elaborate here, not pass silently) — the
+consumption form the count program's per-label branch analysis cites;
+the three-conjunct form above stays the honest accountant. -/
+theorem pair_move_character_switch {C : State} {D : SameOrbit} (e : CanonEdge C D) :
+    match e.label with
+    | EdgeLabel.draw => e.m = Move.draw
+    | EdgeLabel.wasteEntry c => WasteOf c e.m
+    | EdgeLabel.stackEvent a =>
+        (∃ c, e.m = Move.tabToFound c ∧ e.u.pileOfTop c = some a) ∨
+        (∃ c b, e.m = Move.tabToTab c b ∧ e.u.pileHolding c = some a) := by
+  obtain ⟨h1, h2, h3⟩ := pair_move_character e
+  cases hl : e.label with
+  | draw => exact h1 hl
+  | wasteEntry c => exact h2 c hl
+  | stackEvent a => exact h3 a hl
+
 /-! ## The axiom audit (per-declaration) -/
 
 #print axioms orbit_data
