@@ -1,4 +1,5 @@
 import Orig.Twin
+import Orig.Integrity
 
 /-!# Orig — the local twin exchangeThe *local* twin exchange, the second symmetry of the tableau and thegenerator of the accommodation family this program is about: twoface-up twin hosts — `t` and `Card.twin t` — sitting in two *distinct*piles have their strictly-above suffixes swapped.A pile's face-up run splits at a twin host as `P₁ ++ t :: S`; theexchange re-agglutinates the joints, `P₁ ++ t :: S'` on one side and`P₂ ++ t.twin :: S` on the other.
   The prefix through each host isuntouched — the hosts keep their piles through their own exchange —and only the suffixes ride.
@@ -249,17 +250,6 @@ private theorem firstWhere_eq_of_unique {p : Anchor → Bool} {k : Anchor}
       have hpm : p m = true := firstWhere_sound p hf
       exact congrArg some (huni m hpm)
 
-/-- Reading a search result back: the holding pile's face-up containsthe card. -/
-theorem pileHolding_mem {st : State} {c : Card} {a : Anchor}
-    (h : st.pileHolding c = some a) : c ∈ (st.piles a).faceUp :=
-  of_decide_eq_true (firstWhere_sound (p := fun a' => decide (c ∈ (st.piles a').faceUp)) h)
-
-/-- Reading a top search back: the pile's face-up contains the card. -/
-theorem pileOfTop_mem {st : State} {z : Card} {a : Anchor}
-    (h : st.pileOfTop z = some a) : z ∈ (st.piles a).faceUp := by
-  have h2 : st.topOf a = some z :=
-    of_decide_eq_true (firstWhere_sound (p := fun a' => decide (st.topOf a' = some z)) h)
-  exact lastOf_mem h2
 private theorem pileHolding_eq_of_unique {st : State} {c : Card} {a : Anchor}
     (hmem : a ∈ Anchor.all) (hc : c ∈ (st.piles a).faceUp)
     (huni : ∀ j, c ∈ (st.piles j).faceUp → j = a) :
@@ -828,6 +818,38 @@ private theorem append_congr_right {xs ys : List Card} (h : xs = ys) (zs : List 
 private theorem ccn_congr {xs ys : List Card} (h : xs = ys) (c : Card) :
     ccn c xs = ccn c ys := by rw [h]
 
+/-- The cargo head `z` never sits in the below-prefix of its own host's
+face-up run: a second occurrence there would double the pile's
+census count.  The shared content of the two realizations'
+`hZP1` blocks, extracted. -/
+private theorem not_mem_below_of_cargo {st : State} {z t : Card} {a : Anchor}
+    {rest : List Card}
+    (hcc : st.cardCount z = 1)
+    (hfa : (st.piles a).faceUp =
+      below t ((st.piles a).faceUp) ++ t :: z :: rest) :
+    z ∉ below t ((st.piles a).faceUp) := by
+  intro hmemb
+  have h2 : 2 ≤ ccn z ((st.piles a).hidden ++ (st.piles a).faceUp) := by
+    have hcut : ccn z ((st.piles a).faceUp) =
+        ccn z (below t ((st.piles a).faceUp)) + ccn z (t :: z :: rest) := by
+      rw [ccn_congr hfa z, ccn_split]
+    have e1 : 1 ≤ ccn z (below t ((st.piles a).faceUp)) := ccn_pos hmemb
+    have e2 : 1 ≤ ccn z (t :: z :: rest) := by
+      rw [ccn_cons]
+      have h3 : 1 ≤ ccn z (z :: rest) := by
+        rw [ccn_cons]
+        have e2' : 1 ≤ ccn z [z] := by simp [ccn]
+        omega
+      omega
+    have hA : 2 ≤ ccn z ((st.piles a).faceUp) := by
+      rw [hcut]
+      omega
+    have hz : ccn z ((st.piles a).hidden ++ (st.piles a).faceUp) =
+        ccn z ((st.piles a).hidden) + ccn z ((st.piles a).faceUp) := ccn_split z _ _
+    omega
+  have := cardCount_ge_of_zone (Anchor.mem_all a) h2
+  omega
+
 /-- A pile update leaves every other pile's top alone. -/
 private theorem setPile_topOf_ne {st : State} {k b : Anchor} {Q : Pile} (h : k ≠ b) :
     (st.setPile b Q).topOf k = st.topOf k := by
@@ -1109,10 +1131,10 @@ private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
     (hS' : aboveIn t.twin ((st.piles a').faceUp) = []) :
     st.step (Move.tabToTab z (Sum.inr t.twin)) = some (st.exchangeTwin t) := by
   obtain ⟨hf, hr, hc, hd⟩ := hwf
+  have hwf : st.WF := ⟨hf, hr, hc, hd⟩
   have hTa : t ∈ (st.piles a).faceUp := pileHolding_mem h₁
   have hTb : t.twin ∈ (st.piles a').faceUp := pileHolding_mem h₂
   have cz1 := hc z (Card.mem_universe z)
-  have ct1 := hc t (Card.mem_universe t)
   have cttw1 := hc t.twin (Card.mem_universe t.twin)
   have hfa : (st.piles a).faceUp = below t ((st.piles a).faceUp) ++
       t :: (z :: rest) := by
@@ -1138,57 +1160,19 @@ private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
     have := aboveIn_subset_mem (l := (st.piles a).faceUp) (x := z)
       (show z ∈ aboveIn t ((st.piles a).faceUp) from by rw [hS]; exact List.mem_cons_self ..)
     exact this
-  have hZP1 : z ∉ below t ((st.piles a).faceUp) := fun hmemb => by
-    have h2 : 2 ≤ ccn z ((st.piles a).hidden ++ (st.piles a).faceUp) := by
-      have hcut : ccn z ((st.piles a).faceUp) =
-          ccn z (below t ((st.piles a).faceUp)) + ccn z (t :: z :: rest) := by
-        rw [ccn_congr hfa z, ccn_split]
-      have e1 : 1 ≤ ccn z (below t ((st.piles a).faceUp)) := ccn_pos hmemb
-      have e2 : 1 ≤ ccn z (t :: z :: rest) := by
-        rw [ccn_cons]
-        have h3 : 1 ≤ ccn z (z :: rest) := by
-          rw [ccn_cons]
-          have e2' : 1 ≤ ccn z [z] := by simp [ccn]
-          omega
-        omega
-      have hA : 2 ≤ ccn z ((st.piles a).faceUp) := by
-        rw [hcut]
-        omega
-      have hz : ccn z ((st.piles a).hidden ++ (st.piles a).faceUp) =
-          ccn z ((st.piles a).hidden) + ccn z ((st.piles a).faceUp) := ccn_split z _ _
-      omega
-    have := cardCount_ge_of_zone (Anchor.mem_all a) h2
-    omega
-  have hZP2 : z ∉ below t.twin ((st.piles a').faceUp) := fun hmemb => by
-    exact absurd (pile_mem_unique cz1 hZfa (below_subset_mem hmemb)) (fun hcon => hne hcon)
+  have hZP1 : z ∉ below t ((st.piles a).faceUp) := not_mem_below_of_cargo cz1 hfa
+  have hZP2 : z ∉ below t.twin ((st.piles a').faceUp) := fun hmemb =>
+    ((mem_faceUp_only hwf hZfa).1 a' (Ne.symm hne)).2 (below_subset_mem hmemb)
   -- searches and placements at st
   have htopb : st.topOf a' = some t.twin := by
     show lastOf ((st.piles a').faceUp) = some t.twin
     rw [hfa', lastOf_append_singleton]
-  have hptb : st.pileOfTop t.twin = some a' := by
-    apply pileOfTop_eq_of_unique
-    · exact Anchor.mem_all a'
-    · exact htopb
-    · intro j hj
-      have hjm : t.twin ∈ (st.piles j).faceUp := lastOf_mem hj
-      exact pile_mem_unique cttw1 hjm hTb
+  have hptb : st.pileOfTop t.twin = some a' :=
+    (pileOfTop_eq_some_iff hwf).mpr htopb
   have hcp : st.canPlace z (Sum.inr t.twin) = true := by
     rw [canPlace_inr_eq hptb]
     exact hfit
-  have hphz : st.pileHolding z = some a := by
-    apply pileHolding_eq_of_unique
-    · exact Anchor.mem_all a
-    · exact hZfa
-    · intro j hj
-      cases hde : decide (j = a) with
-      | true => exact of_decide_eq_true hde
-      | false =>
-          exfalso
-          have hja : j ≠ a := fun hcon => by
-            have := decide_eq_true hcon
-            rw [hde] at this
-            exact absurd this (by simp)
-          exact absurd (pile_mem_unique cz1 hZfa hj) (fun hcon => hja hcon.symm)
+  have hphz : st.pileHolding z = some a := (pileHolding_eq_some_iff hwf).mpr hZfa
   -- the run below the cargo head, and the prefix after the lift
   have hrun : fromCard z ((st.piles a).faceUp) = z :: rest := by
     rw [hfa, fromCard_append_notmem hZP1, fromCard_cons_ne _ (fun hcon => hzt hcon.symm),
@@ -1265,6 +1249,8 @@ private theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
     (hS' : aboveIn t.twin ((st.piles a').faceUp) = []) :
     (st.exchangeTwin t).step (Move.tabToTab z (Sum.inr t)) = some st := by
   obtain ⟨hf, hr, hc, hd⟩ := hwf
+  have hwf : st.WF := ⟨hf, hr, hc, hd⟩
+  have hwf' : (st.exchangeTwin t).WF := State.wf_exchangeTwin hwf h₁ h₂ hne
   have hTa : t ∈ (st.piles a).faceUp := pileHolding_mem h₁
   have hTb : t.twin ∈ (st.piles a').faceUp := pileHolding_mem h₂
   have cz1 := hc z (Card.mem_universe z)
@@ -1292,99 +1278,23 @@ private theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
     have := aboveIn_subset_mem (l := (st.piles a).faceUp) (x := z)
       (show z ∈ aboveIn t ((st.piles a).faceUp) from by rw [hS]; exact List.mem_cons_self ..)
     exact this
-  have hZP1 : z ∉ below t ((st.piles a).faceUp) := fun hmemb => by
-    have h2 : 2 ≤ ccn z ((st.piles a).hidden ++ (st.piles a).faceUp) := by
-      have hcut : ccn z ((st.piles a).faceUp) =
-          ccn z (below t ((st.piles a).faceUp)) + ccn z (t :: z :: rest) := by
-        rw [ccn_congr hfa z, ccn_split]
-      have e1 : 1 ≤ ccn z (below t ((st.piles a).faceUp)) := ccn_pos hmemb
-      have e2 : 1 ≤ ccn z (t :: z :: rest) := by
-        rw [ccn_cons]
-        have h3 : 1 ≤ ccn z (z :: rest) := by
-          rw [ccn_cons]
-          have e2' : 1 ≤ ccn z [z] := by simp [ccn]
-          omega
-        omega
-      have hA : 2 ≤ ccn z ((st.piles a).faceUp) := by
-        rw [hcut]
-        omega
-      have hz : ccn z ((st.piles a).hidden ++ (st.piles a).faceUp) =
-          ccn z ((st.piles a).hidden) + ccn z ((st.piles a).faceUp) := ccn_split z _ _
-      omega
-    have := cardCount_ge_of_zone (Anchor.mem_all a) h2
-    omega
+  have hZP1 : z ∉ below t ((st.piles a).faceUp) := not_mem_below_of_cargo cz1 hfa
   have hZP2 : z ∉ below t.twin ((st.piles a').faceUp) := fun hmemb => by
     exact absurd (pile_mem_unique cz1 hZfa (below_subset_mem hmemb)) (fun hcon => hne hcon)
-  -- cardCount hygiene carried through the exchange
-  have cz1' : (st.exchangeTwin t).cardCount z = 1 := by
-    rw [State.exchangeTwin_cardCount h₁ h₂ hne z]
-    exact cz1
   -- the exchanged state's pile a hosts the bare `t` face up
   have hσza : z ∈ ((st.exchangeTwin t).piles a').faceUp := by
     rw [State.exchangeTwin_pile_other h₁ h₂ hne, hS]
     exact List.mem_append.mpr (Or.inr (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
-  have hphz : (st.exchangeTwin t).pileHolding z = some a' := by
-    apply pileHolding_eq_of_unique
-    · exact Anchor.mem_all a'
-    · exact hσza
-    · intro j hj
-      cases hde : decide (j = a') with
-      | true => exact of_decide_eq_true hde
-      | false =>
-          exfalso
-          have hja' : j ≠ a' := fun hcon => by
-            have := decide_eq_true hcon
-            rw [hde] at this
-            exact absurd this (by simp)
-          by_cases hja : j = a
-          · rw [hja] at hj
-            rw [State.exchangeTwin_pile_self h₁ h₂ hne, hS'] at hj
-            rcases List.mem_append.mp hj with hlow | hup
-            · exact absurd hlow hZP1
-            · rcases List.mem_cons.mp hup with heq | hsuf
-              · exact absurd heq hzt
-              · exact absurd hsuf (by simp)
-          · rw [State.exchangeTwin_pile_ne h₁ h₂ hne hja hja'] at hj
-            exact absurd (pile_mem_unique cz1 hZfa hj) (fun hcon => hja hcon.symm)
+  have hphz : (st.exchangeTwin t).pileHolding z = some a' :=
+    (pileHolding_eq_some_iff hwf').mpr hσza
   -- the exchanged state's pile a tops at the bare host `t`
   have htopa : (st.exchangeTwin t).topOf a = some t := by
     show lastOf (((st.exchangeTwin t).piles a).faceUp) = some t
     rw [State.exchangeTwin_pile_self h₁ h₂ hne, hS']
     show lastOf (below t ((st.piles a).faceUp) ++ [t]) = some t
     exact lastOf_append_singleton _ _
-  have hpta : (st.exchangeTwin t).pileOfTop t = some a := by
-    apply pileOfTop_eq_of_unique
-    · exact Anchor.mem_all a
-    · exact htopa
-    · intro j hj
-      cases hde : decide (j = a) with
-      | true => exact of_decide_eq_true hde
-      | false =>
-          exfalso
-          have hja : j ≠ a := fun hcon => by
-            have := decide_eq_true hcon
-            rw [hde] at this
-            exact absurd this (by simp)
-          by_cases hja' : j = a'
-          · rw [hja'] at hj
-            have hjb : ((st.exchangeTwin t).piles a').top = some t := hj
-            rw [State.exchangeTwin_pile_other h₁ h₂ hne, hS] at hjb
-            rcases List.mem_append.mp (lastOf_mem hjb) with hlow | hup
-            · -- t inside the twin host's below: doubles t
-              exact absurd (pile_mem_unique ct1 hTa
-                (below_subset_mem hlow)) (fun hcon => hne hcon)
-            · rcases List.mem_cons.mp hup with heq | hsuf
-              · exact absurd heq (fun hcon => Card.twin_ne t hcon.symm)
-              · rcases List.mem_cons.mp hsuf with heq | hrest
-                · exact absurd heq.symm hzt
-                · have hm : t ∈ aboveIn t ((st.piles a).faceUp) := by
-                    rw [hS]
-                    exact List.mem_cons_of_mem _ hrest
-                  exact absurd hm (not_mem_own_aboveIn ct1 hTa)
-          · exfalso
-            have hjb : ((st.exchangeTwin t).piles j).top = some t := hj
-            rw [State.exchangeTwin_pile_ne h₁ h₂ hne hja hja'] at hjb
-            exact absurd (pile_mem_unique ct1 (lastOf_mem hjb) hTa) hja
+  have hpta : (st.exchangeTwin t).pileOfTop t = some a :=
+    (pileOfTop_eq_some_iff hwf').mpr htopa
   -- placement and searches at the exchanged state
   have hcp : (st.exchangeTwin t).canPlace z (Sum.inr t) = true := by
     rw [canPlace_inr_eq hpta]
