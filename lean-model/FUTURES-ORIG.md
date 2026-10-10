@@ -820,7 +820,18 @@ by the re-derived corpus.
    (§7) — if the physical exchange rows land WITHOUT new premises
    (expected: the w15circ collapse), they may be scheduled any time;
    if they demand premises, the count must not wait on them.
-4. **The endpoint-pooling atom (§4.3).**  OPEN; deciding evidence:
+   UPDATE (2026-10-10): the family is landing FENCED, exactly the
+   §2-F1 shape (`hwf` + the BothOcc license: both hosts face-up,
+   both fits; supporting kit the kill family + `seat_lock`) — the
+   both-occupied mirroring engine, three of six transport rows
+   green, all 26 public heads audited on main since today
+   (`0c5cf87` + `bcd2197`; recorded §8).  Candidate A's
+   scope-exclusion stands unchanged — it consults none of them;
+   the three remaining rows (foundToTab / tabToFound / tabToTab)
+   and the plan's tail (`go_gen`, the bare iff, the
+   quotient-widening corollary) are sequenced in §8, none of
+   them a count dependency.
+ 4. **The endpoint-pooling atom (§4.3).**  OPEN; deciding evidence:
    the re-derived ffWin question (does ANY physical float separate
    tips?) + the in-flight in-phase round trip (Phase's remaining
    ticket), which decides how much of the old cursor-window residue
@@ -948,6 +959,18 @@ private sections: decSt instances, canPlace unfolds, search
 extractions) stay parked per house discipline; the `decSt`
 (DecidableEq State) promotion rides the tidy ticket.
 
+UPDATE (2026-10-10): two of the three marked sections are UNPARKED
+— the canPlace unfolds landed home as State's public readers
+(`c661eb0`: `canPlace_inl_unfold` / `canPlace_inr_eq` /
+`canPlace_inr_located`, plus Play's putCard/putRun readers and
+Integrity's `ne_of_canSitOn`), and the search extractions collapsed
+into consumption (`4941d33`: TwinExchange's marked
+`pileHolding_mem` / dead `pileOfTop_mem` deleted, the
+search-completeness blocks rebuilt on Integrity's
+`pileOfTop_eq_some_iff` / `pileHolding_eq_some_iff`; §8).  The
+`decSt` instances alone stay parked; the promotion still rides
+the tidy ticket's residue.
+
 Per the ticket's own words, before or alongside the formulations —
 expected difficulty and expected verdicts, all pre-cited:
 
@@ -995,3 +1018,122 @@ but the decision there is not this note's to make.  House doc
 discipline: this file adds no sorries, cites none, and should be read
 against `witnesses/README.md`'s regression-layer protocol
 (`witnesses/README.md:13-22`) and the census header (FARM.md:3).
+
+## 8. The session ledger (UPDATE 2026-10-10: the both-occupied
+harvest + the post-merge cleanup session, branch `macro-game`)
+
+**STATUS 2026-10-10 — THE BOTH-OCCUPIED MIRRORING ENGINE IS ON MAIN
+AND THE EXCHANGE CHAPTER NOW RIDES THE PACK.**  Six landings, raw
+hashes below, zero sorry, zero choice anywhere.  What landed, where
+it lives now, what it changes for the remaining rows:
+
+- **The campaign merge `0c5cf87`** (`farm/orig-twinexch-both-v2`,
+  tip `56c6925`): the M1–M5g program landed at
+  `Orig/TwinExchangeBoth.lean` (+2158 lines) — the M1 kit, the
+  BothOcc license + σ-representation (M2+M3), the kill family +
+  `seat_lock` (M4), the congruence ministry + `braid_splice` with
+  the braid family WF-automatic (M5a), and three of six transport
+  rows GREEN (draw M5b; wasteToFound M5c; wasteToTab M5d–M5g, the
+  row the last stretch died on, landed through the
+  anchor-swapped-mirror landing anatomy — the fresh-write and snoc
+  cases paid by `bothOcc_freshWrite` / `splice_snoc` /
+  `swapAnch_ne`, the pile equations by the three reseat packs
+  freshWrite/swollenSelf/swollenOther) — zero sorry, every head
+  audited at `[propext]`/`[propext, Quot.sound]`.
+- **The harvest wiring `bcd2197`**: `import Orig.TwinExchangeBoth`
+  at the `Orig.lean` root, after MergeWalls (the module's own
+  imports: MergeWalls / TwinExchangeQuotient / Integrity / Reach)
+  — the merge's deferred integration step; root battery green at
+  24 jobs, and all 26 public heads of the merged module externally
+  re-audited at `[propext]`/`[propext, Quot.sound]`.
+- **The census inversion `e319ac6`** (`Orig/Integrity.lean`, +234
+  lines, zero choice): the same-pile half
+  (`mem_faceUp_not_hidden` / `mem_hidden_not_faceUp` — the gap
+  `mem_pile_unique` left open, its projection quantifying only
+  over OTHER piles); the zone sides (`mem_found_unique` /
+  `mem_stock_unique` / `mem_waste_unique`); and the compound
+  one-liners the exchange rows cite (`mem_faceUp_only` /
+  `mem_hidden_only`: one membership pins every other zone at
+  once).  Kit: the suit splits (`preSuits`/`sufSuits`,
+  `zones_split_found_pre`/`_suf`), the two-founds / found-stock /
+  found-waste / stock-waste pair kills, and the intra-pile double
+  count `count_ge_two_pile_self` on `flatMapSingleton` — the piece
+  the `hZP` idiom had been re-deriving per consumer.
+  Dedup-marked against TwinExchange's private ccn kit; all splits
+  decidable, zero excluded middle; all seven heads externally
+  probed at `[propext, Quot.sound]`.
+- **The TwinExchange simplification `4941d33`** (−90 lines, every
+  statement untouched): the realizations ride the search-integrity
+  + census pack — `import Orig.Integrity` (TwinExchange joins
+  Classify as a pack consumer); the duplicate root search readers
+  deleted (`pileHolding_mem`, Integrity's verbatim statement-twin,
+  and the dead `pileOfTop_mem`, zero uses repo-wide), so every
+  unqualified use in the tree resolves to the single Integrity
+  constant; the twice-duplicated `hZP1` ccn block extracted as
+  the private `not_mem_below_of_cargo` (the cargo head never sits
+  in its own host's below-prefix — one count, paid once instead
+  of verbatim in both realizations); fwd's `hZP2` now cites
+  `mem_faceUp_only`; and the search-completeness re-derivations
+  COLLAPSE to Integrity's iff one-liners — fwd's `hptb` (10
+  lines) / `hphz` (14) and bwd's `hphz` (21) / `hpta` (33, the
+  braided j-arm analysis) all land as `(pileOfTop_eq_some_iff /
+  pileHolding_eq_some_iff _).mpr` under `hwf := State.wf_exchangeTwin
+  hwf h1 h2 hne`, the license-descent theorem doing the arm
+  analysis's work; dead haves pruned (fwd's ct1, bwd's cz1').
+  Deliberately untouched: the mid-step σ-block searches
+  (intermediate `setPile` states carry no WF in scope — the
+  cardCount-form `pile_mem_unique` and the `*_eq_of_unique`
+  validators remain their tool) and `pile_mem_unique` itself;
+  battery green at 24 jobs with every consumer rebuilt against
+  the reduced export surface.
+- **The record-reader kit `c661eb0`** (the tidy card the exchange
+  chapters' dedup marks had named): the setPile / canPlace /
+  afterRunRemoved readers beside their defs in `Orig/State.lean`
+  (`setPile_topOf_ne`, `setPile_piles_ne`, `setPile_piles_self` in
+  Reach's implicit-binder shape, `setPile_found` in Irreversible's
+  point-free shape, `canPlace_inl_unfold`, `canPlace_inr_eq` = the
+  UNFOLD form, the form two prior private copies already used,
+  `canPlace_inr_located` = the located rewrite TwinExchange's
+  realizations consume); the putCard/putRun readers plus the
+  found-passthrough trio in `Orig/Play.lean`
+  (`putCard_inl_found` / `putCard_inr_found` — the staged
+  foundToTab kit, now on main — plus `putCard_inr_eq` /
+  `putRun_inr_eq`); `ne_of_canSitOn` in `Orig/Integrity` (the
+  rank ladder's first public step).  FIFTEEN private copies
+  collapsed across the six chapters (TwinExchange 7,
+  TwinExchangeBoth 3, Shuttle 1, Irreversible 1, Reach 2,
+  MergeWalls 1), all name- and statement-compatible rewrites —
+  zero proof-body changes at call sites except TwinExchange's two
+  located rewrites, renamed `canPlace_inr_located`; root battery
+  green at 24 jobs across all nine touched files; the new heads
+  probed `[propext]` or fewer (the rfl-grade trio carry no axioms
+  at all), `twin_exchange_bare_iff` and the `exch_step` rows
+  unchanged at `[propext, Quot.sound]`.
+  BANKED PROCEDURE LESSONS (the tidy card's standing procedure —
+  cited, not relearned): (a) THE GREP-COLLISION SWEEP — before
+  landing any public reader, grep the new name across EVERY
+  chapter first; this sweep caught four same-named constants,
+  including MergeWalls' differently-shaped `canPlace_inr_eq`;
+  (b) THE CANONICAL-NAME POLICY — the bare name goes to the form
+  the existing copies already use, the variant gets the new name
+  (State's `canPlace_inr_eq` is the unfold; the located rewrite
+  enters as `canPlace_inr_located`).
+- **The dead-code pass `0f538a2`**: TwinExchange's
+  `ccn_ge_two_of_double` deleted (zero uses — a leftover from the
+  private count kit era whose consumers all moved); both's
+  private `canPlace_inl_eq` deleted, its three use-sites renamed
+  to State's public `canPlace_inl_unfold` from the reader kit
+  (identical statement, zero body changes); root battery green at
+  24 jobs.
+
+WHAT THIS CHANGES FOR THE REMAINING WORK: the next transport rows —
+foundToTab (its staging kit `putCard_inl_found` / `putCard_inr_found`
+is now PUBLIC on main), tabToFound (the freedom row), tabToTab
+(seat-lock legs + merge-walls legs), then `go_gen`, the bare iff,
+the quotient-widening corollary (per the chapter's own plan,
+`0c5cf87`) — now cite the public readers (`ne_of_canSitOn`,
+`canPlace_inl_unfold`, `canPlace_inr_eq`/`_located`, the
+setPile/putCard/putRun kit) and the census one-liners
+(`mem_faceUp_only` / `mem_hidden_only`) instead of private copies
+and fresh `hZP`-style double counts.
+
