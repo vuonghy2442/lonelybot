@@ -98,7 +98,13 @@ reverse ladder for the return; hence
   stated in the quotient: the canonical form is a DISTINGUISHED
   MEMBER of its macro class, not a commit-shifted descendant;
 * `canonQ_of_orbit` — the uniform fiber spine: `WF` states in one
-  `sameOrbitSetoid` orbit have equal wrapped canons.
+  `sameOrbitSetoid` orbit have equal wrapped canons;
+* `win_iff_canon : u.WF → WinFrom u ↔ WinFrom (canon u)` — the
+  verdict tie: saturation never crosses a commitment, so the
+  canonical form holds the very future of its origin — ONE
+  `RevEqW_sameFate` hop (Orig/Combine.lean:222) over `canon_class`'s
+  own `RevEqW` witness, no other setoid disjunct anywhere on the
+  route.
 
 Because of the spine, CLAIM 2's invariance family lands through
 one argument shape (whatever proves two states ⟦·⟧-equal proves
@@ -124,8 +130,15 @@ their canons ⟦·⟧-equal):
   confirm: restating `SWRotW`/`SWComp` re-points the family and
   the iff's zone accounting without touching the statements).
 
-`sameFate` tie: DEFERRED, out of scope for this card (§3.0
-explicitly parks it); nothing here speaks to `sameFate`.
+`sameFate` tie, canon leg: CLOSED BY THIS POLISH CARD —
+`win_iff_canon`: at `WF`, `WinFrom u ↔ WinFrom (canon u)` (the
+long-deferred tie made theorem).  `canon_class` is already the
+right `RevEqW` witness, so the landed `RevEqW_sameFate`
+(Orig/Combine.lean:222) closes it in one hop, and NO other
+setoid disjunct is needed at any intermediate point.  What stays
+parked where it lived is the residue-side fate accounting of
+§3.1's assembly lanes — nothing there touches the
+canonicalizer.
 
 ## HEADS DIGEST for the major-theorem assembly card (§3.1)
 
@@ -142,16 +155,47 @@ surface:
   `canon_reversibleW`, `canon_class`, `canon_in_class`,
   `canonQ_of_orbit`, `oneMoveRevEqW` (the one-move round-trip
   builder: the assembly card's hypothesis side instantiates it from
-  the promoted undo-step equations);
+  the promoted undo-step equations), `win_iff_canon` (the verdict
+  tie: the class carries its future through saturation);
 * CLAIM 2: `SameMacroO`, `same_macro_iff` (the characterization:
   at `WF`, same macro class ⟺ equal wrapped canons ∧ `SWComp`),
-  the family `sameMacro_liftStep`, `sameMacro_foundToTab`,
-  `sameMacro_tabToTab_quiet`, `sameMacro_twin`, `canon_twinMap`,
-  `sameMacro_swRot` (hypothesis `SWRotW`);
+  `same_macro_iff'` (the ONE-CONJUNCT form — same macro class ⟺
+  equal wrapped canons alone: the assembly's one-comparison
+  decidable check; `SWComp` is implied at `WF` by the first
+  conjunct, `swComp_of_orbit`), the family `sameMacro_liftStep`,
+  `sameMacro_foundToTab`, `sameMacro_tabToTab_quiet`,
+  `sameMacro_twin`, `canon_twinMap`, `sameMacro_swRot` (hypothesis
+  `SWRotW`), and the zone projection `sameMacro_swComp` (same
+  macro class ⇒ `SWComp`, so no consumer ever re-derives the zone
+  accounting from the raw orbit witness);
 * the draw-zone accounting: `drawPool`, `SWComp`, `SWRotW`,
   `swComp_of_orbit`, `drawPool_twinMap`, and the twin bookkeeping
   `twin_wf` / `canRaise_twinMap_iff` / `final_twinMap`;
 * the witnesses are PRIVATE — evidence, not surface.
+
+TIER-C SCOPING VERDICT (the WF-free witness-carried canon): NO-GO
+— no consumer needs it, so it is not to be built.  The consumer
+survey: every class-spine head gates itself `WF` on its own
+statement (`same_macro_iff` / `same_macro_iff'` carry both gates);
+the assembly card's three-tip hypothesis reaches the normalizer
+only through §3.0's decidable canon-fiber check — the WF-gated
+iff — and its physical tips are `WF` by the realizability
+doctrine (B1); the mirroring engine's g-induction rides the
+licensed-exchange invariant whose bundles lead with `WF` and
+re-assume it per step (`State.wf_exchangeTwin`, the
+both-occupied license's first conjunct); `boundedPlay` carries
+`(hwf : st.WF)` on its statement; the count/exchange lanes are
+all `hwf`-premised (Shuttle's joins, MergeWalls' walls,
+`TwinExchOK`); and the wild side is served by crafted records
+and direct witnesses — the classification-fork exhibits, the
+exchange archive, the merge-probe's hand-built non-WF `omSt` —
+never a wild-state iff.  So no current or planned statement
+reads the canonicalizer's facts at a non-WF state: a canon
+whose license reads per-raise `reversibleAtW` data instead of
+the guard shape would buy no consumer anything, and the
+recorded fork exhibits plus the crafted-witness discipline
+already serve the wild side as fences and evidence.  The part
+of C the theorem needs: none.
 
 Axiom discipline: `[propext, Quot.sound]` at worst, zero
 `Classical.choice`, zero `sorry`, no `native_decide`; `simp` is
@@ -3087,6 +3131,59 @@ theorem same_macro_iff {u v : State} (huwf : u.WF) (hvwf : v.WF) :
     rw [(canon_in_class huwf).symm, (canon_in_class hvwf).symm]
     exact hcanon
 
+/-! ## The re-packaged heads: the one-conjunct iff and the verdict tie
+
+Small derivations on the landed claims, no new proof ideas: the
+one-conjunct form of `same_macro_iff` (the assembly card's
+decidable one-comparison check), the draw-zone residue as a
+named projection (consumers never touch the raw orbit witness),
+and §3.0's long-deferred `sameFate` tie — the canon leg — closed
+onto `canon_class`'s own witness by the landed descent. -/
+
+/-- **`same_macro_iff'`** — CLAIM 2's ONE-CONJUNCT form: at `WF`
+positions, same macro class ⟺ equal wrapped canonical forms.
+The ⟹ is the landed characterization's first projection; the ⟸ is
+`canon_in_class` chaining each position's class through its
+wrapped canon — ⟦u⟧ = ⟦canon u⟧ = ⟦canon v⟧ = ⟦v⟧.  `SWComp` is
+absent, not dropped: at `WF` it is implied by the first conjunct
+(`swComp_of_orbit`), which is exactly why the assembly can use
+this as the one-comparison check; `same_macro_iff` stays the
+honest two-conjunct accountant. -/
+theorem same_macro_iff' {u v : State} (huwf : u.WF) (hvwf : v.WF) :
+    SameMacroO u v ↔ ⟦canon u⟧ = ⟦canon v⟧ := by
+  constructor
+  · intro h
+    exact ((same_macro_iff huwf hvwf).mp h).1
+  · intro h
+    show ⟦u⟧ = ⟦v⟧
+    rw [(canon_in_class huwf).symm, (canon_in_class hvwf).symm]
+    exact h
+
+/-- **`sameMacro_swComp`** — the draw-zone residue as a named
+projection: same macro class ⇒ `SWComp`.  The whole zone
+accounting (pool conservation across the witness legs, the phase
+line riding reversible draws, the twin relabeling disjunct) lives
+inside the landed `swComp_of_orbit`; this head exposes it on the
+class comparison itself.  The `u.WF` gate is `swComp_of_orbit`'s
+own (the journey extractor's draw rows read the phase
+classification, a `WF`-premised family, at the journey's
+origin); `v` carries no gate of its own. -/
+theorem sameMacro_swComp {u v : State} (huwf : u.WF) (h : SameMacroO u v) :
+    SWComp u v :=
+  swComp_of_orbit huwf (Quotient.exact h)
+
+/-- **`win_iff_canon`** — the chapter's long-deferred verdict tie,
+made theorem: saturation never crosses a commitment (each
+licensed raise is `reversibleAtW` through the landed undo
+family), so a position and its canonical form hold the same
+future.  `canon_class` is already the right `RevEqW` witness, so
+`RevEqW_sameFate` (Orig/Combine.lean:222) closes the tie in one
+hop — no other setoid disjunct is needed at any intermediate
+point. -/
+theorem win_iff_canon {u : State} (hwf : u.WF) :
+    WinFrom u ↔ WinFrom (canon u) :=
+  RevEqW_sameFate (canon_class hwf)
+
 /-! ## The private exhibits
 
 The two exhibits this chapter owes its fences and its design answer to
@@ -3325,5 +3422,8 @@ bridge. -/
 #print axioms sameMacro_tabToTab_quiet
 #print axioms sameMacro_swRot
 #print axioms same_macro_iff
+#print axioms same_macro_iff'
+#print axioms sameMacro_swComp
+#print axioms win_iff_canon
 #print axioms wild_confluence_fails
 #print axioms residue_reloc_exhibit
