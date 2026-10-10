@@ -1770,3 +1770,392 @@ theorem canon_idempotent (st : State) : canon (canon st) = canon st := by
 theorem canon_is_final (st : State) : Final (canon st) := by
   obtain ⟨l, hrun, hfin⟩ := canon_run st
   exact hfin
+
+/-! ## The macro class, written
+
+`Orig.Combine`'s `sameOrbitSetoid` is the LANDED macro state: two
+positions are identified when they are equal, twin, `RevEqW`-related,
+or `RevEqW`-related through a twin.  This chapter writes its
+quotient classes with the `⟦·⟧` brackets. -/
+
+/-- The macro class of a position: its `sameOrbitSetoid` quotient
+class — the macro state of `FUTURES-ORIG.md` §3.1. -/
+notation "⟦" s "⟧" => Quotient.mk sameOrbitSetoid s
+
+/-! ## The licensed lift's undo, as an explicit step equation
+
+The landed undo family `Orig.Irreversible.tabToFound_undo_under`/`_bare`
+hands out `reversibleAtW` — each licensed raise carries its one-move
+return — but the return's own STEP EQUATION lives inside those
+proofs.  The reverse undo-ladder below needs it as data, so the two
+equations are exposed here as local mirrors (DEDUP-marked: the bodies
+follow the landed family's internals exactly; at harvest, promote the
+family's own internals to public step lemmas and delete these). -/
+
+/-- One move runs by stepping it (a local kin of the private helpers
+in `Orig.Shuttle` / `Orig.Phase`; a dedup candidate). -/
+private theorem run_one {st : State} {m : Move} {s : State}
+    (h : State.step st m = some s) : st.run [m] = some s := by
+  show (match State.step st m with
+    | some st' => st'.run []
+    | none => none) = some s
+  rw [h]
+  rfl
+
+/-- An `inr` placement, written as one state update (the local kin of
+`Orig.Irreversible`'s private `putCard_inr_eq_setPile`; dedup
+candidate). -/
+private theorem putCard_setPile_inr {st : State} {c z : Card} {k : Anchor}
+    (hz : st.pileOfTop z = some k) :
+    st.putCard c (Sum.inr z) =
+      { st with piles := fun a' =>
+          if a' = k then { st.piles k with faceUp := (st.piles k).faceUp ++ [c] }
+          else st.piles a' } := by
+  simp only [State.putCard, hz]
+  rfl
+
+/-- An `inl` placement, written as one state update (the local kin of
+`Orig.Irreversible`'s private `putCard_inl_eq_setPile`; dedup
+candidate). -/
+private theorem putCard_setPile_inl {st : State} {c : Card} {a : Anchor} :
+    st.putCard c (Sum.inl a) =
+      { st with piles := fun a' => if a' = a then ⟨[], [c]⟩ else st.piles a' } := by
+  show (st.setPile a ⟨[], [c]⟩) = _
+  rfl
+
+/-- Removing an empty run from an empty-hidden pile gives the empty
+pile (the local kin of `Orig.Irreversible`'s private
+`afterRunRemoved_empty_eq` / `Orig.Classify`'s private `_eq'` farm
+copy; dedup candidate). -/
+private theorem afterRunRemoved_empty_of_hidden (p : Pile)
+    (h : p.hidden = []) : Pile.afterRunRemoved p [] = ⟨[], []⟩ := by
+  rcases p with ⟨h', f⟩
+  cases h' with
+  | nil => rfl
+  | cons x xs => exact absurd h (by simp)
+
+/-- **The under-seat lift's one-move undo, as a step equation**: the
+local mirror of `tabToFound_undo_under`'s internal return step.  The
+premises are the landed family's own, verbatim. -/
+theorem raise_undo_under_step {st : State} {c : Card} {a : Anchor} {z : Card} {s₁ : State}
+    (hstep : State.step st (Move.tabToFound c) = some s₁)
+    (hpa : st.pileOfTop c = some a)
+    (hz : lastOf (chop (st.piles a).faceUp) = some z)
+    (hsit : canSitOn c z = true)
+    (hsearch : s₁.pileOfTop z = some a) :
+    State.step s₁ (Move.foundToTab c (Sum.inr z)) = some st := by
+  obtain ⟨-, a₀, hpa₀, hs₁⟩ := step_tabToFound_inv hstep
+  rw [hpa] at hpa₀
+  injection hpa₀ with haa
+  subst haa
+  have hfull : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] :=
+    lastOf_chop (pileOfTop_top hpa).2
+  have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
+    rw [hs₁]
+    exact setFound_found_self st c.suit _
+  have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
+    intro σ hσ
+    rw [hs₁]
+    exact setFound_found_ne st c.suit _ σ hσ
+  have hft : s₁.foundTop c.suit = some c := by
+    show lastOf (s₁.found c.suit) = some c
+    rw [hs₁found]
+    exact lastOf_snoc _ c
+  have hcp : s₁.canPlace c (Sum.inr z) = true := by
+    simp only [State.canPlace, hsearch]
+    exact hsit
+  simp only [State.step, hft]
+  rw [hcp]
+  refine congrArg some (?_ :
+    (s₁.setFound c.suit (chop (s₁.found c.suit))).putCard c (Sum.inr z) = st)
+  have hz'' : (s₁.setFound c.suit (chop (s₁.found c.suit))).pileOfTop z = some a := hsearch
+  rw [putCard_setPile_inr hz'']
+  refine State.ext (funext fun σ => ?_) (funext fun a'' => ?_) ?_ ?_ ?_
+  · show (if σ = c.suit then chop (s₁.found c.suit) else s₁.found σ) = st.found σ
+    by_cases hσ : σ = c.suit
+    · rw [hσ, ite_eq_left rfl, hs₁found, chop_snoc]
+    · rw [ite_eq_right hσ]
+      exact hs₁other σ hσ
+  · have hQ : (s₁.setFound c.suit (chop (s₁.found c.suit))).piles = s₁.piles := rfl
+    rw [hQ]
+    show (if a'' = a then
+        { s₁.piles a with faceUp := (s₁.piles a).faceUp ++ [c] }
+        else s₁.piles a'') = st.piles a''
+    by_cases haa'' : a'' = a
+    · rw [haa'', ite_eq_left rfl]
+      have hpla : s₁.piles a =
+          Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) := by
+        rw [hs₁]
+        show (if a = a then
+            Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+            else st.piles a) = _
+        rw [ite_eq_left rfl]
+      rw [hpla]
+      cases hch : chop (st.piles a).faceUp with
+      | nil =>
+          rw [hch] at hz
+          exact absurd hz (by simp [lastOf])
+      | cons y ys =>
+          rw [hch] at hfull
+          show (⟨(st.piles a).hidden, (y :: ys) ++ [c]⟩ : Pile) = st.piles a
+          exact Pile.ext rfl hfull.symm
+    · rw [ite_eq_right haa'']
+      rw [hs₁]
+      show (if a'' = a then
+          Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+          else st.piles a'') = st.piles a''
+      rw [ite_eq_right haa'']
+  · show s₁.stock = st.stock
+    rw [hs₁]
+    rfl
+  · show s₁.waste = st.waste
+    rw [hs₁]
+    rfl
+  · show s₁.drawStep = st.drawStep
+    rw [hs₁]
+    rfl
+
+/-- **The bare-king lift's one-move undo, as a step equation**: the
+local mirror of `tabToFound_undo_bare`'s internal return step.  The
+premises are the landed family's own, verbatim. -/
+theorem raise_undo_bare_step {st : State} {c : Card} {a : Anchor} {s₁ : State}
+    (hstep : State.step st (Move.tabToFound c) = some s₁)
+    (hpa : st.pileOfTop c = some a)
+    (hchop : chop (st.piles a).faceUp = [])
+    (hhidden : (st.piles a).hidden = [])
+    (hking : c.rank = Rank.king) :
+    State.step s₁ (Move.foundToTab c (Sum.inl a)) = some st := by
+  obtain ⟨-, a₀, hpa₀, hs₁⟩ := step_tabToFound_inv hstep
+  rw [hpa] at hpa₀
+  injection hpa₀ with haa
+  subst haa
+  have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
+    rw [hs₁]
+    exact setFound_found_self st c.suit _
+  have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
+    intro σ hσ
+    rw [hs₁]
+    exact setFound_found_ne st c.suit _ σ hσ
+  have hft : s₁.foundTop c.suit = some c := by
+    show lastOf (s₁.found c.suit) = some c
+    rw [hs₁found]
+    exact lastOf_snoc _ c
+  have hface : (st.piles a).faceUp = [c] := by
+    obtain ⟨-, hlastc⟩ := pileOfTop_top hpa
+    have hc0 : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] := lastOf_chop hlastc
+    rw [hchop, List.nil_append] at hc0
+    exact hc0
+  have hpla : s₁.piles a = ⟨[], []⟩ := by
+    rw [hs₁]
+    show (if a = a then
+        Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+        else st.piles a) = _
+    rw [ite_eq_left rfl, hchop]
+    exact afterRunRemoved_empty_of_hidden _ hhidden
+  have hcp : s₁.canPlace c (Sum.inl a) = true := by
+    show ((s₁.piles a).isEmpty && decide (c.rank = Rank.king)) = true
+    rw [hpla, decide_eq_true hking]
+    rfl
+  simp only [State.step, hft]
+  rw [hcp]
+  refine congrArg some (?_ :
+    (s₁.setFound c.suit (chop (s₁.found c.suit))).putCard c (Sum.inl a) = st)
+  rw [putCard_setPile_inl]
+  have hQ : (s₁.setFound c.suit (chop (s₁.found c.suit))).piles = s₁.piles := rfl
+  rw [hQ]
+  refine State.ext (funext fun σ => ?_) (funext fun a'' => ?_) ?_ ?_ ?_
+  · show (if σ = c.suit then chop (s₁.found c.suit) else s₁.found σ) = st.found σ
+    by_cases hσ : σ = c.suit
+    · rw [hσ, ite_eq_left rfl, hs₁found, chop_snoc]
+    · rw [ite_eq_right hσ]
+      exact hs₁other σ hσ
+  · show (if a'' = a then (⟨[], [c]⟩ : Pile) else s₁.piles a'') = st.piles a''
+    by_cases haa'' : a'' = a
+    · rw [haa'', ite_eq_left rfl]
+      show (⟨[], [c]⟩ : Pile) = st.piles a
+      have hpE : st.piles a = ⟨(st.piles a).hidden, (st.piles a).faceUp⟩ := rfl
+      rw [hpE, hhidden, hface]
+    · rw [ite_eq_right haa'']
+      rw [hs₁]
+      show (if a'' = a then
+          Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+          else st.piles a'') = st.piles a''
+      rw [ite_eq_right haa'']
+  · show s₁.stock = st.stock
+    rw [hs₁]
+    rfl
+  · show s₁.waste = st.waste
+    rw [hs₁]
+    rfl
+  · show s₁.drawStep = st.drawStep
+    rw [hs₁]
+    rfl
+
+/-! ## The licensed lift's witnesses at `WF` -/
+
+/-- The under-seat license's seat facts: the card below `c` on its
+seat exists, fits it (the run's legality at `WF`), and still tops the
+same seat after `c`'s lift (the seat write keeps the below part). -/
+private theorem lift_under_facts {st : State} {c : Card} {a : Anchor} {s₁ : State}
+    (hwf : st.WF) (hpa : st.pileOfTop c = some a)
+    (hchop : chop (st.piles a).faceUp ≠ [])
+    (hshape : s₁ = { st.setFound c.suit (st.found c.suit ++ [c]) with
+        piles := fun a' => if a' = a then
+          Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) else st.piles a' })
+    (hwf₁ : s₁.WF) :
+    ∃ z, lastOf (chop (st.piles a).faceUp) = some z ∧ canSitOn c z = true ∧
+      s₁.pileOfTop z = some a := by
+  obtain ⟨z, hz⟩ := lastOf_exists hchop
+  have hfull : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] :=
+    lastOf_chop (pileOfTop_top hpa).2
+  have hrunok : runOK (chop (st.piles a).faceUp ++ [c]) = true := by
+    rw [← hfull]
+    exact hwf.2.1 a
+  obtain ⟨z', hz', hsit⟩ := runOK_snoc_sit hchop hrunok
+  have hzz : z = z' := Option.some.inj (hz.symm.trans hz')
+  subst hzz
+  have hseat : s₁.piles a = { st.piles a with faceUp := chop (st.piles a).faceUp } :=
+    lift_seatZone_eq hshape (Or.inl hchop)
+  have hzt : (s₁.piles a).top = some z := by
+    show lastOf (s₁.piles a).faceUp = some z
+    rw [hseat]
+    exact hz
+  exact ⟨z, hz, hsit, (pileOfTop_eq_some_iff hwf₁).2 hzt⟩
+
+/-- **The licensed lift is `reversibleAtW` at `WF`** — the landed undo
+family, premises discharged by the license and `WF`: the under-seat
+raise through `tabToFound_undo_under`, the bare-king raise through
+`tabToFound_undo_bare` (the license's shape disjunction forces the
+bare branch exactly when the chop is empty). -/
+theorem liftStep_reversibleW {st : State} {c : Card} {s₁ : State}
+    (hwf : st.WF) (hc : CanRaise st c)
+    (hstep : State.step st (Move.tabToFound c) = some s₁) :
+    reversibleAtW st (Move.tabToFound c) := by
+  have hwf₁ : s₁.WF := lift_wf hwf hc hstep
+  obtain ⟨-, a, hp, hbr⟩ := hc
+  obtain ⟨-, a', hp', hshape⟩ := step_tabToFound_inv hstep
+  rw [hp] at hp'
+  injection hp' with haa
+  subst haa
+  have hstep' : State.step st (Move.tabToFound c) = some s₁ := hstep
+  have hshape' : s₁ = { st.setFound c.suit (st.found c.suit ++ [c]) with
+      piles := fun a₂ => if a₂ = a then
+        Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) else st.piles a₂ } :=
+    hshape
+  cases hch : chop (st.piles a).faceUp with
+  | cons y ys =>
+      have hchop : chop (st.piles a).faceUp ≠ [] := by
+        intro hcne
+        rw [hcne] at hch
+        exact absurd hch (by simp)
+      obtain ⟨z, hz, hsit, hsearch⟩ :=
+        lift_under_facts hwf hp hchop hshape' hwf₁
+      exact tabToFound_undo_under hstep' hp hz hsit hsearch
+  | nil =>
+      rcases hbr with hne | ⟨hhid, hking⟩
+      · exact absurd hch hne
+      · exact tabToFound_undo_bare hstep' hp hch hhid hking
+
+/-- **The licensed lift's undo, as data**: exactly one `foundToTab`
+move — the local mirror equations above — fires back to the origin,
+and carries its own one-move return (the very raise).  This is the
+reverse undo-ladder's leg. -/
+theorem lift_undoW {st : State} {c : Card} {s₁ : State}
+    (hwf : st.WF) (hc : CanRaise st c)
+    (hstep : State.step st (Move.tabToFound c) = some s₁) :
+    ∃ m : Move, State.step s₁ m = some st ∧ reversibleAtW s₁ m := by
+  have hwf₁ : s₁.WF := lift_wf hwf hc hstep
+  obtain ⟨-, a, hp, hbr⟩ := hc
+  obtain ⟨-, a', hp', hshape⟩ := step_tabToFound_inv hstep
+  rw [hp] at hp'
+  injection hp' with haa
+  subst haa
+  have hstep' : State.step st (Move.tabToFound c) = some s₁ := hstep
+  have hshape' : s₁ = { st.setFound c.suit (st.found c.suit ++ [c]) with
+      piles := fun a₂ => if a₂ = a then
+        Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) else st.piles a₂ } :=
+    hshape
+  cases hch : chop (st.piles a).faceUp with
+  | cons y ys =>
+      have hchop : chop (st.piles a).faceUp ≠ [] := by
+        intro hcne
+        rw [hcne] at hch
+        exact absurd hch (by simp)
+      obtain ⟨z, hz, hsit, hsearch⟩ :=
+        lift_under_facts hwf hp hchop hshape' hwf₁
+      refine ⟨Move.foundToTab c (Sum.inr z),
+        raise_undo_under_step hstep' hp hz hsit hsearch, ?_⟩
+      exact ⟨st, [Move.tabToFound c], raise_undo_under_step hstep' hp hz hsit hsearch,
+        run_one hstep'⟩
+  | nil =>
+      rcases hbr with hne | ⟨hhid, hking⟩
+      · exact absurd hch hne
+      · refine ⟨Move.foundToTab c (Sum.inl a),
+          raise_undo_bare_step hstep' hp hch hhid hking, ?_⟩
+        exact ⟨st, [Move.tabToFound c], raise_undo_bare_step hstep' hp hch hhid hking,
+          run_one hstep'⟩
+
+/-! ## The canonical ladder: witness shuffles both ways -/
+
+/-- **The forward ladder**: every licensed run is a witness shuffle
+over its very schedule — each raise's `reversibleAtW` is the landed
+undo family (through `liftStep_reversibleW`), and the `WF` rides down
+the run inductively (the licensed lift preserves it). -/
+theorem stackRun_reversibleW {st : State} (hwf : st.WF) {l : List Move} {w : State}
+    (h : StackRun st l w) : ShufflePlayW st l w := by
+  induction h with
+  | nil s => exact .nil s
+  | @cons st₀ m c s' rest w₀ hc hm hstep hrest ih =>
+      cases hm
+      exact .cons (liftStep_reversibleW hwf hc hstep) hstep
+        (ih (lift_wf hwf hc hstep))
+
+/-- **The reverse undo-ladder**: from any licensed run's end there is
+a witness shuffle back to the origin — the undo moves fire in reverse
+order (each at the exact state right after its raise), and each undo
+carries the raise itself as its one-move return. -/
+theorem stackRun_returnW {st : State} (hwf : st.WF) {l : List Move} {w : State}
+    (h : StackRun st l w) : ∃ τ : List Move, ShufflePlayW w τ st := by
+  induction h with
+  | nil s => exact ⟨[], .nil s⟩
+  | @cons st₀ m c s' rest w₀ hc hm hstep hrest ih =>
+      cases hm
+      obtain ⟨m', hback, hrev'⟩ := lift_undoW hwf hc hstep
+      obtain ⟨τ₁, hτ₁⟩ := ih (lift_wf hwf hc hstep)
+      exact ⟨τ₁ ++ [m'], ShufflePlayW_append hτ₁
+        (ShufflePlayW.cons hrev' hback (.nil st₀))⟩
+
+/-! ## §3.0's centerpiece: the canonical form inside its own macro class -/
+
+/-- **`canon_reversibleW`**: the canonical schedule is a witness
+shuffle from `u` to `canon u`. -/
+theorem canon_reversibleW {u : State} (hwf : u.WF) :
+    ∃ l : List Move, ShufflePlayW u l (canon u) := by
+  obtain ⟨l, hrun, -⟩ := canon_run u
+  exact ⟨l, stackRun_reversibleW hwf hrun⟩
+
+/-- **`canon_class`**: the canonical form sits inside the position's
+own witness reversible orbit — same macro state, literally. -/
+theorem canon_class {u : State} (hwf : u.WF) : RevEqW u (canon u) := by
+  obtain ⟨l, hrun, -⟩ := canon_run u
+  exact ⟨l, stackRun_reversibleW hwf hrun, stackRun_returnW hwf hrun⟩
+
+/-- **`canon_in_class`** (§3.0's centerpiece): the stack-run to the
+canonical form is a `ShufflePlayW` — each licensed raise is
+`reversibleAtW` through the landed undo family, the reverse
+undo-ladder composes the return — so `⟦canon u⟧ = ⟦u⟧`: the
+canonical form is a DISTINGUISHED MEMBER of its macro class, not a
+commit-shifted descendant. -/
+theorem canon_in_class {u : State} (hwf : u.WF) : ⟦canon u⟧ = ⟦u⟧ :=
+  Quotient.sound (Or.inr (Or.inr (Or.inl (canon_class hwf))) :
+    sameOrbitSetoid.r (canon u) u)
+
+/-- **The uniform fiber spine**: `WF` positions in one
+`sameOrbitSetoid` orbit have equal wrapped canons — "whatever proves
+two positions ⟦·⟧-equal proves their canons ⟦·⟧-equal", the argument
+shape the whole §3.0 invariance family lands through. -/
+theorem canonQ_of_orbit {u v : State} (huwf : u.WF) (hvwf : v.WF)
+    (h : sameOrbitSetoid.r u v) : ⟦canon u⟧ = ⟦canon v⟧ := by
+  rw [show ⟦canon u⟧ = ⟦u⟧ from canon_in_class huwf,
+      show ⟦canon v⟧ = ⟦v⟧ from canon_in_class hvwf]
+  exact Quotient.sound h
