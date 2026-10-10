@@ -220,17 +220,6 @@ theorem setFound_piles (st : State) (s : Suit) (l : List Card) :
 theorem setFound_drawStep (st : State) (s : Suit) (l : List Card) :
     (st.setFound s l).drawStep = st.drawStep := rfl
 
-/-- `setFound` writes exactly the one foundation. -/
-theorem setFound_found_self (st : State) (s : Suit) (l : List Card) :
-    (st.setFound s l).found s = l := by
-  simp [State.setFound]
-
-/-- `setFound` leaves every other foundation untouched. -/
-theorem setFound_found_ne (st : State) (s : Suit) (l : List Card) (σ : Suit) (h : σ ≠ s) :
-    (st.setFound s l).found σ = st.found σ := by
-  simp only [State.setFound]
-  rw [ite_eq_right h]
-
 /-- `putCard` keeps the draw-zone contents (it rewrites piles only). -/
 theorem putCard_stock (st : State) (c : Card) (b : Base) :
     (st.putCard c b).stock = st.stock := by
@@ -980,7 +969,7 @@ theorem foundTotal_step_wasteToFound {st : State} {c : Card} {s' : State}
     (h : State.step st (Move.wasteToFound c) = some s') :
     foundTotal st + 1 ≤ foundTotal s' := by
   obtain ⟨-, x, xs, -, hs⟩ := step_wasteToFound_inv h
-  have hself := setFound_found_self st c.suit (st.found c.suit ++ [c])
+  have hself := setFound_found_self (st := st) (s := c.suit) (l := st.found c.suit ++ [c])
   have hlen : [c].length = 1 := rfl
   rw [hs]
   refine foundTotal_rise_lt (σ := c.suit) ?_ ?_
@@ -991,7 +980,7 @@ theorem foundTotal_step_wasteToFound {st : State} {c : Card} {s' : State}
     · have hπ : (st.setFound c.suit (st.found c.suit ++ [c])).found τ
           = ({ st.setFound c.suit (st.found c.suit ++ [c]) with waste := xs } : State).found τ := rfl
       rw [hπ]
-      rw [setFound_found_ne st c.suit _ τ hτ]
+      rw [setFound_found_ne hτ]
       exact Nat.le_refl _
   · rw [hself, List.length_append]
     omega
@@ -1019,7 +1008,7 @@ theorem foundTotal_step_tabToFound {st : State} {c : Card} {s' : State}
     (h : State.step st (Move.tabToFound c) = some s') :
     foundTotal st + 1 ≤ foundTotal s' := by
   obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv h
-  have hself := setFound_found_self st c.suit (st.found c.suit ++ [c])
+  have hself := setFound_found_self (st := st) (s := c.suit) (l := st.found c.suit ++ [c])
   have hfound : ∀ σ, (s'.found σ).length
       = ((st.setFound c.suit (st.found c.suit ++ [c])).found σ).length := by
     intro σ
@@ -1031,7 +1020,7 @@ theorem foundTotal_step_tabToFound {st : State} {c : Card} {s' : State}
     · rw [hτ, hself, List.length_append]
       have h1 : ([c] : List Card).length = 1 := rfl
       omega
-    · rw [setFound_found_ne st c.suit _ τ hτ]
+    · rw [setFound_found_ne hτ]
       exact Nat.le_refl _
   · rw [hfound c.suit, hself, List.length_append]
     have h1 : ([c] : List Card).length = 1 := rfl
@@ -1086,7 +1075,7 @@ theorem foundTotal_step_foundToTab {st : State} {c : Card} {b : Base} {s' : Stat
       by_cases hτ : τ = c.suit
       · rw [hτ, setFound_found_self]
         omega
-      · rw [setFound_found_ne st c.suit _ τ hτ]
+      · rw [setFound_found_ne hτ]
         exact Nat.le_refl _
     exact hπ
   · rw [show (((st.setFound c.suit (chop (st.found c.suit))).putCard c b).found c.suit)
@@ -1318,11 +1307,11 @@ theorem foundToTab_undo {st : State} {c : Card} {b : Base} {s₁ : State} {k : A
     · rw [hs, putCard_drawStep, setFound_drawStep]
   have hs₁found : s₁.found c.suit = chop (st.found c.suit) := by
     rw [hs, putCard_found]
-    exact setFound_found_self st c.suit _
+    exact setFound_found_self
   have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
     intro σ hσ
     rw [hs, putCard_found]
-    exact setFound_found_ne st c.suit _ σ hσ
+    exact setFound_found_ne hσ
   rcases hseat with hb | ⟨z, hb, hz⟩
   · subst hb
     obtain ⟨hemp, -⟩ := canPlace_inl hcp
@@ -1410,7 +1399,7 @@ theorem tabToFound_undo_under {st : State} {c : Card} {a : Anchor} {z : Card} {s
   have hfull : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] := lastOf_chop hlastc
   have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
     rw [hs₁]
-    exact setFound_found_self st c.suit _
+    exact setFound_found_self
   have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
     intro σ hσ
     rw [hs₁]
@@ -1510,7 +1499,7 @@ theorem tabToFound_undo_bare {st : State} {c : Card} {a : Anchor} {s₁ : State}
   subst haa
   have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
     rw [hs₁]
-    exact setFound_found_self st c.suit _
+    exact setFound_found_self
   have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
     intro σ hσ
     rw [hs₁]

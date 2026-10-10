@@ -159,27 +159,6 @@ private theorem afterRunRemoved_congr_pile {p q : Pile} {pre : List Card}
     Pile.afterRunRemoved p pre = Pile.afterRunRemoved q pre :=
   afterRunRemoved_congr p.hidden p.faceUp q.hidden q.faceUp pre hh
 
-private theorem putRun_eq_inl (st : State) (run : List Card) (a : Anchor) :
-    st.putRun run (Sum.inl a) = st.setPile a ⟨[], run⟩ := rfl
-
-private theorem putCard_eq_inl (st : State) (c : Card) (a : Anchor) :
-    st.putCard c (Sum.inl a) = st.setPile a ⟨[], [c]⟩ := rfl
-
-private theorem putRun_eq_inr {st : State} {run : List Card} {z : Card} {k : Anchor}
-    (h : st.pileOfTop z = some k) :
-    st.putRun run (Sum.inr z) =
-      st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run } := by
-  rw [show st.putRun run (Sum.inr z) =
-    st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run } from by
-    simp only [State.putRun, h]]
-
-private theorem putCard_eq_inr {st : State} {c z : Card} {k : Anchor}
-    (h : st.pileOfTop z = some k) :
-    st.putCard c (Sum.inr z) =
-      st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } := by
-  rw [show st.putCard c (Sum.inr z) =
-    st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } from by
-    simp only [State.putCard, h]]
 
 /-! ## §1. The list kit (private) -/
 
@@ -1305,19 +1284,6 @@ theorem bothOcc_pilesCarry {st s₁ : State} {m : Move} {t z z' : Card} {α β :
     hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩
 
 /-- The wasteToFound firing shape. -/
-private theorem setFound_found_self {st : State} {s : Suit} {l : List Card} :
-    (st.setFound s l).found s = l := by
-  show (if s = s then l else st.found s) = l
-  cases hdd : decide (s = s) with
-  | true => rw [ite_true_eq (of_decide_eq_true hdd)]
-  | false => exact absurd rfl (of_decide_eq_false hdd)
-
-private theorem setFound_found_ne {st : State} {s s' : Suit} {l : List Card}
-    (hne : s' ≠ s) : (st.setFound s l).found s' = st.found s' := by
-  show (if s' = s then l else st.found s') = st.found s'
-  cases hdd : decide (s' = s) with
-  | true => exact absurd (of_decide_eq_true hdd) hne
-  | false => rw [ite_false_eq (of_decide_eq_false hdd)]
 
 private theorem step_wasteToFound_shape {st s₁ : State} {c : Card}
     (hstep : st.step (Move.wasteToFound c) = some s₁) :
@@ -1597,10 +1563,10 @@ theorem putCard_pile_write {st : State} {c : Card} {b : Base}
       exact setPile_skips hj
   · refine ⟨κ, ?_, ?_⟩
     · show ((st.putCard c (Sum.inr d)).piles κ).faceUp = (st.piles κ).faceUp ++ [c]
-      rw [putCard_eq_inr hd, setPile_self]
+      rw [putCard_inr_eq hd, setPile_self]
     · intro j hj
       show (st.putCard c (Sum.inr d)).piles j = st.piles j
-      rw [putCard_eq_inr hd]
+      rw [putCard_inr_eq hd]
       exact setPile_skips hj
 
 /-- The spine append juggle. -/
@@ -1899,12 +1865,12 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
       have hsκ : (s₁.piles κ).faceUp = (st.piles κ).faceUp ++ [c] := by
         rw [hs₁]
         show ((st.putCard c (Sum.inr d)).piles κ).faceUp = (st.piles κ).faceUp ++ [c]
-        rw [putCard_eq_inr hd, setPile_self]
+        rw [putCard_inr_eq hd, setPile_self]
       have hskips : ∀ j : Anchor, j ≠ κ → s₁.piles j = st.piles j := by
         intro j hj
         rw [hs₁]
         show (st.putCard c (Sum.inr d)).piles j = st.piles j
-        rw [putCard_eq_inr hd]
+        rw [putCard_inr_eq hd]
         exact setPile_skips hj
       have h₁s : s₁.pileHolding t = some α := by
         rw [pileHolding_append_congr hsκ hskips hnt]
@@ -1913,15 +1879,15 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
         rw [pileHolding_append_congr hsκ hskips hntw]
         exact h₂
       have hs₁f : s₁.found = st.found := by
-        rw [hs₁, putCard_eq_inr hd]
+        rw [hs₁, putCard_inr_eq hd]
         rfl
       have hs₁sk : s₁.stock = st.stock := by
-        rw [hs₁, putCard_eq_inr hd]
+        rw [hs₁, putCard_inr_eq hd]
         rfl
       have hs₁w : s₁.waste = ws := by
-        rw [hs₁, putCard_eq_inr hd]
+        rw [hs₁, putCard_inr_eq hd]
       have hs₁d : s₁.drawStep = st.drawStep := by
-        rw [hs₁, putCard_eq_inr hd]
+        rw [hs₁, putCard_inr_eq hd]
         rfl
       -- the σ-side landing anchor:
       have hdσ : (st.exchangeTwin t).pileOfTop d = some (swapAnch α β κ) := by
@@ -1942,8 +1908,8 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
         have hsαrec : (s₁.piles α) = { st.piles α with faceUp := (st.piles α).faceUp ++ [c] } := by
           rw [hs₁]
           show ((st.putCard c (Sum.inr d)).piles α) = _
-          rw [putCard_eq_inr hd, setPile_self]
-        rw [putCard_eq_inr hdσ]
+          rw [putCard_inr_eq hd, setPile_self]
+        rw [putCard_inr_eq hdσ]
         refine ⟨?_,
           bothOcc_swollenSelf hwf hstep hsκ hskips (Ne.symm hnt) (Ne.symm hntw)
             h₁ h₂ hne hsα hsβ hfit hfit'⟩
@@ -1997,8 +1963,8 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
           have hsβrec : (s₁.piles β) = { st.piles β with faceUp := (st.piles β).faceUp ++ [c] } := by
             rw [hs₁]
             show ((st.putCard c (Sum.inr d)).piles β) = _
-            rw [putCard_eq_inr hd, setPile_self]
-          rw [putCard_eq_inr hdσ]
+            rw [putCard_inr_eq hd, setPile_self]
+          rw [putCard_inr_eq hdσ]
           refine ⟨?_,
             bothOcc_swollenOther hwf hstep hsκ hskips (Ne.symm hnt) (Ne.symm hntw)
               h₁ h₂ hne hsα hsβ hfit hfit'⟩
@@ -2051,7 +2017,7 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
             rw [show (s₁.piles β).faceUp = (st.piles β).faceUp from by
                 rw [hskips β (Ne.symm hκB)]]
             exact hsβ
-          rw [putCard_eq_inr hdσ]
+          rw [putCard_inr_eq hdσ]
           refine ⟨?_,
             bothOcc_freshWrite hwf hstep hsκ hskips hκA hκB (Ne.symm hnt) (Ne.symm hntw)
               h₁ h₂ hne hsα hsβ hfit hfit'⟩
@@ -2073,7 +2039,7 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
                   rw [show ((s₁.exchangeTwin t).piles κ) = (s₁.piles κ) from
                       State.exchangeTwin_pile_ne h₁s h₂s hne hκA hκB, hs₁]
                   show ((st.putCard c (Sum.inr d)).piles κ) = _
-                  rw [putCard_eq_inr hd, setPile_self]]
+                  rw [putCard_inr_eq hd, setPile_self]]
             · by_cases hjα' : j = α
               · rw [hjα', ite_false_eq (Ne.symm hκA),
                   exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,

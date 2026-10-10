@@ -588,15 +588,6 @@ private theorem runOK_append_fit : ∀ (l : List Card) (c z : Card) (r : List Ca
 
 /-! ## Private kit: state projections and guard unpackings -/
 
-private theorem setFound_found_self {st : State} {s : Suit} {l : List Card} :
-    (st.setFound s l).found s = l :=
-  show (if s = s then l else st.found s) = l from ite_eq_left rfl
-
-private theorem setFound_found_ne {st : State} {s s' : Suit} {l : List Card}
-    (h : s' ≠ s) :
-    (st.setFound s l).found s' = st.found s' :=
-  show (if s' = s then l else st.found s') = _ from ite_eq_right h
-
 /-- The searches only read the piles, so a foundation update leaves
 them unchanged. -/
 private theorem pileOfTop_setFound {st : State} {s : Suit} {l : List Card} {z : Card} :
@@ -780,31 +771,6 @@ private theorem recycle_pool_cnt (st : State) (c₀ : Card) :
   · rw [recycle_keep st hsne]
 
 
-
-/-- The putters are pure pile updates at the located index. -/
-private theorem putCard_eq_inl (st : State) (c : Card) (a : Anchor) :
-    st.putCard c (Sum.inl a) = st.setPile a ⟨[], [c]⟩ := rfl
-
-private theorem putCard_eq_inr {st : State} {c z : Card} {k : Anchor}
-    (h : st.pileOfTop z = some k) :
-    st.putCard c (Sum.inr z) =
-      st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } := by
-  show (match st.pileOfTop z with
-    | some k' => st.setPile k' { st.piles k' with faceUp := (st.piles k').faceUp ++ [c] }
-    | none => st) = _
-  rw [h]
-
-private theorem putRun_eq_inl (st : State) (run : List Card) (a : Anchor) :
-    st.putRun run (Sum.inl a) = st.setPile a ⟨[], run⟩ := rfl
-
-private theorem putRun_eq_inr {st : State} {run : List Card} {z : Card} {k : Anchor}
-    (h : st.pileOfTop z = some k) :
-    st.putRun run (Sum.inr z) =
-      st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run } := by
-  show (match st.pileOfTop z with
-    | some k' => st.setPile k' { st.piles k' with faceUp := (st.piles k').faceUp ++ run }
-    | none => st) = _
-  rw [h]
 
 /-! ## Private kit: the deal and the dealt piles -/
 
@@ -1193,18 +1159,18 @@ private theorem wasteToTab_wf {st st' : State} {c : Card} {b : Base}
   | inr z =>
       obtain ⟨k, hps, hfit⟩ := canPlace_inr hcanplace
       have htopk : lastOf (st.piles k).faceUp = some z := pileOfTop_top hps
-      have hstock : st'.stock = st.stock := by rw [hrw, putCard_eq_inr hps]; rfl
-      have hfeq : st'.found = st.found := by rw [hrw, putCard_eq_inr hps]; rfl
+      have hstock : st'.stock = st.stock := by rw [hrw, putCard_inr_eq hps]; rfl
+      have hfeq : st'.found = st.found := by rw [hrw, putCard_inr_eq hps]; rfl
       have hsd' : 0 < st'.drawStep := by
         have hdeq : st'.drawStep = st.drawStep := by
-          rw [hrw, putCard_eq_inr hps]; rfl
+          rw [hrw, putCard_inr_eq hps]; rfl
         rw [hdeq]; exact hsd
       have hstockc : ∀ c₀, cnt c₀ st'.stock = cnt c₀ st.stock := fun c₀ => by rw [hstock]
       have hfcnt : ∀ c₀, cntFlat c₀ (Suit.all.map st'.found)
           = cntFlat c₀ (Suit.all.map st.found) := fun c₀ => by rw [hfeq]
       have hrp : st'.piles
           = (st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] }).piles := by
-        rw [hrw, putCard_eq_inr hps]
+        rw [hrw, putCard_inr_eq hps]
       refine ⟨?_, ?_, ?_, hsd'⟩
       · intro σ
         have h1 : st'.found σ = st.found σ := by rw [hfeq]
@@ -1645,7 +1611,7 @@ private theorem foundToTab_wf {st st' : State} {c : Card} {b : Base}
         rw [hrw]
         show (st.setFound c.suit (chop (st.found c.suit))
           |>.putCard c (Sum.inr z)).found = _
-        rw [putCard_eq_inr hpsA]
+        rw [putCard_inr_eq hpsA]
         rfl
       have hpil : st'.piles
           = (st.setFound c.suit (chop (st.found c.suit))
@@ -1653,26 +1619,26 @@ private theorem foundToTab_wf {st st' : State} {c : Card} {b : Base}
         rw [hrw]
         show (st.setFound c.suit (chop (st.found c.suit))
           |>.putCard c (Sum.inr z)).piles = _
-        rw [putCard_eq_inr hpsA]
+        rw [putCard_inr_eq hpsA]
         rfl
       have hstock : st'.stock = st.stock := by
         rw [hrw]
         show (st.setFound c.suit (chop (st.found c.suit))
           |>.putCard c (Sum.inr z)).stock = st.stock
-        rw [putCard_eq_inr hpsA]
+        rw [putCard_inr_eq hpsA]
         rfl
       have hwaste : st'.waste = st.waste := by
         rw [hrw]
         show (st.setFound c.suit (chop (st.found c.suit))
           |>.putCard c (Sum.inr z)).waste = st.waste
-        rw [putCard_eq_inr hpsA]
+        rw [putCard_inr_eq hpsA]
         rfl
       have hsd' : 0 < st'.drawStep := by
         have hdeq : st'.drawStep = st.drawStep := by
           rw [hrw]
           show (st.setFound c.suit (chop (st.found c.suit))
             |>.putCard c (Sum.inr z)).drawStep = st.drawStep
-          rw [putCard_eq_inr hpsA]
+          rw [putCard_inr_eq hpsA]
           rfl
         rw [hdeq]; exact hsd
       refine ⟨?_, ?_, ?_, hsd'⟩
@@ -2150,12 +2116,12 @@ private theorem tabToTab_wf {st st' : State} {c : Card} {b : Base}
       have hstp : st'.piles
           = (st.setPile a (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))
             |>.setPile k { (st.setPile a (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles k with faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles k).faceUp ++ (c :: r) }).piles := by
-        rw [hrw, putRun_eq_inr hpmid]
-      have hfeq : st'.found = st.found := by rw [hrw, putRun_eq_inr hpmid]; rfl
-      have hstock : st'.stock = st.stock := by rw [hrw, putRun_eq_inr hpmid]; rfl
-      have hwaste : st'.waste = st.waste := by rw [hrw, putRun_eq_inr hpmid]; rfl
+        rw [hrw, putRun_inr_eq hpmid]
+      have hfeq : st'.found = st.found := by rw [hrw, putRun_inr_eq hpmid]; rfl
+      have hstock : st'.stock = st.stock := by rw [hrw, putRun_inr_eq hpmid]; rfl
+      have hwaste : st'.waste = st.waste := by rw [hrw, putRun_inr_eq hpmid]; rfl
       have hsd' : 0 < st'.drawStep := by
-        rw [hrw, putRun_eq_inr hpmid]; exact hsd
+        rw [hrw, putRun_inr_eq hpmid]; exact hsd
       refine ⟨?_, ?_, ?_, hsd'⟩
       · intro σ; rw [hfeq]; exact hpre σ
       · intro j

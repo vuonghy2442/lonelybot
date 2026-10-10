@@ -393,9 +393,9 @@ private theorem found_lift_shape (st : State) (c : Card) (a : Anchor) (σ : Suit
   show (st.setFound c.suit (st.found c.suit ++ [c])).found σ = _
   by_cases hσ : σ = c.suit
   · rw [ite_eq_left hσ, hσ]
-    exact setFound_found_self st c.suit (st.found c.suit ++ [c])
+    exact setFound_found_self (l := st.found c.suit ++ [c])
   · rw [ite_eq_right hσ]
-    exact setFound_found_ne st c.suit _ σ hσ
+    exact setFound_found_ne hσ
 
 /-- The foundation transport of any licensed lift: the raised suit
 gains one rung, every other foundation is untouched. -/
@@ -1250,9 +1250,9 @@ private theorem setFound_field (st : State) (s : Suit) (l : List Card) (σ : Sui
     (st.setFound s l).found σ = if σ = s then l else st.found σ := by
   by_cases hσ : σ = s
   · rw [hσ, ite_eq_left rfl]
-    exact setFound_found_self st s l
+    exact setFound_found_self
   · rw [ite_eq_right hσ]
-    exact setFound_found_ne st s l σ hσ
+    exact setFound_found_ne hσ
 
 /-- **(2a) Monotone stackability for the license**: after a
 licensed lift of another card, `c`'s license survives — its suit's
@@ -1876,11 +1876,11 @@ theorem raise_undo_under_step {st : State} {c : Card} {a : Anchor} {z : Card} {s
     lastOf_chop (pileOfTop_top hpa).2
   have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
     rw [hs₁]
-    exact setFound_found_self st c.suit _
+    exact setFound_found_self
   have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
     intro σ hσ
     rw [hs₁]
-    exact setFound_found_ne st c.suit _ σ hσ
+    exact setFound_found_ne hσ
   have hft : s₁.foundTop c.suit = some c := by
     show lastOf (s₁.found c.suit) = some c
     rw [hs₁found]
@@ -1955,11 +1955,11 @@ theorem raise_undo_bare_step {st : State} {c : Card} {a : Anchor} {s₁ : State}
   subst haa
   have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
     rw [hs₁]
-    exact setFound_found_self st c.suit _
+    exact setFound_found_self
   have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
     intro σ hσ
     rw [hs₁]
-    exact setFound_found_ne st c.suit _ σ hσ
+    exact setFound_found_ne hσ
   have hft : s₁.foundTop c.suit = some c := by
     show lastOf (s₁.found c.suit) = some c
     rw [hs₁found]

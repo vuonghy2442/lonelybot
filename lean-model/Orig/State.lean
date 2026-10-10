@@ -475,3 +475,21 @@ theorem runOK_chop : ∀ {l : List Card}, runOK l = true → runOK (chop l) = tr
               show runOK (x :: y :: chop (z :: t'')) = true
               rw [runOK, h.1, hi]
               rfl
+
+/-! ## The foundation-update readers
+
+The per-suit writes of `State.setFound`, landed beside the census
+readers (formerly identical private copies in `Orig/Reach.lean` and
+`Orig/TwinExchangeBoth.lean` — the found-side rows of the exchange
+campaign lean on them). -/
+
+/-- A foundation update writes exactly that suit. -/
+theorem setFound_found_self {st : State} {s : Suit} {l : List Card} :
+    (st.setFound s l).found s = l :=
+  show (if s = s then l else st.found s) = l from ite_eq_left rfl
+
+/-- A foundation update leaves every other suit alone. -/
+theorem setFound_found_ne {st : State} {s s' : Suit} {l : List Card}
+    (h : s' ≠ s) :
+    (st.setFound s l).found s' = st.found s' :=
+  show (if s' = s then l else st.found s') = _ from ite_eq_right h

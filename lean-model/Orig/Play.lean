@@ -193,6 +193,14 @@ theorem putCard_inr_eq {st : State} {c z : Card} {k : Anchor}
     st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } from by
     simp only [State.putCard, h]]
 
+/-- `putCard` onto an empty seat is the singleton `setPile`. -/
+theorem putCard_eq_inl (st : State) (c : Card) (a : Anchor) :
+    st.putCard c (Sum.inl a) = st.setPile a ⟨[], [c]⟩ := rfl
+
+/-- `putRun` onto an empty seat is the run record. -/
+theorem putRun_eq_inl (st : State) (run : List Card) (a : Anchor) :
+    st.putRun run (Sum.inl a) = st.setPile a ⟨[], run⟩ := rfl
+
 /-- The located `putRun`: the top-directed landing appends the run at
 the located pile. -/
 theorem putRun_inr_eq {st : State} {run : List Card} {z : Card} {k : Anchor}
