@@ -233,7 +233,7 @@ def WF (st : State) : Prop :=
   (∀ s, ∃ n, st.found s = s.upCards.take n) ∧
   (∀ a, runOK (st.piles a).faceUp = true) ∧
   (∀ c ∈ Card.universe, st.cardCount c = 1) ∧
-  (st.drawStep = 1 ∨ st.drawStep = 3)
+  (0 < st.drawStep)
 
 /-! ## The deal -/
 

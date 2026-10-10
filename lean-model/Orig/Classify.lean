@@ -2825,10 +2825,7 @@ private def drawIrr (st : State) : Bool :=
 
 theorem drawClass {st : State} (hwf : st.WF) :
     irreversibleAt st Move.draw ↔ drawIrr st = true := by
-  have hd : 0 < st.drawStep := by
-    rcases hwf.drawStep_13 with h | h
-    · rw [h]; omega
-    · rw [h]; omega
+  have hd : 0 < st.drawStep := hwf.drawStep_pos
   cases hstock : st.stock with
   | nil =>
       rw [drawIrr, hstock]

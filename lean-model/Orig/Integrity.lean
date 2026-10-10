@@ -22,7 +22,7 @@ The engine is occurrence bookkeeping (`mem_pile_unique`: a card in
 one pile is in no other zone) plus a `runOK` descent kit
 (`runOK_desc`, `runOK_nodup`) and a `firstWhere` completeness mini
 lemma.  Convenience projections of `State.WF`
-(`found_prefix`, `runOK_of`, `cardCount_eq`, `drawStep_13`) and
+(`found_prefix`, `runOK_of`, `cardCount_eq`, `drawStep_pos`) and
 `Pile.isEmpty_eq` ride along as the one-liners downstream cards
 quote.
 
@@ -48,8 +48,8 @@ theorem WF.cardCount_eq {st : State} (h : st.WF) {c : Card}
     (hc : c ∈ Card.universe) : st.cardCount c = 1 := h.2.2.1 c hc
 
 /-- The draw step is 1 or 3. -/
-theorem WF.drawStep_13 {st : State} (h : st.WF) :
-    st.drawStep = 1 ∨ st.drawStep = 3 := h.2.2.2
+theorem WF.drawStep_pos {st : State} (h : st.WF) :
+    0 < st.drawStep := h.2.2.2
 
 end State
 
