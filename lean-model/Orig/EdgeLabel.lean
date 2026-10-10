@@ -1,6 +1,7 @@
 import Orig.Canonical
 import Orig.Classify
 import Orig.Reach
+import Orig.Twin
 
 /-!
 # Orig — the canonical edge labels (the CanonEdge normal form and the
@@ -1235,6 +1236,45 @@ def CanonLabel (C w : State) : EdgeLabel :=
 def CanonEdge.label {C : State} {D : SameOrbit} (e : CanonEdge C D) : EdgeLabel :=
   CanonLabel C e.w
 
+/-- **The read is a function of the class**: any two WF class-mates of
+the target class give the same fingerprint — the four datums the reads
+consume (cycle count, pool, per-anchor hidden lists, seat roots) are
+macro-class invariants, so the label of a directly-adjacent class pair
+depends only on the pair, never on which member of the target class
+the reading happens to use. -/
+theorem canonLabel_orbit_indep {C : State} {w w' : State}
+    (h : ⟦w⟧ = ⟦w'⟧) (hwf : w.WF) : CanonLabel C w = CanonLabel C w' := by
+  obtain ⟨-, hc, hp, hh, hn⟩ := orbit_data (Quotient.exact h) hwf
+  have hHT : hiddenTotal w' = hiddenTotal w := hiddenTotal_congr hh
+  have hPool : poolMissCard C w = poolMissCard C w' := by
+    unfold poolMissCard
+    refine firstWhere_congr (fun c => ?_)
+    rw [hp]
+  have hDrop : hiddenDropperAnchor C w = hiddenDropperAnchor C w' := by
+    unfold hiddenDropperAnchor
+    refine firstWhere_congr (fun a => ?_)
+    rw [hh a]
+  have hRoot : rootFreedAnchor C w = rootFreedAnchor C w' := by
+    unfold rootFreedAnchor
+    refine firstWhere_congr (fun a => ?_)
+    rw [hn a]
+  unfold CanonLabel
+  rw [hc, hHT]
+  by_cases h1 : cycleCount w < cycleCount C
+  · rw [ite_eq_left h1, ite_eq_left h1, hPool]
+  · rw [ite_eq_right h1, ite_eq_right h1]
+    by_cases h2 : hiddenTotal w < hiddenTotal C
+    · rw [ite_eq_left h2, ite_eq_left h2, hDrop]
+    · rw [ite_eq_right h2, ite_eq_right h2, hRoot]
+
+/-- **The label is a function of the pair**: two CanonEdge schemes
+witnessing the same class pair carry the same label — the label does
+not depend on the scheme (which padding, which commit instance), only
+on the class pair itself. -/
+theorem edge_label_unique {C : State} {D : SameOrbit}
+    (e₁ e₂ : CanonEdge C D) : e₁.label = e₂.label :=
+  canonLabel_orbit_indep (e₁.cl.trans e₂.cl.symm) e₁.landing_wf
+
 
 /-- A both-empty draw zone cannot produce a draw: recycle is the identity
 and there is nothing to deal (citing the public Play readers). -/
@@ -1288,6 +1328,8 @@ theorem canonEdge_draw_shape {C : State} {D : SameOrbit} (e : CanonEdge C D)
 #print axioms canonEdge_exits_source
 #print axioms canonEdge_ne_foundToTab
 #print axioms canonEdge_draw_shape
+#print axioms canonLabel_orbit_indep
+#print axioms edge_label_unique
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
