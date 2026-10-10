@@ -80,16 +80,6 @@ private theorem step_wasteToTab_inv {u : State} {c : Card} {b : Base}
       exact ⟨wsl, hcon, h.symm⟩
   · simp at h
 
-/-- A single-card placement keeps the found, the stock, the waste,
-and the draw step verbatim. -/
-private theorem putCard_keep {st : State} {c : Card} {b : Base} :
-    (st.putCard c b).found = st.found ∧ (st.putCard c b).stock = st.stock ∧
-      (st.putCard c b).waste = st.waste ∧ (st.putCard c b).drawStep = st.drawStep := by
-  cases b with
-  | inl a => exact ⟨rfl, rfl, rfl, rfl⟩
-  | inr z =>
-      simp only [State.putCard]
-      split <;> exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-! ## This card's own kit -/
 

@@ -795,21 +795,6 @@ private theorem step_tabToTab_inv {st st' : State} {c : Card} {b : Base}
 
 /-! ## Private kit: the draw, and pile update shapes -/
 
-private theorem recycle_allEmpty (st : State) (h1 : st.stock = []) (h2 : st.waste = []) :
-    State.recycle st = st := by
-  simp only [State.recycle, h1, h2]
-
-private theorem recycle_nil (st : State) (h1 : st.stock = [])
-    (h2 : st.waste ≠ []) :
-    State.recycle st =
-      { st with stock := st.waste.reverse, waste := ([] : List Card) } := by
-  obtain ⟨x, t, hcon⟩ := list_cons_of_ne_nil h2
-  simp only [State.recycle, h1, hcon]
-
-private theorem recycle_keep (st : State) (h : st.stock ≠ []) :
-    State.recycle st = st := by
-  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil h
-  simp only [State.recycle, hcon]
 
 /-- Recycling moves no card between the counted zones. -/
 private theorem recycle_pool_cnt (st : State) (c₀ : Card) :
@@ -829,48 +814,7 @@ private theorem recycle_pool_cnt (st : State) (c₀ : Card) :
       omega
   · rw [recycle_keep st hsne]
 
-private theorem dealStock_nil (st : State) (h : st.stock = []) :
-    State.dealStock st = none := by
-  simp only [State.dealStock, h]
 
-private theorem dealStock_eq_of_ne_nil (st : State) (h : st.stock ≠ []) :
-    State.dealStock st =
-      some { st with
-          stock := (State.dealUpTo st.drawStep st.stock).2
-          waste := (State.dealUpTo st.drawStep st.stock).1.reverse ++ st.waste } := by
-  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil h
-  simp only [State.dealStock, hcon]
-
-/-- The take/drop split of the deal (isolation copy of the Phase
-lemma; `take` clips by itself). -/
-private theorem dealUpTo_eq_take_drop (k : Nat) : ∀ (l : List Card),
-    State.dealUpTo k l = (l.take k, l.drop k) := by
-  induction k with
-  | zero => intro l; rfl
-  | succ k ih =>
-      intro l
-      cases l with
-      | nil => rfl
-      | cons c cs =>
-          rw [State.dealUpTo, ih cs]
-          rfl
-
-/-- One draw unfolded: recycle first, then deal from a nonempty
-stock with the recorded shape. -/
-private theorem draw_unfold {x y : State} (hsuc : x.stepDraw = some y) :
-    ∃ r, State.recycle x = r ∧ r.stock ≠ [] ∧
-      y = { r with stock := (State.dealUpTo r.drawStep r.stock).2,
-                   waste := (State.dealUpTo r.drawStep r.stock).1.reverse ++ r.waste } := by
-  have h0 : State.dealStock (State.recycle x) = some y := hsuc
-  have hrne : (State.recycle x).stock ≠ [] := by
-    intro hc
-    rw [dealStock_nil _ hc] at h0
-    exact absurd h0 (by simp)
-  refine ⟨State.recycle x, rfl, hrne, ?_⟩
-  have hs := dealStock_eq_of_ne_nil _ hrne
-  rw [hs] at h0
-  have := (Option.some.inj h0).symm
-  exact this
 
 /-- The putters are pure pile updates at the located index. -/
 private theorem putCard_eq_inl (st : State) (c : Card) (a : Anchor) :

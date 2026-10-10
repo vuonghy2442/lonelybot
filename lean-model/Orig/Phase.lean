@@ -188,24 +188,6 @@ private theorem dealUpTo_all (k : Nat) : ∀ (l : List Card), l.length ≤ k →
           show State.dealUpTo (k+1) (c :: cs) = _
           rw [State.dealUpTo, hrs]
 
-/-- An empty-stock recycle is the identity. -/
-private theorem recycle_allEmpty (st : State) (h1 : st.stock = [])
-    (h2 : st.waste = []) : State.recycle st = st := by
-  simp only [State.recycle, h1, h2]
-
-/-- A recycle at the end, with waste present, reverses the waste into
-the stock. -/
-private theorem recycle_nil (st : State) (h1 : st.stock = [])
-    (h2 : st.waste ≠ []) :
-    State.recycle st = { st with stock := st.waste.reverse, waste := [] } := by
-  obtain ⟨x, t, hcon⟩ := list_cons_of_ne_nil h2
-  simp only [State.recycle, h1, hcon]
-
-/-- A recycle with stock present is the identity. -/
-private theorem recycle_keep (st : State) (h : st.stock ≠ []) :
-    State.recycle st = st := by
-  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil h
-  simp only [State.recycle, hcon]
 
 /-- Recycling conserves the cycle count: reversing and swapping the two
 pools keeps their total. -/
@@ -220,18 +202,6 @@ private theorem recycle_cycleCount (st : State) :
       omega
   · rw [recycle_keep st hst]
 
-/-- Dealing from an empty stock fails. -/
-private theorem dealStock_nil (st : State) (h : st.stock = []) :
-    State.dealStock st = none := by
-  simp only [State.dealStock, h]
-
-/-- Dealing from a nonempty stock has exactly the recorded shape: the
-dealt cards reversed onto the waste, the remainder kept as the stock. -/
-private theorem dealStock_eq_of_ne_nil (st : State) (h : st.stock ≠ []) :
-    State.dealStock st = some
-      { st with stock := (State.dealUpTo st.drawStep st.stock).2, waste := (State.dealUpTo st.drawStep st.stock).1.reverse ++ st.waste } := by
-  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil h
-  simp only [State.dealStock, hcon]
 
 /-- A full deal: when the stock has no more cards than one deal, all of
 the stock is dealt onto the waste and nothing remains. -/
@@ -241,23 +211,6 @@ private theorem dealStock_full {st : State} (hs : st.stock ≠ [])
       { st with stock := ([] : List Card), waste := st.stock.reverse ++ st.waste } := by
   rw [dealStock_eq_of_ne_nil st hs, dealUpTo_all st.drawStep st.stock hsize]
 
-/-- One step of the draw cycle, unfolded: after recycling (the identity
-unless the stock was empty), the deal happens from a nonempty stock and
-has the recorded shape. -/
-private theorem draw_unfold {x y : State} (hsuc : x.stepDraw = some y) :
-    ∃ r, State.recycle x = r ∧ r.stock ≠ [] ∧
-      y = { r with stock := (State.dealUpTo r.drawStep r.stock).2, waste := (State.dealUpTo r.drawStep r.stock).1.reverse ++ r.waste } := by
-  have h0 : State.dealStock (State.recycle x) = some y :=
-    hsuc
-  have hrne : (State.recycle x).stock ≠ [] := by
-    intro hc
-    rw [dealStock_nil _ hc] at h0
-    exact absurd h0 (by simp)
-  refine ⟨State.recycle x, rfl, hrne, ?_⟩
-  have hs := dealStock_eq_of_ne_nil _ hrne
-  rw [hs] at h0
-  simp only [Option.some.injEq] at h0
-  exact h0.symm
 
 /-- A draw conserves the cycle count: cards only move between the stock
 and the waste (reversing on the way). -/
@@ -428,7 +381,7 @@ private def isWasteMove (m : Move) : Bool :=
 
 /-- Placing a card on the tableau never touches the stock, the waste,
 or the draw step. -/
-private theorem putCard_keep (x : State) (c : Card) (b : Base) :
+private theorem putCard_zone_keep (x : State) (c : Card) (b : Base) :
     (x.putCard c b).stock = x.stock ∧ (x.putCard c b).waste = x.waste ∧
     (x.putCard c b).drawStep = x.drawStep := by
   cases b with
@@ -481,7 +434,7 @@ private theorem cycleCount_lt_wasteToTab {x y : State} {c : Card} {b : Base}
       rw [hcon] at h
       simp only [Option.some.injEq] at h
       subst h
-      have hpc := putCard_keep x c b
+      have hpc := putCard_zone_keep x c b
       show (x.putCard c b).stock.length + ws.length < x.stock.length + x.waste.length
       rw [hpc.1, hcon, List.length_cons]
       omega
@@ -511,8 +464,8 @@ private theorem foundToTab_fixed {x y : State} {c : Card} {b : Base}
   · split at h
     · simp only [Option.some.injEq] at h
       subst h
-      exact ⟨(putCard_keep _ c b).1, (putCard_keep _ c b).2.1,
-        (putCard_keep _ c b).2.2⟩
+      exact ⟨(putCard_zone_keep _ c b).1, (putCard_zone_keep _ c b).2.1,
+        (putCard_zone_keep _ c b).2.2⟩
     · simp at h
   · simp at h
 
@@ -1279,21 +1232,6 @@ theorem draw_irreversible_offset_lex {st : State}
 
 
 /-! ## The orbit scaffolding: the draw at exact depth -/
-
-/-- The exact split of `dealUpTo` into take and drop: dealing `k` cards
-from the front is taking `k` (clipped by `List.take` itself) and
-dropping `k`. -/
-private theorem dealUpTo_eq_take_drop (k : Nat) : ∀ (l : List Card),
-    State.dealUpTo k l = (l.take k, l.drop k) := by
-  induction k with
-  | zero => intro l; rfl
-  | succ k ih =>
-      intro l
-      cases l with
-      | nil => rfl
-      | cons c cs =>
-          rw [State.dealUpTo, ih cs]
-          rfl
 
 /-- One plain draw (the stock is nonempty, so no recycle fires): the
 head card moves stock-to-waste, list-exact. -/

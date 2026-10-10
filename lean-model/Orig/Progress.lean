@@ -622,16 +622,6 @@ private theorem recycle_waste (st : State) (h1 : st.stock = []) (h2 : st.waste �
           | w => { st with stock := w.reverse, waste := [] }
       | _ => st) from rfl, h1, hc]
 
-private theorem recycle_keep (st : State) (h : st.stock ≠ []) :
-    State.recycle st = st := by
-  obtain ⟨x, t, hc⟩ := list_cons_of_ne_nil h
-  rw [show State.recycle st = (match st.stock with
-      | [] =>
-          match st.waste with
-          | [] => st
-          | w => { st with stock := w.reverse, waste := [] }
-      | _ => st) from rfl, hc]
-
 /-- The deal out of a nonempty stock keeps the draw step. -/
 private theorem dealStock_drawStep (st : State) (h : st.stock ≠ []) :
     ∃ st'', State.dealStock st = some st'' ∧ st''.drawStep = st.drawStep := by

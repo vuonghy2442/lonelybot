@@ -202,3 +202,87 @@ theorem putRun_inr_eq {st : State} {run : List Card} {z : Card} {k : Anchor}
   rw [show st.putRun run (Sum.inr z) =
     st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run } from by
     simp only [State.putRun, h]]
+
+/-! ## The draw readers
+
+The `recycle` / `dealStock` / `dealUpTo` / draw-unfold readers,
+landed beside their defs — formerly identical private copies in
+`Orig/Phase.lean` and `Orig/Reach.lean` (plus `Progress`'s
+`recycle_keep`), dedup-marked since the v2 era. -/
+
+/-- An empty-board recycle is the identity. -/
+theorem recycle_allEmpty (st : State) (h1 : st.stock = [])
+    (h2 : st.waste = []) : State.recycle st = st := by
+  simp only [State.recycle, h1, h2]
+
+/-- A recycle at the end, with waste present, reverses the waste into
+the stock. -/
+theorem recycle_nil (st : State) (h1 : st.stock = [])
+    (h2 : st.waste ≠ []) :
+    State.recycle st = { st with stock := st.waste.reverse, waste := [] } := by
+  obtain ⟨x, t, hcon⟩ := list_cons_of_ne_nil h2
+  simp only [State.recycle, h1, hcon]
+
+/-- A recycle with stock present is the identity. -/
+theorem recycle_keep (st : State) (h : st.stock ≠ []) :
+    State.recycle st = st := by
+  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil h
+  simp only [State.recycle, hcon]
+
+/-- Dealing from an empty stock fails. -/
+theorem dealStock_nil (st : State) (h : st.stock = []) :
+    State.dealStock st = none := by
+  simp only [State.dealStock, h]
+
+/-- Dealing from a nonempty stock has exactly the recorded shape: the
+dealt cards reversed onto the waste, the remainder kept as the stock. -/
+theorem dealStock_eq_of_ne_nil (st : State) (h : st.stock ≠ []) :
+    State.dealStock st = some
+      { st with stock := (State.dealUpTo st.drawStep st.stock).2, waste := (State.dealUpTo st.drawStep st.stock).1.reverse ++ st.waste } := by
+  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil h
+  simp only [State.dealStock, hcon]
+
+/-- `putCard` keeps the found, the stock, the waste, and the draw
+step verbatim. -/
+theorem putCard_keep {st : State} {c : Card} {b : Base} :
+    (st.putCard c b).found = st.found ∧ (st.putCard c b).stock = st.stock ∧
+      (st.putCard c b).waste = st.waste ∧ (st.putCard c b).drawStep = st.drawStep := by
+  cases b with
+  | inl a => exact ⟨rfl, rfl, rfl, rfl⟩
+  | inr z =>
+      simp only [State.putCard]
+      split <;> exact ⟨rfl, rfl, rfl, rfl⟩
+
+/-- The exact split of `dealUpTo` into take and drop: dealing `k` cards
+from the front is taking `k` (clipped by `List.take` itself) and
+dropping `k`. -/
+theorem dealUpTo_eq_take_drop (k : Nat) : ∀ (l : List Card),
+    State.dealUpTo k l = (l.take k, l.drop k) := by
+  induction k with
+  | zero => intro l; rfl
+  | succ k ih =>
+      intro l
+      cases l with
+      | nil => rfl
+      | cons c cs =>
+          rw [State.dealUpTo, ih cs]
+          rfl
+
+/-- One step of the draw cycle, unfolded: after recycling (the identity
+unless the stock was empty), the deal happens from a nonempty stock and
+has the recorded shape. -/
+theorem draw_unfold {x y : State} (hsuc : x.stepDraw = some y) :
+    ∃ r, State.recycle x = r ∧ r.stock ≠ [] ∧
+      y = { r with stock := (State.dealUpTo r.drawStep r.stock).2,
+                   waste := (State.dealUpTo r.drawStep r.stock).1.reverse ++ r.waste } := by
+  have h0 : State.dealStock (State.recycle x) = some y :=
+    hsuc
+  have hrne : (State.recycle x).stock ≠ [] := by
+    intro hc
+    rw [dealStock_nil _ hc] at h0
+    exact absurd h0 (by simp)
+  refine ⟨State.recycle x, rfl, hrne, ?_⟩
+  have hs := dealStock_eq_of_ne_nil _ hrne
+  rw [hs] at h0
+  simp only [Option.some.injEq] at h0
+  exact h0.symm
