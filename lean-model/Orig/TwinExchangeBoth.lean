@@ -45,15 +45,27 @@ every line re-proved physically, zero engine vocabulary):
   the same move transports, and the landed bare row
   (`twin_exchange_bare_iff`) closes the tail.
 * **§6** the g-simulation — `exchange_go_gen`, the play induction
-  parameterized by a riding invariant `P` and the two merge-corner
-  kill bridges, exactly the old assembly's shape; the instance rides
-  `P := fun _ => True` and turns the bridges into the two walls.
-* **§7** the theorem — forward through the simulation, backward
-  through the involution (the license descends through the exchange).
-* **§8** the quotient-widening corollary — the general license
-  (bare-or-both-occupied), its descent, and the `WinFromQ₃` verdict
-  row that extends `ExchOrbit.mk_exchangeTwin`'s content to the
-  general license.
+  parameterized by the riding license grade and the per-move and
+  freedom slots (the v5 census parameter shape: the riding
+  invariant is `BothOcc` itself; the old assembly's two
+  merge-corner bridges instantiate to the landed walls, already
+  consumed as the bridge shapes inside the `tabToTab` row); the
+  instance rides `P := BothOcc` with the six-row dispatch as the
+  ride and the landed bare row as the freedom tail.
+* **§7** the theorem — `twin_exchange_both_iff`, forward through
+  the simulation, backward through the involution, with the
+  license descending through the exchange (`bothOcc_exchangeTwin`).
+* **§8** the quotient-widening corollary — `TwinExchGen` (the
+  general license, bare-or-both-occupied), its descent
+  (`TwinExchGen_exchangeTwin`), and the `WinFromQ₃` verdict row
+  (`ExchOrbit.winFromQ₃_exchangeTwin_gen`) that extends
+  `ExchOrbit.mk_exchangeTwin`'s content to the general license.
+
+The row program is COMPLETE: six transport rows, the g-simulation,
+the both-occupied iff and the quotient-widening corollary all
+landed with zero `sorry`; the both-occupied twin exchange preserves
+the verdict, and the licensed-exchange classes carry it at the
+general license.
 
 Discipline: zero `sorry`, zero `native_decide`, zero
 `Classical.choice` (per-lemma audits run externally); axiom targets
@@ -5062,3 +5074,64 @@ theorem twin_exchange_both_iff {st : State} {t z z' : Card} {a a' : Anchor}
     rwa [State.exchangeTwin_invol h₁ h₂ hne
       (hwf.cardCount_eq (Card.mem_universe t))
       (hwf.cardCount_eq (Card.mem_universe t.twin))] at hgo
+
+/-! ## §8. The quotient-widening corollary
+
+The full-setoid card the campaign was named for.  `TwinExchQuotient`
+carried the verdict onto the licensed-exchange classes at the BARE
+license only (`TwinExchOK`, `ExchOrbit.mk_exchangeTwin`,
+`winFromQ₃_mk_iff`); the both-occupied row was its declared open
+future — "the chain never crosses it".  Here the license widens:
+the general grade `TwinExchGen` (bare or both-occupied) descends
+through the exchange — the bare half through
+`TwinExchOK_exchangeTwin`, the both half through
+`bothOcc_exchangeTwin` — and the `WinFromQ₃` verdict row extends
+`ExchOrbit.mk_exchangeTwin`'s content to the general license: one
+licensed exchange of EITHER grade transfers the class verdict, the
+VERDICT content — through `winFromQ₃_mk_iff`'s definitional
+transparency on both sides of the two landed iffs. -/
+
+/-- The general license: bare (`TwinExchOK`) or both-occupied
+(`WF ∧ BothOcc`) — the two grades the two landed iffs serve. -/
+def TwinExchGen (st : State) (t : Card) : Prop :=
+  TwinExchOK st t ∨ st.WF ∧ BothOcc st t
+
+/-- The general license descends through the exchange: each grade
+has its own descent, and both halves are landed — the bare through
+`TwinExchOK_exchangeTwin` (the quotient module's own machinery),
+the both-occupied through `bothOcc_exchangeTwin` (the §7 descent). -/
+theorem TwinExchGen_exchangeTwin {st : State} {t : Card} (h : TwinExchGen st t) :
+    TwinExchGen (st.exchangeTwin t) t := by
+  rcases h with hok | ⟨hwf, hbo⟩
+  · exact Or.inl (TwinExchOK_exchangeTwin hok)
+  · have hσbo := bothOcc_exchangeTwin hwf hbo
+    obtain ⟨_α, _β, _z, _z', _Bα, _B', _Sa, _Sa', h₁, h₂, hne,
+      _hsα, _hsβ, _hfit, _hfit', _hb1, _hb2, _hb1', _hb2'⟩ := hbo
+    exact Or.inr ⟨State.wf_exchangeTwin hwf h₁ h₂ hne, hσbo⟩
+
+/-- **The quotient-widening verdict row.**  `ExchOrbit.mk_exchangeTwin`'s
+content, extended to the general license: one licensed exchange of
+either grade does not disturb the class verdict.  The bare branch is
+the landed bare iff through `winFromQ₃_mk_iff`'s transparency; the
+both-occupied branch unpacks the license and reads the splice shapes
+into the iff's premise dialect (`aboveIn_splice_head` off
+`wf_splice_book`'s occurrence pin). -/
+theorem ExchOrbit.winFromQ₃_exchangeTwin_gen {st : State} {t : Card}
+    (h : TwinExchGen st t) :
+    WinFromQ₃ (ExchOrbit.mk st) ↔
+      WinFromQ₃ (ExchOrbit.mk (st.exchangeTwin t)) := by
+  rcases h with hok | ⟨hwf, hbo⟩
+  · obtain ⟨hwf, a, a', h₁, h₂, hne, hbare⟩ := hok
+    exact winFromQ₃_mk_iff.trans
+      ((twin_exchange_bare_iff hwf h₁ h₂ hne hbare).trans winFromQ₃_mk_iff.symm)
+  · obtain ⟨α, β, z, z', Bα, B', Sa, Sa', h₁, h₂, hne, hsα, hsβ, hfit, hfit',
+      hb1, hb2, hb1', hb2'⟩ := hbo
+    have h₀ : aboveIn t ((st.piles α).faceUp) = z :: Sa := by
+      rw [hsα]
+      exact aboveIn_splice_head (wf_splice_book hwf hsα).2.1
+    have h₀' : aboveIn t.twin ((st.piles β).faceUp) = z' :: Sa' := by
+      rw [hsβ]
+      exact aboveIn_splice_head (wf_splice_book hwf hsβ).2.1
+    exact winFromQ₃_mk_iff.trans
+      ((twin_exchange_both_iff hwf h₁ h₂ hne h₀ h₀' hfit hfit' ⟨hb1, hb2⟩ ⟨hb1', hb2'⟩).trans
+        winFromQ₃_mk_iff.symm)
