@@ -367,7 +367,7 @@ private theorem mem_of_splice_tail {t z : Card} {B Sa : List Card} {c : Card}
   rw [splice_head B Sa]
   exact List.mem_append.mpr (Or.inr (List.mem_cons_of_mem _ hmem))
 
-private theorem mem_splice_host {t z : Card} {B Sa : List Card} (_hB : t ∉ B) :
+private theorem mem_splice_host {t z : Card} {B Sa : List Card} :
     t ∈ B ++ [t, z] ++ Sa ∧ z ∈ B ++ [t, z] ++ Sa := by
   constructor
   · rw [splice_head B Sa]
@@ -376,3 +376,419 @@ private theorem mem_splice_host {t z : Card} {B Sa : List Card} (_hB : t ∉ B) 
   · rw [splice_cons B Sa]
     exact List.mem_append.mpr (Or.inr
       (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
+
+/-! ## §2. The both-occupied license
+
+`BothOcc` is the translated `twinLicensed` bundle (the old engine
+bundle's `hvis hvis' h₀ h₀' hfit hfit' hnb hnb'` in the landed
+vocabulary): the two hosts located in distinct piles, each with a
+fitted cargo run rising from the seat, and the braid clauses —
+neither twin seat above either cargo.  It is the riding license of
+the g-simulation: it is re-seated at every step that preserves the
+both-occupied shape, and its failure (the freedom events) is the
+bare row's territory. -/
+
+/-- The both-occupied exchange license.  The face-up shapes are the
+splices `Bα ++ [t, z] ++ Sa` (one pile) and `B' ++ [t.twin, z'] ++ Sa'`
+(the other); the fits and the braid clauses are card facts. -/
+def BothOcc (st : State) (t : Card) : Prop :=
+  ∃ α β : Anchor, ∃ z z' : Card, ∃ Bα B' Sa Sa' : List Card,
+    st.pileHolding t = some α ∧
+    st.pileHolding t.twin = some β ∧
+    α ≠ β ∧
+    (st.piles α).faceUp = Bα ++ [t, z] ++ Sa ∧
+    (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' ∧
+    canSitOn z t = true ∧
+    canSitOn z' t.twin = true ∧
+    t ∉ aboveIn z ((st.piles α).faceUp) ∧
+    t.twin ∉ aboveIn z ((st.piles α).faceUp) ∧
+    t ∉ aboveIn z' ((st.piles β).faceUp) ∧
+    t.twin ∉ aboveIn z' ((st.piles β).faceUp)
+
+/-- The license from the theorem's premise vocabulary: located hosts,
+the `aboveIn` slots headed by a cargo, the fits, the braids. -/
+theorem bothOcc_of {st : State} {t z z' : Card} {α β : Anchor} {Sa Sa' : List Card}
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β) (hne : α ≠ β)
+    (h₀ : aboveIn t ((st.piles α).faceUp) = z :: Sa)
+    (h₀' : aboveIn t.twin ((st.piles β).faceUp) = z' :: Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true)
+    (hnb : t ∉ aboveIn z ((st.piles α).faceUp) ∧
+      t.twin ∉ aboveIn z ((st.piles α).faceUp))
+    (hnb' : t ∉ aboveIn z' ((st.piles β).faceUp) ∧
+      t.twin ∉ aboveIn z' ((st.piles β).faceUp)) :
+    BothOcc st t := by
+  refine ⟨α, β, z, z',
+    below t ((st.piles α).faceUp), below t.twin ((st.piles β).faceUp),
+    Sa, Sa', h₁, h₂, hne, ?_, ?_, hfit, hfit', hnb.1, hnb.2, hnb'.1, hnb'.2⟩
+  · have hsplit := below_aboveIn_split (pileHolding_mem h₁)
+    rw [h₀] at hsplit
+    exact hsplit.trans (splice_cons _ Sa).symm
+  · have hsplit := below_aboveIn_split (pileHolding_mem h₂)
+    rw [h₀'] at hsplit
+    exact hsplit.trans (splice_cons _ Sa').symm
+
+/-- The license pairs symmetrically: asking at the twin twin reads the
+swapped bundle. -/
+theorem bothOcc_mirror {st : State} {t : Card} (h : BothOcc st t) :
+    BothOcc st t.twin := by
+  obtain ⟨α, β, z, z', Bα, B', Sa, Sa', h₁, h₂, hne, hsα, hsβ, hfit, hfit',
+    hb1, hb2, hb1', hb2'⟩ := h
+  refine ⟨β, α, z', z, B', Bα, Sa', Sa, h₂, ?_, Ne.symm hne, hsβ, ?_, hfit',
+    ?_, hb2', ?_, hb2, ?_⟩
+  · rw [Card.twin_twin]
+    exact h₁
+  · rw [Card.twin_twin]
+    exact hsα
+  · rw [show canSitOn z (t.twin).twin = canSitOn z t from by rw [Card.twin_twin]]
+    exact hfit
+  · rw [Card.twin_twin]
+    exact hb1'
+  · rw [Card.twin_twin]
+    exact hb1
+
+/-- The WF bookkeeping of a host splice: the whole splice is nodup,
+and none of the four region cards leaks into the wrong zone. -/
+theorem wf_splice_book {st : State} {t z : Card} {α : Anchor} {B Sa : List Card}
+    (hwf : st.WF) (hshape : (st.piles α).faceUp = B ++ [t, z] ++ Sa) :
+    (B ++ [t, z] ++ Sa).Nodup ∧ t ∉ B ∧ t ∉ Sa ∧ z ∉ B ∧ z ∉ Sa := by
+  have hr := hwf.runOK_of α
+  rw [hshape] at hr
+  have hnd := runOK_nodup hr
+  have hz := nodup_splice_unique (B ++ [t]) Sa (by
+    rw [← splice_head B Sa]
+    exact hnd)
+  have ht := nodup_splice_unique B (z :: Sa) (by
+    rw [← splice_cons B Sa]
+    exact hnd)
+  exact ⟨hnd, ht.1.1,
+    fun hc => ht.1.2 (List.mem_cons.mpr (Or.inr hc)),
+    fun hc => hz.1.1 (List.mem_append.mpr (Or.inl hc)),
+    hz.1.2⟩
+
+/-- The license's region memberships, the common derived form. -/
+theorem bothOcc_mem {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa') :
+    t ∈ (st.piles α).faceUp ∧ z ∈ (st.piles α).faceUp ∧
+      t.twin ∈ (st.piles β).faceUp ∧ z' ∈ (st.piles β).faceUp := by
+  refine ⟨pileHolding_mem h₁, ?_, pileHolding_mem h₂, ?_⟩
+  · rw [hsα]
+    exact (mem_splice_host (t := t) (z := z) (B := Bα) (Sa := Sa)).2
+  · rw [hsβ]
+    exact (mem_splice_host (t := t.twin) (z := z') (B := B') (Sa := Sa')).2
+
+/-! ## §3. The σ-representation — the exchanges search congruences
+
+At a licensed state `st`, the exchanged state `st.exchangeTwin t`
+writes the two host piles in the mirrored splice form (the hosts stay,
+the cargos ride) and leaves every other pile alone.  The search
+consequences: emptiness is preserved, tops swap with the piles, so
+`pileOfTop` answers with the swapped anchor and `canPlace` reads
+identically at the two states. -/
+
+/-- A host splice is never empty. -/
+private theorem splice_nonempty {c d : Card} : ∀ (B Sa : List Card),
+    B ++ [c, d] ++ Sa ≠ [] := by
+  intro B
+  cases B with
+  | nil =>
+      intro Sa hc
+      cases Sa with
+      | nil => cases hc
+      | cons u us => cases hc
+  | cons w ws =>
+      intro Sa hc
+      cases hc
+
+private theorem isEmpty_splice_false {h : List Card} {c d : Card}
+    {B Sa : List Card} :
+    Pile.isEmpty ⟨h, B ++ [c, d] ++ Sa⟩ = false := by
+  cases h with
+  | nil =>
+      cases B with
+      | nil => rfl
+      | cons w ws => rfl
+  | cons u us => rfl
+
+/-- The written host records in splice form: the host keeps its pile,
+its hidden deck, and its below-prefix; the other thread's cargo rides
+on top. -/
+theorem exch_pile_self_record {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa') :
+    (st.exchangeTwin t).piles α =
+      ⟨(st.piles α).hidden, Bα ++ [t, z'] ++ Sa'⟩ := by
+  obtain ⟨-, httB, -, -⟩ := wf_splice_book hwf hsβ
+  have habove' : aboveIn t.twin ((st.piles β).faceUp) = z' :: Sa' := by
+    rw [hsβ]
+    exact aboveIn_splice_head (t := t.twin) (z := z') httB
+  have hbelow : below t ((st.piles α).faceUp) = Bα := by
+    rw [hsα]
+    exact below_splice (wf_splice_book hwf hsα).2.1
+  rw [State.exchangeTwin_pile_self h₁ h₂ hne, hbelow, habove', splice_cons Bα Sa']
+
+theorem exch_pile_other_record {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa') :
+    (st.exchangeTwin t).piles β =
+      ⟨(st.piles β).hidden, B' ++ [t.twin, z] ++ Sa⟩ := by
+  obtain ⟨hnd, htB, -, -, -⟩ := wf_splice_book hwf hsα
+  have habove : aboveIn t ((st.piles α).faceUp) = z :: Sa := by
+    rw [hsα]
+    exact aboveIn_splice_head (t := t) (z := z) htB
+  have hbelow : below t.twin ((st.piles β).faceUp) = B' := by
+    rw [hsβ]
+    exact below_splice (wf_splice_book hwf hsβ).2.1
+  rw [State.exchangeTwin_pile_other h₁ h₂ hne, hbelow, habove, splice_cons B' Sa]
+
+/-- Both host searches re-locate the same anchors (the landed
+`State.exchangeTwin_hosts_stable`, with the counts from WF). -/
+theorem exch_hosts {st : State} {t : Card} {α β : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β) :
+    (st.exchangeTwin t).pileHolding t = some α ∧
+      (st.exchangeTwin t).pileHolding t.twin = some β :=
+  State.exchangeTwin_hosts_stable h₁ h₂ hne
+    (hwf.cardCount_eq (Card.mem_universe t))
+    (hwf.cardCount_eq (Card.mem_universe t.twin))
+
+/-- Emptiness is preserved at every pile. -/
+theorem exch_isEmpty_congr {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (k : Anchor) :
+    ((st.exchangeTwin t).piles k).isEmpty = (st.piles k).isEmpty := by
+  by_cases hkα : k = α
+  · rw [hkα]
+    have hσ : (st.exchangeTwin t).piles α = ⟨(st.piles α).hidden, Bα ++ [t, z'] ++ Sa'⟩ :=
+      exch_pile_self_record hwf h₁ h₂ hne hsα hsβ
+    have hst : (st.piles α).isEmpty = false := by
+      cases hd : ((st.piles α).isEmpty) with
+      | false => rfl
+      | true =>
+          obtain ⟨-, hfe⟩ := (Pile.isEmpty_eq _).mp hd
+          rw [hsα] at hfe
+          exact absurd hfe (splice_nonempty Bα Sa)
+    rw [hσ]
+    rw [isEmpty_splice_false (c := t) (d := z') (B := Bα) (Sa := Sa')]
+    exact hst.symm
+  · by_cases hkβ : k = β
+    · rw [hkβ]
+      have hσ : (st.exchangeTwin t).piles β = ⟨(st.piles β).hidden, B' ++ [t.twin, z] ++ Sa⟩ :=
+        exch_pile_other_record hwf h₁ h₂ hne hsα hsβ
+      have hst : (st.piles β).isEmpty = false := by
+        cases hd : ((st.piles β).isEmpty) with
+        | false => rfl
+        | true =>
+            obtain ⟨-, hfe⟩ := (Pile.isEmpty_eq _).mp hd
+            rw [hsβ] at hfe
+            exact absurd hfe (splice_nonempty B' Sa')
+      rw [hσ]
+      rw [isEmpty_splice_false (c := t.twin) (d := z) (B := B') (Sa := Sa)]
+      exact hst.symm
+    · rw [State.exchangeTwin_pile_ne h₁ h₂ hne hkα hkβ]
+
+/-- The swapped-anchor helper: an anchor swaps with its host twin or
+stays put. -/
+private def swapAnch (α β : Anchor) (k : Anchor) : Anchor :=
+  if k = α then β else if k = β then α else k
+
+/-- The last of a splice is the last of its cargo suffix. -/
+private theorem lastOf_splice_tail {c d : Card} {B S : List Card} :
+    lastOf (B ++ [c, d] ++ S) = lastOf (d :: S) := by
+  rw [splice_head B S, lastOf_append_cons]
+
+/-- A spliced pile tops at its cargo suffix's last. -/
+private theorem top_splice_eq {c d : Card} {B S : List Card} {p : Pile}
+    (hp : p.faceUp = B ++ [c, d] ++ S) :
+    p.top = lastOf (d :: S) := by
+  show lastOf p.faceUp = lastOf (d :: S)
+  rw [hp, lastOf_splice_tail]
+
+private theorem top_splice_lit (h : List Card) (c d : Card) (B S : List Card) :
+    (⟨h, B ++ [c, d] ++ S⟩ : Pile).top = lastOf (d :: S) := by
+  show lastOf (B ++ [c, d] ++ S) = lastOf (d :: S)
+  rw [lastOf_splice_tail]
+
+private theorem swapAnch_left (α β : Anchor) : swapAnch α β α = β := by
+  cases α <;> cases β <;> rfl
+
+private theorem swapAnch_right (α β : Anchor) : swapAnch α β β = α := by
+  cases α <;> cases β <;> rfl
+
+private theorem swapAnch_ne {α β k : Anchor} (h₁ : k ≠ α) (h₂ : k ≠ β) :
+    swapAnch α β k = k := by
+  cases k <;> cases α <;> cases β <;> simp_all [swapAnch]
+
+/-- The two ite collapses, self-made (the core `if_pos`/`if_neg`
+shims are deprecated). -/
+private theorem ite_true_eq {c : Prop} [inst : Decidable c] (hc : c)
+    {γ : Sort u} (t e : γ) : (if c then t else e) = t := by
+  cases inst with
+  | isTrue _ => rfl
+  | isFalse hnc => exact absurd hc hnc
+
+private theorem ite_false_eq {c : Prop} [inst : Decidable c] (hnc : ¬c)
+    {γ : Sort u} (t e : γ) : (if c then t else e) = e := by
+  cases inst with
+  | isTrue hc => exact absurd hc hnc
+  | isFalse _ => rfl
+
+/-- The σ top table: pile tops swap between the two host piles and
+stay put elsewhere. -/
+theorem exch_topOf_swap {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (k : Anchor) :
+    (st.exchangeTwin t).topOf k =
+      (if k = α then st.topOf β else if k = β then st.topOf α else st.topOf k) := by
+  by_cases hkα : k = α
+  · rw [ite_true_eq hkα, hkα]
+    show lastOf ((st.exchangeTwin t).piles α).faceUp = st.topOf β
+    rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+      show ((⟨(st.piles α).hidden, Bα ++ [t, z'] ++ Sa'⟩ : Pile)).faceUp
+        = Bα ++ [t, z'] ++ Sa' from rfl,
+      lastOf_splice_tail]
+    show lastOf (z' :: Sa') = lastOf ((st.piles β).faceUp)
+    rw [hsβ, lastOf_splice_tail]
+  · by_cases hkβ : k = β
+    · rw [ite_false_eq hkα, ite_true_eq hkβ, hkβ]
+      show lastOf ((st.exchangeTwin t).piles β).faceUp = st.topOf α
+      rw [exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+        show ((⟨(st.piles β).hidden, B' ++ [t.twin, z] ++ Sa⟩ : Pile)).faceUp
+          = B' ++ [t.twin, z] ++ Sa from rfl,
+        lastOf_splice_tail]
+      show lastOf (z :: Sa) = lastOf ((st.piles α).faceUp)
+      rw [hsα, lastOf_splice_tail]
+    · have hkeq : (st.exchangeTwin t).piles k = st.piles k :=
+        State.exchangeTwin_pile_ne h₁ h₂ hne hkα hkβ
+      rw [ite_false_eq hkα, ite_false_eq hkβ]
+      show ((st.exchangeTwin t).piles k).top = (st.piles k).top
+      rw [hkeq]
+
+/-- pileOfTop answers with the swapped anchors. -/
+theorem exch_pileOfTop_swap {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (d : Card) :
+    (st.exchangeTwin t).pileOfTop d = (st.pileOfTop d).map (swapAnch α β) := by
+  have hσwf : (st.exchangeTwin t).WF := State.wf_exchangeTwin hwf h₁ h₂ hne
+  cases hh : st.pileOfTop d with
+  | none =>
+      show (st.exchangeTwin t).pileOfTop d = none
+      cases hh2 : (st.exchangeTwin t).pileOfTop d with
+      | none => rfl
+      | some j =>
+          exfalso
+          have hjtop : ((st.exchangeTwin t).piles j).top = some d :=
+            (pileOfTop_eq_some_iff hσwf).mp hh2
+          by_cases hjα : j = α
+          · rw [hjα] at hjtop
+            rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ, top_splice_lit] at hjtop
+            have hβ : (st.piles β).top = some d := by
+              rw [top_splice_eq hsβ]
+              exact hjtop
+            have hcon : st.pileOfTop d = some β :=
+              (pileOfTop_eq_some_iff hwf).mpr hβ
+            rw [hh] at hcon
+            exact absurd hcon (by simp)
+          · by_cases hjβ : j = β
+            · rw [hjβ] at hjtop
+              rw [exch_pile_other_record hwf h₁ h₂ hne hsα hsβ, top_splice_lit] at hjtop
+              have hα : (st.piles α).top = some d := by
+                rw [top_splice_eq hsα]
+                exact hjtop
+              have hcon : st.pileOfTop d = some α :=
+                (pileOfTop_eq_some_iff hwf).mpr hα
+              rw [hh] at hcon
+              exact absurd hcon (by simp)
+            · rw [State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ] at hjtop
+              have hcon : st.pileOfTop d = some j :=
+                (pileOfTop_eq_some_iff hwf).mpr hjtop
+              rw [hh] at hcon
+              exact absurd hcon (by simp)
+  | some κ =>
+      have hκtop : (st.piles κ).top = some d :=
+        (pileOfTop_eq_some_iff hwf).mp hh
+      show (st.exchangeTwin t).pileOfTop d = some (swapAnch α β κ)
+      by_cases hκα : κ = α
+      · rw [hκα, swapAnch_left]
+        rw [hκα] at hκtop
+        have hz : lastOf (z :: Sa) = some d := by
+          rw [← top_splice_eq hsα]
+          exact hκtop
+        have hσtop : ((st.exchangeTwin t).piles β).top = some d := by
+          rw [exch_pile_other_record hwf h₁ h₂ hne hsα hsβ, top_splice_lit]
+          exact hz
+        exact (pileOfTop_eq_some_iff hσwf).mpr hσtop
+      · by_cases hκβ : κ = β
+        · rw [hκβ, swapAnch_right]
+          rw [hκβ] at hκtop
+          have hz : lastOf (z' :: Sa') = some d := by
+            rw [← top_splice_eq hsβ]
+            exact hκtop
+          have hσtop : ((st.exchangeTwin t).piles α).top = some d := by
+            rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ, top_splice_lit]
+            exact hz
+          exact (pileOfTop_eq_some_iff hσwf).mpr hσtop
+        · have hswap : swapAnch α β κ = κ := swapAnch_ne hκα hκβ
+          rw [hswap]
+          have hσtop : ((st.exchangeTwin t).piles κ).top = some d := by
+            rw [State.exchangeTwin_pile_ne h₁ h₂ hne hκα hκβ]
+            exact hκtop
+          exact (pileOfTop_eq_some_iff hσwf).mpr hσtop
+
+/-- canPlace reads identically at the two states. -/
+theorem exch_canPlace_congr {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (c : Card) (b : Base) :
+    (st.exchangeTwin t).canPlace c b = st.canPlace c b := by
+  have hempty : ∀ k : Anchor,
+      ((st.exchangeTwin t).piles k).isEmpty = (st.piles k).isEmpty :=
+    exch_isEmpty_congr hwf h₁ h₂ hne hsα hsβ
+  have hpop : ∀ d : Card,
+      (st.exchangeTwin t).pileOfTop d = (st.pileOfTop d).map (swapAnch α β) :=
+    exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ
+  cases b with
+  | inl a =>
+      rw [canPlace_inl_eq, canPlace_inl_eq, hempty a]
+  | inr d =>
+      rw [canPlace_inr_eq, canPlace_inr_eq, hpop d]
+      cases hh : st.pileOfTop d with
+      | none => rfl
+      | some κ =>
+          show (match Option.map (swapAnch α β) (some κ) with
+                | some _ => canSitOn c d
+                | none => false) =
+               (match some κ with
+                | some _ => canSitOn c d
+                | none => false)
+          rfl
