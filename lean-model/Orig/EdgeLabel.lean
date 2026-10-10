@@ -85,8 +85,9 @@ the same *event*.
 
 ## The landing status of this drop (honest boundary)
 
-This drop lands the JOURNEY-DATA core, the CANONEDGE normal form, and
-two milestone cells of the commit table, plus the full label-map
+This drop lands the JOURNEY-DATA core, the CANONEDGE normal form, the
+commit table's boundary cells and all four determination rows
+(draw/waste/reveal/vacate), plus the full label-map
 surface (the tripartite alphabet, the cell predicates, and the
 fingerprint reads whose three channels consume the four journey
 invariants):
@@ -108,7 +109,17 @@ invariants):
   fingerprint), the pair-function property (`edge_label_unique`: two
   schemes over one class pair carry the same label), and the draw
   determination row (`canonEdge_label_draw`: a draw-commit edge is
-  draw-labeled — no datum changes, all three reads degenerate), plus
+  draw-labeled — no datum changes, all three reads degenerate), the
+  waste determination row (`canonEdge_label_waste`: a waste-commit
+  edge is wasteEntry-labeled with exactly the popped card — the cycle
+  drops and the pool-difference read pins the head, uniquely by the
+  pool arithmetic), the reveal determination row
+  (`canonEdge_label_reveal`: a reveal-commit edge is stackEvent-labeled
+  at the departing seat — the cycle conserved, the hidden total
+  drops, the hidden-difference read is the seat), and the vacate
+  determination row (`canonEdge_label_vacate`: a vacate-commit edge is
+  stackEvent-labeled at the freed seat — both tests die at the
+  conserved counts and the seat-difference read is the seat), plus
   the full label-map definitions (`nzRoot`, `EdgeLabel`, `WasteOf`,
   `RevealCellAt`, `VacateCellAt`, `poolMissCard`, `hiddenDropperAnchor`,
   `rootFreedAnchor`, `CanonLabel`, `CanonEdge.label`).  The card-pinning
@@ -116,11 +127,12 @@ invariants):
   census-pack and search iffs, `State`/`Play`'s trivia/reader kits) —
   no farm-private recounting.
 * **next card** (the remaining cells of the theorem, consuming what is
-  landed here): the per-commit signature tables at the four cells
-  (cycle-drop + pool-difference for the waste exit; the head-drop for
-  the reveal; the seat-root departure for the vacate), the remaining
-  determination rows (waste/reveal/vacate — the draw row is landed),
-  the draw-vs-card disjointness, and the pair-move character assembly.
+  landed here): the draw-vs-card disjointness and the pair-move
+  character assembly — the determination arc is fully landed (the four
+  rows carry their signature content: the cycle-drop with
+  pool-difference for the waste exit, the head-drop for the reveal,
+  the seat-root departure for the vacate, and the fully-conserved
+  draw).
 
 ## The vacate cell is a genuine fourth signature — the honest boundary
 
@@ -1707,29 +1719,6 @@ theorem canonEdge_draw_shape {C : State} {D : SameOrbit} (e : CanonEdge C D)
           exact (hrev (draw_reversible_inphaseW hd h1 h2 hph)).elim
         · exact Or.inr hres
 
-/-! ## The axiom audit (per-declaration) -/
-
-#print axioms orbit_data
-#print axioms CanonEdge.tip_wf
-#print axioms CanonEdge.landing_wf
-#print axioms canonEdge_exits_source
-#print axioms canonEdge_ne_foundToTab
-#print axioms canonEdge_draw_shape
-#print axioms canonLabel_orbit_indep
-#print axioms edge_label_unique
-#print axioms canonEdge_label_draw
-#print axioms canonEdge_label_waste
-#print axioms canonEdge_label_reveal
-#print axioms nzRoot
-#print axioms EdgeLabel
-#print axioms WasteOf
-#print axioms RevealCellAt
-#print axioms VacateCellAt
-#print axioms poolMissCard
-#print axioms hiddenDropperAnchor
-#print axioms rootFreedAnchor
-#print axioms CanonLabel
-#print axioms CanonEdge.label
 /-- The vacate cell predicates carry the move as a family index; this
 non-indexed restatement lets the row unpack a cell against a
 structure-field move. -/
@@ -1774,3 +1763,254 @@ private theorem vacate_spine {C : State} {D : SameOrbit} (e : CanonEdge C D)
   rw [hcycC, ite_eq_right (Nat.lt_irrefl (cycleCount C))]
   rw [hnhC, ite_eq_right (Nat.lt_irrefl (hiddenTotal C))]
   rw [hRead]
+
+/-- The vacate row's tabToTab-inr cell, fact one (`hwRootNone`): the
+freed seat's root is `none` at the landing — the seat is BARE at the
+removal (the hidden-free run departure empties it), and the located
+landing can never sit back on it (the top search misses a bare pile:
+`pileOfTop_ne_of_bare`), so whatever the search found, the seat is
+carried into the landing empty and its root is gone. -/
+private theorem vacate_inr_root_none {st : State} {a : Anchor} {c : Card}
+    {z : Card} {run : List Card} {w : State}
+    (hsucc : w = (st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+          run (Sum.inr z))
+    (hpre : below c (st.piles a).faceUp = [])
+    (hhd : (st.piles a).hidden = []) :
+    nzRoot w a = none := by
+  have hRbare : ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a)
+      = ⟨[], ([] : List Card)⟩ := by
+    rw [setPile_piles_self, hpre]
+    exact afterRunRemoved_bare_empty hhd
+  have hRbareH : ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a).hidden
+      = [] := congrArg Pile.hidden hRbare
+  have hRbareF : ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a).faceUp
+      = [] := congrArg Pile.faceUp hRbare
+  have hPa : (w.piles a).faceUp = [] := by
+    cases hz : (st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).pileOfTop z with
+    | none =>
+        rw [hsucc, putRun_inr_none hz]
+        exact hRbareF
+    | some k =>
+        have hka : k ≠ a :=
+          fun hcon => pileOfTop_ne_of_bare ⟨hRbareH, hRbareF⟩ z (hcon ▸ hz)
+        rw [hsucc, putRun_inr_piles_ne hz (fun hc => hka hc.symm)]
+        exact hRbareF
+  exact nzRoot_nil hPa
+
+/-- The vacate row's tabToTab-inr cell, fact two (`hnh`): the move
+conserves every seat's hidden stack — the freed seat's is empty at the
+removal (and the landing can never sit back on a bare pile), and the
+located landing extends FACE-UP content only, so the hidden lists
+ride `putRun`'s placement untouched. -/
+private theorem vacate_inr_hidden {st : State} {a : Anchor} {c : Card}
+    {z : Card} {run : List Card} {w : State}
+    (hsucc : w = (st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+          run (Sum.inr z))
+    (hpre : below c (st.piles a).faceUp = [])
+    (hhd : (st.piles a).hidden = []) :
+    ∀ a', (w.piles a').hidden = (st.piles a').hidden := by
+  have hRbare : ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a)
+      = ⟨[], ([] : List Card)⟩ := by
+    rw [setPile_piles_self, hpre]
+    exact afterRunRemoved_bare_empty hhd
+  have hRbareH : ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a).hidden
+      = [] := congrArg Pile.hidden hRbare
+  have hRbareF : ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a).faceUp
+      = [] := congrArg Pile.faceUp hRbare
+  intro a'
+  by_cases hEq2 : a' = a
+  · rw [hEq2]
+    cases hz : (st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).pileOfTop z with
+    | none =>
+        rw [hsucc, putRun_inr_none hz, hRbareH]
+        exact hhd.symm
+    | some k =>
+        have hka : k ≠ a :=
+          fun hcon => pileOfTop_ne_of_bare ⟨hRbareH, hRbareF⟩ z (hcon ▸ hz)
+        rw [hsucc, putRun_inr_piles_ne hz (fun hc => hka hc.symm), hRbareH]
+        exact hhd.symm
+  · cases hz : (st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).pileOfTop z with
+    | none =>
+        rw [hsucc, putRun_inr_none hz, setPile_piles_ne hEq2]
+    | some k =>
+        by_cases hk' : a' = k
+        · rw [hsucc, hk', putRun_inr_landing hz]
+          have hka : k ≠ a := by rw [← hk']; exact hEq2
+          show ((st.setPile a
+              (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles k).hidden
+            = _
+          rw [setPile_piles_ne hka]
+        · rw [hsucc, putRun_inr_piles_ne hz hk', setPile_piles_ne hEq2]
+
+/-- The vacate row's tabToTab-inr cell, fact three (`hElseR` — the
+row's seat-difference side-condition): every OTHER seat's root survives
+the landing verbatim.  An untouched seat reads through; the located
+landing extends the landing pile's face-up run at its END, so the
+pile's head — the root the read consumes — outlives the appended run
+(`pileOfTop_top` supplies the nonempty face-up whose head survives).
+The inl landing never gets here: it dies at the king guard in the
+row, a non-king mover being the vacate cell's premise. -/
+private theorem vacate_inr_root_keep {st : State} {a : Anchor} {c : Card}
+    {z : Card} {run : List Card} {w : State}
+    (hsucc : w = (st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+          run (Sum.inr z)) :
+    ∀ a', a' ≠ a → nzRoot st a' = nzRoot w a' := by
+  intro a' hne
+  cases hz : (st.setPile a
+      (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).pileOfTop z with
+  | none =>
+      have hPu : (w.piles a') = (st.piles a') := by
+        rw [hsucc, putRun_inr_none hz, setPile_piles_ne hne]
+      exact (nzRoot_congr_pile hPu).symm
+  | some k =>
+      by_cases hk' : a' = k
+      · rw [hk']
+        have hka : k ≠ a := by rw [← hk']; exact hne
+        obtain ⟨hfRne, -⟩ := pileOfTop_top hz
+        cases hcase : ((st.setPile a
+            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles k).faceUp
+          with
+        | nil => exact absurd hcase hfRne
+        | cons g t =>
+            have hwP : (w.piles k).faceUp = g :: (t ++ run) := by
+              rw [hsucc, putRun_inr_landing hz, hcase]
+              show (g :: t) ++ run = g :: (t ++ run)
+              exact List.cons_append
+            rw [nzRoot_congr_pile (setPile_piles_ne hka).symm, nzRoot_head hcase,
+              nzRoot_head hwP]
+      · have hPu : (w.piles a') = (st.piles a') := by
+          rw [hsucc, putRun_inr_piles_ne hz hk', setPile_piles_ne hne]
+        exact (nzRoot_congr_pile hPu).symm
+
+/-- **The vacate row**: an edge whose single commitment is a bare
+non-king departure from a hidden-free seat is stackEvent-labeled at
+THE seat it frees — the cycle and hidden tests both die (the move
+keeps the draw zone and every hidden list), and the seat-difference
+read is exactly that seat: its non-king root departs (the seat's
+face-up content — the mover at its head — leaves the pile bare), while
+every other seat's root survives (the tabToTab landing can only sit
+on an empty pile at the king guard — dead for a non-king mover — or
+on a located nonempty pile whose head outlives the appended run). -/
+theorem canonEdge_label_vacate {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    {a : Anchor} (hcell : VacateCellAt e.u a e.m) :
+    e.label = EdgeLabel.stackEvent a := by
+  obtain ⟨hcE, -, hhE, hnE⟩ := pad_data e
+  have hCroot : ∀ a', nzRoot C a' = nzRoot e.u a' := fun a' => (hnE a').symm
+  rcases VacateCell_shape hcell with
+    ⟨c, heqm, hloc, hpre, hhd, hnk⟩ | ⟨c, b, heqm, hloc, hpre, hhd, hnk⟩
+  · -- tabToFound: the raise leaves the seat bare
+    have hstep : e.u.step (Move.tabToFound c) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨-, a', hloc', hsucc⟩ := step_tabToFound_inv hstep
+    have ha' : a = a' := Option.some.inj (hloc.symm.trans hloc')
+    subst ha'
+    obtain ⟨-, hlast⟩ := pileOfTop_top hloc
+    have hfeq : (e.u.piles a).faceUp
+        = chop (e.u.piles a).faceUp ++ [c] := lastOf_chop hlast
+    rw [hpre, List.nil_append] at hfeq
+    have hfaceUp : (e.u.piles a).faceUp = [c] := hfeq
+    have hWa : (e.w.piles a) = ⟨[], ([] : List Card)⟩ := by
+      rw [hsucc]
+      show (if a = a then
+          Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)
+          else e.u.piles a) = _
+      rw [ite_eq_left rfl, hpre]
+      exact afterRunRemoved_bare_empty hhd
+    have hElseP : ∀ a', a' ≠ a → (e.w.piles a') = (e.u.piles a') := by
+      intro a' hne
+      rw [hsucc]
+      show (if a' = a then
+          Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)
+          else e.u.piles a') = _
+      rw [ite_eq_right hne]
+    have hnh : ∀ a', (e.w.piles a').hidden = (e.u.piles a').hidden := by
+      intro a'
+      by_cases hne : a' = a
+      · rw [hne, hWa]
+        exact hhd.symm
+      · exact congrArg Pile.hidden (hElseP a' hne)
+    have hhz : e.w.stock = e.u.stock ∧ e.w.waste = e.u.waste := by
+      rw [hsucc]
+      exact ⟨rfl, rfl⟩
+    have huRoot : nzRoot e.u a = some c := by
+      rw [nzRoot_head hfaceUp, ite_eq_right hnk]
+    have hWaF : (e.w.piles a).faceUp = [] := congrArg Pile.faceUp hWa
+    have hwRootNone : nzRoot e.w a = none := nzRoot_nil hWaF
+    refine vacate_spine e (cycleCount_eq_of_stock_waste hhz.1 hhz.2 |>.trans hcE)
+      ((hiddenTotal_congr hnh).trans (hiddenTotal_congr hhE)) ?_ ?_
+    · rw [hCroot a, huRoot, hwRootNone]
+      exact Option.some_ne_none c
+    · intro a' hne
+      rw [hCroot a', nzRoot_congr_pile (hElseP a' hne)]
+  · -- tabToTab: the empty-seat landing dies at the king guard
+    obtain ⟨a₂, hh, hcp, hfr, hsucc⟩ := step_tabToTab_inv (by
+      rw [← heqm]
+      exact e.land)
+    have ha₂ : a = a₂ := Option.some.inj (hloc.symm.trans hh)
+    subst ha₂
+    have hmem : c ∈ (e.u.piles a).faceUp := pileHolding_mem hloc
+    cases hbc : (e.u.piles a).faceUp with
+    | nil =>
+        rw [hbc] at hmem
+        exact absurd hmem (by simp)
+    | cons g t =>
+        have hgc : c = g := (head_eq_of_below_nil (by rw [← hbc]; exact hpre)).symm
+        subst hgc
+        have huRoot : nzRoot e.u a = some c := by
+          rw [nzRoot_head hbc, ite_eq_right hnk]
+        have hcycC : cycleCount e.w = cycleCount e.u := by
+          refine cycleCount_eq_of_stock_waste ?_ ?_
+          · rw [hsucc]
+            exact putRun_stock _ _ _
+          · rw [hsucc]
+            exact putRun_waste _ _ _
+        cases b with
+        | inl k =>
+            obtain ⟨-, hkng⟩ := canPlace_inl hcp
+            exact absurd hkng hnk
+        | inr z =>
+            refine vacate_spine e (hcycC.trans hcE)
+              ((hiddenTotal_congr (vacate_inr_hidden hsucc hpre hhd)).trans
+                (hiddenTotal_congr hhE)) ?_ ?_
+            · rw [hCroot a, huRoot, vacate_inr_root_none hsucc hpre hhd]
+              exact Option.some_ne_none c
+            · intro a' hne'
+              rw [hCroot a', vacate_inr_root_keep hsucc a' hne']
+
+/-! ## The axiom audit (per-declaration) -/
+
+#print axioms orbit_data
+#print axioms CanonEdge.tip_wf
+#print axioms CanonEdge.landing_wf
+#print axioms canonEdge_exits_source
+#print axioms canonEdge_ne_foundToTab
+#print axioms canonEdge_draw_shape
+#print axioms canonLabel_orbit_indep
+#print axioms edge_label_unique
+#print axioms canonEdge_label_draw
+#print axioms canonEdge_label_waste
+#print axioms canonEdge_label_reveal
+#print axioms canonEdge_label_vacate
+#print axioms nzRoot
+#print axioms EdgeLabel
+#print axioms WasteOf
+#print axioms RevealCellAt
+#print axioms VacateCellAt
+#print axioms poolMissCard
+#print axioms hiddenDropperAnchor
+#print axioms rootFreedAnchor
+#print axioms CanonLabel
+#print axioms CanonEdge.label
