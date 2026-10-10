@@ -9134,3 +9134,59 @@ ELABORATION TRAPS (this session, in addition to the wave-19/20 lists):
      do not re-derive it with `.mp` (the `.mp` direction consumes a
      bottomOf fact, the direction error is silent until the
      application mismatch surfaces).
+
+## Wave 23 note (2026-10-10, farm-vacate-prunable session — Dominance's vacate row)
+
+Landed: `vacate_pilePile_prunable_of_hole` as a proven skeleton over the
+named residue `vacate_secondMove_residue` (Dominance:945 — per-kind
+ledger + the corner's slate finding recorded AT ITS SITE), the [E] pair
+(`depths_zero_of_floor_seated`, `exists_inr_of_canMoveRun_of_ne_king`),
+the front-swap engine `run_swap_front_of_commEq`, and
+`witnesses/VacateCoReal.lean` (the co-realizability + corner-exhibit
+probe, decide-anchored).  Census 10 -> 11.  Full row: FARM.md wave 23.
+
+THE SESSION'S REAL FINDING (for whoever attacks the residue): the
+vacate-corner (king lands on the vacated anchor; replace [vacate; K->a]
+by [K->h; vacate]) is front-leg-sound but NOT a swapPiles-conjugation
+at the tail: the two composites hold the deal slices and depths FIXED
+while `swapPiles` permutes them — so `run_swapPiles`' replay lands in
+the slate-permuted world NO play can reach, and the verbatim tail
+replay from the reachable composite W_B diverges ONLY at (alpha) later
+king landings reading the swapped inl-seat and (beta) the depths h = 1
+final strip (mid strips ride - attaches at inr boundary cards).  The
+b0-inl-clash case the route feared CANNOT arise: a non-king vacate's
+`canMoveRun` forces b0 = Sum.inr d.
+
+ELABORATION TRAPS (new, all machine-confirmed):
+
+- Nat `cases h : e with | 0 =>` is REJECTED — spell `| zero` / `| succ n`;
+  the equation hdep : e = n+1 IS available and rw-able at FRESH
+  occurrences of e (goal occurrences were replaced by the pattern).
+- `show PATTERN at h` DOES NOT EXIST (parse error cascading as missing
+  alternatives); the defeq-cast `have hx : some x = some c := h` is the
+  way (same as the wave-19/20 casts).
+- Structure-projection vs raw function in rw patterns: at a state whose
+  board is `⟨vTopOf, inj⟩`, `rw [vTopOf_p0] at h` fails if h carries
+  `vBoard.topOf` (defeq, not syntactic) — write rfl-bridge lemmas first
+  (`uBoard_topOf_inl` in SuccLabeled is exactly this device).
+- `by decide` on anything comparing States fails silently-late (no
+  DecidableEq State); read `.isSome`/`.isNone` or a cell projection
+  (Option Card is decidable).  Same for the co-realizability theorems.
+- `run_cons_inv` (Progress:614) is a FOUR-slot EXISTS (apply, run,
+  trace-eq) — `obtain ⟨s, hap, hrest⟩` leaves hrest as the run∧trace
+  CONJUNCTION (deckPile_safe_prunable eats it as hrest.1); four names,
+  dash the trace slot.
+- For a flipped-order Option equality `hcomm : (m2 >>= m) = (m >>= m2)`
+  with the RHS KNOWN some: `rw [← hcomm] at hr` after opening hr at the
+  RHS shape — the forward direction errors "pattern not found".
+- WF hand-states: the `State.WF.intro` + per-conjunct bullets splits
+  cleanly; the board_edges/vis_off_cycle by_cases-then-subst arms need
+  the rfl-bridges above; 52^2 getElem? hall-decides stay cheap; the
+  composite-apply decides (2-move binds with removeAt splices) stay
+  cheap too.
+
+PROCESS: SIXTH session in the row hitting the stale-worktree gotcha
+(fresh worktree at 41023bc, no lean-model/) — `git reset --hard
+macro-game` per the spawn-fix rule, tree clean afterwards.  One
+olean.private weather burst on the cold build — the warm-then-retry
+protocol banked it in two commands.

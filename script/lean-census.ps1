@@ -13,11 +13,19 @@ $baseline = @{
   'Theorems.lean'  = 1  # solvable_of_pileStack (B4 crux, repaired +hnotlock)
   'Macro.lean'     = 0  # C1 PROVEN 2026-09-13 (def repair: macroSolvable gained the
                         # trailing accommodation — witnesses/MacroC1Witness.lean)
-  'Dominance.lean' = 4  # safe_pileStack_dominant, deck_dominance_draw1,
+  'Dominance.lean'  = 5  # safe_pileStack_dominant, deck_dominance_draw1,
                         # stackPile_safe_prunable, twinPair_placement_equi
                         # (least_redundantStack_dominant PROVEN with the +hsafe
                         # repair, per its wave-11 concern, by the parallel
                         # session 2026-09-13)
+                        # +wave-23 (farm-vacate-prunable session, 2026-10-10):
+                        #   vacate_pilePile_prunable_of_hole is the PROVEN
+                        # skeleton over the ONE named residue
+                        #   vacate_secondMove_residue (the second-move
+                        # ledger's hard half - the king-on-vacated-anchor
+                        # corner and the touch-guard commutes; full route
+                        # notes at the residue's site, FARM.md wave 23,
+                        # exhibits in witnesses/VacateCoReal.lean)
   'Kills.lean'     = 0  # wave-12 COMPLETE (K1 + K2 sessions, merged 2026-10-05):
                         # vis_of_safeAccommodates (keystone), State.frontier_spec,
                         # K1_stack_goal_dead — sorry-free, no WF (K1 session;

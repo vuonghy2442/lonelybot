@@ -1,9 +1,12 @@
 # The proof farm — handoff document
 
-**Census: 10 `:= sorry`** (Theorems 1 · Dominance 4 · Kills 0
+**Census: 11 `:= sorry`** (Theorems 1 · Dominance 5 · Kills 0
 · Movability 0 · C2Streamlined 0 · TwinSwapCompletion 1
 · Restriction 1 · TwinExchange 1 · TwinQuotient 2; zero bullets;
-waves 12/17 base + all four wave-18 sessions + the wave-19 C2
+**+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
+`vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
+ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the
+row's FARM block below)**; waves 12/17 base + all four wave-18 sessions + the wave-19 C2
 re-scope, 2026-10-05: §8.7 closed
 by movability-equivalence; the C2 pillar set refute-probed — FOUR of
 the five wave-17 pillars FALSE as stated (C2KingAnchorWitness; the
@@ -29,7 +32,7 @@ audit — the corpus histogram half remains the harness ticket),
 leaving TwinSwapCompletion pinned at `sweep_covered_corner_safety`
 alone.  Pinned by
 `pwsh ../script/lean-census.ps1` (run from `lean-model/`) — it fails on
-any NEW sorry or the return of a refuted constant.  All 11 are
+any NEW sorry or the return of a refuted constant.  All 12 are
 believed-true open theorems with routes below.
 Every definition is final code; refutations live in
 [witnesses/](witnesses/) and the REFUTED section below — **not** in
@@ -2501,3 +2504,146 @@ both-occupied row, which would widen the license.
 Build: `lake build Orig` green (18 jobs); axioms probe over the ten
 exported theorems: all `[propext, Quot.sound]` (no `Classical.choice`,
 no sorry).  No refuted constant touched.
+
+## Wave 23 — vacate_pilePile_prunable_of_hole, the empty-slot boundary (2026-10-10, the farm-vacate-prunable session)
+
+The T row (the task's staged statement, verbatim) is landed: Dominance's
+§5.4b block, `vacate_pilePile_prunable_of_hole` — at a WF state that
+ALREADY has a free anchor, a non-king tab-to-tab whose run root is
+floor-seated on an anchor (a move that VACATES a pile) need never be
+played first — as a PROVEN SKELETON over ONE named residue
+(`vacate_secondMove_residue`, Dominance:945: the second-move ledger's
+hard half), the `replay_head_residue` house pattern; the decide-anchored
+exhibits live in witnesses/VacateCoReal.lean.  Census 10 → 11 (the
+residue; zero new bullets; no refuted constant touched).
+
+**The proven half** (all new heads axiom-clean [propext, Quot.sound] or
+lighter):
+
+* `depths_zero_of_floor_seated` (the [E] row): hfloor + hnk ⇒ depths a = 0
+  ∧ the pile's dealt head is c.  `hnk` is load-bearing: an anchored KING
+  parked over a hidden stack is legal WF and there the depth-0 exit is
+  false — `board_edges`'s anchor arm is exactly the king-or-dealt-head
+  disjunction, and a visible head inside a hidden prefix contradicts
+  `vis_not_hidden`.  Consequences the route wanted: no reveal ever reads
+  pile a; the vacated slot is a genuinely empty pile.
+* `exists_inr_of_canMoveRun_of_ne_king` (the [E] twin): a non-king's
+  legal vacate ALWAYS lands on a card seat — so it never consumes the
+  hole `hfree` licenses, and the vacated pile strictly ADDS a free
+  anchor.  (This kills the route's b₀ = inl h clash worry outright.)
+* `heights_eq_of_apply_pilePile` + `isWin_congr_heights`: the vacate is
+  pure board surgery, so a one-move win through it means the start was
+  already won — the row's []-win arm.
+* `run_swap_front_of_commEq`: the generic front swap — when the two
+  orderings of m, m₂ agree as `Option`s at st, `[m;m₂;…]` and
+  `[m₂;m;…]` reach the SAME end state (no tail replay at all).  The
+  head-only shape's engine.
+* The skeleton row: head ≠ vacate ⇒ return the play verbatim;
+  `[vacate]` alone ⇒ `[]` wins (the already-won case);
+  `[vacate; .draw; …]` and `[vacate; .deckStack x; …]` close by the
+  front swap over `draw_comm_pilePile` (Commutation:225) and the
+  deckStack×pilePile arm of `commute_of_compsDisjoint` (Commutation:243;
+  re-derived at Frame:912) — both GUARD-FREE Option equalities, so the
+  new head `.draw`/`.deckStack x` differs and prunability is discharged
+  by the exchange alone.
+
+**Refute-first verdicts** (the discipline's two probes):
+
+(i) Co-realizability — `VacateCoreal.vState` (the pristine ofList
+family: ♥5 = p0's single-card deal head at the anchor, ♠6 = p1's deal
+head = the fitting bare card target with `canSitOn` lit, p2's anchor
+seat BARE = `hfree`'s hole, ♦K = the waste top at cursor 1, depths and
+heights 0, draw step 1): WF proven conjunct-wise in the `uState`
+pattern, and the vacate `pilePile ♥5 (inr ♠6)` is LEGAL there
+(`co_vacate_live`, decide) — the four premises are inhabited TOGETHER
+with a legal instance of the pruned move (`co_realizable_bundle`).
+
+(ii) The exchange-claim hunts — every cited commutation was checked
+against ITS real guard signature this session (not the route's memory:
+the verdict table lives in the residue's docstring).  The σ-corner's
+intermediate-legality claims are exhibit-PROVEN at the probe with a
+king source (`corner_deadAtRoot`: the king landing on the vacated
+anchor is dead at the root — the face `hfree` must license;
+`corner_liveAfterVac`: live at the vacate successor — the vacated slot
+is a REAL empty pile; `corner_holeKing`; `corner_kingHole_then_vacate`:
+the full replacement prefix legal THROUGH).  The corner's EQUALITY-form
+is refuted as stated, by exhibit: `corner_composites_diverge` — the two
+orders of the same two moves reach different states at the vacated seat
+(the ETERNAL b₀-clash case the route warned about cannot arise at all:
+b₀ = Sum.inr d is forced).  No countermodel to the STAGED ROW was
+found; the residue is OPEN, not refuted (the falsity would need the
+tight all-alternative-heads-lose world, outside decide reach).
+
+**The corner finding** (the session's real discovery, recorded in full
+at `vacate_secondMove_residue`'s route note): the orchestrator's σ-corner
+(replace `[vacate; K→a]` with `[K→h; vacate]`, replay the tail under
+the pile transposition) is sound at the front legs (exhibited) but the
+tail replay lands behind a SLATE PERMUTATION: the two composites W_A
+(vacate-then-king) and W_B (king-to-hole-then-vacate) agree on
+board/heights/stock and carry st's deal slices and depths UNPERMUTED;
+`swapPiles` — whose replay kit `run_swapPiles`/`solvable_swapPiles_iff`
+(PileSwap:818/:851) is landed and would carry the tail — permutes the
+slates as well, and NO play permutes slates.  The verbatim tail replay
+from W_B diverges exactly at (α) any further king landing reading the
+swapped inl-seat (free at W_A, kinged at W_B, mirrored at the other
+slot — anchor-seat writes have no move-level mirror across a slate
+position) and (β) the final strip of pile h when depths h = 1 (the
+last reveal's attach target `inl h` is bare at W_A, king-blocked at
+W_B; mid strips ride — they attach at inr boundary cards).  Whether
+W_B is solvable whenever W_A is — the corner's core — is the residue's
+open question.  Route 3 (the drop-at-end case, kingless tails:
+c-consumers are seat-relative, the parked c blocks exactly the king
+landings the absent vacate would have freed, heights never read a
+pilePile) is sketched in the note but NOT elaborated; its replay
+induction is the residue's second prong.
+
+**The residue's per-kind ledger** (at `vacate_secondMove_residue`):
+reveal x — closable (cite `comm_reveal_pilePile` Commutation:1106; x ≠ a
+automatic by depth 0; disjointness from WF alone: boundary cards are
+hidden, hence off the visible run and off the visible target card);
+deckPile x b' (b' ≠ inl a) — closable (`comm_deckPile_pilePile`
+Commutation:1301; the waste card is off-cycle hence off the run; the
+on-run-TOP landing rides the guard; the same-base clash is dead in the
+given order); pileStack x — x = c merges to the single different token
+`pileStack c`, x = the run's top is the rider-stack square (real work,
+sketched via aboveOf-sub splits), otherwise cite
+`comm_pileStack_pilePile` (Commutation:1527) or the both-shapes
+`pileStack_comm_pilePile` (Theorems:1164); stackPile x b' (b' ≠ inl a)
+— closable (`comm_stackPile_pilePile` Commutation:1606; the foundation
+card is invisible hence off the run by `founds_gone`); pilePile x b''
+— the same-root MERGE (x = c) collapses to the single different token
+`pilePile c b''`, the sub-run JETTISON (x inside the moved run; onto
+`inl a` it is the in-run king corner; `aboveOf_sub`/`aboveOf_congr`
+splits) is real work, and the disjoint-root cite
+`comm_pilePile_pilePile` (Commutation:1659) has an `hdisj` card-half
+that needs the two runs chain-disjoint — NOT free at WF (the cycle
+tolerance: witnesses/AboveIrreflWitness) — so that square is direct
+work too.  The king consumers of the vacated anchor (deckPile /
+stackPile / pilePile K (inl a), and the king-inside-the-run jettison)
+are the CORNER proper.
+
+**Guards audit**: `hfree` load-bearing (without it FALSE —
+SuccLabeledWitness's anchored-head unseat is the no-hole boundary
+datum: all seven anchors occupied, the promotion unseats through the
+anchor head, the king lands on the vacated seat, `hole` dead at the
+root); `hnk` excludes §5.7/C2KingAnchor territory AND forces the
+card-seat target; `hwf` carries the WF derivations (no named lemma
+existed for the floor-seated depth-0 fact — landed beside its kin,
+Dominance §5.4b, rather than in State; nothing downstream of State
+needs it before Dominance).  No legality premise: an illegal vacate is
+vacuously prunable (and the skeleton never reads the vacate's legality
+outside the head-match arms).
+
+**Build/census**: `lake build Klondike Witnesses` green (102 jobs —
+one new witness module); census pinned 11 (Dominance 4→5 via the named
+residue, baseline note updated in script/lean-census.ps1); axioms:
+`isWin_congr_heights` axiom-free, the other closed heads
+[propext, Quot.sound], the probe exhibits [propext, Quot.sound], the
+row itself carries sorryAx through the residue exactly as
+`solvableEngine_of_reachable_play` does through `replay_head_residue`.
+
+**Residues for successors**: the corner's W_A ↔ W_B solvability (the
+slate-permutation question — the two breakage shapes (α)/(β) are
+sharply characterized; a three-slot invariant or a tight-world witness
+would settle it); route 3's drop-at-end induction; the jettison /
+rider-stack / same-root-merge squares.

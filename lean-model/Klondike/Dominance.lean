@@ -733,6 +733,311 @@ theorem deckPile_safe_prunable {st : State} {c : Card} {b : Base} (hwf : st.WF)
           exact ⟨Move.deckStack c :: Move.stackPile c b :: rest, w, hrun2, hwin, by simp⟩
     · exact ⟨m :: rest, w, hrun, hwin, by simp [hm]⟩
 
+/-! ## §5.4b The vacate prunability — the empty-slot boundary
+
+The vacate row (2026-10-10, the farm-vacate-prunable session): at a
+WF state that ALREADY has a free anchor, a non-king tab-to-tab whose
+run root sits on an anchor floor need never be played first.  The
+row is staged over one named residue, `vacate_secondMove_residue`
+below, in the `replay_head_residue` house pattern (Restriction's
+wave-21 split): everything the two front moves can settle is done
+here, the second-move ledger's hard half is the residue.  The
+co-realizability and corner-legality exhibit lives in
+`witnesses/VacateCoReal.lean` (decide-anchored, the pristine
+`uState`/`ofList` family). -/
+
+/-- The vacate kit's floor fact (the [E] row): a NON-KING seated on
+an anchor is the deal's own dealt head of that pile with the hidden
+boundary already empty — the pile below the seat is fully revealed.
+`board_edges`'s anchor arm offers a king or the dealt head (`wf.board_edges`
+plus `Board.bottomOf_eq`); the king arm is exactly what `hnk` kills
+(an anchored king parked OVER a hidden stack is legal WF, and there
+the conclusion is false — `hnk` is load-bearing).  With the head
+deal-adjacent, a positive depth would put the visible head inside the
+hidden prefix, against `vis_not_hidden`.  Consequences: no `reveal`
+of pile `a` can ever fire (dead boundary — `State.depthsZero`'s
+`topHidden` argument), and the slot the vacate leaves is a genuinely
+empty pile, whatever sits hidden under the pre-existing hole. -/
+theorem depths_zero_of_floor_seated {st : State} {c : Card} {a : Anchor}
+    (hwf : st.WF) (hnk : c.rank ≠ Rank.king)
+    (hfloor : st.board.bottomOf c = some (Sum.inl a)) :
+    st.depths a = 0 ∧ (st.deal.piles a).head? = some c := by
+  have htop : st.board.topOf (Sum.inl a) = some c :=
+    (Board.bottomOf_eq st.board c (Sum.inl a)).mp hfloor
+  obtain ⟨-, hbase⟩ := hwf.board_edges (Sum.inl a) c htop
+  rcases hbase with hking | hhcell
+  · exact absurd hking hnk
+  · cases hpl : st.deal.piles a with
+    | nil =>
+        rw [hpl] at hhcell
+        exact absurd hhcell (by simp [List.head?])
+    | cons x rst =>
+        rw [hpl] at hhcell
+        have hxc : x = c := by
+          have hx : some x = some c := hhcell
+          exact Option.some.inj hx
+        cases hdep : st.depths a with
+        | zero => exact ⟨rfl, hhcell⟩
+        | succ n =>
+            exfalso
+            have hvis : st.isVis c = true := by
+              show (st.board.bottomOf c).isSome = true
+              rw [hfloor]
+              rfl
+            refine absurd ?_ (hwf.vis_not_hidden c hvis a)
+            show c ∈ st.hidden a
+            show c ∈ (st.deal.piles a).take (st.depths a)
+            rw [hdep, hpl, hxc]
+            show c ∈ c :: rst.take n
+            exact List.mem_cons.mpr (Or.inl rfl)
+
+/-- The vacate kit's target fact (the [E] row's twin): a non-king's
+run can only land on a card seat — anchor landings demand a king
+(`king_of_canPlace_inl` through `canPlace_of_canMoveRun`).
+So a legal vacate never consumes the free anchor it is licensed
+by: before the vacate the free anchors are the hole set, after it
+they are the hole set PLUS the vacated pile. -/
+theorem exists_inr_of_canMoveRun_of_ne_king {st : State} {c : Card} {b : Base}
+    (hnk : c.rank ≠ Rank.king) (hcmr : st.canMoveRun c b = true) :
+    ∃ d, b = Sum.inr d := by
+  cases b with
+  | inl a' => exact absurd (king_of_canPlace_inl (canPlace_of_canMoveRun hcmr)) hnk
+  | inr d => exact ⟨d, rfl⟩
+
+/-- `pilePile` is a pure tableau rewire: heights read the same at
+either end of a successful application (the vacate-alone case's win
+transfer — a one-move win through a `pilePile` means the start was
+already won). -/
+theorem heights_eq_of_apply_pilePile {st s₁ : State} {c : Card} {b : Base}
+    (h : st.apply (Move.pilePile c b) = some s₁) :
+    s₁.heights = st.heights := by
+  rw [apply_pilePile_iff] at h
+  obtain ⟨-, -, -, -, -, -, rfl⟩ := h
+  rfl
+
+theorem isWin_congr_heights {st s₁ : State} (h : s₁.heights = st.heights) :
+    s₁.isWin = st.isWin := by
+  show (Suit.all.all fun s => decide (s₁.heights s = 13))
+    = (Suit.all.all fun s => decide (st.heights s = 13))
+  rw [h]
+
+/-- The generic front swap (the head-only machinery's engine): when
+swapping the two orderings of `m` and `m₂` at `st` yields the same
+`Option`, a successful run of `m :: m₂ :: …` IS a run of
+`m₂ :: m :: …` to the same state — the tail needs no replay at all.
+With `m₂ ≠ m` this alone discharges prunability's head-only demand. -/
+theorem run_swap_front_of_commEq {st : State} {m m₂ : Move} {rest : List Move} {w : State}
+    (hcomm : (st.apply m₂ >>= fun s => s.apply m) = (st.apply m >>= fun s => s.apply m₂))
+    (hrun : st.run (m :: m₂ :: rest) = some w) :
+    st.run (m₂ :: m :: rest) = some w := by
+  obtain ⟨s₁, hap₁, hrest, -⟩ := run_cons_inv hrun
+  obtain ⟨s₂, hap₂, htail, -⟩ := run_cons_inv hrest
+  have hr : (st.apply m >>= fun s => s.apply m₂) = some s₂ := by
+    rw [hap₁]
+    exact hap₂
+  rw [← hcomm] at hr
+  obtain ⟨t₁, ht₁, ht₂⟩ := Option.bind_eq_some_iff.mp hr
+  show (match st.apply m₂ with
+    | some st' => st'.run (m :: rest)
+    | none => none) = some w
+  rw [ht₁]
+  show (match t₁.apply m with
+    | some st' => st'.run rest
+    | none => none) = some w
+  rw [ht₂]
+  exact htail
+
+/-- **VACATE RESIDUE** — the second-move ledger's hard half (named,
+the honest split of `vacate_pilePile_prunable_of_hole`; the
+`replay_head_residue` house pattern): the vacate is prunable at `st`
+when a winning play [`vacate; m₂; …`] with `m₂` outside the
+guard-free commutation sector (`.draw`, `.deckStack`) is given.
+
+Then `m₂` touches the tableau, and the front swap is of one of these
+shapes (the per-kind ledger, each verified against the kit's actual
+guards this session):
+
+* `m₂ = reveal x` — `x ≠ a` automatically (depths a = 0 kills the
+  boundary, `depths_zero_of_floor_seated`); the guards coincide at
+  `st` and at the vacate successor, and `comm_reveal_pilePile`
+  (Commutation:1106) applies with `disjointTouch` derived from WF
+  alone (the boundary card is hidden hence not on the visible run;
+  the second-hidden base card is hidden hence not the vacate's target
+  card, which is visible).  [Closable; cite + one h₂ construction.]
+* `m₂ = deckPile x b'` — unless `b' = Sum.inl a` (the corner, below),
+  `comm_deckPile_pilePile` (Commutation:1301) applies: the waste
+  card is off-cycle hence off the visible run (`vis_off_cycle`);
+  a landing on the moved run's TOP card survives the guard (the
+  mid-run cards are never bare); the same-base clash (`b' = b₀`) is
+  dead in the given order.  [Closable.]
+* `m₂ = pileStack x` — `x = c` is the same-root MERGE: the whole
+  issued shape collapses to `pileStack c` at `st` (the vacate is the
+  no-op detour; head `pileStack c` ≠ the token); `x` = the run's top
+  card is the rider-stack square (detach at the rider's seat, then
+  the shortened run follows); other `x` via
+  `comm_pileStack_pilePile` (Commutation:1527, also Theorems:1164
+  `pileStack_comm_pilePile` for the both-shapes form).
+  [Closable; two custom squares + one cite.]
+* `m₂ = stackPile x b'` — unless `b' = Sum.inl a` (the corner), cite
+  `comm_stackPile_pilePile` (Commutation:1606); the foundation card
+  is invisible hence off the run (`founds_gone`).  [Closable.]
+* `m₂ = pilePile x b''` — same-root (`x = c`) merges into the single
+  token `pilePile c b''` (different from the vacate: the vacate's
+  own target guard `b₀ ≠ b''`); `x` inside the moved run is the
+  sub-run jettison square (the detach base `StoreKey` — the
+  `Board.aboveOf_sub`/`aboveOf_congr` splits; the jettison onto
+  `Sum.inl a` is the in-run king corner, again below); disjoint
+  roots go through `comm_pilePile_pilePile` (Commutation:1659) —
+  its `hdisj` card half needs the two runs disjoint, which the WF
+  cycle tolerance does NOT give for free (`AboveIrreflWitness`), so
+  the square is proved directly, `aboveOf_sub` style.  [Real work,
+  sketched.]
+* `m₂` = a king landing on `Sum.inl a` (base inl, the VACATED
+  anchor) — **the corner**: kings are the only consumers of an empty
+  anchor (`king_of_canPlace_inl`, Move:522; `canPlace_inl_iff`,
+  Move:492).  Sources: `deckPile K (Sum.inl a)` from the waste,
+  `stackPile K (Sum.inl a)` from a completed foundation, `pilePile
+  K/x (Sum.inl a)` from a seated king — including a king seated
+  INSIDE the moved run (the jettison that consumes the vacancy).
+  The σ-corner (the orchestrator's plan): with `h` the pre-existing
+  hole, replace [`vacate; K→a`] with [`K→h`; `vacate`].  Both
+  prefix moves are legal at `st` and the composite enjoys the
+  two-side identity
+      `st ⬝ [K→h; vacate] = (st ⬝ vacate) ⬝ K→h`
+  cellwise (both sides are `st`'s board with `inl a` cleared (no
+  reveal ever reads pile `a`: its depth is 0), `inl h` set to `K`,
+  `b₀ = inr d` sealed by the run, and `K`'s old seat cleared) —
+  machine-checked facts at every king source in
+  `witnesses/VacateCoReal.lean`.  The stopper is the TAIL: the two
+  two-move composites differ by which anchor slot carries the king
+  (`a` vs `h`), and the PileSwap-replay of the tail wants the two
+  composites to be `swapPiles a h`-conjugate as WHOLE states — they
+  are not: `swapPiles` also permutes the deal slices and depths
+  (the slates), and no play can permute slates.  The conjugate
+  world `σ(W_A)`'s continuation (`map swapM tail`, sound by
+  `run_swapPiles`/`solvable_swapPiles_iff`, run-preserved by
+  `isWin`'s blindness) sits behind the slate permutation, while
+  the reachable composite `W_B` keeps `st`'s slates; the verbatim
+  tail replay from `W_B` breaks exactly at (α) any FURTHER king
+  landing that reads the swapped `inl`-seat (free at `W_A`, kinged
+  at `W_B`, and mirrored at the other slot) and (β) the final strip
+  of pile `h` when `depths h = 1` (its attach target `inl h` is
+  bare at `W_A`, kinged at `W_B`) — no move mirrors an anchor-seat
+  write across a slate position.  Whether `W_B` is solvable
+  whenever `W_A` is — equivalently, whether the row holds when the
+  second move consumes the vacated anchor with a live slate under
+  the pre-existing hole — is the residue's open core.  NOT refuted:
+  no countermodel was findable this session (the falsity would need
+  the tight all-alternative-heads-lose world, outside decide reach;
+  the exchange-claim probes and the SuccLabeledWitness no-hole
+  boundary datum live in the wave-FARM row and
+  `witnesses/VacateCoReal.lean`).
+* `m₂` arbitrary with NO king ever landing on `Sum.inl a` — the
+  drop-at-end route (§5.4's third prong): bubble the vacate to the
+  end and drop it — `c`'s consumers are seat-relative (`inr`-seat
+  reads follow the run; the seated root's own moves read `bottomOf`,
+  some at both park and issued shapes), no heights read a
+  `pilePile`, and the parked `c` blocks exactly the king landings
+  the absent vacate would have freed (route 3 of the plan; its own
+  replay invariant is sketched in the FARM row).  [Not elaborated
+  here; belongs to the residue only once the corner world's
+  excluded.] -/
+theorem vacate_secondMove_residue {st : State} {c : Card} {a : Anchor} {b₀ : Base}
+    {m₂ : Move} {rest : List Move} {w : State}
+    (hwf : st.WF) (hnk : c.rank ≠ Rank.king)
+    (hfloor : st.board.bottomOf c = some (Sum.inl a))
+    (hfree : ∃ h, st.board.topOf (Sum.inl h) = none)
+    (hnod : m₂ ≠ Move.draw) (hnodeck : ∀ x, m₂ ≠ Move.deckStack x)
+    (hwin : st.run (Move.pilePile c b₀ :: m₂ :: rest) = some w ∧ w.isWin = true) :
+    ∃ play st', st.run play = some st' ∧ st'.isWin = true ∧
+      play.head? ≠ some (Move.pilePile c b₀) := sorry
+
+/-- §5.4's third row (the vacate prunability, the empty-slot
+boundary): at a WF state that ALREADY has a free anchor, a non-king
+tab-to-tab move whose run root sits on an anchor floor — a move that
+VACATES a pile, leaving an empty slot — need never be played first.
+`hfree` is the sole license for the king-consumer corner: without
+it the claim is FALSE — `witnesses/SuccLabeledWitness.lean`'s
+anchored-head unseat (all seven anchors occupied, the promotion must
+fire first, the king lands on the vacated anchor) is the no-hole
+boundary datum in tree.  `hnk` excludes the §5.7/C2KingAnchor
+territory (up to seven anchor landings, witnesses/
+C2KingAnchorWitness.lean).  No legality premise: an illegal `m` is
+vacuously prunable.
+
+Proof (head-only, assembled over the named residue): the vacate is
+pure board surgery (`heights_eq_of_apply_pilePile`), so a win
+through the vacate ALONE means `st` was already won (`[]` avoids
+the head); a winning play that does not start with the vacate is
+already the witness; otherwise the play is [`vacate; m₂; …`] and the
+two guard-free commutation sectors — `.draw` (`draw_comm_pilePile`,
+Commutation:225) and `.deckStack`
+(`commute_of_compsDisjoint`'s deckStack×pilePile arm, Commutation:243
+/ Frame:912) — swap `m₂` in front by `run_swap_front_of_commEq`
+with the SAME end state, and the new head differs.  Every other
+second-move kind routes to the named residue above. -/
+theorem vacate_pilePile_prunable_of_hole {st : State} {c : Card} {a : Anchor} {b₀ : Base}
+    (hwf : st.WF) (hnk : c.rank ≠ Rank.king)
+    (hfloor : st.board.bottomOf c = some (Sum.inl a))
+    (hfree : ∃ h, st.board.topOf (Sum.inl h) = none) :
+    prunableAt st (Move.pilePile c b₀) := by
+  intro hsolv
+  obtain ⟨play, w, hrun, hwin⟩ := hsolv
+  cases play with
+  | nil =>
+      have h' : (some st : Option State) = some w := hrun
+      rw [← Option.some.inj h'] at hwin
+      exact ⟨[], st, rfl, hwin, by simp⟩
+  | cons m rest =>
+      by_cases hm : m = Move.pilePile c b₀
+      · subst hm
+        cases rest with
+        | nil =>
+            obtain ⟨s₁, hap, hrest, -⟩ := run_cons_inv hrun
+            have hs1w : s₁ = w := by
+              have h' : (some s₁ : Option State) = some w := hrest
+              exact Option.some.inj h'
+            have hhs := heights_eq_of_apply_pilePile hap
+            refine ⟨[], st, rfl, ?_, by simp⟩
+            rw [← hs1w] at hwin
+            rw [isWin_congr_heights hhs] at hwin
+            exact hwin
+        | cons m₂ rest' =>
+            cases m₂ with
+            | draw =>
+                refine ⟨Move.draw :: Move.pilePile c b₀ :: rest', w,
+                  run_swap_front_of_commEq (draw_comm_pilePile st c b₀) hrun, hwin, ?_⟩
+                intro hcon
+                exact Move.noConfusion (Option.some.inj hcon)
+            | deckStack x =>
+                have hcomm : (st.apply (Move.deckStack x) >>= fun s =>
+                    s.apply (Move.pilePile c b₀))
+                    = (st.apply (Move.pilePile c b₀) >>= fun s => s.apply (Move.deckStack x)) := by
+                  refine commute_of_compsDisjoint st (Move.deckStack x) (Move.pilePile c b₀) ?_
+                  intro x₂ hx hx'
+                  simp only [Move.comps] at hx hx'
+                  cases x₂ <;> simp_all
+                refine ⟨Move.deckStack x :: Move.pilePile c b₀ :: rest', w,
+                  run_swap_front_of_commEq hcomm hrun, hwin, ?_⟩
+                intro hcon
+                exact Move.noConfusion (Option.some.inj hcon)
+            | reveal x' =>
+                exact vacate_secondMove_residue hwf hnk hfloor hfree
+                  (by intro hcon; cases hcon) (by intro _ hcon; cases hcon) ⟨hrun, hwin⟩
+            | deckPile x' b' =>
+                exact vacate_secondMove_residue hwf hnk hfloor hfree
+                  (by intro hcon; cases hcon) (by intro _ hcon; cases hcon) ⟨hrun, hwin⟩
+            | pileStack x' =>
+                exact vacate_secondMove_residue hwf hnk hfloor hfree
+                  (by intro hcon; cases hcon) (by intro _ hcon; cases hcon) ⟨hrun, hwin⟩
+            | stackPile x' b' =>
+                exact vacate_secondMove_residue hwf hnk hfloor hfree
+                  (by intro hcon; cases hcon) (by intro _ hcon; cases hcon) ⟨hrun, hwin⟩
+            | pilePile x' b' =>
+                exact vacate_secondMove_residue hwf hnk hfloor hfree
+                  (by intro hcon; cases hcon) (by intro _ hcon; cases hcon) ⟨hrun, hwin⟩
+      · exact ⟨m :: rest, w, hrun, hwin, by simp [hm]⟩
+
 /-! ## §5.5 Twin-pair collapse -/
 
 /-- §5.5: when a card and its twin are both unnecessarily stackable,
@@ -951,3 +1256,5 @@ theorem cascade_sound {P : Move → Bool} (st : State)
 intricate dominance and carries its own TODO in method.md.
 §5.7 (kings only on actually-free piles) is already definitional in
 `State.canPlace`. -/
+
+
