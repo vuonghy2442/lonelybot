@@ -2159,3 +2159,293 @@ theorem canonQ_of_orbit {u v : State} (huwf : u.WF) (hvwf : v.WF)
   rw [show ⟦canon u⟧ = ⟦u⟧ from canon_in_class huwf,
       show ⟦canon v⟧ = ⟦v⟧ from canon_in_class hvwf]
   exact Quotient.sound h
+
+/-! ## The twin conjugation
+
+The canonicalizer is defined on cards; the twin relabeling
+(`Orig.Twin`) maps cards to cards and conjugates step for step
+(`State.twin_step`), so it carries the whole stacking system with it:
+the license, the runs, the terminator, and — the structural
+conjugation the §3.0 family claims — the canonicalizer itself:
+`canon (twinMap u) = twinMap (canon u)`.  The `WF` bookkeeping
+(foundation prefixes, run legality, the census, the draw step) twins
+wholesale. -/
+
+/-- `take` commutes with a pointwise map (the map-twinned prefix is
+the prefix of the twinned list). -/
+private theorem take_map_comm (f : Card → Card) : ∀ (n : Nat) (l : List Card),
+    (l.take n).map f = (l.map f).take n := by
+  intro n
+  induction n with
+  | zero =>
+      intro l
+      cases l with
+      | nil => rfl
+      | cons x t => rfl
+  | succ n ih =>
+      intro l
+      cases l with
+      | nil => rfl
+      | cons x t =>
+          show (f x :: (t.take n).map f) = f x :: (t.map f).take n
+          rw [ih]
+
+/-- A suit's build order, twinned, is the twin suit's build order. -/
+private theorem upCards_twin (s : Suit) :
+    (s.upCards).map Card.twin = (s.twin).upCards := by
+  cases s <;> rfl
+
+/-- A pile's twin-map: hidden and face-up rows twin elementwise. -/
+private theorem pileZone_twinMap (st : State) (a : Anchor) :
+    ((st.piles a).twinMap).hidden ++ ((st.piles a).twinMap).faceUp =
+      (pileZone st a).map Card.twin := by
+  show (st.piles a).hidden.map Card.twin ++ (st.piles a).faceUp.map Card.twin =
+    ((st.piles a).hidden ++ (st.piles a).faceUp).map Card.twin
+  rw [List.map_append]
+
+/-- Filtered counts transfer across the twin relabeling: counting `c`
+in a twinned list is counting `c.twin` in the original, re-twinned. -/
+private theorem filter_map_twin (c : Card) : ∀ (l : List Card),
+    (l.map Card.twin).filter (fun y => decide (y = c)) =
+      (l.filter (fun y => decide (y = c.twin))).map Card.twin := by
+  intro l
+  induction l with
+  | nil => rfl
+  | cons x t ih =>
+      have hdec : decide (x.twin = c) = decide (x = c.twin) := by
+        have h := decide_twin_eq (c := x) (z := c.twin)
+        rwa [Card.twin_twin c] at h
+      show List.filter (fun y => decide (y = c)) (x.twin :: t.map Card.twin) =
+        List.map Card.twin (List.filter (fun y => decide (y = c.twin)) (x :: t))
+      simp only [List.filter_cons]
+      rw [hdec]
+      cases hd : decide (x = c.twin) with
+      | true =>
+          show x.twin :: List.filter (fun y => decide (y = c)) (t.map Card.twin) =
+            List.map Card.twin (x :: List.filter (fun y => decide (y = c.twin)) t)
+          rw [ih, List.map_cons]
+      | false =>
+          show List.filter (fun y => decide (y = c)) (t.map Card.twin) =
+            List.map Card.twin (List.filter (fun y => decide (y = c.twin)) t)
+          exact ih
+
+/-- The suit block, twinned, is the suit block, permuted: the twin map
+is an involution, so summing a per-suit measure over `s.twin` is
+summing it over `s`. -/
+private theorem sum_twin_perm (g : Suit → Nat) :
+    (Suit.all.map (fun s => g s.twin)).sum = (Suit.all.map g).sum := by
+  have hL : (Suit.all.map (fun s => g s.twin)) =
+      [g .club, g .diamond, g .heart, g .spade] := rfl
+  have hR : (Suit.all.map g) = [g .spade, g .heart, g .diamond, g .club] := rfl
+  rw [hL, hR]
+  simp only [List.sum_cons, List.sum_nil]
+  omega
+
+/-- **The zone census twins**: counting `c` across the twinned
+position is counting `c.twin` across the original.  The pile blocks
+and the draw tail twin in place; the found blocks sit in twin-suited
+order, so the per-suit filtered lengths pass through the suit
+permutation sum. -/
+theorem cardCount_twinMap (st : State) (c : Card) :
+    (State.twinMap st).cardCount c = st.cardCount c.twin := by
+  have hz (z : List Card) :
+      ((z.map Card.twin).filter (fun y => decide (y = c))).length =
+        (z.filter (fun y => decide (y = c.twin))).length := by
+    rw [filter_map_twin, List.length_map]
+  have hS : zoneCount (Suit.all.map (fun s => (st.found s.twin).map Card.twin)) c =
+      zoneCount (Suit.all.map st.found) c.twin := by
+    rw [zoneCount_coll, zoneCount_coll]
+    rw [show List.map (fun z => (List.filter (fun y => decide (y = c)) z).length)
+          (List.map (fun s => List.map Card.twin (st.found s.twin)) Suit.all) =
+        List.map (fun s => (List.filter (fun y => decide (y = c))
+          (List.map Card.twin (st.found s.twin))).length) Suit.all from by
+        rw [List.map_map]
+        rfl]
+    rw [map_congr_eq (fun (s : Suit) _ => hz (st.found s.twin))]
+    exact sum_twin_perm (fun τ =>
+      ((st.found τ).filter (fun y => decide (y = c.twin))).length)
+  have hP : zoneCount (Anchor.all.map (fun a =>
+        ((st.piles a).twinMap).hidden ++ ((st.piles a).twinMap).faceUp)) c =
+      zoneCount (Anchor.all.map (fun a => pileZone st a)) c.twin := by
+    have hmapmap {α : Type} (p : Card) (l : List α) (f : α → List Card) :
+        List.map (fun z => (List.filter (fun y => decide (y = p)) z).length)
+            (List.map f l) =
+          List.map (fun x => (List.filter (fun y => decide (y = p)) (f x)).length) l := by
+      induction l with
+      | nil => rfl
+      | cons x t ih =>
+          show (List.filter (fun y => decide (y = p)) (f x)).length ::
+              List.map (fun z => (List.filter (fun y => decide (y = p)) z).length)
+                (List.map f t) =
+            (List.filter (fun y => decide (y = p)) (f x)).length ::
+              List.map (fun x' =>
+                (List.filter (fun y => decide (y = p)) (f x')).length) t
+          rw [ih]
+    rw [zoneCount_coll, zoneCount_coll, hmapmap c Anchor.all _, hmapmap c.twin Anchor.all _]
+    have hpz : ∀ (a : Anchor),
+        (List.filter (fun y => decide (y = c))
+          (((st.piles a).twinMap).hidden ++ ((st.piles a).twinMap).faceUp)).length =
+        (List.filter (fun y => decide (y = c.twin)) (pileZone st a)).length := by
+      intro a
+      rw [pileZone_twinMap st a]
+      exact hz (pileZone st a)
+    rw [map_congr_eq (fun (a : Anchor) _ => hpz a)]
+  have hT : zoneCount [st.stock.map Card.twin, st.waste.map Card.twin] c =
+      zoneCount [st.stock, st.waste] c.twin := by
+    have flat2 : ∀ (A B : List Card),
+        List.flatMap id [A, B] = A ++ B := by
+      intro A B
+      show A ++ List.flatMap id [B] = A ++ B
+      rw [show List.flatMap id [B] =
+          B ++ List.flatMap id ([] : List (List Card)) from rfl,
+        show List.flatMap id ([] : List (List Card)) = ([] : List Card) from rfl,
+        List.append_nil]
+    rw [zoneCount, zoneCount,
+      flat2 (st.stock.map Card.twin) (st.waste.map Card.twin),
+      flat2 st.stock st.waste]
+    show ((st.stock.map Card.twin ++ st.waste.map Card.twin).filter
+        (fun y => decide (y = c))).length =
+      ((st.stock ++ st.waste).filter (fun y => decide (y = c.twin))).length
+    rw [List.filter_append, List.length_append, List.filter_append,
+      List.length_append]
+    rw [hz st.stock, hz st.waste]
+  have hL : (State.twinMap st).cardCount c =
+      zoneCount (Suit.all.map (fun s => (st.found s.twin).map Card.twin) ++
+        Anchor.all.map (fun a =>
+          ((st.piles a).twinMap).hidden ++ ((st.piles a).twinMap).faceUp) ++
+        [st.stock.map Card.twin, st.waste.map Card.twin]) c := rfl
+  have hR : st.cardCount c.twin =
+      zoneCount (Suit.all.map st.found ++
+        Anchor.all.map (fun a => (st.piles a).hidden ++ (st.piles a).faceUp) ++
+        [st.stock, st.waste]) c.twin := rfl
+  rw [hL, hR, zoneCount_split, zoneCount_split, zoneCount_split,
+    zoneCount_split, hS, hP, hT]
+  rfl
+
+/-- **The twin relabeling preserves `WF`**: foundation prefixes twin
+into the twin suit's build order, run legality survives the
+elementwise relabeling (`canSitOn` is twin-blind), the census twins
+(`cardCount_twinMap`), and the draw step is untouched. -/
+theorem twin_wf {st : State} (hwf : st.WF) : (State.twinMap st).WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    obtain ⟨n, hn⟩ := hwf.1 s.twin
+    refine ⟨n, ?_⟩
+    show (st.found s.twin).map Card.twin = s.upCards.take n
+    rw [hn, take_map_comm, upCards_twin]
+    cases s <;> simp [Suit.twin_twin]
+  · intro a
+    show runOK (((st.piles a).twinMap).faceUp) = true
+    have h : ((st.piles a).twinMap).faceUp = ((st.piles a).faceUp).map Card.twin := rfl
+    rw [h]
+    have hrun : ∀ l : List Card, runOK (l.map Card.twin) = runOK l := by
+      intro l
+      induction l with
+      | nil => rfl
+      | cons x t ih =>
+          cases t with
+          | nil => rfl
+          | cons y t' =>
+              show (canSitOn y.twin x.twin && runOK (y.twin :: List.map Card.twin t')) =
+                (canSitOn y x && runOK (y :: t'))
+              rw [canSitOn_twin_twin, ← List.map_cons, ih]
+    rw [hrun]
+    exact hwf.2.1 a
+  · intro c _
+    rw [cardCount_twinMap]
+    exact hwf.2.2.1 c.twin (Card.mem_universe c.twin)
+  · exact hwf.2.2.2
+
+/-- The license is twin-blind: `canRaiseB` at the twinned position
+reads the same answer for the twinned card. -/
+theorem canRaiseB_twinMap (st : State) (c : Card) :
+    canRaiseB (State.twinMap st) c.twin = canRaiseB st c := by
+  have hchop : ∀ (l : List Card), chop (l.map Card.twin) = (chop l).map Card.twin := by
+    intro l
+    induction l with
+    | nil => rfl
+    | cons x t ih =>
+        cases t with
+        | nil => rfl
+        | cons y t' =>
+            simp only [chop, List.map_cons]
+            show x.twin :: chop (List.map Card.twin (y :: t')) =
+              x.twin :: List.map Card.twin (chop (y :: t'))
+            rw [ih]
+  have hne : ∀ (l : List Card), decide (l.map Card.twin ≠ []) = decide (l ≠ []) := by
+    intro l
+    cases l with
+    | nil => rfl
+    | cons x t =>
+        rw [decide_eq_true (show ((x :: t).map Card.twin ≠ []) from by simp),
+            decide_eq_true (show ((x :: t) ≠ []) from by simp)]
+  have hnil : ∀ (l : List Card), decide (l.map Card.twin = []) = decide (l = []) := by
+    intro l
+    cases l with
+    | nil => rfl
+    | cons x t =>
+        rw [decide_eq_false (show ¬ (((x :: t).map Card.twin) = []) from by simp),
+            decide_eq_false (show ¬ ((x :: t) = []) from by simp)]
+  unfold canRaiseB
+  rw [State.nextUp_twinMap, State.pileOfTop_twinMap]
+  cases hp : st.pileOfTop c with
+  | none => rfl
+  | some a =>
+      simp only [show ((State.twinMap st).piles a).faceUp =
+          (st.piles a).faceUp.map Card.twin from rfl,
+        show ((State.twinMap st).piles a).hidden =
+          (st.piles a).hidden.map Card.twin from rfl,
+        hchop, hne, hnil, Card.twin_rank]
+      rfl
+
+/-- The license is twin-blind, relation form. -/
+theorem canRaise_twinMap_iff {st : State} {c : Card} :
+    CanRaise (State.twinMap st) c.twin ↔ CanRaise st c := by
+  rw [← canRaiseB_true_iff, ← canRaiseB_true_iff, canRaiseB_twinMap]
+
+/-- `Final` is twin-blind. -/
+theorem final_twinMap {w : State} (hfin : Final w) :
+    Final (State.twinMap w) := by
+  intro c hcr
+  have hiff : CanRaise (State.twinMap w) (c.twin.twin) ↔ CanRaise w c.twin :=
+    canRaise_twinMap_iff (st := w) (c := c.twin)
+  rw [Card.twin_twin c] at hiff
+  exact hfin c.twin (hiff.mp hcr)
+
+/-- The whole stacking run twins: move for move, license for license. -/
+theorem stackRun_twinMap {u : State} {l : List Move} {w : State}
+    (h : StackRun u l w) :
+    StackRun (State.twinMap u) (l.map Move.twinMove) (State.twinMap w) := by
+  induction h with
+  | nil s => exact .nil _
+  | @cons st₀ m c s' rest w₀ hc hm hstep hrest ih =>
+      cases hm
+      have hstept : State.step (State.twinMap st₀) (Move.tabToFound c.twin) =
+          some (State.twinMap s') := by
+        have h2 := State.twin_step st₀ (Move.tabToFound c)
+        rw [hstep] at h2
+        exact h2.symm
+      exact .cons (canRaise_twinMap_iff.2 hc) (IsRaise.tabToFound c.twin) hstept ih
+
+/-- **`canon_twinMap`** — the structural conjugation: the
+canonicalizer of the twin position is the twin of the canonical
+position.  Route: the twinned canonical schedule is a maximal
+licensed run at the (WF) twinned position ending `Final`, so
+`canon_unique` pins it to the twinned position's own canonical
+form. -/
+theorem canon_twinMap {u : State} (hwf : u.WF) :
+    canon (State.twinMap u) = State.twinMap (canon u) := by
+  obtain ⟨l, hrun, hfin⟩ := canon_run u
+  have hwft : (State.twinMap u).WF := twin_wf hwf
+  obtain ⟨l₂, hrun₂, hfin₂⟩ := canon_run (State.twinMap u)
+  have h1 := canon_unique hwft (stackRun_twinMap hrun) (final_twinMap hfin) hrun₂ hfin₂
+  exact h1.symm
+
+/-- **Twin conjugation lands inside the canon fiber**: the canonical
+form of the twin position class-matches the canonical form (the
+conjugation `canon_twinMap` plus the setoid's own twin disjunct). -/
+theorem sameMacro_twin {u : State} (hwf : u.WF) :
+    ⟦canon u⟧ = ⟦canon (State.twinMap u)⟧ := by
+  rw [canon_twinMap hwf]
+  exact Quotient.sound (show sameOrbitSetoid.r (canon u) (State.twinMap (canon u)) from
+    Or.inr (Or.inl rfl))
