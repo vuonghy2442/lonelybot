@@ -270,6 +270,45 @@ def CommitOf (u : State) (c : Card) (s : State) : Prop :=
 
 ### 3.1 THE MAJOR THEOREM — a non-king move is (at most) TWO-well-defined on macro states (user formulation 2026-10-06; supersedes A/A′ and the windowed count)
 
+**ROUTE REVISION (the user's canonical-openings program, 2026-10-10):**
+the count is analyzed ENTIRELY IN THE CANONICAL WORLD.  The three
+dividends that make it work: (1) clearing raiseable junk is
+IN-CLASS — at a canonical state every licensed raise is consumed
+already, so candidate landings blocked only by raiseable material
+cost nothing; the analysis reduces to the UNRAISEABLE OBSTRUCTION
+INVENTORY — the canonical state's residue profile — which IS the
+"clean condition" reading: branch behavior = a profile function of
+(c, the canonical form); (2) both ends close canonically for free
+(canon_in_class for the successor; the PHASE-PROGRESS lemma — a
+class-relation from a commit successor back would BE the returning
+play, so every commit strictly exits its class — gives the
+per-phase pigeonhole); (3) in-phase stock rotations are
+class-invisible, so "c reachable-to-hand" enters the profile as a
+clean draw-pool condition (Phase machinery), not a separate
+obstacle.  THE BRIDGE THE PROGRAM NEEDS: the commit-transport
+lemma — for every commit firing at a tip of class C there is a
+canonical-launched accommodation (a reversible path from canon C
+making m landable, then m) whose post-commit class equals the
+actual successor's class — the per-cell transported-move
+constructions, ABSORBING ticket 8's commute kit as this theorem's
+first milestone.  THE COUNT's ANATOMY per new card c: the raise
+arm (rung read off foundations, ≤1 class); the direct landings
+(the twin-pair fitting hosts, unobstructed — the residue
+exhibit's lesson applies to the landed-result classes); the
+obstruction-resolved landings (the 2×2 worry lattice — same-card
+retraces vanish mechanically, the twin-picker survives — with the
+SINGLE-OBSTRUCTION DISCIPLINE as the hard half: the accommodating
+chain intersects at most the one twin-choice; the seat-lock-grade
+arithmetic from the mirroring engine's kill family is the
+prototype).  THE HONEST BOUNDARY: the old three-live-successors
+ghost is re-hunted in the CANONICAL-PROFILE language — a profile
+witnessing a third class bounds the theorem; none found — the
+count.  ASSEMBLY MILESTONES: transport bridge (absorbs the kit) →
+profile lemmas (obstruction inventory, in-class clearing,
+hands-from-draw-pool) → per-arm enumeration (raise/direct/
+obstructed cells, the worry 2×2 mechanized) → the two-class count →
+the boundary note.
+
 ```lean
 theorem apply_two_macroOutcomes {t₁ t₂ t₃ : State} {m : Move} {s₁ s₂ s₃ : State}
     (h₁₂ : ⟦t₁⟧ = ⟦t₂⟧) (h₁₃ : ⟦t₁⟧ = ⟦t₃⟧)   -- ⟦·⟧ : Quotient sameOrbitSetoid, the
