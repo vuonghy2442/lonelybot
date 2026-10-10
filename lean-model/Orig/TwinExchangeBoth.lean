@@ -4972,3 +4972,93 @@ theorem exchange_go_gen
           (ih s₁ t (step_wf hwf hap) hP₁ ⟨w, hrest, hwin⟩)
       · exact WinFrom_of_succ ⟨m, htrans⟩
           (hfree (step_wf hwf hap) hbare ⟨ms, w, hrest, hwin⟩)
+
+/-! ## §7. The both-occupied iff
+
+The card the module was declared for: at the licensed
+both-occupied shape the local twin exchange preserves the verdict,
+both directions.  Forward is the g-simulation at the `BothOcc`
+instance.  Backward replays the forward direction AT the exchanged
+state, where the license has descended (this is the both-occupied
+grade of `TwinExchOK_exchangeTwin` — the slots swap, the splices
+cross, the fits re-read twin-blindly, the braid family re-derives
+at the crossed splices), and the involution folds the
+twice-exchanged state back onto the original. -/
+
+/-- **The license descent.**  The both-occupied license is an honest
+symmetry of the exchange — the hosts keep their piles
+(`exch_hosts`), the written records keep each pile's hidden deck
+and below-prefix with the OTHER thread's cargo riding on top
+(`exch_pile_self_record` / `exch_pile_other_record`), the crossed
+fits re-read through the twin-blindness of the sit rules
+(`canSitOn_twin_right`), and the braid family re-derives at the
+crossed splices through `braid_splice` (WF-automatic once the
+spliced shapes and fits are in place). -/
+theorem bothOcc_exchangeTwin {st : State} {t : Card}
+    (hwf : st.WF) (hbo : BothOcc st t) :
+    BothOcc (st.exchangeTwin t) t := by
+  obtain ⟨α, β, z, z', Bα, B', Sa, Sa', h₁, h₂, hne, hsα, hsβ, hfit, hfit',
+    -, -, -, -⟩ := hbo
+  have hσwf : (st.exchangeTwin t).WF := State.wf_exchangeTwin hwf h₁ h₂ hne
+  obtain ⟨h₁σ, h₂σ⟩ := exch_hosts hwf h₁ h₂ hne
+  have hsασ : ((st.exchangeTwin t).piles α).faceUp = Bα ++ [t, z'] ++ Sa' := by
+    rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ]
+  have hsβσ : ((st.exchangeTwin t).piles β).faceUp = B' ++ [t.twin, z] ++ Sa := by
+    rw [exch_pile_other_record hwf h₁ h₂ hne hsα hsβ]
+  have hfitX : canSitOn z' t = true := by
+    rw [← canSitOn_twin_right z' t]
+    rw [show { t with suit := t.suit.twin } = t.twin from rfl]
+    exact hfit'
+  have hfitX' : canSitOn z t.twin = true := by
+    rw [show t.twin = { t with suit := t.suit.twin } from rfl, canSitOn_twin_right z t]
+    exact hfit
+  have hb := braid_splice hσwf h₁σ h₂σ hne hsασ hsβσ hfitX hfitX'
+  exact ⟨α, β, z', z, Bα, B', Sa', Sa, h₁σ, h₂σ, hne, hsασ, hsβσ,
+    hfitX, hfitX', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩
+
+/-- The g-simulation's both-occupied instance: the six rows are the
+ride, and the freedom tail is the landed bare row reading its bare
+packet at the successor's own facts. -/
+private theorem exchange_go {st : State} {t : Card}
+    (hwf : st.WF) (hbo : BothOcc st t) :
+    WinFrom st → WinFrom (st.exchangeTwin t) := by
+  intro hwin
+  obtain ⟨play, w, hrun, hwinw⟩ := hwin
+  refine exchange_go_gen BothOcc exch_step_all ?_ play st t hwf hbo
+    ⟨w, hrun, hwinw⟩
+  intro s₂ t' hwf₁ hbare hwin₁
+  obtain ⟨a, a', h₁, h₂, hne, hbare'⟩ := hbare
+  exact (twin_exchange_bare_iff hwf₁ h₁ h₂ hne hbare').1 hwin₁
+
+/-- **The both-occupied exchange iff.**  At a well-formed state with
+BOTH twin hosts located face-up in distinct piles, both `aboveIn`
+slots headed by a fitted cargo, and the braid clauses — neither
+twin seat above either cargo — the local twin exchange preserves
+the verdict: `st` is winning iff the exchanged state is.  The
+premise shape is the bare row's dialect; the proof is the
+simulation forward and, through the descended license and the
+involution, the simulation read at the exchanged state backward. -/
+theorem twin_exchange_both_iff {st : State} {t z z' : Card} {a a' : Anchor}
+    {Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some a) (h₂ : st.pileHolding t.twin = some a')
+    (hne : a ≠ a')
+    (h₀ : aboveIn t ((st.piles a).faceUp) = z :: Sa)
+    (h₀' : aboveIn t.twin ((st.piles a').faceUp) = z' :: Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true)
+    (hnb : t ∉ aboveIn z ((st.piles a).faceUp) ∧
+      t.twin ∉ aboveIn z ((st.piles a).faceUp))
+    (hnb' : t ∉ aboveIn z' ((st.piles a').faceUp) ∧
+      t.twin ∉ aboveIn z' ((st.piles a').faceUp)) :
+    WinFrom st ↔ WinFrom (st.exchangeTwin t) := by
+  have hbo : BothOcc st t := bothOcc_of h₁ h₂ hne h₀ h₀' hfit hfit' hnb hnb'
+  constructor
+  · intro hwin
+    exact exchange_go hwf hbo hwin
+  · intro hwinσ
+    have hσbo : BothOcc (st.exchangeTwin t) t := bothOcc_exchangeTwin hwf hbo
+    have hgo : WinFrom ((st.exchangeTwin t).exchangeTwin t) :=
+      exchange_go (State.wf_exchangeTwin hwf h₁ h₂ hne) hσbo hwinσ
+    rwa [State.exchangeTwin_invol h₁ h₂ hne
+      (hwf.cardCount_eq (Card.mem_universe t))
+      (hwf.cardCount_eq (Card.mem_universe t.twin))] at hgo
