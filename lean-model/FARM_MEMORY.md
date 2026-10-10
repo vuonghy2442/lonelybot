@@ -9190,3 +9190,29 @@ PROCESS: SIXTH session in the row hitting the stale-worktree gotcha
 macro-game` per the spawn-fix rule, tree clean afterwards.  One
 olean.private weather burst on the cold build — the warm-then-retry
 protocol banked it in two commands.
+
+## Orig/Dominance.lean — the draw-1 replay's probed route corrections (the B session, 2026-10-10)
+
+- The consuming-case squares (front-then-spend vs spend-then-front, x ≠ c) are
+  NOT sameCycle/transport landings: the two orders differ by a PURE-DRAW
+  ROTATION of the same cycle — mutually reachable by draws, so wins lift with
+  no transport.  Any "transport" promise in a route note for these rows is
+  suspect; probe for a rotation composite first.
+- The ONE genuine (A) (`draw1_sameCycle_sameFate`) consumer in the replay is
+  the PRISTINE WASTE-FORM corner (postW = []): the fronted c-slot's successor
+  is dealt back at the final recycle-deal, so the twin's cut cannot re-close
+  by draws — only there does a transport carry content.
+- The replay induction's nil-corner is WF-free: `isWin` caps `found c.suit`
+  at 13 while `nextUp` pins `c.rank.toIdx` to that height, contradicting
+  `toIdx < 13`.  No step-preserved-WF premise (Orig's open ticket) is ever
+  needed in draw-1 replay rows.
+- `rungHeldUntilExit` disjunct-2 already forces x ≠ c at every consuming head
+  pre-exit; `found c.suit` is literally invariant pre-exit — normal-form
+  rewrites never disturb the replay's c-bundle.
+- Bankable sorry-free currency on farm/orig-dom-b-replay@5782552 (re-derive
+  natively; do not cross-pull branches): `bump2_comm` (foundation bumps
+  commute at distinct suits), `front_stock`/`front_waste` (the k-existence
+  fronting arithmetic and their landing shapes), `wtf_step_raised` (the
+  spend step in raised form), the `wasteToTab`/`foundToTab` step inversions,
+  and the worry-back identity's lower leg `lower_foundToTab1`
+  ([wasteToFound c; foundToTab c b] ≡ [wasteToTab c b]).
