@@ -3072,3 +3072,244 @@ theorem same_macro_iff {u v : State} (huwf : u.WF) (hvwf : v.WF) :
     show ⟦u⟧ = ⟦v⟧
     rw [(canon_in_class huwf).symm, (canon_in_class hvwf).symm]
     exact hcanon
+
+/-! ## The private exhibits
+
+The two exhibits this chapter owes its fences and its design answer to
+(the witness-archive discipline: verdicts decide-graded through a
+private `DecidableEq State` bridge — the dedup-marked local
+re-derivation from the `OrigExchange` / `ClassificationFork`
+archives — and PRIVATE: evidence, not surface). -/
+
+section WitnessExhibits
+
+set_option maxRecDepth 100000
+
+/-- The state-equality bridge (DEDUP-marked: local re-derivation in
+the witness-archive discipline). -/
+private def decSt (s t : State) : Decidable (s = t) :=
+  decidable_of_decidable_of_iff (p :=
+    (s.found .spade = t.found .spade ∧ s.found .heart = t.found .heart ∧
+     s.found .diamond = t.found .diamond ∧ s.found .club = t.found .club ∧
+     s.piles .p0 = t.piles .p0 ∧ s.piles .p1 = t.piles .p1 ∧
+     s.piles .p2 = t.piles .p2 ∧ s.piles .p3 = t.piles .p3 ∧
+     s.piles .p4 = t.piles .p4 ∧ s.piles .p5 = t.piles .p5 ∧
+     s.piles .p6 = t.piles .p6 ∧
+     s.stock = t.stock ∧ s.waste = t.waste ∧ s.drawStep = t.drawStep))
+    (by
+      constructor
+      · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩
+        apply State.ext
+        · funext σ; cases σ <;> assumption
+        · funext a; cases a <;> assumption
+        · assumption
+        · assumption
+        · assumption
+      · rintro rfl
+        exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩)
+
+local instance : DecidableEq State := fun s t => decSt s t
+
+/-! ### Exhibit one: the search hijack (CLAIM 1's WF fence)
+
+A duplicated-card position whose two maximal licensed runs end at
+different states.  The hijack: after ♠2's raise the exposed ♥2 copy
+on p1 re-pins the pile search (p1 is scanned before p5) and freezes
+the license — the chop is empty and hidden p1 is nonempty, so the
+bare-king branch fails too — so [♠2] alone is maximal; raising ♥2
+first and then ♠2 also saturates, elsewhere.  `canon_unique`'s WF
+fence is load-bearing. -/
+
+private def wS2 : Card := ⟨Suit.spade, Rank.two⟩
+private def wH2 : Card := ⟨Suit.heart, Rank.two⟩
+private def wSA : Card := ⟨Suit.spade, Rank.ace⟩
+private def wHA : Card := ⟨Suit.heart, Rank.ace⟩
+private def wC2 : Card := ⟨Suit.club, Rank.two⟩
+
+/-- The wild duplicated-card position. -/
+private def wildW : State where
+  found := fun s => match s with
+    | .spade => [wSA]
+    | .heart => [wHA]
+    | _ => []
+  piles := fun a => match a with
+    | .p1 => ⟨[wC2], [wH2, wS2]⟩
+    | .p5 => ⟨[], [wC2, wH2]⟩
+    | _ => ⟨[], []⟩
+  stock := []
+  waste := []
+  drawStep := 1
+
+private def wE1 : State :=
+  match State.step wildW (Move.tabToFound wS2) with | some s => s | none => wildW
+
+private def wS2' : State :=
+  match State.step wildW (Move.tabToFound wH2) with | some s => s | none => wildW
+
+private def wE2 : State :=
+  match State.step wS2' (Move.tabToFound wS2) with | some s => s | none => wS2'
+
+private theorem wstep1 : State.step wildW (Move.tabToFound wS2) = some wE1 := by
+  decide
+private theorem wstep2a : State.step wildW (Move.tabToFound wH2) = some wS2' := by
+  decide
+private theorem wstep2b : State.step wS2' (Move.tabToFound wS2) = some wE2 := by
+  decide
+private theorem wlic1 : CanRaise wildW wS2 := canRaiseB_true_iff.mp (by decide)
+private theorem wlic2 : CanRaise wildW wH2 := canRaiseB_true_iff.mp (by decide)
+private theorem wlic3 : CanRaise wS2' wS2 := canRaiseB_true_iff.mp (by decide)
+
+private theorem wfin1 : Final wE1 := (pick_eq_none_iff_final _).1 (by decide)
+private theorem wfin2 : Final wE2 := (pick_eq_none_iff_final _).1 (by decide)
+
+/-- **The search hijack exhibit**: at the wild position, two maximal
+licensed runs end at different states while the canonical form sides
+with the pick-ordered one — confluence fails outside `WF`, so the
+fence on `canon_unique` is load-bearing, and the position itself is
+wild (the duplicated heart kills the census). -/
+private theorem wild_confluence_fails :
+    StackRun wildW [Move.tabToFound wS2] wE1 ∧ Final wE1 ∧
+    StackRun wildW [Move.tabToFound wH2, Move.tabToFound wS2] wE2 ∧ Final wE2 ∧
+    wE1 ≠ wE2 ∧ canon wildW = wE1 ∧ ¬ wildW.WF := by
+  refine ⟨.cons wlic1 (IsRaise.tabToFound wS2) wstep1 (.nil _), wfin1,
+    .cons wlic2 (IsRaise.tabToFound wH2) wstep2a
+      (.cons wlic3 (IsRaise.tabToFound wS2) wstep2b (.nil _)),
+    wfin2, ?_, ?_, ?_⟩
+  · decide
+  · decide
+  · intro hwf
+    have h1 : State.cardCount wildW wH2 = 1 := hwf.2.2.1 _ (Card.mem_universe _)
+    exact absurd h1 (by decide)
+
+/-! ### Exhibit two: the twin-residue relocation (the design answer)
+
+A reversible one-move relocation of an unstackable residue between
+twin hosts: both endpoints are `WF` and `Final` (so literally
+canon-fixed), yet the two canonical forms differ — the LITERAL canon
+comparison fails while the wrapped ⟦·⟧ comparison holds.  This is
+the evidence for §3.0's wrapped form: the residue's seat is
+canon-invisible (never licensed, never relocated by the
+canonicalizer) but class-visible. -/
+
+private def rS3 : Card := ⟨Suit.spade, Rank.three⟩
+private def rH4 : Card := ⟨Suit.heart, Rank.four⟩
+private def rD4 : Card := ⟨Suit.diamond, Rank.four⟩
+
+private def rstock : List Card :=
+  Card.universe.filter fun c => decide (c ≠ rS3 ∧ c ≠ rH4 ∧ c ≠ rD4)
+
+/-- u: the residue ♠3 sits on the twin host ♥4 (p1); p5 carries the
+twin host ♦4 bare.  Everything else sleeps in the stock; the
+foundations are empty. -/
+private def resU : State where
+  found := fun _ => []
+  piles := fun a => match a with
+    | .p1 => ⟨[], [rH4, rS3]⟩
+    | .p5 => ⟨[], [rD4]⟩
+    | _ => ⟨[], []⟩
+  stock := rstock
+  waste := []
+  drawStep := 1
+
+/-- v: the residue relocated onto ♦4. -/
+private def resV : State where
+  found := fun _ => []
+  piles := fun a => match a with
+    | .p1 => ⟨[], [rH4]⟩
+    | .p5 => ⟨[], [rD4, rS3]⟩
+    | _ => ⟨[], []⟩
+  stock := rstock
+  waste := []
+  drawStep := 1
+
+private theorem resForth : State.step resU (Move.tabToTab rS3 (Sum.inr rD4)) = some resV := by
+  decide
+private theorem resBack : State.step resV (Move.tabToTab rS3 (Sum.inr rH4)) = some resU := by
+  decide
+
+private theorem resU_wf : resU.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s <;> exact ⟨0, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+private theorem resV_wf : resV.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s <;> exact ⟨0, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+private theorem resU_final : Final resU := (pick_eq_none_iff_final _).1 (by decide)
+private theorem resV_final : Final resV := (pick_eq_none_iff_final _).1 (by decide)
+
+/-- **The twin-residue relocation exhibit**: the relocation is a
+reversible one-move round trip between `WF` `Final` endpoints, the
+two canonical forms are the endpoints themselves (canon-fixed) and
+NEVERTHELESS differ — canon resU ≠ canon resV literally — while the
+wrapped comparison holds (same macro class), and the zone residue
+agrees (empty wastes, equal stocks ⇒ equal pools, equal phase
+lines): exactly the `same_macro_iff` accounting. -/
+private theorem residue_reloc_exhibit :
+    resU.WF ∧ resV.WF ∧
+    State.step resU (Move.tabToTab rS3 (Sum.inr rD4)) = some resV ∧
+    State.step resV (Move.tabToTab rS3 (Sum.inr rH4)) = some resU ∧
+    canon resU = resU ∧ canon resV = resV ∧
+    SameMacroO resU resV ∧ ¬ (canon resU = canon resV) ∧ SWComp resU resV := by
+  refine ⟨resU_wf, resV_wf, resForth, resBack, ?_, ?_, ?_, ?_, ?_⟩
+  · decide
+  · decide
+  · exact Quotient.sound (Or.inr (Or.inr (Or.inl (oneMoveRevEqW resBack resForth))))
+  · intro hc
+    rw [show canon resU = resU from by decide, show canon resV = resV from by decide] at hc
+    exact absurd hc (by decide)
+  · exact ⟨Or.inl rfl, rfl⟩
+
+end WitnessExhibits
+
+/-! ## The axiom audit
+
+`\#print axioms` for every head this chapter adds: all audit
+`[propext, Quot.sound]` or `[propext]` — ZERO `Classical.choice`
+anywhere (the `omega`-on-Nat trap stays fenced: only linear-Nat
+goals reach it).  The two `Decide`-graded exhibits keep their
+verdicts computational through the private `DecidableEq State`
+bridge. -/
+
+#print axioms raise_undo_under_step
+#print axioms raise_undo_bare_step
+#print axioms liftStep_reversibleW
+#print axioms lift_undoW
+#print axioms stackRun_reversibleW
+#print axioms stackRun_returnW
+#print axioms canon_reversibleW
+#print axioms canon_class
+#print axioms canon_in_class
+#print axioms canonQ_of_orbit
+#print axioms cardCount_twinMap
+#print axioms twin_wf
+#print axioms canRaiseB_twinMap
+#print axioms canRaise_twinMap_iff
+#print axioms final_twinMap
+#print axioms stackRun_twinMap
+#print axioms canon_twinMap
+#print axioms sameMacro_twin
+#print axioms drawPool_twinMap
+#print axioms swComp_of_orbit
+#print axioms oneMoveRevEqW
+#print axioms sameMacro_liftStep
+#print axioms sameMacro_foundToTab
+#print axioms sameMacro_tabToTab_quiet
+#print axioms sameMacro_swRot
+#print axioms same_macro_iff
+#print axioms wild_confluence_fails
+#print axioms residue_reloc_exhibit
