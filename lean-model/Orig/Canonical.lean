@@ -2964,3 +2964,111 @@ theorem swComp_of_orbit {u v : State} (huwf : u.WF)
     · rw [← hmaptwin (drawPool v), ← hp1']
     · rw [(inPhase_twin_map v).symm]
       exact hp2.symm
+
+/-! ## §3.0 CLAIM 2 — the macro class, characterized
+
+The canon fiber's compositionality spine, assembled: `canon_in_class`
+puts the canonical form INSIDE the position's own macro class, so the
+class doesn't change when passing to the canonical form; every
+journey notion lands inside the fiber through one argument shape
+(whatever proves two positions ⟦·⟧-equal proves their canons
+⟦·⟧-equal through `canonQ_of_orbit`); and the class decomposes:
+same macro class ⟺ wrapped-canonical forms class-equal AND the
+journey-necessary draw-zone residue swComp. -/
+
+/-- **A one-move round trip is a witness reversible journey**: if `m`
+fires from `u` to `v` and one move fires back, both directions carry
+their one-move witnesses (each move's return is the other's firing),
+so `RevEqW u v` in one line. -/
+theorem oneMoveRevEqW {u v : State} {m m' : Move}
+    (hforth : State.step u m = some v) (hback : State.step v m' = some u) :
+    RevEqW u v :=
+  ⟨[m], .cons ⟨v, [m'], hforth, run_one hback⟩ hforth (.nil v),
+   [m'], .cons ⟨u, [m], hback, run_one hforth⟩ hback (.nil u)⟩
+
+/-- **`SameMacroO`**: two positions hold the same macro state — the
+definitional reading: their `sameOrbitSetoid` classes are equal (the
+user's "different macro ⇒ different canonical is from the def": the
+canonical form is a distinguished MEMBER of its class, so the class
+determines the canonical class and different macros never share a
+canonical class — CLAIM 2's ⇐ direction below). -/
+def SameMacroO (u v : State) : Prop := ⟦u⟧ = ⟦v⟧
+
+/-- **A licensed lift preserves the macro class at every level**: the
+lifted position's canonical form is the origin's, LITERALLY
+(`canon_lift_step`), so all three comparisons — the position class,
+the canonical class, and the canonical state — agree.  The journey
+witness is `oneMoveRevEqW` through the landed undo, for callers that
+want the class fact alone. -/
+theorem sameMacro_liftStep {u v : State} {c : Card} (hwf : u.WF)
+    (hc : CanRaise u c) (hstep : State.step u (Move.tabToFound c) = some v) :
+    ⟦canon u⟧ = ⟦canon v⟧ :=
+  congrArg (Quotient.mk sameOrbitSetoid) (canon_lift_step hwf hc hstep).symm
+
+/-- A reversible descent (the one-move raise back, as a hypothesis —
+the landed `foundToTab_undo` family witnesses the forward leg, and
+the harvest desk's promote-the-undo-steps ticket supplies the back
+firing from the family's internals) preserves the wrapped canon:
+through the spine, both positions are canon-classed. -/
+theorem sameMacro_foundToTab {u v : State} {c : Card} {b : Base}
+    (huwf : u.WF) (hvwf : v.WF)
+    (hstep : State.step u (Move.foundToTab c b) = some v)
+    (hback : State.step v (Move.tabToFound c) = some u) :
+    ⟦canon u⟧ = ⟦canon v⟧ :=
+  canonQ_of_orbit huwf hvwf (Or.inr (Or.inr (Or.inl (oneMoveRevEqW hback hstep))))
+
+/-- **A quiet residue relocation preserves the wrapped canon** — THE
+LITERAL-DEMOtion member: the hypothesis is the reversible relocation
+(fires both ways, one move each direction).  The LITERAL canonical
+level still fails on the twin-residue relocation — the private
+witness at the bottom of this file exhibits a reversible one-move
+relocation whose endpoints are WF, Final (so literally
+canon-fixed), and canon u ≠ canon v — which is the evidence for the
+wrapped ⟦·⟧ form of the fiber: this §3.0 card's answer to the open
+design question. -/
+theorem sameMacro_tabToTab_quiet {u v : State} {c : Card} {b b' : Base}
+    (huwf : u.WF) (hvwf : v.WF)
+    (hstep : State.step u (Move.tabToTab c b) = some v)
+    (hback : State.step v (Move.tabToTab c b') = some u) :
+    ⟦canon u⟧ = ⟦canon v⟧ :=
+  canonQ_of_orbit huwf hvwf (Or.inr (Or.inr (Or.inl (oneMoveRevEqW hback hstep))))
+
+/-- **In-phase stock/waste rotations preserve the wrapped canon**
+through `SWRotW`: draws-only witness rounds are literal `RevEqW`
+journeys (the class fact), so the wrapped canons agree; the tableau
+being literally untouched is the closure's own work (the plays are
+all draws).  The hypothesis-named draw-zone relation `SWComp`
+carries the zone residue the canonical form cannot see; `SWRotW`
+is its witness-backed refinement (Phase's in-phase machinery as
+plays). -/
+theorem sameMacro_swRot {u v : State} (huwf : u.WF) (hvwf : v.WF)
+    (hrot : SWRotW u v) : ⟦canon u⟧ = ⟦canon v⟧ := by
+  obtain ⟨σ, τ, hσ, hτ⟩ := hrot
+  exact canonQ_of_orbit huwf hvwf
+    (Or.inr (Or.inr (Or.inl ⟨τ, hτ.1, σ, hσ.1⟩)))
+
+/-- **CLAIM 2, the characterization**: at `WF` positions, same
+macro class ⟺ equal wrapped canonical forms AND the
+journey-necessary draw-zone residue (`SWComp`: pools match literally
+or through the twin relabeling, phase line agreeing).
+
+The ⟹ direction is the compositionality spine plus the zone replay:
+canon classes follow from `canonQ_of_orbit`, and every same-orbit
+journey lands inside `SWComp` (`swComp_of_orbit`).  The ⟸ direction
+is the fiber's spine: `canon_in_class` writes each position's class
+as its canonical form's class, so equal wrapped canons chain the
+equivalences; `SWComp` itself is carried, not consumed — at `WF` it
+is IMPLIED by the first conjunct (the canon's zone-blindness is
+compensated by the class's zone-sensitivity, `swComp_of_orbit` again),
+so the iff keeps the honest accounting without strengthening the
+hypotheses. -/
+theorem same_macro_iff {u v : State} (huwf : u.WF) (hvwf : v.WF) :
+    SameMacroO u v ↔ (⟦canon u⟧ = ⟦canon v⟧ ∧ SWComp u v) := by
+  constructor
+  · intro heq
+    have hclass : sameOrbitSetoid.r u v := Quotient.exact heq
+    exact ⟨canonQ_of_orbit huwf hvwf hclass, swComp_of_orbit huwf hclass⟩
+  · rintro ⟨hcanon, -⟩
+    show ⟦u⟧ = ⟦v⟧
+    rw [(canon_in_class huwf).symm, (canon_in_class hvwf).symm]
+    exact hcanon
