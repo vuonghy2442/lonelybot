@@ -16,6 +16,7 @@ import Orig.Encode
 import Orig.Classify
 import Orig.Reach
 import Orig.Canonical
+import Orig.EdgeLabel
 import Orig.MergeWalls
 import Orig.TwinExchangeBoth
 import Orig.Progress
