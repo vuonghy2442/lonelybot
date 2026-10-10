@@ -181,10 +181,6 @@ private theorem putCard_eq_inr {st : State} {c z : Card} {k : Anchor}
     st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } from by
     simp only [State.putCard, h]]
 
-private theorem canPlace_inl_eq (st : State) (c : Card) (a : Anchor) :
-    st.canPlace c (Sum.inl a) =
-      ((st.piles a).isEmpty && decide (c.rank = Rank.king)) := rfl
-
 /-! ## §1. The list kit (private) -/
 
 /-- `fromCard` cuts inside the head part when the cut card lives
@@ -764,7 +760,7 @@ theorem exch_canPlace_congr {st : State} {t z z' : Card} {α β : Anchor}
     exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ
   cases b with
   | inl a =>
-      rw [canPlace_inl_eq, canPlace_inl_eq, hempty a]
+      rw [canPlace_inl_unfold, canPlace_inl_unfold, hempty a]
   | inr d =>
       rw [canPlace_inr_eq, canPlace_inr_eq, hpop d]
       cases hh : st.pileOfTop d with
@@ -951,7 +947,7 @@ private theorem seat_lock_one {st : State} {z t : Card}
       | false => rfl
       | true =>
           exfalso
-          rw [canPlace_inl_eq] at hb
+          rw [canPlace_inl_unfold] at hb
           cases hdd : decide (z.rank = Rank.king) with
           | false => rw [hdd] at hb; simp at hb
           | true => exact hking (of_decide_eq_true hdd)
@@ -1579,7 +1575,7 @@ private theorem putCard_cases {st : State} {c : Card} {b : Base}
     (∃ (d : Card) (κ : Anchor), b = Sum.inr d ∧ st.pileOfTop d = some κ) := by
   cases b with
   | inl κ =>
-      rw [canPlace_inl_eq] at hcp
+      rw [canPlace_inl_unfold] at hcp
       refine Or.inl ⟨κ, rfl, ?_⟩
       cases hsi : ((st.piles κ).isEmpty) with
       | true => rfl

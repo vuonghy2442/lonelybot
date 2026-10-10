@@ -408,14 +408,6 @@ theorem pile_mem_unique {st : State} {c : Card} (hcc : st.cardCount c = 1)
         omega
       omega
 
-/-- A card occurring in both parts of an append is counted twice. -/
-private theorem ccn_ge_two_of_double {c : Card} {xs ys : List Card}
-    (hx : c ∈ xs) (hy : c ∈ ys) : 2 ≤ ccn c (xs ++ ys) := by
-  rw [ccn_split]
-  have h1 := ccn_pos hx
-  have h2 := ccn_pos hy
-  omega
-
 /-- At a once-counted state, no card rides twice in one face-up run:not below its first occurrence, and not above it. -/
 private theorem not_mem_own_aboveIn {st : State} {c : Card} {a : Anchor}
     (hcc : st.cardCount c = 1) (hmem : c ∈ (st.piles a).faceUp) :
