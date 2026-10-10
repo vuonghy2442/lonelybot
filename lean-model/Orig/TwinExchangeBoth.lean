@@ -1618,3 +1618,180 @@ private theorem putCard_cases {st : State} {c : Card} {b : Base}
           rw [canPlace_inr_eq, hd] at hcp
           exact absurd hcp (by simp)
       | some κ => exact Or.inr ⟨d, κ, rfl, hd⟩
+
+/-! ### §5.3 The append carries -/
+
+/-- A face-up card is never on the waste. -/
+theorem card_not_in_waste {st : State} {x : Card} {a : Anchor}
+    (hwf : st.WF) (hmem : x ∈ (st.piles a).faceUp) : x ∉ st.waste := by
+  obtain ⟨-, -, hn, -⟩ := mem_pile_unique hwf (Or.inr hmem)
+  exact hn
+
+/-- setPile at its own anchor. -/
+private theorem setPile_self {st : State} {κ : Anchor} {p : Pile} :
+    (st.setPile κ p).piles κ = p := by
+  show (if κ = κ then p else st.piles κ) = p
+  rw [ite_true_eq rfl]
+
+/-- The putCard landing, uniformly: one pile's face-up run gains the
+placed card. -/
+theorem putCard_pile_write {st : State} {c : Card} {b : Base}
+    (hcp : st.canPlace c b = true) :
+    ∃ κ : Anchor, ((st.putCard c b).piles κ).faceUp = (st.piles κ).faceUp ++ [c] ∧
+      ∀ j : Anchor, j ≠ κ → (st.putCard c b).piles j = st.piles j := by
+  rcases putCard_cases hcp with ⟨κ, rfl, hempty⟩ | ⟨d, κ, rfl, hd⟩
+  · refine ⟨κ, ?_, ?_⟩
+    · have hpf : (st.piles κ).faceUp = [] := (Pile.isEmpty_eq _).mp hempty |>.2
+      show ((st.putCard c (Sum.inl κ)).piles κ).faceUp = (st.piles κ).faceUp ++ [c]
+      rw [putCard_eq_inl, setPile_self, hpf]
+      rfl
+    · intro j hj
+      show (st.putCard c (Sum.inl κ)).piles j = st.piles j
+      rw [putCard_eq_inl]
+      exact setPile_skips hj
+  · refine ⟨κ, ?_, ?_⟩
+    · show ((st.putCard c (Sum.inr d)).piles κ).faceUp = (st.piles κ).faceUp ++ [c]
+      rw [putCard_eq_inr hd, setPile_self]
+    · intro j hj
+      show (st.putCard c (Sum.inr d)).piles j = st.piles j
+      rw [putCard_eq_inr hd]
+      exact setPile_skips hj
+
+/-- The spine append juggle. -/
+private theorem splice_snoc {t z : Card} {B Sa : List Card} (c : Card) :
+    (B ++ [t, z] ++ Sa) ++ [c] = B ++ [t, z] ++ (Sa ++ [c]) := by
+  simp only [List.append_assoc, List.cons_append, List.nil_append]
+
+/-- Appending at the very top leaves the below-prefix walk unchanged. -/
+private theorem below_append_post {t : Card} : ∀ {l : List Card} (c : Card),
+    t ∈ l → below t (l ++ [c]) = below t l := by
+  intro l
+  induction l with
+  | nil => intro _ h; cases h
+  | cons w ls ih =>
+      intro c h
+      by_cases hw : w = t
+      · rw [hw, List.cons_append, below_cons_self, below_cons_self]
+      · have hwt : w ≠ t := hw
+        have htls : t ∈ ls :=
+          (List.mem_cons.mp h).resolve_left (fun hc => hwt hc.symm)
+        rw [List.cons_append, below_cons_ne (ls ++ [c]) hwt, below_cons_ne ls hwt,
+          ih c htls]
+
+/-- Appending at the very top extends the aboveIn walk in place. -/
+private theorem aboveIn_append_post {t : Card} : ∀ {l : List Card} (c : Card),
+    t ∈ l → aboveIn t (l ++ [c]) = aboveIn t l ++ [c] := by
+  intro l
+  induction l with
+  | nil => intro _ h; cases h
+  | cons w ls ih =>
+      intro c h
+      by_cases hw : w = t
+      · rw [hw, List.cons_append, aboveIn_cons_self, aboveIn_cons_self]
+      · have hwt : w ≠ t := hw
+        have htls : t ∈ ls :=
+          (List.mem_cons.mp h).resolve_left (fun hc => hwt hc.symm)
+        rw [List.cons_append, aboveIn_cons_ne (ls ++ [c]) hwt,
+          aboveIn_cons_ne ls hwt, ih c htls]
+
+/-- License carry when the step appended one fresh card to a pile away
+from both hosts: the searches, shapes and fits carry verbatim. -/
+theorem bothOcc_freshWrite {st s₁ : State} {m : Move} {t z z' c : Card}
+    {α β κ : Anchor} {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF) (hstep : State.step st m = some s₁)
+    (hκ : (s₁.piles κ).faceUp = (st.piles κ).faceUp ++ [c])
+    (hskip : ∀ j : Anchor, j ≠ κ → s₁.piles j = st.piles j)
+    (hneκ : κ ≠ α) (hneκ' : κ ≠ β) (hct : c ≠ t) (hct' : c ≠ t.twin)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β) (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true) :
+    BothOcc s₁ t := by
+  have hwf₁ : s₁.WF := step_wf hwf hstep
+  have h₁s : s₁.pileHolding t = some α := by
+    rw [pileHolding_append_congr hκ hskip (Ne.symm hct)]
+    exact h₁
+  have h₂s : s₁.pileHolding t.twin = some β := by
+    rw [pileHolding_append_congr hκ hskip (Ne.symm hct')]
+    exact h₂
+  have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+    rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
+        rw [hskip α (Ne.symm hneκ)]]
+    exact hsα
+  have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+    rw [show (s₁.piles β).faceUp = (st.piles β).faceUp from by
+        rw [hskip β (Ne.symm hneκ')]]
+    exact hsβ
+  have hb := braid_splice hwf₁ h₁s h₂s hne hsαs hsβs hfit hfit'
+  exact ⟨α, β, z, z', Bα, B', Sa, Sa', h₁s, h₂s, hne, hsαs, hsβs, hfit, hfit',
+    hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩
+
+/-- License carry when the step appended one fresh card on top of the
+host pile α: the cargo head stays `z`, the suffix swallows the append. -/
+theorem bothOcc_swollenSelf {st s₁ : State} {m : Move} {t z z' c : Card}
+    {α β : Anchor} {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF) (hstep : State.step st m = some s₁)
+    (hαw : (s₁.piles α).faceUp = (st.piles α).faceUp ++ [c])
+    (hskip : ∀ j : Anchor, j ≠ α → s₁.piles j = st.piles j)
+    (hct : c ≠ t) (hct' : c ≠ t.twin)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β) (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true) :
+    BothOcc s₁ t := by
+  have hwf₁ : s₁.WF := step_wf hwf hstep
+  have h₁s : s₁.pileHolding t = some α := by
+    rw [pileHolding_append_congr hαw hskip (Ne.symm hct)]
+    exact h₁
+  have h₂s : s₁.pileHolding t.twin = some β := by
+    rw [pileHolding_append_congr hαw hskip (Ne.symm hct')]
+    exact h₂
+  have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ (Sa ++ [c]) := by
+    rw [hαw, hsα, splice_snoc c]
+  have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+    rw [show (s₁.piles β).faceUp = (st.piles β).faceUp from by
+        rw [hskip β (Ne.symm hne)]]
+    exact hsβ
+  have hb := braid_splice hwf₁ h₁s h₂s hne hsαs hsβs hfit hfit'
+  exact ⟨α, β, z, z', Bα, B', Sa ++ [c], Sa', h₁s, h₂s, hne, hsαs, hsβs, hfit, hfit',
+    hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩
+
+/-- License carry when the step appended one fresh card on top of the
+twin host pile β: the primed suffix swallows the append. -/
+theorem bothOcc_swollenOther {st s₁ : State} {m : Move} {t z z' c : Card}
+    {α β : Anchor} {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF) (hstep : State.step st m = some s₁)
+    (hβw : (s₁.piles β).faceUp = (st.piles β).faceUp ++ [c])
+    (hskip : ∀ j : Anchor, j ≠ β → s₁.piles j = st.piles j)
+    (hct : c ≠ t) (hct' : c ≠ t.twin)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β) (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true) :
+    BothOcc s₁ t := by
+  have hwf₁ : s₁.WF := step_wf hwf hstep
+  have h₁s : s₁.pileHolding t = some α := by
+    rw [pileHolding_append_congr hβw hskip (Ne.symm hct)]
+    exact h₁
+  have h₂s : s₁.pileHolding t.twin = some β := by
+    rw [pileHolding_append_congr hβw hskip (Ne.symm hct')]
+    exact h₂
+  have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ (Sa' ++ [c]) := by
+    rw [hβw, hsβ, splice_snoc c]
+  have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+    rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
+        rw [hskip α hne]]
+    exact hsα
+  have hb := braid_splice hwf₁ h₁s h₂s hne hsαs hsβs hfit hfit'
+  exact ⟨α, β, z, z', Bα, B', Sa, Sa' ++ [c], h₁s, h₂s, hne, hsαs, hsβs, hfit, hfit',
+    hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩
+
+/-- The two guard conjuncts of a wasteToTab firing. -/
+private theorem wasteToTab_guard_split {st : State} {c : Card} {b : Base}
+    (hg : (st.wasteIs c && st.canPlace c b) = true) :
+    st.canPlace c b = true := by
+  cases hcp : st.canPlace c b with
+  | true => rfl
+  | false =>
+      rw [hcp] at hg
+      exact absurd hg (by simp)
