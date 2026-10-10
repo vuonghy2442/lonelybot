@@ -3111,3 +3111,1767 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
       · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
         rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
         rfl
+
+/-! #### The run-move kit (private, the `tabToTab` row)
+
+The `tabToTab` transport is the first RUN-SHAPED row: the cut card
+sits at arbitrary depth in its pile (the `below`/`fromCard` split at
+any member, never just the top), the cut run keeps its internal
+order (the moving head lands lowest), and the landing branch reads
+its top-directed base at the POST-CHOP intermediate state.  The kit
+settles four things before the row: the firing shape, the four-field
+passthrough of a `putRun`, the intermediate top-search stability
+(the chop rewrites one pile, whose new face-up cards all come from
+that pile's own old regions, so a landing target living face-up in a
+DIFFERENT pile still tops the same anchor), and the append-cut
+readers for roots living inside an appended head part. -/
+
+/-- The `tabToTab` firing shape: the mover is located face up, the
+placement guard holds, and the step state is the chopped source with
+the cut run landed at the base. -/
+private theorem step_tabToTab_shape {st s₁ : State} {c : Card} {b : Base}
+    (hstep : st.step (Move.tabToTab c b) = some s₁) :
+    ∃ a : Anchor, st.pileHolding c = some a ∧ st.canPlace c b = true ∧
+      s₁ = (st.setPile a (Pile.afterRunRemoved (st.piles a)
+        (below c (st.piles a).faceUp))).putRun (fromCard c (st.piles a).faceUp) b := by
+  cases hh : st.pileHolding c with
+  | none =>
+      rw [show st.step (Move.tabToTab c b) = none from by
+        simp only [step_tabToTab_eq, hh]] at hstep
+      exact absurd hstep (by simp)
+  | some a =>
+      cases hg : st.canPlace c b with
+      | false =>
+          rw [show st.step (Move.tabToTab c b) = none from by
+            simp only [step_tabToTab_eq, hh, hg]
+            rfl] at hstep
+          exact absurd hstep (by simp)
+      | true =>
+          cases hr : fromCard c (st.piles a).faceUp with
+          | nil =>
+              rw [show st.step (Move.tabToTab c b) = none from by
+                simp only [step_tabToTab_eq, hh, hg, hr]
+                rfl] at hstep
+              exact absurd hstep (by simp)
+          | cons w ws =>
+              rw [show st.step (Move.tabToTab c b) =
+                  some ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+                    (below c (st.piles a).faceUp))).putRun (w :: ws) b) from by
+                simp only [step_tabToTab_eq, hh, hg, hr]
+                rfl] at hstep
+              have hs₁' : s₁ = (st.setPile a (Pile.afterRunRemoved (st.piles a)
+                  (below c (st.piles a).faceUp))).putRun
+                  (fromCard c (st.piles a).faceUp) b := by
+                rw [hr]
+                exact (Option.some.inj hstep).symm
+              exact ⟨a, rfl, rfl, hs₁'⟩
+
+/-- A `putRun` touches no zone outside the piles — the run form of
+`putCard_keep` (dedup-marked against that home). -/
+private theorem putRun_keep {st : State} {run : List Card} {b : Base} :
+    (st.putRun run b).found = st.found ∧ (st.putRun run b).stock = st.stock ∧
+      (st.putRun run b).waste = st.waste ∧ (st.putRun run b).drawStep = st.drawStep := by
+  cases b with
+  | inl a => exact ⟨rfl, rfl, rfl, rfl⟩
+  | inr z =>
+      simp only [State.putRun]
+      split <;> exact ⟨rfl, rfl, rfl, rfl⟩
+
+/-- A revealed card came from the hidden deck. -/
+private theorem mem_revealTop {q : Pile} {e : Card}
+    (h : e ∈ (Pile.revealTop q).faceUp) : e ∈ q.faceUp ∨ e ∈ q.hidden := by
+  cases q with
+  | mk hid fu =>
+      cases hid with
+      | nil => exact Or.inl h
+      | cons x xs =>
+          rw [show Pile.revealTop ⟨x :: xs, fu⟩ = ⟨xs, fu ++ [x]⟩ from rfl,
+            show (⟨xs, fu ++ [x]⟩ : Pile).faceUp = fu ++ [x] from rfl] at h
+          rcases List.mem_append.mp h with h' | h'
+          · exact Or.inl h'
+          · rcases List.mem_cons.mp h' with heq | hnil
+            · exact Or.inr (by
+                rw [show (⟨x :: xs, fu⟩ : Pile).hidden = x :: xs from rfl, ← heq]
+                exact List.mem_cons_self ..)
+            · exact absurd hnil (by simp)
+
+/-- Every card left face-up by a run chop lived in the chopped pile
+before: the kept prefix is a prefix, the revealed card the hidden
+head. -/
+private theorem mem_afterRunRemoved {p : Pile} {c e : Card}
+    (h : e ∈ (Pile.afterRunRemoved p (below c p.faceUp)).faceUp) :
+    e ∈ p.faceUp ∨ e ∈ p.hidden := by
+  cases hpre : below c p.faceUp with
+  | nil =>
+      rw [show Pile.afterRunRemoved p (below c p.faceUp) =
+          Pile.revealTop { p with faceUp := [] } from by
+        rw [hpre]; rfl] at h
+      rcases mem_revealTop h with h' | h'
+      · rw [show ({ p with faceUp := [] } : Pile).faceUp = [] from rfl] at h'
+        cases h'
+      · rw [show ({ p with faceUp := [] } : Pile).hidden = p.hidden from rfl] at h'
+        exact Or.inr h'
+  | cons w ws =>
+      rw [show Pile.afterRunRemoved p (below c p.faceUp) =
+          { p with faceUp := w :: ws } from by rw [hpre]; rfl,
+        show ({ p with faceUp := w :: ws } : Pile).faceUp = w :: ws from rfl] at h
+      exact Or.inl (below_subset_mem (hpre ▸ h))
+
+/-- The intermediate top search: after the source-pile chop, a
+landing target living face-up in a pile OTHER than the chopped one
+still tops the same anchor — the chop writes one pile, and every
+card it leaves face-up came from that pile's own old regions. -/
+private theorem afterRunRemoved_pileOfTop {st : State} {a κ : Anchor} {c d : Card}
+    (hwf : st.WF) (hκa : κ ≠ a)
+    (hd : st.pileOfTop d = some κ)
+    (hmemκ : d ∈ (st.piles κ).faceUp) :
+    (st.setPile a (Pile.afterRunRemoved (st.piles a)
+      (below c (st.piles a).faceUp))).pileOfTop d = some κ := by
+  have hmemA := mem_faceUp_unique hwf hmemκ a (fun hc => hκa hc.symm)
+  show firstWhere (fun j => decide
+      ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+        (below c (st.piles a).faceUp))).topOf j = some d)) Anchor.all = some κ
+  refine firstWhere_find (Anchor.mem_all κ) ?_ ?_
+  · have hκpile : (st.setPile a (Pile.afterRunRemoved (st.piles a)
+        (below c (st.piles a).faceUp))).piles κ = st.piles κ :=
+      setPile_piles_ne hκa
+    show decide ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+      (below c (st.piles a).faceUp))).topOf κ = some d) = true
+    rw [show (st.setPile a (Pile.afterRunRemoved (st.piles a)
+      (below c (st.piles a).faceUp))).topOf κ = (st.piles κ).top from by
+      show ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+        (below c (st.piles a).faceUp))).piles κ).top = (st.piles κ).top
+      rw [hκpile]]
+    exact decide_eq_true ((pileOfTop_eq_some_iff hwf).mp hd)
+  · intro y hy hyne
+    show decide ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+      (below c (st.piles a).faceUp))).topOf y = some d) = false
+    by_cases hya : y = a
+    · rw [hya]
+      refine decide_false_of_not (fun hcon => ?_)
+      have htop0 : ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp))).piles a).top = some d := hcon
+      rw [setPile_piles_self] at htop0
+      rcases mem_afterRunRemoved (Pile.mem_of_top htop0) with h' | h'
+      · exact hmemA.1 h'
+      · exact hmemA.2.1 h'
+    · refine decide_false_of_not (fun hcon => ?_)
+      have htop : ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp))).piles y).top = some d :=
+        show (st.setPile a (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp))).topOf y = some d from hcon
+      rw [setPile_piles_ne hya] at htop
+      exact (mem_faceUp_unique hwf hmemκ y hyne).1 (Pile.mem_of_top htop)
+
+/-- A cut inside the head part ignores the appended tail: the below
+prefix of a cut card living in the head is the head's own prefix. -/
+private theorem below_append_mem {x : Card} : ∀ (B R : List Card), x ∈ B →
+    below x (B ++ R) = below x B := by
+  intro B
+  induction B with
+  | nil => intro R h; cases h
+  | cons w ws ih =>
+      intro R h
+      by_cases hw : w = x
+      · subst hw
+        rw [List.cons_append, below_cons_self, below_cons_self]
+      · rw [List.cons_append, below_cons_ne (ws ++ R) hw, below_cons_ne ws hw,
+          ih R ((List.mem_cons.mp h).resolve_left (fun hc => hw hc.symm))]
+
+/-- The above-region of a cut card living in the head part keeps the
+appended tail in place. -/
+private theorem aboveIn_append_mem {x : Card} : ∀ (B R : List Card), x ∈ B →
+    aboveIn x (B ++ R) = aboveIn x B ++ R := by
+  intro B
+  induction B with
+  | nil => intro R h; cases h
+  | cons w ws ih =>
+      intro R h
+      by_cases hw : w = x
+      · subst hw
+        rw [List.cons_append, aboveIn_cons_self, aboveIn_cons_self]
+      · rw [List.cons_append, aboveIn_cons_ne (ws ++ R) hw, aboveIn_cons_ne ws hw,
+          ih R ((List.mem_cons.mp h).resolve_left (fun hc => hw hc.symm))]
+
+/-- A tail member of a nodup append is absent from the head part. -/
+private theorem nodup_tail_not_head {L₁ : List Card} : ∀ {L₂ : List Card} {c : Card},
+    (L₁ ++ L₂).Nodup → c ∈ L₂ → c ∉ L₁ := by
+  induction L₁ with
+  | nil => intro L₂ c _ hmem hc; cases hc
+  | cons w ws ih =>
+      intro L₂ c hnd hmem hc
+      rw [List.cons_append] at hnd
+      obtain ⟨hw, hnd'⟩ := List.nodup_cons.mp hnd
+      rcases List.mem_cons.mp hc with heq | hws
+      · rw [heq] at hmem
+        exact hw (List.mem_append.mpr (Or.inr hmem))
+      · exact ih hnd' hmem hws
+
+/-- A run appended to a splice swells the splice's suffix — the run
+form of the spine snoc juggle. -/
+private theorem splice_append_run {t z : Card} {B Sa R : List Card} :
+    (B ++ [t, z] ++ Sa) ++ R = B ++ [t, z] ++ (Sa ++ R) := by
+  simp only [List.append_assoc]
+
+/-- A cut card living in the appended tail ignores the head part:
+the below prefix and the above region both cut inside the tail. -/
+private theorem aboveIn_append_notmem {x : Card} {xs l : List Card}
+    (h : x ∉ xs) : aboveIn x (xs ++ l) = aboveIn x l := by
+  rw [aboveIn, aboveIn, fromCard_append_notmem h]
+
+/-- The located `putRun` as a plain record write: the same content as
+`putRun_inr_eq` with the `{ .. with .. }` update spelt as an
+anonymous constructor, so later rewrites see the pile projections. -/
+private theorem putRun_inr_record {u : State} {r : List Card} {z : Card} {k : Anchor}
+    (h : u.pileOfTop z = some k) :
+    u.putRun r (Sum.inr z) =
+      u.setPile k ⟨(u.piles k).hidden, (u.piles k).faceUp ++ r⟩ := by
+  rw [putRun_inr_eq h]
+
+/-- The top of a splice lives in the cargo region: it is the cargo
+head itself, or a card strictly above it. -/
+private theorem top_of_splice_in_cargo {st : State} {x y d : Card} {b : Anchor}
+    {B S : List Card} (hwf : st.WF)
+    (hs : (st.piles b).faceUp = B ++ [x, y] ++ S)
+    (hnb : y ∉ B ∧ y ≠ x)
+    (hd : st.pileOfTop d = some b) :
+    d = y ∨ d ∈ aboveIn y ((st.piles b).faceUp) := by
+  have htop : (st.piles b).top = some d := (pileOfTop_eq_some_iff hwf).mp hd
+  rw [top_splice_eq hs] at htop
+  have hab : aboveIn y ((st.piles b).faceUp) = S := by
+    rw [hs]; exact aboveIn_splice_cargo (by
+      intro hc
+      rcases List.mem_append.mp hc with h | h
+      · exact hnb.1 h
+      · rcases List.mem_cons.mp h with heq | hnil
+        · exact hnb.2 heq
+        · exact absurd hnil (by simp))
+  cases S with
+  | nil => exact Or.inl (Option.some.inj htop).symm
+  | cons w ws =>
+      refine Or.inr ?_
+      rw [hab]
+      exact lastOf_mem htop
+
+/-- THE TABTOTAB TRANSPORT, CORE (the private driver, stated for a
+firing whose source pile is the t-thread's host pile `α` or a pile
+away from both hosts; the twin-thread-sourced firings are the mirror
+call in the public row below — `State.exchangeTwin_pair` and
+`bothOcc_mirror` bridge the concluded halves).  The census: a
+cargo-rooted firing dies at the seat lock; a landing on the source
+pile itself dies at the `canPlace` self-safety; the two cross-thread
+merge corners die at the landed walls; every other arm transports
+with the both-occupied license re-seated. -/
+private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
+    {α β : Anchor} {Bα B' Sa Sa' : List Card} {c : Card} {b : Base} {a : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true)
+    (hstep : st.step (Move.tabToTab c b) = some s₁)
+    (ha : st.pileHolding c = some a) (hcp : st.canPlace c b = true)
+    (hs₁ : s₁ = (st.setPile a (Pile.afterRunRemoved (st.piles a)
+      (below c (st.piles a).faceUp))).putRun (fromCard c (st.piles a).faceUp) b)
+    (hnea : a ≠ β) :
+    ((st.exchangeTwin t).step (Move.tabToTab c b)) = some (s₁.exchangeTwin t) ∧
+      BothOcc s₁ t := by
+  obtain ⟨hndα, htBα, htSα, hzBα, hzSα⟩ := wf_splice_book hwf hsα
+  obtain ⟨hndβ, htBβ, htSβ, hzBβ, hzSβ⟩ := wf_splice_book hwf hsβ
+  have hwf₁ : s₁.WF := step_wf hwf hstep
+  have hσwf : (st.exchangeTwin t).WF := State.wf_exchangeTwin hwf h₁ h₂ hne
+  have hhosts := exch_hosts hwf h₁ h₂ hne
+  have hαne : (st.piles α).faceUp ≠ [] :=
+    fun hcon => (splice_nonempty Bα Sa) (hsα.symm.trans hcon)
+  have hβne : (st.piles β).faceUp ≠ [] :=
+    fun hcon => (splice_nonempty B' Sa') (hsβ.symm.trans hcon)
+  have hmemc : c ∈ (st.piles a).faceUp := pileHolding_mem ha
+  have hcσ : (st.exchangeTwin t).canPlace c b = st.canPlace c b :=
+    exch_canPlace_congr hwf h₁ h₂ hne hsα hsβ c b
+  have hrunp : fromCard c (st.piles a).faceUp = c :: aboveIn c (st.piles a).faceUp :=
+    fromCard_eq_of_mem hmemc
+  have hfab : ((st.exchangeTwin t).piles α).faceUp = Bα ++ [t, z'] ++ Sa' := by
+    rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ];
+  have hfb : ((st.exchangeTwin t).piles β).faceUp = B' ++ [t.twin, z] ++ Sa := by
+    rw [exch_pile_other_record hwf h₁ h₂ hne hsα hsβ];
+  have hfabhid : ((st.exchangeTwin t).piles α).hidden = (st.piles α).hidden := by
+    rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ];
+  have hfbhid : ((st.exchangeTwin t).piles β).hidden = (st.piles β).hidden := by
+    rw [exch_pile_other_record hwf h₁ h₂ hne hsα hsβ];
+  rcases putCard_cases hcp with ⟨κ, rfl, hempty⟩ | ⟨d, κ, rfl, hd⟩
+  · -- (I) the landing is the empty pile κ
+    have hself : κ ≠ a := canPlace_inl_target_pile_ne hcp hmemc
+    have hκmem : (st.piles κ).faceUp = [] ∧ (st.piles κ).hidden = [] := by
+      obtain ⟨hh, hf⟩ := (Pile.isEmpty_eq _).mp hempty
+      exact ⟨hf, hh⟩
+    by_cases hA : a = α
+    · -- (Iα) the source is the t-thread host pile
+      rw [hA] at hs₁ hmemc
+      have htail : c ∈ Bα ++ [t, z] ++ Sa := by rw [← hsα]; exact hmemc
+      by_cases hct : c = t
+      · -- (θ1-inl) c = t: the seat-led run relocates to the empty
+        -- pile κ; the license re-seats at (κ, β); the mirror run is
+        -- the exchanged suffix.
+        have hκβ' : κ ≠ β := by
+          intro hcon; rw [hcon] at hκmem; exact hβne hκmem.1
+        have hκα' : κ ≠ α := by
+          intro hcon; rw [hcon] at hκmem; exact hαne hκmem.1
+        have hcBα : c ∉ Bα := by rw [hct]; exact htBα
+        have hσhold : (st.exchangeTwin t).pileHolding c = some α := by
+          rw [hct]; exact hhosts.1
+        have hmemσt : t ∈ Bα ++ [t, z'] ++ Sa' :=
+          (mem_splice_host (t := t) (z := z') (B := Bα)).1
+        have hσrun : fromCard c ((st.exchangeTwin t).piles α).faceUp =
+            t :: z' :: Sa' := by
+          rw [hct, hfab, fromCard_eq_of_mem hmemσt, aboveIn_splice_head htBα]
+        have hcσt : (st.exchangeTwin t).canPlace c (Sum.inl κ) = true := by
+          rw [hcσ]; exact hcp
+        have hfire : State.step (st.exchangeTwin t) (Move.tabToTab c (Sum.inl κ)) =
+            some (((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
+              ((st.exchangeTwin t).piles α)
+              (below c ((st.exchangeTwin t).piles α).faceUp))).putRun
+              (t :: z' :: Sa') (Sum.inl κ)) := by
+          simp only [step_tabToTab_eq, hσhold, hcσt, hσrun]
+          rfl
+        rw [hfire, Option.some.injEq, putRun_eq_inl]
+        have hmemαt : t ∈ (st.piles α).faceUp := pileHolding_mem h₁
+        have habαt : aboveIn t ((st.piles α).faceUp) = z :: Sa := by
+          rw [hsα]; exact aboveIn_splice_head htBα
+        have hrun' : fromCard c (st.piles α).faceUp = t :: z :: Sa := by
+          rw [hct, fromCard_eq_of_mem hmemαt, habαt]
+        have hsκsp : (s₁.piles κ).faceUp = [] ++ [t, z] ++ Sa := by
+          rw [hs₁, putRun_eq_inl, setPile_piles_self, hrun']
+          rfl
+        have hs₁κhid : (s₁.piles κ).hidden = [] := by
+          rw [hs₁, putRun_eq_inl, setPile_piles_self]
+        have hs₁β : s₁.piles β = st.piles β := by
+          rw [hs₁, putRun_eq_inl,
+            setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+            setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm)]
+        have hs₁βsp : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+          rw [hs₁β]; exact hsβ
+        have h₁s : s₁.pileHolding t = some κ := (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hsκsp]; exact (mem_splice_host (t := t) (z := z) (B := [])).1)
+        have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hs₁βsp]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+        have hb := braid_splice hwf₁ h₁s h₂s hκβ' hsκsp hs₁βsp hfit hfit'
+        refine ⟨?_, ⟨κ, β, z, z', [], B', Sa, Sa', h₁s, h₂s, hκβ', hsκsp, hs₁βsp,
+          hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+        apply State.ext
+        · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+          rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+            putRun_keep.1, setPile_found]
+        · funext j
+          show (((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
+              ((st.exchangeTwin t).piles α)
+              (below c ((st.exchangeTwin t).piles α).faceUp))).setPile κ
+              (⟨[], t :: z' :: Sa'⟩ : Pile)).piles j =
+            (s₁.exchangeTwin t).piles j
+          by_cases hjκ : j = κ
+          · rw [hjκ, setPile_piles_self,
+              State.exchangeTwin_pile_self h₁s h₂s hκβ',
+              hs₁κhid, hsκsp, hs₁β, hsβ, aboveIn_splice_head htBβ,
+              below_splice (show t ∉ [] from by simp)]
+            rfl
+          · by_cases hjβ : j = β
+            · rw [hjβ,
+                setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+                setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm),
+                exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                State.exchangeTwin_pile_other h₁s h₂s hκβ',
+                hs₁β, hsβ, below_splice htBβ,
+                hsκsp, aboveIn_splice_head (show t ∉ [] from by simp),
+                List.append_assoc,
+                show [t.twin, z] ++ Sa = t.twin :: z :: Sa from rfl]
+            · by_cases hjα : j = α
+              · -- the chopped source pile: identical cuts, identical hiddens
+                rw [hjα,
+                  setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+                  setPile_piles_self,
+                  show Pile.afterRunRemoved ((st.exchangeTwin t).piles α)
+                      (below c ((st.exchangeTwin t).piles α).faceUp) =
+                    Pile.afterRunRemoved ((st.exchangeTwin t).piles α) Bα from by
+                    rw [hct, hfab, below_splice htBα],
+                  State.exchangeTwin_pile_ne h₁s h₂s hκβ'
+                    (show α ≠ κ from fun hc => hκα' hc.symm) (show α ≠ β from hne),
+                  hs₁, putRun_eq_inl,
+                  setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+                  setPile_piles_self,
+                  show Pile.afterRunRemoved (st.piles α)
+                      (below c (st.piles α).faceUp) =
+                    Pile.afterRunRemoved (st.piles α) Bα from by
+                    rw [hct, hsα, below_splice htBα],
+                  afterRunRemoved_congr_pile hfabhid]
+              · rw [setPile_piles_ne (show j ≠ κ from hjκ),
+                  setPile_piles_ne (show j ≠ α from hjα),
+                  State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                  State.exchangeTwin_pile_ne h₁s h₂s hκβ' hjκ hjβ,
+                  hs₁, putRun_eq_inl,
+                  setPile_piles_ne (show j ≠ κ from hjκ),
+                  setPile_piles_ne (show j ≠ α from hjα)]
+        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+            putRun_keep.2.1]
+          rfl
+        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+            putRun_keep.2.2.1]
+          rfl
+        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+            putRun_keep.2.2.2]
+          rfl
+      · -- position census strictly below or strictly above the seat
+        rcases List.mem_append.mp htail with hhead | hSta
+        · rcases List.mem_append.mp hhead with hBmem | htl2
+          · -- (θ2-inl) c ∈ Bα: the passing run carries the whole
+            -- seat-led splice; the license re-seats at (κ, β).
+            have hκβ' : κ ≠ β := by
+              intro hcon; rw [hcon] at hκmem; exact hβne hκmem.1
+            have hκα' : κ ≠ α := by
+              intro hcon; rw [hcon] at hκmem; exact hαne hκmem.1
+            have hcBB : c ∈ Bα ++ [t, z] := List.mem_append.mpr (Or.inl hBmem)
+            have hcBB' : c ∈ Bα ++ [t, z'] := List.mem_append.mpr (Or.inl hBmem)
+            have hct' : c ≠ t := by
+              intro hc
+              exact htBα (hc ▸ hBmem)
+            have htX : t ∉ aboveIn c Bα := fun hc => htBα (aboveIn_subset_mem hc)
+            have htBκ : t ∉ c :: aboveIn c Bα := by
+              intro hc
+              rcases List.mem_cons.mp hc with heq | hX
+              · exact hct' heq.symm
+              · exact htX hX
+            -- the σ-side keeps pile α; the run paints the mirror
+            -- splice, cut at the same interior card c
+            have hmemσc : c ∈ ((st.exchangeTwin t).piles α).faceUp := by
+              rw [hfab]
+              exact List.mem_append.mpr (Or.inl (List.mem_append.mpr (Or.inl hBmem)))
+            have hσhold : (st.exchangeTwin t).pileHolding c = some α :=
+              (pileHolding_eq_some_iff hσwf).mpr hmemσc
+            have hσrun : fromCard c ((st.exchangeTwin t).piles α).faceUp =
+                (c :: aboveIn c Bα) ++ [t, z'] ++ Sa' := by
+              rw [fromCard_eq_of_mem hmemσc, hfab,
+                aboveIn_append_mem (Bα ++ [t, z']) Sa' hcBB',
+                aboveIn_append_mem Bα [t, z'] hBmem,
+                List.cons_append, List.cons_append]
+            have hcσt : (st.exchangeTwin t).canPlace c (Sum.inl κ) = true := by
+              rw [hcσ]; exact hcp
+            have hfire : State.step (st.exchangeTwin t) (Move.tabToTab c (Sum.inl κ)) =
+                some (((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
+                  ((st.exchangeTwin t).piles α)
+                  (below c ((st.exchangeTwin t).piles α).faceUp))).putRun
+                  ((c :: aboveIn c Bα) ++ [t, z'] ++ Sa') (Sum.inl κ)) := by
+              simp only [step_tabToTab_eq, hσhold, hcσt, hσrun]
+              rfl
+            rw [hfire, Option.some.injEq, putRun_eq_inl]
+            have hrun' : fromCard c (st.piles α).faceUp =
+                (c :: aboveIn c Bα) ++ [t, z] ++ Sa := by
+              rw [fromCard_eq_of_mem hmemc, hsα,
+                aboveIn_append_mem (Bα ++ [t, z]) Sa hcBB,
+                aboveIn_append_mem Bα [t, z] hBmem,
+                List.cons_append, List.cons_append]
+            have hsκsp : (s₁.piles κ).faceUp = (c :: aboveIn c Bα) ++ [t, z] ++ Sa := by
+              rw [hs₁, putRun_eq_inl, setPile_piles_self, hrun']
+            have hs₁κhid : (s₁.piles κ).hidden = [] := by
+              rw [hs₁, putRun_eq_inl, setPile_piles_self]
+            have hs₁β : s₁.piles β = st.piles β := by
+              rw [hs₁, putRun_eq_inl,
+                setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+                setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm)]
+            have hs₁βsp : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+              rw [hs₁β]; exact hsβ
+            have h₁s : s₁.pileHolding t = some κ := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hsκsp]
+              refine (mem_splice_host (t := t) (z := z) (B := c :: aboveIn c Bα)).1)
+            have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hs₁βsp]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+            have hb := braid_splice hwf₁ h₁s h₂s hκβ' hsκsp hs₁βsp hfit hfit'
+            refine ⟨?_, ⟨κ, β, z, z', c :: aboveIn c Bα, B', Sa, Sa',
+              h₁s, h₂s, hκβ', hsκsp, hs₁βsp, hfit, hfit',
+              hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+            apply State.ext
+            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+                putRun_keep.1, setPile_found]
+            · funext j
+              show (((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
+                  ((st.exchangeTwin t).piles α)
+                  (below c ((st.exchangeTwin t).piles α).faceUp))).setPile κ
+                  (⟨[], (c :: aboveIn c Bα) ++ [t, z'] ++ Sa'⟩ : Pile)).piles j =
+                (s₁.exchangeTwin t).piles j
+              by_cases hjκ : j = κ
+              · rw [hjκ, setPile_piles_self,
+                  State.exchangeTwin_pile_self h₁s h₂s hκβ',
+                  hs₁κhid, hsκsp, hs₁β, hsβ, aboveIn_splice_head htBβ,
+                  below_splice htBκ, List.append_assoc]
+                rfl
+              · by_cases hjβ : j = β
+                · rw [hjβ,
+                    setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+                    setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm),
+                    exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                    State.exchangeTwin_pile_other h₁s h₂s hκβ',
+                    hs₁β, hsβ, below_splice htBβ,
+                    hsκsp, aboveIn_splice_head htBκ, List.append_assoc,
+                    show [t.twin, z] ++ Sa = t.twin :: z :: Sa from rfl]
+                · by_cases hjα : j = α
+                  · -- the chopped source pile: identical cuts, identical hiddens
+                    rw [hjα,
+                      setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+                      setPile_piles_self,
+                      show Pile.afterRunRemoved ((st.exchangeTwin t).piles α)
+                          (below c ((st.exchangeTwin t).piles α).faceUp) =
+                        Pile.afterRunRemoved ((st.exchangeTwin t).piles α) (below c Bα) from by
+                        rw [hfab, below_append_mem (Bα ++ [t, z']) Sa' hcBB',
+                          below_append_mem Bα [t, z'] hBmem],
+                      State.exchangeTwin_pile_ne h₁s h₂s hκβ'
+                        (show α ≠ κ from fun hc => hκα' hc.symm) (show α ≠ β from hne),
+                      hs₁, putRun_eq_inl,
+                      setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+                      setPile_piles_self,
+                      show Pile.afterRunRemoved (st.piles α)
+                          (below c (st.piles α).faceUp) =
+                        Pile.afterRunRemoved (st.piles α) (below c Bα) from by
+                        rw [hsα, below_append_mem (Bα ++ [t, z]) Sa hcBB,
+                          below_append_mem Bα [t, z] hBmem],
+                      afterRunRemoved_congr_pile hfabhid]
+                  · rw [setPile_piles_ne (show j ≠ κ from hjκ),
+                      setPile_piles_ne (show j ≠ α from hjα),
+                      State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                      State.exchangeTwin_pile_ne h₁s h₂s hκβ' hjκ hjβ,
+                      hs₁, putRun_eq_inl,
+                      setPile_piles_ne (show j ≠ κ from hjκ),
+                      setPile_piles_ne (show j ≠ α from hjα)]
+            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+                putRun_keep.2.1]
+              rfl
+            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+                putRun_keep.2.2.1]
+              rfl
+            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+                putRun_keep.2.2.2]
+              rfl
+          · rcases List.mem_cons.mp htl2 with hcE | htl3
+            · exact absurd hcE hct
+            · rcases List.mem_cons.mp htl3 with hcz | hnil
+              · -- c = z: the cargo-rooted firing dies at the seat lock
+                rw [hcz] at hcp
+                have hlock := (seat_lock (Sum.inl κ) hwf h₁ h₂ hsα hsβ hfit hfit').1
+                rw [hcp] at hlock
+                exact Bool.noConfusion hlock
+              · exact absurd hnil (by simp)
+        · -- (C1-inl) c ∈ Sa: the suffix-rooted run lands on the empty
+          -- pile; the chop keeps the seat and its cargo; the license
+          -- stays at (α, β) with the α-suffix shortened.
+          have hκβ' : κ ≠ β := by
+            intro hcon; rw [hcon] at hκmem; exact hβne hκmem.1
+          have hκα' : κ ≠ α := by
+            intro hcon; rw [hcon] at hκmem; exact hαne hκmem.1
+          have hcNE : c ∉ Bα ++ [t, z] := nodup_tail_not_head hndα hSta
+          have hndσβ : ((B' ++ [t.twin, z]) ++ Sa).Nodup := by
+            have h := runOK_nodup (hσwf.runOK_of β)
+            rw [hfb] at h
+            exact h
+          have hcNE' : c ∉ B' ++ [t.twin, z] := nodup_tail_not_head hndσβ hSta
+          have hmemσc : c ∈ ((st.exchangeTwin t).piles β).faceUp := by
+            rw [hfb]
+            exact mem_of_splice_tail hSta
+          have hσhold : (st.exchangeTwin t).pileHolding c = some β :=
+            (pileHolding_eq_some_iff hσwf).mpr hmemσc
+          have hσrun : fromCard c ((st.exchangeTwin t).piles β).faceUp =
+              c :: aboveIn c Sa := by
+            rw [fromCard_eq_of_mem hmemσc, hfb, aboveIn_append_notmem hcNE']
+          have hcσt : (st.exchangeTwin t).canPlace c (Sum.inl κ) = true := by
+            rw [hcσ]; exact hcp
+          have hfire : State.step (st.exchangeTwin t) (Move.tabToTab c (Sum.inl κ)) =
+              some (((st.exchangeTwin t).setPile β (Pile.afterRunRemoved
+                ((st.exchangeTwin t).piles β)
+                (below c ((st.exchangeTwin t).piles β).faceUp))).putRun
+                (c :: aboveIn c Sa) (Sum.inl κ)) := by
+            simp only [step_tabToTab_eq, hσhold, hcσt, hσrun]
+            rfl
+          rw [hfire, Option.some.injEq, putRun_eq_inl]
+          have hrun' : fromCard c (st.piles α).faceUp = c :: aboveIn c Sa := by
+            rw [fromCard_eq_of_mem hmemc, hsα, aboveIn_append_notmem hcNE]
+          have hsκsp : (s₁.piles κ).faceUp = c :: aboveIn c Sa := by
+            rw [hs₁, putRun_eq_inl, setPile_piles_self, hrun']
+          have hsαsp' : (s₁.piles α).faceUp = Bα ++ [t, z] ++ below c Sa := by
+            rw [hs₁, putRun_eq_inl,
+              setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+              setPile_piles_self,
+              hsα, below_append_notmem hcNE,
+              afterRunRemoved_ne (splice_nonempty Bα (below c Sa))]
+          have hs₁αhid : (s₁.piles α).hidden = (st.piles α).hidden := by
+            rw [hs₁, putRun_eq_inl,
+              setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+              setPile_piles_self,
+              hsα, below_append_notmem hcNE,
+              afterRunRemoved_ne (splice_nonempty Bα (below c Sa))]
+          have hs₁β : s₁.piles β = st.piles β := by
+            rw [hs₁, putRun_eq_inl,
+              setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+              setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm)]
+          have hs₁βsp : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+            rw [hs₁β]; exact hsβ
+          have h₁s : s₁.pileHolding t = some α := (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hsαsp']; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+          have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hs₁βsp]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+          have hb := braid_splice hwf₁ h₁s h₂s hne hsαsp' hs₁βsp hfit hfit'
+          refine ⟨?_, ⟨α, β, z, z', Bα, B', below c Sa, Sa',
+            h₁s, h₂s, hne, hsαsp', hs₁βsp, hfit, hfit',
+            hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+          apply State.ext
+          · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+            rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+              putRun_keep.1, setPile_found]
+          · funext j
+            show (((st.exchangeTwin t).setPile β (Pile.afterRunRemoved
+                ((st.exchangeTwin t).piles β)
+                (below c ((st.exchangeTwin t).piles β).faceUp))).setPile κ
+                (⟨[], c :: aboveIn c Sa⟩ : Pile)).piles j =
+              (s₁.exchangeTwin t).piles j
+            by_cases hjκ : j = κ
+            · rw [hjκ, setPile_piles_self,
+                State.exchangeTwin_pile_ne h₁s h₂s hne hκα' hκβ',
+                hs₁, putRun_eq_inl, setPile_piles_self, hrun']
+
+            · by_cases hjα : j = α
+              · rw [hjα,
+                  setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+                  setPile_piles_ne (show α ≠ β from hne),
+                  exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+                  State.exchangeTwin_pile_self h₁s h₂s hne,
+                  hsαsp', hs₁αhid, hs₁β, hsβ, below_splice htBα,
+                  aboveIn_splice_head htBβ, List.append_assoc,
+                  show [t, z'] ++ Sa' = t :: z' :: Sa' from rfl]
+
+              · by_cases hjβ : j = β
+                · rw [hjβ,
+                    setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+                    setPile_piles_self,
+                    show Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
+                        (below c ((st.exchangeTwin t).piles β).faceUp) =
+                      Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
+                        ((B' ++ [t.twin, z]) ++ below c Sa) from by
+                      rw [hfb, below_append_notmem hcNE'],
+                    State.exchangeTwin_pile_other h₁s h₂s hne,
+                    hs₁β, hsβ, below_splice htBβ,
+                    hsαsp', aboveIn_splice_head htBα,
+                    afterRunRemoved_ne (splice_nonempty B' (below c Sa)),
+                    hfbhid, List.append_assoc,
+                    show [t.twin, z] ++ below c Sa = t.twin :: z :: below c Sa from rfl]
+                · rw [setPile_piles_ne (show j ≠ κ from hjκ),
+                    setPile_piles_ne (show j ≠ β from hjβ),
+                    State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                    State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                    hs₁, putRun_eq_inl,
+                    setPile_piles_ne (show j ≠ κ from hjκ),
+                    setPile_piles_ne (show j ≠ α from hjα)]
+          · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+            rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+              putRun_keep.2.1]
+            rfl
+          · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+            rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+              putRun_keep.2.2.1]
+            rfl
+          · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+            rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+              putRun_keep.2.2.2]
+            rfl
+    · by_cases hB : a = β
+      · exact absurd hB hnea
+      · -- (IG) the source is away from both hosts: the chop and the
+        -- landing are pile-identical at both states; the license is
+        -- carried verbatim.
+        have hκA : κ ≠ α := by
+          intro hcon; rw [hcon] at hκmem; exact hαne hκmem.1
+        have hκB : κ ≠ β := by
+          intro hcon; rw [hcon] at hκmem; exact hβne hκmem.1
+        have hσhold : (st.exchangeTwin t).pileHolding c = some a := by
+          refine (pileHolding_eq_some_iff hσwf).mpr ?_
+          rw [State.exchangeTwin_pile_ne h₁ h₂ hne hA hB]
+          exact hmemc
+        have hσrunc : fromCard c ((st.exchangeTwin t).piles a).faceUp =
+            c :: aboveIn c (st.piles a).faceUp := by
+          rw [State.exchangeTwin_pile_ne h₁ h₂ hne hA hB, fromCard_eq_of_mem hmemc]
+        have hcσt : (st.exchangeTwin t).canPlace c (Sum.inl κ) = true := by
+          rw [hcσ]; exact hcp
+        have hfire : State.step (st.exchangeTwin t) (Move.tabToTab c (Sum.inl κ)) =
+            some (((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+              ((st.exchangeTwin t).piles a)
+              (below c ((st.exchangeTwin t).piles a).faceUp))).putRun
+              (c :: aboveIn c (st.piles a).faceUp) (Sum.inl κ)) := by
+          simp only [step_tabToTab_eq, hσhold, hcσt, hσrunc]
+          rfl
+        rw [hfire, Option.some.injEq, putRun_eq_inl]
+        -- the license at s₁, carried verbatim
+        have hs₁α : s₁.piles α = st.piles α := by
+          rw [hs₁, putRun_eq_inl, setPile_piles_ne (Ne.symm hκA), setPile_piles_ne (Ne.symm hA)]
+        have hs₁β : s₁.piles β = st.piles β := by
+          rw [hs₁, putRun_eq_inl, setPile_piles_ne (Ne.symm hκB), setPile_piles_ne (Ne.symm hB)]
+        have hs₁αsp : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+          rw [hs₁α]; exact hsα
+        have hs₁βsp : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+          rw [hs₁β]; exact hsβ
+        have h₁s : s₁.pileHolding t = some α := (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hs₁αsp]; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+        have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+          rw [hs₁βsp]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+        have hb := braid_splice hwf₁ h₁s h₂s hne hs₁αsp hs₁βsp hfit hfit'
+        refine ⟨?_, ⟨α, β, z, z', Bα, B', Sa, Sa', h₁s, h₂s, hne, hs₁αsp, hs₁βsp,
+          hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+        apply State.ext
+        · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+          rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+            putRun_keep.1, setPile_found]
+        · funext j
+          show (((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+              ((st.exchangeTwin t).piles a)
+              (below c ((st.exchangeTwin t).piles a).faceUp))).setPile κ
+              (⟨[], c :: aboveIn c (st.piles a).faceUp⟩ : Pile)).piles j =
+            (s₁.exchangeTwin t).piles j
+          by_cases hjκ : j = κ
+          · rw [hjκ, setPile_piles_self,
+              show (s₁.exchangeTwin t).piles κ = s₁.piles κ from
+                State.exchangeTwin_pile_ne h₁s h₂s hne hκA hκB,
+              hs₁, putRun_eq_inl, setPile_piles_self, hrunp]
+          · by_cases hjα : j = α
+            · rw [hjα,
+                setPile_piles_ne (show α ≠ κ from fun hc => hκA hc.symm),
+                setPile_piles_ne (show α ≠ a from fun hc => hA hc.symm),
+                exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+                State.exchangeTwin_pile_self h₁s h₂s hne,
+                hs₁α, hs₁β, hsα, below_splice htBα, hsβ, aboveIn_splice_head htBβ,
+                List.append_assoc]
+              rfl
+            · by_cases hjβ : j = β
+              · rw [hjβ,
+                  setPile_piles_ne (show β ≠ κ from fun hc => hκB hc.symm),
+                  setPile_piles_ne (show β ≠ a from fun hc => hB hc.symm),
+                  exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                  State.exchangeTwin_pile_other h₁s h₂s hne,
+                  hs₁β, hs₁α, hsβ, below_splice htBβ, hsα, aboveIn_splice_head htBα,
+                  List.append_assoc]
+                rfl
+              · by_cases hja : j = a
+                · -- the chopped source pile: the same chop of the same record
+                  rw [hja,
+                    setPile_piles_ne (show a ≠ κ from fun hc => hself hc.symm),
+                    setPile_piles_self,
+                    State.exchangeTwin_pile_ne h₁s h₂s hne hA hB,
+                    hs₁, putRun_eq_inl,
+                    setPile_piles_ne (show a ≠ κ from fun hc => hself hc.symm),
+                    setPile_piles_self,
+                    State.exchangeTwin_pile_ne h₁ h₂ hne hA hB]
+                · rw [setPile_piles_ne (show j ≠ κ from hjκ),
+                    setPile_piles_ne (show j ≠ a from hja),
+                    State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                    State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                    hs₁, putRun_eq_inl,
+                    setPile_piles_ne (show j ≠ κ from hjκ),
+                    setPile_piles_ne (show j ≠ a from hja)]
+        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+            putRun_keep.2.1]
+          rfl
+        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+            putRun_keep.2.2.1]
+          rfl
+        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+            putRun_keep.2.2.2]
+          rfl
+  · -- (R) the landing is top-directed at pile κ
+    have hself : κ ≠ a := by
+      intro hcon
+      exact (canPlace_inr_target_pile_ne hwf hcp hmemc) (by rw [← hcon]; exact hd)
+    have hmemκd : d ∈ (st.piles κ).faceUp :=
+      Pile.mem_of_top ((pileOfTop_eq_some_iff hwf).mp hd)
+    by_cases hA : a = α
+    · -- (Rα) the source is the t-thread host pile
+      rw [hA] at hs₁ hmemc hself
+      have htail : c ∈ Bα ++ [t, z] ++ Sa := by rw [← hsα]; exact hmemc
+      by_cases hct : c = t
+      · -- (c = t) the seat-led run: the cross-host landing dies at
+        -- the thread-fit kill (onto the other cargo head) or at the
+        -- rooted wall; every other landing relocates.
+        have hsit : canSitOn c d = true := (canPlace_inr_located hd).symm.trans hcp
+        rw [hct] at hsit
+        by_cases hκβ : κ = β
+        · -- the merge corner: d is the other thread's cargo head or
+          -- sits above it
+          rw [hκβ] at hd
+          have hdz' : d = z' ∨ d ∈ aboveIn z' ((st.piles β).faceUp) :=
+            top_of_splice_in_cargo hwf hsβ
+              (⟨hzBβ, ne_of_canSitOn hfit'⟩) hd
+          rcases hdz' with heq | hab'
+          · rw [heq] at hsit
+            have hk := (thread_fit_kills hfit hfit').2.1
+            rw [hsit] at hk
+            exact Bool.noConfusion hk
+          · exact (merge_rooted_impossible_of_WF hwf
+              (show aboveIn t.twin ((st.piles β).faceUp) = z' :: Sa' from by
+                rw [hsβ]; exact aboveIn_splice_head htBβ)
+              hstep hct ⟨d, rfl, hab'⟩).elim
+        · -- (θ3-R) relocate to the top-directed base κ away from hosts
+          have hκβ' : κ ≠ β := hκβ
+          have hκα' : κ ≠ α := hself
+          have hdσtop : (st.exchangeTwin t).pileOfTop d = some κ := by
+            have hsw := exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ
+            rw [hsw, hd]
+            exact congrArg some (swapAnch_ne hself hκβ')
+          have hmemσκ : d ∈ ((st.exchangeTwin t).piles κ).faceUp :=
+            Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
+          have hintop : (st.setPile α (Pile.afterRunRemoved (st.piles α)
+              (below c (st.piles α).faceUp))).pileOfTop d = some κ :=
+            afterRunRemoved_pileOfTop hwf hself hd hmemκd
+          have hintopσ : ((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
+              ((st.exchangeTwin t).piles α)
+              (below c ((st.exchangeTwin t).piles α).faceUp))).pileOfTop d =
+              some κ :=
+            afterRunRemoved_pileOfTop hσwf hself hdσtop hmemσκ
+          have hσhold : (st.exchangeTwin t).pileHolding c = some α := by
+            rw [hct]; exact hhosts.1
+          have hmemσt : t ∈ Bα ++ [t, z'] ++ Sa' :=
+            (mem_splice_host (t := t) (z := z') (B := Bα)).1
+          have hσrun : fromCard c ((st.exchangeTwin t).piles α).faceUp =
+              t :: z' :: Sa' := by
+            rw [hct, hfab, fromCard_eq_of_mem hmemσt, aboveIn_splice_head htBα]
+          have hcσt : (st.exchangeTwin t).canPlace c (Sum.inr d) = true := by
+            rw [hcσ]; exact hcp
+          have hfire : State.step (st.exchangeTwin t) (Move.tabToTab c (Sum.inr d)) =
+              some (((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
+                ((st.exchangeTwin t).piles α)
+                (below c ((st.exchangeTwin t).piles α).faceUp))).putRun
+                (t :: z' :: Sa') (Sum.inr d)) := by
+            simp only [step_tabToTab_eq, hσhold, hcσt, hσrun]
+            rfl
+          rw [hfire, Option.some.injEq, putRun_inr_record hintopσ]
+          have hmemαt : t ∈ (st.piles α).faceUp := pileHolding_mem h₁
+          have habαt : aboveIn t ((st.piles α).faceUp) = z :: Sa := by
+            rw [hsα]; exact aboveIn_splice_head htBα
+          have hrun' : fromCard c (st.piles α).faceUp = t :: z :: Sa := by
+            rw [hct, fromCard_eq_of_mem hmemαt, habαt]
+          have htκ : t ∉ (st.piles κ).faceUp :=
+            (mem_faceUp_unique hwf (pileHolding_mem h₁) κ hself).1
+          have hsκsp : (s₁.piles κ).faceUp = (st.piles κ).faceUp ++ [t, z] ++ Sa := by
+            rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+              setPile_piles_ne (show κ ≠ α from hself), hrun', List.append_assoc]
+            rfl
+          have hs₁κhid : (s₁.piles κ).hidden = (st.piles κ).hidden := by
+            rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+              setPile_piles_ne (show κ ≠ α from hself)]
+          have hs₁β : s₁.piles β = st.piles β := by
+            rw [hs₁, putRun_inr_record hintop,
+              setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+              setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm)]
+          have hs₁βsp : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+            rw [hs₁β]; exact hsβ
+          have h₁s : s₁.pileHolding t = some κ := (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hsκsp]
+            exact (mem_splice_host (t := t) (z := z) (B := (st.piles κ).faceUp)).1)
+          have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hs₁βsp]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+          have hb := braid_splice hwf₁ h₁s h₂s hκβ' hsκsp hs₁βsp hfit hfit'
+          refine ⟨?_, ⟨κ, β, z, z', (st.piles κ).faceUp, B', Sa, Sa',
+            h₁s, h₂s, hκβ', hsκsp, hs₁βsp, hfit, hfit',
+            hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+          apply State.ext
+          · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+            rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+              putRun_keep.1, setPile_found]
+          · funext j
+            by_cases hjκ : j = κ
+            · rw [hjκ, setPile_piles_self,
+                setPile_piles_ne (show κ ≠ α from hself),
+                State.exchangeTwin_pile_ne h₁ h₂ hne hself hκβ',
+                State.exchangeTwin_pile_self h₁s h₂s hκβ',
+                hs₁κhid, hsκsp, below_splice htκ,
+                hs₁β, hsβ, aboveIn_splice_head htBβ]
+            · by_cases hjβ : j = β
+              · rw [hjβ,
+                  setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+                  setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm),
+                  exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                  State.exchangeTwin_pile_other h₁s h₂s hκβ',
+                  hs₁β, hsβ, below_splice htBβ,
+                  hsκsp, aboveIn_splice_head htκ, List.append_assoc,
+                  show [t.twin, z] ++ Sa = t.twin :: z :: Sa from rfl]
+              · by_cases hjα : j = α
+                · rw [hjα,
+                    setPile_piles_ne (show α ≠ κ from fun hc => hself hc.symm),
+                    setPile_piles_self,
+                    show Pile.afterRunRemoved ((st.exchangeTwin t).piles α)
+                        (below c ((st.exchangeTwin t).piles α).faceUp) =
+                      Pile.afterRunRemoved ((st.exchangeTwin t).piles α) Bα from by
+                      rw [hct, hfab, below_splice htBα],
+                    State.exchangeTwin_pile_ne h₁s h₂s hκβ'
+                      (show α ≠ κ from fun hc => hself hc.symm) (show α ≠ β from hne),
+                    hs₁, putRun_inr_record hintop,
+                    setPile_piles_ne (show α ≠ κ from fun hc => hself hc.symm),
+                    setPile_piles_self,
+                    show Pile.afterRunRemoved (st.piles α)
+                        (below c (st.piles α).faceUp) =
+                      Pile.afterRunRemoved (st.piles α) Bα from by
+                      rw [hct, hsα, below_splice htBα],
+                    afterRunRemoved_congr_pile hfabhid]
+                · rw [setPile_piles_ne (show j ≠ κ from hjκ),
+                    setPile_piles_ne (show j ≠ α from hjα),
+                    State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                    State.exchangeTwin_pile_ne h₁s h₂s hκβ' hjκ hjβ,
+                    hs₁, putRun_inr_record hintop,
+                    setPile_piles_ne (show j ≠ κ from hjκ),
+                    setPile_piles_ne (show j ≠ α from hjα)]
+          · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+            rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+              putRun_keep.2.1]
+            rfl
+          · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+            rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+              putRun_keep.2.2.1]
+            rfl
+          · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+            rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+              putRun_keep.2.2.2]
+            rfl
+      · -- position census strictly below or strictly above the seat
+        rcases List.mem_append.mp htail with hhead | hSta
+        · rcases List.mem_append.mp hhead with hBmem | htl2
+          · -- c ∈ Bα: the cross-host landing dies at the passing
+            -- wall; every other landing relocates the seat.
+            by_cases hκβ : κ = β
+            · rw [hκβ] at hd
+              have hdz' : d = z' ∨ d ∈ aboveIn z' ((st.piles β).faceUp) :=
+                top_of_splice_in_cargo hwf hsβ
+                  (⟨hzBβ, ne_of_canSitOn hfit'⟩) hd
+              exact (merge_impossible_of_WF hwf
+                (show aboveIn t ((st.piles α).faceUp) = z :: Sa from by
+                  rw [hsα]; exact aboveIn_splice_head htBα)
+                (show aboveIn t.twin ((st.piles β).faceUp) = z' :: Sa' from by
+                  rw [hsβ]; exact aboveIn_splice_head htBβ)
+                hstep
+                (Or.inl (mem_aboveIn_of_below (pileHolding_mem h₁)
+                  (show c ∈ below t ((st.piles α).faceUp) from by
+                    rw [hsα, below_splice htBα]; exact hBmem)))
+                (by
+                  rcases hdz' with heq | hab'
+                  · exact ⟨d, rfl, Or.inr (Or.inr (Or.inl heq))⟩
+                  · exact ⟨d, rfl, Or.inr (Or.inr (Or.inr hab'))⟩)).elim
+            · -- (θ4-R) the passing run relocates to a top-directed base
+              have hκβ' : κ ≠ β := hκβ
+              have hκα' : κ ≠ α := hself
+              have hsit : canSitOn c d = true := (canPlace_inr_located hd).symm.trans hcp
+              have hcBB : c ∈ Bα ++ [t, z] := List.mem_append.mpr (Or.inl hBmem)
+              have hcBB' : c ∈ Bα ++ [t, z'] := List.mem_append.mpr (Or.inl hBmem)
+              have hct' : c ≠ t := by
+                intro hc
+                exact htBα (hc ▸ hBmem)
+              have htX : t ∉ aboveIn c Bα := fun hc => htBα (aboveIn_subset_mem hc)
+              have htBκ : t ∉ c :: aboveIn c Bα := by
+                intro hc
+                rcases List.mem_cons.mp hc with heq | hX
+                · exact hct' heq.symm
+                · exact htX hX
+              have htκ : t ∉ (st.piles κ).faceUp :=
+                (mem_faceUp_unique hwf (pileHolding_mem h₁) κ hself).1
+              have hdσtop : (st.exchangeTwin t).pileOfTop d = some κ := by
+                have hsw := exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ
+                rw [hsw, hd]
+                exact congrArg some (swapAnch_ne hself hκβ')
+              have hmemσκ : d ∈ ((st.exchangeTwin t).piles κ).faceUp :=
+                Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
+              have hintop : (st.setPile α (Pile.afterRunRemoved (st.piles α)
+                  (below c (st.piles α).faceUp))).pileOfTop d = some κ :=
+                afterRunRemoved_pileOfTop hwf hself hd hmemκd
+              have hintopσ : ((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
+                  ((st.exchangeTwin t).piles α)
+                  (below c ((st.exchangeTwin t).piles α).faceUp))).pileOfTop d =
+                  some κ :=
+                afterRunRemoved_pileOfTop hσwf hself hdσtop hmemσκ
+              have hmemσc : c ∈ ((st.exchangeTwin t).piles α).faceUp := by
+                rw [hfab]
+                exact List.mem_append.mpr (Or.inl (List.mem_append.mpr (Or.inl hBmem)))
+              have hσhold : (st.exchangeTwin t).pileHolding c = some α :=
+                (pileHolding_eq_some_iff hσwf).mpr hmemσc
+              have hσrun : fromCard c ((st.exchangeTwin t).piles α).faceUp =
+                  (c :: aboveIn c Bα) ++ [t, z'] ++ Sa' := by
+                rw [fromCard_eq_of_mem hmemσc, hfab,
+                  aboveIn_append_mem (Bα ++ [t, z']) Sa' hcBB',
+                  aboveIn_append_mem Bα [t, z'] hBmem,
+                  List.cons_append, List.cons_append,
+                  List.append_assoc]
+              have hcσt : (st.exchangeTwin t).canPlace c (Sum.inr d) = true := by
+                rw [hcσ]; exact hcp
+              have hfire : State.step (st.exchangeTwin t) (Move.tabToTab c (Sum.inr d)) =
+                  some (((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
+                    ((st.exchangeTwin t).piles α)
+                    (below c ((st.exchangeTwin t).piles α).faceUp))).putRun
+                    ((c :: aboveIn c Bα) ++ [t, z'] ++ Sa') (Sum.inr d)) := by
+                simp only [step_tabToTab_eq, hσhold, hcσt, hσrun]
+                rfl
+              rw [hfire, Option.some.injEq, putRun_inr_record hintopσ]
+              have hrun' : fromCard c (st.piles α).faceUp =
+                  (c :: aboveIn c Bα) ++ [t, z] ++ Sa := by
+                rw [fromCard_eq_of_mem hmemc, hsα,
+                  aboveIn_append_mem (Bα ++ [t, z]) Sa hcBB,
+                  aboveIn_append_mem Bα [t, z] hBmem,
+                  List.cons_append, List.cons_append]
+              have htL : t ∉ (st.piles κ).faceUp ++ (c :: aboveIn c Bα) := by
+                intro hc
+                rcases List.mem_append.mp hc with h1 | h2
+                · exact htκ h1
+                · exact htBκ h2
+              have hsκsp : (s₁.piles κ).faceUp =
+                  ((st.piles κ).faceUp ++ (c :: aboveIn c Bα)) ++ [t, z] ++ Sa := by
+                rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+                  setPile_piles_ne (show κ ≠ α from hself), hrun']
+                simp only [List.append_assoc, List.cons_append]
+              have hs₁κhid : (s₁.piles κ).hidden = (st.piles κ).hidden := by
+                rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+                  setPile_piles_ne (show κ ≠ α from hself)]
+              have hs₁β : s₁.piles β = st.piles β := by
+                rw [hs₁, putRun_inr_record hintop,
+                  setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+                  setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm)]
+              have hs₁βsp : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+                rw [hs₁β]; exact hsβ
+              have h₁s : s₁.pileHolding t = some κ := (pileHolding_eq_some_iff hwf₁).mpr (by
+                rw [hsκsp]
+                exact (mem_splice_host (t := t) (z := z)
+                  (B := (st.piles κ).faceUp ++ (c :: aboveIn c Bα))).1)
+              have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+                rw [hs₁βsp]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+              have hb := braid_splice hwf₁ h₁s h₂s hκβ' hsκsp hs₁βsp hfit hfit'
+              refine ⟨?_, ⟨κ, β, z, z', (st.piles κ).faceUp ++ (c :: aboveIn c Bα), B',
+                Sa, Sa', h₁s, h₂s, hκβ', hsκsp, hs₁βsp, hfit, hfit',
+                hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+              apply State.ext
+              · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+                rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+                  putRun_keep.1, setPile_found]
+              · funext j
+                by_cases hjκ : j = κ
+                · rw [hjκ, setPile_piles_self,
+                    setPile_piles_ne (show κ ≠ α from hself),
+                    State.exchangeTwin_pile_ne h₁ h₂ hne hself hκβ',
+                    State.exchangeTwin_pile_self h₁s h₂s hκβ',
+                    hs₁κhid, hsκsp, below_splice htL,
+                    hs₁β, hsβ, aboveIn_splice_head htBβ]
+                  simp only [List.append_assoc, List.cons_append, List.nil_append]
+                · by_cases hjβ : j = β
+                  · rw [hjβ,
+                      setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+                      setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm),
+                      exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                      State.exchangeTwin_pile_other h₁s h₂s hκβ',
+                      hs₁β, hsβ, below_splice htBβ,
+                      hsκsp, aboveIn_splice_head htL, List.append_assoc,
+                      show [t.twin, z] ++ Sa = t.twin :: z :: Sa from rfl]
+                  · by_cases hjα : j = α
+                    · rw [hjα,
+                        setPile_piles_ne (show α ≠ κ from fun hc => hself hc.symm),
+                        setPile_piles_self,
+                        show Pile.afterRunRemoved ((st.exchangeTwin t).piles α)
+                            (below c ((st.exchangeTwin t).piles α).faceUp) =
+                          Pile.afterRunRemoved ((st.exchangeTwin t).piles α) (below c Bα) from by
+                          rw [hfab, below_append_mem (Bα ++ [t, z']) Sa' hcBB',
+                            below_append_mem Bα [t, z'] hBmem],
+                        State.exchangeTwin_pile_ne h₁s h₂s hκβ'
+                          (show α ≠ κ from fun hc => hself hc.symm) (show α ≠ β from hne),
+                        hs₁, putRun_inr_record hintop,
+                        setPile_piles_ne (show α ≠ κ from fun hc => hself hc.symm),
+                        setPile_piles_self,
+                        show Pile.afterRunRemoved (st.piles α)
+                            (below c (st.piles α).faceUp) =
+                          Pile.afterRunRemoved (st.piles α) (below c Bα) from by
+                          rw [hsα, below_append_mem (Bα ++ [t, z]) Sa hcBB,
+                            below_append_mem Bα [t, z] hBmem],
+                        afterRunRemoved_congr_pile hfabhid]
+                    · rw [setPile_piles_ne (show j ≠ κ from hjκ),
+                        setPile_piles_ne (show j ≠ α from hjα),
+                        State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                        State.exchangeTwin_pile_ne h₁s h₂s hκβ' hjκ hjβ,
+                        hs₁, putRun_inr_record hintop,
+                        setPile_piles_ne (show j ≠ κ from hjκ),
+                        setPile_piles_ne (show j ≠ α from hjα)]
+              · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+                rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+                  putRun_keep.2.1]
+                rfl
+              · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+                rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+                  putRun_keep.2.2.1]
+                rfl
+              · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+                rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+                  putRun_keep.2.2.2]
+                rfl
+          · rcases List.mem_cons.mp htl2 with hcE | htl3
+            · exact absurd hcE hct
+            · rcases List.mem_cons.mp htl3 with hcz | hnil
+              · -- c = z: the cargo-rooted firing dies at the seat lock
+                rw [hcz] at hcp
+                have hlock := (seat_lock (Sum.inr d) hwf h₁ h₂ hsα hsβ hfit hfit').1
+                rw [hcp] at hlock
+                exact Bool.noConfusion hlock
+              · exact absurd hnil (by simp)
+        · -- (C2/C3) c ∈ Sa: the closing run or the away landing
+          by_cases hκβ : κ = β
+          · -- (C2) the closing run: the suffix-rooted run crosses onto
+            -- the twin host pile's own cargo stack; both license
+            -- anchors stay, the α-suffix shortens, the β-suffix swells.
+            rw [hκβ] at hd hmemκd
+            have hcNE : c ∉ Bα ++ [t, z] := nodup_tail_not_head hndα hSta
+            have hndσβ : ((B' ++ [t.twin, z]) ++ Sa).Nodup := by
+              have h := runOK_nodup (hσwf.runOK_of β)
+              rw [hfb] at h
+              exact h
+            have hcNE' : c ∉ B' ++ [t.twin, z] := nodup_tail_not_head hndσβ hSta
+            have hmemσc : c ∈ ((st.exchangeTwin t).piles β).faceUp := by
+              rw [hfb]
+              exact mem_of_splice_tail hSta
+            have hσhold : (st.exchangeTwin t).pileHolding c = some β :=
+              (pileHolding_eq_some_iff hσwf).mpr hmemσc
+            have hσrun : fromCard c ((st.exchangeTwin t).piles β).faceUp =
+                c :: aboveIn c Sa := by
+              rw [fromCard_eq_of_mem hmemσc, hfb, aboveIn_append_notmem hcNE']
+            have hcσt : (st.exchangeTwin t).canPlace c (Sum.inr d) = true := by
+              rw [hcσ]; exact hcp
+            have hdσtop : (st.exchangeTwin t).pileOfTop d = some α := by
+              have h := (pileOfTop_eq_some_iff hwf).mp hd
+              rw [top_splice_eq hsβ] at h
+              refine (pileOfTop_eq_some_iff hσwf).mpr ?_
+              rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ, top_splice_lit]
+              exact h
+            have hmemσα : d ∈ ((st.exchangeTwin t).piles α).faceUp :=
+              Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
+            have hintop : (st.setPile α (Pile.afterRunRemoved (st.piles α)
+                (below c (st.piles α).faceUp))).pileOfTop d = some β :=
+              afterRunRemoved_pileOfTop hwf (show β ≠ α from fun hc => hne hc.symm)
+                hd hmemκd
+            have hintopσ : ((st.exchangeTwin t).setPile β (Pile.afterRunRemoved
+                ((st.exchangeTwin t).piles β)
+                (below c ((st.exchangeTwin t).piles β).faceUp))).pileOfTop d =
+                some α :=
+              afterRunRemoved_pileOfTop hσwf hne hdσtop hmemσα
+            have hfire : State.step (st.exchangeTwin t) (Move.tabToTab c (Sum.inr d)) =
+                some (((st.exchangeTwin t).setPile β (Pile.afterRunRemoved
+                  ((st.exchangeTwin t).piles β)
+                  (below c ((st.exchangeTwin t).piles β).faceUp))).putRun
+                  (c :: aboveIn c Sa) (Sum.inr d)) := by
+              simp only [step_tabToTab_eq, hσhold, hcσt, hσrun]
+              rfl
+            rw [hfire, Option.some.injEq, putRun_inr_record hintopσ]
+            have hrun' : fromCard c (st.piles α).faceUp = c :: aboveIn c Sa := by
+              rw [fromCard_eq_of_mem hmemc, hsα, aboveIn_append_notmem hcNE]
+            have hsαsp' : (s₁.piles α).faceUp = Bα ++ [t, z] ++ below c Sa := by
+              rw [hs₁, putRun_inr_record hintop,
+                setPile_piles_ne (show α ≠ β from hne),
+                setPile_piles_self,
+                hsα, below_append_notmem hcNE,
+                afterRunRemoved_ne (splice_nonempty Bα (below c Sa))]
+            have hs₁αhid : (s₁.piles α).hidden = (st.piles α).hidden := by
+              rw [hs₁, putRun_inr_record hintop,
+                setPile_piles_ne (show α ≠ β from hne),
+                setPile_piles_self,
+                hsα, below_append_notmem hcNE,
+                afterRunRemoved_ne (splice_nonempty Bα (below c Sa))]
+            have hsβface : (s₁.piles β).faceUp =
+                B' ++ [t.twin, z'] ++ (Sa' ++ c :: aboveIn c Sa) := by
+              rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+                setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm),
+                hsβ, splice_append_run, hrun']
+            have hsβhid : (s₁.piles β).hidden = (st.piles β).hidden := by
+              rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+                setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm)]
+            have h₁s : s₁.pileHolding t = some α := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hsαsp']; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+            have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hsβface]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+            have hb := braid_splice hwf₁ h₁s h₂s hne hsαsp' hsβface hfit hfit'
+            refine ⟨?_, ⟨α, β, z, z', Bα, B', below c Sa, Sa' ++ c :: aboveIn c Sa,
+              h₁s, h₂s, hne, hsαsp', hsβface, hfit, hfit',
+              hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+            apply State.ext
+            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+                putRun_keep.1, setPile_found]
+            · funext j
+              by_cases hjα : j = α
+              · rw [hjα, setPile_piles_self,
+                  show (((st.exchangeTwin t).setPile β (Pile.afterRunRemoved
+                    ((st.exchangeTwin t).piles β)
+                    (below c ((st.exchangeTwin t).piles β).faceUp))).piles α).faceUp =
+                    Bα ++ [t, z'] ++ Sa' from by
+                    rw [setPile_piles_ne (show α ≠ β from hne),
+                      exch_pile_self_record hwf h₁ h₂ hne hsα hsβ],
+                  show (((st.exchangeTwin t).setPile β (Pile.afterRunRemoved
+                    ((st.exchangeTwin t).piles β)
+                    (below c ((st.exchangeTwin t).piles β).faceUp))).piles α).hidden =
+                    (st.piles α).hidden from by
+                    rw [setPile_piles_ne (show α ≠ β from hne),
+                      exch_pile_self_record hwf h₁ h₂ hne hsα hsβ],
+                  State.exchangeTwin_pile_self h₁s h₂s hne,
+                  hsαsp', hs₁αhid, below_splice htBα,
+                  hsβface, aboveIn_splice_head htBβ,
+                  splice_append_run, List.append_assoc,
+                  show [t, z'] ++ (Sa' ++ c :: aboveIn c Sa) =
+                    t :: z' :: (Sa' ++ c :: aboveIn c Sa) from rfl]
+              · by_cases hjβ : j = β
+                · rw [hjβ,
+                    setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm),
+                    setPile_piles_self,
+                    show Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
+                        (below c ((st.exchangeTwin t).piles β).faceUp) =
+                      Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
+                        ((B' ++ [t.twin, z]) ++ below c Sa) from by
+                      rw [hfb, below_append_notmem hcNE'],
+                    State.exchangeTwin_pile_other h₁s h₂s hne,
+                    hsβhid, hsβface, below_splice htBβ,
+                    hsαsp', aboveIn_splice_head htBα,
+                    afterRunRemoved_ne (splice_nonempty B' (below c Sa)),
+                    hfbhid, List.append_assoc,
+                    show [t.twin, z] ++ below c Sa = t.twin :: z :: below c Sa from rfl]
+                · rw [setPile_piles_ne (show j ≠ α from hjα),
+                    setPile_piles_ne (show j ≠ β from hjβ),
+                    State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                    State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                    hs₁, putRun_inr_record hintop,
+                    setPile_piles_ne (show j ≠ β from hjβ),
+                    setPile_piles_ne (show j ≠ α from hjα)]
+            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+                putRun_keep.2.1]
+              rfl
+            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+                putRun_keep.2.2.1]
+              rfl
+            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+                putRun_keep.2.2.2]
+              rfl
+          · -- (C3) the away landing: the chop keeps the seat and its
+            -- cargo; the shortened run lands on the away pile's top.
+            have hκβ' : κ ≠ β := hκβ
+            have hκα' : κ ≠ α := hself
+            have hcNE : c ∉ Bα ++ [t, z] := nodup_tail_not_head hndα hSta
+            have hndσβ : ((B' ++ [t.twin, z]) ++ Sa).Nodup := by
+              have h := runOK_nodup (hσwf.runOK_of β)
+              rw [hfb] at h
+              exact h
+            have hcNE' : c ∉ B' ++ [t.twin, z] := nodup_tail_not_head hndσβ hSta
+            have hmemσc : c ∈ ((st.exchangeTwin t).piles β).faceUp := by
+              rw [hfb]
+              exact mem_of_splice_tail hSta
+            have hσhold : (st.exchangeTwin t).pileHolding c = some β :=
+              (pileHolding_eq_some_iff hσwf).mpr hmemσc
+            have hσrun : fromCard c ((st.exchangeTwin t).piles β).faceUp =
+                c :: aboveIn c Sa := by
+              rw [fromCard_eq_of_mem hmemσc, hfb, aboveIn_append_notmem hcNE']
+            have hcσt : (st.exchangeTwin t).canPlace c (Sum.inr d) = true := by
+              rw [hcσ]; exact hcp
+            have hdσtop : (st.exchangeTwin t).pileOfTop d = some κ := by
+              have hsw := exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ
+              rw [hsw, hd]
+              exact congrArg some (swapAnch_ne hself hκβ')
+            have hmemσκ : d ∈ ((st.exchangeTwin t).piles κ).faceUp :=
+              Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
+            have hintop : (st.setPile α (Pile.afterRunRemoved (st.piles α)
+                (below c (st.piles α).faceUp))).pileOfTop d = some κ :=
+              afterRunRemoved_pileOfTop hwf hself hd hmemκd
+            have hintopσ : ((st.exchangeTwin t).setPile β (Pile.afterRunRemoved
+                ((st.exchangeTwin t).piles β)
+                (below c ((st.exchangeTwin t).piles β).faceUp))).pileOfTop d =
+                some κ :=
+              afterRunRemoved_pileOfTop hσwf hκβ' hdσtop hmemσκ
+            have hfire : State.step (st.exchangeTwin t) (Move.tabToTab c (Sum.inr d)) =
+                some (((st.exchangeTwin t).setPile β (Pile.afterRunRemoved
+                  ((st.exchangeTwin t).piles β)
+                  (below c ((st.exchangeTwin t).piles β).faceUp))).putRun
+                  (c :: aboveIn c Sa) (Sum.inr d)) := by
+              simp only [step_tabToTab_eq, hσhold, hcσt, hσrun]
+              rfl
+            rw [hfire, Option.some.injEq, putRun_inr_record hintopσ]
+            have hrun' : fromCard c (st.piles α).faceUp = c :: aboveIn c Sa := by
+              rw [fromCard_eq_of_mem hmemc, hsα, aboveIn_append_notmem hcNE]
+            have hsκsp : (s₁.piles κ).faceUp =
+                (st.piles κ).faceUp ++ (c :: aboveIn c Sa) := by
+              rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+                setPile_piles_ne (show κ ≠ α from hself), hrun']
+            have hsαsp' : (s₁.piles α).faceUp = Bα ++ [t, z] ++ below c Sa := by
+              rw [hs₁, putRun_inr_record hintop,
+                setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+                setPile_piles_self,
+                hsα, below_append_notmem hcNE,
+                afterRunRemoved_ne (splice_nonempty Bα (below c Sa))]
+            have hs₁αhid : (s₁.piles α).hidden = (st.piles α).hidden := by
+              rw [hs₁, putRun_inr_record hintop,
+                setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+                setPile_piles_self,
+                hsα, below_append_notmem hcNE,
+                afterRunRemoved_ne (splice_nonempty Bα (below c Sa))]
+            have hs₁β : s₁.piles β = st.piles β := by
+              rw [hs₁, putRun_inr_record hintop,
+                setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+                setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm)]
+            have hs₁βsp : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+              rw [hs₁β]; exact hsβ
+            have h₁s : s₁.pileHolding t = some α := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hsαsp']; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+            have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hs₁βsp]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+            have hb := braid_splice hwf₁ h₁s h₂s hne hsαsp' hs₁βsp hfit hfit'
+            refine ⟨?_, ⟨α, β, z, z', Bα, B', below c Sa, Sa',
+              h₁s, h₂s, hne, hsαsp', hs₁βsp, hfit, hfit',
+              hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+            apply State.ext
+            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+                putRun_keep.1, setPile_found]
+            · funext j
+              by_cases hjκ : j = κ
+              · rw [hjκ, setPile_piles_self,
+                  setPile_piles_ne (show κ ≠ β from hκβ'),
+                  State.exchangeTwin_pile_ne h₁ h₂ hne hself hκβ',
+                  State.exchangeTwin_pile_ne h₁s h₂s hne hκα' hκβ',
+                  hs₁, putRun_inr_record hintop, setPile_piles_self,
+                  setPile_piles_ne (show κ ≠ α from hself), hrun']
+              · by_cases hjα : j = α
+                · rw [hjα,
+                    setPile_piles_ne (show α ≠ κ from fun hc => hκα' hc.symm),
+                    setPile_piles_ne (show α ≠ β from hne),
+                    exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+                    State.exchangeTwin_pile_self h₁s h₂s hne,
+                    hsαsp', hs₁αhid, hs₁β, hsβ, below_splice htBα,
+                    aboveIn_splice_head htBβ, List.append_assoc,
+                    show [t, z'] ++ Sa' = t :: z' :: Sa' from rfl]
+                · by_cases hjβ : j = β
+                  · rw [hjβ,
+                      setPile_piles_ne (show β ≠ κ from fun hc => hκβ' hc.symm),
+                      setPile_piles_self,
+                      show Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
+                          (below c ((st.exchangeTwin t).piles β).faceUp) =
+                        Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
+                          ((B' ++ [t.twin, z]) ++ below c Sa) from by
+                        rw [hfb, below_append_notmem hcNE'],
+                      State.exchangeTwin_pile_other h₁s h₂s hne,
+                      hs₁β, hsβ, below_splice htBβ,
+                      hsαsp', aboveIn_splice_head htBα,
+                      afterRunRemoved_ne (splice_nonempty B' (below c Sa)),
+                      hfbhid, List.append_assoc,
+                      show [t.twin, z] ++ below c Sa = t.twin :: z :: below c Sa from rfl]
+                  · rw [setPile_piles_ne (show j ≠ κ from hjκ),
+                      setPile_piles_ne (show j ≠ β from hjβ),
+                      State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                      State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                      hs₁, putRun_inr_record hintop,
+                      setPile_piles_ne (show j ≠ κ from hjκ),
+                      setPile_piles_ne (show j ≠ α from hjα)]
+            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+                putRun_keep.2.1]
+              rfl
+            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+                putRun_keep.2.2.1]
+              rfl
+            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+                putRun_keep.2.2.2]
+              rfl
+    · by_cases hB : a = β
+      · exact absurd hB hnea
+      · -- (RG) the source is away from both hosts
+        have hσhold : (st.exchangeTwin t).pileHolding c = some a := by
+          refine (pileHolding_eq_some_iff hσwf).mpr ?_
+          rw [State.exchangeTwin_pile_ne h₁ h₂ hne hA hB]
+          exact hmemc
+        have hσrunc : fromCard c ((st.exchangeTwin t).piles a).faceUp =
+            c :: aboveIn c (st.piles a).faceUp := by
+          rw [State.exchangeTwin_pile_ne h₁ h₂ hne hA hB, fromCard_eq_of_mem hmemc]
+        have hcσt : (st.exchangeTwin t).canPlace c (Sum.inr d) = true := by
+          rw [hcσ]; exact hcp
+        have hfire : State.step (st.exchangeTwin t) (Move.tabToTab c (Sum.inr d)) =
+            some (((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+              ((st.exchangeTwin t).piles a)
+              (below c ((st.exchangeTwin t).piles a).faceUp))).putRun
+              (c :: aboveIn c (st.piles a).faceUp) (Sum.inr d)) := by
+          simp only [step_tabToTab_eq, hσhold, hcσt, hσrunc]
+          rfl
+        rw [hfire, Option.some.injEq]
+        by_cases hκA : κ = α
+        · -- (G3) the landing is the t-host pile's own top: the run
+          -- swells α's suffix at both states, the mirror lands it on
+          -- β, and the records close by the run-append juggle.
+          rw [hκA] at hself hd hmemκd
+          have hintop : (st.setPile a (Pile.afterRunRemoved (st.piles a)
+              (below c (st.piles a).faceUp))).pileOfTop d = some α :=
+            afterRunRemoved_pileOfTop hwf hself hd hmemκd
+          have hdσtop : (st.exchangeTwin t).pileOfTop d = some β := by
+            have h := (pileOfTop_eq_some_iff hwf).mp hd
+            rw [top_splice_eq hsα] at h
+            refine (pileOfTop_eq_some_iff hσwf).mpr ?_
+            rw [exch_pile_other_record hwf h₁ h₂ hne hsα hsβ, top_splice_lit]
+            exact h
+          have hmemσβ : d ∈ ((st.exchangeTwin t).piles β).faceUp :=
+            Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
+          have hintopσ : ((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+              ((st.exchangeTwin t).piles a)
+              (below c ((st.exchangeTwin t).piles a).faceUp))).pileOfTop d =
+              some β :=
+            afterRunRemoved_pileOfTop hσwf (show β ≠ a from fun hc => hB hc.symm)
+              hdσtop hmemσβ
+          rw [putRun_inr_record hintopσ]
+          -- the license at s₁: α's suffix swallows the run
+          have hs₁β : s₁.piles β = st.piles β := by
+            rw [hs₁, putRun_inr_record hintop,
+              setPile_piles_ne (show β ≠ α from Ne.symm hne),
+              setPile_piles_ne (show β ≠ a from fun hc => hB hc.symm)]
+          have hs₁αface : (s₁.piles α).faceUp = Bα ++ [t, z] ++ (Sa ++ c :: aboveIn c (st.piles a).faceUp) := by
+            rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+              setPile_piles_ne (show α ≠ a from hself),
+              hsα, splice_append_run, hrunp]
+          have hs₁αhid : (s₁.piles α).hidden = (st.piles α).hidden := by
+            rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+              setPile_piles_ne (show α ≠ a from hself)]
+          have hs₁βsp : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+            rw [hs₁β]; exact hsβ
+          have h₁s : s₁.pileHolding t = some α := (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hs₁αface]; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+          have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+            rw [hs₁βsp]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+          have hb := braid_splice hwf₁ h₁s h₂s hne hs₁αface hs₁βsp hfit hfit'
+          refine ⟨?_, ⟨α, β, z, z', Bα, B', Sa ++ c :: aboveIn c (st.piles a).faceUp, Sa',
+            h₁s, h₂s, hne, hs₁αface, hs₁βsp, hfit, hfit',
+            hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+          apply State.ext
+          · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+            rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+              putRun_keep.1, setPile_found]
+          · funext j
+            by_cases hjβ : j = β
+            · rw [hjβ, setPile_piles_self,
+                show (((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+                  ((st.exchangeTwin t).piles a)
+                  (below c ((st.exchangeTwin t).piles a).faceUp))).piles β).faceUp =
+                  B' ++ [t.twin, z] ++ Sa from by
+                  rw [setPile_piles_ne (show β ≠ a from fun hc => hB hc.symm),
+                    exch_pile_other_record hwf h₁ h₂ hne hsα hsβ],
+                show (((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+                  ((st.exchangeTwin t).piles a)
+                  (below c ((st.exchangeTwin t).piles a).faceUp))).piles β).hidden =
+                  (st.piles β).hidden from by
+                  rw [setPile_piles_ne (show β ≠ a from fun hc => hB hc.symm),
+                    exch_pile_other_record hwf h₁ h₂ hne hsα hsβ],
+                State.exchangeTwin_pile_other h₁s h₂s hne,
+                hs₁β, hsβ, below_splice htBβ,
+                hs₁αface, aboveIn_splice_head htBα]
+              simp only [List.append_assoc, List.cons_append, List.nil_append]
+            · by_cases hjα : j = α
+              · rw [hjα,
+                  setPile_piles_ne (show α ≠ β from hne),
+                  setPile_piles_ne (show α ≠ a from hself),
+                  exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+                  State.exchangeTwin_pile_self h₁s h₂s hne,
+                  hs₁αface, hs₁αhid, hs₁βsp, below_splice htBα,
+                  aboveIn_splice_head htBβ, List.append_assoc,
+                  show [t, z'] ++ Sa' = t :: z' :: Sa' from rfl]
+              · by_cases hja : j = a
+                · rw [hja,
+                    setPile_piles_ne (show a ≠ β from hB),
+                    setPile_piles_self,
+                    State.exchangeTwin_pile_ne h₁s h₂s hne hA hB,
+                    hs₁, putRun_inr_record hintop,
+                    setPile_piles_ne (show a ≠ α from fun hc => hself hc.symm),
+                    setPile_piles_self,
+                    State.exchangeTwin_pile_ne h₁ h₂ hne hA hB]
+                · rw [setPile_piles_ne (show j ≠ β from hjβ),
+                    setPile_piles_ne (show j ≠ a from hja),
+                    State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                    State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                    hs₁, putRun_inr_record hintop,
+                    setPile_piles_ne (show j ≠ α from hjα),
+                    setPile_piles_ne (show j ≠ a from hja)]
+          · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+            rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+              putRun_keep.2.1]
+            rfl
+          · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+            rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+              putRun_keep.2.2.1]
+            rfl
+          · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+            rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+              putRun_keep.2.2.2]
+            rfl
+        · by_cases hκB : κ = β
+          · -- (G4) the mirror landing: the run swells β's suffix, the
+            -- σ-side lands it back on α.
+            rw [hκB] at hself hd hmemκd
+            have hintop : (st.setPile a (Pile.afterRunRemoved (st.piles a)
+                (below c (st.piles a).faceUp))).pileOfTop d = some β :=
+              afterRunRemoved_pileOfTop hwf hself hd hmemκd
+            have hdσtop : (st.exchangeTwin t).pileOfTop d = some α := by
+              have h := (pileOfTop_eq_some_iff hwf).mp hd
+              rw [top_splice_eq hsβ] at h
+              refine (pileOfTop_eq_some_iff hσwf).mpr ?_
+              rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ, top_splice_lit]
+              exact h
+            have hmemσα : d ∈ ((st.exchangeTwin t).piles α).faceUp :=
+              Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
+            have hintopσ : ((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+                ((st.exchangeTwin t).piles a)
+                (below c ((st.exchangeTwin t).piles a).faceUp))).pileOfTop d =
+                some α :=
+              afterRunRemoved_pileOfTop hσwf (show α ≠ a from fun hc => hA hc.symm)
+                hdσtop hmemσα
+            rw [putRun_inr_record hintopσ]
+            -- the license at s₁: β's suffix swallows the run
+            have hs₁α : s₁.piles α = st.piles α := by
+              rw [hs₁, putRun_inr_record hintop,
+                setPile_piles_ne (show α ≠ β from hne),
+                setPile_piles_ne (show α ≠ a from fun hc => hA hc.symm)]
+            have hs₁βface : (s₁.piles β).faceUp =
+                B' ++ [t.twin, z'] ++ (Sa' ++ c :: aboveIn c (st.piles a).faceUp) := by
+              rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+                setPile_piles_ne (show β ≠ a from hself),
+                hsβ, splice_append_run, hrunp]
+            have hs₁αsp : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+              rw [hs₁α]; exact hsα
+            have hs₁βhid : (s₁.piles β).hidden = (st.piles β).hidden := by
+              rw [hs₁, putRun_inr_record hintop, setPile_piles_self,
+                setPile_piles_ne (show β ≠ a from hself)]
+            have h₁s : s₁.pileHolding t = some α := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hs₁αsp]; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+            have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hs₁βface]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+            have hb := braid_splice hwf₁ h₁s h₂s hne hs₁αsp hs₁βface hfit hfit'
+            refine ⟨?_, ⟨α, β, z, z', Bα, B', Sa, Sa' ++ c :: aboveIn c (st.piles a).faceUp,
+              h₁s, h₂s, hne, hs₁αsp, hs₁βface, hfit, hfit',
+              hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+            apply State.ext
+            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+                putRun_keep.1, setPile_found]
+            · funext j
+              by_cases hjα : j = α
+              · rw [hjα, setPile_piles_self,
+                  show (((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+                    ((st.exchangeTwin t).piles a)
+                    (below c ((st.exchangeTwin t).piles a).faceUp))).piles α).faceUp =
+                    Bα ++ [t, z'] ++ Sa' from by
+                    rw [setPile_piles_ne (show α ≠ a from fun hc => hA hc.symm),
+                      exch_pile_self_record hwf h₁ h₂ hne hsα hsβ],
+                  show (((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+                    ((st.exchangeTwin t).piles a)
+                    (below c ((st.exchangeTwin t).piles a).faceUp))).piles α).hidden =
+                    (st.piles α).hidden from by
+                    rw [setPile_piles_ne (show α ≠ a from fun hc => hA hc.symm),
+                      exch_pile_self_record hwf h₁ h₂ hne hsα hsβ],
+                  State.exchangeTwin_pile_self h₁s h₂s hne,
+                  hs₁α, hsα, below_splice htBα,
+                  hs₁βface, aboveIn_splice_head htBβ,
+                  splice_append_run, List.append_assoc,
+                  show [t, z'] ++ (Sa' ++ c :: aboveIn c (st.piles a).faceUp) =
+                    t :: z' :: (Sa' ++ c :: aboveIn c (st.piles a).faceUp) from rfl]
+              · by_cases hjβ : j = β
+                · rw [hjβ,
+                    setPile_piles_ne (show β ≠ α from fun hc => hne hc.symm),
+                    setPile_piles_ne (show β ≠ a from hself),
+                    exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                    State.exchangeTwin_pile_other h₁s h₂s hne,
+                    hs₁βface, hs₁βhid, hs₁αsp, below_splice htBβ,
+                    aboveIn_splice_head htBα, List.append_assoc,
+                    show [t.twin, z] ++ Sa = t.twin :: z :: Sa from rfl]
+                · by_cases hja : j = a
+                  · rw [hja,
+                      setPile_piles_ne (show a ≠ α from fun hc => hA hc),
+                      setPile_piles_self,
+                      State.exchangeTwin_pile_ne h₁s h₂s hne hA hB,
+                      hs₁, putRun_inr_record hintop,
+                      setPile_piles_ne (show a ≠ β from fun hc => hself hc.symm),
+                      setPile_piles_self,
+                      State.exchangeTwin_pile_ne h₁ h₂ hne hA hB]
+                  · rw [setPile_piles_ne (show j ≠ α from hjα),
+                      setPile_piles_ne (show j ≠ a from hja),
+                      State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                      State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                      hs₁, putRun_inr_record hintop,
+                      setPile_piles_ne (show j ≠ β from hjβ),
+                      setPile_piles_ne (show j ≠ a from hja)]
+            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+                putRun_keep.2.1]
+              rfl
+            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+                putRun_keep.2.2.1]
+              rfl
+            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+                putRun_keep.2.2.2]
+              rfl
+          · -- (G2) a pile away from every host: chop and landing both
+            -- pile-identical; the license carried verbatim.
+            have hdσtop : (st.exchangeTwin t).pileOfTop d = some κ := by
+              refine (pileOfTop_eq_some_iff hσwf).mpr ?_
+              rw [State.exchangeTwin_pile_ne h₁ h₂ hne hκA hκB]
+              exact (pileOfTop_eq_some_iff hwf).mp hd
+            have hmemσκ : d ∈ ((st.exchangeTwin t).piles κ).faceUp :=
+              Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
+            have hintopσ : ((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
+                ((st.exchangeTwin t).piles a)
+                (below c ((st.exchangeTwin t).piles a).faceUp))).pileOfTop d =
+                some κ :=
+              afterRunRemoved_pileOfTop hσwf hself hdσtop hmemσκ
+            have hintop : (st.setPile a (Pile.afterRunRemoved (st.piles a)
+                (below c (st.piles a).faceUp))).pileOfTop d = some κ :=
+              afterRunRemoved_pileOfTop hwf hself hd hmemκd
+            rw [putRun_inr_record hintopσ]
+            have hs₁α : s₁.piles α = st.piles α := by
+              rw [hs₁, putRun_inr_record hintop,
+                setPile_piles_ne (show α ≠ κ from fun hc => hκA hc.symm),
+                setPile_piles_ne (show α ≠ a from fun hc => hA hc.symm)]
+            have hs₁β : s₁.piles β = st.piles β := by
+              rw [hs₁, putRun_inr_record hintop,
+                setPile_piles_ne (show β ≠ κ from fun hc => hκB hc.symm),
+                setPile_piles_ne (show β ≠ a from fun hc => hB hc.symm)]
+            have hs₁αsp : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+              rw [hs₁α]; exact hsα
+            have hs₁βsp : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+              rw [hs₁β]; exact hsβ
+            have h₁s : s₁.pileHolding t = some α := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hs₁αsp]; exact (mem_splice_host (t := t) (z := z) (B := Bα)).1)
+            have h₂s : s₁.pileHolding t.twin = some β := (pileHolding_eq_some_iff hwf₁).mpr (by
+              rw [hs₁βsp]; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
+            have hb := braid_splice hwf₁ h₁s h₂s hne hs₁αsp hs₁βsp hfit hfit'
+            refine ⟨?_, ⟨α, β, z, z', Bα, B', Sa, Sa', h₁s, h₂s, hne, hs₁αsp, hs₁βsp,
+              hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
+            apply State.ext
+            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
+              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
+                putRun_keep.1, setPile_found]
+            · funext j
+              by_cases hjκ : j = κ
+              · rw [hjκ, setPile_piles_self,
+                  setPile_piles_ne hself,
+                  State.exchangeTwin_pile_ne h₁ h₂ hne hκA hκB,
+                  State.exchangeTwin_pile_ne h₁s h₂s hne hκA hκB,
+                  hs₁, putRun_inr_record hintop, setPile_piles_self,
+                  setPile_piles_ne hself, hrunp]
+              · by_cases hjα : j = α
+                · rw [hjα,
+                    setPile_piles_ne (show α ≠ κ from fun hc => hκA hc.symm),
+                    setPile_piles_ne (show α ≠ a from fun hc => hA hc.symm),
+                    exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+                    State.exchangeTwin_pile_self h₁s h₂s hne,
+                    hs₁α, hs₁β, hsα, below_splice htBα,
+                    hsβ, aboveIn_splice_head htBβ, List.append_assoc,
+                    show [t, z'] ++ Sa' = t :: z' :: Sa' from rfl]
+                · by_cases hjβ : j = β
+                  · rw [hjβ,
+                      setPile_piles_ne (show β ≠ κ from fun hc => hκB hc.symm),
+                      setPile_piles_ne (show β ≠ a from fun hc => hB hc.symm),
+                      exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                      State.exchangeTwin_pile_other h₁s h₂s hne,
+                      hs₁β, hs₁α, hsβ, below_splice htBβ,
+                      hsα, aboveIn_splice_head htBα, List.append_assoc,
+                      show [t.twin, z] ++ Sa = t.twin :: z :: Sa from rfl]
+                  · by_cases hja : j = a
+                    · rw [hja,
+                        setPile_piles_ne (show a ≠ κ from fun hc => hself hc.symm),
+                        setPile_piles_self,
+                        State.exchangeTwin_pile_ne h₁s h₂s hne hA hB,
+                        hs₁, putRun_inr_record hintop,
+                        setPile_piles_ne (show a ≠ κ from fun hc => hself hc.symm),
+                        setPile_piles_self,
+                        State.exchangeTwin_pile_ne h₁ h₂ hne hA hB]
+                    · rw [setPile_piles_ne (show j ≠ κ from hjκ),
+                        setPile_piles_ne (show j ≠ a from hja),
+                        State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ,
+                        State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+                        hs₁, putRun_inr_record hintop,
+                        setPile_piles_ne (show j ≠ κ from hjκ),
+                        setPile_piles_ne (show j ≠ a from hja)]
+            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
+                putRun_keep.2.1]
+              rfl
+            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
+                putRun_keep.2.2.1]
+              rfl
+            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
+                putRun_keep.2.2.2]
+              rfl
+
+/-! ## THE SIXTH AND LAST TRANSPORT ROW — `tabToTab`
+
+The run-shaped transport: a firing `tabToTab c b` at a both-occupied
+licensed state commutes with the twin exchange, and the both-occupied
+license re-seats at the successor.  This is the last of the six rows,
+the one every earlier row rehearsed pieces of: the source chop is
+taken at ARBITRARY depth (the `below`/`fromCard` cut at any face-up
+member, the two-sided move — chop at the source's SWAPPED anchor plus
+the landing at the top-directed base read at the POST-CHOP
+intermediate), and the license closes with NO freedom disjunct: the
+arming arms the row cannot transport die at the landed walls
+(`merge_impossible_of_WF` / `merge_rooted_impossible_of_WF`), at the
+seat lock (a cargo head is unplaceable while both seats host), at the
+`canPlace` self-safety (a landing base never tops the source pile),
+or at the thread-fit kill (a seat cannot sit on the other thread's
+cargo head).  Everything else transports: the seat-led runs relocate
+and re-anchor BOTH license splices; the cargo-suffix runs shorten one
+suffix and swell the other; the away-source runs are carried verbatim or swell a host suffix with the run appended. -/
+
+/-- **THE SIXTH AND LAST TRANSPORT ROW** — the `tabToTab` transport:
+at a licensed (`BothOcc`) state, a firing `tabToTab` commutes with
+the twin exchange and re-seats the license.  The census: the
+cargo-rooted firings die at the seat lock; the cross-thread merge
+corners die at the landed walls and the thread-fit kill; the
+own-pile landings die at the `canPlace` self-safety; every other
+arm transports with the both-occupied license re-seated. -/
+theorem exch_step_tabToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card} {c : Card} {b : Base}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true)
+    (hstep : st.step (Move.tabToTab c b) = some s₁) :
+    ((st.exchangeTwin t).step (Move.tabToTab c b)) = some (s₁.exchangeTwin t) ∧
+      BothOcc s₁ t := by
+  obtain ⟨a, ha, hcp, hs₁⟩ := step_tabToTab_shape hstep
+  by_cases hA : a = α
+  · exact exch_step_tabToTab_core hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep ha hcp hs₁
+      (by rw [hA]; exact hne)
+  · by_cases hB : a = β
+    · -- the mirror call: the run source is the twin thread's host
+      -- pile, so the core is consulted with the two threads swapped;
+      -- `State.exchangeTwin_pair` and `bothOcc_mirror` bridge the
+      -- two concluded halves.
+      obtain ⟨htrans, hbocc⟩ :=
+        exch_step_tabToTab_core hwf h₂
+          (by rw [Card.twin_twin]; exact h₁)
+          (Ne.symm hne) hsβ
+          (by rw [show t.twin.twin = t from Card.twin_twin t]; exact hsα)
+          hfit'
+          (by rw [show t.twin.twin = t from Card.twin_twin t]; exact hfit)
+          hstep ha hcp hs₁
+          (by rw [hB]; exact Ne.symm hne)
+      refine ⟨?_, ?_⟩
+      · rw [← State.exchangeTwin_pair st t, ← State.exchangeTwin_pair s₁ t]
+        exact htrans
+      · have hmir := bothOcc_mirror hbocc
+        rwa [Card.twin_twin] at hmir
+    · exact exch_step_tabToTab_core hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep ha hcp hs₁ hB
