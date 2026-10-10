@@ -1,8 +1,25 @@
 # The proof farm — handoff document
 
-**Census: 11 `:= sorry`** (Theorems 1 · Dominance 5 · Kills 0
+**Census: 12 `:= sorry`** (Theorems 1 · Dominance 6 · Kills 0
 · Movability 0 · C2Streamlined 0 · TwinSwapCompletion 1
 · Restriction 1 · TwinExchange 1 · TwinQuotient 2; zero bullets;
+**+wave-24 (2026-10-10, the to-foundation staging sessions — the
+Klondike half and the Orig port): the two headline dominances
+`safe_pileStack_dominant` and `deck_dominance_draw1` left the sorry
+list as PROVEN assemblies over named residues — the N-half rides
+B4's `rungNormal_or_forcedPark` (disjunct-1: the LANDED W1 scaffold)
+plus the new `safe_pileStack_dominant_of_forcedPark` (the ENDGAME
+§8 [GAP] bridge, the channel-A/B simulation under `hsafe`), and §5.3
+becomes `deck_dominance_draw1_normalForm` (C, the c-rung compliance
+`noPreExitRungDrop`) + `deck_dominance_draw1_replay` (B, safety-free,
+the nine exchange cases) over the PROVEN reserve lemma (A,
+`draw1_cursor_solvable`) — Dominance 5→6, two headlines absorbed,
+three named residues in; the physical port landed in Orig as
+`Orig/Dominance.lean` (chapter registry row in `Orig.lean`; the Orig
+sorries are the census-pinned four: `tabToFound_dominant_of_ground`,
+`draw1_sameCycle_sameFate`, `draw1_compliant_replay`,
+`draw1_compliant_normalForm` — routes at their sites; §5.1's R-halves
+ride the LANDED `tabToFound_undo_under/_bare` and are PROVEN)**);
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the
@@ -159,9 +176,12 @@ Within Dominance, rows are independent.
 |---|---|---|---|
 | `solvable_of_pileStack` (the crux) | Theorems:1028 | **[H]** | the case ledger below — 2 squares, the π-induction, then the park/endgame (N-half) |
 | ~~`solvableEngine_iff_macro` (C1)~~ | Macro | **done** | A3's regrouping landed (parallel session) |
-| `safe_pileStack_dominant` (N-half) | Dominance:237 | [H] | post-crux: the endgame IS this row's root (canReturnBase fails on deal-adjacent bases → rank-mate worry-back) |
+| ~~`safe_pileStack_dominant` (N-half)~~ | Dominance | **done** (staged 2026-10-10) | PROVEN assembly: R-half `..._of_return`, else B4's `rungNormal_or_forcedPark` — disjunct-1 through the LANDED W1 scaffold, disjunct-2 the named residue below |
+| `safe_pileStack_dominant_of_forcedPark` (the [GAP] bridge) | Dominance | [H] | the forced-park certificate under `hsafe`: channel A (the park subtree spans two ranks — every live tenant sits at its own foundation index), channel B (the suit-prefix worry-skip); the (c-α) park-window φ and `excursionSim` are the walk-agreement templates |
 | `least_redundantStack_dominant` | Dominance | **done**(repair+proof, parallel session) | repaired `+hsafe` exactly per the wave-11 concern (safety premise was missing); proven against §5.1's R-half |
-| `deck_dominance_draw1` (C4) | Dominance:292 | [H] | front-loading reshaping; the pure-deck fact; draw-1 — `maskPos_step1` (every position accessible) + the deal machinery |
+| ~~`deck_dominance_draw1` (C4)~~ | Dominance | **done** (staged 2026-10-10) | PROVEN assembly: (A) `draw1_cursor_solvable` LANDED, then the named (C) and (B) stubs below |
+| `deck_dominance_draw1_normalForm` (C4-C: the c-rung compliance) | Dominance | [H] | the suit-predecessor's worry/restack windows: adjacent — cancel; spread — the Commutation kit; the storage shape at the worry-created seat is the [GAP] bridge's own descent (the predecessor is safe by slack one under `hsafe`) |
+| `deck_dominance_draw1_replay` (C4-B: the compliant replay) | Dominance | [H] | safety-free nine-case ledger: draw absorbs; board moves by equality; consuming moves by `diffCursor` (layer A transports); the c-exits close on the worry-back identity and the k=0 jump square |
 | `stackPile_safe_prunable` (§5.4 first half) | Dominance:421 | [H] | worry-back ban; the cancellation kit (`stackPile_pileStack_cancel`) + the safety formula |
 | `twinPair_placement_equi` (C6) | Dominance:492 | [H] | T machinery (`solvable_flipAll`, PROVEN) applied as a local swap; both heights equal is the license |
 

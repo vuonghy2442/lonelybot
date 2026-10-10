@@ -193,6 +193,46 @@ theorem safe_pileStack_dominant_of_return {st : State} {c : Card} {b : Base}
     rw [hm]
     rfl⟩ hsolv
 
+/-- **The certificate residue** — ENDGAME §8's [GAP] bridge, staged:
+the forced-park certificate (Theorems' `State.forcedPark`, its corner
+where no pre-pass canonicalization removes a park on `c`) is absorbed
+*under `hsafe`* by the channel-A/B simulation (the B&G Thm-5 port) —
+
+* channel A (the park subtree through the foundations): the only
+  cards that can ever sit on `c` have rank `r−1` and `c`-opposite
+  colour, and the `hsafe` opposite-colour conjunct already puts their
+  suit heights at their own idx — a *live* tenant is never
+  foundation-passed, so it is stackable the moment it is the frontier
+  card, and the depth of an `hsafe`-consistent parked streak is at
+  most two (`stackPile_pileStack_cancel` closes each leaf).  This is
+  the quantitative fact behind "the safety bounds descend exactly two
+  ranks".
+* channel B (the suit-prefix): the worry-backs of `c`'s suit-prefix
+  cards in the source play are skipped in the replay — they are safe
+  by `hsafe`'s same-colour conjunct, exactly as `hsafe` itself
+  licences the §5.1 stack of `c`.
+
+This is the sole remaining content of §5.1 (the R-half is
+`..._of_return`, proven; the rung-normal half rides
+`rungNormal_or_forcedPark`'s disjunct-1 through the LANDED W1
+scaffold), and the shared root of §5.4's storage case (case 10,
+`stackPile_safe_prunable`'s sole blocker) and §5.3's C — the same
+assembly at the worry-created seat.  The bridge is the
+`hsafe`-preserving divergence-tracking simulation along the
+transformed play (ENDGAME §7.5 alert (iii); the (c-α) park-window φ
+and `excursionSim` are the walk-agreement templates).  TODO(proof).
+Refute-first target: an `hsafe` state matching the certificate (the
+known too-wide instance is corner (ii), the fitting-cargo occupier —
+absorbed here *by design*, `solvable_cargoTwin`'s transfer-then-
+redirect, the safety descent above closing what the transfer
+cannot). -/
+theorem safe_pileStack_dominant_of_forcedPark {st : State} {c : Card} {s₁ : State}
+    (hwf : st.WF) (hnotlock : st.isLocked c = false)
+    (hsafe : safeToStack st c = true)
+    (hm : st.apply (Move.pileStack c) = some s₁)
+    (hfp : st.forcedPark c) (hsolv : st.solvableFrom) :
+    s₁.solvableFrom := sorry
+
 /-- §5.1: a legal pileStack of a safe, *unlocked* card is dominant —
 the worry-back argument: a safe card can always be brought back later,
 and stacking strictly grows the foundation (progress).
@@ -234,11 +274,42 @@ card is not yet stackable are *storage*, and run-carrying `pilePile`
 placements onto `c` re-home whole runs: both need the compliant-play
 normal form, the same root as `solvable_accommodates`).  That
 connection — §5.1's residue and B4 share one reshape lemma — is the
-finding; TODO(proof) for the non-returnable case. -/
+finding; TODO(proof) for the non-returnable case.
+
+STAGED (2026-10-10, the formalization pass): the reduction above is
+now plumbed.  The R-half closes via `safe_pileStack_dominant_of_return`.
+At a non-returnable base, B4's restructured crux applies verbatim —
+`rungNormal_or_forcedPark` (Theorems) dispatches: disjunct-1 (a
+`cBlocked`-clean rung-normal winning play) replays through the LANDED
+W1 scaffold `solvable_of_pileStack_of_rungNormal`; disjunct-2 (the
+forced-park certificate) is the named residue
+`safe_pileStack_dominant_of_forcedPark` — the [GAP] bridge, the
+channel-A/B simulation under `hsafe`.  The proof below is complete
+modulo that residue (and Theorems' own
+`rungNormal_or_forcedPark`, which B4 owes independently). -/
 theorem safe_pileStack_dominant {st : State} {c : Card} (hwf : st.WF)
     (hnotlock : st.isLocked c = false)
     (hsafe : safeToStack st c = true) (hlegal : st.legal (Move.pileStack c) = true) :
-    dominantAt st (Move.pileStack c) := sorry
+    dominantAt st (Move.pileStack c) := by
+  intro hsolv
+  obtain ⟨hbot, htopc, hrk⟩ := legal_pileStack_iff.mp hlegal
+  cases hb : st.board.bottomOf c with
+  | none => exact absurd hb hbot
+  | some b =>
+    by_cases hret : canReturnBase c b = true
+    · exact (safe_pileStack_dominant_of_return hwf hnotlock hlegal hb hret) hsolv
+    · -- the N-half: B4's dispatch — the rung-normal replay, or the certificate
+      obtain ⟨s₁, hm⟩ : ∃ s₁, st.apply (Move.pileStack c) = some s₁ :=
+        ⟨{ st with
+           board := st.board.detach b,
+           heights := fun s => if s = c.suit then st.heights s + 1 else st.heights s },
+         (apply_pileStack_iff).mpr ⟨htopc, b, hb, hrk, rfl⟩⟩
+      rcases rungNormal_or_forcedPark hwf hnotlock hm hsolv with
+        ⟨π, w, hrun, hwin, π₁, π₂, hsplit, hclr⟩ | hfp
+      · exact ⟨s₁, hm, solvable_of_pileStack_of_rungNormal hwf hnotlock hm
+          ⟨π, w, hrun, hwin, π₁, π₂, hsplit, hclr⟩⟩
+      · exact ⟨s₁, hm, safe_pileStack_dominant_of_forcedPark hwf hnotlock
+          hsafe hm hfp hsolv⟩
 
 /-! ## §5.2 Three-or-more redundant stackables -/
 
@@ -466,7 +537,7 @@ theorem draw1_cursor_solvable {s t : State} (hstep : s.drawStep = 1)
   obtain ⟨π', w', hrun', hwin'⟩ := main π s t hstep hd w hrun hwin
   exact ⟨π', w', hrun', hwin'⟩
 
-/-- §5.3, draw-1 form: with one card per draw, every drawable card is
+/- §5.3, draw-1 form: with one card per draw, every drawable card is
 equally reachable, so front-loading the safe stack of a drawable card
 loses nothing.  The general (draw-3) form needs the deck `is_pure`
 condition (offset alignment).
@@ -520,10 +591,152 @@ restack (`stackPile_pileStack_cancel`).  That normal form is the
 the B4 crux's endgame.  So: deck_dominance_draw1 = (the §5.1 normal
 form) + (A) + (B).  TODO(proof): A and B are self-contained; C is
 the shared root. -/
+
+/- STAGED (2026-10-10, the formalization pass): the layers are named and
+reduced.  (A) is `draw1_cursor_solvable` above (PROVEN).  (B) is
+`deck_dominance_draw1_replay` below — staged with the compliance
+WEAKENED to the rung discipline (`noPreExitRungDrop`: only the
+*c-suited* worry-backs are banned pre-exit — they alone can drop the
+c-rung `heights c.suit = toIdx c` the jump reads; every other-suit
+worry commutes past the jump by equality, `bump_drop`, so it needs no
+normal form).  (C) is `deck_dominance_draw1_normalForm` below — the
+normal form that closes those c-suit windows (the suit-predecessor's
+worry/restack pair: adjacent — cancel; spread — swap the loop with
+the Commutation kit; the storage shape at the worry-created seat is
+the §5.1/§5.4 case 10 root, with the predecessor *safe by slack one*
+under `hsafe`, channelling the tenant subtree through the
+foundations).  The headline below is PROVEN given the two named
+stubs; both are self-contained modulo the shared [GAP] bridge
+(`safe_pileStack_dominant_of_forcedPark`'s family). -/
+
+/-- c's **exit**: the deck move that takes `c` out of the stock —
+the stack outcome (`deckStack c`) or the park outcome
+(`deckPile c b`, any base).  After it, the jump is spent. -/
+def Move.exitsStock (c : Card) : Move → Bool
+  | .deckStack c' => decide (c' = c)
+  | .deckPile c' _ => decide (c' = c)
+  | _ => false
+
+/-- The c-**rung drop**: the same-suit worry-back — pre-exit, the
+only movable shape that reads (and drops) `heights c.suit`, the slot
+the jump guards.  (The rung vocabulary is the crux's own, ENDGAME
+§3/`cBlocked`.) -/
+def Move.dropsRung (c : Card) : Move → Bool
+  | .stackPile x _ => decide (x.suit = c.suit)
+  | _ => false
+
+/-- §5.3's compliance (the rung discipline): before c's first exit
+every move leaves the c-rung alone. -/
+def noPreExitRungDrop (c : Card) : List Move → Prop
+  | [] => True
+  | m :: π' => (m.exitsStock c = true) ∨
+      ((m.dropsRung c = false) ∧ noPreExitRungDrop c π')
+
+/-- §5.3 **(B), the compliant replay**: at a draw-1 state whose
+c-bundle holds (`WF`, the stock carries c at the rung: `posOf ≠ none`
+and `toIdx c = heights c.suit`), a winning compliant play is
+replayed as a win from the jump successor.  Safety is *not* a
+hypothesis — no replay case reads `safeToStack`; the bundle's
+invariants pass to each successor on the compliance alone (heights
+only climb pre-exit, and no c-suit stack can fire while c is stocked:
+its frontier card is c itself, `founds_gone`/`found_off_cycle`).
+
+The case ledger, one exchange per first move (each either an
+equality square or a `diffCursor` transport via layer (A)):
+
+* `draw` — absorbed: the jump's `drawTo` resets the cursor
+  absolutely, so the jumped successor ignores any pure deal.
+* `reveal a` / `pilePile` — equality squares: both are stock- and
+  heights-blind to the c-slot, and the jump re-derives the same
+  deal (the splice index `posOf c` is untouched).
+* `pileStack d` — equality square (`bump_bump`); d.suit ≠ c.suit is
+  forced pre-exit (the c-suit frontier card is c, stocked).
+* `stackPile x b'`, x.suit ≠ c.suit — equality square: the jump is
+  stock-only-plus-a-c-bump, the worry is board-only-plus-an-x-drop,
+  and `bump_drop` swaps the two at distinct suits (`stackPile_blind_*`).
+  This is the case the *rung* compliance keeps in the induction —
+  under the all-worries compliance of the original note it was (C)'s
+  blocked case, but only the c-suited worry actually breaks the IH.
+* `deckStack x` / `deckPile x b'`, x ≠ c — the two consuming moves:
+  the squares land up to `diffCursor` (both orders remove both
+  cards; the resulting cycle lists agree, cursors need not), and
+  `draw1_cursor_solvable` transports the replayed win.
+* the c-exits close without IH: `deckStack c` — the cursor already
+  sits at `posOf c`, the deal part of the jump is empty and the jump
+  IS the move, so the tail wins verbatim; `deckPile c b'` — the
+  worry-back identity `[jump, stackPile c b'] ≡ [deckPile c b']`
+  (`bump_drop` restores the slot; the splice index is `posOf c` in
+  both; the attach is the same `canPlace` on the jump-invariant
+  board), then the tail verbatim.
+
+TODO(proof): each bullet is a named state-equality obligation; no
+case has any remedy beyond the cited kit (`apply_nonConsuming_cursor_
+blind`, `posOf_cards_eq`, `run_dealIter`, `bump_*`, the Commutation
+suite, `applyDrawStackTo_merge`'s splice arithmetic). -/
+theorem deck_dominance_draw1_replay {st : State} {c : Card} {J : State}
+    (hwf : st.WF) (hstep : st.drawStep = 1)
+    (hstock : st.stock.posOf c ≠ none)
+    (hrk : c.rank.toIdx = st.heights c.suit)
+    (hJ : st.applyDrawStackTo c = some J) :
+    ∀ π w, noPreExitRungDrop c π → st.run π = some w → w.isWin = true →
+      J.solvableFrom := sorry
+
+/-- §5.3 **(C), the normal form**: a solvable draw-1 state with a
+safe, stocked, stackable c admits a *compliant* winning play.
+B&G's safemoves normal form, rung-discipline form.
+
+Route: induction on the first open c-suit window — a `stackPile d b`
+with `d` the c-suit suit-predecessor (pre-exit it is the *only*
+c-rung-dropping card: the top foundation card of c's suit, at
+`toIdx d + 1 = heights c.suit = toIdx c`), closed by its `pileStack d`
+(the window's restack — it must exist before any c-suit stack, since
+the c-suit frontier is stuck at `toIdx d` while the window is open:
+`deckStack c` guards on exactly the dropped slot):
+
+* adjacent pair — cancel (`stackPile_pileStack_cancel`), length
+  drops, recurse;
+* spread window — swap the diving `pileStack d` backwards through
+  the segment (`comm_pileStack_stackPile`, `comm_reveal_pileStack`,
+  `comm_deckStack_pileStack`, `comm_deckPile_pileStack`,
+  `comm_pilePile_pilePile`, `draw_comm_pileStack`; worry-worry
+  `comm_stackPile_stackPile`) to adjacency, then cancel;
+* the storage shape — a placement onto the just-worried d's seat
+  (`deckPile x (inr d)`, or the `pilePile` re-home through it): the
+  §5.4-case-10 assembly at the worry-created seat.  Under `hsafe`
+  the predecessor d is safe *by slack one* (every conjunct with a
+  rank to spare), so the tenant subtree channels through the
+  foundations — the [GAP] bridge's own descent
+  (`safe_pileStack_dominant_of_forcedPark`'s family, the §5.1 root).
+
+Refute-first target: a compliant-less corner where every win keeps a
+c-suit window open past the exit — the window arithmetic above
+(exits guard on the dropped slot) is the condensation to check.
+TODO(proof). -/
+theorem deck_dominance_draw1_normalForm {st : State} {c : Card}
+    (hwf : st.WF) (hstep : st.drawStep = 1)
+    (hsafe : safeToStack st c = true)
+    (hstock : st.stock.posOf c ≠ none)
+    (hleg : st.applyDrawStackTo c ≠ none)
+    (hsolv : st.solvableFrom) :
+    ∃ π w, st.run π = some w ∧ w.isWin = true ∧ noPreExitRungDrop c π := sorry
+
+/-- §5.3, draw-1 form (the STAGED headline): see the route note above
+(the A/B/C layer decomposition, now named) — proven given (C)
+`deck_dominance_draw1_normalForm` and (B)
+`deck_dominance_draw1_replay`. -/
 theorem deck_dominance_draw1 {st : State} {c : Card} (hwf : st.WF)
     (hstep : st.drawStep = 1) (hsafe : safeToStack st c = true)
     (hdraw : st.stock.posOf c ≠ none) (hleg : st.applyDrawStackTo c ≠ none) :
-    st.solvableFrom → ∃ st₁, st.applyDrawStackTo c = some st₁ ∧ st₁.solvableFrom := sorry
+    st.solvableFrom → ∃ st₁, st.applyDrawStackTo c = some st₁ ∧ st₁.solvableFrom := by
+  intro hsolv
+  obtain ⟨π, w, hrun, hwin, hcomp⟩ :=
+    deck_dominance_draw1_normalForm hwf hstep hsafe hdraw hleg hsolv
+  cases hJ : st.applyDrawStackTo c with
+  | none => exact absurd hJ hleg
+  | some J =>
+      obtain ⟨i, hreach, hrk, hshape⟩ := (applyDrawStackTo_shape).mp hJ
+      exact ⟨J, rfl, deck_dominance_draw1_replay hwf hstep hdraw hrk hJ π w
+        hcomp hrun hwin⟩
 
 /-! ## §5.4 Unstack only what is not safe to restack -/
 

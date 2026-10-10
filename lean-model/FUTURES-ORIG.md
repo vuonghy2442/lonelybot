@@ -2,11 +2,15 @@
 
 Doc-only design note (no Lean changes; no constant in the library is
 cited as sorry, every file:line was verified in this worktree at
-macro-game `d6b53fb`).  Purpose: settle-then-formulate support for the
-chapter's ticket 7, "the futures count: a commitment leaves at most two
-`sameFate`-distinct successors, per accommodation window — restated on
-the original game, with the `Klondike` witness corpus re-derived here
-first" (`lean-model/Orig.lean:77`, `Orig/Fate.lean:36`).  The old count
+macro-game `d6b53fb`).  AMENDMENT 2026-10-10 (later): this doc no
+longer describes a sorrry-less Orig — the to-foundation dominances
+port headlined in §8 landed four named stubs at
+`Orig/Dominance.lean`; everything else stands.  Purpose:
+settle-then-formulate support for the chapter's ticket 7, "the
+futures count: a commitment leaves at most two `sameFate`-distinct
+successors, per accommodation window — restated on the original
+game, with the `Klondike` witness corpus re-derived here first"
+(`lean-model/Orig.lean:77`, `Orig/Fate.lean:36`).  The old count
 theorem's formulation is an OPEN user decision (the five-wave count
 campaign: FARM.md waves 13–21); this note supplies the translations,
 the fences the refutation ledger dictates, and the candidate
@@ -1019,8 +1023,56 @@ discipline: this file adds no sorries, cites none, and should be read
 against `witnesses/README.md`'s regression-layer protocol
 (`witnesses/README.md:13-22`) and the census header (FARM.md:3).
 
-## 8. The session ledger (UPDATE 2026-10-10: the both-occupied
-harvest + the post-merge cleanup session, branch `macro-game`)
+## 8. The session ledger (UPDATE 2026-10-10: the to-foundation
+dominances port + the both-occupied harvest + the post-merge cleanup,
+branch `macro-game`)
+
+**STATUS 2026-10-10 (later) — THE TO-FOUNDATION DOMINANCES ARE
+FORMULATED ON THE PHYSICAL GAME, HALF PROVEN.**  `Orig/Dominance.lean`
+is on main, wired at the `Orig.lean` root (chapter registry row at
+`Orig.lean:114`); zero-sorry-Orig is over by exactly four named,
+route-carrying stubs — the Klondike wave-24 rows in FARM.md name the
+same family:
+
+- **§5.1 PHYSICAL (the safe `tabToFound`)— the R-halves PROVEN.**  The
+  statement `tabToFound_safe_dominant` (a legal raise of a
+  `safeToFound` card preserves `WinFrom`) is a PROVEN assembly over
+  the LANDED undo family: the under-seat case rides
+  `tabToFound_undo_under` (the fit from `runOK_snoc_sit`, the search
+  from the new `pileOfTop_after_tabToFound` — WF uniqueness at the
+  source), the bare-king case rides `tabToFound_undo_bare`; both
+  close through the new play-lift `WinFrom_of_runTo` /
+  `WinFrom_of_undo` (axiom-clean `[propext]`).  The one open piece
+  is the named bare-floor residue `tabToFound_dominant_of_ground`
+  (below-run empty AND (reveal seated a fresh top OR no king)) —
+  the old [GAP] channel-A/B reshape in physical dress; the locked
+  guard has NO physical analogue (the reveal is part of the move),
+  and the old deal-adjacent bases ARE this residue's geometry.
+- **§5.3 PHYSICAL (draw-1 deck dominance) — the layer split,
+  named.**  `stock_dominance_draw1` (front `c ∈ st.stock` with
+  `nextUp` + safety as a deal-out-and-stack play) is PROVEN plumbing
+  over `(C) draw1_compliant_normalForm` and `(B) draw1_compliant_replay`
+  (safety-free, the same nine-case ledger as the Klondike chapter's
+  B, with `sameCycle`/`(A) draw1_sameCycle_sameFate` — the physical
+  stock-as-reserve rotation, `cycleOf := stock ++ waste.reverse` —
+  replacing the old cursor twins).  The compliance is the rung
+  discipline (`rungHeldUntilExit`: only `c`-suited worry-backs are
+  banned pre-exit — for a stocked rung card no other shape reads
+  its slot).
+- **New vocabulary**, all physical: `safeToFound` (Keller's rung
+  condition through `foundHeight`), `sameCycle`/`cycleOf`,
+  `Move.leavesWaste`, `Move.lowersRung`, `rungHeldUntilExit`,
+  the transports `WinFrom_of_runTo`/`WinFrom_of_undo`.  Axioms:
+  `tabToFound_safe_dominant` `[propext, sorryAx, Quot.sound]` (the
+  sorryAx is exactly `..._of_ground`),
+  `stock_dominance_draw1` `[propext, sorryAx]`.
+- **Refute-first gates** (each stub's note): a bare-floor state whose
+  every win parks on `c`'s fresh seat before the suit climbs; a
+  sameCycle rotation that is not fate-preserving at draw 1; a
+  compliant-less corner for (C); a (B) square that is not an
+  equality/sameCycle landing.
+
+## 8-prior. The both-occupied harvest (2026-10-10 earlier, branch `macro-game`)
 
 **STATUS 2026-10-10 — THE BOTH-OCCUPIED MIRRORING ENGINE IS ON MAIN
 AND THE EXCHANGE CHAPTER NOW RIDES THE PACK.**  Six landings, raw

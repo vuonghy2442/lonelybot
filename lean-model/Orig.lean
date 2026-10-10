@@ -19,6 +19,7 @@ import Orig.Canonical
 import Orig.MergeWalls
 import Orig.TwinExchangeBoth
 import Orig.Progress
+import Orig.Dominance
 
 /-!
 # Orig — the original game
@@ -107,9 +108,18 @@ Chapter plan (each later chapter is a derived construction):
      the scrub of `win_iff_macro`'s single `by_cases` through it;
    - the arrangement-blind abstraction `α` and its replay license —
      the bridge to `Klondike.*`;
-   - the futures count: a commitment leaves at most two
-     `sameFate`-distinct successors, per accommodation window —
-     restated on the original game, with the `Klondike` witness
-     corpus re-derived here first (the formulation route map and
-     fence ledger: `FUTURES-ORIG.md`).
--/
+    - the futures count: a commitment leaves at most two
+      `sameFate`-distinct successors, per accommodation window —
+      restated on the original game, with the `Klondike` witness
+      corpus re-derived here first (the formulation route map and
+      fence ledger: `FUTURES-ORIG.md`);
+    - the to-foundation dominances — `Orig.Dominance`, the physical
+      port of method.md §5.1/§5.3: the safe-`tabToFound` dominance
+      PROVEN over the landed undo family (`tabToFound_undo_under`,
+      `tabToFound_undo_bare`) plus the one named bare-floor residue
+      (`tabToFound_dominant_of_ground`, the old [GAP] channel-A/B
+      reshape); the draw-1 stock dominance staged over the named
+      (A)/(B)/(C) stubs (`draw1_sameCycle_sameFate`,
+      `draw1_compliant_replay`, `draw1_compliant_normalForm`) with the
+      headline assembly proven. -/
+
