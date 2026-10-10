@@ -18,6 +18,7 @@ import Orig.Reach
 import Orig.Canonical
 import Orig.MergeWalls
 import Orig.TwinExchangeBoth
+import Orig.PileSwap
 import Orig.Progress
 
 /-!
