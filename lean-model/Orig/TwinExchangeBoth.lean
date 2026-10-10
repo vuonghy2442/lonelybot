@@ -1331,3 +1331,162 @@ theorem exch_step_draw {st s₁ : State} {t z z' : Card} {α β : Anchor}
     · exact hTsw.trans State.exchangeTwin_waste.symm
     · exact hTd.trans (State.exchangeTwin_drawStep.trans (hdrw.symm.trans State.exchangeTwin_drawStep.symm))
   rw [hT, hTe]
+
+/-- The license carries over a pile-preserving step: the searches,
+shapes and fits hold verbatim and WF re-derives the braid family. -/
+theorem bothOcc_pilesCarry {st s₁ : State} {m : Move} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF) (hstep : State.step st m = some s₁)
+    (hpil : s₁.piles = st.piles)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β) (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true) :
+    BothOcc s₁ t := by
+  have hwf₁ : s₁.WF := step_wf hwf hstep
+  have h₁s : s₁.pileHolding t = some α := by
+    rw [pileHolding_congr hpil]
+    exact h₁
+  have h₂s : s₁.pileHolding t.twin = some β := by
+    rw [pileHolding_congr hpil]
+    exact h₂
+  have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by rw [hpil]; exact hsα
+  have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by rw [hpil]; exact hsβ
+  have hb := braid_splice hwf₁ h₁s h₂s hne hsαs hsβs hfit hfit'
+  exact ⟨α, β, z, z', Bα, B', Sa, Sa', h₁s, h₂s, hne, hsαs, hsβs,
+    hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩
+
+/-- The wasteToFound firing shape. -/
+private theorem setFound_found_self {st : State} {s : Suit} {l : List Card} :
+    (st.setFound s l).found s = l := by
+  show (if s = s then l else st.found s) = l
+  cases hdd : decide (s = s) with
+  | true => rw [ite_true_eq (of_decide_eq_true hdd)]
+  | false => exact absurd rfl (of_decide_eq_false hdd)
+
+private theorem setFound_found_ne {st : State} {s s' : Suit} {l : List Card}
+    (hne : s' ≠ s) : (st.setFound s l).found s' = st.found s' := by
+  show (if s' = s then l else st.found s') = st.found s'
+  cases hdd : decide (s' = s) with
+  | true => exact absurd (of_decide_eq_true hdd) hne
+  | false => rw [ite_false_eq (of_decide_eq_false hdd)]
+
+private theorem step_wasteToFound_shape {st s₁ : State} {c : Card}
+    (hstep : st.step (Move.wasteToFound c) = some s₁) :
+    (st.wasteIs c && st.nextUp c) = true ∧ ∃ ws : List Card,
+      st.waste = c :: ws ∧
+      s₁ = { st.setFound c.suit (st.found c.suit ++ [c]) with waste := ws } := by
+  cases hg : (st.wasteIs c && st.nextUp c) with
+  | false =>
+      rw [show st.step (Move.wasteToFound c) = none from by
+        rw [step_wasteToFound_eq, hg]
+        rfl] at hstep
+      exact absurd hstep (by simp)
+  | true =>
+      rw [show st.step (Move.wasteToFound c) =
+          (match st.waste with
+           | _ :: ws => some { st.setFound c.suit (st.found c.suit ++ [c]) with waste := ws }
+           | [] => none) from by
+        rw [step_wasteToFound_eq, hg]
+        rfl] at hstep
+      cases hwl : st.waste with
+      | nil => rw [hwl] at hstep; exact absurd hstep (by simp)
+      | cons w ws =>
+          have hwc : w = c := by
+            cases hb : st.wasteIs c with
+            | true =>
+                have hh : (match st.waste with
+                    | [] => false
+                    | c' :: _ => decide (c' = c)) = true := hb
+                rw [hwl] at hh
+                exact of_decide_eq_true hh
+            | false =>
+                rw [hb] at hg
+                exact absurd hg (by simp)
+          rw [hwl, hwc] at hstep
+          injection hstep with hstep'
+          exact ⟨rfl, ws, by rw [hwc], hstep'.symm⟩
+
+/-- THE WASTETOF FOUND TRANSPORT: waste-to-foundation commutes with
+the exchange (both write only foundations and waste); the license
+carries verbatim. -/
+theorem exch_step_wasteToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card} {c : Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β) (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true)
+    (hstep : st.step (Move.wasteToFound c) = some s₁) :
+    ((st.exchangeTwin t).step (Move.wasteToFound c)) = some (s₁.exchangeTwin t) ∧
+      BothOcc s₁ t := by
+  obtain ⟨hg, ws, hwl, hs₁⟩ := step_wasteToFound_shape hstep
+  have hpil : s₁.piles = st.piles := by rw [hs₁]; rfl
+  refine ⟨?_, bothOcc_pilesCarry hwf hstep hpil h₁ h₂ hne hsα hsβ hfit hfit'⟩
+  show State.step (st.exchangeTwin t) (Move.wasteToFound c) =
+    some (s₁.exchangeTwin t)
+  have hw : (st.exchangeTwin t).wasteIs c = st.wasteIs c := by
+    show (match (st.exchangeTwin t).waste with
+      | [] => false
+      | c' :: _ => decide (c' = c)) = _
+    rw [State.exchangeTwin_waste]
+    rfl
+  have hn : (st.exchangeTwin t).nextUp c = st.nextUp c := by
+    show decide (c.rank.toIdx =
+      ((st.exchangeTwin t).found c.suit).length) = _
+    rw [State.exchangeTwin_found]
+    rfl
+  have hgs : (st.wasteIs c && st.nextUp c) =
+      ((st.exchangeTwin t).wasteIs c && (st.exchangeTwin t).nextUp c) := by
+    rw [hw, hn]
+  cases hg2 : ((st.exchangeTwin t).wasteIs c && (st.exchangeTwin t).nextUp c) with
+  | false =>
+      rw [← hgs] at hg2
+      rw [hg2] at hg
+      exact absurd hg (by simp)
+  | true =>
+      rw [show State.step (st.exchangeTwin t) (Move.wasteToFound c) =
+          (match (st.exchangeTwin t).waste with
+           | _ :: ws => some { (st.exchangeTwin t).setFound c.suit
+               ((st.exchangeTwin t).found c.suit ++ [c]) with waste := ws }
+           | [] => none) from by
+        rw [step_wasteToFound_eq, hg2]
+        rfl]
+      rw [show ((st.exchangeTwin t).waste) = c :: ws from State.exchangeTwin_waste.trans hwl]
+      rw [show (match (c :: ws : List Card) with
+          | _ :: ws' => some ({ (st.exchangeTwin t).setFound c.suit
+              ((st.exchangeTwin t).found c.suit ++ [c]) with waste := ws' } : State)
+          | [] => none) =
+          some ({ (st.exchangeTwin t).setFound c.suit
+              ((st.exchangeTwin t).found c.suit ++ [c]) with waste := ws } : State) from rfl]
+      rw [Option.some.injEq]
+      apply State.ext
+      · funext s'
+        by_cases hs' : s' = c.suit
+        · rw [hs']
+          rw [setFound_found_self]
+          rw [congrFun State.exchangeTwin_found c.suit]
+          rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
+            congrFun State.exchangeTwin_found c.suit]
+          rw [hs₁]
+          exact setFound_found_self.symm
+        · rw [setFound_found_ne hs']
+          rw [congrFun State.exchangeTwin_found s']
+          rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
+            congrFun State.exchangeTwin_found s']
+          rw [hs₁]
+          exact (setFound_found_ne hs').symm
+      · simp only [State.setFound]
+        exact (exch_piles_congr hpil).symm
+      · simp only [State.setFound]
+        rw [show (s₁.exchangeTwin t).stock = s₁.stock from State.exchangeTwin_stock]
+        rw [hs₁]
+        rw [State.exchangeTwin_stock]
+        rfl
+      · simp only [State.setFound]
+        rw [State.exchangeTwin_waste, hs₁]
+      · simp only [State.setFound]
+        rw [show (s₁.exchangeTwin t).drawStep = s₁.drawStep from State.exchangeTwin_drawStep]
+        rw [hs₁]
+        rw [State.exchangeTwin_drawStep]
+        rfl
