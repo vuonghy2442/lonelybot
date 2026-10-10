@@ -893,7 +893,7 @@ def stateSpaceBound : Nat := winRad ^ 20 * 53
 def stateEnc (st : State) : Nat :=
   encF winRad (List.range 20) (windowDigit st) + winRad ^ 20 * st.drawStep
 
-theorem stateEnc_lt {st : State} (hwf : st.WF) (hd : st.drawStep < 53) :
+theorem stateEnc_lt {st : State} (_hwf : st.WF) (hd : st.drawStep < 53) :
     st.stateEnc < stateSpaceBound := by
   have hstep := stateEncStep_lt st
   unfold stateEnc stateSpaceBound

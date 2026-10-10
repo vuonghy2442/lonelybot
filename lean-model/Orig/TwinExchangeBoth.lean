@@ -1436,8 +1436,7 @@ theorem exch_step_wasteToFound {st s₁ : State} {t z z' : Card} {α β : Anchor
         rw [hs₁]
         rw [State.exchangeTwin_stock]
         rfl
-      · simp only [State.setFound]
-        rw [State.exchangeTwin_waste, hs₁]
+      · rw [State.exchangeTwin_waste, hs₁]
       · simp only [State.setFound]
         rw [show (s₁.exchangeTwin t).drawStep = s₁.drawStep from State.exchangeTwin_drawStep]
         rw [hs₁]
