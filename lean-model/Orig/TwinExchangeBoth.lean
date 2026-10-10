@@ -889,6 +889,7 @@ theorem twin_fit_ranks {t z z' : Card}
   obtain ⟨h2, -⟩ := (canSitOn_eq z' t.twin).mp hfit'
   rw [show t.twin.rank.toIdx = t.rank.toIdx from
     congrArg Rank.toIdx (Card.twin_rank t)] at h2
+  refine ⟨h1, h2, ?_⟩
   omega
 
 /-- A rank-impossible sit. -/
@@ -1562,3 +1563,58 @@ theorem pileHolding_append_congr {st s' : State} {κ : Anchor} {c x : Card}
           have h : ¬(x ∈ (st.piles a).faceUp) := of_decide_eq_false hd
           rw [show decide (x ∈ (st.piles a).faceUp ++ [c]) = false from
             decide_eq_false (fun hc => h ((mem_append_single_iff hne).mp hc))]
+
+/-- The wasteToTab firing shape. -/
+private theorem step_wasteToTab_shape {st s₁ : State} {c : Card} {b : Base}
+    (hstep : st.step (Move.wasteToTab c b) = some s₁) :
+    (st.wasteIs c && st.canPlace c b) = true ∧ ∃ ws : List Card,
+      st.waste = c :: ws ∧ s₁ = { st.putCard c b with waste := ws } := by
+  cases hg : (st.wasteIs c && st.canPlace c b) with
+  | false =>
+      rw [show st.step (Move.wasteToTab c b) = none from by
+        rw [step_wasteToTab_eq, hg]; rfl] at hstep
+      exact absurd hstep (by simp)
+  | true =>
+      rw [show st.step (Move.wasteToTab c b) =
+          (match st.waste with
+           | _ :: ws => some { st.putCard c b with waste := ws }
+           | [] => none) from by
+        rw [step_wasteToTab_eq, hg]; rfl] at hstep
+      cases hwl : st.waste with
+      | nil => rw [hwl] at hstep; exact absurd hstep (by simp)
+      | cons w ws =>
+          have hwc : w = c := by
+            cases hb : st.wasteIs c with
+            | true =>
+                have hh : (match st.waste with
+                    | [] => false
+                    | c' :: _ => decide (c' = c)) = true := hb
+                rw [hwl] at hh
+                exact of_decide_eq_true hh
+            | false =>
+                rw [hb] at hg
+                exact absurd hg (by simp)
+          rw [hwl, hwc] at hstep
+          injection hstep with hstep'
+          exact ⟨rfl, ws, by rw [hwc], hstep'.symm⟩
+
+/-- The landing case of a putCard firing: which anchor gets written. -/
+private theorem putCard_cases {st : State} {c : Card} {b : Base}
+    (hcp : st.canPlace c b = true) :
+    (∃ κ : Anchor, b = Sum.inl κ ∧ (st.piles κ).isEmpty = true) ∨
+    (∃ (d : Card) (κ : Anchor), b = Sum.inr d ∧ st.pileOfTop d = some κ) := by
+  cases b with
+  | inl κ =>
+      rw [canPlace_inl_eq] at hcp
+      refine Or.inl ⟨κ, rfl, ?_⟩
+      cases hsi : ((st.piles κ).isEmpty) with
+      | true => rfl
+      | false =>
+          rw [hsi] at hcp
+          exact absurd hcp (by simp)
+  | inr d =>
+      cases hd : st.pileOfTop d with
+      | none =>
+          rw [canPlace_inr_eq, hd] at hcp
+          exact absurd hcp (by simp)
+      | some κ => exact Or.inr ⟨d, κ, rfl, hd⟩
