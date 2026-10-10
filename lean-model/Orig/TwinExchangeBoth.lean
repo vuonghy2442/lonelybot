@@ -1018,3 +1018,210 @@ theorem seat_lock {st : State} {t z z' : Card} {α β : Anchor}
   refine ⟨seat_lock_one hfit ⟨hnp1, hnp2⟩ b, seat_lock_one hfit' ?_ b⟩
   rw [Card.twin_twin]
   exact ⟨hnp2, hnp1⟩
+
+/-! ## §5. The transport rows
+
+Every move of the winning play commutes with the exchange: the same
+move fires at `st.exchangeTwin t` and lands at `s₁.exchangeTwin t`,
+with the license re-seated — or it is the freedom breaker (the
+`tabToFound` of a cargo head), where the same move transports and the
+landed bare row closes the tail.
+
+§5.0 is the congruence ministry: the searches read the piles only, so
+they agree on pile-equivalent states, and the exchange itself does
+too. -/
+
+/-- The holding search reads only the piles. -/
+private theorem pileHolding_congr {st s' : State} {c : Card}
+    (hp : s'.piles = st.piles) :
+    s'.pileHolding c = st.pileHolding c := by
+  show (firstWhere (fun a => decide (c ∈ (s'.piles a).faceUp)) Anchor.all) = _
+  rw [hp]
+  rfl
+
+/-- The top search reads only the piles. -/
+private theorem pileHolding_all_congr {st s' : State}
+    (hp : s'.piles = st.piles) :
+    ∀ c : Card, s'.pileHolding c = st.pileHolding c :=
+  fun _ => pileHolding_congr hp
+
+/-- The exchange writes piles and reads piles: pile-equivalent states
+exchange to pile-equivalent states. -/
+private theorem exch_piles_congr {st s' : State} {t : Card}
+    (hp : s'.piles = st.piles) :
+    (s'.exchangeTwin t).piles = (st.exchangeTwin t).piles := by
+  have hh1 : s'.pileHolding t = st.pileHolding t := pileHolding_congr hp
+  have hh2 : s'.pileHolding t.twin = st.pileHolding t.twin := pileHolding_congr hp
+  cases h1 : st.pileHolding t with
+  | none =>
+      rw [State.exchangeTwin_eq_self_of_missing (Or.inl (hh1.trans h1)),
+          State.exchangeTwin_eq_self_of_missing (Or.inl h1), hp]
+  | some a =>
+      cases h2 : st.pileHolding t.twin with
+      | none =>
+          rw [State.exchangeTwin_eq_self_of_missing (Or.inr (hh2.trans h2)),
+              State.exchangeTwin_eq_self_of_missing (Or.inr h2), hp]
+      | some a' =>
+          by_cases hE : a = a'
+          · rw [State.exchangeTwin_eq_self_of_same (hh1.trans h1) (by rw [hh2, hE]; exact h2),
+              State.exchangeTwin_eq_self_of_same h1 (by rw [hE]; exact h2)]
+            exact hp
+          · rw [State.exchangeTwin_eq_of_located (hh1.trans h1)
+              (hh2.trans h2) hE,
+              State.exchangeTwin_eq_of_located h1 h2 hE]
+            funext k
+            show (if k = a then ⟨(s'.piles a).hidden,
+                    below t ((s'.piles a).faceUp) ++
+                      t :: aboveIn t.twin ((s'.piles a').faceUp)⟩
+                  else if k = a' then ⟨((s'.piles a').hidden),
+                    below t.twin ((s'.piles a').faceUp) ++
+                      t.twin :: aboveIn t ((s'.piles a).faceUp)⟩
+                  else s'.piles k) =
+              (if k = a then ⟨(st.piles a).hidden,
+                    below t ((st.piles a).faceUp) ++
+                      t :: aboveIn t.twin ((st.piles a').faceUp)⟩
+              else if k = a' then ⟨(st.piles a').hidden,
+                    below t.twin ((st.piles a').faceUp) ++
+                      t.twin :: aboveIn t ((st.piles a).faceUp)⟩
+              else st.piles k)
+            by_cases hka : k = a
+            · rw [ite_true_eq hka, ite_true_eq hka, hp]
+            · by_cases hka' : k = a'
+              · rw [ite_false_eq hka, ite_true_eq hka', ite_false_eq hka, ite_true_eq hka', hp]
+              · rw [ite_false_eq hka, ite_false_eq hka', ite_false_eq hka, ite_false_eq hka', hp]
+
+/-- The five-field table of a pile-equivalent state's exchange. -/
+private theorem exch_fields_congr {st s' : State} {t : Card}
+    (hp : s'.piles = st.piles) (hfound : s'.found = st.found)
+    (hstock : s'.stock = st.stock) (hwaste : s'.waste = st.waste)
+    (hdraw : s'.drawStep = st.drawStep) :
+    (s'.exchangeTwin t).piles = (st.exchangeTwin t).piles ∧
+      (s'.exchangeTwin t).found = (st.exchangeTwin t).found ∧
+      (s'.exchangeTwin t).stock = (st.exchangeTwin t).stock ∧
+      (s'.exchangeTwin t).waste = (st.exchangeTwin t).waste ∧
+      (s'.exchangeTwin t).drawStep = (st.exchangeTwin t).drawStep :=
+  ⟨exch_piles_congr hp,
+    by rw [State.exchangeTwin_found, State.exchangeTwin_found, hfound],
+    by rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hstock],
+    by rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hwaste],
+    by rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hdraw]⟩
+
+/-- The braid clauses hold at any licensed shape with WF: the braid
+family is WF-automatic. -/
+theorem braid_splice {st : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β)
+    (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true) :
+    t ∉ aboveIn z ((st.piles α).faceUp) ∧
+      t.twin ∉ aboveIn z ((st.piles α).faceUp) ∧
+      t ∉ aboveIn z' ((st.piles β).faceUp) ∧
+      t.twin ∉ aboveIn z' ((st.piles β).faceUp) := by
+  obtain ⟨hnd, htB, htS, hzB, hzS⟩ := wf_splice_book hwf hsα
+  obtain ⟨-, htB', htS', hzB', hzS'⟩ := wf_splice_book hwf hsβ
+  have hab : aboveIn z ((st.piles α).faceUp) = Sa := by
+    rw [hsα]
+    refine aboveIn_splice_cargo ?_
+    intro hc
+    rcases (List.mem_append.mp hc) with h | h
+    · exact hzB h
+    · rcases (List.mem_cons.mp h) with heq | hnil
+      · exact ne_of_canSitOn hfit heq
+      · exact absurd hnil (by simp)
+  have hab' : aboveIn z' ((st.piles β).faceUp) = Sa' := by
+    rw [hsβ]
+    refine aboveIn_splice_cargo ?_
+    intro hc
+    rcases (List.mem_append.mp hc) with h | h
+    · exact hzB' h
+    · rcases (List.mem_cons.mp h) with heq | hnil
+      · exact ne_of_canSitOn hfit' heq
+      · exact absurd hnil (by simp)
+  refine ⟨fun hc => htS (hab ▸ hc), ?_, ?_, fun hc => htS' (hab' ▸ hc)⟩
+  · intro hc
+    have hmem : t.twin ∈ Bα ++ [t, z] ++ Sa :=
+      mem_of_splice_tail (t := t) (z := z) (hab ▸ hc)
+    have hm : t.twin ∈ (st.piles α).faceUp := by
+      rw [hsα]
+      exact hmem
+    exact (mem_faceUp_unique hwf (pileHolding_mem h₂) α hne).1 hm
+  · intro hc
+    have hmem : t ∈ B' ++ [t.twin, z'] ++ Sa' :=
+      mem_of_splice_tail (t := t.twin) (z := z') (hab' ▸ hc)
+    have hm : t ∈ (st.piles β).faceUp := by
+      rw [hsβ]
+      exact hmem
+    exact (mem_faceUp_unique hwf (pileHolding_mem h₁) β (Ne.symm hne)).1 hm
+
+/-! ### §5.1 The draw stages -/
+
+/-- The recycle only rewrites stock and waste. -/
+private theorem recycle_facts (st : State) :
+    (State.recycle st).piles = st.piles ∧ (State.recycle st).found = st.found ∧
+      (State.recycle st).drawStep = st.drawStep ∧
+      ((st.stock ≠ [] ∧ State.recycle st = st) ∨
+        (st.stock = [] ∧ st.waste = [] ∧ State.recycle st = st) ∨
+        (st.stock = [] ∧
+          State.recycle st = { st with stock := st.waste.reverse, waste := [] })) := by
+  cases hss : st.stock with
+  | nil =>
+      cases hws : st.waste with
+      | nil =>
+          have hr : State.recycle st = st := by simp [State.recycle, hss, hws]
+          rw [hr]
+          exact ⟨rfl, rfl, rfl, Or.inr (Or.inl ⟨by simp, by simp, rfl⟩)⟩
+      | cons w ws =>
+          have hr : State.recycle st =
+              { st with stock := (w :: ws).reverse, waste := [] } := by
+            simp [State.recycle, hss, hws]
+          rw [hr]
+          exact ⟨rfl, rfl, rfl, Or.inr (Or.inr ⟨by simp, rfl⟩)⟩
+  | cons s ss =>
+      have hr : State.recycle st = st := by simp [State.recycle, hss]
+      rw [hr]
+      exact ⟨rfl, rfl, rfl, Or.inl ⟨by simp, rfl⟩⟩
+
+/-- The deal only rewrites stock and waste. -/
+private theorem dealStock_facts (st : State) :
+    (st.stock = [] ∧ State.dealStock st = none) ∨
+      (st.stock ≠ [] ∧ ∃ ds : State, State.dealStock st = some ds ∧
+        ds.piles = st.piles ∧ ds.found = st.found ∧ ds.drawStep = st.drawStep) := by
+  cases hss : st.stock with
+  | nil => exact Or.inl ⟨by simp, by simp [State.dealStock, hss]⟩
+  | cons s ss =>
+      have hne : (s :: ss) ≠ [] := fun hc => by cases hc
+      have hR : State.dealStock st = some { st with stock := (State.dealUpTo st.drawStep (s :: ss)).snd, waste := (State.dealUpTo st.drawStep (s :: ss)).fst.reverse ++ st.waste } := by
+        simp [State.dealStock, hss]
+      exact Or.inr ⟨hne, ⟨_, hR, rfl, rfl, rfl⟩⟩
+
+/-- What the draw may change: piles, found, and the draw step never
+move. -/
+private theorem draw_facts {st s₁ : State} (hstep : st.stepDraw = some s₁) :
+    s₁.piles = st.piles ∧ s₁.found = st.found ∧ s₁.drawStep = st.drawStep := by
+  rw [show st.stepDraw = State.dealStock (State.recycle st) from rfl] at hstep
+  obtain ⟨rp, rf, rd, hrec⟩ := recycle_facts st
+  rcases hrec with ⟨-, hre⟩ | ⟨hcs, -, hre⟩ | ⟨_, _⟩
+  · rw [hre] at hstep
+    rcases dealStock_facts st with ⟨hc, -⟩ | ⟨-, ds, hds, hp, hf, hd⟩
+    · have hnn : State.dealStock st = none := by simp [State.dealStock, hc]
+      rw [hnn] at hstep
+      exact absurd hstep (by simp)
+    · have heq : s₁ = ds := Option.some.inj (hstep.symm.trans hds)
+      rw [heq]
+      exact ⟨hp, hf, hd⟩
+  · rw [hre] at hstep
+    rcases dealStock_facts st with ⟨hc, -⟩ | ⟨hne', -⟩
+    · have hnn : State.dealStock st = none := by simp [State.dealStock, hc]
+      rw [hnn] at hstep
+      exact absurd hstep (by simp)
+    · exact absurd hcs hne'
+  · rcases dealStock_facts (State.recycle st) with ⟨hc, -⟩ | ⟨-, ds, hds, hp, hf, hd⟩
+    · have hnn : State.dealStock (State.recycle st) = none := by simp [State.dealStock, hc]
+      rw [hnn] at hstep
+      exact absurd hstep (by simp)
+    · have heq : s₁ = ds := Option.some.inj (hstep.symm.trans hds)
+      rw [heq]
+      exact ⟨hp.trans rp, hf.trans rf, hd.trans rd⟩
