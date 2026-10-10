@@ -2449,3 +2449,518 @@ theorem sameMacro_twin {u : State} (hwf : u.WF) :
   rw [canon_twinMap hwf]
   exact Quotient.sound (show sameOrbitSetoid.r (canon u) (State.twinMap (canon u)) from
     Or.inr (Or.inl rfl))
+
+/-! ## The draw zone under witness journeys (swComp)
+
+What a same-orbit journey can see of the draw zone: the POOL — the
+cycle's conserved list, the stock reversed ahead of the waste — and
+the PHASE line.  Every move of a witness shuffle either keeps the zone
+verbatim (the tableau and foundation moves), keeps the pool while
+stepping the cycle (a draw — and reversible draws are exactly the
+in-phase shapes, `Orig.Phase`'s classification), or is a waste
+commit that cannot appear at all (its cycle-count drop is
+unreturnable: the count never rises, so a return play cannot climb
+back).  The twin disjunct re-reads the pool through the twin
+relabeling and the phase line is twin-blind (list lengths). -/
+
+/-- The draw-zone pool: the stock, reversed, ahead of the waste — the
+cycle's conserved list. -/
+def drawPool (st : State) : List Card := st.stock.reverse ++ st.waste
+
+/-- **The hypothesis-named draw-zone compatibility** (`swComp` in
+`FUTURES-ORIG.md` §3.0): the journey-necessary residue of a
+same-orbit journey — pools equal literally or through the twin
+relabeling, phase line agreeing.  Its strict witness refinement
+`SWRotW` below is the rotation closure the §3.0 family's `swRot`
+member takes as its hypothesis (the user's pending confirm;
+restating the relation re-points the family without touching the
+statements). -/
+def SWComp (u v : State) : Prop :=
+  (drawPool v = drawPool u ∨ drawPool v = (drawPool u).map Card.twin)
+    ∧ inPhase u = inPhase v
+
+/-- A witness shuffle consisting only of draws. -/
+def DrawPlayW (u : State) (play : List Move) (v : State) : Prop :=
+  ShufflePlayW u play v ∧ ∀ m ∈ play, m = Move.draw
+
+/-- **The witness-backed rotation closure** (Phase's in-phase
+relation, as plays): two positions sit at rotations of one draw
+cycle, joined by draws-only witness rounds. -/
+def SWRotW (u v : State) : Prop :=
+  ∃ σ τ : List Move, DrawPlayW u σ v ∧ DrawPlayW v τ u
+
+/-- Pointwise maps commute with reversal (local kin of the reversal
+lemmas; dedup candidate). -/
+private theorem map_reverse {f : Card → Card} : ∀ (l : List Card),
+    (l.map f).reverse = l.reverse.map f := by
+  intro l
+  induction l with
+  | nil => rfl
+  | cons x t ih => rw [List.map_cons, List.reverse_cons, ih, List.reverse_cons,
+      List.map_append]; simp
+
+/-- The twinned pool is the pool, twinned. -/
+theorem drawPool_twinMap (st : State) :
+    drawPool (State.twinMap st) = (drawPool st).map Card.twin := by
+  show (st.stock.map Card.twin).reverse ++ st.waste.map Card.twin =
+    (st.stock.reverse ++ st.waste).map Card.twin
+  rw [map_reverse, ← List.map_append]
+
+/-- The take/drop split reassembles (local kin of `dealUpTo`'s
+conservation; dedup candidate). -/
+private theorem dealUpTo_append (k : Nat) : ∀ (l : List Card),
+    (State.dealUpTo k l).1 ++ (State.dealUpTo k l).2 = l := by
+  intro l
+  induction k generalizing l with
+  | zero => cases l <;> rfl
+  | succ k ih =>
+      cases l with
+      | nil => rfl
+      | cons x t =>
+          show x :: ((State.dealUpTo k t).1 ++ (State.dealUpTo k t).2) = x :: t
+          rw [ih]
+
+/-- A pointwise map on 43... dedup-marked note: `min` reading of the
+dealt prefix. -/
+private theorem dealUpTo_min (k : Nat) : ∀ (l : List Card),
+    (State.dealUpTo k l).1.length = min k l.length := by
+  intro l
+  induction k generalizing l with
+  | zero => cases l <;> rfl
+  | succ k ih =>
+      cases l with
+      | nil => rfl
+      | cons x t =>
+          show (x :: (State.dealUpTo k t).1).length = min (k + 1) (x :: t).length
+          rw [List.length_cons, List.length_cons, ih]
+          omega
+
+/-- A local kin of `Orig.Irreversible`'s private inversions (dedup
+candidates): a successful `.foundToTab` locates the foundation top
+and lands the set-found-then-place shape. -/
+private theorem step_foundToTab_inv' {st : State} {c : Card} {b : Base} {s' : State}
+    (h : State.step st (Move.foundToTab c b) = some s') :
+    ∃ c', st.foundTop c.suit = some c' ∧ c' = c ∧ st.canPlace c b = true ∧
+      s' = (st.setFound c.suit (chop (st.found c.suit))).putCard c b := by
+  simp only [State.step] at h
+  split at h
+  · split at h
+    · rename_i _ c' ht hg
+      rw [Bool.and_eq_true] at hg
+      injection h with hEq
+      exact ⟨c', ht, of_decide_eq_true hg.1, hg.2, hEq.symm⟩
+    · exact absurd h (by simp)
+  · exact absurd h (by simp)
+
+/-- A local kin of `Orig.Irreversible`'s private inversions (dedup
+candidate): a successful `.tabToTab` locates the run head, places
+legally, and lands the removal-then-placement shape. -/
+private theorem step_tabToTab_inv' {st : State} {c : Card} {b : Base} {s' : State}
+    (h : State.step st (Move.tabToTab c b) = some s') :
+    ∃ a, st.pileHolding c = some a ∧ st.canPlace c b = true ∧
+      fromCard c (st.piles a).faceUp ≠ [] ∧
+        s' = (st.setPile a
+            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+              (fromCard c (st.piles a).faceUp) b := by
+  simp only [State.step] at h
+  split at h
+  · exact absurd h (by simp)
+  · rename_i _ a hh
+    split at h
+    · rename_i hcp
+      split at h
+      · exact absurd h (by simp)
+      · rename_i _ hne
+        injection h with hEq
+        exact ⟨a, hh, hcp, hne, hEq.symm⟩
+    · exact absurd h (by simp)
+
+/-- The tableau and foundation moves keep the whole draw zone
+verbatim (the raise shape via the landed inversion; the descent and
+the relocation via the local inversions above, and the public
+placement field lemmas of `Orig.Irreversible`). -/
+private theorem zone_keep_others {st : State} {m : Move} {s' : State}
+    (h : State.step st m = some s')
+    (hkind : ∃ c, m = Move.tabToFound c ∨
+      (∃ b, m = Move.foundToTab c b ∨ m = Move.tabToTab c b)) :
+    s'.stock = st.stock ∧ s'.waste = st.waste ∧ s'.drawStep = st.drawStep := by
+  obtain ⟨c, hm⟩ := hkind
+  rcases hm with rfl | ⟨b, hm'⟩
+  · obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv h
+    rw [hs]
+    exact ⟨rfl, rfl, rfl⟩
+  · rcases hm' with rfl | rfl
+    · obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv' h
+      rw [hs]
+      refine ⟨putCard_stock _ c b, putCard_waste _ c b, ?_⟩
+      show ((st.setFound c.suit (chop (st.found c.suit))).putCard c b).drawStep
+          = st.drawStep
+      rw [putCard_drawStep _ c b]
+      exact setFound_drawStep _ _ _
+    · obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv' h
+      rw [hs]
+      refine ⟨putRun_stock _ _ b, putRun_waste _ _ b, ?_⟩
+      show ((st.setPile a
+          (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+          _ b).drawStep = st.drawStep
+      rw [putRun_drawStep _ _ b]
+      exact setPile_drawStep _ _ _
+
+/-- The take/drop split reassembles (local kin of `dealUpTo`'s
+conservation; dedup candidate). -/
+private theorem dealUpTo_append_done (x : State) :
+    (State.dealUpTo x.drawStep x.stock).1 ++ (State.dealUpTo x.drawStep x.stock).2
+      = x.stock :=
+  dealUpTo_append x.drawStep x.stock
+
+/-- **A fired draw's exact shape**: the recycled stock is nonempty and
+the successor is the recycled deal. -/
+private theorem stepDraw_inv {x y : State} (hsuc : x.stepDraw = some y) :
+    (x.recycle).stock ≠ [] ∧ y = { x.recycle with
+      stock := (State.dealUpTo (x.recycle).drawStep (x.recycle).stock).2,
+      waste := (State.dealUpTo (x.recycle).drawStep (x.recycle).stock).1.reverse ++
+        (x.recycle).waste } := by
+  have hd : State.dealStock x.recycle = some y := hsuc
+  cases hst : (x.recycle).stock with
+  | nil =>
+      rw [show State.dealStock x.recycle = none from by
+        simp only [State.dealStock, hst]] at hd
+      exact absurd hd (by simp)
+  | cons s ss =>
+      refine ⟨by simp, ?_⟩
+      have hy' : State.dealStock x.recycle = some { x.recycle with
+          stock := (State.dealUpTo (x.recycle).drawStep (s :: ss)).2,
+          waste := (State.dealUpTo (x.recycle).drawStep (s :: ss)).1.reverse ++
+            (x.recycle).waste } := by
+        simp only [State.dealStock, hst]
+      rw [hy'] at hd
+      injection hd with hh
+      rw [hh]
+
+/-- The recycle keeps the pool. -/
+private theorem recycle_pool (st : State) :
+    drawPool st.recycle = drawPool st := by
+  cases hs : st.stock with
+  | nil =>
+      cases hw : st.waste with
+      | nil =>
+          have hr : st.recycle = st := by simp only [State.recycle, hs, hw]
+          rw [hr]
+      | cons w ws =>
+          have hr : st.recycle = { st with stock := (w :: ws).reverse, waste := [] } := by
+            simp only [State.recycle, hs, hw]
+          show (st.recycle).stock.reverse ++ (st.recycle).waste =
+            st.stock.reverse ++ st.waste
+          rw [hr, List.reverse_reverse, List.append_nil, hs, hw]
+          rfl
+  | cons s ss =>
+      have hr : st.recycle = st := by simp only [State.recycle, hs]
+      rw [hr]
+
+/-- **A draw keeps the pool**: the dealt prefix reversed ahead of the
+old waste reassembles, through the take/drop reversal, into the
+recycled pool. -/
+private theorem draw_pool_keep {x y : State} (hsuc : State.step x Move.draw = some y) :
+    drawPool y = drawPool x := by
+  have hd : x.stepDraw = some y := hsuc
+  obtain ⟨hne, hy⟩ := stepDraw_inv hd
+  rw [hy]
+  show (State.dealUpTo (x.recycle).drawStep (x.recycle).stock).2.reverse ++
+      ((State.dealUpTo (x.recycle).drawStep (x.recycle).stock).1.reverse ++
+        (x.recycle).waste) = _
+  rw [← List.append_assoc, ← List.reverse_append]
+  have hsplit := dealUpTo_append_done (x.recycle)
+  rw [hsplit]
+  exact recycle_pool x
+
+/-! ### The phase line -/
+
+/-- The phase line is twin-blind (the in-phase read is stock-empty
+plus a length residue, and mapping twins preserves lengths). -/
+private theorem inPhase_twin_map (st : State) :
+    inPhase (State.twinMap st) = inPhase st := by
+  cases hst : st.stock with
+  | nil =>
+      have ht : (State.twinMap st).stock = [] := by
+        simp [State.twinMap, hst]
+      rw [inPhase_eq_true_of_nil ht, inPhase_eq_true_of_nil hst]
+  | cons s ss =>
+      have ht : (State.twinMap st).stock = (s.twin :: ss.map Card.twin) := by
+        simp [State.twinMap, hst]
+      have hds : (State.twinMap st).drawStep = st.drawStep := rfl
+      have hlen : (st.waste.map Card.twin).length = st.waste.length := List.length_map ..
+      rw [inPhase_eq_decide_of_cons ht, inPhase_eq_decide_of_cons hst, hds]
+      show decide ((st.waste.map Card.twin).length % st.drawStep = 0) =
+        decide (st.waste.length % st.drawStep = 0)
+      rw [hlen]
+
+/-- **The phase interlude, stock half**: a draw fired at a
+phase-aligned, nonpristine position with nonempty stock lands
+phase-aligned (the deal is full exactly when the stock survives it,
+so the waste grows by a whole number of deals; otherwise the stock
+empties and the empty-clause fires). -/
+private theorem draw_phase_keep_stock {x y : State} (hsuc : x.stepDraw = some y)
+    (hst : x.stock ≠ []) (hres : x.waste.length % x.drawStep = 0) :
+    inPhase y = true := by
+  have hrx : x.recycle = x := by
+    cases hs : x.stock with
+    | cons s ss => simp only [State.recycle, hs]
+    | nil => exact absurd hs hst
+  obtain ⟨-, hy⟩ := stepDraw_inv hsuc
+  rw [hrx] at hy
+  cases hy2 : (State.dealUpTo x.drawStep x.stock).2 with
+  | nil =>
+      refine inPhase_eq_true_of_nil ?_
+      rw [hy, hy2]
+  | cons b bs =>
+      have h4 : (State.dealUpTo x.drawStep x.stock).2.length = bs.length + 1 := by
+        rw [hy2, List.length_cons]
+      have hd1 : (State.dealUpTo x.drawStep x.stock).1.length = x.drawStep := by
+        have h2 := dealUpTo_length x.drawStep x.stock
+        have h3 := dealUpTo_min x.drawStep x.stock
+        omega
+      have hyS : y.stock = b :: bs := by
+        rw [hy, hy2]
+      have hyW : y.waste.length = x.drawStep + x.waste.length := by
+        rw [hy]
+        show ((State.dealUpTo x.drawStep x.stock).1.reverse ++ x.waste).length = _
+        rw [List.length_append, List.length_reverse, hd1]
+      have hyD : y.drawStep = x.drawStep := by
+        rw [hy]
+      rw [inPhase_eq_decide_of_cons hyS, hyD, hyW, Nat.add_mod_left, hres]
+      exact decide_eq_true rfl
+
+/-- **The phase interlude, base half**: a draw fired at a base
+position (empty stock, nonempty waste — otherwise nothing fires)
+lands phase-aligned (after the recycle the deal is full exactly when
+the stock survives it). -/
+private theorem draw_phase_keep_base {x y : State} (hsuc : x.stepDraw = some y)
+    (hst : x.stock = []) (hw : x.waste ≠ []) :
+    inPhase y = true := by
+  have hwcon : ∃ w ws, x.waste = w :: ws := by
+    cases hc : x.waste with
+    | nil => exact absurd hc hw
+    | cons w ws => exact ⟨w, ⟨ws, rfl⟩⟩
+  obtain ⟨w, ws, hwe⟩ := hwcon
+  have hr : x.recycle = { x with stock := x.waste.reverse, waste := [] } := by
+    simp only [State.recycle, hst, hwe]
+  obtain ⟨-, hy⟩ := stepDraw_inv hsuc
+  rw [hr, hwe] at hy
+  cases hy2 : (State.dealUpTo x.drawStep ((w :: ws).reverse)).2 with
+  | nil =>
+      refine inPhase_eq_true_of_nil ?_
+      rw [hy, hy2]
+  | cons b bs =>
+      have h4 : (State.dealUpTo x.drawStep ((w :: ws).reverse)).2.length =
+          bs.length + 1 := by
+        rw [hy2, List.length_cons]
+      have hd1 : (State.dealUpTo x.drawStep ((w :: ws).reverse)).1.length =
+          x.drawStep := by
+        have h2 := dealUpTo_length x.drawStep ((w :: ws).reverse)
+        have h3 := dealUpTo_min x.drawStep ((w :: ws).reverse)
+        have hwpos : ((w :: ws).reverse).length ≥ 1 := by
+          have hrev : ((w :: ws).reverse).length = (w :: ws).length :=
+            List.length_reverse
+          rw [hrev, List.length_cons]
+          omega
+        omega
+      have hyS : y.stock = b :: bs := by
+        rw [hy, hy2]
+      have hyW : y.waste.length = x.drawStep := by
+        rw [hy]
+        show ((State.dealUpTo x.drawStep ((w :: ws).reverse)).1.reverse ++
+          ([] : List Card)).length = _
+        rw [List.length_append, List.length_reverse, hd1, List.length_nil]
+        omega
+      have hyD : y.drawStep = x.drawStep := by
+        rw [hy]
+      rw [inPhase_eq_decide_of_cons hyS, hyD, hyW, Nat.mod_self]
+      exact decide_eq_true rfl
+
+/-- **A reversible draw preserves the phase line**: at a base
+position it lands aligned (`draw_phase_keep_base`); at nonempty
+stock the landed classification (`draw_irreversibility_class`)
+forces the firing position itself phase-aligned and nonpristine, so
+`draw_phase_keep_stock` closes. -/
+private theorem draw_rev_phase {x y : State} (hd : 0 < x.drawStep)
+    (hrev : reversibleAtW x Move.draw) (hsuc : State.step x Move.draw = some y) :
+    inPhase y = inPhase x := by
+  have hsuc' : x.stepDraw = some y := hsuc
+  cases hst : x.stock with
+  | nil =>
+      have hw : x.waste ≠ [] := by
+        intro hcon
+        have hrx : x.recycle = x := by
+          simp only [State.recycle, hst, hcon]
+        have hn : State.dealStock x = none := by
+          simp only [State.dealStock, hst]
+        rw [show x.stepDraw = none from by
+          rw [show x.stepDraw = State.dealStock x.recycle from rfl, hrx]
+          exact hn] at hsuc'
+        exact absurd hsuc' (by simp)
+      rw [inPhase_eq_true_of_nil hst,
+        draw_phase_keep_base hsuc' hst hw]
+  | cons s ss =>
+      have hnirr : ¬ irreversibleAt x Move.draw := reversibleAt_of_W hrev
+      have hcp := draw_irreversibility_class (st := x) hd
+        (show x.stock ≠ [] from by rw [hst]; simp)
+      have hneg : ¬ (x.waste = [] ∨ x.waste.length % x.drawStep ≠ 0) :=
+        fun hcon => hnirr (hcp.mpr hcon)
+      have hw : x.waste ≠ [] := fun hcon => hneg (Or.inl hcon)
+      have hres : x.waste.length % x.drawStep = 0 := by
+        cases hres : x.waste.length % x.drawStep with
+        | zero => rfl
+        | succ m =>
+            exact absurd (Or.inr (by rw [hres]; exact Nat.succ_ne_zero m)) hneg
+      rw [inPhase_eq_decide_of_cons hst, hres, decide_eq_true rfl,
+        draw_phase_keep_stock hsuc' (show x.stock ≠ [] from by rw [hst]; simp) hres]
+
+/-! ### The journey extractor -/
+
+/-- The in-phase read only sees the draw zone. -/
+private theorem inPhase_keep {u v : State}
+    (h1 : u.stock = v.stock) (h2 : u.waste = v.waste) (h3 : u.drawStep = v.drawStep) :
+    inPhase u = inPhase v := by
+  cases hus : u.stock with
+  | nil =>
+      have hvnil : v.stock = [] := by rw [← h1]; exact hus
+      rw [inPhase_eq_true_of_nil hus, inPhase_eq_true_of_nil hvnil]
+  | cons c cs =>
+      have hvscs : v.stock = c :: cs := by rw [← h1]; exact hus
+      rw [inPhase_eq_decide_of_cons hus, inPhase_eq_decide_of_cons hvscs, h2, h3]
+
+/-- The cycle count never rises along any play (the local kin of
+`Orig.Mono.mono_run`, specialized and inlined here because
+`Orig.Mono` sits past this file in the import order; a dedup
+candidate at harvest). -/
+private theorem cycleCount_run {st : State} :
+    ∀ {play w}, st.run play = some w → cycleCount w ≤ cycleCount st := by
+  intro play
+  induction play generalizing st with
+  | nil =>
+      intro w hw
+      injection hw with hw'
+      rw [hw']
+      exact Nat.le_refl _
+  | cons m rest ih =>
+      intro w hw
+      obtain ⟨s₁, hstep, hrun⟩ := State.run_cons hw
+      have h1 : cycleCount s₁ ≤ cycleCount st := cycleCount_step hstep
+      have h2 : cycleCount w ≤ cycleCount s₁ := ih hrun
+      omega
+
+/-- The one-move leg of a witness journey, carrying the tail's own
+hypotheses: what the move sees of the draw zone, applied to the tail's
+account (itself needing the successor's draw-step positivity, which
+the leg derives from the move's shape). -/
+private theorem shuffleW_leg {st s₁ w₀ : State} {m : Move} {rest : List Move}
+    (hd : 0 < st.drawStep) (hw₁ : reversibleAtW st m)
+    (hsuc : State.step st m = some s₁)
+    (hrest : ShufflePlayW s₁ rest w₀)
+    (ih : ∀ {w' : State} (_hd' : 0 < s₁.drawStep) (_hrest' : ShufflePlayW s₁ rest w'),
+        drawPool w' = drawPool s₁ ∧ inPhase w' = inPhase s₁ ∧
+          w'.drawStep = s₁.drawStep) :
+    drawPool w₀ = drawPool st ∧ inPhase w₀ = inPhase st ∧ w₀.drawStep = st.drawStep := by
+  cases m with
+  | draw =>
+      have hphase := draw_rev_phase hd hw₁ hsuc
+      have hpool := draw_pool_keep hsuc
+      have hds : s₁.drawStep = st.drawStep := by
+        obtain ⟨-, hy⟩ := stepDraw_inv (show st.stepDraw = some s₁ from hsuc)
+        rw [hy]
+        show (st.recycle).drawStep = st.drawStep
+        have hr : (st.recycle).drawStep = st.drawStep := by
+          cases h1 : st.stock with
+          | cons a as => simp only [State.recycle, h1]
+          | nil =>
+              cases h2 : st.waste with
+              | nil => simp only [State.recycle, h1, h2]
+              | cons b bs => simp only [State.recycle, h1, h2]
+        rw [hr]
+      obtain ⟨hp1, hp2, hp3⟩ := ih (hds ▸ hd) hrest
+      exact ⟨hp1.trans hpool, hp2.trans hphase, hp3.trans hds⟩
+  | tabToFound c =>
+      obtain ⟨hs1, hs2, hs3⟩ := zone_keep_others hsuc ⟨c, Or.inl rfl⟩
+      obtain ⟨hp1, hp2, hp3⟩ := ih (hs3 ▸ hd) hrest
+      refine ⟨hp1.trans ?_, hp2.trans (inPhase_keep hs1 hs2 hs3), hp3.trans hs3⟩
+      show drawPool s₁ = drawPool st
+      rw [show drawPool s₁ = s₁.stock.reverse ++ s₁.waste from rfl,
+        show drawPool st = st.stock.reverse ++ st.waste from rfl, hs1, hs2]
+  | wasteToFound c =>
+      obtain ⟨s₂, ρ, hstep, hrun⟩ := hw₁
+      have hdrop : cycleCount s₂ + 1 ≤ cycleCount st :=
+        cycleCount_step_wasteToFound hstep
+      have hback : cycleCount st ≤ cycleCount s₂ := cycleCount_run hrun
+      have hcontra : cycleCount st < cycleCount st := by omega
+      exact absurd hcontra (Nat.lt_irrefl _)
+  | wasteToTab c b =>
+      obtain ⟨s₂, ρ, hstep, hrun⟩ := hw₁
+      have hdrop : cycleCount s₂ + 1 ≤ cycleCount st :=
+        cycleCount_step_wasteToTab hstep
+      have hback : cycleCount st ≤ cycleCount s₂ := cycleCount_run hrun
+      have hcontra : cycleCount st < cycleCount st := by omega
+      exact absurd hcontra (Nat.lt_irrefl _)
+  | foundToTab c b =>
+      obtain ⟨hs1, hs2, hs3⟩ := zone_keep_others hsuc ⟨c, Or.inr ⟨b, Or.inl rfl⟩⟩
+      obtain ⟨hp1, hp2, hp3⟩ := ih (hs3 ▸ hd) hrest
+      refine ⟨hp1.trans ?_, hp2.trans (inPhase_keep hs1 hs2 hs3), hp3.trans hs3⟩
+      show drawPool s₁ = drawPool st
+      rw [show drawPool s₁ = s₁.stock.reverse ++ s₁.waste from rfl,
+        show drawPool st = st.stock.reverse ++ st.waste from rfl, hs1, hs2]
+  | tabToTab c b =>
+      obtain ⟨hs1, hs2, hs3⟩ := zone_keep_others hsuc ⟨c, Or.inr ⟨b, Or.inr rfl⟩⟩
+      obtain ⟨hp1, hp2, hp3⟩ := ih (hs3 ▸ hd) hrest
+      refine ⟨hp1.trans ?_, hp2.trans (inPhase_keep hs1 hs2 hs3), hp3.trans hs3⟩
+      show drawPool s₁ = drawPool st
+      rw [show drawPool s₁ = s₁.stock.reverse ++ s₁.waste from rfl,
+        show drawPool st = st.stock.reverse ++ st.waste from rfl, hs1, hs2]
+
+/-- **What a witness journey sees of the draw zone**: the pool is
+conserved (draws keep it, waste commits cannot appear — their
+cycle-count drop contradicts the count's never-rise along the
+return play — and every other move keeps the zone verbatim), the
+phase line rides (`draw_rev_phase`), and the draw step is never
+touched by any move. -/
+private theorem shuffleW_zone {x : State} (hd : 0 < x.drawStep) :
+    ∀ {play w}, ShufflePlayW x play w →
+      drawPool w = drawPool x ∧ inPhase w = inPhase x ∧ w.drawStep = x.drawStep := by
+  intro play
+  induction play generalizing x hd with
+  | nil =>
+      rintro w ⟨⟩
+      exact ⟨rfl, rfl, rfl⟩
+  | cons m rest ih =>
+      intro w hw'
+      cases hw' with
+      | cons hw₁ hsuc hrest =>
+          exact shuffleW_leg hd hw₁ hsuc hrest fun hd' hrest' => ih hd' hrest'
+
+/-- **The journey-necessary draw-zone residue**: at a `WF` position,
+every same-orbit companion shares the pool (literally or through the
+twin relabeling) and the phase line. -/
+theorem swComp_of_orbit {u v : State} (huwf : u.WF)
+    (h : sameOrbitSetoid.r u v) : SWComp u v := by
+  have hd : 0 < u.drawStep := huwf.2.2.2
+  have htw : ∀ (z : State), drawPool (State.twinMap z) = (drawPool z).map Card.twin :=
+    drawPool_twinMap
+  have hmaptwin : ∀ (l : List Card), (l.map Card.twin).map Card.twin = l := by
+    intro l
+    induction l with
+    | nil => rfl
+    | cons x t ih => rw [List.map_cons, List.map_cons, ih, Card.twin_twin x]
+  rcases h with rfl | htwin | hrev | hrevt
+  · exact ⟨Or.inl rfl, rfl⟩
+  · rw [htwin]
+    exact ⟨Or.inr (drawPool_twinMap u), (inPhase_twin_map u).symm⟩
+  · obtain ⟨σ, hσ, τ, hτ⟩ := hrev
+    obtain ⟨hp1, hp2, -⟩ := shuffleW_zone hd hτ
+    exact ⟨Or.inl hp1, hp2.symm⟩
+  · obtain ⟨σ, hσ, τ, hτ⟩ := hrevt
+    obtain ⟨hp1, hp2, -⟩ := shuffleW_zone hd hτ
+    have hp1' : (drawPool v).map Card.twin = drawPool u := by
+      rw [← htw v]
+      exact hp1
+    refine ⟨Or.inr ?_, ?_⟩
+    · rw [← hmaptwin (drawPool v), ← hp1']
+    · rw [(inPhase_twin_map v).symm]
+      exact hp2.symm
