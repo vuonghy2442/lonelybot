@@ -78,16 +78,19 @@ pair (C, `⟦w⟧`):
 `CanonLabel C w` reads the fingerprint at the anchor form `C` against
 any WF member `w` of the target class; the read is independent of the
 member, so the edge label is a function of the pair, not of the scheme.
-The determinations tie each commitment family to its fingerprint branch
-with the exact card/anchor data; the assembled exhaustiveness is the
-restated canonical property: two schemes over one class pair commit
-the same *event*.
+The determinations tie each commitment family to its fingerprint
+branch with the exact card/anchor data, the disjointness cells keep
+the families exclusive, and the assembled character
+(`pair_move_character`: the label determines the committed move up to
+the recorded twin-landing merge) closes the restated canonical
+property: two schemes over one class pair commit the same *event*.
 
 ## The landing status of this drop (honest boundary)
 
 This drop lands the JOURNEY-DATA core, the CANONEDGE normal form, the
-commit table's boundary cells and all four determination rows
-(draw/waste/reveal/vacate), plus the full label-map
+commit table's boundary cells, all four determination rows
+(draw/waste/reveal/vacate), the family disjointness cells, and the
+pair-move character, plus the full label-map
 surface (the tripartite alphabet, the cell predicates, and the
 fingerprint reads whose three channels consume the four journey
 invariants):
@@ -119,20 +122,30 @@ invariants):
   drops, the hidden-difference read is the seat), and the vacate
   determination row (`canonEdge_label_vacate`: a vacate-commit edge is
   stackEvent-labeled at the freed seat — both tests die at the
-  conserved counts and the seat-difference read is the seat), plus
+  conserved counts and the seat-difference read is the seat), the four
+  disjointness cells (`canonEdge_label_draw_ne`/`_waste_ne`/
+  `_reveal_ne`/`_vacate_ne`: the label families stay exclusive on the
+  commit — draw never card-labeled, waste never draw/stack-labeled,
+  and the stack family — reveal or vacate, the recorded merge — never
+  draw/waste-labeled), and the pair-move character
+  (`pair_move_character`: the label determines the committed move up
+  to the recorded twin-landing merge, the determination rows'
+  converse closing the restated canonical property beside
+  `edge_label_unique`), plus
   the full label-map definitions (`nzRoot`, `EdgeLabel`, `WasteOf`,
   `RevealCellAt`, `VacateCellAt`, `poolMissCard`, `hiddenDropperAnchor`,
   `rootFreedAnchor`, `CanonLabel`, `CanonEdge.label`).  The card-pinning
   census and the search reads ride the public packs (`Integrity`'s
   census-pack and search iffs, `State`/`Play`'s trivia/reader kits) —
   no farm-private recounting.
-* **next card** (the remaining cells of the theorem, consuming what is
-  landed here): the draw-vs-card disjointness and the pair-move
-  character assembly — the determination arc is fully landed (the four
-  rows carry their signature content: the cycle-drop with
-  pool-difference for the waste exit, the head-drop for the reveal,
-  the seat-root departure for the vacate, and the fully-conserved
-  draw).
+* **milestone status**: COMPLETE in this module — the edge-labeling
+  theorem's full arc is landed (the journey-invariant datums, the
+  `CanonEdge` normal form, the orbit-independence and
+  pair-functionality of the read, the four determination rows, the
+  family disjointness cells, and the pair-move character).  The
+  downstream work (§3.1's count program: the transport bridge and the
+  per-arm enumeration) consumes this module from outside and is not
+  part of it.
 
 ## The vacate cell is a genuine fourth signature — the honest boundary
 
@@ -1990,6 +2003,248 @@ theorem canonEdge_label_vacate {C : State} {D : SameOrbit} (e : CanonEdge C D)
             · intro a' hne'
               rw [hCroot a', vacate_inr_root_keep hsucc a' hne']
 
+/-! ## The disjointness cells and the pair-move character (the close) -/
+
+/-- The commit-kind shape for a `.tabToFound` tip: legality locates the
+departure seat and irreversibility forces the commit cell there.  The
+witness `reversibleAtW` rows kill the reversible shapes — the under row
+(nonempty chop) through the Classify lift, the bare king through the
+landed `tabToFound_undo_bare` — leaving exactly the reveal cell (the
+automatic flip over a nonempty hidden stack) and the vacate cell (the
+hidden-free non-king departure). -/
+private theorem tabToFound_commit_cell {st : State} {c : Card} {w : State}
+    (hwf : st.WF) (hstep : st.step (Move.tabToFound c) = some w)
+    (hIrr : irreversibleAt st (Move.tabToFound c)) :
+    ∃ a, st.pileOfTop c = some a ∧
+      (RevealCellAt st a (Move.tabToFound c) ∨
+        VacateCellAt st a (Move.tabToFound c)) := by
+  obtain ⟨hnext, a, hloc, -⟩ := step_tabToFound_inv hstep
+  refine ⟨a, hloc, ?_⟩
+  cases hch : chop (st.piles a).faceUp with
+  | cons z' preT =>
+      exact ((reversibleAt_of_W
+        (tabToFound_reversibleAtW_under_wf hwf hnext hloc hch)) hIrr).elim
+  | nil =>
+      cases hhid : (st.piles a).hidden with
+      | cons h t =>
+          refine Or.inl (RevealCellAt.tabToFound hloc hch ?_)
+          rw [hhid]
+          exact List.cons_ne_nil h t
+      | nil =>
+          by_cases hking : c.rank = Rank.king
+          · exact ((reversibleAt_of_W
+              (tabToFound_undo_bare hstep hloc hch hhid hking)) hIrr).elim
+          · exact Or.inr (VacateCellAt.tabToFound hloc hch hhid hking)
+
+/-- The commit-kind shape for a `.tabToTab` tip: legality locates the
+departure seat and irreversibility forces the commit cell there — the
+under row through the Classify lift, the bare king through the landed
+`tabToTab_reversibleAtW_bare_king_wf` — leaving exactly the reveal and
+vacate cells. -/
+private theorem tabToTab_commit_cell {st : State} {c : Card} {b : Base} {w : State}
+    (hwf : st.WF) (hstep : st.step (Move.tabToTab c b) = some w)
+    (hIrr : irreversibleAt st (Move.tabToTab c b)) :
+    ∃ a, st.pileHolding c = some a ∧
+      (RevealCellAt st a (Move.tabToTab c b) ∨
+        VacateCellAt st a (Move.tabToTab c b)) := by
+  obtain ⟨a, hh, hcp, -, -⟩ := step_tabToTab_inv hstep
+  refine ⟨a, hh, ?_⟩
+  cases hb : below c (st.piles a).faceUp with
+  | cons z₀ pre' =>
+      exact ((reversibleAt_of_W
+        (tabToTab_reversibleAtW_under_wf hwf hh hcp hb)) hIrr).elim
+  | nil =>
+      cases hhid : (st.piles a).hidden with
+      | cons h t =>
+          refine Or.inl (RevealCellAt.tabToTab hh hb ?_)
+          rw [hhid]
+          exact List.cons_ne_nil h t
+      | nil =>
+          by_cases hking : c.rank = Rank.king
+          · exact ((reversibleAt_of_W
+              (tabToTab_reversibleAtW_bare_king_wf hwf hh hcp hb hhid hking))
+              hIrr).elim
+          · exact Or.inr (VacateCellAt.tabToTab hh hb hhid hking)
+
+/-- **The draw disjointness cell**: a draw-commit edge is never
+card-labeled — the determination row reads the pair as `draw`, and the
+constructor disjointness of the label alphabet keeps the card-carrying
+families (waste entries, stack events) out of reach: the landing read
+all four datums verbatim, so neither card-carrying read fires. -/
+theorem canonEdge_label_draw_ne {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    (hm : e.m = Move.draw) :
+    (∀ c, e.label ≠ EdgeLabel.wasteEntry c) ∧
+    (∀ a, e.label ≠ EdgeLabel.stackEvent a) := by
+  have hL : e.label = EdgeLabel.draw := canonEdge_label_draw e hm
+  constructor
+  · intro c hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+  · intro a hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+
+/-- **The waste disjointness cell**: a waste-commit edge is never
+draw-labeled nor stack-labeled — the row reads the pair as the waste
+entry `wasteEntry c`, and the cycle test that fires for the waste exit
+dies for the draw (the draw conserves the draw zone) and for the stack
+family (whose rows ride the conserved count). -/
+theorem canonEdge_label_waste_ne {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    {c : Card} (hw : WasteOf c e.m) :
+    e.label ≠ EdgeLabel.draw ∧ (∀ a, e.label ≠ EdgeLabel.stackEvent a) := by
+  have hL : e.label = EdgeLabel.wasteEntry c := canonEdge_label_waste e hw
+  constructor
+  · intro hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+  · intro a hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+
+/-- **The reveal disjointness cell**: a reveal-commit edge is never
+draw-labeled nor waste-labeled — the row reads the pair as the stack
+event at the departing seat. -/
+theorem canonEdge_label_reveal_ne {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    {a : Anchor} (hcell : RevealCellAt e.u a e.m) :
+    e.label ≠ EdgeLabel.draw ∧ (∀ c, e.label ≠ EdgeLabel.wasteEntry c) := by
+  have hL : e.label = EdgeLabel.stackEvent a := canonEdge_label_reveal e hcell
+  constructor
+  · intro hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+  · intro c hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+
+/-- **The vacate disjointness cell**: same shape as the reveal's — the
+two sub-cells share the `stackEvent` constructor by the recorded merge
+(the degenerate no-reveal case of the reveal family), so what the
+label alphabet separates here is the stack family from draw and
+waste, never reveal-from-vacate. -/
+theorem canonEdge_label_vacate_ne {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    {a : Anchor} (hcell : VacateCellAt e.u a e.m) :
+    e.label ≠ EdgeLabel.draw ∧ (∀ c, e.label ≠ EdgeLabel.wasteEntry c) := by
+  have hL : e.label = EdgeLabel.stackEvent a := canonEdge_label_vacate e hcell
+  constructor
+  · intro hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+  · intro c hne
+    rw [hL] at hne
+    exact EdgeLabel.noConfusion hne
+
+/-- **The pair-move character (the assembly's close)**: the label of a
+`CanonEdge` determines the committed move up to the recorded
+twin-landing merge.  A draw-labeled edge commits the draw; a
+`wasteEntry c`-labeled edge commits a waste exit of exactly `c` (the
+landing base stays free — the twin-landing merge); a stackEvent-a-labeled
+edge commits a tableau departure exactly at the seat `a` names (the
+raise or the run move; the landing base again free).  This is the
+determination rows' converse, and together with `edge_label_unique` it
+closes the restated canonical property: two schemes over one class
+pair commit the same *event*. -/
+theorem pair_move_character {C : State} {D : SameOrbit} (e : CanonEdge C D) :
+    (e.label = EdgeLabel.draw → e.m = Move.draw) ∧
+    (∀ c, e.label = EdgeLabel.wasteEntry c → WasteOf c e.m) ∧
+    (∀ a, e.label = EdgeLabel.stackEvent a →
+      (∃ c, e.m = Move.tabToFound c ∧ e.u.pileOfTop c = some a) ∨
+      (∃ c b, e.m = Move.tabToTab c b ∧ e.u.pileHolding c = some a)) := by
+  cases hm : e.m with
+  | draw =>
+      refine ⟨?_, ?_, ?_⟩
+      · intro _
+        rfl
+      · intro c hne
+        rw [canonEdge_label_draw e hm] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro a hne
+        rw [canonEdge_label_draw e hm] at hne
+        exact EdgeLabel.noConfusion hne
+  | wasteToFound c₀ =>
+      have hrow : e.label = EdgeLabel.wasteEntry c₀ :=
+        canonEdge_label_waste e (by rw [hm]; exact Or.inl rfl)
+      refine ⟨?_, ?_, ?_⟩
+      · intro hne
+        rw [hrow] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro c hL2
+        have hcon : EdgeLabel.wasteEntry c = EdgeLabel.wasteEntry c₀ :=
+          hL2.symm.trans hrow
+        injection hcon with hcc0
+        exact Or.inl (by rw [hcc0])
+      · intro a hne
+        rw [hrow] at hne
+        exact EdgeLabel.noConfusion hne
+  | wasteToTab c₀ b₀ =>
+      have hrow : e.label = EdgeLabel.wasteEntry c₀ :=
+        canonEdge_label_waste e (by rw [hm]; exact Or.inr ⟨b₀, rfl⟩)
+      refine ⟨?_, ?_, ?_⟩
+      · intro hne
+        rw [hrow] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro c hL2
+        have hcon : EdgeLabel.wasteEntry c = EdgeLabel.wasteEntry c₀ :=
+          hL2.symm.trans hrow
+        injection hcon with hcc0
+        exact Or.inr ⟨b₀, by rw [hcc0]⟩
+      · intro a hne
+        rw [hrow] at hne
+        exact EdgeLabel.noConfusion hne
+  | tabToFound c₀ =>
+      have hstep : e.u.step (Move.tabToFound c₀) = some e.w := by
+        rw [← hm]
+        exact e.land
+      have hIrr : irreversibleAt e.u (Move.tabToFound c₀) := by
+        rw [← hm]
+        exact e.hm
+      obtain ⟨a₀, hloc, hcell⟩ := tabToFound_commit_cell e.tip_wf hstep hIrr
+      have hL : e.label = EdgeLabel.stackEvent a₀ := by
+        rcases hcell with hrev | hvac
+        · rw [← hm] at hrev
+          exact canonEdge_label_reveal e hrev
+        · rw [← hm] at hvac
+          exact canonEdge_label_vacate e hvac
+      refine ⟨?_, ?_, ?_⟩
+      · intro hne
+        rw [hL] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro c hne
+        rw [hL] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro a hL2
+        rw [hL] at hL2
+        injection hL2 with haa0
+        rw [haa0] at hloc
+        exact Or.inl ⟨c₀, rfl, hloc⟩
+  | foundToTab c b =>
+      exact absurd hm (canonEdge_ne_foundToTab e c b)
+  | tabToTab c₀ b₀ =>
+      have hstep : e.u.step (Move.tabToTab c₀ b₀) = some e.w := by
+        rw [← hm]
+        exact e.land
+      have hIrr : irreversibleAt e.u (Move.tabToTab c₀ b₀) := by
+        rw [← hm]
+        exact e.hm
+      obtain ⟨a₀, hloc, hcell⟩ := tabToTab_commit_cell e.tip_wf hstep hIrr
+      have hL : e.label = EdgeLabel.stackEvent a₀ := by
+        rcases hcell with hrev | hvac
+        · rw [← hm] at hrev
+          exact canonEdge_label_reveal e hrev
+        · rw [← hm] at hvac
+          exact canonEdge_label_vacate e hvac
+      refine ⟨?_, ?_, ?_⟩
+      · intro hne
+        rw [hL] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro c hne
+        rw [hL] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro a hL2
+        rw [hL] at hL2
+        injection hL2 with haa0
+        rw [haa0] at hloc
+        exact Or.inr ⟨c₀, b₀, rfl, hloc⟩
+
 /-! ## The axiom audit (per-declaration) -/
 
 #print axioms orbit_data
@@ -2004,6 +2259,11 @@ theorem canonEdge_label_vacate {C : State} {D : SameOrbit} (e : CanonEdge C D)
 #print axioms canonEdge_label_waste
 #print axioms canonEdge_label_reveal
 #print axioms canonEdge_label_vacate
+#print axioms canonEdge_label_draw_ne
+#print axioms canonEdge_label_waste_ne
+#print axioms canonEdge_label_reveal_ne
+#print axioms canonEdge_label_vacate_ne
+#print axioms pair_move_character
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
