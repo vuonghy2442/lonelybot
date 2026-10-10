@@ -380,6 +380,33 @@ precondition sets separate; and NO merged move definition
 enters State.step — six constructors stay the semantics of
 record, the combination lives in the analysis layer only.
 
+**THE CANONEDGE NORMAL FORM (user proposal, corrected and
+recorded 2026-10-10):** the definitional layer the assembly
+opens with.  A macro transition does NOT have a unique underlying
+MOVE (the twin-landing merge — being proven in the waste-entry
+cell — is one edge, two moves), but every macro transition HAS
+A UNIQUE NORMAL FORM: (reversible padding π from the canonical
+representative) + EXACTLY ONE COMMIT + class-closure — anchored
+uniquely (canon_unique) and carrying a single commit slot
+(structurally: by the phase-progress lemma a chain's first commit
+already exits the class, so multi-commit edges are impossible —
+every subsequent commit is its own edge).  DEFINITION:
+structure CanonEdge (C D) := (π : pure-reversible from C) ×
+(m : one commit firing at π·C, irreversibleAt there) × (D =
+⟦landing⟧).  PRESENTATION THEOREM: MacroStep-edges ↔
+CanonEdge-schemes — the (⇐) direction trivial (a scheme IS a
+window-plus-commit MacroStep), the (⇒) direction is the
+transport bridge (the assembly's milestone one; the waste-entry
+cell bypasses it with c literally in hand).  WHAT IT BUYS:
+"the branches of a macro state" gains its clean predicate (the
+CanonEdge successor-class set at C; the per-card count reads
+c's schemes reach ≤ 2 classes); the window ambiguity dies
+definitionally (every edge anchored at one fixed
+representative — "regardless of micro state" becomes
+definitional); and the solver-level reading: the macro graph is
+a well-defined labeled graph (canonical vertices, commit-scheme
+edges).
+
 ```lean
 theorem apply_two_macroOutcomes {t₁ t₂ t₃ : State} {m : Move} {s₁ s₂ s₃ : State}
     (h₁₂ : ⟦t₁⟧ = ⟦t₂⟧) (h₁₃ : ⟦t₁⟧ = ⟦t₃⟧)   -- ⟦·⟧ : Quotient sameOrbitSetoid, the
