@@ -4875,3 +4875,100 @@ theorem exch_step_tabToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
       · have hmir := bothOcc_mirror hbocc
         rwa [Card.twin_twin] at hmir
     · exact exch_step_tabToTab_core hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep ha hcp hs₁ hB
+
+/-! ## §6. The g-simulation
+
+The play-level induction of the old engine's assembly route
+(`Klondike/TwinQuotient.lean:3109`,
+`State.solvable_exchangeTwinCargo_go_gen` — read as a route map
+only, every line re-proved physically, zero engine vocabulary),
+translated onto the six landed rows.  The parameterization keeps
+the old assembly's discipline — a riding license grade taken as a
+parameter with the per-move transport as its slot content, the
+freedom event handed to its own slot — and drops what the rows
+made un-openable: the two merge-corner kill bridges, taken in the
+engine with the license OPEN because the handlers had to feed
+impossibility lemmas a packed license could not, instantiate here
+to the landed walls (`merge_impossible_of_WF` /
+`merge_rooted_impossible_of_WF`), already consumed as the bridge
+shapes inside the `tabToTab` row.  The sixth row's totality is the
+whole of it: the ride never meets a merge corner mid-play, so the
+g-simulation carries no merge-corner handler at all.  The riding
+invariant is the license itself — the v5 census verdict, maximal
+for the move family: on the both-occupied instance `P := BothOcc`,
+re-seated at every step by the five commute rows and re-issued or
+bare-handed by the freedom row, whose `BareLic` tail the free slot
+closes through the landed bare row — which consumes the bare
+packet at the successor's own facts, so no witness of the outer
+license is ever re-bound across a handler boundary (the M5e
+lesson, held here by making the rows themselves the walls'
+consumers). -/
+
+/-- The per-move dispatch: at the licensed shape every legal step
+transports — the exchanged state fires the same move and lands at
+the exchanged successor — and the license disposition is the rows'
+exact one.  The five commute rows hand `BothOcc` back at `s₁`; the
+freedom row hands either the re-seated license or the bare packet. -/
+private theorem exch_step_all {st s₁ : State} {m : Move} {t : Card}
+    (hwf : st.WF) (hbo : BothOcc st t) (hstep : st.step m = some s₁) :
+    ((st.exchangeTwin t).step m = some (s₁.exchangeTwin t)) ∧
+      (BothOcc s₁ t ∨ BareLic s₁ t) := by
+  obtain ⟨α, β, z, z', Bα, B', Sa, Sa', h₁, h₂, hne, hsα, hsβ, hfit, hfit',
+    -, -, -, -⟩ := hbo
+  cases m with
+  | draw =>
+      obtain ⟨hA, hB⟩ := exch_step_draw hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+  | wasteToFound c =>
+      obtain ⟨hA, hB⟩ :=
+        exch_step_wasteToFound hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+  | wasteToTab c b =>
+      obtain ⟨hA, hB⟩ := exch_step_wasteToTab hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+  | tabToFound c =>
+      exact exch_step_tabToFound hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+  | foundToTab c b =>
+      obtain ⟨hA, hB⟩ := exch_step_foundToTab hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+  | tabToTab c b =>
+      obtain ⟨hA, hB⟩ := exch_step_tabToTab hwf h₁ h₂ hne hsα hsβ hfit hfit' hstep
+      exact ⟨hA, Or.inl hB⟩
+
+/-- **The g-simulation.**  The play induction over a winning play's
+move list: `hride` is the move-family contract (every legal step
+commutes with the exchange, and either re-seats the riding license
+or issues the bare packet), `hfree` is the freedom-tail closure
+(the bare packet takes the successor's verdict).  The terminal case
+closes through `State.isWin_exchangeTwin`; the merge corners never
+appear because the sixth row made the `tabToTab` arm total. -/
+theorem exchange_go_gen
+    (P : State → Card → Prop)
+    (hride : ∀ {st s₁ : State} {t : Card} {m : Move},
+      st.WF → P st t → st.step m = some s₁ →
+      ((st.exchangeTwin t).step m = some (s₁.exchangeTwin t)) ∧
+        (P s₁ t ∨ BareLic s₁ t))
+    (hfree : ∀ {s₁ : State} {t : Card},
+      s₁.WF → BareLic s₁ t → WinFrom s₁ → WinFrom (s₁.exchangeTwin t)) :
+    ∀ (play : List Move) (st : State) (t : Card),
+      st.WF → P st t →
+      (∃ w, st.run play = some w ∧ w.isWin = true) →
+      WinFrom (st.exchangeTwin t) := by
+  intro play
+  induction play with
+  | nil =>
+      intro st t hwf _hP ⟨w, hrun, hwin⟩
+      have hw : st = w := Option.some.inj hrun
+      subst hw
+      refine ⟨[], st.exchangeTwin t, rfl, ?_⟩
+      rw [State.isWin_exchangeTwin]
+      exact hwin
+  | cons m ms ih =>
+      intro st t hwf hP ⟨w, hrun, hwin⟩
+      obtain ⟨s₁, hap, hrest⟩ := State.run_cons hrun
+      obtain ⟨htrans, hp₁⟩ := hride hwf hP hap
+      rcases hp₁ with hP₁ | hbare
+      · exact WinFrom_of_succ ⟨m, htrans⟩
+          (ih s₁ t (step_wf hwf hap) hP₁ ⟨w, hrest, hwin⟩)
+      · exact WinFrom_of_succ ⟨m, htrans⟩
+          (hfree (step_wf hwf hap) hbare ⟨ms, w, hrest, hwin⟩)
