@@ -101,7 +101,14 @@ invariants):
   hidden-descent/seat-physics commitments, the waste rows as the
   universal commitments, the under/bare-king shapes kept literally by
   the landed placement lemmas), `shuffleW_data`/`orbit_data` (the
-  class-invariant lifts), `CanonEdge` with `tip_wf`/`landing_wf`,
+  class-invariant lifts), the quotient datum kernel (`MacroDatums`
+  with `MacroDatums.of`/`of_class`, the ungated class form
+  `sameDatums_class`, and the lift `datumOf` with its definitional
+  computation rule `datumOf_mk` — the same `sameDatums` machinery
+  staged one section up, re-read as a quotient map's soundness; the
+  staircase footing, landed as its own coherent staging ahead of the
+  member-form restatement that stands on it), `CanonEdge` with
+  `tip_wf`/`landing_wf`,
   `canonEdge_exits_source` (the phase-progress cell: the commit
   strictly exits its class), `canonEdge_ne_foundToTab` (the
   no-fourth-kind cell, part one: a committed move is never a
@@ -143,9 +150,11 @@ invariants):
   `CanonEdge` normal form, the orbit-independence and
   pair-functionality of the read, the four determination rows, the
   family disjointness cells, and the pair-move character).  The
-  downstream work (§3.1's count program: the transport bridge and the
-  per-arm enumeration) consumes this module from outside and is not
-  part of it.
+  quotient datum kernel now lands first, as its own coherent staging:
+  the module's next restatement (the tip scheme over classes — the
+  recorded member-form flip) stands on it.  The downstream work (§3.1's
+  count program: the transport bridge and the per-arm enumeration)
+  consumes this module from outside and is not part of it.
 
 ## The vacate cell is a genuine fourth signature — the honest boundary
 
@@ -1196,6 +1205,75 @@ theorem sameDatums_orbit {x y : State} (h : sameOrbitSetoid.r x y) (hwf : x.WF) 
     y.WF ∧ SameDatums x y := by
   obtain ⟨hwf', h1, h2, h3, h4⟩ := orbit_data h hwf
   exact ⟨hwf', h1, h2, h3, h4⟩
+
+/-! ### The quotient datum kernel (the staircase footing)
+
+The four journey-invariant datums descend to the macro classes as one
+bundled carrier.  The map IS a `Quotient.lift`, and its soundness
+argument is the SAME `sameDatums` machinery already staged one section
+up: the datums half of `sameDatums_orbit` (the four equalities — the
+WF accessor is not part of the map) at the `sameDatums_play` rung,
+read through the witnessing journey of the class relation.  The reads
+through the computation rule below are definitional: a consumer that
+holds a member holds the class's data.  This kernel lands first as its
+own coherent staging — the staircase footing the member-form tip
+scheme stands on; the anchor-form's orbit-independence cell dissolves
+into it (recorded at the flip landing). -/
+
+/-- The bundled macro-class data: the four journey-invariant datums
+(cycle count, draw-zone pool, per-anchor hidden stacks, per-anchor
+bare non-king roots) under one carrier — what a macro class itself
+reads, member-free. -/
+structure MacroDatums where
+  /-- the cycle count the class reads -/
+  cycle : Nat
+  /-- the draw-zone pool the class reads -/
+  pool : List Card
+  /-- the per-anchor hidden stacks the class reads -/
+  hidden : Anchor → List Card
+  /-- the per-anchor bare non-king roots the class reads -/
+  roots : Anchor → Option Card
+
+/-- The member read: the four datums of one state, bundled. -/
+def MacroDatums.of (u : State) : MacroDatums :=
+  ⟨cycleCount u, drawPool u, fun a => (u.piles a).hidden, fun a => nzRoot u a⟩
+
+/-- The ungated class form of the datums ladder: class-mates share the
+bundle with no WF hypothesis — the journey legs conserve the data, and
+the WF accessor of `sameDatums_orbit` is not part of the datum map. -/
+theorem sameDatums_class {x y : State} (h : sameOrbitSetoid.r x y) :
+    SameDatums x y := by
+  rcases h with ⟨σ, hσ, τ, hτ⟩
+  exact sameDatums_play hτ
+
+/-- The descent is well-defined: the bundled datums agree on
+class-mates — the lift's soundness, one cite up the ladder. -/
+theorem MacroDatums.of_class (x y : State) (h : sameOrbitSetoid.r x y) :
+    MacroDatums.of x = MacroDatums.of y := by
+  obtain ⟨h1, h2, h3, h4⟩ := sameDatums_class h
+  show (⟨cycleCount x, drawPool x, fun a => (x.piles a).hidden, fun a => nzRoot x a⟩ : MacroDatums)
+     = ⟨cycleCount y, drawPool y, fun a => (y.piles a).hidden, fun a => nzRoot y a⟩
+  have e1 : cycleCount x = cycleCount y := h1.symm
+  have e2 : drawPool x = drawPool y := h2.symm
+  have e3 : (fun a => (x.piles a).hidden) = (fun a => (y.piles a).hidden) :=
+    funext fun a => (h3 a).symm
+  have e4 : (fun a => nzRoot x a) = (fun a => nzRoot y a) :=
+    funext fun a => (h4 a).symm
+  rw [e1, e2, e3, e4]
+
+/-- **The class datum map**: every macro class carries the four journey
+datums, read at any of its members.  The lift's soundness is the
+ladder's datums half; the setoid rides the quotient type itself, never
+instance search (`sameOrbitSetoid` shares the instance world with the
+twin and exchange setoids — the corpus discipline: always passed
+explicitly). -/
+def datumOf (Q : SameOrbit) : MacroDatums :=
+  Quotient.lift MacroDatums.of MacroDatums.of_class Q
+
+/-- The computation rule: the class reads exactly the member's bundle
+(definitional — the ordinary consumer-port equation). -/
+theorem datumOf_mk (u : State) :
+    datumOf ⟦u⟧ = MacroDatums.of u := rfl
 
 /-! ## The CanonEdge normal form -/
 
@@ -2310,6 +2388,12 @@ theorem pair_move_character_switch {C : State} {D : SameOrbit} (e : CanonEdge C 
 /-! ## The axiom audit (per-declaration) -/
 
 #print axioms orbit_data
+#print axioms sameDatums_class
+#print axioms MacroDatums
+#print axioms MacroDatums.of
+#print axioms MacroDatums.of_class
+#print axioms datumOf
+#print axioms datumOf_mk
 #print axioms CanonEdge.tip_wf
 #print axioms CanonEdge.landing_wf
 #print axioms canonEdge_exits_source
