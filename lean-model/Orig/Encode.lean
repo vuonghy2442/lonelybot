@@ -893,21 +893,11 @@ def stateSpaceBound : Nat := winRad ^ 20 * 53
 def stateEnc (st : State) : Nat :=
   encF winRad (List.range 20) (windowDigit st) + winRad ^ 20 * st.drawStep
 
-theorem stateEnc_lt {st : State} (hwf : st.WF) :
+theorem stateEnc_lt {st : State} (hwf : st.WF) (hd : st.drawStep < 53) :
     st.stateEnc < stateSpaceBound := by
   have hstep := stateEncStep_lt st
-  have hdraw : st.drawStep < 4 := by
-    rcases hwf.2.2.2 with h | h
-    · rw [h]; decide
-    · rw [h]; decide
   unfold stateEnc stateSpaceBound
-  have hnest : encF winRad (List.range 20) (windowDigit st)
-      + winRad ^ 20 * st.drawStep < winRad ^ 20 * 4 :=
-    nest_lt hstep hdraw
-  have hpow : winRad ^ 20 * 4 ≤ winRad ^ 20 * 53 := Nat.mul_le_mul_left _ (by decide)
-  calc encF winRad (List.range 20) (windowDigit st) + winRad ^ 20 * st.drawStep
-        < winRad ^ 20 * 4 := hnest
-    _ ≤ winRad ^ 20 * 53 := hpow
+  exact nest_lt hstep hd
 
 /-- The nat-indexed injectivity read, with the twenty-slot carrier
 fixed: digit bounds below the radix give digit-wise equality. -/

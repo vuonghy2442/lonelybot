@@ -36,14 +36,14 @@ lands exactly here, where `d` deals every card once and the draw
 step is one of the two physical choices. -/
 def initialReachable (st : State) : Prop :=
   ∃ (d : State.Deal) (s : Nat) (play : List Move),
-    d.WF ∧ (s = 1 ∨ s = 3) ∧ (State.initial d s).run play = some st
+    d.WF ∧ 0 < s ∧ (State.initial d s).run play = some st
 
 /-- Reachability by recurrence: the dealt initial states, closed
 under one legal move.  No move ever rewrites the deal or the draw
 step, so the closure never leaves the dealt game it started in. -/
 inductive initialReachableR : State → Prop
   /-- A dealt game's start. -/
-  | initial (d : State.Deal) (s : Nat) (hd : d.WF) (hs : s = 1 ∨ s = 3) :
+  | initial (d : State.Deal) (s : Nat) (hd : d.WF) (hs : 0 < s) :
       initialReachableR (State.initial d s)
   /-- One legal move preserves reachability. -/
   | step (st : State) (m : Move) (st' : State)
@@ -98,7 +98,7 @@ every dealt initial state and that one legal move preserves it.
 The invariant-preservation form every future fence proof over the
 reachable fragment takes. -/
 theorem invariant_of_initialReachableR {I : State → Prop}
-    (hinit : ∀ (d : State.Deal) (s : Nat), d.WF → (s = 1 ∨ s = 3) →
+    (hinit : ∀ (d : State.Deal) (s : Nat), d.WF → 0 < s →
       I (State.initial d s))
     (hstep : ∀ (st st' : State) (m : Move), State.step st m = some st' →
       I st → I st') :
@@ -111,7 +111,7 @@ theorem invariant_of_initialReachableR {I : State → Prop}
 /-- The combinator, deposit form: the reachability side of the iff
 absorbed, so a fence proof reads directly off `initialReachable`. -/
 theorem invariant_of_initialReachable {I : State → Prop}
-    (hinit : ∀ (d : State.Deal) (s : Nat), d.WF → (s = 1 ∨ s = 3) →
+    (hinit : ∀ (d : State.Deal) (s : Nat), d.WF → 0 < s →
       I (State.initial d s))
     (hstep : ∀ (st st' : State) (m : Move), State.step st m = some st' →
       I st → I st') :
@@ -965,7 +965,7 @@ private theorem ofDealt_cnt (l : List Card) (h : l ≠ []) (c₀ : Card) :
 pile's face-up run is its dealt singleton, the card count is the
 deal's own (conservation inherited through `ofDealt`), and the
 draw step is the dealt one. -/
-theorem initial_wf (d : State.Deal) (s : Nat) (hd : d.WF) (hs : s = 1 ∨ s = 3) :
+theorem initial_wf (d : State.Deal) (s : Nat) (hd : d.WF) (hs : 0 < s) :
     (State.initial d s).WF := by
   obtain ⟨hdlen, hstocklen, hcount⟩ := hd
   refine ⟨?_, ?_, ?_, hs⟩
@@ -1143,9 +1143,7 @@ private theorem draw_wf {st st' : State} (hwf : st.WF) (hstep : st.stepDraw = so
       rw [hrw]
       show (State.recycle st).drawStep = st.drawStep
       rw [hk3]
-    rcases hstep1or3 with h | h
-    · exact Or.inl (by rw [hsd]; exact h)
-    · exact Or.inr (by rw [hsd]; exact h)
+    rw [hsd]; exact hstep1or3
 
 private theorem Suit_all_nodup : (Suit.all : List Suit).Nodup := by decide
 private theorem Anchor_all_nodup : (Anchor.all : List Anchor).Nodup := by decide
@@ -1167,14 +1165,12 @@ private theorem wasteToFound_wf {st st' : State} {c : Card}
   have hpp : st'.piles = st.piles := by rw [hrw]; rfl
   have hwr : st'.waste = ws := by rw [hrw]
   have hstock : st'.stock = st.stock := by rw [hrw]; rfl
-  have hsd' : st'.drawStep = 1 ∨ st'.drawStep = 3 := by
+  have hsd' : 0 < st'.drawStep := by
     have hdeq : st'.drawStep = st.drawStep := by
       rw [hrw]
       show (st.setFound c.suit (st.found c.suit ++ [c])).drawStep = st.drawStep
       rfl
-    rcases hsd with h | h
-    · exact Or.inl (by rw [hdeq]; exact h)
-    · exact Or.inr (by rw [hdeq]; exact h)
+    rw [hdeq]; exact hsd
   refine ⟨?_, ?_, ?_, hsd'⟩
   · exact found_gain_clause hpre hnextup hf hfne
   · intro a
@@ -1249,12 +1245,10 @@ private theorem wasteToTab_wf {st st' : State} {c : Card} {b : Base}
       obtain ⟨hid, hfu⟩ := pile_isEmpty hempty
       have hstock : st'.stock = st.stock := by rw [hrw, putCard_eq_inl]; rfl
       have hfeq : st'.found = st.found := by rw [hrw, putCard_eq_inl]; rfl
-      have hsd' : st'.drawStep = 1 ∨ st'.drawStep = 3 := by
+      have hsd' : 0 < st'.drawStep := by
         have hdeq : st'.drawStep = st.drawStep := by
           rw [hrw, putCard_eq_inl]; rfl
-        rcases hsd with h | h
-        · exact Or.inl (by rw [hdeq]; exact h)
-        · exact Or.inr (by rw [hdeq]; exact h)
+        rw [hdeq]; exact hsd
       have hstockc : ∀ c₀, cnt c₀ st'.stock = cnt c₀ st.stock := fun c₀ => by rw [hstock]
       have hfcnt : ∀ c₀, cntFlat c₀ (Suit.all.map st'.found)
           = cntFlat c₀ (Suit.all.map st.found) := fun c₀ => by rw [hfeq]
@@ -1332,12 +1326,10 @@ private theorem wasteToTab_wf {st st' : State} {c : Card} {b : Base}
       have htopk : lastOf (st.piles k).faceUp = some z := pileOfTop_top hps
       have hstock : st'.stock = st.stock := by rw [hrw, putCard_eq_inr hps]; rfl
       have hfeq : st'.found = st.found := by rw [hrw, putCard_eq_inr hps]; rfl
-      have hsd' : st'.drawStep = 1 ∨ st'.drawStep = 3 := by
+      have hsd' : 0 < st'.drawStep := by
         have hdeq : st'.drawStep = st.drawStep := by
           rw [hrw, putCard_eq_inr hps]; rfl
-        rcases hsd with h | h
-        · exact Or.inl (by rw [hdeq]; exact h)
-        · exact Or.inr (by rw [hdeq]; exact h)
+        rw [hdeq]; exact hsd
       have hstockc : ∀ c₀, cnt c₀ st'.stock = cnt c₀ st.stock := fun c₀ => by rw [hstock]
       have hfcnt : ∀ c₀, cntFlat c₀ (Suit.all.map st'.found)
           = cntFlat c₀ (Suit.all.map st.found) := fun c₀ => by rw [hfeq]
@@ -1545,14 +1537,12 @@ private theorem tabToFound_wf {st st' : State} {c : Card}
     rw [hrw]
     show (st.setFound c.suit (st.found c.suit ++ [c])).waste = st.waste
     rfl
-  have hsd' : st'.drawStep = 1 ∨ st'.drawStep = 3 := by
+  have hsd' : 0 < st'.drawStep := by
     have hdeq : st'.drawStep = st.drawStep := by
       rw [hrw]
       show (st.setFound c.suit (st.found c.suit ++ [c])).drawStep = st.drawStep
       rfl
-    rcases hsd with h | h
-    · exact Or.inl (by rw [hdeq]; exact h)
-    · exact Or.inr (by rw [hdeq]; exact h)
+    rw [hdeq]; exact hsd
   refine ⟨?_, ?_, ?_, hsd'⟩
   · exact found_gain_clause hpre hnextup hf hfne
   · intro j
@@ -1660,14 +1650,12 @@ private theorem foundToTab_wf {st st' : State} {c : Card} {b : Base}
         rw [hrw, putCard_eq_inl]
         show (st.setFound c.suit (chop (st.found c.suit))).waste = st.waste
         rfl
-      have hsd' : st'.drawStep = 1 ∨ st'.drawStep = 3 := by
+      have hsd' : 0 < st'.drawStep := by
         have hdeq : st'.drawStep = st.drawStep := by
           rw [hrw, putCard_eq_inl]
           show (st.setFound c.suit (chop (st.found c.suit))).drawStep = st.drawStep
           rfl
-        rcases hsd with h | h
-        · exact Or.inl (by rw [hdeq]; exact h)
-        · exact Or.inr (by rw [hdeq]; exact h)
+        rw [hdeq]; exact hsd
       refine ⟨?_, ?_, ?_, hsd'⟩
       · intro σ
         rcases Decidable.em (σ = c.suit) with hσ | hσ
@@ -1810,16 +1798,14 @@ private theorem foundToTab_wf {st st' : State} {c : Card} {b : Base}
           |>.putCard c (Sum.inr z)).waste = st.waste
         rw [putCard_eq_inr hpsA]
         rfl
-      have hsd' : st'.drawStep = 1 ∨ st'.drawStep = 3 := by
+      have hsd' : 0 < st'.drawStep := by
         have hdeq : st'.drawStep = st.drawStep := by
           rw [hrw]
           show (st.setFound c.suit (chop (st.found c.suit))
             |>.putCard c (Sum.inr z)).drawStep = st.drawStep
           rw [putCard_eq_inr hpsA]
           rfl
-        rcases hsd with h | h
-        · exact Or.inl (by rw [hdeq]; exact h)
-        · exact Or.inr (by rw [hdeq]; exact h)
+        rw [hdeq]; exact hsd
       refine ⟨?_, ?_, ?_, hsd'⟩
       · intro σ
         rcases Decidable.em (σ = c.suit) with hσ | hσ
@@ -2078,11 +2064,8 @@ private theorem tabToTab_wf {st st' : State} {c : Card} {b : Base}
       have hfeq : st'.found = st.found := by rw [hrw, putRun_eq_inl]; rfl
       have hstock : st'.stock = st.stock := by rw [hrw, putRun_eq_inl]; rfl
       have hwaste : st'.waste = st.waste := by rw [hrw, putRun_eq_inl]; rfl
-      have hsd' : st'.drawStep = 1 ∨ st'.drawStep = 3 := by
-        have hdeq : st'.drawStep = st.drawStep := by rw [hrw, putRun_eq_inl]; rfl
-        rcases hsd with hq | hq
-        · exact Or.inl (by rw [hdeq]; exact hq)
-        · exact Or.inr (by rw [hdeq]; exact hq)
+      have hsd' : 0 < st'.drawStep := by
+        rw [hrw, putRun_eq_inl]; exact hsd
       refine ⟨?_, ?_, ?_, hsd'⟩
       · intro σ; rw [hfeq]; exact hpre σ
       · intro j
@@ -2302,11 +2285,8 @@ private theorem tabToTab_wf {st st' : State} {c : Card} {b : Base}
       have hfeq : st'.found = st.found := by rw [hrw, putRun_eq_inr hpmid]; rfl
       have hstock : st'.stock = st.stock := by rw [hrw, putRun_eq_inr hpmid]; rfl
       have hwaste : st'.waste = st.waste := by rw [hrw, putRun_eq_inr hpmid]; rfl
-      have hsd' : st'.drawStep = 1 ∨ st'.drawStep = 3 := by
-        have hdeq : st'.drawStep = st.drawStep := by rw [hrw, putRun_eq_inr hpmid]; rfl
-        rcases hsd with hq | hq
-        · exact Or.inl (by rw [hdeq]; exact hq)
-        · exact Or.inr (by rw [hdeq]; exact hq)
+      have hsd' : 0 < st'.drawStep := by
+        rw [hrw, putRun_eq_inr hpmid]; exact hsd
       refine ⟨?_, ?_, ?_, hsd'⟩
       · intro σ; rw [hfeq]; exact hpre σ
       · intro j
@@ -2494,4 +2474,4 @@ theorem initialReachable_cardCount {st : State} (h : initialReachable st)
     st.cardCount c = 1 := (initialReachable_wf h).2.2.1 c hc
 
 theorem initialReachable_drawStep {st : State} (h : initialReachable st) :
-    st.drawStep = 1 ∨ st.drawStep = 3 := (initialReachable_wf h).2.2.2
+    0 < st.drawStep := (initialReachable_wf h).2.2.2

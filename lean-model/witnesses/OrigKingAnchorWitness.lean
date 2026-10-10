@@ -222,7 +222,7 @@ cards appears exactly once, the foundations are empty prefixes, the
 `runOK` check passes, the draw step is 1.  [axioms: none — the
 conservation conjunct is a `List.all` census decide.] -/
 theorem kaW_wf : kaW.WF := by
-  refine ⟨?_, ?_, ?_, Or.inl rfl⟩
+  refine ⟨?_, ?_, ?_, by decide⟩
   · intro σ; exact ⟨0, by cases σ <;> rfl⟩
   · intro a; cases a <;> decide
   · intro c hc
