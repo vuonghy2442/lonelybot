@@ -2126,3 +2126,448 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
     apply hg2
     rw [← hgs]
     exact hg
+
+/-- The foundToTab firing shape: the foundation top is the moved card,
+the placement guard holds, and the step state is the chopped foundation
+with the card landed at the base. -/
+private theorem step_foundToTab_shape {st s₁ : State} {c : Card} {b : Base}
+    (hstep : st.step (Move.foundToTab c b) = some s₁) :
+    st.foundTop c.suit = some c ∧ st.canPlace c b = true ∧
+      s₁ = ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
+  cases hft : st.foundTop c.suit with
+  | none =>
+      rw [show st.step (Move.foundToTab c b) = none from by
+        rw [step_foundToTab_eq, hft]] at hstep
+      exact absurd hstep (by simp)
+  | some c' =>
+      rw [show st.step (Move.foundToTab c b) =
+          (if decide (c' = c) && st.canPlace c b then
+             some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
+           else none) from by
+        rw [step_foundToTab_eq, hft]] at hstep
+      cases hg : (decide (c' = c) && st.canPlace c b) with
+      | false =>
+          rw [hg] at hstep
+          exact absurd hstep (by simp)
+      | true =>
+          have hcp : st.canPlace c b = true := by
+            cases hc : st.canPlace c b with
+            | true => rfl
+            | false =>
+                rw [hc] at hg
+                exact absurd hg (by simp)
+          have hdd : decide (c' = c) = true := by
+            cases hd : decide (c' = c) with
+            | true => rfl
+            | false =>
+                rw [hd] at hg
+                exact absurd hg (by simp)
+          have hc' : c' = c := of_decide_eq_true hdd
+          subst hc'
+          rw [hg] at hstep
+          injection hstep with hstep'
+          exact ⟨rfl, hcp, hstep'.symm⟩
+
+/-- THE FOUNDTOTAB TRANSPORT: foundation-to-tableau commutes with the
+exchange — the foundation-top search reads identically (the exchange
+never writes a foundation: `State.exchangeTwin_found`, read through
+`lastOf`), the `canPlace` guard reads identically
+(`exch_canPlace_congr`), so the σ-side fires and lands its `putCard`
+at the ANCHOR-SWAPPED mirror of the st-side landing.  The found side
+is the new anatomy of this row: the σ-side source-foundation chop
+drops the same card at both states (the found bullet is the per-suit
+table — the chop writes one suit, every other suit reads the
+exchanged = unexchanged foundation, `congrFun
+State.exchangeTwin_found`), both putCards pass the foundations
+untouched (`putCard_inl_found` / `putCard_inr_found`), and the moved
+card is new to the tableau (a foundation card is never a face-up pile
+card — `mem_found_unique`) so the append carries stay honest.  The
+license re-seats per the landing case (fresh:
+`bothOcc_freshWrite`; host-swollen: `bothOcc_swollenSelf` /
+`bothOcc_swollenOther`). -/
+theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
+    {Bα B' Sa Sa' : List Card} {c : Card} {b : Base}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t = some α) (h₂ : st.pileHolding t.twin = some β) (hne : α ≠ β)
+    (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
+    (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
+    (hfit : canSitOn z t = true) (hfit' : canSitOn z' t.twin = true)
+    (hstep : st.step (Move.foundToTab c b) = some s₁) :
+    ((st.exchangeTwin t).step (Move.foundToTab c b)) = some (s₁.exchangeTwin t) ∧
+      BothOcc s₁ t := by
+  obtain ⟨hft, hcp, hs₁⟩ := step_foundToTab_shape hstep
+  have hwf₁ : s₁.WF := step_wf hwf hstep
+  have hfc : c ∈ st.found c.suit := lastOf_mem hft
+  have hnt : t ≠ c := by
+    intro hcon
+    rw [← hcon] at hfc
+    exact ((mem_found_unique hwf hfc).1 α).2 (pileHolding_mem h₁)
+  have hntw : t.twin ≠ c := by
+    intro hcon
+    rw [← hcon] at hfc
+    exact ((mem_found_unique hwf hfc).1 β).2 (pileHolding_mem h₂)
+  have hαne : (st.piles α).faceUp ≠ [] := fun hcon =>
+    (splice_nonempty Bα Sa) (hsα.symm.trans hcon)
+  have hβne : (st.piles β).faceUp ≠ [] := fun hcon =>
+    (splice_nonempty B' Sa') (hsβ.symm.trans hcon)
+  have hcpσ : (st.exchangeTwin t).canPlace c b = st.canPlace c b :=
+    exch_canPlace_congr hwf h₁ h₂ hne hsα hsβ c b
+  have hσft : (st.exchangeTwin t).foundTop c.suit = st.foundTop c.suit := by
+    show lastOf ((st.exchangeTwin t).found c.suit) = lastOf (st.found c.suit)
+    rw [State.exchangeTwin_found]
+  have hdcc : decide (c = c) = true := by simp
+  have hgs : (decide (c = c) && (st.exchangeTwin t).canPlace c b) = true := by
+    rw [hdcc, hcpσ, hcp]
+    rfl
+  -- the σ-side fire: same foundation top, same placement guard
+  rw [show State.step (st.exchangeTwin t) (Move.foundToTab c b) =
+      (if decide (c = c) && (st.exchangeTwin t).canPlace c b then
+         some (((st.exchangeTwin t).setFound c.suit
+             (chop ((st.exchangeTwin t).found c.suit))).putCard c b)
+       else none) from by
+    rw [step_foundToTab_eq,
+        show (st.exchangeTwin t).foundTop c.suit = some c from hσft.trans hft]]
+  rw [hgs]
+  rw [show (if true then
+        some (((st.exchangeTwin t).setFound c.suit
+            (chop ((st.exchangeTwin t).found c.suit))).putCard c b)
+      else none) =
+      some (((st.exchangeTwin t).setFound c.suit
+          (chop (st.found c.suit))).putCard c b) from by
+    rw [congrFun State.exchangeTwin_found c.suit]
+    rfl]
+  rw [Option.some.injEq]
+  -- the landing dispatch:
+  rcases putCard_cases hcp with ⟨κ, rfl, hempty⟩ | ⟨d, κ, rfl, hd⟩
+  · -- (A) the empty-anchor write: the written pile was empty, so it
+    -- cannot be a host pile; the license carries verbatim, and both
+    -- sides write the same ⟨[], [c]⟩ record.
+    have hκA : κ ≠ α := by
+      intro hcon
+      rw [hcon] at hempty
+      exact hαne ((Pile.isEmpty_eq _).mp hempty).2
+    have hκB : κ ≠ β := by
+      intro hcon
+      rw [hcon] at hempty
+      exact hβne ((Pile.isEmpty_eq _).mp hempty).2
+    have hsκ : (s₁.piles κ).faceUp = (st.piles κ).faceUp ++ [c] := by
+      have hpf : (st.piles κ).faceUp = [] := (Pile.isEmpty_eq _).mp hempty |>.2
+      rw [hs₁]
+      rw [putCard_eq_inl, setPile_self, hpf]
+      rfl
+    have hskips : ∀ j : Anchor, j ≠ κ → s₁.piles j = st.piles j := by
+      intro j hj
+      rw [hs₁]
+      rw [putCard_eq_inl]
+      exact setPile_skips hj
+    have h₁s : s₁.pileHolding t = some α := by
+      rw [pileHolding_append_congr hsκ hskips hnt]
+      exact h₁
+    have h₂s : s₁.pileHolding t.twin = some β := by
+      rw [pileHolding_append_congr hsκ hskips hntw]
+      exact h₂
+    have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+      rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
+          rw [hskips α (Ne.symm hκA)]]
+      exact hsα
+    have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+      rw [show (s₁.piles β).faceUp = (st.piles β).faceUp from by
+          rw [hskips β (Ne.symm hκB)]]
+      exact hsβ
+    have hs₁sk : s₁.stock = st.stock := by
+      rw [hs₁, putCard_eq_inl]
+      rfl
+    have hs₁w : s₁.waste = st.waste := by
+      rw [hs₁, putCard_eq_inl]
+      rfl
+    have hs₁d : s₁.drawStep = st.drawStep := by
+      rw [hs₁, putCard_eq_inl]
+      rfl
+    refine ⟨?_,
+      bothOcc_freshWrite hwf hstep hsκ hskips hκA hκB (Ne.symm hnt) (Ne.symm hntw)
+        h₁ h₂ hne hsα hsβ hfit hfit'⟩
+    apply State.ext
+    · show (((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inl κ)).found = (s₁.exchangeTwin t).found
+      rw [putCard_inl_found, State.exchangeTwin_found, hs₁, putCard_inl_found]
+      funext s'
+      by_cases hs' : s' = c.suit
+      · rw [hs']
+        rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
+            setFound_found_self]
+        rw [show (st.setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
+            setFound_found_self]
+      · rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found s' = (st.exchangeTwin t).found s' from
+            setFound_found_ne hs']
+        rw [congrFun State.exchangeTwin_found s']
+        rw [show (st.setFound c.suit (chop (st.found c.suit))).found s' = st.found s' from
+            setFound_found_ne hs']
+    · funext j
+      show (if j = κ then (⟨[], [c]⟩ : Pile) else (st.exchangeTwin t).piles j) = (s₁.exchangeTwin t).piles j
+      by_cases hjκ : j = κ
+      · rw [hjκ, ite_true_eq rfl,
+          State.exchangeTwin_pile_ne h₁s h₂s hne hκA hκB,
+          show (s₁.piles κ) = (⟨[], [c]⟩ : Pile) from by
+            rw [hs₁]
+            rw [putCard_eq_inl]
+            exact setPile_self]
+      · by_cases hjα : j = α
+        · rw [hjα, ite_false_eq (Ne.symm hκA),
+            exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+            exch_pile_self_record hwf₁ h₁s h₂s hne hsαs hsβs,
+            show (s₁.piles α).hidden = (st.piles α).hidden from by
+              rw [hskips α (Ne.symm hκA)]]
+        · by_cases hjβ : j = β
+          · rw [hjβ, ite_false_eq (Ne.symm hκB),
+              exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+              exch_pile_other_record hwf₁ h₁s h₂s hne hsαs hsβs,
+              show (s₁.piles β).hidden = (st.piles β).hidden from by
+                rw [hskips β (Ne.symm hκB)]]
+          · rw [ite_false_eq hjκ,
+              show (s₁.exchangeTwin t).piles j = s₁.piles j from
+                State.exchangeTwin_pile_ne h₁s h₂s hne hjα hjβ,
+              hskips j hjκ,
+              show (st.exchangeTwin t).piles j = st.piles j from
+                State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
+    · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+      rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁sk]
+    · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+      rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁w]
+    · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+      rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁d]
+  · -- (B) the top-directed landing: the write appends at the κ-pile top
+    have hdF : ((st.setFound c.suit (chop (st.found c.suit))).pileOfTop d) = some κ := hd
+    have hsκ : (s₁.piles κ).faceUp = (st.piles κ).faceUp ++ [c] := by
+      rw [hs₁]
+      rw [putCard_inr_eq hdF, setPile_self]
+      rfl
+    have hskips : ∀ j : Anchor, j ≠ κ → s₁.piles j = st.piles j := by
+      intro j hj
+      rw [hs₁]
+      rw [putCard_inr_eq hdF]
+      exact setPile_skips hj
+    have h₁s : s₁.pileHolding t = some α := by
+      rw [pileHolding_append_congr hsκ hskips hnt]
+      exact h₁
+    have h₂s : s₁.pileHolding t.twin = some β := by
+      rw [pileHolding_append_congr hsκ hskips hntw]
+      exact h₂
+    have hs₁sk : s₁.stock = st.stock := by
+      rw [hs₁, putCard_inr_eq hdF]
+      rfl
+    have hs₁w : s₁.waste = st.waste := by
+      rw [hs₁, putCard_inr_eq hdF]
+      rfl
+    have hs₁d : s₁.drawStep = st.drawStep := by
+      rw [hs₁, putCard_inr_eq hdF]
+      rfl
+    -- the σ-side landing anchor:
+    have hdσF : ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).pileOfTop d =
+        some (swapAnch α β κ) := by
+      rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).pileOfTop d =
+          (st.exchangeTwin t).pileOfTop d from rfl]
+      rw [exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ d, hd]
+      rfl
+    by_cases hjα : κ = α
+    · -- (B1) the append lands on the host pile α: the mirror lands
+      -- it on the twin host pile β, and the exchanged suffixes
+      -- swallow the append.
+      rw [hjα] at hsκ hskips hdF hdσF
+      rw [swapAnch_left α β] at hdσF
+      have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ (Sa ++ [c]) := by
+        rw [hsκ, hsα, splice_snoc c]
+      have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+        rw [show (s₁.piles β).faceUp = (st.piles β).faceUp from by
+            rw [hskips β (Ne.symm hne)]]
+        exact hsβ
+      have hsαrec : (s₁.piles α) = { st.piles α with faceUp := (st.piles α).faceUp ++ [c] } := by
+        rw [hs₁]
+        rw [putCard_inr_eq hdF, setPile_self]
+        rfl
+      rw [putCard_inr_eq hdσF]
+      refine ⟨?_,
+        bothOcc_swollenSelf hwf hstep hsκ hskips (Ne.symm hnt) (Ne.symm hntw)
+          h₁ h₂ hne hsα hsβ hfit hfit'⟩
+      apply State.ext
+      · rw [setPile_found, State.exchangeTwin_found, hs₁, putCard_inr_found]
+        funext s'
+        by_cases hs' : s' = c.suit
+        · rw [hs']
+          rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
+              setFound_found_self]
+          rw [show (st.setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
+              setFound_found_self]
+        · rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found s' = (st.exchangeTwin t).found s' from
+              setFound_found_ne hs']
+          rw [congrFun State.exchangeTwin_found s']
+          rw [show (st.setFound c.suit (chop (st.found c.suit))).found s' = st.found s' from
+              setFound_found_ne hs']
+      · funext j
+        show (if j = β then
+              { (st.exchangeTwin t).piles β with
+                faceUp := ((st.exchangeTwin t).piles β).faceUp ++ [c] }
+            else (st.exchangeTwin t).piles j) =
+          (s₁.exchangeTwin t).piles j
+        by_cases hjβ : j = β
+        · rw [hjβ, ite_true_eq rfl,
+            exch_pile_other_record hwf h₁ h₂ hne hsα hsβ]
+          show ((⟨(st.piles β).hidden, (B' ++ [t.twin, z] ++ Sa) ++ [c]⟩ : Pile) =
+            (s₁.exchangeTwin t).piles β)
+          rw [exch_pile_other_record hwf₁ h₁s h₂s hne hsαs hsβs,
+              splice_snoc c,
+              show (s₁.piles β).hidden = (st.piles β).hidden from by
+                rw [hskips β (Ne.symm hne)]]
+        · by_cases hjα' : j = α
+          · rw [hjα', ite_false_eq hne,
+              exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+              exch_pile_self_record hwf₁ h₁s h₂s hne hsαs hsβs,
+              show (s₁.piles α).hidden = (st.piles α).hidden from by
+                rw [hsαrec]]
+          · rw [ite_false_eq hjβ,
+              show (s₁.exchangeTwin t).piles j = s₁.piles j from
+                State.exchangeTwin_pile_ne h₁s h₂s hne hjα' hjβ,
+              hskips j hjα',
+              show (st.exchangeTwin t).piles j = st.piles j from
+                State.exchangeTwin_pile_ne h₁ h₂ hne hjα' hjβ]
+      · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+        rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁sk]
+      · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+        rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁w]
+      · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+        rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁d]
+    · by_cases hjβκ : κ = β
+      · -- (B2) the mirror-land: the append lands on the twin host
+        -- pile β; the σ-side lands it on the host pile α.
+        rw [hjβκ] at hsκ hskips hdF hdσF
+        rw [swapAnch_right α β] at hdσF
+        have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ (Sa' ++ [c]) := by
+          rw [hsκ, hsβ, splice_snoc c]
+        have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+          rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
+              rw [hskips α hne]]
+          exact hsα
+        have hsβrec : (s₁.piles β) = { st.piles β with faceUp := (st.piles β).faceUp ++ [c] } := by
+          rw [hs₁]
+          rw [putCard_inr_eq hdF, setPile_self]
+          rfl
+        rw [putCard_inr_eq hdσF]
+        refine ⟨?_,
+          bothOcc_swollenOther hwf hstep hsκ hskips (Ne.symm hnt) (Ne.symm hntw)
+            h₁ h₂ hne hsα hsβ hfit hfit'⟩
+        apply State.ext
+        · rw [setPile_found, State.exchangeTwin_found, hs₁, putCard_inr_found]
+          funext s'
+          by_cases hs' : s' = c.suit
+          · rw [hs']
+            rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
+                setFound_found_self]
+            rw [show (st.setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
+                setFound_found_self]
+          · rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found s' = (st.exchangeTwin t).found s' from
+                setFound_found_ne hs']
+            rw [congrFun State.exchangeTwin_found s']
+            rw [show (st.setFound c.suit (chop (st.found c.suit))).found s' = st.found s' from
+                setFound_found_ne hs']
+        · funext j
+          show (if j = α then
+                { (st.exchangeTwin t).piles α with
+                  faceUp := ((st.exchangeTwin t).piles α).faceUp ++ [c] }
+              else (st.exchangeTwin t).piles j) =
+            (s₁.exchangeTwin t).piles j
+          by_cases hjα' : j = α
+          · rw [hjα', ite_true_eq rfl,
+              exch_pile_self_record hwf h₁ h₂ hne hsα hsβ]
+            show ((⟨(st.piles α).hidden, (Bα ++ [t, z'] ++ Sa') ++ [c]⟩ : Pile) =
+              (s₁.exchangeTwin t).piles α)
+            rw [exch_pile_self_record hwf₁ h₁s h₂s hne hsαs hsβs,
+                splice_snoc c,
+                show (s₁.piles α).hidden = (st.piles α).hidden from by
+                  rw [hskips α hne]]
+          · by_cases hjβ' : j = β
+            · rw [hjβ', ite_false_eq (Ne.symm hne),
+                exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                exch_pile_other_record hwf₁ h₁s h₂s hne hsαs hsβs,
+                show (s₁.piles β).hidden = (st.piles β).hidden from by
+                  rw [hsβrec]]
+            · rw [ite_false_eq hjα',
+                show (s₁.exchangeTwin t).piles j = s₁.piles j from
+                  State.exchangeTwin_pile_ne h₁s h₂s hne hjα' hjβ',
+                hskips j hjβ',
+                show (st.exchangeTwin t).piles j = st.piles j from
+                  State.exchangeTwin_pile_ne h₁ h₂ hne hjα' hjβ']
+        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁sk]
+        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁w]
+        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁d]
+      · -- (B0) a pile away from both hosts: the license carries
+        -- verbatim; the σ-side lands on the same anchor.
+        have hκA : κ ≠ α := hjα
+        have hκB : κ ≠ β := hjβκ
+        rw [swapAnch_ne hκA hκB] at hdσF
+        have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
+          rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
+              rw [hskips α (Ne.symm hκA)]]
+          exact hsα
+        have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
+          rw [show (s₁.piles β).faceUp = (st.piles β).faceUp from by
+              rw [hskips β (Ne.symm hκB)]]
+          exact hsβ
+        rw [putCard_inr_eq hdσF]
+        refine ⟨?_,
+          bothOcc_freshWrite hwf hstep hsκ hskips hκA hκB (Ne.symm hnt) (Ne.symm hntw)
+            h₁ h₂ hne hsα hsβ hfit hfit'⟩
+        apply State.ext
+        · rw [setPile_found, State.exchangeTwin_found, hs₁, putCard_inr_found]
+          funext s'
+          by_cases hs' : s' = c.suit
+          · rw [hs']
+            rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
+                setFound_found_self]
+            rw [show (st.setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
+                setFound_found_self]
+          · rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found s' = (st.exchangeTwin t).found s' from
+                setFound_found_ne hs']
+            rw [congrFun State.exchangeTwin_found s']
+            rw [show (st.setFound c.suit (chop (st.found c.suit))).found s' = st.found s' from
+                setFound_found_ne hs']
+        · funext j
+          show (if j = κ then
+                { (st.exchangeTwin t).piles κ with
+                  faceUp := ((st.exchangeTwin t).piles κ).faceUp ++ [c] }
+              else (st.exchangeTwin t).piles j) =
+            (s₁.exchangeTwin t).piles j
+          by_cases hjκ : j = κ
+          · rw [hjκ, ite_true_eq rfl,
+              show ((st.exchangeTwin t).piles κ) = (st.piles κ) from
+                State.exchangeTwin_pile_ne h₁ h₂ hne hκA hκB,
+              show ((s₁.exchangeTwin t).piles κ) =
+                  ({ st.piles κ with faceUp := (st.piles κ).faceUp ++ [c] } : Pile) from by
+                rw [show ((s₁.exchangeTwin t).piles κ) = s₁.piles κ from
+                    State.exchangeTwin_pile_ne h₁s h₂s hne hκA hκB, hs₁]
+                rw [putCard_inr_eq hdF, setPile_self]
+                rfl]
+          · by_cases hjα' : j = α
+            · rw [hjα', ite_false_eq (Ne.symm hκA),
+                exch_pile_self_record hwf h₁ h₂ hne hsα hsβ,
+                exch_pile_self_record hwf₁ h₁s h₂s hne hsαs hsβs,
+                show (s₁.piles α).hidden = (st.piles α).hidden from by
+                  rw [hskips α (Ne.symm hκA)]]
+            · by_cases hjβ' : j = β
+              · rw [hjβ', ite_false_eq (Ne.symm hκB),
+                  exch_pile_other_record hwf h₁ h₂ hne hsα hsβ,
+                  exch_pile_other_record hwf₁ h₁s h₂s hne hsαs hsβs,
+                  show (s₁.piles β).hidden = (st.piles β).hidden from by
+                    rw [hskips β (Ne.symm hκB)]]
+              · rw [ite_false_eq hjκ,
+                  show (s₁.exchangeTwin t).piles j = s₁.piles j from
+                    State.exchangeTwin_pile_ne h₁s h₂s hne hjα' hjβ',
+                  hskips j hjκ,
+                  show (st.exchangeTwin t).piles j = st.piles j from
+                    State.exchangeTwin_pile_ne h₁ h₂ hne hjα' hjβ']
+        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
+          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁sk]
+        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
+          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁w]
+        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
+          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁d]
