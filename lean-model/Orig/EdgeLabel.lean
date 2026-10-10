@@ -99,10 +99,18 @@ invariants):
   the landed placement lemmas), `shuffleW_data`/`orbit_data` (the
   class-invariant lifts), `CanonEdge` with `tip_wf`/`landing_wf`,
   `canonEdge_exits_source` (the phase-progress cell: the commit
-  strictly exits its class), and `canonEdge_draw_shape` (a draw edge
-  starts non-pure: pristine or offset), plus the full label-map
-  definitions (`nzRoot`, `EdgeLabel`, `WasteOf`, `RevealCellAt`,
-  `VacateCellAt`, `poolMissCard`, `hiddenDropperAnchor`,
+  strictly exits its class), `canonEdge_ne_foundToTab` (the
+  no-fourth-kind cell, part one: a committed move is never a
+  foundation giveback — every legal WF `foundToTab` is reversible),
+  and `canonEdge_draw_shape` (a draw edge
+  starts non-pure: pristine or offset), the orbit-independence of the
+  read (`canonLabel_orbit_indep`: any two WF class-mates give the same
+  fingerprint), the pair-function property (`edge_label_unique`: two
+  schemes over one class pair carry the same label), and the draw
+  determination row (`canonEdge_label_draw`: a draw-commit edge is
+  draw-labeled — no datum changes, all three reads degenerate), plus
+  the full label-map definitions (`nzRoot`, `EdgeLabel`, `WasteOf`,
+  `RevealCellAt`, `VacateCellAt`, `poolMissCard`, `hiddenDropperAnchor`,
   `rootFreedAnchor`, `CanonLabel`, `CanonEdge.label`).  The card-pinning
   census and the search reads ride the public packs (`Integrity`'s
   census-pack and search iffs, `State`/`Play`'s trivia/reader kits) —
@@ -110,9 +118,9 @@ invariants):
 * **next card** (the remaining cells of the theorem, consuming what is
   landed here): the per-commit signature tables at the four cells
   (cycle-drop + pool-difference for the waste exit; the head-drop for
-  the reveal; the seat-root departure for the vacate), the four
-  determination rows, the orbit-independence of `CanonLabel`, the
-  label uniqueness, and the pair-move character assembly.
+  the reveal; the seat-root departure for the vacate), the remaining
+  determination rows (waste/reveal/vacate — the draw row is landed),
+  the draw-vs-card disjointness, and the pair-move character assembly.
 
 ## The vacate cell is a genuine fourth signature — the honest boundary
 
@@ -331,8 +339,23 @@ private theorem fromCard_head_eq {c : Card} : ∀ {l : List Card}, c ∈ l →
           exact hrun
 
 /- The search reads ride the public State kit (`firstWhere_find`,
-`firstWhere_sound`, `firstWhere_none_complete`, `firstWhere_congr` in
-Twin) — consumed at the determination call sites. -/
+`firstWhere_sound`, `firstWhere_congr` in Twin) — consumed at the
+determination call sites.  The none-completeness below is the ONE
+search reader without a public home (Canonical keeps a private copy
+over the card universe; dedup at merge). -/
+
+/-- When every element fails the predicate, the search is `none`
+(farm-private; Canonical's copy is specialised to the card universe —
+dedup at merge). -/
+private theorem firstWhere_none_of_forall {α : Type} (p : α → Bool) :
+    ∀ {l : List α}, (∀ x ∈ l, p x = false) → firstWhere p l = none := by
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons z t ih =>
+      intro h
+      rw [firstWhere, h z (List.mem_cons.2 (Or.inl rfl))]
+      exact ih fun x hx => h x (List.mem_cons.2 (Or.inr hx))
 
 /-! ## The label alphabet and the seat-root datum -/
 
@@ -1275,6 +1298,44 @@ theorem edge_label_unique {C : State} {D : SameOrbit}
     (e₁ e₂ : CanonEdge C D) : e₁.label = e₂.label :=
   canonLabel_orbit_indep (e₁.cl.trans e₂.cl.symm) e₁.landing_wf
 
+/-! ## The determination rows (one commit family at a time) -/
+
+/-- **The draw row**: an edge whose single commitment is a draw is
+draw-labeled — the draw moves stock to waste within one reservoir, so
+no datum changes across the pair: the cycle test fails (the landing
+reads the anchor's count), the hidden test fails (the landing reads the
+anchor's total), and the seat read finds no differing root (the
+landing reads the anchor's roots) — the fingerprint degenerates to
+`draw`. -/
+theorem canonEdge_label_draw {C : State} {D : SameOrbit} (e : CanonEdge C D)
+    (hm : e.m = Move.draw) : e.label = EdgeLabel.draw := by
+  show CanonLabel C e.w = EdgeLabel.draw
+  have hsD : e.u.stepDraw = some e.w := by
+    have h1 : e.u.step e.m = some e.w := e.land
+    rw [hm] at h1
+    exact h1
+  obtain ⟨hcE, hpE, hhE, hnE⟩ := pad_data e
+  have hpiles : e.w.piles = e.u.piles := stepDraw_piles hsD
+  have hcyc : cycleCount e.w = cycleCount C := (stepDraw_cycle hsD).trans hcE
+  have hHT : hiddenTotal e.w = hiddenTotal C :=
+    (hiddenTotal_congr (fun a => congrArg Pile.hidden (congrFun hpiles a))).trans
+      (hiddenTotal_congr hhE)
+  have hnz : ∀ a, nzRoot C a = nzRoot e.w a := by
+    intro a
+    exact ((nzRoot_congr_pile (congrFun hpiles a)).trans (hnE a)).symm
+  unfold CanonLabel
+  rw [hcyc, hHT]
+  rw [ite_eq_right (Nat.lt_irrefl (cycleCount C))]
+  rw [ite_eq_right (Nat.lt_irrefl (hiddenTotal C))]
+  have hnone : rootFreedAnchor C e.w = none := by
+    unfold rootFreedAnchor
+    refine firstWhere_none_of_forall (fun a => decide (nzRoot C a ≠ nzRoot e.w a))
+      (fun a _ => ?_)
+    by_cases hEq : nzRoot C a = nzRoot e.w a
+    · exact decide_eq_false (fun hne => hne hEq)
+    · exact absurd (hnz a) hEq
+  rw [hnone]
+
 
 /-- A both-empty draw zone cannot produce a draw: recycle is the identity
 and there is nothing to deal (citing the public Play readers). -/
@@ -1330,6 +1391,7 @@ theorem canonEdge_draw_shape {C : State} {D : SameOrbit} (e : CanonEdge C D)
 #print axioms canonEdge_draw_shape
 #print axioms canonLabel_orbit_indep
 #print axioms edge_label_unique
+#print axioms canonEdge_label_draw
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
