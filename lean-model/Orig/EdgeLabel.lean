@@ -123,9 +123,10 @@ pair commit the same *event*.
 
 ## The landing status of this drop (honest boundary)
 
-This drop records the member-form flip (the design ledger above);
-the kernel and the scheme/label surface are green, the rows and the
-character re-land at the next two landings.  What stands:
+This drop records the member-form flip (the design ledger above),
+landed complete over its four coherent landings: the quotient datum
+kernel, the scheme and label surface, the determination rows with the
+disjointness cells, and the pair-move character.  What stands:
 
 * **proved, green**: `leg_data` (the per-leg table: every witness leg
   conserves `cycleCount`, the pool, every per-anchor hidden list, and
@@ -185,12 +186,22 @@ character re-land at the next two landings.  What stands:
   label families stay exclusive on the commit — draw never
   card-labeled, waste never draw/stack-labeled, and the stack family —
   reveal or vacate, the recorded merge — never draw/waste-labeled).
-* **in flight**: the pair-move character (`pair_move_character` with
-  its switch form) — it re-lands at the next landing over the rows
-  and the cells above.
-* **milestone status**: the member-form restatement is one landing
-  from complete — the kernel, the scheme, the label surface, the rows,
-  and the cells stand green above; the character closes next.  The
+* **proved, green (the close)**: the pair-move character
+  (`pair_move_character`: the label determines the committed move up
+  to the recorded twin-landing merge — the determination rows'
+  converse, riding the memberships and the rows, the tableau seats
+  read at the member; together with `edge_label_unique` it closes the
+  restated canonical property: two schemes over one class pair commit
+  the same *event*) and its switch form
+  (`pair_move_character_switch`: the match the compiler exhaustively
+  checks over the tripartite alphabet, the consumption form the count
+  program cites).
+* **milestone status**: COMPLETE in this module — the member-form
+  restatement is done, the edge-labeling theorem's full arc landed at
+  the member grade (the quotient datum kernel, the journey-invariant
+  datums, the `TipEdge` normal form, the definitional
+  pair-functionality of the read, the four determination rows, the
+  family disjointness cells, and the pair-move character).  The
   downstream work (§3.1's count program: the transport bridge and the
   per-arm enumeration) consumes this module from outside and is not
   part of it.
@@ -2320,8 +2331,139 @@ theorem tipEdge_label_vacate_ne {C D : SameOrbit} (e : TipEdge C D)
     rw [hL] at hne
     exact EdgeLabel.noConfusion hne
 
-/- (The pair-move character and its switch form re-land at the next
-landing, over the rows and the cells above.) -/
+/-! ## The pair-move character (the assembly's close) -/
+
+/-- **The pair-move character (the assembly's close)**: the label of a
+tip edge determines the committed move up to the recorded
+twin-landing merge.  A draw-labeled edge commits the draw; a
+`wasteEntry c`-labeled edge commits a waste exit of exactly `c` (the
+landing base stays free — the twin-landing merge); a stackEvent-a-labeled
+edge commits a tableau departure exactly at the seat `a` names (the
+raise or the run move; the landing base again free) — the cells read
+at the member now, so the character's converse directions ride the
+memberships and the rows.  This is the determination rows' converse,
+and together with `edge_label_unique` it closes the restated
+canonical property: two schemes over one class pair commit the same
+*event*. -/
+theorem pair_move_character {C D : SameOrbit} (e : TipEdge C D) :
+    (e.label = EdgeLabel.draw → e.m = Move.draw) ∧
+    (∀ c, e.label = EdgeLabel.wasteEntry c → WasteOf c e.m) ∧
+    (∀ a, e.label = EdgeLabel.stackEvent a →
+      (∃ c, e.m = Move.tabToFound c ∧ e.c.pileOfTop c = some a) ∨
+      (∃ c b, e.m = Move.tabToTab c b ∧ e.c.pileHolding c = some a)) := by
+  cases hm : e.m with
+  | draw =>
+      refine ⟨?_, ?_, ?_⟩
+      · intro _
+        rfl
+      · intro c hne
+        rw [tipEdge_label_draw e hm] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro a hne
+        rw [tipEdge_label_draw e hm] at hne
+        exact EdgeLabel.noConfusion hne
+  | wasteToFound c₀ =>
+      have hrow : e.label = EdgeLabel.wasteEntry c₀ :=
+        tipEdge_label_waste e (by rw [hm]; exact Or.inl rfl)
+      refine ⟨?_, ?_, ?_⟩
+      · intro hne
+        rw [hrow] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro c hL2
+        have hcon : EdgeLabel.wasteEntry c = EdgeLabel.wasteEntry c₀ :=
+          hL2.symm.trans hrow
+        injection hcon with hcc0
+        exact Or.inl (by rw [hcc0])
+      · intro a hne
+        rw [hrow] at hne
+        exact EdgeLabel.noConfusion hne
+  | wasteToTab c₀ b₀ =>
+      have hrow : e.label = EdgeLabel.wasteEntry c₀ :=
+        tipEdge_label_waste e (by rw [hm]; exact Or.inr ⟨b₀, rfl⟩)
+      refine ⟨?_, ?_, ?_⟩
+      · intro hne
+        rw [hrow] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro c hL2
+        have hcon : EdgeLabel.wasteEntry c = EdgeLabel.wasteEntry c₀ :=
+          hL2.symm.trans hrow
+        injection hcon with hcc0
+        exact Or.inr ⟨b₀, by rw [hcc0]⟩
+      · intro a hne
+        rw [hrow] at hne
+        exact EdgeLabel.noConfusion hne
+  | tabToFound c₀ =>
+      have hstep : e.c.step (Move.tabToFound c₀) = some e.w := by
+        rw [← hm]
+        exact e.land
+      have hIrr : irreversibleAt e.c (Move.tabToFound c₀) := by
+        rw [← hm]
+        exact e.hm
+      obtain ⟨a₀, hloc, hcell⟩ := tabToFound_commit_cell e.hwf hstep hIrr
+      have hL : e.label = EdgeLabel.stackEvent a₀ := by
+        rcases hcell with hrev | hvac
+        · rw [← hm] at hrev
+          exact tipEdge_label_reveal e hrev
+        · rw [← hm] at hvac
+          exact tipEdge_label_vacate e hvac
+      refine ⟨?_, ?_, ?_⟩
+      · intro hne
+        rw [hL] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro c hne
+        rw [hL] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro a hL2
+        rw [hL] at hL2
+        injection hL2 with haa0
+        rw [haa0] at hloc
+        exact Or.inl ⟨c₀, rfl, hloc⟩
+  | foundToTab c b =>
+      exact absurd hm (tipEdge_ne_foundToTab e c b)
+  | tabToTab c₀ b₀ =>
+      have hstep : e.c.step (Move.tabToTab c₀ b₀) = some e.w := by
+        rw [← hm]
+        exact e.land
+      have hIrr : irreversibleAt e.c (Move.tabToTab c₀ b₀) := by
+        rw [← hm]
+        exact e.hm
+      obtain ⟨a₀, hloc, hcell⟩ := tabToTab_commit_cell e.hwf hstep hIrr
+      have hL : e.label = EdgeLabel.stackEvent a₀ := by
+        rcases hcell with hrev | hvac
+        · rw [← hm] at hrev
+          exact tipEdge_label_reveal e hrev
+        · rw [← hm] at hvac
+          exact tipEdge_label_vacate e hvac
+      refine ⟨?_, ?_, ?_⟩
+      · intro hne
+        rw [hL] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro c hne
+        rw [hL] at hne
+        exact EdgeLabel.noConfusion hne
+      · intro a hL2
+        rw [hL] at hL2
+        injection hL2 with haa0
+        rw [haa0] at hloc
+        exact Or.inr ⟨c₀, b₀, rfl, hloc⟩
+
+/-- The character in switch form: match on the label, read the move.
+Compiler-checked exhaustive over the tripartite alphabet (a fourth
+constructor would fail to elaborate here, not pass silently) — the
+consumption form the count program's per-label branch analysis cites;
+the three-conjunct form above stays the honest accountant. -/
+theorem pair_move_character_switch {C D : SameOrbit} (e : TipEdge C D) :
+    match e.label with
+    | EdgeLabel.draw => e.m = Move.draw
+    | EdgeLabel.wasteEntry c => WasteOf c e.m
+    | EdgeLabel.stackEvent a =>
+        (∃ c, e.m = Move.tabToFound c ∧ e.c.pileOfTop c = some a) ∨
+        (∃ c b, e.m = Move.tabToTab c b ∧ e.c.pileHolding c = some a) := by
+  obtain ⟨h1, h2, h3⟩ := pair_move_character e
+  cases hl : e.label with
+  | draw => exact h1 hl
+  | wasteEntry c => exact h2 c hl
+  | stackEvent a => exact h3 a hl
 
 /-! ## The axiom audit (per-declaration) -/
 
@@ -2353,6 +2495,8 @@ landing, over the rows and the cells above.) -/
 #print axioms tipEdge_label_waste_ne
 #print axioms tipEdge_label_reveal_ne
 #print axioms tipEdge_label_vacate_ne
+#print axioms pair_move_character
+#print axioms pair_move_character_switch
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
