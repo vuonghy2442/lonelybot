@@ -19,7 +19,20 @@ three named residues in; the physical port landed in Orig as
 sorries are the census-pinned four: `tabToFound_dominant_of_ground`,
 `draw1_sameCycle_sameFate`, `draw1_compliant_replay`,
 `draw1_compliant_normalForm` — routes at their sites; §5.1's R-halves
-ride the LANDED `tabToFound_undo_under/_bare` and are PROVEN)**);
+ride the LANDED `tabToFound_undo_under/_bare` and are PROVEN).
+**wave-24 update (B session, branch `farm/orig-dom-b-replay`):
+`draw1_compliant_replay` UNPROVEN this session — sorry count at the
+site unchanged — but its engine kit is landed sorry-free as the
+private strip of `Orig/Dominance.lean` (the two fronting engines
+`front_stock`/`front_waste` with explicit k and landing literals,
+the dealt composites ported from Phase's orbit strip, the spend
+step in raised form, the `lower_foundToTab` worry-back leg ported
+from Shuttle, `bump2_comm`); route corrections probed at the site:
+the induction needs NO step-preserved WF (the `[]` corner is
+isWin-vs-nextUp alone), the consuming squares land up to a
+pure-draw ROTATION not sameCycle, and (A) is genuinely cited only
+in the waste-form fronting's pristine corner (`postW = []`) —
+banked for the resume and for the (C) session)**);
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the
