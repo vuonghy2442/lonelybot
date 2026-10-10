@@ -408,12 +408,17 @@ Doctrine recorded from the formulating dialogue:
   inside it: reversible single moves preserve the canonical level;
   twin conjugation conjugates canon; in-phase stock/waste rotations
   preserve it (swCompat = Phase's in-phase relation, pending the
-  user's confirm).  OPEN DESIGN QUESTION, MID-FLIGHT: literal
-  canon-equality vs the ⟦·⟧-wrapped form — a reversible cross-move
-  relocating an UNSTACKABLE run residue between twin hosts may
-  change the final canonical tableau (residue at z₁ vs z₂, twin
-  leftovers); the card must decide with evidence, exhibiting the
-  residue witness if literal fails.  The sameFate tie is DEFERRED.
+  user's confirm).  ~~OPEN DESIGN QUESTION, MID-FLIGHT: literal
+  canon-equality vs the ⟦·⟧-wrapped form~~ — **RESOLVED, by exhibit
+  (2026-10-10)**: the WRAPPED form is correct and necessary;
+  `residue_reloc_exhibit` (Orig.Canonical, decide-graded) is a
+  reversible one-move tabToTab relocation of an unstackable residue
+  between twin hosts, both endpoints WF + Final (so canon is the
+  identity there), canon u ≠ canon v literally, same-macro holds —
+  full-state literal dies on draws (trivially), tableau+foundation
+  literal dies on this exhibit; `SWComp` (the draw-pool + in-phase
+  residue) is proven JOURNEY-NECESSARY by `swComp_of_orbit`.  The
+  sameFate tie is DEFERRED.
 - The major theorem (§3.1) consumes this as its normalizer: its
   hypothesis becomes the decidable canon-fiber check.
 
