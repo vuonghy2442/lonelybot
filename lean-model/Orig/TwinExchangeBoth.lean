@@ -2697,21 +2697,8 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
           rw [hsβs']; exact (mem_splice_host (t := t.twin) (z := z') (B := B')).1)
       refine ⟨?_, Or.inr ⟨α, β, h₁s, h₂s, hne, Or.inl hbareα⟩⟩
       apply State.ext
-      · funext s'
-        by_cases hs' : s' = c.suit
-        · rw [hs']
-          rw [setFound_found_self]
-          rw [congrFun State.exchangeTwin_found c.suit]
-          rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
-            congrFun State.exchangeTwin_found c.suit]
-          rw [hs₁]
-          exact setFound_found_self.symm
-        · rw [setFound_found_ne hs']
-          rw [congrFun State.exchangeTwin_found s']
-          rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
-            congrFun State.exchangeTwin_found s']
-          rw [hs₁]
-          exact (setFound_found_ne hs').symm
+      · exact exch_setFound_found (ws := []) (by rw [hs₁])
+
 
       · funext j
         show (if j = β then
@@ -2789,21 +2776,8 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
       refine ⟨?_, Or.inl ⟨α, β, z, z', Bα, B', chop Sa, Sa', h₁s, h₂s, hne,
         hsαs, hsβs, hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
       apply State.ext
-      · funext s'
-        by_cases hs' : s' = c.suit
-        · rw [hs']
-          rw [setFound_found_self]
-          rw [congrFun State.exchangeTwin_found c.suit]
-          rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
-            congrFun State.exchangeTwin_found c.suit]
-          rw [hs₁]
-          exact setFound_found_self.symm
-        · rw [setFound_found_ne hs']
-          rw [congrFun State.exchangeTwin_found s']
-          rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
-            congrFun State.exchangeTwin_found s']
-          rw [hs₁]
-          exact (setFound_found_ne hs').symm
+      · exact exch_setFound_found (ws := []) (by rw [hs₁])
+
 
       · funext j
         show (if j = β then
@@ -2885,21 +2859,8 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
             rw [hsβs']; exact List.mem_append.mpr (Or.inr (by simp)))
         refine ⟨?_, Or.inr ⟨α, β, h₁s, h₂s, hne, Or.inr hbareβ⟩⟩
         apply State.ext
-        · funext s'
-          by_cases hs' : s' = c.suit
-          · rw [hs']
-            rw [setFound_found_self]
-            rw [congrFun State.exchangeTwin_found c.suit]
-            rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
-              congrFun State.exchangeTwin_found c.suit]
-            rw [hs₁]
-            exact setFound_found_self.symm
-          · rw [setFound_found_ne hs']
-            rw [congrFun State.exchangeTwin_found s']
-            rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
-              congrFun State.exchangeTwin_found s']
-            rw [hs₁]
-            exact (setFound_found_ne hs').symm
+        · exact exch_setFound_found (ws := []) (by rw [hs₁])
+
         · funext j
           show (if j = α then
                 Pile.afterRunRemoved ((st.exchangeTwin t).piles α)
@@ -2976,21 +2937,8 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
         refine ⟨?_, Or.inl ⟨α, β, z, z', Bα, B', Sa, chop Sa', h₁s, h₂s, hne,
           hsαs, hsβs, hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
         apply State.ext
-        · funext s'
-          by_cases hs' : s' = c.suit
-          · rw [hs']
-            rw [setFound_found_self]
-            rw [congrFun State.exchangeTwin_found c.suit]
-            rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
-              congrFun State.exchangeTwin_found c.suit]
-            rw [hs₁]
-            exact setFound_found_self.symm
-          · rw [setFound_found_ne hs']
-            rw [congrFun State.exchangeTwin_found s']
-            rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
-              congrFun State.exchangeTwin_found s']
-            rw [hs₁]
-            exact (setFound_found_ne hs').symm
+        · exact exch_setFound_found (ws := []) (by rw [hs₁])
+
         · funext j
           show (if j = α then
                 Pile.afterRunRemoved ((st.exchangeTwin t).piles α)
@@ -3047,21 +2995,8 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
       refine ⟨?_, Or.inl ⟨α, β, z, z', Bα, B', Sa, Sa', h₁s, h₂s, hne,
         hsαs, hsβs, hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
       apply State.ext
-      · funext s'
-        by_cases hs' : s' = c.suit
-        · rw [hs']
-          rw [setFound_found_self]
-          rw [congrFun State.exchangeTwin_found c.suit]
-          rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
-            congrFun State.exchangeTwin_found c.suit]
-          rw [hs₁]
-          exact setFound_found_self.symm
-        · rw [setFound_found_ne hs']
-          rw [congrFun State.exchangeTwin_found s']
-          rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
-            congrFun State.exchangeTwin_found s']
-          rw [hs₁]
-          exact (setFound_found_ne hs').symm
+      · exact exch_setFound_found (ws := []) (by rw [hs₁])
+
 
       · funext j
         show (if j = κ then
