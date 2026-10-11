@@ -2427,12 +2427,170 @@ foundation round-trips by `chop_snoc`, and `canPlace c b` survives at
 the raised state because `b`'s seat provably misses the dug pile. -/
 private theorem relocate_resettle {st : State} {c : Card} {k : Anchor}
     {b : Sum Anchor Card} {u₁ v : State}
-    (hwf : st.WF)
-    (hface : (st.piles k).faceUp = [c])
+    (hwf : st.WF) (hface : (st.piles k).faceUp = [c])
     (hmove : State.step st (Move.tabToTab c b) = some u₁)
     (hrise : State.step st (Move.tabToFound c) = some v) :
     State.step v (Move.foundToTab c b) = some u₁ := by
-  sorry
+  -- The bare window's card reads: the singleton seat, the exact searches.
+  have hmemk : c ∈ (st.piles k).faceUp := by rw [hface]; exact List.mem_cons_self
+  have hhk : st.pileHolding c = some k := (pileHolding_eq_some_iff hwf).mpr hmemk
+  have htopk : (st.piles k).top = some c := by
+    show lastOf ((st.piles k).faceUp) = some c
+    rw [hface]; rfl
+  have hchopk : chop ((st.piles k).faceUp) = ([] : List Card) := by
+    rw [hface]; rfl
+  have hpk : st.pileOfTop c = some k := (pileOfTop_eq_some_iff hwf).mpr htopk
+  -- The raise's record.
+  have hs : v = { st.setFound c.suit (st.found c.suit ++ [c]) with
+      piles := fun a' => if a' = k then
+          Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+        else st.piles a' } := tabToFound_shape hrise hpk
+  -- The relocation's guard and record (the bare window: singleton run,
+  -- empty below-run).
+  have hcan : st.canPlace c b = true := by
+    simp only [State.step, hhk, hface] at hmove
+    cases hbc : st.canPlace c b with
+    | false => rw [hbc] at hmove; exact absurd hmove (by simp)
+    | true => exact rfl
+  have hu₁shape : u₁ = ((st.setPile k
+        (Pile.afterRunRemoved (st.piles k) ([] : List Card)))).putRun [c] b := by
+    simp only [State.step, hhk, hface] at hmove
+    cases hbc : st.canPlace c b with
+    | false => rw [hbc] at hmove; exact absurd hmove (by simp)
+    | true =>
+        rw [hbc] at hmove
+        have hf : fromCard c ([c] : List Card) = ([c] : List Card) := by simp [fromCard]
+        have hp : below c ([c] : List Card) = ([] : List Card) := by simp [below]
+        rw [hf] at hmove
+        dsimp only at hmove
+        rw [hp] at hmove
+        injection hmove with hi
+        exact hi.symm
+  -- The raised succeed's found top is the raised card itself.
+  have hftv : v.foundTop c.suit = some c := by
+    show lastOf (v.found c.suit) = some c
+    rw [hs, show (({ st.setFound c.suit (st.found c.suit ++ [c]) with
+      piles := fun a' => if a' = k then
+          Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+        else st.piles a' } : State).found c.suit)
+      = (st.found c.suit ++ [c]) from setFound_found_self]
+    exact lastOf_snoc
+  -- The placement guard survives at the raised state: `b`'s seat misses
+  -- the dug pile.
+  have hcanv : v.canPlace c b = true := by
+    cases b with
+    | inl a =>
+        obtain ⟨hemp, hking⟩ := canPlace_inl hcan
+        have hknea : a ≠ k := by
+          intro hcon
+          have hface' : (st.piles a).faceUp = [c] := by rw [hcon]; exact hface
+          have hpil := pile_isEmpty_inv hemp
+          rw [hpil] at hface'
+          exact absurd hface' (by simp)
+        show ((v.piles a).isEmpty && decide (c.rank = Rank.king)) = true
+        have hvpa : v.piles a = st.piles a := by
+          rw [hs]
+          show (if a = k then
+              Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+            else st.piles a) = st.piles a
+          rw [if_neg hknea]
+        rw [hvpa, hemp, hking]
+        decide
+    | inr z =>
+        obtain ⟨k', hkz, hfit⟩ := canPlace_inr hcan
+        have hznc : z ≠ c := by
+          intro hcon
+          rw [hcon] at hfit
+          obtain ⟨heq, -⟩ := (canSitOn_eq c c).mp hfit
+          omega
+        have hk'nek : k' ≠ k := by
+          intro hcon
+          have hzt : (st.piles k).top = some z := by
+            rw [← hcon]
+            exact (pileOfTop_eq_some_iff hwf).mp hkz
+          have : (st.piles k).top = some c := htopk
+          rw [hzt] at this
+          exact hznc (Option.some.inj this)
+        have hvwf : v.WF := step_wf hwf hrise
+        have hvptz : v.pileOfTop z = some k' := by
+          refine (pileOfTop_eq_some_iff hvwf).mpr ?_
+          have hpvk : v.piles k' = st.piles k' := by
+            rw [hs]
+            show (if k' = k then
+                Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+              else st.piles k') = st.piles k'
+            rw [if_neg hk'nek]
+          rw [hpvk]
+          exact (pileOfTop_eq_some_iff hwf).mp hkz
+        show (match v.pileOfTop z with
+          | some _ => canSitOn c z
+          | none => false) = true
+        rw [hvptz]
+        exact hfit
+  -- The raised worry-back fires and writes the returned state.
+  have hw : State.step v (Move.foundToTab c b) =
+      some ((v.setFound c.suit (chop (v.found c.suit))).putCard c b) := by
+    show (match v.foundTop c.suit with
+      | some c' =>
+          if decide (c' = c) && v.canPlace c b then
+            some ((v.setFound c.suit (chop (v.found c.suit))).putCard c b)
+          else none
+      | none => none) =
+      some ((v.setFound c.suit (chop (v.found c.suit))).putCard c b)
+    rw [hftv]
+    simp only [decide_eq_true_eq, hcanv, Bool.true_and]
+    rfl
+  rw [hw]
+  -- The foundation round-trips.
+  have hchopv : chop (v.found c.suit) = st.found c.suit := by
+    have hvfcs : v.found c.suit = st.found c.suit ++ [c] := by
+      rw [hs]; exact setFound_found_self
+    rw [hvfcs, chop_snoc]
+  rw [hchopv]
+  -- `putRun [c] b` is `putCard c b` (the singleton run), on any state.
+  have hpr : ∀ s : State, s.putRun ([c] : List Card) b = s.putCard c b := fun _ => rfl
+  rw [hu₁shape, hpr (st.setPile k (Pile.afterRunRemoved (st.piles k) ([] : List Card)))]
+  -- The two carriers coincide.
+  have hvfoundne : ∀ σ : Suit, σ ≠ c.suit → v.found σ = st.found σ := by
+    intro σ hne
+    rw [hs]
+    show (st.setFound c.suit (st.found c.suit ++ [c])).found σ = st.found σ
+    rw [setFound_found_ne hne]
+  have hvk : v.piles k =
+      Pile.afterRunRemoved (st.piles k) ([] : List Card) := by
+    rw [hs]
+    show (if k = k then
+        Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+      else st.piles k) = _
+    rw [if_pos rfl, hchopk]
+  have hvne : ∀ a' : Anchor, a' ≠ k → v.piles a' = st.piles a' := by
+    intro a' hne
+    rw [hs]
+    show (if a' = k then
+        Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+      else st.piles a') = st.piles a'
+    rw [if_neg hne]
+  have hvstock : v.stock = st.stock := by rw [hs]; rfl
+  have hvwaste : v.waste = st.waste := by rw [hs]; rfl
+  have hvds : v.drawStep = st.drawStep := by rw [hs]; rfl
+  have hcar : (v.setFound c.suit (st.found c.suit)) =
+      st.setPile k (Pile.afterRunRemoved (st.piles k) ([] : List Card)) := by
+    apply State.ext
+    · funext σ
+      by_cases hh : σ = c.suit
+      · rw [hh, setFound_found_self, setPile_found]
+      · rw [setFound_found_ne hh, setPile_found]
+        exact hvfoundne σ hh
+    · funext a'
+      by_cases hha : a' = k
+      · rw [hha, setFound_piles, setPile_piles_self]
+        exact hvk
+      · rw [setFound_piles, setPile_piles_ne hha]
+        exact hvne a' hha
+    · rw [setFound_stock, setPile_stock, hvstock]
+    · rw [setFound_waste, setPile_waste, hvwaste]
+    · rw [setFound_drawStep, setPile_drawStep, hvds]
+  exact congrArg (fun s => some (s.putCard c b)) hcar
 
 /-! ### The named sub-residue (the (N) win-lift) -/
 
@@ -8928,3 +9086,4 @@ skeleton is sorry-free; the content rides the named stub). -/
 #print axioms WorryCoReal.probe_cnow_others
 #print axioms WorryCoReal.probe_xnext_spade
 #print axioms WorryCoReal.probe_xnext_others
+

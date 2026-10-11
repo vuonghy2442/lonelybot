@@ -103,6 +103,14 @@ putCard c b`, the dig parity as the SAME `afterRunRemoved p []`,
 it is written, and the residue⟺dominance equivalence (a lifted
 `WinFrom s₁` yields the residue with `π₁ = []`, so the row may close
 by EITHER the normal-form transform OR a direct lifted win).
+RESTAGE 2026-10-11 (+commit `476124b`): the (N) content moved to
+`ground_lifted_win` (hwf hsafe hk hnext hbare hcorner hstep hsolv →
+WinFrom s₁) as the single named residue site — the ROW is now a
+two-line PROOF of the lift (empty-prefix equivalence: the lifted
+play IS the compliant shape with π₁ = []; the raise fires by
+hnext+hk) and carries short restage notes only; the audit route:
+assemblies keep [propext, sorryAx, Quot.sound] with sorryAx ONLY
+via `ground_lifted_win`; (C)'s cite (row-conclusion-only) unchanged.
 Refute-first: the new compiled probe `OrigProbes/GroundRes.lean`
 (`lake build GroundRes`; exhaustive dedup'd BFS + raise-priority
 DFS over `State.step` as the only oracle) sustains C1 (the row at
@@ -2880,3 +2888,4 @@ residues only); the branch stayed unmerged.
 
 
 Residues for successors: the seven pairwise squares (draw, wasteToFound, wasteToTab-rider, tabToFound-chop, foundToTab-rider, tabToTab-through-ride, tabToTab-jettison); the two merges; the corner construction's king-source-split equality (found/stock/waste conjugation of the split; PileSwap's `putRun_swapPiles'_inr` is the located-bottom-step for the split equality); Card C's measure induction (first-non-vacate-head position, with the noted vacate-block oscillation resolution: process the RIGHTMOST vacate of the block at each bubbling step).
+

@@ -1134,7 +1134,20 @@ census stays pinned (`Dominance.lean` 6 expected 6).
   erode towers self-heal by c-blind raises before the tenant raise.
   The paper's App. B.1 was fetched and read (Blake & Gent, JAIR 85,
   2026 — the transform reference for the whole §5.1 family).
-* Axiom grades unchanged: `tabToFound_groundNormalForm`
+* **RESTAGE (2026-10-11, `f0b3315`-based branch commits `8c5a18f`
+  → `476124b`)**: the (N) content now lives at `ground_lifted_win`
+  (hwf hsafe hk hnext hbare hcorner hstep hsolv → WinFrom s₁) — the
+  named-residue site became the WIN-LIFT (no play existential, no
+  compliance predicate); `tabToFound_groundNormalForm` is PROVEN
+  from it by the empty-prefix equivalence (the row keeps its
+  statement, so the assembly and (C)'s conclusion-only cite are
+  untouched).  Axiom grades: `ground_lifted_win` `[propext,
+  sorryAx]`; the row and the assemblies `[propext, sorryAx,
+  Quot.sound]` (sorryAx only via the lift).  Direct-attack kit at
+  the ready: `wastePark_restack` (adjacent park = raise),
+  `foundToTab_return`, the γ bridge plan, `ground_streak_founded`,
+  the GroundRes harness.
+* Axiom grades pre-restage: `tabToFound_groundNormalForm`
   `[propext, sorryAx]`, `tabToFound_dominant_of_ground` and
   `tabToFound_safe_dominant` `[propext, sorryAx, Quot.sound]`
   (`sorryAx` only via the row).  The (C) residue's storage-prong
@@ -1482,4 +1495,5 @@ the quotient-widening corollary (per the chapter's own plan,
 setPile/putCard/putRun kit) and the census one-liners
 (`mem_faceUp_only` / `mem_hidden_only`) instead of private copies
 and fresh `hZP`-style double counts.
+
 
