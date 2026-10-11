@@ -9364,3 +9364,97 @@ hypotheses, never in the replay's).
   PowerShell line-ranges — one mis-anchored index duplicated a
   300-line region silently.  The edit tool's exact-match
   discipline (or full-file rewrites) is the only safe tool.
+
+## Session note (2026-10-11, the orig-dedup-collapse session, branch
+## farm/orig-dedup-collapse) — waves 1-2 LANDED
+
+The duplicate-mechanics audit (statement-verified, script at
+Temp/kilo/orig-dup-audit.ps1, rerun it after each collapse wave)
+counted ~950 duplicated lines over ~40 families in lean-model/Orig.
+Two waves landed as citations/hoists, zero new proofs, `lake build
+Orig` green (28 jobs), census pinned: OK.
+
+**THE COLLISION RULE (the wave's load-bearing finding)**: a
+current-file `private X` CLASHES with an imported same-namespace
+PUBLIC `X` — "a non-private declaration has already been declared"
+— privacy does NOT shield.  Long-coexisting private copies were
+only safe because their files never imported the public's home.
+Consequence: a hoist wave that reveals a public row must delete
+EVERY same-named private across the whole import closure in one
+atomic pass (build red in between), which is why Dominance's five
+colliding mirrors had to be cite-collapsed the same wave despite
+the no-Touch discipline: mem_below (dead), lastOf_exists (dead),
+runOK_snoc_sit (1 cite), pileHolding_congr (1 cite, drops its
+explicit card arg), putRun_keep (6 cites; the 3-field port's
+.1/.2.1/.2.2 legs shift to the 4-field public's .2.1/.2.2.1/.2.2.2).
+
+**Wave 1** (commit 8a2cfe8): cite the EXISTING publics —
+Progress's putCard/putRun_drawStep privates → Irreversible;
+Reach's canPlace_inl/inr + pileOfTop_top (weaker 1-conjunct;
+the 5 cites take `.2` of the public's 2-conjunct form) +
+lastOf_mem'/lastOf_snoc' trivia primes → State/ Irreversible;
+Phase's cycleCount → Irreversible, its public mono_run_asc +
+irr_of_asc → Mono (retires the dormant public-public ambiguity);
+TEB's swapAnch family → PileSwap's public Anchor.swap (`swapAnch_ne`
+≡ `Anchor.swap_eq_self _ _ h₁ h₂`); Reach's converse-shaped
+wasteIs_head renamed head_eq_of_wasteIs (name freed for
+Irreversible's); TEB's draw_facts renamed stepDraw_keep (name
+freed for Phase's); EdgeLabel's mem-form fromCard_head_eq renamed
+fromCard_eq_head_of_mem (Classify's head-form keeps the name).
+
+**Wave 2** (commit cda9c84): hoist new publics to their homes —
+State: option_some_of_ne_none, lastOf_exists, below_cons, mem_below,
+fromCard_head_eq, fromCard_eq_head_of_mem, runOK_snoc_sit,
+pileHolding_congr; Play: run_one (beside State.run_cons; root-level
+so bare `run_one` cites keep working), putRun_keep (4-field form,
+the putCard_keep mirror), putRun_inr_none (none-case companion of
+putRun_inr_eq) + putRun_inr_none_piles (EdgeLabel's pointwise row,
+now a 1-line congrArg of the strong form); Integrity's occurrence
+KIT goes public (pileZone, preAnchors, sufAnchors, anchor_split,
+flatMapAppend, count_ge_two_of_split, preSuits, sufSuits,
+suit_split); Canonical's kit mirrors + flatMap_append twin +
+run_one/lastOf_exists/runOK_snoc_sit deleted (cites resolve);
+Canonical's recycle_pool REVEALED as the home (EdgeLabel's copy
+deleted).
+
+**REMAINING MAP (for the next wave; sizes are mention counts
+incl. docstrings)**:
+- The step-INVERSION family (the big one, ~45 real sites, atomic by
+  the collision rule): homes = Irreversible's private rows
+  (:444-:521 area, make public); copies to collapse: Classify
+  (~17 use sites), EdgeLabel (~11; WEAKENED shapes — e.g.
+  wasteToFound keeps only `∃ xs, waste = c :: xs`, tabToTab drops
+  the landing putRun shape — sites need projection surgery),
+  Reach (~5; {st st'} binder style, split conjuncts), Shuttle (1:
+  step_wasteToTab_inv), Canonical (:367 one mirror + the '-variant
+  pair at :2558/:2575).  Dominance's g_step_* / *_inv1 / *_inv' /
+  fires repackagings stay for its owner wave (no public collision:
+  different names).
+- The step-EQ family (~25 sites): step_tabToFound_eq (Shuttle :97,
+  TEB :102, Dominance), step_foundToTab_eq (Shuttle :116, TEB :115,
+  Dominance), step_tabToTab_eq (TwinExchange :804, MergeWalls :177,
+  TEB :127).  Home candidates: Play beside putRun_inr_eq (eq-row
+  precedent) or Irreversible beside the invs; TEB's proofs read
+  shortest — READ the premise shapes before choosing (TEB's rows
+  carry hw/hpre-style premises, not verbatim Shuttle scripts).
+- Phase's PRIVATE orbit strip (take_drop_add .. base_positions_one,
+  the deal/draw composites plain_draw_shape/base_draw_shape,
+  run_draw_cons, run_replicate_append) has THREE complete copies:
+  Phase (home) + Classify primes (plain_draw_shape'/base_draw_shape')
+  + Dominance's 1-suffixed B-kit (drain_positions1, base_positions1,
+  table_take_add, table_drop_add, table_take_ge, table_drop_ge,
+  table_take/drop_pre, run_rep_append1, run_draw_cons1) — collapse
+  the Classify primes against Phase first (Phase's privates being
+  the canonical shapes; hoist Phase's strip or cite-file-privately
+  is NOT possible cross-file — hoist is required), leave Dominance's
+  ports to its owner wave.
+- Canonical's remaining dedup-marked mirrors (step_tabToFound_inv
+  at :367; the putCard_inr_eq_setPile kin; the DEDUP-marked
+  "local kin" rows its §n notes name) and EdgeLabel's fromCard/
+  putRun pointwise leftovers (already consolidated where colliding;
+  the private putRun_inr_landing-style rows are Canonical-kin
+  mirrors, distinct names, harvest desk's call).
+- take_ge_length Dominance:3366 vs Phase:1330 (same statement,
+  Dominance's proof is 13L vs Phase's 22L — keep the SHORTER
+  script at hoist time).
+
