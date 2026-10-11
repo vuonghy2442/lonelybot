@@ -79,46 +79,9 @@ theorem WinFrom_of_undo {st : State} {m : Move} {s₁ : State}
 
 /-! ## Small local kit (dedup at harvest)
 
-`runOK_snoc_sit` and `lastOf_exists` mirror Canonical's private
-copies; they are re-proven here so this chapter imports nothing
-unmerged.  Promote or delete against the canonical versions when
-the chapters merge. -/
-
-/-- A legal run sits each card on the one below: the premise of the
-under-seat undo. -/
-private theorem runOK_snoc_sit {c : Card} : ∀ {l : List Card}, l ≠ [] →
-    runOK (l ++ [c]) = true → ∃ z, lastOf l = some z ∧ canSitOn c z = true := by
-  intro l
-  induction l with
-  | nil => intro hne _; exact absurd rfl hne
-  | cons x t ih =>
-      intro _ h
-      cases t with
-      | nil =>
-          refine ⟨x, rfl, ?_⟩
-          have hexp : runOK (x :: ([] : List Card) ++ [c]) = (canSitOn c x && true) := rfl
-          rw [hexp, Bool.and_true] at h
-          exact h
-      | cons y t' =>
-          have hexp : runOK (x :: (y :: t') ++ [c]) =
-              (canSitOn y x && runOK ((y :: t') ++ [c])) := rfl
-          rw [hexp, Bool.and_eq_true] at h
-          obtain ⟨z, hz, hsit⟩ := ih (by simp) h.2
-          exact ⟨z, hz, hsit⟩
-
-/-- A nonempty list has a last element. -/
-private theorem lastOf_exists : ∀ {l : List Card}, l ≠ [] → ∃ z, lastOf l = some z := by
-  intro l
-  induction l with
-  | nil => intro hne; exact absurd rfl hne
-  | cons x t ih =>
-      intro _
-      cases t with
-      | nil => exact ⟨x, rfl⟩
-      | cons y t' =>
-          obtain ⟨z, hz⟩ := ih (by simp)
-          have hll : lastOf (x :: y :: t') = lastOf (y :: t') := rfl
-          exact ⟨z, by rw [hll]; exact hz⟩
+The former `runOK_snoc_sit` and `lastOf_exists` mirrors are gone —
+they cite the public rows in `Orig/State.lean` since the
+dedup-collapse wave. -/
 
 /-- The chop keeps every card it does not drop. -/
 private theorem mem_of_chop : ∀ {l : List Card} {x : Card}, x ∈ chop l → x ∈ l := by
@@ -524,22 +487,6 @@ private theorem nextUp_congr_suit {u v : State} {x : Card} (h : v.found x.suit =
   show decide (x.rank.toIdx = (v.found x.suit).length)
       = decide (x.rank.toIdx = (u.found x.suit).length)
   rw [h]
-
-/-- The below-run keeps only cards of the run it cuts. -/
-private theorem mem_below {c : Card} : ∀ {l : List Card} {z : Card},
-    z ∈ below c l → z ∈ l := by
-  intro l z
-  induction l with
-  | nil => intro h; cases h
-  | cons x t ih =>
-      intro h
-      have hunf : below c (x :: t) = if x = c then [] else x :: below c t := rfl
-      rw [hunf] at h
-      split at h
-      · cases h
-      · rcases List.mem_cons.1 h with he | hrest
-        · exact List.mem_cons.2 (Or.inl he)
-        · exact List.mem_cons.2 (Or.inr (ih hrest))
 
 /-- The face-up run of a run-removed pile keeps only cards of the
 prefix it keeps (a reveal's fresh card is the one exception). -/
@@ -3861,14 +3808,6 @@ private theorem pileOfTop_congr {u v : State} (z : Card) (h : u.piles = v.piles)
     (q := fun a => decide (v.topOf a = some z)) (fun a => by rw [topOf_congr a h])
     (l := Anchor.all)
 
-/-- The holding-search is a piles-field read. -/
-private theorem pileHolding_congr {u v : State} (c : Card) (h : u.piles = v.piles) :
-    u.pileHolding c = v.pileHolding c := by
-  show firstWhere (fun a => decide (c ∈ (u.piles a).faceUp)) Anchor.all = _
-  exact firstWhere_congr (p := fun a => decide (c ∈ (u.piles a).faceUp))
-    (q := fun a => decide (c ∈ (v.piles a).faceUp))
-    (fun a => by rw [congrArg Pile.faceUp (congrFun h a)]) (l := Anchor.all)
-
 /-- The placement guard is a piles-field read. -/
 private theorem canPlace_congr {u v : State} (c : Card) (b : Base)
     (h : u.piles = v.piles) : u.canPlace c b = v.canPlace c b := by
@@ -4352,21 +4291,6 @@ private theorem putRun_found_keep {u : State} {run : List Card} {b : Base} :
       | none => rfl
       | some k => rfl
 
-/-- `putRun` keeps the stock, the waste, and the draw step. -/
-private theorem putRun_keep {u : State} {run : List Card} {b : Base} :
-    (u.putRun run b).stock = u.stock ∧ (u.putRun run b).waste = u.waste ∧
-      (u.putRun run b).drawStep = u.drawStep := by
-  cases b with
-  | inl a => exact ⟨rfl, rfl, rfl⟩
-  | inr z =>
-      rw [show u.putRun run (Sum.inr z) =
-          (match u.pileOfTop z with
-            | some k => u.setPile k { u.piles k with faceUp := (u.piles k).faceUp ++ run }
-            | none => u) from rfl]
-      cases u.pileOfTop z with
-      | none => exact ⟨rfl, rfl, rfl⟩
-      | some k => exact ⟨rfl, rfl, rfl⟩
-
 /-- The players' transfer of the `tabToFound` pile write. -/
 private theorem piles_afterRunRemoved_transfer {s t : State} {a : Anchor}
     (hp : s.piles = t.piles) :
@@ -4792,7 +4716,7 @@ private theorem draw1_replay : ∀ (π : List Move) (s t : State),
       | tabToTab x b =>
           obtain ⟨a, hhld, hcp, hne, hs1shape⟩ := step_tabToTab_inv' hstep
           have hvhld : t.pileHolding x = some a := by
-            rw [pileHolding_congr x hp] at hhld
+            rw [pileHolding_congr hp] at hhld
             exact hhld
           have hvcp : t.canPlace x b = true := by
             rw [canPlace_congr x b hp] at hcp
@@ -4853,16 +4777,16 @@ private theorem draw1_replay : ∀ (π : List Move) (s t : State),
                     (fromCard x (t.piles a).faceUp) b).waste.reverse
             rw [show ((s.setPile a (Pile.afterRunRemoved (s.piles a) (below x (s.piles a).faceUp))).putRun
                       (fromCard x (s.piles a).faceUp) b).stock
-                    = s.stock from (putRun_keep).1,
+                    = s.stock from (putRun_keep).2.1,
                 show ((s.setPile a (Pile.afterRunRemoved (s.piles a) (below x (s.piles a).faceUp))).putRun
                       (fromCard x (s.piles a).faceUp) b).waste
-                    = s.waste from (putRun_keep).2.1,
+                    = s.waste from (putRun_keep).2.2.1,
                 show ((t.setPile a (Pile.afterRunRemoved (t.piles a) (below x (t.piles a).faceUp))).putRun
                       (fromCard x (t.piles a).faceUp) b).stock
-                    = t.stock from (putRun_keep).1,
+                    = t.stock from (putRun_keep).2.1,
                 show ((t.setPile a (Pile.afterRunRemoved (t.piles a) (below x (t.piles a).faceUp))).putRun
                       (fromCard x (t.piles a).faceUp) b).waste
-                    = t.waste from (putRun_keep).2.1]
+                    = t.waste from (putRun_keep).2.2.1]
             exact hcy
           obtain ⟨π', w', hrun', hwin'⟩ :=
             ih s₁ ((t.setPile a (Pile.afterRunRemoved (t.piles a) (below x (t.piles a).faceUp))).putRun
@@ -4873,14 +4797,14 @@ private theorem draw1_replay : ∀ (π : List Move) (s t : State),
                     (fromCard x (s.piles a).faceUp) b).drawStep = 1
                 rw [show ((s.setPile a (Pile.afterRunRemoved (s.piles a) (below x (s.piles a).faceUp))).putRun
                       (fromCard x (s.piles a).faceUp) b).drawStep
-                        = s.drawStep from (putRun_keep).2.2]
+                        = s.drawStep from (putRun_keep).2.2.2]
                 exact hds)
               (by
                 show ((t.setPile a (Pile.afterRunRemoved (t.piles a) (below x (t.piles a).faceUp))).putRun
                     (fromCard x (t.piles a).faceUp) b).drawStep = 1
                 rw [show ((t.setPile a (Pile.afterRunRemoved (t.piles a) (below x (t.piles a).faceUp))).putRun
                       (fromCard x (t.piles a).faceUp) b).drawStep
-                        = t.drawStep from (putRun_keep).2.2]
+                        = t.drawStep from (putRun_keep).2.2.2]
                 exact hdt) hf1 hp1 hc1 w hrest hwin
           refine ⟨Move.tabToTab x b :: π', w', ?_, hwin'⟩
           rw [run_step_cons htstep]

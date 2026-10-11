@@ -1,4 +1,6 @@
 import Orig.Fate
+import Orig.Mono
+import Orig.Irreversible
 
 /-!
 # The original game — the draw's phase line
@@ -47,13 +49,6 @@ the main theorem.
 
 /-! ## Small helpers -/
 
-
-/-- A non-`none` option carries a value. -/
-private theorem option_some_of_ne_none {α : Type} {o : Option α} (h : o ≠ none) :
-    ∃ v, o = some v := by
-  cases o with
-  | none => exact absurd rfl h
-  | some v => exact ⟨v, rfl⟩
 
 /-- Every `Bool` is `true` or `false` (case analysis that never has to
 case on the term producing it). -/
@@ -122,14 +117,6 @@ theorem not_inPhase_of_offset {st : State} (hs : st.stock ≠ [])
   have hf := inPhase_eq_false_iff.2 ⟨hs, hres⟩
   rw [hf] at h
   exact absurd h (by simp)
-
-/-! ## The cycle count -/
-
-/-- How many cards sit outside the foundations: the stock and the waste
-together.  A draw merely moves cards *within* this pool (recycling the
-waste reverses it but keeps it), while every move that builds onto the
-foundations drains one card out of it. -/
-private def cycleCount (st : State) : Nat := st.stock.length + st.waste.length
 
 /-- Lengths of the `dealUpTo` split: the dealt part has `min k |l|`
 cards, and the two parts recombine to `l`. -/
@@ -390,17 +377,6 @@ private theorem putCard_zone_keep (x : State) (c : Card) (b : Base) :
       simp only [State.putCard]
       split <;> exact ⟨rfl, rfl, rfl⟩
 
-/-- Placing a run on the tableau never touches the stock, the waste, or
-the draw step. -/
-private theorem putRun_keep (x : State) (run : List Card) (b : Base) :
-    (x.putRun run b).stock = x.stock ∧ (x.putRun run b).waste = x.waste ∧
-    (x.putRun run b).drawStep = x.drawStep := by
-  cases b with
-  | inl a => exact ⟨rfl, rfl, rfl⟩
-  | inr z =>
-      simp only [State.putRun]
-      split <;> exact ⟨rfl, rfl, rfl⟩
-
 /-- Building the waste top onto its foundation spends exactly one
 cycle-count unit. -/
 private theorem cycleCount_lt_wasteToFound {x y : State} {c : Card}
@@ -488,8 +464,8 @@ private theorem tabToTab_fixed {x y : State} {c : Card} {b : Base}
         rw [hfc'] at h
         simp only [Option.some.injEq] at h
         subst h
-        exact ⟨(putRun_keep _ _ _).1, (putRun_keep _ _ _).2.1,
-          (putRun_keep _ _ _).2.2⟩
+        exact ⟨putRun_keep.2.1, putRun_keep.2.2.1,
+          putRun_keep.2.2.2⟩
     · simp at h
 
 /-- **The per-move step table.**  Every legal move leaves the cycle
@@ -916,46 +892,6 @@ theorem draw_reversible_selfRecycle {st : State} (hstock : st.stock = [])
     (hw : st.waste ≠ []) (hsize : st.waste.length ≤ st.drawStep) :
     reversibleAt st Move.draw :=
   reversibleAt_of_W (draw_reversible_selfRecycleW hstock hw hsize)
-
-/-! ## Generic ascent bridges -/
-
-/-- **The mono ascent.**  If `Q` is non-decreasing under every single
-legal move, then `Q` is non-decreasing along every legal play. -/
-theorem mono_run_asc (Q : State → Nat)
-    (h : ∀ {s m s'}, State.step s m = some s' → Q s ≤ Q s') :
-    ∀ {s play w}, s.run play = some w → Q s ≤ Q w := by
-  intro s play
-  revert s
-  induction play with
-  | nil =>
-      intro s w hrun
-      have hx : some s = some w := hrun
-      injection hx with hq
-      rw [← hq]
-      exact Nat.le_refl _
-  | cons m rest ih =>
-      intro s w hrun
-      obtain ⟨s₁, hm, hrs⟩ := State.run_cons hrun
-      have h1 := h hm
-      have h2 := ih hrs
-      omega
-
-/-- **The commitment from a rising measure.**  If `Q` never decreases
-under a legal move, and the move's committed successor strictly
-increases it, then no play ever returns: the returning play would
-force `Q st ≤ Q st` back with the strict rise in between. -/
-theorem irr_of_asc (Q : State → Nat)
-    (h : ∀ {s m s'}, State.step s m = some s' → Q s ≤ Q s')
-    {st : State} {m : Move} {s₁ : State}
-    (hstep : State.step st m = some s₁) (hrise : Q st < Q s₁) :
-    irreversibleAt st m := by
-  intro s₁' play hstep' hrun
-  rw [hstep'] at hstep
-  injection hstep with hq
-  subst hq
-  have h1 := h hstep'
-  have h2 := mono_run_asc Q h hrun
-  omega
 
 /-! ## The lex-pair machinery -/
 

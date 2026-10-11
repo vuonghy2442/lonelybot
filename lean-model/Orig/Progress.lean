@@ -1,6 +1,7 @@
 import Orig.Reach
 import Orig.Encode
 import Orig.Fate
+import Orig.Irreversible
 
 /-!
 # Orig.Progress — the bounded-play spine
@@ -640,31 +641,6 @@ private theorem dealStock_none (st : State) (h : st.stock = []) :
       | s =>
           let d := State.dealUpTo st.drawStep s
           some { st with stock := d.2, waste := d.1.reverse ++ st.waste }) from rfl, h]
-
-/-- The putters never touch the draw step. -/
-private theorem putCard_drawStep (st : State) (c : Card) (b : Base) :
-    (st.putCard c b).drawStep = st.drawStep := by
-  cases b with
-  | inl a => rfl
-  | inr z =>
-      rw [show st.putCard c (Sum.inr z) = (match st.pileOfTop z with
-        | some k => st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ [c] }
-        | none => st) from rfl]
-      cases st.pileOfTop z with
-      | none => rfl
-      | some k => rfl
-
-private theorem putRun_drawStep (st : State) (run : List Card) (b : Base) :
-    (st.putRun run b).drawStep = st.drawStep := by
-  cases b with
-  | inl a => rfl
-  | inr z =>
-      rw [show st.putRun run (Sum.inr z) = (match st.pileOfTop z with
-        | some k => st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run }
-        | none => st) from rfl]
-      cases st.pileOfTop z with
-      | none => rfl
-      | some k => rfl
 
 /-- **No move touches the draw step**: the game parameter is conserved
 by every physical move — the honest digit premise travels unchanged

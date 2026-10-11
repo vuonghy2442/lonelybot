@@ -283,12 +283,6 @@ private theorem step_tabToTab_inv {st : State} {c : Card} {b : Base} {s' : State
 
 /-! ## Small private kit -/
 
-/-- A non-`none` option carries a value. -/
-private theorem option_some_of_ne_none {α : Type} {o : Option α} (h : o ≠ none) :
-    ∃ v, o = some v := by
-  cases o with
-  | none => exact absurd rfl h
-  | some v => exact ⟨v, rfl⟩
 
 /-- The head of a nonempty list never hides in `lastOf`: the tail
 is the last element's. -/
@@ -450,11 +444,6 @@ private theorem fromCard_nil_of_not_mem {c : Card} : ∀ {l : List Card}, c ∉ 
       show fromCard c (y :: t) = []
       rw [fromCard, ite_eq_right hy, ih ht]
 
-/-- The run from `c` of a run that starts at `c` is the run. -/
-private theorem fromCard_head_eq {c : Card} {t : List Card} :
-    fromCard c (c :: t) = c :: t := by
-  rw [fromCard, ite_eq_left rfl]
-
 /-- The below-part of a run that starts at `c` is empty. -/
 private theorem below_head_eq {c : Card} {t : List Card} :
     below c (c :: t) = [] := by
@@ -559,31 +548,11 @@ private theorem runOK_adjacent_snoc {P : List Card} {z c : Card}
 
 /-! ## The found-vs-pile occurrence kit -/
 
-/-- One pile's whole zone, hidden cards under face-up ones. -/
+/-- One pile's whole zone, hidden cards under face-up ones (the
+private re-shaping of Integrity's public `pileZone`). -/
 private def pileZoneC (st : State) (a : Anchor) : List Card :=
   (st.piles a).hidden ++ (st.piles a).faceUp
 
-private theorem flatMapAppend {α β : Type} (f : α → List β) :
-    ∀ (A B : List α), List.flatMap f (A ++ B) = List.flatMap f A ++ List.flatMap f B := by
-  intro A
-  induction A with
-  | nil => intro B; rfl
-  | cons x t ih =>
-      intro B
-      show f x ++ List.flatMap f (t ++ B) = (f x ++ List.flatMap f t) ++ List.flatMap f B
-      rw [ih, List.append_assoc]
-
-
-/-- Two occurrences in separate flatMap blocks make the count at
-least two. -/
-private theorem count_ge_two_of_split {st : State} {c : Card} {A B : List (List Card)}
-    (hsplit : st.zones = A ++ B) (hl : c ∈ A.flatMap id) (hr : c ∈ B.flatMap id) :
-    2 ≤ st.cardCount c := by
-  show 2 ≤ ((st.zones.flatMap id).filter fun x => decide (x = c)).length
-  rw [hsplit, flatMapAppend, List.filter_append, List.length_append]
-  have hL := count_filter_pos hl
-  have hR := count_filter_pos hr
-  omega
 
 /-- A WF state never holds a foundation card in a pile: the two
 memberships would make the count two. -/
@@ -939,12 +908,6 @@ private theorem afterRunRemoved_faceUp_empty_self {p : Pile} (hhd : p.hidden = [
   cases hlist with
   | nil => rfl
   | cons h t => exact absurd hhd (by simp)
-
-/-- A `putRun` whose base card tops nothing returns its state
-unchanged. -/
-private theorem putRun_inr_none {st : State} {run : List Card} {z : Card}
-    (hz : st.pileOfTop z = none) : st.putRun run (Sum.inr z) = st := by
-  simp only [State.putRun, hz]
 
 /-- The one-card placement respects the invariant of an
 already-bare pile. -/

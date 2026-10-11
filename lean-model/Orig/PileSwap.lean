@@ -569,20 +569,6 @@ The draw pipeline conjugates fieldwise; the placement arms
 re-assemble through the reader rows, in the `State.twin_step` house
 style. -/
 
-/-- `below` selects a sub-list (a private copy of the private
-`mem_below` row `Orig/Reach.lean` carries; dedup-marked). -/
-private theorem mem_below' (c x : Card) : ∀ (l : List Card), x ∈ below c l → x ∈ l
-  | [], h => by cases h
-  | y :: t, h => by
-      have h2 : x ∈ (if y = c then ([] : List Card) else y :: below c t) := h
-      by_cases hyc : y = c
-      · rw [if_pos hyc] at h2
-        cases h2
-      · rw [if_neg hyc] at h2
-        rcases List.mem_cons.1 h2 with rfl | hxt
-        · exact List.mem_cons.2 (Or.inl rfl)
-        · exact List.mem_cons.2 (Or.inr (mem_below' c x t hxt))
-
 /-- Nothing new enters a pile through the run removal (the
 membership half of the private `mem_afterRunRemoved_below_zone` row
 in `Orig/Reach.lean`, carried privately here; dedup-marked). -/
@@ -614,8 +600,8 @@ private theorem nmem_afterRunRemoved_below {p : Pile} {c z : Card}
       refine ⟨fun h => hzh h, ?_⟩
       intro h
       rcases List.mem_cons.1 h with rfl | hxs
-      · exact hzf (mem_below' c z fu (by rw [hb]; exact List.mem_cons.2 (Or.inl rfl)))
-      · exact hzf (mem_below' c z fu (by rw [hb]; exact List.mem_cons.2 (Or.inr hxs)))
+      · exact hzf (mem_below fu (by rw [hb]; exact List.mem_cons.2 (Or.inl rfl)))
+      · exact hzf (mem_below fu (by rw [hb]; exact List.mem_cons.2 (Or.inr hxs)))
 
 /-- The recycle conjugates. -/
 theorem State.recycle_swapPiles (st : State) (i j : Anchor) :
