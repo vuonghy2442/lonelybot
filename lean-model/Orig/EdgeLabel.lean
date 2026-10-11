@@ -218,6 +218,116 @@ stackEvent a) per the recorded design: the vacate rides the reveal's
 positional family as its degenerate no-reveal case, the pair itself
 separating the two sub-cells by the hidden measure.
 
+## The wasteEntry-c share of the successor-discipline program (the
+## recon ledger, wave 24.5 — this card's working notes)
+
+The second row of the ≤2-per-label umbrella, in the draw card's
+established pattern (recon → prove-or-pin core → constructive
+envelope), landed on the wave-24 base.  What this ledger records: the
+base verification, the route inventory, the share's precise claims,
+and the one check that failed it.
+
+**Base verification.**  The worktree spawned one more time at the Rust
+main tip — the stale-pointer defect's next strike in the row the
+session books have counted to seven; `git reset --hard` to the wave-24
+merge (the `orig-pileswap-vacate` merge into macro-game) per the
+banked spawn-fix rule, tree clean afterwards, `lake build Orig` green
+at 28 jobs.  One check of the card's required-contents list FAILED:
+`NormalizeOnce._canon_to_norm` appears in NO state of this repository
+— not in this module, not under any reachable ref, name greped at the
+base and across the branches.  Recorded as a base-verification
+discrepancy, not a blocker: nothing in the settled design reads it
+(the founded-image leg's computability rides the founds-only rung and
+the `setFound` write, never a normalize machinery).
+
+**(i) The rung's canonical persistence.**  `nextUp` reads founds only
+— its def is a single `foundHeight` equation — so every composite leg
+conserve it: `putCard`/`setPile` never touch `found` (the quintet
+rows), and both exit shapes write the SAME found vector before the
+`c`-append, so the founded and seated threads of one source read one
+rung value.  The class reading: a waste-head card is a pool card, and
+pool membership is class-invariant (no witness leg ever seats or
+founds a pool card — the waste exits are universal commitments, a
+`foundToTab` of `c` needs `c` founded already, impossible while it
+rides the pool), so by WF's foundation prefixes every member of a
+class whose pool carries `c` holds `foundHeight c.suit ≤ toIdx c.rank`
+— the rung's cap is a class fact, member-capped everywhere.  The
+one-directional canonical reading (a member firing the rung forces the
+canonical member's height to the cap, via the uniform-fiber spine and
+the stacking monotonicity) is inside this module's import closure as a
+candidate route; the share does not need it — the composite reads the
+rung at the edge's own member — so it banks here as the count
+program's parked premise, not a landed row.
+
+**(ii) The composite identity.**  `wasteToTab`-then-`tabToFound` is
+state-exact to `wasteToFound`: the tab commit pops the seated card, the
+base restored to bare.  Route (decided before proved — the composite
+battery): the `putCard`/`setFound` quintet rows carry the draw-zone
+and found writes; `chop_snoc` strips exactly the seated card; the
+`afterRunRemoved` rows restore the written pile (the interior seat to
+its pre-seat run, the king's bare seat to bare) — and the one genuine
+subtlety is the tab's own pile search at the seated image: it
+relocates `c` through `pileOfTop`, and only WF (the Integrity
+occurrence kit: the waste member is nowhere in any pile) pins the
+search to the written seat.  The decide probe's junk corner — a state
+doubling the popped card at the waste head and a foreign pile top —
+DIVERGES as predicted (the tab search hits the wrong pile), which is
+why the composite carries `hwf` as a premise: junk-safe by guarded
+statement, not by luck.  The composite's SAFETY statement — that the
+popping commit preserves the verdict, the (N) banner
+(`safeToFound`/`tabToFound_dominant_of_ground` over its named
+bare-floor residue) — lives in `Dominance`, OUTSIDE this module's
+import closure; it is a reserved premise-slot here, its filling parked
+for the merge, and no landed row of this share depends on it.
+
+**(iii) The ≤2 anatomy, and the strictly honest form it landed in.**
+The umbrella's unit is the LABEL: two `wasteEntry c`-labeled edges over
+one source class.  From the character both mates hand the SAME `c` out
+of the waste; from the class-pool arithmetic (mates share the pool
+list; the popped head is the one occurrence of `c`) the two mates'
+draw-zone states are LITERALLY the same split — the same waste tail,
+the same stock — the shape correspondence that carries the share's
+name.  Each edge's landing then is one of two images of that one
+popped card over its source member: the seated image (the `putCard`
+write, base `b` and its placement legality in view) or the founded
+image (the `setFound` write — and a founded edge carries its rung by
+its own step guard); and per member the two images sit one safe-commit
+apart: the composite, under the rung, takes the seated image to the
+founded image of the same member exactly.  What is deliberately NOT
+claimed: the cross-mate/cross-base CLASS collapse — that all seated
+landings are one class and all founded landings one class, the full
+two-target form.  That is the shaped-side transport the draw card
+refused on the same evidence: the pop shifts the draw-zone arithmetic
+(the waste length by one) that the reversible draw legs' phase guards
+read, so lifting a witness journey across the popped mates is a
+phase-case analysis, not a free ride — the named gap, probed (the
+phase shift is real), pinned here, never bridged on credit.  The honest
+substitute landed instead: the CLASS-DATUM FIBER — every
+`wasteEntry c` target over the source class, seated or funded, at any
+mate, carries ONE computable datum image (cycle one lower, the pool
+missing exactly `c`, the class's hidden stacks and roots verbatim) —
+the envelope's computed map.
+
+**(IV) The residue record.**  The candidate residue class for this
+composite's canonicity question is the d-shape: a parked uselessly-card
+gaining its target when the seating happens — the seated write's
+footprint overlaps the seat bookkeeping of OTHER cards (the new top it
+creates is another card's seat, the founds it leaves are another
+worry's slack), exactly the footprint-overlap corner.  It is the
+probed witness-candidate for the resisted class-collapse above, the
+sibling card's probe territory; this card's route — the composite at
+raw-state grade — sidesteps it by never transporting across members.
+
+**The share's precise claims for the sibling's report.**  The core and
+envelope rows below upgrade if the canon-commutation laws land: the
+class-datum fiber (`tipEdge_wasteEntry_datum`) is computable at the
+class data already, so a canonical-computable `datumOf` makes the whole
+map computable-at-canonical (the `wasteNext`-class map at the
+representative); the composite and its `wasteNext` core are state-grade
+and canonical-free, so they stand unchanged; and the parked
+class-collapse is the row the commutation laws plus the d-shape
+residue verdict would close.
+
 ## Axiom discipline
 
 `[propext, Quot.sound]` at worst; zero `Classical.choice`, zero
