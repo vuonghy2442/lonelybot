@@ -212,6 +212,27 @@ disjointness cells, and the pair-move character.  What stands:
   cross-mate/cross-base class collapse refused, not bought on credit).
   The recon ledger section above carries the route inventory, the
   (N) safety premise-slot, and the refused-transport record.
+* **proved, green (the wasteEntry successor envelope, wave 24.5)**:
+  the computable founder `wasteNext` (the founded-image leg — the
+  foundation write as a pure function of the rung's card with the
+  waste popped from the head, junk-safe by the absence of step claims
+  off the rung) with `wasteNext_shape` (the `xs`-literal form the core
+  rows speak in) and `wasteNext_step` (the socket: at waste head and
+  rung, the founding step IS the computed value); the exact cycle
+  companion `waste_entry_cycle` (every `wasteEntry c` target sits one
+  full cycle below its source); the target enumeration
+  `tipEdge_wasteEntry_target` (the draw card's target shape — the
+  founded arm through the computed founder, the seated arm at its
+  honest per-base grade with the rung-conditioned one-safe-commit
+  interlock read at the landing); and the class-datum fiber
+  `tipEdge_wasteEntry_datum` with its map `MacroDatums.wasteNext`
+  (every wasteEntry-c target carries the computed datum image of its
+  source — cycle one lower, the pool dropped of `c` through the
+  poolDrop arithmetic, hidden and roots verbatim per arm — the sameDatums
+  lift with the core as soundness, the honest substitute for the
+  refused class collapse, and the row that upgrades to
+  computable-at-canonical once the sibling card's commutation laws
+  land).
 * **milestone status**: COMPLETE in this module — the member-form
   restatement is done, the edge-labeling theorem's full arc landed at
   the member grade (the quotient datum kernel, the journey-invariant
@@ -3099,6 +3120,311 @@ theorem waste_entry_le_2 {C D₁ D₂ : SameOrbit} {c : Card}
     waste_landings_shape_correspond e₁ h₁ e₂ h₂
   exact ⟨xs, hw₁, hw₂, waste_edge_outcome e₁ h₁ hw₁, waste_edge_outcome e₂ h₂ hw₂⟩
 
+/-! ## The wasteEntry successor envelope (the computed founder, the
+class-datum fiber)
+
+The envelope, at exactly the grade the core closed: the FOUNDED leg
+is computable (`wasteNext` — the foundation write is a pure function of
+the rung and the popped head, junk-safe by the absence of step claims
+off the rung), the SEATED leg is stated at its honest per-base grade,
+and the class map lands as the DATUM FIBER (`MacroDatums.wasteNext` +
+`tipEdge_wasteEntry_datum`): every `wasteEntry c` target over the
+source class — seated or founded, at any mate — carries ONE computable
+datum image, cycle one lower, the pool missing exactly `c`, the class's
+hidden stacks and roots verbatim.  The enumeration row
+`tipEdge_wasteEntry_target` reads the target in the draw card's target
+shape; `waste_entry_cycle` is the founding side's exact counting row.
+No hypotheses beyond the core's grade; the refused class-collapse stays
+refused, and the sibling's commutation laws upgrade the datum map to
+computable-at-canonical exactly as the recon ledger records. -/
+
+/-- The first-occurrence pool removal: the class pool with `c`'s one
+slot taken out.  (Private: the fiber's channel; at junk lists it
+removes any first hit — no claim rides junk inputs.) -/
+private def poolDrop (c : Card) : List Card → List Card
+  | [] => []
+  | c' :: t => if c' = c then t else c' :: poolDrop c t
+
+/-- The removal at the occurrence itself. -/
+private theorem poolDrop_hit (c : Card) (t : List Card) :
+    poolDrop c (c :: t) = t :=
+  show (if c = c then t else c :: poolDrop c t) = t from ite_eq_left rfl
+
+/-- The removal past a non-occurrence. -/
+private theorem poolDrop_ne {c c' : Card} (h : c' ≠ c) (t : List Card) :
+    poolDrop c (c' :: t) = c' :: poolDrop c t :=
+  show (if c' = c then t else c' :: poolDrop c t) = c' :: poolDrop c t
+    from ite_eq_right h
+
+/-- **The pool channel's arithmetic**: removing the first occurrence of
+`c` from a pool split past that occurrence — `q ++ c :: t` with `c`
+absent from `q` — leaves exactly `q ++ t`.  This is what makes every
+waste-exit landing's pool the computable image of its source's pool,
+at any split the source presents. -/
+private theorem poolDrop_append_hit (c : Card) : ∀ (q t : List Card),
+    c ∉ q → poolDrop c (q ++ c :: t) = q ++ t := by
+  intro q
+  induction q with
+  | nil =>
+      intro t _
+      exact poolDrop_hit c t
+  | cons y q' ih =>
+      intro t hn
+      have hyc : y ≠ c := fun hcon =>
+        hn (by rw [← hcon]; exact List.mem_cons.2 (Or.inl rfl))
+      show (if y = c then q' ++ c :: t else y :: poolDrop c (q' ++ c :: t))
+        = y :: (q' ++ t)
+      rw [ite_eq_right hyc,
+        ih t (fun hcon => hn (List.mem_cons.2 (Or.inr hcon)))]
+
+/-- **The computed founder (the founded-image leg, computable)**: the
+foundation write as a pure function of the source and the rung's card,
+with the waste popped from the head.  Junk-safe by statement discipline:
+off the rung or at an empty waste the value is still a state, and no
+step claim is made at it — the soundness row below carries exactly the
+premises the founding step's own guards demand. -/
+def wasteNext (x : State) (c : Card) : State :=
+  { x.setFound c.suit (x.found c.suit ++ [c]) with waste := x.waste.tail }
+
+/-- The computed founder at a known waste head: the `xs`-literal shape
+the core's rows speak in. -/
+theorem wasteNext_shape {x : State} {c : Card} {xs : List Card}
+    (hw : x.waste = c :: xs) :
+    wasteNext x c = {x.setFound c.suit (x.found c.suit ++ [c]) with waste := xs} := by
+  show ({x.setFound c.suit (x.found c.suit ++ [c]) with waste := x.waste.tail})
+    = ({x.setFound c.suit (x.found c.suit ++ [c]) with waste := xs})
+  rw [show x.waste.tail = xs from by rw [hw]; rfl]
+
+/-- **The founded leg's soundness**: at the waste head and the rung, the
+founding step IS the computed founder — the socket of the envelope's
+leg, with no placement or seating premise anywhere in sight. -/
+theorem wasteNext_step {x : State} {c : Card} {xs : List Card}
+    (hw : x.waste = c :: xs) (hnext : x.nextUp c = true) :
+    x.step (Move.wasteToFound c) = some (wasteNext x c) := by
+  rw [wasteNext_shape hw]
+  simp only [State.step]
+  rw [hw]
+  rw [show (x.wasteIs c && x.nextUp c) = true from by
+      rw [State.wasteIs_cons hw c, decide_eq_true rfl, hnext]
+      rfl]
+  rfl
+
+/-- **The waste-exit cycle count, exact**: a `wasteEntry c`-labeled edge
+delivers its landing one full cycle below its source — the founding
+side's counting companion, the state-grade shadow of the datum map's
+cycle channel. -/
+theorem waste_entry_cycle {C D : SameOrbit} {c : Card} (e : TipEdge C D)
+    (h : e.label = EdgeLabel.wasteEntry c) :
+    cycleCount e.w + 1 = cycleCount e.c := by
+  have hwo : WasteOf c e.m := (pair_move_character e).2.1 c h
+  rcases hwo with heqm | ⟨b, heqm⟩
+  · have hstep : e.c.step (Move.wasteToFound c) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨xs, hwu, hsucc⟩ := step_wasteToFound_inv hstep
+    rw [hsucc]
+    show e.c.stock.length + xs.length + 1
+        = e.c.stock.length + e.c.waste.length
+    rw [hwu]
+    simp only [List.length_cons]
+    omega
+  · have hstep : e.c.step (Move.wasteToTab c b) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨-, xs, hwu, hsucc⟩ := step_wasteToTab_inv hstep
+    rw [hsucc]
+    show (e.c.putCard c b).stock.length + xs.length + 1
+        = e.c.stock.length + e.c.waste.length
+    rw [putCard_stock e.c c b, hwu]
+    simp only [List.length_cons]
+    omega
+
+/-- **The target enumeration, the draw card's target shape**: every
+`wasteEntry c`-labeled edge pops its own waste head, and its landing is
+one of the two images of the shared shape-correspondence — the
+COMPUTED founder (founded arm, rung in view) or the seated image
+(`∃ b`, legality in view, and the one-safe-commit interlock read at the
+landing itself, landing at the computed founder under the rung). -/
+theorem tipEdge_wasteEntry_target {C D : SameOrbit} {c : Card} (e : TipEdge C D)
+    (h : e.label = EdgeLabel.wasteEntry c) :
+    ∃ xs, e.c.waste = c :: xs ∧
+      ((e.m = Move.wasteToFound c ∧ e.c.nextUp c = true ∧
+          e.w = wasteNext e.c c)
+        ∨ (∃ b, e.m = Move.wasteToTab c b ∧ e.c.canPlace c b = true ∧
+            e.w = {e.c.putCard c b with waste := xs} ∧
+            (e.c.nextUp c = true →
+              State.step e.w (Move.tabToFound c) = some (wasteNext e.c c)))) := by
+  have hwo : WasteOf c e.m := (pair_move_character e).2.1 c h
+  obtain ⟨xs, hw⟩ := waste_edge_head e hwo
+  obtain hop := waste_edge_outcome e h hw
+  refine ⟨xs, hw, ?_⟩
+  rcases hop with ⟨heqm, hnext, hsucc⟩ | ⟨b, heqm, hcp, hsucc, hcomp⟩
+  · exact Or.inl ⟨heqm, hnext, hsucc.trans (wasteNext_shape hw).symm⟩
+  · refine Or.inr ⟨b, heqm, hcp, hsucc, fun hn => ?_⟩
+    rw [hsucc]
+    rw [show wasteNext e.c c
+        = {e.c.setFound c.suit (e.c.found c.suit ++ [c]) with waste := xs}
+        from wasteNext_shape hw]
+    exact hcomp hn
+
+/-- **The class-datum wasteNext map (the envelope's class leg, at the
+honest datum grade)**: the source class's data with the popped card
+consumed — cycle one lower, the pool dropped of `c`, hidden and roots
+verbatim.  Computable at the class data already; with the sibling
+card's canonical commutation laws `datumOf` itself reads
+canonically, and this map upgrades to computable-at-canonical whole. -/
+def MacroDatums.wasteNext (d : MacroDatums) (c : Card) : MacroDatums :=
+  ⟨d.cycle - 1, poolDrop c d.pool, d.hidden, d.roots⟩
+
+/-- **The class-datum fiber**: every `wasteEntry c`-labeled edge's TARGET
+class carries exactly the computed datum image of its source class —
+the sameDatums lift with the core's outcome rows as soundness.  This is
+the honest substitute for the refused cross-mate class collapse: the
+targets may occupy several classes, but they all live in ONE fiber of
+the datum map, and the fiber is a function of the class pair's own
+data. -/
+theorem tipEdge_wasteEntry_datum {C D : SameOrbit} {c : Card} (e : TipEdge C D)
+    (h : e.label = EdgeLabel.wasteEntry c) :
+    datumOf D = (datumOf C).wasteNext c := by
+  have hC : datumOf C = MacroDatums.of e.c :=
+    (congrArg datumOf e.hmem.symm).trans (datumOf_mk e.c)
+  have hD : datumOf D = MacroDatums.of e.w :=
+    (congrArg datumOf e.cl.symm).trans (datumOf_mk e.w)
+  rw [hD, hC]
+  have hwo : WasteOf c e.m := (pair_move_character e).2.1 c h
+  obtain ⟨xs, hw⟩ := waste_edge_head e hwo
+  have hcIn : c ∈ e.c.waste := by
+    rw [hw]
+    exact List.mem_cons_self ..
+  have hcnr : c ∉ e.c.stock.reverse :=
+    fun hcon => (mem_waste_unique e.hwf hcIn).2.1 (List.mem_reverse.mp hcon)
+  obtain hop := waste_edge_outcome e h hw
+  rcases hop with ⟨-, -, hsucc⟩ | ⟨b, -, hcp, hsucc, -⟩
+  · rw [hsucc]
+    show (⟨cycleCount ({e.c.setFound c.suit (e.c.found c.suit ++ [c])
+            with waste := xs} : State),
+          drawPool ({e.c.setFound c.suit (e.c.found c.suit ++ [c])
+            with waste := xs} : State),
+          fun a => (({e.c.setFound c.suit (e.c.found c.suit ++ [c])
+            with waste := xs} : State).piles a).hidden,
+          fun a => nzRoot ({e.c.setFound c.suit (e.c.found c.suit ++ [c])
+            with waste := xs} : State) a⟩ : MacroDatums)
+      = ⟨(MacroDatums.of e.c).cycle - 1,
+          poolDrop c (MacroDatums.of e.c).pool,
+          (MacroDatums.of e.c).hidden,
+          (MacroDatums.of e.c).roots⟩
+    rw [show cycleCount ({e.c.setFound c.suit (e.c.found c.suit ++ [c])
+            with waste := xs} : State) = cycleCount e.c - 1 from by
+          show e.c.stock.length + xs.length
+            = (e.c.stock.length + e.c.waste.length) - 1
+          rw [hw]
+          simp only [List.length_cons]
+          omega,
+      show drawPool ({e.c.setFound c.suit (e.c.found c.suit ++ [c])
+            with waste := xs} : State) = poolDrop c (drawPool e.c) from by
+          rw [show drawPool ({e.c.setFound c.suit (e.c.found c.suit ++ [c])
+                with waste := xs} : State) = e.c.stock.reverse ++ xs from rfl,
+              show drawPool e.c = e.c.stock.reverse ++ c :: xs from by
+                show e.c.stock.reverse ++ e.c.waste
+                  = e.c.stock.reverse ++ c :: xs
+                rw [hw]]
+          rw [← poolDrop_append_hit c e.c.stock.reverse xs hcnr],
+      funext fun a =>
+        show (({e.c.setFound c.suit (e.c.found c.suit ++ [c])
+            with waste := xs} : State).piles a).hidden
+          = (e.c.piles a).hidden from rfl,
+      funext fun a =>
+        show nzRoot ({e.c.setFound c.suit (e.c.found c.suit ++ [c])
+            with waste := xs} : State) a
+          = nzRoot e.c a from rfl]
+    rfl
+  · rw [hsucc]
+    show (⟨cycleCount ({e.c.putCard c b with waste := xs} : State),
+          drawPool ({e.c.putCard c b with waste := xs} : State),
+          fun a => (({e.c.putCard c b with waste := xs} : State).piles a).hidden,
+          fun a => nzRoot ({e.c.putCard c b with waste := xs} : State) a⟩
+        : MacroDatums)
+      = ⟨(MacroDatums.of e.c).cycle - 1,
+          poolDrop c (MacroDatums.of e.c).pool,
+          (MacroDatums.of e.c).hidden,
+          (MacroDatums.of e.c).roots⟩
+    rw [show cycleCount ({e.c.putCard c b with waste := xs} : State)
+          = cycleCount e.c - 1 from by
+          show (e.c.putCard c b).stock.length + xs.length
+            = (e.c.stock.length + e.c.waste.length) - 1
+          rw [putCard_stock e.c c b, hw]
+          simp only [List.length_cons]
+          omega,
+      show drawPool ({e.c.putCard c b with waste := xs} : State)
+          = poolDrop c (drawPool e.c) from by
+          rw [show drawPool ({e.c.putCard c b with waste := xs} : State)
+                = (e.c.putCard c b).stock.reverse ++ xs from rfl,
+              show drawPool e.c = e.c.stock.reverse ++ c :: xs from by
+                show e.c.stock.reverse ++ e.c.waste
+                  = e.c.stock.reverse ++ c :: xs
+                rw [hw]]
+          rw [putCard_stock e.c c b,
+              ← poolDrop_append_hit c e.c.stock.reverse xs hcnr],
+      funext fun a =>
+        show (({e.c.putCard c b with waste := xs} : State).piles a).hidden
+          = (e.c.piles a).hidden from by
+          rw [show (({e.c.putCard c b with waste := xs} : State).piles a)
+                = ((e.c.putCard c b).piles a) from rfl]
+          exact putCard_hidden_eq hcp a,
+      funext fun a =>
+        show nzRoot ({e.c.putCard c b with waste := xs} : State) a
+          = nzRoot e.c a from by
+          cases b with
+          | inl k =>
+              obtain ⟨hemp, hkng⟩ := canPlace_inl hcp
+              obtain ⟨-, hfee⟩ := (Pile.isEmpty_eq _).mp hemp
+              by_cases hae : a = k
+              · rw [hae]
+                have hwP : (({e.c.putCard c (Sum.inl k) with waste := xs} : State).piles k)
+                    = ⟨[], [c]⟩ :=
+                  (rfl : _ = ((e.c.putCard c (Sum.inl k)).piles k)).trans
+                    putCard_inl_landing
+                have hL : nzRoot ({e.c.putCard c (Sum.inl k) with waste := xs} : State) k
+                    = none := by
+                  rw [nzRoot_head (by
+                      show (({e.c.putCard c (Sum.inl k) with waste := xs} : State).piles k).faceUp
+                        = c :: ([] : List Card)
+                      rw [hwP])]
+                  rw [hkng]
+                  rfl
+                rw [hL, nzRoot_nil hfee]
+              · have hOther : (({e.c.putCard c (Sum.inl k) with waste := xs} : State).piles a)
+                    = e.c.piles a :=
+                  (rfl : _ = ((e.c.putCard c (Sum.inl k)).piles a)).trans
+                    (putCard_inl_piles hae)
+                exact nzRoot_congr_pile hOther
+          | inr z =>
+              obtain ⟨kk, hz, -⟩ := canPlace_inr hcp
+              obtain ⟨hfzne, -⟩ := pileOfTop_top hz
+              by_cases hae : a = kk
+              · rw [hae]
+                have hwP : (({e.c.putCard c (Sum.inr z) with waste := xs} : State).piles kk)
+                    = {e.c.piles kk with faceUp := (e.c.piles kk).faceUp ++ [c]} :=
+                  (rfl : _ = ((e.c.putCard c (Sum.inr z)).piles kk)).trans
+                    (putCard_inr_landing hz)
+                cases hf : (e.c.piles kk).faceUp with
+                | nil => exact absurd hf hfzne
+                | cons g gs =>
+                    have hL : nzRoot ({e.c.putCard c (Sum.inr z) with waste := xs} : State) kk
+                        = if g.rank = Rank.king then none else some g := by
+                      rw [nzRoot_head (by
+                        show (({e.c.putCard c (Sum.inr z) with waste := xs} : State).piles kk).faceUp
+                          = g :: (gs ++ [c])
+                        rw [hwP, hf]
+                        rfl)]
+                    rw [hL, nzRoot_head hf]
+              · have hOther : (({e.c.putCard c (Sum.inr z) with waste := xs} : State).piles a)
+                    = e.c.piles a :=
+                  (rfl : _ = ((e.c.putCard c (Sum.inr z)).piles a)).trans
+                    (putCard_inr_piles_ne hz hae)
+                exact nzRoot_congr_pile hOther]
+    rfl
+
 
 /-! ## The axiom audit (per-declaration) -/
 
@@ -3135,6 +3461,12 @@ theorem waste_entry_le_2 {C D₁ D₂ : SameOrbit} {c : Card}
 #print axioms waste_landings_shape_correspond
 #print axioms waste_entry_composite
 #print axioms waste_entry_le_2
+#print axioms wasteNext
+#print axioms wasteNext_shape
+#print axioms wasteNext_step
+#print axioms waste_entry_cycle
+#print axioms tipEdge_wasteEntry_target
+#print axioms tipEdge_wasteEntry_datum
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
