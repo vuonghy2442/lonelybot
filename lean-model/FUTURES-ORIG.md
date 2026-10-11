@@ -3601,3 +3601,72 @@ every fresh row `[propext]` or `[propext, Quot.sound]` — ZERO
 (forkState/conjugateForkState/CargoPath/FaceShape) mirrored,
 never redefined; zero contention (branch file additions only);
 no merge to macro-game.
+
+#### §11-L6 — THE LAST GATE, CLOSED BY FALSIFIER (branch `orig-forkstate-gate`, base macro-game `07247ec`; the maximality-transport G2 head REFUTED at theorem grade, the in-tree main row's residue identified as a FALSE CONJUNCT, and the surviving transport machinery landed)
+
+(a) PROBE-FIRST, per the house discipline, and the probe SUCCEEDED:
+`probes/ForkUniqProbe.lean` crafts TWO same-class `forkState`s — witness
+5♥ seated ON the black next-up 6♠ (the witness is ITS OWN blocking
+cargo), twin 5♦ bare-bottom non-king (the V6 seat bar), rungs (♠5 ♥4
+♦4 ♣3) — and the two-leg journey `[tabToTab 5♥ (inr 6♣), tabToFound 6♠]`
+with one-move mirror undos both ways: the successor is ITSELF a
+`forkState` of the SAME pair {5♥, 5♦} with the SAME orientation, rungs
+(♠6 ♥4 ♦4 ♣3).  The maximality iff pins licenses at the FIXED
+arrangement; a flat cargo leg can relocate the witness and re-expose
+the covered next-up without touching any rung.  The strict G2 head —
+"two same-class, same-pair forkStates agree on every non-pair rung" —
+is UNPROVABLE: it is FALSE.
+
+(b) THEOREM-GRADE, `Orig/ForkStateUniqGate.lean` (additive, importing
+ForkStateUniq + MacroInternal; NOT wired into the root battery,
+mirroring the leaf discipline): the craft lifted to kernel-decided
+rows — the WF audit (52-card census), the license census at both
+endpoints (52 `decide` branches through the banked `canRaiseB`
+bridge), the four leg equations (two `rfl`, two `State.ext`-pointwise:
+the setFound/setPile record lambdas are stuck at variable suits but
+collapse at each concrete index), the `reversibleAtW` witnesses, the
+`sameOrbitSetoid` class packaging, and the two refutation heads:
+`forkGate_strict_head_false` (the ∃-form: same class, same pair, same
+orientation, ♠ rungs 5 vs 6) and `forkState_unique_refuted` — the
+in-tree row's OWN statement negated, all premises satisfied.  The
+07247ec re-validation: the corrected conjugate (`tabToTab x.twin`) and
+the CROSS-BRIDGE FaceShape are closed at BOTH grades — the cargo grade
+by `cargoPath_rungs`, the cross grade by `conjugate_endpoint_netflat`
+whose loose `∃ d` absorbs `d := x.twin` verbatim (the composite is
+net-flat whichever card the slide leg moves).
+
+(c) THE SURVIVORS (all sorry-free, all `[propext]`/`[propext, Quot.sound]`,
+zero `Classical.choice`): the journey-letter census (`wasteToFound`/
+`wasteToTab` never ride — `irr_of_desc` over the cycle-count table;
+the reveal-shaped `tabToFound`/`tabToTab` never ride — the hidden-total
+reveal cells), `journey_raise_shape` (a reversible raise IS licensed, or
+sits in the named bare-bottom residue — the (Q,J) corner whose
+irreversibility is the future write-analysis card's row),
+`journey_raise_seatUnfounded` (a seated raise burns an UNFOUNDED
+opposite-family rank-(r+1) board card as its seat — the scarcity
+certificate; the craft's witness-as-seat is exactly the loophole a
+repaired statement must bar), `shuffle_hiddenPinned` (the hidden-depth
+pin: hidden lists agree along witness journeys, leg by leg — the
+reveal irreversibility via the per-pile dichotomy + `run_pile_hidden_le`),
+and `forkState_content_of_rungs_agree` — THE CONDITIONAL G2′: same
+class + equal rungs ⇒ founds agree card-for-card (`rung_found_congr`)
+and hidden profiles agree.  A repaired `forkState_unique` consumes that
+row as its finishing step once its class-grade fork premises buy the
+rung agreement the counterexample proves unbuyable at the bare iff.
+
+(d) THE HONEST DIRECTIONS the repair card must price: the paired
+(V3-coverage) shape — both black-(r+1) twins consumed by the pair
+geometry (the witness seat + the twin's under-seat) bars the
+witness-relocation mechanism; the class-grade fork (`afterFork`/
+`forkPointC`-carrying classes with a stranded cargo) excludes the
+benign classes where the detection fires midstream (the craft's class
+saturates THROUGH the pair — 5♥ raises reversibly at st₁, so the class
+is not forked at the macro grade, and the uniqueness claim there is
+just false).
+
+Battery: `lake build Orig` green (30 jobs); the leaf trio
+`lake build Orig.MacroInternal Orig.ForkStateUniq Orig.ForkStateUniqGate`
+green, zero sorry in the gate file, every head audited, zero
+`Classical.choice`; `probes/ForkUniqProbe.lean` exit-zero, all gates
+throw-armed.  The in-tree interface is mirrored, never redefined; all
+changes additive; NO merge to macro-game.
