@@ -147,5 +147,102 @@ theorem vacate_keepsFound {st : State} {c : Card} {b : Base} {s₁ : State}
 
 #print axioms vacate_keepsFound
 
+/-! ## The corner, leg one — the conjugated landing -/
+
+/-- An empty pile is the bare pair of lists. -/
+private theorem isEmpty_spec {p : Pile} (h : p.isEmpty = true) :
+    p.hidden = [] ∧ p.faceUp = [] := by
+  rcases p with ⟨hl, fl⟩
+  match hl, fl with
+  | [], [] => exact ⟨rfl, rfl⟩
+  | x :: xs, ys => rw [Pile.isEmpty] at h; exact absurd h (by simp)
+
+/-- The transposition of two empty piles is the identity state — the
+two bare records exchange and everything else is untouched. -/
+theorem swapPiles_id_of_bothEmpty (st : State) (i j : Anchor)
+    (hi : (st.piles i).isEmpty = true) (hj : (st.piles j).isEmpty = true) :
+    st.swapPiles i j = st := by
+  obtain ⟨hhi, hfi⟩ := isEmpty_spec hi
+  obtain ⟨hhj, hfj⟩ := isEmpty_spec hj
+  refine State.ext rfl (funext fun x => ?_) rfl rfl rfl
+  rw [State.swapPiles_piles]
+  by_cases hxi : x = i
+  · rw [hxi, Anchor.swap_self_left]
+    exact Pile.ext (hhj.trans hhi.symm) (hfj.trans hfi.symm)
+  · by_cases hxj : x = j
+    · rw [hxj, Anchor.swap_self_right]
+      exact Pile.ext (hhi.trans hhj.symm) (hfi.trans hfj.symm)
+    · rw [Anchor.swap_eq_self _ _ hxi hxj]
+
+/-- **The corner's conjugation leg** (king flavor generic): after a
+fired vacate, both the just-emptied pile and the pre-existing hole
+are bare, so the transposition fixes `s₁` and the co-action mirrors
+the king landing at `a` into a landing at `h`, landing on the
+transposed composite.  The three king flavors instantiate with their
+one-line mirror rows (`Move.swapM`'s arms and
+`Base.swapBase_inl` / `Anchor.swap_self_left`). -/
+theorem vacate_corner_conj_after {st : State} {c : Card} {b : Base}
+    {a h : Anchor} {s₁ U : State} {mK mK' : Move}
+    (hwf : st.WF) (hnk : c.rank ≠ Rank.king)
+    (hhold : st.pileHolding c = some a) (hhid : (st.piles a).hidden = [])
+    (hbel : below c (st.piles a).faceUp = [])
+    (hfree : (st.piles h).isEmpty = true)
+    (hm : st.step (.tabToTab c b) = some s₁)
+    (hmirror : Move.swapM a h mK = mK')
+    (hm₂ : s₁.step mK = some U) :
+    ∃ U', s₁.step mK' = some U' ∧ U' = U.swapPiles a h := by
+  -- the vacate shape, assembled
+  have hshape : vacateShape st c := ⟨hnk, a, hhold, hhid, hbel⟩
+  obtain ⟨a₁, hhold₁, hempty₁⟩ := vacate_emptiesPile hshape hm
+  have hae : a = a₁ := Option.some.inj (hhold.symm.trans hhold₁)
+  subst hae
+  -- h differs from a: pile a holds c face up, h is empty
+  have hha : h ≠ a := by
+    intro hcon
+    rw [hcon] at hfree
+    exact absurd (pileHolding_mem hhold) (by
+      rw [(isEmpty_spec hfree).2]; simp)
+  -- the vacate's write set never touches h
+  obtain ⟨a₀, hh₀, hcp, -, hs₁W⟩ := step_tabToTab_inv hm
+  have haa : a = a₀ := Option.some.inj (hhold.symm.trans hh₀)
+  subst haa
+  rw [hbel, afterRunRemoved_of_vacate hhid] at hs₁W
+  have hSp : (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles h = st.piles h :=
+    setPile_piles_ne hha
+  cases b with
+  | inl k =>
+      rw [canPlace_inl_unfold] at hcp
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at hcp
+      exact absurd hcp.2 hnk
+  | inr z =>
+      have hs₁hE : (s₁.piles h).isEmpty = true := by
+        cases hpo : (st.setPile a ⟨[], ([] : List Card)⟩ : State).pileOfTop z with
+        | none =>
+            have hs₁h : s₁.piles h = st.piles h := by
+              rw [hs₁W]
+              simp only [State.putRun, hpo]
+              exact hSp
+            rw [hs₁h]
+            exact hfree
+        | some k =>
+            have hkh : k ≠ h := by
+              intro hcon
+              obtain ⟨hfe, -⟩ := pileOfTop_top (hpo.trans (congrArg some hcon))
+              rw [hSp] at hfe
+              rw [(isEmpty_spec hfree).2] at hfe
+              exact hfe rfl
+            have hs₁h : s₁.piles h = st.piles h := by
+              rw [hs₁W, putRun_piles_inr_ne _ _ _ _ hpo (Ne.symm hkh), hSp]
+            rw [hs₁h]
+            exact hfree
+      -- both piles bare at `s₁`: the transposition fixes it
+      have htid : s₁.swapPiles a h = s₁ :=
+        swapPiles_id_of_bothEmpty s₁ _ _ hempty₁ hs₁hE
+      have hwf₁ : s₁.WF := step_wf hwf hm
+      have hconj := State.step_swapPiles (st := s₁) (i := a) (j := h) hwf₁ mK
+      rw [htid, hmirror, hm₂, Option.map_some] at hconj
+      exact ⟨_, hconj, rfl⟩
+#print axioms vacate_corner_conj_after
+
 /-! ## Card B row (statement landed with the next wave's rows;
 ## see the case map above and the wave-24 FARM block) -/
