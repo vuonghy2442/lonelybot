@@ -1077,10 +1077,36 @@ is canonFace_sameShape, a THEOREM (canonFace_sameShape).  -/
 
 /-! ## §6. The fork dossier (the arm layer's topology) -/
 
-/-- The fork state, intrinsically: a state whose canonical form is
-SLIDE-SENSITIVE — a one-slide neighbor saturates to the other wing. -/
+/-- **THE FORK STATE** — the user's final detection: both twins are
+NEXT-UP on their foundations (the pair's two rungs sit exactly at
+the pair rank), and at least one twin is stackable now.  Pure
+foundation/pile reads; decidable; no cargo machinery, no witness
+shapes — one glance at the two rungs and the live license. -/
 def forkState (st : State) : Prop :=
-  ∃ c b st', st.step (.tabToTab c b) = some st' ∧ canon st ≠ canon st'
+  ∃ x, rungAt st x.suit = x.rank.toIdx ∧
+    rungAt st x.twin.suit = x.rank.toIdx ∧
+    (CanRaise st x ∨ CanRaise st x.twin)
+
+/-- **THE FINAL FORK STATE** — the forkState where saturation has
+ARRIVED AT THE PAIR: nothing else can raise (every licensed lift at
+the state lands inside the pair).  This is the state the FACE
+consumes: the class stopped here, the pair's choice exposed, both
+wings one leg away. -/
+def finalForkState (st : State) : Prop :=
+  ∃ x, rungAt st x.suit = x.rank.toIdx ∧
+    rungAt st x.twin.suit = x.rank.toIdx ∧
+    (CanRaise st x ∨ CanRaise st x.twin) ∧
+    (∀ c, CanRaise st c → c = x ∨ c = x.twin)
+
+/- THE RETIRED CANON-SENSITIVE detector: forkState was formerly
+"some tabToTab neighbor canon-diverges" — the slide-sensitivity
+read.  The new rung reads make the detection local and decidable;
+the canon-divergence content lives on as forkedCard (class grade)
+and the anatomy rows below consume it.  Consumer updates:
+fork_iff_nonUnionable's hwings and wing_crossing_bottleneck cite
+the new forkState — their premises re-fence at the new read (both
+rows sorry'd; the reinterpretation is the honest one: the wings
+join through states where the pair runs live). -/
 
 /-- Covered: the card sits beneath other face-up content. -/
 def coveredIn (st : State) (c : Card) : Prop :=
@@ -1661,11 +1687,13 @@ def FaceShape (w w' : State) : Prop :=
 
 inductive CanonFace (u w : State) : Prop
   | benign (hwf : u.WF) (hfin : Final w) (hw : w = canon u)
-      (hnofork : ∀ st, sameOrbitSetoid.r (canon u) st → ∀ x, ¬ forkPoint st x)
-  | forked (hwf : u.WF) (x d : Card)
+      (hnofork : ∀ st, sameOrbitSetoid.r (canon u) st →
+                   ∀ x, ¬ (rungAt st x.suit = x.rank.toIdx ∧
+                           rungAt st x.twin.suit = x.rank.toIdx ∧
+                           (CanRaise st x ∨ CanRaise st x.twin)))
+  | forked (hwf : u.WF)
       (hclass : sameOrbitSetoid.r (canon u) w)
-      (hpair : forkPointC w x d)
-      (honly : OnlyPairLicensed w x)
+      (hfins : finalForkState w)
 
 /-- Faces exist: the benign case is canon u itself; the forked case
 is the saturation-until-pair-only stop (the realization: canon,
