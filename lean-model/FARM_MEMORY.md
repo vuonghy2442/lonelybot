@@ -3833,6 +3833,7 @@ slots ride wrappers; five negative-result bankings (Phase def-hostility
 the headliner).  The six recurring disciplines of the campaign are
 recorded above (verbatim-window-only replaces, collision-rule atomic
 passes, ite-decider/fluent-premise/signature conventions, the /--
+ HEAD
 quirk, self-replacement-exclude-defs, def-vs-rw interlocks).
 
 ## Session note (wave-24 spread-core, farm/orig-dom-spread-core @ 4e27609, 2026-10-11)
@@ -4018,4 +4019,50 @@ virtual-grade translation second.
   spine, single-gated through `physEq_wf_canon`).  Wrong route on
   record: the exchanges-only ⟪⟫ spine (refuted-by-exhibit,
   tombstone in-file; founds split is structural via
-  `State.exchangeTwin_found`).
+  `State.exchangeTwin_found`)
+
+quirk, self-replacement-exclude-defs, def-vs-rw interlocks).
+
+## THE MACRO-FLOOR WAVE (orig-macro-floor branch, the Tier-0/1 skeleton rows; 2026-10-11)
+
+CRAFT NOTES for the sessions that consume or extend the MacroInternal floor:
+
+- THE LOOP-CLOSURE BRIDGE (the wave's technique bank, `shuffleW_of_round` /
+  `class_leg` in Orig/MacroInternal.lean): a leg carrying
+  `reversibleAtW st m` + its step lands `sameOrbitSetoid.r st s₁` with NO
+  physics, NO classification, and NO classicals.  The σ side of the RevEqW pair
+  is the single move itself; the τ side is the witness's return play, spliced
+  per step: every interior leg's own reversibleAtW witness is the LOOP
+  REMAINDER (suffix ++ [m] ++ front), proven by a 15-line induction on σ with
+  the run-splice rows (`run_cons`/`run_split`/`run_one`).  This dissolves the
+  apparent draw-leg obstacle (Phase's in-phase draw witnesses are multi-draw
+  replays — the loop closure handles arbitrary return plays) and is the
+  per-leg engine for any "reversible leg stays in class" consumer.
+- THE `.2.2`-ON-Exists TRAP (toolchain-specific, recorded twice): dotted
+  projections through an existential's And-nest (e.g. `(canon_run u).2.2`) are
+  accepted by the elaborator but REJECTED by the kernel ("kernel: invalid
+  projection") in this toolchain.  Destructure with `obtain ⟨-, -, h⟩ := ...`
+  instead — never project through the Exists.
+- THE SET-CONTENT TRAP: `Set-Content -NoNewline` on array input JOINS WITHOUT
+  SEPARATORS — a full-file round-trip with it collapses the file to one line.
+  (Realized and restored from git within the session; the committed tree was
+  never affected.)  For mechanical single-token file rewrites, prefer the Edit
+  tool; for array re-pipes, plain `Set-Content` (with separators) or
+  `-Join`/`-Raw` forms.
+- `rw [h] at hx` REWRITES ALL occurrences of the pattern in the hypothesis — at
+  snoc-shaped decompositions (`faceUp = chop ++ [top]`) rewriting with the
+  snoc in the HYPOTHESIS direction (←) can self-loop the chop term.  Rewrite
+  with the FORWARD direction at the target, or prove the length fact in a
+  standalone `have` via `rw [← hsnoc] at h` on a length row.
+- The fork dossier's derivable halves are BANKED (piled_rung /
+  canRaiseS_rung_pin / forkPoint_cargo_strand, private in MacroInternal): the
+  bare pin rides the CALIBRATED one-directional stackable_now_rungexact through
+  the CanRaiseS cascade induction; the cargo strand's reductio is the under-seat
+  reversible raise (Classify's witness constructors) + class_leg +
+  tabToFound_found_trio.  The BLOCKED fork rows carry in-file notes naming
+  canon-v3's §11-L4.2 gap form as the missing leg — reconcile there, do not
+  re-derive.
+- The batch-guard discipline that saved the most time: run
+  `lake env lean Orig/<file>.lean` after EVERY row-group edit, not at batch
+  ends — the cascade-errors-from-one-broken-obtain pattern is much cheaper to
+  localize at single-row granularity.

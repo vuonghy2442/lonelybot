@@ -1,5 +1,6 @@
 import Orig.EdgeLabel
 import Orig.TwinExchangeQuotient
+import Orig.Dominance
 
 /-!
 # Orig.MacroInternal — the structured macro class (STATEMENT SKELETON)
@@ -85,18 +86,195 @@ localizes the fork exactly. -/
 def surelyStackable (C : SameOrbit) (c : Card) : Prop :=
   ∀ st, classOf C st → Final st → c ∈ st.found c.suit
 
+/-! ## §1.5 The floor rows' engine battery
+(Private, self-contained on the banked carrier: the witness-loop
+bridge — one reversible leg lands inside the macro class — and the
+per-move rung locality: which suit's foundation a move writes.) -/
+
+/-- The loop-closure engine: a play from `x` landing at `w`, spliced
+with ANY play back from `w` to `x`, is a witness shuffle `x → w` —
+for every interior leg, the loop remainder (suffix, anchor-back,
+front) is an explicit returning play, so each leg carries its own
+`reversibleAtW`.  Pure run-splice arithmetic; no state physics. -/
+private theorem shuffleW_of_round : ∀ (σ : List Move) (x w : State),
+    x.run σ = some w → ∀ ρ : List Move, w.run ρ = some x →
+      ShufflePlayW x σ w := by
+  intro σ
+  induction σ with
+  | nil =>
+      intro x w hσ ρ hρ
+      have hxw : some x = some w := hσ
+      injection hxw with hx
+      rw [hx]
+      exact .nil w
+  | cons p rest ih =>
+      intro x w hσ ρ hρ
+      obtain ⟨y, hp, hrest⟩ := State.run_cons hσ
+      refine .cons ⟨y, rest ++ ρ, hp, run_split rest y w ρ x hrest hρ⟩ hp ?_
+      exact ih y w hrest (ρ ++ [p]) (run_split ρ w x [p] y hρ (run_one hp))
+
+/-- One reversible leg stays inside the macro class: the firing's own
+witness gives the both-directions shuffle pair — the σ side is the
+single move itself, the τ side is the loop-closure of the return
+play, and the setoid's `r` IS that pair (the reversed-argument
+orientation).  This is the per-leg heart of `cone_inClass` and
+`dance_inClass` below. -/
+private theorem class_leg {st s₁ : State} {m : Move}
+    (hrev : reversibleAtW st m) (hstep : State.step st m = some s₁) :
+    sameOrbitSetoid.r st s₁ := by
+  obtain ⟨s₁', play, hstep', hrun⟩ := hrev
+  have hs : s₁' = s₁ := Option.some.inj (hstep'.symm.trans hstep)
+  rw [hs] at hrun
+  show RevEqW s₁ st
+  exact ⟨play, shuffleW_of_round play s₁ st hrun [m] (run_one hstep),
+    [m], .cons ⟨s₁, play, hstep, hrun⟩ hstep (.nil s₁)⟩
+
+/-- Class-membership transitivity, through the rev-closure's own
+transitivity (the setoid's reversed-argument orientation, one
+argument-swap). -/
+private theorem class_trans {a b c : State}
+    (h₁ : sameOrbitSetoid.r a b) (h₂ : sameOrbitSetoid.r b c) :
+    sameOrbitSetoid.r a c :=
+  RevEqW_trans h₂ h₁
+
+/-- A run relocation never writes the foundations: all rungs level
+(the stock/waste legs of the same story are `step_draw_rungs`; the
+giveback and the raise are the two one-rung writers). -/
+private theorem step_tabToTab_rungs {st st' : State} {c : Card} {b : Base}
+    (hstep : State.step st (Move.tabToTab c b) = some st') :
+    ∀ s, rungAt st' s = rungAt st s := by
+  obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv hstep
+  intro s
+  show (st'.found s).length = (st.found s).length
+  rw [hs, putRun_found (st.setPile a
+    (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp)))
+    (fromCard c (st.piles a).faceUp) b]
+  rfl
+
+/-- A draw never writes the foundations: all rungs level (the canlaw
+satStep locality row territory, here as the direct step-level fact of
+the banked draw readers). -/
+private theorem step_draw_rungs {st st' : State}
+    (hstep : st.step .draw = some st') :
+    ∀ s, rungAt st' s = rungAt st s := by
+  intro s
+  have hd : st.stepDraw = some st' := hstep
+  show (st'.found s).length = (st.found s).length
+  rw [stepDraw_found hd]
+
+/-- A licensed raise writes exactly one rung: its suit up one, all
+other rungs level (rides the banked `tabToFound_found_trio`). -/
+private theorem step_tabToFound_rungs {st st' : State} {c : Card}
+    (hstep : State.step st (Move.tabToFound c) = some st') :
+    rungAt st' c.suit = rungAt st c.suit + 1 ∧
+      ∀ s, s ≠ c.suit → rungAt st' s = rungAt st s := by
+  obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv hstep
+  obtain ⟨hself, hothers, -⟩ := tabToFound_found_trio (a := a) hs
+  refine ⟨?_, ?_⟩
+  · show (st'.found c.suit).length = (st.found c.suit).length + 1
+    rw [hself, List.length_append]
+    have h1 : ([c] : List Card).length = 1 := rfl
+    omega
+  · intro s hs2
+    show (st'.found s).length = (st.found s).length
+    rw [hothers s hs2]
+
+/-- A foundation giveback writes exactly one rung: its suit down one,
+all other rungs level. -/
+private theorem step_foundToTab_rungs {st st' : State} {c : Card} {b : Base}
+    (hstep : State.step st (Move.foundToTab c b) = some st') :
+    rungAt st' c.suit + 1 = rungAt st c.suit ∧
+      ∀ s, s ≠ c.suit → rungAt st' s = rungAt st s := by
+  obtain ⟨c', htop, hceq, hcp, hs⟩ := step_foundToTab_inv hstep
+  rw [hceq] at htop
+  have hlast : lastOf (st.found c.suit) = some c := htop
+  have hsnoc : st.found c.suit = chop (st.found c.suit) ++ [c] :=
+    lastOf_chop hlast
+  have hlen : (st.found c.suit).length = (chop (st.found c.suit)).length + 1 := by
+    have h : (chop (st.found c.suit) ++ [c] : List Card).length =
+        (chop (st.found c.suit)).length + ([c] : List Card).length := List.length_append
+    rw [← hsnoc] at h
+    have h1 : ([c] : List Card).length = 1 := rfl
+    omega
+  refine ⟨?_, ?_⟩
+  · show (st'.found c.suit).length + 1 = (st.found c.suit).length
+    rw [hs]
+    have hself' : (((st.setFound c.suit (chop (st.found c.suit))).putCard c b).found)
+        c.suit = chop (st.found c.suit) := by
+      rw [putCard_found, setFound_found_self]
+    rw [hself']
+    omega
+  · intro s hs2
+    show (st'.found s).length = (st.found s).length
+    rw [hs]
+    have hothers' : (((st.setFound c.suit (chop (st.found c.suit))).putCard c b).found)
+        s = st.found s := by
+      rw [putCard_found, setFound_found_ne hs2]
+    rw [hothers']
+
 /-! ## §2. Calibration rows -/
 
-/-- Stackable-now ⟺ the rung sits exactly at the card
-(rank-encoding calibration: adjust the `toIdx` offset here, once). -/
-theorem stackable_now_rungexact (st : State) (c : Card) (hwf : st.WF) :
-    CanRaise st c ↔ rungAt st c.suit = c.rank.toIdx := by
-  sorry
+/-- **Stackable-now implies rung-exact** — the rank-encoding
+calibration (CALIBRATION NOTE, the adjustment the card authorizes for
+this row): the 0-based `toIdx` encoding matches `foundHeight`
+EXACTLY — no offset adjustment is needed, because `nextUp` is
+literally `decide (rank.toIdx = foundHeight)` (Orig/State.lean:379)
+and the license opens with it.  The skeleton's iff-face is
+unprovable in the reverse direction and was calibrated to the
+one-directional read: a card AT the rung may sit buried, stocked, or
+wasted, so the license's seat legs (`pileOfTop`, the refillable
+base) are not implied by rung-exactness alone.  Every consumer pins
+the rung FROM the license (the fork dossier's bare-pin walks exactly
+this way), and the `WF` premise was dropped: the license's nextUp
+leg is rank-exact at every state, well-formed or not. -/
+theorem stackable_now_rungexact (st : State) (c : Card) :
+    CanRaise st c → rungAt st c.suit = c.rank.toIdx := by
+  intro h
+  obtain ⟨hn, -, -⟩ := h
+  have h2 : c.rank.toIdx = st.foundHeight c.suit := of_decide_eq_true hn
+  show (st.found c.suit).length = c.rank.toIdx
+  exact h2.symm
+
+/-- The saturation step never lowers a rung: it either holds or raises
+exactly one suit by one (`raise_foundHeight`). -/
+private theorem satStep_rung_mono (st : State) (s : Suit) :
+    rungAt st s ≤ rungAt (satStep st) s := by
+  cases hp : pick st with
+  | none =>
+      have h : satStep st = st := satStep_none hp
+      rw [h]
+      exact Nat.le_refl _
+  | some c =>
+      obtain ⟨s', hr⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
+      have hsat : satStep st = s' := satStep_some hp hr
+      have hstep : State.step st (Move.tabToFound c) = some s' := hr
+      obtain ⟨-, hF⟩ := raise_foundTransport hstep
+      obtain ⟨hself, hothers⟩ := raise_foundHeight hF
+      rw [hsat]
+      by_cases hsc : s = c.suit
+      · subst hsc
+        have h1 : rungAt st c.suit = st.foundHeight c.suit := rfl
+        have h2 : rungAt s' c.suit = s'.foundHeight c.suit := rfl
+        omega
+      · have h1 := hothers s hsc
+        have h2 : rungAt s' s = s'.foundHeight s := rfl
+        have h3 : rungAt st s = st.foundHeight s := rfl
+        omega
+
+/-- The saturator at any budget never lowers a rung (induction along
+the `canonAux` recursion, `satStep_rung_mono` composed). -/
+private theorem canonAux_rung_mono (n : Nat) (st : State) (s : Suit) :
+    rungAt st s ≤ rungAt (canonAux n st) s := by
+  induction n generalizing st with
+  | zero => exact Nat.le_refl _
+  | succ m ih =>
+      rw [canonAux_succ]
+      exact Nat.le_trans (satStep_rung_mono st s) (ih (satStep st))
 
 /-- Saturation only raises: the canonical form dominates the rungs. -/
-theorem canon_rung_mono (st : State) (s : Suit) (hwf : st.WF) :
-    rungAt st s ≤ rungAt (canon st) s := by
-  sorry
+theorem canon_rung_mono (st : State) (s : Suit):
+    rungAt st s ≤ rungAt (canon st) s :=
+  canonAux_rung_mono 53 st s
 
 /-- The three grades partition every card — sorry-free: a case split.
 stranded (never even ready) / pending-forever (ready, never founded) /
@@ -111,7 +289,27 @@ theorem grade_partition (C : SameOrbit) (c : Card) :
 
 /-- Founding implies at-rung somewhere: pull the founded cards back
 down (cone legs stay in class) and the pulled state sits at the rung —
-the walk property, ∃-grade. -/
+the walk property, ∃-grade.
+
+BLOCKED (this row, floor-card escape hatch): the pops-backward walk
+needs more than this file's battery carries.  What is missing is the
+LANDING-EXISTENCE leg of the walk: to pop a foundation top at an
+intermediate state, the popped card must land legally somewhere
+(a rank-adjacent opposite-color pile top, or an empty seat for a
+king), and a WF member may offer NEITHER — the landing host cards can
+sit buried in hidden lists or in the stock, and the walk must first
+shuffle them free, which is precisely the neck/envelope content owned
+by the decompression card (`mem_macro_iff`, every member a
+conj-of-a-cone-element of the canon).  The founding read-backward is
+envelope-grade; per the card ("route via canon or via the pull letter;
+if it needs the envelope, leave BLOCKED-noted") this row stays sorry'd
+here rather than forced.  The honest partial content this side DOES
+own (and the walk will consume): every reversible pop of a foundation
+top at a WF state is a cone pull whose round trip is one move
+(foundToTab then tabToFound back onto the historic seat — both
+under-seat and bare-king shapes, the Classify witness constructors),
+and the rung arithmetic of that pop is `step_foundToTab_rungs` in the
+battery. -/
 theorem founded_implies_atRung (C : SameOrbit) (c : Card) :
     satStackable C c → atRungInClass C c := by
   sorry
@@ -138,12 +336,45 @@ inductive ConePath : State → State → Prop
   | refl (w : State) : ConePath w w
   | cons {w u u' : State} (h : ConeStep w u) (t : ConePath u u') : ConePath w u'
 
-/-- Cone legs stay in class: each carries its witness dance. -/
-theorem cone_inClass (w u : State) (hwf : w.WF) (h : ConePath w u) :
+/-- Every cone leg is a reversible leg: the constructor's own
+`reversibleAtW` witnesses feed `class_leg`. -/
+private theorem ConeStep_class {w u : State} (h : ConeStep w u) :
     sameOrbitSetoid.r w u := by
-  sorry
+  cases h with
+  | pull c b hstep hrev => exact class_leg hrev hstep
+  | slide c b hstep hrev => exact class_leg hrev hstep
+  | draw hstep hrev => exact class_leg hrev hstep
+
+/-- Cone legs stay in class: each carries its witness round trip, and
+the loop-closure engine turns it into the both-directions shuffle
+pair (the leg-level home is `class_leg`; the path composes by the
+rev-closure's own transitivity). -/
+theorem cone_inClass (w u : State) (h : ConePath w u) :
+    sameOrbitSetoid.r w u := by
+  induction h with
+  | refl x => exact RevEqW_refl x
+  | cons hleg _t ih => exact class_trans (ConeStep_class hleg) ih
 
 /-! ### The inter-fiber moves -/
+
+/-- **The per-move rung semantics of the cone letters** (row named by
+the floor card; `cone_step_fiber` and `dance_step_grading` both ride
+it): a cone leg is FLAT — slide or draw, all rungs level (the
+foundations are never touched) — or DOWN exactly one rung of exactly
+one suit: a pull pops exactly one founded top (its suit −1, all else
+verbatim).  Case analysis on the constructors; the reader homes are
+the battery's `step_tabToTab_rungs`, `step_draw_rungs` and
+`step_foundToTab_rungs`. -/
+theorem cone_step_heights {st st' : State} (h : ConeStep st st') :
+    (∀ s : Suit, rungAt st' s = rungAt st s) ∨
+    (∃ s₀ : Suit, rungAt st' s₀ + 1 = rungAt st s₀ ∧
+      ∀ s : Suit, s ≠ s₀ → rungAt st' s = rungAt st s) := by
+  cases h with
+  | pull c b hstep _hrev =>
+      obtain ⟨h1, h2⟩ := step_foundToTab_rungs hstep
+      exact Or.inr ⟨c.suit, h1, h2⟩
+  | slide c b hstep _hrev => exact Or.inl (step_tabToTab_rungs hstep)
+  | draw hstep _hrev => exact Or.inl (step_draw_rungs hstep)
 
 /-- One dance leg: any reversible single move.  Adds the raising
 direction (licensed `tabToFound`, carrying its V2 undo) to the cone
@@ -174,13 +405,22 @@ theorem dance_step_grading {w u : State} (h : DanceStep w u) :
       ∀ s : Suit, s ≠ s₀ → rungAt u s = rungAt w s) ∨
     (∃ s₀ : Suit, rungAt u s₀ + 1 = rungAt w s₀ ∧
       ∀ s : Suit, s ≠ s₀ → rungAt u s = rungAt w s) := by
-  sorry
+  cases h with
+  | cone hc =>
+      rcases cone_step_heights hc with hflat | ⟨s₀, hs₀, hothers⟩
+      · exact Or.inl hflat
+      · exact Or.inr (Or.inr ⟨s₀, hs₀, hothers⟩)
+  | raise c hstep hrev =>
+      obtain ⟨h1, h2⟩ := step_tabToFound_rungs hstep
+      exact Or.inr (Or.inl ⟨c.suit, h1, h2⟩)
 
 /-- Every dance stays in class (the reversible legs were always the
 journey side of the setoid). -/
 theorem dance_inClass {w u : State} (h : DanceStep w u) :
     sameOrbitSetoid.r w u := by
-  sorry
+  cases h with
+  | cone hc => exact ConeStep_class hc
+  | raise _ hstep hrev => exact class_leg hrev hstep
 
 /-! ### The flat (horizontal) world: cargo, exchanges, phase
 
@@ -219,23 +459,69 @@ inductive FlatStep : State → State → Prop
 
 /-- The banked exchange IS a cargo move: at any `TwinExchOK`-licensed
 pair the suffix-swap realizes as ONE `tabToTab` (the hosts keep their
-piles; the empty suffix rides across; joints legal by the twin-blind
-right fit).  The ExchangeTwin vocabulary stays as the RELATION-level
-name (the quotient, freeness, abelian fate rows); it is no longer a
-separate path letter. -/
+piles — `exchangeTwin_eq_of_located`; the empty suffix rides across;
+joints legal by the twin-blind right fit `canSitOn_twin_right`), and
+the degenerate both-bare bit prices at ZERO as the identity
+(`exchangeTwin_eq_self_of_both_bare`) — CALIBRATION NOTE: the bare
+both-empty step is `ExchStep a a`, and no successful `tabToTab` is
+ever a fixed point (the moving run always relocates), so the honest
+row carries the identity as its own disjunct: the licensed exchange
+is one cargo move, or the identity in the degenerate case; the
+routing between the cons-cases is the public one-move realizer
+`step_realize_fwd` (TwinExchange, promoted at this wave), applied
+directly on the cargo side and mirrored through the pair involution
+`exchangeTwin_pair` when the cargo sits above the other twin.  The
+ExchangeTwin vocabulary stays as the RELATION-level name (the
+quotient, freeness, abelian fate rows); it is no longer a separate
+path letter. -/
 theorem exch_is_cargo {a b : State} (h : ExchStep a b) :
-    ∃ c b', a.step (.tabToTab c b') = some b := by
-  sorry
+    (∃ c b', a.step (.tabToTab c b') = some b) ∨ a = b := by
+  obtain ⟨t, hok, rfl⟩ := h
+  obtain ⟨hwf, k, k', h₁, h₂, hne, hbare⟩ := hok
+  cases hS : aboveIn t ((a.piles k).faceUp) with
+  | nil =>
+      cases hS' : aboveIn t.twin ((a.piles k').faceUp) with
+      | nil =>
+          exact Or.inr (State.exchangeTwin_eq_self_of_both_bare h₁ h₂ hne hS hS').symm
+      | cons z rest =>
+          have hroot := step_realize_fwd (st := a) (t := t.twin) (a := k') (a' := k)
+            hwf h₂
+            (show a.pileHolding t.twin.twin = some k by rw [Card.twin_twin]; exact h₁)
+            (Ne.symm hne) hS'
+            (show aboveIn t.twin.twin ((a.piles k).faceUp) = [] by
+              rw [Card.twin_twin]; exact hS)
+          exact Or.inl ⟨z, Sum.inr t.twin.twin, by rw [hroot, State.exchangeTwin_pair]⟩
+  | cons z rest =>
+      have hS' : aboveIn t.twin ((a.piles k').faceUp) = [] := by
+        rcases hbare with hbr | hbr
+        · rw [hbr] at hS
+          exact absurd hS (by simp)
+        · exact hbr
+      have hroot := step_realize_fwd (st := a) (t := t) (a := k) (a' := k')
+        hwf h₁ h₂ hne hS hS'
+      exact Or.inl ⟨z, Sum.inr t.twin, hroot⟩
 
 inductive FlatPath : State → State → Prop
   | refl (w : State) : FlatPath w w
   | cons {w z u : State} (h : FlatStep w z) (t : FlatPath z u) : FlatPath w u
 
+/-- Both flat letters never touch the foundations: cargo relocations
+and draws level every rung (the engine battery's two non-writers). -/
+private theorem FlatStep_rungs {w z : State} (h : FlatStep w z) :
+    ∀ s, rungAt z s = rungAt w s := by
+  cases h with
+  | cargo _ _ hstep _hrev => exact step_tabToTab_rungs hstep
+  | draw hstep _hrev => exact step_draw_rungs hstep
+
 /-- Flats preserve all four heights (the cheap direction: pile and
 zone writes never touch the foundations). -/
 theorem flat_heights {w u : State} (h : FlatPath w u) :
     ∀ s : Suit, rungAt u s = rungAt w s := by
-  sorry
+  induction h with
+  | refl x => intro s; rfl
+  | cons hleg _t ih =>
+      intro s
+      exact (ih s).trans (FlatStep_rungs hleg s)
 
 /-- **THE FIBER-FLAT COINCIDENCE** — the user's closing principle, with the
 conjugate slack the statement needs: within one macro class, two
@@ -286,7 +572,12 @@ theorem cone_step_fiber {st st' : State} (h : ConeStep st st') (t : Suit → Nat
     (∀ s, rungAt st' s = t s) ∨
     (∃ s₀ : Suit, rungAt st' s₀ + 1 = t s₀ ∧
       ∀ s : Suit, s ≠ s₀ → rungAt st' s = t s) := by
-  sorry
+  rcases cone_step_heights h with hflat | ⟨s₀, hs₀, hothers⟩
+  · exact Or.inl fun s => (hflat s).trans (hit s)
+  · refine Or.inr ⟨s₀, ?_, ?_⟩
+    · exact hs₀.trans (hit s₀)
+    · intro s hs
+      exact (hothers s hs).trans (hit s)
 
 /-- **The top fibers are the Finals**: every member is dominated by a
 Final's tuple (its own saturation), and the Finals occupy at most TWO
@@ -314,7 +605,9 @@ def canusOf (u w' : State) : Prop :=
   Final w' ∧ ∃ w₁, ConePath (canon u) w₁ ∧ (w' = w₁ ∨ w' = conjl w₁)
 
 theorem canusOf_nonempty (u : State) (hwf : u.WF) :
-    ∃ w, canusOf u w := by sorry
+    ∃ w, canusOf u w := by
+  obtain ⟨-, -, hfin⟩ := canon_run u
+  exact ⟨canon u, hfin, canon u, ConePath.refl (canon u), Or.inl rfl⟩
 
 /-- canus is constant on classes — `mem_macro_iff` restated: THE
 load-bearing dependency (the decompression card's engine). -/
@@ -401,19 +694,19 @@ def cargoTop (st : State) (d c : Card) : Prop :=
   ∃ a, st.pileOfTop d = some a ∧ st.pileHolding c = some a
 
 /-- **The fork point with its cargo as first-class witness** — the
-CALIBRATED form (floor batch F's diagnosis: the earlier shape
-under-carried the live signature — CanRaiseS alone lets the bare twin
-hide behind slidables, and cargoTop lets the covered twin sit stranded
-a rung short).  Strengthened per the stall-point signature: the bare
-twin raisable NOW (a genuine pile-top), BOTH twins pinned at the pair
+V2-CALIBRATED form (the floor card's batch-F diagnosis: the earlier
+shape under-carried the live signature — CanRaiseS alone lets the
+bare twin hide behind slidables, and cargoTop lets the covered twin
+sit stranded a rung short, a WF counterexample exists): the bare twin
+raisable NOW (a genuine pile-top), BOTH twin rungs pinned at the pair
 rank (the pin enters as premise — it is the fork's own datum), the
 cargo topping the twin, class-stranded. -/
 def forkPointC (st : State) (x d : Card) : Prop :=
   CanRaise st x ∧
   rungAt st x.twin.suit = x.rank.toIdx ∧
   cargoTop st d x.twin ∧
-  d.rank.toIdx + 1 = x.rank.toIdx ∧ ¬ twinSuit d.suit x.suit ∧
-  ¬ satStackable (Quotient.mk sameOrbitSetoid st) d
+    d.rank.toIdx + 1 = x.rank.toIdx ∧ ¬ twinSuit d.suit x.suit ∧
+    ¬ satStackable (Quotient.mk sameOrbitSetoid st) d
 
 /-- **The fork point** (the live signature, existentially packaged): one
 twin stackable in the cargo-exchange sense, the other twin topped by a
@@ -426,10 +719,39 @@ the fork pair's twins at the fork rank. -/
 def forkedCard (C : SameOrbit) (c : Card) : Prop :=
   satStackable C c ∧ ¬ surelyStackable C c
 
-/-- Benign collapse: with no arm-contingent card, the grades coincide. -/
-theorem benign_sat_iff_surely (C : SameOrbit) (c : Card) :
-    ¬ forkedCard C c → (satStackable C c ↔ surelyStackable C c) := by
-  sorry
+/-- Surely implies sat, under a WF member of the class: the canonical
+form is a Final class-member (canon_run + canon_in_class), and
+surely-at-every-Final reads the foundedness right there.  Added as the
+named row the floor card lists beside benign; the member premise is
+the CALIBRATION the ⇐ direction genuinely needs (a bare quotient with
+no WF member can lack Final members entirely, making surelyStackable
+vacuous — every consumer of the grades holds a WF member). -/
+theorem surely_imp_sat (C : SameOrbit) (c : Card)
+    (hmem : ∃ u, classOf C u ∧ u.WF)
+    (h : surelyStackable C c) :
+    satStackable C c := by
+  obtain ⟨u, hcu, hwf⟩ := hmem
+  have hclass : classOf C (canon u) := (canon_in_class hwf).trans hcu
+  obtain ⟨-, -, hfin⟩ := canon_run u
+  have hfound := h (canon u) hclass hfin
+  exact ⟨canon u, hclass, hfound⟩
+
+/-- Benign collapse: with no arm-contingent card, the grades coincide.
+(The member premise calibrated in as for `surely_imp_sat`; the
+fork-free direction is pure logic on the forkedCard definition — a
+Final member where the card missed its foundation would itself
+witness the fork — decidable branch, no classicals.) -/
+theorem benign_sat_iff_surely (C : SameOrbit) (c : Card)
+    (hmem : ∃ u, classOf C u ∧ u.WF)
+    (hforkfree : ¬ forkedCard C c) :
+    satStackable C c ↔ surelyStackable C c := by
+  constructor
+  · intro hsat w hw hfin
+    by_cases hmem_s : c ∈ w.found c.suit
+    · exact hmem_s
+    · exact absurd ⟨hsat, fun hS => absurd (hS w hw hfin) hmem_s⟩ hforkfree
+  · intro hsure
+    exact surely_imp_sat C c hmem hsure
 
 /-- **The two faces agree**: a class has an arm-contingent card iff some
 member shows the live fork-point signature. -/
@@ -516,9 +838,123 @@ theorem afterFork_neckReachable (C : SameOrbit) (u : State) (hu : u.WF)
     ∃ m, ConePath (canon u) m ∧ saturatesTo m w' := by
   sorry
 
+/-! ### The fork dossier's derivable halves
+(Private engine rows landed as the evidence base for the BLOCKED notes
+below: the piled-rung arithmetic and the two pin-halves the
+skeleton's forkPointC DOES carry.  The covered-twin's exact pin is
+deliberately NOT here — that leg is the gap-form content the
+skeleton's signature under-carries, see the notes.) -/
+
+/-- A face-up card's own suit rung sits weakly below its rank index —
+the piled leg of the fork arithmetic (canon-v3's `v3PiledRung`
+re-striped on the banked carrier: `WF.found_prefix`, the banked
+`mem_upCards_take`, and the face-up census inversion
+`mem_faceUp_only`; conservation forbids a card in two zones). -/
+private theorem piled_rung {st : State} {q : Card} {k : Anchor}
+    (hwf : st.WF) (hmem : q ∈ (st.piles k).faceUp) :
+    rungAt st q.suit ≤ q.rank.toIdx := by
+  obtain ⟨n, hn⟩ := hwf.found_prefix q.suit
+  have hlen : rungAt st q.suit ≤ n := by
+    show (st.found q.suit).length ≤ n
+    rw [hn, List.length_take, Suit.upCards_length]
+    omega
+  rcases Nat.lt_trichotomy (rungAt st q.suit) q.rank.toIdx with hlt | heq | hgt
+  · exact Nat.le_of_lt hlt
+  · exact Nat.le_of_eq heq
+  · exfalso
+    have hqf : q ∈ st.found q.suit := by
+      rw [hn, show q = Card.mk q.suit q.rank from rfl]
+      exact mem_upCards_take q.suit n q.rank (by omega)
+    exact (mem_faceUp_only hwf hmem).2.2.2.2 q.suit hqf
+
+/-- The bare twin's exact pin, along the swap-grade cascade: the
+vanilla license at the cascade's far end is rung-exact
+(`stackable_now_rungexact`, the calibrated row), and the cascade's
+cargo slides never write foundations (the battery's tabToTab
+non-write) — so the rung already sits at the pair rank at the point
+itself.  This is the pins' derivable half; the forkPoint BLOCKED note
+below records the other half. -/
+private theorem canRaiseS_rung_pin {st : State} {x : Card} (h : CanRaiseS st x) :
+    rungAt st x.suit = x.rank.toIdx := by
+  induction h with
+  | now c hcan => exact stackable_now_rungexact _ c hcan
+  | via c hl _h2 ih =>
+      obtain ⟨d, b, hstep, -⟩ := hl
+      have hr := (step_tabToTab_rungs hstep) c.suit
+      omega
+
+/-- The cargo's strict strand: at a fork point the cargo — topping the
+covered twin's pile, never founded anywhere in the class — has its own
+suit's rung STRICTLY below its rank.  Reductio: were the cargo
+next-up, its license would fire (it tops the covering pile, and the
+seat is refillable — the twin sits face-up below it, so the chop is
+nonempty), the licensed raise is reversible at WF (the under-seat
+witness constructor), the raised mate sits in-class with the cargo
+founded (`class_leg` + `tabToFound_found_trio`), contradicting the
+macro-grade ¬satStackable leg.  The weak half is `piled_rung`
+(conservation); strictness is the negated nextUp. -/
+private theorem forkPoint_cargo_strand {st : State} {x d : Card}
+    (hwf : st.WF) (hfp : forkPointC st x d) :
+    rungAt st d.suit < d.rank.toIdx := by
+  obtain ⟨-, -, hcargo, -, hcol, hnsat⟩ := hfp
+  obtain ⟨k, htopd, hholdt⟩ := hcargo
+  have hdmem : d ∈ (st.piles k).faceUp := lastOf_mem (pileOfTop_top htopd).2
+  have hxtm0 : x.twin ∈ (st.piles k).faceUp := pileHolding_mem hholdt
+  have hsnoc : (st.piles k).faceUp = chop (st.piles k).faceUp ++ [d] :=
+    lastOf_chop (pileOfTop_top htopd).2
+  have hdne : d ≠ x.twin := by
+    intro hcon
+    exact hcol (by rw [hcon]; exact Or.inr rfl)
+  rw [hsnoc] at hxtm0
+  have hchop : chop (st.piles k).faceUp ≠ [] := by
+    intro hnil
+    rw [hnil] at hxtm0
+    have hxt : x.twin = d := List.mem_singleton.1 (by simpa using hxtm0)
+    exact absurd hxt.symm hdne
+  by_cases hnu : st.nextUp d = true
+  · exfalso
+    obtain ⟨z', preT, hch⟩ := list_cons_of_ne_nil hchop
+    have hrev := tabToFound_reversibleAtW_under_wf hwf hnu htopd hch
+    obtain ⟨s₁, play, hstep, hrun⟩ := hrev
+    have hclass := class_leg ⟨s₁, play, hstep, hrun⟩ hstep
+    obtain ⟨-, ka, -, hs⟩ := step_tabToFound_inv hstep
+    have hfound : d ∈ s₁.found d.suit := by
+      have htrio := (tabToFound_found_trio (a := ka) hs).1
+      rw [htrio]
+      exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
+    exact hnsat ⟨s₁, (Quotient.sound hclass).symm, hfound⟩
+  · have hle := piled_rung hwf hdmem
+    have hne : st.foundHeight d.suit ≠ d.rank.toIdx := by
+      intro hcon
+      have hexp : st.nextUp d = true := by
+        show decide (d.rank.toIdx = st.foundHeight d.suit) = true
+        rw [show d.rank.toIdx = st.foundHeight d.suit from hcon.symm]
+        exact decide_eq_true rfl
+      exact absurd hexp hnu
+    have hr : rungAt st d.suit = st.foundHeight d.suit := rfl
+    omega
+
 /-- The operational trial, derived: the twin's swap-raise realizes
 through the cargo slide onto the bare twin's host, and there the twin
-lights vanilla. -/
+lights vanilla.
+
+BLOCKED (this row, fork-card escape hatch): the skeleton's
+`forkPointC` under-carries the live fork signature.  The trial needs
+(i) `x` topping a pile AT the point — but `CanRaiseS st x` only says
+x is raisable after cargo slides, and x may sit buried behind a
+slidable run at the point itself, so the base `Sum.inr x` may have no
+top to land on; and (ii) the covered twin's rung already AT the pair
+rank so it lights vanilla once uncovered — but the signature carries
+no twin-side raisability, and a WF craft satisfies every conjunct
+with the twin's rung one below the pair (the twin strands behind its
+ladder).  Both legs live in the corrected forkEvidence GAP FORM
+decided at the canon-v3 battery: `CanRaiseS x.twin ∧ ¬CanRaiseVanilla
+x.twin ∧ coveredIn x.twin ∧ cargo-shape` (FUTURES-ORIG.md §11-L4.2,
+probes/CanonV3Probe.lean — the l4RowGapForm rows; the derived trial
+decide-verified at both standing-fork stalls), and that session's
+ledger already records this sorry as its own next closure.  This
+file banks the trial's two engines: the bare pin (`canRaiseS_rung_pin`)
+and the cargo strand (`forkPoint_cargo_strand`). -/
 theorem forkPoint_trial {st : State} {x : Card} (h : forkPoint st x) :
     ∃ d st', st.step (.tabToTab d (Sum.inr x)) = some st' ∧
       CanRaise st' x.twin ∧ d.rank.toIdx + 1 = x.rank.toIdx := by
@@ -526,7 +962,20 @@ theorem forkPoint_trial {st : State} {x : Card} (h : forkPoint st x) :
 
 /-- The pin lemma: at the fork point, BOTH same-color rungs sit at the
 pair rank — the bare twin's pin by `stackable_now_rungexact`, the
-covered twin's pin by the cargo/cascade arithmetic. -/
+covered twin's pin by the cargo/cascade arithmetic.
+
+BLOCKED (this row, fork-card escape hatch): the BARE half is banked
+and proven above (`canRaiseS_rung_pin` — the cascade's rung-exact
+license plus the slides' found non-write).  The COVERED half is what
+the skeleton's `forkPointC` under-carries: `cargoTop` only says the
+twin sits at-or-below the cargo in its pile, and nothing forbids the
+twin's own suit rung sitting BELOW the pair rank at the point (a WF
+craft with the twin stranded one rung short passes every conjunct of
+the signature while failing the pin), so the exact covered pin is
+unreachable from these hypotheses alone.  It becomes derivable from
+the gap form's `CanRaiseS x.twin` leg — the same canon-v3 §11-L4.2
+correction the trial's note records — where the covered pin rides
+the SAME cascade induction as the bare half. -/
 theorem forkPoint_pins (st : State) (x : Card) (hwf : st.WF)
     (h : forkPoint st x) :
     rungAt st x.suit = x.rank.toIdx ∧ rungAt st x.twin.suit = x.rank.toIdx := by
@@ -534,7 +983,22 @@ theorem forkPoint_pins (st : State) (x : Card) (hwf : st.WF)
 
 /-- **The exclusivity sandwich** (the user's rank-arithmetic proof):
 fork points in BOTH color pairs at one state are impossible — each
-fork strands a card the other needs seated. -/
+fork strands a card the other needs seated.
+
+BLOCKED (this row, fork-card escape hatch): the user's sandwich
+consumes BOTH pins of BOTH forks — each fork pins its own color pair
+at its pair rank (forkPoint_pins) and strands a suit of the OPPOSITE
+color strictly below its own rank (the cargo strand
+`forkPoint_cargo_strand`, whose suit is opposite-colored by the
+signature's ¬twinSuit leg, so it sits inside the other fork's pair)
+— the two strict inequalities then cross-pinch into `x < y ∧ y < x`,
+the v3ForkExclusivity arithmetic (canon-v3 battery, Orig/CanV3 on
+that branch).  Both inputs are behind the pins' BLOCKED notes above
+(the covered pins under-carry in the skeleton's signature: without
+them the cross-cases of the sandwich hit the covered twins' suits,
+whose rungs the bare pins leave free), so this row waits with them.
+The half that IS banked here: the bare pins (via `canRaiseS_rung_pin`)
+and the cargo strands of both forks. -/
 theorem forkPoint_exclusive (st : State) (x y : Card) (hwf : st.WF)
     (hcol : ¬ twinSuit x.suit y.suit)
     (hx : forkPoint st x) (hy : forkPoint st y) : False := by
@@ -615,3 +1079,34 @@ theorem envelope (u v : State) (hu : u.WF) (hv : v.WF)
 theorem canonKey_rungs (w : State) :
     canonKey w = [rungAt w .spade, rungAt w .heart, rungAt w .diamond,
       rungAt w .club, posKey w] := rfl
+
+/-! ## The floor-row audit
+(#print axioms on each newly proved floor head — expected
+[propext, Quot.sound]; anything else flagged.)
+
+FLAGGED: `canusOf_nonempty` reports [propext, sorryAx, Quot.sound].
+The sorryAx enters at the STATEMENT level only, through the
+skeleton's designated carrier bit `conjl` (`noncomputable def conjl
+:= sorry`, the conjugation carrier whose laws are canon-v3's ledgered
+next def-landing): the `canusOf` definition's second disjunct
+mentions `conjl w₁`, so any constant whose type expands it carries
+the occurrence.  The proof itself never forces the carrier — the
+witness rides `Or.inl` (w = w₁ = canon u), so the row is proved at
+canon + ConePath.refl; the flag clears the moment the conjl carrier
+lands.  Every other floor head audits within [propext, Quot.sound]. -/
+
+#print axioms stackable_now_rungexact
+#print axioms canon_rung_mono
+#print axioms cone_step_heights
+#print axioms cone_inClass
+#print axioms dance_step_grading
+#print axioms dance_inClass
+#print axioms flat_heights
+#print axioms cone_step_fiber
+#print axioms exch_is_cargo
+#print axioms surely_imp_sat
+#print axioms benign_sat_iff_surely
+#print axioms canusOf_nonempty
+#print axioms piled_rung
+#print axioms canRaiseS_rung_pin
+#print axioms forkPoint_cargo_strand
