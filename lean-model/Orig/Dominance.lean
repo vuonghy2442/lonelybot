@@ -2815,7 +2815,26 @@ slack the streak-raise channel spends; `hk`+`hnext` FIRE the raise —
 `hstep` hands this lift the canonical successor record; `hbare`
 makes the dug run the singleton `[c]` (the γ bridge's dig parity);
 `hcorner` excludes the undo-bare returnable world (that half is
-LANDED as `tabToFound_undo_bare`).  TODO(proof of the lift). -/
+LANDED as `tabToFound_undo_bare`).  TODO(proof of the lift).
+
+**The attack kit is LANDED** (all sorry-free, this wave; every
+transport layer of the win-lift exists at the (N) site):
+`ground_run_split` + `ground_run_join` + `ground_run_wf` (the play
+readers), `ground_prefix_carry` (the divergence field carried along
+a raise-free clean prefix), `relocate_resettle` (THE γ BRIDGE: the
+raised state re-embodies any legal bare-window relocation of `c` in
+one `foundToTab c b`, so a γ-leading play transports as
+`P₀ ++ foundToTab c b :: …`), `wastePark_restack` (the α1-ADJACENT
+identity: park-then-immediate-restack = the direct waste raise),
+`ground_settle_transport` (THE SETTLE CASE: a compliant winning play
+lifts verbatim — split, carry, converge, join).  What remains inside
+this lift: the FIRST-BLOCKED extraction — the rung occurs (a winning
+play from a state with `c` in the tableau raises `c`: the
+found-membership crossing move is `tabToFound c ∨ wasteToFound c`,
+and the waste entry is impossible by conservation) and the
+α/β residue at the first blocked move (the parks-on-`c` /
+`c`-suit-worry transports; the adjacent cancellations are landed,
+the spread carry is the (C)-family content). -/
 theorem ground_lifted_win {st : State} {c : Card} {k : Anchor} {s₁ : State}
     (hwf : st.WF) (hsafe : safeToFound st c = true)
     (hk : st.pileOfTop c = some k)

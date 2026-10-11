@@ -1134,6 +1134,37 @@ census stays pinned (`Dominance.lean` 6 expected 6).
   erode towers self-heal by c-blind raises before the tenant raise.
   The paper's App. B.1 was fetched and read (Blake & Gent, JAIR 85,
   2026 — the transform reference for the whole §5.1 family).
+* **ATTACK KIT LANDED (+`d3b11d0`/`bb8652f`/`ab77a7e`, on the
+  `f0b3315` restage)**: every transport layer of the win-lift is
+  SORRY-FREE at the (N) site — `ground_run_split` /
+  `ground_run_join` / `ground_run_wf` (the play readers, local
+  pre-statements to demote against §5.2 at the merge),
+  `ground_prefix_carry` (the divergence field carried along a
+  raise-free `groundBlocked`-clean prefix), `relocate_resettle`
+  (**THE γ BRIDGE**: at a bare-window WF corner the raised state
+  re-embodies any legal relocation of `c` in ONE `foundToTab c b` —
+  the singleton run makes `putRun [c] b ≡ putCard c b`, the dig
+  parity is the same `afterRunRemoved p []` on both threads, the
+  foundation round-trips by `chop_snoc`, and `canPlace c b` survives
+  because `b`'s seat provably misses the dug pile), and
+  `ground_settle_transport` (**THE SETTLE CASE**: a compliant
+  winning play — clean prefix, the raise at its first
+  `tabToFound c` — lifts verbatim to the raised state: run-split,
+  field-carry, `ground_converge` at the lifted seat, run-join).
+  With `wastePark_restack` (the α1-adjacent identity) every head
+  case of the first-blocked elimination is closed EXCEPT the α/β
+  residue.  Remaining inside `ground_lifted_win`: the
+  rung-occurs extraction (a winning play from a state with `c` in
+  the tableau raises `c`: the found-membership crossing move is
+  `tabToFound c ∨ wasteToFound c`, and the waste entry is
+  impossible by conservation) and the α/β spread residue (the
+  adjacent cancellations landed; the spread carry is the
+  (C)-storage-family content — see the lift's route note for the
+  protocol findings and the probe evidence above).  Battery note:
+  `lake build Klondike Witnesses Orig` — all three targets green
+  (the Witnesses first pass hit a transient Windows
+  `.private`-olean read storm; the retry is green); census pinned
+  OK throughout.
 * **RESTAGE (2026-10-11, `f0b3315`-based branch commits `8c5a18f`
   → `476124b`)**: the (N) content now lives at `ground_lifted_win`
   (hwf hsafe hk hnext hbare hcorner hstep hsolv → WinFrom s₁) — the
