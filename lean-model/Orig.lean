@@ -23,6 +23,7 @@ import Orig.PileSwap
 import Orig.Vacate
 import Orig.Progress
 import Orig.Dominance
+import Orig.Decompress
 
 /-!
 # Orig — the original game

@@ -729,9 +729,102 @@ def cdGateE : Bool :=
 
 /-! ## The verdicts -/
 
-/-- All gates, as the recorded verdict battery. -/
+/-! ## Family W — the exchange-steered wiggle-fold (probe (a)'s second required cell)
+
+The exchlaw session's refuted pinch (their twin-kings cell in
+probes/ExchCanLawProbe.lean, branch orig-exch-canlaw, mirrored here
+with credit): hearts and diamonds both climbed A..Q; ♥K sits bare
+on p1, its twin ♦K carries the non-twin residue ♣Q on p5.  The two
+SATURATED mates split the FOUND channel 13/12 vs 12/13 — canon
+literal-unequal, and NO pure-pull play can join them (every pull
+strictly drops `foundTotal`, so a foundTotal-preserving pair is
+pull-unreachable except vacuously): the SLIDE letter is the
+irreducible padding work between them (pull-slide-pull, all
+reversible, the A2 anatomy).  VERDICT (the exchlaw correction
+certified at my battery too): the sigma-absorption of the slide
+letter is REFUTED — the cone alphabet is pulls + slides + pure
+draws, three letters, all reversible, class-honest.
+-/
+
+def cdFWFHeart : List Card := Suit.heart.upCards.take 12
+def cdFWFDiamond : List Card := Suit.diamond.upCards.take 12
+
+/-- The twin-kings fork state (exchlaw's exFork, verbatim shape). -/
+def cdFork : State where
+  found := fun s =>
+    match s with
+    | .heart => cdFWFHeart
+    | .diamond => cdFWFDiamond
+    | _ => []
+  piles := fun a =>
+    match a with
+    | .p1 => ⟨[], [cdHK]⟩
+    | .p5 => ⟨[], [cdDK, cdQQ]⟩
+    | _ => ⟨[], []⟩
+  stock := Card.universe.filter fun c =>
+    decide (c ∉ cdFWFHeart ∧ c ∉ cdFWFDiamond ∧
+      c ≠ cdHK ∧ c ≠ cdDK ∧ c ≠ cdQQ)
+  waste := []
+  drawStep := 1
+
+/-- The slide image (the licensed exchange realized as a plain
+noreveal tabToTab — exchlaw's exForkX, verbatim shape). -/
+def cdForkX : State :=
+  (cdFork.run [Move.tabToTab cdQQ (Sum.inr cdHK)]).getD cdFork
+
+def cdCanonF : State := canon cdFork
+def cdCanonX : State := canon cdForkX
+
+/-- THE FOUND-SPLIT ANALYSIS, both tiers.  Every `foundToTab` pull
+strictly drops `foundTotal` (the banked step tables), so members of
+EQUAL `foundTotal` are pure-pull-unreachable from each other except
+by the empty play.  THE RAW TIER: exFork and its slide image share
+foundTotal 24 and differ — the slide is irreducible at the raw
+level.  THE SATURATED TIER: the canon mates share foundTotal 25,
+differ by the FOUND split (hearts-full vs diamonds-full, 13/12 vs
+12/13) — pure pulls cannot join them, and no exchange chain joins
+them either (exchanges write piles only; the exchlaw row).  The
+honest A2 highway: each canon reaches its RAW twin by ONE pull
+(undo legs of the bare-king raises), and the RAW pair is joined by
+the SLIDE — the slide letter is the irreducible padding work, the
+sigma-absorption is REFUTED. -/
+def cdGateW : Bool :=
+  cdWfB cdFork && cdWfB cdForkX &&
+  -- the slide realizes the exchange image, both directions
+  decide ((cdFork.run [Move.tabToTab cdQQ (Sum.inr cdHK)]).any (fun w => w == cdForkX)) &&
+  decide ((cdForkX.run [Move.tabToTab cdQQ (Sum.inr cdDK)]).any (fun w => w == cdFork)) &&
+  -- the canon mates: both saturated (Final), canon literal-unequal
+  cdFinalB cdCanonF && cdFinalB cdCanonX &&
+  decide (cdCanonX ≠ cdCanonF) &&
+  -- THE FOUND SPLIT at the saturated mates: 13/12 vs 12/13
+  decide ((cdCanonF).found .heart == Suit.heart.upCards) &&
+  decide ((cdCanonF).found .diamond == cdFWFDiamond) &&
+  decide ((cdCanonX).found .diamond == Suit.diamond.upCards) &&
+  decide ((cdCanonX).found .heart == cdFWFHeart) &&
+  -- THE EQUAL-TOTAL DATUM at both tiers: pure pulls cannot travel
+  -- between equal-total pair members (each pull drops the total)
+  decide (foundTotal cdCanonF == foundTotal cdCanonX) &&
+  decide (foundTotal cdFork == foundTotal cdForkX) &&
+  decide (cdFork ≠ cdForkX) &&
+  -- the pulls of the A2 highway: each canon reaches its RAW twin
+  -- by one pull (the undo of the bare-king raise)
+  decide ((cdCanonF.run [Move.foundToTab cdHK (Sum.inl Anchor.p1)]).any
+    (fun w => w == cdFork)) &&
+  decide ((cdCanonX.run [Move.foundToTab cdDK (Sum.inl Anchor.p5)]).any
+    (fun w => w == cdForkX)) &&
+  -- the poisoned composite: the naive one-direction pull-slide-pull
+  -- from cdCanonF cannot even run (its third leg would need
+  -- diamonds already full at the raw slide image) — the honest
+  -- witness at this cell is the split form: canon -> raw by PULL,
+  -- raw -> raw image by SLIDE, image <- canon by PULL
+  decide ((cdCanonF.run [Move.foundToTab cdHK (Sum.inl Anchor.p1),
+      Move.tabToTab cdQQ (Sum.inr cdHK),
+      Move.foundToTab cdDK (Sum.inl Anchor.p5)]).isNone)
+
+/-- All gates including the W family. -/
 def cdAllGates : Bool :=
   cdGateA1 && cdGateA2 && cdGateA3 && cdGateB && cdGateC && cdGateD && cdGateE
+    && cdGateW
 
 -- The orbit sizes and refutation data the verdicts pin (printed for
 -- the ledger; the gates above carry the load-bearing checks):
@@ -745,6 +838,7 @@ def cdAllGates : Bool :=
 #eval (cdSlideFires cdPairA).length                       -- expect 10: only the host-KING run relocations (they carry their riders)
 #eval (cdResidueSlideFires cdPairA [cdSQ, cdQQ]).length  -- expect 0: the residues themselves have no slide
 #eval (cdSlideClosure 4 cdPairA).length                  -- the bounded pairing-closure size
+#eval (foundTotal cdCanonF, foundTotal cdCanonX)          -- expect (25, 25): the equal-total datum
 
 #eval! do
   if cdAllGates then
@@ -767,5 +861,11 @@ def cdAllGates : Bool :=
     IO.println "   negatives hold; the E4 interaction is LIVE (a slide can expose a licensed"
     IO.println "   raise — disjointness dies, any seating pass must re-saturate); the E5"
     IO.println "   same-pair transposition is frozen at pull-free boards — pairing is class data."
+    IO.println "W: the exchange-steered twin-kings cell certifies the exchlaw correction —"
+    IO.println "   the saturated mates split the found channel (13/12 vs 12/13), no pure-pull"
+    IO.println "   play joins them (foundTotal 25 = 25, pulls drop it strictly), and the"
+    IO.println "   pull-slide-pull witness carries the SLIDE as irreducible padding work:"
+    IO.println "   the sigma-absorption of the slide letter is REFUTED — the cone alphabet"
+    IO.println "   is PULLS + SLIDES + PURE DRAWS, three letters, all reversible, class-honest."
   else
     throw (IO.userError "CANONDECOMPRESS: A GATE FAILED — see the numbers above")
