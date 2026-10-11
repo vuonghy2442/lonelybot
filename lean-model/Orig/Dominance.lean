@@ -2592,6 +2592,64 @@ private theorem relocate_resettle {st : State} {c : Card} {k : Anchor}
     · rw [setFound_drawStep, setPile_drawStep, hvds]
   exact congrArg (fun s => some (s.putCard c b)) hcar
 
+/-- The run-prefix WF chain (local pre-statement; §5.2 has `run_wf`). -/
+private theorem ground_run_wf (A : List Move) :
+    ∀ {st u : State}, st.run A = some u → st.WF → u.WF := by
+  induction A with
+  | nil =>
+      intro st u h hwf
+      have hx : (some st : Option State) = some u := h
+      have hsu : st = u := Option.some.inj hx
+      rw [hsu] at hwf
+      exact hwf
+  | cons m A' ih =>
+      intro st u h hwf
+      obtain ⟨t, hstep, hrest⟩ := State.run_cons h
+      exact ih hrest (step_wf hwf hstep)
+
+/-- The run-join reader: two successful run segments join along the
+play append (local pre-statement; demote against §5.2 at the merge). -/
+private theorem ground_run_join : ∀ (x : State) (A B : List Move) (z w : State),
+    x.run A = some z → z.run B = some w → x.run (A ++ B) = some w := by
+  intro x A
+  induction A generalizing x with
+  | nil =>
+      intro B z w h1 h2
+      have hx : x.run ([] : List Move) = some x := rfl
+      rw [h1] at hx
+      have hzx : z = x := Option.some.inj hx
+      rw [hzx] at h2
+      exact h2
+  | cons m A' ih =>
+      intro B z w h1 h2
+      obtain ⟨t, hm, hA⟩ := State.run_cons h1
+      show (match State.step x m with
+        | some s' => s'.run (A' ++ B)
+        | none => none) = some w
+      rw [hm]
+      exact ih t B z w hA h2
+
+/-- The settle transport — the first case of the win-lift: a compliant
+winning play (clean prefix, the raise at its first `tabToFound c`)
+lifts verbatim to the raised state. -/
+private theorem ground_settle_transport {st : State} {c : Card} {k : Anchor} {s₁ : State}
+    (hnextst : st.nextUp c = true) (hface : (st.piles k).faceUp = [c])
+    (hsplit : GroundSplit st c k st s₁)
+    (hwf : st.WF) (hwfs₁ : s₁.WF)
+    (P σ : List Move) (w : State)
+    (hcl : ∀ m ∈ P, m ≠ Move.tabToFound c ∧ Move.groundBlocked c m = false)
+    (hrun : st.run (P ++ Move.tabToFound c :: σ) = some w)
+    (hwin : w.isWin = true) :
+    WinFrom s₁ := by
+  obtain ⟨u₀, hPu, hrest⟩ := ground_run_split st P (Move.tabToFound c :: σ) w hrun
+  obtain ⟨u₁, hstepR, hσ⟩ := State.run_cons hrest
+  obtain ⟨v₀, hPv, hsplitv⟩ :=
+    ground_prefix_carry hnextst hface P st s₁ u₀ hsplit hwf hwfs₁ hcl hPu
+  have hv : u₁ = v₀ :=
+    ground_converge (ground_run_wf P hPu hwf) hnextst hface hsplitv hstepR
+  rw [hv] at hσ
+  exact ⟨P ++ σ, w, ground_run_join s₁ P σ v₀ w hPv hσ, hwin⟩
+
 /-! ### The named sub-residue (the (N) win-lift) -/
 
 /-- **(N) The lifted win** — §5.1's one remaining content piece,
