@@ -3891,3 +3891,82 @@ Written after the session above banked its report; append-only, per protocol.
   Lean-probe code: `return` then a newline before the structure
   literal elaborates as `pure ()`-plus-garbage; bind the record in
   a `let` and `return` the name.
+
+## Orig-Decompress card (branch orig-canon-decompress) - the session close-out (2026-10-11)
+
+THE CARD'S SHAPE AFTER TWELVE MID-FLIGHT REFINEMENTS: landed as (A)
+decompress_pulls (the banked reverse ladder re-graded: from canon the
+witness shuffle is pure foundToTab pulls, the under-arm re-derived
+through PUBLIC runOK_snoc_sit/pileOfTop_eq_some_iff rows because
+Canonical.lean's lift_under_facts is PRIVATE - the re-derivation cost
+~15 lines against the banked rows, no new ideas needed), plus the
+draw-letter ground (drawLanding_waste_ne: no draw ever lands an empty
+waste at a positive draw step - pristine unreachability at theorem
+grade; the ZoneShape presentation algebra where every state is its own
+pool presentation with stock = (pool.take m).reverse and waste =
+pool.drop m, the three leg rows, the draw keeps); the saturator zone
+and board determination rows (canon never touches the zone; the
+canonical form's board depends only on the board input - the canRaise
+congruence chain goes through a five-line firstWhereCong mini, induction
+on the search list, NOT through unfolding); and finalWiggle_reach
+pinned as the house stub at the THREE-letter alphabet (pulls + slides +
+pure draws), [propext, sorryAx] printed, with the live dependency notes
+(canlaw fork probe, V3 contention probe, exchlaw twin-kings cell) in
+its docstring.
+
+THE SCOPE CORRECTIONS THAT MATTERED (in order of arrival): the
+one-letter form was refuted at the banked exhibit by MY OWN A3 gate
+(no pull fires at its anchor) before the seated-anchor rescue was
+proposed; the swap-absorption of the slide was refuted at the exchlaw
+twin-kings cell (mirrored as Family W with credit); canon_draw was
+dropped as anchor material and demoted to a named post-merge polish
+row gated on the pristine probes - which my B-family had already
+answered (pristine unreachable, pass base unique reachable), so the
+polish row drains to the PASS BASE not to pristine; the swCompat
+line resolved cheaply (pure-rotation orbits ride RevEqW directly).
+NET DECISION RECORD: the tableau earns canonicalization because
+saturation is confluent and hard; the draw zone needs at most a
+rotation - trivial padding material, not anchor material; the cone
+alphabet is pulls + slides + pure draws, all reversible.
+
+ENGINEERING LESSONS BANKED:
+- canon_draw_comm's direct 53-budget assembly whnf-times out on
+  unnormalized canon terms EVEN WITH precomputed-field haves feeding
+  State.ext, and even with maxRecDepth/maxHeartbeats raised
+  (the whnf blowup is in the DEFINITIONAL comparisons not the tactic
+  work). THE WORKING ROUTE (recorded in-module for the follow-up):
+  induct on the budget - canonAux_draw_comm by induction on n, whose
+  step case is the ONE-STEP satStep/stepDrawn square (all its halves
+  ALREADY LAND: satStep_board_det, pick_congr, stepDraw_zone_det) -
+  each step compares ONE satStep record so the whnf never explodes.
+- PowerShell Add-Content SILENTLY ATE two large here-string appends
+  this session (no error, no content). The once-bitten recovery:
+  ALWAYS re-read the file tail after an Add-Content of substantive
+  content (the file-verified state is what counts), and land load-
+  bearing content through proper tool edits with oldString anchors.
+- The probes' Option-any idiom: State.run returns none when a leg
+  fails, and none.any = false - a "cannot even run" negative control
+  should assert .isNone, not ".any (w != target)" (which is vacuously
+  false and reads as a wrong verdict). The W-family debug cycle
+  caught this in the bisect evals.
+- canon = canonAux 53 unfolds 53 matches at whnf: any lemma statement
+  that puts canon st on BOTH sides of a defeq check risks the blowup;
+  prefer applications of landed zone/board-det lemmas over
+  first-time defeq comparisons.
+- The audit run: lake build's fresh-job pipeline does not surface
+  #print axioms info lines reliably in this toolchain version; the
+  trusted read is `lake env lean Orig/Decompress.lean` direct -
+  26 clean lines, every landed head [propext] or [propext,
+  Quot.sound], the stub [propext, sorryAx], zero Classical.choice.
+
+THE STILL-OPEN ROWS THIS CARD LEAVES (all ledgered in FUTURES-ORIG
+section 9 with their dependencies): canon_draw_comm by the inductive
+route; inPhase_stepDraw_keep (probe-b's certificate row; the probe
+numbers are already in the ledger); the follow-on exchange-canon card
+(physical setoid, pinch, torsor freeness, coarsening row, the
+PhysEq-as-kernel design decision, the mem_macro_iff/cone_image
+presentation shapes); the V3 canonicalizer extension card (skeleton,
+file structure orig/CanV3.lean, single-chapter end state, bridge
+gates, spawn waits on canlaw's fork verdicts); and the interpretive
+doctrine: user refinements get recorded physical-register-first,
+virtual-grade translation second.
