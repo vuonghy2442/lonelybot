@@ -7782,6 +7782,17 @@ successor on the transferred bundle; an adjacent worry window
 `[foundToTab x b; tabToFound x]` cancels through `foundToTab_return`
 and recurses on the two-moves-shorter play; every spread window
 routes to `draw1_worry_spread_residue`. -/
+
+/- The rung survives a successor whose same-suit foundation row is
+unchanged: the `nextUp` test at the successor re-derives from the
+rung at the front (the six bundle arms' shared tail). -/
+private theorem nextUp_keep {S T : State} {c : Card}
+    (hfc : S.found c.suit = T.found c.suit) (hrung : T.nextUp c = true) :
+    S.nextUp c = true := by
+  show decide (c.rank.toIdx = (S.found c.suit).length) = true
+  rw [hfc]
+  exact hrung
+
 private theorem normform_aux : ∀ n : Nat, ∀ (st : State) (c : Card),
     st.WF → st.drawStep = 1 → st.nextUp c = true → (c ∈ st.stock ∨ c ∈ st.waste) →
     ∀ π w, π.length ≤ n → st.run π = some w → w.isWin = true →
@@ -7882,9 +7893,7 @@ private theorem normform_aux : ∀ n : Nat, ∀ (st : State) (c : Card),
                     have hfc : s₁.found c.suit = st.found c.suit := by
                       rw [stepDraw_found hstep]
                     refine ⟨?_, draw_inCycle hstep hcyc⟩
-                    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
-                    rw [hfc]
-                    exact hrung
+                    exact nextUp_keep hfc hrung
                 | wasteToFound y =>
                     obtain ⟨-, hny, w', hw, hs⟩ := wasteToFound_fires hstep
                     -- y ≠ c, or the head would have been the exit
@@ -7905,9 +7914,7 @@ private theorem normform_aux : ∀ n : Nat, ∀ (st : State) (c : Card),
                       show (st.setFound y.suit (st.found y.suit ++ [y])).found c.suit = _
                       exact setFound_found_ne (Ne.symm hys)
                     constructor
-                    · show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
-                      rw [hfc]
-                      exact hrung
+                    · exact nextUp_keep hfc hrung
                     · rcases hcyc with hcs | hcw
                       · left
                         rw [hs]
@@ -7935,9 +7942,7 @@ private theorem normform_aux : ∀ n : Nat, ∀ (st : State) (c : Card),
                       show (st.putCard y b').found c.suit = _
                       rw [putCard_found]
                     constructor
-                    · show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
-                      rw [hfc]
-                      exact hrung
+                    · exact nextUp_keep hfc hrung
                     · rcases hcyc with hcs | hcw
                       · left
                         rw [hs]
@@ -7968,9 +7973,7 @@ private theorem normform_aux : ∀ n : Nat, ∀ (st : State) (c : Card),
                         show (st.setFound y.suit (st.found y.suit ++ [y])).found c.suit = _
                         exact setFound_found_ne (Ne.symm hcon)
                       constructor
-                      · show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
-                        rw [hfc]
-                        exact hrung
+                      · exact nextUp_keep hfc hrung
                       · rcases hcyc with hcs | hcw
                         · left
                           rw [hs]
@@ -7995,9 +7998,7 @@ private theorem normform_aux : ∀ n : Nat, ∀ (st : State) (c : Card),
                       show ((st.setFound y.suit (chop (st.found y.suit))).putCard y b').found c.suit = _
                       rw [putCard_found, setFound_found_ne (Ne.symm hys)]
                     constructor
-                    · show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
-                      rw [hfc]
-                      exact hrung
+                    · exact nextUp_keep hfc hrung
                     · rcases hcyc with hcs | hcw
                       · left
                         rw [hs]
@@ -8018,9 +8019,7 @@ private theorem normform_aux : ∀ n : Nat, ∀ (st : State) (c : Card),
                           (fromCard y (st.piles a).faceUp) b').found c.suit = _
                       rw [putRun_found, setPile_found]
                     constructor
-                    · show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
-                      rw [hfc]
-                      exact hrung
+                    · exact nextUp_keep hfc hrung
                     · rcases hcyc with hcs | hcw
                       · left
                         rw [hs]
