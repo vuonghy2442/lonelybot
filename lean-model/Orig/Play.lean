@@ -175,6 +175,120 @@ theorem run_one {st : State} {m : Move} {s : State}
   rw [h]
   rfl
 
+/-! ## The first-passage split
+
+The §12.1-family first-passage extraction, ported into this run
+dialect from the `Klondike` side: `climb_firstPassage` there (see
+`Klondike/Kills.lean`, the specialized heights-crossing — the first
+play position where the climbing suit's height passes the frontier
+rank) despecialized to an arbitrary decidable state predicate, with
+the family's run apparatus (the `Klondike/Progress.lean` run-split
+readers) restated over `State.run`/`State.run_cons`.
+
+A successful play whose start fails `P` and whose end satisfies `P`
+crosses the boundary at a first position: a prefix that lands on a
+still-failing state, then ONE move onto a passing state — and every
+state the prefix visits also fails `P` (first-passage minimality,
+the generic replacement for `climb_firstPassage`'s carried
+pre-passage invariants).
+
+The consumers (both in `Orig/Dominance.lean`): the (N) win-lift's
+rung-occurs extraction (under `ground_lifted_win`: the winning
+play's first `c`-founded state is entered by `tabToFound c` — the
+waste entry is then excluded by conservation) and the (C) residue
+`draw1_worry_spread_residue` (the restack `tabToFound x` located
+while the window is open).  The Dominance-internal mirrors of these
+rows (`ground_run_split`, `run_append_split1`) stay private — their
+dedup into this public home is a harvest-wave call. -/
+
+/-- A successful run through `A ++ B` passes through the state `A`
+lands on — the append-decomposition reader of the run dialect. -/
+theorem run_append_split : ∀ (st : State) (A B : List Move) (w : State),
+    st.run (A ++ B) = some w → ∃ z, st.run A = some z ∧ z.run B = some w := by
+  intro st A
+  induction A generalizing st with
+  | nil =>
+      intro B w h
+      exact ⟨st, rfl, h⟩
+  | cons m rest ih =>
+      intro B w h
+      rw [List.cons_append] at h
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h
+      obtain ⟨z, hA, hB⟩ := ih s₁ B w hrest
+      refine ⟨z, ?_, hB⟩
+      show (match State.step st m with
+        | some st' => State.run st' rest
+        | none => none) = some z
+      rw [hstep]
+      exact hA
+
+/-- **The first-passage split**: a successful play whose start fails
+`P` and whose end satisfies `P` crosses at a first position — a
+prefix landing on a failing state, one crossing move onto a passing
+state, and every state the prefix visits also fails `P` (each
+splitting prefix lands on a failing state). -/
+theorem run_firstPassage_split {P : State → Bool} :
+    ∀ (st : State) (play : List Move) (w : State),
+    st.run play = some w → P st = false → P w = true →
+    ∃ π₁ m π₂ τ σ, play = π₁ ++ m :: π₂ ∧ st.run π₁ = some τ ∧
+      State.step τ m = some σ ∧ P σ = true ∧
+      (∀ pre post, π₁ = pre ++ post →
+        ∀ u, st.run pre = some u → P u = false) := by
+  intro st play
+  induction play generalizing st with
+  | nil =>
+      intro w hrun hstart hend
+      have h' : (some st : Option State) = some w := hrun
+      have hsw : st = w := Option.some.inj h'
+      rw [← hsw] at hend
+      rw [hstart] at hend
+      exact absurd hend (by simp)
+  | cons m rest ih =>
+      intro w hrun hstart hend
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons hrun
+      cases hp : P s₁ with
+      | true =>
+          refine ⟨[], m, rest, st, s₁, rfl, rfl, hstep, hp, ?_⟩
+          intro pre post hsplit u hrunpre
+          cases pre with
+          | nil =>
+              have h' : (some st : Option State) = some u := hrunpre
+              have hsu : st = u := Option.some.inj h'
+              rw [← hsu]
+              exact hstart
+          | cons x t =>
+              exact absurd hsplit.symm (by simp)
+      | false =>
+          obtain ⟨π₁, m', π₂, τ, σ, hdec, hrun₁, hstep', hpass, hmin⟩ :=
+            ih s₁ w hrest hp hend
+          refine ⟨m :: π₁, m', π₂, τ, σ, by
+            rw [List.cons_append]; exact congrArg (m :: ·) hdec, ?_,
+            hstep', hpass, ?_⟩
+          · show (match State.step st m with
+              | some st' => State.run st' π₁
+              | none => none) = some τ
+            rw [hstep]
+            exact hrun₁
+          · intro pre post hsplit u hrunpre
+            cases pre with
+            | nil =>
+                have h' : (some st : Option State) = some u := hrunpre
+                have hsu : st = u := Option.some.inj h'
+                rw [← hsu]
+                exact hstart
+            | cons x t =>
+                rw [List.cons_append] at hsplit
+                injection hsplit with hxm htl
+                have h3 : st.run (m :: t) = some u := by
+                  rw [← hxm] at hrunpre
+                  exact hrunpre
+                have h2 : s₁.run t = some u := by
+                  obtain ⟨s₁', hstep', htail⟩ := State.run_cons h3
+                  have hs1 : s₁' = s₁ := Option.some.inj (hstep'.symm.trans hstep)
+                  rw [hs1] at htail
+                  exact htail
+                exact hmin t post htl u h2
+
 /-! ## The step branch readers
 
 The raw branch unfoldings of `State.step`, landed beside the def at
