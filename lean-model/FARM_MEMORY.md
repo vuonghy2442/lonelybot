@@ -9666,3 +9666,25 @@ writing; census pinned.
   cures — but do not run `lake build` in the main tree while another
   session is building: the storm and the lock contention are the same
   disease family.
+
+## Session note (2026-10-11, wave 3q NEGATIVE result - the Phase
+## cycle-literal family is def-extraction-hostile)
+
+The last_orig fragment family - draw_reversible_inphaseW four
+  mid-state literal spellings (30 occurrences) - is NOT mechanically
+consolidatable: the theorem two branches rw-chains interlock the
+LITERAL SHAPES syntactically (run_replicate_append , hDA, hSw1, hb,
+hz1w/d chains match raw State.mk projections mid-chain), and naming
+the three recurring states (midDraw/passBase/drainBase defs) breaks
+the interlock: rw fails finding (passBase st).run against goals that
+earlier rws restate as field-projected record literals.  The SECOND
+lesson of b3efea0 confirmed from the dedup side: this choreography
+needs a SEMANTIC restructure (the A-session style: restated
+positional lemmas over named states), not mechanical def-extraction.
+Reverted to green; family stays owner-session territory.
+
+Retained positive notes from the attempt: the /-- docstring-after-
+docstring parser quirk (use plain /- -/ comments mid-file, seen in
+waves 3p and 3q); self-replacement trap (a global literal replace ran
+over the JUST-INSERTED def body, making midDraw := midDraw st -
+insert defs AFTER the replacement sweep, or exclude the def region).
