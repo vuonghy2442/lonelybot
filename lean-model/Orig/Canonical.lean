@@ -3185,6 +3185,294 @@ theorem win_iff_canon {u : State} (hwf : u.WF) :
     WinFrom u ↔ WinFrom (canon u) :=
   RevEqW_sameFate (canon_class hwf)
 
+/-! ## The canon-vs-commit commutation family
+
+The 2026-10-11 card: the naturality laws between this chapter's
+licensed-lift machinery and the field-disjoint commit moves.  The
+boundary fact comes first (probe-verified, the module doc's ledger
+above): a licensed lift is `Move.tabToFound c`; it READS the
+foundation rung (`nextUp`, found-height-based) and the pile top,
+and it WRITES the foundation (its suit gains one rung) and the
+piles (the lifted run is removed); waste, stock, and the draw step
+are never touched.
+
+So the waste zone is canon-invariant DEFINITIONALLY, but the
+foundations MOVE — `nextUp` is not canon-invariant in general
+(saturation ADVANCES rungs).  The one transport that holds is the
+FREEZE at a waste-held rung-ready card: the next rung card of that
+suit is the waste-held card itself — never a pile top, never
+liftable — so the whole saturation cannot move the suit's rung.
+The honest one-directional legality transport for `wasteToFound`
+rides that freeze; its converse is refuted by the probe at `WF`
+states (canon CREATES rung-readiness), so no iff-graded transport
+of the rung exists. -/
+
+/-- A saturation step never writes the waste. -/
+theorem satStep_waste (st : State) : (satStep st).waste = st.waste := by
+  cases hp : pick st with
+  | none => simp only [satStep, hp]
+  | some c =>
+      obtain ⟨s', hs'⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
+      have hsat : satStep st = s' := by
+        simp only [satStep, hp, hs']
+        rfl
+      have hstep : State.step st (Move.tabToFound c) = some s' := hs'
+      obtain ⟨hn, a, hpa, hs⟩ := step_tabToFound_inv hstep
+      rw [hsat, hs]
+      exact setFound_waste st c.suit (st.found c.suit ++ [c])
+
+/-- A saturation step never writes the stock. -/
+theorem satStep_stock (st : State) : (satStep st).stock = st.stock := by
+  cases hp : pick st with
+  | none => simp only [satStep, hp]
+  | some c =>
+      obtain ⟨s', hs'⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
+      have hsat : satStep st = s' := by
+        simp only [satStep, hp, hs']
+        rfl
+      have hstep : State.step st (Move.tabToFound c) = some s' := hs'
+      obtain ⟨hn, a, hpa, hs⟩ := step_tabToFound_inv hstep
+      rw [hsat, hs]
+      exact setFound_stock st c.suit (st.found c.suit ++ [c])
+
+/-- A saturation step never writes the draw width. -/
+theorem satStep_drawStep (st : State) : (satStep st).drawStep = st.drawStep := by
+  cases hp : pick st with
+  | none => simp only [satStep, hp]
+  | some c =>
+      obtain ⟨s', hs'⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
+      have hsat : satStep st = s' := by
+        simp only [satStep, hp, hs']
+        rfl
+      have hstep : State.step st (Move.tabToFound c) = some s' := hs'
+      obtain ⟨hn, a, hpa, hs⟩ := step_tabToFound_inv hstep
+      rw [hsat, hs]
+      exact setFound_drawStep st c.suit (st.found c.suit ++ [c])
+
+private theorem canonAux_waste (n : Nat) (st : State) :
+    (canonAux n st).waste = st.waste := by
+  induction n generalizing st with
+  | zero => rfl
+  | succ n ih =>
+      rw [canonAux_succ, ih (satStep st), satStep_waste]
+
+private theorem canonAux_stock (n : Nat) (st : State) :
+    (canonAux n st).stock = st.stock := by
+  induction n generalizing st with
+  | zero => rfl
+  | succ n ih =>
+      rw [canonAux_succ, ih (satStep st), satStep_stock]
+
+private theorem canonAux_drawStep (n : Nat) (st : State) :
+    (canonAux n st).drawStep = st.drawStep := by
+  induction n generalizing st with
+  | zero => rfl
+  | succ n ih =>
+      rw [canonAux_succ, ih (satStep st), satStep_drawStep]
+
+/-- **The waste zone is canon-invariant** — definitional: the
+canonicalizer's lifts never touch the waste (the V2 doctrine: no
+pop ever enters the saturator). -/
+theorem canon_waste (st : State) : (canon st).waste = st.waste :=
+  canonAux_waste 53 st
+
+/-- **The stock is canon-invariant.** -/
+theorem canon_stock (st : State) : (canon st).stock = st.stock :=
+  canonAux_stock 53 st
+
+/-- **The draw width is canon-invariant.** -/
+theorem canon_drawStep (st : State) : (canon st).drawStep = st.drawStep :=
+  canonAux_drawStep 53 st
+
+/-- **The waste-POSITION component of a waste-commit's guard is
+canon-invariant as an equality of probes** — the full iff-grade
+transport for this component alone (the boundary fact: the other
+component, the rung, transports one way only). -/
+theorem wasteIs_canon_inv (st : State) (c : Card) :
+    (canon st).wasteIs c = st.wasteIs c := by
+  cases hw : st.waste with
+  | nil =>
+      have h1 : (canon st).waste = [] := by rw [canon_waste]; exact hw
+      rw [State.wasteIs_nil h1, State.wasteIs_nil hw]
+  | cons x xs =>
+      have h1 : (canon st).waste = x :: xs := by rw [canon_waste]; exact hw
+      rw [State.wasteIs_cons h1, State.wasteIs_cons hw]
+
+/-- **The rung-card kill**: at a `WF` state whose waste holds `c`
+with the rung ready, no licensed lift is `c`-suited.  The next rung
+card of `c`'s suit is `c` itself, and a waste-held card is never a
+pile top, so the saturator cannot start its suit's climb.  This is
+the engine of the rung freeze and of the commit-square's ride
+below: the committed card's suit never moves. -/
+theorem canRaise_suit_of_wasteHead {t : State} {c x : Card}
+    (hwf : t.WF) (hcr : CanRaise t x)
+    (hw : t.wasteIs c = true) (hn : t.nextUp c = true) :
+    x.suit ≠ c.suit := by
+  intro heq
+  have hx : x.rank.toIdx = t.foundHeight x.suit := of_decide_eq_true hcr.1
+  have hc : c.rank.toIdx = t.foundHeight c.suit := of_decide_eq_true hn
+  rw [heq] at hx
+  have hrank : x.rank = c.rank := by
+    apply Rank.toIdx_inj
+    rw [hx]
+    omega
+  have hcard : c = x := by
+    rcases x with ⟨σ, r⟩
+    rcases c with ⟨σ', r'⟩
+    have h1 : σ = σ' := heq
+    have h2 : r = r' := hrank
+    rw [h1, h2]
+  subst hcard
+  obtain ⟨hc1, a, hpa, hc4⟩ := hcr
+  have hmem : c ∈ t.waste := by
+    cases hwaste : t.waste with
+    | nil =>
+        rw [State.wasteIs_nil hwaste] at hw
+        exact absurd hw (by simp)
+    | cons y ys =>
+        rw [State.wasteIs_cons hwaste] at hw
+        have hy : y = c := of_decide_eq_true hw
+        rw [hy]
+        exact List.mem_cons_self ..
+  have hkill := (mem_waste_unique hwf hmem).1 a
+  obtain ⟨hne, hlast⟩ := pileOfTop_top hpa
+  exact hkill.2 (lastOf_mem hlast)
+
+/-- **The rung freeze along any licensed run**: at a `WF` origin
+whose waste holds `c` with the rung ready, the run's endpoint still
+heads `c`, its suit's foundation is UNCHANGED (no lift of that suit
+ever fires — the kill above), `nextUp c` survives, and `WF`
+survives the lifts. -/
+private theorem stackRun_rungFreeze (c : Card) {t : State} {l : List Move} {w : State}
+    (h : StackRun t l w) (hwf : t.WF)
+    (hwp : t.wasteIs c = true) (hnp : t.nextUp c = true) :
+    w.WF ∧ w.wasteIs c = true ∧ w.nextUp c = true ∧
+      w.found c.suit = t.found c.suit := by
+  induction h with
+  | nil s => exact ⟨hwf, hwp, hnp, rfl⟩
+  | @cons s m x r rest w₂ hc hm hstep hrest ih =>
+      have hstep' : State.step s (Move.tabToFound x) = some r := by
+        cases hm
+        exact hstep
+      have hxs : x.suit ≠ c.suit :=
+        canRaise_suit_of_wasteHead hwf hc hwp hnp
+      obtain ⟨hn1, a, hpa, hs⟩ := step_tabToFound_inv hstep'
+      have hwr : r.waste = s.waste := by
+        rw [hs]
+        exact setFound_waste s x.suit (s.found x.suit ++ [x])
+      have hfr : r.found c.suit = s.found c.suit := by
+        rw [hs]
+        exact setFound_found_ne (Ne.symm hxs)
+      have hrwp : r.wasteIs c = true := by
+        show (match r.waste with
+          | [] => false
+          | c' :: _ => decide (c' = c)) = true
+        rw [hwr]
+        exact hwp
+      have hrnp : r.nextUp c = true := by
+        show decide (c.rank.toIdx = (r.found c.suit).length) = true
+        rw [hfr]
+        exact hnp
+      have hrwf : r.WF := lift_wf hwf hc hstep'
+      obtain ⟨h1, h2, h3, h4⟩ := ih hrwf hrwp hrnp
+      exact ⟨h1, h2, h3, h4.trans hfr⟩
+
+/-- **The rung freeze through canonicalization**: a waste-held
+rung-ready card's suit is untouched by `canon` — the lift that
+could move it would have to found `c` itself, and a waste-held
+card is never a lift source. -/
+theorem canon_found_of_wasteHead {st : State} {c : Card} (hwf : st.WF)
+    (hwp : st.wasteIs c = true) (hnp : st.nextUp c = true) :
+    (canon st).found c.suit = st.found c.suit := by
+  obtain ⟨l, hrun, -⟩ := canon_run st
+  exact (stackRun_rungFreeze c hrun hwf hwp hnp).2.2.2
+
+/-- **The rung component transports to the canonical form** — at
+the waste-held rung-ready shape (the exact shape a waste founding's
+legality asserts).  NOT canon-invariant in general: saturation can
+create rung-readiness the raw state lacks (the probe ledger's
+`R→L refuted` row), so this row and `canon_found_of_wasteHead`
+carry their premises; the raw disjunction below-the-rung is the
+rotation the saturation IS allowed to perform. -/
+theorem nextUp_canon_of_wasteHead {st : State} {c : Card} (hwf : st.WF)
+    (hwp : st.wasteIs c = true) (hnp : st.nextUp c = true) :
+    (canon st).nextUp c = true := by
+  obtain ⟨l, hrun, -⟩ := canon_run st
+  exact (stackRun_rungFreeze c hrun hwf hwp hnp).2.2.1
+
+/-- A successful waste founding: the guards held, the waste head is
+the moved card, and the successor is the raised foundation with
+the waste popped.  (The same fires-reader the dominance chapter
+carries privately — DEDUP: at the harvest, hoist one copy to
+`Orig.Play`.) -/
+private theorem wasteToFound_fires {st : State} {c : Card} {s₁ : State}
+    (h : State.step st (Move.wasteToFound c) = some s₁) :
+    st.wasteIs c = true ∧ st.nextUp c = true ∧
+      ∃ w', st.waste = c :: w' ∧
+        s₁ = { st.setFound c.suit (st.found c.suit ++ [c]) with waste := w' } := by
+  simp only [State.step] at h
+  split at h
+  · rename_i hg
+    rw [Bool.and_eq_true] at hg
+    split at h
+    · rename_i _ v' ws hw
+      have hwis := hg.1
+      rw [State.wasteIs_cons hw c] at hwis
+      have hv : v' = c := of_decide_eq_true hwis
+      rw [hv] at hw
+      injection h with hEq
+      exact ⟨hg.1, hg.2, ws, hw, hEq.symm⟩
+    · exact absurd h (by simp)
+  · exact absurd h (by simp)
+
+/-- The waste-founding step at a variable state, guard-pinned: the
+fire shape as one equation, at var grade so the guard rewrites never
+kernel-evaluate the state. -/
+private theorem step_wasteToFound_eq {u : State} {c : Card} {ws : List Card}
+    (hw : u.wasteIs c = true) (hnu : u.nextUp c = true) (hwst : u.waste = c :: ws) :
+    State.step u (Move.wasteToFound c) = some
+      { u.setFound c.suit (u.found c.suit ++ [c]) with waste := ws } := by
+  show (if u.wasteIs c && u.nextUp c then
+      match u.waste with
+      | _ :: ws2 => some { u.setFound c.suit (u.found c.suit ++ [c]) with waste := ws2 }
+      | [] => none
+    else none) = _
+  rw [show (u.wasteIs c && u.nextUp c) = true from by rw [hw, hnu]; rfl, hwst]
+  rfl
+
+/-- **`wasteToFound_legal_canon_inv`** — the legality transport,
+raw → canonical (the successor's Claim-1 upgrade, ONE direction,
+and that is the honest grade): a waste founding legal at `st` is
+legal at `canon st`.  The guard's two components both transport —
+the waste-POSITION definitionally (`wasteIs_canon_inv`), the rung
+by the freeze (`nextUp_canon_of_wasteHead`).  The CONVERSE is
+refuted at `WF` states by the probe ledger: saturation can found
+the cards UNDER `c`'s rung and create a legality the raw state
+lacks, so the successor checking at the canonical form cannot read
+backwards.  (The tab-SEAT leg transports NEITHER way — a licensed
+lift may consume the seat card, and canon never repairs it for a
+non-top card: the seating base must be re-checked at the canonical
+form, period.) -/
+theorem wasteToFound_legal_canon_inv {st : State} {c : Card} (hwf : st.WF)
+    (hle : State.legal st (Move.wasteToFound c) = true) :
+    State.legal (canon st) (Move.wasteToFound c) = true := by
+  rw [State.legal] at hle
+  cases hfire : State.step st (Move.wasteToFound c) with
+  | none => rw [hfire] at hle; exact absurd hle (by simp)
+  | some s₁ =>
+      obtain ⟨hwis, hnu, w', hwst, hsh1⟩ := wasteToFound_fires hfire
+      have hwis' : (canon st).wasteIs c = true := by
+        rw [wasteIs_canon_inv]; exact hwis
+      have hnu' : (canon st).nextUp c = true :=
+        nextUp_canon_of_wasteHead hwf hwis hnu
+      have hwst' : (canon st).waste = c :: w' := by
+        rw [canon_waste]; exact hwst
+      have hf' : State.step (canon st) (Move.wasteToFound c) = some
+          { (canon st).setFound c.suit ((canon st).found c.suit ++ [c]) with waste := w' } :=
+        step_wasteToFound_eq hwis' hnu' hwst'
+      rw [State.legal, hf']
+      rfl
+
 /-! ## The private exhibits
 
 The two exhibits this chapter owes its fences and its design answer to
@@ -3425,5 +3713,16 @@ bridge. -/
 #print axioms same_macro_iff'
 #print axioms sameMacro_swComp
 #print axioms win_iff_canon
+#print axioms satStep_waste
+#print axioms satStep_stock
+#print axioms satStep_drawStep
+#print axioms canon_waste
+#print axioms canon_stock
+#print axioms canon_drawStep
+#print axioms wasteIs_canon_inv
+#print axioms canRaise_suit_of_wasteHead
+#print axioms canon_found_of_wasteHead
+#print axioms nextUp_canon_of_wasteHead
+#print axioms wasteToFound_legal_canon_inv
 #print axioms wild_confluence_fails
 #print axioms residue_reloc_exhibit
