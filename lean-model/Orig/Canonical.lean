@@ -1,6 +1,7 @@
 import Orig.Irreversible
 import Orig.Phase
 import Orig.Combine
+import Orig.Reach
 
 /-!
 # Orig — the canonicalization theorem
@@ -2587,7 +2588,7 @@ theorem drawPool_twinMap (st : State) :
     (st.stock.reverse ++ st.waste).map Card.twin
   rw [map_reverse, ← List.map_append]
 
-/-- The take/drop split reassembles (local kin of `dealUpTo`'s
+/-- The take/drop split reassembles (local kin of `State.dealUpTo`'s
 conservation; dedup candidate). -/
 private theorem dealUpTo_append (k : Nat) : ∀ (l : List Card),
     (State.dealUpTo k l).1 ++ (State.dealUpTo k l).2 = l := by
@@ -2687,7 +2688,7 @@ private theorem zone_keep_others {st : State} {m : Move} {s' : State}
       rw [putRun_drawStep _ _ b]
       exact setPile_drawStep _ _ _
 
-/-- The take/drop split reassembles (local kin of `dealUpTo`'s
+/-- The take/drop split reassembles (local kin of `State.dealUpTo`'s
 conservation; dedup candidate). -/
 private theorem dealUpTo_append_done (x : State) :
     (State.dealUpTo x.drawStep x.stock).1 ++ (State.dealUpTo x.drawStep x.stock).2
@@ -3473,6 +3474,582 @@ theorem wasteToFound_legal_canon_inv {st : State} {c : Card} (hwf : st.WF)
       rw [State.legal, hf']
       rfl
 
+set_option maxRecDepth 200000
+
+set_option maxHeartbeats 1000000
+
+/-! ## The re-saturated commutation square
+
+The card's E1 (`canon (st + wasteToFound c) = (canon st) +
+wasteToFound c`) is REFUTED by the probe ledger's rung-shadow
+witness: the commit advances `c`'s rung and can enable post-commit
+lifts the unsaturated right side never performs.  The honest law
+RE-SATURATES both sides — `canon (st + commit) = canon ((canon st)
++ commit)` — and its proof is the ride: the committed state carries
+the ENTIRE canonical schedule of `st` (every licensed lift stays
+licensed next to the commit, by the rung-card kill — no lift of
+`c`'s suit exists while `c` sits waste-held at its rung), and after
+the ride the two routes differ only by a state-exact commit-offset,
+so the saturations from them close equal by confluence
+(`canon_unique` at the committed state). -/
+
+/-- The commit-offset relation: `s` is `t` with `c` committed from
+the waste to the foundation.  It equates the fields that matter to
+every licensed lift: piles, stock, draw width, the popped waste,
+and the foundation translation (`c`'s suit sits one rung higher on
+`s`). -/
+private def csucc (c : Card) (t s : State) : Prop :=
+  t.piles = s.piles ∧ t.stock = s.stock ∧ t.drawStep = s.drawStep ∧
+    t.waste = c :: s.waste ∧
+    s.found c.suit = t.found c.suit ++ [c] ∧
+    ∀ σ, σ ≠ c.suit → t.found σ = s.found σ
+
+/-- The fire of the waste founding IS the commit-offset relation. -/
+private theorem csucc_of_wasteToFound {st : State} {c : Card} {s₁ : State}
+    (hf : State.step st (Move.wasteToFound c) = some s₁) :
+    csucc c st s₁ := by
+  obtain ⟨hwis, hnu, w', hwst, hsh1⟩ := wasteToFound_fires hf
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hsh1]
+    exact (setFound_piles st c.suit (st.found c.suit ++ [c])).symm
+  · rw [hsh1]
+    exact (setFound_stock st c.suit (st.found c.suit ++ [c])).symm
+  · rw [hsh1]
+    exact (setFound_drawStep st c.suit (st.found c.suit ++ [c])).symm
+  · rw [hsh1]
+    exact hwst
+  · rw [hsh1]
+    exact setFound_found_self
+  · intro σ hσ
+    rw [hsh1]
+    exact (setFound_found_ne hσ).symm
+
+/-- The top search only reads the piles. -/
+private theorem pileOfTop_piles_congr {u v : State} (hp : v.piles = u.piles)
+    (x : Card) : v.pileOfTop x = u.pileOfTop x := by
+  show (firstWhere (fun a => decide ((v.piles a).top = some x)) Anchor.all) = _
+  rw [hp]
+  rfl
+
+/-- **One ride step**: a licensed lift of `x` (necessarily of a suit
+other than the committed card's, by the rung-card kill) fires
+verbatim next to the commit — the license reads fields the
+commit-offset equates — and the successor pair is again in the
+commit-offset relation. -/
+private theorem csucc_ride_single {c x : Card} {t s r : State}
+    (hrel : csucc c t s)
+    (hcr : CanRaise t x)
+    (hstep : State.step t (Move.tabToFound x) = some r)
+    (hxs : x.suit ≠ c.suit) :
+    ∃ s', CanRaise s x ∧ State.step s (Move.tabToFound x) = some s' ∧
+      csucc c r s' := by
+  obtain ⟨htp, hts, htd, htw, htf, hto⟩ := hrel
+  obtain ⟨hn1, a, hpa, hseats⟩ := hcr
+  obtain ⟨hrn1, k, hpk, hrsh⟩ := step_tabToFound_inv hstep
+  have hk : a = k := by injection (hpa.symm.trans hpk)
+  subst hk
+  have htpa : t.piles a = s.piles a := by rw [htp]
+  have hxnu' : s.nextUp x = true := by
+    show decide (x.rank.toIdx = (s.found x.suit).length) = true
+    rw [← hto x.suit hxs]
+    exact hn1
+  have hpa' : s.pileOfTop x = some a := (pileOfTop_piles_congr htp.symm x).trans hpa
+  have hseats' : chop (s.piles a).faceUp ≠ [] ∨
+      ((s.piles a).hidden = [] ∧ x.rank = Rank.king) := by
+    rw [show (s.piles a) = (t.piles a) from htpa.symm]
+    exact hseats
+  have hlic : CanRaise s x := ⟨hxnu', a, hpa', hseats'⟩
+  obtain ⟨s', hsstep⟩ := raise_eq_some_of_canRaise s hlic
+  obtain ⟨hsn1, ks, hksp, hs'sh⟩ := step_tabToFound_inv hsstep
+  have hka : a = ks := by injection ((hpa').symm.trans hksp)
+  subst hka
+  refine ⟨s', hlic, hsstep, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hrsh, hs'sh]
+    funext a''
+    rw [← htp]
+  · rw [hrsh, hs'sh, setFound_stock, setFound_stock]
+    exact hts
+  · rw [hrsh, hs'sh, setFound_drawStep, setFound_drawStep]
+    exact htd
+  · rw [hrsh, hs'sh, setFound_waste, setFound_waste]
+    exact htw
+  · rw [hrsh, hs'sh, setFound_found_ne (Ne.symm hxs), setFound_found_ne (Ne.symm hxs)]
+    exact htf
+  · intro σ hσ
+    rw [hrsh, hs'sh]
+    by_cases hxs2 : σ = x.suit
+    · rw [hxs2, setFound_found_self, setFound_found_self, hto x.suit hxs]
+    · rw [setFound_found_ne hxs2, setFound_found_ne hxs2]
+      exact hto σ hσ
+
+/-- **The ride**: the entire canonical schedule of `t` fires next
+to the commit, and the run's end pair is again commit-offset. -/
+private theorem csucc_ride : ∀ (c : Card) (t s : State) (l : List Move) (w : State),
+    StackRun t l w → t.WF → t.wasteIs c = true → t.nextUp c = true →
+    csucc c t s → ∃ w', StackRun s l w' ∧ csucc c w w' := by
+  intro c t s l w h
+  induction h generalizing s with
+  | nil t0 =>
+      intro hwf hwp hnp hrel
+      exact ⟨s, StackRun.nil s, hrel⟩
+  | @cons t0 m x r rest w2 hx hm hstep hrest ih =>
+      intro hwf hwp hnp hrel
+      have hstep' : State.step t0 (Move.tabToFound x) = some r := by
+        cases hm
+        exact hstep
+      have hxs : x.suit ≠ c.suit := canRaise_suit_of_wasteHead hwf hx hwp hnp
+      obtain ⟨s', hlic, hfire, hrel'⟩ := csucc_ride_single hrel hx hstep' hxs
+      obtain ⟨hrn1, k, hk, hrsh⟩ := step_tabToFound_inv hstep'
+      have hrwp : r.wasteIs c = true := by
+        show (match r.waste with
+          | [] => false
+          | c' :: _ => decide (c' = c)) = true
+        rw [hrsh]
+        exact hwp
+      have hrnp : r.nextUp c = true := by
+        show decide (c.rank.toIdx = (r.found c.suit).length) = true
+        rw [hrsh, setFound_found_ne (Ne.symm hxs)]
+        exact hnp
+      have hrwf : r.WF := lift_wf hwf hx hstep'
+      obtain ⟨wR, hrunR, hrelR⟩ := ih s' hrwf hrwp hrnp hrel'
+      cases hm
+      exact ⟨wR, StackRun.cons hlic (IsRaise.tabToFound x) hfire hrunR, hrelR⟩
+
+/-- Runs concatenate. -/
+private theorem stackRun_append : ∀ {s : State} {l1 : List Move} {w : State},
+    StackRun s l1 w → ∀ (l2 : List Move) (w2 : State), StackRun w l2 w2 →
+    StackRun s (l1 ++ l2) w2 := by
+  intro s l1 w h
+  induction h with
+  | nil s0 =>
+      intro l2 w2 h2
+      exact h2
+  | @cons t0 m x r rest w1 hx hm hstep hrest ih =>
+      intro l2 w2 h2
+      exact StackRun.cons hx hm hstep (ih l2 w2 h2)
+
+/-- **The re-saturated commutation square** — the honest law behind
+the card's E1: given a legal waste founding at `st`, the commit
+fires at `canon st` too (the legality transport), and the
+saturations of the two committed states COINCIDE.  The proof is the
+ride: `st`'s canonical schedule fires identically next to the
+commit (every lift carries — the rung-card kill bars `c`'s suit),
+delivering `canon st + commit` as the state reached from the
+committed state by that very schedule; then both routes are
+maximal licensed runs from ONE committed state, and confluence
+closes them equal.  (The LITERAL E1 — no re-saturation on the right
+— is refuted by the probe: see the module doc's ledger.) -/
+theorem comm_wasteToFound_sat {st : State} {c : Card} {s₁ : State}
+    (hwf : st.WF)
+    (hf : State.step st (Move.wasteToFound c) = some s₁) :
+    ∃ s₂, State.step (canon st) (Move.wasteToFound c) = some s₂ ∧
+      canon s₁ = canon s₂ := by
+  generalize hcan : canon st = u
+  obtain ⟨hwis, hnu, w', hwst, hsh1⟩ := wasteToFound_fires hf
+  have hbase := csucc_of_wasteToFound hf
+  have hwis' : u.wasteIs c = true := by
+    rw [← hcan, wasteIs_canon_inv]
+    exact hwis
+  have hnu' : u.nextUp c = true := by
+    rw [← hcan]
+    exact nextUp_canon_of_wasteHead hwf hwis hnu
+  have hwst' : u.waste = c :: w' := by rw [← hcan, canon_waste]; exact hwst
+  obtain ⟨s2, hs2⟩ : ∃ s2, State.step u (Move.wasteToFound c) = some s2 :=
+    ⟨{ u.setFound c.suit (u.found c.suit ++ [c]) with waste := w' },
+      step_wasteToFound_eq hwis' hnu' hwst'⟩
+  refine ⟨s2, hs2, ?_⟩
+  have hbase2 : csucc c u s2 := csucc_of_wasteToFound hs2
+  obtain ⟨L, hLrun, hLfin⟩ := canon_run st
+  rw [hcan] at hLrun
+  obtain ⟨wR, hwRrun, hwRrel⟩ := csucc_ride c st s₁ L u hLrun hwf hwis hnu hbase
+  have hwRe : wR = s2 := by
+    obtain ⟨p1, st1, ds1, w1, f1, o1⟩ := hwRrel
+    obtain ⟨p2, st2, ds2, w2, f2, o2⟩ := hbase2
+    apply State.ext
+    · funext σ
+      by_cases hσ : σ = c.suit
+      · subst hσ
+        rw [f1, f2]
+      · rw [← o1 σ hσ, ← o2 σ hσ]
+    · funext a
+      rw [← p1, ← p2]
+    · rw [← st1, ← st2]
+    · have hcc := w1.symm.trans w2
+      injection hcc
+    · rw [← ds1, ← ds2]
+  rw [hwRe] at hwRrun
+  obtain ⟨L₂, hL2run, hL2fin⟩ := canon_run s2
+  have hcomp : StackRun s₁ (L ++ L₂) (canon s2) :=
+    stackRun_append hwRrun L₂ (canon s2) hL2run
+  have hwfs₁ : s₁.WF := step_wf hwf hf
+  obtain ⟨L₁, hL1run, hL1fin⟩ := canon_run s₁
+  exact canon_unique hwfs₁ hL1run hL1fin hcomp hL2fin
+
+/-! ### The draw mirror
+
+The one commit family with a genuinely disjoint footprint from the
+canonicalizer: `draw` reads and writes only the stock, the waste,
+and the draw width, while the saturator's probes read only the
+foundations and the piles.  So the pick agrees on drawn pairs at
+every saturation round, and the drawn result rides through each
+lift untouched — `canon ∘ draw = draw ∘ canon` at firing states,
+definitionally.  (DEDUP: the draw anatomy below is the dominance
+chapter's private block re-derived at canon grade.) -/
+
+/-- The recycler keeps every field the saturator reads. -/
+private theorem recycle_shape (t : State) :
+    (State.recycle t).found = t.found ∧ (State.recycle t).piles = t.piles ∧
+      (State.recycle t).drawStep = t.drawStep := by
+  cases hs : t.stock with
+  | nil =>
+      cases hw : t.waste with
+      | nil =>
+          have hrec : State.recycle t = t := by
+            show (match t.stock with
+              | [] =>
+                  match t.waste with
+                  | [] => t
+                  | w => { t with stock := w.reverse, waste := [] }
+              | _ => t) = _
+            rw [hs, hw]
+          rw [hrec]
+          exact ⟨rfl, rfl, rfl⟩
+      | cons x xs =>
+          have hrec : State.recycle t = { t with stock := (x :: xs).reverse, waste := [] } := by
+            show (match t.stock with
+              | [] =>
+                  match t.waste with
+                  | [] => t
+                  | w => { t with stock := w.reverse, waste := [] }
+              | _ => t) = _
+            rw [hs, hw]
+          rw [hrec]
+          exact ⟨rfl, rfl, rfl⟩
+  | cons x xs =>
+      have hrec : State.recycle t = t := by
+        show (match t.stock with
+          | [] =>
+              match t.waste with
+              | [] => t
+              | w => { t with stock := w.reverse, waste := [] }
+          | _ => t) = _
+        rw [hs]
+      rw [hrec]
+      exact ⟨rfl, rfl, rfl⟩
+
+/-- A firing draw's output is the recycled state with the dealt
+cards split off — the deal anatomy, at var grade. -/
+private theorem draw_deal {u v : State} (h : State.step u Move.draw = some v) :
+    ∃ l, (State.recycle u).stock = l ∧ l ≠ [] ∧
+      v = { State.recycle u with
+        stock := (State.dealUpTo (State.recycle u).drawStep l).2,
+        waste := (State.dealUpTo (State.recycle u).drawStep l).1.reverse ++
+          (State.recycle u).waste } := by
+  cases hrs : (State.recycle u).stock with
+  | nil =>
+      rw [show State.step u Move.draw = State.dealStock (State.recycle u) from rfl] at h
+      have h2 : State.dealStock (State.recycle u) = none := by
+        show (match (State.recycle u).stock with
+          | [] => none
+          | s =>
+              some { State.recycle u with
+                stock := (State.dealUpTo (State.recycle u).drawStep s).2,
+                waste := (State.dealUpTo (State.recycle u).drawStep s).1.reverse ++
+                  (State.recycle u).waste }) = _
+        rw [hrs]
+      rw [h2] at h
+      exact absurd h (by simp)
+  | cons y ys =>
+      have h2 : State.dealStock (State.recycle u) =
+          some { State.recycle u with
+            stock := (State.dealUpTo (State.recycle u).drawStep (y :: ys)).2,
+            waste := (State.dealUpTo (State.recycle u).drawStep (y :: ys)).1.reverse ++
+              (State.recycle u).waste } := by
+            show (match (State.recycle u).stock with
+              | [] => none
+              | s =>
+                  some { State.recycle u with
+                    stock := (State.dealUpTo (State.recycle u).drawStep s).2,
+                    waste := (State.dealUpTo (State.recycle u).drawStep s).1.reverse ++
+                      (State.recycle u).waste }) = _
+            rw [hrs]
+      rw [show State.step u Move.draw = State.dealStock (State.recycle u) from rfl, h2] at h
+      injection h with hvv
+      exact ⟨y :: ys, rfl, by simp, hvv.symm⟩
+
+/-- The drawn state keeps every field the saturator reads. -/
+private theorem draw_shape {u v : State} (h : State.step u Move.draw = some v) :
+    v.found = u.found ∧ v.piles = u.piles ∧ v.drawStep = u.drawStep := by
+  obtain ⟨l, hlst, hne, hvv⟩ := draw_deal h
+  obtain ⟨hf, hp, hd⟩ := recycle_shape u
+  refine ⟨?_, ?_, ?_⟩
+  · rw [hvv]; exact hf
+  · rw [hvv]; exact hp
+  · rw [hvv]; exact hd
+
+/-- The probes the saturator reads agree on drawn pairs. -/
+private theorem canRaiseB_congr {u v : State}
+    (hf : v.found = u.found) (hp : v.piles = u.piles) (x : Card) :
+    canRaiseB v x = canRaiseB u x := by
+  have h1 : v.nextUp x = u.nextUp x := by
+    show decide (x.rank.toIdx = (v.found x.suit).length) =
+      decide (x.rank.toIdx = (u.found x.suit).length)
+    rw [hf]
+  have h2 : v.pileOfTop x = u.pileOfTop x := pileOfTop_piles_congr hp x
+  show (v.nextUp x &&
+      match v.pileOfTop x with
+      | none => false
+      | some a =>
+          decide (chop (v.piles a).faceUp ≠ []) ||
+            (decide ((v.piles a).hidden = []) && decide (x.rank = Rank.king))) =
+    (u.nextUp x &&
+      match u.pileOfTop x with
+      | none => false
+      | some a =>
+          decide (chop (u.piles a).faceUp ≠ []) ||
+            (decide ((u.piles a).hidden = []) && decide (x.rank = Rank.king)))
+  rw [h1, h2, hp]
+
+/-- The pick function only reads the probes. -/
+private theorem pick_congr {u v : State} (h : ∀ x, canRaiseB v x = canRaiseB u x) :
+    pick v = pick u := by
+  show (firstWhere (canRaiseB v) Card.universe) = (firstWhere (canRaiseB u) Card.universe)
+  rw [funext h]
+
+/-- Two states sharing the draw zone share the recycled draw zone. -/
+private theorem recycle_zone {u r : State}
+    (hrs : r.stock = u.stock) (hrsw : r.waste = u.waste) (hrsd : r.drawStep = u.drawStep) :
+    (State.recycle r).stock = (State.recycle u).stock ∧
+      (State.recycle r).waste = (State.recycle u).waste ∧
+      (State.recycle r).drawStep = (State.recycle u).drawStep := by
+  cases hs : u.stock with
+  | nil =>
+      cases hw : u.waste with
+      | nil =>
+          have hrr : State.recycle r = r := by
+            show (match r.stock with
+              | [] =>
+                  match r.waste with
+                  | [] => r
+                  | w => { r with stock := w.reverse, waste := [] }
+              | _ => r) = _
+            rw [hrs.trans hs, hrsw.trans hw]
+          have hru : State.recycle u = u := by
+            show (match u.stock with
+              | [] =>
+                  match u.waste with
+                  | [] => u
+                  | w => { u with stock := w.reverse, waste := [] }
+              | _ => u) = _
+            rw [hs, hw]
+          rw [hrr, hru]
+          exact ⟨hrs, hrsw, hrsd⟩
+      | cons x xs =>
+          have hrsw' : r.waste = x :: xs := hrsw.trans hw
+          have hrr : State.recycle r = { r with stock := (x :: xs).reverse, waste := [] } := by
+            show (match r.stock with
+              | [] =>
+                  match r.waste with
+                  | [] => r
+                  | w => { r with stock := w.reverse, waste := [] }
+              | _ => r) = _
+            rw [hrs.trans hs, hrsw']
+          have hru : State.recycle u = { u with stock := (x :: xs).reverse, waste := [] } := by
+            show (match u.stock with
+              | [] =>
+                  match u.waste with
+                  | [] => u
+                  | w => { u with stock := w.reverse, waste := [] }
+              | _ => u) = _
+            rw [hs, hw]
+          rw [hrr, hru]
+          exact ⟨rfl, rfl, hrsd⟩
+  | cons z zs =>
+      have hrr : State.recycle r = r := by
+        show (match r.stock with
+          | [] =>
+              match r.waste with
+              | [] => r
+              | w => { r with stock := w.reverse, waste := [] }
+          | _ => r) = _
+        rw [hrs.trans hs]
+      have hru : State.recycle u = u := by
+        show (match u.stock with
+          | [] =>
+              match u.waste with
+              | [] => u
+              | w => { u with stock := w.reverse, waste := [] }
+          | _ => u) = _
+        rw [hs]
+      rw [hrr, hru]
+      exact ⟨hrs, hrsw, hrsd⟩
+
+/-- **One mirror step**: the saturation step commutes past a draw. -/
+private theorem satStep_draw (u v : State) (hv : State.step u Move.draw = some v) :
+    ∃ vN, State.step (satStep u) Move.draw = some vN ∧ satStep v = vN := by
+  obtain ⟨hf, hp, hd⟩ := draw_shape hv
+  have hcb : ∀ x, canRaiseB v x = canRaiseB u x := fun x => canRaiseB_congr hf hp x
+  have hpick : pick v = pick u := pick_congr hcb
+  cases hpu : pick u with
+  | none =>
+      have hvp : pick v = none := by rw [hpick, hpu]
+      refine ⟨v, ?_, ?_⟩
+      · rw [satStep_none hpu]
+        exact hv
+      · rw [satStep_none hvp]
+  | some c₀ =>
+      have hvcb : canRaiseB v c₀ = true := by
+        rw [hcb c₀]
+        exact firstWhere_sound _ hpu
+      have hvlic : CanRaise v c₀ := canRaiseB_true_iff.1 hvcb
+      have hvp : pick v = some c₀ := by rw [hpick, hpu]
+      obtain ⟨r, hr⟩ := raise_eq_some_of_canRaise u (pick_some_canRaise hpu)
+      obtain ⟨rN, hrN⟩ := raise_eq_some_of_canRaise v hvlic
+      obtain ⟨hn1, a, hpa, hrsh⟩ := step_tabToFound_inv hr
+      obtain ⟨hn2, a2, hpa2, hrNsh⟩ := step_tabToFound_inv hrN
+      have hpa2' : v.pileOfTop c₀ = some a := by
+        rw [pileOfTop_piles_congr hp c₀]
+        exact hpa
+      have haa : a2 = a := by injection (hpa2.symm.trans hpa2')
+      rw [haa] at hrNsh
+      have hr_stock : r.stock = u.stock := by
+        rw [hrsh]
+        exact (setFound_stock u c₀.suit (u.found c₀.suit ++ [c₀])).symm
+      have hr_waste : r.waste = u.waste := by
+        rw [hrsh]
+        exact (setFound_waste u c₀.suit (u.found c₀.suit ++ [c₀])).symm
+      have hr_drawStep : r.drawStep = u.drawStep := by
+        rw [hrsh]
+        exact (setFound_drawStep u c₀.suit (u.found c₀.suit ++ [c₀])).symm
+      have hrN_stock : rN.stock = v.stock := by
+        rw [hrNsh]
+        exact (setFound_stock v c₀.suit (v.found c₀.suit ++ [c₀])).symm
+      have hrN_waste : rN.waste = v.waste := by
+        rw [hrNsh]
+        exact (setFound_waste v c₀.suit (v.found c₀.suit ++ [c₀])).symm
+      have hrN_drawStep : rN.drawStep = v.drawStep := by
+        rw [hrNsh]
+        exact (setFound_drawStep v c₀.suit (v.found c₀.suit ++ [c₀])).symm
+      obtain ⟨l, hlst, hne, hvv⟩ := draw_deal hv
+      obtain ⟨p1, p2, p3⟩ := recycle_zone hr_stock hr_waste hr_drawStep
+      have hz : (State.recycle r).stock = l := p1.trans hlst
+      cases hxl : l with
+      | nil => exact absurd hxl hne
+      | cons y zs =>
+          rw [hxl] at hvv
+          obtain ⟨rf, rp, rd⟩ := recycle_shape r
+          have hrF := (raise_foundTransport hr).2
+          have hrNF := (raise_foundTransport hrN).2
+          have hXeq : State.step r Move.draw = some { State.recycle r with
+              stock := (State.dealUpTo (State.recycle r).drawStep (y :: zs)).2,
+              waste := (State.dealUpTo (State.recycle r).drawStep (y :: zs)).1.reverse ++
+                (State.recycle r).waste } := by
+            rw [show State.step r Move.draw = State.dealStock (State.recycle r) from rfl]
+            show (match (State.recycle r).stock with
+              | [] => none
+              | tl =>
+                  some { State.recycle r with
+                    stock := (State.dealUpTo (State.recycle r).drawStep tl).2,
+                    waste := (State.dealUpTo (State.recycle r).drawStep tl).1.reverse ++
+                      (State.recycle r).waste }) = _
+            rw [hz, hxl]
+          refine ⟨rN, ?_, ?_⟩
+          · rw [satStep_some hpu hr, hXeq, Option.some.injEq]
+            apply State.ext
+            · funext σ
+              show ((State.recycle r).found) σ = ((rN).found) σ
+              rw [rf, hrF σ, hrNF σ, hf]
+            · funext a'
+              show ((State.recycle r).piles) a' = ((rN).piles) a'
+              rw [rp, hrsh, hrNsh, hp]
+            · show (State.dealUpTo (State.recycle r).drawStep (y :: zs)).2 = ((rN).stock)
+              rw [p3, hrN_stock, hvv]
+            · show (State.dealUpTo (State.recycle r).drawStep (y :: zs)).1.reverse ++
+                  ((State.recycle r).waste) = ((rN).waste)
+              rw [p3, p2, hrN_waste, hvv]
+            · show ((State.recycle r).drawStep) = ((rN).drawStep)
+              rw [rd, hr_drawStep, hrN_drawStep, hd]
+          · rw [satStep_some hvp hrN]
+
+/-- The mirror at any budget. -/
+private theorem canonAux_draw (n : Nat) : ∀ (u v : State),
+    State.step u Move.draw = some v →
+    State.step (canonAux n u) Move.draw = some (canonAux n v) := by
+  induction n with
+  | zero =>
+      intro u v hv
+      exact hv
+  | succ n ih =>
+      intro u v hv
+      obtain ⟨vN, hsN, hvsn⟩ := satStep_draw u v hv
+      rw [show canonAux (n + 1) u = canonAux n (satStep u) from rfl,
+          ih (satStep u) vN hsN,
+          show canonAux (n + 1) v = canonAux n (satStep v) from rfl, hvsn]
+
+/-- **The draw mirror** — `canon ∘ draw = draw ∘ canon` at firing
+states, with EQUAL results: the drawn state's canonical form is the
+canonical form's drawn state.  The one fully definitentional case
+of the census: the footprints are disjoint, no `WF` gate needed. -/
+theorem comm_draw_canon {st s₁ : State}
+    (h : State.step st Move.draw = some s₁) :
+    State.step (canon st) Move.draw = some (canon s₁) :=
+  canonAux_draw 53 st s₁ h
+
+/-- A recycled draw zone with cards deals. -/
+private theorem draw_fire_of_ne (s : State) (hne : (State.recycle s).stock ≠ []) :
+    ∃ w, State.step s Move.draw = some w := by
+  cases hrs : (State.recycle s).stock with
+  | nil => exact absurd hrs hne
+  | cons y ys =>
+      refine ⟨{ State.recycle s with
+          stock := (State.dealUpTo (State.recycle s).drawStep (y :: ys)).2,
+          waste := (State.dealUpTo (State.recycle s).drawStep (y :: ys)).1.reverse ++
+            (State.recycle s).waste }, ?_⟩
+      rw [show State.step s Move.draw = State.dealStock (State.recycle s) from rfl]
+      show (match (State.recycle s).stock with
+        | [] => none
+        | tl =>
+            some { State.recycle s with
+              stock := (State.dealUpTo (State.recycle s).drawStep tl).2,
+              waste := (State.dealUpTo (State.recycle s).drawStep tl).1.reverse ++
+                (State.recycle s).waste }) = _
+      rw [hrs]
+
+/-- A draw is `none` exactly when the recycled stock is empty. -/
+private theorem draw_none_iff (s : State) :
+    State.step s Move.draw = none ↔ (State.recycle s).stock = [] := by
+  constructor
+  · intro h
+    cases hrs : (State.recycle s).stock with
+    | nil => exact rfl
+    | cons y ys =>
+        obtain ⟨w, hw⟩ := draw_fire_of_ne s (by rw [hrs]; simp)
+        rw [h] at hw
+        exact absurd hw (by simp)
+  · intro h
+    rw [show State.step s Move.draw = State.dealStock (State.recycle s) from rfl,
+        show State.dealStock (State.recycle s) = none from by
+          show (match (State.recycle s).stock with
+            | [] => none
+            | tl =>
+                some { State.recycle s with
+                  stock := (State.dealUpTo (State.recycle s).drawStep tl).2,
+                  waste := (State.dealUpTo (State.recycle s).drawStep tl).1.reverse ++
+                    (State.recycle s).waste }) = _
+          rw [h]]
+
+/-- The none side is synchronized too: the draw's firing reads only
+the draw zone, and the zone is canon-invariant, so the canonical
+form's draw fires exactly when the raw state's does. -/
+theorem draw_fire_sync_canon (st : State)
+    (h : State.step st Move.draw = none) :
+    State.step (canon st) Move.draw = none := by
+  have hzone : (State.recycle st).stock = [] := (draw_none_iff st).1 h
+  obtain ⟨p1, p2, p3⟩ :=
+    recycle_zone (canon_stock st).symm (canon_waste st).symm (canon_drawStep st).symm
+  exact (draw_none_iff (canon st)).2 (by rw [p1.symm]; exact hzone)
+
 /-! ## The private exhibits
 
 The two exhibits this chapter owes its fences and its design answer to
@@ -3724,5 +4301,8 @@ bridge. -/
 #print axioms canon_found_of_wasteHead
 #print axioms nextUp_canon_of_wasteHead
 #print axioms wasteToFound_legal_canon_inv
+#print axioms comm_wasteToFound_sat
+#print axioms comm_draw_canon
+#print axioms draw_fire_sync_canon
 #print axioms wild_confluence_fails
 #print axioms residue_reloc_exhibit
