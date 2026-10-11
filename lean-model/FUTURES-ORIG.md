@@ -1686,3 +1686,153 @@ owner):**
   reading of the ≤2 fork) were all "false" wrapped, all true or
   conditionally-true physical. Future refinements get recorded
   physical-first, virtual-grade translation second.
+
+**LANDING 2 (branch orig-canon-decompress, commit fc0569f).**
+`Orig/Decompress.lean` is in the battery (29th job) and green: the
+(A) per-state reverse landed — `lift_undo_pullW` (the banked
+`lift_undoW` engine re-graded with its leg-shape data; the under-arm
+re-derived through the PUBLIC `runOK_snoc_sit`/`pileOfTop_eq_some_iff`
+rows rather than Canonical.lean's private `lift_under_facts`),
+`stackRun_return_pulls` (from any licensed run's end the return
+shuffle is PULL-DOWNS ONLY), and `decompress_pulls` (from the
+canonical form, the witness shuffle back to u is pure pulls); the
+draw-letter formal ground landed (`drawLanding_waste_ne` — no draw
+ever lands an empty waste at a positive draw step, pristine
+unreachability at theorem grade; the `ZoneShape` presentation
+algebra with `zoneShape_self` and the three leg rows; the draw's
+board/pool/drawStep keeps); the saturator's zone and board rows
+landed (`satStep_zone_keep`/`canon_zone_keep` — the canonicalizer
+never touches the zone; the determination chain
+`firstWhereCong → canRaiseB_congr → pick_congr → satStep_board_det
+→ canonBoard_det` — the canonical form's board depends only on the
+board input); the commutation minis (`stepDraw_eq_none_iff`,
+`stepDraw_zone_det`) landed for the follow-up.  `canon_draw_comm`
+(the padding-generation order-freedom lemma) is DEFERRED with its
+working route recorded in the module (no sorry, no phantom claim):
+the per-budget induction route — the step case is the ONE-STEP
+satStep/stepDrawn square, all of whose halves are already landed
+here.  `finalWiggle_reach` — the card's ONE named residue — is
+pinned at the THREE-letter alphabet the corrections fixed (PULLS +
+SLIDES + PURE DRAWS; see the probe amendment below), carrying its
+live dependency notes (canlaw's twin-cargo pick-fork probe; the V3
+contention probe; the exchlaw twin-kings cell).  Audits:
+`[propext, Quot.sound]` or fewer on every landed head; the stub
+reads `[propext, sorryAx]` — the only sorry on a landed head, printed
+in the file's audit block.
+
+**THE CONE ALPHABET CORRECTION (exchlaw's refuted pinch, adopted).**
+The sigma-absorption of the SLIDE letter is REFUTED at the
+twin-kings cell: the saturated mates split the found channel
+(13/12 vs 12/13), foundTotal equal so no pure-pull play joins them,
+the mates reach their raw twins by one pull each, the raw pair is
+joined only by the SLIDE, and the naive one-way composite cannot
+even run.  Probe (a) is AMENDED and committed: Family W in
+CanonDecompressProbe mirrors the exchlaw cell with credit
+(orig-exch-canlaw:probes/ExchCanLawProbe.lean).  Hence: the main
+theorem's cone alphabet is PULLS + SLIDES + PURE DRAWS — three
+letters, all reversible, class-honest; `mem_macro_iff`/`cone_image`
+restate accordingly (the up-to-swap sigma-clause stays for
+identity-content ambiguity only); slides-as-padding are a
+requirement again; the canon_slide seating pass remains probe-gated
+and probably dead; and the class's anchor SET is allowed to straddle
+the fork — the multi-anchor cans-predicate design anticipated
+exactly this.
+
+**THE CORRECTIONS FOLDED THROUGH THE SESSION (recorded against the
+section 9 menu above).**  canon_draw is DROPPED from the card's
+scope (the tenth refinement): the draw stays a separate padding
+letter; offset zones are commit records either way, the pure
+rotations are exactly what the padding's draw letter absorbs, and
+with the slide restored and the draw kept as padding the ENTIRE
+reverse program touches no canonicalizer — the anchor stays "any
+saturated member" over the landed saturating canon, nothing waits on
+canlaw even for coordination.  canonDraw goes into the ledger as the
+NAMED OPTIONAL POLISH ROW post-merge (its value: kills the
+draws-trivially site of the literal canon-iff, folds swComp into
+the normal form, tightens the cone to pure pulls), gated on the
+pristine-reachability probes, which this session's B-family battery
+already answered (pristine UNREACHABLE; the unique reachable normal
+form is the PASS BASE) — so the polish row, if ever taken, drains
+to the pass base, not to pristine.  Design principle recorded: the
+tableau earns canonicalization because saturation is confluent and
+hard; the draw zone needs at most a rotation, whose normal form is
+trivial padding material, not anchor material.  Probe (b) resolved:
+pure-rotation orbits ride RevEqW DIRECTLY (the swCompat line
+resolves cheaply at the trivial reading — swComp collapses to the
+consumption/offset cases only); the B-probe closure numbers are the
+certificate.
+
+**THE V3 CANONICALIZER EXTENSION CARD — the backlog family (spawn
+waits on canlaw's fork verdicts; nothing lands meanwhile).**
+The user's V3 skeleton, ledgered verbatim: five definitions
+(TwinContended — both twins licensed-raise with each stack
+foreclosing the other, the exact Foreclose read PINNED by canlaw's
+probe instance; Unblocker — a foundToTab y b licensed that
+re-licenses the raise of x; HardContended — contention with no
+unblocker, the only surviving stop case; FinalV3 — no licensed
+raise except across hard contentions; the runner as TWO macro-legs:
+"raise" refusing to fire at contentions so the fork lane cannot
+leak, and "scaffoldCycle" — the Unblocker pull welded with its
+immediately-enabled stack plus the cleanup re-raise of y, ONE
+constructor); design wins (serialization kills scaffold-scaffold
+interference; the boundary measure Phi = foundation length strictly
+increases at EVERY leg boundary — raise legs +1, scaffoldCycles net
++2, dips inside the macro-leg only — clean well-founded termination,
+no amortization; all guards decidable so canonV3 is COMPUTABLE and
+the probe discipline applies verbatim); five target theorems
+(canonV3_in_class via both leg kinds reversible; canonV3_unique
+PROBE-GATED — scaffold-choice convergence plus conjugate-route
+agreement, pin-as-named-stub if refused; canonV3_final_shape — full
+saturation modulo hard contentions only; canonV3_conj — the twin-
+blind rule, conjugation-equivariance; canonV3_wf); doctrine (the leg
+alphabet gains exactly one reversible pull kind; accommodation
+ladders stay section 3.1 commit-side; canlaw's E-law re-derivation
+debt RECORDED, not absorbed).  File structure decided: NEW FILE
+Orig/CanV3.lean (import Orig.Canonical — the undo family, monotone
+stackability, canon_unique; no cycles; the bridge rows there too),
+probe battery probes/CanonV3Probe.lean; Canonical.lean is canlaw's
+dense hot file and stays untouched.  END-STATE decided: the final
+architecture is SINGLE-CHAPTER — the old V2 machinery in
+Orig/Canonical.lean is REMOVED once V3 supersedes, not a permanent
+parallel chapter; ordering gates: Phase 1 V3 lands alongside (five
+theorems green); Phase 2 the BRIDGE family proves transport
+lossless — the key row canonV3 = canon on contention-free
+saturation runs, satStep REUSED as V3's raise-leg engine (REUSE not
+removal; canlaw's landing-2 locality kit survives), consumers
+re-targeted one-site-at-a-time with battery green at every commit;
+Phase 3 the removal sweep deletes the V2 core — removal WAITS on
+canlaw's merge (the in-flight V2-stated work is the re-derivation
+source) and on the bridge rows.  NEW PROBE ITEM for the V3 battery:
+decide whether the residue_reloc_exhibit's twin-host relocation is
+CONTENTION-DRIVEN — if yes, V3's scaffold cycles may literalize
+canon equality exactly where V2's non-uniqueness lived, and the
+exhibit's reason for existing vanishes with the old chapter.
+
+**THE PRESENTATION TARGETS (statement-shape decisions for the main
+landing).**  Membership-characterization form:
+`MacroState.cans s := {w | w in s and Final w}` as a PREDICATE,
+deliberately not a choice function (a class may hold several
+genuinely different Final states — the exhibit family plus now the
+twin-kings found-split mates; picking would smuggle the anchor
+back); `pullDrawCone w` — the pulls+slides+pure-draws reachable
+set, the three letters restored per the correction above; MAIN
+`mem_macro_iff : u in s iff EX sigma : TwinSwap, sigma * u in
+pullDrawCone w for ANY w in cans s` (the LEFT arrow the cheap
+soundness leg — cone legs non-committal, swaps ride the class's
+conjugation fold, canon_in_class-style cites; the RIGHT arrow the
+reverse theorem proper) plus the one-line class-image corollary
+`cone_image : the class-image of pullDrawCone w IS s`; anchor-free
+supersession: for ANY saturated member w of the class every member
+u is reached FROM w (fixed-anchor demoted to lemma; the
+anchor-mobility rows: exchange bits absorbed by the same full-swap
+relaxation the conclusion carries, the parked-residue wiggle
+absorbed iff probe (a) — now REFUTED at BOTH cells, hence the slide
+letter back in the cone, phase rotations absorbed by the draw
+letter).  Consumer split: the class-image form serves every
+class-graded consumer (the count, the successor program's
+pull-backs — a criterion, not just coverage); the sigma-explicit
+iff side is the strength door the physical layer consumes
+(the pinch, torsor freeness, licensed-only re-derivation — the
+follow-on exchange-canon card whose backlog rows sit at the top of
+this section; the anchor machinery survives V3 untouched, and if
+canonV3_unique lands literally the anchor story TIGHTENS).
