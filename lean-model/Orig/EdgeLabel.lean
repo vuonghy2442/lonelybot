@@ -186,7 +186,7 @@ disjointness cells, and the pair-move character.  What stands:
   label families stay exclusive on the commit — draw never
   card-labeled, waste never draw/stack-labeled, and the stack family —
   reveal or vacate, the recorded merge — never draw/waste-labeled).
-* **proved, green (the close)**: the pair-move character
+* **proved, green** (the close): the pair-move character
   (`pair_move_character`: the label determines the committed move up
   to the recorded twin-landing merge — the determination rows'
   converse, riding the memberships and the rows, the tableau seats
@@ -196,6 +196,22 @@ disjointness cells, and the pair-move character.  What stands:
   (`pair_move_character_switch`: the match the compiler exhaustively
   checks over the tripartite alphabet, the consumption form the count
   program cites).
+* **proved, green (the wasteEntry successor-share core, wave 24.5)**:
+  the shared-card discipline `waste_landings_shape_correspond` (two
+  `wasteEntry c`-labeled edges over one class hand the SAME popped
+  card at the LITERAL same draw-zone split — the character pins the
+  family, the pool arithmetic pins the card as each pair's pool-miss,
+  and the class-pool cancellation `pool_tail_cancel` forces the tail
+  and stock), the composite identity `waste_entry_composite`
+  (`wasteToTab`-then-`tabToFound` state-exact to `wasteToFound`, the
+  seated base restored to bare, junk-safe through the WF-guarded seat
+  search), and the member-grade outcome pairing `waste_entry_le_2`
+  (each edge's landing is the founded image or the seated image of
+  the shared popped card, the two images one safe-commit apart under
+  the rung — the strictly honest form of the ≤2 anatomy, the
+  cross-mate/cross-base class collapse refused, not bought on credit).
+  The recon ledger section above carries the route inventory, the
+  (N) safety premise-slot, and the refused-transport record.
 * **milestone status**: COMPLETE in this module — the member-form
   restatement is done, the edge-labeling theorem's full arc landed at
   the member grade (the quotient datum kernel, the journey-invariant
@@ -2575,6 +2591,515 @@ theorem pair_move_character_switch {C D : SameOrbit} (e : TipEdge C D) :
   | wasteEntry c => exact h2 c hl
   | stackEvent a => exact h3 a hl
 
+/-! ## The wasteEntry successor discipline (the share's core, rows two
+to four of the recon)
+
+The second row of the ≤2-per-label umbrella over one source class, at
+the per-label unit, prove-not-pin: FIRST the shared-card discipline
+(`waste_landings_shape_correspond` — the character pins the move
+family at both mates, the pool arithmetic pins the popped card, and
+the class-pool cancellation forces the two mates' draw-zone states to
+be the literal same split), THEN the composite identity
+(`waste_entry_composite` — `wasteToTab`-then-`tabToFound` is
+state-exact to `wasteToFound`, the tab popping the seated card with the
+base restored to bare, junk-safe through the WF-guarded seat search),
+and on top of both the per-edge outcome pairing (`waste_entry_le_2`):
+each edge's landing is the seated image or the founded image of the
+shared popped card over its source member, the two images one
+safe-commit apart under the rung.  What is deliberately absent — the
+cross-mate/cross-base class collapse — is the refused transport, pinned
+in the recon ledger above, never bought on credit. -/
+
+/-- The waste-founding step's own guard hands the rung: a successful
+`wasteToFound` pins `nextUp` at the source.  This is the
+guard-complement of `step_wasteToFound_inv` above (the inversion
+carries the waste shape; this reader carries the rung) — the
+founded-image leg's premise is not a hypothesis slipped in, it is read
+off the step itself. -/
+private theorem step_wasteToFound_nextUp {st : State} {c : Card} {s' : State}
+    (h : State.step st (Move.wasteToFound c) = some s') :
+    st.nextUp c = true := by
+  simp only [State.step] at h
+  split at h
+  · rename_i hg
+    simp only [Bool.and_eq_true] at hg
+    exact hg.2
+  · exact absurd h (by simp)
+
+/-- **The pool-split cancellation.**  Two decompositions of one pool
+list, both splitting past the SAME single occurrence of `c` headed at
+the waste, are the same split: the stock prefix and the waste tail are
+forced.  This is the arithmetic behind the shape correspondence — over
+one macro class the pool list is a shared datum (`sameDatums_class`),
+so two mates presenting the same waste head present the same tail,
+the landed form of "the popped card is pinned modulo the draw-pool's
+class datum". -/
+private theorem pool_tail_cancel {c : Card} : ∀ (q₁ q₂ t₁ t₂ : List Card),
+    c ∉ q₁ → c ∉ q₂ → q₁ ++ c :: t₁ = q₂ ++ c :: t₂ →
+    q₁ = q₂ ∧ t₁ = t₂ := by
+  intro q₁
+  induction q₁ with
+  | nil =>
+      intro q₂ t₁ t₂ _ hn₂ h
+      simp only [List.nil_append] at h
+      cases q₂ with
+      | nil =>
+          injection h with _ htl
+          exact ⟨rfl, htl⟩
+      | cons y q₂' =>
+          injection h with heq _
+          have hmem : c ∈ y :: q₂' := by
+            rw [← heq]
+            exact List.mem_cons.2 (Or.inl rfl)
+          exact absurd hmem hn₂
+  | cons x q₁' ih =>
+      intro q₂ t₁ t₂ hn₁ hn₂ h
+      simp only [List.cons_append] at h
+      cases q₂ with
+      | nil =>
+          rw [List.nil_append] at h
+          injection h with heq _
+          have hmem : c ∈ x :: q₁' := by
+            rw [heq]
+            exact List.mem_cons.2 (Or.inl rfl)
+          exact absurd hmem hn₁
+      | cons y q₂' =>
+          injection h with hxy hrest
+          obtain ⟨heq, htl⟩ :=
+            ih q₂' t₁ t₂
+              (fun hcon => hn₁ (List.mem_cons.2 (Or.inr hcon)))
+              (fun hcon => hn₂ (List.mem_cons.2 (Or.inr hcon))) hrest
+          exact ⟨by rw [hxy, heq], htl⟩
+
+/-- The waste exit hands the pool's head out: a `WasteOf c` commitment
+at an edge's member reads the member's waste as headed at exactly `c`
+(the two inversion rows above, at the edge's own step). -/
+private theorem waste_edge_head {C D : SameOrbit} {c : Card} (e : TipEdge C D)
+    (hw : WasteOf c e.m) : ∃ xs, e.c.waste = c :: xs := by
+  rcases hw with heqm | ⟨b, heqm⟩
+  · obtain ⟨xs, hwu, -⟩ :=
+      step_wasteToFound_inv (by rw [← heqm]; exact e.land)
+    exact ⟨xs, hwu⟩
+  · obtain ⟨-, xs, hwu, -⟩ :=
+      step_wasteToTab_inv (by rw [← heqm]; exact e.land)
+    exact ⟨xs, hwu⟩
+
+/-- The pool arithmetic pins the popped card at each edge's own pair:
+a `wasteEntry c`-labeled edge reads `c` as the pool-miss of its own
+(state-grade) source-landing pair — the label is the class-pair
+fingerprint, and this is its pool channel read back at the member. -/
+private theorem waste_edge_poolMiss {C D : SameOrbit} {c : Card} (e : TipEdge C D)
+    (h : e.label = EdgeLabel.wasteEntry c) :
+    poolMissCard e.c e.w = some c := by
+  have hL : CanonLabel e.c e.w = EdgeLabel.wasteEntry c :=
+    (label_read e).symm.trans h
+  unfold CanonLabel at hL
+  split at hL
+  · cases hpm : poolMissCard e.c e.w with
+    | some c' =>
+        rw [hpm] at hL
+        injection hL with hcc
+        rw [hcc]
+    | none =>
+        rw [hpm] at hL
+        exact EdgeLabel.noConfusion hL
+  · split at hL
+    · split at hL
+      · exact EdgeLabel.noConfusion hL
+      · exact EdgeLabel.noConfusion hL
+    · split at hL
+      · exact EdgeLabel.noConfusion hL
+      · exact EdgeLabel.noConfusion hL
+
+/-- **The shared-card discipline (the shape correspondence).**  Two
+`wasteEntry c`-labeled edges over ONE source class are two mates
+handing the SAME card out of the waste: the character pins the move
+family (`WasteOf c e.m` at both mates), the pool arithmetic pins the
+card as each edge's pool-miss (`waste_edge_poolMiss`), and the
+class-pool cancellation — mates share the pool list
+(`sameDatums_class` through the memberships), and the popped head is
+the one occurrence of `c` in it (`mem_waste_unique`) — forces the two
+mates' draw-zone states to be the LITERAL same split: same waste tail,
+same stock.  This row is the share's defining discipline; everything
+downstream speaks of "the shared popped card" at exactly this grade. -/
+theorem waste_landings_shape_correspond {C D₁ D₂ : SameOrbit} {c : Card}
+    (e₁ : TipEdge C D₁) (h₁ : e₁.label = EdgeLabel.wasteEntry c)
+    (e₂ : TipEdge C D₂) (h₂ : e₂.label = EdgeLabel.wasteEntry c) :
+    ∃ xs, e₁.c.waste = c :: xs ∧ e₂.c.waste = c :: xs ∧
+      e₁.c.stock = e₂.c.stock ∧
+      WasteOf c e₁.m ∧ WasteOf c e₂.m ∧
+      poolMissCard e₁.c e₁.w = some c ∧ poolMissCard e₂.c e₂.w = some c := by
+  have hwo₁ : WasteOf c e₁.m := (pair_move_character e₁).2.1 c h₁
+  have hwo₂ : WasteOf c e₂.m := (pair_move_character e₂).2.1 c h₂
+  obtain ⟨xs₁, hw₁⟩ := waste_edge_head e₁ hwo₁
+  obtain ⟨xs₂, hw₂⟩ := waste_edge_head e₂ hwo₂
+  -- the mates share the pool list (the class datum, through the
+  -- memberships)
+  have horb : sameOrbitSetoid.r e₂.c e₁.c :=
+    Quotient.exact (e₂.hmem.trans e₁.hmem.symm)
+  obtain ⟨-, hpool, -, -⟩ := sameDatums_class horb
+  -- the head card occurs once in the pool: WF keeps it out of the
+  -- stock, and it is the waste's head card
+  have hc₁ : c ∈ e₁.c.waste := by
+    rw [hw₁]
+    exact List.mem_cons_self ..
+  have hc₂ : c ∈ e₂.c.waste := by
+    rw [hw₂]
+    exact List.mem_cons_self ..
+  have hnStock₁ : c ∉ e₁.c.stock := (mem_waste_unique e₁.hwf hc₁).2.1
+  have hnStock₂ : c ∉ e₂.c.stock := (mem_waste_unique e₂.hwf hc₂).2.1
+  -- the pools, read at the append shape the cancellation consumes
+  have hP' : e₁.c.stock.reverse ++ e₁.c.waste
+      = e₂.c.stock.reverse ++ e₂.c.waste := hpool
+  rw [hw₁, hw₂] at hP'
+  obtain ⟨hrev, htl⟩ := pool_tail_cancel _ _ _ _
+    (fun hcon => hnStock₁ (List.mem_reverse.mp hcon))
+    (fun hcon => hnStock₂ (List.mem_reverse.mp hcon)) hP'
+  have hstock : e₁.c.stock = e₂.c.stock := by
+    have hrr : (e₁.c.stock.reverse).reverse = (e₂.c.stock.reverse).reverse := by
+      rw [hrev]
+    rwa [List.reverse_reverse, List.reverse_reverse] at hrr
+  exact ⟨xs₁, hw₁, by rw [htl]; exact hw₂, hstock, hwo₁, hwo₂,
+    waste_edge_poolMiss e₁ h₁, waste_edge_poolMiss e₂ h₂⟩
+
+/-- **The composite identity (the two images, one safe-commit apart).**
+Over one source state and its waste head, with the rung up (`nextUp c`,
+the founds-only read) and a legal placement, the seating commit is
+popped by exactly one further commit — `tabToFound c` — and the
+composite is STATE-EXACT to the direct founding: the tab commit pops
+the seated card, the base restored to bare (the interior seat to its
+pre-seat run, the king's empty seat to bare), and both threads land in
+the very same state.  Junk-safe by premise: WF's occurrence kit is
+what pins the tab's own `pileOfTop`-search at the seated image to the
+written seat — the decide-probed junk corner (a state doubling the
+popped card at a foreign pile top) diverges exactly there.  The
+fate-side safety of the popping commit is deliberately NOT claimed:
+that is the (N) banner outside this module's import closure, a
+reserved premise-slot per the recon ledger. -/
+theorem waste_entry_composite {x : State} {c : Card} {xs : List Card} {b : Base}
+    (hwf : x.WF) (hw : x.waste = c :: xs) (hnext : x.nextUp c = true)
+    (hcp : x.canPlace c b = true) :
+    x.step (Move.wasteToTab c b)
+      = some {x.putCard c b with waste := xs} ∧
+    State.step {x.putCard c b with waste := xs} (Move.tabToFound c)
+      = some {x.setFound c.suit (x.found c.suit ++ [c]) with waste := xs} ∧
+    x.step (Move.wasteToFound c)
+      = some {x.setFound c.suit (x.found c.suit ++ [c]) with waste := xs} := by
+  have hstepSeat : x.step (Move.wasteToTab c b)
+      = some {x.putCard c b with waste := xs} := by
+    simp only [State.step]
+    rw [hw]
+    rw [show (x.wasteIs c && x.canPlace c b) = true from by
+        rw [State.wasteIs_cons hw c, decide_eq_true rfl, hcp]
+        rfl]
+    rfl
+  have hstepFound : x.step (Move.wasteToFound c)
+      = some {x.setFound c.suit (x.found c.suit ++ [c]) with waste := xs} := by
+    simp only [State.step]
+    rw [hw]
+    rw [show (x.wasteIs c && x.nextUp c) = true from by
+        rw [State.wasteIs_cons hw c, decide_eq_true rfl, hnext]
+        rfl]
+    rfl
+  refine ⟨hstepSeat, ?_, hstepFound⟩
+  -- the rung rides the seating: the placement writes piles only
+  have hyfound : ∀ s,
+      ({x.putCard c b with waste := xs} : State).found s = x.found s := by
+    intro s
+    have hcast : (({x.putCard c b with waste := xs} : State).found s)
+        = ((x.putCard c b).found s) := rfl
+    rw [hcast, putCard_found]
+  have hynext : ({x.putCard c b with waste := xs} : State).nextUp c = true := by
+    show decide (c.rank.toIdx
+        = (({x.putCard c b with waste := xs} : State).found c.suit).length) = true
+    rw [hyfound c.suit]
+    exact hnext
+  cases b with
+  | inl a =>
+      have hcast0 : (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a)
+          = ((x.putCard c (Sum.inl a)).piles a) := rfl
+      have hyseat : (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a)
+          = ⟨[], [c]⟩ := hcast0.trans putCard_inl_landing
+      -- the seat's top is c, and no other pile is topped by c (WF:
+      -- the waste member is nowhere in any pile)
+      have htopY : (({x.putCard c (Sum.inl a) with waste := xs} : State).topOf a)
+          = some c := by
+        show lastOf ((({x.putCard c (Sum.inl a) with waste := xs} : State).piles a).faceUp)
+          = some c
+        rw [hyseat]
+        rfl
+      have hyloc : ({x.putCard c (Sum.inl a) with waste := xs} : State).pileOfTop c
+          = some a := by
+        show firstWhere (fun a' =>
+            decide (({x.putCard c (Sum.inl a) with waste := xs} : State).topOf a' = some c))
+            Anchor.all = some a
+        refine firstWhere_find (p :=
+          fun a' => decide
+            (({x.putCard c (Sum.inl a) with waste := xs} : State).topOf a' = some c))
+          (Anchor.mem_all a) (by rw [htopY]; exact decide_eq_true rfl)
+          (fun j _hj hne => ?_)
+        show decide
+          ((({x.putCard c (Sum.inl a) with waste := xs} : State).piles j).top = some c) = false
+        have hjP : (({x.putCard c (Sum.inl a) with waste := xs} : State).piles j)
+            = ((x.putCard c (Sum.inl a)).piles j) := rfl
+        rw [hjP, putCard_inl_piles hne, decide_eq_false]
+        intro hcon
+        have hmem : c ∈ (x.piles j).faceUp := lastOf_mem hcon
+        exact (mem_pile_unique hwf (Or.inr hmem)).2.2.1
+          (by rw [hw]; exact List.mem_cons_self ..)
+      have hstepTab : State.step {x.putCard c (Sum.inl a) with waste := xs}
+            (Move.tabToFound c)
+          = some {({x.putCard c (Sum.inl a) with waste := xs} : State).setFound c.suit
+              (({x.putCard c (Sum.inl a) with waste := xs} : State).found c.suit ++ [c]) with
+            piles := fun a' =>
+              if a' = a then Pile.afterRunRemoved
+                  (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a)
+                  (chop (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a).faceUp)
+              else ({x.putCard c (Sum.inl a) with waste := xs} : State).piles a'} := by
+        simp only [State.step]
+        rw [show ({x.putCard c (Sum.inl a) with waste := xs} : State).nextUp c
+            = true from hynext, hyloc]
+        rfl
+      -- the restore: the king-bare seat back to bare; the raw pile of
+      -- the target matches x's empty seat
+      have hxPileBare : (x.piles a) = ⟨[], ([] : List Card)⟩ := by
+        obtain ⟨hh, hf⟩ :=
+          (Pile.isEmpty_eq _).mp (canPlace_inl hcp).1
+        exact Pile.ext hh hf
+      have hres : Pile.afterRunRemoved
+          (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a)
+          (chop (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a).faceUp)
+          = ⟨[], ([] : List Card)⟩ := by
+        rw [hyseat]
+        rfl
+      have hyOther : ∀ a', a' ≠ a →
+          (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a') = x.piles a' := by
+        intro a' hne
+        have hcast1 : (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a')
+            = ((x.putCard c (Sum.inl a)).piles a') := rfl
+        rw [hcast1]
+        exact putCard_inl_piles hne
+      have hyStk : (({x.putCard c (Sum.inl a) with waste := xs} : State).stock)
+          = x.stock := by
+        have hcast2 : (({x.putCard c (Sum.inl a) with waste := xs} : State).stock)
+            = ((x.putCard c (Sum.inl a)).stock) := rfl
+        rw [hcast2]
+        exact putCard_stock x c (Sum.inl a)
+      -- the raw tab target IS the direct founding's state
+      have hRest : {({x.putCard c (Sum.inl a) with waste := xs} : State).setFound c.suit
+              (({x.putCard c (Sum.inl a) with waste := xs} : State).found c.suit ++ [c]) with
+            piles := fun a' =>
+              if a' = a then Pile.afterRunRemoved
+                  (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a)
+                  (chop (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a).faceUp)
+              else ({x.putCard c (Sum.inl a) with waste := xs} : State).piles a'}
+          = {x.setFound c.suit (x.found c.suit ++ [c]) with waste := xs} := by
+        refine State.ext (funext fun σ => ?_) (funext fun a' => ?_) ?_ ?_ ?_
+        · by_cases hσ : σ = c.suit
+          · rw [hσ]
+            show (({x.putCard c (Sum.inl a) with waste := xs} : State).setFound c.suit
+                (({x.putCard c (Sum.inl a) with waste := xs} : State).found c.suit ++ [c])).found c.suit
+              = (x.setFound c.suit (x.found c.suit ++ [c])).found c.suit
+            rw [setFound_found_self, setFound_found_self, hyfound c.suit]
+          · show (({x.putCard c (Sum.inl a) with waste := xs} : State).setFound c.suit
+                (({x.putCard c (Sum.inl a) with waste := xs} : State).found c.suit ++ [c])).found σ
+              = (x.setFound c.suit (x.found c.suit ++ [c])).found σ
+            rw [setFound_found_ne hσ, setFound_found_ne hσ, hyfound σ]
+        · by_cases hae : a' = a
+          · rw [hae]
+            show (if a = a then Pile.afterRunRemoved
+                  (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a)
+                  (chop (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a).faceUp)
+              else ({x.putCard c (Sum.inl a) with waste := xs} : State).piles a) = x.piles a
+            rw [ite_eq_left rfl, hres]
+            exact hxPileBare.symm
+          · show (if a' = a then Pile.afterRunRemoved
+                  (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a)
+                  (chop (({x.putCard c (Sum.inl a) with waste := xs} : State).piles a).faceUp)
+              else ({x.putCard c (Sum.inl a) with waste := xs} : State).piles a') = x.piles a'
+            rw [ite_eq_right hae, hyOther a' hae]
+        · exact hyStk
+        · rfl
+        · exact putCard_drawStep x c (Sum.inl a)
+      exact hstepTab.trans (congrArg _ hRest)
+  | inr z =>
+      obtain ⟨k, hz, -⟩ := canPlace_inr hcp
+      obtain ⟨hfxne, -⟩ := pileOfTop_top hz
+      have hcast0 : (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k)
+          = ((x.putCard c (Sum.inr z)).piles k) := rfl
+      have hyseatK : (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k)
+          = {x.piles k with faceUp := (x.piles k).faceUp ++ [c]} :=
+        hcast0.trans (putCard_inr_landing hz)
+      have htopY : (({x.putCard c (Sum.inr z) with waste := xs} : State).topOf k)
+          = some c := by
+        show lastOf ((({x.putCard c (Sum.inr z) with waste := xs} : State).piles k).faceUp)
+          = some c
+        rw [hyseatK]
+        exact lastOf_snoc
+      have hyloc : ({x.putCard c (Sum.inr z) with waste := xs} : State).pileOfTop c
+          = some k := by
+        show firstWhere (fun a' =>
+            decide (({x.putCard c (Sum.inr z) with waste := xs} : State).topOf a' = some c))
+            Anchor.all = some k
+        refine firstWhere_find (p :=
+          fun a' => decide
+            (({x.putCard c (Sum.inr z) with waste := xs} : State).topOf a' = some c))
+          (Anchor.mem_all k) (by rw [htopY]; exact decide_eq_true rfl)
+          (fun j _hj hne => ?_)
+        show decide
+          ((({x.putCard c (Sum.inr z) with waste := xs} : State).piles j).top = some c) = false
+        have hjP : (({x.putCard c (Sum.inr z) with waste := xs} : State).piles j)
+            = ((x.putCard c (Sum.inr z)).piles j) := rfl
+        rw [hjP, putCard_inr_piles_ne hz hne, decide_eq_false]
+        intro hcon
+        have hmem : c ∈ (x.piles j).faceUp := lastOf_mem hcon
+        exact (mem_pile_unique hwf (Or.inr hmem)).2.2.1
+          (by rw [hw]; exact List.mem_cons_self ..)
+      have hstepTab : State.step {x.putCard c (Sum.inr z) with waste := xs}
+            (Move.tabToFound c)
+          = some {({x.putCard c (Sum.inr z) with waste := xs} : State).setFound c.suit
+              (({x.putCard c (Sum.inr z) with waste := xs} : State).found c.suit ++ [c]) with
+            piles := fun a' =>
+              if a' = k then Pile.afterRunRemoved
+                  (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k)
+                  (chop (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k).faceUp)
+              else ({x.putCard c (Sum.inr z) with waste := xs} : State).piles a'} := by
+        simp only [State.step]
+        rw [show ({x.putCard c (Sum.inr z) with waste := xs} : State).nextUp c
+            = true from hynext, hyloc]
+        rfl
+      -- the restore: the interior seat back to its pre-seat run
+      have hres : Pile.afterRunRemoved
+          (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k)
+          (chop (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k).faceUp)
+          = x.piles k := by
+        rw [hyseatK]
+        show Pile.afterRunRemoved {x.piles k with faceUp := (x.piles k).faceUp ++ [c]}
+            (chop ((x.piles k).faceUp ++ [c])) = x.piles k
+        rw [chop_snoc, afterRunRemoved_ne hfxne]
+      have hyOther : ∀ a', a' ≠ k →
+          (({x.putCard c (Sum.inr z) with waste := xs} : State).piles a') = x.piles a' := by
+        intro a' hne
+        have hcast1 : (({x.putCard c (Sum.inr z) with waste := xs} : State).piles a')
+            = ((x.putCard c (Sum.inr z)).piles a') := rfl
+        rw [hcast1]
+        exact putCard_inr_piles_ne hz hne
+      have hyStk : (({x.putCard c (Sum.inr z) with waste := xs} : State).stock)
+          = x.stock := by
+        have hcast2 : (({x.putCard c (Sum.inr z) with waste := xs} : State).stock)
+            = ((x.putCard c (Sum.inr z)).stock) := rfl
+        rw [hcast2]
+        exact putCard_stock x c (Sum.inr z)
+      have hRest : {({x.putCard c (Sum.inr z) with waste := xs} : State).setFound c.suit
+              (({x.putCard c (Sum.inr z) with waste := xs} : State).found c.suit ++ [c]) with
+            piles := fun a' =>
+              if a' = k then Pile.afterRunRemoved
+                  (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k)
+                  (chop (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k).faceUp)
+              else ({x.putCard c (Sum.inr z) with waste := xs} : State).piles a'}
+          = {x.setFound c.suit (x.found c.suit ++ [c]) with waste := xs} := by
+        refine State.ext (funext fun σ => ?_) (funext fun a' => ?_) ?_ ?_ ?_
+        · by_cases hσ : σ = c.suit
+          · rw [hσ]
+            show (({x.putCard c (Sum.inr z) with waste := xs} : State).setFound c.suit
+                (({x.putCard c (Sum.inr z) with waste := xs} : State).found c.suit ++ [c])).found c.suit
+              = (x.setFound c.suit (x.found c.suit ++ [c])).found c.suit
+            rw [setFound_found_self, setFound_found_self, hyfound c.suit]
+          · show (({x.putCard c (Sum.inr z) with waste := xs} : State).setFound c.suit
+                (({x.putCard c (Sum.inr z) with waste := xs} : State).found c.suit ++ [c])).found σ
+              = (x.setFound c.suit (x.found c.suit ++ [c])).found σ
+            rw [setFound_found_ne hσ, setFound_found_ne hσ, hyfound σ]
+        · by_cases hae : a' = k
+          · rw [hae]
+            show (if k = k then Pile.afterRunRemoved
+                  (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k)
+                  (chop (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k).faceUp)
+              else ({x.putCard c (Sum.inr z) with waste := xs} : State).piles k) = x.piles k
+            rw [ite_eq_left rfl, hres]
+          · show (if a' = k then Pile.afterRunRemoved
+                  (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k)
+                  (chop (({x.putCard c (Sum.inr z) with waste := xs} : State).piles k).faceUp)
+              else ({x.putCard c (Sum.inr z) with waste := xs} : State).piles a') = x.piles a'
+            rw [ite_eq_right hae, hyOther a' hae]
+        · exact hyStk
+        · rfl
+        · exact putCard_drawStep x c (Sum.inr z)
+      exact hstepTab.trans (congrArg _ hRest)
+
+/-- One waste-labeled edge's outcome, at the shape-correspondence's
+tail `xs`: the landing is the founded image (carrying its own rung and
+write) or the seated image (carrying its base, its placement legality,
+and — under the rung — the one-safe-commit composite through to the
+founded image of the same member and card).  The `waste_entry_le_2`
+row pairs two of these over one source class. -/
+private theorem waste_edge_outcome {C D : SameOrbit} {c : Card} (e : TipEdge C D)
+    (h : e.label = EdgeLabel.wasteEntry c) {xs : List Card}
+    (hw : e.c.waste = c :: xs) :
+    (e.m = Move.wasteToFound c ∧ e.c.nextUp c = true ∧
+        e.w = {e.c.setFound c.suit (e.c.found c.suit ++ [c]) with waste := xs})
+    ∨ (∃ b, e.m = Move.wasteToTab c b ∧ e.c.canPlace c b = true ∧
+        e.w = {e.c.putCard c b with waste := xs} ∧
+        (e.c.nextUp c = true →
+          State.step {e.c.putCard c b with waste := xs} (Move.tabToFound c)
+            = some {e.c.setFound c.suit (e.c.found c.suit ++ [c]) with waste := xs})) := by
+  have hwo : WasteOf c e.m := (pair_move_character e).2.1 c h
+  rcases hwo with heqm | ⟨b, heqm⟩
+  · have hstep : e.c.step (Move.wasteToFound c) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    refine Or.inl ⟨heqm, step_wasteToFound_nextUp hstep, ?_⟩
+    obtain ⟨xs', hwu, hsucc⟩ := step_wasteToFound_inv hstep
+    injection (hwu.symm.trans hw) with _ hxs
+    rw [hxs] at hsucc
+    exact hsucc
+  · have hstep : e.c.step (Move.wasteToTab c b) = some e.w := by
+      rw [← heqm]
+      exact e.land
+    obtain ⟨hcp, xs', hwu, hsucc⟩ := step_wasteToTab_inv hstep
+    injection (hwu.symm.trans hw) with _ hxs
+    rw [hxs] at hsucc
+    refine Or.inr ⟨b, heqm, hcp, hsucc, fun hnext => ?_⟩
+    exact (waste_entry_composite e.hwf hw hnext hcp).2.1
+
+/-- **The ≤2-per-label outcome pairing (the core's close, member
+grade).**  Over one source class, two `wasteEntry c`-labeled edges — the
+per-label unit — hand the SAME popped card out of the waste at the SAME
+draw-zone split (the shape correspondence), and each edge's landing is
+one of the two images of that shared popped card over its own source
+member: the founded image (rung and write in view) or the seated image
+(base and placement legality in view, and — whenever the rung reads
+true at that member — the composite taking it to the founded image of
+the same member, one safe-commit across, state-exact).  This is the
+strictly honest form of the ≤2 anatomy: the structured pair of the
+seated/founded images is the per-edge outcomeStructure, and the
+cross-mate/cross-base class collapse that would turn it into a
+two-target-class bound is the refused transport, pinned in the recon
+ledger — not smuggled in as an anticipated theorem. -/
+theorem waste_entry_le_2 {C D₁ D₂ : SameOrbit} {c : Card}
+    (e₁ : TipEdge C D₁) (h₁ : e₁.label = EdgeLabel.wasteEntry c)
+    (e₂ : TipEdge C D₂) (h₂ : e₂.label = EdgeLabel.wasteEntry c) :
+    ∃ xs, e₁.c.waste = c :: xs ∧ e₂.c.waste = c :: xs ∧
+      ((e₁.m = Move.wasteToFound c ∧ e₁.c.nextUp c = true ∧
+          e₁.w = {e₁.c.setFound c.suit (e₁.c.found c.suit ++ [c]) with waste := xs})
+        ∨ (∃ b, e₁.m = Move.wasteToTab c b ∧ e₁.c.canPlace c b = true ∧
+            e₁.w = {e₁.c.putCard c b with waste := xs} ∧
+            (e₁.c.nextUp c = true →
+              State.step {e₁.c.putCard c b with waste := xs} (Move.tabToFound c)
+                = some {e₁.c.setFound c.suit (e₁.c.found c.suit ++ [c])
+                  with waste := xs}))) ∧
+      ((e₂.m = Move.wasteToFound c ∧ e₂.c.nextUp c = true ∧
+          e₂.w = {e₂.c.setFound c.suit (e₂.c.found c.suit ++ [c]) with waste := xs})
+        ∨ (∃ b, e₂.m = Move.wasteToTab c b ∧ e₂.c.canPlace c b = true ∧
+            e₂.w = {e₂.c.putCard c b with waste := xs} ∧
+            (e₂.c.nextUp c = true →
+              State.step {e₂.c.putCard c b with waste := xs} (Move.tabToFound c)
+                = some {e₂.c.setFound c.suit (e₂.c.found c.suit ++ [c])
+                  with waste := xs}))) := by
+  obtain ⟨xs, hw₁, hw₂, -, -, -, -⟩ :=
+    waste_landings_shape_correspond e₁ h₁ e₂ h₂
+  exact ⟨xs, hw₁, hw₂, waste_edge_outcome e₁ h₁ hw₁, waste_edge_outcome e₂ h₂ hw₂⟩
+
+
 /-! ## The axiom audit (per-declaration) -/
 
 #print axioms orbit_data
@@ -2607,6 +3132,9 @@ theorem pair_move_character_switch {C D : SameOrbit} (e : TipEdge C D) :
 #print axioms tipEdge_label_vacate_ne
 #print axioms pair_move_character
 #print axioms pair_move_character_switch
+#print axioms waste_landings_shape_correspond
+#print axioms waste_entry_composite
+#print axioms waste_entry_le_2
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
