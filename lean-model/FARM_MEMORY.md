@@ -9260,3 +9260,52 @@ protocol banked it in two commands.
   win-schedule across phases BEFORE any proof effort was spent.
 - (A) is now a plain cite: squares landing up-to-sameCycle transport
   through it without hesitation.
+## Orig/Dominance.lean — the bare-floor skeleton: the replay recipe's six traps (2026-10-11, farm-orig-dom-n-ground @ 7bf0ccc)
+
+The (N) row landed as a proven skeleton over the one named residue
+`tabToFound_groundNormalForm`.  The replay is one invariant
+(`GroundSplit`) + a per-kind step ledger + a convergence + an
+induction; the guts are reader-rw chains, and the traps are all
+about what `cases`/`rw`/`show` leave in the goal:
+
+- `cases hfc : fromCard x L with` where the scrutinee sits INSIDE an
+  opaque match: the equation case gives the goal with the scrutinee
+  ALREADY substituted on BOTH sides (the witness literal too) — the
+  follow-up `rw [hfc]` then fails "pattern not found" and the branch
+  closes by plain `rfl` instead.  Write the cons arm as `| cons hdt
+  rest => rfl` after the substitution; keep `| nil` (NOT `| []` —
+  that alternative spelling is a parse error).
+- `rw [putRun_piles_inr ...]` (or putCard_piles_inl/inr) replaces a
+  state's `.piles` by a LAMBDA, leaving `(fun a' => ...) k` — the
+  next `show` must cast to the beta-reduced ite AT THE APPLICATION
+  anchor, and the if-THEN branch's base is the LEMMA's located
+  anchor name (`{ st.piles q₀ with ... }` even when the application
+  is at k).  Over-reducing the else-branch (expanding the
+  setPile/setFound carrier there too) makes the show UNDEFEQ — cast
+  the else as the carrier read, rewrite the then-ite away, THEN cast
+  the carrier open in a second show.
+- A line-continuation `|>.faceUp` / `|>.top` after a long
+  parenthesized expression breaks the have-typing parser ("type
+  expected"); write the projection explicitly:
+  `((st.setPile ... : State).piles k).faceUp`.
+- `obtain ⟨-, -, -, -, -, -, hGc, -⟩ := hsplmid` CONSUMES the bundle
+  (later uses "unknown identifier"); when the bundle is needed
+  later, project instead: `have hGc := hsplmid.2.2.2.2.2.2.1`.
+- `subst hceq` where hceq : c₀ = x between two locals eliminated the
+  CASE binder (x) and left c₀'s spellings everywhere — targeted
+  `rw [hceq] at htop` is the safer tool when both sides are locals.
+- The guarded step-shape replay idiom that finally compiles: `rw
+  [guard-eqs]`, then a `show` thatbeta-casts the guard-cond through
+  the match arm (`show (if (decide (x = x) && ...) = true then ...
+  else none) = _`), then ONE rw making the cond literal true (`rw
+  [show (decide (x = x) && v.canPlace ...) = true from by rw
+  [decide_eq_true rfl, hvcp]; rfl]`), then rfl.  Splitting the
+  cond into two rws leaves `(true && true) = true` un-closed.
+
+PROCESS: SEVENTH session in the row hitting the stale-worktree
+gotcha (fresh worktree at 41023bc, no lean-model/) — `git reset
+--hard macro-game` per the spawn-fix rule.  Peer intel from the C
+session confirmed the putCard-reader-rw discipline BEFORE the last
+two kinds were written; its hsafe-not-an-invariant confirmation
+matched this row's own cut (hsafe lives only in the residue's
+hypotheses, never in the replay's).
