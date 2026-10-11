@@ -175,6 +175,105 @@ theorem run_one {st : State} {m : Move} {s : State}
   rw [h]
   rfl
 
+/-! ## The step branch readers
+
+The raw branch unfoldings of `State.step`, landed beside the def at
+the dedup-collapse wave so the exchange chapters (`Orig/TwinExchangeBoth`,
+`Orig/MergeWalls`) and the guard-spliced forms below cite one home. -/
+
+/-- The `wasteToTab` branch, read raw. -/
+theorem step_wasteToTab_eq (st : State) (c : Card) (b : Base) :
+    st.step (Move.wasteToTab c b) =
+      (if st.wasteIs c && st.canPlace c b then
+        match st.waste with
+        | _ :: ws => some { st.putCard c b with waste := ws }
+        | [] => none
+      else none) := rfl
+
+/-- The `tabToFound` branch, read raw. -/
+theorem step_tabToFound_eq (st : State) (c : Card) :
+    st.step (Move.tabToFound c) =
+      (if st.nextUp c then
+        match st.pileOfTop c with
+        | none => none
+        | some a =>
+            some { st.setFound c.suit (st.found c.suit ++ [c]) with
+                     piles := fun a' =>
+                       if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+                       else st.piles a' }
+      else none) := rfl
+
+/-- The `foundToTab` branch, read raw. -/
+theorem step_foundToTab_eq (st : State) (c : Card) (b : Base) :
+    st.step (Move.foundToTab c b) =
+      (match st.foundTop c.suit with
+       | some c' =>
+           if decide (c' = c) && st.canPlace c b then
+             some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
+           else none
+       | none => none) := rfl
+
+/-- The `tabToTab` branch, read raw. -/
+theorem step_tabToTab_eq (st : State) (c : Card) (b : Base) :
+    st.step (Move.tabToTab c b) =
+      (match st.pileHolding c with
+       | none => none
+       | some a =>
+           if st.canPlace c b then
+             match fromCard c (st.piles a).faceUp with
+             | [] => none
+             | run =>
+                 some ((st.setPile a (Pile.afterRunRemoved (st.piles a)
+                   (below c (st.piles a).faceUp))).putRun run b)
+           else none) := rfl
+
+/-! ## The guard-spliced step forms
+
+With the rung and the search's answer in hand, the step is the
+literal splice — the convenience forms the shuttle/dominance
+chapters lean on (landed beside the raw rows; the former private
+copies in `Orig/Shuttle.lean` and `Orig/Dominance.lean` cite this
+home). -/
+
+/-- The `tabToFound` computation at a located rung: the step is the
+splice. -/
+theorem step_tabToFound_splice {st : State} {c : Card} {k : Anchor}
+    (hnext : st.nextUp c = true) (hpo : st.pileOfTop c = some k) :
+    State.step st (Move.tabToFound c) =
+      some { st.setFound c.suit (st.found c.suit ++ [c]) with
+             piles := fun a' => if a' = k then
+                 Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+               else st.piles a' } := by
+  show (if st.nextUp c then
+      match st.pileOfTop c with
+      | none => none
+      | some a => some { st.setFound c.suit (st.found c.suit ++ [c]) with
+          piles := fun a' => if a' = a then
+              Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+            else st.piles a' }
+      else none) = _
+  rw [ite_eq_left hnext, hpo]
+
+/-- The `foundToTab` computation at the known top and guard: the step
+is the chop-back and place (the split-arg fires-grade form). -/
+theorem step_foundToTab_splice {st : State} {c : Card} {b : Base}
+    (htop : st.foundTop c.suit = some c) (hcp : st.canPlace c b = true) :
+    State.step st (Move.foundToTab c b) =
+      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
+  show (match st.foundTop c.suit with
+      | some c' =>
+          if decide (c' = c) && st.canPlace c b then
+            some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
+          else none
+      | none => none) = _
+  rw [htop]
+  show (if decide (c = c) && st.canPlace c b then
+      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
+    else none) = _
+  rw [ite_eq_left (by
+    rw [show decide (c = c) = true from decide_eq_true rfl, hcp]
+    rfl)]
+
 /-! ## Update readers
 
 The located readers for `State.putCard` / `State.putRun`, and the

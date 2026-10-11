@@ -441,7 +441,7 @@ theorem stepDraw_cycle {st s' : State} (h : st.stepDraw = some s') :
 /-- A successful `.wasteToFound`: the guard held, the waste was
 nonempty, and the successor is the written foundation with the
 waste popped. -/
-private theorem step_wasteToFound_inv {st : State} {c : Card} {s' : State}
+theorem step_wasteToFound_inv {st : State} {c : Card} {s' : State}
     (h : State.step st (Move.wasteToFound c) = some s') :
     (st.wasteIs c && st.nextUp c) = true ∧
     ∃ x xs, st.waste = x :: xs ∧
@@ -458,7 +458,7 @@ private theorem step_wasteToFound_inv {st : State} {c : Card} {s' : State}
 
 /-- A successful `.wasteToTab`: guard, nonempty waste, and the
 placement with the waste popped. -/
-private theorem step_wasteToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
+theorem step_wasteToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
     (h : State.step st (Move.wasteToTab c b) = some s') :
     (st.wasteIs c && st.canPlace c b) = true ∧
     ∃ x xs, st.waste = x :: xs ∧
@@ -476,7 +476,7 @@ private theorem step_wasteToTab_inv {st : State} {c : Card} {b : Base} {s' : Sta
 /-- A successful `.tabToFound`: the card was next-up, its pile was
 located, and the successor is the raised foundation with the
 (chopped) run removed from that pile. -/
-private theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
+theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
     (h : State.step st (Move.tabToFound c) = some s') :
     st.nextUp c = true ∧
     ∃ a, st.pileOfTop c = some a ∧
@@ -497,7 +497,7 @@ private theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
 /-- A successful `.foundToTab`: the named card is the foundation
 top, the placement is legal, and the successor is the chopped
 foundation with the card placed. -/
-private theorem step_foundToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
+theorem step_foundToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
     (h : State.step st (Move.foundToTab c b) = some s') :
     ∃ c', st.foundTop c.suit = some c' ∧ c' = c ∧ st.canPlace c b = true ∧
       s' = (st.setFound c.suit (chop (st.found c.suit))).putCard c b := by
@@ -514,7 +514,7 @@ private theorem step_foundToTab_inv {st : State} {c : Card} {b : Base} {s' : Sta
 /-- A successful `.tabToTab`: the run head's pile was located, the
 placement is legal, the face-up run from the head is nonempty, and
 the successor is the pile-with-run-removed then the run placed. -/
-private theorem step_tabToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
+theorem step_tabToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
     (h : State.step st (Move.tabToTab c b) = some s') :
     ∃ a, st.pileHolding c = some a ∧ st.canPlace c b = true ∧
       fromCard c (st.piles a).faceUp ≠ [] ∧

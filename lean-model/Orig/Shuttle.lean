@@ -1,5 +1,6 @@
 import Orig.Combine
 import Orig.Integrity
+import Orig.Irreversible
 
 /-!
 # Orig — the foundation shuttle join
@@ -56,31 +57,6 @@ against the canonical versions. -/
 
 
 
-/-- Everything a legal `wasteToTab` needs and hands back: the
-guard, and the splice `s = { u.putCard c b with waste := ws }`. -/
-private theorem step_wasteToTab_inv {u : State} {c : Card} {b : Base}
-    {s : State} (h : State.step u (Move.wasteToTab c b) = some s) :
-    u.wasteIs c = true ∧ u.canPlace c b = true ∧
-      ∃ wsl, u.waste = c :: wsl ∧ s = { u.putCard c b with waste := wsl } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hcond
-    rw [Bool.and_eq_true_iff] at hcond
-    obtain ⟨hw, hcp⟩ := hcond
-    refine ⟨hw, hcp, ?_⟩
-    by_cases hwst : u.waste = []
-    · rw [hwst] at h
-      simp at h
-    · obtain ⟨w', wsl, hcon⟩ := list_cons_of_ne_nil hwst
-      have hw'c : w' = c := by
-        rw [State.wasteIs_cons hcon c] at hw
-        exact of_decide_eq_true hw
-      rw [hw'c] at hcon
-      simp only [hcon, Option.some.injEq] at h
-      exact ⟨wsl, hcon, h.symm⟩
-  · simp at h
-
-
 /-! ## This card's own kit -/
 
 /-- With a nonempty face-up remainder, removing the run keeps the
@@ -91,45 +67,6 @@ private theorem afterRunRemoved_pre_ne {p : Pile} {pre : List Card}
   cases pre with
   | cons x t => rfl
   | nil => exact absurd rfl hne
-
-/-- The `tabToFound` computation: with the rung and the search's
-answer in hand, the step is the splice. -/
-private theorem step_tabToFound_eq {st : State} {c : Card} {k : Anchor}
-    (hnext : st.nextUp c = true) (hpo : st.pileOfTop c = some k) :
-    State.step st (Move.tabToFound c) =
-      some { st.setFound c.suit (st.found c.suit ++ [c]) with
-             piles := fun a' => if a' = k then
-                 Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
-               else st.piles a' } := by
-  show (if st.nextUp c then
-      match st.pileOfTop c with
-      | none => none
-      | some a => some { st.setFound c.suit (st.found c.suit ++ [c]) with
-          piles := fun a' => if a' = a then
-              Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-            else st.piles a' }
-      else none) = _
-  rw [ite_eq_left hnext, hpo]
-
-/-- The `foundToTab` computation: with the foundation top and the
-place guard in hand, the step is the chop-back and place. -/
-private theorem step_foundToTab_eq {st : State} {c : Card} {b : Base}
-    (hcu : st.foundTop c.suit = some c)
-    (hcond : (decide (c = c) && st.canPlace c b) = true) :
-    State.step st (Move.foundToTab c b) =
-      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
-  show (match st.foundTop c.suit with
-      | some c' =>
-        if decide (c' = c) && st.canPlace c b then
-          some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
-        else none
-      | none => none) = _
-  rw [hcu]
-  show (if decide (c = c) && st.canPlace c b then
-      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
-    else none) =
-    some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
-  rw [ite_eq_left hcond]
 
 /-- The shuttle's mid state: `u` with its waste head consumed
 (`c :: ws` became `ws`) and the card `c` raised onto its own
@@ -156,7 +93,11 @@ private theorem raise_tabToFound {u : State} {c : Card} {ws : List Card}
     {b : Base} {s : State}
     (h : State.step u (Move.wasteToTab c b) = some s) :
     State.step s (Move.tabToFound c) = some (raisedMid u ws c) := by
-  obtain ⟨-, hcp, wsl, hw', hs'⟩ := step_wasteToTab_inv h
+  obtain ⟨hguard, x, wsl, hws, hs'⟩ := step_wasteToTab_inv h
+  rw [Bool.and_eq_true] at hguard
+  obtain ⟨hw, hcp⟩ := hguard
+  have hxc : x = c := State.wasteIs_head_eq hws hw
+  have hw' : u.waste = c :: wsl := by rw [hws, hxc]
   rw [hw'] at hwastee
   injection hwastee with _ hws
   cases hws
@@ -199,7 +140,7 @@ private theorem raise_tabToFound {u : State} {c : Card} {ws : List Card}
         show firstWhere (fun a2 => decide (s.topOf a2 = some c)) Anchor.all
           = some a1
         exact firstWhere_find (Anchor.mem_all a1) (decide_eq_true hsTopa1) hexcl
-      rw [step_tabToFound_eq hsNext hsSearch, Option.some.injEq]
+      rw [step_tabToFound_splice hsNext hsSearch, Option.some.injEq]
       apply State.ext
       · show (fun s1' =>
             if s1' = c.suit then s.found c.suit ++ [c] else s.found s1') = _
@@ -273,7 +214,7 @@ private theorem raise_tabToFound {u : State} {c : Card} {ws : List Card}
             cases front1 with
             | nil => simp
             | cons x t => simp
-          rw [step_tabToFound_eq hsNext hsSearch, Option.some.injEq]
+          rw [step_tabToFound_splice hsNext hsSearch, Option.some.injEq]
           apply State.ext
           · show (fun s1' =>
                 if s1' = c.suit then s.found c.suit ++ [c] else s.found s1') = _
@@ -309,7 +250,11 @@ private theorem lower_foundToTab {u : State} {c : Card} {ws : List Card}
     {b : Base} {s : State}
     (h : State.step u (Move.wasteToTab c b) = some s) :
     State.step (raisedMid u ws c) (Move.foundToTab c b) = some s := by
-  obtain ⟨-, hcp, wsl, hw', hs'⟩ := step_wasteToTab_inv h
+  obtain ⟨hguard, x, wsl, hws, hs'⟩ := step_wasteToTab_inv h
+  rw [Bool.and_eq_true] at hguard
+  obtain ⟨hw, hcp⟩ := hguard
+  have hxc : x = c := State.wasteIs_head_eq hws hw
+  have hw' : u.waste = c :: wsl := by rw [hws, hxc]
   rw [hw'] at hwastee
   injection hwastee with _ hws
   cases hws
@@ -324,9 +269,7 @@ private theorem lower_foundToTab {u : State} {c : Card} {ws : List Card}
     rw [hMfc]
     exact lastOf_snoc
   have hMcp : (raisedMid u ws c).canPlace c b = true := hcp
-  rw [step_foundToTab_eq hMtop (by
-    rw [show decide (c = c) = true from decide_eq_true rfl, hMcp]
-    rfl)]
+  rw [step_foundToTab_splice hMtop hMcp]
   -- restore the foundation, then place
   have hchop : chop ((raisedMid u ws c).found c.suit) = u.found c.suit := by
     rw [hMfc, chop_snoc]

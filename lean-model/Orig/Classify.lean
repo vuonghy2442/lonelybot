@@ -179,107 +179,12 @@ window reading is per-leg, `WFRun`-disciplined, while
 step-preserved `WF` remains `Orig.lean`'s open ticket.
 -/
 
-/-! ## Private copies of the step inversions -/
+/-! ## Step inversions
 
-/-- A successful `.wasteToFound`: the guard held, the waste was
-nonempty, and the successor is the written foundation with the
-waste popped. -/
-private theorem step_wasteToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.wasteToFound c) = some s') :
-    (st.wasteIs c && st.nextUp c) = true ∧
-    ∃ x xs, st.waste = x :: xs ∧
-      s' = { st.setFound c.suit (st.found c.suit ++ [c]) with waste := xs } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hg
-    split at h
-    · rename_i _ x xs hw
-      injection h with hEq
-      exact ⟨hg, x, xs, hw, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `.wasteToTab`: guard, nonempty waste, and the
-placement with the waste popped. -/
-private theorem step_wasteToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.wasteToTab c b) = some s') :
-    (st.wasteIs c && st.canPlace c b) = true ∧
-    ∃ x xs, st.waste = x :: xs ∧
-      s' = { st.putCard c b with waste := xs } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hg
-    split at h
-    · rename_i _ x xs hw
-      injection h with hEq
-      exact ⟨hg, x, xs, hw, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `.tabToFound`: the card was next-up, its pile was
-located, and the successor is the raised foundation with the
-(chopped) run removed from that pile. -/
-private theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.tabToFound c) = some s') :
-    st.nextUp c = true ∧
-    ∃ a, st.pileOfTop c = some a ∧
-      s' = { found := fun σ =>
-              if σ = c.suit then st.found c.suit ++ [c] else st.found σ,
-             piles := fun a' =>
-               if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-               else st.piles a',
-             stock := st.stock,
-             waste := st.waste,
-             drawStep := st.drawStep } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hn
-    split at h
-    · exact absurd h (by simp)
-    · rename_i _ a hp
-      injection h with hEq
-      exact ⟨hn, a, hp, hEq.symm⟩
-  · exact absurd h (by simp)
-
-/-- A successful `.foundToTab`: the named card is the foundation
-top, the placement is legal, and the successor is the chopped
-foundation with the card placed. -/
-private theorem step_foundToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.foundToTab c b) = some s') :
-    ∃ c', st.foundTop c.suit = some c' ∧ c' = c ∧ st.canPlace c b = true ∧
-      s' = (st.setFound c.suit (chop (st.found c.suit))).putCard c b := by
-  simp only [State.step] at h
-  split at h
-  · split at h
-    · rename_i _ c' ht hg
-      rw [Bool.and_eq_true] at hg
-      injection h with hEq
-      exact ⟨c', ht, of_decide_eq_true hg.1, hg.2, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `.tabToTab`: the run head's pile was located, the
-placement is legal, the face-up run from the head is nonempty, and
-the successor is the pile-with-run-removed then the run placed. -/
-private theorem step_tabToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.tabToTab c b) = some s') :
-    ∃ a, st.pileHolding c = some a ∧ st.canPlace c b = true ∧
-      fromCard c (st.piles a).faceUp ≠ [] ∧
-        s' = (st.setPile a
-            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
-              (fromCard c (st.piles a).faceUp) b := by
-  simp only [State.step] at h
-  split at h
-  · exact absurd h (by simp)
-  · rename_i _ a hh
-    split at h
-    · rename_i hcp
-      split at h
-      · exact absurd h (by simp)
-      · rename_i _ hne
-        injection h with hEq
-        exact ⟨a, hh, hcp, hne, hEq.symm⟩
-    · exact absurd h (by simp)
+The five move-constructor inversions ride the public rows in
+`Orig.Irreversible` since the dedup-collapse wave (the former
+private copies are deleted; their statements matched verbatim
+modulo record-literal spellings). -/
 
 /-! ## Small private kit -/
 
@@ -1282,31 +1187,9 @@ private theorem dealUpTo_eq_take_drop' (k : Nat) : ∀ (l : List Card),
           rw [State.dealUpTo, ih cs]
           rfl
 
-/-- One plain draw (stock nonempty, no recycle): the recorded
-take-drop shape (private copy). -/
-private theorem plain_draw_shape' {x : State} (hne : x.stock ≠ []) :
-    x.stepDraw = some
-      { x with stock := x.stock.drop x.drawStep,
-               waste := (x.stock.take x.drawStep).reverse ++ x.waste } := by
-  rw [State.stepDraw, recycle_keep' hne, dealStock_eq_of_ne_nil' hne,
-    dealUpTo_eq_take_drop']
-
-/-- One pass-end draw (empty stock, nonempty waste): the recycle
-then a clipped deal (private copy). -/
-private theorem base_draw_shape' {x : State} (hstock : x.stock = ([] : List Card))
-    (hw : x.waste ≠ []) :
-    x.stepDraw = some
-      { x with stock := x.waste.reverse.drop x.drawStep,
-               waste := (x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card) } := by
-  have hrne : x.waste.reverse ≠ [] := by
-    obtain ⟨w0, t0, hwcon⟩ := list_cons_of_ne_nil hw
-    intro hc
-    have hlen := congrArg List.length hc
-    rw [List.length_reverse, List.length_nil] at hlen
-    have h1 : x.waste.length = t0.length + 1 := by rw [hwcon, List.length_cons]
-    omega
-  rw [State.stepDraw, recycle_nil' hstock hw,
-    dealStock_eq_of_ne_nil' hrne, dealUpTo_eq_take_drop']
+/- The plain/pass-end draw shapes ride `Orig.Phase`'s public rows
+(`plain_draw_shape` / `base_draw_shape`) since the dedup-collapse
+wave. -/
 
 /-- The run-composition shape. -/
 private theorem run_cons_shape {s : State} {m : Move} {rest : List Move} {s' w : State}
@@ -1358,7 +1241,7 @@ private theorem drain_to_pass : ∀ (n : Nat) (l : List Card) (s : State), l.len
           exact absurd hc (by simp)
         have hstep : State.step s Move.draw = some
             { s with stock := s.stock.drop s.drawStep, waste := (s.stock.take s.drawStep).reverse ++ s.waste } :=
-          plain_draw_shape' hne
+          plain_draw_shape hne
         have hdrop : (s.stock.drop s.drawStep).length ≤ n := by
           rw [hstock]
           have hd2 := List.length_drop (l := w :: t) (i := s.drawStep)
@@ -1399,7 +1282,7 @@ theorem draw_passBase_reversibleW {st : State}
   · have hstep : State.step st Move.draw = some
         { st with stock := st.waste.reverse.drop st.drawStep,
                   waste := (st.waste.reverse.take st.drawStep).reverse ++ ([] : List Card) } :=
-      base_draw_shape' hstock hw
+      base_draw_shape hstock hw
     have hdropLen : (st.waste.reverse.drop st.drawStep).length ≤ st.waste.length := by
       have hd2 := List.length_drop (l := st.waste.reverse) (i := st.drawStep)
       have hrev : st.waste.reverse.length = st.waste.length := by rw [List.length_reverse]

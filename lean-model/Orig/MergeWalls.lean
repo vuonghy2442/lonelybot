@@ -172,21 +172,6 @@ private theorem rank_step_of_seated {t z : Card} {S l : List Card}
   exact ((canSitOn_eq z t).mp
     (runOK_joint_of_splice (pre := below t l) (rest := S) hr)).1
 
-/-- The `tabToTab` step branch, read raw (a private step-shape copy;
-dedup-marked against Orig.TwinExchange's own). -/
-private theorem step_tabToTab_eq (st : State) (c : Card) (b : Base) :
-    st.step (Move.tabToTab c b) =
-      (match st.pileHolding c with
-       | none => none
-       | some a =>
-           if st.canPlace c b then
-             match fromCard c (st.piles a).faceUp with
-             | [] => none
-             | run =>
-                 some ((st.setPile a (Pile.afterRunRemoved (st.piles a)
-                   (below c (st.piles a).faceUp))).putRun run b)
-           else none) := rfl
-
 /-- A firing `tabToTab` passed the placement guard. -/
 private theorem step_tabToTab_canPlace {st st' : State} {c : Card} {b : Base}
     (h : st.step (Move.tabToTab c b) = some st') : st.canPlace c b = true := by

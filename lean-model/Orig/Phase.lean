@@ -1171,7 +1171,7 @@ theorem draw_irreversible_offset_lex {st : State}
 
 /-- One plain draw (the stock is nonempty, so no recycle fires): the
 head card moves stock-to-waste, list-exact. -/
-private theorem plain_draw_shape {x : State} (hne : x.stock ≠ []) :
+theorem plain_draw_shape {x : State} (hne : x.stock ≠ []) :
     x.stepDraw = some
       { x with stock := x.stock.drop x.drawStep,
                waste := (x.stock.take x.drawStep).reverse ++ x.waste } := by
@@ -1181,7 +1181,7 @@ private theorem plain_draw_shape {x : State} (hne : x.stock ≠ []) :
 /-- One pass-end draw (the stock is empty and the waste nonempty, so
 the recycle fires): the waste becomes the stock reversed, and one clipped
 deal moves back onto the waste. -/
-private theorem base_draw_shape {x : State} (hstock : x.stock = ([] : List Card))
+theorem base_draw_shape {x : State} (hstock : x.stock = ([] : List Card))
     (hw : x.waste ≠ []) :
     x.stepDraw = some
       { x with stock := x.waste.reverse.drop x.drawStep,
@@ -1204,7 +1204,7 @@ private theorem base_draw_shape {x : State} (hstock : x.stock = ([] : List Card)
 /-- The additive take split: the first `i + j` cards of a deal-ordered
 list are the first `i`, then the next `j`.  The workhorse identity
 behind every drain and redeal step. -/
-private theorem take_drop_add {α : Type} : ∀ (i j : Nat) (l : List α),
+theorem take_drop_add {α : Type} : ∀ (i j : Nat) (l : List α),
     l.take (i + j) = l.take i ++ (l.drop i).take j := by
   intro i
   induction i with
@@ -1229,7 +1229,7 @@ private theorem take_succ_split {α : Type} (l : List α) (n : Nat) :
 
 /-- The additive drop split: dropping `j` more after dropping `i` is
 dropping `i + j`. -/
-private theorem drop_drop_add {α : Type} : ∀ (i j : Nat) (l : List α),
+theorem drop_drop_add {α : Type} : ∀ (i j : Nat) (l : List α),
     (l.drop i).drop j = l.drop (i + j) := by
   intro i
   induction i with
@@ -1248,7 +1248,7 @@ private theorem drop_drop_add {α : Type} : ∀ (i j : Nat) (l : List α),
 
 /-- Take and drop recombine to the whole list — the partition
 totality of a deal. -/
-private theorem take_drop_append {α : Type} : ∀ (n : Nat) (l : List α),
+theorem take_drop_append {α : Type} : ∀ (n : Nat) (l : List α),
     l.take n ++ l.drop n = l := by
   intro n
   induction n with
@@ -1263,7 +1263,7 @@ private theorem take_drop_append {α : Type} : ∀ (n : Nat) (l : List α),
 
 /-- Taking past (or exactly to) the end of a list takes the whole
 list — the clip that swallows every min. -/
-private theorem take_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
+theorem take_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
     l.length ≤ n → l.take n = l := by
   intro l
   induction l with
@@ -1287,7 +1287,7 @@ private theorem take_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
 
 /-- Dropping past (or exactly to) the end of a list drops it to
 nothing. -/
-private theorem drop_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
+theorem drop_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
     l.length ≤ n → l.drop n = [] := by
   intro l
   induction l with
@@ -1310,7 +1310,7 @@ private theorem drop_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
 
 /-- The prefix clip on an appended list: dropping past a known
 prefix returns the suffix. -/
-private theorem drop_append_prefix {α : Type} : ∀ (A B : List α),
+theorem drop_append_prefix {α : Type} : ∀ (A B : List α),
     (A ++ B).drop A.length = B := by
   intro A
   induction A with
@@ -1350,7 +1350,7 @@ private theorem take_reverse_merge {α : Type} (l : List α) (i j : Nat) (w : Li
 
 /-- One draw followed by the rest of the play: the step projection of
 `State.run` specialized to the draw. -/
-private theorem run_draw_cons {x y : State} {rest : List Move}
+theorem run_draw_cons {x y : State} {rest : List Move}
     (hstep : State.step x Move.draw = some y) :
     x.run (Move.draw :: rest) = y.run rest := by
   show (match State.step x Move.draw with
@@ -1360,7 +1360,7 @@ private theorem run_draw_cons {x y : State} {rest : List Move}
 
 /-- Append-glue for pure-draw plays: after `q` draws land at `z`, the
 following suffix continues from `z`. -/
-private theorem run_replicate_append :
+theorem run_replicate_append :
     ∀ (q : Nat) (x z : State) (rest : List Move),
     x.run (List.replicate q Move.draw) = some z →
     x.run (List.replicate q Move.draw ++ rest) = z.run rest := by
@@ -1383,7 +1383,7 @@ private theorem run_replicate_append :
 consecutive draws — each a full deal, so the running offset `n =
 q * drawStep` stays within the stock — move exactly those `n` cards
 from the stock's front to the waste's front, list-exact. -/
-private theorem drain_positions_one :
+theorem drain_positions_one :
     ∀ (q : Nat) (x : State) (n : Nat) (l : List Card),
     0 < x.drawStep → n = q * x.drawStep → n ≤ l.length → x.stock = l →
     x.run (List.replicate q Move.draw) = some
@@ -1448,7 +1448,7 @@ waste into the stock reversed and deals, the rest drain that recycled
 stock at a full deal each, while the running offset `(k + 1) *
 drawStep` stays within the recycled length — move exactly that many
 cards back onto the waste, list-exact. -/
-private theorem base_positions_one :
+theorem base_positions_one :
     ∀ (k : Nat) (x : State),
     x.stock = ([] : List Card) → x.waste ≠ [] → 0 < x.drawStep →
     (k + 1) * x.drawStep ≤ x.waste.length →

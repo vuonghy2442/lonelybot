@@ -2866,26 +2866,6 @@ private theorem step_ftt_inv1 {st : State} {c : Card} {b : Base} {s' : State}
     · simp at h
   · simp at h
 
-/-- The `foundToTab` computation (dedup-marked port of `Shuttle`'s
-private `step_foundToTab_eq`). -/
-private theorem step_foundToTab_eq1 {st : State} {c : Card} {b : Base}
-    (hcu : st.foundTop c.suit = some c)
-    (hcond : (decide (c = c) && st.canPlace c b) = true) :
-    State.step st (Move.foundToTab c b) =
-      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
-  show (match st.foundTop c.suit with
-      | some c' =>
-        if decide (c' = c) && st.canPlace c b then
-          some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
-        else none
-      | none => none) = _
-  rw [hcu]
-  show (if decide (c = c) && st.canPlace c b then
-      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
-    else none) =
-    some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
-  rw [ite_eq_left hcond]
-
 /-- The lower leg (dedup-marked port of `Shuttle`'s private
 `lower_foundToTab`): from the mid state, `foundToTab c b` fires and
 lands exactly on the `wasteToTab c b` successor — the worry-back
@@ -2910,9 +2890,7 @@ private theorem lower_foundToTab1 {u : State} {c : Card} {ws : List Card}
     rw [hMfc]
     exact lastOf_snoc
   have hMcp : (raisedMid u ws c).canPlace c b = true := hcp
-  rw [step_foundToTab_eq1 hMtop (by
-    rw [show decide (c = c) = true from decide_eq_true rfl, hMcp]
-    rfl)]
+  rw [step_foundToTab_splice hMtop hMcp]
   -- restore the foundation, then place
   have hchop : chop ((raisedMid u ws c).found c.suit) = u.found c.suit := by
     rw [hMfc, chop_snoc]
@@ -3166,7 +3144,7 @@ two-step worry undo
 The (C)-machinery's local kit.  Dedup-marks per piece: the four
 fires-readers are adapted from `Orig/Irreversible.lean`'s private
 step-inversion rows (and `Orig/Shuttle.lean`'s private
-`step_wasteToTab_inv`, `step_foundToTab_eq`); `step_drawStep_keep`
+`step_wasteToTab_inv`, `step_foundToTab_splice`); `step_drawStep_keep`
 mirrors `Orig/Progress.lean`'s private `step_drawStep` and
 `Orig/Phase.lean`'s private `draw_drawStep`; `foundToTab_return` is
 restated at the ONE-Move undo shape (the `reversibleAtW` ∃-form of
@@ -3309,20 +3287,6 @@ private theorem step_drawStep_keep {st s₁ : State} {m : Move}
         (fromCard y (st.piles a).faceUp) b
       rw [h2, h1]
 
-/-- Taking at least the whole list takes the whole list. -/
-private theorem take_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
-    l.length ≤ n → l.take n = l := by
-  intro l
-  induction l with
-  | nil => intro n _; cases n <;> rfl
-  | cons x t ih =>
-      intro n h
-      cases n with
-      | zero => exact absurd h (by simp)
-      | succ m =>
-          show x :: t.take m = x :: t
-          exact congrArg (x :: ·) (ih m (by simp at h; omega))
-
 /-- The draw keeps every cycle card somewhere spendable: each card of
 the recycled-and-dealt pool lands either in the dealt batch (the new
 waste) or in the stock remainder. -/
@@ -3399,25 +3363,6 @@ private theorem inCycle_notisWin {st : State} {c : Card}
       · exact hns hcs
       · exact hnw hcw
 
-/-- Two foundation writes at distinct suits commute.  (A
-`State.lean` reader-section candidate, dedup-marked.) -/
-private theorem step_tabToFound_eq {st : State} {c : Card} {k : Anchor}
-    (hnext : st.nextUp c = true) (hpo : st.pileOfTop c = some k) :
-    State.step st (Move.tabToFound c) =
-      some { st.setFound c.suit (st.found c.suit ++ [c]) with
-             piles := fun a' => if a' = k then
-                 Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
-               else st.piles a' } := by
-  show (if st.nextUp c then
-      match st.pileOfTop c with
-      | none => none
-      | some a => some { st.setFound c.suit (st.found c.suit ++ [c]) with
-          piles := fun a' => if a' = a then
-              Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-            else st.piles a' }
-      else none) = _
-  rw [ite_eq_left hnext, hpo]
-
 /-- **The two-step worry undo.**  At a `WF` state, the adjacent window
 `[foundToTab x b; tabToFound x]` is the identity: the restack returns
 to the origin in one move, with the foundation restored by the
@@ -3477,7 +3422,7 @@ private theorem foundToTab_return {st : State} {x : Card} {b : Base} {s₁ : Sta
         rfl
       have hsrch : s₁.pileOfTop x = some a :=
         (pileOfTop_eq_some_iff hwf').mpr htops₁
-      rw [step_tabToFound_eq hnext hsrch]
+      rw [step_tabToFound_splice hnext hsrch]
       refine congrArg some (?_ :
         { s₁.setFound x.suit (s₁.found x.suit ++ [x]) with
           piles := fun a' => if a' = a then
@@ -3527,7 +3472,7 @@ private theorem foundToTab_return {st : State} {x : Card} {b : Base} {s₁ : Sta
         exact lastOf_snoc
       have hsrch : s₁.pileOfTop x = some k :=
         (pileOfTop_eq_some_iff hwf').mpr htops₁
-      rw [step_tabToFound_eq hnext hsrch]
+      rw [step_tabToFound_splice hnext hsrch]
       refine congrArg some (?_ :
         { s₁.setFound x.suit (s₁.found x.suit ++ [x]) with
           piles := fun a' => if a' = k then
@@ -3575,28 +3520,6 @@ private theorem setFound_comm {st : State} {s₁ s₂ : Suit} {l₁ l₂ : List 
   · rfl
   · rfl
   · rfl
-
-/-- The `foundToTab` computation: with the foundation top and the
-place guard in hand, the step is the chop-back and place.  (A kin of
-`Orig/Shuttle.lean`'s private `step_foundToTab_eq`, restated at the
-fires-grade this chapter's square consumes.) -/
-private theorem step_foundToTab_eq {st : State} {x : Card} {b : Base}
-    (htop : st.foundTop x.suit = some x) (hcp : st.canPlace x b = true) :
-    State.step st (Move.foundToTab x b) =
-      some ((st.setFound x.suit (chop (st.found x.suit))).putCard x b) := by
-  show (match st.foundTop x.suit with
-      | some c' =>
-          if decide (c' = x) && st.canPlace x b then
-            some ((st.setFound x.suit (chop (st.found x.suit))).putCard x b)
-          else none
-      | none => none) = _
-  rw [htop]
-  show (if decide (x = x) && st.canPlace x b then
-      some ((st.setFound x.suit (chop (st.found x.suit))).putCard x b)
-    else none) = _
-  rw [ite_eq_left (by
-    rw [show decide (x = x) = true from decide_eq_true rfl, hcp]
-    rfl)]
 
 /-- Placements at twin carriers write the same piles when the
 carriers' piles agree.  (The putCard readers, lifted one state up —
@@ -3734,7 +3657,7 @@ private theorem foundToTab_wasteToFound_square {st : State} {x y : Card} {b : Ba
   have hcp₂ : (sq2S st y w').canPlace x b = true := by
     show st.canPlace x b
     exact hcp
-  rw [step_foundToTab_eq htop₂ hcp₂, Option.some.injEq]
+  rw [step_foundToTab_splice htop₂ hcp₂, Option.some.injEq]
   apply State.ext
   · funext σ
     rw [putCard_found, ht]
@@ -3942,27 +3865,6 @@ private theorem run_step_cons {u u₁ : State} {m : Move} {rest : List Move}
   show (match State.step u m with
       | some st' => State.run st' rest | none => none) = State.run u₁ rest
   rw [h]
-
-/-- Append-glue for pure-draw prefixes: after `q` draws land at `z`,
-the suffix continues from `z`. -/
-private theorem run_replicate_append :
-    ∀ (q : Nat) (u z : State) (rest : List Move),
-    u.run (List.replicate q Move.draw) = some z →
-    u.run (List.replicate q Move.draw ++ rest) = z.run rest := by
-  intro q
-  induction q with
-  | zero =>
-      intro u z rest h
-      have hx : (some u : Option State) = some z := h
-      injection hx with hx2
-      rw [← hx2]
-      rfl
-  | succ q ih =>
-      intro u z rest h
-      obtain ⟨u₁, hstep, hrest⟩ := State.run_cons h
-      show u.run (Move.draw :: (List.replicate q Move.draw ++ rest)) = z.run rest
-      rw [run_step_cons hstep]
-      exact ih u₁ z rest hrest
 
 /-- The plain draw at step 1, exactly: one card off the stock's front,
 reversed onto the waste's front. -/

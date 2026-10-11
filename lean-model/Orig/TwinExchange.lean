@@ -800,8 +800,10 @@ private theorem not_mem_below_of_cargo {st : State} {z t : Card} {a : Anchor}
   have := cardCount_ge_of_zone (Anchor.mem_all a) h2
   omega
 
-/-- The tabToTab branch of `State.step`, read at an explicit locatedshape. -/
-private theorem step_tabToTab_eq {st : State} {z : Card} {b : Base} {a : Anchor}
+/-- The tabToTab branch of `State.step`, read at an explicit located
+shape (renamed at the dedup-collapse wave: `step_tabToTab_eq` is the
+raw branch reader in `Orig.Play`). -/
+private theorem step_tabToTab_splice {st : State} {z : Card} {b : Base} {a : Anchor}
     {w : Card} {rest : List Card}
     (h1 : st.pileHolding z = some a) (h2 : st.canPlace z b = true)
     (h3 : fromCard z (st.piles a).faceUp = w :: rest) :
@@ -1122,7 +1124,7 @@ private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
         rw [hb] at hc
         simp at hc
   -- unfold the step
-  rw [step_tabToTab_eq hphz hcp hrun, hpre, afterRunRemoved_ne hprene]
+  rw [step_tabToTab_splice hphz hcp hrun, hpre, afterRunRemoved_ne hprene]
   -- the intermediate pile got exactly the prefix through t; the run
   -- rides onto the twin host's pile
   have hσpt : (st.setPile a { st.piles a with
@@ -1251,7 +1253,7 @@ private theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
         rw [hb] at hc
         simp at hc
   -- unfold the mirrored step
-  rw [step_tabToTab_eq hphz hcp hrun, hpre, afterRunRemoved_ne hprene]
+  rw [step_tabToTab_splice hphz hcp hrun, hpre, afterRunRemoved_ne hprene]
   -- intermediate: the twin host pile back to bare; the cargo rides
   -- back onto the bare host `t`
   have hσpt : ((st.exchangeTwin t).setPile a'

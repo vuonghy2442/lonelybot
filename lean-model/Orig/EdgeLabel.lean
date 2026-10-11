@@ -227,112 +227,14 @@ bookkeeping is a self-contained counting kit.  Per-declaration
 `#print axioms` audit at file bottom.
 -/
 
-/-! ## Private kit: step inversions (farm copies; dedup at merge) -/
+/-! ## Step inversions
 
-/-- A successful `.wasteToFound`: the waste head is the moved card,
-and the successor is the written foundation with the waste popped. -/
-private theorem step_wasteToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.wasteToFound c) = some s') :
-    ∃ xs, st.waste = c :: xs ∧
-      s' = { st.setFound c.suit (st.found c.suit ++ [c]) with waste := xs } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hg
-    simp only [Bool.and_eq_true] at hg
-    split at h
-    · rename_i x xs hws
-      injection h with hEq
-      have hxc : x = c := by
-        have hconv : st.wasteIs c = decide (x = c) := State.wasteIs_cons hws c
-        rw [hconv] at hg
-        exact of_decide_eq_true hg.1
-      refine ⟨xs, by rw [hws, hxc], hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
+The five move-constructor inversions ride the public rows of
+`Orig.Irreversible` since the dedup-collapse wave; the two waste
+rows keep a one-step head-eq derivation at their sites (the public
+rows name the waste head existentially, the sites need it `c`). -/
 
-/-- A successful `.wasteToTab`: the waste head is the moved card, and
-the successor is the placement with the waste popped. -/
-private theorem step_wasteToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.wasteToTab c b) = some s') :
-    st.canPlace c b = true ∧
-    ∃ xs, st.waste = c :: xs ∧
-      s' = { st.putCard c b with waste := xs } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hg
-    simp only [Bool.and_eq_true] at hg
-    split at h
-    · rename_i x xs hws
-      injection h with hEq
-      have hxc : x = c := by
-        have hconv : st.wasteIs c = decide (x = c) := State.wasteIs_cons hws c
-        rw [hconv] at hg
-        exact of_decide_eq_true hg.1
-      exact ⟨hg.2, xs, by rw [hws, hxc], hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `.tabToFound`: the card was next-up, its pile was
-located, and the successor is the raised foundation with the
-(chopped) run removed from that pile. -/
-private theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.tabToFound c) = some s') :
-    st.nextUp c = true ∧
-    ∃ a, st.pileOfTop c = some a ∧
-      s' = { st.setFound c.suit (st.found c.suit ++ [c]) with
-             piles := fun a' =>
-               if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-               else st.piles a' } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hn
-    split at h
-    · exact absurd h (by simp)
-    · rename_i a hp
-      injection h with hEq
-      exact ⟨hn, a, hp, hEq.symm⟩
-  · exact absurd h (by simp)
-
-/-- A successful `.tabToTab`: the run head was located, the placement
-is legal, the moved run is nonempty, and the successor is the
-removal-then-placement literal. -/
-private theorem step_tabToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.tabToTab c b) = some s') :
-    ∃ a, st.pileHolding c = some a ∧ st.canPlace c b = true ∧
-      fromCard c (st.piles a).faceUp ≠ [] ∧
-        s' = (st.setPile a
-            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
-              (fromCard c (st.piles a).faceUp) b := by
-  simp only [State.step] at h
-  split at h
-  · exact absurd h (by simp)
-  · rename_i a hh
-    split at h
-    · rename_i hcp
-      split at h
-      · exact absurd h (by simp)
-      · rename_i hne
-        injection h with hEq
-        exact ⟨a, hh, hcp, hne, hEq.symm⟩
-    · exact absurd h (by simp)
-
-/-- A successful `.foundToTab`: the named card is the foundation top,
-the placement is legal, and the successor is the chopped foundation
-with the card placed. -/
-private theorem step_foundToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.foundToTab c b) = some s') :
-    st.foundTop c.suit = some c ∧ st.canPlace c b = true ∧
-      s' = (st.setFound c.suit (chop (st.found c.suit))).putCard c b := by
-  simp only [State.step] at h
-  split at h
-  · split at h
-    · rename_i c' ht hcp
-      rw [Bool.and_eq_true] at hcp
-      injection h with hEq
-      obtain rfl : c' = c := of_decide_eq_true hcp.1
-      exact ⟨by rw [ht], hcp.2, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
+/-! ## Private kit: list, pile, and search helpers -/
 
 /-! ## Private kit: list, pile, and search helpers -/
 
@@ -752,7 +654,7 @@ private theorem leg_data {x y : State} {m : Move}
               rw [nzRoot_head hyF, nzRoot_head hxF]
             · exact nzRoot_congr_pile (by rw [hp a', ite_eq_right hae])
   | foundToTab c b =>
-      obtain ⟨-, hcp, hs⟩ := step_foundToTab_inv hstep
+      obtain ⟨-, -, hceq, hcp, hs⟩ := step_foundToTab_inv hstep
       have hzone : y.stock = x.stock ∧ y.waste = x.waste := by
         rw [hs]; exact ⟨putCard_stock _ _ _, putCard_waste _ _ _⟩
       have hcpS : (x.setFound c.suit (chop (x.found c.suit))).canPlace c b = true := hcp
@@ -1342,7 +1244,8 @@ theorem tipEdge_ne_foundToTab {C D : SameOrbit} (e : TipEdge C D)
   have hstep : e.c.step (Move.foundToTab c b) = some e.w := by
     rw [← hcon]
     exact e.land
-  obtain ⟨htop, hcp, -⟩ := step_foundToTab_inv hstep
+  obtain ⟨c₀', htop0, hceq, hcp, -⟩ := step_foundToTab_inv hstep
+  have htop : e.c.foundTop c.suit = some c := by rw [htop0, hceq]
   exact absurd (foundToTab_reversibleAtW_of_legal_wf e.hwf htop hcp)
     (by
       intro hrevW
@@ -1632,7 +1535,11 @@ theorem tipEdge_label_waste {C D : SameOrbit} (e : TipEdge C D)
   · have hstep : e.c.step (Move.wasteToFound c) = some e.w := by
       rw [← heqm]
       exact e.land
-    obtain ⟨xs, hwu, hsucc⟩ := step_wasteToFound_inv hstep
+    obtain ⟨hguard, x, xs, hws, hsucc⟩ := step_wasteToFound_inv hstep
+    rw [Bool.and_eq_true] at hguard
+    obtain ⟨hw, -⟩ := hguard
+    have hxc : x = c := State.wasteIs_head_eq hws hw
+    have hwu : e.c.waste = c :: xs := by rw [hws, hxc]
     have hstock : e.w.stock = e.c.stock := by
       rw [hsucc]
       exact setFound_stock e.c c.suit (e.c.found c.suit ++ [c])
@@ -1648,7 +1555,11 @@ theorem tipEdge_label_waste {C D : SameOrbit} (e : TipEdge C D)
   · have hstep : e.c.step (Move.wasteToTab c b) = some e.w := by
       rw [← heqm]
       exact e.land
-    obtain ⟨hcp, xs, hwu, hsucc⟩ := step_wasteToTab_inv hstep
+    obtain ⟨hguard, x, xs, hws, hsucc⟩ := step_wasteToTab_inv hstep
+    rw [Bool.and_eq_true] at hguard
+    obtain ⟨hw, hcp⟩ := hguard
+    have hxc : x = c := State.wasteIs_head_eq hws hw
+    have hwu : e.c.waste = c :: xs := by rw [hws, hxc]
     have hstock : e.w.stock = e.c.stock := by
       rw [hsucc]
       exact putCard_stock e.c c b

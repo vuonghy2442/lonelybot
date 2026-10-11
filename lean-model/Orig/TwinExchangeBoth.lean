@@ -90,54 +90,6 @@ private theorem step_wasteToFound_eq (st : State) (c : Card) :
         | [] => none
       else none) := rfl
 
-/-- The wasteToTab branch, read raw. -/
-private theorem step_wasteToTab_eq (st : State) (c : Card) (b : Base) :
-    st.step (Move.wasteToTab c b) =
-      (if st.wasteIs c && st.canPlace c b then
-        match st.waste with
-        | _ :: ws => some { st.putCard c b with waste := ws }
-        | [] => none
-      else none) := rfl
-
-/-- The tabToFound branch, read raw. -/
-private theorem step_tabToFound_eq (st : State) (c : Card) :
-    st.step (Move.tabToFound c) =
-      (if st.nextUp c then
-        match st.pileOfTop c with
-        | none => none
-        | some a =>
-            some { st.setFound c.suit (st.found c.suit ++ [c]) with
-                     piles := fun a' =>
-                       if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-                       else st.piles a' }
-      else none) := rfl
-
-/-- The foundToTab branch, read raw. -/
-private theorem step_foundToTab_eq (st : State) (c : Card) (b : Base) :
-    st.step (Move.foundToTab c b) =
-      (match st.foundTop c.suit with
-       | some c' =>
-           if decide (c' = c) && st.canPlace c b then
-             some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
-           else none
-       | none => none) := rfl
-
-/-- The tabToTab branch, read raw.  (Dedup-marked against
-`Orig/TwinExchange.lean`'s and `Orig/MergeWalls.lean`'s private
-copies.) -/
-private theorem step_tabToTab_eq (st : State) (c : Card) (b : Base) :
-    st.step (Move.tabToTab c b) =
-      (match st.pileHolding c with
-       | none => none
-       | some a =>
-           if st.canPlace c b then
-             match fromCard c (st.piles a).faceUp with
-             | [] => none
-             | run =>
-                 some ((st.setPile a (Pile.afterRunRemoved (st.piles a)
-                   (below c (st.piles a).faceUp))).putRun run b)
-           else none) := rfl
-
 /-- The two branches of `Pile.afterRunRemoved`: the empty prefix flips
 the hidden card, the nonempty prefix becomes the whole face-up run. -/
 private theorem afterRunRemoved_eq (p : Pile) (pre : List Card) :
