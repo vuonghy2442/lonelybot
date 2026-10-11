@@ -1427,3 +1427,262 @@ setPile/putCard/putRun kit) and the census one-liners
 (`mem_faceUp_only` / `mem_hidden_only`) instead of private copies
 and fresh `hZP`-style double counts.
 
+
+
+## 9. The canon-side completion card (2026-10-11, branch `orig-canon-decompress`; landing-1 probe battery GREEN, all verdicts in)
+
+The §3.0 completion this card owns, in the final folded shape after
+the mid-flight user refinements (R1-R3 + the backlog family, all
+recorded here verbatim for the follow-on card): (A) DECOMPRESSION
+REACHABILITY — the reverse of the canonicalization theorem, every
+class member reachable from a FINAL anchor by the two-letter padding
+(foundToTab pull-downs + noreveal tabToTab slides, every tabToFound
+raise leg the exact undo of a pull-down leg, the V2 undo family
+`tabToFound_undo_under`/`_bare` and the residence calculus :499-507);
+(B) DRAW-PHASE NORMALIZATION — `canon_draw : State → State` as a
+NAMED compositional step, `canon' := canon_draw ∘ canon`, identity
+off its pure domain, junk-safe, the TARGET presentation
+probe-pinned (the pinning rule), the offset side a commitment
+boundary (`draw_irreversible_offset`, Phase.lean:823).
+
+**LANDING 1** (`lean-model/probes/CanonDecompressProbe.lean` —
+external, lake-env-runnable, gates throw on failure; the README row
+records it): every verdict below is decide-graded with negative
+controls. Loading note for the card's memory cites:
+`draw_passBase_reversibleW` lives at `Orig/Classify.lean:1252`
+(cite-read; NOT Phase.lean), consumed by `tipEdge_draw_shape`
+(`Orig/EdgeLabel.lean:1426-1457`) together with
+`draw_reversible_inphaseW` (`Orig/Phase.lean:1513`).
+
+* **A1 — the finalWiggle cube (beyond length 1, LIVE).** Two
+  independent twin-host residues (♠Q between the red kings p1/p5,
+  ♣J between the red queens p3/p4), foundations empty, everything
+  else in stock: all four WF Final corners are joined by noreveal
+  tabToTab slides, one move per relocated residue, and the length-2
+  composites reach the far corner in EITHER leg order (the
+  disjoint-pile commute). Why the old residue hunt (the corpus note
+  at :958-961) never found these: length-2 instances need EITHER
+  multi-residue boards (A1) OR a pull-down bridge (A2) — the hunt
+  searched one-residue, foundations-empty casts.
+* **A2 — the worry-back BRIDGE (LIVE).** Residue ♠J on its tableau
+  host ♦Q; the twin host ♥Q trapped in the FOUNDATION (hearts
+  climbed A..Q); the landing site is a bare ♠K pile. The
+  wiggle-mate is reached ONLY by `foundToTab ♥Q (inr ♠K)`
+  (pull-down) then `tabToTab ♠J (inr ♥Q)` (the slide onto the
+  pulled substrate); the direct slide is barred (♥Q not tableau —
+  search fails); the return journey uns lides first, then performs
+  the pull's EXACT-UNDO raise (the residence calculus's
+  pile↔foundation noreverse pair, REORDERED after unburying). Both
+  endpoints WF + Final. This is §3.1's worry-back anatomy landed as
+  a Final-to-Final class-mate family: the moved substrate is buried
+  under the arriving run at the mate, and only the unslide
+  re-enables its return leg.
+* **A3 — the ONE-LETTER refutation (R3's target, REFUTED).** At the
+  re-derived residue-reloc exhibit (♠3 between ♥4/♦4,
+  foundations empty): the pure `foundToTab` fire-set at the anchor
+  is EMPTY (pinned datum: no foundation holds any card), so the
+  pure-pull reachable set is {anchor} ∌ the wiggle-mate, while the
+  two are same-orbit (one-move round trip). Structural, so it
+  scales: pure pulls only seat FOUNDATION material; an unstackable
+  residue's card is never in a foundation; a residue's seat is
+  frozen along every pure-pull play. VERDICT: (A)'s reachability
+  target is the TWO-LETTER grade; the one-letter survives only as
+  the per-member free lemma (the reversed undo-ladder,
+  `stackRun_returnW`). `canon_slide` fixes the anchor-EQUALITY half
+  (equal slide-seated canons for the exhibit pair), NOT the
+  reachability half — recorded honestly, no credit bought.
+* **B — pristine UNREACHABLE; the target REPLACED per the pinning
+  rule.** Non-pristine pure orbits (drawStep 1 and 3; pools 7, 9,
+  10, 11 — the partial-final corners r = 1 and 2 included; observed
+  orbit sizes 10, 3/3, 4/4, pass-base start 3), NONE contains a
+  pristine (empty-waste) member; pristine orbits are singletons
+  (their draws out commit, `draw_irreversible_pristine`). The
+  predicted first falsifier (the (A)-card tension, FARM_MEMORY
+  b4f32e4: "a full-stock state drains and can never re-stock fully")
+  is CONFIRMED as the mechanism. Structural reason (probe-backed,
+  a landing-2 lemma): no draw ever LANDS a waste-empty zone — plain
+  draws prepend a nonempty chunk, pass-base draws deal at least one
+  card after the recycle. THE STRONGEST PROBE-CERTIFIED REACHABLE
+  NORMAL FORM: the UNIQUE PASS BASE `([], drawPool st, drawStep)` —
+  reachable from every pure non-pristine zone by in-phase draws
+  (every drain leg fires phase-aligned, so every leg is
+  `draw_reversible_inphaseW`-licensed, the short-stock boundary
+  deal included), and unique per orbit: every reachable zone has
+  `S = (P.take m).reverse`, `W = P.drop m` (the stock-head count m
+  pins the split), and the pass base is `m = 0`. **`canon_draw`'s
+  target IS the pass base** (not pristine); RESIDUAL RECORDED:
+  pristine and offset zones stay un-normalized BY DESIGN (a
+  pristine zone's draws commit — normalizing it would exit the
+  class; offsets are genuine class data per the commitment
+  boundary). The canonDraw loop is the drain: draw while
+  `stock ≠ [] ∧ waste ≠ [] ∧ |waste| ≡ 0 (mod drawStep)`; identity
+  otherwise; terminates ≤ |pool| legs; idempotent (the pass base is
+  the loop's refusal point).
+* **C — purity IS saturation-invariant (LIVE).** `canon` (which
+  computes) preserves stock/waste/drawStep verbatim and the
+  `inPhase` line, on pure, offset AND pristine zones (gates at all
+  three); the three saturated forms of one board differ only in
+  the zone (boards literally equal); the license is zone-blind
+  (`pick` survives a draw). The R1 commutation is probe-certified
+  LITERAL at all three zone shapes: `canon (drawn u) = drawn (canon
+  u)` — the draw is a field-local function (reads/writes the zone
+  only) and the saturator reads/writes found/piles only. These are
+  the landing-2 theorem rows, now licensed.
+* **D — offsets are NOT normalizable (LIVE, the negative
+  control).** No reversible draw edge leaves any offset (or
+  pristine) presentation — the orbit closures are singletons.
+  `canon_draw` is the identity there, exactly as the
+  commitment-boundary doctrine demands.
+* **E — the canon_slide menu.** E1: seating CONFLUENCE at the cube
+  (every corner reaches the canonical seating — ♠Q@p1, ♣J@p3 — by
+  ≤ 2 slides, either order). E2: the occupied-twin-host negative
+  (an unfit top on the twin host bars the slide). E3: the
+  revealing-slide negative (the slide legally fires but
+  `hiddenTotal` strictly drops — a commitment, barred from the
+  seating license by the measure rows). E4: the interaction is LIVE:
+  a legal noreveal slide CAN expose a licensed raise (`canRaiseB`
+  flips false → true at the crafted WF Final state) — the slide
+  pass and `Final` are NOT disjoint, so any `canon_slide` must be
+  an alternating fixpoint (slide; re-saturate; slide; …) whose
+  termination/confluence is NOT free (the E4 state is the
+  counterexample to single-pass disjointness; "verify legally, not
+  intuitively" paid). E5: the same-pair transposition DEADLOCK: two
+  residues over ONE twin-host pair (♠Q/♣Q over ♥K/♦K) — the
+  residue-queens have NO legal slide at either pairing (empty
+  anchors take kings; the only card-tops are the other queen), no
+  pull fires (foundations empty), the bounded slide closure (depth
+  4, 42 states) excludes the transposition while every state in it
+  keeps the queen-on-king co-location: the host kings may relocate
+  (a king's run carries its rider), but the residue-to-host
+  PAIRING is class data — a seating rule must read it from the
+  state, not assign it. Honest residual: full
+  journey-disconnectedness of the transposition is unprobed
+  (bounded negative evidence, origmerge-style).
+
+**THE PINNED STATEMENT MENU (landing-2 targets, all
+probe-licensed):**
+
+- (A) the two-letter decompression at the zone-fixed grade —
+  statement family over the banked machinery (`StackRun`/`Final`,
+  `canon_unique`, `raise_undo_under_step`/`raise_undo_bare_step`,
+  `zone_keep_others`, `oneMoveRevEqW`): the per-state reverse free
+  (the reversed undo-ladder IS `stackRun_returnW`, restated); the
+  orbit-witness draw-stripping (draws bubble to the journey front
+  by the C-commutation, leaving a zone-preserving board-only
+  witness play — the padding-generation order-freedom lemma,
+  R1's corollary); and the ONE named residue
+  **`finalWiggle_reach`** (Final-to-Final within one class by
+  pulls+slides) — the A1/A2 exhibits now certify the positive
+  family; the general theorem stays prove-or-pin (landing-2 lands
+  the proven sub-family and pins the rest, `sorryAx` printed in
+  the audit).
+- (B) `canonDraw` in a NEW file (`Orig/Decompress.lean` — nothing
+  in the do-not-touch set moves): the computable drain; the drain
+  journey's `ShufflePlayW` (legs cite `draw_reversible_inphaseW`;
+  the pass-base arrival shape is new); `canonDraw` identity rows
+  (offset/pristine/frozen); `canonDraw_in_class`;
+  `canonDraw`-preserves-pool; the canonDraw∘canon consequences, in
+  the R1-refined shapes: (i) field-disjointness of the two
+  normalizers (confluence-for-free — no new confluence problem);
+  (ii) the draw-side laws isolated from the stacking side
+  (`canonDraw ∘ stepDraw / stepDraw ∘ canonDraw` phase-machinery
+  only); (iii) the literal draws-kill elimination: pure-zone
+  class-mates with literally-equal canons normalize to literally
+  equal `canon'` (the draw-rotation splits die at the pass
+  base — the residue exhibit remains the only literal kill,
+  BLOCKED-ON-CANLAW for its canon_slide half); (iv) the
+  `same_macro_iff` swComp accounting shrinks to the
+  consumed-zone cases (offset/pristine splits are the only
+  surviving zone residue).
+- BLOCKED-ON-CANLAW (canlaw mid-flight in Canonical.lean): any
+  `canon`-composite change (the canon_slide fixpoint, the
+  canon'-fiber theorems that need editing `canon`'s own lemmas'
+  home, the same_macro_iff re-grading). This card lands its
+  sides in `Orig/Decompress.lean` + probes only; the plan above is
+  the transfer note.
+
+**THE FOLLOW-ON EXCHANGE-CANON CARD — the backlog inherited from
+this session's dialogue (recorded here, none of it pulled into the
+current scope; territory `Orig/TwinExchangeQuotient.lean`, no active
+owner):**
+
+- The PHYSICAL SETOID (closure of RevEqW shuffle legs + licensed
+  bare ExchStep legs, no decree identifications) and the PINCH
+  theorem as the destination: `PhysEq u v → ExchChain (canon' u)
+  (canon' v)`, engines `canon'_shuffleEq` (this card's
+  shuffle-leg half — the literal canon-invariance for RevEqW
+  mates in the two-letter world) + `exch_canon_comm` (the
+  follow-on's forgery: licensing preserved at the canon images and
+  the swap commuting with saturation, at the expected honest
+  re-saturated grade; residue-exhibit cells the falsifier
+  battery). With the USER'S CORRECTION (fold verbatim): the
+  quotient ⟪·⟫ is the EXCHANGES-ONLY closure (the banked
+  `exchSetoid`, bare twin-cargo chains) — `canon_in_physOrbit :
+  ⟪canon u⟫ = ⟪u⟫` must NOT appear (the saturation run is not a
+  chain of exchanges; that folding is the decompression theorem
+  instead). The corrected spine: `canonQ_of_physOrbit : (huwf :
+  u.WF) (hvwf : v.WF) (h : PhysEq u v) → ⟪canon' u⟫ = ⟪canon'
+  v⟫` by leg-induction (refl `rfl`; shuffle case cites
+  `canon'_shuffleEq`, zero-length chain, degrading honestly if the
+  seating-pass probes fail; exchange case cites `exch_canon_comm`;
+  trans composes). Role split: canon_in_class's old content now
+  lives as TWO theorems — `decompress_reach` (the saturation
+  direction, within-point) and `canonQ_of_physOrbit` (the
+  between-points stability); conjugation has NO disjunct anywhere.
+- TORSOR FREENESS — `exch_free`: at a licensed base point,
+  distinct twin-pair swap-subsets produce distinct states (proof
+  shape: twin pairs partition the deck, a swap touches exactly its
+  own two members at two distinct seats, so the
+  symmetric-difference witness card sits differently); one named
+  prerequisite row (per-pair locality of the exchange composite,
+  derivable from the landed TwinExchange.lean iff bundles); one
+  genuine probe-residual (which subsets are reachable at all —
+  licensing drifts along a chain; probe-battery, not a lemma).
+  Dividend: the canon fiber becomes a bijective 2^k torsor,
+  sameOrbit classes split into physical classes exactly as finely
+  as the licensed swap bits, and §3.1's worried-♥/worried-♦ fork
+  becomes literally one free exchange bit (two RevEqW-distinct
+  states joined by a licensed exchange — the grading-note triple
+  read physically).
+- THE COARSENING ROW: `exch_le_sameOrbit : ExchChain a b →
+  sameOrbitSetoid.r a b` (chain induction; the one wrap to forge:
+  `exchange_leg_sameOrbit`, riding the banked
+  `TwinExchOK_exchangeTwin` + `ExchStep_symm` + the bare iff
+  bundles — wrapper-grade); the forgetful map
+  `exchOrbit_to_sameOrbit := Quotient.lift (fun u => ⟦u⟧ …)`
+  (surjective, NOT injective). Dividends: (1) every landed
+  sameOrbit-grade theorem (`canonQ_of_orbit`, `drawNextQ`, the
+  `tipEdge_*_target` successor rows, the §3.1 banked machinery)
+  pulls back along the forgetful map for free — physical
+  class-mates inherit the count program at the coarser grade;
+  (2) the macro class decomposition: one sameOrbit class =
+  (canon'-point + pull ladder, the decompression fiber) ×
+  (licensed swap bits, priced by `exch_free`) ⊎ (the decree-only
+  conjugation shadow: twin pairs with NO physical witness —
+  hidden/waste-resident members). That decomposition is the
+  fourth disjunct's purchase, itemized.
+- THE DESIGN DECISION (sixth refinement, user-stated): the
+  physical macro-state assignment is ONE map, `u ↦ ⟪canon' u⟫`;
+  `PhysEq u v := ⟪canon' u⟫ = ⟪canon' v⟫` IS the kernel; the
+  inductive closure is the WORKING definition only (kept for its
+  induction principle); the two leg rows give
+  generator-closure ⊆ kernel; `decompress_reach` gives the
+  pull-fiber content; the CLOSING COROLLARY to spec:
+  generator-closure = kernel, which retires the inductive
+  relation as a lemma. The two reasons a member-level class
+  notion exists at all: (1) §3.1's premise is member-level (one
+  fixed m across the class's m-legal tips) and every landed
+  sameOrbit-grade row quantifies over member-level class-mates;
+  (2) the decomposition theorem above.
+- INTERPRETIVE DOCTRINE (user meta-note, binds the whole project):
+  the user's native mental model has ALWAYS been the physical
+  register — the bare twin-cargo exchange quotient where
+  conjugation is only what licensed exchanges earn and saturation
+  freedom is theoremed, never quotient-folded. When a
+  user-proposed statement looks WRONG at the current landed
+  (virtual sameOrbit) grade, FIRST restate it in the physical
+  register before judging it — tonight's sequence (canon-equality,
+  pull-only reachability, draw-commutation, the exchange-bit
+  reading of the ≤2 fork) were all "false" wrapped, all true or
+  conditionally-true physical. Future refinements get recorded
+  physical-first, virtual-grade translation second.
