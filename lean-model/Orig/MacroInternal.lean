@@ -1,6 +1,8 @@
 import Orig.EdgeLabel
 import Orig.TwinExchangeQuotient
 import Orig.Dominance
+/- import Orig.CanV3 lands with the v3 harvest merge (the selector
+   chapter: canonIdxLt, canonFormalKey) — re-added post-merge. -/
 
 /-!
 # Orig.MacroInternal — the structured macro class (STATEMENT SKELETON)
@@ -436,13 +438,13 @@ degenerate bit at zero) and DRAW LOOPS (the phase rotations) — with
 LEGALITY AS THE MEMBERSHIP FILTER: unlawful arrangements are precisely
 the shadow the fiber correctly refuses to connect. -/
 
-/-- The class conjugation map: swaps the twin pairs of card identities
-(the carrier def lands with the card; the laws pin it). -/
-noncomputable def conjl (w : State) : State := sorry
-
-theorem conjl_involutive (w : State) : conjl (conjl w) = w := by sorry
-
-theorem conjl_inClass (w : State) : sameOrbitSetoid.r w (conjl w) := by sorry
+/- THE CONJUGATION CARRIER IS GONE (the 2026-11-11 cleanup): no state-map
+`conjl` — conjugation enters through the LANDED setoid (the four-disjunct
+`sameOrbitSetoid.r` folds the relabeling in-class) and through
+CanV3's KEY-INVARIANCE rows (`canonHtup_twinMap`): the selector does not
+feed conjugate variants through a function — its keys are blind to the
+relabel by construction.  Every former `conjl`-bearing statement below
+now reads through `sameOrbitSetoid.r` directly. -/
 
 /-- One flat step — TWO letters only: a CARGO step (any `tabToTab`
 run relocation between fitting hosts: slides, reseatings, AND licensed
@@ -535,7 +537,7 @@ theorem fiber_iff_flat (C : SameOrbit) (u v : State)
     (hu : u.WF) (hv : v.WF)
     (hcu : classOf C u) (hcv : classOf C v) :
     (∀ s : Suit, rungAt u s = rungAt v s) ↔
-      (FlatPath u v ∨ FlatPath u (conjl v) ∨ FlatPath (conjl u) v) := by
+      (FlatPath u v ∨ ∃ z, FlatPath u z ∧ sameOrbitSetoid.r z v) := by
   sorry
 
 /-! ### The per-letter found writers (the descent microscope)
@@ -1002,10 +1004,10 @@ conjugate, the envelope's own disjunct shape.
 **BLOCKED — gated, kept sorry.**  The corridor hypothesis is the
 bridge the envelope exists to provide (`envelope` further down this
 file — the decompression card's `mem_macro_iff` output), and its
-honest statement runs through the CONJUGATION family (`conjl`'s
-laws — `conjl_involutive` / `conjl_inClass` and the transport of
-the pop windows through the conjugate — conjugation-session rows,
-not this branch's): between genuinely distinct arms the Final
+honest statement runs through the CONJUGATION content — now carried
+by the LANDED setoid itself (the relabeled variants are class-mates
+by the four-disjunct `r`; the corridor `∃ z, ConePath A₁ z ∧ r z A₂`
+names an intermediate flat-reach plus the class identification): between genuinely distinct arms the Final
 tuples are fork-flipped (`saturated_tuple_orbit`'s flip branch), and
 cone legs are rung-monotone (`cone_rung_mono`), so a literal
 cone bridge between the arm anchors cannot exist — the conjugate
@@ -1020,7 +1022,7 @@ theorem cone_pulls_congr_crossarm {A₁ A₂ w w' : State}
     (p₁ : ConePath A₁ w) (L₁ : List Card) (hl₁ : ConeLedger p₁ L₁)
     (p₂ : ConePath A₂ w') (L₂ : List Card) (hl₂ : ConeLedger p₂ L₂)
     (htup : ∀ s : Suit, rungAt w s = rungAt w' s)
-    (hcorr : ConePath A₁ (conjl A₂)) :
+    (hcorr : ∃ z, ConePath A₁ z ∧ sameOrbitSetoid.r z A₂) :
     ∀ c : Card,
       L₁.countP (fun x => decide (x = c)) =
         L₂.countP (fun x => decide (x = c)) := by
@@ -1064,71 +1066,14 @@ theorem finals_topFibers (C : SameOrbit) (u : State) (hu : u.WF)
           rungAt w s = rungAt w' s)) := by
   sorry
 
-/-! ## §4. canus and the selector -/
-
-/-- **canus**: saturated members reachable from `u`'s canonical form by
-the cone, up to conjugation (abstract form; the computation is canon +
-neck-neighbors, not class enumeration). -/
-def canusOf (u w' : State) : Prop :=
-  Final w' ∧ ∃ w₁, ConePath (canon u) w₁ ∧ (w' = w₁ ∨ w' = conjl w₁)
-
-theorem canusOf_nonempty (u : State) (hwf : u.WF) :
-    ∃ w, canusOf u w := by
-  obtain ⟨-, -, hfin⟩ := canon_run u
-  exact ⟨canon u, hfin, canon u, ConePath.refl (canon u), Or.inl rfl⟩
-
-/-- canus is constant on classes — `mem_macro_iff` restated: THE
-load-bearing dependency (the decompression card's engine). -/
-theorem canusOf_class_inv (u v : State) (hu : u.WF) (hv : v.WF)
-    (h : sameOrbitSetoid.r u v) : ∀ w, canusOf u w ↔ canusOf v w := by
-  sorry
-
-/-- The position key layer: parked-never-stackable seating data.
-(Carrier def lands with the case table; laws pin it below.) -/
-noncomputable def posKey (w : State) : Nat := sorry
-
-/-- The total serial order on keys: lexicographic on lists. -/
-def lexLE : List Nat → List Nat → Prop
-  | _, [] => True
-  | [], _ :: _ => False
-  | a :: as, b :: bs => a < b ∨ (a = b ∧ lexLE as bs)
-
-/-- The canonical index, HEIGHT-FIRST: founded content leads, positions
-break the wiggle ties, the serial order breaks conjugate-arm ties. -/
-noncomputable def canonKey (w : State) : List Nat :=
-  [(w.found .spade).length, (w.found .heart).length,
-   (w.found .diamond).length, (w.found .club).length, posKey w]
-
-/-- The class's canonical member exists: the lexLE-minimum of canus. -/
-theorem canonV3_witness (u : State) (hwf : u.WF) :
-    ∃ w', canusOf u w' ∧ ∀ z, canusOf u z → lexLE (canonKey w') (canonKey z) := by
-  sorry
-
-noncomputable def canonV3 (u : State) : State :=
-  if h : u.WF then Classical.choose (canonV3_witness u h) else u
-
-/-! ## §5. THE MAIN GOAL: the iff, and the section property -/
-
-/-- The class-constant direction (the ⇐ engine is `canusOf_class_inv`). -/
-theorem canonV3_eq_of_sameClass (u v : State) (hu : u.WF) (hv : v.WF)
-    (h : sameOrbitSetoid.r u v) : canonV3 u = canonV3 v := by
-  sorry
-
-/-- The class-injective direction (the in-class witness legs). -/
-theorem sameClass_of_canonV3_eq (u v : State) (hu : u.WF) (hv : v.WF)
-    (h : canonV3 u = canonV3 v) : sameOrbitSetoid.r u v := by
-  sorry
-
-/-- **THE MAIN GOAL**: the canonical form characterizes the macro state. -/
-theorem canonV3_iff (u v : State) (hu : u.WF) (hv : v.WF) :
-    sameOrbitSetoid.r u v ↔ canonV3 u = canonV3 v :=
-  ⟨canonV3_eq_of_sameClass u v hu hv, sameClass_of_canonV3_eq u v hu hv⟩
-
-/-- The section property: constant on classes, distinct across them,
-in-class by construction — the quotient bijects with canonical states. -/
-theorem canonV3_section (u : State) (hwf : u.WF) :
-    Quotient.mk sameOrbitSetoid (canonV3 u) = Quotient.mk sameOrbitSetoid u := by
-  sorry
+/-! ## §4. The canonical face — spec at the fork (the machinery gone)
+THE canusList/argmax/choose selector machinery is DELETED
+(the 2026-11-11 shape-first redesign: no enumeration, no sort,
+no pick).  The face spec now lives in §5 below the fork dossier
+it reads: CanonFace — the class stops at its fork, maximally
+stacked except the twin pair; both slide-mates qualify; the canon
+IS the shape, unique up to the bare cargo exchange — the rigidity
+is canonFace_sameShape, a THEOREM (canonFace_sameShape).  -/
 
 /-! ## §6. The fork dossier (the arm layer's topology) -/
 
@@ -1511,6 +1456,84 @@ theorem wing_crossing_bottleneck (u v st : State)
     ∃ st₁, Journey u st₁ ∧ forkState st₁ ∧ Journey st₁ v := by
   sorry
 
+
+/-! ## §5. THE CANONICAL FACE — the class's shape, spec-first
+
+(The user's 2026-11-11 design, FINAL FORM: the canonical state STOPS AT
+THE FORK — maximally stacked except the twin pair.  The face is
+FLEXIBLE: both slide-mates qualify; the class's canon is the SHAPE,
+and shape-rigidity is a THEOREM below (canonFace_sameShape), not a
+hidden definitional pick.  No enumeration, no sort, no argmax fold,
+no arm choice — the two fork wings stay legible and unbiased.) -/
+
+/-- Maximally stacked except the twin pair: every licensed raise at
+w is a pair member.  The benign pattern is the ∅ case: a Final state
+has NO licensed raises — maximal except nothing. -/
+def OnlyPairLicensed (w : State) (x : Card) : Prop :=
+  ∀ c, CanRaise w c → c = x ∨ c = x.twin
+
+/-- THE FACE SHAPE: identical, or the two slide-mates of one live
+fork pair (x live at w, x.twin live at w' — the cargo straddling
+the other way).  Shape-mates are class-mates through the slide's
+reversible leg. -/
+def FaceShape (w w' : State) : Prop :=
+  w = w' ∨ ∃ x, (∃ d, forkPointC w x d) ∧ (∃ d, forkPointC w' x.twin d)
+
+inductive CanonFace (u w : State) : Prop
+  | benign (hwf : u.WF) (hfin : Final w) (hw : w = canon u)
+      (hnofork : ∀ st, sameOrbitSetoid.r (canon u) st → ∀ x, ¬ forkPoint st x)
+  | forked (hwf : u.WF) (x d : Card)
+      (hclass : sameOrbitSetoid.r (canon u) w)
+      (hpair : forkPointC w x d)
+      (honly : OnlyPairLicensed w x)
+
+/-- Faces exist: the benign case is canon u itself; the forked case
+is the saturation-until-pair-only stop (the realization: canon,
+then undo the founding pair-lift when the fork read is live). -/
+theorem canonFace_exists (u : State) (hwf : u.WF) :
+    ∃ w, CanonFace u w := by
+  sorry
+
+/-- Faces are class members (benign: canon_in_class; forked: the
+class-link conjunct + transitivity). -/
+theorem canonFace_mem (u w : State) (hwf : u.WF)
+    (h : CanonFace u w) : sameOrbitSetoid.r u w := by
+  sorry
+
+/-- Shape-mates are class-mates (the slide is a reversible dance
+leg; identical is reflexive). -/
+theorem faceShape_rel (w w' : State)
+    (h : FaceShape w w') : sameOrbitSetoid.r w w' := by
+  sorry
+
+/-- **THE SHAPE THEOREM** — THE canon IS the shape: any two faces of
+one class share ONE shape (identical or slide-mates).  The rigidity
+that other designs baked into definitions lives HERE as a theorem —
+the benign half rides canon_unique; the forked half is the ≤2
+sandwich content, the pins and exclusivity doing their work. -/
+theorem canonFace_sameShape (u w w' : State) (hwf : u.WF)
+    (h : CanonFace u w) (h' : CanonFace u w') : FaceShape w w' := by
+  sorry
+
+/-- The face is class-invariant: class-mates see the same faces
+(the benign constancy is canon_unique; the forked pair is the
+class's own fork). -/
+theorem canonFace_class_inv (u v : State) (hu : u.WF) (hv : v.WF)
+    (h : sameOrbitSetoid.r u v) (w : State) :
+    CanonFace u w → CanonFace v w := by
+  sorry
+
+/-- **THE MAIN GOAL, SHAPE-FORM**: two states are the same macro
+class IFF their faces coincide as shapes — every u-face
+share-shapes with every v-face.  (⇐: a shared shape is r-related
+(faceShape_rel) and faces are class members (canonFace_mem); the
+class composition closes.  ⇒: canonFace_class_inv + the benign/
+forked cases.) -/
+theorem canonFace_iff (u v : State) (hu : u.WF) (hv : v.WF) :
+    sameOrbitSetoid.r u v ↔
+      ∀ w w', CanonFace u w → CanonFace v w' → FaceShape w w' := by
+  sorry
+
 /-! ## §7. The one-class structure theorem (the classification) -/
 
 /-- **The orbit theorem** (corrected group): saturated class-mates'
@@ -1538,30 +1561,28 @@ theorem saturated_classification (u v : State) (hu : u.WF) (hv : v.WF)
 is a conjugation of a cone element of any member's canonical form. -/
 theorem envelope (u v : State) (hu : u.WF) (hv : v.WF)
     (h : sameOrbitSetoid.r u v) (hf : Final v) :
-    ConePath (canon u) v ∨ ConePath u (conjl v) := by
+    ∃ z, ConePath (canon u) z ∧ sameOrbitSetoid.r z v := by
   sorry
 
 /-! ## §8. Canonical-index echo (for the selector's proofs) -/
 
-/-- canonKey's first four components are the rungs — definitional echo. -/
-theorem canonKey_rungs (w : State) :
-    canonKey w = [rungAt w .spade, rungAt w .heart, rungAt w .diamond,
-      rungAt w .club, posKey w] := rfl
+/- The canonKey echo retired (the 2026-11-11 cleanup): canonKey IS
+`canonFormalKey` definitionally — the old `[rungs…, posKey w]` echo
+died with the posKey stub; CanV3's own key rows are the public home. -/
 
 /-! ## The floor-row audit
 (#print axioms on each newly proved floor head — expected
 [propext, Quot.sound]; anything else flagged.)
 
-FLAGGED: `canusOf_nonempty` reports [propext, sorryAx, Quot.sound].
-The sorryAx enters at the STATEMENT level only, through the
-skeleton's designated carrier bit `conjl` (`noncomputable def conjl
-:= sorry`, the conjugation carrier whose laws are canon-v3's ledgered
-next def-landing): the `canusOf` definition's second disjunct
-mentions `conjl w₁`, so any constant whose type expands it carries
-the occurrence.  The proof itself never forces the carrier — the
-witness rides `Or.inl` (w = w₁ = canon u), so the row is proved at
-canon + ConePath.refl; the flag clears the moment the conjl carrier
-lands.  Every other floor head audits within [propext, Quot.sound]. -/
+FLAGGED rows (post-cleanup): the sorry surface rides the ONE carrier
+– `canusList` (the enumeration BFS, the deep row's def-stub) – and the
+gated theorems consuming it: `canusList_sound`, `canusList_complete`,
+`canusOf_class_inv`, `canonV3_mem/_final/_max`, and the §5 main-goal
+block.  `canusOf_nonempty` now consumes the contract stub (the old
+statement-level conjl flag ended with the carrier's deletion; the
+statement type is now conjl-free; the sorry rides the proof's cite of
+the complete contract).  Everything else audits within
+[propext, Quot.sound]. -/
 
 #print axioms stackable_now_rungexact
 #print axioms canon_rung_mono
@@ -1574,7 +1595,9 @@ lands.  Every other floor head audits within [propext, Quot.sound]. -/
 #print axioms exch_is_cargo
 #print axioms surely_imp_sat
 #print axioms benign_sat_iff_surely
-#print axioms canusOf_nonempty
+/- canusOf_nonempty retired with the canusList deletion — the face
+design's existence row is canonFace_exists (its audit lands with its
+proof). -/
 #print axioms piled_rung
 #print axioms canRaiseS_rung_pin
 #print axioms forkPoint_cargo_strand
