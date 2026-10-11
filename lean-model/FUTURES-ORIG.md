@@ -2016,6 +2016,71 @@ in-file):**
   direction and the B2 highway as the worried-twin bit's price
   tag; no `canon'` content was forged.
 
+* **STATUS (2026-10-11, branch `orig-successor-completion` — the
+  successor-program completion card: the waste-entry datum upgrade,
+  the third-row stack-event spec, and canlaw's tab-seat base check
+  audited)**:
+  - **Priority 1 LANDED** (cd7a358): the datum fiber's canon-side
+    computable reading — `MacroDatums.of_canon` + `datumOf_canon`
+    (the canon-computable `datumOf` kernel: the datum bundle is
+    canon-invariant through every licensed lift, so the computed
+    read at `canon u` is the member's own and the residue exhibit's
+    literal canon-divergence inside a class does NOT bite the read);
+    `tipEdge_wasteEntry_datum_canonical` (the pre-pinned upgrade
+    shape EXECUTED: the `wasteNext` class map computed AT THE
+    CANONICAL REPRESENTATIVE, the raw-member fiber row kept as the
+    member-grade soundness the computation rides); and
+    `tipEdge_wasteEntry_canonFiber` (the lease graded canon-side: at
+    a `CanonicalTip` under the rung both exits' canonical images
+    COINCIDE at the saturated computed founder,
+    `wasteEntry_bothRoutes_canonical` consumed, the quintet
+    underneath, `wasteEntry_mergedLeg` the cited boundary note — one
+    cite one site). The parked cross-mate class-collapse stays
+    parked (the phase-shift and tab-seat corners still own it).
+  - **THE TAB-SEAT BASE CHECK (canlaw's section-5 finding) DISCHARGED
+    AT THE PREMISE GRADE AND LEDGERED**: the audit of EdgeLabel's
+    successor-commutation rows found the tab-seat reads exactly
+    where the member grade wants them — `tipEdge_wasteEntry_target`'s
+    seated arm (`e.c.canPlace c b = true` at the raw member),
+    `waste_edge_outcome`'s same-shaped hypothesis, and
+    `waste_entry_composite`'s `hcp` (all member-grade soundness rows,
+    by design); the draw-successor rows carry NO `canPlace` (zone
+    moves). NO RAW→CANON TRANSPORT OF THE SEAT EXISTS OR IS CLAIMED
+    anywhere in EdgeLabel — the canlaw probe's refutation stands as
+    the boundary (the licensed lift may consume the seat card, the
+    seat evaporates under canon, the transport fails both ways at
+    WF). The canon-side successor consumption lands at the
+    CANONPREMISE GRADE instead: `tipEdge_wasteEntry_canonFiber`
+    carries `CanonicalTip`, so the seating's `canPlace` leg reads at
+    a member that IS the canonical form — re-checked at canon by
+    construction, never transported. **THE CAVEAT, FOR EVERY FUTURE
+    CANON-SIDE CONSUMER**: a canon-side row that wants the seat must
+    add the `CanonicalTip` premise (or an explicit canon-side
+    `canPlace` re-check); raw-grade `canPlace` hypotheses do NOT
+    carry through `canon`/`comm_wasteToFound_sat`/
+    `wasteEntry_bothRoutes_canonical`.
+  - **Priority 2 LANDED** (934245e): the third TipEdge label row —
+    stack-bare-a, the share of the vacate/reveal pair, purely
+    additive (import `Orig.Vacate` added, no cycle):
+    `tipEdge_stackEvent_determination` (the sub-cell dichotomy with
+    the four channel facts per cell — the reveal pops the seat's
+    hidden head and seats the revealed card's own root read; the
+    vacate leaves every hidden stack verbatim, the seat literally
+    BARE, its non-king root departed — the tabToTab half through the
+    engine's free_slot row `vacate_emptiesPile`, cited one-site from
+    `Orig/Vacate.lean`), and `tipEdge_stackEvent_target` (the
+    target's class data is one of TWO computable images
+    `MacroDatums.stackRevealAt`/`stackVacateAt` — the third row of
+    the uniform `≤ 2`-per-label count anatomy at the datum grade).
+    The cross-mate collapse stays refused with the corridor
+    inventoried at the section head (`step_square` for the draw legs,
+    the vacate case map in `Orig/Vacate.lean`'s recorded ledger, the
+    worry capstone's `stackPile_worry_prunableAt` for the worry legs).
+  - Battery `lake build Orig` green at 29 jobs per commit; every new
+    head audited `[propext, Quot.sound]` worst (the two datum-image
+    defs carry none), zero sorry, zero native_decide, zero
+    `Classical.choice`.
+
 
 
 ## 9. The canon-side completion card (2026-10-11, branch `orig-canon-decompress`; landing-1 probe battery GREEN, all verdicts in)
