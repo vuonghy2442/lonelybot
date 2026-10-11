@@ -315,12 +315,46 @@ inductive ConePath : State → State → Prop
   | refl (w : State) : ConePath w w
   | cons {w u u' : State} (h : ConeStep w u) (t : ConePath u u') : ConePath w u'
 
-/-- Cone legs stay in class: each carries its witness dance. -/
+/-- Every cone leg is a reversible leg: the constructor's own
+`reversibleAtW` witnesses feed `class_leg`. -/
+private theorem ConeStep_class {w u : State} (h : ConeStep w u) :
+    sameOrbitSetoid.r w u := by
+  cases h with
+  | pull c b hstep hrev => exact class_leg hrev hstep
+  | slide c b hstep hrev => exact class_leg hrev hstep
+  | draw hstep hrev => exact class_leg hrev hstep
+
+/-- Cone legs stay in class: each carries its witness round trip, and
+the loop-closure engine turns it into the both-directions shuffle
+pair (the leg-level home is `class_leg`; the path composes by the
+rev-closure's own transitivity). -/
 theorem cone_inClass (w u : State) (hwf : w.WF) (h : ConePath w u) :
     sameOrbitSetoid.r w u := by
-  sorry
+  clear hwf
+  induction h with
+  | refl x => exact RevEqW_refl x
+  | cons hleg _t ih => exact class_trans (ConeStep_class hleg) ih
 
 /-! ### The inter-fiber moves -/
+
+/-- **The per-move rung semantics of the cone letters** (row named by
+the floor card; `cone_step_fiber` and `dance_step_grading` both ride
+it): a cone leg is FLAT — slide or draw, all rungs level (the
+foundations are never touched) — or DOWN exactly one rung of exactly
+one suit: a pull pops exactly one founded top (its suit −1, all else
+verbatim).  Case analysis on the constructors; the reader homes are
+the battery's `step_tabToTab_rungs`, `step_draw_rungs` and
+`step_foundToTab_rungs`. -/
+theorem cone_step_heights {st st' : State} (h : ConeStep st st') :
+    (∀ s : Suit, rungAt st' s = rungAt st s) ∨
+    (∃ s₀ : Suit, rungAt st' s₀ + 1 = rungAt st s₀ ∧
+      ∀ s : Suit, s ≠ s₀ → rungAt st' s = rungAt st s) := by
+  cases h with
+  | pull c b hstep _hrev =>
+      obtain ⟨h1, h2⟩ := step_foundToTab_rungs hstep
+      exact Or.inr ⟨c.suit, h1, h2⟩
+  | slide c b hstep _hrev => exact Or.inl (step_tabToTab_rungs hstep)
+  | draw hstep _hrev => exact Or.inl (step_draw_rungs hstep)
 
 /-- One dance leg: any reversible single move.  Adds the raising
 direction (licensed `tabToFound`, carrying its V2 undo) to the cone
@@ -351,13 +385,22 @@ theorem dance_step_grading {w u : State} (h : DanceStep w u) :
       ∀ s : Suit, s ≠ s₀ → rungAt u s = rungAt w s) ∨
     (∃ s₀ : Suit, rungAt u s₀ + 1 = rungAt w s₀ ∧
       ∀ s : Suit, s ≠ s₀ → rungAt u s = rungAt w s) := by
-  sorry
+  cases h with
+  | cone hc =>
+      rcases cone_step_heights hc with hflat | ⟨s₀, hs₀, hothers⟩
+      · exact Or.inl hflat
+      · exact Or.inr (Or.inr ⟨s₀, hs₀, hothers⟩)
+  | raise c hstep hrev =>
+      obtain ⟨h1, h2⟩ := step_tabToFound_rungs hstep
+      exact Or.inr (Or.inl ⟨c.suit, h1, h2⟩)
 
 /-- Every dance stays in class (the reversible legs were always the
 journey side of the setoid). -/
 theorem dance_inClass {w u : State} (h : DanceStep w u) :
     sameOrbitSetoid.r w u := by
-  sorry
+  cases h with
+  | cone hc => exact ConeStep_class hc
+  | raise _ hstep hrev => exact class_leg hrev hstep
 
 /-! ### The flat (horizontal) world: cargo, exchanges, phase
 
@@ -408,11 +451,23 @@ inductive FlatPath : State → State → Prop
   | refl (w : State) : FlatPath w w
   | cons {w z u : State} (h : FlatStep w z) (t : FlatPath z u) : FlatPath w u
 
+/-- Both flat letters never touch the foundations: cargo relocations
+and draws level every rung (the engine battery's two non-writers). -/
+private theorem FlatStep_rungs {w z : State} (h : FlatStep w z) :
+    ∀ s, rungAt z s = rungAt w s := by
+  cases h with
+  | cargo _ _ hstep _hrev => exact step_tabToTab_rungs hstep
+  | draw hstep _hrev => exact step_draw_rungs hstep
+
 /-- Flats preserve all four heights (the cheap direction: pile and
 zone writes never touch the foundations). -/
 theorem flat_heights {w u : State} (h : FlatPath w u) :
     ∀ s : Suit, rungAt u s = rungAt w s := by
-  sorry
+  induction h with
+  | refl x => intro s; rfl
+  | cons hleg _t ih =>
+      intro s
+      exact (ih s).trans (FlatStep_rungs hleg s)
 
 /-- **THE FIBER-FLAT COINCIDENCE** — the user's closing principle, with the
 conjugate slack the statement needs: within one macro class, two
@@ -463,7 +518,12 @@ theorem cone_step_fiber {st st' : State} (h : ConeStep st st') (t : Suit → Nat
     (∀ s, rungAt st' s = t s) ∨
     (∃ s₀ : Suit, rungAt st' s₀ + 1 = t s₀ ∧
       ∀ s : Suit, s ≠ s₀ → rungAt st' s = t s) := by
-  sorry
+  rcases cone_step_heights h with hflat | ⟨s₀, hs₀, hothers⟩
+  · exact Or.inl fun s => (hflat s).trans (hit s)
+  · refine Or.inr ⟨s₀, ?_, ?_⟩
+    · exact hs₀.trans (hit s₀)
+    · intro s hs
+      exact (hothers s hs).trans (hit s)
 
 /-- **The top fibers are the Finals**: every member is dominated by a
 Final's tuple (its own saturation), and the Finals occupy at most TWO
@@ -791,3 +851,9 @@ theorem canonKey_rungs (w : State) :
 
 #print axioms stackable_now_rungexact
 #print axioms canon_rung_mono
+#print axioms cone_step_heights
+#print axioms cone_inClass
+#print axioms dance_step_grading
+#print axioms dance_inClass
+#print axioms flat_heights
+#print axioms cone_step_fiber
