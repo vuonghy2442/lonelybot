@@ -1,4 +1,6 @@
 import Orig.TwinExchange
+import Orig.Reach
+import Orig.Canonical
 
 /-!
 # Orig — the quotient for the local twin exchange
@@ -51,12 +53,30 @@ Not carried in this chapter (future):
 * the engine successor-set descent (`Klondike/PileQuotient.lean` §2's
   shape, for the restricted move set — a bridge question, not an
   Orig question);
-* the `RevEqW` refinement — each licensed bare exchange is a one-move
-  witness shuffle in both directions, which would land every chain
-  inside `sameOrbitSetoid`'s classes; blocked on TwinExchange's
-  private realizations (`step_realize_fwd` / `step_realize_bwd`) going
-  public;
 * the both-occupied row, which would widen the license.
+
+§5 and §6 (the exch-canlaw card's landing 2, 2026-10-11) close the
+first bullet this file carried in its future list: the `RevEqW`
+refinement — each licensed bare exchange is a one-move witness
+shuffle in both directions — is now LANDED (`exch_leg_RevEqW` over
+the public `step_realize_fwd`/`step_realize_bwd`), every chain sits
+inside `sameOrbitSetoid`'s classes (`exch_chain_RevEqW`,
+`exch_le_sameOrbit`), and the coarsening's forgetful map
+`exchOrbit_to_sameOrbit` is defined.  §7 lands the disjoint-family
+superposition (`exch_local_pair`, `exch_superpose`) and the torsor
+freeness `exch_free`, with the identity pricing the landing-1 probe
+battery demanded (`exchangeTwin_ne_self_pile`: a genuine bit writes
+its own seat differently; the licensed both-bare bit prices at
+zero), and the license-stability row of the drift-free cube datum
+(`twinExchOK_exchAll`, with `exchAll_wf` carrying the fence along
+the fold).  The exchanges-only literal canon-image claim is
+RECORD-CLOSED as refuted-by-exhibit in FUTURES-ORIG.md §10 (the
+worried-king fork cell; the tombstone lives at §8 below).  §8 lands
+the composed spine (the coordinator's Option-1 grade): the physical
+closure `PhysEq`, the single-gated macro-state image
+`canonQ_of_physOrbit'` (refl / shuffle via the banked
+`canonQ_of_orbit` / exchange via `exch_canon_comm` / trans
+composes; the WF propagation `physEq_wf` buys the single gate).
 -/
 
 /-! ## §1. The licensed exchange step -/
@@ -268,3 +288,688 @@ theorem ExchOrbit.mk_exchangeTwin_comm {st : State} {t₁ t₂ : Card}
       ExchOrbit.mk ((st.exchangeTwin t₂).exchangeTwin t₁) := by
   rw [ExchOrbit.mk_exchangeTwin_two hok₁ hok₂,
     ExchOrbit.mk_exchangeTwin_two hok₂ hok₁]
+
+/-! ## §5. The coarsening: every exchange is a `sameOrbit` edge
+
+`Orig.TwinExchange`'s realizations are public (promoted at this
+card): at the one-bare shape the exchange is a plain `Move.tabToTab`
+in both directions — the cargo rides onto the bare host, and the
+mirror move rides it back.  So one licensed exchange is a ONE-MOVE
+witness shuffle in both directions, the chain sits inside
+`sameOrbitSetoid`'s classes, and the physical quotient COARSENS the
+macro state: the forgetful map carries every `ExchOrbit` class into
+the sameOrbit class of its members.  The map is surjective and NOT
+injective — the not-injectivity is the worried-king fork cell's
+meaning, record-closed at FUTURES-ORIG.md §10. -/
+
+/-- The cargo-side orientation of the one-move witness shuffle: the
+residing cargo realizes the exchange forward, the mirror rides it
+back (the private core the license cases route through; the twin
+orientation comes by the pair law). -/
+private theorem exch_leg_RevEqW_core {a : State} {t : Card} {k k' : Anchor}
+    {z : Card} {rest : List Card}
+    (hwf : a.WF)
+    (h₁ : a.pileHolding t = some k) (h₂ : a.pileHolding t.twin = some k')
+    (hne : k ≠ k')
+    (hS : aboveIn t (a.piles k).faceUp = z :: rest)
+    (hS' : aboveIn t.twin (a.piles k').faceUp = []) :
+    RevEqW a (a.exchangeTwin t) := by
+  have hfwd : a.step (Move.tabToTab z (Sum.inr t.twin)) =
+      some (a.exchangeTwin t) :=
+    step_realize_fwd hwf h₁ h₂ hne hS hS'
+  have hbwd : (a.exchangeTwin t).step (Move.tabToTab z (Sum.inr t)) =
+      some a :=
+    step_realize_bwd hwf h₁ h₂ hne hS hS'
+  exact ⟨[Move.tabToTab z (Sum.inr t.twin)],
+    ShufflePlayW.cons ⟨a.exchangeTwin t, [Move.tabToTab z (Sum.inr t)],
+      hfwd, run_one hbwd⟩ hfwd (ShufflePlayW.nil _),
+    [Move.tabToTab z (Sum.inr t)],
+    ShufflePlayW.cons ⟨a, [Move.tabToTab z (Sum.inr t.twin)],
+      hbwd, run_one hfwd⟩ hbwd (ShufflePlayW.nil _)⟩
+
+/-- Every licensed bare exchange is a one-move witness shuffle in
+both directions — `RevEqW` between the exchanged mates.  The
+cargo-side orientation rides the core; the bare-side cargo flips
+through the pair law; the both-bare license is the identity,
+reflexive. -/
+theorem exch_leg_RevEqW {a b : State} (h : ExchStep a b) : RevEqW a b := by
+  obtain ⟨t, hok, rfl⟩ := h
+  obtain ⟨hwf, k, k', h₁, h₂, hne, hbare⟩ := hok
+  cases hL : aboveIn t ((a.piles k).faceUp) with
+  | nil =>
+      cases hR : aboveIn t.twin ((a.piles k').faceUp) with
+      | nil =>
+          rw [State.exchangeTwin_eq_self_of_both_bare h₁ h₂ hne hL hR]
+          exact RevEqW_refl _
+      | cons z rest =>
+          rw [← State.exchangeTwin_pair a t]
+          exact exch_leg_RevEqW_core (a := a) (t := t.twin) (k := k') (k' := k)
+            (z := z) (rest := rest) hwf h₂
+            (by rw [Card.twin_twin]; exact h₁)
+            (fun hc => hne hc.symm) hR
+            (by rw [Card.twin_twin]; exact hL)
+  | cons z rest =>
+      cases hR : aboveIn t.twin ((a.piles k').faceUp) with
+      | nil =>
+          exact exch_leg_RevEqW_core hwf h₁ h₂ hne hL hR
+      | cons w ws =>
+          rcases hbare with hb | hb
+          · rw [hL] at hb; exact absurd hb (by simp)
+          · rw [hR] at hb; exact absurd hb (by simp)
+
+/-- Every licensed-exchange chain is a witness-shuffle journey in
+both directions (`ShufflePlayW`'s cons-carried shape keeps every leg
+explicit, so the induction re-roots along the tail). -/
+theorem exch_chain_RevEqW {a b : State} (h : ExchChain a b) : RevEqW a b := by
+  induction h with
+  | nil s => exact RevEqW_refl s
+  | @cons s s' s'' hstep hrest ih =>
+      obtain ⟨σ, hσ, τ, hτ⟩ := ih
+      obtain ⟨σ₀, hσ₀, τ₀, hτ₀⟩ := exch_leg_RevEqW hstep
+      exact ⟨σ₀ ++ σ, ShufflePlayW_append hσ₀ hσ, τ ++ τ₀,
+        ShufflePlayW_append hτ hτ₀⟩
+
+/-- The coarsening row: every licensed-exchange chain stays inside
+the macro state — `exchSetoid.r` implies `sameOrbitSetoid.r`
+(sameOrbit's engine reads `RevEqW b a`, the witness shuffle flipped;
+the banked `RevEqW_symm` does the flip). -/
+theorem exch_le_sameOrbit {a b : State} (h : ExchChain a b) :
+    sameOrbitSetoid.r a b :=
+  RevEqW_symm (exch_chain_RevEqW h)
+
+/-- The forgetful map: the exchanges-only quotient of physical
+classes carried into the macro-state quotient.  Well-defined because
+every exchange chain is a sameOrbit journey (`exch_le_sameOrbit`);
+SURJECTIVE (every macro class contains the image of a physical
+class), NOT injective — the worried-king fork cell (the probe
+battery's B2, FUTURES-ORIG.md §10) exhibits macro-mates no exchange
+chain joins: their canon wings split founds 13/12 vs 12/13 while
+`State.exchangeTwin_found` holds founds invariant along every chain. -/
+def exchOrbit_to_sameOrbit : ExchOrbit → SameOrbit :=
+  Quotient.lift (Quotient.mk sameOrbitSetoid)
+    (fun _ _ h => Quotient.sound (exch_le_sameOrbit h))
+
+@[simp]
+theorem exchOrbit_to_sameOrbit_mk (u : State) :
+    exchOrbit_to_sameOrbit (ExchOrbit.mk u) =
+      Quotient.mk sameOrbitSetoid u :=
+  rfl
+
+/-- The forgetful map is surjective: every macro class is the image
+of the physical class of any representative. -/
+theorem exchOrbit_to_sameOrbit_surjective (q : SameOrbit) :
+    ∃ p : ExchOrbit, exchOrbit_to_sameOrbit p = q := by
+  obtain ⟨u, hu⟩ := Quotient.exists_rep q
+  exact ⟨ExchOrbit.mk u, hu⟩
+
+/-! ## §6. Per-pair locality: one exchange touches only its two seats -/
+
+/-- **Per-pair locality**: a single exchange at a located pair
+writes only the pair's two seat piles — the foundations, stock,
+waste, and draw width are untouched, and every pile off the two
+seats is verbatim.  The state-level per-pile rows are
+`Orig.TwinExchange`'s (`State.exchangeTwin_pile_self`/`_other`/`_ne`,
+the zone rows); this is the coarsening-grade package the
+disjoint-family superposition and the torsor freeness ride. -/
+theorem exch_local_pair {st : State} {t : Card} {a a' k : Anchor}
+    (h₁ : st.pileHolding t = some a) (h₂ : st.pileHolding t.twin = some a')
+    (hne : a ≠ a') (hk : k ≠ a ∧ k ≠ a') :
+    (st.exchangeTwin t).piles k = st.piles k :=
+  State.exchangeTwin_pile_ne h₁ h₂ hne hk.1 hk.2
+
+/-! ## §7. The disjoint-family superposition and the torsor freeness -/
+
+/-- The executed-bit composite: the total exchange folded over a
+list of pair representatives. -/
+def exchAll : State → List Card → State
+  | st, [] => st
+  | st, t :: ts => exchAll (st.exchangeTwin t) ts
+
+/-- The disjoint-family data bundle at `st`: the list is
+pair-distinct (no representative and its twin both present), every
+pair sits located at two DISTINCT seats, and distinct pairs have
+pairwise disjoint seats. -/
+def ExchFamOk (st : State) (ts : List Card) : Prop :=
+  ts.Nodup ∧ (∀ t ∈ ts, t.twin ∉ ts) ∧
+    (∀ t ∈ ts, ∃ a a', st.pileHolding t = some a ∧
+      st.pileHolding t.twin = some a' ∧ a ≠ a') ∧
+    (∀ t ∈ ts, ∀ t' ∈ ts, t ≠ t' →
+      st.pileHolding t ≠ st.pileHolding t' ∧
+      st.pileHolding t ≠ st.pileHolding t'.twin ∧
+      st.pileHolding t.twin ≠ st.pileHolding t' ∧
+      st.pileHolding t.twin ≠ st.pileHolding t'.twin)
+
+/-- Prefix-cancel on cons-shared appends: the agreeing spine pins the
+tails (private; the list kit the identity pricing rides). -/
+private theorem cons_append_cancel : ∀ (x l r : List Card),
+    x ++ l = x ++ r → l = r
+  | [], _, _, h => h
+  | c :: xs, l, r, h =>
+      cons_append_cancel xs l r (by
+        injection h with h')
+
+/-- Option-level seat disjointness, read at the two `some`s: from the
+family bundle's search-inequalities to anchor inequalities. -/
+private theorem opt_ne_to_anchor {st : State} {u v : Card} {bu av : Anchor}
+    (hne : st.pileHolding u ≠ st.pileHolding v)
+    (hu : st.pileHolding u = some bu) (hv : st.pileHolding v = some av) :
+    bu ≠ av := by
+  intro hcon
+  exact hne (by rw [hu, hcon, hv])
+
+/-- Off-seat cards keep their seat through an exchange: if `c` sits
+face-up in a pile off the pair's two written seats, the search
+relocates it verbatim — the pile is untouched and `WF`
+search-exactness pins the answer (the location half of what the
+private relocate census did pile-by-pile; the license-free grade). -/
+theorem exch_pileHolding_off {st : State} {c t : Card} {k a a' : Anchor}
+    (hwf : st.WF) (ha : st.pileHolding t = some a)
+    (ha' : st.pileHolding t.twin = some a') (hne : a ≠ a')
+    (hk : st.pileHolding c = some k) (hout : k ≠ a ∧ k ≠ a') :
+    (st.exchangeTwin t).pileHolding c = some k :=
+  (pileHolding_eq_some_iff (State.wf_exchangeTwin hwf ha ha' hne)).mpr
+    (by rw [State.exchangeTwin_pile_ne ha ha' hne hout.1 hout.2]
+        exact pileHolding_mem hk)
+
+/-- Seat-data congruence of the single exchange: when `t` locates at
+the same two seats at `s` and `st` and those seat piles agree, the
+two single exchanges agree at both seat piles — the
+superposition's term-level engine (only the seat piles are read). -/
+theorem exchange_piles_congr {s st : State} {t : Card} {a a' : Anchor}
+    (ha : st.pileHolding t = some a) (ha' : st.pileHolding t.twin = some a')
+    (hne : a ≠ a')
+    (hsa : s.pileHolding t = some a) (hsa' : s.pileHolding t.twin = some a')
+    (hpa : s.piles a = st.piles a) (hpa' : s.piles a' = st.piles a') :
+    (s.exchangeTwin t).piles a = (st.exchangeTwin t).piles a ∧
+      (s.exchangeTwin t).piles a' = (st.exchangeTwin t).piles a' := by
+  constructor
+  · rw [State.exchangeTwin_pile_self hsa hsa' hne,
+      State.exchangeTwin_pile_self ha ha' hne, hpa, hpa']
+  · rw [State.exchangeTwin_pile_other hsa hsa' hne,
+      State.exchangeTwin_pile_other ha ha' hne, hpa, hpa']
+
+/-- **The disjoint-family superposition** (the per-pair locality of
+the composite): executing a pair-distinct list of pairwise
+seat-disjoint located pairs, the composite is the per-pile union of
+the base-data single writes — each pair's bit writes exactly its
+own two seats, read at the BASE state, and every pile off all the
+seats stays verbatim.  WF-gated (the locatedness discipline rides
+search exactness); no license needed — the licensed reading is the
+corollary below. -/
+theorem exch_superpose : ∀ (ts : List Card) (st : State), st.WF →
+    ExchFamOk st ts →
+    (∀ t ∈ ts, ∀ a a', st.pileHolding t = some a →
+        st.pileHolding t.twin = some a' →
+        (exchAll st ts).piles a = (st.exchangeTwin t).piles a ∧
+        (exchAll st ts).piles a' = (st.exchangeTwin t).piles a') ∧
+    (∀ k, (∀ t ∈ ts, st.pileHolding t ≠ some k ∧
+        st.pileHolding t.twin ≠ some k) →
+        (exchAll st ts).piles k = st.piles k) := by
+  intro ts
+  induction ts with
+  | nil =>
+      intro st _hwf _hok
+      constructor
+      · intro t ht; cases ht
+      · intro k _; rfl
+  | cons t₀ tail ih =>
+      intro st hwf hok
+      obtain ⟨hnd, hpair, hloc, hdisj⟩ := hok
+      obtain ⟨hnd₀, hndt⟩ := List.nodup_cons.mp hnd
+      obtain ⟨a₀, a₀', ha₀, ha₀', hne₀⟩ :=
+        hloc t₀ (List.mem_cons_self ..)
+      have hwf₁ : (st.exchangeTwin t₀).WF :=
+        State.wf_exchangeTwin hwf ha₀ ha₀' hne₀
+      -- the tail pairs' seats are off the head's two written seats
+      have hoτ : ∀ τ ∈ tail, ∀ bb bb' : Anchor,
+          st.pileHolding τ = some bb → st.pileHolding τ.twin = some bb' →
+          bb ≠ a₀ ∧ bb ≠ a₀' ∧ bb' ≠ a₀ ∧ bb' ≠ a₀' := by
+        intro τ hτ bb bb' hbb hbb'
+        obtain ⟨ho1, ho2, ho3, ho4⟩ :=
+          hdisj τ (List.mem_cons_of_mem _ hτ) t₀ (List.mem_cons_self ..)
+            (fun hc => hnd₀ (by rw [← hc]; exact hτ))
+        exact ⟨opt_ne_to_anchor ho1 hbb ha₀, opt_ne_to_anchor ho2 hbb ha₀',
+          opt_ne_to_anchor ho3 hbb' ha₀, opt_ne_to_anchor ho4 hbb' ha₀'⟩
+      -- the tail searches re-anchor identically at the exchanged base
+      have hoffτ : ∀ τ ∈ tail,
+          (st.exchangeTwin t₀).pileHolding τ = st.pileHolding τ ∧
+          (st.exchangeTwin t₀).pileHolding τ.twin = st.pileHolding τ.twin := by
+        intro τ hτ
+        obtain ⟨b, b', hb, hb', -⟩ := hloc τ (List.mem_cons_of_mem _ hτ)
+        obtain ⟨hb0, hb0', hb'0, hb'0'⟩ := hoτ τ hτ b b' hb hb'
+        constructor
+        · rw [exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb ⟨hb0, hb0'⟩]
+          exact hb.symm
+        · rw [exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb' ⟨hb'0, hb'0'⟩]
+          exact hb'.symm
+      -- the tail family stays OK at the exchanged base
+      have hoktail : ExchFamOk (st.exchangeTwin t₀) tail := by
+        refine ⟨(List.nodup_cons.mp hnd).2,
+          fun t ht hmem => hpair t (List.mem_cons_of_mem _ ht)
+            (List.mem_cons_of_mem _ hmem), ?_, ?_⟩
+        · intro τ hτ
+          obtain ⟨b, b', hb, hb', hneb⟩ := hloc τ (List.mem_cons_of_mem _ hτ)
+          obtain ⟨hb0, hb0', hb'0, hb'0'⟩ := hoτ τ hτ b b' hb hb'
+          exact ⟨b, b',
+            exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb ⟨hb0, hb0'⟩,
+            exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb' ⟨hb'0, hb'0'⟩,
+            hneb⟩
+        · intro τ hτ τ' hτ' hneτ
+          obtain ⟨hoff1, hoff2⟩ := hoffτ τ hτ
+          obtain ⟨hoff1', hoff2'⟩ := hoffτ τ' hτ'
+          rw [hoff1, hoff2, hoff1', hoff2']
+          exact hdisj τ (List.mem_cons_of_mem _ hτ)
+            τ' (List.mem_cons_of_mem _ hτ') hneτ
+      obtain ⟨ihseat, ihunt⟩ := ih (st.exchangeTwin t₀) hwf₁ hoktail
+      constructor
+      · -- the seat thesis
+        intro t ht a a' hht1 hht2
+        rcases List.mem_cons.mp ht with heq | htail
+        · -- the head's own seats: the tail never re-writes them
+          rw [heq] at hht1 hht2
+          rw [heq]
+          have hab : a = a₀ := pileHolding_inj hht1 ha₀
+          have hab' : a' = a₀' := pileHolding_inj hht2 ha₀'
+          rw [hab, hab']
+          have hcond : ∀ τ ∈ tail,
+              (st.exchangeTwin t₀).pileHolding τ ≠ some a₀ ∧
+              (st.exchangeTwin t₀).pileHolding τ.twin ≠ some a₀ := by
+            intro τ hτ
+            obtain ⟨b, b', hb, hb', -⟩ := hloc τ (List.mem_cons_of_mem _ hτ)
+            obtain ⟨hb0, hb0', hb'0, hb'0'⟩ := hoτ τ hτ b b' hb hb'
+            constructor
+            · rw [exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb ⟨hb0, hb0'⟩]
+              exact fun hcc => hb0 (Option.some.inj hcc)
+            · rw [exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb' ⟨hb'0, hb'0'⟩]
+              exact fun hcc => hb'0 (Option.some.inj hcc)
+          have hcond' : ∀ τ ∈ tail,
+              (st.exchangeTwin t₀).pileHolding τ ≠ some a₀' ∧
+              (st.exchangeTwin t₀).pileHolding τ.twin ≠ some a₀' := by
+            intro τ hτ
+            obtain ⟨b, b', hb, hb', -⟩ := hloc τ (List.mem_cons_of_mem _ hτ)
+            obtain ⟨hb0, hb0', hb'0, hb'0'⟩ := hoτ τ hτ b b' hb hb'
+            constructor
+            · rw [exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb ⟨hb0, hb0'⟩]
+              exact fun hcc => hb0' (Option.some.inj hcc)
+            · rw [exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb' ⟨hb'0, hb'0'⟩]
+              exact fun hcc => hb'0' (Option.some.inj hcc)
+          constructor
+          · show (exchAll (st.exchangeTwin t₀) tail).piles a₀ = _
+            exact ihunt a₀ hcond
+          · show (exchAll (st.exchangeTwin t₀) tail).piles a₀' = _
+            exact ihunt a₀' hcond'
+        · -- a tail member's seats: the head never wrote them, so the
+          -- single exchange at the exchanged base agrees with the
+          -- single exchange at the base
+          obtain ⟨b, b', hb, hb', hneb⟩ := hloc t ht
+          have hab : a = b := pileHolding_inj hht1 hb
+          have hab' : a' = b' := pileHolding_inj hht2 hb'
+          rw [hab, hab']
+          obtain ⟨hoff1, hoff2⟩ := hoffτ t htail
+          obtain ⟨s1seat1, s1seat2⟩ :=
+            ihseat t htail b b' (hoff1.trans hb) (hoff2.trans hb')
+          obtain ⟨hb0, hb0', hb'0, hb'0'⟩ := hoτ t htail b b' hb hb'
+          obtain ⟨cg1, cg2⟩ :=
+            exchange_piles_congr hb hb' hneb (hoff1.trans hb) (hoff2.trans hb')
+              (exch_local_pair ha₀ ha₀' hne₀ ⟨hb0, hb0'⟩)
+              (exch_local_pair ha₀ ha₀' hne₀ ⟨hb'0, hb'0'⟩)
+          constructor
+          · show (exchAll (st.exchangeTwin t₀) tail).piles b = _
+            rw [s1seat1, cg1]
+          · show (exchAll (st.exchangeTwin t₀) tail).piles b' = _
+            rw [s1seat2, cg2]
+      · -- the untouched thesis
+        intro k hklist
+        have hka₀ : k ≠ a₀ := fun hc =>
+          (hklist t₀ (List.mem_cons_self ..)).1 (by rw [ha₀, hc])
+        have hka₀' : k ≠ a₀' := fun hc =>
+          (hklist t₀ (List.mem_cons_self ..)).2 (by rw [ha₀', hc])
+        show (exchAll (st.exchangeTwin t₀) tail).piles k = st.piles k
+        refine (ihunt k ?_).trans (exch_local_pair ha₀ ha₀' hne₀ ⟨hka₀, hka₀'⟩)
+        intro τ hτ
+        obtain ⟨hoff1, hoff2⟩ := hoffτ τ hτ
+        obtain ⟨bk1, bk2⟩ := hklist τ (List.mem_cons_of_mem _ hτ)
+        rw [hoff1, hoff2]
+        exact ⟨bk1, bk2⟩
+
+/-- **The identity pricing row**: at a located-distinct pair, a
+genuinely moving exchange writes its own first seat differently —
+the written run and the base run share the prefix through the host,
+so their equality forces the two suffixes to agree, and agreeing
+suffixes make BOTH writes the identity (the exchange is then the
+state's identity, and the licensed both-bare bit is exactly the
+case that prices at zero). -/
+theorem exchangeTwin_ne_self_pile {st : State} {t : Card} {a a' : Anchor}
+    (h₁ : st.pileHolding t = some a) (h₂ : st.pileHolding t.twin = some a')
+    (hne : a ≠ a') (hmove : st.exchangeTwin t ≠ st) :
+    (st.exchangeTwin t).piles a ≠ st.piles a := by
+  intro hcon
+  apply hmove
+  have hTa : t ∈ (st.piles a).faceUp := pileHolding_mem h₁
+  have hTb : t.twin ∈ (st.piles a').faceUp := pileHolding_mem h₂
+  have hsA : (st.piles a).faceUp =
+      below t ((st.piles a).faceUp) ++
+        t :: aboveIn t ((st.piles a).faceUp) :=
+    below_aboveIn_split hTa
+  have hsA' : (st.piles a').faceUp =
+      below t.twin ((st.piles a').faceUp) ++
+        t.twin :: aboveIn t.twin ((st.piles a').faceUp) :=
+    below_aboveIn_split hTb
+  have hA : below t ((st.piles a).faceUp) ++
+        t :: aboveIn t.twin ((st.piles a').faceUp) = (st.piles a).faceUp := by
+    have hcon' := hcon
+    rw [State.exchangeTwin_pile_self h₁ h₂ hne] at hcon'
+    exact (Pile.ext_iff.mp hcon').2
+  have hD0 : t :: aboveIn t.twin ((st.piles a').faceUp) =
+      t :: aboveIn t ((st.piles a).faceUp) :=
+    cons_append_cancel _ _ _ (hA.trans hsA)
+  injection hD0 with _ hD
+  apply State.ext
+  · rw [State.exchangeTwin_found]
+  · funext k
+    by_cases hk : k = a
+    · rw [hk]; exact hcon
+    · by_cases hk' : k = a'
+      · rw [hk']
+        rw [State.exchangeTwin_pile_other h₁ h₂ hne]
+        apply Pile.ext
+        · rfl
+        · calc below t.twin ((st.piles a').faceUp) ++
+                t.twin :: aboveIn t ((st.piles a).faceUp)
+                = below t.twin ((st.piles a').faceUp) ++
+                    t.twin :: aboveIn t.twin ((st.piles a').faceUp) := by
+                  rw [hD]
+              _ = (st.piles a').faceUp := hsA'.symm
+      · rw [State.exchangeTwin_pile_ne h₁ h₂ hne hk hk']
+  · rw [State.exchangeTwin_stock]
+  · rw [State.exchangeTwin_waste]
+  · rw [State.exchangeTwin_drawStep]
+
+/-- **The torsor freeness** (the landing-2 card item, carrying the
+landing-1 probe's amendment): distinct swap-subsets give distinct
+states at a disjoint-seat base — restricted to the NON-IDENTITY
+bits; identity-valued bits (the licensed both-bare degenerate form)
+price at zero and claim no state.  The witness pair `w` is executed
+by `ts` but not by `us`, and `w`'s two seats are claimed by no
+member of `us`.  The proof is the partition of the deck: both
+composites are the base-data superposition, so at `w`'s first seat
+one composite carries the genuine bit-write while the other keeps
+the base pile. -/
+theorem exch_free {st : State} (hwf : st.WF) (w : Card) (ts us : List Card)
+    (hokts : ExchFamOk st ts) (hokus : ExchFamOk st us)
+    (hw : w ∈ ts) (_hwus : w ∉ us)
+    (hcross : ∀ u ∈ us, st.pileHolding u ≠ st.pileHolding w ∧
+        st.pileHolding u ≠ st.pileHolding w.twin ∧
+        st.pileHolding u.twin ≠ st.pileHolding w ∧
+        st.pileHolding u.twin ≠ st.pileHolding w.twin)
+    (hmove : st.exchangeTwin w ≠ st) :
+    exchAll st ts ≠ exchAll st us := by
+  obtain ⟨hndts, hpairsts, hlocts, hdisjts⟩ := hokts
+  obtain ⟨a, a', hw1, hw2, hnew⟩ := hlocts w hw
+  have hsupts := exch_superpose ts st hwf ⟨hndts, hpairsts, hlocts, hdisjts⟩
+  have hwrit := hsupts.1 w hw a a' hw1 hw2
+  have hsupus := exch_superpose us st hwf hokus
+  intro hcon
+  have huclaim : ∀ u ∈ us, st.pileHolding u ≠ some a ∧
+      st.pileHolding u.twin ≠ some a := by
+    intro u hu
+    obtain ⟨hc1, _, hc3, _⟩ := hcross u hu
+    rw [hw1] at hc1 hc3
+    exact ⟨hc1, hc3⟩
+  have hbase := hsupus.2 a huclaim
+  refine (exchangeTwin_ne_self_pile hw1 hw2 hnew hmove) ?_
+  rw [← hbase, ← hwrit.1, hcon]
+
+/-- The composite's conservation fence: a disjoint-family fold
+carries `WF` along (each located step rides
+`State.wf_exchangeTwin`; the located data re-anchors at every
+folded base through the off-seat row). -/
+theorem exchAll_wf : ∀ (ts : List Card) (st : State), st.WF →
+    ExchFamOk st ts → (exchAll st ts).WF := by
+  intro ts
+  induction ts with
+  | nil => intro st hwf _; exact hwf
+  | cons t₀ tail ih =>
+      intro st hwf hok
+      obtain ⟨hnd, hpair, hloc, hdisj⟩ := hok
+      obtain ⟨hnd₀, hndt⟩ := List.nodup_cons.mp hnd
+      obtain ⟨a₀, a₀', ha₀, ha₀', hne₀⟩ :=
+        hloc t₀ (List.mem_cons_self ..)
+      have hwf₁ : (st.exchangeTwin t₀).WF :=
+        State.wf_exchangeTwin hwf ha₀ ha₀' hne₀
+      have hoτ : ∀ τ ∈ tail, ∀ bb bb' : Anchor,
+          st.pileHolding τ = some bb → st.pileHolding τ.twin = some bb' →
+          bb ≠ a₀ ∧ bb ≠ a₀' ∧ bb' ≠ a₀ ∧ bb' ≠ a₀' := by
+        intro τ hτ bb bb' hbb hbb'
+        obtain ⟨ho1, ho2, ho3, ho4⟩ :=
+          hdisj τ (List.mem_cons_of_mem _ hτ) t₀ (List.mem_cons_self ..)
+            (fun hc => hnd₀ (by rw [← hc]; exact hτ))
+        exact ⟨opt_ne_to_anchor ho1 hbb ha₀, opt_ne_to_anchor ho2 hbb ha₀',
+          opt_ne_to_anchor ho3 hbb' ha₀, opt_ne_to_anchor ho4 hbb' ha₀'⟩
+      have hoktail : ExchFamOk (st.exchangeTwin t₀) tail := by
+        refine ⟨(List.nodup_cons.mp hnd).2,
+          fun t ht hmem => hpair t (List.mem_cons_of_mem _ ht)
+            (List.mem_cons_of_mem _ hmem), ?_, ?_⟩
+        · intro τ hτ
+          obtain ⟨b, b', hb, hb', hneb⟩ := hloc τ (List.mem_cons_of_mem _ hτ)
+          obtain ⟨hb0, hb0', hb'0, hb'0'⟩ := hoτ τ hτ b b' hb hb'
+          exact ⟨b, b',
+            exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb ⟨hb0, hb0'⟩,
+            exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb' ⟨hb'0, hb'0'⟩,
+            hneb⟩
+        · intro τ hτ τ' hτ' hneτ
+          obtain ⟨b, b', hb, hb', -⟩ := hloc τ (List.mem_cons_of_mem _ hτ)
+          obtain ⟨c, c', hc, hc', -⟩ := hloc τ' (List.mem_cons_of_mem _ hτ')
+          obtain ⟨hb0, hb0', hb'0, hb'0'⟩ := hoτ τ hτ b b' hb hb'
+          obtain ⟨hc0, hc0', hc'0, hc'0'⟩ := hoτ τ' hτ' c c' hc hc'
+          have hoff1 : (st.exchangeTwin t₀).pileHolding τ = some b :=
+            exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb ⟨hb0, hb0'⟩
+          have hoff2 : (st.exchangeTwin t₀).pileHolding τ.twin = some b' :=
+            exch_pileHolding_off hwf ha₀ ha₀' hne₀ hb' ⟨hb'0, hb'0'⟩
+          have hoff1' : (st.exchangeTwin t₀).pileHolding τ' = some c :=
+            exch_pileHolding_off hwf ha₀ ha₀' hne₀ hc ⟨hc0, hc0'⟩
+          have hoff2' : (st.exchangeTwin t₀).pileHolding τ'.twin = some c' :=
+            exch_pileHolding_off hwf ha₀ ha₀' hne₀ hc' ⟨hc'0, hc'0'⟩
+          rw [hoff1, hoff2, hoff1', hoff2']
+          obtain ⟨d1, d2, d3, d4⟩ :=
+            hdisj τ (List.mem_cons_of_mem _ hτ) τ' (List.mem_cons_of_mem _ hτ') hneτ
+          rw [hb] at d1; rw [hc] at d1
+          rw [hb] at d2; rw [hc'] at d2
+          rw [hb'] at d3; rw [hc] at d3
+          rw [hb'] at d4; rw [hc'] at d4
+          exact ⟨d1, d2, d3, d4⟩
+      exact ih _ hwf₁ hoktail
+
+/-- **The license-stability row** (the landing-1 drift census as
+theorem): a disjoint-seat family's bit executions preserve every
+OTHER pair's license — the superposition keeps the witness pair's
+two seat piles verbatim, so the located data and the bare clause
+carry unchanged.  This is the licensed-chain reading of the torsor:
+every subset composite of the family is a legal exchange chain,
+and the licenses do not drift along it. -/
+theorem twinExchOK_exchAll {st : State} (hwf : st.WF) (w : Card)
+    (us : List Card) (hokus : ExchFamOk st us) (hlic : TwinExchOK st w)
+    (hcross : ∀ u ∈ us, st.pileHolding u ≠ st.pileHolding w ∧
+        st.pileHolding u ≠ st.pileHolding w.twin ∧
+        st.pileHolding u.twin ≠ st.pileHolding w ∧
+        st.pileHolding u.twin ≠ st.pileHolding w.twin) :
+    TwinExchOK (exchAll st us) w := by
+  obtain ⟨hwfw, ka, ka', hw1, hw2, hnew, hbare⟩ := hlic
+  have hcompwf : (exchAll st us).WF := exchAll_wf us st hwf hokus
+  have hseats : (exchAll st us).piles ka = st.piles ka ∧
+      (exchAll st us).piles ka' = st.piles ka' := by
+    obtain ⟨_, ihuntu⟩ := exch_superpose us st hwf hokus
+    have huclaim : ∀ u ∈ us, st.pileHolding u ≠ some ka ∧
+        st.pileHolding u.twin ≠ some ka := by
+      intro u hu
+      obtain ⟨hc1, _, hc3, _⟩ := hcross u hu
+      rw [hw1] at hc1 hc3
+      exact ⟨hc1, hc3⟩
+    have huclaim' : ∀ u ∈ us, st.pileHolding u ≠ some ka' ∧
+        st.pileHolding u.twin ≠ some ka' := by
+      intro u hu
+      obtain ⟨_, hc2, _, hc4⟩ := hcross u hu
+      rw [hw2] at hc2 hc4
+      exact ⟨hc2, hc4⟩
+    exact ⟨ihuntu ka huclaim, ihuntu ka' huclaim'⟩
+  refine ⟨hcompwf, ka, ka', ?_, ?_, hnew, ?_⟩
+  · exact (pileHolding_eq_some_iff hcompwf).mpr
+      (by rw [hseats.1]; exact pileHolding_mem hw1)
+  · exact (pileHolding_eq_some_iff hcompwf).mpr
+      (by rw [hseats.2]; exact pileHolding_mem hw2)
+  · rw [hseats.1, hseats.2]
+    exact hbare
+
+/-! ## The landing-2 audit (fresh, in-file)
+
+Every new head of this card's §5–§7, audited where the axioms are
+read.  Expected: `[propext, Quot.sound]` or fewer; no
+`Classical.choice` anywhere (the coarsening is the constructive
+one-move realization of the realizations; the superposition and the
+freeness are pure search bookkeeping). -/
+
+#print axioms exch_leg_RevEqW
+#print axioms exch_chain_RevEqW
+#print axioms exch_le_sameOrbit
+#print axioms exchOrbit_to_sameOrbit
+#print axioms exchOrbit_to_sameOrbit_mk
+#print axioms exchOrbit_to_sameOrbit_surjective
+#print axioms exch_local_pair
+#print axioms exch_pileHolding_off
+#print axioms exchange_piles_congr
+#print axioms exch_superpose
+#print axioms exchangeTwin_ne_self_pile
+#print axioms exch_free
+
+/-! ## §8. The exchange-canon spine (landing 3, composed per the
+coordinator's call on the landing-1 verdicts)
+
+**RECORD-CLOSED (the tombstone).**  The inherited §9-menu statement
+— `PhysEq u v → ⟪canon u⟫ = ⟪canon v⟫` over the EXCHANGES-ONLY
+quotient — is REFUTED-BY-EXHIBIT at the probe battery's B2 cell
+(the worried-king fork: hearts and diamonds both climbed A..Q, ♥K
+bare on `p1`, ♦K carrying the non-twin residue ♣Q on `p5`;
+`probes/ExchCanLawProbe.lean`, FUTURES-ORIG.md §10): the exchange
+at the pair is licensed and realized by the plain slide
+`tabToTab ♣Q (inr ♥K)`, and it decides WHICH twin king saturates —
+the canon wings split founds 13/12 vs 12/13, while
+`State.exchangeTwin_found` holds founds invariant along every
+exchange chain, so NO exchange chain joins them, at any canon
+grade.  The ⟪⟫-separation is a FEATURE, the physical receipt that
+the worried-twin fork is one genuine exchange bit — exactly the
+`exch_free` torsor witnessing the two wings apart.  The composed
+correction (the user's channel, via the coordinator): the SPINE
+lands at the MACRO-STATE grade below (`canonQ_of_physOrbit'`,
+Option 1); the analysis layer (the fiber-restricted literal row,
+probe-evidenced) and the composed macro-class decomposition remain
+where they live — the ledger, and the decompression card's canon'
+fiber (`finalWiggle_reach`), never forged here. -/
+
+/-- **The physical generator closure** (the card's own subject): the
+equivalence-closure of reversible shuffle legs and licensed bare
+twin exchanges — refl, the `RevEqW` witness shuffles, the licensed
+`ExchStep` exchanges, and transitivity.  This is the working
+definition of "physical class-mates"; the macro-state image below
+is one map, `u ↦ ⟦canon u⟧`. -/
+inductive PhysEq : State → State → Prop
+  | refl (st : State) : PhysEq st st
+  | shuffle {u v : State} (h : RevEqW u v) : PhysEq u v
+  | exchange {u v : State} (h : ExchStep u v) : PhysEq u v
+  | trans {a b c : State} (h₁ : PhysEq a b) (h₂ : PhysEq b c) :
+      PhysEq a c
+
+/-- A witness shuffle walk carries `WF` along (every legal move
+does; the reversible guard changes nothing about that). -/
+theorem shufflePlayW_wf {st : State} : ∀ {play : List Move} {s' : State},
+    ShufflePlayW st play s' → st.WF → s'.WF := by
+  intro play s' h
+  induction h with
+  | nil s => exact fun hf => hf
+  | cons _ hstep _ ih => exact fun hf => ih (step_wf hf hstep)
+
+/-- `RevEqW` mates are `WF` together. -/
+theorem revEqW_wf {u v : State} (hf : u.WF) (h : RevEqW u v) : v.WF := by
+  obtain ⟨σ, hσ, -, -⟩ := h
+  exact shufflePlayW_wf hσ hf
+
+/-- An exchange step's target is `WF` (the license carries the
+source `WF`, and the located exchange preserves it). -/
+theorem ExchStep.wf {a b : State} (h : ExchStep a b) : b.WF := by
+  obtain ⟨t, hok, rfl⟩ := h
+  obtain ⟨hwf, k, k', h₁, h₂, hne, -⟩ := hok
+  exact State.wf_exchangeTwin hwf h₁ h₂ hne
+
+/-- **`exch_canon_comm`** — one licensed exchange's canon row, at
+the honest macro-state grade the landing-1 battery certified: one
+licensed exchange is a sameOrbit edge (`exch_leg_RevEqW`, the
+one-move realizations), so the canon images of the exchanged mates
+sit in one macro class — the banked `canonQ_of_orbit` closes it.
+The LITERAL canon image equality and the exchanges-only ⟪⟫ grade
+are record-closed at §8's tombstone (the fork cell's founds
+split). -/
+theorem exch_canon_comm {u v : State} (h : ExchStep u v) :
+    ⟦canon v⟧ = ⟦canon u⟧ := by
+  obtain ⟨t, hok, rfl⟩ := h
+  have hwfu : u.WF := hok.1
+  refine canonQ_of_orbit (ExchStep.wf ⟨t, hok, rfl⟩) hwfu ?_
+  exact exch_leg_RevEqW ⟨t, hok, rfl⟩
+
+/-- The shuffle leg's canon row at the same grade: `RevEqW` mates
+have canon images in one macro class (the flip of the setoid's
+engine direction, closed by the banked `canonQ_of_orbit`). -/
+theorem revEqW_canon {u v : State} (hf : u.WF) (h : RevEqW u v) :
+    ⟦canon u⟧ = ⟦canon v⟧ :=
+  canonQ_of_orbit hf (revEqW_wf hf h) (RevEqW_symm h)
+
+/-- The leg-induction auxiliary: physical class-mates carry `WF`
+together, and their canon images sit in one macro class — refl
+reflexively, the shuffle leg by `revEqW_canon`, the exchange leg by
+`exch_canon_comm`, trans composes. -/
+theorem physEq_wf_canon {u v : State} (h : PhysEq u v) :
+    u.WF → v.WF ∧ ⟦canon u⟧ = ⟦canon v⟧ := by
+  induction h with
+  | refl s => exact fun hf => ⟨hf, rfl⟩
+  | shuffle h' => exact fun hf =>
+      ⟨revEqW_wf hf h', revEqW_canon hf h'⟩
+  | exchange h' => exact fun hf =>
+      ⟨ExchStep.wf h', (exch_canon_comm h').symm⟩
+  | trans _ _ ih₁ ih₂ =>
+      exact fun hf =>
+        (fun pair => ⟨(ih₂ pair.1).1, pair.2.trans (ih₂ pair.1).2⟩) (ih₁ hf)
+
+/-- The physical closure preserves `WF` (each leg does: witness
+shuffles are legal walks, licensed exchanges ride the located
+license). -/
+theorem physEq_wf {u v : State} (h : PhysEq u v) (hf : u.WF) : v.WF :=
+  (physEq_wf_canon h hf).1
+
+/-- **`canonQ_of_physOrbit'`** — THE EXCHLAW SPINE (the card's
+pinch, at the coordinator's Option-1 grade): physical class-mates
+(the closure of reversible shuffle legs + licensed bare twin
+exchanges, `PhysEq`) have canon images in ONE MACRO STATE:
+`u.WF → PhysEq u v → ⟦canon u⟧ = ⟦canon v⟧`, single-gated (the
+target's `WF` rides `physEq_wf`).  The exchanges-only ⟪⟫ form of
+this statement is record-closed as refuted-by-exhibit at the
+worried-king fork cell (§8's tombstone, the probe battery's B2,
+FUTURES-ORIG.md §10) — the macro-state grade is the honest one,
+and the worried-twin fork above it is the `exch_free` torsor's
+one-bit receipt, to price the composed decomposition when the
+decompression card's canon' fiber lands (never forged here). -/
+theorem canonQ_of_physOrbit' {u v : State} (h : PhysEq u v) (hf : u.WF) :
+    ⟦canon u⟧ = ⟦canon v⟧ :=
+  (physEq_wf_canon h hf).2
+
+/-! ## The landing-3 audit (fresh, in-file) -/
+
+#print axioms exchAll_wf
+#print axioms twinExchOK_exchAll
+#print axioms exch_canon_comm
+#print axioms revEqW_canon
+#print axioms physEq_wf_canon
+#print axioms physEq_wf
+#print axioms canonQ_of_physOrbit'
+#print axioms PhysEq.refl
+#print axioms PhysEq.shuffle
+#print axioms PhysEq.exchange
+#print axioms PhysEq.trans
+

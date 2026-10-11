@@ -1675,6 +1675,256 @@ setPile/putCard/putRun kit) and the census one-liners
 (`mem_faceUp_only` / `mem_hidden_only`) instead of private copies
 and fresh `hZP`-style double counts.
 
+## 10. The exchange-canon commutation card (2026-10-11, branch `orig-exch-canlaw`, rebased onto macro-game `47b1ad9`; landing-1 probe battery GREEN, the inherited backlog's first falsifier candidate FIRED)
+
+Section numbering note: §9 is the canon-side completion card's
+ledger, recorded on `orig-canon-decompress` (landing 1, commit
+`8a0e121`, base `f0b3315`) — this section reserves §10 on this branch
+so the two append-only ledgers merge cleanly in either order.  This
+card owns the follow-on that §9's "FOLLOW-ON EXCHANGE-CANON CARD"
+menu named: territory `Orig/TwinExchangeQuotient.lean` + the twin
+quotient's canon-facing spine, the physical twin-exchange commutation
+laws.  The inherited menu's items are cited by their §9 names
+(`canonQ_of_physOrbit`, `exch_free`, `exch_le_sameOrbit`, the
+decomposition, the interpretive doctrine).
+
+**LANDING 1** (`lean-model/probes/ExchCanLawProbe.lean` — external,
+lake-env-runnable, gates throw on failure, kernel-decided through the
+house `decSt` bridge; the README row landed): every verdict below
+decided at honestly WF-crafted full-deck cells BEFORE any proof
+effort.  The probe's stock-crafting mover (`exStock`, the exclusion
+list includes the FOUNDED cards) is deliberate and worth recording:
+the first run's B-cells double-counted foundation cards in the stock
+and failed their own WF gates — the census mirror caught what the
+hand-write missed; every recorded number below is from the fixed,
+census-clean battery.
+
+* **A — the wiggle cube mirrored (canon vacuous).**  The §9-A1 board
+  (♠Q between the red kings p1/p5, ♣J between the red queens
+  p3/p4, foundations empty, rest in stock): all four corners WF and
+  canon-FIXED (nothing rung-ready — canon is the identity); every bit
+  licensed at every corner, both orientations (the pair law at each
+  corner), each bit writes EXACTLY its own two seats (the K-bit
+  leaves the Q-pair piles verbatim — the per-pair locality datum);
+  the four corners pairwise distinct; the two-bit composite is
+  order-free; and canon images of exchange-mates DIFFER literally —
+  at saturation-vacuous cells the wiggle survives canon outright
+  (canon seats nothing), so the canon-image connection IS the bit
+  itself.
+* **B1 — the benign cell (saturation fires, literal commutation
+  holds).**  K-pair with a RUNG-READY residue (♠Q over ♥K, spades
+  climbed A..J): the canon lifts the residue off either seat to ONE
+  saturated state — `canon (exchange st) = canon st` LITERALLY (the
+  saturation erases the bit); the exchange at the saturated state is
+  the both-bare identity; the license SURVIVES saturation as the
+  DEGENERATE both-bare license.  This is the cell where the literal
+  square and the exchanges-only row were expected to hold — they do.
+* **B2 — THE WORRIED-KING FORK (the first falsifier candidate FIRED;
+  the inherited menu's exchanges-only pinch is REFUTED at this
+  exhibit, and the refutation is the card's central datum).**  Hearts
+  and diamonds both climbed A..Q; ♥K BARE on p1 (a rung-ready bare
+  king), its twin ♦K carrying the non-twin residue ♣Q on p5.  ONE
+  licensed exchange at the K-pair (bare clause on the p1 side,
+  realized step-exact by the noreveal slide `tabToTab ♣Q (inr ♥K)`)
+  moves ♣Q onto ♥K — and the two trajectories then fork the
+  SATURATION ITSELF: `canon st` lifts the bare ♥K
+  (hearts A..K, found-length 13), `canon (exchange st)` lifts the
+  bare ♦K (diamonds A..K) — the founds split 13/12 vs
+  12/13, `canon` differs, the literal square dies AND the
+  re-saturated square dies (the exchange at `canon st` is the
+  identity — the host is FOUNDED, the engine half "licensing
+  preserved at the canon images" dies with it: `exOKB` reads false
+  at BOTH canon wings).  **Why no exchanges-only quotient can join
+  the wings: `State.exchangeTwin_found` — an exchange writes piles
+  only, so `found` is invariant along every `ExchChain`; the wings
+  differ in foundation content, so `⟪canon u⟫ = ⟪canon v⟫` would
+  force equal founds.**  This is §3.1's grading-note fork
+  (canonical / worried-♥ / worried-♦ — "three `RevEqW`-distinct
+  outcomes") met at the canon level, the residue-exhibit cell the
+  card named as the first falsifier family.  The honest witness is
+  the A2 anatomy, probe-verified step-exact:
+  `canon u --foundToTab ♥K (inl p1)--> u --exchange--> v
+  <--foundToTab ♦K (inl p5)-- canon v` — pull, exchange, pull,
+  every leg reversible.  So canon images of physical class-mates ARE
+  joined — by PULLS + the exchange, the sameOrbit world, never by
+  exchanges alone.
+* **C — licensing drift.**  Around the 2² cube: no drift (every bit
+  licensed at every corner, both orientations).  Along chains: each
+  bit is its own involution; re-asking the K-pair at the twin member
+  `(♥K → ♦K` after the Q-bit`)` toggles the same bit home; chains
+  compose in either order at disjoint seats.  Against saturation:
+  the fork cell KILLS the license at the canon wings (a host is
+  founded), the benign cell preserves it as degenerate — the license
+  is NOT saturation-invariant in either direction, driver discovered.
+* **D — the freeness census (the deck-partition evidence).**  The
+  3-bit board (K-, Q-, J-pairs at p1/p5, p3/p4, p2/p6 — pairwise
+  disjoint host seats, twin-legal residues riding): all EIGHT composite
+  corners WF and canon-fixed, the composites equal the crafted
+  corners (each bit writes exactly its own corners), pairwise
+  DISTINCT (the 2³ torsor witnessed), every bit licensed at every
+  corner (drift-free at disjoint seats), order-free composites.
+* **E — the negative controls and the identity pricing.**  The
+  licensed BOTH-BARE bit is the IDENTITY (`exchangeTwin = st`) —
+  freeness must price identity-valued bits at ZERO; `exch_free` is
+  AMENDED accordingly below.  Hidden-member (♠Q's twin ♣Q lost in
+  stock) and waste-resident (♦Q in the waste) pairs are never
+  licensed and never generate a step (identity exchangeTwin at
+  every unlicensed shape probed).
+* **Census numbers (the pinned data):** licensed nondegenerate pair
+  representatives: 6 at the 3-bit cube (three pairs, both
+  orientations), 2 at the fork cell (the K-pair), 0 at the fork
+  cell's canon images (saturation founded the hosts), 4 at the
+  2-bit cube; fork wings 13/12 vs 12/13; the benign erase `true`;
+  the fork split `false`.
+
+**THE HONEST GRADE (the menu corrected, recorded per the interpretive
+doctrine — physical first):** the inherited `canonQ_of_physOrbit`
+formulation — `PhysEq u v → ⟪canon' u⟫ = ⟪canon' v⟫` over the
+EXCHANGES-ONLY quotient — is REFUTED by the B2 exhibit at every
+canon grade (`canon_draw` composes on the zone, never the founds;
+the wings split founds).  The refutation is not a boundary artifact:
+it conflates "the exchange connects `u` to `v`" (true — the bit is
+the class road) with "the exchange connects their canon images"
+(false at fork cells — the exchange acts on seating, canon acts on
+rung-readiness, and at a twin pair of rung-ready bare kings the
+exchange swaps WHICH member canon consumes).  The ⟪⟫-behavior at
+fork cells is a FEATURE — the physical receipt that the worried-twin
+fork is one genuine bit (the `exch_free` torsor separating the
+worried-♥ wing from the worried-♦ wing is the quotient doing its
+job).  The COMPOSED correction, per the coordinator's landing-3 call
+(this response to this probe report), two layers:
+
+1. **SPINE (theorem grade, Option 1):** `canonQ_of_physOrbit'` over
+   `PhysEq` (the generator closure: refl + `RevEqW` shuffle legs +
+   `ExchStep` exchange legs + trans) stated at the macro-state
+   quotient: `u.WF → PhysEq u v → ⟦canon u⟧ = ⟦canon v⟧` — refl is
+   rfl, the shuffle case rides the banked `canonQ_of_orbit`
+   (`RevEqW` is a sameOrbit edge), the exchange case the landing-2
+   `exchange_leg_sameOrbit` (the one-move `RevEqW` realizations,
+   both-bare degenerate = refl) + `canonQ_of_orbit`, trans
+   composes; a WF-propagation row (`step_wf` for the shuffle walks,
+   `State.wf_exchangeTwin` for the legs) buys the single-gate form.
+   NO BLOCKED PIECE REMAINS at this grade — the §9 menu's
+   BLOCKED-ON-DECOMPRESS shuffle leg (the literal
+   `canon'_shuffleEq`) is superseded by the regrade; it remains the
+   decompression card's own two-letter content.
+   **RECORD-CLOSED:** `PhysEq u v → ⟪canon u⟫ (= ⟪canon' u⟫) = ⟪canon
+   v⟫` over the exchanges-only quotient stands REFUTED-BY-EXHIBIT
+   (B2): exchange legs never write `found`
+   (`State.exchangeTwin_found`), the fork wings split founds, so no
+   exchange chain joins them, at any canon-composed grade.
+2. **ANALYSIS LAYER (Option 2, probe-evidenced):** on a saturation
+   fiber where canon does not fork (the B1 regime), the exchanges-only
+   row holds LITERALLY (canon erases the bit; the exchange at the
+   canon image is the both-bare identity) — this is evidence-grade,
+   the probe certifies the cells, no general theorem claimed here.
+   `exch_free` lands at the disjoint-seat grade with the probe's
+   amendment: identity-valued bits (the both-bare degenerate bits,
+   `exchangeTwin = st`) price at ZERO — the torsor counts `2^k'`
+   over the NON-IDENTITY licensed bits; the licensed-chain reading
+   rides the license-stability row (a disjoint-seat family's
+   licenses survive one another's bits — the drift-free cube datum
+   as theorem).
+
+**THE COMPOSED DECOMPOSITION (the card's capstone, recorded with its
+DEPENDENCE DIRECTION; not forged here):** one sameOrbit class ≈
+(the canon anchor + the pull ladder — the decompression card's
+two-letter fiber, THEIR `finalWiggle_reach` / `canon_draw` landing)
+× (the licensed swap bits, priced by the landing-2 `exch_free`)
+⊎ (the conjugation shadow — twin pairs with no physical witness,
+hidden/waste-resident).  **The worried-twin bit is EXCHANGE-PRICED
+AT THE TIP LEVEL**: this card's B2 A2-highway witness (canon u
+–pull→ u –exchange→ v –pull→ canon v) is its price tag — the
+exchange lives in the ACCOMMODATION PREFIX between the canon images,
+never at canon level.  This decomposition is BLOCKED-ON-DECOMPRESS
+(the canon-prime normalizer and the two-letter padding are their
+landing-2 content); this card lands the swap-bit side (freeness,
+locality), the forgetful map, and the spine — the composed
+statement assembles when their fiber lands.
+
+**COORDINATION NOTES (relayed through the coordinator's
+landing-3 call):** (i) the twin-kings cell is COMMON MATERIAL — this
+battery and the decompression card's A-next probes share it; (ii)
+the B2 witness REINSTATES THE SLIDE LETTER in the decompression
+card's cone alphabet: their σ-absorption of slides is refuted at
+this cell (a cargo-covered member is pull-unreachable — the slide
+leg is load-bearing in the accommodation prefix); their §9 menu's
+`canon'_shuffleEq` inherits the same fork warning this battery
+recorded at the canon grade.
+
+**LANDINGS 2 AND 3 — COMPLETED (2026-10-11 later, same branch;
+`Orig/TwinExchangeQuotient.lean` §5–§8, all heads audited fresh,
+in-file):**
+
+* **Landing 2** (commit follows the landing-1 probe verdicts): the
+  realizations went PUBLIC (`step_realize_fwd`/`_bwd` in
+  `Orig/TwinExchange.lean`, the two-line pathway the chapter header
+  itself named).  `exch_leg_RevEqW`: every licensed bare exchange
+  is a ONE-MOVE witness shuffle both directions (cargo-side via the
+  realization-pair, twin-side through `State.exchangeTwin_pair`,
+  both-bare reflexive); `exch_chain_RevEqW` walks chains;
+  `exch_le_sameOrbit` is the coarsening row;
+  `exchOrbit_to_sameOrbit` the forgetful map (surjective via
+  `Quotient.exists_rep`, NOT injective by the B2 exhibit's
+  meaning).  `exch_local_pair` (per-pair locality, named per the
+  card); `exch_pileHolding_off` (off-seat cards keep their seat —
+  the location half of the old private relocate census done in
+  four lines through Integrity's search-exactness iff);
+  `exchange_piles_congr` (the seat-data congruence of the single
+  exchange); `exch_superpose` (the disjoint-family superposition:
+  a pair-distinct seat-disjoint fold is the per-pile union of the
+  BASE-DATA single writes — every pile off the seats verbatim,
+  WF-gated, license-free); `exchangeTwin_ne_self_pile` (the probe's
+  identity-pricing amendment as the engine row);
+  `exch_free` (the torsor freeness at the disjoint-seat grade,
+  non-identity bits only — the 2³ census as theorem);
+  `exchAll_wf` + `twinExchOK_exchAll` (the drift-free cube datum as
+  theorem: a disjoint-seat family's bit executions preserve every
+  other pair's license — the licensed-chain reading of the torsor).
+* **Landing 3** (the composed spine, per the coordinator's call):
+  `PhysEq` — the physical generator closure, the card's working
+  definition (refl + `RevEqW` shuffles + `ExchStep` exchanges +
+  trans); `physEq_wf` (the closure preserves `WF`: witness shuffles
+  are legal walks through `step_wf`, licensed exchanges ride the
+  located license — note: `step_wf` needed
+  `import Orig.Reach`, the same one-import addition the canlaw
+  session used for Canonical, cycle-free both times);
+  `exch_canon_comm` — one licensed exchange's canon row at the
+  Option-1 macro-state grade (`canonQ_of_orbit` over the sameOrbit
+  edge of `exch_leg_RevEqW`); `revEqW_canon` — the shuffle leg's
+  row; and **`canonQ_of_physOrbit'`** — THE SPINE, single-gated:
+  `u.WF → PhysEq u v → ⟦canon u⟧ = ⟦canon v⟧`.  Refl reflexive,
+  the shuffle case rides the banked `canonQ_of_orbit` (the
+  BLOCKED-ON-DECOMPRESS shuffle leg of the menu's literal canon
+  form is superseded by the regrade — the literal
+  `canon'_shuffleEq` remains the decompression card's own
+  two-letter content, with this battery's fork warning recorded),
+  the exchange case cites `exch_canon_comm`, trans composes.  The
+  exchanges-only literal form is RECORD-CLOSED in-file (the §8
+  tombstone) and here: refuted by exhibit, the founds split is
+  structural (`State.exchangeTwin_found`), and the ⟪⟫-separation is
+  the worried-twin bit's receipt.
+* **Audits**: every new head — `exch_leg_RevEqW`,
+  `exch_chain_RevEqW`, `exch_le_sameOrbit`, the forgetful map trio,
+  `exch_local_pair`, `exch_pileHolding_off`, `exchange_piles_congr`,
+  `exch_superpose`, `exchangeTwin_ne_self_pile`, `exch_free`,
+  `exchAll_wf`, `twinExchOK_exchAll`, `exch_canon_comm`,
+  `revEqW_canon`, `physEq_wf_canon`, `physEq_wf`,
+  `canonQ_of_physOrbit'`, the `PhysEq` constructors — audited
+  fresh in-file at `[propext]` or `[propext, Quot.sound]`; ZERO
+  sorry, zero native_decide, zero `Classical.choice`; `lake build
+  Orig` green at 28 jobs.
+* **What deliberately did NOT land**: the fiber-restricted literal
+  exchanges-only row (analysis layer) stays probe-evidenced (the
+  B1 cell certifies the benign fiber; no general theorem claimed —
+  the saturation-interplay is the decompression card's
+  `canon_slide` world, and the fork cell stands as the boundary);
+  the composed macro-class decomposition (≈ (canon anchor + pull
+  ladder) × licensed swap-bits ⊎ conjugation shadow) stays
+  BLOCKED-ON-DECOMPRESS, ledgered above with its dependence
+  direction and the B2 highway as the worried-twin bit's price
+  tag; no `canon'` content was forged.
+
 
 
 ## 9. The canon-side completion card (2026-10-11, branch `orig-canon-decompress`; landing-1 probe battery GREEN, all verdicts in)

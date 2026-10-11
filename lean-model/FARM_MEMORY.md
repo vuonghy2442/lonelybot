@@ -3970,3 +3970,52 @@ file structure orig/CanV3.lean, single-chapter end state, bridge
 gates, spawn waits on canlaw's fork verdicts); and the interpretive
 doctrine: user refinements get recorded physical-register-first,
 virtual-grade translation second.
+
+## Orig/TwinExchangeQuotient.lean — the exch-canlaw card's engine notes (2026-10-11, orig-exch-canlaw)
+
+- PROBE CRAFT: a state-literal probe-cell stock MUST exclude the
+  FOUNDED cards too (filter the universe by an exclusion LIST
+  covering founds+seats) — the first battery draft double-counted
+  foundation cards in the stock and its own WF mirror caught it.
+  Kernel-decide the canon FORK before trusting any commutation
+  square: one licensed exchange at twin rung-ready bare kings
+  decides which king saturates (canon wings split founds 13/12 vs
+  12/13), killing the exchanges-only literal/quotient pinch; the
+  honest witness is pull–exchange–pull (canon --foundToTab--> u
+  --exchange--> v <--foundToTab-- canon), all legs step-decided.
+- `rcases H with rfl | h` on `t ∈ t₀ :: tail` SUBSTITUTES t₀ AWAY
+  (the fvar intro'd later wins) — later t₀-references go unknown.
+  Safe recipe: `rcases List.mem_cons.mp ht with heq | htail` then
+  `rw [heq] at h1 h2` + `rw [heq]` on the goal.  Same for
+  `subst hab` with hab : a = a₀ — it may eliminate a₀, not a:
+  prefer `rw [hab, hab']` on the goal.
+- `injection h with h'` in Lean 4.34 AUTO-CLOSES when the new hyp
+  matches the goal — the trailing `exact h'` then errors "No goals
+  to be solved".  Drop the exact (or check first).
+- Dot-projection `h.1` on a def-wrapped ∃ (`RevEqW`) fails with the
+  misleading "non-propositional type": `obtain ⟨σ, hσ, -, -⟩ := h`
+  is the house route.
+- `obtain ⟨..⟩ := hok` CLEARS `hok` even when used LATER in the
+  same proof — pass the rebuilt tuple `⟨a, b, c, d⟩` to later
+  calls instead of the cleared name.
+- The anonymous-constructor `⟨by rw [..]; exact .., by ...⟩` with
+  by-blocks spanning lines is a parse trap: one-line with `;`
+  inside parens, or restructure as prior `have`s.
+- `step_wf` (Reach) is only visible if you `import Orig.Reach` —
+  Canonical does NOT import it at the macro-game tip; the canlaw
+  session hit the same one-import need (cycle-free: Reach sits
+  below both consumers).
+- Reusable engine rows now landed public on the branch:
+  `exch_pileHolding_off` (off-seat cards keep their seat; Integrity
+  `pileHolding_eq_some_iff`'s mpr does all the arm-analysis in one
+  line), `exchange_piles_congr` (seat-pile congruence of the
+  single exchange), `exch_superpose` (disjoint-family composite =
+  base-data superposition), `exchangeTwin_ne_self_pile` (identity
+  pricing: genuine bits write their own seat differently),
+  `exch_free` (torsor freeness over non-identity bits),
+  `twinExchOK_exchAll` (license stability across disjoint-seat
+  composites), `PhysEq` + `canonQ_of_physOrbit` (the macro-state
+  spine, single-gated through `physEq_wf_canon`).  Wrong route on
+  record: the exchanges-only ⟪⟫ spine (refuted-by-exhibit,
+  tombstone in-file; founds split is structural via
+  `State.exchangeTwin_found`).
