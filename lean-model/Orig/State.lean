@@ -95,6 +95,15 @@ theorem list_cons_of_ne_nil {α : Type} {l : List α} (h : l ≠ []) :
   | nil => exact absurd rfl h
   | cons x t => exact ⟨x, t, rfl⟩
 
+/-- A non-`none` option carries a value — the trivia kit's option
+row (landed at the dedup-collapse wave; the private copies in
+`Orig/Classify.lean` and `Orig/Phase.lean` cite this home). -/
+theorem option_some_of_ne_none {α : Type} {o : Option α} (h : o ≠ none) :
+    ∃ v, o = some v := by
+  cases o with
+  | none => exact absurd rfl h
+  | some v => exact ⟨v, rfl⟩
+
 /-! ## List helpers (self-contained) -/
 
 /-- The last element of a list. -/
@@ -150,6 +159,22 @@ theorem lastOf_eq_snoc : ∀ {l : List Card} {c : Card},
           show x :: (y :: t') = x :: (front ++ [c])
           rw [hfe]
 
+/-- A nonempty list has a last element (landed at the dedup-collapse
+wave; the private copies in `Orig/Canonical.lean` and
+`Orig/Dominance.lean` cite this home). -/
+theorem lastOf_exists : ∀ {l : List Card}, l ≠ [] → ∃ z, lastOf l = some z := by
+  intro l
+  induction l with
+  | nil => intro hne; exact absurd rfl hne
+  | cons x t ih =>
+      intro _
+      cases t with
+      | nil => exact ⟨x, rfl⟩
+      | cons y t' =>
+          obtain ⟨z, hz⟩ := ih (by simp)
+          have hll : lastOf (x :: y :: t') = lastOf (y :: t') := rfl
+          exact ⟨z, by rw [hll]; exact hz⟩
+
 /-- A list without its last element. -/
 def chop : List Card → List Card
   | [] => []
@@ -161,10 +186,63 @@ def below (c : Card) : List Card → List Card
   | [] => []
   | x :: t => if x = c then [] else x :: below c t
 
+/-- `below` reads a cons by cases on the head (landed beside the def
+at the dedup-collapse wave; the private copies in `Orig/Reach.lean`
+and `Orig/EdgeLabel.lean` cite this home). -/
+theorem below_cons (c x : Card) (t : List Card) :
+    below c (x :: t) = if x = c then [] else x :: below c t := rfl
+
+/-- Everything below `c` is in the list (the `below` membership row;
+`Orig/Reach.lean`'s and `Orig/PileSwap.lean`'s private copies cite
+this home, `Orig/Dominance.lean`'s at its wave). -/
+theorem mem_below {c x : Card} : ∀ (l : List Card), x ∈ below c l → x ∈ l := by
+  intro l
+  induction l with
+  | nil => intro h; exact absurd h List.not_mem_nil
+  | cons y t ih =>
+      intro h
+      rw [below_cons] at h
+      by_cases hyc : y = c
+      · rw [ite_eq_left hyc] at h; exact absurd h List.not_mem_nil
+      · rw [ite_eq_right hyc] at h
+        rcases List.mem_cons.mp h with h' | h'
+        · exact List.mem_cons.mpr (Or.inl h')
+        · exact List.mem_cons.mpr (Or.inr (ih h'))
+
 /-- The face-up run from `c` upward, inclusive. -/
 def fromCard (c : Card) : List Card → List Card
   | [] => []
   | x :: t => if x = c then x :: t else fromCard c t
+
+/-- The run from `c` of a run that starts at `c` is the run (the
+`fromCard` head row; `Orig/Classify.lean`'s private copy cites this
+home). -/
+theorem fromCard_head_eq {c : Card} {t : List Card} :
+    fromCard c (c :: t) = c :: t := by
+  rw [fromCard, ite_eq_left rfl]
+
+/-- A run reached from a member is headed at that card (the `fromCard`
+member row; `Orig/EdgeLabel.lean`'s private copy cites this home). -/
+theorem fromCard_eq_head_of_mem {c : Card} : ∀ {l : List Card}, c ∈ l →
+    ∃ t, fromCard c l = c :: t := by
+  intro l
+  induction l with
+  | nil => intro h; exact absurd h (by simp)
+  | cons x t ih =>
+      intro h
+      rcases List.mem_cons.1 h with rfl | hm
+      · refine ⟨t, ?_⟩
+        show (if c = c then (c :: t) else fromCard c t) = c :: t
+        rw [ite_eq_left rfl]
+      · obtain ⟨t', hrun⟩ := ih hm
+        by_cases hxc : x = c
+        · refine ⟨t, ?_⟩
+          show (if x = c then (x :: t) else fromCard c t) = c :: t
+          rw [ite_eq_left hxc, hxc]
+        · refine ⟨t', ?_⟩
+          show (if x = c then (x :: t) else fromCard c t) = c :: t'
+          rw [ite_eq_right hxc]
+          exact hrun
 
 /-! ## Piles -/
 
@@ -476,6 +554,30 @@ theorem runOK_chop : ∀ {l : List Card}, runOK l = true → runOK (chop l) = tr
               rw [runOK, h.1, hi]
               rfl
 
+/-- A legal run sits each card on the one below: the premise of
+the under-seat undo (landed at the dedup-collapse wave; the private
+copies in `Orig/Canonical.lean` and `Orig/Dominance.lean` cite this
+home). -/
+theorem runOK_snoc_sit {c : Card} : ∀ {l : List Card}, l ≠ [] →
+    runOK (l ++ [c]) = true → ∃ z, lastOf l = some z ∧ canSitOn c z = true := by
+  intro l
+  induction l with
+  | nil => intro hne _; exact absurd rfl hne
+  | cons x t ih =>
+      intro _ h
+      cases t with
+      | nil =>
+          refine ⟨x, rfl, ?_⟩
+          have hexp : runOK (x :: ([] : List Card) ++ [c]) = (canSitOn c x && true) := rfl
+          rw [hexp, Bool.and_true] at h
+          exact h
+      | cons y t' =>
+          have hexp : runOK (x :: (y :: t') ++ [c]) =
+              (canSitOn y x && runOK ((y :: t') ++ [c])) := rfl
+          rw [hexp, Bool.and_eq_true] at h
+          obtain ⟨z, hz, hsit⟩ := ih (by simp) h.2
+          exact ⟨z, hz, hsit⟩
+
 /-! ## The foundation-update readers
 
 The per-suit writes of `State.setFound`, landed beside the census
@@ -493,3 +595,13 @@ theorem setFound_found_ne {st : State} {s s' : Suit} {l : List Card}
     (h : s' ≠ s) :
     (st.setFound s l).found s' = st.found s' :=
   show (if s' = s then l else st.found s') = _ from ite_eq_right h
+
+/-- The holding search reads only the piles (landed at the
+dedup-collapse wave; the private copies in `Orig/TwinExchangeBoth.lean`
+and `Orig/Dominance.lean` cite this home). -/
+theorem pileHolding_congr {st s' : State} {c : Card}
+    (hp : s'.piles = st.piles) :
+    s'.pileHolding c = st.pileHolding c := by
+  show (firstWhere (fun a => decide (c ∈ (s'.piles a).faceUp)) Anchor.all) = _
+  rw [hp]
+  rfl

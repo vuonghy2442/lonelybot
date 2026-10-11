@@ -354,9 +354,6 @@ private theorem lastOf_ne_nil : ∀ (l : List Card), l ≠ [] → ∃ x, lastOf 
       obtain ⟨w, hw⟩ := lastOf_ne_nil (y :: t) (by cases t <;> simp)
       exact ⟨w, hw⟩
 
-private theorem below_cons (c x : Card) (t : List Card) :
-    below c (x :: t) = if x = c then [] else x :: below c t := rfl
-
 private theorem fromCard_cons (c x : Card) (t : List Card) :
     fromCard c (x :: t) = if x = c then x :: t else fromCard c t := rfl
 
@@ -370,20 +367,6 @@ private theorem below_fromCard (c : Card) : ∀ (l : List Card),
       by_cases hxc : x = c
       · rw [ite_eq_left hxc, ite_eq_left hxc]; rfl
       · rw [ite_eq_right hxc, ite_eq_right hxc, List.cons_append, ih]
-
-private theorem mem_below {c x : Card} : ∀ (l : List Card), x ∈ below c l → x ∈ l := by
-  intro l
-  induction l with
-  | nil => intro h; exact absurd h List.not_mem_nil
-  | cons y t ih =>
-      intro h
-      rw [below_cons] at h
-      by_cases hyc : y = c
-      · rw [ite_eq_left hyc] at h; exact absurd h List.not_mem_nil
-      · rw [ite_eq_right hyc] at h
-        rcases List.mem_cons.mp h with h' | h'
-        · exact List.mem_cons.mpr (Or.inl h')
-        · exact List.mem_cons.mpr (Or.inr (ih h'))
 
 private theorem mem_fromCard {c x : Card} : ∀ (l : List Card), x ∈ fromCard c l → x ∈ l := by
   intro l

@@ -956,14 +956,6 @@ landed bare row closes the tail.
 they agree on pile-equivalent states, and the exchange itself does
 too. -/
 
-/-- The holding search reads only the piles. -/
-private theorem pileHolding_congr {st s' : State} {c : Card}
-    (hp : s'.piles = st.piles) :
-    s'.pileHolding c = st.pileHolding c := by
-  show (firstWhere (fun a => decide (c ∈ (s'.piles a).faceUp)) Anchor.all) = _
-  rw [hp]
-  rfl
-
 /-- The top search reads only the piles. -/
 private theorem pileHolding_all_congr {st s' : State}
     (hp : s'.piles = st.piles) :
@@ -3163,17 +3155,6 @@ private theorem step_tabToTab_shape {st s₁ : State} {c : Card} {b : Base}
                 rw [hr]
                 exact (Option.some.inj hstep).symm
               exact ⟨a, rfl, rfl, hs₁'⟩
-
-/-- A `putRun` touches no zone outside the piles — the run form of
-`putCard_keep` (dedup-marked against that home). -/
-private theorem putRun_keep {st : State} {run : List Card} {b : Base} :
-    (st.putRun run b).found = st.found ∧ (st.putRun run b).stock = st.stock ∧
-      (st.putRun run b).waste = st.waste ∧ (st.putRun run b).drawStep = st.drawStep := by
-  cases b with
-  | inl a => exact ⟨rfl, rfl, rfl, rfl⟩
-  | inr z =>
-      simp only [State.putRun]
-      split <;> exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-- A revealed card came from the hidden deck. -/
 private theorem mem_revealTop {q : Pile} {e : Card}

@@ -565,10 +565,8 @@ theorem stackRun_length_le_52 {st : State} {l : List Move} {w : State}
 
 The fences of this chapter consume the occurrence half of `WF`:
 every real card sits in exactly one place.  The zone algebra below
-re-derives, privately and locally, the small pieces the count
-transport needs — the siblings of `Orig.Integrity`'s private
-occurrence machinery are listed for the harvest desk's dedup.
--/
+cites the public count-kit rows of `Orig.Integrity` directly since
+the dedup-collapse wave (the former local mirrors are deleted). -/
 
 /-- The list-map congruence used to shuffle zone functions. -/
 private theorem map_congr_eq {α β : Type} {l : List α} {f g : α → β}
@@ -580,19 +578,6 @@ private theorem map_congr_eq {α β : Type} {l : List α} {f g : α → β}
       have h2 := ih (fun z hz => h z (by simp [hz]))
       simp only [List.map_cons, h1, h2]
 
-/-- The flat-map append split (same lemma as `Orig.Integrity`'s
-private `flatMapAppend` and witnesses elsewhere; a dedup
-candidate). -/
-private theorem flatMap_append {α β : Type} (f : α → List β) :
-    ∀ (A B : List α), List.flatMap f (A ++ B) = List.flatMap f A ++ List.flatMap f B := by
-  intro A
-  induction A with
-  | nil => intro B; rfl
-  | cons x t ih =>
-      intro B
-      show f x ++ List.flatMap f (t ++ B) = (f x ++ List.flatMap f t) ++ List.flatMap f B
-      rw [ih, List.append_assoc]
-
 /-- The filtered flat map length, split at a list boundary. -/
 private theorem flat_filter_length_split {x : Card} :
     ∀ (Z1 Z2 : List (List Card)),
@@ -603,7 +588,7 @@ private theorem flat_filter_length_split {x : Card} :
   show (((Z1 ++ Z2).flatMap id).filter fun y => decide (y = x)).length =
     ((Z1.flatMap id).filter fun y => decide (y = x)).length +
     ((Z2.flatMap id).filter fun y => decide (y = x)).length
-  rw [flatMap_append, List.filter_append, List.length_append]
+  rw [flatMapAppend, List.filter_append, List.length_append]
 
 
 /-- A card with no occurrence filters to length zero. -/
@@ -659,34 +644,7 @@ private theorem filter_snoc_card {x c : Card} : ∀ {l : List Card},
       show (l.filter fun y => decide (y = x)).length + 0 =
         (l.filter fun y => decide (y = x)).length + 0
       rfl
-
 /-! ### Zone splits and per-slot transports -/
-
-private def preAnchors : Anchor → List Anchor
-  | .p0 => [] | .p1 => [.p0] | .p2 => [.p0, .p1] | .p3 => [.p0, .p1, .p2]
-  | .p4 => [.p0, .p1, .p2, .p3] | .p5 => [.p0, .p1, .p2, .p3, .p4]
-  | .p6 => [.p0, .p1, .p2, .p3, .p4, .p5]
-
-private def sufAnchors : Anchor → List Anchor
-  | .p0 => [.p1, .p2, .p3, .p4, .p5, .p6] | .p1 => [.p2, .p3, .p4, .p5, .p6]
-  | .p2 => [.p3, .p4, .p5, .p6] | .p3 => [.p4, .p5, .p6]
-  | .p4 => [.p5, .p6] | .p5 => [.p6] | .p6 => []
-
-/-- (A private copy of `Orig.Integrity`'s same-named private; a dedup
-candidate.) -/
-private theorem anchor_split (a : Anchor) :
-    Anchor.all = preAnchors a ++ [a] ++ sufAnchors a := by cases a <;> rfl
-
-private def preSuits : Suit → List Suit
-  | .spade => [] | .heart => [.spade] | .diamond => [.spade, .heart]
-  | .club => [.spade, .heart, .diamond]
-
-private def sufSuits : Suit → List Suit
-  | .spade => [.heart, .diamond, .club] | .heart => [.diamond, .club]
-  | .diamond => [.club] | .club => []
-
-private theorem suit_split (σ : Suit) :
-    Suit.all = preSuits σ ++ [σ] ++ sufSuits σ := by cases σ <;> rfl
 
 private theorem pre_suits_ne (σ : Suit) : ∀ τ ∈ preSuits σ, τ ≠ σ := by
   cases σ <;> intro τ hτ heq <;> rw [heq] at hτ <;> simp [preSuits] at hτ
@@ -699,10 +657,6 @@ private theorem pre_anchors_ne (a : Anchor) : ∀ a' ∈ preAnchors a, a' ≠ a 
 
 private theorem suf_anchors_ne (a : Anchor) : ∀ a' ∈ sufAnchors a, a' ≠ a := by
   cases a <;> intro a' ha' heq <;> rw [heq] at ha' <;> simp [sufAnchors] at ha'
-
-/-- One pile's whole zone, hidden cards under face up. -/
-private def pileZone (st : State) (a : Anchor) : List Card :=
-  (st.piles a).hidden ++ (st.piles a).faceUp
 
 /-- The flat-map congruence over zone functions. -/
 private theorem flat_congr {α β : Type} {l : List α} {f g : α → List β}
@@ -733,7 +687,7 @@ private theorem cardCount_split (st : State) {x : Card} {Z1 Z2 : List (List Card
     st.cardCount x = zoneCount Z1 x + zoneCount Z2 x := by
   show (((st.zones.flatMap id).filter fun y => decide (y = x)).length) =
     zoneCount Z1 x + zoneCount Z2 x
-  rw [h, flatMap_append, List.filter_append, List.length_append]
+  rw [h, flatMapAppend, List.filter_append, List.length_append]
   rfl
 
 /-- The count of one zone: the flat census is the per-zone sum. -/
@@ -813,42 +767,6 @@ private theorem take_snoc_get (n : Nat) : ∀ (l : List Card) (hl : n < l.length
           have e3 : ((y :: t) : List Card)[n + 1]'(by show n + 1 < t.length + 1; omega) = t[n] := rfl
           rw [e1, e2, e3, hrec, List.cons_append]
 
-
-/-- A legal run sits each card on the one below: the premise of
-the under-seat undo. -/
-private theorem runOK_snoc_sit {c : Card} : ∀ {l : List Card}, l ≠ [] →
-    runOK (l ++ [c]) = true → ∃ z, lastOf l = some z ∧ canSitOn c z = true := by
-  intro l
-  induction l with
-  | nil => intro hne _; exact absurd rfl hne
-  | cons x t ih =>
-      intro _ h
-      cases t with
-      | nil =>
-          refine ⟨x, rfl, ?_⟩
-          have hexp : runOK (x :: ([] : List Card) ++ [c]) = (canSitOn c x && true) := rfl
-          rw [hexp, Bool.and_true] at h
-          exact h
-      | cons y t' =>
-          have hexp : runOK (x :: (y :: t') ++ [c]) =
-              (canSitOn y x && runOK ((y :: t') ++ [c])) := rfl
-          rw [hexp, Bool.and_eq_true] at h
-          obtain ⟨z, hz, hsit⟩ := ih (by simp) h.2
-          exact ⟨z, hz, hsit⟩
-
-/-- A nonempty list has a last element. -/
-private theorem lastOf_exists : ∀ {l : List Card}, l ≠ [] → ∃ z, lastOf l = some z := by
-  intro l
-  induction l with
-  | nil => intro hne; exact absurd rfl hne
-  | cons x t ih =>
-      intro _
-      cases t with
-      | nil => exact ⟨x, rfl⟩
-      | cons y t' =>
-          obtain ⟨z, hz⟩ := ih (by simp)
-          have hll : lastOf (x :: y :: t') = lastOf (y :: t') := rfl
-          exact ⟨z, by rw [hll]; exact hz⟩
 
 /-! ### The licensed lift preserves `WF` -/
 
@@ -1816,16 +1734,6 @@ equations are exposed here as local mirrors (DEDUP-marked: the bodies
 follow the landed family's internals exactly; at harvest, promote the
 family's own internals to public step lemmas and delete these). -/
 
-/-- One move runs by stepping it (a local kin of the private helpers
-in `Orig.Shuttle` / `Orig.Phase`; a dedup candidate). -/
-private theorem run_one {st : State} {m : Move} {s : State}
-    (h : State.step st m = some s) : st.run [m] = some s := by
-  show (match State.step st m with
-    | some st' => st'.run []
-    | none => none) = some s
-  rw [h]
-  rfl
-
 /-- An `inr` placement, written as one state update (the local kin of
 `Orig.Irreversible`'s private `putCard_inr_eq_setPile`; dedup
 candidate). -/
@@ -2655,7 +2563,7 @@ private theorem stepDraw_inv {x y : State} (hsuc : x.stepDraw = some y) :
       rw [hh]
 
 /-- The recycle keeps the pool. -/
-private theorem recycle_pool (st : State) :
+theorem recycle_pool (st : State) :
     drawPool st.recycle = drawPool st := by
   cases hs : st.stock with
   | nil =>

@@ -131,16 +131,6 @@ private theorem step_foundToTab_eq {st : State} {c : Card} {b : Base}
     some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
   rw [ite_eq_left hcond]
 
-/-- One move runs by stepping it. -/
-private theorem run_one {st : State} {m : Move} {s : State}
-    (h : State.step st m = some s) :
-    st.run [m] = some s := by
-  show (match State.step st m with
-    | some st' => State.run st' []
-    | none => none) = some s
-  rw [h]
-  rfl
-
 /-- The shuttle's mid state: `u` with its waste head consumed
 (`c :: ws` became `ws`) and the card `c` raised onto its own
 foundation.  The piles, the stock, and the draw step are `u`'s

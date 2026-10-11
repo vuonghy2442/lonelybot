@@ -163,6 +163,18 @@ theorem run_cons {st : State} {m : Move} {rest : List Move} {w : State}
 
 end State
 
+/-- A single move runs by stepping it (the run glue beside
+`State.run_cons`; landed at the dedup-collapse wave — the private
+copies in `Orig/Shuttle.lean` and `Orig/Canonical.lean` cite this
+home). -/
+theorem run_one {st : State} {m : Move} {s : State}
+    (h : State.step st m = some s) : st.run [m] = some s := by
+  show (match State.step st m with
+    | some st' => State.run st' []
+    | none => none) = some s
+  rw [h]
+  rfl
+
 /-! ## Update readers
 
 The located readers for `State.putCard` / `State.putRun`, and the
@@ -210,6 +222,20 @@ theorem putRun_inr_eq {st : State} {run : List Card} {z : Card} {k : Anchor}
   rw [show st.putRun run (Sum.inr z) =
     st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run } from by
     simp only [State.putRun, h]]
+
+/-- A run landing with no search hit changes nothing — the `none`
+companion of `putRun_inr_eq` (landed at the dedup-collapse wave; the
+private copies in `Orig/Classify.lean` and `Orig/EdgeLabel.lean`'s
+pointwise row below cite this home). -/
+theorem putRun_inr_none {st : State} {run : List Card} {z : Card}
+    (hz : st.pileOfTop z = none) : st.putRun run (Sum.inr z) = st := by
+  simp only [State.putRun, hz]
+
+/-- The pointwise-pile reading of `putRun_inr_none`. -/
+theorem putRun_inr_none_piles {st : State} {run : List Card} {z : Card}
+    (hz : st.pileOfTop z = none) (a' : Anchor) :
+    (st.putRun run (Sum.inr z)).piles a' = st.piles a' :=
+  congrArg (fun s => s.piles a') (putRun_inr_none hz)
 
 /-! ## The draw readers
 
@@ -259,6 +285,20 @@ theorem putCard_keep {st : State} {c : Card} {b : Base} :
   | inl a => exact ⟨rfl, rfl, rfl, rfl⟩
   | inr z =>
       simp only [State.putCard]
+      split <;> exact ⟨rfl, rfl, rfl, rfl⟩
+
+/-- `putRun` keeps the same four fields verbatim — the run form of
+`putCard_keep` (landed at the dedup-collapse wave; the private copies
+in `Orig/Phase.lean`, `Orig/TwinExchangeBoth.lean`, and
+`Orig/Dominance.lean`'s three-field port at its wave cite this home;
+the Dominance port keeps only stock/waste/drawStep). -/
+theorem putRun_keep {st : State} {run : List Card} {b : Base} :
+    (st.putRun run b).found = st.found ∧ (st.putRun run b).stock = st.stock ∧
+      (st.putRun run b).waste = st.waste ∧ (st.putRun run b).drawStep = st.drawStep := by
+  cases b with
+  | inl a => exact ⟨rfl, rfl, rfl, rfl⟩
+  | inr z =>
+      simp only [State.putRun]
       split <;> exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-- The exact split of `dealUpTo` into take and drop: dealing `k` cards

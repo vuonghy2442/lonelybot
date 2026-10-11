@@ -361,9 +361,6 @@ private theorem pileOfTop_ne_of_bare {st : State} {a : Anchor}
   rw [hemp.2] at hfe
   exact absurd hfe (by simp)
 
-private theorem below_cons (c x : Card) (t : List Card) :
-    below c (x :: t) = if x = c then [] else x :: below c t := rfl
-
 private theorem head_eq_of_below_nil {c x : Card} {t : List Card}
     (h : below c (x :: t) = []) : x = c := by
   rw [below_cons] at h
@@ -399,28 +396,6 @@ private theorem faceUp_head_of_chop : ∀ {l : List Card} {g : Card} {t : List C
           rw [hch] at h
           injection h with hxg _
           exact ⟨y :: ys, by rw [hxg]⟩
-
-/-- The run a run-move moves is headed at its run-head card. -/
-private theorem fromCard_eq_head_of_mem {c : Card} : ∀ {l : List Card}, c ∈ l →
-    ∃ t, fromCard c l = c :: t := by
-  intro l
-  induction l with
-  | nil => intro h; exact absurd h (by simp)
-  | cons x t ih =>
-      intro h
-      rcases List.mem_cons.1 h with rfl | hm
-      · refine ⟨t, ?_⟩
-        show (if c = c then (c :: t) else fromCard c t) = c :: t
-        rw [ite_eq_left rfl]
-      · obtain ⟨t', hrun⟩ := ih hm
-        by_cases hxc : x = c
-        · refine ⟨t, ?_⟩
-          show (if x = c then (x :: t) else fromCard c t) = c :: t
-          rw [ite_eq_left hxc, hxc]
-        · refine ⟨t', ?_⟩
-          show (if x = c then (x :: t) else fromCard c t) = c :: t'
-          rw [ite_eq_right hxc]
-          exact hrun
 
 /- The search reads ride the public State kit (`firstWhere_find`,
 `firstWhere_sound`, `firstWhere_congr` in Twin) — consumed at the
@@ -552,15 +527,6 @@ private theorem putRun_inl_piles {st : State} {run : List Card} {k a' : Anchor}
   show (if a' = k then ⟨[], run⟩ else st.piles a') = st.piles a'
   exact ite_eq_right h
 
-/-- A run landing with no search hit changes nothing. -/
-private theorem putRun_inr_none {st : State} {run : List Card} {z : Card}
-    (hz : st.pileOfTop z = none) (a' : Anchor) :
-    (st.putRun run (Sum.inr z)).piles a' = st.piles a' := by
-  show (match st.pileOfTop z with
-    | some k => st.setPile k { st.piles k with faceUp := (st.piles k).faceUp ++ run }
-    | none => st).piles a' = st.piles a'
-  rw [hz]
-
 /-- The run landing on a located pile: the landing pile, face-up
 extended. -/
 private theorem putRun_inr_landing {st : State} {run : List Card} {z : Card} {k : Anchor}
@@ -643,24 +609,6 @@ private theorem dealUpTo_append_copy (k : Nat) : ∀ (l : List Card),
   rw [dealUpTo_eq_take_drop k l]
   show l.take k ++ l.drop k = l
   exact List.take_append_drop k l
-
-/-- Recycling keeps the pool: the waste reversed ahead of nothing is
-the waste ahead of an empty stock. -/
-private theorem recycle_pool (st : State) :
-    drawPool st.recycle = drawPool st := by
-  cases hs : st.stock with
-  | nil =>
-      cases hw : st.waste with
-      | nil =>
-          rw [show st.recycle = st from by simp only [State.recycle, hs, hw]]
-      | cons x t =>
-          rw [show st.recycle = { st with stock := (x :: t).reverse, waste := [] } from by
-              simp only [State.recycle, hs, hw]]
-          show ((x :: t).reverse).reverse ++ ([] : List Card) = st.stock.reverse ++ st.waste
-          rw [hs, hw, List.reverse_reverse, List.append_nil]
-          rfl
-  | cons y s =>
-      rw [show st.recycle = st from by simp only [State.recycle, hs]]
 
 /-- Dealing from a nonempty stock keeps the pool: the split reverses
 back onto itself. -/
@@ -901,7 +849,7 @@ private theorem leg_data {x y : State} {m : Move}
                               (Pile.afterRunRemoved (x.piles a)
                                 (below c (x.piles a).faceUp))).pileOfTop z with
                           | none =>
-                              rw [putRun_inr_none hz]
+                              rw [putRun_inr_none_piles hz]
                               by_cases ha : a' = a
                               · rw [hrP a', ite_eq_left ha, hbelow, hArb2, ha]
                                 exact hhid.symm
@@ -963,13 +911,13 @@ private theorem leg_data {x y : State} {m : Move}
                                   (below c (x.piles a).faceUp))).putRun
                                 (fromCard c (x.piles a).faceUp) (Sum.inr z)).piles a').faceUp
                                 = [] := by
-                                rw [putRun_inr_none hz, hrP a', ite_eq_left ha,
+                                rw [putRun_inr_none_piles hz, hrP a', ite_eq_left ha,
                                   hbelow, hArb2]
                               have hxA : (x.piles a').faceUp = c :: t := by
                                 rw [ha]; exact hfx0
                               rw [nzRoot_nil hyF, nzRoot_head hxA, ite_eq_left hk]
                             · exact nzRoot_congr_pile
-                                ((putRun_inr_none hz a').trans
+                                ((putRun_inr_none_piles hz a').trans
                                   ((hrP a').trans (ite_eq_right ha)))
                         | some k =>
                             have hka : k ≠ a := by
@@ -1066,7 +1014,7 @@ private theorem leg_data {x y : State} {m : Move}
                         (Pile.afterRunRemoved (x.piles a)
                           (below c (x.piles a).faceUp))).pileOfTop z with
                     | none =>
-                        rw [putRun_inr_none hz]
+                        rw [putRun_inr_none_piles hz]
                         by_cases ha : a' = a
                         · rw [hrP a', ite_eq_left ha, hbelow, hArb3, ha]
                         · rw [hrP a', ite_eq_right ha]
@@ -1126,13 +1074,13 @@ private theorem leg_data {x y : State} {m : Move}
                             (below c (x.piles a).faceUp))).putRun
                           (fromCard c (x.piles a).faceUp) (Sum.inr z)).piles a').faceUp
                           = z₀ :: pre' := by
-                          rw [putRun_inr_none hz, hrP a', ite_eq_left ha,
+                          rw [putRun_inr_none_piles hz, hrP a', ite_eq_left ha,
                             hbelow, hArb3]
                         have hxF : (x.piles a').faceUp = z₀ :: r := by
                           rw [ha, hfx0, hfz]
                         rw [nzRoot_head hyF, nzRoot_head hxF]
                       · exact nzRoot_congr_pile
-                          ((putRun_inr_none hz a').trans
+                          ((putRun_inr_none_piles hz a').trans
                             ((hrP a').trans (ite_eq_right ha)))
                   | some k =>
                       by_cases hk' : a' = k
@@ -1855,7 +1803,7 @@ theorem tipEdge_label_reveal {C D : SameOrbit} (e : TipEdge C D)
               (Pile.afterRunRemoved (e.c.piles a)
                 (below c (e.c.piles a).faceUp))).pileOfTop z with
           | none =>
-              rw [hsucc, putRun_inr_none hz]
+              rw [hsucc, putRun_inr_none_piles hz]
               exact congrArg Pile.hidden (setPile_piles_self)
           | some k =>
               have hpR : ((e.c.setPile a
@@ -1895,7 +1843,7 @@ theorem tipEdge_label_reveal {C D : SameOrbit} (e : TipEdge C D)
               (Pile.afterRunRemoved (e.c.piles a)
                 (below c (e.c.piles a).faceUp))).pileOfTop z with
           | none =>
-              rw [hsucc, putRun_inr_none hz]
+              rw [hsucc, putRun_inr_none_piles hz]
               rw [setPile_piles_ne hne]
           | some k =>
               by_cases hk' : a' = k
@@ -2004,7 +1952,7 @@ private theorem vacate_inr_root_none {st : State} {a : Anchor} {c : Card}
     cases hz : (st.setPile a
         (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).pileOfTop z with
     | none =>
-        rw [hsucc, putRun_inr_none hz]
+        rw [hsucc, putRun_inr_none_piles hz]
         exact hRbareF
     | some k =>
         have hka : k ≠ a :=
@@ -2043,7 +1991,7 @@ private theorem vacate_inr_hidden {st : State} {a : Anchor} {c : Card}
     cases hz : (st.setPile a
         (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).pileOfTop z with
     | none =>
-        rw [hsucc, putRun_inr_none hz, hRbareH]
+        rw [hsucc, putRun_inr_none_piles hz, hRbareH]
         exact hhd.symm
     | some k =>
         have hka : k ≠ a :=
@@ -2053,7 +2001,7 @@ private theorem vacate_inr_hidden {st : State} {a : Anchor} {c : Card}
   · cases hz : (st.setPile a
         (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).pileOfTop z with
     | none =>
-        rw [hsucc, putRun_inr_none hz, setPile_piles_ne hEq2]
+        rw [hsucc, putRun_inr_none_piles hz, setPile_piles_ne hEq2]
     | some k =>
         by_cases hk' : a' = k
         · rw [hsucc, hk', putRun_inr_landing hz]
@@ -2083,7 +2031,7 @@ private theorem vacate_inr_root_keep {st : State} {a : Anchor} {c : Card}
       (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).pileOfTop z with
   | none =>
       have hPu : (w.piles a') = (st.piles a') := by
-        rw [hsucc, putRun_inr_none hz, setPile_piles_ne hne]
+        rw [hsucc, putRun_inr_none_piles hz, setPile_piles_ne hne]
       exact (nzRoot_congr_pile hPu).symm
   | some k =>
       by_cases hk' : a' = k

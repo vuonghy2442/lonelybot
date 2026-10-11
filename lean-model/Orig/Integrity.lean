@@ -75,23 +75,25 @@ end Pile
 
 /-! ## Occurrence bookkeeping -/
 
-/-- A pile's whole zone, hidden cards under face-up ones. -/
-private def pileZone (st : State) (a : Anchor) : List Card :=
+/-- A pile's whole zone, hidden cards under face-up ones.  (Public
+home of the count-kit read since the dedup-collapse wave;
+`Orig/Canonical.lean`'s private copy cites this.) -/
+def pileZone (st : State) (a : Anchor) : List Card :=
   (st.piles a).hidden ++ (st.piles a).faceUp
 
 /-- The anchors before `a` in the deal order. -/
-private def preAnchors : Anchor → List Anchor
+def preAnchors : Anchor → List Anchor
   | .p0 => [] | .p1 => [.p0] | .p2 => [.p0, .p1] | .p3 => [.p0, .p1, .p2]
   | .p4 => [.p0, .p1, .p2, .p3] | .p5 => [.p0, .p1, .p2, .p3, .p4]
   | .p6 => [.p0, .p1, .p2, .p3, .p4, .p5]
 
 /-- The anchors after `a` in the deal order. -/
-private def sufAnchors : Anchor → List Anchor
+def sufAnchors : Anchor → List Anchor
   | .p0 => [.p1, .p2, .p3, .p4, .p5, .p6] | .p1 => [.p2, .p3, .p4, .p5, .p6]
   | .p2 => [.p3, .p4, .p5, .p6] | .p3 => [.p4, .p5, .p6]
   | .p4 => [.p5, .p6] | .p5 => [.p6] | .p6 => []
 
-private theorem anchor_split (a : Anchor) :
+theorem anchor_split (a : Anchor) :
     Anchor.all = preAnchors a ++ [a] ++ sufAnchors a := by
   cases a <;> rfl
 
@@ -99,7 +101,7 @@ private theorem anchor_ne_mem {a a' : Anchor} (hne : a' ≠ a) :
     a' ∈ preAnchors a ∨ a' ∈ sufAnchors a := by
   cases a <;> cases a' <;> simp_all [preAnchors, sufAnchors]
 
-private theorem flatMapAppend {α β : Type} (f : α → List β) :
+theorem flatMapAppend {α β : Type} (f : α → List β) :
     ∀ (A B : List α), List.flatMap f (A ++ B) = List.flatMap f A ++ List.flatMap f B := by
   intro A
   induction A with
@@ -110,8 +112,10 @@ private theorem flatMapAppend {α β : Type} (f : α → List β) :
       rw [ih, List.append_assoc]
 
 /-- Two card occurrences in separate flatMap blocks make the count
-at least two. -/
-private theorem count_ge_two_of_split {st : State} {c : Card} {A B : List (List Card)}
+at least two.  (Public home since the dedup-collapse wave; the
+private copies in `Orig/Classify.lean` and `Orig/Canonical.lean`
+cite this.) -/
+theorem count_ge_two_of_split {st : State} {c : Card} {A B : List (List Card)}
     (hsplit : st.zones = A ++ B) (hl : c ∈ A.flatMap id) (hr : c ∈ B.flatMap id) :
     2 ≤ st.cardCount c := by
   show 2 ≤ ((st.zones.flatMap id).filter fun x => decide (x = c)).length
@@ -272,20 +276,20 @@ tidy card against its private count kit).
 /-! ### The found-side splits -/
 
 /-- The suits before `s` in enumeration order. -/
-private def preSuits : Suit → List Suit
+def preSuits : Suit → List Suit
   | .spade => []
   | .heart => [.spade]
   | .diamond => [.spade, .heart]
   | .club => [.spade, .heart, .diamond]
 
 /-- The suits after `s` in enumeration order. -/
-private def sufSuits : Suit → List Suit
+def sufSuits : Suit → List Suit
   | .spade => [.heart, .diamond, .club]
   | .heart => [.diamond, .club]
   | .diamond => [.club]
   | .club => []
 
-private theorem suit_split (s : Suit) :
+theorem suit_split (s : Suit) :
     Suit.all = preSuits s ++ [s] ++ sufSuits s := by
   cases s <;> rfl
 

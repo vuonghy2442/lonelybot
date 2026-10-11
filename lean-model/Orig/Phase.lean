@@ -50,13 +50,6 @@ the main theorem.
 /-! ## Small helpers -/
 
 
-/-- A non-`none` option carries a value. -/
-private theorem option_some_of_ne_none {α : Type} {o : Option α} (h : o ≠ none) :
-    ∃ v, o = some v := by
-  cases o with
-  | none => exact absurd rfl h
-  | some v => exact ⟨v, rfl⟩
-
 /-- Every `Bool` is `true` or `false` (case analysis that never has to
 case on the term producing it). -/
 private theorem bool_dich (b : Bool) : b = true ∨ b = false := by
@@ -384,17 +377,6 @@ private theorem putCard_zone_keep (x : State) (c : Card) (b : Base) :
       simp only [State.putCard]
       split <;> exact ⟨rfl, rfl, rfl⟩
 
-/-- Placing a run on the tableau never touches the stock, the waste, or
-the draw step. -/
-private theorem putRun_keep (x : State) (run : List Card) (b : Base) :
-    (x.putRun run b).stock = x.stock ∧ (x.putRun run b).waste = x.waste ∧
-    (x.putRun run b).drawStep = x.drawStep := by
-  cases b with
-  | inl a => exact ⟨rfl, rfl, rfl⟩
-  | inr z =>
-      simp only [State.putRun]
-      split <;> exact ⟨rfl, rfl, rfl⟩
-
 /-- Building the waste top onto its foundation spends exactly one
 cycle-count unit. -/
 private theorem cycleCount_lt_wasteToFound {x y : State} {c : Card}
@@ -482,8 +464,8 @@ private theorem tabToTab_fixed {x y : State} {c : Card} {b : Base}
         rw [hfc'] at h
         simp only [Option.some.injEq] at h
         subst h
-        exact ⟨(putRun_keep _ _ _).1, (putRun_keep _ _ _).2.1,
-          (putRun_keep _ _ _).2.2⟩
+        exact ⟨putRun_keep.2.1, putRun_keep.2.2.1,
+          putRun_keep.2.2.2⟩
     · simp at h
 
 /-- **The per-move step table.**  Every legal move leaves the cycle
