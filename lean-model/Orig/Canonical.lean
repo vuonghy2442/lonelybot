@@ -363,25 +363,6 @@ inductive IsRaise : Move → Card → Prop
 def raise (st : State) (c : Card) : Option State :=
   st.step (Move.tabToFound c)
 
-/-- A successful tableau lift, as a shape lemma. -/
-private theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.tabToFound c) = some s') :
-    st.nextUp c = true ∧
-    ∃ a, st.pileOfTop c = some a ∧
-      s' = { st.setFound c.suit (st.found c.suit ++ [c]) with
-             piles := fun a' =>
-               if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-               else st.piles a' } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hn
-    split at h
-    · exact absurd h (by simp)
-    · rename_i _ a hp
-      injection h with hEq
-      exact ⟨hn, a, hp, hEq.symm⟩
-  · exact absurd h (by simp)
-
 /-- The foundation transport through a `setFound`, at the
 piles-updated lift shape. -/
 private theorem found_lift_shape (st : State) (c : Card) (a : Anchor) (σ : Suit) :
@@ -2460,50 +2441,12 @@ private theorem dealUpTo_min (k : Nat) : ∀ (l : List Card),
           rw [List.length_cons, List.length_cons, ih]
           omega
 
-/-- A local kin of `Orig.Irreversible`'s private inversions (dedup
-candidates): a successful `.foundToTab` locates the foundation top
-and lands the set-found-then-place shape. -/
-private theorem step_foundToTab_inv' {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.foundToTab c b) = some s') :
-    ∃ c', st.foundTop c.suit = some c' ∧ c' = c ∧ st.canPlace c b = true ∧
-      s' = (st.setFound c.suit (chop (st.found c.suit))).putCard c b := by
-  simp only [State.step] at h
-  split at h
-  · split at h
-    · rename_i _ c' ht hg
-      rw [Bool.and_eq_true] at hg
-      injection h with hEq
-      exact ⟨c', ht, of_decide_eq_true hg.1, hg.2, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A local kin of `Orig.Irreversible`'s private inversions (dedup
-candidate): a successful `.tabToTab` locates the run head, places
-legally, and lands the removal-then-placement shape. -/
-private theorem step_tabToTab_inv' {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.tabToTab c b) = some s') :
-    ∃ a, st.pileHolding c = some a ∧ st.canPlace c b = true ∧
-      fromCard c (st.piles a).faceUp ≠ [] ∧
-        s' = (st.setPile a
-            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
-              (fromCard c (st.piles a).faceUp) b := by
-  simp only [State.step] at h
-  split at h
-  · exact absurd h (by simp)
-  · rename_i _ a hh
-    split at h
-    · rename_i hcp
-      split at h
-      · exact absurd h (by simp)
-      · rename_i _ hne
-        injection h with hEq
-        exact ⟨a, hh, hcp, hne, hEq.symm⟩
-    · exact absurd h (by simp)
-
 /-- The tableau and foundation moves keep the whole draw zone
 verbatim (the raise shape via the landed inversion; the descent and
 the relocation via the local inversions above, and the public
-placement field lemmas of `Orig.Irreversible`). -/
+placement field lemmas of `Orig.Irreversible`).  Since the
+dedup-collapse wave every inversion here rides the public rows of
+`Orig.Irreversible`. -/
 private theorem zone_keep_others {st : State} {m : Move} {s' : State}
     (h : State.step st m = some s')
     (hkind : ∃ c, m = Move.tabToFound c ∨
@@ -2515,14 +2458,14 @@ private theorem zone_keep_others {st : State} {m : Move} {s' : State}
     rw [hs]
     exact ⟨rfl, rfl, rfl⟩
   · rcases hm' with rfl | rfl
-    · obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv' h
+    · obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv h
       rw [hs]
       refine ⟨putCard_stock _ c b, putCard_waste _ c b, ?_⟩
       show ((st.setFound c.suit (chop (st.found c.suit))).putCard c b).drawStep
           = st.drawStep
       rw [putCard_drawStep _ c b]
       exact setFound_drawStep _ _ _
-    · obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv' h
+    · obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv h
       rw [hs]
       refine ⟨putRun_stock _ _ b, putRun_waste _ _ b, ?_⟩
       show ((st.setPile a

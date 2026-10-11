@@ -367,6 +367,14 @@ theorem wasteIs_cons {st : State} {x : Card} {t : List Card} (h : st.waste = x :
         | [] => false
         | c' :: _ => decide (c' = c)) from rfl, h]
 
+/-- The head of the waste, read off the guard: it IS the named card
+(landed at the dedup-collapse wave beside its siblings; the private
+copies in the waste-row sites cite this home). -/
+theorem wasteIs_head_eq {st : State} {x : Card} {t : List Card}
+    (hw : st.waste = x :: t) {c : Card} (h : st.wasteIs c = true) : x = c := by
+  rw [State.wasteIs_cons hw c] at h
+  exact of_decide_eq_true h
+
 /-- Is `c` the next card for its suit's foundation? -/
 def nextUp (st : State) (c : Card) : Bool :=
   decide (c.rank.toIdx = st.foundHeight c.suit)

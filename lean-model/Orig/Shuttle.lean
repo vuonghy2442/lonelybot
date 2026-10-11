@@ -1,5 +1,6 @@
 import Orig.Combine
 import Orig.Integrity
+import Orig.Irreversible
 
 /-!
 # Orig — the foundation shuttle join
@@ -54,31 +55,6 @@ this card imports nothing unmerged; at harvest, promote or delete
 against the canonical versions. -/
 
 
-
-
-/-- Everything a legal `wasteToTab` needs and hands back: the
-guard, and the splice `s = { u.putCard c b with waste := ws }`. -/
-private theorem step_wasteToTab_inv {u : State} {c : Card} {b : Base}
-    {s : State} (h : State.step u (Move.wasteToTab c b) = some s) :
-    u.wasteIs c = true ∧ u.canPlace c b = true ∧
-      ∃ wsl, u.waste = c :: wsl ∧ s = { u.putCard c b with waste := wsl } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hcond
-    rw [Bool.and_eq_true_iff] at hcond
-    obtain ⟨hw, hcp⟩ := hcond
-    refine ⟨hw, hcp, ?_⟩
-    by_cases hwst : u.waste = []
-    · rw [hwst] at h
-      simp at h
-    · obtain ⟨w', wsl, hcon⟩ := list_cons_of_ne_nil hwst
-      have hw'c : w' = c := by
-        rw [State.wasteIs_cons hcon c] at hw
-        exact of_decide_eq_true hw
-      rw [hw'c] at hcon
-      simp only [hcon, Option.some.injEq] at h
-      exact ⟨wsl, hcon, h.symm⟩
-  · simp at h
 
 
 /-! ## This card's own kit -/
@@ -156,7 +132,11 @@ private theorem raise_tabToFound {u : State} {c : Card} {ws : List Card}
     {b : Base} {s : State}
     (h : State.step u (Move.wasteToTab c b) = some s) :
     State.step s (Move.tabToFound c) = some (raisedMid u ws c) := by
-  obtain ⟨-, hcp, wsl, hw', hs'⟩ := step_wasteToTab_inv h
+  obtain ⟨hguard, x, wsl, hws, hs'⟩ := step_wasteToTab_inv h
+  rw [Bool.and_eq_true] at hguard
+  obtain ⟨hw, hcp⟩ := hguard
+  have hxc : x = c := State.wasteIs_head_eq hws hw
+  have hw' : u.waste = c :: wsl := by rw [hws, hxc]
   rw [hw'] at hwastee
   injection hwastee with _ hws
   cases hws
@@ -309,7 +289,11 @@ private theorem lower_foundToTab {u : State} {c : Card} {ws : List Card}
     {b : Base} {s : State}
     (h : State.step u (Move.wasteToTab c b) = some s) :
     State.step (raisedMid u ws c) (Move.foundToTab c b) = some s := by
-  obtain ⟨-, hcp, wsl, hw', hs'⟩ := step_wasteToTab_inv h
+  obtain ⟨hguard, x, wsl, hws, hs'⟩ := step_wasteToTab_inv h
+  rw [Bool.and_eq_true] at hguard
+  obtain ⟨hw, hcp⟩ := hguard
+  have hxc : x = c := State.wasteIs_head_eq hws hw
+  have hw' : u.waste = c :: wsl := by rw [hws, hxc]
   rw [hw'] at hwastee
   injection hwastee with _ hws
   cases hws

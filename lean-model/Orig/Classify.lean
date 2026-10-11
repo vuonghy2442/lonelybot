@@ -179,107 +179,12 @@ window reading is per-leg, `WFRun`-disciplined, while
 step-preserved `WF` remains `Orig.lean`'s open ticket.
 -/
 
-/-! ## Private copies of the step inversions -/
+/-! ## Step inversions
 
-/-- A successful `.wasteToFound`: the guard held, the waste was
-nonempty, and the successor is the written foundation with the
-waste popped. -/
-private theorem step_wasteToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.wasteToFound c) = some s') :
-    (st.wasteIs c && st.nextUp c) = true ∧
-    ∃ x xs, st.waste = x :: xs ∧
-      s' = { st.setFound c.suit (st.found c.suit ++ [c]) with waste := xs } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hg
-    split at h
-    · rename_i _ x xs hw
-      injection h with hEq
-      exact ⟨hg, x, xs, hw, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `.wasteToTab`: guard, nonempty waste, and the
-placement with the waste popped. -/
-private theorem step_wasteToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.wasteToTab c b) = some s') :
-    (st.wasteIs c && st.canPlace c b) = true ∧
-    ∃ x xs, st.waste = x :: xs ∧
-      s' = { st.putCard c b with waste := xs } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hg
-    split at h
-    · rename_i _ x xs hw
-      injection h with hEq
-      exact ⟨hg, x, xs, hw, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `.tabToFound`: the card was next-up, its pile was
-located, and the successor is the raised foundation with the
-(chopped) run removed from that pile. -/
-private theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.tabToFound c) = some s') :
-    st.nextUp c = true ∧
-    ∃ a, st.pileOfTop c = some a ∧
-      s' = { found := fun σ =>
-              if σ = c.suit then st.found c.suit ++ [c] else st.found σ,
-             piles := fun a' =>
-               if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-               else st.piles a',
-             stock := st.stock,
-             waste := st.waste,
-             drawStep := st.drawStep } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hn
-    split at h
-    · exact absurd h (by simp)
-    · rename_i _ a hp
-      injection h with hEq
-      exact ⟨hn, a, hp, hEq.symm⟩
-  · exact absurd h (by simp)
-
-/-- A successful `.foundToTab`: the named card is the foundation
-top, the placement is legal, and the successor is the chopped
-foundation with the card placed. -/
-private theorem step_foundToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.foundToTab c b) = some s') :
-    ∃ c', st.foundTop c.suit = some c' ∧ c' = c ∧ st.canPlace c b = true ∧
-      s' = (st.setFound c.suit (chop (st.found c.suit))).putCard c b := by
-  simp only [State.step] at h
-  split at h
-  · split at h
-    · rename_i _ c' ht hg
-      rw [Bool.and_eq_true] at hg
-      injection h with hEq
-      exact ⟨c', ht, of_decide_eq_true hg.1, hg.2, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `.tabToTab`: the run head's pile was located, the
-placement is legal, the face-up run from the head is nonempty, and
-the successor is the pile-with-run-removed then the run placed. -/
-private theorem step_tabToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.tabToTab c b) = some s') :
-    ∃ a, st.pileHolding c = some a ∧ st.canPlace c b = true ∧
-      fromCard c (st.piles a).faceUp ≠ [] ∧
-        s' = (st.setPile a
-            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
-              (fromCard c (st.piles a).faceUp) b := by
-  simp only [State.step] at h
-  split at h
-  · exact absurd h (by simp)
-  · rename_i _ a hh
-    split at h
-    · rename_i hcp
-      split at h
-      · exact absurd h (by simp)
-      · rename_i _ hne
-        injection h with hEq
-        exact ⟨a, hh, hcp, hne, hEq.symm⟩
-    · exact absurd h (by simp)
+The five move-constructor inversions ride the public rows in
+`Orig.Irreversible` since the dedup-collapse wave (the former
+private copies are deleted; their statements matched verbatim
+modulo record-literal spellings). -/
 
 /-! ## Small private kit -/
 

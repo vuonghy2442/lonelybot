@@ -555,11 +555,6 @@ them unchanged. -/
 private theorem pileOfTop_setFound {st : State} {s : Suit} {l : List Card} {z : Card} :
     (st.setFound s l).pileOfTop z = st.pileOfTop z := rfl
 
-private theorem head_eq_of_wasteIs {st : State} {x : Card} {t : List Card}
-    (hw : st.waste = x :: t) {c : Card} (h : st.wasteIs c = true) : x = c := by
-  rw [State.wasteIs_cons hw c] at h
-  exact of_decide_eq_true h
-
 private theorem nextUp_true {st : State} {c : Card} (h : st.nextUp c = true) :
     c.rank.toIdx = (st.found c.suit).length := by
   have h' : c.rank.toIdx = st.foundHeight c.suit := of_decide_eq_true h
@@ -570,127 +565,6 @@ private theorem foundTop_lastOf {st : State} {c : Card}
 
 private theorem step_draw_inv {st st' : State}
     (h : State.step st Move.draw = some st') : st.stepDraw = some st' := h
-
-private theorem step_wasteToFound_inv {st st' : State} {c : Card}
-    (h : State.step st (.wasteToFound c) = some st') :
-    st.wasteIs c = true ∧ st.nextUp c = true ∧ ∃ ws, st.waste = c :: ws ∧
-      st' = { st.setFound c.suit (st.found c.suit ++ [c]) with waste := ws } := by
-  rw [show State.step st (.wasteToFound c) =
-      (if st.wasteIs c && st.nextUp c then
-        match st.waste with
-        | _ :: ws => some { st.setFound c.suit (st.found c.suit ++ [c]) with waste := ws }
-        | [] => none
-      else none) from rfl] at h
-  by_cases hg : (st.wasteIs c && st.nextUp c) = true
-  · rw [ite_eq_left hg] at h
-    rw [Bool.and_eq_true] at hg
-    obtain ⟨h1, h2⟩ := hg
-    split at h
-    · rename_i x ws hw
-      have hxc : x = c := head_eq_of_wasteIs hw h1
-      subst hxc
-      exact ⟨h1, h2, ws, hw, (Option.some.inj h).symm⟩
-    · exact absurd h (by simp)
-  · rw [ite_eq_right hg] at h; exact absurd h (by simp)
-
-private theorem step_wasteToTab_inv {st st' : State} {c : Card} {b : Base}
-    (h : State.step st (.wasteToTab c b) = some st') :
-    st.wasteIs c = true ∧ st.canPlace c b = true ∧ ∃ ws, st.waste = c :: ws ∧
-      st' = { st.putCard c b with waste := ws } := by
-  rw [show State.step st (.wasteToTab c b) =
-      (if st.wasteIs c && st.canPlace c b then
-        match st.waste with
-        | _ :: ws => some { st.putCard c b with waste := ws }
-        | [] => none
-      else none) from rfl] at h
-  by_cases hg : (st.wasteIs c && st.canPlace c b) = true
-  · rw [ite_eq_left hg] at h
-    rw [Bool.and_eq_true] at hg
-    obtain ⟨h1, h2⟩ := hg
-    split at h
-    · rename_i x ws hw
-      have hxc : x = c := head_eq_of_wasteIs hw h1
-      subst hxc
-      exact ⟨h1, h2, ws, hw, (Option.some.inj h).symm⟩
-    · exact absurd h (by simp)
-  · rw [ite_eq_right hg] at h; exact absurd h (by simp)
-
-private theorem step_tabToFound_inv {st st' : State} {c : Card}
-    (h : State.step st (.tabToFound c) = some st') :
-    st.nextUp c = true ∧ ∃ a, st.pileOfTop c = some a ∧
-      st' = { st.setFound c.suit (st.found c.suit ++ [c]) with
-               piles := fun a' =>
-                 if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-                 else st.piles a' } := by
-  rw [show State.step st (.tabToFound c) =
-      (if st.nextUp c then
-        match st.pileOfTop c with
-        | none => none
-        | some a =>
-            some { st.setFound c.suit (st.found c.suit ++ [c]) with
-                     piles := fun a' =>
-                       if a' = a then
-                         Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-                       else st.piles a' }
-      else none) from rfl] at h
-  by_cases hg : st.nextUp c = true
-  · rw [ite_eq_left hg] at h
-    split at h
-    · exact absurd h (by simp)
-    · rename_i a hp
-      exact ⟨hg, a, hp, (Option.some.inj h).symm⟩
-  · rw [ite_eq_right hg] at h; exact absurd h (by simp)
-
-private theorem step_foundToTab_inv {st st' : State} {c : Card} {b : Base}
-    (h : State.step st (.foundToTab c b) = some st') :
-    ∃ c', st.foundTop c.suit = some c' ∧ c' = c ∧ st.canPlace c b = true ∧
-      st' = ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
-  rw [show State.step st (.foundToTab c b) =
-      (match st.foundTop c.suit with
-        | some c' =>
-            if decide (c' = c) && st.canPlace c b then
-              some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b)
-            else none
-        | none => none) from rfl] at h
-  split at h
-  · rename_i c0 hft
-    by_cases hg : (decide (c0 = c) && st.canPlace c b) = true
-    · rw [ite_eq_left hg] at h
-      rw [Bool.and_eq_true] at hg
-      obtain ⟨h1, h2⟩ := hg
-      exact ⟨c0, hft, of_decide_eq_true h1, h2, (Option.some.inj h).symm⟩
-    · rw [ite_eq_right hg] at h; exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-private theorem step_tabToTab_inv {st st' : State} {c : Card} {b : Base}
-    (h : State.step st (.tabToTab c b) = some st') :
-    ∃ a, st.pileHolding c = some a ∧ st.canPlace c b = true ∧
-      ∃ run, fromCard c (st.piles a).faceUp = run ∧
-        st' = ((st.setPile a
-          (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun run b) := by
-  rw [show State.step st (.tabToTab c b) =
-      (match st.pileHolding c with
-        | none => none
-        | some a =>
-            if st.canPlace c b then
-              match fromCard c (st.piles a).faceUp with
-              | [] => none
-              | run =>
-                  some ((st.setPile a
-                    (Pile.afterRunRemoved (st.piles a)
-                      (below c (st.piles a).faceUp))).putRun run b)
-            else none) from rfl] at h
-  split at h
-  · exact absurd h (by simp)
-  · rename_i a hh
-    by_cases hc : st.canPlace c b = true
-    · rw [ite_eq_left hc] at h
-      cases hrun : fromCard c (st.piles a).faceUp with
-      | nil => rw [hrun] at h; exact absurd h (by simp)
-      | cons y ys =>
-          rw [hrun] at h
-          exact ⟨a, hh, hc, (y :: ys), hrun, (Option.some.inj h).symm⟩
-    · rw [ite_eq_right hc] at h; exact absurd h (by simp)
 
 /-! ## Private kit: the draw, and pile update shapes -/
 
@@ -936,7 +810,11 @@ private theorem Anchor_all_nodup : (Anchor.all : List Anchor).Nodup := by decide
 private theorem wasteToFound_wf {st st' : State} {c : Card}
     (hwf : st.WF) (h : State.step st (.wasteToFound c) = some st') : st'.WF := by
   obtain ⟨hpre, hpile, hcard, hsd⟩ := hwf
-  obtain ⟨hwasteis, hnextup, ws, hweq, hrw⟩ := step_wasteToFound_inv h
+  obtain ⟨hguard, x, ws, hws0, hrw⟩ := step_wasteToFound_inv h
+  rw [Bool.and_eq_true] at hguard
+  obtain ⟨hwasteis, hnextup⟩ := hguard
+  have hxc : x = c := State.wasteIs_head_eq hws0 hwasteis
+  have hweq : st.waste = c :: ws := by rw [hws0, hxc]
   have hf : st'.found c.suit = st.found c.suit ++ [c] := by
     rw [hrw]
     show (st.setFound c.suit (st.found c.suit ++ [c])).found c.suit = _
@@ -1002,7 +880,11 @@ king opening an empty position or a card fitted under a pile top. -/
 private theorem wasteToTab_wf {st st' : State} {c : Card} {b : Base}
     (hwf : st.WF) (h : State.step st (.wasteToTab c b) = some st') : st'.WF := by
   obtain ⟨hpre, hpile, hcard, hsd⟩ := hwf
-  obtain ⟨hwasteis, hcanplace, ws, hweq, hrw⟩ := step_wasteToTab_inv h
+  obtain ⟨hguard, x, ws, hws0, hrw⟩ := step_wasteToTab_inv h
+  rw [Bool.and_eq_true] at hguard
+  obtain ⟨hwasteis, hcanplace⟩ := hguard
+  have hxc : x = c := State.wasteIs_head_eq hws0 hwasteis
+  have hweq : st.waste = c :: ws := by rw [hws0, hxc]
   have hwr : st'.waste = ws := by rw [hrw]
   have hwaste : ∀ c₀, cnt c₀ st'.waste + cnt c₀ [c] = cnt c₀ st.waste := by
     intro c₀
@@ -1790,13 +1672,12 @@ pile whose top fits under the run's head. -/
 private theorem tabToTab_wf {st st' : State} {c : Card} {b : Base}
     (hwf : st.WF) (h : State.step st (.tabToTab c b) = some st') : st'.WF := by
   obtain ⟨hpre, hpile, hcard, hsd⟩ := hwf
-  obtain ⟨a, hhold, hcp, run0, hfrom, hrw⟩ := step_tabToTab_inv h
+  obtain ⟨a, hhold, hcp, hfr, hrw⟩ := step_tabToTab_inv h
   have hmem : c ∈ (st.piles a).faceUp := pileHolding_mem hhold
   have hbelow : below c ((st.piles a).faceUp) ++ fromCard c ((st.piles a).faceUp)
       = (st.piles a).faceUp := below_fromCard c _
   obtain ⟨r, hcrr⟩ := fromCard_cons_head _ hmem
-  have hrun0 : run0 = c :: r := by rw [← hfrom]; exact hcrr
-  subst hrun0
+  rw [hcrr] at hrw
   have hsplit : (st.piles a).faceUp
       = below c ((st.piles a).faceUp) ++ (c :: r) := by rw [← hcrr]; exact hbelow.symm
   have hzone : ∀ c₀, cnt c₀
