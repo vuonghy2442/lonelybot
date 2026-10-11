@@ -6101,6 +6101,268 @@ private theorem front_consume_wtt_stock {u s₁ : State} {c x : Card} {b : Base}
       exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
     exact (mem_stock_unique hwf₁ hcs1).2.1 hcw1
 
+/-- **The consuming `wasteToTab` square, waste form.**  The head
+parks a foreign card `x` (≠ c) from the waste onto a seat while `c`
+rides the waste below it.  The front from `u` (data `x :: preW`,
+`postW`) delivers `c` with `x` still above it; segment A is a plain
+drain to `x`'s hand, the park re-fires with no foundation write,
+and the closing leg is crossing (drain, then redeal down to `s'`'s
+position split) or PRISTINE (`postW = []`), where the drained twin
+is `sameCycle`-adjacent to `s'` and (A) transports the win — the
+ONE genuine (A) cite of the replay. -/
+private theorem front_consume_wtt_waste {u s₁ : State} {c x : Card} {b : Base} {s' : State}
+    (hds : u.drawStep = 1) (hrungU : u.nextUp c = true)
+    (hxc : x ≠ c)
+    (hstep : State.step u (Move.wasteToTab x b) = some s₁)
+    (hcycw : c ∈ u.waste) (hwf₁ : s₁.WF)
+    (hfront₁ : FrontOK c s₁ s') (hwin₁ : WinFrom s') :
+    ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
+  obtain ⟨hwis, hcp, ws, hwastee, hs₁⟩ := wasteToTab_fires hstep
+  -- the park is cycle-blind and foundation-blind
+  have hstock : s₁.stock = u.stock := by rw [hs₁]; exact (putCard_keep).2.1
+  have hs1found : s₁.found = u.found := by rw [hs₁]; exact putCard_found_keep
+  have hds1 : s₁.drawStep = 1 := by rw [step_drawStep_keep hstep, hds]
+  have hn1 : s₁.nextUp c = true := by
+    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
+    rw [hs1found]
+    exact hrungU
+  -- c sits below the parked head
+  have hcws : c ∈ ws := by
+    rw [hwastee] at hcycw
+    rcases List.mem_cons.1 hcycw with heq | hmem
+    · exact absurd heq (Ne.symm hxc)
+    · exact hmem
+  have hs1w : s₁.waste = ws := by rw [hs₁]; try rfl
+  rcases hfront₁ with ⟨pre, post, hs1stock, hcpre, hplay⟩ | ⟨preW, postW, hs1waste, hcpre, hplay⟩
+  · -- the stock front at s₁ would double-book c against the census
+    exfalso
+    have hcs1 : c ∈ s₁.stock := by
+      rw [hs1stock]
+      exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
+    have hcw1 : c ∈ s₁.waste := by rw [hs1w]; exact hcws
+    exact (mem_stock_unique hwf₁ hcs1).2.1 hcw1
+  · -- the u-front rides x above c in the waste split verbatim
+    have hcpreu : c ∉ x :: preW := by
+      intro hcon
+      rcases List.mem_cons.1 hcon with heq | hmem
+      · exact hxc heq.symm
+      · exact hcpre hmem
+    have huw : u.waste = (x :: preW) ++ c :: postW := by
+      rw [hwastee, ← hs1w, hs1waste]
+      rfl
+    obtain ⟨V₀, hV₀run⟩ : ∃ V,
+        u.run (List.replicate (u.stock.length + postW.length + 1) Move.draw
+          ++ [Move.wasteToFound c]) = some V :=
+      ⟨_, front_waste hds hrungU huw⟩
+    obtain ⟨hVf, hVp, hVs, hVw, hVds⟩ := front_waste_shape hds hrungU huw V₀ hV₀run
+    obtain ⟨hSf, hSp, hSs, hSw, hSds⟩ := front_waste_shape hds1 hn1 hs1waste s' hplay
+    refine ⟨V₀, Or.inr ⟨x :: preW, postW, huw, hcpreu, hV₀run⟩, ?_⟩
+    -- segment A: a plain drain to x's hand (the stock holds x above pre)
+    have hrev : (x :: preW).reverse = preW.reverse ++ [x] := List.reverse_cons
+    have hlenA : (preW.reverse ++ [x]).length = preW.length + 1 := by
+      rw [List.length_append, List.length_reverse]
+      rfl
+    obtain ⟨G, hGr, hGst, hGw, hGf, hGp, hGds⟩ : ∃ G,
+        (V₀.run (List.replicate (preW.length + 1) Move.draw) = some G
+          ∧ G.stock = u.stock ∧ G.waste = x :: (preW ++ postW)
+          ∧ G.found = V₀.found ∧ G.piles = V₀.piles ∧ G.drawStep = V₀.drawStep) := by
+      have hd := drain_run1 (preW.length + 1) (show V₀.drawStep = 1 by rw [hVds, hds])
+        (show preW.length + 1 ≤ V₀.stock.length by
+          rw [hVs, hrev, List.length_append, hlenA]
+          omega)
+      refine ⟨State.mk V₀.found V₀.piles u.stock (x :: (preW ++ postW)) V₀.drawStep,
+        ?_, rfl, rfl, rfl, rfl, rfl⟩
+      rw [hd, hVs, hVw, hrev]
+      refine congrArg some (State.ext rfl rfl ?_ ?_ rfl)
+      · rw [table_drop_app_le (preW.reverse ++ [x]) u.stock (preW.length + 1)
+          (show preW.length + 1 ≤ (preW.reverse ++ [x]).length by
+            rw [hlenA]; exact Nat.le_refl _),
+          table_drop_ge (preW.reverse ++ [x]) (preW.length + 1)
+            (show (preW.reverse ++ [x]).length ≤ preW.length + 1 by
+              rw [hlenA]; exact Nat.le_refl _),
+          List.nil_append]
+      · rw [table_take_app_le (preW.reverse ++ [x]) u.stock (preW.length + 1)
+          (show preW.length + 1 ≤ (preW.reverse ++ [x]).length by
+            rw [hlenA]; exact Nat.le_refl _),
+          table_take_ge (preW.reverse ++ [x]) (preW.length + 1)
+            (show (preW.reverse ++ [x]).length ≤ preW.length + 1 by
+              rw [hlenA]; exact Nat.le_refl _),
+          List.reverse_append, List.reverse_reverse, List.reverse_cons]
+        simp
+    -- the park at G (no foundation write)
+    have hGcp : G.canPlace x b = true := by
+      rw [canPlace_congr x b (show G.piles = u.piles from hGp.trans hVp)]
+      exact hcp
+    have hcond : (G.wasteIs x && G.canPlace x b) = true := by
+      rw [State.wasteIs_cons hGw x, hGcp, show decide (x = x) = true from decide_eq_true rfl]
+      rfl
+    have hstepG : State.step G (Move.wasteToTab x b)
+        = some { G.putCard x b with waste := preW ++ postW } := by
+      show (if G.wasteIs x && G.canPlace x b then
+          match G.waste with
+          | _ :: lw => some ({ G.putCard x b with waste := lw })
+          | [] => none
+          else none) = _
+      rw [hcond, hGw]
+      rfl
+    obtain ⟨G', hG'r, hG'f, hG'p, hG'st, hG'w, hG'ds⟩ : ∃ G',
+        (State.step G (Move.wasteToTab x b) = some G'
+          ∧ G'.found = G.found ∧ G'.piles = (G.putCard x b).piles
+          ∧ G'.stock = G.stock ∧ G'.waste = preW ++ postW
+          ∧ G'.drawStep = G.drawStep) := by
+      refine ⟨{ G.putCard x b with waste := preW ++ postW }, hstepG,
+        putCard_found_keep, rfl, (putCard_keep).2.1, rfl, (putCard_keep).2.2.2⟩
+    -- the found identities: both sides the same c-lit over u.found
+    have hGulit : G.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
+      rw [hGf, hVf]
+      rfl
+    have hs1fu : s₁.found = u.found := hs1found
+    by_cases hpw : postW = ([] : List Card)
+    · -- PRISTINE: the drained twin is sameCycle-adjacent to s'
+      subst hpw
+      obtain ⟨R, hRr, hRs, hRw, hRf, hRp, hRds⟩ : ∃ R,
+          (G'.run (List.replicate u.stock.length Move.draw) = some R
+            ∧ R.stock = ([] : List Card) ∧ R.waste = u.stock.reverse ++ preW
+            ∧ R.found = G'.found ∧ R.piles = G'.piles ∧ R.drawStep = G'.drawStep) := by
+        have hd := drain_run1 u.stock.length
+            (show G'.drawStep = 1 by rw [hG'ds, hGds, hVds, hds])
+            (show u.stock.length ≤ G'.stock.length by rw [hG'st, hGst]; exact Nat.le_refl _)
+        refine ⟨State.mk G'.found G'.piles ([] : List Card)
+            (u.stock.reverse ++ preW) G'.drawStep, ?_, rfl, rfl, rfl, rfl, rfl⟩
+        rw [hd, hG'st, hGst]
+        refine congrArg some (State.ext rfl rfl
+          (table_drop_ge u.stock u.stock.length (Nat.le_refl _)) ?_ rfl)
+        rw [table_take_ge u.stock u.stock.length (Nat.le_refl _), hG'w,
+          show preW ++ ([] : List Card) = preW from List.append_nil preW]
+      -- R is sameCycle-adjacent to s'
+      have hRlit : R.found
+          = (fun σ => if σ = c.suit then u.found c.suit ++ [c] else u.found σ) := by
+        rw [hRf, hG'f, hGulit]
+        rfl
+      have hslit : s'.found
+          = (fun σ => if σ = c.suit then s₁.found c.suit ++ [c] else s₁.found σ) := hSf
+      have hRpiles : R.piles = s'.piles := by
+        rw [hRp, hG'p, putCard_piles_eq_of_eq
+            (show G.piles = u.piles from hGp.trans hVp) x b, hSp, hs₁]
+        try rfl
+      have hRfnd : R.found = s'.found := by rw [hRlit, hslit, hs1fu]
+      have hRcycle : cycleOf R = cycleOf s' := by
+        rw [show cycleOf R = R.stock ++ R.waste.reverse from rfl,
+            show cycleOf s' = s'.stock ++ s'.waste.reverse from rfl,
+            hRs, hRw, hSs, hSw, hstock]
+        rw [List.reverse_append, List.reverse_reverse, List.nil_append,
+            show ([] : List Card).reverse = ([] : List Card) from rfl,
+            List.append_nil]
+      have hR1 : R.drawStep = 1 := by rw [hRds, hG'ds, hGds, hVds, hds]
+      have hS1 : s'.drawStep = 1 := by rw [hSds, hds1]
+      have hsc : sameCycle R s' := ⟨hRfnd, hRpiles, by rw [hR1, hS1], hRcycle⟩
+      obtain ⟨πR, wR, hrunR, hwinR⟩ :=
+        (draw1_sameCycle_sameFate hR1 hS1 hsc).mpr hwin₁
+      refine ⟨List.replicate (preW.length + 1) Move.draw
+          ++ (Move.wasteToTab x b :: (List.replicate u.stock.length Move.draw ++ πR)),
+        wR, ?_, hwinR⟩
+      rw [run_replicate_append (preW.length + 1) V₀ G _ hGr,
+        run_step_cons hG'r,
+        run_replicate_append u.stock.length G' R πR hRr]
+      exact hrunR
+    · -- CROSSING: drain the stock, redeal |postW| down to s' itself
+      obtain ⟨z, zs, hzzs⟩ : ∃ z zs, postW = z :: zs := by
+        cases postW with
+        | nil => exact absurd rfl hpw
+        | cons a as => exact ⟨a, as, rfl⟩
+      obtain ⟨ρ, w₂, hrunρ, hwinρ⟩ := hwin₁
+      obtain ⟨B2, hB2r, hB2s, hB2w, hB2f, hB2p, hB2ds⟩ : ∃ B2,
+          (G'.run (List.replicate u.stock.length Move.draw) = some B2
+            ∧ B2.stock = ([] : List Card)
+            ∧ B2.waste = u.stock.reverse ++ (preW ++ postW)
+            ∧ B2.found = G'.found ∧ B2.piles = G'.piles ∧ B2.drawStep = G'.drawStep) := by
+        have hd := drain_run1 u.stock.length
+            (show G'.drawStep = 1 by rw [hG'ds, hGds, hVds, hds])
+            (show u.stock.length ≤ G'.stock.length by rw [hG'st, hGst]; exact Nat.le_refl _)
+        refine ⟨State.mk G'.found G'.piles ([] : List Card)
+            (u.stock.reverse ++ (preW ++ postW)) G'.drawStep,
+          ?_, rfl, rfl, rfl, rfl, rfl⟩
+        rw [hd, hG'st, hGst]
+        refine congrArg some (State.ext rfl rfl
+          (table_drop_ge u.stock u.stock.length (Nat.le_refl _)) ?_ rfl)
+        rw [table_take_ge u.stock u.stock.length (Nat.le_refl _), hG'w]
+      have hB2ne : B2.waste = ([] : List Card) → False := by
+        intro hcon
+        have hz : z ∈ B2.waste := by
+          rw [hB2w]
+          have hzpw : z ∈ preW ++ postW := by
+            rw [hzzs]
+            exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
+          exact List.mem_append.2 (Or.inr hzpw)
+        rw [hcon] at hz
+        exact absurd hz (by simp)
+      have hB2le : zs.length + 1 ≤ B2.waste.length := by
+        rw [hB2w, List.length_append, List.length_append]
+        have hzl : postW.length = zs.length + 1 := by rw [hzzs]; rfl
+        omega
+      have hcnt : zs.length + 1 = postW.length := by rw [hzzs]; rfl
+      -- the recycled order, left-deep
+      obtain ⟨L, hLr, hLs, hLw, hLf, hLp, hLds⟩ : ∃ L,
+          (B2.run (List.replicate postW.length Move.draw) = some L
+            ∧ L.stock = preW.reverse ++ u.stock ∧ L.waste = postW
+            ∧ L.found = G'.found ∧ L.piles = G'.piles ∧ L.drawStep = G'.drawStep) := by
+        have hrev2 : (u.stock.reverse ++ (preW ++ postW)).reverse
+            = ((postW.reverse ++ preW.reverse) ++ u.stock) := by
+          rw [List.reverse_append, List.reverse_append, List.reverse_reverse,
+            List.append_assoc]
+        have hlenT : postW.length ≤ (postW.reverse ++ preW.reverse).length := by
+          rw [List.length_append, List.length_reverse]
+          omega
+        have hlenT2 : postW.length ≤ postW.reverse.length := by
+          rw [List.length_reverse]
+          omega
+        have hrd := redeal_run1 zs.length (show B2.drawStep = 1 by
+            rw [hB2ds, hG'ds, hGds, hVds, hds]) hB2s hB2ne hB2le
+        rw [hcnt] at hrd
+        refine ⟨State.mk G'.found G'.piles (preW.reverse ++ u.stock) postW G'.drawStep,
+          ?_, rfl, rfl, rfl, rfl, rfl⟩
+        rw [hrd, hB2w, hrev2, hB2f, hB2p, hB2ds]
+        refine congrArg some (State.ext rfl rfl ?_ ?_ rfl)
+        · rw [table_drop_app_le (postW.reverse ++ preW.reverse) u.stock postW.length hlenT,
+            table_drop_app_le postW.reverse preW.reverse postW.length hlenT2,
+            table_drop_ge postW.reverse postW.length
+              (show postW.reverse.length ≤ postW.length by
+                rw [List.length_reverse]; exact Nat.le_refl _),
+            List.nil_append]
+        · rw [table_take_app_le (postW.reverse ++ preW.reverse) u.stock postW.length hlenT,
+            table_take_app_le postW.reverse preW.reverse postW.length hlenT2,
+            table_take_ge postW.reverse postW.length
+              (show postW.reverse.length ≤ postW.length by
+                rw [List.length_reverse]; exact Nat.le_refl _),
+            List.reverse_reverse, List.append_nil]
+      -- the resynced landing L equals the s₁-side front's landing s'
+      have hLlit : L.found
+          = (fun σ => if σ = c.suit then u.found c.suit ++ [c] else u.found σ) := by
+        rw [hLf, hG'f, hGulit]
+        rfl
+      have hslit : s'.found
+          = (fun σ => if σ = c.suit then s₁.found c.suit ++ [c] else s₁.found σ) := hSf
+      have hLand : L = s' := by
+        apply State.ext
+        · rw [hLlit, hslit, hs1fu]
+        · rw [hLp, hG'p, putCard_piles_eq_of_eq
+            (show G.piles = u.piles from hGp.trans hVp) x b, hSp, hs₁]
+          try rfl
+        · rw [hLs, hSs, hstock]
+        · rw [hLw, hSw]
+        · rw [hLds, hG'ds, hGds, hVds, hSds, hds1, hds]
+      refine ⟨List.replicate (preW.length + 1) Move.draw
+          ++ (Move.wasteToTab x b
+            :: (List.replicate u.stock.length Move.draw
+                ++ (List.replicate postW.length Move.draw ++ ρ))),
+        w₂, ?_, hwinρ⟩
+      rw [run_replicate_append (preW.length + 1) V₀ G _ hGr,
+        run_step_cons hG'r,
+        run_replicate_append u.stock.length G' B2 _ hB2r,
+        run_replicate_append postW.length B2 L ρ hLr,
+        hLand]
+      exact hrunρ
+
 /-- **(B) The compliant replay**: with `c` stocked next for its
 foundation, a compliant winning play front-loads as a win after
 dealing `c` out and stacking it.  Safety is not a premise — no case
