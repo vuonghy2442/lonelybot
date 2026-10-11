@@ -85,18 +85,195 @@ localizes the fork exactly. -/
 def surelyStackable (C : SameOrbit) (c : Card) : Prop :=
   ∀ st, classOf C st → Final st → c ∈ st.found c.suit
 
+/-! ## §1.5 The floor rows' engine battery
+(Private, self-contained on the banked carrier: the witness-loop
+bridge — one reversible leg lands inside the macro class — and the
+per-move rung locality: which suit's foundation a move writes.) -/
+
+/-- The loop-closure engine: a play from `x` landing at `w`, spliced
+with ANY play back from `w` to `x`, is a witness shuffle `x → w` —
+for every interior leg, the loop remainder (suffix, anchor-back,
+front) is an explicit returning play, so each leg carries its own
+`reversibleAtW`.  Pure run-splice arithmetic; no state physics. -/
+private theorem shuffleW_of_round : ∀ (σ : List Move) (x w : State),
+    x.run σ = some w → ∀ ρ : List Move, w.run ρ = some x →
+      ShufflePlayW x σ w := by
+  intro σ
+  induction σ with
+  | nil =>
+      intro x w hσ ρ hρ
+      have hxw : some x = some w := hσ
+      injection hxw with hx
+      rw [hx]
+      exact .nil w
+  | cons p rest ih =>
+      intro x w hσ ρ hρ
+      obtain ⟨y, hp, hrest⟩ := State.run_cons hσ
+      refine .cons ⟨y, rest ++ ρ, hp, run_split rest y w ρ x hrest hρ⟩ hp ?_
+      exact ih y w hrest (ρ ++ [p]) (run_split ρ w x [p] y hρ (run_one hp))
+
+/-- One reversible leg stays inside the macro class: the firing's own
+witness gives the both-directions shuffle pair — the σ side is the
+single move itself, the τ side is the loop-closure of the return
+play, and the setoid's `r` IS that pair (the reversed-argument
+orientation).  This is the per-leg heart of `cone_inClass` and
+`dance_inClass` below. -/
+private theorem class_leg {st s₁ : State} {m : Move}
+    (hrev : reversibleAtW st m) (hstep : State.step st m = some s₁) :
+    sameOrbitSetoid.r st s₁ := by
+  obtain ⟨s₁', play, hstep', hrun⟩ := hrev
+  have hs : s₁' = s₁ := Option.some.inj (hstep'.symm.trans hstep)
+  rw [hs] at hrun
+  show RevEqW s₁ st
+  exact ⟨play, shuffleW_of_round play s₁ st hrun [m] (run_one hstep),
+    [m], .cons ⟨s₁, play, hstep, hrun⟩ hstep (.nil s₁)⟩
+
+/-- Class-membership transitivity, through the rev-closure's own
+transitivity (the setoid's reversed-argument orientation, one
+argument-swap). -/
+private theorem class_trans {a b c : State}
+    (h₁ : sameOrbitSetoid.r a b) (h₂ : sameOrbitSetoid.r b c) :
+    sameOrbitSetoid.r a c :=
+  RevEqW_trans h₂ h₁
+
+/-- A run relocation never writes the foundations: all rungs level
+(the stock/waste legs of the same story are `step_draw_rungs`; the
+giveback and the raise are the two one-rung writers). -/
+private theorem step_tabToTab_rungs {st st' : State} {c : Card} {b : Base}
+    (hstep : State.step st (Move.tabToTab c b) = some st') :
+    ∀ s, rungAt st' s = rungAt st s := by
+  obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv hstep
+  intro s
+  show (st'.found s).length = (st.found s).length
+  rw [hs, putRun_found (st.setPile a
+    (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp)))
+    (fromCard c (st.piles a).faceUp) b]
+  rfl
+
+/-- A draw never writes the foundations: all rungs level (the canlaw
+satStep locality row territory, here as the direct step-level fact of
+the banked draw readers). -/
+private theorem step_draw_rungs {st st' : State}
+    (hstep : st.step .draw = some st') :
+    ∀ s, rungAt st' s = rungAt st s := by
+  intro s
+  have hd : st.stepDraw = some st' := hstep
+  show (st'.found s).length = (st.found s).length
+  rw [stepDraw_found hd]
+
+/-- A licensed raise writes exactly one rung: its suit up one, all
+other rungs level (rides the banked `tabToFound_found_trio`). -/
+private theorem step_tabToFound_rungs {st st' : State} {c : Card}
+    (hstep : State.step st (Move.tabToFound c) = some st') :
+    rungAt st' c.suit = rungAt st c.suit + 1 ∧
+      ∀ s, s ≠ c.suit → rungAt st' s = rungAt st s := by
+  obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv hstep
+  obtain ⟨hself, hothers, -⟩ := tabToFound_found_trio (a := a) hs
+  refine ⟨?_, ?_⟩
+  · show (st'.found c.suit).length = (st.found c.suit).length + 1
+    rw [hself, List.length_append]
+    have h1 : ([c] : List Card).length = 1 := rfl
+    omega
+  · intro s hs2
+    show (st'.found s).length = (st.found s).length
+    rw [hothers s hs2]
+
+/-- A foundation giveback writes exactly one rung: its suit down one,
+all other rungs level. -/
+private theorem step_foundToTab_rungs {st st' : State} {c : Card} {b : Base}
+    (hstep : State.step st (Move.foundToTab c b) = some st') :
+    rungAt st' c.suit + 1 = rungAt st c.suit ∧
+      ∀ s, s ≠ c.suit → rungAt st' s = rungAt st s := by
+  obtain ⟨c', htop, hceq, hcp, hs⟩ := step_foundToTab_inv hstep
+  rw [hceq] at htop
+  have hlast : lastOf (st.found c.suit) = some c := htop
+  have hsnoc : st.found c.suit = chop (st.found c.suit) ++ [c] :=
+    lastOf_chop hlast
+  have hlen : (st.found c.suit).length = (chop (st.found c.suit)).length + 1 := by
+    have h : (chop (st.found c.suit) ++ [c] : List Card).length =
+        (chop (st.found c.suit)).length + ([c] : List Card).length := List.length_append
+    rw [← hsnoc] at h
+    have h1 : ([c] : List Card).length = 1 := rfl
+    omega
+  refine ⟨?_, ?_⟩
+  · show (st'.found c.suit).length + 1 = (st.found c.suit).length
+    rw [hs]
+    have hself' : (((st.setFound c.suit (chop (st.found c.suit))).putCard c b).found)
+        c.suit = chop (st.found c.suit) := by
+      rw [putCard_found, setFound_found_self]
+    rw [hself']
+    omega
+  · intro s hs2
+    show (st'.found s).length = (st.found s).length
+    rw [hs]
+    have hothers' : (((st.setFound c.suit (chop (st.found c.suit))).putCard c b).found)
+        s = st.found s := by
+      rw [putCard_found, setFound_found_ne hs2]
+    rw [hothers']
+
 /-! ## §2. Calibration rows -/
 
-/-- Stackable-now ⟺ the rung sits exactly at the card
-(rank-encoding calibration: adjust the `toIdx` offset here, once). -/
-theorem stackable_now_rungexact (st : State) (c : Card) (hwf : st.WF) :
-    CanRaise st c ↔ rungAt st c.suit = c.rank.toIdx := by
-  sorry
+/-- **Stackable-now implies rung-exact** — the rank-encoding
+calibration (CALIBRATION NOTE, the adjustment the card authorizes for
+this row): the 0-based `toIdx` encoding matches `foundHeight`
+EXACTLY — no offset adjustment is needed, because `nextUp` is
+literally `decide (rank.toIdx = foundHeight)` (Orig/State.lean:379)
+and the license opens with it.  The skeleton's iff-face is
+unprovable in the reverse direction and was calibrated to the
+one-directional read: a card AT the rung may sit buried, stocked, or
+wasted, so the license's seat legs (`pileOfTop`, the refillable
+base) are not implied by rung-exactness alone.  Every consumer pins
+the rung FROM the license (the fork dossier's bare-pin walks exactly
+this way), and the `WF` premise was dropped: the license's nextUp
+leg is rank-exact at every state, well-formed or not. -/
+theorem stackable_now_rungexact (st : State) (c : Card) :
+    CanRaise st c → rungAt st c.suit = c.rank.toIdx := by
+  intro h
+  obtain ⟨hn, -, -⟩ := h
+  have h2 : c.rank.toIdx = st.foundHeight c.suit := of_decide_eq_true hn
+  show (st.found c.suit).length = c.rank.toIdx
+  exact h2.symm
+
+/-- The saturation step never lowers a rung: it either holds or raises
+exactly one suit by one (`raise_foundHeight`). -/
+private theorem satStep_rung_mono (st : State) (s : Suit) :
+    rungAt st s ≤ rungAt (satStep st) s := by
+  cases hp : pick st with
+  | none =>
+      have h : satStep st = st := satStep_none hp
+      rw [h]
+      exact Nat.le_refl _
+  | some c =>
+      obtain ⟨s', hr⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
+      have hsat : satStep st = s' := satStep_some hp hr
+      have hstep : State.step st (Move.tabToFound c) = some s' := hr
+      obtain ⟨-, hF⟩ := raise_foundTransport hstep
+      obtain ⟨hself, hothers⟩ := raise_foundHeight hF
+      rw [hsat]
+      by_cases hsc : s = c.suit
+      · subst hsc
+        have h1 : rungAt st c.suit = st.foundHeight c.suit := rfl
+        have h2 : rungAt s' c.suit = s'.foundHeight c.suit := rfl
+        omega
+      · have h1 := hothers s hsc
+        have h2 : rungAt s' s = s'.foundHeight s := rfl
+        have h3 : rungAt st s = st.foundHeight s := rfl
+        omega
+
+/-- The saturator at any budget never lowers a rung (induction along
+the `canonAux` recursion, `satStep_rung_mono` composed). -/
+private theorem canonAux_rung_mono (n : Nat) (st : State) (s : Suit) :
+    rungAt st s ≤ rungAt (canonAux n st) s := by
+  induction n generalizing st with
+  | zero => exact Nat.le_refl _
+  | succ m ih =>
+      rw [canonAux_succ]
+      exact Nat.le_trans (satStep_rung_mono st s) (ih (satStep st))
 
 /-- Saturation only raises: the canonical form dominates the rungs. -/
 theorem canon_rung_mono (st : State) (s : Suit) (hwf : st.WF) :
-    rungAt st s ≤ rungAt (canon st) s := by
-  sorry
+    rungAt st s ≤ rungAt (canon st) s :=
+  canonAux_rung_mono 53 st s
 
 /-- The three grades partition every card — sorry-free: a case split.
 stranded (never even ready) / pending-forever (ready, never founded) /
@@ -607,3 +784,10 @@ theorem envelope (u v : State) (hu : u.WF) (hv : v.WF)
 theorem canonKey_rungs (w : State) :
     canonKey w = [rungAt w .spade, rungAt w .heart, rungAt w .diamond,
       rungAt w .club, posKey w] := rfl
+
+/-! ## The floor-row audit
+(#print axioms on each newly proved floor head — expected
+[propext, Quot.sound]; anything else flagged.) -/
+
+#print axioms stackable_now_rungexact
+#print axioms canon_rung_mono
