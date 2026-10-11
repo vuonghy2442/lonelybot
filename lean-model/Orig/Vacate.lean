@@ -157,6 +157,24 @@ private theorem isEmpty_spec {p : Pile} (h : p.isEmpty = true) :
   | [], [] => exact ⟨rfl, rfl⟩
   | x :: xs, ys => rw [Pile.isEmpty] at h; exact absurd h (by simp)
 
+/-- The holding search is determined by its pointwise membership
+profile — the single-pile-write companion of State's full-piles
+`pileHolding_congr` (State.lean:610; the profile form covers the
+states the exchange squares write at one anchor). -/
+private theorem pileHolding_congr_mem {S T : State} {c : Card}
+    (h : ∀ x : Anchor, decide (c ∈ (S.piles x).faceUp)
+      = decide (c ∈ (T.piles x).faceUp)) :
+    S.pileHolding c = T.pileHolding c :=
+  firstWhere_congr h
+
+/-- The top search is determined by its pointwise profile — the
+single-pile-write companion of the top-search rows. -/
+private theorem pileOfTop_congr_profile {S T : State} {z : Card}
+    (h : ∀ x : Anchor, decide (S.topOf x = some z)
+      = decide (T.topOf x = some z)) :
+    S.pileOfTop z = T.pileOfTop z :=
+  firstWhere_congr h
+
 /-- The transposition of two empty piles is the identity state — the
 two bare records exchange and everything else is untouched. -/
 theorem swapPiles_id_of_bothEmpty (st : State) (i j : Anchor)
@@ -243,6 +261,59 @@ theorem vacate_corner_conj_after {st : State} {c : Card} {b : Base}
       rw [htid, hmirror, hm₂, Option.map_some] at hconj
       exact ⟨_, hconj, rfl⟩
 #print axioms vacate_corner_conj_after
+
+/-! ## The corner, leg two — the exchange square -/
+
+/-- **The vacate's write set never touches an empty `h`**: the `inl`
+landing is king-only (dead for a non-king mover), and the located
+`inr` target's pile is never the bare hole, so the hole still reads
+empty at the post-vacate state. -/
+theorem vacate_keepsHole {st : State} {c : Card} {b : Base} {a h : Anchor} {s₁ : State}
+    (hnk : c.rank ≠ Rank.king) (hcp : st.canPlace c b = true)
+    (hfree : (st.piles h).isEmpty = true) (hha : h ≠ a)
+    (hs₁W : s₁ = (st.setPile a ⟨[], ([] : List Card)⟩ : State).putRun
+      (fromCard c (st.piles a).faceUp) b) :
+    (s₁.piles h).isEmpty = true := by
+  have hSp : (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles h = st.piles h :=
+    setPile_piles_ne hha
+  cases b with
+  | inl k =>
+      rw [canPlace_inl_unfold] at hcp
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at hcp
+      exact absurd hcp.2 hnk
+  | inr z =>
+      have hs₁h : s₁.piles h = st.piles h := by
+        cases hpo : (st.setPile a ⟨[], ([] : List Card)⟩ : State).pileOfTop z with
+        | none =>
+            rw [hs₁W]
+            simp only [State.putRun, hpo]
+            exact hSp
+        | some k =>
+            have hkh : k ≠ h := by
+              intro hcon
+              obtain ⟨hfe, -⟩ := pileOfTop_top (hpo.trans (congrArg some hcon))
+              rw [hSp] at hfe
+              rw [(isEmpty_spec hfree).2] at hfe
+              exact hfe rfl
+            rw [hs₁W, putRun_piles_inr_ne _ _ _ _ hpo (Ne.symm hkh), hSp]
+      rw [hs₁h]
+      exact hfree
+
+#print axioms vacate_keepsHole
+
+/-! ### Leg two (the exchange square) — the next card
+
+    `vacate_xchg_foundToTab_hole`: the king worry-back onto the
+    pre-existing hole commutes with the disjoint vacate —
+    `st₁'.step m` and `s₁.step (foundToTab K (Sum.inl h))` share one
+    common successor.  Construction: the king landing expands by
+    `step_foundToTab_eq` + `putCard`-inl (`= setPile h ⟨[], [K]⟩`);
+    the vacate at `st₁'` locates the same `z`-pile (`k ≠ a` by       `canPlace_inr_target_pile_ne`, `k ≠ h` / `z ≠ K` by the bare hole / `mem_found_unique`);  the two composites are then compared fieldwise — `found` via   `vacate_keepsFound` + the common `setFound`, `piles` per anchor
+    (`setPile`/`putRun_piles_inr_self`/`_ne` reads, `Pile.ext` at
+    the three written anchors, the congr twins above for the shared
+    searches), the other five fields `rfl`-equal.  With leg one
+    (`vacate_corner_conj_after`) this hands the shell the
+    head-avoiding order `[king-to-h; m]` at the transposed composite. -/
 
 /-! ## Card B row (statement landed with the next wave's rows;
 ## see the case map above and the wave-24 FARM block) -/
