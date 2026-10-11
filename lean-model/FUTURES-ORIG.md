@@ -1677,6 +1677,96 @@ and fresh `hZP`-style double counts.
 
 ## 10. The exchange-canon commutation card (2026-10-11, branch `orig-exch-canlaw`, rebased onto macro-game `47b1ad9`; landing-1 probe battery GREEN, the inherited backlog's first falsifier candidate FIRED)
 
+## 9. The pull-multiset determinism family — session orig-macro-determinism (STATUS 2026-10-11)
+
+Branch `orig-macro-determinism`, based on macro-game `b8a1584`; the
+untracked MacroInternal skeleton was copied in and committed as the
+branch base (`05be2b5`); the determinism rows landed (`2f6795f`) and
+the decide battery with them (`5d7b1b6`).  Partition honored: the
+floor session's rows (every other sorry-stub in the skeleton) are
+untouched; no merge to macro-game.
+
+LANDED, sorry-free, audited in-file (`lake env lean
+Orig/MacroInternal.lean` prints the battery; `lake build Orig`
+stays green at 28 jobs — the module is deliberately not wired into
+the root):
+
+- `rung_found_prefix` — RESTATED per the real banked invariant: the
+  skeleton's placeholder (`∃ cs, found = cs.take rung ∧ True`) was
+  trivially true; the honest row is `WF.found_prefix`
+  (`Orig/Integrity.lean`) spelled at the rung (`found s =
+  s.upCards.take (rungAt w s)` at `WF`), plus the key consequence
+  `rung_found_congr` (same rung count ⇒ same founded content —
+  at a fixed height-tuple every fiber member's foundations agree
+  card-for-card; why mixed-residence exchanges never arise
+  in-fiber).  `[propext]`.
+- THE NEW THEOREM (nobody had it): the descent-determinism of the
+  pull letter.  `ConeLedger` (the pop ledger: a List-indexed
+  inductive over ConePath) with `cone_ledger_of_path` (every cone
+  path carries one), `cone_rung_mono` (rungs only fall along cone
+  descents), the master `cone_pop_window` (the per-suit pop ledger
+  is exactly the forced window — `popWindow l j := (l.drop
+  j).reverse` read at `(anchor.found s, rungAt member s)` — a
+  function of the anchor's founded content and the height tuple
+  ALONE, never of the path: pops are forced top-down by the raw
+  `foundTop = some c` guard of the `foundToTab` step), the
+  multiset grading `cone_pop_countP`, and the INTRA-ARM form
+  `cone_pulls_congr_tuple` (two cone-descendants of one `WF`
+  anchor at the same tuple pulled equal multisets).  All
+  `[propext, Quot.sound]`, zero choice.
+- `flat_into_dance` — proved by straight structural induction
+  (post-merge FlatStep carries no exchange letter: cargo IS a
+  `ConeStep.slide` shape, draw likewise; the net-flat reading
+  follows from the slide/draw found-writers).
+  `[propext, Quot.sound]`.
+
+RESIDUAL (gated, the family's one sorry): `cone_pulls_congr_crossarm`
+— the cross-arm tuple-mate equality, stated CONDITIONALLY on the
+envelope's corridor (`hcorr : ConePath A₁ (conjl A₂)` — the
+envelope's own conjl-disjunct shape).  BLOCKED on rows this branch
+does not own: the envelope itself (the decompression card) and the
+conjugation family's laws (`conjl_involutive`/`conjl_inClass` and
+the pop-window transport through the conjugate — the conjugation
+rows).  The obstruction is recorded in the docstring: between
+genuinely distinct arms the Final tuples are fork-flipped
+(`saturated_tuple_orbit`'s flip branch) and cone legs are
+rung-monotone (`cone_rung_mono`), so a literal cone bridge between
+the arm anchors cannot exist — the conjl-corridor is the only
+route, and pricing it is the envelope card's business.  sorryAx
+rides exactly this one row, per the in-file audit.
+
+PROBE: `probes/DeterminismProbe.lean` (README row added; recorded
+numbers pinned in-file): the census engine over legal pull/slide/draw
+plays at two WF-crafted full-deck cells (the interleaving cell; the
+twin-king cell consuming the canon-v3 craft conventions), D1
+(pulled card IS the current top, everywhere in the census), D2 (the
+pop list IS the forced window, every walk), D3 (the ranked negative:
+same-tuple differing-multiset violators ABSENT — 0 among
+3346/46208 pairs — with order-differing pop lists and
+different-tuple different-multiset pairs both present, plus the
+interleaved twin-suit ♥Q/♦J routes visible at the twin-king cell).
+
+COORDINATION (why this note is here):
+
+- **canon-v3-scaffold (owns the mirrors)**: the skeleton's
+  `rung_found_prefix` statement is RESHAPED at this branch (the
+  placeholder was provable by `take_all`; the honest form adds the
+  `WF` premise and the upCards reading) — mirror accordingly; the
+  reshape is content-ADDITIVE (the placeholder was a vacuous
+  shape, so no consumer can break).
+- **orig-macro-floor (owns the other rows)**: untouched here; when
+  your rows cite the founded-content machinery, the consumable
+  heads are `rung_found_prefix`/`rung_found_congr` (the fixed-tuple
+  founded-content identity `fiber_iff_flat`'s engine needs for
+  mixed-residence-freedom), and the writer/window kit (ConeLedger,
+  popWindow, cone_pop_window, cone_pulls_congr_tuple) is this
+  family's harvest for the capstone assembly — cite, do not
+  re-derive.
+- **the capstone (fiber_iff_flat's engine)**: the pull letter's
+  descent determinism is now certified at the intra-arm grade; the
+  cross-arm pricing waits on the decompression card's envelope.
+
+
  HEAD
 Section numbering note: §9 is the canon-side completion card's
 ledger, recorded on `orig-canon-decompress` (landing 1, commit

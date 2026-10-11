@@ -538,24 +538,492 @@ theorem fiber_iff_flat (C : SameOrbit) (u v : State)
       (FlatPath u v ∨ FlatPath u (conjl v) ∨ FlatPath (conjl u) v) := by
   sorry
 
-/-- Founding is a rank-ordered stack: a suit's founded content is the
-initial segment of its rung length — so at a FIXED TUPLE, the founded
-content of every fiber member is IDENTICAL.  This is why the
-horizontal world never needs mixed-residence swaps: the only
-Z-slot-dip-requiring exchanges (foundation-resident twins) live
-between fibers — neck business, not fiber business. -/
-theorem rung_found_prefix (w : State) (s : Suit) :
-    ∃ cs : List Card, (w.found s) = cs.take (rungAt w s) ∧
-      True := by
-  sorry
+/-! ### The per-letter found writers (the descent microscope)
+
+Private copy-kit for this module's rows, dedup-marked against the
+reader banks: the raw step unfoldings are the public homes
+(`step_foundToTab_eq` / `step_tabToTab_eq` in `Orig/Play.lean`,
+`draw_unfold` there too), and the take/chop identities below are
+verbatim-shaped copies of `Orig/Reach.lean`'s PRIVATE kit
+(`chop_eq_take`, `chop_take_succ`, `take_len_pin` — banked there
+behind `private`, invisible across modules, so this base re-proves
+them; the harvest-time dedup sweep should absorb them). -/
+
+/-- A taken build-order prefix records its length (the copy of
+`Orig/Reach.lean`'s private `take_len_pin`). -/
+private theorem take_len_pin (σ : Suit) (n : Nat) :
+    (σ.upCards.take n).length = min n 13 := by
+  rw [List.length_take, Suit.upCards_length]
+
+/-- A list is its own take down to the taken length (the general
+`take`-min identity the rung reading rides). -/
+private theorem take_min_len (l : List Card) (n : Nat) :
+    l.take n = l.take (min n l.length) := by
+  have h6 : l.take n = (l.take l.length).take n := by rw [List.take_length]
+  rw [h6, List.take_take]
+
+/-- The chop-take identity: chopping a build-order prefix of length
+`m+1` leaves the `m`-prefix (the copy of `Orig/Reach.lean`'s private
+`chop_take_succ`, reached through `chop_eq_take`). -/
+private theorem chop_eq_take : ∀ (l : List Card), chop l = l.take (l.length - 1)
+  | [] => rfl
+  | [x] => rfl
+  | x :: y :: t => by
+      have ih := chop_eq_take (y :: t)
+      have hA : (y :: t).length = t.length + 1 := List.length_cons
+      have hlen : (x :: y :: t).length - 1 = (y :: t).length - 1 + 1 := by
+        rw [List.length_cons]
+        omega
+      rw [hlen]
+      show x :: chop (y :: t) = x :: (y :: t).take ((y :: t).length - 1)
+      rw [ih]
+
+private theorem chop_take_succ (L : List Card) (m : Nat) (h : m + 1 ≤ L.length) :
+    chop (L.take (m + 1)) = L.take m := by
+  rw [chop_eq_take, List.length_take, Nat.min_eq_left h, List.take_take,
+    Nat.min_eq_left (by omega : m + 1 - 1 ≤ m + 1)]
+  exact congrArg L.take (by omega)
+
+/-- A snoc'd list is one longer than its chop. -/
+private theorem chop_len_of_last {l : List Card} {c : Card}
+    (h : lastOf l = some c) : l.length = (chop l).length + 1 := by
+  have hsnoc : l = chop l ++ [c] := lastOf_chop h
+  have h1 : l.length = (chop l ++ [c]).length := congrArg List.length hsnoc
+  rw [h1, List.length_append]
+  simp
+
+/-- Chopping exactly `r` cards of the build order pops the `r-1`
+prefix back — the pull leg's chop restated on `upCards`. -/
+private theorem chop_take_upCards {s : Suit} {c : Card} {r : Nat}
+    (htop : lastOf (s.upCards.take r) = some c) (hr13 : r ≤ 13) :
+    chop (s.upCards.take r) = s.upCards.take (r - 1) := by
+  have hlen : 1 ≤ (s.upCards.take r).length :=
+    List.length_pos_of_mem (lastOf_mem htop)
+  have hdet := take_len_pin s r
+  have hr1 : 1 ≤ r := by omega
+  obtain ⟨m, hm⟩ := Nat.exists_eq_succ_of_ne_zero (show r ≠ 0 by omega)
+  subst hm
+  rw [chop_take_succ s.upCards m (by rw [Suit.upCards_length]; omega)]
+  exact congrArg s.upCards.take (by omega)
+
+/-- The raw pull write: a firing `foundToTab` names the current
+founded TOP (the guard `foundTop = some c`), chops it off its suit,
+and leaves every other foundation verbatim.  (The guard analysis is
+the banked idiom — `Orig/Dominance.lean`'s private
+`g_step_foundToTab_inv` owns the shape; this copy keeps the found
+side only.) -/
+private theorem pull_write {st st' : State} {c : Card} {b : Base}
+    (h : st.step (Move.foundToTab c b) = some st') :
+    lastOf (st.found c.suit) = some c ∧
+    st'.found c.suit = chop (st.found c.suit) ∧
+    ∀ σ, σ ≠ c.suit → st'.found σ = st.found σ := by
+  simp only [State.step] at h
+  split at h
+  · split at h
+    · rename_i _ c' ht hg
+      rw [Bool.and_eq_true] at hg
+      injection h with hEq
+      have hcc : c' = c := of_decide_eq_true hg.1
+      obtain ⟨hfld, _, _, _⟩ :=
+        putCard_keep (st := st.setFound c.suit (chop (st.found c.suit))) (c := c) (b := b)
+      refine ⟨?_, ?_, ?_⟩
+      · exact (show st.foundTop c.suit = some c from by rw [ht, hcc])
+      · rw [← hEq, hfld, setFound_found_self]
+      · intro σ hneσ
+        rw [← hEq, hfld, setFound_found_ne hneσ]
+    · exact absurd h (by simp)
+  · exact absurd h (by simp)
+
+/-- The raw slide write: a firing `tabToTab` never touches any
+foundation.  (The branch analysis is the banked idiom —
+`Orig/Dominance.lean`'s private `g_step_tabToTab_inv` owns the
+shape.) -/
+private theorem slide_write {st st' : State} {c : Card} {b : Base}
+    (h : st.step (Move.tabToTab c b) = some st') :
+    ∀ σ, st'.found σ = st.found σ := by
+  simp only [State.step] at h
+  split at h
+  · exact absurd h (by simp)
+  · rename_i _ a hh
+    split at h
+    · rename_i hcp
+      split at h
+      · exact absurd h (by simp)
+      · rename_i _ hne
+        injection h with hEq
+        intro σ
+        rw [← hEq]
+        obtain ⟨hfld, _, _, _⟩ :=
+          putRun_keep (st := st.setPile a
+            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp)))
+            (run := fromCard c (st.piles a).faceUp) (b := b)
+        rw [hfld, congrFun (setPile_found st a
+          (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))) σ]
+    · exact absurd h (by simp)
+
+/-- The raw draw write: a firing draw never touches any foundation. -/
+private theorem draw_write {st st' : State}
+    (h : st.step Move.draw = some st') :
+    ∀ σ, st'.found σ = st.found σ := by
+  intro σ
+  have hsd : st.stepDraw = some st' := h
+  obtain ⟨r, hr, _, hshape⟩ := draw_unfold hsd
+  have hr2 : r = State.recycle st := hr.symm
+  subst hr2
+  rw [hshape]
+  show (State.recycle st).found σ = st.found σ
+  simp only [State.recycle]
+  split
+  · split
+    · rfl
+    · rfl
+  · rfl
+
+/-- The prefix discipline (the canonical `rung_found_prefix` form)
+caps every rung at thirteen. -/
+private theorem rung_le_of_discipline {st : State}
+    (h : ∀ σ, st.found σ = σ.upCards.take (rungAt st σ)) (σ : Suit) :
+    rungAt st σ ≤ 13 := by
+  show (st.found σ).length ≤ 13
+  rw [h σ, take_len_pin σ (rungAt st σ)]
+  omega
+
+/-- The pull leg preserves the rank-order discipline: chopping a
+build-order prefix leaves the shorter build-order prefix. -/
+private theorem pull_discipline {st st' : State} {c : Card} {b : Base}
+    (hstep : st.step (Move.foundToTab c b) = some st')
+    (h : ∀ σ, st.found σ = σ.upCards.take (rungAt st σ)) :
+    ∀ σ, st'.found σ = σ.upCards.take (rungAt st' σ) := by
+  obtain ⟨hlast, hchop, hne⟩ := pull_write hstep
+  have hr13 : rungAt st c.suit ≤ 13 := rung_le_of_discipline h c.suit
+  intro σ
+  rcases Decidable.em (σ = c.suit) with rfl | hneσ
+  · have hl : lastOf (c.suit.upCards.take (rungAt st c.suit)) = some c := by
+      rw [h c.suit] at hlast
+      exact hlast
+    have hchop2 : chop (st.found c.suit) = c.suit.upCards.take (rungAt st c.suit - 1) := by
+      rw [h c.suit]
+      exact chop_take_upCards hl hr13
+    have hzrung : rungAt st' c.suit = rungAt st c.suit - 1 := by
+      have hL1 : (st.found c.suit).length = rungAt st c.suit := rfl
+      show (st'.found c.suit).length = (st.found c.suit).length - 1
+      rw [hchop, hchop2, take_len_pin]
+      omega
+    rw [hchop, hchop2, hzrung]
+  · rw [hne σ hneσ, h σ]
+    have hr : rungAt st' σ = rungAt st σ := by
+      show (st'.found σ).length = (st.found σ).length
+      rw [hne σ hneσ]
+    rw [hr]
+
+/-- The rung-congr of a pointwise found equality. -/
+private theorem rung_congr_found {st st' : State} (s : Suit)
+    (h : st'.found s = st.found s) : rungAt st' s = rungAt st s := by
+  show (st'.found s).length = (st.found s).length
+  rw [h]
+
+/-- Founding is a rank-ordered stack — THE BANKED INVARIANT, restated
+at the rung: a `WF` state's suit foundation is its build order
+truncated AT THE RUNG (`WF.found_prefix` carries `∃ n, found =
+upCards.take n` — `Orig/Integrity.lean`; the conservation conjunct —
+`Orig/State.lean`); the length of the take pins `n` to the rung
+itself.  So THE RUNG ALONE READS THE FOUNDATION: at a FIXED TUPLE,
+the founded content of every fiber member is IDENTICAL.
+
+(The skeleton's placeholder form — `∃ cs, found = cs.take rung` with
+a vacuous conjunct — was trivially true and content-free; this is
+the honest per-the-bank restatement the row was shaped for.) -/
+theorem rung_found_prefix (w : State) (hwf : w.WF) (s : Suit) :
+    w.found s = s.upCards.take (rungAt w s) := by
+  obtain ⟨n, hn⟩ := hwf.found_prefix s
+  have hr : rungAt w s = min n 13 := by
+    show (w.found s).length = min n 13
+    rw [hn]
+    exact take_len_pin s n
+  have htake : s.upCards.take n = s.upCards.take (min n 13) := by
+    have hmin := take_min_len s.upCards n
+    rwa [Suit.upCards_length] at hmin
+  rw [hn, htake, hr]
+
+/-- THE KEY CONSEQUENCE: same rung count, same founded content —
+at a fixed height-tuple every fiber member's foundations agree card
+for card.  This is why the horizontal world never needs
+mixed-residence swaps: foundation-resident content never wiggles
+inside a fiber (the only Z-slot-dip-requiring exchanges live between
+fibers — neck business, not fiber business). -/
+theorem rung_found_congr (w w' : State) (hw : w.WF) (hw' : w'.WF) (s : Suit)
+    (h : rungAt w s = rungAt w' s) : w.found s = w'.found s := by
+  rw [rung_found_prefix w hw s, rung_found_prefix w' hw' s, h]
 
 /-- Relation to the dance world: every FlatPath embeds as a NET-FLAT
 DancePath (the cargo and draw letters are dance legs; licensed
 exchanges are single cargo moves by `exch_is_cargo`).  The converse
 is the per-leg-honest rerouting content — genuinely stronger, kept
-sharp by NOT replacing FlatPath. -/
+sharp by NOT replacing FlatPath.
+
+The proof is the straight structural mirror: post-merge FlatStep
+carries no exchange letter — `cargo` (a `tabToTab`) IS a
+`ConeStep.slide` constructor shape and `draw` likewise, so each flat
+leg embeds as a cone dance leg, and the net-flat reading follows from
+the writers above (a slide/draw writes no foundation, so every leg of
+the walk preserves the whole rung tuple). -/
 theorem flat_into_dance {w u : State} (h : FlatPath w u) :
     ∃ p : DancePath w u, ∀ s : Suit, rungAt u s = rungAt w s := by
+  induction h with
+  | refl A => exact ⟨DancePath.refl A, fun _ => rfl⟩
+  | @cons A z u2 hs t ih =>
+      obtain ⟨dp, hflat⟩ := ih
+      cases hs with
+      | cargo c b hstep hrev =>
+          refine ⟨DancePath.cons (DanceStep.cone (ConeStep.slide c b hstep hrev)) dp, ?_⟩
+          intro s
+          exact (hflat s).trans (rung_congr_found s (slide_write hstep s))
+      | draw hstep hrev =>
+          refine ⟨DancePath.cons (DanceStep.cone (ConeStep.draw hstep hrev)) dp, ?_⟩
+          intro s
+          exact (hflat s).trans (rung_congr_found s (draw_write hstep s))
+
+/-! ### The pull-multiset determinism family
+
+THE NEW THEOREM (nobody has it): the descent-determinism of the
+-_pull letter.  The cone's pops are FORCED top-down — a `foundToTab`
+leg fires only on the CURRENT FOUNDED TOP (the guard `foundTop =
+some c` makes the popped card the rank-next card exactly), and along
+a cone descent the rungs only ever fall (pulls chop one suit rung,
+slides and draws write no foundation).  So the per-suit pop ledger
+of ANY descent from a rank-disciplined anchor is a function of the
+PROGRAM'S OWN DATA — the anchor's founded prefix chopped down to the
+member's rung — never of the path taken.  Two same-tuple
+cone-descendants of one anchor therefore pulled exact card-for-card
+equal multisets: the deterministic spine the capstone's horizontal
+world runs on (mixed-residence pop histories never arise in-fiber). -/
+
+/-- The forced per-suit pop window: the cards a rank-ordered descent
+from founded list `l` down to rung `j` pops, in pop order (top
+first — the reverse of the founded prefix's drop). -/
+def popWindow (l : List Card) (j : Nat) : List Card := (l.drop j).reverse
+
+/-- A window at or past the end of the list is empty. -/
+private theorem window_nil {l : List Card} {j : Nat} (hj : l.length ≤ j) :
+    popWindow l j = [] := by
+  have hd : (l.drop j).length = 0 := by
+    rw [List.length_drop]
+    omega
+  have hnil : l.drop j = [] := List.eq_nil_of_length_eq_zero hd
+  unfold popWindow
+  rw [hnil]
+  rfl
+
+/-- A window over a snoc pops the snocced card first. -/
+private theorem window_snoc {front : List Card} {c : Card} {j : Nat}
+    (hj : j < (front ++ [c]).length) :
+    popWindow (front ++ [c]) j = c :: popWindow front j := by
+  have hl2 : (front ++ [c]).length = front.length + 1 := List.length_append
+  have h0 : j - front.length = 0 := by omega
+  show (List.drop j (front ++ [c])).reverse = c :: (List.drop j front).reverse
+  rw [List.drop_append, h0, List.drop_zero, List.reverse_append,
+    List.reverse_singleton, List.cons_append, List.nil_append]
+
+/-- The descent's pop ledger: `ConeLedger p L` says the cone path `p`
+pops exactly the cards `L`, pull leg by pull leg (slide and draw legs
+append nothing).  The path carrier lives in `Prop`, so the multiset
+is carried as a List-indexed inductive RELATION — the collection is
+purely structural, and every cone path has one (below). -/
+inductive ConeLedger : {A u : State} → ConePath A u → List Card → Prop
+  | refl (A : State) : ConeLedger (ConePath.refl A) []
+  | pull {A z u : State} (c : Card) (b : Base)
+      (hstep : A.step (Move.foundToTab c b) = some z)
+      (hrev : reversibleAtW A (Move.foundToTab c b))
+      {p : ConePath z u} {L : List Card}
+      (hl : ConeLedger p L) :
+      ConeLedger (ConePath.cons (ConeStep.pull c b hstep hrev) p) (c :: L)
+  | slide {A z u : State} (c : Card) (b : Base)
+      (hstep : A.step (Move.tabToTab c b) = some z)
+      (hrev : reversibleAtW A (Move.tabToTab c b))
+      {p : ConePath z u} {L : List Card}
+      (hl : ConeLedger p L) :
+      ConeLedger (ConePath.cons (ConeStep.slide c b hstep hrev) p) L
+  | draw {A z u : State}
+      (hstep : A.step Move.draw = some z)
+      (hrev : reversibleAtW A Move.draw)
+      {p : ConePath z u} {L : List Card}
+      (hl : ConeLedger p L) :
+      ConeLedger (ConePath.cons (ConeStep.draw hstep hrev) p) L
+
+/-- Every cone path carries its pop ledger. -/
+theorem cone_ledger_of_path {A u : State} (p : ConePath A u) :
+    ∃ L, ConeLedger p L := by
+  induction p with
+  | refl A₀ => exact ⟨[], ConeLedger.refl A₀⟩
+  | @cons A₀ z u2 h t ih =>
+      obtain ⟨L, hL⟩ := ih
+      cases h with
+      | pull c b hstep hrev => exact ⟨c :: L, ConeLedger.pull c b hstep hrev hL⟩
+      | slide c b hstep hrev => exact ⟨L, ConeLedger.slide c b hstep hrev hL⟩
+      | draw hstep hrev => exact ⟨L, ConeLedger.draw hstep hrev hL⟩
+
+/-- The cone runs rung-monotonely downward: per suit, the rung along
+a cone descent never rises (a pull chops one suit rung, slides and
+draws write no foundation). -/
+theorem cone_rung_mono {A u : State} (p : ConePath A u) (s : Suit) :
+    rungAt u s ≤ rungAt A s := by
+  induction p with
+  | refl A₀ => exact Nat.le_refl _
+  | @cons A₀ z u2 h t ih =>
+      cases h with
+      | pull c b hstep hrev =>
+          obtain ⟨hlast, hchop, hneW⟩ := pull_write hstep
+          have hSu : rungAt z c.suit + 1 = rungAt A₀ c.suit := by
+            show (z.found c.suit).length + 1 = (A₀.found c.suit).length
+            rw [hchop, chop_len_of_last hlast]
+          rcases Decidable.em (s = c.suit) with rfl | hne
+          · exact Nat.le_trans ih (by omega)
+          · exact Nat.le_trans ih (Nat.le_of_eq (rung_congr_found s (hneW s hne)))
+      | slide c b hstep hrev =>
+          exact Nat.le_trans ih (Nat.le_of_eq (rung_congr_found s (slide_write hstep s)))
+      | draw hstep hrev =>
+          exact Nat.le_trans ih (Nat.le_of_eq (rung_congr_found s (draw_write hstep s)))
+
+/-- **THE DESCENT-DETERMINISM MASTER**: along any cone descent from a
+prefix-disciplined anchor, the per-suit pop ledger is exactly the
+FORCED WINDOW — the anchor's founded prefix chopped down to the
+member's rung, top-first.  The popped cards of suit `s`, in pop
+order, are `popWindow (A.found s) (rungAt u s)` — a function of the
+anchor's founded content and the height-tuple alone, never of the
+path taken, its slides, its draws, or its interleavings. -/
+theorem cone_pop_window : ∀ {A u : State} (p : ConePath A u) (L : List Card),
+    ConeLedger p L → (∀ σ, A.found σ = σ.upCards.take (rungAt A σ)) →
+    ∀ s : Suit, (L.filter fun x => decide (x.suit = s)) =
+      popWindow (A.found s) (rungAt u s) := by
+  intro A u p L hl
+  induction hl with
+  | refl A₀ =>
+      intro hA s
+      rw [show popWindow (A₀.found s) (rungAt A₀ s) = []
+        from window_nil (Nat.le_refl (A₀.found s).length)]
+      rfl
+  | @pull A₀ z u2 c b hstep hrev pp L' hl' ih =>
+      intro hA s
+      obtain ⟨hlast, hchop, hneW⟩ := pull_write hstep
+      have hIH := ih (pull_discipline hstep hA)
+      rcases Decidable.em (c.suit = s) with rfl | hneq
+      · -- the popped suit: the window pops the top card first
+        have hsnoc : A₀.found c.suit = chop (A₀.found c.suit) ++ [c] :=
+          lastOf_chop hlast
+        have hmono := cone_rung_mono pp c.suit
+        have hzrung : rungAt z c.suit = rungAt A₀ c.suit - 1 := by
+          show (z.found c.suit).length = (A₀.found c.suit).length - 1
+          rw [hchop, chop_len_of_last hlast]
+          omega
+        have hLe : (chop (A₀.found c.suit) ++ [c]).length = rungAt A₀ c.suit :=
+          (congrArg List.length hsnoc).symm
+        have hlen : (A₀.found c.suit).length = rungAt A₀ c.suit := rfl
+        have hpos : 1 ≤ rungAt A₀ c.suit :=
+          List.length_pos_of_mem (lastOf_mem hlast)
+        have hjlt : rungAt u2 c.suit < (chop (A₀.found c.suit) ++ [c]).length := by
+          rw [hLe]
+          exact Nat.lt_of_le_of_lt hmono (by rw [hzrung]; omega)
+        have hfil : (c :: L').filter (fun x => decide (x.suit = c.suit)) =
+            c :: L'.filter (fun x => decide (x.suit = c.suit)) := by
+          rw [List.filter_cons]
+          simp
+        rw [hfil]
+        rw [hsnoc]
+        rw [window_snoc hjlt]
+        rw [← hchop]
+        exact congrArg (c :: ·) (hIH c.suit)
+      · -- another suit: the head filters out, the window is unchanged
+        have hfil : (c :: L').filter (fun x => decide (x.suit = s)) =
+            L'.filter (fun x => decide (x.suit = s)) := by
+          rw [List.filter_cons]
+          simp [hneq]
+        rw [hfil, ← hneW s (Ne.symm hneq)]
+        exact hIH s
+  | @slide A₀ z u2 c b hstep hrev pp L' hl' ih =>
+      intro hA s
+      have hAz : ∀ σ, z.found σ = σ.upCards.take (rungAt z σ) := by
+        intro σ
+        rw [slide_write hstep, hA σ]
+        rw [rung_congr_found σ (slide_write hstep σ)]
+      rw [← slide_write hstep s]
+      exact ih hAz s
+  | @draw A₀ z u2 hstep hrev pp L' hl' ih =>
+      intro hA s
+      have hAz : ∀ σ, z.found σ = σ.upCards.take (rungAt z σ) := by
+        intro σ
+        rw [draw_write hstep, hA σ]
+        rw [rung_congr_found σ (draw_write hstep σ)]
+      rw [← draw_write hstep s]
+      exact ih hAz s
+
+/-- The multiset reading of the master: a card is pulled along the
+descent exactly as often as it sits in the forced window (a
+multiset-graded equality of pop ledgers — both sides count the same
+card populations). -/
+theorem cone_pop_countP {A u : State} (p : ConePath A u) {L : List Card}
+    (hl : ConeLedger p L)
+    (hA : ∀ σ, A.found σ = σ.upCards.take (rungAt A σ)) (c : Card) :
+    L.countP (fun x => decide (x = c)) =
+      (popWindow (A.found c.suit) (rungAt u c.suit)).countP (fun x => decide (x = c)) := by
+  have hwin := cone_pop_window p L hl hA c.suit
+  rw [← hwin, List.countP_filter]
+  refine List.countP_congr ?_
+  intro x _
+  by_cases hxc : x = c
+  · subst hxc
+    simp
+  · simp [hxc]
+
+/-- **THE INTRA-ARM FORM**: two cone-descendants of the SAME
+prefix-disciplined anchor at the SAME height tuple pulled equal
+multisets (the count-function equality — multiset equality for lists
+of cards).  The pull history is a function of the descent ANCESTRY
+(the shared arm) and the tuple: never of the route.  (Saturation of
+the anchor is not load-bearing — any `WF` anchor's pops are forced
+by rank order; the saturated-arm reading is the deployed use.) -/
+theorem cone_pulls_congr_tuple {A w w' : State} (hwfA : A.WF)
+    (p : ConePath A w) (L : List Card) (hp : ConeLedger p L)
+    (p' : ConePath A w') (L' : List Card) (hp' : ConeLedger p' L')
+    (htup : ∀ s : Suit, rungAt w s = rungAt w' s) (c : Card) :
+    L.countP (fun x => decide (x = c)) =
+      L'.countP (fun x => decide (x = c)) := by
+  have hA : ∀ σ, A.found σ = σ.upCards.take (rungAt A σ) :=
+    fun σ => rung_found_prefix A hwfA σ
+  have h1 := cone_pop_countP p hp hA c
+  have h2 := cone_pop_countP p' hp' hA c
+  rw [h1, h2, htup c.suit]
+
+/-- **THE CROSS-ARM RESIDUAL, stated conditionally on the envelope**:
+two same-class members at the same height tuple hanging off TWO
+saturated anchors pull equal multisets, GIVEN the corridor the
+envelope supplies between the arm anchors — the second up to the
+conjugate, the envelope's own disjunct shape.
+
+**BLOCKED — gated, kept sorry.**  The corridor hypothesis is the
+bridge the envelope exists to provide (`envelope` further down this
+file — the decompression card's `mem_macro_iff` output), and its
+honest statement runs through the CONJUGATION family (`conjl`'s
+laws — `conjl_involutive` / `conjl_inClass` and the transport of
+the pop windows through the conjugate — conjugation-session rows,
+not this branch's): between genuinely distinct arms the Final
+tuples are fork-flipped (`saturated_tuple_orbit`'s flip branch), and
+cone legs are rung-monotone (`cone_rung_mono`), so a literal
+cone bridge between the arm anchors cannot exist — the conjugate
+corridor is the only route, and pricing it is the envelope card's
+business.  Given the corridor plus the conjugate transport, the
+comparison closes at the shared arm anchor through
+`cone_pop_window` mechanically.  Not provable today; recorded as
+this family's residual. -/
+theorem cone_pulls_congr_crossarm {A₁ A₂ w w' : State}
+    (hwf₁ : A₁.WF) (hwf₂ : A₂.WF)
+    (hsat₁ : Final A₁) (hsat₂ : Final A₂)
+    (p₁ : ConePath A₁ w) (L₁ : List Card) (hl₁ : ConeLedger p₁ L₁)
+    (p₂ : ConePath A₂ w') (L₂ : List Card) (hl₂ : ConeLedger p₂ L₂)
+    (htup : ∀ s : Suit, rungAt w s = rungAt w' s)
+    (hcorr : ConePath A₁ (conjl A₂)) :
+    ∀ c : Card,
+      L₁.countP (fun x => decide (x = c)) =
+        L₂.countP (fun x => decide (x = c)) := by
   sorry
 
 /-- **The height fiber**: the members of one class at an exact height
@@ -1110,3 +1578,22 @@ lands.  Every other floor head audits within [propext, Quot.sound]. -/
 #print axioms piled_rung
 #print axioms canRaiseS_rung_pin
 #print axioms forkPoint_cargo_strand
+/-! ## The determinism battery rows — leaf audits
+
+`#print axioms` for this branch's fresh rows, per the house rule
+(battery at the leaf: `lake env lean Orig/MacroInternal.lean` —
+this module is deliberately NOT wired into `lake build Orig`, whose
+root `Orig.lean` imports none of it).  The cross-arm residual is
+audited too, and shows its `sorryAx` — that row is gated on the
+envelope (its docstring records the owner); every other fresh row
+must come out clean. -/
+
+#print axioms rung_found_prefix
+#print axioms rung_found_congr
+#print axioms flat_into_dance
+#print axioms cone_ledger_of_path
+#print axioms cone_rung_mono
+#print axioms cone_pop_window
+#print axioms cone_pop_countP
+#print axioms cone_pulls_congr_tuple
+#print axioms cone_pulls_congr_crossarm
