@@ -3959,8 +3959,11 @@ private theorem wasteToTab_fires {st : State} {c : Card} {b : Base} {v : State}
     · exact absurd h (by simp)
   · exact absurd h (by simp)
 
-/-- The seating state's founding step, at var grade. -/
-private theorem step_tabToFound_eq {s : State} {c : Card} {k : Anchor}
+/-- The seating state's founding step, at var grade, guard-pinned
+(renamed `step_tabToFound_eq_pin` at merge: the raw public
+`step_tabToFound_eq` is Play.lean's — the private same-name copy
+collided in the merged union; zero in-file references at the rename). -/
+private theorem step_tabToFound_eq_pin {s : State} {c : Card} {k : Anchor}
     (hnu : s.nextUp c = true) (hpt : s.pileOfTop c = some k) :
     State.step s (Move.tabToFound c) =
       some { s.setFound c.suit (s.found c.suit ++ [c]) with
