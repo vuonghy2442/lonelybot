@@ -262,6 +262,47 @@ licensed, and never stackable inside canon, which has no
   (stock/waste/drawStep vs found/piles) — the definitional case of
   the incoming card's census, and the only one.
 
+TWIN-CONTENTION PROBE ADDENDUM (2026-10-11, external file
+`canlaw-probes/OrigCanLawProbeTwin.lean`, same discipline, all
+rows kernel-`decide`d): the candidate counterexample to monotone
+stackability — both twins licensed and a single contended seat —
+was crafted minimal (rung-ready 3♠/3♣ bare on their own piles,
+foundations ♠ = [A♠,2♠] and ♣ = [A♣,2♣], the lone red-four top as
+the single seat) and settled:
+
+* BOTH STACKINGS FIRE on the seat and STACKING EITHER FORECLOSES
+  THE OTHER (the seat is consumed) — the fork is real, commit-side
+  (the `tabToTab` moves; canonicalization has no stacking).
+* THE EXCLUSIVITY: at the crafted family, rationally-licensed
+  raises AND a contended seat do not coexist (`CanRaise`'s seat
+  clause fails bare twins at the base) — canon at the base state
+  is a FIXED POINT (the canonical schedule is EMPTY — trivially
+  reversible; the pick-raise grades benign).
+* THE FORK SURVIVES INTO THE CANONICAL WORLD: at each child the
+  claimant twin becomes licensed and canon lifts exactly it
+  (3♠ respectively 3♣ goes to its suit's book), and the two
+  canonical finals DIFFER (which suit-book holds the twin-3) —
+  the retraction's "forks vanish at canon" does NOT cover
+  contended-seat stacking forks.  NOTE: `canon_unique` is NOT at
+  risk anywhere here — the finals are DIFFERENT STATES; no
+  no-cargo premise is needed on the confluence rows.
+* THE ABSORB GRADE: the two canonical finals ARE related by the
+  EXACT composite transform — (twin foundation-book relabel) ∘
+  (p1↔p2 anchor rotation of the leftover's pile, cargo twin-
+  relabelled inside the rotated pile) — settled seat intact.  The
+  strict whole-state `twinMap` FAILS (it would flip the settled
+  seat 4♥ to 4♦ and disturb the rest-waste's exclusions); the
+  bare {twin-pair} position-swap FAILS (it leaves a mixed suit
+  book).  The honest σ-clause for any anchor-free twin-absorption
+  theorem is this composite (or the collapse needs the
+  stop-at-fork carve-out): the anchor-rotation leg is a physical
+  exchange (ExchOrbit family), the foundation-book leg is the
+  ordinary twin relabel downgraded-to-founds.
+* SameFate and the scaffold-pull family (med/long `4♦` latitudes)
+  were NOT probed — out of this card's census scope; the §3.1
+  program's own probes should take the baton on the ·4♦-family
+  latitudes and the fate question.
+
 Axiom discipline: `[propext, Quot.sound]` at worst, zero
 `Classical.choice`, zero `sorry`, no `native_decide`; `simp` is
 avoided on decision-shaped goals in favor of the
