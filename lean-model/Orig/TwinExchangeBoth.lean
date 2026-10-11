@@ -1064,6 +1064,30 @@ private theorem exch_putRun_found {st s₁ V : State} {run : List Card} {b : Bas
   rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁, putRun_keep.1]
   exact hV.symm
 
+/-- The foundation slot of the `wasteToFound` squares: the suit
+pointwise transport through the waste-popped `setFound` write (the
+squares are record-shaped `State.ext` goals, so this row reads the
+record projections directly; the premise is the FUNCTIONAL found
+fact; the splice-flavored κ-family squares keep their in-place
+blocks - their record shape differs on the piles clause). -/
+private theorem exch_setFound_found {st s₁ : State} {c : Card}
+    (hf : s₁.found = (st.setFound c.suit (st.found c.suit ++ [c])).found)
+    {ws : List Card} :
+    { (st.exchangeTwin t).setFound c.suit ((st.exchangeTwin t).found c.suit ++ [c])
+        with waste := ws }.found = (s₁.exchangeTwin t).found := by
+  funext s'
+  by_cases hs' : s' = c.suit
+  · rw [hs', setFound_found_self, congrFun State.exchangeTwin_found c.suit]
+    rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
+      congrFun State.exchangeTwin_found c.suit]
+    rw [hf]
+    exact setFound_found_self.symm
+  · rw [setFound_found_ne hs', congrFun State.exchangeTwin_found s']
+    rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
+      congrFun State.exchangeTwin_found s']
+    rw [hf]
+    exact (setFound_found_ne hs').symm
+
 /-- The stock slot at a record-written step (`s₁ = V` directly). -/
 private theorem exch_upd_stock {st s₁ V : State} (hs₁ : s₁ = V)
     (hV : V.stock = st.stock) :
@@ -1377,21 +1401,8 @@ theorem exch_step_wasteToFound {st s₁ : State} {t z z' : Card} {α β : Anchor
               ((st.exchangeTwin t).found c.suit ++ [c]) with waste := ws } : State) from rfl]
       rw [Option.some.injEq]
       apply State.ext
-      · funext s'
-        by_cases hs' : s' = c.suit
-        · rw [hs']
-          rw [setFound_found_self]
-          rw [congrFun State.exchangeTwin_found c.suit]
-          rw [show (s₁.exchangeTwin t).found c.suit = s₁.found c.suit from
-            congrFun State.exchangeTwin_found c.suit]
-          rw [hs₁]
-          exact setFound_found_self.symm
-        · rw [setFound_found_ne hs']
-          rw [congrFun State.exchangeTwin_found s']
-          rw [show (s₁.exchangeTwin t).found s' = s₁.found s' from
-            congrFun State.exchangeTwin_found s']
-          rw [hs₁]
-          exact (setFound_found_ne hs').symm
+      · exact exch_setFound_found (ws := []) (by rw [hs₁])
+
       · simp only [State.setFound]
         exact (exch_piles_congr hpil).symm
       · simp only [State.setFound]
@@ -2701,6 +2712,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
             congrFun State.exchangeTwin_found s']
           rw [hs₁]
           exact (setFound_found_ne hs').symm
+
       · funext j
         show (if j = β then
               Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
@@ -2792,6 +2804,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
             congrFun State.exchangeTwin_found s']
           rw [hs₁]
           exact (setFound_found_ne hs').symm
+
       · funext j
         show (if j = β then
               Pile.afterRunRemoved ((st.exchangeTwin t).piles β)
@@ -3049,6 +3062,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
             congrFun State.exchangeTwin_found s']
           rw [hs₁]
           exact (setFound_found_ne hs').symm
+
       · funext j
         show (if j = κ then
               Pile.afterRunRemoved ((st.exchangeTwin t).piles κ)

@@ -5194,6 +5194,32 @@ private theorem front_waste_shape {s : State} {c : Card} {preW postW : List Card
   rw [he]
   exact ⟨rfl, rfl, rfl, rfl, rfl⟩
 
+/-- The firing equation of a live `tabToFound` (a derived wrapper over
+Play's raw `step_tabToFound_eq`, the wave-3b public home — the card's
+original private firing dialect, dedup-marked for the census; hosted
+here, before the engine strip that speaks it). -/
+private theorem tabToFound_fires_eq {st : State} {y : Card} {ky : Anchor}
+    (hny : st.nextUp y = true)
+    (hstky : st.pileOfTop y = some ky) :
+    State.step st (Move.tabToFound y) =
+      some { st.setFound y.suit (st.found y.suit ++ [y]) with
+        piles := fun a' => if a' = ky then
+            Pile.afterRunRemoved (st.piles ky) (chop (st.piles ky).faceUp)
+          else st.piles a' } := by
+  rw [step_tabToFound_eq, hny, hstky]
+  rfl
+
+/-- The firing equation of a live `foundToTab` (a derived wrapper over
+Play's raw `step_foundToTab_eq` — same story, same home). -/
+private theorem foundToTab_fires_eq {st : State} {c : Card} {b : Base}
+    (htopr : st.foundTop c.suit = some c)
+    (hcpr : st.canPlace c b = true) :
+    State.step st (Move.foundToTab c b) =
+      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
+  rw [step_foundToTab_eq, htopr]
+  simp only [hcpr]
+  rfl
+
 /-- **The `tabToFound` square.**  A raise of a foreign-suit card rides
 across the front: the move is cycle-blind (the front's data is
 verbatim), the front from `u` lands the twin whose OWN raise is
@@ -5241,7 +5267,7 @@ private theorem front_board_tf {u s₁ : State} {c x : Card} {s' : State}
     have hpoV : V.pileOfTop x = some a := by
       rw [pileOfTop_congr x hVp]
       exact hpo
-    have hstepV := step_tabToFound_eq hnextV hpoV
+    have hstepV := tabToFound_fires_eq hnextV hpoV
     -- found-field facts
     have hVfc : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
       rw [hVf]; try rfl
@@ -5310,7 +5336,7 @@ private theorem front_board_tf {u s₁ : State} {c x : Card} {s' : State}
     have hpoV : V.pileOfTop x = some a := by
       rw [pileOfTop_congr x hVp]
       exact hpo
-    have hstepV := step_tabToFound_eq hnextV hpoV
+    have hstepV := tabToFound_fires_eq hnextV hpoV
     -- found-field facts
     have hVfc : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
       rw [hVf]; try rfl
@@ -5368,8 +5394,8 @@ private theorem front_board_tt {u s₁ : State} {c x : Card} {b : Base} {s' : St
     ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
   obtain ⟨a, hhld, hcp, hne, hs₁⟩ := step_tabToTab_inv' hstep
   -- the move is cycle-blind and foundation-blind
-  have hstock : s₁.stock = u.stock := by rw [hs₁]; exact (putRun_keep).1
-  have hwaste : s₁.waste = u.waste := by rw [hs₁]; exact (putRun_keep).2.1
+  have hstock : s₁.stock = u.stock := by rw [hs₁]; exact (putRun_keep).2.1
+  have hwaste : s₁.waste = u.waste := by rw [hs₁]; exact (putRun_keep).2.2.1
   have hfound : s₁.found = u.found := by rw [hs₁]; exact putRun_found_keep
   have hds1 : s₁.drawStep = 1 := by rw [step_drawStep_keep hstep, hds]
   have hn1 : s₁.nextUp c = true := by
@@ -5390,7 +5416,7 @@ private theorem front_board_tt {u s₁ : State} {c x : Card} {b : Base} {s' : St
     refine ⟨Move.tabToTab x b :: ρ, w₂, ?_, hwinρ⟩
     -- the move fires at the u-side landing by the readers
     have hhldV : V.pileHolding x = some a := by
-      rw [pileHolding_congr x hVp]
+      rw [pileHolding_congr hVp]
       exact hhld
     have hcpV : V.canPlace x b = true := by
       rw [canPlace_congr x b hVp]
@@ -5448,24 +5474,24 @@ private theorem front_board_tt {u s₁ : State} {c x : Card} {b : Base} {s' : St
             = s'.piles
         rw [hSp, hs₁]
         exact piles_setPile_putRun_transfer hVp
-      · have hk := putRun_keep (u := V.setPile a
-            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
-            (run := fromCard x (V.piles a).faceUp) (b := b)
-        rw [hk.1, show (V.setPile a
-            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).stock
-            = V.stock from rfl]
-        rw [hVs, hSs]
-      · have hk := putRun_keep (u := V.setPile a
+      · have hk := putRun_keep (st := V.setPile a
             (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
             (run := fromCard x (V.piles a).faceUp) (b := b)
         rw [hk.2.1, show (V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).stock
+            = V.stock from rfl]
+        rw [hVs, hSs]
+      · have hk := putRun_keep (st := V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
+            (run := fromCard x (V.piles a).faceUp) (b := b)
+        rw [hk.2.2.1, show (V.setPile a
             (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).waste
             = V.waste from rfl]
         rw [hVw, hSw, hwaste]
-      · have hk := putRun_keep (u := V.setPile a
+      · have hk := putRun_keep (st := V.setPile a
             (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
             (run := fromCard x (V.piles a).faceUp) (b := b)
-        rw [hk.2.2, show (V.setPile a
+        rw [hk.2.2.2, show (V.setPile a
             (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).drawStep
             = V.drawStep from rfl]
         rw [hVds, hSds, hds1, hds]
@@ -5483,7 +5509,7 @@ private theorem front_board_tt {u s₁ : State} {c x : Card} {b : Base} {s' : St
     refine ⟨V, Or.inr ⟨preW, postW, hwaste.symm.trans hs1waste, hcpre, hVrun⟩, ?_⟩
     refine ⟨Move.tabToTab x b :: ρ, w₂, ?_, hwinρ⟩
     have hhldV : V.pileHolding x = some a := by
-      rw [pileHolding_congr x hVp]
+      rw [pileHolding_congr hVp]
       exact hhld
     have hcpV : V.canPlace x b = true := by
       rw [canPlace_congr x b hVp]
@@ -5540,24 +5566,24 @@ private theorem front_board_tt {u s₁ : State} {c x : Card} {b : Base} {s' : St
             = s'.piles
         rw [hSp, hs₁]
         exact piles_setPile_putRun_transfer hVp
-      · have hk := putRun_keep (u := V.setPile a
-            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
-            (run := fromCard x (V.piles a).faceUp) (b := b)
-        rw [hk.1, show (V.setPile a
-            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).stock
-            = V.stock from rfl]
-        rw [hVs, hSs, hstock]
-      · have hk := putRun_keep (u := V.setPile a
+      · have hk := putRun_keep (st := V.setPile a
             (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
             (run := fromCard x (V.piles a).faceUp) (b := b)
         rw [hk.2.1, show (V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).stock
+            = V.stock from rfl]
+        rw [hVs, hSs, hstock]
+      · have hk := putRun_keep (st := V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
+            (run := fromCard x (V.piles a).faceUp) (b := b)
+        rw [hk.2.2.1, show (V.setPile a
             (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).waste
             = V.waste from rfl]
         rw [hVw, hSw]
-      · have hk := putRun_keep (u := V.setPile a
+      · have hk := putRun_keep (st := V.setPile a
             (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
             (run := fromCard x (V.piles a).faceUp) (b := b)
-        rw [hk.2.2, show (V.setPile a
+        rw [hk.2.2.2, show (V.setPile a
             (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).drawStep
             = V.drawStep from rfl]
         rw [hVds, hSds, hds1, hds]
@@ -5627,7 +5653,7 @@ private theorem front_board_ft {u s₁ : State} {c x : Card} {b : Base} {s' : St
     have hcpV : V.canPlace x b = true := by
       rw [canPlace_congr x b hVp]
       exact hcp
-    have hstepV := step_foundToTab_eq htopV hcpV
+    have hstepV := foundToTab_fires_eq htopV hcpV
     -- found-field facts
     have hVfc : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
       rw [hVf]; try rfl
@@ -5698,7 +5724,7 @@ private theorem front_board_ft {u s₁ : State} {c x : Card} {b : Base} {s' : St
     have hcpV : V.canPlace x b = true := by
       rw [canPlace_congr x b hVp]
       exact hcp
-    have hstepV := step_foundToTab_eq htopV hcpV
+    have hstepV := foundToTab_fires_eq htopV hcpV
     have hVfc : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
       rw [hVf]; try rfl
     have hVx : V.found x.suit
@@ -6834,10 +6860,10 @@ private theorem replay_front_aux : ∀ (n : Nat) (c : Card) (u : State),
                   exact putRun_found_keep
                 have hstock1 : s₁.stock = u.stock := by
                   rw [hs1shape]
-                  exact (putRun_keep).1
+                  exact (putRun_keep).2.1
                 have hwaste1 : s₁.waste = u.waste := by
                   rw [hs1shape]
-                  exact (putRun_keep).2.1
+                  exact (putRun_keep).2.2.1
                 have hn1 : s₁.nextUp c = true := by
                   show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
                   rw [hfound]
@@ -7641,31 +7667,6 @@ guards and seat to the pre-worry state through the readers
 (`setFound`/`putCard`/`firstWhere_congr`), the worry's guards to the
 post-raise state, and closes the composite by `State.ext` — the same
 channel as `foundToTab_wasteToFound_square`'s pattern-kernel. -/
-
-/-- The firing equation of a live `tabToFound` (a derived wrapper over
-Play's raw `step_tabToFound_eq`, the wave-3b public home — the card's
-original private firing dialect, dedup-marked for the census). -/
-private theorem tabToFound_fires_eq {st : State} {y : Card} {ky : Anchor}
-    (hny : st.nextUp y = true)
-    (hstky : st.pileOfTop y = some ky) :
-    State.step st (Move.tabToFound y) =
-      some { st.setFound y.suit (st.found y.suit ++ [y]) with
-        piles := fun a' => if a' = ky then
-            Pile.afterRunRemoved (st.piles ky) (chop (st.piles ky).faceUp)
-          else st.piles a' } := by
-  rw [step_tabToFound_eq, hny, hstky]
-  rfl
-
-/-- The firing equation of a live `foundToTab` (a derived wrapper over
-Play's raw `step_foundToTab_eq` — same story). -/
-private theorem foundToTab_fires_eq {st : State} {c : Card} {b : Base}
-    (htopr : st.foundTop c.suit = some c)
-    (hcpr : st.canPlace c b = true) :
-    State.step st (Move.foundToTab c b) =
-      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
-  rw [step_foundToTab_eq, htopr]
-  simp only [hcpr]
-  rfl
 
 /-- The mechanical square: a `tabToFound y` raise and a
 `foundToTab c b` worry at distinct suits, no inter-suite corner in the
