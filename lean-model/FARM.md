@@ -153,6 +153,48 @@ is UNCHANGED (Landing this row has not happened, so its
 consumption stands as written); the wave-24.6 site-note proof
 plans and the honest-audit boundary live at the (N) theorem's
 docstring)**)**);
+**+wave-24 cont. (2026-10-11, farm/orig-dom-extract-port, the
+rung-occurs + first-passage-port session; commits `06af140` +
+`5d7189c` + `2f1f28d`): the (N) route note's FIRST named
+prerequisite — (a) the rung-occurs extraction — landed SORRY-FREE,
+and the (C) residue's recorded §12.1 gap CLOSED by porting the
+first-passage family to Orig as PUBLIC machinery.  Landed, all
+audited `[propext, Quot.sound]` fresh in-file: in `Orig/Play.lean`,
+`run_append_split` + `run_firstPassage_split` (the first crossing
+position of a decidable state predicate along a successful play,
+with the all-prefix-states minimality clause — `climb_firstPassage`
+despecialized from heights to any predicate; consumers: the (N)
+extraction and the (C) residue's restack location); in
+`Orig/Dominance.lean`, the private (N) kit: `tabHeld_step`/
+`tabHeld_run` (the tableau-zone invariant — a tableau-held card
+stays tableau-∪-founded through any successful step at a WF state;
+the WF premise is consumed by `canPlace_inr_target_pile_ne`, which
+kills the run-move self-landing that would void the landing search),
+the dedup-marked local readers (`g_below_fromCard_or` vs
+`below_aboveIn_split`, the `g_putCard_piles_*` pointwise pair vs
+EdgeLabel's privates, `g_firstWhere_mem_ne_none` — the WF-free
+search-completeness half), `ground_rung_crossing` (THE RUNG OCCURS:
+every winning play from a WF tableau-held corner crosses `c`'s
+found-membership, the first crossing is entered by `tabToFound c`
+— the waste entry excluded by `mem_pile_unique` conservation at the
+crossing state, the other four kinds by the found-write readers; the
+position carries the pre-passage window facts — unfounded AND
+tableau-held — at EVERY prefix state), and
+`ground_firstBlocked_split` (the lift's direct-line packaging:
+compliant prefix + boundary move — the SETTLE case closes verbatim
+via `ground_settle_transport`, a genuinely blocked boundary move
+hands the α/β residue its window state; the raise cannot occur
+inside the prefix, read off the crossing minimality).  Zero new
+sorry; census pinned (`Dominance.lean` 6 expected 6, inventory OK —
+the (N) residue stays, its remaining content is now ONLY (b) the
+α/β spread); both residues' docstrings carry UPDATE rows ((N): (a)
+IS LANDED, (b) remains; (C): the first-passage gap IS CLOSED — cite
+`run_firstPassage_split` instantiated at x-foundedness, with the
+same conservation ledger as `ground_rung_crossing`, same-file
+private citable).  Battery `lake build Klondike Witnesses Orig`
+green on all three targets (Witnesses' first passes hit the
+transient Windows `.olean.private` read storms again; the serial
+per-module warm + retry is green).  Ledger row: FUTURES-ORIG §8)**;
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the
