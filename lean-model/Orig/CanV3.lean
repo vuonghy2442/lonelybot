@@ -159,11 +159,15 @@ computation-side engine of the class ceiling `classRung`. -/
 def satRung (st : State) (s : Suit) : Nat :=
   ((canon st).found s).length
 
-/-- The never-founded population (renamed from the old conflated
-neverStackable, state-level read): cards whose rank sits weakly
-above the state's canonical ceiling — the state-level engine of
-the class grade `toIdx ≥ classRung`. -/
-def neverFounded (st : State) (c : Card) : Bool :=
+/-- The at-or-above-ceiling population (internal engine name —
+not a class grade): cards whose rank sits weakly at or above
+the state's canonical ceiling.  The final skeleton vocabulary
+keeps ONLY the three existential class grades (satStackable /
+atRungInClass / strandedInClass / pendingForever — grade_partition
+PROVED there, founded_implies_atRung the remaining stub); the
+ceiling arithmetic below is this chapter's computation-side
+engine, never a spec-side definition. -/
+def aboveCeiling (st : State) (c : Card) : Bool :=
   decide (c.rank.toIdx ≥ satRung st c.suit)
 
 /-- The stranded-at-state read: the card sits strictly above the
@@ -188,7 +192,7 @@ and the pending-forever are two seatings of one never-founded
 population; the class-level profile derives as the grades at
 canonV3 after arm selection). -/
 def parkingMap (st : State) : List (Card × Anchor) :=
-  Card.universe.filter (neverFounded st) |>.filterMap
+  Card.universe.filter (aboveCeiling st) |>.filterMap
     (fun c => match st.pileHolding c with
       | some a => some (c, a)
       | none => none)
@@ -547,7 +551,7 @@ v3ForkExclusivity) lands DEDUCTIVELY above — zero sorry.  -/
 #print axioms v3NatListLt
 #print axioms canonIdxLt
 #print axioms satRung
-#print axioms neverFounded
+#print axioms aboveCeiling
 #print axioms strandedAt
 #print axioms pendingForeverAt
 #print axioms parkingMap

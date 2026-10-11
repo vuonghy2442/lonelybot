@@ -1677,7 +1677,7 @@ def l4AllGates : Bool :=
     IO.println "the row-A pose (slide-sensitivity properly contains the wing"
     IO.println "forks — the height ordering discriminates), and misses the"
     IO.println "bare kings' anchor-slides."
-    IO.println "The final vocabulary (satRung/neverFounded/strandedAt/pendingForeverAt/parkingMap — the renamed, disambiguated grades) lands as the chapter's"
+    IO.println "The final vocabulary (satRung/aboveCeiling/strandedAt/pendingForeverAt/parkingMap — the renamed, disambiguated engines) lands as the chapter's"
     IO.println "organizing vocabulary (state-level via the banked canon, the"
     IO.println "arm visible as a ceiling asymmetry); the class-level ceiling"
     IO.println "stack (classRung the sup over ALL members — the canus filter"
@@ -1954,7 +1954,8 @@ The class grades live at the ∃-speC level (MacroInternal:
 atRungInClass / satStackable / strandedInClass / pendingForever
 — one existential over classOf, no carrier).  Their
 computation-side ENGINES are in Orig/CanV3 now (satRung /
-neverFounded / strandedAt / pendingForeverAt / parkingMap).
+aboveCeiling / strandedAt / pendingForeverAt / parkingMap —
+internal engine names, not class grades).
 THE DISAMBIGUATION the finalization enforces, decided at the
 standing-fork family:
 
@@ -1980,8 +1981,8 @@ def l4RowGradeSplit : Bool :=
   -- (diamonds 12 = its index), not founded, covered by position
   pendingForeverAt (canon v3Fork) v3DK &&
   pnPosCovered (canon v3Fork) v3DK &&
-  -- neverFounded is the weak union both grades sit inside
-  neverFounded v3Fork v3CQ &&
+  -- aboveCeiling is the internal weak union both grade engines sit inside
+  aboveCeiling v3Fork v3CQ &&
   -- the MERGE cargo is NOT stranded (the cascade dissolves it:
   -- its own rung waits, it lifts vanilla)
   !(strandedAt pnCasForkMerge v3CQ) &&
@@ -1995,7 +1996,7 @@ def l4RowGradeSplit : Bool :=
 #eval! do
   if l4RowGradeSplit then
     IO.println "CANONV3 GRADE SPLIT (amr_129d9319a): ALL GATES HOLD —"
-    IO.println "The final vocabulary adopted: neverFounded (the weak union,"
+    IO.println "The final vocabulary adopted: aboveCeiling (the internal weak union,"
     IO.println "renamed from the conflated neverStackable) with the STRANDED"
     IO.println "(rank-pinned: the fork cargo — below every ceiling the class"
     IO.println "reaches, clubs 0 < the queen 11 at both stall and wing) and"
@@ -2006,7 +2007,7 @@ def l4RowGradeSplit : Bool :=
     IO.println "merge cargo is NOT stranded — its own rung waits, it lifts"
     IO.println "vanilla, the cascade dissolves it. Class grades at the"
     IO.println "-spec level (the existential forms, no carrier); the"
-    IO.println "state-level engines satRung/neverFounded/strandedAt/"
+    IO.println "state-level engines satRung/aboveCeiling/strandedAt/"
     IO.println "pendingForeverAt/parkingMap compute them."
   else
     throw (IO.userError "GRADE SPLIT: A GATE FAILED")

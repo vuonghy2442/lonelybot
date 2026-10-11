@@ -3129,3 +3129,42 @@ neverStackable; toIdx ≥ classRung).
   consume the ∃-forms and ride the envelope — named receiving
   rows in the skeleton, with the state-level engines landed
   here as their computable substrate.
+
+#### §11-L4.4 — the final vocabulary SYNC (amr_129dda51d; the skeleton restructured by the user — read back, mirrored, no edit)
+
+The class-card grades are now ALL existential at the spec level,
+and the ceiling-bump family is GONE from the skeleton:
+satStackable C c := ∃ st, classOf C st ∧ c ∈ st.found c.suit
+(renamed from foundedInClass — DIRECT ∃-stacked); atRungInClass
+:= ∃ st ∈ classOf C, rungAt st c.suit = c.rank.toIdx;
+strandedInClass := ¬ atRungInClass; pendingForever :=
+atRungInClass ∧ ¬ satStackable.  REMOVED: classRung,
+classRung_attained, scanRung, forkBump, enumClass,
+neverStackable, neverFounded, foundedInClass.
+
+SYNCS APPLIED TO THIS BRANCH'S LANDINGS (the consequences):
+
+1. ROWS RESTATED THROUGH THE ∃-GRADES — my prose now reads:
+   founded = satStackable; ready-never-founded = pendingForever;
+   below-every-rung = strandedInClass.  No spec-side statement of
+   mine reintroduces ceiling arithmetic: the only ceiling
+   machinery left on this branch is the COMPUTATION-SIDE engine
+   channel in Orig/CanV3 (satRung / aboveCeiling [renamed from my
+   engine-name neverFounded when the skeleton retired the name] /
+   strandedAt / pendingForeverAt / parkingMap), all docstringed
+   as engines computing witness readings at members, never
+   defining the class grades.
+2. grade_partition is CITED, not re-derived (proved sorry-free
+   in the skeleton by a classical case split — the three grades
+   partition every card); founded_implies_atRung (the pull-walk
+   property: founding implies at-rung somewhere) is THE remaining
+   grade-row stub, the envelope's next lift.  My battery's state-
+   level facts (pins at-rung, ceiling coverage) feed exactly that
+   stub's decide-side.
+3. The battery's engine-name references updated (neverFounded →
+   aboveCeiling in every print row and gate line); the library
+   rename is body-preserving ([propext], build green 29 jobs);
+   the gates all still green end-to-end.
+
+The skeleton stays the user's file in the main tree — mirrored
+here, never edited.
