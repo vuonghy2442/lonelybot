@@ -3168,3 +3168,73 @@ SYNCS APPLIED TO THIS BRANCH'S LANDINGS (the consequences):
 
 The skeleton stays the user's file in the main tree — mirrored
 here, never edited.
+
+#### §11-L4.5 — the floor sweep opens (amr_129f4f9d2; the proof-readiness audit answered YES-for-the-floor, and the sweep starts landing on this branch)
+
+The user's MacroInternal.lean (main tree, user-owned — mirrored,
+never edited) is the statement reference.  This branch's sweep
+section opens in Orig/CanV3.lean (the audits above), with the
+tier plan ledgered as asked:
+
+* TIER 0/1 OPENED with three PROVEN rows (zero sorry, the
+  audits printed in the build):
+  - `stackable_now_rungexact` [propext]: the licensed lift's rung
+    sits EXACTLY at the card — one step through the vanilla
+    license's nextUp conjunct.  DELTA NOTE, the honest one: the
+    skeleton's biconditional as written is FALSE at covered seats
+    (decided at the merge cell: the covered twin ♦K sits AT its
+    rung, unlicensable under cargo) — the load-bearing halves are
+    this direction plus `v3PiledRung` (a piled card's rung sits
+    weakly below its index).  The skeleton row should either take
+    the forward shape here or add the seat premise; the falsifier
+    evidence is in the battery (canRaiseB pnCasForkMerge v3DK =
+    false with the rung exact).
+  - `canon_rung_mono` [propext, Quot.sound]: saturation only
+    raises, per suit — by fuel induction on canonAux through the
+    per-step row `satStep_rung_mono` (a fired lift raises one suit
+    one and levels the rest via the banked `raise_foundTransport`;
+    a frozen or failed step is the identity).
+  - the mirrored `rungAt` (the skeleton's name).
+* TIER 2 LANDED — PULL-MULTISET DETERMINISM (the fresh lemma,
+  everyone's-blocker, self-contained, now PROVEN
+  [propext, Quot.sound] throughout):
+  - `fiber_founds_eq`: two WF states at equal per-suit rungs
+    carry EQUAL FOUNDATIONS — the founds are fixed build-order
+    prefixes, so the fiber's founded content is a function of
+    the tuple alone.  (The take-past-length row `v3TakeGe` and
+    equal-minim arithmetic close the two height-edge cases.)
+  - `found_pullSegment` + `pullSegment`: a member's descent
+    segment to any lower target IS the build segment (the founded
+    prefix is the build prefix at its height);
+  - `pull_multiset_determinism`: same fiber (equal rungs) ⇒ every
+    member's descent pops the SAME CARDS per suit, top-down —
+    the tuple deltas determine the popped cards, within one arm.
+    THE ARM-SPLIT NOTE: the arm split is the twin pair's tuple
+    swap itself (13/12 vs 12/13 — decided at the wing cells); the
+    determinism holds within each arm, and the popped-card
+    difference across arms is exactly the fork pair's segment
+    difference — this is the core the fiber_iff_flat capstone
+    rides, unlocked per the request.
+* STILL OPEN, the honest sweep ledger (routes documented, no
+  silent stubs): `flat_heights` (induction over the flat letters
+  citing the per-move founds-invariant rows: tabToTab
+  piles-only, draw board-stable, exchangeTwin_found banked), the
+  grading trichotomy (`dance_step_grading`/`cone_step_fiber`:
+  the same constructor splits through `raise_foundTransport`,
+  the foundToTab inverse, and the flat rows), `cone_inClass`/
+  `dance_inClass` (oneMoveRevEqW + the setoid closure; the
+  general letter's whole-play return needs the witness-lift —
+  the one-move-undo letters close now, noted), the forks'
+  skeleton shapes (`forkPoint_trial` conditional on the
+  pair-config lattice — the L3 case table + CanRaiseS machinery
+  are the consume-pieces; `forkPoint_pins` = the v3ForkPins
+  arithmetic at the skeleton's shape; `forkPoint_exclusive` =
+  MY v3ForkExclusivity ALREADY LANDED DEDUCTIVELY, the shape
+  conversion at merge), `founded_implies_atRung` (the pull-walk:
+  the pop segments now determinate via the tier-2 rows; the
+  reversibility-per-seat legs next), `benign_sat_iff_surely` and
+  `surely_imp_sat` (both conditional on Finals-existence — the
+  canusOf_nonempty gate).  The two gates stay conditional as
+  instructed: canusOf_class_inv (= mem_macro_iff,
+  decompression's finalWiggle_reach) and saturated_classification
+  (exotic census) — no blocking on them anywhere above.

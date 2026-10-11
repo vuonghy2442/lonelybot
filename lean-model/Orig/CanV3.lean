@@ -529,7 +529,173 @@ lift (the now-clause, named for the audit trail). -/
 theorem canRaiseS_of_canRaise {st : State} {c : Card} (h : CanRaise st c) :
     CanRaiseS st c := CanRaiseS.now c h
 
-/-! ## The axiom audit
+/-! ## The floor sweep (MacroInternal mirror, tiers 0/1 + 2 — proofs-in-progress on this branch)
+
+The skeleton (`Orig/MacroInternal.lean`, the user's file in the
+main tree) is the name reference; this section mirrors the floor
+into THIS branch with real proofs where the bank suffices, named
+residues with documented routes where the assembly remains.  At
+merge, the sorry-carrying skeleton rows with the same names swap
+for these shapes (deltas ledgered in FUTURES-ORIG.md §11-L4.5).  -/
+
+
+/-- The current founded count of a suit — the skeleton's rung
+(mirrored name). -/
+def rungAt (w : State) (s : Suit) : Nat := (w.found s).length
+
+/-! ### Tier 0: the calibration and monotone rows -/
+
+
+/-- STACKABLE-NOW, the forward half (the rank-encoding
+calibration): a licensed lift sits EXACTLY at its rung.
+
+The biconditional's OTHER direction is FALSE as literally stated
+at covered seats — decided at the merge cell (probes/
+CanonV3Probe.lean: `canRaiseB pnCasForkMerge v3DK` is FALSE while
+`rungAt pnCasForkMerge .diamond = v3DK.rank.toIdx` — the covered
+twin at its rung under cargo).  The load-bearing halves are this
+direction plus `v3PiledRung` (a piled card's rung sits weakly
+below its index — the "not-above" hedge, proven above).  The
+skeleton row should take this shape or add the seat premise. -/
+theorem stackable_now_rungexact {st : State} {c : Card}
+    (h : CanRaise st c) : rungAt st c.suit = c.rank.toIdx := by
+  obtain ⟨hn, a, hp, hseat⟩ := h
+  simp only [State.nextUp, decide_eq_true_eq] at hn
+  exact hn.symm
+
+/-- The saturator step never lowers a rung (the per-step half of
+the monotone row). -/
+private theorem satStep_rung_mono (s : Suit) (w : State) :
+    rungAt w s ≤ rungAt (satStep w) s := by
+  by_cases hp : pick w = none
+  · rw [satStep_none hp]
+    exact Nat.le_refl _
+  · have hsome : ∃ c, pick w = some c := by
+      cases hp' : pick w with
+      | none => exact absurd hp' hp
+      | some c => exact ⟨c, rfl⟩
+    obtain ⟨c, hp'⟩ := hsome
+    have hsat : satStep w = (raise w c).getD w := by
+      simp only [satStep, hp']
+    rw [hsat]
+    cases hr : raise w c with
+    | none => exact Nat.le_refl _
+    | some s' =>
+        have hF := (raise_foundTransport hr).2 s
+        show (w.found s).length ≤ (s'.found s).length
+        rw [hF]
+        by_cases hsc : s = c.suit
+        · subst hsc
+          rw [if_pos rfl, List.length_append]
+          simp only [List.length_cons, List.length_nil]
+          omega
+        · rw [ite_eq_right hsc]
+          exact Nat.le_refl _
+
+/-- Saturation only raises: the canonical form dominates the
+rungs, per suit.  (canon_rung_mono, the skeleton's name.) -/
+theorem canon_rung_mono (st : State) (s : Suit) :
+    rungAt st s ≤ rungAt (canon st) s := by
+  have key : ∀ (N : Nat) (w : State),
+      rungAt w s ≤ rungAt (canonAux N w) s := by
+    intro N
+    induction N with
+    | zero => intro w; exact Nat.le_refl _
+    | succ n ih =>
+        intro w
+        exact Nat.le_trans (satStep_rung_mono s w) (ih (satStep w))
+  change rungAt st s ≤ rungAt (canonAux 53 st) s
+  exact key 53 st
+
+/-! ### Tier 2: PULL-MULTISET DETERMINISM (the fresh lemma) -/
+
+
+/-- Builds-past-length take is the whole list. -/
+private theorem v3TakeGe : ∀ (l : List Card) (n : Nat),
+    l.length ≤ n → l.take n = l
+  | [], 0, _ => rfl
+  | [], n + 1, _ => rfl
+  | a :: t, 0, h => by
+      simp at h
+  | a :: t, n + 1, h => by
+      show a :: t.take n = a :: t
+      refine congrArg (fun l => a :: l) (v3TakeGe t n ?_)
+      have hlen : (a :: t).length = t.length + 1 := rfl
+      omega
+
+/-- THE FIBER'S FOUND CONTENT IS PREFIX-DETERMINED: two WF states
+with equal per-suit rungs carry EQUAL FOUNDATIONS — the build
+order is a fixed prefix at each height, so the top-forced pull
+multiset is a function of the tuple alone.  This is the
+determinism core the fiber_iff_flat capstone rides: at one
+height tuple, every member's descent pops the SAME CARDS
+per suit, top-down. -/
+theorem fiber_founds_eq (u v : State) (hu : u.WF) (hv : v.WF)
+    (h : ∀ s, (u.found s).length = (v.found s).length) :
+    ∀ s, u.found s = v.found s := by
+  intro s
+  obtain ⟨n, hn⟩ := hu.found_prefix s
+  obtain ⟨m, hm⟩ := hv.found_prefix s
+  have hL : (s.upCards.take n).length = (s.upCards.take m).length := by
+    rw [← hn, ← hm]
+    exact h s
+  have h13 : s.upCards.length = 13 := Suit.upCards_length s
+  have h1 : (s.upCards.take n).length = min n (s.upCards.length) :=
+    List.length_take
+  have h2 : (s.upCards.take m).length = min m (s.upCards.length) :=
+    List.length_take
+  rw [h1, h2, h13] at hL
+  rcases Nat.lt_trichotomy n m with hlt | heq | hgt
+  · have hnge : 13 ≤ n := by omega
+    have hmge : 13 ≤ m := by omega
+    rw [hn, hm]
+    rw [v3TakeGe s.upCards n (by omega), v3TakeGe s.upCards m (by omega)]
+  · rw [hn, hm, heq]
+  · have hnge : 13 ≤ n := by omega
+    have hmge : 13 ≤ m := by omega
+    rw [hn, hm]
+    rw [v3TakeGe s.upCards n (by omega), v3TakeGe s.upCards m (by omega)]
+
+/-- The top-forced pull segment: the pops a descent from rung `r`
+to target `t` removes from one suit's foundation — read on the
+fixed build order, so determined by the tuple delta alone. -/
+def pullSegment (s : Suit) (r t : Nat) : List Card :=
+  s.upCards.take r |>.drop t
+
+/-- A member's own descent segment IS the build segment (the
+founded prefix is the build prefix at its height). -/
+theorem found_pullSegment (st : State) (hwf : st.WF) (s : Suit) (t : Nat)
+    (ht : t ≤ rungAt st s) :
+    (st.found s).drop t = pullSegment s (rungAt st s) t := by
+  obtain ⟨n, hn⟩ := hwf.found_prefix s
+  have h13 : s.upCards.length = 13 := Suit.upCards_length s
+  have hL : (s.upCards.take n).length = min n (s.upCards.length) :=
+    List.length_take
+  have hr : min n 13 = rungAt st s := by
+    show min n 13 = (st.found s).length
+    rw [hn, hL, h13]
+  have htake : st.found s = s.upCards.take (rungAt st s) := by
+    rcases Nat.lt_or_ge (rungAt st s) 13 with hlt | hge
+    · have hn_eq : n = rungAt st s := by omega
+      rw [hn, hn_eq]
+    · have hall : s.upCards.take n = s.upCards := v3TakeGe s.upCards n (by omega)
+      rw [hn, hall, v3TakeGe s.upCards (rungAt st s) (by omega)]
+  rw [htake]
+  rfl
+
+/-- PULL-MULTISET DETERMINISM, the sweep statement: same class
+fiber (equal per-suit rungs — within one arm; the arm split is
+the twin pair's tuple swap, decided at the wing cells) ⇒ the
+descent pops to any lower target coincide card-for-card. -/
+theorem pull_multiset_determinism (u v : State) (hu : u.WF) (hv : v.WF)
+    (h : ∀ s, (u.found s).length = (v.found s).length)
+    (t : Suit → Nat) :
+    ∀ s, (u.found s).drop (t s) = (v.found s).drop (t s) := by
+  intro s
+  have hf := fiber_founds_eq u v hu hv h s
+  rw [hf]
+
+/-! ## The audit: the floor sweep's opening rows
 
 `\#print axioms` for every head this chapter adds: all audit
 `[propext]` — ZERO sorry, ZERO native_decide, ZERO Classical.choice.
@@ -566,3 +732,12 @@ v3ForkExclusivity) lands DEDUCTIVELY above — zero sorry.  -/
 #print axioms v3PiledRung
 #print axioms v3ForkPins
 #print axioms v3ForkExclusivity
+#print axioms rungAt
+#print axioms stackable_now_rungexact
+#print axioms satStep_rung_mono
+#print axioms canon_rung_mono
+#print axioms v3TakeGe
+#print axioms fiber_founds_eq
+#print axioms pullSegment
+#print axioms found_pullSegment
+#print axioms pull_multiset_determinism
