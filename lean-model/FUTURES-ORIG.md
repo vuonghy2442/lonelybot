@@ -3385,3 +3385,57 @@ arithmetic the trial's other-arm witness needs).  My census
 families continue to witness the rank arithmetic decide-graded
 (the V2 signature rows, the stall/merge register-refuse split,
 all green).
+
+#### §11-L4.8 — the fork dossier closes at the canon-v3 wake (amr_12a492e2; branch orig-canon-v3 rebased onto the harvested macro-game 6cdd9fb)
+
+THE REBASE: this branch is now based on the harvest (floor
+ff0eb62 + determinism 9cc9598 + canlaw d1a478b + the cushion
+6cdd9fb); ledgers append-unioned; the doubled MacroInternal
+union repaired to the IN-TREE file verbatim; lake build Orig
+green 30 jobs; the whole battery replays green after the rebase.
+
+THE DOSSIER, CLOSED 40 PERCENT IN-FILE (the v2 base made the
+difference):
+- forkPoint_pins PROVEN in-file (one step: the covered pin is the
+  v2 PREMISE; the bare pin is the banked one-directional
+  calibration `stackable_now_rungexact` — the same consensus this
+  branch landed third).  The stale BLOCKED note retired.
+- forkPoint_exclusive PROVEN in-file (the user's rank sandwich,
+  now consuming exactly the v2 premises: two private helpers —
+  `twinSuit_symm` + `suitfamily_antipodal` (four suits, two color
+  families) — and the cross-pinch arithmetic row `cross_pin`: each
+  cargo, opposite-colored to its OWN pair, sits INSIDE the other
+  fork's pair suits where that fork's pins hold the rung AT its
+  pair rank, while its strand demands strictly below its own —
+  the two inequalities cross-pinch to Ry+2 ≤ Rx ∧ Rx+2 ≤ Ry,
+  `omega`).
+- forkPoint_trial — THE HONEST RESIDUE, analyzed at this wake:
+  the v2 premises make the trial's EXPOSURE leg derivable (the
+  rank-consecutivity of the pile runs forces the cargo to sit
+  DIRECTLY on the covered twin — no intermediates possible
+  between consecutive ranks), and the FIRE leg derivable (the
+  slide's guards: the bare twin is a pile-top by CanRaise; rank
+  and color by the premises), but the SEAT leg of the exposed
+  twin is UNDER-CARRIED: a WF craft with the covered twin
+  BARE-BOTTOM in its pile (faceUp = [twin, cargo], hidden = [],
+  non-king pair ranks — e.g. the (Q, J) configuration: hearts
+  A..J founded, ♥Q licensed seated on ♣K; diamonds A..J founded
+  with ♦Q unfounded, sitting bare-bottom under ♠J; spades/clubs
+  rung 0 with the aces stock-resident so the class closure never
+  founds a black card) satisfies EVERY v2 conjunct yet the
+  exposed twin at the slid state fails `CanRaise`'s seat leg
+  (chop = [] and not a king — the same bare-non-king seat bar
+  this branch's V6 negative controls decided).  RECOMMENDATION
+  (the three-way-consensus pattern): add the covered twin's seat
+  premise (chop ≠ [] ∨ bare king at its pile) or restrict the
+  signature to king pairs; the crafted falsifier cell is the
+  next sitting's probe-first step (the census battery already
+  banks every needed row: the seat bar, the stock-resident
+  negative controls).
+
+THE CARD'S FINAL STATE: the census (L1), the case table (L3),
+the selector chapter (L4), both signature corrections, the gap
+form, the grade split, the name syncs, the re-port, and now the
+dossier's pins + exclusive — all landed green on the rebased
+branch; the trial carries the honest analysis and the crafted
+falsifier recipe.  The battery's every gate still throws-green.

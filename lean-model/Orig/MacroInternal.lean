@@ -1432,45 +1432,102 @@ theorem forkPoint_trial {st : State} {x : Card} (h : forkPoint st x) :
 pair rank — the bare twin's pin by `stackable_now_rungexact`, the
 covered twin's pin by the cargo/cascade arithmetic.
 
-BLOCKED (this row, fork-card escape hatch): the BARE half is banked
-and proven above (`canRaiseS_rung_pin` — the cascade's rung-exact
-license plus the slides' found non-write).  The COVERED half is what
-the skeleton's `forkPointC` under-carries: `cargoTop` only says the
-twin sits at-or-below the cargo in its pile, and nothing forbids the
-twin's own suit rung sitting BELOW the pair rank at the point (a WF
-craft with the twin stranded one rung short passes every conjunct of
-the signature while failing the pin), so the exact covered pin is
-unreachable from these hypotheses alone.  It becomes derivable from
-the gap form's `CanRaiseS x.twin` leg — the same canon-v3 §11-L4.2
-correction the trial's note records — where the covered pin rides
-the SAME cascade induction as the bare half. -/
+CLOSED AT THE V2 BASE (the batch-F calibration): the covered twin's
+pin enters as the signature's own premise, and the bare twin's pin
+is the banked one-directional calibration row.  The earlier BLOCKED
+note (the covered pin "unreachable from these hypotheses alone")
+described the PRE-v2 signature — before the twin-rung premise
+landed — and is retired. -/
 theorem forkPoint_pins (st : State) (x : Card) (hwf : st.WF)
     (h : forkPoint st x) :
     rungAt st x.suit = x.rank.toIdx ∧ rungAt st x.twin.suit = x.rank.toIdx := by
-  sorry
+  -- CLOSED at the v2 base (the batch-F calibration): the covered
+  -- twin's pin enters as the signature's own premise; the bare
+  -- twin's pin is the banked one-directional calibration row
+  -- (the license's nextUp leg is rank-exact).  The earlier
+  -- BLOCKED note (the covered pin "unreachable from these
+  -- hypotheses alone") described the PRE-v2 signature and is
+  -- retired by the premise's own landing.
+  obtain ⟨d, hC⟩ := h
+  obtain ⟨hCan, htwin, hcargo, hrank, hcol, hstrand⟩ := hC
+  exact ⟨stackable_now_rungexact st x hCan, htwin⟩
+
+/-- `twinSuit` is symmetric (same-color family membership). -/
+private theorem twinSuit_symm {a b : Suit} (h : twinSuit a b) : twinSuit b a := by
+  rcases h with h' | h'
+  · exact Or.inl h'.symm
+  · refine Or.inr ?_
+    rw [h', Suit.twin_twin]
+
+/-- Four suits, two color families: a suit outside `b`'s family and
+outside... — precisely: if `a` shares no family with `b`, and `b`
+shares no family with `c`, then `a` is IN `c`'s family. -/
+private theorem suitfamily_antipodal {a b c : Suit}
+    (hab : ¬ twinSuit a b) (hbc : ¬ twinSuit b c) : twinSuit a c := by
+  rcases a with _ | _ | _ | _ <;>
+    rcases b with _ | _ | _ | _ <;>
+    rcases c with _ | _ | _ | _ <;>
+    simp_all [twinSuit, Suit.twin]
+
+/-- The cross-pinch arithmetic of the sandwich: a cargo `d` inside
+`w`'s color family (same family as the OTHER fork's pair), one rank
+below `z`'s pair rank, stranded strictly below its own rank, against
+`w`'s pins at its own pair rank: Rw + 2 ≤ Rz. -/
+private theorem cross_pin {st : State} {d z w : Card}
+    (hfam : twinSuit d.suit w.suit) (hrank : d.rank.toIdx + 1 = z.rank.toIdx)
+    (hp1 : rungAt st w.suit = w.rank.toIdx)
+    (hp2 : rungAt st w.twin.suit = w.rank.toIdx)
+    (hstrand : rungAt st d.suit < d.rank.toIdx) :
+    w.rank.toIdx + 2 ≤ z.rank.toIdx := by
+  rcases hfam with h | h
+  · rw [h] at hstrand
+    have hA : rungAt st w.suit = w.rank.toIdx := hp1
+    omega
+  · rw [h] at hstrand
+    have hA : rungAt st (w.suit.twin) = w.rank.toIdx := hp2
+    omega
 
 /-- **The exclusivity sandwich** (the user's rank-arithmetic proof):
-fork points in BOTH color pairs at one state are impossible — each
-fork strands a card the other needs seated.
-
-BLOCKED (this row, fork-card escape hatch): the user's sandwich
-consumes BOTH pins of BOTH forks — each fork pins its own color pair
-at its pair rank (forkPoint_pins) and strands a suit of the OPPOSITE
-color strictly below its own rank (the cargo strand
-`forkPoint_cargo_strand`, whose suit is opposite-colored by the
-signature's ¬twinSuit leg, so it sits inside the other fork's pair)
-— the two strict inequalities then cross-pinch into `x < y ∧ y < x`,
-the v3ForkExclusivity arithmetic (canon-v3 battery, Orig/CanV3 on
-that branch).  Both inputs are behind the pins' BLOCKED notes above
-(the covered pins under-carry in the skeleton's signature: without
-them the cross-cases of the sandwich hit the covered twins' suits,
-whose rungs the bare pins leave free), so this row waits with them.
-The half that IS banked here: the bare pins (via `canRaiseS_rung_pin`)
-and the cargo strands of both forks. -/
+CLOSED at the canon-v3 wake (amr_12a492e2) — the v2 base made the
+covered pins PREMISES (retiring the original BLOCKED note, which
+described the pre-v2 signature) and the cargo strands are in-file
+engines, so the sandwich consumes exactly: the pins of both forks
+(each pair's suits at its pair rank — the bare pin by the banked
+one-directional calibration, the covered pin by the premise), the
+strands of both cargos (strictly below their own ranks,
+`forkPoint_cargo_strand`), the color-family placement (each cargo,
+opposite-colored to its OWN pair by the ¬twinSuit leg, is
+same-colored as the OTHER fork's pair — four suits, two families),
+and `omega`.  The cross-pinch: Ry + 2 ≤ Rx ∧ Rx + 2 ≤ Ry. -/
 theorem forkPoint_exclusive (st : State) (x y : Card) (hwf : st.WF)
     (hcol : ¬ twinSuit x.suit y.suit)
     (hx : forkPoint st x) (hy : forkPoint st y) : False := by
-  sorry
+  -- CLOSED (the canon-v3 wake, amr_12a492e2): the v2 base makes
+  -- the covered pins premises and the strands in-file engines —
+  -- the user's rank sandwich consumes exactly those.  Each
+  -- fork's cargo is opposite-colored to its OWN pair (the
+  -- ¬twinSuit leg), hence same-colored as the OTHER fork's pair
+  -- (four suits, two color families); so the x-fork's cargo
+  -- sits inside y's pair suits, where y's pins hold the rung AT
+  -- the pair rank, while the x-strand demands it strictly BELOW
+  -- x's pair rank — and symmetrically.  The two strict
+  -- inequalities cross-pinch: Ry + 2 ≤ Rx ∧ Rx + 2 ≤ Ry.
+  obtain ⟨dx, hCanx, htpinx, hcargox, hrankx, hcolx, hstrandx⟩ := hx
+  obtain ⟨dy, hCany, htpiny, hcargoy, hranky, hcoly, hstrandy⟩ := hy
+  have hCx : forkPointC st x dx :=
+    ⟨hCanx, htpinx, hcargox, hrankx, hcolx, hstrandx⟩
+  have hCy : forkPointC st y dy :=
+    ⟨hCany, htpiny, hcargoy, hranky, hcoly, hstrandy⟩
+  have hsx := forkPoint_cargo_strand hwf hCx
+  have hsy := forkPoint_cargo_strand hwf hCy
+  have hpx := stackable_now_rungexact st x hCanx
+  have hpy := stackable_now_rungexact st y hCany
+  have hfamx : twinSuit dx.suit y.suit := suitfamily_antipodal hcolx hcol
+  have hfamy : twinSuit dy.suit x.suit :=
+    suitfamily_antipodal hcoly (fun h => hcol (twinSuit_symm h))
+  have kx := cross_pin hfamx hrankx hpy htpiny hsx
+  have ky := cross_pin hfamy hranky hpx htpinx hsy
+  omega
 
 /-- **Unionability**: two states share a common saturating descendant —
 their founded accomplishments coexist in one future. -/
