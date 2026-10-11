@@ -1452,8 +1452,10 @@ private theorem aboveIn_of_below {l : List Card} {x y : Card} (hxy : x ≠ y)
   · exact (below_mem_antisym hx h).elim
   · exact h
 
-/-- The head of a nonempty `fromCard` slice is the cut card itself. -/
-private theorem fromCard_head_eq {c : Card} : ∀ {l : List Card} {w r},
+/-- The head of a nonempty `fromCard` slice is the cut card itself
+(renamed at the dedup-collapse merge wave: `fromCard_head_eq` is the
+public head-unfold row in `Orig.State`). -/
+private theorem fromCard_head_of_eq {c : Card} : ∀ {l : List Card} {w r},
     fromCard c l = w :: r → w = c ∧ c ∈ l := by
   intro l
   induction l with
@@ -1496,7 +1498,7 @@ private theorem rank_lt_of_aboveIn {l : List Card} {c x : Card}
   have hc : c ∈ l := by
     cases hfl : fromCard c l with
     | nil => rw [aboveIn, hfl] at hmem; exact absurd hmem (by simp)
-    | cons w t => exact (fromCard_head_eq hfl).2
+    | cons w t => exact (fromCard_head_of_eq hfl).2
   have hcut : runOK (c :: aboveIn c l) = true :=
     ((runOK_append_exact c (below c l) (aboveIn c l)).mp
       (show runOK (below c l ++ c :: aboveIn c l) = true by
