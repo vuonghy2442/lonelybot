@@ -1023,9 +1023,65 @@ discipline: this file adds no sorries, cites none, and should be read
 against `witnesses/README.md`'s regression-layer protocol
 (`witnesses/README.md:13-22`) and the census header (FARM.md:3).
 
-## 8. The session ledger (UPDATE 2026-10-10: the to-foundation
-dominances port + the both-occupied harvest + the post-merge cleanup,
-branch `macro-game`)
+## 8. The session ledger (UPDATE 2026-10-11: the §5.1 bare-floor
+skeleton, branch `farm/orig-dom-n-ground`; earlier 2026-10-10: the
+to-foundation dominances port + the both-occupied harvest + the
+post-merge cleanup, branch `macro-game`)
+
+**STATUS 2026-10-11 (wave 24.5, farm-orig-dom-n-ground) — THE (N)
+BARE-FLOOR RESIDUE IS A PROVEN SKELETON OVER ONE NAMED
+SUB-RESIDUE.**  `tabToFound_dominant_of_ground` is PROVEN.  The
+statement is untouched; the proof is the assembly
+
+`tabToFound_dominant_of_ground` ← `tabToFound_groundNormalForm`
+(the single named sub-residue, full route note at its site) +
+`ground_replay_go` (the verbatim replay, PROVEN):
+
+* **The divergence field** `GroundSplit st c k u v`: the replay's
+  `c`-suit foundation runs `[c]` ahead, every other suit/found and
+  the draw zone are verbatim, pile `k` holds `afterRunRemoved` of
+  the source pile — the revealed counterpart of `c`'s seat
+  (`ground_split_init`: the raise itself establishes it).
+* **The per-kind ledger** `ground_split_step`: all six move kinds
+  carry the field through a non-blocked move (reader-rw chains; the
+  compliance's three arms are exactly the kinds whose legality
+  reads what the field changed — parks on `c`'s seat, `c`-suit
+  worry-backs, `c`'s own relocation).
+* **The rung convergence** `ground_converge`: the source's own
+  `tabToFound c` writes exactly the ahead half — the two threads
+  coincide from the pass on, so the replay tail is untouched.
+* **The replay induction** `ground_replay_go`: a compliant play
+  `π₁ ++ tabToFound c :: π₂` from the source replays from the
+  raised state as `π₁ ++ π₂` — the raise is front-loaded.
+* **The channel-A quantitative spine, PROVEN**: `ground_streak_founded`
+  (B&G Cor. 3 physically — a third fit-step over `c`'s seat lands on
+  a founded card, so no `hsafe`-consistent streak is three deep).
+* **The battery** `witnesses/OrigGroundWitness.lean`: both corner
+  arms co-realized at razor's-edge safety heights; the raise is a
+  true commitment (the hidden-total measure at the reveal-seat arm;
+  the 59-base no-reseat census at the emptied-pile arm); every
+  compliance arm inhabited by a legal move AND every replacement
+  decided-live (the end-to-end streak raise-channel, the diamond
+  commutation of raise and tenant-raise, the relocation's dig
+  parity — the raise digs the same reveal).
+* **The residue's remaining content**: `tabToFound_groundNormalForm`
+  — the B&G Thm-1 transform's normal-form half (α: park
+  substitution by streak-raises under the two-rank bound + B&G
+  Case-2 displacement; β: c-suit worry-skip, the worry/restack pair
+  nets to identity — the pair-deletion template pairs with the C
+  session's `foundToTab_return`; γ: relocation absorption via the
+  dig parity), believed-true (the refutation needs the
+  tight every-winning-play-carries-a-banned-move world), decide
+  battery at the corner states, census №
+  `tabToFound_groundNormalForm` (the residue's refute-first gate is
+  its own paragraph in Dominance.lean).  Axiom grade:
+  `tabToFound_dominant_of_ground` `[propext, sorryAx, Quot.sound]`
+  — `sorryAx` ONLY via the named residue.
+
+The §5.1 name moved: the open piece below is now
+`tabToFound_groundNormalForm` (the skeleton carries the old row's
+name forward); `tabToFound_safe_dominant`'s sorryAx also rides only
+that residue now.
 
 **STATUS 2026-10-10 (later) — THE TO-FOUNDATION DOMINANCES ARE
 FORMULATED ON THE PHYSICAL GAME, HALF PROVEN.**  `Orig/Dominance.lean`

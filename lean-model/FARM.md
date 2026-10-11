@@ -16,10 +16,31 @@ the nine exchange cases) over the PROVEN reserve lemma (A,
 `draw1_cursor_solvable`) — Dominance 5→6, two headlines absorbed,
 three named residues in; the physical port landed in Orig as
 `Orig/Dominance.lean` (chapter registry row in `Orig.lean`; the Orig
-sorries are the census-pinned four: `tabToFound_dominant_of_ground`,
+sorries are the census-pinned four:
+`tabToFound_groundNormalForm`
 `draw1_sameCycle_sameFate`, `draw1_compliant_replay`,
-`draw1_compliant_normalForm` — routes at their sites; §5.1's R-halves
-ride the LANDED `tabToFound_undo_under/_bare` and are PROVEN)**);
+`draw1_compliant_normalForm` — routes at their sites; §5.1's
+R-halves ride the LANDED `tabToFound_undo_under/_bare` and are
+PROVEN; **+wave-24.5 (2026-10-11, farm-orig-dom-n-ground): the
+§5.1 (N) bare-floor residue `tabToFound_dominant_of_ground` left the
+Orig sorry list as a PROVEN SKELETON over the ONE named residue
+`tabToFound_groundNormalForm` — the ground replay is fully
+mechanical (the `GroundSplit` divergence field, `GroundSplit st c k u
+v` := the c-suit foundation one ahead, pile `k` the revealed
+counterpart, everything else verbatim, carried through all six move
+kinds by `ground_split_step`'s per-kind ledger; the rung converges
+by `ground_converge`; the play replays verbatim by
+`ground_replay_go` — the raise is front-loaded, the compliant prefix
+commutes, the tails coincide), and the remaining content is exactly
+the B&G Thm-1 transform's normal-form half (channel A parks, channel
+B c-suit worries, relocation absorption), whose per-arm
+inhabitance + replacements + the end-to-end streak-raise channel +
+the dig parity + the commitment exhibit are DECIDED in
+`witnesses/OrigGroundWitness.lean`; the channel-A quantitative
+spine landed as a PROVEN lemma `ground_streak_founded`
+("the safety bounds descend exactly two ranks"); the axiom grade:
+`tabToFound_dominant_of_ground` = [propext, sorryAx, Quot.sound]
+with `sorryAx` ONLY via `tabToFound_groundNormalForm`)**)**);
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the
