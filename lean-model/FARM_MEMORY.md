@@ -9688,3 +9688,26 @@ docstring parser quirk (use plain /- -/ comments mid-file, seen in
 waves 3p and 3q); self-replacement trap (a global literal replace ran
 over the JUST-INSERTED def body, making midDraw := midDraw st -
 insert defs AFTER the replacement sweep, or exclude the def region).
+
+## Session note (2026-10-11, the dedup-collapse CAMPAIGN CLOSED -
+## full-tree battery green)
+
+The elan read-storm passed; the full battery certifies: lake build
+Klondike Orig Witnesses = 109 jobs green, census pinned OK.
+The 5-line fragment re-audit closes the campaign: everything left in
+Orig is either (i) the def-hostile Phase cycle-literal family
+(owner-call, semantic restructure), (ii) THEOREM SIGNATURE
+premise-bundles (the braid squares common hypotheses - a BraidCtx-
+style structure refactor, a design decision, not cleanup), or (iii)
+the TEB piles-slot ladders x6 whose middles are genuinely
+site-specific (mixed record/reader paths).
+
+CAMPAIGN TOTALS (waves 1-3q, this session): ~1050 net lines removed;
+59 public rows hoisted (State 12, Play 7, Irreversible 8, Integrity
+12, Mono 0..., Klondike/Move 2, plus the seven-row TEB transport kit
+and five chapter-local rows); 44 Classify ite-sites and 70+ TEB ext
+slots ride wrappers; five negative-result bankings (Phase def-hostility
+the headliner).  The six recurring disciplines of the campaign are
+recorded above (verbatim-window-only replaces, collision-rule atomic
+passes, ite-decider/fluent-premise/signature conventions, the /--
+quirk, self-replacement-exclude-defs, def-vs-rw interlocks).
