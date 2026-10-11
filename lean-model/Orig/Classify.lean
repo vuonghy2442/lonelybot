@@ -1187,31 +1187,9 @@ private theorem dealUpTo_eq_take_drop' (k : Nat) : ∀ (l : List Card),
           rw [State.dealUpTo, ih cs]
           rfl
 
-/-- One plain draw (stock nonempty, no recycle): the recorded
-take-drop shape (private copy). -/
-private theorem plain_draw_shape' {x : State} (hne : x.stock ≠ []) :
-    x.stepDraw = some
-      { x with stock := x.stock.drop x.drawStep,
-               waste := (x.stock.take x.drawStep).reverse ++ x.waste } := by
-  rw [State.stepDraw, recycle_keep' hne, dealStock_eq_of_ne_nil' hne,
-    dealUpTo_eq_take_drop']
-
-/-- One pass-end draw (empty stock, nonempty waste): the recycle
-then a clipped deal (private copy). -/
-private theorem base_draw_shape' {x : State} (hstock : x.stock = ([] : List Card))
-    (hw : x.waste ≠ []) :
-    x.stepDraw = some
-      { x with stock := x.waste.reverse.drop x.drawStep,
-               waste := (x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card) } := by
-  have hrne : x.waste.reverse ≠ [] := by
-    obtain ⟨w0, t0, hwcon⟩ := list_cons_of_ne_nil hw
-    intro hc
-    have hlen := congrArg List.length hc
-    rw [List.length_reverse, List.length_nil] at hlen
-    have h1 : x.waste.length = t0.length + 1 := by rw [hwcon, List.length_cons]
-    omega
-  rw [State.stepDraw, recycle_nil' hstock hw,
-    dealStock_eq_of_ne_nil' hrne, dealUpTo_eq_take_drop']
+/- The plain/pass-end draw shapes ride `Orig.Phase`'s public rows
+(`plain_draw_shape` / `base_draw_shape`) since the dedup-collapse
+wave. -/
 
 /-- The run-composition shape. -/
 private theorem run_cons_shape {s : State} {m : Move} {rest : List Move} {s' w : State}
@@ -1263,7 +1241,7 @@ private theorem drain_to_pass : ∀ (n : Nat) (l : List Card) (s : State), l.len
           exact absurd hc (by simp)
         have hstep : State.step s Move.draw = some
             { s with stock := s.stock.drop s.drawStep, waste := (s.stock.take s.drawStep).reverse ++ s.waste } :=
-          plain_draw_shape' hne
+          plain_draw_shape hne
         have hdrop : (s.stock.drop s.drawStep).length ≤ n := by
           rw [hstock]
           have hd2 := List.length_drop (l := w :: t) (i := s.drawStep)
@@ -1304,7 +1282,7 @@ theorem draw_passBase_reversibleW {st : State}
   · have hstep : State.step st Move.draw = some
         { st with stock := st.waste.reverse.drop st.drawStep,
                   waste := (st.waste.reverse.take st.drawStep).reverse ++ ([] : List Card) } :=
-      base_draw_shape' hstock hw
+      base_draw_shape hstock hw
     have hdropLen : (st.waste.reverse.drop st.drawStep).length ≤ st.waste.length := by
       have hd2 := List.length_drop (l := st.waste.reverse) (i := st.drawStep)
       have hrev : st.waste.reverse.length = st.waste.length := by rw [List.length_reverse]

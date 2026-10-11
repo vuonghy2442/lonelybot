@@ -3287,20 +3287,6 @@ private theorem step_drawStep_keep {st s₁ : State} {m : Move}
         (fromCard y (st.piles a).faceUp) b
       rw [h2, h1]
 
-/-- Taking at least the whole list takes the whole list. -/
-private theorem take_ge_length {α : Type} : ∀ (l : List α) (n : Nat),
-    l.length ≤ n → l.take n = l := by
-  intro l
-  induction l with
-  | nil => intro n _; cases n <;> rfl
-  | cons x t ih =>
-      intro n h
-      cases n with
-      | zero => exact absurd h (by simp)
-      | succ m =>
-          show x :: t.take m = x :: t
-          exact congrArg (x :: ·) (ih m (by simp at h; omega))
-
 /-- The draw keeps every cycle card somewhere spendable: each card of
 the recycled-and-dealt pool lands either in the dealt batch (the new
 waste) or in the stock remainder. -/
@@ -3879,27 +3865,6 @@ private theorem run_step_cons {u u₁ : State} {m : Move} {rest : List Move}
   show (match State.step u m with
       | some st' => State.run st' rest | none => none) = State.run u₁ rest
   rw [h]
-
-/-- Append-glue for pure-draw prefixes: after `q` draws land at `z`,
-the suffix continues from `z`. -/
-private theorem run_replicate_append :
-    ∀ (q : Nat) (u z : State) (rest : List Move),
-    u.run (List.replicate q Move.draw) = some z →
-    u.run (List.replicate q Move.draw ++ rest) = z.run rest := by
-  intro q
-  induction q with
-  | zero =>
-      intro u z rest h
-      have hx : (some u : Option State) = some z := h
-      injection hx with hx2
-      rw [← hx2]
-      rfl
-  | succ q ih =>
-      intro u z rest h
-      obtain ⟨u₁, hstep, hrest⟩ := State.run_cons h
-      show u.run (Move.draw :: (List.replicate q Move.draw ++ rest)) = z.run rest
-      rw [run_step_cons hstep]
-      exact ih u₁ z rest hrest
 
 /-- The plain draw at step 1, exactly: one card off the stock's front,
 reversed onto the waste's front. -/
