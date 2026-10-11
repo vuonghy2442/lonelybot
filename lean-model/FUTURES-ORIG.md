@@ -3439,3 +3439,53 @@ form, the grade split, the name syncs, the re-port, and now the
 dossier's pins + exclusive — all landed green on the rebased
 branch; the trial carries the honest analysis and the crafted
 falsifier recipe.  The battery's every gate still throws-green.
+
+#### §11-L4.9 — the V3 directive (amr_12aaf07c1): the SEAT PREMISE lands, the falsifier probe decides V2-vs-V3, and the trial's fire leg proves in-body
+
+(a) FORKPOINTC V3 LANDED (the in-tree file): the 7th conjunct —
+the covered twin's pile runs `bs ++ [x.twin, d]` with the cargo
+DIRECTLY on the twin (the run discipline's rank-consecutivity is
+now the witness shape: consecutive ranks admit no intermediates)
+and the seat package `bs ≠ [] ∨ (hidden = [] ∧ king)` — exactly
+the premise the (Q, J) analysis prescribed.  NO global king
+restriction (the sandwich never needed it; generic-rank forking
+is honest with the seat clause).  The V2 unpack sites updated
+(strand/pins/exclusive all still prove at V3 — the covered pin
+still premise, the color-placement unneeded by rank).
+
+(b) THE (Q, J) FALSIFIER PROBE LANDED, decide-graded green
+(probes/CanonV3Probe.lean, the l4RowQJFalsifier rows): hearts/
+diamonds climbed A..J, the licensed heart-queen under-seat on a
+club king, the covered diamond-queen BARE-BOTTOM under the spade
+jack, spades/clubs rung 0 with the aces stock-resident — every
+V2 conjunct HOLDS, the trial's conclusion DIES at the slide (the
+exposed queen bare-bottom non-king), and V3's seat premise
+REFUSES (v3SeatPkgB false): the cell registers NO fork point at
+V3, and the trial is restored by vacuity — the card's own
+diagnosis, probe-first.
+
+(c) FORKPOINT_TRIAL AT V3 — STAGED GREEN with one named residual
+stage: the signature takes the honest WF premise (the
+pile-holding uniqueness is WF-gated; the trial's fine print now
+matches the dossier's siblings).  IN-BODY PROVEN: the full FIRE
+leg — the walk bars (nodup_snoc_notmem private; below/fromCard
+snoc reads via the banked below_append_stop/fromCard_append_stop
+over the duplicate-free run), the membership route to
+pile-holding, the color-bar (not_twinSuit_colors private: suit
+families are colors), the place (canSitOn through canSitOn_eq
+with the rank premise and the color bar), and the step's own
+guards — the slide FIRES.  REMAINING (the residual stage,
+marked `sorry` in-body with the staged note): the
+successor-composition read through step_tabToTab_inv (the
+putRun target-scan agreement; pile a's cleared content), the
+exposure via pileOfTop_eq_some_iff at step_wf, and the license
+assembly (rungs via step_tabToTab_rungs; the chop seat bar via
+chop_snoc; nextUp via the twin-rank invariance).  Every piece is
+banked or in-file; the composition is the next pass's mechanical
+work — no new mathematics.
+
+Battery green end-to-end; lake build Orig green 30 jobs; the
+falsifier numbers pinned in the run output (v3WfB true, the
+v2-conjuncts true, the class-strand false, the seat package
+false, the trial conclusion dead, the row green).  No merge to
+macro-game; additive only.

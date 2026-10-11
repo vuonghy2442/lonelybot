@@ -1162,19 +1162,30 @@ def cargoTop (st : State) (d c : Card) : Prop :=
   ∃ a, st.pileOfTop d = some a ∧ st.pileHolding c = some a
 
 /-- **The fork point with its cargo as first-class witness** — the
-V2-CALIBRATED form (the floor card's batch-F diagnosis: the earlier
-shape under-carried the live signature — CanRaiseS alone lets the
-bare twin hide behind slidables, and cargoTop lets the covered twin
-sit stranded a rung short, a WF counterexample exists): the bare twin
-raisable NOW (a genuine pile-top), BOTH twin rungs pinned at the pair
-rank (the pin enters as premise — it is the fork's own datum), the
-cargo topping the twin, class-stranded. -/
+V3-CALIBRATED form.  V2 (the floor card's batch-F diagnosis) fixed
+the bare twin (vanilla at the point) and the covered pin (premise);
+the canon-v3 wake's (Q, J) falsifier analysis found the remaining
+under-carried leg — the SEAT: a covered twin sitting BARE-BOTTOM
+under its cargo (empty under-seat, non-king) satisfies every V2
+conjunct yet cannot lift vanilla once exposed.  V3 adds the seat
+premise the trial's own rank arithmetic already wanted: the cargo
+sits DIRECTLY on the twin (the run discipline is rank-consecutive
+upward — consecutive ranks admit no intermediates, so the
+witness-pair shape is honest) and the twin carries the license's
+seat package (under-seat content, or a bare king):
+`faceUp = bs ++ [x.twin, d]` with `bs ≠ [] ∨ (hidden = [] ∧
+king)`.  NO global king restriction — the sandwich's color-family
+placement never needs it, and generic-rank forking is honest at
+any rank with the seat clause. -/
 def forkPointC (st : State) (x d : Card) : Prop :=
   CanRaise st x ∧
   rungAt st x.twin.suit = x.rank.toIdx ∧
   cargoTop st d x.twin ∧
     d.rank.toIdx + 1 = x.rank.toIdx ∧ ¬ twinSuit d.suit x.suit ∧
-    ¬ satStackable (Quotient.mk sameOrbitSetoid st) d
+    ¬ satStackable (Quotient.mk sameOrbitSetoid st) d ∧
+    ∃ a bs, st.pileOfTop d = some a ∧
+      (st.piles a).faceUp = bs ++ [x.twin, d] ∧
+      (bs ≠ [] ∨ ((st.piles a).hidden = [] ∧ x.twin.rank = Rank.king))
 
 /-- **The fork point** (the live signature, existentially packaged): one
 twin stackable in the cargo-exchange sense, the other twin topped by a
@@ -1364,7 +1375,7 @@ macro-grade ¬satStackable leg.  The weak half is `piled_rung`
 private theorem forkPoint_cargo_strand {st : State} {x d : Card}
     (hwf : st.WF) (hfp : forkPointC st x d) :
     rungAt st d.suit < d.rank.toIdx := by
-  obtain ⟨-, -, hcargo, -, hcol, hnsat⟩ := hfp
+  obtain ⟨-, -, hcargo, -, hcol, hnsat, -⟩ := hfp
   obtain ⟨k, htopd, hholdt⟩ := hcargo
   have hdmem : d ∈ (st.piles k).faceUp := lastOf_mem (pileOfTop_top htopd).2
   have hxtm0 : x.twin ∈ (st.piles k).faceUp := pileHolding_mem hholdt
@@ -1402,31 +1413,123 @@ private theorem forkPoint_cargo_strand {st : State} {x d : Card}
     have hr : rungAt st d.suit = st.foundHeight d.suit := rfl
     omega
 
-/-- The operational trial, derived: the twin's swap-raise realizes
-through the cargo slide onto the bare twin's host, and there the twin
-lights vanilla.
+/-- A snoc-nodup membership bar: if appending `[d]` keeps the list
+duplicate-free, `d` was not in the prefix. -/
+private theorem nodup_snoc_notmem : ∀ (bs : List Card) (d : Card) (hnd : (bs ++ [d]).Nodup), d ∉ bs
+  | [], _, _ =>
+      by
+        intro hcon
+        simp at hcon
+  | b :: t, d, hnd =>
+      by
+        intro hcon
+        rcases List.mem_cons.mp hcon with hdb | hcon'
+        · have hbmem : b ∈ t ++ [d] :=
+              List.mem_append.mpr (Or.inr (List.mem_singleton.mpr hdb.symm))
+          exact absurd hbmem (List.nodup_cons.mp hnd).1
+        · exact nodup_snoc_notmem t d (List.nodup_cons.mp hnd).2 hcon'
 
-BLOCKED (this row, fork-card escape hatch): the skeleton's
-`forkPointC` under-carries the live fork signature.  The trial needs
-(i) `x` topping a pile AT the point — but `CanRaiseS st x` only says
-x is raisable after cargo slides, and x may sit buried behind a
-slidable run at the point itself, so the base `Sum.inr x` may have no
-top to land on; and (ii) the covered twin's rung already AT the pair
-rank so it lights vanilla once uncovered — but the signature carries
-no twin-side raisability, and a WF craft satisfies every conjunct
-with the twin's rung one below the pair (the twin strands behind its
-ladder).  Both legs live in the corrected forkEvidence GAP FORM
-decided at the canon-v3 battery: `CanRaiseS x.twin ∧ ¬CanRaiseVanilla
-x.twin ∧ coveredIn x.twin ∧ cargo-shape` (FUTURES-ORIG.md §11-L4.2,
-probes/CanonV3Probe.lean — the l4RowGapForm rows; the derived trial
-decide-verified at both standing-fork stalls), and that session's
-ledger already records this sorry as its own next closure.  This
-file banks the trial's two engines: the bare pin (`canRaiseS_rung_pin`)
-and the cargo strand (`forkPoint_cargo_strand`). -/
-theorem forkPoint_trial {st : State} {x : Card} (h : forkPoint st x) :
+/-- Suit families are colors: a suit outside another's family carries
+the OTHER color. -/
+private theorem not_twinSuit_colors {s t : Suit}
+    (h : ¬ twinSuit s t) : s.color ≠ t.color := by
+  rcases s with _ | _ | _ | _ <;>
+    rcases t with _ | _ | _ | _ <;>
+    simp_all [twinSuit, Suit.twin, Suit.color]
+
+/-- The operational trial, derived: the twin's swap-raise realizes
+
+CLOSED AT THE V3 BASE (the canon-v3 wake directive, amr_12aaf07c1):
+the (Q, J) falsifier analysis found the V2 under-carried leg — the
+exposed twin's SEAT (a bare-bottom non-king twin lifts nothing) —
+and V3 carries it as the premise it always was: the cargo sits
+DIRECTLY on the twin (the run discipline is rank-consecutive
+upward, so the consecutivity the trial's own arithmetic proves is
+now the witness shape) and the twin carries the seat package
+(under-seat content or a bare king).  The proof is the mechanical
+decomposition this file's engines always wanted: the fire
+(pile-holding by membership uniqueness, place by rank and color),
+the successor read (the moved run is exactly the singleton [d],
+the source pile keeps [bs, x.twin] so the twin EXPOSES as the new
+top), and the license (rungs never written by the cargo slide, the
+twin pin is the premise, the seat bar is the premise).  -/
+theorem forkPoint_trial {st : State} {x : Card} (hwf : st.WF) (h : forkPoint st x) :
     ∃ d st', st.step (.tabToTab d (Sum.inr x)) = some st' ∧
       CanRaise st' x.twin ∧ d.rank.toIdx + 1 = x.rank.toIdx := by
-  sorry
+  obtain ⟨d, hCan, htwinpin, hcargo, hrank, hcol, hnsat, hseat⟩ := h
+  obtain ⟨hn, a₀, hpj, hs₀⟩ := hCan
+  obtain ⟨a, bs, htopd, hfaceup, hseatbar⟩ := hseat
+  -- the pile pieces
+  have hpa : (st.piles a).top = some d := (pileOfTop_top htopd).2
+  have hmem : d ∈ (st.piles a).faceUp := by
+    rw [hfaceup]
+    exact List.mem_append.mpr (Or.inr
+      (List.mem_cons.mpr (Or.inr (List.mem_singleton.mpr rfl))))
+  have hdnet : d ≠ x.twin := by
+    intro hcon
+    exact hcol (by rw [hcon]; exact Or.inr rfl)
+  have hxnet : x.twin ≠ x := by
+    intro hcon
+    have hs : x.suit.twin = x.suit := congrArg Card.suit hcon
+    exact Suit.twin_ne x.suit hs
+  have hdne : d ≠ x := by
+    intro hcon
+    rw [hcon] at hrank
+    omega
+  -- the duplicate-free walk bar (the run discipline keeps the pile
+  -- duplicate-free, and the cargo sits at its end)
+  have hnd0 : ((bs ++ [x.twin]) ++ [d]).Nodup := by
+    have h := runOK_nodup (hwf.2.1 a)
+    rw [hfaceup,
+      show bs ++ [x.twin, d] = (bs ++ [x.twin]) ++ [d] from
+        (congrArg (bs ++ ·)
+          (show [x.twin, d] = [x.twin] ++ [d] from rfl)).trans
+        (List.append_assoc bs [x.twin] [d]).symm] at h
+    exact h
+  have hdnotmem : d ∉ bs ++ [x.twin] := by
+    intro hcon
+    rcases List.mem_append.mp hcon with hbs | hlast
+    · exact nodup_snoc_notmem (bs ++ [x.twin]) d hnd0
+        (List.mem_append.mpr (Or.inl hbs))
+    · exact hdnet (List.mem_singleton.mp hlast)
+  -- the walk: the source pile keeps [bs, x.twin]; the moved run is [d]
+  have hpre : below d ((bs ++ [x.twin]) ++ [d]) = bs ++ [x.twin] :=
+    below_append_stop hdnotmem
+  have hfrom : fromCard d ((bs ++ [x.twin]) ++ [d]) = [d] :=
+    fromCard_append_stop hdnotmem
+  -- THE FIRE (the guards all pass)
+  have hhold : st.pileHolding d = some a := (pileHolding_eq_some_iff hwf).2 hmem
+  have hcol1 : d.suit ≠ x.suit := fun hcon => hcol (Or.inl hcon)
+  have hcol2 : d.suit ≠ x.suit.twin := fun hcon => hcol (Or.inr hcon)
+  have hcolne : d.suit.color ≠ x.suit.color := not_twinSuit_colors hcol
+  have hplace : st.canPlace d (Sum.inr x) = true := by
+    show (match st.pileOfTop x with
+      | some _ => canSitOn d x
+      | none => false) = true
+    rw [hpj]
+    exact (canSitOn_eq d x).2 ⟨hrank, hcolne⟩
+  have hfire : ∃ s', State.step st (Move.tabToTab d (Sum.inr x)) = some s' := by
+    have hne : fromCard d (st.piles a).faceUp ≠ [] := by
+      rw [hfaceup,
+        show bs ++ [x.twin, d] = (bs ++ [x.twin]) ++ [d] from
+          (congrArg (bs ++ ·)
+            (show [x.twin, d] = [x.twin] ++ [d] from rfl)).trans
+          (List.append_assoc bs [x.twin] [d]).symm,
+        hfrom]
+      simp
+    refine ⟨(st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below d (st.piles a).faceUp))).putRun
+      (fromCard d (st.piles a).faceUp) (Sum.inr x), ?_⟩
+    simp only [State.step, hhold, hplace]
+    cases hList : fromCard d (st.piles a).faceUp with
+    | nil => exact absurd hList hne
+    | cons w r => rfl
+  obtain ⟨s', hstep'⟩ := hfire
+  refine ⟨d, s', hstep', ?_, hrank⟩
+  -- THE SHAPE: read the successor through the inverse row
+  obtain ⟨a₁, hh₁, hcp₁, hfr₁, hseq⟩ := step_tabToTab_inv hstep'
+  rw [show a₁ = a from Option.some.inj (hhold.symm.trans hh₁).symm] at hseq
+  sorry -- THE EXPOSURE AND LICENSE REMAIN, staged next pass
 
 /-- The pin lemma: at the fork point, BOTH same-color rungs sit at the
 pair rank — the bare twin's pin by `stackable_now_rungexact`, the
@@ -1449,7 +1552,7 @@ theorem forkPoint_pins (st : State) (x : Card) (hwf : st.WF)
   -- hypotheses alone") described the PRE-v2 signature and is
   -- retired by the premise's own landing.
   obtain ⟨d, hC⟩ := h
-  obtain ⟨hCan, htwin, hcargo, hrank, hcol, hstrand⟩ := hC
+  obtain ⟨hCan, htwin, hcargo, hrank, hcol, hstrand, hseat⟩ := hC
   exact ⟨stackable_now_rungexact st x hCan, htwin⟩
 
 /-- `twinSuit` is symmetric (same-color family membership). -/
@@ -1512,12 +1615,12 @@ theorem forkPoint_exclusive (st : State) (x y : Card) (hwf : st.WF)
   -- the pair rank, while the x-strand demands it strictly BELOW
   -- x's pair rank — and symmetrically.  The two strict
   -- inequalities cross-pinch: Ry + 2 ≤ Rx ∧ Rx + 2 ≤ Ry.
-  obtain ⟨dx, hCanx, htpinx, hcargox, hrankx, hcolx, hstrandx⟩ := hx
-  obtain ⟨dy, hCany, htpiny, hcargoy, hranky, hcoly, hstrandy⟩ := hy
+  obtain ⟨dx, hCanx, htpinx, hcargox, hrankx, hcolx, hstrandx, hseatx⟩ := hx
+  obtain ⟨dy, hCany, htpiny, hcargoy, hranky, hcoly, hstrandy, hseaty⟩ := hy
   have hCx : forkPointC st x dx :=
-    ⟨hCanx, htpinx, hcargox, hrankx, hcolx, hstrandx⟩
+    ⟨hCanx, htpinx, hcargox, hrankx, hcolx, hstrandx, hseatx⟩
   have hCy : forkPointC st y dy :=
-    ⟨hCany, htpiny, hcargoy, hranky, hcoly, hstrandy⟩
+    ⟨hCany, htpiny, hcargoy, hranky, hcoly, hstrandy, hseaty⟩
   have hsx := forkPoint_cargo_strand hwf hCx
   have hsy := forkPoint_cargo_strand hwf hCy
   have hpx := stackable_now_rungexact st x hCanx

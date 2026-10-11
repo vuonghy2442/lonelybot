@@ -2109,3 +2109,92 @@ def l4RowForkPointV2 : Bool :=
     IO.println "branch's segment rows unblock founded_implies_atRung at merge."
   else
     throw (IO.userError "V2 CALIBRATION: A GATE FAILED")
+
+/-- THE (Q, J) FALSIFIER CELL (the V3 directive's probe, the
+probe-first discipline): hearts/diamonds climbed A..J (both queens'
+rungs wait at 11); the LICENSED heart-queen sits UNDER-SEAT on a
+club king (bare-king-barred club ace stock-resident); the COVERED
+diamond-queen sits BARE-BOTTOM of p5 under the spade jack (empty
+under-seat content, non-king).  Every V2 conjunct HOLDS at this
+cell; the exposed twin cannot lift (the bare-non-king seat bar);
+V3's seat premise REFUSES — the cell registers NO fork point at
+V3, restoring the trial by vacuity exactly as the directive
+predicted. -/
+def v3CJ5 : Card := ⟨Suit.club, Rank.jack⟩
+
+def l4QJCell : State where
+  found := fun s =>
+    match s with
+    | .heart => Suit.heart.upCards.take 11
+    | .diamond => Suit.diamond.upCards.take 11
+    | _ => []
+  piles := fun a =>
+    match a with
+    | .p1 => ⟨[], [v3CK, v3HQ]⟩
+    | .p5 => ⟨[], [v3DQ, v3SJ]⟩
+    | _ => ⟨[], []⟩
+  stock := v3Stock (Suit.heart.upCards.take 11 ++ Suit.diamond.upCards.take 11 ++
+    [v3CK, v3HQ, v3DQ, v3SJ])
+  waste := []
+  drawStep := 1
+
+/-- The V3 seat-package Bool mirror (the 7th conjunct, decide-grade):
+the pile runs end [twin, d] with under-seat content or a bare king. -/
+def v3SeatPkgB (st : State) (twin d : Card) : Bool :=
+  match st.pileHolding twin with
+  | none => false
+  | some a =>
+      match (st.piles a).faceUp with
+      | [] => false
+      | l =>
+          decide ((chop (chop l) ≠ [] ∨
+            ((st.piles a).hidden = [] ∧ twin.rank = Rank.king)) ∧
+            lastOf l = some d ∧ lastOf (chop l) = some twin)
+
+/-- THE FALSIFIER ROWS, decide-graded:
+- the cell is WF;
+- every V2 conjunct holds: the bare twin licensed, the twin rung
+  pinned, the cargo tops the twin, rank, color, class-strand (the
+  spade jack founded nowhere in this class — spades never climb,
+  the spade ace stock-resident);
+- the TRIAL conclusion FAILS at the cell: the slide fires and the
+  exposed diamond-queen is BARE-BOTTOM NON-KING — unlicensable;
+- V3's seat premise REFUSES: the cell carries no forkPointC at
+  V3, and the trial is restored by vacuity. -/
+def l4RowQJFalsifier : Bool :=
+  v3WfB l4QJCell &&
+  canRaiseB l4QJCell v3HQ &&
+  decide (v3RungAt l4QJCell .diamond = v3HQ.rank.toIdx) &&
+  v3CargoTopB l4QJCell v3SJ v3DQ &&
+  decide (v3SJ.rank.toIdx + 1 = v3HQ.rank.toIdx) &&
+  !(v3TwinSuitB v3SJ.suit v3HQ.suit) &&
+  !(v3SatStackableB [canon l4QJCell] v3SJ) &&
+  -- the slide fires and the conclusion dies at the exposed twin
+  (match l4QJCell.step (Move.tabToTab v3SJ (Sum.inr v3HQ)) with
+   | none => false
+   | some s' => !(canRaiseB s' v3DQ)) &&
+  -- V3 refuses: no seat package at p5
+  !(v3SeatPkgB l4QJCell v3DQ v3SJ)
+
+-- The falsifier census numbers (printed for the ledger):
+#eval v3WfB l4QJCell -- expect true: the cell is well-formed
+#eval canRaiseB l4QJCell v3HQ -- expect true: the bare twin licensed
+#eval v3SatStackableB [canon l4QJCell] v3SJ -- expect false: class-stranded
+#eval v3SeatPkgB l4QJCell v3DQ v3SJ -- expect false: V3's premise refuses
+#eval (match l4QJCell.step (Move.tabToTab v3SJ (Sum.inr v3HQ)) with
+  | none => false
+  | some s' => !(canRaiseB s' v3DQ)) -- expect true: conclusion dies
+#eval l4RowQJFalsifier -- expect true: V2 refutes, V3 restores
+
+#eval! do
+  if l4RowQJFalsifier then
+    IO.println "CANONV3 (Q, J) FALSIFIER (amr_12aaf07c1): ALL GATES HOLD -"
+    IO.println "The craft satisfies EVERY V2 conjunct (bare twin licensed, twin rung"
+    IO.println "pinned, cargo tops the twin, rank, color, class-strand) while the"
+    IO.println "trial's conclusion FAILS: the slide fires, the exposed diamond-queen"
+    IO.println "is bare-bottom non-king - unlicensable (the V6 seat bar, decided)."
+    IO.println "V3's seat premise REFUSES at the cell: no fork point registers at"
+    IO.println "V3, and the trial is restored by vacuity - the card's own diagnosis,"
+    IO.println "probe-first."
+  else
+    throw (IO.userError "QJ FALSIFIER: A GATE FAILED")
