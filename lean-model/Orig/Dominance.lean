@@ -3652,7 +3652,21 @@ found-membership crossing move is `tabToFound c ∨ wasteToFound c`,
 and the waste entry is impossible by conservation) and the
 α/β residue at the first blocked move (the parks-on-`c` /
 `c`-suit-worry transports; the adjacent cancellations are landed,
-the spread carry is the (C)-family content). -/
+the spread carry is the (C)-family content).
+
+**UPDATE (wave 24 cont., branch `farm/orig-dom-extract-port`): (a)
+IS LANDED** — the rung-occurs extraction is `ground_rung_crossing`
+(the first crossing position, the fired `tabToFound c`, the tail to
+the win, and the pre-passage window facts at every prefix state) and
+the position packaging for this lift's direct line is
+`ground_firstBlocked_split` (compliant prefix + boundary move: the
+settle case rides `ground_settle_transport` verbatim; a blocked
+boundary move hands the α/β residue its window state), both private
+in this file on the landed kit (`tabHeld_step`/`tabHeld_run`, the
+tableau-zone invariant behind the waste-entry exclusion).  The
+passage machinery is the public port `run_firstPassage_split`
+(`Orig/Play.lean`, the §12.1 family despecialized).  The remaining
+content here is (b): the α/β spread at the blocked move. -/
 theorem ground_lifted_win {st : State} {c : Card} {k : Anchor} {s₁ : State}
     (hwf : st.WF) (hsafe : safeToFound st c = true)
     (hk : st.pileOfTop c = some k)
@@ -8541,7 +8555,15 @@ ROUTE (the whole (ii)+(iii) ledger, staged for the next pass):
   AFTER a c-park (`wasteToTab c`) that reads no rung: the straddle
   shape.  A first-passage extraction (the §12.1 `climb_firstPassage`
   family, NOT yet ported to Orig — the recorded gap) locates the
-  restack while the window is open.
+  restack while the window is open.  **UPDATE (wave 24 cont., branch
+  `farm/orig-dom-extract-port`): the family IS PORTED** —
+  `run_firstPassage_split` (`Orig/Play.lean`, public: the first
+  crossing position of any decidable state predicate along a
+  successful play, with the all-prefix-states minimality clause, plus
+  its append-decomposition reader `run_append_split`); instantiate
+  at the `x`-foundedness predicate and read the crossing move with
+  the same conservation ledger as the (N) row's `ground_rung_crossing`
+  (private in this file, same-file-citable from here).
 * **The spread exchanges** (each single square; the worry bubbles
   forward, or dually the restack backward, one move at a time): the
   `wasteToFound y` square (y.suit ≠ x.suit) is LANDED privately in

@@ -1025,9 +1025,77 @@ against `witnesses/README.md`'s regression-layer protocol
 
 ## 8. The session ledger (UPDATE 2026-10-11: the (A) reserve row lands
 on `farm/orig-dom-a-reserve` + the §5.1 bare-floor skeleton on
-`farm/orig-dom-n-ground` @ `7bf0ccc`; UPDATE 2026-10-10: the to-foundation
+`farm/orig-dom-n-ground` @ `7bf0ccc` + the (N) rung-occurs
+extraction and the §12.1 first-passage port on
+`farm/orig-dom-extract-port`; UPDATE 2026-10-10: the to-foundation
 dominances port + the both-occupied harvest + the post-merge cleanup,
 branch `macro-game`)
+
+**STATUS 2026-10-11 (wave 24 cont., branch `farm/orig-dom-extract-port`,
+commits `06af140` + `5d7189c` + `2f1f28d`) — THE (N) ROW'S (a)
+PREREQUISITE AND THE (C) ROW'S PORTED GAP ARE LANDED SORRY-FREE.**
+Two mechanical pieces, both audited `[propext, Quot.sound]` fresh
+in-file, zero new sorry, census pinned (`Dominance.lean` 6 expected
+6 — the (N) residue stays; its remaining content is now ONLY (b),
+the α/β spread):
+
+* **The first-passage port (PUBLIC machinery, `Orig/Play.lean`)**:
+  `run_append_split` (the append-decomposition reader of the run
+  dialect) and `run_firstPassage_split` — the §12.1 family
+  despecialized from the Klondike side's heights-crossing
+  `climb_firstPassage` to any decidable state predicate: a successful
+  play whose start fails `P` and whose end satisfies `P` splits at
+  its first crossing — prefix landing on a failing state, ONE move
+  onto a passing state, every prefix-visited state failing `P` (the
+  minimality clause, the generic replacement for the source's
+  carried pre-passage invariants).  Both consumers are recorded in
+  the docstring: the (N) extraction below and the (C) residue
+  `draw1_worry_spread_residue` (instantiate at `x`-foundedness; the
+  window-accounting bullet's UPDATE row marks the gap closed).
+  Transcription was physical throughout — no corner resisted; the
+  only real work was the `(match State.step st m with …)` unfold idiom
+  at the induction split (the banked `run_cons`+inj recipe).
+  Dedup note: Progress's `run_append_elim` and this file's
+  `ground_run_split`/`run_append_split1` remain private — hoisting
+  them onto `run_append_split` is a harvest-wave call, not taken
+  here (other rows' sites untouched).
+
+* **The rung-occurs extraction (PRIVATE, `Orig/Dominance.lean`, at
+  the (N) route note's point)**: `ground_rung_crossing` — from a WF,
+  tableau-held corner, every winning play must raise `c`; the first
+  `c`-founding crossing is entered by `tabToFound c` (the waste twin
+  `wasteToFound c` is impossible by conservation: the crossing state
+  still holds `c` in a pile — the kit's tableau-zone invariant
+  `tabHeld_step`/`tabHeld_run` plus `mem_pile_unique` keep it out of
+  the waste — and no other move kind writes onto a foundation).  The
+  position packages the prefix (with `c` unfounded AND tableau-held
+  at EVERY state it visits — the pre-passage window facts), the fired
+  raise, and the tail running on to the win.  The zone invariant's
+  six-kind ledger needed the WF premise exactly once
+  (`canPlace_inr_target_pile_ne` rules out the run-move
+  self-landing that would void the landing search; every other arm is
+  guard-reading, no WF).  Companion: `ground_firstBlocked_split` —
+  the packaging the lift's direct line consumes: any winning play
+  splits at its FIRST blocked move — compliant prefix, boundary move
+  either the rung pass itself (SETTLE: `ground_settle_transport`
+  closes verbatim) or a genuinely blocked move (the α/β residue's
+  window state, carrying the same window facts at the split); the
+  raise cannot occur inside the prefix, read off the crossing
+  minimality.  Local readers dedup-marked: `g_below_fromCard_or`
+  (kin of TwinExchange's public `below_aboveIn_split` —
+  Dominance imports neither), the `g_putCard_piles_*` pointwise
+  pair (kin of EdgeLabel's privates), `g_firstWhere_mem_ne_none`
+  (the WF-free search-completeness half Integrity's exact rows
+  don't cover).
+
+Battery `lake build Klondike Witnesses Orig` green on all three
+targets (Witnesses' first passes hit the transient Windows
+`.olean.private` read storms; serial per-module build + retry is
+green).  The (N)/(C) attack order note: with (a) landed, the (N)
+lift's remaining content is the α/β SPREAD alone — the residue's
+consumer can now start from `ground_firstBlocked_split`'s window
+state directly; the (C) residue's restack-location leg is ready to
+cite the port the same way the (N) row does.
 
 **STATUS 2026-10-11 (wave 24.5, farm-orig-dom-n-ground @ `7bf0ccc`)
 — THE (N) BARE-FLOOR RESIDUE IS A PROVEN SKELETON OVER ONE NAMED
