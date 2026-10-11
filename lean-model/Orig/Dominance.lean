@@ -5224,3 +5224,1061 @@ theorem stock_dominance_draw1 {st : State} {c : Card}
   obtain ⟨π, w, hrun, hwin, hcomp⟩ :=
     draw1_compliant_normalForm hwf hstep hsafe hrung hstock hsolv
   exact draw1_compliant_replay hwf hstep hrung hstock π w hcomp hrun hwin
+
+/-! ## §5.2 — The suit-grade worry gate (the worry-preference dominance)
+
+method.md §5.4's worry gate, the SUIT-GRADE half, formalized as the
+`prunableAt` theorem on the physical model.  The gate being certified
+is `src/state.rs gen_moves`'s `suit_filter` cascade (state.rs:250-318):
+at a node whose tableau carries pending stackable work, the worry
+moves `stack_pile` (the Rust stack→pile move — THIS model's
+`Move.foundToTab c b`, the foundation-top worry-back — see the header
+table above) are offered ONLY for the suits `s` whose TWIN suit is not
+live:
+
+```
+extra        = redundant_stack | (vis & sm & (least << 4))
+suit_unstack[s] := extra & SUIT_MASK[s] == 0        // per suit
+suit_filter  = ⋃_{suit_unstack[t]} SUIT_MASK[twin t] // twin's channel
+stack_pile   = stack_pile & suit_filter & ...        // the offer
+```
+
+Per suit, `extra` reads content that is committable NOW
+(`redundant_stack`: a tableau top that is foundation-ready and whose
+raise reveals nothing) or committable AT A PENDING MOMENT
+(`vis & sm & (least << 4)`: the suit's next card sits exposed face-up
+exactly one rank above a zero-reveal pending commit of the twin suit —
+after that commit lands, the suit's own channel opens).  Both
+readings are defined below (`suitCommitNow`, `suitExposesNext`) and
+composed as `suitLive` — the two readings do not differ as competing
+translations; they are the two disjuncts of the ONE Rust formula, and
+each is separately decide-probed at the craft states of the probe
+battery below.
+
+**SUIT-GRADE, not rank-graded** — a deliberate session decision: the
+solver's gate is the stateless whole-suit reading (`extra`-per-suit),
+not the rank-indexed variant (rejected this session); accordingly
+`suitLive` drops the cascade's which-card specificity (`least_stack`,
+the lex-least pending commit) — ANY same-shape pending commit
+witnesses liveness statelessly.
+
+**Out of scope, documented, NOT certified here** (the cascade is
+interaction-tuned; this card certifies the suit-grade gate in
+isolation): the `paired_stack` lex-least restriction
+(state.rs:255-268 — no twin-pair of equal-rank stackable cards may
+co-fire; the lower siblings collapse), the both-colors-unstack
+opening condition (state.rs:278), the `triple_stackable` guard, and
+the `(least_stack - 1)` rank cap (state.rs:305 — a worry move is also
+rank-fenced to strictly below the pending least stack).  Those rows
+are the cascade's own dominances; the theorem below is the gate
+CERTIFICATION: whenever the twin suit is live, the worry the gate
+suppresses is prunable — the pruning the production Rust solver
+already performs never costs a win.
+
+**The theorem shape.**  `prunableAt st m` here is the strong,
+whole-play reading — SOME winning play from `st` avoids `m` ENTIRELY
+(the Klondike twin chapter's `prunableAt` reads head-avoidance only;
+naming mirrors, shape is this chapter's own, per the card).  The
+premises are `WF` and the gate premise alone; the move's own legality
+at `st` is NOT assumed (the engine treats every occurrence).
+
+**The route (the staged ledger).**
+
+* Part (i) — the commit-first sequentialization — is LANDED as
+  PROVEN content at both grades: the mechanical square
+  `raise_worry_square` (a twin-anchored `tabToFound` raise and a
+  `foundToTab` worry at distinct suits are COMPOSITE-EQUAL under the
+  one order-lock corner `b ≠ inr y`), and its play-level corollary
+  `stackPile_worry_sequence`: an adjacent worry-then-raise window in
+  a winning play replays as raise-then-worry — accommodate the live
+  suit first; it is no longer stackable; then the gate itself opens
+  the twin worry.  The both-constructions case SEQUENCES; it does not
+  violate the gate.
+* Part (ii) — the single-pad twin exchange and part (iii) — the
+  interference squares — are the spread residue's OWN route: after
+  the engine has settled everything mechanical, a surviving worry
+  occurrence is a spread window, and the residue owes the twin-equal
+  rewrite through `twin_fate`
+  (`Orig/Twin.lean`) at the exposure moment — the worried card's
+  downstream uses carried by the twin-twin conjugation
+  (`Move.twinMove`/`State.twinMap`, the `TwinExchangeBoth` local
+  exchange grades) — with the C-session's composite-equal squares
+  (`foundToTab_wasteToFound_square`, `bump2_comm`,
+  `lower_foundToTab1`, the fires-readers) as the bubbling legs, LIFO
+  per the banked square inventory (worry-worry pairs never square;
+  the storage corner — a segment parking onto the worry-created seat —
+  is the genuine hard core, decide-exhibited below).
+
+**The engine (`worry_elim`, private).**  Strong induction on the
+play length at the FIRST worry occurrence:
+
+* no occurrence — the play verbatim;
+* the worry is the play's LAST move — impossible: the raised-away
+  foundation leaves its suit short of thirteen against `isWin`
+  (`wf_found_chop_toIdx` against `isWin_len`), a PROVEN corner;
+* the occurrence is an adjacent worry/restack window
+  `[foundToTab c b; tabToFound c]` — the window composites to the
+  identity (`foundToTab_return`), the pair is excised, and the
+  induction continues TWO MOVES SHORTER;
+* the occurrence is a spread window (the follow-move is not the
+  restack) — the residue's instance, delivered with the gated root
+  and the reached window state.
+
+The capstone assembles: `stackPile_worry_prunableAt`. -/
+
+/-! ### The framework transplant (the Klondike mirror, naming verbatim) -/
+
+/-- Playing `m` at `st` never hurts: the verdict survives the move.
+`Klondike/Dominance.lean`'s `dominantAt`, mirrored at the physical
+game (`WinFrom` for `solvableFrom`, `State.step` for `apply`). -/
+def dominantAt (st : State) (m : Move) : Prop :=
+  WinFrom st → ∃ s₁, State.step st m = some s₁ ∧ WinFrom s₁
+
+/-- SOME winning play from `st` avoids `m` ENTIRELY — the
+whole-play, suit-grade reading of prunability (the Klondike twin
+chapter reads head-avoidance; the stateless whole-suit gate the
+solver runs demands the whole-play form). -/
+def prunableAt (st : State) (m : Move) : Prop :=
+  WinFrom st → ∃ play w, st.run play = some w ∧ w.isWin = true ∧
+    ∀ m' ∈ play, m' ≠ m
+
+/-- `m` dominates `m'` at `st`: prune `m'`, prefer `m`. -/
+def dominates (st : State) (m m' : Move) : Prop :=
+  prunableAt st m' ∧ dominantAt st m
+
+/-! ### The suit readings (the `extra`-per-suit formula) -/
+
+/-- **Reading one — committable now** (`redundant_stack` per suit,
+faithful): the suit `s` has a tableau-top card that is
+foundation-ready (`nextUp`) and whose raise reveals nothing (the
+below-run is nonempty or the hidden boundary is already empty —
+`Pile.afterRunRemoved` flips no card). -/
+def suitCommitNow (s : Suit) (st : State) : Bool :=
+  Anchor.all.any fun a =>
+    match (st.piles a).top with
+    | some x => decide (x.suit = s) && st.nextUp x &&
+        (decide (chop (st.piles a).faceUp ≠ []) || decide ((st.piles a).hidden = []))
+    | none => false
+
+/-- **Reading two — committable at the pending moment**
+(`vis & sm & (least << 4)` per suit, faithful): the suit's NEXT card
+(one rank above a zero-reveal pending commit of the TWIN suit,
+exposed face-up somewhere on the board) — after the pending commit
+lands the suit's own channel opens; the lex-least WHICH-pending
+specificity of the cascade is dropped, statelessly. -/
+def suitExposesNext (s : Suit) (st : State) : Bool :=
+  Anchor.all.any fun a =>
+    (st.piles a).faceUp.any fun x =>
+      decide (x.suit = s) && st.nextUp x &&
+        Anchor.all.any fun a' =>
+          match (st.piles a').top with
+          | some y => decide (y.suit.twin = s) &&
+              decide (y.rank.toIdx + 1 = x.rank.toIdx) && st.nextUp y &&
+                (decide (chop (st.piles a').faceUp ≠ []) ||
+                  decide ((st.piles a').hidden = []))
+          | none => false
+
+/-- **The suit-grade liveness the gate reads** (the whole `extra`
+formula, stateless and whole-suit by the session's decision):
+`s` has committable-now or committable-at-the-pending-moment content.
+The Rust gate offers a suit-`s` worry ONLY when `suitLive s.twin` is
+false; the capstone below certifies the complementary direction:
+when the twin IS live, the worry is prunable. -/
+def suitLive (s : Suit) (st : State) : Bool :=
+  suitCommitNow s st || suitExposesNext s st
+
+/-! ### The mechanical kit (the engine's private strip) -/
+
+/-- The first-occurrence surgery: a play either avoids `m`
+throughout, or splits at its first occurrence with a clean prefix. -/
+private theorem mem_avoid_or_first {m : Move} : ∀ (π : List Move),
+    (∀ m' ∈ π, m' ≠ m) ∨ ∃ A B, π = A ++ m :: B ∧ ∀ m' ∈ A, m' ≠ m := by
+  intro π
+  induction π with
+  | nil => exact Or.inl (by simp)
+  | cons x t ih =>
+      by_cases hx : x = m
+      · refine Or.inr ⟨[], t, ?_, by simp⟩
+        rw [hx]
+        rfl
+      · rcases ih with hclean | ⟨A, B, hπ, hA⟩
+        · refine Or.inl ?_
+          intro m' hm'
+          rcases List.mem_cons.mp hm' with heq | hmem
+          · rw [heq]; exact hx
+          · exact hclean m' hmem
+        · refine Or.inr ⟨x :: A, B, ?_, ?_⟩
+          · rw [hπ]
+            rfl
+          · intro m' hm'
+            rcases List.mem_cons.mp hm' with heq | hmem
+            · rw [heq]; exact hx
+            · exact hA m' hmem
+
+/-- The run-prefix WF chain. -/
+private theorem run_wf (A : List Move) :
+    ∀ {st u : State}, st.run A = some u → st.WF → u.WF := by
+  induction A with
+  | nil =>
+      intro st u h hwf
+      have hx : (some st : Option State) = some u := h
+      have hsu : st = u := Option.some.inj hx
+      rw [hsu] at hwf
+      exact hwf
+  | cons m rest ih =>
+      intro st u h hwf
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h
+      exact ih hrest (step_wf hwf hstep)
+
+/-- The prefix/tail split of a run. -/
+private theorem run_app_split : ∀ (A : List Move) (st : State) (B : List Move) (w : State),
+    st.run (A ++ B) = some w → ∃ u, st.run A = some u ∧ u.run B = some w := by
+  intro A
+  induction A with
+  | nil =>
+      intro st B w h
+      exact ⟨st, rfl, h⟩
+  | cons m rest ih =>
+      intro st B w h
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h
+      obtain ⟨u, hu₁, hu₂⟩ := ih s₁ B w hrest
+      refine ⟨u, ?_, hu₂⟩
+      show (match State.step st m with
+        | some st' => State.run st' rest
+        | none => none) = _
+      rw [hstep]
+      exact hu₁
+
+/-- The prefix/tail glue of a run. -/
+private theorem run_app_glue : ∀ (A : List Move) (st u w : State) (B : List Move),
+    st.run A = some u → u.run B = some w → st.run (A ++ B) = some w := by
+  intro A
+  induction A with
+  | nil =>
+      intro st u w B h1 h2
+      have hx : (some st : Option State) = some u := h1
+      have hsu : st = u := Option.some.inj hx
+      rw [hsu]
+      exact h2
+  | cons m rest ih =>
+      intro st u w B h1 h2
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h1
+      show st.run ((m :: rest) ++ B) = _
+      rw [show (m :: rest) ++ B = m :: (rest ++ B) from rfl]
+      show (match State.step st m with
+        | some st' => State.run st' (rest ++ B)
+        | none => none) = _
+      rw [hstep]
+      exact ih s₁ u w B hrest h2
+
+/-! ### Part (i) — the sequencing square
+
+The composite-equal square for the raise-vs-worry pair — the (iii)
+bank's `tabToFound` slot (the C-session squares covered the waste
+entries; this is the twin-anchored raise): at DISTINCT suits with the
+one order-lock corner barred (`b = inr y` — the raise consumes the
+worry's own base card; decide-exhibited in the probe battery), both
+orders land at the SAME composite.  The proof promotes the raise's
+guards and seat to the pre-worry state through the readers
+(`setFound`/`putCard`/`firstWhere_congr`), the worry's guards to the
+post-raise state, and closes the composite by `State.ext` — the same
+channel as `foundToTab_wasteToFound_square`'s pattern-kernel. -/
+
+/-- The mechanical square: a `tabToFound y` raise and a
+`foundToTab c b` worry at distinct suits, no inter-suite corner in the
+worry's base, compose the same successor state in both orders. -/
+private theorem raise_worry_square {st : State} {c y : Card} {b : Base} {s₁ t : State}
+    (hwf : st.WF) (hsy : y.suit ≠ c.suit) (hcorn : b ≠ Sum.inr y)
+    (hf : State.step st (Move.foundToTab c b) = some s₁)
+    (hm : State.step s₁ (Move.tabToFound y) = some t) :
+    ∃ r, State.step st (Move.tabToFound y) = some r ∧
+      State.step r (Move.foundToTab c b) = some t := by
+  obtain ⟨htop, hcp, hs₁⟩ := foundToTab_fires hf
+  obtain ⟨hny, ky, hky⟩ := tabToFound_fires hm
+  have hcy : y ≠ c := by
+    intro h
+    exact hsy (by rw [h])
+  have hsc : c.suit ≠ y.suit := by
+    intro h
+    exact hsy h.symm
+  have hsf : ∀ σ, s₁.found σ =
+      (if σ = c.suit then chop (st.found c.suit) else st.found σ) := by
+    intro σ
+    rw [hs₁, putCard_found]
+    by_cases hσ : σ = c.suit
+    · rw [ite_eq_left hσ, hσ, setFound_found_self]
+    · rw [ite_eq_right hσ, setFound_found_ne hσ]
+  have hs₁y : s₁.found y.suit = st.found y.suit := by
+    rw [hsf y.suit, ite_eq_right hsy]
+  have hny' : st.nextUp y = true := by
+    show (decide (y.rank.toIdx = (st.found y.suit).length)) = true
+    have h : (decide (y.rank.toIdx = (s₁.found y.suit).length)) = true := hny
+    rw [hs₁y] at h
+    exact h
+  cases b with
+  | inl a =>
+      obtain ⟨hempty, hking⟩ := canPlace_inl hcp
+      have hsp : ∀ a', s₁.piles a' =
+          (if a' = a then (⟨[], [c]⟩ : Pile) else st.piles a') := by
+        intro a'
+        rw [hs₁]
+        have hp := putCard_piles_inl (st.setFound c.suit (chop (st.found c.suit))) c a
+        have h := congrFun hp a'
+        rw [h]
+        show (if a' = a then (⟨[], [c]⟩ : Pile)
+            else (st.setFound c.suit (chop (st.found c.suit))).piles a') = _
+        by_cases haa : a' = a
+        · rw [haa, ite_eq_left rfl, ite_eq_left rfl]
+        · rw [ite_eq_right haa, ite_eq_right haa, setFound_piles]
+      have hkne : ky ≠ a := by
+        intro hka
+        have hlasty := (pileOfTop_top hky).2
+        have h := hsp ky
+        rw [ite_eq_left hka] at h
+        have hlastc : lastOf (s₁.piles ky).faceUp = some c :=
+          congrArg (fun p => lastOf p.faceUp) h
+        rw [hlastc] at hlasty
+        exact hcy (Option.some.inj hlasty).symm
+      have hs₁k : s₁.piles ky = st.piles ky := by
+        have h := hsp ky
+        rw [ite_eq_right hkne] at h
+        exact h
+      have hstyk : (st.piles ky).top = some y := by
+        have hlasty := (pileOfTop_top hky).2
+        show lastOf (st.piles ky).faceUp = some y
+        rw [← hs₁k]
+        exact hlasty
+      have hstky : st.pileOfTop y = some ky :=
+        (pileOfTop_eq_some_iff hwf).mpr hstyk
+      obtain ⟨r, hrdef⟩ : ∃ r : State, r = { st.setFound y.suit (st.found y.suit ++ [y]) with
+        piles := fun a' => if a' = ky then
+            Pile.afterRunRemoved (st.piles ky) (chop (st.piles ky).faceUp)
+          else st.piles a' } := ⟨_, rfl⟩
+      have hrspec : State.step st (Move.tabToFound y) = some r := by
+        rw [hrdef]
+        exact step_tabToFound_eq hny' hstky
+      have hrp : ∀ a', r.piles a' =
+          (if a' = ky then Pile.afterRunRemoved (st.piles ky) (chop (st.piles ky).faceUp)
+            else st.piles a') := by
+        intro a'
+        rw [hrdef]
+      have hwfr : r.WF := step_wf hwf hrspec
+      have hrfc : r.found c.suit = st.found c.suit := by
+        rw [hrdef]
+        exact setFound_found_ne hsc
+      have htopr : r.foundTop c.suit = some c := by
+        show lastOf (r.found c.suit) = some c
+        rw [hrfc]
+        exact htop
+      have hpa : r.piles a = st.piles a := by
+        have h := hrp a
+        rw [ite_eq_right (Ne.symm hkne)] at h
+        exact h
+      have hcpr : r.canPlace c (Sum.inl a) = true := by
+        simp only [State.canPlace, hpa, hempty, decide_eq_true hking, Bool.true_and]
+      refine ⟨r, hrspec, ?_⟩
+      have hworry : State.step r (Move.foundToTab c (Sum.inl a)) =
+          some ((r.setFound c.suit (chop (r.found c.suit))).putCard c (Sum.inl a)) :=
+        step_foundToTab_eq htopr hcpr
+      rw [hworry]
+      have hshape : t = { s₁.setFound y.suit (s₁.found y.suit ++ [y]) with
+        piles := fun a' => if a' = ky then
+            Pile.afterRunRemoved (s₁.piles ky) (chop (s₁.piles ky).faceUp)
+          else s₁.piles a' } := tabToFound_shape hm hky
+      rw [hshape]
+      refine congrArg some ?_
+      apply State.ext
+      · funext σ
+        show ((r.setFound c.suit (chop (r.found c.suit))).putCard c (Sum.inl a)).found σ
+          = (s₁.setFound y.suit (s₁.found y.suit ++ [y])).found σ
+        rw [putCard_found]
+        by_cases hσc : σ = c.suit
+        · rw [hσc, setFound_found_self, hrfc, setFound_found_ne hsc, hsf c.suit,
+            ite_eq_left rfl]
+        · by_cases hσy : σ = y.suit
+          · rw [hσy, setFound_found_ne hsc.symm, hrdef, setFound_found_self,
+              setFound_found_self, hs₁y]
+          · rw [setFound_found_ne hσc, hrdef, setFound_found_ne hσy,
+              setFound_found_ne hσy, hsf σ, ite_eq_right hσc]
+      · funext a''
+        have hp := putCard_piles_inl (r.setFound c.suit (chop (r.found c.suit))) c a
+        have hL := congrFun hp a''
+        rw [hL]
+        show (if a'' = a then (⟨[], [c]⟩ : Pile)
+            else (r.setFound c.suit (chop (r.found c.suit))).piles a'') =
+          (if a'' = ky then Pile.afterRunRemoved (s₁.piles ky) (chop (s₁.piles ky).faceUp)
+            else s₁.piles a'')
+        rw [setFound_piles, hrp a'']
+        by_cases haky : a'' = ky
+        · rw [haky, ite_eq_right hkne, ite_eq_left rfl, ite_eq_left rfl, hs₁k]
+        · by_cases haa : a'' = a
+          · rw [haa, ite_eq_left rfl, ite_eq_right (Ne.symm hkne), hsp a, ite_eq_left rfl]
+          · rw [ite_eq_right haa, ite_eq_right haky, ite_eq_right haky, hsp a'',
+              ite_eq_right haa]
+      · rw [putCard_stock, setFound_stock, hrdef]
+        show (st.setFound y.suit (st.found y.suit ++ [y])).stock = _
+        rw [setFound_stock]
+        show st.stock = (s₁.setFound y.suit (s₁.found y.suit ++ [y])).stock
+        rw [setFound_stock, hs₁, putCard_stock, setFound_stock]
+      · rw [putCard_waste, setFound_waste, hrdef]
+        show (st.setFound y.suit (st.found y.suit ++ [y])).waste = _
+        rw [setFound_waste]
+        show st.waste = (s₁.setFound y.suit (s₁.found y.suit ++ [y])).waste
+        rw [setFound_waste, hs₁, putCard_waste, setFound_waste]
+      · rw [putCard_drawStep, setFound_drawStep, hrdef]
+        show (st.setFound y.suit (st.found y.suit ++ [y])).drawStep = _
+        rw [setFound_drawStep]
+        show st.drawStep = (s₁.setFound y.suit (s₁.found y.suit ++ [y])).drawStep
+        rw [setFound_drawStep, hs₁, putCard_drawStep, setFound_drawStep]
+  | inr z =>
+      obtain ⟨k_z, hz, hfit⟩ := canPlace_inr hcp
+      have hyz : y ≠ z := by
+        intro h
+        rw [← h] at hcorn
+        exact hcorn rfl
+      have hzp' : (st.setFound c.suit (chop (st.found c.suit))).pileOfTop z = some k_z := by
+        have hcc : firstWhere (fun a'' =>
+              decide (((st.setFound c.suit (chop (st.found c.suit))).piles a'').top = some z))
+              Anchor.all =
+            firstWhere (fun a'' => decide ((st.piles a'').top = some z)) Anchor.all :=
+          firstWhere_congr (fun _ => rfl)
+        show firstWhere (fun a'' =>
+              decide (((st.setFound c.suit (chop (st.found c.suit))).piles a'').top = some z))
+              Anchor.all = some k_z
+        rw [hcc]
+        show st.pileOfTop z = some k_z
+        exact hz
+      have hsp : ∀ a', s₁.piles a' =
+          (if a' = k_z then { st.piles k_z with faceUp := (st.piles k_z).faceUp ++ [c] }
+            else st.piles a') := by
+        intro a'
+        rw [hs₁]
+        have hp := putCard_piles_inr (st.setFound c.suit (chop (st.found c.suit))) c z k_z hzp'
+        have h := congrFun hp a'
+        rw [h]
+        show (if a' = k_z then { st.piles k_z with faceUp := (st.piles k_z).faceUp ++ [c] }
+            else (st.setFound c.suit (chop (st.found c.suit))).piles a') = _
+        rw [setFound_piles]
+      have hkkz : ky ≠ k_z := by
+        intro h
+        have hlasty := (pileOfTop_top hky).2
+        have hface : (s₁.piles ky).faceUp = (st.piles k_z).faceUp ++ [c] := by
+          have hp := hsp k_z
+          rw [← h] at hp
+          rw [ite_eq_left rfl] at hp
+          rw [hp, ← h]
+        have hlastc : lastOf (s₁.piles ky).faceUp = some c := by
+          rw [hface]
+          exact lastOf_snoc
+        rw [hlastc] at hlasty
+        exact hcy (Option.some.inj hlasty).symm
+      have hs₁k : s₁.piles ky = st.piles ky := by
+        have h := hsp ky
+        rw [ite_eq_right hkkz] at h
+        exact h
+      have hstyk : (st.piles ky).top = some y := by
+        have hlasty := (pileOfTop_top hky).2
+        show lastOf (st.piles ky).faceUp = some y
+        rw [← hs₁k]
+        exact hlasty
+      have hstky : st.pileOfTop y = some ky :=
+        (pileOfTop_eq_some_iff hwf).mpr hstyk
+      obtain ⟨r, hrdef⟩ : ∃ r : State, r = { st.setFound y.suit (st.found y.suit ++ [y]) with
+        piles := fun a' => if a' = ky then
+            Pile.afterRunRemoved (st.piles ky) (chop (st.piles ky).faceUp)
+          else st.piles a' } := ⟨_, rfl⟩
+      have hrspec : State.step st (Move.tabToFound y) = some r := by
+        rw [hrdef]
+        exact step_tabToFound_eq hny' hstky
+      have hrp : ∀ a', r.piles a' =
+          (if a' = ky then Pile.afterRunRemoved (st.piles ky) (chop (st.piles ky).faceUp)
+            else st.piles a') := by
+        intro a'
+        rw [hrdef]
+      have hwfr : r.WF := step_wf hwf hrspec
+      have hrfc : r.found c.suit = st.found c.suit := by
+        rw [hrdef]
+        exact setFound_found_ne hsc
+      have htopr : r.foundTop c.suit = some c := by
+        show lastOf (r.found c.suit) = some c
+        rw [hrfc]
+        exact htop
+      have hrnk : (r.piles ky).top ≠ some z := by
+        intro hcon
+        have h1 : r.pileOfTop z = some ky := (pileOfTop_eq_some_iff hwfr).mpr hcon
+        have h2 : (r.piles k_z).top = some z := by
+          have hp := hrp k_z
+          rw [ite_eq_right (Ne.symm hkkz)] at hp
+          rw [hp]
+          exact (pileOfTop_eq_some_iff hwf).mp hz
+        have h3 : r.pileOfTop z = some k_z := (pileOfTop_eq_some_iff hwfr).mpr h2
+        rw [h3] at h1
+        exact absurd (Option.some.inj h1) (Ne.symm hkkz)
+      have hpcongr : ∀ (a' : Anchor),
+          (decide ((st.piles a').top = some z)) =
+          (decide ((r.piles a').top = some z)) := by
+        intro a'
+        by_cases hak : a' = ky
+        · rw [hak, hstyk]
+          have h1 : decide (some y = some z) = false :=
+            decide_false_of_not (fun heq => hyz (Option.some.inj heq))
+          have h2 : decide ((r.piles ky).top = some z) = false :=
+            decide_false_of_not (fun heq => hrnk heq)
+          rw [h1, h2]
+        · rw [hrp a', ite_eq_right hak]
+      have hrzz : r.pileOfTop z = st.pileOfTop z := by
+        show (firstWhere (fun a' => decide ((r.piles a').top = some z)) Anchor.all
+            = firstWhere (fun a' => decide ((st.piles a').top = some z)) Anchor.all)
+        exact (firstWhere_congr hpcongr).symm
+      have hcpr : r.canPlace c (Sum.inr z) = true := by
+        show (match r.pileOfTop z with
+          | some _ => canSitOn c z
+          | none => false) = true
+        rw [hrzz, hz]
+        exact hfit
+      refine ⟨r, hrspec, ?_⟩
+      have hworry : State.step r (Move.foundToTab c (Sum.inr z)) =
+          some ((r.setFound c.suit (chop (r.found c.suit))).putCard c (Sum.inr z)) :=
+        step_foundToTab_eq htopr hcpr
+      rw [hworry]
+      have hshape : t = { s₁.setFound y.suit (s₁.found y.suit ++ [y]) with
+        piles := fun a' => if a' = ky then
+            Pile.afterRunRemoved (s₁.piles ky) (chop (s₁.piles ky).faceUp)
+          else s₁.piles a' } := tabToFound_shape hm hky
+      rw [hshape]
+      refine congrArg some ?_
+      apply State.ext
+      · funext σ
+        show ((r.setFound c.suit (chop (r.found c.suit))).putCard c (Sum.inr z)).found σ
+          = (s₁.setFound y.suit (s₁.found y.suit ++ [y])).found σ
+        rw [putCard_found]
+        by_cases hσc : σ = c.suit
+        · rw [hσc, setFound_found_self, hrfc, setFound_found_ne hsc, hsf c.suit,
+            ite_eq_left rfl]
+        · by_cases hσy : σ = y.suit
+          · rw [hσy, setFound_found_ne hsc.symm, hrdef, setFound_found_self,
+              setFound_found_self, hs₁y]
+          · rw [setFound_found_ne hσc, hrdef, setFound_found_ne hσy,
+              setFound_found_ne hσy, hsf σ, ite_eq_right hσc]
+      · funext a''
+        have hzr' : (r.setFound c.suit (chop (r.found c.suit))).pileOfTop z = some k_z := by
+          have hcc : firstWhere (fun a'' =>
+                decide (((r.setFound c.suit (chop (r.found c.suit))).piles a'').top = some z))
+                Anchor.all =
+              firstWhere (fun a'' => decide ((r.piles a'').top = some z)) Anchor.all :=
+            firstWhere_congr (fun _ => rfl)
+          show firstWhere (fun a'' =>
+                decide (((r.setFound c.suit (chop (r.found c.suit))).piles a'').top = some z))
+                Anchor.all = some k_z
+          rw [hcc]
+          show r.pileOfTop z = some k_z
+          rw [hrzz]
+          exact hz
+        have hp := putCard_piles_inr (r.setFound c.suit (chop (r.found c.suit))) c z k_z hzr'
+        have hL := congrFun hp a''
+        rw [hL]
+        show (if a'' = k_z then { r.piles k_z with faceUp := (r.piles k_z).faceUp ++ [c] }
+            else (r.setFound c.suit (chop (r.found c.suit))).piles a'') =
+          (if a'' = ky then Pile.afterRunRemoved (s₁.piles ky) (chop (s₁.piles ky).faceUp)
+            else s₁.piles a'')
+        rw [setFound_piles, hrp a'']
+        by_cases haky : a'' = ky
+        · rw [haky, ite_eq_right hkkz, ite_eq_left rfl, ite_eq_left rfl, hs₁k]
+        · by_cases hzak : a'' = k_z
+          · rw [hzak, ite_eq_left rfl, ite_eq_right (Ne.symm hkkz), hrp k_z,
+              ite_eq_right (Ne.symm hkkz), hsp k_z, ite_eq_left rfl]
+          · rw [ite_eq_right hzak, ite_eq_right haky, ite_eq_right haky, hsp a'',
+              ite_eq_right hzak]
+      · rw [putCard_stock, setFound_stock, hrdef]
+        show (st.setFound y.suit (st.found y.suit ++ [y])).stock = _
+        rw [setFound_stock]
+        show st.stock = (s₁.setFound y.suit (s₁.found y.suit ++ [y])).stock
+        rw [setFound_stock, hs₁, putCard_stock, setFound_stock]
+      · rw [putCard_waste, setFound_waste, hrdef]
+        show (st.setFound y.suit (st.found y.suit ++ [y])).waste = _
+        rw [setFound_waste]
+        show st.waste = (s₁.setFound y.suit (s₁.found y.suit ++ [y])).waste
+        rw [setFound_waste, hs₁, putCard_waste, setFound_waste]
+      · rw [putCard_drawStep, setFound_drawStep, hrdef]
+        show (st.setFound y.suit (st.found y.suit ++ [y])).drawStep = _
+        rw [setFound_drawStep]
+        show st.drawStep = (s₁.setFound y.suit (s₁.found y.suit ++ [y])).drawStep
+        rw [setFound_drawStep, hs₁, putCard_drawStep, setFound_drawStep]
+
+/-- **The both-constructions sequencing (part i, public).**  An
+adjacent `[worry; raise]` window in a winning play replays with the
+raise FIRST — win-preserved, the two-moves-shorter-rest verbatim.
+The square makes the swap composite-equal, so the gate's own reading
+holds: accommodate the live suit first; the raised card is no longer
+stackable; THEN the gate itself opens the twin worry.  The
+order-locked corner (`b = inr y`) is barred by `hcorn` — its
+decide-anchored exhibit lives in the probe battery below. -/
+theorem stackPile_worry_sequence {u : State} {c y : Card} {b : Base}
+    {rest : List Move} {w : State}
+    (hwf : u.WF) (hsy : y.suit ≠ c.suit) (hcorn : b ≠ Sum.inr y)
+    (hfin : u.run (Move.foundToTab c b :: Move.tabToFound y :: rest) = some w) :
+    u.run (Move.tabToFound y :: Move.foundToTab c b :: rest) = some w := by
+  obtain ⟨s₁, h1, hrest⟩ := State.run_cons hfin
+  obtain ⟨t, h2, htail⟩ := State.run_cons hrest
+  obtain ⟨r, hr1, hr2⟩ := raise_worry_square hwf hsy hcorn h1 h2
+  show (match State.step u (Move.tabToFound y) with
+    | some st' => State.run st' (Move.foundToTab c b :: rest)
+    | none => none) = _
+  rw [hr1]
+  show (match State.step r (Move.foundToTab c b) with
+    | some st' => State.run st' rest
+    | none => none) = _
+  rw [hr2]
+  exact htail
+
+/-! ### The named residue (the spread window) -/
+
+/-- **The spread residue — the card's ONE named stub.**
+
+The engine below reduces the whole-pruned question to this shape: a
+first-occurrence worry window `[m; m₂]` with `m₂` other than the
+restack — a winning play from the window state through the worry,
+inside a play from the gated root.  The stub owes the m-avoiding
+winning play FROM THE GATED ROOT.
+
+**Route (the staged ledger, per the overnight banks):**
+
+* **(i) residue input, pre-sequenced.**  When the window's `m₂` is a
+  `tabToFound y` of the twin suit, `stackPile_worry_sequence` swaps
+  the window to raise-first — the both-constructions case sequences
+  rather than derailing; iterate while adjacent twin raises remain
+  (bounded: each swap raises the twin foundation; the pair
+  `paired_stack` lex-least restriction and the cascade's rank cap are
+  the gate's OWN dominances, out of scope here).  Deeper-gap twin
+  raises bubble through the same squares — the (iii) legs below.
+* **(ii) the single-pad exchange.**  The worried twin is exchanged
+  THROUGH `twin_fate` (`Orig/Twin.lean`: relabel by the suit twin
+  preserves the verdict; `State.twinMap`/`Move.twinMove` conjugate
+  play and win) at the TWIN-EQUAL EXPOSURE MOMENT — the moment the
+  twin foundation stands level with the worried suit's, so
+  `twin c` is pullable and seats the very runs `c` seated
+  (`canSitOn_twin_right`: the tableau fit rules cannot tell twins
+  apart); the worried card's downstream uses are carried by the
+  twin-twin play conjugation (`Orig/TwinExchangeBoth.lean`'s local
+  exchange grades `exchange_go_gen`/`bothOcc_exchangeTwin` at the
+  both-occupied/bare licenses).
+* **(iii) the interference squares.**  The window bubbling legs are
+  the C-session bank, LIFO: `foundToTab_wasteToFound_square`
+  (composite-equal, this file), `foundToTab_return` (the adjacent
+  identity — paid by the engine already), `bump2_comm` (distinct
+  suits), `lower_foundToTab1` — with the banked square inventory's
+  warning that worry-worry pairs never square LIFO and the genuine
+  corner is the STORAGE shape (a segment placing onto the
+  worry-created seat: the seat exists ONLY because of the worry, so
+  no square applies — decide-exhibited here as `storC_preVoid` /
+  `storC_postFires`).
+* **Refute-first gate.**  The residue's premise honesty, the spread
+  shape's realizability, and the repair's positive instance are
+  decide-anchored at the craft state in the battery below
+  (`wGate_spreadPremises`, `wGate_repairPlay`): every premise of the
+  stub co-fires at ONE state with a spread-window winning witness,
+  and the SAME state carries a worry-free winning play.  The
+  52-card full countermodel search is outside decide reach — no
+  refutation of the residue-shaped statement was found this session;
+  resume from the twin-equal moment's transport.  TODO(proof). -/
+theorem stackPile_worry_spread_residue {st : State} {c : Card} {b : Base}
+    {q s₁ : State} {m₂ : Move} {rest : List Move} {w : State}
+    (hwf : st.WF) (hgate : suitLive c.suit.twin st = true)
+    (hreach : Reach st q) (hwfq : q.WF)
+    (hf : State.step q (Move.foundToTab c b) = some s₁)
+    (hne : m₂ ≠ Move.tabToFound c)
+    (hrun : s₁.run (m₂ :: rest) = some w) (hwin : w.isWin = true) :
+    ∃ play v, st.run play = some v ∧ v.isWin = true ∧
+      ∀ m' ∈ play, m' ≠ Move.foundToTab c b := sorry
+
+/-! ### The engine (the first-occurrence elimination) -/
+
+/-- The engine: strong induction on a witnessing play's length.  At
+the first `m`-occurrence, either the play already avoids `m`, or the
+worry is terminal (impossible: the raised-away foundation is short
+of thirteen — `wf_found_chop_toIdx` against `isWin_len`), or the
+occurrence is an adjacent restack window (excised through
+`foundToTab_return`'s identity, two moves shorter), or it is a
+spread window — the residue's instance, with the gated root, the
+reached window state, and the follow-move contract. -/
+private theorem worry_elim : ∀ (n : Nat) (st : State) (c : Card) (b : Base)
+    (π : List Move) (w : State),
+    st.WF → suitLive c.suit.twin st = true →
+    st.run π = some w → w.isWin = true → π.length ≤ n →
+    (∃ play v, st.run play = some v ∧ v.isWin = true ∧
+      ∀ m' ∈ play, m' ≠ Move.foundToTab c b) := by
+  intro n
+  induction n with
+  | zero =>
+      intro st c b π w hwf hgate hrun hwin hlen
+      cases π with
+      | nil => exact ⟨[], w, hrun, hwin, by simp⟩
+      | cons m rest => exact absurd hlen (by simp)
+  | succ n ih =>
+      intro st c b π w hwf hgate hrun hwin hlen
+      rcases mem_avoid_or_first π with hclean | ⟨A, rest, hπ, hA⟩
+      · exact ⟨π, w, hrun, hwin, hclean⟩
+      · obtain ⟨u, hA', hu⟩ :=
+          run_app_split A st (Move.foundToTab c b :: rest) w (by rw [hπ] at hrun; exact hrun)
+        cases rest with
+        | nil =>
+            obtain ⟨s₁, h1, hlast⟩ := State.run_cons hu
+            have hx : (some s₁ : Option State) = some w := hlast
+            have hw : s₁ = w := Option.some.inj hx
+            rw [← hw] at hwin
+            obtain ⟨htop, -, hs₁⟩ := foundToTab_fires h1
+            have hwu : u.WF := run_wf A hA' hwf
+            have hchop : (chop (u.found c.suit)).length = c.rank.toIdx :=
+              wf_found_chop_toIdx hwu htop
+            have h13 : (s₁.found c.suit).length = 13 := isWin_len c.suit hwin
+            rw [hs₁, putCard_found, setFound_found_self] at h13
+            exact absurd h13 (by have := Rank.toIdx_lt c.rank; rw [← hchop] at this; omega)
+        | cons m₂ tail =>
+            obtain ⟨s₁, h1, hrest⟩ := State.run_cons hu
+            by_cases hm₂ : m₂ = Move.tabToFound c
+            · obtain ⟨s₂, h2, htail⟩ := State.run_cons hrest
+              subst hm₂
+              have hret := foundToTab_return (run_wf A hA' hwf) h1
+              have hu2 : s₂ = u := Option.some.inj (h2.symm.trans hret)
+              rw [hu2] at htail
+              have hnew : st.run (A ++ tail) = some w :=
+                run_app_glue A st u w tail hA' htail
+              have hnl : (A ++ tail).length ≤ n := by
+                have hπl : π.length = A.length + tail.length + 2 := by
+                  rw [hπ, List.length_append, List.length_cons, List.length_cons]
+                  omega
+                rw [List.length_append]
+                omega
+              exact ih st c b (A ++ tail) w hwf hgate hnew hwin hnl
+            · exact stackPile_worry_spread_residue hwf hgate ⟨A, hA'⟩ (run_wf A hA' hwf)
+                h1 hm₂ hrest hwin
+
+/-! ### The capstone -/
+
+/-- **The suit-grade gate theorem (the card's capstone).**  At a `WF`
+state whose worried suit's TWIN is live (`suitLive c.suit.twin` —
+committable-now or committable-pending content per the Rust `extra`
+formula), the worry-back `Move.foundToTab c b` is prunable: SOME
+winning play avoids it entirely.  This certifies the pruning the
+production Rust gate already performs (`gen_moves`'s `suit_filter`:
+a suit-s worry is offered only when the twin suit is not live) —
+the complementary direction of the same gate.  PROVEN as the
+assembly over the one named residue `stackPile_worry_spread_residue`
+above (the vacate pattern): the verbatim case, the
+impossible-terminal corner, and every adjacent restack window are
+PROVEN here; the spread window — the seat-work and the
+pause-and-restack-with-cargo shapes — rides the named stub's route.
+The Klondike twin of this theorem (`stackPile_safe_prunable`,
+`Klondike/Dominance.lean` §5.4) should import on harvest: (a) the
+framework's shape here (the whole-play avoidance — stronger than the
+Klondike chapter's head-avoidance reading); (b) the residue-less
+skeleton's split — adjacent-window excision via the two-step undo
+identity (the Klondike `foundToTab_undo` family is the analog of
+`foundToTab_return`), the impossible-terminal corner (a raised-away
+foundation cannot be a win), and the collected spread windows into
+one named stub; (c) the commit-first sequencing square — the
+twin-anchored raise-vs-worry composite — as the (i) leg the stub's
+route consumes. -/
+theorem stackPile_worry_prunableAt {st : State} {c : Card} {b : Base}
+    (hwf : st.WF) (hgate : suitLive (c.suit.twin) st = true) :
+    prunableAt st (Move.foundToTab c b) := by
+  intro hsolv
+  obtain ⟨π, w, hrun, hwin⟩ := hsolv
+  exact worry_elim π.length st c b π w hwf hgate hrun hwin (Nat.le_refl π.length)
+
+/-! ### The probe battery (craft states and corner exhibits)
+
+The residue's refute-first battery and the def-reading probes, all
+decide-anchored inline (the file-touch rule of this card bars a
+witnesses-file landing; every exhibit here is `by decide` on the
+same 14-field hand-rolled `DecidableEq State` the witness corpus
+carries — family 1, dedup-marked there).
+
+* **The craft state `wGate`:** hearts at 12 (worried top `♥Q`, exit
+  ♥K stocked), clubs at 12 (seat `♣K`), spades complete, diamonds at
+  5 with the LIVE twin content `♦6` (`suitCommitNow .diamond` — a
+  zero-reveal `nextUp` tableau top).  The gate premise fires
+  (`wGate_gateTwinLive`); the club suit is ALSO live (its own `♣K`
+  raise is pending — an honest side-reading, not probed).
+* `wGate_spreadPremises`: every premise of the residue co-fires at
+  ONE 52-card WF state, with a spread-window winning play whose
+  second move is the twin's own commit — the both-constructions
+  surface.  `wGate_repairPlay`: the SAME state carries a worry-free
+  winning play — the repair's positive instance.
+* `wGate_lastNotWin`: the worry cannot terminate a winning play (the
+  impossible-terminal corner at a concrete instance).
+* `wGate_orderLockA`/`B`: the square's `hcorn` bar is real — at the
+  craft state the worry-onto-`♣K`-and-raise-`♣K` pair is illegal in
+  BOTH orders (`b = inr y`: the raise consumes the worry's own seat).
+* `storC_preVoid`/`postFires`: the STORAGE corner is real — the
+  `♠2` waste placement onto the worried `♥3`'s seat is illegal
+  before the worry and legal after it (the seat exists only because
+  of the worry).
+* `probe_cnow_*`, `probe_xnext_*`: the two disjunct readings fire
+  and fail independently — the hand-slip probes. -/
+
+namespace WorryCoReal
+
+private def decSt (s t : State) : Decidable (s = t) :=
+  decidable_of_decidable_of_iff (p :=
+    (s.found .spade = t.found .spade ∧ s.found .heart = t.found .heart ∧
+     s.found .diamond = t.found .diamond ∧ s.found .club = t.found .club ∧
+     s.piles .p0 = t.piles .p0 ∧ s.piles .p1 = t.piles .p1 ∧
+     s.piles .p2 = t.piles .p2 ∧ s.piles .p3 = t.piles .p3 ∧
+     s.piles .p4 = t.piles .p4 ∧ s.piles .p5 = t.piles .p5 ∧
+     s.piles .p6 = t.piles .p6 ∧
+     s.stock = t.stock ∧ s.waste = t.waste ∧ s.drawStep = t.drawStep))
+    (by
+      constructor
+      · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩
+        apply State.ext
+        · funext σ; cases σ <;> assumption
+        · funext a; cases a <;> assumption
+        · assumption
+        · assumption
+        · assumption
+      · rintro rfl
+        exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩)
+
+local instance : DecidableEq State := fun s t => decSt s t
+
+private def H (r : Rank) : Card := ⟨Suit.heart, r⟩
+private def S (r : Rank) : Card := ⟨Suit.spade, r⟩
+private def D (r : Rank) : Card := ⟨Suit.diamond, r⟩
+private def C (r : Rank) : Card := ⟨Suit.club, r⟩
+
+private def foundWG : Suit → List Card
+  | .heart => [H .ace, H .two, H .three, H .four, H .five, H .six, H .seven,
+      H .eight, H .nine, H .ten, H .jack, H .queen]
+  | .club => [C .ace, C .two, C .three, C .four, C .five, C .six, C .seven,
+      C .eight, C .nine, C .ten, C .jack, C .queen]
+  | .spade => [S .ace, S .two, S .three, S .four, S .five, S .six, S .seven,
+      S .eight, S .nine, S .ten, S .jack, S .queen, S .king]
+  | .diamond => [D .ace, D .two, D .three, D .four, D .five]
+
+/-- The craft state: hearts 12 (worried `♥Q`), clubs 12 (seat
+`♣K`), spades complete, diamonds 5 with the live twin `♦6`; the
+diamond ladder and ♥K stocked. -/
+def wGate : State where
+  found := foundWG
+  piles := fun a =>
+    match a with
+    | .p0 => ⟨[], [D .six]⟩
+    | .p1 => ⟨[], [C .king]⟩
+    | _ => ⟨[], []⟩
+  stock := [D .seven, D .eight, D .nine, D .ten, D .jack, D .queen, D .king, H .king]
+  waste := []
+  drawStep := 1
+
+/-- The post-worry state of the exhibited spread play. -/
+def wMid : State where
+  found := fun s =>
+    match s with
+    | .heart => [H .ace, H .two, H .three, H .four, H .five, H .six, H .seven,
+        H .eight, H .nine, H .ten, H .jack]
+    | .club => foundWG .club
+    | .spade => foundWG .spade
+    | .diamond => foundWG .diamond
+  piles := fun a =>
+    match a with
+    | .p1 => ⟨[], [C .king, H .queen]⟩
+    | _ => (wGate.piles) a
+  stock := wGate.stock
+  waste := []
+  drawStep := 1
+
+/-- The won endpoint of both exhibited plays. -/
+def wFin : State where
+  found := fun s => s.upCards
+  piles := fun _ => ⟨[], []⟩
+  stock := []
+  waste := []
+  drawStep := 1
+
+private def drawChain : List Move :=
+  [Move.draw, Move.wasteToFound (D .seven), Move.draw, Move.wasteToFound (D .eight),
+   Move.draw, Move.wasteToFound (D .nine), Move.draw, Move.wasteToFound (D .ten),
+   Move.draw, Move.wasteToFound (D .jack), Move.draw, Move.wasteToFound (D .queen),
+   Move.draw, Move.wasteToFound (D .king), Move.draw, Move.wasteToFound (H .king)]
+
+/-- The residue-shaped tail: the twin's own commit opens, the
+worried `♥Q` returns, `♣K` rises, then the ladder. -/
+def wRest : List Move :=
+  [Move.tabToFound (H .queen), Move.tabToFound (C .king)] ++ drawChain
+
+theorem wGate_wf : wGate.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s with
+    | spade => exact ⟨13, rfl⟩
+    | heart => exact ⟨12, rfl⟩
+    | diamond => exact ⟨5, rfl⟩
+    | club => exact ⟨12, rfl⟩
+  · intro a; cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+/-- The gate's premise at the craft state: the twin of the worried
+suit (diamond, of hearts) IS live — the now-reading. -/
+theorem wGate_gateTwinLive : suitLive (H .queen).suit.twin wGate = true := by decide
+
+/-- The worried suit itself and the complete spades are NOT live. -/
+theorem wGate_notLive :
+    suitLive (H .queen).suit wGate = false ∧ suitLive (S .two).suit wGate = false := by
+  decide
+
+/-- The worry cannot terminate a winning play (the
+impossible-terminal corner, concretely). -/
+theorem wGate_lastNotWin :
+    ((wGate.run [Move.foundToTab (H .queen) (Sum.inr (C .king))]).map
+      (fun s => s.isWin)) = some false := by decide
+
+/-- The residue is non-vacuous: every premise co-fires at one 52-card
+WF state with a spread-shaped winning witness. -/
+theorem wGate_spreadPremises :
+    ∃ q s₁ m₂ rest w,
+      wGate.WF ∧ suitLive (H .queen).suit.twin wGate = true ∧ Reach wGate q ∧ q.WF ∧
+      State.step q (Move.foundToTab (H .queen) (Sum.inr (C .king))) = some s₁ ∧
+      m₂ ≠ Move.tabToFound (H .queen) ∧ s₁.run (m₂ :: rest) = some w ∧ w.isWin = true := by
+  refine ⟨wGate, wMid, Move.tabToFound (D .six), wRest, wFin, wGate_wf,
+    wGate_gateTwinLive, ⟨[], rfl⟩, wGate_wf, by decide, by decide, by decide,
+    by decide⟩
+
+/-- The repair's positive instance: the same state carries a winning
+play with NO `♥Q` worry anywhere — the residue's owed conclusion,
+witnessed. -/
+theorem wGate_repairPlay :
+    ∃ v, wGate.run ([Move.tabToFound (D .six), Move.tabToFound (C .king)] ++ drawChain)
+        = some v ∧ v.isWin = true ∧
+      ([Move.tabToFound (D .six), Move.tabToFound (C .king)] ++ drawChain).all
+        (fun m' =>
+          match m' with
+          | .foundToTab x _ => decide (x ≠ H .queen)
+          | _ => true) = true := by
+  refine ⟨wFin, by decide, by decide, by decide⟩
+
+/-- The order-locked corner, forward: after the worry, `♣K` no longer
+tops its pile — the raise dies. -/
+theorem wGate_orderLockA :
+    (wGate.run [Move.foundToTab (H .queen) (Sum.inr (C .king)),
+      Move.tabToFound (C .king)]).isSome = false := by decide
+
+/-- The order-locked corner, backward: after the raise, the worry's
+seat is gone — the passage `hcorn` bars real moves, not ghosts. -/
+theorem wGate_orderLockB :
+    (wGate.run [Move.tabToFound (C .king),
+      Move.foundToTab (H .queen) (Sum.inr (C .king))]).isSome = false := by decide
+
+/-- The storage probe state: `♥3` founded, `♠4` seated, `♠2` waiting
+in the waste. -/
+private def storP : State where
+  found := fun s =>
+    match s with
+    | .heart => [H .ace, H .two, H .three]
+    | .club => [C .ace, C .two]
+    | _ => []
+  piles := fun a =>
+    match a with
+    | .p0 => ⟨[], [S .four]⟩
+    | _ => ⟨[], []⟩
+  stock := []
+  waste := [S .two]
+  drawStep := 1
+
+/-- The storage corner, before: the `♠2` placement onto the worried
+`♥3`'s seat is illegal — the seat does not exist yet. -/
+theorem storC_preVoid : (storP.step (Move.wasteToTab (S .two) (Sum.inr (H .three)))).isSome
+    = false := by decide
+
+/-- The storage corner, after: the SAME placement is legal beyond
+the worry — the seat exists only because of the worry, so no
+commutation square can carry it. -/
+theorem storC_postFires :
+    (storP.run [Move.foundToTab (H .three) (Sum.inr (S .four)),
+      Move.wasteToTab (S .two) (Sum.inr (H .three))]).isSome = true := by decide
+
+/-- The commitNow probe state: `♣3` on `♦4` — club has
+committable-now content. -/
+private def cnowP : State where
+  found := fun s =>
+    match s with
+    | .heart => [H .ace, H .two, H .three]
+    | .club => [C .ace, C .two]
+    | _ => []
+  piles := fun a =>
+    match a with
+    | .p0 => ⟨[], [D .four, C .three]⟩
+    | _ => ⟨[], []⟩
+  stock := []
+  waste := []
+  drawStep := 1
+
+theorem probe_cnow_club : (suitCommitNow .club cnowP) = true := by decide
+
+theorem probe_cnow_others :
+    (suitCommitNow .heart cnowP) = false ∧ (suitCommitNow .spade cnowP) = false ∧
+      (suitCommitNow .diamond cnowP) = false := by decide
+
+theorem probe_cnow_live :
+    (suitLive .club cnowP) = true ∧ (suitLive .heart cnowP) = false ∧
+      (suitLive .spade cnowP) = false := by decide
+
+/-- The exposesNext probe state: `♣3` pending, the twin spade's
+`♠4` exposed one rank up. -/
+private def xnextP : State where
+  found := fun s =>
+    match s with
+    | .heart => [H .ace, H .two, H .three]
+    | .club => [C .ace, C .two]
+    | .spade => [S .ace, S .two, S .three]
+    | .diamond => []
+  piles := fun a =>
+    match a with
+    | .p0 => ⟨[], [D .four, C .three]⟩
+    | .p1 => ⟨[], [S .four]⟩
+    | _ => ⟨[], []⟩
+  stock := []
+  waste := []
+  drawStep := 1
+
+theorem probe_xnext_spade : (suitExposesNext .spade xnextP) = true := by decide
+
+theorem probe_xnext_others :
+    (suitExposesNext .heart xnextP) = false ∧ (suitExposesNext .diamond xnextP) = false ∧
+      (suitExposesNext .club xnextP) = false := by decide
+
+end WorryCoReal
+
+/-! ### Axiom discipline
+
+Per-declaration `#print axioms` audit for the new public heads; the
+gate targets `[propext]`/`[propext, Quot.sound]` for the sorry-free
+rows.  The two sorry-tainted rows are the named residue itself and
+the capstone's assembly over it (the vacate-pattern form: the
+skeleton is sorry-free; the content rides the named stub). -/
+
+#print axioms dominantAt
+#print axioms prunableAt
+#print axioms dominates
+#print axioms suitCommitNow
+#print axioms suitExposesNext
+#print axioms suitLive
+#print axioms stackPile_worry_sequence
+#print axioms stackPile_worry_spread_residue
+#print axioms stackPile_worry_prunableAt
+#print axioms WorryCoReal.wGate_wf
+#print axioms WorryCoReal.wGate_gateTwinLive
+#print axioms WorryCoReal.wGate_notLive
+#print axioms WorryCoReal.wGate_lastNotWin
+#print axioms WorryCoReal.wGate_spreadPremises
+#print axioms WorryCoReal.wGate_repairPlay
+#print axioms WorryCoReal.wGate_orderLockA
+#print axioms WorryCoReal.wGate_orderLockB
+#print axioms WorryCoReal.storC_preVoid
+#print axioms WorryCoReal.storC_postFires
+#print axioms WorryCoReal.probe_cnow_live
+#print axioms WorryCoReal.probe_cnow_others
+#print axioms WorryCoReal.probe_xnext_spade
+#print axioms WorryCoReal.probe_xnext_others
