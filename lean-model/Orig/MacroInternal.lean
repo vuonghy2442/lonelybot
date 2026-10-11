@@ -1475,7 +1475,17 @@ def OnlyPairLicensed (w : State) (x : Card) : Prop :=
 /-- THE CARGO CLOSURE — the flat world's cargo letter alone (no
 draws: phase stays pinned).  By `exch_is_cargo` every licensed
 twin swap realizes as ONE cargo move, so slides and free twin
-swaps are the SAME letter here. -/
+swaps are the SAME letter here.  THE TWO-TIER GUARANTEE (the
+user's refinement, explicit): (i) exposed free pairs swap in
+one reversible leg; (ii) BURIED twins swap COMPOSITELY when
+their covers relocate freely (slide-cover-aside, swap, slide-
+back — each leg separately reversible, so the whole route is
+in the closure without the banked exchange machinery, and the
+both-occupied TwinExchOK gap is irrelevant here); (iii) the
+reveal bar is enforced by reversibleAtW ITSELF — a leg whose
+departure fires the hidden flip is a commit (reveals never
+re-arm, canlaw's boundary), refuses, and the shape correctly
+excludes it: free swaps in, reveal-causing out. -/
 inductive CargoPath : State → State → Prop
   | refl (w : State) : CargoPath w w
   | cons {w z w' : State} (h : FlatStep w z)
