@@ -3238,3 +3238,39 @@ tier plan ledgered as asked:
   instructed: canusOf_class_inv (= mem_macro_iff,
   decompression's finalWiggle_reach) and saturated_classification
   (exotic census) — no blocking on them anywhere above.
+
+#### §11-L4.2a — the V2-calibrated forkPointC sync (amr_12a30bc3; superseding note to §11-L4.2's shapes)
+
+The calibration consensus is three-way (two falsifiers struck the
+earlier shapes, agreeing verdicts): CanRaiseS-only let the bare
+twin hide behind slidables; cargoTop alone let the covered twin
+sit stranded a rung short.  The CALIBRATED shape (the floor card's
+batch F, now green in the user's MacroInternal.lean):
+
+  CanRaise st x (vanilla pile-top, AT the point) ∧
+  rungAt st x.twin.suit = x.rank.toIdx (the covered twin's pin AS
+  PREMISE — the fork's own datum) ∧ cargoTop st d x.twin ∧
+  d.rank.toIdx + 1 = x.rank.toIdx ∧ ¬ twinSuit d.suit x.suit ∧
+  ¬ satStackable ⟦st⟧ d.
+
+DECIDED at the battery (l4RowForkPointV2, gates green): BOTH
+standing-fork stalls REGISTER the calibrated signature (the bare
+twin vanilla NOW, the covered twin pinned at the pair rank as
+premise, the cargo class-stranded over the by-application face
+corpus); the MERGE cell REFUSES on the CLASS-GRADE conjunct this
+time — every state-level conjunct holds there (vanilla bare
+twin, twin pin, cargoTop, rank, color) — but the cargo IS
+satStackable in the merge class (founded at the saturated
+member): the cleaner refusal the calibration buys.  My V1
+gap-form rows (§11-L4.2's l4RowGapForm) stand as
+superseded-in-shape evidence; their cargo-pin read was the
+fork-own-datum observation the calibration lifts to a premise.
+
+CITED, not re-forged (the macro-floor engine bank, branch
+orig-macro-floor, batch A/F): canRaiseS_rung_pin,
+forkPoint_cargo_strand, the per-step rung locality rows, and the
+de-privatized exchange realizers step_realize_fwd/_bwd (commit
+69fbaa8); with the segment-existence rows (found_pullSegment /
+cone_pop_window, branch orig-macro-determinism) unblocking
+founded_implies_atRung at merge time — my §11-L4.5 route note
+rides that.

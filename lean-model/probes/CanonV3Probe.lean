@@ -2011,3 +2011,101 @@ def l4RowGradeSplit : Bool :=
     IO.println "pendingForeverAt/parkingMap compute them."
   else
     throw (IO.userError "GRADE SPLIT: A GATE FAILED")
+
+/-! ## The V2-calibrated forkPointC (amr_12a30bc3; the macro-floor batch F — mirrored, cited, decided)
+
+The calibrated stall-point signature (now green in the user's
+MacroInternal.lean; the two falsifiers of the earlier shapes
+diagnosed there — CanRaiseS-only let the bare twin hide behind
+slidables; cargoTop let the covered twin sit stranded a rung
+short — both struck by the strengthened conjuncts):
+
+  CanRaise st x (vanilla pile-top, NOW) ∧ rungAt st x.twin.suit =
+  x.rank.toIdx (the covered twin's pin AS PREMISE — the fork's
+  own datum) ∧ cargoTop st d x.twin ∧ rank + 1 ∧ ¬ twinSuit ∧
+  ¬ satStackable ⟦st⟧ d (class-stranded cargo).
+
+Mirrored below at the battery (Bool, decide-graded), with the
+class-grade read over the by-application face corpus — the
+pre-merge stand-in for the canus engine, as all my rows:
+
+- the fork stalls REGISTER (the bare twin vanilla-licensed NOW,
+  the covered twin pinned at the pair rank, the cargo
+  class-stranded: ♣Q founded nowhere in the fork class);
+- the MERGE cell REFUSES on the class-grade conjunct this time
+  (the cargo SAT-STACKABLE there — ♣Q IS founded at the saturated
+  merge member: the cleaner refusal the V2 calibration buys);
+- the engine bank cited, not re-forged: canRaiseS_rung_pin,
+  forkPoint_cargo_strand, the per-step rung locality rows, the
+  de-privatized exchange realizers step_realize_fwd/_bwd
+  (commit 69fbaa8, branch orig-macro-floor);
+- the segment-existence rows landed as found_pullSegment /
+  cone_pop_window on branch orig-macro-determinism unblock
+  founded_implies_atRung at merge time (my §11-L4.5 route note
+  updated by this sync).  -/
+
+/-- The class-grade satStackable read over the by-application
+face corpus (the pre-merge canus stand-in): founded at some
+crafted class member. -/
+def v3SatStackableB (faces : List State) (c : Card) : Bool :=
+  faces.any (fun w => decide (c ∈ w.found c.suit))
+
+/-- cargoTop as the Bool mirror: d TOPS the pile where c sits. -/
+def v3CargoTopB (st : State) (d c : Card) : Bool :=
+  match st.pileHolding c with
+  | none => false
+  | some a => decide (st.pileOfTop d = some a)
+
+/-- The V2-calibrated forkPointC, the Bool mirror (stall state,
+named pair x d). -/
+def v3ForkPointCV2B (st : State) (x d : Card) (faces : List State) : Bool :=
+  canRaiseB st x &&
+  decide (v3RungAt st x.twin.suit = x.rank.toIdx) &&
+  v3CargoTopB st d x.twin &&
+  decide (d.rank.toIdx + 1 = x.rank.toIdx) &&
+  !(v3TwinSuitB d.suit x.suit) &&
+  !(v3SatStackableB faces d)
+
+/-- THE V2 ROWS, decided at the standing-fork family (the fork
+faces by application: the two wings):
+
+- both stalls REGISTER the calibrated signature;
+- the MERGE cell refuses on the class-grade conjunct (the cargo
+  IS satStackable in the merge class — ♣Q founded at the
+  saturated member);
+- the earlier V1 gap-form rows stand as superseded-in-shape
+  evidence (their cargo-pin read was the fork-own-datum
+  observation the V2 calibration lifts to a premise).  -/
+def l4RowForkPointV2 : Bool :=
+  v3ForkPointCV2B v3Fork v3HK v3CQ l4ForkFaces &&
+  v3ForkPointCV2B v3ForkX v3DK v3CQ l4ForkFaces &&
+  !(v3ForkPointCV2B pnCasForkMerge v3HK v3CQ l4MergeFaces) &&
+  -- the components at the merge cell: everything but the
+  -- class-grade conjunct holds there (the cleaner refusal)
+  canRaiseB pnCasForkMerge v3HK &&
+  decide (v3RungAt pnCasForkMerge .diamond = v3HK.rank.toIdx) &&
+  v3CargoTopB pnCasForkMerge v3CQ v3DK &&
+  v3SatStackableB l4MergeFaces v3CQ
+
+-- The V2-calibration census numbers (printed for the ledger):
+#eval v3ForkPointCV2B v3Fork v3HK v3CQ l4ForkFaces -- expect true: the stall registers
+#eval v3ForkPointCV2B v3ForkX v3DK v3CQ l4ForkFaces -- expect true: the mate registers
+#eval v3ForkPointCV2B pnCasForkMerge v3HK v3CQ l4MergeFaces -- expect false: merge refuses
+#eval v3SatStackableB l4ForkFaces v3CQ -- expect false: the fork cargo class-stranded
+#eval v3SatStackableB l4MergeFaces v3CQ -- expect true: the merge cargo sat-stacked
+
+#eval! do
+  if l4RowForkPointV2 then
+    IO.println "CANONV3 V2 CALIBRATION (amr_12a30bc3): ALL GATES HOLD —"
+    IO.println "The calibrated stall-point signature registers at BOTH fork stalls:"
+    IO.println "bare twin vanilla NOW (a genuine pile-top), the covered twin pinned at"
+    IO.println "the pair rank AS PREMISE, the cargo topping the twin and CLASS-STRANDED"
+    IO.println "(satStackable false over the class faces: clubs founded nowhere). The"
+    IO.println "MERGE cell refuses on the CLASS-GRADE conjunct this time: every state"
+    IO.println "conjunct holds there (vanilla bare twin, twin pin, cargoTop, rank,"
+    IO.println "color) — but the cargo IS satStackable in the merge class (founded at"
+    IO.println "the saturated member) — the cleaner refusal the calibration buys."
+    IO.println "The macro-floor engine bank cited, not re-forged; the determinism"
+    IO.println "branch's segment rows unblock founded_implies_atRung at merge."
+  else
+    throw (IO.userError "V2 CALIBRATION: A GATE FAILED")
