@@ -83,6 +83,46 @@ spine landed as a PROVEN lemma `ground_streak_founded`
 `tabToFound_dominant_of_ground` = [propext, sorryAx, Quot.sound]
 with `sorryAx` ONLY via `tabToFound_groundNormalForm`; ledger row
 with hash: FUTURES-ORIG §8 @ `7bf0ccc`)**)**);
+**+wave-24.6 (2026-10-11, farm/orig-dom-gap-ground): the (N)-row's
+transform machinery began landing.  LANDED sorry-free and audited
+`[propext, Quot.sound]`: `wastePark_restack` — the α1-ADJACENT
+Case-1 collapse (park the waste head anywhere legal and immediately
+re-raise it from the parked seat = the direct waste raise, exact
+state equality: the seat restores without reveal, the foundation
+gains exactly the mover, the waste pops once), plus its read
+inverses (`parkStep_inv`, `restackStep_inv`, `pile_isEmpty_inv`,
+all private).  With `foundToTab_return` this closes the ADJACENT
+cases of both the α1 and β/α2 substitutions; the SPREAD carry is
+what remains, and the site note now records the full derived γ
+PLAN (the raise-then-worry-back bridge: at a bare window,
+`step v (foundToTab c b) = step st (tabToTab c b)` for the raised
+`v` — one-move re-embodiment via the singleton-run `putRun [c] b ≡
+putCard c b`, the dig parity as the SAME `afterRunRemoved p []`,
+`chop_snoc` on the found round-trip, `canPlace c b` preserved since
+`b`'s seat misses pile `k`) — closing the γ arm outright as soon as
+it is written, and the residue⟺dominance equivalence (a lifted
+`WinFrom s₁` yields the residue with `π₁ = []`, so the row may close
+by EITHER the normal-form transform OR a direct lifted win).
+Refute-first: the new compiled probe `OrigProbes/GroundRes.lean`
+(`lake build GroundRes`; exhaustive dedup'd BFS + raise-priority
+DFS over `State.step` as the only oracle) sustains C1 (the row at
+the razor root) and C2 (the window transfer at slack-spent quartet
+windows) across the `K♠` corner corpus — razor, eroded (h♥ = 10,
+h♣ = 9), and queued variants: every raised-world win is the source
+win minus the rung; the erode towers self-heal by c-blind raises.
+The B&G paper's own App. B.1 Thm-1 was fetched and read (Blake &
+Gent, JAIR 85, 2026): last-noncompliant-first, Case 1
+delete-and-raise-early, Case 2 one-step swap — their written Case 2
+needs the moved card to avoid ALL safely-buildable cards, a step
+their text does not spell out (the "covered park" corner: the same
+family as the (C) residue's storage prong; a physical closure must
+come from the streak-raise reshape, not inheritance).  The census
+stays pinned (`Dominance.lean 6 (expected 6)`, inventory OK — zero
+new sorries); the (C) residue's storage-prong cite of the (N) row
+is UNCHANGED (Landing this row has not happened, so its
+consumption stands as written); the wave-24.6 site-note proof
+plans and the honest-audit boundary live at the (N) theorem's
+docstring)**)**);
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the
