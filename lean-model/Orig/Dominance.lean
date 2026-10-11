@@ -4916,6 +4916,1191 @@ theorem draw1_sameCycle_sameFate {st st' : State}
   · obtain ⟨π, w, hrun, hisw⟩ := hwin
     exact draw1_replay π st' st h2 h1 hfd.symm hpl.symm hcy.symm w hrun hisw
 
+/-! ### (B)'s assembly — the canonical front
+
+The front `FrontOK c u s'` names the CANONICAL front-load (the
+deal-out-and-stack the theorem promises): the stock form deals `c`
+out of its stock position, the waste form drains, recycles, and
+deals `c` back to hand.  Because the front is canonical, its POSITION
+data transfers move-by-move through a complying play, and the
+replay's squares below exchange each legal head against it. -/
+
+/-- The stock is one census zone.  (Dedup-marked against
+`Orig/Encode.lean`'s public `stock_mem_zones` — not in this chapter's
+import closure.) -/
+private theorem stock_zone (st : State) : st.stock ∈ st.zones := by
+  rw [show st.zones = (Suit.all.map st.found
+        ++ Anchor.all.map (fun a => (st.piles a).hidden ++ (st.piles a).faceUp))
+      ++ [st.stock, st.waste] from rfl]
+  simp
+
+/-- The waste is one census zone.  (Dedup-marked against
+`Orig/Encode.lean`'s public `waste_mem_zones`.) -/
+private theorem waste_zone (st : State) : st.waste ∈ st.zones := by
+  rw [show st.zones = (Suit.all.map st.found
+        ++ Anchor.all.map (fun a => (st.piles a).hidden ++ (st.piles a).faceUp))
+      ++ [st.stock, st.waste] from rfl]
+  simp
+
+/-- A `WF` census zone holds every card at most once: any split of
+the zone with the card in both halves contradicts the census.  (The
+in-zone half of the conservation the cross-zone `mem_*_unique`
+family does not cover; rides `count_filter_pos`.) -/
+private theorem zone_two_hits_ne {st : State} (hwf : st.WF) {z l₁ l₂ : List Card}
+    {c : Card} (hz : z ∈ st.zones)
+    (hsplit : z = l₁ ++ l₂) (h1 : c ∈ l₁) (h2 : c ∈ l₂) : False := by
+  have htwo : 2 ≤ (z.filter fun x => decide (x = c)).length := by
+    rw [hsplit, List.filter_append, List.length_append]
+    have ha1 := count_filter_pos (l := l₁) h1
+    have ha2 := count_filter_pos (l := l₂) h2
+    omega
+  obtain ⟨A, B, hzAB⟩ := mem_infix_split st.zones z hz
+  have hflat2 : st.zones.flatMap id = A.flatMap id ++ (z ++ B.flatMap id) := by
+    rw [hzAB, List.flatMap_append]
+    rfl
+  have hcap : (z.filter fun x => decide (x = c)).length ≤ st.cardCount c := by
+    rw [show st.cardCount c =
+          ((st.zones.flatMap id).filter fun x => decide (x = c)).length from rfl,
+      hflat2, List.filter_append, List.length_append, List.filter_append,
+      List.length_append]
+    omega
+  have hone : st.cardCount c = 1 := hwf.2.2.1 c (Card.mem_universe c)
+  omega
+
+/-- Two cards of one suit cannot share the rung.  (A sibling of the
+(C) engine's private `sameRung_eq` below — the (B) block precedes it;
+dedup-marked.) -/
+private theorem nextUp_pair_eq {st : State} {a b : Card} (ha : st.nextUp a = true)
+    (hb : st.nextUp b = true) (hs : a.suit = b.suit) : a = b := by
+  have h1 : a.rank.toIdx = st.foundHeight a.suit := of_decide_eq_true ha
+  have h2 : b.rank.toIdx = st.foundHeight b.suit := of_decide_eq_true hb
+  rcases a with ⟨as, ar⟩
+  rcases b with ⟨bs, br⟩
+  have hss : as = bs := hs
+  have hrr : ar = br := Rank.toIdx_inj (by rw [h1, h2, hss])
+  rw [hrr, hss]
+
+/-- The head split: a list that splits at `c` with `c` not below the
+prefix splits with the prefix empty when `c` is the head. -/
+private theorem split_head {l preW postW : List Card} {c : Card}
+    (h : c :: l = preW ++ c :: postW) (hn : c ∉ preW) : preW = [] ∧ postW = l := by
+  cases preW with
+  | nil =>
+      injection h with _ htl
+      exact ⟨rfl, htl.symm⟩
+  | cons z zs =>
+      exfalso
+      injection h with hz htl
+      rw [← hz] at hn
+      exact hn (List.mem_cons_self ..)
+
+/-- The canonical front-load's outcome, the induction's carried form:
+the stock form fronts `c` from its stock position (data: `|pre|` cards
+above it, the split's first occurrence), the waste form from its
+waste position.  Either way the play is pure draws and the one stack,
+landing `s'`. -/
+private def FrontOK (c : Card) (u s' : State) : Prop :=
+  (∃ pre post, u.stock = pre ++ c :: post ∧ c ∉ pre ∧
+      u.run (List.replicate (pre.length + 1) Move.draw ++ [Move.wasteToFound c]) = some s')
+    ∨ (∃ preW postW, u.waste = preW ++ c :: postW ∧ c ∉ preW ∧
+      u.run (List.replicate (u.stock.length + postW.length + 1) Move.draw
+          ++ [Move.wasteToFound c]) = some s')
+
+/-- The nil corner: a winning EMPTY play contradicts the rung — the
+win caps every foundation at 13 while the rung pins `c`'s index at
+that very height, and no index reaches 13.  WF-free. -/
+private theorem front_nil {u : State} {c : Card} {w : State}
+    (hrung : u.nextUp c = true) (hrun : u.run ([] : List Move) = some w)
+    (hwin : w.isWin = true) : False := by
+  have hw : (some u : Option State) = some w := hrun
+  injection hw with hwst
+  rw [← hwst] at hwin
+  have h13 := isWin_len c.suit hwin
+  have hidx : c.rank.toIdx = (u.found c.suit).length := of_decide_eq_true hrung
+  have hlt : c.rank.toIdx < 13 := Rank.toIdx_lt c.rank
+  omega
+
+/-- The `wasteToFound c` exit: `c` sits at the waste top, so the
+front's waste form IS pristine — the landing is exactly the successor
+the play itself took, and the tail wins verbatim. -/
+private theorem front_exit_wtf {u s₁ : State} {c : Card} {w : State}
+    {rest : List Move}
+    (hds : u.drawStep = 1) (hrung : u.nextUp c = true)
+    (hstep : State.step u (Move.wasteToFound c) = some s₁)
+    (hrest : s₁.run rest = some w) (hwin : w.isWin = true) :
+    ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
+  obtain ⟨-, hng, ws, hwastee, hs₁⟩ := wasteToFound_fires hstep
+  have hfront := front_waste (s := u) (c := c) (preW := []) (postW := ws) hds hrung
+    (by rw [hwastee]; rfl)
+  refine ⟨raisedMid u ws c, Or.inr ⟨[], ws, by rw [hwastee]; rfl, by simp, ?_⟩,
+    ⟨rest, w, ?_, hwin⟩⟩
+  · -- the front play lands the raised mid by the engine literal
+    rw [hfront]
+    rfl
+  · have hseq : raisedMid u ws c = s₁ := by
+      rw [hs₁]
+      rfl
+    rw [hseq]
+    exact hrest
+
+/-- The `wasteToTab c b` exit: the front ends at the raised mid, and
+the worry-back identity lowers the park onto the same successor the
+play itself took — the tail wins verbatim. -/
+private theorem front_exit_wtt {u s₁ : State} {c : Card} {b : Base} {w : State}
+    {rest : List Move}
+    (hds : u.drawStep = 1) (hrung : u.nextUp c = true)
+    (hstep : State.step u (Move.wasteToTab c b) = some s₁)
+    (hrest : s₁.run rest = some w) (hwin : w.isWin = true) :
+    ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
+  obtain ⟨-, -, ws, hwastee, hs₁⟩ := wasteToTab_fires hstep
+  have hfront := front_waste (s := u) (c := c) (preW := []) (postW := ws) hds hrung
+    (by rw [hwastee]; rfl)
+  have hmid : State.mk (fun s' => if s' = c.suit then u.found c.suit ++ [c] else u.found s')
+      u.piles (([] : List Card).reverse ++ u.stock) ws u.drawStep
+      = raisedMid u ws c := rfl
+  have hlow : State.step (raisedMid u ws c) (Move.foundToTab c b) = some s₁ :=
+    lower_foundToTab1 hwastee hstep
+  refine ⟨raisedMid u ws c, Or.inr ⟨[], ws, by rw [hwastee]; rfl, by simp, ?_⟩,
+    ⟨Move.foundToTab c b :: rest, w, ?_, hwin⟩⟩
+  · rw [hfront, hmid]
+  · rw [run_step_cons hlow]
+    exact hrest
+
+/-! #### The absorb case engine -/
+
+/-- **The draw-absorb engine.**  One drawing head move rides in front
+of the canonical front: whatever the draw dealt, the front from `u`
+is the front from `s₁` with the one draw prepended (the dealt card
+sits above `c` in `u`'s cycle), or — when the draw deals `c` itself —
+the pristine front from `s₁` IS `u`'s stock front, one draw and the
+stack, and the two landings coincide (the engine's landing literal
+is `raisedMid`). -/
+private theorem front_draw {u s₁ : State} {c : Card} {s' : State}
+    (hwf : s₁.WF) (hds : u.drawStep = 1) (hrung : u.nextUp c = true)
+    (hstep : State.step u Move.draw = some s₁)
+    (hfront₁ : FrontOK c s₁ s') (hwin₁ : WinFrom s') :
+    ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
+  sorry
+
+/-! #### The board-move squares -/
+
+/-- A `setFound` write's found field depends only on the base's found
+and the written list. -/
+private theorem setFound_found_congr {A B : State} {σ : Suit} {l₁ l₂ : List Card}
+    (hf : A.found = B.found) (hl : l₁ = l₂) :
+    (A.setFound σ l₁).found = (B.setFound σ l₂).found := by
+  rw [setFound_found_eq, setFound_found_eq]
+  funext s'
+  by_cases hs : s' = σ
+  · rw [ite_eq_left hs, ite_eq_left hs, hl]
+  · rw [ite_eq_right hs, ite_eq_right hs, congrFun hf s']
+
+/-- Double bumps commute at the found field (the record-level
+restatement of `bump2_comm`, so the squares can transport through
+composed `setFound`s). -/
+private theorem double_bump_comm {B : State} {x c : Card}
+    (hne : x.suit ≠ c.suit) :
+    ((B.setFound c.suit (B.found c.suit ++ [c])).setFound x.suit
+        ((B.setFound c.suit (B.found c.suit ++ [c])).found x.suit ++ [x])).found
+    = ((B.setFound x.suit (B.found x.suit ++ [x])).setFound c.suit
+        ((B.setFound x.suit (B.found x.suit ++ [x])).found c.suit ++ [c])).found := by
+  have h1 : ((B.setFound c.suit (B.found c.suit ++ [c])).found) x.suit
+      = B.found x.suit := by
+    show (if x.suit = c.suit then B.found c.suit ++ [c] else B.found x.suit) = B.found x.suit
+    rw [ite_eq_right hne]
+  have h2 : ((B.setFound x.suit (B.found x.suit ++ [x])).found) c.suit
+      = B.found c.suit := by
+    show (if c.suit = x.suit then B.found x.suit ++ [x] else B.found c.suit) = B.found c.suit
+    rw [ite_eq_right (Ne.symm hne)]
+  rw [h1, h2]
+  exact congrArg State.found (setFound_comm (Ne.symm hne))
+
+/-- The stock front's landing, field by field. -/
+private theorem front_stock_shape {s : State} {c : Card} {pre post : List Card}
+    (hd : s.drawStep = 1) (hng : s.nextUp c = true)
+    (hs : s.stock = pre ++ c :: post) (s' : State)
+    (h : s.run (List.replicate (pre.length + 1) Move.draw ++ [Move.wasteToFound c]) = some s') :
+    s'.found = (fun σ => if σ = c.suit then s.found c.suit ++ [c] else s.found σ) ∧
+      s'.piles = s.piles ∧ s'.stock = post ∧
+      s'.waste = pre.reverse ++ s.waste ∧ s'.drawStep = s.drawStep := by
+  have hlit := front_stock hd hng hs
+  have he : s' = State.mk (fun s' => if s' = c.suit then s.found c.suit ++ [c] else s.found s')
+      s.piles post (pre.reverse ++ s.waste) s.drawStep :=
+    Option.some.inj (h.symm.trans hlit)
+  rw [he]
+  exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+
+/-- The waste front's landing, field by field. -/
+private theorem front_waste_shape {s : State} {c : Card} {preW postW : List Card}
+    (hd : s.drawStep = 1) (hng : s.nextUp c = true)
+    (hw : s.waste = preW ++ c :: postW) (s' : State)
+    (h : s.run (List.replicate (s.stock.length + postW.length + 1) Move.draw
+        ++ [Move.wasteToFound c]) = some s') :
+    s'.found = (fun σ => if σ = c.suit then s.found c.suit ++ [c] else s.found σ) ∧
+      s'.piles = s.piles ∧ s'.stock = preW.reverse ++ s.stock ∧
+      s'.waste = postW ∧ s'.drawStep = s.drawStep := by
+  have hlit := front_waste hd hng hw
+  have he : s' = State.mk (fun s' => if s' = c.suit then s.found c.suit ++ [c] else s.found s')
+      s.piles (preW.reverse ++ s.stock) postW s.drawStep :=
+    Option.some.inj (h.symm.trans hlit)
+  rw [he]
+  exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+
+/-- **The `tabToFound` square.**  A raise of a foreign-suit card rides
+across the front: the move is cycle-blind (the front's data is
+verbatim), the front from `u` lands the twin whose OWN raise is
+exactly the `s₁`-side front's landing (the double bumps commute, the
+pile write transfers), and the moved play wins from `u`'s landing. -/
+private theorem front_board_tf {u s₁ : State} {c x : Card} {s' : State}
+    (hds : u.drawStep = 1) (hrungU : u.nextUp c = true)
+    (hxs : x.suit ≠ c.suit)
+    (hstep : State.step u (Move.tabToFound x) = some s₁)
+    (hfront₁ : FrontOK c s₁ s') (hwin₁ : WinFrom s') :
+    ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
+  obtain ⟨hnext, a, hpo⟩ := tabToFound_fires hstep
+  have hs₁ := tabToFound_shape hstep hpo
+  -- the move is cycle-blind: stock and waste ride verbatim
+  have hstock : s₁.stock = u.stock := by rw [hs₁]; rfl
+  have hwaste : s₁.waste = u.waste := by rw [hs₁]; rfl
+  have hds1 : s₁.drawStep = 1 := by rw [step_drawStep_keep hstep, hds]
+  have hn1 : s₁.nextUp c = true := by
+    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
+    rw [hs₁]
+    show decide (c.rank.toIdx =
+        ((u.setFound x.suit (u.found x.suit ++ [x])).found c.suit).length) = true
+    rw [setFound_found_ne (Ne.symm hxs)]
+    exact hrungU
+  obtain ⟨ρ, w₂, hrunρ, hwinρ⟩ := hwin₁
+  rcases hfront₁ with ⟨pre, post, hs1stock, hcpre, hplay⟩ | ⟨preW, postW, hs1waste, hcpre, hplay⟩
+  · -- the stock form at both ends
+    obtain ⟨V, hVrun⟩ : ∃ V,
+        u.run (List.replicate (pre.length + 1) Move.draw ++ [Move.wasteToFound c]) = some V :=
+      ⟨_, front_stock hds hrungU (hstock.symm.trans hs1stock)⟩
+    obtain ⟨hVf, hVp, hVs, hVw, hVds⟩ :=
+      front_stock_shape hds hrungU (hstock.symm.trans hs1stock) V hVrun
+    obtain ⟨hSf, hSp, hSs, hSw, hSds⟩ :=
+      front_stock_shape hds1 hn1 hs1stock s' hplay
+    refine ⟨V, Or.inl ⟨pre, post, hstock.symm.trans hs1stock, hcpre, hVrun⟩, ?_⟩
+    refine ⟨Move.tabToFound x :: ρ, w₂, ?_, hwinρ⟩
+    -- the raise fires at the u-side landing by the readers
+    have hnextV : V.nextUp x = true := by
+      show decide (x.rank.toIdx = (V.found x.suit).length) = true
+      rw [hVf]
+      show decide (x.rank.toIdx =
+          (if x.suit = c.suit then u.found c.suit ++ [c] else u.found x.suit).length) = true
+      rw [ite_eq_right hxs]
+      exact hnext
+    have hpoV : V.pileOfTop x = some a := by
+      rw [pileOfTop_congr x hVp]
+      exact hpo
+    have hstepV := step_tabToFound_eq hnextV hpoV
+    -- found-field facts
+    have hVfc : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
+      rw [hVf]; try rfl
+    have hVfx : V.found x.suit
+        = (u.setFound c.suit (u.found c.suit ++ [c])).found x.suit := by
+      rw [hVf]; try rfl
+    have hs1fc : s₁.found = (u.setFound x.suit (u.found x.suit ++ [x])).found := by
+      rw [hs₁]; try rfl
+    have hsfcx : s₁.found c.suit
+        = (u.setFound x.suit (u.found x.suit ++ [x])).found c.suit := by
+      rw [hs₁]; try rfl
+    -- the raise's landing is the s₁-side front's landing
+    have hLand : {V.setFound x.suit (V.found x.suit ++ [x])
+        with
+        piles := fun a' => if a' = a then
+            Pile.afterRunRemoved (V.piles a) (chop (V.piles a).faceUp)
+          else V.piles a' } = s' := by
+      apply State.ext
+      · -- found: the double bumps commute across the two bases
+        show (V.setFound x.suit (V.found x.suit ++ [x])).found = s'.found
+        have hfL : (V.setFound x.suit (V.found x.suit ++ [x])).found
+            = ((u.setFound c.suit (u.found c.suit ++ [c])).setFound x.suit
+                ((u.setFound c.suit (u.found c.suit ++ [c])).found x.suit ++ [x])).found :=
+          setFound_found_congr hVfc (congrArg (fun l => l ++ [x]) hVfx)
+        have hfR : (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found
+            = ((u.setFound x.suit (u.found x.suit ++ [x])).setFound c.suit
+                ((u.setFound x.suit (u.found x.suit ++ [x])).found c.suit ++ [c])).found :=
+          setFound_found_congr hs1fc (congrArg (fun l => l ++ [c]) hsfcx)
+        have hsF : s'.found = (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found := by
+          rw [hSf]; try rfl
+        exact hfL.trans ((double_bump_comm hxs).trans (hfR.symm.trans hsF.symm))
+      · -- piles: the write transfers through the equal piles
+        show (fun a' => if a' = a then
+            Pile.afterRunRemoved (V.piles a) (chop (V.piles a).faceUp)
+          else V.piles a') = s'.piles
+        rw [hVp, hSp]
+        rw [hs₁]
+        try rfl
+      · show V.stock = s'.stock
+        rw [hVs, hSs]
+      · show V.waste = s'.waste
+        rw [hVw, hSw, hwaste]
+      · show V.drawStep = s'.drawStep
+        rw [hVds, hSds, hds1, hds]
+    rw [run_step_cons hstepV, hLand]
+    exact hrunρ
+  · -- the waste form: the same exchange through the waste engine
+    obtain ⟨V, hVrun⟩ : ∃ V,
+        u.run (List.replicate (u.stock.length + postW.length + 1) Move.draw
+          ++ [Move.wasteToFound c]) = some V :=
+      ⟨_, front_waste hds hrungU (hwaste.symm.trans hs1waste)⟩
+    obtain ⟨hVf, hVp, hVs, hVw, hVds⟩ :=
+      front_waste_shape hds hrungU (hwaste.symm.trans hs1waste) V hVrun
+    obtain ⟨hSf, hSp, hSs, hSw, hSds⟩ :=
+      front_waste_shape hds1 hn1 hs1waste s' hplay
+    refine ⟨V, Or.inr ⟨preW, postW, hwaste.symm.trans hs1waste, hcpre, hVrun⟩, ?_⟩
+    refine ⟨Move.tabToFound x :: ρ, w₂, ?_, hwinρ⟩
+    -- the raise fires at the u-side landing by the readers
+    have hnextV : V.nextUp x = true := by
+      show decide (x.rank.toIdx = (V.found x.suit).length) = true
+      rw [hVf]
+      show decide (x.rank.toIdx =
+          (if x.suit = c.suit then u.found c.suit ++ [c] else u.found x.suit).length) = true
+      rw [ite_eq_right hxs]
+      exact hnext
+    have hpoV : V.pileOfTop x = some a := by
+      rw [pileOfTop_congr x hVp]
+      exact hpo
+    have hstepV := step_tabToFound_eq hnextV hpoV
+    -- found-field facts
+    have hVfc : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
+      rw [hVf]; try rfl
+    have hVfx : V.found x.suit
+        = (u.setFound c.suit (u.found c.suit ++ [c])).found x.suit := by
+      rw [hVf]; try rfl
+    have hs1fc : s₁.found = (u.setFound x.suit (u.found x.suit ++ [x])).found := by
+      rw [hs₁]; try rfl
+    have hsfcx : s₁.found c.suit
+        = (u.setFound x.suit (u.found x.suit ++ [x])).found c.suit := by
+      rw [hs₁]; try rfl
+    -- the raise's landing is the s₁-side front's landing
+    have hLand : {V.setFound x.suit (V.found x.suit ++ [x])
+        with
+        piles := fun a' => if a' = a then
+            Pile.afterRunRemoved (V.piles a) (chop (V.piles a).faceUp)
+          else V.piles a' } = s' := by
+      apply State.ext
+      · -- found: the double bumps commute across the two bases
+        show (V.setFound x.suit (V.found x.suit ++ [x])).found = s'.found
+        have hfL : (V.setFound x.suit (V.found x.suit ++ [x])).found
+            = ((u.setFound c.suit (u.found c.suit ++ [c])).setFound x.suit
+                ((u.setFound c.suit (u.found c.suit ++ [c])).found x.suit ++ [x])).found :=
+          setFound_found_congr hVfc (congrArg (fun l => l ++ [x]) hVfx)
+        have hfR : (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found
+            = ((u.setFound x.suit (u.found x.suit ++ [x])).setFound c.suit
+                ((u.setFound x.suit (u.found x.suit ++ [x])).found c.suit ++ [c])).found :=
+          setFound_found_congr hs1fc (congrArg (fun l => l ++ [c]) hsfcx)
+        have hsF : s'.found = (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found := by
+          rw [hSf]; try rfl
+        exact hfL.trans ((double_bump_comm hxs).trans (hfR.symm.trans hsF.symm))
+      · -- piles: the write transfers through the equal piles
+        show (fun a' => if a' = a then
+            Pile.afterRunRemoved (V.piles a) (chop (V.piles a).faceUp)
+          else V.piles a') = s'.piles
+        rw [hVp, hSp]
+        rw [hs₁]
+        try rfl
+      · show V.stock = s'.stock
+        rw [hVs, hSs, hstock]
+      · show V.waste = s'.waste
+        rw [hVw, hSw]
+      · show V.drawStep = s'.drawStep
+        rw [hVds, hSds, hds1, hds]
+    rw [run_step_cons hstepV, hLand]
+    exact hrunρ
+
+/-- **The `tabToTab` square.**  A pure pile move rides across the
+front verbatim: `tabToTab` writes no foundation, so the two front
+landings differ only by the pile write, which transfers. -/
+private theorem front_board_tt {u s₁ : State} {c x : Card} {b : Base} {s' : State}
+    (hds : u.drawStep = 1) (hrungU : u.nextUp c = true)
+    (hstep : State.step u (Move.tabToTab x b) = some s₁)
+    (hfront₁ : FrontOK c s₁ s') (hwin₁ : WinFrom s') :
+    ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
+  obtain ⟨a, hhld, hcp, hne, hs₁⟩ := step_tabToTab_inv' hstep
+  -- the move is cycle-blind and foundation-blind
+  have hstock : s₁.stock = u.stock := by rw [hs₁]; exact (putRun_keep).1
+  have hwaste : s₁.waste = u.waste := by rw [hs₁]; exact (putRun_keep).2.1
+  have hfound : s₁.found = u.found := by rw [hs₁]; exact putRun_found_keep
+  have hds1 : s₁.drawStep = 1 := by rw [step_drawStep_keep hstep, hds]
+  have hn1 : s₁.nextUp c = true := by
+    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
+    rw [hfound]
+    exact hrungU
+  obtain ⟨ρ, w₂, hrunρ, hwinρ⟩ := hwin₁
+  rcases hfront₁ with ⟨pre, post, hs1stock, hcpre, hplay⟩ | ⟨preW, postW, hs1waste, hcpre, hplay⟩
+  · -- the stock form at both ends
+    obtain ⟨V, hVrun⟩ : ∃ V,
+        u.run (List.replicate (pre.length + 1) Move.draw ++ [Move.wasteToFound c]) = some V :=
+      ⟨_, front_stock hds hrungU (hstock.symm.trans hs1stock)⟩
+    obtain ⟨hVf, hVp, hVs, hVw, hVds⟩ :=
+      front_stock_shape hds hrungU (hstock.symm.trans hs1stock) V hVrun
+    obtain ⟨hSf, hSp, hSs, hSw, hSds⟩ :=
+      front_stock_shape hds1 hn1 hs1stock s' hplay
+    refine ⟨V, Or.inl ⟨pre, post, hstock.symm.trans hs1stock, hcpre, hVrun⟩, ?_⟩
+    refine ⟨Move.tabToTab x b :: ρ, w₂, ?_, hwinρ⟩
+    -- the move fires at the u-side landing by the readers
+    have hhldV : V.pileHolding x = some a := by
+      rw [pileHolding_congr x hVp]
+      exact hhld
+    have hcpV : V.canPlace x b = true := by
+      rw [canPlace_congr x b hVp]
+      exact hcp
+    have hfx : fromCard x (V.piles a).faceUp ≠ [] := by
+      rw [congrArg Pile.faceUp (congrFun hVp a)]
+      exact hne
+    have hstepV : State.step V (Move.tabToTab x b) = some
+        ((V.setPile a (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).putRun
+          (fromCard x (V.piles a).faceUp) b) := by
+      show (match V.pileHolding x with
+          | none => none
+          | some a' =>
+              if V.canPlace x b then
+                match fromCard x (V.piles a').faceUp with
+                | [] => none
+                | run => some
+                    ((V.setPile a' (Pile.afterRunRemoved (V.piles a')
+                        (below x (V.piles a').faceUp))).putRun run b)
+              else none) = _
+      rw [hhldV]
+      show ((if V.canPlace x b = true then
+              match fromCard x (V.piles a).faceUp with
+              | [] => none
+              | run => some
+                  ((V.setPile a (Pile.afterRunRemoved (V.piles a)
+                      (below x (V.piles a).faceUp))).putRun run b)
+            else none)) = _
+      rw [ite_eq_left hcpV]
+      cases hfxV : fromCard x (V.piles a).faceUp with
+      | nil =>
+          rw [hfxV] at hfx
+          exact absurd hfx (by simp)
+      | cons r1 r2 => rfl
+    -- the landing is the s₁-side front's landing
+    have hLand : ((V.setPile a
+          (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).putRun
+          (fromCard x (V.piles a).faceUp) b) = s' := by
+      apply State.ext
+      · have hVF : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
+          rw [hVf]; try rfl
+        have hsF : s'.found = (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found := by
+          rw [hSf]; try rfl
+        have hMid : (u.setFound c.suit (u.found c.suit ++ [c])).found
+            = (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found :=
+          setFound_found_congr hfound.symm
+            ((congrArg (fun l => l ++ [c]) (congrFun hfound c.suit)).symm)
+        show ((V.setPile a (Pile.afterRunRemoved (V.piles a)
+            (below x (V.piles a).faceUp))).putRun (fromCard x (V.piles a).faceUp) b).found
+            = s'.found
+        rw [putRun_found_keep, setPile_found]
+        exact hVF.trans (hMid.trans hsF.symm)
+      · show ((V.setPile a (Pile.afterRunRemoved (V.piles a)
+            (below x (V.piles a).faceUp))).putRun (fromCard x (V.piles a).faceUp) b).piles
+            = s'.piles
+        rw [hSp, hs₁]
+        exact piles_setPile_putRun_transfer hVp
+      · have hk := putRun_keep (u := V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
+            (run := fromCard x (V.piles a).faceUp) (b := b)
+        rw [hk.1, show (V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).stock
+            = V.stock from rfl]
+        rw [hVs, hSs]
+      · have hk := putRun_keep (u := V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
+            (run := fromCard x (V.piles a).faceUp) (b := b)
+        rw [hk.2.1, show (V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).waste
+            = V.waste from rfl]
+        rw [hVw, hSw, hwaste]
+      · have hk := putRun_keep (u := V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
+            (run := fromCard x (V.piles a).faceUp) (b := b)
+        rw [hk.2.2, show (V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).drawStep
+            = V.drawStep from rfl]
+        rw [hVds, hSds, hds1, hds]
+    rw [run_step_cons hstepV, hLand]
+    exact hrunρ
+  · -- the waste form: the same verbatim ride through the waste engine
+    obtain ⟨V, hVrun⟩ : ∃ V,
+        u.run (List.replicate (u.stock.length + postW.length + 1) Move.draw
+          ++ [Move.wasteToFound c]) = some V :=
+      ⟨_, front_waste hds hrungU (hwaste.symm.trans hs1waste)⟩
+    obtain ⟨hVf, hVp, hVs, hVw, hVds⟩ :=
+      front_waste_shape hds hrungU (hwaste.symm.trans hs1waste) V hVrun
+    obtain ⟨hSf, hSp, hSs, hSw, hSds⟩ :=
+      front_waste_shape hds1 hn1 hs1waste s' hplay
+    refine ⟨V, Or.inr ⟨preW, postW, hwaste.symm.trans hs1waste, hcpre, hVrun⟩, ?_⟩
+    refine ⟨Move.tabToTab x b :: ρ, w₂, ?_, hwinρ⟩
+    have hhldV : V.pileHolding x = some a := by
+      rw [pileHolding_congr x hVp]
+      exact hhld
+    have hcpV : V.canPlace x b = true := by
+      rw [canPlace_congr x b hVp]
+      exact hcp
+    have hfx : fromCard x (V.piles a).faceUp ≠ [] := by
+      rw [congrArg Pile.faceUp (congrFun hVp a)]
+      exact hne
+    have hstepV : State.step V (Move.tabToTab x b) = some
+        ((V.setPile a (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).putRun
+          (fromCard x (V.piles a).faceUp) b) := by
+      show (match V.pileHolding x with
+          | none => none
+          | some a' =>
+              if V.canPlace x b then
+                match fromCard x (V.piles a').faceUp with
+                | [] => none
+                | run => some
+                    ((V.setPile a' (Pile.afterRunRemoved (V.piles a')
+                        (below x (V.piles a').faceUp))).putRun run b)
+              else none) = _
+      rw [hhldV]
+      show ((if V.canPlace x b = true then
+              match fromCard x (V.piles a).faceUp with
+              | [] => none
+              | run => some
+                  ((V.setPile a (Pile.afterRunRemoved (V.piles a)
+                      (below x (V.piles a).faceUp))).putRun run b)
+            else none)) = _
+      rw [ite_eq_left hcpV]
+      cases hfxV : fromCard x (V.piles a).faceUp with
+      | nil =>
+          rw [hfxV] at hfx
+          exact absurd hfx (by simp)
+      | cons r1 r2 => rfl
+    have hLand : ((V.setPile a
+          (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).putRun
+          (fromCard x (V.piles a).faceUp) b) = s' := by
+      apply State.ext
+      · have hVF : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
+          rw [hVf]; try rfl
+        have hsF : s'.found = (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found := by
+          rw [hSf]; try rfl
+        have hMid : (u.setFound c.suit (u.found c.suit ++ [c])).found
+            = (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found :=
+          setFound_found_congr hfound.symm
+            ((congrArg (fun l => l ++ [c]) (congrFun hfound c.suit)).symm)
+        show ((V.setPile a (Pile.afterRunRemoved (V.piles a)
+            (below x (V.piles a).faceUp))).putRun (fromCard x (V.piles a).faceUp) b).found
+            = s'.found
+        rw [putRun_found_keep, setPile_found]
+        exact hVF.trans (hMid.trans hsF.symm)
+      · show ((V.setPile a (Pile.afterRunRemoved (V.piles a)
+            (below x (V.piles a).faceUp))).putRun (fromCard x (V.piles a).faceUp) b).piles
+            = s'.piles
+        rw [hSp, hs₁]
+        exact piles_setPile_putRun_transfer hVp
+      · have hk := putRun_keep (u := V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
+            (run := fromCard x (V.piles a).faceUp) (b := b)
+        rw [hk.1, show (V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).stock
+            = V.stock from rfl]
+        rw [hVs, hSs, hstock]
+      · have hk := putRun_keep (u := V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
+            (run := fromCard x (V.piles a).faceUp) (b := b)
+        rw [hk.2.1, show (V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).waste
+            = V.waste from rfl]
+        rw [hVw, hSw]
+      · have hk := putRun_keep (u := V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp)))
+            (run := fromCard x (V.piles a).faceUp) (b := b)
+        rw [hk.2.2, show (V.setPile a
+            (Pile.afterRunRemoved (V.piles a) (below x (V.piles a).faceUp))).drawStep
+            = V.drawStep from rfl]
+        rw [hVds, hSds, hds1, hds]
+    rw [run_step_cons hstepV, hLand]
+    exact hrunρ
+
+/-- A chop and a bump commute at the found field (foreign suits) —
+the worry-back's slot drop against the front's raise. -/
+private theorem chop_bump_comm {B : State} {x c : Card}
+    (hne : x.suit ≠ c.suit) :
+    ((B.setFound c.suit (B.found c.suit ++ [c])).setFound x.suit
+        (chop ((B.setFound c.suit (B.found c.suit ++ [c])).found x.suit))).found
+    = ((B.setFound x.suit (chop (B.found x.suit))).setFound c.suit
+        ((B.setFound x.suit (chop (B.found x.suit))).found c.suit ++ [c])).found := by
+  have h1 : ((B.setFound c.suit (B.found c.suit ++ [c])).found) x.suit
+      = B.found x.suit := by
+    show (if x.suit = c.suit then B.found c.suit ++ [c] else B.found x.suit) = B.found x.suit
+    rw [ite_eq_right hne]
+  have h2 : ((B.setFound x.suit (chop (B.found x.suit))).found) c.suit
+      = B.found c.suit := by
+    show (if c.suit = x.suit then chop (B.found x.suit) else B.found c.suit) = B.found c.suit
+    rw [ite_eq_right (Ne.symm hne)]
+  rw [h1, h2]
+  exact congrArg State.found (setFound_comm (Ne.symm hne))
+
+/-- **The `foundToTab` square.**  A foreign-suit worry-back rides
+across the front: the slot drop and the fronting bump commute at
+distinct suits, the placement transfers, so the front-first play
+lands the same state the worry-first play fronts. -/
+private theorem front_board_ft {u s₁ : State} {c x : Card} {b : Base} {s' : State}
+    (hds : u.drawStep = 1) (hrungU : u.nextUp c = true)
+    (hxs : x.suit ≠ c.suit)
+    (hstep : State.step u (Move.foundToTab x b) = some s₁)
+    (hfront₁ : FrontOK c s₁ s') (hwin₁ : WinFrom s') :
+    ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
+  obtain ⟨htop, hcp, hs₁⟩ := foundToTab_fires hstep
+  -- the move is cycle-blind
+  have hstock : s₁.stock = u.stock := by rw [hs₁]; exact (putCard_keep).2.1
+  have hwaste : s₁.waste = u.waste := by rw [hs₁]; exact (putCard_keep).2.2.1
+  have hfound : s₁.found = (u.setFound x.suit (chop (u.found x.suit))).found := by
+    rw [hs₁, putCard_found_keep]
+  have hds1 : s₁.drawStep = 1 := by rw [step_drawStep_keep hstep, hds]
+  have hn1 : s₁.nextUp c = true := by
+    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
+    rw [hfound, setFound_found_ne (Ne.symm hxs)]
+    exact hrungU
+  obtain ⟨ρ, w₂, hrunρ, hwinρ⟩ := hwin₁
+  rcases hfront₁ with ⟨pre, post, hs1stock, hcpre, hplay⟩ | ⟨preW, postW, hs1waste, hcpre, hplay⟩
+  · -- the stock form at both ends
+    obtain ⟨V, hVrun⟩ : ∃ V,
+        u.run (List.replicate (pre.length + 1) Move.draw ++ [Move.wasteToFound c]) = some V :=
+      ⟨_, front_stock hds hrungU (hstock.symm.trans hs1stock)⟩
+    obtain ⟨hVf, hVp, hVs, hVw, hVds⟩ :=
+      front_stock_shape hds hrungU (hstock.symm.trans hs1stock) V hVrun
+    obtain ⟨hSf, hSp, hSs, hSw, hSds⟩ :=
+      front_stock_shape hds1 hn1 hs1stock s' hplay
+    refine ⟨V, Or.inl ⟨pre, post, hstock.symm.trans hs1stock, hcpre, hVrun⟩, ?_⟩
+    refine ⟨Move.foundToTab x b :: ρ, w₂, ?_, hwinρ⟩
+    -- the worry fires at the u-side landing by the readers
+    have htopV : V.foundTop x.suit = some x := by
+      show lastOf (V.found x.suit) = some x
+      rw [hVf]
+      show lastOf (if x.suit = c.suit then u.found c.suit ++ [c] else u.found x.suit)
+          = some x
+      rw [ite_eq_right hxs]
+      exact htop
+    have hcpV : V.canPlace x b = true := by
+      rw [canPlace_congr x b hVp]
+      exact hcp
+    have hstepV := step_foundToTab_eq htopV hcpV
+    -- found-field facts
+    have hVfc : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
+      rw [hVf]; try rfl
+    have hVx : V.found x.suit
+        = (u.setFound c.suit (u.found c.suit ++ [c])).found x.suit := by
+      rw [hVf]; try rfl
+    have hs1fc : s₁.found
+        = (u.setFound x.suit (chop (u.found x.suit))).found := by
+      rw [hfound]
+    have hsfcx : s₁.found c.suit
+        = (u.setFound x.suit (chop (u.found x.suit))).found c.suit := by
+      rw [hfound]; try rfl
+    -- the worry's landing is the s₁-side front's landing
+    have hLand : ((V.setFound x.suit (chop (V.found x.suit))).putCard x b) = s' := by
+      apply State.ext
+      · rw [show ((V.setFound x.suit (chop (V.found x.suit))).putCard x b).found
+            = (V.setFound x.suit (chop (V.found x.suit))).found from putCard_found_keep]
+        show (V.setFound x.suit (chop (V.found x.suit))).found = s'.found
+        have hL : (V.setFound x.suit (chop (V.found x.suit))).found
+            = ((u.setFound c.suit (u.found c.suit ++ [c])).setFound x.suit
+                (chop ((u.setFound c.suit (u.found c.suit ++ [c])).found x.suit))).found :=
+          setFound_found_congr hVfc (congrArg chop hVx)
+        have hR : (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found
+            = ((u.setFound x.suit (chop (u.found x.suit))).setFound c.suit
+                ((u.setFound x.suit (chop (u.found x.suit))).found c.suit ++ [c])).found :=
+          setFound_found_congr hs1fc (congrArg (fun l => l ++ [c]) hsfcx)
+        have hsF : s'.found = (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found := by
+          rw [hSf]; try rfl
+        exact hL.trans ((chop_bump_comm hxs).trans (hR.symm.trans hsF.symm))
+      · have hpc' : (V.setFound x.suit (chop (V.found x.suit))).piles
+            = (u.setFound x.suit (chop (u.found x.suit))).piles := by
+          show V.piles = u.piles
+          rw [hVp]
+        rw [putCard_piles_congr hpc', hSp, hs₁]
+        try rfl
+      · rw [show ((V.setFound x.suit (chop (V.found x.suit))).putCard x b).stock
+            = (V.setFound x.suit (chop (V.found x.suit))).stock from (putCard_keep).2.1]
+        show V.stock = s'.stock
+        rw [hVs, hSs]
+      · rw [show ((V.setFound x.suit (chop (V.found x.suit))).putCard x b).waste
+            = (V.setFound x.suit (chop (V.found x.suit))).waste from (putCard_keep).2.2.1]
+        show V.waste = s'.waste
+        rw [hVw, hSw, hwaste]
+      · rw [show ((V.setFound x.suit (chop (V.found x.suit))).putCard x b).drawStep
+            = (V.setFound x.suit (chop (V.found x.suit))).drawStep from (putCard_keep).2.2.2]
+        show V.drawStep = s'.drawStep
+        rw [hVds, hSds, hds1, hds]
+    rw [run_step_cons hstepV, hLand]
+    exact hrunρ
+  · -- the waste form: the same exchange through the waste engine
+    obtain ⟨V, hVrun⟩ : ∃ V,
+        u.run (List.replicate (u.stock.length + postW.length + 1) Move.draw
+          ++ [Move.wasteToFound c]) = some V :=
+      ⟨_, front_waste hds hrungU (hwaste.symm.trans hs1waste)⟩
+    obtain ⟨hVf, hVp, hVs, hVw, hVds⟩ :=
+      front_waste_shape hds hrungU (hwaste.symm.trans hs1waste) V hVrun
+    obtain ⟨hSf, hSp, hSs, hSw, hSds⟩ :=
+      front_waste_shape hds1 hn1 hs1waste s' hplay
+    refine ⟨V, Or.inr ⟨preW, postW, hwaste.symm.trans hs1waste, hcpre, hVrun⟩, ?_⟩
+    refine ⟨Move.foundToTab x b :: ρ, w₂, ?_, hwinρ⟩
+    have htopV : V.foundTop x.suit = some x := by
+      show lastOf (V.found x.suit) = some x
+      rw [hVf]
+      show lastOf (if x.suit = c.suit then u.found c.suit ++ [c] else u.found x.suit)
+          = some x
+      rw [ite_eq_right hxs]
+      exact htop
+    have hcpV : V.canPlace x b = true := by
+      rw [canPlace_congr x b hVp]
+      exact hcp
+    have hstepV := step_foundToTab_eq htopV hcpV
+    have hVfc : V.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
+      rw [hVf]; try rfl
+    have hVx : V.found x.suit
+        = (u.setFound c.suit (u.found c.suit ++ [c])).found x.suit := by
+      rw [hVf]; try rfl
+    have hs1fc : s₁.found
+        = (u.setFound x.suit (chop (u.found x.suit))).found := by
+      rw [hfound]
+    have hsfcx : s₁.found c.suit
+        = (u.setFound x.suit (chop (u.found x.suit))).found c.suit := by
+      rw [hfound]; try rfl
+    have hLand : ((V.setFound x.suit (chop (V.found x.suit))).putCard x b) = s' := by
+      apply State.ext
+      · rw [show ((V.setFound x.suit (chop (V.found x.suit))).putCard x b).found
+            = (V.setFound x.suit (chop (V.found x.suit))).found from putCard_found_keep]
+        show (V.setFound x.suit (chop (V.found x.suit))).found = s'.found
+        have hL : (V.setFound x.suit (chop (V.found x.suit))).found
+            = ((u.setFound c.suit (u.found c.suit ++ [c])).setFound x.suit
+                (chop ((u.setFound c.suit (u.found c.suit ++ [c])).found x.suit))).found :=
+          setFound_found_congr hVfc (congrArg chop hVx)
+        have hR : (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found
+            = ((u.setFound x.suit (chop (u.found x.suit))).setFound c.suit
+                ((u.setFound x.suit (chop (u.found x.suit))).found c.suit ++ [c])).found :=
+          setFound_found_congr hs1fc (congrArg (fun l => l ++ [c]) hsfcx)
+        have hsF : s'.found = (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found := by
+          rw [hSf]; try rfl
+        exact hL.trans ((chop_bump_comm hxs).trans (hR.symm.trans hsF.symm))
+      · have hpc' : (V.setFound x.suit (chop (V.found x.suit))).piles
+            = (u.setFound x.suit (chop (u.found x.suit))).piles := by
+          show V.piles = u.piles
+          rw [hVp]
+        rw [putCard_piles_congr hpc', hSp, hs₁]
+        try rfl
+      · rw [show ((V.setFound x.suit (chop (V.found x.suit))).putCard x b).stock
+            = (V.setFound x.suit (chop (V.found x.suit))).stock from (putCard_keep).2.1]
+        show V.stock = s'.stock
+        rw [hVs, hSs, hstock]
+      · rw [show ((V.setFound x.suit (chop (V.found x.suit))).putCard x b).waste
+            = (V.setFound x.suit (chop (V.found x.suit))).waste from (putCard_keep).2.2.1]
+        show V.waste = s'.waste
+        rw [hVw, hSw]
+      · rw [show ((V.setFound x.suit (chop (V.found x.suit))).putCard x b).drawStep
+            = (V.setFound x.suit (chop (V.found x.suit))).drawStep from (putCard_keep).2.2.2]
+        show V.drawStep = s'.drawStep
+        rw [hVds, hSds, hds1, hds]
+    rw [run_step_cons hstepV, hLand]
+    exact hrunρ
+
+/-! #### The consuming squares — the rotation resyncs -/
+
+/-- **The consuming `wasteToFound` square, stock form.**  The head
+spends a foreign card `x` (≠ c) from the waste into the foundation.
+The front from `u` deals `c` out while `x` keeps riding the cycle,
+so the win lifts by resyncing: draw round until `x` is back at hand
+(drain the stock remainder, recycle, deal the whole waste above
+`x`), re-spend it — the double bumps commute at the distinct suits —
+then deal on past the remainder: the end state is the `s₁`-side
+front's landing exactly, all position literals from the composites. -/
+private theorem front_consume_wtf_stock {u s₁ : State} {c x : Card} {s' : State}
+    (hds : u.drawStep = 1) (hrungU : u.nextUp c = true)
+    (hnextX : u.nextUp x = true) (hxc : x ≠ c)
+    (hstep : State.step u (Move.wasteToFound x) = some s₁)
+    (hcycu : c ∈ u.stock) (hwf₁ : s₁.WF)
+    (hfront₁ : FrontOK c s₁ s') (hwin₁ : WinFrom s') :
+    ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
+  obtain ⟨hwis, hnx, ws, hwastee, hs₁⟩ := wasteToFound_fires hstep
+  have hxsu : x.suit ≠ c.suit := fun hcon => hxc (nextUp_pair_eq hnx hrungU hcon)
+  have hstock : s₁.stock = u.stock := by rw [hs₁]; rfl
+  have hs1found : s₁.found = (u.setFound x.suit (u.found x.suit ++ [x])).found := by
+    rw [hs₁]; try rfl
+  have hds1 : s₁.drawStep = 1 := by rw [step_drawStep_keep hstep, hds]
+  have hn1 : s₁.nextUp c = true := by
+    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
+    rw [hs1found, setFound_found_ne (Ne.symm hxsu)]
+    exact hrungU
+  obtain ⟨ρ, w₂, hrunρ, hwinρ⟩ := hwin₁
+  rcases hfront₁ with ⟨pre, post, hs1stock, hcpre, hplay⟩ | ⟨preW, postW, hs1waste, hcpre, hplay⟩
+  · -- the stock front at both ends; the cycle data is shared
+    have hustock : u.stock = pre ++ c :: post := hstock.symm.trans hs1stock
+    obtain ⟨V₀, hV₀run⟩ : ∃ V,
+        u.run (List.replicate (pre.length + 1) Move.draw ++ [Move.wasteToFound c]) = some V :=
+      ⟨_, front_stock hds hrungU hustock⟩
+    obtain ⟨hVf, hVp, hVs, hVw, hVds⟩ :=
+      front_stock_shape hds hrungU hustock V₀ hV₀run
+    obtain ⟨hSf, hSp, hSs, hSw, hSds⟩ :=
+      front_stock_shape hds1 hn1 hs1stock s' hplay
+    refine ⟨V₀, Or.inl ⟨pre, post, hustock, hcpre, hV₀run⟩, ?_⟩
+    refine ⟨List.replicate post.length Move.draw
+        ++ (List.replicate (ws.length + 1) Move.draw
+          ++ (Move.wasteToFound x :: (List.replicate pre.length Move.draw ++ ρ))),
+        w₂, ?_, hwinρ⟩
+    -- segment A, part one: drain the stock remainder
+    obtain ⟨B, hBr, hBst, hBw, hBf, hBp, hBds⟩ : ∃ B,
+        (V₀.run (List.replicate post.length Move.draw) = some B
+          ∧ B.stock = ([] : List Card)
+          ∧ B.waste = post.reverse ++ (pre.reverse ++ x :: ws)
+          ∧ B.found = V₀.found ∧ B.piles = V₀.piles ∧ B.drawStep = V₀.drawStep) := by
+      have hd := drain_run1 post.length (show V₀.drawStep = 1 by rw [hVds, hds])
+        (show post.length ≤ V₀.stock.length by rw [hVs]; exact Nat.le_refl _)
+      have htp : post.take post.length = post := by
+        have := table_take_pre post ([] : List Card)
+        rw [show post ++ ([] : List Card) = post from List.append_nil post] at this
+        exact this
+      refine ⟨State.mk V₀.found V₀.piles ([] : List Card)
+          (post.reverse ++ (pre.reverse ++ x :: ws)) V₀.drawStep, ?_, rfl, rfl, rfl, rfl, rfl⟩
+      rw [hd, hVs, hVw, hwastee]
+      refine congrArg some (State.ext rfl rfl
+        (table_drop_ge post post.length (Nat.le_refl _)) ?_ rfl)
+      rw [htp]
+    -- segment A, part two: recycle and deal the waste above x
+    have hBne : B.waste = [] → False := by
+      intro hcon
+      have hxw : x ∈ B.waste := by
+        rw [hBw]
+        exact List.mem_append.2 (Or.inr (List.mem_append.2 (Or.inr (List.mem_cons_self ..))))
+      rw [hcon] at hxw
+      exact absurd hxw (by simp)
+    have hBle : ws.length + 1 ≤ B.waste.length := by
+      rw [hBw, List.length_append, List.length_append, List.length_reverse,
+        List.length_reverse, List.length_cons]
+      omega
+    obtain ⟨G, hGr, hGst, hGw, hGf, hGp, hGds⟩ : ∃ G,
+        (B.run (List.replicate (ws.length + 1) Move.draw) = some G
+          ∧ G.stock = pre ++ post ∧ G.waste = x :: ws
+          ∧ G.found = B.found ∧ G.piles = B.piles ∧ G.drawStep = B.drawStep) := by
+      have hBds1 : B.drawStep = 1 := by rw [hBds, hVds, hds]
+      have hrd := redeal_run1 ws.length hBds1 hBst hBne hBle
+      -- the recycled order, left-deep
+      have hrev : (post.reverse ++ (pre.reverse ++ x :: ws)).reverse
+          = ((ws.reverse ++ [x]) ++ pre) ++ post := by
+        rw [List.reverse_append, List.reverse_append, List.reverse_reverse,
+          List.reverse_reverse, List.reverse_cons]
+      have hlen : (ws.reverse ++ [x]).length = ws.length + 1 := by
+        rw [List.length_append, List.length_reverse]
+        rfl
+      have hlX : ws.length + 1 ≤ ((ws.reverse ++ [x]) ++ pre).length := by
+        rw [List.length_append, hlen]
+        omega
+      have hdro : (post.reverse ++ (pre.reverse ++ x :: ws)).reverse.drop (ws.length + 1)
+          = pre ++ post := by
+        rw [hrev,
+          table_drop_app_le ((ws.reverse ++ [x]) ++ pre) post (ws.length + 1) hlX,
+          table_drop_app_le (ws.reverse ++ [x]) pre (ws.length + 1)
+            (show ws.length + 1 ≤ (ws.reverse ++ [x]).length by
+              rw [hlen]; exact Nat.le_refl _),
+          table_drop_ge (ws.reverse ++ [x]) (ws.length + 1)
+            (by rw [hlen]; exact Nat.le_refl _),
+          List.nil_append]
+      have htak : (post.reverse ++ (pre.reverse ++ x :: ws)).reverse.take (ws.length + 1)
+          = ws.reverse ++ [x] := by
+        rw [hrev,
+          table_take_app_le ((ws.reverse ++ [x]) ++ pre) post (ws.length + 1) hlX,
+          table_take_app_le (ws.reverse ++ [x]) pre (ws.length + 1)
+            (show ws.length + 1 ≤ (ws.reverse ++ [x]).length by
+              rw [hlen]; exact Nat.le_refl _),
+          table_take_ge (ws.reverse ++ [x]) (ws.length + 1)
+            (by rw [hlen]; exact Nat.le_refl _)]
+      refine ⟨State.mk B.found B.piles (pre ++ post) (x :: ws) B.drawStep,
+        ?_, rfl, rfl, rfl, rfl, rfl⟩
+      rw [hrd, hBw]
+      refine congrArg some (State.ext rfl rfl ?_ ?_ rfl)
+      · show (post.reverse ++ (pre.reverse ++ x :: ws)).reverse.drop (ws.length + 1) = _
+        rw [hdro]
+      · show ((post.reverse ++ (pre.reverse ++ x :: ws)).reverse.take (ws.length + 1)).reverse
+            ++ ([] : List Card) = x :: ws
+        rw [htak, List.reverse_append, List.reverse_reverse, List.reverse_cons]
+        simp
+    -- the x-spend at G
+    have hGnxt : G.nextUp x = true := by
+      show decide (x.rank.toIdx = (G.found x.suit).length) = true
+      rw [hGf, hBf, hVf]
+      show decide (x.rank.toIdx =
+          (if x.suit = c.suit then u.found c.suit ++ [c] else u.found x.suit).length) = true
+      rw [ite_eq_right hxsu]
+      exact hnextX
+    have hstepG := wtf_step_raised (s := G) (c := x) (ws := ws) hGw hGnxt
+    -- segment C: deal on past the pre segment
+    have hG'st : (raisedMid G ws x).stock = pre ++ post := hGst
+    obtain ⟨L, hLr, hLs, hLw, hLf, hLp, hLds⟩ : ∃ L,
+        ((raisedMid G ws x).run (List.replicate pre.length Move.draw) = some L
+          ∧ L.stock = post ∧ L.waste = pre.reverse ++ ws
+          ∧ L.found = (raisedMid G ws x).found
+          ∧ L.piles = (raisedMid G ws x).piles
+          ∧ L.drawStep = (raisedMid G ws x).drawStep) := by
+      have hd := drain_run1 pre.length
+          (show (raisedMid G ws x).drawStep = 1 by
+            show G.drawStep = 1
+            rw [hGds, hBds, hVds, hds])
+          (show pre.length ≤ (raisedMid G ws x).stock.length by
+            rw [hG'st, List.length_append]
+            omega)
+      refine ⟨State.mk (raisedMid G ws x).found (raisedMid G ws x).piles post
+          (pre.reverse ++ ws) (raisedMid G ws x).drawStep,
+        ?_, rfl, rfl, rfl, rfl, rfl⟩
+      rw [hd, hG'st]
+      refine congrArg some (State.ext rfl rfl ?_ ?_ rfl)
+      · rw [table_drop_pre pre post]
+      · rw [show (pre ++ post).take pre.length = pre from table_take_pre pre post]
+        rfl
+    -- the resynced landing L equals the s₁-side front's landing s'
+    have hGfc : G.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
+      rw [hGf, hBf, hVf]
+      rfl
+    have hGfx : G.found x.suit
+        = (u.setFound c.suit (u.found c.suit ++ [c])).found x.suit := by
+      rw [hGf, hBf, hVf]
+      rfl
+    have hsfcx : s₁.found c.suit
+        = (u.setFound x.suit (u.found x.suit ++ [x])).found c.suit := by
+      rw [hs1found]
+      try rfl
+    have hs1w : s₁.waste = ws := by rw [hs₁]; try rfl
+    have hLand : L = s' := by
+      apply State.ext
+      · rw [hLf]
+        have hfL : (G.setFound x.suit (G.found x.suit ++ [x])).found
+            = ((u.setFound c.suit (u.found c.suit ++ [c])).setFound x.suit
+                ((u.setFound c.suit (u.found c.suit ++ [c])).found x.suit ++ [x])).found :=
+          setFound_found_congr hGfc (congrArg (fun l => l ++ [x]) hGfx)
+        have hfR : (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found
+            = ((u.setFound x.suit (u.found x.suit ++ [x])).setFound c.suit
+                ((u.setFound x.suit (u.found x.suit ++ [x])).found c.suit ++ [c])).found :=
+          setFound_found_congr hs1found (congrArg (fun l => l ++ [c]) hsfcx)
+        have hsF : s'.found = (s₁.setFound c.suit (s₁.found c.suit ++ [c])).found := by
+          rw [hSf]
+          try rfl
+        show (G.setFound x.suit (G.found x.suit ++ [x])).found = s'.found
+        exact hfL.trans ((double_bump_comm hxsu).trans (hfR.symm.trans hsF.symm))
+      · rw [hLp, show (raisedMid G ws x).piles = G.piles from rfl, hGp, hBp, hVp, hSp, hs₁]
+        rfl
+      · rw [hLs, hSs]
+      · rw [hLw, hSw, hs1w]
+      · rw [hLds, show (raisedMid G ws x).drawStep = G.drawStep from rfl, hGds, hBds, hVds, hds,
+        hSds, hds1]
+    -- the win assembly: the resync play runs to s', then the tail wins
+    have hglue : V₀.run (List.replicate post.length Move.draw
+        ++ (List.replicate (ws.length + 1) Move.draw
+          ++ (Move.wasteToFound x :: (List.replicate pre.length Move.draw ++ ρ))))
+        = some w₂ := by
+      rw [run_replicate_append post.length V₀ B _ hBr,
+        run_replicate_append (ws.length + 1) B G _ hGr,
+        run_step_cons hstepG,
+        run_replicate_append pre.length (raisedMid G ws x) L ρ hLr,
+        hLand]
+      exact hrunρ
+    exact hglue
+  · -- the waste front at s₁ would double-book c against the census
+    exfalso
+    have hcs1 : c ∈ s₁.stock := by rw [hstock]; exact hcycu
+    have hcw1 : c ∈ s₁.waste := by
+      rw [hs1waste]
+      exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
+    exact (mem_stock_unique hwf₁ hcs1).2.1 hcw1
+
+/-- **The consuming `wasteToTab` square, stock form.**  The head
+parks a foreign card `x` (≠ c) from the waste onto a seat.  The
+front from `u` delivers `c` with `x` riding the cycle; the same
+resync draws `x` back to hand, re-parks it (a pure pile write — no
+foundation is touched, so the founds agree without any bump
+commutation), and deals on to the `s₁`-side front's landing. -/
+private theorem front_consume_wtt_stock {u s₁ : State} {c x : Card} {b : Base} {s' : State}
+    (hds : u.drawStep = 1) (hrungU : u.nextUp c = true)
+    (hstep : State.step u (Move.wasteToTab x b) = some s₁)
+    (hcycu : c ∈ u.stock) (hwf₁ : s₁.WF)
+    (hfront₁ : FrontOK c s₁ s') (hwin₁ : WinFrom s') :
+    ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
+  obtain ⟨hwis, hcp, ws, hwastee, hs₁⟩ := wasteToTab_fires hstep
+  -- the park writes no foundation and touches no cycle field
+  have hstock : s₁.stock = u.stock := by rw [hs₁]; exact (putCard_keep).2.1
+  have hs1found : s₁.found = u.found := by rw [hs₁]; exact putCard_found_keep
+  have hds1 : s₁.drawStep = 1 := by rw [step_drawStep_keep hstep, hds]
+  have hn1 : s₁.nextUp c = true := by
+    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
+    rw [hs1found]
+    exact hrungU
+  obtain ⟨ρ, w₂, hrunρ, hwinρ⟩ := hwin₁
+  rcases hfront₁ with ⟨pre, post, hs1stock, hcpre, hplay⟩ | ⟨preW, postW, hs1waste, hcpre, hplay⟩
+  · -- the stock front at both ends; the cycle data is shared
+    have hustock : u.stock = pre ++ c :: post := hstock.symm.trans hs1stock
+    obtain ⟨V₀, hV₀run⟩ : ∃ V,
+        u.run (List.replicate (pre.length + 1) Move.draw ++ [Move.wasteToFound c]) = some V :=
+      ⟨_, front_stock hds hrungU hustock⟩
+    obtain ⟨hVf, hVp, hVs, hVw, hVds⟩ :=
+      front_stock_shape hds hrungU hustock V₀ hV₀run
+    obtain ⟨hSf, hSp, hSs, hSw, hSds⟩ :=
+      front_stock_shape hds1 hn1 hs1stock s' hplay
+    refine ⟨V₀, Or.inl ⟨pre, post, hustock, hcpre, hV₀run⟩, ?_⟩
+    refine ⟨List.replicate post.length Move.draw
+        ++ (List.replicate (ws.length + 1) Move.draw
+          ++ (Move.wasteToTab x b :: (List.replicate pre.length Move.draw ++ ρ))),
+        w₂, ?_, hwinρ⟩
+    -- segment A, part one: drain the stock remainder
+    obtain ⟨B, hBr, hBst, hBw, hBf, hBp, hBds⟩ : ∃ B,
+        (V₀.run (List.replicate post.length Move.draw) = some B
+          ∧ B.stock = ([] : List Card)
+          ∧ B.waste = post.reverse ++ (pre.reverse ++ x :: ws)
+          ∧ B.found = V₀.found ∧ B.piles = V₀.piles ∧ B.drawStep = V₀.drawStep) := by
+      have hd := drain_run1 post.length (show V₀.drawStep = 1 by rw [hVds, hds])
+        (show post.length ≤ V₀.stock.length by rw [hVs]; exact Nat.le_refl _)
+      have htp : post.take post.length = post := by
+        have := table_take_pre post ([] : List Card)
+        rw [show post ++ ([] : List Card) = post from List.append_nil post] at this
+        exact this
+      refine ⟨State.mk V₀.found V₀.piles ([] : List Card)
+          (post.reverse ++ (pre.reverse ++ x :: ws)) V₀.drawStep, ?_, rfl, rfl, rfl, rfl, rfl⟩
+      rw [hd, hVs, hVw, hwastee]
+      refine congrArg some (State.ext rfl rfl
+        (table_drop_ge post post.length (Nat.le_refl _)) ?_ rfl)
+      rw [htp]
+    -- segment A, part two: recycle and deal the waste above x
+    have hBne : B.waste = [] → False := by
+      intro hcon
+      have hxw : x ∈ B.waste := by
+        rw [hBw]
+        exact List.mem_append.2 (Or.inr (List.mem_append.2 (Or.inr (List.mem_cons_self ..))))
+      rw [hcon] at hxw
+      exact absurd hxw (by simp)
+    have hBle : ws.length + 1 ≤ B.waste.length := by
+      rw [hBw, List.length_append, List.length_append, List.length_reverse,
+        List.length_reverse, List.length_cons]
+      omega
+    obtain ⟨G, hGr, hGst, hGw, hGf, hGp, hGds⟩ : ∃ G,
+        (B.run (List.replicate (ws.length + 1) Move.draw) = some G
+          ∧ G.stock = pre ++ post ∧ G.waste = x :: ws
+          ∧ G.found = B.found ∧ G.piles = B.piles ∧ G.drawStep = B.drawStep) := by
+      have hBds1 : B.drawStep = 1 := by rw [hBds, hVds, hds]
+      have hrd := redeal_run1 ws.length hBds1 hBst hBne hBle
+      have hrev : (post.reverse ++ (pre.reverse ++ x :: ws)).reverse
+          = ((ws.reverse ++ [x]) ++ pre) ++ post := by
+        rw [List.reverse_append, List.reverse_append, List.reverse_reverse,
+          List.reverse_reverse, List.reverse_cons]
+      have hlen : (ws.reverse ++ [x]).length = ws.length + 1 := by
+        rw [List.length_append, List.length_reverse]
+        rfl
+      have hlX : ws.length + 1 ≤ ((ws.reverse ++ [x]) ++ pre).length := by
+        rw [List.length_append, hlen]
+        omega
+      have hdro : (post.reverse ++ (pre.reverse ++ x :: ws)).reverse.drop (ws.length + 1)
+          = pre ++ post := by
+        rw [hrev,
+          table_drop_app_le ((ws.reverse ++ [x]) ++ pre) post (ws.length + 1) hlX,
+          table_drop_app_le (ws.reverse ++ [x]) pre (ws.length + 1)
+            (show ws.length + 1 ≤ (ws.reverse ++ [x]).length by
+              rw [hlen]; exact Nat.le_refl _),
+          table_drop_ge (ws.reverse ++ [x]) (ws.length + 1)
+            (by rw [hlen]; exact Nat.le_refl _),
+          List.nil_append]
+      have htak : (post.reverse ++ (pre.reverse ++ x :: ws)).reverse.take (ws.length + 1)
+          = ws.reverse ++ [x] := by
+        rw [hrev,
+          table_take_app_le ((ws.reverse ++ [x]) ++ pre) post (ws.length + 1) hlX,
+          table_take_app_le (ws.reverse ++ [x]) pre (ws.length + 1)
+            (show ws.length + 1 ≤ (ws.reverse ++ [x]).length by
+              rw [hlen]; exact Nat.le_refl _),
+          table_take_ge (ws.reverse ++ [x]) (ws.length + 1)
+            (by rw [hlen]; exact Nat.le_refl _)]
+      refine ⟨State.mk B.found B.piles (pre ++ post) (x :: ws) B.drawStep,
+        ?_, rfl, rfl, rfl, rfl, rfl⟩
+      rw [hrd, hBw]
+      refine congrArg some (State.ext rfl rfl ?_ ?_ rfl)
+      · show (post.reverse ++ (pre.reverse ++ x :: ws)).reverse.drop (ws.length + 1) = _
+        rw [hdro]
+      · show ((post.reverse ++ (pre.reverse ++ x :: ws)).reverse.take (ws.length + 1)).reverse
+            ++ ([] : List Card) = x :: ws
+        rw [htak, List.reverse_append, List.reverse_reverse, List.reverse_cons]
+        simp
+    -- the park at G
+    have hGcp : G.canPlace x b = true := by
+      rw [canPlace_congr x b
+        (show G.piles = u.piles from (hGp.trans hBp).trans hVp)]
+      exact hcp
+    have hcond : (G.wasteIs x && G.canPlace x b) = true := by
+      rw [State.wasteIs_cons hGw x, hGcp, show decide (x = x) = true from decide_eq_true rfl]
+      rfl
+    have hstepG : State.step G (Move.wasteToTab x b)
+        = some { G.putCard x b with waste := ws } := by
+      show (if G.wasteIs x && G.canPlace x b then
+          match G.waste with
+          | _ :: lw => some ({ G.putCard x b with waste := lw })
+          | [] => none
+          else none) = _
+      rw [hcond, hGw]
+      rfl
+    obtain ⟨G', hG'r, hG'f, hG'p, hG'st, hG'w, hG'ds⟩ : ∃ G',
+        (State.step G (Move.wasteToTab x b) = some G'
+          ∧ G'.found = G.found ∧ G'.piles = (G.putCard x b).piles
+          ∧ G'.stock = G.stock ∧ G'.waste = ws ∧ G'.drawStep = G.drawStep) := by
+      refine ⟨{ G.putCard x b with waste := ws }, hstepG,
+        putCard_found_keep, rfl, (putCard_keep).2.1, rfl, (putCard_keep).2.2.2⟩
+    -- segment C: deal on past the pre segment
+    have hG'ne : pre.length ≤ G'.stock.length := by
+      rw [hG'st, hGst]
+      rw [List.length_append]
+      omega
+    obtain ⟨L, hLr, hLs, hLw, hLf, hLp, hLds⟩ : ∃ L,
+        (G'.run (List.replicate pre.length Move.draw) = some L
+          ∧ L.stock = post ∧ L.waste = pre.reverse ++ ws
+          ∧ L.found = G'.found ∧ L.piles = G'.piles ∧ L.drawStep = G'.drawStep) := by
+      have hd := drain_run1 pre.length
+          (show G'.drawStep = 1 by rw [hG'ds, hGds, hBds, hVds, hds]) hG'ne
+      refine ⟨State.mk G'.found G'.piles post (pre.reverse ++ ws) G'.drawStep,
+        ?_, rfl, rfl, rfl, rfl, rfl⟩
+      rw [hd, hG'st, hGst]
+      refine congrArg some (State.ext rfl rfl ?_ ?_ rfl)
+      · rw [table_drop_pre pre post]
+      · rw [show (pre ++ post).take pre.length = pre from table_take_pre pre post, hG'w]
+        try rfl
+    -- the found identities: both sides are the same c-bump over u.found
+    have hGfulit : G.found = (u.setFound c.suit (u.found c.suit ++ [c])).found := by
+      rw [hGf, hBf, hVf]
+      try rfl
+    have hLlit : L.found
+        = (fun σ => if σ = c.suit then u.found c.suit ++ [c] else u.found σ) := by
+      rw [hLf, hG'f, hGfulit]
+      try rfl
+    have hs1w : s₁.waste = ws := by rw [hs₁]; try rfl
+    have hslit : s'.found
+        = (fun σ => if σ = c.suit then u.found c.suit ++ [c] else u.found σ) := by
+      rw [hSf, hs1found]
+      try rfl
+    -- the resynced landing L equals the s₁-side front's landing s'
+    have hLand : L = s' := by
+      apply State.ext
+      · rw [hLlit, hslit]
+      · rw [hLp, hG'p, putCard_piles_eq_of_eq
+          (show G.piles = u.piles from (hGp.trans hBp).trans hVp) x b, hSp, hs₁]
+        try rfl
+      · rw [hLs, hSs]
+      · rw [hLw, hSw, hs1w]
+      · rw [hLds, hG'ds, hGds, hBds, hVds, hSds, hds1, hds]
+    -- the win assembly
+    have hglue : V₀.run (List.replicate post.length Move.draw
+        ++ (List.replicate (ws.length + 1) Move.draw
+          ++ (Move.wasteToTab x b :: (List.replicate pre.length Move.draw ++ ρ))))
+        = some w₂ := by
+      rw [run_replicate_append post.length V₀ B _ hBr,
+        run_replicate_append (ws.length + 1) B G _ hGr,
+        run_step_cons hG'r,
+        run_replicate_append pre.length G' L ρ hLr,
+        hLand]
+      exact hrunρ
+    exact hglue
+  · -- the waste front at s₁ would double-book c against the census
+    exfalso
+    have hcs1 : c ∈ s₁.stock := by rw [hstock]; exact hcycu
+    have hcw1 : c ∈ s₁.waste := by
+      rw [hs1waste]
+      exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
+    exact (mem_stock_unique hwf₁ hcs1).2.1 hcw1
+
 /-- **(B) The compliant replay**: with `c` stocked next for its
 foundation, a compliant winning play front-loads as a win after
 dealing `c` out and stacking it.  Safety is not a premise — no case
@@ -4966,17 +6151,134 @@ pairs stay synchronized through any number of draws, then the
 bumps commute); the consuming-move square does NOT land up to
 `sameCycle` — the two landings differ by a pure-draw ROTATION of
 the same cycle (mutually reachable, so the win lifts without any
-transport), and a genuine `sameCycle`-vs-(A) transport survives
-only in the pristine corner of the waste-form fronting
-(`postW = []`: the fronted card's slot is dealt back at the last
-recycle, so the twin's cut never re-closes — THIS is the one place
-(B) really cites (A)).  TODO(assembly). -/
+ transport), and a genuine `sameCycle`-vs-(A) transport survives
+ only in the pristine corner of the waste-form fronting
+ (`postW = []`: the fronted card's slot is dealt back at the last
+ recycle, so the twin's cut never re-closes — THIS is the one place
+ (B) really cites (A)).  TODO(assembly). -/
 theorem draw1_compliant_replay {st : State} {c : Card}
     (hwf : st.WF) (hstep : st.drawStep = 1)
     (hrung : st.nextUp c = true) (hstock : c ∈ st.stock) :
     ∀ π w, rungHeldUntilExit c π → st.run π = some w → w.isWin = true →
       ∃ k s', st.run (List.replicate k Move.draw ++ [Move.wasteToFound c]) = some s' ∧
         WinFrom s' := sorry
+
+/-! #### (B) RESUME NOTE (second pass, in place — read before resuming).
+
+The motive is FIXED and landed: `FrontOK c u s'` above (stock form:
+`|pre|+1` draws + spend; waste form: `|stock|+|postW|+1` draws +
+spend).  The case lemmas each take the IH-result (`hfront₁ : FrontOK c
+s₁ s'`, `hwin₁ : WinFrom s'` — obtain `⟨ρ, w₂, hrunρ, hwinρ⟩` first)
+plus the u-bundle, and RETURN `∃ s'', FrontOK c u s'' ∧ WinFrom s''`.
+LANDED SORRY-FREE (all above this note):
+
+* helpers: `stock_zone`, `waste_zone` (Encode not imported — the
+  zone-membership is `rw [show st.zones = ... from rfl]; simp`),
+  `zone_two_hits_ne` (the in-zone census bound via `count_filter_pos`
+  + `mem_infix_split` + `List.flatMap_append`), `nextUp_pair_eq`
+  (sameRung sibling, dedup-marked), `split_head`, `FrontOK`,
+  `front_nil` (WF-free isWin-vs-rung: `isWin_len` + `Rank.toIdx_lt`
+  + omega on the foundHeight-decide), `front_stock_shape` /
+  `front_waste_shape` (the engine landings, field by field);
+* exits: `front_exit_wtf` (pristine front_waste lands `raisedMid u
+  ws c` which IS the play's own successor — tail verbatim),
+  `front_exit_wtt` (`lower_foundToTab1` prepends the foundToTab to
+  the tail);
+* board squares `front_board_tf` / `front_board_tt` / `front_board_ft`
+  (both FrontOK arms each): `tabToFound` by `double_bump_comm` +
+  `setFound_found_congr` chains and `piles_afterRunRemoved_transfer`;
+  `tabToTab` pure-pile (putRun_keep bridges per field);
+  `foundToTab` by `chop_bump_comm` + `putCard_piles_congr`;
+* consuming STOCK engines, both kinds: `front_consume_wtf_stock`,
+  `front_consume_wtt_stock` — the rotation resync as EXPLICIT
+  composites: V₀ = u-front (shape-wrapper) → drain `|post|` →
+  redeal `|ws|+1` (recycle with the take/drop `table_*_app_le`
+  peel chain copied from `front_waste`'s own `htak`/`hdro`, the
+  recycled form spelled LEFT-DEEP `((ws⁻¹ ++ [x]) ++ pre) ++ post`)
+  → G → spend x (wtf: `wtf_step_raised` + `double_bump_comm` at
+  `hxsu`; wtt: the forward step by `State.wasteIs_cons` +
+  `decide_eq_true rfl` guard, NO bump machinery — the landing's
+  found is the plain c-lit by `putCard_found_keep`) → drain `|pre|`
+  → L = s' field by field → the glue by `run_replicate_append` with
+  INFERRED `_` rests (state the play with explicit parens! see the
+  traps).
+
+REMAINING (the same patterns, in this order):
+
+1. `front_consume_wtf_waste` + `front_consume_wtt_waste` — the
+   c-wasted consuming cases.  u-data = `(x :: preW, postW, c ∉ x ::
+   preW)` from the IH's OWN waste data at s₁ (s₁.waste = ws = preW ++
+   c :: postW; NO unicity lemma needed — use the IH's data as the
+   ws-split).  Segment A is a PLAIN drain (`|preW|+1` — `|preW⁻¹ ++ [x]
+   ++ stock|`), G = `(u.stock, x :: preW ++ postW)`; spend x; then
+   `cases postW`:
+   · cons z zs — the crossing resync: drain `|u.stock|` (may be 0 —
+     rep 0 is fine), redeal `|postW|` lands V₁'s `(preW⁻¹ ++ u.stock,
+     postW)` EXACTLY (G'.waste = preW ++ postW at a SPLIT base:
+     craft `hlX-postW-of-hlX` carefully; all four probes of the
+     prior session validated this arithmetic);
+   · nil — PRISTINE: one further drain `|u.stock|` lands R :=
+     `([], u.stock⁻¹ ++ preW)` with `sameCycle R s'` (found/piles by
+     the wtf/wtt chains above, cycle = `List.append_nil` both ways),
+     and (A) transports `WinFrom s' → WinFrom R` via
+     `draw1_sameCycle_sameFate ... |>.mpr`.  This is the ONE (A)
+     cite.
+2. `front_draw` (stub above) — the absorb.  `draw_shape_plain`/
+   `draw_shape_base` from hstep, then `cases hfront₁` arms:
+   · plain + stock-data: prepend (`(a :: pre₁, post₁)`,
+     `rep (|pre₁|+2) = draw :: (|pre₁|+1)` via `List.replicate_succ`),
+     `run_rep_append1`-style glue;
+   · plain + waste-data with a ≠ c: prepend (`(zs, postW₁)` where
+     `preW₁ = a :: zs` by cons-inject; count via `List.length_drop`);
+   · plain + waste-data with a = c: c-dealt — u-data `([], rest)`,
+     s₁-data FORCED `([], u.waste)` by `split_head`, and the
+     u-play `[draw; wtf c]` lands `raisedMid` = the s₁-engine's
+     long-front landing (State.ext, both literals in file);
+   · base-draw (`u.waste.reverse = b :: bs`, `s₁ = {stock := bs, waste :=
+     [b]}`) + stock-data at s₁: u-data =
+     `(post₁⁻¹, pre₁⁻¹ ++ [b])` DIRECTLY (reverse the s₁-split),
+     prepend;
+   · base-draw + waste-data: b = c forced (`s₁.waste = [b]`), the
+     equality-landing arm again (u-front = `bs⁻¹`-stock form;
+     c ∉ bs by `zone_two_hits_ne` — twice-in-waste).
+   The WF-exfalso arm (plain + stock-data + a = c: c twice at s₁ —
+   `mem_stock_unique`) closes the impossible branch.
+3. The dispatcher `replay_front_aux` (strong Nat induction on
+   π.length ≤ n; `cases π`; nil → `front_nil`; per head move:
+   split the compliance `rcases hcomp with hex | ⟨hlr, hcrest⟩`,
+   `cases m`, extract x ≠ c from `Move.leavesWaste` decides, force
+   the c-suit splits (`nextUp_pair_eq`, and for tabToFound-of-c-suit
+   a `mem_stock_unique`/`pileOfTop` exfalso — premised WF passes),
+   build the s₁-bundle (WF: `step_wf`, ds: `step_drawStep_keep`,
+   nextUp: the per-kind shape readers — copy the bundle blocks of
+   the C engine `normform_aux`), apply the IH at `rest`
+   (`rest.length ≤ n` by omega), call the case lemma); the final
+   theorem = the aux at `Nat.le_refl`, reading k off the FrontOK arm.
+   Do NOT inline the dispatcher cases — call the landed lemmas.
+
+TRAPS (all were hit and resolved in the landed code — re-check the
+diffs before improvising): (i) plays with a cons "island" parse
+LEFT-assoc — `A ++ B ++ x :: C` is `(A ++ B) ++ (x :: C)` —
+parenthesize every play explicitly (see the refine of the consume
+engines); (ii) `p ∧ q = r` binds as `p ∧ (q = r)` with a `decide`
+coercion — parenthesize `(p && q) = true` (see `hcond`); (iii)
+`rw [show ... from rfl]`-tails: `table_drop_ge` takes `(Nat.le_refl
+_)` NOT `rfl`, and `hle` for `table_*_app_le/redeal_run1` points
+RHS-ward (`n ≤ len`), while `drain_run1`'s points LHS-ward; (iv)
+`rw`'s auto-rfl is unstable — end rw-chains with `try rfl`, never
+bare `rfl`; (v) never write `rw [show A = B from ?_]` — prove the
+eq as a `have` first, or make the tail tactic a separate line;
+(vi) obtain intermediate states EXISTENTIALLY with field-tuples
+(`obtain ⟨G, hGr, hGst, ...⟩ : ∃ G, (...) ∧ ...`) — inline record
+witnesses in `refine ⟨State.mk ... ⟩` with the FIELD proofs as
+`rfl`s, never `{ X with ... }` inside ⟨⟩ (parse); (vii) the
+take/drop over the recycled reverse goes through the
+`table_take_app_le`/`table_drop_app_le` PEEL chain exactly as
+`front_waste`'s `htak`/`hdro` (LEFT-DEEP `(A ++ [x]) ++ pre` first
+arg, then `(A ++ [x])`); (viii) `wasteIs`-guards close via
+`State.wasteIs_cons hGw x` + the canPlace fact +
+`decide_eq_true rfl`, plus a FINAL `rfl`/`simp` if rw leaves
+`true && true`. -/
 
 /-- **(C) The normal form**: a winning play exists that keeps the
 c-rung until `c` leaves the waste — B&G's safemoves discipline.  Any
