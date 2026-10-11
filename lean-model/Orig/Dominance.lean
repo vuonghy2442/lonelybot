@@ -2650,6 +2650,215 @@ private theorem ground_settle_transport {st : State} {c : Card} {k : Anchor} {s�
   rw [hv] at hσ
   exact ⟨P ++ σ, w, ground_run_join s₁ P σ v₀ w hPv hσ, hwin⟩
 
+/-! ### The spread window's commutation instance
+
+The wave-24 spread-core row's first landed instance (the wave-21/23
+staging pattern, one shape per commit): the DIAMOND — at a WF state,
+raising `y` then `c` and raising `c` then `y` both fire and land at
+the SAME state, when the two cards sit at their own rungs, in
+distinct suits (the distinct source piles are not a premise: they
+follow from the movers being distinct cards at a WF state — one
+pile has one top, and the census pins one face-up seat per card).
+This is the commutation that front-loads a window-interior
+substitute raise past the rung pass: the (N) α-route's substitute
+never blocks the rung, in either order.  The probe
+(`OrigProbes/GroundRes.lean`, the W2/W2' cases) sustained both
+orders at hand-composed members with exact end-state keys. -/
+
+/-- Everything on a `chop` list is on the list. -/
+private theorem w_chop_mem {z : Card} : ∀ {l : List Card}, z ∈ chop l → z ∈ l := by
+  intro l
+  induction l with
+  | nil => intro h; exact absurd h (by simp [chop])
+  | cons w t ih =>
+      intro h
+      cases t with
+      | nil => exact absurd h (by simp [chop])
+      | cons v ts =>
+          have h' : z ∈ w :: chop (v :: ts) := h
+          rcases List.mem_cons.mp h' with hc | hm
+          · rw [← hc]
+            exact List.mem_cons_self
+          · exact List.mem_cons_of_mem _ (ih hm)
+
+/-- A card absent from both parts of a pile is absent from the pile
+the run-removal digs — the cons branch's new face-up run is a
+`chop` sublist of the old one, and the reveal branch flips a
+hidden card (the other part's own absence covers it). -/
+private theorem w_notMem_afterRunRemoved_faceUp {p : Pile} {c : Card}
+    (hcf : c ∉ p.faceUp) (hch : c ∉ p.hidden) :
+    c ∉ (Pile.afterRunRemoved p (chop p.faceUp)).faceUp := by
+  by_cases hpre : chop p.faceUp = []
+  · intro hcon
+    rw [hpre] at hcon
+    simp only [Pile.afterRunRemoved, Pile.revealTop] at hcon
+    cases hhd : p.hidden with
+    | nil => simp only [hhd] at hcon; exact absurd hcon (by simp)
+    | cons h t =>
+        simp only [hhd] at hcon
+        rw [List.nil_append] at hcon
+        rcases List.mem_cons.mp hcon with hc | hm
+        · apply hch
+          rw [hhd]
+          exact List.mem_cons.mpr (Or.inl hc)
+        · exact absurd hm (by simp)
+  · intro hcon
+    rw [afterRunRemoved_ne hpre] at hcon
+    exact hcf (w_chop_mem hcon)
+
+/-- **The diamond** — two raises at distinct suits commute exactly:
+if `y`'s raise and `c`'s raise both fire from `st`, then whichever
+is played first, the other still fires, and the two orders land at
+the SAME state — the digs are disjoint (a mover cannot sit in the
+other mover's source pile: the census pins one face-up seat per
+card), the foundations gain each card exactly once in either
+order, and every other zone is untouched by raises. -/
+theorem ground_diamond_raise {st : State} {y c : Card}
+    {s₁ s₃ s₂ : State} (hwf : st.WF)
+    (hsuits : y.suit ≠ c.suit)
+    (hy : State.step st (Move.tabToFound y) = some s₁)
+    (hc1 : State.step st (Move.tabToFound c) = some s₃)
+    (hy2 : State.step s₃ (Move.tabToFound y) = some s₂) :
+    State.step s₁ (Move.tabToFound c) = some s₂ := by
+  obtain ⟨-, k₁, hky₁, hs₁⟩ := restackStep_inv hy
+  obtain ⟨hnextc, k₂, hkc₂, hs₃⟩ := restackStep_inv hc1
+  obtain ⟨-, ky, hky, hs₂⟩ := restackStep_inv hy2
+  have hs₁wf : s₁.WF := step_wf hwf hy
+  have hs₃wf : s₃.WF := step_wf hwf hc1
+  have hytop : (st.piles k₁).top = some y :=
+    (pileOfTop_eq_some_iff hwf).mp hky₁
+  have hctop : (st.piles k₂).top = some c :=
+    (pileOfTop_eq_some_iff hwf).mp hkc₂
+  have hyc : y ≠ c := by
+    intro hcon
+    apply hsuits
+    rw [← hcon]
+  have hk12 : k₁ ≠ k₂ := by
+    intro hcon
+    rw [hcon] at hytop
+    exact hyc (Option.some.inj (hctop.symm.trans hytop)).symm
+  have hk21 : k₂ ≠ k₁ := fun hcon => hk12 hcon.symm
+  have hpacky₂ := mem_faceUp_unique hwf (Pile.mem_of_top hytop) k₂ hk21
+  have hyDig₂ : y ∉ (Pile.afterRunRemoved (st.piles k₂)
+      (chop (st.piles k₂).faceUp)).faceUp :=
+    w_notMem_afterRunRemoved_faceUp hpacky₂.1 hpacky₂.2.1
+  have hP₁ : ∀ a' : Anchor, s₁.piles a' =
+      if a' = k₁ then Pile.afterRunRemoved (st.piles k₁) (chop (st.piles k₁).faceUp)
+      else st.piles a' := by
+    intro a'
+    rw [hs₁]
+  have hP₃ : ∀ a' : Anchor, s₃.piles a' =
+      if a' = k₂ then Pile.afterRunRemoved (st.piles k₂) (chop (st.piles k₂).faceUp)
+      else st.piles a' := by
+    intro a'
+    rw [hs₃]
+  have hP₁k₂ : s₁.piles k₂ = st.piles k₂ := by
+    rw [hP₁ k₂]
+    exact if_neg hk21
+  have hP₃k₁ : s₃.piles k₁ = st.piles k₁ := by
+    rw [hP₃ k₁]
+    exact if_neg hk12
+  have hF₁ : ∀ σ : Suit, s₁.found σ =
+      if σ = y.suit then st.found y.suit ++ [y] else st.found σ := by
+    intro σ
+    rw [hs₁]
+    rfl
+  have hF₃ : ∀ σ : Suit, s₃.found σ =
+      if σ = c.suit then st.found c.suit ++ [c] else st.found σ := by
+    intro σ
+    rw [hs₃]
+    rfl
+  have hfc₁ : s₁.found c.suit = st.found c.suit := by
+    rw [hF₁ c.suit]
+    exact if_neg (fun h' => hsuits h'.symm)
+  have hnextc₁ : s₁.nextUp c = true := by
+    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
+    rw [hfc₁]
+    exact hnextc
+  have hkc₃ : s₁.pileOfTop c = some k₂ := by
+    refine (pileOfTop_eq_some_iff hs₁wf).mpr ?_
+    rw [hP₁k₂]
+    exact hctop
+  have htyky : (s₃.piles ky).top = some y :=
+    (pileOfTop_eq_some_iff hs₃wf).mp hky
+  have hkyeq : ky = k₁ := by
+    by_cases hky₂ : ky = k₂
+    · exfalso
+      have hD : s₃.piles k₂ =
+          Pile.afterRunRemoved (st.piles k₂) (chop (st.piles k₂).faceUp) := by
+        rw [hP₃ k₂]
+        exact if_pos rfl
+      rw [hky₂, hD] at htyky
+      exact hyDig₂ (Pile.mem_of_top htyky)
+    · by_cases hky₁ : ky = k₁
+      · exact hky₁
+      · exfalso
+        have hplky : s₃.piles ky = st.piles ky := by
+          rw [hP₃ ky]
+          exact if_neg hky₂
+        have htyky : (st.piles ky).top = some y := by
+          rw [← hplky]
+          exact htyky
+        exact (mem_faceUp_unique hwf (Pile.mem_of_top hytop) ky hky₁).1
+          (Pile.mem_of_top htyky)
+  rw [hkyeq] at hs₂
+  have hZ₁s : s₁.stock = st.stock := by rw [hs₁]; rfl
+  have hZ₁w : s₁.waste = st.waste := by rw [hs₁]; rfl
+  have hZ₁d : s₁.drawStep = st.drawStep := by rw [hs₁]; rfl
+  have hZ₂s : s₂.stock = st.stock := by
+    rw [hs₂]; show s₃.stock = st.stock; rw [hs₃]; rfl
+  have hZ₂w : s₂.waste = st.waste := by
+    rw [hs₂]; show s₃.waste = st.waste; rw [hs₃]; rfl
+  have hZ₂d : s₂.drawStep = st.drawStep := by
+    rw [hs₂]; show s₃.drawStep = st.drawStep; rw [hs₃]; rfl
+  have hfire := step_tabToFound_splice hnextc₁ hkc₃
+  have hEq : (({ s₁.setFound c.suit (s₁.found c.suit ++ [c]) with
+      piles := fun a' =>
+        if a' = k₂ then
+          Pile.afterRunRemoved (s₁.piles k₂) (chop (s₁.piles k₂).faceUp)
+        else s₁.piles a' } : State)) = s₂ := by
+    apply State.ext
+    · funext σ
+      show (if σ = c.suit then s₁.found c.suit ++ [c] else s₁.found σ) = s₂.found σ
+      rw [hs₂]
+      show (if σ = c.suit then s₁.found c.suit ++ [c] else s₁.found σ) =
+        (if σ = y.suit then s₃.found y.suit ++ [y] else s₃.found σ)
+      rw [hF₁ σ, hF₃ σ, hF₁ c.suit, hF₃ y.suit]
+      by_cases hσy : σ = y.suit
+      · rw [if_pos hσy, if_pos hσy,
+          if_neg (fun h' => hsuits (h'.symm.trans hσy).symm), if_neg hsuits]
+      · rw [if_neg (fun h' => hσy h'), if_neg (fun h' => hσy h')]
+        by_cases hσc : σ = c.suit
+        · rw [if_pos hσc, if_pos hσc, if_neg (fun h' => hsuits h'.symm)]
+        · rw [if_neg (fun h' => hσc h'), if_neg (fun h' => hσc h')]
+    · funext a'
+      show (if a' = k₂ then
+          Pile.afterRunRemoved (s₁.piles k₂) (chop (s₁.piles k₂).faceUp)
+        else s₁.piles a') = s₂.piles a'
+      rw [hP₁k₂, hP₁ a', hs₂, hP₃k₁]
+      show (if a' = k₂ then
+          Pile.afterRunRemoved (st.piles k₂) (chop (st.piles k₂).faceUp)
+        else if a' = k₁ then
+          Pile.afterRunRemoved (st.piles k₁) (chop (st.piles k₁).faceUp)
+        else st.piles a') =
+        (if a' = k₁ then
+          Pile.afterRunRemoved (st.piles k₁) (chop (st.piles k₁).faceUp)
+        else s₃.piles a')
+      rw [hP₃ a']
+      by_cases hk₁ : a' = k₁
+      · rw [if_pos hk₁, if_pos hk₁, if_neg (fun h => hk12 (hk₁.symm.trans h))]
+      · by_cases hk₂ : a' = k₂
+        · rw [if_pos hk₂, if_neg hk₁, if_pos hk₂]
+        · rw [if_neg hk₂, if_neg hk₂, if_neg hk₁]
+    · show s₁.stock = s₂.stock
+      rw [hZ₁s, hZ₂s]
+    · show s₁.waste = s₂.waste
+      rw [hZ₁w, hZ₂w]
+    · show s₁.drawStep = s₂.drawStep
+      rw [hZ₁d, hZ₂d]
+  rw [hfire]
+  exact congrArg some hEq
+
 /-! ### The named sub-residue (the (N) win-lift) -/
 
 /-- **(N) The lifted win** — §5.1's one remaining content piece,
@@ -9163,4 +9372,5 @@ skeleton is sorry-free; the content rides the named stub). -/
 #print axioms WorryCoReal.probe_cnow_others
 #print axioms WorryCoReal.probe_xnext_spade
 #print axioms WorryCoReal.probe_xnext_others
+
 
