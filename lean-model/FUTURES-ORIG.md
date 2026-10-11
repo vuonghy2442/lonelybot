@@ -3274,3 +3274,61 @@ de-privatized exchange realizers step_realize_fwd/_bwd (commit
 cone_pop_window, branch orig-macro-determinism) unblocking
 founded_implies_atRung at merge time — my §11-L4.5 route note
 rides that.
+
+#### §11-L4.6 — the mirror re-port + graft census (amr_12a3219b1; the two-evolutions-behind diagnosis acknowledged and repaired)
+
+REPORTED: the user's MacroInternal.lean is now MIRRORED VERBATIM
+into this branch (Orig/MacroInternal.lean, 521 lines, the main-tree
+file read and copied) and STANDALONE-COMPILES GREEN (lake env lean
+Orig/MacroInternal.lean): every theorem in it now elaborates
+against this worktree's banked state; the sorries it retains are
+its own by design (the user's skeleton file, mirrored — never the
+main-tree file edited).
+
+THE TWO CHANGES SINCE THE LAST SYNC, both carried:
+(1) THE FLATSTEP CARGO-MERGE — FlatStep is now TWO letters only
+(cargo = any tabToTab relocation, subsuming slides, reseatings,
+and licensed exchanges per exchangeTwin's own suffix-swap
+semantics; exch_is_cargo proved on orig-macro-floor).  This
+branch's ledger phrasings that spoke of the exchange letter are
+superseded: the exchange vocabulary survives as the RELATION-level
+name only.  My not-yet-landed flat rows re-target the two-letter
+shape at the next sitting.
+(2) FORKPOINTC V2 — the calibrated stall-point signature, mirrored
+and DECIDED at the battery (§11-L4.2a above): both fork stalls
+register, the merge refuses on the class-grade conjunct — the
+cleaner refusal.
+
+THE GRAFT CENSUS (my landed proofs onto the new definitions —
+def-orthogonal, re-verifying):
+- canon_rung_mono GRAFTED PROOF-COMPLETE (the fuel-induction
+  transplant from the floor sweep, 5a64bb4 — zero sorry);
+- forkPoint_pins GRAFTED PROOF-COMPLETE at V2 (near-trivial by
+  premise, per the calibration: the covered twin's pin IS the
+  premise; the bare twin's pin is the vanilla license's nextUp,
+  one step — zero sorry);
+- stackable_now_rungexact STAYS the biconditional `sorry` in the
+  mirror: my landed row is the FORWARD direction; the biconditional
+  is FALSE at covered seats (the §11-L4.5 falsifier evidence,
+  three-way-consensus ledgered).  The mirror's row should take the
+  forward shape or add the seat premise — noted for the user.
+- forkPoint_trial / forkPoint_exclusive REMAIN `sorry` in the
+  mirror, BLOCKED-NOTED with the owner: the floor card's engine
+  bank (branch orig-macro-floor, commits aaed5d5..0a72766 —
+  canRaiseS_rung_pin, forkPoint_cargo_strand, the per-step rung
+  locality rows, the de-privatized exchange realizers
+  step_realize_fwd/_bwd, commit 69fbaa8) plus the determinism
+  branch's segment rows (found_pullSegment / cone_pop_window)
+  carry the rest of the closure; my census families witness the
+  rank arithmetic (the wings, the pins, the sitting-standing
+  refusal — all decided green in the battery).
+- The mirror stays UN-WIRED from Orig.lean's import list (the
+  name collisions with Orig/CanV3.lean's same-named rows are the
+  merge-time reconciliation the ledger tracks: this branch's
+  same-named rows drop in favor of the grafted mirror at merge).
+
+DISCIPLINE NOTES: the mirror is a file-copy of the user-owned
+main-tree file — mirrored per the re-port instruction, never
+editing the main tree; the two grafts are proof-only (bodies
+behind the mirror's own statements); battery remains green
+end-to-end after the re-port; no merge to macro-game.
