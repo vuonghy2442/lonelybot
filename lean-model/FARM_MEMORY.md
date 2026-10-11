@@ -4266,3 +4266,46 @@ checkpoints.
 - Section-docstring closers: `-/.` (dash-slash-dot) cost three
   compile cycles — the parser says "unexpected token '.'" at the
   CLOSER line; grep for `^-/.` before celebrating.
+
+
+## Orig/ForkStateUniqGate — the maximality-transport falsifier session (2026-10-11)
+
+- THE PROBE-FIRST DISCIPLINE PAID OFF AGAIN: the strict G2 head
+  ("two same-class same-pair forkStates agree on non-pair rungs")
+  is REFUTED by an explicit WF craft (probes/ForkUniqProbe.lean) —
+  the forkState WITNESS was sitting ON the covered next-up (6♠),
+  and one reversible tabToTab relocates it and re-exposes 6♠.  The
+  maximality iff pins licenses at the FIXED arrangement; nothing
+  transports.  Craft went theorem-grade in ONE pass; the census
+  rows are 4x13 decide grids through canRaiseB_true_iff.
+- KERNEL-DEFEQ TRAP (record-lambdas at variable suits): plain `rfl`
+  on `State.step s m = some s'` works ONLY when the RHS routes the
+  same composite (successor-as-stepD-def); setFound/setPile-updated
+  states vs take-lambda states compare under BINDER with both sides
+  STUCK (ite σ = ♠ vs match-on-σ) — the kernel cannot split the
+  ite.  CURE: `have hst : step = some (stepD s m) := by rfl` then
+  State.ext (funext fun σ => ..) (funext fun a => ..) with
+  per-index `cases σ <;> rfl` / `cases a <;> rfl` — collapse at
+  CONCRETE indices only.
+- `show (... ∨ _)` leaves the `_` as the RAW record-literal disjunct
+  — a later `rw` reduces only the spelled-out side and omega goes
+  opaque on the other.  Spell BOTH disjuncts in the show.
+- FORWARD-REFERENCE: rcases-flattening of `A ∧ ∃ x xs, B ∧ C` needs
+  5 slots; 4-slot obtains SILENTLY misbind (bind the 5th elsewhere
+  or error "unknown identifier").  Level-splitting
+  (`obtain ⟨hg, hrest⟩ := ..; obtain ⟨x, xs, -, hs⟩ := hrest`) is
+  the robust spelling.
+- `{X with waste := w}.piles a` is DEFEQ to `X.piles a` but NOT
+  rw-matchable: put putCard_hidden_eq-behind rows through
+  `refine Or.inl (show ((st.putCard c b).piles a').hidden = _ from
+  putCard_hidden_eq hg.2 a')` (the show carries the update-eta).
+- The `decide`-census transfer shape for iff-heads:
+  `first | exact ⟨fun _ => rfl, fun _ => (canRaiseB_true_iff).1 (by decide)⟩
+  | exact ⟨fun hh => absurd ((canRaiseB_true_iff).2 hh) (by decide),
+  fun hh => absurd hh (by decide)⟩` — the FIRST alternative only
+  succeeds at the witness branch (rfl + decide fail elsewhere and
+  `first` catches them), so the grid closes uniformly.
+- `irr_of_desc + not_reversibleAtW_of_irreversibleAt` over the
+  banked cycleCount/hiddenTotal tables kills whole move-classes in
+  5 lines each (waste movers, reveal-shaped lifts) — the
+  classification oracle is already there for the letter censuses.
