@@ -9216,3 +9216,27 @@ protocol banked it in two commands.
   spend step in raised form), the `wasteToTab`/`foundToTab` step inversions,
   and the worry-back identity's lower leg `lower_foundToTab1`
   ([wasteToFound c; foundToTab c b] ≡ [wasteToTab c b]).
+
+## Orig/Dominance.lean — the C session's engine quirks (the normalForm skeleton, 2026-10-10)
+
+- `putCard`'s symbolic-base match is whnf-stuck: NO `show`-cast reaches
+  through it.  Slot proofs are READER-RW CHAINS (an equations lemma, then
+  `rw`), never defeq casts — every putCard-heavy row will hit this.
+- The normal-form engine CANNOT carry `hsafe` as an invariant: other-suit
+  worry-backs spend the slack on a clean prefix.  The carryable bundle is the
+  rung-cycle quartet {WF, drawStep = 1, nextUp c, c ∈ stock∪waste}; `hsafe`
+  survives only as the final statement's premise (the storage prong).
+- `c ∈ stock` weakens to `c ∈ stock ∪ waste` pre-exit (draws deal c out of the
+  stock leg); the nil and lone-worry corners die on `inCycle_notisWin` — a
+  founded-but-in-cycle state contradicts WF conservation (`mem_found_unique`
+  + the upCards take-13 argument).  No empty induction case is ever needed.
+- The spread-window square inventory (per-move interference): wasteToTab /
+  foundToTab interfere EXACTLY at the worry-created seat (the storage
+  family — (N)'s cite-target); tabToFound-y order-locks at base `inr y`;
+  tabToTab corners when the run passes through x; worry-worry NEVER squares
+  (LIFO).  Only foundToTab-vs-wasteToFound squares composite-equal outright.
+- Bankable on farm/orig-dom-c-normform@00b3ea1 (re-derive natively): the
+  computation twins step_tabToFound_eq / step_foundToTab_eq, setFound_comm,
+  take_ge_length, the fires-readers, draw_inCycle, inCycle_notisWin, and
+  foundToTab_return (the two-step worry-undo at the ONE-MOVE pair-deletion
+  shape).
