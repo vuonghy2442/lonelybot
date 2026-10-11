@@ -1055,6 +1055,15 @@ private theorem exch_putRun_drawStep {st s₁ V : State} {run : List Card} {b : 
   rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁, putRun_keep.2.2.2]
   exact hV.symm
 
+/-- The foundation slot at a `putRun`-written step (the writer's found
+fact rides as the hV argument - `setPile_found` at the plain squares,
+composed with `State.exchangeTwin_found` at exchange-framed ones). -/
+private theorem exch_putRun_found {st s₁ V : State} {run : List Card} {b : Base}
+    (hs₁ : s₁ = V.putRun run b) (hV : V.found = st.found) :
+    (st.exchangeTwin t).found = (s₁.exchangeTwin t).found := by
+  rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁, putRun_keep.1]
+  exact hV.symm
+
 /-- The stock slot at a record-written step (`s₁ = V` directly). -/
 private theorem exch_upd_stock {st s₁ V : State} (hs₁ : s₁ = V)
     (hV : V.stock = st.stock) :
@@ -3411,9 +3420,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
         refine ⟨?_, ⟨κ, β, z, z', [], B', Sa, Sa', h₁s, h₂s, hκβ', hsκsp, hs₁βsp,
           hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
         apply State.ext
-        · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-          rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-            putRun_keep.1, setPile_found]
+        · exact exch_putRun_found hs₁ (setPile_found _ _ _)
         · funext j
           show (((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
               ((st.exchangeTwin t).piles α)
@@ -3534,9 +3541,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
               h₁s, h₂s, hκβ', hsκsp, hs₁βsp, hfit, hfit',
               hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
             apply State.ext
-            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-                putRun_keep.1, setPile_found]
+            · exact exch_putRun_found hs₁ (setPile_found _ _ _)
             · funext j
               show (((st.exchangeTwin t).setPile α (Pile.afterRunRemoved
                   ((st.exchangeTwin t).piles α)
@@ -3660,9 +3665,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
             h₁s, h₂s, hne, hsαsp', hs₁βsp, hfit, hfit',
             hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
           apply State.ext
-          · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-            rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-              putRun_keep.1, setPile_found]
+          · exact exch_putRun_found hs₁ (setPile_found _ _ _)
           · funext j
             show (((st.exchangeTwin t).setPile β (Pile.afterRunRemoved
                 ((st.exchangeTwin t).piles β)
@@ -3752,9 +3755,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
         refine ⟨?_, ⟨α, β, z, z', Bα, B', Sa, Sa', h₁s, h₂s, hne, hs₁αsp, hs₁βsp,
           hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
         apply State.ext
-        · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-          rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-            putRun_keep.1, setPile_found]
+        · exact exch_putRun_found hs₁ (setPile_found _ _ _)
         · funext j
           show (((st.exchangeTwin t).setPile a (Pile.afterRunRemoved
               ((st.exchangeTwin t).piles a)
@@ -3900,9 +3901,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
             h₁s, h₂s, hκβ', hsκsp, hs₁βsp, hfit, hfit',
             hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
           apply State.ext
-          · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-            rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-              putRun_keep.1, setPile_found]
+          · exact exch_putRun_found hs₁ (setPile_found _ _ _)
           · funext j
             by_cases hjκ : j = κ
             · rw [hjκ, setPile_piles_self,
@@ -4060,9 +4059,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                 Sa, Sa', h₁s, h₂s, hκβ', hsκsp, hs₁βsp, hfit, hfit',
                 hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
               apply State.ext
-              · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-                rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-                  putRun_keep.1, setPile_found]
+              · exact exch_putRun_found hs₁ (setPile_found _ _ _)
               · funext j
                 by_cases hjκ : j = κ
                 · rw [hjκ, setPile_piles_self,
@@ -4198,9 +4195,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
               h₁s, h₂s, hne, hsαsp', hsβface, hfit, hfit',
               hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
             apply State.ext
-            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-                putRun_keep.1, setPile_found]
+            · exact exch_putRun_found hs₁ (setPile_found _ _ _)
             · funext j
               by_cases hjα : j = α
               · rw [hjα, setPile_piles_self,
@@ -4322,9 +4317,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
               h₁s, h₂s, hne, hsαsp', hs₁βsp, hfit, hfit',
               hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
             apply State.ext
-            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-                putRun_keep.1, setPile_found]
+            · exact exch_putRun_found hs₁ (setPile_found _ _ _)
             · funext j
               by_cases hjκ : j = κ
               · rw [hjκ, setPile_piles_self,
@@ -4433,9 +4426,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
             h₁s, h₂s, hne, hs₁αface, hs₁βsp, hfit, hfit',
             hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
           apply State.ext
-          · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-            rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-              putRun_keep.1, setPile_found]
+          · exact exch_putRun_found hs₁ (setPile_found _ _ _)
           · funext j
             by_cases hjβ : j = β
             · rw [hjβ, setPile_piles_self,
@@ -4529,9 +4520,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
               h₁s, h₂s, hne, hs₁αsp, hs₁βface, hfit, hfit',
               hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
             apply State.ext
-            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-                putRun_keep.1, setPile_found]
+            · exact exch_putRun_found hs₁ (setPile_found _ _ _)
             · funext j
               by_cases hjα : j = α
               · rw [hjα, setPile_piles_self,
@@ -4618,9 +4607,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
             refine ⟨?_, ⟨α, β, z, z', Bα, B', Sa, Sa', h₁s, h₂s, hne, hs₁αsp, hs₁βsp,
               hfit, hfit', hb.1, hb.2.1, hb.2.2.1, hb.2.2.2⟩⟩
             apply State.ext
-            · show (st.exchangeTwin t).found = (s₁.exchangeTwin t).found
-              rw [State.exchangeTwin_found, State.exchangeTwin_found, hs₁,
-                putRun_keep.1, setPile_found]
+            · exact exch_putRun_found hs₁ (setPile_found _ _ _)
             · funext j
               by_cases hjκ : j = κ
               · rw [hjκ, setPile_piles_self,
