@@ -3601,3 +3601,90 @@ every fresh row `[propext]` or `[propext, Quot.sound]` — ZERO
 (forkState/conjugateForkState/CargoPath/FaceShape) mirrored,
 never redefined; zero contention (branch file additions only);
 no merge to macro-game.
+
+## 12. The corrected conjugation theorems — session orig-conjugate-proof (STATUS 2026-10-12, branch `orig-conjugate-proof`, rebased onto macro-game `07247ec` per the 8a0e121 recipe; the probe-first battery `probes/ConjugateProbe.lean` landed BEFORE any proof, all gates decidable #evals, all boards conservation-checked)
+
+The card's arc, with every verdict probe-first:
+
+* PROBE (A): the canonical swap fires at the docstring bases; the
+  endpoint's ONLY raiser is the ORIGINAL witness x — the twins trade
+  physical positions, the license stays home.  The §3 one-leg slide
+  contrast FLIPS to x.twin: the mate is the slide, never the
+  composite.
+* PROBE (B): the (Q,J) corner (x.twin bare-bottom non-king) FIRES
+  through the displaced base and lands TWO raisers — NOT a
+  forkState: the seat package is load-bearing (the main row carries
+  it as a premise, exactly the in-tree docstring's "checked on
+  x.twin side").
+* PROBE (C): the floating-covered displaced firing lands a
+  VALID forkState with the twin UNSEATED: the raw
+  `fires ⟺ seats` necessity is REFUTED at probe grade; the honest
+  biconditional lives at the seat-swap-outcome grade.
+* PROBE (D): the rank-12 pair fires through the empty-anchor
+  letters both ways; the endpoint witnesses x again.
+
+LANDED (leaf `Orig/ConjugateProof.lean`, all heads audited
+`[propext]` or `[propext, Quot.sound]`, zero sorryAx):
+
+1. §1 the corrected-def instances of the §4 anatomy rows —
+   `conjugate_netflat`, `conjugate_relic`, **`conjugate_witness`**
+   (THE WITNESS PIN: any forkState at the endpoint witnesses the
+   composite's own raised card; the task's "witness x.twin"
+   reading is refuted by the banked loose row instanced at
+   `d := x.twin`, witnessed by probe A).
+2. §2 the seat parcels — `TwinSeat` (the V3 form),
+   `twin_pile_ne` (the runOK descent kills same-pile twins),
+   `twin_not_top` (the exposed-twin impossibility at a forkState),
+   `seated_top_under`, `runOK_join_head_sit`.
+3. §3 the packing pins — `no_fit_king`, **`conjugate_fit_pin`**
+   (the two (x+1) cards of x's opposite color exhaust the fitting
+   bases).
+4. §4 **THE MAIN ROW `conjugate_forkState_corrected`**:
+   [st.WF + the three clauses at x + x.twin located in q with
+   TwinSeat + ANY firing] ⟹ forkState w, witness THE SAME x — both
+   channels: the non-king channel forces ba = z₀ and bb = z₁ (the
+   packing + search-exactness reads; the intermediate putRun search
+   spelled per pile), the king channel forces the empty-anchor
+   letters; the iff transport closes every branch (the rider
+   analysis, the x-vacate read, the untouched-pile license
+   transport).
+   Named `…_corrected` against the in-tree gated
+   `MacroInternal.conjugate_forkState` (the SEAT-LESS shape is
+   FALSE — probe B is the falsifier witness; the gated row stays
+   sorry, untouched).
+5. §7 **THE TOTAL FUNCTION `conjugateForkStateS`** (decidable,
+   zero Classical, zero noncomputable) + the full bridge battery
+   (`forkClause2B_iff`, `forkWitnessB_and3`, `forkWitnessB_iff`,
+   `forkWitness_sound`, `forkStateB_iff`, `fireOver_some`) +
+   **`conjugateForkStateS_correct`**: the identity-on-fail
+   contract, and any move lands a state satisfying BOTH the
+   composite's ∃-definition AND a (decidably checked, bridged)
+   forkState.
+
+REMAINING (routes analyzed, probe-validated, deliberately future):
+
+(a) `conjugate_swap_fires` (the iff's EXISTENCE direction): the
+    seat parcels fire the canonical composite via the public
+    splice rows; the main row then lifts the endpoint.  The heavy
+    pieces are already banked: z₀/z₁ exist by §2, the fits by
+    §2/§3, the search reads by the if-rows, and the main row
+    consumes the firing.
+(b) `conjugate_seat_of_swap` (the swap outcome forces the twin's
+    seat package — the honest biconditional's other half at the
+    seat-swap-outcome grade).
+(c) `conjugate_corner_notForkState` (probe B as a theorem): the
+    singleton run lands apposed to the fitting base with a LIVE
+    seat; the pull's rank arithmetic forces the second landing
+    off it; x re-licenses via the relic — two raisers cannot
+    witness one forkState iff.  The one delicate passage is the
+    intermediate base search at the reveal-scarred vacated pile
+    (the mover's own face-up membership in another pile crushes
+    the scarred-top candidates by conservation).
+
+Battery: `lake build Orig` green (30 jobs; the leaf is NOT wired
+into the root, mirroring MacroInternal/ForkStateUniq's own
+discipline); `lake env lean Orig/ConjugateProof.lean` exit-zero;
+every head `[propext]`/`[propext, Quot.sound]`, zero
+`Classical.choice`.  The in-tree interface mirrored, never
+redefined; zero contention (branch file additions only); no
+merge to macro-game.
