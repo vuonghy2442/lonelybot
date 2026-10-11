@@ -9556,3 +9556,24 @@ git log -S, fast-forward macro-game with `git push . HEAD:macro-
 game` to avoid touching their uncommitted file, never checkout--
 a file another agent has rides on).  Their reconciliation commit
 08628eb adopted the fromCard_head_eq collision rename verbatim.
+
+## Operational — the W2/W3 checkpoint cadence + the splicing incident (the B2 session, 2026-10-11)
+
+- CHECKPOINT-COMMIT AFTER EVERY GREEN ENGINE.  Landing a big row as ONE
+  commit is a style preference, not a law — an uncommitted checkpoint is
+  a crash hazard (the stale-worktree reset fix would erase it); commit
+  each green engine to the farm branch as it lands.
+- NEVER RESTYLE A MASTER FILE VIA A SHELL SPLICE at an unverified anchor
+  (the W3 incident: a PowerShell end-anchor cut duplicated/corrupted a
+  5,400-line file to 13,422 lines; `git checkout` to the last checkpoint
+  was the correct recovery, at the cost of the uncommitted engine).  All
+  file surgery through the editor, at verified anchors.
+- RECORD-IN-TYPE PARSES CRASH: never restate `redeal_run1`'s landing
+  inline in a `have`; the record-in-type form must be split — inference:
+  `have hrd := redeal_run1 zs.length`, then `hcnt rfl` through `hzzs`.
+- The `(A).mpr` transport wants `hS1 : s'.drawStep = 1` and the
+  UNDESTRUCTURED `hwin₁` — keep facts whole through citations.
+- The waste-form consuming pattern is committed as the wtt_waste route
+  addendum (b3efea0): `by_cases hpw` + obtain-cons (never `cases postW`),
+  segment-A take-craft ending `simp`, the crossing redeal, the pristine
+  `cycleOf` rw-chain.  Rebuild from the note, do not re-derive.
