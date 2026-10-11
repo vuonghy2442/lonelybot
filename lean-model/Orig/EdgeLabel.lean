@@ -4,7 +4,7 @@ import Orig.Reach
 import Orig.Twin
 
 /-!
-# Orig — the canonical edge labels (the CanonEdge normal form and the
+# Orig — the member-form edge labels (the TipEdge scheme and the
 class-pair fingerprint)
 
 `FUTURES-ORIG.md` §3.1, THE EDGE-LABELING THEOREM (the user's
@@ -16,84 +16,117 @@ non-pure tip, a waste exit only of one pinned card, a tableau event
 only at one pinned seat (and, in the reveal cell, of one pinned
 revealed card).
 
+## The design ledger (the day's arc, recorded)
+
+The anchor-form scheme — a tip anchored at a canonical (Final) state,
+carrying an explicit `ShufflePlayW` padding from the anchor to the
+commit tip — was litigated field by field through the 2026-10-10 day
+(the `hfin` saturation grade, the name, the padding), and the
+member-form won on the merits; this drop is that recorded design
+flip, not a fence.  Three dissolutions follow, each recorded in the
+status section below:
+
+* **the padding left the type.**  A macro transition is now one
+  member of the source class plus its single commitment plus the
+  class closure (`structure TipEdge (C D : SameOrbit)`) — the
+  journey machinery the padding re-witnessed per edge is already the
+  books' class relation, and the datum-carry the padding performed
+  is the lift `datumOf` (the ladder's datums half is its soundness).
+* **the canonical-anchor grade dissolved.**  Classes do not pretend
+  literal-canonicality — saturation is member-relative (the residue
+  exhibit is the recorded fact) — so `Final` downgrades from a
+  structure field to `CanonicalTip`, one line of premise-sugar: the
+  count program's discipline cites it as a premise, and the
+  transport constructs it for free (the canon member is Final by
+  construction).
+* **the orbit-independence cell dissolved into the lift.**
+  `canonLabel_orbit_indep` is removed, its content definitional: the
+  read is independent of the member because `datumOf` is
+  well-defined on classes (`labelOf_pair` is `rfl`), so the label is
+  a literal function of the pair.
+
 ## The normal form
 
-`CanonEdge C D` — the recorded §3.1 structure: a macro transition
-anchored at the canonical form is **reversible padding from the
-Final/WF source + exactly one commitment + class closure**.  A macro
-transition does not have a unique underlying MOVE (the twin-landing
-merge is one edge, two moves), but every macro transition has this
-normal form; the single commit slot is structural — a chain's first
-commit already exits its class (`canonEdge_exits_source` is the
-phase-progress cell reading of exactly that), so multi-commit edges
-are impossible: every subsequent commit is its own edge.  The
-padding is the WITNESS form `ShufflePlayW` (every leg carries its
-own returning play), and the tip `u` and landing `w` are explicit
-data.
+`TipEdge C D` — the recorded §3.1 structure, member-form: a macro
+transition is **one WF member of the source class + its membership +
+exactly one commitment firing at it + the class closure of the
+landing**.  A macro transition does not have a unique underlying
+MOVE (the twin-landing merge is one edge, two moves), but every
+macro transition has this form; the single commit slot is structural
+— a chain's first commit already exits its class
+(`tipEdge_exits_source` is the phase-progress cell reading of
+exactly that), so multi-commit edges are impossible: every subsequent
+commit is its own edge.  The tip saturation the count program's
+successor discipline rides is the premise-sugar `CanonicalTip`
+(member-relative, never a structure field).
 
 ## The fingerprint route (why the label is a function of the pair)
 
 Four journey-invariant datums are proved once, here, and consumed
-everywhere:
+everywhere; the quotient datum kernel descends them to the classes,
+so the four are the class read's fields (`cycle`/`pool`/`hidden`/
+`roots` — the field alignment `MacroDatums` was designed for):
 
 * `cycleCount` — never rises under any single move; a witness-shuffle
   leg conserves it exactly (waste legs cannot appear at all — they
   are commitments at every position), so it is constant on macro
-  classes and across CanonEdge paddings;
+  classes — the `cycle` field;
 * the per-anchor hidden lists — no witness leg ever touches them
   (only reveals move hidden cards, and reveals are commitments by
   the hidden-descent rows), so they are literal macro-class
-  invariants — stronger than the hidden *total* the classification
-  tables grade;
+  invariants — the `hidden` field — stronger than the hidden *total*
+  the classification tables grade;
 * `drawPool` — draws conserve the pool (the recycle reverses, the
   deal splits without loss), waste legs cannot appear, every other
-  move keeps the draw zone verbatim — constant on macro classes;
+  move keeps the draw zone verbatim — constant on macro classes —
+  the `pool` field;
 * `nzRoot` — the bare non-king root of a seat (its bottom face-up
   card when that is not a king) never moves under a witness leg
   (every root departure is a commitment: the seat-physics rows for
   non-kings, the hidden-descent rows for reveals) — a macro-class
-  invariant per anchor.
+  invariant per anchor — the `roots` field.
 
-The committed move then writes exactly one of four signatures onto the
-pair (C, `⟦w⟧`):
+The committed move then writes exactly one of four signatures onto
+the pair's class data:
 
 * **draw** — nothing else changes (the draw moves stock to waste
   within one reservoir), and the committed draw fires only at a
   non-pure tip: pristine (empty waste) or offset (waste misaligned) —
-  `canonEdge_draw_shape`;
+  `tipEdge_draw_shape`;
 * **waste exit** — the cycle strictly drops, and the popped card is
-  the pair's pool-difference card (`poolMissCard C w`; uniqueness by
+  the pair's pool-difference card (`poolMissCard`; uniqueness by
   the `WF` occurrence bookkeeping), so the card is a function of the
   pair — `wasteEntry`;
 * **reveal** — a per-anchor hidden stack strictly dropped its head
   (the automatic flip); the seat is the pair's hidden-difference
-  anchor `hiddenDropperAnchor C w`, and the revealed card is the
+  anchor `hiddenDropperAnchor`, and the revealed card is the
   class-visible head of that hidden stack — also pair functions;
 * **vacate** — a hidden-free seat lost its bare non-king root; the
-  seat is the pair's seat-difference anchor `rootFreedAnchor C w` —
+  seat is the pair's seat-difference anchor `rootFreedAnchor` —
   the arm-typing's fourth family riding the same positional label as
   the degenerate hidden-count-zero cell of the reveal family
   (`stackEvent`).
 
-`CanonLabel C w` reads the fingerprint at the anchor form `C` against
-any WF member `w` of the target class; the read is independent of the
-member, so the edge label is a function of the pair, not of the scheme.
-The determinations tie each commitment family to its fingerprint
-branch with the exact card/anchor data, the disjointness cells keep
-the families exclusive, and the assembled character
-(`pair_move_character`: the label determines the committed move up to
-the recorded twin-landing merge) closes the restated canonical
-property: two schemes over one class pair commit the same *event*.
+`labelOf (datumOf C) (datumOf D)` is the class-pair fingerprint — a
+literal function of the pair classes, never of the member; the
+determination rows unpack it at the member pair (the memberships
+`hmem`/`cl` plus the lift's computation rule; `labelOf_pair` below is
+definitional, with the state-grade read `CanonLabel c w` underneath),
+so the anatomy of the anchor-form proofs runs unchanged with the
+member in place of the padding tip.  The determinations tie each
+commitment family to its fingerprint branch with the exact
+card/anchor data, the disjointness cells keep the families exclusive,
+and the assembled character (`pair_move_character`: the label
+determines the committed move up to the recorded twin-landing merge)
+closes the restated canonical property: two schemes over one class
+pair commit the same *event*.
 
 ## The landing status of this drop (honest boundary)
 
-This drop lands the JOURNEY-DATA core, the CANONEDGE normal form, the
-commit table's boundary cells, all four determination rows
-(draw/waste/reveal/vacate), the family disjointness cells, and the
-pair-move character, plus the full label-map
-surface (the tripartite alphabet, the cell predicates, and the
-fingerprint reads whose three channels consume the four journey
-invariants):
+This drop records the member-form flip (the design ledger above),
+landed complete over its four coherent landings: the quotient datum
+kernel, the scheme and label surface, the determination rows with the
+disjointness cells, and the pair-move character.  What stands:
 
 * **proved, green**: `leg_data` (the per-leg table: every witness leg
   conserves `cycleCount`, the pool, every per-anchor hidden list, and
@@ -101,46 +134,72 @@ invariants):
   hidden-descent/seat-physics commitments, the waste rows as the
   universal commitments, the under/bare-king shapes kept literally by
   the landed placement lemmas), `shuffleW_data`/`orbit_data` (the
-  class-invariant lifts), `CanonEdge` with `tip_wf`/`landing_wf`,
-  `canonEdge_exits_source` (the phase-progress cell: the commit
-  strictly exits its class), `canonEdge_ne_foundToTab` (the
-  no-fourth-kind cell, part one: a committed move is never a
-  foundation giveback — every legal WF `foundToTab` is reversible),
-  and `canonEdge_draw_shape` (a draw edge
-  starts non-pure: pristine or offset), the orbit-independence of the
-  read (`canonLabel_orbit_indep`: any two WF class-mates give the same
-  fingerprint), the pair-function property (`edge_label_unique`: two
-  schemes over one class pair carry the same label), and the draw
-  determination row (`canonEdge_label_draw`: a draw-commit edge is
-  draw-labeled — no datum changes, all three reads degenerate), the
-  waste determination row (`canonEdge_label_waste`: a waste-commit
-  edge is wasteEntry-labeled with exactly the popped card — the cycle
-  drops and the pool-difference read pins the head, uniquely by the
-  pool arithmetic), the reveal determination row
-  (`canonEdge_label_reveal`: a reveal-commit edge is stackEvent-labeled
-  at the departing seat — the cycle conserved, the hidden total
-  drops, the hidden-difference read is the seat), and the vacate
-  determination row (`canonEdge_label_vacate`: a vacate-commit edge is
-  stackEvent-labeled at the freed seat — both tests die at the
-  conserved counts and the seat-difference read is the seat), the four
-  disjointness cells (`canonEdge_label_draw_ne`/`_waste_ne`/
-  `_reveal_ne`/`_vacate_ne`: the label families stay exclusive on the
-  commit — draw never card-labeled, waste never draw/stack-labeled,
-  and the stack family — reveal or vacate, the recorded merge — never
-  draw/waste-labeled), and the pair-move character
+  class-invariant lifts), the quotient datum kernel (`MacroDatums`
+  with `MacroDatums.of`/`of_class`, the ungated class form
+  `sameDatums_class`, and the lift `datumOf` with its definitional
+  computation rule `datumOf_mk` — the same `sameDatums` machinery
+  staged one section up, re-read as a quotient map's soundness; the
+  staircase footing, landed as its own coherent staging ahead of the
+  member-form restatement that stands on it), `TipEdge` (member-form:
+  member + membership + commitment + class closure) with
+  `TipEdge.landing_wf`, `tipEdge_exits_source` (the phase-progress
+  cell — simpler than the anchor-form had: the class relation IS the
+  returning journey, no padding composition),
+  `tipEdge_ne_foundToTab` (the no-fourth-kind cell, part one:
+  a committed move is never a foundation giveback — every legal WF
+  `foundToTab` is reversible), and `tipEdge_draw_shape` (a draw edge
+  starts non-pure: pristine or offset), the label surface
+  (`MacroDatums.hiddenTotal`/`poolMiss`/`hiddenDropper`/`rootFreed`
+  + `labelOf` + `labelOf_pair` — the definitional state-grade shadow
+  — + `TipEdge.label` with `edge_label_unique` — definitional
+  through the lift) and `CanonicalTip` (the premise-sugar saturation
+  grade), and the full label-map kit (`nzRoot`, `EdgeLabel`,
+  `WasteOf`, `RevealCellAt`, `VacateCellAt`, `poolMissCard`,
+  `hiddenDropperAnchor`, `rootFreedAnchor`, `CanonLabel`).  The
+  card-pinning census and the search reads ride the public packs
+  (`Integrity`'s census-pack and search iffs, `State`/`Play`'s
+  trivia/reader kits) — no farm-private recounting.
+* **dissolved (removed, content definitional or re-homed)**:
+  `CanonEdge` with `tip_wf`, `landing_wf`, `pad_data`, and `label`
+  (the padding left the type; the member-tip's WF is the `hwf`
+  field, the landing's is `TipEdge.landing_wf`, the datum-carry is
+  the lift's business, the label reads the classes), and
+  `canonLabel_orbit_indep` (the lift pays it once: `labelOf_pair` is
+  `rfl`, and the label of the pair never reads the member).
+* **proved, green** (the rows, re-landed): the four determination rows —
+  `tipEdge_label_draw` (a draw-commit edge is draw-labeled — no datum
+  changes, all three reads degenerate), the waste determination row
+  `tipEdge_label_waste` (wasteEntry-labeled with exactly the popped
+  card — the cycle drops and the pool-difference read pins the head,
+  uniquely by the pool arithmetic), the reveal determination row
+  `tipEdge_label_reveal` (stackEvent-labeled at the departing seat —
+  the cycle conserved, the hidden total drops, the hidden-difference
+  read is the seat), and the vacate determination row
+  `tipEdge_label_vacate` (stackEvent-labeled at the freed seat — both
+  tests die at the conserved counts and the seat-difference read is
+  the seat) — through the one-line lens `label_read` (the membership
+  transports plus `labelOf_pair`; the datum-carry the old `pad_data`
+  performed rides it) with the anatomy otherwise unchanged (the faces
+  of the moves read at the member exactly as they were read at the
+  padding tip), and the four disjointness cells
+  (`tipEdge_label_draw_ne`/`_waste_ne`/`_reveal_ne`/`_vacate_ne`: the
+  label families stay exclusive on the commit — draw never
+  card-labeled, waste never draw/stack-labeled, and the stack family —
+  reveal or vacate, the recorded merge — never draw/waste-labeled).
+* **proved, green (the close)**: the pair-move character
   (`pair_move_character`: the label determines the committed move up
-  to the recorded twin-landing merge, the determination rows'
-  converse closing the restated canonical property beside
-  `edge_label_unique`), plus
-  the full label-map definitions (`nzRoot`, `EdgeLabel`, `WasteOf`,
-  `RevealCellAt`, `VacateCellAt`, `poolMissCard`, `hiddenDropperAnchor`,
-  `rootFreedAnchor`, `CanonLabel`, `CanonEdge.label`).  The card-pinning
-  census and the search reads ride the public packs (`Integrity`'s
-  census-pack and search iffs, `State`/`Play`'s trivia/reader kits) —
-  no farm-private recounting.
-* **milestone status**: COMPLETE in this module — the edge-labeling
-  theorem's full arc is landed (the journey-invariant datums, the
-  `CanonEdge` normal form, the orbit-independence and
+  to the recorded twin-landing merge — the determination rows'
+  converse, riding the memberships and the rows, the tableau seats
+  read at the member; together with `edge_label_unique` it closes the
+  restated canonical property: two schemes over one class pair commit
+  the same *event*) and its switch form
+  (`pair_move_character_switch`: the match the compiler exhaustively
+  checks over the tripartite alphabet, the consumption form the count
+  program cites).
+* **milestone status**: COMPLETE in this module — the member-form
+  restatement is done, the edge-labeling theorem's full arc landed at
+  the member grade (the quotient datum kernel, the journey-invariant
+  datums, the `TipEdge` normal form, the definitional
   pair-functionality of the read, the four determination rows, the
   family disjointness cells, and the pair-move character).  The
   downstream work (§3.1's count program: the transport bridge and the
@@ -1197,94 +1256,198 @@ theorem sameDatums_orbit {x y : State} (h : sameOrbitSetoid.r x y) (hwf : x.WF) 
   obtain ⟨hwf', h1, h2, h3, h4⟩ := orbit_data h hwf
   exact ⟨hwf', h1, h2, h3, h4⟩
 
-/-! ## The CanonEdge normal form -/
+/-! ### The quotient datum kernel (the staircase footing)
 
-/-- The tip-anchored edge scheme, the machinery grade (§3.1): a macro
-transition anchored at a WF state is **witness padding from the source
-+ exactly one commitment + class closure**.  A macro transition does not
-have a unique underlying MOVE (the twin-landing merge is one edge, two
-moves), but it always has this form; the single commit slot is
-structural — `canonEdge_exits_source` shows the commit strictly exits
-its class, so multi-commit macro transitions would fail the closure
-here and every subsequent commit is its own edge.  Every theorem of
-this chapter holds at this grade (the rows never read the saturation
-field); the label algebra reads its fields flat. -/
-structure TipEdge (C : State) (D : SameOrbit) where
-  /-- the anchor is well-formed (realizability) -/
-  hwf : C.WF
-  /-- the witness-padding tip -/
-  u : State
-  /-- the padding itself: every leg carries its own returning play -/
-  pad : List Move
-  hpad : ShufflePlayW C pad u
-  /-- the single commitment, firing at the tip -/
+The four journey-invariant datums descend to the macro classes as one
+bundled carrier.  The map IS a `Quotient.lift`, and its soundness
+argument is the SAME `sameDatums` machinery already staged one section
+up: the datums half of `sameDatums_orbit` (the four equalities — the
+WF accessor is not part of the map) at the `sameDatums_play` rung,
+read through the witnessing journey of the class relation.  The reads
+through the computation rule below are definitional: a consumer that
+holds a member holds the class's data.  This kernel lands first as its
+own coherent staging — the staircase footing the member-form tip
+scheme stands on; the anchor-form's orbit-independence cell dissolves
+into it (recorded at the flip landing). -/
+
+/-- The bundled macro-class data: the four journey-invariant datums
+(cycle count, draw-zone pool, per-anchor hidden stacks, per-anchor
+bare non-king roots) under one carrier — what a macro class itself
+reads, member-free. -/
+structure MacroDatums where
+  /-- the cycle count the class reads -/
+  cycle : Nat
+  /-- the draw-zone pool the class reads -/
+  pool : List Card
+  /-- the per-anchor hidden stacks the class reads -/
+  hidden : Anchor → List Card
+  /-- the per-anchor bare non-king roots the class reads -/
+  roots : Anchor → Option Card
+
+/-- The member read: the four datums of one state, bundled. -/
+def MacroDatums.of (u : State) : MacroDatums :=
+  ⟨cycleCount u, drawPool u, fun a => (u.piles a).hidden, fun a => nzRoot u a⟩
+
+/-- The ungated class form of the datums ladder: class-mates share the
+bundle with no WF hypothesis — the journey legs conserve the data, and
+the WF accessor of `sameDatums_orbit` is not part of the datum map. -/
+theorem sameDatums_class {x y : State} (h : sameOrbitSetoid.r x y) :
+    SameDatums x y := by
+  rcases h with ⟨σ, hσ, τ, hτ⟩
+  exact sameDatums_play hτ
+
+/-- The descent is well-defined: the bundled datums agree on
+class-mates — the lift's soundness, one cite up the ladder. -/
+theorem MacroDatums.of_class (x y : State) (h : sameOrbitSetoid.r x y) :
+    MacroDatums.of x = MacroDatums.of y := by
+  obtain ⟨h1, h2, h3, h4⟩ := sameDatums_class h
+  show (⟨cycleCount x, drawPool x, fun a => (x.piles a).hidden, fun a => nzRoot x a⟩ : MacroDatums)
+     = ⟨cycleCount y, drawPool y, fun a => (y.piles a).hidden, fun a => nzRoot y a⟩
+  have e1 : cycleCount x = cycleCount y := h1.symm
+  have e2 : drawPool x = drawPool y := h2.symm
+  have e3 : (fun a => (x.piles a).hidden) = (fun a => (y.piles a).hidden) :=
+    funext fun a => (h3 a).symm
+  have e4 : (fun a => nzRoot x a) = (fun a => nzRoot y a) :=
+    funext fun a => (h4 a).symm
+  rw [e1, e2, e3, e4]
+
+/-- **The class datum map**: every macro class carries the four journey
+datums, read at any of its members.  The lift's soundness is the
+ladder's datums half; the setoid rides the quotient type itself, never
+instance search (`sameOrbitSetoid` shares the instance world with the
+twin and exchange setoids — the corpus discipline: always passed
+explicitly). -/
+def datumOf (Q : SameOrbit) : MacroDatums :=
+  Quotient.lift MacroDatums.of MacroDatums.of_class Q
+
+/-- The computation rule: the class reads exactly the member's bundle
+(definitional — the ordinary consumer-port equation). -/
+theorem datumOf_mk (u : State) :
+    datumOf ⟦u⟧ = MacroDatums.of u := rfl
+
+/-! ## The tip scheme, member-form -/
+
+/-- The member-form tip scheme, §3.1 restated: a macro transition is
+one WF member of the source class, its membership, exactly one
+commitment firing at it, and the class closure of the landing.  A
+macro transition does not have a unique underlying MOVE (the
+twin-landing merge is one edge, two moves), but it always has this
+form; the single commit slot is structural — `tipEdge_exits_source`
+below is the phase-progress cell reading of exactly that, so
+multi-commit macro transitions cannot exist and every subsequent
+commit is its own edge.  Every theorem of this chapter reads the
+scheme's fields flat; the saturation the count program's successor
+discipline rides is the premise-sugar `CanonicalTip` below. -/
+structure TipEdge (C : SameOrbit) (D : SameOrbit) where
+  /-- the member the edge reads at -/
+  c : State
+  /-- the member witnesses the source class -/
+  hmem : ⟦c⟧ = C
+  /-- the member is well-formed (realizability) -/
+  hwf : c.WF
+  /-- the single commitment, firing at the member -/
   m : Move
-  hm : irreversibleAt u m
+  hm : irreversibleAt c m
   /-- the landing -/
   w : State
-  land : State.step u m = some w
+  land : State.step c m = some w
   /-- the class closure: the target takes the landing's class -/
   cl : ⟦w⟧ = D
 
-/-- The saturated grade: a `TipEdge` anchored at a Final state (no
-licensed lift remains) — the canonical-form certificate the count
-program's successor discipline rides.  The current chapters state
-their theorems at this grade; the tip-grade restatements are the
-standing coupon, to be landed when a tip-anchor consumer appears. -/
-structure CanonEdge (C : State) (D : SameOrbit) extends TipEdge C D where
-  /-- the anchor is saturated: the canon stratum, no `CanRaise` lives -/
-  hfin : Final C
+/-- TIP SATURATION, the premise-sugar grade: a tip edge whose member
+is Final (no licensed lift remains there) — the discipline the count
+program's successor construction cites as a premise.  The transport
+constructs it for free (the canon member is Final by construction);
+classes do not pretend literal-canonicality — saturation is
+member-relative (the residue exhibit is the recorded fact). -/
+def CanonicalTip {C D : SameOrbit} (e : TipEdge C D) : Prop := Final e.c
 
-/-- The tip and the landing inherit WF from the anchor (`step_wf`). -/
-theorem CanonEdge.tip_wf {C : State} {D : SameOrbit} (e : CanonEdge C D) :
-    e.u.WF :=
-  shuffleW_wf_end e.hpad e.hwf
-
-theorem CanonEdge.landing_wf {C : State} {D : SameOrbit} (e : CanonEdge C D) :
+/-- The landing inherits WF from the member (`step_wf`). -/
+theorem TipEdge.landing_wf {C D : SameOrbit} (e : TipEdge C D) :
     e.w.WF :=
-  step_wf e.tip_wf e.land
-
-/-- The pair data along the padding: the tip reads the anchor's numbers. -/
-private theorem pad_data {C : State} {D : SameOrbit} (e : CanonEdge C D) :
-    cycleCount e.u = cycleCount C ∧ drawPool e.u = drawPool C ∧
-    (∀ a, (e.u.piles a).hidden = (C.piles a).hidden) ∧
-    (∀ a, nzRoot e.u a = nzRoot C a) :=
-  shuffleW_data e.hpad
+  step_wf e.hwf e.land
 
 /-- **The phase-progress cell**: a committed move strictly exits its
-source class — the landing of a CanonEdge commit is never a class-mate
-of the anchor, so a multi-commit macro transition cannot exist (its
-second move's argument would fail). -/
-theorem canonEdge_exits_source {C : State} {D : SameOrbit} (e : CanonEdge C D) :
-    D ≠ ⟦C⟧ := by
+source class — the landing of a tip commit is never a class-mate of
+the member, so a multi-commit macro transition cannot exist (its
+second move's closure would fail).  The member-form is simpler than
+the anchor-form was: if ⟦w⟧ = ⟦c⟧ held, the class relation itself
+gives the returning journey (`Quotient.exact`), and the
+irreversibility dies at the member directly — the journey carries
+everything, no padding composition needed. -/
+theorem tipEdge_exits_source {C D : SameOrbit} (e : TipEdge C D) :
+    D ≠ C := by
   intro hcon
-  have hclass : ⟦e.w⟧ = ⟦C⟧ := e.cl.trans hcon
+  have hclass : ⟦e.w⟧ = ⟦e.c⟧ :=
+    e.cl.trans (hcon.trans e.hmem.symm)
   rcases Quotient.exact hclass with ⟨σ, hσ, τ, hτ⟩
-  have hu : e.w.run (τ ++ e.pad) = some e.u :=
-    run_split τ e.w C e.pad e.u (ShufflePlayW_run hτ) (ShufflePlayW_run e.hpad)
-  exact e.hm e.w (τ ++ e.pad) e.land hu
+  exact e.hm e.w τ e.land (ShufflePlayW_run hτ)
 
-/-- **The no-fourth-kind cell (part one)**: a committed move at a WF tip
-is never a foundation-to-tableau giveback.  Every legal `foundToTab` is
-reversible at WF (the landing-target search reads only the piles, so
-its undo never dies), so it cannot be the one commitment of a
-CanonEdge. -/
-theorem canonEdge_ne_foundToTab {C : State} {D : SameOrbit} (e : CanonEdge C D)
+/-- **The no-fourth-kind cell (part one)**: a committed move at a WF
+member is never a foundation-to-tableau giveback.  Every legal
+`foundToTab` is reversible at WF (the landing-target search reads
+only the piles, so its undo never dies), so it cannot be the one
+commitment of a tip edge. -/
+theorem tipEdge_ne_foundToTab {C D : SameOrbit} (e : TipEdge C D)
     (c : Card) (b : Base) : e.m ≠ Move.foundToTab c b := by
   intro hcon
-  have hstep : e.u.step (Move.foundToTab c b) = some e.w := by
+  have hstep : e.c.step (Move.foundToTab c b) = some e.w := by
     rw [← hcon]
     exact e.land
   obtain ⟨htop, hcp, -⟩ := step_foundToTab_inv hstep
-  exact absurd (foundToTab_reversibleAtW_of_legal_wf e.tip_wf htop hcp)
+  exact absurd (foundToTab_reversibleAtW_of_legal_wf e.hwf htop hcp)
     (by
       intro hrevW
       exact (reversibleAt_of_W hrevW) (by rw [← hcon]; exact e.hm))
 
+/-- A both-empty draw zone cannot produce a draw: recycle is the identity
+and there is nothing to deal (citing the public Play readers). -/
+private theorem stepDraw_bothEmpty_none {st : State}
+    (h1 : st.stock = []) (h2 : st.waste = []) : st.stepDraw = none := by
+  show State.dealStock st.recycle = none
+  rw [recycle_allEmpty st h1 h2]
+  exact dealStock_nil st h1
+
+/-- **A draw edge starts non-pure**: committed draws fire only at
+pristine (empty waste) or offset (misaligned waste) tips — the pass-base
+and in-phase draws are reversible and the both-empty draw is illegal. -/
+theorem tipEdge_draw_shape {C D : SameOrbit} (e : TipEdge C D)
+    (hm : e.m = Move.draw) :
+    e.c.stock ≠ [] ∧
+    (e.c.waste = [] ∨ e.c.waste.length % e.c.drawStep ≠ 0) := by
+  have hsD : e.c.stepDraw = some e.w := by
+    have h1 : e.c.step e.m = some e.w := e.land
+    rw [hm] at h1
+    exact h1
+  have hrev (h : reversibleAtW e.c Move.draw) : False :=
+    (reversibleAt_of_W h) (by rw [← hm]; exact e.hm)
+  have hd : 0 < e.c.drawStep := e.hwf.2.2.2
+  constructor
+  · by_cases h1 : e.c.stock = []
+    · by_cases h2 : e.c.waste = []
+      · rw [stepDraw_bothEmpty_none h1 h2] at hsD
+        exact absurd hsD (by simp)
+      · exact (hrev (draw_passBase_reversibleW h1 h2 hd)).elim
+    · exact h1
+  · by_cases h2 : e.c.waste = []
+    · exact Or.inl h2
+    · by_cases h1 : e.c.stock = []
+      · exact (hrev (draw_passBase_reversibleW h1 h2 hd)).elim
+      · by_cases hres : e.c.waste.length % e.c.drawStep = 0
+        · obtain ⟨s, t, hcon⟩ := list_cons_of_ne_nil h1
+          have hph : inPhase e.c = true := by
+            show (match e.c.stock with
+              | [] => true
+              | _ => decide (e.c.waste.length % e.c.drawStep = 0)) = true
+            rw [hcon, hres]
+            rfl
+          exact (hrev (draw_reversible_inphaseW hd h1 h2 hph)).elim
+        · exact Or.inr hres
+
 /-! ## The fingerprint reads (the label-map surface) -/
 
-/-- The waste-pop read: the unique member of the anchor's draw pool that
-the target's pool lacks, first in universe order (the
+/-- The waste-pop read: the unique member of the source state's draw pool
+that the landing's pool lacks, first in universe order (the
 cycle-difference card of the pair). -/
 def poolMissCard (C w : State) : Option Card :=
   firstWhere (fun c => decide (c ∈ drawPool C ∧ c ∉ drawPool w)) Card.universe
@@ -1301,15 +1464,15 @@ departed (the seat-difference seat of the pair). -/
 def rootFreedAnchor (C w : State) : Option Anchor :=
   firstWhere (fun a => decide (nzRoot C a ≠ nzRoot w a)) Anchor.all
 
-/-- **The class-pair fingerprint**: the label a directly-adjacent class
-pair carries, read off the pair alone — the anchor form `C` against any
-WF member `w` of the target class.  The three branches are the three
-channels of the fingerprint route: the cycle-difference (waste exit)
-branch reads the pool-difference card; the hidden-difference (reveal)
-branch reads the hidden-difference anchor; the degenerate zero-delta
-cell splits the draw (no datum changes) from the vacate (the
-seat-difference read).  That the read is independent of the member `w`
-is the pair-function property the label theorems consume. -/
+/-- **The state-grade fingerprint**: the label a directly-adjacent pair
+of states carries, read off the source state against the landing —
+the working surface the determination rows' anatomy consumes, and the
+definitional shadow of the class read (`labelOf_pair` below): the
+three branches are the three channels of the fingerprint route (the
+cycle-difference branch reads the pool-difference card; the
+hidden-difference branch reads the hidden-difference anchor; the
+degenerate zero-delta cell splits the draw from the vacate through
+the seat-difference read). -/
 def CanonLabel (C w : State) : EdgeLabel :=
   if cycleCount w < cycleCount C then
     match poolMissCard C w with
@@ -1324,130 +1487,174 @@ def CanonLabel (C w : State) : EdgeLabel :=
     | some a => EdgeLabel.stackEvent a
     | none => EdgeLabel.draw
 
-/-- The label of a canonical edge: the fingerprint read at the pair. -/
-def CanonEdge.label {C : State} {D : SameOrbit} (e : CanonEdge C D) : EdgeLabel :=
-  CanonLabel C e.w
+/-- The hidden-total channel of the bundled data: the total the reveal
+test grades, read off the per-anchor hidden stacks (the same shape
+`hiddenTotal` reads off the piles). -/
+def MacroDatums.hiddenTotal (d : MacroDatums) : Nat :=
+  (Anchor.all.flatMap d.hidden).length
 
-/-- **The read is a function of the class**: any two WF class-mates of
-the target class give the same fingerprint — the four datums the reads
-consume (cycle count, pool, per-anchor hidden lists, seat roots) are
-macro-class invariants, so the label of a directly-adjacent class pair
-depends only on the pair, never on which member of the target class
-the reading happens to use. -/
-theorem canonLabel_orbit_indep {C : State} {w w' : State}
-    (h : ⟦w⟧ = ⟦w'⟧) (hwf : w.WF) : CanonLabel C w = CanonLabel C w' := by
-  obtain ⟨-, hc, hp, hh, hn⟩ := orbit_data (Quotient.exact h) hwf
-  have hHT : hiddenTotal w' = hiddenTotal w := hiddenTotal_congr hh
-  have hPool : poolMissCard C w = poolMissCard C w' := by
-    unfold poolMissCard
-    refine firstWhere_congr (fun c => ?_)
-    rw [hp]
-  have hDrop : hiddenDropperAnchor C w = hiddenDropperAnchor C w' := by
-    unfold hiddenDropperAnchor
-    refine firstWhere_congr (fun a => ?_)
-    rw [hh a]
-  have hRoot : rootFreedAnchor C w = rootFreedAnchor C w' := by
-    unfold rootFreedAnchor
-    refine firstWhere_congr (fun a => ?_)
-    rw [hn a]
-  unfold CanonLabel
-  rw [hc, hHT]
-  by_cases h1 : cycleCount w < cycleCount C
-  · rw [ite_eq_left h1, ite_eq_left h1, hPool]
-  · rw [ite_eq_right h1, ite_eq_right h1]
-    by_cases h2 : hiddenTotal w < hiddenTotal C
-    · rw [ite_eq_left h2, ite_eq_left h2, hDrop]
-    · rw [ite_eq_right h2, ite_eq_right h2, hRoot]
+/-- The waste-pop channel over the bundled data: the unique member of
+the source's pool the target's pool lacks, first in universe order. -/
+def MacroDatums.poolMiss (d d' : MacroDatums) : Option Card :=
+  firstWhere (fun c => decide (c ∈ d.pool ∧ c ∉ d'.pool)) Card.universe
 
-/-- **The label is a function of the pair**: two CanonEdge schemes
-witnessing the same class pair carry the same label — the label does
-not depend on the scheme (which padding, which commit instance), only
-on the class pair itself. -/
-theorem edge_label_unique {C : State} {D : SameOrbit}
-    (e₁ e₂ : CanonEdge C D) : e₁.label = e₂.label :=
-  canonLabel_orbit_indep (e₁.cl.trans e₂.cl.symm) e₁.landing_wf
+/-- The hidden-difference channel over the bundled data: the unique
+anchor whose hidden count strictly fell. -/
+def MacroDatums.hiddenDropper (d d' : MacroDatums) : Option Anchor :=
+  firstWhere
+    (fun a => decide ((d'.hidden a).length < (d.hidden a).length))
+    Anchor.all
 
-/-! ## The determination rows (one commit family at a time) -/
+/-- The seat-difference channel over the bundled data: the unique
+anchor whose bare non-king root departed. -/
+def MacroDatums.rootFreed (d d' : MacroDatums) : Option Anchor :=
+  firstWhere (fun a => decide (d.roots a ≠ d'.roots a)) Anchor.all
+
+/-- **The class-pair fingerprint over the bundled data**: the label a
+directly-adjacent class pair carries, read off the class data alone —
+the three branches are the three channels of the fingerprint route
+(the cycle-difference branch reads the pool-difference card; the
+hidden-difference branch reads the hidden-difference anchor; the
+degenerate zero-delta cell splits the draw from the vacate through
+the seat-difference read). -/
+def labelOf (d d' : MacroDatums) : EdgeLabel :=
+  if d'.cycle < d.cycle then
+    match d.poolMiss d' with
+    | some c => EdgeLabel.wasteEntry c
+    | none => EdgeLabel.draw
+  else if d'.hiddenTotal < d.hiddenTotal then
+    match d.hiddenDropper d' with
+    | some a => EdgeLabel.stackEvent a
+    | none => EdgeLabel.draw
+  else
+    match d.rootFreed d' with
+    | some a => EdgeLabel.stackEvent a
+    | none => EdgeLabel.draw
+
+/-- The state-grade read of the class fingerprint: DEFINITIONAL (the
+lift's computation rule plus the readers' shared shapes) — the member
+pair sees exactly the old anchor-form's `CanonLabel`.  This equation
+is where `canonLabel_orbit_indep` dissolved: the read is independent
+of the member because both sides ARE the class read (`rfl`). -/
+theorem labelOf_pair (c w : State) :
+    labelOf (datumOf ⟦c⟧) (datumOf ⟦w⟧) = CanonLabel c w := rfl
+
+/-- The label of a class-pair edge: the class fingerprint over the
+quotient data.  The binder is underscore-named deliberately: the label
+never reads the edge — the pair-functionality is structural now. -/
+def TipEdge.label {C D : SameOrbit} (_e : TipEdge C D) : EdgeLabel :=
+  labelOf (datumOf C) (datumOf D)
+
+/-- **The label is a function of the pair** — definitional through the
+lift: two tip edges witnessing the same class pair carry the same
+label because the label never reads the member, the commitment, or
+the landing — only the classes.  (The old transport through
+`canonLabel_orbit_indep` plus `landing_wf` is the lift's soundness,
+paid once inside `datumOf`.) -/
+theorem edge_label_unique {C D : SameOrbit}
+    (e₁ e₂ : TipEdge C D) : e₁.label = e₂.label := rfl
+
+/-! ## The determination rows (one commit family at a time)
+
+The rows, re-landed at the member grade: the lens `label_read` turns
+the class fingerprint into the state-grade anatomy (the memberships
+transport the datum reads; `labelOf_pair` closes on the state
+fingerprint underneath), and every row then runs the old anatomy at
+(e.c, e.w) — the faces of the moves read at the member exactly as
+they were read at the padding tip.  The spines sit between the rows
+as before, now state-grade (the kit the rows share with the
+vacate-recycling family and the commit-kind cells). -/
+
+/-- **The label-read lens**: the class fingerprint reads at the member
+pair — the memberships (hmem at the source, cl at the landing) become
+pre-formed datum-level transports, and `labelOf_pair` closes on the
+state-grade view underneath; the datum-carry the old padding
+performed per edge now rides the class machinery, once, here. -/
+private theorem label_read {C D : SameOrbit} (e : TipEdge C D) :
+    e.label = CanonLabel e.c e.w := by
+  show labelOf (datumOf C) (datumOf D) = _
+  have hC : datumOf C = datumOf ⟦e.c⟧ := by rw [e.hmem]
+  have hD : datumOf D = datumOf ⟦e.w⟧ := by rw [e.cl]
+  rw [hC, hD]
+  exact labelOf_pair e.c e.w
 
 /-- **The draw row**: an edge whose single commitment is a draw is
 draw-labeled — the draw moves stock to waste within one reservoir, so
 no datum changes across the pair: the cycle test fails (the landing
-reads the anchor's count), the hidden test fails (the landing reads the
-anchor's total), and the seat read finds no differing root (the
-landing reads the anchor's roots) — the fingerprint degenerates to
+reads the member's count), the hidden test fails (the landing reads
+the member's total), and the seat read finds no differing root (the
+landing reads the member's roots) — the fingerprint degenerates to
 `draw`. -/
-theorem canonEdge_label_draw {C : State} {D : SameOrbit} (e : CanonEdge C D)
+theorem tipEdge_label_draw {C D : SameOrbit} (e : TipEdge C D)
     (hm : e.m = Move.draw) : e.label = EdgeLabel.draw := by
-  show CanonLabel C e.w = EdgeLabel.draw
-  have hsD : e.u.stepDraw = some e.w := by
-    have h1 : e.u.step e.m = some e.w := e.land
+  rw [label_read]
+  have hsD : e.c.stepDraw = some e.w := by
+    have h1 : e.c.step e.m = some e.w := e.land
     rw [hm] at h1
     exact h1
-  obtain ⟨hcE, hpE, hhE, hnE⟩ := pad_data e
-  have hpiles : e.w.piles = e.u.piles := stepDraw_piles hsD
-  have hcyc : cycleCount e.w = cycleCount C := (stepDraw_cycle hsD).trans hcE
-  have hHT : hiddenTotal e.w = hiddenTotal C :=
-    (hiddenTotal_congr (fun a => congrArg Pile.hidden (congrFun hpiles a))).trans
-      (hiddenTotal_congr hhE)
-  have hnz : ∀ a, nzRoot C a = nzRoot e.w a := by
-    intro a
-    exact ((nzRoot_congr_pile (congrFun hpiles a)).trans (hnE a)).symm
+  have hpiles : e.w.piles = e.c.piles := stepDraw_piles hsD
+  have hcyc : cycleCount e.w = cycleCount e.c := stepDraw_cycle hsD
+  have hHT : hiddenTotal e.w = hiddenTotal e.c :=
+    hiddenTotal_congr (fun a => congrArg Pile.hidden (congrFun hpiles a))
+  have hnz : ∀ a, nzRoot e.c a = nzRoot e.w a :=
+    fun a => (nzRoot_congr_pile (congrFun hpiles a)).symm
   unfold CanonLabel
   rw [hcyc, hHT]
-  rw [ite_eq_right (Nat.lt_irrefl (cycleCount C))]
-  rw [ite_eq_right (Nat.lt_irrefl (hiddenTotal C))]
-  have hnone : rootFreedAnchor C e.w = none := by
+  rw [ite_eq_right (Nat.lt_irrefl (cycleCount e.c))]
+  rw [ite_eq_right (Nat.lt_irrefl (hiddenTotal e.c))]
+  have hnone : rootFreedAnchor e.c e.w = none := by
     unfold rootFreedAnchor
-    refine firstWhere_none_of_forall (fun a => decide (nzRoot C a ≠ nzRoot e.w a))
+    refine firstWhere_none_of_forall (fun a => decide (nzRoot e.c a ≠ nzRoot e.w a))
       (fun a _ => ?_)
-    by_cases hEq : nzRoot C a = nzRoot e.w a
+    by_cases hEq : nzRoot e.c a = nzRoot e.w a
     · exact decide_eq_false (fun hne => hne hEq)
     · exact absurd (hnz a) hEq
   rw [hnone]
 
-/-- **The waste row spine**: the cycle test fires (the waste head is
-gone from the conserved count) and the pool read pins the head card —
-`c` is in the source pool and out of the landing's (the stock is
-untouched and the tail carries over, so `c` in the tail would sit
-twice in the landing — in the surviving waste and in its found/pile
-landing zone — which `mem_waste_unique` at the landing kills), and
-any other pool-difference card would have to come from the untouched
-stock or the surviving tail, both of which stay in the landing's pool. -/
-private theorem waste_entry_spine {C : State} {D : SameOrbit} (e : CanonEdge C D)
-    (hcwlt : cycleCount e.w + 1 ≤ cycleCount e.u) (hcE : cycleCount e.u = cycleCount C)
-    (hpE : drawPool e.u = drawPool C) {c : Card} {xs : List Card}
-    (hwu : e.u.waste = c :: xs) (hstock : e.w.stock = e.u.stock)
-    (hww : e.w.waste = xs)
-    (hspot : (∃ s, c ∈ e.w.found s) ∨ (∃ a, c ∈ (e.w.piles a).faceUp)) :
-    e.label = EdgeLabel.wasteEntry c := by
-  show CanonLabel C e.w = EdgeLabel.wasteEntry c
-  have hwmem : c ∈ e.u.waste := by rw [hwu]; exact List.mem_cons_self
-  have hlt : cycleCount e.w < cycleCount C := by omega
-  have hcIn : c ∈ drawPool e.u := by
-    show c ∈ e.u.stock.reverse ++ e.u.waste
+/-- **The waste row anatomy, state-grade**: the cycle test fires (the
+waste head is gone from the conserved count) and the pool read pins
+the head card — `c` is in the source pool and out of the landing's
+(the stock is untouched and the tail carries over, so `c` in the tail
+would sit twice in the landing — in the surviving waste and in its
+found/pile landing zone — which `mem_waste_unique` at the landing
+kills), and any other pool-difference card would have to come from the
+untouched stock or the surviving tail, both of which stay in the
+landing's pool.  (State-grade since the flip: the source-state
+parameters took the old edge-fields' places; the row adds only the
+memberships and the WF passage.) -/
+private theorem waste_entry_spine {x w : State}
+    (hwf : x.WF) (hhw : w.WF)
+    (hcwlt : cycleCount w + 1 ≤ cycleCount x) {c : Card} {xs : List Card}
+    (hwu : x.waste = c :: xs) (hstock : w.stock = x.stock)
+    (hww : w.waste = xs)
+    (hspot : (∃ s, c ∈ w.found s) ∨ (∃ a, c ∈ (w.piles a).faceUp)) :
+    CanonLabel x w = EdgeLabel.wasteEntry c := by
+  have hwmem : c ∈ x.waste := by rw [hwu]; exact List.mem_cons_self
+  have hlt : cycleCount w < cycleCount x := by omega
+  have hcIn : c ∈ drawPool x := by
+    show c ∈ x.stock.reverse ++ x.waste
     rw [hwu]
     exact List.mem_append_right _ (by simp)
-  have hLpool : drawPool e.w = e.u.stock.reverse ++ xs := by
-    show e.w.stock.reverse ++ e.w.waste = _
+  have hLpool : drawPool w = x.stock.reverse ++ xs := by
+    show w.stock.reverse ++ w.waste = _
     rw [hstock, hww]
-  have hcOut : c ∉ drawPool e.w := by
+  have hcOut : c ∉ drawPool w := by
     rw [hLpool]
     refine fun hmem => ?_
     rcases (List.mem_append).1 hmem with hrev | hxs
-    · exact (mem_waste_unique e.tip_wf hwmem).2.1 (List.mem_reverse.mp hrev)
-    · have hcwmem : c ∈ e.w.waste := by rw [hww]; exact hxs
+    · exact (mem_waste_unique hwf hwmem).2.1 (List.mem_reverse.mp hrev)
+    · have hcwmem : c ∈ w.waste := by rw [hww]; exact hxs
       rcases hspot with ⟨s, hfs⟩ | ⟨a₀, hfa⟩
-      · exact (mem_waste_unique e.landing_wf hcwmem).2.2 s hfs
-      · exact ((mem_waste_unique e.landing_wf hcwmem).1 a₀).2 hfa
-  have hread : poolMissCard C e.w = some c := by
+      · exact (mem_waste_unique hhw hcwmem).2.2 s hfs
+      · exact ((mem_waste_unique hhw hcwmem).1 a₀).2 hfa
+  have hread : poolMissCard x w = some c := by
     unfold poolMissCard
-    rw [show drawPool C = drawPool e.u from hpE.symm]
     refine firstWhere_find (p :=
-      fun c' => decide (c' ∈ drawPool e.u ∧ c' ∉ drawPool e.w)) ?_ ?_ ?_
+      fun c' => decide (c' ∈ drawPool x ∧ c' ∉ drawPool w)) ?_ ?_ ?_
     · exact Card.mem_universe c
     · exact decide_eq_true ⟨hcIn, hcOut⟩
     · intro y _ hne
-      show decide (y ∈ drawPool e.u ∧ y ∉ drawPool e.w) = false
+      show decide (y ∈ drawPool x ∧ y ∉ drawPool w) = false
       rw [decide_eq_false]
       refine fun hpred => ?_
       obtain ⟨hyIn, hyOut⟩ := hpred
@@ -1467,89 +1674,84 @@ private theorem waste_entry_spine {C : State} {D : SameOrbit} (e : CanonEdge C D
 /-- **The waste row**: an edge whose single commitment hands `c` out of
 the waste is wasteEntry-labeled with THAT card — the cycle strictly
 drops across the pair, and the pool-difference read is exactly the
-popped card (uniquely pinned by the pool arithmetic above). -/
-theorem canonEdge_label_waste {C : State} {D : SameOrbit} (e : CanonEdge C D)
+popped card (uniquely pinned by the pool arithmetic in the spine
+above; the WF ports are the member's field and `TipEdge.landing_wf`). -/
+theorem tipEdge_label_waste {C D : SameOrbit} (e : TipEdge C D)
     {c : Card} (hwm : WasteOf c e.m) :
     e.label = EdgeLabel.wasteEntry c := by
-  obtain ⟨hcE, hpE, -, -⟩ := pad_data e
+  rw [label_read]
   rcases hwm with heqm | ⟨b, heqm⟩
-  · have hstep : e.u.step (Move.wasteToFound c) = some e.w := by
+  · have hstep : e.c.step (Move.wasteToFound c) = some e.w := by
       rw [← heqm]
       exact e.land
     obtain ⟨xs, hwu, hsucc⟩ := step_wasteToFound_inv hstep
-    have hstock : e.w.stock = e.u.stock := by
+    have hstock : e.w.stock = e.c.stock := by
       rw [hsucc]
-      exact setFound_stock e.u c.suit (e.u.found c.suit ++ [c])
+      exact setFound_stock e.c c.suit (e.c.found c.suit ++ [c])
     have hww : e.w.waste = xs := by rw [hsucc]
     have hfound : c ∈ e.w.found c.suit := by
       rw [hsucc]
-      show c ∈ (if c.suit = c.suit then e.u.found c.suit ++ [c] else e.u.found c.suit)
+      show c ∈ (if c.suit = c.suit then e.c.found c.suit ++ [c] else e.c.found c.suit)
       rw [ite_eq_left rfl]
       exact List.mem_append_right _ (by simp)
-    exact waste_entry_spine e (cycleCount_step_wasteToFound hstep) hcE hpE hwu
-      hstock hww (Or.inl ⟨c.suit, hfound⟩)
-  · have hstep : e.u.step (Move.wasteToTab c b) = some e.w := by
+    exact waste_entry_spine e.hwf (TipEdge.landing_wf e)
+      (cycleCount_step_wasteToFound hstep) hwu hstock hww
+      (Or.inl ⟨c.suit, hfound⟩)
+  · have hstep : e.c.step (Move.wasteToTab c b) = some e.w := by
       rw [← heqm]
       exact e.land
     obtain ⟨hcp, xs, hwu, hsucc⟩ := step_wasteToTab_inv hstep
-    have hstock : e.w.stock = e.u.stock := by
+    have hstock : e.w.stock = e.c.stock := by
       rw [hsucc]
-      exact putCard_stock e.u c b
+      exact putCard_stock e.c c b
     have hww : e.w.waste = xs := by rw [hsucc]
     have hspot : (∃ s, c ∈ e.w.found s) ∨ (∃ a, c ∈ (e.w.piles a).faceUp) := by
       cases b with
       | inl a₀ =>
           refine Or.inr ⟨a₀, ?_⟩
           rw [hsucc]
-          show c ∈ ((e.u.putCard c (Sum.inl a₀)).piles a₀).faceUp
+          show c ∈ ((e.c.putCard c (Sum.inl a₀)).piles a₀).faceUp
           rw [putCard_inl_landing]
           exact by simp
       | inr z =>
           obtain ⟨k, hz, -⟩ := canPlace_inr hcp
           refine Or.inr ⟨k, ?_⟩
           rw [hsucc]
-          show c ∈ ((e.u.putCard c (Sum.inr z)).piles k).faceUp
+          show c ∈ ((e.c.putCard c (Sum.inr z)).piles k).faceUp
           rw [putCard_inr_landing hz]
-          show c ∈ (e.u.piles k).faceUp ++ [c]
+          show c ∈ (e.c.piles k).faceUp ++ [c]
           exact List.mem_append_right _ (by simp)
-    exact waste_entry_spine e (cycleCount_step_wasteToTab hstep) hcE hpE hwu
-      hstock hww hspot
+    exact waste_entry_spine e.hwf (TipEdge.landing_wf e)
+      (cycleCount_step_wasteToTab hstep) hwu hstock hww hspot
 
-/-- The label-assembly spine of the reveal row: the cycle test dies at
-the conserved count, the hidden test fires, and the hidden-difference
-read is exactly the departing seat (its hidden dropped a card, every
-other seat's is verbatim). -/
-private theorem reveal_spine {C : State} {D : SameOrbit} (e : CanonEdge C D)
-    (hcycC : cycleCount e.w = cycleCount C)
-    (hhC : ∀ a, (e.u.piles a).hidden = (C.piles a).hidden)
-    (hltH : hiddenTotal e.w + 1 ≤ hiddenTotal C)
-    {a : Anchor} (hdropA : (e.w.piles a).hidden.length + 1
-      = (e.u.piles a).hidden.length)
-    (hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.u.piles a').hidden) :
-    e.label = EdgeLabel.stackEvent a := by
-  show CanonLabel C e.w = EdgeLabel.stackEvent a
-  have hRead : hiddenDropperAnchor C e.w = some a := by
+/-- The label-assembly spine of the reveal row, state-grade: the cycle
+test dies at the conserved count, the hidden test fires, and the
+hidden-difference read is exactly the departing seat (its hidden
+dropped a card, every other seat's is verbatim). -/
+private theorem reveal_spine {x w : State}
+    (hcycC : cycleCount w = cycleCount x)
+    (hltH : hiddenTotal w + 1 ≤ hiddenTotal x)
+    {a : Anchor} (hdropA : (w.piles a).hidden.length + 1
+      = (x.piles a).hidden.length)
+    (hElse : ∀ a', a' ≠ a → (w.piles a').hidden = (x.piles a').hidden) :
+    CanonLabel x w = EdgeLabel.stackEvent a := by
+  have hRead : hiddenDropperAnchor x w = some a := by
     unfold hiddenDropperAnchor
     refine firstWhere_find (p :=
-      fun a' => decide ((e.w.piles a').hidden.length < (C.piles a').hidden.length)) ?_ ?_ ?_
+      fun a' => decide ((w.piles a').hidden.length < (x.piles a').hidden.length)) ?_ ?_ ?_
     · exact Anchor.mem_all a
-    · exact decide_eq_true (by
-        have huCa := hhC a
-        have : (e.u.piles a).hidden.length ≤ (C.piles a).hidden.length := by
-          rw [huCa]
-          exact Nat.le_refl _
-        omega)
+    · exact decide_eq_true (by omega)
     · intro y _ hne
       by_cases hy : y = a
       · exact absurd hy hne
-      · show decide ((e.w.piles y).hidden.length < (C.piles y).hidden.length) = false
+      · show decide ((w.piles y).hidden.length < (x.piles y).hidden.length) = false
         rw [decide_eq_false]
         intro hlt
-        rw [hElse y hy, ← hhC y] at hlt
+        rw [hElse y hy] at hlt
         exact Nat.lt_irrefl _ hlt
   unfold CanonLabel
-  rw [hcycC, ite_eq_right (Nat.lt_irrefl (cycleCount C))]
-  rw [ite_eq_left (show hiddenTotal e.w < hiddenTotal C by omega)]
+  rw [hcycC, ite_eq_right (Nat.lt_irrefl (cycleCount x))]
+  rw [ite_eq_left (show hiddenTotal w < hiddenTotal x by omega)]
   rw [hRead]
 
 /-- The cell predicates carry the move as a family index; this
@@ -1569,51 +1771,52 @@ private theorem RevealCell_shape {u : State} {a : Anchor} {m : Move}
 (the run departing a pile carries the pile's whole face-up content
 over a nonempty hidden stack, so the automatic flip fires) is
 stackEvent-labeled at THE seat it departs — the cycle test dies (the
-tab move keeps the zone and the pad keeps the count), the hidden test
-fires (the hidden stack lost its head), and the hidden-difference read
-is exactly that seat: `afterRunRemoved_hidden`'s head-drop disjunct
-gives the one-card loss at the seat while every other seat's hidden
-survives verbatim (the move touches one seat's pile only). -/
-theorem canonEdge_label_reveal {C : State} {D : SameOrbit} (e : CanonEdge C D)
-    {a : Anchor} (hcell : RevealCellAt e.u a e.m) :
+tab move keeps the zone, so the landing reads the member's count),
+the hidden test fires (the hidden stack lost its head), and the
+hidden-difference read is exactly that seat:
+`afterRunRemoved_hidden`'s head-drop disjunct gives the one-card loss
+at the seat while every other seat's hidden survives verbatim (the
+move touches one seat's pile only). -/
+theorem tipEdge_label_reveal {C D : SameOrbit} (e : TipEdge C D)
+    {a : Anchor} (hcell : RevealCellAt e.c a e.m) :
     e.label = EdgeLabel.stackEvent a := by
-  obtain ⟨hcE, -, hhE, -⟩ := pad_data e
+  rw [label_read]
   rcases RevealCell_shape hcell with
     ⟨c, heqm, hloc, hpre, hhne⟩ | ⟨c, b, heqm, hloc, hpre, hhne⟩
   · -- tabToFound
-    have hstep : e.u.step (Move.tabToFound c) = some e.w := by
+    have hstep : e.c.step (Move.tabToFound c) = some e.w := by
       rw [← heqm]
       exact e.land
     obtain ⟨-, a', hloc', hsucc⟩ := step_tabToFound_inv hstep
     have ha' : a = a' := Option.some.inj (hloc.symm.trans hloc')
     subst ha'
     have hWa : (e.w.piles a).hidden =
-        (Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)).hidden := by
+        (Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)).hidden := by
       rw [hsucc]
       show (if a = a then
-          Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)
-          else e.u.piles a).hidden = _
+          Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)
+          else e.c.piles a).hidden = _
       rw [ite_eq_left rfl]
-    have hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.u.piles a').hidden := by
+    have hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.c.piles a').hidden := by
       intro a' hne
       rw [hsucc]
       show (if a' = a then
-          Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)
-          else e.u.piles a').hidden = _
+          Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)
+          else e.c.piles a').hidden = _
       rw [ite_eq_right hne]
     rw [hpre] at hWa
     have hdropA : (e.w.piles a).hidden.length + 1
-        = (e.u.piles a).hidden.length := by
+        = (e.c.piles a).hidden.length := by
       rw [hWa]
-      rcases afterRunRemoved_hidden (e.u.piles a) [] with ⟨he, -⟩ | ⟨-, he, -⟩ |
+      rcases afterRunRemoved_hidden (e.c.piles a) [] with ⟨he, -⟩ | ⟨-, he, -⟩ |
         ⟨-, he, hdrop⟩
       · exact absurd rfl he
       · exact absurd he hhne
       · exact hdrop
-    have hhz : e.w.stock = e.u.stock ∧ e.w.waste = e.u.waste := by
+    have hhz : e.w.stock = e.c.stock ∧ e.w.waste = e.c.waste := by
       rw [hsucc]
       exact ⟨rfl, rfl⟩
-    have hdrop' : hiddenTotal e.w + 1 ≤ hiddenTotal e.u := by
+    have hdrop' : hiddenTotal e.w + 1 ≤ hiddenTotal e.c := by
       refine hiddenTotal_mono_lt (a := a) (fun a' => ?_) ?_
       · by_cases hne : a' = a
         · rw [hne]; omega
@@ -1621,23 +1824,21 @@ theorem canonEdge_label_reveal {C : State} {D : SameOrbit} (e : CanonEdge C D)
           exact Nat.le_refl _
       · rw [hdropA]
         omega
-    exact reveal_spine e (by
-      rw [cycleCount_eq_of_stock_waste hhz.1 hhz.2]
-      exact hcE) hhE (Nat.le_trans hdrop' (Nat.le_of_eq (hiddenTotal_congr hhE)))
-      hdropA hElse
+    exact reveal_spine (cycleCount_eq_of_stock_waste hhz.1 hhz.2)
+      hdrop' hdropA hElse
   · -- tabToTab
-    have hstep : e.u.step (Move.tabToTab c b) = some e.w := by
+    have hstep : e.c.step (Move.tabToTab c b) = some e.w := by
       rw [← heqm]
       exact e.land
     obtain ⟨a₀, hh, hcp, hfr, hsucc⟩ := step_tabToTab_inv hstep
     have ha₀ : a = a₀ := Option.some.inj (hloc.symm.trans hh)
     subst ha₀
-    -- the tip's seat a holds c face-up (the run head is real)
-    have hmem : c ∈ (e.u.piles a).faceUp := pileHolding_mem hloc
+    -- the member's seat a holds c face-up (the run head is real)
+    have hmem : c ∈ (e.c.piles a).faceUp := pileHolding_mem hloc
     -- the arrival hidden at the departing seat is the removal state's,
     -- and it drops one card (the flip); every other seat's is verbatim
     have hWa : (e.w.piles a).hidden =
-        (Pile.afterRunRemoved (e.u.piles a) (below c (e.u.piles a).faceUp)).hidden := by
+        (Pile.afterRunRemoved (e.c.piles a) (below c (e.c.piles a).faceUp)).hidden := by
       cases b with
       | inl k =>
           obtain ⟨hemp, -⟩ := canPlace_inl hcp
@@ -1650,75 +1851,75 @@ theorem canonEdge_label_reveal {C : State} {D : SameOrbit} (e : CanonEdge C D)
           rw [hsucc, putRun_inl_piles (fun hc => hka hc.symm)]
           exact congrArg Pile.hidden setPile_piles_self
       | inr z =>
-          cases hz : (e.u.setPile a
-              (Pile.afterRunRemoved (e.u.piles a)
-                (below c (e.u.piles a).faceUp))).pileOfTop z with
+          cases hz : (e.c.setPile a
+              (Pile.afterRunRemoved (e.c.piles a)
+                (below c (e.c.piles a).faceUp))).pileOfTop z with
           | none =>
               rw [hsucc, putRun_inr_none hz]
               exact congrArg Pile.hidden (setPile_piles_self)
           | some k =>
-              have hpR : ((e.u.setPile a
-                    (Pile.afterRunRemoved (e.u.piles a)
-                      (below c (e.u.piles a).faceUp))).piles a).hidden
-                  = (Pile.afterRunRemoved (e.u.piles a)
-                    (below c (e.u.piles a).faceUp)).hidden :=
+              have hpR : ((e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).piles a).hidden
+                  = (Pile.afterRunRemoved (e.c.piles a)
+                    (below c (e.c.piles a).faceUp)).hidden :=
                 congrArg Pile.hidden setPile_piles_self
               by_cases hka : k = a
-              · have hza : (e.u.setPile a
-                    (Pile.afterRunRemoved (e.u.piles a)
-                      (below c (e.u.piles a).faceUp))).pileOfTop z = some a := hka ▸ hz
+              · have hza : (e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).pileOfTop z = some a := hka ▸ hz
                 rw [hsucc, putRun_inr_landing hza]
-                show ({ ((e.u.setPile a
-                    (Pile.afterRunRemoved (e.u.piles a)
-                      (below c (e.u.piles a).faceUp))).piles a) with
-                    faceUp := ((e.u.setPile a
-                    (Pile.afterRunRemoved (e.u.piles a)
-                      (below c (e.u.piles a).faceUp))).piles a).faceUp ++
-                      fromCard c (e.u.piles a).faceUp } : Pile).hidden = _
+                show ({ ((e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).piles a) with
+                    faceUp := ((e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).piles a).faceUp ++
+                      fromCard c (e.c.piles a).faceUp } : Pile).hidden = _
                 exact hpR
               · rw [hsucc, putRun_inr_piles_ne hz (fun hc => hka hc.symm)]
                 exact congrArg Pile.hidden (setPile_piles_self)
-    have hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.u.piles a').hidden := by
+    have hElse : ∀ a', a' ≠ a → (e.w.piles a').hidden = (e.c.piles a').hidden := by
       intro a' hne
       cases b with
       | inl k =>
           obtain ⟨hemp, -⟩ := canPlace_inl hcp
           by_cases hk' : a' = k
           · rw [hsucc, hk', putRun_inl_landing]
-            show ([] : List Card) = (e.u.piles k).hidden
+            show ([] : List Card) = (e.c.piles k).hidden
             exact (((Pile.isEmpty_eq _).mp hemp).1).symm
           · rw [hsucc, putRun_inl_piles hk']
             rw [setPile_piles_ne hne]
       | inr z =>
-          cases hz : (e.u.setPile a
-              (Pile.afterRunRemoved (e.u.piles a)
-                (below c (e.u.piles a).faceUp))).pileOfTop z with
+          cases hz : (e.c.setPile a
+              (Pile.afterRunRemoved (e.c.piles a)
+                (below c (e.c.piles a).faceUp))).pileOfTop z with
           | none =>
               rw [hsucc, putRun_inr_none hz]
               rw [setPile_piles_ne hne]
           | some k =>
               by_cases hk' : a' = k
               · rw [hsucc, hk', putRun_inr_landing hz]
-                show (((e.u.setPile a
-                    (Pile.afterRunRemoved (e.u.piles a)
-                      (below c (e.u.piles a).faceUp))).piles k).hidden) = _
+                show (((e.c.setPile a
+                    (Pile.afterRunRemoved (e.c.piles a)
+                      (below c (e.c.piles a).faceUp))).piles k).hidden) = _
                 exact congrArg Pile.hidden
                   (setPile_piles_ne (fun hc => hne (by rw [hk']; exact hc)))
               · rw [hsucc, putRun_inr_piles_ne hz hk']
                 rw [setPile_piles_ne hne]
     rw [hpre] at hWa
     have hdropA : (e.w.piles a).hidden.length + 1
-        = (e.u.piles a).hidden.length := by
+        = (e.c.piles a).hidden.length := by
       rw [hWa]
-      rcases afterRunRemoved_hidden (e.u.piles a) [] with ⟨he, -⟩ | ⟨-, he, -⟩ |
+      rcases afterRunRemoved_hidden (e.c.piles a) [] with ⟨he, -⟩ | ⟨-, he, -⟩ |
         ⟨-, he, hdrop⟩
       · exact absurd rfl he
       · exact absurd he hhne
       · exact hdrop
-    have hhz : e.w.stock = e.u.stock ∧ e.w.waste = e.u.waste := by
+    have hhz : e.w.stock = e.c.stock ∧ e.w.waste = e.c.waste := by
       rw [hsucc]
       exact ⟨putRun_stock _ _ _, putRun_waste _ _ _⟩
-    have hdrop' : hiddenTotal e.w + 1 ≤ hiddenTotal e.u := by
+    have hdrop' : hiddenTotal e.w + 1 ≤ hiddenTotal e.c := by
       refine hiddenTotal_mono_lt (a := a) (fun a' => ?_) ?_
       · by_cases hne2 : a' = a
         · rw [hne2]; omega
@@ -1726,55 +1927,9 @@ theorem canonEdge_label_reveal {C : State} {D : SameOrbit} (e : CanonEdge C D)
           exact Nat.le_refl _
       · rw [hdropA]
         omega
-    exact reveal_spine e (by
-      rw [cycleCount_eq_of_stock_waste hhz.1 hhz.2]
-      exact hcE) hhE (Nat.le_trans hdrop' (Nat.le_of_eq (hiddenTotal_congr hhE)))
-      hdropA hElse
+    exact reveal_spine (cycleCount_eq_of_stock_waste hhz.1 hhz.2)
+      hdrop' hdropA hElse
 
-
-/-- A both-empty draw zone cannot produce a draw: recycle is the identity
-and there is nothing to deal (citing the public Play readers). -/
-private theorem stepDraw_bothEmpty_none {st : State}
-    (h1 : st.stock = []) (h2 : st.waste = []) : st.stepDraw = none := by
-  show State.dealStock st.recycle = none
-  rw [recycle_allEmpty st h1 h2]
-  exact dealStock_nil st h1
-
-/-- **A draw edge starts non-pure**: committed draws fire only at
-pristine (empty waste) or offset (misaligned waste) tips — the pass-base
-and in-phase draws are reversible and the both-empty draw is illegal. -/
-theorem canonEdge_draw_shape {C : State} {D : SameOrbit} (e : CanonEdge C D)
-    (hm : e.m = Move.draw) :
-    e.u.stock ≠ [] ∧
-    (e.u.waste = [] ∨ e.u.waste.length % e.u.drawStep ≠ 0) := by
-  have hsD : e.u.stepDraw = some e.w := by
-    have h1 : e.u.step e.m = some e.w := e.land
-    rw [hm] at h1
-    exact h1
-  have hrev (h : reversibleAtW e.u Move.draw) : False :=
-    (reversibleAt_of_W h) (by rw [← hm]; exact e.hm)
-  have hd : 0 < e.u.drawStep := e.tip_wf.2.2.2
-  constructor
-  · by_cases h1 : e.u.stock = []
-    · by_cases h2 : e.u.waste = []
-      · rw [stepDraw_bothEmpty_none h1 h2] at hsD
-        exact absurd hsD (by simp)
-      · exact (hrev (draw_passBase_reversibleW h1 h2 hd)).elim
-    · exact h1
-  · by_cases h2 : e.u.waste = []
-    · exact Or.inl h2
-    · by_cases h1 : e.u.stock = []
-      · exact (hrev (draw_passBase_reversibleW h1 h2 hd)).elim
-      · by_cases hres : e.u.waste.length % e.u.drawStep = 0
-        · obtain ⟨s, t, hcon⟩ := list_cons_of_ne_nil h1
-          have hph : inPhase e.u = true := by
-            show (match e.u.stock with
-              | [] => true
-              | _ => decide (e.u.waste.length % e.u.drawStep = 0)) = true
-            rw [hcon, hres]
-            rfl
-          exact (hrev (draw_reversible_inphaseW hd h1 h2 hph)).elim
-        · exact Or.inr hres
 
 /-- The vacate cell predicates carry the move as a family index; this
 non-indexed restatement lets the row unpack a cell against a
@@ -1793,32 +1948,31 @@ private theorem VacateCell_shape {u : State} {a : Anchor} {m : Move}
   | tabToTab hloc hpre hhd hnk =>
       exact Or.inr ⟨_, _, rfl, hloc, hpre, hhd, hnk⟩
 
-/-- The label-assembly spine of the vacate row: both tests die, and the
-seat-difference read is exactly the freed seat. -/
-private theorem vacate_spine {C : State} {D : SameOrbit} (e : CanonEdge C D)
-    (hcycC : cycleCount e.w = cycleCount C)
-    (hnhC : hiddenTotal e.w = hiddenTotal C)
-    {a : Anchor} (hRootNe : nzRoot C a ≠ nzRoot e.w a)
-    (hElseR : ∀ a', a' ≠ a → nzRoot C a' = nzRoot e.w a') :
-    e.label = EdgeLabel.stackEvent a := by
-  show CanonLabel C e.w = EdgeLabel.stackEvent a
-  have hRead : rootFreedAnchor C e.w = some a := by
+/-- The label-assembly spine of the vacate row, state-grade: both
+tests die, and the seat-difference read is exactly the freed seat. -/
+private theorem vacate_spine {x w : State}
+    (hcycC : cycleCount w = cycleCount x)
+    (hnhC : hiddenTotal w = hiddenTotal x)
+    {a : Anchor} (hRootNe : nzRoot x a ≠ nzRoot w a)
+    (hElseR : ∀ a', a' ≠ a → nzRoot x a' = nzRoot w a') :
+    CanonLabel x w = EdgeLabel.stackEvent a := by
+  have hRead : rootFreedAnchor x w = some a := by
     unfold rootFreedAnchor
     refine firstWhere_find (p :=
-      fun a' => decide (nzRoot C a' ≠ nzRoot e.w a')) ?_ ?_ ?_
+      fun a' => decide (nzRoot x a' ≠ nzRoot w a')) ?_ ?_ ?_
     · exact Anchor.mem_all a
     · exact decide_eq_true hRootNe
     · intro y _ hne
       by_cases hy : y = a
       · exact absurd hy hne
-      · show decide (nzRoot C y ≠ nzRoot e.w y) = false
+      · show decide (nzRoot x y ≠ nzRoot w y) = false
         rw [decide_eq_false]
         intro hne2
         rw [← hElseR y hy] at hne2
         exact hne2 rfl
   unfold CanonLabel
-  rw [hcycC, ite_eq_right (Nat.lt_irrefl (cycleCount C))]
-  rw [hnhC, ite_eq_right (Nat.lt_irrefl (hiddenTotal C))]
+  rw [hcycC, ite_eq_right (Nat.lt_irrefl (cycleCount x))]
+  rw [hnhC, ite_eq_right (Nat.lt_irrefl (hiddenTotal x))]
   rw [hRead]
 
 /-- The vacate row's tabToTab-inr cell, fact one (`hwRootNone`): the
@@ -1960,75 +2114,74 @@ face-up content — the mover at its head — leaves the pile bare), while
 every other seat's root survives (the tabToTab landing can only sit
 on an empty pile at the king guard — dead for a non-king mover — or
 on a located nonempty pile whose head outlives the appended run). -/
-theorem canonEdge_label_vacate {C : State} {D : SameOrbit} (e : CanonEdge C D)
-    {a : Anchor} (hcell : VacateCellAt e.u a e.m) :
+theorem tipEdge_label_vacate {C D : SameOrbit} (e : TipEdge C D)
+    {a : Anchor} (hcell : VacateCellAt e.c a e.m) :
     e.label = EdgeLabel.stackEvent a := by
-  obtain ⟨hcE, -, hhE, hnE⟩ := pad_data e
-  have hCroot : ∀ a', nzRoot C a' = nzRoot e.u a' := fun a' => (hnE a').symm
+  rw [label_read]
   rcases VacateCell_shape hcell with
     ⟨c, heqm, hloc, hpre, hhd, hnk⟩ | ⟨c, b, heqm, hloc, hpre, hhd, hnk⟩
   · -- tabToFound: the raise leaves the seat bare
-    have hstep : e.u.step (Move.tabToFound c) = some e.w := by
+    have hstep : e.c.step (Move.tabToFound c) = some e.w := by
       rw [← heqm]
       exact e.land
     obtain ⟨-, a', hloc', hsucc⟩ := step_tabToFound_inv hstep
     have ha' : a = a' := Option.some.inj (hloc.symm.trans hloc')
     subst ha'
     obtain ⟨-, hlast⟩ := pileOfTop_top hloc
-    have hfeq : (e.u.piles a).faceUp
-        = chop (e.u.piles a).faceUp ++ [c] := lastOf_chop hlast
+    have hfeq : (e.c.piles a).faceUp
+        = chop (e.c.piles a).faceUp ++ [c] := lastOf_chop hlast
     rw [hpre, List.nil_append] at hfeq
-    have hfaceUp : (e.u.piles a).faceUp = [c] := hfeq
+    have hfaceUp : (e.c.piles a).faceUp = [c] := hfeq
     have hWa : (e.w.piles a) = ⟨[], ([] : List Card)⟩ := by
       rw [hsucc]
       show (if a = a then
-          Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)
-          else e.u.piles a) = _
+          Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)
+          else e.c.piles a) = _
       rw [ite_eq_left rfl, hpre]
       exact afterRunRemoved_bare_empty hhd
-    have hElseP : ∀ a', a' ≠ a → (e.w.piles a') = (e.u.piles a') := by
+    have hElseP : ∀ a', a' ≠ a → (e.w.piles a') = (e.c.piles a') := by
       intro a' hne
       rw [hsucc]
       show (if a' = a then
-          Pile.afterRunRemoved (e.u.piles a) (chop (e.u.piles a).faceUp)
-          else e.u.piles a') = _
+          Pile.afterRunRemoved (e.c.piles a) (chop (e.c.piles a).faceUp)
+          else e.c.piles a') = _
       rw [ite_eq_right hne]
-    have hnh : ∀ a', (e.w.piles a').hidden = (e.u.piles a').hidden := by
+    have hnh : ∀ a', (e.w.piles a').hidden = (e.c.piles a').hidden := by
       intro a'
       by_cases hne : a' = a
       · rw [hne, hWa]
         exact hhd.symm
       · exact congrArg Pile.hidden (hElseP a' hne)
-    have hhz : e.w.stock = e.u.stock ∧ e.w.waste = e.u.waste := by
+    have hhz : e.w.stock = e.c.stock ∧ e.w.waste = e.c.waste := by
       rw [hsucc]
       exact ⟨rfl, rfl⟩
-    have huRoot : nzRoot e.u a = some c := by
+    have huRoot : nzRoot e.c a = some c := by
       rw [nzRoot_head hfaceUp, ite_eq_right hnk]
     have hWaF : (e.w.piles a).faceUp = [] := congrArg Pile.faceUp hWa
     have hwRootNone : nzRoot e.w a = none := nzRoot_nil hWaF
-    refine vacate_spine e (cycleCount_eq_of_stock_waste hhz.1 hhz.2 |>.trans hcE)
-      ((hiddenTotal_congr hnh).trans (hiddenTotal_congr hhE)) ?_ ?_
-    · rw [hCroot a, huRoot, hwRootNone]
+    refine vacate_spine (cycleCount_eq_of_stock_waste hhz.1 hhz.2)
+      (hiddenTotal_congr hnh) ?_ ?_
+    · rw [huRoot, hwRootNone]
       exact Option.some_ne_none c
     · intro a' hne
-      rw [hCroot a', nzRoot_congr_pile (hElseP a' hne)]
+      rw [nzRoot_congr_pile (hElseP a' hne)]
   · -- tabToTab: the empty-seat landing dies at the king guard
     obtain ⟨a₂, hh, hcp, hfr, hsucc⟩ := step_tabToTab_inv (by
       rw [← heqm]
       exact e.land)
     have ha₂ : a = a₂ := Option.some.inj (hloc.symm.trans hh)
     subst ha₂
-    have hmem : c ∈ (e.u.piles a).faceUp := pileHolding_mem hloc
-    cases hbc : (e.u.piles a).faceUp with
+    have hmem : c ∈ (e.c.piles a).faceUp := pileHolding_mem hloc
+    cases hbc : (e.c.piles a).faceUp with
     | nil =>
         rw [hbc] at hmem
         exact absurd hmem (by simp)
     | cons g t =>
         have hgc : c = g := (head_eq_of_below_nil (by rw [← hbc]; exact hpre)).symm
         subst hgc
-        have huRoot : nzRoot e.u a = some c := by
+        have huRoot : nzRoot e.c a = some c := by
           rw [nzRoot_head hbc, ite_eq_right hnk]
-        have hcycC : cycleCount e.w = cycleCount e.u := by
+        have hcycC : cycleCount e.w = cycleCount e.c := by
           refine cycleCount_eq_of_stock_waste ?_ ?_
           · rw [hsucc]
             exact putRun_stock _ _ _
@@ -2039,15 +2192,14 @@ theorem canonEdge_label_vacate {C : State} {D : SameOrbit} (e : CanonEdge C D)
             obtain ⟨-, hkng⟩ := canPlace_inl hcp
             exact absurd hkng hnk
         | inr z =>
-            refine vacate_spine e (hcycC.trans hcE)
-              ((hiddenTotal_congr (vacate_inr_hidden hsucc hpre hhd)).trans
-                (hiddenTotal_congr hhE)) ?_ ?_
-            · rw [hCroot a, huRoot, vacate_inr_root_none hsucc hpre hhd]
+            refine vacate_spine hcycC
+              (hiddenTotal_congr (vacate_inr_hidden hsucc hpre hhd)) ?_ ?_
+            · rw [huRoot, vacate_inr_root_none hsucc hpre hhd]
               exact Option.some_ne_none c
             · intro a' hne'
-              rw [hCroot a', vacate_inr_root_keep hsucc a' hne']
+              rw [vacate_inr_root_keep hsucc a' hne']
 
-/-! ## The disjointness cells and the pair-move character (the close) -/
+/-! ## The commit-kind cells (the character's working kit, state-grade) -/
 
 /-- The commit-kind shape for a `.tabToFound` tip: legality locates the
 departure seat and irreversibility forces the commit cell there.  The
@@ -2110,16 +2262,18 @@ private theorem tabToTab_commit_cell {st : State} {c : Card} {b : Base} {w : Sta
               hIrr).elim
           · exact Or.inr (VacateCellAt.tabToTab hh hb hhid hking)
 
+/-! ## The family disjointness cells -/
+
 /-- **The draw disjointness cell**: a draw-commit edge is never
 card-labeled — the determination row reads the pair as `draw`, and the
 constructor disjointness of the label alphabet keeps the card-carrying
 families (waste entries, stack events) out of reach: the landing read
 all four datums verbatim, so neither card-carrying read fires. -/
-theorem canonEdge_label_draw_ne {C : State} {D : SameOrbit} (e : CanonEdge C D)
+theorem tipEdge_label_draw_ne {C D : SameOrbit} (e : TipEdge C D)
     (hm : e.m = Move.draw) :
     (∀ c, e.label ≠ EdgeLabel.wasteEntry c) ∧
     (∀ a, e.label ≠ EdgeLabel.stackEvent a) := by
-  have hL : e.label = EdgeLabel.draw := canonEdge_label_draw e hm
+  have hL : e.label = EdgeLabel.draw := tipEdge_label_draw e hm
   constructor
   · intro c hne
     rw [hL] at hne
@@ -2133,10 +2287,10 @@ draw-labeled nor stack-labeled — the row reads the pair as the waste
 entry `wasteEntry c`, and the cycle test that fires for the waste exit
 dies for the draw (the draw conserves the draw zone) and for the stack
 family (whose rows ride the conserved count). -/
-theorem canonEdge_label_waste_ne {C : State} {D : SameOrbit} (e : CanonEdge C D)
+theorem tipEdge_label_waste_ne {C D : SameOrbit} (e : TipEdge C D)
     {c : Card} (hw : WasteOf c e.m) :
     e.label ≠ EdgeLabel.draw ∧ (∀ a, e.label ≠ EdgeLabel.stackEvent a) := by
-  have hL : e.label = EdgeLabel.wasteEntry c := canonEdge_label_waste e hw
+  have hL : e.label = EdgeLabel.wasteEntry c := tipEdge_label_waste e hw
   constructor
   · intro hne
     rw [hL] at hne
@@ -2148,10 +2302,10 @@ theorem canonEdge_label_waste_ne {C : State} {D : SameOrbit} (e : CanonEdge C D)
 /-- **The reveal disjointness cell**: a reveal-commit edge is never
 draw-labeled nor waste-labeled — the row reads the pair as the stack
 event at the departing seat. -/
-theorem canonEdge_label_reveal_ne {C : State} {D : SameOrbit} (e : CanonEdge C D)
-    {a : Anchor} (hcell : RevealCellAt e.u a e.m) :
+theorem tipEdge_label_reveal_ne {C D : SameOrbit} (e : TipEdge C D)
+    {a : Anchor} (hcell : RevealCellAt e.c a e.m) :
     e.label ≠ EdgeLabel.draw ∧ (∀ c, e.label ≠ EdgeLabel.wasteEntry c) := by
-  have hL : e.label = EdgeLabel.stackEvent a := canonEdge_label_reveal e hcell
+  have hL : e.label = EdgeLabel.stackEvent a := tipEdge_label_reveal e hcell
   constructor
   · intro hne
     rw [hL] at hne
@@ -2165,10 +2319,10 @@ two sub-cells share the `stackEvent` constructor by the recorded merge
 (the degenerate no-reveal case of the reveal family), so what the
 label alphabet separates here is the stack family from draw and
 waste, never reveal-from-vacate. -/
-theorem canonEdge_label_vacate_ne {C : State} {D : SameOrbit} (e : CanonEdge C D)
-    {a : Anchor} (hcell : VacateCellAt e.u a e.m) :
+theorem tipEdge_label_vacate_ne {C D : SameOrbit} (e : TipEdge C D)
+    {a : Anchor} (hcell : VacateCellAt e.c a e.m) :
     e.label ≠ EdgeLabel.draw ∧ (∀ c, e.label ≠ EdgeLabel.wasteEntry c) := by
-  have hL : e.label = EdgeLabel.stackEvent a := canonEdge_label_vacate e hcell
+  have hL : e.label = EdgeLabel.stackEvent a := tipEdge_label_vacate e hcell
   constructor
   · intro hne
     rw [hL] at hne
@@ -2177,36 +2331,40 @@ theorem canonEdge_label_vacate_ne {C : State} {D : SameOrbit} (e : CanonEdge C D
     rw [hL] at hne
     exact EdgeLabel.noConfusion hne
 
+/-! ## The pair-move character (the assembly's close) -/
+
 /-- **The pair-move character (the assembly's close)**: the label of a
-`CanonEdge` determines the committed move up to the recorded
+tip edge determines the committed move up to the recorded
 twin-landing merge.  A draw-labeled edge commits the draw; a
 `wasteEntry c`-labeled edge commits a waste exit of exactly `c` (the
 landing base stays free — the twin-landing merge); a stackEvent-a-labeled
 edge commits a tableau departure exactly at the seat `a` names (the
-raise or the run move; the landing base again free).  This is the
-determination rows' converse, and together with `edge_label_unique` it
-closes the restated canonical property: two schemes over one class
-pair commit the same *event*. -/
-theorem pair_move_character {C : State} {D : SameOrbit} (e : CanonEdge C D) :
+raise or the run move; the landing base again free) — the cells read
+at the member now, so the character's converse directions ride the
+memberships and the rows.  This is the determination rows' converse,
+and together with `edge_label_unique` it closes the restated
+canonical property: two schemes over one class pair commit the same
+*event*. -/
+theorem pair_move_character {C D : SameOrbit} (e : TipEdge C D) :
     (e.label = EdgeLabel.draw → e.m = Move.draw) ∧
     (∀ c, e.label = EdgeLabel.wasteEntry c → WasteOf c e.m) ∧
     (∀ a, e.label = EdgeLabel.stackEvent a →
-      (∃ c, e.m = Move.tabToFound c ∧ e.u.pileOfTop c = some a) ∨
-      (∃ c b, e.m = Move.tabToTab c b ∧ e.u.pileHolding c = some a)) := by
+      (∃ c, e.m = Move.tabToFound c ∧ e.c.pileOfTop c = some a) ∨
+      (∃ c b, e.m = Move.tabToTab c b ∧ e.c.pileHolding c = some a)) := by
   cases hm : e.m with
   | draw =>
       refine ⟨?_, ?_, ?_⟩
       · intro _
         rfl
       · intro c hne
-        rw [canonEdge_label_draw e hm] at hne
+        rw [tipEdge_label_draw e hm] at hne
         exact EdgeLabel.noConfusion hne
       · intro a hne
-        rw [canonEdge_label_draw e hm] at hne
+        rw [tipEdge_label_draw e hm] at hne
         exact EdgeLabel.noConfusion hne
   | wasteToFound c₀ =>
       have hrow : e.label = EdgeLabel.wasteEntry c₀ :=
-        canonEdge_label_waste e (by rw [hm]; exact Or.inl rfl)
+        tipEdge_label_waste e (by rw [hm]; exact Or.inl rfl)
       refine ⟨?_, ?_, ?_⟩
       · intro hne
         rw [hrow] at hne
@@ -2221,7 +2379,7 @@ theorem pair_move_character {C : State} {D : SameOrbit} (e : CanonEdge C D) :
         exact EdgeLabel.noConfusion hne
   | wasteToTab c₀ b₀ =>
       have hrow : e.label = EdgeLabel.wasteEntry c₀ :=
-        canonEdge_label_waste e (by rw [hm]; exact Or.inr ⟨b₀, rfl⟩)
+        tipEdge_label_waste e (by rw [hm]; exact Or.inr ⟨b₀, rfl⟩)
       refine ⟨?_, ?_, ?_⟩
       · intro hne
         rw [hrow] at hne
@@ -2235,19 +2393,19 @@ theorem pair_move_character {C : State} {D : SameOrbit} (e : CanonEdge C D) :
         rw [hrow] at hne
         exact EdgeLabel.noConfusion hne
   | tabToFound c₀ =>
-      have hstep : e.u.step (Move.tabToFound c₀) = some e.w := by
+      have hstep : e.c.step (Move.tabToFound c₀) = some e.w := by
         rw [← hm]
         exact e.land
-      have hIrr : irreversibleAt e.u (Move.tabToFound c₀) := by
+      have hIrr : irreversibleAt e.c (Move.tabToFound c₀) := by
         rw [← hm]
         exact e.hm
-      obtain ⟨a₀, hloc, hcell⟩ := tabToFound_commit_cell e.tip_wf hstep hIrr
+      obtain ⟨a₀, hloc, hcell⟩ := tabToFound_commit_cell e.hwf hstep hIrr
       have hL : e.label = EdgeLabel.stackEvent a₀ := by
         rcases hcell with hrev | hvac
         · rw [← hm] at hrev
-          exact canonEdge_label_reveal e hrev
+          exact tipEdge_label_reveal e hrev
         · rw [← hm] at hvac
-          exact canonEdge_label_vacate e hvac
+          exact tipEdge_label_vacate e hvac
       refine ⟨?_, ?_, ?_⟩
       · intro hne
         rw [hL] at hne
@@ -2261,21 +2419,21 @@ theorem pair_move_character {C : State} {D : SameOrbit} (e : CanonEdge C D) :
         rw [haa0] at hloc
         exact Or.inl ⟨c₀, rfl, hloc⟩
   | foundToTab c b =>
-      exact absurd hm (canonEdge_ne_foundToTab e c b)
+      exact absurd hm (tipEdge_ne_foundToTab e c b)
   | tabToTab c₀ b₀ =>
-      have hstep : e.u.step (Move.tabToTab c₀ b₀) = some e.w := by
+      have hstep : e.c.step (Move.tabToTab c₀ b₀) = some e.w := by
         rw [← hm]
         exact e.land
-      have hIrr : irreversibleAt e.u (Move.tabToTab c₀ b₀) := by
+      have hIrr : irreversibleAt e.c (Move.tabToTab c₀ b₀) := by
         rw [← hm]
         exact e.hm
-      obtain ⟨a₀, hloc, hcell⟩ := tabToTab_commit_cell e.tip_wf hstep hIrr
+      obtain ⟨a₀, hloc, hcell⟩ := tabToTab_commit_cell e.hwf hstep hIrr
       have hL : e.label = EdgeLabel.stackEvent a₀ := by
         rcases hcell with hrev | hvac
         · rw [← hm] at hrev
-          exact canonEdge_label_reveal e hrev
+          exact tipEdge_label_reveal e hrev
         · rw [← hm] at hvac
-          exact canonEdge_label_vacate e hvac
+          exact tipEdge_label_vacate e hvac
       refine ⟨?_, ?_, ?_⟩
       · intro hne
         rw [hL] at hne
@@ -2294,13 +2452,13 @@ Compiler-checked exhaustive over the tripartite alphabet (a fourth
 constructor would fail to elaborate here, not pass silently) — the
 consumption form the count program's per-label branch analysis cites;
 the three-conjunct form above stays the honest accountant. -/
-theorem pair_move_character_switch {C : State} {D : SameOrbit} (e : CanonEdge C D) :
+theorem pair_move_character_switch {C D : SameOrbit} (e : TipEdge C D) :
     match e.label with
     | EdgeLabel.draw => e.m = Move.draw
     | EdgeLabel.wasteEntry c => WasteOf c e.m
     | EdgeLabel.stackEvent a =>
-        (∃ c, e.m = Move.tabToFound c ∧ e.u.pileOfTop c = some a) ∨
-        (∃ c b, e.m = Move.tabToTab c b ∧ e.u.pileHolding c = some a) := by
+        (∃ c, e.m = Move.tabToFound c ∧ e.c.pileOfTop c = some a) ∨
+        (∃ c b, e.m = Move.tabToTab c b ∧ e.c.pileHolding c = some a) := by
   obtain ⟨h1, h2, h3⟩ := pair_move_character e
   cases hl : e.label with
   | draw => exact h1 hl
@@ -2310,22 +2468,35 @@ theorem pair_move_character_switch {C : State} {D : SameOrbit} (e : CanonEdge C 
 /-! ## The axiom audit (per-declaration) -/
 
 #print axioms orbit_data
-#print axioms CanonEdge.tip_wf
-#print axioms CanonEdge.landing_wf
-#print axioms canonEdge_exits_source
-#print axioms canonEdge_ne_foundToTab
-#print axioms canonEdge_draw_shape
-#print axioms canonLabel_orbit_indep
+#print axioms sameDatums_class
+#print axioms MacroDatums
+#print axioms MacroDatums.of
+#print axioms MacroDatums.of_class
+#print axioms datumOf
+#print axioms datumOf_mk
+#print axioms TipEdge.landing_wf
+#print axioms tipEdge_exits_source
+#print axioms tipEdge_ne_foundToTab
+#print axioms tipEdge_draw_shape
+#print axioms CanonicalTip
+#print axioms MacroDatums.hiddenTotal
+#print axioms MacroDatums.poolMiss
+#print axioms MacroDatums.hiddenDropper
+#print axioms MacroDatums.rootFreed
+#print axioms labelOf
+#print axioms labelOf_pair
+#print axioms TipEdge.label
 #print axioms edge_label_unique
-#print axioms canonEdge_label_draw
-#print axioms canonEdge_label_waste
-#print axioms canonEdge_label_reveal
-#print axioms canonEdge_label_vacate
-#print axioms canonEdge_label_draw_ne
-#print axioms canonEdge_label_waste_ne
-#print axioms canonEdge_label_reveal_ne
-#print axioms canonEdge_label_vacate_ne
+#print axioms tipEdge_label_draw
+#print axioms tipEdge_label_waste
+#print axioms tipEdge_label_reveal
+#print axioms tipEdge_label_vacate
+#print axioms tipEdge_label_draw_ne
+#print axioms tipEdge_label_waste_ne
+#print axioms tipEdge_label_reveal_ne
+#print axioms tipEdge_label_vacate_ne
 #print axioms pair_move_character
+#print axioms pair_move_character_switch
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
@@ -2335,4 +2506,3 @@ theorem pair_move_character_switch {C : State} {D : SameOrbit} (e : CanonEdge C 
 #print axioms hiddenDropperAnchor
 #print axioms rootFreedAnchor
 #print axioms CanonLabel
-#print axioms CanonEdge.label
