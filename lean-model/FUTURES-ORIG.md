@@ -3090,3 +3090,42 @@ NO swap disjunct (confirmed by reading the def), and:
   consumes; the macro satStackable reads the same fact through
   the quotient envelope).  forkPoint_trial's sorry is mine to
   close next; its decide-grade evidence is landed.
+
+#### §11-L4.3 — the final vocabulary adoption (amr_129d9319a; landed same branch — names aligned, grades disambiguated, spec/computation separation audited)
+
+The class-card grades (MacroInternal-aligned names): atRungInClass
+(∃ st ∈ classOf, rungAt = toIdx — THE one-existential primitive),
+satStackable (∃ st ∈ classOf, c ∈ found), strandedInClass (¬
+atRungInClass — where the pinned cargos live), pendingForever
+(atRungInClass ∧ ¬ satStackable — the CEILING POPULATION: covered
+twins at Finals, buried stranded kings — the positional blockage
+as a first-class grade), neverFounded (renamed from the conflated
+neverStackable; toIdx ≥ classRung).
+
+- STATE-LEVEL ENGINES (Orig/CanV3, computation-side, renamed +
+  docstring-disambiguated): satRung (rides canon), neverFounded
+  (the weak union), strandedAt (the rank-pinned read: below the
+  canonical ceiling), pendingForeverAt (at-rung at the canonical
+  ceiling ∧ not founded by the saturation — the position-blocked
+  read), parkingMap (the seating read of the never-founded
+  population).  All audit [propext]; build green.
+- THE DISAMBIGUATION decided (battery l4RowGradeSplit rows):
+  the standing fork's CARGO is STRANDED — rank-pinned (clubs 0
+  < the queen 11, at both the stall and the wing state — the pin
+  row is the stranded witness); the covered Final TWIN is
+  PENDING-FOREVER — at-rung at the canonical ceiling (diamonds
+  12 = its index) yet never founded, blocked by POSITION (the
+  cargo above); TWO obstruction kinds the old one-word parked
+  merged.  The merge cargo is NOT stranded (its own rung waits,
+  it lifts vanilla — the cascade dissolves it).
+- THE SPEC/COMPUTATION SEPARATION audited (consequence-2): the
+  ∃-forms are spec-level — trivially class-invariant, NO
+  carrier; every carrier/computability content stays in the
+  classRung/forkBump channel.  My landed statements split
+  accordingly: the census/case-table/selector rows are
+  computation-side (state-level decides: pins, ceilings,
+  coverage); the class-grade closure theorems
+  (satStackable_iff, atRung_iff, stranded_iff, grade_partition)
+  consume the ∃-forms and ride the envelope — named receiving
+  rows in the skeleton, with the state-level engines landed
+  here as their computable substrate.

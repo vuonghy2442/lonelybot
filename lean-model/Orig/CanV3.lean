@@ -135,33 +135,60 @@ def canonIdxLt (a b : State) : Bool :=
       (v3NatListEq (canonPosKey a) (canonPosKey b) &&
         v3NatListLt (canonFormalKey a) (canonFormalKey b))))
 
-/-! ## The organizing vocabulary (the chapter's primitive read: the
-saturation CEILING per suit, the permanently-parked population,
-and the parking map — state-level via the banked `canon`, so the
-arm is VISIBLE as a ceiling asymmetry across neck-mates: slide
-sensitivity IS a ceiling-profile difference, and the fork
-detector restates as arithmetic)  -/
+/-! ## The organizing vocabulary (the final grades; computation-side engines riding the banked `canon`)
+
+The CLASS grades live at the ∃-spec level (MacroInternal's
+`atRungInClass` / `satStackable` / `strandedInClass` /
+`pendingForever` / `surelyStackable` — one existential over
+classOf, no carrier, trivially class-invariant).  THIS chapter
+carries the STATE-LEVEL ENGINES those grades compute through,
+with the final vocabulary — note the DISAMBIGUATION the
+finalization enforces: the fork CARGO is STRANDED (below every
+ceiling the class reaches — pinned by RANK, the pin row
+`v3RungAt st d.suit < d.rank.toIdx` is its state-level witness
+reading); the covered Final TWIN and the buried stranded kings
+are PENDING-FOREVER (at-rung but never founded — blocked by
+POSITION, not by rank).  The old one-word "parked" merged the
+two; the engines below name their grade explicitly.  -/
 
 
 /-- The saturation ceiling of `s` from `st` — the maximal stackable
 rank from `st`: canon's founded content, read as a height.  RIDES
-the banked V2 canon (computable, zero new machinery). -/
+the banked V2 canon (computable, zero new machinery).  The
+computation-side engine of the class ceiling `classRung`. -/
 def satRung (st : State) (s : Suit) : Nat :=
   ((canon st).found s).length
 
-/-- The permanently-parked population: cards whose rank sits
-strictly above their suit's saturation ceiling — canon can never
-consume them from `st`. -/
-def neverStackable (st : State) (c : Card) : Bool :=
+/-- The never-founded population (renamed from the old conflated
+neverStackable, state-level read): cards whose rank sits weakly
+above the state's canonical ceiling — the state-level engine of
+the class grade `toIdx ≥ classRung`. -/
+def neverFounded (st : State) (c : Card) : Bool :=
+  decide (c.rank.toIdx ≥ satRung st c.suit)
+
+/-- The stranded-at-state read: the card sits strictly above the
+state's own canonical ceiling — the RANK-pinned grade (the fork
+cargo's obstruction; the pin row's computation-side witness
+shape). -/
+def strandedAt (st : State) (c : Card) : Bool :=
   decide (satRung st c.suit < c.rank.toIdx)
 
-/-- The parking map: the seated neverStackable population with
-their anchors (the residue profile's seating read — parked-residue
-pile seats vs hidden/waste strandings are two seatings of this
-one population; the class-level version derives later as the
-profile at canonV3 after arm selection). -/
+/-- The pending-forever-at-state read: the card is AT ITS OWN
+rung at the state's CANONICAL CEILING yet was not founded by the
+saturation — the POSITION-blocked grade (the covered Final twin;
+the buried stranded kings' obverse: at-rung, blocked by cargo
+above). -/
+def pendingForeverAt (st : State) (c : Card) : Bool :=
+  decide (satRung st c.suit = c.rank.toIdx ∧
+    ¬ (c ∈ (canon st).found c.suit))
+
+/-- The parking map: the seated never-founded population with
+their anchors (the residue profile's seating read — the stranded
+and the pending-forever are two seatings of one never-founded
+population; the class-level profile derives as the grades at
+canonV3 after arm selection). -/
 def parkingMap (st : State) : List (Card × Anchor) :=
-  Card.universe.filter (neverStackable st) |>.filterMap
+  Card.universe.filter (neverFounded st) |>.filterMap
     (fun c => match st.pileHolding c with
       | some a => some (c, a)
       | none => none)
@@ -520,7 +547,9 @@ v3ForkExclusivity) lands DEDUCTIVELY above — zero sorry.  -/
 #print axioms v3NatListLt
 #print axioms canonIdxLt
 #print axioms satRung
-#print axioms neverStackable
+#print axioms neverFounded
+#print axioms strandedAt
+#print axioms pendingForeverAt
 #print axioms parkingMap
 #print axioms canonV3Arg
 #print axioms v3NatListLt_irrefl

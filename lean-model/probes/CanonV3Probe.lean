@@ -1677,7 +1677,7 @@ def l4AllGates : Bool :=
     IO.println "the row-A pose (slide-sensitivity properly contains the wing"
     IO.println "forks — the height ordering discriminates), and misses the"
     IO.println "bare kings' anchor-slides."
-    IO.println "SATRung/neverStackable/parkingMap land as the chapter's"
+    IO.println "The final vocabulary (satRung/neverFounded/strandedAt/pendingForeverAt/parkingMap — the renamed, disambiguated grades) lands as the chapter's"
     IO.println "organizing vocabulary (state-level via the banked canon, the"
     IO.println "arm visible as a ceiling asymmetry); the class-level ceiling"
     IO.println "stack (classRung the sup over ALL members — the canus filter"
@@ -1947,3 +1947,66 @@ def l4RowGapForm : Bool :=
     IO.println "proved these cascade facts under other names."
   else
     throw (IO.userError "GAP FORM: A GATE FAILED")
+
+/-! ## The final vocabulary adoption (amr_129d9319a) — the three class grades, their state-level engines, and the disambiguation decided
+
+The class grades live at the ∃-speC level (MacroInternal:
+atRungInClass / satStackable / strandedInClass / pendingForever
+— one existential over classOf, no carrier).  Their
+computation-side ENGINES are in Orig/CanV3 now (satRung /
+neverFounded / strandedAt / pendingForeverAt / parkingMap).
+THE DISAMBIGUATION the finalization enforces, decided at the
+standing-fork family:
+
+- the fork CARGO (♣Q at the stall) is STRANDED — below every
+  ceiling the class reaches, pinned by RANK (its own suit's
+  rung never reaches its index: clubs 0 < 11 at the stall, and
+  the canonical ceiling agrees);
+- the covered Final TWIN (♦K under ♣Q at the wing state) is
+  PENDING-FOREVER — at-rung at the canonical ceiling (diamonds
+  12 = its own index) but never founded: blocked by POSITION
+  (the cargo above), not by rank.
+
+Two obstruction kinds the old one-word "parked" merged.  -/
+
+def l4RowGradeSplit : Bool :=
+  -- THE CARGO IS STRANDED: rank-pinned at the stall (raw rung row)
+  decide (v3RungAt v3Fork .club < v3CQ.rank.toIdx) &&
+  -- and the canonical-ceiling engine agrees (strandedAt)
+  strandedAt v3Fork v3CQ &&
+  -- at the WING state too (the covered twin's cargo stays rank-pinned)
+  strandedAt (canon v3Fork) v3CQ &&
+  -- THE COVERED TWIN IS PENDING-FOREVER: at the canonical ceiling
+  -- (diamonds 12 = its index), not founded, covered by position
+  pendingForeverAt (canon v3Fork) v3DK &&
+  pnPosCovered (canon v3Fork) v3DK &&
+  -- neverFounded is the weak union both grades sit inside
+  neverFounded v3Fork v3CQ &&
+  -- the MERGE cargo is NOT stranded (the cascade dissolves it:
+  -- its own rung waits, it lifts vanilla)
+  !(strandedAt pnCasForkMerge v3CQ) &&
+  canRaiseB pnCasForkMerge v3CQ
+
+-- The grade-split census numbers (printed for the ledger):
+#eval strandedAt v3Fork v3CQ -- expect true: the cargo rank-pinned
+#eval pendingForeverAt (canon v3Fork) v3DK -- expect true: the twin position-blocked
+#eval strandedAt pnCasForkMerge v3CQ -- expect false: the merge cargo dissolves
+
+#eval! do
+  if l4RowGradeSplit then
+    IO.println "CANONV3 GRADE SPLIT (amr_129d9319a): ALL GATES HOLD —"
+    IO.println "The final vocabulary adopted: neverFounded (the weak union,"
+    IO.println "renamed from the conflated neverStackable) with the STRANDED"
+    IO.println "(rank-pinned: the fork cargo — below every ceiling the class"
+    IO.println "reaches, clubs 0 < the queen 11 at both stall and wing) and"
+    IO.println "PENDING-FOREVER (position-blocked: the covered Final twin —"
+    IO.println "at-rung at the canonical ceiling, diamonds 12 = its index,"
+    IO.println "never founded, the cargo above it) as two DISTINCT"
+    IO.println "obstruction kinds the old one-word parked merged. The"
+    IO.println "merge cargo is NOT stranded — its own rung waits, it lifts"
+    IO.println "vanilla, the cascade dissolves it. Class grades at the"
+    IO.println "-spec level (the existential forms, no carrier); the"
+    IO.println "state-level engines satRung/neverFounded/strandedAt/"
+    IO.println "pendingForeverAt/parkingMap compute them."
+  else
+    throw (IO.userError "GRADE SPLIT: A GATE FAILED")
