@@ -9458,3 +9458,61 @@ incl. docstrings)**:
   Dominance's proof is 13L vs Phase's 22L — keep the SHORTER
   script at hoist time).
 
+## Session note addendum (same wave session — wave 3 LANDED on
+## farm/orig-dedup-collapse-2: 3a/3b/3c)
+
+Waves 3a/3b/3c collapsed the three big remaining families; the
+exact-name audit now reads ONE family (WinFromQ — distinct quotient
+vocab, correctly kept).  Cumulative session delta: ~880 net lines
+deleted, zero new proofs beyond the hoisted public rows themselves,
+census pinned throughout.
+
+**Wave 3a — the step inversions (commit 42db7ea, −368 net)**:
+Irreversible's five rows public; Classify's five verbatim copies
+deleted (18 cites untouched — record-literal vs `with`-spellings of
+the splice are DEFEQ for rw); Canonical's :367 mirror + the '-variant
+pair deleted (statements were the public rows VERBATIM — the primes
+were only ever name-dodge); EdgeLabel/Reach/Shuttle's shape-drifted
+rows deleted with per-site adaptations.  The adapted-site recipes:
+(i) the `&&` guard: `rw [Bool.and_eq_true] at hguard; obtain ⟨…⟩ :=
+hguard` — the term-level `.mp` projection is NOT a constant here;
+(ii) the c-headed waste split: `State.wasteIs_head_eq` (new public
+beside wasteIs_cons, the former Reach-private hoisted) + `have hweq :
+… := by rw [hws0, hxc]`; (iii) foundToTab's c'=c leg: bind the
+witness EXPLICITLY (`obtain ⟨c₀', htop0, hceq, hcp, hs⟩`) and derive
+`= some c` by rw — a `rfl` pattern in rcases SUBSTITUTES and can eat
+a case-arm binder (c vanished mid-proof at two sites); (iv) the
+tabToTab run-witness: drop the run0/hfrom dance entirely — the
+public spells `putRun (fromCard …) b`, one `rw [hcrr] at hrw`
+re-anchors every downstream rw.
+
+**Wave 3b — the step equations (commit a634f20, −66 net)**: Play
+hosts the four RAW branch unfoldings beside `def step` (TEB's rfl
+shapes verbatim, root-level so unqualified cites keep working) named
+`step_*_eq`, plus the two guard-SPLICED forms `step_tabToFound_splice`
+/ `step_foundToTab_splice` — the splice family takes SPLIT ARGS
+(htop, hcp), the fires-grade shape; nobody cites the &&-bundle form
+directly (Shuttle's own cite carried a by-block derivation).
+TEB's four raws + MW's twin deleted (cites untouched); Shuttle's two
+specs + Dominance's three kin ports deleted (cites renamed);
+TwinExchange's located-shape row renamed step_tabToTab_splice.
+
+**Wave 3c — Phase's orbit strip (commit 1dc9dbf, −57 net)**: the
+twelve-row deal/draw strip revealed public in Phase; Classify's
+plain/base primes deleted (cites renamed); Dominance's two same-name
+collision ports (take_ge_length, run_replicate_append) deleted —
+Dominance's shorter take_ge_length proof went with them, the
+public keeps Phase's.
+
+**REMAINING (the owner wave's call — all Dominance-internal,
+differently-named, no public collisions)**: the B-kit ports
+(drain_positions1, base_positions1, table_take_add/_drop_add/
+_take_ge/_drop_ge/_take_pre/_drop_pre/_take_app, run_draw_cons1,
+run_rep_append1, run_one, plain/base_1) now cite Phase's publics by
+renaming; the step-inversion kits (g_step_*, _inv1, _inv') and the
+five fires rows now cite Irreversible's public rows by projection
+rewrites.  The B2-replay session's region overlaps the B-kit
+(Dominance :2300-2724 — their fronting engines ride it), so its
+merge wave owns the collapse.
+
+
