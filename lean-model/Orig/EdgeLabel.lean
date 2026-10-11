@@ -204,7 +204,11 @@ disjointness cells, and the pair-move character.  What stands:
   family disjointness cells, and the pair-move character).  The
   downstream work (§3.1's count program: the transport bridge and the
   per-arm enumeration) consumes this module from outside and is not
-  part of it.
+  part of it — with ONE carve-out now opened as this module's own
+  chapter below: the draw successor (the successor discipline's
+  first small step, `b4f32e4`'s recon recorded above the proofs),
+  whose interface recon is landed and whose transport kit is IN
+  FLIGHT, recorded honestly in the chapter's status block.
 
 ## The vacate cell is a genuine fourth signature — the honest boundary
 
@@ -2464,6 +2468,132 @@ theorem pair_move_character_switch {C D : SameOrbit} (e : TipEdge C D) :
   | draw => exact h1 hl
   | wasteEntry c => exact h2 c hl
   | stackEvent a => exact h3 a hl
+
+/-! ## The draw successor (the successor discipline's first small step)
+
+The count program's successor discipline wants each label to own
+at most two successor classes; the ledger honestly records that the
+`≤ 2` boundary is NOT yet cleanly characterized, so this chapter's
+prime directive is prove-or-pin, never force.  The first small
+step is the draw label's fragment, at the general member — the
+smallest successor question the `TipEdge` world can ask.
+
+### The interface recon (docs-first; committed as its own landing)
+
+**(a) The candidate uniqueness route.**  A draw-labeled tip edge
+commits `Move.draw` (`pair_move_character`'s first conjunct), so the
+edge IS: one class member, its fired draw (the deterministic
+`stepDraw`), and the landing's class closure.  Two draw-labeled
+edges over one source class `C` read at class-mates `c₁ c₂` with
+landings `w₁ w₂`; the disciplined statement
+(`draw_successor_unique`) needs exactly `⟦w₁⟧ = ⟦w₂⟧` — the class
+map induced by one fired draw is well-defined.  This is the
+smaller step the user asked the program to find: not the umbrella's
+per-label enumeration, but one label's class map, proved or pinned
+at member grade.
+
+**(b) The two roads to `⟦w₁⟧ = ⟦w₂⟧`, and the one that closes.**
+
+* *The commutation-transport — the road this chapter takes, at the
+  general grade, ungated.*  The draw is a field-local function: it
+  reads and writes only the stock and the waste (the public play
+  readers `recycle_allEmpty`/`_nil`/`_keep`, `dealStock_nil`,
+  `dealStock_eq_of_ne_nil`, `dealUpTo_eq_take_drop`,
+  `draw_unfold`), while every non-waste non-draw move — the whole
+  board family `tabToFound`/`foundToTab`/`tabToTab` — guards and
+  writes only the foundations and the piles (`nextUp`/`foundTop`
+  read `found`; `pileOfTop`/`pileHolding`/`canPlace`/`below`/
+  `fromCard` read `piles`).  So the draw commutes with every board
+  leg definitionally — the `exch_step` pattern (`TwinExchangeBoth`)
+  applied at the draw move, no `WF`, no shape analysis, only field
+  disjointness — and a DRAW leg coincides with the pushed draw
+  (the transposed position after a draw leg IS the original leg's
+  landing).  A witnessed journey between class-mates therefore
+  transports wholesale: running its move list at the drawn
+  landing walks the same legs under the same guards (the draw
+  keeps the board verbatim — `stepDraw_piles`/`_found`), each leg
+  still reversible — its returning play contains no waste move,
+  because a returning play cannot drop the cycle count
+  (`cycleCount_step` runs never rise; `cycleCount_step_wasteToFound`/
+  `_wasteToTab` drop strictly) — and the pushed journey lands the
+  mate's own draw landing.  The transport is the A-session's "(A)
+  is now a plain cite for up-to-sameCycle transports"
+  (FARM_MEMORY, macro-game `b4f32e4`) made structural: no phase
+  arithmetic at all, just field locality plus the counting that
+  keeps journeys and their returning plays waste-free.
+* *The phase-collapse — the road NOT taken, and why.*  One could
+  try to prove class-mates phase-identical (`sameCycle` ⇒ same
+  class) and reduce the two draws to one configuration.  The
+  banked A-session finding is that phases are NOT mutually
+  reachable at `drawStep = 1` — a full-stock state drains and the
+  orbit never re-stocks it; the orbit misses the phase, and only
+  the list-equality-of-`cycleOf` invariant survives — so the
+  premise of a phase-collapse is false at the concrete census, and
+  at general draw steps the §5.3 fragment proves its phase
+  transports with plays in the waste anyway (the replay-engine
+  program), not with class memberships.  The commutation-transport
+  needs no collapse and pays for none: the pushed journey IS the
+  class witness.
+
+**(c) The precise statements this chapter attempts, at the
+strongest provable grade.**
+
+* `draw_landings_sameOrbit` — the member-grade core: two fired
+  draws at class-mates have class-equal landings.  Ungated at its
+  grade: no `WF`, no `drawStep` discipline, no `tipEdge_draw_shape`
+  premise — the firing itself is the only hypothesis, carried as
+  explicit witnesses.
+* `draw_successor_unique` — the ideal, at full grade: two
+  draw-labeled `TipEdge`s over one source class have equal
+  targets.  Its premises derive (the character converts labels to
+  draw commitments; the memberships give the mate relation); none
+  are assumed.
+* The constructive envelope, if and only if the core closes: the
+  computable core `drawNext` (junk-safe at non-firing members),
+  the class lift `drawNextQ` with `drawNextQ_mk` (the `datumOf`
+  lift pattern; the soundness is the proven core, paid once), and
+  the enumeration `tipEdge_draw_target` (a draw-labeled edge's
+  target is `drawNextQ C`), which reads the uniqueness one level
+  up.
+
+**Where the banked transports live — the fragment boundary this
+recon records.**  The dominance program's `cycleOf`/`sameCycle`
+block (`Orig/Dominance.lean` §5.3, the draw-1 deck dominance)
+publishes its two definitions but keeps its draw readers
+(`draw_shape_plain`/`_base`, `draw_step_fires`, `draw_cycleOf`)
+`private` and `drawStep = 1`-gated; the member-form successor
+cannot cite them — and transpires to need none of them.  What the
+general `TipEdge` world actually consumes sits entirely inside
+this module's existing import closure, all public: the play
+readers (`Orig/Play.lean`: recycle/deal readers, `draw_unfold`,
+`State.run_cons`) — the draw as a deterministic field-local
+function; the projection and counting rows
+(`Orig/Irreversible.lean`: `setPile_*`/`setFound_*`/`putCard_*`/
+`putRun_*` projections, `cycleCount_step`, the two strict
+waste drops, `recycle_cycle`, `stepDraw_piles`/`_found`/
+`_cycle`) — the draw as a board-preserving cycle-conserving
+function, and the count mono that keeps journeys waste-free; and
+Combine's witnessed setoid machinery (`ShufflePlayW`,
+`Quotient.exact`, `Quotient.sound`) — journeys as inductive
+objects and the class interface itself.  The small congruence
+rows for the guard reads and the run-level counting mono land
+here as private copies under the farm's private-isolation
+convention (same shapes, same scripts, dedup at merge); the
+dominance program keeps its own copies beside its §5.3 engine.
+The draw reversibility rows (Phase's `draw_irreversible_*`,
+Classify's in-phase and pass-base round trips) govern WHICH
+draws are commitments — `tipEdge_draw_shape` already consumed
+them once — and the uniqueness core does not need them again:
+the edges carry their own commitments as data.
+
+**IN FLIGHT, recorded honestly:** the member-grade transport kit
+(the guard congruences, the three board squares, the play and
+journey push), the class close `draw_landings_sameOrbit` and the
+ideal `draw_successor_unique`, land as this chapter's next
+landing; the envelope lands only if the close lands.  No
+statement below is stubbed: this landing is documentation only,
+the build stays green, zero sorry.
+-/
 
 /-! ## The axiom audit (per-declaration) -/
 
