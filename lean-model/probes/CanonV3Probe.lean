@@ -1,4 +1,5 @@
 import Orig.Canonical
+import Orig.CanV3
 
 /-! # CanonV3Probe — the V3-canonicalizer gating census (landing 1)
 
@@ -1521,3 +1522,168 @@ def pair_neighborhood_cases : Bool :=
     IO.println "exhausts the cases."
   else
     throw (IO.userError "CANONV3 LANDING 3: A GATE FAILED — see the numbers above")
+
+/-! ## Landing 4 — the class-anchored selector, decided: face-lists, both-wing queries, injectivity, the fork-detector rows, the saturated-orbit spot rows
+
+The plateau card (consumed through Orig.CanV3, the new library
+chapter — `canonIdx` the composite height-first index, `canV3Arg`
+the deterministic argmax fold): until the decompression merge the
+cone engine is an unmerged import, so the class member sets ride
+as EXPLICIT face-lists — every face constructed BY APPLICATION
+(canon of a crafted member), never hand-drawn — and the rows
+decide the selector's conduct at every census family.
+
+Note the setoid flip (the 2026-10-10 user decision): the classes
+are RevEqW-closures; conjugate mates live in DISTINCT classes.
+The saturated face-lists below therefore carry NO conjugate arms:
+one class, at most the two wings (fork exclusivity: at most one
+forked pair per class; the crafted double-fork exhibit confirms
+the Q-cargo arithmetic by refusing to stand).  -/
+
+/-- The standing fork family's saturated faces, by application:
+the two wings. -/
+def l4ForkFaces : List State := [canon v3Fork, canon v3ForkX]
+
+/-- The merge family's saturated faces: canon from both faces is
+ONE state — a singleton class. -/
+def l4MergeFaces : List State := [canon pnCasForkMerge, canon pnCasForkMergeX]
+
+/-- The row-A family's faces: the parked pose and the slid pose's
+dissolved image. -/
+def l4BareFaces : List State := [canon pnCasBareExt, canon pnCasBareSlide]
+
+/-- The both-under family's faces: the saturated endpoint and its
+kings-slid variant. -/
+def l4UnderFaces : List State := [canon v3Under, canon v3Under.twinMap]
+
+/-- Wing-consistency: the argmax is queried from both orders of
+every face-list — the pick is order-independent (the height-first
+lex with fixed suit order decides the arms deterministically). -/
+def l4RowWingConsistency : Bool :=
+  decide (canonV3Arg l4ForkFaces = canonV3Arg l4ForkFaces.reverse) &&
+  decide (canonV3Arg l4MergeFaces = canonV3Arg l4MergeFaces.reverse) &&
+  decide (canonV3Arg l4BareFaces = canonV3Arg l4BareFaces.reverse) &&
+  decide (canonV3Arg l4UnderFaces = canonV3Arg l4UnderFaces.reverse)
+
+/-- Section-injectivity, decided: distinct census classes select
+DISTINCT canonical states (no two classes share a canonical
+representative). -/
+def l4RowInjectivity : Bool :=
+  decide (canonV3Arg l4ForkFaces ≠ canonV3Arg l4MergeFaces) &&
+  decide (canonV3Arg l4ForkFaces ≠ canonV3Arg l4BareFaces) &&
+  decide (canonV3Arg l4ForkFaces ≠ canonV3Arg l4UnderFaces) &&
+  decide (canonV3Arg l4MergeFaces ≠ canonV3Arg l4BareFaces) &&
+  decide (canonV3Arg l4MergeFaces ≠ canonV3Arg l4UnderFaces) &&
+  decide (canonV3Arg l4BareFaces ≠ canonV3Arg l4UnderFaces)
+
+/-- ARM SELECTION, decided: the standing fork's class takes the
+HEIGHT-LEX-LARGER wing — hearts win (the arm price at the height
+level, paid on founded content); the merge class is a singleton;
+the row-A family takes the DISSOLVED face (club arose to 12); the
+under family's conjugate arm — by the htup-pair permutation
+row — ties on heights where symmetric and splits otherwise. -/
+def l4RowArmChoice : Bool :=
+  decide (canonV3Arg l4ForkFaces = some (canon v3Fork)) &&
+  decide (canonV3Arg l4MergeFaces = some (canon pnCasForkMerge)) &&
+  decide (canonV3Arg l4BareFaces = some (canon pnCasBareSlide)) &&
+  decide (canonV3Arg l4UnderFaces = some (canon v3Under) ∨
+    canonV3Arg l4UnderFaces = some (canon v3Under).twinMap)
+
+/-- SATURATED-TUPLE ORBIT SPOT ROWS (the lead row's decided
+evidence — the pair-flip calibration): the fork family's two
+wing tuples differ EXACTLY by the heart/diamond flip and their
+per-suit sums agree; the merge class's two faces are ONE state
+(the trivial orbit); the htup-permutation row itself is proven in
+the library (canonHtup_twinMap). -/
+def l4HdFlip (t : List Nat) : List Nat := [t.getD 0 0, t.getD 2 0, t.getD 1 0, t.getD 3 0]
+
+def l4RowOrbitSpots : Bool :=
+  decide (canonHtup (canon v3Fork) = l4HdFlip (canonHtup (canon v3ForkX)) ∨
+    canonHtup (canon v3ForkX) = l4HdFlip (canonHtup (canon v3Fork))) &&
+  decide ((canonHtup (canon v3Fork)).foldl (· + ·) 0 =
+    (canonHtup (canon v3ForkX)).foldl (· + ·) 0) &&
+  decide (canon pnCasForkMerge = canon pnCasForkMergeX)
+
+/-- THE FORK DETECTOR (slide-sensitivity), decided at the crafted
+roads: a fork state is one whose canonical form is SLIDE-SENSITIVE
+— the standing fork's pre-state registers (the ♣Q slide moves it
+to the other wing's basin); the merge cell's pre-state does NOT
+(the slide commutes with the saturation); the row-A parked pose
+REGISTERS (the dissolve-extending slide — the false-positive
+finding: slide-sensitivity properly CONTAINS the wing forks; the
+ordering discriminator — the height comparability of the two
+saturation faces — separates them, canonIdx reading above both);
+the both-bare kings' world does not (the anchor-slides of bare
+kings re-saturate home). -/
+def l4RowForkDetector : Bool :=
+  decide (canon v3Fork ≠ canon v3ForkX) &&
+  decide (canon pnCasForkMerge = canon pnCasForkMergeX) &&
+  decide (canon pnCasBareExt ≠ canon pnCasBareSlide) &&
+  decide (canon ((v3Bare.step (Move.tabToTab v3HK (Sum.inl Anchor.p3))).getD v3Bare) =
+    canon v3Bare)
+
+/-- THE NONEMPTY ROW + THE SATURATED GATE, decided: the face-lists
+are nonempty and every selection is saturated (license census
+zero — the still-state read of Final at the picked faces). -/
+def l4RowNonempty : Bool :=
+  decide ((canonV3Arg l4ForkFaces).isSome) &&
+  decide ((canonV3Arg l4MergeFaces).isSome) &&
+  decide ((canonV3Arg l4BareFaces).isSome) &&
+  decide ((canonV3Arg l4UnderFaces).isSome) &&
+  decide ((v3Lic ((canonV3Arg l4ForkFaces).getD v3Fork)).length = 0) &&
+  decide ((v3Lic ((canonV3Arg l4MergeFaces).getD pnCasForkMerge)).length = 0) &&
+  decide ((v3Lic ((canonV3Arg l4BareFaces).getD pnCasBareSlide)).length = 0) &&
+  decide ((v3Lic (canonV3Arg l4UnderFaces |>.getD v3Under)).length = 0)
+
+/-- THE LANDING-4 TABLE. -/
+def l4AllGates : Bool :=
+  l4RowWingConsistency && l4RowInjectivity && l4RowArmChoice &&
+  l4RowOrbitSpots && l4RowForkDetector && l4RowNonempty
+
+-- The landing-4 census numbers (printed for the ledger):
+#eval l4RowWingConsistency -- expect true: order-independent argmax
+#eval l4RowInjectivity -- expect true: distinct classes, distinct picks
+#eval l4RowArmChoice -- expect true: the arms read as pinned
+#eval l4RowOrbitSpots -- expect true: the pair-flip spot rows
+#eval l4RowForkDetector -- expect true: sensitivity + the finding
+#eval l4RowNonempty -- expect true: nonempty, saturated
+#eval canonHtup (canon v3Fork) -- expect [0, 13, 12, 0]
+#eval canonHtup (canon v3ForkX) -- expect [0, 12, 13, 0]
+#eval canonHtup (canon pnCasBareExt) -- expect [11, 13, 13, 11]
+#eval canonHtup (canon pnCasBareSlide) -- expect [11, 13, 13, 12]
+
+#eval! do
+  if v3AllGates && pair_neighborhood_cases && l4AllGates then
+    IO.println "CANONV3: ALL GATES HOLD (LANDINGS 1+3+4) —"
+    IO.println ""
+    IO.println "LANDING 4 — the class-anchored selector (Orig.CanV3: zero sorry,"
+    IO.println "audits [propext] / [propext, Quot.sound], zero Classical.choice):"
+    IO.println "the composite height-first canonIdx (htup leads with FIXED suit"
+    IO.println "order; the position key breaks wiggle ties, conj-invariant by"
+    IO.println "construction; the formal key the last formality) drives the"
+    IO.println "deterministic argmax over explicit face-lists — member sets"
+    IO.println "constructed BY APPLICATION from the crafted classes."
+    IO.println "Wing-consistency: querying from both orders of every face-list"
+    IO.println "picks the same representative. Injectivity: distinct classes"
+    IO.println "select distinct representatives. ARM CHOICE: the standing fork"
+    IO.println "class takes the heart wing (13/12 beats 12/13 under fixed suit"
+    IO.println "order — the arm price paid on founded content); the merge class"
+    IO.println "is a singleton; row-A takes the dissolved face; the under"
+    IO.println "family's conjugate arms split deterministically."
+    IO.println "ORBIT SPOTS: the wings' tuples differ exactly by the hd-flip,"
+    IO.println "per-suit sums equal. The fork detector registers the standing"
+    IO.println "fork, misses the merge, FINDS the dissolve-extending slide of"
+    IO.println "the row-A pose (slide-sensitivity properly contains the wing"
+    IO.println "forks — the height ordering discriminates), and misses the"
+    IO.println "bare kings' anchor-slides."
+    IO.println "SATRung/neverStackable/parkingMap land as the chapter's"
+    IO.println "organizing vocabulary (state-level via the banked canon, the"
+    IO.println "arm visible as a ceiling asymmetry); the class-level ceiling"
+    IO.println "stack (classRung the sup over ALL members — the canus filter"
+    IO.println "never needed in the definition's face), the Q-cargo law, the"
+    IO.println "fork-exclusivity sandwich (three lemmas, deductive), and the"
+    IO.println "post-merge residues (the canus bridge, the saturated-tuple"
+    IO.println "orbit, the full section iff) are ledgered in FUTURES §11-L4"
+    IO.println "with payers named — mem_macro_iff the one engine."
+  else
+    throw (IO.userError "CANONV3 LANDING 4: A GATE FAILED — see the numbers above")

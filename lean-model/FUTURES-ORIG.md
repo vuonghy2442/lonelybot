@@ -2833,3 +2833,171 @@ Feeds the per-arm enumeration; hardens the single-obstruction
 discipline's base (the fired commit kills the ladder's return leg
 AT the bottleneck: the substrate consumption and the fork cell
 are the same object, each supplying the other's witness).
+
+### §11-L4 (landing 4, same branch — the class-anchored selector `Orig.CanV3`, the face-list battery rows, the consolidated design picture)
+
+**The step change this landed** (the plateau exchange, consuming
+landing 3's table): canonV3 is REDEFINED per the user's
+restructuring — not a run machine (landing 1's verdict stands:
+the scaffold rule retired) — but a member selector.  Landed as
+the library chapter `Orig/CanV3.lean` (1stdlib import line in
+Orig.lean; every head audited), the composite height-first
+index, and the landing-4 battery rows in probes/CanonV3Probe.lean
+(face-lists by application: constructor-of-record for every
+member; `lake env lean` prints the numbers; all gates throw-green).
+
+**The composite canonIdx w = lex (canonHtup w, canonPosKey w,
+canonFormalKey w)**: founded content leads the fixed suit order
+(fork wings incomparable componentwise — the fixed-order lex IS
+the arm choice, the conjugate-arm price paid on a MEANINGFUL
+quantity — founded content); the position key breaks wiggle ties
+(conj-invariant by construction: twinMap relabels piles in
+place, never moves anchors — proven `canonPosKey_twinMap`); the
+formal decSt key is the last formality (equal formal keys imply
+equal states; the setoid-flip world means it never hides a
+symmetry violation). The selector `canonV3Arg` (Bool fold,
+deterministic, bounded input, computable) rides `canonIdxLt`
+(irrefl row proven). Rows: `canonV3Arg_mem`, `canonV3Arg_max`,
+`canonV3Arg_final_of_all` (saturated-gated: the selection is
+Final when the list is). `canonHtup_twinMap` proves the pair-
+permutation row outright. `canonIdxLt_irrefl` after a sorryAx
+excursion was rebuilt Classical-free (decide-free stance
+preserved; class-audit confirmed: no Classical.choice, no
+native_decide — pure Bool algebra).
+
+**The dedup engine**: the composite key audit roles
+`v3NatListLt`/`v3NatListEq` `the Nat.beq instance trap` — the
+early `simp`-based irreflection pulled Classical.choice via the
+`decide`-desugaring; the fix (LegalBool instances live in
+Landing1's kit) — enumerated swaps stay in FARM_MEMORY.
+
+**THE CONSOLIDATED DESIGN PICTURE** (through the six-part frame
+that organizes the skeleton file Orig/MacroInternal.lean —
+read-only; the user owns the skeleton; reconcile, don't
+duplicate):
+
+* (0) The object: a macro class is a STRUCTURED SPACE, not a
+  quotient blob. State-level machinery computes; class-level
+  statements quantify.
+* (1) The four coordinates: ARM (which wing saturated; founded
+  content; related by the NECK: pull-slide-re-saturate — never
+  by exchanges: exchlaw's found-channel refutation), WIGGLE
+  (parked-residue positions; related by the SLIDE; residue
+  locational independence), TORSOR (identity bits on seated
+  unfounded pairs; related by the EXCHANGE itself — the only
+  layer where "everything else is twin-exchangeable" holds in
+  full, exchlaw's freeness battery), DEPTH (de-saturation
+  distance; related by the cone's PULLS). Coordinate
+  irreducibility: exchanges never touch found, never move
+  positions; pulls never cross arms (each pull terminates down
+  one arm's down-set); slides don't cross arms either.
+* (2) The canonical state as coordinate readout: canonIdx reads
+  arm (heights) then wiggle (positions) then formal key
+  (torsor); canus nonempty (σ=id cone-refl), class-invariant
+  (mem_macro_iff pays), conj-closed, saturated-gated
+  (proven row), σ-inside (the swap lives in membership, never
+  in the selector: conj arms tie on κ = position key and
+  split deterministically under the fixed formal order — the
+  design is Load-Bearing: it makes the section iff hold
+  literally for conjugate mates in distinct classes).
+* (3) The membership envelope: mem_macro_iff (decompression
+  card's cone rows — pulls/slides/draws up to swap;
+  finalWiggle_reach the named open row there) — everything
+  quantifying over class members conditions on it explicitly.
+  This file's faces ride EXPLICIT member lists (by
+  application) until that engine imports; the residue set =
+  ⟨canus_class_inv, saturated_tuple_orbit, canonV3_lit_iff⟩.
+* (4) The fork dossier: three detectors one fact —
+  slide-sensitivity (forkState: the standing fork registers,
+  the merge does not), bottleneck dip (wing_crossing: any
+  reversible wing crossing crosses a forkState slide-edge),
+  non-unionability (the union tuple unrealizable by the
+  homeless-cargo obstruction). A2 certified MINIMAL.
+* (5) The card map (who owns which layer): THIS CARD owns the
+  selector/case-table/bottleneck/plateau capstone;
+  decompression owns the envelope (mem_macro_iff); exch-law
+  owns the torsor; canlaw owns the leg-commutation grammar
+  (reused by all); §3.1 owns the consumer (the obstruction
+  inventory as the residue-profile grade).
+* (6) The downstream reading: §3.1's remaining questions become
+  coordinate-lookup queries (arm/wiggle/torsor/depth).
+
+**The Q-CARGO LAW, deductive** (the user's rank arithmetic, now
+in the library): (A) `v3PiledRung` — a face-up card's suit rung
+sits weakly below its rank index (higher rung = already founded;
+conservation forbids two zones; proof rides mem_faceUp_only +
+WF.found_prefix + the position-to-membership take-row
+`v3GetInTake` + rank-get `v3RankGet`/`v3UpGet`); (B) `v3ForkPins`
+— a standing fork pins the licensed twin's suit EXACTLY at the
+twin rank and the parked cover's suit STRICTLY below its own;
+(C) `v3ForkExclusivity` — the sandwich: two forks in both
+colors cross-pin into `x < y ∧ y < x`, mixed-rank included,
+same-color second forks die by pinning alone. AT MOST ONE FORK
+PER CLASS, at any ranks, any colors. Consequences: arm space ≤ 2,
+orbit = the single-pair flip of the forked pair (pair-dependent
+Z/2; the (Z/2)² product was REFUTED), one neck, one bottleneck,
+one unionability obstruction per class. The worried bit is a
+PER-CLASS SINGLETON BY ARITHMETIC — the §3.1 count's last soft
+spot now rigid. The crafted double-fork attempt becomes the
+REFUTATION WITNESS row (decide-verified in the battery: the
+arithmetic refuses the second standing fork).
+
+**The organizing vocabulary** (the chapter's state-level
+primitives, riding the banked canon — zero new machinery):
+`satRung st s := (canon st).found s |>.length` (the saturation
+ceiling; the arm VISIBLE as a ceiling asymmetry across
+neck-mates: slide-sensitivity = ceiling-profile difference, the
+fork detector as arithmetic), `neverStackable st c := c's rank >
+satRung` (the permanently-parked population), `parkingMap` (the
+seated anchored read of that population — the residue profile).
+CLASS-LEVEL versions (`classRung C s := ⨆ w ∈ C, (w.found s).length`
+— the canus filter removed from the definition's face; LEAN ON
+the skeleton's classOf/rungAt names at merge) are the
+STATEMENT-level faces; state-level defs here are the engine.
+Two-level bookkeeping: class level for MEANING, state level for
+COMPUTATION.
+
+**EVIDENCE, decided at the battery** (the landing-4 rows): wing
+consistency (query both face-list orders → same pick: the four
+families' selector values printed; injectivity across distinct
+classes → distinct picks); arm choice pinned (the standing-fork
+class takes the heart wing 13/12; the merge class is a
+singleton — canon equal from both faces; row-A takes the
+DISSOLVED face; the under family splits deterministically);
+sat-orbit spot rows (the wings' tuples differ exactly by the
+hd-flip, suit-sums equal [0,13,12,0] ↔ [0,12,13,0]); the
+nonempty+saturated gates (license census zero at every pick);
+the fork detector census (the standing fork registers; the merge
+does not; the row-A dissolve-extending slide REGISTERS —
+slide-sensitivity properly CONTAINS the wing forks, the height
+ordering discriminates: both its faces' union tuples REACHABLE
+(the dissolved face dominates); the bare kings' anchor-slides
+do not).
+
+**COORDINATION (the skeleton reconciliation note)**: the
+statement skeleton Orig/MacroInternal.lean (main tree, user
+owned, untracked) fixes the convergent names: classOf, rungAt,
+twinSuit, classRung, neverStackable, satStackable,
+stackable_now_rungexact, canon_rung_mono, classRung_attained,
+satStackable_iff, ConeStep/ConePath, cone_inClass, conjl + laws,
+canusOf + canusOf_class_inv + canusOf_nonempty, posKey, lexLE,
+canonKey, canonV3_witness, canonV3, canonV3_iff,
+canonV3_section, forkState, forkEvidence, fork_pins,
+fork_exclusive, saturatesTo, unionable, unionRung,
+unionable_iff_unionTuple, fork_iff_nonUnionable, Journey,
+wing_crossing_bottleneck, saturated_tuple_orbit,
+saturated_classification, envelope, canonKey_rungs. DELTAS:
+this file's `canonHtup/canonPosKey/canonFormalKey/canonIdxLt`
+are the same reads with fixed names pending the merge rename;
+this file's `v3ForkPins/v3ForkExclusivity` are the skeleton's
+deterministically-proven fork_rows (state-shaped now,
+class-shaped at merge via the envelope); saturated-gated row =
+canonV3Arg_final_of_all; the skeleton's three sorry-carriers
+(conjl's involutivity/class, posKey reuse, canonV3's choose
+plumbing) are exactly where the def work lands next. The
+skeleton's Journey/wing_crossing/unionable rows are RECEIVING
+rows: the battery's next session consumes the plateau tools
+here to lift the crafted-evidence rows (already in this commit:
+the merge/standing-fork union realizability arithmetic; the
+homeless-cargo obstruction for the (13,13) tuple) into the
+skeleton's shapes.
