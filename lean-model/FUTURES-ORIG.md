@@ -3670,3 +3670,72 @@ green, zero sorry in the gate file, every head audited, zero
 `Classical.choice`; `probes/ForkUniqProbe.lean` exit-zero, all gates
 throw-armed.  The in-tree interface is mirrored, never redefined; all
 changes additive; NO merge to macro-game.
+
+#### §11-L7 — THE FORK-STATE SPECTRUM card closed by falsifier, third formulation (branch `orig-fork-spectrum`, base macro-game `8e469a3` re-ported from the mis-created `41023bc` checkout; the three-generator `ForkSpectrum` completeness REFUTED at theorem grade, the delegated parentSwap conditional instantiated, and the repair ledger priced)
+
+(a) THE ARC: the deliverable was restated twice mid-flight.  The
+first formulation (the going-deeper restricted language
+`SpectrumPath`: deepRaise + twinCycle + cargo, with the twin-unit
+widening refinement) was superseded by the brief's third revision:
+the game's OWN rules are the only constraint, the spectrum is the
+closure under three named structural generators, and the inductive
+`ForkSpectrum` (base | twinSwap | parentSwap-stub | cargo) landed
+in-tree at cecab21/8e469a3 with `forkSpectrum_complete` sorry'd as
+the target and the parentSwap conditional delegated to this card.
+
+(b) THE PROBE-FIRST VERDICT, third landing of the §11-L6 family:
+ALL THREE GENERATORS ARE FOUNDATION-FLAT — twinSwap's conjugate
+composite is net-flat card-for-card (`conjugate_endpoint_netflat`,
+the loose ∃d absorbing the corrected `d := x.twin` verbatim), cargo
+is flat (`cargoPath_rungs`), and the parent trade is a cargo
+composite.  So every `ForkSpectrum` endpoint shares the start's
+height tuple — and the class carries same-pair same-orientation
+`forkState`s whose NON-PAIR rungs differ (the gate's public export
+`forkGate_strict_head_false consumed verbatim, cite-before-craft):
+the craft's forward journey `[tabToTab 5♥ (inr 6♣), tabToFound 6♠]`
+decomposes as ONE cargo leg plus ONE NON-PAIR RAISE, and NO
+generator raises non-pair material.  The foundation bookkeeping the
+brief called "already accounted for by the stack discipline" is
+carried by no letter: the CASCADE — the user's own (a) generator
+from the first formulation — is the missing generator.
+
+(c) WHAT `Orig/ForkSpectrumProof.lean` LANDS (additive leaf, importing
+MacroInternal + ForkStateUniq + ForkStateUniqGate — the refutation
+consumes the gate's banked public counterexample export; NOT wired
+into the root, mirroring the leaf discipline): §1 THE FLATNESS LAWS
+(`forkSpectrum_rungsFlat` — every leg preserves all four rungs;
+`forkSpectrum_wf`; `forkSpectrum_foundsFlat` — the endpoints read the
+foundations card-for-card through the banked `rung_found_congr`), all
+sorry-free all `[propext, Quot.sound]`; §2 THE REFUTATION
+(`forkSpectrum_complete_refuted` — the in-tree row's own statement
+negated, all premises satisfied, `[propext, Quot.sound]` sorry-FREE:
+the row's sorry is a false conjunct, not a gate); §3 THE DELEGATED
+CONDITIONAL instantiated honestly (ParentSwapShape + ParentSwap:
+the structural endpoint read — the twins parent-seated, the (x+1)
+cards trading piles, boards agreeing elsewhere — PLUS the
+`CargoPath` premise as the fit-side carrier, exactly the "SOMETIMES
+available" per-state availability; `parentSwap_spectrum` rides the
+cargo constructor; `parentSwap_rungsFlat` is the headline: even
+instantiated, the trade moves no rung, so the rescue cannot come
+from THIS generator); §4 THE NON-VACUITY BATTERY (the closure
+genuinely generates the face world: `faceShape_spectrum` — the
+in-tree FaceShape embeds; `slidMate_spectrum` — the §11-L5 mate
+orbit; `kingVacWalk_spectrum` — the king shuffle); §5 THE REPAIR
+LEDGER with the equality-locked target `forkSpectrum_complete_locked`
+named BLOCKED — the ONE sorry in the file, `[propext, sorryAx]` as
+the gated precedent (the G1 pair-transport / G2 coverage / G3
+board-normalization tiers restated at the equal-rung grade the craft
+forces, with the banked `forkState_content_of_rungsAgree` naming what
+the lock buys) — plus the cascade-letter direction: the honest full
+spectrum is this closure PLUS a raising letter, and the craft's own
+journey (slide-then-climb) is `cargo ∘ raise`: two generators, both
+witnessed.
+
+Battery: `lake build Orig` green (30 jobs); the leaf quad `lake
+build Orig.MacroInternal Orig.ForkStateUniq Orig.ForkStateUniqGate
+Orig.ForkSpectrumProof` green (26 jobs); exactly ONE sorry in the
+new file (the named BLOCKED target); every fresh head audited
+`[propext]`/`[propext, Quot.sound]`, ZERO `Classical.choice`.  The
+in-tree interface (`ForkSpectrum`, `conjugateForkState`,
+`CargoPath`, `forkState`, `FaceShape`) mirrored, never redefined;
+all changes additive; NO merge to macro-game.

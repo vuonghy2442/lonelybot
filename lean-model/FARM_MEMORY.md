@@ -4309,3 +4309,41 @@ checkpoints.
   banked cycleCount/hiddenTotal tables kills whole move-classes in
   5 lines each (waste movers, reveal-shaped lifts) — the
   classification oracle is already there for the letter censuses.
+
+
+## Orig/ForkSpectrumProof — the fork-spectrum falsifier session (2026-10-11)
+
+- BASE-VERIFICATION FIRST, ALWAYS: the worktree materialized at the
+  DEFAULT branch head (Rust main `41023bc`), not the task's named
+  macro-game base — symptom: no `lean-model/` in the checkout and a
+  `git log` full of Rust commits.  Diff the branch tip against the
+  named base (`git rev-parse HEAD macro-game`) BEFORE any work and
+  `git reset --hard <base>` on a clean born-empty branch; this card
+  RE-PORTED to `1278296` first, then to `8e469a3` when the brief's
+  third revision moved the base mid-flight.
+- THE OBTAIN-ARITY TRAP, both symptoms (complements the §11-L6
+  rcases-flattening note): a pattern with N slots against 5+K nested
+  conjuncts does NOT error — the LAST name silently absorbs an ∧-TAIL
+  (symptom: a head whose type is `s ≠ x.suit ∧ s ≠ x.twin.suit ∧ …`
+  instead of the final conjunct).  And when the downstream `exact`
+  then fails, Lean's error recovery leaves the DECLARATION
+  sorry-filled — `#print axioms` shows `sorryAx` on heads whose proof
+  body never wrote `sorry`.  Cure: count slots against the FLATTENED
+  tree (the ∀c-iff conjuncts AND the two `≠` conjuncts each take a
+  slot), stage the split (`obtain ⟨pack⟩; obtain ⟨11 slots⟩ :=
+  pack`), and NEVER trust an audit until the build is
+  error-FREE — a polluted audit row is a spelling of the compile
+  error, not a real sorry.
+- THE STATEMENT-FAMILY LESSON (three formulations, one cell, the
+  §11-L6 craft): any spectrum-generator set whose every letter is
+  foundation-flat (the conjugate net-flat, cargo flat, the parent
+  trade a cargo composite) CANNOT reach same-class forkStates at
+  different non-pair rungs — the forkState iff pins only the PAIR
+  suits; the non-pair rungs are free data of the class.  The rescue
+  is a RAISE letter (the cascade: the (x+1)-parent climb after the
+  channel slide — the craft's forward journey is literally
+  `cargo ∘ raise`), not the instantiation of another flat trade.
+  Before building the proof of a completeness row, FIRST prove the
+  language's invariant (here: `forkSpectrum_rungsFlat`, 20 lines) —
+  the invariant either blesses the statement or hands the
+  counterexample row on a plate.
