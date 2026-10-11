@@ -1677,6 +1677,7 @@ and fresh `hZP`-style double counts.
 
 ## 10. The exchange-canon commutation card (2026-10-11, branch `orig-exch-canlaw`, rebased onto macro-game `47b1ad9`; landing-1 probe battery GREEN, the inherited backlog's first falsifier candidate FIRED)
 
+
 ## 9. The pull-multiset determinism family — session orig-macro-determinism (STATUS 2026-10-11)
 
 Branch `orig-macro-determinism`, based on macro-game `b8a1584`; the
@@ -2548,3 +2549,227 @@ AUDIT FLAG (recorded in-file): `canusOf_nonempty` reports
 the skeleton's designated `conjl := sorry` carrier in `canusOf`'s second
 disjunct; the proof rides `Or.inl` and never forces it.  The flag clears when
 the conjl carrier lands (canon-v3's ledgered def work).
+
+
+
+## 11. The V3-canonicalizer gating census (2026-10-11, branch `orig-canon-v3`, rebased onto macro-game `5ebef39`; the scaffold-pull fork-fix card, landing 1 AND the card's whole content — the census returns EMPTY, the doctrine closes)
+
+Section numbering note: §9 lives on `orig-canon-decompress` (commit
+`8a0e121`), §10 on `orig-exch-canlaw` (commit `834ebdc`); this section
+reserves §11 on this branch so the three append-only ledgers merge in
+any order.
+
+THE CARD AND ITS TWO BRANCHES.  The V3 canonicalizer was designed
+against the exchlaw B2 worried-king fork exhibit: a five-definition
+skeleton (quoted verbatim below as DORMANT DESIGN) whose
+two-macro-leg runner refuses its raise legs at contentions and
+instead performs a `scaffoldCycle` — an unblocking pull welded with
+its immediately-enabled stack and the cleanup re-raise — with the
+boundary measure Φ = foundation length strictly increasing at every
+macro-leg boundary.  The card gated everything on one census
+question, decided FIRST, before any proof effort (probe first,
+prove-or-pin): is `TwinContended` inhabited at WF?
+
+```
+TwinContended st c := both twins licensed-raise at st
+                   ∧ stacking either forecloses the other
+```
+
+**THE VERDICT: `TwinContended` is EMPTY at WF — under every pinned
+FORECLOSE reading.  Branch (b) fires: the scaffold-pull rule
+retires as unneeded; the census battery + this closure are the
+card's sole content.**
+
+* **The pinned FORECLOSE read (marked, per the card).**  The
+  reading that could carry content at WF is LICENSE-DEATH: the
+  landed state `s'` of either twin's licensed raise forecloses the
+  other's license (`¬ CanRaise s' c.twin` at the landed `s'`).  The
+  alternates were probed at the cells and struck:
+
+  - RAW-stackability death — struck: the licenses read
+    zone-disjoint components (each twin's OWN suit rung via
+    `nextUp`, each twin's OWN pile seat via `pileOfTop` +
+    `chop (piles a).faceUp`/`hidden`), and a licensed lift writes
+    exactly its own card's two zones (`setFound c.suit`, pile `a`,
+    `Orig/Play.lean`'s `tabToFound` branch) — the twin's zones
+    survive verbatim;
+  - FINAL-divergence — struck by V2's banked confluence
+    (`canon_unique`, all diamonds local): both greedy orders of a
+    licensed twin pair land at `canon st`, decided literally at
+    every positive cell;
+  - UNDO-death — struck: after the double saturation each twin
+    pulls back (`foundToTab`) onto its exposed bases and every
+    pulled excursion re-saturates home — the round trip is the
+    landed undo family's content (the V2 five-cell, decided).
+
+* **The systematic half is THEOREM-GRADE and rides the bank.**  The
+  house monotone-stackability row `canRaise_lifted`
+  (`Orig/Canonical.lean:1162` — "after a licensed lift of another
+  card, `c`'s license survives", `[propext, Quot.sound]`) was probed
+  for its axioms (`#print axioms` — clean) and instantiated at the
+  twin seats in the battery file:
+
+  - `v3Card_twin_ne` — twinning is fixed-point-free (a pair is
+    always two seats), `[propext]`;
+  - `v3twin_raise_independent` — at WF, both twins licensed and
+    `c`'s lift fires ⇒ `CanRaise s' c.twin` at the landed `s'`
+    (`canRaise_lifted` at the twin seats), `[propext, Quot.sound]`;
+  - `v3TwinContended_empty_at_wf` — **THE CENSUS VERDICT:
+    `TwinContended st c → False` at `WF`**, `[propext,
+    Quot.sound]`, zero sorry, zero native_decide;
+  - `v3TwinContendedB_true_iff` — the decide-graded census Bool
+    (`v3TwinContendedB`) speaks the Prop (`v3ForecloseB` reads the
+    landed state through the fire; both licensed lifts fire by the
+    banked `raise_eq_some_of_canRaise`), `[propext]`.
+
+  The WF fence is load-bearing and honest: at wild states the
+  duplicated-card world breaks locality (the banked
+  `wild_confluence_fails` witness of `Orig/Canonical.lean`) — but
+  wild states are unstateable in the physical register (`WF` is the
+  realizability doctrine), so the census closes where the game
+  lives.
+
+* **The census battery** (`lean-model/probes/CanonV3Probe.lean`,
+  external, lake-env-runnable, gates throw on failure, README row
+  landed; the full-deck cells are census-clean through the stock
+  mover — the crafted numbers pinned):
+
+  - **V1 both-bare twin kings** (hearts/diamonds climbed A..Q, ♥K
+    bare p1, ♦K bare p5): both licensed, both fire, each keeps the
+    other licensed (the monotone permission census over the whole
+    universe), both orders land at ONE state, `canon` consumes BOTH
+    twins (found 13/13, seats emptied) — the exchlaw freeness
+    suggestion ("the both-bare bit is IDENTITY") verified from the
+    canonicalizer side: the both-bare pair is the independence
+    fixture, no foreclosure anywhere.  Census numbers: licensed = 2,
+    twin-candidates = 2, contented = 0.
+  - **V2 both under-seat twin queens on conjugate bases** (♥Q on ♣K
+    p1, ♦Q on ♠K p5, hearts/diamonds climbed A..J): independence and
+    order-convergence hold at the seated pose; after the double
+    saturation the undo round trip fires — four licensed pulls (each
+    queen onto either bare black king) and ALL re-saturate home to
+    `canon v3Under`.  Twin-blindness decided (`canon (twinMap st) =
+    twinMap (canon st)`, the pile-swapped cell).  Licensed = 2,
+    contented = 0.
+  - **V3 the mixed-seat census point**: a licensed twin pair cannot
+    sit mixed seat TYPES — a king sits under nothing (no rank
+    above king), so twin kings license only both-bare and twin
+    non-kings only both-under; the cell carries the cross-type
+    coexistence (bare ♥K licensed, under-seat ♦Q licensed, the twin
+    mates stock-resident and never licensed).  Licensed = 2,
+    contented = 0.  Canon leaves the stock twin-residents verbatim
+    (the canonicalizer never writes the stock zone).
+  - **V4 the ENABLEMENT mediation** (♥J/♦J under-seat at rungs 10,
+    plus ♥Q under-seat on ♣K one rung short): raising ♥J LIGHTS
+    ♥Q's license (the rung arrives) and kills nothing — licensed
+    2 → 2 through the lift ({♥Q, ♦J}), contented = 0 at every
+    state of the chain, canon walks the enabled ladder (hearts
+    A..Q, diamonds A..J), the bare ♣K never licenses (its suit
+    never climbs).  THE MEDIATION RESULT: the only coupling a
+    licensed lift induces anywhere is MORE license (monotone
+    enablement), never foreclosure.
+  - **V5 the B2 twin-kings fork family, consumed from the exchlaw
+    battery's committed verdicts** (common material; the slide
+    realization, the wing split, the A2 highway re-decided in the
+    census language): at EVERY single state of the family at most
+    ONE twin is licensed ({♥K} vs {♦K}, licensed = 1 both faces) —
+    the TwinContended FIRST CONJUNCT dies here: **the observed fork
+    is CROSS-MATE (across the twin exchange's noreveal slide
+    realization), never intra-state.**  The wings split founds 13/12
+    vs 12/13 (`canon v3Fork ≠ canon v3ForkX`, decided), the wings
+    are Final (licensed = 0), and the wing pull-homes fire
+    step-exact (`foundToTab ♥K (inl p1)` recovers `v3Fork` from its
+    own canon wing).  THE SCAFFOLD QUESTIONS, answered at the real
+    fork family: the unblocking pull EXISTS at every wing; the
+    scaffold menu is sizeable (six licensed pulls per wing — the
+    founded king onto the six empty anchors; kings sit under
+    nothing, so no seat target exists) and ALL converge (every
+    pulled excursion re-saturates to its own wing canon) — scaffold
+    CHOICES CONVERGE; CONJUGATE ROUTES AGREE (canon commutes with
+    twinMap on every face — the banked `canon_twinMap` decided);
+    HARD-CONTENTION (a fork wing with no unblocker anywhere) WAS
+    NOT FOUND in the family — every wing's founded twin pulls
+    home.  No card in the universe registers contention at any
+    face.
+  - **V6 the negative controls**: the cargo corner (both twin kings
+    carrying twin cargos ♣Q/♠Q — the §1.8 crossed pair, license 0;
+    covered tops license nothing and black suits never climb here),
+    the waste-resident mate (♦K in the waste: never licensed, its
+    bare twin licensed — unlicensable shapes never register), the
+    both-bare NON-KING seat bar (two rung-ready bare queens,
+    license 0 — §3.0's OUT-list decided), and the hidden-under
+    reveal bar (a rung-ready bare king pinned over a hidden ♠2:
+    refused, though its free twin licenses).  Contented = 0
+    everywhere.
+
+* **The consumed sibling verdicts** (per the coordination note):
+  the exchlaw battery's B-numbers and the twin-kings cell are
+  consumed as committed (`834ebdc` on `orig-exch-canlaw`); the
+  canlaw session's queued fork-instance tasks were NOT re-derived
+  (no instance-level verdict has appeared in any committed
+  `FUTURES-ORIG.md` yet — none to consume at this write; when they
+  land they slot under this section as the instance-level view of
+  the same census, and this section's theorem-grade half already
+  answers their inhabited-or-empty question).
+
+**THE CLOSURE DOCTRINE (the card's branch (b), verbatim in
+spirit).**  Forks are EXCHANGE-STEERED, COMMIT-SIDE, PRICED BY THE
+A2 WITNESS AT TIP LEVEL: the canonicalizer meets the worried-twin
+fork only between EXCHANGE MATES (each single state licenses at
+most one twin), the exchange seat permutes the residue onto the
+covered member's host, and saturation then consumes whichever twin
+the seating left bare.  The fork is priced at tip level by the A2
+witness — pull the founded twin home (`foundToTab` onto its
+vacated seat), exchange (the licensed noreveal slide), saturate —
+every leg reversible, the sameOrbit world; and the canonQ spine
+(`canonQ_of_orbit`, banked) joins the wings' canons at the
+`⟦⟫`-grade through exactly that fold (the sameOrbit setoid's
+twin-conjugation disjunct — §3.1's grading-note fold, applied to
+the canon level).  V2 canon is twin-blind by theorem
+(`canon_twinMap`), confluent by theorem (`canon_unique`), and
+in-class by theorem (`canon_in_class`); the V3 skeleton's
+`canonV3 = canon` on contention-free runs degenerates to the
+identity AT WF outright, since contention never fires — so the
+skeleton's other four theorems (in_class via the undo family,
+final_shape, conj twin-blindness, wf) are all already banked in
+V2's name.  Nothing about the canonicalizer needs fixing; the
+scaffold-pull rule RETIRES.
+
+**The DORMANT SKELETON, ledgered verbatim** (not landed, no
+library file created — if a future card ever inhabits a genuine
+intra-state contention family out of WF's reach, this is the
+designed shape): five definitions — `TwinContended st c := both
+twins licensed-raise at st ∧ stacking either forecloses the other
+(the FORECLOSE read pinned by census: LICENSE-DEATH)`; `Unblocker`
+(the pull that unlocks a contented pair); `HardContended` (a
+contention with no unblocker anywhere); `FinalV3` (the saturated
+shape the two-macro-leg runner reaches); and the two-macro-leg
+runner — raise legs refuse to fire at contentions;
+`scaffoldCycle` welds an unblocking pull with its
+immediately-enabled stack and the cleanup re-raise; the boundary
+measure Φ = foundation length strictly increasing at every
+macro-leg boundary (ordinary legs +1; scaffold legs net +1: the
+pull −1, the enabled stack +1, the cleanup re-raise +1).  The
+census found no state for any leg of it to act on.
+
+**COORDINATION NOTES:** (i) the twin-kings cell is common material —
+this census consumed the exchlaw battery's committed verdicts and
+added the canonicalizer-side reading (the intra-state vs
+cross-mate distinction is the census's central datum); (ii) the
+decompression card's A2-anatomy highway (pull, exchange, pull) is
+the price tag this closure cites — the two cards are consistent;
+(iii) the canlaw session owns `Orig/Canonical.lean` mid-flight —
+this card touched no library file, consumed `canRaise_lifted` /
+`raise_eq_some_of_canRaise` / `canon_twinMap` / `canon_unique` /
+`canon_in_class` / `canonQ_of_orbit` by read-only citation only.
+
+ENGINEERING NOTES FOR FARM_MEMORY (banked in the close-out): the
+sibling-commit timing hazard (a sibling worktree's uncommitted diff
+VANISHED mid-read — they committed mid-session; snapshot shared
+material when you cite it), the stock-exclusion craft bug family
+(seated BLACK cards must join the exclude list too — the WF gate's
+cardCount census catches what the hand-write misses, exactly as
+the exchlaw B-cell lesson predicted for FOUNDATION cards), and
+the cite-before-craft discipline (the whole answer was already
+banked as `canRaise_lifted` before any new mechanism was built —
+grep the bank before designing).
