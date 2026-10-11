@@ -9577,3 +9577,28 @@ a file another agent has rides on).  Their reconciliation commit
   addendum (b3efea0): `by_cases hpw` + obtain-cons (never `cases postW`),
   segment-A take-craft ending `simp`, the crossing redeal, the pristine
   `cycleOf` rw-chain.  Rebuild from the note, do not re-derive.
+
+## Session note (2026-10-11, wave 3e follow-up map - the pointwise
+## putRun piles readers + the 52-site conversion recipe)
+
+Landed (3f667a2): putRun_piles_inl_self/_inl_ne/_inr_self/_inr_ne
+beside the fun-forms in Irreversible - the pointwise ite-branches
+that Classify's 52 rw-sites each re-bash with giant record literals.
+CLOSE-OUT LESSON repeated a third time: the ite-decider cannot
+iota-reduce `if a = a` at VARIABLE anchors - close pointwise reads
+with the ite_eq_left/ite_eq_right pattern, never bare rfl.
+
+THE NEXT MECHANICAL WAVE (the conversion recipe):
+- Classify sites (grep 'putRun_piles_inl|putRun_piles_inr' = 52
+  rw-lines at :933-:3103): each arm becomes a one-line cite -
+  rw [hs1, putRun_piles_inr _ _ _ _ hz] + show/if-bash  =>
+  rw [hs1] + exact putRun_piles_inr_self hz (or _ne hz hne) with the
+  orientation per arm; the empty-gap tails (Pile.ext on
+  canPlace_inl's isEmpty) and the below-cases stays stay site-local.
+- TEB found-slots x11: retry the wrapper with the slot show-lines
+  restored (state the found-slot goal explicitly so the frame pins).
+- TEB setFound-found blocks x6: needs a whole-square transport row
+  (record-framed State.ext), bigger surgery - owner session's call.
+- Dominance: the rung constructor-blocks (x5, :5026-:5139) and the
+  B-kit ports - owner wave (the worry-prunable session is LIVE on
+  Dominance right now with uncommitted churn at :5499).
