@@ -1528,3 +1528,61 @@ setPile/putCard/putRun kit) and the census one-liners
 and fresh `hZP`-style double counts.
 
 
+
+#### §M-FLOOR-1 — the MacroInternal FLOOR wave lands (branch `orig-macro-floor`, session of 2026-10-11; the Tier-0/1 rows of the 2026-10-11 skeleton, rebased onto macro-game `b8a1584` per the determinism session's base-fix recipe)
+
+THE LANDINGS (all sorry-free, all `[propext, Quot.sound]` or `[propext]`, battery
+`lake build Orig` green + `lake env lean Orig/MacroInternal.lean` zero errors at
+every commit; commit chain on the branch): `stackable_now_rungexact` (CALIBRATED:
+one-directional — the iff's reverse face is refutable by a buried/stocked at-rung
+card; the 0-based `toIdx` encoding needed NO offset adjust — `nextUp` is literally
+`decide (rank.toIdx = foundHeight)`), `canon_rung_mono` (satStep holds-or-raises,
+composed along canonAux), the new `cone_step_heights` (the floor card's own row
+name; the per-move rung semantics: slides/draws flat, a pull pops exactly one
+founded top), `cone_step_fiber`, `dance_step_grading` (the trichotomy, restored
+to the constructor case split), `flat_heights`, `cone_inClass` + `dance_inClass`
+(the class-stays rows), `exch_is_cargo` (THE BRIDGE ROW, via the de-privatized
+one-move realizers — see below; CALIBRATED: the degenerate both-bare step is
+`ExchStep a a` and no successful tabToTab is a fixed point, so the face carries
+`... ∨ a = b`, exactly the "degenerate bit priced at zero" the skeleton's own
+docstring anticipated), `surely_imp_sat` (new row; CALIBRATED with the WF-member
+premise — a bare quotient can lack Final members), `benign_sat_iff_surely`
+(same premise; the fork-free direction is decidable-branch pure logic), and
+`canusOf_nonempty` (the canon u + ConePath.refl + Or.inl witness the card names).
+
+THE ENGINE BANKS (private in MacroInternal, available for promotion at merge):
+`shuffleW_of_round` / `class_leg` — the LOOP-CLOSURE BRIDGE, and it is the row
+the other sessions should read first: a single `reversibleAtW st m` leg plus its
+step lands `sameOrbitSetoid.r st s₁` with NO physics (the σ side is the move
+itself; the τ side splices the return play per step by looping the remainder:
+suffix ++ [m] ++ front).  This dissolves what looked like a draw-leg obstacle
+(the Phase in-phase draw witnesses are multi-draw replays).  Plus the per-move
+rung locality four (`step_tabToTab_rungs` / `_draw_` / `_tabToFound_` /
+`_foundToTab_`), and the fork half-banks: `piled_rung`, `canRaiseS_rung_pin`
+(the BARE twin's exact pin along theCascade), `forkPoint_cargo_strand` (the
+cargo's strict strand, reductio through the reversible licensed raise + class_leg).
+
+CARRIER EDIT (merge note): TwinExchange's `step_realize_fwd` / `step_realize_bwd`
+are now PUBLIC (commit 69fbaa8, no statement changes) — exactly the deprivatization
+this chapter's TwinExchangeQuotient ledgered its RevEqW-refinement as blocked on;
+`exch_is_cargo` consumes the fwd leg.  MacroInternal also grew `import
+Orig.Dominance` (the leaf cites the one public home `mem_upCards_take`).
+
+THE BLOCKED ROWS (four sorries, each with its BLOCKED note in-file): 
+`founded_implies_atRung` (the pops-backward walk needs the LANDING-EXISTENCE
+leg — neck/envelope grade, the decompression card's `mem_macro_iff` family);
+`forkPoint_trial`, `forkPoint_pins`, `forkPoint_exclusive` — all three gated on
+the corrected forkEvidence GAP FORM (§11-L4.2's `CanRaiseS x.twin ∧
+¬CanRaiseVanilla x.twin ∧ coveredIn x.twin` legs) that the skeleton's
+`forkPointC` under-carries: the trial needs x topping a pile AT the point and the
+covered twin's rung AT the pair rank; the pins' covered half and the sandwich's
+cross-cases ride the same missing leg.  COORDINATION (the no-duplication note):
+canon-v3's ledger already records `forkPoint_trial`'s sorry as its own next
+closure — when that session lands the gap form, the three rows close on it
+trivially (the bare pins and cargo strands are already banked here).
+
+AUDIT FLAG (recorded in-file): `canusOf_nonempty` reports
+`[propext, sorryAx, Quot.sound]` — the sorryAx enters at the STATEMENT level via
+the skeleton's designated `conjl := sorry` carrier in `canusOf`'s second
+disjunct; the proof rides `Or.inl` and never forces it.  The flag clears when
+the conjl carrier lands (canon-v3's ledgered def work).
