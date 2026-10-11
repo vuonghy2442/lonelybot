@@ -439,13 +439,47 @@ inductive FlatStep : State → State → Prop
 
 /-- The banked exchange IS a cargo move: at any `TwinExchOK`-licensed
 pair the suffix-swap realizes as ONE `tabToTab` (the hosts keep their
-piles; the empty suffix rides across; joints legal by the twin-blind
-right fit).  The ExchangeTwin vocabulary stays as the RELATION-level
-name (the quotient, freeness, abelian fate rows); it is no longer a
-separate path letter. -/
+piles — `exchangeTwin_eq_of_located`; the empty suffix rides across;
+joints legal by the twin-blind right fit `canSitOn_twin_right`), and
+the degenerate both-bare bit prices at ZERO as the identity
+(`exchangeTwin_eq_self_of_both_bare`) — CALIBRATION NOTE: the bare
+both-empty step is `ExchStep a a`, and no successful `tabToTab` is
+ever a fixed point (the moving run always relocates), so the honest
+row carries the identity as its own disjunct: the licensed exchange
+is one cargo move, or the identity in the degenerate case; the
+routing between the cons-cases is the public one-move realizer
+`step_realize_fwd` (TwinExchange, promoted at this wave), applied
+directly on the cargo side and mirrored through the pair involution
+`exchangeTwin_pair` when the cargo sits above the other twin.  The
+ExchangeTwin vocabulary stays as the RELATION-level name (the
+quotient, freeness, abelian fate rows); it is no longer a separate
+path letter. -/
 theorem exch_is_cargo {a b : State} (h : ExchStep a b) :
-    ∃ c b', a.step (.tabToTab c b') = some b := by
-  sorry
+    (∃ c b', a.step (.tabToTab c b') = some b) ∨ a = b := by
+  obtain ⟨t, hok, rfl⟩ := h
+  obtain ⟨hwf, k, k', h₁, h₂, hne, hbare⟩ := hok
+  cases hS : aboveIn t ((a.piles k).faceUp) with
+  | nil =>
+      cases hS' : aboveIn t.twin ((a.piles k').faceUp) with
+      | nil =>
+          exact Or.inr (State.exchangeTwin_eq_self_of_both_bare h₁ h₂ hne hS hS').symm
+      | cons z rest =>
+          have hroot := step_realize_fwd (st := a) (t := t.twin) (a := k') (a' := k)
+            hwf h₂
+            (show a.pileHolding t.twin.twin = some k by rw [Card.twin_twin]; exact h₁)
+            (Ne.symm hne) hS'
+            (show aboveIn t.twin.twin ((a.piles k).faceUp) = [] by
+              rw [Card.twin_twin]; exact hS)
+          exact Or.inl ⟨z, Sum.inr t.twin.twin, by rw [hroot, State.exchangeTwin_pair]⟩
+  | cons z rest =>
+      have hS' : aboveIn t.twin ((a.piles k').faceUp) = [] := by
+        rcases hbare with hbr | hbr
+        · rw [hbr] at hS
+          exact absurd hS (by simp)
+        · exact hbr
+      have hroot := step_realize_fwd (st := a) (t := t) (a := k) (a' := k')
+        hwf h₁ h₂ hne hS hS'
+      exact Or.inl ⟨z, Sum.inr t.twin, hroot⟩
 
 inductive FlatPath : State → State → Prop
   | refl (w : State) : FlatPath w w
@@ -857,3 +891,4 @@ theorem canonKey_rungs (w : State) :
 #print axioms dance_inClass
 #print axioms flat_heights
 #print axioms cone_step_fiber
+#print axioms exch_is_cargo
