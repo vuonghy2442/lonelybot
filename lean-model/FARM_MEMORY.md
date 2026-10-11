@@ -9602,3 +9602,34 @@ THE NEXT MECHANICAL WAVE (the conversion recipe):
 - Dominance: the rung constructor-blocks (x5, :5026-:5139) and the
   B-kit ports - owner wave (the worry-prunable session is LIVE on
   Dominance right now with uncommitted churn at :5499).
+
+## Session note (2026-10-11, wave 3g + the waste-successor merge
+## resolution, macro-game 7d70cac/098b1ed)
+
+WAVE 3G: all 17 hseatMid sites in Classify cite the pointwise
+putRun readers (the hkeep/hhk/hca/hkFu shapes); -85 lines of
+re-spelled setPile/putRun record literals.  Batch-editing the
+dense WF file broke three times (indent swallowed into wrong
+depths; one enclosing-scope rw absorbed into a have-body) - the
+recovery was git checkout to the last green commit and REDO ONE
+SITE AT A TIME with a build between each (the no-batch-edit rule
+for class-5 dense files, now the fourth lesson of its kind).
+
+MERGE RESOLUTION (orig-waste-successor): one hunk, both sides
+orthogonal (draw-successor vs wasteEntry chapters) - union keeps
+both, draw-first.  The incoming side's six step-inv cites carried
+the PRE-DEDUP private shapes (the branch predates wave 3a):
+reconciled with the standard recipes (obtain widened to the
+&& -guard + existential, rw [Bool.and_eq_true] at hguard,
+State.wasteIs_head_eq for the c-headed split, inner bindings
+renamed hw -> hw' to avoid shadowing the enclosing hypothesis).
+SIXTH lesson of the collision rule: incoming branches from
+pre-dedup bases need exactly this cite-reconciliation at every
+merge - it is mechanical now, recipe banked above.
+
+REMAINING (mechanical, recipe-only): Classify's hz'/hzN'/hmidPin
+families + the inl-sites (~20 sites of the same shapes);
+TWinExchangeBoth's found-slot wrapper retry + the setFound
+whole-square transport (owner call); Dominance's B-kit/rungs
+(owner wave).  Full tree 100 jobs green incl. Dominance at this
+writing; census pinned.
