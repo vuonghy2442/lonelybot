@@ -1082,8 +1082,12 @@ theorem State.exchangeTwin_region_unique {st : State} {t : Card} {a a' : Anchor}
 
 /-! ## The bare-twin iff -/
 
-/-- One bare twin, cargo-side realization: the cargo run above `t`rides onto the bare twin host as a plain `Move.tabToTab`, landingexactly at the exchange. -/
-private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Card}
+/-- One bare twin, cargo-side realization: the cargo run above `t`rides onto the bare twin host as a plain `Move.tabToTab`, landingexactly at the exchange.  (Promoted public at the exch-canlaw
+card: the quotient chapter's `RevEqW` refinement — each licensed
+bare exchange is a one-move witness shuffle in both directions —
+was blocked on this realization going public; the body is
+untouched.) -/
+theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Card}
     {rest : List Card}
     (hwf : st.WF)
     (h₁ : st.pileHolding t = some a) (h₂ : st.pileHolding t.twin = some a') (hne : a ≠ a')
@@ -1200,8 +1204,9 @@ private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
   · rfl
   · rfl
 
-/-- One bare twin, mirror realization: from the exchanged state, thecargo rides back onto the bare host `t`, landing exactly at theoriginal state. -/
-private theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Card}
+/-- One bare twin, mirror realization: from the exchanged state, thecargo rides back onto the bare host `t`, landing exactly at theoriginal state.  (Promoted public with `step_realize_fwd` — the
+two are the guard pair of the one-move witness shuffle.) -/
+theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Card}
     {rest : List Card}
     (hwf : st.WF)
     (h₁ : st.pileHolding t = some a) (h₂ : st.pileHolding t.twin = some a') (hne : a ≠ a')
