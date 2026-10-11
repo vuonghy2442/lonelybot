@@ -9643,3 +9643,26 @@ writing; census pinned.
   audit command in the defining file itself, or rebuild the oleans
   first).  This cost one diagnostic cycle — check the olean birthday
   before trusting an axiom print.
+
+## Operational — the shared-checkout era, three strikes and the read-storm (2026-10-11, waves 24.5-24.6)
+
+- THE SHARED-CHECKOUT MERGE TRAP, three occurrences: a merge run from the
+  main tree lands on WHATEVER branch HEAD holds, and the message says
+  whatever the operator wrote — f0b3315 landed on farm/orig-vacate-row
+  mid-reconciliation, ccfe320 said "into macro-game" while landing there
+  too.  RULE: verify `git branch --show-current` BEFORE any merge/commit
+  from the shared tree; farm rows run in worktrees, never the main tree;
+  branch-pointer moves (`git branch -f macro-game <tip>`) are the safe
+  way to advance main while another flow owns the checkout (main is
+  never checked out by a farm row).
+- STALE-OLEAN AXIOM READS: #print axioms through imported oleans reports
+  the OLDEAN's theorem state, not the source's — re-elaborate in the
+  defining file or rebuild first (a W5 landing printed sorry-taint for
+  an hour after the proof was clean).
+- THE .olean.private WINDOWS READ-STORM: concurrent builds can hit
+  transient, non-reproducible "failed to read ... .olean.private" on
+  the toolchain (named file differs per retry; files verifiably
+  present).  Plain retry goes green.  Do not diagnose what a retry
+  cures — but do not run `lake build` in the main tree while another
+  session is building: the storm and the lock contention are the same
+  disease family.
