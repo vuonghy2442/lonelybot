@@ -5076,11 +5076,233 @@ the pristine front from `s₁` IS `u`'s stock front, one draw and the
 stack, and the two landings coincide (the engine's landing literal
 is `raisedMid`). -/
 private theorem front_draw {u s₁ : State} {c : Card} {s' : State}
-    (hwf : s₁.WF) (hds : u.drawStep = 1) (hrung : u.nextUp c = true)
+    (hwfu : u.WF) (hwf : s₁.WF) (hds : u.drawStep = 1) (hrungU : u.nextUp c = true)
     (hstep : State.step u Move.draw = some s₁)
     (hfront₁ : FrontOK c s₁ s') (hwin₁ : WinFrom s') :
     ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
-  sorry
+  -- the draw reads no found and keeps the rung
+  have hs1f : s₁.found = u.found := stepDraw_found (show u.stepDraw = some s₁ from hstep)
+  have hn1 : s₁.nextUp c = true := by
+    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
+    rw [hs1f]
+    exact hrungU
+  have hds1 : s₁.drawStep = 1 := by rw [step_drawStep_keep hstep, hds]
+  cases hus : u.stock with
+  | cons a cs =>
+      -- the plain deal
+      have hs1shape : s₁ = { u with stock := cs, waste := a :: u.waste } := by
+        have hsh := draw_shape_plain hds hus
+        exact (Option.some.inj (hsh.symm.trans hstep)).symm
+      by_cases hac : a = c
+      · rw [hac] at hus hs1shape
+        -- the dealt card IS c: the stock front at s₁ would double-book
+        -- c against the waste head; the waste front is pristine
+        rcases hfront₁ with ⟨pre₁, post₁, hs1stock, hcpre, hplay⟩ | ⟨preW₁, postW₁, hs1waste, hcpre, hplay⟩
+        · exfalso
+          have hmem1 : c ∈ s₁.stock := by
+            rw [hs1stock]
+            exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
+          have hmem2 : c ∈ s₁.waste := by rw [hs1shape]; exact List.mem_cons_self ..
+          exact (mem_stock_unique hwf hmem1).2.1 hmem2
+        · -- pristine forced: c is the waste top
+          have hs1w2 : s₁.waste = c :: u.waste := by rw [hs1shape]; try rfl
+          obtain ⟨-, hpostW⟩ := split_head (hs1w2.symm.trans hs1waste) hcpre
+          rw [hpostW] at hplay
+          -- the engine at s₁ pins s' to the raised mid
+          have heng := front_waste (s := s₁) (c := c) (preW := ([] : List Card))
+            (postW := u.waste) hds1 hn1 (by rw [hs1w2]; rfl)
+          have hs'lit : s' = State.mk (fun s' => if s' = c.suit then s₁.found c.suit ++ [c] else s₁.found s')
+              s₁.piles (([] : List Card).reverse ++ s₁.stock) u.waste s₁.drawStep :=
+            Option.some.inj (hplay.symm.trans heng)
+          have hs'M : raisedMid s₁ u.waste c = s' := by rw [hs'lit]; rfl
+          refine ⟨raisedMid s₁ u.waste c,
+            Or.inl ⟨[], cs, by rw [hus]; rfl, by simp, ?_⟩, ?_⟩
+          · rw [show List.replicate (([] : List Card).length + 1) Move.draw
+                ++ [Move.wasteToFound c] = Move.draw :: [Move.wasteToFound c] from rfl,
+              run_draw_cons1 hstep,
+              run_one1 (wtf_step_raised (show s₁.waste = c :: u.waste from hs1w2) hn1)]
+          · rw [hs'M]
+            exact hwin₁
+      · -- a ≠ c: both fronts prepend the dealt card above c
+        rcases hfront₁ with ⟨pre₁, post₁, hs1stock, hcpre, hplay⟩ | ⟨preW₁, postW₁, hs1waste, hcpre, hplay⟩
+        · -- the stock data rides the dealt a above it
+          have hdata : (a :: pre₁) ++ c :: post₁ = u.stock := by
+            rw [hus]
+            show (a :: pre₁) ++ c :: post₁ = a :: cs
+            rw [show cs = s₁.stock from by rw [hs1shape], hs1stock]
+            exact List.cons_append
+          have hcpreu : c ∉ a :: pre₁ := by
+            intro hcon
+            rcases List.mem_cons.1 hcon with heq | hmem
+            · exact hac heq.symm
+            · exact hcpre hmem
+          have hpreend : u.run
+              (List.replicate ((a :: pre₁).length + 1) Move.draw ++ [Move.wasteToFound c])
+              = s₁.run (List.replicate (pre₁.length + 1) Move.draw ++ [Move.wasteToFound c]) := by
+            rw [show (a :: pre₁).length + 1 = (pre₁.length + 1) + 1 from rfl,
+              show List.replicate ((pre₁.length + 1) + 1) Move.draw
+                  ++ [Move.wasteToFound c]
+                  = Move.draw :: (List.replicate (pre₁.length + 1) Move.draw
+                      ++ [Move.wasteToFound c]) from rfl,
+              run_draw_cons1 hstep]
+          refine ⟨s', Or.inl ⟨a :: pre₁, post₁, hdata.symm, hcpreu, ?_⟩, hwin₁⟩
+          · rw [hpreend]
+            exact hplay
+        · -- the waste data: the dealt a rode above c in s₁'s waste
+          have hs1w2 : s₁.waste = a :: u.waste := by rw [hs1shape]; try rfl
+          cases hpre : preW₁ with
+          | nil =>
+              exfalso
+              rw [hpre] at hs1waste
+              rw [hs1waste] at hs1w2
+              injection hs1w2 with hhead _
+              exact hac hhead.symm
+          | cons z zs =>
+              -- the head IS the dealt card; the tail IS u.waste
+              have hz : z = a := by
+                have h6 := hs1w2
+                rw [hs1waste, hpre, List.cons_append] at h6
+                injection h6 with hhead htl
+                try exact hhead
+              have huw0 : u.waste = zs ++ c :: postW₁ := by
+                have h6 := hs1w2
+                rw [hs1waste, hpre, List.cons_append, ← hz] at h6
+                injection h6 with hhead htl
+                try exact htl.symm
+              rw [hpre] at hcpre
+              have hcprew : c ∉ zs := by
+                intro hcon
+                exact hcpre (List.mem_cons.2 (Or.inr hcon))
+              have hsl : u.stock.length = s₁.stock.length + 1 := by
+                rw [hus]
+                show (a :: cs).length = s₁.stock.length + 1
+                rw [show s₁.stock = cs from by rw [hs1shape]]
+                rfl
+              have hpreend2 : u.run
+                  (List.replicate (u.stock.length + postW₁.length + 1) Move.draw
+                    ++ [Move.wasteToFound c])
+                  = s₁.run (List.replicate (s₁.stock.length + postW₁.length + 1) Move.draw
+                    ++ [Move.wasteToFound c]) := by
+                rw [hsl,
+                  show s₁.stock.length + 1 + postW₁.length + 1
+                      = (s₁.stock.length + postW₁.length + 1) + 1 from by omega,
+                  show List.replicate ((s₁.stock.length + postW₁.length + 1) + 1) Move.draw
+                    ++ [Move.wasteToFound c]
+                    = Move.draw :: (List.replicate (s₁.stock.length + postW₁.length + 1) Move.draw
+                        ++ [Move.wasteToFound c]) from rfl,
+                  run_draw_cons1 hstep]
+              refine ⟨s', Or.inr ⟨zs, postW₁, huw0, hcprew, ?_⟩, hwin₁⟩
+              · rw [hpreend2]
+                exact hplay
+  | nil =>
+      -- the pass-end recycle-deal
+      cases hwr : u.waste.reverse with
+      | nil =>
+          exfalso
+          have hcy := draw_ne_of_fires hstep
+          rw [show cycleOf u = u.stock ++ u.waste.reverse from rfl, hus, hwr] at hcy
+          exact hcy (by rfl)
+      | cons b bs =>
+          have hs1shapeB : s₁ = { u with stock := bs, waste := [b] } := by
+            have hsh := draw_shape_base hds hus hwr
+            exact (Option.some.inj (hsh.symm.trans hstep)).symm
+          -- u.waste, spine-restored
+          have huwr : u.waste = bs.reverse ++ [b] := by
+            rw [show u.waste = (u.waste.reverse).reverse from (List.reverse_reverse u.waste).symm,
+              hwr, List.reverse_cons]
+          by_cases hbc : b = c
+          · rw [hbc] at hs1shapeB huwr
+            -- the recycled card IS c: stock front double-books; waste front pristine
+            rcases hfront₁ with ⟨pre₁, post₁, hs1stock, hcpre, hplay⟩ | ⟨preW₁, postW₁, hs1waste, hcpre, hplay⟩
+            · exfalso
+              have hmem1 : c ∈ s₁.stock := by
+                rw [hs1stock]
+                exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
+              have hmem2 : c ∈ s₁.waste := by rw [hs1shapeB]; exact List.mem_cons_self ..
+              exact (mem_stock_unique hwf hmem1).2.1 hmem2
+            · -- pristine forced: c is the whole waste
+              have hs1w2 : s₁.waste = [c] := by rw [hs1shapeB]; try rfl
+              obtain ⟨hpre0, hpostW0⟩ := split_head (hs1w2.symm.trans hs1waste) hcpre
+              rw [hpre0] at hs1waste
+              rw [hpostW0] at hs1waste
+              rw [hpostW0] at hplay
+              -- c ∉ bs.reverse: twice-in-waste would breach the census
+              have hcbr : c ∉ bs.reverse := by
+                intro hcon
+                have h1 : c ∈ bs.reverse := hcon
+                have h2 : c ∈ [c] := List.mem_cons_self ..
+                exact zone_two_hits_ne hwfu (waste_zone u) huwr h1 h2
+              have heng := front_waste (s := s₁) (c := c) (preW := ([] : List Card))
+                (postW := ([] : List Card)) hds1 hn1
+                (show s₁.waste = [] ++ c :: ([] : List Card) from hs1waste)
+              have hs'lit : s' = State.mk (fun s' => if s' = c.suit then s₁.found c.suit ++ [c] else s₁.found s')
+                  s₁.piles (([] : List Card).reverse ++ s₁.stock)
+                  ([] : List Card) s₁.drawStep :=
+                Option.some.inj (hplay.symm.trans heng)
+              have hs'M : raisedMid s₁ ([] : List Card) c = s' := by rw [hs'lit]; rfl
+              refine ⟨raisedMid s₁ ([] : List Card) c,
+                Or.inr ⟨bs.reverse, ([] : List Card), huwr, hcbr, ?_⟩, ?_⟩
+              · rw [hus,
+                  show List.replicate (([] : List Card).length + ([] : List Card).length + 1) Move.draw
+                    ++ [Move.wasteToFound c] = Move.draw :: [Move.wasteToFound c] from rfl,
+                  run_draw_cons1 hstep,
+                  run_one1 (wtf_step_raised (show s₁.waste = c :: ([] : List Card) from hs1w2) hn1)]
+              · rw [hs'M]
+                exact hwin₁
+          · -- b ≠ c: the recycled card rides its own spine; both arms prepend
+            rcases hfront₁ with ⟨pre₁, post₁, hs1stock, hcpre, hplay⟩ | ⟨preW₁, postW₁, hs1waste, hcpre, hplay⟩
+            · -- the stock front's split, reversed onto the treated spine
+              have hbs : bs = pre₁ ++ c :: post₁ := by
+                rw [show bs = s₁.stock from by rw [hs1shapeB], hs1stock]
+              have hbsr : bs.reverse = post₁.reverse ++ c :: pre₁.reverse := by
+                rw [hbs]
+                show (pre₁ ++ c :: post₁).reverse = post₁.reverse ++ c :: pre₁.reverse
+                rw [List.reverse_append, List.reverse_cons, List.append_assoc]
+                try rfl
+              -- u.waste on the reversed spine
+              have huw2 : u.waste = post₁.reverse ++ c :: (pre₁.reverse ++ [b]) := by
+                rw [huwr, hbsr, List.append_assoc]
+                try rfl
+              -- c ∉ post₁: twice-in-stock at s₁ would breach the census
+              have hcno : c ∉ post₁ := by
+                intro hcon
+                exact zone_two_hits_ne hwf (stock_zone s₁)
+                  (show s₁.stock = (pre₁ ++ [c]) ++ post₁ from by
+                    rw [hs1stock, List.append_assoc]
+                    try rfl)
+                  (List.mem_append.2 (Or.inr (List.mem_cons_self ..))) hcon
+              have hcnor : c ∉ post₁.reverse := by
+                intro hcon
+                rw [List.mem_reverse] at hcon
+                exact hcno hcon
+              have hccl : u.stock.length + (pre₁.reverse ++ [b]).length + 1
+                    = (pre₁.length + 1) + 1 := by
+                  rw [hus, List.length_append, List.length_reverse,
+                    show ([] : List Card).length = 0 from rfl,
+                    show [b].length = 1 from rfl]
+                  omega
+              have hpreend3 : u.run
+                  (List.replicate (u.stock.length + (pre₁.reverse ++ [b]).length + 1) Move.draw
+                    ++ [Move.wasteToFound c])
+                  = s₁.run (List.replicate (pre₁.length + 1) Move.draw ++ [Move.wasteToFound c]) := by
+                rw [hccl,
+                  show List.replicate ((pre₁.length + 1) + 1) Move.draw
+                    ++ [Move.wasteToFound c]
+                    = Move.draw :: (List.replicate (pre₁.length + 1) Move.draw
+                        ++ [Move.wasteToFound c]) from rfl,
+                  run_draw_cons1 hstep]
+              refine ⟨s', Or.inr ⟨post₁.reverse, pre₁.reverse ++ [b], huw2, hcnor, ?_⟩, hwin₁⟩
+              · rw [hpreend3]
+                exact hplay
+            · -- the waste front at s₁ would park c on [b] with b ≠ c
+              exfalso
+              have hmem1 : c ∈ s₁.waste := by
+                rw [hs1waste]
+                exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
+              rw [hs1shapeB] at hmem1
+              rcases List.mem_cons.1 hmem1 with heq | hmem
+              · exact hbc heq.symm
+              · exact absurd hmem (by simp)
 
 /-! #### The board-move squares -/
 
