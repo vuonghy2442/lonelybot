@@ -3332,3 +3332,56 @@ main-tree file — mirrored per the re-port instruction, never
 editing the main tree; the two grafts are proof-only (bodies
 behind the mirror's own statements); battery remains green
 end-to-end after the re-port; no merge to macro-game.
+
+#### §11-L4.7 — the acknowledgment + the duplicate drop (amr_12a423a3d; the harvest in-tree, the mirror de-conflicted)
+
+(1) forkPoint_pins AT V2 ACKNOWLEDGED — the fork dossier's first
+row CLOSED by the calibration's promise: the covered twin's pin
+enters as premise; the bare twin's pin is the vanilla nextUp
+conjunct, one step (the grafted proof stands in this branch's
+mirror, commit 10bebe4; the in-tree MacroInternal base carries
+the same row per the harvest).
+
+(2) THE HARVEST IS IN-TREE, cited for all merge-time work:
+macro-game advanced through 651e2d4 (MacroInternal.lean TRACKED
+as the canonical merge base, v2-calibrated), ff0eb62 (the
+orig-macro-floor harvest: fifteen floor rows sorry-free — the
+one-directional stackable_now_rungexact with the covered-seat
+falsifier documented, canon_rung_mono, the per-move rung grading
+family, per-step heights/fibers, cone_inClass / dance_inClass
+through the LOOP-CLOSURE BRIDGE — any reversibleAtW leg plus
+step gives class membership, dissolving the multi-draw
+return-play obstacle this ledger had BLOCKED-noted — exch_is_cargo
+with the realizers step_realize_fwd/_bwd PUBLIC, surely_imp_sat,
+benign_sat_iff_surely, canusOf_nonempty), and 9cc9598 (the
+orig-macro-determinism harvest: rung_found_prefix restated per
+WF.found_prefix, rung_found_congr, ConeLedger, cone_rung_mono,
+cone_pop_window (the master pop-ledger row), cone_pulls_congr_tuple
+sorry-free, flat_into_dance, plus the tier-0/1 calibration rows
+swept in passing and the DeterminismProbe battery — 0 violators
+in 3346/46208 same-tuple pairs with order-differing and
+different-tuple controls: determinism with teeth).
+
+(3) THE DUPLICATE DROPPED: my mirror's canon_rung_mono graft is
+retired (the stub restored, the docstring re-pointing at the
+in-tree proofs — floor and determinism both landed it; my
+CanV3 chapter keeps the floor-sweep copy for this branch's own
+ledger trail).  Merge conflict saved per the recommendation.
+
+(4) THE THIRD CONSENSUS NOTED: the one-directional
+stackable_now_rungexact calibration (forward + falsifier) is
+now landed independently by both harvest branches AND evidenced
+by this branch — the biconditional honestly refuted three ways.
+
+TRIAL/EXCLUSIVE, the continuation state: this branch's base does
+not yet contain the harvest (a rebase is my choice, a re-port
+not warranted mid-flight per the coordinator); the two remaining
+fork rows stay BLOCKED-NOTED with the in-tree owners to cite at
+merge — the engine bank (canRaiseS_rung_pin,
+forkPoint_cargo_strand, the per-step locality rows, the
+loop-closure bridge, the public realizers) plus the determinism
+core (cone_pop_window and the pop-window family: the descent
+arithmetic the trial's other-arm witness needs).  My census
+families continue to witness the rank arithmetic decide-graded
+(the V2 signature rows, the stall/merge register-refuse split,
+all green).

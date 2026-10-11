@@ -286,48 +286,15 @@ theorem stackable_now_rungexact (st : State) (c : Card) (hwf : st.WF) :
   sorry
 
 /-- Saturation only raises: the canonical form dominates the rungs.
-GRAFTED (orig-canon-v3, the floor sweep commit 5a64bb4): fuel
-induction on canonAux through the per-step monotone row (a fired
-lift raises one suit one via raise_foundTransport and levels the
-rest; a frozen or failed step is the identity). -/
+DUPLICATE-DROPPED per the coordinator's acknowledgment
+(amr_12a423a3d): proved twice in-tree already (the floor and
+determinism harvests both landed it — ff0eb62, 9cc9598); this
+mirror's same-named row stays the stub to save the merge the
+conflict.  A proof lives on in this branch's Orig/CanV3.lean
+(the floor-sweep commit 5a64bb4) and in-tree twice over. -/
 theorem canon_rung_mono (st : State) (s : Suit) (hwf : st.WF) :
     rungAt st s ≤ rungAt (canon st) s := by
-  have satStep_mono : ∀ w : State, rungAt w s ≤ rungAt (satStep w) s := by
-    intro w
-    by_cases hp : pick w = none
-    · rw [satStep_none hp]
-      exact Nat.le_refl _
-    · have hsome : ∃ c, pick w = some c := by
-        cases hp' : pick w with
-        | none => exact absurd hp' hp
-        | some c => exact ⟨c, rfl⟩
-      obtain ⟨c, hp'⟩ := hsome
-      have hsat : satStep w = (raise w c).getD w := by
-        simp only [satStep, hp']
-      rw [hsat]
-      cases hr : raise w c with
-      | none => exact Nat.le_refl _
-      | some s'' =>
-          have hF := (raise_foundTransport hr).2 s
-          show (w.found s).length ≤ (s''.found s).length
-          rw [hF]
-          by_cases hsc : s = c.suit
-          · subst hsc
-            rw [if_pos rfl, List.length_append]
-            simp only [List.length_cons, List.length_nil]
-            omega
-          · rw [ite_eq_right hsc]
-            exact Nat.le_refl _
-  have key : ∀ (N : Nat) (w : State),
-      rungAt w s ≤ rungAt (canonAux N w) s := by
-    intro N
-    induction N with
-    | zero => intro w; exact Nat.le_refl _
-    | succ n ih =>
-        intro w
-        exact Nat.le_trans (satStep_mono w) (ih (satStep w))
-  change rungAt st s ≤ rungAt (canonAux 53 st) s
-  exact key 53 st
+  sorry
 
 /-- The three grades partition every card — sorry-free: a case split.
 stranded (never even ready) / pending-forever (ready, never founded) /
