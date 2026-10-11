@@ -2,6 +2,7 @@ import Orig.Canonical
 import Orig.Classify
 import Orig.Reach
 import Orig.Twin
+import Orig.Vacate
 
 /-!
 # Orig — the member-form edge labels (the TipEdge scheme and the
@@ -238,7 +239,26 @@ disjointness cells, and the pair-move character.  What stands:
   `datumOf` kernel `MacroDatums.of_canon`/`datumOf_canon`, with the
   lease-graded exit coincidence `tipEdge_wasteEntry_canonFiber`
   consuming `wasteEntry_bothRoutes_canonical` at the `CanonicalTip`
-  premise — the tab-seat base check paid in the canon-premise grade).
+  premise — the tab-seat base check paid in the canon-premise grade);
+* **the stackEvent successor spec** (the third label's share —
+  stack-bare-a, the vacate/reveal pair, purely additive): the
+  determination lemma `tipEdge_stackEvent_determination` (a
+  `stackEvent a`-labeled edge commits one of the two record cells at
+  its member, and the landing reads through the four datum channels
+  exactly as the cell dictates — the reveal pops the seat's hidden
+  head and seats the revealed card's own root read; the vacate leaves
+  every hidden stack verbatim and the seat literally bare, its
+  non-king root departed — the tabToTab half through the engine's
+  free_slot row `vacate_emptiesPile`, cited one-site from
+  `Orig/Vacate.lean`); the two computable class-datum images
+  `MacroDatums.stackRevealAt`/`stackVacateAt` and the target
+  enumeration `tipEdge_stackEvent_target` (the target's data is one
+  of the two images — cycle and pool verbatim both ways) — the third
+  row of the uniform `≤ 2`-per-label count anatomy at the datum
+  grade; the cross-mate collapse stays honestly refused, the
+  corridor inventoried in the section head (the draw legs'
+  `step_square`, the vacate case map, the worry capstone's
+  `prunableAt`).
 * **milestone status**: COMPLETE in this module — the member-form
   restatement is done, the edge-labeling theorem's full arc landed at
   the member grade (the quotient datum kernel, the journey-invariant
@@ -4298,6 +4318,555 @@ theorem tipEdge_wasteEntry_canonFiber {C D : SameOrbit} {c : Card}
       exact e.land
     exact (wasteEntry_bothRoutes_canonical (st := e.c) e.hwf hF hT).symm
 
+/-! ## The stackEvent successor spec (the third label row, labeled `a` —
+the share of the vacate/reveal pair)
+
+The successor discipline's third share, in the draw/waste rows' grade:
+the family merge (the vacate rides the reveal's positional family as
+its degenerate no-reveal case) is now read at the LANDING, per cell,
+through the DATUM CHANNELS — the determination lemma names the sub-cell
+and hands the four channel facts (the reveal: the hidden stack at the
+seat lost its head to the automatic flip, the revealed card's own root
+read taking the seat; the vacate: the hidden stacks all ride verbatim
+and the seat's bare non-king root departs, the seat left literally
+bare — the vacate half's computational meaning is the engine's
+free_slot row `vacate_emptiesPile`, cited here from `Orig/Vacate.lean`
+— one cite, one site), and the target enumeration lifts the
+determination to the class datum map: the target's data is one of TWO
+computable images at the seat the label names — `stackRevealAt`
+(hidden head popped, the revealed card's root read) or `stackVacateAt`
+(the root gone) — cycle and pool verbatim both ways.  This is the
+§3.1 count-anatomy's `≤ 2 outcome classes` for the label, at the
+datum grade, member-local exactly as the draw/waste shares landed.
+
+THE HONEST BOUNDARY (the refused cross-mate collapse, route
+inventoried): nothing here transports across witness journeys — the
+per-edge images are as far as bank facts carry without the tab-commit
+cross-mate squares.  The corridor's inventory, for whoever takes the
+cross-mate share: the draw legs cross through `step_square` (banked,
+private below), the tab-vacate second-move case map lives as the
+ledger recorded in `Orig/Vacate.lean`'s docstring (per kind, with the
+king-reseat corner), and the worry-back legs that block the literal
+squares are exactly the moves the worry capstone's
+`stackPile_worry_prunableAt` certifies prunable at the gate grade
+(`Orig/Dominance.lean`) — the cross-arm residue's own recorded
+route.  No transport is claimed on any of that credit here. -/
+
+/-- The root read of a hidden stack's exposed head: the reveal flips
+the head card face-up as the seat's new bare bottom, so the seat's
+root becomes the head's own read (kings never root).  At an empty
+hidden list the value is junk — a reveal never fires there (the cell
+carries `hidden ≠ []`), no claim rides it. -/
+private def stackExposedRoot (l : List Card) : Option Card :=
+  match l with
+  | [] => none
+  | g :: _ => if g.rank = Rank.king then none else some g
+
+/-- **The reveal datum image at seat `a`**: the class data with the
+seat's hidden stack popped of its head and the revealed head's own
+root read taking the seat — cycle, pool, and every other seat
+verbatim.  Computable at the class data alone. -/
+def MacroDatums.stackRevealAt (d : MacroDatums) (a : Anchor) : MacroDatums :=
+  ⟨d.cycle, d.pool,
+    fun a' => if a' = a then (d.hidden a).tail else d.hidden a',
+    fun a' => if a' = a then stackExposedRoot (d.hidden a) else d.roots a'⟩
+
+/-- **The vacate datum image at seat `a`**: the class data with the
+seat's bare non-king root departed — hidden stacks all verbatim, cycle
+and pool verbatim, every other seat's root verbatim.  Computable at
+the class data alone (the vacate cell's seat is always left bare). -/
+def MacroDatums.stackVacateAt (d : MacroDatums) (a : Anchor) : MacroDatums :=
+  ⟨d.cycle, d.pool, d.hidden, fun a' => if a' = a then none else d.roots a'⟩
+
+/-- The tabToFound reveal cell's channel read: the flip pops the seat's
+hidden head, the revealed card lands bare at the seat (its own root
+read), every other seat rides verbatim, the zone is untouched. -/
+private theorem stack_tabToFound_reveal {st w : State} {c : Card} {a : Anchor}
+    (hstep : State.step st (Move.tabToFound c) = some w)
+    (hcell : RevealCellAt st a (Move.tabToFound c)) :
+    ∃ g t, (st.piles a).hidden = g :: t ∧ (w.piles a).hidden = t ∧
+      nzRoot w a = stackExposedRoot ((st.piles a).hidden) ∧
+      (∀ a', a' ≠ a → (w.piles a').hidden = (st.piles a').hidden ∧
+        nzRoot w a' = nzRoot st a') ∧
+      cycleCount w = cycleCount st ∧ drawPool w = drawPool st := by
+  obtain ⟨hloc, hpre, hhne⟩ := hcell
+  obtain ⟨g, t, hgt⟩ := list_cons_of_ne_nil hhne
+  obtain ⟨-, a', hloc', hsucc⟩ := step_tabToFound_inv hstep
+  have haa : a = a' := Option.some.inj (hloc.symm.trans hloc')
+  subst haa
+  have hWa : (w.piles a) = Pile.afterRunRemoved (st.piles a) [] := by
+    rw [hsucc]
+    show (if a = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+        else st.piles a) = _
+    rw [ite_eq_left rfl, hpre]
+  have hWaH : (w.piles a).hidden = t := by
+    rw [hWa, show Pile.afterRunRemoved (st.piles a) []
+        = Pile.revealTop { hidden := (st.piles a).hidden, faceUp := ([] : List Card) } from rfl,
+      hgt]
+    rfl
+  have hWaf : (w.piles a).faceUp = [g] := by
+    rw [hWa, show Pile.afterRunRemoved (st.piles a) []
+        = Pile.revealTop { hidden := (st.piles a).hidden, faceUp := ([] : List Card) } from rfl,
+      hgt]
+    rfl
+  have hElse : ∀ a', a' ≠ a → (w.piles a').hidden = (st.piles a').hidden ∧
+      nzRoot w a' = nzRoot st a' := by
+    intro a' hne
+    have hP : (w.piles a') = (st.piles a') := by
+      rw [hsucc]
+      show (if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+          else st.piles a') = _
+      rw [ite_eq_right hne]
+    exact ⟨congrArg Pile.hidden hP, nzRoot_congr_pile hP⟩
+  have hhz : w.stock = st.stock ∧ w.waste = st.waste := by
+    rw [hsucc]
+    exact ⟨rfl, rfl⟩
+  refine ⟨g, t, hgt, hWaH, ?_, hElse, cycleCount_eq_of_stock_waste hhz.1 hhz.2, ?_⟩
+  · rw [nzRoot_head hWaf,
+      show stackExposedRoot ((st.piles a).hidden)
+        = (if g.rank = Rank.king then none else some g) from by rw [hgt]; rfl]
+  · rw [show drawPool w = w.stock.reverse ++ w.waste from rfl,
+      show drawPool st = st.stock.reverse ++ st.waste from rfl, hhz.1, hhz.2]
+
+/-- The tabToFound vacate cell's channel read: the seat is left bare
+(the raise takes the whole face-up single), so its root departs; all
+hidden stacks and every other seat's root ride verbatim, the zone is
+untouched. -/
+private theorem stack_tabToFound_vacate {st w : State} {c : Card} {a : Anchor}
+    (hstep : State.step st (Move.tabToFound c) = some w)
+    (hcell : VacateCellAt st a (Move.tabToFound c)) :
+    ∃ c₀, nzRoot st a = some c₀ ∧ nzRoot w a = none ∧
+      (∀ a', (w.piles a').hidden = (st.piles a').hidden) ∧
+      (∀ a', a' ≠ a → nzRoot w a' = nzRoot st a') ∧
+      cycleCount w = cycleCount st ∧ drawPool w = drawPool st := by
+  obtain ⟨hloc, hpre, hhd, hnk⟩ := hcell
+  obtain ⟨-, a', hloc', hsucc⟩ := step_tabToFound_inv hstep
+  have haa : a = a' := Option.some.inj (hloc.symm.trans hloc')
+  subst haa
+  have hWa : (w.piles a) = ⟨[], ([] : List Card)⟩ := by
+    rw [hsucc]
+    show (if a = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+        else st.piles a) = _
+    rw [ite_eq_left rfl, hpre]
+    exact afterRunRemoved_bare_empty hhd
+  have huRoot : nzRoot st a = some c := by
+    obtain ⟨-, hlast⟩ := pileOfTop_top hloc
+    have hfeq : (st.piles a).faceUp = [c] := by
+      have hchopF := lastOf_chop hlast
+      rw [hpre, List.nil_append] at hchopF
+      exact hchopF
+    rw [nzRoot_head hfeq, ite_eq_right hnk]
+  have hElse : ∀ a', a' ≠ a → nzRoot w a' = nzRoot st a' := by
+    intro a' hne
+    have hP : (w.piles a') = (st.piles a') := by
+      rw [hsucc]
+      show (if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+          else st.piles a') = _
+      rw [ite_eq_right hne]
+    exact nzRoot_congr_pile hP
+  have hhz : w.stock = st.stock ∧ w.waste = st.waste := by
+    rw [hsucc]
+    exact ⟨rfl, rfl⟩
+  refine ⟨c, huRoot, nzRoot_nil (congrArg Pile.faceUp hWa), ?_, hElse,
+    cycleCount_eq_of_stock_waste hhz.1 hhz.2, ?_⟩
+  · intro a'
+    by_cases hae : a' = a
+    · rw [hae, hWa]
+      show ([] : List Card) = (st.piles a).hidden
+      exact hhd.symm
+    · have hP : (w.piles a') = (st.piles a') := by
+        rw [hsucc]
+        show (if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+            else st.piles a') = _
+        rw [ite_eq_right hae]
+      exact congrArg Pile.hidden hP
+  · rw [show drawPool w = w.stock.reverse ++ w.waste from rfl,
+      show drawPool st = st.stock.reverse ++ st.waste from rfl, hhz.1, hhz.2]
+
+/-- The tabToTab reveal cell's channel read: the run rewrite lands the
+departing run somewhere, but every placement shape preserves the
+channels — the seat's hidden head pops (the removal's automatic
+flip), the seat's face-up is the revealed card's singleton, g-headed in
+every landing branch (the swallow-back appends at the END); an empty-
+seat landing is king-headed (the inl guard) and so changes no root
+(neither side roots there); a located landing extends a face-up run at
+its end, so the head-root survives; the zone is untouched. -/
+private theorem stack_tabToTab_reveal {st w : State} {c : Card} {b : Base} {a : Anchor}
+    (hstep : State.step st (Move.tabToTab c b) = some w)
+    (hloc : st.pileHolding c = some a)
+    (hpre : below c (st.piles a).faceUp = [])
+    (hhne : (st.piles a).hidden ≠ []) :
+    ∃ g t, (st.piles a).hidden = g :: t ∧ (w.piles a).hidden = t ∧
+      nzRoot w a = stackExposedRoot ((st.piles a).hidden) ∧
+      (∀ a', a' ≠ a → (w.piles a').hidden = (st.piles a').hidden ∧
+        nzRoot w a' = nzRoot st a') ∧
+      cycleCount w = cycleCount st ∧ drawPool w = drawPool st := by
+  obtain ⟨a₀, hh0, hcp, hfr, hsucc⟩ := step_tabToTab_inv hstep
+  have ha₀ : a = a₀ := Option.some.inj (hloc.symm.trans hh0)
+  subst ha₀
+  obtain ⟨g, t, hgt⟩ := list_cons_of_ne_nil hhne
+  have hmem : c ∈ (st.piles a).faceUp := pileHolding_mem hloc
+  cases hfu : (st.piles a).faceUp with
+  | nil => rw [hfu] at hmem; exact absurd hmem (by simp)
+  | cons x xs =>
+      have hxc : x = c := head_eq_of_below_nil (by rw [← hfu]; exact hpre)
+      rw [hxc] at hfu
+      have hrun : fromCard c (st.piles a).faceUp = (st.piles a).faceUp := by
+        rw [hfu]
+        exact fromCard_head_eq
+      have hIaF : ((st.setPile a
+            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a).faceUp
+          = [g] := by
+        rw [setPile_piles_self, hpre,
+          show Pile.afterRunRemoved (st.piles a) []
+            = Pile.revealTop { hidden := (st.piles a).hidden, faceUp := ([] : List Card) } from rfl,
+          hgt]
+        rfl
+      have hIaH : ((st.setPile a
+            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a).hidden
+          = t := by
+        rw [setPile_piles_self, hpre,
+          show Pile.afterRunRemoved (st.piles a) []
+            = Pile.revealTop { hidden := (st.piles a).hidden, faceUp := ([] : List Card) } from rfl,
+          hgt]
+        rfl
+      have hzs1 : w.stock = st.stock := by
+        rw [hsucc]; exact putRun_stock _ _ _
+      have hzs2 : w.waste = st.waste := by
+        rw [hsucc]; exact putRun_waste _ _ _
+      have hzcyc : cycleCount w = cycleCount st := cycleCount_eq_of_stock_waste hzs1 hzs2
+      have hzpool : drawPool w = drawPool st := by
+        rw [show drawPool w = w.stock.reverse ++ w.waste from rfl,
+          show drawPool st = st.stock.reverse ++ st.waste from rfl, hzs1, hzs2]
+      cases b with
+      | inl k =>
+          obtain ⟨hemp, hking⟩ := canPlace_inl hcp
+          obtain ⟨hkH, hkF⟩ := (Pile.isEmpty_eq _).mp hemp
+          have hkna : k ≠ a := by
+            intro hcon
+            rw [hcon] at hkF
+            rw [hkF] at hmem
+            exact absurd hmem (by simp)
+          have hwHa : (w.piles a).hidden = t := by
+            rw [hsucc, putRun_inl_piles (show a ≠ k from fun hc => hkna hc.symm)]
+            exact hIaH
+          have hwFa : (w.piles a).faceUp = [g] := by
+            rw [hsucc, putRun_inl_piles (show a ≠ k from fun hc => hkna hc.symm)]
+            exact hIaF
+          have hWH : ∀ a', a' ≠ a → (w.piles a').hidden = (st.piles a').hidden ∧
+              nzRoot w a' = nzRoot st a' := by
+            intro a' hne
+            by_cases hke : a' = k
+            · rw [hke]
+              have hLK : (w.piles k).hidden = [] ∧
+                  (w.piles k).faceUp = fromCard c (st.piles a).faceUp := by
+                rw [hsucc]
+                exact ⟨congrArg Pile.hidden putRun_inl_landing,
+                  congrArg Pile.faceUp putRun_inl_landing⟩
+              have hwKf : (w.piles k).faceUp = c :: xs := by
+                rw [hLK.2, hrun]
+                exact hfu
+              exact ⟨by rw [hLK.1, hkH],
+                by rw [nzRoot_head hwKf, ite_eq_left hking, nzRoot_nil hkF]⟩
+            · have hP : (w.piles a') = (st.piles a') := by
+                rw [hsucc, putRun_inl_piles hke, setPile_piles_ne hne]
+              exact ⟨congrArg Pile.hidden hP, nzRoot_congr_pile hP⟩
+          have hRoot : nzRoot w a = stackExposedRoot ((st.piles a).hidden) := by
+            rw [nzRoot_head hwFa,
+              show stackExposedRoot ((st.piles a).hidden)
+                = (if g.rank = Rank.king then none else some g) from by rw [hgt]; rfl]
+          exact ⟨g, t, hgt, hwHa, hRoot, hWH, hzcyc, hzpool⟩
+      | inr z =>
+          cases hz : (st.setPile a
+              (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).pileOfTop z
+            with
+          | none =>
+              have hwHa : (w.piles a).hidden = t := by
+                rw [hsucc, putRun_inr_none_piles hz, setPile_piles_self, hpre,
+                  show Pile.afterRunRemoved (st.piles a) []
+                    = Pile.revealTop
+                        { hidden := (st.piles a).hidden, faceUp := ([] : List Card) } from rfl,
+                  hgt]
+                rfl
+              have hwFa : (w.piles a).faceUp = [g] := by
+                rw [hsucc, putRun_inr_none_piles hz, setPile_piles_self, hpre,
+                  show Pile.afterRunRemoved (st.piles a) []
+                    = Pile.revealTop
+                        { hidden := (st.piles a).hidden, faceUp := ([] : List Card) } from rfl,
+                  hgt]
+                rfl
+              have hWH : ∀ a', a' ≠ a → (w.piles a').hidden = (st.piles a').hidden ∧
+                  nzRoot w a' = nzRoot st a' := by
+                intro a' hne
+                have hP : (w.piles a') = (st.piles a') := by
+                  rw [hsucc, putRun_inr_none_piles hz, setPile_piles_ne hne]
+                exact ⟨congrArg Pile.hidden hP, nzRoot_congr_pile hP⟩
+              have hRoot : nzRoot w a = stackExposedRoot ((st.piles a).hidden) := by
+                rw [nzRoot_head hwFa,
+                  show stackExposedRoot ((st.piles a).hidden)
+                    = (if g.rank = Rank.king then none else some g) from by rw [hgt]; rfl]
+              exact ⟨g, t, hgt, hwHa, hRoot, hWH, hzcyc, hzpool⟩
+          | some k =>
+              by_cases hka : k = a
+              · -- the swallow-back: the run returns onto its own revealed
+                -- top; the face-up-only write preserves every channel,
+                -- the head-root survives the appended run
+                rw [hka] at hz
+                have hPE : (w.piles a)
+                    = { (st.setPile a
+                          (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a
+                        with faceUp := ((st.setPile a
+                          (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a).faceUp
+                          ++ fromCard c (st.piles a).faceUp } := by
+                  rw [hsucc]
+                  exact putRun_inr_landing hz
+                have hwHa : (w.piles a).hidden = t := by
+                  rw [congrArg Pile.hidden hPE]
+                  exact hIaH
+                have hwFg : (w.piles a).faceUp
+                    = g :: (fromCard c (st.piles a).faceUp) := by
+                  rw [congrArg Pile.faceUp hPE, hIaF]
+                  rfl
+                have hRoot : nzRoot w a = stackExposedRoot ((st.piles a).hidden) := by
+                  rw [nzRoot_head hwFg,
+                    show stackExposedRoot ((st.piles a).hidden)
+                      = (if g.rank = Rank.king then none else some g) from by rw [hgt]; rfl]
+                have hWH : ∀ a', a' ≠ a → (w.piles a').hidden = (st.piles a').hidden ∧
+                    nzRoot w a' = nzRoot st a' := by
+                  intro a' hne
+                  have hP : (w.piles a') = (st.piles a') := by
+                    rw [hsucc, putRun_inr_piles_ne hz (show a' ≠ a from hne),
+                      setPile_piles_ne hne]
+                  exact ⟨congrArg Pile.hidden hP, nzRoot_congr_pile hP⟩
+                exact ⟨g, t, hgt, hwHa, hRoot, hWH, hzcyc, hzpool⟩
+              · -- the landing elsewhere: the seat is untouched, the
+                -- landed pile's head-root survives the appended run
+                have hPu : (w.piles a) = (st.setPile a
+                    (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles a := by
+                  rw [hsucc]
+                  exact putRun_inr_piles_ne hz (fun hc => hka hc.symm)
+                have hwHa : (w.piles a).hidden = t := by rw [hPu]; exact hIaH
+                have hwFa : (w.piles a).faceUp = [g] := by rw [hPu]; exact hIaF
+                have hRoot : nzRoot w a = stackExposedRoot ((st.piles a).hidden) := by
+                  rw [nzRoot_head hwFa,
+                    show stackExposedRoot ((st.piles a).hidden)
+                      = (if g.rank = Rank.king then none else some g) from by rw [hgt]; rfl]
+                have hWH : ∀ a', a' ≠ a → (w.piles a').hidden = (st.piles a').hidden ∧
+                    nzRoot w a' = nzRoot st a' := by
+                  intro a' hne
+                  by_cases hke : a' = k
+                  · rw [hke]
+                    have hEk : ((st.setPile a
+                          (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles k)
+                        = (st.piles k) := setPile_piles_ne (show k ≠ a from hka)
+                    have hfxne : ((st.setPile a
+                          (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles k).faceUp
+                        ≠ [] := (pileOfTop_top hz).1
+                    have hWhid : (w.piles k).hidden = (st.piles k).hidden := by
+                      rw [hsucc, putRun_inr_landing hz, hEk]
+                    cases hcase : (st.piles k).faceUp with
+                    | nil =>
+                        have := hfxne
+                        rw [hEk] at this
+                        exact absurd hcase this
+                    | cons m ms =>
+                        have hwKf : (w.piles k).faceUp
+                            = m :: (ms ++ fromCard c (st.piles a).faceUp) := by
+                          rw [hsucc, putRun_inr_landing hz, hEk, hcase]
+                          exact rfl
+                        exact ⟨hWhid, by rw [nzRoot_head hwKf, nzRoot_head hcase]⟩
+                  · have hP : (w.piles a') = (st.piles a') := by
+                      rw [hsucc, putRun_inr_piles_ne hz hke, setPile_piles_ne hne]
+                    exact ⟨congrArg Pile.hidden hP, nzRoot_congr_pile hP⟩
+                exact ⟨g, t, hgt, hwHa, hRoot, hWH, hzcyc, hzpool⟩
+
+/-- The tabToTab vacate cell's channel read: the vacate half's
+computational meaning is the engine's free_slot row
+(`vacate_emptiesPile` — the vacate skeleton's banked content, cited
+here one-site): the seat is left literally BARE (both lists empty), so
+its root departs; every hidden stack and every other seat's root ride
+verbatim (the located landing extends face-up runs at their end — the
+banked `vacate_inr_*` readers); the zone is untouched.  The vacate
+cell's mover is a non-king, so the empty-seat landing arm dies at the
+king guard. -/
+private theorem stack_tabToTab_vacate {st w : State} {c : Card} {b : Base} {a : Anchor}
+    (hstep : State.step st (Move.tabToTab c b) = some w)
+    (hloc : st.pileHolding c = some a)
+    (hpre : below c (st.piles a).faceUp = [])
+    (hhd : (st.piles a).hidden = [])
+    (hnk : c.rank ≠ Rank.king) :
+    ∃ c₀, nzRoot st a = some c₀ ∧ nzRoot w a = none ∧
+      (∀ a', (w.piles a').hidden = (st.piles a').hidden) ∧
+      (∀ a', a' ≠ a → nzRoot w a' = nzRoot st a') ∧
+      cycleCount w = cycleCount st ∧ drawPool w = drawPool st := by
+  obtain ⟨a₀, hh0, hcp, hfr, hsucc⟩ := step_tabToTab_inv hstep
+  have ha₀ : a = a₀ := Option.some.inj (hloc.symm.trans hh0)
+  subst ha₀
+  -- the free_slot row: the skeleton's computational meaning, one cite
+  obtain ⟨a₁, hhold₁, hbare⟩ := vacate_emptiesPile ⟨hnk, a, hloc, hhd, hpre⟩ hstep
+  have haa : a = a₁ := Option.some.inj (hloc.symm.trans hhold₁)
+  subst haa
+  obtain ⟨hbH, hbF⟩ := (Pile.isEmpty_eq _).mp hbare
+  have hwaN : nzRoot w a = none := nzRoot_nil hbF
+  have hmem : c ∈ (st.piles a).faceUp := pileHolding_mem hloc
+  cases hfu : (st.piles a).faceUp with
+  | nil => rw [hfu] at hmem; exact absurd hmem (by simp)
+  | cons x xs =>
+      have hxc : x = c := head_eq_of_below_nil (by rw [← hfu]; exact hpre)
+      rw [hxc] at hfu
+      have huRoot : nzRoot st a = some c := by rw [nzRoot_head hfu, ite_eq_right hnk]
+      cases b with
+      | inl k =>
+          obtain ⟨-, hking⟩ := canPlace_inl hcp
+          exact absurd hking hnk
+      | inr z =>
+          have hHidden : ∀ a', (w.piles a').hidden = (st.piles a').hidden :=
+            vacate_inr_hidden hsucc hpre hhd
+          have hElse : ∀ a', a' ≠ a → nzRoot w a' = nzRoot st a' := by
+            intro a' hne
+            exact (vacate_inr_root_keep hsucc a' hne).symm
+          have hzs1 : w.stock = st.stock := by rw [hsucc]; exact putRun_stock _ _ _
+          have hzs2 : w.waste = st.waste := by rw [hsucc]; exact putRun_waste _ _ _
+          exact ⟨c, huRoot, hwaN, hHidden, hElse,
+            cycleCount_eq_of_stock_waste hzs1 hzs2,
+            by rw [show drawPool w = w.stock.reverse ++ w.waste from rfl,
+              show drawPool st = st.stock.reverse ++ st.waste from rfl, hzs1, hzs2]⟩
+
+/-- **The stack-bare-a determination lemma** (the third row's first
+half): every `stackEvent a`-labeled edge commits one of the two record
+cells AT ITS MEMBER — the reveal cell (the whole face-up run departs
+the seat over a nonempty hidden stack — at the cell the run is the
+seat's entire face-up content) or the vacate cell (the hidden-free
+non-king departure) — and its landing reads through the four datum
+channels exactly as the cell dictates: the reveal (either commit shape)
+pops the seat's hidden head, seats the revealed card's own root read at
+the seat, keeps every other seat's hidden and roots verbatim; the
+vacate keeps every hidden stack verbatim (the tabToTab half through the
+engine's free_slot row), sends the seat's root to `none`, keeps every
+other seat's root verbatim; cycle and pool are verbatim in every arm
+(the tab moves write only founds and piles). -/
+theorem tipEdge_stackEvent_determination {C D : SameOrbit} {a : Anchor}
+    (e : TipEdge C D) (h : e.label = EdgeLabel.stackEvent a) :
+    (RevealCellAt e.c a e.m ∧
+      ∃ g t, (e.c.piles a).hidden = g :: t ∧ (e.w.piles a).hidden = t ∧
+        nzRoot e.w a = stackExposedRoot ((e.c.piles a).hidden) ∧
+        (∀ a', a' ≠ a → (e.w.piles a').hidden = (e.c.piles a').hidden ∧
+          nzRoot e.w a' = nzRoot e.c a') ∧
+        cycleCount e.w = cycleCount e.c ∧ drawPool e.w = drawPool e.c)
+    ∨ (VacateCellAt e.c a e.m ∧
+      ∃ c₀, nzRoot e.c a = some c₀ ∧ nzRoot e.w a = none ∧
+        (∀ a', (e.w.piles a').hidden = (e.c.piles a').hidden) ∧
+        (∀ a', a' ≠ a → nzRoot e.w a' = nzRoot e.c a') ∧
+        cycleCount e.w = cycleCount e.c ∧ drawPool e.w = drawPool e.c) := by
+  rcases (pair_move_character e).2.2 a h with ⟨c, hm, hloc⟩ | ⟨c, b, hm, hloc⟩
+  · have hstep : e.c.step (Move.tabToFound c) = some e.w := by
+      rw [← hm]; exact e.land
+    have hIrr : irreversibleAt e.c (Move.tabToFound c) := by
+      rw [← hm]; exact e.hm
+    obtain ⟨a₀, hloc₀, hcell⟩ := tabToFound_commit_cell e.hwf hstep hIrr
+    have ha₀ : a = a₀ := Option.some.inj (hloc.symm.trans hloc₀)
+    subst ha₀
+    rcases hcell with hrev | hvac
+    · obtain ⟨g, t, hgt, hwaH, hroot, helse, hcyc, hpool⟩ :=
+        stack_tabToFound_reveal hstep hrev
+      exact Or.inl ⟨by rw [hm]; exact hrev, g, t, hgt, hwaH, hroot, helse, hcyc, hpool⟩
+    · obtain ⟨c₀, huRoot, hwaNone, hHidden, hElse, hcyc, hpool⟩ :=
+        stack_tabToFound_vacate hstep hvac
+      exact Or.inr ⟨by rw [hm]; exact hvac, c₀, huRoot, hwaNone, hHidden, hElse, hcyc, hpool⟩
+  · have hstep : e.c.step (Move.tabToTab c b) = some e.w := by
+      rw [← hm]; exact e.land
+    have hIrr : irreversibleAt e.c (Move.tabToTab c b) := by
+      rw [← hm]; exact e.hm
+    obtain ⟨a₀, hh0, hcell⟩ := tabToTab_commit_cell e.hwf hstep hIrr
+    have ha₀ : a = a₀ := Option.some.inj (hloc.symm.trans hh0)
+    subst ha₀
+    rcases hcell with hrev | hvac
+    · rcases RevealCell_shape hrev with
+        ⟨c₁, heqm, hloc₁, hpre₁, hhne₁⟩ | ⟨c₁, b₁, heqm, hloc₁, hpre₁, hhne₁⟩
+      · exact absurd heqm (by simp)
+      · have hcb : c = c₁ ∧ b = b₁ := by
+          injection heqm with hcc hbb
+          exact ⟨hcc, hbb⟩
+        obtain ⟨hcc, -⟩ := hcb
+        rw [← hcc] at hloc₁ hpre₁
+        obtain ⟨g, t, hgt, hwaH, hroot, helse, hcyc, hpool⟩ :=
+          stack_tabToTab_reveal hstep hloc₁ hpre₁ hhne₁
+        exact Or.inl ⟨by rw [hm]; exact hrev, g, t, hgt, hwaH, hroot, helse, hcyc, hpool⟩
+    · rcases VacateCell_shape hvac with
+        ⟨c₁, heqm, hloc₁, hpre₁, hhd₁, hnk₁⟩ | ⟨c₁, b₁, heqm, hloc₁, hpre₁, hhd₁, hnk₁⟩
+      · exact absurd heqm (by simp)
+      · have hcb : c = c₁ ∧ b = b₁ := by
+          injection heqm with hcc hbb
+          exact ⟨hcc, hbb⟩
+        obtain ⟨hcc, -⟩ := hcb
+        rw [← hcc] at hloc₁ hpre₁ hnk₁
+        obtain ⟨c₀, huRoot, hwaNone, hHidden, hElse, hcyc, hpool⟩ :=
+          stack_tabToTab_vacate hstep hloc₁ hpre₁ hhd₁ hnk₁
+        exact Or.inr ⟨by rw [hm]; exact hvac, c₀, huRoot, hwaNone, hHidden, hElse, hcyc, hpool⟩
+
+/-- **The stack-bare-a target enumeration** (the third row's second
+half): every `stackEvent a`-labeled edge's target class carries exactly
+one of the two computable datum images at the seat the label names — the
+reveal image (`stackRevealAt`: the seat's hidden stack popped of its
+head, the revealed card's root read taking the seat) or the vacate
+image (`stackVacateAt`: the seat's bare non-king root gone) — cycle and
+pool verbatim both ways.  This is the third label's share of the
+uniform `≤ 2`-per-label count anatomy at the datum grade: the
+determination lemma's channels lift through the member reads, and the
+two images are the label's whole outcome repertoire — no other datum
+behavior exists at any mate (the cross-mate class identities stay
+unclaimed, per the refused transport recorded in the section head). -/
+theorem tipEdge_stackEvent_target {C D : SameOrbit} {a : Anchor} (e : TipEdge C D)
+    (h : e.label = EdgeLabel.stackEvent a) :
+    datumOf D = (datumOf C).stackRevealAt a ∨ datumOf D = (datumOf C).stackVacateAt a := by
+  have hC : datumOf C = MacroDatums.of e.c :=
+    (congrArg datumOf e.hmem.symm).trans (datumOf_mk e.c)
+  have hD : datumOf D = MacroDatums.of e.w :=
+    (congrArg datumOf e.cl.symm).trans (datumOf_mk e.w)
+  rw [hD, hC]
+  rcases tipEdge_stackEvent_determination e h with
+    ⟨-, g, t, hgt, hwaH, hroot, helse, hcyc, hpool⟩ |
+    ⟨-, c₀, huRoot, hwaNone, hHidden, hElse, hcyc, hpool⟩
+  · refine Or.inl ?_
+    show (⟨cycleCount e.w, drawPool e.w,
+        (fun a' => (e.w.piles a').hidden), (fun a' => nzRoot e.w a')⟩ : MacroDatums)
+      = ⟨cycleCount e.c, drawPool e.c,
+        (fun a' => if a' = a then ((e.c.piles a).hidden).tail else (e.c.piles a').hidden),
+        (fun a' => if a' = a then stackExposedRoot ((e.c.piles a).hidden)
+          else nzRoot e.c a')⟩
+    have e3 : (fun a' => (e.w.piles a').hidden)
+        = (fun a' => if a' = a then ((e.c.piles a).hidden).tail
+            else (e.c.piles a').hidden) := by
+      funext a'
+      by_cases hae : a' = a
+      · rw [hae, ite_eq_left rfl, hwaH,
+          show ((e.c.piles a).hidden).tail = t from by rw [hgt]; rfl]
+      · rw [ite_eq_right hae, (helse a' hae).1]
+    have e4 : (fun a' => nzRoot e.w a')
+        = (fun a' => if a' = a then stackExposedRoot ((e.c.piles a).hidden)
+            else nzRoot e.c a') := by
+      funext a'
+      by_cases hae : a' = a
+      · rw [hae, ite_eq_left rfl, hroot]
+      · rw [ite_eq_right hae, (helse a' hae).2]
+    rw [hcyc, hpool, e3, e4]
+  · refine Or.inr ?_
+    show (⟨cycleCount e.w, drawPool e.w,
+        (fun a' => (e.w.piles a').hidden), (fun a' => nzRoot e.w a')⟩ : MacroDatums)
+      = ⟨cycleCount e.c, drawPool e.c,
+        (fun a' => (e.c.piles a').hidden),
+        (fun a' => if a' = a then none else nzRoot e.c a')⟩
+    have e3 : (fun a' => (e.w.piles a').hidden)
+        = (fun a' => (e.c.piles a').hidden) :=
+      funext fun a' => hHidden a'
+    have e4 : (fun a' => nzRoot e.w a')
+        = (fun a' => if a' = a then none else nzRoot e.c a') := by
+      funext a'
+      by_cases hae : a' = a
+      · rw [hae, ite_eq_left rfl, hwaNone]
+      · rw [ite_eq_right hae, hElse a' hae]
+    rw [hcyc, hpool, e3, e4]
+
 /-! ## The axiom audit (per-declaration) -/
 
 #print axioms orbit_data
@@ -4343,6 +4912,10 @@ theorem tipEdge_wasteEntry_canonFiber {C D : SameOrbit} {c : Card}
 #print axioms datumOf_canon
 #print axioms tipEdge_wasteEntry_datum_canonical
 #print axioms tipEdge_wasteEntry_canonFiber
+#print axioms MacroDatums.stackRevealAt
+#print axioms MacroDatums.stackVacateAt
+#print axioms tipEdge_stackEvent_determination
+#print axioms tipEdge_stackEvent_target
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
