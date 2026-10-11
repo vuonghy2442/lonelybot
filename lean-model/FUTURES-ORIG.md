@@ -1704,4 +1704,77 @@ leg is load-bearing in the accommodation prefix); their §9 menu's
 `canon'_shuffleEq` inherits the same fork warning this battery
 recorded at the canon grade.
 
+**LANDINGS 2 AND 3 — COMPLETED (2026-10-11 later, same branch;
+`Orig/TwinExchangeQuotient.lean` §5–§8, all heads audited fresh,
+in-file):**
+
+* **Landing 2** (commit follows the landing-1 probe verdicts): the
+  realizations went PUBLIC (`step_realize_fwd`/`_bwd` in
+  `Orig/TwinExchange.lean`, the two-line pathway the chapter header
+  itself named).  `exch_leg_RevEqW`: every licensed bare exchange
+  is a ONE-MOVE witness shuffle both directions (cargo-side via the
+  realization-pair, twin-side through `State.exchangeTwin_pair`,
+  both-bare reflexive); `exch_chain_RevEqW` walks chains;
+  `exch_le_sameOrbit` is the coarsening row;
+  `exchOrbit_to_sameOrbit` the forgetful map (surjective via
+  `Quotient.exists_rep`, NOT injective by the B2 exhibit's
+  meaning).  `exch_local_pair` (per-pair locality, named per the
+  card); `exch_pileHolding_off` (off-seat cards keep their seat —
+  the location half of the old private relocate census done in
+  four lines through Integrity's search-exactness iff);
+  `exchange_piles_congr` (the seat-data congruence of the single
+  exchange); `exch_superpose` (the disjoint-family superposition:
+  a pair-distinct seat-disjoint fold is the per-pile union of the
+  BASE-DATA single writes — every pile off the seats verbatim,
+  WF-gated, license-free); `exchangeTwin_ne_self_pile` (the probe's
+  identity-pricing amendment as the engine row);
+  `exch_free` (the torsor freeness at the disjoint-seat grade,
+  non-identity bits only — the 2³ census as theorem);
+  `exchAll_wf` + `twinExchOK_exchAll` (the drift-free cube datum as
+  theorem: a disjoint-seat family's bit executions preserve every
+  other pair's license — the licensed-chain reading of the torsor).
+* **Landing 3** (the composed spine, per the coordinator's call):
+  `PhysEq` — the physical generator closure, the card's working
+  definition (refl + `RevEqW` shuffles + `ExchStep` exchanges +
+  trans); `physEq_wf` (the closure preserves `WF`: witness shuffles
+  are legal walks through `step_wf`, licensed exchanges ride the
+  located license — note: `step_wf` needed
+  `import Orig.Reach`, the same one-import addition the canlaw
+  session used for Canonical, cycle-free both times);
+  `exch_canon_comm` — one licensed exchange's canon row at the
+  Option-1 macro-state grade (`canonQ_of_orbit` over the sameOrbit
+  edge of `exch_leg_RevEqW`); `revEqW_canon` — the shuffle leg's
+  row; and **`canonQ_of_physOrbit'`** — THE SPINE, single-gated:
+  `u.WF → PhysEq u v → ⟦canon u⟧ = ⟦canon v⟧`.  Refl reflexive,
+  the shuffle case rides the banked `canonQ_of_orbit` (the
+  BLOCKED-ON-DECOMPRESS shuffle leg of the menu's literal canon
+  form is superseded by the regrade — the literal
+  `canon'_shuffleEq` remains the decompression card's own
+  two-letter content, with this battery's fork warning recorded),
+  the exchange case cites `exch_canon_comm`, trans composes.  The
+  exchanges-only literal form is RECORD-CLOSED in-file (the §8
+  tombstone) and here: refuted by exhibit, the founds split is
+  structural (`State.exchangeTwin_found`), and the ⟪⟫-separation is
+  the worried-twin bit's receipt.
+* **Audits**: every new head — `exch_leg_RevEqW`,
+  `exch_chain_RevEqW`, `exch_le_sameOrbit`, the forgetful map trio,
+  `exch_local_pair`, `exch_pileHolding_off`, `exchange_piles_congr`,
+  `exch_superpose`, `exchangeTwin_ne_self_pile`, `exch_free`,
+  `exchAll_wf`, `twinExchOK_exchAll`, `exch_canon_comm`,
+  `revEqW_canon`, `physEq_wf_canon`, `physEq_wf`,
+  `canonQ_of_physOrbit'`, the `PhysEq` constructors — audited
+  fresh in-file at `[propext]` or `[propext, Quot.sound]`; ZERO
+  sorry, zero native_decide, zero `Classical.choice`; `lake build
+  Orig` green at 28 jobs.
+* **What deliberately did NOT land**: the fiber-restricted literal
+  exchanges-only row (analysis layer) stays probe-evidenced (the
+  B1 cell certifies the benign fiber; no general theorem claimed —
+  the saturation-interplay is the decompression card's
+  `canon_slide` world, and the fork cell stands as the boundary);
+  the composed macro-class decomposition (≈ (canon anchor + pull
+  ladder) × licensed swap-bits ⊎ conjugation shadow) stays
+  BLOCKED-ON-DECOMPRESS, ledgered above with its dependence
+  direction and the B2 highway as the worried-twin bit's price
+  tag; no `canon'` content was forged.
+
 
