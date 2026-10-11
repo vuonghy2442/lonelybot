@@ -197,6 +197,70 @@ recorded fork exhibits plus the crafted-witness discipline
 already serve the wild side as fences and evidence.  The part
 of C the theorem needs: none.
 
+THE COMMUTATION-CARD PROBE LEDGER (2026-10-11): canon is
+COMPUTABLE (`canonAux 53`), so the incoming card's equations were run
+on concrete census states FIRST — external probe file
+`canlaw-probes/OrigCanLawProbe.lean` (workspace-external,
+`lake env lean`-verified, zero sorry, zero native_decide, all rows
+kernel-`decide`d through the house `decSt` bridge; the ledger below
+is its printed output).  Six hand-crafted full-deck `WF` states
+(each card held exactly once; deliberate d-shapes: `A♣`/`A♠` runs
+parked alone on pile tops — rung-ready but seat-barred, never
+licensed, and never stackable inside canon, which has no
+`tabToTab`):
+
+* **THE LIFT-SEMANTICS BOUNDARY FACT** (what a licensed lift reads
+  and writes): a licensed lift is `Move.tabToFound c` — it READS
+  the foundation rung (`nextUp`, found-height-based) and the pile
+  top, and WRITES the foundation (its suit gains one rung) AND the
+  piles (the lifted run removed).  Waste, stock, and `drawStep` are
+  untouched.  So the card's organizing picture "canon re-stacks
+  piles only" is FALSE as stated: the foundations MOVE, `nextUp` is
+  NOT canon-invariant, and `wasteToFound`'s footprint (`found` +
+  `waste`) OVERLAPS canon's on `found` — the residue zone is the
+  RUNG itself, not the piles.
+* **E1-LITERAL REFUTED** (`canon (st + wTF c) = (canon st) + wTF c`,
+  no re-saturation): the rung-shadow witness (hearts at height 1,
+  `2♥` at the waste head, `3♥` parked with surviving seat over
+  `4♠`) — the state is canon-FIXED and both shapes fire, yet the
+  commit enables the post-commit lift of `3♥`: probed heights 3 vs
+  2.  Refuted both at canon-fixed and canon-moving states.
+* **E1-HONEST HOLDS**: re-saturate both sides and the shadow dies
+  (`canon (st + c) = canon (canon st + c)`) — probed equal on every
+  census state.
+* **E2-HONEST HOLDS, INCL. THE DELIBERATE d-SHAPES** (the user's
+  canonical-equality equation at the successor grade `u = canon st`:
+  `canon (u + wasteToFound c) = canon (u + wasteToTab c b)`): clean
+  on every probed state — the d-shape residue DID NOT BITE (canon
+  lifts only; it can never bury the seated `c` under the parked
+  card, and the parked card blocks its under-run identically on
+  both routes).
+* **THE MERGED LEG**: the literal route's explicit `tabToFound c`
+  after the middle saturation DOES NOT FIRE at `WF` — the seated
+  `c` is licensed (nextUp + pile top + surviving seat) and the
+  middle canon LIFTS it itself; the outer founding is vacuous, and
+  under the fire-or-hold state convention the literal composite
+  coincides with the honest form.
+* **THE QUINTET HOLDS**: `wasteToTab` then immediate `tabToFound`
+  is STATE-EXACT to the direct `wasteToFound` (Option equality at
+  every probed seat shape).
+* **LEGALITY TRANSPORT**: the L→R direction (fires at `st` ⟹ fires
+  at `canon st`) holds on every census state and is the provable
+  grade; the R→L direction is REFUTED at `WF` (a licensed lift
+  advances the rung and CREATES waste-founding legality the raw
+  state lacks — `3♥` illegal at raw, legal at canon); the
+  waste-POSITION component is iff-invariant; the tab-SEAT leg
+  does NOT transport one way or the other (a licensed lift may
+  consume the seat card, and a raw seat may be fresh at canon).
+* **THE DRAW MIRROR HOLDS**: `canon ∘ draw = draw ∘ canon` at
+  firing states with EQUAL results, plus none-synchrony (both
+  stock and waste empty on both sides) — probed at the deal case
+  (`drawStep` 1 and 3, with a licensed lift live on both routes)
+  and the recycle case (empty stock, nonempty waste).  Draw is the
+  one commit family with a genuinely DISJOINT footprint from canon
+  (stock/waste/drawStep vs found/piles) — the definitional case of
+  the incoming card's census, and the only one.
+
 Axiom discipline: `[propext, Quot.sound]` at worst, zero
 `Classical.choice`, zero `sorry`, no `native_decide`; `simp` is
 avoided on decision-shaped goals in favor of the
