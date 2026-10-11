@@ -3984,8 +3984,7 @@ private theorem step_tabToFound_eq_pin {s : State} {c : Card} {k : Anchor}
 
 /-- The seated-fire record's waste slot (var grade, house
 `found_lift_shape` model). -/
-private theorem lift_shape_waste (st : State) {c : Card} {k : Anchor}
-    (w' : List Card) :
+private theorem lift_shape_waste (st : State) {c : Card} {k : Anchor}:
     (({ st.setFound c.suit (st.found c.suit ++ [c]) with
         piles := fun a' =>
           if a' = k then Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
