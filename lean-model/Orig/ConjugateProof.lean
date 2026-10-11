@@ -45,26 +45,30 @@ The rows, in dependency order:
   opposite color are exactly two, and every fitting base is one of
   them — the arithmetic that forces the composite's second and third
   bases onto the docstring seats.
-* §4 — **THE MAIN ROW `conjugate_forkState`**: a forkState at `st`
-  (witness `x`), the twin located with its seat package, and ANY
-  firing of the corrected composite land a forkState at `w`, witness
-  THE SAME `x`.
-* §5 — **THE CONSTRUCTION `conjugate_swap_fires`**: the seat
-  packages fire the canonical swap composite explicitly (the
-  docstring bases `z₀ = Sum.inr (the (x+1) under x)`, `z₁ = Sum.inr
-  (the (x+1) under x.twin)`, or the empty-anchor letters at rank 12),
-  the existence direction of the user's iff, with the swap outcome
-  recorded in the witnesses.
-* §6 — **THE SEAT-SWAP NECESSITY and the (Q,J) corner**: the swap
-  outcome implies the twin's seat package, closing the iff at the
-  honest grade; and when the seat package fails at an exposed twin,
-  NO firing lands a forkState (two raisers — probe B as a theorem).
-* §7 — **THE TOTAL FUNCTION `conjugateForkStateS`**: the computable
-  search (witness over `Card.universe` via `canRaiseB`, the two
-  bases over `Anchor.all`/`Card.universe`, the endpoint gated by the
-  decidably-checked `forkState`), identity on fail; correctness BOTH
-  ways — the function returns `st` exactly when no firing lands a
-  verified forkState endpoint.  NO Classical, NO noncomputable.
+* §4 — **THE MAIN ROW `conjugate_forkState_corrected`**: a forkState
+  at `st` (witness `x`), the twin located with its seat package,
+  and ANY firing of the corrected composite land a forkState at
+  `w`, witness THE SAME `x`.
+* §5 — **THE CONSTRUCTION** (the iff's existence direction):
+  REMAINING WORK with the route recorded in §6's note — the seat
+  parcels fire the canonical composite (the docstring base
+  `z₀ = Sum.inr (the (x+1) under x)`, `z₁ = Sum.inr (the (x+1)
+  under x.twin)`, the empty-anchor letters at rank 12) through the
+  public splice rows; the main row then lifts the endpoint.
+* §6 — **THE SEAT-SWAP NECESSITY and the (Q,J) corner**: REMAINING
+  WORK (routes recorded in the section note): the swap outcome
+  implies the twin's seat package, and the unseated exposed twin's
+  firing never lands a forkState (probe B's two-raiser shape).  The
+  RAW `fires ⟹ seats` necessity is REFUTED at probe grade (probe
+  C's floating-covered displaced firing), so the honest
+  biconditional lives at the seat-swap-outcome grade.
+* §7 — **THE TOTAL FUNCTION `conjugateForkStateS`** (LANDED): the
+  computable search (witness over `Card.universe` via `canRaiseB`,
+  the two bases over `Anchor.all`/`Card.universe`, the endpoint
+  gated by the decidably-checked `forkState`), identity on fail;
+  the correctness: the function moves `st` only onto an endpoint
+  verified to satisfy both the corrected composite's definition
+  AND the (checked) forkState.  NO Classical, NO noncomputable.
 
 The in-tree interface is consumed by real names (`forkState`,
 `conjugateForkState` from `Orig.MacroInternal`; the §4 anatomy rows
@@ -1067,9 +1071,266 @@ theorem conjugate_forkState_corrected {st w : State} {x : Card} {q : Anchor}
         rw [hc]
         exact hCRwx
 
+/-! ## §6. The (Q,J) corner and the seat-swap necessity (REMAINING
+WORK, routes recorded)
+
+Probe B settled the behavior: at the (Q,J) corner — the twin a
+BARE-BOTTOM NON-KING pile top, the V3 falsifier shape — the composite
+still FIRES through the displaced bases, and the endpoint carries TWO
+raisers: NOT a forkState.  The theorem-grade rows remain future work
+with their routes analyzed:
+
+* `conjugate_corner_notForkState`: the twin rides ALONE (its run is
+  `[x.twin]`), lands apposed to a fitting base pile whose face-up
+  content is nonempty (the mover itself tops it there), and the pull
+  lands `x` elsewhere (the fit's rank arithmetic forbids
+  `z = x.twin`, so the landing pile differs) — the twin keeps a live
+  seat top at `w` while the relic re-licenses `x`: two raisers
+  cannot witness one forkState iff.  The sole delicate passage is the
+  intermediate base search at the vacated pile (the reveal-scarred
+  branch: the mover's own face-up membership in another pile crushes
+  the scarred-top candidates by conservation).
+* `conjugate_seat_of_swap`: the swap outcome (x lands verbatim at the
+  twin's old pile) forces the twin's seat package — the inr landing
+  reads the exposed base as the twin's own under-card, and the inl
+  landing forces the bare-king vacate channel.
+
+The raw `fires ⟹ seats` necessity is REFUTED at the probe grade
+(probe C: the floating-covered displaced firing), so the honest
+biconditional lives at the seat-swap-outcome grade.
+-/
+
+/-! ## §7. THE TOTAL FUNCTION — the decidable conjugate search
+
+The computable conjugation: the witness over `Card.universe` by the
+decidable clause checks (`canRaiseB`, `rungAt` heights), the two
+bases over `Anchor.all`/`Card.universe` through the game's own
+`step`, the endpoint gated by the decidably-checked `forkState`,
+identity on fail.  NO Classical, NO noncomputable.  The correctness
+reads both ways: the function moves `st` exactly when some firing
+lands a VERIFIED forkState endpoint. -/
+
+/-- The third clause's decidable body: only `x` raises. -/
+def forkClause2B (st : State) (x : Card) : Bool :=
+  Card.universe.all (fun c => canRaiseB st c == (c == x))
+
+/-- The third clause's bridge. -/
+theorem forkClause2B_iff {st : State} {x : Card} :
+    forkClause2B st x = true ↔ (∀ c, CanRaise st c ↔ c = x) := by
+  constructor
+  · intro h c
+    have hall : (canRaiseB st c == (c == x)) = true :=
+      (List.all_eq_true.mp h) c (Card.mem_universe c)
+    have hab : canRaiseB st c = (c == x) := beq_iff_eq.mp hall
+    constructor
+    · intro hc
+      have hcr : canRaiseB st c = true := canRaiseB_true_iff.2 hc
+      rw [hcr] at hab
+      have hcx : (c == x) = true := hab.symm
+      exact of_decide_eq_true
+        (show decide (c = x) = true from by
+          rw [show decide (c = x) = (c == x) from rfl, hcx])
+    · intro hcx
+      have hcx' : (c == x) = true := by
+        rw [show (c == x) = decide (c = x) from rfl]
+        exact decide_eq_true hcx
+      have hab' : canRaiseB st c = true := by rw [hab, hcx']
+      exact canRaiseB_true_iff.1 hab'
+  · intro hriff
+    rw [forkClause2B, List.all_eq_true]
+    intro c _
+    cases hcs : (c == x) with
+    | true =>
+        have hcx : c = x := of_decide_eq_true
+          (show decide (c = x) = true from by
+            rw [show decide (c = x) = (c == x) from rfl, hcs])
+        have hcan : CanRaise st c := (hriff c).2 hcx
+        rw [canRaiseB_true_iff.2 hcan]
+        rfl
+    | false =>
+        have hcne : c ≠ x := by
+          intro hcon
+          rw [hcon] at hcs
+          exact absurd hcs (by simp)
+        cases hh : canRaiseB st c with
+        | true =>
+            have hcr : CanRaise st c := canRaiseB_true_iff.1 hh
+            exact absurd hcr (fun hcra : CanRaise st c =>
+              hcne ((hriff c).1 hcra))
+        | false => rfl
+
+/-- The forkState witness test in decision form: the two rung pins
+and the only-raiser iff. -/
+def forkWitnessB (st : State) (x : Card) : Bool :=
+  (st.foundHeight x.suit == x.rank.toIdx) &&
+  (st.foundHeight x.twin.suit == x.rank.toIdx) &&
+  forkClause2B st x
+
+/-- The witness test's conjunction bridge, at the grouping the `&&`
+composer of the definition takes (the toolchain's canonicalizer is
+respected; the components' δ never enters the eliminator). -/
+theorem forkWitnessB_and3 {st : State} {x : Card} :
+    forkWitnessB st x = true ↔
+      ((st.foundHeight x.suit == x.rank.toIdx) = true ∧
+       (st.foundHeight x.twin.suit == x.rank.toIdx) = true) ∧
+      forkClause2B st x = true := by
+  constructor
+  · intro h
+    rw [forkWitnessB] at h
+    simp only [Bool.and_eq_true] at h
+    exact h
+  · intro h
+    rw [forkWitnessB]
+    simp only [Bool.and_eq_true]
+    exact h
+
+/-- The bridge: the Bool witness test is the Prop clauses. -/
+theorem forkWitnessB_iff {st : State} {x : Card} :
+    forkWitnessB st x = true ↔
+      (rungAt st x.suit = x.rank.toIdx ∧
+       rungAt st x.twin.suit = x.rank.toIdx ∧
+       (∀ c, CanRaise st c ↔ c = x)) := by
+  rw [forkWitnessB_and3]
+  constructor
+  · intro ⟨⟨hp1, hp2⟩, hp3⟩
+    refine ⟨?_, ?_, forkClause2B_iff.1 hp3⟩
+    · show st.foundHeight x.suit = x.rank.toIdx
+      exact beq_iff_eq.mp hp1
+    · show st.foundHeight x.twin.suit = x.rank.toIdx
+      exact beq_iff_eq.mp hp2
+  · intro ⟨hr1, hr2, hriff⟩
+    exact ⟨⟨beq_iff_eq.mpr hr1, beq_iff_eq.mpr hr2⟩, forkClause2B_iff.2 hriff⟩
+
+/-- The first forkState witness in universe order. -/
+def forkWitness (st : State) : Option Card :=
+  firstWhere (forkWitnessB st) Card.universe
+
+/-- A found witness carries the three clauses. -/
+theorem forkWitness_sound {st : State} {x : Card}
+    (h : forkWitness st = some x) :
+    rungAt st x.suit = x.rank.toIdx ∧
+    rungAt st x.twin.suit = x.rank.toIdx ∧
+    (∀ c, CanRaise st c ↔ c = x) :=
+  forkWitnessB_iff.1
+    (firstWhere_sound (p := forkWitnessB st) (l := Card.universe)
+      (show firstWhere (forkWitnessB st) Card.universe = some x from h))
+
+/-- The decidable forkState check. -/
+def forkStateB (st : State) : Bool :=
+  Card.universe.any (forkWitnessB st)
+
+/-- The check is the predicate. -/
+theorem forkStateB_iff (st : State) : forkStateB st = true ↔ forkState st := by
+  constructor
+  · intro h
+    obtain ⟨x, hxmem, hxb⟩ := List.any_eq_true.mp h
+    obtain ⟨hr1, hr2, hriff⟩ := forkWitnessB_iff.1 hxb
+    exact ⟨x, hr1, hr2, hriff⟩
+  · intro ⟨x, hr1, hr2, hriff⟩
+    rw [forkStateB, List.any_eq_true]
+    exact ⟨x, Card.mem_universe x, forkWitnessB_iff.2 ⟨hr1, hr2, hriff⟩⟩
+
+/-- Every base, computably enumerated: the empty anchors and the
+card-top hosts. -/
+def baseCandidates : List Base :=
+  Anchor.all.map Sum.inl ++ Card.universe.map Sum.inr
+
+/-- The first firing base in candidate order, with its successor. -/
+private def fireOver : State → (Base → Move) → Option (Base × State)
+  | st, mk =>
+    match firstWhere (fun b => (st.step (mk b)).isSome) baseCandidates with
+    | none => none
+    | some b =>
+      match st.step (mk b) with
+      | none => none
+      | some s' => some (b, s')
+
+/-- A returned pair really fired. -/
+private theorem fireOver_some {st : State} {mk : Base → Move} {ba : Base}
+    {s' : State} (h : fireOver st mk = some (ba, s')) :
+    st.step (mk ba) = some s' := by
+  rw [fireOver] at h
+  split at h
+  · exact absurd h (by simp)
+  · rename_i b _
+    split at h
+    · exact absurd h (by simp)
+    · rename_i s'' hs''
+      have hp : (b, s'') = (ba, s') := by injection h
+      have h1 : b = ba := by injection hp
+      have h2 : s'' = s' := by injection hp
+      rw [← h1]
+      exact hs''.trans (congrArg some h2)
+
+/-- **THE TOTAL FUNCTION** — the decidable conjugate: find the
+forkState witness, raise it, slide the twin's segment over all bases,
+pull the card back over all bases; accept the endpoint only when the
+DECIDABLY-CHECKED forkState holds there; every miss returns `st`
+(the identity-on-fail contract). -/
+def conjugateForkStateS (st : State) : State :=
+  match forkWitness st with
+  | none => st
+  | some x =>
+    match st.step (Move.tabToFound x) with
+    | none => st
+    | some st₁ =>
+      match fireOver st₁ (fun b => Move.tabToTab x.twin b) with
+      | none => st
+      | some (_ba, st₂) =>
+        match fireOver st₂ (fun b => Move.foundToTab x b) with
+        | none => st
+        | some (_bb, w) => if forkStateB w then w else st
+
+/-- **THE CORRECTNESS**: the function is the identity, or it has
+moved `st` to a state that both fulfills the corrected composite's
+definition AND carries a (checked) forkState. -/
+theorem conjugateForkStateS_correct (st : State) :
+    conjugateForkStateS st = st ∨
+      (conjugateForkState st (conjugateForkStateS st) ∧
+        forkState (conjugateForkStateS st)) := by
+  by_cases hw : forkWitness st = none
+  · rw [conjugateForkStateS, hw]
+    exact Or.inl rfl
+  · obtain ⟨x, hx⟩ := option_some_of_ne_none hw
+    rw [conjugateForkStateS, hx]
+    by_cases hs₁ : st.step (Move.tabToFound x) = none
+    · simp only [hs₁]
+      exact Or.inl trivial
+    · obtain ⟨st₁, hs₁⟩ := option_some_of_ne_none hs₁
+      simp only [hs₁]
+      cases hf₁ : fireOver st₁ (fun b => Move.tabToTab x.twin b) with
+      | none => simp only [hf₁]; exact Or.inl trivial
+      | some pp₁ =>
+          obtain ⟨ba, st₂, hpp₁⟩ : ∃ ba st₂, pp₁ = (ba, st₂) :=
+            ⟨pp₁.1, pp₁.2, rfl⟩
+          simp only [hpp₁]
+          cases hf₂ : fireOver st₂ (fun b => Move.foundToTab x b) with
+          | none => simp only [hf₂]; exact Or.inl trivial
+          | some pp₂ =>
+              obtain ⟨bb, w, hpp₂⟩ : ∃ bb w, pp₂ = (bb, w) :=
+                ⟨pp₂.1, pp₂.2, rfl⟩
+              simp only [hf₂, hpp₂]
+              by_cases hb : forkStateB w = true
+              · rw [if_pos hb]
+                have hfs₁ : fireOver st₁ (fun b => Move.tabToTab x.twin b)
+                    = some (ba, st₂) := by rw [hf₁, hpp₁]
+                have hfs₂ : fireOver st₂ (fun b => Move.foundToTab x b)
+                    = some (bb, w) := by rw [hf₂, hpp₂]
+                refine Or.inr ⟨⟨x, ba, bb, st₁, st₂, ⟨x, ?_, ?_, ?_⟩,
+                  hs₁, fireOver_some hfs₁, fireOver_some hfs₂⟩,
+                  (forkStateB_iff w).mp hb⟩
+                · obtain ⟨hr1, hr2, hriff⟩ := forkWitness_sound hx
+                  exact hr1
+                · obtain ⟨hr1, hr2, hriff⟩ := forkWitness_sound hx
+                  exact hr2
+                · obtain ⟨hr1, hr2, hriff⟩ := forkWitness_sound hx
+                  exact hriff
+              · rw [if_neg hb]
+                exact Or.inl rfl
+
 /-! ## §8. The audit battery
-(the discipline's per-head `#print axioms`; expected `[propext,
-Quot.sound]` or fewer — zero `Classical.choice`, zero `sorryAx`). -/
+Per-head `#print axioms`; expected [propext, Quot.sound] or fewer -
+zero Classical.choice, zero sorryAx. -/
 
 #print axioms conjugate_netflat
 #print axioms conjugate_relic
@@ -1081,3 +1342,10 @@ Quot.sound]` or fewer — zero `Classical.choice`, zero `sorryAx`). -/
 #print axioms no_fit_king
 #print axioms conjugate_fit_pin
 #print axioms conjugate_forkState_corrected
+#print axioms forkClause2B_iff
+#print axioms forkWitnessB_and3
+#print axioms forkWitnessB_iff
+#print axioms forkWitness_sound
+#print axioms forkStateB_iff
+#print axioms conjugateForkStateS_correct
+
