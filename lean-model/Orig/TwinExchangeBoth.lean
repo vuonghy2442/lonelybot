@@ -1095,6 +1095,19 @@ private theorem exch_upd_stock {st s₁ V : State} (hs₁ : s₁ = V)
   rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
   exact hV.symm
 
+/-- The foundation slot of the `foundToTab` squares: the chop-backed
+`setFound` write transported pointwise through the exchange — the
+funext core all four putCard-variant squares spell after their
+write-removal chains. -/
+private theorem exch_chop_found {st : State} {c : Card} :
+    ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found
+      = (st.setFound c.suit (chop (st.found c.suit))).found := by
+  funext s'
+  by_cases hs' : s' = c.suit
+  · rw [hs', setFound_found_self, setFound_found_self]
+  · rw [setFound_found_ne hs', congrFun State.exchangeTwin_found s',
+      setFound_found_ne hs']
+
 /-- The waste slot at a record-written step. -/
 private theorem exch_upd_waste {st s₁ V : State} (hs₁ : s₁ = V)
     (hV : V.waste = st.waste) :
@@ -2244,18 +2257,7 @@ theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
     apply State.ext
     · show (((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inl κ)).found = (s₁.exchangeTwin t).found
       rw [putCard_inl_found, State.exchangeTwin_found, hs₁, putCard_inl_found]
-      funext s'
-      by_cases hs' : s' = c.suit
-      · rw [hs']
-        rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
-            setFound_found_self]
-        rw [show (st.setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
-            setFound_found_self]
-      · rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found s' = (st.exchangeTwin t).found s' from
-            setFound_found_ne hs']
-        rw [congrFun State.exchangeTwin_found s']
-        rw [show (st.setFound c.suit (chop (st.found c.suit))).found s' = st.found s' from
-            setFound_found_ne hs']
+      exact exch_chop_found
     · funext j
       show (if j = κ then (⟨[], [c]⟩ : Pile) else (st.exchangeTwin t).piles j) = (s₁.exchangeTwin t).piles j
       by_cases hjκ : j = κ
@@ -2344,18 +2346,7 @@ theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
           h₁ h₂ hne hsα hsβ hfit hfit'⟩
       apply State.ext
       · rw [setPile_found, State.exchangeTwin_found, hs₁, putCard_inr_found]
-        funext s'
-        by_cases hs' : s' = c.suit
-        · rw [hs']
-          rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
-              setFound_found_self]
-          rw [show (st.setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
-              setFound_found_self]
-        · rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found s' = (st.exchangeTwin t).found s' from
-              setFound_found_ne hs']
-          rw [congrFun State.exchangeTwin_found s']
-          rw [show (st.setFound c.suit (chop (st.found c.suit))).found s' = st.found s' from
-              setFound_found_ne hs']
+        exact exch_chop_found
       · funext j
         show (if j = β then
               { (st.exchangeTwin t).piles β with
@@ -2410,18 +2401,7 @@ theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
             h₁ h₂ hne hsα hsβ hfit hfit'⟩
         apply State.ext
         · rw [setPile_found, State.exchangeTwin_found, hs₁, putCard_inr_found]
-          funext s'
-          by_cases hs' : s' = c.suit
-          · rw [hs']
-            rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
-                setFound_found_self]
-            rw [show (st.setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
-                setFound_found_self]
-          · rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found s' = (st.exchangeTwin t).found s' from
-                setFound_found_ne hs']
-            rw [congrFun State.exchangeTwin_found s']
-            rw [show (st.setFound c.suit (chop (st.found c.suit))).found s' = st.found s' from
-                setFound_found_ne hs']
+          exact exch_chop_found
         · funext j
           show (if j = α then
                 { (st.exchangeTwin t).piles α with
@@ -2474,18 +2454,7 @@ theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
             h₁ h₂ hne hsα hsβ hfit hfit'⟩
         apply State.ext
         · rw [setPile_found, State.exchangeTwin_found, hs₁, putCard_inr_found]
-          funext s'
-          by_cases hs' : s' = c.suit
-          · rw [hs']
-            rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
-                setFound_found_self]
-            rw [show (st.setFound c.suit (chop (st.found c.suit))).found c.suit = chop (st.found c.suit) from
-                setFound_found_self]
-          · rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).found s' = (st.exchangeTwin t).found s' from
-                setFound_found_ne hs']
-            rw [congrFun State.exchangeTwin_found s']
-            rw [show (st.setFound c.suit (chop (st.found c.suit))).found s' = st.found s' from
-                setFound_found_ne hs']
+          exact exch_chop_found
         · funext j
           show (if j = κ then
                 { (st.exchangeTwin t).piles κ with
