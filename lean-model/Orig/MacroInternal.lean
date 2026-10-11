@@ -1108,34 +1108,59 @@ theorem finalFork_pairUnique (st : State)
 any two forkStates connect through the CARGO CLOSURE.  Stated in
 the FaceShape section below (follows its def). -/
 
-/- **THE CONJUGATE FORK STATE** — the mate face, by the explicit
-three-step maneuver (raise · slide-cargo-off · pull-back);  THE
-USER'S IFF: the necessary and sufficient condition is that BOTH
-twins are FREE (top-of-pile — no cards above) or are FREE KINGS
-(the vacate semantics: a bare king vacates its seat to an empty
-anchor; Orig/Vacate the module): x accessible for the raise
-(top-card or bare-king at its seat), x.twin accessible for the
-conjugate's slide-off and the re-seating — the covering cargo
-can move off x.twin and x can pull back into the freed seat. -/
+/- **THE CONJUGATE FORK STATE** — the other face of the fork pair, by
+the user's PHYSICAL SWAP construction (raise · segment-slide · pull-back):
+
+Before:  pile A: [any (x+1), x]                          ← x bare, raises
+         pile B: [other (x+1), x.twin, something]         ← x.twin covered
+
+After:   pile A: [any (x+1), x.twin, something]          ← x.twin at A, still covered
+         pile B: [other (x+1), x]                        ← x at x.twin's old seat, bare
+
+THE THREE STEPS:
+1. tabToFound x — x goes to its foundation (pile A's seat opens);
+2. tabToTab x.twin (with the whole above-segment [x.twin, something])
+   from pile B onto pile A's (x+1) under-seat — the ENTIRE SEGMENT
+   rides as one tabToTab (the block above x.twin moves together);
+3. foundToTab x onto pile B's now-bare (x+1) under-seat — x takes
+   x.twin's old seat.
+
+The twins physically TRADE POSITIONS — each taking the other's
+under-seat content, maintaining the covering relationship.  The
+composite is NET-FLAT (up one rung on x's suit, down one — net-zero)
+but PER-LEG DIPPING through the foundation: NOT a pure cargo-composite
+(step 1 and 3 change rungs; only step 2 is flat).  This state is
+DIFFERENT from the slide-mate (which only moves the cargo without
+moving the twins): the physical swap relocates both twin cards.
+-/
 def conjugateForkState (st w : State) : Prop :=
-  ∃ x d ba bb st₁ st₂,
+  ∃ x ba bb st₁ st₂,
     forkState st ∧
     st.step (Move.tabToFound x) = some st₁ ∧
-    st₁.step (Move.tabToTab d ba) = some st₂ ∧
+    st₁.step (Move.tabToTab x.twin ba) = some st₂ ∧
     st₂.step (Move.foundToTab x bb) = some w
 
-/-- The conjugate is a forkState itself (given the conjugate exists
-and the mate arm is live): the composite's result carries the
-forkState detection with x.twin as the new witness.  Blocked
-pending the composite's anatomy derivation — the conjugate must
-arrange exactly the pair-swap conjugate at the foundation book. -/
+/-- The conjugate is a forkState itself (the mate arm live, the
+pair-swapped seating preserving the iff).  GATE: the composite's
+anatomy derivation — must show the position swap preserves the
+three-clause detection (rungs unchanged net, maximality at the
+swapped-set state). -/
 theorem conjugate_forkState {st w : State}
     (hconj : conjugateForkState st w)
-    (hmate : ∃ y, rungAt w y.suit = y.rank.toIdx ∧
-      rungAt w y.twin.suit = y.twin.rank.toIdx ∧
-      (∀ c, CanRaise w c ↔ c = y)) :
+    (hwf : st.WF)
+    (hw : sameOrbitSetoid.r st w) :
     forkState w := by
   sorry
+
+/- THE CONJUGATE EXISTENCE IFF (the user's necessary-and-sufficient
+condition): the physical swap composite fires iff BOTH twins' seats
+are valid — either they are KINGS (bare-king vacate: any empty
+anchor receives), or BOTH have nonempty under-seat content (the
+(x+1) base material beneath them).  If one twin is bare-non-king
+(no chop, no king), that twin's seat FAILS the bar: the (Q,J)
+finding.  Stated as the seat-package gate, consumed by the
+conjugation-forkState rows and the conjugation existence theorem
+(the anatomy card). -/
 
 /- THE RETIRED CANON-SENSITIVE detector: forkState was formerly
 "some tabToTab neighbor canon-diverges" — the slide-sensitivity
@@ -1551,7 +1576,7 @@ is the banked one-directional calibration row.  The earlier BLOCKED
 note (the covered pin "unreachable from these hypotheses alone")
 described the PRE-v2 signature — before the twin-rung premise
 landed — and is retired. -/
-theorem forkPoint_pins (st : State) (x : Card) (hwf : st.WF)
+theorem forkPoint_pins (st : State) (x : Card)
     (h : forkPoint st x) :
     rungAt st x.suit = x.rank.toIdx ∧ rungAt st x.twin.suit = x.rank.toIdx := by
   -- CLOSED at the v2 base (the batch-F calibration): the covered
