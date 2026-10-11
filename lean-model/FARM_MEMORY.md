@@ -9240,3 +9240,23 @@ protocol banked it in two commands.
   take_ge_length, the fires-readers, draw_inCycle, inCycle_notisWin, and
   foundToTab_return (the two-step worry-undo at the ONE-MOVE pair-deletion
   shape).
+
+## Orig/Dominance.lean — the A session's cycle arithmetic (the sameCycle row, 2026-10-11)
+
+- The k-th draw delivers `cycleOf[k-1]` PHASE-INDEPENDENTLY — that is why
+  the direct-fire consumption case needs NO resync (the mirror proof's
+  spliced Index-resync is one refinement too many for the physical game).
+- Phases are NOT mutually reachable at `drawStep = 1`: a full-stock state
+  drains and can never re-stock fully — the orbit misses it.  Exact-config
+  resync a la Klondike's `draw1_cursor_solvable` is IMPOSSIBLE here; the
+  List-equality-of-`cycleOf` invariant is what survives (the one genuine
+  corner, the full-stock twin, splices `drain_full` — the whole cycle
+  length — putting the cycle's last card in hand and restoring the cycle).
+- The waste top is the cycle's LAST card (`cycleOf_eq_snoc` +
+  `waste_head_of_cycle`); `draw` rotates the presented cycle's head to its
+  tail in lockstep (`draw_cycleOf`) — these two facts carry the whole
+  replay.
+- DECIDE-PROBE FIRST: the probe caught THREE hand-derivation slips in the
+  win-schedule across phases BEFORE any proof effort was spent.
+- (A) is now a plain cite: squares landing up-to-sameCycle transport
+  through it without hesitation.
