@@ -1763,17 +1763,8 @@ theorem raise_undo_under_step {st : State} {c : Card} {a : Anchor} {z : Card} {s
   subst haa
   have hfull : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] :=
     lastOf_chop (pileOfTop_top hpa).2
-  have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
-    rw [hs₁]
-    exact setFound_found_self
-  have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
-    intro σ hσ
-    rw [hs₁]
-    exact setFound_found_ne hσ
-  have hft : s₁.foundTop c.suit = some c := by
-    show lastOf (s₁.found c.suit) = some c
-    rw [hs₁found]
-    exact lastOf_snoc
+  obtain ⟨hs₁found, hs₁other, hft⟩ := tabToFound_found_trio hs₁
+
   have hcp : s₁.canPlace c (Sum.inr z) = true := by
     simp only [State.canPlace, hsearch]
     exact hsit
@@ -1842,17 +1833,8 @@ theorem raise_undo_bare_step {st : State} {c : Card} {a : Anchor} {s₁ : State}
   rw [hpa] at hpa₀
   injection hpa₀ with haa
   subst haa
-  have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
-    rw [hs₁]
-    exact setFound_found_self
-  have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
-    intro σ hσ
-    rw [hs₁]
-    exact setFound_found_ne hσ
-  have hft : s₁.foundTop c.suit = some c := by
-    show lastOf (s₁.found c.suit) = some c
-    rw [hs₁found]
-    exact lastOf_snoc
+  obtain ⟨hs₁found, hs₁other, hft⟩ := tabToFound_found_trio hs₁
+
   have hface : (st.piles a).faceUp = [c] := by
     obtain ⟨-, hlastc⟩ := pileOfTop_top hpa
     have hc0 : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] := lastOf_chop hlastc

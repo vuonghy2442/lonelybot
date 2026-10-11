@@ -526,6 +526,29 @@ theorem step_tabToFound_inv {st : State} {c : Card} {s' : State}
       exact ⟨hn, a, hp, hEq.symm⟩
   · exact absurd h (by simp)
 
+/-- The tabToFound-landing's foundation trio, derived from the
+step's record (the consuming chapters re-derived these twelve lines
+per site before this row landed): the landing's suit-row is
+extended by the moved card, every other row stays, and the foundTop
+search returns the card. -/
+theorem tabToFound_found_trio {st s₁ : State} {c : Card} {a : Anchor}
+    (hs₁ : s₁ = { st.setFound c.suit (st.found c.suit ++ [c]) with
+                   piles := fun a' =>
+                     if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+                     else st.piles a' }) :
+    s₁.found c.suit = st.found c.suit ++ [c] ∧
+    (∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ) ∧
+    s₁.foundTop c.suit = some c := by
+  refine ⟨?_, ?_, ?_⟩
+  · rw [hs₁]
+    exact setFound_found_self
+  · intro σ hσ
+    rw [hs₁]
+    exact setFound_found_ne hσ
+  · show lastOf (s₁.found c.suit) = some c
+    rw [hs₁, setFound_found_self]
+    exact lastOf_snoc
+
 /-- A successful `.foundToTab`: the named card is the foundation
 top, the placement is legal, and the successor is the chopped
 foundation with the card placed. -/
@@ -1429,18 +1452,8 @@ theorem tabToFound_undo_under {st : State} {c : Card} {a : Anchor} {z : Card} {s
   subst haa
   obtain ⟨-, hlastc⟩ := pileOfTop_top hpa
   have hfull : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] := lastOf_chop hlastc
-  have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
-    rw [hs₁]
-    exact setFound_found_self
-  have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
-    intro σ hσ
-    rw [hs₁]
-    show (if σ = c.suit then st.found c.suit ++ [c] else st.found σ) = st.found σ
-    rw [ite_eq_right hσ]
-  have hft : s₁.foundTop c.suit = some c := by
-    show lastOf (s₁.found c.suit) = some c
-    rw [hs₁found]
-    exact lastOf_snoc
+  obtain ⟨hs₁found, hs₁other, hft⟩ := tabToFound_found_trio hs₁
+
   have hcp : s₁.canPlace c (Sum.inr z) = true := by
     simp only [State.canPlace, hsearch]
     exact hsit
@@ -1529,18 +1542,8 @@ theorem tabToFound_undo_bare {st : State} {c : Card} {a : Anchor} {s₁ : State}
   rw [hpa] at hpa₀
   injection hpa₀ with haa
   subst haa
-  have hs₁found : s₁.found c.suit = st.found c.suit ++ [c] := by
-    rw [hs₁]
-    exact setFound_found_self
-  have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
-    intro σ hσ
-    rw [hs₁]
-    show (if σ = c.suit then st.found c.suit ++ [c] else st.found σ) = st.found σ
-    rw [ite_eq_right hσ]
-  have hft : s₁.foundTop c.suit = some c := by
-    show lastOf (s₁.found c.suit) = some c
-    rw [hs₁found]
-    exact lastOf_snoc
+  obtain ⟨hs₁found, hs₁other, hft⟩ := tabToFound_found_trio hs₁
+
   have hface : (st.piles a).faceUp = [c] := by
     obtain ⟨-, hlastc⟩ := pileOfTop_top hpa
     have hc0 : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] := lastOf_chop hlastc
