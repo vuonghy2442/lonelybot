@@ -1082,8 +1082,10 @@ theorem State.exchangeTwin_region_unique {st : State} {t : Card} {a a' : Anchor}
 
 /-! ## The bare-twin iff -/
 
-/-- One bare twin, cargo-side realization: the cargo run above `t`rides onto the bare twin host as a plain `Move.tabToTab`, landingexactly at the exchange. -/
-private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Card}
+/-- One bare twin, cargo-side realization: the cargo run above `t`rides onto the bare twin host as a plain `Move.tabToTab`, landingexactly at the exchange.  PUBLIC since the MacroInternal floor wave
+(one-move realizer consumed by `exch_is_cargo`; the TwinExchangeQuotient chapter's ledgered RevEqW refinement was blocked on
+this row going public). -/
+theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Card}
     {rest : List Card}
     (hwf : st.WF)
     (h₁ : st.pileHolding t = some a) (h₂ : st.pileHolding t.twin = some a') (hne : a ≠ a')
@@ -1200,8 +1202,9 @@ private theorem step_realize_fwd {st : State} {t : Card} {a a' : Anchor} {z : Ca
   · rfl
   · rfl
 
-/-- One bare twin, mirror realization: from the exchanged state, thecargo rides back onto the bare host `t`, landing exactly at theoriginal state. -/
-private theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Card}
+/-- One bare twin, mirror realization: from the exchanged state, thecargo rides back onto the bare host `t`, landing exactly at theoriginal state.  PUBLIC since the MacroInternal floor wave (the
+back leg of the same one-move realizer pair; see `step_realize_fwd`). -/
+theorem step_realize_bwd {st : State} {t : Card} {a a' : Anchor} {z : Card}
     {rest : List Card}
     (hwf : st.WF)
     (h₁ : st.pileHolding t = some a) (h₂ : st.pileHolding t.twin = some a') (hne : a ≠ a')
