@@ -2,6 +2,7 @@ import Orig.MergeWalls
 import Orig.TwinExchangeQuotient
 import Orig.Integrity
 import Orig.Reach
+import Orig.PileSwap
 
 /-!
 # Orig — the both-occupied local twin exchange
@@ -575,11 +576,6 @@ theorem exch_isEmpty_congr {st : State} {t z z' : Card} {α β : Anchor}
       exact hst.symm
     · rw [State.exchangeTwin_pile_ne h₁ h₂ hne hkα hkβ]
 
-/-- The swapped-anchor helper: an anchor swaps with its host twin or
-stays put. -/
-private def swapAnch (α β : Anchor) (k : Anchor) : Anchor :=
-  if k = α then β else if k = β then α else k
-
 /-- The last of a splice is the last of its cargo suffix. -/
 private theorem lastOf_splice_tail {c d : Card} {B S : List Card} :
     lastOf (B ++ [c, d] ++ S) = lastOf (d :: S) := by
@@ -596,16 +592,6 @@ private theorem top_splice_lit (h : List Card) (c d : Card) (B S : List Card) :
     (⟨h, B ++ [c, d] ++ S⟩ : Pile).top = lastOf (d :: S) := by
   show lastOf (B ++ [c, d] ++ S) = lastOf (d :: S)
   rw [lastOf_splice_tail]
-
-private theorem swapAnch_left (α β : Anchor) : swapAnch α β α = β := by
-  cases α <;> cases β <;> rfl
-
-private theorem swapAnch_right (α β : Anchor) : swapAnch α β β = α := by
-  cases α <;> cases β <;> rfl
-
-private theorem swapAnch_ne {α β k : Anchor} (h₁ : k ≠ α) (h₂ : k ≠ β) :
-    swapAnch α β k = k := by
-  cases k <;> cases α <;> cases β <;> simp_all [swapAnch]
 
 /-- The two ite collapses, self-made (the core `if_pos`/`if_neg`
 shims are deprecated). -/
@@ -666,7 +652,7 @@ theorem exch_pileOfTop_swap {st : State} {t z z' : Card} {α β : Anchor}
     (hsα : (st.piles α).faceUp = Bα ++ [t, z] ++ Sa)
     (hsβ : (st.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa')
     (d : Card) :
-    (st.exchangeTwin t).pileOfTop d = (st.pileOfTop d).map (swapAnch α β) := by
+    (st.exchangeTwin t).pileOfTop d = (st.pileOfTop d).map (Anchor.swap α β) := by
   have hσwf : (st.exchangeTwin t).WF := State.wf_exchangeTwin hwf h₁ h₂ hne
   cases hh : st.pileOfTop d with
   | none =>
@@ -705,9 +691,9 @@ theorem exch_pileOfTop_swap {st : State} {t z z' : Card} {α β : Anchor}
   | some κ =>
       have hκtop : (st.piles κ).top = some d :=
         (pileOfTop_eq_some_iff hwf).mp hh
-      show (st.exchangeTwin t).pileOfTop d = some (swapAnch α β κ)
+      show (st.exchangeTwin t).pileOfTop d = some (Anchor.swap α β κ)
       by_cases hκα : κ = α
-      · rw [hκα, swapAnch_left]
+      · rw [hκα, Anchor.swap_self_left]
         rw [hκα] at hκtop
         have hz : lastOf (z :: Sa) = some d := by
           rw [← top_splice_eq hsα]
@@ -717,7 +703,7 @@ theorem exch_pileOfTop_swap {st : State} {t z z' : Card} {α β : Anchor}
           exact hz
         exact (pileOfTop_eq_some_iff hσwf).mpr hσtop
       · by_cases hκβ : κ = β
-        · rw [hκβ, swapAnch_right]
+        · rw [hκβ, Anchor.swap_self_right]
           rw [hκβ] at hκtop
           have hz : lastOf (z' :: Sa') = some d := by
             rw [← top_splice_eq hsβ]
@@ -726,7 +712,7 @@ theorem exch_pileOfTop_swap {st : State} {t z z' : Card} {α β : Anchor}
             rw [exch_pile_self_record hwf h₁ h₂ hne hsα hsβ, top_splice_lit]
             exact hz
           exact (pileOfTop_eq_some_iff hσwf).mpr hσtop
-        · have hswap : swapAnch α β κ = κ := swapAnch_ne hκα hκβ
+        · have hswap : Anchor.swap α β κ = κ := Anchor.swap_eq_self _ _ hκα hκβ
           rw [hswap]
           have hσtop : ((st.exchangeTwin t).piles κ).top = some d := by
             rw [State.exchangeTwin_pile_ne h₁ h₂ hne hκα hκβ]
@@ -747,7 +733,7 @@ theorem exch_canPlace_congr {st : State} {t z z' : Card} {α β : Anchor}
       ((st.exchangeTwin t).piles k).isEmpty = (st.piles k).isEmpty :=
     exch_isEmpty_congr hwf h₁ h₂ hne hsα hsβ
   have hpop : ∀ d : Card,
-      (st.exchangeTwin t).pileOfTop d = (st.pileOfTop d).map (swapAnch α β) :=
+      (st.exchangeTwin t).pileOfTop d = (st.pileOfTop d).map (Anchor.swap α β) :=
     exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ
   cases b with
   | inl a =>
@@ -757,7 +743,7 @@ theorem exch_canPlace_congr {st : State} {t z z' : Card} {α β : Anchor}
       cases hh : st.pileOfTop d with
       | none => rfl
       | some κ =>
-          show (match Option.map (swapAnch α β) (some κ) with
+          show (match Option.map (Anchor.swap α β) (some κ) with
                 | some _ => canSitOn c d
                 | none => false) =
                (match some κ with
@@ -1138,7 +1124,7 @@ private theorem dealStock_facts (st : State) :
 
 /-- What the draw may change: piles, found, and the draw step never
 move. -/
-private theorem draw_facts {st s₁ : State} (hstep : st.stepDraw = some s₁) :
+private theorem stepDraw_keep {st s₁ : State} (hstep : st.stepDraw = some s₁) :
     s₁.piles = st.piles ∧ s₁.found = st.found ∧ s₁.drawStep = st.drawStep := by
   rw [show st.stepDraw = State.dealStock (State.recycle st) from rfl] at hstep
   obtain ⟨rp, rf, rd, hrec⟩ := recycle_facts st
@@ -1244,7 +1230,7 @@ theorem exch_step_draw {st s₁ : State} {t z z' : Card} {α β : Anchor}
   have hs : st.stepDraw = some s₁ := by
     rw [show st.stepDraw = st.step Move.draw from rfl]
     exact hstep
-  obtain ⟨hpil, hfnd, hdrw⟩ := draw_facts hs
+  obtain ⟨hpil, hfnd, hdrw⟩ := stepDraw_keep hs
   have hwf₁ : s₁.WF := step_wf hwf hstep
   have h₁s : s₁.pileHolding t = some α := by
     rw [pileHolding_congr hpil]
@@ -1902,7 +1888,7 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
         rw [hs₁, putCard_inr_eq hd]
         rfl
       -- the σ-side landing anchor:
-      have hdσ : (st.exchangeTwin t).pileOfTop d = some (swapAnch α β κ) := by
+      have hdσ : (st.exchangeTwin t).pileOfTop d = some (Anchor.swap α β κ) := by
         rw [exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ d, hd]
         rfl
       by_cases hjα : κ = α
@@ -1910,7 +1896,7 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
         -- it on the twin host pile β, and the exchanged suffixes
         -- swallow the append.
         rw [hjα] at hsκ hskips hd hdσ
-        rw [swapAnch_left α β] at hdσ
+        rw [Anchor.swap_self_left α β] at hdσ
         have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ (Sa ++ [c]) := by
           rw [hsκ, hsα, splice_snoc c]
         have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
@@ -1965,7 +1951,7 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
         · -- (B2) the mirror-land: the append lands on the twin host
           -- pile β; the σ-side lands it on the host pile α.
           rw [hjβκ] at hsκ hskips hd hdσ
-          rw [swapAnch_right α β] at hdσ
+          rw [Anchor.swap_self_right α β] at hdσ
           have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ (Sa' ++ [c]) := by
             rw [hsκ, hsβ, splice_snoc c]
           have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
@@ -2020,7 +2006,7 @@ theorem exch_step_wasteToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
           -- verbatim; the σ-side lands on the same anchor.
           have hκA : κ ≠ α := hjα
           have hκB : κ ≠ β := hjβκ
-          rw [swapAnch_ne hκA hκB] at hdσ
+          rw [Anchor.swap_eq_self _ _ hκA hκB] at hdσ
           have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
             rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
                 rw [hskips α (Ne.symm hκA)]]
@@ -2316,7 +2302,7 @@ theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
       rfl
     -- the σ-side landing anchor:
     have hdσF : ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).pileOfTop d =
-        some (swapAnch α β κ) := by
+        some (Anchor.swap α β κ) := by
       rw [show ((st.exchangeTwin t).setFound c.suit (chop (st.found c.suit))).pileOfTop d =
           (st.exchangeTwin t).pileOfTop d from rfl]
       rw [exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ d, hd]
@@ -2326,7 +2312,7 @@ theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
       -- it on the twin host pile β, and the exchanged suffixes
       -- swallow the append.
       rw [hjα] at hsκ hskips hdF hdσF
-      rw [swapAnch_left α β] at hdσF
+      rw [Anchor.swap_self_left α β] at hdσF
       have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ (Sa ++ [c]) := by
         rw [hsκ, hsα, splice_snoc c]
       have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ Sa' := by
@@ -2392,7 +2378,7 @@ theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
       · -- (B2) the mirror-land: the append lands on the twin host
         -- pile β; the σ-side lands it on the host pile α.
         rw [hjβκ] at hsκ hskips hdF hdσF
-        rw [swapAnch_right α β] at hdσF
+        rw [Anchor.swap_self_right α β] at hdσF
         have hsβs : (s₁.piles β).faceUp = B' ++ [t.twin, z'] ++ (Sa' ++ [c]) := by
           rw [hsκ, hsβ, splice_snoc c]
         have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
@@ -2458,7 +2444,7 @@ theorem exch_step_foundToTab {st s₁ : State} {t z z' : Card} {α β : Anchor}
         -- verbatim; the σ-side lands on the same anchor.
         have hκA : κ ≠ α := hjα
         have hκB : κ ≠ β := hjβκ
-        rw [swapAnch_ne hκA hκB] at hdσF
+        rw [Anchor.swap_eq_self _ _ hκA hκB] at hdσF
         have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
           rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
               rw [hskips α (Ne.symm hκA)]]
@@ -2583,7 +2569,7 @@ commutes with the exchange — the rung guard reads only the foundation
 (`State.exchangeTwin_found`), so the σ-side fires, and its source-pile
 chop lands at the ANCHOR-SWAPPED mirror of the st-side source (the
 σ-side top table `exch_pileOfTop_swap`; a source away from both hosts
-stays put via `swapAnch_ne`).  The moved card joins the foundation at
+stays put via `Anchor.swap_eq_self`).  The moved card joins the foundation at
 both states identically (the w2f per-suit table with `++[c]` in place
 of the chop).  The license conjunct turns disjunctive: a cargo-neutral
 chop re-seats the both-occupied license (the chopped pile is a
@@ -2634,7 +2620,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
     show decide (c.rank.toIdx = ((st.exchangeTwin t).found c.suit).length) = _
     rw [State.exchangeTwin_found]
     rfl
-  have hσpt : (st.exchangeTwin t).pileOfTop c = some (swapAnch α β κ) := by
+  have hσpt : (st.exchangeTwin t).pileOfTop c = some (Anchor.swap α β κ) := by
     rw [exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ c, hd]
     rfl
   -- the σ-side fire
@@ -2642,9 +2628,9 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
       some { (st.exchangeTwin t).setFound c.suit
           ((st.exchangeTwin t).found c.suit ++ [c]) with
           piles := fun a' =>
-            if a' = swapAnch α β κ then
-              Pile.afterRunRemoved ((st.exchangeTwin t).piles (swapAnch α β κ))
-                (chop ((st.exchangeTwin t).piles (swapAnch α β κ)).faceUp)
+            if a' = Anchor.swap α β κ then
+              Pile.afterRunRemoved ((st.exchangeTwin t).piles (Anchor.swap α β κ))
+                (chop ((st.exchangeTwin t).piles (Anchor.swap α β κ)).faceUp)
             else (st.exchangeTwin t).piles a' } from by
     rw [step_tabToFound_eq, hσnu.trans hnu, hσpt]
     rfl]
@@ -2653,7 +2639,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
   by_cases hκα : κ = α
   · -- (Pα) the source is the host pile α
     rw [hκα] at hd hsκself hskip
-    rw [hκα, swapAnch_left α β]
+    rw [hκα, Anchor.swap_self_left α β]
     by_cases hcz : c = z
     · -- the freedom: the cargo head z leaves the α seat
       have hdz : st.pileOfTop z = some α := by rw [← hcz]; exact hd
@@ -2851,7 +2837,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
   · by_cases hκβ : κ = β
     · -- (Pβ) the source is the twin host pile β
       rw [hκβ] at hd hsκself hskip
-      rw [hκβ, swapAnch_right α β]
+      rw [hκβ, Anchor.swap_self_right α β]
       by_cases hcz' : c = z'
       · -- the freedom: the cargo head z' leaves the β seat
         have hdz' : st.pileOfTop z' = some β := by rw [← hcz']; exact hd
@@ -3049,7 +3035,7 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
     · -- (P0) the source is a pile away from both hosts
       have hκA : κ ≠ α := hκα
       have hκB : κ ≠ β := hκβ
-      rw [swapAnch_ne hκA hκB]
+      rw [Anchor.swap_eq_self _ _ hκA hκB]
       have hsαs : (s₁.piles α).faceUp = Bα ++ [t, z] ++ Sa := by
         rw [show (s₁.piles α).faceUp = (st.piles α).faceUp from by
             rw [hskip α (Ne.symm hκA)]]
@@ -3938,7 +3924,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
           have hdσtop : (st.exchangeTwin t).pileOfTop d = some κ := by
             have hsw := exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ
             rw [hsw, hd]
-            exact congrArg some (swapAnch_ne hself hκβ')
+            exact congrArg some (Anchor.swap_eq_self _ _ hself hκβ')
           have hmemσκ : d ∈ ((st.exchangeTwin t).piles κ).faceUp :=
             Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
           have hintop : (st.setPile α (Pile.afterRunRemoved (st.piles α)
@@ -4096,7 +4082,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
               have hdσtop : (st.exchangeTwin t).pileOfTop d = some κ := by
                 have hsw := exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ
                 rw [hsw, hd]
-                exact congrArg some (swapAnch_ne hself hκβ')
+                exact congrArg some (Anchor.swap_eq_self _ _ hself hκβ')
               have hmemσκ : d ∈ ((st.exchangeTwin t).piles κ).faceUp :=
                 Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
               have hintop : (st.setPile α (Pile.afterRunRemoved (st.piles α)
@@ -4393,7 +4379,7 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
             have hdσtop : (st.exchangeTwin t).pileOfTop d = some κ := by
               have hsw := exch_pileOfTop_swap hwf h₁ h₂ hne hsα hsβ
               rw [hsw, hd]
-              exact congrArg some (swapAnch_ne hself hκβ')
+              exact congrArg some (Anchor.swap_eq_self _ _ hself hκβ')
             have hmemσκ : d ∈ ((st.exchangeTwin t).piles κ).faceUp :=
               Pile.mem_of_top ((pileOfTop_eq_some_iff hσwf).mp hdσtop)
             have hintop : (st.setPile α (Pile.afterRunRemoved (st.piles α)

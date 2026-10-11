@@ -1,5 +1,6 @@
 import Orig.Combine
 import Orig.Integrity
+import Orig.Irreversible
 
 /-!
 # Orig.Reach — the reachability spine and the reachable⇒WF fence
@@ -345,28 +346,6 @@ count transfers and pile-top reasoning here consume.  The
 (`Pile.top_eq_lastOf_iff`); these are the count-level refinements
 with `front = chop l`. -/
 
-private theorem lastOf_snoc' : ∀ (front : List Card) (c : Card),
-    lastOf (front ++ [c]) = some c := by
-  intro front
-  induction front with
-  | nil => intro _; rfl
-  | cons x t ih =>
-      intro c
-      cases t with
-      | nil => rfl
-      | cons y t' => exact ih c
-
-
-private theorem lastOf_mem' : ∀ (l : List Card) {c : Card},
-    lastOf l = some c → c ∈ l
-  | [], _, h => absurd h (by simp [lastOf])
-  | [y], c, h => by
-      have h' : y = c := Option.some.inj h
-      subst h'
-      exact List.mem_cons_self ..
-  | x :: y :: t, c, h =>
-      List.mem_cons.mpr (Or.inr (lastOf_mem' (y :: t) h))
-
 /-- Every nonempty list has a last. -/
 private theorem lastOf_ne_nil : ∀ (l : List Card), l ≠ [] → ∃ x, lastOf l = some x
   | [], h => absurd rfl h
@@ -593,26 +572,7 @@ them unchanged. -/
 private theorem pileOfTop_setFound {st : State} {s : Suit} {l : List Card} {z : Card} :
     (st.setFound s l).pileOfTop z = st.pileOfTop z := rfl
 
-private theorem canPlace_inl {st : State} {c : Card} {a : Anchor}
-    (h : st.canPlace c (Sum.inl a) = true) :
-    (st.piles a).isEmpty = true ∧ c.rank = Rank.king := by
-  rw [show st.canPlace c (Sum.inl a) =
-      ((st.piles a).isEmpty && decide (c.rank = Rank.king)) from rfl,
-    Bool.and_eq_true] at h
-  exact ⟨h.1, of_decide_eq_true h.2⟩
-
-private theorem canPlace_inr {st : State} {c z : Card}
-    (h : st.canPlace c (Sum.inr z) = true) :
-    ∃ k, st.pileOfTop z = some k ∧ canSitOn c z = true := by
-  rw [show st.canPlace c (Sum.inr z) =
-      (match st.pileOfTop z with
-        | some _ => canSitOn c z
-        | none => false) from rfl] at h
-  cases hps : st.pileOfTop z with
-  | none => rw [hps] at h; exact absurd h (by simp)
-  | some k => rw [hps] at h; exact ⟨k, rfl, by simpa using h⟩
-
-private theorem wasteIs_head {st : State} {x : Card} {t : List Card}
+private theorem head_eq_of_wasteIs {st : State} {x : Card} {t : List Card}
     (hw : st.waste = x :: t) {c : Card} (h : st.wasteIs c = true) : x = c := by
   rw [State.wasteIs_cons hw c] at h
   exact of_decide_eq_true h
@@ -644,7 +604,7 @@ private theorem step_wasteToFound_inv {st st' : State} {c : Card}
     obtain ⟨h1, h2⟩ := hg
     split at h
     · rename_i x ws hw
-      have hxc : x = c := wasteIs_head hw h1
+      have hxc : x = c := head_eq_of_wasteIs hw h1
       subst hxc
       exact ⟨h1, h2, ws, hw, (Option.some.inj h).symm⟩
     · exact absurd h (by simp)
@@ -666,7 +626,7 @@ private theorem step_wasteToTab_inv {st st' : State} {c : Card} {b : Base}
     obtain ⟨h1, h2⟩ := hg
     split at h
     · rename_i x ws hw
-      have hxc : x = c := wasteIs_head hw h1
+      have hxc : x = c := head_eq_of_wasteIs hw h1
       subst hxc
       exact ⟨h1, h2, ws, hw, (Option.some.inj h).symm⟩
     · exact absurd h (by simp)
@@ -893,7 +853,7 @@ private theorem found_chop_prefix {st : State} {c : Card}
     ∃ m, chop (st.found c.suit) = c.suit.upCards.take m := by
   obtain ⟨n, hn⟩ := hpre c.suit
   have hlmem : 1 ≤ (st.found c.suit).length :=
-    List.length_pos_of_mem (lastOf_mem' _ hlast)
+    List.length_pos_of_mem (lastOf_mem hlast)
   have hfl : (st.found c.suit).length = (c.suit.upCards.take n).length := by
     rw [hn]
   have htakelen : (c.suit.upCards.take n).length = min n 13 := by
@@ -1048,15 +1008,6 @@ private theorem wasteToFound_wf {st st' : State} {c : Card}
     have hstockc : cnt c₀ st'.stock = cnt c₀ st.stock := by rw [hstock]
     omega
 
-/-- The search soundness fact the pile-top fit needs. -/
-private theorem pileOfTop_top {st : State} {z : Card} {a : Anchor}
-    (h : st.pileOfTop z = some a) : lastOf (st.piles a).faceUp = some z := by
-  have h' : firstWhere (fun a' => decide (st.topOf a' = some z)) Anchor.all = some a := h
-  have h2 := firstWhere_sound (fun a' => decide (st.topOf a' = some z)) h'
-  have h3 : st.topOf a = some z := of_decide_eq_true h2
-  exact h3
-
-
 /-- An empty pile has both fields empty. -/
 private theorem pile_isEmpty {p : Pile} (h : p.isEmpty = true) :
     p.hidden = [] ∧ p.faceUp = [] := by
@@ -1158,7 +1109,7 @@ private theorem wasteToTab_wf {st st' : State} {c : Card} {b : Base}
         omega
   | inr z =>
       obtain ⟨k, hps, hfit⟩ := canPlace_inr hcanplace
-      have htopk : lastOf (st.piles k).faceUp = some z := pileOfTop_top hps
+      have htopk : lastOf (st.piles k).faceUp = some z := (pileOfTop_top hps).2
       have hstock : st'.stock = st.stock := by rw [hrw, putCard_inr_eq hps]; rfl
       have hfeq : st'.found = st.found := by rw [hrw, putCard_inr_eq hps]; rfl
       have hsd' : 0 < st'.drawStep := by
@@ -1325,7 +1276,7 @@ private theorem lastOf_mem_fromCard : ∀ (l : List Card) (c : Card),
   | x :: y :: t, c, hmem, z, hlast => by
       by_cases hxc : x = c
       · rw [fromCard_cons, ite_eq_left hxc]
-        exact lastOf_mem' (x :: y :: t) hlast
+        exact lastOf_mem hlast
       · rw [fromCard_cons, ite_eq_right hxc]
         have hc2 : c ∈ (y :: t) :=
           (List.mem_cons.mp hmem).elim
@@ -1395,7 +1346,7 @@ private theorem tabToFound_wf {st st' : State} {c : Card}
     have hcc := hcard c₀ hc₀
     rw [cardCount_zones] at hcc
     rw [cardCount_zones]
-    have hlastc : lastOf (st.piles a).faceUp = some c := pileOfTop_top hpstop
+    have hlastc : lastOf (st.piles a).faceUp = some c := (pileOfTop_top hpstop).2
     have hsnoc : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] :=
       lastOf_chop hlastc
     have hpcnt : cntFlat c₀
@@ -1601,7 +1552,7 @@ private theorem foundToTab_wf {st st' : State} {c : Card} {b : Base}
         omega
   | inr z =>
       obtain ⟨k, hps, hfit⟩ := canPlace_inr hcp
-      have htopk : lastOf (st.piles k).faceUp = some z := pileOfTop_top hps
+      have htopk : lastOf (st.piles k).faceUp = some z := (pileOfTop_top hps).2
       have hpsA : (st.setFound c.suit (chop (st.found c.suit))).pileOfTop z
           = some k := by
         rw [pileOfTop_setFound]
@@ -1808,9 +1759,9 @@ private theorem top_search_unique {st : State} {z : Card} {j k : Anchor}
   · exact hne
   · exfalso
     have hzj : z ∈ (st.piles j).hidden ++ (st.piles j).faceUp :=
-      List.mem_append.mpr (Or.inr (lastOf_mem' _ hj))
+      List.mem_append.mpr (Or.inr (lastOf_mem hj))
     have hzk : z ∈ (st.piles k).hidden ++ (st.piles k).faceUp :=
-      List.mem_append.mpr (Or.inr (lastOf_mem' _ hk))
+      List.mem_append.mpr (Or.inr (lastOf_mem hk))
     exact two_pile_zone_absurd hne hcc hzj hzk
 /-- Every card of the post-removal pile zone was already in the old
 zone (the moving pile cannot re-grow a second copy of a card). -/
@@ -2060,14 +2011,14 @@ private theorem tabToTab_wf {st st' : State} {c : Card} {b : Base}
         omega
   | inr z =>
       obtain ⟨k, hps, hfit⟩ := canPlace_inr hcp
-      have hkmem : st.topOf k = some z := pileOfTop_top hps
+      have hkmem : st.topOf k = some z := (pileOfTop_top hps).2
       have hzuni : z ∈ Card.universe := Card.mem_universe z
       have hccz : st.cardCount z = 1 := hcard z hzuni
       have hfitidx : c.rank.toIdx + 1 = z.rank.toIdx := (canSitOn_eq c z).mp hfit |>.1
       have hak : a ≠ k := by
         intro heq
         subst heq
-        have hlast : lastOf ((st.piles a).faceUp) = some z := pileOfTop_top hps
+        have hlast : lastOf ((st.piles a).faceUp) = some z := (pileOfTop_top hps).2
         have hzr := lastOf_mem_fromCard ((st.piles a).faceUp) c hmem z hlast
         rw [hcrr] at hzr
         rcases List.mem_cons.mp hzr with hz | hz
@@ -2097,12 +2048,12 @@ private theorem tabToTab_wf {st st' : State} {c : Card} {b : Base}
                     (below c (st.piles a).faceUp))).piles a).hidden
                   ++ ((st.setPile a (Pile.afterRunRemoved (st.piles a)
                     (below c (st.piles a).faceUp))).piles a).faceUp :=
-                List.mem_append.mpr (Or.inr (lastOf_mem' _ hcon))
+                List.mem_append.mpr (Or.inr (lastOf_mem hcon))
               rw [hmidself] at hznew
               have hzold : z ∈ (st.piles a).hidden ++ (st.piles a).faceUp :=
                 mem_afterRunRemoved_below_zone hznew
               have hzk : z ∈ (st.piles k).hidden ++ (st.piles k).faceUp :=
-                List.mem_append.mpr (Or.inr (lastOf_mem' _ hkmem))
+                List.mem_append.mpr (Or.inr (lastOf_mem hkmem))
               exact two_pile_zone_absurd hak hccz hzold hzk
             exact decide_eq_false hnot
           · have hnot : (st.setPile a (Pile.afterRunRemoved (st.piles a)

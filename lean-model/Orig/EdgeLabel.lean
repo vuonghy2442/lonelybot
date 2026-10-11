@@ -401,7 +401,7 @@ private theorem faceUp_head_of_chop : ∀ {l : List Card} {g : Card} {t : List C
           exact ⟨y :: ys, by rw [hxg]⟩
 
 /-- The run a run-move moves is headed at its run-head card. -/
-private theorem fromCard_head_eq {c : Card} : ∀ {l : List Card}, c ∈ l →
+private theorem fromCard_eq_head_of_mem {c : Card} : ∀ {l : List Card}, c ∈ l →
     ∃ t, fromCard c l = c :: t := by
   intro l
   induction l with
@@ -1045,7 +1045,7 @@ private theorem leg_data {x y : State} {m : Move}
                   = (x.piles a).hidden := by
                 rw [hrP a, ite_eq_left rfl, hbelow, hArb3]
               have hrrR : ∃ rr, fromCard c (x.piles a).faceUp = c :: rr :=
-                fromCard_head_eq hmem
+                fromCard_eq_head_of_mem hmem
               refine ⟨fun a' => by
                 rw [hs]
                 cases b with
