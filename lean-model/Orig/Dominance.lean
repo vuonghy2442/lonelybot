@@ -5484,6 +5484,31 @@ guards and seat to the pre-worry state through the readers
 post-raise state, and closes the composite by `State.ext` — the same
 channel as `foundToTab_wasteToFound_square`'s pattern-kernel. -/
 
+/-- The firing equation of a live `tabToFound` (a derived wrapper over
+Play's raw `step_tabToFound_eq`, the wave-3b public home — the card's
+original private firing dialect, dedup-marked for the census). -/
+private theorem tabToFound_fires_eq {st : State} {y : Card} {ky : Anchor}
+    (hny : st.nextUp y = true)
+    (hstky : st.pileOfTop y = some ky) :
+    State.step st (Move.tabToFound y) =
+      some { st.setFound y.suit (st.found y.suit ++ [y]) with
+        piles := fun a' => if a' = ky then
+            Pile.afterRunRemoved (st.piles ky) (chop (st.piles ky).faceUp)
+          else st.piles a' } := by
+  rw [step_tabToFound_eq, hny, hstky]
+  rfl
+
+/-- The firing equation of a live `foundToTab` (a derived wrapper over
+Play's raw `step_foundToTab_eq` — same story). -/
+private theorem foundToTab_fires_eq {st : State} {c : Card} {b : Base}
+    (htopr : st.foundTop c.suit = some c)
+    (hcpr : st.canPlace c b = true) :
+    State.step st (Move.foundToTab c b) =
+      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
+  rw [step_foundToTab_eq, htopr]
+  simp only [hcpr]
+  rfl
+
 /-- The mechanical square: a `tabToFound y` raise and a
 `foundToTab c b` worry at distinct suits, no inter-suite corner in the
 worry's base, compose the same successor state in both orders. -/
@@ -5556,7 +5581,7 @@ private theorem raise_worry_square {st : State} {c y : Card} {b : Base} {s₁ t 
           else st.piles a' } := ⟨_, rfl⟩
       have hrspec : State.step st (Move.tabToFound y) = some r := by
         rw [hrdef]
-        exact step_tabToFound_eq hny' hstky
+        exact tabToFound_fires_eq hny' hstky
       have hrp : ∀ a', r.piles a' =
           (if a' = ky then Pile.afterRunRemoved (st.piles ky) (chop (st.piles ky).faceUp)
             else st.piles a') := by
@@ -5579,7 +5604,7 @@ private theorem raise_worry_square {st : State} {c y : Card} {b : Base} {s₁ t 
       refine ⟨r, hrspec, ?_⟩
       have hworry : State.step r (Move.foundToTab c (Sum.inl a)) =
           some ((r.setFound c.suit (chop (r.found c.suit))).putCard c (Sum.inl a)) :=
-        step_foundToTab_eq htopr hcpr
+        foundToTab_fires_eq htopr hcpr
       rw [hworry]
       have hshape : t = { s₁.setFound y.suit (s₁.found y.suit ++ [y]) with
         piles := fun a' => if a' = ky then
@@ -5689,7 +5714,7 @@ private theorem raise_worry_square {st : State} {c y : Card} {b : Base} {s₁ t 
           else st.piles a' } := ⟨_, rfl⟩
       have hrspec : State.step st (Move.tabToFound y) = some r := by
         rw [hrdef]
-        exact step_tabToFound_eq hny' hstky
+        exact tabToFound_fires_eq hny' hstky
       have hrp : ∀ a', r.piles a' =
           (if a' = ky then Pile.afterRunRemoved (st.piles ky) (chop (st.piles ky).faceUp)
             else st.piles a') := by
@@ -5739,7 +5764,7 @@ private theorem raise_worry_square {st : State} {c y : Card} {b : Base} {s₁ t 
       refine ⟨r, hrspec, ?_⟩
       have hworry : State.step r (Move.foundToTab c (Sum.inr z)) =
           some ((r.setFound c.suit (chop (r.found c.suit))).putCard c (Sum.inr z)) :=
-        step_foundToTab_eq htopr hcpr
+        foundToTab_fires_eq htopr hcpr
       rw [hworry]
       have hshape : t = { s₁.setFound y.suit (s₁.found y.suit ++ [y]) with
         piles := fun a' => if a' = ky then
