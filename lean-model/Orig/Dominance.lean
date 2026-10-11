@@ -616,21 +616,32 @@ theorem wastePark_restack {st : State} {y : Card} {b : Sum Anchor Card}
 
 /-! ### The named sub-residue (the normal-form half) -/
 
-/-- **(N) The normal-form half** — §5.1's one remaining piece as a PROVEN
-skeleton's sole named sub-residue (the `replay_head_residue` /
-`vacate_secondMove_residue` house pattern): at the bare-floor corner,
-every winning play has a `groundBlocked`-clean winning counterpart
-that raises `c` at its first `tabToFound c`.
+/-- **(N) The lifted win** — §5.1's one remaining content piece,
+restaged (wave-24.6) at the WIN-LIFT as the row's single named
+sub-residue (the `replay_head_residue` / `vacate_secondMove_residue`
+house pattern): at the bare-floor corner, raising the frontier card
+`c` preserves the win — `WinFrom st` lifts to `WinFrom s₁`, the
+raised successor.
+
+**Why the restage.**  The lift and the residue are the SAME content:
+by the empty-prefix equivalence, a lifted `WinFrom s₁` produces the
+residue verbatim with `π₁ := []` (the compliance on `[]` is
+vacuous, `st.run (Move.tabToFound c :: π₂) = s₁.run π₂` through the
+run-split) — and conversely the assembly replays a compliant play
+from `s₁`.  The lift is the smaller, sharper statement: no play
+existential, no compliance predicate, just the win's transport.
+Every paragraph below (the arms, the window arithmetic, the
+protocol findings, the probes) is the LIFT's content map.
 
 **Why the row reduces here.**  `tabToFound_dominant_of_ground` below is
-PROVEN from this residue plus the ground replay (`ground_replay_go`,
+PROVEN from `tabToFound_groundNormalForm` (which is now a two-line
+consequence of this lift) plus the ground replay (`ground_replay_go`,
 also below): a compliant winning play `π₁ ++ tabToFound c :: π₂`
 replays from the raised state `s₁` as the verbatim prefix and the
 verbatim tail — the raise moves to the front for free, the two states
 coincide from the rung pass on, and the compliant prefix commutes
 through the divergence field (found `c.suit` one ahead, pile `k` the
-revealed counterpart of `c`'s seat).  The residue is exactly the
-transform content, stated as the existence of the compliant shape.
+revealed counterpart of `c`'s seat).
 
 **The compliance is the replay's verbatim demand, nothing more.**
 Each `groundBlocked` arm covers a move kind whose legality at the
@@ -760,7 +771,32 @@ findings are recorded for the next session.
     avoid ALL safely-buildable cards, whose own proof they do not
     spell out (the "covered park" corner), which is the same family as
     the (C) storage prong; a physical proof must close it by the
-    streak-raise reshape, not inherit it. -/
+    streak-raise reshape, not inherit it.
+
+**The premise spellings.**  `hwf` makes every search exact
+(`pileOfTop_eq_some_iff`, the two-hits rule); `hsafe` is the razor
+slack the streak-raise channel spends; `hk`+`hnext` FIRE the raise —
+`hstep` hands this lift the canonical successor record; `hbare`
+makes the dug run the singleton `[c]` (the γ bridge's dig parity);
+`hcorner` excludes the undo-bare returnable world (that half is
+LANDED as `tabToFound_undo_bare`).  TODO(proof of the lift). -/
+theorem ground_lifted_win {st : State} {c : Card} {k : Anchor} {s₁ : State}
+    (hwf : st.WF) (hsafe : safeToFound st c = true)
+    (hk : st.pileOfTop c = some k)
+    (hnext : st.nextUp c = true)
+    (hbare : chop (st.piles k).faceUp = [])
+    (hcorner : (st.piles k).hidden ≠ [] ∨ c.rank ≠ Rank.king)
+    (hstep : State.step st (Move.tabToFound c) = some s₁)
+    (hsolv : WinFrom st) :
+    WinFrom s₁ := sorry
+
+/-- **(N) The normal-form half** — the residue, PROVEN from the lift
+by the empty-prefix equivalence: the lifted play IS the compliant
+shape with `π₁ := []` (the compliance on the empty prefix is vacuous,
+the run splits through `hstep` into `s₁`'s lifted play).  The row's
+content now lives entirely in `ground_lifted_win` above, whose route
+note (arms, window arithmetic, protocol findings, probes, the
+B&G App. B.1 map) is the (N) content map. -/
 theorem tabToFound_groundNormalForm {st : State} {c : Card} {k : Anchor}
     (hwf : st.WF) (hsafe : safeToFound st c = true)
     (hk : st.pileOfTop c = some k)
@@ -769,7 +805,24 @@ theorem tabToFound_groundNormalForm {st : State} {c : Card} {k : Anchor}
     (hcorner : (st.piles k).hidden ≠ [] ∨ c.rank ≠ Rank.king)
     (hsolv : WinFrom st) :
     ∃ π₁ π₂ w, st.run (π₁ ++ Move.tabToFound c :: π₂) = some w ∧ w.isWin = true ∧
-      ∀ m ∈ π₁, m ≠ Move.tabToFound c ∧ Move.groundBlocked c m = false := sorry
+      ∀ m ∈ π₁, m ≠ Move.tabToFound c ∧ Move.groundBlocked c m = false := by
+  -- the raise fires at st: hnext + hk write the canonical successor
+  obtain ⟨s₁, hstep⟩ : ∃ s₁, State.step st (Move.tabToFound c) = some s₁ :=
+    ⟨{ st.setFound c.suit (st.found c.suit ++ [c]) with
+        piles := fun a' => if a' = k then
+            Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+          else st.piles a' },
+      by simp only [State.step, hnext, hk]; rfl⟩
+  -- the lift transports the win
+  obtain ⟨τ, w', hτrun, hτwin⟩ :=
+    ground_lifted_win hwf hsafe hk hnext hbare hcorner hstep hsolv
+  refine ⟨[], τ, w', ?_, hτwin, by simp⟩
+  show State.run st (Move.tabToFound c :: τ) = some w'
+  rw [show State.run st (Move.tabToFound c :: τ)
+      = match State.step st (Move.tabToFound c) with
+        | some s' => State.run s' τ | none => none from rfl,
+    hstep]
+  exact hτrun
 
 /-! ### The ground replay (the mechanical half)
 
