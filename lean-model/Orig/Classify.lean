@@ -930,16 +930,11 @@ private theorem bare_king_step : ∀ {s s' : State} {m : Move},
       obtain ⟨ttr, hrt⟩ := fromCard_head rfl hne
       cases b with
       | inl k =>
-          rw [putRun_piles_inl]
-          show BareKing (if a = k then
-              (⟨[], fromCard c (s.piles a₀).faceUp⟩ : Pile)
-              else (s.setPile a₀
-                (Pile.afterRunRemoved (s.piles a₀) (below c (s.piles a₀).faceUp))).piles a)
           by_cases hak : a = k
-          · rw [ite_eq_left hak, hrt]
+          · rw [hak, putRun_piles_inl_self, hrt]
             obtain ⟨-, hking⟩ := canPlace_inl hcp
             exact ⟨rfl, hking⟩
-          · rw [ite_eq_right hak]
+          · rw [putRun_piles_inl_ne _ _ _ _ hak]
             exact hmidfact
       | inr z =>
           cases hz : (s.setPile a₀
@@ -948,22 +943,13 @@ private theorem bare_king_step : ∀ {s s' : State} {m : Move},
               rw [putRun_inr_none hz]
               exact hmidfact
           | some j =>
-              rw [putRun_piles_inr _ _ _ _ hz]
-              show BareKing (if a = j then
-                  { (s.setPile a₀
-                      (Pile.afterRunRemoved (s.piles a₀) (below c (s.piles a₀).faceUp))).piles j with
-                    faceUp := ((s.setPile a₀
-                        (Pile.afterRunRemoved (s.piles a₀) (below c (s.piles a₀).faceUp))).piles j).faceUp
-                      ++ fromCard c (s.piles a₀).faceUp }
-                  else (s.setPile a₀
-                    (Pile.afterRunRemoved (s.piles a₀) (below c (s.piles a₀).faceUp))).piles a)
               by_cases hak : a = j
-              · rw [ite_eq_left hak]
+              · rw [hak, putRun_piles_inr_self _ _ _ _ hz]
                 obtain ⟨hfa, -⟩ := pileOfTop_top hz
                 rw [hak] at hmidfact
                 obtain ⟨hhdj, hkhj⟩ := hmidfact
                 exact ⟨hhdj, kingHead_append hfa hkhj⟩
-              · rw [ite_eq_right hak]
+              · rw [putRun_piles_inr_ne _ _ _ _ hz hak]
                 exact hmidfact
 
 /-- The invariant rides along arbitrary plays. -/
@@ -1077,11 +1063,7 @@ theorem tabToTab_irreversible_of_bare_nonking {st : State} {c : Card} {b : Base}
           obtain ⟨-, hfe⟩ := (Pile.isEmpty_eq (st.piles a)).mp his
           rw [hfe] at hfr₀
           exact absurd rfl hfr₀
-        rw [putRun_piles_inl]
-        show BareKing (if a = k
-            then (⟨[], fromCard c (st.piles a).faceUp⟩ : Pile)
-            else (st.setPile a (Pile.afterRunRemoved (st.piles a) ([] : List Card))).piles a)
-        rw [ite_eq_right (fun hcon => hka hcon.symm)]
+        rw [putRun_piles_inl_ne _ _ _ _ (fun hcon => hka hcon.symm)]
         exact hself
     | inr z =>
         cases hz' : (st.setPile a
@@ -1090,17 +1072,10 @@ theorem tabToTab_irreversible_of_bare_nonking {st : State} {c : Card} {b : Base}
             rw [putRun_inr_none hz']
             exact hself
         | some j =>
-            rw [putRun_piles_inr _ _ _ _ hz']
-            show BareKing (if a = j
-                then { (st.setPile a (Pile.afterRunRemoved (st.piles a) ([] : List Card))).piles j with
-                       faceUp := ((st.setPile a
-                         (Pile.afterRunRemoved (st.piles a) ([] : List Card))).piles j).faceUp
-                         ++ fromCard c (st.piles a).faceUp }
-                else (st.setPile a (Pile.afterRunRemoved (st.piles a) ([] : List Card))).piles a)
             by_cases hja : j = a
             · rw [hja] at hz'
               exact absurd hz' (pileOfTop_ne_of_empty hEmptyM1 z)
-            · rw [ite_eq_right (fun hcon => hja hcon.symm)]
+            · rw [putRun_piles_inr_ne _ _ _ _ hz' (fun hcon => hja hcon.symm)]
               exact hself
   have hd := bare_king_run play s₁ st a hbare hrun
   obtain ⟨-, hkc⟩ := hd
@@ -1513,45 +1488,24 @@ theorem tabToTab_undo_bare {st : State} {c : Card} {b : Base} {a k : Anchor} {s�
     rw [hpre]
     exact afterRunRemoved_empty_eq' _ hhidden
   rw [haremf] at hs₁
-  have hmidK : (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k = st.piles k := by
-    show (if k = a then ⟨[], ([] : List Card)⟩ else st.piles k) = _
-    rw [ite_eq_right hka]
+  have hmidK : (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k = st.piles k :=
+    setPile_piles_ne hka
   have hs₁A : s₁.piles a = ⟨[], ([] : List Card)⟩ := by
     rw [hs₁]
     rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
-    · rw [putRun_piles_inl]
-      show (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-        else (st.setPile a ⟨[], ([] : List Card)⟩).piles a) = _
-      rw [ite_eq_right (Ne.symm hka)]
-      show (if a = a then ⟨[], ([] : List Card)⟩ else st.piles a) = _
-      rw [ite_eq_left rfl]
-    · rw [putRun_piles_inr _ _ _ _ hmidPin]
-      show (if a = k then
-          { (st.setPile a ⟨[], ([] : List Card)⟩).piles k with
-            faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩).piles k).faceUp
-              ++ fromCard c (st.piles a).faceUp }
-          else (st.setPile a ⟨[], ([] : List Card)⟩).piles a) = _
-      rw [ite_eq_right (Ne.symm hka)]
-      show (if a = a then ⟨[], ([] : List Card)⟩ else st.piles a) = _
-      rw [ite_eq_left rfl]
+    · rw [putRun_piles_inl_ne _ _ _ _ (Ne.symm hka),
+        setPile_piles_self]
+    · rw [putRun_piles_inr_ne _ _ _ _ hmidPin (Ne.symm hka),
+        setPile_piles_self]
   have hs₁K : s₁.piles k = ⟨(st.piles k).hidden,
       (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp⟩ := by
     rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
-    · rw [hs₁, putRun_piles_inl]
-      show (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-        else (st.setPile a ⟨[], ([] : List Card)⟩).piles k) = _
-      rw [ite_eq_left rfl]
+    · rw [hs₁, putRun_piles_inl_self]
       obtain ⟨hhE, hfE⟩ := (Pile.isEmpty_eq _).mp (canPlace_inl hcp).1
       refine Pile.ext ?_ ?_
       · rw [hhE]
       · rw [hfE, List.nil_append]
-    · rw [hs₁, putRun_piles_inr _ _ _ _ hmidPin]
-      show (if k = k then
-          { (st.setPile a ⟨[], ([] : List Card)⟩).piles k with
-            faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩).piles k).faceUp
-              ++ fromCard c (st.piles a).faceUp }
-          else (st.setPile a ⟨[], ([] : List Card)⟩).piles k) = _
-      rw [ite_eq_left rfl, hmidK]
+    · rw [hs₁, putRun_piles_inr_self _ _ _ _ hmidPin, hmidK]
   have hKE : (st.piles k).faceUp = [] → (st.piles k).hidden = [] := by
     rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
     · intro _
@@ -1686,15 +1640,7 @@ private theorem tabToTab_under_rtp {st : State} {c : Card} {b : Base} {a k : Anc
     refine State.ext (funext fun σ => ?_) (funext fun y => ?_) ?_ ?_ ?_
     · rw [putRun_found, setPile_found, hsF σ]
     · by_cases hya : y = a
-      · rw [hya, putRun_piles_inr _ _ _ _ hzN']
-        show (if a = a then
-            { (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
-                (below c (s₁.piles k).faceUp)) : State).piles a with
-              faceUp := ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
-                  (below c (s₁.piles k).faceUp)) : State).piles a).faceUp ++ c :: tr }
-            else (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
-                (below c (s₁.piles k).faceUp)) : State).piles a) = st.piles a
-        rw [ite_eq_left rfl, hmidA]
+      · rw [hya, putRun_piles_inr_self _ _ _ _ hzN', hmidA]
         refine Pile.ext ?_ ?_
         · exact congrArg (fun p => p.hidden) hsA
         · have hj := below_join (c := c) ((st.piles a).faceUp)
@@ -1703,36 +1649,16 @@ private theorem tabToTab_under_rtp {st : State} {c : Card} {b : Base} {a k : Anc
             congrArg (fun p => p.faceUp) hsA]
           exact hj
       · by_cases hyk : y = k
-        · rw [hyk, putRun_piles_inr _ _ _ _ hzN']
-          show (if k = a then
-              { (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
-                  (below c (s₁.piles k).faceUp)) : State).piles a with
-                faceUp := ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
-                    (below c (s₁.piles k).faceUp)) : State).piles a).faceUp ++ c :: tr }
-              else (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
-                  (below c (s₁.piles k).faceUp)) : State).piles k) = st.piles k
-          rw [ite_eq_right hka]
-          show (if k = k then Pile.afterRunRemoved (s₁.piles k)
-              (below c (s₁.piles k).faceUp) else s₁.piles k) = st.piles k
-          rw [ite_eq_left rfl, hbelowK]
+        · rw [hyk, putRun_piles_inr_ne _ _ _ _ hzN' hka,
+            setPile_piles_self, hbelowK]
           cases hF2 : (st.piles k).faceUp with
           | nil =>
               rw [afterRunRemoved_empty_eq' _ (hKhidden.trans (hKE hF2))]
               exact Pile.ext (hKE hF2).symm hF2.symm
           | cons w r₂ =>
               exact Pile.ext hKhidden hF2.symm
-        · rw [putRun_piles_inr _ _ _ _ hzN']
-          show (if y = a then
-              { (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
-                  (below c (s₁.piles k).faceUp)) : State).piles a with
-                faceUp := ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
-                    (below c (s₁.piles k).faceUp)) : State).piles a).faceUp ++ c :: tr }
-              else (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
-                  (below c (s₁.piles k).faceUp)) : State).piles y) = st.piles y
-          rw [ite_eq_right hya]
-          show (if y = k then Pile.afterRunRemoved (s₁.piles k)
-              (below c (s₁.piles k).faceUp) else s₁.piles y) = st.piles y
-          rw [ite_eq_right hyk]
+        · rw [putRun_piles_inr_ne _ _ _ _ hzN' hya,
+            setPile_piles_ne hyk]
           exact hkeep y hya hyk
     · rw [putRun_stock, setPile_stock]
       exact hsS
@@ -1800,30 +1726,13 @@ theorem tabToTab_undo_under {st : State} {c : Card} {b : Base} {a k : Anchor} {z
   have hsA : s₁.piles a = ⟨(st.piles a).hidden, below c (st.piles a).faceUp⟩ := by
     rw [hs₁]
     rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
-    · rw [putRun_piles_inl]
-      show (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-        else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-          (below c (st.piles a).faceUp)) : State).piles a) = _
-      rw [ite_eq_right (Ne.symm hka)]
-      show (if a = a then Pile.afterRunRemoved (st.piles a)
-          (below c (st.piles a).faceUp) else st.piles a) = _
-      rw [ite_eq_left rfl]
+    · rw [putRun_piles_inl_ne _ _ _ _ (Ne.symm hka),
+        setPile_piles_self]
       cases hF : below c (st.piles a).faceUp with
       | nil => exact absurd hF hprene
       | cons w t₂ => rfl
-    · rw [putRun_piles_inr _ _ _ _ hmidPin]
-      show (if a = k then
-          { (st.setPile a (Pile.afterRunRemoved (st.piles a)
-              (below c (st.piles a).faceUp)) : State).piles k with
-            faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a)
-              (below c (st.piles a).faceUp)) : State).piles k).faceUp
-              ++ fromCard c (st.piles a).faceUp }
-          else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-              (below c (st.piles a).faceUp)) : State).piles a) = _
-      rw [ite_eq_right (Ne.symm hka)]
-      show (if a = a then Pile.afterRunRemoved (st.piles a)
-          (below c (st.piles a).faceUp) else st.piles a) = _
-      rw [ite_eq_left rfl]
+    · rw [putRun_piles_inr_ne _ _ _ _ hmidPin (Ne.symm hka),
+        setPile_piles_self]
       cases hF : below c (st.piles a).faceUp with
       | nil => exact absurd hF hprene
       | cons w t₂ => rfl
@@ -1831,42 +1740,20 @@ theorem tabToTab_undo_under {st : State} {c : Card} {b : Base} {a k : Anchor} {z
       (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp⟩ := by
     rw [hs₁]
     rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
-    · rw [putRun_piles_inl]
-      show (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-        else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-          (below c (st.piles a).faceUp)) : State).piles k) = _
-      rw [ite_eq_left rfl]
+    · rw [putRun_piles_inl_self]
       obtain ⟨hhE, hfE⟩ := (Pile.isEmpty_eq _).mp (canPlace_inl hcp).1
       refine Pile.ext ?_ ?_
       · rw [hhE]
       · rw [hfE, List.nil_append]
-    · rw [putRun_piles_inr _ _ _ _ hmidPin]
-      show (if k = k then
-          { (st.setPile a (Pile.afterRunRemoved (st.piles a)
-              (below c (st.piles a).faceUp)) : State).piles k with
-            faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a)
-              (below c (st.piles a).faceUp)) : State).piles k).faceUp
-              ++ fromCard c (st.piles a).faceUp }
-          else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-              (below c (st.piles a).faceUp)) : State).piles k) = _
-      rw [ite_eq_left rfl]
-      have hmidK : (st.setPile a (Pile.afterRunRemoved (st.piles a)
-          (below c (st.piles a).faceUp)) : State).piles k = st.piles k := by
-        show (if k = a then Pile.afterRunRemoved (st.piles a)
-            (below c (st.piles a).faceUp) else st.piles k) = _
-        rw [ite_eq_right hka]
-      rw [hmidK]
+    · rw [putRun_piles_inr_self _ _ _ _ hmidPin,
+        setPile_piles_ne hka]
   have hKE : (st.piles k).faceUp = [] → (st.piles k).hidden = [] := by
     rcases hseat with rfl | ⟨z', rfl, hmidPin⟩
     · intro _
       exact (Pile.isEmpty_eq _).mp (canPlace_inl hcp).1 |>.1
     · intro hcon
       have hne := (pileOfTop_top hmidPin).1
-      rw [show (st.setPile a (Pile.afterRunRemoved (st.piles a)
-          (below c (st.piles a).faceUp)) : State).piles k = st.piles k from by
-        show (if k = a then Pile.afterRunRemoved (st.piles a)
-            (below c (st.piles a).faceUp) else st.piles k) = _
-        rw [ite_eq_right hka]] at hne
+      rw [setPile_piles_ne hka] at hne
       exact absurd hcon hne
   exact ⟨s₁, [Move.tabToTab c (Sum.inr z)], hstep,
     tabToTab_under_rtp hs₁ hrt hz hsit hhold hsA hs₁K hkeep hcN hka hzOnly hzK hKE⟩
@@ -2395,28 +2282,15 @@ theorem tabToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
                             (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1
                           have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
                             intro y hya hyk
-                            rw [hs₁, putRun_piles_inl]
-                            show (if y = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-                                else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles y)
-                              = st.piles y
-                            rw [ite_eq_right hyk]
-                            show (if y = a then ⟨[], ([] : List Card)⟩ else st.piles y)
-                              = st.piles y
-                            rw [ite_eq_right hya]
+                            rw [hs₁, putRun_piles_inl_ne _ _ _ _ hyk,
+                              setPile_piles_ne hya]
                           have hca : c ∉ (s₁.piles a).faceUp := by
-                            rw [hs₁, putRun_piles_inl]
-                            show c ∉ (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-                                else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles a).faceUp
-                            rw [ite_eq_right (Ne.symm hka)]
-                            show c ∉ (if a = a then ⟨[], ([] : List Card)⟩ else st.piles a).faceUp
-                            rw [ite_eq_left rfl]
+                            rw [hs₁, putRun_piles_inl_ne _ _ _ _ (Ne.symm hka),
+                              setPile_piles_self]
                             intro hcon
                             cases hcon
                           have hhk : c ∈ (s₁.piles k).faceUp := by
-                            rw [hs₁, putRun_piles_inl]
-                            show c ∈ (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-                                else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
-                            rw [ite_eq_left rfl, hrt]
+                            rw [hs₁, putRun_piles_inl_self, hrt]
                             exact List.mem_cons_self
                           have hhold : s₁.pileHolding c = some k :=
                             holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
@@ -2530,33 +2404,16 @@ theorem tabToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
                       wf_no_other_top hwf hzmem k hka
                     have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
                       intro y hya hyk
-                      rw [hs₁, putRun_piles_inl]
-                      show (if y = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-                          else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-                            (below c (st.piles a).faceUp)) : State).piles y)
-                        = st.piles y
-                      rw [ite_eq_right hyk]
-                      show (if y = a then Pile.afterRunRemoved (st.piles a)
-                          (below c (st.piles a).faceUp) else st.piles y) = st.piles y
-                      rw [ite_eq_right hya]
+                      rw [hs₁, putRun_piles_inl_ne _ _ _ _ hyk,
+                        setPile_piles_ne hya]
                     have hca : c ∉ (s₁.piles a).faceUp := by
-                      rw [hs₁, putRun_piles_inl]
-                      show c ∉ (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-                          else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-                            (below c (st.piles a).faceUp)) : State).piles a).faceUp
-                      rw [ite_eq_right (Ne.symm hka)]
-                      show c ∉ (if a = a then Pile.afterRunRemoved (st.piles a)
-                          (below c (st.piles a).faceUp) else st.piles a).faceUp
-                      rw [ite_eq_left rfl, hbelow]
+                      rw [hs₁, putRun_piles_inl_ne _ _ _ _ (Ne.symm hka),
+                        setPile_piles_self, hbelow]
                       show c ∉ (z₀ :: pre')
                       rw [← hbelow]
                       exact below_not_mem_self _
                     have hhk : c ∈ (s₁.piles k).faceUp := by
-                      rw [hs₁, putRun_piles_inl]
-                      show c ∈ (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-                          else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-                            (below c (st.piles a).faceUp)) : State).piles k).faceUp
-                      rw [ite_eq_left rfl, hrt]
+                      rw [hs₁, putRun_piles_inl_self, hrt]
                       exact List.mem_cons_self
                     have hhold : s₁.pileHolding c = some k :=
                       holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
@@ -2570,11 +2427,7 @@ theorem tabToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
                         have hmemK : z ∈ (s₁.piles k).faceUp := Pile.mem_of_top htop
                         have hkFu : (s₁.piles k).faceUp
                             = fromCard c (st.piles a).faceUp := by
-                          rw [hs₁, putRun_piles_inl]
-                          show (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-                              else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-                                (below c (st.piles a).faceUp)) : State).piles k).faceUp = _
-                          rw [ite_eq_left rfl]
+                          rw [hs₁, putRun_piles_inl_self]
                         rw [hkFu, hrt] at hmemK
                         rcases List.mem_cons.1 hmemK with heq | htr2
                         · rw [heq] at hsit
@@ -2717,28 +2570,15 @@ theorem tabToTab_reversibleAtW_bare_king_wf {st : State} {c : Card} {b : Base}
         (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1
       have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
         intro y hya hyk
-        rw [hs₁, putRun_piles_inl]
-        show (if y = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles y)
-          = st.piles y
-        rw [ite_eq_right hyk]
-        show (if y = a then ⟨[], ([] : List Card)⟩ else st.piles y)
-          = st.piles y
-        rw [ite_eq_right hya]
+        rw [hs₁, putRun_piles_inl_ne _ _ _ _ hyk,
+          setPile_piles_ne hya]
       have hca : c ∉ (s₁.piles a).faceUp := by
-        rw [hs₁, putRun_piles_inl]
-        show c ∉ (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles a).faceUp
-        rw [ite_eq_right (Ne.symm hka)]
-        show c ∉ (if a = a then ⟨[], ([] : List Card)⟩ else st.piles a).faceUp
-        rw [ite_eq_left rfl]
+        rw [hs₁, putRun_piles_inl_ne _ _ _ _ (Ne.symm hka),
+          setPile_piles_self]
         intro hcon
         cases hcon
       have hhk : c ∈ (s₁.piles k).faceUp := by
-        rw [hs₁, putRun_piles_inl]
-        show c ∈ (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
-        rw [ite_eq_left rfl, hrt]
+        rw [hs₁, putRun_piles_inl_self, hrt]
         exact List.mem_cons_self
       have hhold : s₁.pileHolding c = some k :=
         holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
@@ -2859,33 +2699,16 @@ theorem tabToTab_reversibleAtW_under_wf {st : State} {c : Card} {b : Base}
         wf_no_other_top hwf hzmem k hka
       have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
         intro y hya hyk
-        rw [hs₁, putRun_piles_inl]
-        show (if y = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-            else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-              (below c (st.piles a).faceUp)) : State).piles y)
-          = st.piles y
-        rw [ite_eq_right hyk]
-        show (if y = a then Pile.afterRunRemoved (st.piles a)
-          (below c (st.piles a).faceUp) else st.piles y) = st.piles y
-        rw [ite_eq_right hya]
+        rw [hs₁, putRun_piles_inl_ne _ _ _ _ hyk,
+          setPile_piles_ne hya]
       have hca : c ∉ (s₁.piles a).faceUp := by
-        rw [hs₁, putRun_piles_inl]
-        show c ∉ (if a = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-            else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-              (below c (st.piles a).faceUp)) : State).piles a).faceUp
-        rw [ite_eq_right (Ne.symm hka)]
-        show c ∉ (if a = a then Pile.afterRunRemoved (st.piles a)
-          (below c (st.piles a).faceUp) else st.piles a).faceUp
-        rw [ite_eq_left rfl, hbelow]
+        rw [hs₁, putRun_piles_inl_ne _ _ _ _ (Ne.symm hka),
+          setPile_piles_self, hbelow]
         show c ∉ (z₀ :: pre')
         rw [← hbelow]
         exact below_not_mem_self _
       have hhk : c ∈ (s₁.piles k).faceUp := by
-        rw [hs₁, putRun_piles_inl]
-        show c ∈ (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-            else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-              (below c (st.piles a).faceUp)) : State).piles k).faceUp
-        rw [ite_eq_left rfl, hrt]
+        rw [hs₁, putRun_piles_inl_self, hrt]
         exact List.mem_cons_self
       have hhold : s₁.pileHolding c = some k :=
         holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
@@ -2899,11 +2722,7 @@ theorem tabToTab_reversibleAtW_under_wf {st : State} {c : Card} {b : Base}
           have hmemK : z ∈ (s₁.piles k).faceUp := Pile.mem_of_top htop
           have hkFu : (s₁.piles k).faceUp
               = fromCard c (st.piles a).faceUp := by
-            rw [hs₁, putRun_piles_inl]
-            show (if k = k then ⟨[], fromCard c (st.piles a).faceUp⟩
-                else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-                  (below c (st.piles a).faceUp)) : State).piles k).faceUp = _
-            rw [ite_eq_left rfl]
+            rw [hs₁, putRun_piles_inl_self]
           rw [hkFu, hrt] at hmemK
           rcases List.mem_cons.1 hmemK with heq | htr2
           · rw [heq] at hsit
