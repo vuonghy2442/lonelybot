@@ -19,6 +19,8 @@ import Orig.Canonical
 import Orig.EdgeLabel
 import Orig.MergeWalls
 import Orig.TwinExchangeBoth
+import Orig.PileSwap
+import Orig.Vacate
 import Orig.Progress
 import Orig.Dominance
 
