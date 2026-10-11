@@ -2803,7 +2803,40 @@ vacateShape (c.rank ≠ Rank.king ∧ ∃a, pileHolding = some a ∧ hidden = []
 
 * Card A: commit 3fa5928 (PileSwap) — fully landed, zero sorry, axioms clean.
 * Card B: skeleton + shape in Orig/Vacate.lean — commit e453115; the pairwise squares and the corner are the next session's meat (the derivation is in the doc text; the squares are all constructible in PileSwap's idioms of pairwise computation; the corner needs `step_wf`+`WinFrom_swapPiles_iff` replay).
-* Card C: not started (needs B as the bubbling step; the shape lift acateShape is in place).
+* Card C: not started (needs B as the bubbling step; the shape lift vacateShape is in place).
 * `orig-pileswap-vacate` branch not merged into macro-game (per the discipline; the merge wave will pick it up).
+
+### Wave-24 addendum — session farm/orig-dom-b2-replay (branch `farm/orig-dom-b2-replay`, pinned to the wave-24 merge head 11f3373)
+
+**LANDED: (B) `draw1_compliant_replay` in Orig/Dominance.lean, sorry-free** — commit `66c648d`
+(head `66c648d` after a five-increment chain: W2 checkpoint `ed0a5bd`, W3 note-addendum
+`b3efea0`, wtt_waste `f2bd20a`, wtf_waste `089a312`, front_draw `3aed648`, landing `66c648d`).
+
+The B-lane's full nine-case ledger for Orig: nil (`front_nil`, WF-free), the `draw` absorb
+(`front_draw`, six arms on `draw_shape_plain`/`draw_shape_base`, per-arm data derivations ride the
+`FrontOK` motive exactly as the (A)-lane route predicted — plus two new discoveries: for the
+a=c/b=c pristine arms the u-conclusion data is the FRESH form `([], cs)`/`(bs⁻¹)++[]-waste form`,
+not a prepend — the draw already delivered c), the three board squares (`front_board_tf/tt/ft`,
+equality landings through the `double_bump_comm`/`chop_bump_comm`/`setFound_found_congr` kit),
+the four consuming waste-head squares (the pure-draw rotation resyncs as explicit two-to-three-
+engine composites; both c-position branches [stock/waste] × both kinds [wasteToFound/wasteToTab];
+the pristine `postW = []` corner is the one genuine (A) cite: the drained twin R is
+`sameCycle`-adjacent to the s₁-side landing and `draw1_sameCycle_sameFate |>.mpr` transports the
+win), and the two c-exits (`front_exit_wtf/wtt`, tail-verbatim and the `lower_foundToTab1`
+worry-back). The `FrontOK` motive fixed the canonicity the route lacked: the stock form is
+`|pre|+1` draws, the waste form `stock.length+|postW|+1` draws, each front load landing the
+engine-literal; the dispatcher `replay_front_aux` carries the customer bundle (WF, step 1, rung,
+cycle-disjunct) per kind; the final theorem reads k off the data.
+
+Single-file oracle through the whole session (`lake env lean Orig/Dominance.lean`):
+**`draw1_compliant_replay` at [propext, Quot.sound]** — sorry-free, all twelve engines clean;
+`stock_dominance_draw1` at [propext, sorryAx, Quot.sound], sorryAx ONLY through
+`draw1_compliant_normalForm` into the (C)-named residue `draw1_worry_spread_residue`; the (N)
+stub stands at line 470; the proven kit's traps are banked in the (B) LANDED note in-file
+(cons-island parse, &&-coercion, try-rfl, tuple-style obtain, never-cases-a-name, never-inline-
+redeal landings, commit cadence) — all transfer directly to the (C) residue assembly and the
+[GAP] ground row. Zero new sorries; census pins untouched (Dominance now carries the (N) and (C)
+residues only); the branch stayed unmerged.
+
 
 Residues for successors: the seven pairwise squares (draw, wasteToFound, wasteToTab-rider, tabToFound-chop, foundToTab-rider, tabToTab-through-ride, tabToTab-jettison); the two merges; the corner construction's king-source-split equality (found/stock/waste conjugation of the split; PileSwap's `putRun_swapPiles'_inr` is the located-bottom-step for the split equality); Card C's measure induction (first-non-vacate-head position, with the noted vacate-block oscillation resolution: process the RIGHTMOST vacate of the block at each bubbling step).
