@@ -195,25 +195,25 @@ theorem getLast?_of_index : ∀ (l : List Card) (c : Card),
 /-- The running board image during the initial dealing: every seat
 written so far is a processed pile's top dealt card at its own base,
 and every processed pile's top sits at its base. -/
-private def InitImg (d : Deal) (proc : List Anchor) (bd : Board) : Prop :=
+def InitImg (d : Deal) (proc : List Anchor) (bd : Board) : Prop :=
   (∀ a ∈ proc, bd.topOf (initBase d a) = (d.piles a).getLast?) ∧
   (∀ b c, bd.topOf b = some c →
     ∃ a, a ∈ proc ∧ b = initBase d a ∧ (d.piles a).getLast? = some c)
 
-private theorem initImg_empty : InitImg d [] Board.empty := by
+theorem initImg_empty : InitImg d [] Board.empty := by
   refine ⟨fun a ha => absurd ha (by simp), ?_⟩
   intro b c hb
   rw [Board.empty_topOf] at hb
   exact absurd hb (by simp)
 
 /-- The pile index decides the anchor. -/
-private theorem anchor_toIdx_inj {a a' : Anchor} (h : a.toIdx = a'.toIdx) :
+theorem anchor_toIdx_inj {a a' : Anchor} (h : a.toIdx = a'.toIdx) :
     a = a' := by
   cases a <;> cases a' <;> simp_all [Anchor.toIdx]
 
 /-- The dealt under-card form of `initBase`: an anchor for `p0`, the
 under-card otherwise (WF pile lengths keep the index in range). -/
-private theorem initBase_shape (d : Deal) (hd : d.WF) (a : Anchor) :
+theorem initBase_shape (d : Deal) (hd : d.WF) (a : Anchor) :
     a = Anchor.p0 ∨ ∃ u, initBase d a = Sum.inr u ∧ u ∈ d.piles a := by
   cases hti : a.toIdx with
   | zero => exact Or.inl (anchor_toIdx_inj hti)
@@ -232,7 +232,7 @@ private theorem initBase_shape (d : Deal) (hd : d.WF) (a : Anchor) :
           · exact List.mem_iff_getElem?.mpr ⟨k, hgt⟩
 
 /-- `initBase` is injective in the anchor at a WF deal. -/
-private theorem initBase_eq_of_eq (d : Deal) (hd : d.WF) {a a' : Anchor}
+theorem initBase_eq_of_eq (d : Deal) (hd : d.WF) {a a' : Anchor}
     (h : initBase d a = initBase d a') : a = a' := by
   have hp0 : initBase d Anchor.p0 = Sum.inl Anchor.p0 := rfl
   rcases initBase_shape d hd a with hap | ⟨u, hu, hmu⟩
@@ -250,7 +250,7 @@ private theorem initBase_eq_of_eq (d : Deal) (hd : d.WF) {a a' : Anchor}
 
 /-- The next pile's base is free in the running board: all written seats
 belong to processed piles. -/
-private theorem initBase_free (d : Deal) (hd : d.WF) {proc : List Anchor}
+theorem initBase_free (d : Deal) (hd : d.WF) {proc : List Anchor}
     {bd : Board} (himg : InitImg d proc bd) {a₀ : Anchor} (hnot : a₀ ∉ proc) :
     bd.topOf (initBase d a₀) = none := by
   cases hocc : bd.topOf (initBase d a₀) with
@@ -262,7 +262,7 @@ private theorem initBase_free (d : Deal) (hd : d.WF) {proc : List Anchor}
 
 /-- One deal step of the initial fold preserves (and extends) the
 board image. -/
-private theorem initStep_preserves_Img (d : Deal) (hd : d.WF)
+theorem initStep_preserves_Img (d : Deal) (hd : d.WF)
     {proc : List Anchor} {bd : Board} {a₀ : Anchor}
     (himg : InitImg d proc bd) (hnot : a₀ ∉ proc) :
     InitImg d (a₀ :: proc) (initStep d bd a₀) := by
@@ -321,7 +321,7 @@ private theorem initStep_preserves_Img (d : Deal) (hd : d.WF)
 
 /-- The fold driver: the whole dealing sequence boards every pile's top
 card. -/
-private theorem initFold_img_aux (d : Deal) (hd : d.WF) :
+theorem initFold_img_aux (d : Deal) (hd : d.WF) :
     ∀ (as proc : List Anchor) (bd : Board),
     as.Nodup → proc.Nodup → (∀ a ∈ as, a ∉ proc) →
     (∀ a ∈ as, a ∈ Anchor.all) → (∀ a ∈ proc, a ∈ Anchor.all) →

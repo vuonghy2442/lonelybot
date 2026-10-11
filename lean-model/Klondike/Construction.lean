@@ -321,162 +321,12 @@ theorem round_deckPile {st : State} (hds : st.drawStep = 1)
 /-! ## The dealt tails' initial seats
 
 The initial board seats every pile's top dealt card (the *tail*) at
-its `initBase` — the fragment's always-seated bases.  (Machinery
-re-proved here from `Init.lean`'s fold because the probe's copy is
-private to witnesses/KingAnchorReachProbe.lean; see the deprivatize
-ticket for retiring the duplication.) -/
+its `initBase` — the fragment's always-seated bases.  (Since the
+deprivatize ticket landed, the InitImg machinery is public in
+`Klondike.Initial` and this chapter cites it; the re-proved private
+copy is retired.  The witnesses-side probe copy remains its own
+ticket.) -/
 
-private def InitImg (d : Deal) (proc : List Anchor) (bd : Board) : Prop :=
-  (∀ a ∈ proc, bd.topOf (initBase d a) = (d.piles a).getLast?) ∧
-  (∀ b c, bd.topOf b = some c →
-    ∃ a, a ∈ proc ∧ b = initBase d a ∧ (d.piles a).getLast? = some c)
-
-private theorem initImg_empty (d : Deal) : InitImg d [] Board.empty := by
-  refine ⟨fun a ha => absurd ha (by simp), fun b c hb => ?_⟩
-  rw [Board.empty_topOf] at hb
-  exact absurd hb (by simp)
-
-private theorem anchor_toIdx_inj {a a' : Anchor} (h : a.toIdx = a'.toIdx) :
-    a = a' := by
-  cases a <;> cases a' <;> simp_all [Anchor.toIdx]
-
-private theorem initBase_shape (d : Deal) (hd : d.WF) (a : Anchor) :
-    a = Anchor.p0 ∨ ∃ u, initBase d a = Sum.inr u ∧ u ∈ d.piles a := by
-  cases hti : a.toIdx with
-  | zero => exact Or.inl (anchor_toIdx_inj hti)
-  | succ k =>
-      refine Or.inr ?_
-      have hlen : (d.piles a).length = k + 2 := by rw [hd.1 a, hti]
-      cases hgt : (d.piles a)[k]? with
-      | none =>
-          have hbad := List.getElem?_eq_none_iff.mp hgt
-          rw [hlen] at hbad
-          exact absurd hbad (by omega)
-      | some u =>
-          refine ⟨u, ?_, ?_⟩
-          · show initBase d a = Sum.inr u
-            simp only [initBase, hti, hgt]
-          · exact List.mem_iff_getElem?.mpr ⟨k, hgt⟩
-
-private theorem initBase_eq_of_eq (d : Deal) (hd : d.WF) {a a' : Anchor}
-    (h : initBase d a = initBase d a') : a = a' := by
-  have hp0 : initBase d Anchor.p0 = Sum.inl Anchor.p0 := rfl
-  rcases initBase_shape d hd a with hap | ⟨u, hu, hmu⟩
-  · rcases initBase_shape d hd a' with hap' | ⟨u', hu', hmu'⟩
-    · rw [hap, hap']
-    · rw [hap, hp0, hu'] at h
-      exact absurd h (by simp)
-  · rcases initBase_shape d hd a' with hap' | ⟨u', hu', hmu'⟩
-    · rw [hu, hap', hp0] at h
-      exact absurd h (by simp)
-    · rw [hu, hu'] at h
-      have huu : u = u' := Sum.inr.inj h
-      have hmu2 : u ∈ d.piles a' := by rw [huu]; exact hmu'
-      exact Deal.piles_disj hd hmu hmu2
-
-private theorem initBase_free (d : Deal) (hd : d.WF) {proc : List Anchor}
-    {bd : Board} (himg : InitImg d proc bd) {a₀ : Anchor} (hnot : a₀ ∉ proc) :
-    bd.topOf (initBase d a₀) = none := by
-  cases hocc : bd.topOf (initBase d a₀) with
-  | none => rfl
-  | some c =>
-      exfalso
-      obtain ⟨a, ham, hbase, -⟩ := himg.2 _ c hocc
-      exact hnot (by rw [initBase_eq_of_eq d hd hbase]; exact ham)
-
-private theorem initStep_preserves_Img (d : Deal) (hd : d.WF)
-    {proc : List Anchor} {bd : Board} {a₀ : Anchor}
-    (himg : InitImg d proc bd) (hnot : a₀ ∉ proc) :
-    InitImg d (a₀ :: proc) (initStep d bd a₀) := by
-  obtain ⟨h1, h2⟩ := himg
-  cases hgt : (d.piles a₀).getLast? with
-  | none =>
-      have hstep : initStep d bd a₀ = bd := by simp only [initStep, hgt]
-      rw [hstep]
-      refine ⟨?_, ?_⟩
-      · intro a ha
-        rcases List.mem_cons.mp ha with rfl | hap
-        · rw [initBase_free d hd ⟨h1, h2⟩ hnot, hgt]
-        · exact h1 a hap
-      · intro b c hb
-        obtain ⟨a, ham, hbase, hlast⟩ := h2 b c hb
-        exact ⟨a, List.mem_cons_of_mem _ ham, hbase, hlast⟩
-  | some top =>
-      have hfree := initBase_free d hd ⟨h1, h2⟩ hnot
-      have hbotnone : bd.bottomOf top = none := by
-        refine (Board.bottomOf_eq_none bd top).mpr (fun b' hb => ?_)
-        obtain ⟨a, ham, hb, hlast⟩ := h2 b' top hb
-        have hmema : top ∈ d.piles a := mem_of_getLast hlast
-        have hmem0 : top ∈ d.piles a₀ := mem_of_getLast hgt
-        have hae := Deal.piles_disj hd hmem0 hmema
-        rw [← hae] at ham
-        exact hnot ham
-      have hattach : bd.attach (initBase d a₀) top ≠ none :=
-        (Board.attach_eq_some_iff bd (initBase d a₀) top).mpr ⟨hfree, hbotnone⟩
-      cases hatt : bd.attach (initBase d a₀) top with
-      | none => rw [hatt] at hattach; exact absurd hattach (by simp)
-      | some bd' =>
-          have hstep : initStep d bd a₀ = bd' := by
-            simp only [initStep, hgt, hatt, Option.getD]
-          rw [hstep]
-          refine ⟨?_, ?_⟩
-          · intro a ha
-            rcases List.mem_cons.mp ha with hhead | hap
-            · rw [hhead]
-              rw [Board.attach_topOf bd (initBase d a₀) top hatt, hgt]
-            · have hne : initBase d a ≠ initBase d a₀ := by
-                intro hcon
-                exact hnot (by
-                  have heq := (initBase_eq_of_eq d hd hcon).symm
-                  rw [heq]
-                  exact hap)
-              rw [Board.attach_topOf_ne bd (initBase d a₀) top hatt hne]
-              exact h1 a hap
-          · intro b c hb
-            by_cases hbb : b = initBase d a₀
-            · rw [hbb, Board.attach_topOf bd (initBase d a₀) top hatt,
-                Option.some.injEq] at hb
-              exact ⟨a₀, (by simp), hbb, by rw [← hb]; exact hgt⟩
-            · rw [Board.attach_topOf_ne bd (initBase d a₀) top hatt hbb] at hb
-              obtain ⟨a, ham, hbase, hlast⟩ := h2 b c hb
-              exact ⟨a, List.mem_cons_of_mem _ ham, hbase, hlast⟩
-
-private theorem initFold_img_aux (d : Deal) (hd : d.WF) :
-    ∀ (as proc : List Anchor) (bd : Board),
-    as.Nodup → proc.Nodup → (∀ a ∈ as, a ∉ proc) →
-    (∀ a ∈ as, a ∈ Anchor.all) → (∀ a ∈ proc, a ∈ Anchor.all) →
-    InitImg d proc bd →
-    InitImg d (as.reverse ++ proc) (as.foldl (initStep d) bd) := by
-  intro as
-  induction as with
-  | nil =>
-      intro proc bd _ _ _ _ _ himg
-      exact himg
-  | cons a₀ rest ih =>
-      intro proc bd hnd hndp hdis hallp hallproc himg
-      have hstep := initStep_preserves_Img d hd himg (hdis a₀ (by simp))
-      obtain ⟨ha0nr, hndr⟩ := List.nodup_cons.mp hnd
-      have hproc' : (a₀ :: proc).Nodup :=
-        List.nodup_cons.mpr ⟨hdis a₀ (by simp), hndp⟩
-      have hdis' : ∀ a ∈ rest, a ∉ a₀ :: proc := by
-        intro a har hap
-        rcases List.mem_cons.mp hap with heq | happ
-        · rw [heq] at har
-          exact ha0nr har
-        · exact hdis a (List.mem_cons_of_mem _ har) happ
-      have hallas : ∀ a ∈ rest, a ∈ Anchor.all :=
-        fun a har => hallp a (List.mem_cons_of_mem _ har)
-      have hallproc' : ∀ a ∈ a₀ :: proc, a ∈ Anchor.all := by
-        intro a hap
-        rcases List.mem_cons.mp hap with heq | hp
-        · rw [heq]
-          exact a₀.mem_all
-        · exact hallproc a hp
-      have hmm := ih (a₀ :: proc) (initStep d bd a₀) hndr hproc' hdis'
-        hallas hallproc' hstep
-      rw [show (a₀ :: rest).reverse ++ proc = rest.reverse ++ a₀ :: proc from by
-        rw [List.reverse_cons, List.append_assoc, List.cons_append, List.nil_append]]
-      exact hmm
 
 /-- **The initial board seats every tail**: each pile's top dealt
 card sits at its `initBase` (the seed fact of the construction — the
@@ -487,7 +337,7 @@ theorem initial_seats (d : Deal) (hd : d.WF) (a : Anchor) :
     (by decide) (by decide)
     (fun _ _ ha => absurd ha (by simp))
     (fun a _ => a.mem_all) (fun _ ha => absurd ha (by simp))
-    (initImg_empty d)
+    initImg_empty
   refine hall.1 a ?_
   exact List.mem_reverse.mpr a.mem_all
 
