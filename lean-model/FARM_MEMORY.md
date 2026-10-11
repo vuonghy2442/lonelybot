@@ -4347,3 +4347,12 @@ checkpoints.
   language's invariant (here: `forkSpectrum_rungsFlat`, 20 lines) —
   the invariant either blesses the statement or hands the
   counterexample row on a plate.
+
+## ConjugateProof.lean — the toolchain quirks of the conjugation card (2026-10-12)
+
+- `Bool.and_eq_true` is an EQ-form here (`((a && b) = true) = (a = true ∧ b = true)`), NOT an Iff: `.mp` does not exist on it; the Iff twin is `Bool.and_eq_true_iff`. Speaking `.2`/`.mp` on the wrong one costs a cycle; probe with `#check @Bool.and_eq_true` before use.
+- The `&&` composer elaborates the LAST Bool component through `decide (C = true)` in whnf/display: a three-deep witness test's canonical presentation is `(A = true ∧ B = true) ∧ C = true`. State conjunction bridges at THAT grouping and prove them by `rw [def] at h; simp only [Bool.and_eq_true] at h; exact h` — the rw unfolds, the simp only does the iota + decide-canonical normalization in one step. Variable-grade unpackers (`∀ b₁ b₂ b₃`) are safe; unpacking at the instantiated grade with `Card.universe.all` components hits "Dependent elimination failed: true = Bool.rec false …" — the BEq-of-Card expansion inside the eliminator motive.
+- `rfl : Card.universe = fully-unfolded-flatMap-form` FAILS: `Suit.all.flatMap` does not collapse definitionally to the map/append/flatten recursion form. Never bridge across the two list presentations by a defeq `have := hp3`; route through per-card search reads (`firstWhere_sound`, `firstWhere_find`, membership rows) which stay at the name-stable grade.
+- `cases hx : e with` substitutes the equation into the goal — a following `rw [hx]` then fails with "pattern not found". For match-nested definitions the working recipe: `by_cases`/`option_some_of_ne_none` + rw-chains to install literals, then per-arm `simp only [eq-hypos]` — simp only CAN enter `match some x with` (the arm-binder trap that kills plain rw does not stop simp's iota).
+- `exact Or.inl rfl` inside a simp-reduced branch where the goal became `True ∨ …` should be `exact Or.inl trivial`; and where the whole disjunction collapsed, just `trivial==exact trivial`. Check the post-simp goal shape before choosing the closer.
+- Pairs in `injection h with h1 h2` on `some (b, s'') = some (ba, s')`: one injection yields the PAIR equality; inject twice (`injection h` then `injection hp`), or the "too many identifiers" error names the unused ones.
