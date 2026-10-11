@@ -2647,3 +2647,80 @@ slate-permutation question — the two breakage shapes (α)/(β) are
 sharply characterized; a three-slot invariant or a tight-world witness
 would settle it); route 3's drop-at-end induction; the jettison /
 rider-stack / same-root-merge squares.
+
+## Wave 24 — ORIG, the vacate rule at the engine layer (pile transposition as its infrastructure)
+
+Session: farm/orig-pileswap-vacate, branched from macro-game 420f99f (the
+manual merge head; the automatic branch head had moved past it, so the
+session pinned to the stated macro-game commit). Build: `lake build
+Klondike Witnesses Orig` green — 26 jobs for `Orig` at session end (22
+chapters + PileSwap + Vacate + the two root modules), 105 jobs for the
+full triple target (was 103 at the pin). Census: `witnesses/VacateCoReal.lean`
+and all Klondike chapters untouched — the pinned sorry census stays 11;
+zero sorry landed in the new rows (PileSwap and Vacate are both sorry-free).
+
+### Card A — Orig/PileSwap.lean (lands complete; the infrastructure)
+
+The position symmetry in Orig's own vocabulary, ~1200 lines:
+
+* §1 `Anchor.swap i j` (the if-the-else transposition) + `swap_self_left/right/eq_self/refl/rev/swap_swap/inj`;
+  `Base.swapBase` (anchor seats re-anchor, card seats ride) + `_inl/_inr/_swapBase/_inj/_rev`.
+* §2 `State.swapPiles i j` — the piles field composed; `found/stock/waste/drawStep`
+  untouched (rfl rows); `Move.swapM i j` — draw/wasteToFound/tabToFound fixed
+  points, wasteToTab/foundToTab/tabToTab re-base; `swapPiles_with` (rfl) for the
+  draw assemblies.
+* §3 the reader conjugations. `pileOfTop_swapPiles`/`pileHolding_swapPiles` in
+  option-map form — both `WF` premises because `firstWhere` is ORDER-SENSITIVE
+  (search-side uniqueness through `Integrity.pileOfTop_eq_some_iff`/`pileOfTop_inj`/`mem_faceUp_unique`);
+  then `canPlace_swapPiles` (WF), `setPile_swapPiles` (rfl-free), `putCard_swapPiles`/`putRun_swapPiles` (WF);
+  plus the operational hpt preloaded premised twins `putCard_swapPiles'`/`putRun_swapPiles'`
+  (with intermediates `pileOfTop_congr_piles`) — these exist because the placement
+  arms write through composite intermediate states that are NOT WF and the WF route
+  cannot supply the auto-flip evidence for readers.
+* §4 `recycle_swapPiles`, `dealStock_swapPiles`, `stepDraw_swapPiles`, then
+  `step_swapPiles` per kind + `legal_swapPiles` — the commutation the whole
+  chapter turns on.
+* §6 (before §5) — the Orig-only upgrade: `Anchor.all_map_swap_perm` (the
+  49 anchor-pair cases fall to `decide` because `List.Perm` is decidable in
+  core), `swapPiles_zones_perm`/`cardCount_swapPiles` (the block rides
+  List.Perm through flatMap_right then filter then length) and `wf_swapPiles_iff`
+  — the conservation transfer Klondike could not have
+  (`swapPiles_dealWF_blocked`) lands here because the macro model's
+  slate/depth machinery does not exist at the Orig layer (Klondike's §6
+  depthsZero and §7 same-deal rows deliberately not ported).
+* §5 `run_swapPiles` (structure induction over plays; `step_wf` from Orig.Reach provides the WF threading), `WinFrom_of_swapPiles` and `WinFrom_swapPiles_iff` (reverse leg via involutivity: σσ-id + the already-landed forward leg). Zero sorry; axioms verified: [propext, Quot.sound]-down, choice only via WF-dependent faces — full profile [propext, Classical.choice, Quot.sound].
+
+### Card B — Orig/Vacate.lean (lazy skeleton; the case map compiled to documentation)
+
+vacateShape (c.rank ≠ Rank.king ∧ ∃a, pileHolding = some a ∧ hidden = [] ∧ below = []) — the card C shape lift, base-blind per the brief. The pairwise row (`vacate_tabToTab_prunable_of_empty`) does not land this wave; its lattice is re-derived from scratch in the Vacate.lean doc and re-checked against the fit rules. The result is SHARPER than Klondike's residue list (all in the doc, briefly below — the doc text is the authoritative record):
+
+* corner — `m₂` lands a king on the just-emptied pile: foundToTab/wasteToTab/tabToTab(K-run) into `(inl a)`; reroute [m;K-to-a] to [K-to-h;m] with h the pre-existing hole (legal from the start — `isEmpty` holds at the root).  The reroute construction: [K-to-h;m]-state is `swapPiles a h` of the [m;K-to-a]-state plus the king-source split sets, which do not touch {a,h}; a one-liner off `WinFrom_swapPiles_iff` + the new run lift.  No slate, no reveal-token divergence (the flip composes inside `step`; piles travel whole).
+* exchange ledger — exact squares: draw and wasteToFound (fieldwise-disjoint);
+  rider seats (`b₂ = inr t_R`: waste card both sides, append-associativity of faceUp), the through-ride (`tabToTab` picking a suffix of an old-P_T-hosted run; P_T-split at the old-prefix, run appended at the cross-order step — identity through the located-putRun rows of PileSwap); interior jettisons for tabToTab: same-state rider squares when the sub-run lands at a third pile; chop-plate merges — the single-card-root `tabToFound c` merge and the root-reroot `tabToTab c b₂` merge.
+* DEAD family originals — cards die at the s₁-launch state: the `rider/below z` seat dies via `canPlace_inr_target_off_run` and the rank reflection constraint (the residue contradiction); the old-P_T interior ranks are all ABOVE z's rank by runOK-descent (every old-P_T face-up sits under z), so `canSitOn c₂ t_R` into the landed run's top is killed by the descending-rank discipline; interior kings cannot exist because runs descend from NON-KING roots (king-as-root excluded by hnk, king-in-interior impossible by descent and the max-rank fact); `inl`-seats die because interior cards are non-kings (the pile content of s₁ is the landed run — non-king all the way).
+* drop-at-end — NOT NEEDED for Card B: every living route re-inserts m as the SECOND move, protecting the head.
+
+### Dedup marks (the lemon rule; documentation-only per the ledger)
+
+* Orig/TwinExchangeBoth.lean carries a private `swapAnch` + `swapAnch_left/right/ne` — the SAME transposition function as PileSwap §1's public `Anchor.swap` — carried privately for cargo-exchange bookkeeping. Absorb the private family into the public at harvest.
+* `exch_topOf_swap`/`exch_pileOfTop_swap` there are CARGO-EXCHANGE rows (anchors stable, contents moved between twin hosts); NOT position rows and NOT absorbable by PileSwap's conjugations — they are the `twinMap`-parallel of `pileOfTop_swapPiles`. Keep both.
+* Orig/Reach.lean's private `mem_below` matches PileSwap §4's private `mem_below'` (my copy; dedup-marked). Similarly Integrity's private `mem_afterRunRemoved_below_zone` versus PileSwap §4's private `nmem_afterRunRemoved_below`. Hoist at harvest.
+* PileSwap reuses Twin.lean's public irstWhere_congr rather than carrying a private copy — averted a fresh duplicate.
+* Card A's arm-by-arm rw-show inversions are inline only (no named step_inv copies); when the edge-labels session lands the public Play hoist, PileSwap's four pairwise arms can cite it and shed the inline forms cheaply.
+
+### FARM_MEMORY quirks (wave-24 finds)
+
+* `{ st with stock := X, waste := Y }.swapPiles = { st.swapPiles with … }` is rfl, but `{ (st.swapPiles i j).setFound s l with waste := w } = (…) .swapPiles` comparisons are NOT syntactic rfl's — the record-eta chain works but the elaborator needs State.ext + funext at the field level for the ones where a search row (WF-premised) enters.
+* The step arms elaborate if decide (c' = c) && st.canPlace c b then with the condition (decide (c' = c) && decide (canPlace = true)) = true — i.e. the right operand of the && is a Bool-coercion of a Prop via decide, and the outer if-condition is that Bool compared to true. Guard facts must be stated in exactly that shape; a fact stated as (decide (c = c) && canPlace) = true never matches (the lint signature is 'This simp argument is unused' plus an untouched (decide True && …) goal).
+* Step equations do NOT whnf-unfold by rfl: `st.step (.foundToTab c b) = match st.foundTop …`) is NOT a defeq step at reducible transparency. Use `simp only [State.step, …facts…]`-style rw-shows; see PileSwap §4's final idiom: partially-simp, then quote-fact rw + rfl on the Bool guards.
+* `rw`-unification will NOT unfold `Base.swapBase (Sum.inr z) i j` to match a `(Sum.inr z)` pattern — pre-rw with the rfl-cast first (PileSwap's tabToTab-cons final shows the pattern).
+* Anchor-grade lists decide: `List.Perm l1 l2` is decidable (core `decidablePerm`) — `cases i <;> cases j <;> decide` dispatches the 49-anchor-pair block permutation without any bespoke machinery.
+
+### Wave-24 final state
+
+* Card A: commit 3fa5928 (PileSwap) — fully landed, zero sorry, axioms clean.
+* Card B: skeleton + shape in Orig/Vacate.lean — commit e453115; the pairwise squares and the corner are the next session's meat (the derivation is in the doc text; the squares are all constructible in PileSwap's idioms of pairwise computation; the corner needs `step_wf`+`WinFrom_swapPiles_iff` replay).
+* Card C: not started (needs B as the bubbling step; the shape lift acateShape is in place).
+* `orig-pileswap-vacate` branch not merged into macro-game (per the discipline; the merge wave will pick it up).
+
+Residues for successors: the seven pairwise squares (draw, wasteToFound, wasteToTab-rider, tabToFound-chop, foundToTab-rider, tabToTab-through-ride, tabToTab-jettison); the two merges; the corner construction's king-source-split equality (found/stock/waste conjugation of the split; PileSwap's `putRun_swapPiles'_inr` is the located-bottom-step for the split equality); Card C's measure induction (first-non-vacate-head position, with the noted vacate-block oscillation resolution: process the RIGHTMOST vacate of the block at each bubbling step).

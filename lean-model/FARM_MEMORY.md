@@ -9190,3 +9190,57 @@ PROCESS: SIXTH session in the row hitting the stale-worktree gotcha
 macro-game` per the spawn-fix rule, tree clean afterwards.  One
 olean.private weather burst on the cold build — the warm-then-retry
 protocol banked it in two commands.
+
+## Wave 24 finds (orig-pileswap-vacate, ORIG vacate / PileSwap)
+
+- Step arms do NOT rfl-unfold: `st.step (.foundToTab c b)` vs its
+  `match st.foundTop …` form is NOT defeq at any usable
+  transparency — `rw [show st.step … = match … from rfl]` fails.
+  The working idiom: `rw [show st.step m = T from by simp only
+  [State.step, hfacts…, ite_true]; rw [gσ, g]; rfl]` — partial
+  simp, then fact-rws, then rfl; the Bool-if guards whnf away
+  AFTER the facts, not by themselves.
+
+- The step guards elaborate `if decide (c' = c) && st.canPlace c b
+  then` as `(decide (c' = c) && decide (canPlace = true)) = true`:
+  the right `&&`-operand is a decide-coercion of a Prop.  Facts
+  stated WITHOUT the inner decide never match — the signature is
+  the `unused simp argument` lint plus a live `(decide True && …)`
+  goal.
+
+- `rw` will NOT unify `Base.swapBase (Sum.inr z) i j` with a
+  bare `(Sum.inr z)` pattern — pre-rw with the rfl-cast, THEN
+  the conjugation row (PileSwap tabToTab cons-final shows it).
+
+- `List.Perm` is DECIDABLE in core (decidablePerm): anchor-grade
+  block permutations are `cases i <;> cases j <;> decide` — no
+  bespoke machinery for the 49 pair-cases of Anchor.all.
+
+- wf_swapPiles composes over the CARD-COUNT clause via the
+  chain: zones-Perm, then flatMap_right, then filter, then
+  length_eq — all core List.Perm rows, zero bespoke machinery.
+
+- PLACEMENT conjugations at the POST-WRITER states (the setPile/
+  setFound intermediates) are NOT reachable through the WF route:
+  cardCount drops mid-tabToTab.  Land them as the hpt-premised
+  rows (the PileSwap putCard'_/putRun' family): the operational
+  premise is the pileOfTop conjugation itself, discharged per
+  site — setFound sites by pileOfTop_congr_piles (piles-equal
+  rfl); setPile sites by the located-split (obtain k from
+  canPlace-inr, k ≠ a via canPlace_inr_target_pile_ne, z ∉
+  pile-a by mem_faceUp_unique, then the hslice firstWhere_find
+  on the if-unfolds).
+
+- by_cases bullets: the FIRST tactic after `·` fixes the block's
+  continuation column — sibling tactics at ANY other indent die
+  with `unexpected token 'have'`.  Write by_cases branches at a
+  single alignment and re-check after editing.
+
+- Pairs of record-updates compose by rfl ONLY field-disjointly;
+  once a search row (WF-premised firstWhere) enters the field
+  chain, State.ext + funext per field is the only way through.
+
+- The session learned once more: NEVER splice Lean files by
+  PowerShell line-ranges — one mis-anchored index duplicated a
+  300-line region silently.  The edit tool's exact-match
+  discipline (or full-file rewrites) is the only safe tool.
