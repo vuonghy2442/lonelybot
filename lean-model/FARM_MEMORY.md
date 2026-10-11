@@ -4120,3 +4120,121 @@ checkpoints.
 (2) THE SECOND-CONSTRUCTOR DAGGER: on the Move-INDEXED cell families (RevealCellAt/VacateCellAt), `rcases`/`obtain` with constructor-field names STICKS for the first constructor's case (tabToFound-indexed cells destructured fine, named fields verified green) but DAGGERS the names (hloc.dagger) on the second constructor's case (tabToTab-indexed) - the destructure "succeeds", the fields are inaccessible, and every downstream use reports unknown identifier. The robust pattern landed: the per-kind privates take the CELL FIELDS AS PLAIN PREMISES (hloc/hpre/hhne, hloc/hpre/hhd/hnk), and the ONE public row lens-extracts them per arm via the banked shape-lenses (RevealCell_shape/VacateCell_shape) with the impossible lens arm killed by ctor-disjointness (`absurd heqm (by simp)`) and the real arm pinned by `injection heqm` + a `rw [<] at` for the constructor args (NOTE: only rewrite the premises that MENTION the extra binders - `rw [<- hcc] at hloc1 hpre1` - the hidden/king fields do not mention c1/b1 and the wider `at` list FAILS the rewrite).
 
 (3) THE CANON-SIDE PREMISE GRADE FOR SEAT-BEARING CONSUMERS (the tab-seat base check, canlaw's probe made structural): `canPlace` at a raw member does NOT transport to canon in either direction (the licensed lift may consume the seat card - the seat evaporates under canon; wasteToFound_legal_canon_inv is one-directional BY REFUTATION, not by omission). Every canon-side successor row that wants the seating leg must carry the `CanonicalTip` premise so the member IS the canonical form (the landed pattern: tipEdge_wasteEntry_canonFiber) - never attempt the raw->canon canPlace transport. Also runtime: the .olean for a FAILED module build gets DELETED - probes cannot `import Orig.EdgeLabel` mid-red, and the truncated-copy trick (lesson 1) is the fallback oracle. Battery cadence held: green batch per commit (cd7a358 the datum upgrade, 934245e the third row), `lake build Orig` at 29 jobs each, fresh heads audited [propext, Quot.sound] worst, zero sorry.
+
+  disease family.
+
+## Operational — the V3 census card close-out (2026-10-11, branch `orig-canon-v3`, the census returns EMPTY, the scaffold-pull rule retires)
+
+- THE SIBLING-COMMIT TIMING HAZARD (new): a sibling worktree's
+  uncommitted diff can VANISH mid-read — the exchlaw session
+  committed their probe battery + their §10 ledger while this card
+  was mid-way through reading those same uncommitted files (the
+  second `git diff` against their tree came back empty).  RULE:
+  SNAPSHOT shared material the moment you decide to consume it
+  (`git show <branch>:<path>` to a file), and anchor every consumed
+  verdict to a COMMIT HASH (this card cites `834ebdc` by hash, not
+  "their worktree"), because a worktree is a moving checkout and a
+  branch tip can advance between your read and your ledger entry.
+- THE STOCK-EXCLUSION CRAFT BUG FAMILY, two new members (the
+  census mirror keeps catching what the hand-write misses): the
+  exchlaw member was "foundation cards join the craft exclude
+  list"; this battery added (a) "seated BLACK cards too" — the
+  cargo-corner cell shipped 54 cards because the exclusion list
+  held only the reds while the black queens sat in piles AND
+  stock; (b) "excluded-but-unseated means MISSING" — the
+  bare-non-king control excluded the red kings from every zone
+  (they lived in no pile, no foundation, no stock) and the WF gate
+  failed with cardCount 0.  PRE-FLIGHT: run the 52-total zone
+  arithmetic in the head BEFORE the first compile; the WF mirror is
+  the seat-belt, arithmetic is the pre-flight.
+- CITE-BEFORE-CRAFT (the discipline that killed a skeleton): the
+  entire V3 design — five definitions, a two-macro-leg runner, a
+  scaffoldCycle, a boundary measure — was gated to death by ONE
+  banked row: `canRaise_lifted` (Orig/Canonical.lean:1162,
+  monotone stackability for the license, "after a licensed lift
+  of another card, `c`'s license survives").  RULE: grep the bank
+  for the load-bearing row BEFORE designing any new mechanism; a
+  design that hypothesizes an obstruction must first check whether
+  the bank already proves its absence.  And before COMPOSING the
+  bank row into a census verdict, `#print axioms` the row through
+  a scratch (this card's first composite printed `sorryAx` — which
+  was the compositing card's own type error, not the bank's
+  taint; the scratch read `[propext, Quot.sound]` exonerated the
+  cite and focused the fix).
+- THE PARSER TRAP of this session: `List.flatMap` with a trailing
+  postfix (`.filterMap ...` on the same expression) — the flatMap
+  closure absorbs the postfix application and the elaborated term
+  applies a `List Move` as a function.  RULE: split composite list
+  builders (menu, then filterMap) into separate `def`s when the
+  closure body spans a line — the named intermediate IS the fix.
+  (For the record: `x.found .heart`-style chained postfix
+  projections on parenthesized receivers are VALID — the exchlaw
+  committed bridge uses exactly that shape and builds green; do
+  not "fix" it.)
+- TWO-BRANCH CARDS ARE HONEST ONLY IF THE EMPTY BRANCH REALLY IS A
+  FULL LANDING: the verdict branch (b) fires when the gating census
+  returns empty — and the discipline is (i) the closure carries a
+  THEOREM-GRADE leg (the emptiness `v3TwinContended_empty_at_wf`,
+  via the bank, not a corpus of failed hunts), (ii) the skeleton
+  is quoted VERBATIM into the ledger as dormant design (dormant is
+  not deleted — a future card that ever inhabits the family out
+  of WF's reach finds the designed shape waiting, with its
+  boundary measure), (iii) the consumed sibling verdicts are cited
+  by hash, and (iv) the degeneration is written down explicitly
+  (canonV3 = canon degenerates to the identity at WF when
+  contention is empty) so no future card "lands" the skeleton
+  unknowingly.  A census that closes a design is a full card.
+
+  unknowingly.  A census that closes a design is a full card.
+
+## Operational — the landings 3+4 close-out (2026-10-11, branch `orig-canon-v3`: the case table, the selector, the sandwich — and the decide-trap that cost a rebuild)
+
+- THE DECIDE-TRAP (the session's most expensive diagnostic): a
+  `simp`-closed Bool-lemma audit printed `[propext,
+  Classical.choice, Quot.sound]` — the `decide (x == x)`-family
+  pulled Classical through the Nat-decide desugaring (the
+  Decide-instance's proof term is Classical when the BEq/DecEq
+  instance is found generically).  RULE: in Bool-lemma proofs,
+  avoid `simp` over `==`/decide-faced goals in core-only shops —
+  write the Bool algebra by hand (conj on the component
+  equations) and audit BEFORE lighting downstream heads on it.
+  The house `[propext, Quot.sound]` ceiling is preserved on
+  every rebuilt head.
+- THE OBTAIN-CONSUMES-BOUND-VARIABLE TRAP: `obtain ⟨hn, a, hp,
+  hseat⟩ := hlic` CLEARS the hypothesis hlic — later references
+  to `hlic` die with "unknown identifier".  In dependent chains
+  (licenses consumed into seat-facts) either reassemble the
+  hypothesis from the components or take the destructuring LAST.
+  Cost: two compile cycles on pnLicPairSlice before the pattern
+  was identified.
+- THE `-`-SLOT OBTAIN TRAP: `obtain ⟨-, -, -, hseat⟩ := h` binds
+  the remaining slot as a Metavariable-typed hypothesis —
+  rcases on it fails with "not an inductive datatype".  NAMED
+  discards (`⟨hn, a, hp, hseat⟩` + ignore) beat anonymous `-`
+  slots whenever the target hypothesis carries an existentially
+  quantified middle.
+- THE INSTANCE-SURFACE ROULETTE (skeleton-relevant): core-only
+  Lean's `==` on Nat elaborates to a DECIDE-Prop (not Nat.beq);
+  `List.mem_cons_self` has implicit args in this version while
+  `List.mem_cons_of_mem` takes them explicitly; `if_pos` renamed
+  to `ite_eq_left` family.  SELF-CONTAINED Bool/Nat kit
+  (the v3NatListLt/v3NatListEq pattern) avoids the whole section.
+- THE MEMBER-LIST-BY-APPLICATION pattern: class member sets ride
+  as explicit face-lists where every member is `canon` of a
+  crafted source — never hand-drawn found/pile fields.  This
+  made the arm-choice and wing-consistency rows decide-cheap,
+  and it is the honest pre-merge form of the canus machinery:
+  the decompression card's cone engine (mem_macro_iff) remains
+  the one paid import; the skeleton's three sorry-carriers
+  (conjl's laws, posKey reuse, canonV3's choose plumbing) mark
+  where the definitions converge.
+- THE STORY-SO-FAR (the card map): landing 1 retired the
+  scaffold rule (TwinContended empty at WF — proof-grade);
+  landing 3 turned the case table into a nine-cell lattice,
+  decided the cargo triad, and closed the neighborhood
+  containment; landing 4 redefined canonV3 as the member
+  selector, landed the composite index and the argmax with the
+  sandwich law (at most one fork per class, by rank arithmetic)
+  as the deductive spine. Every request's shape is either
+  landed, ledger-reconciled to the skeleton, or named as a
+  paying residue in FUTURES §11-L4.

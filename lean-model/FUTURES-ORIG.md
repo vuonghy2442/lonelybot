@@ -1708,6 +1708,7 @@ and fresh `hZP`-style double counts.
 
 ## 10. The exchange-canon commutation card (2026-10-11, branch `orig-exch-canlaw`, rebased onto macro-game `47b1ad9`; landing-1 probe battery GREEN, the inherited backlog's first falsifier candidate FIRED)
 
+
 ## 9. The pull-multiset determinism family — session orig-macro-determinism (STATUS 2026-10-11)
 
 Branch `orig-macro-determinism`, based on macro-game `b8a1584`; the
@@ -2579,3 +2580,943 @@ AUDIT FLAG (recorded in-file): `canusOf_nonempty` reports
 the skeleton's designated `conjl := sorry` carrier in `canusOf`'s second
 disjunct; the proof rides `Or.inl` and never forces it.  The flag clears when
 the conjl carrier lands (canon-v3's ledgered def work).
+
+
+
+## 11. The V3-canonicalizer gating census (2026-10-11, branch `orig-canon-v3`, rebased onto macro-game `5ebef39`; the scaffold-pull fork-fix card, landing 1 AND the card's whole content — the census returns EMPTY, the doctrine closes)
+
+Section numbering note: §9 lives on `orig-canon-decompress` (commit
+`8a0e121`), §10 on `orig-exch-canlaw` (commit `834ebdc`); this section
+reserves §11 on this branch so the three append-only ledgers merge in
+any order.
+
+THE CARD AND ITS TWO BRANCHES.  The V3 canonicalizer was designed
+against the exchlaw B2 worried-king fork exhibit: a five-definition
+skeleton (quoted verbatim below as DORMANT DESIGN) whose
+two-macro-leg runner refuses its raise legs at contentions and
+instead performs a `scaffoldCycle` — an unblocking pull welded with
+its immediately-enabled stack and the cleanup re-raise — with the
+boundary measure Φ = foundation length strictly increasing at every
+macro-leg boundary.  The card gated everything on one census
+question, decided FIRST, before any proof effort (probe first,
+prove-or-pin): is `TwinContended` inhabited at WF?
+
+```
+TwinContended st c := both twins licensed-raise at st
+                   ∧ stacking either forecloses the other
+```
+
+**THE VERDICT: `TwinContended` is EMPTY at WF — under every pinned
+FORECLOSE reading.  Branch (b) fires: the scaffold-pull rule
+retires as unneeded; the census battery + this closure are the
+card's sole content.**
+
+* **The pinned FORECLOSE read (marked, per the card).**  The
+  reading that could carry content at WF is LICENSE-DEATH: the
+  landed state `s'` of either twin's licensed raise forecloses the
+  other's license (`¬ CanRaise s' c.twin` at the landed `s'`).  The
+  alternates were probed at the cells and struck:
+
+  - RAW-stackability death — struck: the licenses read
+    zone-disjoint components (each twin's OWN suit rung via
+    `nextUp`, each twin's OWN pile seat via `pileOfTop` +
+    `chop (piles a).faceUp`/`hidden`), and a licensed lift writes
+    exactly its own card's two zones (`setFound c.suit`, pile `a`,
+    `Orig/Play.lean`'s `tabToFound` branch) — the twin's zones
+    survive verbatim;
+  - FINAL-divergence — struck by V2's banked confluence
+    (`canon_unique`, all diamonds local): both greedy orders of a
+    licensed twin pair land at `canon st`, decided literally at
+    every positive cell;
+  - UNDO-death — struck: after the double saturation each twin
+    pulls back (`foundToTab`) onto its exposed bases and every
+    pulled excursion re-saturates home — the round trip is the
+    landed undo family's content (the V2 five-cell, decided).
+
+* **The systematic half is THEOREM-GRADE and rides the bank.**  The
+  house monotone-stackability row `canRaise_lifted`
+  (`Orig/Canonical.lean:1162` — "after a licensed lift of another
+  card, `c`'s license survives", `[propext, Quot.sound]`) was probed
+  for its axioms (`#print axioms` — clean) and instantiated at the
+  twin seats in the battery file:
+
+  - `v3Card_twin_ne` — twinning is fixed-point-free (a pair is
+    always two seats), `[propext]`;
+  - `v3twin_raise_independent` — at WF, both twins licensed and
+    `c`'s lift fires ⇒ `CanRaise s' c.twin` at the landed `s'`
+    (`canRaise_lifted` at the twin seats), `[propext, Quot.sound]`;
+  - `v3TwinContended_empty_at_wf` — **THE CENSUS VERDICT:
+    `TwinContended st c → False` at `WF`**, `[propext,
+    Quot.sound]`, zero sorry, zero native_decide;
+  - `v3TwinContendedB_true_iff` — the decide-graded census Bool
+    (`v3TwinContendedB`) speaks the Prop (`v3ForecloseB` reads the
+    landed state through the fire; both licensed lifts fire by the
+    banked `raise_eq_some_of_canRaise`), `[propext]`.
+
+  The WF fence is load-bearing and honest: at wild states the
+  duplicated-card world breaks locality (the banked
+  `wild_confluence_fails` witness of `Orig/Canonical.lean`) — but
+  wild states are unstateable in the physical register (`WF` is the
+  realizability doctrine), so the census closes where the game
+  lives.
+
+* **The census battery** (`lean-model/probes/CanonV3Probe.lean`,
+  external, lake-env-runnable, gates throw on failure, README row
+  landed; the full-deck cells are census-clean through the stock
+  mover — the crafted numbers pinned):
+
+  - **V1 both-bare twin kings** (hearts/diamonds climbed A..Q, ♥K
+    bare p1, ♦K bare p5): both licensed, both fire, each keeps the
+    other licensed (the monotone permission census over the whole
+    universe), both orders land at ONE state, `canon` consumes BOTH
+    twins (found 13/13, seats emptied) — the exchlaw freeness
+    suggestion ("the both-bare bit is IDENTITY") verified from the
+    canonicalizer side: the both-bare pair is the independence
+    fixture, no foreclosure anywhere.  Census numbers: licensed = 2,
+    twin-candidates = 2, contented = 0.
+  - **V2 both under-seat twin queens on conjugate bases** (♥Q on ♣K
+    p1, ♦Q on ♠K p5, hearts/diamonds climbed A..J): independence and
+    order-convergence hold at the seated pose; after the double
+    saturation the undo round trip fires — four licensed pulls (each
+    queen onto either bare black king) and ALL re-saturate home to
+    `canon v3Under`.  Twin-blindness decided (`canon (twinMap st) =
+    twinMap (canon st)`, the pile-swapped cell).  Licensed = 2,
+    contented = 0.
+  - **V3 the mixed-seat census point**: a licensed twin pair cannot
+    sit mixed seat TYPES — a king sits under nothing (no rank
+    above king), so twin kings license only both-bare and twin
+    non-kings only both-under; the cell carries the cross-type
+    coexistence (bare ♥K licensed, under-seat ♦Q licensed, the twin
+    mates stock-resident and never licensed).  Licensed = 2,
+    contented = 0.  Canon leaves the stock twin-residents verbatim
+    (the canonicalizer never writes the stock zone).
+  - **V4 the ENABLEMENT mediation** (♥J/♦J under-seat at rungs 10,
+    plus ♥Q under-seat on ♣K one rung short): raising ♥J LIGHTS
+    ♥Q's license (the rung arrives) and kills nothing — licensed
+    2 → 2 through the lift ({♥Q, ♦J}), contented = 0 at every
+    state of the chain, canon walks the enabled ladder (hearts
+    A..Q, diamonds A..J), the bare ♣K never licenses (its suit
+    never climbs).  THE MEDIATION RESULT: the only coupling a
+    licensed lift induces anywhere is MORE license (monotone
+    enablement), never foreclosure.
+  - **V5 the B2 twin-kings fork family, consumed from the exchlaw
+    battery's committed verdicts** (common material; the slide
+    realization, the wing split, the A2 highway re-decided in the
+    census language): at EVERY single state of the family at most
+    ONE twin is licensed ({♥K} vs {♦K}, licensed = 1 both faces) —
+    the TwinContended FIRST CONJUNCT dies here: **the observed fork
+    is CROSS-MATE (across the twin exchange's noreveal slide
+    realization), never intra-state.**  The wings split founds 13/12
+    vs 12/13 (`canon v3Fork ≠ canon v3ForkX`, decided), the wings
+    are Final (licensed = 0), and the wing pull-homes fire
+    step-exact (`foundToTab ♥K (inl p1)` recovers `v3Fork` from its
+    own canon wing).  THE SCAFFOLD QUESTIONS, answered at the real
+    fork family: the unblocking pull EXISTS at every wing; the
+    scaffold menu is sizeable (six licensed pulls per wing — the
+    founded king onto the six empty anchors; kings sit under
+    nothing, so no seat target exists) and ALL converge (every
+    pulled excursion re-saturates to its own wing canon) — scaffold
+    CHOICES CONVERGE; CONJUGATE ROUTES AGREE (canon commutes with
+    twinMap on every face — the banked `canon_twinMap` decided);
+    HARD-CONTENTION (a fork wing with no unblocker anywhere) WAS
+    NOT FOUND in the family — every wing's founded twin pulls
+    home.  No card in the universe registers contention at any
+    face.
+  - **V6 the negative controls**: the cargo corner (both twin kings
+    carrying twin cargos ♣Q/♠Q — the §1.8 crossed pair, license 0;
+    covered tops license nothing and black suits never climb here),
+    the waste-resident mate (♦K in the waste: never licensed, its
+    bare twin licensed — unlicensable shapes never register), the
+    both-bare NON-KING seat bar (two rung-ready bare queens,
+    license 0 — §3.0's OUT-list decided), and the hidden-under
+    reveal bar (a rung-ready bare king pinned over a hidden ♠2:
+    refused, though its free twin licenses).  Contented = 0
+    everywhere.
+
+* **The consumed sibling verdicts** (per the coordination note):
+  the exchlaw battery's B-numbers and the twin-kings cell are
+  consumed as committed (`834ebdc` on `orig-exch-canlaw`); the
+  canlaw session's queued fork-instance tasks were NOT re-derived
+  (no instance-level verdict has appeared in any committed
+  `FUTURES-ORIG.md` yet — none to consume at this write; when they
+  land they slot under this section as the instance-level view of
+  the same census, and this section's theorem-grade half already
+  answers their inhabited-or-empty question).
+
+**THE CLOSURE DOCTRINE (the card's branch (b), verbatim in
+spirit).**  Forks are EXCHANGE-STEERED, COMMIT-SIDE, PRICED BY THE
+A2 WITNESS AT TIP LEVEL: the canonicalizer meets the worried-twin
+fork only between EXCHANGE MATES (each single state licenses at
+most one twin), the exchange seat permutes the residue onto the
+covered member's host, and saturation then consumes whichever twin
+the seating left bare.  The fork is priced at tip level by the A2
+witness — pull the founded twin home (`foundToTab` onto its
+vacated seat), exchange (the licensed noreveal slide), saturate —
+every leg reversible, the sameOrbit world; and the canonQ spine
+(`canonQ_of_orbit`, banked) joins the wings' canons at the
+`⟦⟫`-grade through exactly that fold (the sameOrbit setoid's
+twin-conjugation disjunct — §3.1's grading-note fold, applied to
+the canon level).  V2 canon is twin-blind by theorem
+(`canon_twinMap`), confluent by theorem (`canon_unique`), and
+in-class by theorem (`canon_in_class`); the V3 skeleton's
+`canonV3 = canon` on contention-free runs degenerates to the
+identity AT WF outright, since contention never fires — so the
+skeleton's other four theorems (in_class via the undo family,
+final_shape, conj twin-blindness, wf) are all already banked in
+V2's name.  Nothing about the canonicalizer needs fixing; the
+scaffold-pull rule RETIRES.
+
+**The DORMANT SKELETON, ledgered verbatim** (not landed, no
+library file created — if a future card ever inhabits a genuine
+intra-state contention family out of WF's reach, this is the
+designed shape): five definitions — `TwinContended st c := both
+twins licensed-raise at st ∧ stacking either forecloses the other
+(the FORECLOSE read pinned by census: LICENSE-DEATH)`; `Unblocker`
+(the pull that unlocks a contented pair); `HardContended` (a
+contention with no unblocker anywhere); `FinalV3` (the saturated
+shape the two-macro-leg runner reaches); and the two-macro-leg
+runner — raise legs refuse to fire at contentions;
+`scaffoldCycle` welds an unblocking pull with its
+immediately-enabled stack and the cleanup re-raise; the boundary
+measure Φ = foundation length strictly increasing at every
+macro-leg boundary (ordinary legs +1; scaffold legs net +1: the
+pull −1, the enabled stack +1, the cleanup re-raise +1).  The
+census found no state for any leg of it to act on.
+
+**COORDINATION NOTES:** (i) the twin-kings cell is common material —
+this census consumed the exchlaw battery's committed verdicts and
+added the canonicalizer-side reading (the intra-state vs
+cross-mate distinction is the census's central datum); (ii) the
+decompression card's A2-anatomy highway (pull, exchange, pull) is
+the price tag this closure cites — the two cards are consistent;
+(iii) the canlaw session owns `Orig/Canonical.lean` mid-flight —
+this card touched no library file, consumed `canRaise_lifted` /
+`raise_eq_some_of_canRaise` / `canon_twinMap` / `canon_unique` /
+`canon_in_class` / `canonQ_of_orbit` by read-only citation only.
+
+ENGINEERING NOTES FOR FARM_MEMORY (banked in the close-out): the
+sibling-commit timing hazard (a sibling worktree's uncommitted diff
+VANISHED mid-read — they committed mid-session; snapshot shared
+material when you cite it), the stock-exclusion craft bug family
+(seated BLACK cards must join the exclude list too — the WF gate's
+cardCount census catches what the hand-write misses, exactly as
+the exchlaw B-cell lesson predicted for FOUNDATION cards), and
+the cite-before-craft discipline (the whole answer was already
+banked as `canRaise_lifted` before any new mechanism was built —
+grep the bank before designing).
+
+### §11-L3 (landing 3, same branch — `pair_neighborhood_cases`: the lattice header, the row table, the closing containment corollary)
+
+The verdict restructuring (the user's two-case shape), landed as a
+battery section of `probes/CanonV3Probe.lean` (all gates green;
+`lake env lean` runs the table; every row's witness is a census
+cell):
+
+* **THE LATTICE HEADER.**  Position-classification `pnPosTrich`
+  [propext, Quot.sound]: at WF every face-up card is EXACTLY ONE of
+  BARE top / UNDER top / COVERED (face-up under cargo, hence no
+  pile top) — the twin pair reads the nine-cell product.
+  `pnCoveredNotLicensed` [propext]: covered ⇒ unlicensed, so the
+  covered slice carries AT MOST ONE licensed twin per state
+  (`pnCoveredPairAtMostOne`) — the fork is structurally cross-mate.
+  `pnLicPairSlice` [propext, Quot.sound]: the licensed slice
+  collapses to TWO cells — BOTH-BARE (kings: `pnLicKingBare`, no
+  rank 13+1 exists) or BOTH-UNDER (non-kings, twins share rank);
+  the mixed licensed cells are VACUOUS.  Independence across the
+  whole licensed slice rides the banked `canRaise_lifted`.
+* **RANK FENCE POSTS** (deck-arithmetic-free): a covered king's
+  cover is EXACTLY a queen — `pnKingSlider` + `pnCoveredKingQueen`
+  [propext, Quot.sound] (the exchlaw falsifier's ♣Q is the whole
+  class); ACES ARE NEVER COVERED — `pnAceNoSlider` +
+  `pnCoveredAceAbsurd` [propext, Quot.sound]: the fork disease has
+  a rank floor.  The two potential sliders of one host share rank
+  and color — themselves twins — `pnSliderPair` [propext,
+  Quot.sound].
+* **THE CARGO TRIAD** closing the covered cells: (a) STACKS NOW —
+  the cover's rung waits: `pnCasForkMerge` — canon from both faces
+  lands at ONE saturated state (hearts 13 / diamonds 13 / clubs
+  12), the fork MERGES; (b) PARKED — the slide class: the exchlaw
+  standing fork re-graded, cross-mate, priced by A2; (c) INERT —
+  hidden/waste/stock (landing 1 negatives).  The POST-CASCADE TOP
+  SLOT is a function of rung deltas, decided per row
+  (`pnRungDelta`): the both-under bases expose at delta 2 (the
+  ±2 collapse — the ladder owes two climbs); the cross-neighbor
+  jacks sit at delta 0, raw-stackable yet seat-barred; row A's
+  parked queens (rung waits, seat bars) SLIDE legally onto the
+  bare king — the row-A to row-C road, and the slid pose then
+  MERGES (the waiting-rung cascade fires).
+* **THE CLOSING COROLLARY — the LOCAL CONTAINMENT** (`pnContained`,
+  scanned at every licensed pair of all sixteen census cells): each
+  neighborhood cargo card either DISSOLVES into the pair's cascade
+  (founded at canon) or PARKS VERBATIM at its seat (hidden or
+  face-up in its original pile).  THE SHARPENED NEGATIVE: the
+  global form is FALSE — a coupled cargo DOES exist in the wild
+  (the standing fork's ♣Q) but only CROSS-MATE, where the pair is
+  not both-licensed.  No fork-cargo fires intra-state; the case
+  table exhausts the cases.
+
+**The consumer** (§3.1's obstruction inventory, twin-pair host
+entry): 'direct landings: twin-pair fitting hosts, unobstructed'
+gains its exact boundary — obstruction happens only through
+PARKED-RESIDUE cargo on a twin host (the slide family); a
+delta-0 cover dissolves in-saturation and never obstructs.
+Feeds the per-arm enumeration; hardens the single-obstruction
+discipline's base (the fired commit kills the ladder's return leg
+AT the bottleneck: the substrate consumption and the fork cell
+are the same object, each supplying the other's witness).
+
+### §11-L4 (landing 4, same branch — the class-anchored selector `Orig.CanV3`, the face-list battery rows, the consolidated design picture)
+
+**The step change this landed** (the plateau exchange, consuming
+landing 3's table): canonV3 is REDEFINED per the user's
+restructuring — not a run machine (landing 1's verdict stands:
+the scaffold rule retired) — but a member selector.  Landed as
+the library chapter `Orig/CanV3.lean` (1stdlib import line in
+Orig.lean; every head audited), the composite height-first
+index, and the landing-4 battery rows in probes/CanonV3Probe.lean
+(face-lists by application: constructor-of-record for every
+member; `lake env lean` prints the numbers; all gates throw-green).
+
+**The composite canonIdx w = lex (canonHtup w, canonPosKey w,
+canonFormalKey w)**: founded content leads the fixed suit order
+(fork wings incomparable componentwise — the fixed-order lex IS
+the arm choice, the conjugate-arm price paid on a MEANINGFUL
+quantity — founded content); the position key breaks wiggle ties
+(conj-invariant by construction: twinMap relabels piles in
+place, never moves anchors — proven `canonPosKey_twinMap`); the
+formal decSt key is the last formality (equal formal keys imply
+equal states; the setoid-flip world means it never hides a
+symmetry violation). The selector `canonV3Arg` (Bool fold,
+deterministic, bounded input, computable) rides `canonIdxLt`
+(irrefl row proven). Rows: `canonV3Arg_mem`, `canonV3Arg_max`,
+`canonV3Arg_final_of_all` (saturated-gated: the selection is
+Final when the list is). `canonHtup_twinMap` proves the pair-
+permutation row outright. `canonIdxLt_irrefl` after a sorryAx
+excursion was rebuilt Classical-free (decide-free stance
+preserved; class-audit confirmed: no Classical.choice, no
+native_decide — pure Bool algebra).
+
+**The dedup engine**: the composite key audit roles
+`v3NatListLt`/`v3NatListEq` `the Nat.beq instance trap` — the
+early `simp`-based irreflection pulled Classical.choice via the
+`decide`-desugaring; the fix (LegalBool instances live in
+Landing1's kit) — enumerated swaps stay in FARM_MEMORY.
+
+**THE CONSOLIDATED DESIGN PICTURE** (through the six-part frame
+that organizes the skeleton file Orig/MacroInternal.lean —
+read-only; the user owns the skeleton; reconcile, don't
+duplicate):
+
+* (0) The object: a macro class is a STRUCTURED SPACE, not a
+  quotient blob. State-level machinery computes; class-level
+  statements quantify.
+* (1) The four coordinates: ARM (which wing saturated; founded
+  content; related by the NECK: pull-slide-re-saturate — never
+  by exchanges: exchlaw's found-channel refutation), WIGGLE
+  (parked-residue positions; related by the SLIDE; residue
+  locational independence), TORSOR (identity bits on seated
+  unfounded pairs; related by the EXCHANGE itself — the only
+  layer where "everything else is twin-exchangeable" holds in
+  full, exchlaw's freeness battery), DEPTH (de-saturation
+  distance; related by the cone's PULLS). Coordinate
+  irreducibility: exchanges never touch found, never move
+  positions; pulls never cross arms (each pull terminates down
+  one arm's down-set); slides don't cross arms either.
+* (2) The canonical state as coordinate readout: canonIdx reads
+  arm (heights) then wiggle (positions) then formal key
+  (torsor); canus nonempty (σ=id cone-refl), class-invariant
+  (mem_macro_iff pays), conj-closed, saturated-gated
+  (proven row), σ-inside (the swap lives in membership, never
+  in the selector: conj arms tie on κ = position key and
+  split deterministically under the fixed formal order — the
+  design is Load-Bearing: it makes the section iff hold
+  literally for conjugate mates in distinct classes).
+* (3) The membership envelope: mem_macro_iff (decompression
+  card's cone rows — pulls/slides/draws up to swap;
+  finalWiggle_reach the named open row there) — everything
+  quantifying over class members conditions on it explicitly.
+  This file's faces ride EXPLICIT member lists (by
+  application) until that engine imports; the residue set =
+  ⟨canus_class_inv, saturated_tuple_orbit, canonV3_lit_iff⟩.
+* (4) The fork dossier: three detectors one fact —
+  slide-sensitivity (forkState: the standing fork registers,
+  the merge does not), bottleneck dip (wing_crossing: any
+  reversible wing crossing crosses a forkState slide-edge),
+  non-unionability (the union tuple unrealizable by the
+  homeless-cargo obstruction). A2 certified MINIMAL.
+* (5) The card map (who owns which layer): THIS CARD owns the
+  selector/case-table/bottleneck/plateau capstone;
+  decompression owns the envelope (mem_macro_iff); exch-law
+  owns the torsor; canlaw owns the leg-commutation grammar
+  (reused by all); §3.1 owns the consumer (the obstruction
+  inventory as the residue-profile grade).
+* (6) The downstream reading: §3.1's remaining questions become
+  coordinate-lookup queries (arm/wiggle/torsor/depth).
+
+**The Q-CARGO LAW, deductive** (the user's rank arithmetic, now
+in the library): (A) `v3PiledRung` — a face-up card's suit rung
+sits weakly below its rank index (higher rung = already founded;
+conservation forbids two zones; proof rides mem_faceUp_only +
+WF.found_prefix + the position-to-membership take-row
+`v3GetInTake` + rank-get `v3RankGet`/`v3UpGet`); (B) `v3ForkPins`
+— a standing fork pins the licensed twin's suit EXACTLY at the
+twin rank and the parked cover's suit STRICTLY below its own;
+(C) `v3ForkExclusivity` — the sandwich: two forks in both
+colors cross-pin into `x < y ∧ y < x`, mixed-rank included,
+same-color second forks die by pinning alone. AT MOST ONE FORK
+PER CLASS, at any ranks, any colors. Consequences: arm space ≤ 2,
+orbit = the single-pair flip of the forked pair (pair-dependent
+Z/2; the (Z/2)² product was REFUTED), one neck, one bottleneck,
+one unionability obstruction per class. The worried bit is a
+PER-CLASS SINGLETON BY ARITHMETIC — the §3.1 count's last soft
+spot now rigid. The crafted double-fork attempt becomes the
+REFUTATION WITNESS row (decide-verified in the battery: the
+arithmetic refuses the second standing fork).
+
+**The organizing vocabulary** (the chapter's state-level
+primitives, riding the banked canon — zero new machinery):
+`satRung st s := (canon st).found s |>.length` (the saturation
+ceiling; the arm VISIBLE as a ceiling asymmetry across
+neck-mates: slide-sensitivity = ceiling-profile difference, the
+fork detector as arithmetic), `neverStackable st c := c's rank >
+satRung` (the permanently-parked population), `parkingMap` (the
+seated anchored read of that population — the residue profile).
+CLASS-LEVEL versions (`classRung C s := ⨆ w ∈ C, (w.found s).length`
+— the canus filter removed from the definition's face; LEAN ON
+the skeleton's classOf/rungAt names at merge) are the
+STATEMENT-level faces; state-level defs here are the engine.
+Two-level bookkeeping: class level for MEANING, state level for
+COMPUTATION.
+
+**EVIDENCE, decided at the battery** (the landing-4 rows): wing
+consistency (query both face-list orders → same pick: the four
+families' selector values printed; injectivity across distinct
+classes → distinct picks); arm choice pinned (the standing-fork
+class takes the heart wing 13/12; the merge class is a
+singleton — canon equal from both faces; row-A takes the
+DISSOLVED face; the under family splits deterministically);
+sat-orbit spot rows (the wings' tuples differ exactly by the
+hd-flip, suit-sums equal [0,13,12,0] ↔ [0,12,13,0]); the
+nonempty+saturated gates (license census zero at every pick);
+the fork detector census (the standing fork registers; the merge
+does not; the row-A dissolve-extending slide REGISTERS —
+slide-sensitivity properly CONTAINS the wing forks, the height
+ordering discriminates: both its faces' union tuples REACHABLE
+(the dissolved face dominates); the bare kings' anchor-slides
+do not).
+
+**COORDINATION (the skeleton reconciliation note)**: the
+statement skeleton Orig/MacroInternal.lean (main tree, user
+owned, untracked) fixes the convergent names: classOf, rungAt,
+twinSuit, classRung, neverStackable, satStackable,
+stackable_now_rungexact, canon_rung_mono, classRung_attained,
+satStackable_iff, ConeStep/ConePath, cone_inClass, conjl + laws,
+canusOf + canusOf_class_inv + canusOf_nonempty, posKey, lexLE,
+canonKey, canonV3_witness, canonV3, canonV3_iff,
+canonV3_section, forkState, forkEvidence, fork_pins,
+fork_exclusive, saturatesTo, unionable, unionRung,
+unionable_iff_unionTuple, fork_iff_nonUnionable, Journey,
+wing_crossing_bottleneck, saturated_tuple_orbit,
+saturated_classification, envelope, canonKey_rungs. DELTAS:
+this file's `canonHtup/canonPosKey/canonFormalKey/canonIdxLt`
+are the same reads with fixed names pending the merge rename;
+this file's `v3ForkPins/v3ForkExclusivity` are the skeleton's
+deterministically-proven fork_rows (state-shaped now,
+class-shaped at merge via the envelope); saturated-gated row =
+canonV3Arg_final_of_all; the skeleton's three sorry-carriers
+(conjl's involutivity/class, posKey reuse, canonV3's choose
+plumbing) are exactly where the def work lands next. The
+skeleton's Journey/wing_crossing/unionable rows are RECEIVING
+rows: the battery's next session consumes the plateau tools
+here to lift the crafted-evidence rows (already in this commit:
+the merge/standing-fork union realizability arithmetic; the
+homeless-cargo obstruction for the (13,13) tuple) into the
+skeleton's shapes.
+
+#### §11-L4.1 — the forkEvidence SIGNATURE CORRECTION (amr_129d6300b, the user's detection discussion; landed same branch — battery + audit, decide-graded)
+
+The corrected signature (read LIVE at the stall point, never
+both-stackable — that reading is VACUOUS at real fork cells,
+exactly consistent with this card's census verdict that
+intra-state contention is empty at WF):
+
+  forkEvidence stall x := CanRaise x (the bare twin) ∧
+    coveredIn x.twin (∃ a, pileHolding = some a ∧ aboveIn ≠ [])
+    ∧ ∃ cargo d, d.rank.toIdx + 1 = x.rank.toIdx ∧ ¬twinSuit
+    d.suit x.suit ∧ rungAt d.suit < d.rank.toIdx (the PIN: the
+    cargo cannot stack in place, the cascade cannot light it)
+    ∧ THE OPERATIONAL TRIAL: st.step (.tabToTab d (Sum.inr x))
+    = some st' ∧ CanRaise st' x.twin (the slide lights the
+    covered twin — the other arm witnessed live).
+
+Decided at the battery (probes/CanonV3Probe.lean, the
+l4RowForkSigCorrected rows; all green):
+- BOTH standing-fork stalls register (v3Fork and its mate) —
+  the pin (clubs 0 < ♣Q's 11), the slide-trial to the other
+  arm, the exposed twin licensed post-slide.
+- The benign next-in-line MERGE cell REFUSES: the cargo's own
+  rung waits (clubs 11 = its own index), so though the
+  slide-trial alone fires, the full signature is false — the
+  false-positive guard verified.
+- The covered twins are UNLICENSED at the stalls (one licensed
+  + one covered, never both); the same-color rungs pinned at
+  the pair rank by the bare twin's stackable-now — the covered
+  twin's pin by cargo/cascade arithmetic, NOT by CanRaise.
+
+AUDIT (the consequence-2 checklist): the landed case-table rows
+are CONSISTENT with the corrected signature — no row speaks of
+both-stackable twins at a fork stall; the lattice rows state
+the opposite (pnCoveredPairAtMostOne), the both-licensed rows
+are exactly the independence slice (the NON-fork cells), and
+the covered rows speak of cargo-above (pnCoverSit).  NO
+VACUOUS ROWS FOUND.  Persistence (carrying the recorded bump
+from stall to saturated form) is the next carrier work; the
+canonicalizer reads the signature live during saturation, and
+forkBump's forensics problem dissolves as the request states.
+
+#### §11-L4.2 — the second signature correction (amr_129d79e2b; landed same branch — the swap-grade license in the library, the gap form decided)
+
+CanRaiseS (the skeleton's exact shape) is now in Orig/CanV3.lean:
+the swap-aware cargo-accounting license — 'now' (vanilla
+CanRaise) | 'via' (∃ d b, a licensed REVERSIBLE tabToTab slide
+then CanRaiseS at the landed state).  The vanilla CanRaise has
+NO swap disjunct (confirmed by reading the def), and:
+
+* **THE GAP FORM** (the corrected forkEvidence): CanRaiseS x ∧
+  CanRaiseS x.twin ∧ ¬CanRaise-vanilla x.twin ∧ coveredIn
+  x.twin ∧ cargo-shape (next-rank, opposite color, rung-pinned)
+  — contention at the SWAP grade that is NOT contention at the
+  vanilla grade.  Decided green at the battery
+  (l4RowGapForm): fires at BOTH standing-fork stalls (the
+  covered twin lifts only VIA the cargo slide), the derived
+  trial (forkPoint_trial) decide-verified (the slide lands the
+  mate cell exactly and lights the covered twin vanilla), the
+  next-in-line merge REFUSES at the pin leg, the benign
+  independence slice REFUSES at coveredIn.
+* **THE TWO-PREDICATES DISTINCTION** (the consistency note): the
+  census's TwinContended-emptiness was won at the VANILLA grade
+  and remains INTACT — the fork is contention at the CanRaiseS
+  grade.  No reader should misread the census as
+  fork-refuting: the vanilla census says nothing about the swap
+  grade, and the gap form is exactly the shape the census left
+  open.  (The census batch's emptiness theorem rides the
+  vanilla canRaiseB through `canRaise_lifted`; the swap-grade
+  closure adds contention exactly at the fork stalls.)
+* **THE CanRaiseS AUDIT** (the request's consequence-6): rows
+  the battery had already proved as cascade facts under other
+  names, now re-read at the new license: the parked queen of
+  row A's pose lights VIA the dissolve-extending slide
+  (vanilla false bare-queen-bar at the parked cell, vanilla
+  true after the slide); the merge cargo lifts VANILLA (no
+  slide needed — its own rung waits, exactly why the cascade
+  dissolves the fork); the v3Chain enablement chain is
+  vanilla-only; the earlier l4RowForkSigCorrected rows are the
+  derived-trial content at depth one.  -/ AUDITED, no rows to
+  RETIRE, no rows VACUOUS under the new grade.
+* **Skeleton reconciliation**: my Orig/CanV3 mirrors CanRaiseS
+  exactly; forkPoint's satStackable leg (macro grade) is the
+  class-level residue — at the crafted cells the rung-pin row
+  (v3RungAt st d.suit < d.rank.toIdx) is the live state-level
+  functional form (the pin row is what the cascade arithmetic
+  consumes; the macro satStackable reads the same fact through
+  the quotient envelope).  forkPoint_trial's sorry is mine to
+  close next; its decide-grade evidence is landed.
+
+#### §11-L4.3 — the final vocabulary adoption (amr_129d9319a; landed same branch — names aligned, grades disambiguated, spec/computation separation audited)
+
+The class-card grades (MacroInternal-aligned names): atRungInClass
+(∃ st ∈ classOf, rungAt = toIdx — THE one-existential primitive),
+satStackable (∃ st ∈ classOf, c ∈ found), strandedInClass (¬
+atRungInClass — where the pinned cargos live), pendingForever
+(atRungInClass ∧ ¬ satStackable — the CEILING POPULATION: covered
+twins at Finals, buried stranded kings — the positional blockage
+as a first-class grade), neverFounded (renamed from the conflated
+neverStackable; toIdx ≥ classRung).
+
+- STATE-LEVEL ENGINES (Orig/CanV3, computation-side, renamed +
+  docstring-disambiguated): satRung (rides canon), neverFounded
+  (the weak union), strandedAt (the rank-pinned read: below the
+  canonical ceiling), pendingForeverAt (at-rung at the canonical
+  ceiling ∧ not founded by the saturation — the position-blocked
+  read), parkingMap (the seating read of the never-founded
+  population).  All audit [propext]; build green.
+- THE DISAMBIGUATION decided (battery l4RowGradeSplit rows):
+  the standing fork's CARGO is STRANDED — rank-pinned (clubs 0
+  < the queen 11, at both the stall and the wing state — the pin
+  row is the stranded witness); the covered Final TWIN is
+  PENDING-FOREVER — at-rung at the canonical ceiling (diamonds
+  12 = its index) yet never founded, blocked by POSITION (the
+  cargo above); TWO obstruction kinds the old one-word parked
+  merged.  The merge cargo is NOT stranded (its own rung waits,
+  it lifts vanilla — the cascade dissolves it).
+- THE SPEC/COMPUTATION SEPARATION audited (consequence-2): the
+  ∃-forms are spec-level — trivially class-invariant, NO
+  carrier; every carrier/computability content stays in the
+  classRung/forkBump channel.  My landed statements split
+  accordingly: the census/case-table/selector rows are
+  computation-side (state-level decides: pins, ceilings,
+  coverage); the class-grade closure theorems
+  (satStackable_iff, atRung_iff, stranded_iff, grade_partition)
+  consume the ∃-forms and ride the envelope — named receiving
+  rows in the skeleton, with the state-level engines landed
+  here as their computable substrate.
+
+#### §11-L4.4 — the final vocabulary SYNC (amr_129dda51d; the skeleton restructured by the user — read back, mirrored, no edit)
+
+The class-card grades are now ALL existential at the spec level,
+and the ceiling-bump family is GONE from the skeleton:
+satStackable C c := ∃ st, classOf C st ∧ c ∈ st.found c.suit
+(renamed from foundedInClass — DIRECT ∃-stacked); atRungInClass
+:= ∃ st ∈ classOf C, rungAt st c.suit = c.rank.toIdx;
+strandedInClass := ¬ atRungInClass; pendingForever :=
+atRungInClass ∧ ¬ satStackable.  REMOVED: classRung,
+classRung_attained, scanRung, forkBump, enumClass,
+neverStackable, neverFounded, foundedInClass.
+
+SYNCS APPLIED TO THIS BRANCH'S LANDINGS (the consequences):
+
+1. ROWS RESTATED THROUGH THE ∃-GRADES — my prose now reads:
+   founded = satStackable; ready-never-founded = pendingForever;
+   below-every-rung = strandedInClass.  No spec-side statement of
+   mine reintroduces ceiling arithmetic: the only ceiling
+   machinery left on this branch is the COMPUTATION-SIDE engine
+   channel in Orig/CanV3 (satRung / aboveCeiling [renamed from my
+   engine-name neverFounded when the skeleton retired the name] /
+   strandedAt / pendingForeverAt / parkingMap), all docstringed
+   as engines computing witness readings at members, never
+   defining the class grades.
+2. grade_partition is CITED, not re-derived (proved sorry-free
+   in the skeleton by a classical case split — the three grades
+   partition every card); founded_implies_atRung (the pull-walk
+   property: founding implies at-rung somewhere) is THE remaining
+   grade-row stub, the envelope's next lift.  My battery's state-
+   level facts (pins at-rung, ceiling coverage) feed exactly that
+   stub's decide-side.
+3. The battery's engine-name references updated (neverFounded →
+   aboveCeiling in every print row and gate line); the library
+   rename is body-preserving ([propext], build green 29 jobs);
+   the gates all still green end-to-end.
+
+The skeleton stays the user's file in the main tree — mirrored
+here, never edited.
+
+#### §11-L4.5 — the floor sweep opens (amr_129f4f9d2; the proof-readiness audit answered YES-for-the-floor, and the sweep starts landing on this branch)
+
+The user's MacroInternal.lean (main tree, user-owned — mirrored,
+never edited) is the statement reference.  This branch's sweep
+section opens in Orig/CanV3.lean (the audits above), with the
+tier plan ledgered as asked:
+
+* TIER 0/1 OPENED with three PROVEN rows (zero sorry, the
+  audits printed in the build):
+  - `stackable_now_rungexact` [propext]: the licensed lift's rung
+    sits EXACTLY at the card — one step through the vanilla
+    license's nextUp conjunct.  DELTA NOTE, the honest one: the
+    skeleton's biconditional as written is FALSE at covered seats
+    (decided at the merge cell: the covered twin ♦K sits AT its
+    rung, unlicensable under cargo) — the load-bearing halves are
+    this direction plus `v3PiledRung` (a piled card's rung sits
+    weakly below its index).  The skeleton row should either take
+    the forward shape here or add the seat premise; the falsifier
+    evidence is in the battery (canRaiseB pnCasForkMerge v3DK =
+    false with the rung exact).
+  - `canon_rung_mono` [propext, Quot.sound]: saturation only
+    raises, per suit — by fuel induction on canonAux through the
+    per-step row `satStep_rung_mono` (a fired lift raises one suit
+    one and levels the rest via the banked `raise_foundTransport`;
+    a frozen or failed step is the identity).
+  - the mirrored `rungAt` (the skeleton's name).
+* TIER 2 LANDED — PULL-MULTISET DETERMINISM (the fresh lemma,
+  everyone's-blocker, self-contained, now PROVEN
+  [propext, Quot.sound] throughout):
+  - `fiber_founds_eq`: two WF states at equal per-suit rungs
+    carry EQUAL FOUNDATIONS — the founds are fixed build-order
+    prefixes, so the fiber's founded content is a function of
+    the tuple alone.  (The take-past-length row `v3TakeGe` and
+    equal-minim arithmetic close the two height-edge cases.)
+  - `found_pullSegment` + `pullSegment`: a member's descent
+    segment to any lower target IS the build segment (the founded
+    prefix is the build prefix at its height);
+  - `pull_multiset_determinism`: same fiber (equal rungs) ⇒ every
+    member's descent pops the SAME CARDS per suit, top-down —
+    the tuple deltas determine the popped cards, within one arm.
+    THE ARM-SPLIT NOTE: the arm split is the twin pair's tuple
+    swap itself (13/12 vs 12/13 — decided at the wing cells); the
+    determinism holds within each arm, and the popped-card
+    difference across arms is exactly the fork pair's segment
+    difference — this is the core the fiber_iff_flat capstone
+    rides, unlocked per the request.
+* STILL OPEN, the honest sweep ledger (routes documented, no
+  silent stubs): `flat_heights` (induction over the flat letters
+  citing the per-move founds-invariant rows: tabToTab
+  piles-only, draw board-stable, exchangeTwin_found banked), the
+  grading trichotomy (`dance_step_grading`/`cone_step_fiber`:
+  the same constructor splits through `raise_foundTransport`,
+  the foundToTab inverse, and the flat rows), `cone_inClass`/
+  `dance_inClass` (oneMoveRevEqW + the setoid closure; the
+  general letter's whole-play return needs the witness-lift —
+  the one-move-undo letters close now, noted), the forks'
+  skeleton shapes (`forkPoint_trial` conditional on the
+  pair-config lattice — the L3 case table + CanRaiseS machinery
+  are the consume-pieces; `forkPoint_pins` = the v3ForkPins
+  arithmetic at the skeleton's shape; `forkPoint_exclusive` =
+  MY v3ForkExclusivity ALREADY LANDED DEDUCTIVELY, the shape
+  conversion at merge), `founded_implies_atRung` (the pull-walk:
+  the pop segments now determinate via the tier-2 rows; the
+  reversibility-per-seat legs next), `benign_sat_iff_surely` and
+  `surely_imp_sat` (both conditional on Finals-existence — the
+  canusOf_nonempty gate).  The two gates stay conditional as
+  instructed: canusOf_class_inv (= mem_macro_iff,
+  decompression's finalWiggle_reach) and saturated_classification
+  (exotic census) — no blocking on them anywhere above.
+
+#### §11-L4.2a — the V2-calibrated forkPointC sync (amr_12a30bc3; superseding note to §11-L4.2's shapes)
+
+The calibration consensus is three-way (two falsifiers struck the
+earlier shapes, agreeing verdicts): CanRaiseS-only let the bare
+twin hide behind slidables; cargoTop alone let the covered twin
+sit stranded a rung short.  The CALIBRATED shape (the floor card's
+batch F, now green in the user's MacroInternal.lean):
+
+  CanRaise st x (vanilla pile-top, AT the point) ∧
+  rungAt st x.twin.suit = x.rank.toIdx (the covered twin's pin AS
+  PREMISE — the fork's own datum) ∧ cargoTop st d x.twin ∧
+  d.rank.toIdx + 1 = x.rank.toIdx ∧ ¬ twinSuit d.suit x.suit ∧
+  ¬ satStackable ⟦st⟧ d.
+
+DECIDED at the battery (l4RowForkPointV2, gates green): BOTH
+standing-fork stalls REGISTER the calibrated signature (the bare
+twin vanilla NOW, the covered twin pinned at the pair rank as
+premise, the cargo class-stranded over the by-application face
+corpus); the MERGE cell REFUSES on the CLASS-GRADE conjunct this
+time — every state-level conjunct holds there (vanilla bare
+twin, twin pin, cargoTop, rank, color) — but the cargo IS
+satStackable in the merge class (founded at the saturated
+member): the cleaner refusal the calibration buys.  My V1
+gap-form rows (§11-L4.2's l4RowGapForm) stand as
+superseded-in-shape evidence; their cargo-pin read was the
+fork-own-datum observation the calibration lifts to a premise.
+
+CITED, not re-forged (the macro-floor engine bank, branch
+orig-macro-floor, batch A/F): canRaiseS_rung_pin,
+forkPoint_cargo_strand, the per-step rung locality rows, and the
+de-privatized exchange realizers step_realize_fwd/_bwd (commit
+69fbaa8); with the segment-existence rows (found_pullSegment /
+cone_pop_window, branch orig-macro-determinism) unblocking
+founded_implies_atRung at merge time — my §11-L4.5 route note
+rides that.
+
+#### §11-L4.6 — the mirror re-port + graft census (amr_12a3219b1; the two-evolutions-behind diagnosis acknowledged and repaired)
+
+REPORTED: the user's MacroInternal.lean is now MIRRORED VERBATIM
+into this branch (Orig/MacroInternal.lean, 521 lines, the main-tree
+file read and copied) and STANDALONE-COMPILES GREEN (lake env lean
+Orig/MacroInternal.lean): every theorem in it now elaborates
+against this worktree's banked state; the sorries it retains are
+its own by design (the user's skeleton file, mirrored — never the
+main-tree file edited).
+
+THE TWO CHANGES SINCE THE LAST SYNC, both carried:
+(1) THE FLATSTEP CARGO-MERGE — FlatStep is now TWO letters only
+(cargo = any tabToTab relocation, subsuming slides, reseatings,
+and licensed exchanges per exchangeTwin's own suffix-swap
+semantics; exch_is_cargo proved on orig-macro-floor).  This
+branch's ledger phrasings that spoke of the exchange letter are
+superseded: the exchange vocabulary survives as the RELATION-level
+name only.  My not-yet-landed flat rows re-target the two-letter
+shape at the next sitting.
+(2) FORKPOINTC V2 — the calibrated stall-point signature, mirrored
+and DECIDED at the battery (§11-L4.2a above): both fork stalls
+register, the merge refuses on the class-grade conjunct — the
+cleaner refusal.
+
+THE GRAFT CENSUS (my landed proofs onto the new definitions —
+def-orthogonal, re-verifying):
+- canon_rung_mono GRAFTED PROOF-COMPLETE (the fuel-induction
+  transplant from the floor sweep, 5a64bb4 — zero sorry);
+- forkPoint_pins GRAFTED PROOF-COMPLETE at V2 (near-trivial by
+  premise, per the calibration: the covered twin's pin IS the
+  premise; the bare twin's pin is the vanilla license's nextUp,
+  one step — zero sorry);
+- stackable_now_rungexact STAYS the biconditional `sorry` in the
+  mirror: my landed row is the FORWARD direction; the biconditional
+  is FALSE at covered seats (the §11-L4.5 falsifier evidence,
+  three-way-consensus ledgered).  The mirror's row should take the
+  forward shape or add the seat premise — noted for the user.
+- forkPoint_trial / forkPoint_exclusive REMAIN `sorry` in the
+  mirror, BLOCKED-NOTED with the owner: the floor card's engine
+  bank (branch orig-macro-floor, commits aaed5d5..0a72766 —
+  canRaiseS_rung_pin, forkPoint_cargo_strand, the per-step rung
+  locality rows, the de-privatized exchange realizers
+  step_realize_fwd/_bwd, commit 69fbaa8) plus the determinism
+  branch's segment rows (found_pullSegment / cone_pop_window)
+  carry the rest of the closure; my census families witness the
+  rank arithmetic (the wings, the pins, the sitting-standing
+  refusal — all decided green in the battery).
+- The mirror stays UN-WIRED from Orig.lean's import list (the
+  name collisions with Orig/CanV3.lean's same-named rows are the
+  merge-time reconciliation the ledger tracks: this branch's
+  same-named rows drop in favor of the grafted mirror at merge).
+
+DISCIPLINE NOTES: the mirror is a file-copy of the user-owned
+main-tree file — mirrored per the re-port instruction, never
+editing the main tree; the two grafts are proof-only (bodies
+behind the mirror's own statements); battery remains green
+end-to-end after the re-port; no merge to macro-game.
+
+#### §11-L4.7 — the acknowledgment + the duplicate drop (amr_12a423a3d; the harvest in-tree, the mirror de-conflicted)
+
+(1) forkPoint_pins AT V2 ACKNOWLEDGED — the fork dossier's first
+row CLOSED by the calibration's promise: the covered twin's pin
+enters as premise; the bare twin's pin is the vanilla nextUp
+conjunct, one step (the grafted proof stands in this branch's
+mirror, commit 10bebe4; the in-tree MacroInternal base carries
+the same row per the harvest).
+
+(2) THE HARVEST IS IN-TREE, cited for all merge-time work:
+macro-game advanced through 651e2d4 (MacroInternal.lean TRACKED
+as the canonical merge base, v2-calibrated), ff0eb62 (the
+orig-macro-floor harvest: fifteen floor rows sorry-free — the
+one-directional stackable_now_rungexact with the covered-seat
+falsifier documented, canon_rung_mono, the per-move rung grading
+family, per-step heights/fibers, cone_inClass / dance_inClass
+through the LOOP-CLOSURE BRIDGE — any reversibleAtW leg plus
+step gives class membership, dissolving the multi-draw
+return-play obstacle this ledger had BLOCKED-noted — exch_is_cargo
+with the realizers step_realize_fwd/_bwd PUBLIC, surely_imp_sat,
+benign_sat_iff_surely, canusOf_nonempty), and 9cc9598 (the
+orig-macro-determinism harvest: rung_found_prefix restated per
+WF.found_prefix, rung_found_congr, ConeLedger, cone_rung_mono,
+cone_pop_window (the master pop-ledger row), cone_pulls_congr_tuple
+sorry-free, flat_into_dance, plus the tier-0/1 calibration rows
+swept in passing and the DeterminismProbe battery — 0 violators
+in 3346/46208 same-tuple pairs with order-differing and
+different-tuple controls: determinism with teeth).
+
+(3) THE DUPLICATE DROPPED: my mirror's canon_rung_mono graft is
+retired (the stub restored, the docstring re-pointing at the
+in-tree proofs — floor and determinism both landed it; my
+CanV3 chapter keeps the floor-sweep copy for this branch's own
+ledger trail).  Merge conflict saved per the recommendation.
+
+(4) THE THIRD CONSENSUS NOTED: the one-directional
+stackable_now_rungexact calibration (forward + falsifier) is
+now landed independently by both harvest branches AND evidenced
+by this branch — the biconditional honestly refuted three ways.
+
+TRIAL/EXCLUSIVE, the continuation state: this branch's base does
+not yet contain the harvest (a rebase is my choice, a re-port
+not warranted mid-flight per the coordinator); the two remaining
+fork rows stay BLOCKED-NOTED with the in-tree owners to cite at
+merge — the engine bank (canRaiseS_rung_pin,
+forkPoint_cargo_strand, the per-step locality rows, the
+loop-closure bridge, the public realizers) plus the determinism
+core (cone_pop_window and the pop-window family: the descent
+arithmetic the trial's other-arm witness needs).  My census
+families continue to witness the rank arithmetic decide-graded
+(the V2 signature rows, the stall/merge register-refuse split,
+all green).
+
+#### §11-L4.8 — the fork dossier closes at the canon-v3 wake (amr_12a492e2; branch orig-canon-v3 rebased onto the harvested macro-game 6cdd9fb)
+
+THE REBASE: this branch is now based on the harvest (floor
+ff0eb62 + determinism 9cc9598 + canlaw d1a478b + the cushion
+6cdd9fb); ledgers append-unioned; the doubled MacroInternal
+union repaired to the IN-TREE file verbatim; lake build Orig
+green 30 jobs; the whole battery replays green after the rebase.
+
+THE DOSSIER, CLOSED 40 PERCENT IN-FILE (the v2 base made the
+difference):
+- forkPoint_pins PROVEN in-file (one step: the covered pin is the
+  v2 PREMISE; the bare pin is the banked one-directional
+  calibration `stackable_now_rungexact` — the same consensus this
+  branch landed third).  The stale BLOCKED note retired.
+- forkPoint_exclusive PROVEN in-file (the user's rank sandwich,
+  now consuming exactly the v2 premises: two private helpers —
+  `twinSuit_symm` + `suitfamily_antipodal` (four suits, two color
+  families) — and the cross-pinch arithmetic row `cross_pin`: each
+  cargo, opposite-colored to its OWN pair, sits INSIDE the other
+  fork's pair suits where that fork's pins hold the rung AT its
+  pair rank, while its strand demands strictly below its own —
+  the two inequalities cross-pinch to Ry+2 ≤ Rx ∧ Rx+2 ≤ Ry,
+  `omega`).
+- forkPoint_trial — THE HONEST RESIDUE, analyzed at this wake:
+  the v2 premises make the trial's EXPOSURE leg derivable (the
+  rank-consecutivity of the pile runs forces the cargo to sit
+  DIRECTLY on the covered twin — no intermediates possible
+  between consecutive ranks), and the FIRE leg derivable (the
+  slide's guards: the bare twin is a pile-top by CanRaise; rank
+  and color by the premises), but the SEAT leg of the exposed
+  twin is UNDER-CARRIED: a WF craft with the covered twin
+  BARE-BOTTOM in its pile (faceUp = [twin, cargo], hidden = [],
+  non-king pair ranks — e.g. the (Q, J) configuration: hearts
+  A..J founded, ♥Q licensed seated on ♣K; diamonds A..J founded
+  with ♦Q unfounded, sitting bare-bottom under ♠J; spades/clubs
+  rung 0 with the aces stock-resident so the class closure never
+  founds a black card) satisfies EVERY v2 conjunct yet the
+  exposed twin at the slid state fails `CanRaise`'s seat leg
+  (chop = [] and not a king — the same bare-non-king seat bar
+  this branch's V6 negative controls decided).  RECOMMENDATION
+  (the three-way-consensus pattern): add the covered twin's seat
+  premise (chop ≠ [] ∨ bare king at its pile) or restrict the
+  signature to king pairs; the crafted falsifier cell is the
+  next sitting's probe-first step (the census battery already
+  banks every needed row: the seat bar, the stock-resident
+  negative controls).
+
+THE CARD'S FINAL STATE: the census (L1), the case table (L3),
+the selector chapter (L4), both signature corrections, the gap
+form, the grade split, the name syncs, the re-port, and now the
+dossier's pins + exclusive — all landed green on the rebased
+branch; the trial carries the honest analysis and the crafted
+falsifier recipe.  The battery's every gate still throws-green.
+
+#### §11-L4.9 — the V3 directive (amr_12aaf07c1): the SEAT PREMISE lands, the falsifier probe decides V2-vs-V3, and the trial's fire leg proves in-body
+
+(a) FORKPOINTC V3 LANDED (the in-tree file): the 7th conjunct —
+the covered twin's pile runs `bs ++ [x.twin, d]` with the cargo
+DIRECTLY on the twin (the run discipline's rank-consecutivity is
+now the witness shape: consecutive ranks admit no intermediates)
+and the seat package `bs ≠ [] ∨ (hidden = [] ∧ king)` — exactly
+the premise the (Q, J) analysis prescribed.  NO global king
+restriction (the sandwich never needed it; generic-rank forking
+is honest with the seat clause).  The V2 unpack sites updated
+(strand/pins/exclusive all still prove at V3 — the covered pin
+still premise, the color-placement unneeded by rank).
+
+(b) THE (Q, J) FALSIFIER PROBE LANDED, decide-graded green
+(probes/CanonV3Probe.lean, the l4RowQJFalsifier rows): hearts/
+diamonds climbed A..J, the licensed heart-queen under-seat on a
+club king, the covered diamond-queen BARE-BOTTOM under the spade
+jack, spades/clubs rung 0 with the aces stock-resident — every
+V2 conjunct HOLDS, the trial's conclusion DIES at the slide (the
+exposed queen bare-bottom non-king), and V3's seat premise
+REFUSES (v3SeatPkgB false): the cell registers NO fork point at
+V3, and the trial is restored by vacuity — the card's own
+diagnosis, probe-first.
+
+(c) FORKPOINT_TRIAL AT V3 — STAGED GREEN with one named residual
+stage: the signature takes the honest WF premise (the
+pile-holding uniqueness is WF-gated; the trial's fine print now
+matches the dossier's siblings).  IN-BODY PROVEN: the full FIRE
+leg — the walk bars (nodup_snoc_notmem private; below/fromCard
+snoc reads via the banked below_append_stop/fromCard_append_stop
+over the duplicate-free run), the membership route to
+pile-holding, the color-bar (not_twinSuit_colors private: suit
+families are colors), the place (canSitOn through canSitOn_eq
+with the rank premise and the color bar), and the step's own
+guards — the slide FIRES.  REMAINING (the residual stage,
+marked `sorry` in-body with the staged note): the
+successor-composition read through step_tabToTab_inv (the
+putRun target-scan agreement; pile a's cleared content), the
+exposure via pileOfTop_eq_some_iff at step_wf, and the license
+assembly (rungs via step_tabToTab_rungs; the chop seat bar via
+chop_snoc; nextUp via the twin-rank invariance).  Every piece is
+banked or in-file; the composition is the next pass's mechanical
+work — no new mathematics.
+
+Battery green end-to-end; lake build Orig green 30 jobs; the
+falsifier numbers pinned in the run output (v3WfB true, the
+v2-conjuncts true, the class-strand false, the seat package
+false, the trial conclusion dead, the row green).  No merge to
+macro-game; additive only.
