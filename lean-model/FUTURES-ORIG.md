@@ -1199,6 +1199,61 @@ fronted twin's cut never re-closes) — a TIGHTER (A)-use than the
 route map's.  Axioms unchanged: `stock_dominance_draw1` still
 `[propext, sorryAx]` exactly through (B)+(C)+(A).
 
+**UPDATE 2026-10-11 (B2 session, branch `farm/orig-dom-b2-replay`,
+head `66c648d`) — (B) IS LANDED: `draw1_compliant_replay`
+SORRY-FREE.**  The probed route closed.  In `Orig/Dominance.lean`:
+the `FrontOK` motive (stock `|pre|+1` draws / waste
+`stock.length+|postW|+1` draws, engine-literal landings pinned
+field-by-field by `front_stock_shape`/`front_waste_shape`); the
+nine-case kit — `front_nil` (WF-free isWin-vs-rung), the six-arm
+`front_draw` absorb (`draw_shape_plain`/`_base`; the a=c and b=c
+pristine arms land the engine's own raisedMid literal — the
+u-conclusion is the FRESH `([draw; wtf c])` form, and the
+`base+b=c` arm's `([], bs⁻¹)` shape replaced the route-note's
+prepended data; both arms re-crystallized the rw-count
+equivalence on `u.stock.length` first); `front_board_tf/tt/ft`
+(the equality squares through the new
+`chop_bump_comm`/`double_bump_comm`/`setFound_found_congr` kit);
+the four consuming waste-head squares
+(`front_consume_{wtf,wtt}_{stock,waste}`: the rotation resync
+as explicit composites — segment A plain drain `|preW|+1` to
+x's hand, the x-spend, then CROSSING (drain `|u.stock|` + redeal
+`|postW|` onto the reversed spine) or PRISTINE (`postW = []`:
+the twin R `([], u.stock⁻¹ ++ preW)` is sameCycle-adjacent to
+the s₁-landing; `cycleOf R = preW⁻¹ ++ u.stock`; the win rides
+`(A) draw1_sameCycle_sameFate |>.mpr hwin₁` — the ONE genuine
+(A) cite, exactly as probed); `front_exit_wtf/wtt` (tail
+verbatim; `lower_foundToTab1`); and the dispatcher
+`replay_front_aux` (W5's sixth commit) — the rung-discipline
+split routes the five non-c-leaving heads to census exfalsos,
+the two c-exits to the exit engines, and the clean arm carries
+the per-kind bundle (`hn1` through the found readers, the
+cycle-disjunct through `draw_inCycle` and the per-kind
+stock/waste rw-bridges) into the IH at `rest`.  The final
+theorem reads k off the motive data.  Session discipline
+[commit after every green engine] paid off once [the W1 report
+below]: a shell-slicing accident after the wtt_waste engine
+went green cost one recompile's worth of rebuild, restored
+clean from the W2 checkpoint — the twice-oracle-validated
+route note rebuilt it FIRST-COMPILE-green.  **Audits:
+`draw1_compliant_replay` = [propext, Quot.sound] — SORRY-FREE**
+(the earlier imported-olean reads at [propext, sorryAx] were
+stale; the in-file fresh print is the oracle); all twelve
+engines clean; `stock_dominance_draw1` = [propext, sorryAx,
+Quot.sound] with the sorryAx ONLY through
+`draw1_compliant_normalForm` into the (C) residue
+`draw1_worry_spread_residue` — precisely the landing spec.  The
+(N) stub stands untouched.  ZERO new sorries; census pin-compare
+is the merge wave's (Dominance's count now [N]+[C] only); the
+branch stays unmerged.  Banked-and-transferring for the (C)
+residue: the `putCard`-forward-step recipe (`wasteIs_cons` +
+`decide_eq_true rfl`), the found-chains for raise-squares
+(`hG'fLit`-style `rw [hG'f]; rfl` — opaque-tuple crafts, never
+in-line rewrites), and for [GAP]: `zone_two_hits_ne` (one card
+at most once per zone, the in-zone census bound) and the
+`by_cases + obtain-cons` pattern (never `cases` a name you
+still need).
+
 **STATUS 2026-10-10 (the farm-orig-dom-c-normform session, row
 `00b3ea1` on `farm/orig-dom-c-normform`) — (C) IS A
 PROVEN SKELETON.**  `draw1_compliant_normalForm` left the stub list:
