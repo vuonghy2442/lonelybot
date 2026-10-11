@@ -2459,17 +2459,8 @@ theorem tabToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
                                 wf_no_other_top hwf (lastOf_mem (pileOfTop_top hk₀).2) y hyk)
                           have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
                             intro y hya hyk
-                            rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
-                            show (if y = k then
-                                { (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k with
-                                  faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
-                                    ++ fromCard c (st.piles a).faceUp }
-                                else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles y)
-                              = st.piles y
-                            rw [ite_eq_right hyk]
-                            show (if y = a then ⟨[], ([] : List Card)⟩ else st.piles y)
-                              = st.piles y
-                            rw [ite_eq_right hya]
+                            rw [hs₁, putRun_piles_inr_ne _ _ _ _ hseatMid hyk,
+                              setPile_piles_ne hya]
                           have hca : c ∉ (s₁.piles a).faceUp := by
                             rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
                             show c ∉ (if a = k then
@@ -2483,13 +2474,8 @@ theorem tabToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
                             intro hcon
                             cases hcon
                           have hhk : c ∈ (s₁.piles k).faceUp := by
-                            rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
-                            show c ∈ (if k = k then
-                                { (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k with
-                                  faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
-                                    ++ fromCard c (st.piles a).faceUp }
-                                else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
-                            rw [ite_eq_left rfl, hmidK, hrt]
+                            rw [hs₁, putRun_piles_inr_self _ _ _ _ hseatMid,
+                              hmidK, hrt]
                             exact (List.mem_append).2 (Or.inr List.mem_cons_self)
                           have hhold : s₁.pileHolding c = some k :=
                             holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
@@ -2657,20 +2643,8 @@ theorem tabToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
                         hmidAtop (fun y hyk _ => hnostK y hyk)
                     have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
                       intro y hya hyk
-                      rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
-                      show (if y = k then
-                          { (st.setPile a (Pile.afterRunRemoved (st.piles a)
-                              (below c (st.piles a).faceUp)) : State).piles k with
-                            faceUp := ((st.setPile a (Pile.afterRunRemoved (st.piles a)
-                              (below c (st.piles a).faceUp)) : State).piles k).faceUp
-                              ++ fromCard c (st.piles a).faceUp }
-                          else (st.setPile a (Pile.afterRunRemoved (st.piles a)
-                              (below c (st.piles a).faceUp)) : State).piles y)
-                        = st.piles y
-                      rw [ite_eq_right hyk]
-                      show (if y = a then Pile.afterRunRemoved (st.piles a)
-                          (below c (st.piles a).faceUp) else st.piles y) = st.piles y
-                      rw [ite_eq_right hya]
+                      rw [hs₁, putRun_piles_inr_ne _ _ _ _ hseatMid hyk,
+                        setPile_piles_ne hya]
                     have hca : c ∉ (s₁.piles a).faceUp := by
                       rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
                       show c ∉ (if a = k then
@@ -2840,17 +2814,8 @@ theorem tabToTab_reversibleAtW_bare_king_wf {st : State} {c : Card} {b : Base}
               wf_no_other_top hwf (lastOf_mem (pileOfTop_top hk₀).2) y hyk)
       have hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y := by
         intro y hya hyk
-        rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
-        show (if y = k then
-            { (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k with
-              faceUp := ((st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k).faceUp
-                ++ fromCard c (st.piles a).faceUp }
-            else (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles y)
-          = st.piles y
-        rw [ite_eq_right hyk]
-        show (if y = a then ⟨[], ([] : List Card)⟩ else st.piles y)
-          = st.piles y
-        rw [ite_eq_right hya]
+        rw [hs₁, putRun_piles_inr_ne _ _ _ _ hseatMid hyk,
+          setPile_piles_ne hya]
       have hca : c ∉ (s₁.piles a).faceUp := by
         rw [hs₁, putRun_piles_inr _ _ _ _ hseatMid]
         show c ∉ (if a = k then

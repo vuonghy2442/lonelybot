@@ -309,29 +309,30 @@ theorem putRun_piles_inr (st : State) (run : List Card) (z : Card) (k : Anchor)
 dedup-collapse wave: the chapter sites each re-bashed this
 ite-branch with the giant record literal; 52 sites carry the
 pattern — the conversion recipe is in FARM_MEMORY). -/
-theorem putRun_piles_inl_self {st : State} {run : List Card} {a : Anchor} :
+theorem putRun_piles_inl_self (st : State) (run : List Card) (a : Anchor) :
     (st.putRun run (Sum.inl a)).piles a = ⟨[], run⟩ := by
   rw [putRun_piles_inl]
   exact ite_eq_left rfl
 
 /-- The pointwise other-pile read of an inl landing. -/
-theorem putRun_piles_inl_ne {st : State} {run : List Card} {a a' : Anchor}
+theorem putRun_piles_inl_ne (st : State) (run : List Card) (a a' : Anchor)
     (hne : a' ≠ a) :
     (st.putRun run (Sum.inl a)).piles a' = st.piles a' := by
   rw [putRun_piles_inl]
   exact ite_eq_right hne
 
 /-- The pointwise self read of an inr landing. -/
-theorem putRun_piles_inr_self {st : State} {run : List Card} {z : Card} {k : Anchor}
-    (hz : st.pileOfTop z = some k) :
+theorem putRun_piles_inr_self (st : State) (run : List Card) (z : Card)
+    (k : Anchor) (hz : st.pileOfTop z = some k) :
     (st.putRun run (Sum.inr z)).piles k
       = { st.piles k with faceUp := (st.piles k).faceUp ++ run } := by
   rw [putRun_piles_inr _ _ _ _ hz]
   exact ite_eq_left rfl
 
 /-- The pointwise other-pile read of an inr landing. -/
-theorem putRun_piles_inr_ne {st : State} {run : List Card} {z : Card} {k a' : Anchor}
-    (hz : st.pileOfTop z = some k) (hne : a' ≠ k) :
+theorem putRun_piles_inr_ne (st : State) (run : List Card) (z : Card)
+    (k : Anchor) (hz : st.pileOfTop z = some k) {a' : Anchor}
+    (hne : a' ≠ k) :
     (st.putRun run (Sum.inr z)).piles a' = st.piles a' := by
   rw [putRun_piles_inr _ _ _ _ hz]
   exact ite_eq_right hne
