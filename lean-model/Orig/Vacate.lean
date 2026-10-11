@@ -1,4 +1,5 @@
 import Orig.PileSwap
+import Orig.Irreversible
 
 /-!
 # Orig — the vacate rule (wave 24, cards B and C; the shape skeleton)
@@ -74,6 +75,77 @@ base-blind, as card C's statement narrows only the head. -/
 def vacateShape (st : State) (c : Card) : Prop :=
   c.rank ≠ Rank.king ∧ ∃ a, st.pileHolding c = some a ∧
     (st.piles a).hidden = [] ∧ below c (st.piles a).faceUp = []
+
+/-! ## The computational meaning of the shape -/
+
+/-- The emptied source pile, as a literal: no hidden cards and an
+empty `below`-split leave the bare empty pile after the ride (the
+removal's `revealTop` branch is dead).  Farm-local twin of
+`afterRunRemoved_empty_eq'` / `afterRunRemoved_bare_empty`,
+private in Irreversible/Classify/EdgeLabel — this chapter is the
+natural public home; dedup at their harvest. -/
+private theorem afterRunRemoved_of_vacate {p : Pile} (hhid : p.hidden = []) :
+    Pile.afterRunRemoved p ([] : List Card) = ⟨[], ([] : List Card)⟩ := by
+  rcases p with ⟨hlist, flist⟩
+  cases hlist with
+  | nil => rfl
+  | cons x xs => exact absurd hhid (by simp)
+
+/-- The computational meaning of the vacate shape: a fired vacate
+`tabToTab` leaves its source pile genuinely empty (`Pile.isEmpty`,
+both lists — the engine's `free_slot` slot).  The landing never
+touches the source: the `inl` arm demands a king (the shape's moving
+head is a non-king), while an `inr` landing cannot locate the source
+pile, because at the intermediate state it is already the bare empty
+pile — the removal happens before the placement in the step arm, so
+no descent/WF argument is needed; the row is state-universal. -/
+theorem vacate_emptiesPile {st : State} {c : Card} {b : Base} {s₁ : State}
+    (hvac : vacateShape st c)
+    (hstep : State.step st (Move.tabToTab c b) = some s₁) :
+    ∃ a, st.pileHolding c = some a ∧ (s₁.piles a).isEmpty = true := by
+  obtain ⟨hnk, a, hhold, hhid, hbel⟩ := hvac
+  obtain ⟨a₀, hhold₀, hcp, -, hs₁⟩ := step_tabToTab_inv hstep
+  have hae : a = a₀ := Option.some.inj (hhold.symm.trans hhold₀)
+  subst hae
+  rw [hbel, afterRunRemoved_of_vacate hhid] at hs₁
+  refine ⟨a, hhold, ?_⟩
+  have hSp : (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles a =
+      ⟨[], ([] : List Card)⟩ := setPile_piles_self
+  cases b with
+  | inl k =>
+      rw [canPlace_inl_unfold] at hcp
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at hcp
+      exact absurd hcp.2 hnk
+  | inr z =>
+      cases hpo : (st.setPile a ⟨[], ([] : List Card)⟩ : State).pileOfTop z with
+      | none =>
+          rw [hs₁]
+          show (((st.setPile a ⟨[], ([] : List Card)⟩ : State).putRun
+              (fromCard c (st.piles a).faceUp) (Sum.inr z)).piles a).isEmpty = true
+          simp only [State.putRun, hpo]
+          rw [hSp]
+          rfl
+      | some k =>
+          have hka : k ≠ a := by
+            intro hcon
+            obtain ⟨hfe, -⟩ := pileOfTop_top (hpo.trans (congrArg some hcon))
+            rw [hSp] at hfe
+            simp at hfe
+          rw [hs₁, putRun_piles_inr_ne _ _ _ _ hpo (Ne.symm hka), hSp]
+          rfl
+
+#print axioms vacate_emptiesPile
+
+/-- A vacate `tabToTab` writes no foundation (the `[m]`-alone arm of
+the Card-B shell: a one-move vacate play can only reach a win the
+root already had). -/
+theorem vacate_keepsFound {st : State} {c : Card} {b : Base} {s₁ : State}
+    (hstep : State.step st (Move.tabToTab c b) = some s₁) :
+    s₁.found = st.found := by
+  obtain ⟨_a₀, _hhold₀, _hcp, hfr, hs₁⟩ := step_tabToTab_inv hstep
+  rw [hs₁, putRun_found, setPile_found]
+
+#print axioms vacate_keepsFound
 
 /-! ## Card B row (statement landed with the next wave's rows;
 ## see the case map above and the wave-24 FARM block) -/
