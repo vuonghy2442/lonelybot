@@ -153,6 +153,51 @@ is UNCHANGED (Landing this row has not happened, so its
 consumption stands as written); the wave-24.6 site-note proof
 plans and the honest-audit boundary live at the (N) theorem's
 docstring)**)**);
+**+wave-24 cont. (2026-10-11, the farm-orig-dom-spread-core session)**:
+the shared spread-core row (the (N) α/β + (C) storage/spread
+consumption) ran REFUTE-FIRST and landed its staged instance 1.
+The probe grew (commit `8eccb4c`): `OrigProbes/GroundRes.lean` now
+carries the club-rung mirror razor (`K♣` with its own two erodes),
+the slack-1 coverable world, and EIGHT spread-window carry cases —
+W1/W1'/W3: α1-spreads (the waste tenant parked on `K♠`/`K♣`
+with c-blind tower raises inside σ, the deleted thread taking the
+DELAYED waste closer at the window end); W4: the β pair-deletion
+with a cross-suit raise between; W5: the covered fT-park bubble
+(worry; cover; eviction; restack) netting to zero as a UNIT; W6:
+the covered α1-park at the slack-1 heights, the bubble again to
+zero with σ raised verbatim; W2/W2': both diamonds — every play
+oracle-run, the two threads' slice ends compared by exact state
+keys, ALL SUSTAINED, no falsifier; the oracle gate caught two
+hand-play construction bugs (a duplicated raise; a rank-slip cover
+— 10-on-Q, her covers are jacks), the second becoming the finding:
+at razor heights the α1 tenant's cover is PREEMPTED (the c-suit
+cover founded two deep, LIFO-dead for its own worry; the other is
+c's dig partner, hidden under c until the rung), so the
+covered-α1 corner lives only at slack-spent windows the root
+hsafe does not reach — the storage family keeps exactly the slack
+re-derivation problem, now with the probe exhibit, while the
+fT-covered bubble DELETES WITHOUT ANY STREAK-RAISE (net-zero
+three-move unit).  THE LEAN: staged instance 1 landed mid-file
+(commit `c7c811a`, fresh in-file audit `[propext, Quot.sound]`,
+stripped): `ground_diamond_raise` — two raises at distinct suits
+commute exactly (both orders fire; lands identical; the digs
+disjoint by the census pack), the commutation the α-route and the
+(C) squares front-load.  The window-carry core itself (the
+find/waste two-mode field, the per-mode blindness E1–E6, the
+assemblies `worry_pair_delete`/`waste_park_carry`) is fully
+designed and probe-sustained but not written this pass — banked
+at BOTH rows' route notes (commits `4e27609`-bound docstrings)
+with the mode map: foundation-origin windows (β/α2, (C)'s own
+shape) delete the pair state-identically under suit-discipline
+blindness, waste-origin windows (α1) carry with the waste head
+locked under the parked card until the delayed closer (no waste
+spends, no draws in σ), draws INCLUDED in foundation-mode σ (the
+threads share stock and waste).  Battery: `lake build Klondike
+Witnesses Orig` GREEN (109 jobs; the first passes hit the banked
+Windows `.private`-olean read storm — a serial retry loop with
+20s gaps plus the final plain pass cured it); census:
+`Dominance.lean 6 (expected 6)`, inventory OK, zero new sorries;
+the branch stays unmerged;
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the

@@ -1184,6 +1184,86 @@ census stays pinned (`Dominance.lean` 6 expected 6).
   (`sorryAx` only via the row).  The (C) residue's storage-prong
   cite of the (N) row is UNCHANGED — Landing has not happened.
 
+**STATUS 2026-10-11 (wave-24 cont., branch `farm/orig-dom-spread-core`
+off `921bdf9`, commits `8eccb4c` → `c7c811a` → `4e27609`) — THE
+SHARED SPREAD CORE: THE PROBE EXTENDED GREEN, STAGED INSTANCE 1
+(THE DIAMOND) LANDED SORRY-FREE, AND THE WINDOW-CARRY CORE FULLY
+DESIGNED + PROBE-SUSTAINED, STAGED AT BOTH CONSUMING ROWS.**  Zero
+new sorries; census pinned (`Dominance.lean` 6 (expected 6),
+inventory OK).
+
+* **The probe (commit `8eccb4c`)**: `OrigProbes/GroundRes.lean` grew
+  the club-rung mirror (`K♣` razor + its two erodes — a genuinely
+  different seed, not a relabel), the slack-1 coverable world, and
+  EIGHT spread-window carry cases: W1/W1'/W3 (α1-spreads, incl. the
+  mirror and the queued variant: the waste tenant parked on `c`'s
+  seat with c-blind tower raises inside σ, the deleted thread
+  running σ' verbatim plus the DELAYED waste closer at the window
+  end), W4 (the β spread: foundation worry onto another suit's
+  tenant, a cross-suit raise between, the pair DELETING
+  state-identically), W5 (the covered fT-park bubble: cover;
+  eviction; restack nets to ZERO as a three-move unit), W6 (the
+  covered α1-park at the slack-1 heights: the same net-zero with
+  σ raised verbatim), W2/W2' (both diamonds, exact-key equal).  All
+  plays oracle-run, slice ends compared by exact state keys: ALL
+  SUSTAINED, no falsifier anywhere; the exe throws on any
+  ill-formed member or asymmetry, and it CAUGHT two hand-play
+  bugs of the session's own (a duplicated raise; the rank-slip
+  10-covers-Q — the correct cover is a jack), which is the gate
+  working as designed.
+* **Probe finding — the razor PREEMPTS the α1 cover**: at razor
+  heights the parked waste tenant's covers are the c-suit card at
+  rank r−2 — FOUNDED TWO DEEP (its own worry-back is LIFO-dead) —
+  and `c`'s dig partner (hidden under `c` until the rung raise):
+  the covered-α1 corner is not constructible at razor states; the
+  W6 member needed h♣ = 11 (`safeToFound`-consistent slack-1) to
+  fire the cover at all.  Consequence: the covered/storage family
+  lives, if anywhere, exactly at the slack-spent windows this
+  route's own warning names — the rows' hsafe premise does not
+  reach there; the slack re-derivation problem stands as the named
+  residue, now with the probe exhibit.  Second consequence: the
+  fT-origin covered bubble NETS TO ZERO with no streak-raise at
+  all (delete the three-move unit) — only the re-seat moves
+  (mid-window `tabToTab` of the worried card itself) remain as
+  genuine window-carry content.
+* **LANDED, sorry-free, audited `[propext, Quot.sound]`** (commit
+  `c7c811a`, mid-file between the (N) kit and the win-lift):
+  `ground_diamond_raise` — the DIAMOND: if `y`'s and `c`'s raises
+  both fire from a WF state (distinct suits; distinct source piles
+  DERIVED, not premised — one card one face-up seat), then both
+  orders fire and LAND AT THE SAME STATE; the digs are disjoint by
+  the census pack, the founds gain each card exactly once in
+  either order.  This is the substitute-raise commutation the
+  (N) α-route and the (C) spread squares front-load past the rung
+  pass.  Helpers landed beside it: `w_chop_mem` (chop-sublist
+  membership) and `w_notMem_afterRunRemoved_faceUp` (the run-
+  removal absence reader covering both the chop-sublist and the
+  reveal branches).
+* **STAGED at both rows (commit `4e27609`)**: the window-carry
+  core — the two-mode divergence field (foundation-origin: the
+  deleted thread holds the worried card founded, its foundation
+  length pinned at the card's index; waste-origin: founds all
+  equal, the waste head locked under the parked card), the
+  per-window blindness discipline (foundation-origin: no mid-
+  window suit-worry [the LIFO top differs], no mid-window
+  suit-raise [the restack is the only one a real window can
+  fire], no placement-on-the-worried-card [the covered family —
+  except the net-zero bubbles of W5/W6], no run move off the
+  seat pile; waste-origin: no waste spends and no draws — the
+  head is locked until the delayed closer), the convergence
+  spellings (restack-time state identity; the delayed closer
+  firing at the window end), and the two assemblies to write
+  (`worry_pair_delete`, `waste_park_carry`) now live in the (N) `l
+ifted_win` and (C) `draw1_worry_spread_residue` route notes with
+  this evidence attached — the general carry is ONE lemma for
+  both rows, per the row's original mandate, and its remaining
+  content is the re-seat/covered/residue family above.
+* Battery: `lake build Klondike Witnesses Orig` GREEN (109 jobs;
+  the first passes hit the banked Windows `.private`-olean read
+  storm — serial 20s-gap retries plus the final plain pass cured
+  it); the GroundRes exe green; census pinned; the branch stays
+  unmerged.
+
 **STATUS 2026-10-11 — `(A) draw1_sameCycle_sameFate` IS PROVEN,
 SORRY-FREE, ON `farm/orig-dom-a-reserve@c0c751b`** (+1075 lines in
 `Orig/Dominance.lean`, raw hash row: the branch tip; the wave-24

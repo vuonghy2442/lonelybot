@@ -9666,3 +9666,60 @@ writing; census pinned.
   cures — but do not run `lake build` in the main tree while another
   session is building: the storm and the lock contention are the same
   disease family.
+
+## Session note (wave-24 spread-core, farm/orig-dom-spread-core @ 4e27609, 2026-10-11)
+
+Written after the session above banked its report; append-only, per protocol.
+
+- THE PRIME TRAP BIT THE BANKER'S NEIGHBOR: a fresh session's own
+  `k'`-style binders (18 of them, one obtain line) produced exactly
+  one parse error at the first use — every earlier name was silently
+  fine until then.  Rewrite to ASCII (`ky`) BEFORE the first build;
+  do not trust "it elaborated once".
+- `rw` INTO A RECORD LAMBDA FAILS ON BINDER SHADOW: rewritting
+  `s3.piles a'` (free `a'`) into a goal still containing the record
+  literal's UN-BETA-REDUCED `piles` field (binder ALSO named `a'`)
+  finds no occurrence — the bound a' is a different variable.  Cure:
+  after any `rw [hs]` that plants a record literal, `show` the
+  beta-reduced projection form FIRST (the same discipline as the
+  found-field's double-show); only then rw into it.  Corollary CLOSED
+  rewrites on closed terms (e.g. `s3.piles k1`) match fine under the
+  lambda — only FREE-variable patterns need the collapse.
+- RWS THAT CLOSE BY rfl STARVE TRAILING TACTICS: after `rw [hs1]` on
+  a record-projection goal (iota+beta), the built-in try-rfl closes
+  it and a trailing `rfl` errors "No goals to be solved".  Two
+  consequences: (a) trust-but-verify — a planned trailing `rfl` must
+  be dropped when the rw chain autocloses; (b) the record projections
+  DO reduce definitionally — `show` with the explicit if-form is
+  accepted without simp, which kept the whole diamond proof in
+  plain rw chains.
+- IF_POS/IF_NEG DEPRECATED (toolchain v4.34): still work, warn only;
+  the wave-21 era files use them freely.  Keep if_pos/if_neg inside
+  this repo unless a full-lint pass lands ite_eq_left/right first.
+- THE WINDOW-CARRY DESIGN (the spread-core session's staged core,
+  per-window hypotheses, no global safety premise anywhere):
+  TWO modes by the worried card's origin — foundation-origin (beta/
+  alpha2, the (C) shape): v.found x.suit = u.found x.suit ++ [x],
+  m-found length pinned at the card's index, wastes EQUAL (draws and
+  waste spends carry verbatim), ONLY the suit-discipline exclusions
+  (no mid-window suit-worry — the LIFO front differs; no mid-window
+  suit-raise — the restack is the only one a real window can fire);
+  waste-origin (alpha1): founds ALL equal, v.waste = x :: u.waste
+  (the head locked under the parked card), no wasteTo* and no draws
+  in sigma at all, and NO suit discipline (suit raises inside sigma
+  are the point — the W1 tower raises).  Shared: no placement on the
+  worried card (the covered family, EXCEPT the net-zero bubbles),
+  no run move off the seat pile, seat faceUp frozen by a field
+  clause so the blindness premise is checked ONCE at the window
+  root.  Convergences: restack-time STATE IDENTITY (foundation mode)
+  and the delayed waste-closer (waste mode) both verified by the
+  probe to exact state keys.
+- PROBE-CASE DISCIPLINE (the GroundRes window-twin pattern): state
+  PAIRS (window thread, deleted thread) built by then1-chains from
+  corpus roots; hand plays VERIFIED by the oracle (a dead hand play
+  is a construction bug and the exe throws — it caught two this
+  session); slice ends compared by exact state keys, not just wins.
+  The do-block `return` newline trap from wave-20 bit again in
+  Lean-probe code: `return` then a newline before the structure
+  literal elaborates as `pure ()`-plus-garbage; bind the record in
+  a `let` and `return` the name.
