@@ -6278,7 +6278,73 @@ take/drop over the recycled reverse goes through the
 arg, then `(A ++ [x])`); (viii) `wasteIs`-guards close via
 `State.wasteIs_cons hGw x` + the canPlace fact +
 `decide_eq_true rfl`, plus a FINAL `rfl`/`simp` if rw leaves
-`true && true`. -/
+`true && true`.
+
+W3 SESSION ADDENDUM (third pass; the W2 checkpoint is commit
+`ed0a5bd`).  The `front_consume_wtt_waste` engine — the park
+version, c under x in the waste — was PROVEN SORRY-FREE IN FULL
+(including the PRISTINE `postW = []` corner with the genuine (A)
+cite) during this session, but was lost in a shell-slicing mishap
+AFTER the checkpoint and BEFORE its commit — committee small, commit
+often.  Its validated route, verified twice against the oracle:
+
+* outer shape: same as `front_consume_wtt_stock` but the u-front
+  data is `(x :: preW, postW)` built from the IH's OWN waste data
+  (`s₁.waste = ws = preW ++ c :: postW` — no unicity lemma), via
+  `huw : u.waste = (x :: preW) ++ c :: postW` — prove by
+  `rw [hwastee, ← hs1w, hs1waste]; rfl` (the cons_append iota
+  closes it — do NOT apply `List.cons_append` to explicit args);
+* c below the head: `c ∈ ws` from `rw [hwastee] at hcycw` +
+  `List.mem_cons.1` (the c = x case dies on `hxc`);
+* segment A IS a plain drain `|preW|+1` (V₀.stock =
+  `preW⁻¹ ++ [x] ++ u.stock`): the take side ends `rw [...
+  table_take_app_le, table_take_ge (hle via hlenA + Nat.le_refl),
+  List.reverse_append, List.reverse_reverse, List.reverse_cons];
+  simp` — NOT the three-extra-reverse chain;
+* the park at G is the forward step of `_wtt_stock` verbatim
+  (`wasteIs_cons` + `putCard_stock` for the bridges);
+* closing leg: `by_cases hpw : postW = ([] : List Card)` — do NOT
+  `cases postW` (the name dies and every later `postW.length`/data
+  breaks); in the ¬ arm obtain `⟨z, zs, hzzs⟩ : ∃ z zs, postW = z :: zs`
+  [by `cases postW with | nil => exact absurd rfl hpw | cons a as =>
+  exact ⟨a, as, rfl⟩`] and KEEP postW — `hcnt : zs.length + 1 =
+  postW.length := by rw [hzzs]; rfl`;
+* CROSSING: drain `|u.stock|` (B2; `rw [hG'st, hGst]` for the opaque
+  bridges; the waste bullet needs `rw [table_take_ge (Nat.le_refl _),
+  hG'w]`), then `{have hrd := redeal_run1 zs.length ...; rw [hcnt] at
+  hrd}` — NEVER annotate `have hrd : ... = some { B2 with ... }`
+  inline (the record-in-type parse crashes); the L-eq bullets:
+  found `[hLlit/hslit + hs1found]`, piles
+  `[hLp, hG'p, putCard_piles_eq_of_eq ..., hSp, hs₁]` + `try rfl`,
+  stock `[hLs, hSs, hstock]`, waste `[hLw, hSw]`, ds-chain as in the
+  stock engine; the redeal rw-support needs `hB2f, hB2p, hB2ds`
+  folded in (`rw [hrd, hB2w, hrev2, hB2f, hB2p, hB2ds]`) so the ext
+  is `rfl rfl ?_ ?_ rfl`; `hrev2 : (u.stock⁻¹ ++ (preW ++ postW))⁻¹ =
+  ((postW⁻¹ ++ preW⁻¹) ++ u.stock)` by `rw [List.reverse_append,
+  List.reverse_append, List.reverse_reverse, List.append_assoc]`;
+* PRISTINE (subst hpw): drain `|u.stock|` lands R :=
+  `([], u.stock⁻¹ ++ preW)`; `sameCycle R s'` needs found
+  (same c-lit via `[hRf, hG'f, hGulit]` + `hSf` + `hs1found`),
+  piles (the putCard chain), ds, and `hRcycle` via `rw [show cycleOf
+  R = R.stock ++ R.waste.reverse from rfl, show cycleOf s' = ... from
+  rfl, hRs, hRw, hSs, hSw, hstock]` then `rw [List.reverse_append,
+  List.reverse_reverse, List.nil_append, show ([] : List Card).reverse
+  = [] from rfl, List.append_nil]`; then `(draw1_sameCycle_sameFate
+  hR1 hS1 hsc).mpr hwin₁` — hS1 is S' (not s₁!), and do NOT
+  destructure hwin₁ before this arm (keep it whole for the (A)
+  cite; take `⟨ρ, w₂, ...⟩` inside the crossing arm only); the win
+  play is `rep (|preW|+1) ++ (park :: (rep |u.stock| ++ πR))`;
+* the glue `rw`(s) and the final `exact hrunρ` MUST sit at the
+  case-block indent — an 8-space tail after a 6-space rw is a
+  parse error, not a style note.
+
+The `front_consume_wtf_waste` twin (raise version) is the same
+skeleton with: hxsu via `nextUp_pair_eq hnx hrungU`, hn1 through
+`setFound_found_ne (Ne.symm hxsu)`, the spend `wtf_step_raised`
+(needs `hGnxt`: `rw [hGf, hVf; ite_eq_right hxsu]`), and the found
+identities through `double_bump_comm hxsu` chains as in
+`front_consume_wtf_stock`'s hLand — the pristine corner's found
+comes from the bump2-comm of the two lits.  GO. -/
 
 /-- **(C) The normal form**: a winning play exists that keeps the
 c-rung until `c` leaves the waste — B&G's safemoves discipline.  Any
