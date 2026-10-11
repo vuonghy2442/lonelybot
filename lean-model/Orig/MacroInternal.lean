@@ -1,5 +1,6 @@
 import Orig.EdgeLabel
 import Orig.TwinExchangeQuotient
+import Orig.Dominance
 
 /-!
 # Orig.MacroInternal — the structured macro class (STATEMENT SKELETON)
@@ -830,9 +831,123 @@ theorem afterFork_neckReachable (C : SameOrbit) (u : State) (hu : u.WF)
     ∃ m, ConePath (canon u) m ∧ saturatesTo m w' := by
   sorry
 
+/-! ### The fork dossier's derivable halves
+(Private engine rows landed as the evidence base for the BLOCKED notes
+below: the piled-rung arithmetic and the two pin-halves the
+skeleton's forkPointC DOES carry.  The covered-twin's exact pin is
+deliberately NOT here — that leg is the gap-form content the
+skeleton's signature under-carries, see the notes.) -/
+
+/-- A face-up card's own suit rung sits weakly below its rank index —
+the piled leg of the fork arithmetic (canon-v3's `v3PiledRung`
+re-striped on the banked carrier: `WF.found_prefix`, the banked
+`mem_upCards_take`, and the face-up census inversion
+`mem_faceUp_only`; conservation forbids a card in two zones). -/
+private theorem piled_rung {st : State} {q : Card} {k : Anchor}
+    (hwf : st.WF) (hmem : q ∈ (st.piles k).faceUp) :
+    rungAt st q.suit ≤ q.rank.toIdx := by
+  obtain ⟨n, hn⟩ := hwf.found_prefix q.suit
+  have hlen : rungAt st q.suit ≤ n := by
+    show (st.found q.suit).length ≤ n
+    rw [hn, List.length_take, Suit.upCards_length]
+    omega
+  rcases Nat.lt_trichotomy (rungAt st q.suit) q.rank.toIdx with hlt | heq | hgt
+  · exact Nat.le_of_lt hlt
+  · exact Nat.le_of_eq heq
+  · exfalso
+    have hqf : q ∈ st.found q.suit := by
+      rw [hn, show q = Card.mk q.suit q.rank from rfl]
+      exact mem_upCards_take q.suit n q.rank (by omega)
+    exact (mem_faceUp_only hwf hmem).2.2.2.2 q.suit hqf
+
+/-- The bare twin's exact pin, along the swap-grade cascade: the
+vanilla license at the cascade's far end is rung-exact
+(`stackable_now_rungexact`, the calibrated row), and the cascade's
+cargo slides never write foundations (the battery's tabToTab
+non-write) — so the rung already sits at the pair rank at the point
+itself.  This is the pins' derivable half; the forkPoint BLOCKED note
+below records the other half. -/
+private theorem canRaiseS_rung_pin {st : State} {x : Card} (h : CanRaiseS st x) :
+    rungAt st x.suit = x.rank.toIdx := by
+  induction h with
+  | now c hcan => exact stackable_now_rungexact _ c hcan
+  | via c hl _h2 ih =>
+      obtain ⟨d, b, hstep, -⟩ := hl
+      have hr := (step_tabToTab_rungs hstep) c.suit
+      omega
+
+/-- The cargo's strict strand: at a fork point the cargo — topping the
+covered twin's pile, never founded anywhere in the class — has its own
+suit's rung STRICTLY below its rank.  Reductio: were the cargo
+next-up, its license would fire (it tops the covering pile, and the
+seat is refillable — the twin sits face-up below it, so the chop is
+nonempty), the licensed raise is reversible at WF (the under-seat
+witness constructor), the raised mate sits in-class with the cargo
+founded (`class_leg` + `tabToFound_found_trio`), contradicting the
+macro-grade ¬satStackable leg.  The weak half is `piled_rung`
+(conservation); strictness is the negated nextUp. -/
+private theorem forkPoint_cargo_strand {st : State} {x d : Card}
+    (hwf : st.WF) (hfp : forkPointC st x d) :
+    rungAt st d.suit < d.rank.toIdx := by
+  obtain ⟨-, hcargo, -, hcol, hnsat⟩ := hfp
+  obtain ⟨k, htopd, hholdt⟩ := hcargo
+  have hdmem : d ∈ (st.piles k).faceUp := lastOf_mem (pileOfTop_top htopd).2
+  have hxtm0 : x.twin ∈ (st.piles k).faceUp := pileHolding_mem hholdt
+  have hsnoc : (st.piles k).faceUp = chop (st.piles k).faceUp ++ [d] :=
+    lastOf_chop (pileOfTop_top htopd).2
+  have hdne : d ≠ x.twin := by
+    intro hcon
+    exact hcol (by rw [hcon]; exact Or.inr rfl)
+  rw [hsnoc] at hxtm0
+  have hchop : chop (st.piles k).faceUp ≠ [] := by
+    intro hnil
+    rw [hnil] at hxtm0
+    have hxt : x.twin = d := List.mem_singleton.1 (by simpa using hxtm0)
+    exact absurd hxt.symm hdne
+  by_cases hnu : st.nextUp d = true
+  · exfalso
+    obtain ⟨z', preT, hch⟩ := list_cons_of_ne_nil hchop
+    have hrev := tabToFound_reversibleAtW_under_wf hwf hnu htopd hch
+    obtain ⟨s₁, play, hstep, hrun⟩ := hrev
+    have hclass := class_leg ⟨s₁, play, hstep, hrun⟩ hstep
+    obtain ⟨-, ka, -, hs⟩ := step_tabToFound_inv hstep
+    have hfound : d ∈ s₁.found d.suit := by
+      have htrio := (tabToFound_found_trio (a := ka) hs).1
+      rw [htrio]
+      exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
+    exact hnsat ⟨s₁, (Quotient.sound hclass).symm, hfound⟩
+  · have hle := piled_rung hwf hdmem
+    have hne : st.foundHeight d.suit ≠ d.rank.toIdx := by
+      intro hcon
+      have hexp : st.nextUp d = true := by
+        show decide (d.rank.toIdx = st.foundHeight d.suit) = true
+        rw [show d.rank.toIdx = st.foundHeight d.suit from hcon.symm]
+        exact decide_eq_true rfl
+      exact absurd hexp hnu
+    have hr : rungAt st d.suit = st.foundHeight d.suit := rfl
+    omega
+
 /-- The operational trial, derived: the twin's swap-raise realizes
 through the cargo slide onto the bare twin's host, and there the twin
-lights vanilla. -/
+lights vanilla.
+
+BLOCKED (this row, fork-card escape hatch): the skeleton's
+`forkPointC` under-carries the live fork signature.  The trial needs
+(i) `x` topping a pile AT the point — but `CanRaiseS st x` only says
+x is raisable after cargo slides, and x may sit buried behind a
+slidable run at the point itself, so the base `Sum.inr x` may have no
+top to land on; and (ii) the covered twin's rung already AT the pair
+rank so it lights vanilla once uncovered — but the signature carries
+no twin-side raisability, and a WF craft satisfies every conjunct
+with the twin's rung one below the pair (the twin strands behind its
+ladder).  Both legs live in the corrected forkEvidence GAP FORM
+decided at the canon-v3 battery: `CanRaiseS x.twin ∧ ¬CanRaiseVanilla
+x.twin ∧ coveredIn x.twin ∧ cargo-shape` (FUTURES-ORIG.md §11-L4.2,
+probes/CanonV3Probe.lean — the l4RowGapForm rows; the derived trial
+decide-verified at both standing-fork stalls), and that session's
+ledger already records this sorry as its own next closure.  This
+file banks the trial's two engines: the bare pin (`canRaiseS_rung_pin`)
+and the cargo strand (`forkPoint_cargo_strand`). -/
 theorem forkPoint_trial {st : State} {x : Card} (h : forkPoint st x) :
     ∃ d st', st.step (.tabToTab d (Sum.inr x)) = some st' ∧
       CanRaise st' x.twin ∧ d.rank.toIdx + 1 = x.rank.toIdx := by
@@ -840,7 +955,20 @@ theorem forkPoint_trial {st : State} {x : Card} (h : forkPoint st x) :
 
 /-- The pin lemma: at the fork point, BOTH same-color rungs sit at the
 pair rank — the bare twin's pin by `stackable_now_rungexact`, the
-covered twin's pin by the cargo/cascade arithmetic. -/
+covered twin's pin by the cargo/cascade arithmetic.
+
+BLOCKED (this row, fork-card escape hatch): the BARE half is banked
+and proven above (`canRaiseS_rung_pin` — the cascade's rung-exact
+license plus the slides' found non-write).  The COVERED half is what
+the skeleton's `forkPointC` under-carries: `cargoTop` only says the
+twin sits at-or-below the cargo in its pile, and nothing forbids the
+twin's own suit rung sitting BELOW the pair rank at the point (a WF
+craft with the twin stranded one rung short passes every conjunct of
+the signature while failing the pin), so the exact covered pin is
+unreachable from these hypotheses alone.  It becomes derivable from
+the gap form's `CanRaiseS x.twin` leg — the same canon-v3 §11-L4.2
+correction the trial's note records — where the covered pin rides
+the SAME cascade induction as the bare half. -/
 theorem forkPoint_pins (st : State) (x : Card) (hwf : st.WF)
     (h : forkPoint st x) :
     rungAt st x.suit = x.rank.toIdx ∧ rungAt st x.twin.suit = x.rank.toIdx := by
@@ -848,7 +976,22 @@ theorem forkPoint_pins (st : State) (x : Card) (hwf : st.WF)
 
 /-- **The exclusivity sandwich** (the user's rank-arithmetic proof):
 fork points in BOTH color pairs at one state are impossible — each
-fork strands a card the other needs seated. -/
+fork strands a card the other needs seated.
+
+BLOCKED (this row, fork-card escape hatch): the user's sandwich
+consumes BOTH pins of BOTH forks — each fork pins its own color pair
+at its pair rank (forkPoint_pins) and strands a suit of the OPPOSITE
+color strictly below its own rank (the cargo strand
+`forkPoint_cargo_strand`, whose suit is opposite-colored by the
+signature's ¬twinSuit leg, so it sits inside the other fork's pair)
+— the two strict inequalities then cross-pinch into `x < y ∧ y < x`,
+the v3ForkExclusivity arithmetic (canon-v3 battery, Orig/CanV3 on
+that branch).  Both inputs are behind the pins' BLOCKED notes above
+(the covered pins under-carry in the skeleton's signature: without
+them the cross-cases of the sandwich hit the covered twins' suits,
+whose rungs the bare pins leave free), so this row waits with them.
+The half that IS banked here: the bare pins (via `canRaiseS_rung_pin`)
+and the cargo strands of both forks. -/
 theorem forkPoint_exclusive (st : State) (x y : Card) (hwf : st.WF)
     (hcol : ¬ twinSuit x.suit y.suit)
     (hx : forkPoint st x) (hy : forkPoint st y) : False := by
@@ -932,7 +1075,18 @@ theorem canonKey_rungs (w : State) :
 
 /-! ## The floor-row audit
 (#print axioms on each newly proved floor head — expected
-[propext, Quot.sound]; anything else flagged.) -/
+[propext, Quot.sound]; anything else flagged.)
+
+FLAGGED: `canusOf_nonempty` reports [propext, sorryAx, Quot.sound].
+The sorryAx enters at the STATEMENT level only, through the
+skeleton's designated carrier bit `conjl` (`noncomputable def conjl
+:= sorry`, the conjugation carrier whose laws are canon-v3's ledgered
+next def-landing): the `canusOf` definition's second disjunct
+mentions `conjl w₁`, so any constant whose type expands it carries
+the occurrence.  The proof itself never forces the carrier — the
+witness rides `Or.inl` (w = w₁ = canon u), so the row is proved at
+canon + ConePath.refl; the flag clears the moment the conjl carrier
+lands.  Every other floor head audits within [propext, Quot.sound]. -/
 
 #print axioms stackable_now_rungexact
 #print axioms canon_rung_mono
@@ -946,7 +1100,7 @@ theorem canonKey_rungs (w : State) :
 #print axioms surely_imp_sat
 #print axioms benign_sat_iff_surely
 #print axioms canusOf_nonempty
-#print axioms surely_imp_sat
-#print axioms benign_sat_iff_surely
-#print axioms canusOf_nonempty
+#print axioms piled_rung
+#print axioms canRaiseS_rung_pin
+#print axioms forkPoint_cargo_strand
 
