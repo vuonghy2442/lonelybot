@@ -1029,6 +1029,38 @@ on `farm/orig-dom-a-reserve` + the §5.1 bare-floor skeleton on
 dominances port + the both-occupied harvest + the post-merge cleanup,
 branch `macro-game`)
 
+**EVIDENCE-RECOVERY APPENDIX (2026-10-11, branch `orig-comm-canlaw`,
+the canon-commutation card).**  The card's two probe artifacts —
+authored OUTSIDE the workspace per the card's own discipline (temp
+path `canlaw-probes/…`), referenced commit-message-only — were
+recovered from session storage and COMMITTED as runnable files add
+to this branch so the audit trail carries the artifacts, not the
+prose:
+
+* `lean-model/probes/CanLawProbe.lean` — the landing-1 census: six
+  full-deck WF states, the E1-LITERAL rung-shadow witness (committed
+  state saturates 3♥ to height 3 while the un-re-saturated route
+  stays at 2 — both with both shapes firing), E1-HONEST clean on
+  all six, E2 clean including deliberate d-shapes, the merged
+  founding leg (`step … = none` at the canonical form), the quintet,
+  the legality-transport refutations (R→L canon-enables; the tab
+  seat evaporates), the draw mirror (deal 1/3, recycle, none-sync).
+* `lean-model/probes/CanLawProbeTwin.lean` — the twin-contention
+  verdicts: the contended-seat fork real (either stacking
+  forecloses the other), the exclusivity at the crafted family
+  (rung-ready ≠ lift-licensed bare; canon fixed at base, empty
+  trivially-reversible schedule), the fork surviving INTO the
+  canonical grade (each child licenses its claimant; canonical
+  finals differ), and the absorb composite (foundation-book twin
+  relabel ∘ p1↔p2 anchor rotation with in-pile relabel) — with the
+  strict `State.twinMap` and bare pair-swap forms REFUTED.
+
+Both verified `lake env lean` green on the branch; zero sorry,
+zero `native_decide`, kernel-decided rows throughout.  The commit
+messages on the landing batch name the temp paths; these are the
+same files, landed.
+
+
 **STATUS 2026-10-11 (wave 24.5, farm-orig-dom-n-ground @ `7bf0ccc`)
 — THE (N) BARE-FLOOR RESIDUE IS A PROVEN SKELETON OVER ONE NAMED
 SUB-RESIDUE.**  `tabToFound_dominant_of_ground` is PROVEN.  The
