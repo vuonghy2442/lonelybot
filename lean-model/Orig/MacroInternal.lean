@@ -1742,12 +1742,19 @@ inductive CargoPath : State → State → Prop
       (hkind : ∃ c b hstep hrev, h = FlatStep.cargo c b hstep hrev)
       (t : CargoPath z w') : CargoPath w w'
 
-/-- THE FACE SHAPE (the user's final calibration): identical, or
-connected by the cargo closure — the bare cargo exchange AND the
-free twin swaps, both one letter (`exch_is_cargo`).  Shape-mates
-are class-mates through the reversible cargo legs. -/
+/-- **THE FACE SHAPE** (the user's final corrected calibration):
+identical-state reachability at two grades — CARGO-CONNECTED (the
+bare cargo exchange + free twin swaps, every leg reversible cargo,
+by `exch_is_cargo`), OR the FORK-CONJUGATE (the physical-swap
+composite of a forkState — the position trade: raise x, tabToTab
+x.twin + segment from B to A, foundToTab x back at B — net-flat
+but dipping through the foundation, NOT cargo-reachable).  The
+forkState uniqueness row consumes this widening: one class's
+forkStates are {the primal, its slide-mate, its physical swap},
+with CargoPath connecting the bounds within each grade and the
+conjugate step crossing. -/
 def FaceShape (w w' : State) : Prop :=
-  CargoPath w w'
+  CargoPath w w' ∨ conjugateForkState w w'
 
 inductive CanonFace (u w : State) : Prop
   | benign (hwf : u.WF) (hfin : Final w) (hw : w = canon u)
