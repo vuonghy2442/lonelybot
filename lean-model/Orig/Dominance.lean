@@ -2356,7 +2356,85 @@ private theorem ground_replay_go {st : State} {c : Card} {k : Anchor}
       exact hgo
 
 
-/-! ### The named sub-residue (the normal-form half) -/
+/-! ### The ground carry and the γ bridge
+
+Two direct-attack pieces for `ground_lifted_win` below: the
+compliant-prefix carry (the divergence field moved by the landed
+per-kind ledger), and the γ bridge — the one-move re-embodiment
+that closes the γ-leading case of the win-lift outright
+(`WinFrom_of_runTo` consumes it): at a bare window, the raised
+state re-creates any relocation of `c` via a single worry-back, so
+a play whose first noncompliance is `c`'s own relocation transports
+to the raised world's `P₀ ++ foundToTab c b :: …`. -/
+
+/-- Splitting a successful run at an internal play split (local
+pre-statement; demote against the §5.2 `run_append_split1` reader
+at the merge). -/
+private theorem ground_run_split : ∀ (x : State) (A B : List Move) (w : State),
+    x.run (A ++ B) = some w → ∃ z, x.run A = some z ∧ z.run B = some w := by
+  intro x A
+  induction A generalizing x with
+  | nil => intro B w h; exact ⟨x, rfl, h⟩
+  | cons m rest ih =>
+      intro B w h
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h
+      obtain ⟨z, hA, hB⟩ := ih s₁ B w hrest
+      exact ⟨z, by
+        show (match State.step x m with
+          | some st' => State.run st' rest
+          | none => none) = some z
+        rw [hstep]
+        exact hA, hB⟩
+
+/-- The compliant prefix carries the divergence field move by move:
+from the split at `(u, v)`, a raise-free, `groundBlocked`-clean
+segment replays on the raised side with the field intact. -/
+private theorem ground_prefix_carry {st : State} {c : Card} {k : Anchor}
+    (hnextst : st.nextUp c = true) (hface : (st.piles k).faceUp = [c]) :
+    ∀ (B : List Move) (u v t : State), GroundSplit st c k u v → u.WF → v.WF →
+      (∀ m ∈ B, m ≠ Move.tabToFound c ∧ Move.groundBlocked c m = false) →
+      u.run B = some t → ∃ v', v.run B = some v' ∧ GroundSplit st c k t v' := by
+  intro B
+  induction B with
+  | nil =>
+      intro u v t hsplit _ _ _ hrun
+      have h2 : u.run ([] : List Move) = some u := rfl
+      rw [hrun] at h2
+      have ht : t = u := Option.some.inj h2
+      subst ht
+      exact ⟨v, rfl, hsplit⟩
+  | cons m B' ih =>
+      intro u v t hsplit huwf hvwf hcl hrun
+      obtain ⟨t₁, hstep, hrest⟩ := State.run_cons hrun
+      obtain ⟨hmR, hmBlk⟩ := hcl m (List.mem_cons.2 (Or.inl rfl))
+      obtain ⟨v₁, hstepv, hsplitv, hvwfv₁⟩ :=
+        ground_split_step huwf hvwf hnextst hface hsplit hmR hmBlk hstep
+      obtain ⟨v', hrestv, hsplitv'⟩ :=
+        ih t₁ v₁ t hsplitv (step_wf huwf hstep) hvwfv₁
+          (fun m' hm' => hcl m' (List.mem_cons.2 (Or.inr hm'))) hrest
+      refine ⟨v', ?_, hsplitv'⟩
+      show (match State.step v m with
+        | some s' => State.run s' B'
+        | none => none) = some v'
+      rw [hstepv]
+      exact hrestv
+
+/-- The γ bridge: at a bare-window WF corner, the raise re-embodies a
+relocation of `c` — `step v (foundToTab c b) = step st (tabToTab c
+b)` for the raised `v`.  The dig parity is the same
+`afterRunRemoved p []` on both threads (the singleton run), the
+foundation round-trips by `chop_snoc`, and `canPlace c b` survives at
+the raised state because `b`'s seat provably misses the dug pile. -/
+private theorem relocate_resettle {st : State} {c : Card} {k : Anchor}
+    {b : Sum Anchor Card} {u₁ v : State}
+    (hwf : st.WF)
+    (hface : (st.piles k).faceUp = [c])
+    (hmove : State.step st (Move.tabToTab c b) = some u₁)
+    (hrise : State.step st (Move.tabToFound c) = some v) :
+    State.step v (Move.foundToTab c b) = some u₁ := by
+  sorry
+
+/-! ### The named sub-residue (the (N) win-lift) -/
 
 /-- **(N) The lifted win** — §5.1's one remaining content piece,
 restaged (wave-24.6) at the WIN-LIFT as the row's single named
