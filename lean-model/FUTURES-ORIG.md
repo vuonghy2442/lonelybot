@@ -3001,3 +3001,44 @@ here to lift the crafted-evidence rows (already in this commit:
 the merge/standing-fork union realizability arithmetic; the
 homeless-cargo obstruction for the (13,13) tuple) into the
 skeleton's shapes.
+
+#### §11-L4.1 — the forkEvidence SIGNATURE CORRECTION (amr_129d6300b, the user's detection discussion; landed same branch — battery + audit, decide-graded)
+
+The corrected signature (read LIVE at the stall point, never
+both-stackable — that reading is VACUOUS at real fork cells,
+exactly consistent with this card's census verdict that
+intra-state contention is empty at WF):
+
+  forkEvidence stall x := CanRaise x (the bare twin) ∧
+    coveredIn x.twin (∃ a, pileHolding = some a ∧ aboveIn ≠ [])
+    ∧ ∃ cargo d, d.rank.toIdx + 1 = x.rank.toIdx ∧ ¬twinSuit
+    d.suit x.suit ∧ rungAt d.suit < d.rank.toIdx (the PIN: the
+    cargo cannot stack in place, the cascade cannot light it)
+    ∧ THE OPERATIONAL TRIAL: st.step (.tabToTab d (Sum.inr x))
+    = some st' ∧ CanRaise st' x.twin (the slide lights the
+    covered twin — the other arm witnessed live).
+
+Decided at the battery (probes/CanonV3Probe.lean, the
+l4RowForkSigCorrected rows; all green):
+- BOTH standing-fork stalls register (v3Fork and its mate) —
+  the pin (clubs 0 < ♣Q's 11), the slide-trial to the other
+  arm, the exposed twin licensed post-slide.
+- The benign next-in-line MERGE cell REFUSES: the cargo's own
+  rung waits (clubs 11 = its own index), so though the
+  slide-trial alone fires, the full signature is false — the
+  false-positive guard verified.
+- The covered twins are UNLICENSED at the stalls (one licensed
+  + one covered, never both); the same-color rungs pinned at
+  the pair rank by the bare twin's stackable-now — the covered
+  twin's pin by cargo/cascade arithmetic, NOT by CanRaise.
+
+AUDIT (the consequence-2 checklist): the landed case-table rows
+are CONSISTENT with the corrected signature — no row speaks of
+both-stackable twins at a fork stall; the lattice rows state
+the opposite (pnCoveredPairAtMostOne), the both-licensed rows
+are exactly the independence slice (the NON-fork cells), and
+the covered rows speak of cargo-above (pnCoverSit).  NO
+VACUOUS ROWS FOUND.  Persistence (carrying the recorded bump
+from stall to saturated form) is the next carrier work; the
+canonicalizer reads the signature live during saturation, and
+forkBump's forensics problem dissolves as the request states.

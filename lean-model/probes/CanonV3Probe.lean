@@ -1,5 +1,6 @@
 import Orig.Canonical
 import Orig.CanV3
+import Orig.TwinExchange
 
 /-! # CanonV3Probe — the V3-canonicalizer gating census (landing 1)
 
@@ -1687,3 +1688,140 @@ def l4AllGates : Bool :=
     IO.println "with payers named — mem_macro_iff the one engine."
   else
     throw (IO.userError "CANONV3 LANDING 4: A GATE FAILED — see the numbers above")
+
+/-! ## Signature correction (amr_129d6300b, the user's detection discussion) — the corrected forkEvidence, decide-graded
+
+The corrected signature, read live DURING saturation at the stall
+point (NOT both-stackable — that reading is VACUOUS at real fork
+cells, consistent with landing 1's census verdict that
+intra-state contention is empty at WF — one twin is always covered
+at a stall):  CanRaise x (the bare twin) ∧ coveredIn x.twin (∃ a,
+pileHolding x.twin = some a ∧ aboveIn ≠ []) ∧ cargo-shape (∃ d,
+d.rank.toIdx + 1 = x.rank.toIdx ∧ ¬twinSuit d.suit x.suit ∧
+rungAt d.suit < d.rank.toIdx — the PIN: the cargo cannot stack in
+place and the cascade cannot light it) ∧ THE OPERATIONAL TRIAL
+(∃ st', st.step (.tabToTab d (Sum.inr x)) = some st' ∧ CanRaise
+st' x.twin — the slide lights the covered twin, the other arm
+witnessed).
+
+AUDIT (the request's consequence-2): the landed case-table rows
+are CONSISTENT with the corrected signature — no row speaks of
+both-stackable twins at a fork stall; the lattice states the
+opposite (pnCoveredPairAtMostOne: covered ⇒ at most one licensed
+twin), the both-licensed rows are exactly the independence slice
+(the NON-fork cells: both-bare kings / both-under non-kings),
+and the covered rows speak of the covered twin under cargo
+(pnCoverSit/pnCoveredKingQueen/pnCoveredAceAbsurd).  No vacuous
+rows found.  The merge cell is the false-positive guard the
+correction predicted: the slide-trial fires there (canon from
+both faces lands ONE state — the merge battery row), but the PIN
+leg refuses (rungAt clubs = 11 = d.rank.toIdx, NOT <) — the
+benign next-in-line does NOT register.  -/
+
+/-- coveredIn as the Bool mirror: face-up in a pile with content
+above. -/
+def v3CoveredInB (st : State) (c : Card) : Bool :=
+  match st.pileHolding c with
+  | none => false
+  | some a => decide (aboveIn c (st.piles a).faceUp ≠ [])
+
+/-- rungAt as the found length (the state-level ceiling read on
+the raw state). -/
+def v3RungAt (st : State) (s : Suit) : Nat := (st.found s).length
+
+/-- twinSuit (same-color family) as the Bool mirror. -/
+def v3TwinSuitB (d s : Suit) : Bool :=
+  decide (d = s ∨ d = s.twin)
+
+/-- The CORRECTED forkEvidence signature, live at the stall:
+bare twin licensed, twin covered by pinned cargo of the opposite
+color, and the operational slide-trial lights the other arm. -/
+def v3ForkSigB (st : State) (x d : Card) : Bool :=
+  canRaiseB st x &&
+  v3CoveredInB st x.twin &&
+  decide (d.rank.toIdx + 1 = x.rank.toIdx) &&
+  !(v3TwinSuitB d.suit x.suit) &&
+  decide (v3RungAt st d.suit < d.rank.toIdx) &&
+  (match st.step (Move.tabToTab d (Sum.inr x)) with
+   | none => false
+   | some st' => canRaiseB st' x.twin)
+
+/-- False for the empty/parked cases the signature must exclude:
+the full-leg trace at a cell for a named (x, d) — pin only, no
+slide leg. -/
+def v3ForkPinB (st : State) (x d : Card) : Bool :=
+  canRaiseB st x &&
+  v3CoveredInB st x.twin &&
+  decide (d.rank.toIdx + 1 = x.rank.toIdx) &&
+  !(v3TwinSuitB d.suit x.suit) &&
+  decide (v3RungAt st d.suit < d.rank.toIdx)
+
+/-- The corrected-signature rows (all decide-graded):
+
+- v3Fork (the standing fork stall): the FULL signature fires —
+  the bare ♥K licensed, ♦K covered by the pinned ♣Q (clubs rung
+  0 < 11), the slide-trial lands on v3ForkX and lights CanRaise
+  of the exposed twin — the other arm witnessed live.
+- v3ForkX (the mate stall): the symmetric signature fires.
+- pnCasForkMerge (the benign next-in-line): the pin leg REFUSES
+  (clubs rung 11 = ♣Q's own index — the cargo can stack in
+  place, the cascade lights it and the fork MERGES) — while the
+  slide-trial alone fires there — the false-positive guard: the
+  next-in-line does NOT register under the corrected signature.
+- fork_pins restated: the same-color rungs pinned at the pair
+  rank — the bare twin by stackable-now (its rung EXACT), the
+  covered twin by the cargo/cascade arithmetic (NOT by
+  CanRaise: the covered twin is unlicensed at the stall).
+-/
+def l4RowForkSigCorrected : Bool :=
+  -- the standing fork, both stalls: full signature registers
+  v3ForkSigB v3Fork v3HK v3CQ &&
+  v3ForkSigB v3ForkX v3DK v3CQ &&
+  -- the pin leg alone holds at the stalls (arithmetic only)
+  v3ForkPinB v3Fork v3HK v3CQ &&
+  v3ForkPinB v3ForkX v3DK v3CQ &&
+  -- the covered twins are NOT licensed at the stalls (the
+  -- signature reads one licensed + one covered, never both)
+  !(canRaiseB v3Fork v3DK) &&
+  !(canRaiseB v3ForkX v3HK) &&
+  -- the same-color rungs pinned at the pair rank: hearts AND
+  -- diamonds at 12 at both stalls (the bare twin's rung EXACT)
+  decide (v3RungAt v3Fork .heart = 12) &&
+  decide (v3RungAt v3Fork .diamond = 12) &&
+  decide (v3RungAt v3ForkX .heart = 12) &&
+  decide (v3RungAt v3ForkX .diamond = 12) &&
+  -- THE BENIGN NEXT-IN-LINE REFUSES: at the merge cell the
+  -- bare twin is licensed and the twin is covered, but the
+  -- cargo's own rung WAITS — the pin leg fails, the full
+  -- signature is false, though the slide-trial alone fires
+  !(v3ForkPinB pnCasForkMerge v3HK v3CQ) &&
+  !(v3ForkSigB pnCasForkMerge v3HK v3CQ) &&
+  canRaiseB (pnCasForkMerge.step (Move.tabToTab v3CQ (Sum.inr v3HK))
+    |>.getD pnCasForkMerge) v3DK &&
+  -- and the covered twin lights post-slide — the merge shape is
+  -- the cascade's own work, not a fork's
+  decide (canon pnCasForkMerge = canon pnCasForkMergeX)
+
+-- The signature-correction census numbers (printed for the ledger):
+#eval v3ForkSigB v3Fork v3HK v3CQ -- expect true: the stall registers
+#eval v3ForkSigB v3ForkX v3DK v3CQ -- expect true: the mate stall registers
+#eval v3ForkSigB pnCasForkMerge v3HK v3CQ -- expect false: the next-in-line REFUSES
+#eval v3ForkPinB pnCasForkMerge v3HK v3CQ -- expect false: the pin leg alone refuses
+#eval v3RungAt v3Fork .club -- expect 0: the pinned cargo's rung
+#eval v3RungAt pnCasForkMerge .club -- expect 11: the next-in-line's own rung
+
+#eval! do
+  if l4RowForkSigCorrected then
+    IO.println "CANONV3 SIGNATURE CORRECTION (amr_129d6300b): ALL GATES HOLD —"
+    IO.println "The corrected forkEvidence (live at the stall: bare twin licensed +"
+    IO.println "twin covered by PINNED opposite-color cargo + the operational"
+    IO.println "slide-trial lighting the other arm) registers at BOTH standing-fork"
+    IO.println "stalls (v3Fork and its mate); the covered twins are UNLICENSED there"
+    IO.println "(one licensed + one covered, never both — the census verdict's"
+    IO.println "intra-state emptiness respected); the same-color rungs pinned at the"
+    IO.println "pair rank by the bare twin's stackable-now (not by CanRaise of the"
+    IO.println "covered twin). The benign next-in-line MERGE cell REFUSES the"
+    IO.println "signature: the cargo's own rung waits (the pin leg fails) though the"
+    IO.println "slide-trial alone fires — the false-positive guard verified."
+  else
+    throw (IO.userError "SIGNATURE CORRECTION: A GATE FAILED")
