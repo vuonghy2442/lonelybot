@@ -3520,3 +3520,84 @@ falsifier numbers pinned in the run output (v3WfB true, the
 v2-conjuncts true, the class-strand false, the seat package
 false, the trial conclusion dead, the row green).  No merge to
 macro-game; additive only.
+
+#### §11-L5 — THE FORKSTATE UNIQUENESS THEOREM lands mechanically (branch orig-forkstate-unique, base macro-game a772b23 per the 8a0e121 recipe; the slide-mate + king-shuffle halves complete, the maximality gate honestly named)
+
+(a) THE ANATOMY FINDING (the chapter's headline): the
+`conjugateForkState` composite, AS WRITTEN, never lands the mate —
+it is NET-FLAT on the foundations (`conjugate_endpoint_netflat`:
+raise writes +[x], slide writes nothing, pull chops it back) and
+the pulled-back card RE-LICENSES at its fresh seat with the pin
+restored (`conjugate_endpoint_relic`), so any forkState at the
+composite endpoint witnesses the SAME card the composite started
+from (`conjugate_endpoint_witness`; the dance reading rides
+`conjugate_dancePath` per-leg-reversible).  THE MATE IS THE SLIDE:
+one direct reversible `tabToTab` of the covering cargo onto the
+witness — `forkState_slide_mate`.
+
+(b) THE SLIDE-MATE ROW, FULLY PROVED — §11-L4.9's named residual
+stages, closed and exceeded: the successor-composition read (the
+mid-state `pileOfTop` scan pinned WF-free by
+`firstWhere_find`/`mem_faceUp_unique`, `putRun_inr_eq`), the
+exposure (`pileOfTop_eq_some_iff` at `step_wf`, seat package
+verbatim through `afterRunRemoved_ne`/`chop_snoc`), the license
+(`CanRaise s' x.twin`), AND the complete iff at the slid state:
+the maximality transport at the slide closes by the four-case
+parcel — the witness's BURIAL by the landed run, the cargo's
+STRAND (its own license would have fired at `st`: nextUp false
+through the iff itself, the strand now a CONSEQUENCE of the
+detection), the off-triple cards' TOP-STATUS invariance (only
+x.twin exposes, only x buries), and the rung nonwirth.  Plus the
+leg's reversibility (`tabToTab_undo_under`, the classification's
+under-cell) and the one-leg `CargoPath`.  Premises mirror the
+in-tree `forkPointC` witness shape at the new reads (the covered
+twin directly under the cargo; the fit `canSitOn d x`; the V3
+seat package).
+
+(c) THE KING SHUFFLE LANDED: `kingVacate_reversibleW` — a bare
+king's whole-pile vacate onto an empty anchor is ONE REVERSIBLE
+`tabToTab` (undo = the mirror vacate; license =
+`tabToTab_undo_bare`, the classification's bare-king cell — the
+`Orig/Vacate` channel's king-side complement, its own
+`vacateShape` barring kings by design), with the seat's
+re-springing (the source anchor empties) read off directly;
+the whole orbit — a king wandering the vacant anchors, swapping
+with its twin — is the `KingVacWalk` closure, every leg one
+`FlatStep.cargo` (`kingVacWalk_cargoPath`), inside the class
+(`kingVacWalk_class`).
+
+(d) THE PIN TRANSPORT: `cargoPath_rungs`/`_foundCongr`/`_class`/
+`_sameClass` (flat legs keep every rung, `WF` travels, the
+founds agree card-for-card at `rung_found_congr`, the loop-closed
+`class_leg` engine puts every cargo walk inside the macro state) —
+the mechanical strand of the in-tree sorry'd `faceShape_rel`, and
+the state-level pair exclusivity at the new reads
+(`forkPair_not_twoColors_state`/`_twoRanks_state`: the iff's own
+finch — no omega needed at the state grade).
+
+(e) THE MAIN ROW `forkState_unique` (st₁ st₂ same class, both
+forkStates ⟹ `FaceShape st₁ st₂`) carries EXACTLY ONE named
+BLOCKED residue: the maximality-transport gate, diagnosed per
+gate — G1 PAIR-TRANSPORT (the off-pair suits' rungs are free
+data: the `forkPoint_exclusive` sandwich needs the class-grade
+cargo strand, content the one-state iff carries only at itself),
+G2 COVERAGE-DEGENERACY (classes whose twin is blocked without a
+fitting cover realize with NO slid mate — the (Q,J)-falsifier
+seats — and the claim degenerates to the witness's cargo orbit),
+G3 THE SATURATED RESIDUE (non-covering cargo wiggle between
+same-pair forkStates — the `saturated_classification`/
+`canonFace_sameShape` tier).  Given any gate's closure the row
+assembles from this chapter's halves; the gate is deliberately a
+single `sorry` with the diagnosis in its docstring.
+
+Battery: `lake build Orig` green (30 jobs, leaf not wired into
+the root, mirroring MacroInternal's own discipline);
+`lake env lean Orig/ForkStateUniq.lean` exit-zero with exactly
+one `sorry` warning (the named row).  Audit battery per head:
+every fresh row `[propext]` or `[propext, Quot.sound]` — ZERO
+`Classical.choice` anywhere — and `forkState_unique` prints
+`[propext, sorryAx]` exactly as the in-tree gated precedent
+(`cone_pulls_congr_crossarm`).  The in-tree interface
+(forkState/conjugateForkState/CargoPath/FaceShape) mirrored,
+never redefined; zero contention (branch file additions only);
+no merge to macro-game.
