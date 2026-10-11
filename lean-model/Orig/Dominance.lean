@@ -4414,46 +4414,6 @@ which mirror `Orig/Phase.lean`'s private copies
 (`drain_positions_one` et al.) specialized to `drawStep = 1` —
 dedup-marked, promote at harvest. -/
 
-/-- The pile-top read is a piles-field read. -/
-private theorem topOf_congr {u v : State} (a : Anchor) (h : u.piles = v.piles) :
-    u.topOf a = v.topOf a := by
-  show (u.piles a).top = (v.piles a).top
-  exact congrArg Pile.top (congrFun h a)
-
-/-- The top-search is a piles-field read. -/
-private theorem pileOfTop_congr {u v : State} (z : Card) (h : u.piles = v.piles) :
-    u.pileOfTop z = v.pileOfTop z := by
-  show firstWhere (fun a => decide (u.topOf a = some z)) Anchor.all = _
-  exact firstWhere_congr (p := fun a => decide (u.topOf a = some z))
-    (q := fun a => decide (v.topOf a = some z)) (fun a => by rw [topOf_congr a h])
-    (l := Anchor.all)
-
-/-- The placement guard is a piles-field read. -/
-private theorem canPlace_congr {u v : State} (c : Card) (b : Base)
-    (h : u.piles = v.piles) : u.canPlace c b = v.canPlace c b := by
-  cases b with
-  | inl a =>
-      show ((u.piles a).isEmpty && decide (c.rank = Rank.king))
-          = ((v.piles a).isEmpty && decide (c.rank = Rank.king))
-      rw [congrArg Pile.isEmpty (congrFun h a)]
-  | inr z =>
-      show (match u.pileOfTop z with
-        | some _ => canSitOn c z | none => false) = _
-      rw [pileOfTop_congr z h]
-      rfl
-
-/-- The foundation-next read is a found-field read. -/
-private theorem nextUp_congr {u v : State} (c : Card) (h : u.found = v.found) :
-    u.nextUp c = v.nextUp c :=
-  congrArg (fun (f : Suit → List Card) => decide (c.rank.toIdx = (f c.suit).length)) h
-
-/-- The foundation-top read is a found-field read. -/
-private theorem foundTop_congr {u v : State} (s : Suit) (h : u.found = v.found) :
-    u.foundTop s = v.foundTop s := by
-  simp only [State.foundTop]
-  rw [congrFun h s]
-
-/-- The win predicate is a found-field read. -/
 private theorem isWin_congr {u v : State} (h : u.found = v.found) :
     u.isWin = v.isWin := by
   show (Suit.all.all fun σ => decide ((u.found σ).length = 13)) =
