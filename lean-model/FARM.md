@@ -17,9 +17,16 @@ the nine exchange cases) over the PROVEN reserve lemma (A,
 three named residues in; the physical port landed in Orig as
 `Orig/Dominance.lean` (chapter registry row in `Orig.lean`; the Orig
 sorries are the census-pinned four: `tabToFound_dominant_of_ground`,
-`draw1_sameCycle_sameFate`, `draw1_compliant_replay`,
-`draw1_compliant_normalForm` — routes at their sites; §5.1's R-halves
-ride the LANDED `tabToFound_undo_under/_bare` and are PROVEN)**);
+`draw1_compliant_replay`, `draw1_compliant_normalForm` — routes at
+their sites; §5.1's R-halves ride the LANDED `tabToFound_undo_under/_bare`
+and are PROVEN; **UPDATE 2026-10-11 — the (A) row is PROVEN on
+`farm/orig-dom-a-reserve@c0c751b`: `draw1_sameCycle_sameFate` lands
+sorry-free, the physical twin replay of the mirror's cursor argument —
+list-equal `cycleOf` kept as the whole invariant (copied draws rotate
+both cycles in lockstep; the waste top is the cycle's last card, so a
+nonempty-waste twin consumes verbatim; the full-stock corner splices
+the whole-cycle `drain_full`), audited `[propext, Quot.sound]`,
+battery green at 104, the Orig census-pinned four now three)**);
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the

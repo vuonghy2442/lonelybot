@@ -1023,9 +1023,53 @@ discipline: this file adds no sorries, cites none, and should be read
 against `witnesses/README.md`'s regression-layer protocol
 (`witnesses/README.md:13-22`) and the census header (FARM.md:3).
 
-## 8. The session ledger (UPDATE 2026-10-10: the to-foundation
+## 8. The session ledger (UPDATE 2026-10-11: the (A) reserve row lands
+on `farm/orig-dom-a-reserve`; UPDATE 2026-10-10: the to-foundation
 dominances port + the both-occupied harvest + the post-merge cleanup,
 branch `macro-game`)
+
+**STATUS 2026-10-11 — `(A) draw1_sameCycle_sameFate` IS PROVEN,
+SORRY-FREE, ON `farm/orig-dom-a-reserve@c0c751b`** (+1075 lines in
+`Orig/Dominance.lean`, raw hash row: the branch tip; the wave-24
+census-pinned Orig four is now three, the row's own stub gone).  The
+route, versus the Klondike mirror `draw1_cursor_solvable`: the mirror
+spliced draws before EVERY consuming move, resyncing the twin to the
+source's cursor exactly; the physical proof is one refinement
+lighter — the whole invariant is the four `sameCycle` fields
+themselves, with `cycleOf` kept LIST-EQUAL at every copied move,
+because (i) a copied `draw` rotates both cycles in lockstep
+(`draw_cycleOf`: a step-1 draw moves the presented cycle's head to
+its tail, regardless of the phase), (ii) the waste top IS the
+presented cycle's LAST card (`cycleOf_eq_snoc`,
+`waste_head_of_cycle`), so whenever the twin's waste is nonempty it
+fires the same `wasteTo*` verbatim (all guards are found/piles
+reads, carried by the congruence readers), and (iii) the one genuine
+corner — the twin at FULL STOCK (waste `[]`, stock = the cycle) —
+splices `drain_full` (`drain_positions_one` at `drawStep = 1`: q
+consecutive draws move the stock's first q cards onto the waste,
+list-exact) for the whole cycle length: the drain puts the cycle's
+last card in hand, keeps the cycle list, and the consumption leaves
+both threads on the same stripped cycle.  Foundation transfers
+close the invariant each step; `isWin` reads found only, so the
+replayed play wins — both iff directions via the symmetric instance.
+Arithmetic surprise, banked: at `drawStep = 1` the k-th draw
+delivers `cycleOf[k-1]` PHASE-INDEPENDENTLY (the waste-head equals
+the cycle-last law that makes the direct-fire case tick), but the
+phases themselves are NOT mutually reachable (a full-stock state
+drains and never re-stocks fully — the orbit misses it), which is
+exactly why the mirror's exact-resync had to be replaced by the
+list-invariant replay.  Refute-first: decided probe over all four
+phase-configs of three tail-cycle orders (J-Q-K, J-K-Q, Q-J-K) plus
+the splice family Q-K-J, with negative controls; it caught three
+hand-schedule slips before any proof effort was committed.  Axiom
+grade: `[propext, Quot.sound]` (no `sorryAx`, no `Classical.choice`).
+Battery green at 104; census pinned OK.  **Bankable for (B)/(C)**:
+the row is now a plain cite — any square landing up to `sameCycle`
+transports through it; `drain_full` + the lockstep rotation are
+reusable if (B) prefers verbatim draws over rotation composites; the
+FARM_MEMORY B-note's pristine-waste suspicion applies only to (B)'s
+composite squares — (A) needs no exact-state resync, the multiset
+ledger never written.
 
 **STATUS 2026-10-10 (later) — THE TO-FOUNDATION DOMINANCES ARE
 FORMULATED ON THE PHYSICAL GAME, HALF PROVEN.**  `Orig/Dominance.lean`
