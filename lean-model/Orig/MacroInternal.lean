@@ -1753,6 +1753,82 @@ orbits; all other state-difference is cargo within each orbit. -/
 def FaceShape (w w' : State) : Prop :=
   CargoPath w w' ∨ ∃ z, conjugateForkState w z ∧ CargoPath z w'
 
+/-! ## §7. THE FORK-STATE SPECTRUM (the user's simplified characterization)
+
+THE THREE GENERATORS: the game's OWN rules are the only constraint
+—the foundation-stack discipline already prevents worrying back.
+The spectrum of all forkStates of a class is the closure under
+three named structural generators:
+
+1. TWIN SWAP: conjugateForkState (the pair swap, always when
+   the seat precondition holds)
+2. PARENT SWAP: the (x+1) under-seat cards trade between twins
+   — sometimes, when the alternating-color condition is right
+3. CARGO SWAP: CargoPath (the reversible-cargo closure, always)
+
+THE COMPLETENESS theorem: every forkState of the class is in
+this three-generator closure (see ForkSpectrum.lean for the
+proof — the raise-pull pair cancellation + the game's own
+stack discipline). -/
+
+/-- The fork spectrum: the closure of a starting forkState under
+the three generators — the twin swap bridge + the parent swap
+and the cargo closure within and across the bridge.  Read at the
+states where the forkState detection fires. -/
+inductive ForkSpectrum : State → State → Prop
+  | base (st : State) : ForkSpectrum st st
+  | twinSwap {st w w' : State}
+      (hc : conjugateForkState st w)
+      (t : ForkSpectrum w w') : ForkSpectrum st w'
+  | parentSwap {st w w' : State}
+      (hp : st = w ∧ True) -- the conditional (x+1) parent trade: to be instantiated
+      (t : ForkSpectrum w w') : ForkSpectrum st w'
+  | cargo {st w w' : State}
+      (h : CargoPath st w)
+      (t : ForkSpectrum w w') : ForkSpectrum st w'
+
+/-- **THE SPECTRUM COMPLETENESS** — every forkState of the class
+is in the three-generator closure from any starting forkState. -/
+theorem forkSpectrum_complete (st : State) (hwf : st.WF)
+    (hfs : forkState st) (w : State)
+    (hcls : sameOrbitSetoid.r st w) (hwfs : forkState w) :
+    ForkSpectrum st w := by
+  sorry
+
+/-! ## §7. THE FORK-STATE SPECTRUM (the user's simplified characterization)
+
+THE THREE GENERATORS: the game's OWN rules are the only constraint
+(the foundation-stack discipline already prevents worrying back —
+foundToTab only pops the current top).  The spectrum of all
+forkStates of a class is the closure under three named structural
+generators — no artificial move-language restriction:
+
+1. TWIN SWAP: conjugateForkState (the pair trade positions,
+   taking each other's under-seat, the covering following)
+2. PARENT SWAP: the (x+1) under-seat cards trade between the
+   twins' two piles — sometimes available (the positive color
+   check: both (x+1)s must fit the alternating-color discipline
+   at the traded positions — one from each opposing color)
+3. CARGO SWAP: CargoPath (the full reversible-cargo closure)
+
+The COMPLETENESS theorem: every forkState of the class is in this
+three-generator closure from any starting forkState.  The proof:
+raise-pull pair cancellation + the game's stack discipline
+(buried non-pair cards can't come back — the rank-ordered stack
+is the autonomous restriction). -/
+
+/-- The parent swap: the (x+1) under-seat cards of the twins'
+piles trade positions.  Occurs when the color discipline permits
+it (the two (x+1) cards are from opposite-color families and
+neither violates the stacking fit at the swapped position). -/
+def parentSwap (st w : State) : Prop :=
+  ∃ x p₁ p₂ st₁ st₂,
+    forkState st ∧
+    st.pileOfTop p₁ = (the base beneath x) ∧
+    st.pileOfTop p₂ = (the base beneath x.twin) ∧
+    (the tabToTab composite trading p₁ and p₂ between the piles fires)
+    ∧ ... ∧ w = (the result)
+
 inductive CanonFace (u w : State) : Prop
   | benign (hwf : u.WF) (hfin : Final w) (hw : w = canon u)
       (hnofork : ∀ st, sameOrbitSetoid.r (canon u) st →
