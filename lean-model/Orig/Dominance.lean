@@ -359,86 +359,260 @@ theorem ground_streak_founded {st : State} {c : Card} (hwf : st.WF)
   have hsum : x.rank.toIdx + 3 = c.rank.toIdx := by omega
   exact mem_found_of_height hwf (by omega)
 
-/-! ### The named sub-residue (the normal-form half) -/
+/-! ### The adjacent park/restack identity
 
-/-- **(N) The normal-form half** — §5.1's one remaining piece as a PROVEN
-skeleton's sole named sub-residue (the `replay_head_residue` /
-`vacate_secondMove_residue` house pattern): at the bare-floor corner,
-every winning play has a `groundBlocked`-clean winning counterpart
-that raises `c` at its first `tabToFound c`.
+The one-move cancellation of the B&G Thm-1 transform's Case-1
+substitution (App. B.1, "we now delete the original move and replace
+it with ..."): the parked waste head re-raised from its parked seat
+lands exactly where the direct waste raise lands — the park
+substitutes away whenever its disposal is the immediate restack.
+`witnesses/OrigGroundWitness.lean`'s `g1_streak_raise_chain`
+end-to-end exhibits the channel this identity justifies.  The spread
+version (other moves between the park and the restack) is the
+transform's remaining content; at one-move adjacency the substitution
+is total. -/
 
-**Why the row reduces here.**  `tabToFound_dominant_of_ground` below is
-PROVEN from this residue plus the ground replay (`ground_replay_go`,
-also below): a compliant winning play `π₁ ++ tabToFound c :: π₂`
-replays from the raised state `s₁` as the verbatim prefix and the
-verbatim tail — the raise moves to the front for free, the two states
-coincide from the rung pass on, and the compliant prefix commutes
-through the divergence field (found `c.suit` one ahead, pile `k` the
-revealed counterpart of `c`'s seat).  The residue is exactly the
-transform content, stated as the existence of the compliant shape.
+/-- An empty pile is the empty record: nothing hidden, nothing face up. -/
+private theorem pile_isEmpty_inv {p : Pile} (h : p.isEmpty = true) :
+    p = ⟨[], []⟩ := by
+  cases p with
+  | mk hd fu =>
+    cases hd with
+    | nil => cases fu with
+      | nil => rfl
+      | cons w t =>
+          rw [show Pile.isEmpty ⟨[], w :: t⟩ = false from rfl] at h
+          exact absurd h (by simp)
+    | cons w t =>
+        rw [show Pile.isEmpty ⟨w :: t, fu⟩ = false from rfl] at h
+        exact absurd h (by simp)
 
-**The compliance is the replay's verbatim demand, nothing more.**
-Each `groundBlocked` arm covers a move kind whose legality at the
-source cannot be echoed from the raised state: a park onto `c`'s
-seat needs `c` seated and searchable (`pileOfTop c = some k` — false
-once `c` is founded); a worry-back of `c`'s suit needs the founded
-prefix's top — which at the raised state is `c` itself; `c`'s own
-relocation needs it seated.  Every arm is INHABITED by a genuinely
-playable move at the corner states and every arm's replacement is
-decided-live there (`witnesses/OrigGroundWitness.lean`: the waste
-park with its twin tenant raises, the two-deep run-park raising
-end-to-end through the foundations `g1_streak_raise_chain`, the
-c-suit worry onto a black mate, the relocation with its dig-parity —
-the raise digs the same reveal).
+/-- The read of a parking step: the waste head is the mover, the
+popped tail, the parked record, the placement guard. -/
+private theorem parkStep_inv {st : State} {y : Card} {b : Sum Anchor Card}
+    {u₁ : State} (h : State.step st (Move.wasteToTab y b) = some u₁) :
+    ∃ ws, st.waste = y :: ws ∧ u₁ = { st.putCard y b with waste := ws } ∧
+      st.canPlace y b = true := by
+  simp only [State.step] at h
+  cases hbc : st.wasteIs y && st.canPlace y b with
+  | false =>
+      rw [hbc] at h
+      exact absurd h (by simp)
+  | true =>
+      rw [hbc] at h
+      cases hw : st.waste with
+      | nil =>
+          have hwis : st.wasteIs y = false := by rw [State.wasteIs_nil hw]
+          obtain ⟨ht1, ht2⟩ : st.wasteIs y = true ∧ st.canPlace y b = true := by
+            rw [← Bool.and_eq_true]; exact hbc
+          have hbc' : st.wasteIs y = true := ht1
+          rw [hwis] at hbc'
+          exact absurd hbc' (by simp)
+      | cons w ws =>
+          have hwis : st.wasteIs y = decide (w = y) := State.wasteIs_cons hw y
+          obtain ⟨ht1, ht2⟩ : st.wasteIs y = true ∧ st.canPlace y b = true := by
+            rw [← Bool.and_eq_true]; exact hbc
+          have hbc' : st.wasteIs y = true := ht1
+          rw [hwis] at hbc'
+          have hwy : w = y := of_decide_eq_true hbc'
+          rw [hw, hwy] at h
+          refine ⟨ws, by rw [hwy], ?_, ht2⟩
+          injection h with hi
+          exact hi.symm
 
-**The route** (the B&G App. B.1 Thm-1 transform, physically): taken
-last-noncompliant-first.  (α) a park on `c`'s seat before the rung
-pass: the parked head `y` fits `c`, so `y` is a rank-`r−1`
-opposite-colour live tenant; `ground_streak_founded` (above) bounds
-the parked streak at depth two, and each parked member is at its own
-foundation index by the window's `hsafe`-preservation (the
-substitutions themselves never drop a live tenant's suit below its
-rung: `foundTotal` only rises through them), so the park
-*substitutes away* — raise the streak through the foundations
-instead, the replay converging at the raise just as `g1_diamond`
-exhibits two-way.  (β) a worry-back of `c`'s suit: B&G Cor. 2's
-pointless-loop deletion — the worried card is re-raised later in the
-same play (it must found) and the pair nets to identity on heights;
-the one-move adjacent cancel is LANDED (`foundToTab_undo` /
-`RevEqW`), the spread case carries `y`-blind segments by the B&G
-Case-2 displacement.  (γ) a relocation of `c` before the raise: the
-raise was available all along (the window's `nextUp c` never drops —
-the c-suit height is frozen pre-pass by (β)), digs identically
-(`g1_dig_parity`), and `c`-as-a-base was treated by (α).  Termination
-is the B&G lexicographic `(noncompliant count, play length)`.
+/-- The read of the restack step: the next-up guard, the located top,
+and the record the raise writes. -/
+private theorem restackStep_inv {u₁ : State} {y : Card} {u₂ : State}
+    (h : State.step u₁ (Move.tabToFound y) = some u₂) :
+    u₁.nextUp y = true ∧ ∃ A, u₁.pileOfTop y = some A ∧
+      u₂ = { u₁.setFound y.suit (u₁.found y.suit ++ [y]) with
+             piles := fun a' =>
+               if a' = A then
+                 Pile.afterRunRemoved (u₁.piles A) (chop (u₁.piles A).faceUp)
+               else u₁.piles a' } := by
+  simp only [State.step] at h
+  cases hbc : u₁.nextUp y with
+  | false =>
+      rw [hbc] at h
+      exact absurd h (by simp)
+  | true =>
+      rw [hbc] at h
+      cases hsearch : u₁.pileOfTop y with
+      | none => rw [hsearch] at h; exact absurd h (by simp)
+      | some A =>
+          rw [hsearch] at h
+          refine ⟨rfl, A, rfl, ?_⟩
+          injection h with hi
+          exact hi.symm
 
-**The physical dividends** that make the port faithful rather than
-mechanical: the reveal is part of the move (no dead-pile corner — the
-locked-strand refutation of the old engine has no physical
-analogue), pile-to-pile runs are first-class (a parked streak is ONE
-move, not a climb of single-card relocations), and the foundation
-shuttle is unconditional downwards (`foundToTab` needs only a
-fitting seat — every physical run is whole-run transportable, where
-the old engine's relocations were gated on heights).
+/-- **The waste-park restack identity** (the `α1`-adjacent Case-1
+collapse): parking the waste head `y` on any legal base and then
+re-raising it from the parked seat lands exactly where the direct
+waste raise lands — the parked seat restores (no reveal fires: the
+`inr` branch's prefix never empties, and the `inl` branch's empty pile
+had no hidden cards to flip), the foundation gains exactly `y`, and
+the waste pops exactly once. -/
+theorem wastePark_restack {st : State} {y : Card} {b : Sum Anchor Card}
+    {u₁ u₂ : State} (hwf : st.WF)
+    (hpark : State.step st (Move.wasteToTab y b) = some u₁)
+    (hrestack : State.step u₁ (Move.tabToFound y) = some u₂) :
+    State.step st (Move.wasteToFound y) = some u₂ := by
+  obtain ⟨ws, hwaste, hu₁, hcan⟩ := parkStep_inv hpark
+  obtain ⟨hnextu, A, hA, hu₂⟩ := restackStep_inv hrestack
+  have huwf : u₁.WF := step_wf hwf hpark
+  have found1 : u₁.found = st.found := by
+    rw [hu₁]; exact putCard_found st y b
+  -- The `inl` placement premise: an empty target pile.
+  have hpilinl : ∀ a : Anchor, st.canPlace y (Sum.inl a) = true →
+      st.piles a = ⟨[], []⟩ := by
+    intro a hl
+    obtain ⟨hemp, -⟩ := canPlace_inl hl
+    exact pile_isEmpty_inv hemp
+  -- The parked card tops exactly the parked seat, so the search
+  -- names the seat the park carved (the Fishburne two-hits rule:
+  -- the parked card is nowhere else in a `WF` position).
+  have hAseatL : ∀ s : Anchor, b = Sum.inl s → A = s := by
+    intro s hbs
+    have hcanl : st.canPlace y (Sum.inl s) = true := by rw [← hbs]; exact hcan
+    have hpil : st.piles s = ⟨[], []⟩ := hpilinl s hcanl
+    have hseat : u₁.piles s = ⟨[], [y]⟩ := by
+      rw [hu₁, hbs]
+      show ((st.putCard y (Sum.inl s)).piles) s = ⟨[], [y]⟩
+      rw [putCard_piles_inl]
+      simp
+    have htop : (u₁.piles s).top = some y := by rw [hseat]; rfl
+    exact pileOfTop_inj hA ((pileOfTop_eq_some_iff huwf).mpr htop)
+  have hAseatR : ∀ z k : _, b = Sum.inr z → st.pileOfTop z = some k → A = k := by
+    intro z k hbs hkz
+    have htopz : (st.piles k).top = some z := (pileOfTop_eq_some_iff hwf).mp hkz
+    have hmemz : z ∈ (st.piles k).faceUp := Pile.mem_of_top htopz
+    have hfne : (st.piles k).faceUp ≠ [] := by
+      intro hcon
+      rw [hcon] at hmemz
+      exact absurd hmemz (by simp)
+    have hseat : u₁.piles k = { st.piles k with
+        faceUp := (st.piles k).faceUp ++ [y] } := by
+      rw [hu₁, hbs]
+      show ((st.putCard y (Sum.inr z)).piles) k =
+        { st.piles k with faceUp := (st.piles k).faceUp ++ [y] }
+      rw [putCard_piles_inr st y z k hkz]
+      simp
+    have hfront : ∃ front, (st.piles k).faceUp = front ++ [z] :=
+      (Pile.top_eq_lastOf_iff).mp htopz
+    obtain ⟨front, hfront⟩ := hfront
+    have htopk : (u₁.piles k).top = some y := by
+      rw [hseat, hfront]
+      show lastOf ((front ++ [z]) ++ [y]) = some y
+      exact lastOf_snoc
+    exact pileOfTop_inj hA ((pileOfTop_eq_some_iff huwf).mpr htopk)
+  -- The piles restore pointwise: the parked seat back to its
+  -- pre-park content, every other pile untouched.
+  have hpiles : ∀ a' : Anchor, (if a' = A then
+      Pile.afterRunRemoved (u₁.piles A) (chop (u₁.piles A).faceUp)
+    else u₁.piles a') = st.piles a' := by
+    intro a'
+    by_cases hc : a' = A
+    · rw [if_pos hc, hc]
+      cases hbs : b with
+      | inl a =>
+          have hAa : A = a := hAseatL a hbs
+          have hcanl : st.canPlace y (Sum.inl a) = true := by rw [← hbs]; exact hcan
+          have hpil : st.piles a = ⟨[], []⟩ := hpilinl a hcanl
+          rw [hAa]
+          have hseat : u₁.piles a = ⟨[], [y]⟩ := by
+            rw [hu₁, hbs]
+            show ((st.putCard y (Sum.inl a)).piles) a = ⟨[], [y]⟩
+            rw [putCard_piles_inl]
+            simp
+          rw [hseat]
+          rw [show ((⟨[], [y]⟩ : Pile).faceUp) = ([y] : List Card) from rfl]
+          show Pile.afterRunRemoved ⟨[], [y]⟩ ([] : List Card) = st.piles a
+          rw [hpil]
+          rfl
+      | inr z =>
+          have hcanr : st.canPlace y (Sum.inr z) = true := by rw [← hbs]; exact hcan
+          obtain ⟨k, hkz, -⟩ := canPlace_inr hcanr
+          have hAk : A = k := hAseatR z k hbs hkz
+          have htopz : (st.piles k).top = some z := (pileOfTop_eq_some_iff hwf).mp hkz
+          have hmemz : z ∈ (st.piles k).faceUp := Pile.mem_of_top htopz
+          have hfne : (st.piles k).faceUp ≠ [] := by
+            intro hcon
+            rw [hcon] at hmemz
+            exact absurd hmemz (by simp)
+          rw [hAk]
+          have hseat : u₁.piles k = { st.piles k with
+              faceUp := (st.piles k).faceUp ++ [y] } := by
+            rw [hu₁, hbs]
+            show ((st.putCard y (Sum.inr z)).piles) k =
+              { st.piles k with faceUp := (st.piles k).faceUp ++ [y] }
+            rw [putCard_piles_inr st y z k hkz]
+            simp
+          rw [hseat]
+          rw [show (({ st.piles k with faceUp := (st.piles k).faceUp ++ [y] } : Pile).faceUp)
+              = ((st.piles k).faceUp ++ [y]) from rfl]
+          rw [chop_snoc, afterRunRemoved_ne hfne]
+    · rw [if_neg hc, hu₁]
+      dsimp only
+      cases hbs : b with
+      | inl a =>
+          show (if a' = a then (⟨[], [y]⟩ : Pile) else st.piles a') = st.piles a'
+          rw [if_neg (fun hcon => hc (hcon.trans (hAseatL a hbs).symm))]
+      | inr z =>
+          have hcanr : st.canPlace y (Sum.inr z) = true := by rw [← hbs]; exact hcan
+          obtain ⟨k, hkz, -⟩ := canPlace_inr hcanr
+          have hif : ((if a' = k then
+              ({ st.piles k with faceUp := (st.piles k).faceUp ++ [y] } : Pile)
+            else st.piles a')) = st.piles a' := by
+            rw [if_neg (fun hcon => hc (hcon.trans (hAseatR z k hbs hkz).symm))]
+          show ((st.putCard y (Sum.inr z)).piles) a' = st.piles a'
+          rw [putCard_piles_inr st y z k hkz]
+          exact hif
+  -- The next-up guard already held before the park (the placement
+  -- writes no foundation).
+  have hnextst : st.nextUp y = true := by
+    have h3 : st.nextUp y = u₁.nextUp y := by
+      show decide (y.rank.toIdx = (st.found y.suit).length)
+         = decide (y.rank.toIdx = (u₁.found y.suit).length)
+      rw [found1]
+    rw [h3]; exact hnextu
+  -- The direct raise computes.
+  have hval : State.step st (Move.wasteToFound y) =
+      some { st.setFound y.suit (st.found y.suit ++ [y]) with waste := ws } := by
+    simp only [State.step]
+    have hwis : st.wasteIs y = decide (y = y) := State.wasteIs_cons hwaste y
+    split
+    · rw [hwaste]
+    · exfalso
+      rename_i hcond
+      rw [hwis] at hcond
+      simp [hnextst] at hcond
+  rw [hval]
+  -- The records coincide, field by field.
+  have hgoal : (u₂ : State) =
+      { st.setFound y.suit (st.found y.suit ++ [y]) with waste := ws } := by
+    rw [hu₂]
+    apply State.ext
+    · -- found
+      funext σ
+      by_cases hh : σ = y.suit
+      · rw [hh, setFound_found_self, setFound_found_self, found1]
+      · rw [setFound_found_ne hh, setFound_found_ne hh, found1]
+    · -- piles
+      funext a'
+      exact hpiles a'
+    · -- stock
+      show u₁.stock = st.stock
+      rw [hu₁]
+      exact putCard_stock st y b
+    · -- waste
+      show u₁.waste = ws
+      rw [hu₁]
+    · -- drawStep
+      show u₁.drawStep = st.drawStep
+      rw [hu₁]
+      exact putCard_drawStep st y b
+  rw [hgoal]
 
-**Refute-first gate** (the residue's own, individually probeable):
-the negation shape is a WF `hsafe` corner state where EVERY winning
-play carries a `groundBlocked` move before its first
-`tabToFound c`.  The witness battery hunted exactly this: the
-banned shapes are all LEGAL at the corner states (so the predicate
-bans real moves, not ghosts) and every canonical replacement is
-decide-live, the dig parity is decide-equal, and the streak-raise
-channel runs end-to-end; no countermodel was found (the bounded-DFS
-boundary is recorded).  TODO(proof). -/
-theorem tabToFound_groundNormalForm {st : State} {c : Card} {k : Anchor}
-    (hwf : st.WF) (hsafe : safeToFound st c = true)
-    (hk : st.pileOfTop c = some k)
-    (hnext : st.nextUp c = true)
-    (hbare : chop (st.piles k).faceUp = [])
-    (hcorner : (st.piles k).hidden ≠ [] ∨ c.rank ≠ Rank.king)
-    (hsolv : WinFrom st) :
-    ∃ π₁ π₂ w, st.run (π₁ ++ Move.tabToFound c :: π₂) = some w ∧ w.isWin = true ∧
-      ∀ m ∈ π₁, m ≠ Move.tabToFound c ∧ Move.groundBlocked c m = false := sorry
 
 /-! ### The ground replay (the mechanical half)
 
@@ -2181,6 +2355,529 @@ private theorem ground_replay_go {st : State} {c : Card} {k : Anchor}
       rw [hvstep]
       exact hgo
 
+
+/-! ### The ground carry and the γ bridge
+
+Two direct-attack pieces for `ground_lifted_win` below: the
+compliant-prefix carry (the divergence field moved by the landed
+per-kind ledger), and the γ bridge — the one-move re-embodiment
+that closes the γ-leading case of the win-lift outright
+(`WinFrom_of_runTo` consumes it): at a bare window, the raised
+state re-creates any relocation of `c` via a single worry-back, so
+a play whose first noncompliance is `c`'s own relocation transports
+to the raised world's `P₀ ++ foundToTab c b :: …`. -/
+
+/-- Splitting a successful run at an internal play split (local
+pre-statement; demote against the §5.2 `run_append_split1` reader
+at the merge). -/
+private theorem ground_run_split : ∀ (x : State) (A B : List Move) (w : State),
+    x.run (A ++ B) = some w → ∃ z, x.run A = some z ∧ z.run B = some w := by
+  intro x A
+  induction A generalizing x with
+  | nil => intro B w h; exact ⟨x, rfl, h⟩
+  | cons m rest ih =>
+      intro B w h
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h
+      obtain ⟨z, hA, hB⟩ := ih s₁ B w hrest
+      exact ⟨z, by
+        show (match State.step x m with
+          | some st' => State.run st' rest
+          | none => none) = some z
+        rw [hstep]
+        exact hA, hB⟩
+
+/-- The compliant prefix carries the divergence field move by move:
+from the split at `(u, v)`, a raise-free, `groundBlocked`-clean
+segment replays on the raised side with the field intact. -/
+private theorem ground_prefix_carry {st : State} {c : Card} {k : Anchor}
+    (hnextst : st.nextUp c = true) (hface : (st.piles k).faceUp = [c]) :
+    ∀ (B : List Move) (u v t : State), GroundSplit st c k u v → u.WF → v.WF →
+      (∀ m ∈ B, m ≠ Move.tabToFound c ∧ Move.groundBlocked c m = false) →
+      u.run B = some t → ∃ v', v.run B = some v' ∧ GroundSplit st c k t v' := by
+  intro B
+  induction B with
+  | nil =>
+      intro u v t hsplit _ _ _ hrun
+      have h2 : u.run ([] : List Move) = some u := rfl
+      rw [hrun] at h2
+      have ht : t = u := Option.some.inj h2
+      subst ht
+      exact ⟨v, rfl, hsplit⟩
+  | cons m B' ih =>
+      intro u v t hsplit huwf hvwf hcl hrun
+      obtain ⟨t₁, hstep, hrest⟩ := State.run_cons hrun
+      obtain ⟨hmR, hmBlk⟩ := hcl m (List.mem_cons.2 (Or.inl rfl))
+      obtain ⟨v₁, hstepv, hsplitv, hvwfv₁⟩ :=
+        ground_split_step huwf hvwf hnextst hface hsplit hmR hmBlk hstep
+      obtain ⟨v', hrestv, hsplitv'⟩ :=
+        ih t₁ v₁ t hsplitv (step_wf huwf hstep) hvwfv₁
+          (fun m' hm' => hcl m' (List.mem_cons.2 (Or.inr hm'))) hrest
+      refine ⟨v', ?_, hsplitv'⟩
+      show (match State.step v m with
+        | some s' => State.run s' B'
+        | none => none) = some v'
+      rw [hstepv]
+      exact hrestv
+
+/-- The γ bridge: at a bare-window WF corner, the raise re-embodies a
+relocation of `c` — `step v (foundToTab c b) = step st (tabToTab c
+b)` for the raised `v`.  The dig parity is the same
+`afterRunRemoved p []` on both threads (the singleton run), the
+foundation round-trips by `chop_snoc`, and `canPlace c b` survives at
+the raised state because `b`'s seat provably misses the dug pile. -/
+private theorem relocate_resettle {st : State} {c : Card} {k : Anchor}
+    {b : Sum Anchor Card} {u₁ v : State}
+    (hwf : st.WF) (hface : (st.piles k).faceUp = [c])
+    (hmove : State.step st (Move.tabToTab c b) = some u₁)
+    (hrise : State.step st (Move.tabToFound c) = some v) :
+    State.step v (Move.foundToTab c b) = some u₁ := by
+  -- The bare window's card reads: the singleton seat, the exact searches.
+  have hmemk : c ∈ (st.piles k).faceUp := by rw [hface]; exact List.mem_cons_self
+  have hhk : st.pileHolding c = some k := (pileHolding_eq_some_iff hwf).mpr hmemk
+  have htopk : (st.piles k).top = some c := by
+    show lastOf ((st.piles k).faceUp) = some c
+    rw [hface]; rfl
+  have hchopk : chop ((st.piles k).faceUp) = ([] : List Card) := by
+    rw [hface]; rfl
+  have hpk : st.pileOfTop c = some k := (pileOfTop_eq_some_iff hwf).mpr htopk
+  -- The raise's record.
+  have hs : v = { st.setFound c.suit (st.found c.suit ++ [c]) with
+      piles := fun a' => if a' = k then
+          Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+        else st.piles a' } := tabToFound_shape hrise hpk
+  -- The relocation's guard and record (the bare window: singleton run,
+  -- empty below-run).
+  have hcan : st.canPlace c b = true := by
+    simp only [State.step, hhk, hface] at hmove
+    cases hbc : st.canPlace c b with
+    | false => rw [hbc] at hmove; exact absurd hmove (by simp)
+    | true => exact rfl
+  have hu₁shape : u₁ = ((st.setPile k
+        (Pile.afterRunRemoved (st.piles k) ([] : List Card)))).putRun [c] b := by
+    simp only [State.step, hhk, hface] at hmove
+    cases hbc : st.canPlace c b with
+    | false => rw [hbc] at hmove; exact absurd hmove (by simp)
+    | true =>
+        rw [hbc] at hmove
+        have hf : fromCard c ([c] : List Card) = ([c] : List Card) := by simp [fromCard]
+        have hp : below c ([c] : List Card) = ([] : List Card) := by simp [below]
+        rw [hf] at hmove
+        dsimp only at hmove
+        rw [hp] at hmove
+        injection hmove with hi
+        exact hi.symm
+  -- The raised succeed's found top is the raised card itself.
+  have hftv : v.foundTop c.suit = some c := by
+    show lastOf (v.found c.suit) = some c
+    rw [hs, show (({ st.setFound c.suit (st.found c.suit ++ [c]) with
+      piles := fun a' => if a' = k then
+          Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+        else st.piles a' } : State).found c.suit)
+      = (st.found c.suit ++ [c]) from setFound_found_self]
+    exact lastOf_snoc
+  -- The placement guard survives at the raised state: `b`'s seat misses
+  -- the dug pile.
+  have hcanv : v.canPlace c b = true := by
+    cases b with
+    | inl a =>
+        obtain ⟨hemp, hking⟩ := canPlace_inl hcan
+        have hknea : a ≠ k := by
+          intro hcon
+          have hface' : (st.piles a).faceUp = [c] := by rw [hcon]; exact hface
+          have hpil := pile_isEmpty_inv hemp
+          rw [hpil] at hface'
+          exact absurd hface' (by simp)
+        show ((v.piles a).isEmpty && decide (c.rank = Rank.king)) = true
+        have hvpa : v.piles a = st.piles a := by
+          rw [hs]
+          show (if a = k then
+              Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+            else st.piles a) = st.piles a
+          rw [if_neg hknea]
+        rw [hvpa, hemp, hking]
+        decide
+    | inr z =>
+        obtain ⟨k', hkz, hfit⟩ := canPlace_inr hcan
+        have hznc : z ≠ c := by
+          intro hcon
+          rw [hcon] at hfit
+          obtain ⟨heq, -⟩ := (canSitOn_eq c c).mp hfit
+          omega
+        have hk'nek : k' ≠ k := by
+          intro hcon
+          have hzt : (st.piles k).top = some z := by
+            rw [← hcon]
+            exact (pileOfTop_eq_some_iff hwf).mp hkz
+          have : (st.piles k).top = some c := htopk
+          rw [hzt] at this
+          exact hznc (Option.some.inj this)
+        have hvwf : v.WF := step_wf hwf hrise
+        have hvptz : v.pileOfTop z = some k' := by
+          refine (pileOfTop_eq_some_iff hvwf).mpr ?_
+          have hpvk : v.piles k' = st.piles k' := by
+            rw [hs]
+            show (if k' = k then
+                Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+              else st.piles k') = st.piles k'
+            rw [if_neg hk'nek]
+          rw [hpvk]
+          exact (pileOfTop_eq_some_iff hwf).mp hkz
+        show (match v.pileOfTop z with
+          | some _ => canSitOn c z
+          | none => false) = true
+        rw [hvptz]
+        exact hfit
+  -- The raised worry-back fires and writes the returned state.
+  have hw : State.step v (Move.foundToTab c b) =
+      some ((v.setFound c.suit (chop (v.found c.suit))).putCard c b) := by
+    show (match v.foundTop c.suit with
+      | some c' =>
+          if decide (c' = c) && v.canPlace c b then
+            some ((v.setFound c.suit (chop (v.found c.suit))).putCard c b)
+          else none
+      | none => none) =
+      some ((v.setFound c.suit (chop (v.found c.suit))).putCard c b)
+    rw [hftv]
+    simp only [decide_eq_true_eq, hcanv, Bool.true_and]
+    rfl
+  rw [hw]
+  -- The foundation round-trips.
+  have hchopv : chop (v.found c.suit) = st.found c.suit := by
+    have hvfcs : v.found c.suit = st.found c.suit ++ [c] := by
+      rw [hs]; exact setFound_found_self
+    rw [hvfcs, chop_snoc]
+  rw [hchopv]
+  -- `putRun [c] b` is `putCard c b` (the singleton run), on any state.
+  have hpr : ∀ s : State, s.putRun ([c] : List Card) b = s.putCard c b := fun _ => rfl
+  rw [hu₁shape, hpr (st.setPile k (Pile.afterRunRemoved (st.piles k) ([] : List Card)))]
+  -- The two carriers coincide.
+  have hvfoundne : ∀ σ : Suit, σ ≠ c.suit → v.found σ = st.found σ := by
+    intro σ hne
+    rw [hs]
+    show (st.setFound c.suit (st.found c.suit ++ [c])).found σ = st.found σ
+    rw [setFound_found_ne hne]
+  have hvk : v.piles k =
+      Pile.afterRunRemoved (st.piles k) ([] : List Card) := by
+    rw [hs]
+    show (if k = k then
+        Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+      else st.piles k) = _
+    rw [if_pos rfl, hchopk]
+  have hvne : ∀ a' : Anchor, a' ≠ k → v.piles a' = st.piles a' := by
+    intro a' hne
+    rw [hs]
+    show (if a' = k then
+        Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+      else st.piles a') = st.piles a'
+    rw [if_neg hne]
+  have hvstock : v.stock = st.stock := by rw [hs]; rfl
+  have hvwaste : v.waste = st.waste := by rw [hs]; rfl
+  have hvds : v.drawStep = st.drawStep := by rw [hs]; rfl
+  have hcar : (v.setFound c.suit (st.found c.suit)) =
+      st.setPile k (Pile.afterRunRemoved (st.piles k) ([] : List Card)) := by
+    apply State.ext
+    · funext σ
+      by_cases hh : σ = c.suit
+      · rw [hh, setFound_found_self, setPile_found]
+      · rw [setFound_found_ne hh, setPile_found]
+        exact hvfoundne σ hh
+    · funext a'
+      by_cases hha : a' = k
+      · rw [hha, setFound_piles, setPile_piles_self]
+        exact hvk
+      · rw [setFound_piles, setPile_piles_ne hha]
+        exact hvne a' hha
+    · rw [setFound_stock, setPile_stock, hvstock]
+    · rw [setFound_waste, setPile_waste, hvwaste]
+    · rw [setFound_drawStep, setPile_drawStep, hvds]
+  exact congrArg (fun s => some (s.putCard c b)) hcar
+
+/-- The run-prefix WF chain (local pre-statement; §5.2 has `run_wf`). -/
+private theorem ground_run_wf (A : List Move) :
+    ∀ {st u : State}, st.run A = some u → st.WF → u.WF := by
+  induction A with
+  | nil =>
+      intro st u h hwf
+      have hx : (some st : Option State) = some u := h
+      have hsu : st = u := Option.some.inj hx
+      rw [hsu] at hwf
+      exact hwf
+  | cons m A' ih =>
+      intro st u h hwf
+      obtain ⟨t, hstep, hrest⟩ := State.run_cons h
+      exact ih hrest (step_wf hwf hstep)
+
+/-- The run-join reader: two successful run segments join along the
+play append (local pre-statement; demote against §5.2 at the merge). -/
+private theorem ground_run_join : ∀ (x : State) (A B : List Move) (z w : State),
+    x.run A = some z → z.run B = some w → x.run (A ++ B) = some w := by
+  intro x A
+  induction A generalizing x with
+  | nil =>
+      intro B z w h1 h2
+      have hx : x.run ([] : List Move) = some x := rfl
+      rw [h1] at hx
+      have hzx : z = x := Option.some.inj hx
+      rw [hzx] at h2
+      exact h2
+  | cons m A' ih =>
+      intro B z w h1 h2
+      obtain ⟨t, hm, hA⟩ := State.run_cons h1
+      show (match State.step x m with
+        | some s' => s'.run (A' ++ B)
+        | none => none) = some w
+      rw [hm]
+      exact ih t B z w hA h2
+
+/-- The settle transport — the first case of the win-lift: a compliant
+winning play (clean prefix, the raise at its first `tabToFound c`)
+lifts verbatim to the raised state. -/
+private theorem ground_settle_transport {st : State} {c : Card} {k : Anchor} {s₁ : State}
+    (hnextst : st.nextUp c = true) (hface : (st.piles k).faceUp = [c])
+    (hsplit : GroundSplit st c k st s₁)
+    (hwf : st.WF) (hwfs₁ : s₁.WF)
+    (P σ : List Move) (w : State)
+    (hcl : ∀ m ∈ P, m ≠ Move.tabToFound c ∧ Move.groundBlocked c m = false)
+    (hrun : st.run (P ++ Move.tabToFound c :: σ) = some w)
+    (hwin : w.isWin = true) :
+    WinFrom s₁ := by
+  obtain ⟨u₀, hPu, hrest⟩ := ground_run_split st P (Move.tabToFound c :: σ) w hrun
+  obtain ⟨u₁, hstepR, hσ⟩ := State.run_cons hrest
+  obtain ⟨v₀, hPv, hsplitv⟩ :=
+    ground_prefix_carry hnextst hface P st s₁ u₀ hsplit hwf hwfs₁ hcl hPu
+  have hv : u₁ = v₀ :=
+    ground_converge (ground_run_wf P hPu hwf) hnextst hface hsplitv hstepR
+  rw [hv] at hσ
+  exact ⟨P ++ σ, w, ground_run_join s₁ P σ v₀ w hPv hσ, hwin⟩
+
+/-! ### The named sub-residue (the (N) win-lift) -/
+
+/-- **(N) The lifted win** — §5.1's one remaining content piece,
+restaged (wave-24.6) at the WIN-LIFT as the row's single named
+sub-residue (the `replay_head_residue` / `vacate_secondMove_residue`
+house pattern): at the bare-floor corner, raising the frontier card
+`c` preserves the win — `WinFrom st` lifts to `WinFrom s₁`, the
+raised successor.
+
+**Why the restage.**  The lift and the residue are the SAME content:
+by the empty-prefix equivalence, a lifted `WinFrom s₁` produces the
+residue verbatim with `π₁ := []` (the compliance on `[]` is
+vacuous, `st.run (Move.tabToFound c :: π₂) = s₁.run π₂` through the
+run-split) — and conversely the assembly replays a compliant play
+from `s₁`.  The lift is the smaller, sharper statement: no play
+existential, no compliance predicate, just the win's transport.
+Every paragraph below (the arms, the window arithmetic, the
+protocol findings, the probes) is the LIFT's content map.
+
+**Why the row reduces here.**  `tabToFound_dominant_of_ground` below is
+PROVEN from `tabToFound_groundNormalForm` (which is now a two-line
+consequence of this lift) plus the ground replay (`ground_replay_go`,
+also below): a compliant winning play `π₁ ++ tabToFound c :: π₂`
+replays from the raised state `s₁` as the verbatim prefix and the
+verbatim tail — the raise moves to the front for free, the two states
+coincide from the rung pass on, and the compliant prefix commutes
+through the divergence field (found `c.suit` one ahead, pile `k` the
+revealed counterpart of `c`'s seat).
+
+**The compliance is the replay's verbatim demand, nothing more.**
+Each `groundBlocked` arm covers a move kind whose legality at the
+source cannot be echoed from the raised state: a park onto `c`'s
+seat needs `c` seated and searchable (`pileOfTop c = some k` — false
+once `c` is founded); a worry-back of `c`'s suit needs the founded
+prefix's top — which at the raised state is `c` itself; `c`'s own
+relocation needs it seated.  Every arm is INHABITED by a genuinely
+playable move at the corner states and every arm's replacement is
+decided-live there (`witnesses/OrigGroundWitness.lean`: the waste
+park with its twin tenant raises, the two-deep run-park raising
+end-to-end through the foundations `g1_streak_raise_chain`, the
+c-suit worry onto a black mate, the relocation with its dig-parity —
+the raise digs the same reveal).
+
+**The route** (the B&G App. B.1 Thm-1 transform, physically): taken
+last-noncompliant-first.  (α) a park on `c`'s seat before the rung
+pass: the parked head `y` fits `c`, so `y` is a rank-`r−1`
+opposite-colour live tenant; `ground_streak_founded` (above) bounds
+the parked streak at depth two, and each parked member is at its own
+foundation index by the window's `hsafe`-preservation (the
+substitutions themselves never drop a live tenant's suit below its
+rung: `foundTotal` only rises through them), so the park
+*substitutes away* — raise the streak through the foundations
+instead, the replay converging at the raise just as `g1_diamond`
+exhibits two-way.  (β) a worry-back of `c`'s suit: B&G Cor. 2's
+pointless-loop deletion — the worried card is re-raised later in the
+same play (it must found) and the pair nets to identity on heights;
+the one-move adjacent cancel is LANDED (`foundToTab_undo` /
+`RevEqW`), the spread case carries `y`-blind segments by the B&G
+Case-2 displacement.  (γ) a relocation of `c` before the raise: the
+raise was available all along (the window's `nextUp c` never drops —
+the c-suit height is frozen pre-pass by (β)), digs identically
+(`g1_dig_parity`), and `c`-as-a-base was treated by (α).  Termination
+is the B&G lexicographic `(noncompliant count, play length)`.
+
+**The physical dividends** that make the port faithful rather than
+mechanical: the reveal is part of the move (no dead-pile corner — the
+locked-strand refutation of the old engine has no physical
+analogue), pile-to-pile runs are first-class (a parked streak is ONE
+move, not a climb of single-card relocations), and the foundation
+shuttle is unconditional downwards (`foundToTab` needs only a
+fitting seat — every physical run is whole-run transportable, where
+the old engine's relocations were gated on heights).
+
+**Refute-first gate** (the residue's own, individually probeable):
+the negation shape is a WF `hsafe` corner state where EVERY winning
+play carries a `groundBlocked` move before its first
+`tabToFound c`.  The witness battery hunted exactly this: the
+banned shapes are all LEGAL at the corner states (so the predicate
+bans real moves, not ghosts) and every canonical replacement is
+decide-live, the dig parity is decide-equal, and the streak-raise
+channel runs end-to-end; no countermodel was found (the bounded-DFS
+boundary is recorded).  TODO(proof).
+
+**Session record (wave-24, farm/orig-dom-gap-ground @ 11f3373).**
+Not landed yet; three settled components and the decisive protocol
+findings are recorded for the next session.
+
+1. **The α1-ADJACENT IDENTITY IS LANDED** (sorry-free,
+    `[propext, Quot.sound]`): `wastePark_restack` above — park-then-
+    immediately-restack lands exactly at the direct waste raise.  With
+    `foundToTab_return` (the worry/restack identity, landed) this
+    closes the ADJACENT cases of the α1 and β/α2 substitutions; what
+    remains of arms α and β is the SPREAD carry (other moves between
+    the move and its cancellation/reRouting).
+
+2. **The γ-bridge is derived (not yet landed).**  At a bare-window
+    state (`(st.piles k).faceUp = [c]`, `nextUp c`), for any legal
+    relocation `m = tabToTab c b`:  `step v (foundToTab c b) = u₁`
+    where `u₁ = step st m` and `v = step st (tabToFound c)` — the
+    raised world re-embody the relocation in ONE move, so `WinFrom u₁`
+    lifts `WinFrom v` by `WinFrom_of_runTo` and the residue holds FOR
+    γ-LEADING PLAYS verbatim (`π₁ = P`, the clean prefix).  The proof
+    plan is fully worked: the run is the singleton (`fromCard c [c] =
+    [c]`), so `putRun [c] b` is `putCard c b`; the dig parity is the
+    SAME EXPRESSION `afterRunRemoved p []` on both threads; the found
+    round-trips by `chop_snoc`; `canPlace c b` is preserved at `v`
+    because `b`'s seat provably misses pile `k` (`inl` needs an empty
+    pile, `inr z` has `z ≠ c` and `z` ≠ the revealed card); every
+    needed reader (`putCard_piles_inl/inr`, `canPlace_inl/inr`,
+    `pileOfTop_eq_some_iff`, `afterRunRemoved_ne`, `chop_snoc`,
+    `lastOf_snoc`, `putCard_*` keepers) is public.  Structure the
+    proof after `wastePark_restack` (`parkStep_inv`/`restackStep_inv`
+    style read inverses).
+
+3. **The residue is EQUIVALENT to the dominance, and `π₁ = []` is a
+    legal witness shape.**  If `WinFrom s₁` (the raised state) holds
+    then the residue follows immediately with `π₁ := []`, `π₂ := τ`;
+    conversely the assembly replays.  So the row may be closed EITHER
+    by the normal-form transform OR by any direct proof of the lifted
+    win — do not spend effort manufacturing a nonempty compliant
+    prefix if a lifted win is already in hand.
+
+4. **Protocol finding — the two regimes and where the safety must
+    live.**  FIRST-blocked eliminations sit at quartet windows
+    (`c` bare, `nextUp` frozen) but the tail is WILD and the safety
+    slack may be SPENT at the window by clean other-suit worry-backs
+    (the (C) route's own warning, now probed — see 5): the streak-raise
+    substitution needs the slack AT the window and cannot re-derive it
+    from `hsafe st c`.  LAST-blocked eliminations keep the segment to
+    the rung CLEAN but the window state is wild (`c` possibly buried or
+    relocated).  The B&G loop (last-noncompliant-first, their App. B.1
+    Thm 1) closes γ windows with the bridge of 2; the α/β spreads
+    bottom out at wild-tail transfers that are the SAME content as the
+    (C) residue's storage prong — record them as gated named
+    sub-residues rather than silently carrying the slack premise.
+
+5. **The probe evidence** (`OrigProbes/GroundRes.lean`, a compiled
+    `lake build GroundRes` executable — exhaustive dedup'd BFS plus
+    raise-priority DFS over `State.step` as the only oracle):  the
+    `K♠` razor corner (eight live cards, exact-minimum razor heights)
+    and its eroded variants (one and two clean worry-backs spending
+    the ♥ and ♣ slack, incl. the queued variant with the α1 candidate
+    stranded in the waste) ALL satisfy the transfer — source wins and
+    so do the raised worlds, every raised-world win being the source
+    win minus the rung raise; the erode towers self-heal by c-blind
+    tower raises (`tF ♥J`, `tF ♣10`) before the tenant raise.  No
+    falsifier of C1 (the row at the razor root) or C2 (the transfer at
+    slack-spent quartet windows) was found; the honest boundary is the
+    corpus's smallness and the DFS's raise-order bias (a NO-WIN from
+    the DFS is a smoke gun, not a verdict).  The paper itself (Blake &
+    Gent, JAIR 85, 2026, App. B.1) processes LAST-noncompliant-first
+    with a two-move local rewrite (Case 1: delete-and-raise-early, the
+    adjacent substitution of item 1; Case 2: a one-step swap toward
+    the end) — their written Case 2 sketch needs the moved card to
+    avoid ALL safely-buildable cards, whose own proof they do not
+    spell out (the "covered park" corner), which is the same family as
+    the (C) storage prong; a physical proof must close it by the
+    streak-raise reshape, not inherit it.
+
+**The premise spellings.**  `hwf` makes every search exact
+(`pileOfTop_eq_some_iff`, the two-hits rule); `hsafe` is the razor
+slack the streak-raise channel spends; `hk`+`hnext` FIRE the raise —
+`hstep` hands this lift the canonical successor record; `hbare`
+makes the dug run the singleton `[c]` (the γ bridge's dig parity);
+`hcorner` excludes the undo-bare returnable world (that half is
+LANDED as `tabToFound_undo_bare`).  TODO(proof of the lift).
+
+**The attack kit is LANDED** (all sorry-free, this wave; every
+transport layer of the win-lift exists at the (N) site):
+`ground_run_split` + `ground_run_join` + `ground_run_wf` (the play
+readers), `ground_prefix_carry` (the divergence field carried along
+a raise-free clean prefix), `relocate_resettle` (THE γ BRIDGE: the
+raised state re-embodies any legal bare-window relocation of `c` in
+one `foundToTab c b`, so a γ-leading play transports as
+`P₀ ++ foundToTab c b :: …`), `wastePark_restack` (the α1-ADJACENT
+identity: park-then-immediate-restack = the direct waste raise),
+`ground_settle_transport` (THE SETTLE CASE: a compliant winning play
+lifts verbatim — split, carry, converge, join).  What remains inside
+this lift: the FIRST-BLOCKED extraction — the rung occurs (a winning
+play from a state with `c` in the tableau raises `c`: the
+found-membership crossing move is `tabToFound c ∨ wasteToFound c`,
+and the waste entry is impossible by conservation) and the
+α/β residue at the first blocked move (the parks-on-`c` /
+`c`-suit-worry transports; the adjacent cancellations are landed,
+the spread carry is the (C)-family content). -/
+theorem ground_lifted_win {st : State} {c : Card} {k : Anchor} {s₁ : State}
+    (hwf : st.WF) (hsafe : safeToFound st c = true)
+    (hk : st.pileOfTop c = some k)
+    (hnext : st.nextUp c = true)
+    (hbare : chop (st.piles k).faceUp = [])
+    (hcorner : (st.piles k).hidden ≠ [] ∨ c.rank ≠ Rank.king)
+    (hstep : State.step st (Move.tabToFound c) = some s₁)
+    (hsolv : WinFrom st) :
+    WinFrom s₁ := sorry
+
+/-- **(N) The normal-form half** — the residue, PROVEN from the lift
+by the empty-prefix equivalence: the lifted play IS the compliant
+shape with `π₁ := []` (the compliance on the empty prefix is vacuous,
+the run splits through `hstep` into `s₁`'s lifted play).  The row's
+content now lives entirely in `ground_lifted_win` above, whose route
+note (arms, window arithmetic, protocol findings, probes, the
+B&G App. B.1 map) is the (N) content map. -/
+theorem tabToFound_groundNormalForm {st : State} {c : Card} {k : Anchor}
+    (hwf : st.WF) (hsafe : safeToFound st c = true)
+    (hk : st.pileOfTop c = some k)
+    (hnext : st.nextUp c = true)
+    (hbare : chop (st.piles k).faceUp = [])
+    (hcorner : (st.piles k).hidden ≠ [] ∨ c.rank ≠ Rank.king)
+    (hsolv : WinFrom st) :
+    ∃ π₁ π₂ w, st.run (π₁ ++ Move.tabToFound c :: π₂) = some w ∧ w.isWin = true ∧
+      ∀ m ∈ π₁, m ≠ Move.tabToFound c ∧ Move.groundBlocked c m = false := by
+  -- the raise fires at st: hnext + hk write the canonical successor
+  obtain ⟨s₁, hstep⟩ : ∃ s₁, State.step st (Move.tabToFound c) = some s₁ :=
+    ⟨{ st.setFound c.suit (st.found c.suit ++ [c]) with
+        piles := fun a' => if a' = k then
+            Pile.afterRunRemoved (st.piles k) (chop (st.piles k).faceUp)
+          else st.piles a' },
+      by simp only [State.step, hnext, hk]; rfl⟩
+  -- the lift transports the win
+  obtain ⟨τ, w', hτrun, hτwin⟩ :=
+    ground_lifted_win hwf hsafe hk hnext hbare hcorner hstep hsolv
+  refine ⟨[], τ, w', ?_, hτwin, by simp⟩
+  show State.run st (Move.tabToFound c :: τ) = some w'
+  rw [show State.run st (Move.tabToFound c :: τ)
+      = match State.step st (Move.tabToFound c) with
+        | some s' => State.run s' τ | none => none from rfl,
+    hstep]
+  exact hτrun
 
 /-- **(N) The bare-floor residue** — §5.1's one open piece, the old
 [GAP] channel-A/B reshape in physical dress: the raised card's
@@ -8466,3 +9163,4 @@ skeleton is sorry-free; the content rides the named stub). -/
 #print axioms WorryCoReal.probe_cnow_others
 #print axioms WorryCoReal.probe_xnext_spade
 #print axioms WorryCoReal.probe_xnext_others
+

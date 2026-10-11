@@ -1084,6 +1084,106 @@ The §5.1 name moved: the open piece below is now
 name forward); `tabToFound_safe_dominant`'s sorryAx also rides only
 that residue now.
 
+**STATUS 2026-10-11 (wave 24.6, branch `farm/orig-dom-gap-ground` off
+`11f3373`) — THE (N) TRANSFORM MACHINERY BEGAN LANDING; ONE ARM
+COMPONENT PROVEN, THE OTHERS FULLY PLANNED.**  Zero new sorries; the
+census stays pinned (`Dominance.lean` 6 expected 6).
+
+* **LANDED, sorry-free, audited `[propext, Quot.sound]`**:
+  `wastePark_restack` (+ its private read inverses `parkStep_inv`,
+  `restackStep_inv`, `pile_isEmpty_inv`) — the α1-ADJACENT Case-1
+  collapse: park the waste head on any legal base and immediately
+  re-raise it from the parked seat = the direct waste raise, an
+  EXACT state equality (the seat restores without a reveal at
+  either `putCard` branch, the foundation gains exactly the mover,
+  the waste pops once).  Together with `foundToTab_return` this
+  closes EVERY ADJACENT case of the α1 and β/α2 substitutions —
+  the SPREAD carry (other moves between the move and its
+  cancellation) is the (N) row's remaining content on those arms.
+* **The γ plan, fully derived (see the site note for the parts
+  list)**: at a bare window, `step v (foundToTab c b) = step st
+  (tabToTab c b)` where `v = step st (tabToFound c)` — the raised
+  world re-embody any relocation of a bare `c` in ONE move, so a
+  γ-leading play satisfies the RESIDUE VERBATIM (`π₁ = P` clean) by
+  `WinFrom_of_runTo`.  Singleton run (`fromCard c [c] = [c]`) makes
+  `putRun [c] b ≡ putCard c b`; the dig parity is literally the same
+  `afterRunRemoved p []` on both threads; `chop_snoc` returns the
+  found; `canPlace c b` survives at `v` because `b`'s seat misses
+  pile `k` (the `inl` target is empty so not `k`; the `inr` base
+  card is neither `c` nor the revealed card).  Write it structuring
+  after `wastePark_restack`.
+* **Residue ⟺ dominance**: a lifted `WinFrom s₁` IS the residue
+  with `π₁ = []` — do not manufacture a nonempty compliant prefix
+  when a lifted win is in hand (the assembly replays either).
+* **Protocol finding for the spread arms**: FIRST-blocked
+  eliminations sit at quartet windows but meet WILD tails with the
+  safety slack possibly SPENT (clean other-suit worry-backs — the
+  (C) route's warning, now probe-confirmed: the streak-raise
+  substitution needs `hsafe` AT the window and cannot re-derive it
+  from `hsafe st c`); LAST-blocked eliminations keep the
+  to-the-rung segment clean but wild the window.  The α/β spread
+  bottoms at the same content as the (C) residue's storage prong —
+  close it by the streak-raise reshape (B&G's own Case-2 sketch
+  requires the moved card to avoid ALL safely-buildable cards, a
+  step the printed proof does not spell out — the "covered park"
+  corner), or record gated sub-residues honestly.
+* **Probe evidence**, compiled (`OrigProbes/GroundRes.lean`, `lake build
+  GroundRes`; probes README row): the `K♠` razor corner and its
+  eroded/queued variants sustain C1 and C2 across the corpus —
+  every raised-world win is the source win minus the rung; the
+  erode towers self-heal by c-blind raises before the tenant raise.
+  The paper's App. B.1 was fetched and read (Blake & Gent, JAIR 85,
+  2026 — the transform reference for the whole §5.1 family).
+* **ATTACK KIT LANDED (+`d3b11d0`/`bb8652f`/`ab77a7e`, on the
+  `f0b3315` restage)**: every transport layer of the win-lift is
+  SORRY-FREE at the (N) site — `ground_run_split` /
+  `ground_run_join` / `ground_run_wf` (the play readers, local
+  pre-statements to demote against §5.2 at the merge),
+  `ground_prefix_carry` (the divergence field carried along a
+  raise-free `groundBlocked`-clean prefix), `relocate_resettle`
+  (**THE γ BRIDGE**: at a bare-window WF corner the raised state
+  re-embodies any legal relocation of `c` in ONE `foundToTab c b` —
+  the singleton run makes `putRun [c] b ≡ putCard c b`, the dig
+  parity is the same `afterRunRemoved p []` on both threads, the
+  foundation round-trips by `chop_snoc`, and `canPlace c b` survives
+  because `b`'s seat provably misses the dug pile), and
+  `ground_settle_transport` (**THE SETTLE CASE**: a compliant
+  winning play — clean prefix, the raise at its first
+  `tabToFound c` — lifts verbatim to the raised state: run-split,
+  field-carry, `ground_converge` at the lifted seat, run-join).
+  With `wastePark_restack` (the α1-adjacent identity) every head
+  case of the first-blocked elimination is closed EXCEPT the α/β
+  residue.  Remaining inside `ground_lifted_win`: the
+  rung-occurs extraction (a winning play from a state with `c` in
+  the tableau raises `c`: the found-membership crossing move is
+  `tabToFound c ∨ wasteToFound c`, and the waste entry is
+  impossible by conservation) and the α/β spread residue (the
+  adjacent cancellations landed; the spread carry is the
+  (C)-storage-family content — see the lift's route note for the
+  protocol findings and the probe evidence above).  Battery note:
+  `lake build Klondike Witnesses Orig` — all three targets green
+  (the Witnesses first pass hit a transient Windows
+  `.private`-olean read storm; the retry is green); census pinned
+  OK throughout.
+* **RESTAGE (2026-10-11, `f0b3315`-based branch commits `8c5a18f`
+  → `476124b`)**: the (N) content now lives at `ground_lifted_win`
+  (hwf hsafe hk hnext hbare hcorner hstep hsolv → WinFrom s₁) — the
+  named-residue site became the WIN-LIFT (no play existential, no
+  compliance predicate); `tabToFound_groundNormalForm` is PROVEN
+  from it by the empty-prefix equivalence (the row keeps its
+  statement, so the assembly and (C)'s conclusion-only cite are
+  untouched).  Axiom grades: `ground_lifted_win` `[propext,
+  sorryAx]`; the row and the assemblies `[propext, sorryAx,
+  Quot.sound]` (sorryAx only via the lift).  Direct-attack kit at
+  the ready: `wastePark_restack` (adjacent park = raise),
+  `foundToTab_return`, the γ bridge plan, `ground_streak_founded`,
+  the GroundRes harness.
+* Axiom grades pre-restage: `tabToFound_groundNormalForm`
+  `[propext, sorryAx]`, `tabToFound_dominant_of_ground` and
+  `tabToFound_safe_dominant` `[propext, sorryAx, Quot.sound]`
+  (`sorryAx` only via the row).  The (C) residue's storage-prong
+  cite of the (N) row is UNCHANGED — Landing has not happened.
+
 **STATUS 2026-10-11 — `(A) draw1_sameCycle_sameFate` IS PROVEN,
 SORRY-FREE, ON `farm/orig-dom-a-reserve@c0c751b`** (+1075 lines in
 `Orig/Dominance.lean`, raw hash row: the branch tip; the wave-24
@@ -1426,4 +1526,5 @@ the quotient-widening corollary (per the chapter's own plan,
 setPile/putCard/putRun kit) and the census one-liners
 (`mem_faceUp_only` / `mem_hidden_only`) instead of private copies
 and fresh `hZP`-style double counts.
+
 
