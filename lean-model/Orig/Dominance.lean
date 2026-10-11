@@ -3043,7 +3043,39 @@ found-membership crossing move is `tabToFound c ∨ wasteToFound c`,
 and the waste entry is impossible by conservation) and the
 α/β residue at the first blocked move (the parks-on-`c` /
 `c`-suit-worry transports; the adjacent cancellations are landed,
-the spread carry is the (C)-family content). -/
+the spread carry is the (C)-family content).
+
+**Session record (wave-24 cont., farm/orig-dom-spread-core @
+c7c811a).**  The shared spread-core row's staged instance 1 is
+LANDED above: `ground_diamond_raise` (pinned `[propext,
+Quot.sound]`) — the interior substitute raise COMMUTES past the
+rung pass in either order, the exact commutation the α-route
+front-loads.  The spread carry itself [(worry/park) ; σ ;
+restack] → [σ] / [σ ++ delayed waste closer] is DESIGNED and
+PROBE-SUSTAINED (the GroundRes W-cases, below) but not yet
+written: the per-mode divergence field (foundation-origin: the
+deleted thread holds the card founded; waste-origin: founds
+equal, the waste head shifted under the parked card), the
+per-window blindness discipline (foundation-origin windows: no
+mid-window worry or raise of the worried suit — the LIFO top
+differs across the threads — no placement on the worried card
+[the covered family stays the rows' named residue], no run move
+off the seat pile; waste-origin windows additionally ban the
+waste spends and draws — the deleted head is locked until the
+delayed closer), and the state-identity convergences (restack
+time-state equality; delayed closer firing at the window end).
+Probe finding for the storage family: at razor heights the α1
+cover is PREEMPTED (the waste tenant's covers are the c-suit
+card founded two deep — its own worry is LIFO-dead — and c's
+dig partner, hidden under c until the rung), so the covered-α1
+corner lives, if anywhere, at slack-spent windows the root
+`hsafe` does not reach; the covered fT-origin bubble (the W5
+member) NETS TO ZERO as a three-move unit — cover; blind σ;
+un-cover — so that subfamily deletes without any streak-raise.
+The remaining (b)-residue content: the two assemblies
+(`worry_pair_delete`, `waste_park_carry`) over the carry-core,
+plus the first-blocked extraction (item: the rung-occurs step,
+the other row). -/
 theorem ground_lifted_win {st : State} {c : Card} {k : Anchor} {s₁ : State}
     (hwf : st.WF) (hsafe : safeToFound st c = true)
     (hk : st.pileOfTop c = some k)
@@ -7968,6 +8000,32 @@ ROUTE (the whole (ii)+(iii) ledger, staged for the next pass):
   stated (no safety premise) the stub's truth rides on the classical
   B&G route; the wave-24 gate for (C) ("a compliant-less corner")
   doubles as this stub's refute gate — see the witness file.
+
+  WAVE-24 CONT. (spread-core session @ c7c811a): the shared core's
+  staged instance 1 is LANDED mid-file — `ground_diamond_raise`
+  (pinned `[propext, Quot.sound]`): the substitute raise commutes
+  past the rung pass in either order, the exact commutation this
+  row's squares consume.  The spread-window pair-deletion
+  ([worry; σ; restack] state-identical under the per-window
+  blindness discipline) is DESIGNED and probe-sustained at the
+  hand-shaped members of `OrigProbes/GroundRes.lean` (the W1/W1'/
+  W3/W4/W5/W6 cases, exact end-state keys; the W4 case is exactly
+  this residue's own shape at the razor corner); the assemblies
+  to write are `worry_pair_delete` (foundation-origin windows)
+  and `waste_park_carry` (waste-origin, the delayed closer).  Two
+  probe findings re-scope the storage prong: (i) at razor heights
+  the α-parked tenant's cover is PREEMPTED (the covers are the
+  c-suit card founded two deep — LIFO-dead for its own worry —
+  and c's dig partner, hidden under c until the rung), so the
+  covered family inhabits, if anywhere, exactly the
+  slack-spent windows this route note already flags: the slack
+  re-derivation problem stands, now with the probe exhibit; (ii)
+  the fT-origin covered bubble NETS TO ZERO as a three-move
+  unit (cover; blind σ; un-cover — the W5 member), so THAT
+  subfamily deletes with no streak-raise at all; the remaining
+  storage content is the re-seat moves (the mid-window
+  `tabToTab` of the worried card, its own window re-opening at
+  the new seat) inside the carry core.
 -/
 theorem draw1_worry_spread_residue {st : State} {c : Card} {x : Card} {b : Base}
     {s₁ : State} {m₂ : Move} {rest : List Move} {w : State}
