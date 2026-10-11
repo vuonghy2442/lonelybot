@@ -5398,3 +5398,134 @@ theorem stock_dominance_draw1 {st : State} {c : Card}
   obtain ⟨π, w, hrun, hwin, hcomp⟩ :=
     draw1_compliant_normalForm hwf hstep hsafe hrung hstock hsolv
   exact draw1_compliant_replay hwf hstep hrung hstock π w hcomp hrun hwin
+
+/-! ## §5.2 — The suit-grade worry gate (the worry-preference dominance)
+
+method.md §5.4's worry gate, the SUIT-GRADE half, formalized as the
+`prunableAt` theorem on the physical model.  The gate being certified
+is `src/state.rs gen_moves`'s `suit_filter` cascade (state.rs:250-318):
+at a node whose tableau carries pending stackable work, the worry
+moves `stack_pile` (the Rust stack→pile move — THIS model's
+`Move.foundToTab c b`, the foundation-top worry-back — see the header
+table above) are offered ONLY for the suits `s` whose TWIN suit is not
+live:
+
+```
+extra        = redundant_stack | (vis & sm & (least << 4))
+suit_unstack[s] := extra & SUIT_MASK[s] == 0        // per suit
+suit_filter  = ⋃_{suit_unstack[t]} SUIT_MASK[twin t] // twin's channel
+stack_pile   = stack_pile & suit_filter & ...        // the offer
+```
+
+Per suit, `extra` reads content that is committable NOW
+(`redundant_stack`: a tableau top that is foundation-ready and whose
+raise reveals nothing) or committable AT A PENDING MOMENT
+(`vis & sm & (least << 4)`: the suit's next card sits exposed face-up
+exactly one rank above a zero-reveal pending commit of the twin suit —
+after that commit lands, the suit's own channel opens).  Both
+readings are defined below (`suitCommitNow`, `suitExposesNext`) and
+composed as `suitLive` — the two readings do not differ as competing
+translations; they are the two disjuncts of the ONE Rust formula, and
+each is separately decide-probed at the craft states of the probe
+battery below.
+
+**SUIT-GRADE, not rank-graded** — a deliberate session decision: the
+solver's gate is the stateless whole-suit reading (`extra`-per-suit),
+not the rank-indexed variant (rejected this session); accordingly
+`suitLive` drops the cascade's which-card specificity (`least_stack`,
+the lex-least pending commit) — ANY same-shape pending commit
+witnesses liveness statelessly.
+
+**Out of scope, documented, NOT certified here** (the cascade is
+interaction-tuned; this card certifies the suit-grade gate in
+isolation): the `paired_stack` lex-least restriction
+(state.rs:255-268 — no twin-pair of equal-rank stackable cards may
+co-fire; the lower siblings collapse), the both-colors-unstack
+opening condition (state.rs:278), the `triple_stackable` guard, and
+the `(least_stack - 1)` rank cap (state.rs:305 — a worry move is also
+rank-fenced to strictly below the pending least stack).  Those rows
+are the cascade's own dominances; the theorem below is the gate
+CERTIFICATION: whenever the twin suit is live, the worry the gate
+suppresses is prunable — the pruning the production Rust solver
+already performs never costs a win.
+
+**The theorem shape.**  `prunableAt st m` here is the strong,
+whole-play reading — SOME winning play from `st` avoids `m` ENTIRELY
+(the Klondike twin chapter's `prunableAt` reads head-avoidance only;
+naming mirrors, shape is this chapter's own, per the card).  The
+premises are `WF` and the gate premise alone; the move's own legality
+at `st` is NOT assumed (the engine treats every occurrence).
+
+**The route (the staged ledger).**
+
+* Part (i) — the commit-first sequentialization — is LANDED as
+  PROVEN content at both grades: the mechanical square
+  `raise_worry_square` (a twin-anchored `tabToFound` raise and a
+  `foundToTab` worry at distinct suits are COMPOSITE-EQUAL under the
+  one order-lock corner `b ≠ inr y`), and its play-level corollary
+  `stackPile_worry_sequence`: an adjacent worry-then-raise window in
+  a winning play replays as raise-then-worry — accommodate the live
+  suit first; it is no longer stackable; then the gate itself opens
+  the twin worry.  The both-constructions case SEQUENCES; it does not
+  violate the gate.
+* Part (ii) — the single-pad twin exchange and part (iii) — the
+  interference squares — are the spread residue's OWN route: after
+  the engine has settled everything mechanical, a surviving worry
+  occurrence is a spread window, and the residue owes the twin-equal
+  rewrite through `twin_fate`
+  (`Orig/Twin.lean`) at the exposure moment — the worried card's
+  downstream uses carried by the twin-twin conjugation
+  (`Move.twinMove`/`State.twinMap`, the `TwinExchangeBoth` local
+  exchange grades) — with the C-session's composite-equal squares
+  (`foundToTab_wasteToFound_square`, `bump2_comm`,
+  `lower_foundToTab1`, the fires-readers) as the bubbling legs, LIFO
+  per the banked square inventory (worry-worry pairs never square;
+  the storage corner — a segment parking onto the worry-created seat —
+  is the genuine hard core, decide-exhibited below).
+
+**The engine (`worry_elim`, private).**  Strong induction on the
+play length at the FIRST worry occurrence:
+
+* no occurrence — the play verbatim;
+* the worry is the play's LAST move — impossible: the raised-away
+  foundation leaves its suit short of thirteen against `isWin`
+  (`wf_found_chop_toIdx` against `isWin_len`), a PROVEN corner;
+* the occurrence is an adjacent worry/restack window
+  `[foundToTab c b; tabToFound c]` — the window composites to the
+  identity (`foundToTab_return`), the pair is excised, and the
+  induction continues TWO MOVES SHORTER;
+* the occurrence is a spread window (the follow-move is not the
+  restack) — the residue's instance, delivered with the gated root
+  and the reached window state.
+
+The capstone assembles: `stackPile_worry_prunableAt`. -/
+
+/-! ### The framework transplant (the Klondike mirror, naming verbatim) -/
+
+/-- Playing `m` at `st` never hurts: the verdict survives the move.
+`Klondike/Dominance.lean`'s `dominantAt`, mirrored at the physical
+game (`WinFrom` for `solvableFrom`, `State.step` for `apply`). -/
+def dominantAt (st : State) (m : Move) : Prop :=
+  WinFrom st → ∃ s₁, State.step st m = some s₁ ∧ WinFrom s₁
+
+/-- SOME winning play from `st` avoids `m` ENTIRELY — the
+whole-play, suit-grade reading of prunability (the Klondike twin
+chapter reads head-avoidance; the stateless whole-suit gate the
+solver runs demands the whole-play form). -/
+def prunableAt (st : State) (m : Move) : Prop :=
+  WinFrom st → ∃ play w, st.run play = some w ∧ w.isWin = true ∧
+    ∀ m' ∈ play, m' ≠ m
+
+/-- `m` dominates `m'` at `st`: prune `m'`, prefer `m`. -/
+def dominates (st : State) (m m' : Move) : Prop :=
+  prunableAt st m' ∧ dominantAt st m
+
+
+/-! ### Axiom discipline
+
+Per-declaration `#print axioms` audit for the new heads; the gate
+targets `[propext]` at worst for the framework rows. -/
+
+#print axioms dominantAt
+#print axioms prunableAt
+#print axioms dominates
