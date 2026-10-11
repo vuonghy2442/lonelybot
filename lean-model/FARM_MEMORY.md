@@ -4184,3 +4184,57 @@ checkpoints.
   (canonV3 = canon degenerates to the identity at WF when
   contention is empty) so no future card "lands" the skeleton
   unknowingly.  A census that closes a design is a full card.
+
+  unknowingly.  A census that closes a design is a full card.
+
+## Operational — the landings 3+4 close-out (2026-10-11, branch `orig-canon-v3`: the case table, the selector, the sandwich — and the decide-trap that cost a rebuild)
+
+- THE DECIDE-TRAP (the session's most expensive diagnostic): a
+  `simp`-closed Bool-lemma audit printed `[propext,
+  Classical.choice, Quot.sound]` — the `decide (x == x)`-family
+  pulled Classical through the Nat-decide desugaring (the
+  Decide-instance's proof term is Classical when the BEq/DecEq
+  instance is found generically).  RULE: in Bool-lemma proofs,
+  avoid `simp` over `==`/decide-faced goals in core-only shops —
+  write the Bool algebra by hand (conj on the component
+  equations) and audit BEFORE lighting downstream heads on it.
+  The house `[propext, Quot.sound]` ceiling is preserved on
+  every rebuilt head.
+- THE OBTAIN-CONSUMES-BOUND-VARIABLE TRAP: `obtain ⟨hn, a, hp,
+  hseat⟩ := hlic` CLEARS the hypothesis hlic — later references
+  to `hlic` die with "unknown identifier".  In dependent chains
+  (licenses consumed into seat-facts) either reassemble the
+  hypothesis from the components or take the destructuring LAST.
+  Cost: two compile cycles on pnLicPairSlice before the pattern
+  was identified.
+- THE `-`-SLOT OBTAIN TRAP: `obtain ⟨-, -, -, hseat⟩ := h` binds
+  the remaining slot as a Metavariable-typed hypothesis —
+  rcases on it fails with "not an inductive datatype".  NAMED
+  discards (`⟨hn, a, hp, hseat⟩` + ignore) beat anonymous `-`
+  slots whenever the target hypothesis carries an existentially
+  quantified middle.
+- THE INSTANCE-SURFACE ROULETTE (skeleton-relevant): core-only
+  Lean's `==` on Nat elaborates to a DECIDE-Prop (not Nat.beq);
+  `List.mem_cons_self` has implicit args in this version while
+  `List.mem_cons_of_mem` takes them explicitly; `if_pos` renamed
+  to `ite_eq_left` family.  SELF-CONTAINED Bool/Nat kit
+  (the v3NatListLt/v3NatListEq pattern) avoids the whole section.
+- THE MEMBER-LIST-BY-APPLICATION pattern: class member sets ride
+  as explicit face-lists where every member is `canon` of a
+  crafted source — never hand-drawn found/pile fields.  This
+  made the arm-choice and wing-consistency rows decide-cheap,
+  and it is the honest pre-merge form of the canus machinery:
+  the decompression card's cone engine (mem_macro_iff) remains
+  the one paid import; the skeleton's three sorry-carriers
+  (conjl's laws, posKey reuse, canonV3's choose plumbing) mark
+  where the definitions converge.
+- THE STORY-SO-FAR (the card map): landing 1 retired the
+  scaffold rule (TwinContended empty at WF — proof-grade);
+  landing 3 turned the case table into a nine-cell lattice,
+  decided the cargo triad, and closed the neighborhood
+  containment; landing 4 redefined canonV3 as the member
+  selector, landed the composite index and the argmax with the
+  sandwich law (at most one fork per class, by rank arithmetic)
+  as the deductive spine. Every request's shape is either
+  landed, ledger-reconciled to the skeleton, or named as a
+  paying residue in FUTURES §11-L4.
