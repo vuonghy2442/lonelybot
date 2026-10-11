@@ -4238,3 +4238,31 @@ checkpoints.
   as the deductive spine. Every request's shape is either
   landed, ledger-reconciled to the skeleton, or named as a
   paying residue in FUTURES §11-L4.
+
+## Orig/ForkStateUniq.lean — the forkState-unique landing's gotchas (2026-10-11)
+
+- rcases `-` slots BEFORE a named slot KILL it (`hxy` unknown) —
+  the Progress-09-13 note reconfirmed at `finalFork_pairUnique`;
+  use `_` slots throughout. Simpler end-run: destructuring an
+  ∃-packed result introduces FRESH witnesses even when definition-
+  equal to passed-in args — when the eq to MY binder is what I
+  need, pinch directly from the iff's two instantiations instead.
+- To NAME a constructed successor literal: prove the step-eq
+  first, then `obtain ⟨s', hs'eq, hstep⟩ : ∃ s', s' = LITERAL ∧
+  step = some s'`; every later read goes through
+  `hs'l : s' = setPile-form` + rw chains. `set s' := ...` needs a
+  pre-existing occurrence — it cannot introduce.
+- rw cannot enter an unreduced `match some q` (arm binder traps
+  the scrutinee-var): `rw [search-eq]` then `simp only
+  [guard-eqs]` iota-reduces the ctor-headed match AND the
+  if-true-ite in one step; plain rw/rfl then finish.
+- setPile/putCard reads of `.top`/`.faceUp`/`.hidden` on an
+  OPAQUE anchor NEVER whnf (derived DecidableEq ite stuck): always
+  rw `setPile_piles_self`/`putCard_eq_inl`/`putCard_inr_eq` FIRST,
+  then the record-literal reads are DEFEQ (rfl-able).
+- `rw [X]` at a/src lemma ATE MY ONLY occurrence once (I rw'd
+  both outside and inside a by-block): rewrite at exactly one
+  place, or prove the negated fact as a `have` and feed it.
+- Section-docstring closers: `-/.` (dash-slash-dot) cost three
+  compile cycles — the parser says "unexpected token '.'" at the
+  CLOSER line; grep for `^-/.` before celebrating.
