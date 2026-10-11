@@ -1130,22 +1130,8 @@ theorem State.twinLicensed_apply_pilePile {st a₁ : State} {t z z' c : Card} {b
     rw [hcon] at hbot
     exact hc.2 (Option.some.inj (hztop'.symm.trans
       ((Board.bottomOf_eq st.board c (Sum.inr t.flipSuit)).mp hbot))).symm
-  have hbt : b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
-    constructor
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop] at htopb
-          simp at htopb
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop'] at htopb
-          simp at htopb
+  have hbt := canPlace_inr_ne_twin_seats hcp hztop hztop'
+
   have hzbot : st.board.topOf b₀ = some c := (Board.bottomOf_eq st.board c b₀).mp hbot
   refine ⟨z, z', ?_, ?_, ?_, ?_, hfit, hfit', ?_, ?_⟩
   · show (bd.bottomOf t).isSome = true
@@ -1230,22 +1216,8 @@ theorem State.exchangeTwinCargo_step_pilePile_root {st a₁ : State} {t z z' c :
       ((Board.bottomOf_eq st.board t (Sum.inr t.flipSuit)).mp hbot)))
   simp only [State.canMoveRun, Bool.and_eq_true_iff] at hcmr
   obtain ⟨hcp, -⟩ := hcmr
-  have hbt : b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
-    constructor
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop] at htopb
-          simp at htopb
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop'] at htopb
-          simp at htopb
+  have hbt := canPlace_inr_ne_twin_seats hcp hztop hztop'
+
   have hb₀E : (st.exchangeTwinCargo t).board.bottomOf t = some b₀ := by
     rw [State.exchangeTwinCargo_board, Board.bottomOf_exchangeTwin, hbot]
     show some (Base.swapTwin t b₀) = some b₀
@@ -1307,22 +1279,8 @@ theorem State.twinLicensed_apply_pilePile_root {st a₁ : State} {t z z' c : Car
     rw [hcon] at hbot
     exact hzt' (Option.some.inj (hztop'.symm.trans
       ((Board.bottomOf_eq st.board t (Sum.inr t.flipSuit)).mp hbot)))
-  have hbt : b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
-    constructor
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop] at htopb
-          simp at htopb
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop'] at htopb
-          simp at htopb
+  have hbt := canPlace_inr_ne_twin_seats hcp hztop hztop'
+
   have hzbot : st.board.topOf b₀ = some t := (Board.bottomOf_eq st.board t b₀).mp hbot
   -- the attach cell is off the detached walks: the landing is off both
   -- cargo runs and never the run's root
@@ -1438,22 +1396,8 @@ theorem State.exchangeTwinCargo_step_pilePile_passing {st a₁ : State} {t z z' 
     rw [hcon] at hbot
     exact hc.2 (Option.some.inj (hztop'.symm.trans
       ((Board.bottomOf_eq st.board c (Sum.inr t.flipSuit)).mp hbot))).symm
-  have hbt : b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
-    constructor
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop] at htopb
-          simp at htopb
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop'] at htopb
-          simp at htopb
+  have hbt := canPlace_inr_ne_twin_seats hcp hztop hztop'
+
   have hselfSrc : ∀ d, b = Sum.inr d → d ∉ st.board.aboveOf c := by
     intro d hd
     have h2 : (!(st.board.aboveOf c).contains d) = true := by
@@ -1526,22 +1470,8 @@ theorem State.twinLicensed_apply_pilePile_passing {st a₁ : State} {t z z' c : 
     rw [hcon] at hbot
     exact hc.2 (Option.some.inj (hztop'.symm.trans
       ((Board.bottomOf_eq st.board c (Sum.inr t.flipSuit)).mp hbot))).symm
-  have hbt : b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
-    constructor
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop] at htopb
-          simp at htopb
-    · intro hcon
-      cases b with
-      | inl a => exact absurd hcon (by simp)
-      | inr d =>
-          obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-          rw [hcon, hztop'] at htopb
-          simp at htopb
+  have hbt := canPlace_inr_ne_twin_seats hcp hztop hztop'
+
   have hcongrz : bd.aboveOf z = (st.board.detach b₀).aboveOf z := by
     apply Board.aboveOf_congr
     intro x hx
@@ -3220,22 +3150,8 @@ theorem State.solvable_exchangeTwinCargo_go_gen
                 have hpm : c ∈ st.deal.piles a' := List.take_subset _ _ hcm
                 exact (Deal.piles_stock_disj hwf.deal_wf hpm
                   (hwf.stock_wf.2 c hmem)).elim
-              have hbt : b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
-                constructor
-                · intro hcon
-                  cases b with
-                  | inl a => exact absurd hcon (by simp)
-                  | inr d =>
-                      obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-                      rw [hcon, hztop] at htopb
-                      simp at htopb
-                · intro hcon
-                  cases b with
-                  | inl a => exact absurd hcon (by simp)
-                  | inr d =>
-                      obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-                      rw [hcon, hztop'] at htopb
-                      simp at htopb
+              have hbt := canPlace_inr_ne_twin_seats hcp hztop hztop'
+
               have hlic₁ : a₁.twinLicensed t := by
                 rw [ha₁]
                 exact State.twinLicensed_attach hwf hlicb hatt hct hbotc hhid hbt
@@ -3266,22 +3182,8 @@ theorem State.solvable_exchangeTwinCargo_go_gen
                     rw [hh] at hc2
                     simp at hc2
               have hhid : ∀ a, c ∉ st.hidden a := fun a => hfg.2.2 a
-              have hbt : b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
-                constructor
-                · intro hcon
-                  cases b with
-                  | inl a => exact absurd hcon (by simp)
-                  | inr d =>
-                      obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-                      rw [hcon, hztop] at htopb
-                      simp at htopb
-                · intro hcon
-                  cases b with
-                  | inl a => exact absurd hcon (by simp)
-                  | inr d =>
-                      obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
-                      rw [hcon, hztop'] at htopb
-                      simp at htopb
+              have hbt := canPlace_inr_ne_twin_seats hcp hztop hztop'
+
               have hlic₁ : a₁.twinLicensed t := by
                 rw [ha₁]
                 exact State.twinLicensed_attach hwf hlicb hatt hct hbotc hhid hbt

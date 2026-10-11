@@ -494,6 +494,31 @@ theorem canPlace_inl_iff {st : State} {c : Card} {a : Anchor} :
       (st.board.topOf (Sum.inl a) = none ∧ c.rank = Rank.king) := by
   simp only [State.canPlace, Bool.and_eq_true_iff, decide_eq_true_iff]
 
+/-- A legal `inr`-placement never lands on the twin seats: the search
+demands the target seat be empty (`canPlace_inr_iff`), while the twin
+seats hold their own tops (the derivation the seven `twinLicensed`
+sites in `TwinQuotient` restated apiece). -/
+theorem canPlace_inr_ne_twin_seats {st : State} {c t z z' : Card} {b : Base}
+    (hcp : st.canPlace c b = true)
+    (hzt : st.board.topOf (Sum.inr t) = some z)
+    (hzt' : st.board.topOf (Sum.inr t.flipSuit) = some z') :
+    b ≠ Sum.inr t ∧ b ≠ Sum.inr t.flipSuit := by
+  constructor
+  · intro hcon
+    cases b with
+    | inl a => exact absurd hcon (by simp)
+    | inr d =>
+        obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
+        rw [hcon, hzt] at htopb
+        simp at htopb
+  · intro hcon
+    cases b with
+    | inl a => exact absurd hcon (by simp)
+    | inr d =>
+        obtain ⟨htopb, -, -⟩ := canPlace_inr_iff.mp hcp
+        rw [hcon, hzt'] at htopb
+        simp at htopb
+
 /-- `canMoveRun` on a tableau base: the placement guard plus the
 self-landing guard. -/
 theorem canMoveRun_inr_iff {st : State} {c d : Card} :
