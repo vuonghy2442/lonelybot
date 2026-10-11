@@ -1024,12 +1024,12 @@ against `witnesses/README.md`'s regression-layer protocol
 (`witnesses/README.md:13-22`) and the census header (FARM.md:3).
 
 ## 8. The session ledger (UPDATE 2026-10-11: the §5.1 bare-floor
-skeleton, branch `farm/orig-dom-n-ground`; earlier 2026-10-10: the
-to-foundation dominances port + the both-occupied harvest + the
-post-merge cleanup, branch `macro-game`)
+skeleton, branch `farm/orig-dom-n-ground` @ `7bf0ccc`; earlier
+2026-10-10: the to-foundation dominances port + the both-occupied
+harvest + the post-merge cleanup, branch `macro-game`)
 
-**STATUS 2026-10-11 (wave 24.5, farm-orig-dom-n-ground) — THE (N)
-BARE-FLOOR RESIDUE IS A PROVEN SKELETON OVER ONE NAMED
+**STATUS 2026-10-11 (wave 24.5, farm-orig-dom-n-ground @ `7bf0ccc`)
+— THE (N) BARE-FLOOR RESIDUE IS A PROVEN SKELETON OVER ONE NAMED
 SUB-RESIDUE.**  `tabToFound_dominant_of_ground` is PROVEN.  The
 statement is untouched; the proof is the assembly
 

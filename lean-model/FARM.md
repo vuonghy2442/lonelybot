@@ -40,7 +40,8 @@ the dig parity + the commitment exhibit are DECIDED in
 spine landed as a PROVEN lemma `ground_streak_founded`
 ("the safety bounds descend exactly two ranks"); the axiom grade:
 `tabToFound_dominant_of_ground` = [propext, sorryAx, Quot.sound]
-with `sorryAx` ONLY via `tabToFound_groundNormalForm`)**)**);
+with `sorryAx` ONLY via `tabToFound_groundNormalForm`; ledger row
+with hash: FUTURES-ORIG §8 @ `7bf0ccc`)**)**);
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the
