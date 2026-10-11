@@ -1472,12 +1472,22 @@ has NO licensed raises — maximal except nothing. -/
 def OnlyPairLicensed (w : State) (x : Card) : Prop :=
   ∀ c, CanRaise w c → c = x ∨ c = x.twin
 
-/-- THE FACE SHAPE: identical, or the two slide-mates of one live
-fork pair (x live at w, x.twin live at w' — the cargo straddling
-the other way).  Shape-mates are class-mates through the slide's
-reversible leg. -/
+/-- THE CARGO CLOSURE — the flat world's cargo letter alone (no
+draws: phase stays pinned).  By `exch_is_cargo` every licensed
+twin swap realizes as ONE cargo move, so slides and free twin
+swaps are the SAME letter here. -/
+inductive CargoPath : State → State → Prop
+  | refl (w : State) : CargoPath w w
+  | cons {w z w' : State} (h : FlatStep w z)
+      (hkind : ∃ c b hstep hrev, h = FlatStep.cargo c b hstep hrev)
+      (t : CargoPath z w') : CargoPath w w'
+
+/-- THE FACE SHAPE (the user's final calibration): identical, or
+connected by the cargo closure — the bare cargo exchange AND the
+free twin swaps, both one letter (`exch_is_cargo`).  Shape-mates
+are class-mates through the reversible cargo legs. -/
 def FaceShape (w w' : State) : Prop :=
-  w = w' ∨ ∃ x, (∃ d, forkPointC w x d) ∧ (∃ d, forkPointC w' x.twin d)
+  CargoPath w w'
 
 inductive CanonFace (u w : State) : Prop
   | benign (hwf : u.WF) (hfin : Final w) (hw : w = canon u)
