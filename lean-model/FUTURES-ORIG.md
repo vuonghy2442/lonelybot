@@ -3042,3 +3042,51 @@ VACUOUS ROWS FOUND.  Persistence (carrying the recorded bump
 from stall to saturated form) is the next carrier work; the
 canonicalizer reads the signature live during saturation, and
 forkBump's forensics problem dissolves as the request states.
+
+#### §11-L4.2 — the second signature correction (amr_129d79e2b; landed same branch — the swap-grade license in the library, the gap form decided)
+
+CanRaiseS (the skeleton's exact shape) is now in Orig/CanV3.lean:
+the swap-aware cargo-accounting license — 'now' (vanilla
+CanRaise) | 'via' (∃ d b, a licensed REVERSIBLE tabToTab slide
+then CanRaiseS at the landed state).  The vanilla CanRaise has
+NO swap disjunct (confirmed by reading the def), and:
+
+* **THE GAP FORM** (the corrected forkEvidence): CanRaiseS x ∧
+  CanRaiseS x.twin ∧ ¬CanRaise-vanilla x.twin ∧ coveredIn
+  x.twin ∧ cargo-shape (next-rank, opposite color, rung-pinned)
+  — contention at the SWAP grade that is NOT contention at the
+  vanilla grade.  Decided green at the battery
+  (l4RowGapForm): fires at BOTH standing-fork stalls (the
+  covered twin lifts only VIA the cargo slide), the derived
+  trial (forkPoint_trial) decide-verified (the slide lands the
+  mate cell exactly and lights the covered twin vanilla), the
+  next-in-line merge REFUSES at the pin leg, the benign
+  independence slice REFUSES at coveredIn.
+* **THE TWO-PREDICATES DISTINCTION** (the consistency note): the
+  census's TwinContended-emptiness was won at the VANILLA grade
+  and remains INTACT — the fork is contention at the CanRaiseS
+  grade.  No reader should misread the census as
+  fork-refuting: the vanilla census says nothing about the swap
+  grade, and the gap form is exactly the shape the census left
+  open.  (The census batch's emptiness theorem rides the
+  vanilla canRaiseB through `canRaise_lifted`; the swap-grade
+  closure adds contention exactly at the fork stalls.)
+* **THE CanRaiseS AUDIT** (the request's consequence-6): rows
+  the battery had already proved as cascade facts under other
+  names, now re-read at the new license: the parked queen of
+  row A's pose lights VIA the dissolve-extending slide
+  (vanilla false bare-queen-bar at the parked cell, vanilla
+  true after the slide); the merge cargo lifts VANILLA (no
+  slide needed — its own rung waits, exactly why the cascade
+  dissolves the fork); the v3Chain enablement chain is
+  vanilla-only; the earlier l4RowForkSigCorrected rows are the
+  derived-trial content at depth one.  -/ AUDITED, no rows to
+  RETIRE, no rows VACUOUS under the new grade.
+* **Skeleton reconciliation**: my Orig/CanV3 mirrors CanRaiseS
+  exactly; forkPoint's satStackable leg (macro grade) is the
+  class-level residue — at the crafted cells the rung-pin row
+  (v3RungAt st d.suit < d.rank.toIdx) is the live state-level
+  functional form (the pin row is what the cascade arithmetic
+  consumes; the macro satStackable reads the same fact through
+  the quotient envelope).  forkPoint_trial's sorry is mine to
+  close next; its decide-grade evidence is landed.

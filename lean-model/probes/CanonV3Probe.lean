@@ -1825,3 +1825,125 @@ def l4RowForkSigCorrected : Bool :=
     IO.println "slide-trial alone fires — the false-positive guard verified."
   else
     throw (IO.userError "SIGNATURE CORRECTION: A GATE FAILED")
+
+/-! ## The second signature correction (amr_129d79e2b) — the GAP FORM, decide-graded
+
+CanRaiseS is in the library now (Orig/CanV3, the skeleton's exact
+shape: 'now' vanilla + 'via' licensed reversible slide).  The GAP
+FORM (the relay's forkEvidence): CanRaiseS x ∧ CanRaiseS x.twin ∧
+¬CanRaise-vanilla x.twin ∧ coveredIn x.twin ∧ cargo-shape
+(next-rank, opposite color, rung-pinned) — contention at the
+SWAP grade that is NOT contention at the vanilla grade.  The
+trial is DERIVED (a theorem at the skeleton); at the battery it
+is decide-verified at every stall.  The two-predicates
+distinction: the census's TwinContended-emptiness was won at the
+VANILLA grade and stands intact.  -/
+
+/-- The tabToTab menu (the same product shape as the pull menu). -/
+def v3TabToTabMenu : List Move :=
+  Card.universe.flatMap fun c =>
+    (Anchor.all.map fun a => Move.tabToTab c (Sum.inl a)) ++
+    (Card.universe.map fun z => Move.tabToTab c (Sum.inr z))
+
+/-- The one-step slide neighbors (licensed tabToTab images). -/
+def v3SlidesAt (st : State) : List State :=
+  (v3TabToTabMenu).filterMap (fun m => st.step m)
+
+/-- The DEPTH-1 swap-grade mirror: vanilla now, or a slide
+neighbor where vanilla lights (the via-clause's first
+unrolling; at the crafted cells the slides are noreveal,
+one-another inverses — reversibility decided in the fired-both-
+ways rows — so the mirror reads the closure honestly). -/
+def v3CanRaiseS1B (st : State) (c : Card) : Bool :=
+  canRaiseB st c || (v3SlidesAt st).any (fun s' => canRaiseB s' c)
+
+/-- THE GAP FORM (the corrected forkEvidence), one named pair
+(x, d): swap-grade lifts on BOTH twins, the covered twin NOT
+vanilla, covered by a pinned opposite-color next-rank cargo. -/
+def v3GapFormB (st : State) (x d : Card) : Bool :=
+  v3CanRaiseS1B st x &&
+  v3CanRaiseS1B st x.twin &&
+  !(canRaiseB st x.twin) &&
+  v3CoveredInB st x.twin &&
+  decide (d.rank.toIdx + 1 = x.rank.toIdx) &&
+  !(v3TwinSuitB d.suit x.suit) &&
+  decide (v3RungAt st d.suit < d.rank.toIdx)
+
+/-- The gap-form rows, decided:
+
+- v3Fork / v3ForkX (both stalls): the gap form FIRES — swap-grade
+  contention on both twins (the covered twin lifts only via the
+  cargo slide), the vanilla grade's gap open (the covered twin
+  unlicensed), the cargo pinned (clubs 0 < the queen's 11).
+- THE DERIVED TRIAL at the stalls (forkPoint_trial decide-grade):
+  the slide lands on the mate cell exactly and lights the
+  covered twin VANILLA there.
+- pnCasForkMerge (the next-in-line): the gap form REFUSES — the
+  cargo's own rung waits (11 = 11, not pinned) though both twins
+  lift vanilla-or-via: the cascade dissolves it (the merge rows).
+- v3Bare (the benign independence slice): the gap form REFUSES —
+  no covered twin (coveredIn false on both members); the vanilla
+  census verdict is exactly this slice.
+- THE CanRaiseS AUDIT (the request's consequence-6): the battery
+  rows that already proved CanRaiseS facts under other names —
+  the parked queen lights VIA a slide off pnCasBareExt (row-A's
+  dissolve-extending road), the merge cargo lifts VANILLA (no
+  slide needed), the v3Chain enablement lifts are vanilla-only
+  cascades, and the earlier l4RowForkSigCorrected rows are the
+  derived-trial content at depth one.
+-/
+def l4RowGapForm : Bool :=
+  -- the standing-fork stalls: gap fires both ways
+  v3GapFormB v3Fork v3HK v3CQ &&
+  v3GapFormB v3ForkX v3DK v3CQ &&
+  -- the derived trial: the slide lands the mate cell, lights vanilla
+  decide (v3Fork.step (Move.tabToTab v3CQ (Sum.inr v3HK)) = some v3ForkX) &&
+  canRaiseB v3ForkX v3DK &&
+  decide (v3ForkX.step (Move.tabToTab v3CQ (Sum.inr v3DK)) = some v3Fork) &&
+  canRaiseB v3Fork v3HK &&
+  -- the vanilla grade's gap (covered twins unlicensed at the stalls)
+  !(canRaiseB v3Fork v3DK) &&
+  !(canRaiseB v3ForkX v3HK) &&
+  -- the next-in-line refuses at the pin leg
+  !(v3GapFormB pnCasForkMerge v3HK v3CQ) &&
+  decide (v3RungAt pnCasForkMerge .club = v3CQ.rank.toIdx) &&
+  -- the benign independence slice refuses at coveredIn
+  !(v3CoveredInB v3Bare v3HK) &&
+  !(v3CoveredInB v3Bare v3DK) &&
+  !(v3GapFormB v3Bare v3HK v3CQ) &&
+  -- the CanRaiseS audit rows (facts proved under other names):
+  -- the parked queen lights VIA the slide off row-A's pose
+  !(canRaiseB pnCasBareExt v3CQ) &&
+  (v3SlidesAt pnCasBareExt).any (fun s' => canRaiseB s' v3CQ) &&
+  -- the merge cargo lifts VANILLA (the cascade needs no slide)
+  canRaiseB pnCasForkMerge v3CQ &&
+  -- the v3Chain enablement is vanilla-only (the lighting row)
+  canRaiseB (v3Fired v3Chain v3HJ) v3HQ
+
+-- The gap-form census numbers (printed for the ledger):
+#eval v3GapFormB v3Fork v3HK v3CQ -- expect true: the stall gap fires
+#eval v3GapFormB v3ForkX v3DK v3CQ -- expect true: the mate gap fires
+#eval v3GapFormB pnCasForkMerge v3HK v3CQ -- expect false: next-in-line refuses
+#eval v3GapFormB v3Bare v3HK v3CQ -- expect false: benign slice refuses
+#eval v3CanRaiseS1B v3Fork v3DK -- expect true: the covered twin lifts VIA
+#eval v3CanRaiseS1B v3Fork v3HK -- expect true: the bare twin lifts NOW
+
+#eval! do
+  if l4RowGapForm then
+    IO.println "CANONV3 GAP FORM (amr_129d79e2b): ALL GATES HOLD —"
+    IO.println "The swap-grade license CanRaiseS ('now' vanilla + 'via' licensed"
+    IO.println "reversible slide) mirrors the skeleton exactly in Orig/CanV3."
+    IO.println "The GAP FORM fires at BOTH standing-fork stalls: swap-grade"
+    IO.println "contention on both twins, the covered twin NOT vanilla, cargo"
+    IO.println "pinned — contention at the swap grade that is NOT contention at"
+    IO.println "the vanilla grade. The derived trial decide-verified (the slide"
+    IO.println "lands the mate cell, lights the covered twin vanilla). The"
+    IO.println "next-in-line merge REFUSES at the pin leg (its own rung waits);"
+    IO.println "the benign independence slice REFUSES at coveredIn — the two-"
+    IO.println "predicates distinction: the census's TwinContended-emptiness"
+    IO.println "was the VANILLA grade and stands intact. The CanRaiseS audit:"
+    IO.println "the parked queen lights VIA, the merge cargo lifts VANILLA, the"
+    IO.println "enablement chain is vanilla-only — the battery had already"
+    IO.println "proved these cascade facts under other names."
+  else
+    throw (IO.userError "GAP FORM: A GATE FAILED")

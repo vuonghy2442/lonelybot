@@ -468,6 +468,36 @@ theorem v3ForkExclusivity {st : State} {r1 r2 qR b1 b2 qB : Card}
       rw [hT, hR2] at hQBbelow
       omega
 
+/-! ## The swap-grade license (the second signature correction, MacroInternal-aligned) -/
+
+
+/-- THE SWAP-AWARE LICENSE (the skeleton's shape, mirrored
+exactly): the vanilla license closes under licensed REVERSIBLE
+SLIDES — 'now': the vanilla grade; 'via': a reversible tabToTab
+slide then the swap-grade license at the landed state.  This is
+the {slide·raise}-cascade license: the cascade-fixpoint mechanism
+the census families probe operationally.  The VANILLA grade
+(`CanRaise`) has NO swap disjunct, and the census's
+`TwinContended`-emptiness was won AT THE VANILLA GRADE and stands
+untouched — the fork is contention at the CanRaiseS grade (see
+the battery's gap-form rows and FUTURES-ORIG.md §11-L4.2). -/
+inductive CanRaiseS : State → Card → Prop
+  | now {st : State} (c : Card) (h : CanRaise st c) : CanRaiseS st c
+  | via {st st' : State} (c : Card)
+      (hl : ∃ d b, st.step (Move.tabToTab d b) = some st' ∧
+        reversibleAtW st (Move.tabToTab d b))
+      (h : CanRaiseS st' c) : CanRaiseS st c
+
+/-- The cargo reading (the skeleton's shape): `d` TOPS the twin's
+pile — the twin sits beneath it, covered by construction. -/
+def v3CargoTop (st : State) (d c : Card) : Prop :=
+  ∃ a, st.pileOfTop d = some a ∧ st.pileHolding c = some a
+
+/-- The vanilla escape row: every vanilla lift is a swap-grade
+lift (the now-clause, named for the audit trail). -/
+theorem canRaiseS_of_canRaise {st : State} {c : Card} (h : CanRaise st c) :
+    CanRaiseS st c := CanRaiseS.now c h
+
 /-! ## The axiom audit
 
 `\#print axioms` for every head this chapter adds: all audit
@@ -480,6 +510,9 @@ unmerged imports, and the probe battery carries their decided
 evidence.  The fork-exclusivity chain (v3PiledRung, v3ForkPins,
 v3ForkExclusivity) lands DEDUCTIVELY above — zero sorry.  -/
 
+#print axioms CanRaiseS
+#print axioms v3CargoTop
+#print axioms canRaiseS_of_canRaise
 #print axioms canonHtup
 #print axioms canonPosKey
 #print axioms canonCardIdx
