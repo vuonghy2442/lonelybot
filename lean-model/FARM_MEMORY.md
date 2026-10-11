@@ -9516,3 +9516,43 @@ rewrites.  The B2-replay session's region overlaps the B-kit
 merge wave owns the collapse.
 
 
+
+## Session note (2026-10-11, wave 3d - proof-INTERNAL dedup in
+## TwinExchangeBoth, the fragment-audit method)
+
+The declaration-level collapse is done (families 39 -> 1); the next
+stratum is PROOF-INTERNAL duplication.  METHOD: slide >=6-line
+windows over every tactic line of every Orig file, hash, and tally -
+the report ranks every repeated scaffold by frequency with its
+file:line coordinates (script at Temp/kilo/orig-fragment-audit.ps1;
+rerun after waves).
+
+TEB's findings and the landed wave 3d (commit 718e386):
+- 44 putRun-keep slots (11 exchange squares x 4 fields) carried the
+  literal chain `rw [State.exchangeTwin_F, State.exchangeTwin_F,
+  hs1, putRun_keep.LEG]; rfl` - now one-line cites of
+  exch_putRun_stock/_waste/_drawStep (hV := rfl at the setPile
+  writers).
+- 15 record-slots - exch_upd_stock/_waste/_drawStep rows.
+- The putRun-FOUND slot resisted: the commute-merge squares leave
+  the site frame unpinned for term-level hV composition (the
+  eleven found-chains keep their rw-form; revisit with the slot's
+  own show-line restored if a wrapper is wanted).
+- The setFound-found 14-line funext blocks (x6) sit under
+  record-shaped State.ext goals ({record}-projections), NOT bare
+  (exchangeTwin t).found goals - a bare-frame wrapper cannot reach
+  them; only a whole-square transport lemma would (bigger surgery,
+  owner-session's call).
+- REMAINING fragment families for the next pass: Classify's x10
+  tabToTab splice literal (cite Play's step_tabToTab_eq spines),
+  Dominance's x5 rung constructor-blocks (:5026-:5139, owner wave).
+
+CONCURRENCY LESSON (the shared main checkout): two agents passing
+through the SAME checkout mid-turn caused a mid-flight merge
+(orig-twinexch-commute), a branch walked to macro-game under an
+open edit, and the other agent committing onto MY farm branch (all
+recoverable: communicate via commit messages, verify authorship via
+git log -S, fast-forward macro-game with `git push . HEAD:macro-
+game` to avoid touching their uncommitted file, never checkout--
+a file another agent has rides on).  Their reconciliation commit
+08628eb adopted the fromCard_head_eq collision rename verbatim.
