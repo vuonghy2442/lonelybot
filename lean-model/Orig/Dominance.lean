@@ -5520,12 +5520,56 @@ def prunableAt (st : State) (m : Move) : Prop :=
 def dominates (st : State) (m m' : Move) : Prop :=
   prunableAt st m' ∧ dominantAt st m
 
+/-! ### The suit readings (the `extra`-per-suit formula) -/
+
+/-- **Reading one — committable now** (`redundant_stack` per suit,
+faithful): the suit `s` has a tableau-top card that is
+foundation-ready (`nextUp`) and whose raise reveals nothing (the
+below-run is nonempty or the hidden boundary is already empty —
+`Pile.afterRunRemoved` flips no card). -/
+def suitCommitNow (s : Suit) (st : State) : Bool :=
+  Anchor.all.any fun a =>
+    match (st.piles a).top with
+    | some x => decide (x.suit = s) && st.nextUp x &&
+        (decide (chop (st.piles a).faceUp ≠ []) || decide ((st.piles a).hidden = []))
+    | none => false
+
+/-- **Reading two — committable at the pending moment**
+(`vis & sm & (least << 4)` per suit, faithful): the suit's NEXT card
+(one rank above a zero-reveal pending commit of the TWIN suit,
+exposed face-up somewhere on the board) — after the pending commit
+lands the suit's own channel opens; the lex-least WHICH-pending
+specificity of the cascade is dropped, statelessly. -/
+def suitExposesNext (s : Suit) (st : State) : Bool :=
+  Anchor.all.any fun a =>
+    (st.piles a).faceUp.any fun x =>
+      decide (x.suit = s) && st.nextUp x &&
+        Anchor.all.any fun a' =>
+          match (st.piles a').top with
+          | some y => decide (y.suit.twin = s) &&
+              decide (y.rank.toIdx + 1 = x.rank.toIdx) && st.nextUp y &&
+                (decide (chop (st.piles a').faceUp ≠ []) ||
+                  decide ((st.piles a').hidden = []))
+          | none => false
+
+/-- **The suit-grade liveness the gate reads** (the whole `extra`
+formula, stateless and whole-suit by the session's decision):
+`s` has committable-now or committable-at-the-pending-moment content.
+The Rust gate offers a suit-`s` worry ONLY when `suitLive s.twin` is
+false; the capstone below certifies the complementary direction:
+when the twin IS live, the worry is prunable. -/
+def suitLive (s : Suit) (st : State) : Bool :=
+  suitCommitNow s st || suitExposesNext s st
+
 
 /-! ### Axiom discipline
 
-Per-declaration `#print axioms` audit for the new heads; the gate
-targets `[propext]` at worst for the framework rows. -/
+Per-declaration `#print axioms` audit for the new heads; the
+suit-reading targets are `[propext]` at worst. -/
 
 #print axioms dominantAt
 #print axioms prunableAt
 #print axioms dominates
+#print axioms suitCommitNow
+#print axioms suitExposesNext
+#print axioms suitLive
