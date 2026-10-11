@@ -556,7 +556,7 @@ impl Solitaire {
     }
 
     #[must_use]
-    pub(crate) fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         // TODO: test for if visible mask and free mask make sense to build bottom mask
         if self.get_extended_top_mask().count_ones() > N_PILES.into() {
             return false;
