@@ -2507,14 +2507,6 @@ private theorem pileOfTop_congr {u v : State} (z : Card) (h : u.piles = v.piles)
     (q := fun a => decide (v.topOf a = some z)) (fun a => by rw [topOf_congr a h])
     (l := Anchor.all)
 
-/-- The holding-search is a piles-field read. -/
-private theorem pileHolding_congr {u v : State} (c : Card) (h : u.piles = v.piles) :
-    u.pileHolding c = v.pileHolding c := by
-  show firstWhere (fun a => decide (c ∈ (u.piles a).faceUp)) Anchor.all = _
-  exact firstWhere_congr (p := fun a => decide (c ∈ (u.piles a).faceUp))
-    (q := fun a => decide (c ∈ (v.piles a).faceUp))
-    (fun a => by rw [congrArg Pile.faceUp (congrFun h a)]) (l := Anchor.all)
-
 /-- The placement guard is a piles-field read. -/
 private theorem canPlace_congr {u v : State} (c : Card) (b : Base)
     (h : u.piles = v.piles) : u.canPlace c b = v.canPlace c b := by
@@ -2797,7 +2789,7 @@ private theorem step_cycleCount_of_ne_waste {x s₁ : State} {m : Move}
       rw [hs]
       exact cycleCount_eq_of_stock_waste rfl rfl
   | foundToTab c b =>
-      obtain ⟨-, -, hs⟩ := step_foundToTab_inv hstep
+      obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv hstep
       rw [hs]
       exact cycleCount_eq_of_stock_waste
         (by rw [putCard_stock]; exact setFound_stock _ _ _)
@@ -2902,7 +2894,8 @@ private theorem square_foundToTab {st r w : State} {c : Card} {b : Base}
     (hm : State.step st (Move.foundToTab c b) = some r)
     (hd : st.stepDraw = some w) :
     ∃ r', w.step (Move.foundToTab c b) = some r' ∧ r.stepDraw = some r' := by
-  obtain ⟨htop, hcp, hs⟩ := step_foundToTab_inv hm
+  obtain ⟨c₀, htop0, hceq, hcp, hs⟩ := step_foundToTab_inv hm
+  have hft : st.foundTop c.suit = some c := by rw [htop0, hceq]
   have hpil : w.piles = st.piles := stepDraw_piles hd
   have hfnd : w.found = st.found := stepDraw_found hd
   have hz1 : r.stock = st.stock := by rw [hs, putCard_stock, setFound_stock]
@@ -2924,7 +2917,7 @@ private theorem square_foundToTab {st r w : State} {c : Card} {b : Base}
       ((w.setFound c.suit (chop (w.found c.suit))).putCard c b) := by
     have g1 : w.foundTop c.suit = st.foundTop c.suit := foundTop_congr c.suit hfnd
     have g2 : w.canPlace c b = st.canPlace c b := canPlace_congr c b hpil
-    simp only [State.step, g1, htop, g2, hcp]
+    simp only [State.step, g1, hft, g2, hcp]
     rfl
   refine ⟨z, hwf1.trans (congrArg Option.some ?_), hzstep⟩
   apply State.ext
@@ -2972,7 +2965,7 @@ private theorem square_tabToTab {st r w : State} {c : Card} {b : Base}
       ((w.setPile a
         (Pile.afterRunRemoved (w.piles a) (below c (w.piles a).faceUp))).putRun
         (fromCard c (w.piles a).faceUp) b) := by
-    have g1 : w.pileHolding c = st.pileHolding c := pileHolding_congr c hpil
+    have g1 : w.pileHolding c = st.pileHolding c := pileHolding_congr hpil
     have g2 : w.canPlace c b = st.canPlace c b := canPlace_congr c b hpil
     simp only [State.step, g1, hh, g2, hcp]
     cases hwfr : fromCard c (w.piles a).faceUp with
