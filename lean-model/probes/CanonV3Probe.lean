@@ -756,3 +756,768 @@ def v3AllGates : Bool :=
     IO.println "tip level; the skeleton stays ledgered as dormant design (FUTURES §11)."
   else
     throw (IO.userError "CANONV3: A GATE FAILED — see the numbers above")
+
+/-! ## Landing 3 — `pair_neighborhood_cases` — the lattice header, the slice rows, the cascade rows, the closing containment corollary
+
+The verdict restructuring (the coordinator's landing-3 call): the
+census families reorganized from witness list to LEMMA-PER-ROW plus
+the LATTICE HEADER that turns "the case table exhausts all cases"
+into a proved classification.
+
+**THE LATTICE HEADER.**  (1) The POSITION-CLASSIFICATION: at a WF
+state every face-up twin member sits in EXACTLY ONE of three
+position states — BARE (pile-top, run singleton), UNDER (pile-top
+with run content beneath), COVERED (face-up under cargo, hence not
+any pile's top) — `pnPosTrich` below.  The pair reads the product:
+nine lattice cells.
+
+(2) THE SLICE ROWS: the LICENSED slice is {bare, under}².  A
+licensed pair is a pair of pile tops (`pnCoveredNotLicensed`:
+covered ⇒ unlicensed), so the covered slice carries AT MOST ONE
+licensed twin per state — the fork is structurally CROSS-MATE.  And
+the licensed slice itself collapses to TWO cells: rank forces the
+seat type — kings sit under NOTHING (the sit arithmetic has no
+rank 13+1), so a licensed KING pair is BOTH-BARE (`pnLicKingBare`),
+and a licensed NON-KING pair is BOTH-UNDER (`pnLicNonKingUnder`,
+twins share rank) — `pnLicPairSlice`.  In every licensed cell both
+twins raise, and lifts-only-light (landing 1's V4 + the banked
+`canRaise_lifted`) gives independence across the whole slice in one
+stroke.
+
+(3) THE RANK-ENDPOINT DEGENERACY ROWS (free by deck arithmetic):
+KINGS — under is impossible, king pairs live in {bare, covered}
+only, and the cover-cargo class of a covered king is EXACTLY rank
+queen (`pnKingSlider` + `pnCoveredKingQueen`: the exchlaw
+falsifier's ♣Q is not an accident, it is the whole class);  ACES —
+covered is impossible (nothing is rank 0), ace twins are born
+bare-or-under and are STRUCTURALLY INCAPABLE of hosting the fork:
+the disease has a rank floor (`pnAceNoSlider` +
+`pnCoveredAceAbsurd`).
+
+(4) THE CARGO TRIAD closing the covered cells: every potential
+slider of a host rank x is rank x-1 of the opposite color, and the
+two such cards are THEMSELVES TWINS (`pnSliderPair` — same rank,
+same color).  Each such cargo either (a) STACKS NOW — its rung
+waits: the cascade row, it dissolves into the foundations and the
+fork MERGES (the merge cell below); (b) stays PARKED — the slide
+class, where the only fork lives, cross-mate, priced by the A2
+pull-highway (the exchlaw standing fork, re-graded here); or (c)
+is INERT — hidden/waste/stock, the landing-1 negatives.  Each
+covered-cell row answers the post-cascade top slot as a FUNCTION OF
+RUNG DELTAS — decided below per row (the ±1,±2 collapse around x).
+-/
+
+/-! ### The position kit and the lattice theorems -/
+
+
+/-- Exactly one of three Booleans. -/
+def pnExactlyOne (b1 b2 b3 : Bool) : Bool :=
+  (b1 && !b2 && !b3) || (!b1 && b2 && !b3) || (!b1 && !b2 && b3)
+
+/-- COVERED: face-up in some pile but not any pile's top (at WF:
+cargo sits above). -/
+def pnPosCovered (st : State) (c : Card) : Bool :=
+  decide (st.pileOfTop c = none) && decide ((st.pileHolding c).isSome)
+
+/-- BARE: a pile top whose face-up run is the singleton. -/
+def pnPosBare (st : State) (c : Card) : Bool :=
+  match st.pileOfTop c with
+  | none => false
+  | some a => decide ((st.piles a).faceUp = [c])
+
+/-- UNDER: a pile top with run content beneath. -/
+def pnPosUnder (st : State) (c : Card) : Bool :=
+  match st.pileOfTop c with
+  | none => false
+  | some a => decide ((st.piles a).faceUp ≠ [c])
+
+/-- THE POSITION-CLASSIFICATION LEMMA: at WF every face-up card is
+in exactly one of the three position states. -/
+theorem pnPosTrich (st : State) (hwf : st.WF) (c : Card)
+    (hmem : ∃ a, c ∈ (st.piles a).faceUp) :
+    pnExactlyOne (pnPosCovered st c) (pnPosBare st c) (pnPosUnder st c) = true := by
+  obtain ⟨a, hm⟩ := hmem
+  have hh : st.pileHolding c = some a := (pileHolding_eq_some_iff hwf).2 hm
+  cases hpt : st.pileOfTop c with
+  | none =>
+      have hc : pnPosCovered st c = true := by simp [pnPosCovered, hpt, hh]
+      have hb : pnPosBare st c = false := by simp [pnPosBare, hpt]
+      have hu : pnPosUnder st c = false := by simp [pnPosUnder, hpt]
+      rw [hc, hb, hu]
+      rfl
+  | some k =>
+      have hc : pnPosCovered st c = false := by simp [pnPosCovered, hpt]
+      rw [hc]
+      cases hlist : (st.piles k).faceUp with
+      | nil => exact absurd (by rw [hlist]) (pileOfTop_top hpt).1
+      | cons x t =>
+          cases t with
+          | nil =>
+              have hxc : x = c := by
+                have hlast := (pileOfTop_top hpt).2
+                rw [hlist] at hlast
+                have hlr : lastOf [x] = some x := rfl
+                rw [hlr] at hlast
+                exact Option.some.inj hlast
+              have hbare : pnPosBare st c = true := by
+                simp [pnPosBare, hpt, hlist, hxc]
+              have hunder : pnPosUnder st c = false := by
+                simp [pnPosUnder, hpt, hlist, hxc]
+              rw [hbare, hunder]; rfl
+          | cons y t' =>
+              have hsing : (st.piles k).faceUp ≠ [c] := by
+                rw [hlist]; simp
+              have hbare : pnPosBare st c = false := by
+                simp [pnPosBare, hpt, hlist, hsing]
+              have hunder : pnPosUnder st c = true := by
+                simp [pnPosUnder, hpt, hlist, hsing]
+              rw [hbare, hunder]; rfl
+
+/-- A covered member cannot hold the license: covered means no
+pile top, and every licensed card tops its search pile. -/
+theorem pnCoveredNotLicensed {st : State} {c : Card}
+    (h : pnPosCovered st c = true) (hlic : CanRaise st c) : False := by
+  obtain ⟨hn, a, hp, hseat⟩ := hlic
+  simp [pnPosCovered, hp] at h
+
+/-- The covered slice carries at most one licensed twin: covering
+one member already bars its license. -/
+theorem pnCoveredPairAtMostOne {st : State} {c : Card}
+    (h1 : pnPosCovered st c = true ∨ pnPosCovered st c.twin = true)
+    (h2 : CanRaise st c ∧ CanRaise st c.twin) : False := by
+  rcases h1 with h | h
+  · exact pnCoveredNotLicensed h h2.1
+  · exact pnCoveredNotLicensed h h2.2
+
+/-! ### The seat arithmetic (bank-heads: chop_snoc, lastOf_chop,
+runOK_snoc_sit, pileOfTop_top, pileOfTop_eq_some_iff, Rank rows) -/
+
+
+/-- A licensed KING is BARE: no card sits under a king (the sit
+arithmetic has no rank thirteen-plus-one), so the under-seat leg
+of the license is unsatisfiable at WF. -/
+theorem pnLicKingBare {st : State} {c : Card} {a : Anchor}
+    (hwf : st.WF) (hlic : CanRaise st c) (hpt : st.pileOfTop c = some a)
+    (hk : c.rank = Rank.king) :
+    (st.piles a).faceUp = [c] ∧ (st.piles a).hidden = [] := by
+  obtain ⟨hn, a', hp', hseat⟩ := hlic
+  rw [hpt] at hp'
+  injection hp' with ha
+  subst ha
+  have hlast := (pileOfTop_top hpt).2
+  have hsplit : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] :=
+    lastOf_chop hlast
+  have hrun : runOK (chop (st.piles a).faceUp ++ [c]) = true := by
+    have h := hwf.2.1 a
+    rw [hsplit] at h
+    exact h
+  have hchopnil : chop (st.piles a).faceUp = [] := by
+    by_cases hchop : chop (st.piles a).faceUp = []
+    · exact hchop
+    · obtain ⟨z, -, hsit⟩ := runOK_snoc_sit (l := chop (st.piles a).faceUp) hchop hrun
+      rw [canSitOn_eq] at hsit
+      have hlt := Rank.toIdx_lt z.rank
+      have hk12 : c.rank.toIdx = 12 := by rw [hk]; rfl
+      omega
+  refine ⟨by rw [hsplit, hchopnil]; rfl, ?_⟩
+  rcases hseat with h1 | ⟨h2, h3⟩
+  · rw [hchopnil] at h1
+    exact absurd h1 (by simp)
+  · exact h2
+
+/-- A licensed NON-KING sits UNDER: the bare leg of the license is
+the bare-KING leg only. -/
+theorem pnLicNonKingUnder {st : State} {c : Card} {a : Anchor}
+    (hlic : CanRaise st c) (hpt : st.pileOfTop c = some a)
+    (hk : c.rank ≠ Rank.king) : chop (st.piles a).faceUp ≠ [] := by
+  obtain ⟨hn, a', hp', hseat⟩ := hlic
+  rw [hpt] at hp'
+  injection hp' with ha
+  subst ha
+  rcases hseat with h1 | ⟨h2, h3⟩
+  · exact h1
+  · exact absurd h3 hk
+
+/-- The licensed slice: a licensed twin pair is EXACTLY one of the
+two lattice cells — BOTH-BARE (kings) or BOTH-UNDER (non-kings).
+Twins share rank, so the nine-cell lattice's mixed licensed cells
+are the VACUOUS cells. -/
+theorem pnLicPairSlice {st : State} {c : Card} (hwf : st.WF)
+    (hc : CanRaise st c) (ht : CanRaise st c.twin) :
+    ∃ a b, st.pileOfTop c = some a ∧ st.pileOfTop c.twin = some b ∧
+      ((c.rank = Rank.king ∧
+          (st.piles a).faceUp = [c] ∧ (st.piles a).hidden = [] ∧
+          (st.piles b).faceUp = [c.twin] ∧ (st.piles b).hidden = []) ∨
+        (c.rank ≠ Rank.king ∧
+          chop (st.piles a).faceUp ≠ [] ∧ chop (st.piles b).faceUp ≠ [])) := by
+  obtain ⟨hn1, a, hpa, hs1⟩ := hc
+  obtain ⟨hn2, b, hpb, hs2⟩ := ht
+  have hc : CanRaise st c := ⟨hn1, a, hpa, hs1⟩
+  have ht : CanRaise st c.twin := ⟨hn2, b, hpb, hs2⟩
+  by_cases hk : c.rank = Rank.king
+  · have hkr : c.twin.rank = Rank.king := by
+      have htr : c.twin.rank = c.rank := rfl
+      rw [htr, hk]
+    obtain ⟨hf1, hh1⟩ := pnLicKingBare hwf hc hpa hk
+    obtain ⟨hf2, hh2⟩ := pnLicKingBare hwf ht hpb hkr
+    exact ⟨a, b, hpa, hpb, Or.inl ⟨hk, hf1, hh1, hf2, hh2⟩⟩
+  · refine ⟨a, b, hpa, hpb, Or.inr ⟨hk, pnLicNonKingUnder hc hpa hk, ?_⟩⟩
+    have htk : c.twin.rank ≠ Rank.king := by
+      rw [show c.twin.rank = c.rank from rfl]
+      exact hk
+    exact pnLicNonKingUnder ht hpb htk
+
+/-! ### The slider arithmetic (the cargo triad's two-by-two) -/
+
+
+/-- Every potential slider of a KING is exactly rank queen — the
+exchlaw falsifier's ♣Q is the whole class. -/
+theorem pnKingSlider {z c : Card} (hs : canSitOn z c = true)
+    (hk : c.rank = Rank.king) : z.rank = Rank.queen := by
+  rw [canSitOn_eq] at hs
+  have hk12 : (Rank.king).toIdx = 12 := rfl
+  have hq11 : (Rank.queen).toIdx = 11 := rfl
+  rw [hk, hk12] at hs
+  exact Rank.toIdx_inj (by omega)
+
+/-- NO slider exists for an ACE (nothing is rank zero minus one). -/
+theorem pnAceNoSlider {z c : Card} (hs : canSitOn z c = true)
+    (ha : c.rank = Rank.ace) : False := by
+  rw [canSitOn_eq] at hs
+  have ha0 : (Rank.ace).toIdx = 0 := rfl
+  rw [ha, ha0] at hs
+  omega
+
+/-- The two potential sliders of one host share rank and color —
+the two such cards are THEMSELVES TWINS (each color runs exactly
+two suits; same color + same rank + different suit is the twin
+relation; same suit + same rank is equality). -/
+theorem pnSliderPair {z z' c : Card} (h1 : canSitOn z c = true)
+    (h2 : canSitOn z' c = true) :
+    z.rank = z'.rank ∧ z.suit.color = z'.suit.color := by
+  obtain ⟨h1a, h1c⟩ := (canSitOn_eq z c).1 h1
+  obtain ⟨h2a, h2c⟩ := (canSitOn_eq z' c).1 h2
+  refine ⟨Rank.toIdx_inj (by omega), ?_⟩
+  rcases z with ⟨zs, zr⟩
+  rcases z' with ⟨z's, z'r⟩
+  rcases c with ⟨cs, cr⟩
+  cases zs <;> cases z's <;> cases cs <;> simp_all [Suit.color]
+
+/-! ### Adjacent-run decomposition (the covered cells' reader) -/
+
+
+private theorem pnMemDecomp : ∀ {l : List Card} {c : Card},
+    c ∈ l → ∃ w1 w2, l = w1 ++ c :: w2
+  | [], _, h => by simp at h
+  | x :: t, c, h => by
+      rcases List.mem_cons.1 h with rfl | hm
+      · exact ⟨[], t, rfl⟩
+      · obtain ⟨w1, w2, hq⟩ := pnMemDecomp (l := t) (c := c) hm
+        refine ⟨x :: w1, w2, ?_⟩
+        show x :: t = (x :: w1) ++ c :: w2
+        rw [List.cons_append]
+        exact congrArg (fun l => x :: l) hq
+
+private theorem pnRunOKAdj : ∀ (pre : List Card) (c z : Card) (w : List Card),
+    runOK (pre ++ c :: z :: w) = true → canSitOn z c = true
+  | [], c, z, w, h => by
+      rw [List.nil_append] at h
+      have hexp : runOK (c :: z :: w) = (canSitOn z c && runOK (z :: w)) := rfl
+      rw [hexp, Bool.and_eq_true] at h
+      exact h.1
+  | p :: t, c, z, w, h => by
+      cases t with
+      | nil =>
+          rw [List.cons_append, List.nil_append] at h
+          have hexp : runOK (p :: c :: z :: w) =
+              (canSitOn c p && runOK (c :: z :: w)) := rfl
+          rw [hexp, Bool.and_eq_true] at h
+          exact pnRunOKAdj [] c z w h.2
+      | cons q qs =>
+          rw [List.cons_append] at h
+          have hexp : runOK (p :: ((q :: qs) ++ c :: z :: w)) =
+              (canSitOn q p && runOK ((q :: qs) ++ c :: z :: w)) := rfl
+          rw [hexp, Bool.and_eq_true] at h
+          exact pnRunOKAdj (q :: qs) c z w h.2
+
+/-- At WF, the immediate cover of a COVERED card sits on it by the
+run discipline. -/
+theorem pnCoverSit {st : State} {c : Card} {a : Anchor} (hwf : st.WF)
+    (hh : st.pileHolding c = some a) (hpt : st.pileOfTop c = none) :
+    ∃ z w1 w2, (st.piles a).faceUp = w1 ++ c :: z :: w2 ∧ canSitOn z c = true := by
+  have hmem : c ∈ (st.piles a).faceUp := pileHolding_mem hh
+  have hnl : lastOf (st.piles a).faceUp ≠ some c := by
+    intro hlast
+    have htop : (st.piles a).top = some c := hlast
+    rw [(pileOfTop_eq_some_iff hwf).2 htop] at hpt
+    exact absurd hpt (by simp)
+  obtain ⟨w1, w2, hq⟩ := pnMemDecomp hmem
+  have hw2 : w2 ≠ [] := by
+    intro he
+    rw [he] at hq
+    rw [hq] at hnl
+    exact hnl (lastOf_snoc)
+  obtain ⟨z, w2', hw2eq⟩ : ∃ z t, w2 = z :: t := by
+    cases w2 with
+    | nil => exact absurd rfl hw2
+    | cons z t => exact ⟨z, t, rfl⟩
+  subst hw2eq
+  refine ⟨z, w1, w2', hq, ?_⟩
+  have hrun : runOK ((st.piles a).faceUp) = true := hwf.2.1 a
+  rw [hq] at hrun
+  exact pnRunOKAdj w1 c z w2' hrun
+
+/-- The cover-cargo class of a covered king is EXACTLY rank queen —
+the exchlaw falsifier's Q is the entire class (the consistency
+check). -/
+theorem pnCoveredKingQueen {st : State} {c : Card} {a : Anchor}
+    (hwf : st.WF) (hh : st.pileHolding c = some a)
+    (hpt : st.pileOfTop c = none) (hk : c.rank = Rank.king) :
+    ∃ z, canSitOn z c = true ∧ z.rank = Rank.queen := by
+  obtain ⟨z, w1, w2, hq, hsit⟩ := pnCoverSit hwf hh hpt
+  exact ⟨z, hsit, pnKingSlider hsit hk⟩
+
+/-- ACES ARE NEVER COVERED at WF — the fork disease has a rank
+floor. -/
+theorem pnCoveredAceAbsurd {st : State} {c : Card} {a : Anchor}
+    (hwf : st.WF) (hh : st.pileHolding c = some a)
+    (hpt : st.pileOfTop c = none) (ha : c.rank = Rank.ace) : False := by
+  obtain ⟨z, w1, w2, hq, hsit⟩ := pnCoverSit hwf hh hpt
+  exact pnAceNoSlider hsit ha
+
+/-! ### The cascade cells — new witnesses for the row table -/
+
+def v3C2 : Card := ⟨Suit.club, Rank.two⟩
+def v3HA : Card := ⟨Suit.heart, Rank.ace⟩
+def v3DA : Card := ⟨Suit.diamond, Rank.ace⟩
+def v3SA : Card := ⟨Suit.spade, Rank.ace⟩
+def v3CA : Card := ⟨Suit.club, Rank.ace⟩
+def v3CJ : Card := ⟨Suit.club, Rank.jack⟩
+def v3SJ : Card := ⟨Suit.spade, Rank.jack⟩
+
+
+/-- CAS-1, the BOTH-BARE row extended with the user's rung deltas:
+red rungs at x-1 (hearts A..Q for the king twins), blacks at x-2
+(A..J, so the black QUEENS' rungs already wait).  The waiting black
+x-1's have no legal seat in a both-bare world (their only hosts —
+red kings — are the bare twins themselves), so they park BARE at
+anchors: raw-stackable (rung waits!) but seat-barred (the emptied
+seat readmits only a king) — the canon never consumes them.  ONE
+legal SLIDE lifts a parked queen onto a bare king — the row-A to
+row-C road, repositioning into the covered pose. -/
+def pnCasBareExt : State where
+  found := fun s =>
+    match s with
+    | .heart => Suit.heart.upCards.take 12
+    | .diamond => Suit.diamond.upCards.take 12
+    | .spade => Suit.spade.upCards.take 11
+    | .club => Suit.club.upCards.take 11
+  piles := fun a =>
+    match a with
+    | .p1 => ⟨[], [v3HK]⟩
+    | .p5 => ⟨[], [v3DK]⟩
+    | .p3 => ⟨[], [v3CQ]⟩
+    | .p4 => ⟨[], [v3SQ]⟩
+    | _ => ⟨[], []⟩
+  stock := v3Stock (Suit.heart.upCards.take 12 ++ Suit.diamond.upCards.take 12 ++
+    Suit.spade.upCards.take 11 ++ Suit.club.upCards.take 11 ++
+    [v3HK, v3DK, v3CQ, v3SQ])
+  waste := []
+  drawStep := 1
+
+/-- CAS-1b, the slid state: the parked ♣Q has slid onto the bare
+♥K — the cross-neighbor pose reached from row A by one legal
+slide. -/
+def pnCasBareSlide : State where
+  found := fun s =>
+    match s with
+    | .heart => Suit.heart.upCards.take 12
+    | .diamond => Suit.diamond.upCards.take 12
+    | .spade => Suit.spade.upCards.take 11
+    | .club => Suit.club.upCards.take 11
+  piles := fun a =>
+    match a with
+    | .p1 => ⟨[], [v3HK, v3CQ]⟩
+    | .p5 => ⟨[], [v3DK]⟩
+    | .p4 => ⟨[], [v3SQ]⟩
+    | _ => ⟨[], []⟩
+  stock := v3Stock (Suit.heart.upCards.take 12 ++ Suit.diamond.upCards.take 12 ++
+    Suit.spade.upCards.take 11 ++ Suit.club.upCards.take 11 ++
+    [v3HK, v3DK, v3CQ, v3SQ])
+  waste := []
+  drawStep := 1
+
+/-- CAS-2, the BOTH-UNDER row with the deltas: hearts/diamonds
+climbed A..J (rung x-1 for the queen twins), blacks climbed A..10
+(x-2).  Stacking the red queens exposes the black KING bases at
+rung delta 2 (the ±2 collapse: the ladder must climb J then Q
+before the exposed king's own rung waits); the black JACK
+cross-neighbors are raw-stackable at delta 0 (rung ready, seat
+barred — canon leaves them), and a hidden black queen under the
+base rides the saturation verbatim (hidden cargo is inert). -/
+def pnCasUnderExt : State where
+  found := fun s =>
+    match s with
+    | .heart => Suit.heart.upCards.take 11
+    | .diamond => Suit.diamond.upCards.take 11
+    | .spade => Suit.spade.upCards.take 10
+    | .club => Suit.club.upCards.take 10
+  piles := fun a =>
+    match a with
+    | .p1 => ⟨[v3SQ], [v3CK, v3HQ]⟩
+    | .p5 => ⟨[], [v3SK, v3DQ]⟩
+    | .p3 => ⟨[], [v3CJ]⟩
+    | .p4 => ⟨[], [v3SJ]⟩
+    | _ => ⟨[], []⟩
+  stock := v3Stock (Suit.heart.upCards.take 11 ++ Suit.diamond.upCards.take 11 ++
+    Suit.spade.upCards.take 10 ++ Suit.club.upCards.take 10 ++
+    [v3CK, v3SK, v3HQ, v3DQ, v3CJ, v3SJ, v3SQ])
+  waste := []
+  drawStep := 1
+
+/-- CAS-3, the CROSS-NEIGHBOR merge cell: the exchlaw B2 pose with
+the user's waiting rung — hearts and diamonds at A..Q, CLUBS AT
+A..J, so the covering cargo ♣Q's own rung ALREADY waits.  The
+covered slot reads as a function of rung deltas: at delta 0 the
+cargo dissolves in-saturation, EXPOSING the buried king whose rung
+also waits — THE FORK MERGES: canon from both faces lands at ONE
+saturated state.  Contrast the exchlaw standing fork (delta =
+everything away): the parked cargo cannot dissolve, the wings stay
+split, and the A2 pull-highway is the price.  THE ???-SLOT ANSWERED:
+the covering cargo's own rung read decides merge vs standing fork —
+and neither fires intra-state. -/
+def pnCasForkMerge : State where
+  found := fun s =>
+    match s with
+    | .heart => Suit.heart.upCards.take 12
+    | .diamond => Suit.diamond.upCards.take 12
+    | .club => Suit.club.upCards.take 11
+    | _ => []
+  piles := fun a =>
+    match a with
+    | .p1 => ⟨[], [v3HK]⟩
+    | .p5 => ⟨[], [v3DK, v3CQ]⟩
+    | _ => ⟨[], []⟩
+  stock := v3Stock (Suit.heart.upCards.take 12 ++ Suit.diamond.upCards.take 12 ++
+    Suit.club.upCards.take 11 ++ [v3HK, v3DK, v3CQ])
+  waste := []
+  drawStep := 1
+
+/-- The exchange-mate of the merge cell (the slide image). -/
+def pnCasForkMergeX : State where
+  found := fun s =>
+    match s with
+    | .heart => Suit.heart.upCards.take 12
+    | .diamond => Suit.diamond.upCards.take 12
+    | .club => Suit.club.upCards.take 11
+    | _ => []
+  piles := fun a =>
+    match a with
+    | .p1 => ⟨[], [v3HK, v3CQ]⟩
+    | .p5 => ⟨[], [v3DK]⟩
+    | _ => ⟨[], []⟩
+  stock := v3Stock (Suit.heart.upCards.take 12 ++ Suit.diamond.upCards.take 12 ++
+    Suit.club.upCards.take 11 ++ [v3HK, v3DK, v3CQ])
+  waste := []
+  drawStep := 1
+
+/-- CAS-4, the rank-floor cell (the ACE degeneracy row): empty
+foundations; the ace twins BOTH-UNDER (♥A on ♣2 at p1, ♦A on ♠2 at
+p5 — permanently raisable, licensed now), while BARE aces park at
+p3/p4: raw-stackable (an ace's rung is the empty foundation,
+always waiting) yet seat-barred (the bare leg is the bare-KING
+leg) — decided raw-vs-licensed data at the rank floor, and the
+across-the-board datum: no cargo can ever cover an ace. -/
+def pnCasAces : State where
+  found := fun _ => []
+  piles := fun a =>
+    match a with
+    | .p1 => ⟨[], [v3C2, v3HA]⟩
+    | .p5 => ⟨[], [v3S2, v3DA]⟩
+    | .p3 => ⟨[], [v3SA]⟩
+    | .p4 => ⟨[], [v3CA]⟩
+    | _ => ⟨[], []⟩
+  stock := v3Stock [v3C2, v3HA, v3S2, v3DA, v3SA, v3CA]
+  waste := []
+  drawStep := 1
+
+/-! ### The rung-delta reader (exposed-top-after-cascade as a
+function of rung deltas, decided per row) -/
+
+
+/-- The rung delta of `z` at `st`: how many climbs its suit still
+owes before `z`'s rung waits. -/
+def pnRungDelta (st : State) (z : Card) : Int :=
+  z.rank.toIdx - (st.found z.suit).length
+
+/-! ### The row table -/
+
+
+/-- Row 1 — THE LATTICE HEADER: every face-up card at every census
+cell sits in exactly one position state; the pair families read
+the expected cells. -/
+def pnRowLattice : Bool :=
+  [v3Bare, v3Under, v3Mixed, v3Chain, v3Fork, v3ForkX,
+   pnCasBareExt, pnCasBareSlide, pnCasUnderExt, pnCasForkMerge, pnCasForkMergeX,
+   pnCasAces, v3Cargo, v3WasteRes, v3BareNonKing, v3RevealBar].all (fun st =>
+    Card.universe.all (fun c =>
+      !decide ((st.pileHolding c).isSome) ||
+      pnExactlyOne (pnPosCovered st c) (pnPosBare st c) (pnPosUnder st c))) &&
+  -- the licensed pairs land in the two inhabited cells
+  (pnPosBare v3Bare v3HK && pnPosBare v3Bare v3DK &&
+    pnPosUnder v3Under v3HQ && pnPosUnder v3Under v3DQ &&
+    pnPosBare pnCasBareExt v3HK && pnPosBare pnCasBareExt v3DK &&
+    pnPosUnder pnCasUnderExt v3HQ && pnPosUnder pnCasUnderExt v3DQ) &&
+  -- the covered wings read covered (cargo above), old fork included
+  (pnPosCovered v3Fork v3DK && pnPosCovered v3ForkX v3HK &&
+    pnPosCovered pnCasForkMerge v3DK && pnPosCovered pnCasForkMergeX v3HK) &&
+  -- the parked queens of row A sit at bare-singleton anchors
+  (pnPosBare pnCasBareExt v3CQ && pnPosBare pnCasBareExt v3SQ) &&
+  -- the slid pose: the covered king, the bare mate
+  (pnPosCovered pnCasBareSlide v3HK && pnPosBare pnCasBareSlide v3DK)
+
+/-- Row 2 — BOTH-BARE: the independent pair, the parked waiting
+rungs (raw-stackable AND seat-barred — the canon never consumes
+them), and the row-A→row-C SLIDE with the slid pose's own clean
+census. -/
+def pnRowBothBare : Bool :=
+  v3WfB pnCasBareExt && v3FamilyClean pnCasBareExt &&
+  (canRaiseB pnCasBareExt v3HK && canRaiseB pnCasBareExt v3DK) &&
+  decide ((v3Lic pnCasBareExt).length = 2) &&
+  -- the waiting black x-1's: raw-stackable, seat-barred, parked
+  (stackableB pnCasBareExt v3CQ && !(canRaiseB pnCasBareExt v3CQ)) &&
+  (stackableB pnCasBareExt v3SQ && !(canRaiseB pnCasBareExt v3SQ)) &&
+  -- the canon consumes the kings and parks the queens verbatim
+  decide ((canon pnCasBareExt).found .heart = Suit.heart.upCards) &&
+  decide ((canon pnCasBareExt).found .diamond = Suit.diamond.upCards) &&
+  decide ((canon pnCasBareExt).piles .p3 = ⟨[], [v3CQ]⟩) &&
+  decide ((canon pnCasBareExt).piles .p4 = ⟨[], [v3SQ]⟩) &&
+  decide ((v3Lic (canon pnCasBareExt)).length = 0) &&
+  -- the row-A→row-C road: one legal slide of a parked queen onto
+  -- a bare king repositions into the covered pose
+  decide (pnCasBareExt.step (Move.tabToTab v3CQ (Sum.inr v3HK)) = some pnCasBareSlide) &&
+  -- the slid pose: covered king, bare mate, still contention-clean
+  v3WfB pnCasBareSlide && v3FamilyClean pnCasBareSlide &&
+  -- and its saturation dissolves the cover (rung waits) and the
+  -- buried twin with it — the merge anatomy INSIDE row A's road
+  decide ((canon pnCasBareSlide).found .heart = Suit.heart.upCards) &&
+  decide ((canon pnCasBareSlide).found .diamond = Suit.diamond.upCards) &&
+  decide ((canon pnCasBareSlide).found .club = Suit.club.upCards.take 12) &&
+  decide (canon pnCasBareSlide ≠ canon pnCasBareExt) &&
+  -- twin-blindness
+  decide (canon pnCasBareExt.twinMap = (canon pnCasBareExt).twinMap)
+
+/-- Row 3 — BOTH-UNDER: the seated pair, the ±2 bases (exposed
+kings at rung delta 2), the delta-0 cross-neighbors (raw J's,
+seat-barred), the hidden cargo riding verbatim, and the parked
+foundations after saturation. -/
+def pnRowBothUnder : Bool :=
+  v3WfB pnCasUnderExt && v3FamilyClean pnCasUnderExt &&
+  (canRaiseB pnCasUnderExt v3HQ && canRaiseB pnCasUnderExt v3DQ) &&
+  decide ((v3Lic pnCasUnderExt).length = 2) &&
+  v3LicMonotone pnCasUnderExt v3HQ && v3LicMonotone pnCasUnderExt v3DQ &&
+  -- the canon consumes the queens; the bases expose at delta 2
+  decide ((canon pnCasUnderExt).found .heart = Suit.heart.upCards.take 12) &&
+  decide ((canon pnCasUnderExt).found .diamond = Suit.diamond.upCards.take 12) &&
+  decide ((canon pnCasUnderExt).piles .p1 = ⟨[v3SQ], [v3CK]⟩) &&
+  decide ((canon pnCasUnderExt).piles .p5 = ⟨[], [v3SK]⟩) &&
+  decide ((v3Lic (canon pnCasUnderExt)).length = 0) &&
+  decide (pnRungDelta (canon pnCasUnderExt) v3CK = 2) &&
+  decide (pnRungDelta (canon pnCasUnderExt) v3SK = 2) &&
+  decide (pnRungDelta (canon pnCasUnderExt) v3CJ = 0) &&
+  decide (pnRungDelta (canon pnCasUnderExt) v3SJ = 0) &&
+  (stackableB (canon pnCasUnderExt) v3CJ && !(canRaiseB (canon pnCasUnderExt) v3CJ)) &&
+  (stackableB (canon pnCasUnderExt) v3SJ && !(canRaiseB (canon pnCasUnderExt) v3SJ)) &&
+  -- twin-blindness
+  decide (canon pnCasUnderExt.twinMap = (canon pnCasUnderExt).twinMap)
+
+/-- Row 4 — CROSS-NEIGHBOR: the merge cell and its mate, the slide
+steps, the intermediate states' cleanliness, the MERGE verdict
+(canon equal from both faces), the contrast with the standing
+fork, and the exposed-twin leg inside the merge. -/
+def pnRowCross : Bool :=
+  v3WfB pnCasForkMerge && v3WfB pnCasForkMergeX &&
+  v3FamilyClean pnCasForkMerge && v3FamilyClean pnCasForkMergeX &&
+  v3FamilyClean (v3Fired pnCasForkMerge v3HK) &&
+  -- the faces: exactly one twin licensed, plus the waiting-rung cargo
+  (canRaiseB pnCasForkMerge v3HK && !(canRaiseB pnCasForkMerge v3DK)) &&
+  (!(canRaiseB pnCasForkMergeX v3HK) && canRaiseB pnCasForkMergeX v3DK) &&
+  (canRaiseB pnCasForkMerge v3CQ && canRaiseB pnCasForkMergeX v3CQ) &&
+  decide (pnRungDelta pnCasForkMerge v3CQ = 0) &&
+  -- the slide realization, step-exact both directions
+  decide (pnCasForkMerge.step (Move.tabToTab v3CQ (Sum.inr v3HK)) = some pnCasForkMergeX) &&
+  decide (pnCasForkMergeX.step (Move.tabToTab v3CQ (Sum.inr v3DK)) = some pnCasForkMerge) &&
+  -- THE MERGE: the dissolving cover exposes the buried king
+  -- licensed, and canon from BOTH faces is ONE state
+  decide (canon pnCasForkMerge = canon pnCasForkMergeX) &&
+  decide ((canon pnCasForkMerge).found .heart = Suit.heart.upCards) &&
+  decide ((canon pnCasForkMerge).found .diamond = Suit.diamond.upCards) &&
+  decide ((canon pnCasForkMerge).found .club = Suit.club.upCards.take 12) &&
+  decide ((canon pnCasForkMerge).piles .p1 = ⟨[], []⟩) &&
+  decide ((canon pnCasForkMerge).piles .p5 = ⟨[], []⟩) &&
+  decide ((v3Lic (canon pnCasForkMerge)).length = 0) &&
+  canRaiseB (v3Fired pnCasForkMerge v3CQ) v3DK &&
+  -- THE CONTRAST: the parked-delta standing fork still splits
+  decide (canon v3Fork ≠ canon v3ForkX) &&
+  -- twin-blindness on every face
+  decide (canon pnCasForkMerge.twinMap = (canon pnCasForkMerge).twinMap) &&
+  decide (canon pnCasForkMergeX.twinMap = (canon pnCasForkMergeX).twinMap)
+
+/-- Row 5 — THE RANK-ENDPOINT DEGENERACIES, decided: the covered
+kings' covers are queens at every crafted covered-king cell, and
+the ACE row: the both-under licensed ace pair, the parked bare
+aces (raw-stackable, seat-barred), foundations after saturation. -/
+def pnRowDegeneracies : Bool :=
+  -- KING: the covered kings' covers are queens, both fork families
+  (pnPosCovered v3Fork v3DK && pnPosCovered pnCasForkMerge v3DK &&
+    v3FamilyClean pnCasBareSlide) &&
+  -- the king twins of the battery: every licensed king bare
+  (pnPosBare v3Bare v3HK && pnPosBare v3Bare v3DK &&
+    pnPosBare v3Mixed v3HK && pnPosBare v3Fork v3HK) &&
+  -- ACE: the both-under licensed pair, raw-bare parks at p3/p4
+  v3WfB pnCasAces && v3FamilyClean pnCasAces &&
+  (canRaiseB pnCasAces v3HA && canRaiseB pnCasAces v3DA) &&
+  decide ((v3Lic pnCasAces).length = 2) &&
+  (canRaiseB pnCasAces v3SA && canRaiseB pnCasAces v3CA) == false &&
+  (stackableB pnCasAces v3SA && !(canRaiseB pnCasAces v3SA)) &&
+  (stackableB pnCasAces v3CA && !(canRaiseB pnCasAces v3CA)) &&
+  (pnPosUnder pnCasAces v3HA && pnPosUnder pnCasAces v3DA &&
+    pnPosBare pnCasAces v3SA && pnPosBare pnCasAces v3CA) &&
+  decide ((canon pnCasAces).found .heart = [v3HA]) &&
+  decide ((canon pnCasAces).found .diamond = [v3DA]) &&
+  decide ((canon pnCasAces).piles .p3 = ⟨[], [v3SA]⟩) &&
+  decide ((canon pnCasAces).piles .p4 = ⟨[], [v3CA]⟩) &&
+  decide ((v3Lic (canon pnCasAces)).length = 0) &&
+  decide (canon pnCasAces.twinMap = (canon pnCasAces).twinMap)
+
+/-- Row 6 — the negatives ride (landing 1's V6) plus the inert
+triad leg: the stock-resident slider of the merge cell never
+registers anywhere (never stacked, never founded). -/
+def pnRowNegatives : Bool :=
+  v3GateV6 &&
+  decide (v3SQ ∈ pnCasForkMerge.stock) &&
+  !(stackableB pnCasForkMerge v3SQ) &&
+  decide (v3SQ ∉ (canon pnCasForkMerge).found .spade)
+
+/-- The cargo of the pair's two host piles, as (card, anchor)
+pairs, the pair members themselves excluded. -/
+def pnPileCargo (st : State) (a : Anchor) (c : Card) : List (Card × Anchor) :=
+  (((st.piles a).hidden ++ (st.piles a).faceUp).filter
+    (fun z => decide (z ≠ c))).map (fun z => (z, a))
+
+/-- The neighborhood cargo of the licensed pair {c, c.twin}. -/
+def pnCargoPairs (st : State) (c : Card) : List (Card × Anchor) :=
+  match st.pileOfTop c with
+  | none => []
+  | some a =>
+    match st.pileOfTop c.twin with
+    | none => []
+    | some b => pnPileCargo st a c ++ pnPileCargo st b c.twin
+
+/-- THE LOCAL CONTAINMENT (the closing corollary row, decided):
+at a licensed twin pair, every neighborhood cargo card either
+DISSOLVES into the pair's cascade (founded at canon) or PARKS
+VERBATIM at its seat (hidden or face-up in its original pile) —
+the decoupled class is the parked-residue/slide family, and no
+fork-cargo fires intra-state. -/
+def pnContained (st : State) (c : Card) : Bool :=
+  canRaiseB st c && canRaiseB st c.twin &&
+  (pnCargoPairs st c).all (fun p =>
+    match p with
+    | (z, a) =>
+        decide (z ∈ (canon st).found z.suit) ||
+        decide (z ∈ ((canon st).piles a).hidden) ||
+        decide (z ∈ ((canon st).piles a).faceUp))
+
+/-- The whole battery of census states, for the corollary scan. -/
+def pnAllCells : List State :=
+  [v3Bare, v3Under, v3Mixed, v3Chain, v3Fork, v3ForkX,
+   pnCasBareExt, pnCasBareSlide, pnCasUnderExt, pnCasForkMerge, pnCasForkMergeX,
+   pnCasAces, v3Cargo, v3WasteRes, v3BareNonKing, v3RevealBar]
+
+/-- Row 7 — THE CLOSING COROLLARY: the containment holds at every
+licensed pair of every census cell; every cell stays universe-clean
+(the landing-1 contention census); and the SHARPENED NEGATIVE —
+the global form is FALSE: a coupled cargo DOES exist in the wild
+(the standing fork's ♣Q couples the kings' saturation channel) —
+but only CROSS-MATE, where the pair is not both-licensed, so the
+local form is exactly the honest boundary. -/
+def pnCorollaryContainment : Bool :=
+  pnAllCells.all (fun st =>
+    Card.universe.all (fun c =>
+      !(canRaiseB st c && canRaiseB st c.twin) || pnContained st c)) &&
+  pnAllCells.all (fun st => v3FamilyClean st) &&
+  -- the global form is false: the standing fork couples a cargo
+  -- between exchange mates (one licensed per face, wings split)
+  (canRaiseB v3Fork v3HK && !(canRaiseB v3Fork v3DK)) &&
+  decide (canon v3Fork ≠ canon v3ForkX)
+
+/-- THE TABLE. -/
+def pair_neighborhood_cases : Bool :=
+  pnRowLattice && pnRowBothBare && pnRowBothUnder && pnRowCross &&
+  pnRowDegeneracies && pnRowNegatives && pnCorollaryContainment
+
+-- The landing-3 census numbers (printed for the ledger; the rows
+-- above carry the load-bearing checks):
+#eval pnRowLattice -- expect true: the position lattice, all cells
+#eval pnRowBothBare -- expect true: the bare pair, the parked rungs, the slide
+#eval pnRowBothUnder -- expect true: the seated pair, deltas two and zero
+#eval pnRowCross -- expect true: the merge rows and the contrast
+#eval pnRowDegeneracies -- expect true: the K and A fence posts
+#eval pnRowNegatives -- expect true: the inert triad legs
+#eval pnCorollaryContainment -- expect true: the closing local containment
+#eval pnRungDelta pnCasUnderExt v3HQ -- expect 0: the licensed twin, rung waits
+#eval pnRungDelta (canon pnCasUnderExt) v3CK -- expect 2: exposed base, two climbs owed
+#eval pnRungDelta pnCasForkMerge v3HK -- expect 0: the bare twin licenses now
+#eval pnRungDelta pnCasForkMerge v3CQ -- expect 0: the cover's rung waits
+#eval pnRungDelta v3Fork v3CQ -- expect 11: the standing fork's cover is parked far
+#eval (v3Lic pnCasAces).length -- expect 2: the both-under ace pair
+#eval (v3Lic (canon pnCasForkMerge)).length -- expect 0: the merge wing is Final
+
+#print axioms pnPosTrich
+#print axioms pnCoveredNotLicensed
+#print axioms pnCoveredPairAtMostOne
+#print axioms pnLicKingBare
+#print axioms pnLicNonKingUnder
+#print axioms pnLicPairSlice
+#print axioms pnKingSlider
+#print axioms pnAceNoSlider
+#print axioms pnSliderPair
+#print axioms pnCoverSit
+#print axioms pnCoveredKingQueen
+#print axioms pnCoveredAceAbsurd
+
+#eval! do
+  if v3AllGates && pair_neighborhood_cases then
+    IO.println "CANONV3: ALL GATES HOLD (LANDINGS 1+3) —"
+    IO.println ""
+    IO.println "LANDING 3 — pair_neighborhood_cases, the lattice header:"
+    IO.println "POSITION TRICHOTOMY (pnPosTrich): every face-up card at WF is"
+    IO.println "exactly one of bare-top / under-top / covered — the pair reads"
+    IO.println "nine cells."
+    IO.println "LICENSED SLICE: covered never licenses (pnCoveredNotLicensed),"
+    IO.println "so covered pairs carry at most ONE licensed twin"
+    IO.println "(pnCoveredPairAtMostOne); the licensed slice collapses to TWO"
+    IO.println "cells — both-bare (kings, pnLicKingBare: nothing is rank 13+1)"
+    IO.println "and both-under (non-kings, pnLicPairSlice); independence across"
+    IO.println "the whole slice rides the banked canRaise_lifted."
+    IO.println "RANK FENCE POSTS: a covered king's cover is exactly a QUEEN"
+    IO.println "(pnCoveredKingQueen — the exchlaw falsifier's Q is the whole"
+    IO.println "class); ACES are never covered (pnCoveredAceAbsurd — nothing is"
+    IO.println "rank 0): the fork disease has a rank floor."
+    IO.println "THE CARGO TRIAD: the two potential sliders of a host share rank"
+    IO.println "and color — twins (pnSliderPair); they stack now (rung waits: the"
+    IO.println "merge cell dissolves the fork, canon equal from both faces), or"
+    IO.println "park (the slide class: the standing fork, cross-mate, priced by"
+    IO.println "the A2 highway), or sit inert (hidden/waste/stock). The"
+    IO.println "post-cascade top slot is a function of rung deltas: bases at"
+    IO.println "delta 2 park; cross-neighbors at delta 0 are raw-stackable yet"
+    IO.println "seat-barred; a delta-0 cover merges the fork."
+    IO.println "CLOSING COROLLARY — THE LOCAL CONTAINMENT: at every licensed pair"
+    IO.println "of every census cell, each neighborhood cargo dissolves or parks"
+    IO.println "verbatim; the global form is FALSE (the standing fork couples a"
+    IO.println "cargo — but only cross-mate, where the pair is not"
+    IO.println "both-licensed). No fork-cargo fires intra-state. The case table"
+    IO.println "exhausts the cases."
+  else
+    throw (IO.userError "CANONV3 LANDING 3: A GATE FAILED — see the numbers above")

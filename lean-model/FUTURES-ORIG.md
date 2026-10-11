@@ -2773,3 +2773,63 @@ the exchlaw B-cell lesson predicted for FOUNDATION cards), and
 the cite-before-craft discipline (the whole answer was already
 banked as `canRaise_lifted` before any new mechanism was built —
 grep the bank before designing).
+
+### §11-L3 (landing 3, same branch — `pair_neighborhood_cases`: the lattice header, the row table, the closing containment corollary)
+
+The verdict restructuring (the user's two-case shape), landed as a
+battery section of `probes/CanonV3Probe.lean` (all gates green;
+`lake env lean` runs the table; every row's witness is a census
+cell):
+
+* **THE LATTICE HEADER.**  Position-classification `pnPosTrich`
+  [propext, Quot.sound]: at WF every face-up card is EXACTLY ONE of
+  BARE top / UNDER top / COVERED (face-up under cargo, hence no
+  pile top) — the twin pair reads the nine-cell product.
+  `pnCoveredNotLicensed` [propext]: covered ⇒ unlicensed, so the
+  covered slice carries AT MOST ONE licensed twin per state
+  (`pnCoveredPairAtMostOne`) — the fork is structurally cross-mate.
+  `pnLicPairSlice` [propext, Quot.sound]: the licensed slice
+  collapses to TWO cells — BOTH-BARE (kings: `pnLicKingBare`, no
+  rank 13+1 exists) or BOTH-UNDER (non-kings, twins share rank);
+  the mixed licensed cells are VACUOUS.  Independence across the
+  whole licensed slice rides the banked `canRaise_lifted`.
+* **RANK FENCE POSTS** (deck-arithmetic-free): a covered king's
+  cover is EXACTLY a queen — `pnKingSlider` + `pnCoveredKingQueen`
+  [propext, Quot.sound] (the exchlaw falsifier's ♣Q is the whole
+  class); ACES ARE NEVER COVERED — `pnAceNoSlider` +
+  `pnCoveredAceAbsurd` [propext, Quot.sound]: the fork disease has
+  a rank floor.  The two potential sliders of one host share rank
+  and color — themselves twins — `pnSliderPair` [propext,
+  Quot.sound].
+* **THE CARGO TRIAD** closing the covered cells: (a) STACKS NOW —
+  the cover's rung waits: `pnCasForkMerge` — canon from both faces
+  lands at ONE saturated state (hearts 13 / diamonds 13 / clubs
+  12), the fork MERGES; (b) PARKED — the slide class: the exchlaw
+  standing fork re-graded, cross-mate, priced by A2; (c) INERT —
+  hidden/waste/stock (landing 1 negatives).  The POST-CASCADE TOP
+  SLOT is a function of rung deltas, decided per row
+  (`pnRungDelta`): the both-under bases expose at delta 2 (the
+  ±2 collapse — the ladder owes two climbs); the cross-neighbor
+  jacks sit at delta 0, raw-stackable yet seat-barred; row A's
+  parked queens (rung waits, seat bars) SLIDE legally onto the
+  bare king — the row-A to row-C road, and the slid pose then
+  MERGES (the waiting-rung cascade fires).
+* **THE CLOSING COROLLARY — the LOCAL CONTAINMENT** (`pnContained`,
+  scanned at every licensed pair of all sixteen census cells): each
+  neighborhood cargo card either DISSOLVES into the pair's cascade
+  (founded at canon) or PARKS VERBATIM at its seat (hidden or
+  face-up in its original pile).  THE SHARPENED NEGATIVE: the
+  global form is FALSE — a coupled cargo DOES exist in the wild
+  (the standing fork's ♣Q) but only CROSS-MATE, where the pair is
+  not both-licensed.  No fork-cargo fires intra-state; the case
+  table exhausts the cases.
+
+**The consumer** (§3.1's obstruction inventory, twin-pair host
+entry): 'direct landings: twin-pair fitting hosts, unobstructed'
+gains its exact boundary — obstruction happens only through
+PARKED-RESIDUE cargo on a twin host (the slide family); a
+delta-0 cover dissolves in-saturation and never obstructs.
+Feeds the per-arm enumeration; hardens the single-obstruction
+discipline's base (the fired commit kills the ladder's return leg
+AT the bottleneck: the substrate consumption and the fork cell
+are the same object, each supplying the other's witness).
