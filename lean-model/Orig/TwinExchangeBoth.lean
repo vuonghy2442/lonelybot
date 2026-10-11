@@ -1025,6 +1025,57 @@ theorem braid_splice {st : State} {t z z' : Card} {α β : Anchor}
       exact hmem
     exact (mem_faceUp_unique hwf (pileHolding_mem h₁) β (Ne.symm hne)).1 hm
 
+/-! ### The slot-transport rows
+
+Every square's `State.ext` slots transport one non-pile field
+through the exchange: both sides read the field via the public
+`State.exchangeTwin_F` reader, and the step's writer supplies the
+field equality.  The same 3-line chain used to be spelled at every
+slot of every square (44 putRun-slots + 15 record-slots — the
+fragment audit caught them); the slots now cite these rows. -/
+
+/-- The stock slot at a `putRun`-written step. -/
+private theorem exch_putRun_stock {st s₁ V : State} {run : List Card} {b : Base}
+    (hs₁ : s₁ = V.putRun run b) (hV : V.stock = st.stock) :
+    (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock := by
+  rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁, putRun_keep.2.1]
+  exact hV.symm
+
+/-- The waste slot at a `putRun`-written step. -/
+private theorem exch_putRun_waste {st s₁ V : State} {run : List Card} {b : Base}
+    (hs₁ : s₁ = V.putRun run b) (hV : V.waste = st.waste) :
+    (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste := by
+  rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁, putRun_keep.2.2.1]
+  exact hV.symm
+
+/-- The draw-step slot at a `putRun`-written step. -/
+private theorem exch_putRun_drawStep {st s₁ V : State} {run : List Card} {b : Base}
+    (hs₁ : s₁ = V.putRun run b) (hV : V.drawStep = st.drawStep) :
+    (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep := by
+  rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁, putRun_keep.2.2.2]
+  exact hV.symm
+
+/-- The stock slot at a record-written step (`s₁ = V` directly). -/
+private theorem exch_upd_stock {st s₁ V : State} (hs₁ : s₁ = V)
+    (hV : V.stock = st.stock) :
+    (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock := by
+  rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
+  exact hV.symm
+
+/-- The waste slot at a record-written step. -/
+private theorem exch_upd_waste {st s₁ V : State} (hs₁ : s₁ = V)
+    (hV : V.waste = st.waste) :
+    (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste := by
+  rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
+  exact hV.symm
+
+/-- The draw-step slot at a record-written step. -/
+private theorem exch_upd_drawStep {st s₁ V : State} (hs₁ : s₁ = V)
+    (hV : V.drawStep = st.drawStep) :
+    (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep := by
+  rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
+  exact hV.symm
+
 /-! ### §5.1 The draw stages -/
 
 /-- The recycle only rewrites stock and waste. -/
@@ -2676,15 +2727,9 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
               hskip j hjα,
               show (st.exchangeTwin t).piles j = st.piles j from
                 State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
-      · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-        rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
-        rfl
-      · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-        rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
-        rfl
-      · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-        rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
-        rfl
+      · exact exch_upd_stock hs₁ rfl
+      · exact exch_upd_waste hs₁ rfl
+      · exact exch_upd_drawStep hs₁ rfl
     · -- the cargo-neutral chop inside the α run: Sa ≠ [] and its
       -- last card is the moved one
       have htopα : (st.piles α).top = some c := (pileOfTop_eq_some_iff hwf).mp hd
@@ -2769,15 +2814,9 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
               hskip j hjα,
               show (st.exchangeTwin t).piles j = st.piles j from
                 State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
-      · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-        rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
-        rfl
-      · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-        rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
-        rfl
-      · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-        rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
-        rfl
+      · exact exch_upd_stock hs₁ rfl
+      · exact exch_upd_waste hs₁ rfl
+      · exact exch_upd_drawStep hs₁ rfl
   · by_cases hκβ : κ = β
     · -- (Pβ) the source is the twin host pile β
       rw [hκβ] at hd hsκself hskip
@@ -2874,15 +2913,9 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
                 hskip j hjβ,
                 show (st.exchangeTwin t).piles j = st.piles j from
                   State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
-        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
-          rfl
-        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
-          rfl
-        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
-          rfl
+        · exact exch_upd_stock hs₁ rfl
+        · exact exch_upd_waste hs₁ rfl
+        · exact exch_upd_drawStep hs₁ rfl
       · -- the cargo-neutral chop inside the β run: Sa' ≠ [] and its
         -- last card is the moved one
         have htopβ : (st.piles β).top = some c := (pileOfTop_eq_some_iff hwf).mp hd
@@ -2967,15 +3000,9 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
                 hskip j hjβ,
                 show (st.exchangeTwin t).piles j = st.piles j from
                   State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
-        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
-          rfl
-        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
-          rfl
-        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
-          rfl
+        · exact exch_upd_stock hs₁ rfl
+        · exact exch_upd_waste hs₁ rfl
+        · exact exch_upd_drawStep hs₁ rfl
     · -- (P0) the source is a pile away from both hosts
       have hκA : κ ≠ α := hκα
       have hκB : κ ≠ β := hκβ
@@ -3044,15 +3071,9 @@ theorem exch_step_tabToFound {st s₁ : State} {t z z' : Card} {α β : Anchor}
                 hskip j hjκ,
                 show (st.exchangeTwin t).piles j = st.piles j from
                   State.exchangeTwin_pile_ne h₁ h₂ hne hjα hjβ]
-      · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-        rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁]
-        rfl
-      · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-        rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁]
-        rfl
-      · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-        rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁]
-        rfl
+      · exact exch_upd_stock hs₁ rfl
+      · exact exch_upd_waste hs₁ rfl
+      · exact exch_upd_drawStep hs₁ rfl
 
 /-! #### The run-move kit (private, the `tabToTab` row)
 
@@ -3441,18 +3462,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                   hs₁, putRun_eq_inl,
                   setPile_piles_ne (show j ≠ κ from hjκ),
                   setPile_piles_ne (show j ≠ α from hjα)]
-        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-            putRun_keep.2.1]
-          rfl
-        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-            putRun_keep.2.2.1]
-          rfl
-        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-            putRun_keep.2.2.2]
-          rfl
+        · exact exch_putRun_stock hs₁ rfl
+        · exact exch_putRun_waste hs₁ rfl
+        · exact exch_putRun_drawStep hs₁ rfl
       · -- position census strictly below or strictly above the seat
         rcases List.mem_append.mp htail with hhead | hSta
         · rcases List.mem_append.mp hhead with hBmem | htl2
@@ -3574,18 +3586,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                       hs₁, putRun_eq_inl,
                       setPile_piles_ne (show j ≠ κ from hjκ),
                       setPile_piles_ne (show j ≠ α from hjα)]
-            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-                putRun_keep.2.1]
-              rfl
-            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-                putRun_keep.2.2.1]
-              rfl
-            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-                putRun_keep.2.2.2]
-              rfl
+            · exact exch_putRun_stock hs₁ rfl
+            · exact exch_putRun_waste hs₁ rfl
+            · exact exch_putRun_drawStep hs₁ rfl
           · rcases List.mem_cons.mp htl2 with hcE | htl3
             · exact absurd hcE hct
             · rcases List.mem_cons.mp htl3 with hcz | hnil
@@ -3703,18 +3706,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                     hs₁, putRun_eq_inl,
                     setPile_piles_ne (show j ≠ κ from hjκ),
                     setPile_piles_ne (show j ≠ α from hjα)]
-          · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-            rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-              putRun_keep.2.1]
-            rfl
-          · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-            rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-              putRun_keep.2.2.1]
-            rfl
-          · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-            rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-              putRun_keep.2.2.2]
-            rfl
+          · exact exch_putRun_stock hs₁ rfl
+          · exact exch_putRun_waste hs₁ rfl
+          · exact exch_putRun_drawStep hs₁ rfl
     · by_cases hB : a = β
       · exact absurd hB hnea
       · -- (IG) the source is away from both hosts: the chop and the
@@ -3807,18 +3801,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                     hs₁, putRun_eq_inl,
                     setPile_piles_ne (show j ≠ κ from hjκ),
                     setPile_piles_ne (show j ≠ a from hja)]
-        · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-          rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-            putRun_keep.2.1]
-          rfl
-        · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-          rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-            putRun_keep.2.2.1]
-          rfl
-        · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-          rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-            putRun_keep.2.2.2]
-          rfl
+        · exact exch_putRun_stock hs₁ rfl
+        · exact exch_putRun_waste hs₁ rfl
+        · exact exch_putRun_drawStep hs₁ rfl
   · -- (R) the landing is top-directed at pile κ
     have hself : κ ≠ a := by
       intro hcon
@@ -3960,18 +3945,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                     hs₁, putRun_inr_record hintop,
                     setPile_piles_ne (show j ≠ κ from hjκ),
                     setPile_piles_ne (show j ≠ α from hjα)]
-          · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-            rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-              putRun_keep.2.1]
-            rfl
-          · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-            rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-              putRun_keep.2.2.1]
-            rfl
-          · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-            rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-              putRun_keep.2.2.2]
-            rfl
+          · exact exch_putRun_stock hs₁ rfl
+          · exact exch_putRun_waste hs₁ rfl
+          · exact exch_putRun_drawStep hs₁ rfl
       · -- position census strictly below or strictly above the seat
         rcases List.mem_append.mp htail with hhead | hSta
         · rcases List.mem_append.mp hhead with hBmem | htl2
@@ -4132,18 +4108,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                         hs₁, putRun_inr_record hintop,
                         setPile_piles_ne (show j ≠ κ from hjκ),
                         setPile_piles_ne (show j ≠ α from hjα)]
-              · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-                rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-                  putRun_keep.2.1]
-                rfl
-              · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-                rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-                  putRun_keep.2.2.1]
-                rfl
-              · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-                rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-                  putRun_keep.2.2.2]
-                rfl
+              · exact exch_putRun_stock hs₁ rfl
+              · exact exch_putRun_waste hs₁ rfl
+              · exact exch_putRun_drawStep hs₁ rfl
           · rcases List.mem_cons.mp htl2 with hcE | htl3
             · exact absurd hcE hct
             · rcases List.mem_cons.mp htl3 with hcz | hnil
@@ -4277,18 +4244,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                     hs₁, putRun_inr_record hintop,
                     setPile_piles_ne (show j ≠ β from hjβ),
                     setPile_piles_ne (show j ≠ α from hjα)]
-            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-                putRun_keep.2.1]
-              rfl
-            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-                putRun_keep.2.2.1]
-              rfl
-            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-                putRun_keep.2.2.2]
-              rfl
+            · exact exch_putRun_stock hs₁ rfl
+            · exact exch_putRun_waste hs₁ rfl
+            · exact exch_putRun_drawStep hs₁ rfl
           · -- (C3) the away landing: the chop keeps the seat and its
             -- cargo; the shortened run lands on the away pile's top.
             have hκβ' : κ ≠ β := hκβ
@@ -4406,18 +4364,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                       hs₁, putRun_inr_record hintop,
                       setPile_piles_ne (show j ≠ κ from hjκ),
                       setPile_piles_ne (show j ≠ α from hjα)]
-            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-                putRun_keep.2.1]
-              rfl
-            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-                putRun_keep.2.2.1]
-              rfl
-            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-                putRun_keep.2.2.2]
-              rfl
+            · exact exch_putRun_stock hs₁ rfl
+            · exact exch_putRun_waste hs₁ rfl
+            · exact exch_putRun_drawStep hs₁ rfl
     · by_cases hB : a = β
       · exact absurd hB hnea
       · -- (RG) the source is away from both hosts
@@ -4531,18 +4480,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                     hs₁, putRun_inr_record hintop,
                     setPile_piles_ne (show j ≠ α from hjα),
                     setPile_piles_ne (show j ≠ a from hja)]
-          · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-            rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-              putRun_keep.2.1]
-            rfl
-          · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-            rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-              putRun_keep.2.2.1]
-            rfl
-          · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-            rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-              putRun_keep.2.2.2]
-            rfl
+          · exact exch_putRun_stock hs₁ rfl
+          · exact exch_putRun_waste hs₁ rfl
+          · exact exch_putRun_drawStep hs₁ rfl
         · by_cases hκB : κ = β
           · -- (G4) the mirror landing: the run swells β's suffix, the
             -- σ-side lands it back on α.
@@ -4638,18 +4578,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                       hs₁, putRun_inr_record hintop,
                       setPile_piles_ne (show j ≠ β from hjβ),
                       setPile_piles_ne (show j ≠ a from hja)]
-            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-                putRun_keep.2.1]
-              rfl
-            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-                putRun_keep.2.2.1]
-              rfl
-            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-                putRun_keep.2.2.2]
-              rfl
+            · exact exch_putRun_stock hs₁ rfl
+            · exact exch_putRun_waste hs₁ rfl
+            · exact exch_putRun_drawStep hs₁ rfl
           · -- (G2) a pile away from every host: chop and landing both
             -- pile-identical; the license carried verbatim.
             have hdσtop : (st.exchangeTwin t).pileOfTop d = some κ := by
@@ -4732,18 +4663,9 @@ private theorem exch_step_tabToTab_core {st s₁ : State} {t z z' : Card}
                         hs₁, putRun_inr_record hintop,
                         setPile_piles_ne (show j ≠ κ from hjκ),
                         setPile_piles_ne (show j ≠ a from hja)]
-            · show (st.exchangeTwin t).stock = (s₁.exchangeTwin t).stock
-              rw [State.exchangeTwin_stock, State.exchangeTwin_stock, hs₁,
-                putRun_keep.2.1]
-              rfl
-            · show (st.exchangeTwin t).waste = (s₁.exchangeTwin t).waste
-              rw [State.exchangeTwin_waste, State.exchangeTwin_waste, hs₁,
-                putRun_keep.2.2.1]
-              rfl
-            · show (st.exchangeTwin t).drawStep = (s₁.exchangeTwin t).drawStep
-              rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep, hs₁,
-                putRun_keep.2.2.2]
-              rfl
+            · exact exch_putRun_stock hs₁ rfl
+            · exact exch_putRun_waste hs₁ rfl
+            · exact exch_putRun_drawStep hs₁ rfl
 
 /-! ## THE SIXTH AND LAST TRANSPORT ROW — `tabToTab`
 
