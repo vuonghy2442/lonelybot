@@ -288,7 +288,27 @@ theorem grade_partition (C : SameOrbit) (c : Card) :
 
 /-- Founding implies at-rung somewhere: pull the founded cards back
 down (cone legs stay in class) and the pulled state sits at the rung —
-the walk property, ∃-grade. -/
+the walk property, ∃-grade.
+
+BLOCKED (this row, floor-card escape hatch): the pops-backward walk
+needs more than this file's battery carries.  What is missing is the
+LANDING-EXISTENCE leg of the walk: to pop a foundation top at an
+intermediate state, the popped card must land legally somewhere
+(a rank-adjacent opposite-color pile top, or an empty seat for a
+king), and a WF member may offer NEITHER — the landing host cards can
+sit buried in hidden lists or in the stock, and the walk must first
+shuffle them free, which is precisely the neck/envelope content owned
+by the decompression card (`mem_macro_iff`, every member a
+conj-of-a-cone-element of the canon).  The founding read-backward is
+envelope-grade; per the card ("route via canon or via the pull letter;
+if it needs the envelope, leave BLOCKED-noted") this row stays sorry'd
+here rather than forced.  The honest partial content this side DOES
+own (and the walk will consume): every reversible pop of a foundation
+top at a WF state is a cone pull whose round trip is one move
+(foundToTab then tabToFound back onto the historic seat — both
+under-seat and bare-king shapes, the Classify witness constructors),
+and the rung arithmetic of that pop is `step_foundToTab_rungs` in the
+battery. -/
 theorem founded_implies_atRung (C : SameOrbit) (c : Card) :
     satStackable C c → atRungInClass C c := by
   sorry
@@ -585,7 +605,9 @@ def canusOf (u w' : State) : Prop :=
   Final w' ∧ ∃ w₁, ConePath (canon u) w₁ ∧ (w' = w₁ ∨ w' = conjl w₁)
 
 theorem canusOf_nonempty (u : State) (hwf : u.WF) :
-    ∃ w, canusOf u w := by sorry
+    ∃ w, canusOf u w := by
+  obtain ⟨-, -, hfin⟩ := canon_run u
+  exact ⟨canon u, hfin, canon u, ConePath.refl (canon u), Or.inl rfl⟩
 
 /-- canus is constant on classes — `mem_macro_iff` restated: THE
 load-bearing dependency (the decompression card's engine). -/
@@ -689,10 +711,39 @@ the fork pair's twins at the fork rank. -/
 def forkedCard (C : SameOrbit) (c : Card) : Prop :=
   satStackable C c ∧ ¬ surelyStackable C c
 
-/-- Benign collapse: with no arm-contingent card, the grades coincide. -/
-theorem benign_sat_iff_surely (C : SameOrbit) (c : Card) :
-    ¬ forkedCard C c → (satStackable C c ↔ surelyStackable C c) := by
-  sorry
+/-- Surely implies sat, under a WF member of the class: the canonical
+form is a Final class-member (canon_run + canon_in_class), and
+surely-at-every-Final reads the foundedness right there.  Added as the
+named row the floor card lists beside benign; the member premise is
+the CALIBRATION the ⇐ direction genuinely needs (a bare quotient with
+no WF member can lack Final members entirely, making surelyStackable
+vacuous — every consumer of the grades holds a WF member). -/
+theorem surely_imp_sat (C : SameOrbit) (c : Card)
+    (hmem : ∃ u, classOf C u ∧ u.WF)
+    (h : surelyStackable C c) :
+    satStackable C c := by
+  obtain ⟨u, hcu, hwf⟩ := hmem
+  have hclass : classOf C (canon u) := (canon_in_class hwf).trans hcu
+  obtain ⟨-, -, hfin⟩ := canon_run u
+  have hfound := h (canon u) hclass hfin
+  exact ⟨canon u, hclass, hfound⟩
+
+/-- Benign collapse: with no arm-contingent card, the grades coincide.
+(The member premise calibrated in as for `surely_imp_sat`; the
+fork-free direction is pure logic on the forkedCard definition — a
+Final member where the card missed its foundation would itself
+witness the fork — decidable branch, no classicals.) -/
+theorem benign_sat_iff_surely (C : SameOrbit) (c : Card)
+    (hmem : ∃ u, classOf C u ∧ u.WF)
+    (hforkfree : ¬ forkedCard C c) :
+    satStackable C c ↔ surelyStackable C c := by
+  constructor
+  · intro hsat w hw hfin
+    by_cases hmem_s : c ∈ w.found c.suit
+    · exact hmem_s
+    · exact absurd ⟨hsat, fun hS => absurd (hS w hw hfin) hmem_s⟩ hforkfree
+  · intro hsure
+    exact surely_imp_sat C c hmem hsure
 
 /-- **The two faces agree**: a class has an arm-contingent card iff some
 member shows the live fork-point signature. -/
@@ -892,3 +943,10 @@ theorem canonKey_rungs (w : State) :
 #print axioms flat_heights
 #print axioms cone_step_fiber
 #print axioms exch_is_cargo
+#print axioms surely_imp_sat
+#print axioms benign_sat_iff_surely
+#print axioms canusOf_nonempty
+#print axioms surely_imp_sat
+#print axioms benign_sat_iff_surely
+#print axioms canusOf_nonempty
+
