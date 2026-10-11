@@ -1821,13 +1821,11 @@ is the autonomous restriction). -/
 piles trade positions.  Occurs when the color discipline permits
 it (the two (x+1) cards are from opposite-color families and
 neither violates the stacking fit at the swapped position). -/
-def parentSwap (st w : State) : Prop :=
-  ∃ x p₁ p₂ st₁ st₂,
-    forkState st ∧
-    st.pileOfTop p₁ = (the base beneath x) ∧
-    st.pileOfTop p₂ = (the base beneath x.twin) ∧
-    (the tabToTab composite trading p₁ and p₂ between the piles fires)
-    ∧ ... ∧ w = (the result)
+/- The parentSwap concept is carried by the ForkSpectrum.parentSwap
+constructor: the (x+1) trade between the twins' piles when the
+alternating-color discipline permits. Its full formalization (the
+fit-side conditions, the tabToTab composite semantics) is the
+spectrum card's territory. -/
 
 inductive CanonFace (u w : State) : Prop
   | benign (hwf : u.WF) (hfin : Final w) (hw : w = canon u)
