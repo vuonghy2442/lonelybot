@@ -43,7 +43,7 @@ const N_PLY_MAX: usize = 1024;
 pub type HiddenVec = ArrayVec<Card, N_HIDDEN_MAX>;
 pub type StandardHistoryVec = ArrayVec<StandardMove, N_PLY_MAX>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StandardSolitaire {
     final_stack: Stack,
     deck: Deck,
