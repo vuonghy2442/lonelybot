@@ -2650,7 +2650,556 @@ private theorem ground_settle_transport {st : State} {c : Card} {k : Anchor} {s�
   rw [hv] at hσ
   exact ⟨P ++ σ, w, ground_run_join s₁ P σ v₀ w hPv hσ, hwin⟩
 
+/-! ### The first-blocked extraction kit (wave 24 cont.)
+
+**(a) of the (N) row's remaining content** (the two pieces named
+in `ground_lifted_win`'s route note: this extraction, then the
+alpha/beta spread): the rung occurs, and where.  From a `WF` state
+holding `c` live on the tableau, every winning play crosses `c`'s
+found-membership, and the first crossing is entered by
+`tabToFound c` — the waste entry `wasteToFound c` is impossible by
+conservation (`c` is still tableau-held at the crossing state, and
+`mem_pile_unique` keeps it out of the waste), and no other move
+kind writes a card onto a foundation.  The extraction rides the
+public first-passage port (`run_firstPassage_split`,
+`Orig/Play.lean` — the Sec. 12.1 family); the packaged
+first-blocked position below is the shape the lift's direct line
+consumes (a compliant prefix through the crossing closes by the
+LANDED `ground_settle_transport`; a blocked first move hands the
+alpha/beta/γ residue its window state).  The same port is the (C)
+residue `draw1_worry_spread_residue`'s recorded route (the restack
+`tabToFound x` located while the window is open). -/
+
+/-- **(N)'s occurrence vocabulary**: `c` is live on the tableau —
+seated in some pile, hidden or face up. -/
+private def tabHeld (u : State) (c : Card) : Prop :=
+  ∃ a, c ∈ (u.piles a).hidden ∨ c ∈ (u.piles a).faceUp
+
+/-- The found-slot read of a foundation snoc-write at the mover's
+suit (`setFound_found_self`, spelled for the append leg). -/
+private theorem g_found_snoc_read {uu : State} {y : Card} {s : Suit}
+    (hs : s = y.suit) :
+    (uu.setFound y.suit (uu.found y.suit ++ [y])).found s
+      = uu.found s ++ [y] := by
+  rw [hs, setFound_found_self]
+
+/-- A face-up member of a list sits below the head card or rides its
+run — the cons-split row (the chapters importing `TwinExchange`
+cite `below_aboveIn_split`; this file imports neither, so the local
+row is proven here, dedup-marked for the harvest). -/
+private theorem g_below_fromCard_or {y x : Card} : ∀ {l : List Card},
+    x ∈ l → x ∈ below y l ∨ x ∈ fromCard y l := by
+  intro l
+  induction l with
+  | nil => intro hxm; cases hxm
+  | cons w t ih =>
+      intro hxm
+      rcases List.mem_cons.1 hxm with heq | hxt
+      · rw [heq]
+        by_cases hwy : w = y
+        · refine Or.inr ?_
+          show w ∈ (if w = y then w :: t else fromCard y t)
+          rw [if_pos hwy]
+          exact List.mem_cons.2 (Or.inl rfl)
+        · refine Or.inl ?_
+          show w ∈ (if w = y then ([] : List Card) else w :: below y t)
+          rw [if_neg hwy]
+          exact List.mem_cons.2 (Or.inl rfl)
+      · by_cases hwy : w = y
+        · refine Or.inr ?_
+          show x ∈ (if w = y then w :: t else fromCard y t)
+          rw [if_pos hwy]
+          exact List.mem_cons.2 (Or.inr hxt)
+        · rcases ih hxt with hbl | hride
+          · refine Or.inl ?_
+            show x ∈ (if w = y then ([] : List Card) else w :: below y t)
+            rw [if_neg hwy]
+            exact List.mem_cons.2 (Or.inr hbl)
+          · refine Or.inr ?_
+            show x ∈ (if w = y then w :: t else fromCard y t)
+            rw [if_neg hwy]
+            show x ∈ fromCard y t
+            exact hride
+
+/-- The search cannot miss a satisfying member — the `WF`-free
+completeness half of the `firstWhere` family (Integrity's exact
+rows demand `WF`; the zone invariant must not). -/
+private theorem g_firstWhere_mem_ne_none {α : Type} (p : α → Bool) :
+    ∀ {l : List α} {a : α}, a ∈ l → p a = true → firstWhere p l ≠ none := by
+  intro l
+  induction l with
+  | nil => intro a hmem; cases hmem
+  | cons w t ih =>
+      intro a hmem hp
+      rw [firstWhere]
+      cases hw : p w with
+      | true =>
+          intro hcon
+          exact absurd hcon (by simp)
+      | false =>
+          rcases List.mem_cons.1 hmem with heq | hxt
+          · rw [heq] at hp
+            rw [hp] at hw
+            exact absurd hw (by simp)
+          · exact ih hxt hp
+
+/-- The hidden deck survives a run removal inside the pile — the
+reveal only moves a card within it. -/
+private theorem g_afterRunRemoved_hidden {p : Pile} {pre : List Card} {x : Card}
+    (hx : x ∈ p.hidden) :
+    x ∈ (Pile.afterRunRemoved p pre).hidden ∨
+      x ∈ (Pile.afterRunRemoved p pre).faceUp := by
+  cases pre with
+  | nil =>
+      rcases p with ⟨hd, fl⟩
+      cases hd with
+      | nil => exact absurd hx (by simp)
+      | cons h t =>
+          have hrev : Pile.afterRunRemoved ⟨h :: t, fl⟩ ([] : List Card)
+              = ⟨t, ([] : List Card) ++ [h]⟩ := rfl
+          rw [hrev]
+          rcases List.mem_cons.1 hx with heq | htail
+          · refine Or.inr ?_
+            show x ∈ ([] : List Card) ++ [h]
+            rw [List.nil_append]
+            exact List.mem_cons.2 (Or.inl heq)
+          · refine Or.inl ?_
+            show x ∈ t
+            exact htail
+  | cons w ws => exact Or.inl hx
+
+/-- The pointwise `putCard` pile readers (the dedup-marked local kin
+of `EdgeLabel`'s private pair and `Irreversible`'s public putRun
+pointwise rows; they dedup at the harvest). -/
+private theorem g_putCard_piles_inl_self {σ : State} {c : Card} {k : Anchor} :
+    (σ.putCard c (Sum.inl k)).piles k = ⟨[], [c]⟩ := by
+  rw [putCard_piles_inl]
+  exact ite_eq_left rfl
+
+private theorem g_putCard_piles_inl_ne {σ : State} {c : Card} {k a' : Anchor}
+    (hne : a' ≠ k) :
+    (σ.putCard c (Sum.inl k)).piles a' = σ.piles a' := by
+  rw [putCard_piles_inl]
+  exact ite_eq_right hne
+
+private theorem g_putCard_piles_inr_self {σ : State} {c z : Card} {k : Anchor}
+    (hz : σ.pileOfTop z = some k) :
+    (σ.putCard c (Sum.inr z)).piles k
+      = { σ.piles k with faceUp := (σ.piles k).faceUp ++ [c] } := by
+  rw [putCard_piles_inr _ _ _ _ hz]
+  exact ite_eq_left rfl
+
+private theorem g_putCard_piles_inr_ne {σ : State} {c z : Card} {k : Anchor}
+    (hz : σ.pileOfTop z = some k) {a' : Anchor} (hne : a' ≠ k) :
+    (σ.putCard c (Sum.inr z)).piles a' = σ.piles a' := by
+  rw [putCard_piles_inr _ _ _ _ hz]
+  exact ite_eq_right hne
+
+/-- The tableau-zone invariant: a tableau-held live card stays in
+the tableau-∪-foundation pool across any successful step at a `WF`
+state.  Draw keeps both zones; the waste raiser writes foundations
+and pops the waste; the placements write one pile (the empty-seat
+write is guarded by its emptiness, the located writes append);
+`tabToFound` digs the raised card into its own foundation while
+everything else survives the dig-and-reveal in the pile;
+`foundToTab` moves one foundation card back onto the tableau; and
+the run move re-homes its own run (the landed run keeps its members
+— the `WF`-guard `canPlace_inr_target_pile_ne` rules out the
+self-landing that would void the target search).  This is the
+engine behind the rung-occurs extraction: pre-crossing states hold
+the rung card unfounded, hence tableau-held, hence out of the
+waste. -/
+private theorem tabHeld_step {x : Card} {uu vv : State} {m : Move}
+    (hwf : uu.WF)
+    (hstep : State.step uu m = some vv)
+    (h : tabHeld uu x ∨ x ∈ uu.found x.suit) :
+    tabHeld vv x ∨ x ∈ vv.found x.suit := by
+  cases m with
+  | draw =>
+      have hd : uu.stepDraw = some vv := g_step_draw_inv hstep
+      rcases h with ⟨a, hx⟩ | hf
+      · refine Or.inl ⟨a, ?_⟩
+        rw [stepDraw_piles hd]
+        exact hx
+      · refine Or.inr ?_
+        rw [stepDraw_found hd]
+        exact hf
+  | wasteToFound y =>
+      obtain ⟨-, _, ws, _, hsh⟩ := g_step_wasteToFound_inv hstep
+      rcases h with ⟨a, hx⟩ | hf
+      · refine Or.inl ⟨a, ?_⟩
+        rw [hsh]
+        exact hx
+      · refine Or.inr ?_
+        rw [hsh]
+        by_cases hsy : x.suit = y.suit
+        · show x ∈ (uu.setFound y.suit (uu.found y.suit ++ [y])).found x.suit
+          rw [g_found_snoc_read hsy]
+          exact List.mem_append.2 (Or.inl hf)
+        · show x ∈ (uu.setFound y.suit (uu.found y.suit ++ [y])).found x.suit
+          rw [setFound_found_ne hsy]
+          exact hf
+  | wasteToTab y b =>
+      obtain ⟨-, hcp, ws, _, hsh⟩ := g_step_wasteToTab_inv hstep
+      rcases h with ⟨a', hx⟩ | hf
+      · refine Or.inl ⟨a', ?_⟩
+        rw [hsh]
+        cases b with
+        | inl a₂ =>
+            obtain ⟨hemp₂, _⟩ := canPlace_inl hcp
+            obtain ⟨hph₂, hpf₂⟩ := (Pile.isEmpty_eq _).mp hemp₂
+            by_cases haa : a' = a₂
+            · rcases hx with hh | hf₂
+              · rw [haa] at hh
+                rw [hph₂] at hh
+                exact absurd hh (by simp)
+              · rw [haa] at hf₂
+                rw [hpf₂] at hf₂
+                exact absurd hf₂ (by simp)
+            · show x ∈ ((if a' = a₂ then ⟨[], [y]⟩ else uu.piles a')).hidden ∨
+                x ∈ ((if a' = a₂ then ⟨[], [y]⟩ else uu.piles a')).faceUp
+              rw [if_neg haa]
+              exact hx
+        | inr z =>
+            show x ∈ ((uu.putCard y (Sum.inr z)).piles a').hidden ∨
+              x ∈ ((uu.putCard y (Sum.inr z)).piles a').faceUp
+            cases hz : uu.pileOfTop z with
+            | none =>
+                have hnoop : uu.putCard y (Sum.inr z) = uu := by
+                  simp only [State.putCard, hz]
+                rw [hnoop]
+                exact hx
+            | some k =>
+                by_cases haa : a' = k
+                · rw [haa] at hx
+                  rcases hx with hh | hf₂
+                  · rw [haa]
+                    rw [g_putCard_piles_inr_self hz]
+                    exact Or.inl hh
+                  · rw [haa]
+                    rw [g_putCard_piles_inr_self hz]
+                    exact Or.inr (List.mem_append.2 (Or.inl hf₂))
+                · rw [g_putCard_piles_inr_ne hz haa]
+                  exact hx
+      · refine Or.inr ?_
+        rw [hsh]
+        show x ∈ (uu.putCard y b).found x.suit
+        rw [putCard_found]
+        exact hf
+  | tabToFound y =>
+      obtain ⟨-, a, hpo, hsh⟩ := g_step_tabToFound_inv hstep
+      have hty : (uu.piles a).top = some y := g_pileOfTop_sound hpo
+      rcases h with ⟨a', hx⟩ | hf
+      · by_cases haa : a' = a
+        · rw [haa] at hx
+          rcases hx with hh | hf₂
+          · -- hidden: survives the dig-and-reveal in the pile
+            refine Or.inl ⟨a, ?_⟩
+            have hseat : vv.piles a
+                = Pile.afterRunRemoved (uu.piles a) (chop (uu.piles a).faceUp) := by
+              rw [hsh]
+              show (if a = a then
+                  Pile.afterRunRemoved (uu.piles a) (chop (uu.piles a).faceUp)
+                  else uu.piles a) = _
+              rw [ite_eq_left rfl]
+            rw [hseat]
+            exact g_afterRunRemoved_hidden hh
+          · -- face up: survives in the chop, or is the raised card itself
+            by_cases hch : x ∈ chop (uu.piles a).faceUp
+            · refine Or.inl ⟨a, Or.inr ?_⟩
+              have hseat : vv.piles a
+                  = { uu.piles a with faceUp := chop (uu.piles a).faceUp } := by
+                rw [hsh]
+                show (if a = a then
+                    Pile.afterRunRemoved (uu.piles a) (chop (uu.piles a).faceUp)
+                    else uu.piles a) = _
+                rw [ite_eq_left rfl, afterRunRemoved_ne (fun hc => by
+                  rw [hc] at hch; exact absurd hch (by simp))]
+              rw [hseat]
+              exact hch
+            · refine Or.inr ?_
+              have hsplit : (uu.piles a).faceUp
+                  = chop (uu.piles a).faceUp ++ [y] := lastOf_chop hty
+              have hmemA : x ∈ chop (uu.piles a).faceUp ++ [y] := by
+                rw [← hsplit]
+                exact hf₂
+              have hxy : x = y := by
+                rcases List.mem_append.1 hmemA with hpre | hlast
+                · exact absurd hpre hch
+                · exact List.mem_singleton.1 hlast
+              rw [hxy]
+              rw [hsh]
+              show y ∈ (uu.setFound y.suit (uu.found y.suit ++ [y])).found y.suit
+              rw [setFound_found_self]
+              exact List.mem_append.2 (Or.inr (by simp))
+        · -- other seat: untouched by the dig
+          refine Or.inl ⟨a', ?_⟩
+          have hseat : vv.piles a' = uu.piles a' := by
+            rw [hsh]
+            show (if a' = a then
+                Pile.afterRunRemoved (uu.piles a) (chop (uu.piles a).faceUp)
+                else uu.piles a') = _
+            rw [ite_eq_right haa]
+          rw [hseat]
+          exact hx
+      · -- founded member: the appended mover's suit keeps it
+        refine Or.inr ?_
+        rw [hsh]
+        by_cases hsy : x.suit = y.suit
+        · show x ∈ (uu.setFound y.suit (uu.found y.suit ++ [y])).found x.suit
+          rw [g_found_snoc_read hsy]
+          exact List.mem_append.2 (Or.inl hf)
+        · show x ∈ (uu.setFound y.suit (uu.found y.suit ++ [y])).found x.suit
+          rw [setFound_found_ne hsy]
+          exact hf
+  | foundToTab y b =>
+      obtain ⟨c', htopF, hcy, hcp, hsh⟩ := g_step_foundToTab_inv hstep
+      have htopF' : uu.foundTop y.suit = some y := by
+        rw [hcy] at htopF
+        exact htopF
+      have hlasty : lastOf (uu.found y.suit) = some y := htopF'
+      rcases h with ⟨a', hx⟩ | hf
+      · -- tableau member: the landing writes one pile
+        refine Or.inl ⟨a', ?_⟩
+        rw [hsh]
+        cases b with
+        | inl a₂ =>
+            obtain ⟨hemp₂, _⟩ := canPlace_inl hcp
+            obtain ⟨hph₂, hpf₂⟩ := (Pile.isEmpty_eq _).mp hemp₂
+            by_cases haa : a' = a₂
+            · rcases hx with hh | hf₂
+              · rw [haa] at hh
+                rw [hph₂] at hh
+                exact absurd hh (by simp)
+              · rw [haa] at hf₂
+                rw [hpf₂] at hf₂
+                exact absurd hf₂ (by simp)
+            · show x ∈ (if a' = a₂ then ⟨[], [y]⟩
+                  else uu.piles a').hidden ∨
+                x ∈ (if a' = a₂ then ⟨[], [y]⟩
+                  else uu.piles a').faceUp
+              rw [if_neg haa]
+              exact hx
+        | inr z =>
+            obtain ⟨k, hkz, _⟩ := canPlace_inr hcp
+            have htopk : (uu.piles k).top = some z := g_pileOfTop_sound hkz
+            -- the carrier's target search answers at pile `k` (setFound
+            -- keeps the piles, so the `k`-read transfers by proj-defeq)
+            have hneS : (uu.setFound y.suit (chop (uu.found y.suit))).pileOfTop z ≠ none :=
+              g_firstWhere_mem_ne_none
+                (p := fun α => decide
+                  (((uu.setFound y.suit (chop (uu.found y.suit))).piles α).top = some z))
+                (Anchor.mem_all k) (decide_eq_true htopk)
+            obtain ⟨k', hk'⟩ := option_some_of_ne_none hneS
+            by_cases haa : a' = k'
+            · rw [haa] at hx
+              rcases hx with hh | hf₂
+              · rw [haa]
+                rw [g_putCard_piles_inr_self hk']
+                exact Or.inl hh
+              · rw [haa]
+                rw [g_putCard_piles_inr_self hk']
+                exact Or.inr (List.mem_append.2 (Or.inl hf₂))
+            · rw [g_putCard_piles_inr_ne hk' haa]
+              exact hx
+      · -- founded member: kept in the chop, or the moved card itself
+        by_cases hsy : x.suit = y.suit
+        · have hchsplit : uu.found y.suit = chop (uu.found y.suit) ++ [y] :=
+            lastOf_chop hlasty
+          rw [hsy] at hf
+          rcases List.mem_append.1 (by rw [← hchsplit]; exact hf) with hpre | hlast
+          · refine Or.inr ?_
+            rw [hsh, putCard_found, hsy, setFound_found_self]
+            exact hpre
+          · have hxy : x = y := List.mem_singleton.1 hlast
+            rw [hxy]
+            cases b with
+            | inl a₂ =>
+                refine Or.inl ⟨a₂, Or.inr ?_⟩
+                rw [hsh]
+                rw [g_putCard_piles_inl_self]
+                show y ∈ ([y] : List Card)
+                simp
+            | inr z =>
+                obtain ⟨k, hkz, _⟩ := canPlace_inr hcp
+                have htopk : (uu.piles k).top = some z := g_pileOfTop_sound hkz
+                have hneS : (uu.setFound y.suit (chop (uu.found y.suit))).pileOfTop z ≠ none :=
+                  g_firstWhere_mem_ne_none
+                    (p := fun α => decide
+                      (((uu.setFound y.suit (chop (uu.found y.suit))).piles α).top = some z))
+                    (Anchor.mem_all k) (decide_eq_true htopk)
+                obtain ⟨k', hk'⟩ := option_some_of_ne_none hneS
+                refine Or.inl ⟨k', Or.inr ?_⟩
+                rw [hsh]
+                rw [g_putCard_piles_inr_self hk']
+                exact List.mem_append.2 (Or.inr (by simp))
+        · refine Or.inr ?_
+          rw [hsh, putCard_found]
+          show x ∈ (uu.setFound y.suit (chop (uu.found y.suit))).found x.suit
+          rw [setFound_found_ne hsy]
+          exact hf
+  | tabToTab y b =>
+      obtain ⟨a, hhold, hcp, hrn, hsh⟩ := g_step_tabToTab_inv hstep
+      have hmemy : y ∈ (uu.piles a).faceUp := pileHolding_mem hhold
+      rcases h with ⟨a', hx⟩ | hf
+      · rw [hsh]
+        by_cases haa : a' = a
+        · rw [haa] at hx
+          cases b with
+          | inl a₂ =>
+              obtain ⟨hemp₂, _⟩ := canPlace_inl hcp
+              obtain ⟨hph₂, hpf₂⟩ := (Pile.isEmpty_eq _).mp hemp₂
+              rcases hx with hh | hf₂
+              · -- hidden: survives the dig; the landing is elsewhere
+                have hnea : a ≠ a₂ := by
+                  intro hcon
+                  rw [← hcon] at hph₂
+                  rw [hph₂] at hh
+                  exact absurd hh (by simp)
+                refine Or.inl ⟨a, ?_⟩
+                rw [putRun_piles_inl_ne _ _ _ _ hnea, setPile_piles_self]
+                exact g_afterRunRemoved_hidden hh
+              · -- face up: below survives, the rider flies
+                rcases g_below_fromCard_or (y := y) hf₂ with hbl | hride
+                · have hnea : a ≠ a₂ := by
+                    intro hcon
+                    rw [← hcon] at hpf₂
+                    rw [hpf₂] at hf₂
+                    exact absurd hf₂ (by simp)
+                  refine Or.inl ⟨a, Or.inr ?_⟩
+                  rw [putRun_piles_inl_ne _ _ _ _ hnea, setPile_piles_self]
+                  rw [afterRunRemoved_ne (fun hc => by
+                    rw [hc] at hbl; exact absurd hbl (by simp))]
+                  exact hbl
+                · refine Or.inl ⟨a₂, Or.inr ?_⟩
+                  rw [putRun_piles_inl_self]
+                  show x ∈ (fromCard y (uu.piles a).faceUp)
+                  exact hride
+          | inr z =>
+              obtain ⟨k, hkz, _⟩ := canPlace_inr hcp
+              have hka : k ≠ a := by
+                intro hcon
+                exact canPlace_inr_target_pile_ne hwf hcp hmemy
+                  (hkz.trans (congrArg some hcon))
+              have htopk : (uu.piles k).top = some z := g_pileOfTop_sound hkz
+              -- the carrier's target search answers (pile `k` survives the
+              -- source write, so the `k`-read transfers)
+              have hneS : (uu.setPile a
+                  (Pile.afterRunRemoved (uu.piles a) (below y (uu.piles a).faceUp))).pileOfTop z ≠ none :=
+                g_firstWhere_mem_ne_none
+                  (p := fun α => decide (((uu.setPile a
+                    (Pile.afterRunRemoved (uu.piles a) (below y (uu.piles a).faceUp))).piles α).top = some z))
+                  (Anchor.mem_all k)
+                  (decide_eq_true (by rw [setPile_piles_ne hka]; exact htopk))
+              obtain ⟨k', hk'⟩ := option_some_of_ne_none hneS
+              rcases hx with hh | hf₂
+              · -- hidden: the seat survives every landing
+                by_cases hk'a : k' = a
+                · rw [hk'a] at hk'
+                  refine Or.inl ⟨a, ?_⟩
+                  have hpost : ((uu.setPile a
+                        (Pile.afterRunRemoved (uu.piles a) (below y (uu.piles a).faceUp))).putRun
+                          (fromCard y (uu.piles a).faceUp) (Sum.inr z)).piles a
+                      = { Pile.afterRunRemoved (uu.piles a) (below y (uu.piles a).faceUp) with
+                          faceUp := (Pile.afterRunRemoved (uu.piles a)
+                            (below y (uu.piles a).faceUp)).faceUp
+                            ++ (fromCard y (uu.piles a).faceUp) } := by
+                    rw [putRun_piles_inr_self _ _ _ _ hk']
+                    rw [setPile_piles_self]
+                  rw [hpost]
+                  rcases g_afterRunRemoved_hidden hh with h2 | h2
+                  · exact Or.inl h2
+                  · exact Or.inr (List.mem_append.2 (Or.inl h2))
+                · refine Or.inl ⟨a, ?_⟩
+                  rw [putRun_piles_inr_ne _ _ _ _ hk' (fun hc => hk'a hc.symm),
+                      setPile_piles_self]
+                  exact g_afterRunRemoved_hidden hh
+              · rcases g_below_fromCard_or (y := y) hf₂ with hbl | hride
+                · by_cases hk'a : k' = a
+                  · rw [hk'a] at hk'
+                    refine Or.inl ⟨a, Or.inr ?_⟩
+                    have hpost : ((uu.setPile a
+                          (Pile.afterRunRemoved (uu.piles a) (below y (uu.piles a).faceUp))).putRun
+                            (fromCard y (uu.piles a).faceUp) (Sum.inr z)).piles a
+                        = { Pile.afterRunRemoved (uu.piles a) (below y (uu.piles a).faceUp) with
+                            faceUp := (Pile.afterRunRemoved (uu.piles a)
+                              (below y (uu.piles a).faceUp)).faceUp
+                              ++ (fromCard y (uu.piles a).faceUp) } := by
+                      rw [putRun_piles_inr_self _ _ _ _ hk']
+                      rw [setPile_piles_self]
+                    rw [hpost, afterRunRemoved_ne (fun hc => by
+                      rw [hc] at hbl; exact absurd hbl (by simp))]
+                    show x ∈ (below y (uu.piles a).faceUp)
+                      ++ (fromCard y (uu.piles a).faceUp)
+                    exact List.mem_append.2 (Or.inl hbl)
+                  · refine Or.inl ⟨a, ?_⟩
+                    rw [putRun_piles_inr_ne _ _ _ _ hk' (fun hc => hk'a hc.symm),
+                        setPile_piles_self]
+                    rw [afterRunRemoved_ne (fun hc => by
+                      rw [hc] at hbl; exact absurd hbl (by simp))]
+                    exact Or.inr hbl
+                · refine Or.inl ⟨k', Or.inr ?_⟩
+                  rw [putRun_piles_inr_self _ _ _ _ hk']
+                  show x ∈ ((uu.setPile a
+                      (Pile.afterRunRemoved (uu.piles a) (below y (uu.piles a).faceUp))).piles k').faceUp
+                      ++ (fromCard y (uu.piles a).faceUp)
+                  exact List.mem_append.2 (Or.inr hride)
+        · -- other seat: untouched by the source write; the landing either
+          -- misses it or appends (both keep the seat)
+          cases b with
+          | inl a₂ =>
+              obtain ⟨hemp₂, _⟩ := canPlace_inl hcp
+              obtain ⟨hph₂, hpf₂⟩ := (Pile.isEmpty_eq _).mp hemp₂
+              by_cases haa₂ : a' = a₂
+              · rw [haa₂] at hx
+                rcases hx with hh | hf₂
+                · rw [hph₂] at hh
+                  exact absurd hh (by simp)
+                · rw [hpf₂] at hf₂
+                  exact absurd hf₂ (by simp)
+              · refine Or.inl ⟨a', ?_⟩
+                rw [putRun_piles_inl_ne _ _ _ _ haa₂,
+                    setPile_piles_ne haa]
+                exact hx
+          | inr z =>
+              obtain ⟨k, hkz, _⟩ := canPlace_inr hcp
+              have hka : k ≠ a := by
+                intro hcon
+                exact canPlace_inr_target_pile_ne hwf hcp hmemy
+                  (hkz.trans (congrArg some hcon))
+              have htopk : (uu.piles k).top = some z := g_pileOfTop_sound hkz
+              have hneS : (uu.setPile a
+                  (Pile.afterRunRemoved (uu.piles a) (below y (uu.piles a).faceUp))).pileOfTop z ≠ none :=
+                g_firstWhere_mem_ne_none
+                  (p := fun α => decide (((uu.setPile a
+                    (Pile.afterRunRemoved (uu.piles a) (below y (uu.piles a).faceUp))).piles α).top = some z))
+                  (Anchor.mem_all k)
+                  (decide_eq_true (by rw [setPile_piles_ne hka]; exact htopk))
+              obtain ⟨k', hk'⟩ := option_some_of_ne_none hneS
+              by_cases haa₂ : a' = k'
+              · rw [haa₂] at hx
+                rcases hx with hh | hf₂
+                · refine Or.inl ⟨k', Or.inl ?_⟩
+                  rw [putRun_piles_inr_self _ _ _ _ hk']
+                  have hk'na : k' ≠ a := fun hc => haa (haa₂.trans hc)
+                  rw [setPile_piles_ne hk'na]
+                  exact hh
+                · refine Or.inl ⟨k', Or.inr ?_⟩
+                  rw [putRun_piles_inr_self _ _ _ _ hk']
+                  have hk'na : k' ≠ a := fun hc => haa (haa₂.trans hc)
+                  rw [setPile_piles_ne hk'na]
+                  exact List.mem_append.2 (Or.inl hf₂)
+              · refine Or.inl ⟨a', ?_⟩
+                rw [putRun_piles_inr_ne _ _ _ _ hk' haa₂,
+                    setPile_piles_ne haa]
+                exact hx
+      · -- founded member: untouched
+        refine Or.inr ?_
+        rw [hsh, putRun_found, setPile_found]
+        exact hf
+
 /-! ### The named sub-residue (the (N) win-lift) -/
+
 
 /-- **(N) The lifted win** — §5.1's one remaining content piece,
 restaged (wave-24.6) at the WIN-LIFT as the row's single named
