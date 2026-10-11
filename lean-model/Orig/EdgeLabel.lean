@@ -207,13 +207,18 @@ disjointness cells, and the pair-move character.  What stands:
   part of it — with ONE carve-out now opened as this module's own
   chapter below: the draw successor (the successor discipline's
   first small step, `b4f32e4`'s recon recorded above the proofs),
-  whose interface recon is landed, whose member core
-  `draw_landings_sameOrbit` and ideal `draw_successor_unique`
-  ARE LANDED PROVED, GREEN at the ungated grade (the commutation
-  transport: three board squares, the play and journey push
-  through the field-local draw, the waste-free-plays counting),
-  and whose constructive envelope is IN FLIGHT, recorded honestly
-  in the chapter's status block.
+  landed COMPLETE over its three coherent landings: the interface
+  recon (the fragment boundary, the commutation-transport route,
+  the refused phase-collapse), the core at the ideal grade
+  (`draw_landings_sameOrbit`, `draw_successor_unique` — the
+  commutation transport through the field-local draw, ungated,
+  premises derived never assumed), and the constructive envelope
+  (`sameOrbit_cycleCount`, the junk-safe `drawNext`, the lift
+  `drawNextQ` with `drawNextQ_mk`, the enumeration
+  `tipEdge_draw_target`) — all green, sorry-free, audited
+  `[propext, Quot.sound]`.  The `≤ 2`-per-label umbrella itself
+  stays open by design: this chapter is the draw label's one
+  share.
 
 ## The vacate cell is a genuine fourth signature — the honest boundary
 
@@ -2604,10 +2609,21 @@ board squares with the step-square dispatch, the play push
 then the member core `draw_landings_sameOrbit` and the ideal
 `draw_successor_unique`, both audited
 `[propext, Quot.sound]` (the class interface is `Quotient.sound`'s
-business; nothing new enters).  The envelope (the computable core,
-the lift, the enumeration) lands as this chapter's closing
-landing, at exactly this grade — the `≤ 2`-per-label umbrella is
-still NOT claimed: this chapter closes the draw label's one share.
+business; nothing new enters).  The envelope landed with it at
+exactly that grade: `sameOrbit_cycleCount` (mates share the cycle
+count — a class draws together or not at all), the junk-safe
+computable core `drawNext`, the class lift `drawNextQ` in the
+`datumOf` pattern (`drawNext_sound` is its paid-once soundness —
+the fired case is the proven core, the non-firing case is the
+mate relation itself; both case splits are constructive `Option`
+dichotomies), the definitional computation rule `drawNextQ_mk`,
+and the enumeration `tipEdge_draw_target` — every draw-labeled
+edge over a class has exactly one target, the class's
+`drawNextQ`.  This chapter's honest boundary: the `≤
+2`-per-label umbrella itself remains open — this closes the draw
+label's one share at the general member, proved, computable, and
+audited; the waste/tab shares are the successor program's next
+small steps to find.
 -/
 
 /-! ### The transport kit (private copies; dedup-marked)
@@ -3324,6 +3340,110 @@ theorem draw_successor_unique {C D₁ D₂ : SameOrbit}
   exact e₁.cl.symm.trans
     ((draw_landings_sameOrbit hmate fire₁ fire₂).trans e₂.cl)
 
+/-! ### The constructive envelope (the close is landed, so this
+lands with it, at exactly the core's grade)
+
+The computable core is junk-safe: at a non-firing member it is
+the identity, and firing is a class invariant (mates conserve the
+cycle count, so a class draws together or not at all) — the two
+case splits of the lift's soundness are constructive `Option`
+dichotomies, no `Classical.choice` anywhere.  The lift itself is
+the `datumOf` pattern: the soundness is the proven core, paid
+once. -/
+
+/-- A witnessed journey conserves the cycle count (every leg is
+waste-free by `reversibleAtW_isWaste_false`, and waste-free legs
+conserve exactly). -/
+private theorem ShufflePlayW_cycleCount {x y : State} :
+    ∀ {play : List Move}, ShufflePlayW x play y →
+      cycleCount x = cycleCount y := by
+  intro play h
+  induction h with
+  | nil s => rfl
+  | @cons x₀ m s₁ rest y₀ hw hstep hrest ih =>
+      have h1 := step_cycleCount_of_ne_waste hstep (reversibleAtW_isWaste_false hw)
+      omega
+
+/-- **Class-mates share the cycle count** (the firing invariance
+of the class: a macro class draws together or not at all). -/
+theorem sameOrbit_cycleCount {x y : State} (h : sameOrbitSetoid.r x y) :
+    cycleCount x = cycleCount y := by
+  obtain ⟨σ, hσ, -⟩ := h
+  exact (ShufflePlayW_cycleCount (y := x) hσ).symm
+
+/-- **The computable core**: the draw's member successor, junk-safe
+at non-firing members (the identity there). -/
+def drawNext (u : State) : State :=
+  match u.stepDraw with
+  | some w => w
+  | none => u
+
+/-- **The lift's soundness**: the junk-safe core is a class map —
+mates fire together (the count is a class invariant) and their
+fired draws land class-mates by the proven core; at non-firing
+mates the core is the identity and the classes are the mates'
+own. -/
+theorem drawNext_sound {x y : State} (h : sameOrbitSetoid.r x y) :
+    (⟦drawNext x⟧ : SameOrbit) = ⟦drawNext y⟧ := by
+  have hcount : cycleCount x = cycleCount y := sameOrbit_cycleCount h
+  cases hx : x.stepDraw with
+  | none =>
+      rcases Nat.eq_zero_or_pos (cycleCount x) with h0 | hpos
+      · cases hy : y.stepDraw with
+        | none =>
+            have hdx : drawNext x = x := by simp only [drawNext, hx]
+            have hdy : drawNext y = y := by simp only [drawNext, hy]
+            rw [hdx, hdy]
+            exact Quotient.sound h
+        | some w =>
+            exfalso
+            have hypos := stepDraw_pos_cycleCount (u := w) hy
+            have hcy : cycleCount y = 0 := by rw [← hcount]; exact h0
+            omega
+      · exfalso
+        obtain ⟨u, hu⟩ := stepDraw_of_pos_cycleCount hpos
+        rw [hx] at hu
+        exact absurd hu (by simp)
+  | some w₁ =>
+      have hxpos := stepDraw_pos_cycleCount (u := w₁) hx
+      have hyc : 0 < cycleCount y := by rw [← hcount]; exact hxpos
+      obtain ⟨w₂, hy⟩ := stepDraw_of_pos_cycleCount hyc
+      have hdx : drawNext x = w₁ := by simp only [drawNext, hx]
+      have hdy : drawNext y = w₂ := by simp only [drawNext, hy]
+      rw [hdx, hdy]
+      exact draw_landings_sameOrbit (Quotient.sound h) hx hy
+
+/-- **The draw successor as a class map**: the `datumOf` lift
+pattern — a `Quotient.lift` whose soundness is exactly the proven
+core (`drawNext_sound`: the fired case is `draw_landings_sameOrbit`,
+the non-firing case is the mate relation itself). -/
+def drawNextQ : SameOrbit → SameOrbit :=
+  Quotient.lift (fun u => (⟦drawNext u⟧ : SameOrbit))
+    (fun {_ _} h => drawNext_sound h)
+
+/-- The computation rule: a class's draw successor reads through
+any member (definitionally — the ordinary lift equation). -/
+theorem drawNextQ_mk (u : State) :
+    drawNextQ (⟦u⟧ : SameOrbit) = ⟦drawNext u⟧ := rfl
+
+/-- **The draw label's enumeration**: every draw-labeled tip edge
+over a source class has exactly one target — the class's
+`drawNextQ`.  With `draw_successor_unique` this reads the
+successor discipline's draw share one level up: the label's
+successor is the class map, unique and computable. -/
+theorem tipEdge_draw_target {C D : SameOrbit} (e : TipEdge C D)
+    (h : e.label = EdgeLabel.draw) : D = drawNextQ C := by
+  have md : e.m = Move.draw := (pair_move_character e).1 h
+  have fire : e.c.stepDraw = some e.w := by
+    have hstep := e.land
+    rw [md] at hstep
+    exact (show e.c.stepDraw = State.step e.c Move.draw from rfl).symm.trans hstep
+  have hdnext : drawNext e.c = e.w := by simp only [drawNext, fire]
+  have hlift : drawNextQ (⟦e.c⟧ : SameOrbit) = ⟦e.w⟧ := by
+    rw [drawNextQ_mk, hdnext]
+  rw [e.hmem] at hlift
+  exact e.cl.symm.trans hlift.symm
+
 /-! ## The axiom audit (per-declaration) -/
 
 #print axioms orbit_data
@@ -3367,3 +3487,9 @@ theorem draw_successor_unique {C D₁ D₂ : SameOrbit}
 #print axioms CanonLabel
 #print axioms draw_landings_sameOrbit
 #print axioms draw_successor_unique
+#print axioms sameOrbit_cycleCount
+#print axioms drawNext
+#print axioms drawNextQ
+#print axioms drawNextQ_mk
+#print axioms drawNext_sound
+#print axioms tipEdge_draw_target
