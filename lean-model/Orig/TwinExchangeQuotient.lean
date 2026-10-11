@@ -228,3 +228,43 @@ recovers the chain, and `ExchChain_sameFate` walks it. -/
 theorem twin_exchange_fate_of_classEq {a b : State}
     (h : ExchOrbit.mk a = ExchOrbit.mk b) : WinFrom a ↔ WinFrom b :=
   ExchChain_sameFate (ExchOrbit.exact h)
+
+/-! ## The pair group's class-level corollaries
+
+The state-level commutation (`Orig.TwinExchange`'s `exchangeTwin_comm`)
+has its license companion there (`exchangeTwin_other_located`); here
+the license descends across pairs, and the elementary-abelian-2
+structure becomes three class-level facts: the descent, the two-step
+fixed point, and **either order, the same class element** — the
+symmetry-collapse resource for chain normal forms. -/
+
+/-- **The license descends across pairs**: after one licensed
+exchange at `t₁`, the other pair's license survives at the new state
+(the located shape re-anchors, the bare clause transports; the
+degenerate pair through the hosts-stable substrate, the stacked
+family cannot arise). -/
+theorem TwinExchOK_exchangeTwin_other {st : State} {t₁ t₂ : Card}
+    (hok₁ : TwinExchOK st t₁) (hok₂ : TwinExchOK st t₂) :
+    TwinExchOK (st.exchangeTwin t₁) t₂ := by
+  obtain ⟨hwf, a₁, a₁', h₁, h₁', hne₁, hbare₁⟩ := hok₁
+  obtain ⟨-, a₂, a₂', h₂, h₂', hne₂, hbare₂⟩ := hok₂
+  obtain ⟨b, b', hloc1, hloc2, hne, hbare⟩ :=
+    exchangeTwin_other_located hwf h₁ h₁' hne₁ hbare₁ h₂ h₂' hne₂ hbare₂
+  exact ⟨State.wf_exchangeTwin hwf h₁ h₁' hne₁, b, b', hloc1, hloc2, hne, hbare⟩
+
+/-- Two licensed exchanges, in either order, compose inside the
+starting class: the chain never leaves home. -/
+theorem ExchOrbit.mk_exchangeTwin_two {st : State} {t₁ t₂ : Card}
+    (hok₁ : TwinExchOK st t₁) (hok₂ : TwinExchOK st t₂) :
+    ExchOrbit.mk ((st.exchangeTwin t₁).exchangeTwin t₂) = ExchOrbit.mk st := by
+  rw [ExchOrbit.mk_exchangeTwin (TwinExchOK_exchangeTwin_other hok₁ hok₂),
+    ExchOrbit.mk_exchangeTwin hok₁]
+
+/-- **The pair group is abelian at the class level**: two licensed
+exchanges, either order, the same `ExchOrbit` class element. -/
+theorem ExchOrbit.mk_exchangeTwin_comm {st : State} {t₁ t₂ : Card}
+    (hok₁ : TwinExchOK st t₁) (hok₂ : TwinExchOK st t₂) :
+    ExchOrbit.mk ((st.exchangeTwin t₁).exchangeTwin t₂) =
+      ExchOrbit.mk ((st.exchangeTwin t₂).exchangeTwin t₁) := by
+  rw [ExchOrbit.mk_exchangeTwin_two hok₁ hok₂,
+    ExchOrbit.mk_exchangeTwin_two hok₂ hok₁]
