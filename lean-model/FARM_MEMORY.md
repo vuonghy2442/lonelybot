@@ -9633,3 +9633,13 @@ TWinExchangeBoth's found-slot wrapper retry + the setFound
 whole-square transport (owner call); Dominance's B-kit/rungs
 (owner wave).  Full tree 100 jobs green incl. Dominance at this
 writing; census pinned.
+
+## Operational — the stale-olean axiom read (the B2 landing audit, 2026-10-11)
+
+- A `#print axioms AUDIT` run through IMPORTED oleans reads STALE after
+  the defining file changes: the W5 `draw1_compliant_replay` landing
+  printed `[propext, sorryAx]` from the stale olean long after its proof
+  was sorry-free.  The FRESH audit is the in-file one (elaborate the
+  audit command in the defining file itself, or rebuild the oleans
+  first).  This cost one diagnostic cycle — check the olean birthday
+  before trusting an axiom print.
