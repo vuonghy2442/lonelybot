@@ -9711,3 +9711,39 @@ the headliner).  The six recurring disciplines of the campaign are
 recorded above (verbatim-window-only replaces, collision-rule atomic
 passes, ite-decider/fluent-premise/signature conventions, the /--
 quirk, self-replacement-exclude-defs, def-vs-rw interlocks).
+
+## Session note (2026-10-11, orig-macro-determinism - the descent-
+## determinism rows of Orig.MacroInternal, three lesson rows)
+
+The horizontal-world rows landed sorry-free (see FUTURES-ORIG #-9
+for the landing facts; three reusable lessons): (1) THE rw-ARGUMENT
+ELABORATION TRAP: `rw [h1, h2, lemma (by omega)]` elaborates EVERY
+argument against the PRE-REWRITE tactic goal, so tactic-holes whose
+expected type is inferred from a post-rewrite shape (implicits of
+the lemma unified against the target) see metavariables and fail
+with counterexample displays naming unconstrained atoms - state the
+witness as an explicit `have` FIRST, then `rw [lemma witness]`; the
+same applies to `rw [h1, h2, ...]` lists when a later argument
+depends on an earlier rewrite. (2) TERM-MODE `match hm : e with`
+inside a tactic proof GENERALIZES the scrutinee (fresh x-circled
+variables) when e is not a variable - hypotheses mentioning e are
+NOT rewritten and the case equation binds the generalized copy;
+the house idiom is `split at h` on the SINGLE hypothesis (the
+Dominance g_step_*_inv template: simp only [State.step] at h, then
+split at h layers), and `show`-reductions for the foundTop~
+lastOf defeq. (3) THE OMEGA CONTEXT-COMPLETENESS TRAP: omega
+reports the goal's OWN atom in its counterexample display but the
+missing ingredient is usually a HYPOTHESIS the case never
+extracted - the master's pull case needed rung POSITIVITY (1 <=
+rungAt) which lives in lastOf-some via List.length_pos_of_mem
+(lastOf_mem hlast); extract it HIGHER inside the branch rather
+than feeding omega more goal atoms.  Plus the recurring
+pattern-hazard: `rw [hl]` where hl : l = f l replaces EVERY l
+including inside f l (chop l, take n l) - a congrArg-list-of-facts
+first, or state lemmas in the snoc/decomposition form (window_snoc
+takes `front ++ [c]` rather than an l-equation).  Battery cadence:
+green batch per commit held (skeleton base 05be2b5, rows 2f6795f,
+probe + README 5d7b1b6, docs this commit); the leaf discipline
+(`lake env lean Orig/MacroInternal.lean`) re-runs the whole file
+audit battery, and is the cheap oracle between `lake build Orig`
+checkpoints.
