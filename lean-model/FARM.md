@@ -53,6 +53,14 @@ live at `witnesses/OrigSpreadCoReal.lean` (the spread-shaped win and
 the repair's positive instance pinned); audit:
 `draw1_compliant_normalForm` = [propext, sorryAx (via the residue
 only), Quot.sound]; row hash `00b3ea1`));
+**UPDATE 2026-10-11 — the (A) row is PROVEN on
+`farm/orig-dom-a-reserve@c0c751b`: `draw1_sameCycle_sameFate` lands
+sorry-free, the physical twin replay of the mirror's cursor argument —
+list-equal `cycleOf` kept as the whole invariant (copied draws rotate
+both cycles in lockstep; the waste top is the cycle's last card, so a
+nonempty-waste twin consumes verbatim; the full-stock corner splices
+the whole-cycle `drain_full`), audited `[propext, Quot.sound]`,
+battery green at 104, the Orig census-pinned four now three)**);
 **+wave-23 (2026-10-10, farm-vacate-prunable session): Dominance's
 `vacate_pilePile_prunable_of_hole` landed as a PROVEN skeleton over the
 ONE named residue `vacate_secondMove_residue` — Dominance 4→5, the
