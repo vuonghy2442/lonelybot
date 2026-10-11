@@ -207,8 +207,13 @@ disjointness cells, and the pair-move character.  What stands:
   part of it — with ONE carve-out now opened as this module's own
   chapter below: the draw successor (the successor discipline's
   first small step, `b4f32e4`'s recon recorded above the proofs),
-  whose interface recon is landed and whose transport kit is IN
-  FLIGHT, recorded honestly in the chapter's status block.
+  whose interface recon is landed, whose member core
+  `draw_landings_sameOrbit` and ideal `draw_successor_unique`
+  ARE LANDED PROVED, GREEN at the ungated grade (the commutation
+  transport: three board squares, the play and journey push
+  through the field-local draw, the waste-free-plays counting),
+  and whose constructive envelope is IN FLIGHT, recorded honestly
+  in the chapter's status block.
 
 ## The vacate cell is a genuine fourth signature — the honest boundary
 
@@ -2586,14 +2591,738 @@ draws are commitments — `tipEdge_draw_shape` already consumed
 them once — and the uniqueness core does not need them again:
 the edges carry their own commitments as data.
 
-**IN FLIGHT, recorded honestly:** the member-grade transport kit
-(the guard congruences, the three board squares, the play and
-journey push), the class close `draw_landings_sameOrbit` and the
-ideal `draw_successor_unique`, land as this chapter's next
-landing; the envelope lands only if the close lands.  No
-statement below is stubbed: this landing is documentation only,
-the build stays green, zero sorry.
+**The close, landed.** The member-grade transport kit and the two
+closes are proved, green, sorry-free — the ideal `draw_successor_unique`
+landed at full grade with its premises derived, never assumed:
+the private kit (the guard congruences, the `setPile`/`putCard`/
+`putRun` pile congruences, the field-determined draw `stepDraw_rel`,
+the firing pair `stepDraw_pos_cycleCount`/`_of_pos_cycleCount`, the
+counting mono and the waste-free-play rows
+`run_ne_waste_of_return`/`reversibleAtW_isWaste_false`, the three
+board squares with the step-square dispatch, the play push
+`run_drawPush` and the journey push `ShufflePlayW_drawPush`),
+then the member core `draw_landings_sameOrbit` and the ideal
+`draw_successor_unique`, both audited
+`[propext, Quot.sound]` (the class interface is `Quotient.sound`'s
+business; nothing new enters).  The envelope (the computable core,
+the lift, the enumeration) lands as this chapter's closing
+landing, at exactly this grade — the `≤ 2`-per-label umbrella is
+still NOT claimed: this chapter closes the draw label's one share.
 -/
+
+/-! ### The transport kit (private copies; dedup-marked)
+
+The guard congruences (the board reads are field reads), the
+field-determined draw, and the run-level counting mono — the
+farm's private-isolation convention: same shapes, same scripts
+as the dominance program's copies beside its §5.3 engine and the
+twin-exchange chapter's copies (they dedup at merge). -/
+
+/-- The pile-top read is a piles-field read. -/
+private theorem topOf_congr {u v : State} (a : Anchor) (h : u.piles = v.piles) :
+    u.topOf a = v.topOf a := by
+  show (u.piles a).top = (v.piles a).top
+  exact congrArg Pile.top (congrFun h a)
+
+/-- The top-search is a piles-field read. -/
+private theorem pileOfTop_congr {u v : State} (z : Card) (h : u.piles = v.piles) :
+    u.pileOfTop z = v.pileOfTop z := by
+  show firstWhere (fun a => decide (u.topOf a = some z)) Anchor.all = _
+  exact firstWhere_congr (p := fun a => decide (u.topOf a = some z))
+    (q := fun a => decide (v.topOf a = some z)) (fun a => by rw [topOf_congr a h])
+    (l := Anchor.all)
+
+/-- The holding-search is a piles-field read. -/
+private theorem pileHolding_congr {u v : State} (c : Card) (h : u.piles = v.piles) :
+    u.pileHolding c = v.pileHolding c := by
+  show firstWhere (fun a => decide (c ∈ (u.piles a).faceUp)) Anchor.all = _
+  exact firstWhere_congr (p := fun a => decide (c ∈ (u.piles a).faceUp))
+    (q := fun a => decide (c ∈ (v.piles a).faceUp))
+    (fun a => by rw [congrArg Pile.faceUp (congrFun h a)]) (l := Anchor.all)
+
+/-- The placement guard is a piles-field read. -/
+private theorem canPlace_congr {u v : State} (c : Card) (b : Base)
+    (h : u.piles = v.piles) : u.canPlace c b = v.canPlace c b := by
+  cases b with
+  | inl a =>
+      show ((u.piles a).isEmpty && decide (c.rank = Rank.king))
+          = ((v.piles a).isEmpty && decide (c.rank = Rank.king))
+      rw [congrArg Pile.isEmpty (congrFun h a)]
+  | inr z =>
+      show (match u.pileOfTop z with
+        | some _ => canSitOn c z | none => false) = _
+      rw [pileOfTop_congr z h]
+      rfl
+
+/-- The foundation-next read is a found-field read. -/
+private theorem nextUp_congr {u v : State} (c : Card) (h : u.found = v.found) :
+    u.nextUp c = v.nextUp c :=
+  congrArg (fun (f : Suit → List Card) => decide (c.rank.toIdx = (f c.suit).length)) h
+
+/-- The foundation-top read is a found-field read. -/
+private theorem foundTop_congr {u v : State} (s : Suit) (h : u.found = v.found) :
+    u.foundTop s = v.foundTop s := by
+  simp only [State.foundTop]
+  rw [congrFun h s]
+
+/-- A `setPile` at equal piles boards agrees everywhere. -/
+private theorem setPile_piles_congr {u v : State} (a : Anchor) (p : Pile)
+    (h : u.piles = v.piles) : (u.setPile a p).piles = (v.setPile a p).piles := by
+  rw [setPile_piles, setPile_piles, h]
+
+/-- A `putCard` at equal piles boards agrees everywhere (the
+placement walk reads only the piles). -/
+private theorem putCard_piles_congr {u v : State} (c : Card) (b : Base)
+    (h : u.piles = v.piles) : (u.putCard c b).piles = (v.putCard c b).piles := by
+  cases b with
+  | inl a =>
+      rw [putCard_eq_inl u c a, putCard_eq_inl v c a,
+        setPile_piles, setPile_piles, h]
+  | inr z =>
+      have hc : v.pileOfTop z = u.pileOfTop z := (pileOfTop_congr z h).symm
+      cases hq : u.pileOfTop z with
+      | none =>
+          rw [show u.putCard c (Sum.inr z) = u from by simp only [State.putCard, hq],
+              show v.putCard c (Sum.inr z) = v from by
+                (simp only [State.putCard]; rw [hc, hq]),
+              h]
+      | some k =>
+          rw [show u.putCard c (Sum.inr z)
+                = u.setPile k { u.piles k with faceUp := (u.piles k).faceUp ++ [c] } from by
+                simp only [State.putCard, hq],
+              show v.putCard c (Sum.inr z)
+                = v.setPile k { v.piles k with faceUp := (v.piles k).faceUp ++ [c] } from by
+                (simp only [State.putCard]; rw [hc, hq]),
+              setPile_piles, setPile_piles, h]
+
+/-- A `putRun` at equal piles boards agrees everywhere. -/
+private theorem putRun_piles_congr {u v : State} (run : List Card) (b : Base)
+    (h : u.piles = v.piles) : (u.putRun run b).piles = (v.putRun run b).piles := by
+  cases b with
+  | inl a =>
+      rw [putRun_eq_inl u run a, putRun_eq_inl v run a,
+        setPile_piles, setPile_piles, h]
+  | inr z =>
+      have hc : v.pileOfTop z = u.pileOfTop z := (pileOfTop_congr z h).symm
+      cases hq : u.pileOfTop z with
+      | none =>
+          rw [show u.putRun run (Sum.inr z) = u from by simp only [State.putRun, hq],
+              show v.putRun run (Sum.inr z) = v from by
+                (simp only [State.putRun]; rw [hc, hq]),
+              h]
+      | some k =>
+          rw [show u.putRun run (Sum.inr z)
+                = u.setPile k { u.piles k with faceUp := (u.piles k).faceUp ++ run } from by
+                simp only [State.putRun, hq],
+              show v.putRun run (Sum.inr z)
+                = v.setPile k { v.piles k with faceUp := (v.piles k).faceUp ++ run } from by
+                (simp only [State.putRun]; rw [hc, hq]),
+              setPile_piles, setPile_piles, h]
+
+/-- The draw is field-determined: two states that agree on stock,
+waste and draw step draw to outcomes that keep their own piles,
+found and draw step and share the dealt stock and waste.  A
+dedup-marked port of the twin-exchange chapter's private copy
+(same shape, same script). -/
+private theorem stepDraw_rel {u v u₁ : State}
+    (hstock : v.stock = u.stock) (hwaste : v.waste = u.waste)
+    (hdraw : v.drawStep = u.drawStep)
+    (hu : u.stepDraw = some u₁) :
+    ∃ v₁ : State, v.stepDraw = some v₁ ∧
+      v₁.piles = v.piles ∧ u₁.piles = u.piles ∧ v₁.found = v.found ∧
+      u₁.found = u.found ∧ v₁.drawStep = v.drawStep ∧ u₁.drawStep = u.drawStep ∧
+      v₁.stock = u₁.stock ∧ v₁.waste = u₁.waste := by
+  cases hus : u.stock with
+  | nil =>
+      cases huw : u.waste with
+      | nil =>
+          exfalso
+          have hdead : u.stepDraw = none := by
+            simp [State.stepDraw, State.dealStock, State.recycle, hus, huw]
+          rw [hdead] at hu
+          exact absurd hu (by simp)
+      | cons w ws =>
+          have hvs : v.stock = [] := hstock.trans hus
+          have hvw : v.waste = w :: ws := hwaste.trans huw
+          have hru : State.recycle u = { u with stock := (w :: ws).reverse, waste := [] } := by
+            simp [State.recycle, hus, huw]
+          have hrv : State.recycle v = { v with stock := (w :: ws).reverse, waste := [] } := by
+            simp [State.recycle, hvs, hvw]
+          rw [show u.stepDraw = State.dealStock (State.recycle u) from rfl, hru] at hu
+          cases hrr : (w :: ws).reverse with
+          | nil =>
+              have hd : State.dealStock { u with stock := (w :: ws).reverse, waste := [] } = none := by
+                rw [hrr]
+                rfl
+              rw [hd] at hu
+              exact absurd hu (by simp)
+          | cons r rs =>
+              rw [hrr] at hu hru hrv
+              have hfU : State.dealStock { u with stock := (r :: rs), waste := [] } =
+                  some { u with stock := (State.dealUpTo u.drawStep (r :: rs)).snd, waste := (State.dealUpTo u.drawStep (r :: rs)).fst.reverse ++ [] } := by
+                simp [State.dealStock]
+              have hu' : State.dealStock { u with stock := (r :: rs), waste := [] } = some u₁ := hu
+              have hui : u₁ = { u with stock := (State.dealUpTo u.drawStep (r :: rs)).snd, waste := (State.dealUpTo u.drawStep (r :: rs)).fst.reverse ++ [] } :=
+                Option.some.inj (hu'.symm.trans hfU)
+              rw [hui]
+              refine ⟨{ v with stock := (State.dealUpTo v.drawStep (r :: rs)).snd, waste := (State.dealUpTo v.drawStep (r :: rs)).fst.reverse ++ [] }, ?_, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_⟩
+              · rw [show v.stepDraw = State.dealStock (State.recycle v) from rfl, hrv]
+                simp [State.dealStock]
+              · rw [hdraw]
+              · rw [hdraw]
+  | cons s ss =>
+      have hvs : v.stock = s :: ss := hstock.trans hus
+      have hru : State.recycle u = u := by simp [State.recycle, hus]
+      have hrv : State.recycle v = v := by simp [State.recycle, hvs]
+      rw [show u.stepDraw = State.dealStock (State.recycle u) from rfl, hru] at hu
+      have hfU : State.dealStock u = some { u with stock := (State.dealUpTo u.drawStep (s :: ss)).snd, waste := (State.dealUpTo u.drawStep (s :: ss)).fst.reverse ++ u.waste } := by
+        simp [State.dealStock, hus]
+      have hui : u₁ = { u with stock := (State.dealUpTo u.drawStep (s :: ss)).snd, waste := (State.dealUpTo u.drawStep (s :: ss)).fst.reverse ++ u.waste } :=
+        Option.some.inj (hu.symm.trans hfU)
+      rw [hui]
+      refine ⟨{ v with stock := (State.dealUpTo v.drawStep (s :: ss)).snd, waste := (State.dealUpTo v.drawStep (s :: ss)).fst.reverse ++ v.waste }, ?_, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_⟩
+      · rw [show v.stepDraw = State.dealStock (State.recycle v) from rfl, hrv]
+        simp [State.dealStock, hvs]
+      · rw [hdraw]
+      · rw [hdraw, hwaste]
+
+/-- The draw keeps the draw step. -/
+private theorem stepDraw_drawStep {x u : State} (hd : x.stepDraw = some u) :
+    u.drawStep = x.drawStep := by
+  obtain ⟨r, hrec, -, hshape⟩ := draw_unfold hd
+  have h1 : u.drawStep = r.drawStep := by rw [hshape]
+  rw [h1, ← hrec]
+  cases hs : x.stock with
+  | nil => cases hw : x.waste <;> simp only [State.recycle, hs, hw]
+  | cons c cs => simp only [State.recycle, hs]
+
+/-- A fired draw certifies a nonempty cycle. -/
+private theorem stepDraw_pos_cycleCount {x u : State} (hd : x.stepDraw = some u) :
+    0 < cycleCount x := by
+  obtain ⟨r, hrec, hrne, -⟩ := draw_unfold hd
+  have h1 : cycleCount r = cycleCount x := by rw [← hrec]; exact recycle_cycle x
+  rw [← h1]
+  obtain ⟨c, cs, hcon⟩ := list_cons_of_ne_nil hrne
+  rw [show cycleCount r = r.stock.length + r.waste.length from rfl, hcon,
+    List.length_cons]
+  omega
+
+/-- A nonempty cycle fires the draw — the unconditioned base: no
+draw-step discipline, no shape premise, `dealStock` reads only
+the zone. -/
+private theorem stepDraw_of_pos_cycleCount {x : State}
+    (h : 0 < cycleCount x) : ∃ u, x.stepDraw = some u := by
+  cases hs : x.stock with
+  | cons c cs =>
+      exact ⟨_, by
+        rw [show x.stepDraw = State.dealStock (State.recycle x) from rfl,
+          show State.recycle x = x from recycle_keep x (by rw [hs]; exact fun hc => absurd hc (by simp)),
+          dealStock_eq_of_ne_nil x (by rw [hs]; exact fun hc => absurd hc (by simp)), hs]⟩
+  | nil =>
+      cases hw : x.waste with
+      | nil =>
+          exact absurd h (by rw [show cycleCount x = x.stock.length + x.waste.length from rfl, hs, hw]; simp)
+      | cons w ws =>
+          have hne : x.waste ≠ [] := by rw [hw]; exact fun hc => absurd hc (by simp)
+          have hrev : (w :: ws).reverse ≠ [] := by
+            intro hc
+            have hl := congrArg List.length hc
+            rw [List.length_reverse, List.length_nil] at hl
+            simp at hl
+          exact ⟨_, by
+            rw [show x.stepDraw = State.dealStock (State.recycle x) from rfl,
+              show State.recycle x = { x with stock := x.waste.reverse, waste := ([] : List Card) } from recycle_nil x hs hne,
+              dealStock_eq_of_ne_nil _ (show (({ x with stock := x.waste.reverse, waste := ([] : List Card) } : State)).stock ≠ [] from by rw [hw]; exact hrev)]⟩
+
+/-- One step of a run, in equation form. -/
+private theorem run_step_cons' {st s₁ : State} {m : Move} {rest : List Move}
+    (hm : State.step st m = some s₁) : st.run (m :: rest) = s₁.run rest := by
+  show (match State.step st m with
+         | some s' => s'.run rest
+         | none => none) = _
+  rw [hm]
+
+/-! ### The counting mono (the waste-free-plays calculus) -/
+
+/-- The two moves that spend a waste card (farm copy of Phase's
+private discriminator; dedup at merge). -/
+private def isWasteMove (m : Move) : Bool :=
+  match m with
+  | .wasteToFound _ => true
+  | .wasteToTab _ _ => true
+  | _ => false
+
+/-- The cycle count never rises along a play (the per-step row is
+`cycleCount_step`). -/
+private theorem run_cycleCount_le : ∀ {play : List Move} {x w : State},
+    x.run play = some w → cycleCount w ≤ cycleCount x := by
+  intro play
+  induction play with
+  | nil =>
+      intro x w h
+      injection h with hx
+      subst hx
+      exact Nat.le_refl _
+  | cons m rest ih =>
+      intro x w hrun
+      obtain ⟨s₁, hm, hrs⟩ := State.run_cons hrun
+      have h1 := ih hrs
+      have h2 := cycleCount_step hm
+      omega
+
+/-- A play that spends a waste card strictly drops the cycle
+count (the per-step strict rows are `cycleCount_step_wasteToFound`
+and `cycleCount_step_wasteToTab`). -/
+private theorem run_cycleCount_lt : ∀ {play : List Move} {x w : State},
+    x.run play = some w → (∃ m ∈ play, isWasteMove m = true) →
+    cycleCount w < cycleCount x := by
+  intro play
+  induction play with
+  | nil =>
+      intro x w _ hmem
+      obtain ⟨m, hm, -⟩ := hmem
+      exact absurd hm (by simp)
+  | cons m rest ih =>
+      intro x w hrun hmem
+      obtain ⟨s₁, hm, hrs⟩ := State.run_cons hrun
+      by_cases hmv : isWasteMove m = true
+      · have hlt : cycleCount s₁ < cycleCount x := by
+          cases m with
+          | draw => simp [isWasteMove] at hmv
+          | wasteToFound c =>
+              have := cycleCount_step_wasteToFound hm
+              omega
+          | wasteToTab c b =>
+              have := cycleCount_step_wasteToTab hm
+              omega
+          | tabToFound c => simp [isWasteMove] at hmv
+          | foundToTab c b => simp [isWasteMove] at hmv
+          | tabToTab c b => simp [isWasteMove] at hmv
+        have hle := run_cycleCount_le hrs
+        omega
+      · obtain ⟨m', hm', hmis⟩ := hmem
+        rcases List.mem_cons.1 hm' with heq | hmem2
+        · exact absurd (heq ▸ hmis) hmv
+        · have hlt := ih hrs ⟨m', hmem2, hmis⟩
+          have hle := cycleCount_step hm
+          omega
+
+/-- Every non-draw, non-waste leg conserves the cycle count
+(draws conserve it by `stepDraw_cycle`; the board writes keep the
+zone by the projection rows). -/
+private theorem step_cycleCount_of_ne_waste {x s₁ : State} {m : Move}
+    (hstep : State.step x m = some s₁) (hmv : isWasteMove m = false) :
+    cycleCount s₁ = cycleCount x := by
+  cases m with
+  | draw => exact stepDraw_cycle hstep
+  | wasteToFound c => simp [isWasteMove] at hmv
+  | wasteToTab c b => simp [isWasteMove] at hmv
+  | tabToFound c =>
+      obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv hstep
+      rw [hs]
+      exact cycleCount_eq_of_stock_waste rfl rfl
+  | foundToTab c b =>
+      obtain ⟨-, -, hs⟩ := step_foundToTab_inv hstep
+      rw [hs]
+      exact cycleCount_eq_of_stock_waste
+        (by rw [putCard_stock]; exact setFound_stock _ _ _)
+        (by rw [putCard_waste]; exact setFound_waste _ _ _)
+  | tabToTab c b =>
+      obtain ⟨a, hh, hcp, hfr, hs⟩ := step_tabToTab_inv hstep
+      rw [hs]
+      exact cycleCount_eq_of_stock_waste
+        (by rw [putRun_stock]; exact setPile_stock _ _ _)
+        (by rw [putRun_waste]; exact setPile_waste _ _ _)
+
+/-- A play that returns to a count-conserved origin never spends
+the waste. -/
+private theorem run_ne_waste_of_return {x y : State} {play : List Move}
+    (hrun : x.run play = some y) (hcount : cycleCount y = cycleCount x) :
+    ∀ m ∈ play, isWasteMove m = false := by
+  intro m hm
+  cases hmv : isWasteMove m with
+  | false => rfl
+  | true =>
+      have hlt := run_cycleCount_lt hrun ⟨m, hm, hmv⟩
+      rw [hcount] at hlt
+      exact absurd hlt (by simp)
+
+/-- No witness reversible leg spends the waste: the landing would
+sit strictly below the origin's cycle count and no play ever
+rises. -/
+private theorem reversibleAtW_isWaste_false {x : State} {m : Move}
+    (hr : reversibleAtW x m) : isWasteMove m = false := by
+  obtain ⟨s₁, play, hstep, hrun⟩ := hr
+  cases hmv : isWasteMove m with
+  | false => rfl
+  | true =>
+      exfalso
+      cases m with
+      | draw => simp [isWasteMove] at hmv
+      | wasteToFound c =>
+          have h1 := cycleCount_step_wasteToFound hstep
+          have h2 := run_cycleCount_le hrun
+          omega
+      | wasteToTab c b =>
+          have h1 := cycleCount_step_wasteToTab hstep
+          have h2 := run_cycleCount_le hrun
+          omega
+      | tabToFound c => simp [isWasteMove] at hmv
+      | foundToTab c b => simp [isWasteMove] at hmv
+      | tabToTab c b => simp [isWasteMove] at hmv
+
+/-! ### The three board squares (the draw commutes with every board leg)
+
+The `exch_step` pattern at the draw move, member grade, ungated: a
+fired draw at `st` and a fired board move at `st` compose both ways
+onto the same state — the board move at the drawn landing IS the
+draw at the moved board.  The guards read only the board (the
+congruence rows), the writes touch only the board (the projection
+rows), and the draw is field-determined (`stepDraw_rel`); no `WF`,
+no shape analysis, no draw-step discipline. -/
+
+/-- **Board square, `tabToFound` leg.** -/
+private theorem square_tabToFound {st r w : State} {c : Card}
+    (hm : State.step st (Move.tabToFound c) = some r)
+    (hd : st.stepDraw = some w) :
+    ∃ r', w.step (Move.tabToFound c) = some r' ∧ r.stepDraw = some r' := by
+  obtain ⟨hnext, a, hp, hs⟩ := step_tabToFound_inv hm
+  have hpil : w.piles = st.piles := stepDraw_piles hd
+  have hfnd : w.found = st.found := stepDraw_found hd
+  have hz1 : r.stock = st.stock := by rw [hs]; rfl
+  have hz2 : r.waste = st.waste := by rw [hs]; rfl
+  have hz3 : r.drawStep = st.drawStep := by rw [hs]; rfl
+  obtain ⟨z, hzstep, hzp, -, hzf, -, hzds, -, hzs, hzw⟩ := stepDraw_rel hz1 hz2 hz3 hd
+  have hzd' : z.drawStep = w.drawStep := by
+    rw [hzds, hz3, ← stepDraw_drawStep hd]
+  have hwf1 : w.step (Move.tabToFound c) = some
+      { w.setFound c.suit (w.found c.suit ++ [c]) with
+        piles := fun a' =>
+          if a' = a then Pile.afterRunRemoved (w.piles a) (chop (w.piles a).faceUp)
+          else w.piles a' } := by
+    have g1 : w.nextUp c = st.nextUp c := nextUp_congr c hfnd
+    have g2 : w.pileOfTop c = st.pileOfTop c := pileOfTop_congr c hpil
+    simp only [State.step, g1, hnext, g2, hp]
+    rfl
+  refine ⟨z, hwf1.trans (congrArg Option.some ?_), hzstep⟩
+  apply State.ext
+  · show { w.setFound c.suit (w.found c.suit ++ [c]) with
+      piles := fun a' =>
+        if a' = a then Pile.afterRunRemoved (w.piles a) (chop (w.piles a).faceUp)
+        else w.piles a' }.found = z.found
+    rw [show z.found = r.found from hzf, hs]
+    simp only [hfnd, State.setFound]
+  · show { w.setFound c.suit (w.found c.suit ++ [c]) with
+      piles := fun a' =>
+        if a' = a then Pile.afterRunRemoved (w.piles a) (chop (w.piles a).faceUp)
+        else w.piles a' }.piles = z.piles
+    rw [show z.piles = r.piles from hzp, hs]
+    simp only [hpil]
+  · rw [show z.stock = w.stock from hzs]; rfl
+  · rw [show z.waste = w.waste from hzw]; rfl
+  · rw [hzd']; rfl
+
+/-- **Board square, `foundToTab` leg.** -/
+private theorem square_foundToTab {st r w : State} {c : Card} {b : Base}
+    (hm : State.step st (Move.foundToTab c b) = some r)
+    (hd : st.stepDraw = some w) :
+    ∃ r', w.step (Move.foundToTab c b) = some r' ∧ r.stepDraw = some r' := by
+  obtain ⟨htop, hcp, hs⟩ := step_foundToTab_inv hm
+  have hpil : w.piles = st.piles := stepDraw_piles hd
+  have hfnd : w.found = st.found := stepDraw_found hd
+  have hz1 : r.stock = st.stock := by rw [hs, putCard_stock, setFound_stock]
+  have hz2 : r.waste = st.waste := by rw [hs, putCard_waste, setFound_waste]
+  have hz3 : r.drawStep = st.drawStep := by rw [hs, putCard_drawStep, setFound_drawStep]
+  obtain ⟨z, hzstep, hzp, -, hzf, -, hzds, -, hzs, hzw⟩ := stepDraw_rel hz1 hz2 hz3 hd
+  have hzd' : z.drawStep = w.drawStep := by
+    rw [hzds, hz3, ← stepDraw_drawStep hd]
+  have hC : (w.setFound c.suit (chop (w.found c.suit))).piles
+      = (st.setFound c.suit (chop (st.found c.suit))).piles := by
+    rw [setFound_piles, setFound_piles, hpil]
+  have hCcp : ((w.setFound c.suit (chop (w.found c.suit))).putCard c b).piles
+      = ((st.setFound c.suit (chop (st.found c.suit))).putCard c b).piles :=
+    putCard_piles_congr c b hC
+  have hCf : (w.setFound c.suit (chop (w.found c.suit))).found
+      = (st.setFound c.suit (chop (st.found c.suit))).found := by
+    simp only [State.setFound, hfnd]
+  have hwf1 : w.step (Move.foundToTab c b) = some
+      ((w.setFound c.suit (chop (w.found c.suit))).putCard c b) := by
+    have g1 : w.foundTop c.suit = st.foundTop c.suit := foundTop_congr c.suit hfnd
+    have g2 : w.canPlace c b = st.canPlace c b := canPlace_congr c b hpil
+    simp only [State.step, g1, htop, g2, hcp]
+    rfl
+  refine ⟨z, hwf1.trans (congrArg Option.some ?_), hzstep⟩
+  apply State.ext
+  · show ((w.setFound c.suit (chop (w.found c.suit))).putCard c b).found = z.found
+    rw [putCard_found, hCf, show z.found = r.found from hzf, hs, putCard_found]
+  · show ((w.setFound c.suit (chop (w.found c.suit))).putCard c b).piles = z.piles
+    rw [hCcp, show z.piles = r.piles from hzp, hs]
+  · rw [putCard_stock, setFound_stock, show z.stock = w.stock from hzs]
+  · rw [putCard_waste, setFound_waste, show z.waste = w.waste from hzw]
+  · rw [putCard_drawStep, setFound_drawStep, hzd']
+
+/-- **Board square, `tabToTab` leg.** -/
+private theorem square_tabToTab {st r w : State} {c : Card} {b : Base}
+    (hm : State.step st (Move.tabToTab c b) = some r)
+    (hd : st.stepDraw = some w) :
+    ∃ r', w.step (Move.tabToTab c b) = some r' ∧ r.stepDraw = some r' := by
+  obtain ⟨a, hh, hcp, hfr, hs⟩ := step_tabToTab_inv hm
+  have hpil : w.piles = st.piles := stepDraw_piles hd
+  have hfnd : w.found = st.found := stepDraw_found hd
+  have hz1 : r.stock = st.stock := by rw [hs, putRun_stock, setPile_stock]
+  have hz2 : r.waste = st.waste := by rw [hs, putRun_waste, setPile_waste]
+  have hz3 : r.drawStep = st.drawStep := by rw [hs, putRun_drawStep, setPile_drawStep]
+  obtain ⟨z, hzstep, hzp, -, hzf, -, hzds, -, hzs, hzw⟩ := stepDraw_rel hz1 hz2 hz3 hd
+  have hzd' : z.drawStep = w.drawStep := by
+    rw [hzds, hz3, ← stepDraw_drawStep hd]
+  have hPpa : w.piles a = st.piles a := congrFun hpil a
+  have hrrp : Pile.afterRunRemoved (w.piles a) (below c (w.piles a).faceUp)
+      = Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp) := by
+    rw [hPpa]
+  have hfrun : fromCard c (w.piles a).faceUp = fromCard c (st.piles a).faceUp :=
+    congrArg (fromCard c) (congrArg Pile.faceUp hPpa)
+  have hC : (w.setPile a
+        (Pile.afterRunRemoved (w.piles a) (below c (w.piles a).faceUp))).piles
+      = (st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).piles := by
+    rw [setPile_piles, setPile_piles, hpil]
+  have hCcp : ((w.setPile a
+        (Pile.afterRunRemoved (w.piles a) (below c (w.piles a).faceUp))).putRun
+        (fromCard c (st.piles a).faceUp) b).piles
+      = ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
+        (fromCard c (st.piles a).faceUp) b).piles :=
+    putRun_piles_congr _ _ hC
+  have hwf1 : w.step (Move.tabToTab c b) = some
+      ((w.setPile a
+        (Pile.afterRunRemoved (w.piles a) (below c (w.piles a).faceUp))).putRun
+        (fromCard c (w.piles a).faceUp) b) := by
+    have g1 : w.pileHolding c = st.pileHolding c := pileHolding_congr c hpil
+    have g2 : w.canPlace c b = st.canPlace c b := canPlace_congr c b hpil
+    simp only [State.step, g1, hh, g2, hcp]
+    cases hwfr : fromCard c (w.piles a).faceUp with
+    | nil =>
+        rw [hfrun] at hwfr
+        exact absurd hwfr hfr
+    | cons x xs =>
+        rfl
+  refine ⟨z, hwf1.trans (congrArg Option.some ?_), hzstep⟩
+  apply State.ext
+  · show ((w.setPile a
+        (Pile.afterRunRemoved (w.piles a) (below c (w.piles a).faceUp))).putRun
+        (fromCard c (w.piles a).faceUp) b).found = z.found
+    rw [putRun_found, setPile_found, hfnd, show z.found = r.found from hzf, hs,
+      putRun_found, setPile_found]
+  · show ((w.setPile a
+        (Pile.afterRunRemoved (w.piles a) (below c (w.piles a).faceUp))).putRun
+        (fromCard c (w.piles a).faceUp) b).piles = z.piles
+    rw [hfrun, hCcp, show z.piles = r.piles from hzp, hs]
+  · rw [putRun_stock, setPile_stock, show z.stock = w.stock from hzs]
+  · rw [putRun_waste, setPile_waste, show z.waste = w.waste from hzw]
+  · rw [putRun_drawStep, setPile_drawStep, hzd']
+
+/-- **The step-square, dispatched:** any waste-free non-draw leg
+transports across a fired draw. -/
+private theorem step_square {st r w : State} {m : Move}
+    (hm : State.step st m = some r) (hmv : isWasteMove m = false)
+    (hmd : m ≠ Move.draw)
+    (hd : st.stepDraw = some w) :
+    ∃ r', w.step m = some r' ∧ r.stepDraw = some r' := by
+  cases m with
+  | draw => exact absurd rfl hmd
+  | wasteToFound c => simp [isWasteMove] at hmv
+  | wasteToTab c b => simp [isWasteMove] at hmv
+  | tabToFound c => exact square_tabToFound hm hd
+  | foundToTab c b => exact square_foundToTab hm hd
+  | tabToTab c b => exact square_tabToTab hm hd
+
+/-! ### The push core -/
+
+/-- The draw pushes through any waste-free play: running the play
+at the drawn landing lands the draw of the play's own landing.
+Board legs cross the square; a draw leg COINCIDES with the pushed
+draw (the transposed prefix IS the original prefix's landing). -/
+private theorem run_drawPush : ∀ (play : List Move) (x u y : State),
+    x.stepDraw = some u → x.run play = some y →
+      (∀ m ∈ play, isWasteMove m = false) →
+      ∃ u', u.run play = some u' ∧ y.stepDraw = some u' := by
+  intro play
+  induction play with
+  | nil =>
+      intro x u y hd hrun hfree
+      injection hrun with hx
+      rw [hx] at hd
+      exact ⟨u, rfl, hd⟩
+  | cons m rest ih =>
+      intro x u y hd hrun hwfree
+      obtain ⟨s₁, hmst, hrest⟩ := State.run_cons hrun
+      have hrfree : ∀ m' ∈ rest, isWasteMove m' = false := by
+        intro m' hm'
+        exact hwfree m' (List.mem_cons_of_mem _ hm')
+      cases m with
+      | draw =>
+          have hueq : x.stepDraw = some s₁ := hmst
+          have hs₁u : s₁ = u := Option.some.inj (hueq.symm.trans hd)
+          have hcu := stepDraw_cycle hd
+          have hpos := stepDraw_pos_cycleCount hd
+          obtain ⟨u₂, hu₂⟩ := stepDraw_of_pos_cycleCount (by rw [hcu]; exact hpos)
+          have hs₁u₂ : s₁.stepDraw = some u₂ := by rw [hs₁u]; exact hu₂
+          obtain ⟨u'', hrun', hfire'⟩ := ih s₁ u₂ y hs₁u₂ hrest hrfree
+          refine ⟨u'', ?_, hfire'⟩
+          rw [show u.run (Move.draw :: rest) = u₂.run rest from
+              run_step_cons' (show State.step u Move.draw = some u₂ from hu₂)]
+          exact hrun'
+      | wasteToFound c =>
+          have : isWasteMove (Move.wasteToFound c) = false := hwfree _ (by simp)
+          simp [isWasteMove] at this
+      | wasteToTab c b =>
+          have : isWasteMove (Move.wasteToTab c b) = false := hwfree _ (by simp)
+          simp [isWasteMove] at this
+      | tabToFound c =>
+          obtain ⟨r', hwstep, hrfire⟩ :=
+            step_square hmst (hwfree _ (by simp)) (by simp) hd
+          obtain ⟨u'', hrun', hfire'⟩ := ih s₁ r' y hrfire hrest hrfree
+          refine ⟨u'', ?_, hfire'⟩
+          rw [show u.run (Move.tabToFound c :: rest) = r'.run rest from
+              run_step_cons' hwstep]
+          exact hrun'
+      | foundToTab c b =>
+          obtain ⟨r', hwstep, hrfire⟩ :=
+            step_square hmst (hwfree _ (by simp)) (by simp) hd
+          obtain ⟨u'', hrun', hfire'⟩ := ih s₁ r' y hrfire hrest hrfree
+          refine ⟨u'', ?_, hfire'⟩
+          rw [show u.run (Move.foundToTab c b :: rest) = r'.run rest from
+              run_step_cons' hwstep]
+          exact hrun'
+      | tabToTab c b =>
+          obtain ⟨r', hwstep, hrfire⟩ :=
+            step_square hmst (hwfree _ (by simp)) (by simp) hd
+          obtain ⟨u'', hrun', hfire'⟩ := ih s₁ r' y hrfire hrest hrfree
+          refine ⟨u'', ?_, hfire'⟩
+          rw [show u.run (Move.tabToTab c b :: rest) = r'.run rest from
+              run_step_cons' hwstep]
+          exact hrun'
+
+/-- The witness journey pushes: a witnessed reversible journey at a
+drawing member reruns wholesale at the drawn landing — same move
+list, leg by leg still witness-reversible (each leg's returning
+play is waste-free, so it pushes too, and lands the pushed source)
+— and the pushed journey lands the mate's own draw landing. -/
+private theorem ShufflePlayW_drawPush {x y : State} {play : List Move}
+    (h : ShufflePlayW x play y) :
+    ∀ {u : State}, x.stepDraw = some u →
+      ∃ u', ShufflePlayW u play u' ∧ y.stepDraw = some u' := by
+  induction h with
+  | nil s =>
+      intro u hd
+      exact ⟨u, ShufflePlayW.nil u, hd⟩
+  | @cons x₀ m s₁ rest y₀ hw hstep hrest ih =>
+      intro u hd
+      have hmfree := reversibleAtW_isWaste_false hw
+      obtain ⟨s₁w, hplay, hstepleg, hrunleg⟩ := hw
+      have hs₁us : s₁w = s₁ := Option.some.inj (hstepleg.symm.trans hstep)
+      rw [hs₁us] at hstepleg hrunleg
+      have hlecount : cycleCount s₁ = cycleCount x₀ :=
+        step_cycleCount_of_ne_waste (show State.step x₀ m = some s₁ from hstepleg) hmfree
+      have hrevcount : cycleCount x₀ = cycleCount s₁ := hlecount.symm
+      cases m with
+      | draw =>
+          have hs₁u : s₁ = u := Option.some.inj
+            ((show x₀.stepDraw = some s₁ from hstep).symm.trans hd)
+          have hcu := stepDraw_cycle hd
+          have hpos := stepDraw_pos_cycleCount hd
+          obtain ⟨u₂, hu₂⟩ := stepDraw_of_pos_cycleCount (by rw [hcu]; exact hpos)
+          have hs₁u₂ : s₁.stepDraw = some u₂ := by rw [hs₁u]; exact hu₂
+          have hπfree := run_ne_waste_of_return hrunleg hrevcount
+          obtain ⟨p', hp'run, hp'fire⟩ :=
+            run_drawPush hplay s₁ u₂ x₀ hs₁u₂ hrunleg hπfree
+          have hp'u : p' = u := Option.some.inj (hp'fire.symm.trans hd)
+          rw [hp'u] at hp'run
+          have hrevu : reversibleAtW u Move.draw :=
+            ⟨u₂, hplay, (show State.step u Move.draw = some u₂ from hu₂), hp'run⟩
+          obtain ⟨u'', hsh, hyfire⟩ := ih hs₁u₂
+          exact ⟨u'', ShufflePlayW.cons hrevu hu₂ hsh, hyfire⟩
+      | wasteToFound c => simp [isWasteMove] at hmfree
+      | wasteToTab c b => simp [isWasteMove] at hmfree
+      | tabToFound c =>
+          obtain ⟨r', hwr', hrfire⟩ := step_square hstepleg hmfree (by simp) hd
+          have hπfree := run_ne_waste_of_return hrunleg hrevcount
+          obtain ⟨p', hp'run, hp'fire⟩ :=
+            run_drawPush hplay s₁ r' x₀ hrfire hrunleg hπfree
+          have hp'u : p' = u := Option.some.inj (hp'fire.symm.trans hd)
+          rw [hp'u] at hp'run
+          have hrevu : reversibleAtW u (Move.tabToFound c) :=
+            ⟨r', hplay, hwr', hp'run⟩
+          obtain ⟨u'', hsh, hyfire⟩ := ih hrfire
+          exact ⟨u'', ShufflePlayW.cons hrevu hwr' hsh, hyfire⟩
+      | foundToTab c b =>
+          obtain ⟨r', hwr', hrfire⟩ := step_square hstepleg hmfree (by simp) hd
+          have hπfree := run_ne_waste_of_return hrunleg hrevcount
+          obtain ⟨p', hp'run, hp'fire⟩ :=
+            run_drawPush hplay s₁ r' x₀ hrfire hrunleg hπfree
+          have hp'u : p' = u := Option.some.inj (hp'fire.symm.trans hd)
+          rw [hp'u] at hp'run
+          have hrevu : reversibleAtW u (Move.foundToTab c b) :=
+            ⟨r', hplay, hwr', hp'run⟩
+          obtain ⟨u'', hsh, hyfire⟩ := ih hrfire
+          exact ⟨u'', ShufflePlayW.cons hrevu hwr' hsh, hyfire⟩
+      | tabToTab c b =>
+          obtain ⟨r', hwr', hrfire⟩ := step_square hstepleg hmfree (by simp) hd
+          have hπfree := run_ne_waste_of_return hrunleg hrevcount
+          obtain ⟨p', hp'run, hp'fire⟩ :=
+            run_drawPush hplay s₁ r' x₀ hrfire hrunleg hπfree
+          have hp'u : p' = u := Option.some.inj (hp'fire.symm.trans hd)
+          rw [hp'u] at hp'run
+          have hrevu : reversibleAtW u (Move.tabToTab c b) :=
+            ⟨r', hplay, hwr', hp'run⟩
+          obtain ⟨u'', hsh, hyfire⟩ := ih hrfire
+          exact ⟨u'', ShufflePlayW.cons hrevu hwr' hsh, hyfire⟩
+
+/-! ### The class close -/
+
+/-- **The draw class map is well-defined (the member core).**  Two
+fired draws at class-mates land class-mates: the witnessed journeys
+between the members push across either draw, so both pushed
+journeys witness the landing pair both ways.  Ungated: firing is
+carried as explicit witnesses, nothing else is assumed. -/
+theorem draw_landings_sameOrbit {c₁ w₁ c₂ w₂ : State}
+    (hmate : (⟦c₁⟧ : SameOrbit) = ⟦c₂⟧)
+    (hd₁ : c₁.stepDraw = some w₁) (hd₂ : c₂.stepDraw = some w₂) :
+    (⟦w₁⟧ : SameOrbit) = ⟦w₂⟧ := by
+  rcases Quotient.exact hmate with ⟨σ, hσ, τ, hτ⟩
+  obtain ⟨u₁, hsh₁, hu₁fire⟩ := ShufflePlayW_drawPush hτ hd₁
+  have hu₁ : u₁ = w₂ := Option.some.inj (hu₁fire.symm.trans hd₂)
+  rw [hu₁] at hsh₁
+  obtain ⟨u₂, hsh₂, hu₂fire⟩ := ShufflePlayW_drawPush hσ hd₂
+  have hu₂ : u₂ = w₁ := Option.some.inj (hu₂fire.symm.trans hd₁)
+  rw [hu₂] at hsh₂
+  exact Quotient.sound ⟨σ, hsh₂, τ, hsh₁⟩
+
+/-- **The draw-label successor is unique (the ideal, landed at
+full grade).**  Two draw-labeled tip edges over one source class
+have the same target: the draw induces a well-defined class map,
+which is the draw label's share of the `≤ 2`-per-label umbrella.
+The premises derive — the character converts the labels into
+commitments, the memberships give the mate relation — none are
+assumed. -/
+theorem draw_successor_unique {C D₁ D₂ : SameOrbit}
+    (e₁ : TipEdge C D₁) (hd₁ : e₁.label = EdgeLabel.draw)
+    (e₂ : TipEdge C D₂) (hd₂ : e₂.label = EdgeLabel.draw) :
+    D₁ = D₂ := by
+  have md₁ : e₁.m = Move.draw := (pair_move_character e₁).1 hd₁
+  have md₂ : e₂.m = Move.draw := (pair_move_character e₂).1 hd₂
+  have fire₁ : e₁.c.stepDraw = some e₁.w := by
+    have h := e₁.land
+    rw [md₁] at h
+    exact (show e₁.c.stepDraw = State.step e₁.c Move.draw from rfl).symm.trans h
+  have fire₂ : e₂.c.stepDraw = some e₂.w := by
+    have h := e₂.land
+    rw [md₂] at h
+    exact (show e₂.c.stepDraw = State.step e₂.c Move.draw from rfl).symm.trans h
+  have hmate : (⟦e₁.c⟧ : SameOrbit) = ⟦e₂.c⟧ :=
+    e₁.hmem.trans e₂.hmem.symm
+  exact e₁.cl.symm.trans
+    ((draw_landings_sameOrbit hmate fire₁ fire₂).trans e₂.cl)
 
 /-! ## The axiom audit (per-declaration) -/
 
@@ -2636,3 +3365,5 @@ the build stays green, zero sorry.
 #print axioms hiddenDropperAnchor
 #print axioms rootFreedAnchor
 #print axioms CanonLabel
+#print axioms draw_landings_sameOrbit
+#print axioms draw_successor_unique
