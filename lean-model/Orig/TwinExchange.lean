@@ -24,7 +24,34 @@ import Orig.Integrity
   preserves the verdict.
   Both directions are one-move
   realizations: the cargo rides onto the bare host as a plain
-  `Move.tabToTab`, and rides back the same way.The both-occupied row (both suffixes nonempty) is deliberately NOTattacked here; it belongs to a later mirroring engine, and thischapter's characterizations are its substrate.-/
+  `Move.tabToTab`, and rides back the same way.The both-occupied row (both suffixes nonempty) is deliberately NOTattacked here; it belongs to a later mirroring engine, and thischapter's characterizations are its substrate.* `exchangeTwin_comm` — **the pair group is abelian** (the
+  elementary-abelian-2 fact): two licensed exchanges, either order,
+  the same state.
+  The census behind it: the degenerate pair (the
+  same twin pair twice) falls to the pair law alone (not even
+  `exchangeTwin_invol` is owed); disjoint host piles write a
+  four-pile superposition of `st`'s own data; one shared pile splits
+  by the visitor's position — below `t₁`'s seat (kept prefix) or
+  above it (the support-relocation hazard: the visitor rides `t₁`'s
+  swapped suffix onto the twin host's pile, and the composites
+  *still* coincide — either order re-cuts the same blocks at the
+  same depths); and the one family where the composites could
+  algebraically differ — both second-pair hosts sitting in the two
+  first-pair piles — is *derived empty* at licensed pairs: same-side
+  placements contradict the bare clauses, mixed placements
+  contradict the rank descent of a legal run (twin hosts share
+  rank, so a visitor below `t₁` and its twin above `t₁.twin` demand
+  `rank t₁ < rank t₂ < rank t₁`).
+  The statement carries exactly two
+  bare-license bundles and nothing more — no support disjointness,
+  because the failing family cannot arise; the witness the hazard
+  would have owed is the stacked family itself, and its emptiness is
+  a lemma (`exch_stacked_par_absurd`), not a hypothesis.* `exchangeTwin_other_located` — the license descent across pairs:
+  after one licensed exchange at `t₁`, the other licensed pair's
+  located shape survives (hosts re-anchored, the bare clause
+  transported) — the unpacked companion the quotient chapter
+  repackages as `TwinExchOK_exchangeTwin_other`, and the license
+  ingredient of the class-level commutation corollary.-/
 
 /-! ## The above-suffix and the split -/
 
@@ -1373,3 +1400,1117 @@ theorem twin_exchange_bare_iff {st : State} {t : Card} {a a' : Anchor}
             exact absurd hb (by simp)
           · rw [hR] at hb
             exact absurd hb (by simp)
+
+/-! ## The order and position laws (the commutation kit, private)
+
+Three families the commutation census rides: the mutual-below
+impossibility (positional), the rank descent of a legal run (every
+card strictly above a host is at least one rank below it), and the
+below/above census exclusion at a once-counted state. -/
+
+/-- Mutual below-ness is impossible: `below` cuts at first occurrences,
+so two distinct cards cannot each precede the other. -/
+private theorem below_mem_antisym : ∀ {l : List Card} {x y : Card},
+    x ∈ below y l → y ∈ below x l → False := by
+  intro l
+  induction l with
+  | nil => intro x y hx; simp only [below] at hx; cases hx
+  | cons h t ih =>
+      intro x y hx hy
+      by_cases hxx : h = x
+      · subst hxx
+        exact absurd hy (by rw [below_cons_self]; simp)
+      · by_cases hyy : h = y
+        · subst hyy
+          exact absurd hx (by rw [below_cons_self]; simp)
+        · rw [below_cons_ne _ hyy] at hx
+          rw [below_cons_ne _ hxx] at hy
+          rcases List.mem_cons.mp hx with he | hxt
+          · exact hxx he.symm
+          · rcases List.mem_cons.mp hy with he' | hyt
+            · exact hyy he'.symm
+            · exact ih hxt hyt
+
+/-- A member card other than the cut sits strictly below or strictly
+above the cut's first occurrence — the census trichotomy. -/
+private theorem below_or_aboveIn_of_mem {l : List Card} {x y : Card}
+    (hy : y ∈ l) (hx : x ∈ l) (hxy : x ≠ y) :
+    x ∈ below y l ∨ x ∈ aboveIn y l := by
+  rw [below_aboveIn_split hy] at hx
+  rcases List.mem_append.mp hx with h | h
+  · exact Or.inl h
+  · rcases List.mem_cons.mp h with he | h
+    · exact absurd he hxy
+    · exact Or.inr h
+
+/-- Whatever sits strictly below a card has that card strictly above
+its own first occurrence. -/
+private theorem aboveIn_of_below {l : List Card} {x y : Card} (hxy : x ≠ y)
+    (hy : y ∈ l) (hx : x ∈ below y l) : y ∈ aboveIn x l := by
+  have hxl : x ∈ l := below_subset_mem hx
+  rcases below_or_aboveIn_of_mem hxl hy (fun hc => hxy hc.symm) with h | h
+  · exact (below_mem_antisym hx h).elim
+  · exact h
+
+/-- The head of a nonempty `fromCard` slice is the cut card itself. -/
+private theorem fromCard_head_eq {c : Card} : ∀ {l : List Card} {w r},
+    fromCard c l = w :: r → w = c ∧ c ∈ l := by
+  intro l
+  induction l with
+  | nil => intro w r hf; exact absurd hf (by simp [fromCard])
+  | cons h t ih =>
+      intro w r hf
+      by_cases hh : h = c
+      · subst hh
+        rw [fromCard_cons_self] at hf
+        injection hf with hw _
+        exact ⟨hw.symm, List.mem_cons_self ..⟩
+      · rw [fromCard_cons_ne _ hh] at hf
+        have hcr := ih hf
+        exact ⟨hcr.1, List.mem_cons_of_mem _ hcr.2⟩
+
+/-- Inside a legal run, every card of the tail is at least one rank
+below the head — the descent the rank laws ride. -/
+private theorem rank_lt_of_head : ∀ (h : Card) {t : List Card} {x : Card},
+    runOK (h :: t) = true → x ∈ t →
+      x.rank.toIdx + 1 ≤ h.rank.toIdx := by
+  intro h t
+  induction t generalizing h with
+  | nil => intro x _ hmem; cases hmem
+  | cons y t' ih =>
+      intro x hrun hmem
+      rw [runOK_cons_cons h y t', Bool.and_eq_true] at hrun
+      obtain ⟨hfit, hrest⟩ := hrun
+      have hyx : y.rank.toIdx + 1 = h.rank.toIdx := ((canSitOn_eq y h).mp hfit).1
+      rcases List.mem_cons.mp hmem with he | hmem'
+      · subst he; exact Nat.le_of_eq hyx
+      · have h2 := ih y hrest hmem'
+        omega
+
+/-- In a legal run, every card strictly above the cut is at least one
+rank below the cut card (the slice through the cut is again legal, and
+the head law applies). -/
+private theorem rank_lt_of_aboveIn {l : List Card} {c x : Card}
+    (hrun : runOK l = true) (hmem : x ∈ aboveIn c l) :
+    x.rank.toIdx + 1 ≤ c.rank.toIdx := by
+  have hc : c ∈ l := by
+    cases hfl : fromCard c l with
+    | nil => rw [aboveIn, hfl] at hmem; exact absurd hmem (by simp)
+    | cons w t => exact (fromCard_head_eq hfl).2
+  have hcut : runOK (c :: aboveIn c l) = true :=
+    ((runOK_append_exact c (below c l) (aboveIn c l)).mp
+      (show runOK (below c l ++ c :: aboveIn c l) = true by
+        rw [← below_aboveIn_split hc]; exact hrun)).2
+  exact rank_lt_of_head c hcut hmem
+
+/-- In a legal run, a card strictly below the cut is at least one rank
+above it. -/
+private theorem rank_lt_of_below {l : List Card} {c x : Card}
+    (hrun : runOK l = true) (hxy : x ≠ c) (hc : c ∈ l)
+    (hx : x ∈ below c l) : c.rank.toIdx + 1 ≤ x.rank.toIdx :=
+  rank_lt_of_aboveIn hrun (aboveIn_of_below hxy hc hx)
+
+/-- A face-up card never sits both strictly above and strictly below
+the same host: both sides of the cut would double its census. -/
+private theorem not_mem_below_of_above {st : State} {a : Anchor} {t x : Card}
+    (hcc : st.cardCount x = 1) (hta : t ∈ (st.piles a).faceUp)
+    (hx : x ∈ aboveIn t ((st.piles a).faceUp)) :
+    x ∉ below t ((st.piles a).faceUp) := by
+  have hxt : x ≠ t := by
+    intro hc
+    subst hc
+    exact not_mem_own_aboveIn hcc hta hx
+  intro hmemb
+  have hsplit : (st.piles a).faceUp =
+      below t ((st.piles a).faceUp) ++ t :: aboveIn t ((st.piles a).faceUp) :=
+    below_aboveIn_split hta
+  have hface : ccn x ((st.piles a).faceUp) =
+      ccn x (below t ((st.piles a).faceUp))
+        + ccn x (t :: aboveIn t ((st.piles a).faceUp)) := by
+    have h1 : ccn x ((st.piles a).faceUp) =
+        ccn x (below t ((st.piles a).faceUp)
+          ++ t :: aboveIn t ((st.piles a).faceUp)) :=
+      congrArg (ccn x) hsplit
+    rw [h1, ccn_split]
+  have h2 : 2 ≤ ccn x ((st.piles a).hidden ++ (st.piles a).faceUp) := by
+    have e1 : 1 ≤ ccn x (below t ((st.piles a).faceUp)) := ccn_pos hmemb
+    have e2 : 1 ≤ ccn x (aboveIn t ((st.piles a).faceUp)) := ccn_pos hx
+    have hz : ccn x ((st.piles a).hidden ++ (st.piles a).faceUp) =
+        ccn x ((st.piles a).hidden) + ccn x ((st.piles a).faceUp) := ccn_split _ _ _
+    have htt : ccn x (t :: aboveIn t ((st.piles a).faceUp)) =
+        ccn x [t] + ccn x (aboveIn t ((st.piles a).faceUp)) := by
+      rw [show t :: aboveIn t ((st.piles a).faceUp) =
+          [t] ++ aboveIn t ((st.piles a).faceUp) from rfl, ccn_split]
+    rw [hz, hface, htt]
+    omega
+  have := cardCount_ge_of_zone (Anchor.mem_all a) h2
+  omega
+
+/-! ## The relocation census (the commutation kit, private)
+
+After one licensed exchange at `t₁`, where do the *other* pair's hosts
+sit?  Three shapes, one census: both piles untouched (the disjoint
+shape — the searches re-anchor at their own piles), the host rides the
+swapped suffix onto the twin host's pile (the above shape), or the host
+stays in the preserved prefix (the below shape).  Each shape re-anchors
+both second-pair hosts face up, in distinct piles — the locatedness the
+composite computations and the license descent read. -/
+
+/-- Disjoint host piles: the exchange at `t₁` writes only `a₁` and
+`a₁'`, so both second-pair hosts stay put. -/
+private theorem exch_relocate_disjoint {st : State} {t₁ t₂ : Card}
+    {a₁ a₁' a₂ a₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (h₂ : st.pileHolding t₂ = some a₂) (h₂' : st.pileHolding t₂.twin = some a₂')
+    (hout : a₂ ≠ a₁ ∧ a₂ ≠ a₁' ∧ a₂' ≠ a₁ ∧ a₂' ≠ a₁') :
+    (st.exchangeTwin t₁).pileHolding t₂ = some a₂ ∧
+      (st.exchangeTwin t₁).pileHolding t₂.twin = some a₂' := by
+  obtain ⟨hA, hB, hC, hD⟩ := hout
+  have hc2 : st.cardCount t₂ = 1 := hwf.2.2.1 t₂ (Card.mem_universe t₂)
+  have hc2' : st.cardCount t₂.twin = 1 := hwf.2.2.1 t₂.twin (Card.mem_universe t₂.twin)
+  have hT2 : t₂ ∈ (st.piles a₂).faceUp := pileHolding_mem h₂
+  have hT2' : t₂.twin ∈ (st.piles a₂').faceUp := pileHolding_mem h₂'
+  have hxo2 : ∀ p ≠ a₂, t₂ ∉ (st.piles p).faceUp :=
+    fun p hp => ((mem_faceUp_only hwf hT2).1 p hp).2
+  have hxo2' : ∀ p ≠ a₂', t₂.twin ∉ (st.piles p).faceUp :=
+    fun p hp => ((mem_faceUp_only hwf hT2').1 p hp).2
+  have hd2 : t₂ ≠ t₁ := by
+    intro hc; subst hc; exact hA (pileHolding_inj h₂ h₁)
+  have hd2' : t₂ ≠ t₁.twin := by
+    intro hc; subst hc; exact hB (pileHolding_inj h₂ h₁')
+  have hd2t : t₂.twin ≠ t₁ := by
+    intro hc; rw [hc] at h₂'; exact hC (pileHolding_inj h₂' h₁)
+  have hd2t' : t₂.twin ≠ t₁.twin := fun hc => hd2 (Card.twin_inj hc)
+  refine ⟨pileHolding_eq_of_unique (Anchor.mem_all a₂) ?_ ?_,
+    pileHolding_eq_of_unique (Anchor.mem_all a₂') ?_ ?_⟩
+  · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hA hB]
+    exact hT2
+  · intro j hj
+    by_cases hjA : j = a₁
+    · rw [hjA] at hj
+      rw [State.exchangeTwin_pile_self h₁ h₁' hne₁] at hj
+      rcases List.mem_append.mp hj with hlow | hup
+      · exact absurd (below_subset_mem hlow) (hxo2 a₁ (Ne.symm hA))
+      · rcases List.mem_cons.mp hup with he | hup'
+        · exact absurd he hd2
+        · exact absurd (aboveIn_subset_mem hup') (hxo2 a₁' (Ne.symm hB))
+    · by_cases hjB : j = a₁'
+      · rw [hjB] at hj
+        rw [State.exchangeTwin_pile_other h₁ h₁' hne₁] at hj
+        rcases List.mem_append.mp hj with hlow | hup
+        · exact absurd (below_subset_mem hlow) (hxo2 a₁' (Ne.symm hB))
+        · rcases List.mem_cons.mp hup with he | hup'
+          · exact absurd he hd2'
+          · exact absurd (aboveIn_subset_mem hup') (hxo2 a₁ (Ne.symm hA))
+      · by_cases hjₗ : j = a₂
+        · exact hjₗ
+        · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hjA hjB] at hj
+          exact absurd hj (hxo2 j hjₗ)
+  · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hC hD]
+    exact hT2'
+  · intro j hj
+    by_cases hjA : j = a₁
+    · rw [hjA] at hj
+      rw [State.exchangeTwin_pile_self h₁ h₁' hne₁] at hj
+      rcases List.mem_append.mp hj with hlow | hup
+      · exact absurd (below_subset_mem hlow) (hxo2' a₁ (Ne.symm hC))
+      · rcases List.mem_cons.mp hup with he | hup'
+        · exact absurd he hd2t
+        · exact absurd (aboveIn_subset_mem hup') (hxo2' a₁' (Ne.symm hD))
+    · by_cases hjB : j = a₁'
+      · rw [hjB] at hj
+        rw [State.exchangeTwin_pile_other h₁ h₁' hne₁] at hj
+        rcases List.mem_append.mp hj with hlow | hup
+        · exact absurd (below_subset_mem hlow) (hxo2' a₁' (Ne.symm hD))
+        · rcases List.mem_cons.mp hup with he | hup'
+          · exact absurd he hd2t'
+          · exact absurd (aboveIn_subset_mem hup') (hxo2' a₁ (Ne.symm hC))
+      · by_cases hjᵣ : j = a₂'
+        · exact hjᵣ
+        · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hjA hjB] at hj
+          exact absurd hj (hxo2' j hjᵣ)
+
+/-- The riding shape: `t₂`'s host sits strictly above `t₁`'s seat in
+the shared pile, so the exchange at `t₁` carries it — the whole
+suffix, rigid — onto the twin host's pile; the other host's pile `c₂'`
+is untouched. -/
+private theorem exch_relocate_above {st : State} {t₁ t₂ : Card} {a₁ a₁' c₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (hsh : st.pileHolding t₂ = some a₁)
+    (h₂' : st.pileHolding t₂.twin = some c₂')
+    (hout : c₂' ≠ a₁ ∧ c₂' ≠ a₁')
+    (hride : t₂ ∈ aboveIn t₁ ((st.piles a₁).faceUp)) :
+    (st.exchangeTwin t₁).pileHolding t₂ = some a₁' ∧
+      (st.exchangeTwin t₁).pileHolding t₂.twin = some c₂' := by
+  have hc1 : st.cardCount t₁ = 1 := hwf.2.2.1 t₁ (Card.mem_universe t₁)
+  have hc2 : st.cardCount t₂ = 1 := hwf.2.2.1 t₂ (Card.mem_universe t₂)
+  have hT1 : t₁ ∈ (st.piles a₁).faceUp := pileHolding_mem h₁
+  have hT2 : t₂ ∈ (st.piles a₁).faceUp := pileHolding_mem hsh
+  have hT2' : t₂.twin ∈ (st.piles c₂').faceUp := pileHolding_mem h₂'
+  have hxo2 : ∀ p ≠ a₁, t₂ ∉ (st.piles p).faceUp :=
+    fun p hp => ((mem_faceUp_only hwf hT2).1 p hp).2
+  have hxo2' : ∀ p ≠ c₂', t₂.twin ∉ (st.piles p).faceUp :=
+    fun p hp => ((mem_faceUp_only hwf hT2').1 p hp).2
+  have hd2 : t₂ ≠ t₁ := by
+    intro hc; subst hc
+    exact not_mem_own_aboveIn hc1 hT1 hride
+  have hd2' : t₂ ≠ t₁.twin := by
+    intro hc; subst hc
+    exact hne₁ (pileHolding_inj hsh h₁')
+  have hd2t : t₂.twin ≠ t₁ := by
+    intro hc; rw [hc] at h₂'; exact hout.1 (pileHolding_inj h₂' h₁)
+  have hd2t' : t₂.twin ≠ t₁.twin := fun hc => hd2 (Card.twin_inj hc)
+  refine ⟨pileHolding_eq_of_unique (Anchor.mem_all a₁') ?_ ?_,
+    pileHolding_eq_of_unique (Anchor.mem_all c₂') ?_ ?_⟩
+  · rw [State.exchangeTwin_pile_other h₁ h₁' hne₁]
+    exact List.mem_append.mpr (Or.inr (List.mem_cons_of_mem _ hride))
+  · intro j hj
+    by_cases hjA : j = a₁
+    · rw [hjA] at hj
+      rw [State.exchangeTwin_pile_self h₁ h₁' hne₁] at hj
+      rcases List.mem_append.mp hj with hlow | hup
+      · exact (not_mem_below_of_above hc2 hT1 hride hlow).elim
+      · rcases List.mem_cons.mp hup with he | hup'
+        · exact absurd he hd2
+        · exact absurd (aboveIn_subset_mem hup') (hxo2 a₁' (Ne.symm hne₁))
+    · by_cases hjᵣ : j = a₁'
+      · exact hjᵣ
+      · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hjA hjᵣ] at hj
+        exact absurd hj (hxo2 j hjA)
+  · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hout.1 hout.2]
+    exact hT2'
+  · intro j hj
+    by_cases hjA : j = a₁
+    · rw [hjA] at hj
+      rw [State.exchangeTwin_pile_self h₁ h₁' hne₁] at hj
+      rcases List.mem_append.mp hj with hlow | hup
+      · exact absurd (below_subset_mem hlow) (hxo2' a₁ (Ne.symm hout.1))
+      · rcases List.mem_cons.mp hup with he | hup'
+        · exact absurd he hd2t
+        · exact absurd (aboveIn_subset_mem hup') (hxo2' a₁' (Ne.symm hout.2))
+    · by_cases hjB : j = a₁'
+      · rw [hjB] at hj
+        rw [State.exchangeTwin_pile_other h₁ h₁' hne₁] at hj
+        rcases List.mem_append.mp hj with hlow | hup
+        · exact absurd (below_subset_mem hlow) (hxo2' a₁' (Ne.symm hout.2))
+        · rcases List.mem_cons.mp hup with he | hup'
+          · exact absurd he hd2t'
+          · exact absurd (aboveIn_subset_mem hup') (hxo2' a₁ (Ne.symm hout.1))
+      · by_cases hjᵣ : j = c₂'
+        · exact hjᵣ
+        · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hjA hjB] at hj
+          exact absurd hj (hxo2' j hjᵣ)
+
+/-- The staying shape: `t₂`'s host sits strictly below `t₁`'s seat in
+the shared pile, so the exchange at `t₁` preserves its position; the
+other host's pile `c₂'` is untouched. -/
+private theorem exch_relocate_below {st : State} {t₁ t₂ : Card} {a₁ a₁' c₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (hsh : st.pileHolding t₂ = some a₁)
+    (h₂' : st.pileHolding t₂.twin = some c₂')
+    (hout : c₂' ≠ a₁ ∧ c₂' ≠ a₁')
+    (hbelow : t₂ ∈ below t₁ ((st.piles a₁).faceUp)) :
+    (st.exchangeTwin t₁).pileHolding t₂ = some a₁ ∧
+      (st.exchangeTwin t₁).pileHolding t₂.twin = some c₂' := by
+  have hc2 : st.cardCount t₂ = 1 := hwf.2.2.1 t₂ (Card.mem_universe t₂)
+  have hT1 : t₁ ∈ (st.piles a₁).faceUp := pileHolding_mem h₁
+  have hT2 : t₂ ∈ (st.piles a₁).faceUp := pileHolding_mem hsh
+  have hT2' : t₂.twin ∈ (st.piles c₂').faceUp := pileHolding_mem h₂'
+  have hxo2 : ∀ p ≠ a₁, t₂ ∉ (st.piles p).faceUp :=
+    fun p hp => ((mem_faceUp_only hwf hT2).1 p hp).2
+  have hxo2' : ∀ p ≠ c₂', t₂.twin ∉ (st.piles p).faceUp :=
+    fun p hp => ((mem_faceUp_only hwf hT2').1 p hp).2
+  have hd2 : t₂ ≠ t₁ := by
+    intro hc; subst hc
+    exact absurd hbelow (below_not_mem _ _)
+  have hd2' : t₂ ≠ t₁.twin := by
+    intro hc; subst hc
+    exact hne₁ (pileHolding_inj hsh h₁')
+  have hd2t : t₂.twin ≠ t₁ := by
+    intro hc; rw [hc] at h₂'; exact hout.1 (pileHolding_inj h₂' h₁)
+  have hd2t' : t₂.twin ≠ t₁.twin := fun hc => hd2 (Card.twin_inj hc)
+  refine ⟨pileHolding_eq_of_unique (Anchor.mem_all a₁) ?_ ?_,
+    pileHolding_eq_of_unique (Anchor.mem_all c₂') ?_ ?_⟩
+  · rw [State.exchangeTwin_pile_self h₁ h₁' hne₁]
+    exact List.mem_append.mpr (Or.inl hbelow)
+  · intro j hj
+    by_cases hjB : j = a₁'
+    · rw [hjB] at hj
+      rw [State.exchangeTwin_pile_other h₁ h₁' hne₁] at hj
+      rcases List.mem_append.mp hj with hlow | hup
+      · exact absurd (below_subset_mem hlow) (hxo2 a₁' (Ne.symm hne₁))
+      · rcases List.mem_cons.mp hup with he | hup'
+        · exact absurd he hd2'
+        · exact absurd hbelow (not_mem_below_of_above hc2 hT1 hup')
+    · by_cases hjA : j = a₁
+      · exact hjA
+      · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hjA hjB] at hj
+        exact absurd hj (hxo2 j hjA)
+  · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hout.1 hout.2]
+    exact hT2'
+  · intro j hj
+    by_cases hjA : j = a₁
+    · rw [hjA] at hj
+      rw [State.exchangeTwin_pile_self h₁ h₁' hne₁] at hj
+      rcases List.mem_append.mp hj with hlow | hup
+      · exact absurd (below_subset_mem hlow) (hxo2' a₁ (Ne.symm hout.1))
+      · rcases List.mem_cons.mp hup with he | hup'
+        · exact absurd he hd2t
+        · exact absurd (aboveIn_subset_mem hup') (hxo2' a₁' (Ne.symm hout.2))
+    · by_cases hjB : j = a₁'
+      · rw [hjB] at hj
+        rw [State.exchangeTwin_pile_other h₁ h₁' hne₁] at hj
+        rcases List.mem_append.mp hj with hlow | hup
+        · exact absurd (below_subset_mem hlow) (hxo2' a₁' (Ne.symm hout.2))
+        · rcases List.mem_cons.mp hup with he | hup'
+          · exact absurd he hd2t'
+          · exact absurd (aboveIn_subset_mem hup') (hxo2' a₁ (Ne.symm hout.1))
+      · by_cases hjᵣ : j = c₂'
+        · exact hjᵣ
+        · rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hjA hjB] at hj
+          exact absurd hj (hxo2' j hjᵣ)
+
+/-- The riding shape: `t₂`'s host sits strictly above `t₁`'s seat in
+the shared pile, so the first exchange relocates it — the support the
+hazard was named for.  The composites still coincide: in both orders
+the riding suffix arrives whole at the twin host's pile, and the
+relocated host's exchange cuts it at the same depth. -/
+private theorem exch_comm_above {st : State} {t₁ t₂ : Card} {a₁ a₁' c₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (hsh : st.pileHolding t₂ = some a₁)
+    (h₂' : st.pileHolding t₂.twin = some c₂')
+    (hout : c₂' ≠ a₁ ∧ c₂' ≠ a₁')
+    (hride : t₂ ∈ aboveIn t₁ ((st.piles a₁).faceUp)) :
+    (st.exchangeTwin t₁).exchangeTwin t₂ = (st.exchangeTwin t₂).exchangeTwin t₁ := by
+  have hne₂c : a₁ ≠ c₂' := Ne.symm hout.1
+  have hne₂c' : a₁' ≠ c₂' := Ne.symm hout.2
+  have hc1 : st.cardCount t₁ = 1 := hwf.2.2.1 t₁ (Card.mem_universe t₁)
+  have hc2 : st.cardCount t₂ = 1 := hwf.2.2.1 t₂ (Card.mem_universe t₂)
+  have hT1 : t₁ ∈ (st.piles a₁).faceUp := pileHolding_mem h₁
+  have hT2 : t₂ ∈ (st.piles a₁).faceUp := pileHolding_mem hsh
+  have hxo2 : ∀ p ≠ a₁, t₂ ∉ (st.piles p).faceUp :=
+    fun p hp => ((mem_faceUp_only hwf hT2).1 p hp).2
+  have hd2 : t₂ ≠ t₁ := by
+    intro hc; subst hc
+    exact not_mem_own_aboveIn hc1 hT1 hride
+  have hd2' : t₂ ≠ t₁.twin := by
+    intro hc; subst hc
+    exact hne₁ (pileHolding_inj hsh h₁')
+  have hbelow1 : t₂ ∉ below t₁ ((st.piles a₁).faceUp) :=
+    not_mem_below_of_above hc2 hT1 hride
+  have hbelow2 : t₂ ∉ below t₁.twin ((st.piles a₁').faceUp) :=
+    fun hm => hxo2 a₁' (Ne.symm hne₁) (below_subset_mem hm)
+  -- the slot laws at st's shared pile: `t₂`'s seat cuts `t₁`'s suffix
+  have hFA1split : (st.piles a₁).faceUp
+      = below t₁ ((st.piles a₁).faceUp)
+        ++ t₁ :: aboveIn t₁ ((st.piles a₁).faceUp) := below_aboveIn_split hT1
+  have hslotFc : fromCard t₂ ((st.piles a₁).faceUp)
+      = fromCard t₂ (aboveIn t₁ ((st.piles a₁).faceUp)) := by
+    have hstep1 : fromCard t₂ ((st.piles a₁).faceUp)
+        = fromCard t₂ (below t₁ ((st.piles a₁).faceUp)
+            ++ t₁ :: aboveIn t₁ ((st.piles a₁).faceUp)) :=
+      congrArg (fromCard t₂) hFA1split
+    rw [hstep1, fromCard_append_notmem hbelow1, fromCard_cons_ne _ (fun hc => hd2 hc.symm)]
+  have hbelowSlot : below t₂ ((st.piles a₁).faceUp)
+      = below t₁ ((st.piles a₁).faceUp)
+        ++ t₁ :: below t₂ (aboveIn t₁ ((st.piles a₁).faceUp)) := by
+    have hstep2 : below t₂ ((st.piles a₁).faceUp)
+        = below t₂ (below t₁ ((st.piles a₁).faceUp)
+            ++ t₁ :: aboveIn t₁ ((st.piles a₁).faceUp)) :=
+      congrArg (below t₂) hFA1split
+    rw [hstep2, below_append_notmem hbelow1, below_cons_ne _ (fun hc => hd2 hc.symm)]
+  have haboveSlot : aboveIn t₂ ((st.piles a₁).faceUp)
+      = aboveIn t₂ (aboveIn t₁ ((st.piles a₁).faceUp)) := by
+    show (fromCard t₂ ((st.piles a₁).faceUp)).tail = _
+    rw [hslotFc]
+    rfl
+  -- the slot laws at σ₁'s written twin-pile (the relocated seat)
+  have hcontA' : ((st.exchangeTwin t₁).piles a₁').faceUp
+      = below t₁.twin ((st.piles a₁').faceUp)
+        ++ t₁.twin :: aboveIn t₁ ((st.piles a₁).faceUp) := by
+    rw [State.exchangeTwin_pile_other h₁ h₁' hne₁]
+  have hslotA2 : below t₂ (((st.exchangeTwin t₁).piles a₁').faceUp)
+      = below t₁.twin ((st.piles a₁').faceUp)
+        ++ t₁.twin :: below t₂ (aboveIn t₁ ((st.piles a₁).faceUp)) := by
+    rw [hcontA', below_append_notmem hbelow2,
+      below_cons_ne _ (fun hc => hd2' hc.symm)]
+  have hslotA3 : aboveIn t₂ (((st.exchangeTwin t₁).piles a₁').faceUp)
+      = aboveIn t₂ (aboveIn t₁ ((st.piles a₁).faceUp)) := by
+    show (fromCard t₂ (((st.exchangeTwin t₁).piles a₁').faceUp)).tail = _
+    rw [hcontA', fromCard_append_notmem hbelow2,
+      fromCard_cons_ne _ (fun hc => hd2' hc.symm)]
+    rfl
+  -- the slot laws at σ₂'s written shared pile (the preserved prefix)
+  have hcontB : ((st.exchangeTwin t₂).piles a₁).faceUp
+      = below t₁ ((st.piles a₁).faceUp)
+        ++ t₁ :: (below t₂ (aboveIn t₁ ((st.piles a₁).faceUp))
+            ++ t₂ :: aboveIn t₂.twin ((st.piles c₂').faceUp)) := by
+    rw [State.exchangeTwin_pile_self hsh h₂' hne₂c, hbelowSlot, List.append_assoc]
+    rfl
+  have hslotB1 : below t₁ (((st.exchangeTwin t₂).piles a₁).faceUp)
+      = below t₁ ((st.piles a₁).faceUp) := by
+    rw [hcontB, below_append_notmem (below_not_mem t₁ _), below_cons_self,
+      List.append_nil]
+  have hslotB2 : aboveIn t₁ (((st.exchangeTwin t₂).piles a₁).faceUp)
+      = below t₂ (aboveIn t₁ ((st.piles a₁).faceUp))
+        ++ t₂ :: aboveIn t₂.twin ((st.piles c₂').faceUp) := by
+    show (fromCard t₁ (((st.exchangeTwin t₂).piles a₁).faceUp)).tail = _
+    rw [hcontB, fromCard_append_notmem (below_not_mem t₁ _), fromCard_cons_self]
+    rfl
+  have hT1below : t₁ ∈ below t₂ ((st.piles a₁).faceUp) := by
+    rw [hbelowSlot]
+    exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+  -- the locatedness at both intermediate states
+  obtain ⟨hpA, hpB⟩ := exch_relocate_above hwf h₁ h₁' hne₁ hsh h₂' hout hride
+  obtain ⟨hmA, hmB⟩ := exch_relocate_below hwf hsh h₂' hne₂c h₁ h₁'
+    ⟨Ne.symm hne₁, hne₂c'⟩ hT1below
+  apply State.ext
+  · rw [State.exchangeTwin_found, State.exchangeTwin_found,
+      State.exchangeTwin_found, State.exchangeTwin_found]
+  · funext k
+    by_cases hkp : k = a₁
+    · rw [hkp, State.exchangeTwin_pile_ne hpA hpB hne₂c' hne₁ hne₂c,
+        State.exchangeTwin_pile_self h₁ h₁' hne₁,
+        State.exchangeTwin_pile_self hmA hmB hne₁,
+        hslotB1,
+        State.exchangeTwin_pile_self hsh h₂' hne₂c,
+        State.exchangeTwin_pile_ne hsh h₂' hne₂c (Ne.symm hne₁) hne₂c']
+    · by_cases hkp' : k = a₁'
+      · rw [hkp', State.exchangeTwin_pile_self hpA hpB hne₂c',
+          hslotA2,
+          State.exchangeTwin_pile_ne h₁ h₁' hne₁ hout.1 hout.2,
+          State.exchangeTwin_pile_other h₁ h₁' hne₁,
+          State.exchangeTwin_pile_other hmA hmB hne₁,
+          State.exchangeTwin_pile_ne hsh h₂' hne₂c (Ne.symm hne₁) hne₂c',
+          hslotB2,
+          List.append_assoc]
+        rfl
+      · by_cases hkp₂' : k = c₂'
+        · rw [hkp₂', State.exchangeTwin_pile_other hpA hpB hne₂c',
+            State.exchangeTwin_pile_ne h₁ h₁' hne₁ hout.1 hout.2,
+            hslotA3,
+            State.exchangeTwin_pile_ne hmA hmB hne₁ hout.1 hout.2,
+            State.exchangeTwin_pile_other hsh h₂' hne₂c,
+            haboveSlot]
+        · rw [State.exchangeTwin_pile_ne hpA hpB hne₂c' hkp' hkp₂',
+            State.exchangeTwin_pile_ne h₁ h₁' hne₁ hkp hkp',
+            State.exchangeTwin_pile_ne hmA hmB hne₁ hkp hkp',
+            State.exchangeTwin_pile_ne hsh h₂' hne₂c hkp hkp₂']
+  · rw [State.exchangeTwin_stock, State.exchangeTwin_stock,
+      State.exchangeTwin_stock, State.exchangeTwin_stock]
+  · rw [State.exchangeTwin_waste, State.exchangeTwin_waste,
+      State.exchangeTwin_waste, State.exchangeTwin_waste]
+  · rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep,
+      State.exchangeTwin_drawStep, State.exchangeTwin_drawStep]
+
+/-! ## The composite equalities (the commutation kit, private)
+
+Each census shape, one lemma: the two orders of stacking the exchanges
+write the same content everywhere.  The disjoint shape is the
+mechanical one — both composites are the four-pile superposition of
+`st`'s own data. -/
+
+/-- Disjoint host piles: both composites write the four piles from
+`st`'s own slice data, in either order, to the same effect. -/
+private theorem exch_comm_disjoint {st : State} {t₁ t₂ : Card}
+    {a₁ a₁' a₂ a₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (h₂ : st.pileHolding t₂ = some a₂) (h₂' : st.pileHolding t₂.twin = some a₂')
+    (hne₂ : a₂ ≠ a₂')
+    (hout : a₂ ≠ a₁ ∧ a₂ ≠ a₁' ∧ a₂' ≠ a₁ ∧ a₂' ≠ a₁') :
+    (st.exchangeTwin t₁).exchangeTwin t₂ = (st.exchangeTwin t₂).exchangeTwin t₁ := by
+  obtain ⟨hA, hB, hC, hD⟩ := hout
+  obtain ⟨hsA, hsB⟩ := exch_relocate_disjoint hwf h₁ h₁' hne₁ h₂ h₂' ⟨hA, hB, hC, hD⟩
+  obtain ⟨htA, htB⟩ := exch_relocate_disjoint hwf h₂ h₂' hne₂ h₁ h₁'
+    ⟨Ne.symm hA, Ne.symm hC, Ne.symm hB, Ne.symm hD⟩
+  apply State.ext
+  · rw [State.exchangeTwin_found, State.exchangeTwin_found,
+      State.exchangeTwin_found, State.exchangeTwin_found]
+  · funext k
+    by_cases hkp : k = a₁
+    · rw [hkp, State.exchangeTwin_pile_ne hsA hsB hne₂ (Ne.symm hA) (Ne.symm hC),
+        State.exchangeTwin_pile_self h₁ h₁' hne₁,
+        State.exchangeTwin_pile_self htA htB hne₁,
+        State.exchangeTwin_pile_ne h₂ h₂' hne₂ (Ne.symm hA) (Ne.symm hC),
+        State.exchangeTwin_pile_ne h₂ h₂' hne₂ (Ne.symm hB) (Ne.symm hD)]
+    · by_cases hkp' : k = a₁'
+      · rw [hkp', State.exchangeTwin_pile_ne hsA hsB hne₂ (Ne.symm hB) (Ne.symm hD),
+          State.exchangeTwin_pile_other h₁ h₁' hne₁,
+          State.exchangeTwin_pile_other htA htB hne₁,
+          State.exchangeTwin_pile_ne h₂ h₂' hne₂ (Ne.symm hA) (Ne.symm hC),
+          State.exchangeTwin_pile_ne h₂ h₂' hne₂ (Ne.symm hB) (Ne.symm hD)]
+      · by_cases hkp₂ : k = a₂
+        · rw [hkp₂, State.exchangeTwin_pile_self hsA hsB hne₂,
+            State.exchangeTwin_pile_ne h₁ h₁' hne₁ hA hB,
+            State.exchangeTwin_pile_ne h₁ h₁' hne₁ hC hD,
+            State.exchangeTwin_pile_ne htA htB hne₁ hA hB,
+            State.exchangeTwin_pile_self h₂ h₂' hne₂]
+        · by_cases hkp₂' : k = a₂'
+          · rw [hkp₂', State.exchangeTwin_pile_other hsA hsB hne₂,
+              State.exchangeTwin_pile_ne h₁ h₁' hne₁ hC hD,
+              State.exchangeTwin_pile_ne h₁ h₁' hne₁ hA hB,
+              State.exchangeTwin_pile_ne htA htB hne₁ hC hD,
+              State.exchangeTwin_pile_other h₂ h₂' hne₂]
+          · rw [State.exchangeTwin_pile_ne hsA hsB hne₂ hkp₂ hkp₂',
+              State.exchangeTwin_pile_ne h₁ h₁' hne₁ hkp hkp',
+              State.exchangeTwin_pile_ne htA htB hne₁ hkp hkp',
+              State.exchangeTwin_pile_ne h₂ h₂' hne₂ hkp₂ hkp₂']
+  · rw [State.exchangeTwin_stock, State.exchangeTwin_stock,
+      State.exchangeTwin_stock, State.exchangeTwin_stock]
+  · rw [State.exchangeTwin_waste, State.exchangeTwin_waste,
+      State.exchangeTwin_waste, State.exchangeTwin_waste]
+  · rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep,
+      State.exchangeTwin_drawStep, State.exchangeTwin_drawStep]
+
+/-! ## The stacked pair is empty (the commutation kit, private)
+
+The one family where the composites could algebraically fail — both
+second-pair hosts sitting in exactly the two first-pair piles — is
+derived-empty at licensed pairs.  Same-side placements contradict the
+bare clauses; mixed placements contradict the rank descent of a legal
+run.  No support hypothesis is owed on the commutation. -/
+
+/-- The parallel stacked shape is impossible at two licensed
+exchanges: the both-below and both-above placements die on the bare
+clauses, the mixed placements die on the rank descent. -/
+private theorem exch_stacked_par_absurd {st : State} {t₁ t₂ : Card}
+    {a₁ a₁' a₂ a₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (_hne₁ : a₁ ≠ a₁')
+    (hbare₁ : aboveIn t₁ ((st.piles a₁).faceUp) = [] ∨
+      aboveIn t₁.twin ((st.piles a₁').faceUp) = [])
+    (h₂ : st.pileHolding t₂ = some a₂) (h₂' : st.pileHolding t₂.twin = some a₂')
+    (_hne₂ : a₂ ≠ a₂')
+    (hbare₂ : aboveIn t₂ ((st.piles a₂).faceUp) = [] ∨
+      aboveIn t₂.twin ((st.piles a₂').faceUp) = [])
+    (hdist : t₂ ≠ t₁ ∧ t₂ ≠ t₁.twin)
+    (hpar : a₂ = a₁ ∧ a₂' = a₁') : False := by
+  obtain ⟨hP, hQ⟩ := hpar
+  have hT1 : t₁ ∈ (st.piles a₁).faceUp := pileHolding_mem h₁
+  have hT1' : t₁.twin ∈ (st.piles a₁').faceUp := pileHolding_mem h₁'
+  have hT2 : t₂ ∈ (st.piles a₁).faceUp := by rw [← hP]; exact pileHolding_mem h₂
+  have hT2' : t₂.twin ∈ (st.piles a₁').faceUp := by rw [← hQ]; exact pileHolding_mem h₂'
+  have hd4 : t₂.twin ≠ t₁.twin := fun hc => hdist.1 (Card.twin_inj hc)
+  have hrun₁ : runOK ((st.piles a₁).faceUp) = true := hwf.2.1 a₁
+  have hrun₁' : runOK ((st.piles a₁').faceUp) = true := hwf.2.1 a₁'
+  rcases below_or_aboveIn_of_mem hT1 hT2 hdist.1 with hbl | hab
+  · rcases below_or_aboveIn_of_mem hT1' hT2' hd4 with hbl' | hab'
+    · rcases hbare₂ with hb | hb
+      · rw [hP] at hb
+        exact absurd (aboveIn_of_below hdist.1 hT1 hbl) (by rw [hb]; simp)
+      · rw [hQ] at hb
+        exact absurd (aboveIn_of_below hd4 hT1' hbl') (by rw [hb]; simp)
+    · have e1 := rank_lt_of_below hrun₁ hdist.1 hT1 hbl
+      have e2 := rank_lt_of_aboveIn hrun₁' hab'
+      rw [Card.twin_rank, Card.twin_rank] at e2
+      omega
+  · rcases below_or_aboveIn_of_mem hT1' hT2' hd4 with hbl' | hab'
+    · have e1 := rank_lt_of_aboveIn hrun₁ hab
+      have e2 := rank_lt_of_below hrun₁' hd4 hT1' hbl'
+      rw [Card.twin_rank, Card.twin_rank] at e2
+      omega
+    · rcases hbare₁ with hb | hb
+      · exact absurd hab (by rw [hb]; simp)
+      · exact absurd hab' (by rw [hb]; simp)
+
+/-- The crossed stacked shape is the parallel shape read at the twin
+representative, so it is equally impossible. -/
+private theorem exch_stacked_cross_absurd {st : State} {t₁ t₂ : Card}
+    {a₁ a₁' a₂ a₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (hbare₁ : aboveIn t₁ ((st.piles a₁).faceUp) = [] ∨
+      aboveIn t₁.twin ((st.piles a₁').faceUp) = [])
+    (h₂ : st.pileHolding t₂ = some a₂) (h₂' : st.pileHolding t₂.twin = some a₂')
+    (_hne₂ : a₂ ≠ a₂')
+    (hbare₂ : aboveIn t₂ ((st.piles a₂).faceUp) = [] ∨
+      aboveIn t₂.twin ((st.piles a₂').faceUp) = [])
+    (hdist : t₂ ≠ t₁ ∧ t₂ ≠ t₁.twin)
+    (hcross : a₂ = a₁' ∧ a₂' = a₁) : False :=
+  exch_stacked_par_absurd hwf h₁' (by rw [Card.twin_twin]; exact h₁) (Ne.symm hne₁)
+    (hbare₁.elim (fun h => Or.inr (by rw [Card.twin_twin]; exact h)) Or.inl)
+    h₂ h₂' _hne₂ hbare₂
+    ⟨hdist.2, by
+      intro hc
+      rw [Card.twin_twin t₁] at hc
+      exact hdist.1 hc⟩
+    hcross
+
+/-- The staying shape: `t₂`'s host sits strictly below `t₁`'s seat in
+the shared pile, so the first exchange preserves its position in the
+kept prefix.  In the other order the first exchange at `t₂` sends
+`t₁`'s host (which rides `t₂`'s suffix) onto the `c₂'` pile; the
+composites still coincide — each order delivers the same blocks to
+the same piles. -/
+private theorem exch_comm_below {st : State} {t₁ t₂ : Card} {a₁ a₁' c₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (hsh : st.pileHolding t₂ = some a₁)
+    (h₂' : st.pileHolding t₂.twin = some c₂')
+    (hout : c₂' ≠ a₁ ∧ c₂' ≠ a₁')
+    (hbelow : t₂ ∈ below t₁ ((st.piles a₁).faceUp)) :
+    (st.exchangeTwin t₁).exchangeTwin t₂ = (st.exchangeTwin t₂).exchangeTwin t₁ := by
+  have hne₂c : a₁ ≠ c₂' := Ne.symm hout.1
+  have hne₂c' : a₁' ≠ c₂' := Ne.symm hout.2
+  have hc1 : st.cardCount t₁ = 1 := hwf.2.2.1 t₁ (Card.mem_universe t₁)
+  have hT1 : t₁ ∈ (st.piles a₁).faceUp := pileHolding_mem h₁
+  have hT2 : t₂ ∈ (st.piles a₁).faceUp := pileHolding_mem hsh
+  have hxo1 : ∀ p ≠ a₁, t₁ ∉ (st.piles p).faceUp :=
+    fun p hp => ((mem_faceUp_only hwf hT1).1 p hp).2
+  have hd2 : t₂ ≠ t₁ := by
+    intro hc; subst hc
+    exact absurd hbelow (below_not_mem _ _)
+  have hd2t : t₂.twin ≠ t₁ := by
+    intro hc; rw [hc] at h₂'
+    exact hout.1 (pileHolding_inj h₂' h₁)
+  -- the positional identities at the shared pile
+  have hT1above : t₁ ∈ aboveIn t₂ ((st.piles a₁).faceUp) :=
+    aboveIn_of_below hd2 hT1 hbelow
+  have hFA2split : (st.piles a₁).faceUp
+      = below t₂ ((st.piles a₁).faceUp)
+        ++ t₂ :: aboveIn t₂ ((st.piles a₁).faceUp) := below_aboveIn_split hT2
+  have hQ1 : t₁ ∉ below t₂ ((st.piles a₁).faceUp) :=
+    not_mem_below_of_above hc1 hT2 hT1above
+  have hhB1cut : below t₁ ((st.piles a₁).faceUp)
+      = below t₂ ((st.piles a₁).faceUp)
+        ++ t₂ :: below t₁ (aboveIn t₂ ((st.piles a₁).faceUp)) := by
+    have hst : below t₁ ((st.piles a₁).faceUp)
+        = below t₁ (below t₂ ((st.piles a₁).faceUp)
+            ++ t₂ :: aboveIn t₂ ((st.piles a₁).faceUp)) :=
+      congrArg (below t₁) hFA2split
+    rw [hst, below_append_notmem hQ1, below_cons_ne _ hd2]
+  have hKident : aboveIn t₂ (below t₁ ((st.piles a₁).faceUp))
+      = below t₁ (aboveIn t₂ ((st.piles a₁).faceUp)) := by
+    show (fromCard t₂ (below t₁ ((st.piles a₁).faceUp))).tail = _
+    rw [hhB1cut, fromCard_append_notmem (below_not_mem t₂ _), fromCard_cons_self]
+    rfl
+  have hFc1 : fromCard t₁ ((st.piles a₁).faceUp)
+      = fromCard t₁ (aboveIn t₂ ((st.piles a₁).faceUp)) := by
+    have hst : fromCard t₁ ((st.piles a₁).faceUp)
+        = fromCard t₁ (below t₂ ((st.piles a₁).faceUp)
+            ++ t₂ :: aboveIn t₂ ((st.piles a₁).faceUp)) :=
+      congrArg (fromCard t₁) hFA2split
+    rw [hst, fromCard_append_notmem hQ1, fromCard_cons_ne _ hd2]
+  -- the slot laws at σ₁'s written shared pile
+  have hcontA : ((st.exchangeTwin t₁).piles a₁).faceUp
+      = below t₁ ((st.piles a₁).faceUp)
+        ++ t₁ :: aboveIn t₁.twin ((st.piles a₁').faceUp) := by
+    rw [State.exchangeTwin_pile_self h₁ h₁' hne₁]
+  have hslotA1 : below t₂ (((st.exchangeTwin t₁).piles a₁).faceUp)
+      = below t₂ ((st.piles a₁).faceUp) := by
+    rw [hcontA, hhB1cut, List.append_assoc, List.cons_append,
+      below_append_notmem (below_not_mem t₂ _), below_cons_self, List.append_nil]
+  have hslotA2 : aboveIn t₂ (((st.exchangeTwin t₁).piles a₁).faceUp)
+      = below t₁ (aboveIn t₂ ((st.piles a₁).faceUp))
+        ++ t₁ :: aboveIn t₁.twin ((st.piles a₁').faceUp) := by
+    show (fromCard t₂ (((st.exchangeTwin t₁).piles a₁).faceUp)).tail = _
+    rw [hcontA, hhB1cut, List.append_assoc, List.cons_append,
+      fromCard_append_notmem (below_not_mem t₂ _), fromCard_cons_self]
+    rfl
+  -- the slot laws at σ₂'s written twin pile
+  have hcontC2' : ((st.exchangeTwin t₂).piles c₂').faceUp
+      = below t₂.twin ((st.piles c₂').faceUp)
+        ++ t₂.twin :: aboveIn t₂ ((st.piles a₁).faceUp) := by
+    rw [State.exchangeTwin_pile_other hsh h₂' hne₂c]
+  have hslotC1 : aboveIn t₁ (((st.exchangeTwin t₂).piles c₂').faceUp)
+      = aboveIn t₁ ((st.piles a₁).faceUp) := by
+    show (fromCard t₁ (((st.exchangeTwin t₂).piles c₂').faceUp)).tail = _
+    rw [hcontC2', fromCard_append_notmem
+        (fun hm => hxo1 c₂' hout.1 (below_subset_mem hm)),
+      fromCard_cons_ne _ hd2t, ← hFc1]
+    rfl
+  have hslotC2 : below t₁ (((st.exchangeTwin t₂).piles c₂').faceUp)
+      = below t₂.twin ((st.piles c₂').faceUp)
+        ++ t₂.twin :: below t₁ (aboveIn t₂ ((st.piles a₁).faceUp)) := by
+    rw [hcontC2', below_append_notmem
+        (fun hm => hxo1 c₂' hout.1 (below_subset_mem hm)),
+      below_cons_ne _ hd2t]
+  -- the locatedness at both intermediate states
+  obtain ⟨hpA, hpB⟩ := exch_relocate_below hwf h₁ h₁' hne₁ hsh h₂' hout hbelow
+  obtain ⟨hmA, hmB⟩ := exch_relocate_above hwf hsh h₂' hne₂c h₁ h₁'
+    ⟨Ne.symm hne₁, hne₂c'⟩ hT1above
+  apply State.ext
+  · rw [State.exchangeTwin_found, State.exchangeTwin_found,
+      State.exchangeTwin_found, State.exchangeTwin_found]
+  · funext k
+    by_cases hkp : k = a₁
+    · rw [hkp, State.exchangeTwin_pile_self hpA hpB hne₂c,
+        hslotA1,
+        State.exchangeTwin_pile_ne h₁ h₁' hne₁ hout.1 hout.2,
+        State.exchangeTwin_pile_self h₁ h₁' hne₁,
+        State.exchangeTwin_pile_ne hmA hmB hout.2 hne₂c hne₁,
+        State.exchangeTwin_pile_self hsh h₂' hne₂c]
+    · by_cases hkp' : k = a₁'
+      · rw [hkp', State.exchangeTwin_pile_ne hpA hpB hne₂c (Ne.symm hne₁) hne₂c',
+          State.exchangeTwin_pile_other h₁ h₁' hne₁,
+          State.exchangeTwin_pile_other hmA hmB hout.2,
+          State.exchangeTwin_pile_ne hsh h₂' hne₂c (Ne.symm hne₁) hne₂c',
+          hslotC1]
+      · by_cases hkp₂' : k = c₂'
+        · rw [hkp₂', State.exchangeTwin_pile_other hpA hpB hne₂c,
+            State.exchangeTwin_pile_ne h₁ h₁' hne₁ hout.1 hout.2,
+            hslotA2,
+            State.exchangeTwin_pile_self hmA hmB hout.2,
+            hslotC2,
+            State.exchangeTwin_pile_other hsh h₂' hne₂c,
+            State.exchangeTwin_pile_ne hsh h₂' hne₂c (Ne.symm hne₁) hne₂c']
+          rw [List.append_assoc]
+          simp only [List.cons_append]
+        · rw [State.exchangeTwin_pile_ne hpA hpB hne₂c hkp hkp₂',
+            State.exchangeTwin_pile_ne h₁ h₁' hne₁ hkp hkp',
+            State.exchangeTwin_pile_ne hmA hmB hout.2 hkp₂' hkp',
+            State.exchangeTwin_pile_ne hsh h₂' hne₂c hkp hkp₂']
+  · rw [State.exchangeTwin_stock, State.exchangeTwin_stock,
+      State.exchangeTwin_stock, State.exchangeTwin_stock]
+  · rw [State.exchangeTwin_waste, State.exchangeTwin_waste,
+      State.exchangeTwin_waste, State.exchangeTwin_waste]
+  · rw [State.exchangeTwin_drawStep, State.exchangeTwin_drawStep,
+      State.exchangeTwin_drawStep, State.exchangeTwin_drawStep]
+
+/-! ## The abelian pair group
+
+**`exchangeTwin_comm`** — the elementary-abelian-2 fact of the bare
+grade: two licensed exchanges commute, whatever their pile
+interaction.  The degenerate pair (the same twin pair twice) is the
+pair law alone; the disjoint piles write a four-pile superposition;
+the one shared pile splits by position — below (kept prefix) or above
+(riding suffix, the support-relocation hazard, which commutes anyway);
+and the would-be remaining family — both hosts of the second pair
+sitting in the two piles of the first — is *derived empty* at licensed
+pairs (same-side placements contradict the bare clauses, mixed
+placements contradict the rank descent of a legal run).  The
+hypothesis set is exactly two bare-license bundles: no support
+disjointness is owed, because the hazard's failing family cannot
+arise. -/
+
+/-- **The pair group is abelian**: exchanges at two licensed twin
+pairs, in either order, compose to the same state. -/
+theorem exchangeTwin_comm {st : State} {t₁ t₂ : Card} {a₁ a₁' a₂ a₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (hbare₁ : aboveIn t₁ ((st.piles a₁).faceUp) = [] ∨
+      aboveIn t₁.twin ((st.piles a₁').faceUp) = [])
+    (h₂ : st.pileHolding t₂ = some a₂) (h₂' : st.pileHolding t₂.twin = some a₂')
+    (hne₂ : a₂ ≠ a₂')
+    (hbare₂ : aboveIn t₂ ((st.piles a₂).faceUp) = [] ∨
+      aboveIn t₂.twin ((st.piles a₂').faceUp) = []) :
+    (st.exchangeTwin t₁).exchangeTwin t₂ = (st.exchangeTwin t₂).exchangeTwin t₁ := by
+  by_cases hdeg : t₂ = t₁ ∨ t₂ = t₁.twin
+  · rcases hdeg with rfl | hd
+    · rfl
+    · subst hd
+      rw [State.exchangeTwin_pair (st.exchangeTwin t₁) t₁,
+        State.exchangeTwin_pair st t₁]
+  · have hd1 : t₂ ≠ t₁ := fun h => hdeg (Or.inl h)
+    have hd2 : t₂ ≠ t₁.twin := fun h => hdeg (Or.inr h)
+    have hd3 : t₂.twin ≠ t₁ := by
+      intro hc
+      have hc2 : t₂.twin.twin = t₁.twin := congrArg Card.twin hc
+      rw [Card.twin_twin] at hc2
+      exact hd2 hc2
+    have hd4 : t₂.twin ≠ t₁.twin := fun hc => hd1 (Card.twin_inj hc)
+    by_cases hS : (a₂ = a₁ ∧ a₂' = a₁') ∨ (a₂ = a₁' ∧ a₂' = a₁)
+    · rcases hS with hp | hc
+      · exact (exch_stacked_par_absurd hwf h₁ h₁' hne₁ hbare₁ h₂ h₂' hne₂ hbare₂
+          ⟨hd1, hd2⟩ hp).elim
+      · exact (exch_stacked_cross_absurd hwf h₁ h₁' hne₁ hbare₁ h₂ h₂' hne₂ hbare₂
+          ⟨hd1, hd2⟩ hc).elim
+    · have hnp : ¬(a₂ = a₁ ∧ a₂' = a₁') := fun h => hS (Or.inl h)
+      have hnc : ¬(a₂ = a₁' ∧ a₂' = a₁) := fun h => hS (Or.inr h)
+      by_cases hA : a₂ = a₁
+      · have hoB : a₂' ≠ a₁ := fun h => hne₂ (hA.trans h.symm)
+        have hoD : a₂' ≠ a₁' := fun h => hnp ⟨hA, h⟩
+        have hT2a : t₂ ∈ (st.piles a₁).faceUp := by rw [← hA]; exact pileHolding_mem h₂
+        rcases below_or_aboveIn_of_mem (pileHolding_mem h₁) hT2a hd1 with hbl | hab
+        · exact exch_comm_below hwf h₁ h₁' hne₁ (by rw [← hA]; exact h₂)
+            h₂' ⟨hoB, hoD⟩ hbl
+        · exact exch_comm_above hwf h₁ h₁' hne₁ (by rw [← hA]; exact h₂)
+            h₂' ⟨hoB, hoD⟩ hab
+      · by_cases hB : a₂ = a₁'
+        · rw [← State.exchangeTwin_pair st t₁,
+            ← State.exchangeTwin_pair (st.exchangeTwin t₂) t₁]
+          have hoC : a₂' ≠ a₁ := fun h => hnc ⟨hB, h⟩
+          have hoD : a₂' ≠ a₁' := fun h => hne₂ (hB.trans h.symm)
+          have hT2b : t₂ ∈ (st.piles a₁').faceUp := by rw [← hB]; exact pileHolding_mem h₂
+          rcases below_or_aboveIn_of_mem (pileHolding_mem h₁') hT2b hd2 with hbl | hab
+          · exact exch_comm_below hwf h₁' (by rw [Card.twin_twin]; exact h₁)
+              (Ne.symm hne₁) (by rw [← hB]; exact h₂) h₂' ⟨hoD, hoC⟩ hbl
+          · exact exch_comm_above hwf h₁' (by rw [Card.twin_twin]; exact h₁)
+              (Ne.symm hne₁) (by rw [← hB]; exact h₂) h₂' ⟨hoD, hoC⟩ hab
+        · by_cases hC : a₂' = a₁
+          · rw [← State.exchangeTwin_pair st t₂,
+              ← State.exchangeTwin_pair (st.exchangeTwin t₁) t₂]
+            have hT2c : t₂.twin ∈ (st.piles a₁).faceUp := by rw [← hC]; exact pileHolding_mem h₂'
+            rcases below_or_aboveIn_of_mem (pileHolding_mem h₁) hT2c hd3 with hbl | hab
+            · exact exch_comm_below hwf h₁ h₁' hne₁ (by rw [← hC]; exact h₂')
+                (by rw [Card.twin_twin]; exact h₂) ⟨hA, hB⟩ hbl
+            · exact exch_comm_above hwf h₁ h₁' hne₁ (by rw [← hC]; exact h₂')
+                (by rw [Card.twin_twin]; exact h₂) ⟨hA, hB⟩ hab
+          · by_cases hD : a₂' = a₁'
+            · rw [← State.exchangeTwin_pair st t₁,
+                ← State.exchangeTwin_pair (st.exchangeTwin t₂) t₁,
+                ← State.exchangeTwin_pair st t₂,
+                ← State.exchangeTwin_pair (st.exchangeTwin t₁.twin) t₂]
+              have hT2d : t₂.twin ∈ (st.piles a₁').faceUp := by
+                rw [← hD]; exact pileHolding_mem h₂'
+              rcases below_or_aboveIn_of_mem (pileHolding_mem h₁') hT2d hd4 with hbl | hab
+              · exact exch_comm_below hwf h₁' (by rw [Card.twin_twin]; exact h₁)
+                  (Ne.symm hne₁) (by rw [← hD]; exact h₂')
+                  (by rw [Card.twin_twin]; exact h₂) ⟨hB, hA⟩ hbl
+              · exact exch_comm_above hwf h₁' (by rw [Card.twin_twin]; exact h₁)
+                  (Ne.symm hne₁) (by rw [← hD]; exact h₂')
+                  (by rw [Card.twin_twin]; exact h₂) ⟨hB, hA⟩ hab
+            · exact exch_comm_disjoint hwf h₁ h₁' hne₁ h₂ h₂' hne₂ ⟨hA, hB, hC, hD⟩
+
+/-! ## The license descent (the commutation's companion)
+
+After one licensed exchange at `t₁`, the other pair's license survives:
+both second-pair hosts re-anchor face up in distinct piles, and the
+bare clause transports — the riding host's suffix rides whole, the
+staying host's twin keeps its bare pile, the disjoint hosts keep
+theirs.  This is the unpacked twin of the quotient chapter's
+`TwinExchOK_exchangeTwin` for the *other* pair. -/
+
+/-- The descent, normalized shape: the second pair's first host sits
+in the shared pile `a₁`, its twin outside in `c₂'`. -/
+private theorem exch_other_located_a1 {st : State} {t₁ t₂ : Card} {a₁ a₁' c₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (hsh : st.pileHolding t₂ = some a₁)
+    (h₂' : st.pileHolding t₂.twin = some c₂')
+    (hout : c₂' ≠ a₁ ∧ c₂' ≠ a₁')
+    (hbare₂ : aboveIn t₂ ((st.piles a₁).faceUp) = [] ∨
+      aboveIn t₂.twin ((st.piles c₂').faceUp) = [])
+    (hpos : t₂ ∈ below t₁ ((st.piles a₁).faceUp) ∨
+      t₂ ∈ aboveIn t₁ ((st.piles a₁).faceUp)) :
+    ∃ b b', (st.exchangeTwin t₁).pileHolding t₂ = some b ∧
+      (st.exchangeTwin t₁).pileHolding t₂.twin = some b' ∧ b ≠ b' ∧
+      (aboveIn t₂ ((st.exchangeTwin t₁).piles b).faceUp = [] ∨
+        aboveIn t₂.twin ((st.exchangeTwin t₁).piles b').faceUp = []) := by
+  have hne₂c : a₁ ≠ c₂' := Ne.symm hout.1
+  have hne₂c' : a₁' ≠ c₂' := Ne.symm hout.2
+  have hT1 : t₁ ∈ (st.piles a₁).faceUp := pileHolding_mem h₁
+  have hT2 : t₂ ∈ (st.piles a₁).faceUp := pileHolding_mem hsh
+  have hc1 : st.cardCount t₁ = 1 := hwf.2.2.1 t₁ (Card.mem_universe t₁)
+  have hc2 : st.cardCount t₂ = 1 := hwf.2.2.1 t₂ (Card.mem_universe t₂)
+  rcases hpos with hbl | hab
+  · obtain ⟨hpA, hpB⟩ :=
+      exch_relocate_below hwf h₁ h₁' hne₁ hsh h₂' hout hbl
+    have hd2t : t₂ ≠ t₁ := by
+      intro hc; rw [hc] at hbl
+      exact absurd hbl (below_not_mem t₁ _)
+    refine ⟨a₁, c₂', hpA, hpB, hne₂c, ?_⟩
+    rcases hbare₂ with h | h
+    · -- the staying host's suffix above is never empty (the first
+      -- host rides above it), so the bare clause is the twin's side
+      exact absurd (aboveIn_of_below hd2t hT1 hbl) (by rw [h]; simp)
+    · right
+      rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hout.1 hout.2]
+      exact h
+  · obtain ⟨hpA, hpB⟩ :=
+      exch_relocate_above hwf h₁ h₁' hne₁ hsh h₂' hout hab
+    have hd2 : t₂ ≠ t₁ := by
+      intro hc; rw [hc] at hab
+      exact absurd hab (not_mem_own_aboveIn hc1 hT1)
+    have hbelow1 : t₂ ∉ below t₁ ((st.piles a₁).faceUp) :=
+      not_mem_below_of_above hc2 hT1 hab
+    have hbelow2 : t₂ ∉ below t₁.twin ((st.piles a₁').faceUp) :=
+      fun hm => ((mem_faceUp_only hwf hT2).1 a₁' (Ne.symm hne₁)).2 (below_subset_mem hm)
+    have hd2' : t₂ ≠ t₁.twin := by
+      intro hc; rw [hc] at hsh
+      exact hne₁ (pileHolding_inj hsh h₁')
+    have hFc1 : fromCard t₂ ((st.piles a₁).faceUp)
+        = fromCard t₂ (aboveIn t₁ ((st.piles a₁).faceUp)) := by
+      have hst : fromCard t₂ ((st.piles a₁).faceUp)
+          = fromCard t₂ (below t₁ ((st.piles a₁).faceUp)
+              ++ t₁ :: aboveIn t₁ ((st.piles a₁).faceUp)) :=
+        congrArg (fromCard t₂) (below_aboveIn_split hT1)
+      rw [hst, fromCard_append_notmem hbelow1, fromCard_cons_ne _ (fun hc => hd2 hc.symm)]
+    refine ⟨a₁', c₂', hpA, hpB, hne₂c', ?_⟩
+    rcases hbare₂ with h | h
+    · left
+      have hcontA' : ((st.exchangeTwin t₁).piles a₁').faceUp
+          = below t₁.twin ((st.piles a₁').faceUp)
+            ++ t₁.twin :: aboveIn t₁ ((st.piles a₁).faceUp) := by
+        rw [State.exchangeTwin_pile_other h₁ h₁' hne₁]
+      have hslot : aboveIn t₂ ((st.exchangeTwin t₁).piles a₁').faceUp
+          = aboveIn t₂ ((st.piles a₁).faceUp) := by
+        show (fromCard t₂ ((st.exchangeTwin t₁).piles a₁').faceUp).tail
+          = (fromCard t₂ ((st.piles a₁).faceUp)).tail
+        rw [hcontA', fromCard_append_notmem hbelow2,
+          fromCard_cons_ne _ (fun hc => hd2' hc.symm), hFc1]
+      rw [hslot, h]
+    · right
+      rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hout.1 hout.2]
+      exact h
+
+/-- **The license descent across pairs**: after one licensed
+exchange at `t₁`, the other licensed pair's exchange still has its
+located shape — both hosts re-anchor face up in distinct piles, and
+the bare clause transports (the riding host's suffix rides whole, the
+staying host's twin keeps its bare pile, the disjoint hosts keep
+theirs).  The degenerate pair descends through the hosts-stable
+substrate; the stacked family cannot arise.  This is the unpacked
+twin of the quotient chapter's `TwinExchOK_exchangeTwin` for the
+*other* pair, and the commutation's license companion. -/
+theorem exchangeTwin_other_located {st : State} {t₁ t₂ : Card}
+    {a₁ a₁' a₂ a₂' : Anchor}
+    (hwf : st.WF)
+    (h₁ : st.pileHolding t₁ = some a₁) (h₁' : st.pileHolding t₁.twin = some a₁')
+    (hne₁ : a₁ ≠ a₁')
+    (hbare₁ : aboveIn t₁ ((st.piles a₁).faceUp) = [] ∨
+      aboveIn t₁.twin ((st.piles a₁').faceUp) = [])
+    (h₂ : st.pileHolding t₂ = some a₂) (h₂' : st.pileHolding t₂.twin = some a₂')
+    (hne₂ : a₂ ≠ a₂')
+    (hbare₂ : aboveIn t₂ ((st.piles a₂).faceUp) = [] ∨
+      aboveIn t₂.twin ((st.piles a₂').faceUp) = []) :
+    ∃ b b', (st.exchangeTwin t₁).pileHolding t₂ = some b ∧
+      (st.exchangeTwin t₁).pileHolding t₂.twin = some b' ∧ b ≠ b' ∧
+      (aboveIn t₂ ((st.exchangeTwin t₁).piles b).faceUp = [] ∨
+        aboveIn t₂.twin ((st.exchangeTwin t₁).piles b').faceUp = []) := by
+  have hc1 : st.cardCount t₁ = 1 := hwf.2.2.1 t₁ (Card.mem_universe t₁)
+  have hc1' : st.cardCount t₁.twin = 1 := hwf.2.2.1 t₁.twin (Card.mem_universe t₁.twin)
+  by_cases hdeg : t₂ = t₁ ∨ t₂ = t₁.twin
+  · rcases hdeg with rfl | hd
+    · -- the same pair, first representative
+      obtain ⟨hpA, hpB⟩ := State.exchangeTwin_hosts_stable h₁ h₁' hne₁ hc1 hc1'
+      rw [pileHolding_inj h₂ h₁, pileHolding_inj h₂' h₁'] at hbare₂
+      refine ⟨a₁, a₁', hpA, hpB, hne₁, ?_⟩
+      rcases hbare₂ with h | h
+      · right; rw [State.exchangeTwin_aboveIn_other h₁ h₁' hne₁]; exact h
+      · left; rw [State.exchangeTwin_aboveIn_self h₁ h₁' hne₁]; exact h
+    · -- the same pair, twin representative
+      subst hd
+      obtain ⟨hpA, hpB⟩ := State.exchangeTwin_hosts_stable h₁ h₁' hne₁ hc1 hc1'
+      rw [pileHolding_inj h₂ h₁', Card.twin_twin] at hbare₂
+      rw [Card.twin_twin] at h₂'
+      rw [pileHolding_inj h₂' h₁] at hbare₂
+      have hpA' : (st.exchangeTwin t₁).pileHolding t₁.twin.twin = some a₁ := by
+        rw [Card.twin_twin]
+        exact hpA
+      refine ⟨a₁', a₁, hpB, hpA', Ne.symm hne₁, ?_⟩
+      rcases hbare₂ with h | h
+      · right
+        rw [Card.twin_twin, State.exchangeTwin_aboveIn_self h₁ h₁' hne₁]
+        exact h
+      · left
+        rw [State.exchangeTwin_aboveIn_other h₁ h₁' hne₁]
+        exact h
+  · have hd1 : t₂ ≠ t₁ := fun h => hdeg (Or.inl h)
+    have hd2 : t₂ ≠ t₁.twin := fun h => hdeg (Or.inr h)
+    have hd3 : t₂.twin ≠ t₁ := by
+      intro hc
+      have hc2 : t₂.twin.twin = t₁.twin := congrArg Card.twin hc
+      rw [Card.twin_twin] at hc2
+      exact hd2 hc2
+    have hd4 : t₂.twin ≠ t₁.twin := fun hc => hd1 (Card.twin_inj hc)
+    by_cases hS : (a₂ = a₁ ∧ a₂' = a₁') ∨ (a₂ = a₁' ∧ a₂' = a₁)
+    · rcases hS with hp | hc
+      · exact (exch_stacked_par_absurd hwf h₁ h₁' hne₁ hbare₁ h₂ h₂' hne₂ hbare₂
+          ⟨hd1, hd2⟩ hp).elim
+      · exact (exch_stacked_cross_absurd hwf h₁ h₁' hne₁ hbare₁ h₂ h₂' hne₂ hbare₂
+          ⟨hd1, hd2⟩ hc).elim
+    · have hnp : ¬(a₂ = a₁ ∧ a₂' = a₁') := fun h => hS (Or.inl h)
+      have hnc : ¬(a₂ = a₁' ∧ a₂' = a₁) := fun h => hS (Or.inr h)
+      by_cases hA : a₂ = a₁
+      · rw [hA] at hbare₂
+        have hoB : a₂' ≠ a₁ := fun h => hne₂ (hA.trans h.symm)
+        have hoD : a₂' ≠ a₁' := fun h => hnp ⟨hA, h⟩
+        have hT2a : t₂ ∈ (st.piles a₁).faceUp := by rw [← hA]; exact pileHolding_mem h₂
+        rcases below_or_aboveIn_of_mem (pileHolding_mem h₁) hT2a hd1 with hbl | hab
+        · exact exch_other_located_a1 hwf h₁ h₁' hne₁ (by rw [← hA]; exact h₂) h₂'
+            ⟨hoB, hoD⟩ hbare₂ (Or.inl hbl)
+        · exact exch_other_located_a1 hwf h₁ h₁' hne₁ (by rw [← hA]; exact h₂) h₂'
+            ⟨hoB, hoD⟩ hbare₂ (Or.inr hab)
+      · by_cases hB : a₂ = a₁'
+        · rw [hB] at hbare₂
+          have hoC : a₂' ≠ a₁ := fun h => hnc ⟨hB, h⟩
+          have hoD : a₂' ≠ a₁' := fun h => hne₂ (hB.trans h.symm)
+          have hT2b : t₂ ∈ (st.piles a₁').faceUp := by rw [← hB]; exact pileHolding_mem h₂
+          rcases below_or_aboveIn_of_mem (pileHolding_mem h₁') hT2b hd2 with hbl | hab
+          · obtain ⟨b, b', fac1, fac2, hne, hbh⟩ :=
+              exch_other_located_a1 hwf h₁' (by rw [Card.twin_twin]; exact h₁)
+                (Ne.symm hne₁) (by rw [← hB]; exact h₂) h₂' ⟨hoD, hoC⟩ hbare₂ (Or.inl hbl)
+            rw [State.exchangeTwin_pair st t₁] at fac1 fac2 hbh
+            exact ⟨b, b', fac1, fac2, hne, hbh⟩
+          · obtain ⟨b, b', fac1, fac2, hne, hbh⟩ :=
+              exch_other_located_a1 hwf h₁' (by rw [Card.twin_twin]; exact h₁)
+                (Ne.symm hne₁) (by rw [← hB]; exact h₂) h₂' ⟨hoD, hoC⟩ hbare₂ (Or.inr hab)
+            rw [State.exchangeTwin_pair st t₁] at fac1 fac2 hbh
+            exact ⟨b, b', fac1, fac2, hne, hbh⟩
+        · by_cases hC : a₂' = a₁
+          · -- the twin representative of the second pair rides the shared pile
+            have hbar : aboveIn t₂.twin ((st.piles a₁).faceUp) = [] ∨
+                aboveIn t₂.twin.twin ((st.piles a₂).faceUp) = [] := by
+              rcases hbare₂ with h | h
+              · exact Or.inr (by rw [Card.twin_twin]; exact h)
+              · rw [hC] at h
+                exact Or.inl h
+            have hpos : t₂.twin ∈ below t₁ ((st.piles a₁).faceUp) ∨
+                t₂.twin ∈ aboveIn t₁ ((st.piles a₁).faceUp) := by
+              have hT2c : t₂.twin ∈ (st.piles a₁).faceUp := by
+                rw [← hC]; exact pileHolding_mem h₂'
+              rcases below_or_aboveIn_of_mem (pileHolding_mem h₁) hT2c hd3 with hbl | hab
+              · exact Or.inl hbl
+              · exact Or.inr hab
+            obtain ⟨b, b', fac1, fac2, hne, hbh⟩ :=
+              exch_other_located_a1 hwf h₁ h₁' hne₁ (by rw [← hC]; exact h₂')
+                (by rw [Card.twin_twin]; exact h₂) ⟨hA, hB⟩ hbar hpos
+            have fac2' := fac2
+            rw [Card.twin_twin] at fac2'
+            rcases hbh with h | h
+            · exact ⟨b', b, fac2', fac1, Ne.symm hne, Or.inr h⟩
+            · rw [Card.twin_twin] at h
+              exact ⟨b', b, fac2', fac1, Ne.symm hne, Or.inl h⟩
+          · by_cases hD : a₂' = a₁'
+            · -- both representatives swapped
+              have hbar : aboveIn t₂.twin ((st.piles a₁').faceUp) = [] ∨
+                  aboveIn t₂.twin.twin ((st.piles a₂).faceUp) = [] := by
+                rcases hbare₂ with h | h
+                · exact Or.inr (by rw [Card.twin_twin]; exact h)
+                · rw [hD] at h
+                  exact Or.inl h
+              have hpos : t₂.twin ∈ below t₁.twin ((st.piles a₁').faceUp) ∨
+                  t₂.twin ∈ aboveIn t₁.twin ((st.piles a₁').faceUp) := by
+                have hT2d : t₂.twin ∈ (st.piles a₁').faceUp := by
+                  rw [← hD]; exact pileHolding_mem h₂'
+                rcases below_or_aboveIn_of_mem (pileHolding_mem h₁') hT2d hd4 with hbl | hab
+                · exact Or.inl hbl
+                · exact Or.inr hab
+              obtain ⟨b, b', fac1, fac2, hne, hbh⟩ :=
+                exch_other_located_a1 hwf h₁' (by rw [Card.twin_twin]; exact h₁)
+                  (Ne.symm hne₁) (by rw [← hD]; exact h₂')
+                  (by rw [Card.twin_twin]; exact h₂) ⟨hB, hA⟩ hbar hpos
+              rw [State.exchangeTwin_pair st t₁] at fac1 fac2 hbh
+              have fac2' := fac2
+              rw [Card.twin_twin] at fac2'
+              rcases hbh with h | h
+              · exact ⟨b', b, fac2', fac1, Ne.symm hne, Or.inr h⟩
+              · rw [Card.twin_twin] at h
+                exact ⟨b', b, fac2', fac1, Ne.symm hne, Or.inl h⟩
+            · -- disjoint piles
+              obtain ⟨hpA, hpB⟩ :=
+                exch_relocate_disjoint hwf h₁ h₁' hne₁ h₂ h₂' ⟨hA, hB, hC, hD⟩
+              refine ⟨a₂, a₂', hpA, hpB, hne₂, ?_⟩
+              rcases hbare₂ with h | h
+              · left
+                rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hA hB]
+                exact h
+              · right
+                rw [State.exchangeTwin_pile_ne h₁ h₁' hne₁ hC hD]
+                exact h
