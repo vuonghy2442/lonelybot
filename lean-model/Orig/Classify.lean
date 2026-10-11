@@ -2301,12 +2301,7 @@ theorem tabToTabClass {st : State} (hwf : st.WF) (c : Card) (b : Base) :
                               hkeep hcN)
                       | inr z' =>
                           obtain ⟨k, hk₀, -⟩ := canPlace_inr hcp
-                          have hka : k ≠ a := fun hcon =>
-                            canPlace_inr_target_pile_ne hwf hcp (pileHolding_mem hh)
-                              (hk₀.trans (congrArg some hcon))
-                          have hcN : c ∉ (st.piles k).faceUp :=
-                            (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1
-                          -- the mid pin: the source pile is topless at mid (it was
+                          obtain ⟨hka, hcN⟩ := canPlace_inr_seat hwf hh hcp hk₀
                           -- emptied), so the card search pins pile k alone
                           have hmidK : (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k
                               = st.piles k := by
@@ -2588,11 +2583,8 @@ theorem tabToTab_reversibleAtW_bare_king_wf {st : State} {c : Card} {b : Base}
         hkeep hcN
   | inr z' =>
       obtain ⟨k, hk₀, -⟩ := canPlace_inr hcp
-      have hka : k ≠ a := fun hcon =>
-        canPlace_inr_target_pile_ne hwf hcp (pileHolding_mem hh)
-          (hk₀.trans (congrArg some hcon))
-      have hcN : c ∉ (st.piles k).faceUp :=
-        (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1
+      obtain ⟨hka, hcN⟩ := canPlace_inr_seat hwf hh hcp hk₀
+
       -- the mid pin: the source pile is topless at mid (it was
       -- emptied), so the card search pins pile k alone
       have hmidK : (st.setPile a ⟨[], ([] : List Card)⟩ : State).piles k
@@ -2738,11 +2730,8 @@ theorem tabToTab_reversibleAtW_under_wf {st : State} {c : Card} {b : Base}
         hkeep hcN hzOnly hzK
   | inr z' =>
       obtain ⟨k, hk₀, -⟩ := canPlace_inr hcp
-      have hka : k ≠ a := fun hcon =>
-        canPlace_inr_target_pile_ne hwf hcp (pileHolding_mem hh)
-          (hk₀.trans (congrArg some hcon))
-      have hcN : c ∉ (st.piles k).faceUp :=
-        (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1
+      obtain ⟨hka, hcN⟩ := canPlace_inr_seat hwf hh hcp hk₀
+
       have hzK : (st.piles k).top ≠ some z :=
         wf_no_other_top hwf hzmem k hka
       have hz'mem : z' ∈ (st.piles k).faceUp :=

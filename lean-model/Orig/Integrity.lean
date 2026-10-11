@@ -671,6 +671,20 @@ theorem canPlace_inr_target_pile_ne {st : State} {c z : Card} {a : Anchor}
       · cases hnil
   · exact Bool.noConfusion hcp
 
+/-- The located `inr`-landing's seat facts, derived from the three
+public inputs the undo arms hold anyway: the located pile differs
+from the card's own seat, and the card is not in it (the derived
+pair four chapter sites restated apiece before this row). -/
+theorem canPlace_inr_seat {st : State} {c z : Card} {k a : Anchor}
+    (hwf : st.WF) (hh : st.pileHolding c = some a)
+    (hcp : st.canPlace c (Sum.inr z) = true)
+    (hk₀ : st.pileOfTop z = some k) :
+    k ≠ a ∧ c ∉ (st.piles k).faceUp := by
+  have hka : k ≠ a := fun hcon =>
+    canPlace_inr_target_pile_ne hwf hcp (pileHolding_mem hh)
+      (hk₀.trans (congrArg some hcon))
+  exact ⟨hka, (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1⟩
+
 /-- The empty-seat branch never aims at the mover's own pile either:
 `canPlace` demands the seat be empty while pile `a` holds `c` face
 up.  (WF-free, like the branch's own condition.) -/
