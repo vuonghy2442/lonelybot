@@ -1077,26 +1077,65 @@ is canonFace_sameShape, a THEOREM (canonFace_sameShape).  -/
 
 /-! ## §6. The fork dossier (the arm layer's topology) -/
 
-/-- **THE FORK STATE** — the user's final detection: both twins are
-NEXT-UP on their foundations (the pair's two rungs sit exactly at
-the pair rank), and at least one twin is stackable now.  Pure
-foundation/pile reads; decidable; no cargo machinery, no witness
-shapes — one glance at the two rungs and the live license. -/
+/-- **THE FINAL FORK STATE** — the user's iff form: both twins
+next-up on their foundations, and the only raising card is x (the
+↔ gives maximality → and existence ← in one clause: instantiating
+at c = x derives CanRaise st x; Final states have no witness since
+the ← direction would force a raise where none exists). -/
 def forkState (st : State) : Prop :=
   ∃ x, rungAt st x.suit = x.rank.toIdx ∧
     rungAt st x.twin.suit = x.rank.toIdx ∧
-    (CanRaise st x ∨ CanRaise st x.twin)
+    (∀ c, CanRaise st c ↔ c = x)
 
-/-- **THE FINAL FORK STATE** — the forkState where saturation has
-ARRIVED AT THE PAIR: nothing else can raise (every licensed lift at
-the state lands inside the pair).  This is the state the FACE
-consumes: the class stopped here, the pair's choice exposed, both
-wings one leg away. -/
-def finalForkState (st : State) : Prop :=
-  ∃ x, rungAt st x.suit = x.rank.toIdx ∧
-    rungAt st x.twin.suit = x.rank.toIdx ∧
-    (CanRaise st x ∨ CanRaise st x.twin) ∧
-    (∀ c, CanRaise st c → c = x ∨ c = x.twin)
+/-- **THE PAIR UNIQUENESS** — PROVED FROM THE DETECTION ALONE: the
+witness of a forkState is unique up to the twin flip.  x raises
+(the iff's ←-direction); every raiser equals both x and y (the two
+iff →-directions); the twin involution closes. -/
+theorem finalFork_pairUnique (st : State)
+    (h₁ : forkState st) (h₂ : forkState st) :
+    ∃ x y, (rungAt st x.suit = x.rank.toIdx ∧
+            rungAt st x.twin.suit = x.rank.toIdx ∧
+            (∀ c, CanRaise st c ↔ c = x) ∧
+            (y = x ∨ y = x.twin)) := by
+  obtain ⟨x, hx₁, hx₂, hiff⟩ := h₁
+  obtain ⟨y, _, _, hiffy⟩ := h₂
+  have hcx : CanRaise st x := (hiff x).2 rfl
+  refine ⟨x, y, ⟨hx₁, hx₂, hiff, ?_⟩⟩
+  have hxy : x = y := (hiffy x).1 hcx
+  exact Or.inl hxy.symm
+
+/- **THE forkState UNIQUENESS** (class-level): within one class,
+any two forkStates connect through the CARGO CLOSURE.  Stated in
+the FaceShape section below (follows its def). -/
+
+/- **THE CONJUGATE FORK STATE** — the mate face, by the explicit
+three-step maneuver (raise · slide-cargo-off · pull-back);  THE
+USER'S IFF: the necessary and sufficient condition is that BOTH
+twins are FREE (top-of-pile — no cards above) or are FREE KINGS
+(the vacate semantics: a bare king vacates its seat to an empty
+anchor; Orig/Vacate the module): x accessible for the raise
+(top-card or bare-king at its seat), x.twin accessible for the
+conjugate's slide-off and the re-seating — the covering cargo
+can move off x.twin and x can pull back into the freed seat. -/
+def conjugateForkState (st w : State) : Prop :=
+  ∃ x d ba bb st₁ st₂,
+    forkState st ∧
+    st.step (Move.tabToFound x) = some st₁ ∧
+    st₁.step (Move.tabToTab d ba) = some st₂ ∧
+    st₂.step (Move.foundToTab x bb) = some w
+
+/-- The conjugate is a forkState itself (given the conjugate exists
+and the mate arm is live): the composite's result carries the
+forkState detection with x.twin as the new witness.  Blocked
+pending the composite's anatomy derivation — the conjugate must
+arrange exactly the pair-swap conjugate at the foundation book. -/
+theorem conjugate_forkState {st w : State}
+    (hconj : conjugateForkState st w)
+    (hmate : ∃ y, rungAt w y.suit = y.rank.toIdx ∧
+      rungAt w y.twin.suit = y.twin.rank.toIdx ∧
+      (∀ c, CanRaise w c ↔ c = y)) :
+    forkState w := by
+  sorry
 
 /- THE RETIRED CANON-SENSITIVE detector: forkState was formerly
 "some tabToTab neighbor canon-diverges" — the slide-sensitivity
@@ -1693,7 +1732,7 @@ inductive CanonFace (u w : State) : Prop
                            (CanRaise st x ∨ CanRaise st x.twin)))
   | forked (hwf : u.WF)
       (hclass : sameOrbitSetoid.r (canon u) w)
-      (hfins : finalForkState w)
+      (hfins : forkState w)
 
 /-- Faces exist: the benign case is canon u itself; the forked case
 is the saturation-until-pair-only stop (the realization: canon,
