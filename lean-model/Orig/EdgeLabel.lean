@@ -229,10 +229,16 @@ disjointness cells, and the pair-move character.  What stands:
   (every wasteEntry-c target carries the computed datum image of its
   source — cycle one lower, the pool dropped of `c` through the
   poolDrop arithmetic, hidden and roots verbatim per arm — the sameDatums
-  lift with the core as soundness, the honest substitute for the
-  refused class collapse, and the row that upgrades to
+  lift with the core as soundness, the honest substitute for
+  the refused class collapse, and the row that upgrades to
   computable-at-canonical once the sibling card's commutation laws
-  land).
+  land — **LANDED, the upgrade in**: the canlaw rows ride in the base
+  and the fiber now computes at the canonical representative
+  `tipEdge_wasteEntry_datum_canonical`, over the canon-computable
+  `datumOf` kernel `MacroDatums.of_canon`/`datumOf_canon`, with the
+  lease-graded exit coincidence `tipEdge_wasteEntry_canonFiber`
+  consuming `wasteEntry_bothRoutes_canonical` at the `CanonicalTip`
+  premise — the tab-seat base check paid in the canon-premise grade).
 * **milestone status**: COMPLETE in this module — the member-form
   restatement is done, the edge-labeling theorem's full arc landed at
   the member grade (the quotient datum kernel, the journey-invariant
@@ -370,14 +376,22 @@ sibling card's probe territory; this card's route — the composite at
 raw-state grade — sidesteps it by never transporting across members.
 
 **The share's precise claims for the sibling's report.**  The core and
-envelope rows below upgrade if the canon-commutation laws land: the
-class-datum fiber (`tipEdge_wasteEntry_datum`) is computable at the
+envelope rows upgrade if the canon-commutation laws land: the class-datum
+fiber (`tipEdge_wasteEntry_datum`) is computable at the
 class data already, so a canonical-computable `datumOf` makes the whole
 map computable-at-canonical (the `wasteNext`-class map at the
 representative); the composite and its `wasteNext` core are state-grade
 and canonical-free, so they stand unchanged; and the parked
 class-collapse is the row the commutation laws plus the d-shape
-residue verdict would close.
+residue verdict would close.  **STATUS (the successor card): the
+upgrade rows LANDED** — `MacroDatums.of_canon`/`datumOf_canon` make
+`datumOf` canonically computable, `tipEdge_wasteEntry_datum_canonical`
+computes the fiber at the representative, and the exit coincidence
+`tipEdge_wasteEntry_canonFiber` consumed the canlaw square at the
+`CanonicalTip` grade; the parked class-collapse stays parked (the
+canlaw census's d-shape residue did not materialize, but the cross-mate
+transport still owns the phase-shift and tab-seat corners — no route
+claimed here).
 
 ## Axiom discipline
 
@@ -3872,8 +3886,14 @@ hidden stacks and roots verbatim.  The enumeration row
 `tipEdge_wasteEntry_target` reads the target in the draw card's target
 shape; `waste_entry_cycle` is the founding side's exact counting row.
 No hypotheses beyond the core's grade; the refused class-collapse stays
-refused, and the sibling's commutation laws upgrade the datum map to
-computable-at-canonical exactly as the recon ledger records. -/
+refused.  THE UPGRADE THE RECON PINNED HAS LANDED (the canlaw card's
+commutation laws now in the base): the canon-side computable reading
+sits below — `MacroDatums.of_canon` + `datumOf_canon` (the canonical-
+computable `datumOf`), `tipEdge_wasteEntry_datum_canonical` (the fiber
+computed at the canonical representative — the whole map
+`canon ∘ wasteNext` broken only at the class data), and
+`tipEdge_wasteEntry_canonFiber` (the lease-graded canon-coincidence of
+both exits at a canonical tip, consuming `wasteEntry_bothRoutes_canonical`). -/
 
 /-- The first-occurrence pool removal: the class pool with `c`'s one
 slot taken out.  (Private: the fiber's channel; at junk lists it
@@ -4016,8 +4036,9 @@ theorem tipEdge_wasteEntry_target {C D : SameOrbit} {c : Card} (e : TipEdge C D)
 honest datum grade)**: the source class's data with the popped card
 consumed — cycle one lower, the pool dropped of `c`, hidden and roots
 verbatim.  Computable at the class data already; with the sibling
-card's canonical commutation laws `datumOf` itself reads
-canonically, and this map upgrades to computable-at-canonical whole. -/
+card's canonical commutation laws landed in the base, `datumOf`
+itself reads canonically (`MacroDatums.of_canon`/`datumOf_canon`) and
+this map computes whole at the canonical representative. -/
 def MacroDatums.wasteNext (d : MacroDatums) (c : Card) : MacroDatums :=
   ⟨d.cycle - 1, poolDrop c d.pool, d.hidden, d.roots⟩
 
@@ -4027,7 +4048,10 @@ the sameDatums lift with the core's outcome rows as soundness.  This is
 the honest substitute for the refused cross-mate class collapse: the
 targets may occupy several classes, but they all live in ONE fiber of
 the datum map, and the fiber is a function of the class pair's own
-data. -/
+data.  (The canon-side upgrade rides above: the raw witnesses here feed
+`tipEdge_wasteEntry_datum_canonical`, which computes the same fiber at
+the canonical representative through the canon-computable `datumOf`
+kernel.) -/
 theorem tipEdge_wasteEntry_datum {C D : SameOrbit} {c : Card} (e : TipEdge C D)
     (h : e.label = EdgeLabel.wasteEntry c) :
     datumOf D = (datumOf C).wasteNext c := by
@@ -4170,6 +4194,109 @@ theorem tipEdge_wasteEntry_datum {C D : SameOrbit} {c : Card} (e : TipEdge C D)
                 exact nzRoot_congr_pile hOther]
     rfl
 
+/-! ### The canon-side computable reading (the datum-fiber upgrade, the
+sibling card's commutation laws consumed)
+
+The upgrade the recon ledger pinned, now that the canlaw rows ride in
+the base (`canon_in_class` for the canon-computability kernel, the E2
+square `wasteEntry_bothRoutes_canonical` for the exit coincidence):
+the class data is COMPUTED AT THE CANONICAL FORM.  `canon` is a
+program, and the datum bundle is canon-invariant (each licensed lift is
+a `sameDatums` leg — `canon_in_class` puts the canonical form in the
+member's own class and `MacroDatums.of_class` carries the read), so
+`datumOf` reads canonically; the residue exhibit's literal
+canon-divergence inside a class does NOT bite this read — the DATUM of
+the canonical form is member-independent.  The fiber row then computes
+the whole `wasteNext` class map at the canonical representative
+(`tipEdge_wasteEntry_datum_canonical` — the pre-pinned shape, the
+`wasteNext`-class map at the representative), with the raw-member row
+below it as the soundness the computation rides.  The exit story rides
+at the lease grade (`tipEdge_wasteEntry_canonFiber`): at a CANONICAL
+tip under the rung, both exits' canonical images COINCIDE —
+`canon e.w = canon (wasteNext e.c c)` — the founded exit trivially
+(the landing IS the computed founder), the seated exit through the
+canlaw square (the saturation itself performs the merge: the quintet's
+composite identity is what the square's confluence rides, and
+`wasteEntry_mergedLeg` records why the seated route's explicit
+founding leg cannot refire at the merged form — cited, not re-derived,
+one cite one site).  The canon-premise grade here is exactly the
+successor's tab-seat base check discharged: the canlaw probe refuted
+any raw → canonical transport of the seating's `canPlace` leg (the
+seat evaporates under canon), so the canon-side row carries the
+`CanonicalTip` premise that makes the member LITERALLY the canonical
+form — the seat's firing at `e.c` is then the firing at `canon e.c`,
+no transport ever attempted. -/
+
+/-- **The canonical-computable datumOf kernel**: the datum bundle of
+the canonical form is the member's own — canon is a program, every
+licensed lift is a `sameDatums` leg, and the canonical form sits in
+the member's class, so the computed read and the raw read agree.  The
+residue exhibit (two Final members of one class with different literal
+canons) does not bite: the DATUM is class-constant, so the canon-side
+read is the same value at every member whichever canon image it lands
+on. -/
+theorem MacroDatums.of_canon {u : State} (hwf : u.WF) :
+    MacroDatums.of (canon u) = MacroDatums.of u :=
+  MacroDatums.of_class _ _ (Quotient.exact (canon_in_class hwf))
+
+/-- **`datumOf` reads canonically**: the class data equals the datum
+of the canonical form of any of its members — the canon-side
+computation rule the fiber upgrade consumes.  The witness member is
+irrelevant by the kernel's class-constancy; `hwf` is `canon_in_class`'s
+own gate, paid once. -/
+theorem datumOf_canon {u : State} {C : SameOrbit} (hwf : u.WF)
+    (hmem : (⟦u⟧ : SameOrbit) = C) :
+    datumOf C = MacroDatums.of (canon u) := by
+  rw [← hmem, datumOf_mk]
+  exact (MacroDatums.of_canon hwf).symm
+
+/-- **The class-datum fiber, canon-side computed (the pre-pinned
+upgrade, landed)**: every `wasteEntry c` target's class data is the
+`wasteNext` image of the SOURCE CLASS DATA COMPUTED AT THE CANONICAL
+REPRESENTATIVE — the whole map `canon`-then-`wasteNext` is a pure
+computation over the class's own saturated form, no witness member in
+the value.  The row below's raw-member fiber is the soundness input;
+the lease is retired on the data side (the two exits' datum images
+were already one), and the residue the old witness-bound form carried
+(the representative's member-relative canonicity) is exactly what the
+kernel rows dissolve. -/
+theorem tipEdge_wasteEntry_datum_canonical {C D : SameOrbit} {c : Card}
+    (e : TipEdge C D) (h : e.label = EdgeLabel.wasteEntry c) :
+    datumOf D = (MacroDatums.of (canon e.c)).wasteNext c := by
+  rw [tipEdge_wasteEntry_datum e h, datumOf_canon e.hwf e.hmem]
+
+/-- **The canon-fiber exit coincidence (the lease graded at the
+canonical tip)**: at a `CanonicalTip` under the rung lease, the seated
+and founded exits' canonical images COINCIDE at the saturated computed
+founder — `canon e.w = canon (wasteNext e.c c)` — the one-safe-commit
+lease of the raw target enumeration, canonically cashed.  The
+`CanonicalTip` premise is the successor's tab-seat base check paid in
+full: the canPlace leg of the seating reads at a member that IS the
+canonical form (no raw → canon transport, which the canlaw probe
+refuted); the founded arm is trivial (the enumeration hands the
+computed founder as the literal landing), the seated arm consumes the
+canlaw square `wasteEntry_bothRoutes_canonical` — whose proof is the
+quintet (the seat-then-found composite identity) plus confluence, with
+`wasteEntry_mergedLeg` the boundary note that the explicit founding
+leg cannot refire at the merged form. -/
+theorem tipEdge_wasteEntry_canonFiber {C D : SameOrbit} {c : Card}
+    (e : TipEdge C D) (h : e.label = EdgeLabel.wasteEntry c)
+    (htip : CanonicalTip e) (hnu : e.c.nextUp c = true) :
+    canon e.w = canon (wasteNext e.c c) := by
+  have hcan : canon e.c = e.c := by
+    show canonAux 53 e.c = e.c
+    exact canonAux_final htip 53
+  obtain ⟨xs, hws, hop⟩ := tipEdge_wasteEntry_target e h
+  rcases hop with ⟨heqm, -, hlandw⟩ | ⟨b, heqm, -, hlandw, -⟩
+  · rw [hlandw]
+  · have hF : State.step (canon e.c) (Move.wasteToFound c)
+        = some (wasteNext e.c c) := by
+      rw [hcan]
+      exact wasteNext_step hws hnu
+    have hT : State.step (canon e.c) (Move.wasteToTab c b) = some e.w := by
+      rw [hcan, ← heqm]
+      exact e.land
+    exact (wasteEntry_bothRoutes_canonical (st := e.c) e.hwf hF hT).symm
 
 /-! ## The axiom audit (per-declaration) -/
 
@@ -4212,6 +4339,10 @@ theorem tipEdge_wasteEntry_datum {C D : SameOrbit} {c : Card} (e : TipEdge C D)
 #print axioms waste_entry_cycle
 #print axioms tipEdge_wasteEntry_target
 #print axioms tipEdge_wasteEntry_datum
+#print axioms MacroDatums.of_canon
+#print axioms datumOf_canon
+#print axioms tipEdge_wasteEntry_datum_canonical
+#print axioms tipEdge_wasteEntry_canonFiber
 #print axioms nzRoot
 #print axioms EdgeLabel
 #print axioms WasteOf
