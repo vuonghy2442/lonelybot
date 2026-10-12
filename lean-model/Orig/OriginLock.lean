@@ -2994,6 +2994,97 @@ private theorem pollutesCrash_terminalHot_Below {st₁ sth : State}
   · exact absurd hf hnotfound
   · exact ⟨z', hz'⟩
 
+/-- **THE ORIGIN-ANCHORED CRASH** — the composition's terminal
+pollution crash, now direct: the terminus's d-suit hot card was
+founded at the origin (the hsq1-grade anchor bounds it strictly
+under the anchoring rung by the two-end squeeze) and is HOT at the
+terminus (its index IS the terminus's d-suit rung), so the
+archaeology engine (`pollutesCrash_terminalHot_Below`) seats it
+BELOW a live neighbor at the terminus; that neighbor is
+family-colored by the seat fit's color conservation
+(`lock_color_pair`, the two-card census `lock_rankColor_pair`
+reading the suit pair), ranked strictly under the fork's pinned
+family rungs (both pinned at the pair's rank by `canRaiseS_rung`
+off the fork's own `ForkWitness`), hence foundation-resident by
+the height bridge — contradicting the Below read's own face-up
+membership (`mem_found_unique`).  The fork's saturation crashes
+the census, mint-suit-agnostic; the conclusion is the third-live
+card shape every consumer arms. -/
+private theorem pollutesCrash_originCrash {sth : State} {y d : Card}
+    (hwfst : sth.WF)
+    (hy : ForkWitness sth y)
+    (hd : d.rank.toIdx + 1 = y.rank.toIdx)
+    (hdcol : d.suit.color ≠ y.suit.color)
+    (hsq2 : rungAt sth d.suit + 2 ≤ d.rank.toIdx + 1)
+    {o : State} (hwfo : o.WF)
+    (hsq1 : d.rank.toIdx + 1 ≤ rungAt o d.suit)
+    (hjo : ∃ pf : List Move, ShufflePlayW o pf sth) :
+    ∃ t, CanRaiseS sth t ∧ t ≠ y ∧ t ≠ y.twin := by
+  obtain ⟨pf, hshpo⟩ := hjo
+  have hfam : y.rank.toIdx < 13 := Rank.toIdx_lt y.rank
+  have hk13 : rungAt sth d.suit < 13 := by omega
+  obtain ⟨T, hTdef⟩ :
+      ∃ c : Card, c = Card.mk d.suit (lockRk (rungAt sth d.suit)) :=
+    ⟨_, rfl⟩
+  have hTidx : T.rank.toIdx = rungAt sth d.suit := by
+    rw [hTdef]
+    exact lockRk_toIdx _ hk13
+  have hTsuit : T.suit = d.suit := by
+    rw [hTdef]
+  have hhotT : sth.nextUp T = true :=
+    pollutesCrash_landing_live (by rw [hTsuit, hTidx])
+  have hnkT : T.rank ≠ Rank.king := by
+    intro hcon
+    rw [hcon] at hTidx
+    have hk12 : Rank.king.toIdx = 12 := rfl
+    omega
+  have horgT : T.rank.toIdx < rungAt o T.suit := by
+    rw [hTsuit, hTidx]
+    omega
+  obtain ⟨b, a, L, R, hshp⟩ :=
+    pollutesCrash_terminalHot_Below hshpo hwfo hwfst hnkT horgT hhotT
+  have hok : runOK (L ++ b :: T :: R) = true := by
+    rw [← hshp]
+    exact hwfst.runOK_of a
+  obtain ⟨hrkbt, hcolbt⟩ :=
+    (canSitOn_eq T b).mp (lock_runOK_adjacent b T L R hok)
+  have hbcol : b.suit.color = y.suit.color :=
+    lock_color_pair (a := d.suit.color)
+      (by rw [← hTsuit]; exact hcolbt) hdcol
+  have hyPin : rungAt sth y.suit = y.rank.toIdx :=
+    canRaiseS_rung ((hy.1 y).mp (Or.inl rfl))
+  have hytPin : rungAt sth y.twin.suit = y.rank.toIdx := by
+    have h0 := canRaiseS_rung ((hy.1 y.twin).mp (Or.inr rfl))
+    rwa [Card.twin_rank y] at h0
+  have hsuit : b.suit = y.suit ∨ b.suit = y.twin.suit := by
+    have hz : (Card.mk b.suit y.rank) = y ∨
+        (Card.mk b.suit y.rank) = y.twin :=
+      lock_rankColor_pair rfl hbcol
+    rcases hz with h | h
+    · refine Or.inl ?_
+      exact (congrArg Card.suit h :
+        (Card.mk b.suit y.rank).suit = y.suit)
+    · refine Or.inr ?_
+      exact (congrArg Card.suit h :
+        (Card.mk b.suit y.rank).suit = y.twin.suit)
+  have hbmem : b ∈ sth.found b.suit := by
+    refine mem_found_of_height hwfst ?_
+    have hbund : b.rank.toIdx < y.rank.toIdx := by omega
+    rcases hsuit with h | h
+    · rw [h]
+      show b.rank.toIdx < rungAt sth y.suit
+      rw [hyPin]
+      exact hbund
+    · rw [h]
+      show b.rank.toIdx < rungAt sth y.twin.suit
+      rw [hytPin]
+      exact hbund
+  have hbface : b ∈ (sth.piles a).faceUp := by
+    rw [hshp]
+    exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
+  obtain ⟨hh, _hS, _hW, _⟩ := mem_found_unique hwfst hbmem
+  exact absurd hbface (hh a).2
+
 /-- **THE SLIDE MOVER** (zero-sorry): a `tabToTab` leg whose moving run
 write sites (departure and landing) split against the mint's seat.  At
 an off-seat departure the mint's seat pile reads verbatim (the landing
@@ -3807,7 +3898,22 @@ private theorem pollutesCrash_rhoMover {x y d w zt : Card}
               -- twin's TOP-shape at the cover leg's state, now
               -- with the start-pin's color case-split priced in
               -- (d-mint: no pin; family-mint: pin, no top read).
-              sorry
+              -- THE ORIGIN-ANCHORED CRASH closes the stand (the
+              -- archaeology engine's own read, mint-suit-agnostic):
+              -- the d-suit hot card at the terminus's own rung was
+              -- founded at the origin (strictly under the hsq1-grade
+              -- anchor by the two-end squeeze) and is hot at the
+              -- terminus, so `pollutesCrash_terminalHot_Below` seats
+              -- it BELOW a live neighbor; the neighbor is
+              -- family-colored by the seat fit's color conservation
+              -- and ranked strictly under the fork's pinned family
+              -- rungs, hence foundation-resident — contradicting the
+              -- Below read's own face-up membership
+              -- (`mem_found_unique`).  The twin premise never enters;
+              -- the fork's saturation crashes the census.
+              obtain ⟨o, hwfo, hsq1o, pf, hshpo⟩ := harch
+              exact pollutesCrash_originCrash hwfst' hy' hd hdcol hsq2'
+                hwfo hsq1o ⟨pf, hshpo⟩
       | foundToTab c b =>
           -- THE Z-ONTO-MINT PULL BURIAL (rhoOpen literal: the mid-state
           -- seat read pins z's host to the mint's seat pile): the popped
@@ -4611,71 +4717,13 @@ private theorem pollutesCrash_rhoTail {x y d w zt : Card}
         -- census; the mint's suit never enters (the d-suit witness
         -- rides every state).
         obtain ⟨o, hwfo, hsq1o, pf, hshpo⟩ := harch
-        have hfam : y.rank.toIdx < 13 := Rank.toIdx_lt y.rank
-        have hk13 : rungAt s₀ d.suit < 13 := by omega
-        -- the d-suit hot card at the terminus's own rung (its hotness is
-        -- definitional: its index IS the terminus's d-suit rung)
-        obtain ⟨T, hTdef⟩ :
-            ∃ c : Card, c = Card.mk d.suit (lockRk (rungAt s₀ d.suit)) :=
-          ⟨_, rfl⟩
-        have hTidx : T.rank.toIdx = rungAt s₀ d.suit := by
-          rw [hTdef]
-          exact lockRk_toIdx _ hk13
-        have hTsuit : T.suit = d.suit := by
-          rw [hTdef]
-        have hhotT : s₀.nextUp T = true :=
-          pollutesCrash_landing_live (by rw [hTsuit, hTidx])
-        have hnkT : T.rank ≠ Rank.king := by
-          intro hcon
-          rw [hcon] at hTidx
-          have hk12 : Rank.king.toIdx = 12 := rfl
-          omega
-        have horgT : T.rank.toIdx < rungAt o T.suit := by
-          rw [hTsuit, hTidx]
-          omega
-        obtain ⟨b, a, L, R, hshp⟩ :=
-          pollutesCrash_terminalHot_Below hshpo hwfo hwfst' hnkT horgT hhotT
-        have hok : runOK (L ++ b :: T :: R) = true := by
-          rw [← hshp]
-          exact hwfst'.runOK_of a
-        obtain ⟨hrkbt, hcolbt⟩ :=
-          (canSitOn_eq T b).mp (lock_runOK_adjacent b T L R hok)
-        have hbcol : b.suit.color = y.suit.color :=
-          lock_color_pair (a := d.suit.color)
-            (by rw [← hTsuit]; exact hcolbt) hdcol
-        have hyPin : rungAt s₀ y.suit = y.rank.toIdx :=
-          canRaiseS_rung ((hy'.1 y).mp (Or.inl rfl))
-        have hytPin : rungAt s₀ y.twin.suit = y.rank.toIdx := by
-          have h0 := canRaiseS_rung ((hy'.1 y.twin).mp (Or.inr rfl))
-          rwa [Card.twin_rank y] at h0
-        have hsuit : b.suit = y.suit ∨ b.suit = y.twin.suit := by
-          have hz : (Card.mk b.suit y.rank) = y ∨
-              (Card.mk b.suit y.rank) = y.twin :=
-            lock_rankColor_pair rfl hbcol
-          rcases hz with h | h
-          · refine Or.inl ?_
-            exact (congrArg Card.suit h :
-              (Card.mk b.suit y.rank).suit = y.suit)
-          · refine Or.inr ?_
-            exact (congrArg Card.suit h :
-              (Card.mk b.suit y.rank).suit = y.twin.suit)
-        have hbmem : b ∈ s₀.found b.suit := by
-          refine mem_found_of_height hwfst' ?_
-          have hbund : b.rank.toIdx < y.rank.toIdx := by omega
-          rcases hsuit with h | h
-          · rw [h]
-            show b.rank.toIdx < rungAt s₀ y.suit
-            rw [hyPin]
-            exact hbund
-          · rw [h]
-            show b.rank.toIdx < rungAt s₀ y.twin.suit
-            rw [hytPin]
-            exact hbund
-        have hbface : b ∈ (s₀.piles a).faceUp := by
-          rw [hshp]
-          exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
-        obtain ⟨hh, _hS, _hW, _⟩ := mem_found_unique hwfst' hbmem
-        exact absurd hbface (hh a).2
+        -- the standing terminus package + the arch are jointly
+        -- crashing (pollutesCrash_originCrash): the d-suit hot card
+        -- at the terminus's own rung was founded at the origin, rides
+        -- the archaeology engine to a Below seat, and the fork's own
+        -- family pins bar the neighbor — mem_found_unique closes.
+        exact pollutesCrash_originCrash hwfst' hy' hd hdcol hsq2'
+          hwfo hsq1o ⟨pf, hshpo⟩
   | @cons vp m s₁ rest sth hwleg hstep _hrest ih =>
       intro hcarry hwfst' hy' hdcov' hlat' hnext' hsq2' harch
       rcases hcarry with hseat |
