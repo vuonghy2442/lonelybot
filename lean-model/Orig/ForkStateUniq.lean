@@ -904,11 +904,29 @@ remaining work), the row assembles from this file's landed halves:
 G1 pins the pair, G2 selects the slide-orbit, G3 normalizes the
 residue; `forkState_slide_mate` and `kingVacWalk_cargoPath` are
 the connectors.  The residue is intentionally a single `sorry`
-carrying the whole named gate. -/
+carrying the whole named gate.
+
+**THE S-GRADE RETARGETING** (the strong-grade resurrection, this
+premises-level swap): the hypotheses now carry the maneuver-stable
+detection, and the tuple lock `htup` bars the cascade ladder (two
+same-class forks may sit at different pair-column rungs by raising
+through the cone — the ladder is not FaceShape-flat, and the lock is
+what the spectral analysis always said this row needed).  What the
+strong grade buys here: **G2 DISSOLVES** — the covered-twin-with-
+fitting-cover geometry is now derivable from the def alone (a twin
+blocked otherwise — waste/stock, non-fitting cargo, the bare
+(Q,J)-seat — is NOT S-live, failing the iff's pair-live half, so
+those degenerate weak-grade shapes are not forkStates at this grade);
+and the bridge `forkState → weakForkState` lets every banked weak-
+grade connector fire under the strong hypotheses.  What remains:
+G1's pair transport at the locked tuple (the census/freeze transfer
+along the reversible journey — the cone-cards' machinery) and G3's
+residue normalization. -/
 theorem forkState_unique {C : SameOrbit} {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
-    (h₁ : weakForkState st₁) (h₂ : weakForkState st₂)
-    (hc₁ : classOf C st₁) (hc₂ : classOf C st₂) :
+    (h₁ : forkState st₁) (h₂ : forkState st₂)
+    (hc₁ : classOf C st₁) (hc₂ : classOf C st₂)
+    (htup : ∀ σ : Suit, rungAt st₁ σ = rungAt st₂ σ) :
     FaceShape st₁ st₂ := by
   sorry
 
