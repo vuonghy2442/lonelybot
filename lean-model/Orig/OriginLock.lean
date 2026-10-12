@@ -1314,7 +1314,6 @@ is an irreversible life sentence — reveal jury, pillar), HIDDEN by
 the PIN, STOCK-OR-WASTE by the DRAW-CYCLE CLOSURE; the FOUND case
 falls to the card's named residue (§3.5). -/
 theorem forkState_rankDrop_locked (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
-    (h₁ : forkState st₁) (h₂ : forkState st₂)
     (hcls : sameOrbitSetoid.r st₁ st₂)
     {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
     (hfam : y.suit = x.suit ∨ y.suit = x.twin.suit) :
@@ -1395,7 +1394,6 @@ witness of a macro-class member can sit BELOW the origin fork's
 rank: the downward half of the family pairClass story (the floor
 under every same-family fork of the class). -/
 theorem forkState_family_rankFloor (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
-    (h₁ : forkState st₁) (h₂ : forkState st₂)
     (hcls : sameOrbitSetoid.r st₁ st₂)
     (x : Card) (hx : ForkWitness st₁ x) {y : Card} (hy : ForkWitness st₂ y)
     (hfam : y.suit = x.suit ∨ y.suit = x.twin.suit) :
@@ -1403,7 +1401,7 @@ theorem forkState_family_rankFloor (st₁ st₂ : State) (hwf₁ : st₁.WF) (hw
   rcases Nat.lt_trichotomy x.rank.toIdx y.rank.toIdx with h | h | h
   · exact Nat.le_of_lt h
   · exact Nat.le_of_eq h
-  · exact absurd h (forkState_rankDrop_locked st₁ st₂ hwf₁ hwf₂ h₁ h₂ hcls hx hy hfam)
+  · exact absurd h (forkState_rankDrop_locked st₁ st₂ hwf₁ hwf₂ hcls hx hy hfam)
 
 /-- **THE PAIRCLASS ASSEMBLY ROW** — same-family forks of one macro
 class AGREE: this card's floor (`forkState_family_rankFloor`,
@@ -1414,13 +1412,12 @@ reads the lower fork's witness as one of the origin pair's two cards:
 the family case of the no-lock pairClass theorem — same-family forks
 of one class agree as pairs. -/
 theorem forkState_family_pairClass (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
-    (h₁ : forkState st₁) (h₂ : forkState st₂)
     (hcls : sameOrbitSetoid.r st₁ st₂)
     (x : Card) (hx : ForkWitness st₁ x) {y : Card} (hy : ForkWitness st₂ y)
     (hfam : y.suit = x.suit ∨ y.suit = x.twin.suit) :
     y.rank.toIdx = x.rank.toIdx ∧ (y = x ∨ y = x.twin) := by
-  have hce := forkState_sameFamily_rankCeiling hwf₁ h₁ hcls x hx hy hfam
-  have hfl := forkState_family_rankFloor st₁ st₂ hwf₁ hwf₂ h₁ h₂ hcls x hx hy hfam
+  have hce := forkState_sameFamily_rankCeiling hwf₁ ((forkState_iff).mpr ⟨x, hx⟩) hcls x hx hy hfam
+  have hfl := forkState_family_rankFloor st₁ st₂ hwf₁ hwf₂ hcls x hx hy hfam
   have hys : x.suit = y.suit ∨ x.suit = y.twin.suit := by
     rcases hfam with h | h
     · exact Or.inl h.symm
@@ -1430,7 +1427,7 @@ theorem forkState_family_pairClass (st₁ st₂ : State) (hwf₁ : st₁.WF) (hw
       rw [Suit.twin_twin] at htwin
       rw [show y.twin.suit = y.suit.twin from Card.twin_suit y]
       exact htwin.symm
-  refine ⟨by omega, forkState_sameFamily_samePair hwf₁ h₁ hcls x hx hy hfam (by omega)⟩
+  refine ⟨by omega, forkState_sameFamily_samePair hwf₁ ((forkState_iff).mpr ⟨x, hx⟩) hcls x hx hy hfam (by omega)⟩
 
 /-! ### The audit battery
 
