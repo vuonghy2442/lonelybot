@@ -3824,5 +3824,145 @@ into the root, mirroring MacroInternal/ForkStateUniq's own
 discipline); `lake env lean Orig/ConjugateProof.lean` exit-zero;
 every head `[propext]`/`[propext, Quot.sound]`, zero
 `Classical.choice`.  The in-tree interface mirrored, never
-redefined; zero contention (branch file additions only); no
-merge to macro-game.
+redefined; zero contention (branch file additions only); no merge
+to macro-game.
+
+## 13. The no-lock pairClass capstone — the orphan-seat axes close (STATUS 2026-10-12)
+
+The fork-classification program's landing day: one capstone, two
+axis collapses, one inertness dividend, one budget row.  House
+norm holds — routes live in the chapter docstrings; this section
+is the ledger row, every anchor verified in this worktree at this
+HEAD.
+
+**THE CAPSTONE — `forkState_pairClass` (`Orig/PairClass.lean:81`).**
+Within one macro class ANY two forks agree as pairs: the second
+fork's witness is the first's or its twin (`y = x ∨ y = x.twin`),
+NO family hypothesis assumed.  Three moves over the proved halves:
+the class lock `forkState_familyRigid` (`Orig/CrossFamily.lean:1403`)
+— a fork cannot witness the OTHER color family inside the class —
+delivers the FALSIFIER-FACING form `¬ (y.suit.color ≠ x.suit.color)`
+(its `forkState` premises minted from the witnesses through the
+trivial bridge `forkState_iff`, `Orig/PairName.lean:32`); the
+CONSTRUCTIVE COLOR RECOVERY flips it by core's `Decidable.not_not` —
+one theorem of `Color`'s derived `DecidableEq` instance, zero
+`Classical.choice`, no Mathlib (`Orig/PairClass.lean:90`); the
+SUIT-FAMILY SPLIT (`pc_suit_family`, the per-file copy) converts
+the color into exactly the premise of
+`forkState_family_pairClass` (`Orig/OriginLock.lean:4322`), whose
+conclusion's twin-flip disjunct IS the answer.  Battery:
+`[propext, sorryAx, Quot.sound]` — and the `sorryAx` is now PURELY
+A LEDGER (the capstone's own glue adds no axiom).  WHAT REMAINS —
+THE THREE-RESIDUE MAP:
+
+1. **THE SEAT INDUCTION — `cross_orphan_seat`**
+   (`Orig/OrphanSeat.lean:65`): a card FOUNDED at a witness
+   journey's start and STANDING at its end sits face-up on some
+   end-state pile, seated on a face-up BELOW-NEIGHBOR it fits under
+   (the non-king premise load-bearing — a king could land bare with
+   no below-neighbor at all; the full route, six steps priced, in
+   the file's docstring).  THE SHARED RESIDUE two axes ride — and
+   THE DEDUP THE CYCLE FORBADE: `Orig/CrossFamilyStatic.lean`
+   imports `Orig.PairConfine`, so the residue could live in
+   neither consumer; the hoist leaf imports only `Orig.PairName`'s
+   closure, placing it BELOW both consumers, statement
+   byte-frozen.
+2. **THE ROAM DUAL — `conf_orphan_roam`**
+   (`Orig/PairConfine.lean:2841`, PairConfine's one remaining
+   seam): a non-king card SEATED on a fitting face-up below-neighbor
+   at the journey's start is at the end either nowhere face-up or
+   still seated on one (the seat residue's own Step-6 below-identity
+   induction, restated in the roam form — dual-use).
+3. **THE RE-MINT CENSUS TAIL — `pollutesCrash_rhoMover`**
+   (`Orig/OriginLock.lean:3054`, the private mover dispatch under
+   the card's single named residue `origin_foundedCover_pollutesCrash`):
+   the ∃-mint restatement of the ρ-tail closed the FIVE MOVER FORKS down to
+   the THREE LITERAL FOUNDED/COVERING CASES of the
+   `pollutesCrash_rhoOpen` Bool (`:2977`) — the z-onto-mint pull
+   burial closes in the dispatcher's open arm, and the residual
+   family (the wash-back FOUNDED mint, the COVERED-mint burial
+   slide) carries the file's two residual `sorry` calls
+   (`:3134`/`:3145`), every other sub-fork closed in-body.
+
+**THE ORPHAN-SEAT AXIS (the cross-family interlock's collapse).**
+Three research-grade corner chases — the equal-rank material
+competition, the consecutive/gap strata chases — collapsed to ONE
+STATIC KILL, `cross_orphan_kill` (`Orig/CrossFamilyStatic.lean:185`):
+the contradiction lives one stratum DEEPER than the routes chased
+(not on the saturation-pinned covers but on the ORPHAN card, rank
+index r₂ − 2 of the cover's suit), FOUNDED at one fork, EXILED at
+the other, seated by the shared residue on a below-neighbor of the
+FAR fork's family, rank r₂ − 1 — a cell the far fork's saturation
+has ALREADY founded; face-up and founded cannot coexist.  No
+census debt, no epoch chase anywhere in the route.
+SUPERSEDED-not-deleted-history: the corner dossier stands at its
+sites; CROSSFAMILY'S THREE CORNERS (`cross_equal_rank_kick`,
+`cross_strata_consec`, `cross_strata_gap`) ARE ONE-LINE KILL CALLS
+NOW (`Orig/CrossFamily.lean:47-51`), the axis's remaining leaf
+residue being the shared `cross_orphan_seat` itself.
+
+**THE UPWARD DOOR BYPASS (the backward-orphan route).**  The
+crossing door's OSCILLATION COMPLEX — the LIFO seatCycle + freeze
+family, ~1100 lines, one recorded failed attempt — was DELETED
+WHOLESALE.  SUPERSEDED-not-deleted-history: the probe-graded
+design record is kept at `Temp/upward_orphan_probe.lean` (the
+backward-orphan read, all seams named).  The door now runs BACKWARD
+OFF THE FIRING STATE: at the door state the elevated member is
+FOUNDED and the firing member a bare pile TOP
+(`crossing_door_exists`'s package, `Orig/PairConfine.lean:473`), so
+the fork's twin-cover `d` — whose card-directed landing lattice is
+exactly the pair — cannot sit face-up anywhere; zone closure (the
+pinned hidden lists, the never-gaining stock/waste union) hands
+`d` FOUNDED at the door, so its OWN ORPHAN (d.suit, r − 2) is
+founded at the door yet EXILED at the fork (the cover pin reads
+its suit two below) — and the shared residue seats it at the fork
+on an (x-family, r − 1) below-neighbor whose cell the fork
+SATURATES.  Contradiction.  PairConfine now rests on ONE seam
+(`conf_orphan_roam`) plus the shared residue (the closed
+`conf_orphan_topclash` beside it, `Orig/PairConfine.lean:2868`);
+the chain `conf_door_orphan` → `crossing_door_barred` (`:3174`) →
+`forkState_one_founding` (`:3210`) → the rankCeiling/samePair
+corollaries (`:3243`/`:3296`) is unchanged in statement.
+
+**THE DRAW-INERTNESS OF FORK FACTS (`Orig.SWRotInert`).**  The card
+closed RESIDUE-FREE: five heads (`draw_step_canRaise`,
+`drawPlayW_inert_canRaise`, `drawPlayW_inert_canRaiseS`,
+`swRotW_inert_forkWitness`, `swRotW_inert_forkState` —
+`Orig/SWRotInert.lean:71`/`:206`/`:213`/`:221`/`:231`), audited
+`[propext]`/`[propext, Quot.sound]`.  Riding the factorization
+biconditional (`sameOrbit_factor_full`, `Orig/OrbitFactorC`), the
+draw component of every class journey is DEFINITIONALLY INERT to
+every fork fact: THE DRAW HALF OF EVERY JOURNEY ANALYSIS VANISHES
+for the fork grades.  Consumers ledgered in the file header: the
+`forkState_pairClass` assembly, the mod-phase spectrum row, the
+pair-fiber/bracket cards' phase-vacuity sections.
+
+**THE EDGELABEL DEDUP — `EdgeKit`.**  The edge-label chapter's
+transport kit (the board squares, the push core, the draw-frame
+rows, the cycle-count census) is PUBLIC as the `EdgeKit` namespace
+(`Orig/EdgeLabel.lean:2680`) — the dedup the farm markers stamped.
+The ROOT-PROMOTION attempt FAILED on sibling private collisions
+(same-named private variants live in sibling chapters, so flat
+public names force a cross-file rename); THE NAMESPACE WAS THE
+ENABLER — public rows under the owner chapter, sibling variants
+untouched, the SWRotInert consume entering by `open EdgeKit` and
+carrying no per-file copies.
+
+**THE LOW-SLAB SUFFICIENCY (`Orig.LowSlab`).**  The fork's
+exploration budget: every COMMITMENT out of a fork's macro class
+is matched by a LOW DUPLICATE from the slab frontier — a commitment
+from a class member whose covered twin is not founded, into the
+same target class.  The commit-grade support rows are PROVED
+zero-sorry (`fork_self_low`, `commit_exits_class`,
+`commit_blocks_class_return`, with §3's setoid-exit bridge); the
+routing content is ONE named residue — `fork_neighbor_lowbridge`
+(`Orig/LowSlab.lean:749`), stated at the program's own commit
+grain `irreversibleAt` — its audit pinning the sorryAx to its nine
+priced sub-rows (`:776-781`); the TWIN-SIDE slab refinement (owner
+decision 2026-10-12) rides the just-landed one-founding row so the
+covered twin's side alone carries the content
+(`familyBelowFrontier`, `:87`, statement byte-frozen).
+
+COORDINATION NOTE: §12's REMAINING rows (`conjugate_swap_fires`,
+`conjugate_seat_of_swap`, `conjugate_corner_notForkState`) stand
+untouched — deliberately future, unchanged by this campaign.

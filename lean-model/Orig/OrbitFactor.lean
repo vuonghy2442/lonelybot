@@ -18,7 +18,8 @@ Sections:
   moves read/write disjoint field sets: the draw touches only
   `stock`/`waste`/`drawStep`, each board leg only `piles`/`found`);
 * §2 the draw-last bubbling of witness journeys;
-* §3 `sameOrbit_factor` — the factorization theorem;
+* §3 the factorization theorem — landed clean in
+  `Orig/OrbitFactorC.lean` as `sameOrbit_factor_full`;
 * §4 the quotient plumbing (`swCompSetoid`, never an instance:
   `sameOrbitSetoid` owns `State`'s setoid slot).
 -/
@@ -55,68 +56,14 @@ board with the drawn landing's exact successor.  The waste movers
 need no case: a witness journey's leg is never one (the cycle-count
 census, `journey_never_wasteToFound`/`journey_never_wasteToTab`).
 
-The farm's private-isolation convention applies to the small
-congruence copies below (same shapes as the edge-label chapter's
-private kit; dedup at merge). -/
-
-/-- The draw keeps the draw step (farm copy of the private rows in
-`Orig/Phase.lean` and the edge-label chapter; dedup at merge). -/
-private theorem stepDraw_drawStep {x u : State} (hd : x.stepDraw = some u) :
-    u.drawStep = x.drawStep := by
-  obtain ⟨r, hrec, -, hshape⟩ := draw_unfold hd
-  have h1 : u.drawStep = r.drawStep := by rw [hshape]
-  rw [h1, ← hrec]
-  cases hs : x.stock with
-  | nil => cases hw : x.waste <;> simp only [State.recycle, hs, hw]
-  | cons c cs => simp only [State.recycle, hs]
-
-/-- A `putCard` at equal piles boards agrees everywhere (farm copy of
-the edge-label chapter's private `putCard_piles_congr`). -/
-private theorem putCard_piles_congr {u v : State} (c : Card) (b : Base)
-    (h : u.piles = v.piles) : (u.putCard c b).piles = (v.putCard c b).piles := by
-  cases b with
-  | inl a =>
-      rw [putCard_eq_inl u c a, putCard_eq_inl v c a,
-        setPile_piles, setPile_piles, h]
-  | inr z =>
-      have hc : v.pileOfTop z = u.pileOfTop z := (pileOfTop_congr z h).symm
-      cases hq : u.pileOfTop z with
-      | none =>
-          rw [show u.putCard c (Sum.inr z) = u from by simp only [State.putCard, hq],
-              show v.putCard c (Sum.inr z) = v from by
-                (simp only [State.putCard]; rw [hc, hq]), h]
-      | some k =>
-          rw [show u.putCard c (Sum.inr z)
-                = u.setPile k { u.piles k with faceUp := (u.piles k).faceUp ++ [c] } from by
-                simp only [State.putCard, hq],
-              show v.putCard c (Sum.inr z)
-                = v.setPile k { v.piles k with faceUp := (v.piles k).faceUp ++ [c] } from by
-                (simp only [State.putCard]; rw [hc, hq]),
-              setPile_piles, setPile_piles, h]
-
-/-- A `putRun` at equal piles boards agrees everywhere (farm copy of
-the edge-label chapter's private `putRun_piles_congr`). -/
-private theorem putRun_piles_congr {u v : State} (run : List Card) (b : Base)
-    (h : u.piles = v.piles) : (u.putRun run b).piles = (v.putRun run b).piles := by
-  cases b with
-  | inl a =>
-      rw [putRun_eq_inl u run a, putRun_eq_inl v run a,
-        setPile_piles, setPile_piles, h]
-  | inr z =>
-      have hc : v.pileOfTop z = u.pileOfTop z := (pileOfTop_congr z h).symm
-      cases hq : u.pileOfTop z with
-      | none =>
-          rw [show u.putRun run (Sum.inr z) = u from by simp only [State.putRun, hq],
-              show v.putRun run (Sum.inr z) = v from by
-                (simp only [State.putRun]; rw [hc, hq]), h]
-      | some k =>
-          rw [show u.putRun run (Sum.inr z)
-                = u.setPile k { u.piles k with faceUp := (u.piles k).faceUp ++ run } from by
-                simp only [State.putRun, hq],
-              show v.putRun run (Sum.inr z)
-                = v.setPile k { v.piles k with faceUp := (v.piles k).faceUp ++ run } from by
-                (simp only [State.putRun]; rw [hc, hq]),
-              setPile_piles, setPile_piles, h]
+The small congruence rows below are deduped where they were pure
+duplicates of the edge-label chapter's public `EdgeKit` kit (the
+draw's draw-step keep, the `putCard`/`putRun` piles congruences,
+the waste discriminator, the run `cons` row — cited as `EdgeKit.*`,
+not copied).  The three §1 squares stay local BY SHAPE: unlike
+their edge-kit namesakes they DERIVE the origin board leg's firing
+from the drawn-landing pair instead of assuming both origin
+firings. -/
 
 /-- **The §1 square, `tabToFound` leg.**  A fired draw at `st` and a
 fired raise at the drawn landing: the raise fires at `st` (its guards
@@ -178,7 +125,7 @@ private theorem square_tabToFound {st s₁ s₂ : State} {c : Card}
     · rw [hws, hzs2]
     · rw [hww, hzw2]
     · rw [hwd, hz3, hzds2]
-      exact (stepDraw_drawStep hd).symm
+      exact (EdgeKit.stepDraw_drawStep hd).symm
   exact hwfire.trans (congrArg Option.some heq)
 
 /-- **The §1 square, `foundToTab` leg.** -/
@@ -207,7 +154,7 @@ private theorem square_foundToTab {st s₁ s₂ : State} {c : Card} {b : Base}
   have hpw : ((st.setFound c.suit (chop (st.found c.suit))).putCard c b).piles
       = s₂.piles := by
     rw [hs₂]
-    exact putCard_piles_congr c b hsf
+    exact EdgeKit.putCard_piles_congr c b hsf
   have hfw : ((st.setFound c.suit (chop (st.found c.suit))).putCard c b).found
       = s₂.found := by
     rw [hs₂, putCard_found, putCard_found]
@@ -225,7 +172,7 @@ private theorem square_foundToTab {st s₁ s₂ : State} {c : Card} {b : Base}
     · rw [hws, hzs2]
     · rw [hww, hzw2]
     · rw [hwd, hz3, hzds2]
-      exact (stepDraw_drawStep hd).symm
+      exact (EdgeKit.stepDraw_drawStep hd).symm
   exact hwfire.trans (congrArg Option.some heq)
 
 /-- **The §1 square, `tabToTab` leg.** -/
@@ -283,7 +230,7 @@ private theorem square_tabToTab {st s₁ s₂ : State} {c : Card} {b : Base}
       (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
       (fromCard c (st.piles a).faceUp) b).piles = s₂.piles := by
     rw [hs₂, hfrun]
-    exact putRun_piles_congr _ _ hsp
+    exact EdgeKit.putRun_piles_congr _ _ hsp
   have hfw : ((st.setPile a
       (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
       (fromCard c (st.piles a).faceUp) b).found = s₂.found := by
@@ -300,7 +247,7 @@ private theorem square_tabToTab {st s₁ s₂ : State} {c : Card} {b : Base}
     · rw [hws, hzs2]
     · rw [hww, hzw2]
     · rw [hwd, hz3, hzds2]
-      exact (stepDraw_drawStep hd).symm
+      exact (EdgeKit.stepDraw_drawStep hd).symm
   exact hwfire.trans (congrArg Option.some heq)
 
 /-- **§1: the disjoint-field commutation lemma** (dispatched).  Any
@@ -333,28 +280,10 @@ Two grades land:
   lands the frame-pair itself, the two dealers share one cycle
   count so both frames always fire), and the draw-last normal form
   follows by one induction;
-* the WITNESS grade (the `ShufflePlayW`-preserving regroup) is the
-  named card `shuffle_split_drawsLastW` below, stated with its
-  route: the one open piece is the per-leg return-play pull-back
-  (see the route docstring), the mirrored core of the edge-label
-  chapter's private `ShufflePlayW_drawPush`. -/
-
-/-- The two waste spenders (farm copy of the private discriminator;
-dedup at merge). -/
-private def isWasteMove (m : Move) : Bool :=
-  match m with
-  | .wasteToFound _ => true
-  | .wasteToTab _ _ => true
-  | _ => false
-
-/-- One step of a run, in equation form (farm copy of the edge-label
-chapter's private `run_step_cons'`; dedup at merge). -/
-private theorem run_step_cons' {st s₁ : State} {m : Move} {rest : List Move}
-    (hm : State.step st m = some s₁) : st.run (m :: rest) = s₁.run rest := by
-  show (match State.step st m with
-    | some s' => s'.run rest
-    | none => none) = _
-  rw [hm]
+* the WITNESS grade (the `ShufflePlayW`-preserving regroup) landed
+  clean in `Orig/OrbitFactorC.lean` as `shuffle_drawsLast` (the
+  erstwhile named residue `shuffle_split_drawsLastW` is retired
+  from this chapter). -/
 
 /-- **The run-level dual push** (the ⊥ of the edge-label chapter's
 private `run_drawPush`): a successful waste-free play at the DRAWN
@@ -365,7 +294,7 @@ the §1 squares, a draw leg lands the invariant's own pair), firing
 included since both frames share one cycle count. -/
 private theorem run_drawPull : ∀ (play : List Move) (s₁ x y : State),
     x.stepDraw = some s₁ → s₁.run play = some y →
-    (∀ m ∈ play, isWasteMove m = false) →
+    (∀ m ∈ play, EdgeKit.isWasteMove m = false) →
     ∃ y', x.run play = some y' ∧ y'.stepDraw = some y := by
   intro play
   induction play with
@@ -376,7 +305,7 @@ private theorem run_drawPull : ∀ (play : List Move) (s₁ x y : State),
   | cons m tail ih =>
       intro s₁ x y hd hrun hfree
       obtain ⟨t, hleg, hrest⟩ := State.run_cons hrun
-      have hfreer : ∀ m' ∈ tail, isWasteMove m' = false := by
+      have hfreer : ∀ m' ∈ tail, EdgeKit.isWasteMove m' = false := by
         intro m' hm'
         exact hfree m' (List.mem_cons_of_mem _ hm')
       cases m with
@@ -385,43 +314,43 @@ private theorem run_drawPull : ∀ (play : List Move) (s₁ x y : State),
           obtain ⟨y', hrun', hfire'⟩ :=
             ih t s₁ y hedge hrest hfreer
           refine ⟨y', ?_, hfire'⟩
-          rw [run_step_cons' (show State.step x Move.draw = some s₁ from hd)]
+          rw [EdgeKit.run_step_cons' (show State.step x Move.draw = some s₁ from hd)]
           exact hrun'
       | wasteToFound c =>
-          have h0 : isWasteMove (Move.wasteToFound c) = false :=
+          have h0 : EdgeKit.isWasteMove (Move.wasteToFound c) = false :=
             hfree (Move.wasteToFound c) (by simp)
-          exact absurd h0 (by simp [isWasteMove])
+          exact absurd h0 (by simp [EdgeKit.isWasteMove])
       | wasteToTab c b =>
-          have h0 : isWasteMove (Move.wasteToTab c b) = false :=
+          have h0 : EdgeKit.isWasteMove (Move.wasteToTab c b) = false :=
             hfree (Move.wasteToTab c b) (by simp)
-          exact absurd h0 (by simp [isWasteMove])
+          exact absurd h0 (by simp [EdgeKit.isWasteMove])
       | tabToFound c =>
           obtain ⟨r', hpull, hedge⟩ := square_tabToFound hd hleg
           obtain ⟨y', hrun', hfire'⟩ := ih t r' y hedge hrest hfreer
           refine ⟨y', ?_, hfire'⟩
           rw [show x.run (Move.tabToFound c :: tail) = r'.run tail from
-            run_step_cons' hpull]
+            EdgeKit.run_step_cons' hpull]
           exact hrun'
       | foundToTab c b =>
           obtain ⟨r', hpull, hedge⟩ := square_foundToTab hd hleg
           obtain ⟨y', hrun', hfire'⟩ := ih t r' y hedge hrest hfreer
           refine ⟨y', ?_, hfire'⟩
           rw [show x.run (Move.foundToTab c b :: tail) = r'.run tail from
-            run_step_cons' hpull]
+            EdgeKit.run_step_cons' hpull]
           exact hrun'
       | tabToTab c b =>
           obtain ⟨r', hpull, hedge⟩ := square_tabToTab hd hleg
           obtain ⟨y', hrun', hfire'⟩ := ih t r' y hedge hrest hfreer
           refine ⟨y', ?_, hfire'⟩
           rw [show x.run (Move.tabToTab c b :: tail) = r'.run tail from
-            run_step_cons' hpull]
+            EdgeKit.run_step_cons' hpull]
           exact hrun'
 
 /-- **The run-grade draw-last regroup**: every successful waste-free
 play factors as a draw-free front segment to a mid-state, then an
 all-draw tail segment landing the original end. -/
 private theorem run_split_drawsLast : ∀ (play : List Move) (x y : State),
-    x.run play = some y → (∀ m ∈ play, isWasteMove m = false) →
+    x.run play = some y → (∀ m ∈ play, EdgeKit.isWasteMove m = false) →
     ∃ B D z, (∀ m ∈ B, m ≠ Move.draw) ∧ (∀ m ∈ D, m = Move.draw) ∧
       x.run B = some z ∧ z.run D = some y := by
   intro play
@@ -434,7 +363,7 @@ private theorem run_split_drawsLast : ∀ (play : List Move) (x y : State),
   | cons m tail ih =>
       intro x y hrun hfree
       obtain ⟨t, hleg, hrest⟩ := State.run_cons hrun
-      have hfreer : ∀ m' ∈ tail, isWasteMove m' = false := by
+      have hfreer : ∀ m' ∈ tail, EdgeKit.isWasteMove m' = false := by
         intro m' hm'
         exact hfree m' (List.mem_cons_of_mem _ hm')
       cases m with
@@ -453,13 +382,13 @@ private theorem run_split_drawsLast : ∀ (play : List Move) (x y : State),
           · exact run_split D z y' [Move.draw] y hDz
               (run_one (show State.step y' Move.draw = some y from hfired))
       | wasteToFound c =>
-          have h0 : isWasteMove (Move.wasteToFound c) = false :=
+          have h0 : EdgeKit.isWasteMove (Move.wasteToFound c) = false :=
             hfree (Move.wasteToFound c) (by simp)
-          exact absurd h0 (by simp [isWasteMove])
+          exact absurd h0 (by simp [EdgeKit.isWasteMove])
       | wasteToTab c b =>
-          have h0 : isWasteMove (Move.wasteToTab c b) = false :=
+          have h0 : EdgeKit.isWasteMove (Move.wasteToTab c b) = false :=
             hfree (Move.wasteToTab c b) (by simp)
-          exact absurd h0 (by simp [isWasteMove])
+          exact absurd h0 (by simp [EdgeKit.isWasteMove])
       | tabToFound c =>
           obtain ⟨B, D, z, hBnd, hDdr, hBz, hDz⟩ :=
             ih t y hrest hfreer
@@ -469,7 +398,7 @@ private theorem run_split_drawsLast : ∀ (play : List Move) (x y : State),
             | inl heq => intro hcon; rw [heq] at hcon; exact nomatch hcon
             | inr htl => exact hBnd m' htl
           · rw [show x.run (Move.tabToFound c :: B) = t.run B from
-              run_step_cons' hleg]
+              EdgeKit.run_step_cons' hleg]
             exact hBz
       | foundToTab c b =>
           obtain ⟨B, D, z, hBnd, hDdr, hBz, hDz⟩ :=
@@ -480,7 +409,7 @@ private theorem run_split_drawsLast : ∀ (play : List Move) (x y : State),
             | inl heq => intro hcon; rw [heq] at hcon; exact nomatch hcon
             | inr htl => exact hBnd m' htl
           · rw [show x.run (Move.foundToTab c b :: B) = t.run B from
-              run_step_cons' hleg]
+              EdgeKit.run_step_cons' hleg]
             exact hBz
       | tabToTab c b =>
           obtain ⟨B, D, z, hBnd, hDdr, hBz, hDz⟩ :=
@@ -491,13 +420,13 @@ private theorem run_split_drawsLast : ∀ (play : List Move) (x y : State),
             | inl heq => intro hcon; rw [heq] at hcon; exact nomatch hcon
             | inr htl => exact hBnd m' htl
           · rw [show x.run (Move.tabToTab c b :: B) = t.run B from
-              run_step_cons' hleg]
+              EdgeKit.run_step_cons' hleg]
             exact hBz
 
 /-- No reversible witness leg is a waste mover (the two universal
 commitment rows, at the leg). -/
 private theorem reversibleAtW_wasteFalse {st : State} {mm : Move}
-    (hw : reversibleAtW st mm) : isWasteMove mm = false := by
+    (hw : reversibleAtW st mm) : EdgeKit.isWasteMove mm = false := by
   obtain ⟨s₁, play, hstep, hrun⟩ := hw
   cases mm with
   | draw => rfl
@@ -511,7 +440,7 @@ private theorem reversibleAtW_wasteFalse {st : State} {mm : Move}
 `reversibleAtW`, and the banked census rows kill the two waste
 shapes). -/
 private theorem shuffleW_wasteFree {x y : State} {play : List Move} :
-    ShufflePlayW x play y → ∀ m ∈ play, isWasteMove m = false := by
+    ShufflePlayW x play y → ∀ m ∈ play, EdgeKit.isWasteMove m = false := by
   intro h
   induction h with
   | nil s => intro m hm; cases hm
@@ -614,9 +543,9 @@ private theorem draw_play_transplant_aux : ∀ (x x' : State) (play : List Move)
           have hleg : reversibleAtW x' Move.draw :=
             draw_revW_congr hpos hst1 hst2 hst3 hw
           have hdss : mid.drawStep = mid'.drawStep :=
-            (stepDraw_drawStep hb).trans (hst3.trans (stepDraw_drawStep hfire').symm)
+            (EdgeKit.stepDraw_drawStep hb).trans (hst3.trans (EdgeKit.stepDraw_drawStep hfire').symm)
           obtain ⟨y'', hjrest, hz1', hz2', hdss'⟩ :=
-            ih mid mid' y hrest hdrawer (by rw [stepDraw_drawStep hb]; exact hpos)
+            ih mid mid' y hrest hdrawer (by rw [EdgeKit.stepDraw_drawStep hb]; exact hpos)
               hz1.symm hz2.symm hdss
           exact ⟨y'', ShufflePlayW.cons hleg hfire' hjrest, hz1', hz2', hdss'⟩
 
@@ -636,79 +565,16 @@ theorem draw_play_transplant {x y x' : State} {play : List Move}
       y'.stock = y.stock ∧ y'.waste = y.waste ∧ y'.drawStep = y.drawStep :=
   draw_play_transplant_aux x x' play y h hdraw hpos hs hw hd
 
-/-- **§2 (witness grade): the draw-last bubbling of witness
-journeys** — [THE NAMED RESIDUE OF THIS CARD; ROUTE BELOW].
+/-! ## §3 The factorization theorem
 
-Proved here: the run-grade products (`run_drawPull`,
-`run_split_drawsLast`), the leg census (`shuffleW_wasteFree`,
-`reversibleAtW_wasteFalse`), the §1 squares and dispatch
-(`board_draw_commute`), and the draw-leg machinery in full
-(`draw_revW_congr`, `draw_play_transplant`).
-
-Missing for the witness grade: after a draw↔board swap the re-sited
-FILTER leg (one draw earlier than its original frame) needs a fresh
-`reversibleAtW` witness.  The edge-label chapter's private
-`ShufflePlayW_drawPush` solves the PUSH direction by re-running each
-leg's waste-free RETURN play through the front draw, the landing
-pinned by the front edge's own source; the PULL direction's
-corresponding play lands at a preimage of the return target, which
-is underdetermined without the draw cycle's injectivity.
-
-Routes:
-(1) draw legs are DONE — the zone census `draw_revW_congr`
-    reconstructs their witnesses at any pile frame, and
-    `draw_play_transplant` lifts a whole draws-only journey across
-    frames;
-(2) board legs — the one-move undo census: `foundToTab_undo`,
-    `tabToTab_undo_bare`/`_under`, `tabToFound_undo_under`/`_bare`
-    (all with PILE-ONLY premises) re-instantiate verbatim at the
-    pulled states, whose piles/found are the originals' by the §1
-    squares; the shape disjunction must be derived from
-    (fires ∧ reversibleAtW ∧ WF) via the never-reveal / never-vacate
-    commitment rows (`journey_tabToFound_never_reveal`,
-    `journey_tabToTab_never_reveal`, the seat-physics negrows) —
-    that derivation is the one open work item. -/
-theorem shuffle_split_drawsLastW {x y : State} {play : List Move}
-    (h : ShufflePlayW x play y) (hwf : x.WF) :
-    ∃ B D z, (∀ m ∈ B, m ≠ Move.draw) ∧ (∀ m ∈ D, m = Move.draw) ∧
-      ShufflePlayW x B z ∧ ShufflePlayW z D y := by
-  sorry
-
-/-! ## §3 The factorization theorem -/
-
-/-- **The orbit factorization**: the macro state of two `WF`
-positions decomposes exactly as the board component (`NoDrawPlayW`,
-reversible plays with no draw legs) onto the phase component
-(`SWRotW`, the banked draws-only rotation closure).
-
-The ← direction is proved here (pure glue: the four witness plays
-compose through `ShufflePlayW_append`).
-
-The → direction is the named residue; the full route, built on
-`shuffle_split_drawsLastW` (above) plus this chapter's proved
-machinery:
-
-* unfold `sameOrbitSetoid.r u v` to `RevEqW v u`: a witness
-  journey `τ : u → v` and one `σ : v → u`;
-* regroup BOTH draws-last (§2): `u --B--> zF --D--> v` and
-  `v --B'--> zB --D'--> u`, the midpoints pinned by accounting:
-  boards keep the zone and draws keep the piles/found, so
-  `zF` has v's board and u's zone, `zB` the converse;
-* `NoDrawPlayW u zF`: forward = `B`; backward = the boards of the
-  composite `zF --D--> v --B'--> zB --D'--> u` re-regrouped
-  draws-last — they land `u` again by the same accounting;
-* `SWRotW zF v`: forward `DrawPlayW zF D v` is direct; backward is
-  `D'` TRANSPLANTED to v's frame (`draw_play_transplant` — v shares
-  zB's zone, the transplant's legs re-witness by
-  `draw_revW_congr`), landing exactly `zF`: v's board, u's zone. -/
-theorem sameOrbit_factor {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF) :
-    sameOrbitSetoid.r u v ↔ ∃ z, NoDrawPlayW u z ∧ SWRotW z v := by
-  constructor
-  · intro h
-    sorry
-  · rintro ⟨z, ⟨P₁, hP₁, hP₁nd, P₂, hP₂, hP₂nd⟩, σ, τ, ⟨hσW, -⟩, ⟨hτW, -⟩⟩
-    exact ⟨τ ++ P₂, ShufflePlayW_append hτW hP₂,
-      P₁ ++ σ, ShufflePlayW_append hP₁ hσW⟩
+Landed clean in `Orig/OrbitFactorC.lean` — `sameOrbit_factor_fwd`
+(the → direction) and `sameOrbit_factor_full` (the biconditional,
+built with `shuffle_drawsLast`; the ← glue, the four-witness
+composition, is copied there so the canonical row carries no
+`sorryAx` lineage).  The same-named skeleton rows formerly here
+(the witness-grade bubbling `shuffle_split_drawsLastW`; the
+factorization card `sameOrbit_factor`) are retired — superseded by
+those proofs, unconsumed in the tree. -/
 
 /-! ## §4 The quotient plumbing
 
@@ -806,7 +672,5 @@ theorem orbit_in_SWPhase_fiber {u v : State} (hwf : u.WF)
 #print axioms shuffle_drawsLast_run
 #print axioms draw_revW_congr
 #print axioms draw_play_transplant
-#print axioms shuffle_split_drawsLastW
-#print axioms sameOrbit_factor
 #print axioms mkSW_invariant_board
 #print axioms orbit_in_SWPhase_fiber
