@@ -718,7 +718,163 @@ private theorem crossing_door_hop {st : State} (hwf : st.WF) {x : Card}
        ShufflePlayW st ρ₁ s₃ ∧
        State.step s₃ (Move.tabToFound c) = some s₄ ∧
        c.rank.toIdx + 1 = x.rank.toIdx ∧
-       c.suit.color ≠ x.suit.color) := by
+        c.suit.color ≠ x.suit.color) := by
+  -- the fork's cover package: every hop route reads the twin's direct
+  -- cover d first (one rank below, opposite family, topping the twin's
+  -- pile, not nextUp, its suit's rung strictly below the fork)
+  obtain ⟨aw, hpoW⟩ := htop
+  obtain ⟨a, bs, d, hshape, hseat, hfit, hdtop, hnotnext, hrung⟩ :=
+    pair_cover_pins hwf hx
+  sorry
+
+/-- **THE RUNG-CROSSING RAISE CENSUS** — if a suit's rung starts at
+most `R` at a witness-journey start and ends strictly above `R`, the
+play contains a literal `tabToFound e` leg whose card is exactly
+`(σ, R)` — the first-exceeding raise: the per-leg rung ledger
+(draw/cargo write nothing, waste letters never ride, a raise lifts
+exactly its own suit, a pull only lowers its own) forces the leg that
+first carries the rung past `R` to be a same-suit raise from exactly
+`R`, and the `nextUp` guard plus suit-and-index name the card. -/
+private theorem conf_raise_crossing {st : State} {σ : Suit} {R : Nat} :
+    ∀ {w : State} {π : List Move},
+    ShufflePlayW st π w →
+    ¬ (rungAt st σ > R) → rungAt w σ > R →
+    ∃ (ρ₁ ρ₂ : List Move) (e : Card) (t₃ t₄ : State),
+      π = ρ₁ ++ Move.tabToFound e :: ρ₂ ∧
+      ShufflePlayW st ρ₁ t₃ ∧
+      State.step t₃ (Move.tabToFound e) = some t₄ ∧
+      e.suit = σ ∧ e.rank.toIdx = R := by
+  intro w π h
+  induction h with
+  | nil u =>
+      intro hle hgt
+      exact absurd hgt hle
+  | @cons s₀ mv s₁ rest w₀ hrev hstep hrest ih =>
+      intro hle hgt
+      rcases Nat.lt_or_ge (rungAt s₁ σ) (R + 1) with hQ | hQ
+      · -- still at-or-below: the crossing is later in the tail
+        obtain ⟨ρ₁, ρ₂, e, t₃, t₄, hsplit, hsh₁, hstep₁, hes, her⟩ :=
+          ih (by omega) hgt
+        exact ⟨mv :: ρ₁, ρ₂, e, t₃, t₄, by rw [hsplit]; rfl,
+          .cons hrev hstep hsh₁, hstep₁, hes, her⟩
+      · -- this leg carries the crossing: the rung ledger names it
+        cases mv with
+        | draw =>
+            have hA : rungAt s₁ σ = rungAt s₀ σ := conf_rung_draw hstep σ
+            exfalso
+            omega
+        | wasteToFound c =>
+            exact absurd hrev (journey_never_wasteToFound hstep)
+        | wasteToTab c b =>
+            exact absurd hrev (journey_never_wasteToTab hstep)
+        | tabToTab c b =>
+            have hA : rungAt s₁ σ = rungAt s₀ σ := conf_rung_cargo hstep σ
+            exfalso
+            omega
+        | tabToFound c =>
+            obtain ⟨hn, -, -, -⟩ := step_tabToFound_inv hstep
+            obtain ⟨hrise, hothers⟩ := conf_rung_raise hstep
+            have hcnext : c.rank.toIdx = rungAt s₀ c.suit :=
+              of_decide_eq_true hn
+            by_cases hcs : c.suit = σ
+            · rw [hcs] at hrise hcnext
+              exact ⟨[], rest, c, s₀, s₁, rfl, .nil s₀, hstep, hcs, by omega⟩
+            · have hB : rungAt s₁ σ = rungAt s₀ σ :=
+                hothers σ (fun hcon => hcs hcon.symm)
+              exfalso
+              omega
+        | foundToTab c b =>
+            obtain ⟨hdrop, hothers⟩ := conf_rung_pull hstep
+            by_cases hcs : c.suit = σ
+            · rw [hcs] at hdrop
+              exfalso
+              omega
+            · have hB : rungAt s₁ σ = rungAt s₀ σ :=
+                hothers σ (fun hcon => hcs hcon.symm)
+              exfalso
+              omega
+
+/-- **THE AT-RUNG EXPOSURE RESIDUE** — the freeze's climb and
+at-rung cases, distilled: no card of the opposite family, of rank
+index strictly below the fork's, and already AT-RUNG at `st` (its
+index equals its suit's rung there, so it is NOT founded) can be the
+card of a `tabToFound` leg riding a witness shuffle out of the fork.
+ROUTE: the step inversion seats it face-up on a pile top at its
+firing pre-state `s₃`; its location at `st` pins one of four cells —
+(i) HIDDEN: `shuffle_hiddenPinned` keeps every pile's hidden list
+identical along witness journeys, so it can never surface;
+(ii) STOCK/WASTE: the draw-zone pin (waste legs never ride —
+`journey_never_wasteToFound`/`journey_never_wasteToTab`; draws recycle
+stock↔waste only — `dealUpTo_eq_take_drop`), to be landed as the
+private row `conf_stockWaste_pinned`; (iii) FACE-UP COVERED: its
+direct cover or seat card is one rank up of the fork family — an
+x-family card of index below the fork rank, already FOUNDED at `st`
+by `pair_lowFamily_founded` (when the cover is exactly a pair member,
+the pair member is pinned elsewhere by conservation:
+`conf_rankColor_pair` + `mem_faceUp_only`) — a founded card cannot
+sit face up at `st` against `mem_faceUp_only`; (iv) FACE-UP TOPPING:
+the seat read pins its pile bare below (the card below would be
+one-rank-up likewise-founded), so the founding leg either strips the
+last face-up card over nonempty hidden — barred by
+`journey_tabToFound_never_reveal` — or fully empties a non-king bare
+seat over empty hidden: the write-analysis pillar (an emptied pile
+rebuilds only to a king head — first content into a hidden-empty
+pile is an `inl` king by `canPlace_inl`; a non-king first head can
+never be restored), to be landed as the private row
+`conf_emptiedSeat_kingBottom` over `State.run`; the founding leg would
+need an undo play no king can serve — contradicts its witness
+reversibility.  Cover-family index is at most 11, never a king. -/
+private theorem crossing_door_freeze_charlie {st : State} (hwf : st.WF) {x : Card}
+    (hx : ForkWitness st x) {w : State} {ρ : List Move}
+    (hpre : ShufflePlayW st ρ w)
+    (hlow :
+      ∃ (ρ₁ ρ₂ : List Move) (c : Card) (s₃ s₄ : State),
+        ρ = ρ₁ ++ Move.tabToFound c :: ρ₂ ∧
+        ShufflePlayW st ρ₁ s₃ ∧
+        State.step s₃ (Move.tabToFound c) = some s₄ ∧
+        c.rank.toIdx < x.rank.toIdx ∧
+        c.suit.color ≠ x.suit.color ∧
+        c.rank.toIdx = rungAt st c.suit) :
+    False := by
+  sorry
+
+/-- **THE PULL-ESCAPE GAP** — the freeze's honest remainder, recorded
+2026-10-12.  Here the cover-family card `c` was ALREADY FOUNDED at
+`st` (its suit's rung sat strictly above its own index there), and
+the witness prefix founds it again at `s₃`, once the rung has walked
+back DOWN to its index.  ROUTE-CRITICAL FINDING: this cell is NOT
+barred by the freeze's standalone ingredients — the re-founding can
+ride a legitimate LIFO pull cascade: pop the `c.suit`-foundation's
+current top cards one by one (each pops onto a one-rank-up
+fork-family TOP; for host ranks ≥ r those hosts are face-up-legal at
+`st`, lying beyond the `pair_lowFamily_founded` saturation), then pop
+`c` itself onto an exposed pair member's top, then re-found it; every
+leg is reversible (each pop's undo is its own re-founding, and the
+re-founding's undo is the pull back onto the exposed host), so the
+cascaded prefix is a genuine `ShufflePlayW`.  The FREEZE'S STANDALONE
+STATEMENT THEREFORE CANNOT CLOSE THROUGH THIS CASE: the true bar lives
+in the consumed door context — the hop's founding leg is the twin's
+uncovering flip, so `c` sits directly on `x.twin` at the firing
+state, and the elevated member's interlock plus the LIFO census
+(`foundToTab_pops_currentTop`, `witness_rung_census`) is exactly
+`crossing_door_final`'s ledger read.  Closing this residue needs
+threading the flip anchor (c directly covering `x.twin` at the firing
+state) through the split, or absorbing the founding disjunct into
+the final leg's door-context analysis — a decomposition-level repair
+(flagged for a human decision), not a missing lemma. -/
+private theorem crossing_door_freeze_pullEscape {st : State} (hwf : st.WF) {x : Card}
+    (hx : ForkWitness st x) {w : State} {ρ : List Move}
+    (hpre : ShufflePlayW st ρ w)
+    (hgap :
+      ∃ (ρ₁ ρ₂ : List Move) (c : Card) (s₃ s₄ : State),
+        ρ = ρ₁ ++ Move.tabToFound c :: ρ₂ ∧
+        ShufflePlayW st ρ₁ s₃ ∧
+        State.step s₃ (Move.tabToFound c) = some s₄ ∧
+        c.rank.toIdx + 1 = x.rank.toIdx ∧
+        c.suit.color ≠ x.suit.color ∧
+        c.rank.toIdx < rungAt st c.suit ∧
+        c.rank.toIdx = rungAt s₃ c.suit) :
+    False := by
   sorry
 
 /-- **THE FREEZE** — route step 4, the second named sub-residue: a
@@ -743,7 +899,32 @@ private theorem crossing_door_freeze {st : State} (hwf : st.WF) {x : Card}
         c.rank.toIdx + 1 = x.rank.toIdx ∧
         c.suit.color ≠ x.suit.color) :
     False := by
-  sorry
+  obtain ⟨ρ₁, ρ₂, c, s₃, s₄, hρeq, hsh₁, hstep, hrk, hcol⟩ := hfounded
+  -- the founding leg's own guard reads the rung at the firing state
+  obtain ⟨hnext, -, -, -⟩ := step_tabToFound_inv hstep
+  have hg3 : c.rank.toIdx = rungAt s₃ c.suit := of_decide_eq_true hnext
+  rcases Nat.lt_trichotomy (rungAt st c.suit) (c.rank.toIdx) with
+    hlow | heq | hhigh
+  · -- THE CLIMB: the rung sat strictly below at the fork, so the
+    -- at-rung card's literal raise rides the founding prefix (the
+    -- rung-crossing census); the raised card is a strictly-lower
+    -- opposite-family card already at its own rung at `st`
+    obtain ⟨ρ₃, ρ₄, e, t₃, t₄, hsplit, hsh₃, hstep₃, hes, her⟩ :=
+      conf_raise_crossing (σ := c.suit) (R := rungAt st c.suit) hsh₁
+        (fun hcon => Nat.lt_irrefl _ hcon) (by omega)
+    exact crossing_door_freeze_charlie hwf hx hpre
+      ⟨ρ₃, ρ₄ ++ (Move.tabToFound c :: ρ₂), e, t₃, t₄,
+        by rw [hρeq, hsplit, List.append_assoc]; rfl,
+        hsh₃, hstep₃, by omega, by rw [hes]; exact hcol,
+        by rw [hes]; exact her⟩
+  · -- AT-RUNG: the cover-family card is its own exposure-residue
+    -- target (never founded at st: its index IS the rung)
+    exact crossing_door_freeze_charlie hwf hx hpre
+      ⟨ρ₁, ρ₂, c, s₃, s₄, hρeq, hsh₁, hstep, by omega, hcol, heq.symm⟩
+  · -- FOUNDED-AT-FORK: the founding came down through the foundation
+    -- round-trip — the named pull-escape gap residue
+    exact crossing_door_freeze_pullEscape hwf hx hpre
+      ⟨ρ₁, ρ₂, c, s₃, s₄, hρeq, hsh₁, hstep, hrk, hcol, hhigh, hg3⟩
 
 /-- **THE PULL ROUND-TRIP ACCOUNTING — THE FINAL CONTRADICTION READ** —
 route step 5, the third and deepest named sub-residue.  With the hop
@@ -776,6 +957,10 @@ private theorem crossing_door_final {st : State} (hwf : st.WF) {x : Card}
         c.rank.toIdx + 1 = x.rank.toIdx ∧
         c.suit.color ≠ x.suit.color) :
     False := by
+  -- the cargo certificate names its cover-family head (the census
+  -- reads it as the fork's cover or its twin); the LIFO ledger read
+  -- against the door fires below
+  obtain ⟨ρ₁, ρ₂, c, bb, s₃, s₄, hρeq, hsh₁, hstep₁, hrk, hcol⟩ := hcargo
   sorry
 
 /-- **THE CROSSING-DOOR BAR** — the door never opens.  The proof is the
