@@ -2904,6 +2904,96 @@ private theorem pollutesCrash_reseat_pop {vp s₁ : State} {m₀ : Card}
         exact pollutesCrash_none_ne_some z hz2
       exact ⟨k₀', (vp.piles k₀').faceUp, hshape1, hhold1, hcond1⟩
 
+/-- **The seed's Below-start witness** (the core's exact input,
+zero-sorry): the hpkg seed shape `[bs ++ zt, w]` read in
+`OrphanSeat.Below`'s own positional form — the seed mint seated ON
+its landlord, the tail empty.  This is the hstart disjunct
+`Below_stable` consumes for the whole-journey positional transport
+of the seed card; it is the ONLY core input the composition side
+can build without new premises (the founding-bracket endpoint read
+and the twin's own start-pin are named in the ledger as the
+transpose gaps). -/
+private theorem pollutesCrash_seedBelow_start {v : State} {w zt : Card}
+    {kk : Anchor} {bs : List Card}
+    (htop : (v.piles kk).faceUp = bs ++ [zt, w]) :
+    Below v w zt :=
+  ⟨kk, bs, [], by rw [htop]⟩
+
+/-- **THE TERMINAL-HOT SEAT ROW** — the successor-archaeology's engine
+(the census corner's priced fuel, zero-sorry): along a witness
+shuffle, a NON-KING card founded at the origin and HOT at the
+terminus ends FACE-UP DIRECTLY ABOVE A BELOW-NEIGHBOR at the
+terminus.  The route is the exodus decomposition (`lock_found_exit`:
+the card left its row through its own pull), the fire-time bracket
+read (the popped card tops its row, the rung one above its index),
+the landing kit (`pollutesCrash_reseat_pop`: next-up-live, seat-top,
+the light clause), the non-king gate (`hnk` kills the bare-king
+line, so the landing seats the card over a live below-neighbor,
+`chop_snoc`), and the public positional core (`Below_stable`)
+transporting the seat over the remaining suffix; terminal hotness
+bars the re-founding arm.  The row needs NO seat premise at any
+state — the datum that priced the census corner — only the two
+bracket reads (the ORIGIN HEIGHT and the TERMINAL HOTNESS), both of
+which the founded-case head holds by `hsq1`-grade anchors.  The
+king boundary stays with the consumer (the transport's own gate;
+kings may land bare). -/
+private theorem pollutesCrash_terminalHot_Below {st₁ sth : State}
+    {play : List Move} (hplay : ShufflePlayW st₁ play sth)
+    (hwf₁ : st₁.WF) (hwf₂ : sth.WF) {t : Card}
+    (hnk : t.rank ≠ Rank.king)
+    (horg : t.rank.toIdx < rungAt st₁ t.suit)
+    (hhot : sth.nextUp t = true) :
+    ∃ b, Below sth t b := by
+  -- founded at the origin (the height bridge), un-founded at the end (hotness)
+  have hinfound : t ∈ st₁.found t.suit :=
+    mem_found_of_height hwf₁ horg
+  have hnotfound : t ∉ sth.found t.suit := by
+    intro hmem
+    have hlt := lock_found_rank_lt hwf₂ hmem
+    have heq : t.rank.toIdx = rungAt sth t.suit :=
+      of_decide_eq_true hhot
+    omega
+  -- the exodus: the card left through its own pull, mid-journey
+  obtain ⟨π, ρ, b, u, v, hpre, hstep, _hrev, hpost⟩ :=
+    lock_found_exit (c := t) hplay hwf₁ hinfound hnotfound
+  have hwfu : u.WF := lock_shuffle_wf st₁ hpre hwf₁
+  have hwfv : v.WF := step_wf hwfu hstep
+  -- the fire-time bracket: the popped card tops its row, the rung
+  -- one above its own index
+  have htop : u.foundTop t.suit = some t :=
+    foundToTab_pops_currentTop hstep
+  have hsplit : u.found t.suit = chop (u.found t.suit) ++ [t] :=
+    lastOf_chop (show lastOf (u.found t.suit) = some t from htop)
+  have hchoplen : (chop (u.found t.suit)).length = t.rank.toIdx :=
+    wf_found_chop_toIdx hwfu htop
+  have hru : rungAt u t.suit = t.rank.toIdx + 1 := by
+    show (u.found t.suit).length = _
+    rw [hsplit, List.length_append]
+    have h1 : ([t] : List Card).length = 1 := rfl
+    omega
+  -- the landing: next-up-live, seat-top, in the light kit's own shape
+  obtain ⟨_hn1, ke, se, hshape1, _hhold1, hcond1⟩ :=
+    pollutesCrash_reseat_pop hwfu hru hstep
+  -- the non-king gate: the landing seats the card over a live below-neighbor
+  have hse : se ≠ [] := by
+    rcases hcond1 with hch | ⟨_, hking⟩
+    · rw [hshape1, chop_snoc] at hch
+      exact hch
+    · exact absurd hking hnk
+  obtain ⟨se', z, hseSplit⟩ := pollutesCrash_snocSplit se hse
+  have hgoal : (v.piles ke).faceUp = se' ++ [z, t] := by
+    rw [hshape1, hseSplit]
+    simp [List.append_assoc]
+  have hbelowV : ∃ z, Below v t z :=
+    ⟨z, ke, se', [], by
+      show (v.piles ke).faceUp = se' ++ z :: t :: ([] : List Card)
+      rw [hgoal]⟩
+  -- the public positional core carries the seat over the suffix
+  rcases Below_stable hwfv hpost (d := t) hnk (Or.inr hbelowV) with
+    hf | ⟨z', hz'⟩
+  · exact absurd hf hnotfound
+  · exact ⟨z', hz'⟩
+
 /-- **THE SLIDE MOVER** (zero-sorry): a `tabToTab` leg whose moving run
 write sites (departure and landing) split against the mint's seat.  At
 an off-seat departure the mint's seat pile reads verbatim (the landing
@@ -3317,25 +3407,56 @@ private theorem pollutesCrash_rhoMover {x y d w zt : Card}
     (hsq2' : rungAt sth d.suit + 2 ≤ d.rank.toIdx + 1)
     (hwleg : reversibleAtW vp m)
     (hstep : State.step vp m = some s₁)
-    (ih : (∃ m₁ : Card, s₁.WF ∧ s₁.nextUp m₁ = true ∧
-        m₁.rank.toIdx + 2 ≤ y.rank.toIdx ∧
-        ∃ ke se, (s₁.piles ke).faceUp = se ++ [m₁] ∧
-          s₁.pileOfTop m₁ = some ke ∧
+    (harch : ∃ (o : State), o.WF ∧
+      d.rank.toIdx + 1 ≤ rungAt o d.suit ∧
+      ∃ (pf : List Move), ShufflePlayW o pf sth)
+    (ihWide : ((∃ m₀ : Card, s₁.WF ∧ s₁.nextUp m₀ = true ∧
+        m₀.rank.toIdx + 2 ≤ y.rank.toIdx ∧
+        ∃ ke se, (s₁.piles ke).faceUp = se ++ [m₀] ∧
+          s₁.pileOfTop m₀ = some ke ∧
           (chop (s₁.piles ke).faceUp ≠ [] ∨
-            ((s₁.piles ke).hidden = [] ∧ m₁.rank = Rank.king)) ∧
+            ((s₁.piles ke).hidden = [] ∧ m₀.rank = Rank.king)) ∧
         ∃ ccRA ccPD : Nat, rungAt s₁ d.suit + ccPD
-          = w.rank.toIdx + ccRA) →
+          = w.rank.toIdx + ccRA) ∨
+       (∃ m₀ : Card, s₁.WF ∧ m₀.rank.toIdx + 2 ≤ y.rank.toIdx ∧
+        ∃ PRE STOCK : List Card, s₁.found m₀.suit = PRE ++ [m₀] ++ STOCK ∧
+          PRE.length = m₀.rank.toIdx ∧
+        ∃ ccRA ccPD : Nat, rungAt s₁ d.suit + ccPD
+          = w.rank.toIdx + ccRA)) →
       sth.WF → ForkWitness sth y →
       (∃ cc bscc, (sth.piles cc).faceUp = bscc ++ [y.twin, d] ∧
         sth.pileOfTop d = some cc) →
       (∀ z, sth.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin) →
       sth.nextUp d = false →
       rungAt sth d.suit + 2 ≤ d.rank.toIdx + 1 →
+      (∃ (o : State), o.WF ∧
+        d.rank.toIdx + 1 ≤ rungAt o d.suit ∧
+        ∃ (pf : List Move), ShufflePlayW o pf sth) →
       ∃ t, CanRaiseS sth t ∧ t ≠ y ∧ t ≠ y.twin) :
     ∃ t, CanRaiseS sth t ∧ t ≠ y ∧ t ≠ y.twin := by
   have hwfs₁ : s₁.WF := step_wf hwfs hstep
   have htop2 : vp.topOf k2 = some m₀ := (pileOfTop_top hhold2).2
   obtain ⟨ccRA, ccPD, hdE⟩ := hdebt
+  -- the seat-grade view of the widened ih: every arm that re-pairs within
+  -- the light kit's own shape consumes this wrapper verbatim; the wash-back
+  -- arm emits the founded form through ihWide itself
+  have ih : (∃ m₁ : Card, s₁.WF ∧ s₁.nextUp m₁ = true ∧
+      m₁.rank.toIdx + 2 ≤ y.rank.toIdx ∧
+      ∃ ke se, (s₁.piles ke).faceUp = se ++ [m₁] ∧
+        s₁.pileOfTop m₁ = some ke ∧
+        (chop (s₁.piles ke).faceUp ≠ [] ∨
+          ((s₁.piles ke).hidden = [] ∧ m₁.rank = Rank.king)) ∧
+      ∃ ccRA ccPD : Nat, rungAt s₁ d.suit + ccPD
+        = w.rank.toIdx + ccRA) →
+    sth.WF → ForkWitness sth y →
+    (∃ cc bscc, (sth.piles cc).faceUp = bscc ++ [y.twin, d] ∧
+      sth.pileOfTop d = some cc) →
+    (∀ z, sth.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin) →
+    sth.nextUp d = false →
+    rungAt sth d.suit + 2 ≤ d.rank.toIdx + 1 →
+    ∃ t, CanRaiseS sth t ∧ t ≠ y ∧ t ≠ y.twin :=
+    fun hk hwfst' hy' hdcov' hlat' hnext' hsq2' =>
+      ihWide (Or.inl hk) hwfst' hy' hdcov' hlat' hnext' hsq2' harch
   cases hopenTF : pollutesCrash_rhoOpen m vp m₀ k2 with
   | true =>
       cases m with
@@ -3421,6 +3542,29 @@ private theorem pollutesCrash_rhoMover {x y d w zt : Card}
           -- Orig\OrphanSeat — not yet in hand).  Ledger: TWO sorry
           -- forks here (wash-back + covered), both priced; census
           -- sorry surfaces only at the re-thread.
+          -- ATTACK-BRIEF VERDICT (verified in-context, no grouting):
+          -- the Fork-A archaeology (successor c' = (d.suit,
+          -- m₀.ridx+1) founded at st₁ via `rung_found_prefix` —
+          -- banked at MacroInternal:738 — exodus over [st₁..s₁],
+          -- landing-seed, Below-transport) engages ONLY when
+          -- m₀.suit = d.suit, and leaves four named gaps: (A1) the
+          -- st₁-era pins (hdfound/hsq1) and the prefix journey
+          -- exist only at the composition head — the mover's frozen
+          -- signature holds neither; delivering the start-pin to
+          -- the arm is a premise-thread through all three rows
+          -- (the held re-thread's second interlock); (A2) Below
+          -- transports POSITION, not the top-shape — no census bans
+          -- mid-suffix re-covers of c', so the kit's TOP-form (R =
+          -- []) at s₁ stays missing even with the transport; (A3)
+          -- STRANGER-suit m₀ wash-backs (the z-onto re-mint's own
+          -- output) have no st₁ archaeology at all — a full strike
+          -- must also close them; (A4) the edge subcase c' = d does
+          -- not contradict hdcover (a mid-walk exhumed d re-seats
+          -- by st₂ consistently) and d-as-kit-mint fails the rank
+          -- clause outright (d.ridx + 2 = y.ridx + 1).  Fork A
+          -- stays held on A1–A4; the archaelogy's usable core (the
+          -- found_prefix membership at the composition head) is
+          -- stamped for the next design line.
           -- DRILL UPDATE (banked): the re-exhume's landing kit is now a
           -- COMPILED constructor — `pollutesCrash_reseat_pop` (the pop
           -- of the mint at its founding bracket lands it next-up-live
@@ -3433,6 +3577,26 @@ private theorem pollutesCrash_rhoMover {x y d w zt : Card}
           -- the `Below_stable` positional core (Orig\OrphanSeat, the
           -- seat line) lands by name; the nil-founded census re-prices
           -- against the same core then.
+          -- CORE-RE-PRICING (against the LANDED signatures, OrphanSeat:
+          -- `Below_stable : hwf → ShufflePlayW → hnk-nonking →
+          --  (d ∈ st.found d.suit ∨ ∃ z, Below st d z) →
+          --  (d ∈ u.found d.suit ∨ ∃ z, Below u d z)`): the core
+          -- transports POSITION ONLY.  The nil-founded census's
+          -- MISSING DATUM (named, no grouting): the endpoint BRACKET
+          -- read — `nextUp sth (the transported card)`, i.e.
+          -- `rungAt sth (its suit) = its index` — absent from the
+          -- transported disjunct on both sides (the R = [] Below arm
+          -- tops the card but reads no bracket; the R ≠ [] arm
+          -- re-adds the twin-tops); the founded-arm disjunct stays
+          -- CONSISTENT for sub-cap d-suit mints (the twice-audited
+          -- edge analysis).  The hstart side is now BANKED
+          -- (`pollutesCrash_seedBelow_start`: the hpkg seed shape is
+          -- `Below v w zt` verbatim) but its thread starts at the
+          -- descent caller — rhoTail's frozen premises do not carry
+          -- the [zt, w] shape per-instance.  The three statement
+          -- edits stay interlocked on this datum: the widened
+          -- rhoTail would otherwise mint the census sorry in place
+          -- of the mover's.
           have hcq : c = m₀ := by
             simp only [pollutesCrash_rhoOpen] at hopenTF
             exact of_decide_eq_true hopenTF
@@ -3470,7 +3634,21 @@ private theorem pollutesCrash_rhoMover {x y d w zt : Card}
           have hnlive : s₁.nextUp (Card.mk m₀.suit (lockRk (m₀.rank.toIdx + 1)))
               = true :=
             pollutesCrash_landing_live hrungstar
-          sorry
+          -- THE WASH-BACK'S FOUNDED-FORM EMISSION (the re-thread's first
+          -- live instance; the stamp's pure assembly): the mint rides
+          -- its own suit's row at its own bracket — PRE the firing row
+          -- (its length the mint's index, the pre-rung pin `hrungM`),
+          -- STOCK empty (the founding snocs at the top) — and the debt
+          -- re-prices by the raise arm.  The successor pin `hnlive`
+          -- stays as census evidence for the nil archaeology cell (the
+          -- widened nil census's stamped content), not the kit's data.
+          have hftrio : s₁.found m₀.suit = vp.found m₀.suit ++ [m₀] :=
+            (tabToFound_found_trio hs₁).1
+          exact ihWide (Or.inr ⟨m₀, hwfs₁, hrkb, vp.found m₀.suit, [],
+            by rw [List.append_nil]; exact hftrio,
+            hrungM,
+            pollutesCrash_tailDebt_raise hstep ⟨ccRA, ccPD, hdE⟩⟩)
+            hwfst' hy' hdcov' hlat' hnext' hsq2' harch
       | tabToTab c b =>
           -- THE COVERED-MINT BURIAL (rhoOpen literal `c ≠ m₀ ∧ z = m₀`) —
           -- THE FLAT-IFF ATTEMPT, COMPILED TO ITS GAP: every input of
@@ -3590,6 +3768,45 @@ private theorem pollutesCrash_rhoMover {x y d w zt : Card}
               -- rank/color read once the `Below_stable` positional
               -- core (Orig\OrphanSeat) lands by name.  This fork
               -- re-prices against it then; no grouting before.
+              -- CORE-RE-PRICING (against the LANDED signatures): the
+              -- twin transpose MISSES its datum, named: NO row pins
+              -- the mid-walk mint's twin (founded-or-Below) at ANY
+              -- journey point — `journey_raise_seatUnfounded`'s seat
+              -- card is rank-(r+1) OPPOSITE color (the landlord
+              -- shape: it can never BE the twin, who shares the
+              -- mint's own color), and `twinLanding_color` pins the
+              -- residual landing card as the LANDLORD's twin
+              -- (`zt.twin` — a different card once the mint roams
+              -- off the seed); `Below_stable` transports only cards
+              -- already pinned at a start.  The twin has no start
+              -- pin anywhere in the package: the fork keeps its
+              -- typed gap until the seat line pins one.
+              -- ATTACK-BRIEF VERDICT (verified in-context, no
+              -- grouting): the claimed start-pin "breakthrough" is
+              -- UNSOUND as stated — `Card.twin` is the SAME-COLOR
+              -- other suit (Twin.lean:33 with `Suit.color_twin`
+              -- simp-banked at Basic.lean:42), so m₀.twin carries
+              -- m₀'s own color: for a d-suited mint (the brief's
+              -- own assumption m₀ = (d.suit, k)) the twin is
+              -- OFF-family-colored and `pair_lowFamily_founded`'s
+              -- color premise `c.suit.color = x.suit.color`
+              -- (PairConfine:263) FAILS — the row does not pin it.
+              -- The salvageable half: for a FAMILY-colored mint
+              -- (the stranger re-mint subcase) the pin DOES fire
+              -- (rank via m₀.ridx + 2 ≤ y.ridx < x.ridx) — the
+              -- color-complement of Fork A.  The twin-TOP-at-s1
+              -- question, priced on the brief's three roads:
+              -- (a) the x-family re-cover census is not banked
+              -- (the walks' per-suit mid-walk accounting has no
+              -- twin-suit row); (b) dying-mint re-mint dies at the
+              -- SAME bracket datum (cover-run cards carry none —
+              -- the original twice-audited pricing; the
+              -- stratum-down successor misses the rank clause:
+              -- c''.rdx + 2 = m₀.ridx + 3 vs y's gap of m₀.ridx +
+              -- 2); (c) therefore the named datum STANDS: the
+              -- twin's TOP-shape at the cover leg's state, now
+              -- with the start-pin's color case-split priced in
+              -- (d-mint: no pin; family-mint: pin, no top read).
               sorry
       | foundToTab c b =>
           -- THE Z-ONTO-MINT PULL BURIAL (rhoOpen literal: the mid-state
@@ -4026,6 +4243,166 @@ private theorem pollutesCrash_rhoMover {x y d w zt : Card}
                     hcond1, pollutesCrash_tailDebt_pull hstep ⟨ccRA, ccPD, hdE⟩⟩ hwfst' hy'
                     hdcov' hlat' hnext' hsq2'
 
+/-- **THE MOVER DISPATCH, FOUNDED-FORM** — the widened carry's second
+half: a mint riding its own suit's foundation row at its own bracket
+survives every rider leg.  The stranger legs and the draw carry the
+row verbatim; a same-suit RAISE grows the stack above the mint
+(`pollutesCrash_foundRaise_stackGrow`); a same-suit PULL chops the
+stack alone (`pollutesCrash_foundPull_stackShrink`); and when the
+stack is EMPTY the pulled card IS the mint — THE RE-EXHUME:
+`pollutesCrash_reseat_pop` lands it next-up-live and seat-top in the
+light kit's very own shape (the switch-back constructor, the widened
+mover's pure-assembly row).  The waste movers die by the journey
+census as everywhere.  Ranks and the census debt ride the priced per
+leg rows (`tailDebt_keep/raise/pull`).  The founded mint cannot
+itself be raised or covered while it rides its row: a founded card
+tops no pile and sits in none
+(`pollutesCrash_foundCard_notPileTop`/`_notInPile`), so no arm needs
+a guard beyond the row reads. -/
+private theorem pollutesCrash_rhoMoverF {x y d w zt : Card}
+    {play π : List Move}
+    (hd : d.rank.toIdx + 1 = y.rank.toIdx)
+    (hdcol : d.suit.color ≠ y.suit.color)
+    (hzrk : zt.rank.toIdx = w.rank.toIdx + 1)
+    (hzcol : zt.suit.color = y.suit.color)
+    (hrk : w.rank.toIdx + 1 ≤ d.rank.toIdx)
+    (hwne : w ≠ y ∧ w ≠ y.twin)
+    (hsq3 : raisesOf play d.suit + 2 ≤ pullsOf play d.suit)
+    (hpc1 : raisesOf play y.suit + (x.rank.toIdx - y.rank.toIdx)
+      ≤ pullsOf play y.suit)
+    (hpc2 : raisesOf play y.twin.suit + (x.rank.toIdx - y.rank.toIdx)
+      ≤ pullsOf play y.twin.suit)
+    (hpid : raisesOf π d.suit + (d.rank.toIdx - w.rank.toIdx)
+      ≤ pullsOf π d.suit)
+    {vp s₁ sth : State} {m : Move} {m₀ : Card}
+    (hw : w.suit = d.suit)
+    (hwfs : vp.WF)
+    (hrkb : m₀.rank.toIdx + 2 ≤ y.rank.toIdx)
+    (PRE STOCK : List Card)
+    (hrow : vp.found m₀.suit = PRE ++ [m₀] ++ STOCK)
+    (hbrk : PRE.length = m₀.rank.toIdx)
+    (hdebt : ∃ ccRA ccPD : Nat, rungAt vp d.suit + ccPD
+      = w.rank.toIdx + ccRA)
+    (hwfst' : sth.WF)
+    (hy' : ForkWitness sth y)
+    (hdcov' : ∃ cc bscc, (sth.piles cc).faceUp = bscc ++ [y.twin, d] ∧
+      sth.pileOfTop d = some cc)
+    (hlat' : ∀ z, sth.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin)
+    (hnext' : sth.nextUp d = false)
+    (hsq2' : rungAt sth d.suit + 2 ≤ d.rank.toIdx + 1)
+    (hwleg : reversibleAtW vp m)
+    (hstep : State.step vp m = some s₁)
+    (harch : ∃ (o : State), o.WF ∧
+      d.rank.toIdx + 1 ≤ rungAt o d.suit ∧
+      ∃ (pf : List Move), ShufflePlayW o pf sth)
+    (ih : ((∃ m₁ : Card, s₁.WF ∧ s₁.nextUp m₁ = true ∧
+        m₁.rank.toIdx + 2 ≤ y.rank.toIdx ∧
+        ∃ ke se, (s₁.piles ke).faceUp = se ++ [m₁] ∧
+          s₁.pileOfTop m₁ = some ke ∧
+          (chop (s₁.piles ke).faceUp ≠ [] ∨
+            ((s₁.piles ke).hidden = [] ∧ m₁.rank = Rank.king)) ∧
+        ∃ ccRA ccPD : Nat, rungAt s₁ d.suit + ccPD
+          = w.rank.toIdx + ccRA) ∨
+       (∃ m₁ : Card, s₁.WF ∧ m₁.rank.toIdx + 2 ≤ y.rank.toIdx ∧
+        ∃ PRE STOCK : List Card, s₁.found m₁.suit = PRE ++ [m₁] ++ STOCK ∧
+          PRE.length = m₁.rank.toIdx ∧
+        ∃ ccRA ccPD : Nat, rungAt s₁ d.suit + ccPD
+          = w.rank.toIdx + ccRA)) →
+      sth.WF → ForkWitness sth y →
+      (∃ cc bscc, (sth.piles cc).faceUp = bscc ++ [y.twin, d] ∧
+        sth.pileOfTop d = some cc) →
+      (∀ z, sth.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin) →
+      sth.nextUp d = false →
+      rungAt sth d.suit + 2 ≤ d.rank.toIdx + 1 →
+      (∃ (o : State), o.WF ∧
+        d.rank.toIdx + 1 ≤ rungAt o d.suit ∧
+        ∃ (pf : List Move), ShufflePlayW o pf sth) →
+      ∃ t, CanRaiseS sth t ∧ t ≠ y ∧ t ≠ y.twin) :
+    ∃ t, CanRaiseS sth t ∧ t ≠ y ∧ t ≠ y.twin := by
+  have hwfs₁ : s₁.WF := step_wf hwfs hstep
+  cases m with
+  | draw =>
+      have hdw : vp.stepDraw = some s₁ := hstep
+      have hfk : s₁.found = vp.found := stepDraw_found hdw
+      have hrow' : s₁.found m₀.suit = PRE ++ [m₀] ++ STOCK := by
+        rw [hfk]
+        exact hrow
+      exact ih (Or.inr ⟨m₀, hwfs₁, hrkb, PRE, STOCK, hrow', hbrk,
+        pollutesCrash_tailDebt_keep hfk hdebt⟩)
+        hwfst' hy' hdcov' hlat' hnext' hsq2' harch
+  | wasteToFound c =>
+      exact absurd hwleg (journey_never_wasteToFound hstep)
+  | wasteToTab c b =>
+      exact absurd hwleg (journey_never_wasteToTab hstep)
+  | tabToFound c =>
+      obtain ⟨_hn, _a, _hp, hs⟩ := step_tabToFound_inv hstep
+      by_cases hsc : c.suit = m₀.suit
+      · -- the same-suit raise: the stack grows above the mint
+        have happ : s₁.found m₀.suit = vp.found m₀.suit ++ [c] := by
+          rw [hs]
+          rw [hsc]
+          exact setFound_found_self
+        have hrow' : s₁.found m₀.suit = PRE ++ [m₀] ++ (STOCK ++ [c]) :=
+          pollutesCrash_foundRaise_stackGrow hrow happ
+        exact ih (Or.inr ⟨m₀, hwfs₁, hrkb, PRE, STOCK ++ [c], hrow', hbrk,
+          pollutesCrash_tailDebt_raise hstep hdebt⟩)
+          hwfst' hy' hdcov' hlat' hnext' hsq2' harch
+      · -- the stranger-suit raise: the mint's row verbatim
+        have hfm : s₁.found m₀.suit = vp.found m₀.suit := by
+          rw [hs]
+          exact setFound_found_ne (fun hcon => hsc hcon.symm)
+        exact ih (Or.inr ⟨m₀, hwfs₁, hrkb, PRE, STOCK, hfm.trans hrow,
+          hbrk, pollutesCrash_tailDebt_raise hstep hdebt⟩)
+          hwfst' hy' hdcov' hlat' hnext' hsq2' harch
+  | tabToTab c b =>
+      have hfk : s₁.found = vp.found := pollutesCrash_slide_foundEq hstep
+      have hrow' : s₁.found m₀.suit = PRE ++ [m₀] ++ STOCK := by
+        rw [hfk]
+        exact hrow
+      exact ih (Or.inr ⟨m₀, hwfs₁, hrkb, PRE, STOCK, hrow', hbrk,
+        pollutesCrash_tailDebt_keep hfk hdebt⟩)
+        hwfst' hy' hdcov' hlat' hnext' hsq2' harch
+  | foundToTab c b =>
+      obtain ⟨c₀, htop0, hceq, _hcp, hs⟩ := step_foundToTab_inv hstep
+      rw [hceq] at htop0
+      by_cases hesc : c.suit = m₀.suit
+      · by_cases hst : STOCK = []
+        · -- the stack empty: the popped top IS the mint — the re-exhume
+          rw [hesc] at htop0
+          have hrowS : vp.found m₀.suit = PRE ++ [m₀] :=
+            hrow.trans (by rw [hst, List.append_nil])
+          obtain ⟨hft, hlen⟩ := pollutesCrash_foundTop_atOwn hrowS
+          have hcm : c = m₀ :=
+            Option.some.inj (htop0.symm.trans hft)
+          rw [hcm] at hstep
+          have hrungv : rungAt vp m₀.suit = m₀.rank.toIdx + 1 := by
+            show (vp.found m₀.suit).length = m₀.rank.toIdx + 1
+            rw [hlen, hbrk]
+          obtain ⟨hn1, ke, se, hshape1, hhold1, hcond1⟩ :=
+            pollutesCrash_reseat_pop hwfs hrungv hstep
+          exact ih (Or.inl ⟨m₀, hwfs₁, hn1, hrkb, ke, se, hshape1,
+            hhold1, hcond1,
+            pollutesCrash_tailDebt_pull hstep hdebt⟩)
+            hwfst' hy' hdcov' hlat' hnext' hsq2' harch
+        · -- the stack nonempty: the pop chops the stack alone
+          have hchop : s₁.found m₀.suit = chop (vp.found m₀.suit) := by
+            rw [hs]
+            rw [putCard_found]
+            rw [hesc]
+            exact setFound_found_self
+          obtain ⟨STOCK', hrow'⟩ :=
+            pollutesCrash_foundPull_stackShrink hst hrow hchop
+          exact ih (Or.inr ⟨m₀, hwfs₁, hrkb, PRE, STOCK', hrow', hbrk,
+            pollutesCrash_tailDebt_pull hstep hdebt⟩)
+            hwfst' hy' hdcov' hlat' hnext' hsq2' harch
+      · -- the stranger-suit pull: the mint's row verbatim
+        have hfm : s₁.found m₀.suit = vp.found m₀.suit := by
+          rw [hs, putCard_found]
+          exact setFound_found_ne (fun hcon => hesc hcon.symm)
+        exact ih (Or.inr ⟨m₀, hwfs₁, hrkb, PRE, STOCK, hfm.trans hrow,
+          hbrk, pollutesCrash_tailDebt_pull hstep hdebt⟩)
+          hwfst' hy' hdcov' hlat' hnext' hsq2' harch
+
 /-- **THE CONS-STEP RESIDUE — the ρ-tail landlord iteration's single
 leg** (the staircase's named terminal piece): one witnessed leg
 `vp --m--> s₁`, the minted card's carry at `vp`, the fork-side
@@ -4084,24 +4461,55 @@ private theorem pollutesCrash_rhoLeg {x y d w zt : Card}
     (hsq2' : rungAt sth d.suit + 2 ≤ d.rank.toIdx + 1)
     (hwleg : reversibleAtW vp m)
     (hstep : State.step vp m = some s₁)
-    (ih : (∃ m₀ : Card, s₁.WF ∧ s₁.nextUp m₀ = true ∧
+    (harch : ∃ (o : State), o.WF ∧
+      d.rank.toIdx + 1 ≤ rungAt o d.suit ∧
+      ∃ (pf : List Move), ShufflePlayW o pf sth)
+    (ihWide : ((∃ m₀ : Card, s₁.WF ∧ s₁.nextUp m₀ = true ∧
         m₀.rank.toIdx + 2 ≤ y.rank.toIdx ∧
         ∃ ke se, (s₁.piles ke).faceUp = se ++ [m₀] ∧
           s₁.pileOfTop m₀ = some ke ∧
           (chop (s₁.piles ke).faceUp ≠ [] ∨
             ((s₁.piles ke).hidden = [] ∧ m₀.rank = Rank.king)) ∧
         ∃ ccRA ccPD : Nat, rungAt s₁ d.suit + ccPD
-          = w.rank.toIdx + ccRA) →
+          = w.rank.toIdx + ccRA) ∨
+       (∃ m₀ : Card, s₁.WF ∧ m₀.rank.toIdx + 2 ≤ y.rank.toIdx ∧
+        ∃ PRE STOCK : List Card, s₁.found m₀.suit = PRE ++ [m₀] ++ STOCK ∧
+          PRE.length = m₀.rank.toIdx ∧
+        ∃ ccRA ccPD : Nat, rungAt s₁ d.suit + ccPD
+          = w.rank.toIdx + ccRA)) →
       sth.WF → ForkWitness sth y →
       (∃ cc bscc, (sth.piles cc).faceUp = bscc ++ [y.twin, d] ∧
         sth.pileOfTop d = some cc) →
       (∀ z, sth.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin) →
       sth.nextUp d = false →
       rungAt sth d.suit + 2 ≤ d.rank.toIdx + 1 →
+      (∃ (o : State), o.WF ∧
+        d.rank.toIdx + 1 ≤ rungAt o d.suit ∧
+        ∃ (pf : List Move), ShufflePlayW o pf sth) →
       ∃ t, CanRaiseS sth t ∧ t ≠ y ∧ t ≠ y.twin) :
     ∃ t, CanRaiseS sth t ∧ t ≠ y ∧ t ≠ y.twin := by
   obtain ⟨m₀, hwfs, hn, hrkb, k2, se2, hshape2, hhold2, hcond2, hdebt⟩ :=
     hcarry
+  -- the seat-grade view of the widened ih: every arm that re-pairs within
+  -- the light kit's own shape consumes this wrapper; the mover rows below
+  -- receive the widened ihWide itself (the wash-back emits the founded form)
+  have ih : (∃ m₁ : Card, s₁.WF ∧ s₁.nextUp m₁ = true ∧
+      m₁.rank.toIdx + 2 ≤ y.rank.toIdx ∧
+      ∃ ke se, (s₁.piles ke).faceUp = se ++ [m₁] ∧
+        s₁.pileOfTop m₁ = some ke ∧
+        (chop (s₁.piles ke).faceUp ≠ [] ∨
+          ((s₁.piles ke).hidden = [] ∧ m₁.rank = Rank.king)) ∧
+      ∃ ccRA ccPD : Nat, rungAt s₁ d.suit + ccPD
+        = w.rank.toIdx + ccRA) →
+    sth.WF → ForkWitness sth y →
+    (∃ cc bscc, (sth.piles cc).faceUp = bscc ++ [y.twin, d] ∧
+      sth.pileOfTop d = some cc) →
+    (∀ z, sth.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin) →
+    sth.nextUp d = false →
+    rungAt sth d.suit + 2 ≤ d.rank.toIdx + 1 →
+    ∃ t, CanRaiseS sth t ∧ t ≠ y ∧ t ≠ y.twin :=
+    fun hk hwfst' hy' hdcov' hlat' hnext' hsq2' =>
+      ihWide (Or.inl hk) hwfst' hy' hdcov' hlat' hnext' hsq2' harch
   cases m with
   | draw =>
       have hdw : vp.stepDraw = some s₁ := hstep
@@ -4113,15 +4521,15 @@ private theorem pollutesCrash_rhoLeg {x y d w zt : Card}
   | tabToFound _c =>
       exact pollutesCrash_rhoMover hd hdcol hzrk hzcol hrk hwne hsq3 hpc1
         hpc2 hpid hw hwfs hn hrkb k2 se2 hshape2 hhold2 hcond2 hdebt hwfst'
-        hy' hdcov' hlat' hnext' hsq2' hwleg hstep ih
+        hy' hdcov' hlat' hnext' hsq2' hwleg hstep harch ihWide
   | foundToTab _c _b =>
       exact pollutesCrash_rhoMover hd hdcol hzrk hzcol hrk hwne hsq3 hpc1
         hpc2 hpid hw hwfs hn hrkb k2 se2 hshape2 hhold2 hcond2 hdebt hwfst'
-        hy' hdcov' hlat' hnext' hsq2' hwleg hstep ih
+        hy' hdcov' hlat' hnext' hsq2' hwleg hstep harch ihWide
   | tabToTab _c _b =>
       exact pollutesCrash_rhoMover hd hdcol hzrk hzcol hrk hwne hsq3 hpc1
         hpc2 hpid hw hwfs hn hrkb k2 se2 hshape2 hhold2 hcond2 hdebt hwfst'
-        hy' hdcov' hlat' hnext' hsq2' hwleg hstep ih
+        hy' hdcov' hlat' hnext' hsq2' hwleg hstep harch ihWide
   | wasteToFound _c =>
       exact absurd hwleg (journey_never_wasteToFound hstep)
   | wasteToTab _c _b =>
@@ -4149,58 +4557,153 @@ private theorem pollutesCrash_rhoTail {x y d w zt : Card}
       ≤ pullsOf π d.suit)
     (hw : w.suit = d.suit) :
     ∀ (s st : State) (jr : List Move), ShufflePlayW s jr st →
-      (∃ m₀ : Card, s.WF ∧ s.nextUp m₀ = true ∧
+      ((∃ m₀ : Card, s.WF ∧ s.nextUp m₀ = true ∧
         m₀.rank.toIdx + 2 ≤ y.rank.toIdx ∧
         ∃ ke se, (s.piles ke).faceUp = se ++ [m₀] ∧
           s.pileOfTop m₀ = some ke ∧
           (chop (s.piles ke).faceUp ≠ [] ∨
             ((s.piles ke).hidden = [] ∧ m₀.rank = Rank.king)) ∧
         ∃ ccRA ccPD : Nat, rungAt s d.suit + ccPD
-          = w.rank.toIdx + ccRA) →
+          = w.rank.toIdx + ccRA) ∨
+       (∃ m₀ : Card, s.WF ∧ m₀.rank.toIdx + 2 ≤ y.rank.toIdx ∧
+        ∃ PRE STOCK : List Card, s.found m₀.suit = PRE ++ [m₀] ++ STOCK ∧
+          PRE.length = m₀.rank.toIdx ∧
+        ∃ ccRA ccPD : Nat, rungAt s d.suit + ccPD
+          = w.rank.toIdx + ccRA)) →
       st.WF → ForkWitness st y →
       (∃ cc bscc, (st.piles cc).faceUp = bscc ++ [y.twin, d] ∧
         st.pileOfTop d = some cc) →
       (∀ z, st.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin) →
       st.nextUp d = false →
       rungAt st d.suit + 2 ≤ d.rank.toIdx + 1 →
+      (∃ (o : State), o.WF ∧
+        d.rank.toIdx + 1 ≤ rungAt o d.suit ∧
+        ∃ (pf : List Move), ShufflePlayW o pf st) →
       ∃ t, CanRaiseS st t ∧ t ≠ y ∧ t ≠ y.twin := by
   intro s st jr hrJ
   induction hrJ with
   | nil s₀ =>
-      intro hcarry _ _ _ _ _ _
-      obtain ⟨m₀, _hwfs, _hn, _hrkb, _ke, _se, _hshape, _hhold, _hcond, _⟩ :=
-        hcarry
-      exact ⟨m₀, CanRaiseS.now m₀ ⟨_hn, _ke, _hhold, _hcond⟩,
-        fun hcon => by
-          rw [hcon] at _hrkb
-          omega,
-        fun hcon => by
-          rw [hcon] at _hrkb
-          rw [Card.twin_rank y] at _hrkb
-          omega⟩
+      intro hcarry hwfst' hy' _hdcov' _hlat' _hnext' hsq2' harch
+      rcases hcarry with
+        ⟨m₀, _hwfs, _hn, _hrkb, _ke, _se, _hshape, _hhold, _hcond, _⟩ |
+        ⟨m₀, _hwfs, _hrkb, _PRE, _STOCK, _hrow, _hbrk, _⟩
+      · exact ⟨m₀, CanRaiseS.now m₀ ⟨_hn, _ke, _hhold, _hcond⟩,
+          fun hcon => by
+            rw [hcon] at _hrkb
+            omega,
+          fun hcon => by
+            rw [hcon] at _hrkb
+            rw [Card.twin_rank y] at _hrkb
+            omega⟩
+      · -- THE ORIGIN-ANCHORED CRASH — the archaeology engine's
+        -- consumption, the census corner's priced landing: pack in
+        -- hand, the d-suit hot card at the terminus's own rung was
+        -- founded at the origin (strictly under the hsq1-grade anchor
+        -- by the two-end squeeze) and is hot at the terminus, so
+        -- `pollutesCrash_terminalHot_Below` seats it BELOW a live
+        -- neighbor; the seat fit makes that neighbor family-colored
+        -- (the seat's color conservation `lock_color_pair`) and
+        -- ranked strictly under the fork's pinned family rungs (both
+        -- pinned at the pair's rank by `canRaiseS_rung` off `hy'`),
+        -- hence foundation-resident by the height bridge —
+        -- contradicting the Below-read's own face-up membership
+        -- (`mem_found_unique`).  The fork's saturation crashes the
+        -- census; the mint's suit never enters (the d-suit witness
+        -- rides every state).
+        obtain ⟨o, hwfo, hsq1o, pf, hshpo⟩ := harch
+        have hfam : y.rank.toIdx < 13 := Rank.toIdx_lt y.rank
+        have hk13 : rungAt s₀ d.suit < 13 := by omega
+        -- the d-suit hot card at the terminus's own rung (its hotness is
+        -- definitional: its index IS the terminus's d-suit rung)
+        obtain ⟨T, hTdef⟩ :
+            ∃ c : Card, c = Card.mk d.suit (lockRk (rungAt s₀ d.suit)) :=
+          ⟨_, rfl⟩
+        have hTidx : T.rank.toIdx = rungAt s₀ d.suit := by
+          rw [hTdef]
+          exact lockRk_toIdx _ hk13
+        have hTsuit : T.suit = d.suit := by
+          rw [hTdef]
+        have hhotT : s₀.nextUp T = true :=
+          pollutesCrash_landing_live (by rw [hTsuit, hTidx])
+        have hnkT : T.rank ≠ Rank.king := by
+          intro hcon
+          rw [hcon] at hTidx
+          have hk12 : Rank.king.toIdx = 12 := rfl
+          omega
+        have horgT : T.rank.toIdx < rungAt o T.suit := by
+          rw [hTsuit, hTidx]
+          omega
+        obtain ⟨b, a, L, R, hshp⟩ :=
+          pollutesCrash_terminalHot_Below hshpo hwfo hwfst' hnkT horgT hhotT
+        have hok : runOK (L ++ b :: T :: R) = true := by
+          rw [← hshp]
+          exact hwfst'.runOK_of a
+        obtain ⟨hrkbt, hcolbt⟩ :=
+          (canSitOn_eq T b).mp (lock_runOK_adjacent b T L R hok)
+        have hbcol : b.suit.color = y.suit.color :=
+          lock_color_pair (a := d.suit.color)
+            (by rw [← hTsuit]; exact hcolbt) hdcol
+        have hyPin : rungAt s₀ y.suit = y.rank.toIdx :=
+          canRaiseS_rung ((hy'.1 y).mp (Or.inl rfl))
+        have hytPin : rungAt s₀ y.twin.suit = y.rank.toIdx := by
+          have h0 := canRaiseS_rung ((hy'.1 y.twin).mp (Or.inr rfl))
+          rwa [Card.twin_rank y] at h0
+        have hsuit : b.suit = y.suit ∨ b.suit = y.twin.suit := by
+          have hz : (Card.mk b.suit y.rank) = y ∨
+              (Card.mk b.suit y.rank) = y.twin :=
+            lock_rankColor_pair rfl hbcol
+          rcases hz with h | h
+          · refine Or.inl ?_
+            exact (congrArg Card.suit h :
+              (Card.mk b.suit y.rank).suit = y.suit)
+          · refine Or.inr ?_
+            exact (congrArg Card.suit h :
+              (Card.mk b.suit y.rank).suit = y.twin.suit)
+        have hbmem : b ∈ s₀.found b.suit := by
+          refine mem_found_of_height hwfst' ?_
+          have hbund : b.rank.toIdx < y.rank.toIdx := by omega
+          rcases hsuit with h | h
+          · rw [h]
+            show b.rank.toIdx < rungAt s₀ y.suit
+            rw [hyPin]
+            exact hbund
+          · rw [h]
+            show b.rank.toIdx < rungAt s₀ y.twin.suit
+            rw [hytPin]
+            exact hbund
+        have hbface : b ∈ (s₀.piles a).faceUp := by
+          rw [hshp]
+          exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
+        obtain ⟨hh, _hS, _hW, _⟩ := mem_found_unique hwfst' hbmem
+        exact absurd hbface (hh a).2
   | @cons vp m s₁ rest sth hwleg hstep _hrest ih =>
-      intro hcarry hwfst' hy' hdcov' hlat' hnext' hsq2'
-      cases m with
+      intro hcarry hwfst' hy' hdcov' hlat' hnext' hsq2' harch
+      rcases hcarry with hseat |
+        ⟨m₀, hwfs, hrkb, PRE, STOCK, hrow, hbrk, hdebt⟩
+      · cases m with
       | draw =>
           exact pollutesCrash_rhoLeg hd hdcol hzrk hzcol hrk hwne hsq3 hpc1
-            hpc2 hpid hw hcarry hwfst' hy' hdcov' hlat' hnext' hsq2' hwleg
-            hstep ih
+            hpc2 hpid hw hseat hwfst' hy' hdcov' hlat' hnext' hsq2' hwleg
+            hstep harch ih
       | tabToFound c =>
           exact pollutesCrash_rhoLeg hd hdcol hzrk hzcol hrk hwne hsq3 hpc1
-            hpc2 hpid hw hcarry hwfst' hy' hdcov' hlat' hnext' hsq2' hwleg
-            hstep ih
+            hpc2 hpid hw hseat hwfst' hy' hdcov' hlat' hnext' hsq2' hwleg
+            hstep harch ih
       | foundToTab c b =>
           exact pollutesCrash_rhoLeg hd hdcol hzrk hzcol hrk hwne hsq3 hpc1
-            hpc2 hpid hw hcarry hwfst' hy' hdcov' hlat' hnext' hsq2' hwleg
-            hstep ih
+            hpc2 hpid hw hseat hwfst' hy' hdcov' hlat' hnext' hsq2' hwleg
+            hstep harch ih
       | tabToTab c b =>
           exact pollutesCrash_rhoLeg hd hdcol hzrk hzcol hrk hwne hsq3 hpc1
-            hpc2 hpid hw hcarry hwfst' hy' hdcov' hlat' hnext' hsq2' hwleg
-            hstep ih
+            hpc2 hpid hw hseat hwfst' hy' hdcov' hlat' hnext' hsq2' hwleg
+            hstep harch ih
       | wasteToFound c =>
           exact absurd hwleg (journey_never_wasteToFound hstep)
       | wasteToTab c b =>
           exact absurd hwleg (journey_never_wasteToTab hstep)
+      · exact pollutesCrash_rhoMoverF hd hdcol hzrk hzcol hrk hwne hsq3 hpc1
+          hpc2 hpid hw hwfs hrkb PRE STOCK hrow hbrk hdebt hwfst' hy' hdcov'
+          hlat' hnext' hsq2' hwleg hstep harch ih
 
 /-- **THE DESCENT RESIDUE — route 4's ρ-tail chase, the staircase's one
 named sub-residue.**  From the minted third live card at the landing
@@ -4261,13 +4764,16 @@ private theorem pollutesCrash_descent {st₂ v : State}
     (hzcol : zt.suit.color = y.suit.color)
     (hrk : w.rank.toIdx + 1 ≤ d.rank.toIdx)
     (hw : w.suit = d.suit)
-    (hv1 : rungAt v w.suit = w.rank.toIdx) :
+    (hv1 : rungAt v w.suit = w.rank.toIdx)
+    (harch : ∃ (o : State), o.WF ∧
+      d.rank.toIdx + 1 ≤ rungAt o d.suit ∧
+      ∃ (pf : List Move), ShufflePlayW o pf st₂) :
     ∃ t, CanRaiseS st₂ t ∧ t ≠ y ∧ t ≠ y.twin := by
   -- the ρ-tail walks the landlord iteration; the EXISTENTIAL-MINT light
   -- kit seeds at the origin mint (off-pair by the rank ledger, its
   -- landlord one above, the census debt seeded at the landing bracket)
   exact pollutesCrash_rhoTail hd hdcol hzrk hzcol hrk hwne hsq3 hpc1 hpc2 hpid
-    hw v st₂ ρ hrho ⟨w, hwfv, pollutesCrash_canRaiseS_nextUp hmint,
+    hw v st₂ ρ hrho (Or.inl ⟨w, hwfv, pollutesCrash_canRaiseS_nextUp hmint,
     show w.rank.toIdx + 2 ≤ y.rank.toIdx by omega,
     kk, bs ++ [zt],
     show (v.piles kk).faceUp = (bs ++ [zt]) ++ [w] from by
@@ -4277,8 +4783,8 @@ private theorem pollutesCrash_descent {st₂ v : State}
       show chop ((v.piles kk).faceUp) ≠ []
       rw [hshape]
       exact pollutesCrash_chop_seatTail (zt := zt) (w := w) bs),
-    pollutesCrash_tailDebt_seed hw hv1⟩ hwf₂ hy hdcover hlattice
-    hnext hsq2
+    pollutesCrash_tailDebt_seed hw hv1⟩) hwf₂ hy hdcover hlattice
+    hnext hsq2 harch
 
 /-- The pull's bare landing transport: the successor's own-suit
 foundation row is exactly the chopped firing row (the
@@ -4559,7 +5065,7 @@ private theorem origin_foundedCover_pollutesCrash {st₁ st₂ : State}
   obtain ⟨t, htS, hty, htt⟩ :=
     pollutesCrash_descent hwf₂ hy hd hdcol hdcover hnext hlattice hsq2 hsq3
       hpc1 hpc2 hpid hwfv hrho hmint hwne htop hhold hzrk hzcol (by omega)
-      hw hv1
+      hw hv1 ⟨st₁, hwf₁, hsq1, play, hplay⟩
   exact pollutesCrash_saturation hy hty htt htS
 
 /-- **THE FOUNDED-COVER CASE** — the composition row: the one
