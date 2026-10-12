@@ -866,10 +866,23 @@ witness state and its §3 slid mate; in the king case the orbit
 expands across the vacant anchors by §2's king-vacate legs, all
 cargo.
 
-**BLOCKED — the maximality-transport gate (this row alone).**  The
-assembly's mechanically-closing parts all landed above; the one
-sub-step that does not close from the in-tree battery is the
-"nothing else differs" direction, and the diagnosis is precise:
+**STATUS (the 2026-10-12 reproof wave) — G2 DISSOLVED, the assembly
+re-graded.**  At the strong premises the coverage gate is GONE: the
+covered-twin-with-fitting-cover geometry is derivable from the def
+(`Orig.ForkWeaker`'s witness rows), and the mate production is landed
+at theorem grade (`Orig.SFlatTransfer.forkState_mate_S`, zero sorry)
+with the conjugate production beside it (`Orig.SConjugate`
+—assembled, two named census residues) — the production stack this
+row's G2 case-split had priced.  The remaining honest gates:
+
+* **G1 (pair transport, journey half)**: the census half LANDED
+  (`Orig.SFlatTransfer.S_census_one_leg` — the flat invariance); the
+  journey half rides the bracket machinery
+  (`Orig.BracketDecomp.reversible_equaltuple_decompose`, one named
+  nesting residue) and the conjugate census transport (the two named
+  rows of `Orig.SConjugate`).
+* **G3 (the saturated residue)**: unchanged — the
+  `saturated_classification`/`canonFace_sameShape` tier.
 
 * **(G1) PAIR-TRANSPORT** — the two witnesses must share the pair
   up to twin flip.  At the new reads the rung pins of one weakForkState

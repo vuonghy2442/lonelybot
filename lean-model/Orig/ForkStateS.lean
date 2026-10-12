@@ -73,29 +73,25 @@ NOT wired into the root, zero sorry):
   witness by §2's free.  The mate orbit survives the detection upgrade,
   with the witness flipped — exactly the slide-mate's license flip.
 
-THE LEDGER (priced follow-ups, the classification card's territory):
+THE LEDGER — all priced follow-ups LANDED (the extraction card wave):
 
-- THE NEVER-LEG (the ⇐ half's enforcement at the craft boards): a
-  bare-bottom non-king card (no face-up below, and not king-over-empty) is
-  NEVER `CanRaiseS` — every candidate repair leg is a departure of `c`'s own
-  run from an emptied seat, whose return play must refill pile `a` with
-  `faceUp = [c, …]` exactly; the only arrivals on an emptied pile are king
-  vacates (`canPlace` inl), whatever lands below `c` persists, and no play
-  regrows face-up content — so the undo cannot exist and the leg is not
-  `reversibleAtW`.  Theorem-grade via the first-refill-is-a-king analysis
-  + hidden monotonicity; decide-grade at the craft boards meanwhile.
-- THE COVERED-NECESSITY (the flat characterization's other half): a covered
-  `c` is S-live only through its cover's free, and the cover (rank r−1,
-  opposite color — a two-card family) has exactly the two c-family cards as
-  seats, so `c.twin` must top already (the mutual-lock: two covered
-  c-family cards freeze their covering runs, both landings dead).  This is
-  also the row that derives `CanRaise st x` from the pin + the S-iff.
-- THE KING LEG: the bare-king-over-hidden corner (vacate channels) and the
-  empty-anchor reserves — the same `Orig/Vacate` rows the king shuffle owns.
-- THE MIGRATION: `forkState` in-tree faces its consumers — `CanonFace`'s
-  no-fork premise, `forkState_slide_mate`'s re-witnessing (§4 carries the
-  content it needs), the refutation theorems stay as statements about the
-  old grade.
+- THE NEVER-LEG (the ⇐ half's enforcement) — PROVED in `Orig.PositionSeat`
+  (`canRaiseS_positionSeat`, zero sorry: the pillar engine — an emptied
+  pile rebuilds only to a king head; the ride disqualifiers; the seat
+  read survives every via leg backwards).
+- THE COVERED-NECESSITY (the twin's topping) — PROVED in
+  `Orig.RunOrTwin` (`canRaiseS_runOrTwin`, zero sorry: the mutual lock,
+  the deck census `{c, c.twin}`, the reveal-cell banking).
+- THE FLAT CHARACTERIZATION'S FULL BICONDITIONAL — `canRaiseS_iff` and
+  its readable form `canRaiseS_iff_or` below, both directions proved:
+  the ⟸ both branches constructive; the ⟶ from the pin plus the two
+  tails above.
+- THE KING LEG: carried by the pillar's king-headed vacate arm and the
+  `Orig/Vacate` chapter rows.
+- THE MIGRATION: DONE — the canonical `def forkState` lives in
+  `Orig.MacroInternal` (beside `CanRaiseS`); the retired vanilla def is
+  `weakForkState`; the strong-to-weak bridge is `Orig.ForkWeaker`
+  (`forkState_to_weak`, same witness).
 
 House compliance: additive leaf; the in-tree interface mirrored, never
 redefined (`CanRaiseS`, `CanRaise`, `reversibleAtW` consumed as-is); zero

@@ -1051,11 +1051,17 @@ is canonFace_sameShape, a THEOREM (canonFace_sameShape).  -/
 
 /-! ## §6. The fork dossier (the arm layer's topology) -/
 
-/-- **THE FINAL FORK STATE** — the user's iff form: both twins
-next-up on their foundations, and the only raising card is x (the
-↔ gives maximality → and existence ← in one clause: instantiating
-at c = x derives CanRaise st x; Final states have no witness since
-the ← direction would force a raise where none exists). -/
+/-- **THE RETIRED VANILLA-GRADE DETECTION** (`weakForkState`, the
+pre-migration `forkState`): both twins next-up on their foundations,
+and the only VANILLA-raising card is x (the ↔ gives maximality → and
+existence ← in one clause).  RETIRED as the detection by the S-grade
+migration: the canonical `def forkState` (beside `CanRaiseS` above)
+subsumes this form — every clause here is a theorem of the strong def
+(`Orig.ForkWeaker.forkState_to_weak`, same witness) while the
+converse fails (the G2 craft's endpoints satisfy this form but are
+not forkStates — the falsifier family that killed the vanilla
+uniqueness rows).  This def stays as the weak consumer interface for
+the pre-migration rows. -/
 def weakForkState (st : State) : Prop :=
   ∃ x, rungAt st x.suit = x.rank.toIdx ∧
     rungAt st x.twin.suit = x.rank.toIdx ∧
@@ -1769,14 +1775,27 @@ inductive ForkSpectrum : State → State → Prop
       (hc : conjugateForkState st w)
       (t : ForkSpectrum w w') : ForkSpectrum st w'
   | parentSwap {st w w' : State}
-      (hp : st = w ∧ True) -- the conditional (x+1) parent trade: to be instantiated
+      (hp : st = w ∧ True) -- DOCUMENTATION-ONLY stub (cecab21; the honest
+      -- realizations both bypass this premise: the cargo-composite route
+      -- (ForkSpectrumProof §3's ParentSwapShape via the cargo constructor)
+      -- and the foundation route (the conjugate letter instantiated one
+      -- rank up, raise-parent·ride·pull-back — the letter is rank-generic).
+      -- Upgrade = mild flatness/wf churn with no semantic gain; leave
+      -- stubbed with this pointer.
       (t : ForkSpectrum w w') : ForkSpectrum st w'
   | cargo {st w w' : State}
       (h : CargoPath st w)
       (t : ForkSpectrum w w') : ForkSpectrum st w'
 
-/-- **THE SPECTRUM COMPLETENESS** — every weakForkState of the class
-is in the three-generator closure from any starting forkState. -/
+/-- **THE SPECTRUM COMPLETENESS — REFUTED AT BOTH GRADES (see
+`Orig.ForkSpectrumProof`)**: every weakForkState of the class in the
+three-generator closure, FALSE AS STATED — the third landing (rung) and
+the fourth (phase) of the falsifier family.  The honest repairs live in
+the proof leaf: `forkSpectrum_complete_locked` (strong premises, tuple
++ phase locks, the named G1/G3/bracket gates it leaves behind) and
+`forkSpectrum_complete_mod_phase` (the compatibility form, SWComp
+tail) — both landing sites of the genuinely-open classification
+content. -/
 theorem forkSpectrum_complete (st : State) (hwf : st.WF)
     (hfs : weakForkState st) (w : State)
     (hcls : sameOrbitSetoid.r st w) (hwfs : weakForkState w) :
