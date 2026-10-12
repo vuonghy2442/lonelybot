@@ -995,38 +995,12 @@ theorem cone_pulls_congr_tuple {A w w' : State} (hwfA : A.WF)
   have h2 := cone_pop_countP p' hp' hA c
   rw [h1, h2, htup c.suit]
 
-/-- **THE CROSS-ARM RESIDUAL, stated conditionally on the envelope**:
-two same-class members at the same height tuple hanging off TWO
-saturated anchors pull equal multisets, GIVEN the corridor the
-envelope supplies between the arm anchors — the second up to the
-conjugate, the envelope's own disjunct shape.
-
-**BLOCKED — gated, kept sorry.**  The corridor hypothesis is the
-bridge the envelope exists to provide (`envelope` further down this
-file — the decompression card's `mem_macro_iff` output), and its
-honest statement runs through the CONJUGATION content — now carried
-by the LANDED setoid itself (the relabeled variants are class-mates
-by the four-disjunct `r`; the corridor `∃ z, ConePath A₁ z ∧ r z A₂`
-names an intermediate flat-reach plus the class identification): between genuinely distinct arms the Final
-tuples are fork-flipped (`saturated_tuple_orbit`'s flip branch), and
-cone legs are rung-monotone (`cone_rung_mono`), so a literal
-cone bridge between the arm anchors cannot exist — the conjugate
-corridor is the only route, and pricing it is the envelope card's
-business.  Given the corridor plus the conjugate transport, the
-comparison closes at the shared arm anchor through
-`cone_pop_window` mechanically.  Not provable today; recorded as
-this family's residual. -/
-theorem cone_pulls_congr_crossarm {A₁ A₂ w w' : State}
-    (hwf₁ : A₁.WF) (hwf₂ : A₂.WF)
-    (hsat₁ : Final A₁) (hsat₂ : Final A₂)
-    (p₁ : ConePath A₁ w) (L₁ : List Card) (hl₁ : ConeLedger p₁ L₁)
-    (p₂ : ConePath A₂ w') (L₂ : List Card) (hl₂ : ConeLedger p₂ L₂)
-    (htup : ∀ s : Suit, rungAt w s = rungAt w' s)
-    (hcorr : ∃ z, ConePath A₁ z ∧ sameOrbitSetoid.r z A₂) :
-    ∀ c : Card,
-      L₁.countP (fun x => decide (x = c)) =
-        L₂.countP (fun x => decide (x = c)) := by
-  sorry
+/-! THE CROSS-ARM CARGO-COUNT CONGRUENCE now lives in
+`Orig.ConeCrossarm` (the same-package leaf): the mechanical half
+landed sorry-free (`cone_pulls_congr_crossarm_of_anchorRungs`), and the
+one named gate (`crossarm_anchor_agree` — the de-flip classification
+tier rests on the corridor evidence) carries the residual the docstring
+below priced for years. -/
 
 /-- **The height fiber**: the members of one class at an exact height
 tuple — the micro-state grouping by the 4-suit foundation profile. -/
@@ -1983,4 +1957,4 @@ must come out clean. -/
 #print axioms cone_pop_window
 #print axioms cone_pop_countP
 #print axioms cone_pulls_congr_tuple
-#print axioms cone_pulls_congr_crossarm
+-- (the cross-arm row now lives in Orig.ConeCrossarm; its audit lives there)
