@@ -424,6 +424,204 @@ private theorem cross_class_symm {u v : State}
     (h : sameOrbitSetoid.r u v) : sameOrbitSetoid.r v u :=
   RevEqW_symm h
 
+/-- **THE LEG EXTRACTORS — step zero of the per-leg chase.**  A
+nonzero suit ledger names a literal leg OF THAT SUIT inside the
+play: a counted `tabToFound` raise (resp. `foundToTab` pull) of the
+suit occurs as a member of the play itself.  Self-contained rows
+over the counters' equations — the census debts' first concrete
+leg, the anchor every future LIFO read pins its epoch to. -/
+private theorem cross_raise_leg : ∀ (τ : List Move) (σ : Suit),
+    0 < raisesOf τ σ → ∃ c : Card, Move.tabToFound c ∈ τ ∧ c.suit = σ := by
+  intro τ
+  induction τ with
+  | nil => intro σ h; simp [raisesOf] at h
+  | cons m t ih =>
+      intro σ h
+      cases m with
+      | tabToFound c =>
+          by_cases hcs : c.suit = σ
+          · exact ⟨c, List.mem_cons.2 (Or.inl rfl), hcs⟩
+          · have h' : 0 < raisesOf t σ := by
+              rw [show raisesOf (Move.tabToFound c :: t) σ
+                  = (if c.suit = σ then 1 else 0) + raisesOf t σ from rfl,
+                ite_eq_right hcs] at h
+              omega
+            obtain ⟨c', hmem, hsuit⟩ := ih σ h'
+            exact ⟨c', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | draw =>
+          have h' : 0 < raisesOf t σ := by
+            rw [show raisesOf (Move.draw :: t) σ = raisesOf t σ from rfl] at h
+            exact h
+          obtain ⟨c', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | wasteToFound c =>
+          have h' : 0 < raisesOf t σ := by
+            rw [show raisesOf (Move.wasteToFound c :: t) σ = raisesOf t σ
+              from rfl] at h
+            exact h
+          obtain ⟨c', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | wasteToTab c b =>
+          have h' : 0 < raisesOf t σ := by
+            rw [show raisesOf (Move.wasteToTab c b :: t) σ = raisesOf t σ
+              from rfl] at h
+            exact h
+          obtain ⟨c', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | foundToTab c b =>
+          have h' : 0 < raisesOf t σ := by
+            rw [show raisesOf (Move.foundToTab c b :: t) σ = raisesOf t σ
+              from rfl] at h
+            exact h
+          obtain ⟨c', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | tabToTab c b =>
+          have h' : 0 < raisesOf t σ := by
+            rw [show raisesOf (Move.tabToTab c b :: t) σ = raisesOf t σ
+              from rfl] at h
+            exact h
+          obtain ⟨c', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+
+private theorem cross_pull_leg : ∀ (τ : List Move) (σ : Suit),
+    0 < pullsOf τ σ → ∃ c b, Move.foundToTab c b ∈ τ ∧ c.suit = σ := by
+  intro τ
+  induction τ with
+  | nil => intro σ h; simp [pullsOf] at h
+  | cons m t ih =>
+      intro σ h
+      cases m with
+      | foundToTab c b =>
+          by_cases hcs : c.suit = σ
+          · exact ⟨c, b, List.mem_cons.2 (Or.inl rfl), hcs⟩
+          · have h' : 0 < pullsOf t σ := by
+              rw [show pullsOf (Move.foundToTab c b :: t) σ
+                  = (if c.suit = σ then 1 else 0) + pullsOf t σ from rfl,
+                ite_eq_right hcs] at h
+              omega
+            obtain ⟨c', b', hmem, hsuit⟩ := ih σ h'
+            exact ⟨c', b', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | draw =>
+          have h' : 0 < pullsOf t σ := by
+            rw [show pullsOf (Move.draw :: t) σ = pullsOf t σ from rfl] at h
+            exact h
+          obtain ⟨c', b', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', b', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | wasteToFound c =>
+          have h' : 0 < pullsOf t σ := by
+            rw [show pullsOf (Move.wasteToFound c :: t) σ = pullsOf t σ
+              from rfl] at h
+            exact h
+          obtain ⟨c', b', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', b', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | wasteToTab c b =>
+          have h' : 0 < pullsOf t σ := by
+            rw [show pullsOf (Move.wasteToTab c b :: t) σ = pullsOf t σ
+              from rfl] at h
+            exact h
+          obtain ⟨c', b', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', b', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | tabToFound c =>
+          have h' : 0 < pullsOf t σ := by
+            rw [show pullsOf (Move.tabToFound c :: t) σ = pullsOf t σ
+              from rfl] at h
+            exact h
+          obtain ⟨c', b', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', b', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+      | tabToTab c b =>
+          have h' : 0 < pullsOf t σ := by
+            rw [show pullsOf (Move.tabToTab c b :: t) σ = pullsOf t σ
+              from rfl] at h
+            exact h
+          obtain ⟨c', b', hmem, hsuit⟩ := ih σ h'
+          exact ⟨c', b', List.mem_cons.2 (Or.inr hmem), hsuit⟩
+
+/-- **THE COVER'S EXILE** — a twin-cover `d₂`, foundation-resident
+at the first fork, is GONE from its home suit's foundation at the
+second fork: its rank index sits a full two above the suit's end read,
+and the founded-membership bridge bars any at-or-above member.  The
+chase's and the kill's splits both consume this row. -/
+private theorem cross_strata_exile {st₂ : State} (hwf₂ : st₂.WF) {y d₂ : Card}
+    (hdrank : d₂.rank.toIdx + 1 = y.rank.toIdx)
+    (hrung₂ : rungAt st₂ d₂.suit + 2 ≤ y.rank.toIdx) :
+    ¬ d₂ ∈ st₂.found d₂.suit := by
+  intro hmem
+  have hlt := xfam_mem_found_rank_lt hwf₂ hmem
+  omega
+
+/-- **THE EQUAL-RANK CORNER of the shifted kill-ladder — the
+equal-rank residue (`cross_equal_rank_kill`'s split child).**  The
+kill's PROVED preprocessing is carried as hypotheses: the equal-rank
+premise `hrank` (`r₂ = r₁`); the second fork's twin-cover `d₂` —
+x-family (`hd₂col`), one below the common fork rank (`hd₂rank`),
+foundation-resident at the first fork (`hd₂res`) yet EXILED from its
+home foundation at the second (`hd₂out`), face-up covering `y.twin`
+on the `st₂` tableau as a legal card-directed landing (`hd₂top`,
+`hd₂fit`); the first fork's own cover `d₁` — y-family (`hd₁col`),
+one below the common rank (`hd₁rank`), riding a tableau top at
+`st₁` (`hd₁top`), FOUNDATION-RESIDENT at the second fork (`hd₁res`),
+its home suit pinned EXACTLY at `r` at `st₂` (`hd₁rung₂`) and at
+least two below `r` at `st₁` (`hd₁rung₁`); and the two OPPOSITE
+census debts along the one class shuffle — `hdebt₂` (the x-family
+suit owes at least two net LIFO pops) vs `hdebt₁` (the y-family suit
+owes at least two net raises, the census equation `hd₁cen` closing
+the per-suit oscillation together with `witness_rung_census` on
+`d₂.suit`).  ROUTE (complete, the residue's own):
+1. THE SURFACING — the `hdebt₂` pops are current-top LIFO
+   (`foundToTab_pops_currentTop`), surfacing x-family cards of rank
+   index `r − 1` down (`d₂` itself must pass through a pop, `hd₂res`
+   vs `hd₂out`), none reaching the king, so each lands on a fitting
+   top one rank up, opposite color (`canSitOn`), or nowhere
+   (empty-anchor landings are king-only).
+2. THE HOST CENSUS — the rank/color census (`xfam_rankColor_pair`)
+   names the only fitting hosts for the top of the surfaced stratum:
+   the live y-pair members themselves; the founded-at-`st₂` `d₁`
+   (`hd₁res`, the `cross_anchor_climb` residency) is one, and the
+   two-census collision (`cross_census_dead`) bars either member
+   from ever gaining S-liveness at the wrong end.
+3. THE MATERIAL COMPETITION (the core, still to price): the banked
+   one-leg transfer (`S_census_one_leg`, `Orig/SFlatTransfer.lean`)
+   pins the epochs at which a foreign member can first GAIN
+   structured S-liveness (a cargo leg exposing it with its seat
+   intact, a pull landing a fitting cover on it, or a raise lowering
+   the family rung read); the flat/bracket factor rows (`quiet_flat`,
+   `pull_factor`, `raise_factor` over the draw-free board component
+   of `sameOrbit_factor_full`) price each intervening segment; the
+   landing lattice (`pair_cover_lattice`-grade census) pins each
+   cargo cover's legal card-directed landings to pair-member tops;
+   servicing both OPPOSITE debts forces a leg that seats a cover on
+   a pair member at a census-barred moment — the per-leg LIFO chase
+   (`raisesOf`/`pullsOf`, exactly as in the pressure row) has no
+   legal leg, `False`. -/
+private theorem cross_equal_rank_kick {st₁ st₂ : State}
+    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
+    {x y d₁ d₂ : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
+    (hcol : y.suit.color ≠ x.suit.color)
+    (hrank : y.rank.toIdx = x.rank.toIdx)
+    {τ : List Move} (hτ : ShufflePlayW st₁ τ st₂)
+    (hd₂col : d₂.suit.color = x.suit.color)
+    (hd₂rank : d₂.rank.toIdx + 1 = x.rank.toIdx)
+    (hd₂res : d₂ ∈ st₁.found d₂.suit)
+    (hd₂rung₁ : rungAt st₁ d₂.suit = x.rank.toIdx)
+    (hd₂rung₂ : rungAt st₂ d₂.suit + 2 ≤ y.rank.toIdx)
+    (hd₂top : ∃ a bs, (st₂.piles a).faceUp = bs ++ [y.twin, d₂] ∧
+      st₂.pileOfTop d₂ = some a ∧ st₂.nextUp d₂ = false)
+    (hd₂fit : canSitOn d₂ y.twin = true)
+    (hd₂out : ¬ d₂ ∈ st₂.found d₂.suit)
+    (hd₁col : d₁.suit.color = y.suit.color)
+    (hd₁rank : d₁.rank.toIdx + 1 = x.rank.toIdx)
+    (hd₁res : d₁ ∈ st₂.found d₁.suit)
+    (hd₁top : ∃ a, st₁.pileOfTop d₁ = some a ∧ st₁.nextUp d₁ = false)
+    (hd₁rung₁ : rungAt st₁ d₁.suit + 2 ≤ x.rank.toIdx)
+    (hd₁rung₂ : rungAt st₂ d₁.suit = y.rank.toIdx)
+    (hdebt₂ : x.rank.toIdx + 2 + raisesOf τ d₂.suit
+      ≤ y.rank.toIdx + pullsOf τ d₂.suit)
+    (hdebt₁ : pullsOf τ d₁.suit + 2 ≤ raisesOf τ d₁.suit)
+    (hd₁cen : y.rank.toIdx + pullsOf τ d₁.suit
+      = rungAt st₁ d₁.suit + raisesOf τ d₁.suit) :
+    False := by
+  sorry
+
 /-- **THE EQUAL-RANK MATERIAL COMPETITION — the first named
 sub-residue.**  Premise: two same-class forks of DIFFERENT color
 families at EQUAL pair ranks (`hrank`).  Route (each step priced
@@ -468,14 +666,358 @@ against landed rows — this file's §1–§5 and §5b, plus the bank):
    `raisesOf`/`pullsOf`, exactly as in the pressure row) is the
    pricing still to land.
 
-Until that ladder lands, the equal-rank corner stays honestly
-open; the assembly consumes exactly this residue. -/
+LANDED as the SPLIT: the body is PROVED — the banked rows
+(`cross_cover_residency`, `cross_climb_general`, `xfam_family_rung`,
+the fit/exile preprocessing rows, `witness_rung_census` read into
+the two opposite census debts) assemble the full package and hand
+it to the named residue `cross_equal_rank_kick` directly above; the
+per-leg LIFO chase of route step 3 is the kick's own residue. -/
 private theorem cross_equal_rank_kill {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     (hcls : sameOrbitSetoid.r st₁ st₂)
     {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
     (hcol : y.suit.color ≠ x.suit.color)
     (hrank : y.rank.toIdx = x.rank.toIdx) :
+    False := by
+  -- THE FORWARD WITNESS SHUFFLE (the class's own play)
+  obtain ⟨τ, hτ⟩ := sameOrbit_forward hcls
+  -- THE SECOND FORK'S TWIN-COVER (the residency package, banked):
+  -- x-family, one below the common rank, resident at st₁, covering
+  -- y.twin face-up on the st₂ tableau, its suit pinned r at st₁ yet
+  -- reading two below r at st₂ (the nextUp-dead refinement)
+  obtain ⟨a₂, bs₂, d₂, hshape₂, hfit₂, htop₂, hnext₂, hd₂col, hd₂rank,
+      hd₂res, hd₂rung₂le⟩ :=
+    cross_cover_residency hwf₁ hwf₂ hx hy hcol hrank
+  have hd₂rung₁ : rungAt st₁ d₂.suit = x.rank.toIdx :=
+    xfam_family_rung hx hd₂col
+  have hd₂rung₂ : rungAt st₂ d₂.suit + 2 ≤ y.rank.toIdx := by
+    have hne : d₂.rank.toIdx ≠ rungAt st₂ d₂.suit := by
+      intro hcon
+      have hn2 : st₂.nextUp d₂ = true := decide_eq_true hcon
+      rw [hn2] at hnext₂
+      exact absurd hnext₂ (by simp)
+    have h1 : rungAt st₂ d₂.suit + 1 ≤ y.rank.toIdx := hd₂rung₂le
+    omega
+  -- the exile: d₂ left its home foundation by the second fork
+  have hd₂out : ¬ d₂ ∈ st₂.found d₂.suit :=
+    cross_strata_exile hwf₂ (by omega) hd₂rung₂
+  -- THE FIRST FORK'S OWN COVER (the rank-free climb row, the
+  -- equal-rank residency engaged): y-family, one below, topping at
+  -- st₁ with nextUp dead, resident at st₂, pinned exactly r at st₂
+  obtain ⟨d₁, a₁, hd₁col, hd₁rank, htop₁, hnext₁, hd₁rung₁, hd₁rung₂,
+      hd₁res⟩ :=
+    cross_climb_general hwf₁ hwf₂ hx hy hcol
+  have hd₁res : d₁ ∈ st₂.found d₁.suit := hd₁res (by omega)
+  -- THE TWO OPPOSITE CENSUS DEBTS along the one class shuffle
+  have hcen₂ := witness_rung_census hτ d₂.suit
+  have hdebt₂ : x.rank.toIdx + 2 + raisesOf τ d₂.suit
+      ≤ y.rank.toIdx + pullsOf τ d₂.suit := by omega
+  have hd₁cen : y.rank.toIdx + pullsOf τ d₁.suit
+      = rungAt st₁ d₁.suit + raisesOf τ d₁.suit := by
+    have hc := witness_rung_census hτ d₁.suit
+    omega
+  have hdebt₁ : pullsOf τ d₁.suit + 2 ≤ raisesOf τ d₁.suit := by omega
+  exact cross_equal_rank_kick hwf₁ hwf₂ hx hy hcol hrank hτ hd₂col
+    hd₂rank hd₂res hd₂rung₁ hd₂rung₂
+    ⟨a₂, bs₂, hshape₂, htop₂, hnext₂⟩ hfit₂ hd₂out hd₁col hd₁rank
+    hd₁res ⟨a₁, htop₁, hnext₁⟩ hd₁rung₁ hd₁rung₂ hdebt₂ hdebt₁ hd₁cen
+
+/-! ### The stratified chase's proved preprocessing
+
+The rows the chase's split consumes: the deck-census copy (the house
+per-file dedup of the `rankColor_pair` family), the twin-cover FIT
+(the chase's `d₂`-over-`y.twin` seat re-priced as a legal
+card-directed landing off the chase's own rank/color premises), the
+cover EXILE (the resident-at-`st₁` cover is gone from its home
+foundation at `st₂`, off the deep end read through the
+founded-membership bridge), and the MIRROR CENSUS read of `d₁`'s
+pinned suit. -/
+
+/-- **THE DECK CENSUS (the per-file copy)** — the cards of one rank
+and one color are exactly the twin pair (the copy of
+`Orig/RunOrTwin.lean`'s private `rankColor_pair`;
+`Orig/PairConfine.lean` and `Orig/OriginLock.lean` carry identical
+private copies). -/
+private theorem xfam_rankColor_pair {c z : Card}
+    (hr : z.rank.toIdx = c.rank.toIdx) (hc : z.suit.color = c.suit.color) :
+    z = c ∨ z = c.twin := by
+  rcases z with ⟨zs, zr⟩
+  rcases c with ⟨cs, cr⟩
+  have hrank : zr = cr := Rank.toIdx_inj hr
+  subst hrank
+  cases cs <;> cases zs <;> simp_all [Suit.color, Suit.twin, Card.twin]
+
+/-- **THE TWIN-COVER FIT** — the chase's `d₂`-over-`y.twin` tableau
+seat is a legal card-directed landing: the twin keeps the rank (the
+chase's rank premise IS the fit), and the twin keeps the color family
+(the two forks' color separation IS the color half). -/
+private theorem xfam_canSitOn_twinCover {x y d : Card}
+    (hcol : y.suit.color ≠ x.suit.color)
+    (hdcol : d.suit.color = x.suit.color)
+    (hdrank : d.rank.toIdx + 1 = y.rank.toIdx) :
+    canSitOn d y.twin = true := by
+  rw [canSitOn_eq]
+  refine ⟨?_, ?_⟩
+  · rw [Card.twin_rank]; exact hdrank
+  · have hyt : y.twin.suit.color = y.suit.color := xfam_twin_color y
+    rw [hyt, hdcol]
+    exact Ne.symm hcol
+
+/-! ### The corner dichotomy rows
+
+The complete cover/pair census across the three corner regimes: at
+the first fork the twin-cover `d` of `x.twin` (one below `x`, of the
+opposite family) confronts the second fork's pair `{w, w.twin}` — a
+MEMBER exactly in the consecutive regime (shift 1), a NON-member in
+the gap regime (shift ≥ 2) and in the equal regime (shift 0) by the
+rank arithmetic alone; and in EVERY regime the second fork's own low
+cover `d₂` (one below `w`) sits strictly beneath the first fork's
+pair.  Pure card arithmetic over the deck census — the corner
+residues' step-0 tools, landed ahead of the per-leg chase. -/
+
+/-- **THE PAIR-MEMBERSHIP CENSUS (the shift-one read)** — a cover of
+`x.twin` (one below `x`) is literally a member of `w`'s pair exactly
+when `w` also sits exactly one below `x`: equal ranks and matching
+colors name the deck census's twin pair. -/
+private theorem cross_cover_member_shift {d x w : Card}
+    (hdx : d.rank.toIdx + 1 = x.rank.toIdx)
+    (hwx : w.rank.toIdx + 1 = x.rank.toIdx)
+    (hcol : d.suit.color = w.suit.color) :
+    d = w ∨ d = w.twin :=
+  xfam_rankColor_pair (by omega) hcol
+
+/-- **THE PAIR-NONMEMBERSHIP CENSUS (the gap read)** — a cover of
+`x.twin` cannot be a member of `w`'s pair when `w`'s pair sits two or
+more below `x`: the rank arithmetic alone separates the strata. -/
+private theorem cross_cover_nonmember_gap {d x w : Card}
+    (hdx : d.rank.toIdx + 1 = x.rank.toIdx)
+    (hgap : w.rank.toIdx + 2 ≤ x.rank.toIdx) :
+    d ≠ w ∧ d ≠ w.twin := by
+  refine ⟨?_, ?_⟩ <;> intro heq
+  · rw [heq] at hdx; omega
+  · rw [heq, Card.twin_rank] at hdx; omega
+
+/-- **THE PAIR-NONMEMBERSHIP CENSUS (the equal read)** — a cover of
+`x.twin` (one below `x`) cannot be a member of `w`'s pair when the
+pair sits AT `x`'s rank: the cover is a full stratum below. -/
+private theorem cross_cover_nonmember_eq {d x w : Card}
+    (hdx : d.rank.toIdx + 1 = x.rank.toIdx)
+    (hwxeq : w.rank.toIdx = x.rank.toIdx) :
+    d ≠ w ∧ d ≠ w.twin := by
+  refine ⟨?_, ?_⟩ <;> intro heq
+  · rw [heq] at hdx; omega
+  · rw [heq, Card.twin_rank] at hdx; omega
+
+/-- **THE LOW-COVER SEPARATION** — a card one below `w` is never a
+member of `x`'s pair whenever `w` sits at or below `x`: the second
+fork's own low cover stays a full stratum beneath the first fork's
+pair, in every rank regime. -/
+private theorem cross_lowcover_notpair {d x w : Card}
+    (hdw : d.rank.toIdx + 1 = w.rank.toIdx)
+    (hwle : w.rank.toIdx ≤ x.rank.toIdx) :
+    d ≠ x ∧ d ≠ x.twin := by
+  refine ⟨?_, ?_⟩ <;> intro heq
+  · rw [heq] at hdw; omega
+  · rw [heq, Card.twin_rank] at hdw; omega
+
+/-- **THE TWIN-COVER CENSUS** — the fork's own twin-cover package
+re-read through the deck census: the direct cover `d` of `x.twin`
+tops its pile with `nextUp` dead, its color is the OTHER fork's
+family, and its rank sits exactly one below the fork's own witness
+rank. -/
+private theorem cross_twincover_census {st : State} (hwf : st.WF)
+    {x w : Card} (hx : ForkWitness st x) (hcolw : w.suit.color ≠ x.suit.color) :
+    ∃ (a : Anchor) (bs : List Card) (d : Card),
+      (st.piles a).faceUp = bs ++ [x.twin, d] ∧
+      canSitOn d x.twin = true ∧
+      st.pileOfTop d = some a ∧
+      st.nextUp d = false ∧
+      d.suit.color = w.suit.color ∧
+      d.rank.toIdx + 1 = x.rank.toIdx := by
+  obtain ⟨a, bs, d, hshape, -, hfit, htop, hnext, -⟩ :=
+    pair_cover_pins hwf hx
+  obtain ⟨hridx, hcne⟩ := (canSitOn_eq d x.twin).mp hfit
+  rw [Card.twin_rank] at hridx
+  have hxt : x.twin.suit.color = x.suit.color := xfam_twin_color x
+  rw [hxt] at hcne
+  refine ⟨a, bs, d, hshape, hfit, htop, hnext, ?_, hridx⟩
+  exact xfam_color_pair (Ne.symm hcne) (Ne.symm hcolw)
+
+/-- **THE COVER/PAIR DICHOTOMY, ASSEMBLED (the consecutive read)** —
+in the shift-one regime the first fork's twin-cover IS a member of
+the second fork's pair: `cross_twincover_census` plus the
+membership shift read. -/
+private theorem cross_twincover_member_pkg {st : State} (hwf : st.WF)
+    {x w : Card} (hx : ForkWitness st x) (hcolw : w.suit.color ≠ x.suit.color)
+    (hshift : w.rank.toIdx + 1 = x.rank.toIdx) :
+    ∃ (a : Anchor) (bs : List Card) (d : Card),
+      (st.piles a).faceUp = bs ++ [x.twin, d] ∧
+      canSitOn d x.twin = true ∧
+      st.pileOfTop d = some a ∧
+      st.nextUp d = false ∧
+      (d = w ∨ d = w.twin) := by
+  obtain ⟨a, bs, d, hshape, hfit, htop, hnext, hdcolw, hridx⟩ :=
+    cross_twincover_census hwf hx hcolw
+  exact ⟨a, bs, d, hshape, hfit, htop, hnext,
+    cross_cover_member_shift hridx hshift hdcolw⟩
+
+/-- **THE COVER/PAIR DICHOTOMY, ASSEMBLED (the gap read)** — in the
+gap regime the first fork's twin-cover is a NON-member of the
+second fork's pair: the census package plus the stratum
+separation. -/
+private theorem cross_twincover_nonpair_pkg {st : State} (hwf : st.WF)
+    {x w : Card} (hx : ForkWitness st x) (hcolw : w.suit.color ≠ x.suit.color)
+    (hgap : w.rank.toIdx + 2 ≤ x.rank.toIdx) :
+    ∃ (a : Anchor) (bs : List Card) (d : Card),
+      (st.piles a).faceUp = bs ++ [x.twin, d] ∧
+      canSitOn d x.twin = true ∧
+      st.pileOfTop d = some a ∧
+      st.nextUp d = false ∧
+      (d ≠ w ∧ d ≠ w.twin) := by
+  obtain ⟨a, bs, d, hshape, hfit, htop, hnext, -, hridx⟩ :=
+    cross_twincover_census hwf hx hcolw
+  exact ⟨a, bs, d, hshape, hfit, htop, hnext,
+    cross_cover_nonmember_gap hridx hgap⟩
+
+/-- **THE COVER/PAIR DICHOTOMY, ASSEMBLED (the equal read)** — in the
+equal-rank regime the first fork's twin-cover is a NON-member of
+the second fork's pair: it tops a full stratum below the pair. -/
+private theorem cross_twincover_nonpair_eq_pkg {st : State} (hwf : st.WF)
+    {x w : Card} (hx : ForkWitness st x) (hcolw : w.suit.color ≠ x.suit.color)
+    (hwxeq : w.rank.toIdx = x.rank.toIdx) :
+    ∃ (a : Anchor) (bs : List Card) (d : Card),
+      (st.piles a).faceUp = bs ++ [x.twin, d] ∧
+      canSitOn d x.twin = true ∧
+      st.pileOfTop d = some a ∧
+      st.nextUp d = false ∧
+      (d ≠ w ∧ d ≠ w.twin) := by
+  obtain ⟨a, bs, d, hshape, hfit, htop, hnext, -, hridx⟩ :=
+    cross_twincover_census hwf hx hcolw
+  exact ⟨a, bs, d, hshape, hfit, htop, hnext,
+    cross_cover_nonmember_eq hridx hwxeq⟩
+
+/-- **THE CONSECUTIVE CORNER of the shifted kill-ladder — the
+stratified chase's residue in the tight regime `r₁ = r₂ + 1`
+(`cross_strata_chase`'s first named corner).**  The chase's PROVED
+preprocessing is carried as hypotheses: the cover `d₂` is x-family,
+one below the second fork's rank, resident at the first fork
+(`hd₂res`) yet EXILED from its home foundation at the second
+(`hd₂out`), covering `y.twin` as a legal card-directed landing
+(`hd₂fit`); the cover `d₁` is y-family, one below the first fork's
+rank, riding a tableau TOP at the first fork with `nextUp` dead
+(`hd₁top`) — and in this regime the deck census (`xfam_rankColor_pair`)
+proves it a literal PAIR MEMBER of the second fork (`hd₁pair`:
+`d₁ = y` or `d₁ = y.twin`), its home suit pinned EXACTLY at `r₂` at
+the second fork while reading at most `r₂ − 1` at the first
+(`hd₁cen`: the mirror census — `d₁`'s suit owes at least one net
+RAISE along the journey); and `d₂`'s home suit owes at least THREE
+net LIFO pops (`hdebt₂`, the census `hd₂rung₁`/`hd₂rung₂` read
+tight to `r₁ − r₂ = 1`).  ROUTE (complete, the residue's own):
+1. THE SURFACING — each pop of the debt is current-top LIFO
+   (`foundToTab_pops_currentTop`), so the pops first surface the
+   x-family cards stacked above `d₂` (rank indices `r₂..r₁−1`, none
+   a king, so no empty-anchor landing exists), each landing on a
+   fitting top one rank up, opposite color (`canSitOn`), or nowhere.
+2. THE HOST CENSUS — by the deck census the only fitting hosts at
+   the top of the surfaced stratum are the pair members `{y, y.twin}`
+   themselves; the saturations bar both ends — at the first fork
+   `cross_census_dead` holds both members S-dead while `hd₁top`
+   seats one ON TOP of a pile, and `pair_cover_pins` seats the
+   st₁-end twin-cover — so a pair-member host must have LEFT its
+   pile, and its own exit is a pull onto an x-family top one rank
+   further up at that epoch.
+3. THE OSCILLATION PRICED — each such exit's landing needs its own
+   fitting host one rank up in the x family (rank indices `r₂..r₁`),
+   all of which the second fork holds FOUNDED beneath its pins
+   (`pair_lowFamily_founded` + `xfam_mem_found_rank_lt`, the census
+   `hd₂rung₂`/`hd₂rung₁` bounding the survivors); the two OPPOSITE
+   census debts (`hdebt₂`'s net pulls vs `hd₁cen`'s net raises on the
+   two cover suits, `witness_rung_census` closing the per-suit
+   oscillation) cannot both service through the same capped strata —
+   the per-leg accounting forces an epoch whose every legal seat is
+   census-barred: the material competition has no legal leg, `False`. -/
+private theorem cross_strata_consec {st₁ st₂ : State}
+    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
+    {x y d₁ d₂ : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
+    (hcol : y.suit.color ≠ x.suit.color)
+    {τ : List Move} (hτ : ShufflePlayW st₁ τ st₂)
+    (hne : y.rank.toIdx + 1 = x.rank.toIdx)
+    (hd₂col : d₂.suit.color = x.suit.color)
+    (hd₂rank : d₂.rank.toIdx + 1 = y.rank.toIdx)
+    (hd₂res : d₂ ∈ st₁.found d₂.suit)
+    (hd₂rung₁ : rungAt st₁ d₂.suit = x.rank.toIdx)
+    (hd₂rung₂ : rungAt st₂ d₂.suit + 2 ≤ y.rank.toIdx)
+    (hd₂top : ∃ a bs, (st₂.piles a).faceUp = bs ++ [y.twin, d₂] ∧
+      st₂.pileOfTop d₂ = some a ∧ st₂.nextUp d₂ = false)
+    (hd₂fit : canSitOn d₂ y.twin = true)
+    (hd₂out : ¬ d₂ ∈ st₂.found d₂.suit)
+    (hd₁col : d₁.suit.color = y.suit.color)
+    (hd₁rank : d₁.rank.toIdx + 1 = x.rank.toIdx)
+    (hd₁pair : d₁ = y ∨ d₁ = y.twin)
+    (hd₁top : ∃ a, st₁.pileOfTop d₁ = some a ∧ st₁.nextUp d₁ = false)
+    (hd₁rung₁ : rungAt st₁ d₁.suit + 2 ≤ x.rank.toIdx)
+    (hd₁rung₂ : rungAt st₂ d₁.suit = y.rank.toIdx)
+    (hdebt₂ : x.rank.toIdx + 2 + raisesOf τ d₂.suit
+      ≤ y.rank.toIdx + pullsOf τ d₂.suit)
+    (hd₁cen : y.rank.toIdx + pullsOf τ d₁.suit
+      = rungAt st₁ d₁.suit + raisesOf τ d₁.suit) :
+    False := by
+  sorry
+
+/-- **THE GAP CORNER of the shifted kill-ladder — the stratified
+chase's residue in the deep regime `r₂ + 2 ≤ r₁` (`cross_strata_chase`'s
+second named corner).**  The chase's PROVED preprocessing is carried
+as hypotheses (fit `hd₂fit`, exile `hd₂out`, mirror census `hd₁cen`,
+the deep debt `hdebt₂` reading here as at least FOUR net LIFO pops),
+plus the corner's own PROVED stratum separation: `hstrat` — `d₁`
+tops rank `r₁ − 1`, a full stratum (at least two) ABOVE everything
+the debt can surface (the surfaced x-family cards sit at or below
+`d₂`'s rank `r₂ − 1`, all beneath the second fork's pinnings).  ROUTE
+(complete, the residue's own): 1. THE SURFACING — as in the
+consecutive corner, the debt's pops are current-top LIFO
+(`foundToTab_pops_currentTop`), surfacing x-family cards of rank
+index at most `r₂ − 1`, none a king; their only fitting hosts
+(`canSitOn` + the deck census `xfam_rankColor_pair`) are y-family
+tops one rank up — the stratum the second fork holds FOUNDED
+(`pair_lowFamily_founded`), below its pins (`hd₂rung₂`), so each
+surfaced card's host is itself founded and must be pulled first.
+2. THE HOST EXITS — each such host's pull lands on an x-family top
+one rank further up at that epoch; `hstrat` places that host-stratum
+a full stratum beneath `d₁`'s own top seat, and `hd₁top` (with the
+st₁-end `pair_cover_pins` saturation and `cross_census_dead` at both
+ends) bars the y-family exits the chain needs on the tableau.
+3. THE OSCILLATION PRICED — the two OPPOSITE census debts on the two
+cover suits (`hdebt₂`'s deep net pulls vs `hd₁cen`'s net raises,
+`witness_rung_census` closing the per-suit oscillation) stretch the
+chain across the gap `r₁ − r₂ ≥ 2`, one stratum more than the
+consecutive corner; the capped founded strata (`hd₂rung₁`,
+`hd₂rung₂`, `hd₁rung₁`, `hd₁rung₂`) cannot service both directions —
+an epoch arrives whose every legal seat is census-barred, `False`. -/
+private theorem cross_strata_gap {st₁ st₂ : State}
+    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
+    {x y d₁ d₂ : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
+    (hcol : y.suit.color ≠ x.suit.color)
+    {τ : List Move} (hτ : ShufflePlayW st₁ τ st₂)
+    (hg : y.rank.toIdx + 2 ≤ x.rank.toIdx)
+    (hd₂col : d₂.suit.color = x.suit.color)
+    (hd₂rank : d₂.rank.toIdx + 1 = y.rank.toIdx)
+    (hd₂res : d₂ ∈ st₁.found d₂.suit)
+    (hd₂rung₁ : rungAt st₁ d₂.suit = x.rank.toIdx)
+    (hd₂rung₂ : rungAt st₂ d₂.suit + 2 ≤ y.rank.toIdx)
+    (hd₂top : ∃ a bs, (st₂.piles a).faceUp = bs ++ [y.twin, d₂] ∧
+      st₂.pileOfTop d₂ = some a ∧ st₂.nextUp d₂ = false)
+    (hd₂fit : canSitOn d₂ y.twin = true)
+    (hd₂out : ¬ d₂ ∈ st₂.found d₂.suit)
+    (hd₁col : d₁.suit.color = y.suit.color)
+    (hd₁rank : d₁.rank.toIdx + 1 = x.rank.toIdx)
+    (hstrat : d₂.rank.toIdx + 2 ≤ d₁.rank.toIdx)
+    (hd₁top : ∃ a, st₁.pileOfTop d₁ = some a ∧ st₁.nextUp d₁ = false)
+    (hd₁rung₁ : rungAt st₁ d₁.suit + 2 ≤ x.rank.toIdx)
+    (hd₁rung₂ : rungAt st₂ d₁.suit = y.rank.toIdx)
+    (hdebt₂ : x.rank.toIdx + 2 + raisesOf τ d₂.suit
+      ≤ y.rank.toIdx + pullsOf τ d₂.suit)
+    (hd₁cen : y.rank.toIdx + pullsOf τ d₁.suit
+      = rungAt st₁ d₁.suit + raisesOf τ d₁.suit) :
     False := by
   sorry
 
@@ -516,7 +1058,18 @@ shallower fork's own foundation.  The CONSECUTIVE corner
 (`r₁ = r₂ + 1`: the cover `d₁` IS a y-pair member, the rank/color
 census) and the GAP corner (`r₁ ≥ r₂ + 2`: `d₁` tops a full stratum
 above the second fork's pinnings) split inside; the reversed order
-never enters (`hlo`). -/
+never enters (`hlo`).
+
+LANDED as the SPLIT: the body below is PROVED — the deck-census copy
+(`xfam_rankColor_pair`) prices the twin-cover fit
+(`xfam_canSitOn_twinCover`) and the exile (`cross_strata_exile`), the
+per-suit census (`witness_rung_census`) is read once into the mirror
+`hd₁cen`, and the chase forks into the two named corner residues
+directly above: the CONSECUTIVE corner `cross_strata_consec` (where
+`d₁` is proved literally a y-pair member, `hd₁pair`) and the GAP
+corner `cross_strata_gap` (where the stratum separation `hstrat` is
+priced in) — the per-leg LIFO chase per the route above is each
+corner's own named residue. -/
 private theorem cross_strata_chase {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     {x y d₁ d₂ : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
@@ -538,7 +1091,27 @@ private theorem cross_strata_chase {st₁ st₂ : State}
     (hdebt₂ : x.rank.toIdx + 2 + raisesOf τ d₂.suit
       ≤ y.rank.toIdx + pullsOf τ d₂.suit) :
     False := by
-  sorry
+  -- the proved preprocessing, handed to both corners:
+  -- the twin-cover seat is a legal card-directed landing
+  have hd₂fit : canSitOn d₂ y.twin = true :=
+    xfam_canSitOn_twinCover hcol hd₂col hd₂rank
+  -- the cover left its home foundation by the second fork
+  have hd₂out : ¬ d₂ ∈ st₂.found d₂.suit :=
+    cross_strata_exile hwf₂ hd₂rank hd₂rung₂
+  -- the mirror census read off d₁'s pinned suit
+  have hd₁cen : y.rank.toIdx + pullsOf τ d₁.suit
+      = rungAt st₁ d₁.suit + raisesOf τ d₁.suit := by
+    have hc := witness_rung_census hτ d₁.suit
+    omega
+  -- the regime fork: CONSECUTIVE vs GAP
+  rcases Nat.lt_or_ge x.rank.toIdx (y.rank.toIdx + 2) with h | h
+  · exact cross_strata_consec hwf₁ hwf₂ hx hy hcol hτ (by omega) hd₂col
+      hd₂rank hd₂res hd₂rung₁ hd₂rung₂ hd₂top hd₂fit hd₂out hd₁col
+      hd₁rank (xfam_rankColor_pair (by omega) hd₁col) hd₁top hd₁rung₁
+      hd₁rung₂ hdebt₂ hd₁cen
+  · exact cross_strata_gap hwf₁ hwf₂ hx hy hcol hτ h hd₂col hd₂rank
+      hd₂res hd₂rung₁ hd₂rung₂ hd₂top hd₂fit hd₂out hd₁col hd₁rank
+      (by omega) hd₁top hd₁rung₁ hd₁rung₂ hdebt₂ hd₁cen
 
 /-- **THE UNEQUAL-RANK STRATIFICATION — the second named
 sub-residue.**  Premise: the same-class cross-family forks with the
@@ -691,13 +1264,17 @@ theorem forkState_familyRigid (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf₂ 
 
 `#print axioms` per fresh head — the four row rows, the pressure
 row, and the two §5b rank-free shift rows read
-`[propext, Quot.sound]`-grade (banked chain only); the unequal-rank
-stratification is now assembly-grade ([propext, sorryAx, Quot.sound]
-with the sorryAx from its split child alone); the assembly and
-the main row carry exactly the two fresh `sorryAx`es of the named
-corners (`cross_equal_rank_kill`, and the stratification's child
-`cross_strata_chase` via `cross_unequal_rank_strata`;
-`forkState_familyRigid` inherits exactly those and NOTHING else). -/
+`[propext, Quot.sound]`-grade (banked chain only); the two rank
+drivers (`cross_equal_rank_kill`, `cross_strata_chase`) are PROVED
+assemblies and read `[propext, Quot.sound]`-grade with their split
+children's `sorryAx`es alone; the assembly and the main row carry
+exactly the three fresh `sorryAx`es of the named corner residues
+(`cross_equal_rank_kick` for the equal rank, and the stratified
+chase's two corner children `cross_strata_consec`/`cross_strata_gap`
+via `cross_unequal_rank_strata`; `forkState_familyRigid` inherits
+exactly those and NOTHING else).  The preprocessing rows (deck
+census, twin-cover fit, leg extractors, exile, cover/pair
+dichotomy) are zero-sorry and read banked-chain grade. -/
 
 #print axioms cross_census_dead
 #print axioms cross_cover_residency
@@ -706,7 +1283,23 @@ corners (`cross_equal_rank_kill`, and the stratification's child
 #print axioms cross_cover_pull_pressure
 #print axioms cross_drop_general
 #print axioms cross_climb_general
+#print axioms xfam_rankColor_pair
+#print axioms xfam_canSitOn_twinCover
+#print axioms cross_raise_leg
+#print axioms cross_pull_leg
+#print axioms cross_strata_exile
+#print axioms cross_cover_member_shift
+#print axioms cross_cover_nonmember_gap
+#print axioms cross_cover_nonmember_eq
+#print axioms cross_lowcover_notpair
+#print axioms cross_twincover_census
+#print axioms cross_twincover_member_pkg
+#print axioms cross_twincover_nonpair_pkg
+#print axioms cross_twincover_nonpair_eq_pkg
 #print axioms cross_equal_rank_kill
+#print axioms cross_equal_rank_kick
+#print axioms cross_strata_consec
+#print axioms cross_strata_gap
 #print axioms cross_unequal_rank_strata
 #print axioms cross_strata_chase
 #print axioms cross_family_interlock
