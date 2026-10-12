@@ -1,6 +1,7 @@
 import Orig.PairName
 import Orig.BracketDecomp
 import Orig.SFlatTransfer
+import Orig.OrphanSeat
 
 /-!
 # Orig.PairConfine — THE PAIR-CONFINEMENT CARD (the upward axis)
@@ -689,6 +690,519 @@ private theorem conf_founding_crosses {st : State} {m : Card} :
         exact ⟨mv :: ρ, v, s₂, rest', by rw [hsplit]; rfl,
           .cons hrev hstep hsh, hfstep⟩
 
+/-- The top search respects pile equality (the copy of the
+`pileHolding_congr` idiom, at the pile-of-top search). -/
+private theorem conf_pileOfTop_congr {s s' : State}
+    (h : s'.piles = s.piles) (z : Card) :
+    s'.pileOfTop z = s.pileOfTop z := by
+  unfold State.pileOfTop State.topOf
+  rw [h]
+
+/-- The last of an append with a nonempty tail is the tail's last. -/
+private theorem conf_lastOf_append (l₁ : List Card) :
+    ∀ (l₂ : List Card), l₂ ≠ [] → lastOf (l₁ ++ l₂) = lastOf l₂ := by
+  induction l₁ with
+  | nil => intro l₂ _; rfl
+  | cons x xs ih =>
+      intro l₂ hne
+      cases l₂ with
+      | nil => exact absurd rfl hne
+      | cons y l' =>
+          cases xs with
+          | nil => exact rfl
+          | cons v vs =>
+              exact ih (y :: l') hne
+
+/-- The face-up run splits at the from-card: the below-prefix and the
+moving run (the copy of the in-tree private row). -/
+private theorem conf_below_fromCard (t : Card) : ∀ (l : List Card),
+    l = below t l ++ fromCard t l := by
+  intro l
+  induction l with
+  | nil => rfl
+  | cons x xs ih =>
+      by_cases hxt : x = t
+      · rw [hxt, below_cons_self, fromCard_cons_self, List.nil_append]
+      · rw [below_cons_ne xs hxt, fromCard_cons_ne xs hxt, List.cons_append]
+        exact congrArg (x :: ·) ih
+
+/-- The emptied-pile reads, one per hidden shape: with an empty
+below-prefix the run removal leaves no face-up card over an empty
+hidden deck, or the single revealed hidden head. -/
+private theorem conf_arr_nil_top_none {p : Pile} (h : p.hidden = []) :
+    (Pile.afterRunRemoved p []).top = none := by
+  rcases p with ⟨hs, fs⟩
+  rw [show (⟨hs, fs⟩ : Pile).hidden = hs from rfl] at h
+  subst h
+  rfl
+
+private theorem conf_arr_nil_top_some {p : Pile} {g : Card} {gs : List Card}
+    (h : p.hidden = g :: gs) :
+    (Pile.afterRunRemoved p []).top = some g := by
+  rcases p with ⟨hs, fs⟩
+  rw [show (⟨hs, fs⟩ : Pile).hidden = hs from rfl] at h
+  subst h
+  rfl
+
+/-- A pile-of-top that reads `none` admits no `some` reading (the
+negation bridge for the flip's contrapositions). -/
+private theorem conf_pileOfTop_none_ne {s : State} {t : Card} {A : Anchor}
+    (hNT : s.pileOfTop t = none) :
+    ¬ (s.pileOfTop t = some A) := by
+  rw [hNT]
+  simp
+
+/-- **THE SLIDE-PROFILE WORKBENCH** — a firing run move at a WF state
+has the two-pile write profile: the departure pile keeps (or reveals
+over) its below-prefix, the landing pile (never the departure pile,
+by the self-safety census) takes the run appended above its own
+face-up run, and every other pile is untouched. -/
+private theorem conf_slide_shape {s s' : State} {c : Card} {b : Base}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToTab c b) = some s') :
+    ∃ (a k : Anchor) (run : List Card),
+      s.pileHolding c = some a ∧
+      run = fromCard c (s.piles a).faceUp ∧
+      run ≠ [] ∧
+      k ≠ a ∧
+      (s'.piles a = Pile.afterRunRemoved (s.piles a)
+          (below c (s.piles a).faceUp)) ∧
+      (∀ y, y ≠ a → y ≠ k → s'.piles y = s.piles y) ∧
+      ((s'.piles k).hidden = (s.piles k).hidden ∧
+          (s'.piles k).faceUp = (s.piles k).faceUp ++ run) := by
+  obtain ⟨a₀, hh, hcp, hrne, hs⟩ := step_tabToTab_inv hstep
+  have hcmem : c ∈ (s.piles a₀).faceUp := pileHolding_mem hh
+  cases b with
+  | inl e =>
+      obtain ⟨hemp, -⟩ := canPlace_inl hcp
+      obtain ⟨hhde, hhfe⟩ := (Pile.isEmpty_eq _).mp hemp
+      have hne : e ≠ a₀ := canPlace_inl_target_pile_ne hcp hcmem
+      rw [hs, putRun_eq_inl]
+      refine ⟨a₀, e, fromCard c (s.piles a₀).faceUp, hh, rfl, hrne, hne,
+        ?_, ?_, ?_⟩
+      · rw [setPile_piles_ne (Ne.symm hne), setPile_piles_self]
+      · intro y hy hye
+        rw [setPile_piles_ne hye, setPile_piles_ne hy]
+      · rw [setPile_piles_self, hhde, hhfe]
+        exact ⟨rfl, rfl⟩
+  | inr z =>
+      obtain ⟨k₀, hk₀, -⟩ := canPlace_inr hcp
+      have hne : k₀ ≠ a₀ := fun hcon =>
+        canPlace_inr_target_pile_ne hwf hcp hcmem (hcon ▸ hk₀)
+      have hzmem : z ∈ (s.piles k₀).faceUp :=
+        Pile.mem_of_top (pileOfTop_top hk₀).2
+      have hzNotA : z ∉ (s.piles a₀).faceUp :=
+        (mem_faceUp_unique hwf hzmem a₀ (Ne.symm hne)).1
+      have hzNotH : z ∉ (s.piles a₀).hidden :=
+        (mem_faceUp_unique hwf hzmem a₀ (Ne.symm hne)).2.1
+      -- the mid state rewrites only the departure pile
+      have hmidk : (s.setPile a₀ (Pile.afterRunRemoved (s.piles a₀)
+          (below c (s.piles a₀).faceUp))).piles k₀
+          = s.piles k₀ := setPile_piles_ne hne
+      -- the base-card search answers as before: its own pile is untouched
+      have hmidx : (s.setPile a₀ (Pile.afterRunRemoved (s.piles a₀)
+          (below c (s.piles a₀).faceUp))).pileOfTop z = some k₀ := by
+        unfold State.pileOfTop
+        refine firstWhere_find (Anchor.mem_all k₀) ?_ ?_
+        · show decide ((s.setPile a₀ (Pile.afterRunRemoved (s.piles a₀)
+              (below c (s.piles a₀).faceUp))).topOf k₀
+            = some z) = true
+          rw [setPile_topOf_ne hne]
+          exact decide_eq_true (pileOfTop_top hk₀).2
+        · intro y _hy hyne'
+          show decide ((s.setPile a₀ (Pile.afterRunRemoved (s.piles a₀)
+              (below c (s.piles a₀).faceUp))).topOf y
+            = some z) = false
+          by_cases hya : y = a₀
+          · have hXz : (Pile.afterRunRemoved (s.piles a₀)
+                (below c (s.piles a₀).faceUp)).top ≠ some z := by
+              intro hcon
+              by_cases hpre : (below c (s.piles a₀).faceUp) = []
+              · rw [hpre] at hcon
+                cases hhid : (s.piles a₀).hidden with
+                | nil =>
+                    rw [conf_arr_nil_top_none hhid] at hcon
+                    exact absurd hcon (by simp)
+                | cons g gs =>
+                    rw [conf_arr_nil_top_some hhid] at hcon
+                    have hgt : g = z := Option.some.inj hcon
+                    exact hzNotH
+                      (by rw [← hgt, hhid]; exact List.mem_cons_self ..)
+              · rw [afterRunRemoved_ne hpre] at hcon
+                have hL : lastOf (below c (s.piles a₀).faceUp) = some z :=
+                  hcon
+                exact hzNotA
+                  (mem_below ((s.piles a₀).faceUp) (lastOf_mem hL))
+            rw [hya]
+            unfold State.topOf
+            rw [setPile_piles_self]
+            exact decide_false_of_not hXz
+          · rw [setPile_topOf_ne hya]
+            exact decide_false_of_not (fun hcon =>
+              (mem_faceUp_unique hwf hzmem y hyne').1 (Pile.mem_of_top hcon))
+      rw [hs, putRun_inr_eq hmidx]
+      refine ⟨a₀, k₀, fromCard c (s.piles a₀).faceUp, hh, rfl, hrne, hne,
+        ?_, ?_, ?_⟩
+      · rw [setPile_piles_ne (Ne.symm hne), setPile_piles_self]
+      · intro y hy hyk
+        rw [setPile_piles_ne hyk, setPile_piles_ne hy]
+      · rw [setPile_piles_self, hmidk]
+        exact ⟨rfl, rfl⟩
+
+/-- **THE FACE-UP-INVARIANT CARRY** — at a witness leg whose start
+holds the target `t` face-up on a pile and does not top it, the
+successor still holds it face-up on some pile; founding `t` would
+require it to top first, and every other leg preserves face-up
+membership pile-wise. -/
+private theorem conf_hop_Fkeep {s s' : State} {m : Move} {t : Card}
+    (hwf : s.WF) (hstep : State.step s m = some s')
+    (hrev : reversibleAtW s m)
+    (hNT : s.pileOfTop t = none)
+    (hF : ∃ a, t ∈ (s.piles a).faceUp) :
+    ∃ a, t ∈ (s'.piles a).faceUp := by
+  obtain ⟨W, hW⟩ := hF
+  cases m with
+  | draw =>
+      have hp : s'.piles = s.piles := stepDraw_piles hstep
+      exact ⟨W, by rw [hp]; exact hW⟩
+  | wasteToFound c => exact absurd hrev (journey_never_wasteToFound hstep)
+  | wasteToTab c b => exact absurd hrev (journey_never_wasteToTab hstep)
+  | tabToFound c =>
+      obtain ⟨hn, a₀, hpo, hs⟩ := step_tabToFound_inv hstep
+      have hsnoc : (s.piles a₀).faceUp =
+          chop (s.piles a₀).faceUp ++ [c] :=
+        lastOf_chop (pileOfTop_top hpo).2
+      have hct : c ≠ t := by
+        intro hcon
+        rw [hcon] at hpo
+        rw [hNT] at hpo
+        exact absurd hpo (by simp)
+      have hpy : ∀ y, s'.piles y = if y = a₀ then
+          Pile.afterRunRemoved (s.piles a₀) (chop (s.piles a₀).faceUp)
+          else s.piles y := fun y => by rw [hs]
+      by_cases hWa : W = a₀
+      · have htchop : t ∈ chop (s.piles a₀).faceUp := by
+          rw [hWa, hsnoc] at hW
+          rcases List.mem_append.mp hW with hchop | hlast
+          · exact hchop
+          · rw [List.mem_singleton] at hlast
+            exact absurd hlast.symm hct
+        have hchopne : chop (s.piles a₀).faceUp ≠ [] :=
+          fun hcon => by rw [hcon] at htchop; exact absurd htchop (by simp)
+        refine ⟨a₀, ?_⟩
+        rw [hpy a₀, if_pos rfl, afterRunRemoved_ne hchopne]
+        exact htchop
+      · refine ⟨W, ?_⟩
+        rw [hpy W, if_neg hWa]
+        exact hW
+  | foundToTab c b =>
+      obtain ⟨c₀, htop, hc₀c, hcp, hs⟩ := step_foundToTab_inv hstep
+      rw [hc₀c] at htop
+      have hcne : c ≠ t := by
+        intro hcon
+        have hmemF : t ∈ s.found t.suit := by
+          rw [← hcon]; exact lastOf_mem htop
+        exact (mem_faceUp_only hwf hW).2.2.2.2 t.suit hmemF
+      cases b with
+      | inl e =>
+          obtain ⟨hemp, -⟩ := canPlace_inl hcp
+          obtain ⟨-, hhfe⟩ := (Pile.isEmpty_eq _).mp hemp
+          have hpy : ∀ y, s'.piles y =
+              if y = e then ⟨[], [c]⟩ else s.piles y := by
+            intro y
+            rw [hs, putCard_piles_inl, setFound_piles]
+          by_cases hWe : W = e
+          · exfalso
+            rw [hWe, hhfe] at hW
+            exact absurd hW (by simp)
+          · refine ⟨W, ?_⟩
+            rw [hpy W, if_neg hWe]
+            exact hW
+      | inr z =>
+          obtain ⟨k₀, hk₀, -⟩ := canPlace_inr hcp
+          have hk₀' : (s.setFound c.suit (chop (s.found c.suit))).pileOfTop z
+              = some k₀ :=
+            (conf_pileOfTop_congr (setFound_piles s c.suit
+              (chop (s.found c.suit))) z).trans hk₀
+          have hpy : ∀ y, s'.piles y = if y = k₀ then
+              { s.piles k₀ with faceUp := (s.piles k₀).faceUp ++ [c] }
+              else s.piles y := by
+            intro y
+            rw [hs, putCard_piles_inr _ _ _ _ hk₀', setFound_piles]
+          by_cases hWk : W = k₀
+          · rw [hWk] at hW
+            refine ⟨W, ?_⟩
+            rw [hWk, hpy k₀, if_pos rfl]
+            exact List.mem_append.mpr (Or.inl hW)
+          · refine ⟨W, ?_⟩
+            rw [hpy W, if_neg hWk]
+            exact hW
+  | tabToTab c b =>
+      obtain ⟨a₀, k, run, hh, hrun, hrne, hne, hpa, hothers, hpair⟩ :=
+        conf_slide_shape hwf hstep
+      have hsplit : (s.piles a₀).faceUp =
+          below c (s.piles a₀).faceUp ++ run := by
+        have h := conf_below_fromCard c (s.piles a₀).faceUp
+        rw [hrun]
+        exact h
+      by_cases hWa : W = a₀
+      · rw [hWa] at hW
+        rw [hsplit] at hW
+        rcases List.mem_append.mp hW with hmem | hmem
+        · have hprene : below c (s.piles a₀).faceUp ≠ [] :=
+            fun hcon => by rw [hcon] at hmem; exact absurd hmem (by simp)
+          refine ⟨a₀, ?_⟩
+          rw [hpa, afterRunRemoved_ne hprene]
+          exact hmem
+        · have hfeq : (s'.piles k).faceUp = (s.piles k).faceUp ++ run :=
+            hpair.2
+          refine ⟨k, ?_⟩
+          rw [hfeq]
+          exact List.mem_append.mpr (Or.inr hmem)
+      · by_cases hWk : W = k
+        · rw [hWk] at hW
+          refine ⟨W, ?_⟩
+          rw [hWk, hpair.2]
+          exact List.mem_append.mpr (Or.inl hW)
+        · refine ⟨W, ?_⟩
+          rw [hothers W hWa hWk]
+          exact hW
+
+/-- **THE FIRST-TOPPING FLIP** — the leg whose post-state first tops
+the target names its move: a `tabToTab` whose head sits directly on
+the target at the departure seat, or a `tabToFound` of the card
+directly covering it — in both cases the run-discipline fit
+`canSitOn c t` holds.  Every other leg either writes no pile (draw),
+never rides (waste letters), or cannot produce a first top (pulls
+place cards on top, relocations keep within-run positions, and the
+target cannot be the pulled/founded card while it is face-up and not
+topping). -/
+private theorem conf_hop_flip {s s' : State} (hwf : s.WF) {m : Move}
+    (hstep : State.step s m = some s') (hrev : reversibleAtW s m)
+    {t : Card}
+    (hF : ∃ a, t ∈ (s.piles a).faceUp)
+    (hNT : s.pileOfTop t = none)
+    (hT' : s'.pileOfTop t ≠ none) :
+    (∃ c b, m = Move.tabToTab c b ∧ canSitOn c t = true) ∨
+      (∃ c, m = Move.tabToFound c ∧ canSitOn c t = true) := by
+  obtain ⟨W, hW⟩ := hF
+  have htnoH : ∀ a', t ∉ (s.piles a').hidden := by
+    intro a'
+    by_cases hWa : a' = W
+    · rw [hWa]; exact (mem_faceUp_only hwf hW).2.1
+    · exact (mem_faceUp_unique hwf hW a' hWa).2.1
+  cases m with
+  | draw =>
+      exact absurd ((conf_pileOfTop_congr (stepDraw_piles hstep) t).trans hNT)
+        hT'
+  | wasteToFound c => exact absurd hrev (journey_never_wasteToFound hstep)
+  | wasteToTab c b => exact absurd hrev (journey_never_wasteToTab hstep)
+  | tabToFound c =>
+      obtain ⟨hn, a₀, hpo, hs⟩ := step_tabToFound_inv hstep
+      have hcTop : lastOf (s.piles a₀).faceUp = some c := (pileOfTop_top hpo).2
+      have hsnoc : (s.piles a₀).faceUp =
+          chop (s.piles a₀).faceUp ++ [c] := lastOf_chop hcTop
+      have hpy : ∀ y, s'.piles y = if y = a₀ then
+          Pile.afterRunRemoved (s.piles a₀) (chop (s.piles a₀).faceUp)
+          else s.piles y := fun y => by rw [hs]
+      obtain ⟨A, hA⟩ := option_some_of_ne_none hT'
+      obtain ⟨-, hlastA⟩ := pileOfTop_top hA
+      by_cases hAa : A = a₀
+      · have hTop' : (Pile.afterRunRemoved (s.piles a₀)
+            (chop (s.piles a₀).faceUp)).top = some t := by
+          rw [hpy A, if_pos hAa] at hlastA
+          exact hlastA
+        by_cases hchop : chop (s.piles a₀).faceUp = []
+        · exfalso
+          rw [hchop] at hTop'
+          cases hhid : (s.piles a₀).hidden with
+          | nil =>
+              rw [conf_arr_nil_top_none hhid] at hTop'
+              exact absurd hTop' (by simp)
+          | cons g gs =>
+              rw [conf_arr_nil_top_some hhid] at hTop'
+              have hgt : g = t := Option.some.inj hTop'
+              exact htnoH a₀
+                (by rw [← hgt, hhid]; exact List.mem_cons_self ..)
+        · rw [afterRunRemoved_ne hchop] at hTop'
+          obtain ⟨front, hfront⟩ := lastOf_eq_snoc
+            (show lastOf (chop (s.piles a₀).faceUp) = some t from hTop')
+          have hshape : (s.piles a₀).faceUp = front ++ [t, c] := by
+            rw [hsnoc, hfront, List.append_assoc]; rfl
+          exact Or.inr ⟨c, rfl, conf_runOK_adjacent t c front [] (by
+              rw [← hshape]; exact hwf.2.1 a₀)⟩
+      · exfalso
+        rw [hpy A, if_neg hAa] at hlastA
+        exact absurd ((pileOfTop_eq_some_iff hwf).2
+          (show (s.piles A).top = some t from hlastA))
+          (conf_pileOfTop_none_ne hNT)
+  | foundToTab c b =>
+      obtain ⟨c₀, htop, hc₀c, hcp, hs⟩ := step_foundToTab_inv hstep
+      rw [hc₀c] at htop
+      have hcne : c ≠ t := by
+        intro hcon
+        have hmemF : t ∈ s.found t.suit := by
+          rw [← hcon]; exact lastOf_mem htop
+        exact (mem_faceUp_only hwf hW).2.2.2.2 t.suit hmemF
+      cases b with
+      | inl e =>
+          have hpy : ∀ y, s'.piles y =
+              if y = e then ⟨[], [c]⟩ else s.piles y := by
+            intro y
+            rw [hs, putCard_piles_inl, setFound_piles]
+          obtain ⟨A, hA⟩ := option_some_of_ne_none hT'
+          obtain ⟨-, hlastA⟩ := pileOfTop_top hA
+          by_cases hAe : A = e
+          · rw [hpy A, if_pos hAe] at hlastA
+            exact absurd (Option.some.inj hlastA) hcne
+          · exfalso
+            rw [hpy A, if_neg hAe] at hlastA
+            exact absurd ((pileOfTop_eq_some_iff hwf).2
+              (show (s.piles A).top = some t from hlastA))
+              (conf_pileOfTop_none_ne hNT)
+      | inr z =>
+          obtain ⟨k₀, hk₀, -⟩ := canPlace_inr hcp
+          have hk₀' : (s.setFound c.suit (chop (s.found c.suit))).pileOfTop z
+              = some k₀ :=
+            (conf_pileOfTop_congr (setFound_piles s c.suit
+              (chop (s.found c.suit))) z).trans hk₀
+          have hpy : ∀ y, s'.piles y = if y = k₀ then
+              { s.piles k₀ with faceUp := (s.piles k₀).faceUp ++ [c] }
+              else s.piles y := by
+            intro y
+            rw [hs, putCard_piles_inr _ _ _ _ hk₀', setFound_piles]
+          obtain ⟨A, hA⟩ := option_some_of_ne_none hT'
+          obtain ⟨-, hlastA⟩ := pileOfTop_top hA
+          by_cases hAk : A = k₀
+          · exfalso
+            rw [hpy A, if_pos hAk] at hlastA
+            have hTop' : lastOf ((s.piles k₀).faceUp ++ [c]) = some t :=
+              hlastA
+            exact absurd
+              (Option.some.inj (lastOf_snoc.symm.trans hTop')) hcne
+          · exfalso
+            rw [hpy A, if_neg hAk] at hlastA
+            exact absurd ((pileOfTop_eq_some_iff hwf).2
+              (show (s.piles A).top = some t from hlastA))
+              (conf_pileOfTop_none_ne hNT)
+  | tabToTab c b =>
+      obtain ⟨a₀, k, run, hh, hrun, hrne, hne, hpa, hothers, hpair⟩ :=
+        conf_slide_shape hwf hstep
+      have hsplit : (s.piles a₀).faceUp =
+          below c (s.piles a₀).faceUp ++ run := by
+        have h := conf_below_fromCard c (s.piles a₀).faceUp
+        rw [hrun]
+        exact h
+      obtain ⟨A, hA⟩ := option_some_of_ne_none hT'
+      obtain ⟨-, hlastA⟩ := pileOfTop_top hA
+      by_cases hAa : A = a₀
+      · have hTop' : (Pile.afterRunRemoved (s.piles a₀)
+            (below c (s.piles a₀).faceUp)).top = some t := by
+          rw [hAa, hpa] at hlastA
+          exact hlastA
+        by_cases hprene : below c (s.piles a₀).faceUp = []
+        · exfalso
+          rw [hprene] at hTop'
+          cases hhid : (s.piles a₀).hidden with
+          | nil =>
+              rw [conf_arr_nil_top_none hhid] at hTop'
+              exact absurd hTop' (by simp)
+          | cons g gs =>
+              rw [conf_arr_nil_top_some hhid] at hTop'
+              have hgt : g = t := Option.some.inj hTop'
+              exact htnoH a₀
+                (by rw [← hgt, hhid]; exact List.mem_cons_self ..)
+        · rw [afterRunRemoved_ne hprene] at hTop'
+          have hL : lastOf (below c (s.piles a₀).faceUp) = some t :=
+            hTop'
+          obtain ⟨front, hfront⟩ := lastOf_eq_snoc hL
+          have hruncons : ∃ tail, run = c :: tail := by
+            rw [hrun, fromCard_eq_of_mem (pileHolding_mem hh)]
+            exact ⟨_, rfl⟩
+          obtain ⟨tail, hrunT⟩ := hruncons
+          have hshape : (s.piles a₀).faceUp = front ++ t :: c :: tail := by
+            rw [hsplit, hfront, hrunT, List.append_assoc, List.cons_append]
+            rfl
+          refine Or.inl ⟨c, b, rfl, conf_runOK_adjacent t c front tail ?_⟩
+          rw [← hshape]
+          exact hwf.2.1 a₀
+      · by_cases hAk : A = k
+        · exfalso
+          rw [hAk] at hlastA
+          rw [hpair.2, conf_lastOf_append _ run hrne] at hlastA
+          have hLU : lastOf (s.piles a₀).faceUp = some t := by
+            rw [hsplit, conf_lastOf_append _ run hrne]
+            exact hlastA
+          exact absurd ((pileOfTop_eq_some_iff hwf).2
+            (show (s.piles a₀).top = some t from hLU))
+            (conf_pileOfTop_none_ne hNT)
+        · exfalso
+          rw [hothers A hAa hAk] at hlastA
+          exact absurd ((pileOfTop_eq_some_iff hwf).2
+            (show (s.piles A).top = some t from hlastA))
+            (conf_pileOfTop_none_ne hNT)
+
+/-- **THE FIRSTNESS CLIMB** — if the target is face-up and not
+topping at a journey start, and tops at the journey end, then some
+interior leg of the play is literally a `tabToTab c b` or a
+`tabToFound c` leg with `canSitOn c t = true`.  Until the first
+topping leg the face-up carry holds, so the flip lemma names the
+first leg that changes the top status. -/
+private theorem conf_hop_aux {t : Card} {s : State} :
+    ∀ {w : State} {π : List Move},
+    ShufflePlayW s π w → s.WF →
+    (∃ a, t ∈ (s.piles a).faceUp) → s.pileOfTop t = none →
+    (∃ a, w.pileOfTop t = some a) →
+    (∃ (ρ₁ ρ₂ : List Move) (c : Card) (b : Base) (s₃ s₄ : State),
+        π = ρ₁ ++ Move.tabToTab c b :: ρ₂ ∧
+        ShufflePlayW s ρ₁ s₃ ∧
+        State.step s₃ (Move.tabToTab c b) = some s₄ ∧
+        canSitOn c t = true) ∨
+    (∃ (ρ₁ ρ₂ : List Move) (c : Card) (s₃ s₄ : State),
+        π = ρ₁ ++ Move.tabToFound c :: ρ₂ ∧
+        ShufflePlayW s ρ₁ s₃ ∧
+        State.step s₃ (Move.tabToFound c) = some s₄ ∧
+        canSitOn c t = true) := by
+  intro w π h
+  induction h with
+  | nil u =>
+      intro hwf hF hNT hT
+      obtain ⟨A, hA⟩ := hT
+      rw [hNT] at hA
+      exact absurd hA (by simp)
+  | @cons s₀ mv s₁ rest w₀ hrev hstep hrest ih =>
+      intro hwf hF hNT hT
+      cases hpt : s₁.pileOfTop t with
+      | none =>
+          rcases ih (step_wf hwf hstep)
+            (conf_hop_Fkeep hwf hstep hrev hNT hF) hpt hT with
+            hcargo | hfounded
+          · obtain ⟨ρ₁, ρ₂, c, b, s₃, s₄, hsplit, hsh₁, hstep₁, hfit⟩ :=
+              hcargo
+            exact Or.inl ⟨mv :: ρ₁, ρ₂, c, b, s₃, s₄,
+              by rw [List.cons_append, hsplit],
+              .cons hrev hstep hsh₁, hstep₁, hfit⟩
+          · obtain ⟨ρ₁, ρ₂, c, s₃, s₄, hsplit, hsh₁, hstep₁, hfit⟩ :=
+              hfounded
+            exact Or.inr ⟨mv :: ρ₁, ρ₂, c, s₃, s₄,
+              by rw [List.cons_append, hsplit],
+              .cons hrev hstep hsh₁, hstep₁, hfit⟩
+      | some A₁ =>
+          rcases conf_hop_flip hwf hstep hrev hF hNT
+            (by rw [hpt]; exact Option.some_ne_none A₁) with
+            hcargo | hfounded
+          · obtain ⟨c, b, hm, hfit⟩ := hcargo
+            have hπ : mv :: rest = [] ++ Move.tabToTab c b :: rest := by
+              rw [hm]; rfl
+            rw [hm] at hstep
+            exact Or.inl ⟨[], rest, c, b, s₀, s₁, hπ, .nil s₀, hstep,
+              hfit⟩
+          · obtain ⟨c, hm, hfit⟩ := hfounded
+            have hπ : mv :: rest = [] ++ Move.tabToFound c :: rest := by
+              rw [hm]; rfl
+            rw [hm] at hstep
+            exact Or.inr ⟨[], rest, c, s₀, s₁, hπ, .nil s₀, hstep, hfit⟩
+
 /-- **THE COVER-HOP TRANSPORT CHAIN** — route step 3, the first of the
 three named sub-residues of the door bar.  Premise grade: the twin was
 covered DIRECTLY at the fork (`pair_cover_pins`, applied from `hx`:
@@ -719,13 +1233,41 @@ private theorem crossing_door_hop {st : State} (hwf : st.WF) {x : Card}
        State.step s₃ (Move.tabToFound c) = some s₄ ∧
        c.rank.toIdx + 1 = x.rank.toIdx ∧
         c.suit.color ≠ x.suit.color) := by
-  -- the fork's cover package: every hop route reads the twin's direct
-  -- cover d first (one rank below, opposite family, topping the twin's
-  -- pile, not nextUp, its suit's rung strictly below the fork)
-  obtain ⟨aw, hpoW⟩ := htop
-  obtain ⟨a, bs, d, hshape, hseat, hfit, hdtop, hnotnext, hrung⟩ :=
-    pair_cover_pins hwf hx
-  sorry
+  -- the fork's twin-cover package: the twin sits face-up under d
+  obtain ⟨a, bs, d, hshape, -, hfit, -, -, -⟩ := pair_cover_pins hwf hx
+  have hFmem : x.twin ∈ (st.piles a).faceUp := by
+    rw [hshape]
+    exact List.mem_append.mpr (Or.inr (List.mem_cons.mpr (Or.inl rfl)))
+  -- and cannot top anywhere: d tops its own pile, the twin is
+  -- nowhere else face-up
+  have hNT : st.pileOfTop x.twin = none := by
+    cases hPot : st.pileOfTop x.twin with
+    | none => rfl
+    | some A =>
+        exfalso
+        obtain ⟨-, hlast⟩ := pileOfTop_top hPot
+        by_cases hA : A = a
+        · rw [hA, hshape, conf_snoc2_last] at hlast
+          exact ne_of_canSitOn hfit (Option.some.inj hlast)
+        · exact (mem_faceUp_unique hwf hFmem A hA).1
+            (lastOf_mem hlast)
+  -- the firstness climb: within the witness prefix the twin stays
+  -- face-up until the first topping leg, which the flip names
+  rcases conf_hop_aux hpre hwf ⟨a, hFmem⟩ hNT htop with hcargo | hfounded
+  · obtain ⟨ρ₁, ρ₂, c, b, s₃, s₄, hsplit, hsh₁, hstep₁, hfit⟩ := hcargo
+    obtain ⟨hrank, hcol⟩ := (canSitOn_eq c x.twin).mp hfit
+    rw [Card.twin_rank] at hrank
+    have hxcol : x.suit.color = x.twin.suit.color := by
+      rw [Card.twin_suit x, Suit.color_twin]
+    exact Or.inl ⟨ρ₁, ρ₂, c, b, s₃, s₄, hsplit, hsh₁, hstep₁, hrank,
+      by rw [hxcol]; exact hcol⟩
+  · obtain ⟨ρ₁, ρ₂, c, s₃, s₄, hsplit, hsh₁, hstep₁, hfit⟩ := hfounded
+    obtain ⟨hrank, hcol⟩ := (canSitOn_eq c x.twin).mp hfit
+    rw [Card.twin_rank] at hrank
+    have hxcol : x.suit.color = x.twin.suit.color := by
+      rw [Card.twin_suit x, Suit.color_twin]
+    exact Or.inr ⟨ρ₁, ρ₂, c, s₃, s₄, hsplit, hsh₁, hstep₁, hrank,
+      by rw [hxcol]; exact hcol⟩
 
 /-- **THE RUNG-CROSSING RAISE CENSUS** — if a suit's rung starts at
 most `R` at a witness-journey start and ends strictly above `R`, the
@@ -794,192 +1336,1693 @@ private theorem conf_raise_crossing {st : State} {σ : Suit} {R : Nat} :
               exfalso
               omega
 
-/-- **THE AT-RUNG EXPOSURE RESIDUE** — the freeze's climb and
-at-rung cases, distilled: no card of the opposite family, of rank
-index strictly below the fork's, and already AT-RUNG at `st` (its
-index equals its suit's rung there, so it is NOT founded) can be the
-card of a `tabToFound` leg riding a witness shuffle out of the fork.
-ROUTE: the step inversion seats it face-up on a pile top at its
-firing pre-state `s₃`; its location at `st` pins one of four cells —
-(i) HIDDEN: `shuffle_hiddenPinned` keeps every pile's hidden list
-identical along witness journeys, so it can never surface;
-(ii) STOCK/WASTE: the draw-zone pin (waste legs never ride —
-`journey_never_wasteToFound`/`journey_never_wasteToTab`; draws recycle
-stock↔waste only — `dealUpTo_eq_take_drop`), to be landed as the
-private row `conf_stockWaste_pinned`; (iii) FACE-UP COVERED: its
-direct cover or seat card is one rank up of the fork family — an
-x-family card of index below the fork rank, already FOUNDED at `st`
-by `pair_lowFamily_founded` (when the cover is exactly a pair member,
-the pair member is pinned elsewhere by conservation:
-`conf_rankColor_pair` + `mem_faceUp_only`) — a founded card cannot
-sit face up at `st` against `mem_faceUp_only`; (iv) FACE-UP TOPPING:
-the seat read pins its pile bare below (the card below would be
-one-rank-up likewise-founded), so the founding leg either strips the
-last face-up card over nonempty hidden — barred by
-`journey_tabToFound_never_reveal` — or fully empties a non-king bare
-seat over empty hidden: the write-analysis pillar (an emptied pile
-rebuilds only to a king head — first content into a hidden-empty
-pile is an `inl` king by `canPlace_inl`; a non-king first head can
-never be restored), to be landed as the private row
-`conf_emptiedSeat_kingBottom` over `State.run`; the founding leg would
-need an undo play no king can serve — contradicts its witness
-reversibility.  Cover-family index is at most 11, never a king. -/
-private theorem crossing_door_freeze_charlie {st : State} (hwf : st.WF) {x : Card}
+/-- The WF carry along a witness shuffle (per-leg `step_wf`). -/
+private theorem conf_wf_along {st : State} : ∀ {w : State} {play : List Move},
+    ShufflePlayW st play w → st.WF → w.WF := by
+  intro w play h
+  induction h with
+  | nil u => intro hwf; exact hwf
+  | @cons s₀ mv s₁ rest w₀ hrev hstep hrest ih =>
+      intro hwf
+      exact ih (step_wf hwf hstep)
+
+/-- The five-zone census: at any WF state every card sits in a zone
+(the copy of the in-tree private row, read existentially). -/
+private theorem conf_zone_residency (st : State) (hwf : st.WF) (d : Card) :
+    (∃ s, d ∈ st.found s) ∨ (∃ k, d ∈ (st.piles k).hidden) ∨
+    (∃ k, d ∈ (st.piles k).faceUp) ∨ d ∈ st.stock ∨ d ∈ st.waste := by
+  have h1 : st.cardCount d = 1 := hwf.cardCount_eq (Card.mem_universe d)
+  unfold State.cardCount at h1
+  cases hL : ((st.zones.flatMap id).filter fun x => decide (x = d)) with
+  | nil =>
+      rw [hL] at h1
+      simp at h1
+  | cons x xs =>
+      have hxmem : x ∈ (st.zones.flatMap id).filter
+          (fun x => decide (x = d)) := by
+        rw [hL]
+        exact List.mem_cons_self ..
+      obtain ⟨hxeq, hxz⟩ := List.mem_filter.mp hxmem
+      have hxd : x = d := of_decide_eq_true hxz
+      obtain ⟨z, hz, hdz⟩ := List.mem_flatMap.mp hxeq
+      have hdzd : d ∈ z := by rw [← hxd]; exact hdz
+      have hspl : st.zones = (Suit.all.map st.found) ++
+          ((Anchor.all.map fun a =>
+            (st.piles a).hidden ++ (st.piles a).faceUp) ++
+            [st.stock, st.waste]) := rfl
+      rw [hspl] at hz
+      rcases List.mem_append.mp hz with hA | hB
+      · obtain ⟨s, -, hzs⟩ := List.mem_map.mp hA
+        exact Or.inl ⟨s, by rw [← hzs] at hdzd; exact hdzd⟩
+      · rcases List.mem_append.mp hB with hC | hD
+        · obtain ⟨k, -, hzk⟩ := List.mem_map.mp hC
+          rw [← hzk] at hdzd
+          rcases List.mem_append.mp hdzd with hH | hF
+          · exact Or.inr (Or.inl ⟨k, hH⟩)
+          · exact Or.inr (Or.inr (Or.inl ⟨k, hF⟩))
+        · rcases List.mem_cons.mp hD with hS | hW
+          · refine Or.inr (Or.inr (Or.inr (Or.inl ?_)))
+            rw [← hS]
+            exact hdzd
+          · rw [List.mem_singleton] at hW
+            refine Or.inr (Or.inr (Or.inr (Or.inr ?_)))
+            rw [← hW]
+            exact hdzd
+
+private theorem conf_dealUpTo_mem (d : Card) :
+    ∀ (k : Nat) (l : List Card),
+      d ∈ l → d ∈ (State.dealUpTo k l).1 ∨ d ∈ (State.dealUpTo k l).2 := by
+  intro k
+  induction k with
+  | zero => intro l hd; exact Or.inr hd
+  | succ k ih =>
+      intro l hd
+      cases l with
+      | nil => exact absurd hd (by simp)
+      | cons x xs =>
+          by_cases hdx : x = d
+          · subst hdx
+            left
+            simp only [State.dealUpTo]
+            exact List.mem_cons_self ..
+          · rcases List.mem_cons.mp hd with heq | htl
+            · exact absurd heq (fun hcon => hdx hcon.symm)
+            · rcases ih xs htl with h1 | h2
+              · left
+                simp only [State.dealUpTo]
+                exact List.mem_cons.mpr (Or.inr h1)
+              · right
+                simp only [State.dealUpTo]
+                exact h2
+
+/-- **THE DRAW-CYCLE CLOSURE** — along a witness journey the stock and
+the waste are a closed two-zone world for their residents (the copy
+of the in-tree public-but-downstream row; the only stock/waste
+writers are the draw's own recycle and deal; the waste letters never
+ride). -/
+private theorem conf_stockWaste_closed (d : Card) :
+    ∀ {s : State} {play : List Move} {w : State},
+      ShufflePlayW s play w →
+      (d ∈ s.stock ∨ d ∈ s.waste) → (d ∈ w.stock ∨ d ∈ w.waste) := by
+  intro s play w h
+  induction h with
+  | nil u => intro hcyc; exact hcyc
+  | @cons s₀ m s₁ rest w₀ hrev hstep hrest ih =>
+      intro hcyc
+      have hmid : d ∈ s₁.stock ∨ d ∈ s₁.waste := by
+        cases m with
+        | draw =>
+            have hd : s₀.stepDraw = some s₁ := hstep
+            obtain ⟨r, hrEq, -, hyEq⟩ := draw_unfold hd
+            rw [hyEq]
+            rcases hcyc with hst | hwst
+            · cases hss : s₀.stock with
+              | nil => rw [hss] at hst; exact absurd hst (by simp)
+              | cons x xs =>
+                  have hrt : r = s₀ := by
+                    rw [← hrEq]
+                    exact recycle_keep s₀ (by rw [hss]; simp)
+                  have hin : d ∈ r.stock := by rw [hrt]; exact hst
+                  have hspl := conf_dealUpTo_mem d r.drawStep r.stock hin
+                  rcases hspl with hD | hR
+                  · exact Or.inr
+                      (List.mem_append.mpr (Or.inl (List.mem_reverse.mpr hD)))
+                  · exact Or.inl hR
+            · cases hss : s₀.stock with
+              | nil =>
+                  cases hws : s₀.waste with
+                  | nil => rw [hws] at hwst; exact absurd hwst (by simp)
+                  | cons v vs =>
+                      have hrt : r = { s₀ with
+                          stock := s₀.waste.reverse,
+                          waste := ([] : List Card) } := by
+                        rw [← hrEq]
+                        exact recycle_nil s₀ hss (by rw [hws]; simp)
+                      have hin : d ∈ r.stock := by
+                        rw [hrt]
+                        exact List.mem_reverse.mpr hwst
+                      have hspl := conf_dealUpTo_mem d r.drawStep r.stock hin
+                      rcases hspl with hD | hR
+                      · exact Or.inr
+                          (List.mem_append.mpr
+                            (Or.inl (List.mem_reverse.mpr hD)))
+                      · exact Or.inl hR
+              | cons x xs =>
+                  have hrt : r = s₀ := by
+                    rw [← hrEq]
+                    exact recycle_keep s₀ (by rw [hss]; simp)
+                  exact Or.inr
+                    (List.mem_append.mpr (Or.inr (by rw [hrt]; exact hwst)))
+        | wasteToFound walt =>
+            exact absurd hrev (journey_never_wasteToFound hstep)
+        | wasteToTab walt balt =>
+            exact absurd hrev (journey_never_wasteToTab hstep)
+        | tabToFound walt =>
+            obtain ⟨-, k, -, hs⟩ := step_tabToFound_inv hstep
+            rw [hs]
+            exact hcyc
+        | foundToTab walt balt =>
+            obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv hstep
+            rw [hs]
+            obtain ⟨-, hP1, hP2, -⟩ :=
+              putCard_keep (st := s₀.setFound walt.suit
+                (chop (s₀.found walt.suit))) (c := walt) (b := balt)
+            rw [hP1, hP2]
+            exact hcyc
+        | tabToTab walt balt =>
+            obtain ⟨Asrc, -, -, -, hs⟩ := step_tabToTab_inv hstep
+            rw [hs]
+            obtain ⟨-, hP1, hP2, -⟩ :=
+              putRun_keep (st := s₀.setPile Asrc
+                (Pile.afterRunRemoved (s₀.piles Asrc)
+                  (below walt ((s₀.piles Asrc).faceUp))))
+                (run := fromCard walt ((s₀.piles Asrc).faceUp)) (b := balt)
+            rw [hP1, hP2]
+            exact hcyc
+      exact ih hmid
+
+/-- The first-occurrence position (the per-file copy of the tree's
+private row). -/
+private def conf_posOf {α : Type} [DecidableEq α] (x : α) : List α → Nat
+  | [] => 0
+  | y :: t => if y = x then 0 else conf_posOf x t + 1
+
+private theorem conf_posOf_take_lt {α : Type} [DecidableEq α] :
+    ∀ (n : Nat) (l : List α) (x : α), x ∈ l.take n → conf_posOf x l < n := by
+  intro n
+  induction n with
+  | zero => intro l x hmem; simp at hmem
+  | succ n ih =>
+      intro l x hmem
+      cases l with
+      | nil => simp at hmem
+      | cons y t =>
+          simp only [List.take] at hmem
+          rcases List.mem_cons.mp hmem with heq | htl
+          · simp only [conf_posOf]
+            rw [if_pos heq.symm]
+            omega
+          · have hlt := ih t x htl
+            simp only [conf_posOf]
+            split
+            · omega
+            · omega
+
+/-- The build order is the rank order (the per-file copy). -/
+private theorem conf_posOf_upCards (σ : Suit) (r : Rank) :
+    conf_posOf (Card.mk σ r) (Suit.upCards σ) = r.toIdx := by
+  cases σ <;> cases r <;> rfl
+
+/-- A zone-prefix member's suit is the zone's suit. -/
+private theorem conf_mem_upCards_suit {σ : Suit} {c : Card}
+    (h : c ∈ σ.upCards) : c.suit = σ := by
+  rw [Suit.upCards] at h
+  obtain ⟨r, -, hrc⟩ := List.mem_map.mp h
+  rcases c with ⟨cs, cr⟩
+  have : Card.mk σ r = Card.mk cs cr := hrc
+  injection this with h1 h2
+  exact h1.symm
+
+/-- **THE FOUNDED-MEMBERSHIP BRIDGE (converse half)** — a card on its
+own suit's foundation sits strictly below the rung: the founded
+prefix is the build order's take, so the build position (the rank
+index) is bounded by the take length. -/
+private theorem conf_founded_rank_lt {st : State} (hwf : st.WF) {d : Card}
+    (hmem : d ∈ st.found d.suit) :
+    d.rank.toIdx < rungAt st d.suit := by
+  rcases d with ⟨s, r⟩
+  have hmem' : Card.mk s r ∈ st.found s := hmem
+  have hpre := rung_found_prefix st hwf s
+  rw [hpre] at hmem'
+  have hpos : conf_posOf (Card.mk s r) (Suit.upCards s) < rungAt st s :=
+    conf_posOf_take_lt _ _ _ hmem'
+  have hidx := conf_posOf_upCards s r
+  show r.toIdx < rungAt st s
+  omega
+
+/-- **INTERIOR-LEG REVERSIBILITY** — every leg of a witness shuffle is
+reversible at its own pre-state; with the prefix-shuffle certificate
+(`ShufflePlayW st ρ₁ s₃`) locating the pre-state, any certified
+interior leg `(π = ρ₁ ++ m :: ρ₂)` carries `reversibleAtW s₃ m`.
+This is the extractor the reveal-bar and pillar-bar consumptions in
+the residues (`conf_charlie_bareCell`'s hidden ≠ [] case and the
+founded-cell/pull-escape re-boarding epochs) need. -/
+private theorem conf_interior_rev {st : State} :
+    ∀ {w : State} {π : List Move}, ShufflePlayW st π w →
+    ∀ (ρ₁ ρ₂ : List Move) (m : Move) (s₃ : State),
+      π = ρ₁ ++ m :: ρ₂ →
+      ShufflePlayW st ρ₁ s₃ →
+      reversibleAtW s₃ m := by
+  intro w π h
+  induction h with
+  | nil u =>
+      intro ρ₁ ρ₂ m s₃ hπ hsh
+      cases ρ₁ with
+      | nil =>
+          rw [List.nil_append] at hπ
+          cases hπ
+      | cons v vs =>
+          rw [List.cons_append] at hπ
+          cases hπ
+  | @cons s₀ mvh s₁ rest w₀ hrev hstep hrest ih =>
+      intro ρ₁ ρ₂ m s₃ hπ hsh
+      cases ρ₁ with
+      | nil =>
+          rw [List.nil_append] at hπ
+          have hm : mvh = m := (List.cons_eq_cons.mp hπ).1
+          rw [hm] at hrev
+          cases hsh
+          exact hrev
+      | cons v vs =>
+          rw [List.cons_append] at hπ
+          obtain ⟨hmv, hrestEq⟩ := List.cons_eq_cons.mp hπ
+          rw [← hmv] at hsh
+          cases hsh with
+          | @cons s₂ mvv s₂' restv wv' hrevv hstepv hrestv =>
+              have hs₂ : s₁ = s₂' := Option.some.inj (hstep.symm.trans hstepv)
+              rw [← hs₂] at hrestv
+              exact ih vs ρ₂ m s₃ hrestEq hrestv
+
+/-- **THE FOUNDED-CELL RESIDUE** — the at-rung card sits in a
+foundation at the fork.  ROUTE: the founded-prefix membership read
+(`rung_found_prefix`: `found s = s.upCards.take (rungAt st s)`; the
+take carries only ranks strictly below the rung — `Suit.upCards` is
+`Rank.all.map (Card.mk s)` in ascending rank order, so the index-`j`
+card appears exactly at position `j`, and a member of `take N` has
+position `< N`), against the at-rung pin `c.rank.toIdx =
+rungAt st c.suit`: founded membership would read the index strictly
+below its own rung.  The suit of the founding zone is pinned by the
+upCards read (`conf_upCards_suit`-grade: `List.mem_map` +
+constructor injection). -/
+private theorem conf_charlie_foundCell {st : State} (hwf : st.WF) {x : Card}
     (hx : ForkWitness st x) {w : State} {ρ : List Move}
     (hpre : ShufflePlayW st ρ w)
-    (hlow :
-      ∃ (ρ₁ ρ₂ : List Move) (c : Card) (s₃ s₄ : State),
+    {c : Card}
+    (hcert :
+      ∃ (ρ₁ ρ₂ : List Move) (s₃ s₄ : State),
         ρ = ρ₁ ++ Move.tabToFound c :: ρ₂ ∧
         ShufflePlayW st ρ₁ s₃ ∧
         State.step s₃ (Move.tabToFound c) = some s₄ ∧
         c.rank.toIdx < x.rank.toIdx ∧
         c.suit.color ≠ x.suit.color ∧
-        c.rank.toIdx = rungAt st c.suit) :
+        c.rank.toIdx = rungAt st c.suit)
+    (hfound : ∃ s, c ∈ st.found s) :
     False := by
+  obtain ⟨s, hFs⟩ := hfound
+  -- the founded zone is the card's own suit (the prefix is the zone's
+  -- build order)
+  have hs : c.suit = s := by
+    have hpre := rung_found_prefix st hwf s
+    rw [hpre] at hFs
+    exact conf_mem_upCards_suit (List.take_subset _ _ hFs)
+  -- the bridge: founded membership reads the index strictly below the
+  -- rung — against the at-rung pin
+  have hlt : c.rank.toIdx < rungAt st c.suit :=
+    conf_founded_rank_lt hwf (by rw [hs]; exact hFs)
+  obtain ⟨-, -, -, -, -, -, -, -, -, hcRung⟩ := hcert
+  rw [hcRung] at hlt
+  exact absurd hlt (Nat.lt_irrefl _)
+
+/-- The bare removal: over an empty hidden deck the emptied run leaves
+the fully-empty pile (the per-file private copy). -/
+private theorem conf_arr_bare {p : Pile} (hh : p.hidden = []) :
+    Pile.afterRunRemoved p ([] : List Card) = (⟨[], []⟩ : Pile) := by
+  show Pile.revealTop { p with faceUp := [] } = _
+  rcases p with ⟨hl, fl⟩
+  cases hl with
+  | nil => rfl
+  | cons g gs => exact absurd hh (by simp)
+
+private theorem conf_inl_king {s : State} {w : Card} {k : Anchor}
+    (h : s.canPlace w (Sum.inl k) = true) : w.rank = Rank.king := by
+  rw [State.canPlace, Bool.and_eq_true] at h
+  exact of_decide_eq_true h.2
+
+private theorem conf_fromCard_run_head (e : Card) :
+    ∀ (l : List Card), fromCard e l ≠ [] → ∃ tr, fromCard e l = e :: tr := by
+  intro l
+  induction l with
+  | nil => intro h; exact absurd h (by simp [fromCard])
+  | cons z zs ih =>
+      intro h
+      by_cases hze : z = e
+      · exact ⟨zs, by rw [hze, fromCard_cons_self]⟩
+      · obtain ⟨tr, htr⟩ := ih (by
+          intro hcon
+          rw [fromCard_cons_ne zs hze] at h
+          exact h hcon)
+        exact ⟨tr, by rw [fromCard_cons_ne zs hze]; exact htr⟩
+
+/-- The afterRunRemoved Q-read: a member card keeps the removal in the
+empty-or-king-headed family (the per-file private copy). -/
+private theorem conf_arr_Q {P : Pile} {e : Card}
+    (hmemE : e ∈ P.faceUp)
+    (hQ : (P.faceUp = [] ∧ P.hidden = []) ∨
+      ∃ K t, P.faceUp = K :: t ∧ K.rank = Rank.king ∧ P.hidden = []) :
+    (Pile.afterRunRemoved P (below e P.faceUp)).faceUp = [] ∧
+      (Pile.afterRunRemoved P (below e P.faceUp)).hidden = [] ∨
+      ∃ K t, (Pile.afterRunRemoved P (below e P.faceUp)).faceUp = K :: t ∧
+        K.rank = Rank.king ∧
+        (Pile.afterRunRemoved P (below e P.faceUp)).hidden = [] := by
+  by_cases hpre : below e P.faceUp = []
+  · have hhQ : P.hidden = [] := by
+      rcases hQ with ⟨-, hh⟩ | ⟨-, -, -, -, hh⟩
+      · exact hh
+      · exact hh
+    rw [hpre, conf_arr_bare hhQ]
+    exact Or.inl ⟨rfl, rfl⟩
+  · obtain ⟨w, ws, hpc⟩ := list_cons_of_ne_nil hpre
+    rcases hQ with ⟨hfup, hhA⟩ | ⟨K, t, hfup, hK, hhA⟩
+    · exact absurd hmemE (by rw [hfup] at hmemE; simp at hmemE)
+    · -- below e (K :: t) is king-headed: the member cannot be the head
+      have hKe : K ≠ e := by
+        intro hcon
+        rw [hfup] at hpc
+        rw [hcon, below_cons_self] at hpc
+        exact absurd hpc.symm (by simp)
+      have hne : below e P.faceUp ≠ [] := by rw [hpc]; simp
+      have hcf : (Pile.afterRunRemoved P (below e P.faceUp)).faceUp
+          = below e P.faceUp := by
+        rw [afterRunRemoved_ne hne]
+      refine Or.inr ⟨K, below e t, ?_, hK, ?_⟩
+      · rw [hcf, hfup, below_cons_ne t hKe]
+      · rw [afterRunRemoved_ne hne]
+        exact hhA
+
+/-- **THE PILLAR'S ONE-STEP ENGINE** — every firing move keeps the
+empty-or-king-headed family of a pile (the per-file private copy). -/
+private theorem conf_eok_oneStep {A : Anchor} {s s' : State} {m : Move}
+    (hstep : State.step s m = some s')
+    (hQ : ((s.piles A).faceUp = [] ∧ (s.piles A).hidden = []) ∨
+      ∃ K t, (s.piles A).faceUp = K :: t ∧ K.rank = Rank.king ∧
+        (s.piles A).hidden = []) :
+    ((s'.piles A).faceUp = [] ∧ (s'.piles A).hidden = []) ∨
+      ∃ K t, (s'.piles A).faceUp = K :: t ∧ K.rank = Rank.king ∧
+        (s'.piles A).hidden = [] := by
+  cases m with
+  | draw =>
+      have hd : s.stepDraw = some s' := hstep
+      rw [stepDraw_piles hd]
+      exact hQ
+  | wasteToFound w =>
+      obtain ⟨-, x, xs, hwst, hs⟩ := step_wasteToFound_inv hstep
+      rw [hs]
+      have hp : (({s.setFound w.suit (s.found w.suit ++ [w]) with
+          waste := xs} : State).piles A) = s.piles A := rfl
+      rw [hp]
+      exact hQ
+  | wasteToTab w b =>
+      obtain ⟨hg, x, xs, hwst, hs⟩ := step_wasteToTab_inv hstep
+      rw [Bool.and_eq_true] at hg
+      rw [hs]
+      cases b with
+      | inl k =>
+          have hp : (({s.putCard w (Sum.inl k) with waste := xs} : State).piles A)
+              = (if A = k then (⟨[], [w]⟩ : Pile) else s.piles A) := rfl
+          rw [hp]
+          by_cases hAk : A = k
+          · rw [ite_eq_left hAk]
+            rcases hQ with ⟨hfup, -⟩ | ⟨K, t, hfup, -, hhA⟩
+            · exact Or.inr ⟨w, [], rfl, conf_inl_king hg.2, rfl⟩
+            · exfalso
+              obtain ⟨hemp, -⟩ := canPlace_inl hg.2
+              rw [← hAk] at hemp
+              have hfupE := ((Pile.isEmpty_eq _).mp hemp).2
+              rw [hfup] at hfupE
+              exact absurd hfupE (by simp)
+          · rw [ite_eq_right hAk]
+            exact hQ
+      | inr z =>
+          obtain ⟨kk, hpin, -⟩ := canPlace_inr hg.2
+          have hp : (({s.putCard w (Sum.inr z) with waste := xs} : State).piles A)
+              = (if A = kk then { s.piles kk with faceUp := (s.piles kk).faceUp ++ [w] }
+                 else s.piles A) := by
+            simp only [putCard_piles_inr _ _ _ _ hpin]
+          rw [hp]
+          by_cases hAk : A = kk
+          · rw [ite_eq_left hAk]
+            rw [hAk] at hQ
+            rcases hQ with ⟨hfup, -⟩ | ⟨K, t, hfup, hK, hhA⟩
+            · exfalso
+              have hne := (pileOfTop_top hpin).1
+              rw [hfup] at hne
+              exact absurd hne (by simp)
+            · refine Or.inr ⟨K, t ++ [w], ?_, hK, hhA⟩
+              show (s.piles kk).faceUp ++ [w] = K :: (t ++ [w])
+              rw [hfup, List.cons_append]
+          · rw [ite_eq_right hAk]
+            exact hQ
+  | tabToFound w =>
+      obtain ⟨-, k, hpod, hs⟩ := step_tabToFound_inv hstep
+      have hpileEq : s'.piles A = (if A = k then
+          Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp)
+          else s.piles A) := by rw [hs]
+      rw [hpileEq]
+      by_cases hAk : A = k
+      · rw [hAk] at hQ
+        have hself : (if A = k then
+            Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp)
+            else s.piles A)
+            = Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp) :=
+          ite_eq_left hAk
+        rw [hself]
+        rcases hQ with ⟨hfup, hhA⟩ | ⟨K, t, hfup, hK, hhA⟩
+        · have hch : chop (s.piles k).faceUp = [] := by rw [hfup]; rfl
+          rw [hch, conf_arr_bare hhA]
+          exact Or.inl ⟨rfl, rfl⟩
+        · cases t with
+          | nil =>
+              have hch : chop (s.piles k).faceUp = [] := by rw [hfup]; rfl
+              rw [hch, conf_arr_bare hhA]
+              exact Or.inl ⟨rfl, rfl⟩
+          | cons u us =>
+              have hch : chop (s.piles k).faceUp = K :: chop (u :: us) := by
+                rw [hfup]; rfl
+              rw [hch, afterRunRemoved_ne (by
+                intro hcon; exact absurd hcon (by simp))]
+              exact Or.inr ⟨K, chop (u :: us), rfl, hK, hhA⟩
+      · have helse : (if A = k then
+          Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp)
+          else s.piles A) = s.piles A := ite_eq_right hAk
+        rw [helse]
+        exact hQ
+  | foundToTab w b =>
+      obtain ⟨c', ht, heqw, hg, hs⟩ := step_foundToTab_inv hstep
+      rw [hs]
+      have hmidp : (s.setFound w.suit (chop (s.found w.suit))).piles = s.piles :=
+        setFound_piles s w.suit (chop (s.found w.suit))
+      cases b with
+      | inl k =>
+          have hp : (((s.setFound w.suit (chop (s.found w.suit))).putCard w
+              (Sum.inl k)).piles A)
+              = (if A = k then (⟨[], [w]⟩ : Pile) else s.piles A) := rfl
+          rw [hp]
+          by_cases hAk : A = k
+          · rw [ite_eq_left hAk]
+            rcases hQ with ⟨hfup, -⟩ | ⟨K, t, hfup, -, hhA⟩
+            · exact Or.inr ⟨w, [], rfl, conf_inl_king hg, rfl⟩
+            · exfalso
+              obtain ⟨hemp, -⟩ := canPlace_inl hg
+              rw [← hAk] at hemp
+              have hfupE := ((Pile.isEmpty_eq _).mp hemp).2
+              rw [hfup] at hfupE
+              exact absurd hfupE (by simp)
+          · rw [ite_eq_right hAk]
+            exact hQ
+      | inr z =>
+          obtain ⟨kk, hpin, -⟩ := canPlace_inr hg
+          have hmidpin :
+              (s.setFound w.suit (chop (s.found w.suit))).pileOfTop z
+              = some kk := by
+            rw [conf_pileOfTop_congr hmidp z]
+            exact hpin
+          have hp : (((s.setFound w.suit (chop (s.found w.suit))).putCard w
+              (Sum.inr z)).piles A)
+              = (if A = kk then
+                  { s.piles kk with faceUp := (s.piles kk).faceUp ++ [w] }
+                 else s.piles A) := by
+            simp only [putCard_piles_inr _ _ _ _ hmidpin]
+            rw [hmidp]
+          rw [hp]
+          by_cases hAk : A = kk
+          · rw [ite_eq_left hAk]
+            rw [hAk] at hQ
+            rcases hQ with ⟨hfup, -⟩ | ⟨K, t, hfup, hK, hhA⟩
+            · exfalso
+              have hne := (pileOfTop_top hpin).1
+              rw [hfup] at hne
+              exact absurd hne (by simp)
+            · refine Or.inr ⟨K, t ++ [w], ?_, hK, hhA⟩
+              show (s.piles kk).faceUp ++ [w] = K :: (t ++ [w])
+              rw [hfup, List.cons_append]
+          · rw [ite_eq_right hAk]
+            exact hQ
+  | tabToTab e b =>
+      obtain ⟨Asrc, hhold, hcp, hfr, hs'⟩ := step_tabToTab_inv hstep
+      have hmemE : e ∈ (s.piles Asrc).faceUp := pileHolding_mem hhold
+      rw [hs']
+      cases b with
+      | inl k =>
+          have hp : (((s.setPile Asrc (Pile.afterRunRemoved (s.piles Asrc)
+                (below e ((s.piles Asrc).faceUp)))).putRun
+              (fromCard e ((s.piles Asrc).faceUp)) (Sum.inl k)).piles A)
+              = (if A = k then
+                  (⟨[], fromCard e ((s.piles Asrc).faceUp)⟩ : Pile)
+                 else (s.setPile Asrc (Pile.afterRunRemoved (s.piles Asrc)
+                   (below e ((s.piles Asrc).faceUp)))).piles A) := rfl
+          rw [hp]
+          by_cases hAk : A = k
+          · rw [ite_eq_left hAk]
+            obtain ⟨tr, hrun⟩ :=
+              conf_fromCard_run_head e ((s.piles Asrc).faceUp) hfr
+            rcases hQ with ⟨hfup, -⟩ | ⟨K, t, hfup, -, hhA⟩
+            · exact Or.inr ⟨e, tr, by rw [hrun], conf_inl_king hcp, rfl⟩
+            · exfalso
+              obtain ⟨hemp, -⟩ := canPlace_inl hcp
+              rw [← hAk] at hemp
+              have hfupE := ((Pile.isEmpty_eq _).mp hemp).2
+              rw [hfup] at hfupE
+              exact absurd hfupE (by simp)
+          · rw [ite_eq_right hAk]
+            by_cases hAs : A = Asrc
+            · rw [hAs] at hQ
+              rw [hAs, setPile_afterRunRemoved_piles_self s Asrc e]
+              exact conf_arr_Q hmemE hQ
+            · rw [setPile_afterRunRemoved_piles_ne s Asrc e A hAs]
+              exact hQ
+      | inr z =>
+          cases hz : (s.setPile Asrc (Pile.afterRunRemoved (s.piles Asrc)
+              (below e ((s.piles Asrc).faceUp)))).pileOfTop z with
+          | none =>
+              rw [putRun_inr_none hz]
+              by_cases hAs : A = Asrc
+              · rw [hAs] at hQ
+                rw [hAs, setPile_afterRunRemoved_piles_self s Asrc e]
+                exact conf_arr_Q hmemE hQ
+              · rw [setPile_afterRunRemoved_piles_ne s Asrc e A hAs]
+                exact hQ
+          | some kk =>
+              rw [putRun_inr_eq hz]
+              by_cases hAk : A = kk
+              · rw [hAk, setPile_piles_self]
+                have hneMid := (pileOfTop_top hz).1
+                by_cases hAs : A = Asrc
+                · rw [hAs] at hQ
+                  have hka : kk = Asrc := hAk.symm.trans hAs
+                  rw [hka, setPile_afterRunRemoved_piles_self s Asrc e] at hneMid ⊢
+                  rcases conf_arr_Q hmemE hQ with ⟨h1, h2⟩ | ⟨K, tm, h1, hK, h2⟩
+                  · exact absurd h1 hneMid
+                  · refine Or.inr ⟨K,
+                      tm ++ fromCard e ((s.piles Asrc).faceUp), ?_, hK, h2⟩
+                    rw [h1, List.cons_append]
+                · have hmidA : (s.setPile Asrc (Pile.afterRunRemoved
+                        (s.piles Asrc)
+                        (below e ((s.piles Asrc).faceUp)))).piles kk
+                      = s.piles A := by
+                    rw [← hAk]
+                    exact setPile_afterRunRemoved_piles_ne s Asrc e A hAs
+                  rw [hmidA] at hneMid ⊢
+                  rcases hQ with ⟨hfup, -⟩ | ⟨K, t, hfup, hK, hhA⟩
+                  · exfalso
+                    rw [hfup] at hneMid
+                    exact absurd hneMid (by simp)
+                  · refine Or.inr ⟨K,
+                      t ++ fromCard e ((s.piles Asrc).faceUp), ?_, hK, hhA⟩
+                    rw [hfup, List.cons_append]
+              · rw [setPile_piles_ne hAk]
+                by_cases hAs : A = Asrc
+                · rw [hAs] at hQ
+                  rw [hAs, setPile_afterRunRemoved_piles_self s Asrc e]
+                  exact conf_arr_Q hmemE hQ
+                · rw [setPile_afterRunRemoved_piles_ne s Asrc e A hAs]
+                  exact hQ
+
+/-- **THE PILLAR, PLAY-LIFTED** — from a fully-empty pile, every play
+leaves it fully empty or king-headed (the copy of the in-tree private
+row). -/
+private theorem conf_emptyOrKingHead_play {A : Anchor} :
+    ∀ (s : State) (play : List Move) (s' : State),
+      ((s.piles A).faceUp = [] ∧ (s.piles A).hidden = [] ∨
+        ∃ K t, (s.piles A).faceUp = K :: t ∧ K.rank = Rank.king ∧
+          (s.piles A).hidden = []) →
+      State.run s play = some s' →
+      ((s'.piles A).faceUp = [] ∧ (s'.piles A).hidden = [] ∨
+        ∃ K t, (s'.piles A).faceUp = K :: t ∧ K.rank = Rank.king ∧
+          (s'.piles A).hidden = []) := by
+  intro s play
+  revert s
+  induction play with
+  | nil =>
+      intro s s' hQ hrun
+      have hred : (some s : Option State) = some s' := hrun
+      injection hred with hcon
+      rw [← hcon]
+      exact hQ
+  | cons p rest ih =>
+      intro s s' hQ hrun
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons hrun
+      exact ih s₁ s' (conf_eok_oneStep hstep hQ) hrest
+
+/-- **THE BARE-RAISE BAR** — raising a non-king off a bare seat over no
+hidden deck empties its pile fully, so no return play can restore the
+pre-state (the pillar: a fully-emptied pile rebuilds only to a king
+head; the sole face-up card of the pre-state is no king). -/
+private theorem conf_bareRaise_irr {s : State} {c : Card} {a : Anchor}
+    (hwfs : s.WF) (hshape : (s.piles a).faceUp = [c])
+    (hhid : (s.piles a).hidden = [])
+    (hK : c.rank ≠ Rank.king) :
+    ¬ reversibleAtW s (Move.tabToFound c) := by
+  rintro ⟨s₁, pl, hstep, hret⟩
+  obtain ⟨-, k, hpod, hs₁⟩ := step_tabToFound_inv hstep
+  have htopa : (s.piles a).top = some c := by
+    show lastOf (s.piles a).faceUp = some c
+    rw [hshape]
+    rfl
+  have hpoCa : s.pileOfTop c = some a := (pileOfTop_eq_some_iff hwfs).2 htopa
+  have hak : a = k := Option.some.inj (hpoCa.symm.trans hpod)
+  have hchop : chop (s.piles a).faceUp = [] := by rw [hshape]; rfl
+  have hpileEq : s₁.piles a = (if a = k then
+      Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp)
+      else s.piles a) := by rw [hs₁]
+  have hs₁pa : s₁.piles a = (⟨[], []⟩ : Pile) := by
+    rw [hpileEq, ite_eq_left hak, ← hak, hchop, conf_arr_bare hhid]
+  have hQend := conf_emptyOrKingHead_play (A := a) s₁ pl s
+    (Or.inl ⟨by rw [hs₁pa], by rw [hs₁pa]⟩) hret
+  rcases hQend with ⟨hfupE, -⟩ | ⟨K0, t0, hfupE, hK0, -⟩
+  · exfalso
+    rw [hshape] at hfupE
+    exact absurd hfupE (by simp)
+  · exfalso
+    rw [hshape] at hfupE
+    injection hfupE with hK0c _
+    rw [← hK0c] at hK0
+    exact absurd hK0 hK
+
+/-- **THE PILLAR RESOURCE** — the bare-raise bar read at charlie's cell:
+the founding leg of a non-king from a sole-face-up, empty-hidden seat
+can never ride a witness shuffle. -/
+private theorem conf_bareRaise_barred {s s' : State} {m : Move} {c : Card}
+    {a : Anchor}
+    (hwfs : s.WF) (hrev : reversibleAtW s m) (hm : m = Move.tabToFound c)
+    (hstep : State.step s m = some s')
+    (hpo : s.pileOfTop c = some a)
+    (hshape : (s.piles a).faceUp = [c])
+    (hhid : (s.piles a).hidden = [])
+    (hK : c.rank ≠ Rank.king) :
+    False := by
+  rw [hm] at hstep hrev
+  exact absurd hrev (conf_bareRaise_irr hwfs hshape hhid hK)
+
+/-- **THE BARE-DEPARTURE BAR** — a non-king heading its whole run out
+of a pile with no face-up content below and no hidden deck leaves the
+pile FULLY EMPTY, and no play can ever restore a NON-KING bottom
+there (the pillar, tabToTab flavor; the per-file private copy). -/
+private theorem conf_bareDeparture_irr {s : State} {c : Card} {b : Base}
+    {a : Anchor} {rest : List Card}
+    (hhold : s.pileHolding c = some a)
+    (hshape : (s.piles a).faceUp = c :: rest)
+    (hhid : (s.piles a).hidden = [])
+    (hK : c.rank ≠ Rank.king) :
+    ¬ reversibleAtW s (Move.tabToTab c b) := by
+  rintro ⟨s₁, pl, hstep, hret⟩
+  obtain ⟨Asrc, hhold', hcp, hfr, hs₁⟩ := step_tabToTab_inv hstep
+  have hA : Asrc = a := Option.some.inj (hhold'.symm.trans hhold)
+  rw [hA] at hs₁
+  have hmidP : (s.setPile a (Pile.afterRunRemoved (s.piles a)
+      (below c ((s.piles a).faceUp)))).piles a = (⟨[], []⟩ : Pile) := by
+    rw [show below c ((s.piles a).faceUp) = [] from by
+        rw [hshape, below_cons_self],
+      conf_arr_bare hhid, setPile_piles_self]
+  have hs₁pa : s₁.piles a = (⟨[], []⟩ : Pile) := by
+    rw [hs₁]
+    cases b with
+    | inl k =>
+        obtain ⟨hemp, -⟩ := canPlace_inl hcp
+        have hkna : k ≠ a := by
+          intro hcon
+          rw [hcon] at hemp
+          have hfupE := ((Pile.isEmpty_eq _).mp hemp).2
+          rw [hshape] at hfupE
+          exact absurd hfupE (by simp)
+        have hank : a ≠ k := fun hcon => hkna hcon.symm
+        simp only [putRun_piles_inl]
+        rw [ite_eq_right hank]
+        exact hmidP
+    | inr z =>
+        cases hz : (s.setPile a (Pile.afterRunRemoved (s.piles a)
+            (below c ((s.piles a).faceUp)))).pileOfTop z with
+        | none =>
+            rw [putRun_inr_none hz]
+            exact hmidP
+        | some kk =>
+            simp only [putRun_piles_inr _ _ _ _ hz]
+            by_cases hak : a = kk
+            · exfalso
+              have hne := (pileOfTop_top hz).1
+              rw [← hak] at hne
+              rw [hmidP] at hne
+              exact absurd hne (by simp)
+            · rw [ite_eq_right hak]
+              exact hmidP
+  have hQend := conf_emptyOrKingHead_play (A := a) s₁ pl s
+    (Or.inl ⟨by rw [hs₁pa], by rw [hs₁pa]⟩) hret
+  rcases hQend with ⟨hfupE, -⟩ | ⟨K0, t0, hfupE, hK0, -⟩
+  · exfalso
+    rw [hshape] at hfupE
+    exact absurd hfupE (by simp)
+  · exfalso
+    rw [hshape] at hfupE
+    injection hfupE with hK0c _
+    rw [← hK0c] at hK0
+    exact absurd hK0 hK
+
+/-- **THE FREEZE'S TAB LEG** — the one open piece of the freeze
+invariant: the run-move leg.  ROUTE: if the departure pile is the
+at-rung card's pile (`W = Asrc`), the mover is the card itself (the
+sole face-up member — `pileHolding_mem` over `faceUp W = [c]`), and
+its own departure is the two-pillar bar (over empty hidden:
+`conf_bareDeparture_irr`, its king-arm against `conf_king12`'s
+index; over hidden content: `journey_tabToTab_never_reveal`).  If
+`W` is the landing pile (either base): the landed pile's face-up
+run is `faceUp W ++ run` (`step_tabToTab_inv` + `canPlace` +
+`putRun` rows, or the empty seat — impossible while `[c]` resides),
+and the successor's WF (`step_wf`) reads the adjacent fit on the
+run's head over `c` (`conf_runOK_adjacent` with the run's head via
+`conf_fromCard_run_head` and the run-side `putRun`-profile): the
+head is fork-family, strictly below, hence already founded
+(`pair_lowFamily_founded`), against its fresh face-up residency
+(`mem_faceUp_only`).  Every other case leaves the pile untouched
+(drain: `stepDraw_piles`; the `setPile_afterRunRemoved_piles_ne`
+and `putRun`-profile readers). -/
+private theorem conf_freeze_tab {s s' : State} (hwfs : s.WF) {x : Card}
+    (hx : ForkWitness s x) {c : Card}
+    (hrk : c.rank.toIdx < x.rank.toIdx)
+    (hcol : c.suit.color ≠ x.suit.color)
+    {W : Anchor} (hfs : (s.piles W).faceUp = [c])
+    {w : Card} {b : Base}
+    (hstep : State.step s (Move.tabToTab w b) = some s')
+    (hrev : reversibleAtW s (Move.tabToTab w b)) :
+    (s'.piles W).faceUp = [c] := by
+  -- the run-move leg: departure bars or arrival lattice, else untouched
+  obtain ⟨Asrc, hhold, hcp, hfr, hs'eq⟩ := step_tabToTab_inv hstep
+  by_cases hWs : W = Asrc
+  · -- the at-rung card's own pile departs: the mover is the card itself
+    exfalso
+    rw [← hWs] at hhold
+    have hmemw : w ∈ (s.piles W).faceUp := pileHolding_mem hhold
+    rw [hfs] at hmemw
+    have hwc : w = c := List.mem_singleton.mp hmemw
+    rw [hwc] at hstep hrev hhold
+    have hholdW : s.pileHolding c = some W := hhold
+    cases hh : (s.piles W).hidden with
+    | nil =>
+        exact absurd hrev (conf_bareDeparture_irr hholdW hfs hh (by
+          intro hcon
+          have hK12 : (Rank.king : Rank).toIdx = 12 := by decide
+          have hxle : x.rank.toIdx ≤ 12 := by
+            have := Rank.toIdx_lt x.rank
+            omega
+          rw [hcon] at hrk
+          rw [hK12] at hrk
+          omega))
+    | cons g gs =>
+        exact absurd hrev (journey_tabToTab_never_reveal hstep hholdW
+          (by rw [hfs, below_cons_self])
+          (by rw [hh]; exact List.cons_ne_nil g gs))
+  · -- W is untouched, an impossible empty-seat landing, or the arrival
+    rw [hs'eq]
+    cases b with
+    | inl e =>
+        have hp : (((s.setPile Asrc (Pile.afterRunRemoved (s.piles Asrc)
+              (below w ((s.piles Asrc).faceUp)))).putRun
+            (fromCard w ((s.piles Asrc).faceUp)) (Sum.inl e)).piles W)
+            = (if W = e then
+                (⟨[], fromCard w ((s.piles Asrc).faceUp)⟩ : Pile)
+               else (s.setPile Asrc (Pile.afterRunRemoved (s.piles Asrc)
+                 (below w ((s.piles Asrc).faceUp)))).piles W) := rfl
+        rw [hp]
+        by_cases hWe : W = e
+        · exfalso
+          obtain ⟨hemp, -⟩ := canPlace_inl hcp
+          rw [← hWe] at hemp
+          have hfupE := ((Pile.isEmpty_eq _).mp hemp).2
+          rw [hfs] at hfupE
+          exact absurd hfupE (by simp)
+        · rw [ite_eq_right hWe]
+          have hneW : W ≠ Asrc := fun hcon => hWs hcon
+          rw [setPile_afterRunRemoved_piles_ne s Asrc w W hneW]
+          exact hfs
+    | inr z =>
+        cases hz : (s.setPile Asrc (Pile.afterRunRemoved (s.piles Asrc)
+            (below w ((s.piles Asrc).faceUp)))).pileOfTop z with
+        | none =>
+            rw [putRun_inr_none hz]
+            have hneW : W ≠ Asrc := fun hcon => hWs hcon
+            rw [setPile_afterRunRemoved_piles_ne s Asrc w W hneW]
+            exact hfs
+        | some kk =>
+            rw [putRun_inr_eq hz]
+            by_cases hWk : W = kk
+            · -- the run lands on the card's seat: the successor's runOK
+              -- reads the head's adjacent fit over c — fork-family, one
+              -- rank lower, already founded — impossible face-up arrival
+              exfalso
+              have hwfs' : s'.WF := step_wf hwfs hstep
+              have hmidkk : (s.setPile Asrc (Pile.afterRunRemoved
+                  (s.piles Asrc)
+                  (below w ((s.piles Asrc).faceUp)))).piles kk
+                  = s.piles kk := by
+                by_cases hka : kk = Asrc
+                · exfalso
+                  have hWkk : W = kk := hWk
+                  rw [hWkk] at hWs
+                  exact absurd hka hWs
+                · have hne : kk ≠ Asrc := fun hcon => hka hcon
+                  exact setPile_afterRunRemoved_piles_ne s Asrc w kk hne
+              have hfk : (s.piles kk).faceUp = [c] := by
+                rw [← hWk]; exact hfs
+              have hPost : (s'.piles W).faceUp
+                  = [c] ++ fromCard w ((s.piles Asrc).faceUp) := by
+                rw [hs'eq, putRun_inr_eq hz, hWk, setPile_piles_self,
+                  hmidkk, hfk]
+              have hrunOK' : runOK ((s'.piles W).faceUp) = true :=
+                hwfs'.2.1 W
+              obtain ⟨tr, hrunt⟩ :=
+                conf_fromCard_run_head w ((s.piles Asrc).faceUp) hfr
+              have hfit : canSitOn w c = true :=
+                conf_runOK_adjacent c w [] tr (by
+                  rw [hPost, hrunt] at hrunOK'
+                  exact hrunOK')
+              obtain ⟨_, hzc⟩ := (canSitOn_eq w c).mp hfit
+              have hwcol : w.suit.color = x.suit.color :=
+                conf_color_pair (a := c.suit.color) (Ne.symm hzc) hcol
+              have hwfnd : w ∈ s.found w.suit :=
+                pair_lowFamily_founded hwfs hx hwcol (by omega)
+              have hmemwS : w ∈ (s.piles Asrc).faceUp := pileHolding_mem hhold
+              exact (mem_faceUp_only hwfs hmemwS).2.2.2.2 w.suit hwfnd
+            · -- W untouched by the landing (kk ≠ W)
+              have hneW : W ≠ kk := fun hcon => hWk hcon
+              rw [setPile_piles_ne hneW]
+              have hneW' : W ≠ Asrc := fun hcon => hWs hcon
+              rw [setPile_afterRunRemoved_piles_ne s Asrc w W hneW']
+              exact hfs
+
+private theorem conf_king12 : (Rank.king : Rank).toIdx = 12 := by decide
+
+/-- Every rank index sits at most at the king's. -/
+private theorem conf_toIdx_le (r : Rank) : r.toIdx ≤ 12 := by
+  cases r <;> decide
+
+/-- **STAGE 2.2, PART 1 — THE PER-LEG LEDGER ROWS** (the farm copies of
+BracketDecomp's private per-leg readers; the raise few facts the LIFO
+walk needs, projected from the proved per-leg rung moves). -/
+private theorem conf_ledger_raiseStep {s s' : State} {c : Card}
+    (hstep : State.step s (Move.tabToFound c) = some s') :
+    rungAt s' c.suit = rungAt s c.suit + 1 :=
+  (conf_rung_raise hstep).1
+
+/-- A pull leg lowers its own suit's rung by exactly one (the farm
+copy's pull half: the popped card's index bracket rides the prefix
+reading `rung_found_prefix`-style in the walk). -/
+private theorem conf_ledger_pullStep {s s' : State} {c : Card} {b : Base}
+    (hstep : State.step s (Move.foundToTab c b) = some s') :
+    rungAt s c.suit = rungAt s' c.suit + 1 :=
+  (conf_rung_pull hstep).1
+
+/-- **STAGE 2.2, PART 2 — THE APPEND-COUNTING ROWS** (the farm copies:
+the ledger functionals count per-leg, so they split over appends and
+read a located literal leg as +1 on its own suit). -/
+private theorem conf_raises_append (ρ₁ ρ₂ : List Move) (σ : Suit) :
+    raisesOf (ρ₁ ++ ρ₂) σ = raisesOf ρ₁ σ + raisesOf ρ₂ σ := by
+  induction ρ₁ with
+  | nil => simp [raisesOf]
+  | cons m rest ih =>
+      cases m <;> simp_all [raisesOf, ih] <;> omega
+
+private theorem conf_pulls_append (ρ₁ ρ₂ : List Move) (σ : Suit) :
+    pullsOf (ρ₁ ++ ρ₂) σ = pullsOf ρ₁ σ + pullsOf ρ₂ σ := by
+  induction ρ₁ with
+  | nil => simp [pullsOf]
+  | cons m rest ih =>
+      cases m <;> simp_all [pullsOf, ih] <;> omega
+
+/-- **THE TWO-HEAD OVERLAP LEMMA** — the fold-order surgery priced in
+the seat-cycle route: when one list admits two head-anchored
+decompositions with DISTINCT heads, one region sits inside the
+other's prefix.  (Pure core-list combinatorics; the Move-level
+fold-order row is its instance with the constructor-clash heads.) -/
+private theorem conf_oscil_foldOrder {α : Type} (x y : α) (hxy : x ≠ y) :
+    ∀ (ρ₁ ρ₂ ρ₃ ρ₄ : List α),
+      ρ₁ ++ x :: ρ₂ = ρ₃ ++ y :: ρ₄ →
+      ∃ ws, ρ₃ = ρ₁ ++ x :: ws ∨ ρ₁ = ρ₃ ++ y :: ws := by
+  intro ρ₁
+  induction ρ₁ with
+  | nil =>
+      intro ρ₂ ρ₃ ρ₄ h
+      cases ρ₃ with
+      | nil =>
+          injection h with h1 h2
+          exact absurd h1 hxy
+      | cons w ws =>
+          have hxw : x = w := by
+            injection h with h1 h2
+          exact ⟨ws, Or.inl (by
+            rw [hxw, List.nil_append])⟩
+  | cons v vs ih =>
+      intro ρ₂ ρ₃ ρ₄ h
+      cases ρ₃ with
+      | nil =>
+          have hvy : v = y := by
+            rw [List.cons_append] at h
+            injection h with h1 h2
+          exact ⟨vs, Or.inr (by
+            rw [← hvy, List.nil_append])⟩
+      | cons w ws =>
+          rw [List.cons_append, List.cons_append] at h
+          injection h with hvw hrest
+          obtain ⟨ws', hdisj⟩ := ih ρ₂ ws ρ₄ hrest
+          rw [← hvw]
+          rcases hdisj with hL | hR
+          · exact ⟨ws', Or.inl (by
+              rw [hL, List.cons_append])⟩
+          · exact ⟨ws', Or.inr (by
+              rw [hR, List.cons_append])⟩
+
+/-- LAYER 1, arm 1/6 — the draw leg's zone carry (found by the
+record-level `stepDraw_found` congruence; piles by `stepDraw_piles`). -/
+private theorem conf_carry_draw {s s' : State} {γ : Card}
+    (hstep : State.step s Move.draw = some s')
+    (hc : γ ∈ s.found γ.suit ∨ ∃ a, γ ∈ (s.piles a).faceUp) :
+    γ ∈ s'.found γ.suit ∨ ∃ a, γ ∈ (s'.piles a).faceUp := by
+  have hd : s.stepDraw = some s' := hstep
+  rcases hc with hF | ⟨a, hFa⟩
+  · rw [congrFun (stepDraw_found hd) γ.suit]
+    exact Or.inl hF
+  · rw [stepDraw_piles hd]
+    exact Or.inr ⟨a, hFa⟩
+
+/-- LAYER 1, arms 2 & 3/6 — the waste legs never ride a witness
+journey (the carry is vacuous at them). -/
+private theorem conf_carry_wasteFound {s s' : State} {γ w : Card}
+    (hstep : State.step s (Move.wasteToFound w) = some s')
+    (hrev : reversibleAtW s (Move.wasteToFound w)) :
+    γ ∈ s'.found γ.suit ∨ ∃ a, γ ∈ (s'.piles a).faceUp := by
+  exact absurd hrev (journey_never_wasteToFound hstep)
+
+private theorem conf_carry_wasteTab {s s' : State} {γ w : Card} {b : Base}
+    (hstep : State.step s (Move.wasteToTab w b) = some s')
+    (hrev : reversibleAtW s (Move.wasteToTab w b)) :
+    γ ∈ s'.found γ.suit ∨ ∃ a, γ ∈ (s'.piles a).faceUp := by
+  exact absurd hrev (journey_never_wasteToTab hstep)
+
+-- LAYER 1, arm 4/6 - the tabToFound leg's carry, priced:
+-- FOUNDED side: γ ≠ e first (e is face-up atop its pile; a founded γ
+-- would contradict `mem_faceUp_only`'s `.2.2.2.2`-conjugate), then the
+-- per-suit split: γ.suit = e.suit ⇒ γ ∈ s.found γ.suit ⊆
+-- take (rungAt+1) (`rung_found_prefix` both ways + `conf_rung_raise`'s
+-- +1, `List.take_subset`); γ.suit ≠ e.suit ⇒ the same-take transport
+-- (`conf_rung_raise`'s others-preserved limb + both prefixes' rw).
+-- FACE-UP side: the piles-splice `if_neg/if_pos` per pile; the
+-- same-pile case decomposes `faceUp = front ++ [e]` (`lastOf_eq_snoc`
+-- on the inv's `pileOfTop_top`), γ ∈ front survives the removal (the
+-- chop/`chop_snoc`-lookup is the one missing piece to price next
+-- run), γ ≠ e kills the tail; γ ∈ run is impossible (nothing sits
+-- above the top).
+-- (row lands after the chop_snoc lookup; arms 1-3 are proved above)
+
+/-- LAYER 1, arm 6/6 — the tabToTab leg's carry (founded stays — the
+slide record writes only piles; face-up rides the slide shape's
+below/landing limbs). -/
+private theorem conf_carry_tabToTab {s s' : State} {γ e : Card} {b : Base}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToTab e b) = some s')
+    (hc : γ ∈ s.found γ.suit ∨ ∃ a, γ ∈ (s.piles a).faceUp) :
+    γ ∈ s'.found γ.suit ∨ ∃ a, γ ∈ (s'.piles a).faceUp := by
+  obtain ⟨A, k, run, hh, hrun, hrne, hne, hpa, hothers, hpair⟩ :=
+    conf_slide_shape hwf hstep
+  rcases hc with hF | ⟨a, hFa⟩
+  · -- FOUNDED: the slide's two records preserve foundations —
+    -- peel them off the record equation, then the read is untouched
+    obtain ⟨Ax, -, -, -, hrec⟩ := step_tabToTab_inv hstep
+    rw [hrec, putRun_found, setPile_found]
+    exact Or.inl hF
+  · -- face-up: three limbs — the landing append, the departure
+    -- split (below-part keeps, run-part lands), others untouched
+    by_cases hak : a = k
+    · rw [hak] at hFa
+      refine Or.inr ⟨k, ?_⟩
+      rw [hpair.right]
+      exact List.mem_append.mpr (Or.inl hFa)
+    · by_cases haA : a = A
+      · rw [haA] at hFa
+        have hsplit : (s.piles A).faceUp =
+            below e ((s.piles A).faceUp) ++ run := by
+          rw [hrun]
+          exact conf_below_fromCard e ((s.piles A).faceUp)
+        rw [hsplit] at hFa
+        rcases List.mem_append.mp hFa with hbl | hrunm
+        · refine Or.inr ⟨A, ?_⟩
+          rw [hpa, afterRunRemoved_ne (by
+              intro hcon
+              rw [hcon] at hbl
+              exact absurd hbl (by simp))]
+          exact hbl
+        · refine Or.inr ⟨k, ?_⟩
+          rw [hpair.right]
+          exact List.mem_append.mpr (Or.inr hrunm)
+      · refine Or.inr ⟨a, ?_⟩
+        rw [hothers a (fun hcon => haA hcon)
+          (fun hcon => hak hcon)]
+        exact hFa
+
+/-- LAYER 1 helper — the take's monotone membership (the same-suit
+founded transport of the raising/pop arms). -/
+private theorem conf_take_mono {c : Card} : ∀ (R : Nat) (l : List Card),
+    c ∈ List.take R l → c ∈ List.take (R+1) l := by
+  intro R
+  induction R with
+  | zero => intro l h; cases h
+  | succ r ih =>
+      intro l
+      cases l with
+      | nil => intro h; cases h
+      | cons x xs =>
+          intro h
+          rw [List.take_succ_cons] at h
+          rw [List.take_succ_cons]
+          rcases List.mem_cons.mp h with rfl | htl
+          · exact List.mem_cons_self ..
+          · exact List.mem_cons.mpr (Or.inr (ih xs htl))
+
+/-- LAYER 1, arm 4's FOUNDED side — a founded card stays founded under
+a tabToFound leg (other suits' takes identical by the rung-raise's
+others-limb; the raised suit's take grows by one — the mono). -/
+private theorem conf_carry_tabToFound_founded {s s' : State} {γ e : Card}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToFound e) = some s')
+    (hF : γ ∈ s.found γ.suit) :
+    γ ∈ s'.found γ.suit := by
+  obtain ⟨hrise, hothers⟩ := conf_rung_raise hstep
+  have hwf' : s'.WF := step_wf hwf hstep
+  have hp0 := rung_found_prefix s hwf γ.suit
+  have hp1 := rung_found_prefix s' hwf' γ.suit
+  rw [hp0] at hF
+  rw [hp1]
+  by_cases hes : γ.suit = e.suit
+  · rw [← hes] at hrise
+    rw [hrise]
+    exact conf_take_mono _ _ hF
+  · rw [hothers γ.suit (fun hcon => hes hcon)]
+    exact hF
+
+/-- LAYER 1, arm 4/6 (full) — the tabToFound leg's carry: founded by
+the banked founded-side row; face-up through the piles splice, the
+same-pile front kept by `chop_snoc`+`afterRunRemoved_ne`, the raised
+tail itself exiting into the foundation's append. -/
+private theorem conf_carry_tabToFound {s s' : State} {γ e : Card}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToFound e) = some s')
+    (hc : γ ∈ s.found γ.suit ∨ ∃ a, γ ∈ (s.piles a).faceUp) :
+    γ ∈ s'.found γ.suit ∨ ∃ a, γ ∈ (s'.piles a).faceUp := by
+  rcases hc with hF | ⟨a, hFa⟩
+  · exact Or.inl (conf_carry_tabToFound_founded hwf hstep hF)
+  · obtain ⟨-, k, hpod, hs'⟩ := step_tabToFound_inv hstep
+    have hpileEq : ∀ y, s'.piles y = (if y = k then
+        Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp)
+        else s.piles y) := by
+      intro y
+      rw [hs']
+    by_cases hak : a = k
+    · have hlast := (pileOfTop_top hpod).2
+      rw [hak] at hFa
+      obtain ⟨front, hfront⟩ := lastOf_eq_snoc hlast
+      rw [hfront] at hFa
+      rcases List.mem_append.mp hFa with hbl | hlastm
+      · refine Or.inr ⟨k, ?_⟩
+        rw [hpileEq k, if_pos rfl]
+        rw [show chop ((s.piles k).faceUp) = front from by
+            rw [hfront]
+            exact chop_snoc]
+        rw [afterRunRemoved_ne (by
+            intro hcon
+            rw [hcon] at hbl
+            exact absurd hbl (by simp))]
+        exact hbl
+      · rw [List.mem_singleton] at hlastm
+        rw [hlastm, hs']
+        refine Or.inl ?_
+        simp only [State.setFound, if_pos]
+        exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
+    · refine Or.inr ⟨a, ?_⟩
+      rw [hpileEq a, if_neg hak]
+      exact hFa
+
+/-- LAYER 1, arm 5/6 — the foundToTab leg's carry (the pull): a
+founded γ in the pulled suit rides the front (`lastOf_eq_snoc` +
+`chop_snoc` — the popped tail alone leaves) or IS the popped card
+(γ = w exits face-up through the landing profiles); face-up side by
+the putCard profiles. -/
+private theorem conf_carry_foundToTab {s s' : State} {γ w : Card} {b : Base}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.foundToTab w b) = some s')
+    (hc : γ ∈ s.found γ.suit ∨ ∃ a, γ ∈ (s.piles a).faceUp) :
+    γ ∈ s'.found γ.suit ∨ ∃ a, γ ∈ (s'.piles a).faceUp := by
+  obtain ⟨c', ht, heqw, hcp, hs'⟩ := step_foundToTab_inv hstep
+  rcases hc with hF | ⟨a, hFa⟩
+  · -- FOUNDED: the record's setFound rewrite; split on the suit
+    by_cases hγw : γ.suit = w.suit
+    · -- same suit: the list's front survives by chop_snoc; the
+      -- popped card IS its last (foundTop reads lastOf)
+      rw [hγw] at hF
+      have hlastw : lastOf (s.found w.suit) = some w := by
+        rw [show s.foundTop w.suit = lastOf (s.found w.suit) from rfl,
+          heqw] at ht
+        exact ht
+      obtain ⟨front, hfront⟩ := lastOf_eq_snoc hlastw
+      rw [hfront] at hF
+      by_cases hgw : γ = w
+      · -- the popped card exits face-up: the landing profiles
+        rw [hgw, hs']
+        cases b with
+        | inl e =>
+            refine Or.inr ⟨e, ?_⟩
+            simp only [putCard_piles_inl, ite_eq_left]
+            exact List.mem_cons_self ..
+        | inr z =>
+            obtain ⟨k, hpin, -⟩ := canPlace_inr hcp
+            have hmidpin :
+                (s.setFound w.suit (chop (s.found w.suit))).pileOfTop z
+                = some k := by
+              rw [conf_pileOfTop_congr
+                (setFound_piles s w.suit (chop (s.found w.suit))) z]
+              exact hpin
+            refine Or.inr ⟨k, ?_⟩
+            simp only [putCard_piles_inr _ _ _ _ hmidpin, ite_eq_left]
+            exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+      · refine Or.inl ?_
+        rw [hs', putCard_found]
+        simp only [State.setFound, hfront, chop_snoc, if_pos hγw]
+        rcases List.mem_append.mp hF with hbl | hlastm
+        · exact hbl
+        · rw [List.mem_singleton] at hlastm
+          exact absurd hlastm hgw
+    · -- other suit: the else-branch keeps s's list
+      refine Or.inl ?_
+      rw [hs', putCard_found]
+      simp only [State.setFound, if_neg hγw]
+      exact hF
+  · -- FACE-UP: the putCard profiles on the pre-pull setFound state
+    rw [hs']
+    have hmid : (s.setFound w.suit (chop (s.found w.suit))).piles
+        = s.piles :=
+      setFound_piles s w.suit (chop (s.found w.suit))
+    cases b with
+    | inl e =>
+        have hp : ((s.setFound w.suit (chop (s.found w.suit))).putCard w
+            (Sum.inl e)).piles a
+            = (if a = e then (⟨[], [w]⟩ : Pile)
+               else (s.setFound w.suit (chop (s.found w.suit))).piles a) := rfl
+        refine Or.inr ⟨a, ?_⟩
+        rw [hp]
+        by_cases hae : a = e
+        · exfalso
+          obtain ⟨hemp, -⟩ := canPlace_inl hcp
+          rw [← hae] at hemp
+          have hfupE := ((Pile.isEmpty_eq _).mp hemp).2
+          exact absurd hFa (by rw [hfupE]; simp)
+        · rw [ite_eq_right hae, hmid]
+          exact hFa
+    | inr z =>
+        obtain ⟨k, hpin, -⟩ := canPlace_inr hcp
+        have hmidpin :
+            (s.setFound w.suit (chop (s.found w.suit))).pileOfTop z
+            = some k := by
+          rw [conf_pileOfTop_congr hmid z]
+          exact hpin
+        have hp : ((s.setFound w.suit (chop (s.found w.suit))).putCard w
+            (Sum.inr z)).piles a
+            = (if a = k then
+                { s.piles k with faceUp := (s.piles k).faceUp ++ [w] }
+               else (s.setFound w.suit (chop (s.found w.suit))).piles a) := by
+          simp only [putCard_piles_inr _ _ _ _ hmidpin]
+          rw [congrFun hmid]
+        refine Or.inr ⟨a, ?_⟩
+        rw [hp]
+        by_cases hak : a = k
+        · rw [hak] at hFa
+          rw [hak, if_pos rfl]
+          show γ ∈ (s.piles k).faceUp ++ [w]
+          exact List.mem_append.mpr (Or.inl hFa)
+        · rw [ite_eq_right hak, hmid]
+          exact hFa
+
+/-- **LAYER 1 — THE ZONE CARRY, GLUED** — along any witness journey a
+card founded-or-face-up at the start stays founded-or-face-up at
+the end (the six per-leg rows composed by the shuffle induction).
+The shared infrastructure: the census folds (seatCycle,
+familyCarry) and the orphan-seat interlock's step-2 closures all
+consume this row at grade. -/
+private theorem conf_foundedCarry {st : State} {γ : Card} :
+    ∀ {w : State} {π : List Move},
+    ShufflePlayW st π w → st.WF →
+    (γ ∈ st.found γ.suit ∨ ∃ a, γ ∈ (st.piles a).faceUp) →
+    (γ ∈ w.found γ.suit ∨ ∃ a, γ ∈ (w.piles a).faceUp) := by
+  intro w π h
+  induction h with
+  | nil u => intro hwf hc; exact hc
+  | @cons s₀ m s₁ rest w₀ hrev hstep hrest ih =>
+      intro hwf hc
+      have hwf₁ : s₁.WF := step_wf hwf hstep
+      cases m with
+      | draw => exact ih hwf₁ (conf_carry_draw hstep hc)
+      | wasteToFound w' =>
+          exact ih hwf₁ (conf_carry_wasteFound hstep hrev)
+      | wasteToTab w' b =>
+          exact ih hwf₁ (conf_carry_wasteTab hstep hrev)      | tabToFound w' =>
+          exact ih hwf₁ (conf_carry_tabToFound hwf hstep hc)
+      | foundToTab w' b =>
+          exact ih hwf₁ (conf_carry_foundToTab hwf hstep hc)
+      | tabToTab w' b =>
+          exact ih hwf₁ (conf_carry_tabToTab hwf hstep hc)
+
+/-- The rank of a given index (the 13-cell enumeration; the exfalso
+keeps `omega` off non-arithmetic goals, staying `Classical.choice`-free). -/
+private theorem conf_rank_of_idx {n : Nat} (hn : n < 13) :
+    ∃ r : Rank, r.toIdx = n := by
+  cases n with
+  | zero => exact ⟨Rank.ace, rfl⟩
+  | succ n1 =>
+    cases n1 with
+    | zero => exact ⟨Rank.two, rfl⟩
+    | succ n2 =>
+      cases n2 with
+      | zero => exact ⟨Rank.three, rfl⟩
+      | succ n3 =>
+        cases n3 with
+        | zero => exact ⟨Rank.four, rfl⟩
+        | succ n4 =>
+          cases n4 with
+          | zero => exact ⟨Rank.five, rfl⟩
+          | succ n5 =>
+            cases n5 with
+            | zero => exact ⟨Rank.six, rfl⟩
+            | succ n6 =>
+              cases n6 with
+              | zero => exact ⟨Rank.seven, rfl⟩
+              | succ n7 =>
+                cases n7 with
+                | zero => exact ⟨Rank.eight, rfl⟩
+                | succ n8 =>
+                  cases n8 with
+                  | zero => exact ⟨Rank.nine, rfl⟩
+                  | succ n9 =>
+                    cases n9 with
+                    | zero => exact ⟨Rank.ten, rfl⟩
+                    | succ n10 =>
+                      cases n10 with
+                      | zero => exact ⟨Rank.jack, rfl⟩
+                      | succ n11 =>
+                        cases n11 with
+                        | zero => exact ⟨Rank.queen, rfl⟩
+                        | succ n12 =>
+                          cases n12 with
+                          | zero => exact ⟨Rank.king, rfl⟩
+                          | succ mm => exfalso; omega
+
+/-- Membership in a bounded take is membership in the list (the
+probe's kit copy). -/
+private theorem conf_take_sub : ∀ {α : Type} (n : Nat) (l : List α)
+    (x : α), x ∈ l.take n → x ∈ l := by
+  intro α n
+  induction n with
+  | zero =>
+      intro l x hmem
+      simp [List.take] at hmem
+  | succ n ih =>
+      intro l x hmem
+      cases l with
+      | nil => simp [List.take] at hmem
+      | cons y t =>
+          rw [List.take_succ_cons] at hmem
+          rcases List.mem_cons.1 hmem with rfl | hrest
+          · exact List.mem_cons.2 (Or.inl rfl)
+          · exact List.mem_cons.2 (Or.inr (ih t x hrest))
+
+/-- **THE FOUNDED-BRIDGE (converse)** — a suit rung strictly above a
+card's rank index has already founded it (the probe's kit row). -/
+private theorem conf_founded_of_rung {st : State} (hwf : st.WF)
+    {c : Card}
+    (hlt : c.rank.toIdx < rungAt st c.suit) : c ∈ st.found c.suit := by
+  have hpre := rung_found_prefix st hwf c.suit
+  have h13 : c.suit.upCards.length = 13 := Suit.upCards_length c.suit
+  have hget : c.suit.upCards.get ⟨c.rank.toIdx, by
+      rw [h13]; exact Rank.toIdx_lt c.rank⟩ = c :=
+    conf_upCards_get c (by rw [h13]; exact Rank.toIdx_lt c.rank)
+  have hmem0 : c.suit.upCards.get ⟨c.rank.toIdx, by
+      rw [h13]; exact Rank.toIdx_lt c.rank⟩ ∈
+      c.suit.upCards.take (rungAt st c.suit) :=
+    conf_get_in_take _ _ _ (show c.rank.toIdx < c.suit.upCards.length by
+      rw [h13]; exact Rank.toIdx_lt c.rank) hlt
+  rw [hget] at hmem0
+  have hmem : c ∈ c.suit.upCards.take (rungAt st c.suit) := hmem0
+  rwa [← hpre] at hmem
+
+/-- **THE DEAL NEVER INVENTS (the shrink lanes)** — each deal lane's
+residents came from the stock: the dealt lane and the remnant lane
+both only ever hold cards of the source list (the k-induction
+mirroring the banked forward membership row `conf_dealUpTo_mem`; the
+succ-cons case's dealt lane is cons-headed, the remnant lane drops
+the dealt head). -/
+private theorem conf_deal_shrink (d : Card) : ∀ (k : Nat) (l : List Card),
+    (d ∈ (State.dealUpTo k l).1 → d ∈ l) ∧
+      (d ∈ (State.dealUpTo k l).2 → d ∈ l) := by
+  intro k
+  induction k with
+  | zero =>
+      intro l
+      refine ⟨?_, ?_⟩
+      · intro hmem
+        simp only [State.dealUpTo] at hmem
+        exact absurd hmem (by simp)
+      · intro hmem
+        simp only [State.dealUpTo] at hmem
+        exact hmem
+  | succ k ih =>
+      intro l
+      cases l with
+      | nil =>
+          refine ⟨?_, ?_⟩
+          all_goals
+            intro hmem
+            simp only [State.dealUpTo] at hmem
+            exact absurd hmem (by simp)
+      | cons x xs =>
+          obtain ⟨ih1, ih2⟩ := ih xs
+          refine ⟨?_, ?_⟩
+          · intro hmem
+            simp only [State.dealUpTo] at hmem
+            rcases List.mem_cons.mp hmem with heq | hrest
+            · rw [heq]
+              exact List.mem_cons_self ..
+            · exact List.mem_cons.2 (Or.inr (ih1 hrest))
+          · intro hmem
+            simp only [State.dealUpTo] at hmem
+            exact List.mem_cons.2 (Or.inr (ih2 hmem))
+
+/-- **SEAM — THE UNION NEVER GAINS (priced)**: the stock/waste world never gains along a witness play.  ROUTE (corrected empirics, two hard-won facts from this run): the tab/found/cargo arms keep the fields (
+w [hs'] at h₁ fires; FoundToTab/	abToTab need the FOUR-tuple keep rows putCard_keep/putRun_keep — banked-green in conf_stockWaste_closed — rather than raw exact: the setFound chain does not defeq-reduce under xact); the waste arms are the two journey_never_* bars.  THE DRAW FLIPS THE ZONES: hyEq's record reads stock := (dealUpTo r.drawStep r.stock).snd and waste := (dealUpTo r.drawStep r.stock).fst.reverse ++ r.waste — the DEALT lane cycles into the WASTE (reverse-prepended over the old waste), the REMNANT lane stays STOCK; so the stock case consumes the shrink's second lane (conf_deal_shrink ... .2 → d ∈ r.stock) and the waste case splits the append: dealt-reverse → the shrink's FIRST lane into
+.stock, right disjunct → the old
+.waste.  The
+ side is s₀.recycle-shaped and hrEq is a recycle equation — retarget r-facts onto s₀ via the banked nonempty-stock pattern (
+ecycle_keep s₀ … plus the stock-case split on the drawn-head, exactly as in conf_stockWaste_closed's green draw arm) rather than a direct
+w [hrEq], whose orientation does not fire at s₀… goals.  The deal-lane membership rows are banked (conf_deal_shrink); this row is composition only. -/
+private theorem conf_orphan_union {st : State} : ∀ {u : State}
+    {τ : List Move},
+    ShufflePlayW st τ u →
+    (∀ d : Card, d ∈ u.stock ∨ d ∈ u.waste → d ∈ st.stock ∨ d ∈ st.waste) := by
   sorry
 
-/-- **THE PULL-ESCAPE GAP** — the freeze's honest remainder, recorded
-2026-10-12.  Here the cover-family card `c` was ALREADY FOUNDED at
-`st` (its suit's rung sat strictly above its own index there), and
-the witness prefix founds it again at `s₃`, once the rung has walked
-back DOWN to its index.  ROUTE-CRITICAL FINDING: this cell is NOT
-barred by the freeze's standalone ingredients — the re-founding can
-ride a legitimate LIFO pull cascade: pop the `c.suit`-foundation's
-current top cards one by one (each pops onto a one-rank-up
-fork-family TOP; for host ranks ≥ r those hosts are face-up-legal at
-`st`, lying beyond the `pair_lowFamily_founded` saturation), then pop
-`c` itself onto an exposed pair member's top, then re-found it; every
-leg is reversible (each pop's undo is its own re-founding, and the
-re-founding's undo is the pull back onto the exposed host), so the
-cascaded prefix is a genuine `ShufflePlayW`.  The FREEZE'S STANDALONE
-STATEMENT THEREFORE CANNOT CLOSE THROUGH THIS CASE: the true bar lives
-in the consumed door context — the hop's founding leg is the twin's
-uncovering flip, so `c` sits directly on `x.twin` at the firing
-state, and the elevated member's interlock plus the LIFO census
-(`foundToTab_pops_currentTop`, `witness_rung_census`) is exactly
-`crossing_door_final`'s ledger read.  Closing this residue needs
-threading the flip anchor (c directly covering `x.twin` at the firing
-state) through the split, or absorbing the founding disjunct into
-the final leg's door-context analysis — a decomposition-level repair
-(flagged for a human decision), not a missing lemma. -/
-private theorem crossing_door_freeze_pullEscape {st : State} (hwf : st.WF) {x : Card}
-    (hx : ForkWitness st x) {w : State} {ρ : List Move}
-    (hpre : ShufflePlayW st ρ w)
-    (hgap :
-      ∃ (ρ₁ ρ₂ : List Move) (c : Card) (s₃ s₄ : State),
-        ρ = ρ₁ ++ Move.tabToFound c :: ρ₂ ∧
-        ShufflePlayW st ρ₁ s₃ ∧
-        State.step s₃ (Move.tabToFound c) = some s₄ ∧
-        c.rank.toIdx + 1 = x.rank.toIdx ∧
-        c.suit.color ≠ x.suit.color ∧
-        c.rank.toIdx < rungAt st c.suit ∧
-        c.rank.toIdx = rungAt s₃ c.suit) :
-    False := by
+/-- **SEAM — THE ROAMING SEAT**: a non-king card that starts the
+journey SEATED on a fitting face-up below-neighbor is, at the end,
+either nowhere face-up or still seated on a fitting face-up
+below-neighbor.  ROUTE: the seat residue's own below-identity
+induction in the roam form — founding spells are vacuous, every
+re-landing of a non-king reseeds on a face-up top (`canPlace` inr),
+cargo keeps the run-internal below-neighbor, and no card ever departs
+from under another (face-up lists change only by suffix chops and
+appends), so the below-card never becomes hidden. -/
+private theorem conf_orphan_roam {st u : State} (hwf : st.WF)
+    {τ : List Move}
+    (hτ : ShufflePlayW st τ u) {d : Card} (hnk : d.rank ≠ Rank.king)
+    (hseed : ∃ a bs z, (st.piles a).faceUp = bs ++ [z, d] ∧
+      canSitOn d z = true) :
+    (∃ a L z R, (u.piles a).faceUp = L ++ z :: d :: R ∧
+      canSitOn d z = true) ∨
+      (∀ a, d ∉ (u.piles a).faceUp) := by
   sorry
 
-/-- **THE FREEZE** — route step 4, the second named sub-residue: a
-cover-family card (rank index `r − 1`, the twin-cover's opposite
-family) can never be FOUNDED along a witness prefix out of the fork.
-At `st` its suit's rung sits strictly below its own index (the
-saturation's `nextUp d = false` pin of `pair_cover_pins`), and the
-climb to a cover-founding would need intermediate same-suit raises of
-γ-family low cards — every such card already FOUNDED at `st`
-(`pair_lowFamily_founded`) and un-exposable from the reversible
-freeze (waste legs never ride; reveals never ride; pulls of them need
-family tops one rank up — the inductive cascade).  This closes the
-hop chain's escape hatch: the hop's second disjunct is impossible. -/
-private theorem crossing_door_freeze {st : State} (hwf : st.WF) {x : Card}
-    (hx : ForkWitness st x) {w : State} {ρ : List Move}
-    (hpre : ShufflePlayW st ρ w)
-    (hfounded :
-      ∃ (ρ₁ ρ₂ : List Move) (c : Card) (s₃ s₄ : State),
-        ρ = ρ₁ ++ Move.tabToFound c :: ρ₂ ∧
-        ShufflePlayW st ρ₁ s₃ ∧
-        State.step s₃ (Move.tabToFound c) = some s₄ ∧
-        c.rank.toIdx + 1 = x.rank.toIdx ∧
-        c.suit.color ≠ x.suit.color) :
-    False := by
-  obtain ⟨ρ₁, ρ₂, c, s₃, s₄, hρeq, hsh₁, hstep, hrk, hcol⟩ := hfounded
-  -- the founding leg's own guard reads the rung at the firing state
-  obtain ⟨hnext, -, -, -⟩ := step_tabToFound_inv hstep
-  have hg3 : c.rank.toIdx = rungAt s₃ c.suit := of_decide_eq_true hnext
-  rcases Nat.lt_trichotomy (rungAt st c.suit) (c.rank.toIdx) with
-    hlow | heq | hhigh
-  · -- THE CLIMB: the rung sat strictly below at the fork, so the
-    -- at-rung card's literal raise rides the founding prefix (the
-    -- rung-crossing census); the raised card is a strictly-lower
-    -- opposite-family card already at its own rung at `st`
-    obtain ⟨ρ₃, ρ₄, e, t₃, t₄, hsplit, hsh₃, hstep₃, hes, her⟩ :=
-      conf_raise_crossing (σ := c.suit) (R := rungAt st c.suit) hsh₁
-        (fun hcon => Nat.lt_irrefl _ hcon) (by omega)
-    exact crossing_door_freeze_charlie hwf hx hpre
-      ⟨ρ₃, ρ₄ ++ (Move.tabToFound c :: ρ₂), e, t₃, t₄,
-        by rw [hρeq, hsplit, List.append_assoc]; rfl,
-        hsh₃, hstep₃, by omega, by rw [hes]; exact hcol,
-        by rw [hes]; exact her⟩
-  · -- AT-RUNG: the cover-family card is its own exposure-residue
-    -- target (never founded at st: its index IS the rung)
-    exact crossing_door_freeze_charlie hwf hx hpre
-      ⟨ρ₁, ρ₂, c, s₃, s₄, hρeq, hsh₁, hstep, by omega, hcol, heq.symm⟩
-  · -- FOUNDED-AT-FORK: the founding came down through the foundation
-    -- round-trip — the named pull-escape gap residue
-    exact crossing_door_freeze_pullEscape hwf hx hpre
-      ⟨ρ₁, ρ₂, c, s₃, s₄, hρeq, hsh₁, hstep, hrk, hcol, hhigh, hg3⟩
+/-- The nodup slice: a seated card's below-tail cannot contain it
+(the face-up pile lists are nodup). -/
+private theorem conf_nodup_slice {z d : Card} :
+    ∀ (L : List Card) (R : List Card),
+      (L ++ z :: d :: R).Nodup → z ∉ d :: R := by
+  intro L
+  induction L with
+  | nil =>
+      intro R hn
+      exact (List.nodup_cons.1 hn).1
+  | cons y ys ih =>
+      intro R hn
+      exact ih R ((List.nodup_cons.1 hn).2)
 
-/-- **THE PULL ROUND-TRIP ACCOUNTING — THE FINAL CONTRADICTION READ** —
-route step 5, the third and deepest named sub-residue.  With the hop
-chain's cargo-leg certificate in hand (the freeze having closed the
-founding escape), the alternation closes against the LIFO ledger: the
-cover-family cargo head can only land on a pair-member top (§1's
-landing-lattice census — `pair_cover_lattice` /
-`conf_rankColor_pair`, the cover being no king so the empty-seat
-branch is arithmetically dead, the founded member off-board by
-`mem_faceUp_only`); the elevated member's literal founding leg pins
-its lastness (the supported membership through `crossing_door_read`'s
-founded-bridge); the LIFO pops (`foundToTab_pops_currentTop`) and the
-per-suit census (`witness_rung_census` over `raisesOf`/`pullsOf`)
-postpone no re-boarding — the finite prefix cannot ground the
-back-and-forth, so the door's firing leg reads its seat against an
-impossible board. -/
-private theorem crossing_door_final {st : State} (hwf : st.WF) {x : Card}
-    (hx : ForkWitness st x) {u s₁ : State} {π : List Move}
-    (hpre : ShufflePlayW st π u)
-    (hdoor :
-      (State.step u (Move.tabToFound x) = some s₁ ∧
-        rungAt u x.twin.suit > x.rank.toIdx) ∨
-      (State.step u (Move.tabToFound x.twin) = some s₁ ∧
-        rungAt u x.suit > x.rank.toIdx))
-    (hcargo :
-      ∃ (ρ₁ ρ₂ : List Move) (c : Card) (b : Base) (s₃ s₄ : State),
-        π = ρ₁ ++ Move.tabToTab c b :: ρ₂ ∧
-        ShufflePlayW st ρ₁ s₃ ∧
-        State.step s₃ (Move.tabToTab c b) = some s₄ ∧
-        c.rank.toIdx + 1 = x.rank.toIdx ∧
-        c.suit.color ≠ x.suit.color) :
+/-- **SEAM — THE TOP CLASH (closed)**: a pile TOP cannot have a card
+seated directly above it — the top read and the seating shape
+contradict on the nodup pile list. -/
+private theorem conf_orphan_topclash {u : State} (hwfu : u.WF)
+    {z d : Card}
+    (hpo : ∃ Q, u.pileOfTop z = some Q)
+    (hpkg : ∃ a L R, (u.piles a).faceUp = L ++ z :: d :: R) :
     False := by
-  -- the cargo certificate names its cover-family head (the census
-  -- reads it as the fork's cover or its twin); the LIFO ledger read
-  -- against the door fires below
-  obtain ⟨ρ₁, ρ₂, c, bb, s₃, s₄, hρeq, hsh₁, hstep₁, hrk, hcol⟩ := hcargo
+  obtain ⟨Q, hpoQ⟩ := hpo
+  obtain ⟨A, L, R, hpkg⟩ := hpkg
+  obtain ⟨-, hQlast⟩ := pileOfTop_top hpoQ
+  have hzA : z ∈ (u.piles A).faceUp := by
+    rw [hpkg]
+    exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
+  have hn : ((u.piles Q).faceUp).Nodup := runOK_nodup (hwfu.2.1 Q)
+  by_cases hAQ : A = Q
+  · rw [hAQ] at hzA hpkg
+    rw [hpkg] at hQlast hn
+    rw [conf_lastOf_append _ _ (by
+        intro hcon
+        cases hcon)] at hQlast
+    cases R with
+    | nil =>
+        have h : some d = some z := hQlast
+        have hzd : z = d := (Option.some.inj h).symm
+        subst hzd
+        exact absurd (List.mem_cons.2 (Or.inl rfl))
+          (conf_nodup_slice L [] hn)
+    | cons r rs =>
+        have hzR : z ∈ r :: rs :=
+          lastOf_mem (show lastOf (r :: rs) = some z from by
+            have := hQlast
+            exact this)
+        exact absurd (show z ∈ d :: r :: rs from
+            List.mem_cons.2 (Or.inr hzR))
+          (conf_nodup_slice L (r :: rs) hn)
+  · exact (mem_faceUp_unique hwfu hzA Q (fun hcon => hAQ hcon.symm)).1
+      (lastOf_mem hQlast)
+
+/-- **THE BACKWARD-ORPHAN KILL OF THE CROSSING DOOR** — the full
+upward-door circumvention, proved modulo the three seams above and
+`Orig.OrphanSeat.lean`'s orphan-seat residue.  The door package is
+exactly the banked `crossing_door_exists` output shape; `hdcover` is
+the fork's `pair_cover_pins` twin-cover package; `hback` is the
+class-return journey from the door state to the fork. -/
+private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
+    (hwfu : u.WF) {π ρ : List Move}
+    (hjourney : ShufflePlayW st π u) (hback : ShufflePlayW u ρ st)
+    {x d m m' : Card}
+    (hx : ForkWitness st x)
+    (hpair : (m = x ∧ m' = x.twin) ∨ (m = x.twin ∧ m' = x))
+    (hfire : State.step u (Move.tabToFound m') = some s₁)
+    (helev : rungAt u m.suit > x.rank.toIdx)
+    (hdcover : ∃ a bs, (st.piles a).faceUp = bs ++ [x.twin, d] ∧
+      canSitOn d x.twin = true)
+    (hdcol : d.suit.color ≠ x.suit.color)
+    (hdnext : st.nextUp d = false)
+    (hdpin : rungAt st d.suit + 1 ≤ x.rank.toIdx) :
+    False := by
+  obtain ⟨A, bsA, hshape, hfit⟩ := hdcover
+  obtain ⟨hdrankT, hdcolT⟩ := (canSitOn_eq d x.twin).mp hfit
+  rw [Card.twin_rank] at hdrankT
+  have hxtc : x.twin.suit.color = x.suit.color := by
+    rw [Card.twin_suit, Suit.color_twin]
+  rw [hxtc] at hdcolT
+  have hdmemST : d ∈ (st.piles A).faceUp := by
+    rw [hshape]
+    exact List.mem_append.2 (Or.inr (List.mem_cons.2
+      (Or.inr (List.mem_cons.2 (Or.inl rfl)))))
+  have hdred := Rank.toIdx_lt x.rank
+  have hdnk : d.rank ≠ Rank.king := by
+    intro hcon
+    have hk12 : Rank.king.toIdx = 12 := rfl
+    rw [hcon] at hdrankT
+    omega
+  have hbridge : rungAt st d.suit = st.foundHeight d.suit := rfl
+  have hneR : d.rank.toIdx ≠ rungAt st d.suit := by
+    intro hc0
+    have htrue : st.nextUp d = true := by
+      show decide (d.rank.toIdx = st.foundHeight d.suit) = true
+      rw [hc0, hbridge]
+      exact decide_eq_true rfl
+    rw [htrue] at hdnext
+    simp at hdnext
+  have hdeepst : rungAt st d.suit + 2 ≤ x.rank.toIdx := by omega
+  have hnothid : ∀ k, d ∉ (u.piles k).hidden := by
+    intro k hcon
+    have hp := shuffle_hiddenPinned hjourney k
+    rw [hp] at hcon
+    by_cases hk : k = A
+    · rw [hk] at hcon
+      exact (mem_faceUp_only hwf hdmemST).2.1 hcon
+    · exact ((mem_faceUp_only hwf hdmemST).1 k hk).1 hcon
+  rcases hpair with ⟨hm, hm'⟩ | ⟨hm, hm'⟩
+  · have hms : x = m := hm.symm
+    subst hms
+    have hms' : x.twin = m' := hm'.symm
+    subst hms'
+    have hmFound : x ∈ u.found x.suit :=
+      conf_founded_of_rung hwfu (by omega)
+    rcases conf_orphan_roam hwf hjourney hdnk ⟨A, bsA, x.twin, hshape, hfit⟩ with
+      ⟨a₂, L, b, R, hpkg, hbfit⟩ | haway
+    · obtain ⟨hbr, hbc⟩ := (canSitOn_eq d b).mp hbfit
+      have hbx : b.suit.color = x.suit.color := conf_color_pair hbc hdcolT
+      have hbCell : b = x ∨ b = x.twin :=
+        conf_rankColor_pair (by omega) hbx
+      have hbmem : b ∈ (u.piles a₂).faceUp := by
+        rw [hpkg]
+        exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
+      rcases hbCell with hb1 | hb1
+      · have hxmem : x ∈ (u.piles a₂).faceUp := hb1 ▸ hbmem
+        exact ((mem_found_unique hwfu hmFound).1 a₂).2 hxmem
+      · subst hb1
+        obtain ⟨-, Q, hpoQ, -⟩ := step_tabToFound_inv hfire
+        exact conf_orphan_topclash hwfu ⟨Q, hpoQ⟩ ⟨a₂, L, R, hpkg⟩
+    · rcases conf_zone_residency u hwfu d with ⟨s, hdFu⟩ | ⟨k, hh⟩ |
+        ⟨k, hfa⟩ | hstock | hwaste
+      · have hsub := rung_found_prefix u hwfu s
+        have htake : d ∈ s.upCards.take (rungAt u s) := by
+          rw [← hsub]
+          exact hdFu
+        have hdlist : d ∈ s.upCards := conf_take_sub _ _ _ htake
+        have hsuit : s = d.suit := by
+          rcases d with ⟨ds, dr⟩
+          obtain ⟨r', -, hEq⟩ := List.mem_map.mp hdlist
+          injection hEq with h1 _
+        have hdF2 : d ∈ u.found d.suit := hsuit ▸ hdFu
+        have hRungUp : d.rank.toIdx < rungAt u d.suit :=
+          conf_founded_rank_lt hwfu hdF2
+        have hx13 := Rank.toIdx_lt x.rank
+        have heidx : x.rank.toIdx - 2 < 13 := by omega
+        obtain ⟨rk, hrk⟩ := conf_rank_of_idx heidx
+        have hefound : rk.toIdx + 2 = x.rank.toIdx := by omega
+        have heF : Card.mk d.suit rk ∈ u.found d.suit := by
+          refine conf_founded_of_rung hwfu ?_
+          show rk.toIdx < rungAt u d.suit
+          omega
+        have heN : Card.mk d.suit rk ∉ st.found d.suit := by
+          intro hcon
+          have hlt := conf_founded_rank_lt hwf hcon
+          have hlt2 : rk.toIdx < rungAt st d.suit :=
+            show rk.toIdx < rungAt st d.suit from hlt
+          omega
+        obtain ⟨P, b₂, hemem2, hb₂mem, hfit2⟩ :=
+          cross_orphan_seat hwfu hback (e := Card.mk d.suit rk)
+            (by
+              show (Card.mk d.suit rk).rank ≠ Rank.king
+              intro hcon
+              have hc2 : rk = Rank.king := hcon
+              rw [hc2] at hrk
+              have hk12 : Rank.king.toIdx = 12 := rfl
+              omega) heF heN
+        obtain ⟨hbr2, hbc2⟩ :=
+          (canSitOn_eq (Card.mk d.suit rk) b₂).mp hfit2
+        have hbr3 : rk.toIdx + 1 = b₂.rank.toIdx :=
+          show rk.toIdx + 1 = b₂.rank.toIdx from hbr2
+        have hbx2 : b₂.suit.color = x.suit.color :=
+          conf_color_pair hbc2 hdcolT
+        have hb₂F : b₂ ∈ st.found b₂.suit :=
+          pair_lowFamily_founded hwf hx hbx2 (by omega)
+        exact (mem_faceUp_only hwf hb₂mem).2.2.2.2 b₂.suit hb₂F
+      · exact hnothid k hh
+      · exact haway k hfa
+      · rcases conf_orphan_union hjourney d (Or.inl hstock) with hS | hS
+        · exact (mem_faceUp_only hwf hdmemST).2.2.1 hS
+        · exact (mem_faceUp_only hwf hdmemST).2.2.2.1 hS
+      · rcases conf_orphan_union hjourney d (Or.inr hwaste) with hS | hS
+        · exact (mem_faceUp_only hwf hdmemST).2.2.1 hS
+        · exact (mem_faceUp_only hwf hdmemST).2.2.2.1 hS
+  · have hms : x.twin = m := hm.symm
+    subst hms
+    have hms' : x = m' := hm'.symm
+    subst hms'
+    have htwinr : x.twin.rank.toIdx = x.rank.toIdx :=
+      congrArg Rank.toIdx (Card.twin_rank x)
+    have hmFound : x.twin ∈ u.found x.twin.suit :=
+      conf_founded_of_rung hwfu (by omega)
+    rcases conf_orphan_roam hwf hjourney hdnk ⟨A, bsA, x.twin, hshape, hfit⟩ with
+      ⟨a₂, L, b, R, hpkg, hbfit⟩ | haway
+    · obtain ⟨hbr, hbc⟩ := (canSitOn_eq d b).mp hbfit
+      have hbx : b.suit.color = x.suit.color := conf_color_pair hbc hdcolT
+      have hbCell : b = x ∨ b = x.twin :=
+        conf_rankColor_pair (by omega) hbx
+      have hbmem : b ∈ (u.piles a₂).faceUp := by
+        rw [hpkg]
+        exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
+      rcases hbCell with hb1 | hb1
+      · subst hb1
+        obtain ⟨-, Q, hpoQ, -⟩ := step_tabToFound_inv hfire
+        exact conf_orphan_topclash hwfu ⟨Q, hpoQ⟩ ⟨a₂, L, R, hpkg⟩
+      · have hxmem : x.twin ∈ (u.piles a₂).faceUp := hb1 ▸ hbmem
+        exact ((mem_found_unique hwfu hmFound).1 a₂).2 hxmem
+    · rcases conf_zone_residency u hwfu d with ⟨s, hdFu⟩ | ⟨k, hh⟩ |
+        ⟨k, hfa⟩ | hstock | hwaste
+      · have hsub := rung_found_prefix u hwfu s
+        have htake : d ∈ s.upCards.take (rungAt u s) := by
+          rw [← hsub]
+          exact hdFu
+        have hdlist : d ∈ s.upCards := conf_take_sub _ _ _ htake
+        have hsuit : s = d.suit := by
+          rcases d with ⟨ds, dr⟩
+          obtain ⟨r', -, hEq⟩ := List.mem_map.mp hdlist
+          injection hEq with h1 _
+        have hdF2 : d ∈ u.found d.suit := hsuit ▸ hdFu
+        have hRungUp : d.rank.toIdx < rungAt u d.suit :=
+          conf_founded_rank_lt hwfu hdF2
+        have hx13 := Rank.toIdx_lt x.rank
+        have heidx : x.rank.toIdx - 2 < 13 := by omega
+        obtain ⟨rk, hrk⟩ := conf_rank_of_idx heidx
+        have hefound : rk.toIdx + 2 = x.rank.toIdx := by omega
+        have heF : Card.mk d.suit rk ∈ u.found d.suit := by
+          refine conf_founded_of_rung hwfu ?_
+          show rk.toIdx < rungAt u d.suit
+          omega
+        have heN : Card.mk d.suit rk ∉ st.found d.suit := by
+          intro hcon
+          have hlt := conf_founded_rank_lt hwf hcon
+          have hlt2 : rk.toIdx < rungAt st d.suit :=
+            show rk.toIdx < rungAt st d.suit from hlt
+          omega
+        obtain ⟨P, b₂, hemem2, hb₂mem, hfit2⟩ :=
+          cross_orphan_seat hwfu hback (e := Card.mk d.suit rk)
+            (by
+              show (Card.mk d.suit rk).rank ≠ Rank.king
+              intro hcon
+              have hc2 : rk = Rank.king := hcon
+              rw [hc2] at hrk
+              have hk12 : Rank.king.toIdx = 12 := rfl
+              omega) heF heN
+        obtain ⟨hbr2, hbc2⟩ :=
+          (canSitOn_eq (Card.mk d.suit rk) b₂).mp hfit2
+        have hbr3 : rk.toIdx + 1 = b₂.rank.toIdx :=
+          show rk.toIdx + 1 = b₂.rank.toIdx from hbr2
+        have hbx2 : b₂.suit.color = x.suit.color :=
+          conf_color_pair hbc2 hdcolT
+        have hb₂F : b₂ ∈ st.found b₂.suit :=
+          pair_lowFamily_founded hwf hx hbx2 (by omega)
+        exact (mem_faceUp_only hwf hb₂mem).2.2.2.2 b₂.suit hb₂F
+      · exact hnothid k hh
+      · exact haway k hfa
+      · rcases conf_orphan_union hjourney d (Or.inl hstock) with hS | hS
+        · exact (mem_faceUp_only hwf hdmemST).2.2.1 hS
+        · exact (mem_faceUp_only hwf hdmemST).2.2.2.1 hS
+      · rcases conf_orphan_union hjourney d (Or.inr hwaste) with hS | hS
+        · exact (mem_faceUp_only hwf hdmemST).2.2.1 hS
+        · exact (mem_faceUp_only hwf hdmemST).2.2.2.1 hS
+
+/-- **THE WITNESS PLAYBACK (seam)** — every witness journey rides
+backwards.  ROUTE: the two-way closure is the macro-class setoid's
+own supply — `sameOrbitSetoid.r` unfolds to `RevEqW` whose SECOND
+existential is by definition the return journey; the leg-level
+composition is NOT the reversibleAtW return-play (a `State.run`
+play, not a witness play) — the correct lift extracts the class
+relation's second play (`RevEqW`-destructure at the caller, then
+`.2`), or composes via `RevEqW_trans` when the caller holds only
+journey fragments. -/
+private theorem conf_playback {st : State} : ∀ {u : State} {π : List Move},
+    ShufflePlayW st π u → ∃ ρ, ShufflePlayW u ρ st := by
   sorry
 
-/-- **THE CROSSING-DOOR BAR** — the door never opens.  The proof is the
-assembled route, modulo the three named sub-residues above: the
-door's premise pins the FIRING member's own rank index (the `nextUp`
-guard of the tabToFound step inversion) against the OTHER member's
-already-elevated rung; the PROVED crossing-letter row
-`conf_founding_crosses` splits the prefix at the elevated member's
-literal founding leg, whose pre-state that member tops a pile; the
-cover-hop chain (`crossing_door_hop`) reads the twin's uncovering off
-that state (anchored at the door itself in the mirrored case, where
-the twin tops at `u` by the step's own pile-of-top guard); the freeze
-(`crossing_door_freeze`) kills the founding escape; the lastness read
-(`crossing_door_final`) closes the alternation against the LIFO
-ledger.  The original five-step route map lives on, shrunk, in the
-three sub-residues' own docstrings.
-
-Until those three land, the bar is honestly open; the main invariant
-below carries exactly this residue and no other. -/
+/-- **THE DOOR BAR** — the crossing door cannot fire in any macro
+class containing a fork: at the door state one pair member would
+found while the other's suit rung already stands past the fork
+index.  The backward-orphan kill (the two door orders, the hidden
+bar, the orphan construction, the backward seat application, and
+the fork-saturation census) — mounted on the imported
+`cross_orphan_seat` residue, the three named seams, and the
+`pair_cover_pins` twin-cover package. -/
 private theorem crossing_door_barred {st : State} (hwf : st.WF) {x : Card}
     (hx : ForkWitness st x) {u s₁ : State} (π : List Move)
     (hpre : ShufflePlayW st π u) :
@@ -989,41 +3032,22 @@ private theorem crossing_door_barred {st : State} (hwf : st.WF) {x : Card}
         rungAt u x.suit > x.rank.toIdx)) →
     False := by
   rintro (⟨hstep, helev⟩ | ⟨hstep, helev⟩)
-  · -- the door raises the witness; the TWIN already stands elevated:
-    -- its literal founding leg rides the prefix, and the leg's own
-    -- pile-of-top guard anchors the hop chain there
-    have hr1 : rungAt st x.twin.suit = x.rank.toIdx := by
-      have h2 := canRaiseS_rung ((hx.1 x.twin).mp (Or.inr rfl))
-      rwa [Card.twin_rank] at h2
-    have hle : ¬ (rungAt st x.twin.suit > x.twin.rank.toIdx) := by
-      rw [Card.twin_rank]
-      intro hcon
-      rw [hr1] at hcon
-      exact Nat.lt_irrefl _ hcon
-    have helev' : rungAt u x.twin.suit > x.twin.rank.toIdx := by
-      rw [Card.twin_rank]
-      exact helev
-    obtain ⟨ρ, v, s₂, rest', hsplit, hsh, hfstep⟩ :=
-      conf_founding_crosses (m := x.twin) hpre hle helev'
-    obtain ⟨-, b, hpoV, -⟩ := step_tabToFound_inv hfstep
-    rcases crossing_door_hop hwf hx hsh ⟨b, hpoV⟩ with
-      hcargo | hfounded
-    · -- re-embed the hop certificate along the founding split
-      obtain ⟨ρ₁, ρ₂, c, bb, s₃, s₄, hρeq, hsh₁, hstep₁, hrk, hcol⟩ :=
-        hcargo
-      exact crossing_door_final hwf hx hpre (Or.inl ⟨hstep, helev⟩)
-        ⟨ρ₁, ρ₂ ++ (Move.tabToFound x.twin :: rest'), c, bb, s₃, s₄,
-          by rw [hsplit, hρeq, List.append_assoc]; rfl,
-          hsh₁, hstep₁, hrk, hcol⟩
-    · exact crossing_door_freeze hwf hx hsh hfounded
-  · -- the door raises the twin; the WITNESS already stands elevated:
-    -- the hop chain anchors at the door itself (the twin tops there,
-    -- the firing leg's own pile-of-top guard)
-    obtain ⟨-, b, hpoU, -⟩ := step_tabToFound_inv hstep
-    rcases crossing_door_hop hwf hx hpre ⟨b, hpoU⟩ with
-      hcargo | hfounded
-    · exact crossing_door_final hwf hx hpre (Or.inr ⟨hstep, helev⟩) hcargo
-    · exact crossing_door_freeze hwf hx hpre hfounded
+  all_goals
+    obtain ⟨a, bs, d, hshape, -, hfit, -, hdnext, hdpin⟩ :=
+      pair_cover_pins hwf hx
+    obtain ⟨-, hdcolT⟩ := (canSitOn_eq d x.twin).mp hfit
+    have hxtc : x.twin.suit.color = x.suit.color := by
+      rw [Card.twin_suit, Suit.color_twin]
+    rw [hxtc] at hdcolT
+    obtain ⟨ρ, hback⟩ := conf_playback hpre
+  · -- the door raises x: the twin side stands past the fork index
+    exact conf_door_orphan hwf (conf_wf_along hpre hwf) hpre hback hx
+      (Or.inr ⟨rfl, rfl⟩) hstep helev ⟨a, bs, hshape, hfit⟩
+      hdcolT hdnext hdpin
+  · -- the door raises the twin: the witness side stands past
+    exact conf_door_orphan hwf (conf_wf_along hpre hwf) hpre hback hx
+      (Or.inl ⟨rfl, rfl⟩) hstep helev ⟨a, bs, hshape, hfit⟩
+      hdcolT hdnext hdpin
 
 /-- **THE ONE-FOUNDING INVARIANT — the upward confinement**: within
 any macro class containing a `forkState`, the PAIR'S RANK NEVER
