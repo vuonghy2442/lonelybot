@@ -4,8 +4,8 @@ import Orig.MacroInternal
 # Orig.ForkStateUniq — the ForkState Uniqueness Theorem
 
 The last big mathematical content of the fork program: **if one
-`forkState` exists in a macro class, then the only forkStates of that
-macro class are the conjugate forkState, up to bare cargo exchange
+`weakForkState` exists in a macro class, then the only forkStates of that
+macro class are the conjugate weakForkState, up to bare cargo exchange
 (`CargoPath` connected)** — the two parts of the user's formulation:
 
 * **Part 1 (non-king pairs)** — the mate face is the SLID STATE: the
@@ -34,7 +34,7 @@ recorded below it as the explicitly-named BLOCKED residue with a
 per-gate diagnosis.
 
 The in-tree interface (`Orig.MacroInternal`) is mirrored, never
-redefined: `forkState`, `conjugateForkState`, `CargoPath`,
+redefined: `weakForkState`, `conjugateForkState`, `CargoPath`,
 `FaceShape`, `classOf` are consumed by their real names.  Several of
 the battery rows the in-tree module keeps `private` (the rung
 writers, the loop-closed `class_leg`, the snoc-nodup kit) are
@@ -135,13 +135,13 @@ private theorem card_twin_ne (c : Card) : c.twin ≠ c := by
 
 /-- A forkState's witness raises — the iff's left-to-right existence
 half, instantiated once. -/
-theorem forkState_raiser {st : State} (h : forkState st) :
+theorem forkState_raiser {st : State} (h : weakForkState st) :
     ∃ x, CanRaise st x ∧ ∀ c, CanRaise st c → c = x := by
   obtain ⟨x, _, _, hiff⟩ := h
   exact ⟨x, (hiff x).2 rfl, fun c hc => (hiff c).1 hc⟩
 
 /-- **The state-level pair exclusivity, color form** — two
-forkState witnesses of one state never sit at different-color pairs
+weakForkState witnesses of one state never sit at different-color pairs
 (the `forkPoint_exclusive` content at the new reads: the in-tree
 sandwich carries the class-grade strand; at the state grade the
 two iff's alone pinch — `finalFork_pairUnique` names the pair
@@ -200,7 +200,7 @@ theorem cargoPath_flatPath {w u : State} (h : CargoPath w u) :
       exact FlatPath.cons hstep ih
 
 /-- **The pin transport** — a cargo walk never writes a foundation,
-so the forkState rung pair stays pinned along it (the in-tree
+so the weakForkState rung pair stays pinned along it (the in-tree
 `flat_heights` restated at the interface relation; the found-content
 upgrade is `cargoPath_foundCongr` below). -/
 theorem cargoPath_rungs {st w : State} (h : CargoPath st w) :
@@ -351,12 +351,12 @@ theorem kingVacWalk_class {st w : State} (h : KingVacWalk st w) :
 
 /-! ## §3. The slid mate — the conjugate's second face is ONE CARGO LEG
 
-At a forkState whose witness twin is covered by a FITTING cargo
+At a weakForkState whose witness twin is covered by a FITTING cargo
 (the `forkPointC` witness shape, mirrored at the new reads), the
 mate face is the SLID STATE: the cargo's run slides off the twin
 onto the witness — one direct reversible `tabToTab` — and the
 license flips from `x` to `x.twin`.  The full iff at the slid state
-is carried by the forkState parcel itself (the pins ride the
+is carried by the weakForkState parcel itself (the pins ride the
 found-nonwrite of a slide; the maximality rides the failure of every
 OTHER card's license at `st`, the rung strand of the cargo, and the
 burial of the witness) — the composite's three-step
@@ -364,13 +364,13 @@ raise–slide–pull detour is NOT needed for the mate connection (see
 §4: the composite's endpoint even keeps the SAME witness).
 -/
 
-/-- The mate row: the three-clause `forkState` at `st` with its
+/-- The mate row: the three-clause `weakForkState` at `st` with its
 witness `x` raising, its twin `x.twin` covered directly by a cargo
 `d` that fits ON `x` (one rank below the pair, opposite color — the
 `canSitOn` fit), and the seat package the exposed twin will need
 (under-seat content, or the bare-king vacate shape of
 `Orig/Vacate`'s channel) — then the one-move slide produces the
-mate forkState at the pair, CargoPath-connected to `st` (the leg's
+mate weakForkState at the pair, CargoPath-connected to `st` (the leg's
 own reversibility is `tabToTab_undo_under`, the classification's
 under-cell: undo = the slide back onto the exposed twin). -/
 theorem forkState_slide_mate {st : State} {x d : Card} {q : Anchor} {bs : List Card}
@@ -382,7 +382,7 @@ theorem forkState_slide_mate {st : State} {x d : Card} {q : Anchor} {bs : List C
     (hfit : canSitOn d x = true)
     (hseat : bs ≠ [] ∨ ((st.piles q).hidden = [] ∧ x.twin.rank = Rank.king)) :
     ∃ s', st.step (Move.tabToTab d (Sum.inr x)) = some s' ∧
-      forkState s' ∧ CargoPath st s' := by
+      weakForkState s' ∧ CargoPath st s' := by
   -- the license's own location of x
   obtain ⟨_, p, hpox, _⟩ := (hiff x).2 rfl
   -- the memberships and search pins at st
@@ -609,7 +609,7 @@ theorem forkState_slide_mate {st : State} {x d : Card} {q : Anchor} {bs : List C
         exact hnu2
       rw [hcast] at hnu
       exact hnu rfl
-  -- the mate forkState, and the one-leg CargoPath
+  -- the mate weakForkState, and the one-leg CargoPath
   refine ⟨s', hstep, ⟨x.twin, ?_, ?_, ?_⟩, ?_⟩
   · show (s'.found x.twin.suit).length = x.twin.rank.toIdx
     rw [hfounds x.twin.suit, hL2, Card.twin_rank]
@@ -689,7 +689,7 @@ not three dance legs.  These rows pin that anatomy down.
 /-- **The composite is net-flat on the foundations** — the raise
 writes `+[x]`, the slide writes nothing, the pull chops it right
 back; every foundation returns card for card.  Stated at the loose
-three-step shape (the `forkState st` conjunct of
+three-step shape (the `weakForkState st` conjunct of
 `conjugateForkState` is never read here, so the row is the
 stronger one). -/
 theorem conjugate_endpoint_netflat {st w : State} {x : Card}
@@ -722,7 +722,7 @@ theorem conjugate_endpoint_netflat {st w : State} {x : Card}
 pulled-back `x` lands as a pile top with a live seat (the fresh
 base's chop, or the king-vacate shape of the empty-anchor landing),
 its pin restored by the net-flat composite.  This is the row that
-separates the composite from the mate: a forkState at the composite
+separates the composite from the mate: a weakForkState at the composite
 endpoint must witness the SAME card the composite started with. -/
 theorem conjugate_endpoint_relic {st w : State} {x : Card}
     (hwf : st.WF)
@@ -785,7 +785,7 @@ theorem conjugate_endpoint_relic {st w : State} {x : Card}
   exact ⟨k, (pileOfTop_eq_some_iff hwfw).2 hwtop, hseat⟩
 
 /-- **THE ENDPOINT'S WITNESS IS THE SAME CARD** — if the composite's
-endpoint carries a forkState at all, its iff names the composite's
+endpoint carries a weakForkState at all, its iff names the composite's
 own starting witness: the mate face never comes from the composite
 (it comes from §3's one-leg slide). -/
 theorem conjugate_endpoint_witness {st w : State} {x y : Card}
@@ -824,7 +824,7 @@ conjugate half and the king-shuffle half), with everything the two
 halves need mechanically having landed above:
 
 * the mate face is ONE reversible cargo leg off the witness state
-  (§3), and it is a forkState of the SAME CLASS (`cargoPath_sameClass`);
+  (§3), and it is a weakForkState of the SAME CLASS (`cargoPath_sameClass`);
 * every bare-king vacate is one reversible cargo leg (§2), so the
   whole king shuffle orbit — a king wandering the vacant anchors,
   swapping with its twin — sits inside the `CargoPath` closure
@@ -847,20 +847,20 @@ theorem cargoPath_sameClass {st w : State} {C : SameOrbit}
     (h : CargoPath st w) (hC : classOf C st) : classOf C w :=
   (Quotient.sound (cargoPath_class h)).symm.trans hC
 
-/-- The mate face is a class-mate: §3's slid forkState enters the
+/-- The mate face is a class-mate: §3's slid weakForkState enters the
 same macro class as the state it slid off (`cargoPath_sameClass` at
 the mate leg). -/
 theorem forkState_mate_inClass {st : State} {C : SameOrbit}
     (hC : classOf C st)
     (hmate : ∃ s' d x, st.step (Move.tabToTab d (Sum.inr x)) = some s' ∧
-      forkState s' ∧ CargoPath st s') : ∃ s', forkState s' ∧ classOf C s' ∧
+      weakForkState s' ∧ CargoPath st s') : ∃ s', weakForkState s' ∧ classOf C s' ∧
       CargoPath st s' := by
   obtain ⟨s', d, x, hstep, hfs, hcp⟩ := hmate
   exact ⟨s', hfs, cargoPath_sameClass hcp hC, hcp⟩
 
-/-- **THE FORKSTATE UNIQUENESS THEOREM** — IF one forkState exists
+/-- **THE FORKSTATE UNIQUENESS THEOREM** — IF one weakForkState exists
 in a macro class, THEN the only forkStates of that macro class are
-the conjugate forkState, UP TO BARE CARGO EXCHANGE (`CargoPath`
+the conjugate weakForkState, UP TO BARE CARGO EXCHANGE (`CargoPath`
 connected): in the non-king case the pair's two faces are the
 witness state and its §3 slid mate; in the king case the orbit
 expands across the vacant anchors by §2's king-vacate legs, all
@@ -872,7 +872,7 @@ sub-step that does not close from the in-tree battery is the
 "nothing else differs" direction, and the diagnosis is precise:
 
 * **(G1) PAIR-TRANSPORT** — the two witnesses must share the pair
-  up to twin flip.  At the new reads the rung pins of one forkState
+  up to twin flip.  At the new reads the rung pins of one weakForkState
   do NOT exclude a second pair at the other color family: the two
   off-pair suits' rungs are free data, and the in-tree
   `forkPoint_exclusive` sandwich needs the `forkPointC` cargo
@@ -886,7 +886,7 @@ sub-step that does not close from the in-tree battery is the
 * **(G2) COVERAGE-DEGENERACY** — the mate production needs the
   covering-cargo parcel (the trial shape: the twin COVERED
   directly by a fitting `d`, and the exposed seat package).  A
-  forkState whose twin is blocked otherwise (waste/stock, buried
+  weakForkState whose twin is blocked otherwise (waste/stock, buried
   under non-fitting cargo, or the bare-bottom non-king twin — the
   (Q,J)-falsifier seat) realizes with NO slid mate, and for those
   classes the uniqueness claim degenerates to the cargo orbit of
@@ -907,7 +907,7 @@ the connectors.  The residue is intentionally a single `sorry`
 carrying the whole named gate. -/
 theorem forkState_unique {C : SameOrbit} {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
-    (h₁ : forkState st₁) (h₂ : forkState st₂)
+    (h₁ : weakForkState st₁) (h₂ : weakForkState st₂)
     (hc₁ : classOf C st₁) (hc₂ : classOf C st₂) :
     FaceShape st₁ st₂ := by
   sorry

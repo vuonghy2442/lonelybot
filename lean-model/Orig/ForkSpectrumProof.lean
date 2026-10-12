@@ -8,12 +8,12 @@ falsifier
 
 THE BRIEF (third formulation): the going-deeper restricted language is
 superseded; the game's own rules are the only constraint, and the
-spectrum of a class's `forkState`s is the closure under three named
+spectrum of a class's `weakForkState`s is the closure under three named
 structural generators (cecab21/8e469a3, in-tree `ForkSpectrum`):
 `twinSwap` (`conjugateForkState`), `parentSwap` (the conditional (x+1)
 under-seat trade — the premise delegated to this card), `cargo`
 (`CargoPath`).  The proof target: `forkSpectrum_complete` — every
-`forkState` of one class is in this closure.
+`weakForkState` of one class is in this closure.
 
 **THE PROBE-FIRST VERDICT (the third landing of the ForkUniqProbe
 family).**  The in-tree statement is REFUTED at theorem grade, and the
@@ -32,7 +32,7 @@ GENERATORS ARE FOUNDATION-FLAT —
 
 So every `ForkSpectrum` endpoint shares the start's entire height
 tuple (§1 below).  But the macro class carries same-pair,
-same-orientation `forkState`s whose NON-PAIR rungs differ — the G2
+same-orientation `weakForkState`s whose NON-PAIR rungs differ — the G2
 counterexample export (`forkGate_strict_head_false`, public at
 `Orig.ForkStateUniqGate`; witness pair {5♥, 5♦}, spade rungs 5 vs 6) —
 and the forward journey between them (`[tabToTab 5♥ (inr 6♣),
@@ -75,7 +75,7 @@ the MacroInternal discipline); every fresh head audited
 (`#print axioms` — expected `[propext]`/`[propext, Quot.sound]`, zero
 `Classical.choice`); exactly ONE `sorry` (the named BLOCKED target);
 the in-tree interface (`ForkSpectrum`, `conjugateForkState`,
-`CargoPath`, `forkState`) mirrored, never redefined.  The import list
+`CargoPath`, `weakForkState`) mirrored, never redefined.  The import list
 extends the mandated `Orig.MacroInternal` with `Orig.ForkStateUniq`
 and `Orig.ForkStateUniqGate` — the refutation consumes the gate's
 banked public counterexample export, and re-crafting a duplicate
@@ -157,7 +157,7 @@ theorem forkSpectrum_foundsFlat {st w : State} (hwf : st.WF)
 /-! ## §2. The refutation — the third landing of the ForkUniqProbe family
 
 The gate's public export `forkGate_strict_head_false` carries the
-counterexample as a self-contained existential: two `WF` `forkState`s
+counterexample as a self-contained existential: two `WF` `weakForkState`s
 of one macro class, witnessing the same pair with the same
 orientation (the iff names the SAME card at both), whose non-pair
 spade rungs differ by exactly one.  Together with the flatness law
@@ -168,14 +168,14 @@ non-pair `tabToFound` — a letter NO generator carries. -/
 /-- **THE IN-TREE COMPLETENESS ROW IS FALSE AS STATED** — with all its
 premises satisfied by the gate's craft, `ForkSpectrum st w` cannot
 close: the spectrum is height-tuple-fix (§1) and the class carries a
-same-class same-pair `forkState` pair whose spade rungs differ.  The
+same-class same-pair `weakForkState` pair whose spade rungs differ.  The
 row's sorry is not a blocked gate; it is a false conjunct, exactly as
 the G2 verdict found for `forkState_unique` (the same cell, the same
 family, third landing).  The missing generator is the raising letter
 (see §5). -/
 theorem forkSpectrum_complete_refuted :
-    ¬ (∀ (st : State), st.WF → forkState st → ∀ (w : State),
-        sameOrbitSetoid.r st w → forkState w → ForkSpectrum st w) := by
+    ¬ (∀ (st : State), st.WF → weakForkState st → ∀ (w : State),
+        sameOrbitSetoid.r st w → weakForkState w → ForkSpectrum st w) := by
   intro h
   obtain ⟨C, st₁, st₂, x, s, hpack⟩ := forkGate_strict_head_false
   obtain ⟨hwf₁, hwf₂, hfs₁, hfs₂, hc₁, hc₂, -, -, -, -, hne⟩ := hpack
@@ -229,7 +229,7 @@ reversible cargo legs exactly when the alternating-color discipline
 permits both parents at the traded positions — "sometimes"), and the
 shape premise is the structural residue (the (x+1) cards trading
 between the twins' two piles).  Read at the states where the
-`forkState` detection fires, this is the spectrum's second named
+`weakForkState` detection fires, this is the spectrum's second named
 generator at honest grade. -/
 def ParentSwap (st w : State) (x p q : Card) : Prop :=
   ∃ a b bs₁ bs₂, CargoPath st w ∧ ParentSwapShape st w x p q a b bs₁ bs₂
@@ -279,7 +279,7 @@ theorem faceShape_spectrum {st w : State} (h : FaceShape st w) :
 /-- The slid mate face is in the spectrum: §3 of `Orig.ForkStateUniq`
 lands the mate as ONE reversible cargo leg off the witness state, so
 the mate orbit (the non-king two-face book) is closure-generated.  The
-premises are `forkState_slide_mate`'s own — read at a `forkState`
+premises are `forkState_slide_mate`'s own — read at a `weakForkState`
 whose twin is directly covered by a fitting cargo carrying the seat
 package. -/
 theorem slidMate_spectrum {st : State} {x d : Card} {q : Anchor}
@@ -291,7 +291,7 @@ theorem slidMate_spectrum {st : State} {x d : Card} {q : Anchor}
     (hshape : (st.piles q).faceUp = bs ++ [x.twin, d])
     (hfit : canSitOn d x = true)
     (hseat : bs ≠ [] ∨ ((st.piles q).hidden = [] ∧ x.twin.rank = Rank.king)) :
-    ∃ s', forkState s' ∧ ForkSpectrum st s' := by
+    ∃ s', weakForkState s' ∧ ForkSpectrum st s' := by
   obtain ⟨s', -, hfs, hcp⟩ :=
     forkState_slide_mate hwf hpin1 hpin2 hiff hshape hfit hseat
   exact ⟨s', hfs, ForkSpectrum.cargo hcp (ForkSpectrum.base s')⟩
@@ -318,7 +318,7 @@ Two directions, both priced against the craft:
   witnessed by the craft.  The raise letter is exactly the user's
   own (a) generator from the first formulation ("the cascade (raise
   (x+1), (x+2), … — each exhaustive per its pile; each cascade exit
-  can re-serve as a forkState").
+  can re-serve as a weakForkState").
 * **EQUALITY LOCK, the state-grade repair**: the completeness row at
   FIXED height tuple.  The craft proves the lock necessary (this
   file, §2); at equal rungs the content agreement is banked
@@ -344,14 +344,14 @@ Two directions, both priced against the craft:
 
 /-- **THE EQUALITY-LOCKED COMPLETENESS — the honest repair target**
 (named BLOCKED, the in-tree gated-row precedent `forkState_unique` →
-the craft carries).  Same class, both `forkState`s, and the height
+the craft carries).  Same class, both `weakForkState`s, and the height
 tuple FIXED EQUAL: then (and only then — §2 shows the lock is
-necessary) is the second forkState inside the three-generator
+necessary) is the second weakForkState inside the three-generator
 closure?  The three gates are priced in the §5 ledger; this row is
 the finishing target the next classification card owns. -/
 theorem forkSpectrum_complete_locked (st : State) (hwf : st.WF)
-    (hfs : forkState st) (w : State)
-    (hcls : sameOrbitSetoid.r st w) (hwfs : forkState w)
+    (hfs : weakForkState st) (w : State)
+    (hcls : sameOrbitSetoid.r st w) (hwfs : weakForkState w)
     (heqrungs : ∀ σ : Suit, rungAt st σ = rungAt w σ) :
     ForkSpectrum st w := by
   sorry

@@ -13,7 +13,7 @@ first per the probe-first discipline).  What the boards settled:
   §4 rows (`conjugate_endpoint_relic/_witness` in ForkStateUniq,
   stated at the LOOSE raise–slide–pull shape and therefore covering
   the corrected composite verbatim with `d := x.twin`) are not
-  old-composite residue — they hold, and they force any forkState at
+  old-composite residue — they hold, and they force any weakForkState at
   the endpoint to witness the composite's own raised card.  The
   twins trade physical POSITIONS; the raise license stays with `x`.
 * **The seat package is load-bearing** (probe B): at the (Q,J)
@@ -23,11 +23,11 @@ first per the probe-first discipline).  What the boards settled:
   landing), and the endpoint carries BOTH twins as raisers: NOT a
   forkState.  The conjugation theorem therefore carries the twin's
   seat package as a premise — exactly the in-tree docstring's
-  "implied by the forkState iff on x side, checked on x.twin side".
+  "implied by the weakForkState iff on x side, checked on x.twin side".
 * **The raw `fires ⟺ seats` necessity is refuted** (probe C): a
   covered-but-unseated twin (bottom of its face-up run, empty
   hidden, non-king) can fire the composite with a DISPLACED second
-  base and still land a perfectly good forkState endpoint.  The
+  base and still land a perfectly good weakForkState endpoint.  The
   existence biconditional is therefore proved at the honest grades:
   the seat-swap OUTCOME implies the seat package, with the (Q,J)
   corner recorded as the theorem-grade failure shape.
@@ -39,15 +39,15 @@ The rows, in dependency order:
   theorems.
 * §2 — the seat parcels: `TwinSeat` (the V3 form), the twin-pile
   separation (twins share rank, so a legal run cannot hold both), the
-  exposed-twin impossibility at a forkState, and the seat-forced
+  exposed-twin impossibility at a weakForkState, and the seat-forced
   pile shapes.
 * §3 — the packing pins: kings fit nothing, the `(x+1)` cards of the
   opposite color are exactly two, and every fitting base is one of
   them — the arithmetic that forces the composite's second and third
   bases onto the docstring seats.
-* §4 — **THE MAIN ROW `conjugate_forkState_corrected`**: a forkState
+* §4 — **THE MAIN ROW `conjugate_forkState_corrected`**: a weakForkState
   at `st` (witness `x`), the twin located with its seat package,
-  and ANY firing of the corrected composite land a forkState at
+  and ANY firing of the corrected composite land a weakForkState at
   `w`, witness THE SAME `x`.
 * §5 — **THE CONSTRUCTION** (the iff's existence direction):
   REMAINING WORK with the route recorded in §6's note — the seat
@@ -58,19 +58,19 @@ The rows, in dependency order:
 * §6 — **THE SEAT-SWAP NECESSITY and the (Q,J) corner**: REMAINING
   WORK (routes recorded in the section note): the swap outcome
   implies the twin's seat package, and the unseated exposed twin's
-  firing never lands a forkState (probe B's two-raiser shape).  The
+  firing never lands a weakForkState (probe B's two-raiser shape).  The
   RAW `fires ⟹ seats` necessity is REFUTED at probe grade (probe
   C's floating-covered displaced firing), so the honest
   biconditional lives at the seat-swap-outcome grade.
 * §7 — **THE TOTAL FUNCTION `conjugateForkStateS`** (LANDED): the
   computable search (witness over `Card.universe` via `canRaiseB`,
   the two bases over `Anchor.all`/`Card.universe`, the endpoint
-  gated by the decidably-checked `forkState`), identity on fail;
+  gated by the decidably-checked `weakForkState`), identity on fail;
   the correctness: the function moves `st` only onto an endpoint
   verified to satisfy both the corrected composite's definition
   AND the (checked) forkState.  NO Classical, NO noncomputable.
 
-The in-tree interface is consumed by real names (`forkState`,
+The in-tree interface is consumed by real names (`weakForkState`,
 `conjugateForkState` from `Orig.MacroInternal`; the §4 anatomy rows
 from `Orig.ForkStateUniq`); the private micro-kit re-lands the
 house's standard copies (`below_join`, `nodup_snoc_notmem`, the
@@ -295,7 +295,7 @@ theorem conjugate_relic {st w : State} {x : Card}
   exact conjugate_endpoint_relic hwf ⟨x.twin, ba, bb, st₁, st₂, h₁, h₂, h₃⟩
 
 /-- **THE WITNESS PIN** — the corrected composite's endpoint, if it
-carries a forkState at all, witnesses the composite's own raised
+carries a weakForkState at all, witnesses the composite's own raised
 card: the twins trade physical positions in the swap, but the raise
 license stays with `x`; the mate face never comes from the composite
 (it stays one cargo leg away, the §3 slide).  (The probe A verdict in
@@ -315,7 +315,7 @@ theorem conjugate_witness {st w : State} {x y : Card}
 /-- **The twin's seat package** (the V3 form): the twin sits on
 face-up under-seat content, or it is a bottom king on no hidden deck
 (the vacate channel).  This is the seat gate the in-tree docstring
-records: implied by the forkState iff on `x`'s side, carried as a
+records: implied by the weakForkState iff on `x`'s side, carried as a
 premise on the twin's side. -/
 def TwinSeat (st : State) (x : Card) (q : Anchor) : Prop :=
   below x.twin (st.piles q).faceUp ≠ [] ∨
@@ -359,7 +359,7 @@ theorem twin_pile_ne {st : State} {p : Anchor} {x : Card}
     omega
   · exact card_twin_ne x (List.mem_singleton.mp hlast)
 
-/-- **The exposed-twin impossibility**: at a forkState (the pair rungs
+/-- **The exposed-twin impossibility**: at a weakForkState (the pair rungs
 pinned, the iff naming `x` alone), a located twin with its seat
 package is NEVER a pile top — a top with the seat package would raise
 at `st`, contradicting the iff.  The twin is covered; the (Q,J)
@@ -497,11 +497,11 @@ theorem conjugate_fit_pin {x z₀ z₁ z : Card}
     have hrr : zr = z₁r := Rank.toIdx_inj (show zr.toIdx = z₁r.toIdx from hrank)
     rw [hz', hrr]
 
-/-! ## §4. THE MAIN ROW — the composite produces a forkState
+/-! ## §4. THE MAIN ROW — the composite produces a weakForkState
 
 With the witness clauses at `st` (the raise licensed to `x` alone),
 the twin LOCATED with its seat package, and ANY firing of the
-corrected composite, the endpoint `w` is a forkState — witnessed by
+corrected composite, the endpoint `w` is a weakForkState — witnessed by
 THE SAME `x` (§1's witness pin says it could be no other card): the
 composite is net-flat, every other card's license transports
 verbatim, and the seat packages keep the departures reveal-free.
@@ -515,7 +515,7 @@ the exposed `(x+1)` under the twin (or the king's empty anchor). -/
 
 /-- **THE CORRECTED CONJUGATION THEOREM** — the physical-swap
 composite produces a forkState.  The premises are exactly the
-honest ones: the forkState clauses at `st` with witness `x` (all
+honest ones: the weakForkState clauses at `st` with witness `x` (all
 three), the twin FACE UP in pile `q` with the seat package
 (`TwinSeat`, the V3 form), and a firing of the corrected
 `conjugateForkState` composite.  The endpoint `w` witnesses the SAME
@@ -540,7 +540,7 @@ theorem conjugate_forkState_corrected {st w : State} {x : Card} {q : Anchor}
       st.step (Move.tabToFound x) = some st₁ ∧
       st₁.step (Move.tabToTab x.twin ba) = some st₂ ∧
       st₂.step (Move.foundToTab x bb) = some w) :
-    forkState w := by
+    weakForkState w := by
   obtain ⟨ba, bb, st₁, st₂, h₁step, h₂step, h₃step⟩ := hsteps
   -- STEP 1's record and the pile of x
   obtain ⟨hnextx, p, hpox, hs₁⟩ := step_tabToFound_inv h₁step
@@ -1086,7 +1086,7 @@ with their routes analyzed:
   lands `x` elsewhere (the fit's rank arithmetic forbids
   `z = x.twin`, so the landing pile differs) — the twin keeps a live
   seat top at `w` while the relic re-licenses `x`: two raisers
-  cannot witness one forkState iff.  The sole delicate passage is the
+  cannot witness one weakForkState iff.  The sole delicate passage is the
   intermediate base search at the vacated pile (the reveal-scarred
   branch: the mover's own face-up membership in another pile crushes
   the scarred-top candidates by conservation).
@@ -1105,10 +1105,10 @@ biconditional lives at the seat-swap-outcome grade.
 The computable conjugation: the witness over `Card.universe` by the
 decidable clause checks (`canRaiseB`, `rungAt` heights), the two
 bases over `Anchor.all`/`Card.universe` through the game's own
-`step`, the endpoint gated by the decidably-checked `forkState`,
+`step`, the endpoint gated by the decidably-checked `weakForkState`,
 identity on fail.  NO Classical, NO noncomputable.  The correctness
 reads both ways: the function moves `st` exactly when some firing
-lands a VERIFIED forkState endpoint. -/
+lands a VERIFIED weakForkState endpoint. -/
 
 /-- The third clause's decidable body: only `x` raises. -/
 def forkClause2B (st : State) (x : Card) : Bool :=
@@ -1159,7 +1159,7 @@ theorem forkClause2B_iff {st : State} {x : Card} :
               hcne ((hriff c).1 hcra))
         | false => rfl
 
-/-- The forkState witness test in decision form: the two rung pins
+/-- The weakForkState witness test in decision form: the two rung pins
 and the only-raiser iff. -/
 def forkWitnessB (st : State) (x : Card) : Bool :=
   (st.foundHeight x.suit == x.rank.toIdx) &&
@@ -1201,7 +1201,7 @@ theorem forkWitnessB_iff {st : State} {x : Card} :
   · intro ⟨hr1, hr2, hriff⟩
     exact ⟨⟨beq_iff_eq.mpr hr1, beq_iff_eq.mpr hr2⟩, forkClause2B_iff.2 hriff⟩
 
-/-- The first forkState witness in universe order. -/
+/-- The first weakForkState witness in universe order. -/
 def forkWitness (st : State) : Option Card :=
   firstWhere (forkWitnessB st) Card.universe
 
@@ -1215,12 +1215,12 @@ theorem forkWitness_sound {st : State} {x : Card}
     (firstWhere_sound (p := forkWitnessB st) (l := Card.universe)
       (show firstWhere (forkWitnessB st) Card.universe = some x from h))
 
-/-- The decidable forkState check. -/
+/-- The decidable weakForkState check. -/
 def forkStateB (st : State) : Bool :=
   Card.universe.any (forkWitnessB st)
 
 /-- The check is the predicate. -/
-theorem forkStateB_iff (st : State) : forkStateB st = true ↔ forkState st := by
+theorem forkStateB_iff (st : State) : forkStateB st = true ↔ weakForkState st := by
   constructor
   · intro h
     obtain ⟨x, hxmem, hxb⟩ := List.any_eq_true.mp h
@@ -1263,9 +1263,9 @@ private theorem fireOver_some {st : State} {mk : Base → Move} {ba : Base}
       exact hs''.trans (congrArg some h2)
 
 /-- **THE TOTAL FUNCTION** — the decidable conjugate: find the
-forkState witness, raise it, slide the twin's segment over all bases,
+weakForkState witness, raise it, slide the twin's segment over all bases,
 pull the card back over all bases; accept the endpoint only when the
-DECIDABLY-CHECKED forkState holds there; every miss returns `st`
+DECIDABLY-CHECKED weakForkState holds there; every miss returns `st`
 (the identity-on-fail contract). -/
 def conjugateForkStateS (st : State) : State :=
   match forkWitness st with
@@ -1287,7 +1287,7 @@ definition AND carries a (checked) forkState. -/
 theorem conjugateForkStateS_correct (st : State) :
     conjugateForkStateS st = st ∨
       (conjugateForkState st (conjugateForkStateS st) ∧
-        forkState (conjugateForkStateS st)) := by
+        weakForkState (conjugateForkStateS st)) := by
   by_cases hw : forkWitness st = none
   · rw [conjugateForkStateS, hw]
     exact Or.inl rfl

@@ -4,13 +4,13 @@ import Orig.MacroInternal
 /-!
 # Orig.ForkStateUniqGate — the maximality-transport gate, closed
 
-The gate file the forkState-unique card's §11-L5 residue named: the
+The gate file the weakForkState-unique card's §11-L5 residue named: the
 G2 maximality-transport head, attacked probe-first per the house
 discipline (the probe `probes/ForkUniqProbe.lean` is the evidence
 twin of every row here).
 
 **THE PROBE-FIRST VERDICT (decide-grade, oracle-verified).**  The
-task's G2 head — *two same-class `forkState`s witnessing the SAME
+task's G2 head — *two same-class `weakForkState`s witnessing the SAME
 pair have equal rungs on every non-pair suit, the strict invariant
 `rungAt st₁ s = rungAt st₂ s`* — is **REFUTED at theorem grade by a
 WF craft**, and with it the assembled in-tree statement of
@@ -24,7 +24,7 @@ was blocking (the craft: the witness 5♥ sits DIRECTLY ON the
 black next-up 6♠; slide it to a fitting top 6♣ — one reversible
 `tabToTab` — and 6♠ exposes with its under-seat intact, so the
 licensed raise of 6♠ is a reversible journey leg; the successor is
-AGAIN a `forkState` of the SAME pair {5♥, 5♦} with the SAME
+AGAIN a `weakForkState` of the SAME pair {5♥, 5♦} with the SAME
 orientation, one non-pair rung higher).  `FaceShape` between the
 two is impossible at either grade: every cargo leg preserves all
 rungs (`cargoPath_rungs`, §1 of `Orig.ForkStateUniq`), and the
@@ -43,12 +43,12 @@ two-grade `FaceShape` case split added to the refutation head.)
 **What this file lands:**
 
 * §1 THE COUNTEREXAMPLE FAMILY, theorem grade.  The crafted class:
-  rungs (♠ 5, ♥ 4, ♦ 4, ♣ 3), forkState of the pair {5♥, 5♦} pinned
+  rungs (♠ 5, ♥ 4, ♦ 4, ♣ 3), weakForkState of the pair {5♥, 5♦} pinned
   at rank 5, witness 5♥; the forward journey
   `[tabToTab 5♥ (inr 6♣), tabToFound 6♠]` and the return journey
   `[foundToTab 6♠ (inr 7♥), tabToTab 5♥ (inr 6♠)]`, every leg undone
   by its one-move mirror (the witnesses are ONE def-`rfl` each); both
-  endpoints WF, both `forkState` with witness 5♥ (the license
+  endpoints WF, both `weakForkState` with witness 5♥ (the license
   census, decided over the full 52-card universe through the banked
   `canRaiseB` bridge), the pair suits pinned at both, and the
   spade rung moved 5 → 6.  The heads: the strict-G2 negation, and
@@ -249,7 +249,7 @@ audit reads it directly). -/
 theorem forkGate_mate_wf : mate.WF :=
   ⟨mate_wf_found, mate_wf_runs, mate_wf_count, by decide⟩
 
-/-! ### The forkState census rows -/
+/-! ### The weakForkState census rows -/
 
 /-- The 52-card license census at `cell`: only 5♥ is `CanRaise`
 (through the banked `canRaiseB` Bool bridge, kernel-decided per
@@ -284,14 +284,14 @@ private theorem mate_pins :
     rungAt mate H5.suit = H5.rank.toIdx ∧
     rungAt mate H5.twin.suit = H5.rank.toIdx := ⟨by rfl, by rfl⟩
 
-/-- `cell` is a `forkState` (witness 5♥). -/
-theorem forkGate_cell_fork : forkState cell :=
+/-- `cell` is a `weakForkState` (witness 5♥). -/
+theorem forkGate_cell_fork : weakForkState cell :=
   ⟨H5, cell_pins.1, cell_pins.2, cell_license⟩
 
-/-- `mate` is a `forkState` of the SAME pair, SAME orientation
+/-- `mate` is a `weakForkState` of the SAME pair, SAME orientation
 (witness 5♥ again — the slide relocated it, the census names it,
 nothing else went live). -/
-theorem forkGate_mate_fork : forkState mate :=
+theorem forkGate_mate_fork : weakForkState mate :=
   ⟨H5, mate_pins.1, mate_pins.2, mate_license⟩
 
 /-! ### The rung ledger -/
@@ -311,7 +311,7 @@ theorem forkGate_spade_climbed :
 
 /-! ### The refutation heads -/
 
-/-- **THE STRICT G2 HEAD IS FALSE** — two `WF` `forkState`s of one
+/-- **THE STRICT G2 HEAD IS FALSE** — two `WF` `weakForkState`s of one
 macro class, witnessing the same pair with the same orientation
 (the iff's witness is literally the equal card at both), whose
 non-pair spade rungs DIFFER.  The probe-first discipline's
@@ -319,7 +319,7 @@ anti-lemma: the craft succeeds, so `rungAt st₁ s = rungAt st₂ s`
 for all non-pair suits is not provable — it is refuted. -/
 theorem forkGate_strict_head_false :
     ∃ (C : SameOrbit) (st₁ st₂ : State) (x : Card) (s : Suit),
-      st₁.WF ∧ st₂.WF ∧ forkState st₁ ∧ forkState st₂ ∧
+      st₁.WF ∧ st₂.WF ∧ weakForkState st₁ ∧ weakForkState st₂ ∧
         classOf C st₁ ∧ classOf C st₂ ∧
         (∀ c, CanRaise st₁ c ↔ c = x) ∧ (∀ c, CanRaise st₂ c ↔ c = x) ∧
         s ≠ x.suit ∧ s ≠ x.twin.suit ∧
@@ -353,7 +353,7 @@ missing lemma; the honest repair needs class-grade fork hypotheses
 will consume). -/
 theorem forkState_unique_refuted :
     ¬ (∀ (C : SameOrbit) (st₁ st₂ : State), st₁.WF → st₂.WF →
-        forkState st₁ → forkState st₂ →
+        weakForkState st₁ → weakForkState st₂ →
         classOf C st₁ → classOf C st₂ → FaceShape st₁ st₂) := by
   intro h
   obtain ⟨C, hc1, hc2⟩ := forkGate_corbit

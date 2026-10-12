@@ -14,7 +14,7 @@ already in-tree (`CanRaiseS`, the {slide · raise} closure at
 `Orig.MacroInternal`), and this card lands the detection on it, in the user's
 final corrected form:
 
-    forkStateS st := ∃ x,
+    forkState st := ∃ x,
       (∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c) ∧
       ¬ CanRaise st x.twin
 
@@ -37,7 +37,7 @@ vanilla" — consume the covered-necessarity row the classification follow-up
 owns; priced in the ledger note below.)  THE PINS TRAVEL FREE (the user's
 minimality observation): the pair-live half instantiates `CanRaiseS` at both
 members, §1's rung pin transports each suit, and `Card.twin_rank` lands the
-twin's rank — the old clauses 1–2 are the THEOREM `forkStateS_pins` (§3),
+twin's rank — the old clauses 1–2 are the THEOREM `forkState_pins` (§3),
 not premises of the detection.
 
 WHAT THIS FILE LANDS (additive leaf, importing `Orig.ForkStateUniq`
@@ -61,8 +61,8 @@ NOT wired into the root, zero sorry):
   seat untouched.  This is the falsifier's own journey leg made into a
   generator witness — at the craft's `cell` it IS
   `[tabToTab 5♥ (inr 6♣)]` followed by the licensed `6♠` raise.
-* §3 THE DETECTION — `forkStateS` (the user's corrected def, minimal form),
-  the parcel assembly row, **THE FREE-PIN THEOREM** `forkStateS_pins` (the
+* §3 THE DETECTION — `forkState` (the user's corrected def, minimal form),
+  the parcel assembly row, **THE FREE-PIN THEOREM** `forkState_pins` (the
   rung pins travel free through the S-iff — the user's redundancy
   observation, made formal), and the two projection reads (pair-live both
   members; the twin vanilla-blocked).
@@ -390,25 +390,17 @@ theorem canRaiseS_free {st : State} {c d : Card} {a b : Anchor} {bs rest : List 
   exact CanRaiseS.via c ⟨d, Sum.inr c.twin, hstep, hrev⟩
     (CanRaiseS.now c ⟨hnextS, a, hpodS, hseatS⟩)
 
-/-! ## §3. The detection — the user's corrected `forkState` at the S grade -/
+/-! ## §3. The detection — the user's corrected `forkState` at the S grade
 
-/-- **THE S-GRADE DETECTION** (the user's corrected `forkState`, minimal
-form): TWO conjuncts — maximality at the MANEUVER grade, both directions
-(nothing outside the pair raises even one slide deep, both pair members are
-S-live), and the orientation pin (the twin not VANILLA-licensed — at an
-S-live pair this flushes the fork geometry: the vanilla-live witness
-topping, the twin covered under fitting cargo).  The old clauses 1–2 are
-NOT premises: the pair-live half instantiates `CanRaiseS` at both members,
-§1's rung pin transports each suit read, and `Card.twin_rank` lands the
-twin's rank — see `forkStateS_pins`, where the redundancy is the theorem. -/
-def forkStateS (st : State) : Prop :=
-  ∃ x, (∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c) ∧ ¬ CanRaise st x.twin
+The canonical `def forkState` — the two-conjunct minimal form (the pair ↔
+CanRaiseS iff, plus the orientation pin) — now lives in `Orig.MacroInternal`
+(the migration); this card consumes it. -/
 
 /-- **THE FREE-PIN THEOREM** (the user's redundancy observation, formal):
 the S-iff's pair-live half already carries the old detection's two rung
 pins — both members are `CanRaiseS`, the rung pin (§1) transports each
 suit, and the twin's rank read is the witness's own. -/
-theorem forkStateS_pins {st : State} (h : forkStateS st) :
+theorem forkState_pins {st : State} (h : forkState st) :
     ∃ x : Card, rungAt st x.suit = x.rank.toIdx ∧
       rungAt st x.twin.suit = x.rank.toIdx := by
   obtain ⟨x, hiff, -⟩ :
@@ -420,16 +412,16 @@ theorem forkStateS_pins {st : State} (h : forkStateS st) :
 
 /-- The parcel assembly: the two conjuncts build a detection; named for the
 migration consumers. -/
-theorem forkStateS_of_parcel {st : State} {x : Card}
+theorem forkState_of_parcel {st : State} {x : Card}
     (hiff : ∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c)
-    (hnt : ¬ CanRaise st x.twin) : forkStateS st :=
+    (hnt : ¬ CanRaise st x.twin) : forkState st :=
   ⟨x, hiff, hnt⟩
 
 /-- The pair-live read (the ⇐ half): at an S-graded detection BOTH pair
 members are S-licensed.  This half is what the old craft endpoints violate
 (the bare twin 5♦ is not S-live anywhere along its class), and the mate
 orbit satisfies via §4. -/
-theorem forkStateS_pairS {st : State} (h : forkStateS st) :
+theorem forkState_pairS {st : State} (h : forkState st) :
     ∃ x : Card, ∀ c, (c = x ∨ c = x.twin) → CanRaiseS st c := by
   obtain ⟨x, hiff, -⟩ :
     ∃ x : Card, (∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c) ∧
@@ -438,7 +430,7 @@ theorem forkStateS_pairS {st : State} (h : forkStateS st) :
 
 /-- The twin-blocked read: the detection's orientation pin, exported for the
 follow-up derivations (the covered-twin / vanilla-live-witness geometry). -/
-theorem forkStateS_twinBlocked {st : State} (h : forkStateS st) :
+theorem forkState_twinBlocked {st : State} (h : forkState st) :
     ∃ x : Card, ¬ CanRaise st x.twin := by
   obtain ⟨x, -, hnt⟩ :
     ∃ x : Card, (∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c) ∧
@@ -790,10 +782,10 @@ theorem canRaiseS_iff_or {st : State} {c : Card} (hwf : st.WF) :
 
 #print axioms canRaiseS_rung
 #print axioms canRaiseS_free
-#print axioms forkStateS_of_parcel
-#print axioms forkStateS_pins
-#print axioms forkStateS_pairS
-#print axioms forkStateS_twinBlocked
+#print axioms forkState_of_parcel
+#print axioms forkState_pins
+#print axioms forkState_pairS
+#print axioms forkState_twinBlocked
 #print axioms slid_mate_shape_pairS_live
 #print axioms canRaiseS_iff
 #print axioms canRaiseS_iff_or

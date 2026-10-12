@@ -1082,17 +1082,17 @@ next-up on their foundations, and the only raising card is x (the
 ↔ gives maximality → and existence ← in one clause: instantiating
 at c = x derives CanRaise st x; Final states have no witness since
 the ← direction would force a raise where none exists). -/
-def forkState (st : State) : Prop :=
+def weakForkState (st : State) : Prop :=
   ∃ x, rungAt st x.suit = x.rank.toIdx ∧
     rungAt st x.twin.suit = x.rank.toIdx ∧
     (∀ c, CanRaise st c ↔ c = x)
 
 /-- **THE PAIR UNIQUENESS** — PROVED FROM THE DETECTION ALONE: the
-witness of a forkState is unique up to the twin flip.  x raises
+witness of a weakForkState is unique up to the twin flip.  x raises
 (the iff's ←-direction); every raiser equals both x and y (the two
 iff →-directions); the twin involution closes. -/
 theorem finalFork_pairUnique (st : State)
-    (h₁ : forkState st) (h₂ : forkState st) :
+    (h₁ : weakForkState st) (h₂ : weakForkState st) :
     ∃ x y, (rungAt st x.suit = x.rank.toIdx ∧
             rungAt st x.twin.suit = x.rank.toIdx ∧
             (∀ c, CanRaise st c ↔ c = x) ∧
@@ -1104,7 +1104,7 @@ theorem finalFork_pairUnique (st : State)
   have hxy : x = y := (hiffy x).1 hcx
   exact Or.inl hxy.symm
 
-/- **THE forkState UNIQUENESS** (class-level): within one class,
+/- **THE weakForkState UNIQUENESS** (class-level): within one class,
 any two forkStates connect through the CARGO CLOSURE.  Stated in
 the FaceShape section below (follows its def). -/
 
@@ -1135,12 +1135,12 @@ moving the twins): the physical swap relocates both twin cards.
 -/
 def conjugateForkState (st w : State) : Prop :=
   ∃ x ba bb st₁ st₂,
-    forkState st ∧
+    weakForkState st ∧
     st.step (Move.tabToFound x) = some st₁ ∧
     st₁.step (Move.tabToTab x.twin ba) = some st₂ ∧
     st₂.step (Move.foundToTab x bb) = some w
 
-/-- The conjugate is a forkState itself (the mate arm live, the
+/-- The conjugate is a weakForkState itself (the mate arm live, the
 pair-swapped seating preserving the iff).  GATE: the composite's
 anatomy derivation — must show the position swap preserves the
 three-clause detection (rungs unchanged net, maximality at the
@@ -1149,7 +1149,7 @@ theorem conjugate_forkState {st w : State}
     (hconj : conjugateForkState st w)
     (hwf : st.WF)
     (hw : sameOrbitSetoid.r st w) :
-    forkState w := by
+    weakForkState w := by
   sorry
 
 /- THE CONJUGATE EXISTENCE IFF (the user's necessary-and-sufficient
@@ -1159,16 +1159,16 @@ anchor receives), or BOTH have nonempty under-seat content (the
 (x+1) base material beneath them).  If one twin is bare-non-king
 (no chop, no king), that twin's seat FAILS the bar: the (Q,J)
 finding.  Stated as the seat-package gate, consumed by the
-conjugation-forkState rows and the conjugation existence theorem
+conjugation-weakForkState rows and the conjugation existence theorem
 (the anatomy card). -/
 
-/- THE RETIRED CANON-SENSITIVE detector: forkState was formerly
+/- THE RETIRED CANON-SENSITIVE detector: weakForkState was formerly
 "some tabToTab neighbor canon-diverges" — the slide-sensitivity
 read.  The new rung reads make the detection local and decidable;
 the canon-divergence content lives on as forkedCard (class grade)
 and the anatomy rows below consume it.  Consumer updates:
 fork_iff_nonUnionable's hwings and wing_crossing_bottleneck cite
-the new forkState — their premises re-fence at the new read (both
+the new weakForkState — their premises re-fence at the new read (both
 rows sorry'd; the reinterpretation is the honest one: the wings
 join through states where the pair runs live). -/
 
@@ -1185,8 +1185,22 @@ inductive CanRaiseS : State → Card → Prop
   | now {st : State} (c : Card) (h : CanRaise st c) : CanRaiseS st c
   | via {st st' : State} (c : Card)
       (hl : ∃ d b, st.step (.tabToTab d b) = some st' ∧
-        reversibleAtW st (.tabToTab d b))
+                       reversibleAtW st (.tabToTab d b))
       (h : CanRaiseS st' c) : CanRaiseS st c
+
+/-- **THE DETECTION — the maneuver-stable `forkState`** (the S-grade): the
+pair-saturation iff at the {slide · raise} grade, plus the orientation
+pin.  The two conjuncts replace the old three (the rung pins travel free
+as theorems — `canRaiseS_rung` through the iff, so the old clauses 1–2
+are derivable, not premises); the vanilla iff's unique raiser is
+derivable from these two as well, making the S-grade strictly stronger
+than the retired `weakForkState` (the G2 craft's endpoints are weakForkState
+but not forkState — the falsifier family that killed the vanilla
+uniqueness rows). See `Orig.ForkStateS` for the flat characterization,
+the mate orbit, and the pins-free rows. -/
+def forkState (st : State) : Prop :=
+  ∃ x, (∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c) ∧
+       ¬ CanRaise st x.twin
 
 /-- Saturating completion: `s` is a maximal licensed run from `u`. -/
 def saturatesTo (u s : State) : Prop := ∃ l, StackRun u l s ∧ Final s
@@ -1686,7 +1700,7 @@ theorem unionable_iff_unionTuple (u v : State) (hu : u.WF) (hv : v.WF) :
 (seating the never-stackable cargo fails — the homeless-cargo row). -/
 theorem fork_iff_nonUnionable (u v : State) (hu : u.WF) (hv : v.WF)
     (hf : Final u) (hg : Final v)
-    (hwings : ∃ st, forkState st ∧
+    (hwings : ∃ st, weakForkState st ∧
       Quotient.mk sameOrbitSetoid st = Quotient.mk sameOrbitSetoid u) :
     ¬ unionable u v := by
   sorry
@@ -1703,7 +1717,7 @@ member to the other's passes through a fork state — the forced dip
 theorem wing_crossing_bottleneck (u v st : State)
     (hu : Final u) (hv : Final v) (hjourney : Journey u v)
     (hwings : Quotient.mk sameOrbitSetoid u = Quotient.mk sameOrbitSetoid v) :
-    ∃ st₁, Journey u st₁ ∧ forkState st₁ ∧ Journey st₁ v := by
+    ∃ st₁, Journey u st₁ ∧ weakForkState st₁ ∧ Journey st₁ v := by
   sorry
 
 
@@ -1766,15 +1780,15 @@ three named structural generators:
    — sometimes, when the alternating-color condition is right
 3. CARGO SWAP: CargoPath (the reversible-cargo closure, always)
 
-THE COMPLETENESS theorem: every forkState of the class is in
+THE COMPLETENESS theorem: every weakForkState of the class is in
 this three-generator closure (see ForkSpectrum.lean for the
 proof — the raise-pull pair cancellation + the game's own
 stack discipline). -/
 
-/-- The fork spectrum: the closure of a starting forkState under
+/-- The fork spectrum: the closure of a starting weakForkState under
 the three generators — the twin swap bridge + the parent swap
 and the cargo closure within and across the bridge.  Read at the
-states where the forkState detection fires. -/
+states where the weakForkState detection fires. -/
 inductive ForkSpectrum : State → State → Prop
   | base (st : State) : ForkSpectrum st st
   | twinSwap {st w w' : State}
@@ -1787,11 +1801,11 @@ inductive ForkSpectrum : State → State → Prop
       (h : CargoPath st w)
       (t : ForkSpectrum w w') : ForkSpectrum st w'
 
-/-- **THE SPECTRUM COMPLETENESS** — every forkState of the class
+/-- **THE SPECTRUM COMPLETENESS** — every weakForkState of the class
 is in the three-generator closure from any starting forkState. -/
 theorem forkSpectrum_complete (st : State) (hwf : st.WF)
-    (hfs : forkState st) (w : State)
-    (hcls : sameOrbitSetoid.r st w) (hwfs : forkState w) :
+    (hfs : weakForkState st) (w : State)
+    (hcls : sameOrbitSetoid.r st w) (hwfs : weakForkState w) :
     ForkSpectrum st w := by
   sorry
 
@@ -1811,7 +1825,7 @@ generators — no artificial move-language restriction:
    at the traded positions — one from each opposing color)
 3. CARGO SWAP: CargoPath (the full reversible-cargo closure)
 
-The COMPLETENESS theorem: every forkState of the class is in this
+The COMPLETENESS theorem: every weakForkState of the class is in this
 three-generator closure from any starting forkState.  The proof:
 raise-pull pair cancellation + the game's stack discipline
 (buried non-pair cards can't come back — the rank-ordered stack
@@ -1835,7 +1849,7 @@ inductive CanonFace (u w : State) : Prop
                            (CanRaise st x ∨ CanRaise st x.twin)))
   | forked (hwf : u.WF)
       (hclass : sameOrbitSetoid.r (canon u) w)
-      (hfins : forkState w)
+      (hfins : weakForkState w)
 
 /-- Faces exist: the benign case is canon u itself; the forked case
 is the saturation-until-pair-only stop (the realization: canon,
