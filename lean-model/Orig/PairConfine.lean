@@ -34,19 +34,29 @@ at-fork values.  The card's honest ladder:
   the second-founding door.  Fully proved from the per-leg rung
   ledger (draw/cargo write nothing; waste legs never ride; raise
   lifts exactly its own suit; pull lowers exactly its own suit).
-* §4 **`forkState_one_founding`** — THE UPWARD CONFINEMENT: the
-  door never opens — consumed from `crossing_door_barred`, the
-  named residue with its complete route (the cover-hop transport,
-  the freeze, the pull-round-trip accounting), and the corollary
-  ladder: `forkState_sameFamily_rankCeiling` (a same-family
-  witness at a class member pins rank at most the fork's rank —
-  the forkConsumer read) and `forkState_sameFamily_samePair` (with
-  the rank pinned, the same-family witness IS the pair member, up
-  to the twin flip).
+* §4 **The backward-orphan kill** — THE DOOR BAR: `crossing_door_barred`
+  runs both door orders through `conf_door_orphan`.  Every witness
+  journey rides back (`conf_playback` — the same-orbit setoid's own
+  second play, spliced by `ShufflePlayW_append`); on the backward
+  read the door's founding forces the two-below twin's seat into
+  the open, where the imported residue `cross_orphan_seat`
+  (`Orig/OrphanSeat.lean`) plants its below-neighbor and the fork
+  census (`pair_lowFamily_founded` + `mem_faceUp_only`) kills it.
+  The forward-end split runs by `conf_orphan_roam` (the banked
+  `Below_stable`): a surviving seat dies on the top clash
+  (`conf_orphan_topclash`) or the found/face-up exclusivity, and the
+  nowhere-face-up end dies at the endpoint triage, its draw-cycle
+  arms through the never-gain union (`conf_orphan_union`).  The
+  corollary ladder: `forkState_one_founding` (THE UPWARD
+  CONFINEMENT), `forkState_sameFamily_rankCeiling` (a same-family
+  witness at a class member pins rank at most the fork's rank — the
+  forkConsumer read) and `forkState_sameFamily_samePair` (with the
+  rank pinned, the same-family witness IS the pair member, up to
+  the twin flip).
 
-House compliance: additive leaf; zero fresh `Classical.choice`;
-every fresh head audited; the one named residue carries its route
-in its docstring.
+House compliance: additive leaf; zero fresh `Classical.choice`; the
+card is fully proved — zero named residues; the audit battery reads
+[propext] or [propext, Quot.sound] on every row.
 -/
 
 /-! ## §0. The private kit (per-file copies, the house dedup discipline) -/
@@ -2076,137 +2086,6 @@ private theorem conf_bareDeparture_irr {s : State} {c : Card} {b : Base}
     rw [← hK0c] at hK0
     exact absurd hK0 hK
 
-/-- **THE FREEZE'S TAB LEG** — the one open piece of the freeze
-invariant: the run-move leg.  ROUTE: if the departure pile is the
-at-rung card's pile (`W = Asrc`), the mover is the card itself (the
-sole face-up member — `pileHolding_mem` over `faceUp W = [c]`), and
-its own departure is the two-pillar bar (over empty hidden:
-`conf_bareDeparture_irr`, its king-arm against `conf_king12`'s
-index; over hidden content: `journey_tabToTab_never_reveal`).  If
-`W` is the landing pile (either base): the landed pile's face-up
-run is `faceUp W ++ run` (`step_tabToTab_inv` + `canPlace` +
-`putRun` rows, or the empty seat — impossible while `[c]` resides),
-and the successor's WF (`step_wf`) reads the adjacent fit on the
-run's head over `c` (`conf_runOK_adjacent` with the run's head via
-`conf_fromCard_run_head` and the run-side `putRun`-profile): the
-head is fork-family, strictly below, hence already founded
-(`pair_lowFamily_founded`), against its fresh face-up residency
-(`mem_faceUp_only`).  Every other case leaves the pile untouched
-(drain: `stepDraw_piles`; the `setPile_afterRunRemoved_piles_ne`
-and `putRun`-profile readers). -/
-private theorem conf_freeze_tab {s s' : State} (hwfs : s.WF) {x : Card}
-    (hx : ForkWitness s x) {c : Card}
-    (hrk : c.rank.toIdx < x.rank.toIdx)
-    (hcol : c.suit.color ≠ x.suit.color)
-    {W : Anchor} (hfs : (s.piles W).faceUp = [c])
-    {w : Card} {b : Base}
-    (hstep : State.step s (Move.tabToTab w b) = some s')
-    (hrev : reversibleAtW s (Move.tabToTab w b)) :
-    (s'.piles W).faceUp = [c] := by
-  -- the run-move leg: departure bars or arrival lattice, else untouched
-  obtain ⟨Asrc, hhold, hcp, hfr, hs'eq⟩ := step_tabToTab_inv hstep
-  by_cases hWs : W = Asrc
-  · -- the at-rung card's own pile departs: the mover is the card itself
-    exfalso
-    rw [← hWs] at hhold
-    have hmemw : w ∈ (s.piles W).faceUp := pileHolding_mem hhold
-    rw [hfs] at hmemw
-    have hwc : w = c := List.mem_singleton.mp hmemw
-    rw [hwc] at hstep hrev hhold
-    have hholdW : s.pileHolding c = some W := hhold
-    cases hh : (s.piles W).hidden with
-    | nil =>
-        exact absurd hrev (conf_bareDeparture_irr hholdW hfs hh (by
-          intro hcon
-          have hK12 : (Rank.king : Rank).toIdx = 12 := by decide
-          have hxle : x.rank.toIdx ≤ 12 := by
-            have := Rank.toIdx_lt x.rank
-            omega
-          rw [hcon] at hrk
-          rw [hK12] at hrk
-          omega))
-    | cons g gs =>
-        exact absurd hrev (journey_tabToTab_never_reveal hstep hholdW
-          (by rw [hfs, below_cons_self])
-          (by rw [hh]; exact List.cons_ne_nil g gs))
-  · -- W is untouched, an impossible empty-seat landing, or the arrival
-    rw [hs'eq]
-    cases b with
-    | inl e =>
-        have hp : (((s.setPile Asrc (Pile.afterRunRemoved (s.piles Asrc)
-              (below w ((s.piles Asrc).faceUp)))).putRun
-            (fromCard w ((s.piles Asrc).faceUp)) (Sum.inl e)).piles W)
-            = (if W = e then
-                (⟨[], fromCard w ((s.piles Asrc).faceUp)⟩ : Pile)
-               else (s.setPile Asrc (Pile.afterRunRemoved (s.piles Asrc)
-                 (below w ((s.piles Asrc).faceUp)))).piles W) := rfl
-        rw [hp]
-        by_cases hWe : W = e
-        · exfalso
-          obtain ⟨hemp, -⟩ := canPlace_inl hcp
-          rw [← hWe] at hemp
-          have hfupE := ((Pile.isEmpty_eq _).mp hemp).2
-          rw [hfs] at hfupE
-          exact absurd hfupE (by simp)
-        · rw [ite_eq_right hWe]
-          have hneW : W ≠ Asrc := fun hcon => hWs hcon
-          rw [setPile_afterRunRemoved_piles_ne s Asrc w W hneW]
-          exact hfs
-    | inr z =>
-        cases hz : (s.setPile Asrc (Pile.afterRunRemoved (s.piles Asrc)
-            (below w ((s.piles Asrc).faceUp)))).pileOfTop z with
-        | none =>
-            rw [putRun_inr_none hz]
-            have hneW : W ≠ Asrc := fun hcon => hWs hcon
-            rw [setPile_afterRunRemoved_piles_ne s Asrc w W hneW]
-            exact hfs
-        | some kk =>
-            rw [putRun_inr_eq hz]
-            by_cases hWk : W = kk
-            · -- the run lands on the card's seat: the successor's runOK
-              -- reads the head's adjacent fit over c — fork-family, one
-              -- rank lower, already founded — impossible face-up arrival
-              exfalso
-              have hwfs' : s'.WF := step_wf hwfs hstep
-              have hmidkk : (s.setPile Asrc (Pile.afterRunRemoved
-                  (s.piles Asrc)
-                  (below w ((s.piles Asrc).faceUp)))).piles kk
-                  = s.piles kk := by
-                by_cases hka : kk = Asrc
-                · exfalso
-                  have hWkk : W = kk := hWk
-                  rw [hWkk] at hWs
-                  exact absurd hka hWs
-                · have hne : kk ≠ Asrc := fun hcon => hka hcon
-                  exact setPile_afterRunRemoved_piles_ne s Asrc w kk hne
-              have hfk : (s.piles kk).faceUp = [c] := by
-                rw [← hWk]; exact hfs
-              have hPost : (s'.piles W).faceUp
-                  = [c] ++ fromCard w ((s.piles Asrc).faceUp) := by
-                rw [hs'eq, putRun_inr_eq hz, hWk, setPile_piles_self,
-                  hmidkk, hfk]
-              have hrunOK' : runOK ((s'.piles W).faceUp) = true :=
-                hwfs'.2.1 W
-              obtain ⟨tr, hrunt⟩ :=
-                conf_fromCard_run_head w ((s.piles Asrc).faceUp) hfr
-              have hfit : canSitOn w c = true :=
-                conf_runOK_adjacent c w [] tr (by
-                  rw [hPost, hrunt] at hrunOK'
-                  exact hrunOK')
-              obtain ⟨_, hzc⟩ := (canSitOn_eq w c).mp hfit
-              have hwcol : w.suit.color = x.suit.color :=
-                conf_color_pair (a := c.suit.color) (Ne.symm hzc) hcol
-              have hwfnd : w ∈ s.found w.suit :=
-                pair_lowFamily_founded hwfs hx hwcol (by omega)
-              have hmemwS : w ∈ (s.piles Asrc).faceUp := pileHolding_mem hhold
-              exact (mem_faceUp_only hwfs hmemwS).2.2.2.2 w.suit hwfnd
-            · -- W untouched by the landing (kk ≠ W)
-              have hneW : W ≠ kk := fun hcon => hWk hcon
-              rw [setPile_piles_ne hneW]
-              have hneW' : W ≠ Asrc := fun hcon => hWs hcon
-              rw [setPile_afterRunRemoved_piles_ne s Asrc w W hneW']
-              exact hfs
-
 private theorem conf_king12 : (Rank.king : Rank).toIdx = 12 := by decide
 
 /-- Every rank index sits at most at the king's. -/
@@ -2829,15 +2708,14 @@ private theorem conf_orphan_union {st : State} : ∀ {u : State}
           rw [hP1, hP2] at hmid
           exact hmid
 
-/-- **SEAM — THE ROAMING SEAT**: a non-king card that starts the
-journey SEATED on a fitting face-up below-neighbor is, at the end,
-either nowhere face-up or still seated on a fitting face-up
-below-neighbor.  ROUTE: the seat residue's own below-identity
-induction in the roam form — founding spells are vacuous, every
-re-landing of a non-king reseeds on a face-up top (`canPlace` inr),
-cargo keeps the run-internal below-neighbor, and no card ever departs
-from under another (face-up lists change only by suffix chops and
-appends), so the below-card never becomes hidden. -/
+/-- **THE ROAMING SEAT (closed)** — a non-king card that starts the
+journey seated on a fitting face-up below-neighbor is, at the end,
+either founded (hence nowhere face-up, by `mem_found_unique` on the
+WF end state carried by `conf_wf_along`) or still seated on a
+below-neighbor: the seat itself comes off the banked `Below_stable`
+(the seed IS a `Below`-shape instantiation at the start state), and
+the end-fit off the run discipline (`conf_runOK_adjacent` on the
+end state's pile). -/
 private theorem conf_orphan_roam {st u : State} (hwf : st.WF)
     {τ : List Move}
     (hτ : ShufflePlayW st τ u) {d : Card} (hnk : d.rank ≠ Rank.king)
@@ -2846,7 +2724,14 @@ private theorem conf_orphan_roam {st u : State} (hwf : st.WF)
     (∃ a L z R, (u.piles a).faceUp = L ++ z :: d :: R ∧
       canSitOn d z = true) ∨
       (∀ a, d ∉ (u.piles a).faceUp) := by
-  sorry
+  obtain ⟨a, bs, z, hshape, hfit⟩ := hseed
+  have hwfu : u.WF := conf_wf_along hτ hwf
+  rcases Below_stable hwf hτ hnk (Or.inr ⟨z, a, bs, [], hshape⟩) with
+    hF | ⟨z', a', L, R, hs'⟩
+  · exact Or.inr (fun a₂ => ((mem_found_unique hwfu hF).1 a₂).2)
+  · refine Or.inl ⟨a', L, z', R, hs', ?_⟩
+    exact conf_runOK_adjacent z' d L R
+      (by rw [← hs']; exact hwfu.2.1 a')
 
 /-- The nodup slice: a seated card's below-tail cannot contain it
 (the face-up pile lists are nodup). -/
