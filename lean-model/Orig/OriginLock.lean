@@ -49,15 +49,21 @@ THE CARD'S LADDER:
   restored); hidden-resident dressers are PINNED (`shuffle_hiddenPinned`)
   and stock/waste-resident dressers are CLOSED under witness journeys
   (`lock_stockWaste_closed`).  The one honestly-open case — the cover
-  FOUNDED at the origin, the staircase/pollution endgame — is the
-  card's single named residue `origin_cover_founded_case_barred`,
-  carrying its complete route (the LIFO pull toggle, the descent
-  drag, the census self-pollution — the `downAlt_pollutes` mechanism
-  in the general form).
+  FOUNDED at the origin, the staircase/pollution endgame — is closed
+  by the §3.5 founded-cover composition: the LIFO toggle arithmetic
+  and the below-`d` pull rows are LANDED
+  (`origin_foundedCover_rungSqueeze`, `origin_foundedCover_belowPull`,
+  over the founded-exodus row `lock_found_exit`); the terminal
+  pollution crash is the card's single named residue
+  `origin_foundedCover_pollutesCrash`, carrying the remaining route
+  (the landlord iteration, the descent drag, the census
+  self-pollution — the `downAlt_pollutes` mechanism in the general
+  form) in its docstring.
 * §4 **THE ASSEMBLY** — `forkState_rankDrop_locked`: the forward
   witness play (`sameOrbit_forward`) hands every leg a
   `reversibleAtW` witness; the cover's origin residency trichotomy
-  kills all but the founded case, and the residue closes it.
+  kills all but the founded case, and the §3.5 staircase closes it
+  (up to the named pollution-crash residue).
 * §5 **THE FLOOR COROLLARY** — `forkState_family_rankFloor` (from
   `st₁`'s perspective no class member witnesses below `r`) and the
   assembly row `forkState_family_pairClass` (with PairConfine's
@@ -130,6 +136,166 @@ private theorem lock_mem_split (c : Card) :
       · exact ⟨[], t, rfl⟩
       · obtain ⟨bs, rest, hs⟩ := ih hm
         exact ⟨z :: bs, rest, by rw [hs]; rfl⟩
+
+/-! ### The build-position kit (per-file copies of the banked private
+rows of `Orig/Classify.lean` and `Orig/CrossFamily.lean`) -/
+
+/-- The rank of a zero-based index, tabulated by kernel computation
+(the copy of `Orig/Classify.lean`'s private `Rk`). -/
+private def lockRk : Nat → Rank
+  | 0 => .ace | 1 => .two | 2 => .three | 3 => .four | 4 => .five | 5 => .six
+  | 6 => .seven | 7 => .eight | 8 => .nine | 9 => .ten | 10 => .jack | 11 => .queen
+  | 12 => .king | _ => .ace
+
+private theorem lockRk_toIdx : ∀ (k : Nat), k < 13 → (lockRk k).toIdx = k := by
+  intro k hk
+  match k with
+  | 0 => rfl
+  | 1 => rfl
+  | 2 => rfl
+  | 3 => rfl
+  | 4 => rfl
+  | 5 => rfl
+  | 6 => rfl
+  | 7 => rfl
+  | 8 => rfl
+  | 9 => rfl
+  | 10 => rfl
+  | 11 => rfl
+  | 12 => rfl
+  | w + 13 => exact absurd hk (by omega)
+
+/-- The build position of a card in a list (the copy of the banked
+private `posOf` of `Orig/Dominance.lean` / `Orig/CrossFamily.lean`). -/
+private def lock_posOf (x : Card) : List Card → Nat
+  | [] => 0
+  | y :: t => if y = x then 0 else lock_posOf x t + 1
+
+private theorem lock_posOf_take_lt (x : Card) : ∀ (n : Nat) (l : List Card),
+    x ∈ l.take n → lock_posOf x l < n := by
+  intro n
+  induction n with
+  | zero =>
+      intro l hmem
+      rw [show (List.take 0 l : List Card) = [] from rfl] at hmem
+      exact absurd hmem (by simp)
+  | succ m ih =>
+      intro l hmem
+      cases l with
+      | nil =>
+          rw [show (List.take (m + 1) ([] : List Card)) = ([] : List Card) from rfl] at hmem
+          exact absurd hmem (by simp)
+      | cons a t =>
+          have hmem' : x ∈ a :: t.take m := hmem
+          rcases List.mem_cons.mp hmem' with heq | htl
+          · rw [heq]
+            have hp : lock_posOf a (a :: t) = 0 := by
+              show (if a = a then 0 else lock_posOf a t + 1) = 0
+              rw [if_pos rfl]
+            rw [hp]
+            omega
+          · have hpos := ih t htl
+            by_cases hax : a = x
+            · rw [hax]
+              have hp : lock_posOf x (x :: t) = 0 := by
+                show (if x = x then 0 else lock_posOf x t + 1) = 0
+                rw [if_pos rfl]
+              rw [hp]
+              omega
+            · have hp : lock_posOf x (a :: t) = if a = x then 0 else lock_posOf x t + 1 :=
+                rfl
+              rw [hp, if_neg hax]
+              omega
+
+/-- The build order is the rank order (the copy of the banked private
+`posOf_upCards`). -/
+private theorem lock_posOf_upCards (s : Suit) (r : Rank) :
+    lock_posOf (Card.mk s r) (Suit.upCards s) = r.toIdx := by
+  cases s <;> cases r <;> rfl
+
+/-- **THE FOUNDED-MEMBERSHIP BRIDGE, converse half** — a card on its
+own suit's foundation sits strictly below the rung: the founded
+prefix is the build order's take, so the card's build position (its
+rank index) is bounded by the take length, and the build position IS
+the rank index (the per-file copy of
+`Orig/CrossFamily.lean`'s private `xfam_mem_found_rank_lt`, rebuilt
+off the local kernel position kit). -/
+private theorem lock_found_rank_lt {st : State} (hwf : st.WF) {c : Card}
+    (hmem : c ∈ st.found c.suit) : c.rank.toIdx < rungAt st c.suit := by
+  rcases c with ⟨s, r⟩
+  obtain ⟨n, hn⟩ := hwf.found_prefix s
+  have hmem' : Card.mk s r ∈ (Suit.upCards s).take n := by
+    rw [← hn]
+    exact hmem
+  have hpos := lock_posOf_take_lt (Card.mk s r) n (Suit.upCards s) hmem'
+  rw [lock_posOf_upCards s r] at hpos
+  have hr13 : r.toIdx < 13 := Rank.toIdx_lt r
+  have hlen : (st.found s).length = min n (Suit.upCards s).length := by
+    rw [hn, List.length_take]
+  show r.toIdx < (st.found s).length
+  rw [hlen, Suit.upCards_length]
+  omega
+
+/-- An element at position `i` belongs to the first `n` entries of the
+list (the copy of `Orig/CanV3.lean`'s private `v3GetInTake`,
+`Orig/PairConfine.lean`'s private `conf_get_in_take`). -/
+private theorem lock_get_in_take : ∀ {α : Type} (l : List α) (n i : Nat)
+    (hl : i < l.length) (hn : i < n), l.get ⟨i, hl⟩ ∈ l.take n := by
+  intro α l n i hl hn
+  induction n generalizing l i hl with
+  | zero => exact absurd hn (by omega)
+  | succ m ih =>
+      cases l with
+      | nil => exact absurd hl (by simp)
+      | cons a t =>
+          cases i with
+          | zero =>
+              show a ∈ a :: t.take m
+              exact List.mem_cons.2 (Or.inl rfl)
+          | succ i' =>
+              simp only [List.length_cons] at hl
+              refine List.mem_cons_of_mem a (ih t i' (by omega) (by omega))
+
+/-- A card sits at its own build index in its suit's foundation
+order (the copy of the banked private `upCards_get`). -/
+private theorem lock_upCards_get (z : Card)
+    (h : z.rank.toIdx < z.suit.upCards.length) :
+    z.suit.upCards.get ⟨z.rank.toIdx, h⟩ = z := by
+  rcases z with ⟨zs, zr⟩
+  cases zr <;> rfl
+
+/-- **THE FOUNDED-BRIDGE, forward half** — a suit rung strictly above a
+card's rank index has already founded it (the copy of
+`Orig/PairConfine.lean`'s private `conf_mem_found_of_rung`). -/
+private theorem lock_found_of_rung {st : State} (hwf : st.WF) {c : Card}
+    (hlt : c.rank.toIdx < rungAt st c.suit) : c ∈ st.found c.suit := by
+  have hpre := rung_found_prefix st hwf c.suit
+  have h13 : c.suit.upCards.length = 13 := Suit.upCards_length c.suit
+  have hget : c.suit.upCards.get ⟨c.rank.toIdx, by
+      rw [h13]; exact Rank.toIdx_lt c.rank⟩ = c :=
+    lock_upCards_get c (by rw [h13]; exact Rank.toIdx_lt c.rank)
+  have hmem0 : c.suit.upCards.get ⟨c.rank.toIdx, by
+      rw [h13]; exact Rank.toIdx_lt c.rank⟩ ∈
+      c.suit.upCards.take (rungAt st c.suit) :=
+    lock_get_in_take c.suit.upCards (rungAt st c.suit) c.rank.toIdx
+      (show c.rank.toIdx < c.suit.upCards.length by
+        rw [h13]; exact Rank.toIdx_lt c.rank) hlt
+  rw [hget] at hmem0
+  have hmem : c ∈ c.suit.upCards.take (rungAt st c.suit) := hmem0
+  rwa [← hpre] at hmem
+
+/-- **THE PILED-RUNG ROW** — a face-up card's suit rung sits weakly
+below its rank index: a taller rung would have founded it, and
+conservation forbids a card in two zones (the copy of
+`Orig/PairConfine.lean`'s private `conf_piled_rung`, spelled directly
+on `rungAt`). -/
+private theorem lock_piled_rung {st : State} (hwf : st.WF) {z : Card} {a : Anchor}
+    (hmem : z ∈ (st.piles a).faceUp) : rungAt st z.suit ≤ z.rank.toIdx := by
+  have hnot : z ∉ st.found z.suit := (mem_faceUp_only hwf hmem).2.2.2.2 z.suit
+  rcases Nat.lt_trichotomy (rungAt st z.suit) (z.rank.toIdx) with h | h | h
+  · exact Nat.le_of_lt h
+  · exact Nat.le_of_eq h
+  · exact absurd (lock_found_of_rung hwf h) hnot
 
 /-! ## §1. The foundation-residency read -/
 
@@ -1186,69 +1352,416 @@ theorem lock_zone_residency (st : State) (hwf : st.WF) (d : Card) :
               exact Or.inr (Or.inr (Or.inr (Or.inr hdzd)))
             · exact absurd hnil (by simp)
 
+/-! ### The exodus kit — a founded card leaves only by its own pull -/
+
+/-- Witness shuffles preserve `WF` (the journey-lift of `step_wf`). -/
+private theorem lock_shuffle_wf (s : State) : ∀ {play : List Move} {w : State},
+    ShufflePlayW s play w → s.WF → w.WF := by
+  intro play w h
+  induction h with
+  | nil u => intro hwfs; exact hwfs
+  | @cons s₀ m s₁ rest w₀ hrev hstep hrest ih =>
+      intro hwfs
+      exact ih (step_wf hwfs hstep)
+
+/-- **THE FOUNDED EXODUS** — along a witness shuffle, a card resident
+on its own suit's foundation at the start and absent at the end has
+left through its OWN pull: some interior leg is literally
+`Move.foundToTab c b`, flanked by witness-journey segments (with the
+leg's own reversibility witness).  A pull chops exactly the top card
+and the step's own LIFO guard names the popped card as the
+foundation's top, so the departing leg's card is the departing card
+itself (the per-move found-content read: the draw, the slides and
+the waste letters write no foundation; the raise appends; only the
+pull chops). -/
+private theorem lock_found_exit {c : Card} :
+    ∀ {s : State} {play : List Move} {w : State},
+      ShufflePlayW s play w → s.WF → c ∈ s.found c.suit → c ∉ w.found c.suit →
+      ∃ (π ρ : List Move) (b : Base) (u v : State),
+        ShufflePlayW s π u ∧
+          State.step u (Move.foundToTab c b) = some v ∧
+          reversibleAtW u (Move.foundToTab c b) ∧
+          ShufflePlayW v ρ w := by
+  intro s play w h
+  induction h with
+  | nil u => intro _hwfs hin hout; exact absurd hin hout
+  | @cons s₀ m s₁ rest w₀ hrev hstep hrest ih =>
+      intro hwfs hin hout
+      have hwf1 : s₁.WF := step_wf hwfs hstep
+      by_cases hc : c ∈ s₁.found c.suit
+      · obtain ⟨π, ρ, b, u, v, hp1, hp2, hp3, hp4⟩ := ih hwf1 hc hout
+        exact ⟨m :: π, ρ, b, u, v, .cons hrev hstep hp1, hp2, hp3, hp4⟩
+      · -- the departure fires at this very leg
+        cases m with
+        | draw =>
+            have hd : s₀.stepDraw = some s₁ := hstep
+            have hmem1 : c ∈ s₁.found c.suit := by
+              rw [stepDraw_found hd]
+              exact hin
+            exact absurd hmem1 hc
+        | wasteToFound wt =>
+            obtain ⟨-, -, xs, -, hs⟩ := step_wasteToFound_inv hstep
+            have hmem1 : c ∈ s₁.found c.suit := by
+              rw [hs]
+              by_cases hsc : c.suit = wt.suit
+              · rw [hsc]
+                show c ∈ (s₀.setFound wt.suit (s₀.found wt.suit ++ [wt])).found wt.suit
+                rw [setFound_found_self]
+                exact List.mem_append.mpr (Or.inl (hsc ▸ hin))
+              · show c ∈ (s₀.setFound wt.suit (s₀.found wt.suit ++ [wt])).found c.suit
+                rw [setFound_found_ne (fun hcon => hsc hcon)]
+                exact hin
+            exact absurd hmem1 hc
+        | wasteToTab wt bt =>
+            obtain ⟨_g, _x, _xs, _w, hs⟩ := step_wasteToTab_inv hstep
+            have hmem1 : c ∈ s₁.found c.suit := by
+              rw [hs]
+              show c ∈ (s₀.putCard wt bt).found c.suit
+              rw [putCard_found]
+              exact hin
+            exact absurd hmem1 hc
+        | tabToFound wt =>
+            obtain ⟨-, k, hpod, hs⟩ := step_tabToFound_inv hstep
+            obtain ⟨hself, hothers, -⟩ := tabToFound_found_trio (a := k) hs
+            have hmem1 : c ∈ s₁.found c.suit := by
+              by_cases hsc : c.suit = wt.suit
+              · rw [hsc, hself]
+                exact List.mem_append.mpr (Or.inl (hsc ▸ hin))
+              · rw [hothers c.suit (fun hcon => hsc hcon)]
+                exact hin
+            exact absurd hmem1 hc
+        | foundToTab wt bt =>
+            obtain ⟨ctop, htop, hct, hcp, hs⟩ := step_foundToTab_inv hstep
+            rw [hct] at htop
+            have hchopself : s₁.found wt.suit = chop (s₀.found wt.suit) := by
+              rw [hs, putCard_found, setFound_found_self]
+            have hchopne : ∀ σ, σ ≠ wt.suit → s₁.found σ = s₀.found σ := by
+              intro σ hσ
+              rw [hs, putCard_found]
+              exact setFound_found_ne hσ
+            by_cases hsc : c.suit = wt.suit
+            · -- the chop removed c: c was the top, and the LIFO guard
+              -- names the top as the leg's own card
+              have hLw : s₀.found wt.suit = chop (s₀.found wt.suit) ++ [wt] :=
+                lastOf_chop (show lastOf (s₀.found wt.suit) = some wt from htop)
+              have hLc : s₀.found c.suit = chop (s₀.found c.suit) ++ [wt] := by
+                rw [hsc]
+                exact hLw
+              have hch : s₁.found c.suit = chop (s₀.found c.suit) := by
+                rw [hsc]
+                exact hchopself
+              have hcchop : c ∉ chop (s₀.found c.suit) := fun hmem2 =>
+                hc (hch ▸ hmem2)
+              have hcwt : c = wt := by
+                rcases List.mem_append.mp (hLc ▸ hin) with h1 | h2
+                · exact absurd h1 hcchop
+                · exact List.mem_singleton.mp h2
+              subst hcwt
+              exact ⟨[], rest, bt, s₀, s₁, .nil _, hstep, hrev, hrest⟩
+            · have hmem1 : c ∈ s₁.found c.suit := by
+                rw [hchopne c.suit (fun hcon => hsc hcon)]
+                exact hin
+              exact absurd hmem1 hc
+        | tabToTab wt bt =>
+            obtain ⟨_a, _hh, _cp, _fr, hs⟩ := step_tabToTab_inv hstep
+            have hmem1 : c ∈ s₁.found c.suit := by
+              rw [hs, putRun_found, setPile_found]
+              exact hin
+            exact absurd hmem1 hc
+
 /-! ## §3.5. The named residue — the founded-cover staircase -/
 
-/-- **THE FOUNDED-COVER CASE** — the card's single named residue: the
-one origin-residency case of the cover `d` that this card's landed
-mechanism rows do not yet close (each other residency is fully closed
-by §3: on-board ⇒ `origin_dresser_frozen`, hidden ⇒
-`shuffle_hiddenPinned`, stock-or-waste ⇒ `witness_stockWaste_closed`;
-see the §4 assembly).
+/-- The pull's bare landing transport: the successor's own-suit
+foundation row is exactly the chopped firing row (the
+`setFound`/`putCard` found-transport read of the pull's successor
+equation, in the form the staircase seed consumes). -/
+private theorem lock_pull_landing {s s' : State} {w : Card} {b : Base}
+    (hs : s' = (s.setFound w.suit (chop (s.found w.suit))).putCard w b) :
+    s'.found w.suit = chop (s.found w.suit) := by
+  rw [hs, putCard_found, setFound_found_self]
 
-**THE ROUTE** (complete):
+/-- **THE RUNG SQUEEZE** — the founded-cover staircase's two-end
+arithmetic (the LIFO toggle's bookkeeping face, route item 1): at the
+origin the cover's home suit rung already stands past the cover's own
+index (the founded-membership bridge — the cover is founded there),
+and at the lower fork the cover's home suit rung stands TWO UNDER the
+cover's index (the piled-rung row plus the sandwich's parked pin
+`nextUp d = false`: the face-up cover cannot sit at exactly its own
+index), so the journey census prices the squeeze as a PULL DEBT: the
+witness play carries at least two more `d`-suit pulls than raises —
+the debt the LIFO descent pays by dragging the cover and the card
+below it out of their foundation. -/
+private theorem origin_foundedCover_rungSqueeze {st₁ st₂ : State}
+    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF) {play : List Move}
+    (hplay : ShufflePlayW st₁ play st₂)
+    {d : Card} {c2 : Anchor} (hmem : d ∈ (st₂.piles c2).faceUp)
+    (hnext : st₂.nextUp d = false)
+    (hdfound : d ∈ st₁.found d.suit) :
+    d.rank.toIdx + 1 ≤ rungAt st₁ d.suit ∧
+      rungAt st₂ d.suit + 2 ≤ d.rank.toIdx + 1 ∧
+      raisesOf play d.suit + 2 ≤ pullsOf play d.suit := by
+  have hr1 : d.rank.toIdx < rungAt st₁ d.suit :=
+    lock_found_rank_lt hwf₁ hdfound
+  have hrP := lock_piled_rung hwf₂ hmem
+  have hfh : st₂.foundHeight d.suit = rungAt st₂ d.suit := rfl
+  have hne : d.rank.toIdx ≠ rungAt st₂ d.suit := by
+    intro hcon
+    rw [State.nextUp] at hnext
+    rw [hcon, hfh] at hnext
+    exact absurd hnext (by simp)
+  have hsq2 : rungAt st₂ d.suit + 2 ≤ d.rank.toIdx + 1 := by omega
+  have hc := witness_rung_census hplay d.suit
+  exact ⟨by omega, hsq2, by omega⟩
 
-1. **The LIFO toggle discipline.** At every witness-journey state
-   `found σ = σ.upCards.take (rungAt σ)` (the `WF` reads), so each
-   suit's foundation behaves as a strict stack: a pull
-   (`foundToTab`) at rung `k+1` pops exactly the rank-`k` card of
-   its suit, a raise (`tabToFound`) pushes back the rank-`k` card
-   when the rung is `k` (`foundToTab_pops_currentTop`,
-   `foundToTab_undo`). The cover `d` (rank index `r*−1`, `hdfound`
-   forcing `rungAt st₁ d.suit ≥ r*`) can therefore leave its
-   foundation only through a pull firing at rung exactly `r*`: the
-   LIFO descent `h₀ → r*` pops the `d`-suit black cards of ranks
-   `h₀−1 … r*−1` (`d` itself last), each landing
-   `canPlace`-legally on a RED top of rank one above — for pop rank
-   `k ∈ [r*, h₀)` a family rank-`(k+1)` card, each either pre-seated
-   at `st₁` (rank ≥ `r`: the pair runs and their cargos — the
-   anchor lattice of the probes' boards), or itself dragged out of a
-   foundation by the same LIFO discipline.
-2. **The reversible dress cycle.** A `d`-pull fires only when `d`
-   tops its suit foundation (`rungAt = r*`), and lands `d` DIRECTLY
-   on a topping pair member (`y` or `y.twin` — the
-   `dress_legalSeats_pair` census, `d` being family-opposite,
-   rank `r*−1`); its direct mirror — the re-raise by
-   `foundToTab_undo` — makes every `d`-pull reversible (the probes'
-   `down1`/`vis1` cells). Every slide departure of a dresser from a
-   seat with residue needs the residue-top as a landlord — and the
-   census reads every lawful landlord as a pair member again.
-3. **The endpoint census kills the cycle.** At `st₂` the pack pins
-   `st₂.nextUp d = false` with the piled-rung read
-   (`conf_piled_rung`) forcing `rungAt st₂ d.suit ≤ r*−2`: so AFTER
-   the LAST `d`-pull the `d`-suit rung must descend strictly below
-   `d`'s own index — at least one further pop BELOW `d`: the black
-   rank-`(r*−2)` card onto a RED rank-`(r*−1)` top — the two red
-   rank-`(r*−1)` cards are FAMILY, hence FOUNDED at `st₁` (both
-   family rungs pin at `r > r*−1`) and can only be dragged out themselves,
-   iterating the drag one rank at a time down the staircase
-   (`Orig/EpochProbe.lean`'s `downAlt_pollutes` is the rank-locked
-   shadow of this row: a pulled cover is next-up at its own
-   landing BY CONSTRUCTION).
-4. **The crash.** Each dragged staircase card is NEXT-UP-LIVE at
-   its own landing (its pull drops its suit rung to exactly its
-   index), and washing it back re-raises the rung — while §1's
-   census (`origin_lowerJourney_pulls`) prices net family pulls ≥
-   `r − r*` on BOTH family suits. The staircase terminus at `st₂`:
-   some dragged low card on-board with no legal seat — its every
-   `canPlace` target is a family rank-top, but at `st₂` BOTH pair
-   members are consumed (one tops its own seat pile `a`, the other
-   sits DIRECTLY under `d` in the second pile, `a ≠ c`) and every
-   other family card of that rank is foundation-resident
-   (`pair_lowFamily_founded` at the OTHER end) — so the terminal
-   card stands FACE-UP-LIVE against the lower fork's S-saturation
-   (`canRaiseS_iff`: a third live card breaks `hy`'s pair select),
-   the exact `downAlt` pollution crash. Hence no witness journey
-   reaches the founded-cover endgame; the case is barred. -/
+/-- **THE BELOW-`d` PULL (the staircase seed)** — the squeeze's
+two-rung drop forces the card ONE BELOW the cover in the cover's own
+suit out of its foundation: founded at the origin (the origin rung
+already stands past the cover's own index, a fortiori past the
+below-cover's), NOT founded at the lower fork (the end rung stands two
+under the cover's index).  By the founded-exodus row the departure
+fires as the card's OWN `foundToTab` leg — the LIFO discipline popping
+it exactly one above its index — and the landing lies on no empty
+seat (the popped card, two ranks under the cover's index, is no king:
+the pillar's king row bars the base), so it lands DIRECTLY on a
+card-landlord one above it in the family color `yc` — the dress
+lattice, one rung down the staircase — NEXT-UP-LIVE at its own landing
+(`rungAt v = index`: the just-popped card is instantly re-foundable) —
+with its firing-state and landing-state witness-shuffle segments
+preserved for the pollution analysis to come. -/
+private theorem origin_foundedCover_belowPull {st₁ st₂ : State}
+    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF) {play : List Move}
+    (hplay : ShufflePlayW st₁ play st₂)
+    {d : Card} {yc : Color}
+    (hyc : yc ≠ d.suit.color)
+    (hr1 : d.rank.toIdx + 1 ≤ rungAt st₁ d.suit)
+    (hr2 : rungAt st₂ d.suit + 2 ≤ d.rank.toIdx + 1) :
+    ∃ (w : Card) (b : Base) (zt : Card) (kk : Anchor) (bs : List Card)
+        (π ρ : List Move) (u v : State),
+      w.suit = d.suit ∧
+        w.rank.toIdx + 2 ≤ d.rank.toIdx + 1 ∧
+        ShufflePlayW st₁ π u ∧
+        State.step u (Move.foundToTab w b) = some v ∧
+        reversibleAtW u (Move.foundToTab w b) ∧
+        ShufflePlayW v ρ st₂ ∧
+        (v.piles kk).faceUp = bs ++ [zt, w] ∧
+        v.pileOfTop w = some kk ∧
+        zt.rank.toIdx = w.rank.toIdx + 1 ∧
+        zt.suit.color = yc ∧
+        rungAt u w.suit = w.rank.toIdx + 1 ∧
+        rungAt v w.suit = w.rank.toIdx := by
+  -- the below-cover card of the cover's own suit, one index down the build
+  have hidx13 : d.rank.toIdx - 1 < 13 := by
+    have h13 := Rank.toIdx_lt d.rank
+    omega
+  have hwidx : (lockRk (d.rank.toIdx - 1)).toIdx = d.rank.toIdx - 1 :=
+    lockRk_toIdx (d.rank.toIdx - 1) hidx13
+  obtain ⟨w, hws, hwr⟩ : ∃ w : Card, w.suit = d.suit ∧
+      w.rank.toIdx = d.rank.toIdx - 1 :=
+    ⟨Card.mk d.suit (lockRk (d.rank.toIdx - 1)), rfl, by
+      show (lockRk (d.rank.toIdx - 1)).toIdx = d.rank.toIdx - 1
+      rw [hwidx]⟩
+  -- founded at the origin, not founded at the endstate
+  have hinfound : w ∈ st₁.found w.suit :=
+    mem_found_of_height hwf₁ (by
+      show w.rank.toIdx < rungAt st₁ w.suit
+      rw [hws]
+      omega)
+  have hnotfound : w ∉ st₂.found w.suit := by
+    intro hmem
+    have hlt := lock_found_rank_lt hwf₂ hmem
+    rw [hws, hwr] at hlt
+    omega
+  -- the exodus: the below-cover card's own pull, mid-journey
+  obtain ⟨π, ρ, b, u, v, hpre, hstep, hrev, hpost⟩ :=
+    lock_found_exit (c := w) hplay hwf₁ hinfound hnotfound
+  have hwfu : u.WF := lock_shuffle_wf st₁ hpre hwf₁
+  have hwfv : v.WF := step_wf hwfu hstep
+  -- the LIFO fire-time reads
+  have htop : u.foundTop w.suit = some w := foundToTab_pops_currentTop hstep
+  obtain ⟨_c0, _h0, _h1, hg, hs⟩ := step_foundToTab_inv hstep
+  have hchoplen : (chop (u.found w.suit)).length = w.rank.toIdx :=
+    wf_found_chop_toIdx hwfu htop
+  have hsplit : u.found w.suit = chop (u.found w.suit) ++ [w] :=
+    lastOf_chop (show lastOf (u.found w.suit) = some w from htop)
+  have huvf : v.found w.suit = chop (u.found w.suit) :=
+    lock_pull_landing hs
+  have hru : rungAt u w.suit = w.rank.toIdx + 1 := by
+    show (u.found w.suit).length = _
+    rw [hsplit, List.length_append]
+    have h1 : ([w] : List Card).length = 1 := rfl
+    omega
+  have hrv : rungAt v w.suit = w.rank.toIdx := by
+    show (v.found w.suit).length = _
+    rw [huvf]
+    exact hchoplen
+  -- the landing: no empty seat (a popped card two under the cover is
+  -- no king), only a landlord
+  cases b with
+  | inl ka =>
+      exfalso
+      have hK := lock_canPlace_inl_king hg
+      have hKeq : w.rank.toIdx = Rank.king.toIdx := by rw [hK]
+      have hk12 : Rank.king.toIdx = 12 := rfl
+      have hr1cap : rungAt st₁ d.suit ≤ 13 := by
+        obtain ⟨n, hn⟩ := hwf₁.found_prefix d.suit
+        show (st₁.found d.suit).length ≤ 13
+        rw [hn, List.length_take, Suit.upCards_length]
+        omega
+      omega
+  | inr zt =>
+      obtain ⟨kk, hztop, hsit⟩ := canPlace_inr hg
+      obtain ⟨hzrk, hzcol⟩ := (canSitOn_eq w zt).mp hsit
+      have hzc : zt.suit.color = yc := by
+        have h2 : w.suit.color ≠ yc := by
+          rw [hws]
+          exact fun hcon => hyc hcon.symm
+        exact lock_color_pair hzcol h2
+      -- the landing pile: w lands directly on zt, in zt's own pile
+      have hmidp : (u.setFound w.suit (chop (u.found w.suit))).piles = u.piles :=
+        setFound_piles u w.suit _
+      have hmidpo :
+          (u.setFound w.suit (chop (u.found w.suit))).pileOfTop zt = some kk := by
+        rw [lock_pileOfTop_of_piles zt hmidp]
+        exact hztop
+      have hvkk : v.piles kk
+          = { (u.piles kk) with faceUp := (u.piles kk).faceUp ++ [w] } := by
+        have hp : (((u.setFound w.suit (chop (u.found w.suit))).putCard
+              w (Sum.inr zt)).piles kk)
+            = (if kk = kk
+                then { (u.setFound w.suit (chop (u.found w.suit))).piles kk with
+                       faceUp := ((u.setFound w.suit (chop (u.found w.suit))).piles kk).faceUp
+                         ++ [w] }
+                else (u.setFound w.suit (chop (u.found w.suit))).piles kk) := by
+          simp only [putCard_piles_inr _ _ _ _ hmidpo]
+        rw [hs, hp, if_pos rfl, hmidp]
+      have hzlast : lastOf (u.piles kk).faceUp = some zt := (pileOfTop_top hztop).2
+      have hztshape : (u.piles kk).faceUp = chop (u.piles kk).faceUp ++ [zt] :=
+        lastOf_chop hzlast
+      have hshapev : (v.piles kk).faceUp
+          = chop (u.piles kk).faceUp ++ [zt, w] := by
+        have h1 : (u.piles kk).faceUp ++ [w]
+            = (chop (u.piles kk).faceUp ++ [zt]) ++ [w] := by
+          have hgen : ∀ E : List Card, (u.piles kk).faceUp = E ++ [zt] →
+              (u.piles kk).faceUp ++ [w] = E ++ [zt] ++ [w] := by
+            intro E hE
+            rw [hE]
+          exact hgen _ hztshape
+        have h2 : (chop (u.piles kk).faceUp ++ [zt]) ++ [w]
+            = chop (u.piles kk).faceUp ++ [zt, w] := by
+          cases chop (u.piles kk).faceUp <;> simp [List.append_assoc]
+        rw [hvkk]
+        show (u.piles kk).faceUp ++ [w] = _
+        rw [h1, h2]
+      have hpot : v.pileOfTop w = some kk := by
+        refine (pileOfTop_eq_some_iff hwfv).2 ?_
+        show lastOf (v.piles kk).faceUp = some w
+        rw [hvkk]
+        show lastOf ((u.piles kk).faceUp ++ [w]) = some w
+        exact lastOf_snoc
+      refine ⟨w, Sum.inr zt, zt, kk, chop (u.piles kk).faceUp, π, ρ, u, v,
+        hws, ?_, hpre, hstep, hrev, hpost, hshapev, hpot, hzrk.symm, hzc, hru, hrv⟩
+      omega
+/-- **THE FOUNDED-COVER POLLUTION CRASH** — §3.5's terminal named
+residue: the staircase's remaining open walk, everything before it now
+landed (`origin_foundedCover_rungSqueeze`, `origin_foundedCover_belowPull`).
+It consumes the seed — the below-`d` card `w` of the cover's own suit,
+pulled at `u` to land NEXT-UP-LIVE at `v` DIRECTLY on its landlord
+`zt` (family color, one above `w`) — together with the endpoint pins
+(the two-rung `d`-suit drop and §1's family pull debt `r − r*` on
+BOTH family suits) and the lower fork's sandwich pack.  THE REMAINING
+ROUTE:
+
+* **The landlord iteration (route items 2-3's tail).** `zt` (family
+  color, rank index below the fork's) is founded at BOTH ends (at the
+  origin by `pair_lowFamily_founded` — both family rungs pin at `r`;
+  at the fork by the founded bridge — both family rungs pin at `r*`,
+  each strictly above `zt`'s index): between `v` and `st₂` the
+  landlord must therefore RE-FOUND — a `tabToFound zt` leg firing at
+  rung exactly `zt`'s index (the LIFO toggle read), which first
+  empties its top: `w` must first slide, and every lawful `w`-slide
+  lands on a family-color landlord one above it (no empty seat ever —
+  the king row; the card-directed lattice is `dress_legalSeats_pair`'s
+  census one rung down), iterating the drag one rank at a time down
+  the staircase: each dragged low household card drags the next.
+* **The census crash (route item 4).** The iteration cannot settle:
+  washing a dragged family card back re-raises its suit's rung, while
+  §1's family debt (`raisesOf + (r − r*) ≤ pullsOf` on BOTH family
+  suits) prices the drag strictly; the staircase terminus at `st₂` is
+  a dragged low card, face-up, its lawful seats all consumed — one
+  pair member tops its own seat pile, the other sits DIRECTLY under
+  the cover `d` (`hdcover`), `hlattice` reads every remaining lawful
+  landlord of `d`'s lattice as one of them, and every other same-rank
+  family card is foundation-resident at the fork — so the terminal
+  card stands FACE-UP-LIVE against the lower fork's S-saturation
+  (`canRaiseS_iff`: `hy`'s pair select admits no third live card),
+  the `downAlt_pollutes` crash the probes' `vis3hop` boards carry in
+  the concrete census picture.  Hence no witness journey reaches the
+  founded-cover endgame; the case is barred. -/
+private theorem origin_foundedCover_pollutesCrash {st₁ st₂ : State}
+    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
+    {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
+    (hfam : y.suit = x.suit ∨ y.suit = x.twin.suit)
+    (hlt : y.rank.toIdx < x.rank.toIdx)
+    {play : List Move} (hplay : ShufflePlayW st₁ play st₂)
+    (d : Card)
+    (hd : d.rank.toIdx + 1 = y.rank.toIdx)
+    (hdcol : d.suit.color ≠ y.suit.color)
+    (hdcover : ∃ c bsC, (st₂.piles c).faceUp = bsC ++ [y.twin, d] ∧
+      st₂.pileOfTop d = some c)
+    (hnext : st₂.nextUp d = false)
+    (hlattice : ∀ z, st₂.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin)
+    (hdfound : d ∈ st₁.found d.suit)
+    (hsq1 : d.rank.toIdx + 1 ≤ rungAt st₁ d.suit)
+    (hsq2 : rungAt st₂ d.suit + 2 ≤ d.rank.toIdx + 1)
+    (hsq3 : raisesOf play d.suit + 2 ≤ pullsOf play d.suit)
+    (hpc1 : raisesOf play y.suit + (x.rank.toIdx - y.rank.toIdx)
+      ≤ pullsOf play y.suit)
+    (hpc2 : raisesOf play y.twin.suit + (x.rank.toIdx - y.rank.toIdx)
+      ≤ pullsOf play y.twin.suit)
+    (hpkg : ∃ (w : Card) (b : Base) (zt : Card) (kk : Anchor) (bs : List Card)
+        (π ρ : List Move) (u v : State),
+      w.suit = d.suit ∧
+        w.rank.toIdx + 2 ≤ d.rank.toIdx + 1 ∧
+        ShufflePlayW st₁ π u ∧
+        State.step u (Move.foundToTab w b) = some v ∧
+        reversibleAtW u (Move.foundToTab w b) ∧
+        ShufflePlayW v ρ st₂ ∧
+        (v.piles kk).faceUp = bs ++ [zt, w] ∧
+        v.pileOfTop w = some kk ∧
+        zt.rank.toIdx = w.rank.toIdx + 1 ∧
+        zt.suit.color = y.suit.color ∧
+        rungAt u w.suit = w.rank.toIdx + 1 ∧
+        rungAt v w.suit = w.rank.toIdx) :
+    False := by
+  sorry
+
+/-- **THE FOUNDED-COVER CASE** — the composition row: the one
+origin-residency case of the cover `d` that §3's landed mechanism rows
+do not close (each other residency is fully closed by §3: on-board ⇒
+`origin_dresser_frozen`, hidden ⇒ `shuffle_hiddenPinned`,
+stock-or-waste ⇒ `witness_stockWaste_closed`; see the §4 assembly).
+The founded case decomposes as THE STAIRCASE:
+
+1. **The LIFO toggle arithmetic** (LANDED:
+   `origin_foundedCover_rungSqueeze`) — the cover, founded at the
+   origin with its suit rung past its own index, sits face-up and
+   PARKED (`nextUp d = false`) at the lower fork with its suit rung
+   two under its index, so the census prices two more `d`-suit pulls
+   than raises: the LIFO descent must drag the cover AND the card
+   below it out of their foundation.
+2. **The below-`d` pull** (LANDED: `origin_foundedCover_belowPull`) —
+   the card one below the cover in the cover's own suit departs
+   through its OWN `foundToTab` leg (the founded-exodus row: a pull
+   chops exactly the top, and the step's guard names the popped card),
+   landing NEXT-UP-LIVE on its family-color landlord one above — the
+   dress lattice (`dress_legalSeats_pair`) one rung down, the
+   staircase's seed.
+3. **The pollution crash** (the named residue
+   `origin_foundedCover_pollutesCrash`, carrying the remaining route
+   above) — the landlord iteration drags the family's low cards one
+   rank at a time against the census debt, and the terminus crashes
+   into the lower fork's S-saturation: a third live card breaks
+   `hy`'s pair select. -/
 private theorem origin_cover_founded_case_barred {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
@@ -1260,9 +1773,25 @@ private theorem origin_cover_founded_case_barred {st₁ st₂ : State}
     (hdcol : d.suit.color ≠ y.suit.color)
     (hdcover : ∃ c bsC, (st₂.piles c).faceUp = bsC ++ [y.twin, d] ∧
       st₂.pileOfTop d = some c)
+    (hnext : st₂.nextUp d = false)
+    (hlattice : ∀ z, st₂.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin)
     (hdfound : d ∈ st₁.found d.suit) :
     False := by
-  sorry
+  obtain ⟨c, bsC, hshape, hpod⟩ := hdcover
+  have hmem : d ∈ (st₂.piles c).faceUp := by
+    rw [hshape]
+    exact List.mem_append.mpr (Or.inr (List.mem_cons.2 (Or.inr (by simp))))
+  -- the LIFO toggle arithmetic (route item 1)
+  obtain ⟨hsq1, hsq2, hsq3⟩ :=
+    origin_foundedCover_rungSqueeze hwf₁ hwf₂ hplay hmem hnext hdfound
+  -- §1's family pull debt, on BOTH family suits
+  obtain ⟨hpc1, hpc2⟩ := origin_lowerJourney_pulls hwf₁ hx hy hfam hplay hlt
+  -- the below-`d` pull (route items 1-3's landed half)
+  have hyc : y.suit.color ≠ d.suit.color := fun hcon => hdcol hcon.symm
+  obtain hpkg := origin_foundedCover_belowPull hwf₁ hwf₂ hplay hyc hsq1 hsq2
+  -- the pollution crash (the named residue)
+  exact origin_foundedCover_pollutesCrash hwf₁ hwf₂ hx hy hfam hlt hplay d hd hdcol
+    ⟨c, bsC, hshape, hpod⟩ hnext hlattice hdfound hsq1 hsq2 hsq3 hpc1 hpc2 hpkg
 
 /-! ## §4. THE ASSEMBLY -/
 
@@ -1324,7 +1853,7 @@ theorem forkState_rankDrop_locked (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf
     · rw [h, Card.twin_suit, Suit.color_twin]
   intro hlt
   obtain ⟨τ, hτ⟩ := sameOrbit_forward hcls
-  obtain ⟨a, c, bsC, d, hpo, -, hshape, hrankd, hcold, hpod, hne, hnext, hKd, -, -⟩ :=
+  obtain ⟨a, c, bsC, d, hpo, -, hshape, hrankd, hcold, hpod, hne, hnext, hKd, hlatt, -⟩ :=
     lower_sandwich hwf₂ hy
   have hdcolx : d.suit.color ≠ x.suit.color :=
     fun h => hcold (h.trans hcolfam.symm)
@@ -1337,7 +1866,7 @@ theorem forkState_rankDrop_locked (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf
     have hsuit : s = d.suit := lock_found_suit hwf₁ hf
     have hdfound : d ∈ st₁.found d.suit := by rw [← hsuit]; exact hf
     exact origin_cover_founded_case_barred hwf₁ hwf₂ hx hy hfam hlt hτ d hrankd hcold
-      ⟨c, bsC, hshape, hpod⟩ hdfound
+      ⟨c, bsC, hshape, hpod⟩ hnext hlatt hdfound
   · -- HIDDEN at the origin: the pin transports the hidden seat to st₂
     exfalso
     have hpin := shuffle_hiddenPinned hτ k
@@ -1432,8 +1961,12 @@ theorem forkState_family_pairClass (st₁ st₂ : State) (hwf₁ : st₁.WF) (hw
 /-! ### The audit battery
 
 Fresh heads `#print axioms`-audited: every landed row sits in
-`[propext]` or `[propext, Quot.sound]`; the public rows that consume
-the named residue (§3.5) echo its `sorryAx` (and
+`[propext]` or `[propext, Quot.sound]` — including the staircase's
+landed mechanism rows (`origin_foundedCover_rungSqueeze`,
+`origin_foundedCover_belowPull`, with the exodus kit
+`lock_found_exit` and the build-position copies); the public rows
+that consume the named residue (§3.5's
+`origin_foundedCover_pollutesCrash`) echo its `sorryAx` (and
 `forkState_family_pairClass` additionally echoes PairConfine's
 upward `crossing_door_barred` residue, its own card's honest carry);
 zero other axioms - no `Classical.choice`. -/
@@ -1446,6 +1979,8 @@ zero other axioms - no `Classical.choice`. -/
 #print axioms origin_dresser_frozen
 #print axioms witness_stockWaste_closed
 #print axioms lock_zone_residency
+#print axioms origin_foundedCover_rungSqueeze
+#print axioms origin_foundedCover_belowPull
 #print axioms forkState_rankDrop_locked
 #print axioms forkState_family_rankFloor
 #print axioms forkState_family_pairClass
