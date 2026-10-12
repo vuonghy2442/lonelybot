@@ -2666,13 +2666,18 @@ audited; the waste/tab shares are the successor program's next
 small steps to find.
 -/
 
-/-! ### The transport kit (private copies; dedup-marked)
+/-! ### The transport kit (public since the SWRotInert consume)
 
 The guard congruences (the board reads are field reads), the
-field-determined draw, and the run-level counting mono — the
-farm's private-isolation convention: same shapes, same scripts
-as the dominance program's copies beside its §5.3 engine and the
-twin-exchange chapter's copies (they dedup at merge). -/
+field-determined draw, and the run-level counting mono — formerly
+the farm's private-isolation copies (same shapes, same scripts as
+the dominance program's and the twin-exchange chapter's).  The
+SWRotInert consume promoted this kit to public rows under the
+`EdgeKit` namespace — the dedup the farm markers stamped; the
+sibling chapters' same-named private variants stay file-local and
+untouched. -/
+
+namespace EdgeKit
 
 private theorem setPile_piles_congr {u v : State} (a : Anchor) (p : Pile)
     (h : u.piles = v.piles) : (u.setPile a p).piles = (v.setPile a p).piles := by
@@ -2680,7 +2685,7 @@ private theorem setPile_piles_congr {u v : State} (a : Anchor) (p : Pile)
 
 /-- A `putCard` at equal piles boards agrees everywhere (the
 placement walk reads only the piles). -/
-private theorem putCard_piles_congr {u v : State} (c : Card) (b : Base)
+theorem putCard_piles_congr {u v : State} (c : Card) (b : Base)
     (h : u.piles = v.piles) : (u.putCard c b).piles = (v.putCard c b).piles := by
   cases b with
   | inl a =>
@@ -2704,7 +2709,7 @@ private theorem putCard_piles_congr {u v : State} (c : Card) (b : Base)
               setPile_piles, setPile_piles, h]
 
 /-- A `putRun` at equal piles boards agrees everywhere. -/
-private theorem putRun_piles_congr {u v : State} (run : List Card) (b : Base)
+theorem putRun_piles_congr {u v : State} (run : List Card) (b : Base)
     (h : u.piles = v.piles) : (u.putRun run b).piles = (v.putRun run b).piles := by
   cases b with
   | inl a =>
@@ -2728,7 +2733,7 @@ private theorem putRun_piles_congr {u v : State} (run : List Card) (b : Base)
               setPile_piles, setPile_piles, h]
 
 /-- The draw keeps the draw step. -/
-private theorem stepDraw_drawStep {x u : State} (hd : x.stepDraw = some u) :
+theorem stepDraw_drawStep {x u : State} (hd : x.stepDraw = some u) :
     u.drawStep = x.drawStep := by
   obtain ⟨r, hrec, -, hshape⟩ := draw_unfold hd
   have h1 : u.drawStep = r.drawStep := by rw [hshape]
@@ -2738,7 +2743,7 @@ private theorem stepDraw_drawStep {x u : State} (hd : x.stepDraw = some u) :
   | cons c cs => simp only [State.recycle, hs]
 
 /-- A fired draw certifies a nonempty cycle. -/
-private theorem stepDraw_pos_cycleCount {x u : State} (hd : x.stepDraw = some u) :
+theorem stepDraw_pos_cycleCount {x u : State} (hd : x.stepDraw = some u) :
     0 < cycleCount x := by
   obtain ⟨r, hrec, hrne, -⟩ := draw_unfold hd
   have h1 : cycleCount r = cycleCount x := by rw [← hrec]; exact recycle_cycle x
@@ -2751,7 +2756,7 @@ private theorem stepDraw_pos_cycleCount {x u : State} (hd : x.stepDraw = some u)
 /-- A nonempty cycle fires the draw — the unconditioned base: no
 draw-step discipline, no shape premise, `dealStock` reads only
 the zone. -/
-private theorem stepDraw_of_pos_cycleCount {x : State}
+theorem stepDraw_of_pos_cycleCount {x : State}
     (h : 0 < cycleCount x) : ∃ u, x.stepDraw = some u := by
   cases hs : x.stock with
   | cons c cs =>
@@ -2776,7 +2781,7 @@ private theorem stepDraw_of_pos_cycleCount {x : State}
               dealStock_eq_of_ne_nil _ (show (({ x with stock := x.waste.reverse, waste := ([] : List Card) } : State)).stock ≠ [] from by rw [hw]; exact hrev)]⟩
 
 /-- One step of a run, in equation form. -/
-private theorem run_step_cons' {st s₁ : State} {m : Move} {rest : List Move}
+theorem run_step_cons' {st s₁ : State} {m : Move} {rest : List Move}
     (hm : State.step st m = some s₁) : st.run (m :: rest) = s₁.run rest := by
   show (match State.step st m with
          | some s' => s'.run rest
@@ -2787,7 +2792,7 @@ private theorem run_step_cons' {st s₁ : State} {m : Move} {rest : List Move}
 
 /-- The two moves that spend a waste card (farm copy of Phase's
 private discriminator; dedup at merge). -/
-private def isWasteMove (m : Move) : Bool :=
+def isWasteMove (m : Move) : Bool :=
   match m with
   | .wasteToFound _ => true
   | .wasteToTab _ _ => true
@@ -2795,7 +2800,7 @@ private def isWasteMove (m : Move) : Bool :=
 
 /-- The cycle count never rises along a play (the per-step row is
 `cycleCount_step`). -/
-private theorem run_cycleCount_le : ∀ {play : List Move} {x w : State},
+theorem run_cycleCount_le : ∀ {play : List Move} {x w : State},
     x.run play = some w → cycleCount w ≤ cycleCount x := by
   intro play
   induction play with
@@ -2814,7 +2819,7 @@ private theorem run_cycleCount_le : ∀ {play : List Move} {x w : State},
 /-- A play that spends a waste card strictly drops the cycle
 count (the per-step strict rows are `cycleCount_step_wasteToFound`
 and `cycleCount_step_wasteToTab`). -/
-private theorem run_cycleCount_lt : ∀ {play : List Move} {x w : State},
+theorem run_cycleCount_lt : ∀ {play : List Move} {x w : State},
     x.run play = some w → (∃ m ∈ play, isWasteMove m = true) →
     cycleCount w < cycleCount x := by
   intro play
@@ -2877,7 +2882,7 @@ private theorem step_cycleCount_of_ne_waste {x s₁ : State} {m : Move}
 
 /-- A play that returns to a count-conserved origin never spends
 the waste. -/
-private theorem run_ne_waste_of_return {x y : State} {play : List Move}
+theorem run_ne_waste_of_return {x y : State} {play : List Move}
     (hrun : x.run play = some y) (hcount : cycleCount y = cycleCount x) :
     ∀ m ∈ play, isWasteMove m = false := by
   intro m hm
@@ -2923,7 +2928,7 @@ rows), and the draw is field-determined (`stepDraw_rel`); no `WF`,
 no shape analysis, no draw-step discipline. -/
 
 /-- **Board square, `tabToFound` leg.** -/
-private theorem square_tabToFound {st r w : State} {c : Card}
+theorem square_tabToFound {st r w : State} {c : Card}
     (hm : State.step st (Move.tabToFound c) = some r)
     (hd : st.stepDraw = some w) :
     ∃ r', w.step (Move.tabToFound c) = some r' ∧ r.stepDraw = some r' := by
@@ -2964,7 +2969,7 @@ private theorem square_tabToFound {st r w : State} {c : Card}
   · rw [hzd']; rfl
 
 /-- **Board square, `foundToTab` leg.** -/
-private theorem square_foundToTab {st r w : State} {c : Card} {b : Base}
+theorem square_foundToTab {st r w : State} {c : Card} {b : Base}
     (hm : State.step st (Move.foundToTab c b) = some r)
     (hd : st.stepDraw = some w) :
     ∃ r', w.step (Move.foundToTab c b) = some r' ∧ r.stepDraw = some r' := by
@@ -3004,7 +3009,7 @@ private theorem square_foundToTab {st r w : State} {c : Card} {b : Base}
   · rw [putCard_drawStep, setFound_drawStep, hzd']
 
 /-- **Board square, `tabToTab` leg.** -/
-private theorem square_tabToTab {st r w : State} {c : Card} {b : Base}
+theorem square_tabToTab {st r w : State} {c : Card} {b : Base}
     (hm : State.step st (Move.tabToTab c b) = some r)
     (hd : st.stepDraw = some w) :
     ∃ r', w.step (Move.tabToTab c b) = some r' ∧ r.stepDraw = some r' := by
@@ -3065,7 +3070,7 @@ private theorem square_tabToTab {st r w : State} {c : Card} {b : Base}
 
 /-- **The step-square, dispatched:** any waste-free non-draw leg
 transports across a fired draw. -/
-private theorem step_square {st r w : State} {m : Move}
+theorem step_square {st r w : State} {m : Move}
     (hm : State.step st m = some r) (hmv : isWasteMove m = false)
     (hmd : m ≠ Move.draw)
     (hd : st.stepDraw = some w) :
@@ -3084,7 +3089,7 @@ private theorem step_square {st r w : State} {m : Move}
 at the drawn landing lands the draw of the play's own landing.
 Board legs cross the square; a draw leg COINCIDES with the pushed
 draw (the transposed prefix IS the original prefix's landing). -/
-private theorem run_drawPush : ∀ (play : List Move) (x u y : State),
+theorem run_drawPush : ∀ (play : List Move) (x u y : State),
     x.stepDraw = some u → x.run play = some y →
       (∀ m ∈ play, isWasteMove m = false) →
       ∃ u', u.run play = some u' ∧ y.stepDraw = some u' := by
@@ -3144,6 +3149,10 @@ private theorem run_drawPush : ∀ (play : List Move) (x u y : State),
           rw [show u.run (Move.tabToTab c b :: rest) = r'.run rest from
               run_step_cons' hwstep]
           exact hrun'
+
+end EdgeKit
+
+open EdgeKit
 
 /-- The witness journey pushes: a witnessed reversible journey at a
 drawing member reruns wholesale at the drawn landing — same move
