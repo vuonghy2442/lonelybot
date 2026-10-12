@@ -2709,18 +2709,125 @@ private theorem conf_deal_shrink (d : Card) : ∀ (k : Nat) (l : List Card),
             simp only [State.dealUpTo] at hmem
             exact List.mem_cons.2 (Or.inr (ih2 hmem))
 
-/-- **SEAM — THE UNION NEVER GAINS (priced)**: the stock/waste world never gains along a witness play.  ROUTE (corrected empirics, two hard-won facts from this run): the tab/found/cargo arms keep the fields (
-w [hs'] at h₁ fires; FoundToTab/	abToTab need the FOUR-tuple keep rows putCard_keep/putRun_keep — banked-green in conf_stockWaste_closed — rather than raw exact: the setFound chain does not defeq-reduce under xact); the waste arms are the two journey_never_* bars.  THE DRAW FLIPS THE ZONES: hyEq's record reads stock := (dealUpTo r.drawStep r.stock).snd and waste := (dealUpTo r.drawStep r.stock).fst.reverse ++ r.waste — the DEALT lane cycles into the WASTE (reverse-prepended over the old waste), the REMNANT lane stays STOCK; so the stock case consumes the shrink's second lane (conf_deal_shrink ... .2 → d ∈ r.stock) and the waste case splits the append: dealt-reverse → the shrink's FIRST lane into
-.stock, right disjunct → the old
-.waste.  The
- side is s₀.recycle-shaped and hrEq is a recycle equation — retarget r-facts onto s₀ via the banked nonempty-stock pattern (
-ecycle_keep s₀ … plus the stock-case split on the drawn-head, exactly as in conf_stockWaste_closed's green draw arm) rather than a direct
-w [hrEq], whose orientation does not fire at s₀… goals.  The deal-lane membership rows are banked (conf_deal_shrink); this row is composition only. -/
+/-- **THE UNION NEVER GAINS (closed)** — the stock/waste world never
+gains along a witness play: the tail carries the induction backward,
+and each single leg is inverted arm by arm (the waste letters never
+ride; the tab/found/cargo writers keep the union verbatim through
+`putCard_keep`/`putRun_keep`; the draw's zone-flip reads back through
+the deal shrink — the remnant lane stays stock, the dealt lane
+re-reverses into it, and the recycle lanes (`recycle_keep`,
+`recycle_nil`, `recycle_allEmpty`) map the deal's source onto the
+start union). -/
 private theorem conf_orphan_union {st : State} : ∀ {u : State}
     {τ : List Move},
     ShufflePlayW st τ u →
     (∀ d : Card, d ∈ u.stock ∨ d ∈ u.waste → d ∈ st.stock ∨ d ∈ st.waste) := by
-  sorry
+  intro u τ h
+  induction h with
+  | nil s =>
+      intro d hcyc
+      exact hcyc
+  | @cons s₀ m s₁ rest w₀ hrev hstep hrest ih =>
+      intro d h1
+      have hmid : d ∈ s₁.stock ∨ d ∈ s₁.waste := ih d h1
+      cases m with
+      | draw =>
+          have hd : s₀.stepDraw = some s₁ := hstep
+          obtain ⟨r, hrEq, -, hyEq⟩ := draw_unfold hd
+          rw [hyEq] at hmid
+          rcases hmid with hst | hwst
+          · have hmem : d ∈ r.stock :=
+              (conf_deal_shrink d r.drawStep r.stock).2 hst
+            cases hss : s₀.stock with
+            | nil =>
+                cases hws : s₀.waste with
+                | nil =>
+                    have hall : r = s₀ := by
+                      rw [← hrEq]
+                      exact recycle_allEmpty s₀ hss hws
+                    rw [hall, hss] at hmem
+                    exact absurd hmem (by simp)
+                | cons v vs =>
+                    have hrt : r = { s₀ with
+                        stock := s₀.waste.reverse,
+                        waste := ([] : List Card) } := by
+                      rw [← hrEq]
+                      exact recycle_nil s₀ hss (by rw [hws]; simp)
+                    rw [hrt, hws] at hmem
+                    exact Or.inr (List.mem_reverse.mp hmem)
+            | cons x xs =>
+                have hrt : r = s₀ := by
+                  rw [← hrEq]
+                  exact recycle_keep s₀ (by rw [hss]; simp)
+                rw [hrt, hss] at hmem
+                exact Or.inl hmem
+          · cases hss : s₀.stock with
+            | nil =>
+                cases hws : s₀.waste with
+                | nil =>
+                    have hall : r = s₀ := by
+                      rw [← hrEq]
+                      exact recycle_allEmpty s₀ hss hws
+                    rcases List.mem_append.mp hwst with hD | hR
+                    · have hmem : d ∈ r.stock :=
+                        (conf_deal_shrink d r.drawStep r.stock).1
+                          (List.mem_reverse.mp hD)
+                      rw [hall, hss] at hmem
+                      exact absurd hmem (by simp)
+                    · rw [hall, hws] at hR
+                      exact absurd hR (by simp)
+                | cons v vs =>
+                    have hrt : r = { s₀ with
+                        stock := s₀.waste.reverse,
+                        waste := ([] : List Card) } := by
+                      rw [← hrEq]
+                      exact recycle_nil s₀ hss (by rw [hws]; simp)
+                    rcases List.mem_append.mp hwst with hD | hR
+                    · have hmem : d ∈ r.stock :=
+                        (conf_deal_shrink d r.drawStep r.stock).1
+                          (List.mem_reverse.mp hD)
+                      rw [hrt, hws] at hmem
+                      exact Or.inr (List.mem_reverse.mp hmem)
+                    · rw [hrt] at hR
+                      exact absurd hR (by simp)
+            | cons x xs =>
+                have hrt : r = s₀ := by
+                  rw [← hrEq]
+                  exact recycle_keep s₀ (by rw [hss]; simp)
+                rcases List.mem_append.mp hwst with hD | hR
+                · have hmem : d ∈ r.stock :=
+                    (conf_deal_shrink d r.drawStep r.stock).1
+                      (List.mem_reverse.mp hD)
+                  rw [hrt, hss] at hmem
+                  exact Or.inl hmem
+                · rw [hrt] at hR
+                  exact Or.inr hR
+      | wasteToFound walt =>
+          exact absurd hrev (journey_never_wasteToFound hstep)
+      | wasteToTab walt balt =>
+          exact absurd hrev (journey_never_wasteToTab hstep)
+      | tabToFound walt =>
+          obtain ⟨-, k, -, hs⟩ := step_tabToFound_inv hstep
+          rw [hs] at hmid
+          exact hmid
+      | foundToTab walt balt =>
+          obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv hstep
+          rw [hs] at hmid
+          obtain ⟨-, hP1, hP2, -⟩ :=
+            putCard_keep (st := s₀.setFound walt.suit
+              (chop (s₀.found walt.suit))) (c := walt) (b := balt)
+          rw [hP1, hP2] at hmid
+          exact hmid
+      | tabToTab walt balt =>
+          obtain ⟨Asrc, -, -, -, hs⟩ := step_tabToTab_inv hstep
+          rw [hs] at hmid
+          obtain ⟨-, hP1, hP2, -⟩ :=
+            putRun_keep (st := s₀.setPile Asrc
+              (Pile.afterRunRemoved (s₀.piles Asrc)
+                (below walt ((s₀.piles Asrc).faceUp))))
+              (run := fromCard walt ((s₀.piles Asrc).faceUp)) (b := balt)
+          rw [hP1, hP2] at hmid
+          exact hmid
 
 /-- **SEAM — THE ROAMING SEAT**: a non-king card that starts the
 journey SEATED on a fitting face-up below-neighbor is, at the end,
@@ -2795,7 +2902,7 @@ private theorem conf_orphan_topclash {u : State} (hwfu : u.WF)
       (lastOf_mem hQlast)
 
 /-- **THE BACKWARD-ORPHAN KILL OF THE CROSSING DOOR** — the full
-upward-door circumvention, proved modulo the three seams above and
+upward-door circumvention, proved modulo the two seams above and
 `Orig.OrphanSeat.lean`'s orphan-seat residue.  The door package is
 exactly the banked `crossing_door_exists` output shape; `hdcover` is
 the fork's `pair_cover_pins` twin-cover package; `hback` is the
@@ -3002,18 +3109,59 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
         · exact (mem_faceUp_only hwf hdmemST).2.2.1 hS
         · exact (mem_faceUp_only hwf hdmemST).2.2.2.1 hS
 
-/-- **THE WITNESS PLAYBACK (seam)** — every witness journey rides
-backwards.  ROUTE: the two-way closure is the macro-class setoid's
-own supply — `sameOrbitSetoid.r` unfolds to `RevEqW` whose SECOND
-existential is by definition the return journey; the leg-level
-composition is NOT the reversibleAtW return-play (a `State.run`
-play, not a witness play) — the correct lift extracts the class
-relation's second play (`RevEqW`-destructure at the caller, then
-`.2`), or composes via `RevEqW_trans` when the caller holds only
-journey fragments. -/
+/-- **THE LOOP-CLOSURE ENGINE (per-file copy)** — a play from `x`
+landing at `w`, spliced with ANY play back from `w` to `x`, is a
+witness shuffle `x → w` (the copy of `Orig/MacroInternal.lean`'s
+private `shuffleW_of_round`; for every interior leg the loop
+remainder is an explicit returning play, so each leg carries its own
+`reversibleAtW`). -/
+private theorem conf_shuffleW_of_round : ∀ (σ : List Move) (x w : State),
+    x.run σ = some w → ∀ ρ : List Move, w.run ρ = some x →
+      ShufflePlayW x σ w := by
+  intro σ
+  induction σ with
+  | nil =>
+      intro x w hσ ρ hρ
+      have hxw : some x = some w := hσ
+      injection hxw with hx
+      rw [hx]
+      exact .nil w
+  | cons p rest ih =>
+      intro x w hσ ρ hρ
+      obtain ⟨y, hp, hrest⟩ := State.run_cons hσ
+      refine .cons ⟨y, rest ++ ρ, hp, run_split rest y w ρ x hrest hρ⟩ hp ?_
+      exact ih y w hrest (ρ ++ [p]) (run_split ρ w x [p] y hρ (run_one hp))
+
+/-- **ONE REVERSIBLE LEG STAYS IN CLASS (per-file copy)** — the
+firing's own witness gives the both-directions shuffle pair (the
+copy of `Orig/MacroInternal.lean`'s private `class_leg`; the σ side
+is the loop-closed return play, the τ side is the single-move
+witness play, and the setoid's `r` IS that pair). -/
+private theorem conf_class_leg {st s₁ : State} {m : Move}
+    (hrev : reversibleAtW st m) (hstep : State.step st m = some s₁) :
+    sameOrbitSetoid.r st s₁ := by
+  obtain ⟨s₁', play, hstep', hrun⟩ := hrev
+  have hs : s₁' = s₁ := Option.some.inj (hstep'.symm.trans hstep)
+  rw [hs] at hrun
+  show RevEqW s₁ st
+  exact ⟨play, conf_shuffleW_of_round play s₁ st hrun [m] (run_one hstep),
+    [m], .cons ⟨s₁, play, hstep, hrun⟩ hstep (.nil s₁)⟩
+
+/-- **THE WITNESS PLAYBACK (closed)** — every witness journey rides
+backwards: each leg's class row carries the loop-closed return as
+the both-directions pair's own σ side (the setoid's definition, not
+the leg's run-play in disguise), and the tail's return splices on
+by `ShufflePlayW_append`. -/
 private theorem conf_playback {st : State} : ∀ {u : State} {π : List Move},
     ShufflePlayW st π u → ∃ ρ, ShufflePlayW u ρ st := by
-  sorry
+  intro u π h
+  induction h with
+  | nil s =>
+      exact ⟨[], ShufflePlayW.nil s⟩
+  | @cons s₀ m s₁ rest u₀ hrev hstep hrest ih =>
+      obtain ⟨ρleg, hρleg, -⟩ : RevEqW s₁ s₀ := conf_class_leg hrev hstep
+      obtain ⟨ρ₁, hρ₁⟩ := ih
+      exact ⟨ρ₁ ++ ρleg, ShufflePlayW_append hρ₁ hρleg⟩
 
 /-- **THE DOOR BAR** — the crossing door cannot fire in any macro
 class containing a fork: at the door state one pair member would
