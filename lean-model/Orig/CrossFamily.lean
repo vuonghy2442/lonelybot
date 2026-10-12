@@ -1,4 +1,5 @@
 import Orig.PairConfine
+import Orig.CrossFamilyStatic
 
 /-!
 # Orig.CrossFamily — THE CROSS-FAMILY LOCK (the last axis)
@@ -39,10 +40,15 @@ family.  The card's honest ladder:
   (proved), consuming two named sub-residues —
   `cross_equal_rank_kill` (the equal-rank material competition) and
   `cross_unequal_rank_strata` (the unequal-rank stratification, now
-  assembly-grade: its per-leg chase is split one level into the
-  named nothing `cross_strata_chase`, the reversed order barred by
-  the class symmetry `cross_class_symm`); `forkState_familyRigid` —
-  the card's main row, consumed from the assembly.
+  assembly-grade: its per-leg chase is split one level into the named
+  nothing `cross_strata_chase`, the reversed order barred by the
+  class symmetry `cross_class_symm`); `forkState_familyRigid` —
+  the card's main row, consumed from the assembly.  THE CLOSURE
+  (2026-10-12): the three former corner residues
+  (`cross_equal_rank_kick`, `cross_strata_consec`, `cross_strata_gap`)
+  are each closed by one call of `Orig/CrossFamilyStatic.lean`'s
+  STATIC ORPHAN-SEAT kill `cross_orphan_kill` — the axis's one
+  remaining leaf residue is that file's named `cross_orphan_seat`.
 
 House compliance: additive leaf; fresh private kit copies per the
 dedup discipline; every fresh head audited.
@@ -549,6 +555,107 @@ private theorem cross_strata_exile {st₂ : State} (hwf₂ : st₂.WF) {y d₂ :
   have hlt := xfam_mem_found_rank_lt hwf₂ hmem
   omega
 
+set_option linter.unusedVariables false in
+/-! ### The exodus wheel
+
+The shifted ladder's tail-induction engine (the per-file copy of the
+sibling roTail architecture, scoped to the residency mint): a card
+that rides its suit's foundation at the journey's start yet misses
+it at the end must have passed through its OWN pull leg —
+`foundToTab` is the only exit from a foundation.  The residency
+carry washes through each leg's found-semantics: pulls chop the
+suit row (the LIFO law `foundToTab_pops_currentTop` + `lastOf_chop`
+pinned to the popped card), raises and waste-founds only extend it
+(`setFound_found_self`/`_ne` through the step inversions), draws
+(`stepDraw_found`) and slides (`setPile_found`/`putRun_found`/
+`putCard_found`) hold it fixed; the nil leg closes by the two
+memberships facing each other.  Each corner's step-0 anchor. -/
+
+/-- **THE LIFO EXODUS LAW** — a card foundation-resident at the
+journey's start yet absent at the end has passed a literal
+`foundToTab` leg of its own along the witness shuffle: the residency
+mint survives every raise, waste-founding, draw and slide, and only
+the card's own pop spends it. -/
+private theorem cross_found_exodus : ∀ {u : State} {τ : List Move} {w : State},
+    ShufflePlayW u τ w → ∀ (d : Card),
+    d ∈ u.found d.suit → d ∉ w.found d.suit →
+    ∃ b, Move.foundToTab d b ∈ τ := by
+  intro u τ w h
+  induction h with
+  | nil => intro d hmem hno; exact absurd hmem hno
+  | @cons s m s₁ rest w' hrev hstep hrest ih =>
+      intro d hmem hno
+      cases m with
+      | draw =>
+          have hsurv : d ∈ s₁.found d.suit := by
+            rw [stepDraw_found (show s.stepDraw = some s₁ from hstep)]
+            exact hmem
+          obtain ⟨b', hl⟩ := ih d hsurv hno
+          exact ⟨b', List.mem_cons.2 (Or.inr hl)⟩
+      | wasteToFound c =>
+          obtain ⟨-, x, xs, -, hs⟩ := step_wasteToFound_inv hstep
+          have hsurv : d ∈ s₁.found d.suit := by
+            rw [hs]
+            show d ∈ (s.setFound c.suit (s.found c.suit ++ [c])).found d.suit
+            by_cases hsc : d.suit = c.suit
+            · rw [hsc, setFound_found_self]
+              rw [hsc] at hmem
+              exact List.mem_append.2 (Or.inl hmem)
+            · rw [setFound_found_ne hsc]
+              exact hmem
+          obtain ⟨b', hl⟩ := ih d hsurv hno
+          exact ⟨b', List.mem_cons.2 (Or.inr hl)⟩
+      | wasteToTab c b =>
+          obtain ⟨-, x, xs, -, hs⟩ := step_wasteToTab_inv hstep
+          have hsurv : d ∈ s₁.found d.suit := by
+            rw [hs]
+            show d ∈ (s.putCard c b).found d.suit
+            rw [putCard_found]
+            exact hmem
+          obtain ⟨b', hl⟩ := ih d hsurv hno
+          exact ⟨b', List.mem_cons.2 (Or.inr hl)⟩
+      | tabToFound c =>
+          obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv hstep
+          have hsurv : d ∈ s₁.found d.suit := by
+            rw [hs]
+            show d ∈ (s.setFound c.suit (s.found c.suit ++ [c])).found d.suit
+            by_cases hsc : d.suit = c.suit
+            · rw [hsc, setFound_found_self]
+              rw [hsc] at hmem
+              exact List.mem_append.2 (Or.inl hmem)
+            · rw [setFound_found_ne hsc]
+              exact hmem
+          obtain ⟨b', hl⟩ := ih d hsurv hno
+          exact ⟨b', List.mem_cons.2 (Or.inr hl)⟩
+      | foundToTab c b =>
+          by_cases hdc : d = c
+          · exact ⟨b, List.mem_cons.2 (Or.inl (by rw [hdc]))⟩
+          · obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv hstep
+            have hsurv : d ∈ s₁.found d.suit := by
+              by_cases hsc : d.suit = c.suit
+              · have hchop : s.found c.suit = chop (s.found c.suit) ++ [c] :=
+                  lastOf_chop (foundToTab_pops_currentTop hstep)
+                rw [hsc] at hmem
+                rw [hchop] at hmem
+                rw [hs, putCard_found, hsc, setFound_found_self]
+                rcases List.mem_append.1 hmem with h | h
+                · exact h
+                · rcases List.mem_cons.1 h with he | hn
+                  · exact absurd he hdc
+                  · exact absurd hn (by simp)
+              · rw [hs, putCard_found, setFound_found_ne hsc]
+                exact hmem
+            obtain ⟨b', hl⟩ := ih d hsurv hno
+            exact ⟨b', List.mem_cons.2 (Or.inr hl)⟩
+      | tabToTab c b =>
+          obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv hstep
+          have hsurv : d ∈ s₁.found d.suit := by
+            rw [hs, putRun_found, setPile_found]
+            exact hmem
+          obtain ⟨b', hl⟩ := ih d hsurv hno
+          exact ⟨b', List.mem_cons.2 (Or.inr hl)⟩
+
+set_option linter.unusedVariables false in
 /-- **THE EQUAL-RANK CORNER of the shifted kill-ladder — the
 equal-rank residue (`cross_equal_rank_kill`'s split child).**  The
 kill's PROVED preprocessing is carried as hypotheses: the equal-rank
@@ -589,10 +696,21 @@ the per-suit oscillation together with `witness_rung_census` on
    of `sameOrbit_factor_full`) price each intervening segment; the
    landing lattice (`pair_cover_lattice`-grade census) pins each
    cargo cover's legal card-directed landings to pair-member tops;
-   servicing both OPPOSITE debts forces a leg that seats a cover on
-   a pair member at a census-barred moment — the per-leg LIFO chase
-   (`raisesOf`/`pullsOf`, exactly as in the pressure row) has no
-   legal leg, `False`. -/
+    servicing both OPPOSITE debts forces a leg that seats a cover on
+    a pair member at a census-barred moment — the per-leg LIFO chase
+    (`raisesOf`/`pullsOf`, exactly as in the pressure row) has no
+    legal leg, `False`.
+
+CLOSED (2026-10-12) via `Orig.CrossFamilyStatic.lean`'s
+`cross_orphan_kill` — the STATIC ORPHAN-SEAT route: none of the
+census-debt machinery above is consulted; the whole package reduces
+to the kill's four pins (families separated, `r₂ ≤ r₁`, the cover
+suit's color, the deep `hd₂rung₂` read).  The single residue the
+closure rides is that file's named `cross_orphan_seat` (the
+below-riding seat row), whose `sorryAx` flows here alone.  The
+remaining hypothesis package documents the banked static facts the
+assembly hands the corner; the static route consumes only the four
+pins, so the linter is silenced for the named binders below. -/
 private theorem cross_equal_rank_kick {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     {x y d₁ d₂ : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
@@ -620,7 +738,8 @@ private theorem cross_equal_rank_kick {st₁ st₂ : State}
     (hd₁cen : y.rank.toIdx + pullsOf τ d₁.suit
       = rungAt st₁ d₁.suit + raisesOf τ d₁.suit) :
     False := by
-  sorry
+  exact cross_orphan_kill hwf₁ hwf₂ hτ hx hy hcol (by omega) d₂.suit
+    hd₂col hd₂rung₂
 
 /-- **THE EQUAL-RANK MATERIAL COMPETITION — the first named
 sub-residue.**  Premise: two same-class forks of DIFFERENT color
@@ -670,8 +789,11 @@ LANDED as the SPLIT: the body is PROVED — the banked rows
 (`cross_cover_residency`, `cross_climb_general`, `xfam_family_rung`,
 the fit/exile preprocessing rows, `witness_rung_census` read into
 the two opposite census debts) assemble the full package and hand
-it to the named residue `cross_equal_rank_kick` directly above; the
-per-leg LIFO chase of route step 3 is the kick's own residue. -/
+it to the corner `cross_equal_rank_kick` directly above — and the
+kick is now itself closed by the STATIC ORPHAN-SEAT kill
+(`Orig/CrossFamilyStatic.lean`'s `cross_orphan_kill`, reached through
+that file's one named residue `cross_orphan_seat`), which needs none
+of the census debt. -/
 private theorem cross_equal_rank_kill {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     (hcls : sameOrbitSetoid.r st₁ st₂)
@@ -896,6 +1018,7 @@ private theorem cross_twincover_nonpair_eq_pkg {st : State} (hwf : st.WF)
   exact ⟨a, bs, d, hshape, hfit, htop, hnext,
     cross_cover_nonmember_eq hridx hwxeq⟩
 
+set_option linter.unusedVariables false in
 /-- **THE CONSECUTIVE CORNER of the shifted kill-ladder — the
 stratified chase's residue in the tight regime `r₁ = r₂ + 1`
 (`cross_strata_chase`'s first named corner).**  The chase's PROVED
@@ -934,8 +1057,18 @@ tight to `r₁ − r₂ = 1`).  ROUTE (complete, the residue's own):
    census debts (`hdebt₂`'s net pulls vs `hd₁cen`'s net raises on the
    two cover suits, `witness_rung_census` closing the per-suit
    oscillation) cannot both service through the same capped strata —
-   the per-leg accounting forces an epoch whose every legal seat is
-   census-barred: the material competition has no legal leg, `False`. -/
+    the per-leg accounting forces an epoch whose every legal seat is
+    census-barred: the material competition has no legal leg, `False`.
+
+CLOSED (2026-10-12) via `Orig.CrossFamilyStatic.lean`'s
+`cross_orphan_kill` — the STATIC ORPHAN-SEAT route (the orphan one
+stratum below `d₂`, its below-neighbor's cell saturated by the second
+fork; no census hypothesis consulted); the single residue the
+closure rides is that file's named `cross_orphan_seat`, whose
+`sorryAx` flows here alone.  The remaining hypothesis package
+documents the banked static facts the assembly hands the corner; the
+static route consumes only the four pins, so the linter is silenced
+for the named binders below. -/
 private theorem cross_strata_consec {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     {x y d₁ d₂ : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
@@ -962,8 +1095,10 @@ private theorem cross_strata_consec {st₁ st₂ : State}
     (hd₁cen : y.rank.toIdx + pullsOf τ d₁.suit
       = rungAt st₁ d₁.suit + raisesOf τ d₁.suit) :
     False := by
-  sorry
+  exact cross_orphan_kill hwf₁ hwf₂ hτ hx hy hcol (by omega) d₂.suit
+    hd₂col hd₂rung₂
 
+set_option linter.unusedVariables false in
 /-- **THE GAP CORNER of the shifted kill-ladder — the stratified
 chase's residue in the deep regime `r₂ + 2 ≤ r₁` (`cross_strata_chase`'s
 second named corner).**  The chase's PROVED preprocessing is carried
@@ -992,7 +1127,17 @@ cover suits (`hdebt₂`'s deep net pulls vs `hd₁cen`'s net raises,
 chain across the gap `r₁ − r₂ ≥ 2`, one stratum more than the
 consecutive corner; the capped founded strata (`hd₂rung₁`,
 `hd₂rung₂`, `hd₁rung₁`, `hd₁rung₂`) cannot service both directions —
-an epoch arrives whose every legal seat is census-barred, `False`. -/
+    an epoch arrives whose every legal seat is census-barred, `False`.
+
+CLOSED (2026-10-12) via `Orig/CrossFamilyStatic.lean`'s
+`cross_orphan_kill` — the STATIC ORPHAN-SEAT route (identical to the
+consecutive corner: the orphan card has no seatable below-neighbor at
+the second fork regardless of the gap's depth); the single residue
+the closure rides is that file's named `cross_orphan_seat`, whose
+`sorryAx` flows here alone.  The remaining hypothesis package
+documents the banked static facts the assembly hands the corner; the
+static route consumes only the four pins, so the linter is silenced
+for the named binders below. -/
 private theorem cross_strata_gap {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     {x y d₁ d₂ : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
@@ -1019,7 +1164,8 @@ private theorem cross_strata_gap {st₁ st₂ : State}
     (hd₁cen : y.rank.toIdx + pullsOf τ d₁.suit
       = rungAt st₁ d₁.suit + raisesOf τ d₁.suit) :
     False := by
-  sorry
+  exact cross_orphan_kill hwf₁ hwf₂ hτ hx hy hcol (by omega) d₂.suit
+    hd₂col hd₂rung₂
 
 /-- **THE SHIFTED KILL-LADDER — the stratification's named nothing.**
 The unequal-rank corner's per-leg chase, route-shrunk one level
@@ -1064,12 +1210,14 @@ LANDED as the SPLIT: the body below is PROVED — the deck-census copy
 (`xfam_rankColor_pair`) prices the twin-cover fit
 (`xfam_canSitOn_twinCover`) and the exile (`cross_strata_exile`), the
 per-suit census (`witness_rung_census`) is read once into the mirror
-`hd₁cen`, and the chase forks into the two named corner residues
-directly above: the CONSECUTIVE corner `cross_strata_consec` (where
-`d₁` is proved literally a y-pair member, `hd₁pair`) and the GAP
-corner `cross_strata_gap` (where the stratum separation `hstrat` is
-priced in) — the per-leg LIFO chase per the route above is each
-corner's own named residue. -/
+`hd₁cen`, and the chase forks into the two corners directly above:
+the CONSECUTIVE corner `cross_strata_consec` (where `d₁` is proved
+literally a y-pair member, `hd₁pair`) and the GAP corner
+`cross_strata_gap` (where the stratum separation `hstrat` is priced
+in) — and both corners are now themselves closed by the STATIC
+ORPHAN-SEAT kill (`Orig/CrossFamilyStatic.lean`'s
+`cross_orphan_kill`, through that file's one named residue
+`cross_orphan_seat`). -/
 private theorem cross_strata_chase {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     {x y d₁ d₂ : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
@@ -1230,9 +1378,11 @@ THE COMPLETE ROUTE, as landed:
    the rank-free §5b shift rows: the deepened drop, the stratified
    residencies, and the one-stratum-down per-leg chase.
 
-The interlock therefore rests on exactly the two named
-sub-residues and no other leaf; the main theorem below inherits
-precisely that residue from here. -/
+The interlock therefore rests on exactly ONE fresh leaf residue —
+`Orig/CrossFamilyStatic.lean`'s named `cross_orphan_seat` (reached
+through the two former sub-residues, each now closed by the static
+orphan-seat kill); the main theorem below inherits precisely that
+residue from here. -/
 theorem cross_family_interlock {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     (hcls : sameOrbitSetoid.r st₁ st₂)
     {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
@@ -1265,16 +1415,21 @@ theorem forkState_familyRigid (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf₂ 
 `#print axioms` per fresh head — the four row rows, the pressure
 row, and the two §5b rank-free shift rows read
 `[propext, Quot.sound]`-grade (banked chain only); the two rank
-drivers (`cross_equal_rank_kill`, `cross_strata_chase`) are PROVED
-assemblies and read `[propext, Quot.sound]`-grade with their split
-children's `sorryAx`es alone; the assembly and the main row carry
-exactly the three fresh `sorryAx`es of the named corner residues
-(`cross_equal_rank_kick` for the equal rank, and the stratified
-chase's two corner children `cross_strata_consec`/`cross_strata_gap`
-via `cross_unequal_rank_strata`; `forkState_familyRigid` inherits
-exactly those and NOTHING else).  The preprocessing rows (deck
-census, twin-cover fit, leg extractors, exile, cover/pair
-dichotomy) are zero-sorry and read banked-chain grade. -/
+drivers (`cross_equal_rank_kill`, `cross_strata_chase`) and the three
+former corner residues (`cross_equal_rank_kick`,
+`cross_strata_consec`, `cross_strata_gap`) are now PROVED — each
+closed by one call of `Orig/CrossFamilyStatic.lean`'s
+`cross_orphan_kill` (the static orphan-seat route), so the assembly
+and the main row carry exactly ONE fresh `sorryAx`: that file's named
+residue `cross_orphan_seat` (the below-riding seat row), and NOTHING
+else — `forkState_familyRigid` inherits exactly that.  The
+preprocessing rows (deck census, twin-cover fit, leg extractors,
+exile, cover/pair dichotomy) are zero-sorry and read banked-chain
+grade, as is the LIFO exodus wheel `cross_found_exodus` below — the
+tail-induction engine (all six mover cases proved) whose residency
+mint pins a resident-then-exiled card's own `foundToTab` leg, the
+first step of the seat row's own route, landed as the per-file copy
+ready for the upstream consumption. -/
 
 #print axioms cross_census_dead
 #print axioms cross_cover_residency
@@ -1288,6 +1443,7 @@ dichotomy) are zero-sorry and read banked-chain grade. -/
 #print axioms cross_raise_leg
 #print axioms cross_pull_leg
 #print axioms cross_strata_exile
+#print axioms cross_found_exodus
 #print axioms cross_cover_member_shift
 #print axioms cross_cover_nonmember_gap
 #print axioms cross_cover_nonmember_eq
