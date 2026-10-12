@@ -1733,6 +1733,8 @@ private theorem origin_foundedCover_pollutesCrash {st₁ st₂ : State}
         rungAt u w.suit = w.rank.toIdx + 1 ∧
         rungAt v w.suit = w.rank.toIdx) :
     False := by
+  obtain ⟨w, b, zt, kk, bs, π, ρ, u, v, hw, hrk, hshpi, hstep, hrev, hrho,
+      htop, hhold, hzrk, hzcol, hu1, hv1⟩ := hpkg
   sorry
 
 /-- **THE FOUNDED-COVER CASE** — the composition row: the one
@@ -1792,6 +1794,48 @@ private theorem origin_cover_founded_case_barred {st₁ st₂ : State}
   -- the pollution crash (the named residue)
   exact origin_foundedCover_pollutesCrash hwf₁ hwf₂ hx hy hfam hlt hplay d hd hdcol
     ⟨c, bsC, hshape, hpod⟩ hnext hlattice hdfound hsq1 hsq2 hsq3 hpc1 hpc2 hpkg
+
+/-- **The terminal saturation gate** (the §3.5 pollution crash's closing
+move, landed zero-sorry): the lower fork's pair select admits no third
+live card — every `CanRaiseS` witness at the fork state must be `y` or
+`y.twin`.  The terminal dragged low card enters here, certified off-pair
+by the rank/color ledger, and the crash closes. -/
+private theorem pollutesCrash_saturation {st : State} {y c : Card}
+    (hy : ForkWitness st y) (hcy : c ≠ y) (hct : c ≠ y.twin)
+    (hcS : CanRaiseS st c) : False := by
+  obtain ⟨hiff, -⟩ := hy
+  rcases (hiff c).mpr hcS with h1 | h2
+  · exact hcy h1
+  · exact hct h2
+
+/-- **The self-pollution read at the pull's own landing** (zero-sorry):
+a `foundToTab` pull lands its card with the suit rung dropped to exactly
+the card's own index, so the pulled card itself reads NEXT-UP at the
+landing — the census-visible live card every debt-servicing pull
+manufactures, the staircase's re-arming step. -/
+private theorem pollutesCrash_landing_live {v : State} {w : Card}
+    (hrung : rungAt v w.suit = w.rank.toIdx) :
+    v.nextUp w = true := by
+  have hf : v.foundHeight w.suit = rungAt v w.suit := rfl
+  rw [State.nextUp, hf, hrung]
+  simp
+
+/-- **The pre-leg π pull debt** (zero-sorry): the mid-leg bracket
+`rungAt u w.suit = w.rank.toIdx + 1`, priced against the origin rung
+already standing past the cover's index, prices the π-segment's `d`-suit
+pulls by the journey census — the leg's own drag already lowered the
+rung to one full index below the cover's, the staircase's first paid
+installment. -/
+private theorem pollutesCrash_pi_pullDebt {st₁ u : State} {π : List Move}
+    {w d : Card} (hw : w.suit = d.suit)
+    (hshpi : ShufflePlayW st₁ π u)
+    (hu1 : rungAt u w.suit = w.rank.toIdx + 1)
+    (hsq1 : d.rank.toIdx + 1 ≤ rungAt st₁ d.suit)
+    (hrk : w.rank.toIdx + 1 ≤ d.rank.toIdx) :
+    raisesOf π d.suit + (d.rank.toIdx - w.rank.toIdx) ≤ pullsOf π d.suit := by
+  have hc := witness_rung_census hshpi d.suit
+  rw [hw] at hu1
+  omega
 
 /-! ## §4. THE ASSEMBLY -/
 
