@@ -54,16 +54,16 @@ THE CARD'S LADDER:
   and the below-`d` pull rows are LANDED
   (`origin_foundedCover_rungSqueeze`, `origin_foundedCover_belowPull`,
   over the founded-exodus row `lock_found_exit`); the terminal
-  pollution crash is the card's single named residue
-  `origin_foundedCover_pollutesCrash`, carrying the remaining route
-  (the landlord iteration, the descent drag, the census
-  self-pollution — the `downAlt_pollutes` mechanism in the general
-  form) in its docstring.
+  pollution crash `origin_foundedCover_pollutesCrash` is LANDED
+  ZERO-SORRY as the origin-anchored census crash (its docstring
+  carries the route: the d-suit next-up card hot at the terminus,
+  Below-seated by the archaeology engine, its fit-neighbor founded
+  by the family census against the Below face-up read).
 * §4 **THE ASSEMBLY** — `forkState_rankDrop_locked`: the forward
   witness play (`sameOrbit_forward`) hands every leg a
   `reversibleAtW` witness; the cover's origin residency trichotomy
   kills all but the founded case, and the §3.5 staircase closes it
-  (up to the named pollution-crash residue).
+  (the pollution crash landed; zero residue).
 * §5 **THE FLOOR COROLLARY** — `forkState_family_rankFloor` (from
   `st₁`'s perspective no class member witnesses below `r`) and the
   assembly row `forkState_family_pairClass` (with PairConfine's
@@ -5024,42 +5024,31 @@ private theorem origin_foundedCover_belowPull {st₁ st₂ : State}
       refine ⟨w, Sum.inr zt, zt, kk, chop (u.piles kk).faceUp, π, ρ, u, v,
         hws, ?_, hpre, hstep, hrev, hpost, hshapev, hpot, hzrk.symm, hzc, hru, hrv⟩
       omega
-/-- **THE FOUNDED-COVER POLLUTION CRASH** — §3.5's terminal named
-residue: the staircase's remaining open walk, everything before it now
-landed (`origin_foundedCover_rungSqueeze`, `origin_foundedCover_belowPull`).
-It consumes the seed — the below-`d` card `w` of the cover's own suit,
-pulled at `u` to land NEXT-UP-LIVE at `v` DIRECTLY on its landlord
-`zt` (family color, one above `w`) — together with the endpoint pins
-(the two-rung `d`-suit drop and §1's family pull debt `r − r*` on
-BOTH family suits) and the lower fork's sandwich pack.  THE REMAINING
-ROUTE:
-
-* **The landlord iteration (route items 2-3's tail).** `zt` (family
-  color, rank index below the fork's) is founded at BOTH ends (at the
-  origin by `pair_lowFamily_founded` — both family rungs pin at `r`;
-  at the fork by the founded bridge — both family rungs pin at `r*`,
-  each strictly above `zt`'s index): between `v` and `st₂` the
-  landlord must therefore RE-FOUND — a `tabToFound zt` leg firing at
-  rung exactly `zt`'s index (the LIFO toggle read), which first
-  empties its top: `w` must first slide, and every lawful `w`-slide
-  lands on a family-color landlord one above it (no empty seat ever —
-  the king row; the card-directed lattice is `dress_legalSeats_pair`'s
-  census one rung down), iterating the drag one rank at a time down
-  the staircase: each dragged low household card drags the next.
-* **The census crash (route item 4).** The iteration cannot settle:
-  washing a dragged family card back re-raises its suit's rung, while
-  §1's family debt (`raisesOf + (r − r*) ≤ pullsOf` on BOTH family
-  suits) prices the drag strictly; the staircase terminus at `st₂` is
-  a dragged low card, face-up, its lawful seats all consumed — one
-  pair member tops its own seat pile, the other sits DIRECTLY under
-  the cover `d` (`hdcover`), `hlattice` reads every remaining lawful
-  landlord of `d`'s lattice as one of them, and every other same-rank
-  family card is foundation-resident at the fork — so the terminal
-  card stands FACE-UP-LIVE against the lower fork's S-saturation
-  (`canRaiseS_iff`: `hy`'s pair select admits no third live card),
-  the `downAlt_pollutes` crash the probes' `vis3hop` boards carry in
-  the concrete census picture.  Hence no witness journey reaches the
-  founded-cover endgame; the case is barred. -/
+set_option linter.unusedVariables false in
+/-- **THE FOUNDED-COVER POLLUTION CRASH** — §3.5's terminal row, LANDED
+ZERO-SORRY as THE ORIGIN-ANCHORED CENSUS CRASH (the nil census's landed
+route, promoted to the composition head; the mint never enters).  The
+d-suit HOT CARD at the terminus's own rung — `T := Card.mk d.suit
+(lockRk (rungAt st₂ d.suit))`, hot by definition there
+(`pollutesCrash_landing_live`: its rank index IS the terminus's d-rung),
+non-king and origin-height by `omega` over `hsq2`/`hsq1`/`hd` — was
+founded at the origin but is hot (never re-founded) at the terminus, so
+the successor-archaeology engine `pollutesCrash_terminalHot_Below`
+(the `lock_found_exit` exodus split, the fire-time bracket, the
+`reseat_pop` landing kit, the `Below_stable` suffix transport) ends it
+BELOW-SEATED at `st₂`; the seat fit (`lock_runOK_adjacent` +
+`canSitOn_eq`) makes that below-neighbor FAMILY-colored
+(`lock_color_pair` against `hdcol`) and ranked strictly under the fork
+(`omega` over `hsq2`), the fork's own family rungs both pin at the pair
+rank (`canRaiseS_rung` off `hy`, the twin via `Card.twin_rank`), so the
+neighbor is foundation-resident (`mem_found_of_height`) while the Below
+seat reads it face-up (`mem_found_unique`) — `False`, MINT-SUIT
+-AGNOSTIC, no chase and no twin datum anywhere.  The seed-side premises
+(`hpkg`, `hsq3`, `hpc1`, `hpc2`, the cover/lattice pack and the
+origin-fork rows) stay as the frozen scaffold's documented binders —
+the ρ-tail consumption they fed is retired from this crash, and the
+mover chain's lone sorry (the covered-mint twin-top fork) becomes
+unconsumed Stage-grade machinery, its audit profile orphaned. -/
 private theorem origin_foundedCover_pollutesCrash {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
@@ -5096,25 +5085,87 @@ private theorem origin_foundedCover_pollutesCrash {st₁ st₂ : State}
         rungAt u w.suit = w.rank.toIdx + 1 ∧
         rungAt v w.suit = w.rank.toIdx) :
     False := by
-  obtain ⟨w, b, zt, kk, bs, π, ρ, u, v, hw, hrk, hshpi, hstep, hrev, hrho,
-      htop, hhold, hzrk, hzcol, hu1, hv1⟩ := hpkg
-  -- the third live card minted at the landing epoch (route item 1),
-  -- off-pair by the rank ledger, its π-debt installment priced
-  have hmint : CanRaiseS v w := pollutesCrash_landing_canRaiseS htop hhold hv1
-  have hwne : w ≠ y ∧ w ≠ y.twin := pollutesCrash_w_offPair hd (by omega)
-  have hpid : raisesOf π d.suit + (d.rank.toIdx - w.rank.toIdx)
-      ≤ pullsOf π d.suit := pollutesCrash_pi_pullDebt hw hshpi hu1 hsq1 (by omega)
-  -- the mint-state WF (the off-row's premise chains up the π-journey:
-  -- witnessed journeys and steps keep WF)
-  have hwfu : u.WF := lock_shuffle_wf st₁ hshpi hwf₁
-  have hwfv : v.WF := step_wf hwfu hstep
-  -- the ρ-tail chase (route 4's residue) delivers the terminal card,
-  -- and the lower fork's pair select bans it
-  obtain ⟨t, htS, hty, htt⟩ :=
-    pollutesCrash_descent hwf₂ hy hd hdcol hdcover hnext hlattice hsq2 hsq3
-      hpc1 hpc2 hpid hwfv hrho hmint hwne htop hhold hzrk hzcol (by omega)
-      hw hv1 ⟨st₁, hwf₁, hsq1, play, hplay⟩
-  exact pollutesCrash_saturation hy hty htt htS
+  -- THE ORIGIN-ANCHORED CENSUS CRASH, at the composition head (the nil
+  -- census's landed route with s₀ = st₂ and o = st₁): the d-suit hot
+  -- card at the terminus's own rung rides the archaeology engine to a
+  -- Below seat whose neighbor the family census has founded.  The
+  -- frozen scaffold's remaining binders (the seed `hpkg`, the
+  -- migration counts, the cover/lattice pack) are the set_option
+  -- silenced documented package — nothing of them enters the proof's
+  -- content, but the two ∃-shaped ones are DESTRUCTURED FIRST all the
+  -- same: a bare `omega` facing a live ∃ premise instantiates it with
+  -- `Classical.choice` (the farm's choice-noose lesson; this head's
+  -- own battery caught the door once when the destructure was
+  -- dropped), so every omega below runs over consumed premises only.
+  obtain ⟨_w, _b, _zt, _kk, _bs, _π, _ρ, _u, _v, _hw, _hrk, _hshpi,
+      _hstep, _hrev, _hrho, _htop, _hhold, _hzrk, _hzcol, _hu1,
+      _hv1⟩ := hpkg
+  obtain ⟨_hc, _bsC, _hshapeC, _hpodC⟩ := hdcover
+  have hfam13 : y.rank.toIdx < 13 := Rank.toIdx_lt y.rank
+  have hk13 : rungAt st₂ d.suit < 13 := by omega
+  -- the d-suit hot card at the terminus's own rung (its hotness is
+  -- definitional: its index IS the terminus's d-suit rung)
+  obtain ⟨T, hTdef⟩ :
+      ∃ c : Card, c = Card.mk d.suit (lockRk (rungAt st₂ d.suit)) :=
+    ⟨_, rfl⟩
+  have hTidx : T.rank.toIdx = rungAt st₂ d.suit := by
+    rw [hTdef]
+    exact lockRk_toIdx _ hk13
+  have hTsuit : T.suit = d.suit := by
+    rw [hTdef]
+  have hhotT : st₂.nextUp T = true :=
+    pollutesCrash_landing_live (by rw [hTsuit, hTidx])
+  have hnkT : T.rank ≠ Rank.king := by
+    intro hcon
+    rw [hcon] at hTidx
+    have hk12 : Rank.king.toIdx = 12 := rfl
+    omega
+  have horgT : T.rank.toIdx < rungAt st₁ T.suit := by
+    rw [hTsuit, hTidx]
+    omega
+  obtain ⟨nb, a, L, R, hshp⟩ :=
+    pollutesCrash_terminalHot_Below hplay hwf₁ hwf₂ hnkT horgT hhotT
+  have hok : runOK (L ++ nb :: T :: R) = true := by
+    rw [← hshp]
+    exact hwf₂.runOK_of a
+  obtain ⟨hrkbt, hcolbt⟩ :=
+    (canSitOn_eq T nb).mp (lock_runOK_adjacent nb T L R hok)
+  have hbcol : nb.suit.color = y.suit.color :=
+    lock_color_pair (a := d.suit.color)
+      (by rw [← hTsuit]; exact hcolbt) hdcol
+  have hyPin : rungAt st₂ y.suit = y.rank.toIdx :=
+    canRaiseS_rung ((hy.1 y).mp (Or.inl rfl))
+  have hytPin : rungAt st₂ y.twin.suit = y.rank.toIdx := by
+    have h0 := canRaiseS_rung ((hy.1 y.twin).mp (Or.inr rfl))
+    rwa [Card.twin_rank y] at h0
+  have hsuit : nb.suit = y.suit ∨ nb.suit = y.twin.suit := by
+    have hz : (Card.mk nb.suit y.rank) = y ∨
+        (Card.mk nb.suit y.rank) = y.twin :=
+      lock_rankColor_pair rfl hbcol
+    rcases hz with h | h
+    · refine Or.inl ?_
+      exact (congrArg Card.suit h :
+        (Card.mk nb.suit y.rank).suit = y.suit)
+    · refine Or.inr ?_
+      exact (congrArg Card.suit h :
+        (Card.mk nb.suit y.rank).suit = y.twin.suit)
+  have hbmem : nb ∈ st₂.found nb.suit := by
+    refine mem_found_of_height hwf₂ ?_
+    have hbund : nb.rank.toIdx < y.rank.toIdx := by omega
+    rcases hsuit with h | h
+    · rw [h]
+      show nb.rank.toIdx < rungAt st₂ y.suit
+      rw [hyPin]
+      exact hbund
+    · rw [h]
+      show nb.rank.toIdx < rungAt st₂ y.twin.suit
+      rw [hytPin]
+      exact hbund
+  have hbface : nb ∈ (st₂.piles a).faceUp := by
+    rw [hshp]
+    exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
+  obtain ⟨hh, _hS, _hW, _⟩ := mem_found_unique hwf₂ hbmem
+  exact absurd hbface (hh a).2
 
 /-- **THE FOUNDED-COVER CASE** — the composition row: the one
 origin-residency case of the cover `d` that §3's landed mechanism rows
@@ -5137,12 +5188,14 @@ The founded case decomposes as THE STAIRCASE:
    landing NEXT-UP-LIVE on its family-color landlord one above — the
    dress lattice (`dress_legalSeats_pair`) one rung down, the
    staircase's seed.
-3. **The pollution crash** (the named residue
-   `origin_foundedCover_pollutesCrash`, carrying the remaining route
-   above) — the landlord iteration drags the family's low cards one
-   rank at a time against the census debt, and the terminus crashes
-   into the lower fork's S-saturation: a third live card breaks
-   `hy`'s pair select. -/
+ 3. **The pollution crash** (LANDED, zero-sorry:
+    `origin_foundedCover_pollutesCrash`, the ORIGIN-ANCHORED CENSUS
+    CRASH) — the d-suit next-up card at the terminus's own rung is
+    hot there by definition, Below-seated by the archaeology engine,
+    and its fit-neighbor is family-colored strictly under the fork's
+    pinned family rungs — foundation-resident against the Below
+    face-up read: no witness journey reaches the founded-cover
+    endgame. -/
 private theorem origin_cover_founded_case_barred {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
@@ -5341,22 +5394,29 @@ theorem forkState_family_pairClass (st₁ st₂ : State) (hwf₁ : st₁.WF) (hw
 
 /-! ### The audit battery
 
-Fresh heads `#print axioms`-audited: every landed row sits in
+ Fresh heads `#print axioms`-audited: every landed row sits in
 `[propext]` or `[propext, Quot.sound]` — including the staircase's
 landed mechanism rows (`origin_foundedCover_rungSqueeze`,
 `origin_foundedCover_belowPull`, with the exodus kit
-`lock_found_exit` and the build-position copies); the public rows
-that consume the named residue (§3.5's
-`origin_foundedCover_pollutesCrash`) echo its `sorryAx` (and
-`forkState_family_pairClass` additionally echoes PairConfine's
-upward `crossing_door_barred` residue, its own card's honest carry);
-zero other axioms - no `Classical.choice`.  The choice noose's one
-lurking door, found and welded shut in the mover: `omega` instantiates
-a live `∃` hypothesis in its context with `Classical.choose` — every
-`omega` in a census-debt context runs only AFTER the ∃ is
-destructured into its witness pair (`rhoMover`'s head `obtain`),
-and the `pollutesCrash_tailDebt_*` rows follow the same order
-(obtain first, `omega` after). -/
+`lock_found_exit` and the build-position copies) AND §3.5's terminal
+`origin_foundedCover_pollutesCrash` — the origin-anchored census
+crash, zero-`sorry` and zero-`Classical.choice`: the public rows that
+consume it (`forkState_rankDrop_locked`,
+`forkState_family_rankFloor`, `forkState_family_pairClass`) inherit
+NO axiom from it, and PairConfine's upward chain (`crossing_door_barred`
+onward) is also landed sorry-free — so `forkState_family_pairClass`
+echoes NOTHING.  The retired-from-consumption ρ-tail chase
+(`pollutesCrash_descent`/`rhoTail`/`rhoLeg`/`rhoMover`/`rhoMoverF`,
+with its `rhoOpen` guard and the mint kit) stays in-tree as
+unconsumed Stage-grade machinery: its lone literal fork (the
+covered-mint twin-top datum in `rhoMover`) and its mover-local
+choice leak no longer reach any audited head — the retirement deletion
+is the cleanup's next pass.  The choice-noose's lesson stays banked:
+`omega` instantiates a live `∃` hypothesis in its context with
+`Classical.choose` — every `omega` in a census-debt context runs
+only AFTER the ∃ is destructured (`rhoMover`'s head `obtain`), and
+the `pollutesCrash_tailDebt_*` rows follow the same order (obtain
+first, `omega` after). -/
 
 #print axioms origin_lowerPairResident
 #print axioms origin_lowerJourney_pulls
@@ -5368,6 +5428,7 @@ and the `pollutesCrash_tailDebt_*` rows follow the same order
 #print axioms lock_zone_residency
 #print axioms origin_foundedCover_rungSqueeze
 #print axioms origin_foundedCover_belowPull
+#print axioms origin_foundedCover_pollutesCrash
 #print axioms forkState_rankDrop_locked
 #print axioms forkState_family_rankFloor
 #print axioms forkState_family_pairClass
