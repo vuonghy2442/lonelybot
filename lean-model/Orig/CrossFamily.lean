@@ -29,9 +29,18 @@ family.  The card's honest ladder:
   cover's home suit owes at least TWO MORE PULLS THAN RAISES along
   the class's forward witness shuffle (the banked `witness_rung_census`
   consumed against §3's drop).
-* §6 `cross_family_interlock` — the card's ONE NAMED RESIDUE with
-  its complete route; `forkState_familyRigid` — the card's main row,
-  consumed from the residue.
+* §5b **`cross_drop_general`/`cross_climb_general`** — THE RANK-FREE
+  COVER-SHIFT ROWS: the drop and the climb re-run WITHOUT the
+  equal-rank premise — the x-family cover suit pinned at the first
+  fork yet two below the second fork's rank (founded-resident at
+  the first whenever `r₂ ≤ r₁`); the y-family cover suit two below
+  the first fork's rank yet pinned exactly at the second's.
+* §6 `cross_family_interlock` — the RANK-TRICHOTOMY ASSEMBLY
+  (proved), consuming two named sub-residues —
+  `cross_equal_rank_kill` (the equal-rank material competition) and
+  `cross_unequal_rank_strata` (the unequal-rank stratification, the
+  reversed order by the class symmetry); `forkState_familyRigid` —
+  the card's main row, consumed from the assembly.
 
 House compliance: additive leaf; fresh private kit copies per the
 dedup discipline; every fresh head audited.
@@ -309,80 +318,250 @@ theorem cross_cover_pull_pressure {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf
   have hcen := witness_rung_census hτ d₂.suit
   exact ⟨d₂, τ, hdcol, hridx, hτ, by omega⟩
 
-/-! ## §6. The assembly: the named residue and the main row -/
+/-! ## §5b. The rank-free cover-shift rows
 
-/-- **THE CROSS-FAMILY INTERLOCK — the card's one named residue.**
+§3's drop and §4's climb both premised EQUAL pair ranks, but the
+load-bearing reads inside them — the two-color cover census, the
+family rung pins, the `nextUp = false` refinement of the piled-rung
+read — never consult the OTHER fork's rank.  Re-running the
+machinery without the rank premise lands the honest general rows
+the unequal-rank stratification consumes: the x-family cover suit
+is pinned at the first fork's `r₁` while reading at least two
+below `r₂` at the second fork — a net drop of `(r₁ − r₂) + 2`,
+strictly worse the lower the second rank sits — and is
+foundation-resident at the first fork whenever `r₂ ≤ r₁`; the
+y-family cover suit reads at most `r₁ − 2` at the first fork while
+PINNED exactly at `r₂` at the second, and is foundation-resident at
+the second fork whenever `r₁ ≤ r₂`.  At equal ranks each row
+sharpens its banked §3/§4 counterpart by one rung. -/
+
+/-- **THE RANK-FREE DROP ROW** — the second fork's twin-cover `d₂`
+(an x-family card of rank index `r₂ − 1`) has its home suit pinned
+at the first fork's family rung `r₁` yet reading at least TWO below
+the second fork's rank `r₂` (the `nextUp = false` refinement of the
+piled-rung read); whenever `r₂ ≤ r₁` the cover is moreover
+foundation-resident at `st₁` (the low-family founded row, one
+stratum read). -/
+theorem cross_drop_general {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
+    {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
+    (hcol : y.suit.color ≠ x.suit.color) :
+    ∃ (d₂ : Card),
+      d₂.suit.color = x.suit.color ∧
+      d₂.rank.toIdx + 1 = y.rank.toIdx ∧
+      rungAt st₁ d₂.suit = x.rank.toIdx ∧
+      rungAt st₂ d₂.suit + 2 ≤ y.rank.toIdx ∧
+      (y.rank.toIdx ≤ x.rank.toIdx → d₂ ∈ st₁.found d₂.suit) := by
+  obtain ⟨-, -, d₂, -, -, hfit, -, hnext, hrung⟩ :=
+    pair_cover_pins hwf₂ hy
+  obtain ⟨hridx, hcne⟩ := (canSitOn_eq d₂ y.twin).mp hfit
+  rw [Card.twin_rank] at hridx
+  have hyt : y.twin.suit.color = y.suit.color := xfam_twin_color y
+  rw [hyt] at hcne
+  have hdcol : d₂.suit.color = x.suit.color :=
+    xfam_color_pair (Ne.symm hcne) hcol
+  have hrung₁ : rungAt st₁ d₂.suit = x.rank.toIdx :=
+    xfam_family_rung hx hdcol
+  have hne : d₂.rank.toIdx ≠ rungAt st₂ d₂.suit := by
+    intro hcon
+    have hn2 : st₂.nextUp d₂ = true := decide_eq_true hcon
+    rw [hn2] at hnext
+    exact absurd hnext (by simp)
+  refine ⟨d₂, hdcol, hridx, hrung₁, ?_, ?_⟩
+  · have h1 : rungAt st₂ d₂.suit + 1 ≤ y.rank.toIdx := hrung
+    omega
+  · intro hle
+    exact pair_lowFamily_founded hwf₁ hx hdcol (by omega)
+
+/-- **THE RANK-FREE CLIMB ROW** — the first fork's twin-cover `d₁`
+(a y-family card of rank index `r₁ − 1`) tops the `st₁` tableau with
+`nextUp d₁ = false`, so its suit reads at least two below the first
+fork's rank `r₁` there — while PINNED at the second fork's witness
+rank `r₂` (both witnesses' `canRaiseS_rung` reads through the family
+pin); whenever `r₁ ≤ r₂` the cover is foundation-resident at `st₂`.
+The climb row §4 restated without its rank premise, sharpened: the
+`st₂` end is an EQUALITY. -/
+theorem cross_climb_general {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
+    {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
+    (hcol : y.suit.color ≠ x.suit.color) :
+    ∃ (d₁ : Card) (a : Anchor),
+      d₁.suit.color = y.suit.color ∧
+      d₁.rank.toIdx + 1 = x.rank.toIdx ∧
+      st₁.pileOfTop d₁ = some a ∧
+      st₁.nextUp d₁ = false ∧
+      rungAt st₁ d₁.suit + 2 ≤ x.rank.toIdx ∧
+      rungAt st₂ d₁.suit = y.rank.toIdx ∧
+      (x.rank.toIdx ≤ y.rank.toIdx → d₁ ∈ st₂.found d₁.suit) := by
+  obtain ⟨a, -, d₁, -, -, hfit, htop, hnext, hrung₁⟩ :=
+    pair_cover_pins hwf₁ hx
+  obtain ⟨hridx, hcne⟩ := (canSitOn_eq d₁ x.twin).mp hfit
+  rw [Card.twin_rank] at hridx
+  have hxt : x.twin.suit.color = x.suit.color := xfam_twin_color x
+  rw [hxt] at hcne
+  have hdcol : d₁.suit.color = y.suit.color :=
+    xfam_color_pair (Ne.symm hcne) (Ne.symm hcol)
+  have hne : d₁.rank.toIdx ≠ rungAt st₁ d₁.suit := by
+    intro hcon
+    have hn2 : st₁.nextUp d₁ = true := decide_eq_true hcon
+    rw [hn2] at hnext
+    exact absurd hnext (by simp)
+  have hrung₂ : rungAt st₂ d₁.suit = y.rank.toIdx :=
+    xfam_family_rung hy hdcol
+  refine ⟨d₁, a, hdcol, hridx, htop, hnext, ?_, hrung₂, ?_⟩
+  · have h1 : rungAt st₁ d₁.suit + 1 ≤ x.rank.toIdx := hrung₁
+    omega
+  · intro hle
+    exact pair_lowFamily_founded hwf₂ hy hdcol (by omega)
+
+/-! ## §6. The assembly: the two named sub-residues and the main row -/
+
+/-- The class relation's symmetry: `sameOrbitSetoid.r u v` is
+definitionally `RevEqW v u` (the witness shuffles run both ways),
+so the two journeys swap (`RevEqW_symm`) — the reversed-order
+hand-off the assembly's third branch consumes. -/
+private theorem cross_class_symm {u v : State}
+    (h : sameOrbitSetoid.r u v) : sameOrbitSetoid.r v u :=
+  RevEqW_symm h
+
+/-- **THE EQUAL-RANK MATERIAL COMPETITION — the first named
+sub-residue.**  Premise: two same-class forks of DIFFERENT color
+families at EQUAL pair ranks (`hrank`).  Route (each step priced
+against landed rows — this file's §1–§5 and §5b, plus the bank):
+
+1. THE RESIDENCIES (banked, equal-rank grade): `cross_cover_residency`
+   — the second fork's twin-cover `d₂` is an x-family rank-`(r−1)`
+   card, foundation-resident at `st₁`, face-up covering `y.twin` at
+   `st₂` with `nextUp = false`; `cross_anchor_climb` — the mirror
+   package for `d₁` (a y-family rank-`(r−1)` card, tableau at `st₁`,
+   resident at `st₂`, its suit pinned EXACTLY at `r` at `st₂` by
+   §5b's sharpened climb read).
+2. THE TWO OPPOSITE SHIFTS (banked): `cross_cover_rung_drop` — the
+   x-family cover suit drops `r → r−2-or-below`, and
+   `cross_cover_pull_pressure` reads its census as a LIFO pull debt
+   (`2 + raisesOf ≤ pullsOf`, the pops current-top by
+   `foundToTab_pops_currentTop`); the same journey census
+   (`witness_rung_census`) on `d₁`'s y-family suit reads the mirror
+   debt (`pullsOf + 2 ≤ raisesOf`) — the two cover suits shift in
+   OPPOSITE directions along the one class shuffle.
+3. THE MATERIAL COMPETITION at the `(r−1)` stratum (the residue's
+   core, still to price): each popped x-family cover card needs a
+   legal card-directed landing (a tableau top one rank up, opposite
+   color; empty-anchor landings are king-only), and the rankColor
+   census (one rank + one color = exactly the twin pair) names the
+   only fitting hosts — at the debt-servicing epochs, the live
+   y-pair members themselves.  The banked one-leg transfer
+   (`S_census_one_leg`, `Orig/SFlatTransfer.lean`) pins the epochs
+   at which a foreign member can first GAIN structured S-liveness
+   (a cargo leg exposing it with its seat intact, a pull landing a
+   fitting cover on it, or a raise lowering the family rung read);
+   the flat/bracket factor rows (`quiet_flat`, `pull_factor`,
+   `raise_factor` over the draw-free board component of
+   `sameOrbit_factor_full`) price each intervening segment; the
+   landing lattice (`pair_cover_lattice`-grade census) pins each
+   cargo cover's legal card-directed landings to pair-member tops;
+   and the two-census collision (`cross_census_dead`) bars both
+   ends' exits.  Servicing both opposite debts forces a leg that
+   seats a foreign cover on a live pair member at a census-barred
+   moment — the material competition, the only possible mechanism;
+   its per-leg LIFO chase (the oscillation accounting per suit over
+   `raisesOf`/`pullsOf`, exactly as in the pressure row) is the
+   pricing still to land.
+
+Until that ladder lands, the equal-rank corner stays honestly
+open; the assembly consumes exactly this residue. -/
+private theorem cross_equal_rank_kill {st₁ st₂ : State}
+    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
+    (hcls : sameOrbitSetoid.r st₁ st₂)
+    {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
+    (hcol : y.suit.color ≠ x.suit.color)
+    (hrank : y.rank.toIdx = x.rank.toIdx) :
+    False := by
+  sorry
+
+/-- **THE UNEQUAL-RANK STRATIFICATION — the second named
+sub-residue.**  Premise: the same-class cross-family forks with the
+second fork's pair rank STRICTLY below the first's (`hle`, `hne`).
+Route (the §5b rank-free rows carry the load-bearing reads):
+
+1. THE STRATIFIED SHIFTS (banked, §5b): the x-family cover suit
+   drops from the `st₁` family pin `r₁` to at most `r₂ − 2` at
+   `st₂` — a net drop of `(r₁ − r₂) + 2 ≥ 3`, strictly worse than
+   the equal-rank corner — and its cover `d₂` is
+   foundation-resident at `st₁` (rank `r₂ − 1 < r₁`,
+   `pair_lowFamily_founded`); the y-family cover suit reads at
+   most `r₁ − 2` at `st₁` while PINNED exactly at `r₂` at `st₂` —
+   and its cover `d₁` is resident at `st₂` only in the OTHER rank
+   order, which the hypothesis bars.  The two covers occupy
+   different foundation strata, one at each end: the LIFO pops
+   servicing the deep x-suit debt surface x-family cards of rank
+   index below `r₂`, a full stratum beneath the y-pair's fork
+   material — the stratification: the covers do not compete.
+2. THE SHIFTED KILL-LADDER (still to price, one stratum down from
+   the equal corner): each popped x-family card's only fitting
+   hosts are y-family tops one rank up; the second fork's own
+   `pair_cover_pins` saturation holds that stratum covered or
+   founded at `st₂`, the residency census holds the non-pair
+   members sunk, and the two-census collision
+   (`cross_census_dead`) bars the survivors; the one-leg transfer
+   (`S_census_one_leg`) and the flat/bracket factor rows
+   (`quiet_flat`, `pull_factor`, `raise_factor` over the board
+   component) price the epochs, the per-suit journey census
+   (`witness_rung_census` over `raisesOf`/`pullsOf`) closes the
+   oscillation exactly as in the equal corner.
+3. THE MIRRORED ORDER (`r₂ > r₁`) never enters this residue: the
+   assembly hands that branch here with the forks SWAPPED (the
+   class symmetry `cross_class_symm`), so the residue itself only
+   ever carries the y-below-x order.
+
+Until that shifted ladder lands, the unequal strata stay honestly
+open; the assembly consumes exactly this residue. -/
+private theorem cross_unequal_rank_strata {st₁ st₂ : State}
+    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
+    (hcls : sameOrbitSetoid.r st₁ st₂)
+    {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
+    (hcol : y.suit.color ≠ x.suit.color)
+    (hle : y.rank.toIdx ≤ x.rank.toIdx)
+    (hne : y.rank.toIdx ≠ x.rank.toIdx) :
+    False := by
+  sorry
+
+/-- **THE CROSS-FAMILY INTERLOCK — the trichotomy assembly (proved).**
 
 PREMISE: two fork states of the same macro class witnessing
 DIFFERENT color families (`hcol`), with both witness parcels, both
 well-formedness rows, and the class witness.
 
-THE COMPLETE ROUTE (each step priced against landed rows — this
-file's §1–§5, plus the banked chain):
+THE COMPLETE ROUTE, as landed:
 
-1. THE RANK CASE LADDER. `rcases` the trichotomy of `y.rank.toIdx`
-   against `x.rank.toIdx`.  The EQUAL case is the worst corner: the
-   material competition at `(r − 1)` — and it consumes this file's
-   rows LITERALLY:
-   * `cross_cover_residency`: the second fork's twin-cover `d₂` (an
-     `x`-family rank-`(r−1)` card) is foundation-resident at `st₁`
-     yet face-up covering `y.twin` at `st₂` with `nextUp = false`.
-   * `cross_cover_rung_drop`: `rungAt st₁ d₂.suit = r` (the family
-     pin) against `rungAt st₂ d₂.suit + 2 ≤ r` — a net two-rung
-     drop of `d₂`'s suit along the class's own shuffle.
-   * `cross_cover_pull_pressure`: the shuffle owes at least
-     `raisesOf + 2` LIFO pops of that suit; the first popped card is
-     the then-current top — `d₂` itself if no raise of the suit
-     intervened (the finisher's first per-leg pin).
-   * `cross_anchor_climb`: the MIRROR package for `d₁` — the first
-     fork's cover is resident at `st₂`'s foundation, its suit
-     weakly below `r − 1` at `st₁`, at `r` or above at `st₂`.
-   * `cross_census_dead`: the collision envelope — at each endpoint
-     fork, both members of the OTHER family's pair are S-DEAD.
-2. THE EQUAL-RANK FINISH (the remaining ladder): the per-leg
-   analysis between `st₁` and `st₂` on the shuffle from
-   `sameOrbit_forward`.  The engine is the banked one-leg transfer
-   (`S_census_one_leg`, `Orig/SFlatTransfer.lean`): an S-DEAD
-   `z`-card can only GAIN structured liveness by a cargo leg
-   exposing it with its seat intact, by a pull landing a fitting
-   cover on it, or by a raise lowering the family rung read —
-   and the census at both bars every member of the foreign pair.
-   Track `x`'s pair members along the shuffle: at `st₁` both are
-   S-live (`x` topping with license, `x.twin` covered by `d₁`); at
-   `st₂` both are dead.  The kill analysis (§2 of the card brief):
-   (i) a founding raise of a member puts it on a foundation whose
-   rung then reads past `r` — barred at `st₂` for `d₂`'s suit by the
-   drop row (the founding would have to be pulled back through the
-   LIFO debt); (ii) seat destruction rides a cargo leg — its
-   landing target is pinned by the `pair_cover_lattice`-grade
-   census (every legal card-directed placement of the moved cover
-   tops a pair member); (iii) the pull-down direction needs the
-   popped cards re-landed on anchors — the deck census pins the
-   anchor cards as exactly the foreign pair, forcing the
-   material-competition contradiction: both families' `(r−1)`
-   covers are each other's foundation-resident material, and the
-   LIFO debts of the two suits cannot both be serviced without a
-   leg that seats a foreign cover on a live pair member at a
-   census-barred moment.  The oscillation accounting per suit
-   consumes `witness_rung_census` over `raisesOf`/`pullsOf` exactly
-   as in the pressure row, and the pops are LIFO
-   (`foundToTab_pops_currentTop`, `Orig/BracketDecomp.lean`).
-3. THE UNEQUAL-RANK CASES: for `r₂ < r₁` the whole `y`-rank stratum
-   sits strictly below the `x`-family founded prefix at `st₁` (via
-   `pair_lowFamily_founded` at `st₁`), and both `y`-pair covers
-   are foundation-resident there — the same pull-debt analysis with
-   the anchor census shifted one stratum; for `r₂ > r₁` the mirror
-   reads against `st₂` with the class symmetry
-   (`sameOrbitSetoid`'s own symmetry hands the reversed shuffle).
+1. THE RANK TRICHOTOMY (proved, below): `Nat.lt_trichotomy` on
+   `y.rank.toIdx` against `x.rank.toIdx` splits the interlock into
+   the EQUAL-RANK corner and the two UNEQUAL-RANK orders — and the
+   class symmetry (`cross_class_symm`: the two `RevEqW` witness
+   shuffles swap) hands the `r₂ > r₁` order back with the forks
+   swapped, so the assembly only ever argues the order it names.
+2. THE EQUAL-RANK corner closes through the named residue
+   `cross_equal_rank_kill` (route in its docstring): the two cover
+   suits' OPPOSITE rung shifts, the LIFO pull debt
+   (`cross_cover_pull_pressure`), and the `(r−1)`-stratum material
+   competition as the only mechanism.
+3. THE UNEQUAL-RANK strata close through the named residue
+   `cross_unequal_rank_strata` (route in its docstring), built on
+   the rank-free §5b shift rows: the deepened drop, the stratified
+   residencies, and the one-stratum-down per-leg chase.
 
-Until steps 2–3 land as rows, the bar stays honestly open; the
-main theorem below carries exactly this residue and no other. -/
+The interlock therefore rests on exactly the two named
+sub-residues and no other leaf; the main theorem below inherits
+precisely that residue from here. -/
 theorem cross_family_interlock {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
     (hcls : sameOrbitSetoid.r st₁ st₂)
     {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
     (hcol : y.suit.color ≠ x.suit.color) :
     False := by
-  sorry
+  rcases Nat.lt_trichotomy (y.rank.toIdx) (x.rank.toIdx) with hlt | h | hgt
+  · exact cross_unequal_rank_strata hwf₁ hwf₂ hcls hx hy hcol
+      (Nat.le_of_lt hlt) (Nat.ne_of_lt hlt)
+  · exact cross_equal_rank_kill hwf₁ hwf₂ hcls hx hy hcol h
+  · exact cross_unequal_rank_strata hwf₂ hwf₁ (cross_class_symm hcls) hy hx
+      (Ne.symm hcol) (Nat.le_of_lt hgt) (Nat.ne_of_lt hgt)
 
 /-- **THE CROSS-FAMILY LOCK** — within one class, the fork pair
 cannot CHANGE color family: any same-class fork that would witness
@@ -401,16 +580,21 @@ theorem forkState_familyRigid (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf₂ 
 
 /-! ## The audit battery
 
-`#print axioms` per fresh head — the four row rows and the pressure
-row read `[propext, Quot.sound]`-grade (banked chain only); the
-residue and the main row carry exactly the one fresh `sorryAx`
-(`cross_family_interlock`'s; `forkState_familyRigid` inherits it
-and NOTHING else). -/
+`#print axioms` per fresh head — the four row rows, the pressure
+row, and the two §5b rank-free shift rows read
+`[propext, Quot.sound]`-grade (banked chain only); the assembly and
+the main row carry exactly the two fresh `sorryAx`es of the named
+sub-residues (`cross_equal_rank_kill`, `cross_unequal_rank_strata`;
+`forkState_familyRigid` inherits exactly those and NOTHING else). -/
 
 #print axioms cross_census_dead
 #print axioms cross_cover_residency
 #print axioms cross_cover_rung_drop
 #print axioms cross_anchor_climb
 #print axioms cross_cover_pull_pressure
+#print axioms cross_drop_general
+#print axioms cross_climb_general
+#print axioms cross_equal_rank_kill
+#print axioms cross_unequal_rank_strata
 #print axioms cross_family_interlock
 #print axioms forkState_familyRigid
