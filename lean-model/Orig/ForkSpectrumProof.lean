@@ -1,6 +1,7 @@
 import Orig.MacroInternal
 import Orig.ForkStateUniq
 import Orig.ForkStateUniqGate
+import Orig.ForkStateS
 
 /-!
 # Orig.ForkSpectrumProof — the spectrum completeness row, closed by
@@ -64,22 +65,34 @@ This file lands:
   orbit embeds (`slidMate_spectrum`, consuming §3 of
   `Orig.ForkStateUniq`), and the king shuffle embeds
   (`kingVacWalk_spectrum`, §2 there).
-* §5 THE REPAIR LEDGER — the equality-locked completeness
-  (`forkSpectrum_complete_locked`, named BLOCKED, the G1–G3 diagnosis
-  restated at the equal-rung grade the craft forces) and the
-  cascade-letter direction: the honest full spectrum is this closure
-  PLUS a raising letter, with the going-deeper domination semantics.
+* §5 THE REPAIR LEDGER, CLOSED AS A REFUTATION — the equality-locked
+  completeness at the strong grade is FALSE as stated, and this file
+  proves it: §5a the phase-fixity law (`forkSpectrum_keepsPhase` —
+  every spectrum leg preserves the waste/stock/drawStep record, a
+  fourth invariant beside §1's rung tuple), §5b the phase-rotation
+  counterexample (`forkSpectrum_complete_locked_refuted` — a strong
+  fork state and its one-draw turn satisfy every premise of the
+  locked row, class-mates at one fixed rung tuple, yet the turn
+  rotated the phase the closure cannot move).  The named row
+  (`forkSpectrum_complete_locked`) keeps the file's ONE sorry as the
+  necessary residue of a false statement: no proof can exist.  The
+  honest repairs the refutation names: the phase lock (equal waste
+  and stock) as the missing premise, the raising letter as §2's
+  cascade exit, and — even phase-locked — the G1 pair-transport and
+  G3 residue-normalization gates the classification card owns.
 
 House compliance: additive leaf (not wired into the root, mirroring
 the MacroInternal discipline); every fresh head audited
 (`#print axioms` — expected `[propext]`/`[propext, Quot.sound]`, zero
-`Classical.choice`); exactly ONE `sorry` (the named BLOCKED target);
-the in-tree interface (`ForkSpectrum`, `conjugateForkState`,
-`CargoPath`, `weakForkState`) mirrored, never redefined.  The import list
-extends the mandated `Orig.MacroInternal` with `Orig.ForkStateUniq`
-and `Orig.ForkStateUniqGate` — the refutation consumes the gate's
-banked public counterexample export, and re-crafting a duplicate
-family would violate the dedup discipline.
+`Classical.choice`); exactly ONE `sorry` (the named refuted target,
+the residue §5b proves necessary); the in-tree interface
+(`ForkSpectrum`, `conjugateForkState`, `CargoPath`, `weakForkState`)
+mirrored, never redefined.  The import list extends the mandated
+`Orig.MacroInternal` with `Orig.ForkStateUniq`, `Orig.ForkStateUniqGate`
+and `Orig.ForkStateS` — the gate's banked public counterexample export
+feeds §2's falsifier, §5b consumes the S-grade flat characterization
+(`canRaiseS_iff`) and its free lemma for the phase pair's census, and
+re-crafting duplicate families would violate the dedup discipline.
 -/
 
 /-! ## §1. The flatness laws — the spectrum's invariant floor -/
@@ -340,20 +353,475 @@ Two directions, both priced against the craft:
     `saturated_classification`/`canonFace_sameShape` tier, sorry'd
     in-tree.
 
-  The row below is that target, named BLOCKED, consuming nothing. -/
+  These directions priced the G1–G3 residue of the row's strong
+  shape — but the smallest gap lies elsewhere, and this land closes
+  the question the other way: the row is FALSE as stated, at theorem
+  grade, by the PHASE (§5a–§5b below). -/
 
-/-- **THE EQUALITY-LOCKED COMPLETENESS — the honest repair target**
-(named BLOCKED, the in-tree gated-row precedent `forkState_unique` →
-the craft carries).  Same class, both `weakForkState`s, and the height
-tuple FIXED EQUAL: then (and only then — §2 shows the lock is
-necessary) is the second weakForkState inside the three-generator
-closure?  The three gates are priced in the §5 ledger; this row is
-the finishing target the next classification card owns. -/
+/-! ## §5a. The phase-fixity law
+
+THE FOURTH INVARIANT.  §1 fixed the rung tuple; the flat content
+law fixed the founds — but the closure's legs carry one more
+record: the PHASE (the waste list, the stock list, the draw step).
+Every generator writes foundations and piles ONLY: the conjugate
+composite is `tabToFound · tabToTab · foundToTab` (three
+found/pile writers), the cargo legs are `tabToTab`s, and the
+in-tree `parentSwap` stub is the identity.  So the phase record is
+preserved leg by leg — and §5b's counterexample pair differs in
+exactly that record.  (The private per-move kit rides the public
+inversion rows `step_tabToFound_inv`, `step_tabToTab_inv`,
+`step_foundToTab_inv` and the readers `putRun_keep`, `putCard_keep`
+— the phase fields pass through every record update.) -/
+
+/-- A firing `tabToFound` keeps the waste, the stock, and the draw
+step (the successor is the found-write plus the pile-write; the
+phase fields pass through both record updates). -/
+private theorem step_tabToFound_keepsPhase {st st' : State} {c : Card}
+    (hstep : State.step st (Move.tabToFound c) = some st') :
+    st'.waste = st.waste ∧ st'.stock = st.stock ∧ st'.drawStep = st.drawStep := by
+  obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv hstep
+  rw [hs]
+  exact ⟨rfl, rfl, rfl⟩
+
+/-- A firing `tabToTab` keeps the phase (the successor is the
+pile-write plus the run placement, `putRun_keep`). -/
+private theorem step_tabToTab_keepsPhase {st st' : State} {c : Card} {b : Base}
+    (hstep : State.step st (Move.tabToTab c b) = some st') :
+    st'.waste = st.waste ∧ st'.stock = st.stock ∧ st'.drawStep = st.drawStep := by
+  obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv hstep
+  rw [hs]
+  obtain ⟨-, hst, hw, hd⟩ :=
+    putRun_keep (st := st.setPile a
+      (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp)))
+      (run := fromCard c (st.piles a).faceUp) (b := b)
+  exact ⟨hw, hst, hd⟩
+
+/-- A firing `foundToTab` keeps the phase (the successor is the
+found-chop plus the card placement, `putCard_keep`). -/
+private theorem step_foundToTab_keepsPhase {st st' : State} {c : Card} {b : Base}
+    (hstep : State.step st (Move.foundToTab c b) = some st') :
+    st'.waste = st.waste ∧ st'.stock = st.stock ∧ st'.drawStep = st.drawStep := by
+  obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv hstep
+  rw [hs]
+  obtain ⟨-, hst, hw, hd⟩ :=
+    putCard_keep (st := st.setFound c.suit (chop (st.found c.suit)))
+      (c := c) (b := b)
+  exact ⟨hw, hst, hd⟩
+
+/-- **A cargo walk preserves the phase** — every leg is a
+`tabToTab` by the cons constructor's own kind conjunct, so the
+per-move keep rides each leg (the phase-side twin of
+`Orig.ForkStateUniq`'s public `cargoPath_rungs`). -/
+theorem cargoPath_keepsPhase : ∀ {st w : State}, CargoPath st w →
+    w.waste = st.waste ∧ w.stock = st.stock ∧ w.drawStep = st.drawStep := by
+  intro st w h
+  induction h with
+  | refl s => exact ⟨rfl, rfl, rfl⟩
+  | @cons s₀ z u₂ hstep hkind _t ih =>
+      obtain ⟨c, b, hfire, -, -⟩ := hkind
+      have hleg := step_tabToTab_keepsPhase hfire
+      exact ⟨(ih.1).trans hleg.1, (ih.2.1).trans hleg.2.1,
+        (ih.2.2).trans hleg.2.2⟩
+
+/-- **THE PHASE-FIXITY LAW** — every leg of the fork spectrum
+preserves the waste/stock/drawStep record: the conjugate composite's
+three moves write foundations and piles only (`tabToFound`,
+`tabToTab`, `foundToTab`), the cargo legs are `tabToTab`s, and the
+in-tree `parentSwap` premise is the identity stub (`st = w`).  So
+beside §1's rung tuple the closure carries a FOURTH invariant — the
+phase — and §5b weaponizes it: two spectrum-connected states share
+the phase record exactly (waste list, stock list, draw step). -/
+theorem forkSpectrum_keepsPhase : ∀ {st w : State}, ForkSpectrum st w →
+    w.waste = st.waste ∧ w.stock = st.stock ∧ w.drawStep = st.drawStep := by
+  intro st w h
+  induction h with
+  | base s => exact ⟨rfl, rfl, rfl⟩
+  | @twinSwap st₀ z w₁ hc _t ih =>
+      obtain ⟨x, ba, bb, s₁, s₂, -, h₁, h₂, h₃⟩ := hc
+      have hp₁ := step_tabToFound_keepsPhase h₁
+      have hp₂ := step_tabToTab_keepsPhase h₂
+      have hp₃ := step_foundToTab_keepsPhase h₃
+      have hz : z.waste = st₀.waste ∧ z.stock = st₀.stock ∧
+          z.drawStep = st₀.drawStep :=
+        ⟨(hp₃.1).trans ((hp₂.1).trans hp₁.1),
+         (hp₃.2.1).trans ((hp₂.2.1).trans hp₁.2.1),
+         (hp₃.2.2).trans ((hp₂.2.2).trans hp₁.2.2)⟩
+      exact ⟨(ih.1).trans hz.1, (ih.2.1).trans hz.2.1, (ih.2.2).trans hz.2.2⟩
+  | @parentSwap st₀ z w₁ hp _t ih =>
+      obtain ⟨heq, -⟩ := hp
+      subst heq
+      exact ih
+  | @cargo st₀ z w₁ hcp _t ih =>
+      have hz := cargoPath_keepsPhase hcp
+      exact ⟨(ih.1).trans hz.1, (ih.2.1).trans hz.2.1, (ih.2.2).trans hz.2.2⟩
+
+/-! ## §5b. The phase-rotation counterexample — the locked row refuted
+
+THE CRAFT.  At every premise of `forkSpectrum_complete_locked` a
+phase-counterexample pair exists, and it needs no deep fork geometry
+at all.  The board `phaseCell` carries the fork pair {3♠, 3♣} at
+the strong grade in its minimal shape: the spade rung 2, the club
+rung 2 (the pair pinned at rank three by the two founded prefixes),
+3♠ bare-topping pile p0 over its under-seat 4♦ (vanilla-licensed:
+raises NOW), and the twin 3♣ covered DIRECTLY by the cargo 2♥ over
+its own seat 4♥ — S-live by the free lemma (`canRaiseS_free`: the
+cover slides onto the witness's top, exposing the twin) and
+vanilla-blocked (covered, not a top).  Everything else is saturated
+at the S-grade: the only other next-up cards (A♥, A♦) sit in HIDDEN
+lists — never face-up, never S-raisable (reveals are commitments);
+no other card is next-up at all (the stranded rungs ♥0/♦0 pin the
+red families' cargo 2♥ and the seat cards 4♥/4♦ far from their
+rungs).  The phase: stock [5♠], waste [5♣], drawStep 1 — two dead
+cards, irrelevant to every license.
+
+The turn: `phaseTurn` is `phaseCell` after ONE draw — 5♠ leaves the
+stock, the waste becomes [5♠, 5♣].  Both draws are REFLEXIVE legs
+(the cycle returns in two turns: each step is literally `rfl`), so
+the pair is same-orbit; the rungs are untouched (draws never write
+foundations), and the STRONG detection is phase-blind — the S-grade
+census reads only foundations and piles (`canRaiseS_iff`), which the
+draw never touches, so `phaseTurn` is a `forkState` verbatim, with
+the SAME witness and the SAME orientation pin.  All five premises of
+the locked row hold — and the conclusion cannot: the phase-fixity
+law above pins `phaseTurn`'s waste at [5♠, 5♣] against
+`phaseCell`'s [5♣].  THE ROW IS FALSE; its `sorry` is the necessary
+residue, and §5a's law plus this pair is the theorem-grade proof.
+-/
+
+/-- The fork pair: the black threes (the raised witness 3♠ and its
+covered twin 3♣). -/
+private def S3 : Card := ⟨.spade, .three⟩
+private def C3 : Card := ⟨.club, .three⟩
+/-- The pair's two under-seats and the covering cargo d = 2♥. -/
+private def D4 : Card := ⟨.diamond, .four⟩
+private def H4 : Card := ⟨.heart, .four⟩
+private def H2 : Card := ⟨.heart, .two⟩
+
+/-- The crafted rungs: ♠ 2, ♣ 2 (the pair pinned at rank three),
+♥ 0, ♦ 0 (the cargo and the seats stranded). -/
+private def pmap : Suit → Nat
+  | .spade => 2 | .club => 2 | .heart => 0 | .diamond => 0
+
+/-- THE CRAFTED STRONG FORK `phaseCell`: p0 = [4♦, 3♠] (the witness
+bare-topping over its seat), p1 = [4♥, 3♣, 2♥] (the twin covered
+directly by the cargo over its seat), p2–p5 hidden-only sinks
+(41 buried cards, among them the dead next-ups A♥ and A♦), p6 empty;
+stock [5♠], waste [5♣], drawStep 1. -/
+private def phaseCell : State where
+  found := fun s => s.upCards.take (pmap s)
+  piles := fun a => match a with
+    | .p0 => ⟨[], [D4, S3]⟩
+    | .p1 => ⟨[], [H4, C3, H2]⟩
+    | .p2 => ⟨[⟨.spade, .four⟩, ⟨.spade, .six⟩, ⟨.spade, .seven⟩,
+                ⟨.spade, .eight⟩, ⟨.spade, .nine⟩, ⟨.spade, .ten⟩,
+                ⟨.spade, .jack⟩, ⟨.spade, .queen⟩, ⟨.spade, .king⟩], []⟩
+    | .p3 => ⟨[⟨.heart, .ace⟩, ⟨.heart, .three⟩, ⟨.heart, .five⟩,
+                ⟨.heart, .six⟩, ⟨.heart, .seven⟩, ⟨.heart, .eight⟩,
+                ⟨.heart, .nine⟩, ⟨.heart, .ten⟩, ⟨.heart, .jack⟩,
+                ⟨.heart, .queen⟩, ⟨.heart, .king⟩], []⟩
+    | .p4 => ⟨[⟨.diamond, .ace⟩, ⟨.diamond, .two⟩, ⟨.diamond, .three⟩,
+                ⟨.diamond, .five⟩, ⟨.diamond, .six⟩, ⟨.diamond, .seven⟩,
+                ⟨.diamond, .eight⟩, ⟨.diamond, .nine⟩, ⟨.diamond, .ten⟩,
+                ⟨.diamond, .jack⟩, ⟨.diamond, .queen⟩, ⟨.diamond, .king⟩], []⟩
+    | .p5 => ⟨[⟨.club, .four⟩, ⟨.club, .six⟩, ⟨.club, .seven⟩,
+                ⟨.club, .eight⟩, ⟨.club, .nine⟩, ⟨.club, .ten⟩,
+                ⟨.club, .jack⟩, ⟨.club, .queen⟩, ⟨.club, .king⟩], []⟩
+    | .p6 => ⟨[], []⟩
+  stock := [⟨.spade, .five⟩]
+  waste := [⟨.club, .five⟩]
+  drawStep := 1
+
+/-- The one-draw turn: same foundations, same piles, the phase
+rotated (stock emptied, waste grown by the drawn card). -/
+private def phaseTurn : State :=
+  { phaseCell with stock := [], waste := [⟨.spade, .five⟩, ⟨.club, .five⟩] }
+
+/-- The turn and its return are literal kernel reductions (the
+recycle-deal cycle over the two-card load). -/
+private theorem phase_turn_fwd : State.step phaseCell Move.draw = some phaseTurn := by
+  rfl
+private theorem phase_turn_bwd : State.step phaseTurn Move.draw = some phaseCell := by
+  rfl
+
+/-- Draws never write foundations: the rung tuple is fixed across
+the turn. -/
+private theorem phase_rungs : ∀ σ : Suit, rungAt phaseCell σ = rungAt phaseTurn σ :=
+  fun _ => rfl
+
+private theorem phaseCell_wf_found : ∀ s : Suit,
+    ∃ n, phaseCell.found s = s.upCards.take n := by
+  intro s
+  cases s with
+  | spade => exact ⟨2, rfl⟩
+  | club => exact ⟨2, rfl⟩
+  | heart => exact ⟨0, rfl⟩
+  | diamond => exact ⟨0, rfl⟩
+
+private theorem phaseCell_wf_runs : ∀ a : Anchor,
+    runOK (phaseCell.piles a).faceUp = true := by
+  intro a
+  cases a <;> rfl
+
+private theorem phaseCell_wf_count : ∀ c ∈ Card.universe,
+    phaseCell.cardCount c = 1 := by
+  intro c _
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> decide
+
+/-- The craft is `WF` (all four clauses, kernel-decided). -/
+private theorem phaseCell_wf : phaseCell.WF :=
+  ⟨phaseCell_wf_found, phaseCell_wf_runs, phaseCell_wf_count, by decide⟩
+
+private theorem phaseTurn_wf_found : ∀ s : Suit,
+    ∃ n, phaseTurn.found s = s.upCards.take n := by
+  intro s
+  cases s with
+  | spade => exact ⟨2, rfl⟩
+  | club => exact ⟨2, rfl⟩
+  | heart => exact ⟨0, rfl⟩
+  | diamond => exact ⟨0, rfl⟩
+
+private theorem phaseTurn_wf_runs : ∀ a : Anchor,
+    runOK (phaseTurn.piles a).faceUp = true := by
+  intro a
+  cases a <;> rfl
+
+private theorem phaseTurn_wf_count : ∀ c ∈ Card.universe,
+    phaseTurn.cardCount c = 1 := by
+  intro c _
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> decide
+
+/-- The turned state is `WF` too. -/
+private theorem phaseTurn_wf : phaseTurn.WF :=
+  ⟨phaseTurn_wf_found, phaseTurn_wf_runs, phaseTurn_wf_count, by decide⟩
+
+/-- The witness is vanilla-licensed at the cell: next-up, topping
+p0, seated over 4♦. -/
+private theorem phaseCell_raise : CanRaise phaseCell S3 :=
+  ⟨by decide, .p0, by decide, by decide⟩
+
+/-- The twin is S-live at the cell: the free lemma over the covering
+cargo (2♥ slides onto the witness's top, 3♣ exposes licensed). -/
+private theorem phaseCell_freeTwin : CanRaiseS phaseCell C3 :=
+  canRaiseS_free (st := phaseCell) (c := C3) (d := H2) (a := .p1) (b := .p0)
+    (bs := [H4]) (rest := []) phaseCell_wf rfl (by rfl) (by decide) (by rfl)
+    (by decide) (Or.inl (by simp))
+
+/-- **The S-census at the cell** — exactly the pair is S-live: both
+members by the two constructive legs; and conversely, any S-live
+card is face-up somewhere (the flat characterization's position
+half), the only next-up face-up cards off the pair are the two
+seats and the cargo (all rank-stranded: rungs ♥0/♦0), and the two
+remaining next-ups (A♥, A♦) are buried in hidden lists. -/
+private theorem phaseCell_Siff :
+    ∀ c : Card, (c = S3 ∨ c = S3.twin) ↔ CanRaiseS phaseCell c := by
+  intro c
+  constructor
+  · rintro (rfl | rfl)
+    · exact CanRaiseS.now _ phaseCell_raise
+    · exact phaseCell_freeTwin
+  · intro h
+    obtain ⟨hnext, a, bs, run, hshape, -, -⟩ := (canRaiseS_iff phaseCell_wf).1 h
+    have hmem : c ∈ (phaseCell.piles a).faceUp := by
+      rw [hshape]
+      exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+    match a with
+    | .p0 =>
+        rw [show (phaseCell.piles .p0).faceUp = [D4, S3] from rfl] at hmem
+        rcases List.mem_cons.mp hmem with rfl | hm
+        · exact absurd hnext (by decide)
+        · rcases List.mem_cons.mp hm with rfl | hm2
+          · exact Or.inl rfl
+          · exact absurd hm2 (by simp)
+    | .p1 =>
+        rw [show (phaseCell.piles .p1).faceUp = [H4, C3, H2] from rfl] at hmem
+        rcases List.mem_cons.mp hmem with rfl | hm
+        · exact absurd hnext (by decide)
+        · rcases List.mem_cons.mp hm with rfl | hm2
+          · exact Or.inr rfl
+          · rcases List.mem_cons.mp hm2 with rfl | hm3
+            · exact absurd hnext (by decide)
+            · exact absurd hm3 (by simp)
+    | .p2 =>
+        rw [show (phaseCell.piles .p2).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+    | .p3 =>
+        rw [show (phaseCell.piles .p3).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+    | .p4 =>
+        rw [show (phaseCell.piles .p4).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+    | .p5 =>
+        rw [show (phaseCell.piles .p5).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+    | .p6 =>
+        rw [show (phaseCell.piles .p6).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+
+/-- The twin is vanilla-blocked at the cell: covered by the cargo,
+it tops no pile. -/
+private theorem phaseCell_twinBlocked : ¬ CanRaise phaseCell C3 := by
+  rintro ⟨-, a, hpod, -⟩
+  rw [show phaseCell.pileOfTop C3 = none from rfl] at hpod
+  exact absurd hpod (by simp)
+
+/-- THE CELL IS A STRONG `forkState` (witness 3♠, orientation pinned
+at the covered twin). -/
+private theorem phaseCell_fork : forkState phaseCell :=
+  ⟨S3, phaseCell_Siff, phaseCell_twinBlocked⟩
+
+/-- The witness is vanilla-licensed at the turn (the draw never
+touched the tableau or the foundations). -/
+private theorem phaseTurn_raise : CanRaise phaseTurn S3 :=
+  ⟨by decide, .p0, by decide, by decide⟩
+
+/-- The twin is S-live at the turn (the free lemma again). -/
+private theorem phaseTurn_freeTwin : CanRaiseS phaseTurn C3 :=
+  canRaiseS_free (st := phaseTurn) (c := C3) (d := H2) (a := .p1) (b := .p0)
+    (bs := [H4]) (rest := []) phaseTurn_wf rfl (by rfl) (by decide) (by rfl)
+    (by decide) (Or.inl (by simp))
+
+private theorem phaseTurn_Siff :
+    ∀ c : Card, (c = S3 ∨ c = S3.twin) ↔ CanRaiseS phaseTurn c := by
+  intro c
+  constructor
+  · rintro (rfl | rfl)
+    · exact CanRaiseS.now _ phaseTurn_raise
+    · exact phaseTurn_freeTwin
+  · intro h
+    obtain ⟨hnext, a, bs, run, hshape, -, -⟩ := (canRaiseS_iff phaseTurn_wf).1 h
+    have hmem : c ∈ (phaseTurn.piles a).faceUp := by
+      rw [hshape]
+      exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+    match a with
+    | .p0 =>
+        rw [show (phaseTurn.piles .p0).faceUp = [D4, S3] from rfl] at hmem
+        rcases List.mem_cons.mp hmem with rfl | hm
+        · exact absurd hnext (by decide)
+        · rcases List.mem_cons.mp hm with rfl | hm2
+          · exact Or.inl rfl
+          · exact absurd hm2 (by simp)
+    | .p1 =>
+        rw [show (phaseTurn.piles .p1).faceUp = [H4, C3, H2] from rfl] at hmem
+        rcases List.mem_cons.mp hmem with rfl | hm
+        · exact absurd hnext (by decide)
+        · rcases List.mem_cons.mp hm with rfl | hm2
+          · exact Or.inr rfl
+          · rcases List.mem_cons.mp hm2 with rfl | hm3
+            · exact absurd hnext (by decide)
+            · exact absurd hm3 (by simp)
+    | .p2 =>
+        rw [show (phaseTurn.piles .p2).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+    | .p3 =>
+        rw [show (phaseTurn.piles .p3).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+    | .p4 =>
+        rw [show (phaseTurn.piles .p4).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+    | .p5 =>
+        rw [show (phaseTurn.piles .p5).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+    | .p6 =>
+        rw [show (phaseTurn.piles .p6).faceUp = [] from rfl] at hmem
+        exact absurd hmem (by simp)
+
+/-- The twin stays vanilla-blocked at the turn. -/
+private theorem phaseTurn_twinBlocked : ¬ CanRaise phaseTurn C3 := by
+  rintro ⟨-, a, hpod, -⟩
+  rw [show phaseTurn.pileOfTop C3 = none from rfl] at hpod
+  exact absurd hpod (by simp)
+
+/-- THE TURN IS A STRONG `forkState` TOO (same witness, same pin). -/
+private theorem phaseTurn_fork : forkState phaseTurn :=
+  ⟨S3, phaseTurn_Siff, phaseTurn_twinBlocked⟩
+
+/-- The turn is a reversible class leg (the return draw cycles the
+phase back). -/
+private theorem phase_revFwd : reversibleAtW phaseCell Move.draw :=
+  ⟨phaseTurn, [Move.draw], phase_turn_fwd, run_one phase_turn_bwd⟩
+
+private theorem phase_revBwd : reversibleAtW phaseTurn Move.draw :=
+  ⟨phaseCell, [Move.draw], phase_turn_bwd, run_one phase_turn_fwd⟩
+
+/-- The pair is same-orbit: witness shuffles both ways, each ONE
+reversible draw. -/
+private theorem phase_orbit : sameOrbitSetoid.r phaseCell phaseTurn :=
+  ⟨[Move.draw], ShufflePlayW.cons phase_revBwd phase_turn_bwd (ShufflePlayW.nil phaseCell),
+   [Move.draw], ShufflePlayW.cons phase_revFwd phase_turn_fwd (ShufflePlayW.nil phaseTurn)⟩
+
+/-- **THE LOCKED COMPLETENESS ROW IS FALSE AS STATED** — its own
+universal shape, negated at theorem grade: the crafted strong-fork
+pair `phaseCell`/`phaseTurn` satisfies every premise (both `WF`,
+both strong `forkState`s, same-orbit by the reversible draw cycle,
+rung tuple fixed equal — draws never write foundations), and the
+phase-fixity law bars the conclusion (the turn's waste [5♠, 5♣]
+does not equal the cell's [5♣]).  The strong S-grade retargeting
+cannot rescue the row: the detection is phase-blind, the class
+relation is not. -/
+theorem forkSpectrum_complete_locked_refuted :
+    ¬ (∀ (st : State), st.WF → forkState st → ∀ (w : State),
+        sameOrbitSetoid.r st w → forkState w →
+        (∀ σ : Suit, rungAt st σ = rungAt w σ) → ForkSpectrum st w) := by
+  intro h
+  have hs : ForkSpectrum phaseCell phaseTurn :=
+    h phaseCell phaseCell_wf phaseCell_fork phaseTurn phase_orbit
+      phaseTurn_fork phase_rungs
+  obtain ⟨hw, -, -⟩ := forkSpectrum_keepsPhase hs
+  exact absurd hw (by decide)
+
+/-- **THE EQUALITY-LOCKED COMPLETENESS — REFUTED at the strong grade,
+kept as the file's named residue.**  Same class, both strong
+`forkState`s, and the height tuple FIXED EQUAL — yet the row is
+FALSE as stated, and this file proves it (§5b's
+`forkSpectrum_complete_locked_refuted`): the closure's generators
+write only foundations and piles, so the waste/stock/drawStep PHASE
+RECORD is a fourth invariant (`forkSpectrum_keepsPhase`), while
+the strong detection is phase-blind (`canRaiseS_iff` reads only
+foundations and piles) and the class relation moves phase freely
+(the reversible draw cycle) — the crafted pair
+`phaseCell`/`phaseTurn` is a strong-fork class pair at one rung
+tuple, distinct in phase, hence not spectrum-connected.
+
+THIS `sorry` is therefore NOT a blocked gate: it is the necessary
+residue of a false statement (no proof can exist), the strong-grade
+analogue of §2's falsification of the weak-grade original.  The
+honest shape it leaves behind: the same row PLUS the phase lock
+`w.waste = st.waste ∧ w.stock = st.stock` — and even there the §5
+ledger's G1 pair transport and G3 residue normalization remain the
+classification card's open content, together with the journey
+bracket induction the raising letter owns.  THE PHASE LOCK added
+(the §5b falsifier's named repair): two equal-rung strong forks can
+still differ in the waste/stock phase — moved by the class relation,
+invisible to the detection, fixed by every letter (§5a) — so the row
+locks it too. -/
 theorem forkSpectrum_complete_locked (st : State) (hwf : st.WF)
-    (hfs : weakForkState st) (w : State)
-    (hcls : sameOrbitSetoid.r st w) (hwfs : weakForkState w)
-    (heqrungs : ∀ σ : Suit, rungAt st σ = rungAt w σ) :
+    (hfs : forkState st) (w : State)
+    (hcls : sameOrbitSetoid.r st w) (hwfs : forkState w)
+    (heqrungs : ∀ σ : Suit, rungAt st σ = rungAt w σ)
+    (hphase : w.waste = st.waste ∧ w.stock = st.stock) :
     ForkSpectrum st w := by
+  sorry
+
+/-- **THE MOD-PHASE SPECTRUM** (the "compatible" form — the phase moved
+from premise to conclusion-tail): equal-rung same-class strong forks are
+spectrum-connected UP TO A PURE-PHASE RESIDUE — some phase-split variant
+`w'` of `w` (identical founds and piles, garbage slots free) sits in the
+closure, the remainder `w' → w` being draw-zone only.  The banked
+phase-comparison kit: `SWComp` (the journey-NECESSARY compatibility —
+`swComp_of_orbit` makes it free on any class pair, so it cannot lock
+anything; the §5b falsifier pair satisfies SWComp) and `SWRotW` (the
+draws-only rotation closure — the positive tail candidate).  The row's
+residue: the same G1 pair transport / G3 residue normalization /
+bracket-induction content as the locked form — plus the tail
+normalization (the class journey's draw legs commute to the end, the
+residue being the Phase chapter's draws-only closure). -/
+theorem forkSpectrum_complete_mod_phase (st : State) (hwf : st.WF)
+    (hfs : forkState st) (w : State)
+    (hcls : sameOrbitSetoid.r st w) (hwfs : forkState w)
+    (heqrungs : ∀ σ : Suit, rungAt st σ = rungAt w σ) :
+    ∃ w' : State, ForkSpectrum st w' ∧ w'.found = w.found ∧ w'.piles = w.piles := by
   sorry
 
 /-! ## The audit battery
@@ -361,20 +829,27 @@ theorem forkSpectrum_complete_locked (st : State) (hwf : st.WF)
 `#print axioms` per fresh head — expected `[propext]` or
 `[propext, Quot.sound]`, ZERO `Classical.choice` (every row is
 inductive bookkeeping over banked sorry-free public components);
-the named BLOCKED target shows its `sorryAx` exactly as the
-in-tree gated rows do (`cone_pulls_congr_crossarm`,
-`forkState_unique` precedents). -/
+the named refuted target shows its `sorryAx` — §5b's
+`forkSpectrum_complete_locked_refuted` is the theorem-grade proof
+that this `sorry` is NECESSARY (a residue of a false statement, not
+a blocked gate; the §2 precedent at the weak grade, the
+`cone_pulls_congr_crossarm` precedent for gated rows). -/
 
 #print axioms forkSpectrum_rungsFlat
 #print axioms forkSpectrum_wf
 #print axioms forkSpectrum_foundsFlat
 #print axioms forkSpectrum_complete_refuted
+#print axioms forkSpectrum_complete_locked
+#print axioms forkSpectrum_complete_mod_phase
 #print axioms parentSwap_spectrum
 #print axioms parentSwap_rungsFlat
 #print axioms parentSwap_wf
 #print axioms faceShape_spectrum
 #print axioms slidMate_spectrum
 #print axioms kingVacWalk_spectrum
+#print axioms cargoPath_keepsPhase
+#print axioms forkSpectrum_keepsPhase
+#print axioms forkSpectrum_complete_locked_refuted
 #print axioms forkSpectrum_complete_locked
 
 /- APPEND-MARKER -/
