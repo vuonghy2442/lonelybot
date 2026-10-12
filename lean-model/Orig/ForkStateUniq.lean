@@ -28,10 +28,11 @@ macro class are the conjugate weakForkState, up to bare cargo exchange
   cargo leg and the WHOLE king shuffle orbit is `CargoPath`
   connected (`KingVacWalk`, `kingVacWalk_cargoPath`).
 
-The main row `forkState_unique` assembles the two parts with step
-(1)'s pair transport; its maximality-transport sub-step is THE GATE,
-recorded below it as the explicitly-named BLOCKED residue with a
-per-gate diagnosis.
+The uniqueness head itself is no longer carried by this file:
+refuted at theorem grade exactly as originally stated — the gate
+file's falsifier (`Orig.ForkStateUniqGate.forkState_unique_refuted`)
+is the honest row; the two parts' machinery below is what the
+class-grade program consumes.
 
 The in-tree interface (`Orig.MacroInternal`) is mirrored, never
 redefined: `weakForkState`, `conjugateForkState`, `CargoPath`,
@@ -817,9 +818,9 @@ theorem conjugate_dancePath {st w : State} {x d : Card} {ba bb : Base}
       (DancePath.cons (DanceStep.cone (ConeStep.pull x bb h₃ hr₃))
         (DancePath.refl w)))
 
-/-! ## §5. THE MAIN ROW — the ForkState Uniqueness Theorem, assembled and gated
+/-! ## §5. THE TWO PARTS' CONNECTORS — the class-book corollaries
 
-The assembled statement, in the user's two parts (the non-king
+The two parts of the user's formulation (the non-king
 conjugate half and the king-shuffle half), with everything the two
 halves need mechanically having landed above:
 
@@ -835,9 +836,11 @@ halves need mechanically having landed above:
   shaped composites re-license the same witness, so the two-face
   book is honest.
 
-What remains beyond assembly is ONE gate — the maximality
-transport — recorded under the main row with the precise
-diagnosis.  Everything else in this file is sorry-free.
+The assembled uniqueness head is no longer carried by this
+chapter: refuted at theorem grade exactly as originally stated by
+the gate file's falsifier (`Orig.ForkStateUniqGate.forkState_unique_refuted`);
+these connectors, like everything else in this file, are
+sorry-free.
 -/
 
 /-- The class-membership corollary: a cargo walk's endpoint sits in
@@ -858,98 +861,11 @@ theorem forkState_mate_inClass {st : State} {C : SameOrbit}
   obtain ⟨s', d, x, hstep, hfs, hcp⟩ := hmate
   exact ⟨s', hfs, cargoPath_sameClass hcp hC, hcp⟩
 
-/-- **THE FORKSTATE UNIQUENESS THEOREM** — IF one weakForkState exists
-in a macro class, THEN the only forkStates of that macro class are
-the conjugate weakForkState, UP TO BARE CARGO EXCHANGE (`CargoPath`
-connected): in the non-king case the pair's two faces are the
-witness state and its §3 slid mate; in the king case the orbit
-expands across the vacant anchors by §2's king-vacate legs, all
-cargo.
-
-**STATUS (the 2026-10-12 reproof wave) — G2 DISSOLVED, the assembly
-re-graded.**  At the strong premises the coverage gate is GONE: the
-covered-twin-with-fitting-cover geometry is derivable from the def
-(`Orig.ForkWeaker`'s witness rows), and the mate production is landed
-at theorem grade (`Orig.SFlatTransfer.forkState_mate_S`, zero sorry)
-with the conjugate production beside it (`Orig.SConjugate`
-—assembled, two named census residues) — the production stack this
-row's G2 case-split had priced.  The remaining honest gates:
-
-* **G1 (pair transport, journey half)**: the census half LANDED
-  (`Orig.SFlatTransfer.S_census_one_leg` — the flat invariance); the
-  journey half rides the bracket machinery
-  (`Orig.BracketDecomp.reversible_equaltuple_decompose`, one named
-  nesting residue) and the conjugate census transport (the two named
-  rows of `Orig.SConjugate`).
-* **G3 (the saturated residue)**: unchanged — the
-  `saturated_classification`/`canonFace_sameShape` tier.
-
-* **(G1) PAIR-TRANSPORT** — the two witnesses must share the pair
-  up to twin flip.  At the new reads the rung pins of one weakForkState
-  do NOT exclude a second pair at the other color family: the two
-  off-pair suits' rungs are free data, and the in-tree
-  `forkPoint_exclusive` sandwich needs the `forkPointC` cargo
-  strand (`¬ satStackable` at the witness's own cargo) — a
-  CLASS-grade fact that the state-grade iff carries only at
-  itself.  Transporting the strand across the reversible journey
-  between `st₁` and `st₂` is the content the in-tree corpus gates
-  behind the envelope (`envelope`) and the saturated residue
-  (`saturated_classification`/`cononFace_sameShape` tier) —
-  riding those sorry'd rows is exactly what this row may not do.
-* **(G2) COVERAGE-DEGENERACY** — the mate production needs the
-  covering-cargo parcel (the trial shape: the twin COVERED
-  directly by a fitting `d`, and the exposed seat package).  A
-  weakForkState whose twin is blocked otherwise (waste/stock, buried
-  under non-fitting cargo, or the bare-bottom non-king twin — the
-  (Q,J)-falsifier seat) realizes with NO slid mate, and for those
-  classes the uniqueness claim degenerates to the cargo orbit of
-  the one witness; the case-split itself is classification
-  content.
-* **(G3) THE SATURATED RESIDUE** — even sharing the pair and the
-  coverage, two same-class forkStates may differ by EXTRA
-  non-covering cargo (the class's other wiggle content); linking
-  each into the {witness, mate} pair through reversible legs each
-  keeping the fork geometry is the saturated-classification half
-  the canon-face tier owns.
-
-Given any one of the gates' closures (the classification card's
-remaining work), the row assembles from this file's landed halves:
-G1 pins the pair, G2 selects the slide-orbit, G3 normalizes the
-residue; `forkState_slide_mate` and `kingVacWalk_cargoPath` are
-the connectors.  The residue is intentionally a single `sorry`
-carrying the whole named gate.
-
-**THE S-GRADE RETARGETING** (the strong-grade resurrection, this
-premises-level swap): the hypotheses now carry the maneuver-stable
-detection, and the tuple lock `htup` bars the cascade ladder (two
-same-class forks may sit at different pair-column rungs by raising
-through the cone — the ladder is not FaceShape-flat, and the lock is
-what the spectral analysis always said this row needed).  What the
-strong grade buys here: **G2 DISSOLVES** — the covered-twin-with-
-fitting-cover geometry is now derivable from the def alone (a twin
-blocked otherwise — waste/stock, non-fitting cargo, the bare
-(Q,J)-seat — is NOT S-live, failing the iff's pair-live half, so
-those degenerate weak-grade shapes are not forkStates at this grade);
-and the bridge `forkState → weakForkState` lets every banked weak-
-grade connector fire under the strong hypotheses.  What remains:
-G1's pair transport at the locked tuple (the census/freeze transfer
-along the reversible journey — the cone-cards' machinery) and G3's
-residue normalization. -/
-theorem forkState_unique {C : SameOrbit} {st₁ st₂ : State}
-    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
-    (h₁ : forkState st₁) (h₂ : forkState st₂)
-    (hc₁ : classOf C st₁) (hc₂ : classOf C st₂)
-    (htup : ∀ σ : Suit, rungAt st₁ σ = rungAt st₂ σ) :
-    FaceShape st₁ st₂ := by
-  sorry
-
 /-! ## The audit battery
 (`#print axioms` per fresh head — expected `[propext, Quot.sound]`
-everywhere except the main row's named residue, which shows its
-`sorryAx` exactly as the in-tree gated rows do
-(`cone_pulls_congr_crossarm`'s precedent).  Zero `Classical.choice`
-is expected across the whole chapter: every landed row is
-constructive search-bookkeeping and step-record arithmetic.) -/
+everywhere.  Zero `Classical.choice` is expected across the whole
+chapter: every landed row is constructive search-bookkeeping and
+step-record arithmetic.) -/
 
 #print axioms forkState_raiser
 #print axioms forkPair_not_twoColors_state
@@ -969,6 +885,5 @@ constructive search-bookkeeping and step-record arithmetic.) -/
 #print axioms conjugate_dancePath
 #print axioms cargoPath_sameClass
 #print axioms forkState_mate_inClass
-#print axioms forkState_unique
 
 /- APPEND-MARKER -/
