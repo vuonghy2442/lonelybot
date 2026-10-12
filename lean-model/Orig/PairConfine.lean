@@ -171,11 +171,56 @@ theorem pair_cover_lattice {st : State} (hwf : st.WF) {x : Card}
 
 /-! ## §2. The saturation pins -/
 
+namespace FoundKit
+
+/-! **THE FOUNDING-HEIGHT KIT** — the EdgeKit-pattern promotion of the
+tree's private position/founding copies (PairConfine's conf_ kit,
+SlabEquiv's sequ_*, CrossFamily's xfam_*, CrossFamilyStatic's xstat_*,
+OriginLock's lock_posOf family): one public home under this namespace,
+each row lifted verbatim from the banked private proofs; the per-file
+copies retire at their next landing.  The headline is the
+FOUNDED-HEIGHT IFF below — the founding-membership bridge in one
+line. -/
+
+/-- The first-occurrence position probe (lifted from the private
+`conf_posOf`). -/
+def posOf {α : Type} [DecidableEq α] (x : α) : List α → Nat
+  | [] => 0
+  | y :: t => if y = x then 0 else posOf x t + 1
+
+/-- Membership in a truncation bounds the build position (lifted from
+the private `conf_posOf_take_lt`, restated on the public probe). -/
+theorem posOf_take_lt {α : Type} [DecidableEq α] :
+    ∀ (n : Nat) (l : List α) (x : α), x ∈ l.take n → posOf x l < n := by
+  intro n
+  induction n with
+  | zero => intro l x hmem; simp at hmem
+  | succ n ih =>
+      intro l x hmem
+      cases l with
+      | nil => simp at hmem
+      | cons y t =>
+          simp only [List.take] at hmem
+          rcases List.mem_cons.mp hmem with heq | htl
+          · simp only [posOf]
+            rw [ite_eq_left heq.symm]
+            omega
+          · have hlt := ih t x htl
+            simp only [posOf]
+            split
+            · omega
+            · omega
+
+/-- The build order is the rank order (lifted from the private
+`conf_posOf_upCards`). -/
+theorem posOf_upCards (σ : Suit) (r : Rank) :
+    posOf (Card.mk σ r) (Suit.upCards σ) = r.toIdx := by
+  cases σ <;> cases r <;> rfl
+
 /-- An element at position `i` belongs to the first `n` entries of the
-list when `i < n` (the copy of `Orig/CanV3.lean`'s private
-`v3GetInTake`). -/
-private theorem conf_get_in_take : ∀ {α : Type} (l : List α) (n i : Nat)
-    (hl : i < l.length) (hn : i < n), l.get ⟨i, hl⟩ ∈ l.take n := by
+list (lifted from the private `conf_get_in_take`). -/
+theorem get_in_take : ∀ {α : Type} (l : List α) (n i : Nat)
+    (hl : i < l.length) (_hn : i < n), l.get ⟨i, hl⟩ ∈ l.take n := by
   intro α l n i hl hn
   induction n generalizing l i hl with
   | zero => exact absurd hn (by omega)
@@ -192,32 +237,60 @@ private theorem conf_get_in_take : ∀ {α : Type} (l : List α) (n i : Nat)
               refine List.mem_cons_of_mem a (ih t i' (by omega) (by omega))
 
 /-- A card sits at its own build index in its suit's foundation
-order (the copy of `Orig/CanV3.lean`'s private `v3UpGet`). -/
-private theorem conf_upCards_get (z : Card)
+order (lifted from the private `conf_upCards_get`). -/
+theorem upCards_get (z : Card)
     (h : z.rank.toIdx < z.suit.upCards.length) :
     z.suit.upCards.get ⟨z.rank.toIdx, h⟩ = z := by
   rcases z with ⟨zs, zr⟩
   cases zr <;> rfl
 
-/-- **THE FOUNDED-BRIDGE** — a suit rung strictly above a card's rank
-index has already founded it (the founded-prefix read of the WF
-clause, through the build-index rows). -/
-private theorem conf_mem_found_of_rung {st : State} (hwf : st.WF) {c : Card}
+/-- **THE FOUNDED-HEIGHT BRIDGE, forward half** — a suit rung strictly
+above a card's rank index has already founded it (lifted from the
+private `conf_mem_found_of_rung`/`conf_founded_of_rung`; now the
+single public home). -/
+theorem mem_found_of_rung {st : State} (hwf : st.WF) {c : Card}
     (hlt : c.rank.toIdx < rungAt st c.suit) : c ∈ st.found c.suit := by
   have hpre := rung_found_prefix st hwf c.suit
   have h13 : c.suit.upCards.length = 13 := Suit.upCards_length c.suit
   have hget : c.suit.upCards.get ⟨c.rank.toIdx, by
       rw [h13]; exact Rank.toIdx_lt c.rank⟩ = c :=
-    conf_upCards_get c (by rw [h13]; exact Rank.toIdx_lt c.rank)
+    upCards_get c (by rw [h13]; exact Rank.toIdx_lt c.rank)
   have hmem0 : c.suit.upCards.get ⟨c.rank.toIdx, by
       rw [h13]; exact Rank.toIdx_lt c.rank⟩ ∈
       c.suit.upCards.take (rungAt st c.suit) :=
-    conf_get_in_take c.suit.upCards (rungAt st c.suit) c.rank.toIdx
+    get_in_take c.suit.upCards (rungAt st c.suit) c.rank.toIdx
       (show c.rank.toIdx < c.suit.upCards.length by
         rw [h13]; exact Rank.toIdx_lt c.rank) hlt
   rw [hget] at hmem0
   have hmem : c ∈ c.suit.upCards.take (rungAt st c.suit) := hmem0
   rwa [← hpre] at hmem
+
+/-- **THE FOUNDED-HEIGHT BRIDGE, converse half** — a card on its own
+suit's foundation sits strictly below the rung (lifted from the
+private `conf_founded_rank_lt`, restated on the public probe rows). -/
+theorem mem_found_rank_lt {st : State} (hwf : st.WF) {d : Card}
+    (hmem : d ∈ st.found d.suit) :
+    d.rank.toIdx < rungAt st d.suit := by
+  rcases d with ⟨s, r⟩
+  have hmem' : Card.mk s r ∈ st.found s := hmem
+  have hpre := rung_found_prefix st hwf s
+  rw [hpre] at hmem'
+  have hpos : posOf (Card.mk s r) (Suit.upCards s) < rungAt st s :=
+    posOf_take_lt _ _ _ hmem'
+  have hidx := posOf_upCards s r
+  show r.toIdx < rungAt st s
+  omega
+
+/-- **THE FOUNDED-HEIGHT IFF** — the founding-membership bridge as one
+line: a card is on its own suit's foundation exactly when its rank
+index sits strictly under the foundation's height.  The tree's
+long-term consumer for every height/census corner; the per-file
+one-way copies retire against it. -/
+theorem mem_found_iff_height {st : State} (hwf : st.WF) {c : Card} :
+    c ∈ st.found c.suit ↔ c.rank.toIdx < rungAt st c.suit :=
+  ⟨mem_found_rank_lt hwf, mem_found_of_rung hwf⟩
+
+end FoundKit
 
 /-- The last of a double snoc (the two-card top read of the
 covered-twin pile shape). -/
@@ -252,7 +325,7 @@ private theorem conf_piled_rung {st : State} (hwf : st.WF) {z : Card} {a : Ancho
   rcases Nat.lt_trichotomy (rungAt st z.suit) (z.rank.toIdx) with h | h | h
   · exact Nat.le_of_lt h
   · exact Nat.le_of_eq h
-  · exact absurd (conf_mem_found_of_rung hwf h) hnot
+  · exact absurd (FoundKit.mem_found_of_rung hwf h) hnot
 
 /-- **THE γ-FAMILY LOW ROW** — every same-family card of rank index
 strictly below the fork is ALREADY FOUNDED at the fork: both suit
@@ -270,7 +343,7 @@ theorem pair_lowFamily_founded {st : State} (hwf : st.WF) {x : Card}
     · rw [hs]
       have h2 := canRaiseS_rung ((hx.1 x.twin).mp (Or.inr rfl))
       rwa [Card.twin_rank] at h2
-  exact conf_mem_found_of_rung hwf (by omega)
+  exact FoundKit.mem_found_of_rung hwf (by omega)
 
 /-- **THE SATURATION PINS** — the fork's twin-cover package at its
 final shape: the cover `d` sits DIRECTLY on the twin (one below,
@@ -903,7 +976,7 @@ private theorem conf_hop_Fkeep {s s' : State} {m : Move} {t : Card}
         rw [hpy a₀, if_pos rfl, afterRunRemoved_ne hchopne]
         exact htchop
       · refine ⟨W, ?_⟩
-        rw [hpy W, if_neg hWa]
+        rw [hpy W, ite_eq_right hWa]
         exact hW
   | foundToTab c b =>
       obtain ⟨c₀, htop, hc₀c, hcp, hs⟩ := step_foundToTab_inv hstep
@@ -926,7 +999,7 @@ private theorem conf_hop_Fkeep {s s' : State} {m : Move} {t : Card}
             rw [hWe, hhfe] at hW
             exact absurd hW (by simp)
           · refine ⟨W, ?_⟩
-            rw [hpy W, if_neg hWe]
+            rw [hpy W, ite_eq_right hWe]
             exact hW
       | inr z =>
           obtain ⟨k₀, hk₀, -⟩ := canPlace_inr hcp
@@ -942,10 +1015,10 @@ private theorem conf_hop_Fkeep {s s' : State} {m : Move} {t : Card}
           by_cases hWk : W = k₀
           · rw [hWk] at hW
             refine ⟨W, ?_⟩
-            rw [hWk, hpy k₀, if_pos rfl]
+            rw [hWk, hpy k₀, ite_eq_left rfl]
             exact List.mem_append.mpr (Or.inl hW)
           · refine ⟨W, ?_⟩
-            rw [hpy W, if_neg hWk]
+            rw [hpy W, ite_eq_right hWk]
             exact hW
   | tabToTab c b =>
       obtain ⟨a₀, k, run, hh, hrun, hrne, hne, hpa, hothers, hpair⟩ :=
@@ -1020,7 +1093,7 @@ private theorem conf_hop_flip {s s' : State} (hwf : s.WF) {m : Move}
       by_cases hAa : A = a₀
       · have hTop' : (Pile.afterRunRemoved (s.piles a₀)
             (chop (s.piles a₀).faceUp)).top = some t := by
-          rw [hpy A, if_pos hAa] at hlastA
+          rw [hpy A, ite_eq_left hAa] at hlastA
           exact hlastA
         by_cases hchop : chop (s.piles a₀).faceUp = []
         · exfalso
@@ -1042,7 +1115,7 @@ private theorem conf_hop_flip {s s' : State} (hwf : s.WF) {m : Move}
           exact Or.inr ⟨c, rfl, conf_runOK_adjacent t c front [] (by
               rw [← hshape]; exact hwf.2.1 a₀)⟩
       · exfalso
-        rw [hpy A, if_neg hAa] at hlastA
+        rw [hpy A, ite_eq_right hAa] at hlastA
         exact absurd ((pileOfTop_eq_some_iff hwf).2
           (show (s.piles A).top = some t from hlastA))
           (conf_pileOfTop_none_ne hNT)
@@ -1063,10 +1136,10 @@ private theorem conf_hop_flip {s s' : State} (hwf : s.WF) {m : Move}
           obtain ⟨A, hA⟩ := option_some_of_ne_none hT'
           obtain ⟨-, hlastA⟩ := pileOfTop_top hA
           by_cases hAe : A = e
-          · rw [hpy A, if_pos hAe] at hlastA
+          · rw [hpy A, ite_eq_left hAe] at hlastA
             exact absurd (Option.some.inj hlastA) hcne
           · exfalso
-            rw [hpy A, if_neg hAe] at hlastA
+            rw [hpy A, ite_eq_right hAe] at hlastA
             exact absurd ((pileOfTop_eq_some_iff hwf).2
               (show (s.piles A).top = some t from hlastA))
               (conf_pileOfTop_none_ne hNT)
@@ -1085,13 +1158,13 @@ private theorem conf_hop_flip {s s' : State} (hwf : s.WF) {m : Move}
           obtain ⟨-, hlastA⟩ := pileOfTop_top hA
           by_cases hAk : A = k₀
           · exfalso
-            rw [hpy A, if_pos hAk] at hlastA
+            rw [hpy A, ite_eq_left hAk] at hlastA
             have hTop' : lastOf ((s.piles k₀).faceUp ++ [c]) = some t :=
               hlastA
             exact absurd
               (Option.some.inj (lastOf_snoc.symm.trans hTop')) hcne
           · exfalso
-            rw [hpy A, if_neg hAk] at hlastA
+            rw [hpy A, ite_eq_right hAk] at hlastA
             exact absurd ((pileOfTop_eq_some_iff hwf).2
               (show (s.piles A).top = some t from hlastA))
               (conf_pileOfTop_none_ne hNT)
@@ -1511,38 +1584,6 @@ private theorem conf_stockWaste_closed (d : Card) :
             exact hcyc
       exact ih hmid
 
-/-- The first-occurrence position (the per-file copy of the tree's
-private row). -/
-private def conf_posOf {α : Type} [DecidableEq α] (x : α) : List α → Nat
-  | [] => 0
-  | y :: t => if y = x then 0 else conf_posOf x t + 1
-
-private theorem conf_posOf_take_lt {α : Type} [DecidableEq α] :
-    ∀ (n : Nat) (l : List α) (x : α), x ∈ l.take n → conf_posOf x l < n := by
-  intro n
-  induction n with
-  | zero => intro l x hmem; simp at hmem
-  | succ n ih =>
-      intro l x hmem
-      cases l with
-      | nil => simp at hmem
-      | cons y t =>
-          simp only [List.take] at hmem
-          rcases List.mem_cons.mp hmem with heq | htl
-          · simp only [conf_posOf]
-            rw [if_pos heq.symm]
-            omega
-          · have hlt := ih t x htl
-            simp only [conf_posOf]
-            split
-            · omega
-            · omega
-
-/-- The build order is the rank order (the per-file copy). -/
-private theorem conf_posOf_upCards (σ : Suit) (r : Rank) :
-    conf_posOf (Card.mk σ r) (Suit.upCards σ) = r.toIdx := by
-  cases σ <;> cases r <;> rfl
-
 /-- A zone-prefix member's suit is the zone's suit. -/
 private theorem conf_mem_upCards_suit {σ : Suit} {c : Card}
     (h : c ∈ σ.upCards) : c.suit = σ := by
@@ -1552,23 +1593,6 @@ private theorem conf_mem_upCards_suit {σ : Suit} {c : Card}
   have : Card.mk σ r = Card.mk cs cr := hrc
   injection this with h1 h2
   exact h1.symm
-
-/-- **THE FOUNDED-MEMBERSHIP BRIDGE (converse half)** — a card on its
-own suit's foundation sits strictly below the rung: the founded
-prefix is the build order's take, so the build position (the rank
-index) is bounded by the take length. -/
-private theorem conf_founded_rank_lt {st : State} (hwf : st.WF) {d : Card}
-    (hmem : d ∈ st.found d.suit) :
-    d.rank.toIdx < rungAt st d.suit := by
-  rcases d with ⟨s, r⟩
-  have hmem' : Card.mk s r ∈ st.found s := hmem
-  have hpre := rung_found_prefix st hwf s
-  rw [hpre] at hmem'
-  have hpos : conf_posOf (Card.mk s r) (Suit.upCards s) < rungAt st s :=
-    conf_posOf_take_lt _ _ _ hmem'
-  have hidx := conf_posOf_upCards s r
-  show r.toIdx < rungAt st s
-  omega
 
 /-- **INTERIOR-LEG REVERSIBILITY** — every leg of a witness shuffle is
 reversible at its own pre-state; with the prefix-shuffle certificate
@@ -1612,46 +1636,6 @@ private theorem conf_interior_rev {st : State} :
               have hs₂ : s₁ = s₂' := Option.some.inj (hstep.symm.trans hstepv)
               rw [← hs₂] at hrestv
               exact ih vs ρ₂ m s₃ hrestEq hrestv
-
-/-- **THE FOUNDED-CELL RESIDUE** — the at-rung card sits in a
-foundation at the fork.  ROUTE: the founded-prefix membership read
-(`rung_found_prefix`: `found s = s.upCards.take (rungAt st s)`; the
-take carries only ranks strictly below the rung — `Suit.upCards` is
-`Rank.all.map (Card.mk s)` in ascending rank order, so the index-`j`
-card appears exactly at position `j`, and a member of `take N` has
-position `< N`), against the at-rung pin `c.rank.toIdx =
-rungAt st c.suit`: founded membership would read the index strictly
-below its own rung.  The suit of the founding zone is pinned by the
-upCards read (`conf_upCards_suit`-grade: `List.mem_map` +
-constructor injection). -/
-private theorem conf_charlie_foundCell {st : State} (hwf : st.WF) {x : Card}
-    (hx : ForkWitness st x) {w : State} {ρ : List Move}
-    (hpre : ShufflePlayW st ρ w)
-    {c : Card}
-    (hcert :
-      ∃ (ρ₁ ρ₂ : List Move) (s₃ s₄ : State),
-        ρ = ρ₁ ++ Move.tabToFound c :: ρ₂ ∧
-        ShufflePlayW st ρ₁ s₃ ∧
-        State.step s₃ (Move.tabToFound c) = some s₄ ∧
-        c.rank.toIdx < x.rank.toIdx ∧
-        c.suit.color ≠ x.suit.color ∧
-        c.rank.toIdx = rungAt st c.suit)
-    (hfound : ∃ s, c ∈ st.found s) :
-    False := by
-  obtain ⟨s, hFs⟩ := hfound
-  -- the founded zone is the card's own suit (the prefix is the zone's
-  -- build order)
-  have hs : c.suit = s := by
-    have hpre := rung_found_prefix st hwf s
-    rw [hpre] at hFs
-    exact conf_mem_upCards_suit (List.take_subset _ _ hFs)
-  -- the bridge: founded membership reads the index strictly below the
-  -- rung — against the at-rung pin
-  have hlt : c.rank.toIdx < rungAt st c.suit :=
-    conf_founded_rank_lt hwf (by rw [hs]; exact hFs)
-  obtain ⟨-, -, -, -, -, -, -, -, -, hcRung⟩ := hcert
-  rw [hcRung] at hlt
-  exact absurd hlt (Nat.lt_irrefl _)
 
 /-- The bare removal: over an empty hidden deck the emptied run leaves
 the fully-empty pile (the per-file private copy). -/
@@ -2008,21 +1992,6 @@ private theorem conf_bareRaise_irr {s : State} {c : Card} {a : Anchor}
     rw [← hK0c] at hK0
     exact absurd hK0 hK
 
-/-- **THE PILLAR RESOURCE** — the bare-raise bar read at charlie's cell:
-the founding leg of a non-king from a sole-face-up, empty-hidden seat
-can never ride a witness shuffle. -/
-private theorem conf_bareRaise_barred {s s' : State} {m : Move} {c : Card}
-    {a : Anchor}
-    (hwfs : s.WF) (hrev : reversibleAtW s m) (hm : m = Move.tabToFound c)
-    (hstep : State.step s m = some s')
-    (hpo : s.pileOfTop c = some a)
-    (hshape : (s.piles a).faceUp = [c])
-    (hhid : (s.piles a).hidden = [])
-    (hK : c.rank ≠ Rank.king) :
-    False := by
-  rw [hm] at hstep hrev
-  exact absurd hrev (conf_bareRaise_irr hwfs hshape hhid hK)
-
 /-- **THE BARE-DEPARTURE BAR** — a non-king heading its whole run out
 of a pile with no face-up content below and no hidden deck leaves the
 pile FULLY EMPTY, and no play can ever restore a NON-KING bottom
@@ -2318,7 +2287,7 @@ private theorem conf_carry_tabToFound {s s' : State} {γ e : Card}
       rw [hfront] at hFa
       rcases List.mem_append.mp hFa with hbl | hlastm
       · refine Or.inr ⟨k, ?_⟩
-        rw [hpileEq k, if_pos rfl]
+        rw [hpileEq k, ite_eq_left rfl]
         rw [show chop ((s.piles k).faceUp) = front from by
             rw [hfront]
             exact chop_snoc]
@@ -2333,7 +2302,7 @@ private theorem conf_carry_tabToFound {s s' : State} {γ e : Card}
         simp only [State.setFound, if_pos]
         exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
     · refine Or.inr ⟨a, ?_⟩
-      rw [hpileEq a, if_neg hak]
+      rw [hpileEq a, ite_eq_right hak]
       exact hFa
 
 /-- LAYER 1, arm 5/6 — the foundToTab leg's carry (the pull): a
@@ -2342,7 +2311,6 @@ founded γ in the pulled suit rides the front (`lastOf_eq_snoc` +
 (γ = w exits face-up through the landing profiles); face-up side by
 the putCard profiles. -/
 private theorem conf_carry_foundToTab {s s' : State} {γ w : Card} {b : Base}
-    (hwf : s.WF)
     (hstep : State.step s (Move.foundToTab w b) = some s')
     (hc : γ ∈ s.found γ.suit ∨ ∃ a, γ ∈ (s.piles a).faceUp) :
     γ ∈ s'.found γ.suit ∨ ∃ a, γ ∈ (s'.piles a).faceUp := by
@@ -2429,7 +2397,7 @@ private theorem conf_carry_foundToTab {s s' : State} {γ w : Card} {b : Base}
         rw [hp]
         by_cases hak : a = k
         · rw [hak] at hFa
-          rw [hak, if_pos rfl]
+          rw [hak, ite_eq_left rfl]
           show γ ∈ (s.piles k).faceUp ++ [w]
           exact List.mem_append.mpr (Or.inl hFa)
         · rw [ite_eq_right hak, hmid]
@@ -2460,7 +2428,7 @@ private theorem conf_foundedCarry {st : State} {γ : Card} :
           exact ih hwf₁ (conf_carry_wasteTab hstep hrev)      | tabToFound w' =>
           exact ih hwf₁ (conf_carry_tabToFound hwf hstep hc)
       | foundToTab w' b =>
-          exact ih hwf₁ (conf_carry_foundToTab hwf hstep hc)
+          exact ih hwf₁ (conf_carry_foundToTab hstep hc)
       | tabToTab w' b =>
           exact ih hwf₁ (conf_carry_tabToTab hwf hstep hc)
 
@@ -2526,25 +2494,6 @@ private theorem conf_take_sub : ∀ {α : Type} (n : Nat) (l : List α)
           rcases List.mem_cons.1 hmem with rfl | hrest
           · exact List.mem_cons.2 (Or.inl rfl)
           · exact List.mem_cons.2 (Or.inr (ih t x hrest))
-
-/-- **THE FOUNDED-BRIDGE (converse)** — a suit rung strictly above a
-card's rank index has already founded it (the probe's kit row). -/
-private theorem conf_founded_of_rung {st : State} (hwf : st.WF)
-    {c : Card}
-    (hlt : c.rank.toIdx < rungAt st c.suit) : c ∈ st.found c.suit := by
-  have hpre := rung_found_prefix st hwf c.suit
-  have h13 : c.suit.upCards.length = 13 := Suit.upCards_length c.suit
-  have hget : c.suit.upCards.get ⟨c.rank.toIdx, by
-      rw [h13]; exact Rank.toIdx_lt c.rank⟩ = c :=
-    conf_upCards_get c (by rw [h13]; exact Rank.toIdx_lt c.rank)
-  have hmem0 : c.suit.upCards.get ⟨c.rank.toIdx, by
-      rw [h13]; exact Rank.toIdx_lt c.rank⟩ ∈
-      c.suit.upCards.take (rungAt st c.suit) :=
-    conf_get_in_take _ _ _ (show c.rank.toIdx < c.suit.upCards.length by
-      rw [h13]; exact Rank.toIdx_lt c.rank) hlt
-  rw [hget] at hmem0
-  have hmem : c ∈ c.suit.upCards.take (rungAt st c.suit) := hmem0
-  rwa [← hpre] at hmem
 
 /-- **THE DEAL NEVER INVENTS (the shrink lanes)** — each deal lane's
 residents came from the stock: the dealt lane and the remnant lane
@@ -2846,7 +2795,7 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
     have hms' : x.twin = m' := hm'.symm
     subst hms'
     have hmFound : x ∈ u.found x.suit :=
-      conf_founded_of_rung hwfu (by omega)
+      FoundKit.mem_found_of_rung hwfu (by omega)
     rcases conf_orphan_roam hwf hjourney hdnk ⟨A, bsA, x.twin, hshape, hfit⟩ with
       ⟨a₂, L, b, R, hpkg, hbfit⟩ | haway
     · obtain ⟨hbr, hbc⟩ := (canSitOn_eq d b).mp hbfit
@@ -2875,18 +2824,18 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
           injection hEq with h1 _
         have hdF2 : d ∈ u.found d.suit := hsuit ▸ hdFu
         have hRungUp : d.rank.toIdx < rungAt u d.suit :=
-          conf_founded_rank_lt hwfu hdF2
+          FoundKit.mem_found_rank_lt hwfu hdF2
         have hx13 := Rank.toIdx_lt x.rank
         have heidx : x.rank.toIdx - 2 < 13 := by omega
         obtain ⟨rk, hrk⟩ := conf_rank_of_idx heidx
         have hefound : rk.toIdx + 2 = x.rank.toIdx := by omega
         have heF : Card.mk d.suit rk ∈ u.found d.suit := by
-          refine conf_founded_of_rung hwfu ?_
+          refine FoundKit.mem_found_of_rung hwfu ?_
           show rk.toIdx < rungAt u d.suit
           omega
         have heN : Card.mk d.suit rk ∉ st.found d.suit := by
           intro hcon
-          have hlt := conf_founded_rank_lt hwf hcon
+          have hlt := FoundKit.mem_found_rank_lt hwf hcon
           have hlt2 : rk.toIdx < rungAt st d.suit :=
             show rk.toIdx < rungAt st d.suit from hlt
           omega
@@ -2923,7 +2872,7 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
     have htwinr : x.twin.rank.toIdx = x.rank.toIdx :=
       congrArg Rank.toIdx (Card.twin_rank x)
     have hmFound : x.twin ∈ u.found x.twin.suit :=
-      conf_founded_of_rung hwfu (by omega)
+      FoundKit.mem_found_of_rung hwfu (by omega)
     rcases conf_orphan_roam hwf hjourney hdnk ⟨A, bsA, x.twin, hshape, hfit⟩ with
       ⟨a₂, L, b, R, hpkg, hbfit⟩ | haway
     · obtain ⟨hbr, hbc⟩ := (canSitOn_eq d b).mp hbfit
@@ -2952,18 +2901,18 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
           injection hEq with h1 _
         have hdF2 : d ∈ u.found d.suit := hsuit ▸ hdFu
         have hRungUp : d.rank.toIdx < rungAt u d.suit :=
-          conf_founded_rank_lt hwfu hdF2
+          FoundKit.mem_found_rank_lt hwfu hdF2
         have hx13 := Rank.toIdx_lt x.rank
         have heidx : x.rank.toIdx - 2 < 13 := by omega
         obtain ⟨rk, hrk⟩ := conf_rank_of_idx heidx
         have hefound : rk.toIdx + 2 = x.rank.toIdx := by omega
         have heF : Card.mk d.suit rk ∈ u.found d.suit := by
-          refine conf_founded_of_rung hwfu ?_
+          refine FoundKit.mem_found_of_rung hwfu ?_
           show rk.toIdx < rungAt u d.suit
           omega
         have heN : Card.mk d.suit rk ∉ st.found d.suit := by
           intro hcon
-          have hlt := conf_founded_rank_lt hwf hcon
+          have hlt := FoundKit.mem_found_rank_lt hwf hcon
           have hlt2 : rk.toIdx < rungAt st d.suit :=
             show rk.toIdx < rungAt st d.suit from hlt
           omega
@@ -3171,17 +3120,15 @@ theorem forkState_sameFamily_rankCeiling {st st' : State} (hwf : st.WF)
     · exact absurd ⟨by omega, by omega⟩
         (forkState_one_founding hwf h hjourney x hx)
 
-/-- **THE SAME-NEXT-UP READ** — with the rank index pinned (the
-ceiling row's equality case), a same-family witness at a class member
-IS a pair member, up to the twin flip: suit and rank-index together
-name the card (`conf_card_of_suit_toIdx`).  Together with
-`forkState_sameFamily_rankCeiling` this is the forkConsumer
-corollary: any forkState in the class witnessing the same suit pair
-and family pins the same next-ups. -/
-theorem forkState_sameFamily_samePair {st st' : State} (hwf : st.WF)
-    (h : forkState st) (hjourney : sameOrbitSetoid.r st st')
-    (x : Card) (hx : ForkWitness st x)
-    {y : Card} (hy : ForkWitness st' y)
+/-- **THE SAME-NEXT-UP READ (the strengthened card-naming row)** — a
+same-family card of the pinned rank IS a pair member, up to the twin
+flip: the suit family and the rank index together name the card
+(`conf_card_of_suit_toIdx`).  The fork/journey premise pack of the
+original statement retired with the hypothesis cleanup — the row
+rides the suit disjunction and the rank pin alone, and the
+forkConsumer corollary reads it at the fork context (with
+`forkState_sameFamily_rankCeiling` supplying the pin upstream). -/
+theorem forkState_sameFamily_samePair {x y : Card}
     (hys : y.suit = x.suit ∨ y.suit = x.twin.suit)
     (hrank : y.rank.toIdx = x.rank.toIdx) :
     y = x ∨ y = x.twin := by
@@ -3215,7 +3162,7 @@ theorem crossing_door_read {st u u' : State} (hwf : st.WF)
       (∃ a, u.pileOfTop x = some a) ∧ u.nextUp x = true := by
   have hwfu : u.WF := conf_shuffle_wf hpre hwf
   have hindb : x.twin ∈ u.found x.twin.suit := by
-    refine conf_mem_found_of_rung hwfu ?_
+    refine FoundKit.mem_found_of_rung hwfu ?_
     rwa [Card.twin_rank] at helev
   obtain ⟨hnext, a, hpo, -⟩ := step_tabToFound_inv hstep
   exact ⟨hindb, ⟨a, hpo⟩, hnext⟩
@@ -3231,3 +3178,4 @@ theorem crossing_door_read {st u u' : State} (hwf : st.WF)
 #print axioms pair_lowFamily_founded
 #print axioms pair_cover_lattice
 #print axioms pair_cover_pins
+#print axioms FoundKit.mem_found_iff_height

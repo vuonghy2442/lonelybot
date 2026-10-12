@@ -165,77 +165,6 @@ private theorem lockRk_toIdx : ∀ (k : Nat), k < 13 → (lockRk k).toIdx = k :=
   | 12 => rfl
   | w + 13 => exact absurd hk (by omega)
 
-/-- The build position of a card in a list (the copy of the banked
-private `posOf` of `Orig/Dominance.lean` / `Orig/CrossFamily.lean`). -/
-private def lock_posOf (x : Card) : List Card → Nat
-  | [] => 0
-  | y :: t => if y = x then 0 else lock_posOf x t + 1
-
-private theorem lock_posOf_take_lt (x : Card) : ∀ (n : Nat) (l : List Card),
-    x ∈ l.take n → lock_posOf x l < n := by
-  intro n
-  induction n with
-  | zero =>
-      intro l hmem
-      rw [show (List.take 0 l : List Card) = [] from rfl] at hmem
-      exact absurd hmem (by simp)
-  | succ m ih =>
-      intro l hmem
-      cases l with
-      | nil =>
-          rw [show (List.take (m + 1) ([] : List Card)) = ([] : List Card) from rfl] at hmem
-          exact absurd hmem (by simp)
-      | cons a t =>
-          have hmem' : x ∈ a :: t.take m := hmem
-          rcases List.mem_cons.mp hmem' with heq | htl
-          · rw [heq]
-            have hp : lock_posOf a (a :: t) = 0 := by
-              show (if a = a then 0 else lock_posOf a t + 1) = 0
-              rw [ite_eq_left rfl]
-            rw [hp]
-            omega
-          · have hpos := ih t htl
-            by_cases hax : a = x
-            · rw [hax]
-              have hp : lock_posOf x (x :: t) = 0 := by
-                show (if x = x then 0 else lock_posOf x t + 1) = 0
-                rw [ite_eq_left rfl]
-              rw [hp]
-              omega
-            · have hp : lock_posOf x (a :: t) = if a = x then 0 else lock_posOf x t + 1 :=
-                rfl
-              rw [hp, ite_eq_right hax]
-              omega
-
-/-- The build order is the rank order (the copy of the banked private
-`posOf_upCards`). -/
-private theorem lock_posOf_upCards (s : Suit) (r : Rank) :
-    lock_posOf (Card.mk s r) (Suit.upCards s) = r.toIdx := by
-  cases s <;> cases r <;> rfl
-
-/-- **THE FOUNDED-MEMBERSHIP BRIDGE, converse half** — a card on its
-own suit's foundation sits strictly below the rung: the founded
-prefix is the build order's take, so the card's build position (its
-rank index) is bounded by the take length, and the build position IS
-the rank index (the per-file copy of
-`Orig/CrossFamily.lean`'s private `xfam_mem_found_rank_lt`, rebuilt
-off the local kernel position kit). -/
-private theorem lock_found_rank_lt {st : State} (hwf : st.WF) {c : Card}
-    (hmem : c ∈ st.found c.suit) : c.rank.toIdx < rungAt st c.suit := by
-  rcases c with ⟨s, r⟩
-  obtain ⟨n, hn⟩ := hwf.found_prefix s
-  have hmem' : Card.mk s r ∈ (Suit.upCards s).take n := by
-    rw [← hn]
-    exact hmem
-  have hpos := lock_posOf_take_lt (Card.mk s r) n (Suit.upCards s) hmem'
-  rw [lock_posOf_upCards s r] at hpos
-  have hr13 : r.toIdx < 13 := Rank.toIdx_lt r
-  have hlen : (st.found s).length = min n (Suit.upCards s).length := by
-    rw [hn, List.length_take]
-  show r.toIdx < (st.found s).length
-  rw [hlen, Suit.upCards_length]
-  omega
-
 
 /-- **THE PILED-RUNG ROW** — a face-up card's suit rung sits weakly
 below its rank index: a taller rung would have founded it, and
@@ -1637,7 +1566,7 @@ private theorem pollutesCrash_terminalHot_Below {st₁ sth : State}
     mem_found_of_height hwf₁ horg
   have hnotfound : t ∉ sth.found t.suit := by
     intro hmem
-    have hlt := lock_found_rank_lt hwf₂ hmem
+    have hlt := FoundKit.mem_found_rank_lt hwf₂ hmem
     have heq : t.rank.toIdx = rungAt sth t.suit :=
       of_decide_eq_true hhot
     omega
@@ -1712,7 +1641,7 @@ private theorem origin_foundedCover_rungSqueeze {st₁ st₂ : State}
       rungAt st₂ d.suit + 2 ≤ d.rank.toIdx + 1 ∧
       raisesOf play d.suit + 2 ≤ pullsOf play d.suit := by
   have hr1 : d.rank.toIdx < rungAt st₁ d.suit :=
-    lock_found_rank_lt hwf₁ hdfound
+    FoundKit.mem_found_rank_lt hwf₁ hdfound
   have hrP := lock_piled_rung hwf₂ hmem
   have hfh : st₂.foundHeight d.suit = rungAt st₂ d.suit := rfl
   have hne : d.rank.toIdx ≠ rungAt st₂ d.suit := by
@@ -1779,7 +1708,7 @@ private theorem origin_foundedCover_belowPull {st₁ st₂ : State}
       omega)
   have hnotfound : w ∉ st₂.found w.suit := by
     intro hmem
-    have hlt := lock_found_rank_lt hwf₂ hmem
+    have hlt := FoundKit.mem_found_rank_lt hwf₂ hmem
     rw [hws, hwr] at hlt
     omega
   -- the exodus: the below-cover card's own pull, mid-journey
@@ -2239,7 +2168,7 @@ theorem forkState_family_pairClass (st₁ st₂ : State) (hwf₁ : st₁.WF) (hw
       rw [Suit.twin_twin] at htwin
       rw [show y.twin.suit = y.suit.twin from Card.twin_suit y]
       exact htwin.symm
-  refine ⟨by omega, forkState_sameFamily_samePair hwf₁ ((forkState_iff).mpr ⟨x, hx⟩) hcls x hx hy hfam (by omega)⟩
+  refine ⟨by omega, forkState_sameFamily_samePair hfam (by omega)⟩
 
 /-! ### The audit battery
 
