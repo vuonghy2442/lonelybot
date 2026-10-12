@@ -815,8 +815,13 @@ anything; the §5b falsifier pair satisfies SWComp) and `SWRotW` (the
 draws-only rotation closure — the positive tail candidate).  The row's
 residue: the same G1 pair transport / G3 residue normalization /
 bracket-induction content as the locked form — plus the tail
-normalization (the class journey's draw legs commute to the end, the
-residue being the Phase chapter's draws-only closure). -/
+normalization, NOW A ONE-LINE CITE of the factorization biconditional
+(`Orig.OrbitFactorC.sameOrbit_factor_full`: st's class journey splits
+into `NoDrawPLAY st z` + `SWRotW z w` — the draw component is
+definitionally inert to `ForkSpectrum`'s letters (they read only
+founds and piles, which every draw leg preserves per the
+disjoint-field commutation squares); the board-component content is
+then the locked form's bracket induction over z). -/
 theorem forkSpectrum_complete_mod_phase (st : State) (hwf : st.WF)
     (hfs : forkState st) (w : State)
     (hcls : sameOrbitSetoid.r st w) (hwfs : forkState w)
