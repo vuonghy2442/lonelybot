@@ -4,9 +4,6 @@ import Orig.Play
 import Orig.Fate
 import Orig.Integrity
 import Orig.FoundKit
-import Orig.Combine
-import Orig.Reach
-import Orig.ZoneAgree
 import Orig.Twin
 import Orig.TwinExchange
 import Orig.TwinExchangeQuotient
@@ -29,6 +26,7 @@ import Orig.Vacate
 import Orig.Progress
 import Orig.Dominance
 import Orig.Decompress
+import Orig.ZoneAgree
 
 /-!
 # Orig — the original game

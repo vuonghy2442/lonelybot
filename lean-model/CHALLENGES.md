@@ -63,6 +63,23 @@ false — never retry).
 
 ## [M] Mechanical cleanup tasks
 
+- **THE ROOT-LEVEL CanRaiseS TRIPLE-DECLARATION** (found 2026-10-13,
+  the sweep's fourth hidden duplicate family — an INDUCTIVE one):
+  `inductive CanRaiseS` is declared in THREE modules —
+  `Orig/ForkStateSB.lean:92`, `Orig/CanV3.lean:515` (landing-4's
+  selector grade), `Orig/MacroInternal.lean:1162` (the census grade,
+  per its own docstring "two predicates, no contradiction").  The
+  all-imports ROOT build (`lake build Orig`) fails on this at either
+  import order (`environment already contains 'CanRaiseS.below'`),
+  which is why the house convention wires the root WITHOUT the
+  census tier — per-file and per-cone builds are unaffected (each
+  olean carries at most one declaration).  THE FIX belongs to the
+  owner chapters: either namespace the three grades
+  (`CanRaiseSB/CanRaiseSV3/CanRaiseSCensus`-style) with bridges, or
+  confirm the root's deliberate exclusion permanently (drop the
+  census-tier imports from `Orig.lean` — restoring the documented
+  "MacroInternal deliberately NOT wired into `lake build Orig`"
+  intent, which landing-4's `import Orig.CanV3` line violated).
 - **The take-position kit, fourth copy** — `pcz_*` in
   `Orig/PairClassZones.lean` (posOf/get-in-take/upCards rows, landed
   per the dedup discipline at 25852a8); PairClassZones can cite
