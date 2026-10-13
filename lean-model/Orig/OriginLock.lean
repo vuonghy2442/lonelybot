@@ -1859,6 +1859,46 @@ theorem fork_nextUpExile_crash {st₁ st₂ : State} (hwf₁ : st₁.WF)
 
 end ForkKit
 
+/-- **THE EXODUS-SEATING CENSUS** — the interval form of the orphan-seat
+law, the campaign's Phase C consolidation: along a witness shuffle, ANY
+suit whose foundation rung DROPS exiles its whole upper interval —
+every σ-card with rank index in `[rungAt st₂ σ, rungAt st₁ σ)` was
+founded at the journey's start (the height bridge's forward half) and
+is unfounded at its end (the converse half, against the dropped
+rung), so the orphan-seat law seats each one FACE-UP at the end
+state, on a fitting below-neighbor.  THE PIGEONHOLE SHARPENING IS
+BUILT INTO THE FIT: the below-neighbor of a rank-`i` exile is pinned
+at rank `i + 1` (the run fit), so a width-`w` interval forces `w`
+DISTINCT opposite-color face-up CELLS at the end state — against a
+saturated lattice (a fork's family census holds every such cell
+founded) the cell-count is the whole kill, with no per-card chase
+anywhere.  `ForkKit.fork_nextUpExile_crash` above is the law's first
+consumer by spirit (the boundary cell of a width-≥2 interval against
+a saturated fork); future dragged-card endgames cite the census
+directly.  The statement lives here rather than in
+`Orig/OrphanSeat.lean` because the height bridge (`FoundKit`, in
+`Orig/PairConfine.lean`) sits above the orphan chapter in the import
+DAG. -/
+theorem exodus_seating_census {st₁ st₂ : State} (hwf₁ : st₁.WF)
+    {τ : List Move} (hτ : ShufflePlayW st₁ τ st₂)
+    (σ : Suit) :
+    ∀ r : Rank, rungAt st₂ σ ≤ r.toIdx → r.toIdx < rungAt st₁ σ →
+      r ≠ Rank.king →
+      ∃ (a : Anchor) (b : Card),
+        (Card.mk σ r) ∈ (st₂.piles a).faceUp ∧
+          b ∈ (st₂.piles a).faceUp ∧
+            canSitOn (Card.mk σ r) b = true := by
+  intro r hlo hhi hnk
+  have hwf₂ : st₂.WF := lock_shuffle_wf st₁ hτ hwf₁
+  have hmem : (Card.mk σ r) ∈ st₁.found σ :=
+    FoundKit.mem_found_of_rung hwf₁ hhi
+  have hout : (Card.mk σ r) ∉ st₂.found σ := by
+    intro hc
+    have hlt := FoundKit.mem_found_rank_lt hwf₂ hc
+    have hlt' : r.toIdx < rungAt st₂ σ := hlt
+    omega
+  exact cross_orphan_seat hwf₁ hτ hnk hmem hout
+
 set_option linter.unusedVariables false in
 /-- **THE FOUNDED-COVER POLLUTION CRASH** — §3.5's terminal row, LANDED
 ZERO-SORRY as THE ORIGIN-ANCHORED CENSUS CRASH (the nil census's landed
@@ -2182,6 +2222,7 @@ mover's head `obtain` likewise). -/
 #print axioms origin_foundedCover_belowPull
 #print axioms origin_foundedCover_pollutesCrash
 #print axioms ForkKit.fork_nextUpExile_crash
+#print axioms exodus_seating_census
 #print axioms forkState_rankDrop_locked
 #print axioms forkState_family_rankFloor
 #print axioms forkState_family_pairClass

@@ -1,0 +1,110 @@
+# CHALLENGES — the consolidated open ledger (2026-10-13)
+
+The *challenge file* to THEOREM-INDEX.md's *proof library*: every open
+row with its statement shape, its banked route, and its price. For
+the strategic mission cards (campaign narratives, gating doctrine)
+read FUTURES-ORIG; this is the tactical per-row layer an agent
+consults before hunting. Tiers: **[H]** research-grade (needs new
+mathematics), **[M]** mechanical (cleanup/refactor), **HOT** in-flight
+(do not touch while a session owns the file), **REFUTED** (proven
+false — never retry).
+
+## [H] The named residues, with routes
+
+- **`decompose_residue_nesting`** ← `reversible_equaltuple_decompose`
+  (`Orig/BracketDecomp.lean:1175`) — the N-nesting raise induction:
+  two orbit-mates with equal rung tuples decompose into bracket
+  pieces. Proved frontiers to build on: `raise_free_closure`
+  (zero raises), `one_bracket_closure` / `witness_one_bracket`
+  (at most one raise), `BracketW_cargo_to_closure`,
+  `flatPath_of_cargoPath`, `bracketClosure_of_cargoPath`. The last
+  `sorryAx` anywhere beneath the capstone chain.
+- **`canonFace_sameShape`** (`Orig/MacroInternal.lean`, sorry-carrying
+  tier) — the honest form of "agreements ⟹ forks": same-class +
+  same *shape* ⟺ identical-or-slide-mate. Why the naive biconditional
+  is unsound (two constructible reasons, per 25852a8): reflexivity —
+  every state agrees with itself, forkless included; and reversible
+  in-tableau slides can expose a third pair's buried next-up without
+  disturbing any zone or rung. The fork-grade zone rows
+  (`forkState_class_zoneSets` family) carry this as the named
+  `hthird` premise — landing this row vacates the premise.
+- **Dominance's worry chip** — `stackPile_worry_spread_residue`
+  (`Orig/Dominance.lean:9831`) → `stackPile_worry_prunableAt` (the
+  capstone assembly). Context is PROVED: `stackPile_worry_sequence`
+  itself audits `[propext, Quot.sound]`; only the spread is open.
+  Also base-chain: `ground_lifted_win` (the one admitted sorry in
+  the base chain, :3919) and `draw1_worry_spread_residue` (:8838).
+- **LowSlab's six `[H]` replay witnesses** (`Orig/LowSlab.lean`):
+  the top-carry transport (:547), three same-shaped per-kind
+  member-replay rows — given an elevated commit, exhibit a slab
+  member `u₀` whose one-step `v₀` is class-mate to the landing
+  (:715, :786, :1159), the `WasteGuard` member transport (:847),
+  and `lowslab_waste_targetclass` (:885, the dashed-witness
+  transport). Architecture around them is LANDED: routers shrunk to
+  proved dispatchers, the elevation dispatcher proved,
+  `lowslab_pull_wf_undo` promoted.
+- **ForkFloor/ForkAscent frontier** — `founded_late_seat_exists`
+  [H] (the seat-delay residue behind the private
+  `p_founded_seat_schedule`) plus the per-kind [M] rows;
+  `ascent_exhaustion_forks` [H] in ForkAscent
+  (`orientation_assembly_fork` carries the bare-cover corner).
+  Four kind-census rows are PROVED and index-ready the moment the
+  routed head lands: `hidden_never_grows`, `two_zone_exits_playable`,
+  `founded_returnable_via_seats`, `draws_permute_only`.
+- **ConeCrossarm's corridor gate** — the public headline
+  `cone_pulls_congr_crossarm` flows a private gate's `sorryAx`;
+  only the conditioned sibling
+  `cone_pulls_congr_crossarm_of_anchorRungs` is clean.
+- **Decompress**: `finalWiggle_reach`.
+- **MacroInternal's remaining sorry tiers**: `founded_implies_atRung`,
+  `fiber_iff_flat`, `finals_topFibers`, `conjugate_forkState`, the
+  `canonFace_*` tier (incl. `canonFace_sameShape` above), and the
+  `fork_iff_nonUnionable` tier.
+
+## [M] Mechanical cleanup tasks
+
+- **The take-position kit, fourth copy** — `pcz_*` in
+  `Orig/PairClassZones.lean` (posOf/get-in-take/upCards rows, landed
+  per the dedup discipline at 25852a8); PairClassZones can cite
+  `FoundKit` directly. SlabEquiv's private `sequ_*` twins remain
+  (import-cycle checked safe; priced skip-unless-annoyed).
+- **The ZoneAgree placement split** — census-tier rows
+  (`mates_cycleZone_pin`, `class_zoneAgree_iff`, `wf_foundRung_iff`,
+  all fork- and hthird-free) move to a stratum leaf beside
+  SlabEquiv (`Orig/ZoneAgree.lean`); the fork-grade zone family stays
+  in the pairClass chapters. Owner-endorsed at 25852a8; one clean
+  session.
+- **PairClass.lean's stale battery comment** — prose still narrates
+  inherited `sorryAx`; the capstone is fully proved (probe-verified
+  at 25852a8). Truespeak pass pending.
+- Deliberately-kept deprecated tactics (never "fix" blindly): the
+  `belowPull` compound `rw [hs, hp, if_pos rfl, hmidp]` in
+  OriginLock — the `ite_eq_left` rename DESYNCS the trailing step
+  (priced twice); same for the three other flagged sites.
+
+## HOT — in-flight, hands off while owned
+
+- LowSlab (six [H] above; session active through 08:28+08:40 local).
+- ForkFloor/ForkAscent (+498/−14 uncommitted as of 01:40Z).
+- HostCensus parked-clean (`interleave_leg_conjugation` closed at
+  dc09f87); reclaimable.
+
+## REFUTED — never retry
+
+- `forkState_unique_refuted` (`Orig/ForkStateUniqGate.lean:354`) —
+  the naive "one state has a unique fork witness" card-uniqueness:
+  false because the twin co-witnesses (both orientations satisfy the
+  S-package). The honest forms are `forkState_pairUnique` (unique
+  CELL, up to twin) and the bare-select equality
+  `forkPair_not_twoColors_state`/`_twoRanks_state`.
+- ForkSpectrumProof's two `_complete_*` rows — INTENTIONALLY sorry'd
+  refuted-residue records; the salvage is the statement-family
+  lesson (foundation-flat generator languages cannot reach
+  different-rung forkStates; add a raise letter).
+- HostCensus's predecessor mirror kit — superseded and FALSE in
+  wild generality (a miscounted wild foundation admits reversible
+  foundToTab legs whose one-move undo dies); the pullEscape-grade
+  precedent from dc09f87. The class-level route walks around it.
+- The naive "zonal agreements ⟹ fork" biconditional — unsound per
+  the two constructible reasons above; only `canonFace_sameShape`
+  is the honest form.

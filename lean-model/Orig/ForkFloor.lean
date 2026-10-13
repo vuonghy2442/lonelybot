@@ -33,6 +33,26 @@ byte-frozen):
   `sorry` each with their complete routes in their docstrings.  The
   head itself adds NO content and NO fresh `sorry`: its `sorryAx`
   flows only through its named children — audit below.
+  At this pass the HEAD-CASE REPAIR KIT of §5.0 is PROVED in-file
+  (`p_survives_sameHead`, the distance-zero repair for every kind;
+  `p_waste_eat_corridor`, the waste-eat's distance-one corridor
+  repair; the committed-raise shape row of §3), and the
+  disassembly goes further (§5.0b): the fork certificate is
+  ARRANGEMENT-ONLY (`p_fork_boardTransfer` over the license
+  congruences), so the draw kind's BOARD-ONLY exhibit is closed
+  verbatim (`p_draw_board_repair`) and the waste-seating kind's
+  founding-letter head is closed at distance one
+  (`p_waste_seat_mirror`, the corridor's twin); every one of the
+  five kind residues is now a DISPATCH over its exhibiting play's
+  head, and what each routes to its own NAMED REMAINDER row
+  (`p_draw_zone_rest`, `p_waste_found_rest`, `p_waste_seat_rest`,
+  `p_raise_rest`, `p_reveal_rest`) is exactly the general-schedule
+  repair time bound over the non-head plays — the probe program's
+  surviving honest danger (`Orig/ForkFloorProbe.lean`: the
+  multi-commit schedule, repairs beyond one leg); the crown
+  `p_founded_seat_schedule` likewise closes its immediate-seat
+  arm (`p_seatOffered`) and names its climb remainder
+  (`p_seat_climb_rest`).
 
 THE KIND-CENSUS SUB-ROWS (the per-kind availability rows the routes
 apply; each priced, honesty over closure):
@@ -67,7 +87,13 @@ apply; each priced, honesty over closure):
   `excursion_issues_noNewSeat`, all in `Orig/HostCensus.lean` —
   price WHICH seats an arrangement can still issue; the schedule's
   EXISTENCE across arbitrary commit DAGs is the residue's own
-  content, priced for round-3 probes).
+  content, priced for round-3 probes; at this pass the residue's
+  input shape is LANDED in-file — `p_committed_raise_shape`: the
+  committed founding empties the raised pile's chop and sits in
+  one of exactly the two census arms, REVEAL or BARE-NON-KING, the
+  under-seat and bare-king arms being barred by the commit premise
+  itself — so its open content is the per-kind repair-time schedule
+  for those two arms).
 * §4 **`draws_permute_only`** [E, PROVED zero-sorry] — a step-draw
   never writes piles or foundations (the banked `stepDraw_piles` /
   `stepDraw_found`, `Orig/Irreversible.lean`), and the recycle
@@ -236,6 +262,18 @@ private theorem p_draw_cycle_mem_iff {s s' : State}
           (Or.inr (List.mem_append.2 (Or.inl (p_mem_reverse_iff.mpr hm))))
       · exact List.mem_append.2 (Or.inl hm)
     · exact List.mem_append.2 (Or.inr (List.mem_append.2 (Or.inr hm)))
+
+/-- A legal play preserves well-formedness (the run-lift of
+`step_wf`, the per-file kit row the board transport below rides). -/
+private theorem p_run_wf : ∀ (st : State) (play : List Move) (w : State),
+    st.run play = some w → st.WF → w.WF := by
+  intro st play
+  induction play generalizing st with
+  | nil => intro w h hwf; injection h with hsw; subst hsw; exact hwf
+  | cons m rest ih =>
+      intro w h hwf
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h
+      exact ih s₁ w hrest (step_wf hwf hstep)
 
 /-! ## §1. The reveal-only-shrinks law (the one-step tree form) -/
 
@@ -495,6 +533,202 @@ theorem founded_returnable_via_seats {s s' : State} {c : Card}
       rw [putCard_inr_eq hz, setPile_piles_self]
       exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
 
+/-- **THE COMMITTED-RAISE SHAPE** (the seat-delay residue's
+dichotomy arm, landed): at a WF state a COMMITTED `.tabToFound c`
+has the raised pile's face-up chop EMPTY, and the emptied seat is one
+of exactly the two census arms — the REVEAL (a hidden head still to
+flip) or the BARE-NON-KING.  The under-seat arm is refuted by the
+commit premise itself (`tabToFound_undo_under`'s one-move mirror: the
+exposed below-card `z` re-hosts the card, the WF search exactness
+handing the mirror its seat), and the bare-KING arm by
+`tabToFound_undo_bare` (the emptied anchor re-hosts its king) — so
+what survives is exactly the pair of arms the census's §2 pin names.
+This is `founded_late_seat_exists`'s live content, shrunk to the two
+per-kind repair-time schedule arms. -/
+private theorem p_committed_raise_shape {s s' : State} {c : Card} {k : Anchor}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToFound c) = some s')
+    (hiv : irreversibleAt s (Move.tabToFound c))
+    (hpo : s.pileOfTop c = some k) :
+    chop (s.piles k).faceUp = [] ∧
+      ((s.piles k).hidden ≠ [] ∨ c.rank ≠ Rank.king) := by
+  -- the under-seat arm refutes against the commit premise
+  by_cases hchop : chop (s.piles k).faceUp = []
+  · refine ⟨hchop, ?_⟩
+    by_cases hhid : (s.piles k).hidden = []
+    · by_cases hking : c.rank = Rank.king
+      · exact absurd (tabToFound_undo_bare hstep hpo hchop hhid hking)
+          (not_reversibleAtW_of_irreversibleAt hiv)
+      · exact Or.inr hking
+    · exact Or.inl hhid
+  · exfalso
+    obtain ⟨z, hz, hsit⟩ :=
+      runOK_snoc_sit (l := chop (s.piles k).faceUp) hchop
+        (by rw [← lastOf_chop (pileOfTop_top hpo).2]; exact hwf.2.1 k)
+    obtain ⟨-, k', hpo', hs⟩ := step_tabToFound_inv hstep
+    have hk' : k' = k := Option.some.inj (hpo'.symm.trans hpo)
+    rw [hk'] at hs
+    have hwfs' : s'.WF := step_wf hwf hstep
+    have hpilk : s'.piles k
+        = Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp) := by
+      rw [hs]
+      show (if k = k then
+          Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp)
+        else s.piles k) = _
+      rw [ite_eq_left rfl]
+    have htopz : (s'.piles k).top = some z := by
+      rw [hpilk, afterRunRemoved_ne hchop]
+      show lastOf (chop (s.piles k).faceUp) = some z
+      exact hz
+    exact absurd (tabToFound_undo_under hstep hpo hz hsit
+        ((pileOfTop_eq_some_iff hwfs').2 htopz))
+      (not_reversibleAtW_of_irreversibleAt hiv)
+
+/-- **THE SEAT SCAN** — does some base accept the card right NOW?
+The decidable probe of fitting-seat existence (the seven anchors'
+empty-seat arms plus the fifty-two host arms of the card-wide
+placement guard), chosen as a `Bool` fold so the schedule's
+dispatch below stays choice-free per the house discipline. -/
+private def p_seatOffered (st : State) (c : Card) : Bool :=
+  Anchor.all.any (fun a => st.canPlace c (Sum.inl a)) ||
+    Card.universe.any (fun z => st.canPlace c (Sum.inr z))
+
+/-- The scan is exact: it reads true exactly when a fitting seat
+exists (the anchor arm by `Anchor.mem_all`, the host arm by
+`Card.mem_universe`). -/
+private theorem p_seatOffered_iff (st : State) (c : Card) :
+    p_seatOffered st c = true ↔ ∃ b, st.canPlace c b = true := by
+  constructor
+  · intro h
+    rw [p_seatOffered, Bool.or_eq_true] at h
+    rcases h with hl | hr
+    · obtain ⟨a, -, hval⟩ := List.any_eq_true.mp hl
+      exact ⟨Sum.inl a, hval⟩
+    · obtain ⟨z, -, hval⟩ := List.any_eq_true.mp hr
+      exact ⟨Sum.inr z, hval⟩
+  · intro ⟨b, hval⟩
+    cases b with
+    | inl a =>
+        rw [p_seatOffered, Bool.or_eq_true]
+        exact Or.inl (List.any_eq_true.mpr ⟨a, Anchor.mem_all a, hval⟩)
+    | inr z =>
+        rw [p_seatOffered, Bool.or_eq_true]
+        exact Or.inr (List.any_eq_true.mpr ⟨z, Card.mem_universe z, hval⟩)
+
+/-- **THE SEAT-DELAY CLIMB** [H, THE CROWN'S NAMED SUB-ROW, settled
+into isolation after honest effort, per the mission's discipline]:
+the late-seat existence schedule in the GUARD-REFUSED economy —
+every base at the founding successor refuses the founded card
+(the scan reads false), so the seat must be RE-ISSUED by a
+repair-time-bounded schedule of legal moves from the successor.
+
+ROUTE (complete; the open step named):
+
+ 1. THE TWO ARMS, PINNED (the input shape): a committed founding
+    at WF is one of exactly the two census arms
+    (`p_committed_raise_shape`): the REVEAL arm — the emptied
+    pile surfaces its hidden head, the hidden total strictly
+    drops (`hiddenTotal_step_tabToFound_reveal`) and never rides
+    back (§1's own law: the surfaced head never re-hides) — or the
+    BARE-NON-KING arm — the emptied seat is refilled only
+    king-headed (the pillar: an emptied pile's first arrival is
+    an empty-anchor vacate, and `canPlace`'s king demand bars
+    every other first card; `bare_lift_irreversibleAt` is the
+    commitment that witnessed this very shape), so the BARE arm's
+    founded card is NEVER a king (`harm`'s right disjunct at the
+    emptied hidden-nil seat; a bare-KING raise is reversible
+    anyway, `tabToFound_undo_bare`, barred by the commit
+    premise): the inl empty-anchor arm never re-opens for THAT
+    arm's climb.  In the REVEAL arm the founded card's rank is
+    unconditioned, and the inl arm stays live exactly for a king
+    — one more schedule shape the route prices with the rest.
+ 2. THE HOST-PAIR REDUCTION (the census's own):
+    `canSitOn c z` pins the host cell exactly — z must be one of
+    the TWO opposite-family cards at index c.rank.toIdx + 1 (the
+    twin pair one rank above c) — so the climb is a HOST-SURFACING
+    question: SOME reachable state has one of those two cards
+    TOPPING a pile.  The mint/burn ledger
+    (`seatLedger_pair`/`play_census_ledger`) telescopes the
+    sequence; `census_tabToFound_witness`
+    /`census_foundToTab_inr` name the only cells the board letters
+    mint; and the crane's loan-and-repay
+    (`excursion_issues_noNewSeat`) bars any host a RETURNED
+    excursion would introduce — the arrangement's own census is
+    the budget the climb spends.
+ 3. THE CLIMB ITSELF (the open step): within that budget the
+    schedule raises/seats/slides until a host pair-member tops
+    some pile — the EXPOSE-AND-SEAT heartbeat of the probes
+    (found the covered raise to surface its host; seat the cycle
+    card onto the surfaced host; the founded card's takeback
+    unfreezes) — with the stock-reply tables (Table 1's
+    `cycleCount_step`: never rising, strictly dropping at the
+    waste letters) keeping the cycle reads honest.  The
+    REPAIR-TIME BOUND — a measure strictly decreasing along the
+    climb — is the residual content, carried here and nowhere
+    else, exactly one `sorry`.
+
+PROBE PRICING (round-3, cited as evidence, not imported, per the
+mission): `fb1`'s economy is this remainder's OWN board at
+decided grade — the direct return seats refused both arms
+(`fb1S_sealRefused`: the seal real), ALL hosts of the taken card
+refused at every snapshot probed, and the multi-leg
+expose-and-seat repair minting the host — `5♥` surfaces hot,
+seats onto the surfaced `5♠`-host, hosts the seal — the
+`fb1`/`fb2`/`fb3` verdicts all repaired within reach, showing the
+climb's floor is one-to-two legs on these economies, but the
+universes of plays were not exhausted by hand (HUNTING-FLOOR
+HONESTY): the multi-leg bound is the surviving open content.
+`fb3X_notFork` is the honest-tail datapoint: the OPPOSING
+schedule (surfacing lows into corridor content) saturates
+nothing — live member with dead twin, decided — so the climb's
+danger is bounded on its probed cases. -/
+private theorem p_seat_climb_rest {s s' : State} {c : Card} {k : Anchor}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToFound c) = some s')
+    (hchop : chop (s.piles k).faceUp = [])
+    (harm : (s.piles k).hidden ≠ [] ∨ c.rank ≠ Rank.king)
+    (hpo : s.pileOfTop c = some k)
+    (hno : p_seatOffered s' c = false) :
+    ∃ (ρ : List Move) (t : State) (b : Base),
+      s'.run ρ = some t ∧ t.canPlace c b = true := by
+  sorry
+
+/-- **THE PER-KIND REPAIR-TIME SCHEDULE** — the NAMED SUB-RESIDUE of
+`founded_late_seat_exists` (the isolate-the-remainder discipline,
+applied after the honest stall): the seat-delay content, stated over
+the PROVED dichotomy shape alone.  For either of the two census arms
+of a committed founding at a WF state — the REVEAL arm (the emptied
+pile still holds a hidden head to surface) or the BARE-NON-KING arm
+(the emptied pile is fully bare at a non-king) — the founding
+successor issues a fitting seat after a repair-time-bounded schedule
+of legal moves.  The census heads (`excursion_issues_noNewSeat` and
+the ledger family) price WHICH seats the arrangement can still issue;
+this row is the schedule's EXISTENCE across the commit DAG — the
+composition content, carried here and nowhere else.
+
+ASSEMBLY STRUCTURE (this pass): the IMMEDIATE-SEAT arm is now
+CLOSED (`p_seatOffered` + `p_seatOffered_iff`: when any base
+accepts the card at the successor, the schedule is the EMPTY
+play); the guard-refused economy falls to the named sub-row
+`p_seat_climb_rest` (the expose-and-seat climb, the route above),
+which carries the row's sole `sorry`. -/
+private theorem p_founded_seat_schedule {s s' : State} {c : Card} {k : Anchor}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToFound c) = some s')
+    (hchop : chop (s.piles k).faceUp = [])
+    (harm : (s.piles k).hidden ≠ [] ∨ c.rank ≠ Rank.king)
+    (hpo : s.pileOfTop c = some k) :
+    ∃ (ρ : List Move) (t : State) (b : Base),
+      s'.run ρ = some t ∧ t.canPlace c b = true := by
+  by_cases ho : p_seatOffered s' c = true
+  · obtain ⟨β, hb⟩ := (p_seatOffered_iff s' c).mp ho
+    exact ⟨[], s', β, rfl, hb⟩
+  · have hfalse : p_seatOffered s' c = false := by
+      cases h : p_seatOffered s' c with
+      | true => exact absurd h ho
+      | false => rfl
+    exact p_seat_climb_rest hwf hstep hchop harm hpo hfalse
+
 /-- **`founded_late_seat_exists`** — **THE SEAT-DELAY RESIDUE** [H,
 named residue, exactly one `sorry`]: the general seat-delay
 argument of the mission's third row — late-seat existence across
@@ -507,41 +741,61 @@ successor issues a fitting seat for the founded card — the row
 
 ROUTE (complete; the open step named):
 
-1. THE LOCAL AVAILABILITY (banked, §§1–2): every card the takeback
-   consults stays in a playable zone along the DAG's letters — the
-   hidden decks only shrink (§1), the draw zone permutes (§4), the
-   waste exits land playable (§2).
-2. THE CENSUS PRICING (proved heads only, `Orig/HostCensus.lean`):
-   `census_tabToFound_witness` prices the riding raise's exposed
-   below-card (opposite family, index + 1, unfounded); the
-   mint/burn ledger (`seatLedger_pair`, `play_census_ledger`,
-   `roundtrip_census_repay`) telescopes any play's seat budgets;
-   the owner's bet `excursion_issues_noNewSeat` bars NEW hosting
-   capacity along returned excursions.  These price WHICH seats
-   the arrangement can still issue — the residue deliberately
-   does NOT copy them.
-3. THE SCHEDULE [THE OPEN STEP]: composing 1–2 across the commit
-   DAG — the letters' census budgets at the reachable states can
-   only be spent down along irreversible letters, so a fitting
-   seat either is issued directly by play, or the entombment
-   certificate (no seat anywhere below) is itself the
-   falsification witness.  THIS composition is the open content,
-   not any census row.
+ 1. THE LOCAL AVAILABILITY (banked, §§1–2): every card the takeback
+    consults stays in a playable zone along the DAG's letters — the
+    hidden decks only shrink (§1), the draw zone permutes (§4), the
+    waste exits land playable (§2).
+ 2. THE CENSUS PRICING (proved heads only, `Orig/HostCensus.lean`):
+    `census_tabToFound_witness` prices the riding raise's exposed
+    below-card (opposite family, index + 1, unfounded); the
+    mint/burn ledger (`seatLedger_pair`, `play_census_ledger`,
+    `roundtrip_census_repay`) telescopes any play's seat budgets;
+    the owner's bet `excursion_issues_noNewSeat` bars NEW hosting
+    capacity along returned excursions.  These price WHICH seats
+    the arrangement can still issue — the residue deliberately
+    does NOT copy them; what the census does NOT price is the
+    schedule's EXISTENCE across the commit DAG, and that is where
+    the row's own content lives (carried by the named sub-residue
+    `p_founded_seat_schedule` below, per the isolate-the-remainder
+    discipline).
+ 3. THE SCHEDULE, ISOLATED AS THE NAMED SUB-RESIDUE — per the
+    settle-if-stalled discipline: the public row is now a pure
+    ASSEMBLY of the PROVED dichotomy (`p_committed_raise_shape`:
+    the raised pile's chop is EMPTY; the emptied seat is one of
+    exactly two arms — the REVEAL arm, a hidden head surfacing at
+    the successor, or the BARE-NON-KING arm; the under-seat and
+    bare-king arms are refuted by `hivr` itself through the
+    one-move mirrors `tabToFound_undo_under` / `tabToFound_undo_bare`)
+    and `p_founded_seat_schedule`, itself an assembly — the
+    IMMEDIATE-SEAT arm closed at the EMPTY play (the seat scan
+    `p_seatOffered`, exact through `p_seatOffered_iff`), with the
+    guard-refused economy in the NAMED carrier
+    `p_seat_climb_rest`: the per-kind repair-time bound for those
+    two arms — the schedule that re-issues a fitting seat from
+    the founding successor (the reveal arm's surface-and-climb
+    reads; the bare-non-king arm's climb), or the entombment
+    certificate (no seat anywhere below) as the falsification
+    witness.  THIS composition is the open content, not any
+    census row.
 
 PROBE PRICING (round-3; boards NOT added here, per the mission):
-the falsification target is exactly this row's negation — see the
-§5 main row's FALSIFICATION TARGET paragraph (single-family-fragile
-economies, the sole pair member eaten, the takeback seat
-permanently seat-less).  If that shape is real, THIS row is the
-honest casualty and the main row's repair disjunct documents it
-alongside. -/
+the falsification target is exactly the sub-residue's negation —
+see the §5 main row's FALSIFICATION TARGET paragraph
+(single-family-fragile economies, the sole pair member eaten, the
+takeback seat permanently seat-less).  If that shape is real, THE
+SUB-RESIDUE is the honest casualty and the main row's repair
+disjunct documents it alongside. -/
 theorem founded_late_seat_exists {s s' : State} {c : Card}
     (hwf : s.WF)
     (hstep : State.step s (Move.tabToFound c) = some s')
     (hivr : irreversibleAt s (Move.tabToFound c)) :
     ∃ (ρ : List Move) (t : State) (b : Base),
       s'.run ρ = some t ∧ t.canPlace c b = true := by
-  sorry
+  -- the raised pile, located by the step's own record
+  obtain ⟨-, k, hpo, -⟩ := step_tabToFound_inv hstep
+  -- the committed founding's shape: dichotomy (proved) + the named schedule
+  obtain ⟨hchop, harm⟩ := p_committed_raise_shape hwf hstep hivr hpo
+  exact p_founded_seat_schedule hwf hstep hchop harm hpo
 
 /-! ## §4. The draw permutation -/
 
@@ -576,6 +830,588 @@ reversibles; the raise and reveal letters carry the
 residue applies the kind sub-rows (§§1–4) and concludes the
 defusing-schedule repair; the fifth constructor is vacuous at WF. -/
 
+/-! ### §5.0. The head-case repair kit (proved)
+
+The shapes the per-kind routes price their defusing schedules
+against, landed at theorem grade so the open remainder is named
+exactly: the SAME-HEAD repair (distance zero — the exhibiting fork
+play begins with the very move that committed), for the waste-eat
+the CORRIDOR repair (distance one — the exhibiting play
+begins by seating the eaten head onto a base; the one-leg pull
+`foundToTab c b` from the eat successor lands the corridor state
+EXACTLY, and the rest replays verbatim), and for the waste-seating
+its mirror image §5.0b's MIRROR (the exhibiting play begins with
+the founding of the seated head; the one-move raise lands the
+play's second state EXACTLY again).  These are the probe
+program's fb1/fb2 verdict shapes, generalized
+(`Orig/ForkFloorProbe.lean`: SURVIVES DISTANCE 0 / DISTANCE 1, the
+attained-one-leg repair).  The congruence trio beneath them is the
+per-file private kit: the placement guard and the board search read
+the tableau only.  §5.0b beneath adds the board-thread kit —
+the license congruences, the certificate rod, and the two closed
+kind-fragments that ride them (the draw's board-only exhibit; the
+seating's mirror). -/
+
+/-- The top-search reads only the tableau (the per-file congruence
+row; `State.pileOfTop` is a firstWhere over pile tops). -/
+private theorem p_pileOfTop_congr {x y : State} (z : Card)
+    (hp : x.piles = y.piles) :
+    x.pileOfTop z = y.pileOfTop z := by
+  show (firstWhere (fun a => decide (((x.piles a).top) = some z)) Anchor.all)
+      = (firstWhere (fun a => decide (((y.piles a).top) = some z)) Anchor.all)
+  rw [hp]
+
+/-- The placement guard reads only the tableau (the per-file
+congruence row over the guard's two branches). -/
+private theorem p_canPlace_congr {x y : State} (c : Card) (b : Base)
+    (hp : x.piles = y.piles) :
+    x.canPlace c b = y.canPlace c b := by
+  cases b with
+  | inl a =>
+      show ((x.piles a).isEmpty && decide (c.rank = Rank.king))
+          = ((y.piles a).isEmpty && decide (c.rank = Rank.king))
+      rw [hp]
+  | inr z =>
+      show (match x.pileOfTop z with
+          | some _ => canSitOn c z
+          | none => false)
+          = (match y.pileOfTop z with
+          | some _ => canSitOn c z
+          | none => false)
+      rw [p_pileOfTop_congr z hp]
+
+/-- The seating write's tableau is determined by the pre-state's
+tableau (the per-file congruence row; `putCard`'s branches read only
+the top-search). -/
+private theorem p_putCard_piles_congr {x y : State} (c : Card) (b : Base)
+    (hp : x.piles = y.piles) :
+    (x.putCard c b).piles = (y.putCard c b).piles := by
+  cases b with
+  | inl a =>
+      show (fun a' => if a' = a then (⟨[], [c]⟩ : Pile) else x.piles a')
+          = (fun a' => if a' = a then (⟨[], [c]⟩ : Pile) else y.piles a')
+      rw [hp]
+  | inr z =>
+      cases hx : x.pileOfTop z with
+      | none =>
+          have hy : y.pileOfTop z = none := by
+            rw [← p_pileOfTop_congr z hp, hx]
+          rw [show x.putCard c (Sum.inr z) = x from by
+              simp only [State.putCard, hx],
+            show y.putCard c (Sum.inr z) = y from by
+              simp only [State.putCard, hy]]
+          exact hp
+      | some k =>
+          have hy : y.pileOfTop z = some k := by
+            rw [← p_pileOfTop_congr z hp, hx]
+          rw [show x.putCard c (Sum.inr z)
+                = x.setPile k { x.piles k with faceUp := (x.piles k).faceUp ++ [c] } from by
+              simp only [State.putCard, hx],
+            show y.putCard c (Sum.inr z)
+                = y.setPile k { y.piles k with faceUp := (y.piles k).faceUp ++ [c] } from by
+              simp only [State.putCard, hy],
+            setPile_piles, setPile_piles, hp]
+
+/-- **THE SAME-HEAD REPAIR** (distance zero) — when the very move
+that committed at `s` also HEADS the exhibiting fork play, the
+successor IS the play's second state: the tail replays verbatim and
+the same fork `F` is exhibited from `s'` with an empty repair — the
+probe program's fb1-shape verdict, generalized. -/
+private theorem p_survives_sameHead {s s' F : State} {τ : List Move} {m : Move}
+    {x : Card}
+    (hstep : State.step s m = some s')
+    (hhead : s.run (m :: τ) = some F)
+    (hwit : ForkWitness F x) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
+  obtain ⟨q, hq, hrest⟩ := State.run_cons hhead
+  have hqs : q = s' := Option.some.inj (hq.symm.trans hstep)
+  subst hqs
+  exact ⟨F, τ, x, hrest, hwit⟩
+
+/-- **THE CORRIDOR REPAIR** (distance one) — the waste-eat's
+fb2-shape verdict, generalized: the committed founding
+`wasteToFound c` ate the waste head `c`, and the exhibiting fork
+play begins with the OTHER waste letter on the same head — the
+seating `wasteToTab c b`.  The eat's exit leaves the tableau
+untouched (`p_wasteToFound_exits`), so the pull `foundToTab c b`
+fires at the successor (the founding's own `foundTop` consult names
+the card; the placement guard reads the same tableau), the pull's
+landing IS the corridor state (the founding is undone at the one
+suit's row, `chop_snoc`; the seating write is the same `putCard` over
+the same tableau), and the tail replays verbatim — the SAME fork `F`,
+exhibited one leg later. -/
+private theorem p_waste_eat_corridor {s s' F q₁ : State} {c : Card} {b : Base}
+    {τ : List Move} {x : Card}
+    (heat : State.step s (Move.wasteToFound c) = some s')
+    (hcorr : State.step s (Move.wasteToTab c b) = some q₁)
+    (htail : q₁.run τ = some F)
+    (hwit : ForkWitness F x) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
+  obtain ⟨-, w, ws, hwaste, hsf⟩ := step_wasteToFound_inv heat
+  obtain ⟨hgc, w', ws', hwaste', hsq⟩ := step_wasteToTab_inv hcorr
+  rw [Bool.and_eq_true] at hgc
+  have hww : w :: ws = w' :: ws' := by
+    rw [← hwaste, ← hwaste']
+  injection hww with hwd hws
+  subst hwd
+  subst hws
+  -- the eat successor's landing reads: foundTop pinned, tableau untouched
+  obtain ⟨htop, hpiles, -⟩ := p_wasteToFound_exits heat
+  -- the eat successor's field facts, off its landing record
+  have hs'fs : s'.found c.suit = s.found c.suit ++ [c] := by
+    rw [hsf,
+      show ({ s.setFound c.suit (s.found c.suit ++ [c]) with waste := ws } : State).found c.suit
+          = (s.setFound c.suit (s.found c.suit ++ [c])).found c.suit from rfl,
+      setFound_found_self]
+  have hs'fo : ∀ σ, σ ≠ c.suit → s'.found σ = s.found σ := by
+    intro σ hσ
+    rw [hsf,
+      show ({ s.setFound c.suit (s.found c.suit ++ [c]) with waste := ws } : State).found σ
+          = (s.setFound c.suit (s.found c.suit ++ [c])).found σ from rfl,
+      setFound_found_ne hσ]
+  have hs's : s'.stock = s.stock := by
+    rw [hsf,
+      show ({ s.setFound c.suit (s.found c.suit ++ [c]) with waste := ws } : State).stock
+          = (s.setFound c.suit (s.found c.suit ++ [c])).stock from rfl,
+      setFound_stock]
+  have hs'w : s'.waste = ws := by rw [hsf]
+  have hs'd : s'.drawStep = s.drawStep := by
+    rw [hsf,
+      show ({ s.setFound c.suit (s.found c.suit ++ [c]) with waste := ws } : State).drawStep
+          = (s.setFound c.suit (s.found c.suit ++ [c])).drawStep from rfl,
+      setFound_drawStep]
+  -- the pull's landing is the corridor state, exactly
+  have hteq : (s'.setFound c.suit (chop (s'.found c.suit))).putCard c b
+      = { s.putCard c b with waste := ws } := by
+    refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+    · -- found
+      rw [show ({ s.putCard c b with waste := ws } : State).found
+            = (s.putCard c b).found from rfl,
+        putCard_found, putCard_found]
+      show (if σ = c.suit then chop (s'.found c.suit) else s'.found σ) = s.found σ
+      by_cases hσ : σ = c.suit
+      · rw [ite_eq_left hσ, hs'fs, chop_snoc]
+        show s.found c.suit = s.found σ
+        rw [hσ]
+      · rw [ite_eq_right hσ, hs'fo σ hσ]
+    · -- piles
+      have hbasep : (s'.setFound c.suit (chop (s'.found c.suit))).piles = s.piles := by
+        rw [setFound_piles, hpiles]
+      rw [show ({ s.putCard c b with waste := ws } : State).piles
+            = (s.putCard c b).piles from rfl,
+        p_putCard_piles_congr c b hbasep]
+    · -- stock
+      have hL : ((s'.setFound c.suit (chop (s'.found c.suit))).putCard c b).stock
+          = s.stock := by
+        rw [putCard_stock, setFound_stock, hs's]
+      have hR : ({ s.putCard c b with waste := ws } : State).stock = s.stock := by
+        show (s.putCard c b).stock = s.stock
+        exact putCard_stock s c b
+      rw [hL, hR]
+    · -- waste
+      have hL : ((s'.setFound c.suit (chop (s'.found c.suit))).putCard c b).waste
+          = ws := by
+        rw [putCard_waste, setFound_waste, hs'w]
+      have hR : ({ s.putCard c b with waste := ws } : State).waste = ws := rfl
+      rw [hL, hR]
+    · -- drawStep
+      have hL : ((s'.setFound c.suit (chop (s'.found c.suit))).putCard c b).drawStep
+          = s.drawStep := by
+        rw [(putCard_keep (st := s'.setFound c.suit (chop (s'.found c.suit)))).2.2.2,
+          setFound_drawStep, hs'd]
+      have hR : ({ s.putCard c b with waste := ws } : State).drawStep
+          = s.drawStep := by
+        show (s.putCard c b).drawStep = s.drawStep
+        exact (putCard_keep (st := s)).2.2.2
+      rw [hL, hR]
+  have htq : (s'.setFound c.suit (chop (s'.found c.suit))).putCard c b = q₁ :=
+    hteq.trans hsq.symm
+  -- the pull fires at the eat successor: the guard reads the same tableau
+  have hcp : s'.canPlace c b = true := by
+    have hc := p_canPlace_congr (x := s') (y := s) c b hpiles
+    rw [hc]
+    exact hgc.2
+  refine ⟨F, Move.foundToTab c b :: τ, x, ?_, hwit⟩
+  show (match State.step s' (Move.foundToTab c b) with
+      | some st' => st'.run τ
+      | none => none) = some F
+  rw [step_foundToTab_splice htop hcp, htq]
+  exact htail
+
+/-! ### §5.0b. The board-thread kit (the fork certificate is
+arrangement-only)
+
+The rods the draw kind's board-only fragment and the seating arm's
+mirror ride: the two licenses are board reads (through the flat
+characterization for the S-grade), so a fork witness RE-CERTIFIES
+at any state agreeing on piles and foundations; and the committed
+draw, which writes no board cell, preserves the exhibiting play's
+board-thread verbatim.  These are the probe program's fb-shape
+"the fork never rode the eaten cell" verdicts, generalized to the
+arrangement-blind relation the basin already carries (`boardEq`,
+`Orig/HostCensus.lean` §9). -/
+
+/-- The vanilla license reads only the board: two `boardEq`
+states license exactly the same vanilla raises (the per-file
+assembly of the banked `Twin.lean` congruence rows at the
+`CanRaise` grain). -/
+private theorem p_canRaise_congr {u v : State} (hb : boardEq u v)
+    (c : Card) : CanRaise u c ↔ CanRaise v c := by
+  constructor
+  · rintro ⟨hn, a, hp, (hbs | ⟨hhid, hking⟩)⟩
+    · refine ⟨by rw [← nextUp_congr c hb.2]; exact hn, a, ?_, Or.inl ?_⟩
+      · rw [← pileOfTop_congr c hb.1]; exact hp
+      · have hf : (u.piles a).faceUp = (v.piles a).faceUp :=
+          congrArg Pile.faceUp (congrFun hb.1 a)
+        rw [← hf]; exact hbs
+    · refine ⟨by rw [← nextUp_congr c hb.2]; exact hn, a, ?_, Or.inr ⟨?_, hking⟩⟩
+      · rw [← pileOfTop_congr c hb.1]; exact hp
+      · have hh : (u.piles a).hidden = (v.piles a).hidden :=
+          congrArg Pile.hidden (congrFun hb.1 a)
+        rw [← hh]; exact hhid
+  · rintro ⟨hn, a, hp, (hbs | ⟨hhid, hking⟩)⟩
+    · refine ⟨by rw [nextUp_congr c hb.2]; exact hn, a, ?_, Or.inl ?_⟩
+      · rw [pileOfTop_congr c hb.1]; exact hp
+      · have hf : (u.piles a).faceUp = (v.piles a).faceUp :=
+          congrArg Pile.faceUp (congrFun hb.1 a)
+        rw [hf]; exact hbs
+    · refine ⟨by rw [nextUp_congr c hb.2]; exact hn, a, ?_, Or.inr ⟨?_, hking⟩⟩
+      · rw [pileOfTop_congr c hb.1]; exact hp
+      · have hh : (u.piles a).hidden = (v.piles a).hidden :=
+          congrArg Pile.hidden (congrFun hb.1 a)
+        rw [hh]; exact hhid
+
+/-- The maneuver license reads only the board at WF: through the
+flat characterization (`canRaiseS_iff`), two WF `boardEq` states
+license exactly the same S-raises. -/
+private theorem p_canRaiseS_congr {u v : State} (hwfu : u.WF) (hwfv : v.WF)
+    (hb : boardEq u v) (c : Card) : CanRaiseS u c ↔ CanRaiseS v c := by
+  constructor
+  · intro h
+    obtain ⟨hn, a, bs, run, hshape, hseat, hdisj⟩ := (canRaiseS_iff hwfu).1 h
+    have hf : (u.piles a).faceUp = (v.piles a).faceUp :=
+      congrArg Pile.faceUp (congrFun hb.1 a)
+    have hh : (u.piles a).hidden = (v.piles a).hidden :=
+      congrArg Pile.hidden (congrFun hb.1 a)
+    refine (canRaiseS_iff hwfv).2 ⟨by rw [← nextUp_congr c hb.2]; exact hn,
+      a, bs, run, by rw [← hf]; exact hshape, ?_, ?_⟩
+    · rcases hseat with hbs | ⟨hhid, hking⟩
+      · exact Or.inl hbs
+      · exact Or.inr ⟨by rw [← hh]; exact hhid, hking⟩
+    · rcases hdisj with rfl | htwin
+      · exact Or.inl rfl
+      · exact Or.inr (by rw [← pileOfTop_congr c.twin hb.1]; exact htwin)
+  · intro h
+    obtain ⟨hn, a, bs, run, hshape, hseat, hdisj⟩ := (canRaiseS_iff hwfv).1 h
+    have hf : (u.piles a).faceUp = (v.piles a).faceUp :=
+      congrArg Pile.faceUp (congrFun hb.1 a)
+    have hh : (u.piles a).hidden = (v.piles a).hidden :=
+      congrArg Pile.hidden (congrFun hb.1 a)
+    refine (canRaiseS_iff hwfu).2 ⟨by rw [nextUp_congr c hb.2]; exact hn,
+      a, bs, run, by rw [hf]; exact hshape, ?_, ?_⟩
+    · rcases hseat with hbs | ⟨hhid, hking⟩
+      · exact Or.inl hbs
+      · exact Or.inr ⟨by rw [hh]; exact hhid, hking⟩
+    · rcases hdisj with rfl | htwin
+      · exact Or.inl rfl
+      · exact Or.inr (by rw [pileOfTop_congr c.twin hb.1]; exact htwin)
+
+/-- **THE FORK CERTIFICATE IS ARRANGEMENT-ONLY** — a fork witness
+at one state re-certifies at any state agreeing with it on piles
+and foundations: both conjuncts of the parcel read only the board
+(the S-grade through the flat characterization), so the fork
+travels the board-thread relation verbatim.  The probe program's
+per-board SURVIVES verdicts are all instances of this rod at
+decideddistance zero-to-one; the general instances ride the
+board-thread replay row below. -/
+private theorem p_fork_boardTransfer {u v : State} {x : Card}
+    (hwfu : u.WF) (hwfv : v.WF) (hb : boardEq u v)
+    (hw : ForkWitness u x) : ForkWitness v x := by
+  obtain ⟨hiff, hnt⟩ := hw
+  refine ⟨fun c => (hiff c).trans (p_canRaiseS_congr hwfu hwfv hb c), ?_⟩
+  intro hcan
+  exact hnt ((p_canRaise_congr hb x.twin).mpr hcan)
+
+/-- **THE BOARD-ONLY EXHIBIT REPAIR** — the draw kind's closed
+fragment: when the exhibiting play touches no zone cell, the
+committed draw cannot disturb it.  The draw writes no pile and
+no foundation (`stepDraw_piles` / `stepDraw_found`), so the play
+re-runs verbatim from the successor along the board thread
+(`board_run_congr`), and the fork certificate travels the thread
+(`p_fork_boardTransfer`).  Distance zero, same witness, the
+zone-cursor content untouched — the fb1-style "the floor never
+rode the eaten cell" shape at the draw kind's own grain. -/
+private theorem p_draw_board_repair {s s' F : State} {π : List Move} {x : Card}
+    (hwf : s.WF)
+    (hstep : State.step s Move.draw = some s')
+    (hπ : ∀ m ∈ π, boardMove m)
+    (hrun : s.run π = some F)
+    (hwit : ForkWitness F x) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
+  have hs : s.stepDraw = some s' := hstep
+  have hb : boardEq s s' :=
+    ⟨(stepDraw_piles hs).symm, (stepDraw_found hs).symm⟩
+  have hwfs' : s'.WF := step_wf hwf hstep
+  obtain ⟨F', hrun', hbF, -, -, -, -, -, -⟩ :=
+    board_run_congr π hπ s s' hb F hrun
+  exact ⟨F', π, x, hrun',
+    p_fork_boardTransfer (p_run_wf s π F hrun hwf) (p_run_wf s' π F' hrun' hwfs')
+      hbF hwit⟩
+
+/-- **THE SEATING-EAT MIRROR** (the waste-jump seating arm's
+distance-one repair) — the mirror image of the waste-eat corridor,
+generalized from the probe program's fb2-shape sibling
+(`Orig/ForkFloorProbe.lean` §2: the corridor guarded by the eat).
+The committed seating `wasteToTab c b` seated the waste head, and
+the exhibiting play begins with the OTHER waste letter on the same
+head — the founding `wasteToFound c`.  The seating writes no
+foundation (`putCard_found`), so the founding's own next-up guard
+still reads true at the successor; the seated card TOPS its
+landing pile; and the one-move raise `tabToFound c` from the
+successor lands the original play's second state EXACTLY — the
+inr arm's raise restores the seat-appended pile to its pre-seat
+record (`chop_snoc` + `afterRunRemoved_ne`), the inl arm's raise
+empties the king seat back to its pre-seat empty record — and the
+tail replays verbatim: the SAME fork `F`, exhibited one leg later. -/
+private theorem p_waste_seat_mirror {s s' F q₁ : State} {c : Card} {b : Base}
+    {τ : List Move} {x : Card}
+    (hwf : s.WF)
+    (hseat : State.step s (Move.wasteToTab c b) = some s')
+    (hfound : State.step s (Move.wasteToFound c) = some q₁)
+    (htail : q₁.run τ = some F)
+    (hwit : ForkWitness F x) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
+  obtain ⟨hgseat, w, ws, hwaste, hsq⟩ := step_wasteToTab_inv hseat
+  obtain ⟨hgeat, w', ws', hwe, hsq₁⟩ := step_wasteToFound_inv hfound
+  rw [Bool.and_eq_true] at hgseat hgeat
+  -- the two letters name the same waste head (the head is unique)
+  obtain ⟨w₀, hw₀⟩ := wasteIs_head hgeat.1
+  injection hwaste.symm.trans hw₀ with hwc hws0
+  injection hwe.symm.trans hw₀ with hwc' hws0'
+  have hc1 : c = w := hwc.symm
+  have hc2 : c = w' := hwc'.symm
+  have ht1 : w₀ = ws := hws0.symm
+  have ht2 : w₀ = ws' := hws0'.symm
+  subst hc1
+  subst hc2
+  subst ht1
+  subst ht2
+  -- the successor's board reads: found verbatim, nextUp re-read
+  have hs'f : s'.found = s.found := by
+    rw [hsq]; show (s.putCard c b).found = s.found; exact putCard_found s c b
+  have hnext' : s'.nextUp c = true := by
+    rw [nextUp_congr (u := s') (v := s) c hs'f]; exact hgeat.2
+  have hwfs' : s'.WF := step_wf hwf hseat
+  cases b with
+  | inl k =>
+      obtain ⟨hemp, hking⟩ := canPlace_inl hgseat.2
+      rcases hp : s.piles k with ⟨hdk, hfk⟩
+      rw [hp] at hemp
+      obtain ⟨hhid, hfu⟩ := (Pile.isEmpty_eq _).mp hemp
+      have hhdk : hdk = [] := hhid
+      have hhfk : hfk = [] := hfu
+      subst hhdk
+      subst hhfk
+      have hpilek : s'.piles k = ⟨[], [c]⟩ := by
+        rw [hsq]; show (s.putCard c (Sum.inl k)).piles k = _
+        rw [putCard_eq_inl]; exact setPile_piles_self
+      have htop' : s'.topOf k = some c := by
+        show (s'.piles k).top = some c; rw [hpilek]; rfl
+      have hpo' : s'.pileOfTop c = some k :=
+        (pileOfTop_eq_some_iff hwfs').2 htop'
+      have hsplice := step_tabToFound_splice hnext' hpo'
+      have hrest : Pile.afterRunRemoved (s'.piles k)
+          (chop (s'.piles k).faceUp) = s.piles k := by
+        rw [hpilek, hp]; rfl
+      have hstep' : State.step s' (Move.tabToFound c) = some q₁ := by
+        rw [hsplice, hsq₁]
+        refine congrArg some (State.ext (funext fun σ => ?_)
+          (funext fun a => ?_) ?_ ?_ ?_)
+        · show (if σ = c.suit then s'.found c.suit ++ [c] else s'.found σ)
+            = (if σ = c.suit then s.found c.suit ++ [c] else s.found σ)
+          by_cases hσ : σ = c.suit
+          · rw [ite_eq_left hσ, ite_eq_left hσ, hs'f]
+          · rw [ite_eq_right hσ, ite_eq_right hσ]
+            exact congrFun hs'f σ
+        · show (if a = k then
+              Pile.afterRunRemoved (s'.piles k) (chop (s'.piles k).faceUp)
+              else s'.piles a) = s.piles a
+          by_cases hak : a = k
+          · rw [ite_eq_left hak, hak, hrest]
+          · rw [ite_eq_right hak]
+            show s'.piles a = s.piles a
+            rw [hsq]
+            show (s.putCard c (Sum.inl k)).piles a = _
+            rw [putCard_eq_inl]
+            exact setPile_piles_ne hak
+        · show s'.stock = s.stock
+          rw [hsq]
+          show (s.putCard c (Sum.inl k)).stock = s.stock
+          exact putCard_stock s c (Sum.inl k)
+        · show s'.waste = w₀
+          rw [hsq]
+        · show s'.drawStep = s.drawStep
+          rw [hsq]
+          show (s.putCard c (Sum.inl k)).drawStep = s.drawStep
+          exact putCard_drawStep s c (Sum.inl k)
+      refine ⟨F, Move.tabToFound c :: τ, x, ?_, hwit⟩
+      show (match State.step s' (Move.tabToFound c) with
+          | some st' => st'.run τ
+          | none => none) = some F
+      rw [hstep']; exact htail
+  | inr z =>
+      obtain ⟨k, hz, -⟩ := canPlace_inr hgseat.2
+      have hpilek : s'.piles k
+          = { s.piles k with faceUp := (s.piles k).faceUp ++ [c] } := by
+        rw [hsq]; show (s.putCard c (Sum.inr z)).piles k = _
+        rw [putCard_inr_eq hz]; exact setPile_piles_self
+      have hchop : chop (s'.piles k).faceUp = (s.piles k).faceUp := by
+        rw [hpilek]
+        show chop ((s.piles k).faceUp ++ [c]) = _
+        rw [chop_snoc]
+      have htop' : s'.topOf k = some c := by
+        show (s'.piles k).top = some c; rw [hpilek]; exact lastOf_snoc
+      have hpo' : s'.pileOfTop c = some k :=
+        (pileOfTop_eq_some_iff hwfs').2 htop'
+      have hsplice := step_tabToFound_splice hnext' hpo'
+      have hfune : (s.piles k).faceUp ≠ [] := by
+        intro hcon
+        have htopz : (s.piles k).top = some z := (pileOfTop_top hz).2
+        have hlt : (s.piles k).top = lastOf ((s.piles k).faceUp) := rfl
+        have hnone : lastOf ([] : List Card) = none := rfl
+        rw [hlt, hcon, hnone] at htopz
+        exact absurd htopz (by simp)
+      have hrest : Pile.afterRunRemoved (s'.piles k)
+          (chop (s'.piles k).faceUp) = s.piles k := by
+        rw [hchop, afterRunRemoved_ne hfune, hpilek]
+      have hstep' : State.step s' (Move.tabToFound c) = some q₁ := by
+        rw [hsplice, hsq₁]
+        refine congrArg some (State.ext (funext fun σ => ?_)
+          (funext fun a => ?_) ?_ ?_ ?_)
+        · show (if σ = c.suit then s'.found c.suit ++ [c] else s'.found σ)
+            = (if σ = c.suit then s.found c.suit ++ [c] else s.found σ)
+          by_cases hσ : σ = c.suit
+          · rw [ite_eq_left hσ, ite_eq_left hσ, hs'f]
+          · rw [ite_eq_right hσ, ite_eq_right hσ]
+            exact congrFun hs'f σ
+        · show (if a = k then
+              Pile.afterRunRemoved (s'.piles k) (chop (s'.piles k).faceUp)
+              else s'.piles a) = s.piles a
+          by_cases hak : a = k
+          · rw [ite_eq_left hak, hak, hrest]
+          · rw [ite_eq_right hak]
+            show s'.piles a = s.piles a
+            rw [hsq]
+            show (s.putCard c (Sum.inr z)).piles a = _
+            rw [putCard_inr_eq hz]
+            exact setPile_piles_ne hak
+        · show s'.stock = s.stock
+          rw [hsq]
+          show (s.putCard c (Sum.inr z)).stock = s.stock
+          exact putCard_stock s c (Sum.inr z)
+        · show s'.waste = w₀
+          rw [hsq]
+        · show s'.drawStep = s.drawStep
+          rw [hsq]
+          show (s.putCard c (Sum.inr z)).drawStep = s.drawStep
+          exact putCard_drawStep s c (Sum.inr z)
+      refine ⟨F, Move.tabToFound c :: τ, x, ?_, hwit⟩
+      show (match State.step s' (Move.tabToFound c) with
+          | some st' => st'.run τ
+          | none => none) = some F
+      rw [hstep']; exact htail
+
+/-- The board-letter scan for the draw kind's leg-profile split:
+true exactly on the three tableau/foundation letters (the
+decidable shadow of `boardMove`, `Orig/HostCensus.lean` §9 — the
+case read stays choice-free by deciding the profile as a `Bool`
+fold, never by pushing a negation through a membership
+universal). -/
+private def p_boardMoveB (m : Move) : Bool :=
+  match m with
+  | .tabToFound _ => true
+  | .foundToTab _ _ => true
+  | .tabToTab _ _ => true
+  | _ => false
+
+private theorem p_boardMoveB_true (m : Move) (h : p_boardMoveB m = true) :
+    boardMove m := by
+  cases m with
+  | draw => exact absurd h (by simp [p_boardMoveB])
+  | wasteToFound c₀ => exact absurd h (by simp [p_boardMoveB])
+  | wasteToTab c₀ b₀ => exact absurd h (by simp [p_boardMoveB])
+  | tabToFound c₀ => exact Or.inl ⟨c₀, rfl⟩
+  | foundToTab c₀ b₀ => exact Or.inr (Or.inl ⟨c₀, b₀, rfl⟩)
+  | tabToTab c₀ b₀ => exact Or.inr (Or.inr ⟨c₀, b₀, rfl⟩)
+
+private theorem p_boardMoveB_of (m : Move) (h : boardMove m) :
+    p_boardMoveB m = true := by
+  obtain ⟨c₀, hc⟩ | ⟨c₀, b₀, hc⟩ | ⟨c₀, b₀, hc⟩ := h
+  · subst hc; rfl
+  · subst hc; rfl
+  · subst hc; rfl
+
+/-- **THE DRAW ARM'S NAMED ZONE REMAINDER** [H, named sub-residue,
+exactly one `sorry` — the draw kind's carried content once the two
+closed fragments are dispatched]: the exhibiting play heads with a
+NON-draw move and carries at least one zone leg (a draw or a waste
+letter) below its head.
+
+ROUTE (complete; the open step named):
+
+1. THE KIND SUB-ROWS APPLIED (§§1, 4): the committed draws keep the
+   whole board verbatim (the draw writes neither piles nor found,
+   `draws_permute_only`), so every PAIR-CONTENT cell the consumed
+   fork needs — members, covers, seats — sits exactly where it sat,
+   and the two-zone membership is conserved exactly (§4's iff): no
+   card becomes unreachable-from-play and no card becomes reachable
+   early through the cycle.
+2. THE RE-SCHEDULING (the open step): the exhibiting play's zone
+   legs — draws at inner positions, waste letters on heads the
+   cursor may reach shifted — must be RE-PHASED: commute the
+   board-segment prefixes past the successor's own cursor
+   alignment.  HostCensus §9's closed half is the assemble-grade
+   toolshere (`drawfree_commute_witness` for the draw-free
+   prefixes; `interleave_leg_conjugation` welding a draw inside a
+   returned witness through the macro class), and the two dashed
+   landings weld through the banked draw push
+   (`EdgeLabel.draw_landings_sameOrbit`): the commit's own landing
+   is a zone-mate of the play's forced draws.  What is NOT banked
+   anywhere is the repair-time bound once the re-phased prefix
+   hits a waste-head shift (a `wasteToFound`/`wasteToTab` leg of
+   the play reading the head the commit's deal left moved) — the
+   probe program's surviving honest danger (the multi-commit
+   schedule), carried here and nowhere else.
+3. REMAINING CONTENT: the defusing-schedule repair TIME bound of
+   the route's step 2 — a measure on the two-zone arrangement that
+   strictly decreases along the re-phased schedule until a fork
+   witness re-assembles.  Phase's offset/pristine tables
+   (`draw_irreversibility_class`, `drawStep_one_class`) price the
+   cycle's own irreversibility, not the schedule.
+
+PROBE PRICING (round-3; boards NOT added here, per the mission):
+the fragile-pair economies all kept a downward fork in reach with
+the cycle untouched (`fb2`/`fb3`: the corridor never rode the
+cycle), and the pristine one-cell stock of `fb1` could not feed a
+corridor either way — evidence the zone remainder is TRAVEL
+content (re-phasing), not content death. -/
+private theorem p_draw_zone_rest {s s' F : State} {x : Card}
+    {m₀ : Move} {τ : List Move}
+    (hwf : s.WF)
+    (hstep : State.step s Move.draw = some s')
+    (hivr : irreversibleAt s Move.draw)
+    (hrun : s.run (m₀ :: τ) = some F)
+    (hwit : ForkWitness F x)
+    (hhead : m₀ ≠ Move.draw)
+    (hzone : (m₀ :: τ).all p_boardMoveB = false) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
+  sorry
+
 /-- **`fork_floor_draw`** — **THE DRAW-CURSOR KIND RESIDUE** [H,
 named residue, exactly one `sorry`]: the committed draw
 (draw-at-nonempty-stock per Phase's pristine regime) preserves
@@ -603,7 +1439,38 @@ ROUTE (the kind read, complete):
    measure on the cycle-zone arrangement that strictly decreases
    along the schedule until a fork witness re-assembles (the
    crux's own content; Phase's offset/pristine tables price the
-   cycle's irreversibility, not the schedule). -/
+   cycle's irreversibility, not the schedule).
+
+HEAD-CASE LANDED (§5.0, this pass): when the exhibiting fork play
+HEADS with the very draw that committed (π = Move.draw :: τ), the
+same-fork climb is `p_survives_sameHead` — the successor IS the
+play's second state, the tail replays verbatim, distance zero.
+
+ASSEMBLY STRUCTURE (this pass): the kind is now a DISPATCH over
+the exhibiting play's leg profile, with two fragments CLOSED and
+the remainder isolated as its own NAMED SUB-RESIDUE
+(`p_draw_zone_rest` below, per the isolation discipline):
+
+* CLOSED, distance zero — the head-case above (`p_survives_sameHead`).
+* CLOSED, distance zero — the BOARD-ONLY EXHIBIT (§5.0b's
+  `p_draw_board_repair`): a play whose every leg is a board letter
+  (raise / pull / cargo — no draws, no waste letters) cannot be
+  disturbed by the commit at all: the draw writes no board cell
+  (`draws_permute_only`'s own two prongs), the play re-runs
+  verbatim along the board thread (`board_run_congr`), and the
+  fork certificate travels the thread verbatim
+  (`p_fork_boardTransfer`: the certificate is arrangement-only).
+  The empty exhibit (π = [], the fork AT the origin: the successor
+  IS the exhibit) rides this same fragment.
+* NAMED REMAINDER — `p_draw_zone_rest`: the play heads with a
+  non-draw move and carries at least one zone leg (a draw or a
+  waste letter) below its head.  This is the phase content
+  proper: the cursor read / repair time bound of the route's
+  step 3, carried under its own name with the full route;
+  `Orig/EdgeLabel.lean`'s `draw_landings_sameOrbit` (the two
+  dashed landings weld through the same orbit) and HostCensus
+  §9's interleave rows are the assemble-grade tools the route
+  names for it. -/
 private theorem fork_floor_draw {s s' : State}
     (hwf : s.WF)
     (hstep : State.step s Move.draw = some s')
@@ -612,6 +1479,101 @@ private theorem fork_floor_draw {s s' : State}
         s.run π = some F ∧ ForkWitness F x) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
         s'.run π' = some F' ∧ ForkWitness F' x' := by
+  obtain ⟨F, π, x, hrun, hwit⟩ := hhed
+  by_cases hball : π.all p_boardMoveB = true
+  · -- the board-only exhibit (the empty play included): closed
+    refine p_draw_board_repair hwf hstep ?_ hrun hwit
+    intro m hm
+    exact p_boardMoveB_true m (List.all_eq_true.mp hball m hm)
+  · have hbfalse : π.all p_boardMoveB = false := by
+      cases h : π.all p_boardMoveB with
+      | true => exact absurd h hball
+      | false => rfl
+    cases π with
+    | nil => exact absurd rfl hball
+    | cons m₀ τ =>
+        cases m₀ with
+        | draw => exact p_survives_sameHead hstep hrun hwit
+        | wasteToFound c₀ =>
+            exact p_draw_zone_rest hwf hstep hivr hrun hwit
+              (fun hcon => absurd hcon (by simp)) hbfalse
+        | wasteToTab c₀ b₀ =>
+            exact p_draw_zone_rest hwf hstep hivr hrun hwit
+              (fun hcon => absurd hcon (by simp)) hbfalse
+        | tabToFound c₀ =>
+            exact p_draw_zone_rest hwf hstep hivr hrun hwit
+              (fun hcon => absurd hcon (by simp)) hbfalse
+        | foundToTab c₀ b₀ =>
+            exact p_draw_zone_rest hwf hstep hivr hrun hwit
+              (fun hcon => absurd hcon (by simp)) hbfalse
+        | tabToTab c₀ b₀ =>
+            exact p_draw_zone_rest hwf hstep hivr hrun hwit
+              (fun hcon => absurd hcon (by simp)) hbfalse
+
+/-- **THE WASTE-FOUNDING ARM'S NAMED REMAINDER** [M–H, named
+sub-residue, exactly one `sorry` — the waste-founding kind's
+carried content once the head-case and the corridor are
+dispatched]: the exhibiting play is EMPTY (the fork sits at the
+origin, with the eaten head sealed one rung up) or heads with a
+board letter (raise / pull / cargo) or a draw.
+
+ROUTE (complete; the open step named):
+
+1. THE KIND SUB-ROWS APPLIED (§§1–2): the seal sits at its
+   foundation top, the stock, the piles, and the waste tail keep
+   their cells (`p_wasteToFound_exits`: foundTop pinned, piles and
+   stock untouched; §1: no hidden deck moves at all) — so every
+   fork-content cell outside the raised suit-rung row is where it
+   was, and the taken card is on the board's most protected zone,
+   returnable the moment a fitting seat exists (§3's
+   `founded_returnable_via_seats` — the seal is a LOAN, and the
+   crane's census prices its repayment options:
+   `excursion_issues_noNewSeat`, `census_foundToTab_inr` /
+   `census_foundToTab_inl` mint exactly the pulled card's cell).
+2. THE BOARD-HEADED EXHIBIT (the open step): the head re-fires
+   verbatim (guards read piles and foundations; only the eaten
+   suit's rung moved) — so the exhibit SHADOWS the commit's seal
+   one rung high until (i) a tail leg consults the raised row
+   (a `tabToFound`/`foundToTab` of the eaten suit: the rung is
+   one ahead, so the successor card is the legal one instead), or
+   (ii) the shadow stocks misalign on a recycle.  The repair-time
+   schedule is the multi-commit danger the probe program priced
+   (`Orig/ForkFloorProbe.lean`: HUNTING-FLOOR HONESTY — the
+   finite-economy caveat); the stock REPLY tables (Table 1's
+   `cycleCount_step`: the cycle count never rises, drops strictly
+   at the waste letters, and the draw conserves it) keep the
+   cursor honest on the way: once a cycle read surfaces the
+   shifted head, the zone leg re-fires at the successor's own
+   cursor, never earlier.
+3. THE EMPTY EXHIBIT (the open step): the fork AT the origin keeps
+   its pair census outside the raised row; the successor card of
+   the raised suit is the one new next-up, and it belongs to the
+   schedule's fresh-pair case: either it is pair content (a
+   one-rank-up fork re-assembles at s' itself — the fork
+   certificate transfers along the board-cells the seal did not
+   touch, the flat `canRaiseS_iff` doing the census), or the
+   census prices it dead and the seal's own takeback inventory
+   re-issues the origin fork (the fb1 heartbeat: expose the
+   covering raise, seat the cycle card, rehost the taken seal —
+   the `fb1_survives` datapoint is the shape, at decided grade).
+
+PROBE PRICING (round-3; boards NOT added here, per the mission):
+`fb2E`/`fb3E` are exactly this remainder's sealed economies —
+forkless at the successor, decided — and the corridor's repair
+was one leg (`fb2_survives`); the named remainder carries the
+eats those snapshots do not cover, the MULTI-LEG repairs, with
+the stock-reply tables as the honesty rail. -/
+private theorem p_waste_found_rest {s s' F : State} {c : Card} {x : Card}
+    {π : List Move}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.wasteToFound c) = some s')
+    (hivr : irreversibleAt s (Move.wasteToFound c))
+    (hrun : s.run π = some F)
+    (hwit : ForkWitness F x)
+    (hprof : π = [] ∨ ∃ m₀ τ, π = m₀ :: τ ∧ (∀ c', m₀ ≠ Move.wasteToFound c')
+      ∧ (∀ c' b', m₀ ≠ Move.wasteToTab c' b')) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
   sorry
 
 /-- **`fork_floor_waste_found`** — **THE WASTE-JUMP KIND RESIDUE**
@@ -636,7 +1598,42 @@ ROUTE (the kind read, complete):
 3. REMAINING CONTENT: the defusing-schedule repair time bound, in
    this kind the cursor read — matching the cycle arrangement so
    the founding's counterpart letters re-fire on the way to a
-   fresh fork. -/
+   fresh fork.
+
+HEAD-CASES LANDED (§5.0, this pass): the same-head repair
+(`p_survives_sameHead`: π = Move.wasteToFound c :: τ, distance zero
+— the successor is the play's second state) and the CORRIDOR repair
+(`p_waste_eat_corridor`: π = Move.wasteToTab c b :: τ — the other
+waste letter on the same head; the one-leg pull `foundToTab c b`
+lands the corridor state exactly and the tail replays verbatim,
+distance one — the fb2-shape probe verdict, generalized).
+
+ASSEMBLY STRUCTURE (this pass): the kind is now a DISPATCH over
+the exhibiting play's head, with the two closed fragments consumed
+and the remainder isolated as its own NAMED SUB-RESIDUE
+(`p_waste_found_rest` below, per the isolation discipline).  The
+SEAL + the STOCK REPLY—— the ate head sits at its foundation top
+with the stock, the piles, and the waste tail all untouched except
+the found row grew by one card (`p_wasteToFound_exits` +
+`step_wasteToFound_inv`'s zone rows) — are the datum the two
+fragments ride:
+
+* CLOSED, distance zero — the head-case (`p_survives_sameHead`).
+* CLOSED, distance one — the corridor (`p_waste_eat_corridor`):
+  the play heads with the sibling waste letter on the eaten head;
+  the pull-back lands the corridor state EXACTLY.
+* NAMED REMAINDER — `p_waste_found_rest`: the empty exhibit (the
+  fork AT the origin: the stock reply cannot help, the seal is
+  already down a rung) and the exhibits heading with a board
+  letter or a draw.  This is the SEATED-RAISE INTERFERENCE and the
+  CURSOR READ together: a board-headed tail re-fires guard-for-guard
+  UNTIL it consults the raised row (the successor of the eaten
+  card's suit), and a draw-headed tail re-fires until the recycle
+  reads the popped zone; the defusing schedule re-derives a fresh
+  fork from the seal's takeback inventory (§3's return row prices
+  the pull already, `founded_returnable_via_seats`), with
+  `excursion_issues_noNewSeat` pricing which seats the arrangement
+  can still issue along the way. -/
 private theorem fork_floor_waste_found {s s' : State} {c : Card}
     (hwf : s.WF)
     (hstep : State.step s (Move.wasteToFound c) = some s')
@@ -645,6 +1642,108 @@ private theorem fork_floor_waste_found {s s' : State} {c : Card}
         s.run π = some F ∧ ForkWitness F x) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
         s'.run π' = some F' ∧ ForkWitness F' x' := by
+  -- the eaten head, read off the commit's own guard (the two waste
+  -- letters of this kind both name it)
+  obtain ⟨hgC, wC, wsC, hwC, -⟩ := step_wasteToFound_inv hstep
+  rw [Bool.and_eq_true] at hgC
+  obtain ⟨w₀, hw₀⟩ := wasteIs_head hgC.1
+  obtain ⟨F, π, x, hrun, hwit⟩ := hhed
+  cases π with
+  | nil =>
+      exact p_waste_found_rest hwf hstep hivr hrun hwit (Or.inl rfl)
+  | cons m₀ τ =>
+      obtain ⟨q₁, hstep₀, htail⟩ := State.run_cons hrun
+      cases m₀ with
+      | draw =>
+          exact p_waste_found_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.draw, τ, rfl,
+              fun c' hcon => absurd hcon (by simp),
+              fun c' b' hcon => absurd hcon (by simp)⟩)
+      | wasteToFound c₀ =>
+          obtain ⟨hg₀, w₁, ws₁, hw₁, -⟩ := step_wasteToFound_inv hstep₀
+          rw [Bool.and_eq_true] at hg₀
+          obtain ⟨w₂, hw₂⟩ := wasteIs_head hg₀.1
+          injection hw₂.symm.trans hw₀ with hc₀ _
+          have hc : c = c₀ := hc₀.symm
+          subst hc
+          exact p_survives_sameHead hstep hrun hwit
+      | wasteToTab c₀ b₀ =>
+          obtain ⟨hg₀, w₁, ws₁, hw₁, -⟩ := step_wasteToTab_inv hstep₀
+          rw [Bool.and_eq_true] at hg₀
+          obtain ⟨w₂, hw₂⟩ := wasteIs_head hg₀.1
+          injection hw₂.symm.trans hw₀ with hc₀ _
+          have hc : c = c₀ := hc₀.symm
+          subst hc
+          exact p_waste_eat_corridor hstep hstep₀ htail hwit
+      | tabToFound c₀ =>
+          exact p_waste_found_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.tabToFound c₀, τ, rfl,
+              fun c' hcon => absurd hcon (by simp),
+              fun c' b' hcon => absurd hcon (by simp)⟩)
+      | foundToTab c₀ b₀ =>
+          exact p_waste_found_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.foundToTab c₀ b₀, τ, rfl,
+              fun c' hcon => absurd hcon (by simp),
+              fun c' b' hcon => absurd hcon (by simp)⟩)
+      | tabToTab c₀ b₀ =>
+          exact p_waste_found_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.tabToTab c₀ b₀, τ, rfl,
+              fun c' hcon => absurd hcon (by simp),
+              fun c' b' hcon => absurd hcon (by simp)⟩)
+
+/-- **THE WASTE-SEATING ARM'S NAMED REMAINDER** [M–H, named
+sub-residue, exactly one `sorry` — the waste-seating kind's
+carried content once the same-head and the mirror are
+dispatched]: the exhibiting play is EMPTY, heads with a board
+letter (raise / pull / cargo) or a draw, or seats the SAME eaten
+head at a DIFFERENT base.
+
+ROUTE (complete; the open step named):
+
+1. THE KIND SUB-ROWS APPLIED (§§1–2): the seated card lands
+   FACE-UP in a playable pile with foundations, stock, and the
+   waste tail untouched (`p_wasteToTab_exits` + the zone rows of
+   `step_wasteToTab_inv`) — the economy outside the landing pile
+   keeps its availability intact, and no hidden deck moved at all
+   (§1).
+2. THE GUARD REFUSAL (the open step, the kind's own): a re-seat
+   consult `canPlace c b'` reads a pile-top record the commit's
+   own write may have changed — the seated card COVERS the landing
+   pile's old top, so a π-head consult on that old top now
+   refuses, and the different-base re-seat of the same head must
+   wait out the schedule (slide the run atop the old top's cover
+   first, or route the seat elsewhere) — the guard refusal is
+   the honest entry point of the multi-commit schedule, the probe
+   program's surviving danger (HUNTING-FLOOR HONESTY,
+   `Orig/ForkFloorProbe.lean`); the mint/burn ledger
+   (`seatLedger_pair`, `play_census_ledger`) prices the seat the
+   commit minted, and `excursion_issues_noNewSeat` bounds what
+   returned excursions can add.
+3. THE OTHER EXHIBITS (the open step): the board-headed tails
+   shadow the commit's pile-write (the added card rides atop
+   whatever run consults the landing pile, the mirror's own
+   chop-restoration gone) until a tail leg consumes it; the
+   draw-headed tails fork into the same cursor read as the
+   founding arm (`p_waste_found_rest`'s step 2 — the zone
+   tables of Table 1 ride both arms identically).  The
+   repair-time bound is the same multi-commit danger, unchanged.
+
+PROBE PRICING: `fb2E`'s junk cells refused on color
+   (`fb2_junkCold`: decided both grades) are this remainder's
+   guard-refusal content at decided grade — the refuses are
+   REAL, and the schedule must route around them, as the boards'
+   repairs did in one leg (`fb2_survives`). -/
+private theorem p_waste_seat_rest {s s' F : State} {c : Card} {b : Base}
+    {x : Card} {π : List Move}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.wasteToTab c b) = some s')
+    (hivr : irreversibleAt s (Move.wasteToTab c b))
+    (hrun : s.run π = some F)
+    (hwit : ForkWitness F x)
+    (hprof : π = [] ∨ ∃ m₀ τ, π = m₀ :: τ ∧ m₀ ≠ Move.wasteToFound c
+      ∧ m₀ ≠ Move.wasteToTab c b) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
   sorry
 
 /-- **`fork_floor_waste_seat`** — **THE WASTE-JUMP KIND RESIDUE**
@@ -659,7 +1758,40 @@ defusing schedule additionally consulting the landing base's top
 seat, census-priced by the ledger family
 (`census_tabToTab_inr_witness`, `census_foundToTab_inr`) as in
 `Orig/HostCensus.lean`'s §3–§5; the same cycle-cells and the same
-remaining content (the cursor read / repair time bound). -/
+remaining content (the cursor read / repair time bound).
+
+HEAD-CASE LANDED (§5.0, this pass): `p_survives_sameHead` — when the
+exhibiting play heads with the very seating that committed (π =
+Move.wasteToTab c b :: τ), the successor is the play's second state
+and the tail replays verbatim, distance zero.
+
+ASSEMBLY STRUCTURE (this pass): the kind is now a DISPATCH over
+the exhibiting play's head, with two fragments CLOSED and the
+remainder isolated as its own NAMED SUB-RESIDUE
+(`p_waste_seat_rest` below, per the isolation discipline) — the
+GUARD REFUSAL datum rides the remainder's premise (every fall
+shape heads neither with the commit itself nor with the founding
+letter on the seated head):
+
+* CLOSED, distance zero — the same-seating head-case
+  (`p_survives_sameHead`).
+* CLOSED, distance one — THE MIRROR (`p_waste_seat_mirror`, §5.0b):
+  the play heads with the OTHER waste letter on the same head, the
+  founding `wasteToFound c`; the seating wrote no foundation, so
+  the founding's own next-up guard still reads true at the
+  successor and the one-move raise `tabToFound c` lands the
+  play's second state EXACTLY — the fb2-shape sibling, mirrored
+  (the probe's `fb2_corridor` was the eat-with-seat-head pairing;
+  this is the seat-with-eat-head one).  Both landing arms are
+  theorems: the seat-appended pile restores (`chop_snoc` +
+  `afterRunRemoved_ne`, the inr base) and the king seat empties
+  back to its pre-seat record (the inl base, `putCard_eq_inl`).
+* NAMED REMAINDER — `p_waste_seat_rest`: the empty exhibit, the
+  board/draw-headed exhibits, and the exhibits seating the SAME
+  head at a DIFFERENT base: the GUARD REFUSAL cases (the re-seat
+  consult `canPlace c b'` reads a pile-of-top record the commit's
+  own seat write may have moved), plus the cursor read — this
+  remainder carries them with the full route. -/
 private theorem fork_floor_waste_seat {s s' : State} {c : Card} {b : Base}
     (hwf : s.WF)
     (hstep : State.step s (Move.wasteToTab c b) = some s')
@@ -668,6 +1800,119 @@ private theorem fork_floor_waste_seat {s s' : State} {c : Card} {b : Base}
         s.run π = some F ∧ ForkWitness F x) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
         s'.run π' = some F' ∧ ForkWitness F' x' := by
+  -- the seated head, off the commit's own guard
+  obtain ⟨hgC, wC, wsC, hwC, -⟩ := step_wasteToTab_inv hstep
+  rw [Bool.and_eq_true] at hgC
+  obtain ⟨w₀, hw₀⟩ := wasteIs_head hgC.1
+  obtain ⟨F, π, x, hrun, hwit⟩ := hhed
+  cases π with
+  | nil =>
+      exact p_waste_seat_rest hwf hstep hivr hrun hwit (Or.inl rfl)
+  | cons m₀ τ =>
+      obtain ⟨q₁, hstep₀, htail⟩ := State.run_cons hrun
+      cases m₀ with
+      | draw =>
+          exact p_waste_seat_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.draw, τ, rfl,
+              fun hcon => absurd hcon (by simp),
+              fun hcon => absurd hcon (by simp)⟩)
+      | wasteToFound c₀ =>
+          obtain ⟨hg₀, w₁, ws₁, hw₁, -⟩ := step_wasteToFound_inv hstep₀
+          rw [Bool.and_eq_true] at hg₀
+          obtain ⟨w₂, hw₂⟩ := wasteIs_head hg₀.1
+          injection hw₂.symm.trans hw₀ with hc₀ _
+          have hc : c = c₀ := hc₀.symm
+          subst hc
+          exact p_waste_seat_mirror hwf hstep hstep₀ htail hwit
+      | wasteToTab c₀ b₀ =>
+          obtain ⟨hg₀, w₁, ws₁, hw₁, -⟩ := step_wasteToTab_inv hstep₀
+          rw [Bool.and_eq_true] at hg₀
+          obtain ⟨w₂, hw₂⟩ := wasteIs_head hg₀.1
+          injection hw₂.symm.trans hw₀ with hc₀ _
+          have hc : c = c₀ := hc₀.symm
+          subst hc
+          by_cases hb : b₀ = b
+          · have hbb : b = b₀ := hb.symm
+            subst hbb
+            exact p_survives_sameHead hstep hrun hwit
+          · exact p_waste_seat_rest hwf hstep hivr hrun hwit
+              (Or.inr ⟨Move.wasteToTab c b₀, τ, rfl,
+                fun hcon => absurd hcon (by simp),
+                fun hcon => by
+                  injection hcon with _ hcc
+                  exact absurd hcc hb⟩)
+      | tabToFound c₀ =>
+          exact p_waste_seat_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.tabToFound c₀, τ, rfl,
+              fun hcon => absurd hcon (by simp),
+              fun hcon => absurd hcon (by simp)⟩)
+      | foundToTab c₀ b₀ =>
+          exact p_waste_seat_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.foundToTab c₀ b₀, τ, rfl,
+              fun hcon => absurd hcon (by simp),
+              fun hcon => absurd hcon (by simp)⟩)
+      | tabToTab c₀ b₀ =>
+          exact p_waste_seat_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.tabToTab c₀ b₀, τ, rfl,
+              fun hcon => absurd hcon (by simp),
+              fun hcon => absurd hcon (by simp)⟩)
+
+/-- **THE RAISE ARM'S NAMED REMAINDER** [H, named sub-residue,
+exactly one `sorry` — the raise kind's carried content once the
+head-case is dispatched]: the exhibiting play is EMPTY, or heads
+with a letter other than the very founding that committed (a
+different founding letter, a pull, a cargo slide, a waste letter,
+or a draw).
+
+ROUTE (complete; the open step named):
+
+1. THE KIND SUB-ROWS APPLIED (§§1, 3): the committed founding
+   empties the raised pile's chop and is one of exactly the two
+   census arms (`p_committed_raise_shape`: reveal — the hidden
+   head surfaces — or bare-non-king — the seat goes fully bare);
+   the founded card sits at its foundation top, returnable the
+   moment a fitting seat exists (§3's `founded_returnable_via_seats`,
+   both prongs); the zone cells are untouched (Table 1 flat
+   through the board letters); the reveal arm strictly drops the
+   hidden total (`hiddenTotal_step_tabToFound_reveal`) and never
+   rides back.
+2. THE RAISED-ROW SHADOW (the open step): the raised suit's rung
+   is one ahead of every pre-commit read, so a tail's
+   `tabToFound`/`foundToTab` legs on that suit consult a rung the
+   shadow does not carry — the same raised-row interference as
+   the waste-founding arm's step 2, read at the raise kind's own
+   grain; the census classification prices the exchange
+   (`census_tabToFound_witness`: the riding raise exchanges exact
+   cells with the exposed below-card — opposite family, index +
+   1, unfounded), and the seat re-issue schedule is the crown's
+   own content, consumed here as `founded_late_seat_exists`'s
+   installment.
+3. REMAINING CONTENT: the defusing-schedule repair TIME bound — a
+   measure strictly decreasing along the schedule that re-fires
+   the raise letters (and the founding's takeback) until a fresh
+   fork witness re-assembles; the rung bracket
+   (`witness_rung_census`-grade bookkeeping) is shared with the
+   Low-Slab program's own raise route, not re-priced here.
+
+PROBE PRICING: `fb1` IS this remainder's own board — the
+committed bare-non-king raise, its pair census untouched by the
+seat clause (`fb1S_forkSB`: the successor itself the fork,
+distance zero because the eaten cell was never pair content);
+the direct return seats refused (`fb1S_sealRefused`), the
+multi-leg expose-and-seat repair attested (`fb1_survives` rides
+the trivial journey — the LEGGED repair the probe did not need
+in that economy is what this remainder carries, with
+`fb2`/`fb3`'s one-leg corridors as the attained floor). -/
+private theorem p_raise_rest {s s' F : State} {c : Card} {x : Card}
+    {π : List Move}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToFound c) = some s')
+    (hivr : irreversibleAt s (Move.tabToFound c))
+    (hrun : s.run π = some F)
+    (hwit : ForkWitness F x)
+    (hprof : π = [] ∨ ∃ m₀ τ, π = m₀ :: τ ∧ m₀ ≠ Move.tabToFound c) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
   sorry
 
 /-- **`fork_floor_raise`** — **THE RAISE-LIKE KIND RESIDUE** [H,
@@ -700,7 +1945,29 @@ ROUTE (the kind read, complete):
    the raise letters (and the founding's takeback) until a fresh
    fork witness re-assembles; the rung bracket (`witness_rung_census`-grade
    bookkeeping) is shared with the Low-Slab program's own raise
-   route, not re-priced here. -/
+   route, not re-priced here.
+
+HEAD-CASES LANDED (this pass): `p_survives_sameHead` (§5.0: the
+exhibiting play heads with the very founding that committed, π =
+Move.tabToFound c :: τ, distance zero); and the input-shape
+dichotomy `p_committed_raise_shape` (§3): a committed founding at
+WF empties the raised pile's chop and is one of exactly the two
+census arms — reveal, or bare-non-king — so the defusing schedule's
+starting shape is pinned for this kind.
+
+ASSEMBLY STRUCTURE (this pass): the kind is now a DISPATCH over
+the exhibiting play's head, with the head-case CLOSED and the
+remainder isolated as its own NAMED SUB-RESIDUE (`p_raise_rest`
+below, per the isolation discipline): the exhibits heading with
+the very same founding ride `p_survives_sameHead` verbatim; the
+empty exhibit and the exhibits heading with a DIFFERENT founding
+letter, a pull, a cargo slide, or a draw fall to the remainder,
+whose premise records the excluded head.  The census
+classification the route names (`census_tabToFound_witness`'s
+two reversible arms — seated transfer, with the exposed below-card
+OPPOSITE family, index + 1, unfounded, and the bare-king
+departure) plus the bracket bar (`p_committed_raise_shape`) are
+the SIM SHAPE the remainder's schedule climbs from. -/
 private theorem fork_floor_raise {s s' : State} {c : Card}
     (hwf : s.WF)
     (hstep : State.step s (Move.tabToFound c) = some s')
@@ -709,6 +1976,101 @@ private theorem fork_floor_raise {s s' : State} {c : Card}
         s.run π = some F ∧ ForkWitness F x) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
         s'.run π' = some F' ∧ ForkWitness F' x' := by
+  obtain ⟨F, π, x, hrun, hwit⟩ := hhed
+  cases π with
+  | nil => exact p_raise_rest hwf hstep hivr hrun hwit (Or.inl rfl)
+  | cons m₀ τ =>
+      cases m₀ with
+      | draw =>
+          exact p_raise_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.draw, τ, rfl, fun hcon => absurd hcon (by simp)⟩)
+      | tabToFound c₀ =>
+          by_cases hc : c₀ = c
+          · have hcc : c = c₀ := hc.symm
+            subst hcc
+            exact p_survives_sameHead hstep hrun hwit
+          · exact p_raise_rest hwf hstep hivr hrun hwit
+              (Or.inr ⟨Move.tabToFound c₀, τ, rfl, by
+                  intro hcon
+                  injection hcon with hcc₂
+                  exact absurd hcc₂ hc⟩)
+      | wasteToFound c₀ =>
+          exact p_raise_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.wasteToFound c₀, τ, rfl,
+              fun hcon => absurd hcon (by simp)⟩)
+      | wasteToTab c₀ b₀ =>
+          exact p_raise_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.wasteToTab c₀ b₀, τ, rfl,
+              fun hcon => absurd hcon (by simp)⟩)
+      | foundToTab c₀ b₀ =>
+          exact p_raise_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.foundToTab c₀ b₀, τ, rfl,
+              fun hcon => absurd hcon (by simp)⟩)
+      | tabToTab c₀ b₀ =>
+          exact p_raise_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.tabToTab c₀ b₀, τ, rfl,
+              fun hcon => absurd hcon (by simp)⟩)
+
+/-- **THE REVEAL ARM'S NAMED REMAINDER** [H, named sub-residue,
+exactly one `sorry` — the reveal kind's carried content once the
+exact-slide head-case is dispatched]: the exhibiting play is EMPTY,
+or heads with a letter other than the very slide that committed (a
+different slide letter or a different base, a raise, a waste
+letter, a pull, or a draw).
+
+ROUTE (complete; the open step named):
+
+1. THE KIND SUB-ROWS APPLIED (§§1–2): the committed slide is one
+   of the two census-barred shapes — a REVEALING slide (the
+   source pile's deck pays its head; the hidden total strictly
+   drops, `journey_tabToTab_never_reveal` +
+   `hiddenTotal_step_tabToTab_reveal`) or a BARE BURN (the bare
+   source empties entirely, `bare_burn_irreversibleAt`); in both
+   the SOURCE PILE's face-up run departs whole, so the successor
+   differs from the commit predecessor exactly at the source
+   pile's record (revealed or empty) and at the cargo-landing
+   pile — the two-cell WRITE the schedule must absorb.  The
+   foundations and the whole draw zone are untouched (the
+   ratchet board is the tableau); the zone RE-ENTRY is closed by
+   the reveal cell of the pillar argument.
+2. THE TWO-CELL SHADOW (the open step): a tail leg consults the
+   written cells as soon as it reads the source pile's old top
+   (now covered or revealed) or seats on the moved run (whose
+   below-record changed at the landing pile) — the exhibits that
+   headed accordingly cannot replay verbatim, and the repair
+   re-schedules the slide so the mobile run re-forms at a
+   slab-side member; `census_tabToTab_inr_witness`'s identity-cell
+   neutrality (the exposed below-card sits in the consumed host's
+   exact cell) and the crane's loan-and-repay
+   (`excursion_issues_noNewSeat`) price which hosts the
+   arrangement can still issue on the way — the census LOANS
+   are the schedule's budget.
+3. REMAINING CONTENT: the defusing-schedule repair TIME bound
+   over the two-census-arm write — the multi-commit danger, the
+   probe program's surviving honest danger (the written cells
+   can never be un-written: the reveal arm's surfaced head never
+   re-hides, §1's own law), carried here and nowhere else.
+
+PROBE PRICING: `fb3`'s committed reveal channel is this
+remainder's own board (`fb3_revealA_commit`: jury-barred,
+monotone-graded) and its cascades are priced at decided grade —
+the surfaced low S-DEAD at the surfacing (`fb3W_lowSeatedBar`,
+the seat clause), the seated attempt another commitment
+(`fb3_seatTryCommit`), the seated state forkless with the twin
+entombed behind the frozen host (`fb3X_notFork`, `fb3X_twinBuried`)
+while the EAT arm's corridor was one leg (`fb3_survives`) — the
+evidence that even on the reveal-heavy economies the floor's
+danger is the schedule's LENGTH, not a break. -/
+private theorem p_reveal_rest {s s' F : State} {c : Card} {b : Base}
+    {x : Card} {π : List Move}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToTab c b) = some s')
+    (hivr : irreversibleAt s (Move.tabToTab c b))
+    (hrun : s.run π = some F)
+    (hwit : ForkWitness F x)
+    (hprof : π = [] ∨ ∃ m₀ τ, π = m₀ :: τ ∧ m₀ ≠ Move.tabToTab c b) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
   sorry
 
 /-- **`fork_floor_reveal`** — **THE REVEAL KIND RESIDUE** [H, named
@@ -729,7 +2091,30 @@ empty-anchor arm `census_tabToTab_inl` census-neutral); the crane
 (`excursion_issues_noNewSeat`) bounds the loan flows; the
 remaining content is again the defusing-schedule repair time bound
 (here: re-scheduling the slide so the mobile run re-forms at a
-slab-side member). -/
+slab-side member).
+
+HEAD-CASE LANDED (§5.0, this pass): `p_survives_sameHead` — when the
+exhibiting play heads with the very slide that committed (π =
+Move.tabToTab c b :: τ), the successor is the play's second state
+and the tail replays verbatim, distance zero.
+
+ASSEMBLY STRUCTURE (this pass): the kind is now a DISPATCH over
+the exhibiting play's head, with the exact-slide head-case CLOSED
+and the remainder isolated as its own NAMED SUB-RESIDUE
+(`p_reveal_rest` below, per the isolation discipline) — the
+empty exhibit, the OTHER-slide heads (same kind, different letter
+or different base), and the pull/raise/waste/draw heads fall to
+the remainder, whose premise records the excluded head.  The
+inventory datum the route name rides is §1's own:
+`hidden_never_grows` grades the source pile's reveal — the
+surfaced card is EXPANDED INVENTORY (face-up where a hidden deck
+was), census-minted at its own cell
+(`census_tabToTab_reveal`'s transfer) and priced against the
+seat clause immediately (a bare-over-hidden surfacing is S-DEAD
+at the surfacing itself, the fb3W datapoint); the loans the
+schedule takes on the way are crane-priced
+(`excursion_issues_noNewSeat` — a returned excursion issues no
+seat the arrangement did not already carry). -/
 private theorem fork_floor_reveal {s s' : State} {c : Card} {b : Base}
     (hwf : s.WF)
     (hstep : State.step s (Move.tabToTab c b) = some s')
@@ -738,7 +2123,48 @@ private theorem fork_floor_reveal {s s' : State} {c : Card} {b : Base}
         s.run π = some F ∧ ForkWitness F x) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
         s'.run π' = some F' ∧ ForkWitness F' x' := by
-  sorry
+  obtain ⟨F, π, x, hrun, hwit⟩ := hhed
+  cases π with
+  | nil => exact p_reveal_rest hwf hstep hivr hrun hwit (Or.inl rfl)
+  | cons m₀ τ =>
+      cases m₀ with
+      | draw =>
+          exact p_reveal_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.draw, τ, rfl, fun hcon => absurd hcon (by simp)⟩)
+      | tabToTab c₀ b₀ =>
+          by_cases hc : c₀ = c
+          · by_cases hb : b₀ = b
+            · have hcc : c = c₀ := hc.symm
+              subst hcc
+              have hbb : b = b₀ := hb.symm
+              subst hbb
+              exact p_survives_sameHead hstep hrun hwit
+            · exact p_reveal_rest hwf hstep hivr hrun hwit
+                (Or.inr ⟨Move.tabToTab c₀ b₀, τ, rfl, by
+                    intro hcon
+                    injection hcon with _ hbb
+                    exact absurd hbb hb⟩)
+          · exact p_reveal_rest hwf hstep hivr hrun hwit
+              (Or.inr ⟨Move.tabToTab c₀ b₀, τ, rfl, by
+                  intro hcon
+                  injection hcon with hcc₂ _
+                  exact absurd hcc₂ hc⟩)
+      | tabToFound c₀ =>
+          exact p_reveal_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.tabToFound c₀, τ, rfl,
+              fun hcon => absurd hcon (by simp)⟩)
+      | wasteToFound c₀ =>
+          exact p_reveal_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.wasteToFound c₀, τ, rfl,
+              fun hcon => absurd hcon (by simp)⟩)
+      | wasteToTab c₀ b₀ =>
+          exact p_reveal_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.wasteToTab c₀ b₀, τ, rfl,
+              fun hcon => absurd hcon (by simp)⟩)
+      | foundToTab c₀ b₀ =>
+          exact p_reveal_rest hwf hstep hivr hrun hwit
+            (Or.inr ⟨Move.foundToTab c₀ b₀, τ, rfl,
+              fun hcon => absurd hcon (by simp)⟩)
 
 /-- **`fork_floor_of_commit`** — **THE FORK-FLOOR CONJECTURE** (the
 program owner's statement, byte-frozen): if some fork `F` is
@@ -772,7 +2198,18 @@ dispatch):
   reclaim, per-cell, `roundtrip_census_repay`), and the remaining
   content is the defusing-schedule repair time bound — a strictly
   decreasing schedule measure from `s'` to a fresh fork witness.
-  Each kind's named residue above carries its own route.
+  Each kind's named residue above is now a DISPATCH ASSEMBLY
+  over its own named remainder row; the CLOSED fraction of every
+  route — the SAME-HEAD repair (`p_survives_sameHead`, every
+  kind), the CORRIDOR (the waste-eat's sibling-letter shape,
+  `p_waste_eat_corridor`), the MIRROR (the waste-seating's
+  founding-letter shape, `p_waste_seat_mirror`), and the
+  BOARD-ONLY EXHIBIT (the draw kind's `p_draw_board_repair` over
+  the certificate rod `p_fork_boardTransfer`) — is proved
+  in-file, so each kind's named remainder row
+  (`p_draw_zone_rest`, `p_waste_found_rest`, `p_waste_seat_rest`,
+  `p_raise_rest`, `p_reveal_rest`) carries exactly the non-head,
+  non-closed-shape defusing schedule alone.
 * THE FALSIFICATION TARGET (documented for round-3 probes — no
   boards added anywhere): single-family-fragile economies —
   exactly one viable frontier pair, everything else entombed —
@@ -797,9 +2234,10 @@ dispatch):
   `hbelow` premise at `s'` and concludes; the exhaustion row's
   own sorryAx is deliberately not made to flow here.
 
-GRADE: [H] overall; the five per-kind children each carry exactly
-one `sorry` with a complete route; the head adds none (audit
-below).  Statement VERBATIM from the mission; byte-frozen. -/
+GRADE: [H] overall; the five per-kind children are sorry-free
+ASSEMBLIES, each routing exactly one `sorry` through its own
+named remainder row, with a complete route; the head adds none
+(audit below).  Statement VERBATIM from the mission; byte-frozen. -/
 theorem fork_floor_of_commit {s s' : State} {m : Move}
     (hwf : s.WF)
     (hstep : State.step s m = some s')
@@ -823,20 +2261,71 @@ theorem fork_floor_of_commit {s s' : State} {m : Move}
 rows (§§1–4) banked-clean — `[propext]`-grade or
 `[propext, Quot.sound]`-grade through the banked step-inversion
 chain, zero `sorryAx`, zero `Classical.choice`; the seat-delay
-residue `founded_late_seat_exists` carries its own one `sorryAx`;
-the five §5 per-kind residues each carry exactly their one
-`sorryAx` over the banked chain; the main row
-`fork_floor_of_commit` is a pure dispatch and must read exactly
-`[propext, sorryAx, Quot.sound]` — its `sorryAx` flowing only
-through the five named children, `propext`/`Quot.sound` only
-through the banked clean chain (`lowslab_pull_never_commit_wf`'s
-side), no `Classical.choice` anywhere. -/
+residue `founded_late_seat_exists` is a THREE-DEEP ASSEMBLY —
+the proved dichotomy `p_committed_raise_shape` (§3), the proved
+immediate-seat arm (`p_seatOffered` + `p_seatOffered_iff` behind
+`p_founded_seat_schedule`'s dispatch: any base accepting the
+card closes the schedule at the EMPTY play), and the NAMED SUB-ROW
+`p_seat_climb_rest` (the expose-and-seat climb, the row's exact
+remaining content and its sole `sorryAx` carrier) — and reads
+`[propext, sorryAx, Quot.sound]`; the five §5 per-kind residues
+are now DISPATCH ASSEMBLIES over their own named remainder rows
+(`p_draw_zone_rest`, `p_waste_found_rest`, `p_waste_seat_rest`,
+`p_raise_rest`, `p_reveal_rest`), each remainder carrying
+exactly the one `sorryAx` of its kind over the banked chain; the
+main row `fork_floor_of_commit` is a pure dispatch and must read
+exactly `[propext, sorryAx, Quot.sound]` — its `sorryAx` flowing
+only through the five named children and their named sub-rows
+(the seat-delay row and its schedule are NOT consumed by the
+head), `propext`/`Quot.sound` only through the banked clean
+chains, no `Classical.choice` anywhere.
+
+THIS PASS added fresh PROVED heads, audited below — the repair
+kit of §5.0 and the shape row of §3 from the prior pass
+(kernel-observed: `p_pileOfTop_congr` reads NO axioms at all;
+`p_canPlace_congr`, `p_putCard_piles_congr` and
+`p_survives_sameHead` read `[propext]`; `p_committed_raise_shape`
+and `p_waste_eat_corridor` read `[propext, Quot.sound]` through
+the step-inversion/undo chain), plus the BOARD-THREAD KIT and the
+CLOSED FRAGMENTS of this pass — the run-lift `p_run_wf`, the
+license congruences `p_canRaise_congr` / `p_canRaiseS_congr`, the
+certificate rod `p_fork_boardTransfer`, the draw kind's
+`p_draw_board_repair`, the seating kind's `p_waste_seat_mirror`,
+the board-letter scan `p_boardMoveB` with its two rows, and the
+crown's seat scan `p_seatOffered` with `p_seatOffered_iff` — every
+one zero-`sorryAx`, zero-`Classical.choice` — plus SIX NAMED
+REMAINDER ROWS (`p_seat_climb_rest` under the schedule assembly,
+and the five per-kind rows under the five children), each exactly
+one `sorryAx` with a complete route; the sorry COUNT stays
+exactly the SIX, now all in named sub-rows (the children
+themselves are sorry-free assemblies), and
+`fork_floor_of_commit`'s profile is unchanged. -/
 
 #print axioms hidden_never_grows
 #print axioms two_zone_exits_playable
 #print axioms founded_returnable_via_seats
 #print axioms founded_late_seat_exists
 #print axioms draws_permute_only
+#print axioms p_pileOfTop_congr
+#print axioms p_canPlace_congr
+#print axioms p_putCard_piles_congr
+#print axioms p_survives_sameHead
+#print axioms p_waste_eat_corridor
+#print axioms p_committed_raise_shape
+#print axioms p_run_wf
+#print axioms p_canRaise_congr
+#print axioms p_canRaiseS_congr
+#print axioms p_fork_boardTransfer
+#print axioms p_draw_board_repair
+#print axioms p_waste_seat_mirror
+#print axioms p_seatOffered_iff
+#print axioms p_seat_climb_rest
+#print axioms p_founded_seat_schedule
+#print axioms p_draw_zone_rest
+#print axioms p_waste_found_rest
+#print axioms p_waste_seat_rest
+#print axioms p_raise_rest
+#print axioms p_reveal_rest
 #print axioms fork_floor_draw
 #print axioms fork_floor_waste_found
 #print axioms fork_floor_waste_seat

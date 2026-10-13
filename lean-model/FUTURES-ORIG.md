@@ -1,3 +1,22 @@
+<!-- TOC auto-generated 2026-10-13; titles only, stable under appends -->
+<!-- /TOC -->
+
+- ## 1. The vocabulary translation table, old → new
+- ## 2. The refutation ledger as formulation fences
+- ## 3. Candidate statements on Orig
+- ## 4. The window-content atom, translated to physical windows
+- ## 5. Open design decisions, each with the deciding evidence named
+- ## 6. Tickets for the formulating card (the recommended order)
+- ## 7. The corpus re-derivation list (witnesses to re-derive physically)
+- ## 8. The session ledger (UPDATE 2026-10-11: the (A) reserve row lands
+- ## 8-prior. The both-occupied harvest (2026-10-10 earlier, branch `macro-game`)
+- ## 10. The exchange-canon commutation card (2026-10-11, branch `orig-exch-canlaw`, rebased onto macro-game `47b1ad9`; landing-1 probe battery GREEN, the inherited backlog's first falsifier candidate FIRED)
+- ## 9. The pull-multiset determinism family — session orig-macro-determinism (STATUS 2026-10-11)
+- ## 9. The canon-side completion card (2026-10-11, branch `orig-canon-decompress`; landing-1 probe battery GREEN, all verdicts in)
+- ## 11. The V3-canonicalizer gating census (2026-10-11, branch `orig-canon-v3`, rebased onto macro-game `5ebef39`; the scaffold-pull fork-fix card, landing 1 AND the card's whole content — the census returns EMPTY, the doctrine closes)
+- ## 12. The corrected conjugation theorems — session orig-conjugate-proof (STATUS 2026-10-12, branch `orig-conjugate-proof`, rebased onto macro-game `07247ec` per the 8a0e121 recipe; the probe-first battery `probes/ConjugateProbe.lean` landed BEFORE any proof, all gates decidable #evals, all boards conservation-checked)
+- ## 13. The no-lock pairClass capstone — the orphan-seat axes close (STATUS 2026-10-12)
+
 # FUTURES-ORIG — the futures-count route map for the Orig chapter
 
 Doc-only design note (no Lean changes; no constant in the library is

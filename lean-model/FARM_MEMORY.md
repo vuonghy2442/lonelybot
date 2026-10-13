@@ -1,3 +1,144 @@
+<!-- TOC auto-generated 2026-10-13; titles only, stable under appends -->
+<!-- /TOC -->
+
+- ## Verification protocol (orchestrator)
+- ## Theorems.lean — defeq notes (2026-09-12)
+- ## Cycle.lean — the removeAt recipe (2026-09-12)
+- ## Bridge.lean — parsing gotchas + engine facts (2026-09-12)
+- ## Progress.lean — run_append recipe + trace hazard (2026-09-12)
+- ## Realizability.lean — Fits repair + realizable_of_wf (2026-09-12)
+- ## Progress.lean — trace repaired + reveal recipe (2026-09-12)
+- ## Board.lean — Wave 1 complete; sorryAx propagation gotcha (2026-09-12)
+- ## Progress.lean — trace death-propagation + run_eq_trace_last (2026-09-12)
+- ## Progress.lean — deckPile/deckStack shortens (2026-09-13)
+- ## Move.lean — apply_wf UNSOUND: two prover-confirmed holes (2026-09-13)
+- ## Move.lean — landed WF repair: #1/#2 closed; #3/#4 residual (2026-09-13)
+- ## Progress.lean — Wave 0 COMPLETE: the two ≤ bashes (2026-09-13)
+- ## Move.lean — WF2 landed: #3/#4 closed, #5 residual; helper kit in (2026-09-13)
+- ## Progress.lean — Wave 4: play_cut_loop + cycle theorem (2026-09-13)
+- ## Initial.lean — initial_wf proven (orchestrator, 2026-09-13)
+- ## Move.lean — WF2 landed: #3/#4 closed, #5 residual; helper kit in (2026-09-13)
+- ## Progress.lean — solvable_iff_distinctTrace PROVEN (2026-09-13)
+- ## Theorems.lean — roundtrip + draw_full_cycle PROVEN (orchestrator, 2026-09-13)
+- ## Theorems.lean — relabelBy DEF REPAIRED (orchestrator, 2026-09-13)
+- ## ERGONOMICS REFRACTORING LANDED (2026-09-13)
+- ## Pace.lean (wave 8, the draw pacing) — paid-for facts
+- ## Pace.lean follow-up (2026-09-13) — the divergence resolved in the
+- ## machine, not the statement
+- ## apply_wf PROVEN (orchestrator, 2026-09-13)
+- ## Progress.lean — Wave 4 COMPLETE: boundedPlay + decidable (2026-09-13)
+- ## Move.lean — apply_flipAll + solvable_flipAll PROVEN (2026-09-13)
+- ## Theorems.lean — apply_relabel + solvable_relabel PROVEN (2026-09-13)
+- ## Realizability.lean — uncovered_eq_freeType PROVEN; file fully proven (2026-09-13)
+- ## Macro.lean — commitApplies repair (UNSOUNDNESS, def-level, sign-off pending) (2026-09-13)
+- ## Macro.lean — Wave 7 both items PROVEN + the dealN kit (2026-09-13)
+- ## WAVE-REPORT: the farm at 54 sorries (2026-09-13, post-consolidation-wave)
+- ## CONSOLIDATION-1: twin pair is now 2-line corollaries (2026-09-13)
+- ## CONSOLIDATION-2: Klondike/Kit.lean — the shared kit extracted (2026-09-13)
+- ## Theorems.lean — commutation wave: 4 items LANDED (2026-09-13)
+- ## Dominance.lean — Wave 5 POR bridge: refuted, repaired, PROVEN (2026-09-13)
+- ## Bridge.lean — toEngine_simulates PROVEN (repair: +hwf) + the toolkit (2026-09-13)
+- ## Bridge.lean — toEngine_lifts + engine_iff REFUTED as stated (2026-09-13)
+- ## Theorems.lean — drawTo_comm_modAdjacent REPAIRED (was FALSE) + the commutation kit (2026-09-13)
+- ## State/Move/Initial/Realizability/Bridge — the invariant-layer repair (2026-09-13)
+- ## SIGN-OFF (orchestrator, accepted): drawTo_comm_modAdjacent's step guard
+- ## Dominance.lean — Wave 5: safe_pileStack REFUTED+repaired; deckPile PROVEN (2026-09-13)
+- ## Theorems.lean — Wave 9 + the forest rescope (2026-09-13)
+- ## Bridge.lean — toEngine_lifts REFUTED AGAIN (mirror hole; UNSOUND as stated) (2026-09-13)
+- ## WAVE-8 ADJUDICATIONS (orchestrator, 2026-09-13)
+- ## Dominance.lean — Wave 5 core: the R/N reduction landed; cancel identity; §5.2 gap (2026-09-13)
+- ## Theorems.lean — the seven-item wave: the cursor-blindness API + commute_of_disjoint_touch (2026-09-13)
+- ## WAVE-9 ADJUDICATIONS (orchestrator, accepted)
+- ## Theorems.lean — solvable_accommodates REFUTED as staged + repaired + decomposed (2026-09-13)
+- ## WAVE-10 ADJUDICATION (orchestrator, accepted): solvable_accommodates + hwf
+- ## Theorems.lean SPLIT (2026-09-13) — Relabel + Commutation + facade
+- ## WITNESS ARCHIVE (2026-09-13)
+- ## State/Board/Theorems/Dominance — the B4-critical upstream lifts (2026-09-13)
+- ## TOOLCHAIN MIGRATION: v4.30.0-rc2 -> v4.33.1 (2026-09-13)
+- ## Macro.lean — the physical-game pace reachability (2026-09-13)
+- ## Pace.lean — waves 8/10: all six items LANDED (2026-09-13)
+- ## Pace.lean — realizes_iff_stepsOK PROVEN (+hpure repair) (2026-09-13)
+- ## Dominance.lean — cascade_sound REFUTED+repaired+PROVEN (2026-09-13)
+- ## Macro.lean — the pace dominances ALL FIVE LANDED (2026-09-13)
+- ## Theorems.lean — the crux REFUTED as staged, repaired (+hnotlock), case kit landed (2026-09-13)
+- ## Consolidation-3 — dedup landed, combinators API'd, sites deferred (2026-09-13)
+- ## Theorems.lean — the crux: the first-move kit LANDED, endgame blocked (2026-09-13)
+- ## Macro.lean — C1 PROVEN (→ needed a DEF REPAIR) (2026-09-13)
+- ## witnesses — the regression layer, resumed (2026-09-13)
+- ## Dominance.lean — the cluster: repair landed, reserve lemma landed (2026-09-14)
+- ## ENDGAME.md — the route reading (2026-09-14)
+- ## TwinSwap.lean — aboveOf_congr_off PROVEN, twin line sorry-free (2026-09-14)
+- ## Theorems.lean — the W1/W2 scaffold + W3-adjacent LANDED (2026-09-14)
+- ## Frame.lean — the separation discipline LANDED sorry-free (2026-09-14)
+- ## TwinExchange.lean — wave-15 scaffold findings (2026-09-14)
+- ## ENDGAME §8 — the W4 drafts (2026-09-14)
+- ## TwinExchange.lean — the [M] row CLOSED: the backward-transfer collapse (2026-09-14)
+- ## Theorems/Frame — W3 spread LANDED sorry-free (2026-09-14)
+- ## TwinExchange.lean — the [H] row's obstruction map (2026-09-14, session 2)
+- ## TwinExchange.lean — the freedom-first bridge LANDED (2026-09-14, session 3)
+- ## Theorems - W4 certificate form LANDED, descent isolated (2026-09-14)
+- ## TwinExchange.lean — the prefix-induction mechanics LANDED (2026-09-14, session 4)
+- ## TwinExchange.lean — the mechanics table COMPLETE (2026-09-14, session 5)
+- ## TwinExchange.lean — the premise-transfer substrate begun (2026-09-14, session 6)
+- ## Theorems — c-alpha LANDED sorry-free (2026-09-14)
+- ## Board/Tactics — Phase 0 landed by interrupted agents, verified by orchestrator (2026-09-14)
+- ## TwinExchange.lean — THE GATE FIRED: the premiseless [H] form REFUTED, repaired `+hwf` (2026-09-14, session 7)
+- ## Session note (2026-09-16, parallel gate session — the CIRCULAR family probed: w15circ.lean)
+- ## Session note (2026-09-16, the clean-stacks cut - the twin exchange's reachable form PROVEN)
+- ## Session note (2026-10-05, the K1 farm session - the keystone/frontier/K1 trio PROVEN, Kills.lean sorry-free except K2)
+- ## Kills/Movability — the K2 session's paid facts (2026-10-05)
+- ## TwinSwapCompletion.lean - T O1/O3 window LANDED sorry-free (2026-10-05)
+- ## 2026-10-05 - the C2-streamlined session (Klondike/C2Streamlined.lean; wave-17)
+- ## Movability.lean sorry-free — the §8.7 equivalence session (2026-10-05)
+- ## Session note — the catchup-residue session (2026-10-05, TwinSwapCompletion owned in place; L1/O3(ii) general window LANDED)
+- ## Session note — the succ_labeled witness session (2026-10-05, wave 19: the anchored-head unseat REFUTED-with-witness)
+- ## Session note (2026-10-05) - the C2-rescope session (Klondike/C2Streamlined.lean; wave 19: the rung re-scope + the raise-ray core)
+- ## wave 20 note (2026-10-05, farm-c2-restoration session)
+- ## wave 21 note (2026-10-05, farm-pile-swap-symmetry session)
+- ## wave 21 note (2026-10-05, farm-pile-quotient session)
+- ## Wave 21 note (2026-10-05, restriction-final session) — fragment 2 (stockful) + the B2 skeleton; what landed and the honest residues
+- ## TwinSwapCompletion.lean — the clean-corridor mirror's mechanics (wave 21, 2026-10-06)
+- ## Session note (2026-10-05) — the wave-21 corpus-probe session (engine-side measurement, repro15 harness quirks)
+- ## Wave 21 (non-king count session) — decide-first outcomes + elaboration traps
+- ## Wave 23 note (2026-10-10, farm-vacate-prunable session — Dominance's vacate row)
+- ## Orig/Dominance.lean — the draw-1 replay's probed route corrections (the B session, 2026-10-10)
+- ## Orig/Dominance.lean — the C session's engine quirks (the normalForm skeleton, 2026-10-10)
+- ## Orig/Dominance.lean — the A session's cycle arithmetic (the sameCycle row, 2026-10-11)
+- ## Orig/Dominance.lean — the bare-floor skeleton: the replay recipe's six traps (2026-10-11, farm-orig-dom-n-ground @ 7bf0ccc)
+- ## Wave 24 finds (orig-pileswap-vacate, ORIG vacate / PileSwap)
+- ## Session note (2026-10-11, the orig-dedup-collapse session, branch
+- ## farm/orig-dedup-collapse) — waves 1-2 LANDED
+- ## Session note addendum (same wave session — wave 3 LANDED on
+- ## farm/orig-dedup-collapse-2: 3a/3b/3c)
+- ## Session note (2026-10-11, wave 3d - proof-INTERNAL dedup in
+- ## TwinExchangeBoth, the fragment-audit method)
+- ## Operational — the W2/W3 checkpoint cadence + the splicing incident (the B2 session, 2026-10-11)
+- ## Session note (2026-10-11, wave 3e follow-up map - the pointwise
+- ## putRun piles readers + the 52-site conversion recipe)
+- ## Session note (2026-10-11, wave 3g + the waste-successor merge
+- ## resolution, macro-game 7d70cac/098b1ed)
+- ## Operational — the stale-olean axiom read (the B2 landing audit, 2026-10-11)
+- ## Operational — the shared-checkout era, three strikes and the read-storm (2026-10-11, waves 24.5-24.6)
+- ## Session note (2026-10-11, wave 3q NEGATIVE result - the Phase
+- ## cycle-literal family is def-extraction-hostile)
+- ## Session note (2026-10-11, the dedup-collapse CAMPAIGN CLOSED -
+- ## full-tree battery green)
+- ## Session note (wave-24 spread-core, farm/orig-dom-spread-core @ 4e27609, 2026-10-11)
+- ## Orig-Decompress card (branch orig-canon-decompress) - the session close-out (2026-10-11)
+- ## Orig/TwinExchangeQuotient.lean — the exch-canlaw card's engine notes (2026-10-11, orig-exch-canlaw)
+- ## THE MACRO-FLOOR WAVE (orig-macro-floor branch, the Tier-0/1 skeleton rows; 2026-10-11)
+- ## Session note (2026-10-11, orig-macro-determinism - the descent-
+- ## determinism rows of Orig.MacroInternal, three lesson rows)
+- ## Session note (2026-10-11, orig-successor-completion @ the successor-program completion card - the waste-entry datum upgrade, the third-row stack-event spec, the tab-seat audit; three lesson rows)
+- ## Operational — the V3 census card close-out (2026-10-11, branch `orig-canon-v3`, the census returns EMPTY, the scaffold-pull rule retires)
+- ## Operational — the landings 3+4 close-out (2026-10-11, branch `orig-canon-v3`: the case table, the selector, the sandwich — and the decide-trap that cost a rebuild)
+- ## Orig/ForkStateUniq.lean — the forkState-unique landing's gotchas (2026-10-11)
+- ## Orig/ForkStateUniqGate — the maximality-transport falsifier session (2026-10-11)
+- ## Orig/ForkSpectrumProof — the fork-spectrum falsifier session (2026-10-11)
+- ## ConjugateProof.lean — the toolchain quirks of the conjugation card (2026-10-12)
+- ## The pairClass capstone campaign — the orphan-seat axes' banked lessons (2026-10-12)
+- ## The capstone certification + the consolidation campaign (2026-10-12/13, macro-game)
+
 # FARM_MEMORY — the prover agents' shared quirks & syntax ledger
 
 Append-only shared memory for all farm agents. Protocol:
@@ -4376,4 +4517,5 @@ checkpoints.
 - THE HYPOTHESIS-PACK AUDIT FINDING: `forkState_sameFamily_samePair` carried NINE premises whose proof used exactly TWO — the suit-family disjunction and the rank pin (a pure card-naming lemma, `conf_card_of_suit_toIdx` twice + the twin flip). Collapsed to three premises, grade improved `[propext, Quot.sound]` → `[propext]`. Mission-frozen premise packs are for RESIDUE cards mid-chase (`set_option`-silenced documented binders, the CrossFamily-kick convention, kept); a LANDED row whose body runs through one sub-argument should get the audit — the dead premises are load-bearing documentation until they are pure fiction.
 - THE CERTIFICATION LEDGER: `forkState_pairClass : [propext, Quot.sound]` — zero `sorryAx`, zero `Classical.choice` at ANY depth. The arc: `cross_orphan_seat` proved (5dfbe5f), PairConfine's upward axis closed (bd7c098), the nil census killed by the origin-anchored crash (d0793dd), the composition-head promotion certified (1c1f872), the dead ρ-tail chase retired with its last sorry and its choice leak (d80c54f, −3,171 lines), `FoundKit` + the hypothesis cleanup (48f6e65), the cross-file dedup lane (a8c1747), and the `ForkKit.fork_nextUpExile_crash` extraction (Phase B). The accepted terminal grade is `[propext, Quot.sound]` — `choice` was the axiom worth scrubbing (it erases computational content; propext/Quot.sound are constructive-benign and ride every simp-on-Prop and the macro-setoid layer by design).
 - THE POWERSHELL HASHTABLE-FLATTENING TRAP (nearly ate PairClass whole): a `foreach` over `$map[f]` where the entry is `@( @('old','new') )` — a SINGLE-pair array-of-pairs — enumerates the INNER array's ELEMENTS, so `$pair[0]`/`$pair[1]` deliver the first/second CHARACTERS and `.Replace('p','c')` + `.Replace('S','e')` detonate silently over the whole file (symptom: `import→imcort`, `forkState→forketate`). Multi-pair entries enumerate their inner arrays correctly — the bomb only arms on single-pair files. CURES that worked: the corruption is a compiler-visible grep away (`imcort|forketate`); `git checkout --` restores tracked-and-committed files perfectly; and after ANY bulk-string edit, grep the swap VERIFIED (count `SeedKit.` hits — zero hits on a swapped file is the tell) before building. Prefer the Edit tool with exact strings for anything under ~10 sites; script only with `[object[]]`-typed pair arrays.
-- LANDED SINCE THE ENTRY ABOVE: the §0 SeedKit promotion (the queue's item 2, PAID the same session — `SeedKit` in `Orig/RunOrTwin.lean` now owns `color_pair`/`rankColor_pair`/`runOK_adjacent_fit`/`suit_family` public, `[propext]` × 4, and ALL thirteen per-file private copies are struck tree-wide — PairConfine's conf_ quads, OriginLock's lock_ trio, CrossFamily's xfam_ rows, CrossFamilyStatic's xstat_ pair, PairClass's pc_suit_family (whose §0 is now EMPTY, the capstone citing the seed kit), ForkStateS's runOK_adjacent_fit — the full 38-job cone rebuild green, capstone `[propext, Quot.sound]` re-verified).  STILL QUEUED: (C) the exodus-seating census — the interval form of the orphan-seat law ("if `rungAt st₁ σ > rungAt st₂ σ`, every σ-card of rank in `[rungAt st₂ σ, rungAt st₁ σ)` is exiled and seated, fit-pinned"), the pigeonhole sharpening that turns any future dragged-card chase into cell-counting against a saturated lattice; and the optional SlabEquiv row-strike — cycle-checked safe (only LowSlab imports it) but the heavy PairConfine import is a real cost for four tiny rows; priced as skip-unless-annoyed.
+- LANDED SINCE THE ENTRY ABOVE: the §0 SeedKit promotion (the queue's former item 2, PAID — `SeedKit` in `Orig/RunOrTwin.lean` owns `color_pair`/`rankColor_pair`/`runOK_adjacent_fit`/`suit_family` public, `[propext]` × 4, and THIRTEEN per-file private copies struck tree-wide — the conf_ quads, the lock_ trio, the xfam_ rows, the xstat_ pair, PairClass's `pc_suit_family` (its §0 now empty, the capstone citing the seed kit), ForkStateS's `runOK_adjacent_fit`; the full 38-job cone rebuild green, capstone `[propext, Quot.sound]` re-verified).
+- PHASE C PAID THE SAME NIGHT (the queue's headline item): `exodus_seating_census` (`Orig/OriginLock.lean`, `[propext, Quot.sound]`) — the interval form of the orphan-seat law landed as a TWELVE-LINE WRAPPER once the bricks were banked: the height bridge's forward half founds the interval at the journey's start, the converse half unfounds it at the end (against the dropped rung), and `cross_orphan_seat` seats each exile — the whole research-grade "exodus census" collapsed to packaging, the payoff of the FoundKit + orphan-seat landings.  The pigeonhole sharpening is recorded in its docstring (the fit pins neighbor rank `i + 1`, so a width-`w` interval forces `w` distinct opposite-color face-up cells at the terminus — cell-counting replaces card-chasing against a saturated lattice).  Placement note: it lives in OriginLock rather than the orphan chapter because FoundKit sits above `Orig/OrphanSeat.lean` in the import DAG — a generalization's home is the lowest chapter that sees all its bricks.  STILL QUEUED: only the optional SlabEquiv row-strike (cycle-checked safe, priced as skip-unless-annoyed).

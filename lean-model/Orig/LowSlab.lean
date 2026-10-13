@@ -39,51 +39,68 @@ travels through the def alone — consumers keep compiling).
 * §3 The commit-grade support rows (all proved, zero-sorry, carried
   verbatim): `p_run_append`, `commit_exits_class`,
   `commit_blocks_class_return`.
-* §4 THE RESIDUE TREE (post probe-triage AND census swap): the
-  sufficiency, routed.  **THE EMPTY ARM** `fork_lowbridge_empty`
-  (proved): a committing member already on the slab closes by
-  itself.  **THE CLASS-LINK GLUE** `fork_lowbridge_commitGlue`
-  (proved): the duplicate's commit grade is free from the class
-  links alone.  THE PROVED CENSUS ROWS: `lowslab_draw_reversible_phase`
-  (the deduped Phase wrapper for the ≤-deal draw fragment),
-  `lowslab_pull_wf_undo` (PROMOTED at the probe-triage pass) with its
-  corollary `lowslab_pull_never_commit_wf` (the pull arm is VOID at
-  WF, theorem-grade).  THE NAMED RESIDUES (EIGHT, post-swap grades):
-  `lowslab_top_census` [H, SHRUNK at the swap: the seat transport is
-  banked (`Orig/HostCensus.lean`'s ledger family); the survivors are
-  the card-level bootstrap and the slab-side landing],
-  `lowslab_draw_emptyReversible` [M, shrunk to the long-waste cursor
-  loop], `fork_lowbridge_raise` [H: transport + commit-modes banked
+* §4 THE RESIDUE TREE (post probe-triage, census swap, commutation
+  swap AND the 2026-10-13 finale pass): the sufficiency, routed.
+  **THE EMPTY ARM** `fork_lowbridge_empty` (proved): a committing
+  member already on the slab closes by itself.  **THE CLASS-LINK
+  GLUE** `fork_lowbridge_commitGlue` (proved): the duplicate's commit
+  grade is free from the class links alone.  THE PROVED CENSUS ROWS:
+  `lowslab_draw_reversible_phase` (the deduped Phase wrapper for the
+  ≤-deal draw fragment), `lowslab_pull_wf_undo` (PROMOTED at the
+  probe-triage pass) with its corollary
+  `lowslab_pull_never_commit_wf` (the pull arm is VOID at WF,
+  theorem-grade).  LANDED AT THE FINALE (two long-pending residues
+  closed, both zero-sorry at `[propext, Quot.sound]`):
+  `lowslab_draw_emptyReversible` — the empty-stock draw at a
+  POSITIVE step size is UNDOABLE across the whole regime: the ≤-deal
+  half is the Phase wrapper's, the long-waste half is the
+  recycled-arrangement block induction (`zone_loop_terminal` +
+  `zone_loop_return`: the invariant `x.waste.reverse ++ x.stock = S`
+  carries verbatim leg by leg, the intermediate stock length is the
+  measure, the clipped terminal deal restores the arrangement
+  exactly) — and `fork_lowbridge_draw` — the draw-kind replay,
+  fully paid by the sibling's cleaned commutation kit
+  (`chain_assembly` + `interleave_leg_conjugation`, the two public
+  WF-free scaffold rows, plus this file's cycle-pin kit and the
+  `EdgeKit` firing pair): the FORK ITSELF is the duplicate for
+  every fired committed draw at any class member, the landing
+  classes weld for free, and the old (A)/(B) case split, the
+  dashed-witness transport and the wild-grade (B) gap are all
+  retired.  The waste rows are now PROVED ROUTERS (the waste-shrink
+  pass) over two shared named subsets: `lowslab_waste_reseat` [H —
+  the cursor rail + the hot bracket at ONE slab member] and
+  `lowslab_waste_targetclass` [H — the dashed-witness transport
+  welding the two landings]; the waste kind's guard-refusal
+  transport itself is LANDED in-file at the finale
+  (`waste_head_refusal`: the shifted cursor refuses both waste
+  letters outright; `witness_zone_flat`: a board-only witness
+  journey carries the two-zone cells verbatim — the cursor
+  coincidence's draw-free leg, and the refusal its one-way bound).
+  THE NAMED RESIDUES (SIX, finale
+  grades): `lowslab_top_census` [H: the seat transport banked
+  upstream (`Orig/HostCensus.lean`'s ledger family); the survivors
+  are the card-level bootstrap and the slab-side landing],
+  `fork_lowbridge_raise` [H: transport + commit-modes banked
   (`census_tabToFound_witness`, `bare_lift_irreversibleAt`); the
-  rung bracket survives per the seats-vs-rungs adjudication],
+  bracket's transfer mechanics landed in-file
+  (`lowslab_bracket_transfer`), the σ-letter net census survives per
+  the seats-vs-rungs adjudication],
   `fork_lowbridge_reveal` [H: cargo transport + commit-modes banked
   (`census_tabToTab_inr_witness`, `bare_burn_irreversibleAt`); the
-  card-level re-scheduling survives],   `fork_lowbridge_waste_found`
-  [M — the CURSOR COINCIDENCE is now theorem-grade (the commutation
-  swap: `board_run_congr` carries the zone verbatim; the probe's
-  shifted-cursor refusal transports); the survivors are the
-  HOT-BRACKET (a rung question, the raise row's family) and the
-  shared DASHED-WITNESS TRANSPORT],
-  `fork_lowbridge_waste_seat`
-  [M: same, the landing base census-priced],   `fork_lowbridge_draw` [H — SUBCONTRACTED at the commutation swap:
-  the draw-free case rides `drawfree_commute_ reach`/`_witness` (the
-  dashed thread lands PHASE-EXACTLY, banked upstream) plus one named
-  [M] piece (the DASHED-WITNESS TRANSPORT); the interleaved case is
-  CITED as `interleave_phase_align` (the sibling's own single
-  residue, WF-graded, its sorryAx flowing transitively when cited
-  in a built proof — the wild-grade (B) is the flagged gap); at a
-  WF gate the draw-kind closes to assembly + cite],
-  `fork_lowbridge_pull` [H, WILD-REMAINDER ONLY: the WF arm retired
-  into the corollary; the row survives for the WF-free statement's
-  wild members].  Each residue carries a complete priced route with
-  the probe evidence folded in (`Orig/LowSlabProbe.lean`); the census
-  swap is applied row by row (the old HOSTCENSUS SWAP-POINT labels
-  now read POST-SWAP with the consumed rows named), and NOTHING
-  consumes the sibling's own residue `witness_leg_mint_confined`.
-  The private dispatcher `fork_lowbridge_elevated` (proved,
-  zero-sorry) routes the six constructor arms through the assemble
-  row.  The main head concludes by the empty/elevated dichotomy —
-  its proof is a short routing skeleton and nothing else.
+  card-level re-scheduling survives], `lowslab_waste_reseat` [H: the
+  shifted-cursor refusal on record as the boundary datum, the
+  cursor-orbit re-scheduling onto a slab member] and
+  `lowslab_waste_targetclass` [H: the per-leg dashed-witness weld],
+  and `fork_lowbridge_pull` [H, WILD-REMAINDER ONLY: the WF arm
+  retired into the corollary; the row survives for the WF-free
+  statement's wild members].  Each residue carries a complete priced
+  route with the probe evidence folded in
+  (`Orig/LowSlabProbe.lean`), and NOTHING consumes the sibling's own
+  residue `witness_leg_mint_confined`.  The private dispatcher
+  `fork_lowbridge_elevated` (proved, zero-sorry) routes the six
+  constructor arms through the assemble row.  The main head
+  concludes by the empty/elevated dichotomy — its proof is a short
+  routing skeleton and nothing else.
 
 GRADE NOTE (the design decision, kept): the theorem is stated at the
 PROGRAM'S OWN commit grain — `irreversibleAt`, the full no-return
@@ -301,50 +318,173 @@ theorem lowslab_draw_reversible_phase {u : State}
     reversibleAtW u Move.draw :=
   draw_reversible_selfRecycleW hempty hw hsize
 
-/-- **THE CURSOR LOOP ROW** `lowslab_draw_emptyReversible` [M,
-shrunk at the probe-triage pass] — an empty-stock draw at a positive
-step size is UNDOABLE, so a COMMITTED draw can never fire at an empty
-stock.
+/-- **THE ZONE-LOOP TERMINAL** (support for `zone_loop_return`) — at
+an exhausted stock the loop invariant closes the state: the
+reassembled waste is the arrangement's own reverse, every other
+field rode verbatim, so the loop's returned state IS its origin (the
+empty play returns). -/
+private theorem zone_loop_terminal {x u : State} {S : List Card}
+    (hds : x.drawStep = u.drawStep)
+    (hstock : u.stock = ([] : List Card))
+    (hw : u.waste = S.reverse)
+    (hinv : x.waste.reverse ++ x.stock = S)
+    (hp : x.piles = u.piles) (hf : x.found = u.found)
+    (hnil : x.stock = ([] : List Card)) :
+    ∃ play, x.run play = some u := by
+  have hrev : x.waste.reverse = S := by
+    rw [hnil, List.append_nil] at hinv
+    exact hinv
+  have hxu : x = u :=
+    State.ext hf hp (hnil.trans hstock.symm)
+      (by rw [← List.reverse_reverse x.waste, hrev, hw]) hds
+  exact ⟨[], by rw [hxu]; rfl⟩
 
-ROUTE (post-dedup; each step banked, mechanical, or the rows this
-tree names):
+/-- **THE LONG-WASTE ZONE LOOP** (the recycled-arrangement block
+induction — `lowslab_draw_emptyReversible`'s landing engine) — from
+any state `x` whose two-zone cells read as one recycled arrangement of
+`S` (the invariant `x.waste.reverse ++ x.stock = S`), a concatenated
+play of draws returns `x` to the origin `u` (whose arrangement is the
+reverse: `u.stock = []`, `u.waste = S.reverse`).
 
-1. DICHOTOMY at the draw: `hstep` at an empty stock forces the waste
-   nonempty (the both-empty draw refuses to fire: the recycle is the
-   identity and the deal at an empty stock is `none`), and `draw_unfold`
-   (`Orig/Play.lean`) reads the leg as one recycle then one
-   `dealUpTo` — the two-zone arrangement of the same multiset
-   (`cycle_zone_pin`, `Orig/SlabEquiv.lean`).
-2. THE ≤-DEAL FRAGMENT IS BANKED — OUTSOURCED, not re-derived: Phase's
-   `draw_reversible_selfRecycleW`, cited through the proved wrapper
-   `lowslab_draw_reversible_phase` above: when the whole waste fits
-   one deal the draw is a no-op.
-3. THE LONG-WASTE CURSOR LOOP — THE ROW'S WHOLE OPEN CONTENT
-   (`waste.length > drawStep`): the block induction on the recycled
-   arrangement's length: each draw peels at most `drawStep` heads of
-   the current stock into the waste (the measure: the intermediate
-   stock length; the invariant: `waste = the reversed peeled prefix`),
-   and the TERMINAL CLIPPED DEAL — the stock shorter than one deal —
-   saturates the take and restores the pre-draw arrangement exactly
-   (`dealUpTo_eq_take_drop`'s take/drop split plus
-   `sequ_mem_of_reverse`-flavored arithmetic).  THE WITNESS: the
-   concatenated draw play of the inductive length.
-4. PROBE NOTE (`Orig/LowSlabProbe.lean`, decide-grade): the
-   contrapositive side is instantiated on-board — draws at NONEMPTY
-   stock are pristine-grade commitments at the lb-boards
-   (`lb0_drawCommit`/`lb1_drawCommit`), and the draw-commit's slab
-   duplicate is exhibited end-to-end (`lb1_dup`) — the row's consumer
-   `fork_lowbridge_draw` has worked evidence at both ends.
+THE RECEIPT (each step banked or definitionally mechanical):
 
-HOSTCENSUS SWAP-POINT: the sibling census program's deals-draw rows
-(guaranteed-restore draw censuses) may replace step 3 wholesale; the
-swap target is this row's step-3 induction. -/
+1. THE FIRE: while the stock is nonempty every draw fires
+   (`plain_draw_shape`: the deal at a nonempty stock reads the stock
+   alone) and peels ONE DEAL of its heads into the waste, reversed,
+   onto the old waste — `dealUpTo` is the take/drop split
+   (`dealUpTo_eq_take_drop`, `Orig/Play.lean`).
+2. THE INVARIANT: the peeled block re-appends as the arrangement's
+   next prefix chunk — `(peeled ++ x.waste).reverse ++ x.stock.drop k
+   = x.waste.reverse ++ (x.stock.take k ++ x.stock.drop k) = S`
+   (`List.reverse_append`, `List.reverse_reverse`, `List.append_assoc`
+   and `List.take_append_drop`) — so the invariant rides verbatim
+   through every leg, and with it the piles, the founds and the deal
+   size (`stepDraw_piles`, `stepDraw_found`, `draw_drawStep`).
+3. THE MEASURE: the intermediate stock length strictly drops by the
+   positive deal size each leg (`List.length_drop`), so the fuel
+   induction terminates; the terminal stock-empty case is
+   `zone_loop_terminal` — the clipped take saturates and the state
+   coalesces to the origin field-for-field. -/
+private theorem zone_loop_return : ∀ (fuel : Nat) (x u : State) (S : List Card),
+    0 < u.drawStep →
+    x.drawStep = u.drawStep →
+    u.stock = ([] : List Card) →
+    u.waste = S.reverse →
+    x.waste.reverse ++ x.stock = S →
+    x.piles = u.piles →
+    x.found = u.found →
+    x.stock.length ≤ fuel →
+    ∃ play, x.run play = some u := by
+  intro fuel
+  induction fuel with
+  | zero =>
+      intro x u S _hpos hds hstock hw hinv hp hf hlen
+      exact zone_loop_terminal hds hstock hw hinv hp hf
+        (by
+          cases hsX : x.stock with
+          | nil => rfl
+          | cons d ds => rw [hsX, List.length_cons] at hlen; omega)
+  | succ f ih =>
+      intro x u S hpos hds hstock hw hinv hp hf hlen
+      cases hstx : x.stock with
+      | nil => exact zone_loop_terminal hds hstock hw hinv hp hf hstx
+      | cons c cs =>
+          have hx1 : 1 ≤ x.stock.length := by
+            rw [hstx, List.length_cons]; omega
+          have hkey : ∃ y, State.step x Move.draw = some y ∧
+              y.stock = x.stock.drop x.drawStep ∧
+              y.waste = (x.stock.take x.drawStep).reverse ++ x.waste := by
+            refine ⟨{ x with stock := x.stock.drop x.drawStep, waste := (x.stock.take x.drawStep).reverse ++ x.waste },
+              plain_draw_shape (by rw [hstx]; simp), rfl, rfl⟩
+          obtain ⟨y, hfire, hys, hyw⟩ := hkey
+          have hsDy : State.stepDraw x = some y := hfire
+          have hinv' : y.waste.reverse ++ y.stock = S := by
+            rw [hyw, hys, List.reverse_append, List.reverse_reverse,
+              List.append_assoc, List.take_append_drop x.drawStep x.stock, hinv]
+          have hlen' : y.stock.length ≤ f := by
+            rw [hys, List.length_drop]; omega
+          obtain ⟨play, hrun⟩ :=
+            ih y u S hpos ((EdgeKit.stepDraw_drawStep hsDy).trans hds) hstock hw hinv'
+              ((stepDraw_piles hsDy).trans hp) ((stepDraw_found hsDy).trans hf) hlen'
+          exact ⟨Move.draw :: play,
+            p_run_append x [Move.draw] play y u (run_one hfire) hrun⟩
+
+/-- **THE CURSOR LOOP ROW** `lowslab_draw_emptyReversible` — LANDED at
+the finale (2026-10-13, the long-pending [M] residue closed) — an
+empty-stock draw at a POSITIVE step size is UNDOABLE, so a COMMITTED
+draw can never fire at an empty stock in the committed regime: the
+waste never fits in the recyclable dead zone (the fired draw refuses
+outright when the waste is empty).
+
+THE RECEIPT (the old route's three steps, all banked or landed):
+
+1. DICHOTOMY AT THE DRAW: `hstep` at an empty stock forces the waste
+   nonempty — the both-empty draw refuses to fire (the recycle is the
+   identity and the deal at an empty stock is `none`
+   (`recycle_allEmpty` + `dealStock_nil`), contradiction with the
+   fired `hstep`) — and `base_draw_shape` (`Orig/Phase.lean`) reads
+   the leg as one recycle then one clipped deal: the waste reverses
+   into the stock and one deal peels back off it.
+2. THE ≤-DEAL FRAGMENT — BANKED: the Phase wrapper
+   `lowslab_draw_reversible_phase` above (the whole waste fits one
+   deal: the draw restores the arrangement in place, `s₁ = u`, the
+   empty play returns).
+3. THE LONG-WASTE CURSOR LOOP — LANDED HERE as `zone_loop_return`:
+   the block induction on the recycled arrangement (the invariant
+   `x.waste.reverse ++ x.stock = S` carried verbatim leg by leg, the
+   measure the intermediate stock length strictly dropping by the
+   positive deal size, the terminal clipped deal saturating the take
+   and restoring the pre-draw arrangement exactly), with the
+   inductive draw count as the witness play from `s₁` back to `u`.
+   Draws write only the two zone cells, so piles, founds and the deal
+   size ride verbatim — the returned state IS the origin
+   (`zone_loop_terminal`'s field-for-field close).
+
+PROBE NOTE (`Orig/LowSlabProbe.lean`, decide-grade): the loop form is
+instantiated on-board at the cursor boards — the two-leg zone loop at
+`wb0`/`wbW` (`wb0_draw`/`wbW_draw`: the clipped second deal restores
+the arrangement exactly, both legs `reversibleAtW` with each other as
+mirrors) is this row's witness play of length one; the contrapositive
+side stays on record at the lb-boards (`lb0_drawCommit` /
+`lb1_drawCommit` — draws at NONEMPTY stock are pristine-grade
+commitments there).  The row's consumer `fork_lowbridge_draw` needs
+none of this (the cycle pin suffices for the class replay); this row
+is the fired/no-op dichotomy's own [M] piece, now closed. -/
 private theorem lowslab_draw_emptyReversible {u s₁ : State}
     (hds : 0 < u.drawStep)
     (hempty : u.stock = [])
     (hstep : State.step u Move.draw = some s₁) :
     reversibleAtW u Move.draw := by
-  sorry
+  -- step 1: the both-empty refusal pins the waste nonempty
+  by_cases hw : u.waste = []
+  · have hsD : State.stepDraw u = some s₁ := hstep
+    rw [show State.stepDraw u = State.dealStock (State.recycle u) from rfl,
+      show State.recycle u = u from recycle_allEmpty u hempty hw,
+      dealStock_nil u hempty] at hsD
+    exact absurd hsD (by simp)
+  -- step 2: the ≤-deal fragment is the banked Phase wrapper
+  by_cases hsize : u.waste.length ≤ u.drawStep
+  · exact lowslab_draw_reversible_phase hempty hw hsize
+  -- step 3: the long-waste cursor loop — the base draw's landing is
+  -- the recycled arrangement one deal in; the loop returns it to u
+  have hsD : State.stepDraw u = some s₁ := hstep
+  rw [base_draw_shape hempty hw] at hsD
+  injection hsD with hR
+  -- the base-draw landing: the recycled arrangement, one deal in
+  have hsD2 : s₁.drawStep = u.drawStep := by rw [← hR]
+  have hsP : s₁.piles = u.piles := by rw [← hR]
+  have hsF : s₁.found = u.found := by rw [← hR]
+  have hsInv : s₁.waste.reverse ++ s₁.stock = u.waste.reverse := by
+    rw [← hR]
+    show ((u.waste.reverse.take u.drawStep).reverse ++ ([] : List Card)).reverse
+        ++ u.waste.reverse.drop u.drawStep = u.waste.reverse
+    rw [List.reverse_append, List.reverse_nil, List.reverse_reverse,
+      List.nil_append, List.take_append_drop]
+  obtain ⟨play, hrun⟩ :=
+    zone_loop_return s₁.stock.length s₁ u u.waste.reverse hds hsD2 hempty
+      (show u.waste = u.waste.reverse.reverse from (List.reverse_reverse u.waste).symm)
+      hsInv hsP hsF (Nat.le_refl _)
+  exact ⟨s₁, play, hstep, hrun⟩
 
 /-- **THE SEAT CENSUS** `lowslab_top_census` [H, SHRUNK at the census
 swap pass] — the elevation mechanism's arrangement face, the
@@ -405,11 +545,29 @@ under-raise's exposed host is now census-accounted
 unfounded) — so (B) reduces to the same card-level bootstrap of (a).
 POST-COMMUTATION-SWAP: ASSESSED — no further license: the congruence
 rows transport `boardEq` pairs (the draw's blindness), while this
-row's card-level bootstrap crosses ρ-images; the dashed-thread
-fragments of its consumers' assemblies share the DASHED-WITNESS
-TRANSPORT named in the draw row.  Consumers:
+row's card-level bootstrap crosses ρ-images.  Consumers:
 `fork_lowbridge_raise` step 4 and
-`fork_lowbridge_reveal` step 3. -/
+`fork_lowbridge_reveal` step 3.
+
+FINALE ASSESSMENT (2026-10-13, priced shrink — the canonical-form
+alternative priced and declined this pass): the TWIN-BLIND datum is
+on record (§12(a) of `Orig/LowSlabProbe.lean`, `r2_censusBlind`:
+two boards whose (red, 3) cell censuses are IDENTICAL — ONE top
+either way — while the TWIN holding the cell differs), so the
+card-level bootstrap is irreducible to cell data: the route must
+ride the one-founding door (`Orig/PairConfine.lean`: both pair
+members cannot be founded within one fork class — the twin-side
+refinement's own rationale) for the twin separation, then name the
+member whose journey carries the cell — which is the canonical-form
+route's own shape (the class contains its `canon` form,
+`canon_in_class` in `Orig/Canonical.lean`; the canonicalizer keeps
+the zone cells — `canon_stock`/`canon_waste`/`canon_drawStep`; the
+realization of the seat assignment is the last priced step before
+the slab-side descent), PRICED [H] against the confluence program
+and not pursued this pass.  The survivors are unchanged and named:
+(a) the card-level bootstrap, (b) the slab-side landing (the rung
+ledger `witness_rung_census` + `fork_self_low`); the waste seat
+rail's landing-base consult rides the same bootstrap. -/
 private theorem lowslab_top_census {st u : State} {x : Card} {c : Card}
     (hmem : sameOrbitSetoid.r st u)
     (helev : ¬ familyBelowFrontier u x)
@@ -506,6 +664,44 @@ theorem lowslab_pull_never_commit_wf {u s₁ : State} {c : Card} {b : Base}
 
 /-! ### §4.2. The per-kind replay rows -/
 
+/-- **THE BRACKET TRANSFER** (the rung bracket's mechanics, isolated
+at the finale per the ladder): a witness journey whose `σ`-letter
+raises and pulls NET TO ZERO carries the `σ`-rung VERBATIM from
+source to landing — the one mechanical leg of the raise row's
+bracket (`rungAt d c.suit = rungAt u c.suit`) and of the waste
+rail's hot bracket, both thereby reduced to their honest open bit:
+the `σ`-letter NET CENSUS itself (no banked row nets `raisesOf`
+against `pullsOf` for the commit suit — the benign probe boards
+read zero there; a higher pair-suit commit is the live
+counterexample family).  The transfer is one read of the rung
+ledger (`witness_rung_census`, `Orig/BracketDecomp.lean`:
+`rungAt w σ + pullsOf ρ σ = rungAt st σ + raisesOf ρ σ`). -/
+private theorem lowslab_bracket_transfer {st u : State} {c : Card} {ρ : List Move}
+    (hρ : ShufflePlayW st ρ u)
+    (hnet : raisesOf ρ c.suit = pullsOf ρ c.suit) :
+    rungAt st c.suit = rungAt u c.suit := by
+  have h := witness_rung_census hρ c.suit
+  omega
+
+/-- **THE SLIDE's BOARD RE-FIRE** (the reveal row's mechanical leg,
+isolated at the finale per the ladder): the reveal slide `tabToTab
+c b` IS A BOARD MOVE — every guard consults piles only
+(`pileHolding`, `canPlace`/`pileOfTop`, the run data), no foundation
+and no zone cell — so at any member BOARD-EQUAL to the commit site
+(`boardEq`: equal piles and equal founds) the SAME slide re-fires
+and lands BOARD-EQUAL to the commit's landing.  The row is the
+specialization of the sibling's `step_congr_board` at the third
+`boardMove` arm; the reveal row's open content is thereby sharpened
+to its honest bit: producing the BOARD-EQUAL slab member that
+presents the run head (or its counterpart-slide variant) — the
+card-level re-scheduling through the defusing inventory — plus the
+same-fit guard assembly. -/
+private theorem lowslab_slide_board_refire {u d u' : State} {c : Card} {b : Base}
+    (hstep : State.step u (Move.tabToTab c b) = some u')
+    (hboard : boardEq u d) :
+    ∃ d', State.step d (Move.tabToTab c b) = some d' ∧ boardEq u' d' :=
+  step_congr_board hboard (Or.inr (Or.inr ⟨c, b, rfl⟩)) hstep
+
 /-- **THE RAISE-LIKE REPLAY RESIDUE** `fork_lowbridge_raise` [H] —
 given the ELEVATED commit of kind raise-like (a committed
 `tabToFound c` from `u` into `v`), a slab member `u₀` carries a
@@ -571,12 +767,37 @@ congruence; the probe's structural armor (§9–§13 of
 journeys, so no witness leg can move a bare commit card's rung;
 the bracket datapoint 3=3 on record) remains the evidence.  The row
 therefore CONSUMES the congruence only where it actually bites —
-the re-fire assembly's draw-dashed contexts share the DASHED-
-WITNESS TRANSPORT of the draw row's case (A) — and the survivors
-are unchanged: the rung bracket (this row's own, per the
+the re-fire assembly's draw-dashed contexts are the waste kind's
+own named weld (`lowslab_waste_targetclass`; the draw row's former
+(A)-transport is RETIRED with its landing) — and the survivors are
+unchanged: the rung bracket (this row's own, per the
 seats-vs-rungs adjudication) + the card-level bootstrap.  Earlier
 consumptions (`census_tabToFound_witness`, `witness_bare_lift_king`,
-`bare_lift_irreversibleAt`) stand. -/
+`bare_lift_irreversibleAt`) stand.
+
+FINALE TRANSCRIPTION (2026-10-13 — the bare-lift structural bar
+made explicit; the row survives priced at [H]): on BOTH sides of the
+raise census the dichotomy is banked — a WITNESSED raise is
+UNDER-SEAT XOR BARE-KING (`census_tabToFound_witness`: the under-arm
+exposes a below-card of OPPOSITE family at the raised index + 1,
+unfounded, the census moving exactly in the two named cells; the
+bare arm is king-only, `witness_bare_lift_king`), and the commit
+side carries the matching bar (`bare_lift_irreversibleAt`: a bare
+non-king lift commits outright — consistent with this row's `hiv`).
+So any `σ := c.suit` raise LEG riding the witnessing journey is
+under-seat or bare-king at its own site, and the rung ledger
+(`witness_rung_census`: `rungAt u σ + pullsOf ρ σ = rungAt st σ +
+raisesOf ρ σ`) reduces THE BRACKET to the σ-letter NET CENSUS —
+whose TRANSFER MECHANICS ARE NOW LANDED IN-FILE as the isolated
+small row (`lowslab_bracket_transfer`: a net-zero σ-letter journey
+carries the σ-rung verbatim across the class, so the re-fire
+member's `r = r` read is free GIVEN the census).  What remains open
+is the census itself — no banked row nets it: the benign boards
+(elevations that never touch the commit suit — the `bb_bracket`
+datapoint's 3 = 3) exhibit the zero case, and a commit raising a
+HIGHER pair-suit card is the live counterexample family.  The
+σ-letter net census and the card-level bootstrap remain this row's
+own priced pieces, per the seats-vs-rungs adjudication. -/
 private theorem fork_lowbridge_raise {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -640,13 +861,31 @@ content is the general-commuting form of that one board.
 HOSTCENSUS POST-COMMUTATION-SWAP: ASSESSED — no new license for this
 row beyond its step-3 survivals (the assembly contexts are ρ-images,
 not `boardEq` pairs — the congruence rows do not reach them); the
-draw-dashed fragments of the assembly share the DASHED-WITNESS
-TRANSPORT of the draw row's case (A).  The earlier consumptions
+draw-dashed fragments of the assembly are the waste kind's own
+named weld (`lowslab_waste_targetclass`; the draw row's former
+(A)-transport is RETIRED with its landing).  The earlier consumptions
 stand: `census_tabToTab_inr_witness`, `census_tabToTab_inl`,
 `bare_burn_irreversibleAt`, `witness_tabToTab_never_burn` (transport
 + commit modes); the seat-side deep support is
 `lowslab_top_census`'s banked step-2 family plus its surviving
-card-level bootstrap. -/
+card-level bootstrap.
+
+FINALE ASSESSMENT (2026-10-13): the LOAD-BEARING receipt is on
+record (§12(b) of `Orig/LowSlabProbe.lean`: the reveal at the
+POST-exhumation member is duplicated at the PRE-exhumation member
+by the SAME slide, the two committed targets joined by ONE
+posterior pull, `xb1_dup` kernel-verified — the loan repaid exactly
+as `excursion_issues_noNewSeat` reads) and the hidden-list pinning
+is banked (`shuffle_hiddenPinned`, instantiated at `xb_revealContent`).
+THE SLIDE's MECHANICAL LEG IS NOW LANDED IN-FILE as the isolated
+small row (`lowslab_slide_board_refire`: the slide consults piles
+only, so at any member BOARD-EQUAL to the commit site the same
+slide re-fires and lands board-equal).  The survivors stay, now
+sharpened: the CARD-level re-scheduling — producing the
+board-equal slab member presenting the run head (or its
+counterpart-slide variant), the defusing inventory of §12(b) — and
+the same-fit guard assembly of `m₀`; the probe's exhibit is the
+general form's worked example. -/
 private theorem fork_lowbridge_reveal {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -661,60 +900,177 @@ private theorem fork_lowbridge_reveal {st : State} {x : Card}
       sameOrbitSetoid.r v₀ v := by
   sorry
 
-/-- **THE WASTE-JUMP REPLAY RESIDUE** (pop-to-foundation arm)
-`fork_lowbridge_waste_found` [M] — given the ELEVATED commit of kind
-waste-jump (a committed `wasteToFound c` from `u` into `v`), a slab
-member `u₀` carries a same-target-class step.
+/-! ### §4.2.a The guard-refusal transport (finale, proved) -/
 
-ROUTE (complete; each step priced):
+/-- **THE SHIFTED-CURSOR REFUSAL** (the guard-refusal transport — the
+round-2 probe's negative verdict at theorem grade,
+`Orig/LowSlabProbe.lean`'s `wbW_noFire` datum, closed): if a member's
+waste head is NOT the guard's named card, BOTH waste letters refuse
+to fire outright — the guard reads the head (`wasteIs c` is a head
+compare, `State.wasteIs_cons`), and the fired-step inversions hand
+the contradiction.  The waste kind's cursor rail consumes this
+one-way: a member whose cursor is shifted off the commit card cannot
+host the re-fire — the shift kills the GUARD, never the class. -/
+private theorem waste_head_refusal {x : State} {c c' : Card} {t : List Card}
+    (hw : x.waste = c' :: t) (hne : c' ≠ c) :
+    (∀ s₁ : State, State.step x (Move.wasteToFound c) ≠ some s₁) ∧
+      ∀ (b : Base) (s₁ : State), State.step x (Move.wasteToTab c b) ≠ some s₁ := by
+  constructor
+  · intro s₁ h1
+    obtain ⟨hg, -⟩ := step_wasteToFound_inv h1
+    rw [State.wasteIs_cons hw c, Bool.and_eq_true] at hg
+    exact hne (of_decide_eq_true hg.1)
+  · intro b s₁ h2
+    obtain ⟨hg, -⟩ := step_wasteToTab_inv h2
+    rw [State.wasteIs_cons hw c, Bool.and_eq_true] at hg
+    exact hne (of_decide_eq_true hg.1)
 
-1. THE ELEVATED READ and THE CLASS ANCHOR: as the raise row's steps
-   1-2.
-2. THE CYCLE CENSUS — THE CURSOR COINCIDENCE IS NOW THEOREM-GRADE:
-   the witnessing `st ⇝ u` journeys are board-only, and the
-   sibling's `board_run_congr` carries the ZONE VERBATIM through
-   them (`z.stock = x.stock ∧ z.waste = x.waste ∧ z.drawStep =
-   x.drawStep` at the image — not merely the membership pin): the
-   committed card `c` is the waste HEAD at `st` exactly as at `u`,
-   and `cycle_zone_pin` (`Orig/SlabEquiv.lean`) remains the
-   membership-flavored companion.  The round-2 probe's negative
-   datum transports theorem-grade: the shifted-cursor site refuses
-   the re-fire because the GUARD reads the zone, and the zone is
-   invariant along the class — the shift cannot happen in-class.
-3. THE REMAINING [M] CONTENT, shrunk to two named pieces:
-   (a) THE HOT-BRACKET — the head card is class-invariant, so the
-   re-fire's `nextUp c` read is a RUNG question: some slab member's
-   `c.suit` rung must read `c.rank.toIdx` (the same unclosed
-   bracket family the raise row flags; probe-verified benign at
-   every tried shape — the elevation legs of the probe boards
-   never touched the waste-head's suit);
-   (b) THE DASHED-WITNESS TRANSPORT (shared with the draw row's
-   case (A), named there): the per-leg grades of the re-fire chain
-   at the post-commit states.
-4. THE CLASS LINKS: as the raise row's step 5.  The stock/waste zone
-   is class-closed in the census sense; the waste-jump's grade
-   mechanism itself (`cycleCount` strictly drops, Table 1 of
-   `Orig/Irreversible.lean`) plays no role here — `hiv` is given.
+/-- **THE BOARD-JOURNEY ZONE FLAT** (the cursor-coincidence
+transport's draw-free leg, closed): a BOARD-ONLY witness journey
+carries the two-zone cycle VERBATIM from source to landing — the
+stock, the waste and the deal size at the journey's end are the
+origin's own.  This is the refl-pair application of the sibling's
+`board_run_congr` (`Orig/HostCensus.lean`: the board play runs from
+both ends of the identity pair, and the source-side flats read the
+landing's zone equal to the source's); `cycle_zone_pin`
+(`Orig/SlabEquiv.lean`) remains the membership-flavored companion
+upstream.  Together with `waste_head_refusal` this closes the CURSOR
+COINCIDENCE at every draw-free member: the guard reads the same
+head, so the re-fire's `wasteIs` conjunct is carried, and the
+refused side is bounded one-way. -/
+private theorem witness_zone_flat {st u : State} {ρ : List Move}
+    (hρ : ShufflePlayW st ρ u) (hboard : ∀ m ∈ ρ, boardMove m) :
+    u.stock = st.stock ∧ u.waste = st.waste ∧ u.drawStep = st.drawStep := by
+  obtain ⟨-, -, -, hz1, hz2, hz3, -, -, -⟩ :=
+    board_run_congr ρ hboard st st ⟨rfl, rfl⟩ u (ShufflePlayW_run hρ)
+  exact ⟨hz1, hz2, hz3⟩
 
-HOSTCENSUS POST-COMMUTATION-SWAP (the cursor face is now
-THEOREM-GRADE): the sibling's `witness_leg_letters` packages the
-leg-shape discipline (no waste letter rides a witness journey);
-`board_run_congr` carries the ZONE VERBATIM along the board-only
-class journeys — the cursor-coincidence of step 2 is banked, and
-the round-2 probe's negative datum (the shifted-cursor site refuses
-the re-fire) transports theorem-grade: the guard reads the zone and
-the zone is class-invariant; the shift cannot arise in-class at
-all.  The seat side of any landing the re-fire consults rides the
-census cell-transport family (`census_tabToTab_*`,
-`census_foundToTab_inr`, `census_step_draw`) plus the
-ledger/repayment family (`seatLedger_pair`,
-`excursion_issues_noNewSeat`).  WHAT SURVIVES THE COMMUTATION SWAP
-is the two named pieces of step 3: the HOT-BRACKET (a rung
-question — the same family the raise row flags, per the
-seats-vs-rungs adjudication) and the shared DASHED-WITNESS
-TRANSPORT; the arrangement face the old route carried is retired
-into `board_run_congr`'s flats.  None of the consumed rows rides
-the sibling's residue `witness_leg_mint_confined`. -/
+/-- **THE WASTE RE-FIRE GUARD SHAPE** — the two-letter disjunction the
+waste-kind replay routes over (the statement-facing shape shared by
+the waste rows' named pieces): a founding re-fire needs the named
+card at the waste head and next-up; a seating re-fire additionally
+consults the landing base's placement guard. -/
+def WasteGuard (W : State) (m : Move) : Prop :=
+  (∃ c, m = Move.wasteToFound c ∧ W.wasteIs c = true ∧ W.nextUp c = true) ∨
+  (∃ c b, m = Move.wasteToTab c b ∧ W.wasteIs c = true ∧ W.canPlace c b = true)
+
+/-- **THE WASTE RE-SEAT RESIDUE** `lowslab_waste_reseat` [H, named at
+the waste-shrink pass] — the two waste arms' shared first fighter: at
+SOME low-slab member of the class, the committing waste letter's own
+guard shape holds again.  TWO RAILS must land at ONE member:
+
+* THE CURSOR RAIL — the two-zone cells must hold the card at the
+  waste head.  For board-only witnessing journeys the zone cells are
+  carried verbatim (the leg-shape discipline `witness_leg_letters`
+  bars the waste letters; the placement/foundation writes touch
+  piles and founds only — this tree's own zone-keep kit; play-level
+  `board_run_congr`), so the cursor reads the same at every
+  board-only prefix landing.  Reversible draw legs genuinely MOVE
+  the cursor (the empty-stock recycle-deal peels cards into the
+  waste, `Phase.lean`'s loop algebra), and the round-2 probe's
+  `wbW_noFire` datum records the shifted-cursor site refusing the
+  re-fire OUTRIGHT — the FIG-2 duplicate rode IDENTICAL cursors at
+  the two commit sites.  The open content is the zone excursion: the
+  commit itself pins one orbit point (the card IS at the head at
+  `u`), and the reseat must re-schedule onto an at-head point of the
+  loop orbit at a slab member — priced against Phase's rotation
+  arithmetic (the `draw_landings_sameOrbit` engine's own pool
+  rotations) with the no-waste-letters census (the card never leaves
+  the two-zone cells along the journey).
+* THE HOT RAIL — the founding arm's `nextUp c` is a RUNG question
+  (THE HOT-BRACKET, the same unclosed bracket family the raise row
+  flags per the seats-vs-rungs adjudication): some slab member's
+  `c.suit` rung must read `c.rank.toIdx`, priced against the landed
+  bracket transfer (`lowslab_bracket_transfer`, over the rung
+  ledger `witness_rung_census`) and the raising legs' Dyck
+  serialization (`Orig/BracketDecomp.lean`); probe-verified benign
+  at every tried shape (the elevation legs of the probe boards never
+  touched the waste-head's suit).  The seating arm's `canPlace`
+  consults the landing base's top seat — `lowslab_top_census`'s
+  surviving card-level bootstrap is its deep support.
+* THE COINCIDENCE — the two rails commute (the cursor orbit is
+  zone-only, the rung rail is found-only), and the reseat must land
+  one member carrying both; the slab crossing (the twin rung at-or-
+  below the fork point) exists by `fork_self_low` and the crossing
+  analysis.
+
+HOSTCENSUS DISCIPLINE: no consumed row rides the sibling's residue
+`witness_leg_mint_confined`.
+
+FINALE NOTE (2026-10-13): the cursor rail's transport pieces are now
+ LANDED IN-FILE and consumed here at term grade —
+`witness_zone_flat` (the board-only leg's zone carry, closed: a
+board-only witness journey reads the same stock/waste/drawStep at
+its landing) and `waste_head_refusal` (the shifted-cursor refusal,
+closed: a member whose waste head is not the commit card refuses
+both waste letters outright) — so the rail's OPEN content is
+exactly the ZONE EXCURSION PAST A DRAW LEG (the orbit re-scheduling
+above), nothing more. -/
+private theorem lowslab_waste_reseat {st u : State} {x : Card} {m : Move}
+    (hx : ForkWitness st x)
+    (hmem : sameOrbitSetoid.r st u)
+    (helev : ¬ familyBelowFrontier u x)
+    (hfu : WasteGuard u m) :
+    ∃ u₀ : State,
+      sameOrbitSetoid.r st u₀ ∧
+      familyBelowFrontier u₀ x ∧
+      WasteGuard u₀ m := by
+  sorry
+
+/-- **THE WASTE TARGET-CLASS BRIDGE RESIDUE**
+`lowslab_waste_targetclass` [H, named at the waste-shrink pass] — the
+two waste arms' shared second fighter (THE DASHED-WITNESS TRANSPORT
+family): when the guard shape holds at a member and at a re-seated
+low member, the re-fire at the low member lands CLASS-MATE to the
+original commit's target.
+
+ROUTE (complete; the transport's own content):
+
+1. THE DASHED CHAIN — for each leg of a witnessing journey between
+   the two members, the waste-commit's dash (the card popped from
+   the waste, founded or seated) must re-fire at the dashed state
+   and land on the dashed successor.  Board legs whose suits differ
+   from the commit card's dash cleanly (the mirrors re-fire over
+   the guard-blind congruence, `step_congr_board`-family); the
+   same-suit founding legs SHIFT the dashed card one rung up — the
+   open content is the per-suit Dyck re-threading (`Orig/BracketDecomp.lean`'s
+   stack discipline: the LIFO pull law + the bracket closure), the
+   same nesting the waste rows' hot rail prices from the other side.
+2. THE ZONE DASH — the waste commit pops the two-zone head, so the
+   dashed zone is the commit-successor's zone; board letters are
+   blind to it, and the draw legs' orbit excursions ride Phase's
+   loop algebra (the probe's FIG-2/3 mixture rows witness the
+   commutation on-board).
+3. THE WELD — the per-hop certificates compose into the two
+   witness shuffles welding `v₀` to `v` (the round-trip-engine
+   pattern of `chain_assembly`'s scaffold; the glue consumes only
+   the class links). -/
+private theorem lowslab_waste_targetclass {u u₀ v : State} {m : Move}
+    (hclass : sameOrbitSetoid.r u₀ u)
+    (hfu : WasteGuard u m)
+    (hfu₀ : WasteGuard u₀ m)
+    (hstep : State.step u m = some v) :
+    ∃ v₀ : State,
+      State.step u₀ m = some v₀ ∧
+      sameOrbitSetoid.r v₀ v := by
+  sorry
+
+set_option linter.unusedVariables false in
+/-- **THE WASTE-JUMP REPLAY ROW** (pop-to-foundation arm)
+`fork_lowbridge_waste_found` [SHRUNK at the waste-shrink pass to a
+router over the two named pieces] — given the ELEVATED commit of
+router over the two named pieces] — given the ELEVATED commit of
+kind waste-jump (a committed `wasteToFound c` from `u` into `v`), a
+slab member `u₀` carries a same-target-class step.  The row's own
+proof is now PURE ASSEMBLY OFF THE STEP'S GUARD: the commit's own
+guard reading (`step_wasteToFound_inv`) packages the waste-head and
+next-up facts into `WasteGuard u`; the shared named residues carry
+the priced content — `lowslab_waste_reseat` (the cursor rail + the
+hot-bracket at ONE slab member) and `lowslab_waste_targetclass`
+(the dashed-witness transport welding the two landings).  The
+commit grade `hiv` enters only through the dispatcher's glue row;
+the commit's `cycleCount`-drop mechanism plays no role
+(`Orig/Irreversible.lean` Table 1). -/
 private theorem fork_lowbridge_waste_found {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -726,19 +1082,24 @@ private theorem fork_lowbridge_waste_found {st : State} {x : Card}
       familyBelowFrontier u₀ x ∧
       State.step u₀ m₀ = some v₀ ∧
       sameOrbitSetoid.r v₀ v := by
-  sorry
+  obtain ⟨hg, -⟩ := step_wasteToFound_inv hstep
+  rw [Bool.and_eq_true] at hg
+  have hfu : WasteGuard u (Move.wasteToFound c) :=
+    Or.inl ⟨c, rfl, hg.1, hg.2⟩
+  obtain ⟨u₀, hmem₀, hslab₀, hfu₀⟩ := lowslab_waste_reseat hx hmem helev hfu
+  have hclass : sameOrbitSetoid.r u₀ u :=
+    sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hmem₀) hmem
+  obtain ⟨v₀, hstep₀, hmatch⟩ :=
+    lowslab_waste_targetclass hclass hfu hfu₀ hstep
+  exact ⟨u₀, Move.wasteToFound c, v₀, hmem₀, hslab₀, hstep₀, hmatch⟩
 
-/-- **THE WASTE-JUMP REPLAY RESIDUE** (seat arm)
-`fork_lowbridge_waste_seat` [M] — the `wasteToTab` arm of the
-waste-jump kind; route identical to `fork_lowbridge_waste_found`'s
-(the cursor coincidence now theorem-grade via `board_run_congr`,
-per that arm's step 2), with the re-fire additionally consulting
-the landing base's top seat — census-priced upstream: the base
-card's cell rides the ledger/repayment family (`seatLedger_pair`,
-`excursion_issues_noNewSeat`) and the leg letters are one cited row
-(`witness_leg_letters`).  POST-COMMUTATION-SWAP SURVIVORS: the
-HOT-BRACKET (the rung question, as in the pop-to-foundation arm)
-and the shared DASHED-WITNESS TRANSPORT, with
+set_option linter.unusedVariables false in
+/-- **THE WASTE-JUMP REPLAY ROW** (seat arm) `fork_lowbridge_waste_seat`
+[SHRUNK at the waste-shrink pass, as the pop-to-foundation arm] — the
+`wasteToTab` arm of the waste-jump kind: the same router over the
+two shared named residues, the guard package now reading the
+placement guard of the landing base (`step_wasteToTab_inv`); the
+hot rail's `canPlace` consults the landing base's top seat with
 `lowslab_top_census`'s surviving card-level bootstrap as the
 seat-side deep support. -/
 private theorem fork_lowbridge_waste_seat {st : State} {x : Card}
@@ -753,104 +1114,139 @@ private theorem fork_lowbridge_waste_seat {st : State} {x : Card}
       familyBelowFrontier u₀ x ∧
       State.step u₀ m₀ = some v₀ ∧
       sameOrbitSetoid.r v₀ v := by
-  sorry
+  obtain ⟨hg, -⟩ := step_wasteToTab_inv hstep
+  rw [Bool.and_eq_true] at hg
+  have hfu : WasteGuard u (Move.wasteToTab c b) :=
+    Or.inr ⟨c, b, rfl, hg.1, hg.2⟩
+  obtain ⟨u₀, hmem₀, hslab₀, hfu₀⟩ := lowslab_waste_reseat hx hmem helev hfu
+  have hclass : sameOrbitSetoid.r u₀ u :=
+    sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hmem₀) hmem
+  obtain ⟨v₀, hstep₀, hmatch⟩ :=
+    lowslab_waste_targetclass hclass hfu hfu₀ hstep
+  exact ⟨u₀, Move.wasteToTab c b, v₀, hmem₀, hslab₀, hstep₀, hmatch⟩
 
-/-- **THE DRAW-CURSOR REPLAY RESIDUE** `fork_lowbridge_draw` [H] —
-given the ELEVATED commit of kind draw-cursor (a committed `draw`
-from `u` into `v`), a slab member `u₀` carries a same-target-class
-step.  [FOURTH KIND, flagged to the integrator: neither the original
-three-kind taxonomy (raise-like / reveal / waste-jump) nor the
-measure tables name the draw — but a draw at a NONEMPTY stock is a
-genuine commitment: the stock's refills are wholesale reversals of
-the waste, and the deal always fires after the recycle
-(`draw_unfold`: `dealStock` at a nonempty recycled stock deals at
-least one card at a positive step size), so the pre-draw arrangement
-never recurs; the returning play's last cycle-writer would have to
-re-grow the cycle zone, which no leg ever does.  The three-kind
-routes must acquire this arm.]
+/-- **THE PLACEMENT ZONE-KEEP KIT** (private, per-file — the house
+copy of the placement half of the sibling's zone-keep kit): a card
+placement reads and writes piles only, so the two-zone cycle is
+untouched. -/
+private theorem lowslab_putCard_zone (s : State) (c : Card) (b : Base) :
+    (s.putCard c b).stock = s.stock ∧ (s.putCard c b).waste = s.waste := by
+  cases b with
+  | inl a => exact ⟨rfl, rfl⟩
+  | inr z =>
+      simp only [State.putCard]
+      split <;> exact ⟨rfl, rfl⟩
 
-ROUTE (complete; each step priced):
+/-- A run placement likewise keeps the two-zone cycle. -/
+private theorem lowslab_putRun_zone (s : State) (run : List Card) (b : Base) :
+    (s.putRun run b).stock = s.stock ∧ (s.putRun run b).waste = s.waste := by
+  cases b with
+  | inl a => exact ⟨rfl, rfl⟩
+  | inr z =>
+      simp only [State.putRun]
+      split <;> exact ⟨rfl, rfl⟩
 
-1. THE ELEVATED READ and THE CLASS ANCHOR: as the raise row's steps
-   1-2.
-2. THE CURSOR FACT (priced against `lowslab_draw_emptyReversible`,
-   whose ≤-deal fragment is now BANKED through
-   `lowslab_draw_reversible_phase`): a committed draw cannot fire at
-   an EMPTY stock (the cursor loop returns), so at `0 < drawStep` it
-   fires at a nonempty stock (the cursor-commit above); at
-   `drawStep = 0` a nonempty stock is the identity (never a commit —
-   the zero-deal reduces by `dealUpTo_eq_take_drop`'s drop/take at
-   zero, Phase's `drawStep_zero_reversibleW`) and only the waste-
-   bury arm remains (the empty stock recycling into the stock), the
-   one genuine sub-kind the census sibling's draw rows must also
-   carry.
-3. THE CLASS-INERTNESS — TWO CITED ROWS NOW: the sibling's
-   `census_step_draw` (every cell's seat census is unchanged: a draw
-   writes no pile) and `witness_leg_letters` (the leg shapes).  The
-   draw reads only the zone; the twin-door (a foundation event)
-   commutes trivially with the draw's class behavior.
-4. THE RE-FIRE, POST-COMMUTATION-SWAP — THE ROW IS NOW FULLY
-   SUBCONTRACTED, both cases pinned to named rows:
+/-- **THE WITNESS CYCLE PIN** (private kit) — every leg of a witness
+journey keeps the cycle count: board letters keep the two-zone cells
+verbatim (the foundation write and the placement writes touch piles
+and founds only), and a draw leg conserves the count
+(`stepDraw_cycle` reads the deal/recycle split arithmetic).  So a
+witness journey's two ends read the same cycle-count, and a draw
+that fires at one end fires at the other. -/
+private theorem lowslab_witness_cycle_pin {st : State} :
+    ∀ {ρ : List Move} {w : State},
+      ShufflePlayW st ρ w → cycleCount st = cycleCount w := by
+  intro ρ w h
+  induction h with
+  | nil u => rfl
+  | @cons u m s₁ rest w' hw hstep hrest ih =>
+      have hleg : cycleCount s₁ = cycleCount u := by
+        obtain hmd | ⟨c, hc⟩ | ⟨c, bb, hc⟩ | ⟨c, bb, hc⟩ :=
+          witness_leg_letters hstep hw
+        · subst hmd
+          exact stepDraw_cycle hstep
+        · subst hc
+          obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv hstep
+          rw [hs]
+          rfl
+        · subst hc
+          obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv hstep
+          rw [hs]
+          have hz := lowslab_putCard_zone
+              (u.setFound c.suit (chop (u.found c.suit))) c bb
+          exact cycleCount_eq_of_stock_waste hz.1 hz.2
+        · subst hc
+          obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv hstep
+          rw [hs]
+          have hz := lowslab_putRun_zone
+              (u.setPile a (Pile.afterRunRemoved (u.piles a)
+                (below c (u.piles a).faceUp)))
+              (fromCard c (u.piles a).faceUp) bb
+          exact cycleCount_eq_of_stock_waste hz.1 hz.2
+      exact hleg.symm.trans ih
 
-   CONSTRUCTION (fixed): `u₀ := st` — the fork board is slab
-   (self-anchored, `fork_self_low`), and the draw at `st` FIRES
-   AUTOMATICALLY: the zone of `u` equals the zone of `st` verbatim
-   (the witnessing journeys are board-only, and the sibling's
-   board_run_congr carries the zone verbatim through them), the
-   commit step fired at `u`, and a step at an all-empty zone
-   refuses to fire — so the same move `m₀ := Move.draw` is legal at
-   `st`; the guard congruence is the zone-blind half of the
-   sibling's congruence kit.
+set_option linter.unusedVariables false in
+/-- **THE DRAW-CURSOR REPLAY ROW** `fork_lowbridge_draw` [CLOSED at the
+chain-scaffold pass] — given the ELEVATED commit of kind draw-cursor
+(a committed `draw` from `u` into `v`), the FORK ITSELF is the
+duplicate: the same `Move.draw` re-fires at `st` (the witnessing
+journey keeps the cycle count, and `u`'s firing certifies a positive
+cycle), and the two landings are class-mates by the sibling's CLOSED
+interleave scaffold.
 
-   (A) THE DRAW-FREE CASE — the dashed thread is CLOSED by the
-   sibling's `drawfree_commute_reach` (phase-exactness:
-   `State.run w₀ ρ = some w`: the dashed play lands exactly ON the
-   commit target, not merely up to class); the sibling's
-   `drawfree_commute_witness` carries the same statement with the
-   per-leg mirror witnesses priced in its route (`foundToTab_undo`,
-   `tabToFound_undo_under`/`_bare`, the cargo mirrors).  THE
-   REMAINING ASSEMBLY GLUE — named here as the row's own open
-   piece: THE DASHED-WITNESS TRANSPORT [M], the per-leg
-   `reversibleAtW` grades of the dashed chain itself (each board
-   leg's one-move mirror re-fires at the boardEq-dashed successor
-   and lands the dashed pre-state: per-letter, over
-   `step_congr_board` + the guard-congruence reads + the public
-   zone-carry keep rows; `boardEq` is exactly the draw's blindness,
-   so the transport is mechanical leg-by-leg) — banking it turns
-   the (A) target-match into assembly.
+ROUTE (assembled; every step banked, zero own content):
 
-   (B) THE INTERLEAVED CASE — CITED: the sibling's
-   `interleave_phase_align` concludes `sameOrbitSetoid.r w₀ w`
-   verbatim (the target match, directly).  Its two open notes,
-   honestly carried here: (i) it is the sibling file's own single
-   named residue (its `[propext, sorryAx]` flows transitively into
-   this row's audit the day it is cited in a built proof — the
-   falsification channel it names is THE CLIPPING SIGNATURE: stock
-   lengths straddling `drawStep` at the commit points, per its
-   docstring; the round-2 probe armor — pristine-exit, loop-never-
-   commit, regime-disjointness — is on record in
-   `Orig/LowSlabProbe.lean` §11); (ii) its `u₀.WF` premise makes
-   the carry WF-GRADED: this row's statement is WF-free by design,
-   so the WILD-grade (B)-case remains the sibling row's own gap,
-   flagged for the integrator (at a WF gate the draw-kind closes
-   entirely: (A)-assembly + (B)-cite).
+1. THE CLASS ANCHOR: `sameOrbit_forward` unpacks the membership into
+   a forward witness journey `ρ : ShufflePlayW st ρ u`; the fork
+   self-anchors on its slab (`fork_self_low`), so `u₀ := st` and
+   `m₀ := Move.draw` carry the first two conjuncts by reflexivity and
+   the self-slab row.
+2. THE RE-FIRE — THE CYCLE PIN: every leg of `ρ` keeps `cycleCount`
+   (board letters keep the two-zone cells verbatim — the placement
+   and foundation writes touch piles and founds only; draw legs
+   conserve `stepDraw_cycle`), so `cycleCount st = cycleCount u`; the
+   commit step fired at `u`, so `EdgeKit.stepDraw_pos_cycleCount`
+   hands a positive cycle at `u`, hence at `st`, and
+   `EdgeKit.stepDraw_of_pos_cycleCount` fires the same draw there.
+3. THE TARGET MATCH — NO (A)/(B) DICHOTOMY: the sibling's chain
+   scaffold (`chain_assembly` over `interleave_leg_conjugation`,
+   both WF-free statements, both closed zero-sorry in
+   `Orig/HostCensus.lean` §9.3) conjugates the outcome draw past
+   EVERY reversible leg of `ρ` — board letters by the class weld and
+   the banked draw push, draw letters by `stepDraw_cycle` — so
+   `sameOrbitSetoid.r v₀ v` for the re-fired landing `v₀` and the
+   commit target `v`, with no draw-free case split and no per-leg
+   mirror kit.
+
+HONEST GRADE NOTES (what the closure prices):
+
+* The commit premise `hiv` and the elevation premise `helev` are
+  NOT consumed: the row holds for EVERY draw that fires at a class
+  member — the commit grade never enters the replay, and the fork's
+  own slab self-anchoring makes the twin-side elevation clause
+  irrelevant to the draw kind.  The statement is kept byte-frozen
+  (the caller's contract); the unused binders are silenced below.
+* THE (B)-CARRY's WF GATE is AVOIDED, not paid:
+  `interleave_phase_align`'s vestigial `u₀.WF` premise is a
+  statement artifact of its landing — the scaffold rows it rides are
+  WF-free, so this row cites `chain_assembly ∘ interleave_leg_conjugation`
+  directly and the old WILD-grade (B) gap is closed outright.
+* THE DASHED-WITNESS TRANSPORT is RETIRED here: the closed scaffold
+  welds the leg pair into the macro class (`class_leg` + the round-trip
+  engine) and hands the dashed landings to the banked draw push, so
+  no per-leg `reversibleAtW` re-firing certificate is ever needed.
+* THE CURSOR FACT need not be invoked: firing is the cycle pin
+  alone (the cursor fact — `lowslab_draw_emptyReversible` — stays
+  this tree's own [M] piece for consumers of the fired/no-op
+  dichotomy, not for the class replay).
 
 PROBE NOTE (Orig/LowSlabProbe.lean, decide-grade): both ends of
 this row are instantiated on-board — the commit side twice
-(`lb0_drawCommit`/`lb1_drawCommit`, pristine-grade via Phase's
-banked row) and the duplicate side END-TO-END (`lb1_dup`: the
-draw-commit's slab duplicate fully assembled, class legs commuting
-with the zone move pointwise, kernel-equal composites).
-
-HOSTCENSUS POST-COMMUTATION-SWAP: `drawfree_commute_reach` and
-`drawfree_commute_witness` CONSUMED for case (A)'s dashed thread;
-`board_run_congr` + `step_congr_board` CONSUMED for the zone
-transport and the guard congruence; `interleave_phase_align` CITED
-as the (B)-carry (WF-graded).  The phase content the old route
-carried is now the sibling's two rows' own; the surviving content
-is the dashed-witness transport [M] plus the wild-grade (B) gap.
-The census does not price cycle phase — none of the five consumed
-rows rides `witness_leg_mint_confined`. -/
+(`lb0_drawCommit`/`lb1_drawCommit`, pristine-grade via Phase's banked
+row) and the duplicate side END-TO-END (`lb1_dup`: the draw-commit's
+slab duplicate fully assembled, class legs commuting with the zone
+move pointwise, kernel-equal composites).  The assembled proof is
+the general form of that one board. -/
 private theorem fork_lowbridge_draw {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -862,7 +1258,19 @@ private theorem fork_lowbridge_draw {st : State} {x : Card}
       familyBelowFrontier u₀ x ∧
       State.step u₀ m₀ = some v₀ ∧
       sameOrbitSetoid.r v₀ v := by
-  sorry
+  -- step 1: the forward witness journey and the self-anchored slab
+  obtain ⟨ρ, hρ⟩ := sameOrbit_forward hmem
+  -- step 2: the cycle pin — the journey keeps the count, so the
+  -- draw fires at the fork exactly as at the elevated member
+  have hpin : cycleCount st = cycleCount u := lowslab_witness_cycle_pin hρ
+  have hpos : 0 < cycleCount u := EdgeKit.stepDraw_pos_cycleCount hstep
+  have hpos' : 0 < cycleCount st := by omega
+  obtain ⟨v₀, hd₀⟩ := EdgeKit.stepDraw_of_pos_cycleCount hpos'
+  have hdstep : State.step st Move.draw = some v₀ := hd₀
+  -- step 3: the target match, by the closed chain scaffold
+  exact ⟨st, Move.draw, v₀, sameOrbitSetoid.iseqv.1 st, fork_self_low hx,
+    hdstep, chain_assembly interleave_leg_conjugation st ρ u hρ v₀ v
+      hdstep hstep⟩
 
 /-- **THE PULL REPLAY RESIDUE — THE WILD REMAINDER** `fork_lowbridge_pull`
 [H, shrunk at the probe-triage pass] — given the ELEVATED commit of
@@ -906,7 +1314,16 @@ POST-COMMUTATION-SWAP: ASSESSED — UNCHANGED: the congruence rows
 live at `boardEq` pairs and WV-normal members; this row's live
 content is the WILD remainder (where `boardEq`-blindness of the
 draws is not even the relevant instrument), so no consumption and
-no shrink are honest here. -/
+no shrink are honest there.
+
+FINALE ASSESSMENT (2026-10-13, re-verified): the WILD-REMAINDER
+stance stands — no cheap wild argument surfaced this pass: wild
+members carry no WF discipline (doubled cards, free rungs), the
+congruence kit is `boardEq`-blind where wild boards are exactly the
+worry, and a wild giveback replay would need its own bracket census
+without the WF fence.  The row carries honestly as [H,
+WILD-REMAINDER ONLY]; the WF arm stays retired in the proved
+`lowslab_pull_wf_undo` + `lowslab_pull_never_commit_wf` pair above. -/
 private theorem fork_lowbridge_pull {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -1013,25 +1430,37 @@ per-行的 docstrings):
   twin-consuming member dispatches to the per-kind rows.
 * The class-link glue is PROVED: `fork_lowbridge_commitGlue` —
   the duplicate's commit grade is free from the class links.
-* The census consumption rows [M/H]: `lowslab_draw_emptyReversible`
-  [M], `lowslab_top_census` [H], `lowslab_pull_wf_undo` [M] — the
-  three facts the kind routes price their open steps against; the
-  sibling census program's rows graft at the swap points named in
-  the kind docstrings.
-* The per-kind replay rows: `fork_lowbridge_raise` [H],
-  `fork_lowbridge_reveal` [H], `fork_lowbridge_waste_found` [M],
-  `fork_lowbridge_waste_seat` [M], `fork_lowbridge_draw` [H — the
-  fourth kind this campaign added to the taxonomy],
-  `fork_lowbridge_pull` [H — plausibly vacuous at a WF gate].
+* The census consumption rows: `lowslab_pull_wf_undo` [PROMOTED,
+  proved] and `lowslab_draw_emptyReversible` [LANDED at the
+  2026-10-13 finale, zero-sorry — the long-waste cursor loop's block
+  induction]; `lowslab_top_census` [H] survives (the card-level
+  bootstrap + the slab-side landing) — the facts the kind routes
+  price their open steps against.
+* The per-kind replay rows: `fork_lowbridge_draw` LANDED at the
+  chain-scaffold pass (zero-sorry, over the sibling's closed
+  commutation kit — the fourth kind this campaign added to the
+  taxonomy is thereby retired); `fork_lowbridge_raise` [H],
+  `fork_lowbridge_reveal` [H] survive (the rung bracket + the
+  card-level bootstrap; the re-scheduling + the same-fit assembly);
+  `fork_lowbridge_waste_found` and `fork_lowbridge_waste_seat` are
+  PROVED ROUTERS (the waste-shrink pass), their graded content
+  riding the two shared named residues `lowslab_waste_reseat` [H]
+  and `lowslab_waste_targetclass` [H];
+  `fork_lowbridge_pull` [H — plausibly vacuous at a WF gate; the
+  wild remainder carried honestly for the WF-free statement].
 
-INTEGRATOR MAP: the waste and draw rows fall to the sibling census
-program's cycle/cursor rows (the two-zone pin `cycle_zone_pin` is
-already PROVED in `Orig/SlabEquiv.lean`; the cursor algebra is the
-remaining swap); the raise and reveal rows share the seat census
-(`lowslab_top_census`) — together with it the two [H]-graded
-nontrivial leaves the mission predicted (the elevation mechanism's
-arrangement face and the crane replay); the pull row is the
-wild-regime safety net, first candidate for retirement.
+INTEGRATOR MAP: the draw kind is CLOSED (the sibling's commutation
+kit paid it in full — `chain_assembly` + `interleave_leg_conjugation`
+cited WF-free; the two-zone pin `cycle_zone_pin` stays
+`Orig/SlabEquiv.lean`'s for the membership readings); the waste
+kind's remaining algebra lives entirely in the two shared named
+residues (the cursor-orbit re-scheduling onto a slab member — the
+round-2 probe's shifted-cursor refusal on record as the boundary
+datum — and the dashed-witness weld); the raise and reveal rows
+share the seat census (`lowslab_top_census`) — together with it the
+[H]-graded nontrivial leaves the mission predicted (the elevation
+mechanism's arrangement face and the crane replay); the pull row is
+the wild-regime safety net, first candidate for retirement.
 
 REFUTER-FIRST — the probe boards (the `CrossFamilyProbe` harness):
 Q(A) do fork boards carrying lone above-frontier twin-cover tops
@@ -1076,39 +1505,48 @@ theorem fork_neighbor_lowbridge {st : State} {x : Card}
 zero-sorry and read banked-chain grade; the §4.0 arms and the
 dispatcher are zero-sorry; the probe-triage additions
 (`lowslab_draw_reversible_phase`, `lowslab_pull_wf_undo`,
-`lowslab_pull_never_commit_wf`) are zero-sorry;
-`fork_neighbor_lowbridge` carries the EIGHT named residues of
-§4.1-§4.2 (`lowslab_draw_emptyReversible`, `lowslab_top_census`,
+`lowslab_pull_never_commit_wf`) are zero-sorry; the waste-shrink
+pass's engine kit, the finale's engine kit and the finale's
+guard-refusal transport pair (`lowslab_witness_cycle_pin`,
+`zone_loop_terminal`, `zone_loop_return`, `waste_head_refusal`,
+`witness_zone_flat`, `lowslab_bracket_transfer`,
+`lowslab_slide_board_refire`) are zero-sorry; the two LANDED residues read
+`[propext, Quot.sound]` (`lowslab_draw_emptyReversible` — the
+finale's block induction over the Phase wrapper;
+`fork_lowbridge_draw` — the chain-scaffold landing over the
+sibling's closed commutation kit).  `fork_neighbor_lowbridge`
+carries the SIX named residues of §4.1-§4.2 (`lowslab_top_census`,
 `fork_lowbridge_raise`, `fork_lowbridge_reveal`,
-`fork_lowbridge_waste_found`, `fork_lowbridge_waste_seat`,
-`fork_lowbridge_draw`, `fork_lowbridge_pull`) and NOTHING else
-flows into it.  THE CENSUS SWAP PASS added no fresh heads — it
-consumed `Orig.HostCensus.lean`'s proved rows inside the residues'
-ROUTES (docstring-grade then, term-grade at the residues' own
-future landings), none riding the sibling's residue
-`witness_leg_mint_confined`.  THE COMMUTATION SWAP PASS assessed
-the sibling's four new rows against every residue: consumed where
-they bite (the draw row's dashed thread and the waste rows' cursor
-coincidence), ASSESSED-NO-LICENSE where they do not (the ρ-image
-chains of the raise/reveal rows — `boardEq` congruence is the
-draw's blindness and does not reach them; recorded per row); the
-sorry COUNT stays exactly the eight, and
-`fork_neighbor_lowbridge`'s profile must stay
-`[propext, sorryAx, Quot.sound]` with no new inflow — verified
+`lowslab_waste_reseat`, `lowslab_waste_targetclass`,
+`fork_lowbridge_pull`, the last through the two PROVED waste
+routers `fork_lowbridge_waste_found`/`fork_lowbridge_waste_seat`)
+and NOTHING else flows into it.  NONE of the consumed rows rides
+the sibling's residue `witness_leg_mint_confined`; the sorry COUNT
+is exactly the six, and `fork_neighbor_lowbridge`'s profile must
+stay `[propext, sorryAx, Quot.sound]` with no new inflow — verified
 below. -/
 
 #print axioms lowslab_draw_reversible_phase
 #print axioms lowslab_pull_wf_undo
 #print axioms lowslab_pull_never_commit_wf
+#print axioms lowslab_witness_cycle_pin
 #print axioms fork_self_low
 #print axioms commit_exits_class
 #print axioms commit_blocks_class_return
 #print axioms fork_lowbridge_empty
 #print axioms fork_lowbridge_commitGlue
+#print axioms zone_loop_terminal
+#print axioms zone_loop_return
+#print axioms waste_head_refusal
+#print axioms witness_zone_flat
+#print axioms lowslab_bracket_transfer
+#print axioms lowslab_slide_board_refire
 #print axioms lowslab_draw_emptyReversible
 #print axioms lowslab_top_census
 #print axioms fork_lowbridge_raise
 #print axioms fork_lowbridge_reveal
+#print axioms lowslab_waste_reseat
+#print axioms lowslab_waste_targetclass
 #print axioms fork_lowbridge_waste_found
 #print axioms fork_lowbridge_waste_seat
 #print axioms fork_lowbridge_draw
