@@ -153,7 +153,8 @@ theorem cross_orphan_kill {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : st
   -- the orphan is EXILED from its foundation at the second fork
   have hout₁ : e ∉ st₂.found e.suit := by
     intro hcon
-    have hlt := FoundKit.mem_found_rank_lt hwf₂ hcon
+    have hlt₀ := FoundKit.mem_found_rank_lt hwf₂ hcon
+    have hlt : e.rank.toIdx < rungAt st₂ e.suit := hlt₀
     rw [hesuit] at hlt
     omega
   -- the residue reads the end-state seat: a face-up pile a, a face-up

@@ -1520,7 +1520,8 @@ private theorem pollutesCrash_terminalHot_Below {st₁ sth : State}
     mem_found_of_height hwf₁ horg
   have hnotfound : t ∉ sth.found t.suit := by
     intro hmem
-    have hlt := FoundKit.mem_found_rank_lt hwf₂ hmem
+    have hlt₀ := FoundKit.mem_found_rank_lt hwf₂ hmem
+    have hlt : t.rank.toIdx < rungAt sth t.suit := hlt₀
     have heq : t.rank.toIdx = rungAt sth t.suit :=
       of_decide_eq_true hhot
     omega
@@ -1662,7 +1663,8 @@ private theorem origin_foundedCover_belowPull {st₁ st₂ : State}
       omega)
   have hnotfound : w ∉ st₂.found w.suit := by
     intro hmem
-    have hlt := FoundKit.mem_found_rank_lt hwf₂ hmem
+    have hlt₀ := FoundKit.mem_found_rank_lt hwf₂ hmem
+    have hlt : w.rank.toIdx < rungAt st₂ w.suit := hlt₀
     rw [hws, hwr] at hlt
     omega
   -- the exodus: the below-cover card's own pull, mid-journey

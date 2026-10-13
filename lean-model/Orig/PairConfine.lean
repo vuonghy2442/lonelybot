@@ -1,5 +1,6 @@
 import Orig.PairName
 import Orig.BracketDecomp
+import Orig.FoundKit
 import Orig.SFlatTransfer
 import Orig.OrphanSeat
 
@@ -125,127 +126,6 @@ theorem pair_cover_lattice {st : State} (hwf : st.WF) {x : Card}
 
 /-! ## §2. The saturation pins -/
 
-namespace FoundKit
-
-/-! **THE FOUNDING-HEIGHT KIT** — the EdgeKit-pattern promotion of the
-tree's private position/founding copies (PairConfine's conf_ kit,
-SlabEquiv's sequ_*, CrossFamily's xfam_*, CrossFamilyStatic's xstat_*,
-OriginLock's lock_posOf family): one public home under this namespace,
-each row lifted verbatim from the banked private proofs; the per-file
-copies retire at their next landing.  The headline is the
-FOUNDED-HEIGHT IFF below — the founding-membership bridge in one
-line. -/
-
-/-- The first-occurrence position probe (lifted from the private
-`conf_posOf`). -/
-def posOf {α : Type} [DecidableEq α] (x : α) : List α → Nat
-  | [] => 0
-  | y :: t => if y = x then 0 else posOf x t + 1
-
-/-- Membership in a truncation bounds the build position (lifted from
-the private `conf_posOf_take_lt`, restated on the public probe). -/
-theorem posOf_take_lt {α : Type} [DecidableEq α] :
-    ∀ (n : Nat) (l : List α) (x : α), x ∈ l.take n → posOf x l < n := by
-  intro n
-  induction n with
-  | zero => intro l x hmem; simp at hmem
-  | succ n ih =>
-      intro l x hmem
-      cases l with
-      | nil => simp at hmem
-      | cons y t =>
-          simp only [List.take] at hmem
-          rcases List.mem_cons.mp hmem with heq | htl
-          · simp only [posOf]
-            rw [ite_eq_left heq.symm]
-            omega
-          · have hlt := ih t x htl
-            simp only [posOf]
-            split
-            · omega
-            · omega
-
-/-- The build order is the rank order (lifted from the private
-`conf_posOf_upCards`). -/
-theorem posOf_upCards (σ : Suit) (r : Rank) :
-    posOf (Card.mk σ r) (Suit.upCards σ) = r.toIdx := by
-  cases σ <;> cases r <;> rfl
-
-/-- An element at position `i` belongs to the first `n` entries of the
-list (lifted from the private `conf_get_in_take`). -/
-theorem get_in_take : ∀ {α : Type} (l : List α) (n i : Nat)
-    (hl : i < l.length) (_hn : i < n), l.get ⟨i, hl⟩ ∈ l.take n := by
-  intro α l n i hl hn
-  induction n generalizing l i hl with
-  | zero => exact absurd hn (by omega)
-  | succ n ih =>
-      cases l with
-      | nil => exact absurd hl (by simp)
-      | cons a t =>
-          cases i with
-          | zero =>
-              show a ∈ a :: t.take n
-              exact List.mem_cons.2 (Or.inl rfl)
-          | succ i' =>
-              simp only [List.length_cons] at hl
-              refine List.mem_cons_of_mem a (ih t i' (by omega) (by omega))
-
-/-- A card sits at its own build index in its suit's foundation
-order (lifted from the private `conf_upCards_get`). -/
-theorem upCards_get (z : Card)
-    (h : z.rank.toIdx < z.suit.upCards.length) :
-    z.suit.upCards.get ⟨z.rank.toIdx, h⟩ = z := by
-  rcases z with ⟨zs, zr⟩
-  cases zr <;> rfl
-
-/-- **THE FOUNDED-HEIGHT BRIDGE, forward half** — a suit rung strictly
-above a card's rank index has already founded it (lifted from the
-private `conf_mem_found_of_rung`/`conf_founded_of_rung`; now the
-single public home). -/
-theorem mem_found_of_rung {st : State} (hwf : st.WF) {c : Card}
-    (hlt : c.rank.toIdx < rungAt st c.suit) : c ∈ st.found c.suit := by
-  have hpre := rung_found_prefix st hwf c.suit
-  have h13 : c.suit.upCards.length = 13 := Suit.upCards_length c.suit
-  have hget : c.suit.upCards.get ⟨c.rank.toIdx, by
-      rw [h13]; exact Rank.toIdx_lt c.rank⟩ = c :=
-    upCards_get c (by rw [h13]; exact Rank.toIdx_lt c.rank)
-  have hmem0 : c.suit.upCards.get ⟨c.rank.toIdx, by
-      rw [h13]; exact Rank.toIdx_lt c.rank⟩ ∈
-      c.suit.upCards.take (rungAt st c.suit) :=
-    get_in_take c.suit.upCards (rungAt st c.suit) c.rank.toIdx
-      (show c.rank.toIdx < c.suit.upCards.length by
-        rw [h13]; exact Rank.toIdx_lt c.rank) hlt
-  rw [hget] at hmem0
-  have hmem : c ∈ c.suit.upCards.take (rungAt st c.suit) := hmem0
-  rwa [← hpre] at hmem
-
-/-- **THE FOUNDED-HEIGHT BRIDGE, converse half** — a card on its own
-suit's foundation sits strictly below the rung (lifted from the
-private `conf_founded_rank_lt`, restated on the public probe rows). -/
-theorem mem_found_rank_lt {st : State} (hwf : st.WF) {d : Card}
-    (hmem : d ∈ st.found d.suit) :
-    d.rank.toIdx < rungAt st d.suit := by
-  rcases d with ⟨s, r⟩
-  have hmem' : Card.mk s r ∈ st.found s := hmem
-  have hpre := rung_found_prefix st hwf s
-  rw [hpre] at hmem'
-  have hpos : posOf (Card.mk s r) (Suit.upCards s) < rungAt st s :=
-    posOf_take_lt _ _ _ hmem'
-  have hidx := posOf_upCards s r
-  show r.toIdx < rungAt st s
-  omega
-
-/-- **THE FOUNDED-HEIGHT IFF** — the founding-membership bridge as one
-line: a card is on its own suit's foundation exactly when its rank
-index sits strictly under the foundation's height.  The tree's
-long-term consumer for every height/census corner; the per-file
-one-way copies retire against it. -/
-theorem mem_found_iff_height {st : State} (hwf : st.WF) {c : Card} :
-    c ∈ st.found c.suit ↔ c.rank.toIdx < rungAt st c.suit :=
-  ⟨mem_found_rank_lt hwf, mem_found_of_rung hwf⟩
-
-end FoundKit
-
 /-- The last of a double snoc (the two-card top read of the
 covered-twin pile shape). -/
 private theorem conf_snoc2_last (bs : List Card) (u d : Card) :
@@ -291,7 +171,9 @@ theorem pair_lowFamily_founded {st : State} (hwf : st.WF) {x : Card}
     · rw [hs]
       have h2 := canRaiseS_rung ((hx.1 x.twin).mp (Or.inr rfl))
       rwa [Card.twin_rank] at h2
-  exact FoundKit.mem_found_of_rung hwf (by omega)
+  exact FoundKit.mem_found_of_rung hwf (by
+    have hrw : st.foundHeight c.suit = rungAt st c.suit := rfl
+    omega)
 
 /-- **THE SATURATION PINS** — the fork's twin-cover package at its
 final shape: the cover `d` sits DIRECTLY on the twin (one below,
@@ -2743,7 +2625,9 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
     have hms' : x.twin = m' := hm'.symm
     subst hms'
     have hmFound : x ∈ u.found x.suit :=
-      FoundKit.mem_found_of_rung hwfu (by omega)
+      FoundKit.mem_found_of_rung hwfu (by
+        have hrw : u.foundHeight x.suit = rungAt u x.suit := rfl
+        omega)
     rcases conf_orphan_roam hwf hjourney hdnk ⟨A, bsA, x.twin, hshape, hfit⟩ with
       ⟨a₂, L, b, R, hpkg, hbfit⟩ | haway
     · obtain ⟨hbr, hbc⟩ := (canSitOn_eq d b).mp hbfit
@@ -2820,7 +2704,9 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
     have htwinr : x.twin.rank.toIdx = x.rank.toIdx :=
       congrArg Rank.toIdx (Card.twin_rank x)
     have hmFound : x.twin ∈ u.found x.twin.suit :=
-      FoundKit.mem_found_of_rung hwfu (by omega)
+      FoundKit.mem_found_of_rung hwfu (by
+        have hrw : u.foundHeight x.twin.suit = rungAt u x.twin.suit := rfl
+        omega)
     rcases conf_orphan_roam hwf hjourney hdnk ⟨A, bsA, x.twin, hshape, hfit⟩ with
       ⟨a₂, L, b, R, hpkg, hbfit⟩ | haway
     · obtain ⟨hbr, hbc⟩ := (canSitOn_eq d b).mp hbfit

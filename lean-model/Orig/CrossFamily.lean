@@ -215,7 +215,8 @@ theorem cross_anchor_climb {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : s
   have hres : d₁ ∈ st₂.found d₁.suit :=
     pair_lowFamily_founded hwf₂ hy hdcol (by omega)
   -- the climb: founded at st₂ strictly past d₁'s own index
-  have hlt := FoundKit.mem_found_rank_lt hwf₂ hres
+  have hlt₀ := FoundKit.mem_found_rank_lt hwf₂ hres
+  have hlt : d₁.rank.toIdx < rungAt st₂ d₁.suit := hlt₀
   exact ⟨a, bs, d₁, hshape, hfit, htop, hnext, hrung₁, hdcol, hridx, hres, by omega⟩
 
 /-! ## §5. The journey census read -/
@@ -473,7 +474,8 @@ private theorem cross_strata_exile {st₂ : State} (hwf₂ : st₂.WF) {y d₂ :
     (hrung₂ : rungAt st₂ d₂.suit + 2 ≤ y.rank.toIdx) :
     ¬ d₂ ∈ st₂.found d₂.suit := by
   intro hmem
-  have hlt := FoundKit.mem_found_rank_lt hwf₂ hmem
+  have hlt₀ := FoundKit.mem_found_rank_lt hwf₂ hmem
+  have hlt : d₂.rank.toIdx < rungAt st₂ d₂.suit := hlt₀
   omega
 
 set_option linter.unusedVariables false in
