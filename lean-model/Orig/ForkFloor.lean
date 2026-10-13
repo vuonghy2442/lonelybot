@@ -1772,6 +1772,347 @@ private theorem p_board_prefix_split : ∀ (l : List Move),
               · exact List.all_eq_true.mp hB x hmem)
       | false => exact ⟨[], m :: t, rfl, rfl, Or.inr ⟨m, t, rfl, hm⟩⟩
 
+/-- **THE SEAL'S HOT SCAN** — the decidable probe of the interloper
+census: does some card of the sealed suit, exactly one rung above
+the sealed card, hold the S-license at the scan state?  A `Bool`
+fold over the 52-card universe so the interloper census below stays
+choice-free per the house discipline (the `p_seatOffered` pattern). -/
+private def p_sealHotScan (st : State) (c : Card) : Bool :=
+  Card.universe.any (fun e =>
+    decide (e.suit = c.suit) &&
+    decide (e.rank.toIdx = c.rank.toIdx + 1) &&
+    canRaiseSB st e)
+
+/-- The scan is exact: it reads true exactly when an interloper
+exists (the fold's found witness carries the triple, both ways). -/
+private theorem p_sealHotScan_iff {st : State} {c : Card} (hwf : st.WF) :
+    p_sealHotScan st c = true ↔
+      ∃ e, e.suit = c.suit ∧ e.rank.toIdx = c.rank.toIdx + 1 ∧
+        CanRaiseS st e := by
+  rw [p_sealHotScan, List.any_eq_true]
+  constructor
+  · rintro ⟨e₀, -, hval⟩
+    rw [Bool.and_eq_true] at hval
+    obtain ⟨h1, h2⟩ := hval
+    rw [Bool.and_eq_true] at h1
+    exact ⟨e₀, of_decide_eq_true h1.1, of_decide_eq_true h1.2,
+      (canRaiseSB_true_iff hwf).1 h2⟩
+  · intro ⟨e₀, hs, hr, hS⟩
+    refine ⟨e₀, Card.mem_universe e₀, ?_⟩
+    rw [Bool.and_eq_true]
+    refine ⟨?_, (canRaiseSB_true_iff hwf).2 hS⟩
+    rw [Bool.and_eq_true]
+    exact ⟨decide_eq_true hs, decide_eq_true hr⟩
+
+/-- **THE SEAL'S INTERLOPER-FORCING** [M] — the empty-exhibit census
+of the waste-founding kind, landed: when the exhibiting fork play is
+EMPTY (the fork sat AT the origin, witness `x`) and the seal's
+successor is NOT itself fork-headed, the successor's S-license world
+is FORCED to grow — some card of the SEALED SUIT is S-live at the
+successor, its rung exactly one above the sealed card's.  The
+census, CONSTRUCTIVELY (zero `Classical`, the house discipline): the
+interloper question is DECIDED as a `Bool` scan first
+(`p_sealHotScan` over the 52-card universe, `canRaiseSB` the
+S-shadow); a true scan hands the interloper over directly, and a
+false scan makes the successor's S-license world read EXACTLY the
+origin's — the seal's write record (`p_seal_zone_rows`) leaves every
+license input verbatim off the sealed suit, the origin pair cannot
+read the sealed suit at all (the suit's one frontier card IS the
+eaten waste head, and an S-live card must sit in the tableau), and a
+sealed-suit card only S-live on the next rung — so the origin's own
+parcel re-certifies at the EMPTY play, `forkStateSB_true_iff`
+against the assumed forklessness.  The waste-founding remainder's
+empty-exhibit schedule carries this card as its input datum; the
+multi-leg expose-and-found re-scheduling that defuses it remains
+the probe program's honest danger, priced there. -/
+private theorem p_seal_interloper_forced {s s' : State} {c x : Card}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.wasteToFound c) = some s')
+    (hwit : ForkWitness s x)
+    (hfb : ¬ forkStateSB s' = true) :
+    ∃ e, e.suit = c.suit ∧ e.rank.toIdx = c.rank.toIdx + 1 ∧
+      CanRaiseS s' e := by
+  have hwfs' : s'.WF := step_wf hwf hstep
+  by_cases hscan : p_sealHotScan s' c = true
+  · exact (p_sealHotScan_iff hwfs').mp hscan
+  · -- the interloper-free census: no sealed-suit card is S-live at
+    -- the successor, so the origin parcel re-certifies verbatim
+    -- the seal's write record, and the eaten head's residency/guard
+    obtain ⟨hpiles, -, ws, -, hwaste, hrows, hseal⟩ := p_seal_zone_rows hstep
+    have hcw : c ∈ s.waste := by rw [hwaste]; exact List.mem_cons_self ..
+    obtain ⟨hgc, -, -, -, -⟩ := step_wasteToFound_inv hstep
+    rw [Bool.and_eq_true] at hgc
+    have hcnext : s.nextUp c = true := hgc.2
+    have hcrung : c.rank.toIdx = s.foundHeight c.suit := of_decide_eq_true hcnext
+    -- the suit's frontier card at the origin IS the waste head
+    have hkey : ∀ y : Card, y.suit = c.suit → CanRaiseS s y → y = c := by
+      intro y hy hSy
+      obtain ⟨hnexty, -, -, -, -, -, -⟩ := (canRaiseS_iff hwf).mp hSy
+      have h0 : y.rank.toIdx = s.foundHeight y.suit := of_decide_eq_true hnexty
+      rw [hy] at h0
+      obtain ⟨ys, yr⟩ := y
+      obtain ⟨cs, cr⟩ := c
+      have hss : ys = cs := hy
+      simp only [Card.mk.injEq]
+      exact ⟨hss, Rank.toIdx_inj (h0.trans hcrung.symm)⟩
+    -- an S-live card sits in the tableau, so the waste head is not S-live
+    have hcolof : ∀ {y : Card}, CanRaiseS s y → ∃ a, y ∈ (s.piles a).faceUp := by
+      intro y hSy
+      obtain ⟨-, a, bs, run, hlist, -, -⟩ := (canRaiseS_iff hwf).mp hSy
+      refine ⟨a, ?_⟩
+      rw [hlist]
+      exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+    have hwastenot : ∀ {y : Card}, CanRaiseS s y → y ≠ c := by
+      intro y hSy hcon
+      obtain ⟨a, hmem⟩ := hcolof hSy
+      rw [hcon] at hmem
+      exact absurd hcw ((mem_faceUp_only hwf hmem).2.2.2.1)
+    -- the origin pair reads no sealed-suit card
+    have hSx : CanRaiseS s x := (hwit.1 x).mp (Or.inl rfl)
+    have hSxt : CanRaiseS s x.twin := (hwit.1 x.twin).mp (Or.inr rfl)
+    have hxsuit : x.suit ≠ c.suit := by
+      intro hcon
+      exact hwastenot hSx (hkey x hcon hSx)
+    have hxtsuit : x.twin.suit ≠ c.suit := by
+      intro hcon
+      exact hwastenot hSxt (hkey x.twin hcon hSxt)
+    -- off the sealed suit the license world is verbatim (§5.0c)
+    have hoff : ∀ {e : Card}, e.suit ≠ c.suit → (CanRaiseS s' e ↔ CanRaiseS s e) :=
+      p_license_offRung c.suit hwfs' hwf hpiles hrows
+    -- no sealed-suit card is S-live at the successor: the scan is
+    -- exact, and an S-live one would sit exactly one rung up the
+    -- seal, reading the scan true against its false dichotomy
+    have hdead : ∀ e : Card, e.suit = c.suit → ¬ CanRaiseS s' e := by
+      intro e he hS'
+      have hnextE := (canRaiseS_iff hwfs').mp hS'
+      have h0 : e.rank.toIdx = s'.foundHeight e.suit :=
+        of_decide_eq_true hnextE.1
+      rw [he] at h0
+      rw [show s'.foundHeight c.suit = (s'.found c.suit).length from rfl,
+          hseal, List.length_append, List.length_singleton] at h0
+      have hclen : c.rank.toIdx = (s.found c.suit).length := hcrung
+      exact absurd ((p_sealHotScan_iff hwfs').mpr ⟨e, he, by omega, hS'⟩)
+        hscan
+    -- the origin's parcel re-certifies at the successor: forklessness
+    -- contra the interloper-free census
+    have hwit' : ForkWitness s' x := by
+      refine ⟨fun c₀ => ⟨fun hmem => ?_, fun hS' => ?_⟩, ?_⟩
+      · rcases hmem with rfl | rfl
+        · exact (hoff hxsuit).mpr hSx
+        · exact (hoff hxtsuit).mpr hSxt
+      · by_cases hs : c₀.suit = c.suit
+        · exact absurd hS' (hdead c₀ hs)
+        · exact (hwit.1 c₀).mpr ((hoff hs).mp hS')
+      · -- the vanilla conjunct: every clause reads off the sealed row
+        intro hcr
+        obtain ⟨hn, a, hp, hseat⟩ := hcr
+        have hrowt : s'.found x.twin.suit = s.found x.twin.suit :=
+          hrows x.twin.suit hxtsuit
+        rw [show s'.nextUp x.twin = s.nextUp x.twin from by
+            show decide (x.twin.rank.toIdx = (s'.found x.twin.suit).length)
+              = decide (x.twin.rank.toIdx = (s.found x.twin.suit).length)
+            rw [hrowt]] at hn
+        rw [show s'.pileOfTop x.twin = s.pileOfTop x.twin from
+            p_pileOfTop_congr x.twin hpiles] at hp
+        rw [show s'.piles a = s.piles a from congrFun hpiles a] at hseat
+        exact hwit.2 ⟨hn, a, hp, hseat⟩
+    exact absurd ((forkStateSB_true_iff hwfs').mpr
+      (forkState_iff.mpr ⟨x, hwit'⟩)) hfb
+
+/-- **THE SEAT'S HOT-FORCING, EMPTY-ANCHOR ARM** [M] — the
+empty-exhibit census of the waste-seating kind at the king seat: at
+a forkless successor of the ORIGIN's fork, some c-family card went
+HOT — the seated head `c` itself, or its twin.  The census: the
+seating writes NO rung (the read census `p_seat_reads_inl`: every
+`nextUp` is verbatim), the written pile was EMPTY before the seat
+(so no license column ever read it) and is the seated king's bare
+singleton after (so no certificate can live there but the king's
+own), the origin pair holds no c-family card (the seated head was
+waste-resident at the origin, and the pair closure kills the twin
+corner the same way), and the top-search transports verbatim off
+the born cell — so a c-cold successor re-certifies the origin's own
+parcel at the EMPTY play, `forkStateSB_true_iff` against the assumed
+forklessness.  Both interference reads are DECIDED as `Bool` case
+splits — zero `Classical`.  The covered-host (inr) arm's interference
+census is deliberately NOT priced here — its corners (the covered
+host's top dying, the twin-cover corners) are the seating kind's own
+open geometry, carried at the row's token. -/
+private theorem p_seat_inl_hot_forced {s s' : State} {c x : Card} {k : Anchor}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.wasteToTab c (Sum.inl k)) = some s')
+    (hwit : ForkWitness s x)
+    (hfb : ¬ forkStateSB s' = true) :
+    s.nextUp c = true ∨ s.nextUp c.twin = true := by
+  have hwfs' : s'.WF := step_wf hwf hstep
+  by_cases hcn : s.nextUp c = true
+  · exact Or.inl hcn
+  by_cases hctn : s.nextUp c.twin = true
+  · exact Or.inr hctn
+  -- both hot reads pinned false (decided, zero Classical)
+  have hcB : s.nextUp c = false := by
+    cases hb : s.nextUp c with
+    | true => exact absurd hb hcn
+    | false => rfl
+  have hctB : s.nextUp c.twin = false := by
+    cases hb : s.nextUp c.twin with
+    | true => exact absurd hb hctn
+    | false => rfl
+  -- the seating's read census, and the empty seat's records
+  obtain ⟨-, hnextA, hpA, hpilk, hsearch⟩ := p_seat_reads_inl hstep
+  obtain ⟨hemp, -, -, -, -⟩ := p_seat_inl_records hstep
+  obtain ⟨-, hkFu⟩ := (Pile.isEmpty_eq _).mp hemp
+  -- the seated head was waste-resident at the origin
+  obtain ⟨hg, w, ws, hwaste, -⟩ := step_wasteToTab_inv hstep
+  rw [Bool.and_eq_true] at hg
+  have hw2 : w = c := State.wasteIs_head_eq hwaste hg.1
+  rw [hw2] at hwaste
+  have hcw : c ∈ s.waste := by rw [hwaste]; exact List.mem_cons_self ..
+  -- an S-live card sits in the tableau, so the waste head is not S-live
+  have hcolof : ∀ {y : Card}, CanRaiseS s y → ∃ a, y ∈ (s.piles a).faceUp := by
+    intro y hSy
+    obtain ⟨-, a, bs, run, hlist, -, -⟩ := (canRaiseS_iff hwf).mp hSy
+    refine ⟨a, ?_⟩
+    rw [hlist]
+    exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+  -- the origin pair reads no c-family card (the head itself by the
+  -- waste residency, the twin corner by the pair closure)
+  have hxc : x ≠ c ∧ x ≠ c.twin := by
+    constructor
+    · intro hcon
+      obtain ⟨a, hmem⟩ := hcolof ((hwit.1 c).mp (Or.inl hcon.symm))
+      exact absurd hcw ((mem_faceUp_only hwf hmem).2.2.2.1)
+    · intro hcon
+      rw [hcon] at hwit
+      obtain ⟨a, hmem⟩ := hcolof ((hwit.1 c).mp (Or.inr (Card.twin_twin c).symm))
+      exact absurd hcw ((mem_faceUp_only hwf hmem).2.2.2.1)
+  -- the per-card transport: off the c-family every license moves
+  -- verbatim across the seat (nextUp verbatim by the read census;
+  -- columns off the written pile, verbatim by the pile records;
+  -- top-searches verbatim off the born cell)
+  have htrans : ∀ y : Card, y ≠ c → y ≠ c.twin →
+      (CanRaiseS s' y ↔ CanRaiseS s y) := by
+    intro y hyc hyct
+    have hytc : y.twin ≠ c := by
+      intro hcon
+      have h2 : y.twin.twin = c.twin := congrArg Card.twin hcon
+      rw [Card.twin_twin y] at h2
+      exact hyct h2
+    constructor
+    · intro hSy'
+      obtain ⟨hnext', a, bs, run, hshape, hseat, hdisj⟩ :=
+        (canRaiseS_iff hwfs').mp hSy'
+      -- the certificate column is not the written pile: its face-up
+      -- record is the seated king's bare singleton, and y is not it
+      have hak : a ≠ k := by
+        intro hcon
+        rw [hcon, hpilk] at hshape
+        have h2 : ([c] : List Card) = bs ++ y :: run := hshape
+        cases bs with
+        | nil =>
+            rw [List.nil_append] at h2
+            injection h2 with hy _
+            exact hyc hy.symm
+        | cons b bt => exact absurd h2 (by simp)
+      rw [hpA a hak] at hshape
+      rw [hpA a hak] at hseat
+      refine (canRaiseS_iff hwf).2
+        ⟨by rw [← hnextA y]; exact hnext', a, bs, run, hshape, hseat, ?_⟩
+      rcases hdisj with rfl | htw
+      · exact Or.inl rfl
+      · exact Or.inr (by rw [hsearch y.twin hytc] at htw; exact htw)
+    · intro hSy
+      obtain ⟨hnext, a, bs, run, hshape, hseat, hdisj⟩ :=
+        (canRaiseS_iff hwf).mp hSy
+      -- the origin column is not the written pile: the seat was empty
+      have hak : a ≠ k := by
+        intro hcon
+        rw [hcon] at hshape
+        rw [hkFu] at hshape
+        exact absurd hshape.symm (by simp)
+      have hs' : (s'.piles a).faceUp = bs ++ y :: run := by
+        rw [hpA a hak]; exact hshape
+      have hseat' : bs ≠ [] ∨
+          ((s'.piles a).hidden = [] ∧ y.rank = Rank.king) := by
+        rw [hpA a hak]; exact hseat
+      refine (canRaiseS_iff hwfs').2
+        ⟨by rw [hnextA y]; exact hnext, a, bs, run, hs', hseat', ?_⟩
+      rcases hdisj with rfl | htw
+      · exact Or.inl rfl
+      · exact Or.inr (by rw [← hsearch y.twin hytc] at htw; exact htw)
+  -- the origin parcel re-certifies at the successor
+  have hwit' : ForkWitness s' x := by
+    refine ⟨fun c₀ => ⟨fun hmem => ?_, fun hS' => ?_⟩, ?_⟩
+    · rcases hmem with h | h
+      · rw [h]
+        exact (htrans x hxc.1 hxc.2).mpr ((hwit.1 x).mp (Or.inl rfl))
+      · rw [h]
+        exact (htrans x.twin
+          (by
+            intro hcon
+            have h2 : x.twin.twin = c.twin := congrArg Card.twin hcon
+            rw [Card.twin_twin x] at h2
+            exact hxc.2 h2)
+          (by
+            intro hcon
+            have h2 : x.twin.twin = c.twin.twin := congrArg Card.twin hcon
+            rw [Card.twin_twin x, Card.twin_twin c] at h2
+            exact hxc.1 h2)).mpr
+          ((hwit.1 x.twin).mp (Or.inr rfl))
+    · by_cases hc₀c : c₀ = c
+      · have hnext' := (canRaiseS_iff hwfs').mp hS'
+        rw [hc₀c, hnextA c, hcB] at hnext'
+        exact absurd hnext' (by simp)
+      by_cases hc₀ct : c₀ = c.twin
+      · have hnext' := (canRaiseS_iff hwfs').mp hS'
+        rw [hc₀ct, hnextA c.twin, hctB] at hnext'
+        exact absurd hnext' (by simp)
+      · exact (hwit.1 c₀).mpr ((htrans c₀ hc₀c hc₀ct).mp hS')
+    · -- the vanilla conjunct: all clauses read off the written cell
+      intro hcr
+      obtain ⟨hn, a, hp, hseat⟩ := hcr
+      have hytc : x.twin ≠ c := by
+        intro hcon
+        have h2 : x.twin.twin = c.twin := congrArg Card.twin hcon
+        rw [Card.twin_twin x] at h2
+        exact hxc.2 h2
+      rw [hnextA x.twin] at hn
+      rw [hsearch x.twin hytc] at hp
+      have hak : a ≠ k := by
+        intro hcon
+        rw [hcon] at hp
+        have htop := (pileOfTop_top hp).2
+        have hnone : lastOf (s.piles k).faceUp = none := by
+          rw [hkFu]
+          rfl
+        exact absurd (htop.symm.trans hnone) (by simp)
+      rw [hpA a hak] at hseat
+      exact hwit.2 ⟨hn, a, hp, hseat⟩
+  exact absurd ((forkStateSB_true_iff hwfs').mpr
+    (forkState_iff.mpr ⟨x, hwit'⟩)) hfb
+
+/-- **THE SEAT'S INTERFERENCE-FORCING** — the seating kind's
+empty-exhibit census, base-uniform: at a forkless successor of the
+ORIGIN's fork, either a c-family card went hot (the empty-anchor
+economy, priced by `p_seat_inl_hot_forced`: the seated king's own
+rung, or its twin's own rung), or the seat was a CARD-HOST arm —
+the covered-host economy whose corners (the covered top's death,
+the twin-cover corners, the search exceptions of
+`p_seat_reads_inr`) remain the seating kind's own open geometry,
+priced at the probe program's fb2E junk-refusal verdicts. -/
+private theorem p_seat_interference_forced {s s' : State} {c x : Card} {b : Base}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.wasteToTab c b) = some s')
+    (hwit : ForkWitness s x)
+    (hfb : ¬ forkStateSB s' = true) :
+    s.nextUp c = true ∨ s.nextUp c.twin = true ∨
+      ∃ z : Card, b = Sum.inr z := by
+  cases b with
+  | inl k =>
+      cases p_seat_inl_hot_forced hwf hstep hwit hfb with
+      | inl h => exact Or.inl h
+      | inr h => exact Or.inr (Or.inl h)
+  | inr z => exact Or.inr (Or.inr ⟨z, rfl⟩)
+
 /-- **THE DRAW ARM'S NAMED ZONE REMAINDER** [H, named sub-residue,
 exactly one `sorry` — the draw kind's carried content once the two
 closed fragments are dispatched]: the exhibiting play heads with a
@@ -1992,7 +2333,7 @@ private theorem fork_floor_draw {s s' : State}
               (fun hcon => absurd hcon (by simp)) hbfalse
 
 /-- **THE WASTE-FOUNDING ARM'S NAMED REMAINDER** [M–H, named
-sub-residue, exactly one `sorry` — the waste-founding kind's
+sub-residue, exactly one `sorryAx` — the waste-founding kind's
 carried content once the head-case and the corridor are
 dispatched]: the exhibiting play is EMPTY (the fork sits at the
 origin, with the eaten head sealed one rung up) or heads with a
@@ -2059,6 +2400,22 @@ dead-successor shapes re-exhibit the origin fork VERBATIM — the
 LIVE-SUCCESSOR leak is the shape to defuse, and the board-headed
 branch's raised-row shadow is the other.
 
+LANDED ALSO (this pass): THE EMPTY-EXHIBIT INTERLOPER CENSUS
+(`p_seal_interloper_forced`, §5.0c) — when the exhibiting play is
+EMPTY (the fork sits AT the origin, witness `x`) and the successor is
+forkless, the interloper census is now theorem-grade: the origin pair
+provably reads NO sealed-suit card (the suit's one frontier card is
+the eaten waste head, unstackable by `mem_faceUp_only`), and the
+license world off the sealed suit is verbatim across the commit, so
+the successor's forklessness is FORCED to mint one hot sealed-suit
+interloper — S-live at the successor, its rung exactly the sealed
+rung plus one.  The empty-exhibit schedule now carries that card as
+its input datum in the open branch; the multi-leg expose-and-found
+re-scheduling that defuses it (found the interloper when it tops,
+dig when it is covered, keeping the origin pair mobile) is the
+branch's surviving open content, priced at the probe program's
+HUNTING-FLOOR HONESTY.
+
 CLOSED ALSO (this pass): THE SUCCESSOR'S OWN FORK — when the
 successor is itself fork-headed, the empty play exhibits it
 (`p_successor_fork_repair`, the decidable census bridge).  The
@@ -2077,15 +2434,32 @@ private theorem p_waste_found_rest {s s' F : State} {c : Card} {x : Card}
   by_cases hfb : forkStateSB s' = true
   · exact p_successor_fork_repair (step_wf hwf hstep) hfb
   · -- the forkless-successor repair: this row's sole carried content,
-    --  over the SEALED ARITHMETIC LANDED THIS PASS (§5.0c:
-    --  `p_seal_zone_rows` the commit's full write record --
-    --  piles/stock verbatim, waste popped, every found row but the
-    --  sealed suit verbatim -- and `p_license_offRung`: the whole
-    --  license world off the sealed suit is VERBATIM across the
-    --  commit, so the route's step-1 conflict is exactly the sealed
-    --  suit's frontier cell); the empty-exhibit and board/draw-headed
-    --  re-scheduling (route steps 2-4) remains this row's content.
-    sorry
+    --  over the SEALED ARITHMETIC (§5.0c: `p_seal_zone_rows` the
+    --  commit's full write record -- piles/stock verbatim, waste
+    --  popped, every found row but the sealed suit verbatim -- and
+    --  `p_license_offRung`: the whole license world off the sealed
+    --  suit is VERBATIM across the commit).  THE EMPTY-EXHIBIT
+    --  ARM'S FIRST CENSUS IS LANDED THIS PASS
+    --  (`p_seal_interloper_forced`): when the fork sat AT the origin,
+    --  the successor can only be forkless by minting a hot
+    --  sealed-suit interloper (rung exactly the sealed rung plus
+    --  one) — the arm now carries that card as its schedule's input
+    --  datum in the open branch; the multi-leg expose-and-found
+    --  re-scheduling (route steps 2-4) is the surviving content, at
+    --  the probe program's HUNTING-FLOOR HONESTY.  The HEADED
+    --  exhibits (board/draw heads) carry the raised-row shadow and
+    --  the cursor read as before.
+    rcases hprof with rfl | ⟨m₀, τ, hheadEq, hneF, hneT⟩
+    · -- the empty exhibit: the fork sat at the origin; the forced
+      -- interloper is in hand as the open schedule's input datum
+      injection hrun with hFs
+      subst hFs
+      obtain ⟨e₀, he₀suit, he₀rung, hS₀⟩ :=
+        p_seal_interloper_forced hwf hstep hwit hfb
+      sorry
+    · -- the headed exhibits: the board/draw heads carry the
+      -- raised-row shadow and the cursor read as before
+      sorry
 
 /-- **`fork_floor_waste_found`** — **THE WASTE-JUMP KIND RESIDUE**
 (pop-to-foundation arm) [M, named residue, exactly one `sorry`]:
@@ -2259,7 +2633,21 @@ witness-cover schedules are the shapes to defuse.
 CLOSED ALSO (this pass): THE SUCCESSOR'S OWN FORK — when the
 successor is itself fork-headed, the empty play exhibits it
 (`p_successor_fork_repair`, the decidable census bridge).  The
-row's sole carried content is its FORKLESS-SUCCESSOR branch. -/
+row's sole carried content is its FORKLESS-SUCCESSOR branch.
+
+LANDED ALSO (this pass): THE EMPTY-EXHIBIT INTERFERENCE CENSUS
+(`p_seat_interference_forced`, §5.0c) — when the exhibiting play is
+EMPTY (the fork sits AT the origin) and the successor is forkless,
+the origin pair provably reads no c-family card (the seated head was
+waste-resident before the commit; the twin corner falls to the pair
+closure the same way), and at the EMPTY-ANCHOR economy the seating
+writes no rung at all, so the successor's forklessness is FORCED to
+mint a c-family HOT read — the seated king's own rung, or its
+twin's (`p_seat_inl_hot_forced`, proved zero-`sorryAx`).  The
+CARD-HOST economy is the disjunct's remaining arm: the covered top,
+the twin-cover corners, and the search exceptions of
+`p_seat_reads_inr` are the row's own open geometry, carried at the
+token below with the probe program's fb2E junk-refusal pricing. -/
 private theorem p_waste_seat_rest {s s' F : State} {c : Card} {b : Base}
     {x : Card} {π : List Move}
     (hwf : s.WF)
@@ -2284,9 +2672,25 @@ private theorem p_waste_seat_rest {s s' F : State} {c : Card} {b : Base}
     --  every card-hosted placement consult on that host refuses),
     --  and `p_seat_reads_inl`/`p_seat_reads_inr` (every rung, pile,
     --  and top-search read outside the written pile and the two
-    --  named cells is verbatim); the corridor re-scheduling (route
-    --  steps 2-4) remains this row's content.
-    sorry
+    --  named cells is verbatim).  THE EMPTY-EXHIBIT ARM'S FIRST
+    --  CENSUS IS LANDED THIS PASS (`p_seat_interference_forced`):
+    --  at the empty-anchor economy the forklessness forces a
+    --  c-family HOT read (the seated king's rung or its twin's), and
+    --  the card-host arm names the covered-host economy — the token
+    --  below carries the forced disjunction as its input datum; the
+    --  guard-refusal re-scheduling (route steps 2-4) is the
+    --  surviving content.  The HEADED exhibits (board/draw heads)
+    --  carry the covered-top shadow and the cursor read as before.
+    rcases hprof with rfl | ⟨m₀, τ, hheadEq, hneF, hneT⟩
+    · -- the empty exhibit: the fork sat at the origin; the forced
+      -- interference disjunction is in hand at the open token
+      injection hrun with hFs
+      subst hFs
+      have hdisj := p_seat_interference_forced hwf hstep hwit hfb
+      sorry
+    · -- the headed exhibits: the board/draw heads carry the
+      -- covered-top shadow and the cursor read as before
+      sorry
 
 /-- **`fork_floor_waste_seat`** — **THE WASTE-JUMP KIND RESIDUE**
 (seating arm) [M, named residue, exactly one `sorry`]: the committed
@@ -2929,7 +3333,45 @@ forkless mirror.  The sorry COUNT stays exactly the SIX; the
 draw child's and the head's axiom profiles are UNCHANGED by the
 restructure (`p_draw_zone_rest` still
 `[propext, sorryAx, Quot.sound]`, one `sorryAx`, whole and
-entire the cursor birth). -/
+entire the cursor birth).
+
+THE INTERLOPER PASS adds the waste-founding kind's empty-exhibit
+census — **`p_sealHotScan_iff`** + **`p_seal_interloper_forced`**
+[M, PROVED zero-`sorryAx`, zero-`Classical.choice`]: the interloper
+question is DECIDED constructively as a `Bool` scan over the
+52-card universe (`p_sealHotScan` over `canRaiseSB`, the S-shadow —
+the `p_seatOffered` pattern, no `by_contra`/`Classical` anywhere in
+the house), and at a forkless wasteToFound-successor of an origin
+fork a hot sealed-suit interloper (rung exactly one above the
+sealed card's) is forced into S-liveness — the origin pair reads no
+sealed-suit card (`mem_faceUp_only` against the eaten waste head),
+the license world off the sealed suit is verbatim (`p_license_offRung`
+over `p_seal_zone_rows`), and interloper-freeness would re-certify
+the origin's own parcel at the EMPTY play against
+`forkStateSB_true_iff`.  The waste-founding remainder's
+empty-exhibit arm now carries the interloper as its schedule's
+input datum at its token; the row's `sorryAx` profile is unchanged
+(one carrier, the row itself); the sorry count stays exactly the SIX
+carrying rows.
+
+THE INTERFERENCE PASS adds the waste-seating kind's empty-exhibit
+census — **`p_seat_inl_hot_forced`** and its base-uniform wrapper
+**`p_seat_interference_forced`** [M, PROVED zero-`sorryAx`,
+zero-`Classical.choice`]: at a forkless wasteToTab-successor of an
+origin fork, the seating kind's interference is forced into the
+named disjunction — at the EMPTY-ANCHOR economy a c-family HOT
+read (the seated king's own rung, or its twin's — the seat writes
+no rung, the written pile was empty before and is the king's bare
+singleton after, the origin pair holds no c-family card by the
+waste residency and the pair closure, RANKS VERBATIM via
+`p_seat_reads_inl`, searches verbatim off the born cell), or the
+seat was a CARD-HOST arm — the covered-host economy whose corners
+(the covered top's death, the twin-cover corners, the exceptions of
+`p_seat_reads_inr`) remain the seating kind's own open geometry,
+priced at the fb2E probe verdicts.  The seating remainder's
+empty-exhibit arm carries the disjunction as its input datum at the
+token; the row's `sorryAx` profile is unchanged; the sorry count
+stays exactly the SIX carrying rows. -/
 
 #print axioms hidden_never_grows
 #print axioms two_zone_exits_playable
@@ -2963,6 +3405,10 @@ entire the cursor birth). -/
 #print axioms p_mem_afterRunRemoved
 #print axioms p_reveal_rung
 #print axioms p_board_prefix_split
+#print axioms p_sealHotScan_iff
+#print axioms p_seal_interloper_forced
+#print axioms p_seat_inl_hot_forced
+#print axioms p_seat_interference_forced
 #print axioms p_seat_climb_rest
 #print axioms p_founded_seat_schedule
 #print axioms p_draw_zone_rest

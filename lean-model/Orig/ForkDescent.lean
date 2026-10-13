@@ -62,21 +62,26 @@ classes from floor to fork.
   `sameOrbitSetoid` is the rev-closure (`r st w` is `RevEqW w st`),
   so the setoid's own symmetry/transitivity welds the links, and
   `sameOrbit_forward` is the forward-unpack the §3 route rides.
-* **§3 THE FLOOR CLAIM** [H — THE NAMED RESIDUE]
-  `descent_stall_certifies_floor`: if a maximal descent stalls with
-  a suit at rung `h`, NO class member has that suit below `h` — the
-  stall itself CERTIFIES the class's rung floor.  The route (priced
-  in the row's docstring, anchored EXACTLY at the census's
-  `excursion_issues_noNewSeat`): §2's chain welds the member
-  journeys; `descent_lower_member_crosses_pull` (proved here)
-  forces every witnessing journey `W ⇝ u` with a lower σ-rung to
-  carry a σ-pull leg; the census prices WHICH hosts the arrangement
-  can still issue, and the stalled state's own exhaustion
-  (`descent_stuck_seatExhausted`, proved here: at `W` NO host top
-  fits any current foundation top) is the seat-exhaustion
+* **§3 THE FLOOR CLAIM** [H — THE NAMED RESIDUE, REFUTED AT THE
+  FROZEN STATEMENT] `descent_stall_certifies_floor`: if a maximal
+  descent stalls with a suit at rung `h`, NO class member has that
+  suit below `h` — the stall itself CERTIFIES the class's rung
+  floor.  The route (priced in the row's docstring, anchored EXACTLY
+  at the census's `excursion_issues_noNewSeat`): §2's chain welds
+  the member journeys; `descent_lower_member_crosses_pull` (proved
+  here) forces every witnessing journey `W ⇝ u` with a lower σ-rung
+  to carry a σ-pull leg; the census prices WHICH hosts the
+  arrangement can still issue, and the stalled state's own
+  exhaustion (`descent_stuck_seatExhausted`, proved here: at `W` NO
+  host top fits any current foundation top) is the seat-exhaustion
   contrapositive the journey's pulls have to defeat.  Support rows
   landed alongside: `descent_class_wf` (the class of a WF start is
   WF — the member-grade premise the census rows demand).
+  SESSION-4 FATE (2026-10-13, the fourth succession): the row is
+  REFUTED — the counterexample family (the buried-host
+  expose-raise) is certified decide-grade in-file at §3R
+  (`descent_stall_refuted`, zero-sorry); the residue keeps its
+  sorry and its [H] grade with the refutation on record.
 * **§4 THE COMPOSITE** (route note only) — `s` reachable ⇒ descent
   reaches the class-minimal rung-floor componentwise, therefore ≤
   every member; the Unstack-then-Ascent composition hands off to
@@ -838,7 +843,32 @@ as stated):
 
 The residue's consumers: the §4 composite note below — the floor's
 componentwise minimality is the ascent's handing premise; the
-composite's head belongs to a future leaf over both scripts. -/
+composite's head belongs to a future leaf over both scripts.
+
+SESSION-4 VERDICT (2026-10-13, the fourth succession — REFUTED AT
+THE FROZEN STATEMENT): the step-6 weave is FALSE, and the
+counterexample family is ON RECORD at decide grade IN-FILE (§3.R
+below, `descent_stall_refuted`): a WF, maximally-unstacked stall
+(spade rung 3, sole pile top `3♣`, no licensed pull) carries a
+BURIED host `4♥` — one-deep in the face-up run `4♥ / 3♣` — that no
+pull can see; the two-leg witness journey (raise the next-up `3♣`
+— reversible, its giveback mirror onto the exposed host; then the
+σ-pull `3♠` onto the exposed `4♥` — reversible, its raise mirror)
+lands at a WF class-mate reading spade at rung 2, strictly below the
+stall's 3.  THE CANONICAL GAP, named: `descent_stuck_seatExhausted`
+pins pile TOPS only, so "every pull-able host cell reads EMPTY at
+the `W`-end" is false of a cell OCCUPIED by a buried face-up card,
+and the expose-raise mints exactly the one host cell mid-tour that
+the σ-pull burns in kind — the mint-and-burn interleave repays the
+round trip (step 3 stays satisfied), the global budget (step 6) is
+balanced, and the deficit `d > 0` is PAYABLE.  NO repair at a
+byte-frozen statement exists in-file (per the never-force
+discipline none is smuggled): the owner's options are
+statement-level, on the `lowslab_top_census` repair precedent —
+strengthen the stall read to buried-host exhaustion, or restrict
+the conclusion to pull-only witnessing journeys.  The row keeps
+its sorry — the row as stated is FALSE — and hosts at [H, REFUTED].
+-/
 theorem descent_stall_certifies_floor {st : State} (hwf : st.WF)
     {play : List Move} {W : State}
     (hrun : st.run play = some W)
@@ -847,6 +877,302 @@ theorem descent_stall_certifies_floor {st : State} (hwf : st.WF)
     ∀ (σ : Suit) (u : State), sameOrbitSetoid.r st u →
       rungAt W σ ≤ rungAt u σ := by
   sorry
+
+/-! ### §3.R. THE REFUTATION BOARD (the fourth succession's verdict)
+
+The residue above is REFUTED at the byte-frozen statement, by an
+in-file decide-grade counterexample board — the counterexample family
+the route's step 6 priced as impossible, made concrete and
+kernel-certified.  THE FAMILY (the "buried-host expose-raise"):
+
+* the stalled board `fdR_st` is WF and maximally-unstacked: its only
+  pile top is `3♣`, and no foundation top (`3♠`, `3♥`, `2♣`, `6♦`)
+  is a king or fits it — the only cards `3♣` could host are the red
+  deuces, and neither tops a foundation.  σ = spade sits at rung 3
+  (`A♠ 2♠ 3♠`).
+* the HOST `4♥` that pulling `3♠` demands is not absent — it is
+  BURIED: the one face-up run `4♥ / 3♣` reads `3♣` sitting exactly on
+  the host.  Seat exhaustion counts pile TOPS only (the datum
+  `descent_stuck_seatExhausted` licenses exactly that), so the buried
+  host is invisible to the stall read and free for the class journey.
+* the two-leg WITNESS JOURNEY: raise `3♣` (`tabToFound`: `3♣` is
+  next-up for clubs and tops its pile — a licensed move the descent
+  script never makes) — reversible, its one-move mirror being the
+  giveback onto the exposed `4♥`; then the σ-pull `3♠` onto the
+  exposed `4♥` (`foundToTab`, licensed at the raised member) —
+  reversible, its one-move mirror being the raise back.  The landing
+  `fdR_u` reads spade at rung 2 — strictly BELOW the stalled floor —
+  while remaining a class-mate (`ShufflePlayW` both ways).
+* instantiated at `st := fdR_st`, `play := []`, `W := fdR_st` (the
+  empty play satisfies `hrun`/`hpulls` trivially), the residue would
+  demand `rungAt fdR_st .spade ≤ rungAt fdR_u .spade` — i.e. `3 ≤ 2`.
+
+WHY THE PRICED ROUTE FAILS (the census weave's exact gap, on
+record): the route's step 5 reads the tour's host cells as empty at
+the `W`-end, but the face-up run `4♥ / 3♣` occupies its cell at
+`fdR_st` all along — only as a non-top.  The manufacture the weave
+priced as globally impossible is cheap and local: ONE reversible
+raise leg mints exactly the one host seat mid-tour (precisely the
+mint the route's own step 4 attributes to raises — "raises mint only
+their exposed below-cards' cells"), the σ-pull burns it in kind, and
+the returned round trip repays everything: no capacity is issued
+beyond the arrangement profile, so step 3's `excursion_issues_noNewSeat`
+is satisfied and the step-6 "cannot simultaneously" is simply not a
+theorem.  No repair at a byte-frozen statement exists (and none is
+smuggled, per the never-force discipline); the owner's recourse is
+statement-level, on the `lowslab_top_census` repair precedent:
+strengthen the stall read to exhaustion over BURIED face-up hosts as
+well — a strictly stronger maximality notion than the descent
+script's — or restrict the conclusion's quantifier to pull-only
+witnessing journeys.  The residue keeps its sorry (the row as stated
+is FALSE) and hosts at [H, REFUTED]; `descent_stall_refuted` below
+is the certified witness, zero-sorry. -/
+
+private def fdC (s : Suit) (r : Rank) : Card := ⟨s, r⟩
+
+private def fdStep (st : State) (m : Move) : State :=
+  match st.step m with
+  | none => st
+  | some s' => s'
+
+/-- The thirty-six cards buried under the board's one face-up run —
+every card not on a foundation and not face-up, in one hidden deck. -/
+private def fdR_deck : List Card :=
+  [fdC .spade .four, fdC .spade .five, fdC .spade .six, fdC .spade .seven,
+   fdC .spade .eight, fdC .spade .nine, fdC .spade .ten, fdC .spade .jack,
+   fdC .spade .queen, fdC .spade .king,
+   fdC .heart .five, fdC .heart .six, fdC .heart .seven, fdC .heart .eight,
+   fdC .heart .nine, fdC .heart .ten, fdC .heart .jack, fdC .heart .queen,
+   fdC .heart .king,
+   fdC .diamond .seven, fdC .diamond .eight, fdC .diamond .nine,
+   fdC .diamond .ten, fdC .diamond .jack, fdC .diamond .queen,
+   fdC .diamond .king,
+   fdC .club .four, fdC .club .five, fdC .club .six, fdC .club .seven,
+   fdC .club .eight, fdC .club .nine, fdC .club .ten, fdC .club .jack,
+   fdC .club .queen, fdC .club .king]
+
+/-- The stalled board: `A♠ 2♠ 3♠ / A♥ 2♥ 3♥ / A♣ 2♣ / A♦…6♦` on the
+foundations; one face-up run `4♥ / 3♣` over the buried deck; both
+zones empty, deal size 1. -/
+private def fdR_hmap : Suit → Nat
+  | .spade => 3 | .heart => 3 | .diamond => 6 | .club => 2
+
+private def fdR_st : State where
+  found := fun s => s.upCards.take (fdR_hmap s)
+  piles := fun a => match a with
+    | .p3 => ⟨fdR_deck, [fdC .heart .four, fdC .club .three]⟩
+    | _ => ⟨[], []⟩
+  stock := []
+  waste := []
+  drawStep := 1
+
+/-- the raised intermediate: `3♣` founded, `4♥` exposed. -/
+private def fdR_s1 : State :=
+  fdStep fdR_st (Move.tabToFound (fdC .club .three))
+
+/-- the lower class-mate: `3♠` pulled back onto the exposed `4♥`. -/
+private def fdR_u : State :=
+  fdStep fdR_s1
+    (Move.foundToTab (fdC .spade .three) (Sum.inr (fdC .heart .four)))
+
+/-- THE STALLED BOARD IS WF — foundations are prefixes by the map,
+the lone face-up run is legal, the full deck is counted once, the
+deal size is positive. -/
+private theorem fdR_st_wf : fdR_st.WF := by
+  refine ⟨fun s => ⟨fdR_hmap s, rfl⟩, ?_, ?_, ?_⟩
+  · intro a
+    cases a <;> rfl
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+/-- The one pile of the board tops at exactly `3♣` (the search's
+answer, pinned for the stall read). -/
+private theorem fdR_top_pin {z : Card} {a : Anchor}
+    (h : fdR_st.pileOfTop z = some a) : z = fdC .club .three := by
+  have hz : fdR_st.topOf a = some z :=
+    of_decide_eq_true (firstWhere_sound
+      (fun k => decide (fdR_st.topOf k = some z)) h)
+  cases a with
+  | p3 =>
+      have h2 : (some (fdC .club .three) : Option Card) = some z := hz
+      injection h2 with h3
+      exact h3.symm
+  | p0 =>
+      have h2 : ((none : Option Card) = some z) := hz
+      injection h2
+  | p1 =>
+      have h2 : ((none : Option Card) = some z) := hz
+      injection h2
+  | p2 =>
+      have h2 : ((none : Option Card) = some z) := hz
+      injection h2
+  | p4 =>
+      have h2 : ((none : Option Card) = some z) := hz
+      injection h2
+  | p5 =>
+      have h2 : ((none : Option Card) = some z) := hz
+      injection h2
+  | p6 =>
+      have h2 : ((none : Option Card) = some z) := hz
+      injection h2
+
+/-- No current foundation top can be placed anywhere on the stalled
+board: the empty anchors want kings, and the only pile top `3♣`
+hosts nothing they fit. -/
+private theorem fdR_canPlace_false {c : Card}
+    (hfour : c = fdC .spade .three ∨ c = fdC .heart .three ∨
+      c = fdC .club .two ∨ c = fdC .diamond .six)
+    (b : Base) : fdR_st.canPlace c b = false := by
+  cases b with
+  | inl a =>
+      rw [canPlace_inl_unfold]
+      have hking : decide (c.rank = Rank.king) = false := by
+        rcases hfour with rfl | rfl | rfl | rfl <;> rfl
+      rw [hking]
+      cases _hb : (fdR_st.piles a).isEmpty <;> rfl
+  | inr z =>
+      cases hsearch : fdR_st.pileOfTop z with
+      | none =>
+          rw [canPlace_inr_eq, hsearch]
+      | some k =>
+          rw [canPlace_inr_located hsearch, fdR_top_pin hsearch]
+          rcases hfour with rfl | rfl | rfl | rfl <;> decide
+
+/-- THE STALLED BOARD IS MAXIMALLY-UNSTACKED — no licensed pull
+remains: every `DescentMove` names a foundation top, the four tops
+admit no placement. -/
+private theorem fdR_st_stuck : DescentStuck fdR_st := by
+  intro _ hmove
+  obtain ⟨c, b, -, htop, hcp⟩ := hmove
+  have hfour : c = fdC .spade .three ∨ c = fdC .heart .three ∨
+      c = fdC .club .two ∨ c = fdC .diamond .six := by
+    cases hs : c.suit with
+    | spade =>
+        rw [hs] at htop
+        have h2 : (some (fdC .spade .three) : Option Card) = some c := htop
+        injection h2 with h3
+        exact Or.inl h3.symm
+    | heart =>
+        rw [hs] at htop
+        have h2 : (some (fdC .heart .three) : Option Card) = some c := htop
+        injection h2 with h3
+        exact Or.inr (Or.inl h3.symm)
+    | club =>
+        rw [hs] at htop
+        have h2 : (some (fdC .club .two) : Option Card) = some c := htop
+        injection h2 with h3
+        exact Or.inr (Or.inr (Or.inl h3.symm))
+    | diamond =>
+        rw [hs] at htop
+        have h2 : (some (fdC .diamond .six) : Option Card) = some c := htop
+        injection h2 with h3
+        exact Or.inr (Or.inr (Or.inr h3.symm))
+  rw [fdR_canPlace_false hfour] at hcp
+  exact absurd hcp (by decide)
+
+/-- THE EXPOSE-RAISE FIRES at the stalled board (its one-move mirror:
+the giveback onto the exposed `4♥`). -/
+private theorem fdR_raise_at_st :
+    State.step fdR_st (Move.tabToFound (fdC .club .three)) = some fdR_s1 := by
+  rfl
+
+/-- the raise's mirror at the raised intermediate lands back at the
+stall, exactly. -/
+private def fdR_st' : State :=
+  fdStep fdR_s1 (Move.foundToTab (fdC .club .three) (Sum.inr (fdC .heart .four)))
+
+private theorem fdR_st'_eq : fdR_st' = fdR_st := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+private theorem fdR_giveback_at_s1 :
+    State.step fdR_s1
+      (Move.foundToTab (fdC .club .three) (Sum.inr (fdC .heart .four))) =
+      some fdR_st := by
+  rw [← fdR_st'_eq]
+  rfl
+
+/-- THE σ-PULL FIRES at the raised member, onto the exposed `4♥`
+(its one-move mirror: the raise back). -/
+private theorem fdR_pull_at_s1 :
+    State.step fdR_s1
+      (Move.foundToTab (fdC .spade .three) (Sum.inr (fdC .heart .four))) =
+      some fdR_u := by
+  rfl
+
+/-- the pull's mirror at the lower class-mate lands back at the
+raised intermediate, exactly. -/
+private def fdR_s1' : State := fdStep fdR_u (Move.tabToFound (fdC .spade .three))
+
+private theorem fdR_s1'_eq : fdR_s1' = fdR_s1 := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+private theorem fdR_raise_at_u :
+    State.step fdR_u (Move.tabToFound (fdC .spade .three)) = some fdR_s1 := by
+  rw [← fdR_s1'_eq]
+  rfl
+
+/-- **THE LOWER CLASS-MATE** — the stalled board and the two-leg
+landing are joined by witness shuffles BOTH ways: forward the
+expose-raise then the σ-pull (each with its one-move mirror), backward
+their exact mirrors mirrored.  This is the membership premise the
+residue demands of its hypothetical lower member, witnessed. -/
+private theorem fdR_class : sameOrbitSetoid.r fdR_st fdR_u :=
+  ⟨[Move.tabToFound (fdC .spade .three),
+     Move.foundToTab (fdC .club .three) (Sum.inr (fdC .heart .four))],
+    ShufflePlayW.cons
+      ⟨fdR_s1,
+        [Move.foundToTab (fdC .spade .three) (Sum.inr (fdC .heart .four))],
+        fdR_raise_at_u, run_one fdR_pull_at_s1⟩
+      fdR_raise_at_u
+      (ShufflePlayW.cons
+        ⟨fdR_st, [Move.tabToFound (fdC .club .three)],
+          fdR_giveback_at_s1, run_one fdR_raise_at_st⟩
+        fdR_giveback_at_s1
+        (ShufflePlayW.nil fdR_st)),
+    [Move.tabToFound (fdC .club .three),
+     Move.foundToTab (fdC .spade .three) (Sum.inr (fdC .heart .four))],
+    ShufflePlayW.cons
+      ⟨fdR_s1,
+        [Move.foundToTab (fdC .club .three) (Sum.inr (fdC .heart .four))],
+        fdR_raise_at_st, run_one fdR_giveback_at_s1⟩
+      fdR_raise_at_st
+      (ShufflePlayW.cons
+        ⟨fdR_u, [Move.tabToFound (fdC .spade .three)],
+          fdR_pull_at_s1, run_one fdR_raise_at_u⟩
+        fdR_pull_at_s1
+        (ShufflePlayW.nil fdR_u))⟩
+
+/-- **THE RESIDUE IS REFUTED** — the stall-certifies-floor claim is
+FALSE at its byte-frozen statement: the exhibited WF, maximally-unstacked
+`fdR_st` (a legal empty descent of itself), joined to the exhibited
+lower class-mate `fdR_u` (the buried-host expose-raise's two-leg
+landing), reads spade at rung 3 against its class-mate's 2.  The row
+`descent_stall_certifies_floor` above therefore cannot land — its
+`sorry` is the honest witness of a FALSE statement, and the owner's
+recourse is the statement-level repair priced in §3.R's header. -/
+theorem descent_stall_refuted :
+    ¬ ∀ (st : State), st.WF → ∀ (play : List Move) (W : State),
+      st.run play = some W → PullPlay play → DescentStuck W →
+      ∀ (σ : Suit) (u : State), sameOrbitSetoid.r st u →
+        rungAt W σ ≤ rungAt u σ := by
+  intro h
+  have hle := h fdR_st fdR_st_wf [] fdR_st rfl
+    (fun _ hm => absurd hm (by simp)) fdR_st_stuck Suit.spade fdR_u fdR_class
+  have h3 : rungAt fdR_st Suit.spade = 3 := rfl
+  have h2 : rungAt fdR_u Suit.spade = 2 := rfl
+  omega
 
 /-! ## §4. The composite (route note only — no import)
 
@@ -910,7 +1236,18 @@ inductions sit at `[propext]`-only.  The single `sorry` of the
 leaf is §3's `descent_stall_certifies_floor`, profile EXACTLY
 `[propext, sorryAx]` — its own named residue, NO other inflow —
 and the `sorry`-warning count of the file is exactly one: any
-change that grows either side regresses the battery. -/
+change that grows either side regresses the battery.
+
+THE §3.R REFUTATION BOARD (the fourth succession's additions): the
+board rows are zero-sorry at decide/defeq grade — all computations
+on closed boards (no `Classical.choice`; the `State.ext` dances ride
+`funext`, so the rows reading states read `[propext, Quot.sound]`,
+the pure-`Bool`/decide rows `[propext]` or
+`[propext, Quot.sound]` per their consumption).  The fresh public
+head `descent_stall_refuted` — the certified negation of the
+residue's own statement — is ZERO-sorry: the residue keeps its
+sorry (the row as stated is FALSE, §3.R's record), so the sorry
+count stays exactly one and every other profile stands. -/
 
 #print axioms fd_mem_ladder
 #print axioms fd_mem_cycle
@@ -941,3 +1278,15 @@ change that grows either side regresses the battery. -/
 #print axioms descent_lower_member_crosses_pull
 #print axioms descent_stuck_seatExhausted
 #print axioms descent_stall_certifies_floor
+#print axioms fdR_st_wf
+#print axioms fdR_top_pin
+#print axioms fdR_canPlace_false
+#print axioms fdR_st_stuck
+#print axioms fdR_raise_at_st
+#print axioms fdR_st'_eq
+#print axioms fdR_giveback_at_s1
+#print axioms fdR_pull_at_s1
+#print axioms fdR_s1'_eq
+#print axioms fdR_raise_at_u
+#print axioms fdR_class
+#print axioms descent_stall_refuted

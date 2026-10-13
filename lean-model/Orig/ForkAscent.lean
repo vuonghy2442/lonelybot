@@ -99,6 +99,25 @@ The frozen statements and the main rows' bodies are byte-untouched;
 the named residues carry re-priced routes that name what is provable
 kernel, what is `hbelow`-carried open, and why (never-force
 discipline).
+
+SECOND SUCCESSION PASS (2026-10-13, session 4): the mission's named
+induction — `ascent_pair_persists` (§2c-pre, the persistent pair) —
+is BANKED with its full kit: the slide-arm face-up preservation
+(`ascent_slide_faceUp`, over the mid-state landing pin
+`ascent_slideLanding`, the burn bar `ascent_slideBase_ne` off the
+self-landing refutation, and the rung freeze `ascent_slide_rung`),
+the index-exact cap arithmetic (`ascent_idxCap_of_ne`), and the
+`MobileTwin` re-pack (`ascent_persist_mobile`); the two §1d
+emptied-pile mode rows (`ascent_afterRunRemoved_reveal/burn`) moved
+to the kit's site, single-homed.  Both climb-delivery kernels are
+now BANKED and their route text says so; the saturation's
+reveal-gap note is now banked leg-work with the witness tracked to
+`W` itself.  The four frozen residues keep their grades — the
+parking-at-r, the multi-pair exclusion, the member-liveness, the
+cover-cell census, and the resurrection-mode corner all still ride
+`hbelow`/the probe's declared open, exactly as their routes say
+(never forced).  Zero `Classical.choice`; battery extended to the
+new heads.
 -/
 
 /-! ## §0. The vocabulary -/
@@ -1208,6 +1227,383 @@ private theorem ascent_stuck_coverTwinbar {st : State} (hwf : st.WF)
   rw [hfrom] at hnone
   simp at hnone
 
+/-! ### The persistent pair (the guard-persistence and index-exact
+kernels, banked)
+
+The two kernels the climb and saturation routes priced "[priced, next
+pass]" at the 2026-10-13 takeover, banked here as ONE induction:
+
+* **THE GUARD PERSISTS** — every ascent leg is a raise (the no-eat
+  guard declines every intact pair's member; the banked
+  `ascent_faceUp_raise` keeps every other face-up card face-up) or a
+  slide (face-up material relocates WHOLE: every face-up card of the
+  pre-state is face-up at the successor — `ascent_slide_faceUp`, the
+  slide-arm twin of the raise row, landed here with the mid-state
+  landing pin `ascent_slideLanding` and the burn-bar
+  `ascent_slideBase_ne` refuting the own-pile base read via the
+  self-landing refutation);
+* **THE RUNGS ARE INDEX-EXACT** — a raise climbs its suit's rung by
+  exactly one (the next-up guard), and crossing a family member's
+  rank would require founding the member itself (same suit + same
+  index IS the card), which the guard declines while the pair stands
+  intact: `ascent_idxCap_of_ne` prices the arithmetic;
+* **THE PERSISTENT PAIR** — a card and its twin, both face-up at the
+  start and both at-or-above their family rungs there, stay
+  face-up, paired, and capped at the start's margins along EVERY
+  ascent run (`ascent_pair_persists`); `ascent_persist_mobile`
+  re-packs the four surviving clauses as `MobileTwin` at the landing.
+
+These rows carry NO stuckness and NO `hbelow` content — they are pure
+leg-work: the climb delivery's parking argument, the saturation's
+reveal-gap note, and the multi-pair residue's start-economy all rest
+on them without consuming any open census. -/
+
+/-- The rung read and the foundation-height read are the same
+function (the glue the cap rows cite). -/
+private theorem ascent_rung_height (w : State) (σ : Suit) :
+    rungAt w σ = w.foundHeight σ := rfl
+
+/-- **THE INDEX-EXACT CAP ARITHMETIC**: a card of the SAME suit whose
+index sits at-or-below a family member's, and which is not that
+member, sits strictly below it (crossing the member's index would
+require being the member: suit and index name the card). -/
+private theorem ascent_idxCap_of_ne {x z : Card}
+    (hcap : z.rank.toIdx ≤ x.rank.toIdx)
+    (hsuit : z.suit = x.suit) (hne : z ≠ x) :
+    z.rank.toIdx + 1 ≤ x.rank.toIdx := by
+  obtain ⟨zs, zr⟩ := z
+  obtain ⟨xs, xr⟩ := x
+  have hss : zs = xs := hsuit
+  by_cases hr : zr.toIdx = xr.toIdx
+  · refine absurd ?_ hne
+    show (⟨zs, zr⟩ : Card) = ⟨xs, xr⟩
+    rw [hss, Rank.toIdx_inj hr]
+  · have hcap' : zr.toIdx ≤ xr.toIdx := hcap
+    have hne' : zr.toIdx ≠ xr.toIdx := hr
+    have hgoal : zr.toIdx + 1 ≤ xr.toIdx := by omega
+    exact hgoal
+
+/-- A cargo leg's landing never touches the foundations (the rung
+passthrough at the put level). -/
+private theorem ascent_putRun_foundHeight (w : State) (run : List Card)
+    (b : Base) (σ : Suit) :
+    (w.putRun run b).foundHeight σ = w.foundHeight σ := by
+  cases b with
+  | inl a => rfl
+  | inr z =>
+      show (match w.pileOfTop z with
+             | some k => w.setPile k { w.piles k with faceUp := (w.piles k).faceUp ++ run }
+             | none => w).foundHeight σ = w.foundHeight σ
+      cases hpz : w.pileOfTop z with
+      | some k => rfl
+      | none => rfl
+
+/-- **THE RUNG FREEZE, SLIDE ARM**: a fired slide leaves every
+suit's rung exactly where it stood. -/
+private theorem ascent_slide_rung {st s' : State} {d : Card} {b : Base}
+    (hstep : State.step st (Move.tabToTab d b) = some s') (σ : Suit) :
+    rungAt s' σ = rungAt st σ := by
+  obtain ⟨a, -, -, -, hspl⟩ := step_tabToTab_inv hstep
+  rw [hspl, ascent_rung_height _ σ, ascent_putRun_foundHeight,
+    ascent_rung_height st σ]
+  rfl
+
+/-- **THE BURN BAR** (the self-landing refutation's own-pile read):
+at a `WF` state, a fired slide's `inr` landing base tops a pile
+OTHER than the departed run's source — the base cannot be the run's
+own last rider (the guard's fit arithmetic is the rank contradiction
+`ascent_selfland_refuted` prices). -/
+private theorem ascent_slideBase_ne {st : State} (hwf : st.WF) {d z : Card}
+    {a k : Anchor}
+    (hhold : st.pileHolding d = some a)
+    (hpot : st.pileOfTop z = some k)
+    (hcan : st.canPlace d (Sum.inr z) = true) : k ≠ a := by
+  intro hcon
+  rw [hcon] at hpot
+  obtain ⟨-, -, hfit⟩ := canPlace_inr hcan
+  have hznd : z ≠ d := fun hcon' => by
+    obtain ⟨hr, -⟩ := (canSitOn_eq d z).mp hfit
+    rw [← hcon'] at hr
+    omega
+  have hzrun : z ∈ fromCard d ((st.piles a).faceUp) := by
+    have hlast0 : lastOf ((st.piles a).faceUp) = some z := (pileOfTop_top hpot).2
+    have hdmem : d ∈ (st.piles a).faceUp := pileHolding_mem hhold
+    obtain ⟨t, ht⟩ := fromCard_eq_head_of_mem hdmem
+    have hrnne : fromCard d ((st.piles a).faceUp) ≠ [] := by
+      rw [ht]
+      simp
+    rw [ascent_split_mem d ((st.piles a).faceUp),
+      ascent_lastOf_append _ _ hrnne] at hlast0
+    exact lastOf_mem hlast0
+  have hfalse := ascent_selfland_refuted hwf hhold hzrun hznd
+  rw [hcan] at hfalse
+  simp at hfalse
+
+/-- The emptied pile's flip at a revealing hidden deck (the reveal
+mode of both the mid-state landing pin below and the §1d commit
+read; single-homed here, the first consumer site). -/
+private theorem ascent_afterRunRemoved_reveal {p : Pile} {z : Card} {t : List Card}
+    (h : p.hidden = z :: t) :
+    Pile.afterRunRemoved p [] = ⟨t, [z]⟩ := by
+  simp only [Pile.afterRunRemoved, Pile.revealTop, h]
+  rfl
+
+/-- The emptied pile's burn at an empty hidden deck (the burn mode —
+companion of the reveal row above). -/
+private theorem ascent_afterRunRemoved_burn {p : Pile}
+    (h : p.hidden = []) :
+    Pile.afterRunRemoved p [] = ⟨[], []⟩ := by
+  simp only [Pile.afterRunRemoved, Pile.revealTop, h]
+
+/-- **THE MID-STATE LANDING PIN**: after the departed run's source
+pile is rewritten, the landing base still tops exactly the pile it
+topped (the emptied-or-revealing source cannot pretend; the kept
+prefix's cards are face-up in no other pile). -/
+private theorem ascent_slideLanding {st : State} (hwf : st.WF) {d z : Card}
+    {a k : Anchor}
+    (hka : k ≠ a)
+    (hpot : st.pileOfTop z = some k) :
+    (st.setPile a
+        (Pile.afterRunRemoved (st.piles a) (below d ((st.piles a).faceUp)))).pileOfTop z
+      = some k := by
+  refine ascent_topSearch _ (by
+    rw [setPile_piles_ne hka]
+    exact (pileOfTop_eq_some_iff hwf).1 hpot) ?_
+  intro y _hy hyne
+  by_cases hya : y = a
+  · rw [hya, setPile_piles_self]
+    show Pile.top
+        (Pile.afterRunRemoved (st.piles a) (below d ((st.piles a).faceUp))) ≠ some z
+    cases hpre : below d ((st.piles a).faceUp) with
+    | nil =>
+        cases hhid : (st.piles a).hidden with
+        | nil =>
+            rw [ascent_afterRunRemoved_burn hhid]
+            exact fun hcon => absurd hcon (by simp [Pile.top, lastOf])
+        | cons h t =>
+            have hhmem : h ∈ (st.piles a).hidden := by
+              rw [hhid]
+              exact List.mem_cons_self ..
+            have hzne : h ≠ z := fun hcon =>
+              (mem_hidden_unique hwf hhmem k hka).2.1
+                (by rw [hcon]; exact lastOf_mem (pileOfTop_top hpot).2)
+            rw [ascent_afterRunRemoved_reveal hhid]
+            intro hcon
+            have hlasth : (⟨t, [h]⟩ : Pile).top = some h := rfl
+            rw [hlasth] at hcon
+            exact hzne (Option.some.inj hcon)
+    | cons w ws =>
+        rw [afterRunRemoved_ne (by simp)]
+        intro hcon
+        have hbr : ({ (st.piles a) with faceUp := w :: ws } : Pile).top
+            = lastOf (w :: ws) := rfl
+        rw [hbr] at hcon
+        have hzin : z ∈ (st.piles a).faceUp :=
+          mem_below ((st.piles a).faceUp) (by
+            rw [hpre]
+            exact lastOf_mem hcon)
+        exact (mem_faceUp_unique hwf (lastOf_mem (pileOfTop_top hpot).2) a
+          (fun hq => hka hq.symm)).1 hzin
+  · rw [setPile_piles_ne hya]
+    intro hcon
+    have hsome := (pileOfTop_eq_some_iff hwf).2 hcon
+    rw [hpot] at hsome
+    injection hsome with hq
+    exact hyne hq.symm
+
+/-- **THE FACE-UP PRESERVATION, SLIDE ARM** (the raise row's twin):
+along a FIRED slide at a `WF` state, every face-up card of the
+pre-state is face-up at the successor — the kept below-content stays
+in the emptied source pile, the moved run lands whole at the base
+pile, and every untouched pile carries over. -/
+private theorem ascent_slide_faceUp {st s' : State} (hwf : st.WF) {d : Card}
+    {b : Base}
+    (hstep : State.step st (Move.tabToTab d b) = some s')
+    {c : Card} {p : Anchor} (hmem : c ∈ (st.piles p).faceUp) :
+    ∃ p', c ∈ (s'.piles p').faceUp := by
+  obtain ⟨a, hhold, hcan, -, hsplq⟩ := step_tabToTab_inv hstep
+  rw [hsplq]
+  by_cases hpa : p = a
+  · rw [hpa] at hmem
+    have hcm : c ∈ below d ((st.piles a).faceUp) ++
+        fromCard d ((st.piles a).faceUp) := by
+      rw [← ascent_split_mem d ((st.piles a).faceUp)]
+      exact hmem
+    by_cases hcmem : c ∈ below d ((st.piles a).faceUp)
+    · have hprene : below d ((st.piles a).faceUp) ≠ [] := by
+        intro hc
+        rw [hc] at hcmem
+        cases hcmem
+      cases b with
+      | inl n =>
+          have hdmem : d ∈ (st.piles a).faceUp := pileHolding_mem hhold
+          obtain ⟨hemp, -⟩ := canPlace_inl hcan
+          obtain ⟨-, hfn⟩ := (Pile.isEmpty_eq _).mp hemp
+          have hna : a ≠ n := by
+            intro hcon
+            rw [hcon] at hdmem
+            rw [hfn] at hdmem
+            cases hdmem
+          exact ⟨a, by
+            rw [putRun_eq_inl, setPile_piles_ne hna, setPile_piles_self,
+              afterRunRemoved_ne hprene]
+            exact hcmem⟩
+      | inr z =>
+          obtain ⟨k, hpotk, -⟩ := canPlace_inr hcan
+          have hka : k ≠ a := ascent_slideBase_ne hwf hhold hpotk hcan
+          have hhak : a ≠ k := fun hq => hka hq.symm
+          have hpotM := ascent_slideLanding (d := d) hwf hka hpotk
+          exact ⟨a, by
+            rw [putRun_piles_inr_ne _ _ _ k hpotM hhak, setPile_piles_self,
+              afterRunRemoved_ne hprene]
+            exact hcmem⟩
+    · have hcmemr : c ∈ fromCard d ((st.piles a).faceUp) := by
+        rcases List.mem_append.mp hcm with h' | h'
+        · exact absurd h' hcmem
+        · exact h'
+      cases b with
+      | inl n =>
+          exact ⟨n, by rw [putRun_eq_inl, setPile_piles_self]; exact hcmemr⟩
+      | inr z =>
+          obtain ⟨k, hpotk, -⟩ := canPlace_inr hcan
+          have hka : k ≠ a := ascent_slideBase_ne hwf hhold hpotk hcan
+          have hpotM := ascent_slideLanding (d := d) hwf hka hpotk
+          exact ⟨k, by
+            rw [putRun_inr_eq hpotM, setPile_piles_self]
+            exact List.mem_append.mpr (Or.inr hcmemr)⟩
+  · cases b with
+    | inl n =>
+        by_cases hpn : p = n
+        · obtain ⟨hemp, -⟩ := canPlace_inl hcan
+          obtain ⟨-, hfn⟩ := (Pile.isEmpty_eq _).mp hemp
+          rw [hpn, hfn] at hmem
+          cases hmem
+        · exact ⟨p, by
+            rw [putRun_eq_inl, setPile_piles_ne hpn, setPile_piles_ne hpa]
+            exact hmem⟩
+    | inr z =>
+        obtain ⟨k, hpotk, -⟩ := canPlace_inr hcan
+        have hka : k ≠ a := ascent_slideBase_ne hwf hhold hpotk hcan
+        have hpotM := ascent_slideLanding (d := d) hwf hka hpotk
+        by_cases hpk : p = k
+        · rw [hpk] at hmem
+          exact ⟨k, by
+            rw [putRun_inr_eq hpotM, setPile_piles_self, setPile_piles_ne hka]
+            exact List.mem_append.mpr (Or.inl hmem)⟩
+        · exact ⟨p, by
+            rw [putRun_piles_inr_ne _ _ _ k hpotM hpk, setPile_piles_ne hpa]
+            exact hmem⟩
+
+/-- **THE PERSISTENT PAIR** (the mission's named induction, banked):
+a card and its twin both face-up at the start and both at-or-above
+their family rungs there, remain face-up and rung-capped at the
+start's margins at EVERY state an ascent run reaches — the raise
+legs never remove a member (the full-time no-eat guard declines
+them via the pair's own intact mobility, which the leg-work itself
+preserves: breaking a member's face-up-ness or crossing its rank
+would have required founding it), the slide legs relocate face-up
+material whole, the rungs climb index-exactly, and the caps ride
+`ascent_idxCap_of_ne`. -/
+private theorem ascent_pair_persists {s : State} (hwf : s.WF) {x : Card}
+    (hfu₁ : ∃ a, x ∈ (s.piles a).faceUp)
+    (hfu₂ : ∃ b, x.twin ∈ (s.piles b).faceUp)
+    (hrg₁ : rungAt s x.suit ≤ x.rank.toIdx)
+    (hrg₂ : rungAt s x.twin.suit ≤ x.twin.rank.toIdx) :
+    ∀ {ρ : List Move} {W : State}, AscentRun s ρ W →
+      (∃ a, x ∈ (W.piles a).faceUp) ∧
+        (∃ b, x.twin ∈ (W.piles b).faceUp) ∧
+        rungAt W x.suit ≤ x.rank.toIdx ∧
+        rungAt W x.twin.suit ≤ x.twin.rank.toIdx := by
+  intro ρ W hrun
+  induction hrun with
+  | nil st =>
+      exact ⟨hfu₁, hfu₂, hrg₁, hrg₂⟩
+  | @cons st m s' W' ρ' hm hstep hrest ih =>
+      have hmob : MobileTwin st x := ⟨hfu₁, hrg₁, hfu₂, hrg₂⟩
+      rcases hm with ⟨c, hmEq, hhot, hface, hguard⟩ | ⟨c, bb, hmEq⟩
+      · -- the raise leg: the guard declines both members; rungs climb one
+        rw [hmEq] at hstep
+        obtain ⟨hn, a₀, hpo₀, hspl⟩ := step_tabToFound_inv hstep
+        have hnext : c.rank.toIdx = st.foundHeight c.suit := of_decide_eq_true hn
+        have hne1 : c ≠ x := (hguard x hmob).1
+        have hne2 : c ≠ x.twin := (hguard x hmob).2
+        have H₁ : ∃ a, x ∈ (s'.piles a).faceUp :=
+          ascent_faceUp_raise hstep (fun hq => hne1 hq.symm) hfu₁
+        have H₂ : ∃ a, x.twin ∈ (s'.piles a).faceUp :=
+          ascent_faceUp_raise hstep (fun hq => hne2 hq.symm) hfu₂
+        have hFself : s'.found c.suit = st.found c.suit ++ [c] := by
+          rw [hspl]
+          exact setFound_found_self
+        have hFne : ∀ σ : Suit, σ ≠ c.suit → s'.found σ = st.found σ := by
+          intro σ hσ
+          rw [hspl]
+          exact setFound_found_ne hσ
+        have H₃ : rungAt s' x.suit ≤ x.rank.toIdx := by
+          by_cases hxs : c.suit = x.suit
+          · have hcxlen : (st.found c.suit).length = c.rank.toIdx := by
+              rw [hnext]
+              rfl
+            have hcxle : c.rank.toIdx ≤ x.rank.toIdx := by
+              rw [hnext, hxs]
+              exact hrg₁
+            have hcxcap : c.rank.toIdx + 1 ≤ x.rank.toIdx :=
+              ascent_idxCap_of_ne hcxle hxs hne1
+            show (s'.found x.suit).length ≤ x.rank.toIdx
+            rw [show s'.found x.suit = st.found c.suit ++ [c] from by
+                rw [← hxs]
+                exact hFself, List.length_append, hcxlen]
+            exact hcxcap
+          · have hxs' : x.suit ≠ c.suit := fun hq => hxs hq.symm
+            show (s'.found x.suit).length ≤ x.rank.toIdx
+            rw [hFne x.suit hxs']
+            exact hrg₁
+        have H₄ : rungAt s' x.twin.suit ≤ x.twin.rank.toIdx := by
+          by_cases hxs : c.suit = x.twin.suit
+          · have hcxlen : (st.found c.suit).length = c.rank.toIdx := by
+              rw [hnext]
+              rfl
+            have hcxle : c.rank.toIdx ≤ x.twin.rank.toIdx := by
+              rw [hnext, hxs]
+              exact hrg₂
+            have hcxcap : c.rank.toIdx + 1 ≤ x.twin.rank.toIdx :=
+              ascent_idxCap_of_ne hcxle hxs hne2
+            show (s'.found x.twin.suit).length ≤ x.twin.rank.toIdx
+            rw [show s'.found x.twin.suit = st.found c.suit ++ [c] from by
+                rw [← hxs]
+                exact hFself, List.length_append, hcxlen]
+            exact hcxcap
+          · have hxs' : x.twin.suit ≠ c.suit := fun hq => hxs hq.symm
+            show (s'.found x.twin.suit).length ≤ x.twin.rank.toIdx
+            rw [hFne x.twin.suit hxs']
+            exact hrg₂
+        exact ih (step_wf hwf hstep) H₁ H₂ H₃ H₄
+      · -- the slide leg: face-up material relocates whole; rungs freeze
+        rw [hmEq] at hstep
+        obtain ⟨p₁, hmem₁⟩ := hfu₁
+        obtain ⟨p₂, hmem₂⟩ := hfu₂
+        have H₁ : ∃ a, x ∈ (s'.piles a).faceUp := by
+          obtain ⟨q, hq⟩ := ascent_slide_faceUp hwf hstep hmem₁
+          exact ⟨q, hq⟩
+        have H₂ : ∃ a, x.twin ∈ (s'.piles a).faceUp := by
+          obtain ⟨q, hq⟩ := ascent_slide_faceUp hwf hstep hmem₂
+          exact ⟨q, hq⟩
+        have H₃ : rungAt s' x.suit ≤ x.rank.toIdx := by
+          rw [ascent_slide_rung hstep x.suit]
+          exact hrg₁
+        have H₄ : rungAt s' x.twin.suit ≤ x.twin.rank.toIdx := by
+          rw [ascent_slide_rung hstep x.twin.suit]
+          exact hrg₂
+        exact ih (step_wf hwf hstep) H₁ H₂ H₃ H₄
+
+/-- The four persistent clauses re-packed as the mobility read (the
+residue routes' `MobileTwin` glue). -/
+private theorem ascent_persist_mobile {st : State} {x : Card}
+    (h₁ : ∃ a, x ∈ (st.piles a).faceUp)
+    (h₂ : ∃ b, x.twin ∈ (st.piles b).faceUp)
+    (h₃ : rungAt st x.suit ≤ x.rank.toIdx)
+    (h₄ : rungAt st x.twin.suit ≤ x.twin.rank.toIdx) :
+    MobileTwin st x := ⟨h₁, h₃, h₂, h₄⟩
+
 /-! ## §2c. The exhaustion row's named pieces -/
 
 /-- **THE CLIMB DELIVERY RESIDUE** `ascent_climb_delivery` [H-mini,
@@ -1227,15 +1623,20 @@ the parking is priced open — never forced):
   member of an intact mobile pair (the full-time guard declines it
   in the raise arm's own quantifier), and the SLIDE legs relocate
   face-up runs whole (below-content stays in place, the moved run
-  lands face-up — the commit-read machinery of §1d prices exactly
-  these writes), so a pair mobile at the start stays paired and
-  face-up at every prefix.  [kernel status: priced, next pass]
+  lands face-up — `ascent_slide_faceUp`, the slide-arm preservation
+  banked in the §2c-pre persistent-pair section), so a pair mobile at
+  the start stays paired and face-up at every prefix.  [kernel
+  status: BANKED — `ascent_pair_persists`, the 2026-10-13 session-4
+  pass]
 * THE RUNGS ARE INDEX-EXACT — the provable freeze: a raise of suit
   σ climbs its rung by exactly one (the splice's
   `setFound`-prepend read), and crossing rank r on a FAMILY suit
   requires founding the rank-r member — guard-declined forever
   (the guard persists, per the kernel above) — so both family rungs
-  stay ≤ r along the whole run.  [kernel status: priced, next pass]
+  stay ≤ r along the whole run.  [kernel status: BANKED — the
+  per-leg cap rides `ascent_idxCap_of_ne` inside
+  `ascent_pair_persists`; `ascent_slide_rung` is the slide-arm
+  freeze]
 * **THE PARKING-AT-r [OPEN, `hbelow`-carried]** — the residue's own
   surviving content: the strict-parking argument claimed at the
   exhaustion-shrink pass (a rung parked strictly below r forces a
@@ -1246,8 +1647,10 @@ the parking is priced open — never forced):
   cover-starvation the probe's boards priced), so the parking must
   ride `hbelow` — the fork-reachability census, the probe's
   declared open (§5 verdict).  Named here: `ascent_frontier_parking`
-  [H, hbelow-carried]; the two kernels above are the bankable
-  halves of its leg-work, sized and ready for the next pass. -/
+  [H, hbelow-carried]; the two kernels above are banked, and the
+  persistent-pair row hands the parking BOTH members' face-up
+  mobility intact at every prefix, so only the ≤-to-= frontier
+  upgrade remains. -/
 private theorem ascent_climb_delivery {s : State} (hwf : s.WF)
     (hbelow : ∃ (F : State) (x : Card) (π : List Move),
       s.run π = some F ∧ ForkWitness F x ∧
@@ -1305,7 +1708,18 @@ decide-witnesses):
   boards exhibit), and that computation is the probe's declared open.
 * THE REVEAL-GAP NOTE stays a live premise, carried by the delivery:
   the members were face-up at `s` and no ascent letter reveals, so
-  they are face-up at `W`. -/
+  they are face-up at `W` — this is no longer a priced promise but
+  BANKED leg-work: the persistent-pair row
+  (`ascent_pair_persists`, §2c-pre, the 2026-10-13 session-4 pass)
+  carries the `hbelow` witness's own pair face-up, intact
+  (`ascent_persist_mobile` re-packs the four clauses), and
+  rung-capped at BOTH members' margins along the whole run, so both
+  halves' `hbelow`-carried content starts from a surviving,
+  constructively-tracked start pair: the (⇒) exclusion may now
+  name `hbelow`'s witness AT `W` (not merely at `s`), and the (⇐)
+  member-liveness census reads a pair whose mobility never died in
+  transit.  What still rides the probe's declared open, unchanged:
+  the fork-reachability coupling itself. -/
 private theorem ascent_stuck_saturation {s : State} (hwf : s.WF)
     (hbelow : ∃ (F : State) (x : Card) (π : List Move),
       s.run π = some F ∧ ForkWitness F x ∧
@@ -1755,22 +2169,11 @@ pile either reveals its hidden head or burns to the bare empty
 pile.  The one-move RESTORE is unavailable except through a fitting
 revealed card (the seated-corner's below-content fit is gone at the
 bare shape), so the saturation transfer cannot ride — this is the
-resurrection mode the corner's docstring prices. -/
+resurrection mode the corner's docstring prices.
 
-/-- The emptied pile's flip at a revealing hidden deck (the commit's
-burn-mode companion kit row). -/
-private theorem ascent_afterRunRemoved_reveal {p : Pile} {z : Card} {t : List Card}
-    (h : p.hidden = z :: t) :
-    Pile.afterRunRemoved p [] = ⟨t, [z]⟩ := by
-  simp only [Pile.afterRunRemoved, Pile.revealTop, h]
-  rfl
-
-/-- The emptied pile's burn at an empty hidden deck (the commit's
-burn-mode kit row). -/
-private theorem ascent_afterRunRemoved_burn {p : Pile}
-    (h : p.hidden = []) :
-    Pile.afterRunRemoved p [] = ⟨[], []⟩ := by
-  simp only [Pile.afterRunRemoved, Pile.revealTop, h]
+(The two emptied-pile kit rows the commit's reveal/burn modes cite
+sit EARLIER in this file — §2c-pre, the persistent-pair section —
+since the mid-state landing pin consumes them first.) -/
 
 /-- **THE BARE-COVER COMMIT READ** (the corner's priced leg): at the
 corner's shape — the twin topping its pile (the vanilla license's
@@ -2178,13 +2581,19 @@ corner, climb delivery, stuck saturation, cover-cell census), each
 with its complete re-priced route where it is declared: the
 saturation's and the parking's `hbelow`-carried halves are named
 with their boards' evidence; the β-companion's swap is staged in
-§2e, nothing consumed until the owner ratifies. -/
+§2e, nothing consumed until the owner ratifies.  The session-4
+persistent-pair kit (private, additive, no consumers yet) is
+audited directly below — the induction carries only `Quot.sound`
+off `step_wf`'s WF transport. -/
 
 #print axioms orientation_assembly_fork
 #print axioms ascent_stuck_collapse
 #print axioms ascent_stuck_unblocked
 #print axioms ascent_selfland_refuted
 #print axioms ascent_cover_pullback
+#print axioms ascent_pair_persists
+#print axioms ascent_slide_faceUp
+#print axioms ascent_slideLanding
 #print axioms fa0_wf
 #print axioms fa0_stuck
 #print axioms fa0_pairDelivered

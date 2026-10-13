@@ -1,5 +1,6 @@
 import Orig.LowSlab
 import Orig.OriginLock
+import Orig.PairClass
 
 /-!
 # Orig.ForkCensus — THE FORK-IN-CLASS DETECTOR
@@ -32,11 +33,14 @@ arrangeability.  The design (the owner's, from the session records):
   (`pair_cover_pins`, `pair_lowFamily_founded`) assemble it
   ([M]-grade).  `fork_label` — the one-pair labeling: at one state
   the pair is unique up to the twin flip (two lines off the iff);
-  the family-grade class label (`fork_label_family`) cites the
-  public assembly `forkState_family_pairClass`; the FULL class
-  label (`fork_label_class` [H], the named residue) — at most one
-  fork pair per class — has its same-family slice banked and its
-  cross-family slice priced in its route.
+   the family-grade class label (`fork_label_family`) cites the
+   public assembly `forkState_family_pairClass`; the FULL class
+   label (`fork_label_class` [M, LANDED]) — at most one fork pair
+   per class — cites the no-lock pairClass capstone
+   (`forkState_pairClass`, `Orig/PairClass.lean`): the cross-family
+   interlock (`forkState_familyRigid`, the closed `cross_orphan`
+   axis `cross_orphan_seat`/`cross_orphan_kill` beneath it) plus
+   the family assembly land it banked-clean.
 * **§2 THE DECIDER-SHAPE COMPOSITE**: `class_forks_decidable` — a
   state is fork-headed-in-its-class iff some candidate pair PASSES
   THE FILTER (`CensusPass`, the class-stable necessity grade) AND
@@ -52,10 +56,13 @@ arrangeability.  The design (the owner's, from the session records):
   the `ForkWitness` outright, over `canRaiseS_free` and the covered
   twin's top-pinning), the label-conditioned crane leg as
   `crane_label_conditioned` (proved), and the arrangeability's own
-  oracle — the head-side label discharge — is the named residue
-  `crane_seat_issuance` [H], routed over `fork_label_class`, the
-  card algebra `census_pair_named` (rank and family name the pair),
-  and the noNewSeat/low-slab families.
+  oracle — the head-side label discharge — as `crane_seat_issuance`
+  [M, LANDED, assembly]: `fork_label_class` (banked-clean, above)
+  plus the card algebra `census_pair_named` (rank and family name
+  the pair) price it exactly as its route priced it.  The go/no-go
+  composite `class_fork_go` fires the whole program at the head:
+  the naming data makes the board census pass, the verdict
+  (class-headed), and the arrangeability land together.
 * **§3 THE COMPOSITE-FRONTIER NOTE**: the pair census — at most 26
   candidates (13 ranks × 2 color-families) per class, enumerated by
   `forkCandidateBoard` (`forkCandidateBoard_length = 26`, decided;
@@ -69,13 +76,16 @@ arrangeability.  The design (the owner's, from the session records):
   the elevated `lb1` the twin sits FOUNDED — the datum that fixes
   the composite's honest grade.
 
-House compliance: additive leaf (`Orig.LowSlab` + `Orig.OriginLock`,
-the pins machinery transitively); every fresh head audited (the
-`#print axioms` battery printed at the tail); zero `Classical.choice`
+House compliance: additive leaf (`Orig.LowSlab` + `Orig.OriginLock`
++ `Orig.PairClass`, the pins and pairClass machinery transitively);
+every fresh head audited (the `#print axioms` battery printed at
+the tail); zero `Classical.choice`
 (the splits ride `Decidable.em`, `decide` and kernel folds; `omega`
-faces no live `∃`); the two named residues carry complete priced
-routes; the private kit rows are per-file copies per the house dedup
-discipline.
+faces no live `∃`); the two former named residues are LANDED (the
+label cites the pairClass capstone, the seat-issuance row is
+assembly over it — their statements byte-frozen, their routes
+retired to history); the private kit rows are per-file copies per
+the house dedup discipline.
 -/
 
 /-! ## §0a. The per-file kit (private, the house dedup discipline) -/
@@ -470,69 +480,48 @@ theorem fork_label_family {F G : State} (hwfF : F.WF) (hwfG : G.WF)
     v.rank.toIdx = w.rank.toIdx ∧ (v = w ∨ v = w.twin) :=
   forkState_family_pairClass F G hwfF hwfG hcls w hw hv hfam
 
-/-- **THE CLASS LABEL** `fork_label_class` [H, NAMED RESIDUE] — a
-macro class carries at most ONE fork pair: any two fork states of
-one class agree as pairs, with no family premise.
+/-- **THE CLASS LABEL** `fork_label_class` [M, LANDED] — a macro class
+carries at most ONE fork pair: any two fork states of one class
+agree as pairs, with no family premise.
 
-WHAT IS BANKED: the same-family slice is PROVED (`fork_label_family`
-above — the public `forkState_family_pairClass`, whose two halves
-are `forkState_sameFamily_rankCeiling` and
-`forkState_family_rankFloor`); the state-level label is PROVED
-(`fork_label`); and the card algebra (`census_pair_named`) means the
-class label is exhausted by the ONE question below.
+LANDING: the open content this row once priced at [H] — the
+cross-family exclusion, whether one class can carry fork states of
+TWO different suit families — is the no-lock pairClass capstone,
+cited from `Orig.PairClass.forkState_pairClass` (statement identical
+to this row's): `forkState_familyRigid` (the class lock, a fork
+cannot witness the OTHER color family within its class,
+`Orig/CrossFamily.lean`) rides the CLOSED cross-orphan axis — the
+shared seat residue `cross_orphan_seat` (`Orig/OrphanSeat.lean`,
+landed sorry-free), the static kill `cross_orphan_kill`
+(`Orig/CrossFamilyStatic.lean`), the roam dual and the
+pollutes-crash tails (`Orig/PairConfine.lean` crossed with
+`Orig/OriginLock.lean`) — plus the constructive color recovery and
+the same-family assembly `forkState_family_pairClass`; the capstone
+battery reads `[propext, Quot.sound]`.  This row is the frozen
+per-file restatement (the house dedup discipline: never re-craft a
+duplicate) — the proof is the citation, zero fresh content, zero
+`Classical.choice`.
 
-THE OPEN CONTENT (the cross-family exclusion): can one macro class
-carry fork states of TWO DIFFERENT suit families — say a `♥/♦` fork
-at one member and a `♠/♣` fork at another?  Nothing banked prices
-it: the confinement cards pin rung movement on the PAIR'S OWN
-family only (`forkState_one_founding`), the floor/ceiling rows ride
-the family premise, and the `forkState_unique` refutation
-(`Orig/ForkStateUniqGate.lean`'s crafted class) shows class-mate
-fork states may differ in NON-PAIR content (a reversible cargo leg
-relocates a witness off a black next-up, one non-pair rung apart) —
-so any future proof cannot run through full-content uniqueness; the
-label is the honest carve-out.
-
-REFUTER-FIRST: the natural craft would seat both sandwiches in one
-class (two `lower_sandwich` shapes, opposite families, each with its
-dressing over a live seat); the probe corpus's closest datum is the
-EpochProbe down-pair boards (`Orig/EpochProbeVis.lean` — the rank-5
-and rank-4 forks of one economy whose only connecting leg is a
-certified commitment, i.e. the two forks sit in DIFFERENT classes) —
-rank separation across a commit boundary at the SAME family; the
-two-family analogue is uncharted.  No counterexample board is on
-record in either direction.
-
-ROUTE (each step priced against banked rows):
-1. THE RUNG LEDGERS — for the witnessing journey between the two
-   endpoints, `witness_rung_census` nets all four suits: both
-   families pin at both ends (each fork pins its own family rungs),
-   so each family's raises and pulls cancel exactly along a
-   returned journey; the `lowslab_bracket_transfer`-grade bracket
-   carries each family's rungs verbatim, and the census machinery
-   (`excursion_issues_noNewSeat` — the round trip issues no seat
-   beyond the arrangement) prices whether two cross-family
-   sandwich racks can be simultaneously presented.
-2. THE DRESSER SEATS — each fork's dress (`r−1`, opposite family)
-   is isolated and frozen at ITS own end (`origin_dresser_frozen`
-   grade); at the OTHER fork's end each dress is a low cell of the
-   first fork's family (the families cross: one's cover cells lie
-   inside the other's family) — founded by `pair_lowFamily_founded`
-   there, so the arrangement census of the two racks interacts
-   through the founded/hidden diagonals.
-3. THE CRASH SHAPE — at either end, the OTHER family's pair members
-   are same-family lows of the local fork (rank below its point),
-   hence FOUNDED at that end
-   (`origin_lowerPairResident`), and the ironing is whether the
-   witnessing journey can pay the pull census
-   (`origin_lowerJourney_pulls`) for BOTH families at once — the
-   two-family analogue of the OriginLock eureka, priced [H] here,
-   never forced. -/
+HISTORY (the dossier this row carried while [H], superseded by the
+landing, kept as the design record): the same-family slice was
+already banked (`fork_label_family` above), the state-level label
+proved (`fork_label`), the card algebra (`census_pair_named`)
+exhausted the class label to the one cross-family question; the
+priced route ran the four-suit rung ledgers
+(`witness_rung_census`), the dresser-seat founded diagonals
+(`pair_lowFamily_founded`), and the two-family pull census
+(`origin_lowerJourney_pulls`-grade) against
+`excursion_issues_noNewSeat`; the `ForkStateUniqGate` refutation had
+ruled out any full-content-uniqueness route (class-mate fork states
+may differ in non-pair content).  The landing went one stratum
+deeper than the dossier's cover chase — the orphan seat, not the
+saturation-pinned covers — exactly as FUTURES-ORIG.md §13 records
+for the capstone program this row seeded. -/
 theorem fork_label_class {F G : State} (hwfF : F.WF) (hwfG : G.WF)
     (hcls : sameOrbitSetoid.r F G) {w v : Card}
     (hw : ForkWitness F w) (hv : ForkWitness G v) :
-    v = w ∨ v = w.twin := by
-  sorry
+    v = w ∨ v = w.twin :=
+  forkState_pairClass F G hwfF hwfG hcls w hw hv
 
 /-! ## §2. The decider-shape composite (statement + route) -/
 
@@ -796,44 +785,30 @@ theorem crane_label_conditioned {st : State} (hwf : st.WF) {x : Card}
     rw [Card.twin_twin] at hc2
     exact hc2
 
-/-- **THE SEAT-ISSUANCE RESIDUE** `crane_seat_issuance` [H, NAMED
-RESIDUE] — the arrangeability's own oracle: at a head whose class
-carries a fork, if the head's pair-census data names the class's
-fork pair (same family, same rank index), then the class LABELS the
-head's pair — and `crane_label_conditioned` converts the label into
-the full arrangeability.  The composite's head-directed leg is
-thereby reduced to this one row.
+/-- **THE SEAT-ISSUANCE ROW** `crane_seat_issuance` [M, LANDED — the
+assembly its route always priced] — the arrangeability's own oracle:
+at a head whose class carries a fork, if the head's pair-census data
+names the class's fork pair (same family, same rank index), then the
+class LABELS the head's pair — and `crane_label_conditioned`
+converts the label into the full arrangeability.  The composite's
+head-directed leg thereby closes.
 
-WHAT IS BANKED (per premise): `census_pair_named` (rank + family
-name the pair — the card algebra, proved) reduces the conclusion to
-the class-fork IS the head's pair; the family-grade member label
-(`forkState_family_pairClass`) closes every same-family member fork;
-`WF` management along the witnessing journeys is the per-file kit;
-the noNewSeat family (`excursion_issues_noNewSeat`) and the low-slab
-machinery (`fork_neighbor_lowbridge`, `familyBelowFrontier`,
-`fork_self_low`) are the census engine the cross-family route
-prices against.
-
-THE OPEN CONTENT: the member forks reach the head only through the
-CLASS relation — the head itself is unwitnessed, so the labeling
-row `fork_label_class` (the cross-family exclusion) is exactly the
-missing piece: this residue is [H] with `fork_label_class`, and
-assembly without it.  REFUTER-FIRST: the elevated head `lb1`
-(mobile census, twin FOUNDED — the necessity grade passes, the
-located grade fails) is the datapoint that any candidate-strengthening
-of the head-side filter must survive; the wrong-rank pair (a lower
-same-family pair whose cover cell happens to read mobile at some
-member) is the live counterexample family for dropping the rank
-premise — priced, never forced.
-
-ROUTE: (1) fix the class's fork member `F` and witness `y`;
-`census_pair_named` makes `y` a pair member of `x`; (2) for any
-other fork `G`/`w` of the class: `G.WF` rides the head's journey
-(`fcensus_shuffleW_wf`), and — IF `w` is same-family with `y` —
-`forkState_family_pairClass G F` closes `w` into the pair; (3) the
-cross-family `w` is the open slice: `fork_label_class` (this file's
-§1 residue) is imported verbatim as the remaining content; (4) with
-the label, `crane_label_conditioned` finishes. -/
+THE ASSEMBLY (as priced, every step banked-clean): for any other
+fork `G`/`w` of the class, (1) the head's own forward witness play
+gives the class relation's journey (`sameOrbit_forward`) and the
+per-file `WF` kit (`fcensus_shuffleW_wf`) hands `G` its `WF`;
+(2) the transitive class relation through the head (`iseqv.symm`,
+`iseqv.trans`) hands the one-pair class label `fork_label_class` —
+LANDED above, atop `Orig.PairClass.forkState_pairClass` — its
+`F ~ G` premise, and `w` lands on `y`'s pair (`w = y ∨ w =
+y.twin`); (3) the card algebra `census_pair_named` names `y`
+onto `x`'s pair, and the twin involution carries the flip — every
+class fork IS `x`'s pair, which is the label.  The residue's only
+substance was the class label, and it is banked-clean; `hwf` is
+load-bearing only for the class-mate's `WF`.  The `lb1` elevated
+head and the wrong-rank pair survive exactly as the monitor said:
+the orientation data lives in this row's family/rank premises, not
+in the filter. -/
 theorem crane_seat_issuance {st : State} (hwf : st.WF) {x : Card}
     {F : State} {y : Card}
     (hcls : sameOrbitSetoid.r st F) (hwfF : F.WF)
@@ -841,7 +816,18 @@ theorem crane_seat_issuance {st : State} (hwf : st.WF) {x : Card}
     (hfam : y.suit = x.suit ∨ y.suit = x.twin.suit)
     (hrank : y.rank.toIdx = x.rank.toIdx) :
     ForkClassLabel st x := by
-  sorry
+  intro G w hclsG hwitG
+  obtain ⟨ρ, hρ⟩ := sameOrbit_forward hclsG
+  have hwfG : G.WF := fcensus_shuffleW_wf hρ hwf
+  have hFG : sameOrbitSetoid.r F G :=
+    sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hcls) hclsG
+  obtain hwy | hwy := fork_label_class hwfF hwfG hFG hwit hwitG
+  · rcases census_pair_named hfam hrank with h | h
+    · exact Or.inl (hwy.trans h)
+    · exact Or.inr (hwy.trans h)
+  · rcases census_pair_named hfam hrank with h | h
+    · exact Or.inr (by rw [hwy, h])
+    · exact Or.inl (by rw [hwy, h, Card.twin_twin])
 
 /-! ## §3. The composite-frontier note: the pair census -/
 
@@ -920,6 +906,47 @@ theorem classCensusB_true_iff (st : State) :
     · rw [h] at hy
       exact ⟨x.twin, hy, (censusPassB_true_iff st x.twin).2 (censusPass_twin hc)⟩
 
+/-- **THE GO/NO-GO COMPOSITE** `class_fork_go` [M, assembly] — the
+decider program's firing read, closing the composite-frontier note:
+at a `WF` head whose class carries a fork whose pair the head data
+NAMES (same family, same rank index), the composite fires all three
+legs together.  (i) THE FILTER: the board census passes at the head
+— the necessity row (`fork_inventory_necessary`) transports the
+fork member's census portrait to the head over the head's own
+forward journey, the card algebra (`census_pair_named`) names the
+member onto the head's pair, the census's twin invariance
+(`censusPass_twin`) carries the flip, and `classCensusB_true_iff`
+reads the pass as the 26-board Bool.  (ii) THE VERDICT: the state
+is fork-headed-in-its-class (the naming data IS a member witness).
+(iii) THE GO: the pair is class-internally arrangeable —
+`crane_seat_issuance` hands the label, `crane_label_conditioned`
+converts it into the journey.  The no-go reading stays the composite
+iff (`class_forks_decidable`): absent the naming premises nothing
+fires — the rank/family premises ARE the arrangeability oracle's
+data, and the wrong-rank pair survives as the falsifier for any
+colder draft that drops them.  Pure assembly, zero fresh content,
+zero `Classical.choice`. -/
+theorem class_fork_go {st : State} (hwf : st.WF) {x : Card}
+    (hnamed : ∃ (F : State) (y : Card), sameOrbitSetoid.r st F ∧
+      ForkWitness F y ∧ (y.suit = x.suit ∨ y.suit = x.twin.suit) ∧
+      y.rank.toIdx = x.rank.toIdx) :
+    classCensusB st = true ∧ ClassForkHeaded st ∧ PairArrangeable st x := by
+  obtain ⟨F, y, hcls, hwit, hfam, hrank⟩ := hnamed
+  obtain ⟨ρ, hρ⟩ := sameOrbit_forward hcls
+  have hwfF : F.WF := fcensus_shuffleW_wf hρ hwf
+  have hc : CensusPass st y :=
+    fork_inventory_necessary hwfF hwit (sameOrbitSetoid.iseqv.symm hcls)
+  have hcx : CensusPass st x := by
+    rcases census_pair_named hfam hrank with h | h
+    · rw [h] at hc; exact hc
+    · rw [h] at hc
+      have h2 := censusPass_twin hc
+      rwa [Card.twin_twin] at h2
+  have hlabel : ForkClassLabel st x := crane_seat_issuance hwf hcls hwfF hwit hfam hrank
+  have hhead : ClassForkHeaded st := ⟨F, y, hcls, hwit⟩
+  exact ⟨(classCensusB_true_iff st).2 ⟨x, hcx⟩, hhead,
+    crane_label_conditioned hwf hlabel hhead⟩
+
 /-! ## The audit battery
 
 `#print axioms` per fresh head, as elaborated.  The §0 probe bridges
@@ -929,15 +956,16 @@ card-algebra rows (`pairCandidate_twin`, `fork_label`,
 `census_pair_named`) read `[propext]`; `forkCandidateBoard_length`
 reads `[]` (kernel decide).  The §1/§2 assembly rows — including
 `fork_inventory_necessary`, `crane_assembly_at_head` (the saturation
-assembly, zero-sorry), `class_forks_decidable` (the composite, both
-directions assembly) and `crane_label_conditioned` — read
-`[propext, Quot.sound]` with NO `sorryAx`.  The two named residues
-(`fork_label_class`, `crane_seat_issuance`) read exactly
-`[propext, sorryAx]` — one `sorryAx` each, nothing else flows into
-them; their complete routes are in their docstrings.  Zero
-`Classical.choice` anywhere: the splits ride `Decidable.em`,
-`decide`, and kernel-decided folds, and no `omega` faces a live
-`∃`. -/
+assembly), `class_forks_decidable` (the composite iff), and
+`crane_label_conditioned` — read `[propext, Quot.sound]`.  The two
+former named residues are LANDED: `fork_label_class` (the class
+label — the cross-family exclusion — cites the pairClass capstone
+`forkState_pairClass`) and `crane_seat_issuance` (the seat-issuance
+assembly over it) both read clean, as does the go/no-go composite
+`class_fork_go` — ZERO `sorryAx` anywhere in the battery, zero
+`sorry` in the file.  Zero `Classical.choice` anywhere: the splits
+ride `Decidable.em`, `decide`, and kernel-decided folds, and no
+`omega` faces a live `∃`. -/
 
 #print axioms mobileB_true_iff
 #print axioms mem_lowCells_iff
@@ -963,6 +991,7 @@ them; their complete routes are in their docstrings.  Zero
 #print axioms class_forks_decidable
 #print axioms crane_label_conditioned
 #print axioms crane_seat_issuance
+#print axioms class_fork_go
 #print axioms mem_forkCandidateBoard_iff
 #print axioms forkCandidateBoard_representative
 #print axioms pairCandidate_board_witness

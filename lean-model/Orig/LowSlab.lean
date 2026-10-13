@@ -4,6 +4,7 @@ import Orig.SlabEquiv
 import Orig.Reach
 import Orig.Classify
 import Orig.HostCensus
+import Orig.ForkStateSB
 
 /-!
 # Orig.LowSlab — THE LOW-SLAB SUFFICIENCY (the fork's exploration budget)
@@ -152,6 +153,23 @@ travels through the def alone — consumers keep compiling).
   exactly the six, and `fork_neighbor_lowbridge`'s profile stays
   `[propext, sorryAx, Quot.sound]` with no new inflow.
 
+  SESSION-4 VERDICT (2026-10-13, the fourth succession — the waste
+  reseat gate DISCHARGED): the session-3 pending gate — probe
+  certification of the waste reseat's live D5-refutation candidate —
+  is now CERTIFIED IN-FILE at decide grade: the fork board `wr_st`
+  of §4.2.a.R (waste heading `5♦`, one past the fork point) satisfies
+  every premise of `lowslab_waste_reseat` while its conclusion is
+  unreachable (the founding guard demands the ♦ rung exactly 4 at a
+  slab member the slab conjunct pins at-or-below 3), so THE ROW AS
+  STATED IS FALSE and hosts at [H, REFUTED]; the certified negation
+  is the zero-sorry public row `lowslab_waste_reseat_refuted`.  The
+  remaining five residues carry unchanged at their recorded grades
+  (statements byte-frozen); the routers and the main row's
+  statements are untouched by the board (its founding letter is
+  reversible there — the giveback re-fires onto the vacated twin
+  seat — so the extra commit-grade premises fail at the exhibit).
+  All six sorries stay exactly where the statements freeze them.
+
 GRADE NOTE (the design decision, kept): the theorem is stated at the
 PROGRAM'S OWN commit grain — `irreversibleAt`, the full no-return
 notion of `Orig/Fate.lean` (plays of any grain) — not at the softer
@@ -168,7 +186,12 @@ probe-triage pass the early `Orig.Reach` — for the banked WF-descent
 row `step_wf` — and `Orig.Classify` — for the banked pulled-rank
 discipline `wf_found_chop_toIdx`, and at the census swap pass
 `Orig.HostCensus` — the sibling's proved seating ledger, itself an
-additive leaf below `Orig.BracketDecomp`, so no cycle); every fresh
+additive leaf below `Orig.BracketDecomp`, so no cycle); and at the
+session-4 pass `Orig.ForkStateSB` — the decidable fork-parcel door
+(`forkWitnessRowSB` + its iff bridge) consumed by the reseat
+refutation board alone, itself below the ALREADY
+transitively-present `Orig.PairName → Orig.ForkWeaker` chain, so
+again no cycle and no inflow anywhere else; every fresh
 head is audited in the battery; every named residue carries a
 complete route; no `Classical.choice`; the main statement is
 byte-frozen. -/
@@ -1730,7 +1753,34 @@ a priced boundary datum, per the never-force discipline — NOT
   outside every slab member's rung while the premise pack admits the
   economy, so any closure here would force past the recorded
   counterexample family — probe certification stays the pending gate.
-  The row CARRIES at [H], statement byte-frozen. -/
+  The row CARRIES at [H], statement byte-frozen.
+
+  SESSION-4 VERDICT (2026-10-13, the fourth succession — REFUTED AT
+  THE FROZEN STATEMENT, THE GATE CERTIFIED): the pending probe gate
+  is now DISCHARGED, in-file, at decide grade —
+  `lowslab_waste_reseat_refuted` below (§4.2.a.R, zero-sorry): the
+  tw-suit D5 economy of the session-2 candidate, CERTIFIED.  The
+  economy needs no cursor-orbit engineering at all: the fork board
+  `wr_st` itself heads its waste with `5♦` (the twin suit's next
+  card one past the fork point), the two-leg board-only witness
+  journey (cover hop, twin raise — both reversible by their
+  one-move mirrors) carries the waste head verbatim to the elevated
+  class-mate, so every premise of the row READS TRUE on the board —
+  while the conclusion is UNREACHABLE: the founding-arm guard at any
+  re-seated member demands the ♦ rung exactly 4 (`nextUp 5♦`), the
+  slab conjunct pins it at-or-below the fork point 3, and the seat
+  arm does not apply to the founding letter.  The row as stated is
+  therefore FALSE; it keeps its sorry and hosts at [H, REFUTED].
+  The owner's recourse is the statement-level rank premise the
+  session-2 candidate already priced (`lowslab_top_census`'s own
+  `hlow`: the commit card at-or-below the fork point); nothing is
+  smuggled per the never-force discipline, and the downstream
+  routers stay honest AT ECONOMIES WHERE THE EXTRA PREMISES HOLD —
+  at the exhibited board the founding letter's own commit grade
+  fails (its giveback re-fires onto the vacated twin seat `5♣`), so
+  the routers' and main row's statements are untouched by this
+  board: what the refutation retires is the reseat UNCONDITIONAL
+  claim alone. -/
 private theorem lowslab_waste_reseat {st u : State} {x : Card} {m : Move}
     (hx : ForkWitness st x)
     (hmem : sameOrbitSetoid.r st u)
@@ -1741,6 +1791,251 @@ private theorem lowslab_waste_reseat {st u : State} {x : Card} {m : Move}
       familyBelowFrontier u₀ x ∧
       WasteGuard u₀ m := by
   sorry
+
+/-! ### §4.2.a.R THE RESEAT REFUTATION BOARD (the fourth succession)
+
+THE PENDING GATE, CERTIFIED IN-FILE: the session-2 hand-derived
+refutation candidate for `lowslab_waste_reseat` — probe certification
+was the recorded gate, and the probe economy needs NO cursor-orbit
+engineering at all: a board whose WASTE already carries the commit
+card at the head reads the guard verbatim at every board-leg landing
+(the two-leg journey below writes piles and founds only).  THE
+FAMILY (the "twin-suit D5-over-fork" economy):
+
+* the fork board `wr_st`: family rungs ♥ 3 / ♦ 3, blacks 0 — the
+  covered twin `4♦` buried under its fitting black-three cover `3♠`
+  over the live takeback seat `5♣`; the live member `4♥` topped over
+  `5♠`; the WASTE heads `5♦` — the twin suit's next card, ONE PAST
+  the fork point 3.  `ForkWitness wr_st 4♥` is certified at decide
+  grade through `Orig/ForkStateSB.lean`'s `forkWitnessRowSB` (the
+  pair-saturation iff over `Card.universe` and the orientation pin,
+  both decided) — the only new import of this pass, itself below the
+  transitively-already-present `Orig.PairName → Orig.ForkWeaker`
+  chain, so no cycle.
+* the class member `wr_u`: the two-leg witness journey — hop the
+  cover off the twin (`tabToTab 3♠ (inr 4♥)`, reversible by the
+  un-hop), then raise the twin (`tabToFound 4♦`, reversible by its
+  giveback onto the re-exposed seat) — leaves the twin suit at rung
+  4 (ELEVATED) while carrying the waste head VERBATIM, so
+  `WasteGuard wr_u (wasteToFound 5♦)` holds by two decides.
+* the CONTRADICTION the conclusion would buy: a re-seated `u₀` must
+  satisfy `familyBelowFrontier u₀ 4♥` — the ♦ rung at or below 3 —
+  while the founding-arm guard demands `nextUp 5♦` there — the ♦
+  rung reading EXACTLY 4.  The guards are UNREACHABLE together; the
+  seat-arm of the guard disjunction does not apply to the founding
+  letter.  So `lowslab_waste_reseat` is FALSE as stated, exactly as
+  the session-2 candidate read, and `lowslab_waste_reseat_refuted`
+  below is the certified negation.
+
+REPAIR NOTE (owner's recourse, the `lowslab_top_census` precedent):
+restore the rank discipline the row's docstring always meant — the
+commit card at-or-below the fork point, `lowslab_top_census`'s own
+`hlow` — as a premise; the founding guard then reads a rung the
+slab CAN carry.  What CANNOT be added is the engineer's burden the
+old route priced (the cursor-orbit re-scheduling): with the commit
+card at the head of the CLASS-SHARED waste the cursor rail rides
+verbatim along board legs, and the honest open content of the waste
+rail is thereby sharpened for whatever repaired row follows. -/
+
+
+/-- The two-leg board's private card/step kit. -/
+private def wrC (s : Suit) (r : Rank) : Card := ⟨s, r⟩
+
+private def wrStep (st : State) (m : Move) : State :=
+  match st.step m with
+  | none => st
+  | some s' => s'
+
+/-- The forty buried cards — every card not on a foundation, not
+face-up, and not at the waste head, in one hidden deck. -/
+private def wr_deck : List Card :=
+  [wrC .spade .ace, wrC .spade .two, wrC .spade .four, wrC .spade .six,
+   wrC .spade .seven, wrC .spade .eight, wrC .spade .nine, wrC .spade .ten,
+   wrC .spade .jack, wrC .spade .queen, wrC .spade .king,
+   wrC .heart .five, wrC .heart .six, wrC .heart .seven, wrC .heart .eight,
+   wrC .heart .nine, wrC .heart .ten, wrC .heart .jack, wrC .heart .queen,
+   wrC .heart .king,
+   wrC .diamond .six, wrC .diamond .seven, wrC .diamond .eight,
+   wrC .diamond .nine, wrC .diamond .ten, wrC .diamond .jack,
+   wrC .diamond .queen, wrC .diamond .king,
+   wrC .club .ace, wrC .club .two, wrC .club .three, wrC .club .four,
+   wrC .club .six, wrC .club .seven, wrC .club .eight, wrC .club .nine,
+   wrC .club .ten, wrC .club .jack, wrC .club .queen, wrC .club .king]
+
+/-- THE FORK BOARD — family rungs pinned at 3, blacks at 0; the
+twin tower `5♣ / 4♦ / 3♠` at p1, the live member `4♥` over `5♠` at
+p2, the waste heading `5♦`. -/
+private def wr_hmap : Suit → Nat
+  | .heart => 3 | .diamond => 3 | .spade => 0 | .club => 0
+
+private def wr_st : State where
+  found := fun s => s.upCards.take (wr_hmap s)
+  piles := fun a => match a with
+    | .p1 => ⟨wr_deck, [wrC .club .five, wrC .diamond .four, wrC .spade .three]⟩
+    | .p2 => ⟨[], [wrC .spade .five, wrC .heart .four]⟩
+    | _ => ⟨[], []⟩
+  stock := []
+  waste := [wrC .diamond .five]
+  drawStep := 1
+
+/-- THE ELEVATED MEMBER: cover hopped off the twin, twin raised. -/
+private def wr_s1 : State :=
+  wrStep wr_st (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four)))
+
+private def wr_u : State :=
+  wrStep wr_s1 (Move.tabToFound (wrC .diamond .four))
+
+/-- THE FORK PARCEL, DECIDED — the saturation iff and the orientation
+pin over the whole universe, through the SB door. -/
+private theorem wr_st_wf : wr_st.WF := by
+  refine ⟨fun s => ⟨wr_hmap s, rfl⟩, ?_, ?_, ?_⟩
+  · intro a
+    cases a <;> rfl
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+private theorem wr_fork : ForkWitness wr_st (wrC .heart .four) := by
+  have hrow : forkWitnessRowSB wr_st (wrC .heart .four) = true := by decide
+  exact (forkWitnessRowSB_iff wr_st_wf).1 hrow
+
+/-- the hop fires; its mirror is the un-hop at the hopped member. -/
+private theorem wr_hop_fires :
+    State.step wr_st
+      (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four))) =
+      some wr_s1 := by
+  rfl
+
+/-- the un-hop at the hopped member lands back at the fork, exactly. -/
+private def wr_st' : State :=
+  wrStep wr_s1 (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four)))
+
+private theorem wr_st'_eq : wr_st' = wr_st := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+private theorem wr_unhop_fires :
+    State.step wr_s1
+      (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four))) =
+      some wr_st := by
+  rw [← wr_st'_eq]
+  rfl
+
+/-- the twin raise fires; its mirror is the giveback at the raised
+member. -/
+private theorem wr_raise_fires :
+    State.step wr_s1 (Move.tabToFound (wrC .diamond .four)) =
+      some wr_u := by
+  rfl
+
+/-- the giveback at the raised member lands back at the hopped
+member, exactly. -/
+private def wr_s1' : State :=
+  wrStep wr_u (Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five)))
+
+private theorem wr_s1'_eq : wr_s1' = wr_s1 := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+private theorem wr_giveback_fires :
+    State.step wr_u
+      (Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five))) =
+      some wr_s1 := by
+  rw [← wr_s1'_eq]
+  rfl
+
+/-- **THE ELEVATED CLASS-MATE** — the fork and the two-leg landing
+are joined by witness shuffles BOTH ways (the hop/raise pair and
+their exact mirrors). -/
+private theorem wr_class : sameOrbitSetoid.r wr_st wr_u :=
+  ⟨[Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five)),
+     Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four))],
+    ShufflePlayW.cons
+      ⟨wr_s1,
+        [Move.tabToFound (wrC .diamond .four)],
+        wr_giveback_fires, run_one wr_raise_fires⟩
+      wr_giveback_fires
+      (ShufflePlayW.cons
+        ⟨wr_st, [Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four))],
+          wr_unhop_fires, run_one wr_hop_fires⟩
+        wr_unhop_fires
+        (ShufflePlayW.nil wr_st)),
+    [Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four)),
+     Move.tabToFound (wrC .diamond .four)],
+    ShufflePlayW.cons
+      ⟨wr_s1,
+        [Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four))],
+        wr_hop_fires, run_one wr_unhop_fires⟩
+      wr_hop_fires
+      (ShufflePlayW.cons
+        ⟨wr_u,
+          [Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five))],
+          wr_raise_fires, run_one wr_giveback_fires⟩
+        wr_raise_fires
+        (ShufflePlayW.nil wr_u))⟩
+
+/-- the twin suit read strictly past the fork point at the member. -/
+private theorem wr_helev : ¬ familyBelowFrontier wr_u (wrC .heart .four) := by
+  intro hc
+  have hr : rungAt wr_u (wrC .diamond .five).suit = 4 := rfl
+  have h3 : (wrC .heart .four).rank.toIdx = 3 := rfl
+  have hs : (wrC .heart .four).twin.suit = (wrC .diamond .five).suit := rfl
+  unfold familyBelowFrontier at hc
+  rw [hs] at hc
+  omega
+
+/-- the founding guard at the member: the waste head is the commit
+card, and the twin suit's next card is next-up. -/
+private theorem wr_guard :
+    WasteGuard wr_u (Move.wasteToFound (wrC .diamond .five)) :=
+  Or.inl ⟨wrC .diamond .five, rfl, rfl, rfl⟩
+
+/-- **THE RESEAT RESIDUE IS REFUTED** — `lowslab_waste_reseat` is
+FALSE at its byte-frozen statement: the exhibited fork class above
+satisfies every premise — the decided fork parcel, the two-leg
+elevated class-mate, the twin suit a full rung past the fork point,
+the founding guard reading the class-shared waste head — while the
+conclusion is unreachable: the slab conjunct pins the twin suit's
+rung at-or-below the fork point at any re-seated member, the
+founding-arm guard demands it ONE PAST IT, and the seat arm does
+not apply to the founding letter.  The row keeps its sorry (the row
+as stated is FALSE); the owner's recourse is the statement-level
+rank premise the session-2 candidate already priced — the commit
+card at-or-below the fork point, `lowslab_top_census`'s own `hlow`. -/
+theorem lowslab_waste_reseat_refuted :
+    ¬ ∀ (st u : State) (x : Card) (m : Move),
+      ForkWitness st x → sameOrbitSetoid.r st u →
+      ¬ familyBelowFrontier u x → WasteGuard u m →
+      ∃ u₀ : State,
+        sameOrbitSetoid.r st u₀ ∧
+        familyBelowFrontier u₀ x ∧
+        WasteGuard u₀ m := by
+  intro h
+  obtain ⟨u₀, hclass, hslab, hguard⟩ :=
+    h wr_st wr_u (wrC .heart .four) (Move.wasteToFound (wrC .diamond .five))
+      wr_fork wr_class wr_helev wr_guard
+  rcases hguard with ⟨c, heq, -, hn⟩ | ⟨c, b, heq, -, -⟩
+  · injection heq with hc
+    subst hc
+    have hr : (wrC .diamond .five).rank.toIdx
+        = rungAt u₀ (wrC .diamond .five).suit := of_decide_eq_true hn
+    have hs : (wrC .heart .four).twin.suit = (wrC .diamond .five).suit := rfl
+    have hc' : rungAt u₀ (wrC .heart .four).twin.suit
+        ≤ (wrC .heart .four).rank.toIdx := hslab
+    rw [hs] at hc'
+    have h4 : (wrC .diamond .five).rank.toIdx = 4 := rfl
+    have h3 : (wrC .heart .four).rank.toIdx = 3 := rfl
+    omega
+  · injection heq
 
 /-- **THE WASTE TARGET-CLASS BRIDGE RESIDUE**
 `lowslab_waste_targetclass` [H, named at the waste-shrink pass] — the
@@ -2303,7 +2598,16 @@ and NOTHING else flows into it.  NONE of the consumed rows rides
 the sibling's residue `witness_leg_mint_confined`; the sorry COUNT
 is exactly the six, and `fork_neighbor_lowbridge`'s profile must
 stay `[propext, sorryAx, Quot.sound]` with no new inflow — verified
-below. -/
+below.  THE SESSION-4 ADDITION (the reseat refutation board,
+§4.2.a.R): every board row is zero-sorry at decide/defeq grade —
+the SB-door fork parcel (`forkWitnessRowSB wr_st 4♥`, one decide)
+bridged by `forkWitnessRowSB_iff`, the step facts and state
+ext-dances riding `funext` — with NO `Classical.choice` anywhere
+(the one new import, `Orig.ForkStateSB`, sits below the already
+transitively-present `Orig.PairName → Orig.ForkWeaker` chain, so
+no cycle and no new inflow); `lowslab_waste_reseat_refuted` — the
+certified negation of the reseat residue's own statement — is
+ZERO-sorry, and the sorry count stays exactly the six. -/
 
 #print axioms lowslab_draw_reversible_phase
 #print axioms lowslab_pull_wf_undo
@@ -2348,3 +2652,15 @@ below. -/
 #print axioms fork_lowbridge_pull
 #print axioms fork_lowbridge_elevated
 #print axioms fork_neighbor_lowbridge
+#print axioms wr_st_wf
+#print axioms wr_fork
+#print axioms wr_hop_fires
+#print axioms wr_st'_eq
+#print axioms wr_unhop_fires
+#print axioms wr_raise_fires
+#print axioms wr_s1'_eq
+#print axioms wr_giveback_fires
+#print axioms wr_class
+#print axioms wr_helev
+#print axioms wr_guard
+#print axioms lowslab_waste_reseat_refuted
