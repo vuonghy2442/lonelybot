@@ -1,4 +1,6 @@
 import Orig.Integrity
+import Orig.Combine
+import Orig.Reach
 
 /-!
 # Orig.FoundKit — THE FOUNDING-HEIGHT KIT (the shared-kit leaf)
@@ -209,6 +211,61 @@ theorem found_congr (u v : State) (hu : u.WF) (hv : v.WF) (s : Suit)
     · have hnm : n = m := by omega
       rw [hnm]
 
+theorem shuffle_wf (s : State) : ∀ {play : List Move} {w : State},
+    ShufflePlayW s play w → s.WF → w.WF := by
+  intro play w h
+  induction h with
+  | nil u => intro hwfs; exact hwfs
+  | @cons s₀ m s₁ rest w₀ hrev hstep hrest ih =>
+      intro hwfs
+      exact ih (step_wf hwfs hstep)
+
+/-- **THE FIVE-ZONE CENSUS** — at a WF state every card sits in
+exactly one of the five zones (lifted from the retired per-file
+copies `sequ_zone_residency`/`conf_zone_residency`; OriginLock's
+`lock_zone_residency` delegates here).  The conserved deck being
+somewhere-at-all, made a lemma. -/
+theorem zone_residency (st : State) (hwf : st.WF) (d : Card) :
+    (∃ s, d ∈ st.found s) ∨ (∃ k, d ∈ (st.piles k).hidden) ∨
+    (∃ k, d ∈ (st.piles k).faceUp) ∨ d ∈ st.stock ∨ d ∈ st.waste := by
+  have h1 : st.cardCount d = 1 := hwf.cardCount_eq (Card.mem_universe d)
+  unfold State.cardCount at h1
+  cases hL : ((st.zones.flatMap id).filter fun x => decide (x = d)) with
+  | nil =>
+      rw [hL] at h1
+      simp at h1
+  | cons x xs =>
+      have hxmem : x ∈ (st.zones.flatMap id).filter
+          (fun x => decide (x = d)) := by
+        rw [hL]
+        exact List.mem_cons_self ..
+      obtain ⟨hxeq, hxz⟩ := List.mem_filter.mp hxmem
+      have hxd : x = d := of_decide_eq_true hxz
+      obtain ⟨z, hz, hdz⟩ := List.mem_flatMap.mp hxeq
+      have hdzd : d ∈ z := by rw [← hxd]; exact hdz
+      have hspl : st.zones = (Suit.all.map st.found) ++
+          ((Anchor.all.map fun a =>
+            (st.piles a).hidden ++ (st.piles a).faceUp) ++
+            [st.stock, st.waste]) := rfl
+      rw [hspl] at hz
+      rcases List.mem_append.mp hz with hA | hB
+      · obtain ⟨s, -, hzs⟩ := List.mem_map.mp hA
+        exact Or.inl ⟨s, by rw [← hzs] at hdzd; exact hdzd⟩
+      · rcases List.mem_append.mp hB with hC | hD
+        · obtain ⟨k, -, hzk⟩ := List.mem_map.mp hC
+          rw [← hzk] at hdzd
+          rcases List.mem_append.mp hdzd with hH | hF
+          · exact Or.inr (Or.inl ⟨k, hH⟩)
+          · exact Or.inr (Or.inr (Or.inl ⟨k, hF⟩))
+        · rcases List.mem_cons.mp hD with hS | hW
+          · refine Or.inr (Or.inr (Or.inr (Or.inl ?_)))
+            rw [← hS]
+            exact hdzd
+          · rw [List.mem_singleton] at hW
+            refine Or.inr (Or.inr (Or.inr (Or.inr ?_)))
+            rw [← hW]
+            exact hdzd
+
 /-- **THE FOUNDED-HEIGHT IFF** — the founding-membership bridge as one
 line: a card is on its own suit's foundation exactly when its rank
 index sits strictly under the foundation's height.  (Stated in the
@@ -341,3 +398,5 @@ end FoundKit
 #print axioms FoundKit.mem_take_of_pos
 #print axioms FoundKit.take_ge_len
 #print axioms FoundKit.found_congr
+#print axioms FoundKit.shuffle_wf
+#print axioms FoundKit.zone_residency

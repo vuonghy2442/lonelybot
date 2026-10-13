@@ -1259,49 +1259,6 @@ private theorem conf_wf_along {st : State} : ∀ {w : State} {play : List Move},
       intro hwf
       exact ih (step_wf hwf hstep)
 
-/-- The five-zone census: at any WF state every card sits in a zone
-(the copy of the in-tree private row, read existentially). -/
-private theorem conf_zone_residency (st : State) (hwf : st.WF) (d : Card) :
-    (∃ s, d ∈ st.found s) ∨ (∃ k, d ∈ (st.piles k).hidden) ∨
-    (∃ k, d ∈ (st.piles k).faceUp) ∨ d ∈ st.stock ∨ d ∈ st.waste := by
-  have h1 : st.cardCount d = 1 := hwf.cardCount_eq (Card.mem_universe d)
-  unfold State.cardCount at h1
-  cases hL : ((st.zones.flatMap id).filter fun x => decide (x = d)) with
-  | nil =>
-      rw [hL] at h1
-      simp at h1
-  | cons x xs =>
-      have hxmem : x ∈ (st.zones.flatMap id).filter
-          (fun x => decide (x = d)) := by
-        rw [hL]
-        exact List.mem_cons_self ..
-      obtain ⟨hxeq, hxz⟩ := List.mem_filter.mp hxmem
-      have hxd : x = d := of_decide_eq_true hxz
-      obtain ⟨z, hz, hdz⟩ := List.mem_flatMap.mp hxeq
-      have hdzd : d ∈ z := by rw [← hxd]; exact hdz
-      have hspl : st.zones = (Suit.all.map st.found) ++
-          ((Anchor.all.map fun a =>
-            (st.piles a).hidden ++ (st.piles a).faceUp) ++
-            [st.stock, st.waste]) := rfl
-      rw [hspl] at hz
-      rcases List.mem_append.mp hz with hA | hB
-      · obtain ⟨s, -, hzs⟩ := List.mem_map.mp hA
-        exact Or.inl ⟨s, by rw [← hzs] at hdzd; exact hdzd⟩
-      · rcases List.mem_append.mp hB with hC | hD
-        · obtain ⟨k, -, hzk⟩ := List.mem_map.mp hC
-          rw [← hzk] at hdzd
-          rcases List.mem_append.mp hdzd with hH | hF
-          · exact Or.inr (Or.inl ⟨k, hH⟩)
-          · exact Or.inr (Or.inr (Or.inl ⟨k, hF⟩))
-        · rcases List.mem_cons.mp hD with hS | hW
-          · refine Or.inr (Or.inr (Or.inr (Or.inl ?_)))
-            rw [← hS]
-            exact hdzd
-          · rw [List.mem_singleton] at hW
-            refine Or.inr (Or.inr (Or.inr (Or.inr ?_)))
-            rw [← hW]
-            exact hdzd
-
 private theorem conf_dealUpTo_mem (d : Card) :
     ∀ (k : Nat) (l : List Card),
       d ∈ l → d ∈ (State.dealUpTo k l).1 ∨ d ∈ (State.dealUpTo k l).2 := by
@@ -2643,7 +2600,7 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
       · subst hb1
         obtain ⟨-, Q, hpoQ, -⟩ := step_tabToFound_inv hfire
         exact conf_orphan_topclash hwfu ⟨Q, hpoQ⟩ ⟨a₂, L, R, hpkg⟩
-    · rcases conf_zone_residency u hwfu d with ⟨s, hdFu⟩ | ⟨k, hh⟩ |
+    · rcases FoundKit.zone_residency u hwfu d with ⟨s, hdFu⟩ | ⟨k, hh⟩ |
         ⟨k, hfa⟩ | hstock | hwaste
       · have hsub := rung_found_prefix u hwfu s
         have htake : d ∈ s.upCards.take (rungAt u s) := by
@@ -2722,7 +2679,7 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
         exact conf_orphan_topclash hwfu ⟨Q, hpoQ⟩ ⟨a₂, L, R, hpkg⟩
       · have hxmem : x.twin ∈ (u.piles a₂).faceUp := hb1 ▸ hbmem
         exact ((mem_found_unique hwfu hmFound).1 a₂).2 hxmem
-    · rcases conf_zone_residency u hwfu d with ⟨s, hdFu⟩ | ⟨k, hh⟩ |
+    · rcases FoundKit.zone_residency u hwfu d with ⟨s, hdFu⟩ | ⟨k, hh⟩ |
         ⟨k, hfa⟩ | hstock | hwaste
       · have hsub := rung_found_prefix u hwfu s
         have htake : d ∈ s.upCards.take (rungAt u s) := by

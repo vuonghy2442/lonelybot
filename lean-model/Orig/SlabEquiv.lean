@@ -67,50 +67,6 @@ non-arithmetic closures in §2 are `exfalso`-premised).
 
 /-! ## §0. The private kit (per-file copies, the house dedup discipline) -/
 
-/-- The five-zone census: at any WF state every card sits in a zone
-(the per-file copy of `conf_zone_residency`, the cardCount pattern
-read existentially). -/
-private theorem sequ_zone_residency (st : State) (hwf : st.WF) (d : Card) :
-    (∃ s, d ∈ st.found s) ∨ (∃ k, d ∈ (st.piles k).hidden) ∨
-    (∃ k, d ∈ (st.piles k).faceUp) ∨ d ∈ st.stock ∨ d ∈ st.waste := by
-  have h1 : st.cardCount d = 1 := hwf.cardCount_eq (Card.mem_universe d)
-  unfold State.cardCount at h1
-  cases hL : ((st.zones.flatMap id).filter fun x => decide (x = d)) with
-  | nil =>
-      rw [hL] at h1
-      simp at h1
-  | cons x xs =>
-      have hxmem : x ∈ (st.zones.flatMap id).filter
-          (fun x => decide (x = d)) := by
-        rw [hL]
-        exact List.mem_cons_self ..
-      obtain ⟨hxeq, hxz⟩ := List.mem_filter.mp hxmem
-      have hxd : x = d := of_decide_eq_true hxz
-      obtain ⟨z, hz, hdz⟩ := List.mem_flatMap.mp hxeq
-      have hdzd : d ∈ z := by rw [← hxd]; exact hdz
-      have hspl : st.zones = (Suit.all.map st.found) ++
-          ((Anchor.all.map fun a =>
-            (st.piles a).hidden ++ (st.piles a).faceUp) ++
-            [st.stock, st.waste]) := rfl
-      rw [hspl] at hz
-      rcases List.mem_append.mp hz with hA | hB
-      · obtain ⟨s, -, hzs⟩ := List.mem_map.mp hA
-        exact Or.inl ⟨s, by rw [← hzs] at hdzd; exact hdzd⟩
-      · rcases List.mem_append.mp hB with hC | hD
-        · obtain ⟨k, -, hzk⟩ := List.mem_map.mp hC
-          rw [← hzk] at hdzd
-          rcases List.mem_append.mp hdzd with hH | hF
-          · exact Or.inr (Or.inl ⟨k, hH⟩)
-          · exact Or.inr (Or.inr (Or.inl ⟨k, hF⟩))
-        · rcases List.mem_cons.mp hD with hS | hW
-          · refine Or.inr (Or.inr (Or.inr (Or.inl ?_)))
-            rw [← hS]
-            exact hdzd
-          · rw [List.mem_singleton] at hW
-            refine Or.inr (Or.inr (Or.inr (Or.inr ?_)))
-            rw [← hW]
-            exact hdzd
-
 /-! ### The draw-cycle kit (the zone's only writers) -/
 
 /-- A deal pays a `dealUpTo` member home: a list member lands in the
@@ -347,7 +303,7 @@ theorem twin_slab_tableau {st w : State} {x : Card}
       rcases (cycle_zone_pin hτ x.twin).mp hc with hs | hw
       · exact hss hs
       · exact hww hw
-    rcases sequ_zone_residency w hwfw x.twin with ⟨s, hfw⟩ | ⟨k, hkw⟩ |
+    rcases FoundKit.zone_residency w hwfw x.twin with ⟨s, hfw⟩ | ⟨k, hkw⟩ |
       ⟨k, hfw⟩ | hsw | hww
     · by_cases hs : s = x.twin.suit
       · rw [hs] at hfw
@@ -366,7 +322,6 @@ zero-`sorry` and read banked-chain grade (`[propext]` /
 `twin_slab_tableau` is fully PROVED — this leaf's single ticket-free
 landing: no `sorryAx` anywhere in the battery. -/
 
-#print axioms sequ_zone_residency
 #print axioms sequ_dealUpTo_memL
 #print axioms sequ_dealUpTo_mem_take
 #print axioms sequ_dealUpTo_mem_drop

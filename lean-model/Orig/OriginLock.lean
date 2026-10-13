@@ -1127,53 +1127,10 @@ deck sits in one of the five zones (the conservation census, read
 existentially). -/
 theorem lock_zone_residency (st : State) (hwf : st.WF) (d : Card) :
     (∃ s, d ∈ st.found s) ∨ (∃ k, d ∈ (st.piles k).hidden) ∨
-    (∃ k, d ∈ (st.piles k).faceUp) ∨ d ∈ st.stock ∨ d ∈ st.waste := by
-  have h1 : st.cardCount d = 1 := hwf.cardCount_eq (Card.mem_universe d)
-  unfold State.cardCount at h1
-  cases hL : ((st.zones.flatMap id).filter fun x => decide (x = d)) with
-  | nil =>
-      rw [hL] at h1
-      simp at h1
-  | cons x xs =>
-      have hxmem : x ∈ (st.zones.flatMap id).filter (fun x => decide (x = d)) := by
-        rw [hL]
-        exact List.mem_cons_self ..
-      obtain ⟨hxeq, hxz⟩ := List.mem_filter.mp hxmem
-      have hxd : x = d := of_decide_eq_true hxz
-      obtain ⟨z, hz, hdz⟩ := List.mem_flatMap.mp hxeq
-      have hdzd : d ∈ z := by rw [← hxd]; exact hdz
-      have hspl : st.zones = (Suit.all.map st.found) ++
-          ((Anchor.all.map fun a => (st.piles a).hidden ++ (st.piles a).faceUp) ++
-            [st.stock, st.waste]) := rfl
-      rw [hspl] at hz
-      rcases List.mem_append.mp hz with hA | hB
-      · obtain ⟨s, -, hzs⟩ := List.mem_map.mp hA
-        exact Or.inl ⟨s, by rw [← hzs] at hdzd; exact hdzd⟩
-      · rcases List.mem_append.mp hB with hC | hD
-        · obtain ⟨k, -, hzk⟩ := List.mem_map.mp hC
-          rw [← hzk] at hdzd
-          rcases List.mem_append.mp hdzd with hH | hF
-          · exact Or.inr (Or.inl ⟨k, hH⟩)
-          · exact Or.inr (Or.inr (Or.inl ⟨k, hF⟩))
-        · rcases List.mem_cons.mp hD with heq | hrest
-          · rw [heq] at hdzd
-            exact Or.inr (Or.inr (Or.inr (Or.inl hdzd)))
-          · rcases List.mem_cons.mp hrest with heq2 | hnil
-            · rw [heq2] at hdzd
-              exact Or.inr (Or.inr (Or.inr (Or.inr hdzd)))
-            · exact absurd hnil (by simp)
+    (∃ k, d ∈ (st.piles k).faceUp) ∨ d ∈ st.stock ∨ d ∈ st.waste :=
+  FoundKit.zone_residency st hwf d
 
 /-! ### The exodus kit — a founded card leaves only by its own pull -/
-
-/-- Witness shuffles preserve `WF` (the journey-lift of `step_wf`). -/
-private theorem lock_shuffle_wf (s : State) : ∀ {play : List Move} {w : State},
-    ShufflePlayW s play w → s.WF → w.WF := by
-  intro play w h
-  induction h with
-  | nil u => intro hwfs; exact hwfs
-  | @cons s₀ m s₁ rest w₀ hrev hstep hrest ih =>
-      intro hwfs
-      exact ih (step_wf hwfs hstep)
 
 /-- **THE FOUNDED EXODUS** — along a witness shuffle, a card resident
 on its own suit's foundation at the start and absent at the end has
@@ -1503,7 +1460,7 @@ private theorem pollutesCrash_terminalHot_Below {st₁ sth : State}
   -- the exodus: the card left through its own pull, mid-journey
   obtain ⟨π, ρ, b, u, v, hpre, hstep, _hrev, hpost⟩ :=
     lock_found_exit (c := t) hplay hwf₁ hinfound hnotfound
-  have hwfu : u.WF := lock_shuffle_wf st₁ hpre hwf₁
+  have hwfu : u.WF := FoundKit.shuffle_wf st₁ hpre hwf₁
   have hwfv : v.WF := step_wf hwfu hstep
   -- the fire-time bracket: the popped card tops its row, the rung
   -- one above its own index
@@ -1645,7 +1602,7 @@ private theorem origin_foundedCover_belowPull {st₁ st₂ : State}
   -- the exodus: the below-cover card's own pull, mid-journey
   obtain ⟨π, ρ, b, u, v, hpre, hstep, hrev, hpost⟩ :=
     lock_found_exit (c := w) hplay hwf₁ hinfound hnotfound
-  have hwfu : u.WF := lock_shuffle_wf st₁ hpre hwf₁
+  have hwfu : u.WF := FoundKit.shuffle_wf st₁ hpre hwf₁
   have hwfv : v.WF := step_wf hwfu hstep
   -- the LIFO fire-time reads
   have htop : u.foundTop w.suit = some w := foundToTab_pops_currentTop hstep
@@ -1866,7 +1823,7 @@ theorem exodus_seating_census {st₁ st₂ : State} (hwf₁ : st₁.WF)
           b ∈ (st₂.piles a).faceUp ∧
             canSitOn (Card.mk σ r) b = true := by
   intro r hlo hhi hnk
-  have hwf₂ : st₂.WF := lock_shuffle_wf st₁ hτ hwf₁
+  have hwf₂ : st₂.WF := FoundKit.shuffle_wf st₁ hτ hwf₁
   have hmem : (Card.mk σ r) ∈ st₁.found σ :=
     FoundKit.mem_found_of_rung hwf₁ hhi
   have hout : (Card.mk σ r) ∉ st₂.found σ := by
