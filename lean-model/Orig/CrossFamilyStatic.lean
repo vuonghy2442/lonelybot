@@ -48,7 +48,7 @@ House compliance: additive leaf (`import Orig.OrphanSeat` +
 `import Orig.PairConfine`); the take-position kit and the
 founded-membership bridge copies retired in the FoundKit dedup
 (PairConfine's public founding-height namespace), the fresh private
-copies reduced to the rank/color enumeration; every fresh head
+copies reduced to the rank enumeration; every fresh head
 audited.
 -/
 
@@ -98,13 +98,6 @@ private theorem xstat_rank_of_idx {n : Nat} (hn : n < 13) :
                           cases n12 with
                           | zero => exact ⟨Rank.king, rfl⟩
                           | succ m => exfalso; omega
-
-/-- Two colors that both differ from a third agree (the copy of
-`Orig/CrossFamily.lean`'s private `xfam_color_pair`, itself the copy
-of `Orig/RunOrTwin.lean`'s private `color_pair`). -/
-private theorem xstat_color_pair {a u v : Color} (h1 : a ≠ u) (h2 : a ≠ v) :
-    u = v := by
-  rcases a <;> rcases u <;> rcases v <;> simp_all
 
 /-! ## §1. The static kill (the landed orphan-seat row consumed by import) -/
 
@@ -174,7 +167,7 @@ theorem cross_orphan_kill {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : st
     rw [← hecol]
     exact hbc
   have hbycol : b.suit.color = y.suit.color :=
-    xstat_color_pair hxne (Ne.symm hcol)
+    SeedKit.color_pair hxne (Ne.symm hcol)
   -- the second fork's saturation founds EVERY such card — b included
   have hmem₂ : b ∈ st₂.found b.suit :=
     pair_lowFamily_founded hwf₂ hy hbycol (by omega)
@@ -194,6 +187,5 @@ kill `cross_orphan_kill` inherits NOTHING — so each consuming
 corner of `Orig/CrossFamily.lean` cites a fully proved static kill. -/
 
 #print axioms xstat_rank_of_idx
-#print axioms xstat_color_pair
 #print axioms cross_orphan_seat
 #print axioms cross_orphan_kill

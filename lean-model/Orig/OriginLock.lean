@@ -78,52 +78,6 @@ docstring.
 
 /-! ## §0. The private kit (per-file copies, the house dedup discipline) -/
 
-/-- Two colors that both differ from a third agree (the copy of
-`Orig/RunOrTwin.lean`'s private `color_pair`; `Orig/PairConfine.lean`
-carries an identical copy). -/
-private theorem lock_color_pair {a u v : Color} (h1 : a ≠ u) (h2 : a ≠ v) : u = v := by
-  rcases a <;> rcases u <;> rcases v <;> simp_all
-
-/-- **THE DECK CENSUS** — the cards of one rank and one color are
-exactly the twin pair (the copy of `Orig/RunOrTwin.lean`'s private
-`rankColor_pair`). -/
-private theorem lock_rankColor_pair {c z : Card}
-    (hr : z.rank.toIdx = c.rank.toIdx) (hc : z.suit.color = c.suit.color) :
-    z = c ∨ z = c.twin := by
-  rcases z with ⟨zs, zr⟩
-  rcases c with ⟨cs, cr⟩
-  have hrank : zr = cr := Rank.toIdx_inj hr
-  subst hrank
-  cases cs <;> cases zs <;> simp_all [Suit.color, Suit.twin, Card.twin]
-
-/-- The adjacent-fit row of the run discipline (the copy of
-`Orig/RunOrTwin.lean`'s private `runOK_adjacent_fit`): a card
-directly covered in a well-formed run fits on the card below it. -/
-private theorem lock_runOK_adjacent (c d : Card) :
-    ∀ (X R : List Card), runOK (X ++ c :: d :: R) = true → canSitOn d c = true := by
-  intro X
-  induction X with
-  | nil =>
-      intro R h
-      have h2 : runOK (c :: d :: R) = true := h
-      rw [runOK, Bool.and_eq_true] at h2
-      exact h2.1
-  | cons w ws ih =>
-      intro R h
-      have h2 : runOK (w :: (ws ++ c :: d :: R)) = true := h
-      cases hxs : (ws ++ c :: d :: R) with
-      | nil =>
-          cases ws with
-          | nil => rw [List.nil_append] at hxs; exact absurd hxs (by simp)
-          | cons v vs => rw [List.cons_append] at hxs; exact absurd hxs (by simp)
-      | cons y ys =>
-          rw [hxs] at h2
-          rw [runOK, Bool.and_eq_true] at h2
-          have htail : runOK (ws ++ c :: d :: R) = true := by
-            rw [hxs]
-            exact h2.2
-          exact ih R htail
-
 /-- The mnist-split: a card's face-up pile splits below it, at it. -/
 private theorem lock_mem_split (c : Card) :
     ∀ (l : List Card), c ∈ l → ∃ bs rest, l = bs ++ c :: rest := by
@@ -322,7 +276,7 @@ theorem lower_sandwich {st₂ : State} (hwf₂ : st₂.WF) {y : Card}
     obtain ⟨k, -, hsit⟩ := canPlace_inr hcp
     obtain ⟨hrkz, hcolz⟩ := (canSitOn_eq d z).mp hsit
     have hrz : z.rank.toIdx = y.rank.toIdx := by omega
-    exact lock_rankColor_pair hrz (lock_color_pair hcdy hcolz).symm
+    exact SeedKit.rankColor_pair hrz (SeedKit.color_pair hcdy hcolz).symm
   · -- the empty seat is king-only and the dress is no king
     intro k hcp
     obtain ⟨-, hking⟩ := canPlace_inl hcp
@@ -357,10 +311,10 @@ theorem dress_legalSeats_pair {st : State} (hwf : st.WF) {y c : Card}
     have hok : runOK (bs' ++ w :: c :: rest) = true := by
       rw [← hshape']
       exact hwf.runOK_of a
-    obtain ⟨hrk, hcol⟩ := (canSitOn_eq c w).mp (lock_runOK_adjacent w c bs' rest hok)
+    obtain ⟨hrk, hcol⟩ := (canSitOn_eq c w).mp (SeedKit.runOK_adjacent_fit w c bs' rest hok)
     refine Or.inr ⟨w, hw, ?_⟩
     have hrw : w.rank.toIdx = y.rank.toIdx := by omega
-    exact lock_rankColor_pair hrw (lock_color_pair hdcol hcol).symm
+    exact SeedKit.rankColor_pair hrw (SeedKit.color_pair hdcol hcol).symm
 
 /-- **THE ORIGIN ISOLATION** — at the class origin `st₁` every
 on-board dresser (family-opposite, rank index `r*−1 < r`) is
@@ -396,9 +350,9 @@ theorem origin_dresser_isolated {st₁ : State} (hwf₁ : st₁.WF)
         have hok : runOK ([] ++ c :: u :: us) = true := by
           rw [← hshape]
           exact hwf₁.runOK_of a
-        obtain ⟨hrk, hcol⟩ := (canSitOn_eq u c).mp (lock_runOK_adjacent c u [] us hok)
+        obtain ⟨hrk, hcol⟩ := (canSitOn_eq u c).mp (SeedKit.runOK_adjacent_fit c u [] us hok)
         have huColx : u.suit.color = x.suit.color :=
-          (lock_color_pair hdcolx (fun h => hcol h.symm)).symm
+          (SeedKit.color_pair hdcolx (fun h => hcol h.symm)).symm
         have huLt : u.rank.toIdx < x.rank.toIdx := by omega
         have huf := pair_lowFamily_founded hwf₁ hx huColx huLt
         have huUp : u ∈ (st₁.piles a).faceUp := by
@@ -1755,7 +1709,7 @@ private theorem origin_foundedCover_belowPull {st₁ st₂ : State}
         have h2 : w.suit.color ≠ yc := by
           rw [hws]
           exact fun hcon => hyc hcon.symm
-        exact lock_color_pair hzcol h2
+        exact SeedKit.color_pair hzcol h2
       -- the landing pile: w lands directly on zt, in zt's own pile
       have hmidp : (u.setFound w.suit (chop (u.found w.suit))).piles = u.piles :=
         setFound_piles u w.suit _
@@ -1819,9 +1773,9 @@ but is hot (never re-founded) at the terminus, so the
 successor-archaeology engine `pollutesCrash_terminalHot_Below` (the
 `lock_found_exit` exodus split, the fire-time bracket, the
 `reseat_pop` landing kit, the `Below_stable` suffix transport) ends
-it BELOW-SEATED at `st₂`; the seat fit (`lock_runOK_adjacent` +
+it BELOW-SEATED at `st₂`; the seat fit (`SeedKit.runOK_adjacent_fit` +
 `canSitOn_eq`) makes that below-neighbor FAMILY-colored
-(`lock_color_pair` against `hdcol`) and ranked strictly under the
+(`SeedKit.color_pair` against `hdcol`) and ranked strictly under the
 fork (`omega` over `hsq2`), the fork's own family rungs both pin at
 the pair rank (`canRaiseS_rung` off `hy`, the twin via
 `Card.twin_rank`), so the neighbor is foundation-resident
@@ -1865,9 +1819,9 @@ theorem fork_nextUpExile_crash {st₁ st₂ : State} (hwf₁ : st₁.WF)
     rw [← hshp]
     exact hwf₂.runOK_of a
   obtain ⟨hrkbt, hcolbt⟩ :=
-    (canSitOn_eq T nb).mp (lock_runOK_adjacent nb T L R hok)
+    (canSitOn_eq T nb).mp (SeedKit.runOK_adjacent_fit nb T L R hok)
   have hbcol : nb.suit.color = y.suit.color :=
-    lock_color_pair (a := d.suit.color)
+    SeedKit.color_pair (a := d.suit.color)
       (by rw [← hTsuit]; exact hcolbt) hdcol
   have hyPin : rungAt st₂ y.suit = y.rank.toIdx :=
     canRaiseS_rung ((hy.1 y).mp (Or.inl rfl))
@@ -1877,7 +1831,7 @@ theorem fork_nextUpExile_crash {st₁ st₂ : State} (hwf₁ : st₁.WF)
   have hsuit : nb.suit = y.suit ∨ nb.suit = y.twin.suit := by
     have hz : (Card.mk nb.suit y.rank) = y ∨
         (Card.mk nb.suit y.rank) = y.twin :=
-      lock_rankColor_pair rfl hbcol
+      SeedKit.rankColor_pair rfl hbcol
     rcases hz with h | h
     · refine Or.inl ?_
       exact (congrArg Card.suit h :

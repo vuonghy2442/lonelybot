@@ -15,7 +15,7 @@ at-fork values.  The card's honest ladder:
   license, so the flat form pins the twin covered with its seat)
   produces the twin's DIRECT cover `d` — one rank below, opposite
   color of the pair family — and the deck census
-  (`conf_rankColor_pair`, the copy of `Orig/RunOrTwin.lean`'s
+  (`SeedKit.rankColor_pair`, the copy of `Orig/RunOrTwin.lean`'s
   private `rankColor_pair`) reads `d`'s landing lattice: every
   legal card-directed placement of `d` tops a PAIR member, and no
   empty-seat landing exists (`d` is no king).
@@ -61,52 +61,6 @@ card is fully proved — zero named residues; the audit battery reads
 
 /-! ## §0. The private kit (per-file copies, the house dedup discipline) -/
 
-/-- Two colors that both differ from a third agree (the copy of
-`Orig/RunOrTwin.lean`'s private `color_pair`). -/
-private theorem conf_color_pair {a u v : Color} (h1 : a ≠ u) (h2 : a ≠ v) : u = v := by
-  rcases a <;> rcases u <;> rcases v <;> simp_all
-
-/-- **THE DECK CENSUS** — the cards of one rank and one color are
-exactly the twin pair (the copy of `Orig/RunOrTwin.lean`'s private
-`rankColor_pair`; `Orig/ForkStateS.lean` and `Orig/SFlatTransfer.lean`
-carry identical private copies). -/
-private theorem conf_rankColor_pair {c z : Card}
-    (hr : z.rank.toIdx = c.rank.toIdx) (hc : z.suit.color = c.suit.color) :
-    z = c ∨ z = c.twin := by
-  rcases z with ⟨zs, zr⟩
-  rcases c with ⟨cs, cr⟩
-  have hrank : zr = cr := Rank.toIdx_inj hr
-  subst hrank
-  cases cs <;> cases zs <;> simp_all [Suit.color, Suit.twin, Card.twin]
-
-/-- The adjacent-fit row of the run discipline (the copy of
-`Orig/RunOrTwin.lean`'s private `runOK_adjacent_fit`): a card
-directly covered in a well-formed run fits on the card below it. -/
-private theorem conf_runOK_adjacent (c d : Card) :
-    ∀ (X R : List Card), runOK (X ++ c :: d :: R) = true → canSitOn d c = true := by
-  intro X
-  induction X with
-  | nil =>
-      intro R h
-      have h2 : runOK (c :: d :: R) = true := h
-      rw [runOK, Bool.and_eq_true] at h2
-      exact h2.1
-  | cons w ws ih =>
-      intro R h
-      have h2 : runOK (w :: (ws ++ c :: d :: R)) = true := h
-      cases hxs : (ws ++ c :: d :: R) with
-      | nil =>
-          cases ws with
-          | nil => rw [List.nil_append] at hxs; exact absurd hxs (by simp)
-          | cons v vs => rw [List.cons_append] at hxs; exact absurd hxs (by simp)
-      | cons y ys =>
-          rw [hxs] at h2
-          rw [runOK, Bool.and_eq_true] at h2
-          have htail : runOK (ws ++ c :: d :: R) = true := by
-            rw [hxs]
-            exact h2.2
-          exact ih R htail
-
 /-! ## §1. The cover-lattice reads -/
 
 /-- **THE COVER-LATTICE READ**: the fork's twin-cover `d` (rank one
@@ -145,7 +99,7 @@ theorem pair_cover_lattice {st : State} (hwf : st.WF) {x : Card}
   obtain ⟨d, rest, hrun⟩ := list_cons_of_ne_nil hrunne
   rw [hrun] at hshape
   have hfit : canSitOn d x.twin = true :=
-    conf_runOK_adjacent x.twin d bs rest (by rw [← hshape]; exact hwf.runOK_of a)
+    SeedKit.runOK_adjacent_fit x.twin d bs rest (by rw [← hshape]; exact hwf.runOK_of a)
   refine ⟨a, bs, rest, d, hshape, hseat, hfit, ?_, ?_⟩
   · -- the card-directed lattice: a pair member tops every landing
     intro z hcp
@@ -156,10 +110,10 @@ theorem pair_cover_lattice {st : State} (hwf : st.WF) {x : Card}
       rw [Card.twin_rank] at hridxt
       omega
     have hu : z.suit.color = x.twin.suit.color :=
-      conf_color_pair (a := d.suit.color) hcol hcolt
+      SeedKit.color_pair (a := d.suit.color) hcol hcolt
     have hzc : z.suit.color = x.suit.color := by
       rw [hu, Card.twin_suit, Suit.color_twin]
-    exact conf_rankColor_pair hzr hzc
+    exact SeedKit.rankColor_pair hzr hzc
   · -- the empty-seat lattice: the king branch is arithmetically dead
     intro k hcp
     obtain ⟨-, hking⟩ := canPlace_inl hcp
@@ -310,12 +264,6 @@ private theorem conf_snoc2_chop (bs : List Card) (u d : Card) :
   rw [h]
   exact chop_snoc
 
-/-- The color family is the twin-suit family: a same-color suit is
-the suit or its twin (the census read at the suit grade). -/
-private theorem conf_suit_family {s t : Suit} (h : s.color = t.color) :
-    s = t ∨ s = t.twin := by
-  cases s <;> cases t <;> simp_all [Suit.color, Suit.twin]
-
 /-- **THE PILED-RUNG ROW** — a face-up card's suit rung sits weakly
 below its rank index: a taller rung would have founded it (the
 founded bridge) against conservation. -/
@@ -337,7 +285,7 @@ theorem pair_lowFamily_founded {st : State} (hwf : st.WF) {x : Card}
     (hlt : c.rank.toIdx < x.rank.toIdx) :
     c ∈ st.found c.suit := by
   have hr : rungAt st c.suit = x.rank.toIdx := by
-    rcases conf_suit_family hcol with hs | hs
+    rcases SeedKit.suit_family hcol with hs | hs
     · rw [hs]
       exact canRaiseS_rung ((hx.1 x).mp (Or.inl rfl))
     · rw [hs]
@@ -381,10 +329,10 @@ theorem pair_cover_pins {st : State} (hwf : st.WF) {x : Card}
           rw [List.append_assoc bs [x.twin] (d :: w :: rest')]
           exact hok'
         have hfit2 : canSitOn w d = true :=
-          conf_runOK_adjacent d w (bs ++ [x.twin]) rest' hok
+          SeedKit.runOK_adjacent_fit d w (bs ++ [x.twin]) rest' hok
         obtain ⟨hridx2, hcol2⟩ := (canSitOn_eq w d).mp hfit2
         have hwcol0 : w.suit.color = x.twin.suit.color :=
-          conf_color_pair (a := d.suit.color) hcol2.symm hcol
+          SeedKit.color_pair (a := d.suit.color) hcol2.symm hcol
         have hwcol : w.suit.color = x.suit.color := by
           rw [hwcol0, Card.twin_suit, Suit.color_twin]
         have hwlt : w.rank.toIdx < x.rank.toIdx := by omega
@@ -1112,7 +1060,7 @@ private theorem conf_hop_flip {s s' : State} (hwf : s.WF) {m : Move}
             (show lastOf (chop (s.piles a₀).faceUp) = some t from hTop')
           have hshape : (s.piles a₀).faceUp = front ++ [t, c] := by
             rw [hsnoc, hfront, List.append_assoc]; rfl
-          exact Or.inr ⟨c, rfl, conf_runOK_adjacent t c front [] (by
+          exact Or.inr ⟨c, rfl, SeedKit.runOK_adjacent_fit t c front [] (by
               rw [← hshape]; exact hwf.2.1 a₀)⟩
       · exfalso
         rw [hpy A, ite_eq_right hAa] at hlastA
@@ -1206,7 +1154,7 @@ private theorem conf_hop_flip {s s' : State} (hwf : s.WF) {m : Move}
           have hshape : (s.piles a₀).faceUp = front ++ t :: c :: tail := by
             rw [hsplit, hfront, hrunT, List.append_assoc, List.cons_append]
             rfl
-          refine Or.inl ⟨c, b, rfl, conf_runOK_adjacent t c front tail ?_⟩
+          refine Or.inl ⟨c, b, rfl, SeedKit.runOK_adjacent_fit t c front tail ?_⟩
           rw [← hshape]
           exact hwf.2.1 a₀
       · by_cases hAk : A = k
@@ -1298,7 +1246,7 @@ run-discipline fit at the departure), or the founding of such a card
 (the freeze's target below).  Route to close: the per-leg
 direct-cover position language (`below`/`aboveIn` over the pile
 lists), the lastness identification of the uncovering leg (the last
-change to the twin's above-run), the `conf_runOK_adjacent` fit at the
+change to the twin's above-run), the `SeedKit.runOK_adjacent_fit` fit at the
 departure seat. -/
 private theorem crossing_door_hop {st : State} (hwf : st.WF) {x : Card}
     (hx : ForkWitness st x) {w : State} {π : List Move}
@@ -2663,7 +2611,7 @@ either founded (hence nowhere face-up, by `mem_found_unique` on the
 WF end state carried by `conf_wf_along`) or still seated on a
 below-neighbor: the seat itself comes off the banked `Below_stable`
 (the seed IS a `Below`-shape instantiation at the start state), and
-the end-fit off the run discipline (`conf_runOK_adjacent` on the
+the end-fit off the run discipline (`SeedKit.runOK_adjacent_fit` on the
 end state's pile). -/
 private theorem conf_orphan_roam {st u : State} (hwf : st.WF)
     {τ : List Move}
@@ -2679,7 +2627,7 @@ private theorem conf_orphan_roam {st u : State} (hwf : st.WF)
     hF | ⟨z', a', L, R, hs'⟩
   · exact Or.inr (fun a₂ => ((mem_found_unique hwfu hF).1 a₂).2)
   · refine Or.inl ⟨a', L, z', R, hs', ?_⟩
-    exact conf_runOK_adjacent z' d L R
+    exact SeedKit.runOK_adjacent_fit z' d L R
       (by rw [← hs']; exact hwfu.2.1 a')
 
 /-- The nodup slice: a seated card's below-tail cannot contain it
@@ -2799,9 +2747,9 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
     rcases conf_orphan_roam hwf hjourney hdnk ⟨A, bsA, x.twin, hshape, hfit⟩ with
       ⟨a₂, L, b, R, hpkg, hbfit⟩ | haway
     · obtain ⟨hbr, hbc⟩ := (canSitOn_eq d b).mp hbfit
-      have hbx : b.suit.color = x.suit.color := conf_color_pair hbc hdcolT
+      have hbx : b.suit.color = x.suit.color := SeedKit.color_pair hbc hdcolT
       have hbCell : b = x ∨ b = x.twin :=
-        conf_rankColor_pair (by omega) hbx
+        SeedKit.rankColor_pair (by omega) hbx
       have hbmem : b ∈ (u.piles a₂).faceUp := by
         rw [hpkg]
         exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
@@ -2853,7 +2801,7 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
         have hbr3 : rk.toIdx + 1 = b₂.rank.toIdx :=
           show rk.toIdx + 1 = b₂.rank.toIdx from hbr2
         have hbx2 : b₂.suit.color = x.suit.color :=
-          conf_color_pair hbc2 hdcolT
+          SeedKit.color_pair hbc2 hdcolT
         have hb₂F : b₂ ∈ st.found b₂.suit :=
           pair_lowFamily_founded hwf hx hbx2 (by omega)
         exact (mem_faceUp_only hwf hb₂mem).2.2.2.2 b₂.suit hb₂F
@@ -2876,9 +2824,9 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
     rcases conf_orphan_roam hwf hjourney hdnk ⟨A, bsA, x.twin, hshape, hfit⟩ with
       ⟨a₂, L, b, R, hpkg, hbfit⟩ | haway
     · obtain ⟨hbr, hbc⟩ := (canSitOn_eq d b).mp hbfit
-      have hbx : b.suit.color = x.suit.color := conf_color_pair hbc hdcolT
+      have hbx : b.suit.color = x.suit.color := SeedKit.color_pair hbc hdcolT
       have hbCell : b = x ∨ b = x.twin :=
-        conf_rankColor_pair (by omega) hbx
+        SeedKit.rankColor_pair (by omega) hbx
       have hbmem : b ∈ (u.piles a₂).faceUp := by
         rw [hpkg]
         exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
@@ -2930,7 +2878,7 @@ private theorem conf_door_orphan {st u s₁ : State} (hwf : st.WF)
         have hbr3 : rk.toIdx + 1 = b₂.rank.toIdx :=
           show rk.toIdx + 1 = b₂.rank.toIdx from hbr2
         have hbx2 : b₂.suit.color = x.suit.color :=
-          conf_color_pair hbc2 hdcolT
+          SeedKit.color_pair hbc2 hdcolT
         have hb₂F : b₂ ∈ st.found b₂.suit :=
           pair_lowFamily_founded hwf hx hbx2 (by omega)
         exact (mem_faceUp_only hwf hb₂mem).2.2.2.2 b₂.suit hb₂F

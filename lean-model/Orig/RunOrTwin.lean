@@ -47,10 +47,25 @@ private theorem afterRunRemoved_faceUp_barred {p : Pile} {pre : List Card}
   | cons u us =>
       rw [afterRunRemoved_ne (by simp)]
 
-private theorem color_pair {a u v : Color} (h1 : a ≠ u) (h2 : a ≠ v) : u = v := by
+namespace SeedKit
+
+/-! **THE SEED KIT** — the EdgeKit-pattern promotion of the tree's
+private suit/color/pair copies (RunOrTwin's own originals freed
+public under this namespace; the per-file copies — PairConfine's
+`conf_` family, OriginLock's `lock_` trio, CrossFamily's `xfam_`
+rows, CrossFamilyStatic's `xstat_` color pair, PairClass's
+`pc_suit_family`, ForkStateS's `runOK_adjacent_fit` — retire against
+these rows at their next landing; `suit_family`'s canonical body is
+lifted from PairConfine's root copy).  The kit is the card-algebra
+seed: color trichotomy, twin-pair naming, the run-fit read, and the
+suit-family split. -/
+
+/-- The two non-`a` colors of a two-color deck coincide. -/
+theorem color_pair {a u v : Color} (h1 : a ≠ u) (h2 : a ≠ v) : u = v := by
   rcases a <;> rcases u <;> rcases v <;> simp_all
 
-private theorem rankColor_pair {c z : Card}
+/-- Equal rank and equal color name the card, up to the twin flip. -/
+theorem rankColor_pair {c z : Card}
     (hr : z.rank.toIdx = c.rank.toIdx) (hc : z.suit.color = c.suit.color) :
     z = c ∨ z = c.twin := by
   rcases z with ⟨zs, zr⟩
@@ -59,7 +74,8 @@ private theorem rankColor_pair {c z : Card}
   subst hrank
   cases cs <;> cases zs <;> simp_all [Suit.color, Suit.twin, Card.twin]
 
-private theorem runOK_adjacent_fit (c d : Card) :
+/-- An adjacent fitted pair anywhere in a legal run fits. -/
+theorem runOK_adjacent_fit (c d : Card) :
     ∀ (X R : List Card), runOK (X ++ c :: d :: R) = true → canSitOn d c := by
   intro X
   induction X with
@@ -84,6 +100,14 @@ private theorem runOK_adjacent_fit (c d : Card) :
             exact h2.2
           exact ih R htail
 
+/-- A shared color names the suit, up to the twin flip (the body
+lifted from the root copy, PairConfine's private `conf_suit_family`). -/
+theorem suit_family {s t : Suit} (h : s.color = t.color) :
+    s = t ∨ s = t.twin := by
+  cases s <;> cases t <;> simp_all [Suit.color, Suit.twin]
+
+end SeedKit
+
 private theorem inl_gate_kill {x e : Card} (hking : e.rank = Rank.king)
     (hfitx : canSitOn e x = true) : False := by
   obtain ⟨hr, -⟩ := (canSitOn_eq e x).mp hfitx
@@ -100,8 +124,8 @@ private theorem inr_gate_kill {s : State} {x e z : Card} {k : Anchor}
   obtain ⟨hr1, hc1⟩ := (canSitOn_eq e x).mp hfitx
   obtain ⟨hr2, hc2⟩ := (canSitOn_eq e z).mp hfitz
   have hcol : z.suit.color = x.suit.color :=
-    (color_pair (a := e.suit.color) hc1 hc2).symm
-  rcases rankColor_pair (c := x) (by omega) hcol with hzx | hzx
+      (SeedKit.color_pair (a := e.suit.color) hc1 hc2).symm
+  rcases SeedKit.rankColor_pair (c := x) (by omega) hcol with hzx | hzx
   · rw [hzx] at hz
     rw [hz] at hx
     exact absurd hx (by simp)
@@ -116,7 +140,7 @@ private theorem uncover_kill {x e : Card} {init rest : List Card}
     rw [List.append_assoc]
     rfl
   rw [hconv] at hok
-  exact hgate (runOK_adjacent_fit x e init rest hok)
+  exact hgate (SeedKit.runOK_adjacent_fit x e init rest hok)
 
 private theorem landing_top_tops_source {s : State} {x : Card} {A : Anchor}
     {pre run : List Card} (hwf : s.WF)
@@ -403,6 +427,10 @@ theorem canRaiseS_runOrTwin {st : State} {c : Card} (hwf : st.WF)
 /-! ## The audit battery -/
 
 #print axioms canRaiseS_runOrTwin
+#print axioms SeedKit.color_pair
+#print axioms SeedKit.rankColor_pair
+#print axioms SeedKit.runOK_adjacent_fit
+#print axioms SeedKit.suit_family
 
 
 

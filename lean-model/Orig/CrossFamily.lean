@@ -89,11 +89,6 @@ theorem cross_census_dead {st : State} {x y : Card}
       exact hcol (by rw [hyx]; exact xfam_twin_color x)
     · exact hcol (by rw [Card.twin_inj hc])
 
-/-- Two colors that both differ from a third agree (the copy of
-`Orig/RunOrTwin.lean`'s private `color_pair`). -/
-private theorem xfam_color_pair {a u v : Color} (h1 : a ≠ u) (h2 : a ≠ v) : u = v := by
-  rcases a <;> rcases u <;> rcases v <;> simp_all
-
 /-! ## §2. The equal-rank cover residency -/
 
 /-- **THE EQUAL-RANK COVER RESIDENCY** — at equal pair ranks the
@@ -126,17 +121,11 @@ theorem cross_cover_residency {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ 
   have hyt : y.twin.suit.color = y.suit.color := xfam_twin_color y
   rw [hyt] at hcne
   have hdcol : d₂.suit.color = x.suit.color :=
-    xfam_color_pair (Ne.symm hcne) hcol
+    SeedKit.color_pair (Ne.symm hcne) hcol
   -- the residency: first-family, strictly below the fork rank
   have hres : d₂ ∈ st₁.found d₂.suit :=
     pair_lowFamily_founded hwf₁ hx hdcol (by omega)
   exact ⟨a, bs, d₂, hshape, hfit, htop, hnext, hdcol, (by omega), hres, hrung⟩
-
-/-- A same-color suit is the suit or its twin (the copy of
-`Orig/PairConfine.lean`'s private `conf_suit_family`). -/
-private theorem xfam_suit_family {s t : Suit} (h : s.color = t.color) :
-    s = t ∨ s = t.twin := by
-  cases s <;> cases t <;> simp_all [Suit.color, Suit.twin]
 
 /-- The family rung pin at a fork: every same-family suit's rung
 reads the fork rank (the copy of the internal `hr` row inside
@@ -145,7 +134,7 @@ private theorem xfam_family_rung {st : State} {x : Card}
     (hx : ForkWitness st x) {s : Suit}
     (hcol : s.color = x.suit.color) :
     rungAt st s = x.rank.toIdx := by
-  rcases xfam_suit_family hcol with hs | hs
+  rcases SeedKit.suit_family hcol with hs | hs
   · rw [hs]
     exact canRaiseS_rung ((hx.1 x).mp (Or.inl rfl))
   · rw [hs]
@@ -221,7 +210,7 @@ theorem cross_anchor_climb {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : s
   have hxt : x.twin.suit.color = x.suit.color := xfam_twin_color x
   rw [hxt] at hcne
   have hdcol : d₁.suit.color = y.suit.color :=
-    xfam_color_pair (Ne.symm hcne) (Ne.symm hcol)
+    SeedKit.color_pair (Ne.symm hcne) (Ne.symm hcol)
   -- the residency at the second fork: second family, strictly below the ring rank
   have hres : d₁ ∈ st₂.found d₁.suit :=
     pair_lowFamily_founded hwf₂ hy hdcol (by omega)
@@ -298,7 +287,7 @@ theorem cross_drop_general {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : s
   have hyt : y.twin.suit.color = y.suit.color := xfam_twin_color y
   rw [hyt] at hcne
   have hdcol : d₂.suit.color = x.suit.color :=
-    xfam_color_pair (Ne.symm hcne) hcol
+    SeedKit.color_pair (Ne.symm hcne) hcol
   have hrung₁ : rungAt st₁ d₂.suit = x.rank.toIdx :=
     xfam_family_rung hx hdcol
   have hne : d₂.rank.toIdx ≠ rungAt st₂ d₂.suit := by
@@ -338,7 +327,7 @@ theorem cross_climb_general {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : 
   have hxt : x.twin.suit.color = x.suit.color := xfam_twin_color x
   rw [hxt] at hcne
   have hdcol : d₁.suit.color = y.suit.color :=
-    xfam_color_pair (Ne.symm hcne) (Ne.symm hcol)
+    SeedKit.color_pair (Ne.symm hcne) (Ne.symm hcol)
   have hne : d₁.rank.toIdx ≠ rungAt st₁ d₁.suit := by
     intro hcon
     have hn2 : st₁.nextUp d₁ = true := decide_eq_true hcon
@@ -612,7 +601,7 @@ the per-suit oscillation together with `witness_rung_census` on
    vs `hd₂out`), none reaching the king, so each lands on a fitting
    top one rank up, opposite color (`canSitOn`), or nowhere
    (empty-anchor landings are king-only).
-2. THE HOST CENSUS — the rank/color census (`xfam_rankColor_pair`)
+2. THE HOST CENSUS — the rank/color census (`SeedKit.rankColor_pair`)
    names the only fitting hosts for the top of the surfaced stratum:
    the live y-pair members themselves; the founded-at-`st₂` `d₁`
    (`hd₁res`, the `cross_anchor_climb` residency) is one, and the
@@ -788,20 +777,6 @@ foundation at `st₂`, off the deep end read through the
 founded-membership bridge), and the MIRROR CENSUS read of `d₁`'s
 pinned suit. -/
 
-/-- **THE DECK CENSUS (the per-file copy)** — the cards of one rank
-and one color are exactly the twin pair (the copy of
-`Orig/RunOrTwin.lean`'s private `rankColor_pair`;
-`Orig/PairConfine.lean` and `Orig/OriginLock.lean` carry identical
-private copies). -/
-private theorem xfam_rankColor_pair {c z : Card}
-    (hr : z.rank.toIdx = c.rank.toIdx) (hc : z.suit.color = c.suit.color) :
-    z = c ∨ z = c.twin := by
-  rcases z with ⟨zs, zr⟩
-  rcases c with ⟨cs, cr⟩
-  have hrank : zr = cr := Rank.toIdx_inj hr
-  subst hrank
-  cases cs <;> cases zs <;> simp_all [Suit.color, Suit.twin, Card.twin]
-
 /-- **THE TWIN-COVER FIT** — the chase's `d₂`-over-`y.twin` tableau
 seat is a legal card-directed landing: the twin keeps the rank (the
 chase's rank premise IS the fit), and the twin keeps the color family
@@ -839,7 +814,7 @@ private theorem cross_cover_member_shift {d x w : Card}
     (hwx : w.rank.toIdx + 1 = x.rank.toIdx)
     (hcol : d.suit.color = w.suit.color) :
     d = w ∨ d = w.twin :=
-  xfam_rankColor_pair (by omega) hcol
+  SeedKit.rankColor_pair (by omega) hcol
 
 /-- **THE PAIR-NONMEMBERSHIP CENSUS (the gap read)** — a cover of
 `x.twin` cannot be a member of `w`'s pair when `w`'s pair sits two or
@@ -896,7 +871,7 @@ private theorem cross_twincover_census {st : State} (hwf : st.WF)
   have hxt : x.twin.suit.color = x.suit.color := xfam_twin_color x
   rw [hxt] at hcne
   refine ⟨a, bs, d, hshape, hfit, htop, hnext, ?_, hridx⟩
-  exact xfam_color_pair (Ne.symm hcne) (Ne.symm hcolw)
+  exact SeedKit.color_pair (Ne.symm hcne) (Ne.symm hcolw)
 
 /-- **THE COVER/PAIR DICHOTOMY, ASSEMBLED (the consecutive read)** —
 in the shift-one regime the first fork's twin-cover IS a member of
@@ -961,7 +936,7 @@ one below the second fork's rank, resident at the first fork
 (`hd₂out`), covering `y.twin` as a legal card-directed landing
 (`hd₂fit`); the cover `d₁` is y-family, one below the first fork's
 rank, riding a tableau TOP at the first fork with `nextUp` dead
-(`hd₁top`) — and in this regime the deck census (`xfam_rankColor_pair`)
+(`hd₁top`) — and in this regime the deck census (`SeedKit.rankColor_pair`)
 proves it a literal PAIR MEMBER of the second fork (`hd₁pair`:
 `d₁ = y` or `d₁ = y.twin`), its home suit pinned EXACTLY at `r₂` at
 the second fork while reading at most `r₂ − 1` at the first
@@ -1045,7 +1020,7 @@ the debt can surface (the surfaced x-family cards sit at or below
 consecutive corner, the debt's pops are current-top LIFO
 (`foundToTab_pops_currentTop`), surfacing x-family cards of rank
 index at most `r₂ − 1`, none a king; their only fitting hosts
-(`canSitOn` + the deck census `xfam_rankColor_pair`) are y-family
+(`canSitOn` + the deck census `SeedKit.rankColor_pair`) are y-family
 tops one rank up — the stratum the second fork holds FOUNDED
 (`pair_lowFamily_founded`), below its pins (`hd₂rung₂`), so each
 surfaced card's host is itself founded and must be pulled first.
@@ -1140,7 +1115,7 @@ above the second fork's pinnings) split inside; the reversed order
 never enters (`hlo`).
 
 LANDED as the SPLIT: the body below is PROVED — the deck-census copy
-(`xfam_rankColor_pair`) prices the twin-cover fit
+(`SeedKit.rankColor_pair`) prices the twin-cover fit
 (`xfam_canSitOn_twinCover`) and the exile (`cross_strata_exile`), the
 per-suit census (`witness_rung_census`) is read once into the mirror
 `hd₁cen`, and the chase forks into the two corners directly above:
@@ -1188,7 +1163,7 @@ private theorem cross_strata_chase {st₁ st₂ : State}
   rcases Nat.lt_or_ge x.rank.toIdx (y.rank.toIdx + 2) with h | h
   · exact cross_strata_consec hwf₁ hwf₂ hx hy hcol hτ (by omega) hd₂col
       hd₂rank hd₂res hd₂rung₁ hd₂rung₂ hd₂top hd₂fit hd₂out hd₁col
-      hd₁rank (xfam_rankColor_pair (by omega) hd₁col) hd₁top hd₁rung₁
+      hd₁rank (SeedKit.rankColor_pair (by omega) hd₁col) hd₁top hd₁rung₁
       hd₁rung₂ hdebt₂ hd₁cen
   · exact cross_strata_gap hwf₁ hwf₂ hx hy hcol hτ h hd₂col hd₂rank
       hd₂res hd₂rung₁ hd₂rung₂ hd₂top hd₂fit hd₂out hd₁col hd₁rank
@@ -1258,7 +1233,7 @@ private theorem cross_unequal_rank_strata {st₁ st₂ : State}
   have hyt : y.twin.suit.color = y.suit.color := xfam_twin_color y
   rw [hyt] at hcne₂
   have hd₂col : d₂.suit.color = x.suit.color :=
-    xfam_color_pair (Ne.symm hcne₂) hcol
+    SeedKit.color_pair (Ne.symm hcne₂) hcol
   have hd₂res : d₂ ∈ st₁.found d₂.suit :=
     pair_lowFamily_founded hwf₁ hx hd₂col (by omega)
   have hd₂rung₁ : rungAt st₁ d₂.suit = x.rank.toIdx :=
@@ -1371,7 +1346,7 @@ ready for the upstream consumption. -/
 #print axioms cross_cover_pull_pressure
 #print axioms cross_drop_general
 #print axioms cross_climb_general
-#print axioms xfam_rankColor_pair
+#print axioms SeedKit.rankColor_pair
 #print axioms xfam_canSitOn_twinCover
 #print axioms cross_raise_leg
 #print axioms cross_pull_leg

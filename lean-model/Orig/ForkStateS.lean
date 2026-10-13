@@ -515,32 +515,6 @@ theorems below with their complete routes:
   family is two cards, both frozen: the mutual lock), so the twin topped
   at `st` itself. -/
 
-/-- The adjacent-fit row of the run discipline: a well-formed pile seats
-each card directly on a fitting predecessor. -/
-private theorem runOK_adjacent_fit (c d : Card) :
-    ∀ (X R : List Card), runOK (X ++ c :: d :: R) = true → canSitOn d c = true := by
-  intro X
-  induction X with
-  | nil =>
-      intro R h
-      have h2 : runOK (c :: d :: R) = true := h
-      rw [runOK, Bool.and_eq_true] at h2
-      exact h2.1
-  | cons x xs ih =>
-      intro R h
-      have h' : runOK (x :: (xs ++ c :: d :: R)) = true := h
-      have htail : runOK (xs ++ c :: d :: R) = true := by
-        cases hxs : (xs ++ c :: d :: R) with
-        | nil =>
-            cases xs with
-            | nil => exact absurd hxs (by simp)
-            | cons z zs => exact absurd hxs (by simp)
-        | cons y ys =>
-            rw [hxs] at h'
-            rw [runOK, Bool.and_eq_true] at h'
-            exact h'.2
-      exact ih R htail
-
 /- **THE POSITION-SEAT NECESSITY** — PROVED in `Orig.PositionSeat` (the
 never-leg: the pillar — an emptied pile rebuilds only to a king head, so
 a non-king's bare-seat departure has no undo; the seat read survives every
@@ -635,7 +609,7 @@ theorem canRaiseS_iff {st : State} {c : Card} (hwf : st.WF) :
                                 (Or.inr (List.mem_singleton.mpr rfl))) hrest'
                           rw [Card.twin_rank] at hGt
                           omega
-                  have hfit := runOK_adjacent_fit c d bs rest' (by
+                  have hfit := SeedKit.runOK_adjacent_fit c d bs rest' (by
                     rw [← hshape]; exact hwf.runOK_of a)
                   exact canRaiseS_free hwf
                     (show (st.piles a).faceUp = (bs ++ [c]) ++ (d :: rest') from
