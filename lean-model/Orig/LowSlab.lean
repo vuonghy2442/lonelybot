@@ -58,14 +58,21 @@ travels through the def alone — consumers keep compiling).
   rung bracket survives per the seats-vs-rungs adjudication],
   `fork_lowbridge_reveal` [H: cargo transport + commit-modes banked
   (`census_tabToTab_inr_witness`, `bare_burn_irreversibleAt`); the
-  card-level re-scheduling survives], `fork_lowbridge_waste_found`
-  [M: leg shapes one cited row (`witness_leg_letters`); the cursor
-  arrangement face survives — the census prices no cycle content],
-  `fork_lowbridge_waste_seat` [M: same, the landing-base seat now
-  census-priced], `fork_lowbridge_draw` [H — a FOURTH kind the
-  original taxonomy did not name; the seat face is banked
-  (`census_step_draw`); the phase-matching content survives,
-  deliberately: census does not price cycle phase],
+  card-level re-scheduling survives],   `fork_lowbridge_waste_found`
+  [M — the CURSOR COINCIDENCE is now theorem-grade (the commutation
+  swap: `board_run_congr` carries the zone verbatim; the probe's
+  shifted-cursor refusal transports); the survivors are the
+  HOT-BRACKET (a rung question, the raise row's family) and the
+  shared DASHED-WITNESS TRANSPORT],
+  `fork_lowbridge_waste_seat`
+  [M: same, the landing base census-priced],   `fork_lowbridge_draw` [H — SUBCONTRACTED at the commutation swap:
+  the draw-free case rides `drawfree_commute_ reach`/`_witness` (the
+  dashed thread lands PHASE-EXACTLY, banked upstream) plus one named
+  [M] piece (the DASHED-WITNESS TRANSPORT); the interleaved case is
+  CITED as `interleave_phase_align` (the sibling's own single
+  residue, WF-graded, its sorryAx flowing transitively when cited
+  in a built proof — the wild-grade (B) is the flagged gap); at a
+  WF gate the draw-kind closes to assembly + cite],
   `fork_lowbridge_pull` [H, WILD-REMAINDER ONLY: the WF arm retired
   into the corollary; the row survives for the WF-free statement's
   wild members].  Each residue carries a complete priced route with
@@ -396,7 +403,12 @@ HOSTCENSUS POST-SWAP: swap point (A) is CONSUMED (step 2); swap point
 under-raise's exposed host is now census-accounted
 (`census_tabToFound_witness`: opposite family, raised index + 1,
 unfounded) — so (B) reduces to the same card-level bootstrap of (a).
-Consumers: `fork_lowbridge_raise` step 4 and
+POST-COMMUTATION-SWAP: ASSESSED — no further license: the congruence
+rows transport `boardEq` pairs (the draw's blindness), while this
+row's card-level bootstrap crosses ρ-images; the dashed-thread
+fragments of its consumers' assemblies share the DASHED-WITNESS
+TRANSPORT named in the draw row.  Consumers:
+`fork_lowbridge_raise` step 4 and
 `fork_lowbridge_reveal` step 3. -/
 private theorem lowslab_top_census {st u : State} {x : Card} {c : Card}
     (hmem : sameOrbitSetoid.r st u)
@@ -549,12 +561,22 @@ rung-bracket open step of 4 (`rungAt d c.suit = rungAt u c.suit`)
 REMAINS EXPLICITLY FLAGGED — untouched by both the probe and the
 census.
 
-HOSTCENSUS POST-SWAP: `census_tabToFound_witness`,
-`witness_bare_lift_king`, `bare_lift_irreversibleAt` CONSUMED
-(commit modes + ride shapes); the seat transport rides
-`lowslab_top_census`'s step-2 banked family.  The SURVIVING content:
-the rung bracket (this row's own, per the adjudication) + the
-card-level bootstrap. -/
+HOSTCENSUS POST-COMMUTATION-SWAP (ASSESSED, HONESTLY): the new
+congruence rows do NOT license this row's bracket — `step_congr_board`
+transports legs along `boardEq` pairs (draw-dashed contexts), while
+`d` and `u` here are ρ-IMAGES (the witnessing journey moved their
+boards), so `rungAt d c.suit = rungAt u c.suit` does not ride the
+congruence; the probe's structural armor (§9–§13 of
+`Orig/LowSlabProbe.lean`: bare non-king lifts never ride witness
+journeys, so no witness leg can move a bare commit card's rung;
+the bracket datapoint 3=3 on record) remains the evidence.  The row
+therefore CONSUMES the congruence only where it actually bites —
+the re-fire assembly's draw-dashed contexts share the DASHED-
+WITNESS TRANSPORT of the draw row's case (A) — and the survivors
+are unchanged: the rung bracket (this row's own, per the
+seats-vs-rungs adjudication) + the card-level bootstrap.  Earlier
+consumptions (`census_tabToFound_witness`, `witness_bare_lift_king`,
+`bare_lift_irreversibleAt`) stand. -/
 private theorem fork_lowbridge_raise {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -615,11 +637,16 @@ hiddenTotal monotone and through this file's `fork_lowbridge_commitGlue`
 matched by re-fired class legs (`lb2_class`).  The row's remaining
 content is the general-commuting form of that one board.
 
-HOSTCENSUS POST-SWAP: `census_tabToTab_inr_witness`,
-`census_tabToTab_inl`, `bare_burn_irreversibleAt`,
-`witness_tabToTab_never_burn` CONSUMED (transport + commit modes);
-the seat-side deep support is `lowslab_top_census`'s banked step-2
-family plus its surviving card-level bootstrap. -/
+HOSTCENSUS POST-COMMUTATION-SWAP: ASSESSED — no new license for this
+row beyond its step-3 survivals (the assembly contexts are ρ-images,
+not `boardEq` pairs — the congruence rows do not reach them); the
+draw-dashed fragments of the assembly share the DASHED-WITNESS
+TRANSPORT of the draw row's case (A).  The earlier consumptions
+stand: `census_tabToTab_inr_witness`, `census_tabToTab_inl`,
+`bare_burn_irreversibleAt`, `witness_tabToTab_never_burn` (transport
++ commit modes); the seat-side deep support is
+`lowslab_top_census`'s banked step-2 family plus its surviving
+card-level bootstrap. -/
 private theorem fork_lowbridge_reveal {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -643,40 +670,51 @@ ROUTE (complete; each step priced):
 
 1. THE ELEVATED READ and THE CLASS ANCHOR: as the raise row's steps
    1-2.
-2. THE CYCLE CENSUS (PROVED, this campaign): the two-zone world is
-   class-closed — `cycle_zone_pin` (`Orig/SlabEquiv.lean`) preserves
-   stock-or-waste membership exactly along the witnessing journeys,
-   and the banked census (`journey_never_wasteToFound`) bars waste
-   legs from riding them, so the committed card `c` already sits in
-   the cycle zone at the fork itself; the zone's evolution along the
-   class is pure-draw (the cursor algebra: `draw_unfold` +
-   `sequ_recycle_union`-flavored union preservation).
-3. THE TOP-OF-WASTE RE-FIRE [THE OPEN STEP]: the cursor read —
-   matching the cycle arrangement at some slab member so that `c`
-   tops the waste there and the same `wasteToFound c` (or the
-   cursor's counterpart) re-fires; priced against the sibling
-   census program's deals-draw rows (`journey_census_deals_draw`-
-   shaped); `lowslab_draw_emptyReversible` covers the empty-stock
-   legs' reversibility in the interim (its ≤-deal fragment now
-   BANDED through `lowslab_draw_reversible_phase`).
+2. THE CYCLE CENSUS — THE CURSOR COINCIDENCE IS NOW THEOREM-GRADE:
+   the witnessing `st ⇝ u` journeys are board-only, and the
+   sibling's `board_run_congr` carries the ZONE VERBATIM through
+   them (`z.stock = x.stock ∧ z.waste = x.waste ∧ z.drawStep =
+   x.drawStep` at the image — not merely the membership pin): the
+   committed card `c` is the waste HEAD at `st` exactly as at `u`,
+   and `cycle_zone_pin` (`Orig/SlabEquiv.lean`) remains the
+   membership-flavored companion.  The round-2 probe's negative
+   datum transports theorem-grade: the shifted-cursor site refuses
+   the re-fire because the GUARD reads the zone, and the zone is
+   invariant along the class — the shift cannot happen in-class.
+3. THE REMAINING [M] CONTENT, shrunk to two named pieces:
+   (a) THE HOT-BRACKET — the head card is class-invariant, so the
+   re-fire's `nextUp c` read is a RUNG question: some slab member's
+   `c.suit` rung must read `c.rank.toIdx` (the same unclosed
+   bracket family the raise row flags; probe-verified benign at
+   every tried shape — the elevation legs of the probe boards
+   never touched the waste-head's suit);
+   (b) THE DASHED-WITNESS TRANSPORT (shared with the draw row's
+   case (A), named there): the per-leg grades of the re-fire chain
+   at the post-commit states.
 4. THE CLASS LINKS: as the raise row's step 5.  The stock/waste zone
    is class-closed in the census sense; the waste-jump's grade
    mechanism itself (`cycleCount` strictly drops, Table 1 of
    `Orig/Irreversible.lean`) plays no role here — `hiv` is given.
 
-HOSTCENSUS POST-SWAP (consumed + honest remainder): the sibling's
-`witness_leg_letters` now supplies the leg-shape discipline at one
-cited row (no waste letter rides a witness journey — the two
-`journey_never_*` bars, packaged); the seat side of any landing the
-re-fire consults rides the census cell-transport family
-(`census_tabToTab_*`, `census_foundToTab_inr`, `census_step_draw`).
-The sibling CENSUS DELIBERATELY PRICES NO CYCLE CONTENT (its own
-grading note: two-zone content belongs to `cycle_zone_pin`)
-— so the cursor read of step 3 SURVIVES THE SWAP INTACT as this
-row's whole open content, now covering "the two-zone ARRANGEMENT at
-a slab member re-presents the committed waste card at the waste
-top".  The membership face is proved (`cycle_zone_pin`); the
-arrangement face is the [M] remainder. -/
+HOSTCENSUS POST-COMMUTATION-SWAP (the cursor face is now
+THEOREM-GRADE): the sibling's `witness_leg_letters` packages the
+leg-shape discipline (no waste letter rides a witness journey);
+`board_run_congr` carries the ZONE VERBATIM along the board-only
+class journeys — the cursor-coincidence of step 2 is banked, and
+the round-2 probe's negative datum (the shifted-cursor site refuses
+the re-fire) transports theorem-grade: the guard reads the zone and
+the zone is class-invariant; the shift cannot arise in-class at
+all.  The seat side of any landing the re-fire consults rides the
+census cell-transport family (`census_tabToTab_*`,
+`census_foundToTab_inr`, `census_step_draw`) plus the
+ledger/repayment family (`seatLedger_pair`,
+`excursion_issues_noNewSeat`).  WHAT SURVIVES THE COMMUTATION SWAP
+is the two named pieces of step 3: the HOT-BRACKET (a rung
+question — the same family the raise row flags, per the
+seats-vs-rungs adjudication) and the shared DASHED-WITNESS
+TRANSPORT; the arrangement face the old route carried is retired
+into `board_run_congr`'s flats.  None of the consumed rows rides
+the sibling's residue `witness_leg_mint_confined`. -/
 private theorem fork_lowbridge_waste_found {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -693,15 +731,16 @@ private theorem fork_lowbridge_waste_found {st : State} {x : Card}
 /-- **THE WASTE-JUMP REPLAY RESIDUE** (seat arm)
 `fork_lowbridge_waste_seat` [M] — the `wasteToTab` arm of the
 waste-jump kind; route identical to `fork_lowbridge_waste_found`'s
-(the same two-zone census, the same cursor read), with the re-fire
-additionally consulting the landing base's top seat.  HOSTCENSUS
-POST-SWAP: the seat-side consultation is now CENSUS-PRICED upstream —
-the base card's cell rides the ledger/repayment family
-(`seatLedger_pair`, `excursion_issues_noNewSeat`) and the leg
-letters are one cited row (`witness_leg_letters`); the cursor
-arrangement face (as in the pop-to-foundation arm) SURVIVES the
-swap as the [M] remainder, with `lowslab_top_census`'s surviving
-card-level bootstrap as the seat-side deep support. -/
+(the cursor coincidence now theorem-grade via `board_run_congr`,
+per that arm's step 2), with the re-fire additionally consulting
+the landing base's top seat — census-priced upstream: the base
+card's cell rides the ledger/repayment family (`seatLedger_pair`,
+`excursion_issues_noNewSeat`) and the leg letters are one cited row
+(`witness_leg_letters`).  POST-COMMUTATION-SWAP SURVIVORS: the
+HOT-BRACKET (the rung question, as in the pop-to-foundation arm)
+and the shared DASHED-WITNESS TRANSPORT, with
+`lowslab_top_census`'s surviving card-level bootstrap as the
+seat-side deep support. -/
 private theorem fork_lowbridge_waste_seat {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -745,21 +784,56 @@ ROUTE (complete; each step priced):
    bury arm remains (the empty stock recycling into the stock), the
    one genuine sub-kind the census sibling's draw rows must also
    carry.
-3. THE CLASS-INERTNESS — SEATS NOW ONE CITED ROW: the sibling's
-   `census_step_draw` banks the draw's seat flatness outright (every
-   cell's census is unchanged — it writes no pile
-   `stepDraw_piles`), complementing the zone face: draws write no
-   foundation and no pile, only the cycle zone and only within it,
-   so the twin-door (a foundation event) COMMUTES trivially with the
-   draw's class behavior.
-4. THE CURSOR RE-FIRE [THE OPEN STEP — the row's own surviving
-   content]: riding step 3's inertness, the committed cursor move
-   re-fires at the slab-side arrangement chosen by the class's own
-   pure-draw cursor algebra.  PER THE CENSUS-VS-PHASE ADJUDICATION:
-   the census does not price cycle PHASE — the phase-matching of
-   the target class is this row's own business (Phase's rows
-   `draw_irreversible_pristine`/`_offset` price the commit side;
-   the class-side phase bookkeeping is the open remainder).
+3. THE CLASS-INERTNESS — TWO CITED ROWS NOW: the sibling's
+   `census_step_draw` (every cell's seat census is unchanged: a draw
+   writes no pile) and `witness_leg_letters` (the leg shapes).  The
+   draw reads only the zone; the twin-door (a foundation event)
+   commutes trivially with the draw's class behavior.
+4. THE RE-FIRE, POST-COMMUTATION-SWAP — THE ROW IS NOW FULLY
+   SUBCONTRACTED, both cases pinned to named rows:
+
+   CONSTRUCTION (fixed): `u₀ := st` — the fork board is slab
+   (self-anchored, `fork_self_low`), and the draw at `st` FIRES
+   AUTOMATICALLY: the zone of `u` equals the zone of `st` verbatim
+   (the witnessing journeys are board-only, and the sibling's
+   board_run_congr carries the zone verbatim through them), the
+   commit step fired at `u`, and a step at an all-empty zone
+   refuses to fire — so the same move `m₀ := Move.draw` is legal at
+   `st`; the guard congruence is the zone-blind half of the
+   sibling's congruence kit.
+
+   (A) THE DRAW-FREE CASE — the dashed thread is CLOSED by the
+   sibling's `drawfree_commute_reach` (phase-exactness:
+   `State.run w₀ ρ = some w`: the dashed play lands exactly ON the
+   commit target, not merely up to class); the sibling's
+   `drawfree_commute_witness` carries the same statement with the
+   per-leg mirror witnesses priced in its route (`foundToTab_undo`,
+   `tabToFound_undo_under`/`_bare`, the cargo mirrors).  THE
+   REMAINING ASSEMBLY GLUE — named here as the row's own open
+   piece: THE DASHED-WITNESS TRANSPORT [M], the per-leg
+   `reversibleAtW` grades of the dashed chain itself (each board
+   leg's one-move mirror re-fires at the boardEq-dashed successor
+   and lands the dashed pre-state: per-letter, over
+   `step_congr_board` + the guard-congruence reads + the public
+   zone-carry keep rows; `boardEq` is exactly the draw's blindness,
+   so the transport is mechanical leg-by-leg) — banking it turns
+   the (A) target-match into assembly.
+
+   (B) THE INTERLEAVED CASE — CITED: the sibling's
+   `interleave_phase_align` concludes `sameOrbitSetoid.r w₀ w`
+   verbatim (the target match, directly).  Its two open notes,
+   honestly carried here: (i) it is the sibling file's own single
+   named residue (its `[propext, sorryAx]` flows transitively into
+   this row's audit the day it is cited in a built proof — the
+   falsification channel it names is THE CLIPPING SIGNATURE: stock
+   lengths straddling `drawStep` at the commit points, per its
+   docstring; the round-2 probe armor — pristine-exit, loop-never-
+   commit, regime-disjointness — is on record in
+   `Orig/LowSlabProbe.lean` §11); (ii) its `u₀.WF` premise makes
+   the carry WF-GRADED: this row's statement is WF-free by design,
+   so the WILD-grade (B)-case remains the sibling row's own gap,
+   flagged for the integrator (at a WF gate the draw-kind closes
+   entirely: (A)-assembly + (B)-cite).
 
 PROBE NOTE (Orig/LowSlabProbe.lean, decide-grade): both ends of
 this row are instantiated on-board — the commit side twice
@@ -768,10 +842,15 @@ banked row) and the duplicate side END-TO-END (`lb1_dup`: the
 draw-commit's slab duplicate fully assembled, class legs commuting
 with the zone move pointwise, kernel-equal composites).
 
-HOSTCENSUS POST-SWAP: `census_step_draw` CONSUMED (step 3);
-`witness_leg_letters` consumed for the leg shapes.  The phase
-content SURVIVES the swap by construction (the sibling's census is
-seats-only by its own grading note). -/
+HOSTCENSUS POST-COMMUTATION-SWAP: `drawfree_commute_reach` and
+`drawfree_commute_witness` CONSUMED for case (A)'s dashed thread;
+`board_run_congr` + `step_congr_board` CONSUMED for the zone
+transport and the guard congruence; `interleave_phase_align` CITED
+as the (B)-carry (WF-graded).  The phase content the old route
+carried is now the sibling's two rows' own; the surviving content
+is the dashed-witness transport [M] plus the wild-grade (B) gap.
+The census does not price cycle phase — none of the five consumed
+rows rides `witness_leg_mint_confined`. -/
 private theorem fork_lowbridge_draw {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -821,7 +900,13 @@ ROUTE (shrunk; each step priced):
    `foundToTab_pops_currentTop` for the popped current top), with the
    wild corners (doubled cards, miscounted rungs) named honestly: the
    replay must not assume card uniqueness.
-4. THE CLASS LINKS: as the raise row's step 5. -/
+4. THE CLASS LINKS: as the raise row's step 5.
+
+POST-COMMUTATION-SWAP: ASSESSED — UNCHANGED: the congruence rows
+live at `boardEq` pairs and WV-normal members; this row's live
+content is the WILD remainder (where `boardEq`-blindness of the
+draws is not even the relevant instrument), so no consumption and
+no shrink are honest here. -/
 private theorem fork_lowbridge_pull {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -997,12 +1082,18 @@ dispatcher are zero-sorry; the probe-triage additions
 `fork_lowbridge_raise`, `fork_lowbridge_reveal`,
 `fork_lowbridge_waste_found`, `fork_lowbridge_waste_seat`,
 `fork_lowbridge_draw`, `fork_lowbridge_pull`) and NOTHING else
-flows into it.  THE CENSUS SWAP PASS adds no fresh heads — it
-consumes `Orig.HostCensus.lean`'s proved rows inside the residues'
-ROUTES (docstring-grade now, term-grade at the residues' own future
-landings), none riding the sibling's residue
-`witness_leg_mint_confined`; the sorry COUNT stays exactly the
-eight, and `fork_neighbor_lowbridge`'s profile must stay
+flows into it.  THE CENSUS SWAP PASS added no fresh heads — it
+consumed `Orig.HostCensus.lean`'s proved rows inside the residues'
+ROUTES (docstring-grade then, term-grade at the residues' own
+future landings), none riding the sibling's residue
+`witness_leg_mint_confined`.  THE COMMUTATION SWAP PASS assessed
+the sibling's four new rows against every residue: consumed where
+they bite (the draw row's dashed thread and the waste rows' cursor
+coincidence), ASSESSED-NO-LICENSE where they do not (the ρ-image
+chains of the raise/reveal rows — `boardEq` congruence is the
+draw's blindness and does not reach them; recorded per row); the
+sorry COUNT stays exactly the eight, and
+`fork_neighbor_lowbridge`'s profile must stay
 `[propext, sorryAx, Quot.sound]` with no new inflow — verified
 below. -/
 

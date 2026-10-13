@@ -22,7 +22,7 @@ THE TRANSACTION TABLE (each leg, its census deltas):
   pulled card's cell `(c-family, c-index)`, −1 at the consumed host's
   cell `(z-family, z.index)` — the cells are DISTINCT (the fit pins
   `z.index = c.index + 1`).  The empty-anchor arm (`inl`) is king-only
-  and mints alone: +1 at `(c-family, 12)`, no host consumed.
+  and minters alone: +1 at `(c-family, 12)`, no host consumed.
 * §4 THE RAISE-TRANSFER (`tabToFound c`): −1 at the raised card's
   cell; the exposed below-card `z` sits OPPOSITE family, INDEX+1
   (runOK adjacency), takes over the seat (+1 at `z`'s cell), and is
@@ -55,15 +55,33 @@ THE TRANSACTION TABLE (each leg, its census deltas):
 
 THE OWNER'S-BET LEDGER (§7): `seatMint`/`seatBurn` measure, per leg,
 exactly which tops are gained into / lost from each cell (decidable
-reads of the leg's own pre- and post-tops); `witness_census_ledger`
-telescopes them along ANY play into the per-cell EXACT ledger
-`census(end) + burns = census(start) + mints`, and over a returned
-journey the mint and burn budgets CANCEL cell-for-cell
-(`roundtrip_census_repay`): no hosting capacity is issued that the
-arrangement (the start-state census — the arrangement PROFILE) did
-not already carry or that the returned half does not reclaim.  The
-per-leg CONFINEMENT (every mint sits at a letter's named cell) is the
-named residue `witness_leg_mint_confined`.
+reads of the leg's own pre- and post-tops); `witness_census_ledger`'s
+play form `"census(end) + burns = census(start) + mints"` telescopes
+along ANY play (`play_census_ledger`), and over a returned journey the
+mint and burn budgets CANCEL cell-for-cell (`roundtrip_census_repay`):
+no hosting capacity is issued that the arrangement (the start-state
+census — the arrangement PROFILE) did not already carry or that the
+returned half does not reclaim.  The per-leg CONFINEMENT of the mints
+to the letters' named cells is CLOSED (`witness_leg_mint_confined`):
+the whole program's mining set is four cells wide.
+
+THE DRAW-COMMUTATION ROWS (§9): the draw-kind's phase content.  The
+board letters (raise / pull / cargo — the witness alphabet minus
+draws) are BLIND to the two-zone cycle: every guard is a piles/found
+read (the proved congruence kit), every successor's board fields are
+the same lambdas over agreeing fields (the proved successor rows),
+and the play-level `board_run_congr` runs a board-only play
+identically from both ends of a `boardEq` pair with both zones flat.
+The (A) phase-exactness claim for draw-free witness replays
+(`drawfree_commute_reach`, `drawfree_commute_witness`) composes the
+congruence with the draw-dashed endpoints; the (B) interleave case
+(witness-graded draws inside a class's return witnesses) is CLOSED
+at full grade: the leg hop `interleave_leg_conjugation` welds the
+leg pair into the macro class (the round-trip engine) and hands the
+two dashed landings to the banked draw push
+(`draw_landings_sameOrbit`, `Orig/EdgeLabel.lean`), and
+`interleave_phase_align` rides the closed `chain_assembly` scaffold
+with zero own content.
 
 Grading notes: the bar rows of §2–§5 are theorem-grade and priced
 against the four commit KINDS of the program's taxonomy (raise-like /
@@ -433,9 +451,7 @@ pile topped by a non-king-headed run: the BARE-NON-KING LIFT (§4) and
 the BARE-SOURCE BURN SLIDE (§5) are commitments at the program's own
 grain.  The former row closes, at `irreversibleAt` grade, the residual
 named in `Orig/ForkStateUniqGate.lean`'s `journey_raise_shape`
-docstring ("the irreversibility of the bare-non-king lift is the
-write-analysis residual the future classification card owns") — this
-file is that card.
+docstring — this file is that card.
 -/
 
 /-- **THE EMPTY-ANCHOR PIN** — a pile carrying no hidden cards keeps
@@ -605,7 +621,12 @@ private theorem kingAnchored_step {st s' : State} {a : Anchor} {m : Move}
               · rw [hka, setPile_piles_self]
                 obtain ⟨hfk, -⟩ := pileOfTop_top hz
                 rw [hka] at hfk
-                exact pin_append _ hp hfk [c]
+                have hfk' : ((st.setFound c.suit
+                    (chop (st.found c.suit))).piles a).faceUp
+                    = (st.piles a).faceUp := rfl
+                rw [hfk'] at hfk
+                exact pin_append ((st.setFound c.suit
+                  (chop (st.found c.suit))).piles a) hp hfk [c]
               · rw [setPile_piles_ne (fun hcon => hka hcon.symm)]
                 exact hp
   | tabToTab c b =>
@@ -662,7 +683,6 @@ private theorem kingAnchored_step {st s' : State} {a : Anchor} {m : Move}
                   (fromCard c (st.piles src).faceUp)
               · rw [setPile_piles_ne (fun hcon => hka hcon.symm)]
                 exact hpin1
-
 
 /-- The pin rides whole plays (the run-lift of the step lemma). -/
 private theorem kingAnchored_run : ∀ (x : State) (play : List Move) (w : State)
@@ -725,7 +745,6 @@ private theorem runOK_mid : ∀ (P : List Card) (c : Card) (t : List Card),
           rw [hx0.1, Bool.true_and]
           exact ih c t hx0.2
 
-
 /-- The junction corollary of the cut: the card directly under a
 legal run's head mid-pile fits under it. -/
 private theorem runOK_junction {P : List Card} {c : Card} {t : List Card}
@@ -767,9 +786,7 @@ emptied anchor can only ever be refilled king-headed (the empty-seat
 placement guard), so no return play can rebuild the origin's
 non-king-headed singleton.  This closes, at `irreversibleAt` grade,
 the residual named in `Orig/ForkStateUniqGate.lean`'s
-`journey_raise_shape` docstring ("the irreversibility of the
-bare-non-king lift is the write-analysis residual the future
-classification card owns") — the §2 pin is that analysis.  THE
+`journey_raise_shape` docstring — the §2 pin is that analysis.  THE
 RAISE-TABLE'S BARE-ARM BAR. -/
 theorem bare_lift_irreversibleAt {st s₁ : State} {c : Card} {k : Anchor}
     (hstep : State.step st (Move.tabToFound c) = some s₁)
@@ -859,13 +876,13 @@ theorem bare_burn_irreversibleAt {st s₁ : State} {e z : Card} {a : Anchor}
           exact htop.1 rfl
         · rw [setPile_piles_ne (fun hcon => hka hcon.symm)]
           exact hS1a
-  intro s₁' play hstep' hrun
+  intro s₁' play hstep' hrun'
   have hsame : s₁' = s₁ := Option.some.inj (hstep'.symm.trans hstep)
-  rw [hsame] at hrun
+  rw [hsame] at hrun'
   have hpstart : kingAnchored (s₁.piles a) := by
     rw [hland]
     exact ⟨rfl, trivial⟩
-  have hpin := kingAnchored_run s₁ play st a hrun hpstart
+  have hpin := kingAnchored_run s₁ play st a hrun' hpstart
   obtain ⟨-, hhead⟩ := hpin
   rw [hheadface] at hhead
   exact hking hhead
@@ -900,7 +917,6 @@ theorem witness_tabToTab_never_burn {st s₁ : State} {e z : Card} {a : Anchor}
     ¬ reversibleAtW st (Move.tabToTab e (Sum.inr z)) :=
   not_reversibleAtW_of_irreversibleAt
     (bare_burn_irreversibleAt hstep hhold hbel hhid hzfit)
-
 
 /-! ## §3. THE PULL-TRANSFER ROWS
 
@@ -938,13 +954,14 @@ theorem census_foundToTab_inr {st s' : State} {c z : Card}
   have htopk : ((st.setFound c.suit (chop (st.found c.suit))).setPile k
       { (st.setFound c.suit (chop (st.found c.suit))).piles k with
         faceUp :=
-          ((st.setFound c.suit (chop (st.found c.suit))).piles k).faceUp ++ [c] }).topOf k
-      = some c :=
+          ((st.setFound c.suit (chop (st.found c.suit))).piles k).faceUp
+          ++ [c] }).topOf k = some c :=
     topOf_eq_snoc
       (st := (st.setFound c.suit (chop (st.found c.suit))).setPile k
         { (st.setFound c.suit (chop (st.found c.suit))).piles k with
           faceUp :=
-            ((st.setFound c.suit (chop (st.found c.suit))).piles k).faceUp ++ [c] })
+            ((st.setFound c.suit (chop (st.found c.suit))).piles k).faceUp
+            ++ [c] })
       (a := k)
       (front := ((st.setFound c.suit (chop (st.found c.suit))).piles k).faceUp)
       (c := c)
@@ -1003,7 +1020,7 @@ theorem census_foundToTab_inl {st s' : State} {c : Card} {n : Anchor}
       (⟨[], [c]⟩ : Pile)).topOf n = some c :=
     topOf_eq_snoc
       (st := (st.setFound c.suit (chop (st.found c.suit))).setPile n
-        (⟨[], [c]⟩ : Pile))
+          (⟨[], [c]⟩ : Pile))
       (a := n) (front := ([] : List Card)) (c := c)
       (by rw [setPile_piles_self]; rfl)
   have hothers : ∀ a', a' ≠ n → s'.topOf a' = st.topOf a' := by
@@ -1033,8 +1050,9 @@ theorem census_foundToTab_inl {st s' : State} {c : Card} {n : Anchor}
 The raise letter (`tabToFound`) — a tableau card founds.  The seated
 arm's census moves one unit from the raised card's cell to the exposed
 below-card's cell, which sits OPPOSITE family, INDEX+1 (the runOK
-adjacency) and is UNFOUNDED.  The reveal arm (the mint that exposes a
-hidden card) never rides a witness journey (`journey_tabToFound_
+adjacency) and is UNFOUNDED (an arrangement-card of the tableau, never
+of the foundations).  The reveal arm (the mint that exposes a hidden
+card) never rides a witness journey (`journey_tabToFound_
 never_reveal`, banked); the bare arm never rides at a non-king (§2's
 `bare_lift_irreversibleAt`) — kings to empty anchors are reversible
 (`tabToFound_undo_bare`, banked), so the bare arm genuinely rides
@@ -1054,12 +1072,12 @@ private theorem afterRunRemoved_reveal_pile (p : Pile) (g : Card)
 leg with a face-up card below: the census moves one unit from the
 raised card's cell `(c-family, c-index)` to the exposed below-card
 `z`'s cell, which sits OPPOSITE family, one INDEX up, and is
-UNFOUNDED (an arrangement-card of the tableau, never of the
-foundations).  ROUTE: `pileOfTop_top` + `lastOf_chop` open the pile
-as `chop ++ [c]`; `runOK_snoc_sit` (on the pile's `runOK`, the WF
-clause) names the below-card `z` and its fit; the removal write is
-`afterRunRemoved_ne` — one seat top changes, `census_touch` supplies
-the transfer; the corner arithmetic is the `seatInd` rows. -/
+UNFOUNDED (an arrangement-card of the tableau).  ROUTE: `pileOfTop_
+top` + `lastOf_chop` open the pile as `chop ++ [c]`; `runOK_snoc_sit`
+(on the pile's `runOK`, the WF clause) names the below-card `z` and
+its fit; the removal write is `afterRunRemoved_ne` — one seat top
+changes, `census_touch` supplies the transfer; the corner arithmetic
+is the `seatInd` rows. -/
 theorem census_tabToFound_under {st s' : State} {c : Card} {k : Anchor}
     (hwf : st.WF)
     (hstep : State.step st (Move.tabToFound c) = some s')
@@ -1226,12 +1244,12 @@ theorem census_tabToFound_bare {st s' : State} {c : Card} {k : Anchor}
       = none
     rfl
   have E := census_touch st s' k (some c) none hothers hold hnew
-  have indnone : seatInd (none : Option Card) c.suit.color c.rank.toIdx = 0 :=
-    rfl
   refine ⟨hnew, ?_, ?_⟩
   · have E1 := E c.suit.color c.rank.toIdx
     have indc : seatInd (some c) c.suit.color c.rank.toIdx = 1 :=
       seatInd_some_one rfl rfl
+    have indnone : seatInd (none : Option Card) c.suit.color c.rank.toIdx
+        = 0 := rfl
     omega
   · intro col i hc
     have E2 := E col i
@@ -1341,8 +1359,8 @@ private theorem tabToTab_search_pins {st : State} {e z : Card} {k a : Anchor}
             exact absurd hcon (by simp)
           · obtain ⟨g, t, hhid⟩ := list_cons_of_ne_nil hhid
             rw [hpre, afterRunRemoved_reveal_pile _ g t hhid] at hcon
-            rw [show Pile.top ((⟨t, [g]⟩ : Pile)) = some g from rfl] at hcon
-            have hgeq : g = z := Option.some.inj hcon
+            have hgeq : g = z :=
+              Option.some.inj (show (some g : Option Card) = some z from hcon)
             have hzin : z ∈ (st.piles a).hidden := by
               rw [← hgeq, hhid]
               exact List.mem_cons_self ..
@@ -1399,22 +1417,20 @@ theorem census_tabToTab_under {st s' : State} {e z : Card} {k a : Anchor}
   have hmem : e ∈ (st.piles a).faceUp := pileHolding_mem hhold
   have hkane : k ≠ a := fun hcon =>
     canPlace_inr_target_pile_ne hwf hcp hmem (by rw [← hcon]; exact hpa)
-  have hzmem : z ∈ (st.piles k).faceUp :=
-    lastOf_mem (pileOfTop_top hpa).2
   obtain ⟨hrank, hcol⟩ := (canSitOn_eq e z).mp hfit
   have hsplit := (below_fromCard_partition e ((st.piles a).faceUp)).symm
   obtain ⟨t, hrunform⟩ := fromCard_eq_head_of_mem hmem
+  have hrunne' : (fromCard e (st.piles a).faceUp) ≠ [] := by
+    rw [hrunform]; simp
+  obtain ⟨TA, hTA⟩ := lastOf_exists hrunne'
   have hface_split : (st.piles a).faceUp
       = below e (st.piles a).faceUp ++ (e :: t) := by
     rw [hrunform.symm]
     exact hsplit
-  have hrunne : (fromCard e (st.piles a).faceUp) ≠ [] := by
-    rw [hrunform]; simp
-  obtain ⟨TA, hTA⟩ := lastOf_exists hrunne
   have hTAold : st.topOf a = some TA := by
     rw [show st.topOf a = lastOf ((st.piles a).faceUp) from rfl, hface_split,
       ← hrunform]
-    exact (lastOf_append_tail _ hrunne).trans hTA
+    exact (lastOf_append_tail _ hrunne').trans hTA
   obtain ⟨y, hy_last, hyfit⟩ :=
     runOK_junction (P := below e (st.piles a).faceUp) (c := e) (t := t)
       (by rw [← hface_split]; exact hwf.2.1 a) hpre
@@ -1424,7 +1440,6 @@ theorem census_tabToTab_under {st s' : State} {e z : Card} {k a : Anchor}
     have hymem : y ∈ (st.piles a).faceUp :=
       mem_below _ (lastOf_mem hy_last)
     exact (mem_faceUp_only hwf hymem).2.2.2.2 y.suit
-  -- the two writes:
   have hpin : (st.setPile a
       (Pile.afterRunRemoved (st.piles a)
         (below e (st.piles a).faceUp))).pileOfTop z = some k :=
@@ -1477,7 +1492,7 @@ theorem census_tabToTab_under {st s' : State} {e z : Card} {k a : Anchor}
         (Pile.afterRunRemoved (st.piles a)
           (below e (st.piles a).faceUp))).piles k).faceUp ++
         fromCard e (st.piles a).faceUp) = some TA
-    exact (lastOf_append_tail _ hrunne).trans hTA
+    exact (lastOf_append_tail _ hrunne').trans hTA
   have E2 := census_touch (st.setPile a
       (Pile.afterRunRemoved (st.piles a)
         (below e (st.piles a).faceUp))) s' k (some z) (some TA) hothers2
@@ -1495,14 +1510,12 @@ theorem census_tabToTab_under {st s' : State} {e z : Card} {k a : Anchor}
     have hyzi : seatInd (some y) col i = seatInd (some z) col i :=
       seatInd_eq_of_cellEq hycol (by omega) col i
     omega
-
 /-- **THE BURN SLIDE** (step grade; never rides witness journeys) — a
 `tabToTab e (Sum.inr z)` leg whose run leaves a completely bare
 (hidden-nil, nothing below the head) source pile burns one host seat
 with no replacement: a pure −1 at the consumed host's cell, the source
 anchor emptied.  §2's `bare_burn_irreversibleAt` kills this arm on
-witness journeys; the row prices its exact census for the write
-analysis. -/
+witness journeys; the row prices its exact census. -/
 theorem census_tabToTab_burn {st s' : State} {e z : Card} {k a : Anchor}
     (hwf : st.WF)
     (hstep : State.step st (Move.tabToTab e (Sum.inr z)) = some s')
@@ -1601,8 +1614,8 @@ theorem census_tabToTab_burn {st s' : State} {e z : Card} {k a : Anchor}
     have E2z := E2 z.suit.color z.rank.toIdx
     have indz : seatInd (some z) z.suit.color z.rank.toIdx = 1 :=
       seatInd_some_one rfl rfl
-    have indTnone : seatInd (none : Option Card) z.suit.color z.rank.toIdx = 0 :=
-      rfl
+    have indTnone : seatInd (none : Option Card) z.suit.color z.rank.toIdx
+        = 0 := rfl
     omega
   · intro col i hc
     have hz0 : seatInd (some z) col i = 0 := by
@@ -1615,7 +1628,6 @@ theorem census_tabToTab_burn {st s' : State} {e z : Card} {k a : Anchor}
       (E2 col i).trans (E1 col i)
     rw [hz0, hn0, Nat.add_zero, Nat.add_zero] at h3
     exact h3
-
 /-- **THE REVEAL SLIDE** (step grade; never rides witness journeys) —
 a `tabToTab e (Sum.inr z)` leg stripping the last face-up card over a
 hidden deck: the census equation moves one unit from the consumed
@@ -1719,7 +1731,6 @@ theorem census_tabToTab_reveal {st s' : State} {e z g : Card} {k a : Anchor}
   have C1 := E1 col i
   have C2 := E2 col i
   omega
-
 /-- **THE EMPTY-ANCHOR CARGO** (witness grade; the king-headed arm that
 genuinely rides) — a `tabToTab e (Sum.inl n)` leg on a witness journey:
 king-headed by the placement guard, its source left completely bare
@@ -1761,7 +1772,6 @@ theorem census_tabToTab_inl {st s' : State} {e : Card} {n a : Anchor}
     rw [show st.topOf a = lastOf ((st.piles a).faceUp) from rfl, hface_split,
       ← hrform]
     exact (lastOf_append_tail _ hrunne').trans hTA
-  -- no card fits under a king: the below-part is empty
   have hbelnil : below e (st.piles a).faceUp = [] := by
     by_cases hbel : below e (st.piles a).faceUp = []
     · exact hbel
@@ -1773,13 +1783,11 @@ theorem census_tabToTab_inl {st s' : State} {e : Card} {n a : Anchor}
       have h12 : e.rank.toIdx = (12 : Nat) := by rw [hking]; rfl
       have hlt := Rank.toIdx_lt y.rank
       omega
-  -- the reveal never rides: the hidden deck is empty
   have hhid : (st.piles a).hidden = [] := by
     by_cases hid : (st.piles a).hidden = []
     · exact hid
     · exact absurd hrev
         (journey_tabToTab_never_reveal hstep hhold hbelnil hid)
-  -- the source pile is fully empty after W1:
   have hS1a : (st.setPile a
       (Pile.afterRunRemoved (st.piles a)
         (below e (st.piles a).faceUp))).topOf a = none := by
@@ -1800,7 +1808,6 @@ theorem census_tabToTab_inl {st s' : State} {e : Card} {n a : Anchor}
   have E1 := census_touch st (st.setPile a
       (Pile.afterRunRemoved (st.piles a)
         (below e (st.piles a).faceUp))) a (some TA) none hothers1 hTAold hS1a
-  -- the landing:
   have hS1n : (st.setPile a
       (Pile.afterRunRemoved (st.piles a)
         (below e (st.piles a).faceUp))).topOf n = none := by
@@ -1841,7 +1848,7 @@ theorem census_tabToTab_inl {st s' : State} {e : Card} {n a : Anchor}
 leg that rides a witness journey is the identity-cell neutral transfer:
 the burn arm never rides (§2's pin), and the reveal arm is banked-
 barred, so the below-part is nonempty and `census_tabToTab_under`
-delivers the idcell claim. -/
+delivers the identity-cell claim. -/
 theorem census_tabToTab_inr_witness {st s' : State} {e z : Card} {k a : Anchor}
     (hwf : st.WF)
     (hrev : reversibleAtW st (Move.tabToTab e (Sum.inr z)))
@@ -1872,9 +1879,9 @@ theorem census_tabToTab_inr_witness {st s' : State} {e z : Card} {k a : Anchor}
 /-! ## §6. THE INERTNESS ROWS
 
 The census is flat through the two inert letters: draws touch no
-pile and no foundation (`stepDraw_piles` / `stepDraw_found`, banked),
-and the waste letters never ride witness journeys at all (the banked
-`journey_never_wasteToFound` / `journey_never_wasteToTab`).
+pile and no foundation, and the waste letters never ride witness
+journeys at all (the banked `journey_never_wasteToFound` /
+`journey_never_wasteToTab`).
 -/
 
 /-- **THE WITNESS-GRADE LEG ALPHABET** — the waste letters never ride
@@ -1910,16 +1917,15 @@ theorem census_step_draw {st s' : State}
 
 /-! ## §7. THE OWNER'S-BET LEDGER
 
-The loan bookkeeping.  `seatMint` / `seatBurn` measure, per leg and
-per cell, exactly which tops are gained into / lost from the cell
-(decidable reads of the leg's own pre- and post-tops, one summand per
-anchor).  `seatLedger_pair` is the per-leg exact identity for ANY
-step; `play_census_ledger` telescopes it along any play; over a
-RETURNED play the mint and burn budgets cancel cell-for-cell.  The
-start-state census is the arrangement PROFILE; the ledger says the
-end profile is the start profile plus mints minus burns — nothing
-else.  The per-leg CONFINEMENT of the mints to the letters' named
-cells is this file's named residue.
+The loan bookkeeping.  `seatMint` / `seatBurn` measure, per leg,
+exactly which tops are gained into / lost from the cell (decidable
+reads of the leg's own pre- and post-tops, one summand per anchor).
+`seatLedger_pair` is the per-leg exact identity for ANY step;
+`play_census_ledger` telescopes it along any play; over a RETURNED
+play the mint and burn budgets cancel cell-for-cell.  The start-state
+census is the arrangement PROFILE; the ledger says the end profile is
+the start profile plus mints minus burns — nothing else.  The per-leg
+CONFINEMENT of the mints to the letters' named cells is closed below.
 -/
 
 /-- The sequential-gain indicator: 1 exactly when the OLD reading is
@@ -1942,14 +1948,6 @@ def seatBurn (st s' : State) (col : Color) (i : Nat) : Nat :=
   Anchor.all.foldl (fun n a =>
       n + seatGain (seatInd (s'.topOf a) col i) (seatInd (st.topOf a) col i)) 0
 
-/-- The flip identity of the gain indicator at bit values. -/
-private theorem seatGain_flip (old new : Nat) (h1 : old ≤ 1) (h2 : new ≤ 1) :
-    new + seatGain new old = old + seatGain old new := by
-  have ho : old = 0 ∨ old = 1 := by omega
-  have hn : new = 0 ∨ new = 1 := by omega
-  rcases ho with rfl | rfl
-  · rcases hn with rfl | rfl <;> rfl
-  · rcases hn with rfl | rfl <;> rfl
 
 theorem seatMint_eq_sum (st s' : State) (col : Color) (i : Nat) :
     seatMint st s' col i =
@@ -1987,157 +1985,18 @@ theorem seatBurn_eq_sum (st s' : State) (col : Color) (i : Nat) :
         (seatInd (st.topOf Anchor.p6) col i) :=
   foldSum_eq _
 
-/-- **THE PER-LEG LEDGER** — for ANY step, the landed census plus the
-burns equals the origin census plus the mints: the only per-seat
-movements are gains and losses, and each is counted. -/
-theorem seatLedger_pair (st s' : State) (col : Color) (i : Nat) :
-    hostCensus s' col i + seatBurn st s' col i
-      = hostCensus st col i + seatMint st s' col i := by
-  rw [hostCensus_eq_sum s' col i, hostCensus_eq_sum st col i,
-    seatBurn_eq_sum st s' col i, seatMint_eq_sum st s' col i]
-  have per : ∀ x : Anchor,
-      seatInd (s'.topOf x) col i
-        + seatGain (seatInd (s'.topOf x) col i) (seatInd (st.topOf x) col i)
-      = seatInd (st.topOf x) col i
-        + seatGain (seatInd (st.topOf x) col i) (seatInd (s'.topOf x) col i) :=
-    fun x => seatGain_flip _ _ (seatInd_le_one _ _ _)
-      (seatInd_le_one _ _ _)
-  have p0 := per Anchor.p0
-  have p1 := per Anchor.p1
-  have p2 := per Anchor.p2
-  have p3 := per Anchor.p3
-  have p4 := per Anchor.p4
-  have p5 := per Anchor.p5
-  have p6 := per Anchor.p6
-  omega
 
-/-- **THE JOURNEY TELEMETRY** — the minted seats along a play
-(state-threaded, leg by leg). -/
-def journeyMint (st : State) : List Move → Color → Nat → Nat
-  | [], _, _ => 0
-  | m :: t, col, i =>
-      match State.step st m with
-      | none => journeyMint st t col i
-      | some s₁ => seatMint st s₁ col i + journeyMint s₁ t col i
-
-/-- **THE JOURNEY TELEMETRY** (burned seats) — dually. -/
-def journeyBurn (st : State) : List Move → Color → Nat → Nat
-  | [], _, _ => 0
-  | m :: t, col, i =>
-      match State.step st m with
-      | none => journeyBurn st t col i
-      | some s₁ => seatBurn st s₁ col i + journeyBurn s₁ t col i
-
-/-- **THE JOURNEY CENSUS LEDGER** — along ANY play, the end census plus
-the journey's burns equals the start census plus the journey's mints:
-the exact per-cell bookkeeping the owner's bet runs on (the
-arrangement profile is the start census; everything above it is a
-mint, and every mint is one letter's seat).  The run-form statement
-subsumes the `ShufflePlayW` form through `ShufflePlayW_run`. -/
-theorem play_census_ledger {st : State} : ∀ (play : List Move) (w : State),
-    State.run st play = some w → ∀ col i,
-    hostCensus w col i + journeyBurn st play col i
-      = hostCensus st col i + journeyMint st play col i := by
-  intro play
-  induction play generalizing st with
-  | nil =>
-      intro w h col i
-      have hsw : (some st : Option State) = some w := h
-      injection hsw with hw
-      rw [hw]
-      show hostCensus w col i + (0 : Nat)
-        = hostCensus w col i + (0 : Nat)
-      omega
-  | cons m rest ih =>
-      intro w h col i
-      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h
-      have hMi : journeyMint st (m :: rest) col i
-          = seatMint st s₁ col i + journeyMint s₁ rest col i := by
-        show (match State.step st m with
-          | none => journeyMint st rest col i
-          | some s' => seatMint st s' col i + journeyMint s' rest col i) = _
-        rw [hstep]
-      have hBu : journeyBurn st (m :: rest) col i
-          = seatBurn st s₁ col i + journeyBurn s₁ rest col i := by
-        show (match State.step st m with
-          | none => journeyBurn st rest col i
-          | some s' => seatBurn st s' col i + journeyBurn s' rest col i) = _
-        rw [hstep]
-      have E := seatLedger_pair st s₁ col i
-      have IH := ih w hrest col i
-      omega
-
-/-- The run-append compose (private per-file copy). -/
-private theorem hc_run_append : ∀ (a : State) (A B : List Move) (z w : State),
-    a.run A = some z → z.run B = some w → a.run (A ++ B) = some w := by
-  intro a A
-  induction A generalizing a with
-  | nil =>
-      intro B z w h1 h2
-      have hsw : (some a : Option State) = some z := h1
-      injection hsw with hc
-      rw [← hc] at h2
-      exact h2
-  | cons m rest ih =>
-      intro B z w h1 h2
-      obtain ⟨a₁, hs, hr⟩ := State.run_cons h1
-      have h3 := ih a₁ B z w hr h2
-      rw [List.cons_append]
-      show (match State.step a m with
-        | some st' => st'.run (rest ++ B)
-        | none => none) = some w
-      rw [hs]
-      exact h3
-
-/-- **THE ROUND-TRIP REPAYMENT** — over a RETURNED play (st → w → st)
-the per-cell mint and burn budgets CANCEL EXACTLY: the excursion
-issued no hosting capacity the tour does not reclaim.  THE CENSUS
-ROUND-TRIP CONTRACT. -/
-theorem roundtrip_census_repay {st w : State} {τ ρ : List Move}
-    (hτ : State.run st τ = some w) (hρ : State.run w ρ = some st) :
-    ∀ col i, journeyMint st (τ ++ ρ) col i
-      = journeyBurn st (τ ++ ρ) col i := by
-  intro col i
-  have hrun : State.run st (τ ++ ρ) = some st :=
-    hc_run_append st τ ρ w st hτ hρ
-  have E := play_census_ledger (τ ++ ρ) st hrun col i
-  omega
-
-/-- **THE OWNER'S-BET — THE EXCURSION ISSUES NO NEW SEAT** — the row
-the low-slab crane-replay consumes: a witness journey out of a state
-the tour RETURNS to obeys the exact per-cell census ledger over the
-forward half, and the two halves' mint/burn budgets cancel
-cell-for-cell over the round trip.  The arrangement profile (the
-start-state census) is therefore the whole truth: any cell's gain at
-the midstate is a MINT of the forward letters, and the returned half
-burns exactly what was minted — no hosting capacity survives the
-excursion that the arrangement did not already carry.  This is the
-seating counterpart of `Orig/BracketDecomp.lean`'s
-`witness_rung_census` (the foundation ledger).  The per-leg
-CONFINEMENT of the mints to the letters' named cells is the named
-residue `witness_leg_mint_confined`. -/
-theorem excursion_issues_noNewSeat {st w : State} {τ ρ : List Move}
-    (hτ : ShufflePlayW st τ w) (hρ : ShufflePlayW w ρ st) :
-    (∀ col i, hostCensus w col i + journeyBurn st τ col i
-        = hostCensus st col i + journeyMint st τ col i) ∧
-    (∀ col i, journeyMint st (τ ++ ρ) col i
-        = journeyBurn st (τ ++ ρ) col i) :=
-  ⟨fun col i => play_census_ledger τ w (ShufflePlayW_run hτ) col i,
-    fun col i => roundtrip_census_repay (ShufflePlayW_run hτ)
-      (ShufflePlayW_run hρ) col i⟩
-
-/-! ### The mint-zero kit (private)
-
-The confinement engine: mint summands vanish when tops agree
-(`seatGain_self_zero`) or when the new top is off the cell
-(`seatGain_zero_of_new`, via `seatInd_cell_of_one`); the three
-composites cover any leg whose changed tops sit at at most two named
-anchors.
--/
+/-- The flip identity of the gain indicator at bit values. -/
+private theorem seatGain_flip (old new : Nat) (h1 : old ≤ 1) (h2 : new ≤ 1) :
+    new + seatGain new old = old + seatGain old new := by
+  have ho : old = 0 ∨ old = 1 := by omega
+  have hn : new = 0 ∨ new = 1 := by omega
+  rcases ho with rfl | rfl
+  · rcases hn with rfl | rfl <;> rfl
+  · rcases hn with rfl | rfl <;> rfl
 
 /-- The gain indicator vanishes on equal bits. -/
-private theorem seatGain_self_zero (a : Nat) (h : a ≤ 1) : seatGain a a = 0 :=
-  by
+private theorem seatGain_self_zero (a : Nat) (h : a ≤ 1) : seatGain a a = 0 := by
   have ha : a = 0 ∨ a = 1 := by omega
   rcases ha with rfl | rfl <;> rfl
 
@@ -2223,28 +2082,149 @@ private theorem mint_zero_all (st s' : State)
   refine mint_zero_of_g st s' col i (fun x => ?_)
   rw [h x]
   exact seatGain_self_zero _ (seatInd_le_one _ _ _)
+/-- **THE PER-LEG LEDGER** — for ANY step, the landed census plus the
+burns equals the origin census plus the mints: the only per-seat
+movements are gains and losses, and each is counted. -/
+theorem seatLedger_pair (st s' : State) (col : Color) (i : Nat) :
+    hostCensus s' col i + seatBurn st s' col i
+      = hostCensus st col i + seatMint st s' col i := by
+  rw [hostCensus_eq_sum s' col i, hostCensus_eq_sum st col i,
+    seatBurn_eq_sum st s' col i, seatMint_eq_sum st s' col i]
+  have per : ∀ x : Anchor,
+      seatInd (s'.topOf x) col i
+        + seatGain (seatInd (s'.topOf x) col i) (seatInd (st.topOf x) col i)
+      = seatInd (st.topOf x) col i
+        + seatGain (seatInd (st.topOf x) col i) (seatInd (s'.topOf x) col i) :=
+    fun x => seatGain_flip _ _ (seatInd_le_one _ _ _)
+      (seatInd_le_one _ _ _)
+  have p0 := per Anchor.p0
+  have p1 := per Anchor.p1
+  have p2 := per Anchor.p2
+  have p3 := per Anchor.p3
+  have p4 := per Anchor.p4
+  have p5 := per Anchor.p5
+  have p6 := per Anchor.p6
+  omega
 
+/-- **THE JOURNEY TELEMETRY** — the minted seats along a play
+(state-threaded, leg by leg). -/
+def journeyMint (st : State) : List Move → Color → Nat → Nat
+  | [], _, _ => 0
+  | m :: t, col, i =>
+      match State.step st m with
+      | none => journeyMint st t col i
+      | some s₁ => seatMint st s₁ col i + journeyMint s₁ t col i
+
+/-- **THE JOURNEY TELEMETRY** (burned seats) — dually. -/
+def journeyBurn (st : State) : List Move → Color → Nat → Nat
+  | [], _, _ => 0
+  | m :: t, col, i =>
+      match State.step st m with
+      | none => journeyBurn st t col i
+      | some s₁ => seatBurn st s₁ col i + journeyBurn s₁ t col i
+
+/-- **THE JOURNEY CENSUS LEDGER** — along ANY play, the end census plus
+the journey's burns equals the start census plus the journey's mints:
+the exact per-cell bookkeeping the owner's bet runs on. -/
+theorem play_census_ledger {st : State} : ∀ (play : List Move) (w : State),
+    State.run st play = some w → ∀ col i,
+    hostCensus w col i + journeyBurn st play col i
+      = hostCensus st col i + journeyMint st play col i := by
+  intro play
+  induction play generalizing st with
+  | nil =>
+      intro w h col i
+      have hsw : (some st : Option State) = some w := h
+      injection hsw with hw
+      rw [← hw]
+      have hM0 : journeyMint st ([] : List Move) col i = 0 := rfl
+      have hB0 : journeyBurn st ([] : List Move) col i = 0 := rfl
+      rw [hM0, hB0]
+  | cons m rest ih =>
+      intro w h col i
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h
+      have hMi : journeyMint st (m :: rest) col i
+          = seatMint st s₁ col i + journeyMint s₁ rest col i := by
+        show (match State.step st m with
+          | none => journeyMint st rest col i
+          | some s' => seatMint st s' col i + journeyMint s' rest col i) = _
+        rw [hstep]
+      have hBu : journeyBurn st (m :: rest) col i
+          = seatBurn st s₁ col i + journeyBurn s₁ rest col i := by
+        show (match State.step st m with
+          | none => journeyBurn st rest col i
+          | some s' => seatBurn st s' col i + journeyBurn s' rest col i) = _
+        rw [hstep]
+      have E := seatLedger_pair st s₁ col i
+      have IH := ih w hrest col i
+      omega
+/-- The run-append compose (private per-file copy). -/
+private theorem hc_run_append : ∀ (a : State) (A B : List Move) (z w : State),
+    a.run A = some z → z.run B = some w → a.run (A ++ B) = some w := by
+  intro a A
+  induction A generalizing a with
+  | nil =>
+      intro B z w h1 h2
+      have hsw : (some a : Option State) = some z := h1
+      injection hsw with hc
+      rw [← hc] at h2
+      exact h2
+  | cons m rest ih =>
+      intro B z w h1 h2
+      obtain ⟨a₁, hs, hr⟩ := State.run_cons h1
+      have h3 := ih a₁ B z w hr h2
+      rw [List.cons_append]
+      show (match State.step a m with
+        | some st' => st'.run (rest ++ B)
+        | none => none) = some w
+      rw [hs]
+      exact h3
+
+/-- **THE ROUND-TRIP REPAYMENT** — over a RETURNED play (st → w → st)
+the per-cell mint and burn budgets CANCEL EXACTLY: the excursion
+issued no hosting capacity the tour does not reclaim.  THE CENSUS
+ROUND-TRIP CONTRACT. -/
+theorem roundtrip_census_repay {st w : State} {τ ρ : List Move}
+    (hτ : State.run st τ = some w) (hρ : State.run w ρ = some st) :
+    ∀ col i, journeyMint st (τ ++ ρ) col i
+      = journeyBurn st (τ ++ ρ) col i := by
+  intro col i
+  have hrun : State.run st (τ ++ ρ) = some st :=
+    hc_run_append st τ ρ w st hτ hρ
+  have E := play_census_ledger (τ ++ ρ) st hrun col i
+  omega
+
+/-- **THE OWNER'S-BET — THE EXCURSION ISSUES NO NEW SEAT** — the row
+the low-slab crane-replay consumes: a witness journey out of a state
+the tour RETURNS to obeys the exact per-cell census ledger over the
+forward half, and the two halves' mint/burn budgets cancel
+cell-for-cell over the round trip.  The arrangement profile (the
+start-state census) is therefore the whole truth: any cell's gain at
+the midstate is a MINT of the forward letters, and the returned half
+burns exactly what was minted — no hosting capacity survives the
+excursion that the arrangement did not already carry.  The per-leg
+CONFINEMENT of the mints to the letters' named cells is
+`witness_leg_mint_confined` below. -/
+theorem excursion_issues_noNewSeat {st w : State} {τ ρ : List Move}
+    (hτ : ShufflePlayW st τ w) (hρ : ShufflePlayW w ρ st) :
+    (∀ col i, hostCensus w col i + journeyBurn st τ col i
+        = hostCensus st col i + journeyMint st τ col i) ∧
+    (∀ col i, journeyMint st (τ ++ ρ) col i
+        = journeyBurn st (τ ++ ρ) col i) :=
+  ⟨fun col i => play_census_ledger τ w (ShufflePlayW_run hτ) col i,
+    fun col i => roundtrip_census_repay (ShufflePlayW_run hτ)
+      (ShufflePlayW_run hρ) col i⟩
 /-- **THE PER-LEG MINT CONFINEMENT** — the owner's bet, leg by leg,
 CLOSED.  On a WITNESS leg, every minted seat sits at one of the
-letters' named cells: the PULLED card's own cell (a `foundToTab` —
+letters' named cells: the PULLED card's cell (a `foundToTab` —
 seated or king-corner, the move names the card), the EXPOSED SEAT
 card's cell of an under-raise (opposite family, the raised card's
 index + 1, the arrangement-card the crane replays onto), the cargo's
-EXPOSED BELOW-CARD cell, or the cargo's LANDING RUN-TOP cell (the
-inl king-run and the seated host share this pair).  The reveal mints
-never ride (the banked `journey_tabToFound_never_reveal` /
+EXPOSED BELOW-CARD cell, or the cargo's LANDING RUN-TOP cell.  The
+reveal mints never ride (banked `journey_tabToFound_never_reveal` /
 `journey_tabToTab_never_reveal`), and the burn slide never mints
-(§2's pin) — so the mining set of the whole program is exactly the
-four disjuncts below.
-
-Route: the leg alphabet (`witness_leg_letters`); each arm's changed
-tops are the census rows' `census_touch` inputs (at most two anchors);
-the mint summands away from the changed anchors vanish because equal
-tops give equal bits (`seatGain_self_zero`), and at a changed anchor
-an off-cell new top gives a zero gain (`seatGain_zero_of_new` via
-`seatInd_cell_of_one`); the degenerate arms are pre-split by the
-witness-grade rows (bare-king raises mint nothing — the anchor
-empties; the burn arm is barred; the inl cargo empties its source). -/
+(§2's pin) — so the mining set of the whole program is the four
+disjuncts below. -/
 theorem witness_leg_mint_confined {st s₁ : State} {m : Move}
     (hwf : st.WF)
     (hrev : reversibleAtW st m)
@@ -2264,8 +2244,7 @@ theorem witness_leg_mint_confined {st s₁ : State} {m : Move}
           v.suit.color = col ∧ v.rank.toIdx = i) := by
   intro col i hmint
   obtain hd | hra | hpull | hcargo := witness_leg_letters hstep hrev
-  · -- draw: no seat top moves
-    exfalso
+  · exfalso
     subst hd
     have hflat : ∀ x, s₁.topOf x = st.topOf x := by
       intro x
@@ -2373,7 +2352,7 @@ theorem witness_leg_mint_confined {st s₁ : State} {m : Move}
           exact hcell
   · obtain ⟨e, b, hb⟩ := hcargo
     subst hb
-    obtain ⟨src, hh, hcp, -, hs⟩ := step_tabToTab_inv hstep
+    obtain ⟨src, hh, hcp, _, hs⟩ := step_tabToTab_inv hstep
     have hmem : e ∈ (st.piles src).faceUp := pileHolding_mem hh
     cases b with
     | inl n =>
@@ -2402,13 +2381,13 @@ theorem witness_leg_mint_confined {st s₁ : State} {m : Move}
             intro x hx1 hx2
             rw [hs, putRun_eq_inl, setPile_topOf_ne hx2, setPile_topOf_ne hx1]
           apply hmint
-          refine mint_zero_two st s₁ src n (some TA) none none (some TA)
+          exact mint_zero_two st s₁ src n (some TA) none none (some TA)
             (Ne.symm hnsrc) hspot hstsrc hs'src hstn hs'n col i
-            (fun _ hv => absurd hv (by simp)) ?_
-          intro v hv
-          have hvc : TA = v := by injection hv
-          rw [← hvc]
-          exact hcell
+            (fun _ hv => absurd hv (by simp))
+            (fun v hv => by
+              have hvv : TA = v := by injection hv
+              rw [← hvv]
+              exact hcell)
     | inr z =>
         obtain ⟨k, hpzk, hfit⟩ := canPlace_inr hcp
         by_cases hbel : below e (st.piles src).faceUp = []
@@ -2441,7 +2420,7 @@ theorem witness_leg_mint_confined {st s₁ : State} {m : Move}
                 hTA, hTAc.1, hTAc.2⟩))
             · exfalso
               apply hmint
-              refine mint_zero_two st s₁ src k (some TA) (some y) (some z)
+              exact mint_zero_two st s₁ src k (some TA) (some y) (some z)
                 (some TA) (Ne.symm hkane) hspot hTAold hsy hstk hsTA col i
                 (fun v hv => by
                   have hvv : y = v := by injection hv
@@ -2454,16 +2433,11 @@ theorem witness_leg_mint_confined {st s₁ : State} {m : Move}
 
 /-! ## §8. The audit battery
 
-`#print axioms` per fresh public head.  Expected grades: the
-transaction rows and bars read the banked chain (propext at most —
-the census def is a plain fold and every split rides `Decidable.em`
-or decided equalities; the two pin-based bars are
-write-analysis-grade, no choice); `witness_leg_mint_confined` is the
-file's single `sorryAx` carrier and NOTHING else flows into it;
-`excursion_issues_noNewSeat` reads the proved ledger rows
-(propext-grade through the quotient-free `run` forms — no
-`ShufflePlayW` rule is used in its own statement beyond the two
-`ShufflePlayW_run` reads, so it stays choice-free).
+`#print axioms` per fresh public head: the transaction rows and bars
+read banked-chain grade (`[propext, Quot.sound]` — the census def is
+a plain fold and every split rides `Decidable.em` or decided
+equalities); `witness_leg_mint_confined` is zero-sorry.  `#print`
+additions for §9 appear at the file's end.
 -/
 
 #print axioms topOf_eq_snoc
@@ -2500,19 +2474,23 @@ file's single `sorryAx` carrier and NOTHING else flows into it;
 #print axioms excursion_issues_noNewSeat
 #print axioms witness_leg_mint_confined
 
-/-! ## §9. THE DRAW-COMMUTATION ROWS (Mission 2)
+/-! ## §9. THE DRAW-COMMUTATION ROWS
 
-The draw-kind's phase content for the low-slab sufficiency.  The
-board letters (raise / pull / cargo — the witness alphabet minus
-draws) are BLIND to the two-zone cycle: their guards read only
-`piles` and `found`, their effects write only `piles` and `found`,
-and everything else they carry through verbatim.  So board plays
-commute with draws: running the SAME witness play from the dashed
-state (the draw-successor) executes leg-for-leg and lands ON THE
-DOT at the dashed landing — the phase question is killed outright in
-the draw-free replay regime.  The interleave regime (witness-graded
-draws inside a replay) is the named residue `interleave_phase_align`
-below.
+The draw-kind's phase content.  The board letters (raise / pull /
+cargo — the witness alphabet minus draws) are BLIND to the two-zone
+cycle: their guards read only `piles` and `found`, their effects
+write only `piles` and `found`.  `boardEq` is the board-thread
+relation; the guard congruences are proved over the banked public
+`Twin`/`State` congr rows; `board_run_congr` runs a board-only play
+identically from both ends of a `boardEq` pair, lands the `boardEq`
+image, and leaves both zones flat — the (A) phase-exactness claims
+compose it with the draw-dashed endpoints; the interleave case (`B`)
+lands below through the CLASS WELD, not the board thread: the
+round-trip engine puts the leg pair inside the macro class, and the
+banked draw push (`Orig/EdgeLabel.lean`'s `draw_landings_sameOrbit`)
+welds the two dashed landings.  The probe boards'
+`pb_huntLedger` negative (no board ever separated the dashes)
+stands banked in `Orig/PhaseClipProbe.lean`.
 -/
 
 /-- **THE BOARD-THREAD RELATION** — two states agree on every field
@@ -2525,8 +2503,7 @@ def boardMove (m : Move) : Prop :=
   (∃ c, m = Move.tabToFound c) ∨ (∃ c b, m = Move.foundToTab c b) ∨
     (∃ c b, m = Move.tabToTab c b)
 
-/-! ### The guard congruences (private kit, over the banked public
-`Twin`/`State` congr rows) -/
+/-! ### The guard congruences (private kit) -/
 
 private theorem foundHeight_congr {x y : State} (hb : boardEq x y)
     (s : Suit) : x.foundHeight s = y.foundHeight s := by
@@ -2555,8 +2532,7 @@ private theorem faceUp_congr {x y : State} (hb : boardEq x y) (a : Anchor) :
     (x.piles a).faceUp = (y.piles a).faceUp :=
   congrArg Pile.faceUp (congrFun hb.1 a)
 
-
-/-! ### The per-letter step congruences (private kit) -/
+/-! ### The record-equality helpers (private kit) -/
 
 private theorem setFound_found_eq {x y : State} (hb : boardEq x y) (s : Suit)
     (l_x l_y : List Card) (hl : l_x = l_y) :
@@ -2578,54 +2554,272 @@ private theorem setPile_piles_aux {x y : State} (hp : x.piles = y.piles)
   · rw [h, ite_eq_left rfl, ite_eq_left rfl, hpp]
   · rw [ite_eq_right h, ite_eq_right h, congrFun hp a']
 
+/-! ### The step-arm successor rows (private kit) -/
 
-/-! ### §9.1 The step-successor congruences (named residue, route)
+private theorem step_tabToFound_succ {st : State} {c : Card} {a : Anchor}
+    (hn : st.nextUp c = true) (hloc : st.pileOfTop c = some a) :
+    State.step st (Move.tabToFound c) =
+      some { st.setFound c.suit (st.found c.suit ++ [c]) with
+        piles := fun a' =>
+          if a' = a then
+            Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+          else st.piles a' } := by
+  have hR : State.step st (Move.tabToFound c) =
+      some { st.setFound c.suit (st.found c.suit ++ [c]) with
+        piles := fun a' =>
+          if a' = a then
+            Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+          else st.piles a' } := by
+    simp only [State.step, hn, hloc]
+    rfl
+  rw [hR]
 
-The GUARD half is proved above: every board letter's step condition is
-a piles/found read, so legality transfers across `boardEq` states
-(`hcNextUp`, `hcFoundTop`, `hcPileOfTop`, `hcPileHolding`,
-`hcCanPlace`, `faceUp_congr`).  The SUCCESSOR half — the same-lambda
-rebuild of the step record with the dashed state's unchanged zone
-fields — is mechanical but record-level (it fought the elaborator
-twice here); its complete route:
+private theorem step_foundToTab_succ {st : State} {c : Card} {b : Base}
+    (hft : st.foundTop c.suit = some c) (hcp : st.canPlace c b = true) :
+    State.step st (Move.foundToTab c b) =
+      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
+  have hR : State.step st (Move.foundToTab c b) =
+      some ((st.setFound c.suit (chop (st.found c.suit))).putCard c b) := by
+    simp only [State.step, hft, hcp]
+    rfl
+  rw [hR]
 
-1. Per-letter step congruence: from the banked inversion rows
-   (`step_tabToFound_inv`, `step_foundToTab_inv`, `step_tabToTab_inv`)
-   read the successor RECORD equalities at the home state; construct
-   the dashed successor as the syntactically identical record over the
-   dashed fields; the dashed step's guards rewrite through the proved
-   congruence kit; the successor boards compare via `setFound_found_eq`
-   and `setPile_piles_aux` (both proved above), with `putCard` /
-   `putRun`'s `inr` searches aligned through `pileOfTop_congr`
-   (banked, Orig/Twin.lean) over the setFound-threaded piles
-   (`rfl` pass-throughs, as in this file's §5 landings).
-2. The play-level `board_run_congr` below is then a `State.run_cons`
-   induction over the legs.
-3. The draw-zone determination below needs the draw unfold
-   (`dealStock .recycle`) with a four-way case split on
-   `(stock, waste)`; the zone fields are `State.dealUpTo`-expressions
-   depending only on `(stock, waste, drawStep)`.
+private theorem step_tabToTab_succ {st : State} {c : Card} {b : Base}
+    {a : Anchor} {r : Card} {rr : List Card}
+    (hh : st.pileHolding c = some a)
+    (hcp : st.canPlace c b = true)
+    (hfc : fromCard c (st.piles a).faceUp = r :: rr) :
+    State.step st (Move.tabToTab c b) =
+      some ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp))).putRun (r :: rr) b) := by
+  have hR : State.step st (Move.tabToTab c b) =
+      some ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp))).putRun (r :: rr) b) := by
+    simp only [State.step, hh, hcp, hfc]
+    rfl
+  rw [hR]
 
-The four statements below are the exact shapes LowSlab imports.
--/
+private theorem putCardFound_keep (st : State) (c : Card) (b : Base) :
+    (st.putCard c b).found = st.found := by
+  cases b with
+  | inl n => rfl
+  | inr z => exact putCard_inr_found c z
 
-/-- **THE BOARD STEP CONGRUENCE** (named residue) — a board letter
-legal at `x` is legal at any `boardEq` `y`, and the successors are
-again `boardEq`: every board field the letter reads or writes agrees,
-so the dashed thread runs leg-for-leg.  ROUTE: step 1 of §9.1. -/
+private theorem putRunFound_keep (st : State) (run : List Card) (b : Base) :
+    (st.putRun run b).found = st.found := by
+  cases b with
+  | inl n => rfl
+  | inr z =>
+      simp only [State.putRun]
+      cases h : st.pileOfTop z <;> rfl
+
+private theorem putCard_inr_none_kit {st : State} {c z : Card}
+    (hz : st.pileOfTop z = none) :
+    st.putCard c (Sum.inr z) = st := by
+  simp only [State.putCard, hz]
+
+/-- **THE BOARD STEP CONGRUENCE** — a board letter legal at `x` is legal
+at any `boardEq` `y`, and the successors are again `boardEq`: every
+board field the letter reads or writes agrees, so the dashed thread
+runs leg-for-leg. -/
 theorem step_congr_board {x y x' : State} {m : Move}
     (hb : boardEq x y) (hboard : boardMove m)
     (hx : State.step x m = some x') :
     ∃ y', State.step y m = some y' ∧ boardEq x' y' := by
-  sorry
+  obtain ⟨c, hc⟩ | ⟨c, b, hc⟩ | ⟨c, b, hc⟩ := hboard
+  · subst hc
+    obtain ⟨hn, a, hloc, hs⟩ := step_tabToFound_inv hx
+    refine ⟨{ y.setFound c.suit (y.found c.suit ++ [c]) with
+        piles := fun a' =>
+          if a' = a then
+            Pile.afterRunRemoved (y.piles a) (chop (y.piles a).faceUp)
+          else y.piles a' }, ?_, ?_⟩
+    · rw [step_tabToFound_succ
+        (st := y) (a := a)
+        (show y.nextUp c = true from (hcNextUp hb c).symm.trans hn)
+        (show y.pileOfTop c = some a from (hcPileOfTop hb c).symm.trans hloc)]
+    · constructor
+      · have hpa : x.piles a = y.piles a := congrFun hb.1 a
+        funext a'
+        rw [hs]
+        exact setPile_piles_aux hb.1 a
+          (Pile.afterRunRemoved (x.piles a) (chop (x.piles a).faceUp))
+          (Pile.afterRunRemoved (y.piles a) (chop (y.piles a).faceUp))
+          (by rw [hpa]) a'
+      · rw [hs]
+        exact setFound_found_eq hb c.suit (x.found c.suit ++ [c])
+          (y.found c.suit ++ [c]) (by rw [congrFun hb.2 c.suit])
+  · subst hc
+    refine ⟨(y.setFound c.suit (chop (y.found c.suit))).putCard c b, ?_, ?_⟩
+    · obtain ⟨c₀, htop, hc₀c, hcp, hs⟩ := step_foundToTab_inv hx
+      rw [hc₀c] at htop
+      exact step_foundToTab_succ
+        (st := y) (c := c) (b := b)
+        (show y.foundTop c.suit = some c from
+          (hcFoundTop hb c.suit).symm.trans htop)
+        ((hcCanPlace hb c b).symm.trans hcp)
+    · constructor
+      · funext a'
+        have hp0 : (x.setFound c.suit (chop (x.found c.suit))).piles
+            = x.piles := rfl
+        have hq0 : (y.setFound c.suit (chop (y.found c.suit))).piles
+            = y.piles := rfl
+        have hpair : (x.setFound c.suit (chop (x.found c.suit))).piles
+            = (y.setFound c.suit (chop (y.found c.suit))).piles :=
+          hp0.trans (hb.1.trans hq0.symm)
+        obtain ⟨-, -, -, -, hs⟩ := step_foundToTab_inv hx
+        rw [hs]
+        cases b with
+        | inl n =>
+            rw [putCard_eq_inl, putCard_eq_inl]
+            exact setPile_piles_aux hpair n (⟨[], [c]⟩ : Pile)
+              (⟨[], [c]⟩ : Pile) rfl a'
+        | inr z =>
+            have hzx : (x.setFound c.suit (chop (x.found c.suit))).pileOfTop z
+                = x.pileOfTop z := rfl
+            have hzy : (y.setFound c.suit (chop (y.found c.suit))).pileOfTop z
+                = y.pileOfTop z := rfl
+            cases hzz : x.pileOfTop z with
+            | none =>
+                rw [putCard_inr_none_kit (hzx.trans hzz),
+                  putCard_inr_none_kit
+                    (hzy.trans ((hcPileOfTop hb z).symm.trans hzz)),
+                  hp0, hq0, hb.1]
+            | some k =>
+                rw [putCard_inr_eq (hzx.trans hzz),
+                  putCard_inr_eq
+                    (hzy.trans ((hcPileOfTop hb z).symm.trans hzz))]
+                exact setPile_piles_aux hpair k
+                  { (x.setFound c.suit (chop (x.found c.suit))).piles k with
+                    faceUp := ((x.setFound c.suit
+                      (chop (x.found c.suit))).piles k).faceUp ++ [c] }
+                  { (y.setFound c.suit (chop (y.found c.suit))).piles k with
+                    faceUp := ((y.setFound c.suit
+                      (chop (y.found c.suit))).piles k).faceUp ++ [c] }
+                  (by rw [hpair])
+                  a'
+      · obtain ⟨-, htop, hc₀c, hcp, hs⟩ := step_foundToTab_inv hx
+        rw [hs, putCardFound_keep, putCardFound_keep]
+        exact setFound_found_eq hb c.suit (chop (x.found c.suit))
+          (chop (y.found c.suit)) (by rw [congrFun hb.2 c.suit])
+  · subst hc
+    obtain ⟨a₀, hh, hcp, hrunne, hs⟩ := step_tabToTab_inv hx
+    have hyhold : y.pileHolding c = some a₀ :=
+      (hcPileHolding hb c).symm.trans hh
+    have hycp : y.canPlace c b = true :=
+      (hcCanPlace hb c b).symm.trans hcp
+    have hyfc : fromCard c ((y.piles a₀).faceUp)
+        = fromCard c ((x.piles a₀).faceUp) := by
+      rw [faceUp_congr hb a₀]
+    cases hxr : fromCard c ((x.piles a₀).faceUp) with
+    | nil => rw [hxr] at hrunne; exact absurd hrunne (by simp)
+    | cons r rr =>
+        rw [hxr] at hs
+        refine ⟨(y.setPile a₀
+            (Pile.afterRunRemoved (y.piles a₀)
+              (below c (y.piles a₀).faceUp))).putRun (r :: rr) b, ?_, ?_⟩
+        · exact step_tabToTab_succ (st := y) (c := c) (b := b) (a := a₀)
+            (r := r) (rr := rr) hyhold hycp (hyfc.trans hxr)
+        · constructor
+          · have hpa : x.piles a₀ = y.piles a₀ := congrFun hb.1 a₀
+            have hpile2 : (x.setPile a₀
+                (Pile.afterRunRemoved (x.piles a₀)
+                  (below c (x.piles a₀).faceUp))).piles
+                = (y.setPile a₀
+                  (Pile.afterRunRemoved (y.piles a₀)
+                    (below c (y.piles a₀).faceUp))).piles := by
+              funext a'
+              exact setPile_piles_aux hb.1 a₀
+                (Pile.afterRunRemoved (x.piles a₀)
+                  (below c (x.piles a₀).faceUp))
+                (Pile.afterRunRemoved (y.piles a₀)
+                  (below c (y.piles a₀).faceUp))
+                (by rw [hpa]) a'
+            funext a'
+            rw [hs]
+            show (((x.setPile a₀
+                (Pile.afterRunRemoved (x.piles a₀)
+                  (below c (x.piles a₀).faceUp))).putRun (r :: rr) b).piles a')
+              = (((y.setPile a₀
+                  (Pile.afterRunRemoved (y.piles a₀)
+                    (below c (y.piles a₀).faceUp))).putRun (r :: rr)
+                      b).piles a')
+            cases b with
+            | inl n =>
+                rw [putRun_eq_inl, putRun_eq_inl]
+                exact setPile_piles_aux hpile2 n (⟨[], r :: rr⟩ : Pile)
+                  (⟨[], r :: rr⟩ : Pile) rfl a'
+            | inr z =>
+                cases hzz : (x.setPile a₀
+                    (Pile.afterRunRemoved (x.piles a₀)
+                      (below c (x.piles a₀).faceUp))).pileOfTop z with
+                | none =>
+                    rw [putRun_inr_none hzz,
+                      putRun_inr_none
+                        ((pileOfTop_congr z (Eq.symm hpile2)).trans hzz)]
+                    exact congrFun hpile2 a'
+                | some k =>
+                    rw [putRun_inr_eq hzz,
+                      putRun_inr_eq
+                        ((pileOfTop_congr z (Eq.symm hpile2)).trans hzz)]
+                    exact setPile_piles_aux hpile2 k _ _ (by rw [hpile2]) a'
+          · rw [hs, putRunFound_keep, putRunFound_keep]
+            exact hb.2
 
-/-- **THE BOARD-PLAY CONGRUENCE** (named residue) — THE KEY FACT of
-the draw commutation: a board-only play runs identically from both
-ends of a `boardEq` pair, lands its `boardEq` image, and leaves each
-side's two-zone cycle untouched (the flat clauses) — the zone-blind
-half of the replay.  ROUTE: `State.run_cons` induction over the legs
-with `step_congr_board`; the flat clauses are the step records' field
-pass-throughs. -/
+/-! ### The zone-keep kit (private, per-file) -/
+
+private theorem putCardZone_keep (x : State) (c : Card) (b : Base) :
+    (x.putCard c b).stock = x.stock ∧ (x.putCard c b).waste = x.waste ∧
+    (x.putCard c b).drawStep = x.drawStep := by
+  cases b with
+  | inl n => exact ⟨rfl, rfl, rfl⟩
+  | inr z =>
+      simp only [State.putCard]
+      split <;> exact ⟨rfl, rfl, rfl⟩
+
+private theorem putRunZone_keep (x : State) (run : List Card) (b : Base) :
+    (x.putRun run b).stock = x.stock ∧ (x.putRun run b).waste = x.waste ∧
+    (x.putRun run b).drawStep = x.drawStep := by
+  cases b with
+  | inl n => exact ⟨rfl, rfl, rfl⟩
+  | inr z =>
+      simp only [State.putRun]
+      split <;> exact ⟨rfl, rfl, rfl⟩
+
+private theorem setFound_zone_keep (x : State) (s : Suit) (l : List Card) :
+    (x.setFound s l).stock = x.stock ∧ (x.setFound s l).waste = x.waste ∧
+    (x.setFound s l).drawStep = x.drawStep := ⟨rfl, rfl, rfl⟩
+
+private theorem step_board_zone_keep {x x' : State} {m : Move}
+    (hboard : boardMove m) (hx : State.step x m = some x') :
+    x'.stock = x.stock ∧ x'.waste = x.waste ∧ x'.drawStep = x.drawStep := by
+  obtain ⟨c, hc⟩ | ⟨c, b, hc⟩ | ⟨c, b, hc⟩ := hboard
+  · subst hc
+    obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv hx
+    rw [hs]
+    exact setFound_zone_keep x c.suit (x.found c.suit ++ [c])
+  · subst hc
+    obtain ⟨c₀, htop, hc₀c, hcp, hs⟩ := step_foundToTab_inv hx
+    rw [hs]
+    exact ⟨(putCardZone_keep _ c b).1.trans
+      (setFound_zone_keep x c.suit (chop (x.found c.suit))).1,
+      (putCardZone_keep _ c b).2.1.trans
+      (setFound_zone_keep x c.suit (chop (x.found c.suit))).2.1,
+      (putCardZone_keep _ c b).2.2.trans
+      (setFound_zone_keep x c.suit (chop (x.found c.suit))).2.2⟩
+  · subst hc
+    obtain ⟨a₀, hh0, hcp0, hrn0, hsz⟩ := step_tabToTab_inv hx
+    rw [hsz]
+    exact ⟨(putRunZone_keep _ _ b).1, (putRunZone_keep _ _ b).2.1,
+      (putRunZone_keep _ _ b).2.2⟩
+
+/-- **THE BOARD-PLAY CONGRUENCE** — THE KEY FACT of the draw
+commutation: a board-only play runs identically from both ends of a
+`boardEq` pair, lands its `boardEq` image, and leaves each side's
+two-zone cycle untouched (the flat clauses) — the zone-blind half of
+the replay. -/
 theorem board_run_congr : ∀ (π : List Move),
     (∀ m ∈ π, boardMove m) →
     ∀ (x y : State), boardEq x y →
@@ -2633,56 +2827,135 @@ theorem board_run_congr : ∀ (π : List Move),
     ∃ w, State.run y π = some w ∧ boardEq z w ∧
       z.stock = x.stock ∧ z.waste = x.waste ∧ z.drawStep = x.drawStep ∧
       w.stock = y.stock ∧ w.waste = y.waste ∧ w.drawStep = y.drawStep := by
-  sorry
+  intro π
+  induction π with
+  | nil =>
+      intro hπ x y hb z h
+      injection h with hz
+      subst z
+      exact ⟨y, rfl, hb, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  | cons m rest ih =>
+      intro hπ x y hb z h
+      obtain ⟨x₁, hm, hrest⟩ := State.run_cons h
+      obtain ⟨y₁, hmy, hby₁⟩ := step_congr_board hb (hπ m (by simp)) hm
+      obtain ⟨q, hq, hbq, hzs1, hzs2, hzs3, hq1, hq2, hq3⟩ :=
+        ih (fun mm hmm => hπ mm (by simp [hmm])) x₁ y₁ hby₁ z hrest
+      obtain ⟨kz1, kz2, kz3⟩ := step_board_zone_keep (hπ m (by simp)) hm
+      obtain ⟨kw1, kw2, kw3⟩ := step_board_zone_keep (hπ m (by simp)) hmy
+      refine ⟨q, ?_, hbq, hzs1.trans kz1, hzs2.trans kz2, hzs3.trans kz3,
+        hq1.trans kw1, hq2.trans kw2, hq3.trans kw3⟩
+      show (match State.step y m with
+        | some st' => st'.run rest
+        | none => none) = some q
+      rw [hmy]
+      exact hq
 
-/-- **THE DRAW-COMMUTATION REACH** (named residue — the (A) case, the
-phase-exactness claim): let `ρ` be a witness play with NO draw leg
-(the waste letters never ride anyway, by `witness_leg_letters`), let
-`u₀`'s draw succeed into `w₀` and `u`'s draw succeed into `w`.  Then
-`w₀` runs the SAME play `ρ` and lands exactly ON `w` — the dashed
-thread reaches the dashed landing: the slab duplicate's commit target
-holds with PHASE EXACTNESS, not merely up to class.
+/-! ### The draw-zone determination (private kit, over the banked
+`Play.lean` draw readers and `Phase.lean`'s `plain_draw_shape` /
+`base_draw_shape`) -/
 
-ROUTE (complete; each step priced):
-1. ρ's legs are board letters: `witness_leg_letters` per leg (each
-   leg's `hrev` comes from the `ShufflePlayW` structure) plus the
-   hypothesis that no leg is `Move.draw`.
-2. `boardEq u₀ w₀`: the draw writes no board field
-   (`stepDraw_piles` / `stepDraw_found`, banked).
-3. `board_run_congr` at `(u₀, w₀, ρ, u)`: the dashed run `w₀.run ρ`
-   lands some `W` with `boardEq u W` and `W`'s zone flat at `w₀`'s.
-4. The zone chase: `u`'s zone equals `u₀`'s (the flat clause of
-   step 3 at the `boardEq u₀ u₀` instance — `u₀.run ρ` flats both
-   ends), hence the two draws — from `u₀` and from `u` — compute the
-   same `dealStock .recycle` expressions (their `(stock, waste,
-   drawStep)` arguments agree), so `w₀`'s zone fields equal `w`'s;
-   with the board fields of `W` matching `u`'s (step 3) and the
-   draw's board pass-throughs (`w.piles = u.piles`, `w.found =
-   u.found`), all five fields of `W` and `w` agree — `State.ext`.
-5. The landing is `some w` by step 4's equality. -/
+private theorem draw_zone_det {x xd y yd : State}
+    (hz : x.stock = y.stock ∧ x.waste = y.waste ∧ x.drawStep = y.drawStep)
+    (hx : State.step x Move.draw = some xd)
+    (hy : State.step y Move.draw = some yd) :
+    xd.stock = yd.stock ∧ xd.waste = yd.waste ∧ xd.drawStep = yd.drawStep := by
+  have hss := hz.1
+  have hws := hz.2.1
+  have hds := hz.2.2
+  have hx' : State.stepDraw x = some xd := hx
+  have hy' : State.stepDraw y = some yd := hy
+  cases hst : x.stock with
+  | nil =>
+      have hsty0 : y.stock = ([] : List Card) := by rw [← hss, hst]
+      cases hwsx : x.waste with
+      | nil =>
+          exfalso
+          rw [show State.stepDraw x = State.dealStock x.recycle from rfl,
+            recycle_allEmpty x hst hwsx, dealStock_nil x hst] at hx'
+          exact absurd hx' (by simp)
+      | cons w ws =>
+          have hxw : x.waste ≠ [] := by rw [hwsx]; simp
+          have hyw : y.waste ≠ [] := by rw [← hws]; exact hxw
+          rw [base_draw_shape hst hxw] at hx'
+          rw [base_draw_shape hsty0 hyw] at hy'
+          injection hx' with hrx
+          injection hy' with hry
+          rw [← hrx, ← hry]
+          refine ⟨?_, ?_, ?_⟩
+          · show (x.waste.reverse.drop x.drawStep)
+              = (y.waste.reverse.drop y.drawStep)
+            rw [hws, hds]
+          · show ((x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card))
+              = ((y.waste.reverse.take y.drawStep).reverse ++ ([] : List Card))
+            rw [hws, hds]
+          · rw [show x.drawStep = y.drawStep from hds]
+  | cons s ss =>
+      have hxs : x.stock ≠ [] := by rw [hst]; simp
+      have hsty : y.stock ≠ [] := by rw [← hss]; exact hxs
+      rw [plain_draw_shape hxs] at hx'
+      rw [plain_draw_shape hsty] at hy'
+      injection hx' with hrx
+      injection hy' with hry
+      rw [← hrx, ← hry]
+      refine ⟨?_, ?_, ?_⟩
+      · show x.stock.drop x.drawStep = y.stock.drop y.drawStep
+        rw [hss, hds]
+      · show (x.stock.take x.drawStep).reverse ++ x.waste
+          = (y.stock.take y.drawStep).reverse ++ y.waste
+        rw [hss, hds, hws]
+      · rw [show x.drawStep = y.drawStep from hds]
+
+/-! ### The draw-free replay (the (A) case) -/
+
+private theorem witness_board_letters : ∀ (s : State) (π : List Move)
+    (s' : State), ShufflePlayW s π s' →
+    ∀ m ∈ π, m ≠ Move.draw → boardMove m := by
+  intro s π s' h
+  induction h with
+  | nil => intro m hm; exact absurd hm (by simp)
+  | @cons st m s₁ rest w hw hstep hrest ih =>
+      intro mm hm hne
+      rcases List.mem_cons.mp hm with heq | hmm
+      · rw [heq] at hne ⊢
+        obtain hd | hra | hpull | hcargo := witness_leg_letters hstep hw
+        · exact absurd hd hne
+        · exact Or.inl hra
+        · exact Or.inr (Or.inl hpull)
+        · exact Or.inr (Or.inr hcargo)
+      · exact ih mm hmm hne
+
+/-- **THE DRAW-COMMUTATION REACH** — the (A) phase-exactness claim:
+let `ρ` be a witness play with NO draw leg, let `u₀`'s draw succeed
+into `w₀` and `u`'s draw succeed into `w`.  Then `w₀` runs the SAME
+play `ρ` and lands exactly ON `w` — the dashed thread reaches the
+dashed landing: the slab duplicate's commit target holds with PHASE
+EXACTNESS, not merely up to class. -/
 theorem drawfree_commute_reach {u₀ u w₀ w : State} {ρ : List Move}
     (hρ : ShufflePlayW u₀ ρ u)
     (hnodraw : ∀ m ∈ ρ, m ≠ Move.draw)
     (hd₀ : State.step u₀ Move.draw = some w₀)
     (hdu : State.step u Move.draw = some w) :
     State.run w₀ ρ = some w := by
-  sorry
+  have hbrd : ∀ m ∈ ρ, boardMove m :=
+    fun m hm => witness_board_letters u₀ ρ u hρ m hm (hnodraw m hm)
+  have hb₀ : boardEq u₀ w₀ :=
+    ⟨(stepDraw_piles hd₀).symm, (stepDraw_found hd₀).symm⟩
+  obtain ⟨U, hU₁, hbU, hz1, hz2, hz3, hw1, hw2, hw3⟩ :=
+    board_run_congr ρ hbrd u₀ w₀ hb₀ u (ShufflePlayW_run hρ)
+  have hdet := draw_zone_det ⟨hz1.symm, hz2.symm, hz3.symm⟩ hd₀ hdu
+  have hUw : U = w := by
+    refine State.ext ?_ ?_ ?_ ?_ ?_
+    · exact (hbU.2).symm.trans (stepDraw_found hdu).symm
+    · exact (hbU.1).symm.trans (stepDraw_piles hdu).symm
+    · exact hw1.trans hdet.1
+    · exact hw2.trans hdet.2.1
+    · exact hw3.trans hdet.2.2
+  rw [hUw] at hU₁
+  exact hU₁
 
-/-- **THE WITNESS-GRADED DASHED REPLAY** (named residue) — the graded
-form of the reach: the dashed thread is again a witness shuffle (each
-dashed leg reversible at its own pre-state), so the slab duplicate's
-target is not merely reached but reached BY A WITNESS PLAY, giving
-`sameOrbitSetoid.r w₀ w` directly.  ROUTE: the home legs' return
-witnesses are board plays at WF states (per-leg one-move mirrors —
-the pulls' raises via `foundToTab_undo`'s WF-derivable premises, cf.
-`Orig/LowSlab.lean`'s `lowslab_pull_wf_undo` route; the raises'
-`tabToFound_undo_under` / `tabToFound_undo_bare`, banked; the cargo
-letters' one-move mirrors — the seated slide back onto the exposed
-below-card, and the `inl` king-run mirror — both are §5's `putRun`
-reads run backwards, with the search pinning by WF uniqueness as in
-`tabToTab_search_pins`), and `board_run_congr` translates each
-mirror into the dashed thread's return; WF descends through
-`step_wf`. -/
+/-- **THE WITNESS-GRADED DASHED REPLAY** — the graded form of the
+reach (the per-leg mirrors are the banked one-move undos: raise↔pull
+seats via `foundToTab` shapes, cargo mirrors the §5 putRun reads). -/
 theorem drawfree_commute_witness {u₀ u w₀ w : State} {ρ : List Move}
     (_hwf : u₀.WF)
     (hρ : ShufflePlayW u₀ ρ u)
@@ -2691,65 +2964,203 @@ theorem drawfree_commute_witness {u₀ u w₀ w : State} {ρ : List Move}
     (hdu : State.step u Move.draw = some w) :
     State.run w₀ ρ = some w :=
   drawfree_commute_reach hρ hnodraw hd₀ hdu
+/-! ### §9.3 THE (B) ASSEMBLY — the chain scaffold, the class weld, the leg hop
 
-/-- **THE INTERLEAVE PHASE QUESTION — THE (B) CASE** (named residue,
-the draw-kind's live falsification channel).  A witness journey whose
-RETURN half contains witness-graded DRAW legs (they exist at empty
-stocks — the recycle-and-deal cycle, `Orig/Phase.lean`'s
-draw-irreversibility bank's reversible arm) does NOT commute with the
-dashed thread for free: the dashed thread's zone sits at a different
-cycle phase, and the draws read the zone.  The honest question: does
-the elevated member's committed draw target match, up to
-`sameOrbitSetoid`, a slab member's dashed commit — do the classes
-ALIGN, or merely ROTATE?
+The mate connection `r u₀ u` unpacks to a witness journey `u₀ ⇝ u`
+whose every leg is a reversible single move (the witness alphabet;
+board legs zone-blind, draw legs on the phase line); the (B)
+conclusion then reduces, leg by leg, to the single hop: conjugating
+the outcome draw past ONE reversible leg.  `chain_assembly` below
+(closed) turns the per-hop certificate — now closed
+(`interleave_leg_conjugation`) — into the whole theorem.  The hop's
+route is the CLASS-WELD recipe, not the per-letter mirror kit its
+old docstring planned: (1) the leg pair is one macro class
+(`class_leg`, off the round-trip engine `shuffleW_of_round` — the
+leg plus its returning play splice into the two witness shuffles);
+(2) the outcome draw fires at the leg's landing too (board letters
+keep every two-zone cell, `step_board_zone_keep`; the draw letter's
+landing IS the outcome-draw image, and `stepDraw_cycle` keeps the
+count — either way `x`'s firing pins the positive cycle count
+through); (3) the two dashed landings are class-mates via the banked
+draw push (`draw_landings_sameOrbit`, `Orig/EdgeLabel.lean` — the
+interleave's whole phase content, the pool-rotation arithmetic,
+landed there at full grade, ungated, `[propext, Quot.sound]`).  The
+probe evidence (`Orig/PhaseClipProbe.lean`'s `pb_huntLedger`:
+aligned crossings commute, committed sites lose their legs —
+`pb_commit_no_leg`) stays as the falsification negative: no probe
+board ever separated the dashes, and none ever needed to.
+-/
 
-ROUTE (priced, refuter-first):
-1. The cycle census bank (`Orig/SlabEquiv.lean`'s `cycle_zone_pin`,
-   [propext, Quot.sound]) and this file's §7 telemetry give the
-   bookkeeping: along a witness journey, draw legs change ONLY the
-   zone pair (`State.dealUpTo` take/drop; total zone length
-   conserved — the conservation is the draw's own record), so the
-   phase shift each draw induces is a rotation of a fixed-size
-   cycle.
-2. The phase-alignment candidate: each witness-graded draw shifts
-   the zone deterministically (deal `min drawStep |stock|` cards,
-   `dealUpTo_min`-style counts — Orig/Canonical.lean holds private
-   copies); the conjugating-player question is whether a
-   normalizing run of draws (drawing the stock down past a recycle)
-   realigns the dashed phase — the alignment holds iff the class's
-   return witnesses' combined rotation absorbs `u₀`'s phase offset
-   into `u`'s (in fact `u₀`'s zone equals `u`'s along board
-   replays: §9.1's flat clauses; the OFFSET ONLY ARISES FROM DRAW
-   LEGS INSIDE THE CLASS's OWN WITNESSES).
-3. THE FALSIFICATION SHAPE (the probe boards' target): a WF board-eq
-   pair whose class return witnesses must contain draw legs at
-   phases where the dashed stock CLIPS but the home deal does not —
-   probe economies with `drawStep` large and stock lengths
-   straddling the `drawStep` threshold at the commit points:
-   `u₀.drawStep = 4`, `u₀.stock` of length 2 against a class whose
-   return needs the phase-3 drawing.  If the classes only ROTATE,
-   `sameOrbitSetoid.r w₀ w` FAILS while EVERY board census (§3–§7)
-   agrees — exactly the split the low-slab mission must expose to
-   the probes. -/
+/-- **THE CHAIN SCAFFOLD** — apparatus (closed): if each reversible
+leg of a witness journey conjugates the outcome draw (one hop at a
+time), then the whole mate connection conjugates it — the outcome
+draw's images at the journey's ends are class-mates. -/
+theorem chain_assembly
+    (hop : ∀ (x x' y : State) (m : Move),
+        State.step x m = some y → reversibleAtW x m →
+        State.step x Move.draw = some x' →
+        ∃ y', State.step y Move.draw = some y' ∧
+          sameOrbitSetoid.r x' y') :
+    ∀ (base : State) (τ : List Move) (target : State),
+      ShufflePlayW base τ target →
+      ∀ (base' target' : State),
+        State.step base Move.draw = some base' →
+        State.step target Move.draw = some target' →
+        sameOrbitSetoid.r base' target' := by
+  intro base τ target hjourney
+  induction hjourney with
+  | nil s₀ =>
+      intro base' target' hd₀ htarget
+      have hx : base' = target' :=
+        Option.some.inj (hd₀.symm.trans htarget)
+      rw [hx]
+      exact sameOrbitSetoid.iseqv.refl target'
+  | @cons s₀ m s₁ rest w hw hstep hrest ih =>
+      intro base' target' hd₀ htarget
+      obtain ⟨s₁', hfire₁, hclass₁⟩ :=
+        hop s₀ base' s₁ m hstep hw hd₀
+      exact sameOrbitSetoid.iseqv.trans hclass₁
+        (ih s₁' target' hfire₁ htarget)
+
+/-- **THE ROUND-TRIP ENGINE** (private per-file copy of the
+loop-closure row — `Orig.MacroInternal`'s battery keeps it private,
+`Orig.ForkStateUniq` re-lands it the same way; the component rows
+`State.run_cons`, `run_split`, `run_one` are public): a play from
+`x` landing at `w`, spliced with ANY play back from `w` to `x`, is a
+witness shuffle `x ⇝ w` — each leg's returning witness is the rest
+of the play plus the return. -/
+private theorem shuffleW_of_round : ∀ (σ : List Move) (x w : State),
+    x.run σ = some w → ∀ ρ : List Move, w.run ρ = some x →
+      ShufflePlayW x σ w := by
+  intro σ
+  induction σ with
+  | nil =>
+      intro x w hσ ρ hρ
+      have hxw : some x = some w := hσ
+      injection hxw with hx
+      rw [hx]
+      exact .nil w
+  | cons p rest ih =>
+      intro x w hσ ρ hρ
+      obtain ⟨y, hp, hrest⟩ := State.run_cons hσ
+      refine .cons ⟨y, rest ++ ρ, hp, run_split rest y w ρ x hrest hρ⟩ hp ?_
+      exact ih y w hrest (ρ ++ [p]) (run_split ρ w x [p] y hρ (run_one hp))
+
+/-- **THE CLASS WELD OF A REVERSIBLE LEG** (private per-file copy of
+`Orig.ForkStateUniq`'s same-named private row): a reversible leg
+stays within the macro class — the forward witness is the one-move
+leg itself, the backward witness is the returning play re-certified
+by the round-trip engine (the setoid's `r` runs reversed, so the
+`RevEqW` witness pair is fed with its arguments swapped). -/
+private theorem class_leg {st s₁ : State} {m : Move}
+    (hrev : reversibleAtW st m) (hstep : State.step st m = some s₁) :
+    sameOrbitSetoid.r st s₁ := by
+  obtain ⟨s₁', play, hstep', hrun⟩ := hrev
+  have hs : s₁' = s₁ := Option.some.inj (hstep'.symm.trans hstep)
+  rw [hs] at hrun
+  show RevEqW s₁ st
+  exact ⟨play, shuffleW_of_round play s₁ st hrun [m] (run_one hstep),
+    [m], .cons ⟨s₁, play, hstep, hrun⟩ hstep (.nil s₁)⟩
+
+/-- The outcome draw fires at a BOARD leg's landing: the letter
+writes no two-zone cell, so the origin's positive cycle-count pin
+transfers. -/
+private theorem boardDrawFires {x y : State} {m : Move}
+    (hboard : boardMove m) (hstep : State.step x m = some y)
+    (hpos : 0 < cycleCount x) : ∃ w, State.stepDraw y = some w := by
+  have hz := step_board_zone_keep hboard hstep
+  exact EdgeKit.stepDraw_of_pos_cycleCount
+    (by rw [cycleCount_eq_of_stock_waste hz.1 hz.2.1]; exact hpos)
+
+/-- **THE LEG-CONJUGATION ROW — LANDED** — the isolated hop, closed:
+conjugating the outcome draw past one reversible witness leg.  The
+route is the CLASS-WELD recipe, priced at the letters only through
+the cycle-count arithmetic:
+
+* THE CLASS WELD — the leg pair `(x, y)` is one macro class
+  (`class_leg`): the reversible leg plus its returning play splice
+  into the two `RevEqW` witness shuffles.
+* THE DASHED FIRING — the outcome draw fires at the leg's landing
+  too: a board letter (raise / pull / cargo) keeps every two-zone
+  cell (`step_board_zone_keep`, so `cycleCount_eq_of_stock_waste`
+  transfers `x`'s positive pin through), and the draw letter's own
+  landing IS the outcome-draw image, where `stepDraw_cycle` keeps
+  the count — either way `stepDraw_of_pos_cycleCount` hands the
+  dashed landing its own image.
+* THE MATE WELD — the two dashed landings are class-mates by the
+  banked draw push (`draw_landings_sameOrbit`,
+  `Orig/EdgeLabel.lean`: the interleave's phase content — the inPhase
+  rotate arithmetic the residue's old route priced as `[M]` — landed
+  there at full grade, board legs across the square, draw legs
+  through the pool-rotation push).
+* Waste letters never ride (`witness_leg_letters`).  The per-letter
+  one-move mirror kit this docstring once planned is superseded: no
+  mirrors are needed once the leg pair is a class and the draw push
+  is banked. -/
+theorem interleave_leg_conjugation (x x' y : State) (m : Move)
+    (hstep : State.step x m = some y) (hrev : reversibleAtW x m)
+    (hfire : State.step x Move.draw = some x') :
+    ∃ y', State.step y Move.draw = some y' ∧
+      sameOrbitSetoid.r x' y' := by
+  have hd : State.stepDraw x = some x' := hfire
+  have hcls : sameOrbitSetoid.r x y := class_leg hrev hstep
+  have hpos : 0 < cycleCount x := EdgeKit.stepDraw_pos_cycleCount hd
+  have hexist : ∃ w, State.stepDraw y = some w := by
+    obtain hmw | ⟨c, hc⟩ | ⟨c, b, hc⟩ | ⟨c, b, hc⟩ :=
+      witness_leg_letters hstep hrev
+    · subst hmw
+      have h2 : State.stepDraw x = some y := hstep
+      have hyx : y = x' := Option.some.inj (h2.symm.trans hd)
+      rw [hyx]
+      exact EdgeKit.stepDraw_of_pos_cycleCount
+        (by rw [stepDraw_cycle hd]; exact hpos)
+    · subst hc
+      exact boardDrawFires (Or.inl ⟨c, rfl⟩) hstep hpos
+    · subst hc
+      exact boardDrawFires (Or.inr (Or.inl ⟨c, b, rfl⟩)) hstep hpos
+    · subst hc
+      exact boardDrawFires (Or.inr (Or.inr ⟨c, b, rfl⟩)) hstep hpos
+  obtain ⟨y', hdy⟩ := hexist
+  exact ⟨y', hdy, Quotient.exact
+    (draw_landings_sameOrbit (Quotient.sound hcls) hd hdy)⟩
+
+/-- **THE INTERLEAVE PHASE QUESTION — THE (B) CASE, CLOSED.**  The
+probe hunt (`pb_huntLedger`: aligned crossings commute, committed
+sites lose their reversible legs, the clipping-vs-full differential
+never separated mates) was the falsification negative; the row's
+positive content landed through the class weld: the mate connection
+reduces leg-by-leg to the conjugation hop (`chain_assembly`), and
+the hop — `interleave_leg_conjugation`, zero sorry — puts the leg
+pair inside the macro class and hands the two dashed landings to
+the banked draw push, so this row rides the closed scaffold with
+zero own content below the assembly.  Statement unchanged for the
+LowSlab import (the (B)-carry heals transitively: the sibling's
+sorryAx tail is gone). -/
 theorem interleave_phase_align {u₀ u w₀ w : State}
-    (hwf₀ : u₀.WF)
+    (_hwf₀ : u₀.WF)
     (hclass : sameOrbitSetoid.r u₀ u)
     (hd₀ : State.step u₀ Move.draw = some w₀)
     (hdu : State.step u Move.draw = some w) :
     sameOrbitSetoid.r w₀ w := by
-  sorry
-
+  obtain ⟨ρ, hρ⟩ := sameOrbit_forward hclass
+  exact chain_assembly interleave_leg_conjugation u₀ ρ u hρ w₀ w
+    hd₀ hdu
 /-! ### §9.2 The audit additions
 
-The guard congruence kit and the two record-equality helpers are
-zero-sorry; the four §9.1 statements are this section's named
-residues and carry the file's sorries.  Zero `Classical.choice`
-throughout. -/
+`step_congr_board`, `board_run_congr`, `drawfree_commute_reach`,
+`drawfree_commute_witness`, `chain_assembly` and
+`interleave_leg_conjugation` are zero-sorry; the guard congruence
+kit, the zone-keep kit and the class-weld kit (the round-trip
+engine, the leg weld, the dashed-firing transfer) are private and
+axiom-clean; `interleave_phase_align` rides the closed scaffold
+with zero own content.  Zero `Classical.choice` throughout.
+-/
 
-#print axioms setFound_found_eq
-#print axioms setPile_piles_aux
+
 #print axioms step_congr_board
 #print axioms board_run_congr
 #print axioms drawfree_commute_reach
 #print axioms drawfree_commute_witness
+#print axioms chain_assembly
+#print axioms interleave_leg_conjugation
 #print axioms interleave_phase_align

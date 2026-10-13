@@ -1801,84 +1801,42 @@ private theorem origin_foundedCover_belowPull {st₁ st₂ : State}
       refine ⟨w, Sum.inr zt, zt, kk, chop (u.piles kk).faceUp, π, ρ, u, v,
         hws, ?_, hpre, hstep, hrev, hpost, hshapev, hpot, hzrk.symm, hzc, hru, hrv⟩
       omega
-set_option linter.unusedVariables false in
-/-- **THE FOUNDED-COVER POLLUTION CRASH** — §3.5's terminal row, LANDED
-ZERO-SORRY as THE ORIGIN-ANCHORED CENSUS CRASH (the nil census's landed
-route, promoted to the composition head; the mint never enters).  The
+
+namespace ForkKit
+
+/-- **THE NEXT-UP EXILE CRASH** (the Phase B consolidation: the
+composition-head kill promoted to its own citable row).  At any two WF
+states joined by a witness shuffle, a fork `y` at the landing, and a
+cover card `d` — one rank below the fork, off the fork's color, its
+suit's rung past `d`'s index at the origin (`hsq1`) and two under it
+at the terminus (`hsq2`) — there is NO SUCH JOURNEY.  ROUTE: the
 d-suit HOT CARD at the terminus's own rung — `T := Card.mk d.suit
 (lockRk (rungAt st₂ d.suit))`, hot by definition there
-(`pollutesCrash_landing_live`: its rank index IS the terminus's d-rung),
-non-king and origin-height by `omega` over `hsq2`/`hsq1`/`hd` — was
-founded at the origin but is hot (never re-founded) at the terminus, so
-the successor-archaeology engine `pollutesCrash_terminalHot_Below`
-(the `lock_found_exit` exodus split, the fire-time bracket, the
-`reseat_pop` landing kit, the `Below_stable` suffix transport) ends it
-BELOW-SEATED at `st₂`; the seat fit (`lock_runOK_adjacent` +
+(`pollutesCrash_landing_live`: its rank index IS the terminus's
+d-rung), non-king and origin-height by `omega` over
+`hsq2`/`hsq1`/`hd` — was founded at the origin (the height bridge)
+but is hot (never re-founded) at the terminus, so the
+successor-archaeology engine `pollutesCrash_terminalHot_Below` (the
+`lock_found_exit` exodus split, the fire-time bracket, the
+`reseat_pop` landing kit, the `Below_stable` suffix transport) ends
+it BELOW-SEATED at `st₂`; the seat fit (`lock_runOK_adjacent` +
 `canSitOn_eq`) makes that below-neighbor FAMILY-colored
-(`lock_color_pair` against `hdcol`) and ranked strictly under the fork
-(`omega` over `hsq2`), the fork's own family rungs both pin at the pair
-rank (`canRaiseS_rung` off `hy`, the twin via `Card.twin_rank`), so the
-neighbor is foundation-resident (`mem_found_of_height`) while the Below
-seat reads it face-up (`mem_found_unique`) — `False`, MINT-SUIT
--AGNOSTIC, no chase and no twin datum anywhere.  The seed-side premises
-(`hpkg`, `hsq3`, `hpc1`, `hpc2`, the cover/lattice pack and the
-origin-fork rows) stay as the frozen scaffold's documented binders —
-the ρ-tail chase they once fed is RETIRED FROM THE TREE (deleted
-unconsumed with the cleanup pass; its covered-mint twin-top fork and
-its mover-local choice leak went with it, and no audited head
-references any of it). -/
-private theorem origin_foundedCover_pollutesCrash {st₁ st₂ : State}
-    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
-    {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
-    (hfam : y.suit = x.suit ∨ y.suit = x.twin.suit)
-    (hlt : y.rank.toIdx < x.rank.toIdx)
+(`lock_color_pair` against `hdcol`) and ranked strictly under the
+fork (`omega` over `hsq2`), the fork's own family rungs both pin at
+the pair rank (`canRaiseS_rung` off `hy`, the twin via
+`Card.twin_rank`), so the neighbor is foundation-resident
+(`mem_found_of_height`) while the Below seat reads it face-up
+(`mem_found_unique`) — `False`, mint-suit-agnostic: no chase, no
+twin datum, no census debt, anywhere.  Future endgames needing "the
+third cell is census-full" cite this row directly. -/
+theorem fork_nextUpExile_crash {st₁ st₂ : State} (hwf₁ : st₁.WF)
+    (hwf₂ : st₂.WF) {y : Card} (hy : ForkWitness st₂ y)
     {play : List Move} (hplay : ShufflePlayW st₁ play st₂)
-    (d : Card)
-    (hd : d.rank.toIdx + 1 = y.rank.toIdx)
+    {d : Card} (hd : d.rank.toIdx + 1 = y.rank.toIdx)
     (hdcol : d.suit.color ≠ y.suit.color)
-    (hdcover : ∃ c bsC, (st₂.piles c).faceUp = bsC ++ [y.twin, d] ∧
-      st₂.pileOfTop d = some c)
-    (hnext : st₂.nextUp d = false)
-    (hlattice : ∀ z, st₂.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin)
-    (hdfound : d ∈ st₁.found d.suit)
     (hsq1 : d.rank.toIdx + 1 ≤ rungAt st₁ d.suit)
-    (hsq2 : rungAt st₂ d.suit + 2 ≤ d.rank.toIdx + 1)
-    (hsq3 : raisesOf play d.suit + 2 ≤ pullsOf play d.suit)
-    (hpc1 : raisesOf play y.suit + (x.rank.toIdx - y.rank.toIdx)
-      ≤ pullsOf play y.suit)
-    (hpc2 : raisesOf play y.twin.suit + (x.rank.toIdx - y.rank.toIdx)
-      ≤ pullsOf play y.twin.suit)
-    (hpkg : ∃ (w : Card) (b : Base) (zt : Card) (kk : Anchor) (bs : List Card)
-        (π ρ : List Move) (u v : State),
-      w.suit = d.suit ∧
-        w.rank.toIdx + 2 ≤ d.rank.toIdx + 1 ∧
-        ShufflePlayW st₁ π u ∧
-        State.step u (Move.foundToTab w b) = some v ∧
-        reversibleAtW u (Move.foundToTab w b) ∧
-        ShufflePlayW v ρ st₂ ∧
-        (v.piles kk).faceUp = bs ++ [zt, w] ∧
-        v.pileOfTop w = some kk ∧
-        zt.rank.toIdx = w.rank.toIdx + 1 ∧
-        zt.suit.color = y.suit.color ∧
-        rungAt u w.suit = w.rank.toIdx + 1 ∧
-        rungAt v w.suit = w.rank.toIdx) :
+    (hsq2 : rungAt st₂ d.suit + 2 ≤ d.rank.toIdx + 1) :
     False := by
-  -- THE ORIGIN-ANCHORED CENSUS CRASH, at the composition head (the nil
-  -- census's landed route with s₀ = st₂ and o = st₁): the d-suit hot
-  -- card at the terminus's own rung rides the archaeology engine to a
-  -- Below seat whose neighbor the family census has founded.  The
-  -- frozen scaffold's remaining binders (the seed `hpkg`, the
-  -- migration counts, the cover/lattice pack) are the set_option
-  -- silenced documented package — nothing of them enters the proof's
-  -- content, but the two ∃-shaped ones are DESTRUCTURED FIRST all the
-  -- same: a bare `omega` facing a live ∃ premise instantiates it with
-  -- `Classical.choice` (the farm's choice-noose lesson; this head's
-  -- own battery caught the door once when the destructure was
-  -- dropped), so every omega below runs over consumed premises only.
-  obtain ⟨_w, _b, _zt, _kk, _bs, _π, _ρ, _u, _v, _hw, _hrk, _hshpi,
-      _hstep, _hrev, _hrho, _htop, _hhold, _hzrk, _hzcol, _hu1,
-      _hv1⟩ := hpkg
-  obtain ⟨_hc, _bsC, _hshapeC, _hpodC⟩ := hdcover
   have hfam13 : y.rank.toIdx < 13 := Rank.toIdx_lt y.rank
   have hk13 : rungAt st₂ d.suit < 13 := by omega
   -- the d-suit hot card at the terminus's own rung (its hotness is
@@ -1944,6 +1902,67 @@ private theorem origin_foundedCover_pollutesCrash {st₁ st₂ : State}
     exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inl rfl)))
   obtain ⟨hh, _hS, _hW, _⟩ := mem_found_unique hwf₂ hbmem
   exact absurd hbface (hh a).2
+
+end ForkKit
+
+set_option linter.unusedVariables false in
+/-- **THE FOUNDED-COVER POLLUTION CRASH** — §3.5's terminal row, LANDED
+ZERO-SORRY as THE ORIGIN-ANCHORED CENSUS CRASH (the nil census's landed
+route, promoted to the composition head; the mint never enters), and
+CONSOLIDATED at Phase B into the citable public row
+`ForkKit.fork_nextUpExile_crash` directly above — its docstring carries
+the full route (the d-suit hot card at the terminus's own rung,
+Below-seated by the archaeology engine, its fit-neighbor family-colored
+strictly under the fork's pinned family rungs — foundation-resident
+against the Below face-up read; mint-suit-agnostic, no chase, no twin
+datum).  The seed-side premises (`hpkg`, `hsq3`, `hpc1`, `hpc2`, the
+cover/lattice pack and the origin-fork rows) stay as the frozen
+scaffold's documented binders — the ρ-tail chase they once fed is
+RETIRED FROM THE TREE (deleted unconsumed with the cleanup pass; its
+covered-mint twin-top fork and its mover-local choice leak went with
+it, and no audited head references any of it). -/
+private theorem origin_foundedCover_pollutesCrash {st₁ st₂ : State}
+    (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
+    {x y : Card} (hx : ForkWitness st₁ x) (hy : ForkWitness st₂ y)
+    (hfam : y.suit = x.suit ∨ y.suit = x.twin.suit)
+    (hlt : y.rank.toIdx < x.rank.toIdx)
+    {play : List Move} (hplay : ShufflePlayW st₁ play st₂)
+    (d : Card)
+    (hd : d.rank.toIdx + 1 = y.rank.toIdx)
+    (hdcol : d.suit.color ≠ y.suit.color)
+    (hdcover : ∃ c bsC, (st₂.piles c).faceUp = bsC ++ [y.twin, d] ∧
+      st₂.pileOfTop d = some c)
+    (hnext : st₂.nextUp d = false)
+    (hlattice : ∀ z, st₂.canPlace d (Sum.inr z) = true → z = y ∨ z = y.twin)
+    (hdfound : d ∈ st₁.found d.suit)
+    (hsq1 : d.rank.toIdx + 1 ≤ rungAt st₁ d.suit)
+    (hsq2 : rungAt st₂ d.suit + 2 ≤ d.rank.toIdx + 1)
+    (hsq3 : raisesOf play d.suit + 2 ≤ pullsOf play d.suit)
+    (hpc1 : raisesOf play y.suit + (x.rank.toIdx - y.rank.toIdx)
+      ≤ pullsOf play y.suit)
+    (hpc2 : raisesOf play y.twin.suit + (x.rank.toIdx - y.rank.toIdx)
+      ≤ pullsOf play y.twin.suit)
+    (hpkg : ∃ (w : Card) (b : Base) (zt : Card) (kk : Anchor) (bs : List Card)
+        (π ρ : List Move) (u v : State),
+      w.suit = d.suit ∧
+        w.rank.toIdx + 2 ≤ d.rank.toIdx + 1 ∧
+        ShufflePlayW st₁ π u ∧
+        State.step u (Move.foundToTab w b) = some v ∧
+        reversibleAtW u (Move.foundToTab w b) ∧
+        ShufflePlayW v ρ st₂ ∧
+        (v.piles kk).faceUp = bs ++ [zt, w] ∧
+        v.pileOfTop w = some kk ∧
+        zt.rank.toIdx = w.rank.toIdx + 1 ∧
+        zt.suit.color = y.suit.color ∧
+        rungAt u w.suit = w.rank.toIdx + 1 ∧
+        rungAt v w.suit = w.rank.toIdx) :
+    False := by
+  -- THE ORIGIN-ANCHORED CENSUS CRASH, consolidated (Phase B) into the
+  -- citable row above; the frozen scaffold's remaining binders (the
+  -- seed `hpkg`, the migration counts `hsq3`/`hpc1`/`hpc2`, the
+  -- cover/lattice pack, the origin-fork rows) are the set_option
+  -- silenced documented package — nothing of them enters the proof
+  exact ForkKit.fork_nextUpExile_crash hwf₁ hwf₂ hy hplay hd hdcol hsq1 hsq2
 
 /-- **THE FOUNDED-COVER CASE** — the composition row: the one
 origin-residency case of the cover `d` that §3's landed mechanism rows
@@ -2208,6 +2227,7 @@ mover's head `obtain` likewise). -/
 #print axioms origin_foundedCover_rungSqueeze
 #print axioms origin_foundedCover_belowPull
 #print axioms origin_foundedCover_pollutesCrash
+#print axioms ForkKit.fork_nextUpExile_crash
 #print axioms forkState_rankDrop_locked
 #print axioms forkState_family_rankFloor
 #print axioms forkState_family_pairClass
