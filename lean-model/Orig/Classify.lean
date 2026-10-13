@@ -1,5 +1,6 @@
 import Orig.Macro
 import Orig.Mono
+import Orig.FoundKit
 import Orig.Irreversible
 import Orig.Phase
 
@@ -554,33 +555,8 @@ private theorem drop_map_min {α β : Type} (f : α → β) : ∀ (l : List α) 
       | 0 => rfl
       | i' + 1 => exact ih i'
 
-/-- The rank of a zero-based index, tabulated by kernel
-computation. -/
-private def Rk : Nat → Rank
-  | 0 => .ace | 1 => .two | 2 => .three | 3 => .four | 4 => .five | 5 => .six
-  | 6 => .seven | 7 => .eight | 8 => .nine | 9 => .ten | 10 => .jack | 11 => .queen
-  | 12 => .king | _ => .ace
-
-private theorem Rk_toIdx : ∀ (k : Nat), k < 13 → (Rk k).toIdx = k := by
-  intro k hk
-  match k with
-  | 0 => rfl
-  | 1 => rfl
-  | 2 => rfl
-  | 3 => rfl
-  | 4 => rfl
-  | 5 => rfl
-  | 6 => rfl
-  | 7 => rfl
-  | 8 => rfl
-  | 9 => rfl
-  | 10 => rfl
-  | 11 => rfl
-  | 12 => rfl
-  | w + 13 => exact absurd hk (by omega)
-
 private theorem rank_all_drop_cons : ∀ (k : Nat), k < 13 →
-    Rank.all.drop k = Rk k :: Rank.all.drop (k + 1) := by
+    Rank.all.drop k = FoundKit.Rk k :: Rank.all.drop (k + 1) := by
   intro k hk
   match k with
   | 0 => rfl
@@ -600,11 +576,11 @@ private theorem rank_all_drop_cons : ∀ (k : Nat), k < 13 →
 
 /-- The suits' up-card lists drop by cons, kernel-computed. -/
 private theorem upCards_drop_cons (s : Suit) : ∀ (k : Nat), k < 13 →
-    s.upCards.drop k = Card.mk s (Rk k) :: s.upCards.drop (k + 1) := by
+    s.upCards.drop k = Card.mk s (FoundKit.Rk k) :: s.upCards.drop (k + 1) := by
   intro k hk
   have hd := rank_all_drop_cons k hk
   show (Rank.all.map (Card.mk s)).drop k
-      = Card.mk s (Rk k) :: (Rank.all.map (Card.mk s)).drop (k + 1)
+      = Card.mk s (FoundKit.Rk k) :: (Rank.all.map (Card.mk s)).drop (k + 1)
   have hrw2 : (Rank.all.map (Card.mk s)).drop (k + 1)
       = (Rank.all.drop (k + 1)).map (Card.mk s) :=
     drop_map_min (Card.mk s) Rank.all (k + 1)
@@ -614,7 +590,7 @@ private theorem upCards_drop_cons (s : Suit) : ∀ (k : Nat), k < 13 →
 /-- A take of the up-card list, taken `n` deep from offset `k`,
 ends at index `k + n - 1`. -/
 private theorem upCards_last_of_take (s : Suit) : ∀ (n k : Nat), n + k ≤ 13 → 0 < n →
-    lastOf ((s.upCards.drop k).take n) = some (Card.mk s (Rk (k + n - 1))) := by
+    lastOf ((s.upCards.drop k).take n) = some (Card.mk s (FoundKit.Rk (k + n - 1))) := by
   intro n
   induction n with
   | zero => intro k _ hn; omega
@@ -633,10 +609,10 @@ private theorem upCards_last_of_take (s : Suit) : ∀ (n k : Nat), n + k ≤ 13 
             have hd := List.length_drop (l := s.upCards) (i := k + 1)
             have h13 : s.upCards.length = 13 := Suit.upCards_length s
             omega
-          show lastOf (Card.mk s (Rk k) :: (s.upCards.drop (k + 1)).take (m' + 1)) =
-            some (Card.mk s (Rk (k + (m' + 1 + 1) - 1)))
+          show lastOf (Card.mk s (FoundKit.Rk k) :: (s.upCards.drop (k + 1)).take (m' + 1)) =
+            some (Card.mk s (FoundKit.Rk (k + (m' + 1 + 1) - 1)))
           rw [lastOf_cons_of_ne hne, hih]
-          refine congrArg (fun q => some (Card.mk s (Rk q))) (by omega)
+          refine congrArg (fun q => some (Card.mk s (FoundKit.Rk q))) (by omega)
 
 /-- The WF foundation arithmetic: a foundation's chop length is the
 rank index of its top card — the `hnext` premise of the
@@ -669,17 +645,17 @@ theorem wf_found_chop_toIdx {st : State} {s : Suit} {c : Card}
   have hz := upCards_last_of_take s ((st.found s).length) 0 (by omega) (by omega)
   rw [List.drop_zero, Nat.zero_add] at hz
   rw [← hN] at hz
-  have hEq : some c = some (Card.mk s (Rk ((st.found s).length - 1))) :=
+  have hEq : some c = some (Card.mk s (FoundKit.Rk ((st.found s).length - 1))) :=
     hlast.symm.trans hz
-  injection hEq with hRk
+  injection hEq with hFoundKit.Rk
   have hcl : (chop (st.found s)).length + 1 = (st.found s).length := by
     have hlc := congrArg List.length (lastOf_chop hlast)
     rw [List.length_append] at hlc
     have h1 : ([c] : List Card).length = 1 := rfl
     omega
-  rw [hRk]
-  show (chop (st.found s)).length = (Rk ((st.found s).length - 1)).toIdx
-  rw [Rk_toIdx ((st.found s).length - 1) (by omega)]
+  rw [hFoundKit.Rk]
+  show (chop (st.found s)).length = (FoundKit.Rk ((st.found s).length - 1)).toIdx
+  rw [FoundKit.Rk_toIdx ((st.found s).length - 1) (by omega)]
   omega
 
 /-! ## Search pins at successors -/
