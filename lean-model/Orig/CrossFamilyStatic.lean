@@ -15,12 +15,13 @@ need a legal seat at any pop EPOCH; it needs a seat at the END, and
 the far fork's saturation has already consumed every seat it could
 take.
 
-* The named residue **`cross_orphan_seat`** lives in
+* The orphan-seat row **`cross_orphan_seat`** lives in
   `Orig/OrphanSeat.lean` since the dedup-hoist (the upward door's
-  backward route in `Orig/PairConfine` consumes the same residue, and
-  this file's `Orig.PairConfine` import forbids the residue living
-  here); this card consumes it by import, statement byte-identical
-  to the original landing.
+  backward route in `Orig/PairConfine` consumes the same row, and
+  this file's `Orig.PairConfine` import forbids the row living
+  here); it is LANDED and proved `[propext, Quot.sound]` (the
+  2026-10-12 landing), and this card consumes it by import,
+  statement byte-identical to the original landing.
 * §1 **`cross_orphan_kill`** — THE STATIC KILL (proved): two
   separated-color forks joined by a witness shuffle, the second
   fork's cover suit reading at least TWO below `r₂` at the second
@@ -43,9 +44,12 @@ orders the class symmetry lets through (`r₂ ≤ r₁`), the orphan's
 below-cell sits strictly beneath the second fork's pinned stratum,
 and no census hypothesis is consulted.
 
-House compliance: additive leaf (`import Orig.PairConfine` only); fresh
-private kit copies per the dedup discipline; the one named residue
-carries its route in its docstring; every fresh head audited.
+House compliance: additive leaf (`import Orig.OrphanSeat` +
+`import Orig.PairConfine`); the take-position kit and the
+founded-membership bridge copies retired in the FoundKit dedup
+(PairConfine's public founding-height namespace), the fresh private
+copies reduced to the rank/color enumeration; every fresh head
+audited.
 -/
 
 /-! ## §0. The private kit (per-file copies, the house dedup discipline) -/
@@ -102,69 +106,7 @@ private theorem xstat_color_pair {a u v : Color} (h1 : a ≠ u) (h2 : a ≠ v) :
     u = v := by
   rcases a <;> rcases u <;> rcases v <;> simp_all
 
-/-! The take-position kit (the copies of `Orig/Dominance.lean`'s
-private helper and its converse, exactly as `Orig/CrossFamily.lean`'s
-§0 carried its own: the build order is the rank order, membership in
-a bounded take bounds the first-occurrence position). -/
-
-/-- The position of `x` in `l` (its first-occurrence index). -/
-private def xstat_posOf {α : Type} [DecidableEq α] (x : α) : List α → Nat
-  | [] => 0
-  | y :: t => if y = x then 0 else xstat_posOf x t + 1
-
-/-- Membership in a bounded take bounds the first-occurrence
-position. -/
-private theorem xstat_mem_take_pos {α : Type} [DecidableEq α] :
-    ∀ (n : Nat) (l : List α) (x : α), x ∈ l.take n → xstat_posOf x l < n := by
-  intro n
-  induction n with
-  | zero =>
-      intro l x hmem
-      simp [List.take] at hmem
-  | succ n ih =>
-      intro l x hmem
-      cases l with
-      | nil => simp [List.take] at hmem
-      | cons y t =>
-          rw [List.take_succ_cons] at hmem
-          by_cases hyx : y = x
-          · have hp : xstat_posOf x (y :: t) = 0 := by
-              show (if y = x then 0 else xstat_posOf x t + 1) = 0
-              rw [if_pos hyx]
-            omega
-          · have hp : xstat_posOf x (y :: t) = xstat_posOf x t + 1 := by
-              show (if y = x then 0 else xstat_posOf x t + 1) = _
-              rw [if_neg hyx]
-            have hmem' : x ∈ t.take n := by
-              rcases List.mem_cons.1 hmem with he | hrest
-              · exact absurd he.symm hyx
-              · exact hrest
-            have hlt := ih t x hmem'
-            omega
-
-/-- The build order is the rank order. -/
-private theorem xstat_posOf_upCards (σ : Suit) (r : Rank) :
-    xstat_posOf (Card.mk σ r) (Suit.upCards σ) = r.toIdx := by
-  cases σ <;> cases r <;> rfl
-
-/-- **THE FOUNDED-MEMBERSHIP BRIDGE** — a card on its own suit's
-foundation sits strictly below the foundation's top (the copy of
-`Orig/CrossFamily.lean`'s private `xfam_mem_found_rank_lt`: the
-founded prefix is the build order's take). -/
-private theorem xstat_mem_found_rank_lt {st : State} (hwf : st.WF) {d : Card}
-    (hmem : d ∈ st.found d.suit) :
-    d.rank.toIdx < rungAt st d.suit := by
-  rcases d with ⟨s, r⟩
-  have hmem' : Card.mk s r ∈ st.found s := hmem
-  have hpre := rung_found_prefix st hwf s
-  rw [hpre] at hmem'
-  have hpos : xstat_posOf (Card.mk s r) (Suit.upCards s) < rungAt st s :=
-    xstat_mem_take_pos _ _ _ hmem'
-  have hidx := xstat_posOf_upCards s r
-  show r.toIdx < rungAt st s
-  omega
-
-/-! ## §1. The static kill (the residue consumed by import) -/
+/-! ## §1. The static kill (the landed orphan-seat row consumed by import) -/
 
 /-- **THE ORPHAN KILL** — the cross-family interlock's static core.
 Two separated-color forks joined by one witness shuffle (`hcol`:
@@ -218,7 +160,7 @@ theorem cross_orphan_kill {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : st
   -- the orphan is EXILED from its foundation at the second fork
   have hout₁ : e ∉ st₂.found e.suit := by
     intro hcon
-    have hlt := xstat_mem_found_rank_lt hwf₂ hcon
+    have hlt := FoundKit.mem_found_rank_lt hwf₂ hcon
     rw [hesuit] at hlt
     omega
   -- the residue reads the end-state seat: a face-up pile a, a face-up
@@ -242,18 +184,16 @@ theorem cross_orphan_kill {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : st
 /-! ## The audit battery
 
 `#print axioms` per fresh head: the private kit rows (the rank
-enumeration, the color pair, the take-position copies, the
-founded-membership bridge) are zero-`sorry` and read
-`[propext, Quot.sound]`-grade (banked chain only); the named residue
-`cross_orphan_seat` carries this file's single `sorryAx`; the kill
-`cross_orphan_kill` inherits exactly that and NOTHING else — so each
-consuming corner of `Orig/CrossFamily.lean` trades its own research-
-grade chase for this one mechanical residue. -/
+enumeration, the color pair) plus the imported founding bridges are
+zero-`sorry` and read `[propext, Quot.sound]`-grade (banked chain
+only).  The take-position kit and the founded-membership bridge
+copies retired in the FoundKit dedup (PairConfine's public
+founding-height namespace); the orphan-seat row `cross_orphan_seat`
+is LANDED (`[propext, Quot.sound]`, the 2026-10-12 landing) and the
+kill `cross_orphan_kill` inherits NOTHING — so each consuming
+corner of `Orig/CrossFamily.lean` cites a fully proved static kill. -/
 
 #print axioms xstat_rank_of_idx
 #print axioms xstat_color_pair
-#print axioms xstat_mem_take_pos
-#print axioms xstat_posOf_upCards
-#print axioms xstat_mem_found_rank_lt
 #print axioms cross_orphan_seat
 #print axioms cross_orphan_kill

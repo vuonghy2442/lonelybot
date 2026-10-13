@@ -25,7 +25,7 @@ family.  The card's honest ladder:
   fork's cover (a rank-`(r−1)` card of the SECOND family) sits
   weakly below `r − 1` at the first fork and is foundation-resident —
   hence strictly above `r − 1` — at the second (the
-  founded-membership bridge, `xfam_mem_found_rank_lt`).
+  founded-membership bridge, `FoundKit.mem_found_rank_lt`).
 * §5 **`cross_cover_pull_pressure`** — THE JOURNEY CENSUS READ: the
   cover's home suit owes at least TWO MORE PULLS THAN RAISES along
   the class's forward witness shuffle (the banked `witness_rung_census`
@@ -186,75 +186,7 @@ theorem cross_cover_rung_drop {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ 
     exact absurd hnext (by simp)
   exact ⟨d₂, hdcol, hridx, hrung₁, by omega⟩
 
-/-! ## §4. The founded-membership bridge, and the reverse climb -/
-
-/-! The take-position kit (the copies of `Orig/Dominance.lean`'s
-private self-rolled helper and the converse of its `mem_take_of_pos`
-— the same induction, read the other way). -/
-
-/-- The position of `x` in `l` (its first-occurrence index; the copy
-of `Orig/Dominance.lean`'s private helper). -/
-private def xfam_posOf {α : Type} [DecidableEq α] (x : α) : List α → Nat
-  | [] => 0
-  | y :: t => if y = x then 0 else xfam_posOf x t + 1
-
-/-- Membership in a bounded take bounds the first-occurrence position
-(the converse of `Orig/Dominance.lean`'s private `mem_take_of_pos`,
-the same induction mirrored). -/
-private theorem xfam_mem_take_pos {α : Type} [DecidableEq α] :
-    ∀ (n : Nat) (l : List α) (x : α), x ∈ l.take n → xfam_posOf x l < n := by
-  intro n
-  induction n with
-  | zero =>
-      intro l x hmem
-      simp [List.take] at hmem
-  | succ n ih =>
-      intro l x hmem
-      cases l with
-      | nil => simp [List.take] at hmem
-      | cons y t =>
-          rw [List.take_succ_cons] at hmem
-          by_cases hyx : y = x
-          · have hp : xfam_posOf x (y :: t) = 0 := by
-              show (if y = x then 0 else xfam_posOf x t + 1) = 0
-              rw [if_pos hyx]
-            omega
-          · have hp : xfam_posOf x (y :: t) = xfam_posOf x t + 1 := by
-              show (if y = x then 0 else xfam_posOf x t + 1) = _
-              rw [if_neg hyx]
-            have hmem' : x ∈ t.take n := by
-              rcases List.mem_cons.1 hmem with he | hrest
-              · exact absurd he.symm hyx
-              · exact hrest
-            have hlt := ih t x hmem'
-            omega
-
-/-- The build order is the rank order (the copy of
-`Orig/Dominance.lean`'s private `posOf_upCards`). -/
-private theorem xfam_posOf_upCards (σ : Suit) (r : Rank) :
-    xfam_posOf (Card.mk σ r) (Suit.upCards σ) = r.toIdx := by
-  cases σ <;> cases r <;> rfl
-
-/-- **THE FOUNDED-MEMBERSHIP BRIDGE** — a card on its own suit's
-foundation sits strictly below the foundation's top: the founded
-prefix is the build order's take, so the card's build position (its
-rank index) is bounded by the take length (`xfam_mem_take_pos`), and
-the build position IS the rank index (`xfam_posOf_upCards`).  This
-is the converse-half of the founded bridge that
-`Orig/PairConfine.lean` carried as its own private copy of the
-membership direction. -/
-private theorem xfam_mem_found_rank_lt {st : State} (hwf : st.WF) {d : Card}
-    (hmem : d ∈ st.found d.suit) :
-    d.rank.toIdx < rungAt st d.suit := by
-  rcases d with ⟨s, r⟩
-  have hmem' : Card.mk s r ∈ st.found s := hmem
-  have hpre := rung_found_prefix st hwf s
-  rw [hpre] at hmem'
-  have hpos : xfam_posOf (Card.mk s r) (Suit.upCards s) < rungAt st s :=
-    xfam_mem_take_pos _ _ _ hmem'
-  have hidx := xfam_posOf_upCards s r
-  show r.toIdx < rungAt st s
-  omega
+/-! ## §4. The reverse climb (the founding bridge via `FoundKit`) -/
 
 /-- **THE REVERSE CLIMB ROW** — the first fork's twin-cover `d₁`
 (the direct cover of `x.twin`, from the `st₁` saturation pins) is a
@@ -294,7 +226,7 @@ theorem cross_anchor_climb {st₁ st₂ : State} (hwf₁ : st₁.WF) (hwf₂ : s
   have hres : d₁ ∈ st₂.found d₁.suit :=
     pair_lowFamily_founded hwf₂ hy hdcol (by omega)
   -- the climb: founded at st₂ strictly past d₁'s own index
-  have hlt := xfam_mem_found_rank_lt hwf₂ hres
+  have hlt := FoundKit.mem_found_rank_lt hwf₂ hres
   exact ⟨a, bs, d₁, hshape, hfit, htop, hnext, hrung₁, hdcol, hridx, hres, by omega⟩
 
 /-! ## §5. The journey census read -/
@@ -552,7 +484,7 @@ private theorem cross_strata_exile {st₂ : State} (hwf₂ : st₂.WF) {y d₂ :
     (hrung₂ : rungAt st₂ d₂.suit + 2 ≤ y.rank.toIdx) :
     ¬ d₂ ∈ st₂.found d₂.suit := by
   intro hmem
-  have hlt := xfam_mem_found_rank_lt hwf₂ hmem
+  have hlt := FoundKit.mem_found_rank_lt hwf₂ hmem
   omega
 
 set_option linter.unusedVariables false in
@@ -790,9 +722,10 @@ LANDED as the SPLIT: the body is PROVED — the banked rows
 the fit/exile preprocessing rows, `witness_rung_census` read into
 the two opposite census debts) assemble the full package and hand
 it to the corner `cross_equal_rank_kick` directly above — and the
-kick is now itself closed by the STATIC ORPHAN-SEAT kill
-(`Orig/CrossFamilyStatic.lean`'s `cross_orphan_kill`, reached through
-that file's one named residue `cross_orphan_seat`), which needs none
+    kick is now itself closed by the STATIC ORPHAN-SEAT kill
+    (`Orig/CrossFamilyStatic.lean`'s `cross_orphan_kill`, reached through
+    the landed orphan-seat row `cross_orphan_seat`, proved
+    `[propext, Quot.sound]`), which needs none
 of the census debt. -/
 private theorem cross_equal_rank_kill {st₁ st₂ : State}
     (hwf₁ : st₁.WF) (hwf₂ : st₂.WF)
@@ -1052,7 +985,7 @@ tight to `r₁ − r₂ = 1`).  ROUTE (complete, the residue's own):
 3. THE OSCILLATION PRICED — each such exit's landing needs its own
    fitting host one rank up in the x family (rank indices `r₂..r₁`),
    all of which the second fork holds FOUNDED beneath its pins
-   (`pair_lowFamily_founded` + `xfam_mem_found_rank_lt`, the census
+    (`pair_lowFamily_founded` + `FoundKit.mem_found_rank_lt`, the census
    `hd₂rung₂`/`hd₂rung₁` bounding the survivors); the two OPPOSITE
    census debts (`hdebt₂`'s net pulls vs `hd₁cen`'s net raises on the
    two cover suits, `witness_rung_census` closing the per-suit
@@ -1192,7 +1125,7 @@ landings are king-only and the surfaced ranks never reach the
 king); the low end of the surfaced stratum sits beneath everything
 the second fork pins, so the fitting hosts there are y-family cards
 the second fork holds FOUNDED (`pair_lowFamily_founded` iterated;
-the founded wedges `xfam_mem_found_rank_lt` both directions) — each
+the founded wedges `FoundKit.mem_found_rank_lt` both directions) — each
 host must itself be pulled first, whose landing needs an x-family
 top one rank further up at that epoch; the two forks' saturations
 (`cross_census_dead`) and the one-leg transfer (`S_census_one_leg`,
