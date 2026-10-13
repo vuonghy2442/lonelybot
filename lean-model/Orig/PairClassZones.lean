@@ -1,5 +1,6 @@
 import Orig.PairClass
 import Orig.SlabEquiv
+import Orig.FoundKit
 import Orig.MacroInternal
 
 /-!
@@ -415,196 +416,6 @@ downward founded-bridge.  The kit is per-file private copies per the
 dedup discipline (templates: `Orig/SlabEquiv.lean` §0,
 `Orig/Classify.lean`'s private `Rk`). -/
 
-/-- The position of `x` in `l` (its first-occurrence index) — the
-per-file copy of the take-position kit (template:
-`Orig/SlabEquiv.lean` §0's `sequ_posOf`). -/
-private def pcz_posOf {α : Type} [DecidableEq α] (x : α) : List α → Nat
-  | [] => 0
-  | y :: t => if y = x then 0 else pcz_posOf x t + 1
-
-/-- Membership in a bounded take bounds the first-occurrence position
-(the per-file copy of `sequ_mem_take_pos`). -/
-private theorem pcz_mem_take_pos {α : Type} [DecidableEq α] :
-    ∀ (n : Nat) (l : List α) (x : α), x ∈ l.take n → pcz_posOf x l < n := by
-  intro n
-  induction n with
-  | zero =>
-      intro l x hmem
-      simp [List.take] at hmem
-  | succ n ih =>
-      intro l x hmem
-      cases l with
-      | nil => simp [List.take] at hmem
-      | cons y t =>
-          rw [List.take_succ_cons] at hmem
-          by_cases hyx : y = x
-          · have hp : pcz_posOf x (y :: t) = 0 := by
-              show (if y = x then 0 else pcz_posOf x t + 1) = 0
-              rw [ite_eq_left hyx]
-            omega
-          · have hp : pcz_posOf x (y :: t) = pcz_posOf x t + 1 := by
-              show (if y = x then 0 else pcz_posOf x t + 1) = _
-              rw [ite_eq_right hyx]
-            have hmem' : x ∈ t.take n := by
-              rcases List.mem_cons.1 hmem with he | hrest
-              · exact absurd he.symm hyx
-              · exact hrest
-            have hlt := ih t x hmem'
-            omega
-
-/-- The build order is the rank order (the per-file copy of
-`sequ_posOf_upCards`). -/
-private theorem pcz_posOf_upCards (σ : Suit) (r : Rank) :
-    pcz_posOf (Card.mk σ r) (Suit.upCards σ) = r.toIdx := by
-  cases σ <;> cases r <;> rfl
-
-/-- **THE FOUNDED-BRIDGE, DOWNWARD** — a founded card's rank index
-sits strictly below its suit's rung (the per-file copy of
-`sequ_mem_found_rank_lt`). -/
-private theorem pcz_mem_found_rank_lt {st : State} (hwf : st.WF) {d : Card}
-    (hmem : d ∈ st.found d.suit) :
-    d.rank.toIdx < rungAt st d.suit := by
-  have hpre := rung_found_prefix st hwf d.suit
-  rw [hpre] at hmem
-  have hpos : pcz_posOf d d.suit.upCards < rungAt st d.suit :=
-    pcz_mem_take_pos _ _ _ hmem
-  rcases d with ⟨s, r⟩
-  have hnorm : pcz_posOf (Card.mk s r) (Suit.upCards s) < rungAt st s := hpos
-  have hidx : pcz_posOf (Card.mk s r) (Suit.upCards s) = r.toIdx :=
-    pcz_posOf_upCards s r
-  show r.toIdx < rungAt st s
-  omega
-
-/-- Membership in a take is membership in the list (the per-file copy
-of `sequ_mem_of_take`). -/
-private theorem pcz_mem_of_take : ∀ {α : Type} (l : List α) (n : Nat) {x : α},
-    x ∈ l.take n → x ∈ l := by
-  intro α l n
-  induction n generalizing l with
-  | zero =>
-      intro x h
-      simp [List.take] at h
-  | succ n ih =>
-      intro x h
-      cases l with
-      | nil => simp [List.take] at h
-      | cons a t =>
-          rw [List.take_succ_cons] at h
-          rcases List.mem_cons.mp h with he | hrest
-          · subst he; exact List.mem_cons_self ..
-          · exact List.mem_cons_of_mem a (ih t hrest)
-
-/-- An element at position `i` belongs to the first `n` entries of the
-list when `i < n` (the per-file copy of `sequ_get_in_take`). -/
-private theorem pcz_get_in_take : ∀ {α : Type} (l : List α) (n i : Nat)
-    (hl : i < l.length) (_hn : i < n), l.get ⟨i, hl⟩ ∈ l.take n := by
-  intro α l n i hl hn
-  induction n generalizing l i hl with
-  | zero => exact absurd hn (by omega)
-  | succ n ih =>
-      cases l with
-      | nil => exact absurd hl (by simp)
-      | cons a t =>
-          cases i with
-          | zero =>
-              show a ∈ a :: t.take n
-              exact List.mem_cons.2 (Or.inl rfl)
-          | succ i' =>
-              simp only [List.length_cons] at hl
-              refine List.mem_cons_of_mem a (ih t i' (by omega) (by omega))
-
-/-- A card sits at its own build index in its suit's foundation order
-(the per-file copy of `sequ_upCards_get`). -/
-private theorem pcz_upCards_get (z : Card)
-    (h : z.rank.toIdx < z.suit.upCards.length) :
-    z.suit.upCards.get ⟨z.rank.toIdx, h⟩ = z := by
-  rcases z with ⟨zs, zr⟩
-  cases zr <;> rfl
-
-/-- **THE FOUNDED-BRIDGE, UPWARD** — a suit rung strictly above a
-card's rank index has already founded it (the per-file copy of
-`sequ_mem_found_of_rung`). -/
-private theorem pcz_mem_found_of_rung {st : State} (hwf : st.WF) {c : Card}
-    (hlt : c.rank.toIdx < rungAt st c.suit) : c ∈ st.found c.suit := by
-  have hpre := rung_found_prefix st hwf c.suit
-  have h13 : c.suit.upCards.length = 13 := Suit.upCards_length c.suit
-  have hget : c.suit.upCards.get ⟨c.rank.toIdx, by
-      rw [h13]; exact Rank.toIdx_lt c.rank⟩ = c :=
-    pcz_upCards_get c (by rw [h13]; exact Rank.toIdx_lt c.rank)
-  have hmem0 : c.suit.upCards.get ⟨c.rank.toIdx, by
-      rw [h13]; exact Rank.toIdx_lt c.rank⟩ ∈
-      c.suit.upCards.take (rungAt st c.suit) :=
-    pcz_get_in_take c.suit.upCards (rungAt st c.suit) c.rank.toIdx
-      (show c.rank.toIdx < c.suit.upCards.length by
-        rw [h13]; exact Rank.toIdx_lt c.rank) hlt
-  rw [hget] at hmem0
-  have hmem : c ∈ c.suit.upCards.take (rungAt st c.suit) := hmem0
-  rwa [← hpre] at hmem
-
-/-- A foundation row holds only its own suit's cards (the per-file
-copy of `sequ_found_suit`). -/
-private theorem pcz_found_suit {st : State} (hwf : st.WF) {c : Card} {s : Suit}
-    (hmem : c ∈ st.found s) : c.suit = s := by
-  obtain ⟨n, hn⟩ := hwf.found_prefix s
-  rw [hn] at hmem
-  have hmem2 : c ∈ s.upCards := pcz_mem_of_take _ _ hmem
-  obtain ⟨r, -, hmk⟩ := List.mem_map.mp hmem2
-  subst hmk
-  rfl
-
-/-- The take never outgrows the list (the length bound; the per-file
-mini-induction, avoiding core-name variance). -/
-private theorem pcz_take_len_le : ∀ {α : Type} (l : List α) (n : Nat),
-    (l.take n).length ≤ l.length := by
-  intro α l n
-  induction n generalizing l with
-  | zero => cases l <;> simp [List.take]
-  | succ n ih =>
-      cases l with
-      | nil => simp [List.take]
-      | cons a t =>
-          simp only [List.take, List.length_cons]
-          have h2 := ih t
-          omega
-
-/-- The rung never passes the build order's length (WF's prefix is a
-bounded take). -/
-private theorem pcz_rung_le {st : State} (hwf : st.WF) (σ : Suit) :
-    rungAt st σ ≤ 13 := by
-  have hpre := rung_found_prefix st hwf σ
-  have h13 : σ.upCards.length = 13 := Suit.upCards_length σ
-  have h1 : (σ.upCards.take (rungAt st σ)).length ≤ σ.upCards.length :=
-    pcz_take_len_le _ _
-  rw [h13] at h1
-  show (st.found σ).length ≤ 13
-  rw [hpre]
-  exact h1
-
-/-- The rank of a zero-based index, tabulated by kernel computation
-(the per-file copy of `Orig/Classify.lean`'s private `Rk`). -/
-private def pczRk : Nat → Rank
-  | 0 => .ace | 1 => .two | 2 => .three | 3 => .four | 4 => .five | 5 => .six
-  | 6 => .seven | 7 => .eight | 8 => .nine | 9 => .ten | 10 => .jack | 11 => .queen
-  | 12 => .king | _ => .ace
-
-private theorem pczRk_toIdx : ∀ (k : Nat), k < 13 → (pczRk k).toIdx = k := by
-  intro k hk
-  match k with
-  | 0 => rfl
-  | 1 => rfl
-  | 2 => rfl
-  | 3 => rfl
-  | 4 => rfl
-  | 5 => rfl
-  | 6 => rfl
-  | 7 => rfl
-  | 8 => rfl
-  | 9 => rfl
-  | 10 => rfl
-  | 11 => rfl
-  | 12 => rfl
-  | j + 13 => exact absurd hk (by omega)
-
 /-- The boundary-card refutation (private): suit rungs cannot split
 between WF class-mates with agreeing founded sets — the smaller
 rung's boundary card would be founded at both states, its rank index
@@ -613,21 +424,21 @@ private theorem pcz_rung_lt {u v : State} (hwfu : u.WF) (hwfv : v.WF)
     (hagg : ∀ d : Card, foundResident u d ↔ foundResident v d) (σ : Suit)
     (hlt : rungAt u σ < rungAt v σ) : False := by
   have hu13 : rungAt u σ < 13 :=
-    Nat.lt_of_lt_of_le hlt (pcz_rung_le hwfv σ)
-  have hcidx : (Card.mk σ (pczRk (rungAt u σ))).rank.toIdx = rungAt u σ :=
-    pczRk_toIdx _ hu13
-  have hcf : Card.mk σ (pczRk (rungAt u σ)) ∈ v.found σ :=
-    pcz_mem_found_of_rung hwfv (by
-      show (Card.mk σ (pczRk (rungAt u σ))).rank.toIdx < rungAt v σ
+    Nat.lt_of_lt_of_le hlt (FoundKit.rung_le hwfv σ)
+  have hcidx : (Card.mk σ (FoundKit.Rk (rungAt u σ))).rank.toIdx = rungAt u σ :=
+    FoundKit.Rk_toIdx _ hu13
+  have hcf : Card.mk σ (FoundKit.Rk (rungAt u σ)) ∈ v.found σ :=
+    FoundKit.mem_found_of_rung hwfv (by
+      show (Card.mk σ (FoundKit.Rk (rungAt u σ))).rank.toIdx < rungAt v σ
       rw [hcidx]
       exact hlt)
-  have hcfs : foundResident u (Card.mk σ (pczRk (rungAt u σ))) :=
+  have hcfs : foundResident u (Card.mk σ (FoundKit.Rk (rungAt u σ))) :=
     (hagg _).mpr ⟨σ, hcf⟩
   obtain ⟨s, hcs⟩ := hcfs
-  have hfix := pcz_found_suit hwfu hcs
+  have hfix := FoundKit.found_suit hwfu hcs
   rw [← hfix] at hcs
-  have hclt : (Card.mk σ (pczRk (rungAt u σ))).rank.toIdx < rungAt u σ :=
-    pcz_mem_found_rank_lt hwfu hcs
+  have hclt : (Card.mk σ (FoundKit.Rk (rungAt u σ))).rank.toIdx < rungAt u σ :=
+    FoundKit.mem_found_rank_lt hwfu hcs
   omega
 
 /-- **THE RUNG-VECTOR IFF** — agreeing foundation card SETS between

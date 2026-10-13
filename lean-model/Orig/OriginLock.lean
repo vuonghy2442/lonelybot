@@ -94,31 +94,6 @@ private theorem lock_mem_split (c : Card) :
 /-! ### The build-position kit (per-file copies of the banked private
 rows of `Orig/Classify.lean` and `Orig/CrossFamily.lean`) -/
 
-/-- The rank of a zero-based index, tabulated by kernel computation
-(the copy of `Orig/Classify.lean`'s private `Rk`). -/
-private def lockRk : Nat → Rank
-  | 0 => .ace | 1 => .two | 2 => .three | 3 => .four | 4 => .five | 5 => .six
-  | 6 => .seven | 7 => .eight | 8 => .nine | 9 => .ten | 10 => .jack | 11 => .queen
-  | 12 => .king | _ => .ace
-
-private theorem lockRk_toIdx : ∀ (k : Nat), k < 13 → (lockRk k).toIdx = k := by
-  intro k hk
-  match k with
-  | 0 => rfl
-  | 1 => rfl
-  | 2 => rfl
-  | 3 => rfl
-  | 4 => rfl
-  | 5 => rfl
-  | 6 => rfl
-  | 7 => rfl
-  | 8 => rfl
-  | 9 => rfl
-  | 10 => rfl
-  | 11 => rfl
-  | 12 => rfl
-  | w + 13 => exact absurd hk (by omega)
-
 
 /-- **THE PILED-RUNG ROW** — a face-up card's suit rung sits weakly
 below its rank index: a taller rung would have founded it, and
@@ -1648,12 +1623,12 @@ private theorem origin_foundedCover_belowPull {st₁ st₂ : State}
   have hidx13 : d.rank.toIdx - 1 < 13 := by
     have h13 := Rank.toIdx_lt d.rank
     omega
-  have hwidx : (lockRk (d.rank.toIdx - 1)).toIdx = d.rank.toIdx - 1 :=
-    lockRk_toIdx (d.rank.toIdx - 1) hidx13
+  have hwidx : (FoundKit.Rk (d.rank.toIdx - 1)).toIdx = d.rank.toIdx - 1 :=
+    FoundKit.Rk_toIdx (d.rank.toIdx - 1) hidx13
   obtain ⟨w, hws, hwr⟩ : ∃ w : Card, w.suit = d.suit ∧
       w.rank.toIdx = d.rank.toIdx - 1 :=
-    ⟨Card.mk d.suit (lockRk (d.rank.toIdx - 1)), rfl, by
-      show (lockRk (d.rank.toIdx - 1)).toIdx = d.rank.toIdx - 1
+    ⟨Card.mk d.suit (FoundKit.Rk (d.rank.toIdx - 1)), rfl, by
+      show (FoundKit.Rk (d.rank.toIdx - 1)).toIdx = d.rank.toIdx - 1
       rw [hwidx]⟩
   -- founded at the origin, not founded at the endstate
   have hinfound : w ∈ st₁.found w.suit :=
@@ -1767,7 +1742,7 @@ cover card `d` — one rank below the fork, off the fork's color, its
 suit's rung past `d`'s index at the origin (`hsq1`) and two under it
 at the terminus (`hsq2`) — there is NO SUCH JOURNEY.  ROUTE: the
 d-suit HOT CARD at the terminus's own rung — `T := Card.mk d.suit
-(lockRk (rungAt st₂ d.suit))`, hot by definition there
+(FoundKit.Rk (rungAt st₂ d.suit))`, hot by definition there
 (`pollutesCrash_landing_live`: its rank index IS the terminus's
 d-rung), non-king and origin-height by `omega` over
 `hsq2`/`hsq1`/`hd` — was founded at the origin (the height bridge)
@@ -1798,11 +1773,11 @@ theorem fork_nextUpExile_crash {st₁ st₂ : State} (hwf₁ : st₁.WF)
   -- the d-suit hot card at the terminus's own rung (its hotness is
   -- definitional: its index IS the terminus's d-suit rung)
   obtain ⟨T, hTdef⟩ :
-      ∃ c : Card, c = Card.mk d.suit (lockRk (rungAt st₂ d.suit)) :=
+      ∃ c : Card, c = Card.mk d.suit (FoundKit.Rk (rungAt st₂ d.suit)) :=
     ⟨_, rfl⟩
   have hTidx : T.rank.toIdx = rungAt st₂ d.suit := by
     rw [hTdef]
-    exact lockRk_toIdx _ hk13
+    exact FoundKit.Rk_toIdx _ hk13
   have hTsuit : T.suit = d.suit := by
     rw [hTdef]
   have hhotT : st₂.nextUp T = true :=
@@ -2053,13 +2028,6 @@ private theorem lock_mem_take {d : Card} : ∀ (n : Nat) (l : List Card),
             exact List.mem_cons_self ..
           · exact List.mem_cons.mpr (Or.inr (ih ws htl))
 
-/-- A foundation membership fixes the card's suit. -/
-private theorem lock_found_suit {st : State} (hwf : st.WF) {d : Card} {s : Suit}
-    (hmem : d ∈ st.found s) : s = d.suit := by
-  obtain ⟨n, hn⟩ := hwf.found_prefix s
-  rw [hn] at hmem
-  exact (lock_upCards_suit (lock_mem_take n s.upCards hmem)).symm
-
 /-- **THE ORIGIN LOCK** — downward: a same-class fork of the same
 suit family cannot witness a LOWER rank.  The class's forward witness
 play (`sameOrbit_forward`) hands every leg its own `reversibleAtW`
@@ -2090,7 +2058,7 @@ theorem forkState_rankDrop_locked (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf
   rcases lock_zone_residency st₁ hwf₁ d with
     ⟨s, hf⟩ | ⟨k, hhid⟩ | ⟨k, hfu⟩ | hstock | hwaste
   · -- FOUNDED at the origin: the named residue (§3.5)
-    have hsuit : s = d.suit := lock_found_suit hwf₁ hf
+    have hsuit : s = d.suit := (FoundKit.found_suit hwf₁ hf).symm
     have hdfound : d ∈ st₁.found d.suit := by rw [← hsuit]; exact hf
     exact origin_cover_founded_case_barred hwf₁ hwf₂ hx hy hfam hlt hτ d hrankd hcold
       ⟨c, bsC, hshape, hpod⟩ hnext hlatt hdfound

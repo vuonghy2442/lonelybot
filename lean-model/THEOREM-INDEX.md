@@ -175,12 +175,16 @@ indexes the proved library only.
 
 ## 3. Foundations and height (`FoundKit` + the rows beneath)
 
-- **`FoundKit.mem_found_iff_height`** — `Orig/PairConfine.lean` —
+- **`FoundKit.mem_found_iff_height`** — `Orig/FoundKit.lean` (the
+  shared-kit LEAF, stratum beside the kernel) —
   `[propext, Quot.sound]`
-  `(hwf) {c} : c ∈ st.found c.suit ↔ c.rank.toIdx < rungAt st c.suit`.
+  `(hwf) {c} : c ∈ st.found c.suit ↔ c.rank.toIdx < st.foundHeight c.suit`.
   THE founding bridge, one line. Half-rows `FoundKit.mem_found_of_rung`
-  / `FoundKit.mem_found_rank_lt`; support kit `FoundKit.posOf`,
-  `posOf_take_lt`, `posOf_upCards`, `get_in_take`, `upCards_get`.
+  / `FoundKit.mem_found_rank_lt`; the full kit also owns `posOf`,
+  `posOf_take_lt`, `posOf_upCards`, `get_in_take`, `upCards_get`,
+  `mem_take_of_pos`, `mem_of_take`, `mem_of_drop`, `found_suit`,
+  `Rk` + `Rk_toIdx` (the rank-maker; Classify/OriginLock/PairClassZones
+  copies retired), `take_len_le`, `rung_le` (foundHeight ≤ 13).
 - **`mem_found_of_height`** — `Orig/Dominance.lean` — the public
   forward half (historical home; `rungAt = foundHeight` by `rfl`).
 - **`WF.found_prefix`** — `Orig/Integrity.lean` — the canonical

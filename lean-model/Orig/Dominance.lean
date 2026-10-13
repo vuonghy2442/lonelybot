@@ -2,6 +2,7 @@ import Orig.Shuttle
 import Orig.Phase
 import Orig.Irreversible
 import Orig.Classify
+import Orig.FoundKit
 import Orig.Reach
 
 /-!
@@ -264,65 +265,17 @@ card.  A foundation built strictly past a card's index holds it
 `c`'s seat is ever three deep — "the safety bounds descend exactly
 two ranks" (B&G Cor. 3) made a lemma. -/
 
-/-- The position of `x` in `l` (its first-occurrence index; a
-self-rolled core-free helper for the take-membership kit). -/
-private def posOf {α : Type} [DecidableEq α] (x : α) : List α → Nat
-  | [] => 0
-  | y :: t => if y = x then 0 else posOf x t + 1
-
-/-- Below the first-occurrence position is inside the take. -/
-private theorem mem_take_of_pos {α : Type} [DecidableEq α] :
-    ∀ (l : List α) (x : α), x ∈ l → ∀ (n : Nat),
-      posOf x l < n → x ∈ l.take n := by
-  intro l x
-  induction l with
-  | nil => intro hx; cases hx
-  | cons y t ih =>
-      intro hx n hlt
-      cases n with
-      | zero => exact absurd hlt (by omega)
-      | succ m =>
-          rw [show posOf x (y :: t) = if y = x then 0 else posOf x t + 1 from rfl] at hlt
-          split at hlt
-          · rename_i hyx
-            show x ∈ y :: t.take m
-            exact List.mem_cons.2 (Or.inl hyx.symm)
-          · rename_i hyx
-            show x ∈ y :: t.take m
-            refine List.mem_cons.2 (Or.inr ?_)
-            have hmemt : x ∈ t := by
-              rcases List.mem_cons.1 hx with he | hrest
-              · exact absurd he.symm hyx
-              · exact hrest
-            exact ih hmemt m (by omega)
-
-/-- The build order is the rank order: each card of the standard
-build sits in the foundation-prefix take exactly when its index is
-below the prefix length. -/
-private theorem posOf_upCards (σ : Suit) (r : Rank) :
-    posOf (Card.mk σ r) (Suit.upCards σ) = r.toIdx := by
-  cases σ <;> cases r <;> rfl
-
 /-- The take-membership half the ray lemma rides: strictly below
 the prefix length is inside the take. -/
 theorem mem_upCards_take (σ : Suit) (n : Nat) (r : Rank) (hlt : r.toIdx < n) :
     Card.mk σ r ∈ (Suit.upCards σ).take n :=
-  mem_take_of_pos (Suit.upCards σ) (Card.mk σ r) (Suit.mem_upCards) n
-    (by have := posOf_upCards σ r; omega)
+  FoundKit.mem_take_of_pos (Suit.upCards σ) (Card.mk σ r) (Suit.mem_upCards) n
+    (by have := FoundKit.posOf_upCards σ r; omega)
 
 /-- A foundation built strictly past a card's index holds it. -/
 theorem mem_found_of_height {st : State} {x : Card} (hwf : st.WF)
-    (hlt : x.rank.toIdx < st.foundHeight x.suit) : x ∈ st.found x.suit := by
-  obtain ⟨n, hpre⟩ := hwf.found_prefix x.suit
-  have hlen : ((x.suit.upCards).take n).length ≤ n := List.length_take_le n _
-  have hfh : st.foundHeight x.suit = ((x.suit.upCards).take n).length := by
-    show (st.found x.suit).length = _
-    rw [hpre]
-  have hlt' : x.rank.toIdx < n := by omega
-  have hmem := mem_upCards_take x.suit n x.rank hlt'
-  have hxe : x = Card.mk x.suit x.rank := by cases x; rfl
-  rw [hpre, hxe]
-  exact hmem
+    (hlt : x.rank.toIdx < st.foundHeight x.suit) : x ∈ st.found x.suit :=
+  FoundKit.mem_found_of_rung hwf hlt
 
 /-- The two-colour bounce of a three-deep fit chain: the first and
 third steps alternate away from the middle, landing on the far

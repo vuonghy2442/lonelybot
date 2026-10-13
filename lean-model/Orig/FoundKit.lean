@@ -78,6 +78,34 @@ theorem upCards_get (z : Card)
   rcases z with ⟨zs, zr⟩
   cases zr <;> rfl
 
+/-- Below the first-occurrence position is inside the take (lifted
+from Dominance's private `mem_take_of_pos`; the corollary
+`mem_upCards_take` rides it). -/
+theorem mem_take_of_pos {α : Type} [DecidableEq α] :
+    ∀ (l : List α) (x : α), x ∈ l → ∀ (n : Nat),
+      posOf x l < n → x ∈ l.take n := by
+  intro l x
+  induction l with
+  | nil => intro hx; cases hx
+  | cons y t ih =>
+      intro hx n hlt
+      cases n with
+      | zero => exact absurd hlt (by omega)
+      | succ m =>
+          rw [show posOf x (y :: t) = if y = x then 0 else posOf x t + 1 from rfl] at hlt
+          split at hlt
+          · rename_i hyx
+            show x ∈ y :: t.take m
+            exact List.mem_cons.2 (Or.inl hyx.symm)
+          · rename_i hyx
+            show x ∈ y :: t.take m
+            refine List.mem_cons.2 (Or.inr ?_)
+            have hmemt : x ∈ t := by
+              rcases List.mem_cons.1 hx with he | hrest
+              · exact absurd he.symm hyx
+              · exact hrest
+            exact ih hmemt m (by omega)
+
 /-- **THE FOUNDED-HEIGHT BRIDGE, forward half** — a suit rung (a.k.a.
 `foundHeight`, the high cone's `rungAt` — same term up to a `rfl`)
 strictly above a card's rank index has already founded it.  Proof in
@@ -185,6 +213,63 @@ theorem found_suit {st : State} (hwf : st.WF) {c : Card} {s : Suit}
   subst hmk
   rfl
 
+/-- The rank of a zero-based index, tabulated (lifted from the
+retired per-file makers — Classify's `Rk`, OriginLock's `lockRk`,
+PairClassZones' `pczRk`; the strike retires the copies). -/
+def Rk : Nat → Rank
+  | 0 => .ace | 1 => .two | 2 => .three | 3 => .four | 4 => .five | 5 => .six
+  | 6 => .seven | 7 => .eight | 8 => .nine | 9 => .ten | 10 => .jack | 11 => .queen
+  | 12 => .king | _ => .ace
+
+theorem Rk_toIdx : ∀ (k : Nat), k < 13 → (Rk k).toIdx = k := by
+  intro k hk
+  match k with
+  | 0 => rfl
+  | 1 => rfl
+  | 2 => rfl
+  | 3 => rfl
+  | 4 => rfl
+  | 5 => rfl
+  | 6 => rfl
+  | 7 => rfl
+  | 8 => rfl
+  | 9 => rfl
+  | 10 => rfl
+  | 11 => rfl
+  | 12 => rfl
+  | j + 13 => exact absurd hk (by omega)
+
+/-- The take never outgrows the list (lifted from the retired
+`pcz_take_len_le` mini-induction — core's `List.length_take_le`
+states the `≤ n` form, not this `≤ l.length` form). -/
+theorem take_len_le : ∀ {α : Type} (l : List α) (n : Nat),
+    (l.take n).length ≤ l.length := by
+  intro α l n
+  induction n generalizing l with
+  | zero => cases l <;> simp [List.take]
+  | succ n ih =>
+      cases l with
+      | nil => simp [List.take]
+      | cons a t =>
+          simp only [List.take, List.length_cons]
+          have h2 := ih t
+          omega
+
+/-- The rung never passes the build order's length (WF's prefix is a
+bounded take). -/
+theorem rung_le {st : State} (hwf : st.WF) (σ : Suit) :
+    st.foundHeight σ ≤ 13 := by
+  obtain ⟨n, hpre⟩ := hwf.found_prefix σ
+  have h1 : ((σ.upCards).take n).length ≤ (σ.upCards).length :=
+    take_len_le _ _
+  have h13 : (σ.upCards).length = 13 := Suit.upCards_length σ
+  have hb : st.foundHeight σ = ((σ.upCards).take n).length := by
+    have h2 : st.foundHeight σ = (st.found σ).length := rfl
+    rw [h2, hpre]
+  rw [hb]
+  rw [h13] at h1
+  exact h1
+
 end FoundKit
 
 /-! ## The audit battery -/
@@ -195,3 +280,9 @@ end FoundKit
 #print axioms FoundKit.mem_of_take
 #print axioms FoundKit.mem_of_drop
 #print axioms FoundKit.found_suit
+#print axioms FoundKit.Rk_toIdx
+#print axioms FoundKit.take_len_le
+#print axioms FoundKit.rung_le
+#print axioms FoundKit.get_in_take
+#print axioms FoundKit.upCards_get
+#print axioms FoundKit.mem_take_of_pos
