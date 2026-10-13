@@ -292,6 +292,170 @@ theorem ab1_noHalt : ¬ TwinSlideHalt ab1 := by
     | exact absurd hd3 (by decide)
     | exact absurd hd2 (by decide)
 
+/-! ## §4. The intact-cell contrast, the cell guard trap, and the β-repair draft
+-/
+
+/-- The intact-cell board `ab2`: the pair as in `ab0`, but BOTH red
+aces face-up — the two cover cells stand as an INTACT mobile pair
+(every `MobileTwin` conjunct reads true for each cell), so the
+full-time no-eat guard protects them both. -/
+private def ah2p : Suit → Nat
+  | .spade => 0 | .club => 0 | .heart => 0 | .diamond => 0
+
+private def ab2 : State where
+  found := fun s => takeUp s (ah2p s)
+  piles := fun a => match a with
+    | .p0 => ⟨[], [S2]⟩
+    | .p1 => ⟨[], [C2]⟩
+    | .p2 => ⟨[], [AH]⟩
+    | .p3 => ⟨[], [AD]⟩
+    | .p4 => ⟨[], []⟩
+    | .p5 => ⟨[], []⟩
+    | .p6 => ⟨[], []⟩
+  stock :=
+    [crd .spade .ace, crd .spade .three, crd .spade .four, crd .spade .five,
+     crd .spade .six, crd .spade .seven, crd .spade .eight, crd .spade .nine,
+     crd .spade .ten, crd .spade .jack, crd .spade .queen, crd .spade .king,
+     crd .club .ace, crd .club .three, crd .club .four, crd .club .five,
+     crd .club .six, crd .club .seven, crd .club .eight, crd .club .nine,
+     crd .club .ten, crd .club .jack, crd .club .queen, crd .club .king,
+     crd .heart .two, crd .heart .three, crd .heart .four, crd .heart .five,
+     crd .heart .six, crd .heart .seven, crd .heart .eight, crd .heart .nine,
+     crd .heart .ten, crd .heart .jack, crd .heart .queen, crd .heart .king,
+     crd .diamond .two, crd .diamond .three, crd .diamond .four,
+     crd .diamond .five, crd .diamond .six, crd .diamond .seven,
+     crd .diamond .eight, crd .diamond .nine, crd .diamond .ten,
+     crd .diamond .jack, crd .diamond .queen, crd .diamond .king]
+  waste := []
+  drawStep := 1
+
+private theorem ab2_wf_found : ∀ s : Suit, ∃ n, ab2.found s = s.upCards.take n := by
+  intro s
+  cases s with
+  | spade => exact ⟨0, rfl⟩
+  | club => exact ⟨0, rfl⟩
+  | heart => exact ⟨0, rfl⟩
+  | diamond => exact ⟨0, rfl⟩
+
+private theorem ab2_wf_runs : ∀ a : Anchor, runOK (ab2.piles a).faceUp = true := by
+  intro a
+  cases a <;> rfl
+
+private theorem ab2_wf_count : ∀ c ∈ Card.universe, ab2.cardCount c = 1 := by
+  intro c _
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> decide
+
+/-- The intact-cell board is `WF` (kernel-decided). -/
+private theorem ab2_wf : ab2.WF :=
+  ⟨ab2_wf_found, ab2_wf_runs, ab2_wf_count, by decide⟩
+
+/-- **THE CELL GUARD TRAP, DATUM SIDE**: at the intact-cell board the
+cover cells' own `MobileTwin` read holds — each cell is the other's
+twin, both face-up, both at-or-above their (empty) rungs — so the
+no-eat guard's own predicate is live for them. -/
+theorem ab2_cellMobile : MobileTwin ab2 AH ∧ MobileTwin ab2 AD :=
+  ⟨⟨⟨Anchor.p2, by decide⟩, by decide, ⟨Anchor.p3, by decide⟩, by decide⟩,
+   ⟨⟨Anchor.p3, by decide⟩, by decide, ⟨Anchor.p2, by decide⟩, by decide⟩⟩
+
+/-- **THE ARMOR DATUM**: at the intact-cell board the hostile raise
+is NOT an ascent move — the guard declines founding either cell
+(its own `MobileTwin` witness must stay intact). -/
+theorem ab2_raiseNotAscent : ¬ AscentMove ab2 (Move.tabToFound AD) ∧
+    ¬ AscentMove ab2 (Move.tabToFound AH) := by
+  constructor
+  · rintro (hc | hslide)
+    · obtain ⟨c, heq, -, -, hguard⟩ := hc
+      injection heq with heqc
+      rw [← heqc] at hguard
+      exact absurd rfl (hguard AH ab2_cellMobile.1).2
+    · obtain ⟨c, b, hb⟩ := hslide
+      exact absurd hb (by simp)
+  · rintro (hc | hslide)
+    · obtain ⟨c, heq, -, -, hguard⟩ := hc
+      injection heq with heqc
+      rw [← heqc] at hguard
+      exact absurd rfl (hguard AD ab2_cellMobile.2).2
+    · obtain ⟨c, b, hb⟩ := hslide
+      exact absurd hb (by simp)
+
+/-- **THE β-REPAIR DRAFT** (lemma-level statement, presented for the
+owner's ratification — the exhausted shape's cover clause weakened
+to the RECOVERABLE disjunct): a fitting cover is delivered either
+STANDING at the tableau (the frozen `TwinSlideHalt` clause) or
+FOUNDED at its suit's frontier, exactly one licensed `foundToTab`
+return away.  The drafted clauses are chosen so the decided hostile
+landing `ab1` satisfies the recoverable side verbatim (the witness
+row below): the founded A♦ is the diamond foundation top at the
+frontier, and its licensed return base — the black two's top — is
+present at the same exhausted state. -/
+def TwinSlideHaltRec (st : State) : Prop :=
+  ∃ (x d : Card),
+    DoubleHot st x ∧
+      d.rank.toIdx + 1 = x.rank.toIdx ∧
+      d.suit.color ≠ x.suit.color ∧
+      canSitOn d x.twin = true ∧
+      ((d.rank.toIdx ≥ st.foundHeight d.suit ∧
+          (∃ (c : Anchor), d ∈ (st.piles c).faceUp)) ∨
+        (st.foundTop d.suit = some d ∧
+          d.rank.toIdx + 1 = st.foundHeight d.suit ∧
+          ∃ (e : Card), st.canPlace d (Sum.inr e) = true))
+
+/-- **THE RECOVERABILITY DATUM**: at the hostile founding-burial
+landing the drafted recoverable side holds for the founded cover
+cell — the diamond foundation top is exactly the buried A♦ at its
+suit's frontier, and a licensed landing base (the black two's top)
+is present at the same exhausted state. -/
+theorem ab1_beta_recoverability :
+    ab1.foundTop Suit.diamond = some AD ∧
+      AD.rank.toIdx + 1 = ab1.foundHeight Suit.diamond ∧
+      ab1.canPlace AD (Sum.inr S2) = true :=
+  ⟨by rfl, rfl, by
+    show (match ab1.pileOfTop S2 with
+      | some _ => canSitOn AD S2
+      | none => false) = true
+    have hpot : ab1.pileOfTop S2 = some Anchor.p0 := by decide
+    rw [hpot]
+    rfl⟩
+
+/-! ## §5. The hunt's verdict (decide-adjacent; the structural rest priced)
+-/
+
+/- VERDICT, three datapoints deep:
+
+* BURIAL-BARRED inside the intact-cell armor — at `ab2` the cell
+  pair's own `MobileTwin` stands, the guard declines both cell
+  raises (`ab2_raiseNotAscent`), and the pair is UNBREAKABLE within
+  the ascent alphabet: every break mode for the cells' mobility
+  (founding a member, burying a member's face-up) requires a
+  founding-or-consumption, the founding needs the guard already
+  broken (circular, hence barred), and the slide consumption is
+  REFUTED outright by `Orig/ForkAscent.lean`'s `ascent_selfland_refuted`
+  (a run rider can never be its own landing base: the guard's fit
+  arithmetic is a rank contradiction).  THE NAMED INVARIANT: a
+  cell pair that starts `MobileTwin`-intact can never lose either
+  member along an ascent run.
+* BURIAL-BUILDS wherever a cell arrives PRE-BROKEN — the `ab0`/`ab1`
+  economy decided above (pre-founded cell, guard off at the
+  conjunct for the founded twin, one licensed raise, stuck landing,
+  no standing cover).  The exhaustion row's `hbelow` premise
+  COUPLES NOTHING to the cover cells (the fork-play `π` and the
+  ascent-run `ρ` are independent plays; the premise's visible
+  parcel constrains the pair members only), so the structural read
+  is that a pre-broken-cell board with a reachable fork remains
+  hbelow-compatible in principle; this file has not decided that
+  co-existence (the full-alphabet reachability computation), and
+  says so.
+* THE REPAIR INDICATED: β, drafted above as `TwinSlideHaltRec` —
+  with the decisive datum that the hostile landing itself satisfies
+  the recoverable side (`ab1_beta_recoverability`: a founded
+  frontier cell with a licensed return base at the same state).
+  At the r = 1 corner the recoverable side is the ONLY side a
+  founded ace can satisfy (aces never re-seat themselves on the
+  tableau by the tabToFound alphabet); the draft is presented for
+  the owner's ratification and the main row's statement in
+  `Orig/ForkAscent.lean` is left byte-frozen. -/
+
 /-! ## The audit battery -/
 
 #print axioms ab0_guard
@@ -299,3 +463,6 @@ theorem ab1_noHalt : ¬ TwinSlideHalt ab1 := by
 #print axioms ab0_run
 #print axioms ab1_stuck
 #print axioms ab1_noHalt
+#print axioms ab2_cellMobile
+#print axioms ab2_raiseNotAscent
+#print axioms ab1_beta_recoverability

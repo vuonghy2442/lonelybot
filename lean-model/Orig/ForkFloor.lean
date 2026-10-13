@@ -1,5 +1,6 @@
 import Orig.LowSlab
 import Orig.Phase
+import Orig.ForkStateSB
 
 /-!
 # Orig.ForkFloor — THE FORK-FLOOR CONJECTURE (fork-headedness under the commit DAG)
@@ -105,7 +106,11 @@ apply; each priced, honesty over closure):
 House compliance: additive leaf (`import Orig.LowSlab` — brings the
 sealed zone machinery, `familyBelowFrontier`, the commit-grade rows
 and `lowslab_pull_never_commit_wf` — plus `import Orig.Phase` for the
-draw tables; everything else consumed is transitive: `ForkWitness`
+draw tables, and `import Orig.ForkStateSB` (the decidable strong
+detection, itself a one-import leaf over `Orig.ForkWeaker`, zero
+`Classical` by its own battery; the probe family already binds it
+beside this chapter) for the successor's-own-fork branch of the
+per-kind remainders; everything else consumed is transitive: `ForkWitness`
 via `Orig.PairName`, `irreversibleAt` via `Orig.Fate`, `step`/`run`
 via `Orig.Play`, the step inversions and measure tables via
 `Orig.Irreversible`, `mem_found_unique`/`mem_faceUp_only` via
@@ -1325,6 +1330,23 @@ private theorem p_waste_seat_mirror {s s' F q₁ : State} {c : Card} {b : Base}
           | none => none) = some F
       rw [hstep']; exact htail
 
+/-- **THE SUCCESSOR'S OWN FORK** — the decider's own exhibit: when
+the successor itself is fork-headed, the empty play exhibits it.
+The banked census bridge (`forkStateSB_true_iff`: the `Bool` fold
+is the predicate, both ways) plus the witness soundness
+(`forkWitnessSB_sound`) hand over the full two-conjunct parcel;
+distance zero, at the successor.  This row is the blunt first
+branch every per-kind remainder consults: the exhibit's fork never
+needs to travel when the landing is itself a fork — the forkless
+successor is, in every kind, the residues' sole carried content. -/
+private theorem p_successor_fork_repair {s' : State}
+    (hwfs' : s'.WF)
+    (hfb : forkStateSB s' = true) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
+  obtain ⟨x, hxiff, hxnt⟩ := (forkStateSB_true_iff hwfs').mp hfb
+  exact ⟨s', [], x, rfl, ⟨hxiff, hxnt⟩⟩
+
 /-- The board-letter scan for the draw kind's leg-profile split:
 true exactly on the three tableau/foundation letters (the
 decidable shadow of `boardMove`, `Orig/HostCensus.lean` §9 — the
@@ -1354,6 +1376,401 @@ private theorem p_boardMoveB_of (m : Move) (h : boardMove m) :
   · subst hc; rfl
   · subst hc; rfl
   · subst hc; rfl
+
+/-! ### §5.0c. The per-kind one-commit census (this pass)
+
+The PROVED arrangement rows the five named remainders' route-steps 1
+consume.  The shared engine is the OFF-RUNG license congruence: two
+states that agree on the piles and on every foundation row but one
+suit carry IDENTICAL `CanRaiseS`-license worlds off that suit — the
+flat `canRaiseS_iff` package's clauses read only the piles, the
+top-search (a piles read), and the card's own suit's rung.  Each
+committed kind's own row then packages its step's zone/board
+arithmetic at theorem grade: the SEAL's write record (the seal rest's
+"The Seal's Zone Arithmetic" paragraph, landed), the SEATING's read
+census (the covered-top refusal — the guard-refusal transport the
+seat rest names — the seated cell's own `nextUp` read, the off-pile
+pile and search congruences), the REVEAL's two-cell rung-free write
+(the two-cell fact the reveal rest carries as structural prose), and
+the BOARD-PREFIX SPLIT the draw rest's residue dispatches on.  No row
+here carries an open step; they are the data the repair-time
+schedules of the named remainders climb from. -/
+
+/-- The top-search transports over pointwise-equal decide vectors
+(the per-file copy at the exact grain the censuses read; template:
+`Orig/Twin.lean`'s public `firstWhere_congr`). -/
+private theorem p_census_vec {u v : State} (z : Card)
+    (hvec : ∀ a, decide (u.topOf a = some z) = decide (v.topOf a = some z)) :
+    u.pileOfTop z = v.pileOfTop z := by
+  show (firstWhere (fun a => decide (u.topOf a = some z)) Anchor.all) =
+    (firstWhere (fun a => decide (v.topOf a = some z)) Anchor.all)
+  exact firstWhere_congr hvec
+
+/-- Every test failing gives `none` (the per-file copy of the search's
+none-completeness half; template: `Orig/Canonical.lean`'s private
+`firstWhere_none_of_all`). -/
+private theorem p_census_none {α : Type} (p : α → Bool) :
+    ∀ (l : List α), (∀ x ∈ l, p x = false) → firstWhere p l = none := by
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons x t ih =>
+      intro h
+      rw [firstWhere, h x (List.mem_cons.2 (Or.inl rfl)),
+        ih (fun y hy => h y (List.mem_cons.2 (Or.inr hy)))]
+
+/-- **THE OFF-RUNG LICENSE CONGRUENCE** [E–M] — two states that agree
+on the piles and on every foundation row except (at most) the suit `σ`
+carry IDENTICAL `CanRaiseS`-license worlds at every card of every
+other suit: the license's flat package reads the piles, the
+top-search (a piles read), and the card's own suit's rung — all
+verbatim off `σ`.  The seal's census and every future shadow-weld
+ride this single engine. -/
+private theorem p_license_offRung {u v : State} (σ : Suit)
+    (hwfu : u.WF) (hwfv : v.WF)
+    (hp : u.piles = v.piles)
+    (hf : ∀ σ' : Suit, σ' ≠ σ → u.found σ' = v.found σ') :
+    ∀ {e : Card}, e.suit ≠ σ → (CanRaiseS u e ↔ CanRaiseS v e) := by
+  intro e he
+  have hnu : u.nextUp e = v.nextUp e := by
+    show decide (e.rank.toIdx = (u.found e.suit).length)
+        = decide (e.rank.toIdx = (v.found e.suit).length)
+    rw [hf e.suit he]
+  have hpA : ∀ a, u.piles a = v.piles a := fun a => congrFun hp a
+  constructor
+  · intro hlic
+    obtain ⟨hnext, a, bs, run, hshape, hseat, hdisj⟩ :=
+      (canRaiseS_iff hwfu).1 hlic
+    refine (canRaiseS_iff hwfv).2 ⟨?_, a, bs, run, ?_, ?_, ?_⟩
+    · rw [← hnu]; exact hnext
+    · rw [← hpA a]; exact hshape
+    · rw [← hpA a]; exact hseat
+    · rcases hdisj with hrun | hpo
+      · exact Or.inl hrun
+      · exact Or.inr (by rw [← p_pileOfTop_congr e.twin hp]; exact hpo)
+  · intro hlic
+    obtain ⟨hnext, a, bs, run, hshape, hseat, hdisj⟩ :=
+      (canRaiseS_iff hwfv).1 hlic
+    refine (canRaiseS_iff hwfu).2 ⟨?_, a, bs, run, ?_, ?_, ?_⟩
+    · rw [hnu]; exact hnext
+    · rw [hpA a]; exact hshape
+    · rw [hpA a]; exact hseat
+    · rcases hdisj with hrun | hpo
+      · exact Or.inl hrun
+      · exact Or.inr (by rw [p_pileOfTop_congr e.twin hp]; exact hpo)
+
+/-- **THE SEAL'S ZONE ARITHMETIC** [E] — the committed waste
+founding's full write record, at theorem grade: piles and stock
+untouched, the waste popped by the sealed head, every foundation row
+but the sealed suit VERBATIM, and the sealed suit's row grown by
+exactly the sealed card (its rung one higher).  Together with the
+off-rung congruence this PINS the seal's license conflict to the
+sealed suit's frontier cell alone — the datum the seal rest's route
+step 1 prices, and the arithmetic `SlabEquiv.cycle_zone_pin`'s
+two-zone world sits behind through the step's own zone rows. -/
+private theorem p_seal_zone_rows {s s' : State} {c : Card}
+    (hstep : State.step s (Move.wasteToFound c) = some s') :
+    s'.piles = s.piles ∧ s'.stock = s.stock ∧
+      ∃ xs, s'.waste = xs ∧ s.waste = c :: xs ∧
+        (∀ σ' : Suit, σ' ≠ c.suit → s'.found σ' = s.found σ') ∧
+        s'.found c.suit = s.found c.suit ++ [c] := by
+  obtain ⟨hg, w, ws, hwaste, hs⟩ := step_wasteToFound_inv hstep
+  rw [Bool.and_eq_true] at hg
+  have hw2 : w = c := State.wasteIs_head_eq hwaste hg.1
+  rw [hw2] at hwaste
+  rw [hs]
+  refine ⟨?_, ?_, ws, rfl, hwaste, ?_, ?_⟩
+  · show (s.setFound c.suit (s.found c.suit ++ [c])).piles = s.piles
+    exact setFound_piles s c.suit (s.found c.suit ++ [c])
+  · show (s.setFound c.suit (s.found c.suit ++ [c])).stock = s.stock
+    exact setFound_stock s c.suit (s.found c.suit ++ [c])
+  · intro σ' hσ'
+    show (s.setFound c.suit (s.found c.suit ++ [c])).found σ'
+        = s.found σ'
+    exact setFound_found_ne hσ'
+  · show (s.setFound c.suit (s.found c.suit ++ [c])).found c.suit
+        = s.found c.suit ++ [c]
+    exact setFound_found_self
+
+/-- **THE SEATING WRITE RECORD, EMPTY-ANCHOR ARM** [E] — the committed
+seating onto the empty anchor `k`: the guard demands a king and an
+empty seat; the successor keeps the foundations and every other pile
+VERBATIM, and the written pile is the king's bare singleton record. -/
+private theorem p_seat_inl_records {s s' : State} {c : Card} {k : Anchor}
+    (hstep : State.step s (Move.wasteToTab c (Sum.inl k)) = some s') :
+    (s.piles k).isEmpty = true ∧ c.rank = Rank.king ∧ s'.found = s.found ∧
+      (∀ a, a ≠ k → s'.piles a = s.piles a) ∧
+      s'.piles k = ⟨[], [c]⟩ := by
+  obtain ⟨hg, w, _, hwaste, hs⟩ := step_wasteToTab_inv hstep
+  rw [Bool.and_eq_true] at hg
+  have hw2 : w = c := State.wasteIs_head_eq hwaste hg.1
+  rw [hw2] at hwaste
+  obtain ⟨hemp, hking⟩ := canPlace_inl hg.2
+  refine ⟨hemp, hking, ?_, ?_, ?_⟩
+  · rw [hs]
+    show (s.putCard c (Sum.inl k)).found = s.found
+    exact putCard_found s c (Sum.inl k)
+  · intro a ha
+    rw [hs]
+    show (s.putCard c (Sum.inl k)).piles a = s.piles a
+    rw [putCard_eq_inl]
+    show (if a = k then (⟨[], [c]⟩ : Pile) else s.piles a) = s.piles a
+    rw [ite_eq_right ha]
+  · rw [hs]
+    show (s.putCard c (Sum.inl k)).piles k = ⟨[], [c]⟩
+    rw [putCard_eq_inl]
+    exact setPile_piles_self
+
+/-- **THE SEATING WRITE RECORD, CARD-HOST ARM** [E] — the committed
+seating onto the card host `z`: the successor keeps the foundations
+and every other pile VERBATIM, and the written pile is the host's own
+record with the seated card appended at its top. -/
+private theorem p_seat_inr_records {s s' : State} {c z : Card}
+    (hstep : State.step s (Move.wasteToTab c (Sum.inr z)) = some s') :
+    ∃ k : Anchor, s.pileOfTop z = some k ∧ canSitOn c z = true ∧
+      s'.found = s.found ∧
+      (∀ a, a ≠ k → s'.piles a = s.piles a) ∧
+      s'.piles k = { s.piles k with faceUp := (s.piles k).faceUp ++ [c] } := by
+  obtain ⟨hg, w, _, hwaste, hs⟩ := step_wasteToTab_inv hstep
+  rw [Bool.and_eq_true] at hg
+  have hw2 : w = c := State.wasteIs_head_eq hwaste hg.1
+  rw [hw2] at hwaste
+  obtain ⟨k, hpo, hfil⟩ := canPlace_inr hg.2
+  refine ⟨k, hpo, hfil, ?_, ?_, ?_⟩
+  · rw [hs]
+    show (s.putCard c (Sum.inr z)).found = s.found
+    exact putCard_found s c (Sum.inr z)
+  · intro a ha
+    rw [hs]
+    show (s.putCard c (Sum.inr z)).piles a = s.piles a
+    rw [putCard_inr_eq hpo]
+    show (if a = k then
+        { (s.piles k) with faceUp := (s.piles k).faceUp ++ [c] } else s.piles a)
+        = s.piles a
+    rw [ite_eq_right ha]
+  · rw [hs]
+    show (s.putCard c (Sum.inr z)).piles k = _
+    rw [putCard_inr_eq hpo]
+    exact setPile_piles_self
+
+/-- **THE SEATED CELL** [E–M] — after the committed seating, the
+seated card TOPS its landing pile over a surviving seat (the
+card-host arm's below-part, or its own bare-king record at the empty
+anchor, both read off the write record): the flat package's seat
+clause resolves TRUE on the commit's own write, so the seated card's
+S-license at the successor is EXACTLY its (unchanged) `nextUp` read —
+the hot question alone remains. -/
+private theorem p_seat_gain {s s' : State} {c : Card} {b : Base}
+    (hwf : s.WF) (hstep : State.step s (Move.wasteToTab c b) = some s')
+    (hn : s.nextUp c = true) : CanRaiseS s' c := by
+  have hwfs' : s'.WF := step_wf hwf hstep
+  cases b with
+  | inl k =>
+      obtain ⟨-, hking, hs'f, -, hpilek⟩ := p_seat_inl_records hstep
+      have hnext : s'.nextUp c = true := by
+        rw [nextUp_congr c hs'f]; exact hn
+      exact (canRaiseS_iff hwfs').2 ⟨hnext, k, [], [],
+        by rw [hpilek]; rfl,
+        Or.inr ⟨by rw [hpilek], hking⟩, Or.inl rfl⟩
+  | inr z =>
+      obtain ⟨k, hpo, -, hs'f, -, hpilek⟩ := p_seat_inr_records hstep
+      have hnext : s'.nextUp c = true := by
+        rw [nextUp_congr c hs'f]; exact hn
+      exact (canRaiseS_iff hwfs').2 ⟨hnext, k, (s.piles k).faceUp, [],
+        by rw [hpilek],
+        Or.inl (pileOfTop_top hpo).1, Or.inl rfl⟩
+
+/-- **THE COVERED-TOP REFUSAL** [M] — after the committed seating onto
+the card host `z`, NO placement consult can ever again aim at `z`:
+the seat write covered the ONE pile that topped it (a card tops at
+most one pile at a WF state), so the top-search at the successor
+returns `none` and the card-hosted placement guard refuses every
+mover.  THE GUARD-REFUSAL TRANSPORT of the seating arm — the probe
+program's junk-cell refusal verdicts made theorem-grade, and the
+datum the seat rest's guard-refusal route prices. -/
+private theorem p_seat_refusal_cover {s s' : State} {c z : Card}
+    (hwf : s.WF) (hstep : State.step s (Move.wasteToTab c (Sum.inr z)) = some s')
+    (e : Card) : s'.canPlace e (Sum.inr z) = false := by
+  obtain ⟨k, hpo, hfil, -, hpA, hpilek⟩ := p_seat_inr_records hstep
+  have hcne : c ≠ z := ne_of_canSitOn hfil
+  have htopz : (s.piles k).top = some z := (pileOfTop_top hpo).2
+  have hzmem : z ∈ (s.piles k).faceUp := lastOf_mem htopz
+  have hzno : ∀ a', a' ≠ k → z ∉ (s.piles a').faceUp :=
+    fun a' ha' => (mem_faceUp_unique hwf hzmem a' ha').1
+  have hnone : s'.pileOfTop z = none := by
+    show (firstWhere (fun a => decide (s'.topOf a = some z)) Anchor.all) = none
+    refine p_census_none _ Anchor.all ?_
+    intro a _
+    by_cases hak : a = k
+    · rw [hak]
+      show decide ((s'.piles k).top = some z) = false
+      have h1 : (s'.piles k).top = some c := by
+        rw [hpilek]; exact lastOf_snoc
+      rw [h1]
+      exact decide_false_of_not (fun hcon => hcne (Option.some.inj hcon) :
+        ¬((some c : Option Card) = some z))
+    · show decide ((s'.piles a).top = some z) = false
+      rw [hpA a hak]
+      exact decide_false_of_not
+        (fun hcon => hzno a hak (lastOf_mem hcon) :
+          ¬((s.piles a).top = some z))
+  show (match s'.pileOfTop z with
+      | some _ => canSitOn e z
+      | none => false) = false
+  rw [hnone]
+
+/-- **THE SEATING READ CENSUS, EMPTY-ANCHOR ARM** [E–M] — off the
+written pile every read is verbatim, and the top-search answers the
+same at every card except the seated one (whose top was BORN at the
+write): foundations, rungs, piles, and all searches off `c` carry
+across the commit unchanged. -/
+private theorem p_seat_reads_inl {s s' : State} {c : Card} {k : Anchor}
+    (hstep : State.step s (Move.wasteToTab c (Sum.inl k)) = some s') :
+    s'.found = s.found ∧ (∀ d : Card, s'.nextUp d = s.nextUp d) ∧
+      (∀ a, a ≠ k → s'.piles a = s.piles a) ∧ s'.piles k = ⟨[], [c]⟩ ∧
+      ∀ w : Card, w ≠ c → s'.pileOfTop w = s.pileOfTop w := by
+  obtain ⟨hemp, -, hs'f, hpA, hpilek⟩ := p_seat_inl_records hstep
+  obtain ⟨-, hfu⟩ := (Pile.isEmpty_eq _).mp hemp
+  have hvec : ∀ w : Card, w ≠ c →
+      (∀ a, decide (s'.topOf a = some w) = decide (s.topOf a = some w)) := by
+    intro w hwW a
+    by_cases hak : a = k
+    · rw [hak]
+      show decide ((s'.piles k).top = some w) = decide ((s.piles k).top = some w)
+      have h1 : (s'.piles k).top = some c := by
+        rw [hpilek]
+        rfl
+      have h2 : (s.piles k).top = none := by
+        show lastOf (s.piles k).faceUp = none
+        rw [hfu]
+        rfl
+      rw [h1, h2,
+        decide_false_of_not
+          (fun hcon : (some c : Option Card) = some w =>
+            hwW (Option.some.inj hcon).symm),
+        decide_false_of_not
+          (fun hcon : (none : Option Card) = some w => nomatch hcon)]
+    · show decide ((s'.piles a).top = some w)
+          = decide ((s.piles a).top = some w)
+      rw [hpA a hak]
+  exact ⟨hs'f, fun d => nextUp_congr d hs'f, hpA, hpilek,
+    fun w hwW => p_census_vec w (hvec w hwW)⟩
+
+/-- **THE SEATING READ CENSUS, CARD-HOST ARM** [E–M] — the same read
+world as the empty-anchor arm, with the search exceptions now TWO
+named cells: the seated card `c` (its top born at the written pile)
+and the covered host `z` (its one top dead there); off {c, z} every
+search reads verbatim across the commit. -/
+private theorem p_seat_reads_inr {s s' : State} {c z : Card}
+    (hstep : State.step s (Move.wasteToTab c (Sum.inr z)) = some s') :
+    s'.found = s.found ∧ (∀ d : Card, s'.nextUp d = s.nextUp d) ∧
+      (∃ k, s.pileOfTop z = some k ∧
+        (∀ a, a ≠ k → s'.piles a = s.piles a) ∧
+        s'.piles k = { s.piles k with faceUp := (s.piles k).faceUp ++ [c] } ∧
+        (∀ w : Card, w ≠ c ∧ w ≠ z → s'.pileOfTop w = s.pileOfTop w)) := by
+  obtain ⟨k, hpo, -, hs'f, hpA, hpilek⟩ := p_seat_inr_records hstep
+  have hvec : ∀ w : Card, w ≠ c ∧ w ≠ z →
+      (∀ a, decide (s'.topOf a = some w) = decide (s.topOf a = some w)) := by
+    intro w hwW a
+    obtain ⟨hwc, hwz⟩ := hwW
+    by_cases hak : a = k
+    · rw [hak]
+      show decide ((s'.piles k).top = some w)
+          = decide ((s.piles k).top = some w)
+      have h1 : (s'.piles k).top = some c := by
+        rw [hpilek]; exact lastOf_snoc
+      have h2 : (s.piles k).top = some z := (pileOfTop_top hpo).2
+      rw [h1, h2,
+        decide_false_of_not
+          (fun hcon : (some c : Option Card) = some w =>
+            hwc (Option.some.inj hcon).symm),
+        decide_false_of_not
+          (fun hcon : (some z : Option Card) = some w =>
+            hwz (Option.some.inj hcon).symm)]
+    · show decide ((s'.piles a).top = some w)
+          = decide ((s.piles a).top = some w)
+      rw [hpA a hak]
+  exact ⟨hs'f, fun d => nextUp_congr d hs'f, k, hpo, hpA, hpilek,
+    fun w hwW => p_census_vec w (hvec w hwW)⟩
+
+/-- **THE RUN-REMOVAL MEMBERSHIP ROW** [E] (the per-file copy; template:
+`Orig/TwinExchangeBoth.lean`'s private `mem_revealTop`) — every face-up
+card of the run-removed pile's new record sat in the old pile's two
+decks (the below-part kept, the revealed head flipped out of the
+hidden deck with everything else face-up dropped) or belonged to the
+removed prefix itself. -/
+private theorem p_mem_afterRunRemoved {q : Pile} {pre : List Card} {e : Card}
+    (h : e ∈ (Pile.afterRunRemoved q pre).faceUp) :
+    e ∈ pre ∨ (pre = [] ∧ (e ∈ q.faceUp ∨ e ∈ q.hidden)) := by
+  cases pre with
+  | cons v vs => exact Or.inl h
+  | nil =>
+      refine Or.inr ⟨rfl, ?_⟩
+      rcases q with ⟨hid, fu⟩
+      cases hid with
+      | nil =>
+          rw [show ({ hidden := [], faceUp := fu } : Pile).afterRunRemoved
+                ([] : List Card)
+              = { hidden := ([] : List Card), faceUp := [] } from rfl,
+            show ({ hidden := ([] : List Card), faceUp := [] } : Pile).faceUp
+              = ([] : List Card) from rfl] at h
+          exact absurd h (by simp)
+      | cons g gt =>
+          rw [show ({ hidden := g :: gt, faceUp := fu } : Pile).afterRunRemoved
+                ([] : List Card)
+              = { hidden := gt, faceUp := ([] : List Card) ++ [g] } from rfl,
+            show ({ hidden := gt, faceUp := ([] : List Card) ++ [g] } : Pile).faceUp
+              = ([] : List Card) ++ [g] from rfl] at h
+          rcases List.mem_append.1 h with h | h
+          · exact absurd h (by simp)
+          · rcases List.mem_cons.1 h with rfl | h
+            · exact Or.inr (List.mem_cons_self ..)
+            · exact absurd h (by simp)
+
+/-- **THE REVEAL CENSUS, RUNG HALF** [E] — the committed slide writes
+no foundation AT ALL: every card's `nextUp` read is VERBATIM across
+the commit.  The reveal kind's license conflicts are confined to the
+two written piles' arrangement cells, never a rung — the rung world
+the reveal rest's route step 1 prices. -/
+private theorem p_reveal_rung {s s' : State} {c : Card} {b : Base}
+    (hstep : State.step s (Move.tabToTab c b) = some s') :
+    s'.found = s.found ∧ ∀ (e : Card), s'.nextUp e = s.nextUp e := by
+  obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv hstep
+  rw [hs]
+  refine ⟨?_, ?_⟩
+  · show (((s.setPile a (Pile.afterRunRemoved (s.piles a)
+        (below c (s.piles a).faceUp))).putRun
+        (fromCard c (s.piles a).faceUp) b).found) = s.found
+    rw [(putRun_keep (st := s.setPile a (Pile.afterRunRemoved (s.piles a)
+        (below c (s.piles a).faceUp)))).1, setPile_found]
+  · intro e
+    exact nextUp_congr e ((putRun_keep (st := s.setPile a
+        (Pile.afterRunRemoved (s.piles a) (below c (s.piles a).faceUp)))).1
+      |>.trans (setPile_found s a (Pile.afterRunRemoved (s.piles a)
+        (below c (s.piles a).faceUp))))
+
+/-- **THE BOARD-PREFIX SPLIT** [E] — every play is a board-letter
+prefix (possibly empty) followed by either its end or a ZONE leg (a
+draw or a waste letter — the first leg the draw rest's cursor
+content can live at).  The structural fact the draw rest's new
+dispatch rides. -/
+private theorem p_board_prefix_split : ∀ (l : List Move),
+    ∃ B R, l = B ++ R ∧ B.all p_boardMoveB = true ∧
+      (R = [] ∨ (∃ z R', R = z :: R' ∧ p_boardMoveB z = false)) := by
+  intro l
+  induction l with
+  | nil => exact ⟨[], [], rfl, rfl, Or.inl rfl⟩
+  | cons m t ih =>
+      obtain ⟨B, R, hsplit, hB, hR⟩ := ih
+      cases hm : p_boardMoveB m with
+      | true =>
+          refine ⟨m :: B, R, ?_, ?_, hR⟩
+          · rw [hsplit]; rfl
+          · exact List.all_eq_true.mpr (fun x hx => by
+              rcases List.mem_cons.1 hx with rfl | hmem
+              · exact hm
+              · exact List.all_eq_true.mp hB x hmem)
+      | false => exact ⟨[], m :: t, rfl, rfl, Or.inr ⟨m, t, rfl, hm⟩⟩
 
 /-- **THE DRAW ARM'S NAMED ZONE REMAINDER** [H, named sub-residue,
 exactly one `sorry` — the draw kind's carried content once the two
@@ -1398,7 +1815,29 @@ the fragile-pair economies all kept a downward fork in reach with
 the cycle untouched (`fb2`/`fb3`: the corridor never rode the
 cycle), and the pristine one-cell stock of `fb1` could not feed a
 corridor either way — evidence the zone remainder is TRAVEL
-content (re-phasing), not content death. -/
+content (re-phasing), not content death.
+
+CLOSED ALSO (this pass): THE SUCCESSOR'S OWN FORK — when the
+successor is itself fork-headed, the empty play exhibits it
+(`p_successor_fork_repair`: the census `forkStateSB` decides,
+`forkStateSB_true_iff` bridges, `forkWitnessSB_sound` hands the
+full two-conjunct parcel).  The row's sole carried content is
+its FORKLESS-SUCCESSOR branch: the phase re-phasing schedule
+above, from a successor that is NOT already a fork.
+
+CLOSED THIS PASS (the succession): THE BOARD-PASSAGE EXHIBITS --
+the play splits as a board-letter prefix before its FIRST ZONE
+LEG (`p_board_prefix_split`), and the committed draw wrote no
+board cell, so the prefix re-runs from the successor verbatim
+along §4's board thread (`board_run_congr` over the `boardEq`
+the draw commit leaves); when the prefix's mirror LANDING is
+itself fork-headed the prefix IS the successor's exhibit (the
+zone legs all ride strictly AFTER a fork's arrival -- they were
+never load-bearing).  What remains is exactly the CURSOR BIRTH:
+the first zone leg is LOAD-BEARING, firing at the boardEq twin
+of a forkless mirror off the cycle the commit shifted -- the
+re-phasing schedule's raised stake, MOVED HERE as the named
+narrow residue. -/
 private theorem p_draw_zone_rest {s s' F : State} {x : Card}
     {m₀ : Move} {τ : List Move}
     (hwf : s.WF)
@@ -1410,7 +1849,49 @@ private theorem p_draw_zone_rest {s s' F : State} {x : Card}
     (hzone : (m₀ :: τ).all p_boardMoveB = false) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
       s'.run π' = some F' ∧ ForkWitness F' x' := by
-  sorry
+  by_cases hfb : forkStateSB s' = true
+  · exact p_successor_fork_repair (step_wf hwf hstep) hfb
+  · -- the forkless successor: this row's sole carried content, at its
+    --  narrowest shape THIS PASS: the CURSOR BIRTH alone.
+    --  (1) the successor's board thread (§4): the committed draw
+    --      wrote no board cell, so the exhibiting play's board-letter
+    --      prefix re-runs from s' verbatim, landing its boardEq
+    --      mirror (`board_run_congr`).
+    have hsDrw : s.stepDraw = some s' := hstep
+    have hbss : boardEq s s' :=
+      ⟨(stepDraw_piles hsDrw).symm, (stepDraw_found hsDrw).symm⟩
+    --  (2) the play's board-prefix split (§5.0c): a board-letter
+    --      prefix, then either the end or the FIRST ZONE LEG.
+    obtain ⟨B, R, hsplit, hB, hR⟩ := p_board_prefix_split (m₀ :: τ)
+    obtain ⟨u, hrunB, hrest⟩ :=
+      run_append_split s B R F (by rw [← hsplit]; exact hrun)
+    obtain ⟨u', hrunB', -⟩ :=
+      board_run_congr B (fun mb hmem =>
+        p_boardMoveB_true mb (List.all_eq_true.mp hB mb hmem))
+        s s' hbss u hrunB
+    rcases hR with rfl | ⟨z, R', rfl, hfz⟩
+    · exfalso
+      -- the play has no zone leg at all: contradicts hzone
+      rw [List.append_nil] at hsplit
+      rw [hsplit] at hzone
+      rw [hB] at hzone
+      exact absurd hzone (by simp)
+    by_cases hfbU : forkStateSB u' = true
+    · -- CLOSED THIS PASS: the board prefix's mirror is ITSELF
+      -- fork-headed -- the play's first zone leg rides strictly
+      -- AFTER a fork's arrival and was never load-bearing; the
+      -- board prefix exhibits the successor's fork directly.
+      obtain ⟨xU, hxiff, hxnt⟩ :=
+        (forkStateSB_true_iff (p_run_wf s' B u' hrunB'
+          (step_wf hwf hstep))).mp hfbU
+      exact ⟨u', B, xU, hrunB', ⟨hxiff, hxnt⟩⟩
+    · -- THE CURSOR BIRTH (the residue, whole and sole): the first
+      -- zone leg `z` fired at the boardEq twin `u` of the mirror
+      -- `u'`, from the cycle the COMMIT shifted -- its guard reads
+      -- the two-zone cursor, and the repair-time schedule (route
+      -- step 2) must re-phase it from u'.  This is the multi-commit
+      -- danger the probe program names, carried here alone.
+      sorry
 
 /-- **`fork_floor_draw`** — **THE DRAW-CURSOR KIND RESIDUE** [H,
 named residue, exactly one `sorry`]: the committed draw
@@ -1562,7 +2043,26 @@ PROBE PRICING (round-3; boards NOT added here, per the mission):
 forkless at the successor, decided — and the corridor's repair
 was one leg (`fb2_survives`); the named remainder carries the
 eats those snapshots do not cover, the MULTI-LEG repairs, with
-the stock-reply tables as the honesty rail. -/
+the stock-reply tables as the honesty rail.
+
+THE ZONE ARITHMETIC (structural, for the next assembly): the
+seal raises exactly ONE suit-rung by one, so at most ONE card's
+heat can change at the successor — the unique successor-rank
+card of the eaten suit (ABSENT when the eaten card is a king: the
+suit tops out; `Rank.toIdx`-uniqueness in suit pins the hot cards
+to one).  A waste-resident eaten head is a THIRD PARTY to any
+origin fork (the flat shape demands pile residency, against
+`mem_waste_unique`), and the eaten card's suit cannot be an
+origin-pair suit when the head is hot (the pair-rung pins
+forbid).  So the empty-exhibit branch's king-seal and
+dead-successor shapes re-exhibit the origin fork VERBATIM — the
+LIVE-SUCCESSOR leak is the shape to defuse, and the board-headed
+branch's raised-row shadow is the other.
+
+CLOSED ALSO (this pass): THE SUCCESSOR'S OWN FORK — when the
+successor is itself fork-headed, the empty play exhibits it
+(`p_successor_fork_repair`, the decidable census bridge).  The
+row's sole carried content is its FORKLESS-SUCCESSOR branch. -/
 private theorem p_waste_found_rest {s s' F : State} {c : Card} {x : Card}
     {π : List Move}
     (hwf : s.WF)
@@ -1574,7 +2074,18 @@ private theorem p_waste_found_rest {s s' F : State} {c : Card} {x : Card}
       ∧ (∀ c' b', m₀ ≠ Move.wasteToTab c' b')) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
       s'.run π' = some F' ∧ ForkWitness F' x' := by
-  sorry
+  by_cases hfb : forkStateSB s' = true
+  · exact p_successor_fork_repair (step_wf hwf hstep) hfb
+  · -- the forkless-successor repair: this row's sole carried content,
+    --  over the SEALED ARITHMETIC LANDED THIS PASS (§5.0c:
+    --  `p_seal_zone_rows` the commit's full write record --
+    --  piles/stock verbatim, waste popped, every found row but the
+    --  sealed suit verbatim -- and `p_license_offRung`: the whole
+    --  license world off the sealed suit is VERBATIM across the
+    --  commit, so the route's step-1 conflict is exactly the sealed
+    --  suit's frontier cell); the empty-exhibit and board/draw-headed
+    --  re-scheduling (route steps 2-4) remains this row's content.
+    sorry
 
 /-- **`fork_floor_waste_found`** — **THE WASTE-JUMP KIND RESIDUE**
 (pop-to-foundation arm) [M, named residue, exactly one `sorry`]:
@@ -1732,7 +2243,23 @@ PROBE PRICING: `fb2E`'s junk cells refused on color
    (`fb2_junkCold`: decided both grades) are this remainder's
    guard-refusal content at decided grade — the refuses are
    REAL, and the schedule must route around them, as the boards'
-   repairs did in one leg (`fb2_survives`). -/
+   repairs did in one leg (`fb2_survives`).
+
+THE GUARD-REFUSAL TRANSPORT (structural, for the next assembly):
+the seating writes NO rung (pair-rung pins untouched) and writes
+exactly one pile — the landing pile: the old top covered, the
+seated card atop it.  The empty-exhibit branch's genuine danger
+is the seating DIRECTLY ONTO the origin witness: the pair's
+mutual twin-top pin dies BOTH ways (the covered witness's
+covered-arm needs its twin topping; the covered twin's arm needs
+the witness topping — the mutual freeze).  The re-seat consults
+(`canPlace c b'` over the covered-top record) and the
+witness-cover schedules are the shapes to defuse.
+
+CLOSED ALSO (this pass): THE SUCCESSOR'S OWN FORK — when the
+successor is itself fork-headed, the empty play exhibits it
+(`p_successor_fork_repair`, the decidable census bridge).  The
+row's sole carried content is its FORKLESS-SUCCESSOR branch. -/
 private theorem p_waste_seat_rest {s s' F : State} {c : Card} {b : Base}
     {x : Card} {π : List Move}
     (hwf : s.WF)
@@ -1744,7 +2271,22 @@ private theorem p_waste_seat_rest {s s' F : State} {c : Card} {b : Base}
       ∧ m₀ ≠ Move.wasteToTab c b) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
       s'.run π' = some F' ∧ ForkWitness F' x' := by
-  sorry
+  by_cases hfb : forkStateSB s' = true
+  · exact p_successor_fork_repair (step_wf hwf hstep) hfb
+  · -- the forkless-successor repair: this row's sole carried content,
+    --  over the SEAT CENSUS LANDED THIS PASS (§5.0c): the commit's
+    --  write records `p_seat_inl_records`/`p_seat_inr_records`
+    --  (foundations verbatim, one pile written, the seated card
+    --  appended atop its host or the anchor's bare king record),
+    --  `p_seat_gain` (the seated cell's license is exactly its
+    --  unchanged `nextUp` read), `p_seat_refusal_cover` (the
+    --  GUARD-REFUSAL TRANSPORT: after the seat covers its host top,
+    --  every card-hosted placement consult on that host refuses),
+    --  and `p_seat_reads_inl`/`p_seat_reads_inr` (every rung, pile,
+    --  and top-search read outside the written pile and the two
+    --  named cells is verbatim); the corridor re-scheduling (route
+    --  steps 2-4) remains this row's content.
+    sorry
 
 /-- **`fork_floor_waste_seat`** — **THE WASTE-JUMP KIND RESIDUE**
 (seating arm) [M, named residue, exactly one `sorry`]: the committed
@@ -1902,7 +2444,20 @@ the direct return seats refused (`fb1S_sealRefused`), the
 multi-leg expose-and-seat repair attested (`fb1_survives` rides
 the trivial journey — the LEGGED repair the probe did not need
 in that economy is what this remainder carries, with
-`fb2`/`fb3`'s one-leg corridors as the attained floor). -/
+`fb2`/`fb3`'s one-leg corridors as the attained floor).
+
+THE SINGLE-RUNG FACT (structural, for the next assembly): the
+founding raises exactly ONE suit-rung by one (the index-exact
+climb), so the successor's heat change is confined to the
+founding suit's successor-rank card; the raised pile's own
+emptied record (revealed or fully bare, `p_committed_raise_shape`)
+is the other written cell.  The shapes to defuse: the
+live-successor leak and the emptied-pile shadow.
+
+CLOSED ALSO (this pass): THE SUCCESSOR'S OWN FORK — when the
+successor is itself fork-headed, the empty play exhibits it
+(`p_successor_fork_repair`, the decidable census bridge).  The
+row's sole carried content is its FORKLESS-SUCCESSOR branch. -/
 private theorem p_raise_rest {s s' F : State} {c : Card} {x : Card}
     {π : List Move}
     (hwf : s.WF)
@@ -1913,7 +2468,20 @@ private theorem p_raise_rest {s s' F : State} {c : Card} {x : Card}
     (hprof : π = [] ∨ ∃ m₀ τ, π = m₀ :: τ ∧ m₀ ≠ Move.tabToFound c) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
       s'.run π' = some F' ∧ ForkWitness F' x' := by
-  sorry
+  by_cases hfb : forkStateSB s' = true
+  · exact p_successor_fork_repair (step_wf hwf hstep) hfb
+  · -- the forkless-successor repair: this row's sole carried content,
+    --  over the RAISE-SHAPE CENSUS LANDED AT THE PRIOR PASS and the
+    --  reveal-membership kit landed this pass (§5.0c:
+    --  `p_committed_raise_shape` pins the commit's two arms — the
+    --  surface reveal with its hidden tail, or the bare-non-king
+    --  emptying — and `p_mem_afterRunRemoved` reads the raised
+    --  pile's new face-up record against the old two decks); the
+    --  raise-kind's own per-card license census (the rung cell at
+    --  the raised suit, the two written pile cells) remains to be
+    --  landed, and the seat-lease re-scheduling (route steps 2-4)
+    --  remains this row's content.
+    sorry
 
 /-- **`fork_floor_raise`** — **THE RAISE-LIKE KIND RESIDUE** [H,
 named residue, exactly one `sorry`]: the committed tableau founding
@@ -2060,7 +2628,20 @@ the seat clause), the seated attempt another commitment
 entombed behind the frozen host (`fb3X_notFork`, `fb3X_twinBuried`)
 while the EAT arm's corridor was one leg (`fb3_survives`) — the
 evidence that even on the reveal-heavy economies the floor's
-danger is the schedule's LENGTH, not a break. -/
+danger is the schedule's LENGTH, not a break.
+
+THE TWO-CELL FACT (structural, for the next assembly): the slide
+writes exactly two piles — the source pile (revealed, or
+emptied bare) and the run's landing pile — and no rung and no
+zone cell; the surfaced card is priced S-DEAD at the surfacing
+whenever its seat clause fails (the bare-over-hidden shape,
+the fb3W datapoint).  The shape to defuse: the run-re-forming
+schedule over the two written cells.
+
+CLOSED ALSO (this pass): THE SUCCESSOR'S OWN FORK — when the
+successor is itself fork-headed, the empty play exhibits it
+(`p_successor_fork_repair`, the decidable census bridge).  The
+row's sole carried content is its FORKLESS-SUCCESSOR branch. -/
 private theorem p_reveal_rest {s s' F : State} {c : Card} {b : Base}
     {x : Card} {π : List Move}
     (hwf : s.WF)
@@ -2071,7 +2652,17 @@ private theorem p_reveal_rest {s s' F : State} {c : Card} {b : Base}
     (hprof : π = [] ∨ ∃ m₀ τ, π = m₀ :: τ ∧ m₀ ≠ Move.tabToTab c b) :
     ∃ (F' : State) (π' : List Move) (x' : Card),
       s'.run π' = some F' ∧ ForkWitness F' x' := by
-  sorry
+  by_cases hfb : forkStateSB s' = true
+  · exact p_successor_fork_repair (step_wf hwf hstep) hfb
+  · -- the forkless-successor repair: this row's sole carried content,
+    --  with the RUNG HALF of the two-cell fact LANDED THIS PASS
+    --  (§5.0c: `p_reveal_rung` — the committed slide writes no
+    --  foundation at all, so every `nextUp` read is verbatim across
+    --  the commit; and `p_mem_afterRunRemoved` — the source pile's
+    --  new face-up record lives in the old two decks); the
+    --  PILE-CELL half (two written cells verbatim outside) and the
+    --  run-re-forming schedule over them remain this row's content.
+    sorry
 
 /-- **`fork_floor_reveal`** — **THE REVEAL KIND RESIDUE** [H, named
 residue, exactly one `sorry`]: the committed run relocation
@@ -2286,20 +2877,59 @@ kit of §5.0 and the shape row of §3 from the prior pass
 `p_canPlace_congr`, `p_putCard_piles_congr` and
 `p_survives_sameHead` read `[propext]`; `p_committed_raise_shape`
 and `p_waste_eat_corridor` read `[propext, Quot.sound]` through
-the step-inversion/undo chain), plus the BOARD-THREAD KIT and the
-CLOSED FRAGMENTS of this pass — the run-lift `p_run_wf`, the
-license congruences `p_canRaise_congr` / `p_canRaiseS_congr`, the
-certificate rod `p_fork_boardTransfer`, the draw kind's
-`p_draw_board_repair`, the seating kind's `p_waste_seat_mirror`,
-the board-letter scan `p_boardMoveB` with its two rows, and the
-crown's seat scan `p_seatOffered` with `p_seatOffered_iff` — every
-one zero-`sorryAx`, zero-`Classical.choice` — plus SIX NAMED
-REMAINDER ROWS (`p_seat_climb_rest` under the schedule assembly,
-and the five per-kind rows under the five children), each exactly
-one `sorryAx` with a complete route; the sorry COUNT stays
-exactly the SIX, now all in named sub-rows (the children
-themselves are sorry-free assemblies), and
-`fork_floor_of_commit`'s profile is unchanged. -/
+the step-inversion/undo chain), plus the BOARD-THREAD KIT, the
+CLOSED FRAGMENTS, and THE SUCCESSOR'S-OWN-FORK BRANCH of this
+pass — the run-lift `p_run_wf`, the license congruences
+`p_canRaise_congr` / `p_canRaiseS_congr`, the certificate rod
+`p_fork_boardTransfer`, the draw kind's `p_draw_board_repair`,
+the seating kind's `p_waste_seat_mirror`, the board-letter scan
+`p_boardMoveB` with its two rows, the crown's seat scan
+`p_seatOffered` with `p_seatOffered_iff`, and the decidable
+census exhibit `p_successor_fork_repair` (over `forkStateSB`
+of the newly imported one-import leaf `Orig.ForkStateSB`, zero
+`Classical` and zero own-`sorryAx` by its own battery; consumed
+only through the bridge `forkStateSB_true_iff` and
+`forkWitnessSB_sound`) — every one zero-`sorryAx`,
+zero-`Classical.choice` — plus SIX NAMED REMAINDER ROWS
+(`p_seat_climb_rest` under the schedule assembly, and the five
+per-kind rows under the five children), each exactly one
+`sorryAx` with a complete route, each now carrying its kind's
+FORKLESS-SUCCESSOR branch alone (the successor's-own-fork case
+closed inside each row); the sorry COUNT stays exactly the SIX,
+and `fork_floor_of_commit`'s profile is unchanged.
+
+THE SUCCESSION PASS added the §5.0c ONE-COMMIT CENSUS heads, every
+one zero-`sorryAx` and zero-`Classical.choice`, audited below —
+the search/read transport helpers (`p_census_vec` over
+`Twin.firstWhere_congr`; `p_census_none`, the none-completeness
+half), the OFF-RUNG license congruence `p_license_offRung` (the
+flat `canRaiseS_iff` package transported clause by clause across
+states agreeing on piles and every found row but one suit), the
+seal's write record `p_seal_zone_rows`, the two seating write
+records (`p_seat_inl_records`, `p_seat_inr_records`), the seated
+cell's license read `p_seat_gain`, the GUARD-REFUSAL TRANSPORT
+`p_seat_refusal_cover` (after the seat covers its host top, every
+card-hosted placement consult on that host refuses — the probe
+program's junk-refusal verdicts at theorem grade), the seating
+read censuses (`p_seat_reads_inl`, `p_seat_reads_inr` — rungs,
+piles, and top-searches verbatim off the named cells), the
+reveal-membership kit `p_mem_afterRunRemoved` (template:
+`Orig/TwinExchangeBoth.lean`'s private copy, per-file per
+discipline), the reveal census's RUNG HALF `p_reveal_rung`, and
+the BOARD-PREFIX SPLIT `p_board_prefix_split` — AND restructured
+the draw kind's named remainder into its NARROW residue: the
+BOARD-PASSAGE EXHIBITS are now closed verbatim inside
+`p_draw_zone_rest` (the play's board-letter prefix re-runs from
+the draw successor along the boardEq thread, and when the
+mirror landing is fork-headed the prefix itself exhibits the
+successor's fork), so the row's sole remaining `sorryAx` carries
+exactly the CURSOR BIRTH — the load-bearing first zone leg,
+firing from the commit-shifted cycle at the boardEq twin of a
+forkless mirror.  The sorry COUNT stays exactly the SIX; the
+draw child's and the head's axiom profiles are UNCHANGED by the
+restructure (`p_draw_zone_rest` still
+`[propext, sorryAx, Quot.sound]`, one `sorryAx`, whole and
+entire the cursor birth). -/
 
 #print axioms hidden_never_grows
 #print axioms two_zone_exits_playable
@@ -2319,6 +2949,20 @@ themselves are sorry-free assemblies), and
 #print axioms p_draw_board_repair
 #print axioms p_waste_seat_mirror
 #print axioms p_seatOffered_iff
+#print axioms p_successor_fork_repair
+#print axioms p_census_vec
+#print axioms p_census_none
+#print axioms p_license_offRung
+#print axioms p_seal_zone_rows
+#print axioms p_seat_inl_records
+#print axioms p_seat_inr_records
+#print axioms p_seat_gain
+#print axioms p_seat_refusal_cover
+#print axioms p_seat_reads_inl
+#print axioms p_seat_reads_inr
+#print axioms p_mem_afterRunRemoved
+#print axioms p_reveal_rung
+#print axioms p_board_prefix_split
 #print axioms p_seat_climb_rest
 #print axioms p_founded_seat_schedule
 #print axioms p_draw_zone_rest

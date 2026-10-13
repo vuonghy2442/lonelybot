@@ -102,6 +102,56 @@ travels through the def alone — consumers keep compiling).
   concludes by the empty/elevated dichotomy — its proof is a short
   routing skeleton and nothing else.
 
+  SESSION-2 LANDINGS (2026-10-13, the take-over pass): the
+  provable content still missing from the six routes' plumbing was
+  extracted and LANDED (zero-sorry, §4.2.0 and the waste kit): the
+  class-weld and journey-membership rows, the per-leg rung deltas,
+  the rung-walk engine and — its first headline —
+  `lowslab_elevation_crossing` (every elevated member is crossed
+  INTO by a reversible raise of the covered twin itself, at a
+  fork-exact boundary member, over an on-slab prefix); for the waste
+  pair, `lowslab_pair_netcensus` (the guards at two members net the
+  commit suit's letters to zero along any witnessing journey — the
+  re-threading's remaining work is purely the nesting) and
+  `lowslab_waste_guard_fires` (the guard fires its letter
+  unconditionally; `lowslab_waste_targetclass` thereby SHRUNK to
+  the bare class-mateship).  Two statement-level findings are
+  recorded in the rows' docstrings per the never-force discipline:
+  `lowslab_top_census` was REFUTABLE as stated (wild singleton
+  class — repaired by restoring the `ForkWitness` parcel its
+  docstring always meant), and the WASTE rail carries a live
+  REFUTATION CANDIDATE (the raised-twin-suit commit card above the
+  fork point — the refuter-first Q(B) shape — priced against
+  `lowslab_waste_reseat` and the waste routers, probe certification
+  pending); the six residues remain, each now reduced to its exact
+  honest open content.
+
+  SESSION-3 VERDICT (2026-10-13, the third succession — all six
+  attempted, none forced): every residue's assembly was re-attempted
+  against the banked arsenal; none licenses a full closure at the
+  WF-free grade, and per the never-force discipline ALL SIX CARRY at
+  their named grades, statements byte-frozen, fates recorded in their
+  docstrings.  The load-bearing walls, now precisely named: every
+  WF-free mirror kit runs into the wild COPY CORNERS the banked undos'
+  premises fence (doubled seat searches, miscounted rungs), the
+  upstream doors (`forkState_one_founding`, the canonical-assignment
+  route, the census dichotomies) are WF-GATED while the byte-frozen
+  main statement admits wild forks, and the class links would need
+  the DASHED-WITNESS TRANSPORT (the Dyck re-threading) no banked
+  WF-free row builds; the waste pair keeps its live D5-refutation
+  candidate (probe certification the pending gate) and
+  `fork_lowbridge_pull` hosts as the final honest wild-remainder
+  carry.  LANDED THIS PASS, all zero-sorry (§4.1.5):
+  `lowslab_fork_pair_rungs` (the fork's pair rungs, named once),
+  `lowslab_class_hiddenPinned` + `lowslab_top_census_hidden` (the
+  class hidden-pin — the seat census's hidden conjunct now CLOSED for
+  free at every class member, that residue's first on-record shrink),
+  and `lowslab_raise_commit_shape_wf` (the WF-grade commit face of a
+  raise: the raised card is a lone top, the census's two commit
+  species exactly).  The battery is refreshed; the sorry count stays
+  exactly the six, and `fork_neighbor_lowbridge`'s profile stays
+  `[propext, sorryAx, Quot.sound]` with no new inflow.
+
 GRADE NOTE (the design decision, kept): the theorem is stated at the
 PROGRAM'S OWN commit grain — `irreversibleAt`, the full no-return
 notion of `Orig/Fate.lean` (plays of any grain) — not at the softer
@@ -486,6 +536,118 @@ private theorem lowslab_draw_emptyReversible {u s₁ : State}
       hsInv hsP hsF (Nat.le_refl _)
   exact ⟨s₁, play, hstep, hrun⟩
 
+/-! ### §4.1.5. The session-3 pins (the third succession)
+
+Small banked supports, all zero-sorry, landing per the isolating
+discipline the pieces the six routes' docstrings were re-deriving per
+call; nothing here moves a residue's grade (the six carry, fates
+recorded in their docstrings) — the rows are landed for the sequel
+passes, and two of the four (the class hidden-pin pair) SHRINK a named
+residue's honest open content on record. -/
+
+/-- **THE FORK'S PAIR RUNGS** (WF-free) — both family suits' rungs at
+the fork itself read the fork point EXACTLY: the two S-live pair
+cards' `canRaiseS_rung` reads, the twin's through `Card.twin_rank`.
+The pair of reads the routes' elevated-census steps re-derive per
+call, named once; the fork's own self-slab row (`fork_self_low`) is
+the ≤-read of the second conjunct. -/
+private theorem lowslab_fork_pair_rungs {st : State} {x : Card}
+    (hx : ForkWitness st x) :
+    rungAt st x.suit = x.rank.toIdx ∧
+      rungAt st x.twin.suit = x.rank.toIdx := by
+  refine ⟨canRaiseS_rung ((hx.1 x).mp (Or.inl rfl)), ?_⟩
+  have h2 := canRaiseS_rung ((hx.1 x.twin).mp (Or.inr rfl))
+  rwa [Card.twin_rank] at h2
+
+/-- **THE CLASS HIDDEN-PIN** (WF-free) — class-mates share the fork's
+per-pile hidden decks: the pin is banked (`shuffle_hiddenPinned`)
+along any witness shuffle, and the setoid's rev-closure hands a
+forward witness journey out of the membership itself
+(`sameOrbit_forward`).  This is the reveal row's HIDDEN PIN step as a
+named read, and the seat census's hidden conjunct's whole content. -/
+private theorem lowslab_class_hiddenPinned {st u : State}
+    (hmem : sameOrbitSetoid.r st u) :
+    ∀ a, (u.piles a).hidden = (st.piles a).hidden := by
+  obtain ⟨τ, hτ⟩ := sameOrbit_forward hmem
+  exact shuffle_hiddenPinned hτ
+
+/-- **THE SEAT CENSUS'S HIDDEN CONJUNCT, CLOSED** (WF-free) — at any
+class member the demanded anchor's hidden deck equals the fork's, so
+any two members' decks agree: `lowslab_top_census`'s hidden conjunct
+is FREE at EVERY class member and the residue's open content shrinks
+to exactly its two named survivors — the card-level presentation of
+`c` and the slab-side landing. -/
+private theorem lowslab_top_census_hidden {st u d : State} {k : Anchor}
+    (hmem : sameOrbitSetoid.r st u)
+    (hclass : sameOrbitSetoid.r st d) :
+    (d.piles k).hidden = (u.piles k).hidden := by
+  rw [lowslab_class_hiddenPinned hmem k]
+  exact lowslab_class_hiddenPinned hclass k
+
+/-- **THE WF-GRADE COMMIT FACE OF A RAISE** — at a WF commit site an
+IRREVERSIBLE `tabToFound` has exactly the census's two commit
+species: the raised card is a LONE face-up top (`faceUp = [c]`), over
+a HIDDEN deck it strips (the reveal species) or over a completely
+BARE seat at a NON-KING (the §2 census's own graded species).  Every
+other firing shape is reversible at the site — the under-seat arm
+through the banked one-move undo (`tabToFound_undo_under`, its search
+premise exact at WF through `pileOfTop_eq_some_iff`, its fit premise
+through the WF run discipline), the bare king through
+`tabToFound_undo_bare` — and a reversible firing contradicts `hiv`.
+The row pins the commit card's exact arrangement face for the raise
+row's seat re-fire and the waste rail's hot bracket.  The WF premise
+is honest: at a wild site the same undos' premises name real corners
+(doubled seat searches, misfit stacks — the fences
+`foundToTab_undo`'s docstring records), so the WF-free statement
+grades stay exactly where they were and the row is landed for the
+sequels (not consumed by a residue here). -/
+private theorem lowslab_raise_commit_shape_wf {u v : State} {c : Card}
+    (hwfu : u.WF)
+    (hstep : State.step u (Move.tabToFound c) = some v)
+    (hiv : irreversibleAt u (Move.tabToFound c)) :
+    ∃ a, u.pileOfTop c = some a ∧ (u.piles a).faceUp = [c] ∧
+      ((u.piles a).hidden ≠ [] ∨
+        ((u.piles a).hidden = [] ∧ c.rank ≠ Rank.king)) := by
+  obtain ⟨-, k, hpa, hs⟩ := step_tabToFound_inv hstep
+  obtain ⟨-, hlast⟩ := pileOfTop_top hpa
+  have hsnoc : (u.piles k).faceUp =
+      chop (u.piles k).faceUp ++ [c] := lastOf_chop hlast
+  by_cases hchop : chop (u.piles k).faceUp = []
+  · -- the lone-top read, then the two species
+    have hface : (u.piles k).faceUp = [c] := by
+      rw [hsnoc, hchop, List.nil_append]
+    refine ⟨k, hpa, hface, ?_⟩
+    rcases Decidable.em ((u.piles k).hidden = []) with hhid | hhid
+    · refine Or.inr ⟨hhid, ?_⟩
+      rcases Decidable.em (c.rank = Rank.king) with hk | hk
+      · exact absurd (tabToFound_undo_bare hstep hpa hchop hhid hk)
+          (not_reversibleAtW_of_irreversibleAt hiv)
+      · exact hk
+    · exact Or.inl hhid
+  · -- the under-seat shape is reversible at WF: the one-move undo returns
+    exfalso
+    have hrok : runOK (chop (u.piles k).faceUp ++ [c]) = true := by
+      rw [← hsnoc]
+      exact hwfu.2.1 k
+    obtain ⟨z, hz, hsit⟩ := runOK_snoc_sit hchop hrok
+    have hwfv : v.WF := step_wf hwfu hstep
+    have hvpa : (v.piles k).faceUp = chop (u.piles k).faceUp := by
+      have hpilk : v.piles k =
+          Pile.afterRunRemoved (u.piles k) (chop (u.piles k).faceUp) := by
+        rw [hs]
+        show (if k = k then
+            Pile.afterRunRemoved (u.piles k) (chop (u.piles k).faceUp)
+          else u.piles k) = _
+        rw [ite_eq_left rfl]
+      rw [hpilk, afterRunRemoved_ne hchop]
+    have hvtopa : (v.piles k).top = some z := by
+      rw [show (v.piles k).top = lastOf ((v.piles k).faceUp) from rfl, hvpa]
+      exact hz
+    have hsearch : v.pileOfTop z = some k :=
+      (pileOfTop_eq_some_iff hwfv).2 hvtopa
+    exact absurd (tabToFound_undo_under hstep hpa hz hsit hsearch)
+      (not_reversibleAtW_of_irreversibleAt hiv)
+
 /-- **THE SEAT CENSUS** `lowslab_top_census` [H, SHRUNK at the census
 swap pass] — the elevation mechanism's arrangement face, the
 takeback-checklist executability the raise-like and reveal replays
@@ -567,8 +729,38 @@ the slab-side descent), PRICED [H] against the confluence program
 and not pursued this pass.  The survivors are unchanged and named:
 (a) the card-level bootstrap, (b) the slab-side landing (the rung
 ledger `witness_rung_census` + `fork_self_low`); the waste seat
-rail's landing-base consult rides the same bootstrap. -/
+rail's landing-base consult rides the same bootstrap.
+
+SESSION-2 REPAIR (2026-10-13, the take-over pass): the row AS
+ORIGINALLY STATED — no `ForkWitness` parcel, WF-free, rank-free —
+was REFUTABLE by hand at a wild singleton class: take `st = u` with
+`found heart = [K♥]`, the lone ace CA topping p1, an empty zone,
+`x = A♦` and `c = CA` — all four premises hold (`helev` reads the
+heart rung `1 > 0`; `hlow`/`htop` read the ace) while `st`'s only
+legal moves are the committed `tabToFound CA` and `foundToTab K♥`
+(neither has a return play), so the class is the singleton `{st}`:
+every member is elevated, NO slab member exists, and the conclusion
+  dies.  The fork parcel — this docstring's own "fork point" reading,
+  and the shape the raise/reveal consumers carry anyway — is restored
+  as a premise (`ForkWitness st x` first); the statement is now the
+  intended one, and the survivors (a)/(b) above remain its honest open
+  content.
+
+  SESSION-3 PIN (2026-10-13, the third succession): the HIDDEN
+  conjunct of the conclusion is now CLOSED at term grade and for FREE
+  at EVERY class member — the banked `lowslab_class_hiddenPinned`
+  (`shuffle_hiddenPinned` instanced at the membership's own forward
+  witness journey) reads every class member's per-pile hidden deck as
+  the fork's, and `lowslab_top_census_hidden` welds the demanded
+  anchor's deck to `u`'s at any candidate `d`.  The row's open
+  content shrinks to exactly the two named survivors: (a) the
+  card-level presentation of `c` itself at one slab-side class member
+  (`lastOf (d.piles k).faceUp = some c` — the §12(a) twin-blindness
+  keeps this from all cell data), and (b) the slab-side landing; the
+  canonical-assignment route stays priced [H] as the finale assessed,
+  and the row CARRIES at [H], statement byte-frozen. -/
 private theorem lowslab_top_census {st u : State} {x : Card} {c : Card}
+    (hx : ForkWitness st x)
     (hmem : sameOrbitSetoid.r st u)
     (helev : ¬ familyBelowFrontier u x)
     (hlow : c.rank.toIdx ≤ x.rank.toIdx)
@@ -702,6 +894,375 @@ private theorem lowslab_slide_board_refire {u d u' : State} {c : Card} {b : Base
     ∃ d', State.step d (Move.tabToTab c b) = some d' ∧ boardEq u' d' :=
   step_congr_board hboard (Or.inr (Or.inr ⟨c, b, rfl⟩)) hstep
 
+/-! ### §4.2.0. The journey mechanism rows (the take-over pass, proved)
+
+The per-kind routes' steps 1-2 (THE ELEVATED READ and THE CLASS
+ANCHOR) priced a piece of mechanics every one of them re-derived per
+call: that a witness journey's members are class-mates of its
+origin (per-leg class weld, the round-trip engine pattern), and that
+a fork-hovering journey out to an elevated member must CROSS the
+fork threshold on a RAISE leg alone — the covered twin raising
+ITSELF, at a boundary member whose twin rung reads the fork point
+EXACTLY, over a prefix that never leaves the slab.  Both rows land
+here, zero-sorry, over the public banked rows alone (`witness_rung_census`
+consumed at the wrapper's callers; `rungAt` arithmetic by the step
+inversions).  The private copies follow the house dedup discipline
+(the `Orig/HostCensus.lean` originals are themselves private). -/
+
+/-- The round-trip engine (private per-file copy of the loop-closure
+row: a play from `x` landing at `w`, spliced with any play back
+from `w` to `x`, is a witness shuffle `x ⇝ w`). -/
+private theorem lowslab_shuffleW_of_round : ∀ (σ : List Move) (x w : State),
+    x.run σ = some w → ∀ ρ : List Move, w.run ρ = some x →
+      ShufflePlayW x σ w := by
+  intro σ
+  induction σ with
+  | nil =>
+      intro x w hσ ρ hρ
+      have hxw : some x = some w := hσ
+      injection hxw with hx
+      rw [hx]
+      exact .nil w
+  | cons p rest ih =>
+      intro x w hσ ρ hρ
+      obtain ⟨y, hp, hrest⟩ := State.run_cons hσ
+      refine .cons ⟨y, rest ++ ρ, hp, run_split rest y w ρ x hrest hρ⟩ hp ?_
+      exact ih y w hrest (ρ ++ [p]) (run_split ρ w x [p] y hρ (run_one hp))
+
+/-- The class weld of a reversible leg (private per-file copy): a
+witness-reversible leg stays inside the macro class. -/
+private theorem lowslab_class_leg {st s₁ : State} {m : Move}
+    (hrev : reversibleAtW st m) (hstep : State.step st m = some s₁) :
+    sameOrbitSetoid.r st s₁ := by
+  obtain ⟨s₁', play, hstep', hrun⟩ := hrev
+  have hs : s₁' = s₁ := Option.some.inj (hstep'.symm.trans hstep)
+  rw [hs] at hrun
+  show RevEqW s₁ st
+  exact ⟨play, lowslab_shuffleW_of_round play s₁ st hrun [m] (run_one hstep),
+    [m], .cons ⟨s₁, play, hstep, hrun⟩ hstep (.nil s₁)⟩
+
+/-- Every member a witness journey reaches is a class-mate of the
+journey's origin — the mechanical half of every route's CLASS ANCHOR
+step. -/
+private theorem lowslab_journey_class {st z : State} {ρ : List Move}
+    (hρ : ShufflePlayW st ρ z) : sameOrbitSetoid.r st z := by
+  induction hρ with
+  | nil s => exact sameOrbitSetoid.iseqv.1 s
+  | @cons s m s₁ rest w hrev hstep hrest ih =>
+      exact sameOrbitSetoid.iseqv.trans (lowslab_class_leg hrev hstep) ih
+
+/-- **THE PER-LEG RUNG DELTAS** (private kit) — the step-guard
+arithmetic any rung-walk over witness journeys consumes: draws and
+slides write no foundation row; a raise lifts exactly its own suit's
+rung by one; a pull lowers exactly its own suit's rung by one (the
+popped row's snoc shape, `lastOf_chop`). -/
+private theorem lowslab_rung_delta_draw {s s' : State}
+    (hstep : State.step s Move.draw = some s') (σ : Suit) :
+    rungAt s' σ = rungAt s σ := by
+  have hf : s'.found = s.found := stepDraw_found hstep
+  show (s'.found σ).length = (s.found σ).length
+  rw [hf]
+
+private theorem lowslab_rung_delta_tabToTab {s s' : State} {c : Card} {b : Base}
+    (hstep : State.step s (Move.tabToTab c b) = some s') (σ : Suit) :
+    rungAt s' σ = rungAt s σ := by
+  obtain ⟨a, -, -, -, hs⟩ := step_tabToTab_inv hstep
+  show (s'.found σ).length = (s.found σ).length
+  have h1 : s'.found σ =
+      (s.setPile a (Pile.afterRunRemoved (s.piles a)
+        (below c (s.piles a).faceUp))).found σ := by
+    rw [hs, putRun_found]
+  rw [h1, congrFun (setPile_found s a _) σ]
+
+private theorem lowslab_rung_delta_tabToFound {s s' : State} {c : Card}
+    (hstep : State.step s (Move.tabToFound c) = some s') :
+    rungAt s' c.suit = rungAt s c.suit + 1 ∧
+      ∀ σ, σ ≠ c.suit → rungAt s' σ = rungAt s σ := by
+  obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv hstep
+  obtain ⟨hself, hothers, -⟩ := tabToFound_found_trio (a := a) hs
+  refine ⟨?_, ?_⟩
+  · show (s'.found c.suit).length = (s.found c.suit).length + 1
+    rw [hself, List.length_append]
+    have h1 : ([c] : List Card).length = 1 := rfl
+    omega
+  · intro σ hσ
+    show (s'.found σ).length = (s.found σ).length
+    rw [hothers σ hσ]
+
+private theorem lowslab_rung_delta_foundToTab {s s' : State} {c : Card} {b : Base}
+    (hstep : State.step s (Move.foundToTab c b) = some s') :
+    rungAt s' c.suit + 1 = rungAt s c.suit ∧
+      ∀ σ, σ ≠ c.suit → rungAt s' σ = rungAt s σ := by
+  obtain ⟨c', htop, hc'c, -, hs⟩ := step_foundToTab_inv hstep
+  rw [hc'c] at htop
+  have hf : s'.found c.suit = chop (s.found c.suit) := by
+    rw [hs, putCard_found, setFound_found_self]
+  have hsnoc : s.found c.suit = chop (s.found c.suit) ++ [c] :=
+    lastOf_chop htop
+  have hlen : (s.found c.suit).length
+      = (chop (s.found c.suit)).length + 1 := by
+    have h := congrArg List.length hsnoc
+    rw [List.length_append] at h
+    have h1 : ([c] : List Card).length = 1 := rfl
+    omega
+  refine ⟨?_, ?_⟩
+  · show (s'.found c.suit).length + 1 = (s.found c.suit).length
+    rw [hf]
+    omega
+  · intro σ hσ
+    show (s'.found σ).length = (s.found σ).length
+    have h1 : s'.found σ = (s.setFound c.suit (chop (s.found c.suit))).found σ := by
+      rw [hs, putCard_found]
+    rw [h1]
+    exact congrArg List.length (setFound_found_ne hσ)
+
+/-- **THE RUNG-WALK CROSSING ENGINE** (private) — a witness journey
+whose ends read one suit's rung as `≤ k` and `> k` must cross the
+threshold `k` on a RAISE leg alone: the leg is `tabToFound e` of the
+threshold suit with `e.rank.toIdx` AT the threshold (the raise fires
+`nextUp`), at a member whose suit-rung is EXACTLY `k`, and every
+prefix landing reads at-or-below `k`.  Pure walk arithmetic over the
+per-leg deltas — no census, no WF, no class analysis. -/
+private theorem lowslab_rung_walk {τ : Suit} {k : Nat} :
+    ∀ {s z : State} {ρ : List Move},
+      ShufflePlayW s ρ z →
+      rungAt s τ ≤ k → k < rungAt z τ →
+      ∃ (e : Card) (w w₁ : State) (π rest : List Move),
+        ρ = π ++ Move.tabToFound e :: rest ∧
+        ShufflePlayW s π w ∧
+        rungAt w τ = k ∧
+        e.suit = τ ∧
+        e.rank.toIdx = k ∧
+        State.step w (Move.tabToFound e) = some w₁ ∧
+        reversibleAtW w (Move.tabToFound e) ∧
+        ShufflePlayW w₁ rest z ∧
+        (∀ (pre post : List Move), π = pre ++ post →
+          ∀ y, s.run pre = some y → rungAt y τ ≤ k) := by
+  intro s z ρ h
+  induction h with
+  | nil s₀ =>
+      intro hs hk
+      exact absurd hk (by omega)
+  | @cons s₀ m s₁ rest z₀ hrev hstep hrest ih =>
+      intro hs hk
+      obtain hmd | ⟨c, hc⟩ | ⟨c, bb, hc⟩ | ⟨c, bb, hc⟩ :=
+        witness_leg_letters hstep hrev
+      · -- draw: the rung rides verbatim; the walk continues
+        subst hmd
+        obtain ⟨e, w, w₁, π, rest', hd, hπ, hline, hes, her, hcr, hrv, htl,
+          hpre⟩ :=
+          ih (by
+              have hcarry := lowslab_rung_delta_draw hstep τ
+              omega) hk
+        refine ⟨e, w, w₁, Move.draw :: π, rest', ?_, ?_, hline, hes, her, hcr,
+          hrv, htl, ?_⟩
+        · rw [hd, List.cons_append]
+        · exact ShufflePlayW.cons hrev hstep hπ
+        · intro pre post hpp y hrun
+          cases pre with
+          | nil =>
+              rw [List.nil_append] at hpp
+              subst post
+              have hy : y = s₀ := by
+                have h2 : (some s₀ : Option State) = some y := hrun
+                injection h2 with hcon
+                exact hcon.symm
+              rw [hy]
+              exact hs
+          | cons p t =>
+              rw [List.cons_append] at hpp
+              injection hpp with hp htl2
+              subst hp
+              obtain ⟨smid, hsd, hrt⟩ := State.run_cons hrun
+              have hsm : smid = s₁ := Option.some.inj (hsd.symm.trans hstep)
+              rw [hsm] at hrt
+              exact hpre t post htl2 y hrt
+      · -- raise: the only letter that can cross
+        subst hc
+        obtain ⟨hΔ, hoΔ⟩ := lowslab_rung_delta_tabToFound hstep
+        by_cases hup : rungAt s₁ τ ≤ k
+        · -- no crossing yet; carry the walk
+          obtain ⟨e, w, w₁, π, rest', hd, hπ, hline, hes, her, hcr, hrv, htl,
+            hpre⟩ :=
+            ih hup hk
+          refine ⟨e, w, w₁, Move.tabToFound c :: π, rest', ?_, ?_, hline, hes,
+            her, hcr, hrv, htl, ?_⟩
+          · rw [hd, List.cons_append]
+          · exact ShufflePlayW.cons hrev hstep hπ
+          · intro pre post hpp y hrun
+            cases pre with
+            | nil =>
+                rw [List.nil_append] at hpp
+                subst post
+                have hy : y = s₀ := by
+                  have h2 : (some s₀ : Option State) = some y := hrun
+                  injection h2 with hcon
+                  exact hcon.symm
+                rw [hy]
+                exact hs
+            | cons p t =>
+                rw [List.cons_append] at hpp
+                injection hpp with hp htl2
+                subst hp
+                obtain ⟨smid, hsd, hrt⟩ := State.run_cons hrun
+                have hsm : smid = s₁ :=
+                  Option.some.inj (hsd.symm.trans hstep)
+                rw [hsm] at hrt
+                exact hpre t post htl2 y hrt
+        · -- the crossing is here: suit forced, rank pinned by the guard
+          by_cases hcs : c.suit = τ
+          · rw [hcs] at hΔ hoΔ
+            obtain ⟨hn, -, -, -⟩ := step_tabToFound_inv hstep
+            have hrung : rungAt s₀ τ = k := by omega
+            have herk : c.rank.toIdx = k := by
+              have hnext : c.rank.toIdx = rungAt s₀ c.suit := of_decide_eq_true hn
+              rw [hcs, hrung] at hnext
+              exact hnext
+            refine ⟨c, s₀, s₁, [], rest, rfl, ShufflePlayW.nil s₀, hrung, hcs,
+              herk, hstep, hrev, hrest, ?_⟩
+            intro pre post hpp y hrun
+            cases pre with
+            | nil =>
+                rw [List.nil_append] at hpp
+                subst post
+                have hy : y = s₀ := by
+                  have h2 : (some s₀ : Option State) = some y := hrun
+                  injection h2 with hcon
+                  exact hcon.symm
+                rw [hy]
+                exact hs
+            | cons p t => exact absurd hpp (by simp)
+          · exfalso
+            have hcar : rungAt s₁ τ = rungAt s₀ τ := hoΔ τ (fun hcon => hcs hcon.symm)
+            omega
+      · -- pull: the rung only falls; the walk continues
+        subst hc
+        obtain ⟨hΔ, hoΔ⟩ := lowslab_rung_delta_foundToTab hstep
+        have hs₁ : rungAt s₁ τ ≤ k := by
+          by_cases hcs : τ = c.suit
+          · rw [← hcs] at hΔ
+            omega
+          · have hcar : rungAt s₁ τ = rungAt s₀ τ :=
+              hoΔ τ (fun hcon => hcs hcon)
+            omega
+        obtain ⟨e, w, w₁, π, rest', hd, hπ, hline, hes, her, hcr, hrv, htl,
+          hpre⟩ :=
+          ih hs₁ hk
+        refine ⟨e, w, w₁, Move.foundToTab c bb :: π, rest', ?_, ?_, hline, hes,
+          her, hcr, hrv, htl, ?_⟩
+        · rw [hd, List.cons_append]
+        · exact ShufflePlayW.cons hrev hstep hπ
+        · intro pre post hpp y hrun
+          cases pre with
+          | nil =>
+              rw [List.nil_append] at hpp
+              subst post
+              have hy : y = s₀ := by
+                have h2 : (some s₀ : Option State) = some y := hrun
+                injection h2 with hcon
+                exact hcon.symm
+              rw [hy]
+              exact hs
+          | cons p t =>
+              rw [List.cons_append] at hpp
+              injection hpp with hp htl2
+              subst hp
+              obtain ⟨smid, hsd, hrt⟩ := State.run_cons hrun
+              have hsm : smid = s₁ := Option.some.inj (hsd.symm.trans hstep)
+              rw [hsm] at hrt
+              exact hpre t post htl2 y hrt
+      · -- slide: the rung rides verbatim; the walk continues
+        subst hc
+        obtain ⟨e, w, w₁, π, rest', hd, hπ, hline, hes, her, hcr, hrv, htl,
+          hpre⟩ :=
+          ih (by
+              have hcarry := lowslab_rung_delta_tabToTab hstep τ
+              omega) hk
+        refine ⟨e, w, w₁, Move.tabToTab c bb :: π, rest', ?_, ?_, hline, hes,
+          her, hcr, hrv, htl, ?_⟩
+        · rw [hd, List.cons_append]
+        · exact ShufflePlayW.cons hrev hstep hπ
+        · intro pre post hpp y hrun
+          cases pre with
+          | nil =>
+              rw [List.nil_append] at hpp
+              subst post
+              have hy : y = s₀ := by
+                have h2 : (some s₀ : Option State) = some y := hrun
+                injection h2 with hcon
+                exact hcon.symm
+              rw [hy]
+              exact hs
+          | cons p t =>
+              rw [List.cons_append] at hpp
+              injection hpp with hp htl2
+              subst hp
+              obtain ⟨smid, hsd, hrt⟩ := State.run_cons hrun
+              have hsm : smid = s₁ := Option.some.inj (hsd.symm.trans hstep)
+              rw [hsm] at hrt
+              exact hpre t post htl2 y hrt
+
+/-- **THE ELEVATION CROSSING** `lowslab_elevation_crossing` (
+zero-sorry, the take-over pass) — the mechanical content the
+raise/reveal/waste/pull routes' steps 1-2 re-derive per call, banked
+as one row: from any witness journey between a FORK and an ELEVATED
+class member (the twin side past the fork point), the twin-suit rung
+walk crosses the fork threshold on a RAISE OF THE COVERED TWIN
+ITSELF — `tabToFound x.twin` fires at a boundary member `w` whose
+twin rung reads the fork point EXACTLY (so `w` is ON the slab), the
+crossing leg rides the journey as a WITNESS leg (it is reversible:
+per the banked census dichotomy, under-seat or bare-king at `w`),
+the whole prefix `π` stays ON THE SLAB (every prefix landing reads
+the twin rung at-or-below the fork point), and the boundary members
+carry their class anchors (`r st w`, `r w₁ u` — both witnesses ride
+the split journeys).  No WF, no census, no new hypotheses beyond the
+fork parcel the callers already carry. -/
+private theorem lowslab_elevation_crossing {st u : State} {x : Card}
+    (hx : ForkWitness st x)
+    (hmem : sameOrbitSetoid.r st u)
+    (helev : ¬ familyBelowFrontier u x) :
+    ∃ (w w₁ : State) (π rest : List Move),
+      ShufflePlayW st π w ∧
+      rungAt w x.twin.suit = x.rank.toIdx ∧
+      familyBelowFrontier w x ∧
+      State.step w (Move.tabToFound x.twin) = some w₁ ∧
+      reversibleAtW w (Move.tabToFound x.twin) ∧
+      sameOrbitSetoid.r st w ∧
+      sameOrbitSetoid.r w₁ u ∧
+      ShufflePlayW w₁ rest u ∧
+      (∀ (pre post : List Move), π = pre ++ post →
+        ∀ z, st.run pre = some z → familyBelowFrontier z x) := by
+  obtain ⟨ρ, hρ⟩ := sameOrbit_forward hmem
+  have hstart : rungAt st x.twin.suit = x.rank.toIdx := by
+    have h2 := canRaiseS_rung ((hx.1 x.twin).mp (Or.inr rfl))
+    rwa [Card.twin_rank] at h2
+  have hhigh : x.rank.toIdx < rungAt u x.twin.suit := by
+    have h1 : ¬ (rungAt u x.twin.suit ≤ x.rank.toIdx) := helev
+    omega
+  obtain ⟨e, w, w₁, π, rest, -, hπ, hline, hes, her, hcr, hrv, htl, hpre⟩ :=
+    lowslab_rung_walk (τ := x.twin.suit) (k := x.rank.toIdx) hρ
+      (Nat.le_of_eq hstart) hhigh
+  have hcard : e = x.twin := by
+    have hrank : e.rank = x.twin.rank := by
+      have h1 : e.rank.toIdx = x.twin.rank.toIdx := by
+        rw [Card.twin_rank]
+        exact her
+      exact Rank.toIdx_inj h1
+    rcases e with ⟨es, er⟩
+    rcases x with ⟨xs, xr⟩
+    simp only [Card.twin] at hes hrank ⊢
+    rw [hes, hrank]
+  rw [hcard] at hcr hrv
+  refine ⟨w, w₁, π, rest, hπ, hline, ?_, ?_, ?_, ?_, ?_, htl, ?_⟩
+  · unfold familyBelowFrontier
+    omega
+  · exact hcr
+  · exact hrv
+  · exact lowslab_journey_class hπ
+  · exact lowslab_journey_class htl
+  · intro pre post hpp z hrun
+    exact hpre pre post hpp z hrun
+
 /-- **THE RAISE-LIKE REPLAY RESIDUE** `fork_lowbridge_raise` [H] —
 given the ELEVATED commit of kind raise-like (a committed
 `tabToFound c` from `u` into `v`), a slab member `u₀` carries a
@@ -797,7 +1358,41 @@ is the census itself — no banked row nets it: the benign boards
 datapoint's 3 = 3) exhibit the zero case, and a commit raising a
 HIGHER pair-suit card is the live counterexample family.  The
 σ-letter net census and the card-level bootstrap remain this row's
-own priced pieces, per the seats-vs-rungs adjudication. -/
+own priced pieces, per the seats-vs-rungs adjudication.
+
+SESSION-2 ADDENDUM (2026-10-13, the take-over pass): the descent
+datum of steps 1-2 is now BANKED IN-FILE as
+`lowslab_elevation_crossing` (proved, zero-sorry, §4.2.0 above): any
+witnessing journey out to an elevated member crosses the fork
+threshold at a RAISE OF x.twin ITSELF, at a boundary member whose
+twin rung reads the fork point EXACTLY — the whole prefix staying on
+the slab, the crossing riding as a witness leg.  The row's open
+  content thereby narrows to its two honest pieces: the σ-letter net
+  census at the re-fire member (the crossing row prices the
+  UNCLOSED REGION precisely: a commit card of the ALREADY-RAISED twin
+  suit ABOVE the fork point — the waste note's D5-family — has
+  `nextUp` fail at EVERY slab member, so a bracket transfer has
+  nothing to carry there) and the card-level bootstrap of step 4.
+
+  SESSION-3 ASSESSMENT (2026-10-13, the third succession — the
+  assembly re-attempted): the bracket transfer instantiates cleanly
+  wherever a KNOWN member also reads the commit suit's exact rung —
+  the benign boards (the probe's `bb_bracket` 3=3 datapoint) and, by
+  `lowslab_pair_netcensus`, every re-fire site whose witnessing
+  journey back to `u` is witnessed to carry `nextUp c` at both ends.
+  What no banked row licenses remains the two named pieces — the
+  σ-letter net census in the general case (a climbing journey — the
+  D5-family region with nothing for a bracket to carry), and the
+  card-level bootstrap of the re-fire site (the wild copy corners
+  fence every WF-free mirror kit — the undos' premises are honest —
+  and the one-founding door is WF-gated upstream), so no witness
+  journey between the replay landing and the commit landing can be
+  built at the statement's grade.  The row CARRIES at [H], statement
+  byte-frozen; the commit face any sequel needs is banked beside it
+  (`lowslab_raise_commit_shape_wf`: at a WF site the raised card is a
+  LONE top — the census's two commit species exactly), and the
+  re-fire bracket mechanics remain the landed `lowslab_bracket_transfer`.
+  -/
 private theorem fork_lowbridge_raise {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -885,7 +1480,31 @@ sharpened: the CARD-level re-scheduling — producing the
 board-equal slab member presenting the run head (or its
 counterpart-slide variant), the defusing inventory of §12(b) — and
 the same-fit guard assembly of `m₀`; the probe's exhibit is the
-general form's worked example. -/
+  general form's worked example.
+
+SESSION-2 ADDENDUM (2026-10-13, the take-over pass): the elevated
+  read and class anchor of step 1 are now BANKED IN-FILE as
+  `lowslab_elevation_crossing` (proved, zero-sorry, §4.2.0 above) —
+  the witness journey to any elevated member crosses at a reversible
+  `tabToFound x.twin` at a fork-exact boundary member, the prefix
+  never leaving the slab, both split journeys carrying their class
+  anchors.  The card-level re-scheduling (the §12(b) defusing
+  inventory) remains the row's entire open content, as sharpened.
+
+  SESSION-3 ASSESSMENT (2026-10-13, the third succession): the route's
+  step-2 hidden pin is now a banked read (`lowslab_class_hiddenPinned`
+  — the deck the whole class shares, welded to any candidate's anchor
+  by `lowslab_top_census_hidden`), the slide's re-fire mechanics ride
+  the landed `lowslab_slide_board_refire`, and the §12(b) receipt
+  stays board-local in its ONE-LEG posterior pull.  The
+  general-commuting form — producing the pre-side slab member whose
+  boards present the run head (up to the counterpart-slide variant)
+  and welding the two landings across the class journey — remains the
+  row's honest remainder: a witness journey `v₀ ⇝ v` is the whole
+  missing content (the dashed transport), the same re-threading the
+  waste rows' named weld prices from the other side, and no banked
+  row builds it at the WF-free grade.  The row CARRIES at [H],
+  statement byte-frozen. -/
 private theorem fork_lowbridge_reveal {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -954,6 +1573,72 @@ def WasteGuard (W : State) (m : Move) : Prop :=
   (∃ c, m = Move.wasteToFound c ∧ W.wasteIs c = true ∧ W.nextUp c = true) ∨
   (∃ c b, m = Move.wasteToTab c b ∧ W.wasteIs c = true ∧ W.canPlace c b = true)
 
+/-- **THE WASTE HEAD** (private kit) — a guard that reads the waste
+top true pins the waste as the named card over a tail. -/
+private theorem lowslab_waste_head_of {w : State} {c : Card}
+    (hw : w.wasteIs c = true) : ∃ t, w.waste = c :: t := by
+  cases hwst : w.waste with
+  | nil =>
+      rw [State.wasteIs_nil hwst] at hw
+      exact absurd hw (by simp)
+  | cons y t =>
+      have hy : y = c := by
+        rw [State.wasteIs_cons hwst c] at hw
+        exact of_decide_eq_true hw
+      exact ⟨t, by rw [hy]⟩
+
+/-- **THE WASTE GUARD FIRES** (proved, the take-over pass) — the
+guard package alone fires its letter: the waste-top read pins the
+waste nonempty (the head row), so the letter's asserted guards carry
+the step's own condition and the move lands.  This is the mechanical
+half of the waste target-class residue, extracted per the isolating
+discipline: `lowslab_waste_targetclass` below now claims only the
+class-mateship of the two landings. -/
+private theorem lowslab_waste_guard_fires {w : State} {m : Move}
+    (hfu : WasteGuard w m) :
+    ∃ v, State.step w m = some v := by
+  rcases hfu with ⟨c, rfl, hw, hn⟩ | ⟨c, b, rfl, hw, hcp⟩
+  · obtain ⟨t, hcon⟩ := lowslab_waste_head_of hw
+    refine ⟨{ w.setFound c.suit (w.found c.suit ++ [c]) with waste := t }, ?_⟩
+    show (if w.wasteIs c && w.nextUp c then
+        match w.waste with
+        | _ :: ws => some { w.setFound c.suit (w.found c.suit ++ [c]) with
+            waste := ws }
+        | [] => none
+      else none) = _
+    rw [hw, hn, hcon]
+    rfl
+  · obtain ⟨t, hcon⟩ := lowslab_waste_head_of hw
+    refine ⟨{ w.putCard c b with waste := t }, ?_⟩
+    show (if w.wasteIs c && w.canPlace c b then
+        match w.waste with
+        | _ :: ws => some { w.putCard c b with waste := ws }
+        | [] => none
+      else none) = _
+    rw [hw, hcp, hcon]
+    rfl
+
+/-- **THE PAIR NET CENSUS** `lowslab_pair_netcensus` (proved, the
+take-over pass) — the datum the waste rows' hot rail lacked a banked
+row for, landing for free where BOTH members carry the next-up read:
+along any witness journey between two members that BOTH read `c`
+next-up, the `c.suit` raise count equals its pull count (the rung
+ledger nets the two reads).  The dashed-witness re-threading of
+`lowslab_waste_targetclass` thereby only ever has to handle NESTED
+brackets of the commit suit, never an open net — the bracket
+transfer's missing census half, paid exactly where the guard carries
+it. -/
+private theorem lowslab_pair_netcensus {u u₀ : State} {ρ : List Move} {c : Card}
+    (hρ : ShufflePlayW u₀ ρ u)
+    (hboth : u₀.nextUp c = true ∧ u.nextUp c = true) :
+    raisesOf ρ c.suit = pullsOf ρ c.suit := by
+  obtain ⟨hn₀, hn⟩ := hboth
+  have hledger := witness_rung_census hρ c.suit
+  have hr₀ : c.rank.toIdx = rungAt u₀ c.suit := of_decide_eq_true hn₀
+  have hr : c.rank.toIdx = rungAt u c.suit := of_decide_eq_true hn
+  omega
+
+
 /-- **THE WASTE RE-SEAT RESIDUE** `lowslab_waste_reseat` [H, named at
 the waste-shrink pass] — the two waste arms' shared first fighter: at
 SOME low-slab member of the class, the committing waste letter's own
@@ -998,14 +1683,54 @@ HOSTCENSUS DISCIPLINE: no consumed row rides the sibling's residue
 `witness_leg_mint_confined`.
 
 FINALE NOTE (2026-10-13): the cursor rail's transport pieces are now
- LANDED IN-FILE and consumed here at term grade —
+  LANDED IN-FILE and consumed here at term grade —
 `witness_zone_flat` (the board-only leg's zone carry, closed: a
 board-only witness journey reads the same stock/waste/drawStep at
 its landing) and `waste_head_refusal` (the shifted-cursor refusal,
 closed: a member whose waste head is not the commit card refuses
 both waste letters outright) — so the rail's OPEN content is
-exactly the ZONE EXCURSION PAST A DRAW LEG (the orbit re-scheduling
-above), nothing more. -/
+  exactly the ZONE EXCURSION PAST A DRAW LEG (the orbit re-scheduling
+above), nothing more.
+
+SESSION-2 ADDENDUM (2026-10-13, the take-over pass — the hot rail
+priced honestly AGAINST the statement): at this WF-free, rank-blind
+statement the hot rail is not merely open — there is a LIVE
+REFUTATION CANDIDATE (hand-derived; probe certification pending, the
+refuter-first Q(B) shape of the header): a committed waste letter
+whose card rides the ALREADY-RAISED TWIN SUIT ABOVE the fork point
+(economy: the `lb0` fork with its twin `D4` raised, the twin suit's
+next card `D5` — one past the fork point 3 — at the waste head,
+where no black four exists anywhere as its pull-back base; admitted
+by no premise here).  Then
+`WasteGuard u₀ m` demands `nextUp c` at a slab member — the commit
+rung read EXACTLY — while the elevated read pins that suit's rung
+strictly past the fork point at `u` and the slab pins it at-or-below
+the fork at every slab member: the guards are UNREACHABLE together,
+so the row as stated would be FALSE on such an economy, and the two
+waste routers inherit the same datum (their conclusion's target
+class pins the raised rung two past the fork while no slab
+member's ONE move reaches past one).  The missing rank discipline
+is exactly `lowslab_top_census`'s `hlow` (the commit card
+at-or-below the fork point); it cannot be added here without
+cascading past the byte-frozen main statement, so it is recorded as
+a priced boundary datum, per the never-force discipline — NOT
+ smuggled in as a premise.  What DID close for the waste pair is
+  banked below: `lowslab_pair_netcensus` (the two guards' nextUp
+  reads net the commit suit's letters to zero along any witnessing
+  journey between the members — the re-threading's remaining work is
+  purely the nesting) and `lowslab_waste_guard_fires` (the guard
+  fires its letter unconditionally).
+
+  SESSION-3 ASSESSMENT (2026-10-13, the third succession): the cursor
+  kit stands (`witness_zone_flat` + `waste_head_refusal` — the
+  board-only rail closed one-way) and the firing half is
+  `lowslab_waste_guard_fires`; the live refutation candidate is
+  UNPERTURBED and unperturbable in-session: a twin-suit commit card
+  one past the fork point puts the founding arm's `nextUp` guard
+  outside every slab member's rung while the premise pack admits the
+  economy, so any closure here would force past the recorded
+  counterexample family — probe certification stays the pending gate.
+  The row CARRIES at [H], statement byte-frozen. -/
 private theorem lowslab_waste_reseat {st u : State} {x : Card} {m : Move}
     (hx : ForkWitness st x)
     (hmem : sameOrbitSetoid.r st u)
@@ -1042,17 +1767,39 @@ ROUTE (complete; the transport's own content):
    loop algebra (the probe's FIG-2/3 mixture rows witness the
    commutation on-board).
 3. THE WELD — the per-hop certificates compose into the two
-   witness shuffles welding `v₀` to `v` (the round-trip-engine
-   pattern of `chain_assembly`'s scaffold; the glue consumes only
-   the class links). -/
-private theorem lowslab_waste_targetclass {u u₀ v : State} {m : Move}
+    witness shuffles welding `v₀` to `v` (the round-trip-engine
+    pattern of `chain_assembly`'s scaffold; the glue consumes only
+    the class links).
+
+SESSION-2 SHRINK (2026-10-13, the take-over pass): the FIRING half
+of the conclusion is now PROVED mechanically (`lowslab_waste_guard_fires`:
+`WasteGuard` alone fires the letter, no second member needed), so the
+  row is restated over both landings GIVEN and claims ONLY the
+  class-mateship `r v₀ v` — the dashed-witness weld, the row's honest
+  and entire remaining content, consumed by the two waste routers
+  which obtain the low landing from the guard-fires row.  NEW BANKED
+  SUPPORT: `lowslab_pair_netcensus` — the two guards' nextUp reads
+  net the commit suit's raises against its pulls along any witness
+  journey between the members, so the per-leg re-threading below only
+  ever has to handle NESTED brackets, never an open net.
+
+  SESSION-3 ASSESSMENT (2026-10-13, the third succession): the net
+  half is banked (`lowslab_pair_netcensus`) and the per-leg mirrors
+  exist one-by-one at WF grades; the missing content is exactly the
+  Dyck re-threading of the nested same-suit brackets — the dashed
+  commit must be re-seated inside the bracket word, past every
+  same-suit raise/pull leg of the witnessing journey — and no banked
+  row builds that confluence at the WF-free grade; the only banked
+  confinement row (`witness_leg_mint_confined`) is the sibling's own
+  named residue and stays unconsumed per the house discipline.  The
+  row CARRIES at [H], statement byte-frozen. -/
+private theorem lowslab_waste_targetclass {u u₀ v v₀ : State} {m : Move}
     (hclass : sameOrbitSetoid.r u₀ u)
     (hfu : WasteGuard u m)
     (hfu₀ : WasteGuard u₀ m)
-    (hstep : State.step u m = some v) :
-    ∃ v₀ : State,
-      State.step u₀ m = some v₀ ∧
-      sameOrbitSetoid.r v₀ v := by
+    (hstep : State.step u m = some v)
+    (hstep₀ : State.step u₀ m = some v₀) :
+    sameOrbitSetoid.r v₀ v := by
   sorry
 
 set_option linter.unusedVariables false in
@@ -1089,9 +1836,9 @@ private theorem fork_lowbridge_waste_found {st : State} {x : Card}
   obtain ⟨u₀, hmem₀, hslab₀, hfu₀⟩ := lowslab_waste_reseat hx hmem helev hfu
   have hclass : sameOrbitSetoid.r u₀ u :=
     sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hmem₀) hmem
-  obtain ⟨v₀, hstep₀, hmatch⟩ :=
-    lowslab_waste_targetclass hclass hfu hfu₀ hstep
-  exact ⟨u₀, Move.wasteToFound c, v₀, hmem₀, hslab₀, hstep₀, hmatch⟩
+  obtain ⟨v₀, hstep₀⟩ := lowslab_waste_guard_fires hfu₀
+  exact ⟨u₀, Move.wasteToFound c, v₀, hmem₀, hslab₀, hstep₀,
+    lowslab_waste_targetclass hclass hfu hfu₀ hstep hstep₀⟩
 
 set_option linter.unusedVariables false in
 /-- **THE WASTE-JUMP REPLAY ROW** (seat arm) `fork_lowbridge_waste_seat`
@@ -1121,9 +1868,9 @@ private theorem fork_lowbridge_waste_seat {st : State} {x : Card}
   obtain ⟨u₀, hmem₀, hslab₀, hfu₀⟩ := lowslab_waste_reseat hx hmem helev hfu
   have hclass : sameOrbitSetoid.r u₀ u :=
     sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hmem₀) hmem
-  obtain ⟨v₀, hstep₀, hmatch⟩ :=
-    lowslab_waste_targetclass hclass hfu hfu₀ hstep
-  exact ⟨u₀, Move.wasteToTab c b, v₀, hmem₀, hslab₀, hstep₀, hmatch⟩
+  obtain ⟨v₀, hstep₀⟩ := lowslab_waste_guard_fires hfu₀
+  exact ⟨u₀, Move.wasteToTab c b, v₀, hmem₀, hslab₀, hstep₀,
+    lowslab_waste_targetclass hclass hfu hfu₀ hstep hstep₀⟩
 
 /-- **THE PLACEMENT ZONE-KEEP KIT** (private, per-file — the house
 copy of the placement half of the sibling's zone-keep kit): a card
@@ -1323,7 +2070,27 @@ congruence kit is `boardEq`-blind where wild boards are exactly the
 worry, and a wild giveback replay would need its own bracket census
 without the WF fence.  The row carries honestly as [H,
 WILD-REMAINDER ONLY]; the WF arm stays retired in the proved
-`lowslab_pull_wf_undo` + `lowslab_pull_never_commit_wf` pair above. -/
+`lowslab_pull_wf_undo` + `lowslab_pull_never_commit_wf` pair above.
+
+SESSION-2 ADDENDUM (2026-10-13, the take-over pass): the elevated
+read and class anchor of step 1 (the route's "as the raise row's
+steps 1-2") are now BANKED IN-FILE as `lowslab_elevation_crossing`
+(proved, zero-sorry, §4.2.0 above): the witnessing journey to the
+elevated member crosses the fork threshold at a REVERSIBLE raise of
+the covered twin itself, at a fork-exact boundary member on the
+slab — so any future wild-replay construction starts from that
+boundary member's own geometry instead of re-deriving it.  The
+  row's grade is unchanged: [H, WILD-REMAINDER ONLY].
+
+  SESSION-3 ASSESSMENT (2026-10-13, the third succession): grade
+  unchanged, [H, WILD-REMAINDER ONLY] — the WF arm stays retired in
+  the proved `lowslab_pull_wf_undo` + `lowslab_pull_never_commit_wf`
+  pair, and the wild replay still has no WF-free mirror: the pull
+  undos' rank and search premises name the very doubled-card and
+  miscounted-rung corners the wild members live in (each premise of
+  `foundToTab_undo` fences exactly one), so the row hosts as the
+  campaign's final honest wild-remainder carry per the owner's
+  third-succession instruction, statement byte-frozen. -/
 private theorem fork_lowbridge_pull {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -1510,15 +2277,27 @@ pass's engine kit, the finale's engine kit and the finale's
 guard-refusal transport pair (`lowslab_witness_cycle_pin`,
 `zone_loop_terminal`, `zone_loop_return`, `waste_head_refusal`,
 `witness_zone_flat`, `lowslab_bracket_transfer`,
-`lowslab_slide_board_refire`) are zero-sorry; the two LANDED residues read
-`[propext, Quot.sound]` (`lowslab_draw_emptyReversible` — the
-finale's block induction over the Phase wrapper;
-`fork_lowbridge_draw` — the chain-scaffold landing over the
-sibling's closed commutation kit).  `fork_neighbor_lowbridge`
-carries the SIX named residues of §4.1-§4.2 (`lowslab_top_census`,
+`lowslab_slide_board_refire`) are zero-sorry; the take-over pass's
+journey mechanism kit (the class-weld copy
+`lowslab_shuffleW_of_round`/`lowslab_class_leg`, the membership walk
+`lowslab_journey_class`, the four per-leg rung deltas, the rung-walk
+engine `lowslab_rung_walk`, the ELEVATION CROSSING
+`lowslab_elevation_crossing`, and the waste trio
+  `lowslab_waste_head_of`/`lowslab_waste_guard_fires`/
+  `lowslab_pair_netcensus`) are zero-sorry; the session-3 pins
+  (§4.1.5: `lowslab_fork_pair_rungs`, `lowslab_class_hiddenPinned`,
+  `lowslab_top_census_hidden`, `lowslab_raise_commit_shape_wf`) are
+  zero-sorry; the two LANDED residues read
+  `[propext, Quot.sound]` (`lowslab_draw_emptyReversible` — the
+  finale's block induction over the Phase wrapper;
+  `fork_lowbridge_draw` — the chain-scaffold landing over the
+  sibling's closed commutation kit).  `fork_neighbor_lowbridge`
+carries the SIX named residues of §4.1-§4.2 (`lowslab_top_census`
+(as REPAIRED this pass, the `ForkWitness` parcel restored),
 `fork_lowbridge_raise`, `fork_lowbridge_reveal`,
-`lowslab_waste_reseat`, `lowslab_waste_targetclass`,
-`fork_lowbridge_pull`, the last through the two PROVED waste
+`lowslab_waste_reseat`, `lowslab_waste_targetclass` (as SHRUNK this
+pass, claiming only the class-mateship), `fork_lowbridge_pull`, the
+last through the two PROVED waste
 routers `fork_lowbridge_waste_found`/`fork_lowbridge_waste_seat`)
 and NOTHING else flows into it.  NONE of the consumed rows rides
 the sibling's residue `witness_leg_mint_confined`; the sorry COUNT
@@ -1541,7 +2320,23 @@ below. -/
 #print axioms witness_zone_flat
 #print axioms lowslab_bracket_transfer
 #print axioms lowslab_slide_board_refire
+#print axioms lowslab_shuffleW_of_round
+#print axioms lowslab_class_leg
+#print axioms lowslab_journey_class
+#print axioms lowslab_rung_delta_draw
+#print axioms lowslab_rung_delta_tabToTab
+#print axioms lowslab_rung_delta_tabToFound
+#print axioms lowslab_rung_delta_foundToTab
+#print axioms lowslab_rung_walk
+#print axioms lowslab_elevation_crossing
+#print axioms lowslab_waste_head_of
+#print axioms lowslab_waste_guard_fires
+#print axioms lowslab_pair_netcensus
 #print axioms lowslab_draw_emptyReversible
+#print axioms lowslab_fork_pair_rungs
+#print axioms lowslab_class_hiddenPinned
+#print axioms lowslab_top_census_hidden
+#print axioms lowslab_raise_commit_shape_wf
 #print axioms lowslab_top_census
 #print axioms fork_lowbridge_raise
 #print axioms fork_lowbridge_reveal
