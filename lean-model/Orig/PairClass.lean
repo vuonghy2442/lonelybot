@@ -87,13 +87,13 @@ theorem forkState_pairClass (st₁ st₂ : State) (hwf₁ : st₁.WF) (hwf₂ : 
 
 /-! ## The audit battery
 
-`#print axioms forkState_pairClass` reads the expected capstone grade
-`[propext, sorryAx, Quot.sound]`: the `sorryAx` is inherited whole
-through the two proved halves' named residues and NOTHING fresh begins
-here — the capstone's own glue (the `forkState_iff` bridge, core's
+`#print axioms forkState_pairClass` reads the capstone's terminal grade
+`[propext, Quot.sound]` — zero `sorryAx`, zero `Classical.choice` at
+any depth (the stale residue-era narration above this comment was
+corrected 2026-10-13; both halves landed sorry-free, and the
+per-file copy `pairs_suits` audits `[propext]` on its own).  The
+capstone's own glue (the `forkState_iff` bridge, core's
 `Decidable.not_not` recovery, the `SeedKit.suit_family` split, the
-`Card.twin_suit` twin-flip transpose) adds no axiom — and there is NO
-`Classical.choice` at any depth.  The private copy audits clean on its
-own, `[propext]`-grade. -/
+`Card.twin_suit` twin-flip transpose) adds no axiom. -/
 
 #print axioms forkState_pairClass

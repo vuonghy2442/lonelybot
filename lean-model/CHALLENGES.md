@@ -47,10 +47,20 @@ false — never retry).
   [H] (the seat-delay residue behind the private
   `p_founded_seat_schedule`) plus the per-kind [M] rows;
   `ascent_exhaustion_forks` [H] in ForkAscent
-  (`orientation_assembly_fork` carries the bare-cover corner).
-  Four kind-census rows are PROVED and index-ready the moment the
-  routed head lands: `hidden_never_grows`, `two_zone_exits_playable`,
-  `founded_returnable_via_seats`, `draws_permute_only`.
+  (`orientation_assembly_fork` carries the bare-cover corner — NOTE:
+  per commit `76389fc` the ascent routing and saturation/climb-delivery
+  machinery landed; the exhaustion head remains).  ForkCensus's
+  detector LANDED ZERO-SORRY (`classCensusB_true_iff`,
+  `pairCandidate_board_witness`, [propext, Quot.sound] — no longer a
+  challenge).  Four kind-census rows are PROVED and index-ready the
+  moment the routed head lands: `hidden_never_grows`,
+  `two_zone_exits_playable`, `founded_returnable_via_seats`,
+  `draws_permute_only`.
+- **ParentMap's two named residues** (per the `21c047b` landing;
+  in-flight — hands off): the `cargo_inr_residue` (head hops into
+  its twin pool via `parent_pool` over `canPlace_inr`'s fit;
+  `pm_putRun_inr` evaluation rows pre-staged) and the CargoPath
+  induction.
 - **ConeCrossarm's corridor gate** — the public headline
   `cone_pulls_congr_crossarm` flows a private gate's `sorryAx`;
   only the conditioned sibling
@@ -63,41 +73,37 @@ false — never retry).
 
 ## [M] Mechanical cleanup tasks
 
-- **THE ROOT-LEVEL CanRaiseS TRIPLE-DECLARATION** (found 2026-10-13,
-  the sweep's fourth hidden duplicate family — an INDUCTIVE one):
+**(2026-10-13 status: the [M] ledger below is now mostly RESOLVED — kept
+for the record with resolutions noted.)**
+
+- **THE ROOT-LEVEL CanRaiseS TRIPLE-DECLARATION** — OPEN, owner
+  decision required (found 2026-10-13, the sweep's fourth hidden
+  duplicate family — an INDUCTIVE one):
   `inductive CanRaiseS` is declared in THREE modules —
   `Orig/ForkStateSB.lean:92`, `Orig/CanV3.lean:515` (landing-4's
   selector grade), `Orig/MacroInternal.lean:1162` (the census grade,
   per its own docstring "two predicates, no contradiction").  The
   all-imports ROOT build (`lake build Orig`) fails on this at either
-  import order (`environment already contains 'CanRaiseS.below'`),
-  which is why the house convention wires the root WITHOUT the
-  census tier — per-file and per-cone builds are unaffected (each
-  olean carries at most one declaration).  THE FIX belongs to the
-  owner chapters: either namespace the three grades
-  (`CanRaiseSB/CanRaiseSV3/CanRaiseSCensus`-style) with bridges, or
-  confirm the root's deliberate exclusion permanently (drop the
-  census-tier imports from `Orig.lean` — restoring the documented
-  "MacroInternal deliberately NOT wired into `lake build Orig`"
-  intent, which landing-4's `import Orig.CanV3` line violated).
-- **The take-position kit, fourth copy** — `pcz_*` in
-  `Orig/PairClassZones.lean` (posOf/get-in-take/upCards rows, landed
-  per the dedup discipline at 25852a8); PairClassZones can cite
-  `FoundKit` directly. SlabEquiv's private `sequ_*` twins remain
-  (import-cycle checked safe; priced skip-unless-annoyed).
-- **The ZoneAgree placement split** — census-tier rows
-  (`mates_cycleZone_pin`, `class_zoneAgree_iff`, `wf_foundRung_iff`,
-  all fork- and hthird-free) move to a stratum leaf beside
-  SlabEquiv (`Orig/ZoneAgree.lean`); the fork-grade zone family stays
-  in the pairClass chapters. Owner-endorsed at 25852a8; one clean
-  session.
-- **PairClass.lean's stale battery comment** — prose still narrates
-  inherited `sorryAx`; the capstone is fully proved (probe-verified
-  at 25852a8). Truespeak pass pending.
-- Deliberately-kept deprecated tactics (never "fix" blindly): the
-  `belowPull` compound `rw [hs, hp, if_pos rfl, hmidp]` in
-  OriginLock — the `ite_eq_left` rename DESYNCS the trailing step
-  (priced twice); same for the three other flagged sites.
+  import order; per-file and per-cone builds are unaffected.  THE FIX
+  belongs to the owner chapters: either namespace the three grades
+  with bridges, or confirm the root's deliberate exclusion
+  permanently (drop the census-tier imports from `Orig.lean`).
+- ~~The take-position kit, fourth copy~~ — RESOLVED 2026-10-13
+  (`49dbbee`: the pcz kit struck; full kit at `FoundKit`).
+- ~~The ZoneAgree placement split~~ — RESOLVED 2026-10-13
+  (`71cea33`: the census leaf lives at `Orig/ZoneAgree.lean`).
+- ~~PairClass.lean's stale battery comment~~ — RESOLVED 2026-10-13
+  (truespeaked to the terminal `[propext, Quot.sound]` grade).
+- ~~Dominance waste/draw stronger-grade inversions~~ — RESOLVED
+  2026-10-13 (`004ea0d`: promoted `step_wasteToFound_inv_head` /
+  `step_wasteToTab_inv_head` public in Irreversible; Reach's
+  `step_draw_inv` public; Dominance's three locals struck).
+- **FUTURES sweep-up candidates** (grade-promotions, not strikes —
+  see the 1348f80 lesson): Classify/ConjugateProof/Dominance
+  `lastOf`/`chop` analysis families (locally differentiated grades);
+  the deliberately-kept deprecated tactics (belowPull's compound
+  `rw` — the `ite_eq_left` desync is priced twice, never "fix"
+  blindly).
 
 ## HOT — in-flight, hands off while owned
 

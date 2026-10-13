@@ -183,8 +183,11 @@ indexes the proved library only.
   / `FoundKit.mem_found_rank_lt`; the full kit also owns `posOf`,
   `posOf_take_lt`, `posOf_upCards`, `get_in_take`, `upCards_get`,
   `mem_take_of_pos`, `mem_of_take`, `mem_of_drop`, `found_suit`,
-  `Rk` + `Rk_toIdx` (the rank-maker; Classify/OriginLock/PairClassZones
-  copies retired), `take_len_le`, `rung_le` (foundHeight ≤ 13).
+  `Rk` + `Rk_toIdx` (the rank-maker), `take_len_le`, `rung_le`,
+  `take_ge_len` (take saturation), `found_congr` (equal heights ⇒
+  equal content), `shuffle_wf` (journeys preserve WF), `zone_residency`
+  (five-zone census), `dealUpTo_mem` + `_take`/`_drop` (the deal
+  splitter).  The tree's founding physics has ONE home.
 - **`mem_found_of_height`** — `Orig/Dominance.lean` — the public
   forward half (historical home; `rungAt = foundHeight` by `rfl`).
 - **`WF.found_prefix`** — `Orig/Integrity.lean` — the canonical
@@ -342,7 +345,15 @@ the border between them:
   st.foundTop c.suit = some c`), dual `tabToFound_tops_currentSuit`,
   and the `…_keepsOtherTops` pair — the pull/raise discipline read
   straight off the step guard; every bracket/pull argument starts
-  here.
+  here.  **The step-inversion families** — `Orig/Irreversible.lean`:
+  the public quintet `step_tabToFound_inv` / `step_foundToTab_inv` /
+  `step_tabToTab_inv` (placement-grade existentials) PLUS the
+  HEAD-grade pair `step_wasteToFound_inv_head` /
+  `step_wasteToTab_inv_head` (separated guards and PINNED waste head
+  — the conclusion the existential grade never carries; promoted
+  from Dominance 2026-10-13) and public `step_draw_inv`
+  (`Orig/Reach.lean`, the definitional alias) — cite the grade the
+  destructure needs; the head-grade is strictly stronger.
 - **`interleave_phase_align`** — `Orig/HostCensus.lean` — the
   interleave crossing's zero-own-content assembly (rides
   `draw_landings_sameOrbit`); byte-frozen statement for the LowSlab
@@ -426,6 +437,24 @@ pinned outright, and two legs of the loop do not even need the class:
 - Cross-family static — **`cross_orphan_kill`**
   (`Orig/CrossFamilyStatic.lean`; `[propext, Quot.sound]`, inherits
   NOTHING).
+- **The parent grammar** — `Orig/ParentMap.lean` (landed `21c047b`;
+  heads `[propext, Quot.sound]`, the inr arm + CargoPath induction
+  in flight): `tabParent_fits` (a seated card's parent fits it),
+  `parent_pool` (a card's legal tableau parents are exactly a twin
+  pair), `parent_twinHop` (WF states agree equal-or-twin on a card
+  seated at both — pure deck arithmetic), `twinHop_iff_memAgree`
+  (the crystallization: twin-hop at WF ⟺ parent-existence
+  agreement, so all distinguishing content lives in the whitelist),
+  `cargoLegKing_twinHop` (reversible bare-king relocation preserves
+  the parent map exactly).  USE WHEN: an exchange/cargo corner
+  needs the parent-map conservation instead of re-deriving which
+  seats a card may lawfully occupy.
+- **The fork detector** — `Orig/ForkCensus.lean` (landed zero-sorry
+  at `76389fc`): `classCensusB_true_iff` and the
+  pairCandidate-witness composite `[propext, Quot.sound]` — the
+  DECIDABLE fork-in-class detector over the mobility filter and
+  sealed-pin rows; the machine-executable answer to "is there a
+  fork here?"
 
 ---
 
