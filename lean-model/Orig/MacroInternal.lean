@@ -754,8 +754,8 @@ mixed-residence swaps: foundation-resident content never wiggles
 inside a fiber (the only Z-slot-dip-requiring exchanges live between
 fibers — neck business, not fiber business). -/
 theorem rung_found_congr (w w' : State) (hw : w.WF) (hw' : w'.WF) (s : Suit)
-    (h : rungAt w s = rungAt w' s) : w.found s = w'.found s := by
-  rw [rung_found_prefix w hw s, rung_found_prefix w' hw' s, h]
+    (h : rungAt w s = rungAt w' s) : w.found s = w'.found s :=
+  FoundKit.found_congr w w' hw hw' s h
 
 /-- Relation to the dance world: every FlatPath embeds as a NET-FLAT
 DancePath (the cargo and draw letters are dance legs; licensed

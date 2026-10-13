@@ -156,6 +156,59 @@ theorem mem_found_rank_lt {st : State} (hwf : st.WF) {d : Card}
   have h12 : r.toIdx < 13 := Rank.toIdx_lt r
   omega
 
+/-- The take saturates: at-or-past the list's length it is the whole
+list (the `take_all` core lacks; the take/drop mono family's
+overflow companion). -/
+theorem take_ge_len : ∀ {α : Type} (l : List α) (k : Nat),
+    l.length ≤ k → l.take k = l := by
+  intro α l k
+  induction k generalizing l with
+  | zero =>
+      intro h
+      cases l with
+      | nil => rfl
+      | cons a t => exact absurd h (by simp)
+  | succ k ih =>
+      cases l with
+      | nil => simp [List.take]
+      | cons a t =>
+          intro h
+          have htle : t.length ≤ k := by
+            simp only [List.length_cons] at h
+            omega
+          rw [List.take_succ_cons, ih t htle]
+
+/-- Equal foundation heights give equal foundation CONTENT (the leaf's
+copy of the congruence row, length-spelled; retires CanV3's private
+`fiber_founds_eq` and delegates MacroInternal's `rung_found_congr`).
+Low-cone proof: both founds are takes of the same build order, and
+equal take-lengths pin the take indices up to the full-13 overflow. -/
+theorem found_congr (u v : State) (hu : u.WF) (hv : v.WF) (s : Suit)
+    (h : (u.found s).length = (v.found s).length) :
+    u.found s = v.found s := by
+  obtain ⟨n, hn⟩ := hu.found_prefix s
+  obtain ⟨m, hm⟩ := hv.found_prefix s
+  rw [hn, hm]
+  have h13 : (s.upCards).length = 13 := Suit.upCards_length s
+  have hln : ((s.upCards).take n).length = min n 13 := by
+    rw [List.length_take, h13]
+  have hlm : ((s.upCards).take m).length = min m 13 := by
+    rw [List.length_take, h13]
+  have hmin : ((s.upCards).take n).length = ((s.upCards).take m).length := by
+    rw [← hn, ← hm]
+    exact h
+  by_cases h1 : 13 ≤ n
+  · rw [take_ge_len (s.upCards) n (by rw [h13]; omega)] at hmin
+    by_cases h2 : 13 ≤ m
+    · rw [take_ge_len (s.upCards) n (by rw [h13]; omega)]
+      rw [take_ge_len (s.upCards) m (by rw [h13]; omega)]
+    · exact absurd hmin (by rw [hlm]; omega)
+  · by_cases h2 : 13 ≤ m
+    · rw [take_ge_len (s.upCards) m (by rw [h13]; omega)] at hmin
+      exact absurd hmin.symm (by rw [hln]; omega)
+    · have hnm : n = m := by omega
+      rw [hnm]
+
 /-- **THE FOUNDED-HEIGHT IFF** — the founding-membership bridge as one
 line: a card is on its own suit's foundation exactly when its rank
 index sits strictly under the foundation's height.  (Stated in the
@@ -286,3 +339,5 @@ end FoundKit
 #print axioms FoundKit.get_in_take
 #print axioms FoundKit.upCards_get
 #print axioms FoundKit.mem_take_of_pos
+#print axioms FoundKit.take_ge_len
+#print axioms FoundKit.found_congr

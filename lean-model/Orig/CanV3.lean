@@ -1,4 +1,5 @@
 import Orig.Canonical
+import Orig.FoundKit
 
 /-!
 # Orig.CanV3 — the class-anchored canonical representative (landing 4)
@@ -623,39 +624,6 @@ private theorem v3TakeGe : ∀ (l : List Card) (n : Nat),
       have hlen : (a :: t).length = t.length + 1 := rfl
       omega
 
-/-- THE FIBER'S FOUND CONTENT IS PREFIX-DETERMINED: two WF states
-with equal per-suit rungs carry EQUAL FOUNDATIONS — the build
-order is a fixed prefix at each height, so the top-forced pull
-multiset is a function of the tuple alone.  This is the
-determinism core the fiber_iff_flat capstone rides: at one
-height tuple, every member's descent pops the SAME CARDS
-per suit, top-down. -/
-theorem fiber_founds_eq (u v : State) (hu : u.WF) (hv : v.WF)
-    (h : ∀ s, (u.found s).length = (v.found s).length) :
-    ∀ s, u.found s = v.found s := by
-  intro s
-  obtain ⟨n, hn⟩ := hu.found_prefix s
-  obtain ⟨m, hm⟩ := hv.found_prefix s
-  have hL : (s.upCards.take n).length = (s.upCards.take m).length := by
-    rw [← hn, ← hm]
-    exact h s
-  have h13 : s.upCards.length = 13 := Suit.upCards_length s
-  have h1 : (s.upCards.take n).length = min n (s.upCards.length) :=
-    List.length_take
-  have h2 : (s.upCards.take m).length = min m (s.upCards.length) :=
-    List.length_take
-  rw [h1, h2, h13] at hL
-  rcases Nat.lt_trichotomy n m with hlt | heq | hgt
-  · have hnge : 13 ≤ n := by omega
-    have hmge : 13 ≤ m := by omega
-    rw [hn, hm]
-    rw [v3TakeGe s.upCards n (by omega), v3TakeGe s.upCards m (by omega)]
-  · rw [hn, hm, heq]
-  · have hnge : 13 ≤ n := by omega
-    have hmge : 13 ≤ m := by omega
-    rw [hn, hm]
-    rw [v3TakeGe s.upCards n (by omega), v3TakeGe s.upCards m (by omega)]
-
 /-- The top-forced pull segment: the pops a descent from rung `r`
 to target `t` removes from one suit's foundation — read on the
 fixed build order, so determined by the tuple delta alone. -/
@@ -692,7 +660,7 @@ theorem pull_multiset_determinism (u v : State) (hu : u.WF) (hv : v.WF)
     (t : Suit → Nat) :
     ∀ s, (u.found s).drop (t s) = (v.found s).drop (t s) := by
   intro s
-  have hf := fiber_founds_eq u v hu hv h s
+  have hf := FoundKit.found_congr u v hu hv s (h s)
   rw [hf]
 
 /-! ## The audit: the floor sweep's opening rows
@@ -737,7 +705,6 @@ v3ForkExclusivity) lands DEDUCTIVELY above — zero sorry.  -/
 #print axioms satStep_rung_mono
 #print axioms canon_rung_mono
 #print axioms v3TakeGe
-#print axioms fiber_founds_eq
 #print axioms pullSegment
 #print axioms found_pullSegment
 #print axioms pull_multiset_determinism
