@@ -691,61 +691,6 @@ private theorem g_step_wasteToTab_inv {st : State} {c : Card} {b : Base} {s' : S
     · exact absurd h (by simp)
   · exact absurd h (by simp)
 
-/-- A successful `.tabToFound`. -/
-private theorem g_step_tabToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.tabToFound c) = some s') :
-    st.nextUp c = true ∧
-    ∃ a, st.pileOfTop c = some a ∧
-      s' = { st.setFound c.suit (st.found c.suit ++ [c]) with
-             piles := fun a' =>
-               if a' = a then Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-               else st.piles a' } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hn
-    split at h
-    · exact absurd h (by simp)
-    · rename_i _ a hp
-      injection h with hEq
-      exact ⟨hn, a, hp, hEq.symm⟩
-  · exact absurd h (by simp)
-
-/-- A successful `.foundToTab`. -/
-private theorem g_step_foundToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.foundToTab c b) = some s') :
-    ∃ c', st.foundTop c.suit = some c' ∧ c' = c ∧ st.canPlace c b = true ∧
-      s' = (st.setFound c.suit (chop (st.found c.suit))).putCard c b := by
-  simp only [State.step] at h
-  split at h
-  · split at h
-    · rename_i _ c' ht hg
-      rw [Bool.and_eq_true] at hg
-      injection h with hEq
-      exact ⟨c', ht, of_decide_eq_true hg.1, hg.2, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `.tabToTab`. -/
-private theorem g_step_tabToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.tabToTab c b) = some s') :
-    ∃ a, st.pileHolding c = some a ∧ st.canPlace c b = true ∧
-      fromCard c (st.piles a).faceUp ≠ [] ∧
-        s' = (st.setPile a
-            (Pile.afterRunRemoved (st.piles a) (below c (st.piles a).faceUp))).putRun
-              (fromCard c (st.piles a).faceUp) b := by
-  simp only [State.step] at h
-  split at h
-  · exact absurd h (by simp)
-  · rename_i _ a hh
-    split at h
-    · rename_i hcp
-      split at h
-      · exact absurd h (by simp)
-      · rename_i _ hne
-        injection h with hEq
-        exact ⟨a, hh, hcp, hne, hEq.symm⟩
-    · exact absurd h (by simp)
-
 /-! ## The divergence field -/
 
 /-- The replay side of a compliant prefix: the found `c.suit` runs
@@ -1124,7 +1069,7 @@ private theorem ground_step_tabToFound {st : State} {c : Card} {k : Anchor}
     ∃ v', State.step v (Move.tabToFound x) = some v' ∧
       GroundSplit st c k t v' ∧ v'.WF := by
   obtain ⟨hA, hB, hC, hD, hE, hF, hG, hH, hI⟩ := hsplit
-  obtain ⟨hnext, a, hsearch, hshape⟩ := g_step_tabToFound_inv hstep
+  obtain ⟨hnext, a, hsearch, hshape⟩ := step_tabToFound_inv hstep
   have hfaceU : (u.piles k).faceUp = [c] := by rw [hH]; exact hface
   by_cases hxs : x.suit = c.suit
   · exfalso
@@ -1472,7 +1417,7 @@ private theorem ground_step_foundToTab {st : State} {c : Card} {k : Anchor}
     ∃ v', State.step v (Move.foundToTab x b) = some v' ∧
       GroundSplit st c k t v' ∧ v'.WF := by
   obtain ⟨hA, hB, hC, hD, hE, hF, hG, hH, hI⟩ := hsplit
-  obtain ⟨c₀, htop, hceq, hcp, hshape⟩ := g_step_foundToTab_inv hstep
+  obtain ⟨c₀, htop, hceq, hcp, hshape⟩ := step_foundToTab_inv hstep
   rw [hceq] at htop
   have hfaceU : (u.piles k).faceUp = [c] := by rw [hH]; exact hface
   have hbb : (decide (x.suit = c.suit) || decide (b = Sum.inr c)) = false := hnblk
@@ -1729,7 +1674,7 @@ private theorem ground_step_tabToTab {st : State} {c : Card} {k : Anchor}
     ∃ v', State.step v (Move.tabToTab x b) = some v' ∧
       GroundSplit st c k t v' ∧ v'.WF := by
   obtain ⟨hA, hB, hC, hD, hE, hF, hG, hH, hI⟩ := hsplit
-  obtain ⟨a, hhold, hcp, hrn, hshape⟩ := g_step_tabToTab_inv hstep
+  obtain ⟨a, hhold, hcp, hrn, hshape⟩ := step_tabToTab_inv hstep
   have hfaceU : (u.piles k).faceUp = [c] := by rw [hH]; exact hface
   have hbb : (decide (x = c) || decide (b = Sum.inr c)) = false := hnblk
   obtain ⟨hf1, hf2⟩ := boolOrFalse hbb
@@ -2840,7 +2785,7 @@ private theorem tabHeld_step {x : Card} {uu vv : State} {m : Move}
         rw [putCard_found]
         exact hf
   | tabToFound y =>
-      obtain ⟨-, a, hpo, hsh⟩ := g_step_tabToFound_inv hstep
+      obtain ⟨-, a, hpo, hsh⟩ := step_tabToFound_inv hstep
       have hty : (uu.piles a).top = some y := g_pileOfTop_sound hpo
       rcases h with ⟨a', hx⟩ | hf
       · by_cases haa : a' = a
@@ -2906,7 +2851,7 @@ private theorem tabHeld_step {x : Card} {uu vv : State} {m : Move}
           rw [setFound_found_ne hsy]
           exact hf
   | foundToTab y b =>
-      obtain ⟨c', htopF, hcy, hcp, hsh⟩ := g_step_foundToTab_inv hstep
+      obtain ⟨c', htopF, hcy, hcp, hsh⟩ := step_foundToTab_inv hstep
       have htopF' : uu.foundTop y.suit = some y := by
         rw [hcy] at htopF
         exact htopF
@@ -2992,7 +2937,7 @@ private theorem tabHeld_step {x : Card} {uu vv : State} {m : Move}
           rw [setFound_found_ne hsy]
           exact hf
   | tabToTab y b =>
-      obtain ⟨a, hhold, hcp, hrn, hsh⟩ := g_step_tabToTab_inv hstep
+      obtain ⟨a, hhold, hcp, hrn, hsh⟩ := step_tabToTab_inv hstep
       have hmemy : y ∈ (uu.piles a).faceUp := pileHolding_mem hhold
       rcases h with ⟨a', hx⟩ | hf
       · rw [hsh]
@@ -3289,7 +3234,7 @@ private theorem ground_rung_crossing {st : State} {c : Card} {π : List Move} {w
           rw [putCard_found] at hσmem'
           exact absurd hσmem' hτnf
       | tabToFound y =>
-          obtain ⟨-, a, hpo, hsh⟩ := g_step_tabToFound_inv hstep
+          obtain ⟨-, a, hpo, hsh⟩ := step_tabToFound_inv hstep
           rw [hsh] at hσmem
           have hσmem' : c ∈ (τ.setFound y.suit (τ.found y.suit ++ [y])).found c.suit :=
             hσmem
@@ -3302,7 +3247,7 @@ private theorem ground_rung_crossing {st : State} {c : Card} {π : List Move} {w
           · rw [setFound_found_ne hsy] at hσmem'
             exact absurd hσmem' hτnf
       | foundToTab y b =>
-          obtain ⟨-, _, _, _, hsh⟩ := g_step_foundToTab_inv hstep
+          obtain ⟨-, _, _, _, hsh⟩ := step_foundToTab_inv hstep
           rw [hsh] at hσmem
           have hσmem' : c ∈ ((τ.setFound y.suit (chop (τ.found y.suit))).putCard y b).found c.suit :=
             hσmem
@@ -3315,7 +3260,7 @@ private theorem ground_rung_crossing {st : State} {c : Card} {π : List Move} {w
           · rw [setFound_found_ne hsy] at hσmem'
             exact absurd hσmem' hτnf
       | tabToTab y b =>
-          obtain ⟨a, hhold, hcp, hrn, hsh⟩ := g_step_tabToTab_inv hstep
+          obtain ⟨a, hhold, hcp, hrn, hsh⟩ := step_tabToTab_inv hstep
           rw [hsh] at hσmem
           have hσmem' : c ∈ ((τ.setPile a
               (Pile.afterRunRemoved (τ.piles a) (below y (τ.piles a).faceUp))).putRun
@@ -3408,7 +3353,7 @@ private theorem ground_firstBlocked_split {st : State} {c : Card} {π : List Mov
           exact (hwindow (P₀ ++ [mm]) rest hsplit2 u₁
             (ground_run_join st P₀ [mm] u₀ u₁ hP₀u (run_one hmmstep))).1
         rw [of_decide_eq_true h1] at hmmstep
-        obtain ⟨-, a', hpo', hsh'⟩ := g_step_tabToFound_inv hmmstep
+        obtain ⟨-, a', hpo', hsh'⟩ := step_tabToFound_inv hmmstep
         have hcmm : c ∈ u₁.found c.suit := by
           rw [hsh']
           show c ∈ (u₀.setFound c.suit (u₀.found c.suit ++ [c])).found c.suit
@@ -5784,43 +5729,6 @@ private theorem step_wasteToTab_inv' {u : State} {x : Card} {b : Base} {u₁ : S
     · exact absurd h (by simp)
   · exact absurd h (by simp)
 
-/-- A successful `foundToTab`, exactly: the named card is the top of
-its foundation, the placement is legal, the successor is the chopped
-foundation with the card placed. -/
-private theorem step_foundToTab_inv' {u : State} {x : Card} {b : Base} {u₁ : State}
-    (h : State.step u (.foundToTab x b) = some u₁) :
-    ∃ c', u.foundTop x.suit = some c' ∧ c' = x ∧ u.canPlace x b = true ∧
-      u₁ = (u.setFound x.suit (chop (u.found x.suit))).putCard x b := by
-  simp only [State.step] at h
-  split at h
-  · split at h
-    · rename_i _ c' ht hg
-      rw [Bool.and_eq_true] at hg
-      exact ⟨c', ht, of_decide_eq_true hg.1, hg.2, (Option.some.inj h).symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `tabToTab`, exactly: the run head's pile was located,
-the placement is legal, the face-up run from the head is nonempty, and
-the successor is the pile-with-run-removed then the run placed. -/
-private theorem step_tabToTab_inv' {u : State} {x : Card} {b : Base} {u₁ : State}
-    (h : State.step u (.tabToTab x b) = some u₁) :
-    ∃ a, u.pileHolding x = some a ∧ u.canPlace x b = true ∧
-      fromCard x (u.piles a).faceUp ≠ [] ∧
-      u₁ = (u.setPile a (Pile.afterRunRemoved (u.piles a) (below x (u.piles a).faceUp))).putRun
-        (fromCard x (u.piles a).faceUp) b := by
-  simp only [State.step] at h
-  split at h
-  · exact absurd h (by simp)
-  · rename_i _ a hh
-    split at h
-    · rename_i hcp
-      split at h
-      · exact absurd h (by simp)
-      · rename_i _ hne
-        exact ⟨a, hh, hcp, hne, (Option.some.inj h).symm⟩
-    · exact absurd h (by simp)
-
 /-! ### The (A) sink — the transfers and the twin replay -/
 
 /-- Shared tails make equal snoc-appendages (the append-injectivity
@@ -6238,7 +6146,7 @@ private theorem draw1_replay : ∀ (π : List Move) (s t : State),
           rw [run_step_cons htstep]
           exact hrun'
       | foundToTab x b =>
-          obtain ⟨c', htop, hcc, hcp, hs1shape⟩ := step_foundToTab_inv' hstep
+          obtain ⟨c', htop, hcc, hcp, hs1shape⟩ := step_foundToTab_inv hstep
           have hvtop : t.foundTop x.suit = some c' := by
             rw [foundTop_congr x.suit hf] at htop
             exact htop
@@ -6299,7 +6207,7 @@ private theorem draw1_replay : ∀ (π : List Move) (s t : State),
           rw [run_step_cons htstep]
           exact hrun'
       | tabToTab x b =>
-          obtain ⟨a, hhld, hcp, hne, hs1shape⟩ := step_tabToTab_inv' hstep
+          obtain ⟨a, hhld, hcp, hne, hs1shape⟩ := step_tabToTab_inv hstep
           have hvhld : t.pileHolding x = some a := by
             rw [pileHolding_congr hp] at hhld
             exact hhld
@@ -7075,7 +6983,7 @@ private theorem front_board_tt {u s₁ : State} {c x : Card} {b : Base} {s' : St
     (hstep : State.step u (Move.tabToTab x b) = some s₁)
     (hfront₁ : FrontOK c s₁ s') (hwin₁ : WinFrom s') :
     ∃ s'', FrontOK c u s'' ∧ WinFrom s'' := by
-  obtain ⟨a, hhld, hcp, hne, hs₁⟩ := step_tabToTab_inv' hstep
+  obtain ⟨a, hhld, hcp, hne, hs₁⟩ := step_tabToTab_inv hstep
   -- the move is cycle-blind and foundation-blind
   have hstock : s₁.stock = u.stock := by rw [hs₁]; exact (putRun_keep).2.1
   have hwaste : s₁.waste = u.waste := by rw [hs₁]; exact (putRun_keep).2.2.1
@@ -8537,7 +8445,7 @@ private theorem replay_front_aux : ∀ (n : Nat) (c : Card) (u : State),
                     rest w hlen2 hcrest hrest hwin
                   exact front_board_tf hds hrung hys hstep hfront₁ hwin₁
             | tabToTab y y2 =>
-                obtain ⟨a, hhld, hcp, hne, hs1shape⟩ := step_tabToTab_inv' hstep
+                obtain ⟨a, hhld, hcp, hne, hs1shape⟩ := step_tabToTab_inv hstep
                 have hfound : s₁.found = u.found := by
                   rw [hs1shape]
                   exact putRun_found_keep
