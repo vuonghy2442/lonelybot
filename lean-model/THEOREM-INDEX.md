@@ -392,8 +392,8 @@ All WF-PREMISE-FREE: `(h : State.step st m = some s') : Q s' ≤ Q st`.
   correctness row.  **`conjugate_forkState_corrected`** — the
   corrected conjugation theorem, `[propext, Quot.sound]`.
 
-## 9. The zone-census loop (`Orig/PairClassZones.lean`, 12 heads
-`[propext, Quot.sound]`) and mission heads
+## 9. The zone-census loop (home: `Orig/ZoneAgree.lean`, the
+census-stratum leaf + the fork-grade rows in `Orig/PairClassZones.lean`)
 
 At WF class-mates the three census readings are ONE equivalence —
 tableau sets ⟺ foundation sets ⟺ rung vectors — with the cycle side

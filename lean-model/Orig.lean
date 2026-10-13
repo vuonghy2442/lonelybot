@@ -4,6 +4,9 @@ import Orig.Play
 import Orig.Fate
 import Orig.Integrity
 import Orig.FoundKit
+import Orig.Combine
+import Orig.Reach
+import Orig.ZoneAgree
 import Orig.Twin
 import Orig.TwinExchange
 import Orig.TwinExchangeQuotient
