@@ -137,6 +137,54 @@ theorem mem_found_iff_height {st : State} (hwf : st.WF) {c : Card} :
     c ∈ st.found c.suit ↔ c.rank.toIdx < st.foundHeight c.suit :=
   ⟨mem_found_rank_lt hwf, mem_found_of_rung hwf⟩
 
+/-- Membership in a take is membership in the list (lifted from the
+retired `sequ_mem_of_take`). -/
+theorem mem_of_take : ∀ {α : Type} (l : List α) (n : Nat) {x : α},
+    x ∈ l.take n → x ∈ l := by
+  intro α l n
+  induction n generalizing l with
+  | zero =>
+      intro x h
+      simp [List.take] at h
+  | succ n ih =>
+      intro x h
+      cases l with
+      | nil => simp [List.take] at h
+      | cons a t =>
+          rw [List.take_succ_cons] at h
+          rcases List.mem_cons.mp h with he | hrest
+          · subst he; exact List.mem_cons_self ..
+          · exact List.mem_cons_of_mem a (ih t hrest)
+
+/-- Membership in a drop is membership in the list (lifted from the
+retired `sequ_mem_of_drop`). -/
+theorem mem_of_drop {α : Type} : ∀ (l : List α) (n : Nat) {x : α},
+    x ∈ l.drop n → x ∈ l := by
+  intro l n
+  induction n generalizing l with
+  | zero =>
+      intro x h
+      exact h
+  | succ n ih =>
+      intro x h
+      cases l with
+      | nil => simp [List.drop] at h
+      | cons a t =>
+          simp only [List.drop] at h
+          exact List.mem_cons_of_mem a (ih t h)
+
+/-- A foundation row holds only its own suit's cards (lifted from the
+retired `sequ_found_suit`; OriginLock's `lock_found_suit` twin also
+retires against this row). -/
+theorem found_suit {st : State} (hwf : st.WF) {c : Card} {s : Suit}
+    (hmem : c ∈ st.found s) : c.suit = s := by
+  obtain ⟨n, hn⟩ := hwf.found_prefix s
+  rw [hn] at hmem
+  have hmem2 : c ∈ s.upCards := mem_of_take _ _ hmem
+  obtain ⟨r, -, hmk⟩ := List.mem_map.mp hmem2
+  subst hmk
+  rfl
+
 end FoundKit
 
 /-! ## The audit battery -/
@@ -144,3 +192,6 @@ end FoundKit
 #print axioms FoundKit.mem_found_of_rung
 #print axioms FoundKit.mem_found_rank_lt
 #print axioms FoundKit.mem_found_iff_height
+#print axioms FoundKit.mem_of_take
+#print axioms FoundKit.mem_of_drop
+#print axioms FoundKit.found_suit

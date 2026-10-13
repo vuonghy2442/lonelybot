@@ -1,5 +1,6 @@
 import Orig.PairName
 import Orig.BracketDecomp
+import Orig.FoundKit
 
 /-!
 # Orig.SlabEquiv — THE TWIN-SLAB TABLEAU EQUIVALENCE
@@ -65,147 +66,6 @@ non-arithmetic closures in §2 are `exfalso`-premised).
 -/
 
 /-! ## §0. The private kit (per-file copies, the house dedup discipline) -/
-
-/-- An element at position `i` belongs to the first `n` entries of the
-list when `i < n` (the per-file copy of the build-index kit; template:
-`Orig/PairConfine.lean`'s private `conf_get_in_take`). -/
-private theorem sequ_get_in_take : ∀ {α : Type} (l : List α) (n i : Nat)
-    (hl : i < l.length) (_hn : i < n), l.get ⟨i, hl⟩ ∈ l.take n := by
-  intro α l n i hl hn
-  induction n generalizing l i hl with
-  | zero => exact absurd hn (by omega)
-  | succ n ih =>
-      cases l with
-      | nil => exact absurd hl (by simp)
-      | cons a t =>
-          cases i with
-          | zero =>
-              show a ∈ a :: t.take n
-              exact List.mem_cons.2 (Or.inl rfl)
-          | succ i' =>
-              simp only [List.length_cons] at hl
-              refine List.mem_cons_of_mem a (ih t i' (by omega) (by omega))
-
-/-- A card sits at its own build index in its suit's foundation order
-(the per-file copy of `conf_upCards_get`: the rank `cases`-bash is
-`rfl` at every level). -/
-private theorem sequ_upCards_get (z : Card)
-    (h : z.rank.toIdx < z.suit.upCards.length) :
-    z.suit.upCards.get ⟨z.rank.toIdx, h⟩ = z := by
-  rcases z with ⟨zs, zr⟩
-  cases zr <;> rfl
-
-/-- **THE FOUNDED-BRIDGE, UPWARD** — a suit rung strictly above a
-card's rank index has already founded it: the WF foundation is the
-build order's take, and the take's get-at-index is the card of that
-index (the per-file copy of `conf_mem_found_of_rung`). -/
-private theorem sequ_mem_found_of_rung {st : State} (hwf : st.WF) {c : Card}
-    (hlt : c.rank.toIdx < rungAt st c.suit) : c ∈ st.found c.suit := by
-  have hpre := rung_found_prefix st hwf c.suit
-  have h13 : c.suit.upCards.length = 13 := Suit.upCards_length c.suit
-  have hget : c.suit.upCards.get ⟨c.rank.toIdx, by
-      rw [h13]; exact Rank.toIdx_lt c.rank⟩ = c :=
-    sequ_upCards_get c (by rw [h13]; exact Rank.toIdx_lt c.rank)
-  have hmem0 : c.suit.upCards.get ⟨c.rank.toIdx, by
-      rw [h13]; exact Rank.toIdx_lt c.rank⟩ ∈
-      c.suit.upCards.take (rungAt st c.suit) :=
-    sequ_get_in_take c.suit.upCards (rungAt st c.suit) c.rank.toIdx
-      (show c.rank.toIdx < c.suit.upCards.length by
-        rw [h13]; exact Rank.toIdx_lt c.rank) hlt
-  rw [hget] at hmem0
-  have hmem : c ∈ c.suit.upCards.take (rungAt st c.suit) := hmem0
-  rwa [← hpre] at hmem
-
-/-- The position of `x` in `l` (its first-occurrence index) — the
-per-file copy of the take-position kit (template:
-`Orig/CrossFamilyStatic.lean` §0). -/
-private def sequ_posOf {α : Type} [DecidableEq α] (x : α) : List α → Nat
-  | [] => 0
-  | y :: t => if y = x then 0 else sequ_posOf x t + 1
-
-/-- Membership in a bounded take bounds the first-occurrence position
-(the per-file copy of `xstat_mem_take_pos`). -/
-private theorem sequ_mem_take_pos {α : Type} [DecidableEq α] :
-    ∀ (n : Nat) (l : List α) (x : α), x ∈ l.take n → sequ_posOf x l < n := by
-  intro n
-  induction n with
-  | zero =>
-      intro l x hmem
-      simp [List.take] at hmem
-  | succ n ih =>
-      intro l x hmem
-      cases l with
-      | nil => simp [List.take] at hmem
-      | cons y t =>
-          rw [List.take_succ_cons] at hmem
-          by_cases hyx : y = x
-          · have hp : sequ_posOf x (y :: t) = 0 := by
-              show (if y = x then 0 else sequ_posOf x t + 1) = 0
-              rw [ite_eq_left hyx]
-            omega
-          · have hp : sequ_posOf x (y :: t) = sequ_posOf x t + 1 := by
-              show (if y = x then 0 else sequ_posOf x t + 1) = _
-              rw [ite_eq_right hyx]
-            have hmem' : x ∈ t.take n := by
-              rcases List.mem_cons.1 hmem with he | hrest
-              · exact absurd he.symm hyx
-              · exact hrest
-            have hlt := ih t x hmem'
-            omega
-
-/-- The build order is the rank order (the per-file copy of
-`xstat_posOf_upCards`). -/
-private theorem sequ_posOf_upCards (σ : Suit) (r : Rank) :
-    sequ_posOf (Card.mk σ r) (Suit.upCards σ) = r.toIdx := by
-  cases σ <;> cases r <;> rfl
-
-/-- **THE FOUNDED-BRIDGE, DOWNWARD** — a founded card's rank index
-sits strictly below its suit's rung: the founded prefix is the build
-order's take, and the position row reads the index (the per-file
-copy of `xstat_mem_found_rank_lt`). -/
-private theorem sequ_mem_found_rank_lt {st : State} (hwf : st.WF) {d : Card}
-    (hmem : d ∈ st.found d.suit) :
-    d.rank.toIdx < rungAt st d.suit := by
-  have hpre := rung_found_prefix st hwf d.suit
-  rw [hpre] at hmem
-  have hpos : sequ_posOf d d.suit.upCards < rungAt st d.suit :=
-    sequ_mem_take_pos _ _ _ hmem
-  rcases d with ⟨s, r⟩
-  have hnorm : sequ_posOf (Card.mk s r) (Suit.upCards s) < rungAt st s := hpos
-  have hidx : sequ_posOf (Card.mk s r) (Suit.upCards s) = r.toIdx :=
-    sequ_posOf_upCards s r
-  show r.toIdx < rungAt st s
-  omega
-
-/-- Membership in a take is membership in the list (the take reads by
-recursion; the drop-in the §2 census and the §1 zone rows consume). -/
-private theorem sequ_mem_of_take : ∀ {α : Type} (l : List α) (n : Nat) {x : α},
-    x ∈ l.take n → x ∈ l := by
-  intro α l n
-  induction n generalizing l with
-  | zero =>
-      intro x h
-      simp [List.take] at h
-  | succ n ih =>
-      intro x h
-      cases l with
-      | nil => simp [List.take] at h
-      | cons a t =>
-          rw [List.take_succ_cons] at h
-          rcases List.mem_cons.mp h with he | hrest
-          · subst he; exact List.mem_cons_self ..
-          · exact List.mem_cons_of_mem a (ih t hrest)
-
-/-- A foundation row holds only its own suit's cards: the WF prefix is
-the build order's take, and the build order is the suit's map. -/
-private theorem sequ_found_suit {st : State} (hwf : st.WF) {c : Card} {s : Suit}
-    (hmem : c ∈ st.found s) : c.suit = s := by
-  obtain ⟨n, hn⟩ := hwf.found_prefix s
-  rw [hn] at hmem
-  have hmem2 : c ∈ s.upCards := sequ_mem_of_take _ _ hmem
-  obtain ⟨r, -, hmk⟩ := List.mem_map.mp hmem2
-  subst hmk
-  rfl
 
 /-- The five-zone census: at any WF state every card sits in a zone
 (the per-file copy of `conf_zone_residency`, the cardCount pattern
@@ -287,30 +147,13 @@ take/drop split, banked as `dealUpTo_eq_take_drop`). -/
 private theorem sequ_dealUpTo_mem_take {d : Card} (k : Nat) (l : List Card)
     (h : d ∈ (State.dealUpTo k l).1) : d ∈ l := by
   rw [dealUpTo_eq_take_drop k l] at h
-  exact sequ_mem_of_take l k h
-
-/-- Membership in a drop is membership in the list (the take row's
-drop companion; `List.drop` reads by recursion on the index). -/
-private theorem sequ_mem_of_drop {α : Type} : ∀ (l : List α) (n : Nat) {x : α},
-    x ∈ l.drop n → x ∈ l := by
-  intro l n
-  induction n generalizing l with
-  | zero =>
-      intro x h
-      exact h
-  | succ n ih =>
-      intro x h
-      cases l with
-      | nil => simp [List.drop] at h
-      | cons a t =>
-          simp only [List.drop] at h
-          exact List.mem_cons_of_mem a (ih t h)
+  exact FoundKit.mem_of_take l k h
 
 /-- The remaining half only holds existing stock. -/
 private theorem sequ_dealUpTo_mem_drop {d : Card} (k : Nat) (l : List Card)
     (h : d ∈ (State.dealUpTo k l).2) : d ∈ l := by
   rw [dealUpTo_eq_take_drop k l] at h
-  exact sequ_mem_of_drop l k h
+  exact FoundKit.mem_of_drop l k h
 
 /-- Membership in a reversed list is membership in the list (the
 one-line kit row; the induction is over the cons equation). -/
@@ -484,7 +327,7 @@ theorem twin_slab_tableau {st w : State} {x : Card}
   have hle : (∀ s, x.twin ∉ w.found s) →
       rungAt w x.twin.suit ≤ x.rank.toIdx := fun hall =>
     Nat.le_of_not_gt (fun hgt =>
-      hall x.twin.suit (sequ_mem_found_of_rung hwfw hgt))
+      hall x.twin.suit (FoundKit.mem_found_of_rung hwfw hgt))
   constructor
   · intro htab
     obtain ⟨a, hfw | hhw⟩ := htab
@@ -493,7 +336,8 @@ theorem twin_slab_tableau {st w : State} {x : Card}
   · intro hrung
     have hnf : x.twin ∉ w.found x.twin.suit := by
       intro hmem
-      have hlt := sequ_mem_found_rank_lt hwfw hmem
+      have hlt₀ := FoundKit.mem_found_rank_lt hwfw hmem
+      have hlt : x.twin.rank.toIdx < rungAt w x.twin.suit := hlt₀
       rw [Card.twin_rank] at hlt
       exfalso
       omega
@@ -508,7 +352,7 @@ theorem twin_slab_tableau {st w : State} {x : Card}
     · by_cases hs : s = x.twin.suit
       · rw [hs] at hfw
         exact absurd hfw hnf
-      · exact absurd (sequ_found_suit hwfw hfw).symm hs
+      · exact absurd (FoundKit.found_suit hwfw hfw).symm hs
     · exact ⟨k, Or.inr hkw⟩
     · exact ⟨k, Or.inl hfw⟩
     · exact absurd (Or.inl hsw) hcyc
@@ -522,15 +366,6 @@ zero-`sorry` and read banked-chain grade (`[propext]` /
 `twin_slab_tableau` is fully PROVED — this leaf's single ticket-free
 landing: no `sorryAx` anywhere in the battery. -/
 
-#print axioms sequ_get_in_take
-#print axioms sequ_upCards_get
-#print axioms sequ_mem_found_of_rung
-#print axioms sequ_mem_take_pos
-#print axioms sequ_posOf_upCards
-#print axioms sequ_mem_found_rank_lt
-#print axioms sequ_mem_of_take
-#print axioms sequ_mem_of_drop
-#print axioms sequ_found_suit
 #print axioms sequ_zone_residency
 #print axioms sequ_dealUpTo_memL
 #print axioms sequ_dealUpTo_mem_take
