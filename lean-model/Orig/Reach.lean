@@ -563,7 +563,7 @@ private theorem nextUp_true {st : State} {c : Card} (h : st.nextUp c = true) :
 private theorem foundTop_lastOf {st : State} {c : Card}
     (h : st.foundTop c.suit = some c) : lastOf (st.found c.suit) = some c := h
 
-private theorem step_draw_inv {st st' : State}
+theorem step_draw_inv {st st' : State}
     (h : State.step st Move.draw = some st') : st.stepDraw = some st' := h
 
 /-! ## Private kit: the draw, and pile update shapes -/

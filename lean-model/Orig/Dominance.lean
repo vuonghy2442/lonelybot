@@ -641,56 +641,6 @@ private theorem mem_afterRunRemoved_faceUp {p : Pile} {pre : List Card} {z : Car
       rw [show Pile.afterRunRemoved p (w :: ws) = { p with faceUp := w :: ws } from rfl] at hmem
       exact Or.inl hmem
 
-/-- The step's draw arm is the draw pipeline (definitionally). -/
-private theorem g_step_draw_inv {st s' : State}
-    (h : State.step st Move.draw = some s') : st.stepDraw = some s' := h
-
-/-- A successful `.wasteToFound`. -/
-private theorem g_step_wasteToFound_inv {st : State} {c : Card} {s' : State}
-    (h : State.step st (Move.wasteToFound c) = some s') :
-    st.wasteIs c = true ∧ st.nextUp c = true ∧
-    ∃ ws, st.waste = c :: ws ∧
-      s' = { st.setFound c.suit (st.found c.suit ++ [c]) with waste := ws } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hg
-    rw [Bool.and_eq_true] at hg
-    obtain ⟨hw, hn⟩ := hg
-    split at h
-    · rename_i c₀ ws hcon
-      have hcc : c₀ = c := by
-        have hwdec := State.wasteIs_cons hcon c
-        rw [hwdec] at hw
-        exact of_decide_eq_true hw
-      subst hcc
-      injection h with hEq
-      exact ⟨hw, hn, ws, hcon, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
-/-- A successful `.wasteToTab`. -/
-private theorem g_step_wasteToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
-    (h : State.step st (Move.wasteToTab c b) = some s') :
-    st.wasteIs c = true ∧ st.canPlace c b = true ∧
-    ∃ ws, st.waste = c :: ws ∧
-      s' = { st.putCard c b with waste := ws } := by
-  simp only [State.step] at h
-  split at h
-  · rename_i hg
-    rw [Bool.and_eq_true] at hg
-    obtain ⟨hw, hc⟩ := hg
-    split at h
-    · rename_i c₀ ws hcon
-      have hcc : c₀ = c := by
-        have hwdec := State.wasteIs_cons hcon c
-        rw [hwdec] at hw
-        exact of_decide_eq_true hw
-      subst hcc
-      injection h with hEq
-      exact ⟨hw, hc, ws, hcon, hEq.symm⟩
-    · exact absurd h (by simp)
-  · exact absurd h (by simp)
-
 /-! ## The divergence field -/
 
 /-- The replay side of a compliant prefix: the found `c.suit` runs
@@ -987,7 +937,7 @@ private theorem ground_step_wasteToFound {st : State} {c : Card} {k : Anchor}
     ∃ v', State.step v (Move.wasteToFound x) = some v' ∧
       GroundSplit st c k t v' ∧ v'.WF := by
   obtain ⟨hA, hB, hC, hD, hE, hF, hG, hH, hI⟩ := hsplit
-  obtain ⟨hwis, hnext, ws, hcon, hshape⟩ := g_step_wasteToFound_inv hstep
+  obtain ⟨hwis, hnext, ws, hcon, hshape⟩ := step_wasteToFound_inv_head hstep
   have hfaceU : (u.piles k).faceUp = [c] := by rw [hH]; exact hface
   by_cases hxs : x.suit = c.suit
   · exfalso
@@ -1206,7 +1156,7 @@ private theorem ground_step_wasteToTab {st : State} {c : Card} {k : Anchor}
     ∃ v', State.step v (Move.wasteToTab x b) = some v' ∧
       GroundSplit st c k t v' ∧ v'.WF := by
   obtain ⟨hA, hB, hC, hD, hE, hF, hG, hH, hI⟩ := hsplit
-  obtain ⟨hwis, hcp, ws, hcon, hshape⟩ := g_step_wasteToTab_inv hstep
+  obtain ⟨hwis, hcp, ws, hcon, hshape⟩ := step_wasteToTab_inv_head hstep
   have hfaceU : (u.piles k).faceUp = [c] := by rw [hH]; exact hface
   have hwisv : v.wasteIs x = true := by rw [wasteIs_congr hE]; exact hwis
   have hwv : v.waste = x :: ws := by rw [hE]; exact hcon
@@ -2714,7 +2664,7 @@ private theorem tabHeld_step {x : Card} {uu vv : State} {m : Move}
     tabHeld vv x ∨ x ∈ vv.found x.suit := by
   cases m with
   | draw =>
-      have hd : uu.stepDraw = some vv := g_step_draw_inv hstep
+      have hd : uu.stepDraw = some vv := step_draw_inv hstep
       rcases h with ⟨a, hx⟩ | hf
       · refine Or.inl ⟨a, ?_⟩
         rw [stepDraw_piles hd]
@@ -2723,7 +2673,7 @@ private theorem tabHeld_step {x : Card} {uu vv : State} {m : Move}
         rw [stepDraw_found hd]
         exact hf
   | wasteToFound y =>
-      obtain ⟨-, _, ws, _, hsh⟩ := g_step_wasteToFound_inv hstep
+      obtain ⟨-, _, ws, _, hsh⟩ := step_wasteToFound_inv_head hstep
       rcases h with ⟨a, hx⟩ | hf
       · refine Or.inl ⟨a, ?_⟩
         rw [hsh]
@@ -2738,7 +2688,7 @@ private theorem tabHeld_step {x : Card} {uu vv : State} {m : Move}
           rw [setFound_found_ne hsy]
           exact hf
   | wasteToTab y b =>
-      obtain ⟨-, hcp, ws, _, hsh⟩ := g_step_wasteToTab_inv hstep
+      obtain ⟨-, hcp, ws, _, hsh⟩ := step_wasteToTab_inv_head hstep
       rcases h with ⟨a', hx⟩ | hf
       · refine Or.inl ⟨a', ?_⟩
         rw [hsh]
@@ -3211,7 +3161,7 @@ private theorem ground_rung_crossing {st : State} {c : Card} {π : List Move} {w
           rw [stepDraw_found hd] at hσmem
           exact absurd hσmem hτnf
       | wasteToFound y =>
-          obtain ⟨hwis, _, ws, _, hsh⟩ := g_step_wasteToFound_inv hstep
+          obtain ⟨hwis, _, ws, _, hsh⟩ := step_wasteToFound_inv_head hstep
           rw [hsh] at hσmem
           have hσmem' : c ∈ (τ.setFound y.suit (τ.found y.suit ++ [y])).found c.suit :=
             hσmem
@@ -3228,7 +3178,7 @@ private theorem ground_rung_crossing {st : State} {c : Card} {π : List Move} {w
           · rw [setFound_found_ne hsy] at hσmem'
             exact absurd hσmem' hτnf
       | wasteToTab y b =>
-          obtain ⟨-, -, ws, _, hsh⟩ := g_step_wasteToTab_inv hstep
+          obtain ⟨-, -, ws, _, hsh⟩ := step_wasteToTab_inv_head hstep
           rw [hsh] at hσmem
           have hσmem' : c ∈ (τ.putCard y b).found c.suit := hσmem
           rw [putCard_found] at hσmem'

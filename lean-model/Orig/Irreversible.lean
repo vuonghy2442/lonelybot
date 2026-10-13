@@ -589,6 +589,55 @@ theorem step_tabToTab_inv {st : State} {c : Card} {b : Base} {s' : State}
         exact ⟨a, hh, hcp, hne, hEq.symm⟩
     · exact absurd h (by simp)
 
+/-- A successful `.wasteToFound`, HEAD-GRADE (promoted from
+Dominance's private stronger variant 2026-10-13): separates the
+conjoined guard, and PINS the popped waste head to the moved card —
+the debt the existential grade above does not carry. -/
+theorem step_wasteToFound_inv_head {st : State} {c : Card} {s' : State}
+    (h : State.step st (Move.wasteToFound c) = some s') :
+    st.wasteIs c = true ∧ st.nextUp c = true ∧
+    ∃ ws, st.waste = c :: ws ∧
+      s' = { st.setFound c.suit (st.found c.suit ++ [c]) with waste := ws } := by
+  simp only [State.step] at h
+  split at h
+  · rename_i hg
+    rw [Bool.and_eq_true] at hg
+    obtain ⟨hw, hn⟩ := hg
+    split at h
+    · rename_i c₀ ws hcon
+      have hcc : c₀ = c := by
+        have hwdec := State.wasteIs_cons hcon c
+        rw [hwdec] at hw
+        exact of_decide_eq_true hw
+      subst hcc
+      injection h with hEq
+      exact ⟨hw, hn, ws, hcon, hEq.symm⟩
+    · exact absurd h (by simp)
+  · exact absurd h (by simp)
+
+/-- A successful `.wasteToTab`, HEAD-GRADE (promoted alongside). -/
+theorem step_wasteToTab_inv_head {st : State} {c : Card} {b : Base} {s' : State}
+    (h : State.step st (Move.wasteToTab c b) = some s') :
+    st.wasteIs c = true ∧ st.canPlace c b = true ∧
+    ∃ ws, st.waste = c :: ws ∧
+      s' = { st.putCard c b with waste := ws } := by
+  simp only [State.step] at h
+  split at h
+  · rename_i hg
+    rw [Bool.and_eq_true] at hg
+    obtain ⟨hw, hc⟩ := hg
+    split at h
+    · rename_i c₀ ws hcon
+      have hcc : c₀ = c := by
+        have hwdec := State.wasteIs_cons hcon c
+        rw [hwdec] at hw
+        exact of_decide_eq_true hw
+      subst hcc
+      injection h with hEq
+      exact ⟨hw, hc, ws, hcon, hEq.symm⟩
+    · exact absurd h (by simp)
+  · exact absurd h (by simp)
+
 /-! ## Shared per-anchor facts about placements -/
 
 /-- A legal placement never disturbs hidden cards: an empty-seat
