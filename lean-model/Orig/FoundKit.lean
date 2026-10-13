@@ -311,6 +311,48 @@ theorem mem_of_drop {α : Type} : ∀ (l : List α) (n : Nat) {x : α},
           simp only [List.drop] at h
           exact List.mem_cons_of_mem a (ih t h)
 
+/-- **THE DEAL-SPLITTER** (the draw's recycle/deal membership row —
+lifted from the retired four-copy family (sequ/conf/lock/seat
+`dealUpTo_mem`); a member of the list lands in the dealt half or
+stays in the remainder). -/
+theorem dealUpTo_mem (d : Card) :
+    ∀ (k : Nat) (l : List Card),
+      d ∈ l → d ∈ (State.dealUpTo k l).1 ∨ d ∈ (State.dealUpTo k l).2 := by
+  intro k
+  induction k with
+  | zero => intro l hd; exact Or.inr hd
+  | succ k ih =>
+      intro l hd
+      cases l with
+      | nil => exact absurd hd (by simp)
+      | cons x xs =>
+          by_cases hdx : x = d
+          · subst hdx
+            left
+            simp only [State.dealUpTo]
+            exact List.mem_cons_self ..
+          · rcases List.mem_cons.mp hd with heq | htl
+            · exact absurd heq (fun hcon => hdx hcon.symm)
+            · rcases ih xs htl with h1 | h2
+              · left
+                simp only [State.dealUpTo]
+                exact List.mem_cons.mpr (Or.inr h1)
+              · right
+                simp only [State.dealUpTo]
+                exact h2
+
+/-- The dealt half only holds existing stock. -/
+theorem dealUpTo_mem_take {d : Card} (k : Nat) (l : List Card)
+    (h : d ∈ (State.dealUpTo k l).1) : d ∈ l := by
+  rw [dealUpTo_eq_take_drop k l] at h
+  exact mem_of_take l k h
+
+/-- The remaining half only holds existing stock. -/
+theorem dealUpTo_mem_drop {d : Card} (k : Nat) (l : List Card)
+    (h : d ∈ (State.dealUpTo k l).2) : d ∈ l := by
+  rw [dealUpTo_eq_take_drop k l] at h
+  exact mem_of_drop l k h
+
 /-- A foundation row holds only its own suit's cards (lifted from the
 retired `sequ_found_suit`; OriginLock's `lock_found_suit` twin also
 retires against this row). -/
@@ -400,3 +442,6 @@ end FoundKit
 #print axioms FoundKit.found_congr
 #print axioms FoundKit.shuffle_wf
 #print axioms FoundKit.zone_residency
+#print axioms FoundKit.dealUpTo_mem
+#print axioms FoundKit.dealUpTo_mem_take
+#print axioms FoundKit.dealUpTo_mem_drop

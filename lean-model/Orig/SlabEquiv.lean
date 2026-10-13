@@ -69,48 +69,6 @@ non-arithmetic closures in §2 are `exfalso`-premised).
 
 /-! ### The draw-cycle kit (the zone's only writers) -/
 
-/-- A deal pays a `dealUpTo` member home: a list member lands in the
-dealt half or the remaining half (the per-file copy of
-`conf_dealUpTo_mem`). -/
-private theorem sequ_dealUpTo_memL (d : Card) :
-    ∀ (k : Nat) (l : List Card),
-      d ∈ l → d ∈ (State.dealUpTo k l).1 ∨ d ∈ (State.dealUpTo k l).2 := by
-  intro k
-  induction k with
-  | zero => intro l hd; exact Or.inr hd
-  | succ k ih =>
-      intro l hd
-      cases l with
-      | nil => exact absurd hd (by simp)
-      | cons x xs =>
-          by_cases hdx : x = d
-          · subst hdx
-            left
-            simp only [State.dealUpTo]
-            exact List.mem_cons_self ..
-          · rcases List.mem_cons.mp hd with heq | htl
-            · exact absurd heq (fun hcon => hdx hcon.symm)
-            · rcases ih xs htl with h1 | h2
-              · left
-                simp only [State.dealUpTo]
-                exact List.mem_cons.mpr (Or.inr h1)
-              · right
-                simp only [State.dealUpTo]
-                exact h2
-
-/-- The dealt half only pays existing stock (`dealUpTo` is the
-take/drop split, banked as `dealUpTo_eq_take_drop`). -/
-private theorem sequ_dealUpTo_mem_take {d : Card} (k : Nat) (l : List Card)
-    (h : d ∈ (State.dealUpTo k l).1) : d ∈ l := by
-  rw [dealUpTo_eq_take_drop k l] at h
-  exact FoundKit.mem_of_take l k h
-
-/-- The remaining half only holds existing stock. -/
-private theorem sequ_dealUpTo_mem_drop {d : Card} (k : Nat) (l : List Card)
-    (h : d ∈ (State.dealUpTo k l).2) : d ∈ l := by
-  rw [dealUpTo_eq_take_drop k l] at h
-  exact FoundKit.mem_of_drop l k h
-
 /-- Membership in a reversed list is membership in the list (the
 one-line kit row; the induction is over the cons equation). -/
 private theorem sequ_mem_of_reverse {c : Card} :
@@ -195,14 +153,14 @@ theorem cycle_zone_pin {st : State} : ∀ {τ : List Move} {w : State},
             constructor
             · intro hc
               rcases hc with hs | hw
-              · exact Or.inl (sequ_dealUpTo_mem_drop r.drawStep r.stock hs)
+              · exact Or.inl (FoundKit.dealUpTo_mem_drop r.drawStep r.stock hs)
               · rcases List.mem_append.mp hw with h' | h'
-                · exact Or.inl (sequ_dealUpTo_mem_take r.drawStep r.stock
+                · exact Or.inl (FoundKit.dealUpTo_mem_take r.drawStep r.stock
                     (sequ_mem_of_reverse.mp h'))
                 · exact Or.inr h'
             · intro hc
               rcases hc with hs | hw
-              · rcases sequ_dealUpTo_memL c r.drawStep r.stock hs with h' | h'
+              · rcases FoundKit.dealUpTo_mem c r.drawStep r.stock hs with h' | h'
                 · exact Or.inr
                     (List.mem_append.2 (Or.inl (sequ_mem_of_reverse.mpr h')))
                 · exact Or.inl h'
@@ -322,9 +280,6 @@ zero-`sorry` and read banked-chain grade (`[propext]` /
 `twin_slab_tableau` is fully PROVED — this leaf's single ticket-free
 landing: no `sorryAx` anywhere in the battery. -/
 
-#print axioms sequ_dealUpTo_memL
-#print axioms sequ_dealUpTo_mem_take
-#print axioms sequ_dealUpTo_mem_drop
 #print axioms sequ_mem_of_reverse
 #print axioms sequ_recycle_union
 #print axioms cycle_zone_pin

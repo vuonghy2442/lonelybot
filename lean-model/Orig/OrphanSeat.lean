@@ -379,34 +379,6 @@ private theorem seat_zone_residency (st : State) (hwf : st.WF) (d : Card) :
             rw [← hW]
             exact hdzd
 
-/-- The deal's forward membership row (the `conf_dealUpTo_mem`-pattern
-copy): a dealt card came from the dealt lane or the remnant. -/
-private theorem seat_dealUpTo_mem (d : Card) :
-    ∀ (k : Nat) (l : List Card),
-      d ∈ l → d ∈ (State.dealUpTo k l).1 ∨ d ∈ (State.dealUpTo k l).2 := by
-  intro k
-  induction k with
-  | zero => intro l hd; exact Or.inr hd
-  | succ k ih =>
-      intro l hd
-      cases l with
-      | nil => exact absurd hd (by simp)
-      | cons x xs =>
-          by_cases hdx : x = d
-          · subst hdx
-            left
-            simp only [State.dealUpTo]
-            exact List.mem_cons_self ..
-          · rcases List.mem_cons.mp hd with heq | htl
-            · exact absurd heq (fun hcon => hdx hcon.symm)
-            · rcases ih xs htl with h1 | h2
-              · left
-                simp only [State.dealUpTo]
-                exact List.mem_cons.mpr (Or.inr h1)
-              · right
-                simp only [State.dealUpTo]
-                exact h2
-
 /-- **STEP 3a — THE UNION CARRY** (the `conf_stockWaste_closed`-pattern
 copy): along a witness journey the stock and waste are a closed
 two-zone world for their residents — the induction's union arm rides
@@ -434,7 +406,7 @@ private theorem seat_union_carry (d : Card) :
                     rw [← hrEq]
                     exact recycle_keep s₀ (by rw [hss]; simp)
                   have hin : d ∈ r.stock := by rw [hrt]; exact hst
-                  have hspl := seat_dealUpTo_mem d r.drawStep r.stock hin
+                  have hspl := FoundKit.dealUpTo_mem d r.drawStep r.stock hin
                   rcases hspl with hD | hR
                   · exact Or.inr
                       (List.mem_append.mpr (Or.inl (List.mem_reverse.mpr hD)))
@@ -452,7 +424,7 @@ private theorem seat_union_carry (d : Card) :
                       have hin : d ∈ r.stock := by
                         rw [hrt]
                         exact List.mem_reverse.mpr hwst
-                      have hspl := seat_dealUpTo_mem d r.drawStep r.stock hin
+                      have hspl := FoundKit.dealUpTo_mem d r.drawStep r.stock hin
                       rcases hspl with hD | hR
                       · exact Or.inr
                           (List.mem_append.mpr

@@ -1259,32 +1259,6 @@ private theorem conf_wf_along {st : State} : ∀ {w : State} {play : List Move},
       intro hwf
       exact ih (step_wf hwf hstep)
 
-private theorem conf_dealUpTo_mem (d : Card) :
-    ∀ (k : Nat) (l : List Card),
-      d ∈ l → d ∈ (State.dealUpTo k l).1 ∨ d ∈ (State.dealUpTo k l).2 := by
-  intro k
-  induction k with
-  | zero => intro l hd; exact Or.inr hd
-  | succ k ih =>
-      intro l hd
-      cases l with
-      | nil => exact absurd hd (by simp)
-      | cons x xs =>
-          by_cases hdx : x = d
-          · subst hdx
-            left
-            simp only [State.dealUpTo]
-            exact List.mem_cons_self ..
-          · rcases List.mem_cons.mp hd with heq | htl
-            · exact absurd heq (fun hcon => hdx hcon.symm)
-            · rcases ih xs htl with h1 | h2
-              · left
-                simp only [State.dealUpTo]
-                exact List.mem_cons.mpr (Or.inr h1)
-              · right
-                simp only [State.dealUpTo]
-                exact h2
-
 /-- **THE DRAW-CYCLE CLOSURE** — along a witness journey the stock and
 the waste are a closed two-zone world for their residents (the copy
 of the in-tree public-but-downstream row; the only stock/waste
@@ -1313,7 +1287,7 @@ private theorem conf_stockWaste_closed (d : Card) :
                     rw [← hrEq]
                     exact recycle_keep s₀ (by rw [hss]; simp)
                   have hin : d ∈ r.stock := by rw [hrt]; exact hst
-                  have hspl := conf_dealUpTo_mem d r.drawStep r.stock hin
+                  have hspl := FoundKit.dealUpTo_mem d r.drawStep r.stock hin
                   rcases hspl with hD | hR
                   · exact Or.inr
                       (List.mem_append.mpr (Or.inl (List.mem_reverse.mpr hD)))
@@ -1331,7 +1305,7 @@ private theorem conf_stockWaste_closed (d : Card) :
                       have hin : d ∈ r.stock := by
                         rw [hrt]
                         exact List.mem_reverse.mpr hwst
-                      have hspl := conf_dealUpTo_mem d r.drawStep r.stock hin
+                      have hspl := FoundKit.dealUpTo_mem d r.drawStep r.stock hin
                       rcases hspl with hD | hR
                       · exact Or.inr
                           (List.mem_append.mpr
@@ -2285,7 +2259,7 @@ private theorem conf_take_sub : ∀ {α : Type} (n : Nat) (l : List α)
 /-- **THE DEAL NEVER INVENTS (the shrink lanes)** — each deal lane's
 residents came from the stock: the dealt lane and the remnant lane
 both only ever hold cards of the source list (the k-induction
-mirroring the banked forward membership row `conf_dealUpTo_mem`; the
+mirroring the banked forward membership row `FoundKit.dealUpTo_mem`; the
 succ-cons case's dealt lane is cons-headed, the remnant lane drops
 the dealt head). -/
 private theorem conf_deal_shrink (d : Card) : ∀ (k : Nat) (l : List Card),
@@ -2969,4 +2943,3 @@ theorem crossing_door_read {st u u' : State} (hwf : st.WF)
 #print axioms pair_lowFamily_founded
 #print axioms pair_cover_lattice
 #print axioms pair_cover_pins
-#print axioms FoundKit.mem_found_iff_height
