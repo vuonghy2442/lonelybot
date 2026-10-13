@@ -1103,28 +1103,6 @@ private theorem take_drop_join : ∀ (n : Nat) (l : List Card),
           show x :: (t.take m ++ t.drop m) = x :: t
           exact congrArg (x :: ·) (ih t)
 
-/-- A recycle at the end, waste present (private copy of the Phase
-helper). -/
-private theorem recycle_nil' {st : State} (h1 : st.stock = ([] : List Card))
-    (h2 : st.waste ≠ []) :
-    State.recycle st = { st with stock := st.waste.reverse, waste := [] } := by
-  obtain ⟨x, t, hcon⟩ := list_cons_of_ne_nil h2
-  simp only [State.recycle, h1, hcon]
-
-/-- A recycle with stock present is the identity (private copy). -/
-private theorem recycle_keep' {st : State} (h : st.stock ≠ []) : State.recycle st = st := by
-  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil h
-  simp only [State.recycle, hcon]
-
-/-- Dealing from a nonempty stock has the recorded shape (private
-copy). -/
-private theorem dealStock_eq_of_ne_nil' {st : State} (h : st.stock ≠ []) :
-    State.dealStock st = some
-      { st with stock := (State.dealUpTo st.drawStep st.stock).2,
-                waste := (State.dealUpTo st.drawStep st.stock).1.reverse ++ st.waste } := by
-  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil h
-  simp only [State.dealStock, hcon]
-
 /-- The deal cut is the take-drop split (private copy). -/
 private theorem dealUpTo_eq_take_drop' (k : Nat) : ∀ (l : List Card),
     State.dealUpTo k l = (l.take k, l.drop k) := by
