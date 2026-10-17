@@ -425,7 +425,15 @@ drains SteeredStuck to a certified non-forkState.  This row keeps
 its sorry as the honest witness (the fa2/ascent_cover_cell
 precedent); `steered_ascent_forks_refuted` beside it is the wall.
 The successor statements are the consumption/starvation dichotomy —
-see §6's header. -/
+see §6's header.
+
+REFUTED 2026-10-17 (§9 carries the certified fence): the stranded
+counterexample rps — BelowForkDeployed with the slab intact and a
+nine-leg raw fork play, whose EMPTY steered run ends at the start
+itself, certified stuck.  This row keeps its sorry as the honest
+witness (the fa2 precedent); the restatement menu (arrival clauses
+rho-nonempty / parked-rung / steered-threaded reachability) is
+recorded in §9's header and §8's census — the owner freezes. -/
 theorem steered_ascent_forks {s : State} (hwf : s.WF)
     (hbelow : ∃ (F : State) (x : Card) (π : List Move),
       s.run π = some F ∧ ForkWitness F x ∧
@@ -2586,3 +2594,2216 @@ the boarded elevation is decided. -/
 #print axioms starved_pair_survives
 #print axioms steered_stuck_elevates
 #print axioms loA_T_elevated
+/-! ## §8. THE ARRIVAL CENSUS — the zone competitor rows (promoted 2026-10-17)
+
+The [H] step-2 content of `steered_stuck_elevates`'s route, landed at
+its PROVABLE stratum (exit 0, 18 heads): thirteen of the fifteen
+zone hazards die at banked rows — the past-rung kill, the off-board
+kills, the burn bar (Classify's universal row IS in the cone), the
+reveal-seat kill (§2c's own), and the REVEAL-WINDOW RAISE KILL: a
+licensed reveal-raise is a BARE KING (rank 12), so it never
+preempts a zone at r ≤ 12 — H3's delay hazard, closed.  Two hazards
+are honestly OBSTRUCTED and carried as the zone statement's
+premises: the third-suit live raises below r (the delay content,
+decided per board) and the under-armed reversible cargo transfers
+(rp2's cover class — their exclusion IS the coverless premise).
+
+THE FROZEN ZONE STATEMENTS: `zone_serves_member` (the member's
+letter AND rank-minimality off the two sweeps) and `zone_run_leg`
+(the one-leg run) — the falsifier's per-board assembly at general
+grade.  The priced `zone_pick_of_sweeps` [M, promote-tier] is the
+pick-equality disjunction (the §4 scan glue, same-file at
+promotion; the tie-break absorbed by the disjunction).
+
+THE RESTATEMENT RECORD (the refuter-proof form the routes cite):
+the consumption arm consumes its zone data FROM THE RUN — the
+ARRIVAL CLAUSE (some prefix of the run lands a zone world: parking
+equalities off the run's own rung arithmetic, the joint read, the
+coverless sweeps) — never assumed at the start; without it every
+stranded stuck world refutes the arm (two lanes converged on this
+verdict independently: this census and the refuter-check).
+Promoted verbatim from the certified scratch.
+-/
+/-! ## §1. The member-raise letter (known, cited) -/
+
+/-- **THE HOT-JOINT LETTER** — a pair member whose vanilla license
+and whose twin's vanilla license both stand, is a steered raise
+letter: the twin gate's joint instance, the falsifier's leg pattern
+at general grade. -/
+theorem zone_letter_hot {st : State} {x : Card}
+    (h1 : CanRaise st x) (h2 : CanRaise st x.twin) :
+    SteeredLetter st (Move.tabToFound x) :=
+  raiseGate_joint h1 h2
+
+/-- **THE JOINT LETTER AT THE BOOL FACE** — the picker's grade of
+the same instance, WF-free: with both vanilla probes true the gate
+leg reads `(!S-probe || true) = true` regardless of the S-probe. -/
+theorem steerRaiseB_true_of_joint {st : State} {c : Card}
+    (h1 : canRaiseB st c = true) (h2 : canRaiseB st c.twin = true) :
+    SteeredLetterB st (Move.tabToFound c) = true := by
+  show steerRaiseB st c = true
+  rw [steerRaiseB, h1, h2]
+  simp
+
+/-- **THE DEAD-INSTANCE GATE HALF** — after the first eat, the mate
+raise passes the twin gate through the DEAD instance wherever the
+eaten member's suit-rung has left its own index (the rung pin:
+`canRaiseS_rung` forces `rungAt = the card's index`, so a rung that
+has moved past pins its `CanRaiseS` dead).  The successor-side
+transport (the step's rung arithmetic and the twin's preserved
+license) is the §2c/§5 same-file content the promotion completes. -/
+theorem dead_gate_of_rungPast {st : State} {x : Card}
+    (hcr : CanRaise st x.twin) (hrung : rungAt st x.suit ≠ x.rank.toIdx) :
+    SteeredLetter st (Move.tabToFound x.twin) := by
+  refine raiseGate_dead hcr ?_
+  intro hs
+  rw [Card.twin_twin x] at hs
+  exact hrung (canRaiseS_rung hs)
+
+/-! ## §2. The raise-competitor census (hazard class a) -/
+
+/-- **R1: THE PAST-RUNG KILL** — a card whose suit's rung does not
+sit exactly at its index is never a raise letter (`nextUp` is the
+decided index-rung equality; the rung above or below kills the
+license's first conjunct outright). -/
+theorem raise_pastRung_refused {st : State} {c : Card}
+    (hne : st.foundHeight c.suit ≠ c.rank.toIdx) :
+    ¬ SteeredLetter st (Move.tabToFound c) := by
+  rintro ⟨hnu, -⟩
+  have heq : c.rank.toIdx = st.foundHeight c.suit :=
+    of_decide_eq_true hnu.1
+  exact hne heq.symm
+
+/-- **R2: THE OFF-BOARD KILL** — a card no pile holds (founded,
+stocked, or hidden-only) is never a raise letter: the license's
+top-existential contradicts the holding search's none read. -/
+theorem raise_offboard_refused {st : State} (hwf : st.WF) {c : Card}
+    (hh : st.pileHolding c = none) :
+    ¬ SteeredLetter st (Move.tabToFound c) := by
+  intro hL
+  rcases hL.1 with ⟨-, a, htop, -⟩
+  have hmem : c ∈ (st.piles a).faceUp := lastOf_mem (pileOfTop_top htop).2
+  rw [(pileHolding_eq_some_iff hwf).2 hmem] at hh
+  exact absurd hh (by simp)
+
+/-- **R3: THE REVEAL-RAISE IS A KING** — a licensed raise that
+EMPTIES its pile's face-up view (the chop read is empty — the
+below-content vanishes) is a bare KING over a hidden-free pile: the
+license's own seat-disjunct forces it.  So a pile-emptying raise is
+rank-12 — the reveal window's RAISE arm (which has no reversibility
+clause, the loyalty memo's H3) can never sit strictly below ANY
+zone rank r ≤ 12: reveals through raises never delay an arrival. -/
+theorem raise_reveal_is_king {st : State} {c : Card} {a : Anchor}
+    (hL : SteeredLetter st (Move.tabToFound c))
+    (htop : st.pileOfTop c = some a)
+    (hchop : chop (st.piles a).faceUp = []) :
+    c.rank = Rank.king ∧ (st.piles a).hidden = [] := by
+  rcases hL.1 with ⟨-, w, hw, hdj⟩
+  have hwa : w = a := Option.some.inj (hw.symm.trans htop)
+  rw [hwa] at hdj
+  rcases hdj with hne | ⟨hhid, hking⟩
+  · exact absurd hchop hne
+  · exact ⟨hking, hhid⟩
+
+/-- The index form of R3: a pile-emptying licensed raise ranks 12. -/
+theorem raise_reveal_rank12 {st : State} {c : Card} {a : Anchor}
+    (hL : SteeredLetter st (Move.tabToFound c))
+    (htop : st.pileOfTop c = some a)
+    (hchop : chop (st.piles a).faceUp = []) :
+    c.rank.toIdx = 12 := by
+  obtain ⟨hking, -⟩ := raise_reveal_is_king hL htop hchop
+  rw [hking]
+  rfl
+
+/-- **R3's ZONE COROLLARY** — a pile-emptying licensed raise never
+sits below a zone rank r ≤ 12. -/
+theorem no_reveal_raise_below {st : State} {c : Card} {a : Anchor}
+    {r : Nat}
+    (hL : SteeredLetter st (Move.tabToFound c))
+    (htop : st.pileOfTop c = some a)
+    (hchop : chop (st.piles a).faceUp = [])
+    (hzone : r ≤ 12) : ¬ (c.rank.toIdx < r) := by
+  intro hlt
+  have h12 : c.rank.toIdx = 12 := raise_reveal_rank12 hL htop hchop
+  omega
+
+/-- The Bool-sweep-to-letter bridge at general grade (the falsifier's
+`lowRaise_dead` pattern, promoted to a standalone row). -/
+theorem lowraise_refused_of_B {st : State} {r : Nat}
+    (h : ∀ c, c.rank.toIdx < r → canRaiseB st c = false) :
+    ∀ c, c.rank.toIdx < r → ¬ SteeredLetter st (Move.tabToFound c) := by
+  intro c hlt hL
+  have hf : canRaiseB st c = false := h c hlt
+  rw [(canRaiseB_true_iff).2 hL.1] at hf
+  exact absurd hf (by simp)
+
+/-- **R4: THE COMPOSED COLD-OR-ABSENT SWEEP** — the minimal
+generalization the third-suit census supports TODAY: at a world
+where every card below the zone rank is either COLD-OR-PAST (its
+suit's rung is not at its index) or ABSENT (no pile holds it), no
+raise letter stands below the zone.  This is what the climb's
+order-content MEANS at the arrived zone — the spine served
+everything hot below r on its way in.  The REVEAL-TRANSPORT content
+(a hidden card surfaced below r BEFORE the zone) is the climb-side
+remainder the sweep's premise carries, priced [H] at the run tier. -/
+theorem lowraise_cold_or_absent {st : State} (hwf : st.WF) {r : Nat}
+    (h : ∀ c, c.rank.toIdx < r →
+      st.nextUp c = false ∨ st.pileHolding c = none) :
+    ∀ c, c.rank.toIdx < r → ¬ SteeredLetter st (Move.tabToFound c) := by
+  have hB : ∀ c, c.rank.toIdx < r → canRaiseB st c = false := by
+    intro c hlt
+    rcases h c hlt with hnu | hhold
+    · rw [canRaiseB, hnu]
+      simp
+    · have hpot : st.pileOfTop c = none := by
+        cases hpt : st.pileOfTop c with
+        | none => rfl
+        | some k =>
+            have hmem : c ∈ (st.piles k).faceUp :=
+              lastOf_mem (pileOfTop_top hpt).2
+            rw [(pileHolding_eq_some_iff hwf).2 hmem] at hhold
+            exact absurd hhold (by simp)
+      rw [canRaiseB, hpot]
+      simp
+  exact lowraise_refused_of_B hB
+
+/-! ## §3. The seat-competitor census (hazard class b) -/
+
+/-- **S1: THE OFF-BOARD MOVER KILL** — a card no pile holds has no
+firing seat at any base: the raw step equation reads the held-proof
+`none`. -/
+theorem seat_offboard_refused {st : State} {c : Card}
+    (hhold : st.pileHolding c = none) (b : Base) :
+    ¬ SteeredLetter st (Move.tabToTab c b) := by
+  intro hL
+  have hnone : State.step st (Move.tabToTab c b) = none := by
+    rw [step_tabToTab_eq, hhold]
+  exact hL.1 hnone
+
+/-- **S2: THE MOBILE-NONJOINT KILL** — a mobile pair that is not
+JOINT NOW is never seated, at any base: the leaf's own §1 joint-clause
+row, at general grade (the exposed cold stool pairs are exactly this
+shape — the falsifier's stoolSeat class). -/
+theorem seat_mobile_nonjoint_refused {st : State} {c : Card}
+    (hmob : MobileTwin st c)
+    (hn : ¬ (CanRaise st c ∧ CanRaise st c.twin)) (b : Base) :
+    ¬ SteeredLetter st (Move.tabToTab c b) :=
+  seatGate_refuses_nonjoint hmob hn
+
+/-- **S3: THE REVEAL-SEAT KILL** — a seating leg whose departure
+would leave the whole face-up over a nonempty hidden deck is never a
+steered letter: the leaf's own §2c journey-never-reveal row.  The
+reveal window's SEAT arm dies here; the RAISE arm is R3 above
+(king-only). -/
+theorem seat_reveal_refused {st s' : State} {c : Card} {b : Base}
+    {a : Anchor}
+    (hstep : State.step st (Move.tabToTab c b) = some s')
+    (hh : st.pileHolding c = some a)
+    (hbel : below c (st.piles a).faceUp = [])
+    (hhne : (st.piles a).hidden ≠ []) :
+    ¬ SteeredLetter st (Move.tabToTab c b) :=
+  steered_seat_refuses_reveal hstep hh hbel hhne
+
+/-- **S4: THE BURN-MODE BAR** — a bare non-king whose whole visible
+run departs over a hidden-free pile is a COMMITMENT, not a letter:
+the emptied seat obeys the receive-only-kings discipline, so the leg
+is irreversible (`tabToTab_irreversible_of_bare_nonking`, which IS
+in the import cone — Classify sits under MacroInternal — no
+ForklessCeiling row needed) and the seat gate's reversibility
+conjunct dies (Fate's commitment-refutes-every-witness row). -/
+theorem seat_burn_refused {st : State} {c : Card} {b : Base}
+    {a : Anchor} {s₁ : State}
+    (hstep : State.step st (Move.tabToTab c b) = some s₁)
+    (hh : st.pileHolding c = some a)
+    (hpre : below c (st.piles a).faceUp = [])
+    (hhidden : (st.piles a).hidden = [])
+    (hfr : fromCard c (st.piles a).faceUp ≠ [])
+    (hking : c.rank ≠ Rank.king) :
+    ¬ SteeredLetter st (Move.tabToTab c b) := by
+  intro hL
+  exact not_reversibleAtW_of_irreversibleAt
+    (tabToTab_irreversible_of_bare_nonking hstep hh hpre hhidden hfr hking)
+    hL.2.1
+
+/-- The grade-coincidence note: a genuine seat letter forces the
+picker's Bool face true (fires and joint conjuncts re-read), so a
+decided `steerSeatB = false` per board kills the whole Prop letter
+too — the sweep premises of §4 are one decide per (card, base) pair. -/
+theorem steerSeatB_true_of_seatLetter {st : State} {c : Card} {b : Base}
+    (hL : SteeredLetter st (Move.tabToTab c b)) :
+    steerSeatB st c b = true :=
+  (steerSeatB_true_iff st c b).2 ⟨hL.1, hL.2.2⟩
+
+/-! ## §4. The zone-statement freeze -/
+
+/-- The sweep assembler, general grade (the leaf's private
+`steeredFirst_of_sweeps` pattern at zone shape). -/
+private theorem zoneFirst_of_sweeps (st : State) (m : Move) (r : Nat)
+    (hm : letterRank m = r)
+    (hraise : ∀ c, c.rank.toIdx < r → ¬ SteeredLetter st (Move.tabToFound c))
+    (hseat : ∀ (c : Card), c.rank.toIdx < r →
+      ∀ (b : Base), ¬ SteeredLetter st (Move.tabToTab c b)) :
+    SteeredFirst st m := by
+  intro m' hL
+  cases m' with
+  | draw => exact absurd hL (fun h => h)
+  | wasteToFound c => exact absurd hL (fun h => h)
+  | wasteToTab c b => exact absurd hL (fun h => h)
+  | foundToTab c b => exact absurd hL (fun h => h)
+  | tabToFound c =>
+      by_cases hlt : c.rank.toIdx < r
+      · exact absurd hL (hraise c hlt)
+      · rw [hm]
+        show c.rank.toIdx ≥ r
+        omega
+  | tabToTab c b =>
+      by_cases hlt : c.rank.toIdx < r
+      · exact absurd hL (hseat c hlt b)
+      · rw [hm]
+        show c.rank.toIdx ≥ r
+        omega
+
+/-- **THE ZONE SERVES THE MEMBER** (the frozen per-zone row, PROVABLE
+TODAY): at a zone world — the pair joint at the Bool probes, no
+raise probe live below the pair's rank, no seat letter below it —
+the member's raise is BOTH a steered letter AND rank-minimal: the
+head any steered trajectory through this zone must serve.  The
+premises are ZONE-WORLD reads, decidable-applied per board (the
+sweeps are the coverless condition; the joint read is the parking's
+own table).  THE [H] CONTENT the row prices is exactly the
+premise-closing: the arrival (the run actually entering such a
+zone) and the sweeps' transport from the climb. -/
+theorem zone_serves_member {st : State} {x : Card}
+    (hjoint : canRaiseB st x = true ∧ canRaiseB st x.twin = true)
+    (hra : ∀ c, c.rank.toIdx < x.rank.toIdx → canRaiseB st c = false)
+    (hsa : ∀ (c : Card), c.rank.toIdx < x.rank.toIdx →
+      ∀ (b : Base), ¬ SteeredLetter st (Move.tabToTab c b)) :
+    SteeredLetter st (Move.tabToFound x) ∧
+      SteeredFirst st (Move.tabToFound x) := by
+  have hletter : SteeredLetter st (Move.tabToFound x) :=
+    raiseGate_joint ((canRaiseB_true_iff).1 hjoint.1)
+      ((canRaiseB_true_iff).1 hjoint.2)
+  exact ⟨hletter, zoneFirst_of_sweeps st _ x.rank.toIdx rfl
+    (lowraise_refused_of_B hra) hsa⟩
+
+/-- **THE ZONE'S RUN LEG** — the service assembled into the
+trajectory's own shape: the member's letter, its rank-minimality,
+and its firing step compose one lawful steered run leg.  This is the
+consumption arm's per-zone eat, certified. -/
+theorem zone_run_leg {st s' : State} {x : Card}
+    (hL : SteeredLetter st (Move.tabToFound x))
+    (hF : SteeredFirst st (Move.tabToFound x))
+    (hstep : State.step st (Move.tabToFound x) = some s') :
+    SteeredRun st [Move.tabToFound x] s' :=
+  SteeredRun.cons hL hF hstep (SteeredRun.nil s')
+
+/-- **THE PICK-EQUALITY DISJUNCTION** (PRICED [M] at the promote
+tier — the row is PROVABLE the day this draft merges into the leaf,
+where the §4 stepper kit is same-file):
+
+At a zone world with the pair joint at the Bool probes, every
+non-pair raise probe dead below AND at the pair's rank, and every
+seat probe dead below AND at the rank off the pair, the §4
+deterministic picker returns exactly one of the two member raises.
+
+ROUTE (the scan glue, all pieces named):
+1. THE JOINT BOOL LETTERS: `steerRaiseB_true_of_joint` (in-file)
+   puts both members' raise probes true at `letterRank = r`.
+2. THE BELOW-SCAN EMPTINESS: `hrlo`/`hslo` empty every rank block
+   below r (`rankPick st j = none` for `j < r`; per block the raise
+   column reads `canRaiseB` through `steerRaiseB`'s first conjunct,
+   the seat column reads `steerSeatB` directly).
+3. THE RANK-STOP: the scan chain promotes — `firstRankUpTo st 13
+   = some (r, m₀)`: over the none-prefix (step 2, via the §4 kit's
+   `firstRankUpTo_none_complete`/`takeRank_none_none`) and the
+   r-yield (`takeRank_none_rank` over `rankPick st r ≠ none`),
+   by induction on `13 − r` with `takeRank_some_inner` carrying.
+4. THE PICK'S MEMBERSHIP: `SteeredLetterB st m₀ = true`
+   (`firstWhere_sound`) and `m₀ ∈ steeredRankBlock r`; the §4
+   kit's `block_letters` splits m₀ into a raise or a seat at rank
+   r; raises precede seats in the block, and both members'_raise
+   probes are true, so the first true element is a RAISE.
+5. THE PAIR READ: `hrank` sweeps every non-pair raise probe at r,
+   `hsrk` every non-pair seat probe — the returned raise is x's or
+   the twin's.  WHICH member is the universe tie-break (R3's priced
+   refinement); the DISJUNCTION is the honest form the evidence
+   supports today.
+
+The premise-set is necessary and honest: a genuine third-suit raise
+at or below r (rank-r) and the under-armed reversible cargo
+transfer (the rp2 cover class) are REAL letters — the sweeps are
+per-board decide rows, never general kills. -/
+theorem zone_pick_of_sweeps {st : State} {x : Card}
+    (hjoint : canRaiseB st x = true ∧ canRaiseB st x.twin = true)
+    (hrlo : ∀ c, c.rank.toIdx < x.rank.toIdx → canRaiseB st c = false)
+    (hrank : ∀ c, c.rank.toIdx = x.rank.toIdx → c ≠ x → c ≠ x.twin →
+      canRaiseB st c = false)
+    (hslo : ∀ (c : Card), c.rank.toIdx < x.rank.toIdx →
+      ∀ (b : Base), steerSeatB st c b = false)
+    (hsrk : ∀ (c : Card), c.rank.toIdx = x.rank.toIdx → c ≠ x → c ≠ x.twin →
+      ∀ (b : Base), steerSeatB st c b = false) :
+    steeredPick st = some (Move.tabToFound x) ∨
+      steeredPick st = some (Move.tabToFound x.twin) := by
+  sorry
+
+/-! ## §5. THE CENSUS MEMO AND THE STRANDED-WORLD NOTE
+
+THE CENSUS TABLE (what the decomposition found):
+
+RAISE SIDE (class a):
+  R1 past-rung kill ................................. PROVABLE (nextUp)
+  R2 off-board kill ............................... PROVABLE (holding iff)
+  R3 the reveal-raise is a bare king (rank 12) ..... PROVABLE — the
+      reveal window's RAISE arm (no reversibility clause, the
+      loyalty memo's H3) is KING-ONLY through the license's own
+      seat-disjunct: it never preempts any zone r ≤ 12.  The reveal
+      hazard lives on the SEAT arm only — killed by S3.
+  R4 cold-or-absent composed sweep ............... PROVABLE (the
+      zone-side generalization the climb order-content supports)
+  R5 the RAW third-suit live raise below r ....... OBSTRUCTED as a
+      general kill — the delay hazard is real; carried as `hrlo`,
+      decided per board.
+
+SEAT SIDE (class b):
+  S1 off-board mover kill .......................... PROVABLE
+  S2 mobile-nonjoint kill (cold stool pairs) ....... PROVABLE (the
+      leaf's §1 own joint-clause row; reaches the rp1 bar's class)
+  S3 reveal-seat kill (journey-never-reveal) ....... PROVABLE (the
+      leaf's §2c own row — the reveal window's seat arm)
+  S4 burn-mode bar (bare non-king whole departure) . PROVABLE — the
+      import question RESOLVES: the irreversibility row is in the
+      cone (Classify under MacroInternal) + Fate's commitment row;
+      no ForklessCeiling topped-counter row is needed.  The census
+      memo's S1 OPEN class (the under-armed reversible transfers)
+      remains exactly the COVERLESS premise:
+  S5 under-armed reversible cargo transfers ....... OBSTRUCTED as a
+      kill — the repair probe certified these letters REAL (rp2's
+      cycle: the cover seats fire reversibly forever); they are the
+      starvation arm's own mechanism, swept per board (`hslo`/
+      `hsrk`), never "killed".
+
+THE STRANDED-WORLD NOTE (the refuter-check companion): a pair can
+SURVIVE to a steered-stuck terminal WITHOUT ever arriving at a zone
+— stranded mid-board, un-parked, unfounded: at such a world
+`familyBelowFrontier` can stand with the pair intact, and the
+elevation conclusion would be FALSE there.  The zone rows above are
+already refuter-proof AS STATED (their premises are zone-world
+reads, not start-world reads), but the CONSUMPTION ARM's step 2 may
+eat them only with the premises consumed FROM THE RUN.  The
+restatement the evidence recommends for `steered_stuck_elevates`:
+
+* (i) THE ARRIVAL CLAUSE: some prefix of ρ lands a ZONE world W₁ —
+  the parking equalities (both family rungs AT the pair's rank; off
+  the run's own rung arithmetic, `steered_rung_mono` and the climb
+  legs), the joint read (the §5 persistence's face-up clauses plus
+  the slab), and the coverless sweeps (per the §7 dichotomy: a
+  standing cover thread forces the never-stuck read
+  — `not_stuck_of_coverStanding` — so a STUCK terminal's tail is
+  coverless).  [H: the arrival is the R1 order-content itself]
+* (ii) THE SERVE-AND-TAIL: `zone_serves_member` + `zone_run_leg`
+  certify the member's founding leg out of W₁; the dead instance
+  (`dead_gate_of_rungPast` after the step's own rung arithmetic)
+  serves the twin next; the §5 persistence carries the face-up
+  census forward, and the elevation read (`loA_T_elevated`'s
+  arithmetic at general grade) closes the conclusion.  [M]
+
+Without (i) every stranded stuck world refutes the arm; with it,
+the zone data rides the trajectory — which is what a steered-stuck
+CONSUMPTION conclusion may consume. -/
+
+/-! ## §6. The audit battery -/
+
+#print axioms zone_letter_hot
+#print axioms steerRaiseB_true_of_joint
+#print axioms dead_gate_of_rungPast
+#print axioms raise_pastRung_refused
+#print axioms raise_offboard_refused
+#print axioms raise_reveal_is_king
+#print axioms raise_reveal_rank12
+#print axioms no_reveal_raise_below
+#print axioms lowraise_refused_of_B
+#print axioms lowraise_cold_or_absent
+#print axioms seat_offboard_refused
+#print axioms seat_mobile_nonjoint_refused
+#print axioms seat_reveal_refused
+#print axioms seat_burn_refused
+#print axioms steerSeatB_true_of_seatLetter
+#print axioms zone_serves_member
+#print axioms zone_run_leg
+#print axioms zone_pick_of_sweeps
+
+/- APPEND-MARKER -/
+/-! ## §9. THE STRANDED FALSIFIER AND THE OSCILLATOR — promoted (2026-10-17)
+
+Promoted verbatim from the certified scratch (exit 0, 32 heads).
+Two verdicts:
+
+THE CONSUMPTION ARM IS REFUTED AS FROZEN —
+`steered_stuck_elevates_refuted`: the stranded world rps (WF,
+BelowForkDeployed — the slab reads intact: twin rung strictly below
+the pair's rank — pair face-up over the red sixes) whose EMPTY
+steered run is a certified SteeredRun to a certified SteeredStuck
+terminal (the start itself: every raise licensable-read dead, the
+three mobile-cold pairs at the joint clause, the lone cold cover at
+the journey-never-reveal bar), while a NINE-LEG RAW play — climbing
+both family wells reveal-by-reveal and seating the cold cover —
+manifests ForkWitness rps_F loB_s5.  The arm's conclusion dies at
+W = s.  THE RESTATEMENT MENU (recorded; the owner freezes):
+(a) rho-nonemptiness, (b) the parked-rung arrival clause folded
+into the premises (the §8 census's shape: the zone data consumed
+FROM THE RUN), or (c) the reachability carrier upgraded to a
+steered-threaded form.  §7 keeps its sorry as the honest witness.
+
+THE OSCILLATOR MAINTENANCE, FIRST INSTANTIATIONS —
+`cover_stands_after_seat_board`/`rwA_stands_after_seat` (the mirror
+letter standing after every fired cover seat: fires off the banked
+step equation, reversible by the one-move return, joint vacuous by
+cargo), consumed through the PROVED `not_stuck_of_coverStanding`
+into `rwA_neverStuck`/`rwB_neverStuck` — the [H-mini] route-step-1
+read at its first certified boards; `mirror_fit_of_cover` PROVED at
+full generality (the two-top fit: the tableau cannot tell the pair's
+tops apart — one banked rewrite); the general
+`cover_stands_after_seat` priced with its three-step splice-chase
+route (fires/return/cargo-persistence — the R3w sufficiency shape
+at oscillator grain).
+-/
+/-! ## §0. The kit -/
+
+private def loB_C (s : Suit) (r : Rank) : Card := ⟨s, r⟩
+private def loB_T (s : Suit) (n : Nat) : List Card := s.upCards.take n
+
+/-! ## §1. Deliverable 1 — the stranded world -/
+
+private def loB_s5 : Card := loB_C .spade .five
+private def loB_c5 : Card := loB_C .club .five
+private def loB_h6 : Card := loB_C .heart .six
+private def loB_d6 : Card := loB_C .diamond .six
+private def loB_sA : Card := loB_C .spade .ace
+private def loB_cA : Card := loB_C .club .ace
+private def loB_h4 : Card := loB_C .heart .four
+private def loB_s2 : Card := loB_C .spade .two
+private def loB_s3 : Card := loB_C .spade .three
+private def loB_s4 : Card := loB_C .spade .four
+private def loB_c2 : Card := loB_C .club .two
+private def loB_c3 : Card := loB_C .club .three
+private def loB_c4 : Card := loB_C .club .four
+private def loB_hA : Card := loB_C .heart .ace
+private def loB_dA : Card := loB_C .diamond .ace
+private def loB_dK : Card := loB_C .diamond .king
+
+/-- **THE STRANDED WORLD** — the consumption arm's hazard, boarded:
+the black fives pair seated over the red sixes (each member topping
+its own pile, both family rungs strictly below the pair's rank), the
+four ACE climb seeds bare over their hidden wells (never
+licensable, always raw-foundable), the cold cover h4 bare over the
+hidden king.  All other 36 cards stocked; foundations empty. -/
+private def rps : State where
+  found := fun _ => []
+  piles := fun a => match a with
+    | .p0 => ⟨[loB_hA], [loB_h6, loB_s5]⟩
+    | .p1 => ⟨[loB_dA], [loB_d6, loB_c5]⟩
+    | .p4 => ⟨[loB_s2, loB_s3, loB_s4], [loB_sA]⟩
+    | .p5 => ⟨[loB_c2, loB_c3, loB_c4], [loB_cA]⟩
+    | .p6 => ⟨[loB_dK], [loB_h4]⟩
+    | _ => ⟨[], []⟩
+  stock :=
+    [loB_C .spade .six, loB_C .spade .seven, loB_C .spade .eight,
+     loB_C .spade .nine, loB_C .spade .ten, loB_C .spade .jack,
+     loB_C .spade .queen, loB_C .spade .king,
+     loB_C .heart .two, loB_C .heart .three, loB_C .heart .five,
+     loB_C .heart .seven, loB_C .heart .eight, loB_C .heart .nine,
+     loB_C .heart .ten, loB_C .heart .jack, loB_C .heart .queen,
+     loB_C .heart .king,
+     loB_C .diamond .two, loB_C .diamond .three, loB_C .diamond .four,
+     loB_C .diamond .five, loB_C .diamond .seven, loB_C .diamond .eight,
+     loB_C .diamond .nine, loB_C .diamond .ten, loB_C .diamond .jack,
+     loB_C .diamond .queen,
+     loB_C .club .six, loB_C .club .seven, loB_C .club .eight,
+     loB_C .club .nine, loB_C .club .ten, loB_C .club .jack,
+     loB_C .club .queen, loB_C .club .king]
+  waste := []
+  drawStep := 1
+
+theorem rps_wf : rps.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s <;> exact ⟨0, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+/-- The stranded slab read: the twin-side rung sits strictly below
+the pair's rank — `familyBelowFrontier` holds at the world itself. -/
+theorem rps_slab : familyBelowFrontier rps loB_s5 := by
+  unfold familyBelowFrontier
+  decide
+
+/-- **THE BELOW-FRONTIER PARCEL** at the stranded world: the twin
+slab, the x-side rung below the rank, the pair deployed face-up. -/
+theorem rps_bfd : BelowForkDeployed rps loB_s5 :=
+  ⟨rps_slab, by decide, ⟨Anchor.p0, by decide⟩, ⟨Anchor.p1, by decide⟩⟩
+
+/-! ### §1b. The stuck certification -/
+
+/-- Nothing at the stranded world is vanilla-licensable — the bare
+aces fail the seat clause (bare, non-king, over nonempty hidden),
+everything else is cold, buried, or stocked. -/
+private theorem rps_noraise : ∀ c, canRaiseB rps c = false := by
+  intro c
+  rcases c with ⟨s, r'⟩
+  cases s <;> cases r' <;> decide
+
+/-- The stool-seat kill (the falsifier's row, verbatim): a mobile
+nonjoint mover seats nowhere, whichever base it aims at. -/
+private theorem rps_stool_refused (c : Card)
+    (hmob : MobileTwin rps c)
+    (hn : ¬ (CanRaise rps c ∧ CanRaise rps c.twin)) :
+    ∀ (b : Base), ¬ SteeredLetter rps (Move.tabToTab c b) :=
+  fun _ hL => seatGate_refuses_nonjoint hmob hn hL
+
+/-- The off-board mover kill (the falsifier's row, verbatim). -/
+private theorem rps_offBoard_refused (c : Card)
+    (hhold : rps.pileHolding c = none) (b : Base) :
+    ¬ SteeredLetter rps (Move.tabToTab c b) := by
+  intro hL
+  have hnone : State.step rps (Move.tabToTab c b) = none := by
+    rw [step_tabToTab_eq, hhold]
+  have hgate : seatGate rps c b := hL
+  rcases hgate with ⟨hfired, -, -⟩
+  exact hfired hnone
+
+/-- The THREE mobile-cold pairs of the stranded world (s5/c5 seated,
+the bare aces, the buried sixes) — mobile, never joint. -/
+private theorem rps_mob_s5 : MobileTwin rps loB_s5 :=
+  ⟨⟨Anchor.p0, by decide⟩, by decide, ⟨Anchor.p1, by decide⟩, by decide⟩
+
+private theorem rps_nonjoint_s5 : ¬ (CanRaise rps loB_s5 ∧ CanRaise rps loB_s5.twin) := by
+  rintro ⟨hc, -⟩
+  have hb : canRaiseB rps loB_s5 = true := (canRaiseB_true_iff).2 hc
+  rw [rps_noraise loB_s5] at hb
+  exact absurd hb (by simp)
+
+private theorem rps_mob_c5 : MobileTwin rps loB_c5 :=
+  ⟨⟨Anchor.p1, by decide⟩, by decide, ⟨Anchor.p0, by decide⟩, by decide⟩
+
+private theorem rps_nonjoint_c5 : ¬ (CanRaise rps loB_c5 ∧ CanRaise rps loB_c5.twin) := by
+  rintro ⟨hc, -⟩
+  have hb : canRaiseB rps loB_c5 = true := (canRaiseB_true_iff).2 hc
+  rw [rps_noraise loB_c5] at hb
+  exact absurd hb (by simp)
+
+private theorem rps_mob_sA : MobileTwin rps loB_sA :=
+  ⟨⟨Anchor.p4, by decide⟩, by decide, ⟨Anchor.p5, by decide⟩, by decide⟩
+
+private theorem rps_nonjoint_sA : ¬ (CanRaise rps loB_sA ∧ CanRaise rps loB_sA.twin) := by
+  rintro ⟨hc, -⟩
+  have hb : canRaiseB rps loB_sA = true := (canRaiseB_true_iff).2 hc
+  rw [rps_noraise loB_sA] at hb
+  exact absurd hb (by simp)
+
+private theorem rps_mob_cA : MobileTwin rps loB_cA :=
+  ⟨⟨Anchor.p5, by decide⟩, by decide, ⟨Anchor.p4, by decide⟩, by decide⟩
+
+private theorem rps_nonjoint_cA : ¬ (CanRaise rps loB_cA ∧ CanRaise rps loB_cA.twin) := by
+  rintro ⟨hc, -⟩
+  have hb : canRaiseB rps loB_cA = true := (canRaiseB_true_iff).2 hc
+  rw [rps_noraise loB_cA] at hb
+  exact absurd hb (by simp)
+
+private theorem rps_mob_h6 : MobileTwin rps loB_h6 :=
+  ⟨⟨Anchor.p0, by decide⟩, by decide, ⟨Anchor.p1, by decide⟩, by decide⟩
+
+private theorem rps_nonjoint_h6 : ¬ (CanRaise rps loB_h6 ∧ CanRaise rps loB_h6.twin) := by
+  rintro ⟨hc, -⟩
+  have hb : canRaiseB rps loB_h6 = true := (canRaiseB_true_iff).2 hc
+  rw [rps_noraise loB_h6] at hb
+  exact absurd hb (by simp)
+
+private theorem rps_mob_d6 : MobileTwin rps loB_d6 :=
+  ⟨⟨Anchor.p1, by decide⟩, by decide, ⟨Anchor.p0, by decide⟩, by decide⟩
+
+private theorem rps_nonjoint_d6 : ¬ (CanRaise rps loB_d6 ∧ CanRaise rps loB_d6.twin) := by
+  rintro ⟨hc, -⟩
+  have hb : canRaiseB rps loB_d6 = true := (canRaiseB_true_iff).2 hc
+  rw [rps_noraise loB_d6] at hb
+  exact absurd hb (by simp)
+
+/-- **THE BARE-OVER-HIDDEN COVER KILL** — the lone fired-seat class
+of the stranded world: the cold cover h4 (fitting both members'
+tops) has no base to refuse by, so the kill rides the banked
+journey-never-reveal bar — every fired seat of the cover is a bare
+peel over a nonempty hidden deck, never reversible, never a letter. -/
+private theorem rps_h4_refused : ∀ (b : Base),
+    ¬ SteeredLetter rps (Move.tabToTab loB_h4 b) := by
+  intro b hL
+  obtain ⟨s', hs'⟩ := option_some_of_ne_none hL.1
+  exact absurd hL.2.1
+    (journey_tabToTab_never_reveal hs'
+      (by decide : rps.pileHolding loB_h4 = some Anchor.p6)
+      (by decide : below loB_h4 (rps.piles Anchor.p6).faceUp = [])
+      (by decide : (rps.piles Anchor.p6).hidden ≠ []))
+
+/-- No seat letter stands at the stranded world: every mover is off
+board, or one of the three mobile-cold pairs (joint clause), or the
+cover itself (reveal-barred). -/
+private theorem rps_noseat : ∀ (c : Card) (b : Base),
+    ¬ SteeredLetter rps (Move.tabToTab c b) := by
+  intro c b hL
+  by_cases hmem : rps.pileHolding c = none
+  · exact rps_offBoard_refused c hmem b hL
+  · rcases c with ⟨s, r'⟩
+    cases s <;> cases r' <;> first
+      | exact absurd hmem (by decide)
+      | exact rps_stool_refused loB_s5 rps_mob_s5 rps_nonjoint_s5 b hL
+      | exact rps_stool_refused loB_c5 rps_mob_c5 rps_nonjoint_c5 b hL
+      | exact rps_stool_refused loB_sA rps_mob_sA rps_nonjoint_sA b hL
+      | exact rps_stool_refused loB_cA rps_mob_cA rps_nonjoint_cA b hL
+      | exact rps_stool_refused loB_h6 rps_mob_h6 rps_nonjoint_h6 b hL
+      | exact rps_stool_refused loB_d6 rps_mob_d6 rps_nonjoint_d6 b hL
+      | exact rps_h4_refused b hL
+
+/-- **THE STRANDED WORLD IS STEERED-STUCK, CERTIFIED** — no raise
+letter (nothing licensable), no seat letter (the cell census), no
+other arm a letter at all. -/
+theorem rps_stuck : SteeredStuck rps := by
+  intro m hL
+  cases m with
+  | draw => exact absurd hL (fun h => h)
+  | wasteToFound c => exact absurd hL (fun h => h)
+  | wasteToTab c b => exact absurd hL (fun h => h)
+  | foundToTab c b => exact absurd hL (fun h => h)
+  | tabToFound c =>
+      have hf : canRaiseB rps c = false := rps_noraise c
+      rw [(canRaiseB_true_iff).2 hL.1] at hf
+      exact absurd hf (by simp)
+  | tabToTab c b => exact absurd hL (rps_noseat c b)
+
+/-! ### §1c. The raw fork-manifesting play — nine spelled legs -/
+
+/-- After raw leg 1 (found the spade ace off its well; the revealed
+spade deuce tops). -/
+private def rps_1 : State :=
+  { rps.setFound Suit.spade (rps.found Suit.spade ++ [loB_sA]) with
+    piles := fun a' => if a' = Anchor.p4 then
+        Pile.afterRunRemoved (rps.piles Anchor.p4)
+          (chop (rps.piles Anchor.p4).faceUp)
+      else rps.piles a' }
+
+/-- After raw leg 2 (the revealed spade deuce found). -/
+private def rps_2 : State :=
+  { rps_1.setFound Suit.spade (rps_1.found Suit.spade ++ [loB_s2]) with
+    piles := fun a' => if a' = Anchor.p4 then
+        Pile.afterRunRemoved (rps_1.piles Anchor.p4)
+          (chop (rps_1.piles Anchor.p4).faceUp)
+      else rps_1.piles a' }
+
+/-- After raw leg 3. -/
+private def rps_3 : State :=
+  { rps_2.setFound Suit.spade (rps_2.found Suit.spade ++ [loB_s3]) with
+    piles := fun a' => if a' = Anchor.p4 then
+        Pile.afterRunRemoved (rps_2.piles Anchor.p4)
+          (chop (rps_2.piles Anchor.p4).faceUp)
+      else rps_2.piles a' }
+
+/-- After raw leg 4: the spade ring parked at the pair's rank; the
+spade well burned empty. -/
+private def rps_4 : State :=
+  { rps_3.setFound Suit.spade (rps_3.found Suit.spade ++ [loB_s4]) with
+    piles := fun a' => if a' = Anchor.p4 then
+        Pile.afterRunRemoved (rps_3.piles Anchor.p4)
+          (chop (rps_3.piles Anchor.p4).faceUp)
+      else rps_3.piles a' }
+
+/-- After raw leg 5 (the club ace off its mirror well). -/
+private def rps_5 : State :=
+  { rps_4.setFound Suit.club (rps_4.found Suit.club ++ [loB_cA]) with
+    piles := fun a' => if a' = Anchor.p5 then
+        Pile.afterRunRemoved (rps_4.piles Anchor.p5)
+          (chop (rps_4.piles Anchor.p5).faceUp)
+      else rps_4.piles a' }
+
+/-- After raw leg 6. -/
+private def rps_6 : State :=
+  { rps_5.setFound Suit.club (rps_5.found Suit.club ++ [loB_c2]) with
+    piles := fun a' => if a' = Anchor.p5 then
+        Pile.afterRunRemoved (rps_5.piles Anchor.p5)
+          (chop (rps_5.piles Anchor.p5).faceUp)
+      else rps_5.piles a' }
+
+/-- After raw leg 7. -/
+private def rps_7 : State :=
+  { rps_6.setFound Suit.club (rps_6.found Suit.club ++ [loB_c3]) with
+    piles := fun a' => if a' = Anchor.p5 then
+        Pile.afterRunRemoved (rps_6.piles Anchor.p5)
+          (chop (rps_6.piles Anchor.p5).faceUp)
+      else rps_6.piles a' }
+
+/-- After raw leg 8: both family rings parked at the pair's rank;
+both wells burned empty. -/
+private def rps_8 : State :=
+  { rps_7.setFound Suit.club (rps_7.found Suit.club ++ [loB_c4]) with
+    piles := fun a' => if a' = Anchor.p5 then
+        Pile.afterRunRemoved (rps_7.piles Anchor.p5)
+          (chop (rps_7.piles Anchor.p5).faceUp)
+      else rps_7.piles a' }
+
+/-- **THE FORK-MANIFESTING LANDING** — after raw leg 9 (the cold
+cover seated onto the club five's top): the covered-twin fork shape
+at the pair's own rank. -/
+private def rps_F : State :=
+  (rps_8.setPile Anchor.p6
+      (Pile.afterRunRemoved (rps_8.piles Anchor.p6)
+        (below loB_h4 (rps_8.piles Anchor.p6).faceUp))).putRun
+    [loB_h4] (Sum.inr loB_c5)
+
+#eval forkStateSB rps_F
+#eval forkStateSB rps
+
+theorem rps_leg1 : State.step rps (Move.tabToFound loB_sA) = some rps_1 := by
+  rw [step_tabToFound_splice
+      (by decide : rps.nextUp loB_sA = true)
+      (by decide : rps.pileOfTop loB_sA = some Anchor.p4)]
+  rfl
+
+theorem rps_leg2 : State.step rps_1 (Move.tabToFound loB_s2) = some rps_2 := by
+  rw [step_tabToFound_splice
+      (by decide : rps_1.nextUp loB_s2 = true)
+      (by decide : rps_1.pileOfTop loB_s2 = some Anchor.p4)]
+  rfl
+
+theorem rps_leg3 : State.step rps_2 (Move.tabToFound loB_s3) = some rps_3 := by
+  rw [step_tabToFound_splice
+      (by decide : rps_2.nextUp loB_s3 = true)
+      (by decide : rps_2.pileOfTop loB_s3 = some Anchor.p4)]
+  rfl
+
+theorem rps_leg4 : State.step rps_3 (Move.tabToFound loB_s4) = some rps_4 := by
+  rw [step_tabToFound_splice
+      (by decide : rps_3.nextUp loB_s4 = true)
+      (by decide : rps_3.pileOfTop loB_s4 = some Anchor.p4)]
+  rfl
+
+theorem rps_leg5 : State.step rps_4 (Move.tabToFound loB_cA) = some rps_5 := by
+  rw [step_tabToFound_splice
+      (by decide : rps_4.nextUp loB_cA = true)
+      (by decide : rps_4.pileOfTop loB_cA = some Anchor.p5)]
+  rfl
+
+theorem rps_leg6 : State.step rps_5 (Move.tabToFound loB_c2) = some rps_6 := by
+  rw [step_tabToFound_splice
+      (by decide : rps_5.nextUp loB_c2 = true)
+      (by decide : rps_5.pileOfTop loB_c2 = some Anchor.p5)]
+  rfl
+
+theorem rps_leg7 : State.step rps_6 (Move.tabToFound loB_c3) = some rps_7 := by
+  rw [step_tabToFound_splice
+      (by decide : rps_6.nextUp loB_c3 = true)
+      (by decide : rps_6.pileOfTop loB_c3 = some Anchor.p5)]
+  rfl
+
+theorem rps_leg8 : State.step rps_7 (Move.tabToFound loB_c4) = some rps_8 := by
+  rw [step_tabToFound_splice
+      (by decide : rps_7.nextUp loB_c4 = true)
+      (by decide : rps_7.pileOfTop loB_c4 = some Anchor.p5)]
+  rfl
+
+/-- **THE COVER SEAT LEG** — the play's ninth move: the cold heart
+four seats onto the club five's top, revealing the hidden king at
+the cover's source. -/
+theorem rps_leg9 :
+    State.step rps_8 (Move.tabToTab loB_h4 (Sum.inr loB_c5)) = some rps_F := by
+  rw [step_tabToTab_eq]
+  rw [(by decide : rps_8.pileHolding loB_h4 = some Anchor.p6)]
+  rw [(by decide : rps_8.canPlace loB_h4 (Sum.inr loB_c5) = true)]
+  rfl
+
+/-- **THE RAW PLAY RUNS** — nine spelled legs, run-composed through
+the banked `run_one`/`run_split` rows. -/
+private theorem rps_run9 : rps.run
+    [Move.tabToFound loB_sA, Move.tabToFound loB_s2,
+     Move.tabToFound loB_s3, Move.tabToFound loB_s4,
+     Move.tabToFound loB_cA, Move.tabToFound loB_c2,
+     Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+     Move.tabToTab loB_h4 (Sum.inr loB_c5)] = some rps_F := by
+  have r1 : rps.run [Move.tabToFound loB_sA] = some rps_1 := run_one rps_leg1
+  have r2 : rps_1.run [Move.tabToFound loB_s2] = some rps_2 := run_one rps_leg2
+  have r3 : rps_2.run [Move.tabToFound loB_s3] = some rps_3 := run_one rps_leg3
+  have r4 : rps_3.run [Move.tabToFound loB_s4] = some rps_4 := run_one rps_leg4
+  have r5 : rps_4.run [Move.tabToFound loB_cA] = some rps_5 := run_one rps_leg5
+  have r6 : rps_5.run [Move.tabToFound loB_c2] = some rps_6 := run_one rps_leg6
+  have r7 : rps_6.run [Move.tabToFound loB_c3] = some rps_7 := run_one rps_leg7
+  have r8 : rps_7.run [Move.tabToFound loB_c4] = some rps_8 := run_one rps_leg8
+  have r9 : rps_8.run [Move.tabToTab loB_h4 (Sum.inr loB_c5)] = some rps_F :=
+    run_one rps_leg9
+  have f89 : rps_7.run
+      [Move.tabToFound loB_c4, Move.tabToTab loB_h4 (Sum.inr loB_c5)] = some rps_F :=
+    run_split [Move.tabToFound loB_c4] rps_7 rps_8
+      [Move.tabToTab loB_h4 (Sum.inr loB_c5)] rps_F r8 r9
+  have f789 : rps_6.run
+      [Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+       Move.tabToTab loB_h4 (Sum.inr loB_c5)] = some rps_F :=
+    run_split [Move.tabToFound loB_c3] rps_6 rps_7
+      [Move.tabToFound loB_c4, Move.tabToTab loB_h4 (Sum.inr loB_c5)] rps_F r7 f89
+  have f6789 : rps_5.run
+      [Move.tabToFound loB_c2, Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+       Move.tabToTab loB_h4 (Sum.inr loB_c5)] = some rps_F :=
+    run_split [Move.tabToFound loB_c2] rps_5 rps_6
+      [Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+       Move.tabToTab loB_h4 (Sum.inr loB_c5)] rps_F r6 f789
+  have f56789 : rps_4.run
+      [Move.tabToFound loB_cA, Move.tabToFound loB_c2, Move.tabToFound loB_c3,
+       Move.tabToFound loB_c4, Move.tabToTab loB_h4 (Sum.inr loB_c5)] = some rps_F :=
+    run_split [Move.tabToFound loB_cA] rps_4 rps_5
+      [Move.tabToFound loB_c2, Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+       Move.tabToTab loB_h4 (Sum.inr loB_c5)] rps_F r5 f6789
+  have f456789 : rps_3.run
+      [Move.tabToFound loB_s4, Move.tabToFound loB_cA, Move.tabToFound loB_c2,
+       Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+       Move.tabToTab loB_h4 (Sum.inr loB_c5)] = some rps_F :=
+    run_split [Move.tabToFound loB_s4] rps_3 rps_4
+      [Move.tabToFound loB_cA, Move.tabToFound loB_c2, Move.tabToFound loB_c3,
+       Move.tabToFound loB_c4, Move.tabToTab loB_h4 (Sum.inr loB_c5)] rps_F r4 f56789
+  have f3456789 : rps_2.run
+      [Move.tabToFound loB_s3, Move.tabToFound loB_s4, Move.tabToFound loB_cA,
+       Move.tabToFound loB_c2, Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+       Move.tabToTab loB_h4 (Sum.inr loB_c5)] = some rps_F :=
+    run_split [Move.tabToFound loB_s3] rps_2 rps_3
+      [Move.tabToFound loB_s4, Move.tabToFound loB_cA, Move.tabToFound loB_c2,
+       Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+       Move.tabToTab loB_h4 (Sum.inr loB_c5)] rps_F r3 f456789
+  have f23456789 : rps_1.run
+      [Move.tabToFound loB_s2, Move.tabToFound loB_s3, Move.tabToFound loB_s4,
+       Move.tabToFound loB_cA, Move.tabToFound loB_c2, Move.tabToFound loB_c3,
+       Move.tabToFound loB_c4, Move.tabToTab loB_h4 (Sum.inr loB_c5)] = some rps_F :=
+    run_split [Move.tabToFound loB_s2] rps_1 rps_2
+      [Move.tabToFound loB_s3, Move.tabToFound loB_s4, Move.tabToFound loB_cA,
+       Move.tabToFound loB_c2, Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+       Move.tabToTab loB_h4 (Sum.inr loB_c5)] rps_F r2 f3456789
+  exact run_split [Move.tabToFound loB_sA] rps rps_1
+    [Move.tabToFound loB_s2, Move.tabToFound loB_s3, Move.tabToFound loB_s4,
+     Move.tabToFound loB_cA, Move.tabToFound loB_c2, Move.tabToFound loB_c3,
+     Move.tabToFound loB_c4, Move.tabToTab loB_h4 (Sum.inr loB_c5)] rps_F r1 f23456789
+
+/-- The landing world is WF (nine banked `step_wf` links off the
+world's own WF). -/
+theorem rps_F_wf : rps_F.WF :=
+  step_wf (step_wf (step_wf (step_wf (step_wf (step_wf (step_wf (step_wf
+    (step_wf rps_wf rps_leg1) rps_leg2) rps_leg3) rps_leg4) rps_leg5)
+    rps_leg6) rps_leg7) rps_leg8) rps_leg9
+
+/-- **THE FORK WITNESS AT THE LANDING** — the decided SB witness
+search returns the spade five; the banked sound row reads the parcel:
+the pair saturates the {slide · raise} license exactly, the covered
+twin refuses vanilla. -/
+theorem rps_F_witness : ForkWitness rps_F loB_s5 := by
+  obtain ⟨hiff, hpin⟩ :=
+    forkWitnessSB_sound rps_F_wf
+      (by decide : forkWitnessSB rps_F = some loB_s5)
+  exact ⟨hiff, hpin⟩
+
+/-- **THE RAW REACHABILITY PACKAGE** at the stranded world. -/
+theorem rps_reach :
+    ∃ (F : State) (π : List Move),
+      rps.run π = some F ∧ ForkWitness F loB_s5 :=
+  ⟨rps_F,
+   [Move.tabToFound loB_sA, Move.tabToFound loB_s2,
+    Move.tabToFound loB_s3, Move.tabToFound loB_s4,
+    Move.tabToFound loB_cA, Move.tabToFound loB_c2,
+    Move.tabToFound loB_c3, Move.tabToFound loB_c4,
+    Move.tabToTab loB_h4 (Sum.inr loB_c5)],
+   rps_run9, rps_F_witness⟩
+
+/-! ### §1d. THE REFUTATION -/
+
+/-- **`steered_stuck_elevates` REFUTED** — the consumption arm's
+frozen statement, negated at its own signature (implicit binders
+rendered explicit; the body verbatim), refuted by the stranded
+counterexample: a WF, BelowForkDeployed start — with the raw
+fork-reachability carrier satisfied by a nine-leg play that climbs
+both family rings to the pair's rank and seats the cold cover —
+whose EMPTY steered run is a certified SteeredRun to a certified
+SteeredStuck world (the start itself), while the start's slab reads
+INTACT (the twin-side rung strictly below the pair's rank).  The
+conclusion (`¬ familyBelowFrontier W x`) fails at the terminal W = s.
+
+THE COUNTEREXAMPLE'S LESSON (the restatement the arm must adopt):
+the premises admit worlds whose stuck terminal is the START itself
+— the trajectory never ARRIVES anywhere.  The consumption arm
+needs an ARRIVAL premise: either (a) a nonemptiness condition on ρ
+(a first leg exists, so the world's own letters actually fired),
+or (b) the exhaustion zone's parked-rung clause folded into the
+hypotheses (the terminal is in the arrival zone: the family rungs
+read EXACTLY the pair's rank), or (c) the reachability carrier
+upgraded from RAW to STEERED-threaded (the manifesting play shares
+the steer's own discipline).  Each bars the empty run: (a)
+directly, (b) because the stranded slab reads strict-below, (c)
+because the stranded world's only steered run is the empty one. -/
+theorem steered_stuck_elevates_refuted :
+    ¬ (∀ (s : State) (x : Card), s.WF → BelowForkDeployed s x →
+        (∃ (F : State) (π : List Move),
+          s.run π = some F ∧ ForkWitness F x) →
+        ∀ (ρ : List Move) (W : State),
+          SteeredRun s ρ W → SteeredStuck W → ¬ familyBelowFrontier W x) := by
+  intro h
+  exact (h rps loB_s5 rps_wf rps_bfd rps_reach [] rps
+    (SteeredRun.nil rps) rps_stuck) rps_slab
+
+/-! ## §2. Deliverable 2 — the oscillator maintenance, per leg -/
+
+private def rpC_C (s : Suit) (r : Rank) : Card := ⟨s, r⟩
+private def rpC_T (s : Suit) (n : Nat) : List Card := s.upCards.take n
+
+private def rp_h4 : Card := rpC_C .heart .four
+private def rp_s3 : Card := rpC_C .spade .three
+private def rp_d4 : Card := rpC_C .diamond .four
+private def rp_c3 : Card := rpC_C .club .three
+private def rp_d2 : Card := rpC_C .diamond .two
+private def rp_cA : Card := rpC_C .club .ace
+private def rp_d3 : Card := rpC_C .diamond .three
+private def rp_c2 : Card := rpC_C .club .two
+
+/-- **THE TWO-LEG PARKING ZONE** (the certified rp2_z, restated):
+club ring parked at 2, the cover exposed bare, the black-threes pair
+still joint over the red fours. -/
+private def rz : State where
+  found := fun s => match s with
+    | .club => rpC_T s 2
+    | _ => []
+  piles := fun a => match a with
+    | .p0 => ⟨[], [rp_h4, rp_s3]⟩
+    | .p1 => ⟨[], [rp_d4, rp_c3]⟩
+    | .p2 => ⟨[], [rp_d2]⟩
+    | .p3 => ⟨[], [rp_d3]⟩
+    | _ => ⟨[], []⟩
+  stock :=
+    [rpC_C .spade .ace, rpC_C .spade .two,
+     rpC_C .spade .four, rpC_C .spade .five, rpC_C .spade .six,
+     rpC_C .spade .seven, rpC_C .spade .eight, rpC_C .spade .nine,
+     rpC_C .spade .ten, rpC_C .spade .jack, rpC_C .spade .queen,
+     rpC_C .spade .king,
+     rpC_C .heart .ace, rpC_C .heart .two, rpC_C .heart .three,
+     rpC_C .heart .five, rpC_C .heart .six, rpC_C .heart .seven,
+     rpC_C .heart .eight, rpC_C .heart .nine, rpC_C .heart .ten,
+     rpC_C .heart .jack, rpC_C .heart .queen, rpC_C .heart .king,
+     rpC_C .diamond .ace, rpC_C .diamond .five, rpC_C .diamond .six,
+     rpC_C .diamond .seven, rpC_C .diamond .eight, rpC_C .diamond .nine,
+     rpC_C .diamond .ten, rpC_C .diamond .jack, rpC_C .diamond .queen,
+     rpC_C .diamond .king,
+     rpC_C .club .four, rpC_C .club .five, rpC_C .club .six,
+     rpC_C .club .seven, rpC_C .club .eight, rpC_C .club .nine,
+     rpC_C .club .ten, rpC_C .club .jack, rpC_C .club .queen,
+     rpC_C .club .king]
+  waste := []
+  drawStep := 1
+
+theorem rz_wf : rz.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s with
+    | spade => exact ⟨0, rfl⟩
+    | heart => exact ⟨0, rfl⟩
+    | diamond => exact ⟨0, rfl⟩
+    | club => exact ⟨2, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+/-- **THE WITNESS-SIDE CYCLE WORLD** — the cover seated on the spade
+three, the club three exposed. -/
+private def rwA : State where
+  found := fun s => match s with
+    | .club => rpC_T s 2
+    | _ => []
+  piles := fun a => match a with
+    | .p0 => ⟨[], [rp_h4, rp_s3, rp_d2]⟩
+    | .p1 => ⟨[], [rp_d4, rp_c3]⟩
+    | .p3 => ⟨[], [rp_d3]⟩
+    | _ => ⟨[], []⟩
+  stock := rz.stock
+  waste := []
+  drawStep := 1
+
+theorem rwA_wf : rwA.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s with
+    | spade => exact ⟨0, rfl⟩
+    | heart => exact ⟨0, rfl⟩
+    | diamond => exact ⟨0, rfl⟩
+    | club => exact ⟨2, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+/-- **THE MIRROR CYCLE WORLD** — the cover seated on the club three,
+the spade three exposed. -/
+private def rwB : State where
+  found := fun s => match s with
+    | .club => rpC_T s 2
+    | _ => []
+  piles := fun a => match a with
+    | .p0 => ⟨[], [rp_h4, rp_s3]⟩
+    | .p1 => ⟨[], [rp_d4, rp_c3, rp_d2]⟩
+    | .p3 => ⟨[], [rp_d3]⟩
+    | _ => ⟨[], []⟩
+  stock := rz.stock
+  waste := []
+  drawStep := 1
+
+theorem rwB_wf : rwB.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s with
+    | spade => exact ⟨0, rfl⟩
+    | heart => exact ⟨0, rfl⟩
+    | diamond => exact ⟨0, rfl⟩
+    | club => exact ⟨2, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+theorem rz_leg_in :
+    State.step rz (Move.tabToTab rp_d2 (Sum.inr rp_s3)) = some rwA := by
+  rw [step_tabToTab_eq]
+  rw [(by decide : rz.pileHolding rp_d2 = some Anchor.p2)]
+  rw [(by decide : rz.canPlace rp_d2 (Sum.inr rp_s3) = true)]
+  refine congrArg some (State.ext ?_ ?_ ?_ ?_ ?_)
+  · funext s
+    cases s <;> rfl
+  · funext a
+    cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem rp2c_legA :
+    State.step rwA (Move.tabToTab rp_d2 (Sum.inr rp_c3)) = some rwB := by
+  rw [step_tabToTab_eq]
+  rw [(by decide : rwA.pileHolding rp_d2 = some Anchor.p0)]
+  rw [(by decide : rwA.canPlace rp_d2 (Sum.inr rp_c3) = true)]
+  refine congrArg some (State.ext ?_ ?_ ?_ ?_ ?_)
+  · funext s
+    cases s <;> rfl
+  · funext a
+    cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem rp2c_legB :
+    State.step rwB (Move.tabToTab rp_d2 (Sum.inr rp_s3)) = some rwA := by
+  rw [step_tabToTab_eq]
+  rw [(by decide : rwB.pileHolding rp_d2 = some Anchor.p1)]
+  rw [(by decide : rwB.canPlace rp_d2 (Sum.inr rp_s3) = true)]
+  refine congrArg some (State.ext ?_ ?_ ?_ ?_ ?_)
+  · funext s
+    cases s <;> rfl
+  · funext a
+    cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+/-- The cover's twin (the heart two) is stocked at both cycle worlds
+— the cover is CARGO, never a mobile pair member. -/
+private theorem rwA_cover_cargo :
+    ∀ (p : Anchor), rp_d2.twin ∉ (rwA.piles p).faceUp := by
+  intro p
+  cases p <;> decide
+
+private theorem rwB_cover_cargo :
+    ∀ (p : Anchor), rp_d2.twin ∉ (rwB.piles p).faceUp := by
+  intro p
+  cases p <;> decide
+
+/-- **THE OSCILLATOR MAINTENANCE, BOARD GRADE** — after a fired
+cover seat landing the cover on the WITNESS member's top (leg A:
+rwA → rwB, the spade three covered), the MIRROR letter stands at the
+successor: the very same cover, seated onto the twin member's top,
+is a genuine SteeredLetter of the successor world — it fires (leg B
+off the banked step equation), is reversible (its one-move return
+is leg A, through the banked `run_one`), and the joint clause reads
+vacuously (cargo cover, the mate stocked).  This is rp2's alternation
+generalized: the rattle leg of each cycle world is the mirror of the
+leg that produced it. -/
+theorem cover_stands_after_seat_board :
+    ∃ b', SteeredLetter rwB (Move.tabToTab rp_d2 b') := by
+  refine ⟨Sum.inr rp_s3, ⟨?_, ⟨rwA, [Move.tabToTab rp_d2 (Sum.inr rp_c3)],
+    rp2c_legB, run_one rp2c_legA⟩, ?_⟩⟩
+  · rw [rp2c_legB]
+    exact Option.some_ne_none _
+  · intro hmob
+    rcases hmob with ⟨-, -, ⟨p, hp⟩, -⟩
+    exact absurd hp (rwB_cover_cargo p)
+
+/-- **THE ENTRY-SIDE MAINTENANCE** — the same read one leg earlier:
+after the entry cover seat (rz → rwA), the forward rattle letter
+stands at the landing. -/
+theorem rwA_stands_after_seat :
+    ∃ b', SteeredLetter rwA (Move.tabToTab rp_d2 b') := by
+  refine ⟨Sum.inr rp_c3, ⟨?_, ⟨rwB, [Move.tabToTab rp_d2 (Sum.inr rp_s3)],
+    rp2c_legA, run_one rp2c_legB⟩, ?_⟩⟩
+  · rw [rp2c_legA]
+    exact Option.some_ne_none _
+  · intro hmob
+    rcases hmob with ⟨-, -, ⟨p, hp⟩, -⟩
+    exact absurd hp (rwA_cover_cargo p)
+
+/-- **THE CYCLE WORLDS ARE NEVER STEERED-STUCK** — the maintenance
+rows consumed through the leaf's own PROVED
+`not_stuck_of_coverStanding`: the standing mirror letter of each
+successor world blocks stuckness outright.  This is the [H-mini]
+oscillator row of the consumption arm's route step 1, at its first
+certified instantiation — the never-stuck-under-cover read the route
+prices. -/
+theorem rwA_neverStuck : ¬ SteeredStuck rwA := by
+  obtain ⟨b', hb'⟩ := rwA_stands_after_seat
+  exact not_stuck_of_coverStanding ⟨b', hb'⟩
+
+theorem rwB_neverStuck : ¬ SteeredStuck rwB := by
+  obtain ⟨b', hb'⟩ := cover_stands_after_seat_board
+  exact not_stuck_of_coverStanding ⟨b', hb'⟩
+
+/-- **THE TWO-TOP FIT DIVIDEND at the cycle worlds** — both pair
+members top their own piles at every cycle world (the rattle never
+buries a member), and the pair survives the rattle unfounded: the
+starved survivors at both worlds, decided — the maintenance row's
+geometry feeding `starved_pair_survives`'s conclusions at the
+oscillator's own instance. -/
+theorem rwA_starved_intact :
+    rp_s3 ∉ rwA.found rp_s3.suit ∧ rp_s3.twin ∉ rwA.found rp_s3.twin.suit := by
+  constructor <;> decide
+
+theorem rwB_starved_intact :
+    rp_s3 ∉ rwB.found rp_s3.suit ∧ rp_s3.twin ∉ rwB.found rp_s3.twin.suit := by
+  constructor <;> decide
+
+/-- **THE MIRROR FIT, GENERAL GRADE, PROVED** — the tableau rules
+cannot tell the pair's tops apart: any card fitting one member's top
+fits the twin member's top too (the banked `canSitOn_twin_right`,
+one rewrite).  This is the two-top fit geometry of the maintenance
+row, in the banked rows' own vocabulary — the mirror target of the
+cover's post-seat letter always exists geometrically. -/
+theorem mirror_fit_of_cover {d x : Card}
+    (h : canSitOn d x = true) : canSitOn d x.twin = true := by
+  have ht : canSitOn d x.twin = canSitOn d {x with suit := x.suit.twin} := rfl
+  rw [ht, canSitOn_twin_right]
+  exact h
+
+/-- **THE OSCILLATOR MAINTENANCE, GENERAL GRADE** [H-mini, priced —
+this row carries the file's one named sorry] — after a fired cover
+seat `tabToTab d (inr x)` off a WF world, landing the cover on x's
+top: the MIRROR letter stands at the successor, targeting the twin
+member's top.
+
+ROUTE (the priced assembly, all pieces banked):
+(1) FIRES — the successor's mirror-seat read: `step_tabToTab_inv`
+    decomposes the leg's splice; the twin's pile-top survives the
+    seat's source rewrite and the landing rewrite (the §5 kit's
+    `steered_slideLanding` grain: `steered_topSearch` over
+    `setPile_piles_ne`/`putRun_piles_inr_ne` at m ≠ k), and the
+    mirror target's fit is `mirror_fit_of_cover` (PROVED above)
+    over the leg's own `canPlace` fit — so the successor's mirror
+    seat fires.
+(2) REVERSIBILITY — the one-move return: the cover departs the
+    twin's top back onto x's re-exposed top (the mirror seat's own
+    splice), restoring the successor; the witness play has length
+    ONE, the R3w sufficiency shape at oscillator grain — the splice
+    rows plus `run_one` (the two cycle worlds above certify the
+    shape at grade).
+(3) THE JOINT CLAUSE — the cover's cargo-persistence: under
+    `hcargo1` the mate is off the face-up zone at the predecessor;
+    the seat's writes touch only the source pile (bare-and-burn: no
+    reveal) and the landing pile (only the cover lands), so the
+    mate stays off the face-up zone at the successor — the §5
+    slide-faceUp kit read in both directions.
+The board-grade half is fully proved above
+(`cover_stands_after_seat_board`); this general row is the same
+statement at arbitrary WF geometry, and the sorry prices ONLY the
+assembly's three splice chases. -/
+theorem cover_stands_after_seat {W1 W2 : State} {d x : Card} {k m : Anchor}
+    (hwf1 : W1.WF)
+    (hstep : State.step W1 (Move.tabToTab d (Sum.inr x)) = some W2)
+    (hpotx : W1.pileOfTop x = some k)
+    (hpott : W1.pileOfTop x.twin = some m)
+    (hmk : m ≠ k)
+    (hfit : W1.canPlace d (Sum.inr x) = true)
+    (hbare : below d (W1.piles Anchor.p6).faceUp = [] ∨
+      ∃ a, W1.pileHolding d = some a ∧
+        below d (W1.piles a).faceUp = [] ∧ (W1.piles a).hidden = [])
+    (hcargo1 : ∀ (p : Anchor), d.twin ∉ (W1.piles p).faceUp) :
+    ∃ b', SteeredLetter W2 (Move.tabToTab d b') := by
+  sorry
+
+/-! ## §3. The audit battery -/
+
+#print axioms rps_wf
+#print axioms rps_slab
+#print axioms rps_bfd
+#print axioms rps_stuck
+#print axioms rps_leg1
+#print axioms rps_leg2
+#print axioms rps_leg3
+#print axioms rps_leg4
+#print axioms rps_leg5
+#print axioms rps_leg6
+#print axioms rps_leg7
+#print axioms rps_leg8
+#print axioms rps_leg9
+#print axioms rps_F_wf
+#print axioms rps_F_witness
+#print axioms rps_reach
+#print axioms steered_stuck_elevates_refuted
+#print axioms rz_wf
+#print axioms rwA_wf
+#print axioms rwB_wf
+#print axioms rz_leg_in
+#print axioms rp2c_legA
+#print axioms rp2c_legB
+#print axioms cover_stands_after_seat_board
+#print axioms rwA_stands_after_seat
+#print axioms rwA_neverStuck
+#print axioms rwB_neverStuck
+#print axioms mirror_fit_of_cover
+#print axioms rwA_starved_intact
+#print axioms rwB_starved_intact
+#print axioms cover_stands_after_seat
+/-! ## §10. THE TWIN-FORK FAMILY — the owner's direct formulation
+(2026-10-17; promoted from two certified scratch lanes, exit 0 both)
+
+THE OWNER'S STATE-LEVEL SHAPE, frozen byte-verbatim:
+`TwinFork st x := CanRaise st x ∧ ¬ CanRaise st x.twin ∧
+CanRaiseS st x.twin` — one club standing, the mate coverable —
+plus `ZoneCleanBelow` (the sub-rank zone).  Two scratch lanes
+probed it falsifier-first (23 + 12 heads):
+
+* THE FENCES (the hunt): `twinfork_direct_refuted` — the LATERAL
+  leak (iks: a second hot-topped-seated card at the pair's OWN
+  rank breaks the direct conclusion while both premise clauses
+  hold; strictly-below filters cannot see it by design);
+  `twinfork_bare_refuted` — the hot-cover board (sl3); the
+  chase's double block (the pin kills S-liveness at every higher
+  shape; the pollution kills every higher zone clause).
+* THE PROVED DIRECT FORM (the draft): `twinFork_forkState` — the
+  assembly closes with the two honest census premises (rank-equal
+  and super-rank third-censuses); the FAMILY-SUIT PIN KILLS came
+  free (both family rungs pinned at the pair's rank; the cover
+  itself lands at r-1 — forkPointC's cover clauses for free, per
+  the owner's design).
+* THE EXIST-FORM SCAFFOLD: the rank-12 ANCHOR PROVED
+  (`twinFork_witness_max`), the conditional rank-step PROVED;
+  the residue priced as `twinFork_upCensus` [H] with its complete
+  three-way-split route.
+* THE FREEZE MENU for the owner (recorded; nothing consumed by
+  force): (i) the census'd direct form (proved, censuses are the
+  content); (ii) the exist-form (anchor+step proved; up-census
+  priced); (iii) THE CLASS-CENSUS PIVOT — TwinFork alone implies
+  the class forks, via ForkCensus's arm-contingency grammar —
+  the reading of "a fork witness for the macro state" that
+  survives every hunt board (iks forks as a CLASS even though
+  its state does not).
+-/
+/-! ## §0. The owner's shapes, mirrored verbatim -/
+
+def TwinFork (st : State) (x : Card) : Prop :=
+  CanRaise st x ∧ ¬ CanRaise st x.twin ∧ CanRaiseS st x.twin
+
+def ZoneCleanBelow (st : State) (x : Card) : Prop :=
+  ∀ c, c ≠ x → c ≠ x.twin → c.rank.toIdx < x.rank.toIdx → ¬ CanRaiseS st c
+
+/-! ## §1. The kit -/
+
+private def tq_C (s : Suit) (r : Rank) : Card := ⟨s, r⟩
+private def tq_T (s : Suit) (n : Nat) : List Card := s.upCards.take n
+
+private def tq_sA : Card := tq_C .spade .ace
+private def tq_s2 : Card := tq_C .spade .two
+private def tq_s3 : Card := tq_C .spade .three
+private def tq_s4 : Card := tq_C .spade .four
+private def tq_cA : Card := tq_C .club .ace
+private def tq_c2 : Card := tq_C .club .two
+private def tq_c3 : Card := tq_C .club .three
+private def tq_h2 : Card := tq_C .heart .two
+private def tq_h3 : Card := tq_C .heart .three
+private def tq_h4 : Card := tq_C .heart .four
+private def tq_dA : Card := tq_C .diamond .ace
+private def tq_d2 : Card := tq_C .diamond .two
+private def tq_d3 : Card := tq_C .diamond .three
+private def tq_d4 : Card := tq_C .diamond .four
+
+/-! ## §2. Hunt 1 — the lateral-rank interference board `iks` -/
+
+/-- **THE LATERAL-RANK INTERFERENCE BOARD**: black rungs parked at 2
+(the fork pair hot and covered, the loF2 furniture), the HEART ring
+parked at 2 with a SECOND hot-topped-seated heart three on its own
+pile (h3 over s4) — a card at the pair's OWN rank, S-live on its
+own merits, a genuine census-breaking third. -/
+private def iks : State where
+  found := fun s => match s with
+    | .spade => tq_T s 2
+    | .club => tq_T s 2
+    | .heart => tq_T s 2
+    | _ => []
+  piles := fun a => match a with
+    | .p0 => ⟨[], [tq_h4, tq_s3]⟩
+    | .p1 => ⟨[], [tq_d4, tq_c3, tq_d2]⟩
+    | .p2 => ⟨[], [tq_s4, tq_h3]⟩
+    | _ => ⟨[], []⟩
+  stock :=
+    [tq_C .spade .five, tq_C .spade .six, tq_C .spade .seven,
+     tq_C .spade .eight, tq_C .spade .nine, tq_C .spade .ten,
+     tq_C .spade .jack, tq_C .spade .queen, tq_C .spade .king,
+     tq_C .club .four, tq_C .club .five, tq_C .club .six,
+     tq_C .club .seven, tq_C .club .eight, tq_C .club .nine,
+     tq_C .club .ten, tq_C .club .jack, tq_C .club .queen,
+     tq_C .club .king,
+     tq_C .heart .five, tq_C .heart .six, tq_C .heart .seven,
+     tq_C .heart .eight, tq_C .heart .nine, tq_C .heart .ten,
+     tq_C .heart .jack, tq_C .heart .queen, tq_C .heart .king,
+     tq_C .diamond .ace, tq_C .diamond .three, tq_C .diamond .five,
+     tq_C .diamond .six, tq_C .diamond .seven, tq_C .diamond .eight,
+     tq_C .diamond .nine, tq_C .diamond .ten, tq_C .diamond .jack,
+     tq_C .diamond .queen, tq_C .diamond .king]
+  waste := []
+  drawStep := 1
+
+theorem iks_wf : iks.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s with
+    | spade => exact ⟨2, rfl⟩
+    | heart => exact ⟨2, rfl⟩
+    | diamond => exact ⟨0, rfl⟩
+    | club => exact ⟨2, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+/-- The S-deadness helper: a decided `canRaiseSB = false` upgrades
+to `¬ CanRaiseS` at WF, through the banked flat bridge. -/
+private theorem Snot_of_SBfalse {st : State} (hwf : st.WF) (c : Card)
+    (hb : canRaiseSB st c = false) : ¬ CanRaiseS st c := by
+  intro hS
+  rw [(canRaiseSB_true_iff hwf).mpr hS] at hb
+  exact absurd hb (by simp)
+
+/-- The S-liveness re-read: any `CanRaiseS` at WF forces the flat
+Bool true — theZeugnis-fail side, for leaf-decided sweeps. -/
+private theorem SRaise_SBtrue {st : State} (hwf : st.WF) {c : Card}
+    (hS : CanRaiseS st c) : canRaiseSB st c = true :=
+  (canRaiseSB_true_iff hwf).mpr hS
+
+/-- **TWIN-FORK PREMISE 1/3** — the spade three is hot over its
+stool: raisable now. -/
+theorem iks_raise_s3 : CanRaise iks tq_s3 :=
+  ⟨by decide, Anchor.p0, by decide, Or.inl (by decide)⟩
+
+/-- **TWIN-FORK PREMISE 2/3** — the covered club three refuses
+vanilla outright. -/
+theorem iks_noRaise_c3 : ¬ CanRaise iks tq_c3 := by
+  intro hc
+  have hb : canRaiseB iks tq_c3 = true := (canRaiseB_true_iff).2 hc
+  rw [(by decide : canRaiseB iks tq_c3 = false)] at hb
+  exact absurd hb (by simp)
+
+/-- **TWIN-FORK PREMISE 3/3** — the covered club three is S-live
+(a decided SB read through the flat bridge). -/
+theorem iks_SRaise_c3 : CanRaiseS iks tq_c3 :=
+  (canRaiseSB_true_iff iks_wf).mp (by decide : canRaiseSB iks tq_c3 = true)
+
+/-- **THE TWIN-FORK HOLDS** at the rank-2 pair. -/
+theorem iks_twinfork : TwinFork iks tq_s3 :=
+  ⟨iks_raise_s3, iks_noRaise_c3, iks_SRaise_c3⟩
+
+/-- **THE SUB-RANK ZONE IS CLEAN** — every strictly-sub-2 card is
+S-dead: the black aces/deuces founded, the heart aces/deuces
+founded, the diamond ace hot-in-principle but stocked-unlocatable,
+the cover deuce cold at its pinned rung.  Read card by card through
+the flat-S bridge. -/
+theorem iks_zone : ZoneCleanBelow iks tq_s3 := by
+  intro c _ _ hlt hS
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> first
+    | exact absurd hlt (by decide)
+    | exact absurd (SRaise_SBtrue iks_wf hS) (by decide)
+
+/-- **THE HOT MEMBER'S S-READ** — the fork's own spade three is
+S-live (hot-topped-seated); used by the pollution row below. -/
+theorem iks_SRaise_s3 : CanRaiseS iks tq_s3 :=
+  (canRaiseSB_true_iff iks_wf).mp (by decide : canRaiseSB iks tq_s3 = true)
+
+/-- **THE THIRD, S-LIVE** — the lateral heart three (the pair's OWN
+rank, on an independent pile): the census-breaking mechanism,
+boarded. -/
+theorem iks_h3_SRaised : CanRaiseS iks tq_h3 :=
+  (canRaiseSB_true_iff iks_wf).mp (by decide : canRaiseSB iks tq_h3 = true)
+
+/-- **THE PIN ROW** — the third's own twin (the diamond three) is
+S-dead: its family's rung is pinned 0 by the low fork's cover
+deuce, so it can never read hot. -/
+theorem iks_d3_Sdead : ¬ CanRaiseS iks tq_d3 :=
+  Snot_of_SBfalse iks_wf tq_d3 (by decide)
+
+/-- **THE DIRECT CONCLUSION DIES** — the SB census decides FALSE at
+the world (the lateral heart-three third breaks the pair's
+saturation iff; no other witness stands), so there is no forkState
+here. -/
+theorem iks_noFork : ¬ forkState iks := by
+  intro h
+  have hb := (forkStateSB_true_iff iks_wf).mpr h
+  rw [(by decide : forkStateSB iks = false)] at hb
+  exact absurd hb (by simp)
+
+/-- **HUNT 1'S VERDICT, LANDED** — the direct form of the twin-fork
+statement is REFUTED: TwinFork + ZoneCleanBelow both hold at iks's
+rank-2 pair, and `forkState iks` is FALSE.  The leak is the LATERAL
+rank (a second hot-topped-seated card at the pair's own rank) — the
+strictly-below zone filter cannot see it by design, and the
+flat-S's own exit clause lets it live.  (The super-rank image
+additionally cannot be built at all: the fork's furniture and the
+cover's pin leave no realizable higher-rank future — the exit
+clause kills the immovable stool outright, Find B.)  The freeze must
+broaden the census to ALL non-pair cards, not just the strict
+below. -/
+theorem twinfork_direct_refuted :
+    ¬ (∀ (st : State) (x : Card), TwinFork st x → ZoneCleanBelow st x → forkState st) := by
+  intro h
+  exact iks_noFork (h iks tq_s3 iks_twinfork iks_zone)
+
+/-! ## §3. Hunt 2 — the exist-form's chase, live case -/
+
+/-- **THE CHASE'S OBSTRUCTION, ARM 1** — TwinFork at the third's
+own pair FAILS: the hot side (the lateral heart three) is raisable
+now, its twin refuses vanilla (stocked), but the twin's S-liveness
+is KILLED by the low fork's cover pinning the diamond rung at 0.
+The rank-induction cannot even FORM its next twin-fork witness. -/
+theorem iks_noTwinFork_h3 : ¬ TwinFork iks tq_h3 := by
+  rintro ⟨-, -, hS⟩
+  exact iks_d3_Sdead hS
+
+/-- **THE CHASE'S OBSTRUCTION, ARM 1'** — TwinFork at the rank-3
+furniture pair (the hot-in-naught heart four over its diamond twin)
+fails on its FIRST arm: the stool is not even raisable now (its
+rank reads past its suit's parked ring, and its seat is blocked by
+the fork member atop it). -/
+theorem iks_noTwinFork_h4 : ¬ TwinFork iks tq_h4 := by
+  rintro ⟨hc, -, -⟩
+  have hb : canRaiseB iks tq_h4 = true := (canRaiseB_true_iff).2 hc
+  rw [(by decide : canRaiseB iks tq_h4 = false)] at hb
+  exact absurd hb (by simp)
+
+/-- **THE CHASE'S OBSTRUCTION, ARM 2 (THE POLLUTION)** —
+ZoneCleanBelow at the rank-3 furniture pair FAILS: the low fork's
+own hot member is a strictly-sub-3 S-live card.  Every candidate
+witness at-or-above the fork inherits the fork's members as
+sub-rank pollution. -/
+theorem iks_zone_h4_fails : ¬ ZoneCleanBelow iks tq_h4 := by
+  intro h
+  exact h tq_s3 (by decide) (by decide) (by decide) iks_SRaise_s3
+
+/-! ## §4. Hunt 3 — the sub-rank leak craft, board `sl3` -/
+
+/-- **THE SUB-RANK LEAK BOARD**: the classic fork shape, with the
+cover deuce's OWN ring parked at 1 — the cover is hot AT its
+covering post (seated on the club three, chop nonempty), a genuine
+strictly-sub-rank S-live third. -/
+private def sl3 : State where
+  found := fun s => match s with
+    | .spade => tq_T s 2
+    | .club => tq_T s 2
+    | .diamond => tq_T s 1
+    | _ => []
+  piles := fun a => match a with
+    | .p0 => ⟨[], [tq_h4, tq_s3]⟩
+    | .p1 => ⟨[], [tq_d4, tq_c3, tq_d2]⟩
+    | _ => ⟨[], []⟩
+  stock :=
+    [tq_C .spade .four, tq_C .spade .five, tq_C .spade .six,
+     tq_C .spade .seven, tq_C .spade .eight, tq_C .spade .nine,
+     tq_C .spade .ten, tq_C .spade .jack, tq_C .spade .queen,
+     tq_C .spade .king,
+     tq_C .club .four, tq_C .club .five, tq_C .club .six,
+     tq_C .club .seven, tq_C .club .eight, tq_C .club .nine,
+     tq_C .club .ten, tq_C .club .jack, tq_C .club .queen,
+     tq_C .club .king,
+     tq_C .heart .ace, tq_C .heart .two, tq_C .heart .three,
+     tq_C .heart .five, tq_C .heart .six, tq_C .heart .seven,
+     tq_C .heart .eight, tq_C .heart .nine, tq_C .heart .ten,
+     tq_C .heart .jack, tq_C .heart .queen, tq_C .heart .king,
+     tq_C .diamond .three, tq_C .diamond .five, tq_C .diamond .six,
+     tq_C .diamond .seven, tq_C .diamond .eight, tq_C .diamond .nine,
+     tq_C .diamond .ten, tq_C .diamond .jack, tq_C .diamond .queen,
+     tq_C .diamond .king]
+  waste := []
+  drawStep := 1
+
+theorem sl3_wf : sl3.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s with
+    | spade => exact ⟨2, rfl⟩
+    | heart => exact ⟨0, rfl⟩
+    | diamond => exact ⟨1, rfl⟩
+    | club => exact ⟨2, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+/-- **THE FORK STILL HOLDS** at the sub-rank-leak board: the spade
+three hot, the club three covered-refusing and S-live. -/
+theorem sl3_raise_s3 : CanRaise sl3 tq_s3 :=
+  ⟨by decide, Anchor.p0, by decide, Or.inl (by decide)⟩
+
+theorem sl3_noRaise_c3 : ¬ CanRaise sl3 tq_c3 := by
+  intro hc
+  have hb : canRaiseB sl3 tq_c3 = true := (canRaiseB_true_iff).2 hc
+  rw [(by decide : canRaiseB sl3 tq_c3 = false)] at hb
+  exact absurd hb (by simp)
+
+theorem sl3_SRaise_c3 : CanRaiseS sl3 tq_c3 :=
+  (canRaiseSB_true_iff sl3_wf).mp (by decide : canRaiseSB sl3 tq_c3 = true)
+
+theorem sl3_twinfork : TwinFork sl3 tq_s3 :=
+  ⟨sl3_raise_s3, sl3_noRaise_c3, sl3_SRaise_c3⟩
+
+/-- **THE SUB-RANK THIRD, S-LIVE** — the hot cover deuce itself,
+ranked strictly below the fork's rank. -/
+theorem sl3_SRaise_d2 : CanRaiseS sl3 tq_d2 :=
+  (canRaiseSB_true_iff sl3_wf).mp (by decide : canRaiseSB sl3 tq_d2 = true)
+
+/-- **THE ZONE CLAUSE FAILS, USEFULLY** — exhibited at the hot
+cover: the third is neither pair member, ranks strictly below 2,
+and reads S-live.  This is `ZoneCleanBelow`'s load-bearing instance:
+without it, this board would pass. -/
+theorem sl3_zone_fails : ¬ ZoneCleanBelow sl3 tq_s3 := by
+  intro h
+  exact h tq_d2 (by decide) (by decide) (by decide) sl3_SRaise_d2
+
+/-- **THE CENSUS IS GENUINELY BROKEN** — the SB read decides FALSE:
+the hot cover is a sub-rank S-live third, so no witness saturates. -/
+theorem sl3_noFork : ¬ forkState sl3 := by
+  intro h
+  have hb := (forkStateSB_true_iff sl3_wf).mpr h
+  rw [(by decide : forkStateSB sl3 = false)] at hb
+  exact absurd hb (by simp)
+
+/-- **HUNT 3'S VERDICT, LANDED** — the BARE form of the twin-fork
+statement (TwinFork alone implies forkState) is REFUTED at sl3;
+`ZoneCleanBelow` is exactly the premise that would have excluded
+this board, which boards its load-bearing-ness — but by Hunt 1 even
+the clean-zoned form fails, so the freeze needs the full census. -/
+theorem twinfork_bare_refuted :
+    ¬ (∀ (st : State) (x : Card), TwinFork st x → forkState st) := by
+  intro h
+  exact sl3_noFork (h sl3 tq_s3 sl3_twinfork)
+
+/-! ## §5. The hunt telemetry -/
+
+-- the interference reads, raw (the ranked facts the ledger cites)
+#eval canRaiseSB iks tq_s3
+#eval canRaiseSB iks tq_c3
+#eval canRaiseSB iks tq_h3
+#eval canRaiseSB iks tq_d3
+#eval canRaiseSB iks tq_h4
+#eval forkStateSB iks
+#eval canRaiseSB sl3 tq_d2
+#eval forkStateSB sl3
+
+/-! ## §6. The audit battery -/
+
+#print axioms iks_wf
+#print axioms iks_raise_s3
+#print axioms iks_noRaise_c3
+#print axioms iks_SRaise_c3
+#print axioms iks_twinfork
+#print axioms iks_zone
+#print axioms iks_SRaise_s3
+#print axioms iks_h3_SRaised
+#print axioms iks_d3_Sdead
+#print axioms iks_noFork
+#print axioms twinfork_direct_refuted
+#print axioms iks_noTwinFork_h3
+#print axioms iks_noTwinFork_h4
+#print axioms iks_zone_h4_fails
+#print axioms sl3_wf
+#print axioms sl3_raise_s3
+#print axioms sl3_noRaise_c3
+#print axioms sl3_SRaise_c3
+#print axioms sl3_twinfork
+#print axioms sl3_SRaise_d2
+#print axioms sl3_zone_fails
+#print axioms sl3_noFork
+#print axioms twinfork_bare_refuted
+/-- The probe bridge: the twin-fork's decidable face — both vanilla
+probes plus the S-probe on the mate. -/
+def TwinForkB (st : State) (x : Card) : Bool :=
+  canRaiseB st x && (!canRaiseB st x.twin) && canRaiseSB st x.twin
+
+theorem twinForkB_true_iff {st : State} (hwf : st.WF) {x : Card} :
+    TwinForkB st x = true ↔ TwinFork st x := by
+  constructor
+  · intro h
+    have hfull : ((canRaiseB st x && (!canRaiseB st x.twin)) &&
+        canRaiseSB st x.twin) = true := h
+    rw [Bool.and_eq_true] at hfull
+    obtain ⟨hab, hSB⟩ := hfull
+    rw [Bool.and_eq_true] at hab
+    obtain ⟨hA, hnt⟩ := hab
+    have hb2 : canRaiseB st x.twin = false := by
+      cases hb : canRaiseB st x.twin with
+      | true => rw [hb] at hnt; exact absurd hnt (by simp)
+      | false => rfl
+    refine ⟨(canRaiseB_true_iff).1 hA, ?_, (canRaiseSB_true_iff hwf).1 hSB⟩
+    intro hcr
+    rw [(canRaiseB_true_iff).2 hcr] at hb2
+    exact absurd hb2 (by simp)
+  · rintro ⟨h1, h2, hS⟩
+    have hA : canRaiseB st x = true := (canRaiseB_true_iff).2 h1
+    have hb2 : canRaiseB st x.twin = false := by
+      cases hb : canRaiseB st x.twin with
+      | true => exact absurd ((canRaiseB_true_iff).1 hb) h2
+      | false => rfl
+    have hSB : canRaiseSB st x.twin = true := (canRaiseSB_true_iff hwf).2 hS
+    show ((canRaiseB st x && (!canRaiseB st x.twin)) &&
+        canRaiseSB st x.twin) = true
+    rw [hA, hb2, hSB]
+    rfl
+
+/-! ## §1. The boards (fresh class-rebuilds, probe-first) -/
+
+private def tfCrd (s : Suit) (r : Rank) : Card := ⟨s, r⟩
+private def tfTakeUp (s : Suit) (n : Nat) : List Card := s.upCards.take n
+
+-- **tfA**: the fa2 class — the saturated deuce pair (both members
+-- vanilla-live at rung 1, the threes stocked): the JOINT world.
+private def tfA : State where
+  found := fun s => tfTakeUp s 1
+  piles := fun a => match a with
+    | .p0 => ⟨[], [tfCrd .heart .three, tfCrd .spade .two]⟩
+    | .p1 => ⟨[], [tfCrd .diamond .three, tfCrd .club .two]⟩
+    | _ => ⟨[], []⟩
+  stock :=
+    [tfCrd .spade .three, tfCrd .spade .four, tfCrd .spade .five,
+     tfCrd .spade .six, tfCrd .spade .seven, tfCrd .spade .eight,
+     tfCrd .spade .nine, tfCrd .spade .ten, tfCrd .spade .jack,
+     tfCrd .spade .queen, tfCrd .spade .king,
+     tfCrd .heart .two, tfCrd .heart .four, tfCrd .heart .five,
+     tfCrd .heart .six, tfCrd .heart .seven, tfCrd .heart .eight,
+     tfCrd .heart .nine, tfCrd .heart .ten, tfCrd .heart .jack,
+     tfCrd .heart .queen, tfCrd .heart .king,
+     tfCrd .diamond .two, tfCrd .diamond .four, tfCrd .diamond .five,
+     tfCrd .diamond .six, tfCrd .diamond .seven, tfCrd .diamond .eight,
+     tfCrd .diamond .nine, tfCrd .diamond .ten, tfCrd .diamond .jack,
+     tfCrd .diamond .queen, tfCrd .diamond .king,
+     tfCrd .club .three, tfCrd .club .four, tfCrd .club .five,
+     tfCrd .club .six, tfCrd .club .seven, tfCrd .club .eight,
+     tfCrd .club .nine, tfCrd .club .ten, tfCrd .club .jack,
+     tfCrd .club .queen, tfCrd .club .king]
+  waste := []
+  drawStep := 1
+
+theorem tfA_wf : tfA.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s <;> exact ⟨1, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+-- **tf0**: the fa0 class — BOTH deuce pairs double-hot (the
+-- multi-pair joint frontier).
+private def tf0 : State where
+  found := fun s => tfTakeUp s 1
+  piles := fun a => match a with
+    | .p0 => ⟨[], [tfCrd .heart .three, tfCrd .spade .two]⟩
+    | .p1 => ⟨[], [tfCrd .club .three, tfCrd .diamond .two]⟩
+    | .p2 => ⟨[], [tfCrd .spade .three, tfCrd .heart .two]⟩
+    | .p5 => ⟨[], [tfCrd .diamond .three, tfCrd .club .two]⟩
+    | _ => ⟨[], []⟩
+  stock :=
+    [tfCrd .spade .four, tfCrd .spade .five, tfCrd .spade .six,
+     tfCrd .spade .seven, tfCrd .spade .eight, tfCrd .spade .nine,
+     tfCrd .spade .ten, tfCrd .spade .jack, tfCrd .spade .queen,
+     tfCrd .spade .king,
+     tfCrd .heart .four, tfCrd .heart .five, tfCrd .heart .six,
+     tfCrd .heart .seven, tfCrd .heart .eight, tfCrd .heart .nine,
+     tfCrd .heart .ten, tfCrd .heart .jack, tfCrd .heart .queen,
+     tfCrd .heart .king,
+     tfCrd .diamond .four, tfCrd .diamond .five, tfCrd .diamond .six,
+     tfCrd .diamond .seven, tfCrd .diamond .eight, tfCrd .diamond .nine,
+     tfCrd .diamond .ten, tfCrd .diamond .jack, tfCrd .diamond .queen,
+     tfCrd .diamond .king,
+     tfCrd .club .four, tfCrd .club .five, tfCrd .club .six,
+     tfCrd .club .seven, tfCrd .club .eight, tfCrd .club .nine,
+     tfCrd .club .ten, tfCrd .club .jack, tfCrd .club .queen,
+     tfCrd .club .king]
+  waste := []
+  drawStep := 1
+
+theorem tf0_wf : tf0.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s <;> exact ⟨1, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+private def tf_sA : Card := tfCrd .spade .ace
+private def tf_s2 : Card := tfCrd .spade .two
+private def tf_s3 : Card := tfCrd .spade .three
+private def tf_h2 : Card := tfCrd .heart .two
+private def tf_h3 : Card := tfCrd .heart .three
+private def tf_h4 : Card := tfCrd .heart .four
+private def tf_d2 : Card := tfCrd .diamond .two
+private def tf_d3 : Card := tfCrd .diamond .three
+private def tf_d4 : Card := tfCrd .diamond .four
+private def tf_cA : Card := tfCrd .club .ace
+private def tf_c2 : Card := tfCrd .club .two
+private def tf_c3 : Card := tfCrd .club .three
+
+-- **tfR**: the loA class — the below-frontier start (black
+-- foundations EMPTY, the climb material on stools, the threes pair
+-- joint over the red fours): NOTHING hot.
+private def tfR : State where
+  found := fun _ => []
+  piles := fun a => match a with
+    | .p0 => ⟨[], [tf_h4, tf_s3]⟩
+    | .p1 => ⟨[], [tf_d4, tf_c3]⟩
+    | .p2 => ⟨[], [tf_h2, tf_sA]⟩
+    | .p3 => ⟨[], [tf_h3, tf_s2]⟩
+    | .p4 => ⟨[], [tf_d2, tf_cA]⟩
+    | .p5 => ⟨[], [tf_d3, tf_c2]⟩
+    | _ => ⟨[], []⟩
+  stock :=
+    [tfCrd .spade .four, tfCrd .spade .five, tfCrd .spade .six,
+     tfCrd .spade .seven, tfCrd .spade .eight, tfCrd .spade .nine,
+     tfCrd .spade .ten, tfCrd .spade .jack, tfCrd .spade .queen,
+     tfCrd .spade .king,
+     tfCrd .heart .ace, tfCrd .heart .five, tfCrd .heart .six,
+     tfCrd .heart .seven, tfCrd .heart .eight, tfCrd .heart .nine,
+     tfCrd .heart .ten, tfCrd .heart .jack, tfCrd .heart .queen,
+     tfCrd .heart .king,
+     tfCrd .diamond .ace, tfCrd .diamond .five, tfCrd .diamond .six,
+     tfCrd .diamond .seven, tfCrd .diamond .eight, tfCrd .diamond .nine,
+     tfCrd .diamond .ten, tfCrd .diamond .jack, tfCrd .diamond .queen,
+     tfCrd .diamond .king,
+     tfCrd .club .four, tfCrd .club .five, tfCrd .club .six,
+     tfCrd .club .seven, tfCrd .club .eight, tfCrd .club .nine,
+     tfCrd .club .ten, tfCrd .club .jack, tfCrd .club .queen,
+     tfCrd .club .king]
+  waste := []
+  drawStep := 1
+
+theorem tfR_wf : tfR.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s <;> exact ⟨0, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+-- **tfF**: the loF2 class — the cover world (the spade three live,
+-- the club three under the cold cargo cover D2, black rungs parked
+-- at 2): THE board where all three twin-fork clauses hold.
+private def tfF : State where
+  found := fun s => match s with
+    | .spade => tfTakeUp s 2
+    | .club => tfTakeUp s 2
+    | _ => []
+  piles := fun a => match a with
+    | .p0 => ⟨[], [tf_h4, tf_s3]⟩
+    | .p1 => ⟨[], [tf_d4, tf_c3, tf_d2]⟩
+    | _ => ⟨[], []⟩
+  stock :=
+    [tfCrd .spade .four, tfCrd .spade .five, tfCrd .spade .six,
+     tfCrd .spade .seven, tfCrd .spade .eight, tfCrd .spade .nine,
+     tfCrd .spade .ten, tfCrd .spade .jack, tfCrd .spade .queen,
+     tfCrd .spade .king,
+     tfCrd .heart .ace, tfCrd .heart .two, tfCrd .heart .three,
+     tfCrd .heart .five, tfCrd .heart .six, tfCrd .heart .seven,
+     tfCrd .heart .eight, tfCrd .heart .nine, tfCrd .heart .ten,
+     tfCrd .heart .jack, tfCrd .heart .queen, tfCrd .heart .king,
+     tfCrd .diamond .ace, tfCrd .diamond .three, tfCrd .diamond .five,
+     tfCrd .diamond .six, tfCrd .diamond .seven, tfCrd .diamond .eight,
+     tfCrd .diamond .nine, tfCrd .diamond .ten, tfCrd .diamond .jack,
+     tfCrd .diamond .queen, tfCrd .diamond .king,
+     tfCrd .club .four, tfCrd .club .five, tfCrd .club .six,
+     tfCrd .club .seven, tfCrd .club .eight, tfCrd .club .nine,
+     tfCrd .club .ten, tfCrd .club .jack, tfCrd .club .queen,
+     tfCrd .club .king]
+  waste := []
+  drawStep := 1
+
+theorem tfF_wf : tfF.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro s
+    cases s with
+    | spade => exact ⟨2, rfl⟩
+    | heart => exact ⟨0, rfl⟩
+    | diamond => exact ⟨0, rfl⟩
+    | club => exact ⟨2, rfl⟩
+  · intro a
+    cases a <;> decide
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+-- The probe reads, raw (the decidable faces):
+#eval TwinForkB tfA tf_s2
+#eval TwinForkB tf0 tf_s2
+#eval TwinForkB tfR tf_s3
+#eval TwinForkB tfF tf_s3
+#eval forkStateSB tfF
+#eval (forkWitnessSB tfF).isSome
+
+/-! ## §2. The refutation probes (the joint and cold classes) -/
+
+/-- **THE JOINT CLASS REFUTES CLAUSE 2** — at the fa2-class board the
+twin-fork read on the spade deuce fails: its mate the club deuce is
+vanilla-live too (the saturated pair), so the twin-refusal clause
+dies. -/
+theorem tfA_noTwinFork : ¬ TwinFork tfA tf_s2 := by
+  intro h
+  have hb : TwinForkB tfA tf_s2 = true := (twinForkB_true_iff tfA_wf).2 h
+  rw [show TwinForkB tfA tf_s2 = false from by decide] at hb
+  exact absurd hb (by simp)
+
+/-- **THE MULTI-PAIR JOINT CLASS REFUTES CLAUSE 2** — same read at
+the fa0-class board. -/
+theorem tf0_noTwinFork : ¬ TwinFork tf0 tf_s2 := by
+  intro h
+  have hb : TwinForkB tf0 tf_s2 = true := (twinForkB_true_iff tf0_wf).2 h
+  rw [show TwinForkB tf0 tf_s2 = false from by decide] at hb
+  exact absurd hb (by simp)
+
+/-- **THE BELOW-FRONTIER CLASS REFUTES CLAUSE 1** — at the loA-class
+start the spade three has no vanilla license at all (its rung sits
+at 0): nothing is hot. -/
+theorem tfR_noTwinFork : ¬ TwinFork tfR tf_s3 := by
+  intro h
+  have hb : TwinForkB tfR tf_s3 = true := (twinForkB_true_iff tfR_wf).2 h
+  rw [show TwinForkB tfR tf_s3 = false from by decide] at hb
+  exact absurd hb (by simp)
+
+/-! ## §3. The direct form (the assembly)
+
+The census decomposition.  The FAMILY-SUIT thirds die FREE by the
+twin-fork's own rung pins: the standing member's license pins its
+suit's rung at the pair's rank; the mate's S-license pins the twin
+suit's rung there too (`canRaiseS_rung`); any S-live card of a
+family suit must then sit exactly at the pair's rank, and suit+rank
+name the card — so it IS a pair member.  No premise.  The
+THIRD-SUIT thirds are the two honest leaks: their suits' rungs are
+unpinned, free to stand anywhere — the sub-rank half is swept by
+the owner's `ZoneCleanBelow`, and the rank-equal and super-rank
+halves come in as the two named census premises. -/
+
+/-- The standing member's own license pins its family rung at the
+pair's rank. -/
+private theorem twinFork_pin1 {st : State} {x : Card}
+    (h : TwinFork st x) : rungAt st x.suit = x.rank.toIdx :=
+  (of_decide_eq_true h.1.1).symm
+
+/-- The mate's S-license pins the twin suit's rung at the pair's
+rank (the twin rank bridge). -/
+private theorem twinFork_pin2 {st : State} {x : Card}
+    (h : TwinFork st x) : rungAt st x.twin.suit = x.rank.toIdx := by
+  have hr := canRaiseS_rung h.2.2
+  rwa [Card.twin_rank] at hr
+
+/-- **THE PIN KILL** — an S-live card of a family suit is a pair
+member: the pins name its rank as the pair's, and suit+rank name
+the card. -/
+theorem family_suit_in_pair {st : State} {x c : Card}
+    (h : TwinFork st x) (hS : CanRaiseS st c)
+    (hs : c.suit = x.suit ∨ c.suit = x.twin.suit) :
+    c = x ∨ c = x.twin := by
+  obtain ⟨xs, xr⟩ := x
+  obtain ⟨cs, cr⟩ := c
+  have hr : rungAt st cs = cr.toIdx := canRaiseS_rung hS
+  have hp1 : rungAt st xs = xr.toIdx := twinFork_pin1 h
+  have hp2 : rungAt st (Suit.twin xs) = xr.toIdx := twinFork_pin2 h
+  rcases hs with hs1 | hs2
+  · have hcsx : cs = xs := hs1
+    rw [hcsx, hp1] at hr
+    refine Or.inl ?_
+    show (⟨cs, cr⟩ : Card) = ⟨xs, xr⟩
+    rw [hcsx, Rank.toIdx_inj hr.symm]
+  · have hcst : cs = xs.twin := hs2
+    rw [hcst, hp2] at hr
+    refine Or.inr ?_
+    show (⟨cs, cr⟩ : Card) = ⟨Suit.twin xs, xr⟩
+    rw [hcst, Rank.toIdx_inj hr.symm]
+
+set_option linter.unusedVariables false in
+/-- **THE DIRECT FORM, PROVED** — with the two named census
+premises (the third-suit rank-equal and super-rank leaks), the
+twin-fork's own facts are `forkState`'s witness parcel: the pair
+members are S-live (`now` on the standing license, the mate given),
+the mate is vanilla-blocked (given), and every third card is swept —
+family suits by the pins, the sub-rank zone by the owner's clean
+premise, the rank-equal and super thirds by the named censuses.
+`hwf` is dead weight at the Prop-grade assembly (the pins need no
+WF; the probe consumers hold it per board anyway) — kept for the
+frozen statement's shape, the linter silenced. -/
+theorem twinFork_forkState {st : State} (hwf : st.WF) {x : Card}
+    (h : TwinFork st x)
+    (hc : ZoneCleanBelow st x)
+    (heq : ∀ c, c ≠ x → c ≠ x.twin → c.rank.toIdx = x.rank.toIdx →
+      ¬ CanRaiseS st c)
+    (hsup : ∀ c, c.rank.toIdx > x.rank.toIdx → ¬ CanRaiseS st c) :
+    forkState st := by
+  refine ⟨x, ?_, h.2.1⟩
+  intro c
+  constructor
+  · rintro (rfl | rfl)
+    · exact CanRaiseS.now _ h.1
+    · exact h.2.2
+  · intro hS
+    by_cases hs : c.suit = x.suit ∨ c.suit = x.twin.suit
+    · exact family_suit_in_pair h hS hs
+    · have hcx : c ≠ x := fun he => hs (Or.inl (by rw [he]))
+      have hct : c ≠ x.twin := fun he => hs (Or.inr (by rw [he]))
+      rcases Nat.lt_trichotomy c.rank.toIdx x.rank.toIdx with hlt | heq2 | hgt
+      · exact absurd hS (hc c hcx hct hlt)
+      · exact absurd hS (heq c hcx hct heq2)
+      · exact absurd hS (hsup c hgt)
+
+/-! ## §4. The anchor instance (the boarded proof) -/
+
+/-- **THE COVER WORLD IS A TWIN-FORK** — all three clauses at tfF,
+Prop-grade: the spade three stands licensed (next-up at the parked
+spade rung, topping its stool pile with content below); the club
+three is covered (no pile tops it — the `CanRaise` existential
+dies); the club three is S-live (its reversible-cover cascade, read
+off the decided S-probe through the banked flat bridge). -/
+theorem tfF_TwinFork : TwinFork tfF tf_s3 := by
+  refine ⟨⟨by decide, Anchor.p0, by decide, Or.inl (by decide)⟩, ?_, ?_⟩
+  · intro hcr
+    rcases hcr with ⟨-, a, htop, -⟩
+    rw [show tfF.pileOfTop tf_s3.twin = none from by decide] at htop
+    exact absurd htop (by simp)
+  · exact ((canRaiseSB_true_iff tfF_wf).1) (by decide)
+
+/-- The cover world's sub-rank zone is clean: every third card below
+the threes' rank has no raise future (per-card: the decided S-probe
+reads false — the sub-rank space at tfF is the cold cover itself,
+stocked cards, and nothing with a next-up). -/
+theorem tfF_zoneCleanBelow : ZoneCleanBelow tfF tf_s3 := by
+  intro c hc1 hc2 hlt hS
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> first
+    | exact absurd hlt (by decide)
+    | exact absurd hc1 (by decide)
+    | exact absurd hc2 (by decide)
+    | exact absurd ((canRaiseSB_true_iff tfF_wf).2 hS) (by decide)
+
+/-- The cover world's rank-equal census: no third card AT the
+threes' rank is S-live (the other rank-2 cards are stocked). -/
+theorem tfF_zoneCleanEq :
+    ∀ c, c ≠ tf_s3 → c ≠ tf_c3 → c.rank.toIdx = tf_s3.rank.toIdx →
+      ¬ CanRaiseS tfF c := by
+  intro c hc1 hc2 heq2 hS
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> first
+    | exact absurd heq2 (by decide)
+    | exact absurd hc1 (by decide)
+    | exact absurd hc2 (by decide)
+    | exact absurd ((canRaiseSB_true_iff tfF_wf).2 hS) (by decide)
+
+/-- The cover world's super-rank census: nothing above the threes'
+rank is S-live (the red fours are cold stools, everything else
+stocked). -/
+theorem tfF_zoneCleanSup :
+    ∀ c, c.rank.toIdx > tf_s3.rank.toIdx → ¬ CanRaiseS tfF c := by
+  intro c hgt hS
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> first
+    | exact absurd hgt (by decide)
+    | exact absurd ((canRaiseSB_true_iff tfF_wf).2 hS) (by decide)
+
+/-- **THE BOARDED ANCHOR** — the proved direct form concludes
+`forkState` at the cover world: the owner's twin-fork read, certified
+end to end at the loF2 class. -/
+theorem tfF_fork : forkState tfF :=
+  twinFork_forkState tfF_wf tfF_TwinFork tfF_zoneCleanBelow
+    tfF_zoneCleanEq tfF_zoneCleanSup
+
+/-- The SB witness search agrees: the computable reader returns the
+spade three (the forkWitnessSB_sound bridge would read the same
+parcel the boarded proof just assembled). -/
+theorem tfF_witnessSB : forkWitnessSB tfF = some tf_s3 := by
+  decide
+
+/-! ## §5. The exist-form scaffold (the rank chase) -/
+
+set_option linter.unusedVariables false in
+/-- **THE CONDITIONAL RANK-STEP, PROVED** — the assembly half of the
+chase: a super-rank S-live third whose twin is blocked and
+S-saturated, itself standing licensed, IS a twin-fork at the
+strictly higher rank.  All the substantive legs are the priced
+UP-CENSUS's content (`twinFork_upCensus` below); the assembly is
+free.  The untouchable premises (the chase's scope) ride the row,
+the linter silenced per the priced-row protocol. -/
+theorem twinFork_rankStep {st : State} (hwf : st.WF) {x : Card}
+    (h : TwinFork st x) (hz : ZoneCleanBelow st x)
+    {c : Card}
+    (hS : CanRaiseS st c) (hgt : c.rank.toIdx > x.rank.toIdx)
+    (hcr : CanRaise st c) (hnt : ¬ CanRaise st c.twin)
+    (hSct : CanRaiseS st c.twin) :
+    TwinFork st c ∧ c.rank.toIdx > x.rank.toIdx :=
+  ⟨⟨hcr, hnt, hSct⟩, hgt⟩
+set_option linter.unusedVariables false in
+/-- **THE UP-CENSUS, PRICED** [H] — the leak-chase's one genuinely
+missing derivation.
+
+CAPTION (the careful check the formulation demanded): the chase from
+"super-rank S-live third" to "a higher twin-fork" does NOT close
+unconditionally.  By the flat characterization's exit clause
+(`canRaiseS_iff`, Orig/ForkStateS.lean:539 — read jointly with
+`canRaiseS_positionSeat` and `canRaiseS_runOrTwin`) the S-live
+third `c` splits:
+* TOPPING (`run = []`): `c` is itself vanilla-live-shaped; its twin
+  either raises too (a JOINT super pair — no fork up there; this is
+  the joint world the falsifier certified the spine EATING at its
+  own rank, one rank up — forking evidence is exactly what it lacks)
+  or is blocked while NOT S-live — the saturation leg of a higher
+  twin-fork is missing, and nothing in the below-fork's facts
+  supplies it.
+* COVERED (`run ≠ []`): `c`'s pile-top read dies (the license's
+  top-existential fails), so `c` is not itself the standing member of
+  anything — the covered shape is the MATE side of a would-be fork,
+  whose standing member `c.twin` carries no derivable license.
+In every branch the chase needs MORE than the leak gives.  The
+owner's COVER note survives intact: any cover `d` of a mate sits at
+`d.rank.toIdx + 1 = x.rank.toIdx` by the fit arithmetic
+(`forkPointC`'s clause, Orig/MacroInternal.lean:1233), i.e. at rank
+− 1, INSIDE `ZoneCleanBelow`'s own sweep — the cover
+non-stackability arrives free, exactly as designed.
+
+ROUTE: (i) a fresh zone-row family at the up-census grade — "every
+super S-live pair at a fork-qualified world is joint- or
+fork-saturated up there" — the owner's "not stackable-away" clause
+is `forkPointC`'s ¬satStackable at the covered side, and the
+fit-arithmetic leg above pins the cover census; (ii) with (i) the
+step is `twinFork_rankStep` (proved above) and the rank rises
+strictly; (iii) the maximal anchor (`twinFork_witness_max` below)
+terminates the chase at rank 12 — the up-side is vacuous there
+(`Rank.toIdx_lt`), the direct form applies, and the witness is the
+  world itself (`π = []`, `run []` reads `rfl`).  THE RESIDUE: (i)
+  alone. -/
+theorem twinFork_upCensus {st : State} (hwf : st.WF) {x : Card}
+    (h : TwinFork st x) (hz : ZoneCleanBelow st x)
+    {c : Card}
+    (hS : CanRaiseS st c) (hgt : c.rank.toIdx > x.rank.toIdx)
+    (hcr : CanRaise st c) (hnt : ¬ CanRaise st c.twin) :
+    CanRaiseS st c.twin := by
+  sorry
+
+/-- **THE MAXIMAL-ANCHOR WITNESS** (the chase's base case, PROVED):
+at the maximal rank 12, the super-census is vacuous (no card ranks
+past a king), so the direct form's premises carry the whole world
+and the twin-fork IS the forkState — the witness at the world
+itself, empty play (`run []` reads `rfl`), the parcel read off
+`forkState_iff`. -/
+theorem twinFork_witness_max {st : State} (hwf : st.WF) {x : Card}
+    (hrank : x.rank.toIdx = 12)
+    (h : TwinFork st x) (hz : ZoneCleanBelow st x)
+    (heq : ∀ c, c ≠ x → c ≠ x.twin → c.rank.toIdx = x.rank.toIdx →
+      ¬ CanRaiseS st c) :
+    ∃ (y : Card) (F : State) (π : List Move),
+      st.run π = some F ∧ ForkWitness F y := by
+  have hsup : ∀ c, c.rank.toIdx > x.rank.toIdx → ¬ CanRaiseS st c := by
+    intro c hgt
+    have hlt := Rank.toIdx_lt c.rank
+    rw [hrank] at hgt
+    exact absurd hgt (by omega)
+  have hf := twinFork_forkState hwf h hz heq hsup
+  obtain ⟨y, hwp⟩ := (forkState_iff).1 hf
+  exact ⟨y, st, [], rfl, hwp⟩
+
+/-! ## §6. THE CENSUS MEMO
+
+PROBE TABLE (the class rebuilds; the leaf's §8/§9 boards are
+file-private, unreachable from Temp — these are verbatim-class
+clones):
+
+BOARD | CLASS            | TWINFORK READ                  | CONCLUSION
+------+------------------+--------------------------------+-----------------------------
+tfA   | fa2 (joint deuce | FALSE — clause 2 dies: the mate | correctly no fork evidence
+      | pair, rungs at 1)| is vanilla-live too (joint)    |
+tf0   | fa0 (both pairs  | FALSE — clause 2 dies           | correctly no fork evidence
+      | double-hot)      |                                |
+tfR   | loA (nothing hot)| FALSE — clause 1 dies: the      | correctly no fork evidence
+      |                  | spade three has no license      |
+tfF   | loF2 (the cover  | TRUE — all three clauses,       | forkState tfF (the PROVED
+      | world)           | Prop-certified                 | direct form applied) + the
+      |                  |                                | SB readers agree (decided)
+
+DIRECT FORM STATUS: PROVED, with the two named census premises
+(`heq` rank-equal thirds, `hsup` super thirds) added to the frozen
+shape.  What came free: the family-suit pins (the honest
+via-cascade — `twinFork_pin1`/`pin2`/`family_suit_in_pair`), the
+pair-membership half, and the witness orientation (`x` itself,
+`h.2.1` its mate's vanilla refusal).  What is content: the
+third-suit censuses — no banked row closes a third suit's free
+rung climb at or above the pair's rank, and the probes at the
+joint worlds certify the negative space is real.
+
+EXIST-FORM STATUS: anchor PROVED (`twinFork_witness_max` — rank 12
+terminates, `π = []`, the parcel via `forkState_iff`); conditional
+rank-step PROVED (`twinFork_rankStep` — assembly only); residue
+PRICED [H] (`twinFork_upCensus` — the up-census, with the complete
+leak caption and route above). -/
+
+/-! ## §7. The audit battery -/
+
+#print axioms twinForkB_true_iff
+#print axioms tfA_wf
+#print axioms tf0_wf
+#print axioms tfR_wf
+#print axioms tfF_wf
+#print axioms tfA_noTwinFork
+#print axioms tf0_noTwinFork
+#print axioms tfR_noTwinFork
+#print axioms family_suit_in_pair
+#print axioms twinFork_forkState
+#print axioms tfF_TwinFork
+#print axioms tfF_zoneCleanBelow
+#print axioms tfF_zoneCleanEq
+#print axioms tfF_zoneCleanSup
+#print axioms tfF_fork
+#print axioms tfF_witnessSB
+#print axioms twinFork_rankStep
+#print axioms twinFork_upCensus
+#print axioms twinFork_witness_max
+
+/- APPEND-MARKER -/
