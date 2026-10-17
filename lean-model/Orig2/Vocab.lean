@@ -476,6 +476,37 @@ resurrectable by a future card with its own intent line. -/
 def SWRotW (u v : State) : Prop :=
   ∃ σ τ : List Move, DrawPlayW u σ v ∧ DrawPlayW v τ u
 
+/-- **drawPool st** — the conserved zone pool: the stock, reversed,
+ahead of the waste.  PROMOTED here at the draw-orbit factoring
+(originally promoted to the chart at its ratification, frozen
+lineage: `Orig/Canonical.lean:2466`); the phase pack reads it, so
+it lives with its family in §6. -/
+def drawPool (st : State) : List Card := st.stock.reverse ++ st.waste
+
+/-- **inPhase st** — the draw cycle's phase-line read (Bool): with
+stock exhausted the cycle rests at a clean boundary; with cards
+remaining, the waste holds a whole number of deals (residue zero)
+so the next recycle begins cleanly.  PROMOTED to the registry at
+the draw-orbit factoring (owner, 2026-10-17): formerly the frozen
+`Orig/Phase.lean:63`, then the physics-kit copy
+(`Orig2/Kit.lean:1045` — whose lemma rows stay there, elaborating
+against this registry constant through the Kit import; the
+promotion is the `drawPool` precedent, same hour). -/
+def inPhase (st : State) : Bool :=
+  match st.stock with
+  | [] => true
+  | _ => decide (st.waste.length % st.drawStep = 0)
+
+/-- **phaseFixed u v** — the phase-side fixed-agreement (the
+"SWFixed" pack, owner request 2026-10-17): conserved pool AND
+phase-line aligned — the draw-orbit's compatibility, the exact
+frozen `SWComp` shape (`Orig/Canonical.lean:2473`) at registry
+grade.  This is the phase-compatibility the canonical factor
+consumes: `cutOf` rigidly pins the split, but class-mates rotate
+through the cycle — `phaseFixed` is what they actually share. -/
+def phaseFixed (u v : State) : Prop :=
+  drawPool u = drawPool v ∧ inPhase u = inPhase v
+
 /-!
 ## §7. THE BARE-CARGO EXCHANGE  (live, KEPT 2026-10-17)
 -/
@@ -559,12 +590,6 @@ pool and the cut, the stock and the waste are determined up to the
 deal conventions). -/
 def cutOf (st : State) : Nat := st.stock.length
 
-/-- **drawPool st** — the conserved zone pool: the stock, reversed,
-ahead of the waste.  PROMOTED from the orbit-factor machinery's
-private kit to the registry at the chart ratification (frozen
-lineage: `Orig/Canonical.lean:2466`). -/
-def drawPool (st : State) : List Card := st.stock.reverse ++ st.waste
-
 /-- **boardFixed st w** — chart-support kit (the named readout
 agreements the chart rows conjoin): the hidden decks and the deal
 quantum agree.  (The pool and the cut stay per-row clauses — the
@@ -609,6 +634,45 @@ migration wants it — is a separate name or a claim at WF, never
 silently conflated with this def. -/
 def Floater (st : State) (c : Card) : Prop :=
   ∃ b, reversibleAtW st (Move.tabToTab c b)
+
+/-!
+## §11. THE TWIN PAIR INTERCHANGE  (live, owner-defined 2026-10-17 —
+one uniform letter for both faces of the twin square; the frozen
+`State.exchangeTwin` executor is NOT seam-available, so this is the
+chart-native form)
+
+GRADE NOTE: the two bottom riders of twin hosts are themselves twins
+(same rank = host-rank − 1, same opposite color family, two-suits-per-color),
+so the frozen TwinExchangeBoth letter at a host pair IS this letter at the
+rider pair — one level down — and the seatSwap face (the S-face) is this
+letter at the hosted pair.  The bit index is the 26 deck-constant twin
+pairs, arrangement-independent.  TWIN-BLINDNESS at every level: c fits on
+every parent c.twin fits (same rank; the parent coloring is twin-symmetric),
+so the interchange is legality-preserving by construction.
+
+DOMAIN NOTE (owner question, 2026-10-17): the letter is TABLEAU-ONLY
+automatically — the field-fixing clauses below make each off-tableau
+degenerate either identity (both twins off: v = u) or unsatisfiable
+(exactly one seated: the swap would send it off-tableau with founds
+and pool fixed — nowhere to go; the letter never fires).  Consumers
+wanting the seated-domain form derive it with a both-twins-seated
+hypothesis at the claims layer.
+-/
+
+/-- **twinPairSwap u v c** — THE UNIFORM TWIN LETTER: v is u with the
+seatOf-values of the twin pair ⟨c, c.twin⟩ interchanged, every other
+readout fixed.  Riders follow their hosts automatically (a rider's
+seatOf still points at its same parent card, so each host's subtree
+relocates whole).  The S-face is this at a hosted pair; the E-face
+(the frozen TwinExchangeBoth) is this at the rider pair; the hard
+content concentrates in the bare-bare non-king hosted instance alone. -/
+def twinPairSwap (u v : State) (c : Card) : Prop :=
+  seatOf v c = seatOf u c.twin ∧
+    seatOf v c.twin = seatOf u c ∧
+    (∀ x, x ≠ c → x ≠ c.twin → seatOf v x = seatOf u x) ∧
+    boardFixed u v ∧ foundsFixed u v ∧
+    u.stock = v.stock ∧ u.waste = v.waste ∧
+    cutOf u = cutOf v
 
 /-!
 # THE REVIEW ANNEX — pending adjudication

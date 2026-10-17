@@ -1038,14 +1038,11 @@ theorem dealStock_full {st : State} (hs : st.stock ≠ [])
 theorem bool_dich (b : Bool) : b = true ∨ b = false := by
   cases b <;> simp
 
-/-- `true` exactly at the phase boundaries of the draw cycle: no
-cards remain in the stock ("at the end"), or the waste holds a
-whole number of deals so the next recycle would begin cleanly.
-PORTED verbatim from `Orig/Phase.lean:63`. -/
-def inPhase (st : State) : Bool :=
-  match st.stock with
-  | [] => true
-  | _ => decide (st.waste.length % st.drawStep = 0)
+/- `inPhase` — its DEFINITION was promoted to the registry at the
+draw-orbit factoring (owner, 2026-10-17): `Orig2/Vocab.lean` §6,
+frozen lineage `Orig/Phase.lean:63`.  The lemma rows below kept
+their home here, elaborating against the registry constant through
+the `Orig2.Vocab` import; bodies unchanged, cites intact. -/
 
 /-- With cards left in the stock, `inPhase` is literally the decide
 on the waste residue.  PORTED verbatim from `Orig/Phase.lean:70`.
