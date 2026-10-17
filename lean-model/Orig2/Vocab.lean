@@ -230,6 +230,51 @@ family, `below_fork` (owner DRAFT line pending ratification:
 `ForkWitness st x ∧ (x.twin face-up or covered-hidden in some pile)`),
 the steered-ascent zone rows (in-flight).
 
+## PENDING — the 2026-10-17 completeness pass (owner-caught gap)
+
+The first annex cut missed whole def tiers; indexed verbatim-cite,
+pending adjudication like the rest:
+
+* **The phase/rotation tier** (`Orig/OrbitFactor.lean`,
+  `Orig/Canonical.lean`) — the orbit-FACTORING vocabulary:
+  `NoDrawPlayW` (OrbitFactor:40), `swCompSetoid` (:587), `SWPhase`
+  (:594), `mkSW` (:597); with `SWComp` (Canonical:2473),
+  `DrawPlayW` (:2477), `SWRotW` (:2483).  These carry the
+  factorization claims `sameOrbit_factor_fwd`/`sameOrbit_factor_full`
+  (`Orig/OrbitFactorC.lean:442,482`) — Claims-layer candidates once
+  their vocabulary lands.
+  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* **The tip-edge datum tier** (`Orig/EdgeLabel.lean`) —
+  `EdgeLabel` (535), `TipEdge` (1386), `MacroDatums` (1322) +
+  `datumOf`/`CanonLabel`/`labelOf`/`drawNext`/`drawNextQ`/
+  `wasteNext`/`SameDatums` + the pool-miss/dropper/root-freed
+  family, `WasteOf`, `RevealCellAt`/`VacateCellAt`, `nzRoot`,
+  `isWasteMove`.
+  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* **The census kit** (`Orig/HostCensus.lean`) — `seatInd` (109),
+  `hostCensus` (120), `kingAnchored` (459), `seatGain`/`seatMint`/
+  `seatBurn` (1933-1947), `journeyMint`/`journeyBurn` (2111-2119),
+  `boardEq`/`boardMove` (2483-2486).
+  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* **The residency trio** (`Orig/ZoneAgree.lean`) — `foundResident`,
+  `tabResident`, `cycleResident` (:25-33).
+  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* **Slab both-suits form** — `xyBelowBoth` (`Orig/SlabForms.lean:93`).
+  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* **Canonical supports** (`Orig/Canonical.lean`) — `Stackable`
+  (321), `canRaiseB` (365), `pick` (409), `IsRaise`/`raise`
+  (465-469), `StackRun` (530), `suitGap`/`stackFuel` (541-544),
+  `drawPool` (2466), `SameMacroO` (2930).
+  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* **Composites** (`Orig/Classify.lean`) — `irreversibleOf` (2854),
+  `WFRun` (2907).
+  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* **Cone/dance & ledger walls** (`Orig/MacroInternal.lean`) —
+  `ConeStep`/`ConePath` (329/341), `DanceStep`/`DancePath`
+  (388/394), `popWindow` (810), `ConeLedger` (838), `rungFiber`
+  (1011), `CanonFace` (1379).
+  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+
 ## HOUSE COMPLIANCE
 
 Definitions only, modulo the flagged setoid support kit (audited:
