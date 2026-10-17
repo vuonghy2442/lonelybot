@@ -3561,6 +3561,414 @@ private theorem step_tabToFound_some {st : State} {c : Card} {a : Anchor}
   simp only [State.step, hn, ha]
   rfl
 
+/-! ### §1r. The found-position kit and the pull mirror
+
+`orig/Classify.lean`'s positional kit (foundations end at their
+rank index — the private `Rk` tabulation lifted from the frozen
+`Orig/FoundKit.lean:371`, which itself rides above the seam via
+`Combine`) plus the found-vs-pile occurrence survey, and
+`Orig/Irreversible.lean`'s `foundToTab` mirror (the pile-level
+round trip, the re-raise assembly, the undo), ported reading.
+-/
+
+/-- The list-length take fact.  PORTED verbatim from
+`Orig/Classify.lean:495`. -/
+private theorem take_length_min {α : Type} (l : List α) : ∀ (n : Nat),
+    (l.take n).length = min n l.length := by
+  induction l with
+  | nil =>
+      intro n
+      simp only [List.take_nil, List.length_nil]
+      omega
+  | cons x t ih =>
+      intro n
+      match n with
+      | 0 =>
+          show (0 : Nat) = min 0 (x :: t).length
+          omega
+      | n' + 1 =>
+          show (x :: t.take n').length = min (n' + 1) (t.length + 1)
+          rw [List.length_cons, ih n']
+          omega
+
+/-- Taking no deeper than an earlier take reaches the same prefix.
+PORTED verbatim (the tranche's de-choice row, explicit cells —
+see the frozen card's own audit note) from
+`Orig/Classify.lean:521`. -/
+private theorem take_take_le {α : Type} (l : List α) : ∀ (m n : Nat), m ≤ n →
+    (l.take n).take m = l.take m := by
+  induction l with
+  | nil => intro m n _; rw [List.take_nil]
+  | cons x t ih =>
+      intro m n
+      match m with
+      | 0 => intro _; rfl
+      | m' + 1 =>
+          match n with
+          | 0 => intro hle; exact absurd hle (Nat.not_succ_le_zero m')
+          | n' + 1 =>
+              intro hle
+              exact congrArg (x :: ·) (ih (m') (n') (Nat.le_of_succ_le_succ hle))
+
+/-- Taking to a list's own length is the identity.  PORTED verbatim
+from `Orig/Classify.lean:537`. -/
+private theorem take_length_self {α : Type} (l : List α) : l.take l.length = l := by
+  induction l with
+  | nil => rfl
+  | cons x t ih =>
+      show x :: t.take t.length = x :: t
+      exact congrArg (x :: ·) ih
+
+/-- Mapping commutes with dropping.  PORTED verbatim from
+`Orig/Classify.lean:545`. -/
+private theorem drop_map_min {α β : Type} (f : α → β) : ∀ (l : List α) (i : Nat),
+    (l.map f).drop i = (l.drop i).map f := by
+  intro l
+  induction l with
+  | nil =>
+      intro i
+      cases i <;> rfl
+  | cons x t ih =>
+      intro i
+      match i with
+      | 0 => rfl
+      | i' + 1 => exact ih i'
+
+/-- The rank of a zero-based index, tabulated.  PORTED verbatim
+from `Orig/FoundKit.lean:371` (the frozen public home of the
+retired per-file makers — the macro tier, not importable here;
+lifted reading). -/
+private def Rk : Nat → Rank
+  | 0 => .ace | 1 => .two | 2 => .three | 3 => .four | 4 => .five | 5 => .six
+  | 6 => .seven | 7 => .eight | 8 => .nine | 9 => .ten | 10 => .jack | 11 => .queen
+  | 12 => .king | _ => .ace
+
+/-- The tabulation inverts the rank index.  PORTED verbatim from
+`Orig/FoundKit.lean:376`. -/
+private theorem Rk_toIdx : ∀ (k : Nat), k < 13 → (Rk k).toIdx = k := by
+  intro k hk
+  match k with
+  | 0 => rfl
+  | 1 => rfl
+  | 2 => rfl
+  | 3 => rfl
+  | 4 => rfl
+  | 5 => rfl
+  | 6 => rfl
+  | 7 => rfl
+  | 8 => rfl
+  | 9 => rfl
+  | 10 => rfl
+  | 11 => rfl
+  | 12 => rfl
+  | j + 13 => exact absurd hk (by omega)
+
+/-- PORTED verbatim from `Orig/Classify.lean:558`. -/
+private theorem rank_all_drop_cons : ∀ (k : Nat), k < 13 →
+    Rank.all.drop k = Rk k :: Rank.all.drop (k + 1) := by
+  intro k hk
+  match k with
+  | 0 => rfl
+  | 1 => rfl
+  | 2 => rfl
+  | 3 => rfl
+  | 4 => rfl
+  | 5 => rfl
+  | 6 => rfl
+  | 7 => rfl
+  | 8 => rfl
+  | 9 => rfl
+  | 10 => rfl
+  | 11 => rfl
+  | 12 => rfl
+  | w + 13 => exact absurd hk (by omega)
+
+/-- The suits' up-card lists drop by cons, kernel-computed.  PORTED
+verbatim from `Orig/Classify.lean:578`. -/
+private theorem upCards_drop_cons (s : Suit) : ∀ (k : Nat), k < 13 →
+    s.upCards.drop k = Card.mk s (Rk k) :: s.upCards.drop (k + 1) := by
+  intro k hk
+  have hd := rank_all_drop_cons k hk
+  show (Rank.all.map (Card.mk s)).drop k
+      = Card.mk s (Rk k) :: (Rank.all.map (Card.mk s)).drop (k + 1)
+  have hrw2 : (Rank.all.map (Card.mk s)).drop (k + 1)
+      = (Rank.all.drop (k + 1)).map (Card.mk s) :=
+    drop_map_min (Card.mk s) Rank.all (k + 1)
+  rw [drop_map_min, hrw2, hd]
+  rfl
+
+/-- The head of a nonempty list never hides in `lastOf`: the tail
+is the last element's.  PORTED verbatim from
+`orig/Classify.lean:195`. -/
+private theorem lastOf_cons_of_ne {x : Card} {l : List Card} (h : l ≠ []) :
+    lastOf (x :: l) = lastOf l := by
+  obtain ⟨y, t, hc⟩ := list_cons_of_ne_nil h
+  subst hc
+  rfl
+
+/-- A take of the up-card list, taken `n` deep from offset `k`,
+ends at index `k + n - 1`.  PORTED verbatim from
+`Orig/Classify.lean:592`. -/
+private theorem upCards_last_of_take (s : Suit) : ∀ (n k : Nat), n + k ≤ 13 → 0 < n →
+    lastOf ((s.upCards.drop k).take n) = some (Card.mk s (Rk (k + n - 1))) := by
+  intro n
+  induction n with
+  | zero => intro k _ hn; omega
+  | succ m ih =>
+      intro k hle _hm
+      have hk : k < 13 := by omega
+      rw [upCards_drop_cons s k hk]
+      match m with
+      | 0 => rfl
+      | m' + 1 =>
+          have hih := ih (k + 1) (by omega) (by omega)
+          have hne : (s.upCards.drop (k + 1)).take (m' + 1) ≠ [] := by
+            intro hc
+            have hlt := take_length_min ((s.upCards.drop (k + 1))) (m' + 1)
+            rw [hc, List.length_nil] at hlt
+            have hd := List.length_drop (l := s.upCards) (i := k + 1)
+            have h13 : s.upCards.length = 13 := Suit.upCards_length s
+            omega
+          show lastOf (Card.mk s (Rk k) :: (s.upCards.drop (k + 1)).take (m' + 1)) =
+            some (Card.mk s (Rk (k + (m' + 1 + 1) - 1)))
+          rw [lastOf_cons_of_ne hne, hih]
+          refine congrArg (fun q => some (Card.mk s (Rk q))) (by omega)
+
+/-- The WF foundation arithmetic: a foundation's chop length is the
+rank index of its top card.  PORTED verbatim from
+`Orig/Classify.lean:621` (the frozen card's own public row). -/
+private theorem wf_found_chop_toIdx {st : State} {s : Suit} {c : Card}
+    (hwf : st.WF) (htop : st.foundTop s = some c) :
+    (chop (st.found s)).length = c.rank.toIdx := by
+  obtain ⟨n, hn⟩ := hwf.found_prefix s
+  have hlast : lastOf (st.found s) = some c := htop
+  have hne : st.found s ≠ [] := by
+    intro hc
+    rw [hc] at hlast
+    exact absurd hlast (by simp [lastOf])
+  have hpos : 0 < (st.found s).length := by
+    obtain ⟨w0, xs, hcon⟩ := list_cons_of_ne_nil hne
+    rw [hcon, List.length_cons]
+    omega
+  have hup : (Suit.upCards s).length = 13 := Suit.upCards_length s
+  have h13 : (st.found s).length ≤ 13 := by
+    rw [hn, take_length_min]
+    omega
+  have hN : st.found s = s.upCards.take ((st.found s).length) := by
+    rw [hn]
+    have htt := take_take_le (Suit.upCards s) ((s.upCards.take n).length) n
+      (by rw [take_length_min]; omega)
+    have hlself := take_length_self (s.upCards.take n)
+    rw [htt] at hlself
+    exact hlself.symm
+  have hz := upCards_last_of_take s ((st.found s).length) 0 (by omega) (by omega)
+  rw [List.drop_zero, Nat.zero_add] at hz
+  rw [← hN] at hz
+  have hEq : some c = some (Card.mk s (Rk ((st.found s).length - 1))) :=
+    hlast.symm.trans hz
+  injection hEq with hRk
+  have hcl : (chop (st.found s)).length + 1 = (st.found s).length := by
+    have hlc := congrArg List.length (lastOf_chop hlast)
+    rw [List.length_append] at hlc
+    have h1 : ([c] : List Card).length = 1 := rfl
+    omega
+  rw [hRk]
+  show (chop (st.found s)).length = (Rk ((st.found s).length - 1)).toIdx
+  rw [Rk_toIdx ((st.found s).length - 1) (by omega)]
+  omega
+
+/-- One pile's whole zone (the private reshaping).  PORTED
+verbatim from `Orig/Classify.lean:459`. -/
+private def pileZoneC (st : State) (a : Anchor) : List Card :=
+  (st.piles a).hidden ++ (st.piles a).faceUp
+
+/-- A WF state never holds a foundation card in a pile.  PORTED
+verbatim from `Orig/Classify.lean:465`. -/
+private theorem wf_found_not_in_pile {st : State} {c : Card} {a : Anchor} {σ : Suit}
+    (hwf : st.WF) (hf : c ∈ st.found σ) (hp : c ∈ (st.piles a).hidden ∨ c ∈ (st.piles a).faceUp) :
+    False := by
+  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
+  have hsplit : st.zones =
+      (Suit.all.map st.found) ++
+        ((Anchor.all.map (fun a' => pileZoneC st a')) ++ [st.stock, st.waste]) := rfl
+  have hl : c ∈ (Suit.all.map st.found).flatMap id :=
+    (List.mem_flatMap).2 ⟨st.found σ, List.mem_map.2 ⟨σ, Suit.mem_all σ, rfl⟩, hf⟩
+  have hz : c ∈ pileZoneC st a := by
+    rcases hp with h | h
+    · exact (List.mem_append).2 (Or.inl h)
+    · exact (List.mem_append).2 (Or.inr h)
+  have hr : c ∈ ((Anchor.all.map (fun a' => pileZoneC st a')) ++ [st.stock, st.waste]).flatMap id :=
+    (List.mem_flatMap).2 ⟨pileZoneC st a,
+      (List.mem_append).2 (Or.inl (List.mem_map.2 ⟨a, Anchor.mem_all a, rfl⟩)), hz⟩
+  have h2 : 2 ≤ st.cardCount c := count_ge_two_of_split hsplit hl hr
+  omega
+
+/-- A WF state's foundation top is no pile's top.  PORTED verbatim
+from `Orig/Classify.lean:486`. -/
+private theorem wf_found_not_pileTop {st : State} {c : Card} {a : Anchor} {σ : Suit}
+    (hwf : st.WF) (hf : lastOf (st.found σ) = some c) : (st.piles a).top ≠ some c := by
+  intro htop
+  have hmem : c ∈ (st.piles a).faceUp := Pile.mem_of_top htop
+  exact wf_found_not_in_pile hwf (lastOf_mem hf) (Or.inr hmem)
+
+/-- The pile-level round trip of a card-on-card placement.  PORTED
+verbatim from `Orig/Irreversible.lean:1287`. -/
+private theorem putCard_inr_roundtrip (p : Pile) (c : Card) (hf : p.faceUp ≠ []) :
+    Pile.afterRunRemoved { p with faceUp := p.faceUp ++ [c] } (chop (p.faceUp ++ [c])) = p := by
+  rw [chop_snoc]
+  cases hp : p.faceUp with
+  | nil => exact absurd hp hf
+  | cons x xs =>
+      show ({ p with faceUp := x :: xs } : Pile) = p
+      exact Pile.ext rfl hp.symm
+
+/-- The state-level round trip behind the pull undo.  PORTED
+verbatim from `Orig/Irreversible.lean:1323`; the frozen statement
+concludes the frozen twin of the carrier — this port's statement
+is the registry's own constant. -/
+private theorem foundToTab_rtp {st : State} {c : Card} {b : Base} {s₁ : State} {k : Anchor}
+    (hstep : State.step st (Move.foundToTab c b) = some s₁)
+    (hidx : (chop (st.found c.suit)).length = c.rank.toIdx)
+    (hfound : s₁.found c.suit = chop (st.found c.suit))
+    (hotherfound : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ)
+    (hsearch : s₁.pileOfTop c = some k)
+    (hkrest : Pile.afterRunRemoved (s₁.piles k) (chop (s₁.piles k).faceUp) = st.piles k)
+    (hzkeep : ∀ a', a' ≠ k → s₁.piles a' = st.piles a')
+    (hkeep : s₁.stock = st.stock ∧ s₁.waste = st.waste ∧ s₁.drawStep = st.drawStep) :
+    reversibleAtW st (Move.foundToTab c b) := by
+  obtain ⟨c', htop, hc'c, -, hs⟩ := step_foundToTab_inv hstep
+  have hF : st.found c.suit = chop (st.found c.suit) ++ [c] := by
+    have h2 : st.foundTop c.suit = some c := by rw [htop, hc'c]
+    exact lastOf_chop h2
+  have hnextup : s₁.nextUp c = true := by
+    show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
+    rw [hfound, hidx]
+    exact decide_eq_true rfl
+  refine ⟨s₁, [Move.tabToFound c], hstep, ?_⟩
+  have hstep2 : State.step s₁ (Move.tabToFound c) = some st := by
+    show (if s₁.nextUp c = true then
+        (match s₁.pileOfTop c with
+        | none => none
+        | some a =>
+            (some { s₁.setFound c.suit (s₁.found c.suit ++ [c]) with
+                     piles := fun a' =>
+                       if a' = a then Pile.afterRunRemoved (s₁.piles a) (chop (s₁.piles a).faceUp)
+                       else s₁.piles a' } : Option State))
+        else none) = some st
+    rw [hnextup, hsearch]
+    refine congrArg some (?_ :
+      { s₁.setFound c.suit (s₁.found c.suit ++ [c]) with
+        piles := fun a' =>
+          if a' = k then Pile.afterRunRemoved (s₁.piles k) (chop (s₁.piles k).faceUp)
+          else s₁.piles a' } = st)
+    refine State.ext (funext fun σ => ?_) (funext fun a' => ?_) ?_ ?_ ?_
+    · show (if σ = c.suit then s₁.found c.suit ++ [c] else s₁.found σ) = st.found σ
+      by_cases hσ : σ = c.suit
+      · rw [hσ, ite_eq_left rfl, hfound, ← hF]
+      · rw [ite_eq_right hσ]
+        exact hotherfound σ hσ
+    · show (if a' = k then Pile.afterRunRemoved (s₁.piles k) (chop (s₁.piles k).faceUp)
+          else s₁.piles a') = st.piles a'
+      by_cases ha' : a' = k
+      · rw [ha', ite_eq_left rfl]
+        exact hkrest
+      · rw [ite_eq_right ha']
+        exact hzkeep a' ha'
+    · show (s₁.setFound c.suit (s₁.found c.suit ++ [c])).stock = st.stock
+      rw [setFound_stock]
+      exact hkeep.1
+    · show (s₁.setFound c.suit (s₁.found c.suit ++ [c])).waste = st.waste
+      rw [setFound_waste]
+      exact hkeep.2.1
+    · show (s₁.setFound c.suit (s₁.found c.suit ++ [c])).drawStep = st.drawStep
+      rw [setFound_drawStep]
+      exact hkeep.2.2
+  simp only [State.run, hstep2]
+
+/-- **The `.foundToTab` undo, witness form (primary).**  A
+successful `Move.foundToTab c b` is undone by `Move.tabToFound c`
+of the same card, returning to the origin in one move.  PORTED
+verbatim from `Orig/Irreversible.lean:1400`; carrier note as
+above. -/
+private theorem foundToTab_undo {st : State} {c : Card} {b : Base} {s₁ : State} {k : Anchor}
+    (h : State.step st (Move.foundToTab c b) = some s₁)
+    (hnext : (chop (st.found c.suit)).length = c.rank.toIdx)
+    (hsearch : s₁.pileOfTop c = some k)
+    (hseat : b = Sum.inl k ∨ ∃ z, b = Sum.inr z ∧ st.pileOfTop z = some k) :
+    reversibleAtW st (Move.foundToTab c b) := by
+  obtain ⟨c', htop, hc'c, hcp, hs⟩ := step_foundToTab_inv h
+  have hkeep : s₁.stock = st.stock ∧ s₁.waste = st.waste ∧ s₁.drawStep = st.drawStep := by
+    refine ⟨?_, ?_, ?_⟩
+    · rw [hs, putCard_stock, setFound_stock]
+    · rw [hs, putCard_waste, setFound_waste]
+    · rw [hs, putCard_drawStep, setFound_drawStep]
+  have hs₁found : s₁.found c.suit = chop (st.found c.suit) := by
+    rw [hs, putCard_found]
+    exact setFound_found_self
+  have hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ := by
+    intro σ hσ
+    rw [hs, putCard_found]
+    exact setFound_found_ne hσ
+  rcases hseat with hb | ⟨z, hb, hz⟩
+  · subst hb
+    obtain ⟨hemp, -⟩ := canPlace_inl hcp
+    obtain ⟨hhd, hfu⟩ := (Pile.isEmpty_eq _).mp hemp
+    have hPk : s₁.piles k = ⟨[], [c]⟩ := by
+      rw [hs]
+      simp only [putCard_piles_inl]
+      rw [ite_true]
+    have hzkeep : ∀ a', a' ≠ k → s₁.piles a' = st.piles a' := by
+      intro a' hne
+      rw [hs]
+      simp only [putCard_piles_inl]
+      rw [ite_eq_right hne, setFound_piles]
+    exact foundToTab_rtp h hnext hs₁found hs₁other hsearch
+      (by
+        rw [hPk]
+        show (⟨[], []⟩ : Pile) = st.piles k
+        exact Pile.ext hhd.symm hfu.symm)
+      hzkeep hkeep
+  · subst hb
+    obtain ⟨hfne, -⟩ := pileOfTop_top hz
+    have hz' : (st.setFound c.suit (chop (st.found c.suit))).pileOfTop z = some k := hz
+    have hPk : s₁.piles k = { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } := by
+      rw [hs]
+      simp only [putCard_piles_inr _ _ _ _ hz']
+      rw [setFound_piles, ite_true]
+    have hzkeep : ∀ a', a' ≠ k → s₁.piles a' = st.piles a' := by
+      intro a' hne
+      rw [hs]
+      simp only [putCard_piles_inr _ _ _ _ hz']
+      rw [ite_eq_right hne, setFound_piles]
+    exact foundToTab_rtp h hnext hs₁found hs₁other hsearch
+      (by
+        rw [hPk]
+        exact putCard_inr_roundtrip _ c hfne)
+      hzkeep hkeep
+
+/-! ### §1s. The foundToTab step guards
+
+PORTED verbatim reading from `Orig/Classify.lean:1954-1967`.
+-/
+
+/-- A refused `.foundToTab` guard makes the move vacuous.  PORTED
+verbatim from `Orig/Classify.lean:1954`. -/
+private theorem step_foundToTab_none {st : State} {c' c : Card} {b : Base}
+    (htop : st.foundTop c.suit = some c')
+    (hcond : ((decide (c' = c) && st.canPlace c b) = true) → False) :
+    State.step st (Move.foundToTab c b) = none := by
+  simp only [State.step, htop]
+  rw [ite_eq_right hcond]
+
+/-- A passing `.foundToTab` guard produces the recorded successor.
+PORTED verbatim from `Orig/Classify.lean:1962`. -/
+private theorem step_foundToTab_legal {st : State} {c : Card} {b : Base}
+    (htop : st.foundTop c.suit = some c) (hcp : st.canPlace c b = true) :
+    ∃ s₁, State.step st (Move.foundToTab c b) = some s₁ := by
+  refine ⟨((st.setFound c.suit (chop (st.found c.suit))).putCard c b), ?_⟩
+  simp only [State.step, htop, hcp]
+  rfl
+
 /-!
 ## §2. THE WASTE PAIR  (universal rows — no gate)
 
@@ -3828,6 +4236,131 @@ theorem tabToFoundR_iff_reversibleAtW {st : State} (hwf : st.WF) (c : Card) :
     exact ⟨fun h => Bool.noConfusion h,
       fun w => absurd w (not_W_of_step_none (step_tabToFound_none_of_nextUp hf))⟩
 
+/-!
+## §5. THE FOUNDTOTAB LETTER
+
+The pull shape `foundToTabR` reads undoability natively: the
+foundation's current top is the pulled card and the base accepts
+it (the re-raise onto the accepting base — the mirror of the
+raise letter); every refused cell (empty foundation, foreign top,
+refused seat) makes the move vacuous.  FLIP of
+`Orig/Classify.lean:1979` (`foundToTabClass` over `foundToTabIrr`
+at :1974), restated at the carrier grade.
+-/
+
+/-- **The legal-pull `.foundToTab` witness at `WF`.**  The
+classification's own grind, re-stated at the carrier grade: the
+chop arithmetic pins the `nextUp` premise via the foundation's
+prefix property, and the successor's `pileOfTop` search re-pins
+its written seat (the card-count uniqueness excluding every other
+seat — `wf_found_not_pileTop`).  PORTED (extraction, not
+re-derivation) from `Orig/Classify.lean:2101`
+(`foundToTab_reversibleAtW_of_legal_wf`); the witness is the §1r
+`foundToTab_undo`. -/
+private theorem foundToTab_W_of_legal_wf {st : State} {c : Card} {b : Base}
+    (hwf : st.WF) (htop : st.foundTop c.suit = some c) (hcp : st.canPlace c b = true) :
+    reversibleAtW st (Move.foundToTab c b) := by
+  obtain ⟨s₁, hs⟩ := step_foundToTab_legal htop hcp
+  have hnext : (chop (st.found c.suit)).length = c.rank.toIdx :=
+    wf_found_chop_toIdx hwf htop
+  cases b with
+  | inl k =>
+      have hnost : ∀ a₂ : Anchor, a₂ ≠ k → (st.piles a₂).top ≠ some c :=
+        fun a₂ _ => @wf_found_not_pileTop st c a₂ c.suit hwf htop
+      have hsearch : s₁.pileOfTop c = some k := by
+        obtain ⟨-, -, -, -, hs'⟩ := step_foundToTab_inv hs
+        rw [hs']
+        have hothers : ∀ a₂, a₂ ≠ k →
+            ((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inl k)).piles a₂
+              = st.piles a₂ := by
+          intro a₂ hne₂
+          rw [putCard_piles_inl]
+          show (if a₂ = k then ((⟨[], [c]⟩ : Pile)) else st.piles a₂) = st.piles a₂
+          rw [ite_eq_right hne₂]
+        have htop2 : (((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inl k)).piles k).top
+            = some c := by
+          rw [putCard_piles_inl]
+          show (if k = k then ((⟨[], [c]⟩ : Pile)) else st.piles k).top = some c
+          rw [ite_eq_left rfl]
+          rfl
+        exact topPin hothers htop2 hnost
+      exact foundToTab_undo hs hnext hsearch (Or.inl rfl)
+  | inr z =>
+      obtain ⟨k, hz, -⟩ := canPlace_inr hcp
+      have hnost : ∀ a₂ : Anchor, a₂ ≠ k → (st.piles a₂).top ≠ some c :=
+        fun a₂ _ => @wf_found_not_pileTop st c a₂ c.suit hwf htop
+      have hsearch : s₁.pileOfTop c = some k := by
+        obtain ⟨-, -, -, -, hs'⟩ := step_foundToTab_inv hs
+        rw [hs']
+        have hz2 : (st.setFound c.suit (chop (st.found c.suit))).pileOfTop z
+            = some k := hz
+        have hothers : ∀ a₂, a₂ ≠ k →
+            ((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inr z)).piles a₂
+              = st.piles a₂ := by
+          intro a₂ hne₂
+          rw [putCard_piles_inr _ _ _ _ hz2]
+          show (if a₂ = k then
+              ({ st.piles k with faceUp := (st.piles k).faceUp ++ [c] } : Pile)
+              else st.piles a₂) = st.piles a₂
+          rw [ite_eq_right hne₂]
+        have htop2 : (((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inr z)).piles k).top
+            = some c := by
+          rw [putCard_piles_inr _ _ _ _ hz2]
+          show (if k = k then
+              ({ st.piles k with faceUp := (st.piles k).faceUp ++ [c] } : Pile)
+              else st.piles k).top = some c
+          rw [ite_eq_left rfl]
+          show lastOf ((st.piles k).faceUp ++ [c]) = some c
+          exact lastOf_snoc
+        exact topPin hothers htop2 hnost
+      exact foundToTab_undo hs hnext hsearch (Or.inr ⟨z, rfl, hz⟩)
+
+/-- **The pull letter**: at `WF` the shape `foundToTabR` reads
+undoability exactly — every refused cell (empty foundation, no
+matching top, refused base) makes the move vacuous and denies the
+witness; the legal cell hands the re-raise play back.  FLIP of
+`Orig/Classify.lean:1979` (`foundToTabClass`; the `foundToTabR`
+cells negate the frozen `foundToTabIrr` cells at `:1974`, per
+case). -/
+theorem foundToTabR_iff_reversibleAtW {st : State} (hwf : st.WF) (c : Card) (b : Base) :
+    foundToTabR st c b = true ↔ reversibleAtW st (Move.foundToTab c b) := by
+  cases htop : st.foundTop c.suit with
+  | none =>
+      have hcell : foundToTabR st c b = false := by
+        simp only [foundToTabR, htop]
+      rw [hcell]
+      exact ⟨fun h => Bool.noConfusion h,
+        fun w => absurd w (not_W_of_step_none (by simp only [State.step, htop]))⟩
+  | some c' =>
+      by_cases hcc : c' = c
+      · rw [hcc] at htop
+        cases hcp : st.canPlace c b with
+        | false =>
+            have hcell : foundToTabR st c b = false := by
+              simp only [foundToTabR, htop, hcp]
+              rfl
+            rw [hcell]
+            exact ⟨fun h => Bool.noConfusion h,
+              fun w => absurd w (not_W_of_step_none (step_foundToTab_none htop (by
+                intro hc
+                rw [Bool.and_eq_true, decide_eq_true rfl] at hc
+                exact Bool.noConfusion (hcp.symm.trans hc.2))))⟩
+        | true =>
+            have hcell : foundToTabR st c b = true := by
+              simp only [foundToTabR, htop, hcp]
+              rfl
+            rw [hcell]
+            exact ⟨fun _ => foundToTab_W_of_legal_wf hwf htop hcp, fun _ => rfl⟩
+      · have hcell : foundToTabR st c b = false := by
+          simp only [foundToTabR, htop]
+          rw [ite_eq_right hcc]
+        rw [hcell]
+        exact ⟨fun h => Bool.noConfusion h,
+          fun w => absurd w (not_W_of_step_none (step_foundToTab_none htop (by
+            intro hc
+            rw [Bool.and_eq_true] at hc
+            exact Bool.noConfusion (hc.1.symm.trans (decide_eq_false hcc)))))⟩
+
 /-! ## The audit battery
 
 Per proved head, this batch.  Expected profile per the card header:
@@ -3838,3 +4371,4 @@ Per proved head, this batch.  Expected profile per the card header:
 #print axioms wasteToTab_not_reversibleAtW
 #print axioms drawR_iff_reversibleAtW
 #print axioms tabToFoundR_iff_reversibleAtW
+#print axioms foundToTabR_iff_reversibleAtW
