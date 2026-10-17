@@ -20,22 +20,24 @@ THE FILE RULES
   line), or RETIRE (fenced here; the frozen tier keeps its boundary
   data).  No pending entry is ported.
 
-OWNER REVIEW LEDGER (2026-10-17): KILLED — `weakForkState`,
-`FaceShape`, `conjugateForkState`, `conjugateCompositeRev` (the weak
-grade and the conjugate-composite family exit the new vocabulary;
-their frozen-tier consumers — the G2 falsifier records, the §9
-composites, the S-siblings — stay on record where they are).  KEPT —
+OWNER REVIEW LEDGER (2026-10-17): KILLED — the early four
+(`weakForkState`, `FaceShape`, `conjugateForkState`,
+`conjugateCompositeRev`), the witness-only restate's semantic pair,
+the commit-polarity shape originals, and the class-grade sweep
+(the canon family, `Final`, the five class-grade reads,
+`forkedCard`, `unionable`/`unionRung`, `OnlyPairLicensed`) — full
+fences and lineage in the annex's KILLED section, where the
+retirements' consumer records (the G2 falsifier rows, the §9
+composites, the class-grade consumers) are noted as frozen-tier
+boundary data.  KEPT —
 `CanRaise`, `CanRaiseS`, `ShufflePlayW`, `RevEqW`, `sameOrbitSetoid`,
 `classOf`, `rungAt`, `twinSuit`, the reversibility carrier
 `reversibleAtW` (the regime's ONE semantic notion), the R-shapes
 `drawR`/`tabToFoundR`/`foundToTabR`/`tabToTabR` and the
 negation-free oracle `reversibleOf` (the inside-flip; the
 commit-polarity originals retired), and the journey letters
-`FlatStep`/`FlatPath`/`CargoPath`/`Journey`.  RETIRED by the
-witness-only restate — `irreversibleAt`/`reversibleAt` (the
-semantic commitment pair exited the new interface; the classical
-iff fence is moot — its other side no longer exists).
-PENDING — everything in the annex below.
+`FlatStep`/`FlatPath`/`CargoPath`/`Journey`.  PENDING — everything
+in the annex below.
 
 ## §1. PLAY-TAXONOMY COUNTERS (live, ported)
 
@@ -335,39 +337,41 @@ pending entry is ported.
 
 ## KILLED (owner, 2026-10-17) — never re-land; fences
 
-* `weakForkState` (`Orig/MacroInternal.lean:1069`) — RETIRED from
-  the new vocabulary.  The weak grade lives only where it already
-  is: inside the frozen tier's G2 falsifier records and their
-  consumed rows.  FENCE: no new-interface row is stated at the weak
-  grade; new detection content speaks `CanRaiseS`-grade only.
-* `FaceShape` — RETIRED (`Orig/MacroInternal.lean:1362`).
-* `conjugateForkState` — RETIRED (`Orig/MacroInternal.lean:1126`).
-* `conjugateCompositeRev` — RETIRED (`Orig/MacroInternal.lean:1565`).
-  FENCE (the family): the conjugate-composite vocabulary exits; the
-  frozen tier's composite rows (the §9 wave, the S-siblings) stay on
-  record as boundary data.
+The sweep batch (the class-grade population tier + the canonical
+machinery, all killed before any port — the frozen tier keeps the
+certified rows as boundary data):
 
-## PENDING — licenses, letters & grades
-
-* `canon` / `satStep` / `canonAux` (`Orig/Canonical.lean:1480-1493`;
-  companions `pick`/`raise` port along)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* `Final` — `def Final (st : State) : Prop := ∀ c, ¬ CanRaise st c`
-  (`Orig/Canonical.lean:406`)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* `saturatesTo` (`Orig/MacroInternal.lean:1198`; companion `StackRun`)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* `canon` / `satStep` / `canonAux` (with the `pick`/`raise`
+  companions) — the deterministic saturator-canon exits the new
+  vocabulary.  FENCE: any future canonical representative is a
+  NEW shape with its own intent line, not this 53-step fold.
+* `Final` (`∀ c, ¬ CanRaise st c`) — the vanilla saturation read
+  exits.  Future saturation cards write their own grade.
 * `atRungInClass` / `satStackable` / `strandedInClass` /
-  `pendingForever` / `surelyStackable` (`Orig/MacroInternal.lean:65-89`)
-  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* `forkedCard` (`Orig/MacroInternal.lean:1218`)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* `unionable` / `unionRung` (`Orig/MacroInternal.lean:1281,1285`)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* `OnlyPairLicensed` (`Orig/MacroInternal.lean:1331`)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* `coveredIn` (`Orig/MacroInternal.lean:1168`)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+  `pendingForever` / `surelyStackable` — the one-existential
+  class-grade family exits.  FENCE: the arm-contingency content
+  (sat vs surely gap) returns only as a NEW grade with an owner
+  line; the pairClass migration wave (the founding ledger's first
+  wave) meets these grades as CONSUMERS — its card writes the new
+  population vocabulary when chartered.
+* `forkedCard` (sat ∧ ¬surely) — the fork's macro-grade arm
+  language exits with the family it rode.
+* `unionable` / `unionRung` — the saturating-descendant union
+  profile exits.
+* `OnlyPairLicensed` — the canonical-face fence row exits.
+* `saturatesTo` (with its `StackRun` companion) — the saturating-
+  completion read exits with the union and canon families it
+  rode.
+* `coveredIn` — the covered-seat read exits; future seating cards
+  write their own.
+
+Earlier kills the same day: `weakForkState` (the weak grade lives
+only inside the frozen tier's G2 falsifier records),
+`FaceShape`, `conjugateForkState`, `conjugateCompositeRev` (the
+conjugate-composite family), the semantic commitment pair
+`irreversibleAt`/`reversibleAt` (the witness-only regime), and the
+commit-polarity shape originals `drawIrr`/`tabToFoundIrr`/
+`foundToTabIrr`/`tabToTabIrr`/`irreversibleOf` (the inside-flip).
 
 ## PENDING — detection
 
@@ -418,9 +422,10 @@ pending adjudication like the rest:
 * **Slab both-suits form** — `xyBelowBoth` (`Orig/SlabForms.lean:93`).
   REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * **Canonical supports** (`Orig/Canonical.lean`) — `Stackable`
-  (321), `canRaiseB` (365), `pick` (409), `IsRaise`/`raise`
-  (465-469), `StackRun` (530), `suitGap`/`stackFuel` (541-544),
-  `drawPool` (2466), `SameMacroO` (2930).
+  (321), `canRaiseB` (365), `IsRaise` (465), `suitGap`/`stackFuel`
+  (541-544), `drawPool` (2466), `SameMacroO` (2930).
+  (`pick`/`raise` killed with the canon family; `StackRun` killed
+  with `saturatesTo`.)
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * **Composites** (`Orig/Classify.lean`) — `WFRun` (2907).
   (`irreversibleOf` and its oracle companions: RESOLVED — ported
