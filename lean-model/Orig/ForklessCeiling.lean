@@ -1013,6 +1013,169 @@ theorem cargoLeg_burnfree {st s₁ : State} {c z : Card} {a : Anchor}
   have hrise := fcToppedRF_play s₁ back st (step_wf hwf hstep) hback
   omega
 
+/-- RF plays concatenate at their shared endpoint (the vehicle-grade
+twin of `CargoPlay_append`, re-inducted over the RF constructors). -/
+theorem CargoPlayRF_append {a b : State} : ∀ {l₁ : List Move},
+    CargoPlayRF a l₁ b → ∀ {l₂ : List Move} {c : State},
+    CargoPlayRF b l₂ c → CargoPlayRF a (l₁ ++ l₂) c := by
+  intro l₁ h
+  induction h with
+  | nil s => intro l₂ c h₂; exact h₂
+  | @cons st s₁ b' cc bb rc hstep hrf hrest ih =>
+      intro l₂ c h₂
+      rw [List.cons_append]
+      exact .cons hstep hrf (ih h₂)
+
+/-! ## §0c.6 The surviving alphabet's vehicle
+
+Route item 3, priced as staged: the exclusion's constructive form —
+every leg of either witness pass lifts to one of the two
+witness-grade arms (the under-armed seated slide, or the bare
+king-corner), re-inducted as the shuffle vehicle the §0d mirrors
+read. -/
+
+/-- **THE SURVIVING ALPHABET'S VEHICLE** — a clean cargo play every
+leg of which is one of the two witness-grade arms: the UNDER-ARMED
+SEATED SLIDE (below-content nonempty at every holder) or the CLEAN
+KING-CORNER (king-headed, source bare).  Route-faithful to the
+exclusion banner's item 3. -/
+inductive CargoShuffle : State → List Move → State → Prop
+  | nil (st : State) : CargoShuffle st [] st
+  | slide {st s₁ W : State} {c : Card} {b : Base} {ρ : List Move}
+      (hstep : State.step st (Move.tabToTab c b) = some s₁)
+      (hunder : ∀ (a : Anchor), st.pileHolding c = some a →
+          below c (st.piles a).faceUp ≠ [])
+      (hrest : CargoShuffle s₁ ρ W) :
+      CargoShuffle st (Move.tabToTab c b :: ρ) W
+  | corner {st s₁ W : State} {K : Card} {a₀ : Anchor} {ρ : List Move}
+      (hstep : State.step st (Move.tabToTab K (Sum.inl a₀)) = some s₁)
+      (hking : K.rank = Rank.king)
+      (hsrc : ∀ (a : Anchor), st.pileHolding K = some a →
+          below K (st.piles a).faceUp = [] ∧ (st.piles a).hidden = [])
+      (hrest : CargoShuffle s₁ ρ W) :
+      CargoShuffle st (Move.tabToTab K (Sum.inl a₀) :: ρ) W
+
+/-- **THE SHUFFLE IS STILL A CARGO PLAY** (the vehicle's raw
+projection). -/
+theorem CargoShuffle_cargo {st : State} : ∀ {τ : List Move} {W : State},
+    CargoShuffle st τ W → CargoPlay st τ W := by
+  intro τ W h
+  induction h with
+  | nil s => exact .nil s
+  | @slide st s₂ W c b ρ hstep hunder hrest ih =>
+      exact .cons ⟨c, b, rfl⟩ hstep ih
+  | @corner st s₂ W K a₀ ρ hstep hking hsrc hrest ih =>
+      exact .cons ⟨K, Sum.inl a₀, rfl⟩ hstep ih
+
+/-- **THE RF PASS WITH AN RF RETURN SHUFFLES** — the leg classifier
+(burn half's route item 3, composite form): each leg of a
+reveal-free play carrying a reveal-free return lifts to the
+surviving alphabet — the inr legs with nonempty below are the
+under-armed slides; the inr legs with bare sources CONTRADICT the
+kernel `cargoLeg_burnfree` through their own tail-plus-wrap RF
+return; the inl legs are bare king-corners by force (`fc_runOK_
+king_first` at WF empties the below, the RF premise empties the
+hidden deck). -/
+theorem CargoPlayRF_to_shuffle {S W : State} {τ : List Move}
+    (hwf : S.WF) (hτ : CargoPlayRF S τ W) :
+    ∀ (wrap : List Move), CargoPlayRF W wrap S → CargoShuffle S τ W := by
+  induction hτ with
+  | nil s => intro wrap wrapRF; exact .nil s
+  | @cons st s₂ W' cc bb rc hstep hrf hrest ih =>
+      intro wrap wrapRF
+      obtain ⟨hhold, hholdP, hcp, hfr, -⟩ := step_tabToTab_inv hstep
+      have huniq : ∀ (a' : Anchor), st.pileHolding cc = some a' → a' = hhold := by
+        intro a' ha'
+        exact Option.some.inj (ha'.symm.trans hholdP)
+      have hlegRF : CargoPlayRF st [Move.tabToTab cc bb] s₂ :=
+        .cons hstep hrf (.nil s₂)
+      have hsub : CargoShuffle s₂ rc W' :=
+        ih (step_wf hwf hstep) (wrap ++ [Move.tabToTab cc bb])
+          (CargoPlayRF_append wrapRF hlegRF)
+      cases bb with
+      | inl a₀ =>
+          obtain ⟨hemp, hK⟩ := canPlace_inl hcp
+          obtain ⟨rest, hKrest⟩ := fc_fromCard_head (st.piles hhold).faceUp hfr
+          have hjoin : (st.piles hhold).faceUp
+              = below cc (st.piles hhold).faceUp ++ cc :: rest := by
+            rw [← hKrest]
+            exact fc_below_join cc (st.piles hhold).faceUp
+          have hbel : below cc (st.piles hhold).faceUp = [] :=
+            fc_runOK_king_first hK _ rest (by
+              rw [← hjoin]
+              exact hwf.runOK_of hhold)
+          have hhid : (st.piles hhold).hidden = [] := by
+            rcases hrf hhold hholdP with hbl | hhn
+            · exact absurd hbel hbl
+            · exact hhn
+          exact .corner hstep hK
+            (fun a' ha' => by
+              have hax : a' = hhold := huniq a' ha'
+              rw [hax]
+              exact ⟨hbel, hhid⟩)
+            hsub
+      | inr z =>
+          rcases hrf hhold hholdP with hbl | hhn
+          · exact .slide hstep (fun a' ha' => by
+              have hax : a' = hhold := huniq a' ha'
+              rw [hax]
+              exact hbl)
+              hsub
+          · by_cases hbel : below cc (st.piles hhold).faceUp = []
+            · have hret : CargoPlayRF s₂ (rc ++ wrap) st :=
+                CargoPlayRF_append hrest wrapRF
+              exact absurd hret
+                (cargoLeg_burnfree hwf hstep hholdP hbel hhn (rc ++ wrap))
+            · exact .slide hstep (fun a' ha' => by
+                have hax : a' = hhold := huniq a' ha'
+                rw [hax]
+                intro hcon
+                exact hbel hcon)
+                hsub
+
+/-- The RF play threads WF from origin to endpoint (the raw-run
+transport, re-inducted over the vehicle). -/
+theorem CargoPlayRF_wf {st : State} : ∀ {τ : List Move} {W : State},
+    CargoPlayRF st τ W → st.WF → W.WF := by
+  intro τ W h
+  induction h with
+  | nil s => exact id
+  | @cons st s₂ W' cc bb rc hstep hrf hrest ih =>
+      intro hwf
+      exact ih (step_wf hwf hstep)
+
+/-- **THE PASS-PAIR PACKAGING** — every both-ways pair of the dumb
+closure at a WF origin SHUFFLES: both witness plays lift to the
+surviving alphabet's clean vehicle — the composite of the exclusion's
+two halves (the reveal half's `cargo_revealfree_of_equiv` feeding
+the burn half's classifier).  This is route item 3's constructive
+form: the surviving alphabet is EXACTLY the two witness-grade arms.
+The §0d mirrors (each arm's one-move in-place return) remain the
+priced named residue this does not touch. -/
+theorem cargo_shuffle_of_equiv {A B : State} {τ ρ : List Move}
+    (hwf : A.WF) (hτ : CargoPlay A τ B) (hρ : CargoPlay B ρ A) :
+    CargoShuffle A τ B ∧ CargoShuffle B ρ A := by
+  obtain ⟨hτRF, hρRF⟩ := cargo_revealfree_of_equiv hτ hρ
+  have hBwf : B.WF := CargoPlayRF_wf hτRF hwf
+  exact ⟨CargoPlayRF_to_shuffle hwf hτRF ρ hρRF,
+         CargoPlayRF_to_shuffle hBwf hρRF τ hτRF⟩
+
+/-- **THE EXCLUSION THEOREM, LANDED** — `cargo_clean_of_equiv`, the
+named [H] residue of §0c, resolves to the constructive packaging:
+at a WF origin the degenerate arms never ride a both-ways pair of
+the dumb closure — the surviving alphabet is EXACTLY the two
+witness-grade arms (the under-armed seated slide, the clean
+king-corner), certificate-wise the shuffle lift.  The analytic
+halves (reveal-free by `cargo_revealfree_of_equiv`, burn-free by
+the kernel `cargoLeg_burnfree` through the classifier) are the
+proof's two pincers; the §0d mirrors that read each arm as a
+`ShufflePlayW` — and complete `cargo_refines_sameOrbit` — remain
+the priced named residue beyond this row. -/
+theorem cargo_clean_of_equiv {A B : State} {τ ρ : List Move}
+    (hwf : A.WF) (hτ : CargoPlay A τ B) (hρ : CargoPlay B ρ A) :
+    CargoShuffle A τ B ∧ CargoShuffle B ρ A :=
+  cargo_shuffle_of_equiv hwf hτ hρ
+
 /-! **THE EXCLUSION THEOREM** `cargo_clean_of_equiv` [H — THE NAMED
 RESIDUE OF THIS §0c] — the degenerate arms never ride a both-ways
 pair of the dumb closure: every leg of either witness play is
@@ -1022,34 +1185,34 @@ UNDER-ARMED SEATED SLIDE (below ≠ []; `census_tabToTab_under`'s
 identity-cell economy) and the CLEAN KING-CORNER
 (`census_tabToTab_inl`'s king-headed census-neutral row).
 
-ROUTE (the reveal half LANDED above; the burn half and the final
-packaging priced):
+ROUTE (THE WHOLE ROUTE LANDED; item 3's mirrors and §0d remain the
+priced named residue beyond the exclusion itself):
 
 1. THE REVEAL HALF — LANDED IN FULL, §0c.1: the kernel monotone
-   family (`fcHiddenTotal_step`/`fcHiddenTotal_play`, the public
-   Table-2 delegation through `fcHiddenTotal_eq`), the per-leg bar
+   family (`fcHiddenTotal_step`/`fcHiddenTotal_play`), the per-leg bar
    `fc_revealleg_irreversible` (`irreversibleAt`, the grain-free
    no-return commitment), the composite-position kernel
    `cargoLeg_revealfree` (a leg with any return never consumes a
-   hidden head), and the vehicle closure: `CargoPlayRF_of_return`
-   freezes each leg by return-induction — each leg's pre-state
-   returns via its own tail plays joined through the endpoint to
-   the origin, then the origin's one-move re-entry — so
-   `cargo_revealfree_of_equiv` reads both witness plays of any
-   `BareCargoEquiv` reveal-free, wholesale.
-2. THE BURN HALF — the same composite at the VACANT-SEAT counter:
-   after the reveal-free pass the only `tabToTab` letter that
-   drops the number of topped piles is the seated burn (below =
-   []: source vanishes with no replacement; under-arms transfer a
-   top; the clean king-corner transfers a top; the under-armed
-   `inl` lifter that would ADD a top cannot exist at `WF` —
-   `fc_runOK_king_first` above: a king is its pile's face-up
-   bottom), and nothing ADDS one, so a returning cycle meters
-   zero burns.
-3. THE PACKAGING — re-induct the two passes into a clean-play
-   vehicle (the under constructor with the below ≠ [] premise,
-   the king constructor with the bare-source premise), which
-   §0d's mirrors then read as `ShufflePlayW`s. -/
+   hidden head), and the vehicle closure `cargo_revealfree_of_equiv`
+   — both witness plays of any `BareCargoEquiv` read reveal-free.
+2. THE BURN HALF — LANDED IN FULL, §0c.2-§0c.5: the topped counter
+   `fcToppedTotal` and its fold kit, the per-leg delta table
+   (slide/reveal preserve at 0; the seated burn the one strict drop
+   at -1, WF-free; the king-corner exchange at 0), the RF leg/play
+   monotones, and the kernel `cargoLeg_burnfree` — a seated burn
+   with an RF return never rides.
+3. THE PACKAGING — LANDED, §0c.6: the classifier
+   `CargoPlayRF_to_shuffle` (inl legs are bare king-corners by
+   force at WF; inr-bare legs contradict the kernel through their
+   own tail-plus-wrap RF return; under-armed inr legs are the
+   slides), the `CargoShuffle` vehicle with exactly the two
+   witness-grade constructors, and the assembly
+   `cargo_shuffle_of_equiv` — both witness plays of any both-ways
+   pair at a WF origin SHUFFLE — from which
+   `cargo_clean_of_equiv` resolves as the pair-lift's constructive
+   certificate (the named [H] RESOLVED; the per-arm §0d mirrors —
+   each arm's one-move in-place return, `cargo_refines_sameOrbit` —
+   stay the priced residue). -/
 
 /-! ## §0d. The mirrors, the refinement, and the fix
 
@@ -1430,15 +1593,21 @@ combinators through the per-file bridge, `fc_revealleg_exits` rides
 the clean irreversibility row, the exclusion's REVEAL half lands at
 vehicle grade (`cargoLeg_revealfree`, `CargoPlayRF_of_return`,
 `cargo_revealfree_of_equiv`), and the BURN half's monotone-graded
-core is LANDED (§0c.2-§0c.5: the topped counter `fcToppedTotal`, the
-fold kit, the per-leg deltas — slide/reveal preserve, the seated burn
-the one strict drop at −1 WF-free, the king-corner exchange — the
-RF leg/play monotones, and the kernel `cargoLeg_burnfree`); the
-burn-side composite and the `CargoShuffle` packaging remain the
-priced route item-2/3 tail; the §0d named residues carry their
-priced routes in their docstrings; the frozen §2 grades (and, with
-them, the §1f characterization) carry `sorryAx`, each with the
-complete route recorded where it is declared. -/
+core is LANDED IN FULL with the route resolved: §0c.2-§0c.5 (the
+topped counter `fcToppedTotal`, the fold kit, the per-leg deltas —
+slide/reveal preserve, the seated burn the one strict drop at −1
+WF-free, the king-corner exchange — the RF leg/play monotones, and
+the kernel `cargoLeg_burnfree`), §0c.6 (the `CargoShuffle` vehicle,
+the classifier `CargoPlayRF_to_shuffle`, the assembly
+`cargo_shuffle_of_equiv`), and §0c.7's RESOLUTION —
+`cargo_clean_of_equiv`, the named [H] residue, LANDED at
+[propext, Quot.sound] as the pair-lift's constructive certificate
+(both witness plays of any both-ways pair at a WF origin shuffle);
+the per-arm `§0d` mirrors (`cargo_refines_sameOrbit`'s
+one-move in-place returns) remain the priced named residue; the
+frozen §2 grades (and, with them, the §1f characterization) carry
+`sorryAx`, each with the complete route recorded where it is
+declared. -/
 
 #print axioms CargoPlay_run
 #print axioms CargoPlay_append
@@ -1451,6 +1620,12 @@ complete route recorded where it is declared. -/
 #print axioms fc_revealleg_exits
 #print axioms cargoLeg_revealfree
 #print axioms cargoLeg_burnfree
+#print axioms CargoPlayRF_append
+#print axioms CargoPlayRF_wf
+#print axioms CargoPlayRF_to_shuffle
+#print axioms CargoShuffle_cargo
+#print axioms cargo_shuffle_of_equiv
+#print axioms cargo_clean_of_equiv
 #print axioms CargoPlayRF_cargo
 #print axioms CargoPlayRF_of_return
 #print axioms cargo_revealfree_of_equiv
