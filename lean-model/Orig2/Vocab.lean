@@ -570,6 +570,26 @@ private kit to the registry at the chart ratification (frozen
 lineage: `Orig/Canonical.lean:2466`). -/
 def drawPool (st : State) : List Card := st.stock.reverse ++ st.waste
 
+/-- **boardFixed st w** — chart-support kit (the named readout
+agreements the chart rows conjoin): the hidden decks and the deal
+quantum agree.  (The pool and the cut stay per-row clauses — the
+draw row moves the cut, the waste rows move the pool.) -/
+def boardFixed (st w : State) : Prop :=
+  (∀ a, (st.piles a).hidden = (w.piles a).hidden) ∧
+    st.drawStep = w.drawStep
+
+/-- **foundsFixed st w** — chart-support kit: the foundation rows
+agree. -/
+def foundsFixed (st w : State) : Prop :=
+  ∀ s, st.found s = w.found s
+
+/-- **chartAgree st w** — chart-support kit: the FULL readout
+agreement (the round-trip's single premise — states are their
+readouts). -/
+def chartAgree (st w : State) : Prop :=
+  (∀ c, seatOf st c = seatOf w c) ∧ boardFixed st w ∧
+    foundsFixed st w ∧ drawPool st = drawPool w ∧ cutOf st = cutOf w
+
 /-!
 # THE REVIEW ANNEX — pending adjudication
 

@@ -110,14 +110,9 @@ kits (the classification and orbit cards each hold copies — this
 book is the dedup strike that replaces them). -/
 
 /-- **CLAIM `chart_round_trip`** — the chart is faithful: states
-are their five readouts. -/
-theorem chart_round_trip (st w : State)
-    (hseat : ∀ c, seatOf st c = seatOf w c)
-    (hhid : ∀ a, (st.piles a).hidden = (w.piles a).hidden)
-    (hfnd : ∀ s, st.found s = w.found s)
-    (hpool : drawPool st = drawPool w)
-    (hcut : cutOf st = cutOf w)
-    (hds : st.drawStep = w.drawStep) : st = w := by
+are their readouts (the named full agreement). -/
+theorem chart_round_trip (st w : State) (h : chartAgree st w) :
+    st = w := by
   sorry
 
 /-- **CLAIM `chart_tabToTab`** — the UPDATE row: one pair change,
@@ -125,10 +120,8 @@ nothing else in the world moves. -/
 theorem chart_tabToTab {st s' : State} {c : Card} {b : Base}
     (hstep : State.step st (Move.tabToTab c b) = some s') :
     (∀ x, seatOf s' x = if x = c then some b else seatOf st x) ∧
-    (∀ a, (st.piles a).hidden = (s'.piles a).hidden) ∧
-    (∀ s, st.found s = s'.found s) ∧
-    drawPool st = drawPool s' ∧ cutOf st = cutOf s' ∧
-    st.drawStep = s'.drawStep := by
+    boardFixed st s' ∧ foundsFixed st s' ∧
+    drawPool st = drawPool s' ∧ cutOf st = cutOf s' := by
   sorry
 
 /-- **CLAIM `chart_tabToFound`** — the DELETE row: the pair vanishes,
@@ -139,9 +132,8 @@ theorem chart_tabToFound {st s' : State} {c : Card}
     c ∈ s'.found c.suit ∧
     (s'.found c.suit).length = (st.found c.suit).length + 1 ∧
     (∀ s ≠ c.suit, st.found s = s'.found s) ∧
-    (∀ a, (st.piles a).hidden = (s'.piles a).hidden) ∧
-    drawPool st = drawPool s' ∧ cutOf st = cutOf s' ∧
-    st.drawStep = s'.drawStep := by
+    boardFixed st s' ∧ drawPool st = drawPool s' ∧
+    cutOf st = cutOf s' := by
   sorry
 
 /-- **CLAIM `chart_foundToTab`** — the ADD row: the pair appears at
@@ -153,9 +145,8 @@ theorem chart_foundToTab {st s' : State} {c : Card} {b : Base}
     c ∉ s'.found c.suit ∧
     (st.found c.suit).length = (s'.found c.suit).length + 1 ∧
     (∀ s ≠ c.suit, st.found s = s'.found s) ∧
-    (∀ a, (st.piles a).hidden = (s'.piles a).hidden) ∧
-    drawPool st = drawPool s' ∧ cutOf st = cutOf s' ∧
-    st.drawStep = s'.drawStep := by
+    boardFixed st s' ∧ drawPool st = drawPool s' ∧
+    cutOf st = cutOf s' := by
   sorry
 
 /-- **CLAIM `chart_draw`** — the CUT row: no pair changes, no
@@ -164,10 +155,8 @@ foundation changes, the pool is conserved; only the split moves
 from the seam's draw unfold and the orbit card's phase kit). -/
 theorem chart_draw {st s' : State}
     (hstep : State.step st Move.draw = some s') :
-    (∀ c, seatOf s' c = seatOf st c) ∧
-    (∀ s, st.found s = s'.found s) ∧
-    (∀ a, (st.piles a).hidden = (s'.piles a).hidden) ∧
-    drawPool st = drawPool s' ∧ st.drawStep = s'.drawStep := by
+    (∀ c, seatOf s' c = seatOf st c) ∧ foundsFixed st s' ∧
+    boardFixed st s' ∧ drawPool st = drawPool s' := by
   sorry
 
 /-- **CLAIM `chart_wasteToFound`** — the pool-to-foundation row: no
@@ -180,8 +169,7 @@ theorem chart_wasteToFound {st s' : State} {c : Card}
     c ∈ s'.found c.suit ∧
     (s'.found c.suit).length = (st.found c.suit).length + 1 ∧
     (∀ s ≠ c.suit, st.found s = s'.found s) ∧
-    (∀ a, (st.piles a).hidden = (s'.piles a).hidden) ∧
-    cutOf st = cutOf s' ∧ st.drawStep = s'.drawStep := by
+    boardFixed st s' ∧ cutOf st = cutOf s' := by
   sorry
 
 /-- **CLAIM `chart_wasteToTab`** — the pool-to-seat row: one pair
@@ -190,9 +178,8 @@ theorem chart_wasteToTab {st s' : State} {c : Card} {b : Base}
     (hstep : State.step st (Move.wasteToTab c b) = some s') :
     seatOf s' c = some b ∧ (∀ x ≠ c, seatOf s' x = seatOf st x) ∧
     (drawPool s').length = (drawPool st).length - 1 ∧
-    (∀ s, st.found s = s'.found s) ∧
-    (∀ a, (st.piles a).hidden = (s'.piles a).hidden) ∧
-    cutOf st = cutOf s' ∧ st.drawStep = s'.drawStep := by
+    foundsFixed st s' ∧ boardFixed st s' ∧
+    cutOf st = cutOf s' := by
   sorry
 
 /-! ## The audit battery
