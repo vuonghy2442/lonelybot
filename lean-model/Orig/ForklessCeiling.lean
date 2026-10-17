@@ -1919,6 +1919,135 @@ private theorem cargoMirror_s2 {st s₁ : State} {e z : Card} {k a : Anchor}
   exact ⟨y, tail, hy_fit, hzBy, hy_ta, hhold₂, hmemk, hfromK, hhkF, hskF,
     hsaF, hsaH, hrunform, hcp₂⟩
 
+/-- **THE SLIDE'S REASSEMBLY** (`cargoMirror_slide`'s third package):
+the mirror move re-fires at the successor and lands back at the
+letter's own source exactly.  The forward equation unfolds the
+`tabToTab e (inr y)` re-fire (the seam card `y` the successor's source
+pile tops), and the record read at the intermediate write state `N`
+(the k-pile with the moved run stripped) reassembles `st` field by
+field: the run rides back onto the source pile (the below-part plus
+the fromCard-run is the whole face-up by the run split), the source's
+below-part re-becomes the host k-pile verbatim, and every zone outside
+the piles is kept by the putRun/setPile/step hygiene. -/
+private theorem cargoMirror_s3 {st s₁ : State} {e z : Card} {k a : Anchor}
+    (hwf : st.WF)
+    (hstep : State.step st (Move.tabToTab e (Sum.inr z)) = some s₁)
+    (hhold : st.pileHolding e = some a)
+    (hpa : st.pileOfTop z = some k)
+    (hfit : canSitOn e z = true)
+    (hpre : below e (st.piles a).faceUp ≠ []) :
+    ∃ (y : Card) (run : List Card),
+      State.step s₁ (Move.tabToTab e (Sum.inr y)) = some st := by
+  obtain ⟨M, hs', -, -, hzM, hotherM⟩ :=
+    cargoMirror_s1 hwf hstep hhold hpa hfit hpre
+  obtain ⟨y, tail, -, -, hy_ta, hhold₂, -, hfromK, hhkF, hskF, hsaF, hsaH,
+      hrunform, hcp₂⟩ :=
+    cargoMirror_s2 hwf hstep hhold hpa hfit hpre
+  obtain ⟨-, -, hcp, -, -⟩ := step_tabToTab_inv hstep
+  have hmem : e ∈ (st.piles a).faceUp := pileHolding_mem hhold
+  have hkane : k ≠ a := fun hcon =>
+    canPlace_inr_target_pile_ne hwf hcp hmem (by rw [← hcon]; exact hpa)
+  have hzs : (st.piles k).top = some z :=
+    (pileOfTop_eq_some_iff hwf).mp hpa
+  have hzkmem : z ∈ (st.piles k).faceUp :=
+    lastOf_mem (show lastOf ((st.piles k).faceUp) = some z from hzs)
+  have hs1mem := lastOf_mem
+    (show lastOf ((s₁.piles a).faceUp) = some y from hy_ta)
+  rw [hsaF] at hs1mem
+  have hymemA : y ∈ (st.piles a).faceUp := mem_below _ hs1mem
+  have hyzne : y ≠ z := by
+    intro hcon
+    have hzInA : z ∈ (st.piles a).faceUp := by rw [← hcon]; exact hymemA
+    have hnotink := ((mem_pile_unique hwf (Or.inr hzInA)).1) k hkane
+    exact hnotink.2 hzkmem
+  have hnek : e ∉ (st.piles k).faceUp :=
+    ((mem_pile_unique hwf (Or.inr hmem)).1 k hkane).2
+  have hhlk : below e (s₁.piles k).faceUp = (st.piles k).faceUp := by
+    rw [hskF, fc_below_append_ne (st.piles k).faceUp hnek, hrunform,
+      below_cons_self, List.append_nil]
+  have hfkne : (st.piles k).faceUp ≠ [] := by
+    intro hcon
+    have htopLL : lastOf ((st.piles k).faceUp) = some z := hzs
+    rw [hcon] at htopLL
+    exact absurd htopLL (by simp [lastOf])
+  have hpreK : below e (s₁.piles k).faceUp ≠ [] := by rw [hhlk]; exact hfkne
+  refine ⟨y, fromCard e (st.piles a).faceUp, ?_⟩
+  have hfrom₂ : fromCard e (s₁.piles k).faceUp = e :: tail :=
+    hfromK.trans hrunform
+  simp only [step_tabToTab_eq, hhold₂, hcp₂, hfrom₂]
+  rw [← hrunform]
+  show some ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+      (below e (s₁.piles k).faceUp))).putRun
+      (fromCard e (st.piles a).faceUp) (Sum.inr y)) = some st
+  congr 1
+  obtain ⟨N, hNdef⟩ : ∃ N : State,
+      N = s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+        (below e (s₁.piles k).faceUp)) := ⟨_, rfl⟩
+  rw [← hNdef]
+  have hNk : N.piles k = Pile.afterRunRemoved (s₁.piles k)
+      (below e (s₁.piles k).faceUp) := by
+    rw [hNdef]
+    exact setPile_piles_self
+  have htopNk : (N.piles k).top = some z := by
+    rw [hNk, show Pile.top (Pile.afterRunRemoved (s₁.piles k)
+        (below e (s₁.piles k).faceUp)) = lastOf
+        ((Pile.afterRunRemoved (s₁.piles k)
+          (below e (s₁.piles k).faceUp)).faceUp) from rfl,
+      fc_afterRunRemoved_faceUp_ne hpreK, hhlk]
+    exact hzs
+  have hNkP : Pile.afterRunRemoved (s₁.piles k)
+      (below e (s₁.piles k).faceUp) = st.piles k := by
+    cases hbc : below e (s₁.piles k).faceUp with
+    | nil => exact absurd hbc hpreK
+    | cons w t =>
+      refine Pile.ext ?_ ?_
+      · exact hhkF
+      · show (w :: t) = (st.piles k).faceUp
+        rw [← hbc]
+        exact hhlk
+  have hNpa : N.piles a = s₁.piles a := by
+    rw [hNdef]
+    exact setPile_afterRunRemoved_piles_ne s₁ k e a (Ne.symm hkane)
+  have hkfNy : ∀ x : Anchor, x ≠ a → (N.piles x).top ≠ some y := by
+    intro x hxa
+    by_cases hxk : x = k
+    · rw [hxk, htopNk]
+      intro hcos
+      exact hyzne (Option.some.inj hcos).symm
+    · intro hcon
+      have hpilex : N.piles x = st.piles x := by
+        rw [hNdef, setPile_afterRunRemoved_piles_ne s₁ k e x hxk, hs',
+          putRun_piles_inr_ne M (fromCard e (st.piles a).faceUp) z k hzM hxk,
+          hotherM x hxa]
+      rw [hpilex] at hcon
+      exact (((mem_pile_unique hwf (Or.inr hymemA)).1) x hxa).2
+        (lastOf_mem (show lastOf ((st.piles x).faceUp) = some y from hcon))
+  have hzNy : N.pileOfTop y = some a :=
+    fc_firstWhere_pileOfTop hkfNy (by rw [hNpa]; exact hy_ta)
+  have hz2 := putRun_keep (st := N) (run := fromCard e (st.piles a).faceUp)
+    (b := Sum.inr y)
+  have hz1 := fc_step_zone hstep
+  have hzN : N.found = s₁.found ∧ N.stock = s₁.stock ∧
+      N.waste = s₁.waste ∧ N.drawStep = s₁.drawStep := by
+    rw [hNdef]
+    exact ⟨rfl, rfl, rfl, rfl⟩
+  refine State.ext ?_ ?_ ?_ ?_ ?_
+  · exact (hz2.1).trans ((hzN.1).trans hz1.1)
+  · funext x
+    by_cases hxa : x = a
+    · rw [hxa, putRun_piles_inr_self N (fromCard e (st.piles a).faceUp) y a
+        hzNy, hNpa, hsaF]
+      exact Pile.ext hsaH (fc_below_join e (st.piles a).faceUp).symm
+    · rw [putRun_piles_inr_ne N (fromCard e (st.piles a).faceUp) y a hzNy hxa]
+      by_cases hxk : x = k
+      · rw [hxk, hNk, hNkP]
+      · rw [hNdef, setPile_afterRunRemoved_piles_ne s₁ k e x hxk, hs',
+          putRun_piles_inr_ne M (fromCard e (st.piles a).faceUp) z k hzM hxk,
+          hotherM x hxa]
+  · exact (hz2.2.1).trans ((hzN.2.1).trans hz1.2.1)
+  · exact (hz2.2.2.1).trans ((hzN.2.2.1).trans hz1.2.2.1)
+  · exact (hz2.2.2.2).trans ((hzN.2.2.2).trans hz1.2.2.2)
+
 /-! ## §2. The graded ceiling conjectures (frozen; the probe leaf
 decides before any proof starts) -/
 
