@@ -1084,9 +1084,15 @@ theorem finalFork_pairUnique (st : State)
   have hxy : x = y := (hiffy x).1 hcx
   exact Or.inl hxy.symm
 
-/- **THE weakForkState UNIQUENESS** (class-level): within one class,
-any two forkStates connect through the CARGO CLOSURE.  Stated in
-the FaceShape section below (follows its def). -/
+/- **THE RETIRED weakForkState-UNIQUENESS FORMULATION** (truespeaked
+2026-10-17, the old ad-hoc conjugate-case card): the claim —
+within one class, any two forkStates connect through the CARGO
+CLOSURE — is REFUTED at theorem grade (the G2 craft,
+`Orig/ForkStateUniqGate`; the negation row retired at the
+2026-10-17 stale-grade strike, the verdict on ledger record —
+CHALLENGES.md REFUTED tier).  `FaceShape` below stays as the
+canonFace-chain interface; `conjugateForkState` stays as the
+conjugate-composite record the S-grade siblings consume. -/
 
 /- **THE CONJUGATE FORK STATE** — the other face of the fork pair, by
 the user's PHYSICAL SWAP construction (raise · segment-slide · pull-back):
@@ -1124,7 +1130,21 @@ def conjugateForkState (st w : State) : Prop :=
 pair-swapped seating preserving the iff).  GATE: the composite's
 anatomy derivation — must show the position swap preserves the
 three-clause detection (rungs unchanged net, maximality at the
-swapped-set state). -/
+swapped-set state).
+
+2026-10-17 VERDICT TRUING (the surgical session): this SEAT-LESS shape
+is refuted at the probe grade — `Orig/ConjugateProof.lean` §6's probe-B
+records (the (Q,J) corner: the composite fires, the endpoint carries
+TWO raisers, not a weakForkState; the theorem-grade
+`conjugate_corner_notForkState` there remains staged future work).
+The honest seat-carrying closure is banked DOWNSTREAM as
+`conjugate_forkState_corrected` (`Orig/ConjugateProof.lean:532`, the
+`TwinSeat` seat premise, audited), reachable only through
+`Orig.ForkStateUniq`, which imports THIS file — import-invisible here.
+The MI-grade honest content is landed as the composite rows of §9
+below: the per-leg-reversibility class row and the composite's
+net-flat rung arithmetic.  This row keeps its sorry as the residue of
+the seat-less statement, per the house REFUTED discipline. -/
 theorem conjugate_forkState {st w : State}
     (hconj : conjugateForkState st w)
     (hwf : st.WF)
@@ -1468,7 +1488,12 @@ private theorem not_twinSuit_colors {s t : Suit}
 
 /-- The operational trial, derived: the twin's swap-raise realizes
 
-CLOSED AT THE V3 BASE (the canon-v3 wake directive, amr_12aaf07c1):
+STAGED, NOT CLOSED (2026-10-17 truing: the earlier "CLOSED" claim here
+was premature — the body below proves the FIRE and the SUCCESSOR-READ,
+and the tail's sorry is exactly the successor's `CanRaise st' x.twin`
+leg: the exposure read — the exposed twin as the new top — plus its
+license, staged next pass).  The V3 base is the right shape either
+way (the canon-v3 wake directive, amr_12aaf07c1):
 the (Q, J) falsifier analysis found the V2 under-carried leg — the
 exposed twin's SEAT (a bare-bottom non-king twin lifts nothing) —
 and V3 carries it as the premise it always was: the cargo sits
@@ -1760,10 +1785,15 @@ three named structural generators:
    — sometimes, when the alternating-color condition is right
 3. CARGO SWAP: CargoPath (the reversible-cargo closure, always)
 
-THE COMPLETENESS theorem: every weakForkState of the class is in
-this three-generator closure (see ForkSpectrum.lean for the
-proof — the raise-pull pair cancellation + the game's own
-stack discipline). -/
+THE COMPLETENESS CLAIM — RETIRED (refuted 2026-10-11, truespeaked
+2026-10-17): every weakForkState of the class in this
+three-generator closure is FALSE — all three generators are
+foundation-flat, and the G2 craft carries same-class witnesses
+whose NON-PAIR rungs differ (the missing raise letter the
+refutation named; the statement-family lesson on ledger record,
+CHALLENGES.md: add a raise letter).  `ForkSpectrumProof.lean`
+holds the refuted-residue records; the inductive below stays as
+the closure vehicle those fences read at. -/
 
 /-- The fork spectrum: the closure of a starting weakForkState under
 the three generators — the twin swap bridge + the parent swap
@@ -1795,7 +1825,11 @@ the proof leaf: `forkSpectrum_complete_locked` (strong premises, tuple
 + phase locks, the named G1/G3/bracket gates it leaves behind) and
 `forkSpectrum_complete_mod_phase` (the compatibility form, SWComp
 tail) — both landing sites of the genuinely-open classification
-content. -/
+content.  The on-record refutation heads:
+`forkSpectrum_complete_refuted` (`Orig/ForkSpectrumProof.lean:189`)
+and `forkSpectrum_complete_locked_refuted` (:763 there).  This stub's
+sorry stays as the honest witness of the row-as-stated, per the house
+REFUTED discipline (never retry as stated). -/
 theorem forkSpectrum_complete (st : State) (hwf : st.WF)
     (hfs : weakForkState st) (w : State)
     (hcls : sameOrbitSetoid.r st w) (hwfs : weakForkState w) :
@@ -1931,15 +1965,25 @@ died with the posKey stub; CanV3's own key rows are the public home. -/
 (#print axioms on each newly proved floor head — expected
 [propext, Quot.sound]; anything else flagged.)
 
-FLAGGED rows (post-cleanup): the sorry surface rides the ONE carrier
-– `canusList` (the enumeration BFS, the deep row's def-stub) – and the
-gated theorems consuming it: `canusList_sound`, `canusList_complete`,
-`canusOf_class_inv`, `canonV3_mem/_final/_max`, and the §5 main-goal
-block.  `canusOf_nonempty` now consumes the contract stub (the old
-statement-level conjl flag ended with the carrier's deletion; the
-statement type is now conjl-free; the sorry rides the proof's cite of
-the complete contract).  Everything else audits within
-[propext, Quot.sound]. -/
+FLAGGED rows (2026-10-17 sorry-map truing: the pre-redesign `canusList`
+carrier and its consumer rows were DELETED with the shape-first
+redesign and no longer exist): the current sorry surface is 24
+tactic-level sorries in five tiers — the blocked floor row
+(`founded_implies_atRung`, envelope-gated); the fiber/orbit tier
+(`fiber_iff_flat`, `finals_topFibers`); the conjugate/spectrum rows
+(`conjugate_forkState` — the seat-less shape refuted at the probe
+grade, see its docstring; `forkSpectrum_complete` — REFUTED as
+staged); the fork dossier (`forkedCard_iff_forkPoint`,
+`forkPoint_classifies`, `fork_threeCases`, `fork_threeCards`,
+`afterFork_fewFinals`, `afterFork_neckReachable`, `forkPoint_trial`'s
+exposure tail, `unionable_iff_unionTuple`, `fork_iff_nonUnionable`,
+`wing_crossing_bottleneck`); and the canonical-face/classification
+block (`canonFace_exists`, `canonFace_mem`, `faceShape_rel`,
+`canonFace_sameShape`, `canonFace_class_inv`, `canonFace_iff`,
+`saturated_tuple_orbit`, `saturated_classification`, `envelope`).
+The battery audits the PROVED heads only — every other row lands
+within [propext, Quot.sound], and the fresh §9 heads are audited in
+their own inline battery below. -/
 
 #print axioms stackable_now_rungexact
 #print axioms canon_rung_mono
@@ -1977,3 +2021,180 @@ must come out clean. -/
 #print axioms cone_pop_countP
 #print axioms cone_pulls_congr_tuple
 -- (the cross-arm row now lives in Orig.ConeCrossarm; its audit lives there)
+
+/-! ## §9. The surgical rows (2026-10-17 session, the recon-surgical landings)
+
+Two fronts landed at MI grade, both shaped by the import graph: the
+CONJUGATE anatomy's derivable legs and FACE-SHAPE's mechanical
+strands.  The seat-carrying corrected closure itself is
+import-invisible (its home consumes this file through
+`Orig.ForkStateUniq`), so what lands HERE is the honest in-file
+residue of that grade: the composite's class and rung content at the
+per-leg-reversibility premise shape, the cargo closure's class row
+(the in-tree mechanical mirror of the strand `Orig.ForkStateUniq`
+banks as `cargoPath_class`), their faceShape cross-face combination,
+and the canonical-face kernel — the FULL `canonFace_mem` content, the
+BENIGN/FORKED NO-MIX census (`canonFace_sameKind`, which collapses
+`canonFace_sameShape`'s case split to the within-kind cases), and
+the shape reflexivity.  The frozen statements above keep their
+sorries; every head here is additive, zero `Classical.choice`, and
+consumes no sorried row. -/
+
+/-- **THE SEAT-CARRYING COMPOSITE AT MI GRADE** — the corrected
+conjugation's firing shape, restated minimally: the three physical
+steps of `conjugateForkState`, each with its witnessed REVERSIBILITY
+(the premise the seat packages of the downstream corrected theorem
+carry operationally — the undos that make every leg a class leg). -/
+def conjugateCompositeRev (st w : State) : Prop :=
+  ∃ (x : Card) (ba bb : Base) (st₁ st₂ : State),
+    st.step (Move.tabToFound x) = some st₁ ∧
+    st₁.step (Move.tabToTab x.twin ba) = some st₂ ∧
+    st₂.step (Move.foundToTab x bb) = some w ∧
+    reversibleAtW st (Move.tabToFound x) ∧
+    reversibleAtW st₁ (Move.tabToTab x.twin ba) ∧
+    reversibleAtW st₂ (Move.foundToTab x bb)
+
+/-- **THE COMPOSITE'S NET-FLAT RUNG CONTENT** (the anatomy's rung leg,
+unconditional on seats — the steps alone price it): up one on `x`'s
+suit at the raise, flat across the segment slide, down one at the
+giveback — every suit's rung lands where it started. -/
+theorem conjugateComposite_rungs {st w : State} {x : Card} {ba bb : Base}
+    {st₁ st₂ : State}
+    (hstep₁ : State.step st (Move.tabToFound x) = some st₁)
+    (hstep₂ : State.step st₁ (Move.tabToTab x.twin ba) = some st₂)
+    (hstep₃ : State.step st₂ (Move.foundToTab x bb) = some w) :
+    ∀ s : Suit, rungAt w s = rungAt st s := by
+  obtain ⟨hup, hothers₁⟩ := step_tabToFound_rungs hstep₁
+  have hflat₂ := step_tabToTab_rungs hstep₂
+  obtain ⟨hdown, hothers₃⟩ := step_foundToTab_rungs hstep₃
+  intro s
+  by_cases hs : s = x.suit
+  · rw [hs]
+    have h₂ := hflat₂ x.suit
+    omega
+  · have h₁ := hothers₁ s hs
+    have h₂ := hflat₂ s
+    have h₃ := hothers₃ s hs
+    omega
+
+/-- **THE COMPOSITE'S CLASS LEG** (the anatomy's membership leg at the
+seat-carrying grade): a composite whose every leg is reversible stays
+in one macro class — the premise content the downstream
+`conjugate_forkState_corrected` derives from its `TwinSeat` package. -/
+theorem conjugateComposite_class {st w : State}
+    (h : conjugateCompositeRev st w) :
+    sameOrbitSetoid.r st w := by
+  obtain ⟨x, ba, bb, st₁, st₂, h₁, h₂, h₃, hr₁, hr₂, hr₃⟩ := h
+  exact class_trans (class_leg hr₁ h₁)
+    (class_trans (class_leg hr₂ h₂) (class_leg hr₃ h₃))
+
+/-- **THE CARGO CLOSURE'S CLASS ROW** — the mechanical strand of the
+in-tree `faceShape_rel`, mirrored here from `Orig.ForkStateUniq`'s
+`cargoPath_class` (banked there downstream, import-invisible): every
+cargo leg carries its own `reversibleAtW`, so the closure composes
+through the loop-closure engine. -/
+theorem cargoPath_inClass {w u : State} (h : CargoPath w u) :
+    sameOrbitSetoid.r w u := by
+  induction h with
+  | refl s => exact RevEqW_refl s
+  | @cons st₀ z u₂ hstep hkind _t ih =>
+      obtain ⟨c, b, hfire, hrev, -⟩ := hkind
+      exact class_trans (class_leg hrev hfire) ih
+
+/-- **THE CROSS-FACE STRAND, GATE EXPLICIT** — `faceShape_rel`'s
+cross-face arm at the narrowest true form: a reversible composite
+into the conjugate, then cargo inside the dual face — the two
+mechanical legs of the shape relation, with the seat gate carried as
+the premise it is. -/
+theorem faceShape_cross_inClass {w z w' : State}
+    (hc : conjugateCompositeRev w z) (hp : CargoPath z w') :
+    sameOrbitSetoid.r w w' :=
+  class_trans (conjugateComposite_class hc) (cargoPath_inClass hp)
+
+/-- The shape relation's reflexivity (the identical-face case of every
+intended consumer — the benign-pair cell of the shape theorem). -/
+theorem faceShape_refl (w : State) : FaceShape w w :=
+  Or.inl (CargoPath.refl w)
+
+/-- **THE FACE-MEMBERSHIP CONTENT, LANDED AS A TWIN** (the additive
+closure of `canonFace_mem`, whose frozen statement keeps its sorry;
+promotion is the owner's one-line swap): every face is a class
+member — the benign arm by the canonical bridge (`canon_in_class`
+through `Quotient.exact`), the forked arm by class transitivity
+through the canon link. -/
+theorem canonFace_inClass (u w : State) (hwf : u.WF)
+    (h : CanonFace u w) : sameOrbitSetoid.r u w := by
+  have hc : sameOrbitSetoid.r u (canon u) :=
+    Quotient.exact (canon_in_class hwf).symm
+  cases h with
+  | benign _ _ heq _ => rw [heq]; exact hc
+  | forked _ hclass _ => exact class_trans hc hclass
+
+/-- **THE NO-MIX KERNEL** (the `canonFace_sameShape` staging's keel):
+a class's faces are ALL-benign or ALL-forked — benign's no-fork
+clause and forked's live `weakForkState` are contradictory at any
+shared class member, so the mixed case is impossible and the shape
+theorem's case split collapses to the within-kind cases (benign
+pairs by `faceShape_refl` on the canon; forked pairs by the sandwich
+cell, which remains the named residual). -/
+theorem canonFace_sameKind (u w w' : State)
+    (h : CanonFace u w) (h' : CanonFace u w') :
+    (w = canon u ∧ w' = canon u) ∨
+      (weakForkState w ∧ weakForkState w') := by
+  cases h with
+  | benign _ _ heq₁ hnofork₁ =>
+      cases h' with
+      | benign _ _ heq₂ _ => exact Or.inl ⟨heq₁, heq₂⟩
+      | forked _ hclass₂ hfins₂ =>
+          obtain ⟨y, hy₁, hy₂, hy₃⟩ := hfins₂
+          exact absurd ⟨hy₁, hy₂, Or.inl ((hy₃ y).2 rfl)⟩
+            (hnofork₁ w' hclass₂ y)
+  | forked _ hclass₁ hfins₁ =>
+      cases h' with
+      | benign _ _ _ hnofork₂ =>
+          obtain ⟨y, hy₁, hy₂, hy₃⟩ := hfins₁
+          exact absurd ⟨hy₁, hy₂, Or.inl ((hy₃ y).2 rfl)⟩
+            (hnofork₂ w hclass₁ y)
+      | forked _ _ hfins₂ => exact Or.inr ⟨hfins₁, hfins₂⟩
+
+/-! ### The surgical battery
+
+Fresh heads audited; the frozen sorried rows above keep their own
+sorryAx surface, and nothing here consumes a sorried row: -/
+
+#print axioms conjugateComposite_rungs
+#print axioms conjugateComposite_class
+#print axioms cargoPath_inClass
+#print axioms faceShape_cross_inClass
+#print axioms faceShape_refl
+#print axioms canonFace_inClass
+#print axioms canonFace_sameKind
+
+/-! ## §9.5 The benign-carrier completion (wave-2, one row)
+
+The `canonFace_class_inv` (⇐)-half's benign-carrier composition, landed
+as the census-restricted r-transport: the NO-MIX cell
+(`canonFace_sameKind`'s left disjunct — both faces ARE the canon) is the
+shared-shape datum `faceShape_refl` packages (`Or.inl (CargoPath.refl
+·)`), and that sole carrier transports through the cargo closure's class
+row (`cargoPath_inClass`, the same-face arm of `faceShape_rel`'s
+mechanical strand).  Resisted, the full benign composition: the
+cross-face arm — a `conjugateForkState` carrier has no in-file class row
+even at gate grade (`faceShape_cross_inClass` reads the seat-carrying
+`conjugateCompositeRev` only) — so the frozen statements above keep
+their sorries and this head stays census-restricted; zero
+`Classical.choice`, nothing sorried consumed. -/
+
+/-- **THE BENIGN-CELL r-TRANSPORT** (the `canonFace_sameKind`-restricted
+r-transport, one twin head; the frozen `canonFace_class_inv` above keeps
+its sorry): two benign faces — the census cell pins both as THE canon —
+are class-mates, the shared shape running at `faceShape_refl`'s own
+carrier over the canon link, through the cargo class row. -/
+theorem canonFace_class_inv_benign (u w w' : State)
+    (h : CanonFace u w) (h' : CanonFace u w')
+    (hben : w = canon u ∧ w' = canon u) :
+    sameOrbitSetoid.r w w' := by
+  rw [hben.1, hben.2]
+  exact cargoPath_inClass (CargoPath.refl (canon u))
+
+#print axioms canonFace_class_inv_benign

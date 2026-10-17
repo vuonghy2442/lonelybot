@@ -2158,27 +2158,11 @@ theorem play_census_ledger {st : State} : ∀ (play : List Move) (w : State),
       have E := seatLedger_pair st s₁ col i
       have IH := ih w hrest col i
       omega
-/-- The run-append compose (private per-file copy). -/
+/-- The run-append compose (private per-file copy).
+harvested to Orig/Play.lean's `run_append` at the 2026-10-17 wave. -/
 private theorem hc_run_append : ∀ (a : State) (A B : List Move) (z w : State),
-    a.run A = some z → z.run B = some w → a.run (A ++ B) = some w := by
-  intro a A
-  induction A generalizing a with
-  | nil =>
-      intro B z w h1 h2
-      have hsw : (some a : Option State) = some z := h1
-      injection hsw with hc
-      rw [← hc] at h2
-      exact h2
-  | cons m rest ih =>
-      intro B z w h1 h2
-      obtain ⟨a₁, hs, hr⟩ := State.run_cons h1
-      have h3 := ih a₁ B z w hr h2
-      rw [List.cons_append]
-      show (match State.step a m with
-        | some st' => st'.run (rest ++ B)
-        | none => none) = some w
-      rw [hs]
-      exact h3
+    a.run A = some z → z.run B = some w → a.run (A ++ B) = some w :=
+  run_append
 
 /-- **THE ROUND-TRIP REPAYMENT** — over a RETURNED play (st → w → st)
 the per-cell mint and burn budgets CANCEL EXACTLY: the excursion
