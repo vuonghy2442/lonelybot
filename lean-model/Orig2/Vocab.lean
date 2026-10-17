@@ -512,6 +512,41 @@ def BareCargoEquiv (A B : State) : Prop :=
   CargoPath A B ∧ CargoPath B A
 
 /-!
+## §8. THE FLOATING-CARD TIER  (live, KEPT 2026-10-17)
+-/
+
+/-- **foundResident st c** — foundation residency: the card sits on
+some suit's foundation.  PORTED VERBATIM from
+`Orig/ZoneAgree.lean:25`. -/
+def foundResident (st : State) (c : Card) : Prop :=
+  ∃ s, c ∈ st.found s
+
+/-- **tabResident st c** — tableau residency: the card sits face-up
+or hidden on some pile.  PORTED VERBATIM from
+`Orig/ZoneAgree.lean:29`. -/
+def tabResident (st : State) (c : Card) : Prop :=
+  ∃ a, c ∈ (st.piles a).faceUp ∨ c ∈ (st.piles a).hidden
+
+/-- **cycleResident st c** — cycle residency: the card sits in the
+stock or the waste.  PORTED VERBATIM from
+`Orig/ZoneAgree.lean:33`. -/
+def cycleResident (st : State) (c : Card) : Prop :=
+  c ∈ st.stock ∨ c ∈ st.waste
+
+/-- **Mobile st c** — THE FLOATING-CARD READ, the census's own
+"available to the game" notion: not buried in any pile's hidden
+deck, not parked in the two-zone — the card is floating (face-up
+in the tableau or founded).  PORTED VERBATIM from
+`Orig/ForkCensus.lean:125`.  NOTE: in the frozen tier this is a
+CLASS notion (its transports are pinned along witness shuffles —
+hidden decks verbatim, the cycle zone both ways); the transport
+rows are Claims-layer material at the census migration card, and
+the Bool probe (`mobileB`, the frozen `:130`) stays with that card
+per the no-mirrors discipline (the `canRaiseB` kill precedent). -/
+def Mobile (st : State) (c : Card) : Prop :=
+  (∀ a, c ∉ (st.piles a).hidden) ∧ c ∉ st.stock ∧ c ∉ st.waste
+
+/-!
 # THE REVIEW ANNEX — pending adjudication
 
 The old tier's remaining main vocabulary.  Verdict slots open; no
@@ -587,9 +622,23 @@ pending adjudication like the rest:
   `hostCensus` (120), `kingAnchored` (459), `seatGain`/`seatMint`/
   `seatBurn` (1933-1947), `journeyMint`/`journeyBurn` (2111-2119),
   `boardEq`/`boardMove` (2483-2486).
+  (`Mobile`, the floating-card read, resolved at §8 from its
+  frozen home `Orig/ForkCensus.lean:125`; the detector filters —
+  `PairCandidate`, `CensusPass` and kin — stay with the census
+  migration card.)
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* **The residency trio** (`Orig/ZoneAgree.lean`) — `foundResident`,
-  `tabResident`, `cycleResident` (:25-33).
+* **The residency trio** (`Orig/ZoneAgree.lean`) — RESOLVED
+  2026-10-17: `foundResident`/`tabResident`/`cycleResident`
+  ported live (§8, the floating-card tier).
+* **The twin-suffix exchange family** (the swap tier — surfaced by
+  the owner's swap question, an index gap now closed):
+  `TwinExchOK` (`Orig/TwinExchangeQuotient.lean:90`), `ExchStep`
+  (:97), `exchAll` (:424), `ExchFamOk` (:432), and the
+  `TwinExchangeBoth` suffix-swap rows; the frozen content: at any
+  licensed twin pair the riding-suffix swap realizes as ONE cargo
+  move (or the degenerate identity).  ATOMIC note: the single-leg
+  swap at the new tier is `CargoLeg` itself (the tabToTab
+  semantics); the twin family is the COORDINATED two-pile shape.
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * **Slab both-suits form** — `xyBelowBoth` (`Orig/SlabForms.lean:93`).
   REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
