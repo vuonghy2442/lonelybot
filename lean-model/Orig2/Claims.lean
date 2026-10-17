@@ -35,14 +35,16 @@ classical step anywhere).  Frozen-tier templates:
 `foundToTabClass`/`tabToTabClass` and the waste rows
 (commit-polarity there; flip per case).  The decidability rider
 (`Decidable (reversibleAtW st m)` at WF, through the bridge) is a
-corollary of this claim, not a separate one. -/
+corollary of this claim, not a separate one.
 
-/-- **CLAIM `reversibleOf_iff_reversibleAtW`** — the oracle meets
-the witness carrier exactly at WF worlds. -/
-theorem reversibleOf_iff_reversibleAtW {st : State} (hwf : st.WF)
-    (m : Move) :
-    reversibleOf st m = true ↔ reversibleAtW st m := by
-  sorry
+PROMOTED (2026-10-17): the claim is DISCHARGED at
+`Orig2/Classification.lean` §7 — the classification card proves
+`reversibleOf_iff_reversibleAtW` over its five landed letters
+(draw / waste pair / tabToFound / foundToTab / tabToTab, each
+cell handing or denying the carrier per constructor), and the
+card's battery carries the head ([propext, Quot.sound]).  The
+stub is deleted per the promotion rule (never duplicated); the
+Claims battery line for this claim moved to the card. -/
 
 /-! ## §1B. The orbit-factor claim (owner-approved clean cut)
 
@@ -145,10 +147,11 @@ theorem steps_to_walk (P : State → Move → Prop) {st : State} :
 
 /-! ## The audit battery
 
-The single claim stub carries `sorryAx` by design — the layer's
-whole debt ledger on one row, priced above. -/
+`reversibleOf_iff_reversibleAtW`'s battery line moved to the
+classification card at promotion.  The remaining claim stubs
+carry `sorryAx` by design — the layer's whole debt ledger on one
+row each, priced above. -/
 
-#print axioms reversibleOf_iff_reversibleAtW
 #print axioms sameOrbit_factor
 #print axioms walk_to_steps
 #print axioms steps_to_walk

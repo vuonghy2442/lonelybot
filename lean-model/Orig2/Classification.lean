@@ -5327,11 +5327,57 @@ theorem tabToTabR_iff_reversibleAtW {st : State} (hwf : st.WF) (c : Card) (b : B
               rw [hcell]
               exact ⟨fun _ => tabToTab_W_under_wf hwf hh hcp hbelow, fun _ => rfl⟩
 
+/-!
+## §7. THE ASSEMBLY — THE CLAIM, DISCHARGED AND PROMOTED
+
+The five letters tile the oracle's constructor arms — the draw
+reads `drawR`, the raises `tabToFoundR`, the pulls `foundToTabR`,
+the slides `tabToTabR` — and the two universal waste rows deny the
+waste arms outright, so the carrier decision is exactly the
+oracle's bit at every arm.  The statement below is the frozen
+bank of `Orig2/Claims.lean` §1, proved here per the promotion
+rule (the stub deleted there, the Claims battery line moved into
+this card's battery).  FLIP of `Orig/Classify.lean:2866`
+(`irreversible_iff_of`, the commit-polarity assembly) — this is
+its witness-grade companion; the retired commitment grade appears
+in no statement of this card.
+-/
+
+/-- **CLAIM `reversibleOf_iff_reversibleAtW`** — the oracle meets
+the witness carrier exactly at `WF` worlds: both halves at
+witness grade, the five letters' cells handing or denying the
+carrier per constructor, no classical step anywhere. -/
+theorem reversibleOf_iff_reversibleAtW {st : State} (hwf : st.WF)
+    (m : Move) :
+    reversibleOf st m = true ↔ reversibleAtW st m := by
+  cases m with
+  | draw =>
+      show (drawR st = true) ↔ reversibleAtW st Move.draw
+      exact drawR_iff_reversibleAtW hwf
+  | wasteToFound c =>
+      show (false = true) ↔ reversibleAtW st (Move.wasteToFound c)
+      exact ⟨fun h => Bool.noConfusion h,
+        fun w => absurd w (wasteToFound_not_reversibleAtW st c)⟩
+  | wasteToTab c b =>
+      show (false = true) ↔ reversibleAtW st (Move.wasteToTab c b)
+      exact ⟨fun h => Bool.noConfusion h,
+        fun w => absurd w (wasteToTab_not_reversibleAtW st c b)⟩
+  | tabToFound c =>
+      show (tabToFoundR st c = true) ↔ reversibleAtW st (Move.tabToFound c)
+      exact tabToFoundR_iff_reversibleAtW hwf c
+  | foundToTab c b =>
+      show (foundToTabR st c b = true) ↔ reversibleAtW st (Move.foundToTab c b)
+      exact foundToTabR_iff_reversibleAtW hwf c b
+  | tabToTab c b =>
+      show (tabToTabR st c b = true) ↔ reversibleAtW st (Move.tabToTab c b)
+      exact tabToTabR_iff_reversibleAtW hwf c b
+
 /-! ## The audit battery
 
-Per proved head, this batch.  Expected profile per the card header:
+Per proved head, this card.  Expected profile per the card header:
 `[propext]` or `[propext, Quot.sound]` — never `sorryAx`, never
-`Classical.choice`. -/
+`Classical.choice`.  The claim's battery line lives here since the
+promotion (see §7). -/
 
 #print axioms wasteToFound_not_reversibleAtW
 #print axioms wasteToTab_not_reversibleAtW
@@ -5339,3 +5385,4 @@ Per proved head, this batch.  Expected profile per the card header:
 #print axioms tabToFoundR_iff_reversibleAtW
 #print axioms foundToTabR_iff_reversibleAtW
 #print axioms tabToTabR_iff_reversibleAtW
+#print axioms reversibleOf_iff_reversibleAtW
