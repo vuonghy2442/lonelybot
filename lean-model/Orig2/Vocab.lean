@@ -510,6 +510,45 @@ def BareCargoEquiv (A B : State) : Prop :=
   CargoPath A B ∧ CargoPath B A
 
 /-!
+## §9. THE CHART  (live, owner-ratified 2026-10-17 — the minimal set
+representation: a readout layer on the ONE game, no second state
+type, no second step — the carrier/validity/decode direction is
+FENCED OUT until a named consumer exists)
+
+THE MOVE ALGEBRA (owner, 2026-10-17): every move is exactly ONE
+pair change plus its matching zone bookkeeping — `tabToTab`
+UPDATES one pair (the mover's seat); `tabToFound` DELETES one
+pair (and adds the card to its foundation row); `wasteToTab`/
+`foundToTab` ADD one pair (and, for the waste letter, consumes
+the pool head); `draw` touches no pair at all (the cut alone
+moves, the pool conserved).  The claim book prices these as the
+move-table rows.
+-/
+
+/-- **seatOf st c** — THE SEAT MAP (the pair representation's
+coordinate): where c sits in the face-up tableau — `some (.inr z)`
+with z the card directly beneath it, `some (.inl a)` when c
+bottoms pile a, `none` off the tableau. -/
+def seatOf (st : State) (c : Card) : Option Base :=
+  match st.pileHolding c with
+  | none => none
+  | some a =>
+      match List.getLast? (below c (st.piles a).faceUp) with
+      | none => some (.inl a)
+      | some z => some (.inr z)
+
+/-- **cutOf st** — the pool split: the stock's length (with the
+pool and the cut, the stock and the waste are determined up to the
+deal conventions). -/
+def cutOf (st : State) : Nat := st.stock.length
+
+/-- **drawPool st** — the conserved zone pool: the stock, reversed,
+ahead of the waste.  PROMOTED from the orbit-factor machinery's
+private kit to the registry at the chart ratification (frozen
+lineage: `Orig/Canonical.lean:2466`). -/
+def drawPool (st : State) : List Card := st.stock.reverse ++ st.waste
+
+/-!
 # THE REVIEW ANNEX — pending adjudication
 
 The old tier's remaining main vocabulary.  Verdict slots open; no
