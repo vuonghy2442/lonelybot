@@ -2,14 +2,15 @@ import Orig2.Model
 import Orig2.Vocab
 import Orig2.Kit
 import Orig2.Classification
+import Orig2.CargoKit
 import Orig2.FloaterLadder
 import Orig2.RevSteps
 import Orig2.FloatFiber
 import Orig2.FloatOrbit
-import Orig2.FloatOrbit
 import Orig2.Claims
 import Orig2.ClaimsScrutiny
 import Orig2.OrbitFactor
+import Orig2.FlagShip
 
 /-!
 # Orig2 — THE REBUILD LIBRARY
@@ -118,5 +119,8 @@ rule above for shared vocabulary.
 
 The vocabulary registry is `Orig2.Vocab` (definitions only, under
 owner intent lines); the import seam is `Orig2.Model`; claim-banking
-lives in `Orig2.Claims`.
+lives in `Orig2.Claims`; the shared cargo-tier kit (the `tfc_*`/`tfa_*`
+family, consolidated 2026-10-17 from the per-file copies) is
+`Orig2.CargoKit`; the flagship export door (the adjudicated headline
+re-exported at citable names) is `Orig2.FlagShip`.
 -/
