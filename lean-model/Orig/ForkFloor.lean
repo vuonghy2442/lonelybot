@@ -4312,6 +4312,563 @@ theorem fork_floor_of_commit {s s' : State} {m : Move}
       exact absurd hivr (lowslab_pull_never_commit_wf hwf hstep)
   | tabToTab c b => exact fork_floor_reveal hwf hstep hivr hhed
 
+/-! ### §6R THE RR CROSSING — the head's certified negation (round 4)
+
+THE COUNTEREXAMPLE ECONOMY: `Orig/LowSlab.lean`'s session-4 raise
+board (the `rr` family; per-file dedup copy below, every cell
+verbatim) satisfies THE HEAD'S EVERY PREMISE at `s := rr_u`, `m :=
+tabToFound 5♦` — the member is WF (two `step_wf`), the bare-lift
+commit fires and is a full `irreversibleAt` (`bare_lift`), and a fork
+IS reachable from the member: the two-mirror play [giveback `4♦`,
+unhop the `3♠`] runs to `rr_st`, whose parcel is SB-decided
+(`rr_fork`).  The conclusion dies UNIFORMLY: the commit landing's
+reachable universe is exactly TWO states — the landing itself and the
+one hop-out where the `[4♥, 3♠]` run shuttles onto the black five at
+p1; both refuse every other letter (the zones are dead, the waste is
+empty at an `rfl`, the raise candidates are founded/buried, the
+givebacks have no accepting base: their takeback seats — the black
+sixes — are hidden-buried in p1's deck forever, no face-up list ever
+empties) — and the SB door decides BOTH states fork-free, so no
+`ForkWitness` host is reachable from the landing at ANY play grain.
+A single commitment ATE THE LAST REACHABLE FORK — the exact shape the
+probe program's HUNTING-FLOOR honesty clause priced.
+
+COLLATERAL (prose record; the owner's stamping pass formalizes): the
+same instance refuses `founded_late_seat_exists` at `c := 5♦` — no
+reachable state ever re-seats it, the seat delay is infinite.
+
+THE REPAIR LANE is the one the §5 falsification target already
+recorded: the rank discipline (the commit card at-or-below the fork
+point) or the irrevocable-eaten-seal disjunct.
+
+HOUSE PROVENANCE: the board rows below are the per-file dedup copy of
+LowSlab §4.2.a.RR (private kit, house dedup discipline); the reachability
+census and the certified negation are fresh.  No `Classical.choice`
+anywhere; all splits ride closed evaluations in the `Bool`/`Option`
+readers over the two census states. -/
+
+/-- The crossing board's private card/step kit (dedup of LowSlab's
+`wrC`/`rrStep`). -/
+private def wrC (s : Suit) (r : Rank) : Card := ⟨s, r⟩
+
+private def rrStep (st : State) (m : Move) : State :=
+  match st.step m with
+  | none => st
+  | some s' => s'
+
+/-- The forty buried cards (dedup; every card not founded, not
+face-up, not at the waste head). -/
+private def rr_deck : List Card :=
+  [wrC .spade .ace, wrC .spade .two, wrC .spade .four, wrC .spade .six,
+   wrC .spade .seven, wrC .spade .eight, wrC .spade .nine, wrC .spade .ten,
+   wrC .spade .jack, wrC .spade .queen, wrC .spade .king,
+   wrC .heart .five, wrC .heart .six, wrC .heart .seven, wrC .heart .eight,
+   wrC .heart .nine, wrC .heart .ten, wrC .heart .jack, wrC .heart .queen,
+   wrC .heart .king,
+   wrC .diamond .six, wrC .diamond .seven, wrC .diamond .eight,
+   wrC .diamond .nine, wrC .diamond .ten, wrC .diamond .jack,
+   wrC .diamond .queen, wrC .diamond .king,
+   wrC .club .ace, wrC .club .two, wrC .club .three, wrC .club .four,
+   wrC .club .six, wrC .club .seven, wrC .club .eight, wrC .club .nine,
+   wrC .club .ten, wrC .club .jack, wrC .club .queen, wrC .club .king]
+
+private def rr_hmap : Suit → Nat
+  | .heart => 3 | .diamond => 3 | .spade => 0 | .club => 0
+
+/-- THE FORK BOARD (dedup): rungs pinned 3/3/0/0; the twin tower
+`5♣ / 4♦ / 3♠` at p1, the live `4♥` over `5♠` at p2, the hot `5♦`
+alone at p3. -/
+private def rr_st : State where
+  found := fun s => s.upCards.take (rr_hmap s)
+  piles := fun a => match a with
+    | .p1 => ⟨rr_deck, [wrC .club .five, wrC .diamond .four, wrC .spade .three]⟩
+    | .p2 => ⟨[], [wrC .spade .five, wrC .heart .four]⟩
+    | .p3 => ⟨[], [wrC .diamond .five]⟩
+    | _ => ⟨[], []⟩
+  stock := []
+  waste := []
+  drawStep := 1
+
+/-- the hop cover, then the twin raise: the elevated member. -/
+private def rr_s1 : State :=
+  rrStep rr_st (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four)))
+
+private def rr_u : State :=
+  rrStep rr_s1 (Move.tabToFound (wrC .diamond .four))
+
+/-- the commit landing: the bare lift of the hot card. -/
+private def rr_v : State :=
+  rrStep rr_u (Move.tabToFound (wrC .diamond .five))
+
+/-- THE HOP-OUT: the second census state — the `[4♥, 3♠]` run
+shuttles onto `5♣`; p2 keeps its bare `5♠`. -/
+private def rr_w : State :=
+  rrStep rr_v (Move.tabToTab (wrC .heart .four) (Sum.inr (wrC .club .five)))
+
+private theorem rr_st_wf : rr_st.WF := by
+  refine ⟨fun s => ⟨rr_hmap s, rfl⟩, ?_, ?_, ?_⟩
+  · intro a
+    cases a <;> rfl
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+private theorem rr_fork : ForkWitness rr_st (wrC .heart .four) := by
+  have hrow : forkWitnessRowSB rr_st (wrC .heart .four) = true := by decide
+  exact (forkWitnessRowSB_iff rr_st_wf).1 hrow
+
+private theorem rr_hop_fires :
+    State.step rr_st
+      (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four))) =
+      some rr_s1 := by
+  rfl
+
+private def rr_st' : State :=
+  rrStep rr_s1 (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four)))
+
+private theorem rr_st'_eq : rr_st' = rr_st := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+private theorem rr_unhop_fires :
+    State.step rr_s1
+      (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four))) =
+      some rr_st := by
+  rw [← rr_st'_eq]
+  rfl
+
+private theorem rr_raise_fires :
+    State.step rr_s1 (Move.tabToFound (wrC .diamond .four)) =
+      some rr_u := by
+  rfl
+
+private def rr_s1' : State :=
+  rrStep rr_u (Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five)))
+
+private theorem rr_s1'_eq : rr_s1' = rr_s1 := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+private theorem rr_giveback_fires :
+    State.step rr_u
+      (Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five))) =
+      some rr_s1 := by
+  rw [← rr_s1'_eq]
+  rfl
+
+private theorem rr_commit_fires :
+    State.step rr_u (Move.tabToFound (wrC .diamond .five)) =
+      some rr_v := by
+  rfl
+
+private theorem rr_commit :
+    irreversibleAt rr_u (Move.tabToFound (wrC .diamond .five)) :=
+  bare_lift_irreversibleAt rr_commit_fires
+    (show rr_u.pileOfTop (wrC .diamond .five) = some Anchor.p3 from rfl)
+    (show chop (rr_u.piles Anchor.p3).faceUp = [] from rfl)
+    (show (rr_u.piles Anchor.p3).hidden = [] from rfl)
+    (by decide)
+
+private theorem rr_u_wf : rr_u.WF :=
+  step_wf (step_wf rr_st_wf rr_hop_fires) rr_raise_fires
+
+private theorem rr_v_wf : rr_v.WF :=
+  step_wf rr_u_wf rr_commit_fires
+
+private theorem rr_w_wf : rr_w.WF :=
+  step_wf rr_v_wf
+    (show State.step rr_v
+        (Move.tabToTab (wrC .heart .four) (Sum.inr (wrC .club .five))) =
+        some rr_w from rfl)
+
+/-- THE PREMISE PACK: a fork IS reachable from the elevated member —
+the two-mirror play runs to the fork board, whose parcel is decided. -/
+private theorem rr_u_reaches_fork :
+    ∃ (F : State) (π : List Move) (x : Card),
+      rr_u.run π = some F ∧ ForkWitness F x := by
+  refine ⟨rr_st,
+    [Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five)),
+     Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four))],
+    wrC .heart .four, ?_, rr_fork⟩
+  exact run_append rr_u _ _ rr_s1 rr_st
+    (run_one rr_giveback_fires) (run_one rr_unhop_fires)
+
+/-! #### The two-state census -/
+
+/-- the zones are dead at the landing: the draw refuses outright. -/
+private theorem rrv_draw_none : State.step rr_v Move.draw = none := rfl
+
+private theorem rrw_draw_none : State.step rr_w Move.draw = none := rfl
+
+/-- the waste letters refuse at the empty waste. -/
+private theorem rrv_wasteFound_none (c : Card) :
+    State.step rr_v (Move.wasteToFound c) = none := by
+  simp only [State.step]
+  split
+  · rename_i h
+    rw [State.wasteIs_nil (show rr_v.waste = [] from rfl), Bool.false_and] at h
+    exact absurd h (by simp)
+  · rfl
+
+private theorem rrv_wasteTab_none (c : Card) (b : Base) :
+    State.step rr_v (Move.wasteToTab c b) = none := by
+  simp only [State.step]
+  split
+  · rename_i h
+    rw [State.wasteIs_nil (show rr_v.waste = [] from rfl), Bool.false_and] at h
+    exact absurd h (by simp)
+  · rfl
+
+private theorem rrw_wasteFound_none (c : Card) :
+    State.step rr_w (Move.wasteToFound c) = none := by
+  simp only [State.step]
+  split
+  · rename_i h
+    rw [State.wasteIs_nil (show rr_w.waste = [] from rfl), Bool.false_and] at h
+    exact absurd h (by simp)
+  · rfl
+
+private theorem rrw_wasteTab_none (c : Card) (b : Base) :
+    State.step rr_w (Move.wasteToTab c b) = none := by
+  simp only [State.step]
+  split
+  · rename_i h
+    rw [State.wasteIs_nil (show rr_w.waste = [] from rfl), Bool.false_and] at h
+    exact absurd h (by simp)
+  · rfl
+
+/-- the raise candidates are founded or buried: every `tabToFound`
+refuses at both census states. -/
+private theorem rrv_tabFound_none (c : Card) :
+    State.step rr_v (Move.tabToFound c) = none := by
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> rfl
+
+private theorem rrw_tabFound_none (c : Card) :
+    State.step rr_w (Move.tabToFound c) = none := by
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> rfl
+
+/-- the givebacks have no accepting base: the takeback seats of the
+founded tops (`3♥`, `5♦`) are dead — their bases are the buried black
+fours and sixes, and kings-only anchors stay refused. -/
+private theorem rrv_foundTab_none (c : Card) (b : Base) :
+    State.step rr_v (Move.foundToTab c b) = none := by
+  rcases c with ⟨s, r⟩
+  cases s
+  · rfl
+  · cases r <;> first
+      | rfl
+      | (cases b with
+         | inl a => cases a <;> rfl
+         | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl)
+  · cases r <;> first
+      | rfl
+      | (cases b with
+         | inl a => cases a <;> rfl
+         | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl)
+  · rfl
+
+private theorem rrw_foundTab_none (c : Card) (b : Base) :
+    State.step rr_w (Move.foundToTab c b) = none := by
+  rcases c with ⟨s, r⟩
+  cases s
+  · rfl
+  · cases r <;> first
+      | rfl
+      | (cases b with
+         | inl a => cases a <;> rfl
+         | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl)
+  · cases r <;> first
+      | rfl
+      | (cases b with
+         | inl a => cases a <;> rfl
+         | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl)
+  · rfl
+
+/-- THE FACE-UP UNIVERSE at the census states: exactly the four
+shuttling cards. -/
+private theorem rrv_hold_pin (c : Card) (a : Anchor)
+    (h : rr_v.pileHolding c = some a) :
+    c = wrC .spade .five ∨ c = wrC .club .five ∨ c = wrC .heart .four ∨
+      c = wrC .spade .three := by
+  have hmem : c ∈ (rr_v.piles a).faceUp :=
+    of_decide_eq_true (firstWhere_sound
+      (p := fun a' => decide (c ∈ (rr_v.piles a').faceUp))
+      (show firstWhere (fun a' => decide (c ∈ (rr_v.piles a').faceUp)) Anchor.all
+          = some a from h))
+  cases a with
+  | p0 =>
+      rw [show (rr_v.piles Anchor.p0).faceUp = [] from rfl] at hmem
+      cases hmem
+  | p1 =>
+      rw [show (rr_v.piles Anchor.p1).faceUp =
+          [wrC .club .five] from rfl] at hmem
+      simp only [List.mem_cons, List.not_mem_nil] at hmem
+      rcases hmem with rfl | hmem
+      · exact Or.inr (Or.inl rfl)
+      · cases hmem
+  | p2 =>
+      rw [show (rr_v.piles Anchor.p2).faceUp =
+          [wrC .spade .five, wrC .heart .four, wrC .spade .three] from rfl] at hmem
+      simp only [List.mem_cons, List.not_mem_nil] at hmem
+      rcases hmem with rfl | rfl | rfl | hmem
+      · exact Or.inl rfl
+      · exact Or.inr (Or.inr (Or.inl rfl))
+      · exact Or.inr (Or.inr (Or.inr rfl))
+      · cases hmem
+  | p3 =>
+      rw [show (rr_v.piles Anchor.p3).faceUp = [] from rfl] at hmem
+      cases hmem
+  | p4 =>
+      rw [show (rr_v.piles Anchor.p4).faceUp = [] from rfl] at hmem
+      cases hmem
+  | p5 =>
+      rw [show (rr_v.piles Anchor.p5).faceUp = [] from rfl] at hmem
+      cases hmem
+  | p6 =>
+      rw [show (rr_v.piles Anchor.p6).faceUp = [] from rfl] at hmem
+      cases hmem
+
+private theorem rrw_hold_pin (c : Card) (a : Anchor)
+    (h : rr_w.pileHolding c = some a) :
+    c = wrC .spade .five ∨ c = wrC .club .five ∨ c = wrC .heart .four ∨
+      c = wrC .spade .three := by
+  have hmem : c ∈ (rr_w.piles a).faceUp :=
+    of_decide_eq_true (firstWhere_sound
+      (p := fun a' => decide (c ∈ (rr_w.piles a').faceUp))
+      (show firstWhere (fun a' => decide (c ∈ (rr_w.piles a').faceUp)) Anchor.all
+          = some a from h))
+  cases a with
+  | p0 =>
+      rw [show (rr_w.piles Anchor.p0).faceUp = [] from rfl] at hmem
+      cases hmem
+  | p1 =>
+      rw [show (rr_w.piles Anchor.p1).faceUp =
+          [wrC .club .five, wrC .heart .four, wrC .spade .three] from rfl] at hmem
+      simp only [List.mem_cons, List.not_mem_nil] at hmem
+      rcases hmem with rfl | rfl | rfl | hmem
+      · exact Or.inr (Or.inl rfl)
+      · exact Or.inr (Or.inr (Or.inl rfl))
+      · exact Or.inr (Or.inr (Or.inr rfl))
+      · cases hmem
+  | p2 =>
+      rw [show (rr_w.piles Anchor.p2).faceUp =
+          [wrC .spade .five] from rfl] at hmem
+      simp only [List.mem_cons, List.not_mem_nil] at hmem
+      rcases hmem with rfl | hmem
+      · exact Or.inl rfl
+      · cases hmem
+  | p3 =>
+      rw [show (rr_w.piles Anchor.p3).faceUp = [] from rfl] at hmem
+      cases hmem
+  | p4 =>
+      rw [show (rr_w.piles Anchor.p4).faceUp = [] from rfl] at hmem
+      cases hmem
+  | p5 =>
+      rw [show (rr_w.piles Anchor.p5).faceUp = [] from rfl] at hmem
+      cases hmem
+  | p6 =>
+      rw [show (rr_w.piles Anchor.p6).faceUp = [] from rfl] at hmem
+      cases hmem
+
+/-- the seating refusals of the non-head shuttlers: nowhere to sit at
+either census state. -/
+private theorem rrv_canPlace_s5 (b : Base) :
+    rr_v.canPlace (wrC .spade .five) b = false := by
+  cases b with
+  | inl a => cases a <;> rfl
+  | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl
+
+private theorem rrv_canPlace_c5 (b : Base) :
+    rr_v.canPlace (wrC .club .five) b = false := by
+  cases b with
+  | inl a => cases a <;> rfl
+  | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl
+
+private theorem rrv_canPlace_s3 (b : Base) :
+    rr_v.canPlace (wrC .spade .three) b = false := by
+  cases b with
+  | inl a => cases a <;> rfl
+  | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl
+
+private theorem rrw_canPlace_s5 (b : Base) :
+    rr_w.canPlace (wrC .spade .five) b = false := by
+  cases b with
+  | inl a => cases a <;> rfl
+  | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl
+
+private theorem rrw_canPlace_c5 (b : Base) :
+    rr_w.canPlace (wrC .club .five) b = false := by
+  cases b with
+  | inl a => cases a <;> rfl
+  | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl
+
+private theorem rrw_canPlace_s3 (b : Base) :
+    rr_w.canPlace (wrC .spade .three) b = false := by
+  cases b with
+  | inl a => cases a <;> rfl
+  | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> rfl
+
+/-- the run head's unique accepting base at the landing: only the
+seated black club five takes the `[4♥, 3♠]` shuttle. -/
+private theorem rrv_canPlace_h4 {b : Base} (hcp : rr_v.canPlace (wrC .heart .four) b = true) :
+    b = Sum.inr (wrC .club .five) := by
+  cases b with
+  | inl a => cases a <;> exact absurd hcp (by decide)
+  | inr z =>
+      rcases z with ⟨zs, zr⟩
+      cases zs <;> cases zr <;> first
+        | rfl
+        | exact absurd hcp (by decide)
+
+private theorem rrw_canPlace_h4 {b : Base} (hcp : rr_w.canPlace (wrC .heart .four) b = true) :
+    b = Sum.inr (wrC .spade .five) := by
+  cases b with
+  | inl a => cases a <;> exact absurd hcp (by decide)
+  | inr z =>
+      rcases z with ⟨zs, zr⟩
+      cases zs <;> cases zr <;> first
+        | rfl
+        | exact absurd hcp (by decide)
+
+private theorem rrv_tabTab_lands (c : Card) (b : Base) (s' : State)
+    (hstep : State.step rr_v (Move.tabToTab c b) = some s') :
+    s' = rr_w := by
+  obtain ⟨a, hh, hcp, -, hs'⟩ := step_tabToTab_inv hstep
+  rcases rrv_hold_pin c a hh with rfl | rfl | rfl | rfl
+  · rw [rrv_canPlace_s5 b] at hcp
+    exact Bool.noConfusion hcp
+  · rw [rrv_canPlace_c5 b] at hcp
+    exact Bool.noConfusion hcp
+  · rw [rrv_canPlace_h4 hcp] at hstep
+    exact Option.some.inj (hstep.symm.trans
+      (show State.step rr_v (Move.tabToTab (wrC .heart .four)
+          (Sum.inr (wrC .club .five))) = some rr_w from rfl))
+  · rw [rrv_canPlace_s3 b] at hcp
+    exact Bool.noConfusion hcp
+
+private theorem rrw_tabTab_lands (c : Card) (b : Base) (s' : State)
+    (hstep : State.step rr_w (Move.tabToTab c b) = some s') :
+    s' = rr_v := by
+  obtain ⟨a, hh, hcp, -, hs'⟩ := step_tabToTab_inv hstep
+  rcases rrw_hold_pin c a hh with rfl | rfl | rfl | rfl
+  · rw [rrw_canPlace_s5 b] at hcp
+    exact Bool.noConfusion hcp
+  · rw [rrw_canPlace_c5 b] at hcp
+    exact Bool.noConfusion hcp
+  · have hb : b = Sum.inr (wrC .spade .five) := rrw_canPlace_h4 hcp
+    rw [hb] at hstep
+    have hf : State.step rr_w (Move.tabToTab (wrC .heart .four)
+        (Sum.inr (wrC .spade .five))) = some rr_v := by
+      have he : rrStep rr_w (Move.tabToTab (wrC .heart .four)
+          (Sum.inr (wrC .spade .five))) = rr_v := by
+        refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+        · cases σ <;> rfl
+        · cases a <;> rfl
+        · rfl
+        · rfl
+        · rfl
+      rw [← he]
+      rfl
+    exact Option.some.inj (hstep.symm.trans hf)
+  · rw [rrw_canPlace_s3 b] at hcp
+    exact Bool.noConfusion hcp
+
+/-! #### The closed universe and the kill -/
+
+/-- every letter that fires at a census state lands in the OTHER
+census state: the two-state shuttle. -/
+private theorem rr_step_stays {s s' : State} (hs : s = rr_v ∨ s = rr_w)
+    (m : Move) (hstep : State.step s m = some s') :
+    s' = rr_v ∨ s' = rr_w := by
+  rcases hs with rfl | rfl
+  · cases m with
+    | draw => rw [rrv_draw_none] at hstep; injection hstep
+    | wasteToFound c =>
+        rw [rrv_wasteFound_none c] at hstep; injection hstep
+    | wasteToTab c b =>
+        rw [rrv_wasteTab_none c b] at hstep; injection hstep
+    | tabToFound c =>
+        rw [rrv_tabFound_none c] at hstep; injection hstep
+    | foundToTab c b =>
+        rw [rrv_foundTab_none c b] at hstep; injection hstep
+    | tabToTab c b => exact Or.inr (rrv_tabTab_lands c b s' hstep)
+  · cases m with
+    | draw => rw [rrw_draw_none] at hstep; injection hstep
+    | wasteToFound c =>
+        rw [rrw_wasteFound_none c] at hstep; injection hstep
+    | wasteToTab c b =>
+        rw [rrw_wasteTab_none c b] at hstep; injection hstep
+    | tabToFound c =>
+        rw [rrw_tabFound_none c] at hstep; injection hstep
+    | foundToTab c b =>
+        rw [rrw_foundTab_none c b] at hstep; injection hstep
+    | tabToTab c b => exact Or.inl (rrw_tabTab_lands c b s' hstep)
+
+/-- THE CLOSED UNIVERSE: every play out of the commit landing stays
+inside the two-state shuttle. -/
+private theorem rr_run_stays (π : List Move) : ∀ s w : State,
+    (s = rr_v ∨ s = rr_w) → s.run π = some w → w = rr_v ∨ w = rr_w := by
+  induction π with
+  | nil =>
+      intro s w hs hrun
+      rw [show s.run [] = some s from rfl] at hrun
+      injection hrun with hw
+      rw [hw] at hs
+      exact hs
+  | cons m rest ih =>
+      intro s w hs hrun
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons hrun
+      exact ih s₁ w (rr_step_stays hs m hstep) hrest
+
+/-- THE KILL: both census states are fork-free by the SB door — the
+census fold is the parcel, and `false` decides both. -/
+private theorem rr_no_fork {w : State} (hw : w = rr_v ∨ w = rr_w)
+    {x : Card} (hwit : ForkWitness w x) : False := by
+  rcases hw with rfl | rfl
+  · have hs : forkStateSB rr_v = false := by decide
+    have ht : forkStateSB rr_v = true :=
+      (forkStateSB_true_iff rr_v_wf).2 ⟨x, hwit⟩
+    rw [hs] at ht
+    exact Bool.noConfusion ht
+  · have hs : forkStateSB rr_w = false := by decide
+    have ht : forkStateSB rr_w = true :=
+      (forkStateSB_true_iff rr_w_wf).2 ⟨x, hwit⟩
+    rw [hs] at ht
+    exact Bool.noConfusion ht
+
+/-- **THE CERTIFIED NEGATION** — the byte-frozen head's statement is
+FALSE: at the rr economy every premise holds — the member is WF, the
+bare-lift commit fires and is a full `irreversibleAt`, a fork is
+reachable from the member by the two-mirror play — yet NO state with a
+`ForkWitness` is reachable from the landing: the universe is the
+two-state shuttle, and the SB door decides both shuttle states
+fork-free.  A single commitment ate the last reachable fork.  The
+repair lane is the §5 target's own record: the rank discipline or the
+irrevocable-eaten-seal disjunct. -/
+theorem fork_floor_of_commit_refuted :
+    ¬ ∀ (s s' : State) (m : Move),
+      s.WF → State.step s m = some s' → irreversibleAt s m →
+      (∃ (F : State) (π : List Move) (x : Card),
+          s.run π = some F ∧ ForkWitness F x) →
+      ∃ (F' : State) (π' : List Move) (x' : Card),
+          s'.run π' = some F' ∧ ForkWitness F' x' := by
+  intro h
+  obtain ⟨F', π', x', hrun, hwit⟩ :=
+    h rr_u rr_v (Move.tabToFound (wrC .diamond .five))
+      rr_u_wf rr_commit_fires rr_commit rr_u_reaches_fork
+  exact rr_no_fork (rr_run_stays π' rr_v F' (Or.inl rfl) hrun) hwit
+
 /-! ## The audit battery
 
 `#print axioms` per fresh head.  Expected: the four kind-census
@@ -4584,3 +5141,11 @@ unchanged. -/
 #print axioms fork_floor_raise
 #print axioms fork_floor_reveal
 #print axioms fork_floor_of_commit
+#print axioms rr_st_wf
+#print axioms rr_fork
+#print axioms rr_commit
+#print axioms rr_u_reaches_fork
+#print axioms rr_run_stays
+#print axioms rr_step_stays
+#print axioms rr_no_fork
+#print axioms fork_floor_of_commit_refuted
