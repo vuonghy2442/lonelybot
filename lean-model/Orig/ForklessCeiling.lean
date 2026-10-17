@@ -2048,6 +2048,25 @@ private theorem cargoMirror_s3 {st s₁ : State} {e z : Card} {k a : Anchor}
   · exact (hz2.2.2.1).trans ((hzN.2.2.1).trans hz1.2.2.1)
   · exact (hz2.2.2.2).trans ((hzN.2.2.2).trans hz1.2.2.2)
 
+/-- **THE SLIDE'S RETURN** — the surviving under-armed slide arm's
+one-move in-place mirror, at the WF-corridor grade: the departed run
+re-seats on the EXPOSED SEAM CARD — the `census_tabToTab_under`
+identity cell: the consumed host's same-rank same-color mate, exposed
+face-up at the source's top after the run rode away, its `canSitOn`
+fit the census's own seam cut.  The two stalled kit rows
+(cargoMirror_s1/s3) carried the heavy lifting; this row is the
+packaging. -/
+theorem cargoMirror_slide {st s₁ : State} {e z : Card} {k a : Anchor}
+    (hwf : st.WF)
+    (hstep : State.step st (Move.tabToTab e (Sum.inr z)) = some s₁)
+    (hhold : st.pileHolding e = some a)
+    (hpa : st.pileOfTop z = some k)
+    (hfit : canSitOn e z = true)
+    (hpre : below e (st.piles a).faceUp ≠ []) :
+    MirrorLetter st s₁ (Move.tabToTab e (Sum.inr z)) := by
+  obtain ⟨y, -, hstepeq⟩ := cargoMirror_s3 hwf hstep hhold hpa hfit hpre
+  exact ⟨Move.tabToTab e (Sum.inr y), hstepeq, ⟨e, Sum.inr y, rfl⟩⟩
+
 /-! ## §2. The graded ceiling conjectures (frozen; the probe leaf
 decides before any proof starts) -/
 
@@ -2328,6 +2347,7 @@ verdicts decide the degenerate arms before any direction unlocks). -/
 #print axioms cargo_pair_genesis
 #print axioms cargo_pair_genesis_alpha
 #print axioms cargoMirror_corner
+#print axioms cargoMirror_slide
 #print axioms CargoPlayRF_cargo
 #print axioms CargoPlayRF_of_return
 #print axioms cargo_revealfree_of_equiv
