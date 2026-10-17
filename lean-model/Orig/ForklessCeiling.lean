@@ -1524,6 +1524,133 @@ theorem cargo_pair_fix_zones {A B : State} (h : BareCargoEquiv A B) :
   have hz := CargoPlay_fix_zone hτ
   exact ⟨hz.1, hz.2.1, hz.2.2.1⟩
 
+/-- **THE SUFFIX PLUMBING** — the hidden-deck monotone's transitivity
+leg: deck chains compose (the core `IsSuffix` witness calculus). -/
+private theorem fcSuffixTrans {l₁ l₂ l₃ : List Card}
+    (h₁ : l₁ <:+ l₂) (h₂ : l₂ <:+ l₃) : l₁ <:+ l₃ := by
+  obtain ⟨t₁, h₁⟩ := h₁
+  obtain ⟨t₂, h₂⟩ := h₂
+  exact ⟨t₂ ++ t₁, by rw [List.append_assoc, h₁, h₂]⟩
+
+/-- A flip of the roll keeps the tail. -/
+private theorem fc_revealTop_hidden_sub (q : Pile) :
+    (Pile.revealTop q).hidden <:+ q.hidden := by
+  obtain ⟨qh, qt⟩ := q
+  cases qh with
+  | nil => exact ⟨[], rfl⟩
+  | cons w r => exact ⟨[w], rfl⟩
+
+/-- The run-removal's hidden read (the corner's own cons-split shape):
+an empty below-part reveals one head (a flip), a surviving below-part
+keeps the hidden deck verbatim. -/
+private theorem fc_afterRunRemoved_hidden_sub (p : Pile) (pre : List Card) :
+    (Pile.afterRunRemoved p pre).hidden <:+ p.hidden := by
+  cases pre with
+  | nil => exact fc_revealTop_hidden_sub {p with faceUp := []}
+  | cons x t => exact ⟨[], rfl⟩
+
+/-- **THE HIDDEN-DECK MONOTONE** — along any cargo play each pile's
+hidden deck loses flipped heads only: the splice's removal step pops
+at most one head (the reveal arm) or keeps the deck verbatim (the
+surviving below arm), the putRun landing never touches a hidden field
+(the empty-seat literal's fresh `[]` is a suffix of anything), and
+every other pile rides the untouched record. -/
+private theorem fcPlay_hiddenMono : ∀ (st : State) (ρ : List Move) (w : State),
+    CargoPlay st ρ w →
+    ∀ (a : Anchor), (w.piles a).hidden <:+ (st.piles a).hidden := by
+  intro st ρ w h
+  induction h with
+  | nil s =>
+      intro a
+      exact ⟨[], rfl⟩
+  | @cons s0 s2 W m ρ' hlet hstep hrest ih =>
+      obtain ⟨c, b, rfl⟩ := hlet
+      obtain ⟨ap, -, -, -, hs'⟩ := step_tabToTab_inv hstep
+      obtain ⟨M, hMdef⟩ : ∃ M : State,
+          M = s0.setPile ap (Pile.afterRunRemoved (s0.piles ap)
+            (below c (s0.piles ap).faceUp)) := ⟨_, rfl⟩
+      rw [← hMdef] at hs'
+      have hselfM : M.piles ap = Pile.afterRunRemoved (s0.piles ap)
+          (below c (s0.piles ap).faceUp) := by
+        rw [hMdef]
+        exact setPile_afterRunRemoved_piles_self s0 ap c
+      have hotherM : ∀ x ≠ ap, M.piles x = s0.piles x := fun x hne => by
+        rw [hMdef]
+        exact setPile_afterRunRemoved_piles_ne s0 ap c x hne
+      have hMsuf : ∀ x : Anchor, (M.piles x).hidden <:+ (s0.piles x).hidden := by
+        intro x
+        by_cases hxa : x = ap
+        · rw [hxa, hselfM]
+          exact fc_afterRunRemoved_hidden_sub (s0.piles ap)
+            (below c (s0.piles ap).faceUp)
+        · rw [hotherM x hxa]
+          exact ⟨[], rfl⟩
+      have hleg : ∀ x : Anchor, (s2.piles x).hidden <:+ (s0.piles x).hidden := by
+        intro x
+        have hpart : (s2.piles x).hidden <:+ (M.piles x).hidden := by
+          rw [hs']
+          cases b with
+          | inl a₀ =>
+              by_cases hxa₀ : x = a₀
+              · rw [hxa₀, putRun_piles_inl_self M
+                  (fromCard c (s0.piles ap).faceUp) a₀]
+                exact ⟨(M.piles a₀).hidden, List.append_nil _⟩
+              · rw [putRun_piles_inl_ne M (fromCard c (s0.piles ap).faceUp)
+                  a₀ x hxa₀]
+                exact ⟨[], rfl⟩
+          | inr z =>
+              cases hz : M.pileOfTop z with
+              | none =>
+                  rw [show M.putRun (fromCard c (s0.piles ap).faceUp)
+                      (Sum.inr z) = M from by
+                      simp only [State.putRun, hz]]
+                  exact ⟨[], rfl⟩
+              | some k =>
+                  by_cases hxk : x = k
+                  · rw [hxk, putRun_piles_inr_self M
+                      (fromCard c (s0.piles ap).faceUp) z k hz]
+                    exact ⟨[], rfl⟩
+                  · rw [putRun_piles_inr_ne M (fromCard c (s0.piles ap).faceUp)
+                      z k hz hxk]
+                    exact ⟨[], rfl⟩
+        exact fcSuffixTrans hpart (hMsuf x)
+      intro a
+      exact fcSuffixTrans (ih a) (hleg a)
+
+/-- **THE SUFFIX ANTISYMMETRY** — a cycle of suffixes is equality
+(zero-length arithmetic on both witnesses). -/
+private theorem fcPrefix_antisym : ∀ (l₁ l₂ : List Card),
+    l₁ <:+ l₂ → l₂ <:+ l₁ → l₁ = l₂ := by
+  intro l₁ l₂ h₁ h₂
+  obtain ⟨t₁, h₁⟩ := h₁
+  obtain ⟨t₂, h₂⟩ := h₂
+  have hl₁ : l₁.length = t₂.length + l₂.length := by
+    rw [← h₂, List.length_append]
+  have hl₂ : l₂.length = t₁.length + l₁.length := by
+    rw [← h₁, List.length_append]
+  have ht₁ : t₁.length = 0 := by omega
+  have ht₂ : t₂.length = 0 := by omega
+  rw [List.eq_nil_of_length_eq_zero ht₁, List.nil_append] at h₁
+  exact h₁
+
+/-- **THE PAIR'S HIDDEN FIX** — the both-ways closure pins every
+pile's hidden deck: the one-way monotone runs along each direction's
+play, and the cycle's antisymmetry closes the equality (the last real
+row of `SameCargoFix`). -/
+theorem cargoPair_hidden {A B : State} (h : BareCargoEquiv A B) :
+    ∀ (a : Anchor), (A.piles a).hidden = (B.piles a).hidden := by
+  obtain ⟨τ, hτ, ρ, hρ⟩ := h
+  intro a
+  exact fcPrefix_antisym (A.piles a).hidden (B.piles a).hidden
+    (fcPlay_hiddenMono B ρ A hρ a) (fcPlay_hiddenMono A τ B hτ a)
+
+/-- **THE CARGO FIX** — the three zone conjuncts plus the hidden-deck
+row: `BareCargoEquiv` pairs live inside the same cargo fix. -/
+theorem cargo_pair_fix {A B : State} (h : BareCargoEquiv A B) :
+    SameCargoFix A B := by
+  obtain ⟨hz1, hz2, hz3⟩ := cargo_pair_fix_zones h
+  exact ⟨hz1.symm, hz2.symm, hz3.symm, cargoPair_hidden h⟩
+
 /-- **THE CARGO PAIR GENESIS** [H — THE §1g NAMED RESIDUE, frozen
 probe-gated] — the three-normal-forms theorem: the both-ways closure,
 the structure (fix ∧ floating join), and the mirror word inside the
@@ -2344,6 +2471,8 @@ verdicts decide the degenerate arms before any direction unlocks). -/
 #print axioms MirrorWord_rev
 #print axioms mirrorword_pair_to_equiv
 #print axioms cargo_pair_fix_zones
+#print axioms cargoPair_hidden
+#print axioms cargo_pair_fix
 #print axioms cargo_pair_genesis
 #print axioms cargo_pair_genesis_alpha
 #print axioms cargoMirror_corner
