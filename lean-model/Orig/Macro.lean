@@ -79,24 +79,11 @@ inductive MacroWin : State → State → Prop
   | phase {st st'' w : State} {m : Move} :
       MacroStep st m st'' → MacroWin st'' w → MacroWin st w
 
-/-- Joining two plays along a shared state. -/
+/-- Joining two plays along a shared state.
+harvested to Orig/Play.lean's `run_append` at the 2026-10-17 wave. -/
 theorem run_split : ∀ (l₁ : List Move) (st s₁ : State) (l₂ : List Move) (w : State),
-    st.run l₁ = some s₁ → s₁.run l₂ = some w → st.run (l₁ ++ l₂) = some w := by
-  intro l₁
-  induction l₁ with
-  | nil =>
-      intro st s₁ l₂ w h₁ h₂
-      injection h₁ with h
-      subst h
-      exact h₂
-  | cons m t ih =>
-      intro st s₁ l₂ w h₁ h₂
-      obtain ⟨r, hstep, hrest⟩ := State.run_cons h₁
-      show st.run (m :: (t ++ l₂)) = some w
-      rw [show st.run (m :: (t ++ l₂)) = (match State.step st m with
-        | some st' => st'.run (t ++ l₂)
-        | none => none) from rfl, hstep]
-      exact ih r s₁ l₂ w hrest h₂
+    st.run l₁ = some s₁ → s₁.run l₂ = some w → st.run (l₁ ++ l₂) = some w :=
+  fun l₁ st s₁ l₂ w h₁ h₂ => run_append st l₁ l₂ s₁ w h₁ h₂
 
 /-! ## The regrouping theorem -/
 

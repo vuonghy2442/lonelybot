@@ -503,6 +503,18 @@ theorem afterRunRemoved_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
   | nil => exact absurd rfl h
   | cons w ws => rfl
 
+/-- `afterRunRemoved` at an empty prefix over an empty hidden deck
+leaves the bare empty pile (landed at the 2026-10-17 harvest wave
+beside the def; the private copies — `Orig/ConjugateProof.lean`'s
+`afterRunRemoved_bareEmpty` and `Orig/EdgeLabel.lean`'s
+`afterRunRemoved_bare_empty` — cite this home at their harvest). -/
+theorem Pile.afterRunRemoved_bare {p : Pile} (h : p.hidden = []) :
+    Pile.afterRunRemoved p ([] : List Card) = ⟨[], ([] : List Card)⟩ := by
+  rcases p with ⟨hd, fq⟩
+  cases hd with
+  | nil => rfl
+  | cons x xs => exact absurd h (by simp)
+
 /-- Each occurrence of `c` in a list contributes one to the filtered
 count — the bridge every `cardCount` proof rides. -/
 theorem count_filter_pos {c : Card} :
@@ -530,6 +542,39 @@ theorem lastOf_chop {c : Card} : ∀ {l : List Card},
   intro l h
   obtain ⟨front, hfe⟩ := lastOf_eq_snoc h
   rw [hfe, chop_snoc]
+
+/-- A nodup list cannot host its snoc card in the front part (the
+list-generic home landed at the 2026-10-17 harvest wave; the private
+Card-typed mirror `Orig/SConjugate.lean`'s `nodup_snoc_notmem` cites
+this home at its harvest). -/
+theorem List.snoc_nodup_notMem {α : Type} :
+    ∀ (bs : List α) (d : α), (bs ++ [d]).Nodup → d ∉ bs
+  | [], _, _ => by
+      intro hcon
+      simp at hcon
+  | b :: t, d, hnd => by
+      intro hcon
+      rcases List.mem_cons.mp hcon with hdb | hcon'
+      · have hbmem : b ∈ t ++ [d] :=
+          List.mem_append.mpr (Or.inr (List.mem_singleton.mpr hdb.symm))
+        exact absurd hbmem ((List.nodup_cons.mp hnd).1)
+      · exact List.snoc_nodup_notMem t d (List.nodup_cons.mp hnd).2 hcon'
+
+/-- A nodup append cannot host its mid card in the prefix (the
+list-generic home landed at the 2026-10-17 harvest wave; the private
+Card-typed mirror `Orig/SConjugate.lean`'s `nodup_mid_notmem` cites
+this home at its harvest). -/
+theorem List.append_nodup_notMem {α : Type} :
+    ∀ (bs : List α) (d : α) (rest : List α), (bs ++ d :: rest).Nodup → d ∉ bs := by
+  intro bs
+  induction bs with
+  | nil => intro d rest _ hm; exact absurd hm (by simp)
+  | cons x xs ih =>
+      intro d rest hnd hm
+      rcases List.mem_cons.mp hm with rfl | hin
+      · exact absurd (List.mem_append.mpr (Or.inr (List.mem_cons_self ..)))
+          ((List.nodup_cons.mp hnd).1)
+      · exact ih d rest (List.nodup_cons.mp hnd).2 hin
 
 /-- The tail of a legal run is legal. -/
 theorem runOK_cons_tail {x : Card} {t : List Card}

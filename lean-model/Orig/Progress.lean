@@ -77,21 +77,12 @@ private theorem run_cons_of {st : State} {m : Move} {s₁ : State}
   exact hrest
 
 /-- The elimination direction of `run` over an append: a successful
-run through `A ++ B` passes through the state `A` lands on. -/
+run through `A ++ B` passes through the state `A` lands on.
+harvested to Orig/Play.lean's `run_append_split` at the 2026-10-17 wave. -/
 private theorem run_append_elim : ∀ (A : List Move) (st : State) (w : State)
     (B : List Move), st.run (A ++ B) = some w →
-    ∃ s, st.run A = some s ∧ s.run B = some w := by
-  intro A
-  induction A with
-  | nil =>
-      intro st w B h
-      exact ⟨st, rfl, h⟩
-  | cons m t ih =>
-      intro st w B h
-      rw [List.cons_append] at h
-      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h
-      obtain ⟨s, hA, hB⟩ := ih s₁ w B hrest
-      exact ⟨s, run_cons_of hstep hA, hB⟩
+    ∃ s, st.run A = some s ∧ s.run B = some w :=
+  fun A st w B h => run_append_split st A B w h
 
 /-- `take` at a split index (isolation copy of the core kit's
 `take_add`, whose proof drags `Classical.choice` — the audit's one

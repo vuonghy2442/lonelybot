@@ -804,7 +804,11 @@ private theorem draw_wf {st st' : State} (hwf : st.WF) (hstep : st.stepDraw = so
     rw [hsd]; exact hstep1or3
 
 private theorem Suit_all_nodup : (Suit.all : List Suit).Nodup := by decide
-private theorem Anchor_all_nodup : (Anchor.all : List Anchor).Nodup := by decide
+
+/-- The seven anchors are pairwise distinct —
+harvested to Orig/State.lean's `Anchor.all_nodup` at the 2026-10-17 wave. -/
+private theorem Anchor_all_nodup : (Anchor.all : List Anchor).Nodup :=
+  Anchor.all_nodup
 
 /-- The `wasteToFound` move: the waste top joins its foundation. -/
 private theorem wasteToFound_wf {st st' : State} {c : Card}

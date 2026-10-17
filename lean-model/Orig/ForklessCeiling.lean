@@ -1572,6 +1572,117 @@ theorem cargo_pair_genesis_alpha {A B : State}
       MirrorWord A τ B ∧ MirrorWord B ρ A ∧ SameCargoFix A B := by
   sorry
 
+/-! ### §1g.1 The mirror kit (the WF corridor's per-arm certificates) -/
+
+/-- **THE CORNER'S RETURN HOP** — the surviving king-corner arm's
+one-move in-place mirror, at the WF-corridor grade: the loaded
+king-run returns to the EMPTIED source anchor by the very king bar
+that seated it (the forward channel `step_tabToTab_eq`; the
+reassembly rides the §0c.2 kit's rows). -/
+theorem cargoMirror_corner {st s₁ : State} {K : Card} {a₀ a : Anchor}
+    (hwf : st.WF)
+    (hstep : State.step st (Move.tabToTab K (Sum.inl a₀)) = some s₁)
+    (hhold : st.pileHolding K = some a)
+    (hbel : below K (st.piles a).faceUp = [])
+    (hhid : (st.piles a).hidden = []) :
+    MirrorLetter st s₁ (Move.tabToTab K (Sum.inl a₀)) := by
+  obtain ⟨a₂, hh₀, hcp, hfr, hs'⟩ := step_tabToTab_inv hstep
+  have hae : a = a₂ := Option.some.inj (hhold.symm.trans hh₀)
+  subst hae
+  obtain ⟨hemp, hK⟩ := canPlace_inl hcp
+  obtain ⟨h₀, hf₀⟩ := (Pile.isEmpty_eq (st.piles a₀)).mp hemp
+  have hs₁wf : s₁.WF := step_wf hwf hstep
+  have hKmem : K ∈ (st.piles a).faceUp := pileHolding_mem hh₀
+  obtain ⟨rest, hKrest⟩ := fc_fromCard_head (st.piles a).faceUp hfr
+  obtain ⟨M, hMdef⟩ : ∃ M : State,
+      M = st.setPile a (Pile.afterRunRemoved (st.piles a)
+        (below K (st.piles a).faceUp)) := ⟨_, rfl⟩
+  rw [← hMdef] at hs'
+  have hotherM : ∀ a' ≠ a, M.piles a' = st.piles a' := by
+    intro a' hne
+    rw [hMdef]
+    exact setPile_afterRunRemoved_piles_ne st a K a' hne
+  have haMbare : M.piles a = ⟨[], []⟩ := by
+    rw [hMdef, setPile_afterRunRemoved_piles_self st a K, hbel]
+    exact fc_afterRunRemoved_bare hhid
+  have ha₀ne : a₀ ≠ a := by
+    intro hcon
+    rw [hcon] at hf₀
+    rw [hf₀] at hKmem
+    exact absurd hKmem (by simp)
+  have hsa : s₁.piles a = ⟨[], []⟩ := by
+    rw [hs', putRun_piles_inl_ne M (fromCard K (st.piles a).faceUp) a₀ a ha₀ne.symm]
+    exact haMbare
+  have hsa₀ : s₁.piles a₀ = ⟨[], fromCard K (st.piles a).faceUp⟩ := by
+    rw [hs']
+    exact putRun_piles_inl_self M (fromCard K (st.piles a).faceUp) a₀
+  have hfaceSr : (s₁.piles a₀).faceUp
+      = fromCard K (st.piles a).faceUp := by
+    rw [hsa₀]
+  have hhid₀ : (s₁.piles a₀).hidden = [] := by
+    rw [hsa₀]
+  have hbelow₂ : below K (s₁.piles a₀).faceUp = [] := by
+    rw [hfaceSr, hKrest, below_cons_self]
+  have hfrom₂ : fromCard K (s₁.piles a₀).faceUp = K :: rest := by
+    rw [hfaceSr, hKrest, fromCard_cons_self]
+  have hmem₀ : K ∈ (s₁.piles a₀).faceUp := by
+    rw [hfaceSr]
+    have hsplit : (st.piles a).faceUp
+        = fromCard K (st.piles a).faceUp := by
+      have h2 := fc_below_join K (st.piles a).faceUp
+      rw [hbel, List.nil_append] at h2
+      exact h2
+    rw [hsplit] at hKmem
+    exact hKmem
+  have hhold₂ : s₁.pileHolding K = some a₀ :=
+    (pileHolding_eq_some_iff hs₁wf).mpr hmem₀
+  have hSa : (s₁.piles a).isEmpty = true := by
+    rw [hsa]
+    rfl
+  have hcp₂ : s₁.canPlace K (Sum.inl a) = true := by
+    simp only [State.canPlace, hSa, Bool.and_eq_true]
+    rw [decide_eq_true hK]
+    exact ⟨trivial, rfl⟩
+  refine ⟨Move.tabToTab K (Sum.inl a), ?_, ⟨K, Sum.inl a, rfl⟩⟩
+  simp only [step_tabToTab_eq, hhold₂, hcp₂, hfrom₂]
+  show some ((s₁.setPile a₀ (Pile.afterRunRemoved (s₁.piles a₀)
+      (below K (s₁.piles a₀).faceUp))).putRun (K :: rest) (Sum.inl a)) = some st
+  congr 1
+  have hlA : Pile.afterRunRemoved (s₁.piles a₀)
+      (below K (s₁.piles a₀).faceUp) = { hidden := [], faceUp := [] } := by
+    rw [hbelow₂]
+    exact fc_afterRunRemoved_bare hhid₀
+  have hfA : (st.piles a).faceUp = K :: rest := by
+    rw [fc_below_join K (st.piles a).faceUp, hbel,
+      List.nil_append, hKrest]
+  have hpA : st.piles a = { hidden := ([] : List Card), faceUp := K :: rest } :=
+    Pile.ext hhid hfA
+  have hpA₀ : st.piles a₀ = { hidden := ([] : List Card), faceUp := [] } :=
+    Pile.ext h₀ hf₀
+  have hz1 := fc_step_zone hstep
+  have hz2 := putRun_keep
+    (st := s₁.setPile a₀ (Pile.afterRunRemoved (s₁.piles a₀)
+      (below K (s₁.piles a₀).faceUp))) (run := K :: rest) (b := Sum.inl a)
+  refine State.ext ?_ ?_ ?_ ?_ ?_
+  · exact (hz2.1).trans hz1.1
+  · funext x
+    by_cases hxa : x = a
+    · rw [hxa, putRun_piles_inl_self]
+      exact hpA.symm
+    · have hxnea : x ≠ a := fun h => hxa h
+      rw [putRun_piles_inl_ne
+        (s₁.setPile a₀ (Pile.afterRunRemoved (s₁.piles a₀)
+          (below K (s₁.piles a₀).faceUp))) (K :: rest) a x hxnea]
+      by_cases hxa₀ : x = a₀
+      · rw [hxa₀, setPile_afterRunRemoved_piles_self s₁ a₀ K, hlA]
+        exact hpA₀.symm
+      · rw [setPile_afterRunRemoved_piles_ne s₁ a₀ K x hxa₀, hs',
+          putRun_piles_inl_ne M (fromCard K (st.piles a).faceUp) a₀ x hxa₀]
+        exact hotherM x hxnea
+  · exact (hz2.2.1).trans hz1.2.1
+  · exact (hz2.2.2.1).trans hz1.2.2.1
+  · exact (hz2.2.2.2).trans hz1.2.2.2
+
 /-! ## §2. The graded ceiling conjectures (frozen; the probe leaf
 decides before any proof starts) -/
 
@@ -1788,6 +1899,7 @@ verdicts decide the degenerate arms before any direction unlocks). -/
 #print axioms cargo_pair_fix_zones
 #print axioms cargo_pair_genesis
 #print axioms cargo_pair_genesis_alpha
+#print axioms cargoMirror_corner
 #print axioms CargoPlayRF_cargo
 #print axioms CargoPlayRF_of_return
 #print axioms cargo_revealfree_of_equiv
