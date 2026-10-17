@@ -3593,6 +3593,313 @@ theorem fork_neighbor_lowbridge {st : State} {x : Card}
         unfold familyBelowFrontier
         exact h) hstep hiv
 
+/-! ### §4.4a THE RECOVERED HEADS (session-6: the §4.2.d cut, assembled)
+
+The owner-ratification staging's consumer, landed at head grade: the
+§4.2.d per-kind cut — `m`'s founded-or-seated card at-or-below the fork
+point for the two founding letters, and UNIFORMLY per the staged reseat
+row for the seating letter — bound into dispatchers and heads.
+Everything here is ASSEMBLY over existing rows (the two staged
+residues of §4.2.d, the landed draw kind, the frozen pull and reveal
+residues, the proved waste routers' staged twins, the assemble/glue
+kit); NO new content is added anywhere, and the recovered heads'
+`sorryAx` flows ONLY through the frozen named rows, exactly as the
+staging note records (the owner's ratified swap is one line per row).
+The session-4 certified negations cannot instantiate the recovered
+statements: the fence row below decides the twin-hot boards' own
+letters refuse the new premises outright. -/
+
+set_option linter.unusedVariables false in
+/-- **THE WASTE-JUMP ROUTER, `hlow`-STAGED** (pop-to-foundation arm) —
+the proved router's twin over the STAGED reseat row: the step's own
+guard reading packages `WasteGuard`; the staged residue carries the
+cursor/hot-bracket content; `lowslab_waste_guard_fires` re-fires the
+letter at the re-seated member; `lowslab_waste_targetclass` welds the
+two landings.  Pure assembly — the `sorryAx` flows only through
+`lowslab_waste_reseat_of_hlow`. -/
+private theorem fork_lowbridge_waste_found_of_hlow {st : State} {x : Card}
+    (hx : ForkWitness st x)
+    {u v : State} (hmem : sameOrbitSetoid.r st u)
+    {c : Card} (hstep : State.step u (Move.wasteToFound c) = some v)
+    (hiv : irreversibleAt u (Move.wasteToFound c))
+    (helev : ¬ familyBelowFrontier u x)
+    (hlow : c.rank.toIdx ≤ x.rank.toIdx) :
+    ∃ (u₀ : State) (m₀ : Move) (v₀ : State),
+      sameOrbitSetoid.r st u₀ ∧
+      familyBelowFrontier u₀ x ∧
+      State.step u₀ m₀ = some v₀ ∧
+      sameOrbitSetoid.r v₀ v := by
+  obtain ⟨hg, -⟩ := step_wasteToFound_inv hstep
+  rw [Bool.and_eq_true] at hg
+  have hfu : WasteGuard u (Move.wasteToFound c) :=
+    Or.inl ⟨c, rfl, hg.1, hg.2⟩
+  have hfl : ∀ c', (Move.wasteToFound c = Move.wasteToFound c' ∨
+      ∃ b, Move.wasteToFound c = Move.wasteToTab c' b) →
+      c'.rank.toIdx ≤ x.rank.toIdx := by
+    intro c' h'
+    rcases h' with h1 | ⟨b, h2⟩
+    · injection h1 with hc
+      rw [← hc]
+      exact hlow
+    · injection h2
+  obtain ⟨u₀, hmem₀, hslab₀, hfu₀⟩ :=
+    lowslab_waste_reseat_of_hlow hx hmem helev hfu hfl
+  have hclass : sameOrbitSetoid.r u₀ u :=
+    sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hmem₀) hmem
+  obtain ⟨v₀, hstep₀⟩ := lowslab_waste_guard_fires hfu₀
+  exact ⟨u₀, Move.wasteToFound c, v₀, hmem₀, hslab₀, hstep₀,
+    lowslab_waste_targetclass hclass hfu hfu₀ hstep hstep₀⟩
+
+set_option linter.unusedVariables false in
+/-- **THE WASTE-SEATING ROUTER, `hlow`-STAGED** (seat arm) — the seat
+router's twin over the STAGED reseat row; the staged residue's premise
+is UNIFORM across both guard arms (the seating letter's own card
+bound — the seat-arm relaxation stays the priced future probe per
+§4.2.d's seat-arm note), so the router's discipline reads the seated
+card.  Pure assembly — the `sorryAx` flows only through
+`lowslab_waste_reseat_of_hlow`. -/
+private theorem fork_lowbridge_waste_seat_of_hlow {st : State} {x : Card}
+    (hx : ForkWitness st x)
+    {u v : State} (hmem : sameOrbitSetoid.r st u)
+    {c : Card} {b : Base}
+    (hstep : State.step u (Move.wasteToTab c b) = some v)
+    (hiv : irreversibleAt u (Move.wasteToTab c b))
+    (helev : ¬ familyBelowFrontier u x)
+    (hlow : c.rank.toIdx ≤ x.rank.toIdx) :
+    ∃ (u₀ : State) (m₀ : Move) (v₀ : State),
+      sameOrbitSetoid.r st u₀ ∧
+      familyBelowFrontier u₀ x ∧
+      State.step u₀ m₀ = some v₀ ∧
+      sameOrbitSetoid.r v₀ v := by
+  obtain ⟨hg, -⟩ := step_wasteToTab_inv hstep
+  rw [Bool.and_eq_true] at hg
+  have hfu : WasteGuard u (Move.wasteToTab c b) :=
+    Or.inr ⟨c, b, rfl, hg.1, hg.2⟩
+  have hfl : ∀ c', (Move.wasteToTab c b = Move.wasteToFound c' ∨
+      ∃ b', Move.wasteToTab c b = Move.wasteToTab c' b') →
+      c'.rank.toIdx ≤ x.rank.toIdx := by
+    intro c' h'
+    rcases h' with h1 | ⟨b', h2⟩
+    · injection h1
+    · injection h2 with hc _
+      rw [← hc]
+      exact hlow
+  obtain ⟨u₀, hmem₀, hslab₀, hfu₀⟩ :=
+    lowslab_waste_reseat_of_hlow hx hmem helev hfu hfl
+  have hclass : sameOrbitSetoid.r u₀ u :=
+    sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hmem₀) hmem
+  obtain ⟨v₀, hstep₀⟩ := lowslab_waste_guard_fires hfu₀
+  exact ⟨u₀, Move.wasteToTab c b, v₀, hmem₀, hslab₀, hstep₀,
+    lowslab_waste_targetclass hclass hfu hfu₀ hstep hstep₀⟩
+
+set_option linter.unusedVariables false in
+/-- **THE ELEVATION DISPATCHER, `hlow`-STAGED** — the frozen
+dispatcher's twin at the §4.2.d cut: the six constructor arms route as
+recorded — draw and reveal ride UNCHANGED AND UNRESTRICTED (the
+reveal letter founds nothing, so no card discipline is demanded of
+it), pull rides the frozen wild-remainder row, and the two founding
+arms plus the seating arm derive their disciplines from the head
+premise.  Pure dispatch, zero own content. -/
+private theorem fork_lowbridge_elevated_of_hlow {st : State} {x : Card}
+    (hx : ForkWitness st x)
+    {u v : State} (hmem : sameOrbitSetoid.r st u)
+    {m : Move} (hstep : State.step u m = some v)
+    (hiv : irreversibleAt u m)
+    (hlow : ∀ c, (m = Move.tabToFound c ∨ m = Move.wasteToFound c ∨
+        ∃ b, m = Move.wasteToTab c b) → c.rank.toIdx ≤ x.rank.toIdx)
+    (helev : ¬ familyBelowFrontier u x) :
+    ∃ (u₀ : State) (m₀ : Move) (v₀ : State),
+      sameOrbitSetoid.r st u₀ ∧
+      familyBelowFrontier u₀ x ∧
+      State.step u₀ m₀ = some v₀ ∧
+      irreversibleAt u₀ m₀ ∧
+      sameOrbitSetoid.r v₀ v := by
+  cases m with
+  | draw =>
+      exact fork_lowbridge_assemble hmem hstep hiv
+        (fork_lowbridge_draw hx hmem hstep hiv helev)
+  | wasteToFound c =>
+      exact fork_lowbridge_assemble hmem hstep hiv
+        (fork_lowbridge_waste_found_of_hlow hx hmem hstep hiv helev
+          (hlow c (Or.inr (Or.inl rfl))))
+  | wasteToTab c b =>
+      exact fork_lowbridge_assemble hmem hstep hiv
+        (fork_lowbridge_waste_seat_of_hlow hx hmem hstep hiv helev
+          (hlow c (Or.inr (Or.inr ⟨b, rfl⟩))))
+  | tabToFound c =>
+      exact fork_lowbridge_assemble hmem hstep hiv
+        (fork_lowbridge_raise_of_hlow hx hmem hstep hiv helev
+          (hlow c (Or.inl rfl)))
+  | foundToTab c b =>
+      exact fork_lowbridge_assemble hmem hstep hiv
+        (fork_lowbridge_pull hx hmem hstep hiv helev)
+  | tabToTab c b =>
+      exact fork_lowbridge_assemble hmem hstep hiv
+        (fork_lowbridge_reveal hx hmem hstep hiv helev)
+
+set_option linter.unusedVariables false in
+/-- **THE NON-FOUNDING PREMISE SUPPLY** — at a reveal-or-seating
+letter, the recovered dispatcher's head premise is supplied from the
+two-kind hypotheses alone: the reveal letter makes it VACUOUS (the
+founding disjuncts die by distinct-constructor injection), the seating
+letter reads the seated card's own discipline.  Zero-sorry. -/
+private theorem ls_lowcommit_of_nonfounding {x : Card} {m : Move}
+    (hkind : ∃ (c : Card) (b : Base),
+      m = Move.tabToTab c b ∨ m = Move.wasteToTab c b)
+    (hseat : ∀ c, (∃ b, m = Move.wasteToTab c b) →
+      c.rank.toIdx ≤ x.rank.toIdx) :
+    ∀ c, (m = Move.tabToFound c ∨ m = Move.wasteToFound c ∨
+      ∃ b, m = Move.wasteToTab c b) → c.rank.toIdx ≤ x.rank.toIdx := by
+  obtain ⟨c₀, b₀, rfl | rfl⟩ := hkind
+  · intro c' h'
+    rcases h' with h1 | h2 | ⟨b', h3⟩
+    · injection h1
+    · injection h2
+    · injection h3
+  · intro c' h'
+    rcases h' with h1 | h2 | ⟨b', h3⟩
+    · injection h1
+    · injection h2
+    · exact hseat c' ⟨b', h3⟩
+
+/-- **THE RECOVERED HEAD** `fork_neighbor_lowbridge_lowcommit` — the
+frozen main row's statement BYTE-MIRRORED with the §4.2.d cut as a
+premise: the founding letters' and the seating letter's card
+discipline, draw and reveal EXEMPT (the reveal letter founds nothing).
+The body is the frozen head's own elevation split verbatim; the
+`sorryAx` flows ONLY through the frozen named residues via the staged
+kit, never through a refuted row: the session-4 certified negations
+cannot instantiate this statement — the twin-hot boards' letters
+(raise `tabToFound 5♦`, waste `wasteToFound 5♦`) refuse the premise at
+`lowslab_lowcommit_fence` below.  Honest distance to a proof: exactly
+the six named residues' content, nothing else. -/
+theorem fork_neighbor_lowbridge_lowcommit {st : State} {x : Card}
+    (hx : ForkWitness st x)
+    {u v : State} (hmem : sameOrbitSetoid.r st u)
+    {m : Move} (hstep : State.step u m = some v)
+    (hiv : irreversibleAt u m)
+    (hlow : ∀ c, (m = Move.tabToFound c ∨ m = Move.wasteToFound c ∨
+        ∃ b, m = Move.wasteToTab c b) → c.rank.toIdx ≤ x.rank.toIdx) :
+    ∃ (u₀ : State) (m₀ : Move) (v₀ : State),
+      sameOrbitSetoid.r st u₀ ∧
+      familyBelowFrontier u₀ x ∧
+      State.step u₀ m₀ = some v₀ ∧
+      irreversibleAt u₀ m₀ ∧
+      sameOrbitSetoid.r v₀ v := by
+  rcases Nat.lt_or_ge (x.rank.toIdx) (rungAt u x.twin.suit) with h | h
+  · exact fork_lowbridge_elevated_of_hlow hx hmem hstep hiv hlow
+      (by
+        unfold familyBelowFrontier
+        omega)
+  · exact fork_lowbridge_empty hmem
+      (by
+        unfold familyBelowFrontier
+        exact h) hstep hiv
+
+/-- **THE TWO-KIND RESTRICTED HEAD** `fork_neighbor_lowbridge_nonfounding`
+— the low-budget promise at exactly the two non-founding live kinds:
+every REVEAL commitment (NO card discipline at all — the §4.2.d
+adjudication's exempt arm, unrefuted, its above-forkpoint region priced
+open [H]) and every WASTE-SEATING commitment under the STAGED UNIFORM
+discipline on the seated card (the seat-arm relaxation stays the
+priced future probe).  The promise: the five-tuple low duplicate.  The
+honesty: no refutation can touch the reveal arm (a slide writes no
+foundation — the twin-hot floor cannot latch), and the seat arm's only
+discipline is the one the staged residue already prices; what stands
+between this statement and a proof is exactly the
+reseat/reveal/targetclass content — the same open cores the recovered
+head names. -/
+theorem fork_neighbor_lowbridge_nonfounding {st : State} {x : Card}
+    (hx : ForkWitness st x)
+    {u v : State} (hmem : sameOrbitSetoid.r st u)
+    {m : Move}
+    (hkind : ∃ (c : Card) (b : Base),
+        m = Move.tabToTab c b ∨ m = Move.wasteToTab c b)
+    (hstep : State.step u m = some v)
+    (hiv : irreversibleAt u m)
+    (hseat : ∀ c, (∃ b, m = Move.wasteToTab c b) →
+        c.rank.toIdx ≤ x.rank.toIdx) :
+    ∃ (u₀ : State) (m₀ : Move) (v₀ : State),
+      sameOrbitSetoid.r st u₀ ∧
+      familyBelowFrontier u₀ x ∧
+      State.step u₀ m₀ = some v₀ ∧
+      irreversibleAt u₀ m₀ ∧
+      sameOrbitSetoid.r v₀ v := by
+  rcases Nat.lt_or_ge (x.rank.toIdx) (rungAt u x.twin.suit) with h | h
+  · exact fork_lowbridge_elevated_of_hlow hx hmem hstep hiv
+      (ls_lowcommit_of_nonfounding hkind hseat)
+      (by
+        unfold familyBelowFrontier
+        omega)
+  · exact fork_lowbridge_empty hmem
+      (by
+        unfold familyBelowFrontier
+        exact h) hstep hiv
+
+/-- **THE FENCE, DECIDED** — the certified counterexample boards
+refuse the recovered premise outright: the rr board's raise letter
+(`tabToFound 5♦`) and the wr board's waste letter (`wasteToFound 5♦`)
+bind the same hot card at index 4 against the witness `4♥`'s fork
+point 3, so the §4.2.d reading is DECIDE-FALSE at both boards — the
+twin-hot family is fenced by PREMISE, not by repair of the refuted
+frozen rows.  ZERO-sorry. -/
+theorem lowslab_lowcommit_fence :
+    ¬ ((wrC .diamond .five).rank.toIdx ≤ (wrC .heart .four).rank.toIdx) := by
+  decide
+
+set_option linter.unusedVariables false in
+/-- **THE TWIN-HOT SCREEN, UNIVERSAL** — the fence, promoted from the
+two certified boards to EVERY world: any founding letter that raises a
+card OF THE WITNESS'S TWIN SUIT from an ELEVATED member necessarily
+violates the recovered premise.  The founding guard reads the card's
+index as the rung exactly (`nextUp`), the elevated member pins that
+rung strictly above the fork point, so the card's index is strictly
+above the fork point — `hlow` cannot hold.  ZERO-sorry: the twin-suit
+founding account of the recovered statements is discharged at the
+PREMISE by this universal screen, not merely fenced at the rr/wr
+boards. -/
+theorem lowslab_twinhot_founding_screen {x : Card} {u v : State}
+    {c : Card}
+    (hs : c.suit = x.twin.suit)
+    (helev : ¬ familyBelowFrontier u x)
+    (hkind : State.step u (Move.tabToFound c) = some v ∨
+      State.step u (Move.wasteToFound c) = some v) :
+    ¬ (c.rank.toIdx ≤ x.rank.toIdx) := by
+  intro hle
+  have h1 : c.rank.toIdx = rungAt u c.suit := by
+    rcases hkind with hstep | hstep
+    · obtain ⟨hn, -⟩ := step_tabToFound_inv hstep
+      have hc : c.rank.toIdx = u.foundHeight c.suit :=
+        of_decide_eq_true hn
+      rw [hc]
+      rfl
+    · obtain ⟨hg, -⟩ := step_wasteToFound_inv hstep
+      rw [Bool.and_eq_true] at hg
+      have hc : c.rank.toIdx = u.foundHeight c.suit :=
+        of_decide_eq_true hg.2
+      rw [hc]
+      rfl
+  rw [hs] at h1
+  unfold familyBelowFrontier at helev
+  omega
+
+set_option linter.unusedVariables false in
+/-- **THE RECOVERED SCOPE, STATED** — every founding the recovered
+premise ever licenses at an ELEVATED member is a NON-TWIN-SUIT low
+commit: with the discipline holding, a twin-suit founding there is
+impossible.  The repaired raise and waste-found content therefore
+lives entirely on the foreign-suit side — the honest residue map for
+whatever sessions attack those rows next. -/
+theorem lowslab_lowcommit_founding_foreign {x : Card} {u v : State}
+    {c : Card}
+    (helev : ¬ familyBelowFrontier u x)
+    (hkind : State.step u (Move.tabToFound c) = some v ∨
+      State.step u (Move.wasteToFound c) = some v)
+    (hlow : c.rank.toIdx ≤ x.rank.toIdx) :
+    c.suit ≠ x.twin.suit := by
+  intro hs
+  exact lowslab_twinhot_founding_screen hs helev hkind hlow
+
 /-! ## The audit battery
 
 `#print axioms` per fresh head: the slab def is statement-facing;
@@ -3741,3 +4048,12 @@ transitively-present `Orig.PairName → Orig.ForkWeaker` chain, so
 #print axioms lowslab_waste_reseat_of_hlow
 #print axioms ls_raise_congr_drift
 #print axioms ls_pull_congr_drift
+#print axioms fork_lowbridge_waste_found_of_hlow
+#print axioms fork_lowbridge_waste_seat_of_hlow
+#print axioms fork_lowbridge_elevated_of_hlow
+#print axioms ls_lowcommit_of_nonfounding
+#print axioms fork_neighbor_lowbridge_lowcommit
+#print axioms fork_neighbor_lowbridge_nonfounding
+#print axioms lowslab_lowcommit_fence
+#print axioms lowslab_twinhot_founding_screen
+#print axioms lowslab_lowcommit_founding_foreign

@@ -3985,3 +3985,33 @@ covered twin's side alone carries the content
 COORDINATION NOTE: §12's REMAINING rows (`conjugate_swap_fires`,
 `conjugate_seat_of_swap`, `conjugate_corner_notForkState`) stand
 untouched — deliberately future, unchanged by this campaign.
+
+## 14. The steered rank-first ascent — forks as fixed points of the deterministic scheduler (2026-10-17, branch `macro-game`; the owner-directed restructure superseding the every-run exhaustion head)
+
+LANDED THIS PASS: `Orig/ForkAscentSteered.lean` — the leaf elaborates green (`lake env lean` exit 0), battery verified: the four gate instance rows at `[propext]` (raiseGate_refuses_coveredS / raiseGate_joint / raiseGate_dead / seatGate_refuses_nonjoint, one line each off the defs), the frozen candidate `steered_ascent_forks` at `[propext, sorryAx]` — exactly one `sorry`, the priced R1/R2 content, zero `Classical.choice`; probe verdicts PENDING per §14.5.
+
+### 14.1 The steered alphabet (the two legal letters)
+
+The raise arm carries the owner's TWIN GATE: `raiseS st c := CanRaise st c ∧ (CanRaiseS st c.twin → CanRaise st c.twin)` — raising `c` is refused exactly when the twin has a slide-future (the {slide · raise} cascade, `Orig/MacroInternal.lean:1184`) but is not raisable now: the gate protects the covered-S-live twin, precisely the `forkState` terminal's shape (`Orig.MacroInternal:1201`). JOINT PAIRS (twin raisable now) and DEAD PAIRS (no raise future) remain consumable; the gate bites only at the fork's horizon. The seat arm: `seatS st c b := fires ∧ reversibleAtW ∧ (MobileTwin st c → CanRaise st c ∧ CanRaise st c.twin)` — a pair member seats only while joint-now; non-pair cargo slides stay unrestricted.
+
+### 14.2 The rank-first scheduler — `the` trajectory
+
+Smallest rank first (`SteeredFirst`: the head is rank-minimal among steered-legal letters); within a rank the universe tie-break is R3's priced refinement. The model is Canonical's saturator (`satStep`/`pick`/`canonAux`, `Orig/Canonical.lean:1480-1493`) but RANK-MAJOR where `satStep` is universe-order; ties land exactly at twin pairs (same rank by construction), where the steer already speaks. Consequence, as a property not a quantifier: "every maximal run" collapses to "the" trajectory; the `fa0` multi-pair and `fcS`/`fcH` twin-contention branch pathologies become fixed-point properties of the one stepper.
+
+### 14.3 The frozen candidate theorem
+
+From a `WF` state below a reachable fork's frontier (the old head's premise, VERBATIM — `hbelow` was never the error), every steered trajectory to `SteeredStuck` exhausts AT a `forkState` (the S-grade detection); the manifested fork is one licensed leg away through the banked β-companion (`ascent_cover_pullback`, `ascent_rec_base_of_iff`, `ExhaustShapeRec` — all PROVED in ForkAscent; the exhaustion-shape ceiling `ascent_exhaust_shape_impossible` does not bite this terminal: its cover is the aftermath's first licensed leg, not a standing conjunct).
+
+### 14.4 The residue ledger (each priced)
+
+- (R1) TRAJECTORY LOYALTY — the reachable fork's witness path must be compatible with the steered trajectory; the parking/climb is order-forced by the rank spine (the old `ascent_climb_delivery`/`ascent_frontier_parking` content restated with new leverage). [H, the route's real load]
+- (R2) THE TERMINAL CENSUS — a `forkState` admits no steered letter: raises self-refuse (the twin gate), pair seats self-refuse (joint clause); the residue is the third-card cargo census (fa2-class decide content; the fa3 resurrection channel's seating legs are steered-illegal; the fa1 member-liveness half is steered-forced by construction). [H-mini, decide-gradable]
+- (R3) THE DECIDABLE BRIDGE — the `Bool` face of `CanRaiseS` (consume `Orig/ForkStateS`'s flat `canRaiseS_iff`) plus the within-rank universe tie-break; the stepper's function-grade and the probe re-verdicts ride it. [M]
+
+### 14.5 Probe-first before freeze-consumption
+
+In order: `fa2` legality (a forkState terminal stands as a legal steered-stuck world), `fa3` (the resurrection needs a steered-forbidden leg), `fa0` (multi-pair under determinism), `fcS`/`fcH` (contention splits die under the scheduler). Probes decide, proofs follow; any fired falsifier re-prices the residues before freeze.
+
+### 14.6 Supersession and retirement plan
+
+The old head keeps its standing — vacuity-or-false (the ceiling squeeze), its four sorries frozen as impossibility manifests — until the retirement pass: bank the in-flight ForkAscent arc, migrate the census buckets (vocabulary/toolkit/β-companion/fence-boards) into `Orig.ForkAscentSteered.lean`, rewire `Orig.ForklessCeiling`'s import, certify the cone, and retire the old leaf by its own commit (CHALLENGES truespeak carries the verdicts: the vacuity-never-decided status, the ceiling squeeze mechanism, the named residues' fates). House compliance: additive, no mathlib, zero `Classical.choice`, decide-grade probes with gates throwing on failure, `#print axioms` per fresh head, frozen statements byte-stable, HOT in-flight files untouched this pass.

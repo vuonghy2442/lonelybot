@@ -118,6 +118,97 @@ cover-cell census, and the resurrection-mode corner all still ride
 `hbelow`/the probe's declared open, exactly as their routes say
 (never forced).  Zero `Classical.choice`; battery extended to the
 new heads.
+
+THIRD SUCCESSION PASS (2026-10-13, session 5, the falsification
+economy's first frozen kill): the cover-cell mini falls to
+FALSIFICATION — the board `fa2` and the certified negation
+`ascent_cover_cell_refuted` below: the cover-cell census's frozen
+statement is W-LOCAL and FALSE — it carries no `hbelow` premise to
+retreat behind — and the refutation is decide-grade in-file (all
+four aces founded; the black twos double-hot, intact and seated over
+the red threes; both red twos stocked outside the tableau's reach; a
+WF, stuck, saturated board — `fa2_iff` is the file's first CERTIFIED
+SATURATION WITNESS — with NO fitting cover: the only `r−1`
+opposite-family cells are the red aces, both founded below their
+frontiers).  The residue keeps its sorry — the honest witness of a
+FALSE row, on the `Orig/ForkDescent.lean` §3R precedent.  The
+bare-cover corner gains its second banked leg
+(`ascent_barecover_landing_pin`: the commit's successor carries the
+pin outright, isolating the corner's open to the landing's saturation
+half); the climb and saturation minis keep their `hbelow`-carried
+verdicts — both routes terminate at the probe's declared open, with
+`fa0`/`fa1` the W-local falsification witnesses and `fa2` the
+positive complement.  The four frozen statements are byte-untouched;
+battery extended to the new heads.
+
+THIRD-SUCCESSION CEILING LANDING (2026-10-13, the second lander of
+the third succession): the UNIVERSAL CONSTANT behind the `fa2` kill
+is banked — **THE LIVE-CARD COVER-FIRES BAR**
+(`ascent_stuck_livecover_bar`): at a stuck state a vanilla-live
+card admits NO face-up card that fits it, because the fitting
+cover's slide onto the live card's top is an ascent move that FIRES
+(the `ascent_tabToTab_fires` kit) against the exhaustion.
+Consequences landed as rows, not prose: the **EXHAUSTION-SHAPE
+CEILING** (`ascent_exhaust_shape_impossible`) — the frozen
+exhaustion row's own conclusion (standing cover + saturation iff)
+is impossible at EVERY `WF` stuck state, so the row's only live
+futures are vacuity or the owner's `ExhaustShapeRec`
+β-ratification, whose licensed founded-cell return base is exactly
+the topped twin the iff's liveness forces; the **CORNER-BAR**
+(`ascent_barecover_barred_atStuck`) — the bare-cover corner's
+hypotheses are contradictory at every stuck world, so the corner's
+surviving content is cold-assembly-only; and the staged reductions
+for the two `hbelow`-carried minis (the climb's parking row
+`ascent_climb_of_parked`, the saturation's decomposition
+`ascent_stuck_sat_of_excLive`, the cell-armor row
+`ascent_cell_armor`) — each names exactly its remaining premise.
+The four frozen statements stay byte-untouched; the four sorries
+stay; zero `Classical.choice`; battery extended to the new heads.
+
+FOURTH SUCCESSION PASS (2026-10-17, session 6): the frontier's priced
+kernels land as rows and the four frozen residues keep their grades,
+unchanged.  THE CORNER's assembly content below the census is fully
+staged — `ascent_tilted_snap` (the twin-flipped snap: when the
+witness side's vanilla license already fails, the state itself is the
+fork at the TILTED orientation, no move played) and
+`ascent_barecover_of_landingiff` (the named-premise reduction: the
+banked commit read plus the landing pin reduce the corner to
+EXACTLY the pair's saturation iff at the commit's successor), so the
+corner's surviving content is exactly the BOTH-LIVE cold census.
+THE SATURATION's `fa1` axis is shrunk W-locally —
+`ascent_stuck_memberLive_split` (with the banked cover/twin-top bar,
+one vanilla-live member forces the other member to TOP, so its
+liveness can fail only at a LITERALLY BARE non-king seat — the `fa1`
+shape extracted as the one remaining read, with the twin-flip
+re-pack rows for the mirror instantiation).  THE β-FUTURE is
+witnessed end-to-end — `ascent_rec_base_of_iff` (at any stuck
+saturated world the founded cover's licensed return base is the
+iff-forced topped twin, the ceiling prose's named constant, landed
+public), `fa2_shapeRec` (the file's own saturated board fa2 DELIVERS
+the recoverable shape: the β-arm is nonvacuous at a genuine stuck
+exhaustion) and `fa2_pullWitness` (the licensed `foundToTab` pull
+fires at fa2, landing the standing `ExhaustShape` in one leg).  The
+four frozen statements stay byte-untouched; the four sorries stay;
+zero `Classical.choice`; battery extended to the new heads.
+
+SIXTH-SUCCESSION CENSUS ECONOMY PASS (2026-10-17, session 8): the
+fifth succession's census verdict gains its staged general rows —
+the landing site census `ascent_barecover_res_sites` (the commit
+landing's face-up cards sit in exactly the three spelled sites: the
+twin's pile, the emptied source's revealed head or nothing, and
+third piles restored verbatim), the GENERAL member half
+`ascent_barecover_landing_sat` (at every both-live world both pair
+members stay S-live at the commit landing — the hotness by the rung
+freeze, the covered member's kept seat with the exit re-armed by the
+exposed member's top, the exposed member riding its own license
+through the third-pile restore leg or the moved run's rider), and
+the census cut `ascent_barecover_corner_of_nores` (the both-live arm
+closes given exactly one datum: no card outside the pair is S-live
+at the landing — `fa3_resurrected` refutes that datum at a
+corner-shaped world, so the corner's sorry stands as the census
+verdict's honest residue).  The four frozen statements stay
+byte-untouched; the four sorries stay; zero `Classical.choice`;
+battery extended to the new heads.
 -/
 
 /-! ## §0. The vocabulary -/
@@ -712,6 +803,34 @@ private theorem ascent_cover_slide_fork {W : State} (hwf : W.WF)
     exact hNoTwinF p ((pileOfTop_eq_some_iff hwfF).1 hp)
   exact ⟨F, [Move.tabToTab d (Sum.inr x.twin)], x, run_one hsF, ⟨hiffF, hPin⟩⟩
 
+/-- **THE TILTED SNAP** (the orientation row's second zero-move arm,
+banked at the fourth succession): when the pair's saturation clauses
+hold but the WITNESS side's vanilla license fails (the twin's holds),
+the state itself is the fork — at the TWIN-FLIPPED orientation.  The
+saturation clause is the same iff read through the twin flip
+(`Card.twin_twin` plus the commutative left disjunct), and the pin is
+the failed license verbatim (the orientation row's `ascent_snap`,
+twin-flipped).  The bare-cover corner consumes this below: whenever
+`¬ CanRaise W x` holds alongside its own `hctt`, the corner closes
+with NO move at all, so its surviving content is exactly the
+BOTH-LIVE cold shape. -/
+private theorem ascent_tilted_snap {W : State} {x : Card}
+    (hsat : ∀ (c : Card), (c = x ∨ c = x.twin) ↔ CanRaiseS W c)
+    (hnx : ¬ CanRaise W x) :
+    ∃ (F : State) (τ : List Move) (x' : Card),
+      W.run τ = some F ∧ ForkWitness F x' := by
+  refine ⟨W, [], x.twin, rfl, ⟨?_, by rw [Card.twin_twin]; exact hnx⟩⟩
+  intro c
+  constructor
+  · rintro (rfl | h)
+    · exact (hsat x.twin).mp (Or.inr rfl)
+    · rw [Card.twin_twin] at h
+      exact (hsat c).mp (Or.inl h)
+  · intro hS
+    rcases (hsat c).mpr hS with h | h
+    · exact Or.inr (by rw [h, Card.twin_twin])
+    · exact Or.inl h
+
 /-- **THE BARE-COVER CORNER RESIDUE** `orientation_barecover_corner`
 [M, named at the assembly pass] — the orientation row's sole surviving
 corner, isolated with the exact landed state: the twin's vanilla
@@ -757,7 +876,75 @@ RESURRECTION MODE above: whether the emptied side's fresh seat can
 re-admit a hot card outside the pair) — remains the corner's named
 open; the one-line return onto the empty seat stays barred by rank
 arithmetic (the cover is a rank-`r−1` card, never a king), so the
-saturation transfer's round trip cannot ride. -/
+saturation transfer's round trip cannot ride.
+
+THIRD-SUCCESSION LANDING (2026-10-13, session 5): the landed PIN
+half is banked as `ascent_barecover_landing_pin` (§1d): the commit's
+successor carries `¬ CanRaise W₁ x.twin` outright — the covered twin
+tops no pile at the landed state (its own pile is capped by the moved
+run's rider, the emptied source either reveals a hidden card or
+burns to the bare empty pile, and WF uniqueness forbids every other
+pile), so the corner's remaining open is EXACTLY the saturation half
+at the landing (the resurrection census above, no larger).
+
+SECOND-LANDER ADDENDUM: the corner is now BARRED at every stuck
+world outright — `ascent_barecover_barred_atStuck` (the twin's
+vanilla license together with ANY face-up card fitting it contradicts
+`AscentStuck` via the live-cover bar): the route-note's second
+branch ("a census argument shows the residue corner unreachable
+from every world the exhaustion row delivers") is decided — no
+stuck world carrying a fitting face-up cover can reach the corner,
+and every world the saturation-iff row would feed the assembly
+carries one.  The landing pin above plus this bar leave the corner's
+[M] content exactly the COLD (non-stuck) assembly worlds.
+
+FOURTH-SUCCESSION ROUTE TRUING (2026-10-17): the corner's assembly
+content below the census is now FULLY STAGED as rows — the free
+tilt `ascent_tilted_snap` above (when the witness side's license
+`CanRaise W x` fails, the state itself forks at the `x.twin`
+orientation, so the corner's hypotheses are THEN closed outright),
+and the NAMED LANDING PREMISE `ascent_barecover_of_landingiff`
+(§1d, below: the banked commit read together with the landing pin
+reduce the corner to EXACTLY the pair's saturation iff at the
+commit's successor state `W₁`).  The surviving open is thereby the
+BOTH-LIVE cold census alone — both members vanilla-live at `W`, the
+named commit firing, and the emptied side's reveal/burn seat open to
+re-admitting S-live cards outside the pair at `W₁` (the resurrection
+census priced above), at the reduced one-premise shape the new row
+names.
+
+FIFTH-SUCCESSION CENSUS VERDICT (2026-10-17, session 7): the
+both-live cold resurrection census is now DECIDED at the kernel —
+REFUTED as universally staged.  The witness board `fa3` (§2f below)
+carries this row's every hypothesis at the census's own both-live
+scope (both queens vanilla-live), the named slide fires, and the
+emptied side's reveal tops a card whose buried mate — hot and seated
+since `W` — re-enters the S-set through the flat characterization's
+covered-leg exit channel (`canRaiseS_iff`'s twin-top disjunct): at
+the commit's successor the pair's saturation iff FAILS at a third
+card (`fa3_census_refuted`).  So the staged route — commit + landing
+pin + `ascent_barecover_of_landingiff`'s named premise — cannot
+close this residue universally; the recourse is statement-level (an
+emptied-side exclusion premise, or the exhaustion row's longer
+search).  The row keeps its sorry honestly, on the `fa2`/§3R
+precedent — the frozen statement is untouched, and the sorry count
+stays exactly FOUR.
+
+SIXTH-SUCCESSION CENSUS ECONOMY (2026-10-17, session 8): the
+verdict's cut surface is now staged as rows (§1d below) — the site
+census `ascent_barecover_res_sites` (the landing's face-up cards sit
+in exactly the three spelled sites), the member half
+`ascent_barecover_landing_sat` (the ⇐ half, now GENERAL: at every
+both-live world, both members stay S-live at the commit landing —
+`fa3_membersLive` is its board instance, no longer the only
+evidence), and the census cut `ascent_barecover_corner_of_nores`
+(the both-live arm closes given EXACTLY ONE datum: no card outside
+the pair is S-live at the landing).  That datum is what the `fa3`
+board refutes at a corner-shaped world (`fa3_resurrected`), so the
+cut's premise is not W-forcible — the honest census is now complete:
+the pair half holds universally, the third-card half is the named
+non-forcing datum, and this row keeps its sorry for the owner's
+statement-level recourse. -/
 private theorem orientation_barecover_corner {W : State} (hwf : W.WF)
     {x d : Card}
     (hsat : ∀ (c : Card), (c = x ∨ c = x.twin) ↔ CanRaiseS W c)
@@ -1227,6 +1414,75 @@ private theorem ascent_stuck_coverTwinbar {st : State} (hwf : st.WF)
   rw [hfrom] at hnone
   simp at hnone
 
+/-- **THE SLIDE-FIRES KIT** (private): at a `WF` state, a face-up
+card with an accepted placement FIRES — the `tabToTab` branch of the
+step never answers `none` (the holding search locates the card, the
+placement guard accepts, and the run from the card is nonempty since
+the card itself heads it).  The row the stuck-state bars cite. -/
+private theorem ascent_tabToTab_fires {st : State} (hwf : st.WF)
+    {d : Card} {b : Base} (hmem : ∃ a, d ∈ (st.piles a).faceUp)
+    (hcan : st.canPlace d b = true) :
+    State.step st (Move.tabToTab d b) ≠ none := by
+  obtain ⟨a, hm⟩ := hmem
+  have hhold : st.pileHolding d = some a :=
+    (pileHolding_eq_some_iff hwf).2 hm
+  obtain ⟨t, ht⟩ := fromCard_eq_head_of_mem hm
+  intro hnone
+  rw [step_tabToTab_eq, hhold] at hnone
+  simp only [hcan] at hnone
+  rw [ht] at hnone
+  simp at hnone
+
+/-- **THE LIVE-CARD COVER-FIRES BAR** (the third succession's
+universal row): at a STUCK state a vanilla-live card admits NO
+face-up card that fits it — the slide of the fitting card onto the
+live card's top is an ascent move (the slide arm is unconditional),
+the placement is accepted (the live card's own license tops a
+located pile and the fit is the placement guard's own arithmetic),
+and the step FIRES by the kit above — against `AscentStuck`.  This
+is the row behind all three delivered-world falsifications at once:
+the exhaustion row's own conclusion (`ExhaustShape` demands exactly
+this standing cover beside the iff's live twin), the cover-cell
+census's face-up conclusion at any saturated board (the census's
+`d` fits the live twin by twin-blind rank-and-color arithmetic), and
+the bare-cover corner's `hctt` (the corner's own hypotheses are
+contradictory at every stuck world carrying the cover datum). -/
+theorem ascent_stuck_livecover_bar {W : State} (hwf : W.WF)
+    (hstuck : AscentStuck W)
+    {t d : Card}
+    (hcr : CanRaise W t)
+    (hmem : ∃ a, d ∈ (W.piles a).faceUp)
+    (hfit : canSitOn d t = true) : False := by
+  obtain ⟨-, k, hk, -⟩ := hcr
+  have hcan : W.canPlace d (Sum.inr t) = true := by
+    rw [canPlace_inr_located hk]
+    exact hfit
+  have hnone := hstuck (Move.tabToTab d (Sum.inr t))
+    (Or.inr ⟨d, Sum.inr t, rfl⟩)
+  exact ascent_tabToTab_fires hwf hmem hcan hnone
+
+/-- **THE CORNER IS BARRED AT STUCK WORLDS** (the corner route's
+second named content, landed as a kernel row — not prose): the
+bare-cover corner's own hypotheses — the twin's vanilla license
+together with ANY face-up card fitting it — are CONTRADICTORY at
+every exhausted state, because the corner's named slide is exactly
+the bar's refused slide.  The residue's "either a longer τ reaches a
+fork, or a census argument shows the residue corner unreachable from
+every world the exhaustion row delivers" is thereby decided on its
+second branch: NO stuck world carrying a fitting face-up cover can
+reach the corner, and every world the saturation-iff row would feed
+the assembly carries one.  The corner's [M] residue keeps its
+content for the COLD assembly worlds only (states that are not
+stuck), where the commit row and the landing pin still leave the
+saturation half at the landing open. -/
+private theorem ascent_barecover_barred_atStuck {W : State} (hwf : W.WF)
+    (hstuck : AscentStuck W)
+    {x d : Card}
+    (hctt : CanRaise W x.twin)
+    (hfit : canSitOn d x.twin = true)
+    (hdface : ∃ a, d ∈ (W.piles a).faceUp) : False :=
+  ascent_stuck_livecover_bar hwf hstuck hctt hdface hfit
+
 /-! ### The persistent pair (the guard-persistence and index-exact
 kernels, banked)
 
@@ -1604,6 +1860,229 @@ private theorem ascent_persist_mobile {st : State} {x : Card}
     (h₄ : rungAt st x.twin.suit ≤ x.twin.rank.toIdx) :
     MobileTwin st x := ⟨h₁, h₃, h₂, h₄⟩
 
+/-- **THE CELL-ARMOR ROW** (the α-repair's start-economy premise,
+landed as lemma-level work — the mission's ab2-armor enrichment): a
+cover-cell pair that arrives INTACT at the start — both cells
+face-up and at-or-above their suits' rungs there — survives EVERY
+ascent run whole: at the landing both cells are still face-up,
+`MobileTwin`, at-or-above their rungs, and UNFOUNDED (the face-up
+residence excludes every foundation row at `WF`; founding a cell
+along the way would strand it off the face, against the persistent
+clauses).  Read together with the live-cover bar this row is the
+α-side of the armor: at any STUCK landing carrying the saturation
+iff the cover cells can NEVER stand face-up (the bar kills the
+standing cover beside the live twin), so an intact-at-start cell
+economy makes the delivered iff UND ELIVERABLE — the `hbelow` worlds
+that genuinely deliver must break the cells before the run, the
+probe's decisive open with the α-shape priced impossible at every
+delivered world rather than open. -/
+private theorem ascent_cell_armor {s : State} (hwf : s.WF)
+    {d : Card}
+    (hcell₁ : ∃ a, d ∈ (s.piles a).faceUp)
+    (hcell₂ : ∃ b, d.twin ∈ (s.piles b).faceUp)
+    (hrung₁ : rungAt s d.suit ≤ d.rank.toIdx)
+    (hrung₂ : rungAt s d.twin.suit ≤ d.rank.toIdx)
+    {ρ : List Move} {W : State}
+    (hrun : AscentRun s ρ W) :
+    MobileTwin W d ∧
+      W.foundHeight d.suit ≤ d.rank.toIdx ∧
+      (∃ c, d ∈ (W.piles c).faceUp) ∧
+      d ∉ W.found d.suit := by
+  obtain ⟨h1, h2, h3, h4⟩ := ascent_pair_persists hwf hcell₁ hcell₂ hrung₁
+    (by rw [Card.twin_rank]; exact hrung₂) hrun
+  rw [ascent_rung_height] at h3
+  rw [ascent_rung_height] at h4
+  have hwfW : W.WF := ascent_run_wf hwf hrun
+  refine ⟨⟨h1, h3, h2, h4⟩, h3, h1, ?_⟩
+  obtain ⟨c, hc⟩ := h1
+  exact (mem_faceUp_only hwfW hc).2.2.2.2 d.suit
+
+/-- **THE CLIMB REDUCTION TO THE PARKING** (the climb mini's named
+residue, staged as a kernel row): the climb-delivery conclusion — a
+delivered `DoubleHot` mobile pair, capped at its family's rungs at
+the landing — is PURE ASSEMBLY off the persistent-pair induction
+plus the TWO FRONTIER-PARKING EQUALITIES (both family rungs of the
+witnessed pair sit EXACTLY at the pair's rank at the exhaustion).
+The named open `ascent_frontier_parking` [H, `hbelow`-carried] is
+EXACTLY those two equalities: parking them in closes the delivery
+with no further content — the staged shape a future census-proof
+or the owner's repair consumes by name, not by rebuild. -/
+private theorem ascent_climb_of_parked {s : State} (hwf : s.WF)
+    {x : Card}
+    (hfu₁ : ∃ a, x ∈ (s.piles a).faceUp)
+    (hfu₂ : ∃ b, x.twin ∈ (s.piles b).faceUp)
+    (hrg₁ : rungAt s x.suit ≤ x.rank.toIdx)
+    (hrg₂ : rungAt s x.twin.suit ≤ x.rank.toIdx)
+    {ρ : List Move} {W : State}
+    (hrun : AscentRun s ρ W)
+    (hpark₁ : rungAt W x.suit = x.rank.toIdx)
+    (hpark₂ : rungAt W x.twin.suit = x.rank.toIdx) :
+    ∃ (y : Card), DoubleHot W y ∧ MobileTwin W y ∧
+      rungAt W y.suit ≤ y.rank.toIdx ∧
+      rungAt W y.twin.suit ≤ y.rank.toIdx := by
+  obtain ⟨h1, h2, h3, h4⟩ := ascent_pair_persists hwf hfu₁ hfu₂ hrg₁
+    (by rw [Card.twin_rank]; exact hrg₂) hrun
+  obtain ⟨a, ha⟩ := h1
+  obtain ⟨b, hb⟩ := h2
+  refine ⟨x, ⟨a, b, ha, hb, ?_, ?_⟩,
+    ⟨⟨a, ha⟩, ?_, ⟨b, hb⟩, ?_⟩, ?_, ?_⟩
+  · exact hpark₁.symm.trans (ascent_rung_height W x.suit)
+  · exact (congrArg Rank.toIdx (Card.twin_rank x)).trans
+      (hpark₂.symm.trans (ascent_rung_height W x.twin.suit))
+  · exact Nat.le_of_eq
+      (hpark₁.symm.trans (ascent_rung_height W x.suit)).symm
+  · rw [ascent_rung_height] at h4
+    exact h4
+  · exact Nat.le_of_eq hpark₁
+  · exact Nat.le_of_eq hpark₂
+
+/-- **THE SATURATION DECOMPOSITION, FORWARD HALF** (the saturation
+mini's two carried axes, staged as a kernel row): the saturation iff
+at a stuck state is pure assembly off TWO named premises — the
+MEMBER-LIVENESS (the delivered pair's members are vanilla-live at
+the landing: the `fa1` axis) and the LIVE-PAIR EXCLUSION (every
+intact mobile pair with a live member at the exhaustion IS the
+delivered pair: the `fa0` axis, live-grade).  The (⇒) half rides the
+banked stuckness collapse and the constructive live-member read; the
+(⇐) half is the `now`-grade of the liveness.  The named
+`hbelow`-carried open is EXACTLY the two premises — `fa0` and `fa1`
+decide them SEPARATELY at the exhausted state alone, so closing
+either premise is a self-contained sub-mission a future pass or the
+owner's repair plugs in by name. -/
+private theorem ascent_stuck_sat_of_excLive {W : State} (hstuck : AscentStuck W)
+    {x : Card}
+    (hlive : CanRaise W x ∧ CanRaise W x.twin)
+    (hexc : ∀ y, MobileTwin W y →
+      (CanRaiseS W y ∨ CanRaiseS W y.twin) → y = x ∨ y = x.twin) :
+    ∀ (c : Card), (c = x ∨ c = x.twin) ↔ CanRaiseS W c := by
+  intro c
+  constructor
+  · rintro (rfl | rfl)
+    · exact CanRaiseS.now _ hlive.1
+    · exact CanRaiseS.now _ hlive.2
+  · intro hs
+    have hcr : CanRaise W c := ascent_stuck_collapse hstuck hs
+    obtain ⟨y, hmy, hcy⟩ := ascent_stuck_live_member hstuck hs
+    have hys : CanRaiseS W y ∨ CanRaiseS W y.twin := by
+      rcases hcy with rfl | rfl
+      · exact Or.inl hs
+      · exact Or.inr hs
+    rcases hexc y hmy hys with rfl | rfl
+    · rcases hcy with rfl | rfl
+      · exact Or.inl rfl
+      · exact Or.inr rfl
+    · rcases hcy with rfl | rfl
+      · exact Or.inr rfl
+      · exact Or.inl (Card.twin_twin x)
+
+/-! ### The fourth-succession saturation kernels (the `fa1` axis,
+W-locally shrunk)
+
+The saturation residue's member-liveness premise (the `fa1` axis,
+`hbelow`-carried) is priced further by the banked cover/twin-top bar,
+in four rows: the pair-reads' twin-flip re-packs (`DoubleHot`,
+`MobileTwin`), the FORCED TOPPING (one vanilla-live member of any
+intact mobile pair makes the OTHER member top its pile — the covered
+shape is barred outright at stuckness), the seat-⟹-license assembly
+(a hot topping member is vanilla-live given exactly the license's own
+seat disjunct), and the MEMBER-LIVE SPLIT (the dichotomy the future
+pass imports: either the twin is vanilla-live, or it stands on a
+literally bare non-king seat — the `fa1` shape extracted as the ONLY
+remaining read).  No row consumes `hbelow`; the residue's carried
+verdicts stand unchanged. -/
+
+/-- The double-hot read is twin-flip symmetric (both orientations
+name the same face-up pair at the same rungs). -/
+private theorem ascent_doublehot_twinflip {st : State} {x : Card}
+    (hdh : DoubleHot st x) : DoubleHot st x.twin := by
+  obtain ⟨a, b, hx, hxt, hrx, hrxt⟩ := hdh
+  exact ⟨b, a, hxt, by rw [Card.twin_twin]; exact hx, hrxt,
+    by rw [Card.twin_twin]; exact hrx⟩
+
+/-- The mobility read is twin-flip symmetric (re-pack for the mirror
+instantiation of the split below). -/
+private theorem ascent_mobile_twinflip {st : State} {x : Card}
+    (hm : MobileTwin st x) : MobileTwin st x.twin := by
+  refine ⟨hm.2.2.1, hm.2.2.2, by rw [Card.twin_twin]; exact hm.1, ?_⟩
+  rw [Card.twin_twin]
+  exact hm.2.1
+
+/-- **THE FORCED TOPPING** (fourth succession): at an exhausted state
+one vanilla-live member of an intact mobile pair forces the OTHER
+member to TOP its pile — the member's own license tops its pile, and
+a covered twin would make the banked cover/twin-top bar's fitting
+slide fire against the stuckness.  Serves the saturation's
+member-liveness split below and the exclusion's shape analysis alike
+(read at any second pair: its live member forces its own twin to
+top, the both-covered-live shape is barred everywhere). -/
+private theorem ascent_stuck_liveForcesTwinTop {W : State} (hwf : W.WF)
+    (hstuck : AscentStuck W) {y : Card}
+    (hmob : MobileTwin W y)
+    (hly : CanRaise W y) :
+    ∃ (q : Anchor), (W.piles q).top = some y.twin := by
+  obtain ⟨q, hmem⟩ := hmob.2.2.1
+  obtain ⟨t1, t2, hspl⟩ := ascent_mem_split _ hmem
+  cases t2 with
+  | nil =>
+      refine ⟨q, ?_⟩
+      show lastOf (W.piles q).faceUp = some y.twin
+      rw [hspl, lastOf_snoc]
+  | cons d' rest =>
+      obtain ⟨-, j, hpotj, -⟩ := hly
+      have hcover : False :=
+        ascent_stuck_coverTwinbar hwf hstuck hspl
+          (by rw [Card.twin_twin]; exact hpotj)
+      exact hcover.elim
+
+/-- **THE SEAT ASSEMBLY** (fourth succession, pure license
+arithmetic): a hot twin topping its pile is vanilla-live given
+EXACTLY the license's own third clause — the seat disjunct (face-up
+content below, or the bare-king read).  Combined with the forced
+topping above this is the whole W-local content of the iff's
+member-liveness half; what can still fail is one seat read. -/
+private theorem ascent_liveTwin_of_seat {W : State} (hwf : W.WF)
+    {x : Card} (hdh : DoubleHot W x) {q : Anchor}
+    (htop : (W.piles q).top = some x.twin)
+    (hseat : chop (W.piles q).faceUp ≠ [] ∨
+      ((W.piles q).hidden = [] ∧ x.twin.rank = Rank.king)) :
+    CanRaise W x.twin := by
+  obtain ⟨-, -, -, -, -, hxt⟩ := hdh
+  exact ⟨decide_eq_true hxt, q, (pileOfTop_eq_some_iff hwf).2 htop, hseat⟩
+
+/-- **THE MEMBER-LIVE SPLIT** (fourth succession, the `fa1` axis
+W-locally shrunk): at the exhausted delivered world, one member's
+vanilla liveness forces the other member either to be vanilla-live
+too, or to stand on a LITERALLY BARE non-king seat — face-up exactly
+`[the member]`, with the seat's refill clause failing in
+`CanRaise`'s own terms (hidden deck nonempty, or the member not a
+king).  The `fa1` board witnesses the bare-seat read satisfiable at
+a stuck exhaustion, so the premise stays `hbelow`-carried; but a
+future pass importing the saturation's `hlive` premise now needs only
+the bare-seat census, not the full member-liveness read. -/
+private theorem ascent_stuck_memberLive_split {W : State} (hwf : W.WF)
+    (hstuck : AscentStuck W) {x : Card}
+    (hdh : DoubleHot W x) (hmob : MobileTwin W x)
+    (hlx : CanRaise W x) :
+    CanRaise W x.twin ∨
+      (∃ (q : Anchor), (W.piles q).faceUp = [x.twin] ∧
+        ((W.piles q).hidden ≠ [] ∨ x.twin.rank ≠ Rank.king)) := by
+  obtain ⟨q, htop⟩ := ascent_stuck_liveForcesTwinTop hwf hstuck hmob hlx
+  obtain ⟨front, hf⟩ := Pile.top_eq_lastOf_iff.mp htop
+  have hchopsn : chop ((W.piles q).faceUp) = front := by
+    rw [hf]
+    exact chop_snoc
+  by_cases hchop : chop ((W.piles q).faceUp) = []
+  · have hfront : front = [] := hchopsn.symm.trans hchop
+    by_cases hking : (W.piles q).hidden = [] ∧ x.twin.rank = Rank.king
+    · exact Or.inl (ascent_liveTwin_of_seat hwf hdh htop (Or.inr hking))
+    · refine Or.inr ⟨q, ?_, ?_⟩
+      · rw [hf, hfront, List.nil_append]
+      · by_cases hhid : (W.piles q).hidden = []
+        · exact Or.inr (fun hk => hking ⟨hhid, hk⟩)
+        · exact Or.inl hhid
+  · exact Or.inl (ascent_liveTwin_of_seat hwf hdh htop
+      (Or.inl (fun hc => hchop hc)))
+
 /-! ## §2c. The exhaustion row's named pieces -/
 
 /-- **THE CLIMB DELIVERY RESIDUE** `ascent_climb_delivery` [H-mini,
@@ -1650,7 +2129,14 @@ the parking is priced open — never forced):
   [H, hbelow-carried]; the two kernels above are banked, and the
   persistent-pair row hands the parking BOTH members' face-up
   mobility intact at every prefix, so only the ≤-to-= frontier
-  upgrade remains. -/
+  upgrade remains.
+
+THIRD-SUCCESSION STAGING (the second lander): the delivery is now
+REDUCED-KERNEL, named row `ascent_climb_of_parked` — the
+persistent-pair clauses plus the TWO FRONTIER-PARKING EQUALITIES
+(both family rungs exactly at the pair's rank at the exhaustion)
+close the row's conclusion with no further content; the named
+residue is exactly those two equalities. -/
 private theorem ascent_climb_delivery {s : State} (hwf : s.WF)
     (hbelow : ∃ (F : State) (x : Card) (π : List Move),
       s.run π = some F ∧ ForkWitness F x ∧
@@ -1719,7 +2205,32 @@ decide-witnesses):
   name `hbelow`'s witness AT `W` (not merely at `s`), and the (⇐)
   member-liveness census reads a pair whose mobility never died in
   transit.  What still rides the probe's declared open, unchanged:
-  the fork-reachability coupling itself. -/
+  the fork-reachability coupling itself.
+
+THIRD-SUCCESSION STAGING (the second lander): the iff's remaining
+content is now DECOMPOSED-KERNEL, named row
+`ascent_stuck_sat_of_excLive` — the member-liveness premise (the
+`fa1` axis) plus the live-pair exclusion premise (the `fa0` axis,
+live-grade) close the iff by pure assembly over the banked collapse
+and the constructive live-member read; the `hbelow`-carried open is
+exactly the two premises, separately W-decided by the two boards.
+
+FOURTH-SUCCESSION ADDENDUM (the `fa1` axis, W-locally shrunk): with
+the banked cover/twin-top bar read through the delivered pair, the
+member-liveness premise `hlive` is FORCED down to a one-seat read —
+`ascent_stuck_memberLive_split` (below, §2b): one vanilla-live member
+makes the other member TOP its pile (the covered-twin shape is
+barred outright at stuckness), so `CanRaise W x.twin` can fail only
+on the LITERALLY BARE non-king seat (the delivered member standing
+solo, its pile's face-up list exactly `[the member]` — the `fa1`
+shape extracted at the pair's own pile).  The `hbelow`-carried
+verdict stands (`fa1` witnesses the bare-seat read satisfiable); a
+future pass mounting the iff now imports the bare-seat census alone.
+The `fa0` axis is unchanged; its shapes gain one read for free —
+`ascent_stuck_liveForcesTwinTop` forces every second live pair's own
+twin to top too, so the exclusion's live intruders always present
+BOTH-TOPPING at the exhaustion (the `fa0` red twos exhibit exactly
+that). -/
 private theorem ascent_stuck_saturation {s : State} (hwf : s.WF)
     (hbelow : ∃ (F : State) (x : Card) (π : List Move),
       s.run π = some F ∧ ForkWitness F x ∧
@@ -1779,7 +2290,58 @@ carries the same census's recoverable arm):
   whether any `hbelow`-satisfying board ever arrives pre-broken — is
   the probe's own declared open (its §5 verdict); the residue is
   graded with that reachability content named, and the β-staging of
-  §2e routes the recoverable side of the same census. -/
+  §2e routes the recoverable side of the same census.
+
+THIRD-SUCCESSION VERDICT (2026-10-13, session 5): the row is
+REFUTED at its byte-frozen statement — the refutation board `fa2`
+below witnesses it decide-grade (`ascent_cover_cell_refuted`,
+zero-sorry): a WF, STUCK, saturated, delivered board — all four aces
+founded, the black twos double-hot, intact and seated over the red
+threes, both red twos stocked — that admits NO cover: the only
+`r−1` opposite-family cards are the red aces, both FOUNDED below
+their suits' frontiers, so the un-founded clause fails on every
+candidate.  WHAT THIS PRICES: the census's W-local content was never
+true — the route's un-foundedness half leaned on a reachability the
+frozen statement never carried (no `hbelow` premise rides this
+row).  THE LEDGER: the row keeps its sorry (the row as stated is
+FALSE, the `fa2` record, on the `Orig/ForkDescent.lean` §3R
+precedent); the exhaustion row `ascent_exhaustion_forks` is
+UNCHANGED in content — its `hbelow` premise now carries the whole
+cover story, and its truth requires exactly that the reachability
+census bars `fa2`-shaped worlds, the probe's declared open; the
+cover-read assembly below (`ascent_cover_read`, a pure assembly over
+this row) inherits the W-local falsity, and the β-staged
+`ascent_cover_read_rec` with it; the owner's recourse is
+statement-level — tie the cover cells' fate to `hbelow` (the probe's
+α-repair), or adopt the β-recoverable disjunct (the probe's β-draft,
+staged in §2e; the β-pullback `ascent_cover_pullback` stays banked
+and true).
+
+SECOND-LANDER ADDENDUM (the universal constant behind the board):
+the `fa2` kill is not a board accident —
+`ascent_exhaust_shape_impossible` proves the cover conclusion
+impossible at EVERY stuck state carrying the saturation iff (the
+census's `d` fits the live twin by twin-blind rank-and-color
+arithmetic, the iff forces the twin vanilla-live by the stuckness
+collapse, and the live-cover bar refuses the pair), so the α-arm of
+this census is dead at every hypothesis-satisfying world, not
+merely at `fa2`; and the β-recoverable arm (`ascent_cover_read_rec`,
+§2e) is thereby the only standing grade, with its licensed return
+base — the topped twin — forced by the very iff that kills the
+standing cover.
+
+FOURTH-SUCCESSION β-EVIDENCE (2026-10-17): the β-recoverable future
+is now WITNESSED, not merely staged — `fa2_shapeRec` (§2e, decide
+grade) reads `ExhaustShapeRec fa2 faS2 faHA` TRUE at this file's own
+certified saturated board (the heart ace: founded at its frontier,
+fitting the black deuce pair, return base licensed), and
+`fa2_pullWitness` runs the banked β-pullback there, landing the
+standing `ExhaustShape` in one licensed `foundToTab`.  The forced
+return base is itself a row now (`ascent_rec_base_of_iff`: at ANY
+stuck saturated world a fitting cover's return base is the iff-forced
+topped twin).  Post-β-ratification the `fa2` class stops being an
+obstruction class and becomes a DELIVERY class; the α-arm stays
+kernel-dead per the ceiling below. -/
 private theorem ascent_cover_cell {W : State} (hwf : W.WF)
     (hstuck : AscentStuck W)
     {x : Card}
@@ -1851,7 +2413,13 @@ Together with the banked kit above (the collapse iff, the
 live-member read, the cover/twin-top bar) these seat the saturation's
 residue grade honestly: the named content that remains is
 `hbelow`-carried on BOTH sides, exactly as the cover census is (the
-probe's ab0/ab1 burial economy). -/
+probe's ab0/ab1 burial economy).
+
+THIRD-SUCCESSION ADDITION (below): the board `fa2` — unlike `fa0`
+and `fa1`, a genuinely DECIDED falsification — kills a frozen
+statement outright (the cover-cell census carries no `hbelow`
+premise to retreat behind), on the `Orig/ForkDescent.lean` §3R
+precedent. -/
 
 /-- The house card-maker (the boards' private copy). -/
 private def faCrd (s : Suit) (r : Rank) : Card := ⟨s, r⟩
@@ -2148,6 +2716,204 @@ theorem fa1_iff_point_false :
   exact fa1_membersDead.1
     ((ascent_stuck_collapse_iff fa1_stuck faAS).mp hR)
 
+/-! ### The cover-cell refutation board `fa2` (the third succession's
+frozen kill, 2026-10-13)
+
+The FIRST decided kill of a frozen residue in this leaf — UNLIKE
+`fa0`/`fa1` above, this board IS a counterexample to a frozen
+statement: the cover-cell census `ascent_cover_cell` carries NO
+`hbelow` premise, so its W-local falsity refutes it outright.  THE
+ECONOMY: all four aces FOUNDED (every suit's rung at one); the black
+twos DOUBLE-HOT, intact and seated over the red threes (`3♥ / 2♠`
+and `3♦ / 2♣`); both RED TWOS stocked — hot at their rungs but
+outside the tableau's reach; everything else sunk in the stock.  THE
+WITNESS LEDGER:
+
+* STUCK — the only hot face-up cards are the twos, both
+  guard-declined by their own intact mobile pair; the red threes are
+  un-hot by one index; every slide is refused by enumeration (the
+  two face-up tops host only red aces — founded — nothing fits any
+  top, and no empty seat takes a non-king).
+* SATURATED — `fa2_iff`: the S-set is EXACTLY the black twos, the
+  file's first certified saturation witness; every other hot card is
+  stocked (dead), the threes un-hot by one index.
+* DELIVERED — `fa2_pairDelivered`: double-hot, mobile, capped.
+* NO COVER — the `r−1` opposite-family candidates are exactly the
+  red aces, both FOUNDED below their frontiers: the census's
+  un-founded clause fails on every candidate, so the existential is
+  false — the refutation `ascent_cover_cell_refuted` below, on the
+  `Orig/ForkDescent.lean` §3R pattern (the residue keeps its sorry
+  as the honest witness of a FALSE row). -/
+
+private def fa2 : State where
+  found := fun s => faTakeUp s 1
+  piles := fun a => match a with
+    | .p0 => ⟨[], [faH3, faS2]⟩
+    | .p1 => ⟨[], [faD3, faC2]⟩
+    | .p2 => ⟨[], []⟩
+    | .p3 => ⟨[], []⟩
+    | .p4 => ⟨[], []⟩
+    | .p5 => ⟨[], []⟩
+    | .p6 => ⟨[], []⟩
+  stock :=
+    [faCrd .spade .three, faCrd .spade .four, faCrd .spade .five,
+     faCrd .spade .six, faCrd .spade .seven, faCrd .spade .eight,
+     faCrd .spade .nine, faCrd .spade .ten, faCrd .spade .jack,
+     faCrd .spade .queen, faCrd .spade .king,
+     faCrd .heart .two, faCrd .heart .four, faCrd .heart .five,
+     faCrd .heart .six, faCrd .heart .seven, faCrd .heart .eight,
+     faCrd .heart .nine, faCrd .heart .ten, faCrd .heart .jack,
+     faCrd .heart .queen, faCrd .heart .king,
+     faCrd .diamond .two, faCrd .diamond .four, faCrd .diamond .five,
+     faCrd .diamond .six, faCrd .diamond .seven, faCrd .diamond .eight,
+     faCrd .diamond .nine, faCrd .diamond .ten, faCrd .diamond .jack,
+     faCrd .diamond .queen, faCrd .diamond .king,
+     faCrd .club .three, faCrd .club .four, faCrd .club .five,
+     faCrd .club .six, faCrd .club .seven, faCrd .club .eight,
+     faCrd .club .nine, faCrd .club .ten, faCrd .club .jack,
+     faCrd .club .queen, faCrd .club .king]
+  waste := []
+  drawStep := 1
+
+private theorem fa2_wf_found : ∀ s : Suit, ∃ n, fa2.found s = s.upCards.take n := by
+  intro s
+  cases s <;> exact ⟨1, rfl⟩
+
+private theorem fa2_wf_runs : ∀ a : Anchor, runOK (fa2.piles a).faceUp = true := by
+  intro a
+  cases a <;> rfl
+
+private theorem fa2_wf_count : ∀ c ∈ Card.universe, fa2.cardCount c = 1 := by
+  intro c _
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> decide
+
+/-- The cover-cell refutation board is `WF` (kernel-decided). -/
+theorem fa2_wf : fa2.WF :=
+  ⟨fa2_wf_found, fa2_wf_runs, fa2_wf_count, by decide⟩
+
+private theorem fa2_p0 : fa2.piles .p0 = ⟨[], [faH3, faS2]⟩ := rfl
+private theorem fa2_p1 : fa2.piles .p1 = ⟨[], [faD3, faC2]⟩ := rfl
+private theorem fa2_p2 : fa2.piles .p2 = ⟨[], []⟩ := rfl
+private theorem fa2_p3 : fa2.piles .p3 = ⟨[], []⟩ := rfl
+private theorem fa2_p4 : fa2.piles .p4 = ⟨[], []⟩ := rfl
+private theorem fa2_p5 : fa2.piles .p5 = ⟨[], []⟩ := rfl
+private theorem fa2_p6 : fa2.piles .p6 = ⟨[], []⟩ := rfl
+
+/-- **THE FACE-UP INVENTORY AT `fa2`**: exactly the seated pair and
+their two seats. -/
+theorem fa2_faceUp : ∀ c ∈ Card.universe,
+    (∃ a, c ∈ (fa2.piles a).faceUp) →
+      c = faH3 ∨ c = faS2 ∨ c = faD3 ∨ c = faC2 := by
+  intro c _ ⟨a, hc⟩
+  cases a with
+  | p0 =>
+      rw [fa2_p0] at hc; simp at hc
+      rcases hc with h | h
+      · subst h; exact Or.inl rfl
+      · subst h; exact Or.inr (Or.inl rfl)
+  | p1 =>
+      rw [fa2_p1] at hc; simp at hc
+      rcases hc with h | h
+      · subst h; exact Or.inr (Or.inr (Or.inl rfl))
+      · subst h; exact Or.inr (Or.inr (Or.inr rfl))
+  | p2 => rw [fa2_p2] at hc; cases hc
+  | p3 => rw [fa2_p3] at hc; cases hc
+  | p4 => rw [fa2_p4] at hc; cases hc
+  | p5 => rw [fa2_p5] at hc; cases hc
+  | p6 => rw [fa2_p6] at hc; cases hc
+
+/-- **THE STUCK BOARD**: `fa2` is exhausted — the only hot face-up
+cards are the twos, each guard-declined by its own intact mobile
+pair; the red threes are un-hot by one index; and no slide places
+(the two face-up tops host only red aces — founded — nothing fits
+any top, and no empty seat takes a non-king). -/
+theorem fa2_stuck : AscentStuck fa2 := by
+  intro m hm
+  rcases hm with ⟨c, hmEq, hhot, hface, hguard⟩ | ⟨c, b, hmEq⟩
+  · rcases fa2_faceUp c (Card.mem_universe c) hface with h | h | h | h
+    · subst h; exact absurd hhot (by decide)
+    · subst h
+      exact absurd rfl (hguard _ ((mobileTwinB_iff _ _).mp (by decide))).1
+    · subst h; exact absurd hhot (by decide)
+    · subst h
+      exact absurd rfl (hguard _ ((mobileTwinB_iff _ _).mp (by decide))).1
+  · rw [hmEq]
+    cases b with
+    | inl n =>
+        rcases c with ⟨cs, cr⟩ <;> cases cs <;> cases cr <;> cases n <;> decide
+    | inr z =>
+        rcases c with ⟨cs, cr⟩ <;> rcases z with ⟨zs, zr⟩ <;>
+          cases cs <;> cases cr <;> cases zs <;> cases zr <;> decide
+
+/-- **THE DELIVERED PAIR STANDS, FULL PARCEL**: the black twos are
+double-hot, intact, and capped at their family's rungs — the cover-cell
+census's own delivered hypotheses, certified at the board. -/
+theorem fa2_pairDelivered :
+    DoubleHot fa2 faS2 ∧ MobileTwin fa2 faS2 ∧
+      rungAt fa2 faS2.suit ≤ faS2.rank.toIdx ∧
+      rungAt fa2 faS2.twin.suit ≤ faS2.twin.rank.toIdx :=
+  ⟨⟨Anchor.p0, Anchor.p1, by decide, by decide, by decide, by decide⟩,
+    ⟨⟨Anchor.p0, by decide⟩, by decide, ⟨Anchor.p1, by decide⟩, by decide⟩,
+    by decide, by decide⟩
+
+/-- **THE SATURATION IS CERTIFIED**: the S-set at the stuck board is
+EXACTLY the delivered pair — the file's first certified saturation
+witness.  Both members are vanilla-live (hot, topping their seated
+piles); every other hot card is stocked, invisible to the license;
+the red threes are un-hot by one index. -/
+theorem fa2_iff :
+    ∀ (c : Card), (c = faS2 ∨ c = faS2.twin) ↔ CanRaiseS fa2 c := by
+  intro c
+  constructor
+  · intro h
+    rcases h with rfl | rfl
+    · exact CanRaiseS.now _
+        ⟨by decide, Anchor.p0, by decide, Or.inl (by decide)⟩
+    · exact CanRaiseS.now _
+        ⟨by decide, Anchor.p1, by decide, Or.inl (by decide)⟩
+  · intro hS
+    obtain ⟨hnext, k, hk, -⟩ := ascent_stuck_collapse fa2_stuck hS
+    have hmem : c ∈ (fa2.piles k).faceUp :=
+      lastOf_mem (pileOfTop_top hk).2
+    rcases fa2_faceUp c (Card.mem_universe c) ⟨k, hmem⟩ with h | h | h | h
+    · rw [h] at hnext
+      exact absurd (of_decide_eq_true hnext) (by decide)
+    · exact Or.inl h
+    · rw [h] at hnext
+      exact absurd (of_decide_eq_true hnext) (by decide)
+    · exact Or.inr h
+
+/-- **THE COVER-CELL RESIDUE IS REFUTED** — the cover-cell census's
+frozen statement is FALSE, decide-witnessed: the exhibited WF, stuck,
+saturated, delivered board `fa2` admits NO cover — the `r−1`
+opposite-family cells are the red aces, both founded below their
+frontiers, so the un-founded clause fails on every candidate.  The
+residue `ascent_cover_cell` above therefore cannot land — its sorry
+is the honest witness of a FALSE statement, and the owner's recourse
+is statement-level (the α/β repairs priced in the row's verdict
+note). -/
+theorem ascent_cover_cell_refuted :
+    ¬ ∀ (W : State) (x : Card), W.WF → AscentStuck W →
+      (DoubleHot W x ∧ MobileTwin W x ∧
+        rungAt W x.suit ≤ x.rank.toIdx ∧
+        rungAt W x.twin.suit ≤ x.twin.rank.toIdx) →
+      (∀ (c : Card), (c = x ∨ c = x.twin) ↔ CanRaiseS W c) →
+      ∃ (d : Card),
+        d.rank.toIdx + 1 = x.rank.toIdx ∧
+        d.suit.color ≠ x.suit.color ∧
+        d.rank.toIdx ≥ W.foundHeight d.suit ∧
+        (∃ (c : Anchor), d ∈ (W.piles c).faceUp) := by
+  intro h
+  obtain ⟨d, hd1, -, hd3, -⟩ :=
+    h fa2 faS2 fa2_wf fa2_stuck fa2_pairDelivered fa2_iff
+  have h0 : faS2.rank.toIdx = 1 := rfl
+  rw [h0] at hd1
+  have h0' : d.rank.toIdx = 0 := by omega
+  have h1 : fa2.foundHeight d.suit = 1 := by cases d.suit <;> rfl
+  rw [h0', h1] at hd3
+  omega
+
 /-- The delivered shape as an explicit pair-plus-cover read (the
 `TwinSlideHalt` existential restructured for the exhaustion row's
 conclusion binders). -/
@@ -2304,6 +3070,350 @@ private theorem ascent_barecover_commit {W : State} (hwf : W.WF)
     intro y hya hyk
     rw [hW₁, putRun_piles_inr_ne _ _ _ k hpotM hyk, setPile_piles_ne hya]
   exact ⟨W₁, k, hstep, hktwin, hpK, hpA, hpOther⟩
+
+/-- **THE BARE-COVER LANDING PIN** (the corner's second banked leg,
+the third succession's isolation): at the commit's successor the
+covered twin is VANILLA-DEAD outright — the pin half of the
+`ForkWitness W₁ x` parcel, banked so the corner's remaining open is
+exactly the saturation half (the resurrection census: whether the
+emptied side's fresh seat can re-admit a hot card outside the pair).
+The twin tops no pile at the landing: its own pile is capped by the
+moved run's rider, the emptied source either reveals a hidden card
+(fresh by the WF hidden/face-up disjointness) or burns to the bare
+empty record, and WF face-up uniqueness forbids every other pile. -/
+private theorem ascent_barecover_landing_pin {W : State} (hwf : W.WF)
+    {x d : Card}
+    (hrank : d.rank.toIdx + 1 = x.rank.toIdx)
+    (hfit : canSitOn d x.twin = true)
+    (hctt : CanRaise W x.twin)
+    {a : Anchor} {L₂ : List Card}
+    (hspl : (W.piles a).faceUp = d :: L₂) :
+    ∃ (W₁ : State), State.step W (Move.tabToTab d (Sum.inr x.twin)) = some W₁ ∧
+      ¬ CanRaise W₁ x.twin := by
+  obtain ⟨W₁, k, hstep, hktw, hpK, hpA, hpOther⟩ :=
+    ascent_barecover_commit hwf hrank hfit hctt hspl
+  have hwf₁ : W₁.WF := step_wf hwf hstep
+  have hmemT : x.twin ∈ (W.piles k).faceUp := Pile.mem_of_top hktw
+  have hdxt : d ≠ x.twin := by
+    intro hcon
+    obtain ⟨hr1, -⟩ := (canSitOn_eq d x.twin).mp hfit
+    rw [hcon, Card.twin_rank] at hr1
+    omega
+  have hka : k ≠ a := by
+    intro hcon
+    rw [hcon] at hmemT
+    have hinspl : x.twin ∈ d :: L₂ := by rw [← hspl]; exact hmemT
+    rcases List.mem_cons.mp hinspl with heq | hin
+    · exact hdxt heq.symm
+    · have hrok : runOK (d :: L₂) = true := by rw [← hspl]; exact hwf.2.1 a
+      have hgt := ascent_runOK_head_gt hrok hin
+      rw [Card.twin_rank] at hgt
+      omega
+  -- the twin tops no pile at the landing
+  have hnoTop : ∀ q : Anchor, (W₁.piles q).top ≠ some x.twin := by
+    intro q
+    by_cases hqk : q = k
+    · rw [hqk, hpK]
+      show lastOf ((W.piles k).faceUp ++ (d :: L₂)) ≠ some x.twin
+      obtain ⟨y, hy⟩ := lastOf_exists (show (d :: L₂) ≠ [] from by simp)
+      rw [ascent_lastOf_append _ _ (show (d :: L₂) ≠ [] from by simp), hy]
+      intro hcon
+      have hyc : y = x.twin := Option.some.inj hcon
+      rcases List.mem_cons.mp (lastOf_mem hy) with heq | hin
+      · rw [heq] at hyc
+        exact hdxt hyc
+      · rw [hyc] at hin
+        exact (mem_faceUp_unique hwf hmemT a (fun h => hka h.symm)).1
+          (by rw [hspl]; exact List.mem_cons.mpr (Or.inr hin))
+    · by_cases hqa : q = a
+      · rcases hpA with ⟨z, t, hhid, hpa⟩ | ⟨hhid, hpa⟩
+        · rw [hqa, hpa]
+          show lastOf ([z] : List Card) ≠ some x.twin
+          intro hcon
+          have hzmem : z ∈ (W.piles a).hidden := by
+            rw [hhid]; exact List.mem_cons_self ..
+          have hzne : z ≠ x.twin := fun hc =>
+            (mem_hidden_unique hwf hzmem k hka).2.1
+              (by rw [hc]; exact hmemT)
+          have h2 : (some z : Option Card) = some x.twin := hcon
+          injection h2 with hzz
+          exact hzne hzz
+        · rw [hqa, hpa]
+          exact fun hcon => absurd hcon (by simp [Pile.top, lastOf])
+      · rw [hpOther q hqa hqk]
+        intro hcon
+        exact (mem_faceUp_unique hwf hmemT q hqk).1
+          (Pile.mem_of_top hcon)
+  refine ⟨W₁, hstep, ?_⟩
+  rintro ⟨-, k', hk', -⟩
+  exact hnoTop k' ((pileOfTop_eq_some_iff hwf₁).1 hk')
+
+/-- **THE CORNER'S NAMED-PREMISE REDUCTION** (fourth succession): the
+bare-cover corner closes outright given the saturation iff at the
+named slide's successor — the banked commit pins the covered twin
+vanilla-dead at ANY successor of `Move.tabToTab d (Sum.inr x.twin)`
+(the step is a function, so the successor is this row's own `W₁`),
+and the parcel assembles in ONE line.  Read with the free tilt
+(`ascent_tilted_snap`) and the at-stuck bar
+(`ascent_barecover_barred_atStuck`), the corner's surviving open is
+now EXACTLY its one named premise — the pair's iff at the commit
+landing, the resurrection census priced in the corner's route note
+(whether the emptied side's fresh seat can re-admit S-live cards
+outside the pair at the cold landing)
+
+SIXTH-PASS TRUEING: the premise's ⇐ half is now a banked general row
+(`ascent_barecover_landing_sat` below: at every both-live world both
+members are S-live at the commit landing), so the surviving half of
+the named premise is exactly its third-card exclusion — the datum the
+census cut below consumes and the `fa3` board refutes as W-forcible. -/
+private theorem ascent_barecover_of_landingiff {W W₁ : State} (hwf : W.WF)
+    {x d : Card}
+    (hrank : d.rank.toIdx + 1 = x.rank.toIdx)
+    (hfit : canSitOn d x.twin = true)
+    (hctt : CanRaise W x.twin)
+    {a : Anchor} {L₂ : List Card}
+    (hspl : (W.piles a).faceUp = d :: L₂)
+    (hstep : State.step W (Move.tabToTab d (Sum.inr x.twin)) = some W₁)
+    (hiff₁ : ∀ (c : Card), (c = x ∨ c = x.twin) ↔ CanRaiseS W₁ c) :
+    ∃ (F : State) (τ : List Move) (x' : Card),
+      W.run τ = some F ∧ ForkWitness F x' := by
+  obtain ⟨W₁', hstep', hpin⟩ :=
+    ascent_barecover_landing_pin hwf hrank hfit hctt hspl
+  have hEq : W₁ = W₁' := Option.some.inj (hstep.symm.trans hstep')
+  subst hEq
+  exact ⟨W₁, [Move.tabToTab d (Sum.inr x.twin)], x, run_one hstep,
+    ⟨hiff₁, hpin⟩⟩
+
+/-- **THE LANDING SITE CENSUS** (the restore-geometry surgery's site
+half, landed at the census-economy pass): at the commit's spelled
+successor every face-up card sits in one of exactly three sites — the
+twin's pile (its old face-up run plus the moved run), the emptied
+source (the revealed head alone in the reveal mode, nothing in the
+burn mode), or a third pile restored verbatim.  Pure list surgery over
+the spelled writes; the member half and the `fa3` evidence below both
+sit on this geometry. -/
+private theorem ascent_barecover_res_sites {W W₁ : State}
+    {d : Card} {k a : Anchor} {L₂ : List Card}
+    (hpK : W₁.piles k
+        = ⟨(W.piles k).hidden, (W.piles k).faceUp ++ (d :: L₂)⟩)
+    (hpA : (∃ z t, (W.piles a).hidden = z :: t ∧
+          W₁.piles a = ⟨t, [z]⟩) ∨
+        ((W.piles a).hidden = [] ∧ W₁.piles a = ⟨[], []⟩))
+    (hpOther : ∀ y, y ≠ a → y ≠ k → W₁.piles y = W.piles y)
+    {p : Anchor} {c : Card}
+    (hmem : c ∈ (W₁.piles p).faceUp) :
+    (p = k ∧ (c ∈ (W.piles k).faceUp ∨ c ∈ d :: L₂)) ∨
+    (∃ z t, (W.piles a).hidden = z :: t ∧ W₁.piles a = ⟨t, [z]⟩ ∧
+      p = a ∧ c = z) ∨
+    (p ≠ a ∧ p ≠ k ∧ c ∈ (W.piles p).faceUp) := by
+  by_cases hpa : p = a
+  · rcases hpA with ⟨z, t, hhid, hpl⟩ | ⟨hhid, hpl⟩
+    · rw [hpa, hpl] at hmem
+      refine Or.inr (Or.inl ⟨z, t, hhid, hpl, hpa, ?_⟩)
+      have h : c ∈ ([z] : List Card) := hmem
+      rcases List.mem_cons.mp h with hc | hc
+      · exact hc
+      · exact absurd hc (by simp)
+    · rw [hpa, hpl] at hmem
+      have h : c ∈ ([] : List Card) := hmem
+      exact absurd h (by simp)
+  · by_cases hpk : p = k
+    · refine Or.inl ⟨hpk, ?_⟩
+      have h : c ∈ ((W.piles k).faceUp ++ d :: L₂) := by
+        rw [hpk, hpK] at hmem
+        exact hmem
+      rcases List.mem_append.mp h with hc | hc
+      · exact Or.inl hc
+      · exact Or.inr hc
+    · refine Or.inr (Or.inr ⟨hpa, hpk, ?_⟩)
+      rw [hpOther p hpa hpk] at hmem
+      exact hmem
+
+/-- **THE BOTH-LIVE LANDING SATURATION** (the census's ⇐ half, now
+GENERAL — the member half of the landing iff at every both-live
+world): both pair members are S-live at the commit's spelled
+successor.  The exposed member rides its own vanilla license —
+through the third-pile restore leg when it tops an untouched pile,
+or through the moved run's rider when it topped the emptied source;
+the covered member keeps its seat (the splice writes behind its
+position) and re-arms the exit clause through the exposed member's
+top at the landing; both stay hot by the rung freeze (the slide
+never touches a foundation).  `fa3_membersLive` below is this row's
+board instance; this row removes the instancehood. -/
+private theorem ascent_barecover_landing_sat {W W₁ : State} (hwf : W.WF)
+    {x d : Card}
+    (hstep : State.step W (Move.tabToTab d (Sum.inr x.twin)) = some W₁)
+    (hrank : d.rank.toIdx + 1 = x.rank.toIdx)
+    (hctt : CanRaise W x.twin)
+    (hboth : CanRaise W x)
+    {a k : Anchor} {L₂ : List Card}
+    (hspl : (W.piles a).faceUp = d :: L₂)
+    (hktw : (W.piles k).top = some x.twin)
+    (hpK : W₁.piles k
+        = ⟨(W.piles k).hidden, (W.piles k).faceUp ++ (d :: L₂)⟩)
+    (hpOther : ∀ y, y ≠ a → y ≠ k → W₁.piles y = W.piles y) :
+    CanRaiseS W₁ x ∧ CanRaiseS W₁ x.twin := by
+  have hwf₁ : W₁.WF := step_wf hwf hstep
+  -- the rung freeze
+  have hfreeze : ∀ (σ : Suit), W₁.foundHeight σ = W.foundHeight σ := by
+    intro σ
+    rw [← ascent_rung_height W₁ σ, ascent_slide_rung hstep σ,
+      ascent_rung_height W σ]
+  have hnext₁ : ∀ {c : Card}, W.nextUp c = true → W₁.nextUp c = true := by
+    intro c h
+    show decide (c.rank.toIdx = W₁.foundHeight c.suit) = true
+    rw [hfreeze c.suit]
+    exact h
+  -- the vanilla licenses, unpacked
+  obtain ⟨hnextT, k', hpodT, hchopT⟩ := hctt
+  obtain ⟨hnextX, b, hpodX, hchopX⟩ := hboth
+  have htopT' : (W.piles k').top = some x.twin :=
+    (pileOfTop_eq_some_iff hwf).1 hpodT
+  have htopX : (W.piles b).top = some x := (pileOfTop_eq_some_iff hwf).1 hpodX
+  -- the twin's license names the same pile the spell names
+  have hkk' : k = k' := by
+    by_cases hcon : k = k'
+    · exact hcon
+    · have hb := mem_faceUp_unique hwf (Pile.mem_of_top hktw) k'
+        (fun h => hcon h.symm)
+      exact absurd (Pile.mem_of_top htopT') hb.1
+  rw [← hkk'] at hchopT
+  -- the twin-pile writes, flat
+  have hfaceK : (W₁.piles k).faceUp
+      = (W.piles k).faceUp ++ d :: L₂ := by
+    rw [hpK]
+  have hhidK : (W₁.piles k).hidden = (W.piles k).hidden := by rw [hpK]
+  have hlT : lastOf (W.piles k).faceUp = some x.twin := hktw
+  obtain ⟨pre, hsnocT⟩ := lastOf_eq_snoc hlT
+  -- the exposed member at the landing
+  obtain ⟨satX, hpodX₁⟩ :
+      CanRaiseS W₁ x ∧ ∃ (B : Anchor), W₁.pileOfTop x = some B := by
+    by_cases hba : b = a
+    · have hdx : d ≠ x := by
+        intro hcon
+        rw [← hcon] at hrank
+        omega
+      rw [hba] at htopX
+      -- it rode the emptied source's run into the twin's pile
+      have hlA : lastOf (d :: L₂) = some x := by
+        rw [← hspl]
+        exact htopX
+      obtain ⟨pfx, hsnocA⟩ := lastOf_eq_snoc hlA
+      have hdpfx : d ∈ pfx := by
+        rcases List.mem_append.mp
+          (show d ∈ pfx ++ [x] by
+            rw [← hsnocA]; exact List.mem_cons_self ..) with h | h
+        · exact h
+        · rcases List.mem_cons.mp h with h' | h'
+          · exact absurd h' hdx
+          · exact absurd h' (by simp)
+      have hne : d :: L₂ ≠ [] := by simp
+      have htopXk : (W₁.piles k).top = some x := by
+        show lastOf ((W₁.piles k).faceUp) = some x
+        rw [hfaceK, ascent_lastOf_append _ _ hne]
+        exact hlA
+      have hshapeX : (W₁.piles k).faceUp
+          = ((W.piles k).faceUp ++ pfx) ++ x :: [] := by
+        rw [hfaceK, hsnocA, List.append_assoc]
+      have hseatX : ((W.piles k).faceUp ++ pfx) ≠ [] ∨
+          ((W₁.piles k).hidden = [] ∧ x.rank = Rank.king) :=
+        Or.inl
+          (fun hcon =>
+            absurd (List.mem_append.mpr (Or.inr hdpfx))
+              (by rw [hcon]; simp))
+      exact ⟨(canRaiseS_iff hwf₁).2 ⟨hnext₁ hnextX, k,
+        (W.piles k).faceUp ++ pfx, [], hshapeX, hseatX, Or.inl rfl⟩,
+        ⟨k, (pileOfTop_eq_some_iff hwf₁).2 htopXk⟩⟩
+    · by_cases hbk : b = k
+      · rw [hbk] at htopX
+        have hxx : x = x.twin := Option.some.inj (htopX.symm.trans hktw)
+        exact absurd hxx.symm (Card.twin_ne x)
+      · -- the third-pile restore leg
+        have hhlX : lastOf (W.piles b).faceUp = some x := htopX
+        obtain ⟨pre, hsnocX⟩ := lastOf_eq_snoc hhlX
+        have hfaceB : (W₁.piles b).faceUp = (W.piles b).faceUp := by
+          rw [hpOther b hba hbk]
+        have hshapeX : (W₁.piles b).faceUp = pre ++ x :: [] := by
+          rw [hfaceB, hsnocX]
+        have hseatX : pre ≠ [] ∨
+            ((W₁.piles b).hidden = [] ∧ x.rank = Rank.king) := by
+          rcases hchopX with hc | hh
+          · rw [hsnocX, chop_snoc] at hc
+            exact Or.inl hc
+          · refine Or.inr ⟨?_, hh.2⟩
+            rw [hpOther b hba hbk]
+            exact hh.1
+        have htopXb : (W₁.piles b).top = some x := by
+          show lastOf ((W₁.piles b).faceUp) = some x
+          rw [hfaceB]
+          exact hhlX
+        exact ⟨(canRaiseS_iff hwf₁).2 ⟨hnext₁ hnextX, b, pre, [], hshapeX,
+          hseatX, Or.inl rfl⟩,
+          ⟨b, (pileOfTop_eq_some_iff hwf₁).2 htopXb⟩⟩
+  -- the covered member at the landing
+  have hseatT : pre ≠ [] ∨
+      ((W₁.piles k).hidden = [] ∧ x.twin.rank = Rank.king) := by
+    rcases hchopT with hc | hh
+    · rw [hsnocT, chop_snoc] at hc
+      exact Or.inl hc
+    · refine Or.inr ⟨?_, hh.2⟩
+      rw [hhidK]
+      exact hh.1
+  have hshapeT : (W₁.piles k).faceUp = pre ++ x.twin :: d :: L₂ := by
+    rw [hfaceK, hsnocT, List.append_assoc]
+    rfl
+  refine ⟨satX, ?_⟩
+  refine (canRaiseS_iff hwf₁).2
+    ⟨hnext₁ hnextT, k, pre, d :: L₂, hshapeT, hseatT, ?_⟩
+  refine Or.inr ?_
+  rw [Card.twin_twin]
+  obtain ⟨B, hB⟩ := hpodX₁
+  rw [hB]
+  exact Option.some_ne_none B
+
+/-- **THE CENSUS CUT** (the verdict's exact cutting surface): in the
+both-live scope the corner closes given EXACTLY ONE datum — no card
+outside the pair is S-live at the commit landing.  The member half of
+that datum is already banked (`ascent_barecover_landing_sat`, no
+census needed); the third-card half is the named residue, and the
+`fa3` board refutes it at a corner-shaped world (`fa3_resurrected`:
+the emptied side's reveal CAN re-admit a hot buried mate through the
+covered-leg exit channel), so the datum is NOT W-forcible — never
+forced here.  Read with the free tilt (`ascent_tilted_snap`), this row
+says the corner's surviving open is exactly one premise, and what that
+premise costs. -/
+private theorem ascent_barecover_corner_of_nores {W W₁ : State} (hwf : W.WF)
+    {x d : Card}
+    (hstep : State.step W (Move.tabToTab d (Sum.inr x.twin)) = some W₁)
+    (hrank : d.rank.toIdx + 1 = x.rank.toIdx)
+    (hfit : canSitOn d x.twin = true)
+    (hctt : CanRaise W x.twin)
+    (hboth : CanRaise W x)
+    {a : Anchor} {L₂ : List Card}
+    (hspl : (W.piles a).faceUp = d :: L₂)
+    (hnores : ∀ (c : Card), c ≠ x → c ≠ x.twin → ¬ CanRaiseS W₁ c) :
+    ∃ (F : State) (τ : List Move) (x' : Card),
+      W.run τ = some F ∧ ForkWitness F x' := by
+  obtain ⟨W₁', k, hstep', hktw, hpK, -, hpOther⟩ :=
+    ascent_barecover_commit hwf hrank hfit hctt hspl
+  have hEq : W₁ = W₁' := Option.some.inj (hstep.symm.trans hstep')
+  subst hEq
+  obtain ⟨satX, satT⟩ :=
+    ascent_barecover_landing_sat hwf hstep hrank hctt hboth hspl hktw hpK
+      hpOther
+  have hiff₁ : ∀ (c : Card), (c = x ∨ c = x.twin) ↔ CanRaiseS W₁ c := by
+    intro c
+    constructor
+    · rintro (rfl | rfl)
+      · exact satX
+      · exact satT
+    · intro hcS
+      by_cases hcx : c = x
+      · exact Or.inl hcx
+      · by_cases hctx : c = x.twin
+        · exact Or.inr hctx
+        · exact absurd hcS (hnores c hcx hctx)
+  exact ascent_barecover_of_landingiff hwf hrank hfit hctt hspl hstep hiff₁
 
 /-! ## §2e. The β-staging (takeover pass, evidence on record)
 
@@ -2502,6 +3612,105 @@ private theorem ascent_cover_read_rec {W : State} (hwf : W.WF)
     ascent_cover_read hwf hstuck hxdel hiff
   exact ⟨d, hxdel.1, hd1, hd2, hd5, Or.inl ⟨hd3, hd4⟩⟩
 
+/-- **THE FORCED RETURN BASE** (fourth succession, the ceiling's
+named constant landed): at any exhausted world carrying the pair's
+saturation iff, a fitting cover's `canPlace` onto the topped twin
+reads TRUE outright — the iff's membership half forces the twin
+S-live (the stuckness collapse makes it vanilla-live, so its pile's
+top it is), and the placement guard is the fit verbatim.  This is the
+row the β-arm rides: whatever the census delivers on the founded
+side, its licensed `foundToTab` return base — the topped twin — is
+forced by the very iff that kills the standing cover, so the
+`ExhaustShapeRec` founded-arm's `∃ e` clause can never be the
+obstruction.  (The row is WF-unconditioned: the collapse, the license
+read and the placement guard consume no WF.) -/
+theorem ascent_rec_base_of_iff {W : State}
+    (hstuck : AscentStuck W) {x d : Card}
+    (hiff : ∀ (c : Card), (c = x ∨ c = x.twin) ↔ CanRaiseS W c)
+    (hfit : canSitOn d x.twin = true) :
+    W.canPlace d (Sum.inr x.twin) = true := by
+  obtain ⟨-, k, hk, -⟩ :=
+    ascent_stuck_collapse hstuck ((hiff x.twin).mp (Or.inr rfl))
+  rw [canPlace_inr_located hk]
+  exact hfit
+
+/-- The first founded cell of the heart row (the fa2 board's only
+standing cover candidate: founded, rank-`0`, opposite-family to both
+black deuces). -/
+private def faHA : Card := faCrd .heart .ace
+
+/-- **THE β-SHAPE IS DELIVERED AT `fa2`** (fourth succession, decide
+grade): the file's first certified saturation witness
+(`fa2_wf`, `fa2_stuck`, `fa2_iff`, `fa2_pairDelivered`) DELIVERS the
+recoverable shape — the heart ace founded at its frontier (the heart
+row's `foundTop`, rank-`0`-at-height-`1`), fitting the black deuce
+pair by twin-blind arithmetic, with the licensed return base the
+topped spade deuce itself.  THE EVIDENCE: after the owner's
+β-ratification (the `ExhaustShapeRec` swap staged in §2e), the `fa2`
+class of boards stops being an obstruction to the exhaustion row (the
+ceiling killed only the STANDING cover) and becomes a genuine
+DELIVERY class — the β-future is nonvacuous at a real stuck
+exhaustion, witnessed `decide`-clean rather than argued in prose. -/
+theorem fa2_shapeRec : ExhaustShapeRec fa2 faS2 faHA := by
+  refine ⟨fa2_pairDelivered.1, by decide, by decide, by decide, Or.inr ?_⟩
+  exact ⟨by decide, by decide, faS2, by decide⟩
+
+/-- **THE β-PULL FIRES AT `fa2`** (fourth succession, riding the
+banked pullback): the licensed `foundToTab` return of the heart ace
+onto the spade deuce's top FIRES at the saturated board and lands
+the standing `ExhaustShape` in ONE leg — the β-recoverable
+delivery witnessed end-to-end at the kernel (the standing shape the
+ceiling barred at `fa2` itself, recovered by the one licensed hop
+the recoverable disjunct licensed). -/
+theorem fa2_pullWitness :
+    ∃ (W' : State), State.step fa2 (Move.foundToTab faHA (Sum.inr faS2)) = some W' ∧
+      ExhaustShape W' faS2 faHA := by
+  have hrank : faHA.rank.toIdx + 1 = faS2.rank.toIdx := by decide
+  have hcol : faHA.suit.color ≠ faS2.suit.color := by decide
+  have hfit : canSitOn faHA faS2.twin = true := by decide
+  have hfront : fa2.foundTop faHA.suit = some faHA := by decide
+  have hfh : faHA.rank.toIdx + 1 = fa2.foundHeight faHA.suit := by decide
+  have hbase : fa2.canPlace faHA (Sum.inr faS2) = true := by decide
+  exact ascent_cover_pullback hrank hcol hfit fa2_pairDelivered.1 hfront hfh hbase
+
+/-- **THE EXHAUSTION-SHAPE CEILING** (the third succession's
+universal row): at a `WF` STUCK state, the exhaustion row's own
+conclusion — a delivered `ExhaustShape` pair with its STANDING
+face-up cover, together with the saturation iff — is IMPOSSIBLE.
+The iff's membership half forces the twin vanilla-live at `W` (its
+left side is trivially true at the member; the stuckness collapses
+the S-grade onto the vanilla one), the shape's standing cover is
+face-up and fits the twin by its own clauses, and the live-cover bar
+refuses the pair: the cover's slide onto the live twin's top would
+FIRE against the stuckness.
+
+READ THIS AS THE UNIVERSAL CONSTANT BEHIND THE `fa2` KILL: the
+crew's `ascent_cover_cell_refuted` decides the census false at ONE
+board; the ceiling proves the row's ENTIRE conclusion (standing
+cover AND pair-saturation) impossible at EVERY `WF` stuck state —
+the α-arm of the delivered shape can never stand at any exhaustion
+that carries the saturation, not merely at `fa2`.  The frozen row
+`ascent_exhaustion_forks` is therefore dead at every one of its own
+hypothesis-satisfying worlds: its only live futures are VACUITY (no
+`hbelow` start ever ascends into a stuck exhaustion — the very
+reachability census the probe declines to decide) or the owner's
+β-ratification (the `ExhaustShapeRec` recoverable disjunct staged in
+§2e: a cover FOUNDED at its suit's frontier is invisible to the
+bar, and its licensed return base — the topped twin — is exactly
+what the iff's liveness forces, so the β-arm is precisely the shape
+the living rows leave standing).  The frozen statements are
+untouched; this row is additive evidence on the
+`Orig/ForkDescent.lean` §3R precedent — a negative constant
+retired at the kernel, not in prose. -/
+theorem ascent_exhaust_shape_impossible {W : State} (hwf : W.WF)
+    (hstuck : AscentStuck W) :
+    ¬ (∃ (x d : Card), ExhaustShape W x d ∧
+        (∀ (c : Card), (c = x ∨ c = x.twin) ↔ CanRaiseS W c)) := by
+  rintro ⟨x, d, hex, hiff⟩
+  exact ascent_stuck_livecover_bar hwf hstuck
+    (ascent_stuck_collapse hstuck ((hiff x.twin).mp (Or.inr rfl)))
+    hex.2.2.2.2.1 hex.2.2.2.2.2
+
 /-- **THE EXHAUSTION-FORKS ROW** — the owner's claim, in the
 exhaustion semantics and the confluence grade: from any WF state
 below a reachable fork's frontier whose pair members are already
@@ -2535,7 +3744,34 @@ each piece carries its complete priced route where it is declared):
 Falsification boards (the refuter-first targets): ladder-exhaustion
 decks — greedy slide-wasting runs, buried-cover exhaustions,
 multi-pair frontiers — assigned to the probe program alongside the
-descent program's boards. -/
+descent program's boards.
+
+THIRD-SUCCESSION CEILING NOTICE: the row's own conclusion is now
+kernel-known IMPOSSIBLE at every `WF` stuck state
+(`ascent_exhaust_shape_impossible`: the standing cover plus the
+saturation iff are jointly refused by the live-cover bar — the
+iff's membership half makes the twin vanilla-live under the
+stuckness collapse, and the shape's face-up fitting cover would
+slide onto it, firing against `AscentStuck`).  The row therefore
+holds only VACUOUSLY — no `hbelow` start ever ascends into a stuck
+exhaustion, the very census the probe declares open — and any
+non-vacuous delivery requires the owner's β-ratification (the
+`ExhaustShapeRec` swap staged in §2e, whose licensed return base is
+the topped twin itself).  The four named pieces keep their residues
+and grades; the row's statement stays byte-frozen, its body
+untouched.
+
+FOURTH-SUCCESSION β-NOTICE (2026-10-17): the vacuity-or-β fork is now
+WITNESSED on the β side at the kernel — `fa2_shapeRec` delivers the
+recoverable shape at this file's own certified saturated board and
+`fa2_pullWitness` lands the standing `ExhaustShape` from it in one
+licensed leg, while `ascent_rec_base_of_iff` proves the founded
+cover's return base is forced by the very iff that kills the standing
+cover (the ONLY obstacle the founded arm could have carried).  The
+head keeps its sorry: its non-vacuous future remains the owner's
+ratification of the staged swap, its vacuous future remains the
+probe's reachability census — both routes document the whole gap, and
+neither is forced here. -/
 theorem ascent_exhaustion_forks {s : State} (hwf : s.WF)
     (hbelow : ∃ (F : State) (x : Card) (π : List Move),
       s.run π = some F ∧ ForkWitness F x ∧
@@ -2584,7 +3820,51 @@ with their boards' evidence; the β-companion's swap is staged in
 §2e, nothing consumed until the owner ratifies.  The session-4
 persistent-pair kit (private, additive, no consumers yet) is
 audited directly below — the induction carries only `Quot.sound`
-off `step_wf`'s WF transport. -/
+off `step_wf`'s WF transport.
+
+THIRD-SUCCESSION ADDITIONS (2026-10-13, session 5): the cover-cell
+mini's verdict is now DECIDED — the refutation board rows below
+(`fa2`: WF, stuck, delivered, saturated — decide-grade) and the
+certified negation `ascent_cover_cell_refuted`, ZERO-sorry: the
+cover-cell residue keeps its sorry (the row as stated is FALSE, the
+`fa2` record, on the `Orig/ForkDescent.lean` §3R precedent), so the
+sorry count stays exactly FOUR and every earlier profile stands.
+The corner's landing pin (`ascent_barecover_landing_pin`, private,
+banked for the corner's route) reads the commit's own parcel —
+expected `[propext, Quot.sound]`-grade off the banked kit, no
+Classical inflow.
+
+SECOND-LANDER ADDITIONS (the third succession's universal rows):
+the live-cover bar `ascent_stuck_livecover_bar` and the
+exhaustion-shape ceiling `ascent_exhaust_shape_impossible` are
+PUBLIC, audited directly below alongside the earlier heads; the
+support kit and the three staging rows are private (the
+slide-fires kit feeding the bar, the corner's stuck-world bar, the
+cell-armor persistence row, the climb parking reduction, the
+saturation decomposition) and ride the same banked grades — zero
+`Classical.choice` (all splits on the bar's decidable license
+reads), zero new `sorryAx`, the sorry count stays exactly FOUR.
+
+FOURTH-SUCCESSION ADDITIONS (2026-10-17, session 6): ten fresh rows
+land zero-sorry — the free tilt `ascent_tilted_snap` and
+the corner's named-premise reduction
+`ascent_barecover_of_landingiff` (both private, the corner's last
+assembly legs); the twin-flip re-packs
+`ascent_doublehot_twinflip`/`ascent_mobile_twinflip` with the
+forced-topping row `ascent_stuck_liveForcesTwinTop` and the
+member-live split `ascent_stuck_memberLive_split` (private, the
+`fa1` axis W-locally shrunk to the bare-seat read, its seat
+assembly `ascent_liveTwin_of_seat`); and the three public β-evidence
+heads — `ascent_rec_base_of_iff` (the forced return base),
+`fa2_shapeRec` and `fa2_pullWitness` (decide grade on the banked
+pullback).  All read `[propext]`-or-`[propext, Quot.sound]`
+grades, audited below; zero `Classical.choice`, zero new `sorryAx`.
+The rows that carry `sorryAx` remain EXACTLY the §1 assembly
+(`orientation_assembly_fork`, through the bare-cover corner's named
+premise) and the §2 head (`ascent_exhaustion_forks`, through the
+climb/saturation/cover pieces — the cover piece now through the
+refuted W-local census per the `fa2` record); the sorry count stays
+exactly FOUR and every earlier profile stands. -/
 
 #print axioms orientation_assembly_fork
 #print axioms ascent_stuck_collapse
@@ -2604,4 +3884,333 @@ off `step_wf`'s WF transport. -/
 #print axioms fa1_pairDelivered
 #print axioms fa1_membersDead
 #print axioms fa1_iff_point_false
+#print axioms fa2_wf
+#print axioms fa2_stuck
+#print axioms fa2_pairDelivered
+#print axioms fa2_iff
+#print axioms ascent_cover_cell_refuted
+#print axioms ascent_barecover_landing_pin
+#print axioms ascent_stuck_livecover_bar
+#print axioms ascent_exhaust_shape_impossible
+#print axioms ascent_tabToTab_fires
+#print axioms ascent_barecover_barred_atStuck
+#print axioms ascent_cell_armor
+#print axioms ascent_climb_of_parked
+#print axioms ascent_stuck_sat_of_excLive
 #print axioms ascent_exhaustion_forks
+#print axioms ascent_tilted_snap
+#print axioms ascent_barecover_of_landingiff
+#print axioms ascent_doublehot_twinflip
+#print axioms ascent_mobile_twinflip
+#print axioms ascent_stuck_liveForcesTwinTop
+#print axioms ascent_liveTwin_of_seat
+#print axioms ascent_stuck_memberLive_split
+#print axioms ascent_rec_base_of_iff
+#print axioms fa2_shapeRec
+#print axioms fa2_pullWitness
+
+/-! ## §2f. The both-live cold-resurrection census board `fa3` (2026-10-17, session 7)
+
+CENSUS VERDICT: **REFUTED** as universally staged — decide-witnessed,
+on the `fa2`/§3R pattern.  The bare-cover corner's remaining open
+after the banked route (the BOTH-LIVE cold census: is the pair's
+saturation iff restorable at the named slide's commit successor?) is
+now DECIDED FALSE at a corner-shaped board: the landed cover itself
+CAN re-enter the S-set outside the pair — through the resurrection
+mode the corner's own route note prices (a cover that was
+seat-blocked at the start, bare and non-king over a hidden deck,
+re-acquires a seat at the landing: its rung hot, the twin's own seat
+content now below it, and its exit clause open as the landed run's
+own rider).
+
+THE WITNESS ECONOMY: the queens' pair double-live and saturated at
+rung eleven (`faQH`/`faQD`, hearts and diamonds founded A–J); the
+cover `faJS` FIRST-FACED at `p1` over the hidden `faC5`, hot at its
+own rung ten (spades founded A–10), seat-blocked at the start (bare,
+non-king, the hidden deck below it — `fa3_coverDead`); the black
+kings seat both queens (`faKS` at `p0`, `faKC` at `p3`, both
+un-hot — club at rung four, spade past its jack); eleven cards sunk
+in the stock, invisible to the license.  THE COMMIT: the named
+slide fires into `fa3L` (the reveal mode realized — `faC5` exposed
+atop the emptied `p1`, the cover whole on the twin at `p0`); at
+`fa3L` BOTH MEMBERS REMAIN S-LIVE (the member half SURVIVES —
+`fa3_membersLive`) while the cover RESURRECTS
+(`fa3_resurrected`): re-seated atop the twin's pile (`faKS` and
+`faQD` below it), hot at its own rung, its exit open as the run's
+own rider, a THIRD card sits S-live outside the pair — so
+`ascent_barecover_of_landingiff`'s saturation premise is not
+universally restorable (`fa3_census_refuted`) and the corner's staged
+route is DEAD at the witness.  The frozen rows are untouched; the
+fresh heads are all decide/`rfl`-grade off the banked flat
+characterization; the sorry count stays exactly FOUR. -/
+
+/-- The census board's named cards (the `fa` house style). -/
+private def faQH : Card := faCrd .heart .queen
+private def faQD : Card := faCrd .diamond .queen
+private def faJS : Card := faCrd .spade .jack
+private def faKS : Card := faCrd .spade .king
+private def faKC : Card := faCrd .club .king
+private def faD6 : Card := faCrd .diamond .six
+private def faH4 : Card := faCrd .heart .four
+private def faS5 : Card := faCrd .spade .five
+private def faC5 : Card := faCrd .club .five
+
+/-- **THE BOTH-LIVE COLD-CENSUS BOARD `fa3`** — the queens' pair
+double-live and saturated at rung eleven; the cover `faJS` first-faced
+over the hidden `faC5` at `p1`, hot at its own rung ten (spades
+founded A–10) but seat-blocked there (bare, non-king, the hidden
+deck below); the black kings seat both queens; everything else sunk
+in the stock or founded. -/
+private def fa3 : State where
+  found := fun s => match s with
+    | .spade => faTakeUp s 10
+    | .club => faTakeUp s 4
+    | .heart | .diamond => faTakeUp s 11
+  piles := fun a => match a with
+    | .p0 => ⟨[], [faKS, faQD]⟩
+    | .p1 => ⟨[faC5], [faJS]⟩
+    | .p2 => ⟨[], []⟩
+    | .p3 => ⟨[], [faKC, faQH]⟩
+    | .p4 => ⟨[], []⟩
+    | .p5 => ⟨[], []⟩
+    | .p6 => ⟨[], []⟩
+  stock :=
+    [faCrd .spade .queen,
+     faCrd .club .six, faCrd .club .seven, faCrd .club .eight,
+     faCrd .club .nine, faCrd .club .ten, faCrd .club .jack,
+     faCrd .club .queen,
+     faCrd .heart .king, faCrd .diamond .king]
+  waste := []
+  drawStep := 1
+
+private theorem fa3_wf_found : ∀ s : Suit, ∃ n, fa3.found s = s.upCards.take n := by
+  intro s
+  cases s with
+  | spade => exact ⟨10, rfl⟩
+  | heart => exact ⟨11, rfl⟩
+  | diamond => exact ⟨11, rfl⟩
+  | club => exact ⟨4, rfl⟩
+
+private theorem fa3_wf_runs : ∀ a : Anchor, runOK (fa3.piles a).faceUp = true := by
+  intro a
+  cases a <;> rfl
+
+private theorem fa3_wf_count : ∀ c ∈ Card.universe, fa3.cardCount c = 1 := by
+  intro c _
+  rcases c with ⟨s, r⟩
+  cases s <;> cases r <;> decide
+
+/-- The both-live census board is `WF` (kernel-decided). -/
+theorem fa3_wf : fa3.WF :=
+  ⟨fa3_wf_found, fa3_wf_runs, fa3_wf_count, by decide⟩
+
+private theorem fa3_p0 : fa3.piles .p0 = ⟨[], [faKS, faQD]⟩ := rfl
+private theorem fa3_p1 : fa3.piles .p1 = ⟨[faC5], [faJS]⟩ := rfl
+private theorem fa3_p2 : fa3.piles .p2 = ⟨[], []⟩ := rfl
+private theorem fa3_p3 : fa3.piles .p3 = ⟨[], [faKC, faQH]⟩ := rfl
+private theorem fa3_p4 : fa3.piles .p4 = ⟨[], []⟩ := rfl
+private theorem fa3_p5 : fa3.piles .p5 = ⟨[], []⟩ := rfl
+private theorem fa3_p6 : fa3.piles .p6 = ⟨[], []⟩ := rfl
+
+/-- **THE FACE-UP INVENTORY AT `fa3`**: exactly the seated pair, the
+two kings, and the first-faced cover. -/
+theorem fa3_faceUp : ∀ c ∈ Card.universe,
+    (∃ a, c ∈ (fa3.piles a).faceUp) →
+      c = faQH ∨ c = faQD ∨ c = faJS ∨ c = faKS ∨ c = faKC := by
+  intro c _ ⟨a, hc⟩
+  cases a with
+  | p0 =>
+      rw [fa3_p0] at hc; simp at hc
+      rcases hc with h | h
+      · rw [h]; simp
+      · rw [h]; simp
+  | p1 =>
+      rw [fa3_p1] at hc; simp at hc
+      rw [hc]; simp
+  | p2 =>
+      rw [fa3_p2] at hc
+      cases hc
+  | p3 =>
+      rw [fa3_p3] at hc; simp at hc
+      rcases hc with h | h
+      · rw [h]; simp
+      · rw [h]; simp
+  | p4 => rw [fa3_p4] at hc; cases hc
+  | p5 => rw [fa3_p5] at hc; cases hc
+  | p6 => rw [fa3_p6] at hc; cases hc
+
+/-- **THE COVER IS SEAT-BLOCKED AT THE START**: the first-faced `faJS`
+is S-dead at `fa3` — the flat characterization's seat clause can't
+arm: bare below (nothing face-up under it), never a king, and the
+hidden deck below is nonempty.  This is the census's pivot cell —
+the card the saturation keeps dead for its seat becomes live at the
+re-seated landing. -/
+private theorem fa3_coverDead : ¬ CanRaiseS fa3 faJS := by
+  intro hS
+  obtain ⟨-, a, bs, run, hshape, hseat, -⟩ := (canRaiseS_iff fa3_wf).mp hS
+  have hmema : faJS ∈ (fa3.piles a).faceUp := by
+    rw [hshape]
+    exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+  have hmem1 : faJS ∈ (fa3.piles .p1).faceUp := by
+    rw [fa3_p1]
+    exact List.mem_cons_self ..
+  have hap1 : a = Anchor.p1 := by
+    by_cases hcon : a = Anchor.p1
+    · exact hcon
+    · have hb := mem_faceUp_unique fa3_wf hmem1 a hcon
+      exact absurd hmema hb.1
+  rw [hap1, fa3_p1] at hshape
+  have hl : 1 = bs.length + (run.length + 1) := by
+    have h2 := congrArg List.length hshape
+    simpa using h2
+  have hbs : bs = [] := by
+    cases bs with
+    | nil => rfl
+    | cons e r =>
+        rw [List.length_cons] at hl
+        omega
+  rw [hbs] at hseat
+  rcases hseat with hne | hh
+  · exact hne rfl
+  · rw [hap1, fa3_p1] at hh
+    exact absurd hh.1 (by decide)
+
+/-- **THE SATURATION IS CERTIFIED AT THE BOTH-LIVE BOARD**: the S-set
+at `fa3` is EXACTLY the queens' pair — both members vanilla-live;
+every other face-up card un-hot; the cover `faJS` hot at its own
+rung but seat-blocked (`fa3_coverDead`); the stocked eleven
+invisible to the license; founded cards top nothing. -/
+theorem fa3_iff : ∀ (c : Card), (c = faQH ∨ c = faQH.twin) ↔ CanRaiseS fa3 c := by
+  intro c
+  constructor
+  · rintro (rfl | rfl)
+    · exact CanRaiseS.now _
+        ⟨by decide, Anchor.p3, by decide, Or.inl (by decide)⟩
+    · exact CanRaiseS.now _
+        ⟨by decide, Anchor.p0, by decide, Or.inl (by decide)⟩
+  · intro hS
+    have hnext : fa3.nextUp c = true := ((canRaiseS_iff fa3_wf).mp hS).1
+    obtain ⟨a, bs, run, hshape, -, -⟩ :=
+      ((canRaiseS_iff fa3_wf).mp hS).2
+    have hmem : c ∈ (fa3.piles a).faceUp := by
+      rw [hshape]
+      exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+    rcases fa3_faceUp c (Card.mem_universe c) ⟨a, hmem⟩ with
+      h | h | h | h | h
+    · exact Or.inl h
+    · exact Or.inr (by rw [h]; rfl)
+    · rw [h] at hS
+      exact absurd hS fa3_coverDead
+    · rw [h] at hnext; exact absurd (of_decide_eq_true hnext) (by decide)
+    · rw [h] at hnext; exact absurd (of_decide_eq_true hnext) (by decide)
+
+/-- **BOTH-LIVE**: the census's own scope witnessed — both queens
+vanilla-live at `fa3` (hot, topping seated piles). -/
+theorem fa3_bothLive : CanRaise fa3 faQH ∧ CanRaise fa3 faQD :=
+  ⟨⟨by decide, Anchor.p3, by decide, Or.inl (by decide)⟩,
+   ⟨by decide, Anchor.p0, by decide, Or.inl (by decide)⟩⟩
+
+/-- **THE WITNESS WORLD IS CORNER-SHAPED** (both-live grade): `fa3`
+carries every hypothesis the bare-cover corner consumes — the
+saturation iff (pair exactly the queens), the twin's vanilla
+license, the cover's rank/fit/first-faced shape — AND the census's
+own both-live scope (the witness queen also vanilla-live). -/
+theorem fa3_cornerWorld :
+    fa3.WF ∧
+      (∀ (c : Card), (c = faQH ∨ c = faQH.twin) ↔ CanRaiseS fa3 c) ∧
+      CanRaise fa3 faQH ∧ CanRaise fa3 faQH.twin ∧
+      (faJS.rank.toIdx + 1 = faQH.rank.toIdx) ∧
+      (faJS ≠ faQH.twin) ∧
+      (canSitOn faJS faQH.twin = true) ∧
+      ∃ (a : Anchor), (fa3.piles a).faceUp = faJS :: ([] : List Card) := by
+  refine ⟨fa3_wf, fa3_iff, fa3_bothLive.1, fa3_bothLive.2, by decide,
+    by decide, by decide, ⟨Anchor.p1, rfl⟩⟩
+
+/-- **THE COMMIT'S SUCCESSOR `fa3L`** — the named slide
+`tabToTab faJS (inr faQD)` fired: the cover whole on the twin's pile
+(`p0`), the emptied `p1` revealing `faC5`, everything else — both
+foundation frontiers and the stock included — untouched. -/
+private def fa3L : State :=
+  (fa3.setPile Anchor.p1
+      (Pile.afterRunRemoved (fa3.piles Anchor.p1) [])).putRun
+    [faJS] (Sum.inr faQD)
+
+/-- **THE NAMED SLIDE FIRES INTO `fa3L`**: the bare-cover commit's
+spelled successor, realized at the board — the covering run lands
+whole on the twin's pile, the emptied source reveals its hidden head,
+every other pile and field untouched (the reveal mode of
+`ascent_barecover_commit`). -/
+theorem fa3_commit :
+    State.step fa3 (Move.tabToTab faJS (Sum.inr faQD)) = some fa3L := by
+  have hhold : fa3.pileHolding faJS = some Anchor.p1 := by decide
+  have hcan : fa3.canPlace faJS (Sum.inr faQD) = true := by decide
+  have hfrom : fromCard faJS (fa3.piles Anchor.p1).faceUp
+      = [faJS] := by decide
+  have hbel : below faJS (fa3.piles Anchor.p1).faceUp = [] := by decide
+  rw [step_tabToTab_eq, hhold]
+  simp only [hcan]
+  rw [hfrom, hbel]
+  simp only [ite_true]
+  rfl
+
+/-- The commit's successor is `WF` (the banked WF transport). -/
+theorem fa3L_wf : fa3L.WF := step_wf fa3_wf fa3_commit
+
+/-- **THE MEMBER HALF SURVIVES AT THE COMMIT LANDING**: both pair
+members remain S-live at `fa3L` — `faQH` still vanilla (its pile
+untouched), `faQD` through the covered-leg exit (buried under the
+landed cover, its mate still topping at `p3`).  The census's failure
+at this board is EXACTLY the exclusion half. -/
+theorem fa3_membersLive : CanRaiseS fa3L faQH ∧ CanRaiseS fa3L faQD :=
+  ⟨(canRaiseS_iff fa3L_wf).2
+      ⟨by decide, Anchor.p3, [faKC], [], rfl, Or.inl (by simp), Or.inl rfl⟩,
+    (canRaiseS_iff fa3L_wf).2
+      ⟨by decide, Anchor.p0, [faKS], [faJS], rfl, Or.inl (by simp),
+        Or.inr (by decide)⟩⟩
+
+/-- **THE RESURRECTION, DECIDE-WITNESSED**: at the commit landing the
+first-faced cover `faJS` — hot since `fa3`, seat-blocked bare over
+the hidden deck — RE-ENTERS the S-set through the re-seating: the
+landed run seats it atop the twin's pile (`faKS` and `faQD` below
+it), the seat clause arms, and its exit stands open as the run's own
+rider.  A THIRD card, S-live at `fa3L`, outside the pair. -/
+theorem fa3_resurrected :
+    CanRaiseS fa3L faJS ∧ faJS ≠ faQH ∧ faJS ≠ faQH.twin :=
+  ⟨(canRaiseS_iff fa3L_wf).2
+      ⟨by decide, Anchor.p0, [faKS, faQD], [], rfl, Or.inl (by simp),
+        Or.inl rfl⟩,
+    by decide, by decide⟩
+
+/-- **THE BOTH-LIVE CENSUS IS REFUTED**: the pair's saturation iff
+FAILS at the commit's own landing — the board `fa3` satisfies every
+bare-cover-corner hypothesis at the census's both-live scope
+(`fa3_cornerWorld`), the named slide fires into `fa3L` and both
+members stay S-live (`fa3_membersLive`), yet the resurrected cover
+`faJS` sits S-live OUTSIDE the pair (`fa3_resurrected`):
+`ascent_barecover_of_landingiff`'s named premise is not universally
+restorable, and the corner's staged route cannot close the residue —
+the honest recourse is statement-level (an emptied-side exclusion
+premise, or the exhaustion row's longer search).  The frozen row
+keeps its sorry, on the `fa2`/§3R precedent. -/
+theorem fa3_census_refuted :
+    ¬ (∀ (c : Card), (c = faQH ∨ c = faQH.twin) ↔ CanRaiseS fa3L c) := by
+  intro hiff
+  have hL : faJS = faQH ∨ faJS = faQH.twin :=
+    (hiff faJS).mpr fa3_resurrected.1
+  rcases hL with h | h
+  · exact fa3_resurrected.2.1 h
+  · exact fa3_resurrected.2.2 h
+
+#print axioms fa3_wf
+#print axioms fa3_faceUp
+#print axioms fa3_iff
+#print axioms fa3_bothLive
+#print axioms fa3_cornerWorld
+#print axioms fa3_commit
+#print axioms fa3L_wf
+#print axioms fa3_membersLive
+#print axioms fa3_resurrected
+#print axioms fa3_census_refuted
+#print axioms ascent_barecover_res_sites
+#print axioms ascent_barecover_landing_sat
+#print axioms ascent_barecover_corner_of_nores
