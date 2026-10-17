@@ -958,7 +958,29 @@ seven) and its landing pads (the black eights it would ride onto)
 are all absent, so the six-on-seven fact is RANK-TRUE but
 BOARD-UNLOCATABLE (the subsumed matrix cell); the fcS §1 orbit-exit
 read stays where §1 left it (the bars are; the fuller orbit-exit
-read is not certified here — not chased this round). -/
+read is not certified here — not chased this round).
+
+THE P3-CORE APPEND (the under-armed tower round, the mid-king shape
+P1/P2 did not test: below ≠ [], king MID-pile): the board `gH` puts
+`p0`'s face-up as the three-card tower `[♥3, ♠K, ♥4]` (TWO illegal
+seams, both `canSitOn`-barred), and the illusive lifter there is
+UNDER-ARMED yet FIRES off-WF — the king bar reads only the run head,
+`[♠K, ♥4]` rides out to `p1` while `[♥3]` STRANDS beneath
+(`below ♠K (p0) = [♥3] ≠ []` — THE datum; P1's board lifted
+below-empty cargo).  THE ONE-MOVE RETURN DOES NOT EXIST at this
+board: the emptied-home drop-back that P1's `gL_dropback_fires` rode
+needs the king bar on a BARE home pile, and the stranded `[♥3]`
+keeps `p0` seated — `gH'_fires_iff` inventories the lifted board
+(only the five `p2`–`p6` king-lifts fire; the `inl p0` return
+REFUSED; `♥3`/`♥4`'s rank-successors board-absent, no inr letter),
+and `gH_noOneMoveBack` certifies the hunt's first verdict: no single
+letter re-lands `gH`.  The α-grade (WF corridor) is UNAFFECTED — at
+WF `fc_runOK_king_first` kills the under-armed arm before pairing
+even starts (a WF king is its pile's face-up BOTTOM; the below-content
+shape cannot assemble); the P1–P3 boards all live off-WF.  The
+play-level orbit census (every return play from `gH'`, the
+wander-class closure) and the general per-shape pairing verdict:
+DEFERRED, the named next round. -/
 
 private def SK : Card := fcc .spade .king
 private def H7 : Card := fcc .heart .seven
@@ -1628,3 +1650,560 @@ fresh non-`rfl` head at the clean decide/kernel grade. -/
 #print axioms gD4_liftback
 #print axioms gD5_liftback
 #print axioms gD6_liftback
+
+/-! ### §7. THE P3-CORE UNDER-ARMED TOWER `gH` — THE LIFT AND ITS
+ONE-MOVE REFUSAL
+
+The under-armed tower round's rows (the §7 banner above carries the
+verdict paragraph): the board `gH` with its `runOK` hole, the
+under-armed lift leg with the below-content datum and the spelled
+lifted board `gH'`, the whole-alphabet inventory at `gH'` (the P2
+idiom), and the one-move hunt's negative.  The play-level orbit
+census and the general per-shape pairing verdict are DEFERRED — the
+named next round. -/
+
+private def H3 : Card := fcc .heart .three
+
+/-- The under-armed board's foundation heights: every suit cold (the
+lift boards write no foundation and read none). -/
+private def gH_hmap : Suit → Nat
+  | .heart => 0 | .diamond => 0 | .spade => 0 | .club => 0
+
+/-- **THE UNDER-ARMED TOWER BOARD `gH`** — the artificial NON-WF
+state (the gL record idiom): `p0`'s face-up run is the three-card
+mid-king tower `[♥3, ♠K, ♥4]` bottom-first (TWO illegal seams — ♠K on
+♥3 and ♥4 on ♠K, both `canSitOn`-barred), `hidden = []`, `p1` the
+lift's vacant empty seat, the other piles trivial, the foundations
+cold. -/
+private def gH : State where
+  found := fun s => s.upCards.take (gH_hmap s)
+  piles := fun a => match a with
+    | .p0 => ⟨[], [H3, SK, H4]⟩
+    | .p1 => ⟨[], []⟩
+    | .p2 => ⟨[], []⟩
+    | .p3 => ⟨[], []⟩
+    | .p4 => ⟨[], []⟩
+    | .p5 => ⟨[], []⟩
+    | .p6 => ⟨[], []⟩
+  stock := []
+  waste := []
+  drawStep := 1
+
+/-- **P3 ROW 1 — THE BOARD IS NON-WF** (decided, the gL_nonWF pattern)
+— the `runOK` hole at the tower's pile: the second `WF` conjunct reads
+the face-up run and finds the FIRST illegal seam (♠K on ♥3 — only a
+queen of the other color sits on a king), the second seam (♥4 on ♠K)
+behind it. -/
+theorem gH_nonWF : ¬ gH.WF := by
+  intro h
+  exact absurd (h.2.1 Anchor.p0) (by decide)
+
+/-- **THE BELOW-CONTENT DATUM** — the lifter's head has content
+strictly below it: `below ♠K (p0) = [♥3] ≠ []`.  P1's `gL` lifted a
+king with an EMPTY below (the whole pile left with it); this round's
+board exists to exhibit the difference. -/
+theorem gH_below_datum : below SK (gH.piles Anchor.p0).faceUp = [H3] := rfl
+
+/-- **THE LIFTED BOARD `gH'`** — the successor the under-armed lifter
+leg writes: the king-headed run `[♠K, ♥4]` rides out to `p1` and the
+stranded `[♥3]` stays behind at `p0`. -/
+private def gH' : State := fcT gH (Move.tabToTab SK (Sum.inl Anchor.p1))
+
+/-- **P3 ROW 2 — THE UNDER-ARMED ILLUSIVE LIFTER FIRES OFF-WF** —
+♠K heads the tower's upper run at the MID-pile (not its bottom card),
+`p1` is empty: the king bar of `canPlace` admits the head, the
+two-card illegal run `[♠K, ♥4]` lifts out as one, `p0` keeping `[♥3]`
+behind — below ≠ [], the lift UNDER-ARMED, and `runOK` never
+consulted (the P1 half of the MirrorLetter certificate still fires
+here). -/
+theorem gH_lift_fires :
+    State.step gH (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gH' := rfl
+
+/-- The lifted board spelled, source side: the stranded `[♥3]`. -/
+theorem gH'_stranded : (gH'.piles Anchor.p0).faceUp = [H3] := rfl
+
+/-- The lifted board spelled, target side: the relocated two-card
+tower `[♠K, ♥4]` at `p1`. -/
+theorem gH'_relocated : (gH'.piles Anchor.p1).faceUp = [SK, H4] := rfl
+
+/-- **P3 ROW (e') — THE COLD KINDS AT `gH'`** (decided, the gL' twin
+read): the draw deals nothing (zones empty), the waste arms starve,
+no pile top is foundation-adjacent (♥3 at `p0` and the tower head ♥4
+at `p1` are the only tops, both rungs away from cold foundations), no
+foundation top exists to worry back down. -/
+theorem gH'_cold_kinds_none :
+    State.step gH' Move.draw = none ∧
+    (∀ (c : Card), State.step gH' (Move.wasteToFound c) = none) ∧
+    (∀ (c : Card) (b : Base), State.step gH' (Move.wasteToTab c b) = none) ∧
+    (∀ (c : Card), State.step gH' (Move.tabToFound c) = none) ∧
+    (∀ (c : Card) (b : Base), State.step gH' (Move.foundToTab c b) = none) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · rfl
+  · intro c
+    rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+  · intro c b
+    rfl
+  · intro c
+    rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+  · intro c b
+    rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;>
+      cases b with
+      | inl n => cases n <;> decide
+      | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> decide
+
+/-- **P3 ROW (f') — THE SEAT INVENTORY AT `gH'`** (the iff-row,
+decide-grade): a seat letter `tabToTab c (Sum.inl a)` fires iff its
+head is the tower's king ♠K and the seat is empty at the lifted board
+— `a ∉ {p0, p1}` (i.e. `a ∈ {p2, …, p6}`): the tower's new home `p1`
+is occupied, and `p0` is NOT empty (the stranded `[♥3]`) — THE DATUM:
+the `inl p0` return that P1's below-empty board admitted is REFUSED
+here by the king bar. -/
+theorem gH'_tabToTab_inl_iff : ∀ (c : Card) (a : Anchor),
+    State.step gH' (Move.tabToTab c (Sum.inl a)) ≠ none ↔
+      c = SK ∧ a ≠ Anchor.p0 ∧ a ≠ Anchor.p1 := by
+  intro c a
+  rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> cases a <;> decide
+
+/-- **P3 ROW (g') — THE TARGET MATRIX AT `gH'`** (decided): no
+onto-card letter fires — the only locatable pile tops are ♥3 (at
+`p0`) and ♥4 (at `p1`); ♠K on ♥3 is rank-barred by `canSitOn` (a king
+sits only on a queen), ♥4 on ♥4 likewise and twin-colored, and the
+movers ♥3/♥4 themselves would need the black twos/fives that this
+board lacks — rank-true facts, board-absent seats. -/
+theorem gH'_tabToTab_inr_none : ∀ (c : Card) (z : Card),
+    State.step gH' (Move.tabToTab c (Sum.inr z)) = none := by
+  intro c z
+  rcases c with ⟨s, r⟩ <;> rcases z with ⟨zs, zr⟩ <;>
+    cases s <;> cases r <;> cases zs <;> cases zr <;> decide
+
+/-- **P3 ROW 3 — THE WHOLE-ALPHABET INVENTORY AT `gH'`** (the hunt's
+exhaustive reading, decide-grade): a move fires at the lifted board
+iff it is one of the FIVE king-lifts `tabToTab ♠K (Sum.inl a)` with
+`a ∈ {p2, …, p6}`; every letter of every other kind refuses (the cold
+rows), and within `tabToTab` neither the home seat `p0` (not empty —
+the stranded ♥3) nor any onto-card target locates.  THE LIFTED TOWER
+TRAVELS ONLY BY ITS KING HEAD — and never home. -/
+theorem gH'_fires_iff : ∀ (m : Move), State.step gH' m ≠ none ↔
+    ∃ (a : Anchor), a ≠ Anchor.p0 ∧ a ≠ Anchor.p1 ∧
+      m = Move.tabToTab SK (Sum.inl a) := by
+  intro m
+  constructor
+  · intro h
+    cases m with
+    | draw =>
+        rw [gH'_cold_kinds_none.1] at h
+        exact absurd rfl h
+    | wasteToFound c =>
+        rw [gH'_cold_kinds_none.2.1 c] at h
+        exact absurd rfl h
+    | wasteToTab c b =>
+        rw [gH'_cold_kinds_none.2.2.1 c b] at h
+        exact absurd rfl h
+    | tabToFound c =>
+        rw [gH'_cold_kinds_none.2.2.2.1 c] at h
+        exact absurd rfl h
+    | foundToTab c b =>
+        rw [gH'_cold_kinds_none.2.2.2.2 c b] at h
+        exact absurd rfl h
+    | tabToTab c b =>
+        cases b with
+        | inl a =>
+            obtain ⟨hc, hne0, hne1⟩ := (gH'_tabToTab_inl_iff c a).mp h
+            subst hc
+            exact ⟨a, hne0, hne1, rfl⟩
+        | inr z =>
+            rw [gH'_tabToTab_inr_none c z] at h
+            exact absurd rfl h
+  · rintro ⟨a, hne0, hne1, rfl⟩
+    exact (gH'_tabToTab_inl_iff SK a).mpr ⟨rfl, hne0, hne1⟩
+
+/-- **THE INL-RETURN EXHIBIT** — the P1 shape's drop-back letter
+REFUSED at the lifted board, read straight off the seat matrix: the
+home pile `p0` is NOT empty (the stranded ♥3 seats it), and the king
+bar admits kings only onto bare piles. -/
+theorem gH'_return_inl_blocked :
+    State.step gH' (Move.tabToTab SK (Sum.inl Anchor.p0)) = none := rfl
+
+/-- **P3 ROW 4 — THE ONE-MOVE HUNT'S VERDICT: NO LETTER RE-LANDS
+`gH`** (kernel-grade, via the inventory): every firing letter at
+`gH'` is a `p2`–`p6` king-lift (the inventory row), and every such
+lift writes only its source (`p1`) and its target — `p0`'s stranded
+`[♥3]` is untouched, so the landing reads `[♥3]` where `gH` reads the
+whole tower `[♥3, ♠K, ♥4]`.  Per firing letter the profile check is
+the `Option.map` projection (the fcS §1 congrArg-read's cousin),
+decided. -/
+theorem gH_noOneMoveBack : ¬ ∃ (m : Move), State.step gH' m = some gH := by
+  rintro ⟨m, hstep⟩
+  have hfire : State.step gH' m ≠ none := by
+    intro hnone
+    rw [hnone] at hstep
+    exact absurd hstep (by simp)
+  obtain ⟨a, hne0, hne1, hm⟩ := (gH'_fires_iff m).mp hfire
+  subst hm
+  cases a with
+  | p0 => exact absurd rfl hne0
+  | p1 => exact absurd rfl hne1
+  | p2 =>
+      exact absurd
+        (congrArg (Option.map (fun s => (s.piles Anchor.p0).faceUp)) hstep)
+        (by decide)
+  | p3 =>
+      exact absurd
+        (congrArg (Option.map (fun s => (s.piles Anchor.p0).faceUp)) hstep)
+        (by decide)
+  | p4 =>
+      exact absurd
+        (congrArg (Option.map (fun s => (s.piles Anchor.p0).faceUp)) hstep)
+        (by decide)
+  | p5 =>
+      exact absurd
+        (congrArg (Option.map (fun s => (s.piles Anchor.p0).faceUp)) hstep)
+        (by decide)
+  | p6 =>
+      exact absurd
+        (congrArg (Option.map (fun s => (s.piles Anchor.p0).faceUp)) hstep)
+        (by decide)
+
+/- The P3-core round's own battery, the audit tail's pattern: every
+fresh non-`rfl` head at the clean decide/kernel grade. -/
+#print axioms gH_nonWF
+#print axioms gH'_cold_kinds_none
+#print axioms gH'_tabToTab_inl_iff
+#print axioms gH'_tabToTab_inr_none
+#print axioms gH'_fires_iff
+#print axioms gH_noOneMoveBack
+
+/-! ### §7. THE P4 PLAY-LEVEL WANDER CENSUS — THE ORBIT P3 SKETCHED
+
+P3's one-move verdict (`gH_noOneMoveBack`) read the single letter;
+this round certifies the WHOLE-PLAY orbit it deferred.  The engine is
+the six-state wander class: the lifted board's own tower `[♠K, ♥4]`
+reseats — by the member inventory below, the ONLY firing letters
+anywhere in the orbit are the tower's own king-lifts to bare piles —
+at exactly one seat of `{p1..p6}`; the stranded `[♥3]` stays pinned
+at `p0` forever (the king bar: only kings seat bare piles, and `♥3`
+is no king), every other pile bare, the zones the cold inheritance.
+The census composition: the class-capture row (firing at a member
+lands in the class) + the seed (`gH'` IS the member at `p1`) + the
+disquality (every member's `p0` is the `[♥3]`-singleton while `gH`
+reads the whole tower — decided) close the run-induction mirrored
+from `fcH_H1_noplay`: NO play from `gH'` ever re-lands `gH`.  The
+pair-dead row and the §7 banner verdict are the named next round. -/
+
+/-- The wander class MEMBER at pile `a` — P3's own lift letter, read
+at every seat choice: at `a ∈ {p1..p6}` the king-lift fires and the
+state is the lifted board with its tower seated at `a`; at `a = p0`
+the letter refuses (the home pile is not bare) and the `fcT`-fallback
+reads `gH` itself — never a class-member (the class bars `p0`
+below). -/
+private def gHw (a : Anchor) : State := fcT gH (Move.tabToTab SK (Sum.inl a))
+
+/-- **THE SIX-STATE WANDER CLASS (structured)**: a member is one
+tower seat `a` of `{p1..p6}` — `p0` pinned `[♥3]`, the tower
+`[♠K, ♥4]` at `a` alone, every other pile bare, the four zone fields
+the `gH'` inheritance (the generator's fixed spelling carries all of
+it). -/
+private def gHm (q : State) : Prop := ∃ (a : Anchor), a ≠ Anchor.p0 ∧ q = gHw a
+
+/-- The class reads `gH'` at its own generator seat: the P3 lifted
+board IS the member at `p1`. -/
+theorem gHw_p1 : gHw Anchor.p1 = gH' := rfl
+
+/-- **P4 ROW (e'') — THE COLD KINDS AT EVERY MEMBER** (the P3 idiom,
+member-generic): the zones the under-armed lift froze stay frozen —
+the draw deals nothing, the waste arms starve, no pile top is
+foundation-adjacent (♥3 at `p0` and the tower head ♥4 are the only
+tops, both rungs away from the cold foundations), no foundation top
+exists to worry back down. -/
+theorem gHw_cold_kinds_none : ∀ (a : Anchor), a ≠ Anchor.p0 →
+    State.step (gHw a) Move.draw = none ∧
+    (∀ (c : Card), State.step (gHw a) (Move.wasteToFound c) = none) ∧
+    (∀ (c : Card) (b : Base), State.step (gHw a) (Move.wasteToTab c b) = none) ∧
+    (∀ (c : Card), State.step (gHw a) (Move.tabToFound c) = none) ∧
+    (∀ (c : Card) (b : Base), State.step (gHw a) (Move.foundToTab c b) = none) := by
+  intro a ha
+  cases a with
+  | p0 => exact absurd rfl ha
+  | p1 =>
+      rw [gHw_p1]
+      exact gH'_cold_kinds_none
+  | p2 =>
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;>
+          cases b with
+          | inl n => cases n <;> decide
+          | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> decide
+  | p3 =>
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;>
+          cases b with
+          | inl n => cases n <;> decide
+          | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> decide
+  | p4 =>
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;>
+          cases b with
+          | inl n => cases n <;> decide
+          | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> decide
+  | p5 =>
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;>
+          cases b with
+          | inl n => cases n <;> decide
+          | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> decide
+  | p6 =>
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rfl
+      · intro c
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+      · intro c b
+        rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;>
+          cases b with
+          | inl n => cases n <;> decide
+          | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> decide
+
+/-- **P4 ROW (f'') — THE SEAT INVENTORY AT EVERY MEMBER** (the iff
+row, member-generic, P3's own statement shape): a seat letter fires
+iff it is the tower's own king ♠K and the seat is a bare pile other
+than home (`p0` is not bare) and other than the tower's current seat
+(not bare either).  P3's `p0`-return refusal datum generalizes: the
+wander letters travel the tower among the vacant piles only — never
+home. -/
+theorem gHw_tabToTab_inl_iff : ∀ (a : Anchor) (c : Card) (n : Anchor),
+    State.step (gHw a) (Move.tabToTab c (Sum.inl n)) ≠ none ↔
+      c = SK ∧ n ≠ Anchor.p0 ∧ n ≠ a := by
+  intro a c n
+  cases a with
+  | p0 => rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> cases n <;> decide
+  | p1 =>
+      rw [gHw_p1]
+      exact gH'_tabToTab_inl_iff c n
+  | p2 => rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> cases n <;> decide
+  | p3 => rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> cases n <;> decide
+  | p4 => rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> cases n <;> decide
+  | p5 => rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> cases n <;> decide
+  | p6 => rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> cases n <;> decide
+
+/-- **P4 ROW (g'') — THE TARGET MATRIX AT EVERY MEMBER**: no
+onto-card letter fires — the only locatable tops are ♥3 (at `p0`)
+and the tower head ♥4; ♠K sits only on a queen (rank-barred,
+board-absent), and the movers ♥3/♥4 themselves would need the black
+twos/threes this board lacks — rank-true facts, board-absent seats. -/
+theorem gHw_tabToTab_inr_none : ∀ (a : Anchor) (c : Card) (z : Card), a ≠ Anchor.p0 →
+    State.step (gHw a) (Move.tabToTab c (Sum.inr z)) = none := by
+  intro a c z
+  cases a <;> intro ha <;> first
+  | exact absurd rfl ha
+  | (rw [gHw_p1]; exact gH'_tabToTab_inr_none c z)
+  | (rcases c with ⟨s, r⟩ <;> rcases z with ⟨zs, zr⟩ <;>
+      cases s <;> cases r <;> cases zs <;> cases zr <;> decide)
+
+/-- **P4 ROW (h'') — THE WANDER LEG'S SUCCESSOR SHAPE** (the record-eq
+via the inversion, `gHw_step`'s own kit): a fired king-lift at member
+`a` to a distinct bare seat `n` lands EXACTLY the member at `n` —
+the lift writes its source pile bare and seats the tower run at `n`;
+per pile the read is the ground kernel reduction (the class-capture
+record-eq bullets), and the four zones carry untouched. -/
+theorem gHw_wander_leg : ∀ (a n : Anchor) (q' : State), a ≠ Anchor.p0 →
+    n ≠ Anchor.p0 → n ≠ a →
+    State.step (gHw a) (Move.tabToTab SK (Sum.inl n)) = some q' →
+      q' = gHw n := by
+  intro a n q' ha h0 hna h
+  have hhp : ∀ (x : Anchor), x ≠ Anchor.p0 → (gHw x).pileHolding SK = some x := by
+    intro x hx
+    cases x <;> first
+    | exact absurd rfl hx
+    | rfl
+  obtain ⟨ah, hhold, -, -, hs⟩ := step_tabToTab_inv h
+  rw [hhp a ha] at hhold
+  injection hhold with hah
+  rw [← hah] at hs
+  rw [hs]
+  cases a <;> cases n <;> first
+  | exact absurd rfl ha
+  | exact absurd rfl h0
+  | exact absurd rfl hna
+  | (refine State.ext rfl (funext fun b => ?_) rfl rfl rfl; cases b <;> rfl)
+
+/-- **P4 ROW — THE MEMBER'S WHOLE-ALPHABET SHAPE** (`gH'_fires_iff`
+member-generic, the closure's engine): every firing letter at any
+member is a king-lift to a distinct bare seat, and the landing IS
+the member at that seat — the five cold kinds refuse, the onto-card
+matrix refuses, and the seat letters are exactly the wander legs. -/
+theorem gHw_step_char : ∀ (a : Anchor) (m : Move) (q' : State), a ≠ Anchor.p0 →
+    State.step (gHw a) m = some q' →
+      ∃ (n : Anchor), n ≠ Anchor.p0 ∧ n ≠ a ∧ q' = gHw n := by
+  intro a m q' ha h
+  have hfire : State.step (gHw a) m ≠ none := by
+    intro hn
+    rw [hn] at h
+    exact absurd h (by simp)
+  have hcold := gHw_cold_kinds_none a ha
+  cases m with
+  | draw =>
+      rw [hcold.1] at h
+      exact absurd h (by simp)
+  | wasteToFound c =>
+      rw [hcold.2.1 c] at h
+      exact absurd h (by simp)
+  | wasteToTab c b =>
+      rw [hcold.2.2.1 c b] at h
+      exact absurd h (by simp)
+  | tabToFound c =>
+      rw [hcold.2.2.2.1 c] at h
+      exact absurd h (by simp)
+  | foundToTab c b =>
+      rw [hcold.2.2.2.2 c b] at h
+      exact absurd h (by simp)
+  | tabToTab c b =>
+      cases b with
+      | inl n =>
+          have hiff := gHw_tabToTab_inl_iff a c n
+          obtain ⟨hc, hn0, hna⟩ := hiff.mp hfire
+          rw [show Move.tabToTab c (Sum.inl n) =
+              Move.tabToTab SK (Sum.inl n) from by rw [hc]] at h
+          have hq' := gHw_wander_leg a n q' ha hn0 hna h
+          exact ⟨n, hn0, hna, hq'⟩
+      | inr z =>
+          rw [gHw_tabToTab_inr_none a c z ha] at h
+          exact absurd h (by simp)
+
+/-- **P4 ROW 1 — THE CLASS-CAPTURE**: firing ANY letter at ANY
+class-member lands back in the class — the wander orbit is CLOSED
+(every fire is a wander leg, and the leg's landing is the member at
+the leg's own seat). -/
+theorem gH_wander_closed : ∀ (m : Move) (q q' : State),
+    gHm q → State.step q m = some q' → gHm q' := by
+  intro m q q' hmem h
+  obtain ⟨a, ha, hqe⟩ := hmem
+  rw [hqe] at h
+  obtain ⟨n, hn0, hna, hq'⟩ := gHw_step_char a m q' ha h
+  exact ⟨n, hn0, hq'⟩
+
+/-- The census's SEED: the lifted board itself is a member (at its
+own `p1` seat). -/
+theorem gHm_seed : gHm gH' := ⟨Anchor.p1, by decide, rfl⟩
+
+/-- **P4 ROW — THE CLASS-DISQUALITY (decided)**: no member can be the
+home board — every member's `p0` reads the stranded `[♥3]`-singleton
+while `gH`'s `p0` reads the whole tower `[♥3, ♠K, ♥4]` (P3's
+`gH_noOneMoveBack` projection-read, member-generic: the congrArg read
+decides the pile mismatch at every hypothetical identity). -/
+theorem gHm_ne_gH : ∀ (q : State), gHm q → q ≠ gH := by
+  intro q hmem
+  obtain ⟨a, ha, hqe⟩ := hmem
+  intro h
+  rw [hqe] at h
+  cases a with
+  | p0 => exact absurd rfl ha
+  | p1 => exact absurd (congrArg (fun s => (s.piles Anchor.p0).faceUp) h) (by decide)
+  | p2 => exact absurd (congrArg (fun s => (s.piles Anchor.p0).faceUp) h) (by decide)
+  | p3 => exact absurd (congrArg (fun s => (s.piles Anchor.p0).faceUp) h) (by decide)
+  | p4 => exact absurd (congrArg (fun s => (s.piles Anchor.p0).faceUp) h) (by decide)
+  | p5 => exact absurd (congrArg (fun s => (s.piles Anchor.p0).faceUp) h) (by decide)
+  | p6 => exact absurd (congrArg (fun s => (s.piles Anchor.p0).faceUp) h) (by decide)
+
+/-- **P4 ROW — THE CLASS RUN-CLOSURE (the census's engine)**: any
+play from ANY member ends (if it ends at all) at a member — the
+induction shape is `fcH_H1_noplay`'s own, with the per-step closure
+row replacing the frozen-read: each fired head lands in class and the
+tail is judged from there. -/
+theorem gHm_noPlayBack : ∀ (play : List Move) (q0 q : State),
+    gHm q0 → State.run q0 play = some q → q ≠ gH := by
+  intro play
+  induction play with
+  | nil =>
+      intro q0 q hq0 h
+      injection h with he
+      rw [← he]
+      exact gHm_ne_gH q0 hq0
+  | cons m t ih =>
+      intro q0 q hq0 h
+      rw [show State.run q0 (m :: t) = (match State.step q0 m with
+        | some s' => s'.run t
+        | none => none) from rfl] at h
+      cases hs : State.step q0 m with
+      | none =>
+          rw [hs] at h
+          exact absurd h (by simp)
+      | some s' =>
+          rw [hs] at h
+          exact ih s' q (gH_wander_closed m q0 s' hq0 hs) h
+
+/-- **P4 ROW 2 — THE CENSUS** (`gH'_noPlayBack`): NO play from the
+lifted board ever re-lands the home board — P3's one-move refusal
+certified at the whole-play level: the orbit is closed inside the
+wander class, and no class-member is `gH` (the pair's own
+straightness: the under-armed arm fires but cannot pair home). -/
+theorem gH'_noPlayBack : ∀ (play : List Move) (q : State),
+    State.run gH' play = some q → q ≠ gH :=
+  fun play q h => gHm_noPlayBack play gH' q gHm_seed h
+
+/-- **THE PAIR-DEAD VERDICT** — the under-armed arm's both-ways
+falsifier finale: the fired mid-king lift admits NO return play to
+`gH` (the P4 census), so the two states are NOT bare-cargo
+equivalent — the leg that fires is unpairable at this shape; the
+genesis's one-move `MirrorLetter` needs no segment-widening HERE,
+the iff reading survives off-WF by the pair's own straightness.
+Off-WF alphabet box-score on the gH family: (i) below = []-lifter
+arms CARRY with one-move mirrors (P1: the kingight's drop-back on
+the emptied source anchor); (ii) below ≠ []-under-armed arms FIRE
+but are UNPAIRABLE at this shape (P3's no-one-move-back lifted to
+the play grain by P4's wander-closure census); (iii) the general
+per-shape ℓ-armor question (e.g. the [♥3, ♠K] partial-tower lifts)
+stays priced, report-don't-chase; the α-grade at WF is unaffected
+either way (`fc_runOK_king_first` kills the under-armed arm before
+pairing even starts). -/
+theorem gH_pair_dead : ¬ BareCargoEquiv gH' gH := by
+  rintro ⟨τ, hτ, ρ, -⟩
+  exact (gH'_noPlayBack τ gH (CargoPlay_run hτ)) rfl
+
+/- The P4 census round's own battery, the audit tail's pattern: every
+fresh non-`rfl` head at the clean decide/kernel grade. -/
+#print axioms gHw_cold_kinds_none
+#print axioms gHw_tabToTab_inl_iff
+#print axioms gHw_tabToTab_inr_none
+#print axioms gHw_wander_leg
+#print axioms gHw_step_char
+#print axioms gH_wander_closed
+#print axioms gHm_seed
+#print axioms gHm_ne_gH
+#print axioms gHm_noPlayBack
+#print axioms gH'_noPlayBack
+#print axioms gH_pair_dead
