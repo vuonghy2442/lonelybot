@@ -169,6 +169,38 @@ theorem afterFork_neckReachable (C : SameOrbit) (u : State) (hu : u.WF)
 
 /-! ## §3. The proved satellites and the private kit -/
 
+/- (The copy of `Orig.MacroInternal`'s private `shuffleW_of_round`; the
+components `State.run_cons`, `run_split`, `run_one` are public.) -/
+private theorem shuffleW_of_round : ∀ (σ : List Move) (x w : State),
+    x.run σ = some w → ∀ ρ : List Move, w.run ρ = some x →
+      ShufflePlayW x σ w := by
+  intro σ
+  induction σ with
+  | nil =>
+      intro x w hσ ρ hρ
+      have hxw : some x = some w := hσ
+      injection hxw with hx
+      rw [hx]
+      exact .nil w
+  | cons p rest ih =>
+      intro x w hσ ρ hρ
+      obtain ⟨y, hp, hrest⟩ := State.run_cons hσ
+      refine .cons ⟨y, rest ++ ρ, hp, run_split rest y w ρ x hrest hρ⟩ hp ?_
+      exact ih y w hrest (ρ ++ [p]) (run_split ρ w x [p] y hρ (run_one hp))
+
+/-- One reversible leg stays inside the macro class (the copy of the
+in-tree private `class_leg`; the setoid's `r` runs reversed, so the
+witness pair is fed with its arguments swapped). -/
+private theorem class_leg {st s₁ : State} {m : Move}
+    (hrev : reversibleAtW st m) (hstep : State.step st m = some s₁) :
+    sameOrbitSetoid.r st s₁ := by
+  obtain ⟨s₁', play, hstep', hrun⟩ := hrev
+  have hs : s₁' = s₁ := Option.some.inj (hstep'.symm.trans hstep)
+  rw [hs] at hrun
+  show RevEqW s₁ st
+  exact ⟨play, shuffleW_of_round play s₁ st hrun [m] (run_one hstep),
+    [m], .cons ⟨s₁, play, hstep, hrun⟩ hstep (.nil s₁)⟩
+
 /-- A face-up card's own suit rung sits weakly below its rank index —
 the piled leg of the fork arithmetic (canon-v3's `v3PiledRung`
 re-striped on the banked carrier: `WF.found_prefix`, the banked

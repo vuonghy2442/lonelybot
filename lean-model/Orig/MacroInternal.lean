@@ -120,10 +120,12 @@ witness gives the both-directions shuffle pair — the σ side is the
 single move itself, the τ side is the loop-closure of the return
 play, and the setoid's `r` IS that pair (the reversed-argument
 orientation).  This is the per-leg heart of `cone_inClass` and
-`dance_inClass` below.  (Public since the 2026-10-17 dossier
-archive: the relocated strand row consumes it from
-`Orig.ForkDossier.lean`.) -/
-theorem class_leg {st s₁ : State} {m : Move}
+`dance_inClass` below.  (Downstream copies of this private row live
+at `Orig/ForkStateUniq`, `Orig/HostCensus`, and the archive leaf
+`Orig/ForkDossier` — the house dedup discipline; the 2026-10-17
+attempt to promote this public collided with those copies and was
+reverted.) -/
+private theorem class_leg {st s₁ : State} {m : Move}
     (hrev : reversibleAtW st m) (hstep : State.step st m = some s₁) :
     sameOrbitSetoid.r st s₁ := by
   obtain ⟨s₁', play, hstep', hrun⟩ := hrev
