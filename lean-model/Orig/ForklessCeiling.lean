@@ -1838,6 +1838,87 @@ private theorem cargoMirror_s1 {st s₁ : State} {e z : Card} {k a : Anchor}
     fc_firstWhere_pileOfTop hkf (by rw [hotherM k hkane]; exact hztopk)
   exact ⟨M, hs', hfaceA_M, hhA_M, hzM, hotherM⟩
 
+/-- **THE SLIDE'S s₁-FACTS KIT** (`cargoMirror_slide`'s second
+package): at the successor `s₁` the seam card `y` (the census's
+identity-cell card, topping the source pile) is the mirror's seat, the
+mover `e` rides the host pile `k` with its hidden deck untouched, both
+pile spellings are pinned (the k-pile the host's face-up run with the
+seated run appended, the a-pile exactly the below-part with its hidden
+deck), the fromCard read through the k-pile returns the moved run,
+and the canPlace channel is open for `e` on `y` — the corner's
+hhold₂/hzBy/hcp₂/hfrom₂ rows instantiated for the under-armed
+slide. -/
+private theorem cargoMirror_s2 {st s₁ : State} {e z : Card} {k a : Anchor}
+    (hwf : st.WF)
+    (hstep : State.step st (Move.tabToTab e (Sum.inr z)) = some s₁)
+    (hhold : st.pileHolding e = some a)
+    (hpa : st.pileOfTop z = some k)
+    (hfit : canSitOn e z = true)
+    (hpre : below e (st.piles a).faceUp ≠ []) :
+    ∃ (y : Card) (tail : List Card),
+      canSitOn e y = true ∧
+      s₁.pileOfTop y = some a ∧
+      s₁.topOf a = some y ∧
+      s₁.pileHolding e = some k ∧
+      e ∈ (s₁.piles k).faceUp ∧
+      fromCard e (s₁.piles k).faceUp = fromCard e (st.piles a).faceUp ∧
+      (s₁.piles k).hidden = (st.piles k).hidden ∧
+      (s₁.piles k).faceUp = (st.piles k).faceUp
+        ++ fromCard e (st.piles a).faceUp ∧
+      (s₁.piles a).faceUp = below e (st.piles a).faceUp ∧
+      (s₁.piles a).hidden = (st.piles a).hidden ∧
+      fromCard e (st.piles a).faceUp = e :: tail ∧
+      s₁.canPlace e (Sum.inr y) = true := by
+  obtain ⟨M, hs', hfaceA_M, hhA_M, hzM, hotherM⟩ :=
+    cargoMirror_s1 hwf hstep hhold hpa hfit hpre
+  have hs₁wf : s₁.WF := step_wf hwf hstep
+  obtain ⟨y, -, hy_fit, -, -, -, -, -, -, hy_ta, -, -⟩ :=
+    census_tabToTab_under hwf hstep hhold hpa hfit hpre
+  obtain ⟨-, -, hcp, -, -⟩ := step_tabToTab_inv hstep
+  have hmem : e ∈ (st.piles a).faceUp := pileHolding_mem hhold
+  have hkane : k ≠ a := fun hcon =>
+    canPlace_inr_target_pile_ne hwf hcp hmem (by rw [← hcon]; exact hpa)
+  have hnek : e ∉ (st.piles k).faceUp :=
+    ((mem_pile_unique hwf (Or.inr hmem)).1 k hkane).2
+  obtain ⟨tail, hrunform⟩ := fromCard_eq_head_of_mem hmem
+  have hsk := putRun_piles_inr_self M (fromCard e (st.piles a).faceUp) z k hzM
+  rw [hotherM k hkane] at hsk
+  have hskF : (s₁.piles k).faceUp = (st.piles k).faceUp
+      ++ fromCard e (st.piles a).faceUp := by
+    rw [hs']
+    exact congrArg Pile.faceUp hsk
+  have hhkF : (s₁.piles k).hidden = (st.piles k).hidden := by
+    rw [hs', hsk]
+  have hsa : s₁.piles a = M.piles a := by
+    rw [hs']
+    exact putRun_piles_inr_ne M (fromCard e (st.piles a).faceUp) z k hzM
+      (Ne.symm hkane)
+  have hsaF : (s₁.piles a).faceUp = below e (st.piles a).faceUp := by
+    rw [hsa]
+    exact hfaceA_M
+  have hsaH : (s₁.piles a).hidden = (st.piles a).hidden := by
+    rw [hsa]
+    exact hhA_M
+  have hmemk : e ∈ (s₁.piles k).faceUp := by
+    rw [hskF, List.mem_append, hrunform]
+    exact Or.inr List.mem_cons_self
+  have hhold₂ : s₁.pileHolding e = some k :=
+    (pileHolding_eq_some_iff hs₁wf).mpr hmemk
+  have hzBy : s₁.pileOfTop y = some a :=
+    (pileOfTop_eq_some_iff hs₁wf).mpr hy_ta
+  have hcp₂ : s₁.canPlace e (Sum.inr y) = true := by
+    show (match s₁.pileOfTop y with
+      | some _ => canSitOn e y
+      | none => false) = true
+    rw [hzBy]
+    exact hy_fit
+  have hfromK : fromCard e (s₁.piles k).faceUp
+      = fromCard e (st.piles a).faceUp := by
+    rw [hskF, fc_fromCard_append_ne (st.piles k).faceUp hnek, hrunform,
+      fromCard_cons_self]
+  exact ⟨y, tail, hy_fit, hzBy, hy_ta, hhold₂, hmemk, hfromK, hhkF, hskF,
+    hsaF, hsaH, hrunform, hcp₂⟩
+
 /-! ## §2. The graded ceiling conjectures (frozen; the probe leaf
 decides before any proof starts) -/
 
