@@ -370,11 +370,11 @@ inductive Steps (Q : State → State → Prop) : State → State → Prop
 
 /-- **StepOf P w u** — THE CONNECTING LETTER (the walk-steps
 Rosetta): the transition shadow of a letter predicate — some
-move satisfying `P` at the origin fires to `u`.  The generic
-bridge rows (`Orig2/Claims.lean` §1D, banked green) run through
-it: `Walk P` witnesses forget their list into `Steps (StepOf P)`
-spans, and `Steps (StepOf P)` spans realize back to SOME `Walk P`
-play. -/
+move satisfying `P` at the origin fires to `u`.  (The two generic
+bridge rows that ran through this letter — the forgetful map and
+the realization map — were banked green and pulled at the
+owner's cargo pause, 2026-10-17: the bytes await at
+`Temp/cargo_bridge_aborted.lean`.) -/
 def StepOf (P : State → Move → Prop) (w u : State) : Prop :=
   ∃ m, P w m ∧ w.step m = some u
 
@@ -501,50 +501,13 @@ tier's definition (`∃ τ, CargoPlay A τ B ∧ ∃ ρ, CargoPlay B ρ A`,
 `Orig/ForklessCeiling.lean:137`) was deliberately DUMB — any
 tabToTab both ways — with per-leg reversibility a THEOREM of the
 both-ways structure (the chain composite: each leg's return plays
-suffix ++ reverse-span ++ prefix; the row
-`dumbSpan_iff_exchange` in the Claims layer carries exactly that
-content, servicing any consumer — the ceiling dream's Grade-B
-reading, for one — that proves RAW dumb reachability and needs
-the official exchange).  PLUMBING NOTE: the cargo-orbit quotient
+suffix ++ reverse-span ++ prefix; that row was banked green and
+pulled at the owner's cargo pause, 2026-10-17 — the bytes await
+at `Temp/cargo_bridge_aborted.lean`).  PLUMBING NOTE: the cargo-orbit quotient
 tier (`cargoSetoid`, `CargoOrbit`, the fiber rows) is not ported
 — the orbit-factor precedent (§6); resurrectable by intent line. -/
 def BareCargoEquiv (A B : State) : Prop :=
   CargoPath A B ∧ CargoPath B A
-
-/-!
-## §8. THE FLOATING-CARD TIER  (live, KEPT 2026-10-17)
--/
-
-/-- **foundResident st c** — foundation residency: the card sits on
-some suit's foundation.  PORTED VERBATIM from
-`Orig/ZoneAgree.lean:25`. -/
-def foundResident (st : State) (c : Card) : Prop :=
-  ∃ s, c ∈ st.found s
-
-/-- **tabResident st c** — tableau residency: the card sits face-up
-or hidden on some pile.  PORTED VERBATIM from
-`Orig/ZoneAgree.lean:29`. -/
-def tabResident (st : State) (c : Card) : Prop :=
-  ∃ a, c ∈ (st.piles a).faceUp ∨ c ∈ (st.piles a).hidden
-
-/-- **cycleResident st c** — cycle residency: the card sits in the
-stock or the waste.  PORTED VERBATIM from
-`Orig/ZoneAgree.lean:33`. -/
-def cycleResident (st : State) (c : Card) : Prop :=
-  c ∈ st.stock ∨ c ∈ st.waste
-
-/-- **Mobile st c** — THE FLOATING-CARD READ, the census's own
-"available to the game" notion: not buried in any pile's hidden
-deck, not parked in the two-zone — the card is floating (face-up
-in the tableau or founded).  PORTED VERBATIM from
-`Orig/ForkCensus.lean:125`.  NOTE: in the frozen tier this is a
-CLASS notion (its transports are pinned along witness shuffles —
-hidden decks verbatim, the cycle zone both ways); the transport
-rows are Claims-layer material at the census migration card, and
-the Bool probe (`mobileB`, the frozen `:130`) stays with that card
-per the no-mirrors discipline (the `canRaiseB` kill precedent). -/
-def Mobile (st : State) (c : Card) : Prop :=
-  (∀ a, c ∉ (st.piles a).hidden) ∧ c ∉ st.stock ∧ c ∉ st.waste
 
 /-!
 # THE REVIEW ANNEX — pending adjudication
@@ -621,15 +584,17 @@ pending adjudication like the rest:
 * **The census kit** (`Orig/HostCensus.lean`) — `seatInd` (109),
   `hostCensus` (120), `kingAnchored` (459), `seatGain`/`seatMint`/
   `seatBurn` (1933-1947), `journeyMint`/`journeyBurn` (2111-2119),
-  `boardEq`/`boardMove` (2483-2486).
-  (`Mobile`, the floating-card read, resolved at §8 from its
-  frozen home `Orig/ForkCensus.lean:125`; the detector filters —
-  `PairCandidate`, `CensusPass` and kin — stay with the census
-  migration card.)
+  `boardEq`/`boardMove` (2483-2486); (`Mobile`'s port was pulled
+  with the floating tier — see the residency-trio bullet; the
+  detector filters — `PairCandidate`, `CensusPass` and kin —
+  stay with the census migration card.)
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* **The residency trio** (`Orig/ZoneAgree.lean`) — RESOLVED
-  2026-10-17: `foundResident`/`tabResident`/`cycleResident`
-  ported live (§8, the floating-card tier).
+* **The residency trio + the floating read** — PULLED BY OWNER
+  ("for now", 2026-10-17): `foundResident`/`tabResident`/
+  `cycleResident` (`Orig/ZoneAgree.lean:25-33`) and `Mobile`
+  (`Orig/ForkCensus.lean:125`) were ported live at commit
+  `e165d78` and removed the same day by owner call; the bytes
+  await at that commit.  REVIEW: resumes on owner word.
 * **The twin-suffix exchange family** (the swap tier — surfaced by
   the owner's swap question, an index gap now closed):
   `TwinExchOK` (`Orig/TwinExchangeQuotient.lean:90`), `ExchStep`

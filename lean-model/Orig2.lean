@@ -3,7 +3,6 @@ import Orig2.Vocab
 import Orig2.Classification
 import Orig2.Claims
 import Orig2.OrbitFactor
-import Orig2.CargoBridge
 
 /-!
 # Orig2 — THE REBUILD LIBRARY

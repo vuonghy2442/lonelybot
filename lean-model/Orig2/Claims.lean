@@ -85,85 +85,26 @@ to the card. -/
 /-! ## §1C. The bare-cargo tier — support retired to the generic kit
 
 Since the steps-first migration (owner, 2026-10-17), the dumb
-cargo play is a GENERIC instance — `∃ ρ, Walk CargoLetter A ρ B`,
-realized on demand through the banked bridge `steps_to_walk` —
+cargo play is a GENERIC instance — `∃ ρ, Walk CargoLetter A ρ B` —
 and no separate name or per-instance support rows live here: the
 verbatim lineage (`Orig/ForklessCeiling.lean:100,108,118`) is
-subsumed by the generic `Walk_run`/`Walk_append` kit, and the
-official-exchange equivalence is the CLAIM §1C-3
-(`dumbSpan_iff_exchange`) below. -/
+subsumed by the generic `Walk_run`/`Walk_append` kit.
 
-/-!
-CLAIM §1C-3 — the exchange bridge, restated at the enforcement
-(owner, 2026-10-17: the exchange ENFORCES reversibility in its
-own definition — "so that it stays in class" — and this row
-carries the enforcement's real content): the RAW both-ways dumb
-spans and the official exchange agree — each leg of a both-ways
-dumb span IS reversible, by the chain composite.
-
-PRICE: (← the easy letter-unpack) a `CargoLeg` is the shadow
-letter with its witness — plain cons-induction builds each
-direction's dumb span; no WF needed.
-(→ the chain half) for any leg of the A→B dumb span, origin w,
-successor u, the `reversibleAtW` witness play is the composite
-suffix (u →* B) ++ reverse span (B →* A) ++ accumulated prefix
-(A →* w) — a cons-induction with a prefix accumulator over the
-BANKED generic kit (`steps_to_walk`, `Walk_append`, `Walk_run`);
-the frozen mirrors (one-move returns,
-`Orig/ForklessCeiling.lean` §0a-§0d) are finer content this row
-does not need; no WF gate.
-
-PROMOTED (2026-10-17): the claim is DISCHARGED at
-`Orig2/CargoBridge.lean` §3 — the cargo-bridge card proves
-`dumbSpan_iff_exchange` gatelessly (the forgetful letter-unpack
-plus the returning-cycle chain composite: each leg's return
-span, realized through the banked generic bridges, IS the
-`reversibleAtW` witness), and the card's battery carries the
-head ([propext], zero sorryAx, zero `Classical.choice`).  The
-stub is deleted per the promotion rule (never duplicated); the
-Claims battery line for this claim moved to the card.  With this
-promotion the ledger's three founding claims all stand
-discharged — the layer's priced debt is empty. -/
-
-/-! ## §1D. The walk-steps bridge (banked green)
-
-The Rosetta rows between the two journey generics, proved once
-generically: a `Walk P` witness forgets its list into the span
-at the shadow letter `StepOf P`; a span at the shadow letter
-realizes back to SOME `Walk P` play (per-leg `obtain` — no
-choice, fully intuitionistic). -/
-
-/-- The forgetful map: a `Walk P` witness is a `Steps (StepOf P)`
-span (the move list dropped). -/
-theorem walk_to_steps (P : State → Move → Prop) {st : State} :
-    ∀ {ρ : List Move} {W : State},
-    Walk P st ρ W → Steps (StepOf P) st W := by
-  intro ρ W h
-  induction h with
-  | nil s => exact Steps.refl s
-  | cons hlet hstep _ ih => exact Steps.cons ⟨_, hlet, hstep⟩ ih
-
-/-- The realization map: a span at the shadow letter carries some
-`Walk P` play reaching it. -/
-theorem steps_to_walk (P : State → Move → Prop) {st : State} :
-    ∀ {W : State}, Steps (StepOf P) st W →
-    ∃ ρ, Walk P st ρ W := by
-  intro W h
-  induction h with
-  | refl s => exact ⟨[], Walk.nil s⟩
-  | @cons w z u hQ _t ih =>
-      obtain ⟨ρ, hρ⟩ := ih
-      obtain ⟨m, hP, hstep⟩ := hQ
-      exact ⟨m :: ρ, Walk.cons hP hstep hρ⟩
+PULLED BY OWNER (2026-10-17, "for now"): the exchange-bridge claim
+`dumbSpan_iff_exchange` (the raw both-ways dumb spans ARE the
+official exchange — the chain composite per leg: suffix ++
+reverse span ++ accumulated prefix) WAS DISCHARGED and promoted to
+a cargo-bridge card, then pulled with its card at the owner's call;
+the proof bytes await at `Temp/cargo_bridge_aborted.lean` (unbuilt)
+and the enforcement restate of `BareCargoEquiv` stands in the
+registry unchanged. -/
 
 /-! ## The audit battery
 
-All three founding claims' battery lines moved to their cards at
-promotion (`reversibleOf_iff_reversibleAtW` to the
-classification card, `sameOrbit_factor` to the orbit-factor
-card, `dumbSpan_iff_exchange` to the cargo-bridge card).  No
-priced stub remains — the layer's debt is empty; the banked
-green rows remain, audited here. -/
-
-#print axioms walk_to_steps
-#print axioms steps_to_walk
+All battery lines live at the proving cards:
+`reversibleOf_iff_reversibleAtW` at the classification card
+(`Orig2/Classification.lean` §7), `sameOrbit_factor` at the
+orbit-factor card (`Orig2/OrbitFactor.lean` §4).  The banked
+walk-steps bridge rows were pulled with the cargo pause (owner,
+2026-10-17, "for now" — the bytes await at
+`Temp/cargo_bridge_aborted.lean`); no priced stub remains. -/
