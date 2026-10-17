@@ -28,10 +28,10 @@ composites, the S-siblings — stay on record where they are).  KEPT —
 `CanRaise`, `CanRaiseS`, `ShufflePlayW`, `RevEqW`, `sameOrbitSetoid`,
 `classOf`, `rungAt`, `twinSuit`, the reversibility carrier
 `reversibleAtW`, the commit-oracle tier (`irreversibleAt`,
-`reversibleAt`, `drawIrr`, `tabToFoundIrr`, `foundToTabIrr`,
-`tabToTabIrr`, `irreversibleOf`), and the journey letters
-`FlatStep`/`FlatPath`/`CargoPath`/`Journey`.  PENDING — everything
-in the annex below.
+`reversibleAt`, the four commit shapes, and `reversibleOf` — the
+owner's RESTATE flip of `irreversibleOf`, retired with the flip),
+and the journey letters `FlatStep`/`FlatPath`/`CargoPath`/`Journey`.
+PENDING — everything in the annex below.
 
 ## §1. PLAY-TAXONOMY COUNTERS (live, ported)
 
@@ -84,11 +84,12 @@ def reversibleAtW (st : State) (m : Move) : Prop :=
 /-!
 ## §1.6. THE COMMIT ORACLE  (live, KEPT 2026-10-17)
 
-The oracle tier, ported as a set (the assembly `irreversibleOf`
-rides its five companions; the shape predicates were file-private
-in the old home and are promoted public here — the registry is the
-single home).  The specification rows (the WF-gated iff and the
-decidability rider) are Claims-layer material, not registry.
+The oracle tier, ported as a set (the reversible-first assembly
+`reversibleOf` rides its five companions; the shape predicates were
+file-private in the old home and are promoted public here — the
+registry is the single home).  The specification rows (the WF-gated
+iff and the decidability rider) are Claims-layer material, not
+registry.
 -/
 
 /-- **irreversibleAt st m** — the semantic commitment: a move is a
@@ -156,21 +157,26 @@ def tabToTabIrr (st : State) (c : Card) (b : Base) : Bool :=
               | _ :: _ => true
           | _ :: _ => false
 
-/-- **irreversibleOf st m** — the per-move oracle, assembled from the
-classification shapes: at WF states this decides the semantic
-commitment predicate EXACTLY (the Claims-tier iff); deliberately
-not a global instance-gate — at wild states the shape and the
-semantics diverge in both directions (the witnessed corners are in
-the frozen-tier witness archive).  PORTED VERBATIM from
-`Orig/Classify.lean:2854`. -/
-def irreversibleOf (st : State) (m : Move) : Bool :=
+/-- **reversibleOf st m** — the per-move oracle, REVERSIBLE-FIRST
+(owner flip, 2026-10-17): the assembly reads undoability — the
+polar complement of the old commit-classification shapes.  At WF
+states this decides the semantic `reversibleAt` predicate EXACTLY
+(the Claims-tier iff); deliberately not a global instance-gate —
+at wild states the shape and the semantics diverge in both
+directions (the witnessed corners are in the frozen-tier witness
+archive).  The shape predicates above keep their commit-polarity
+(the shapes are what the classification rows proved); the flip
+lives HERE, once, at the assembly.  RESTATE of the old
+`irreversibleOf` (`Orig/Classify.lean:2854`, retired from the
+registry with this flip). -/
+def reversibleOf (st : State) (m : Move) : Bool :=
   match m with
-  | .draw => drawIrr st
-  | .wasteToFound _ => true
-  | .wasteToTab _ _ => true
-  | .tabToFound c => tabToFoundIrr st c
-  | .foundToTab c b => foundToTabIrr st c b
-  | .tabToTab c b => tabToTabIrr st c b
+  | .draw => !drawIrr st
+  | .wasteToFound _ => false
+  | .wasteToTab _ _ => false
+  | .tabToFound c => !tabToFoundIrr st c
+  | .foundToTab c b => !foundToTabIrr st c b
+  | .tabToTab c b => !tabToTabIrr st c b
 
 /-!
 ## §2. THE LICENSES  (live, KEPT 2026-10-17)
