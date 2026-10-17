@@ -99,20 +99,24 @@ the proof bytes await at `Temp/cargo_bridge_aborted.lean` (unbuilt)
 and the enforcement restate of `BareCargoEquiv` stands in the
 registry unchanged. -/
 
-/-! ## §1E. The chart claim book (owner-ratified, the minimal set
-representation — priced per the move algebra; the two promoted
+/-! ## §1E. The chart claim book (owner-ratified, the cover
+direction; priced per the endpoint-edit algebra; the two promoted
 cards' private keep-kits are the primary ports)
 
 PRICE across the book: the seam's own step unfolds
 (`State.lean`'s `setPile`/`putRun`/`afterRunRemoved`/`pileOfTop`
-/`pileHolding` rows) plus both promoted cards' private field-keep
-kits (the classification and orbit cards each hold copies — this
-book is the dedup strike that replaces them). -/
+/`pileHolding`/`fromCard`/`below` rows) plus both promoted cards'
+private field-keep kits (the classification and orbit cards each
+hold copies — this book is the dedup strike that replaces them).
+Where a row's edit-uniqueness needs the one-location discipline,
+price it WF-gated. -/
 
 /-- **CLAIM `chart_round_trip`** — the chart is faithful: states
-are their five readouts. -/
+are their readouts (the cover map, the anchor map, the hidden
+decks, the foundations, the pool, the cut, the quantum). -/
 theorem chart_round_trip (st w : State)
-    (hseat : ∀ c, seatOf st c = seatOf w c)
+    (hcov : ∀ c, coverOf st c = coverOf w c)
+    (hbot : ∀ a, bottomOf st a = bottomOf w a)
     (hhid : ∀ a, (st.piles a).hidden = (w.piles a).hidden)
     (hfnd : ∀ s, st.found s = w.found s)
     (hpool : drawPool st = drawPool w)
@@ -120,22 +124,41 @@ theorem chart_round_trip (st w : State)
     (hds : st.drawStep = w.drawStep) : st = w := by
   sorry
 
-/-- **CLAIM `chart_tabToTab`** — the UPDATE row: one pair change,
-nothing else in the world moves. -/
+/-- **CLAIM `chart_tabToTab`** — the endpoint-edit row: the mover
+detaches at its departure key and attaches at the landing base;
+every other pair — the whole ride included — is untouched;
+nothing outside the pairs moves at all. -/
 theorem chart_tabToTab {st s' : State} {c : Card} {b : Base}
     (hstep : State.step st (Move.tabToTab c b) = some s') :
-    (∀ x, seatOf s' x = if x = c then some b else seatOf st x) ∧
+    (match underOf st c with
+     | some (.inr z₀) => coverOf s' z₀ = none
+     | some (.inl a₀) => bottomOf s' a₀ = none
+     | none => True) ∧
+    (match b with
+     | .inl a => bottomOf st a = none ∧ bottomOf s' a = some c
+     | .inr z => coverOf st z = none ∧ coverOf s' z = some c) ∧
+    (∀ x, coverOf st x ≠ some c ∧ b ≠ .inr x →
+      coverOf s' x = coverOf st x) ∧
+    (∀ a, underOf st c ≠ some (.inl a) ∧ b ≠ .inl a →
+      bottomOf s' a = bottomOf st a) ∧
     (∀ a, (st.piles a).hidden = (s'.piles a).hidden) ∧
     (∀ s, st.found s = s'.found s) ∧
     drawPool st = drawPool s' ∧ cutOf st = cutOf s' ∧
     st.drawStep = s'.drawStep := by
   sorry
 
-/-- **CLAIM `chart_tabToFound`** — the DELETE row: the pair vanishes,
-the card lands on its foundation row, nothing else moves. -/
+/-- **CLAIM `chart_tabToFound`** — the DELETE row: the top mover's
+pair vanishes (its under-key loses its cover), the card lands on
+its foundation row, everything else fixed. -/
 theorem chart_tabToFound {st s' : State} {c : Card}
     (hstep : State.step st (Move.tabToFound c) = some s') :
-    seatOf s' c = none ∧ (∀ x ≠ c, seatOf s' x = seatOf st x) ∧
+    (match underOf st c with
+     | some (.inr z₀) => coverOf s' z₀ = none
+     | some (.inl a₀) => bottomOf s' a₀ = none
+     | none => True) ∧
+    (∀ x, coverOf st x ≠ some c → coverOf s' x = coverOf st x) ∧
+    (∀ a, underOf st c ≠ some (.inl a) →
+      bottomOf s' a = bottomOf st a) ∧
     c ∈ s'.found c.suit ∧
     (s'.found c.suit).length = (st.found c.suit).length + 1 ∧
     (∀ s ≠ c.suit, st.found s = s'.found s) ∧
@@ -145,11 +168,15 @@ theorem chart_tabToFound {st s' : State} {c : Card}
   sorry
 
 /-- **CLAIM `chart_foundToTab`** — the ADD row: the pair appears at
-the giveback base, the foundation row sheds its top, nothing else
-moves. -/
+the giveback base, the foundation row sheds its top, everything
+else fixed. -/
 theorem chart_foundToTab {st s' : State} {c : Card} {b : Base}
     (hstep : State.step st (Move.foundToTab c b) = some s') :
-    seatOf s' c = some b ∧ (∀ x ≠ c, seatOf s' x = seatOf st x) ∧
+    (match b with
+     | .inl a => bottomOf st a = none ∧ bottomOf s' a = some c
+     | .inr z => coverOf st z = none ∧ coverOf s' z = some c) ∧
+    (∀ x, coverOf st x ≠ some c → coverOf s' x = coverOf st x) ∧
+    (∀ a, b ≠ .inl a → bottomOf s' a = bottomOf st a) ∧
     c ∉ s'.found c.suit ∧
     (st.found c.suit).length = (s'.found c.suit).length + 1 ∧
     (∀ s ≠ c.suit, st.found s = s'.found s) ∧
@@ -158,13 +185,15 @@ theorem chart_foundToTab {st s' : State} {c : Card} {b : Base}
     st.drawStep = s'.drawStep := by
   sorry
 
-/-- **CLAIM `chart_draw`** — the CUT row: no pair changes, no
-foundation changes, the pool is conserved; only the split moves
-(the exact cut curve — the pass-base and recycle cases — priced
-from the seam's draw unfold and the orbit card's phase kit). -/
+/-- **CLAIM `chart_draw`** — the CUT row: no pair changes at all,
+no foundation changes, the pool is conserved; only the split
+moves (the exact cut curve — the pass-base and recycle cases —
+priced from the seam's draw unfold and the orbit card's phase
+kit). -/
 theorem chart_draw {st s' : State}
     (hstep : State.step st Move.draw = some s') :
-    (∀ c, seatOf s' c = seatOf st c) ∧
+    (∀ c, coverOf s' c = coverOf st c) ∧
+    (∀ a, bottomOf s' a = bottomOf st a) ∧
     (∀ s, st.found s = s'.found s) ∧
     (∀ a, (st.piles a).hidden = (s'.piles a).hidden) ∧
     drawPool st = drawPool s' ∧ st.drawStep = s'.drawStep := by
@@ -175,7 +204,8 @@ pair changes, the pool head is consumed, the card lands on its
 foundation row. -/
 theorem chart_wasteToFound {st s' : State} {c : Card}
     (hstep : State.step st (Move.wasteToFound c) = some s') :
-    (∀ x, seatOf s' x = seatOf st x) ∧
+    (∀ x, coverOf s' x = coverOf st x) ∧
+    (∀ a, bottomOf s' a = bottomOf st a) ∧
     (drawPool s').length = (drawPool st).length - 1 ∧
     c ∈ s'.found c.suit ∧
     (s'.found c.suit).length = (st.found c.suit).length + 1 ∧
@@ -185,10 +215,14 @@ theorem chart_wasteToFound {st s' : State} {c : Card}
   sorry
 
 /-- **CLAIM `chart_wasteToTab`** — the pool-to-seat row: one pair
-ADDED (the mover lands on its base), the pool head consumed. -/
+ADDED at the landing base, the pool head consumed. -/
 theorem chart_wasteToTab {st s' : State} {c : Card} {b : Base}
     (hstep : State.step st (Move.wasteToTab c b) = some s') :
-    seatOf s' c = some b ∧ (∀ x ≠ c, seatOf s' x = seatOf st x) ∧
+    (match b with
+     | .inl a => bottomOf st a = none ∧ bottomOf s' a = some c
+     | .inr z => coverOf st z = none ∧ coverOf s' z = some c) ∧
+    (∀ x, coverOf st x ≠ some c → coverOf s' x = coverOf st x) ∧
+    (∀ a, b ≠ .inl a → bottomOf s' a = bottomOf st a) ∧
     (drawPool s').length = (drawPool st).length - 1 ∧
     (∀ s, st.found s = s'.found s) ∧
     (∀ a, (st.piles a).hidden = (s'.piles a).hidden) ∧

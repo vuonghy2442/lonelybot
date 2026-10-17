@@ -510,26 +510,47 @@ def BareCargoEquiv (A B : State) : Prop :=
   CargoPath A B ∧ CargoPath B A
 
 /-!
-## §9. THE CHART  (live, owner-ratified 2026-10-17 — the minimal set
-representation: a readout layer on the ONE game, no second state
-type, no second step — the carrier/validity/decode direction is
-FENCED OUT until a named consumer exists)
+## §9. THE CHART  (live, owner-ratified 2026-10-17, direction
+corrected by owner the same hour: the chart is `c → the card
+immediately ON TOP of it`)
 
-THE MOVE ALGEBRA (owner, 2026-10-17): every move is exactly ONE
-pair change plus its matching zone bookkeeping — `tabToTab`
-UPDATES one pair (the mover's seat); `tabToFound` DELETES one
-pair (and adds the card to its foundation row); `wasteToTab`/
-`foundToTab` ADD one pair (and, for the waste letter, consumes
-the pool head); `draw` touches no pair at all (the cut alone
-moves, the pool conserved).  The claim book prices these as the
-move-table rows.
--/
+THE MOVE ALGEBRA (owner, 2026-10-17): every move is ONE mover
+whose cover relation is edited at its two pile ENDPOINTS —
+`tabToTab` DETACHES the mover at the departure key and ATTACHES it
+at the landing key (the ride's internal pairs untouched — they
+ride whole); `tabToFound` deletes the top mover (its under-key
+loses its cover); `foundToTab`/`wasteToTab` add the pair at the
+landing key alone (with the founded row or pool bookkeeping);
+`draw` touches no pair — the cut alone moves, the pool conserved.
+The carrier/validity/decode direction stays FENCED until a named
+consumer exists. -/
 
-/-- **seatOf st c** — THE SEAT MAP (the pair representation's
-coordinate): where c sits in the face-up tableau — `some (.inr z)`
+/-- **coverOf st c** — THE CHART's map (the owner's correction:
+the pair direction is c → the card immediately on top of it):
+`some d` with d sitting directly above c in its pile, `none` when
+c tops its pile or sits off the tableau.  The RIDE of a mover is
+the forward chain of this map; the landing check is the lookup. -/
+def coverOf (st : State) (c : Card) : Option Card :=
+  match st.pileHolding c with
+  | none => none
+  | some a =>
+      match fromCard c (st.piles a).faceUp with
+      | [] => none
+      | [_] => none
+      | _ :: d :: _ => some d
+
+/-- **bottomOf st a** — the chart's anchor side: the face-up
+bottom card of pile `a` (`none` for an empty face-up run) — the
+pair family that anchors the cover chains to the positions. -/
+def bottomOf (st : State) (a : Anchor) : Option Card :=
+  (st.piles a).faceUp.head?
+
+/-- **underOf st c** — the beneath LOCATOR (the chart's inverse
+readout, not the chart itself): the seat of `c` — `some (.inr z)`
 with z the card directly beneath it, `some (.inl a)` when c
-bottoms pile a, `none` off the tableau. -/
-def seatOf (st : State) (c : Card) : Option Base :=
+bottoms pile a, `none` off the tableau.  The move rows use it to
+name the departure key. -/
+def underOf (st : State) (c : Card) : Option Base :=
   match st.pileHolding c with
   | none => none
   | some a =>
