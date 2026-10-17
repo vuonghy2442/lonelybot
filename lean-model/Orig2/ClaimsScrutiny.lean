@@ -181,8 +181,9 @@ theorem class_card_zone :
       (c ∈ u.stock ∨ c ∈ u.waste) ↔ (c ∈ v.stock ∨ c ∈ v.waste) := by
   sorry
 
-/-! ## §S4. The fiber decomposition — CANDIDATE (the corrected
-product claim; the pending re-run time-stamps the empirical side) -/
+/-! ## §S4. The fiber decomposition — CANDIDATE (EVIDENCE UPGRADED
+2026-10-17 by the re-run: memo §17, the torseur 86/86, and the
+product-exactness table; the price is largely PAID — see the row) -/
 
 /-- **THE FIBER PRODUCT** — over fixed founds, the enriched
 component quotients into pure exchange orbits crossed with a
@@ -191,28 +192,78 @@ enriched connectivity between two fiber-mates factors as same
 pure-orbit-component times the bit-parity over their live bits
 (same-family bits serialized-recomputed, cross-family
 column-decomposed; k is per-member — availability is
-member-dependent, world D).  EVIDENCE: memo §8 (the Q₃ cube, the
-compiled Hamming-2 pair), §10-§12 (legality-by-construction, the
-ladder-clause canonical route, the three holes measured).
-PRICE (promotion): the re-aimed probe pass over the registry
-alphabet (memo §16, in flight) + the Hamming quotient
-formalization over ExchBoth-pure-orbit components; the world-D
-liberty refute keeps k member-indexed.  The statement below is
-the honest schematic (the quotient-formalization is part of the
-priced work): -/
+member-dependent, world D).  EVIDENCE (UPGRADED): the re-run at the
+REGISTRY alphabet (memo §17, instrument `--rerun11`,
+`Temp/probe_rerun11_report.txt`): the product factorization
+`closure = pureOrbit × 2^k` held EXACTLY at every exhaustive seed
+(A: 4 = 1·2²; B: 6720 = 840·2³; C'' 13440; D: 128; E: 30720); the
+torseur test (memo §13, §14's reduction, instrument `--torseur`):
+86/86 subsets certified EXACT by explicit serialized synthesis,
+zero order-freedom violations (the earlier violations were an
+instrument bug, re-verified rfl-grade); one-swap thinness FALSE at
+every seed under the uniform alphabet (the arena where a thin
+bridge could have recovered).  REMAINING PRICE (shrunk): (i) the
+quotient formalization over ExchBoth-orbit components; (ii) the
+prelude family's completeness beyond depth-2 ladders (budget-open
+at dense worlds, §12/H3); (iii) witness A's cross-pair boundary
+belongs to the CLASS program (the lattice covers the fiber's
+measured class slices; cross-pair transpositions stay outside —
+the tombstones' exact reason).  The statement below is the honest
+schematic until the quotient formalization lands. -/
 theorem fiber_product_schematic :
     ∀ (u v : State), u.WF → v.WF → u.found = v.found →
       (ExchBoth u v ∨ ¬ ExchBoth u v) := by
   sorry
 
-/-! ## §S5. The keystone reference (ALREADY CERTIFIED —
-the license every spine/fiber row rides) -/
+/-! ## §S4.5 The corrected fiber-transfer — CANDIDATE (SURVIVED
+BOTH KILL-TARGETS at probe grade; memo §16, the addendum-#10 form) -/
 
-/- `rev_steps_iff` (`Orig2/RevSteps.lean`, [propext], installed
+/-- **FIBER-TRANSFER, CORRECTED** — within one foundation fiber,
+swap-availability transfers along the class: if the twin
+interchange of ⟨x, x.twin⟩ is in-class at s, then at any
+class-mate s′ with the SAME founds and both twins still seated,
+the interchange is in-class too.  The founds hypothesis is
+necessary-and-EXHIBITED (memo §16 Target 1: cross-fiber walks
+shut licensure windows — height-indexed reads — at distance; and
+Target 2's bare-vs-covered divergence sits across fibers) but
+never breaches a fiber from inside: the window-walk's own debris
+RE-ARMS the licensure ladder (pulled window-cards land as
+licensed raisable tops, the self-arming law), and the
+both-covered deadlock dissolves at licensed windows (the cover's
+self-raise) or dissolves into ladders (a 7-legged route, labeled
+TRUNCATED-at-budget, never falsely "failing").  EVIDENCE: memo
+§§9/14/16/17 — transfer member-invariant at every sampled member
+of every seed under the REGISTRY availability reading (A
+informative at 2 bits); the counterexample pair did not
+materialize at any probed world.  PRICE (promotion): the
+addendum-#8 reduction rides (transfer + the 3-line induction ⇒
+closure), so this row firms together with the torseur
+formalization of §S4. -/
+theorem fiber_transfer_corrected :
+    ∀ (s s' : State) (x : Card), s.WF → s'.WF →
+      sameOrbitSetoid.r s s' → s.found = s'.found →
+      (∃ v, twinPairSwap s v x ∧ sameOrbitSetoid.r s v) →
+      (∃ seatA, s'.pileHolding x = some seatA) →
+      (∃ seatA', s'.pileHolding x.twin = some seatA') →
+      (∃ v', twinPairSwap s' v' x ∧ sameOrbitSetoid.r s' v') := by
+  sorry
+
+/- §S5. The keystone reference (ALREADY CERTIFIED — the license
+every spine/fiber row rides) -/
+
+/- rev_steps_iff (`Orig2/RevSteps.lean`, [propext], installed
 2026-10-17): over ANY letter family, the dumb both-ways span closure
 equals the reversible closure — every witness leg above is
 reversible BY CONSTRUCTION, never by force.  No stub here; the row
 certified and carded the same hour. -/
+
+/- ALSO CERTIFIED THIS HOUR (no stub here; the license rows the
+   ledger's every spine/fiber row rides): `rev_steps_iff` at
+   `Orig2/RevSteps.lean` ([propext] — every witness leg reversible
+   by construction) AND `floater_orbit_invariant` at
+   `Orig2/FloatOrbit.lean` ([propext, Quot.sound] — the twin-fiber
+   forcing conservation; the owner's proof, the coordinator
+   retraction logged) both certified and carded the same hour. -/
 
 /-! ## The audit battery
 
@@ -231,6 +282,5 @@ the stub is deleted per the claims-layer rule. -/
 #print axioms spine_class
 #print axioms class_pins_row
 #print axioms class_card_zone
--- schematic placeholder battery line: the fiber row carries the
--- priced schematic pending the quotient formalization (see the row's docstring); the battery line below will name the discharged head at promotion. -/
--- #print axioms fiber_product_schematic (priced schematic)
+#print axioms fiber_product_schematic
+#print axioms fiber_transfer_corrected
