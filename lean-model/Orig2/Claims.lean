@@ -112,14 +112,18 @@ BANKED generic kit (`steps_to_walk`, `Walk_append`, `Walk_run`);
 the frozen mirrors (one-move returns,
 `Orig/ForklessCeiling.lean` §0a-§0d) are finer content this row
 does not need; no WF gate.
--/
 
-/-- **CLAIM `dumbSpan_iff_exchange`** — the raw both-ways dumb
-spans are the official exchange, exactly. -/
-theorem dumbSpan_iff_exchange (A B : State) :
-    (Steps (StepOf CargoLetter) A B ∧
-      Steps (StepOf CargoLetter) B A) ↔ BareCargoEquiv A B := by
-  sorry
+PROMOTED (2026-10-17): the claim is DISCHARGED at
+`Orig2/CargoBridge.lean` §3 — the cargo-bridge card proves
+`dumbSpan_iff_exchange` gatelessly (the forgetful letter-unpack
+plus the returning-cycle chain composite: each leg's return
+span, realized through the banked generic bridges, IS the
+`reversibleAtW` witness), and the card's battery carries the
+head ([propext], zero sorryAx, zero `Classical.choice`).  The
+stub is deleted per the promotion rule (never duplicated); the
+Claims battery line for this claim moved to the card.  With this
+promotion the ledger's three founding claims all stand
+discharged — the layer's priced debt is empty. -/
 
 /-! ## §1D. The walk-steps bridge (banked green)
 
@@ -154,11 +158,12 @@ theorem steps_to_walk (P : State → Move → Prop) {st : State} :
 
 /-! ## The audit battery
 
-`reversibleOf_iff_reversibleAtW`'s battery line moved to the
-classification card at promotion.  The remaining claim stubs
-carry `sorryAx` by design — the layer's whole debt ledger on one
-row each, priced above. -/
+All three founding claims' battery lines moved to their cards at
+promotion (`reversibleOf_iff_reversibleAtW` to the
+classification card, `sameOrbit_factor` to the orbit-factor
+card, `dumbSpan_iff_exchange` to the cargo-bridge card).  No
+priced stub remains — the layer's debt is empty; the banked
+green rows remain, audited here. -/
 
 #print axioms walk_to_steps
 #print axioms steps_to_walk
-#print axioms dumbSpan_iff_exchange
