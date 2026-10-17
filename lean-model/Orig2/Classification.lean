@@ -462,6 +462,61 @@ private theorem putCard_inr_eq_setPile {st : State} {c : Card} {z : Card} {k : A
   simp only [State.putCard, hz]
   rfl
 
+/-- **The raise-undo mirror scaffold** — the fixed-field backbone
+the two `.tabToFound` undo arms share: with the `foundToTab`
+mirror's `putCard` reduced to one seat-write (`putCard_inl/
+inr_eq_setPile`), the found bullets ride the successor trio and the
+fixed fields ride the successor shape; the two base-specific legs
+(the seat-write and the seat-pile restoration) arrive as inputs.
+FOLD-PORT of the duplicated reconstruction bullets in
+`Orig/Irreversible.lean:1541/:1583`. -/
+private theorem tabToFound_undo_scaffold {st s₁ : State} {c : Card} {b : Base}
+    {seat : Anchor} {P' : Pile}
+    (hstep : State.step st (Move.tabToFound c) = some s₁)
+    (hs₁ : s₁ = { st.setFound c.suit (st.found c.suit ++ [c]) with
+                  piles := fun a' =>
+                    if a' = seat then
+                      Pile.afterRunRemoved (st.piles seat) (chop (st.piles seat).faceUp)
+                    else st.piles a' })
+    (hft : s₁.foundTop c.suit = some c)
+    (hcp : s₁.canPlace c b = true)
+    (hset : (s₁.setFound c.suit (chop (s₁.found c.suit))).putCard c b
+        = { s₁.setFound c.suit (chop (s₁.found c.suit)) with
+            piles := fun a' => if a' = seat then P' else s₁.piles a' })
+    (hs₁found : s₁.found c.suit = st.found c.suit ++ [c])
+    (hs₁other : ∀ σ, σ ≠ c.suit → s₁.found σ = st.found σ)
+    (hseat' : P' = st.piles seat)
+    (hkeep : ∀ a'', a'' ≠ seat → s₁.piles a'' = st.piles a'') :
+    reversibleAtW st (Move.tabToFound c) :=
+  reversible_mirrorW hstep (by
+    have hstep2 : State.step s₁ (Move.foundToTab c b) = some st := by
+      simp only [State.step, hft]
+      rw [hcp]
+      refine congrArg some (?_ :
+        (s₁.setFound c.suit (chop (s₁.found c.suit))).putCard c b = st)
+      rw [hset]
+      refine State.ext (funext fun σ => ?_) (funext fun a'' => ?_) ?_ ?_ ?_
+      · show (if σ = c.suit then chop (s₁.found c.suit) else s₁.found σ) = st.found σ
+        by_cases hσ : σ = c.suit
+        · rw [hσ, ite_eq_left rfl, hs₁found, chop_snoc]
+        · rw [ite_eq_right hσ]
+          exact hs₁other σ hσ
+      · show (if a'' = seat then P' else s₁.piles a'') = st.piles a''
+        by_cases ha'' : a'' = seat
+        · rw [ha'', ite_eq_left rfl, hseat']
+        · rw [ite_eq_right ha'']
+          exact hkeep a'' ha''
+      · show s₁.stock = st.stock
+        rw [hs₁]
+        rfl
+      · show s₁.waste = st.waste
+        rw [hs₁]
+        rfl
+      · show s₁.drawStep = st.drawStep
+        rw [hs₁]
+        rfl
+    exact hstep2)
+
 /-- **The under-seat `.tabToFound` undo, witness form (primary).**  A
 successful no-reveal `.tabToFound` whose source pile keeps a
 face-up card below the moved one is undone by `.foundToTab c
@@ -489,59 +544,32 @@ private theorem tabToFound_undo_under {st : State} {c : Card} {a : Anchor} {z : 
   have hcp : s₁.canPlace c (Sum.inr z) = true := by
     simp only [State.canPlace, hsearch]
     exact hsit
-  have hstep2 : State.step s₁ (Move.foundToTab c (Sum.inr z)) = some st := by
-    simp only [State.step, hft]
-    rw [hcp]
-    refine congrArg some (?_ :
-      (s₁.setFound c.suit (chop (s₁.found c.suit))).putCard c (Sum.inr z) = st)
-    have hz'' : (s₁.setFound c.suit (chop (s₁.found c.suit))).pileOfTop z = some a := hsearch
-    rw [putCard_inr_eq_setPile hz'']
-    refine State.ext (funext fun σ => ?_) (funext fun a'' => ?_) ?_ ?_ ?_
-    · show (if σ = c.suit then chop (s₁.found c.suit) else s₁.found σ) = st.found σ
-      by_cases hσ : σ = c.suit
-      · rw [hσ, ite_eq_left rfl, hs₁found, chop_snoc]
-      · rw [ite_eq_right hσ]
-        exact hs₁other σ hσ
-    · show (if a'' = a then
-          { (s₁.setFound c.suit (chop (s₁.found c.suit))).piles a with
-            faceUp := ((s₁.setFound c.suit (chop (s₁.found c.suit))).piles a).faceUp ++ [c] }
-          else (s₁.setFound c.suit (chop (s₁.found c.suit))).piles a'') = st.piles a''
+  exact tabToFound_undo_scaffold hstep hs₁ hft hcp (putCard_inr_eq_setPile hsearch)
+    hs₁found hs₁other
+    (by
       have hQeq : (s₁.setFound c.suit (chop (s₁.found c.suit))).piles = s₁.piles := rfl
-      rw [hQeq]
-      by_cases ha'' : a'' = a
-      · rw [ha'', ite_eq_left rfl]
-        have hpla : s₁.piles a =
-            Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) := by
-          rw [hs₁]
-          show (if a = a then
-              Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-              else st.piles a) = _
-          rw [ite_eq_left rfl]
-        rw [hpla]
-        cases hc : chop (st.piles a).faceUp with
-        | nil =>
-            rw [hc] at hz
-            exact absurd hz (by simp [lastOf])
-        | cons y ys =>
-            rw [hc] at hfull
-            show (⟨(st.piles a).hidden, (y :: ys) ++ [c]⟩ : Pile) = st.piles a
-            exact Pile.ext rfl hfull.symm
-      · rw [ite_eq_right ha'']
+      have hpla : s₁.piles a
+          = Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp) := by
         rw [hs₁]
-        show (if a'' = a then
+        show (if a = a then
             Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-            else st.piles a'') = st.piles a''
-        rw [ite_eq_right ha'']
-    · show s₁.stock = st.stock
+            else st.piles a) = _
+        rw [ite_eq_left rfl]
+      rw [hQeq, hpla]
+      cases hc : chop (st.piles a).faceUp with
+      | nil =>
+          rw [hc] at hz
+          exact absurd hz (by simp [lastOf])
+      | cons y ys =>
+          rw [hc] at hfull
+          show (⟨(st.piles a).hidden, (y :: ys) ++ [c]⟩ : Pile) = st.piles a
+          exact Pile.ext rfl hfull.symm)
+    (fun a'' ha'' => by
       rw [hs₁]
-      rfl
-    · show s₁.waste = st.waste
-      rw [hs₁]
-      rfl
-    · show s₁.drawStep = st.drawStep
-      rw [hs₁]
-      rfl
-  exact reversible_mirrorW hstep hstep2
+      show (if a'' = a then
+          Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+          else st.piles a'') = st.piles a''
+      rw [ite_eq_right ha''])
 
 /-- **The bare `.tabToFound` undo, witness form (primary).**  A
 successful no-reveal `.tabToFound` whose source pile empties
@@ -577,41 +605,17 @@ private theorem tabToFound_undo_bare {st : State} {c : Card} {a : Anchor} {s₁ 
     show ((s₁.piles a).isEmpty && decide (c.rank = Rank.king)) = true
     rw [hpla, decide_eq_true hking]
     rfl
-  have hstep2 : State.step s₁ (Move.foundToTab c (Sum.inl a)) = some st := by
-    simp only [State.step, hft]
-    rw [hcp]
-    refine congrArg some (?_ :
-      (s₁.setFound c.suit (chop (s₁.found c.suit))).putCard c (Sum.inl a) = st)
-    rw [putCard_inl_eq_setPile]
-    refine State.ext (funext fun σ => ?_) (funext fun a'' => ?_) ?_ ?_ ?_
-    · show (if σ = c.suit then chop (s₁.found c.suit) else s₁.found σ) = st.found σ
-      by_cases hσ : σ = c.suit
-      · rw [hσ, ite_eq_left rfl, hs₁found, chop_snoc]
-      · rw [ite_eq_right hσ]
-        exact hs₁other σ hσ
-    · show (if a'' = a then (⟨[], [c]⟩ : Pile)
-          else (s₁.setFound c.suit (chop (s₁.found c.suit))).piles a'') = st.piles a''
-      by_cases ha'' : a'' = a
-      · rw [ha'', ite_eq_left rfl]
-        show (⟨[], [c]⟩ : Pile) = ⟨(st.piles a).hidden, (st.piles a).faceUp⟩
-        rw [hhidden, hface]
-      · rw [ite_eq_right ha'']
-        show s₁.piles a'' = st.piles a''
-        rw [hs₁]
-        show (if a'' = a then
-            Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
-            else st.piles a'') = st.piles a''
-        rw [ite_eq_right ha'']
-    · show s₁.stock = st.stock
+  exact tabToFound_undo_scaffold hstep hs₁ hft hcp putCard_inl_eq_setPile
+    hs₁found hs₁other
+    (by
+      show (⟨[], [c]⟩ : Pile) = ⟨(st.piles a).hidden, (st.piles a).faceUp⟩
+      rw [hhidden, hface])
+    (fun a'' ha'' => by
       rw [hs₁]
-      rfl
-    · show s₁.waste = st.waste
-      rw [hs₁]
-      rfl
-    · show s₁.drawStep = st.drawStep
-      rw [hs₁]
-      rfl
-  exact reversible_mirrorW hstep hstep2
+      show (if a'' = a then
+          Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+          else st.piles a'') = st.piles a''
+      rw [ite_eq_right ha''])
 
 /-! ### §1n. The list & run mini kit
 
@@ -1515,6 +1519,45 @@ private theorem step_tabToTab_some {st : State} {c : Card} {b : Base} {a : Ancho
   | nil => exact absurd hList hne
   | cons w r => rfl
 
+/-- **The slide landing facts** — the two round trips' shared
+successor-and-landing block, extracted: at a `putRun` successor of
+a pile write, the fixed fields are kept, and the landing pile's
+below/run reads resolve to the target position.  FOLD-PORT of the
+verbatim-duplicated blocks in the two slide round trips
+(` Orig/Classify.lean:1297/:1498`, each frozen twin carrying its
+own copy). -/
+private theorem tabToTab_landing_facts {st : State} {c : Card} {b : Base}
+    {a k : Anchor} {P : Pile} {tr : List Card} {s₁ : State}
+    (hs₁ : s₁ = (st.setPile a P).putRun (fromCard c (st.piles a).faceUp) b)
+    (hrt : fromCard c (st.piles a).faceUp = c :: tr)
+    (hcN : c ∉ (st.piles k).faceUp)
+    (hs₁K : s₁.piles k = ⟨(st.piles k).hidden,
+      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp⟩) :
+    (∀ σ, s₁.found σ = st.found σ) ∧ s₁.stock = st.stock ∧
+      s₁.waste = st.waste ∧ s₁.drawStep = st.drawStep ∧
+      (s₁.piles k).faceUp = (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp ∧
+      (s₁.piles k).hidden = (st.piles k).hidden ∧
+      below c (s₁.piles k).faceUp = (st.piles k).faceUp ∧
+      fromCard c (s₁.piles k).faceUp = c :: tr := by
+  have hKfaceUp : (s₁.piles k).faceUp =
+      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp :=
+    congrArg (fun p => p.faceUp) hs₁K
+  have hexcl := below_fromCard_excl (c := c) ((st.piles k).faceUp)
+    (fromCard c (st.piles a).faceUp) hcN
+  refine ⟨fun σ => by rw [hs₁, putRun_found, setPile_found],
+    ?_, ?_, ?_, hKfaceUp, congrArg (fun p => p.hidden) hs₁K, ?_, ?_⟩
+  · rw [hs₁, putRun_stock, setPile_stock]
+  · rw [hs₁, putRun_waste, setPile_waste]
+  · rw [hs₁, putRun_drawStep, setPile_drawStep]
+  · have h1 : below c (s₁.piles k).faceUp
+        = below c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
+      rw [hKfaceUp]
+    rw [h1, hexcl.1, hrt, below_head_eq, List.append_nil]
+  · have h1 : fromCard c (s₁.piles k).faceUp
+        = fromCard c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
+      rw [hKfaceUp]
+    rw [h1, hexcl.2, hrt, fromCard_head_eq]
+
 /-- **The bare-king slide's whole-segment relocation round trip.**
 PORTED verbatim from `Orig/Classify.lean:1297`
 (`tabToTab_bare_rtp`); the frozen statement concludes `s₁.run
@@ -1537,32 +1580,8 @@ private theorem tabToTab_bare_rtp {st : State} {c : Card} {b : Base} {a k : Anch
     (hka : k ≠ a)
     (hKE : (st.piles k).faceUp = [] → (st.piles k).hidden = []) :
     s₁.run [Move.tabToTab c (Sum.inl a)] = some st := by
-  -- successor accessor facts
-  have hsF : ∀ σ, s₁.found σ = st.found σ := by
-    intro σ
-    rw [hs₁, putRun_found, setPile_found]
-  have hsS : s₁.stock = st.stock := by rw [hs₁, putRun_stock, setPile_stock]
-  have hsW : s₁.waste = st.waste := by rw [hs₁, putRun_waste, setPile_waste]
-  have hsD : s₁.drawStep = st.drawStep := by
-    rw [hs₁, putRun_drawStep, setPile_drawStep]
-  -- the landing pile read, as the mirror needs it
-  have hKfaceUp : (s₁.piles k).faceUp =
-      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp :=
-    congrArg (fun p => p.faceUp) hs₁K
-  have hKhidden : (s₁.piles k).hidden = (st.piles k).hidden :=
-    congrArg (fun p => p.hidden) hs₁K
-  have hexcl := below_fromCard_excl (c := c) ((st.piles k).faceUp)
-    (fromCard c (st.piles a).faceUp) hcN
-  have hbelowK : below c (s₁.piles k).faceUp = (st.piles k).faceUp := by
-    have h1 : below c (s₁.piles k).faceUp
-        = below c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
-      rw [hKfaceUp]
-    rw [h1, hexcl.1, hrt, below_head_eq, List.append_nil]
-  have hrunK : fromCard c (s₁.piles k).faceUp = c :: tr := by
-    have h1 : fromCard c (s₁.piles k).faceUp
-        = fromCard c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
-      rw [hKfaceUp]
-    rw [h1, hexcl.2, hrt, fromCard_head_eq]
+  obtain ⟨hsF, hsS, hsW, hsD, hKfaceUp, hKhidden, hbelowK, hrunK⟩ :=
+    tabToTab_landing_facts hs₁ hrt hcN hs₁K
   have hcp1 : s₁.canPlace c (Sum.inl a) = true := by
     show ((s₁.piles a).isEmpty && decide (c.rank = Rank.king)) = true
     rw [hs₁A, decide_eq_true hking]
@@ -1699,32 +1718,8 @@ private theorem tabToTab_under_rtp {st : State} {c : Card} {b : Base} {a k : Anc
     (hzK : (st.piles k).top ≠ some z)
     (hKE : (st.piles k).faceUp = [] → (st.piles k).hidden = []) :
     s₁.run [Move.tabToTab c (Sum.inr z)] = some st := by
-  -- successor accessor facts
-  have hsF : ∀ σ, s₁.found σ = st.found σ := by
-    intro σ
-    rw [hs₁, putRun_found, setPile_found]
-  have hsS : s₁.stock = st.stock := by rw [hs₁, putRun_stock, setPile_stock]
-  have hsW : s₁.waste = st.waste := by rw [hs₁, putRun_waste, setPile_waste]
-  have hsD : s₁.drawStep = st.drawStep := by
-    rw [hs₁, putRun_drawStep, setPile_drawStep]
-  -- the landing pile read, as the mirror needs it
-  have hKfaceUp : (s₁.piles k).faceUp =
-      (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp :=
-    congrArg (fun p => p.faceUp) hs₁K
-  have hKhidden : (s₁.piles k).hidden = (st.piles k).hidden :=
-    congrArg (fun p => p.hidden) hs₁K
-  have hexcl := below_fromCard_excl (c := c) ((st.piles k).faceUp)
-    (fromCard c (st.piles a).faceUp) hcN
-  have hbelowK : below c (s₁.piles k).faceUp = (st.piles k).faceUp := by
-    have h1 : below c (s₁.piles k).faceUp
-        = below c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
-      rw [hKfaceUp]
-    rw [h1, hexcl.1, hrt, below_head_eq, List.append_nil]
-  have hrunK : fromCard c (s₁.piles k).faceUp = c :: tr := by
-    have h1 : fromCard c (s₁.piles k).faceUp
-        = fromCard c ((st.piles k).faceUp ++ fromCard c (st.piles a).faceUp) := by
-      rw [hKfaceUp]
-    rw [h1, hexcl.2, hrt, fromCard_head_eq]
+  obtain ⟨hsF, hsS, hsW, hsD, hKfaceUp, hKhidden, hbelowK, hrunK⟩ :=
+    tabToTab_landing_facts hs₁ hrt hcN hs₁K
   -- the base search pins, first at s₁, then after the mirror's own removal
   have haTop : (s₁.piles a).top = some z := by
     show lastOf ((s₁.piles a).faceUp) = some z

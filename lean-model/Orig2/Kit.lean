@@ -1991,6 +1991,36 @@ theorem draw_passBase_reversibleW {st : State}
         List.take_append_drop, List.reverse_reverse]
     refine congrArg some (State.ext rfl rfl hstock.symm hwE rfl)
 
+/-- **The pass-base redeal finish** — the two first-leg branches'
+shared closing, extracted: once the rotation reaches the pass base
+`State.mk st.found st.piles [] (st.stock.reverse ++ st.waste)
+st.drawStep`, the redeal leg rides `base_positions_one` and the
+recycled pool splits back into `st` exactly.  FOLD-PORT of the two
+duplicated redeal legs of `Orig/Phase.lean:1513`'s two-branch
+rotation. -/
+theorem inphase_redeal_finish {st : State} {jk : Nat} (hd : 0 < st.drawStep)
+    (hjd2 : (jk + 1) * st.drawStep = st.waste.length)
+    (hwB : (st.stock.reverse ++ st.waste) ≠ [])
+    (hsizeB : (jk + 1) * st.drawStep ≤ (st.stock.reverse ++ st.waste).length) :
+    (State.mk st.found st.piles ([] : List Card) (st.stock.reverse ++ st.waste) st.drawStep).run
+      (List.replicate (jk + 1) Move.draw) = some st := by
+  have hb := base_positions_one jk
+    (State.mk st.found st.piles ([] : List Card) (st.stock.reverse ++ st.waste) st.drawStep)
+    rfl hwB hd hsizeB
+  rw [hb]
+  have hz1w : (State.mk st.found st.piles ([] : List Card)
+      (st.stock.reverse ++ st.waste) st.drawStep).waste
+      = st.stock.reverse ++ st.waste := rfl
+  have hz1d : (State.mk st.found st.piles ([] : List Card)
+      (st.stock.reverse ++ st.waste) st.drawStep).drawStep
+      = st.drawStep := rfl
+  rw [hz1w, hz1d]
+  have hSpl : st.waste.reverse ++ st.stock
+      = (st.stock.reverse ++ st.waste).reverse := by
+    rw [List.reverse_append, List.reverse_reverse]
+  rw [← hSpl, hjd2, ← List.length_reverse, drop_append_prefix, take_append_prefix,
+    List.reverse_reverse, List.append_nil]
+
 /-- **The in-phase round trip, witness grade.**  At a
 phase-aligned position with a positive draw step, cards left in
 the stock, and a nonempty whole number of deals in the waste, the
@@ -2077,24 +2107,7 @@ theorem draw_inphase_reversibleW {st : State} (hd : 0 < st.drawStep)
       hstep, ?_⟩
     rw [run_replicate_append _ _ _ (List.replicate (jk + 1) Move.draw) hDA,
       hdrop0, htake0, hSw1, hpool]
-    -- the redeal leg from the pass base
-    have hb := base_positions_one jk
-      (State.mk st.found st.piles ([] : List Card) (st.stock.reverse ++ st.waste) st.drawStep)
-      rfl hwB hd hsizeB
-    rw [hb]
-    -- the two final matches: the recycled pool splits back into st
-    have hz1w : (State.mk st.found st.piles ([] : List Card)
-        (st.stock.reverse ++ st.waste) st.drawStep).waste
-        = st.stock.reverse ++ st.waste := rfl
-    have hz1d : (State.mk st.found st.piles ([] : List Card)
-        (st.stock.reverse ++ st.waste) st.drawStep).drawStep
-        = st.drawStep := rfl
-    rw [hz1w, hz1d]
-    have hSpl : st.waste.reverse ++ st.stock
-        = (st.stock.reverse ++ st.waste).reverse := by
-      rw [List.reverse_append, List.reverse_reverse]
-    rw [← hSpl, hjd2, ← List.length_reverse, drop_append_prefix, take_append_prefix,
-      List.reverse_reverse, List.append_nil]
+    exact inphase_redeal_finish hd hjd2 hwB hsizeB
   · -- the stock's remainder forces one boundary deal before the base
     have hqB : ((st.stock.drop st.drawStep).length / st.drawStep) * st.drawStep
         + (st.stock.drop st.drawStep).length % st.drawStep
@@ -2259,24 +2272,7 @@ theorem draw_inphase_reversibleW {st : State} (hd : 0 < st.drawStep)
       run_draw_cons hBstep]
     -- the boundary deal's position is the pass base with the merged pool
     rw [hySt, hyWs, hpool2]
-    -- the redeal leg from the pass base
-    have hb := base_positions_one jk
-      (State.mk st.found st.piles ([] : List Card) (st.stock.reverse ++ st.waste) st.drawStep)
-      rfl hwB hd hsizeB
-    rw [hb]
-    -- the two final matches: the recycled pool splits back into st
-    have hz1w : (State.mk st.found st.piles ([] : List Card)
-        (st.stock.reverse ++ st.waste) st.drawStep).waste
-        = st.stock.reverse ++ st.waste := rfl
-    have hz1d : (State.mk st.found st.piles ([] : List Card)
-        (st.stock.reverse ++ st.waste) st.drawStep).drawStep
-        = st.drawStep := rfl
-    rw [hz1w, hz1d]
-    have hSpl : st.waste.reverse ++ st.stock
-        = (st.stock.reverse ++ st.waste).reverse := by
-      rw [List.reverse_append, List.reverse_reverse]
-    rw [← hSpl, hjd2, ← List.length_reverse, drop_append_prefix, take_append_prefix,
-      List.reverse_reverse, List.append_nil]
+    exact inphase_redeal_finish hd hjd2 hwB hsizeB
 
 
 /-! ## The audit battery
@@ -2296,6 +2292,7 @@ Per promoted head, this kit.  Expected profile: `[propext]` or
 #print axioms draw_nil_inPhase
 #print axioms draw_keeps_inPhase
 #print axioms selfRecycle_draw
+#print axioms inphase_redeal_finish
 #print axioms draw_passBase_reversibleW
 #print axioms draw_notW_of_pristine
 #print axioms draw_notW_of_offset
