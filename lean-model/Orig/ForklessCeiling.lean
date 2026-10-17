@@ -1888,64 +1888,6 @@ theorem ceiling_class_unique {st : State} (hwf : st.WF)
     BareCargoEquiv W₁ W₂ := by
   sorry
 
-/-- **THE TWIN-SEED FORCES THE FORK** `twin_seed_forks` [H —
-owner-requested intermediate, probe-gated, the class-form's
-contrapositive engine] — a divergent twin seed makes the class
-fork-HEADED: if `x`'s fitting parent `z₁` sits live while its
-MS-cell mate `z₂` (the same-rank other-family parent, `x.twin`'s
-fit) sits blocked, then maximally stacking everything else opens
-`z₂`'s seat and lands a genuine `ForkWitness` — the class carries a
-fork member.
-
-WHY THE MS-SPELLING (recorded so the probe hunts the right shape):
-`canSitOn x z ∧ canSitOn x.twin z` on ONE parent is
-rank-arithmetic-impossible (twins share rank, alternate families),
-so the seed's content lives at the CELL: two matched parents
-`z₁`/`z₂` (same rank, opposite families), `x` fit on the live one,
-`x.twin` fit on the blocked one.  `fc_cell_pair` (:1523) is the
-cell-premise kit; the raise/slide saturation is the ascent program's
-own stuck-exhaustion; the witness card naming the fork is the pair
-itself (`ForkWitness`'s exhaustive-iff shape — PairName.lean:27).
-
-RELATIONS (the ledger): this row is `ceiling_class_unique`'s
-step-one CONTRAPOSITIVE ENGINE (forkless ⇒ NO divergent seed
-survives saturation — its negation IS the divergence datum), and
-the arrangeability bridge is ForkCensus's own `PairArrangeable`
-(the presented-and-saturated composite — consult its premise set
-before proofing; the seed form here is strictly WEAKER-headed and
-must not re-derive what the census machinery already banks).
-
-ROUTE (probe-gated first: the FC-boards should hunt a
-blocked-mate world where saturation REFUSES to open `z₂` —
-e.g. hidden-buried `z₂` that no legal play ever surfaces at MP:
-that board KILLS this shape and re-prices the seed premise to
-face-up-blocked-only):
-
-1. SEED-TO-OPEN — the blocked seat `z₂` lies face-up-covered at
-   some pile (the seed spelling must decide: covered-over vs
-   hidden-buried — the probe's fork); the covering run's own
-   saturation (the ascent's maximality) removes the cover.
-2. OPEN-TO-WITNESS — at the open state the two continuations
-   (`x`-on-live vs `x.twin`-on-opened) are both raise-licensed
-   while everything else is saturated-stuck — the exhaustive
-   iff + the second-member refusal assemble `ForkWitness`.
-3. CLASS-CLOSURE — the arranging journey stays macro-in-class
-   (the ascent alphabet's letters are macro letters), so the
-   witness member sits in `st`'s macro class:
-   `ClassForkHeaded st` by ForkCensus's own unpacking. -/
-
-theorem twin_seed_forks {st : State} (hwf : st.WF)
-    {x z₁ z₂ : Card} {a b k : Anchor}
-    (hx : st.pileHolding x = some a)
-    (hfit₁ : canSitOn x z₁ = true)
-    (hfit₂ : canSitOn x.twin z₂ = true)
-    (hcell : z₂.rank = z₁.rank ∧ z₂.suit.color ≠ z₁.suit.color)
-    (hlive₁ : st.pileOfTop z₁ = some k)
-    (hblocked₂ : ∃ (tail : List Card), tail ≠ [] ∧
-      (st.piles b).faceUp = below z₂ (st.piles b).faceUp ++ z₂ :: tail) :
-    ClassForkHeaded st := by
-  sorry
-
 /-- **GRADE-C** `ceiling_gradeC` [H, EXPECTED FALSE — documented,
 not chased] — the same endpoints are EQUAL.  The (i) content
 board's twin runs land at TWO DISTINCT maximal endpoints
@@ -2081,7 +2023,6 @@ verdicts decide the degenerate arms before any direction unlocks). -/
 #print axioms ceiling_gradeA
 #print axioms ceiling_gradeB
 #print axioms ceiling_class_unique
-#print axioms twin_seed_forks
 #print axioms ceiling_gradeC
 #print axioms ceiling_descends
 #print axioms ceiling_descent_imp
