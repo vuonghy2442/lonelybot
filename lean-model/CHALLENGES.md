@@ -154,6 +154,16 @@ for the record with resolutions noted.)**
   as boundary data; the repair grades (α inf-split, β
   host-inventory, γ sum-floor) stay priced.  The fence: never
   retry the all-suits componentwise floor at the frozen statement.
+- The SEAT-LESS CONJUGATE closure (`conjugate_forkState`, the
+  `Orig.MacroInternal` stub) — REFUTED at probe grade (probe-B's
+  (Q, J) corner: the composite fires with TWO raisers at the
+  endpoint; the `Orig/ConjugateProof` §6 records), then RETIRED at
+  the 2026-10-17 supersession cleanup (owner request): the stub
+  removed as superseded by the audited seat-carrying closure
+  `conjugate_forkState_corrected` (`Orig/ConjugateProof.lean`, the
+  `TwinSeat` premise).  The fence: never retry the seat-less
+  weakForkState-endpoint claim; any successor carries the seat
+  package.
 - HostCensus's predecessor mirror kit — superseded and FALSE in
   wild generality (a miscounted wild foundation admits reversible
   foundToTab legs whose one-move undo dies); the pullEscape-grade

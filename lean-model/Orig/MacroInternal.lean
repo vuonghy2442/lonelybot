@@ -1130,31 +1130,19 @@ def conjugateForkState (st w : State) : Prop :=
     st₁.step (Move.tabToTab x.twin ba) = some st₂ ∧
     st₂.step (Move.foundToTab x bb) = some w
 
-/-- The conjugate is a weakForkState itself (the mate arm live, the
-pair-swapped seating preserving the iff).  GATE: the composite's
-anatomy derivation — must show the position swap preserves the
-three-clause detection (rungs unchanged net, maximality at the
-swapped-set state).
-
-2026-10-17 VERDICT TRUING (the surgical session): this SEAT-LESS shape
-is refuted at the probe grade — `Orig/ConjugateProof.lean` §6's probe-B
-records (the (Q,J) corner: the composite fires, the endpoint carries
-TWO raisers, not a weakForkState; the theorem-grade
-`conjugate_corner_notForkState` there remains staged future work).
-The honest seat-carrying closure is banked DOWNSTREAM as
-`conjugate_forkState_corrected` (`Orig/ConjugateProof.lean:532`, the
-`TwinSeat` seat premise, audited), reachable only through
-`Orig.ForkStateUniq`, which imports THIS file — import-invisible here.
-The MI-grade honest content is landed as the composite rows of §9
-below: the per-leg-reversibility class row and the composite's
-net-flat rung arithmetic.  This row keeps its sorry as the residue of
-the seat-less statement, per the house REFUTED discipline. -/
-theorem conjugate_forkState {st w : State}
-    (hconj : conjugateForkState st w)
-    (hwf : st.WF)
-    (hw : sameOrbitSetoid.r st w) :
-    weakForkState w := by
-  sorry
+/- THE SEAT-LESS CONJUGATE CLOSURE — RETIRED (the 2026-10-17
+supersession cleanup, owner request): the sorry'd stub
+`conjugate_forkState` (the seat-less shape — a `conjugateForkState`
+firing lands a weakForkState — refuted at the probe grade by
+`Orig/ConjugateProof.lean` §6's probe-B records, the (Q, J) corner
+firing with TWO raisers at the endpoint) was removed as superseded:
+the honest SEAT-CARRYING closure is banked and audited downstream
+as `conjugate_forkState_corrected` (the `TwinSeat` seat premise),
+and the MI-grade residue content lives on as §9's composite rows
+below (the per-leg-reversibility class row, the net-flat rung
+arithmetic).  The never-retry fence is banked at CHALLENGES.md
+(REFUTED tier).  `conjugateForkState` the DEF stays: the S-siblings'
+composite record. -/
 
 /- THE CONJUGATE EXISTENCE IFF (the user's necessary-and-sufficient
 condition): the physical swap composite fires iff BOTH twins' seats
@@ -1493,12 +1481,12 @@ note sits at the former §7; and the 2026-10-17 dossier archive
 RELOCATED the fork-point program — `forkPointC`, `forkPoint`,
 `PairCfg`, `afterFork`, the seven frozen dossier targets, and the
 sandwich/pins satellites — VERBATIM to `Orig/ForkDossier.lean`,
-their seven sorries riding along there): the current sorry surface
-is 16 tactic-level sorries in five tiers — the blocked floor row
+their seven sorries riding along there; the same cleanup RETIRED the
+seat-less `conjugate_forkState` stub, its fence at CHALLENGES):
+the current sorry surface is 15
+tactic-level sorries in four tiers — the blocked floor row
 (`founded_implies_atRung`, envelope-gated); the fiber/orbit tier
-(`fiber_iff_flat`, `finals_topFibers`); the conjugate row
-(`conjugate_forkState` — the seat-less shape refuted at the probe
-grade, see its docstring); the fork-journey tier
+(`fiber_iff_flat`, `finals_topFibers`); the fork-journey tier
 (`unionable_iff_unionTuple`, `fork_iff_nonUnionable`,
 `wing_crossing_bottleneck`); and the canonical-face/classification
 block (`canonFace_exists`, `canonFace_mem`, `faceShape_rel`,
