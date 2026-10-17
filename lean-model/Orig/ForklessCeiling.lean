@@ -1733,6 +1733,30 @@ theorem cargoMirror_corner {st s₁ : State} {K : Card} {a₀ a : Anchor}
   · exact (hz2.2.2.1).trans hz1.2.2.1
   · exact (hz2.2.2.2).trans hz1.2.2.2
 
+theorem fc_firstWhere_pileOfTop {S : State} {w : Card} {k : Anchor}
+    (hkf : ∀ x : Anchor, x ≠ k → (S.piles x).top ≠ some w)
+    (hk : (S.piles k).top = some w) :
+    S.pileOfTop w = some k := by
+  show firstWhere (fun x => decide (S.topOf x = some w)) Anchor.all = some k
+  refine firstWhere_find (Anchor.mem_all k) ?_ ?_
+  · have hk' : S.topOf k = some w := hk
+    show decide (S.topOf k = some w) = true
+    rw [decide_eq_true (p := S.topOf k = some w)]
+    exact hk'
+  · intro x _hx hxk
+    have hx : (S.piles x).top ≠ some w := hkf x hxk
+    have hf : S.topOf x ≠ some w := fun h => hx h
+    show decide (S.topOf x = some w) = false
+    rw [decide_eq_false]
+    exact hf
+
+theorem fc_firstWhere_pileOfTop_unique {S : State} {w : Card} {k : Anchor}
+    (hwf : S.WF) (hmem : w ∈ (S.piles k).faceUp)
+    (hkf : ∀ x : Anchor, x ≠ k → (S.piles x).top ≠ some w)
+    (hk : (S.piles k).top = some w) :
+    S.pileOfTop w = some k :=
+  fc_firstWhere_pileOfTop hkf hk
+
 /-! ## §2. The graded ceiling conjectures (frozen; the probe leaf
 decides before any proof starts) -/
 
