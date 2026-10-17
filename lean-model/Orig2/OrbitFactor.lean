@@ -2410,6 +2410,68 @@ theorem shuffle_drawsLast : ∀ (play : List Move) (x y : State),
       | wasteToFound c => exact absurd hw (journey_never_wasteToFound _ c)
       | wasteToTab c b => exact absurd hw (journey_never_wasteToTab _ c b)
 
+/-! ## §3. THE DRAW-BLOCK TRANSPLANT
+
+Draws-only witness journeys re-root at any state sharing the draw
+zone (template `draw_play_transplant`,
+`Orig/OrbitFactor.lean:520-566`): each leg fires by the
+field-determined draw (`stepDraw_rel`), each leg's `reversibleAtW`
+re-instantiates by the §1.5.7 census (`draw_revW_congr`), and the
+landing shares the original's zone while keeping the new frame's
+board — the phase component runs equally at every board that
+shares its zone. -/
+
+/-- The frame-threading core: proved by list induction with BOTH
+frames generalized, so the successor pair of a draw leg
+(`stepDraw_rel`) chains (PORTED from
+`Orig/OrbitFactor.lean:520`, trued to the Walk cons order and the
+§1.5.7 census). -/
+private theorem draw_play_transplant_aux : ∀ (x x' : State) (play : List Move)
+    (y : State), ShufflePlayW x play y → (∀ m ∈ play, m = Move.draw) →
+    0 < x.drawStep → x.stock = x'.stock → x.waste = x'.waste →
+    x.drawStep = x'.drawStep →
+    ∃ y', ShufflePlayW x' play y' ∧
+      y'.stock = y.stock ∧ y'.waste = y.waste ∧ y'.drawStep = y.drawStep := by
+  intro x x' play
+  induction play generalizing x x' with
+  | nil =>
+      intro y hx hdraw hpos hst1 hst2 hst3
+      cases hx
+      exact ⟨x', .nil x', hst1.symm, hst2.symm, hst3.symm⟩
+  | cons m rest ih =>
+      intro y hx hdraw hpos hst1 hst2 hst3
+      have hdrawer : ∀ m' ∈ rest, m' = Move.draw := fun m' hm' =>
+        hdraw m' (List.mem_cons_of_mem _ hm')
+      have hmd : m = Move.draw := hdraw m (by simp)
+      subst hmd
+      cases hx with
+      | @cons _ mid _ _ _ hw hstep hrest =>
+          have hb : x.stepDraw = some mid := hstep
+          obtain ⟨mid', hfire', hpv, hpu, hfv, hfu, hdv2, hdu2, hz1, hz2⟩ :=
+            stepDraw_rel hst1.symm hst2.symm hst3.symm hb
+          have hleg : reversibleAtW x' Move.draw :=
+            draw_revW_congr hpos hst1 hst2 hst3 hw
+          have hdss : mid.drawStep = mid'.drawStep :=
+            (stepDraw_drawStep hb).trans (hst3.trans (stepDraw_drawStep hfire').symm)
+          obtain ⟨y'', hjrest, hz1', hz2', hdss'⟩ :=
+            ih mid mid' y hrest hdrawer (by rw [stepDraw_drawStep hb]; exact hpos)
+              hz1.symm hz2.symm hdss
+          exact ⟨y'', .cons hleg hfire' hjrest, hz1', hz2', hdss'⟩
+
+/-- **§3: re-rooting a draw block at the rotated position** — a
+draws-only witness journey re-runs, legs still witnessed, at any
+state sharing the draw zone (PORT from
+`Orig/OrbitFactor.lean:560`; the per-leg census is this card's
+§1.5.7 restatement, the firing field-determined by the §0.5
+`stepDraw_rel` port). -/
+theorem draw_play_transplant {x y x' : State} {play : List Move}
+    (h : ShufflePlayW x play y) (hdraw : ∀ m ∈ play, m = Move.draw)
+    (hpos : 0 < x.drawStep)
+    (hs : x.stock = x'.stock) (hw : x.waste = x'.waste) (hd : x.drawStep = x'.drawStep) :
+    ∃ y', ShufflePlayW x' play y' ∧
+      y'.stock = y.stock ∧ y'.waste = y.waste ∧ y'.drawStep = y.drawStep :=
+  draw_play_transplant_aux x x' play y h hdraw hpos hs hw hd
+
 /-! ## THE AUDIT BATTERY
 
 Per proved head: `[propext]`/`[propext, Quot.sound]` only; zero
@@ -2445,3 +2507,5 @@ Per proved head: `[propext]`/`[propext, Quot.sound]` only; zero
 #print axioms shuffleW_cons_inv
 #print axioms pull_one
 #print axioms shuffle_drawsLast
+#print axioms draw_play_transplant_aux
+#print axioms draw_play_transplant
