@@ -27,11 +27,14 @@ their frozen-tier consumers — the G2 falsifier records, the §9
 composites, the S-siblings — stay on record where they are).  KEPT —
 `CanRaise`, `CanRaiseS`, `ShufflePlayW`, `RevEqW`, `sameOrbitSetoid`,
 `classOf`, `rungAt`, `twinSuit`, the reversibility carrier
-`reversibleAtW`, the commit-oracle tier (`irreversibleAt`,
-`reversibleAt`, the R-shapes `drawR`/`tabToFoundR`/`foundToTabR`/
-`tabToTabR` — the owner's inside-flip restating the commit
-shapes, retired — and `reversibleOf`, the negation-free assembly),
-and the journey letters `FlatStep`/`FlatPath`/`CargoPath`/`Journey`.
+`reversibleAtW` (the regime's ONE semantic notion), the R-shapes
+`drawR`/`tabToFoundR`/`foundToTabR`/`tabToTabR` and the
+negation-free oracle `reversibleOf` (the inside-flip; the
+commit-polarity originals retired), and the journey letters
+`FlatStep`/`FlatPath`/`CargoPath`/`Journey`.  RETIRED by the
+witness-only restate — `irreversibleAt`/`reversibleAt` (the
+semantic commitment pair exited the new interface; the classical
+iff fence is moot — its other side no longer exists).
 PENDING — everything in the annex below.
 
 ## §1. PLAY-TAXONOMY COUNTERS (live, ported)
@@ -83,27 +86,24 @@ def reversibleAtW (st : State) (m : Move) : Prop :=
   ∃ s₁ play, State.step st m = some s₁ ∧ s₁.run play = some st
 
 /-!
-## §1.6. THE COMMIT ORACLE  (live, KEPT 2026-10-17; shapes flipped
-reversible-first by owner restate the same day)
+## §1.6. THE UNDOABILITY ORACLE  (live, KEPT 2026-10-17; shapes
+flipped reversible-first, then the WITNESS-ONLY REGIME adopted —
+both owner restates the same day)
 
-The oracle tier, ported as a set and then FLIPPED INSIDE: each
-shape predicate reads UNDOABILITY natively (`drawR`,
-`tabToFoundR`, `foundToTabR`, `tabToTabR`) — the owner's restate
-supersedes the commit-polarity originals (retired from the
-registry; their frozen homes keep the certified classification
-rows).  The specification rows (the WF-gated iff and the
+The oracle tier: each shape predicate reads UNDOABILITY natively
+(`drawR`, `tabToFoundR`, `foundToTabR`, `tabToTabR`) — the flip
+superseded the commit-polarity originals (retired; their frozen
+homes keep the certified classification rows).  THE WITNESS-ONLY
+REGIME: the semantic pair `irreversibleAt`/`reversibleAt` is
+RETIRED with it — the program's ONE reversibility notion is the
+carrier `reversibleAtW`, decided at WF by the oracle below;
+commitment is what shape-false MEANS at WF (the program never
+leaves WF), and the wild-state divergence corners stay archived as
+boundary data.  Retirement record: the commitment notion re-enters
+only if a future card demonstrates a need the witness grade cannot
+serve.  The specification rows (the WF-gated bridge, the
 decidability rider) are Claims-layer material, not registry.
 -/
-
-/-- **irreversibleAt st m** — the semantic commitment: a move is a
-commitment iff NO continued play ever returns.  PORTED VERBATIM
-from `Orig/Fate.lean:73`. -/
-def irreversibleAt (st : State) (m : Move) : Prop :=
-  ∀ s₁ play, State.step st m = some s₁ → s₁.run play ≠ some st
-
-/-- **reversibleAt st m** — the negative form: not a commitment,
-undoable in place.  PORTED VERBATIM from `Orig/Fate.lean:77`. -/
-def reversibleAt (st : State) (m : Move) : Prop := ¬ irreversibleAt st m
 
 /-- **drawR st** — the draw undoability shape: no stock and the
 waste rests (or stock present and the cycle rests off-multiple)
@@ -169,13 +169,13 @@ def tabToTabR (st : State) (c : Card) (b : Base) : Bool :=
 /-- **reversibleOf st m** — the per-move oracle, REVERSIBLE-FIRST
 (owner flip, 2026-10-17): the assembly reads undoability directly
 from the R-shapes — no negations anywhere.  At WF states this
-decides the semantic `reversibleAt` predicate EXACTLY (the
-Claims-tier iff); deliberately not a global instance-gate — at
-wild states the shape and the semantics diverge in both directions
-(the witnessed corners are in the frozen-tier witness archive).
-Restate lineage: the old `irreversibleOf` (`Orig/Classify.lean:2854`)
-→ the negated-assembly flip → the inside-flipped R-shapes (this
-one, the final form). -/
+decides THE WITNESS CARRIER exactly (the Claims-tier bridge:
+`reversibleOf st m = true ↔ reversibleAtW st m`); deliberately not
+a global instance-gate — at wild states the shape and the carrier
+diverge in both directions (the witnessed corners are in the
+frozen-tier witness archive).  Restate lineage: the old
+`irreversibleOf` (`Orig/Classify.lean:2854`) → the negated-assembly
+flip → the inside-flipped R-shapes (this, the final form). -/
 def reversibleOf (st : State) (m : Move) : Bool :=
   match m with
   | .draw => drawR st
