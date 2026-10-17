@@ -489,7 +489,6 @@ private theorem tabToFound_undo_under {st : State} {c : Card} {a : Anchor} {z : 
   have hcp : s₁.canPlace c (Sum.inr z) = true := by
     simp only [State.canPlace, hsearch]
     exact hsit
-  refine ⟨s₁, [Move.foundToTab c (Sum.inr z)], hstep, ?_⟩
   have hstep2 : State.step s₁ (Move.foundToTab c (Sum.inr z)) = some st := by
     simp only [State.step, hft]
     rw [hcp]
@@ -542,7 +541,7 @@ private theorem tabToFound_undo_under {st : State} {c : Card} {a : Anchor} {z : 
     · show s₁.drawStep = st.drawStep
       rw [hs₁]
       rfl
-  simp only [State.run, hstep2]
+  exact reversible_mirrorW hstep hstep2
 
 /-- **The bare `.tabToFound` undo, witness form (primary).**  A
 successful no-reveal `.tabToFound` whose source pile empties
@@ -578,7 +577,6 @@ private theorem tabToFound_undo_bare {st : State} {c : Card} {a : Anchor} {s₁ 
     show ((s₁.piles a).isEmpty && decide (c.rank = Rank.king)) = true
     rw [hpla, decide_eq_true hking]
     rfl
-  refine ⟨s₁, [Move.foundToTab c (Sum.inl a)], hstep, ?_⟩
   have hstep2 : State.step s₁ (Move.foundToTab c (Sum.inl a)) = some st := by
     simp only [State.step, hft]
     rw [hcp]
@@ -613,7 +611,7 @@ private theorem tabToFound_undo_bare {st : State} {c : Card} {a : Anchor} {s₁ 
     · show s₁.drawStep = st.drawStep
       rw [hs₁]
       rfl
-  simp only [State.run, hstep2]
+  exact reversible_mirrorW hstep hstep2
 
 /-! ### §1n. The list & run mini kit
 
@@ -693,22 +691,13 @@ private theorem runOK_append_right : ∀ (A B : List Card),
           exact ⟨h'.1, ih B h'.2⟩
 
 /-- In a legal run, every tail card sits strictly below the head in
-rank.  PORTED verbatim from `Orig/Classify.lean:409`. -/
+rank.  PORTED from `Orig/Classify.lean:409`; the frozen sources
+stated this row twice (the Integrity twin is
+`Orig/Integrity.lean:565`, §1l's `runOK_head_gt`) — the deck now
+carries it once and this name aliases it. -/
 private theorem runOK_head_lt : ∀ {t : List Card} {x y : Card},
-    runOK (x :: t) = true → y ∈ t → y.rank.toIdx < x.rank.toIdx := by
-  intro t
-  induction t with
-  | nil => intro x y _ hmem; cases hmem
-  | cons w t' ih =>
-      intro x y hok hmem
-      rw [runOK, Bool.and_eq_true] at hok
-      obtain ⟨hsit, hrest⟩ := hok
-      obtain ⟨heq, -⟩ := (canSitOn_eq w x).mp hsit
-      have hwlt : w.rank.toIdx < x.rank.toIdx := by omega
-      rcases List.mem_cons.1 hmem with rfl | hyt
-      · exact hwlt
-      · have := ih hrest hyt
-        omega
+    runOK (x :: t) = true → y ∈ t → y.rank.toIdx < x.rank.toIdx :=
+  runOK_head_gt
 
 /-- The seam fit: in a legal face-up run, each card fits on its
 immediate predecessor, anywhere in the list.  PORTED verbatim from
@@ -1177,39 +1166,16 @@ private theorem wf_found_chop_toIdx {st : State} {s : Suit} {c : Card}
   rw [Rk_toIdx ((st.found s).length - 1) (by omega)]
   omega
 
-/-- One pile's whole zone (the private reshaping).  PORTED
-verbatim from `Orig/Classify.lean:459`. -/
-private def pileZoneC (st : State) (a : Anchor) : List Card :=
-  (st.piles a).hidden ++ (st.piles a).faceUp
-
-/-- A WF state never holds a foundation card in a pile.  PORTED
-verbatim from `Orig/Classify.lean:465`. -/
-private theorem wf_found_not_in_pile {st : State} {c : Card} {a : Anchor} {σ : Suit}
-    (hwf : st.WF) (hf : c ∈ st.found σ) (hp : c ∈ (st.piles a).hidden ∨ c ∈ (st.piles a).faceUp) :
-    False := by
-  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
-  have hsplit : st.zones =
-      (Suit.all.map st.found) ++
-        ((Anchor.all.map (fun a' => pileZoneC st a')) ++ [st.stock, st.waste]) := rfl
-  have hl : c ∈ (Suit.all.map st.found).flatMap id :=
-    (List.mem_flatMap).2 ⟨st.found σ, List.mem_map.2 ⟨σ, Suit.mem_all σ, rfl⟩, hf⟩
-  have hz : c ∈ pileZoneC st a := by
-    rcases hp with h | h
-    · exact (List.mem_append).2 (Or.inl h)
-    · exact (List.mem_append).2 (Or.inr h)
-  have hr : c ∈ ((Anchor.all.map (fun a' => pileZoneC st a')) ++ [st.stock, st.waste]).flatMap id :=
-    (List.mem_flatMap).2 ⟨pileZoneC st a,
-      (List.mem_append).2 (Or.inl (List.mem_map.2 ⟨a, Anchor.mem_all a, rfl⟩)), hz⟩
-  have h2 : 2 ≤ st.cardCount c := count_ge_two_of_split hsplit hl hr
-  omega
-
-/-- A WF state's foundation top is no pile's top.  PORTED verbatim
-from `Orig/Classify.lean:486`. -/
+/-- A WF state's foundation top is no pile's top.  PORTED from
+`Orig/Classify.lean:486`; the §1l row `wf_pile_found_ne`
+(`Orig/Integrity.lean:173`) carries the denial — the duplicated
+`pileZoneC`/`wf_found_not_in_pile` rebuild
+(`Orig/Classify.lean:459/:465`, the same counting restated over a
+renamed zone) retires with the consolidation. -/
 private theorem wf_found_not_pileTop {st : State} {c : Card} {a : Anchor} {σ : Suit}
-    (hwf : st.WF) (hf : lastOf (st.found σ) = some c) : (st.piles a).top ≠ some c := by
-  intro htop
-  have hmem : c ∈ (st.piles a).faceUp := Pile.mem_of_top htop
-  exact wf_found_not_in_pile hwf (lastOf_mem hf) (Or.inr hmem)
+    (hwf : st.WF) (hf : lastOf (st.found σ) = some c) : (st.piles a).top ≠ some c :=
+  fun htop =>
+    wf_pile_found_ne hwf ((List.mem_append).2 (Or.inr (Pile.mem_of_top htop))) (lastOf_mem hf)
 
 /-- The pile-level round trip of a card-on-card placement.  PORTED
 verbatim from `Orig/Irreversible.lean:1287`. -/
@@ -1244,7 +1210,6 @@ private theorem foundToTab_rtp {st : State} {c : Card} {b : Base} {s₁ : State}
     show decide (c.rank.toIdx = (s₁.found c.suit).length) = true
     rw [hfound, hidx]
     exact decide_eq_true rfl
-  refine ⟨s₁, [Move.tabToFound c], hstep, ?_⟩
   have hstep2 : State.step s₁ (Move.tabToFound c) = some st := by
     show (if s₁.nextUp c = true then
         (match s₁.pileOfTop c with
@@ -1283,7 +1248,7 @@ private theorem foundToTab_rtp {st : State} {c : Card} {b : Base} {s₁ : State}
     · show (s₁.setFound c.suit (s₁.found c.suit ++ [c])).drawStep = st.drawStep
       rw [setFound_drawStep]
       exact hkeep.2.2
-  simp only [State.run, hstep2]
+  exact reversible_mirrorW hstep hstep2
 
 /-- **The `.foundToTab` undo, witness form (primary).**  A
 successful `Move.foundToTab c b` is undone by `Move.tabToFound c`
@@ -1466,14 +1431,6 @@ verbatim from `Orig/Classify.lean:354`. -/
 private theorem below_head_eq {c : Card} {t : List Card} :
     below c (c :: t) = [] := by
   rw [below, ite_eq_left rfl]
-
-/-- The removal over the empty below-part with no hidden cards
-empties the pile outright.  PORTED verbatim from
-`Orig/Classify.lean:1255`. -/
-private theorem afterRunRemoved_empty_eq' {p : Pile} {z : Card}
-    (h : below z p.faceUp = []) (hh : p.hidden = []) :
-    Pile.afterRunRemoved p (below z p.faceUp) = ⟨[], []⟩ := by
-  rw [h, afterRunRemoved_empty_eq p hh]
 
 /-- A self-located top search is impossible on an empty pile.
 PORTED verbatim from `Orig/Classify.lean:947`. -/

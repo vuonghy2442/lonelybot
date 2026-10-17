@@ -584,127 +584,26 @@ importable here; every row carries its source cite). -/
 
 /-! ### §1.5.2 The draw arithmetic (Phase ports, `Orig/Phase.lean:222-311`) -/
 
-/-- A drawn-from stock strictly shrinks (PORTED VERBATIM from
-`Orig/Phase.lean:224`). -/
-private theorem draw_dropStock {x y : State} (hsuc : x.stepDraw = some y)
-    (hd : 0 < x.drawStep) (hne : x.stock ≠ []) : y.stock.length < x.stock.length := by
-  obtain ⟨r, hrec, hrne, hy⟩ := draw_unfold hsuc
-  have hxr : x = r := ((recycle_keep x hne).symm).trans hrec
-  rw [← hxr] at hy
-  have hyS : y.stock = (State.dealUpTo x.drawStep x.stock).2 := by rw [hy]
-  obtain ⟨h1, h2⟩ := dealUpTo_lens x.drawStep x.stock
-  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil hne
-  have hsl : x.stock.length = 1 + t.length := by
-    show (x.stock).length = 1 + t.length
-    rw [hcon, List.length_cons]
-    omega
-  rcases Nat.lt_or_ge x.drawStep x.stock.length with hlt | hge
-  · rw [Nat.min_eq_left (Nat.le_of_lt hlt)] at h1
-    rw [hyS]
-    omega
-  · rw [Nat.min_eq_right hge] at h1
-    rw [hyS]
-    omega
-
 /-! The draw-alignment trap (PORTED from `Orig/Phase.lean:268/:315`)
 rides the promoted physics kit `Orig2/Kit.lean`
-(`draw_nil_inPhase`, `draw_keeps_inPhase`); this card keeps its
-own census row `draw_dropStock` (`Orig/Phase.lean:224`). -/
+(`draw_nil_inPhase`, `draw_keeps_inPhase`); the card's former
+census restatement (`draw_dropStock`, `Orig/Phase.lean:224`)
+retired — its one consumer, the commitment invariant below, went
+with Kit's `draw_notW_of_offset` delegation. -/
 
 /-! ### §1.5.3 The waste-free play discipline (Phase ports,
 `Orig/Phase.lean:363, 515-757`) -/
 
 /-! The waste-free play discipline (PORTED from
-`Orig/Phase.lean:363/:515/:559/:621/:645`) rides the promoted
-physics kit `Orig2/Kit.lean` — `isWasteMove`,
-`run_cycleCount_lt`, `run_cycleCount_le`,
-`step_wasteNe_preserved`, `run_wasteNe`, `draw_pristine_s1`
-(the appendix row `append_ne_nil_right` retires with the
-consolidation); the commitment invariant below
+`Orig/Phase.lean:363/:515/:559/:621/:645`) rides the physics kit
+— `isWasteMove`, `run_cycleCount_lt`, `run_cycleCount_le`,
+`step_wasteNe_preserved`, `run_wasteNe`, `draw_pristine_s1` (the
+appendix row `append_ne_nil_right` retired with the
+consolidation); the commitment-invariant family
 (`beforeOriginOrAligned`, `step_inv_preserved`,
-`run_inv_preserved`) is this card's own machinery and stays. -/
-
-/-- The commitment invariant carried along a returning play
-(VERBATIM from `Orig/Phase.lean:680`). -/
-private def beforeOriginOrAligned (x₀ x : State) : Prop :=
-  x.stock.length < x₀.stock.length ∨ inPhase x = true
-
-/-- One step of a `wasteTo*`-free play preserves the commitment
-invariant (PORTED from `Orig/Phase.lean:685`, board cells via this
-card's `board_fire_zone`). -/
-private theorem step_inv_preserved {x₀ x y : State} (hd : 0 < x₀.drawStep)
-    {m : Move} (hsd : x.drawStep = x₀.drawStep)
-    (hgood : isWasteMove m ≠ true) (hs : State.step x m = some y)
-    (hinv : beforeOriginOrAligned x₀ x) :
-    beforeOriginOrAligned x₀ y ∧ y.drawStep = x.drawStep := by
-  have hdx : 0 < x.drawStep := by
-    rw [hsd]
-    exact hd
-  cases m with
-  | draw =>
-      have hsuc : x.stepDraw = some y := hs
-      refine ⟨?_, stepDraw_drawStep hsuc⟩
-      rcases hinv with h | h
-      · by_cases hst : x.stock = []
-        · exact Or.inr (draw_nil_inPhase hst hsuc)
-        · exact Or.inl (by
-            have := draw_dropStock hsuc hdx hst
-            omega)
-      · exact Or.inr (draw_keeps_inPhase hsuc h)
-  | wasteToFound c => simp [isWasteMove] at hgood
-  | wasteToTab c b => simp [isWasteMove] at hgood
-  | tabToFound c =>
-      obtain ⟨h1, h2, h3⟩ := board_fire_zone rfl hs
-      refine ⟨?_, h3⟩
-      rcases hinv with h | h
-      · exact Or.inl (by rw [h1]; exact h)
-      · exact Or.inr (by
-          have hc := inPhase_congr (x := y) (y := x) h1 h2 h3
-          rw [hc]
-          exact h)
-  | foundToTab c b =>
-      obtain ⟨h1, h2, h3⟩ := board_fire_zone rfl hs
-      refine ⟨?_, h3⟩
-      rcases hinv with h | h
-      · exact Or.inl (by rw [h1]; exact h)
-      · exact Or.inr (by
-          have hc := inPhase_congr (x := y) (y := x) h1 h2 h3
-          rw [hc]
-          exact h)
-  | tabToTab c b =>
-      obtain ⟨h1, h2, h3⟩ := board_fire_zone rfl hs
-      refine ⟨?_, h3⟩
-      rcases hinv with h | h
-      · exact Or.inl (by rw [h1]; exact h)
-      · exact Or.inr (by
-          have hc := inPhase_congr (x := y) (y := x) h1 h2 h3
-          rw [hc]
-          exact h)
-
-/-- The play lift of the invariant (PORTED VERBATIM from
-`Orig/Phase.lean:736`). -/
-private theorem run_inv_preserved : ∀ {play : List Move} {x₀ x w : State},
-    0 < x₀.drawStep → x.drawStep = x₀.drawStep →
-    (∀ m ∈ play, isWasteMove m ≠ true) →
-    beforeOriginOrAligned x₀ x →
-    x.run play = some w → beforeOriginOrAligned x₀ w := by
-  intro play
-  induction play with
-  | nil =>
-      intro x₀ x w _hd _hsd _hgood hinv hrun
-      have hx : some x = some w := hrun
-      injection hx with h
-      rw [← h]
-      exact hinv
-  | cons m rest ih =>
-      intro x₀ x w hd hsd hgood hinv hrun
-      obtain ⟨s₁, hm, hrs⟩ := State.run_cons hrun
-      have hmne : isWasteMove m ≠ true := hgood m (by simp)
-      obtain ⟨hinv', hsd'⟩ := step_inv_preserved hd hsd hmne hm hinv
-      have hgood' : ∀ m' ∈ rest, isWasteMove m' ≠ true := by
-        intro m' hm'
-        exact hgood m' (by simp [hm'])
-      exact ih hd (hsd'.trans hsd) hgood' hinv' hrs
+`run_inv_preserved`, `Orig/Phase.lean:680/:685/:736`) retired
+with it for the same reason — the offset denial now rides Kit's
+lex tier (`draw_notW_of_offset`). -/
 
 /-! ### §1.5.4 The deal list kit (Phase ports, `Orig/Phase.lean:1207-1349`) -/
 
@@ -1244,7 +1143,6 @@ Per proved head: `[propext]`/`[propext, Quot.sound]` only; zero
 #print axioms board_draw_commute
 #print axioms draw_nil_inPhase
 #print axioms draw_keeps_inPhase
-#print axioms draw_dropStock
 #print axioms draw_not_revW_pristine
 #print axioms draw_not_revW_offset
 #print axioms drain_to_pass

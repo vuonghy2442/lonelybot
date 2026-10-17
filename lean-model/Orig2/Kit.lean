@@ -52,6 +52,17 @@ theorem not_W_of_step_none {st : State} {m : Move}
   rw [h] at hstep
   exact absurd hstep (by simp)
 
+/-- **The one-mirror witness handoff** (this kit's own row): if a
+single mirror move returns from the committed successor, the
+carrier's witness exists.  The constructive arms of the cards'
+round trips ride this one tool; the frozen cards inlined the same
+`⟨s₁, [m'], hstep, simp only [State.run, hret]⟩` dance at every
+arm. -/
+theorem reversible_mirrorW {st s₁ : State} {m : Move} {m' : Move}
+    (hstep : State.step st m = some s₁) (hret : State.step s₁ m' = some st) :
+    reversibleAtW st m :=
+  ⟨s₁, [m'], hstep, by simp only [State.run, hret]⟩
+
 /-!
 ## §1. THE PHYSICS KIT  (the seam annex, promoted)
 
@@ -2278,6 +2289,7 @@ Per promoted head, this kit.  Expected profile: `[propext]` or
 #print axioms mono_run_lex
 #print axioms not_W_of_desc
 #print axioms not_W_of_step_none
+#print axioms reversible_mirrorW
 #print axioms cycleCount_step
 #print axioms hiddenTotal_step
 #print axioms draw_footprint
