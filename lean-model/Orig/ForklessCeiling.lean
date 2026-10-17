@@ -1687,18 +1687,6 @@ theorem cargo_pair_genesis (A B : State) :
       (SameCargoFix A B ∧ ∃ (σ : List Move), MirrorWord A σ B) := by
   sorry
 
-/-- **THE α-GRADE (WF CORRIDOR)** [H — the genesis's constructive
-upgrade, probe-gated with the genesis] — at a `WF` origin, EVERY
-witnessing pair factorizes: each leg of each play carries its
-mirror certificate, so the pair is a mirror-word pair outright
-(the all-witnesses strengthening; §0c's exclusion supplies the
-alphabet classification, the §0d mirrors kit the certificates). -/
-theorem cargo_pair_genesis_alpha {A B : State}
-    (hwf : A.WF) (hpair : BareCargoEquiv A B) :
-    ∀ {τ ρ : List Move}, CargoPlay A τ B → CargoPlay B ρ A →
-      MirrorWord A τ B ∧ MirrorWord B ρ A ∧ SameCargoFix A B := by
-  sorry
-
 /-! ### §1g.1 The mirror kit (the WF corridor's per-arm certificates) -/
 
 /-- The self-absence row (the kit glue the slide mirror rides): `c`
@@ -2193,6 +2181,80 @@ theorem cargoMirror_slide {st s₁ : State} {e z : Card} {k a : Anchor}
     MirrorLetter st s₁ (Move.tabToTab e (Sum.inr z)) := by
   obtain ⟨y, -, hstepeq⟩ := cargoMirror_s3 hwf hstep hhold hpa hfit hpre
   exact ⟨Move.tabToTab e (Sum.inr y), hstepeq, ⟨e, Sum.inr y, rfl⟩⟩
+
+/-- **THE UNDER-ARMED KING-BAR** — the shuffle's slide arm cannot
+fire an inl letter: at `WF` the mover of any inl leg is a king, and
+a king is always its pile's face-up bottom (`fc_runOK_king_first`),
+so the below-part of its holding pile is empty — contradicting the
+slide constructor's under-armed premise. -/
+private theorem foldshuffle_slide_ne_inl {st s₁ : State} {c : Card}
+    {a₀ ap : Anchor}
+    (hwf : st.WF)
+    (hstep : State.step st (Move.tabToTab c (Sum.inl a₀)) = some s₁)
+    (hhold : st.pileHolding c = some ap)
+    (hunder : below c (st.piles ap).faceUp ≠ []) :
+    False := by
+  obtain ⟨ap₂, hh₀, hcp, hfr, -⟩ := step_tabToTab_inv hstep
+  have hae : ap = ap₂ := Option.some.inj (hhold.symm.trans hh₀)
+  subst hae
+  obtain ⟨hemp, hK⟩ := canPlace_inl hcp
+  obtain ⟨rest, hKrest⟩ := fc_fromCard_head (st.piles ap).faceUp hfr
+  have hjoin : (st.piles ap).faceUp
+      = below c (st.piles ap).faceUp ++ c :: rest := by
+    rw [← hKrest]
+    exact fc_below_join c (st.piles ap).faceUp
+  have hbel : below c (st.piles ap).faceUp = [] :=
+    fc_runOK_king_first hK _ rest (by
+      rw [← hjoin]
+      exact hwf.runOK_of ap)
+  exact absurd hbel hunder
+
+/-- **THE SHUFFLE IS A MIRROR WORD** — each surviving arm's leg
+carries its one-move in-place retrace: the seated slide consults the
+seam-card mirror (`cargoMirror_slide`), the clean king-corner consults
+the corner mirror (`cargoMirror_corner`), and the impossible inl
+slide dies on the king-bar. -/
+private theorem ShuffleToMirrorWord : ∀ {S : State} {ρ : List Move} {W : State},
+    CargoShuffle S ρ W → S.WF → MirrorWord S ρ W := by
+  intro S ρ W h
+  induction h with
+  | nil s => intro hwf; exact .nil s
+  | @slide st s₁ W c b ρ' hstep hunder hrest ih =>
+      intro hwf
+      obtain ⟨ap, hh₀, hcp, -, -⟩ := step_tabToTab_inv hstep
+      cases b with
+      | inl a₀ =>
+          exact (foldshuffle_slide_ne_inl hwf hstep hh₀ (hunder ap hh₀)).elim
+      | inr z =>
+          obtain ⟨k, hpa, hfit⟩ := canPlace_inr hcp
+          exact .mleg ⟨c, Sum.inr z, rfl⟩ hstep
+            (cargoMirror_slide hwf hstep hh₀ hpa hfit (hunder ap hh₀))
+            (ih (step_wf hwf hstep))
+  | @corner st s₁ W K a₀ ρ' hstep _hking hsrc hrest ih =>
+      intro hwf
+      obtain ⟨ap, hh₀, -, -, -⟩ := step_tabToTab_inv hstep
+      obtain ⟨hbel, hhid⟩ := hsrc ap hh₀
+      exact .mleg ⟨K, Sum.inl a₀, rfl⟩ hstep
+        (cargoMirror_corner hwf hstep hh₀ hbel hhid)
+        (ih (step_wf hwf hstep))
+
+/-- **THE α-GRADE (WF CORRIDOR)** [H — the genesis's constructive
+upgrade, landed with the mirrors kit] — at a `WF` origin, EVERY
+witnessing pair factorizes: each leg of each play carries its
+mirror certificate, so the pair is a mirror-word pair outright
+(the all-witnesses strengthening; §0c's exclusion supplies the
+alphabet classification, the §0d mirrors kit the certificates). -/
+theorem cargo_pair_genesis_alpha {A B : State}
+    (hwf : A.WF) (hpair : BareCargoEquiv A B) :
+    ∀ {τ ρ : List Move}, CargoPlay A τ B → CargoPlay B ρ A →
+      MirrorWord A τ B ∧ MirrorWord B ρ A ∧ SameCargoFix A B := by
+  intro τ ρ hτ hρ
+  obtain ⟨hSτ, hSρ⟩ := cargo_shuffle_of_equiv hwf hτ hρ
+  have hBwf : B.WF :=
+    CargoPlayRF_wf (cargo_revealfree_of_equiv hτ hρ).1 hwf
+  exact ⟨ShuffleToMirrorWord hSτ hwf,
+         ShuffleToMirrorWord hSρ hBwf,
+         cargo_pair_fix hpair⟩
 
 /-! ## §2. The graded ceiling conjectures (frozen; the probe leaf
 decides before any proof starts) -/
