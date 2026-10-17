@@ -118,6 +118,37 @@ theorem bareCargo_iff_cargoPath {A B : State} (hwfA : A.WF)
     BareCargoEquiv A B ↔ CargoPath A B ∧ CargoPath B A := by
   sorry
 
+/-! ## §1D. The walk-steps bridge (banked green)
+
+The Rosetta rows between the two journey generics, proved once
+generically: a `Walk P` witness forgets its list into the span
+at the shadow letter `StepOf P`; a span at the shadow letter
+realizes back to SOME `Walk P` play (per-leg `obtain` — no
+choice, fully intuitionistic). -/
+
+/-- The forgetful map: a `Walk P` witness is a `Steps (StepOf P)`
+span (the move list dropped). -/
+theorem walk_to_steps (P : State → Move → Prop) {st : State} :
+    ∀ {ρ : List Move} {W : State},
+    Walk P st ρ W → Steps (StepOf P) st W := by
+  intro ρ W h
+  induction h with
+  | nil s => exact Steps.refl s
+  | cons hlet hstep _ ih => exact Steps.cons ⟨_, hlet, hstep⟩ ih
+
+/-- The realization map: a span at the shadow letter carries some
+`Walk P` play reaching it. -/
+theorem steps_to_walk (P : State → Move → Prop) {st : State} :
+    ∀ {W : State}, Steps (StepOf P) st W →
+    ∃ ρ, Walk P st ρ W := by
+  intro W h
+  induction h with
+  | refl s => exact ⟨[], Walk.nil s⟩
+  | @cons w z u hQ _t ih =>
+      obtain ⟨ρ, hρ⟩ := ih
+      obtain ⟨m, hP, hstep⟩ := hQ
+      exact ⟨m :: ρ, Walk.cons hP hstep hρ⟩
+
 /-! ## The audit battery
 
 The single claim stub carries `sorryAx` by design — the layer's
@@ -127,4 +158,6 @@ whole debt ledger on one row, priced above. -/
 #print axioms sameOrbit_factor
 #print axioms CargoPlay_run
 #print axioms CargoPlay_append
+#print axioms walk_to_steps
+#print axioms steps_to_walk
 #print axioms bareCargo_iff_cargoPath

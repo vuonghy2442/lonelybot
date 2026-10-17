@@ -351,10 +351,32 @@ inductive FlatStep : State → State → Prop
 half of the walk unification, owner restate 2026-10-17): the
 refl-cons closure over any two-place letter predicate.  The
 list-carrying grades live at `Walk P` (§3); the state-pair grades
-below are instances of this one closure. -/
+below are instances of this one closure.
+
+STATEMENT CONVENTION (owner, 2026-10-17) — STEPS FIRST: every new
+span notion states at the lightest honest letter, as a `Steps Q`
+instance; a notion reaches for `Walk P` exactly when its content
+touches the moves themselves — filter premises over letters,
+census arithmetic, permutation and order arguments.  The test:
+would a consumer ever need to know WHICH moves?  Never — `Steps`;
+the analysis touches the letters — `Walk`.  (Letter-constrained
+spans like `NoDrawPlayW` constrain over the letters and therefore
+belong to `Walk` even though they read as span claims.  The
+crossing is free: the banked generic bridges
+`walk_to_steps`/`steps_to_walk` convert without re-derivation.) -/
 inductive Steps (Q : State → State → Prop) : State → State → Prop
   | refl (w : State) : Steps Q w w
   | cons {w z u : State} (h : Q w z) (t : Steps Q z u) : Steps Q w u
+
+/-- **StepOf P w u** — THE CONNECTING LETTER (the walk-steps
+Rosetta): the transition shadow of a letter predicate — some
+move satisfying `P` at the origin fires to `u`.  The generic
+bridge rows (`Orig2/Claims.lean` §1D, banked green) run through
+it: `Walk P` witnesses forget their list into `Steps (StepOf P)`
+spans, and `Steps (StepOf P)` spans realize back to SOME `Walk P`
+play. -/
+def StepOf (P : State → Move → Prop) (w u : State) : Prop :=
+  ∃ m, P w m ∧ w.step m = some u
 
 /-- **FlatPath** — a block of flat letters; the interior grammar of
 brackets and phases.  The Steps instance at the flat alphabet.
