@@ -395,6 +395,43 @@ def SWRotW (u v : State) : Prop :=
   ∃ σ τ : List Move, DrawPlayW u σ v ∧ DrawPlayW v τ u
 
 /-!
+## §7. THE BARE-CARGO EXCHANGE  (live, KEPT 2026-10-17)
+-/
+
+/-- **CargoLetter st m** — the DUMB closure generator: any
+`tabToTab` letter, no arm filter.  The burn/reveal arms are
+excluded BY THEOREM (the classification claim's slide half), not
+by this definition.  PORTED VERBATIM from
+`Orig/ForklessCeiling.lean:95`. -/
+def CargoLetter (st : State) (m : Move) : Prop :=
+  ∃ (c : Card) (b : Base), m = Move.tabToTab c b
+
+/-- **CargoPlay st ρ W** — the inductive play at the cargo-letter
+alphabet: a legal play every letter of which is a cargo letter.
+PORTED VERBATIM from `Orig/ForklessCeiling.lean:100`. -/
+inductive CargoPlay : State → List Move → State → Prop
+  | nil (st : State) : CargoPlay st [] st
+  | cons {st s₁ W : State} {m : Move} {ρ : List Move}
+      (hlet : CargoLetter st m) (hstep : State.step st m = some s₁)
+      (hrest : CargoPlay s₁ ρ W) :
+      CargoPlay st (m :: ρ) W
+
+/-- **BareCargoEquiv A B** — the owner's bare-cargo exchange: two
+states joined by tabToTab-only plays in both directions (the
+`RevEqW` both-ways shape).  Single-direction reachability is
+symmetric by the exclusion plus the mirrors at WF (the bridge
+claim, `Orig2/Claims.lean`), but the definition stays canonical
+and dumb.  PORTED VERBATIM from `Orig/ForklessCeiling.lean:137`.
+PLUMBING NOTE: the cargo-orbit quotient tier (`cargoSetoid`,
+`CargoOrbit`, the fiber rows) is NOT ported — the orbit-factor
+precedent (§6): the machinery card owns its private kit, and the
+quotient type is resurrectable by a future card with its own
+intent line. -/
+def BareCargoEquiv (A B : State) : Prop :=
+  ∃ (τ : List Move), CargoPlay A τ B ∧
+    ∃ (ρ : List Move), CargoPlay B ρ A
+
+/-!
 # THE REVIEW ANNEX — pending adjudication
 
 The old tier's remaining main vocabulary.  Verdict slots open; no
@@ -484,14 +521,20 @@ pending adjudication like the rest:
   machinery card's private kit.)
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * **Composites** (`Orig/Classify.lean`) — `WFRun` (2907).
-  (`irreversibleOf` and its oracle companions: RESOLVED — ported
-  live at §1.6, 2026-10-17.)
+  (The oracle tier RESOLVED with lineage: `irreversibleOf` and its
+  commit-polarity companions REMOVED in favor of the inside-flip —
+  the live forms are the R-shapes `drawR`/`tabToFoundR`/
+  `foundToTabR`/`tabToTabR` + the negation-free `reversibleOf`,
+  registry §1.6.)
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * **Cone/dance & ledger walls** (`Orig/MacroInternal.lean`) —
-  `ConeStep`/`ConePath` (329/341), `DanceStep`/`DancePath`
-  (388/394), `popWindow` (810), `ConeLedger` (838), `rungFiber`
-  (1011), `CanonFace` (1379).
-  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+  KILLED (owner, 2026-10-17): `ConeStep`/`ConePath` (329/341),
+  `DanceStep`/`DancePath` (388/394), `popWindow` (810),
+  `ConeLedger` (838), `rungFiber` (1011), `CanonFace` (1379) —
+  the cone/dance reachability walls and the canon-face dossier
+  tier exit the new vocabulary; any future reachability content
+  is a NEW shape with an owner line (the frozen cone/dance rows
+  stay boundary data).
 
 ## HOUSE COMPLIANCE
 

@@ -73,6 +73,60 @@ theorem sameOrbit_factor {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF) :
     sameOrbitSetoid.r u v ↔ ∃ z, NoDrawPlayW u z ∧ SWRotW z v := by
   sorry
 
+/-! ## §1C. The bare-cargo support rows and the exchange bridge
+
+§1C-1/2 banked green (trivial inductions, ported verbatim): a
+cargo play is a legal run, and cargo plays concatenate — the
+transitivity engine of the exchange. -/
+
+/-- A cargo play is, in particular, a legal run.  PORTED VERBATIM
+from `Orig/ForklessCeiling.lean:108`. -/
+theorem CargoPlay_run {st : State} : ∀ {ρ : List Move} {W : State},
+    CargoPlay st ρ W → st.run ρ = some W := by
+  intro ρ W h
+  induction h with
+  | nil s => rfl
+  | cons _ hstep _ ih =>
+      simp only [State.run, hstep]
+      exact ih
+
+/-- Cargo plays concatenate (the transitivity engine of the
+closure).  PORTED VERBATIM from `Orig/ForklessCeiling.lean:118`. -/
+theorem CargoPlay_append {a b : State} : ∀ {l₁ : List Move},
+    CargoPlay a l₁ b → ∀ {l₂ : List Move} {c : State},
+    CargoPlay b l₂ c → CargoPlay a (l₁ ++ l₂) c := by
+  intro l₁ h
+  induction h with
+  | nil s => intro l₂ c h₂; exact h₂
+  | @cons st s₁ b' m ρ' hlet hstep hrest ih =>
+      intro l₂ c h₂
+      rw [List.cons_append]
+      exact .cons hlet hstep (ih h₂)
+
+/-!
+CLAIM §1C-3 — the exchange bridge (the owner's formulation): the
+DUMB both-ways exchange and the WITNESS-grade cargo closure agree
+at WF.
+
+PRICE: (→ the easy half) `CargoPath` legs are witnesses — each
+`FlatStep.cargo` leg IS a cargo letter, so a letter-wise
+induction plus `CargoPlay_append` build the two dumb plays;
+(← the deep half) at WF every SURVIVING cargo leg carries its
+one-move return — the dumb play, letter by letter, lifts to the
+reversible closure.  The frozen content: the exclusion and seat
+mirror rows ride the tabToTabR shape (Claim §1A's slide half);
+the frozen insight lives in `Orig/ForklessCeiling.lean` §0a-§0d
+(the mirrors: every surviving leg's one-move return; the
+zone-fix rows give the field discipline).
+-/
+
+/-- **CLAIM `bareCargo_iff_cargoPath`** — the dumb exchange meets
+the witness cargo closure exactly at WF worlds. -/
+theorem bareCargo_iff_cargoPath {A B : State} (hwfA : A.WF)
+    (hwfB : B.WF) :
+    BareCargoEquiv A B ↔ CargoPath A B ∧ CargoPath B A := by
+  sorry
+
 /-! ## The audit battery
 
 The single claim stub carries `sorryAx` by design — the layer's
@@ -80,3 +134,6 @@ whole debt ledger on one row, priced above. -/
 
 #print axioms reversibleOf_iff_reversibleAtW
 #print axioms sameOrbit_factor
+#print axioms CargoPlay_run
+#print axioms CargoPlay_append
+#print axioms bareCargo_iff_cargoPath
