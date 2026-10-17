@@ -85,7 +85,8 @@ to the card. -/
 /-! ## §1C. The bare-cargo tier — support retired to the generic kit
 
 Since the steps-first migration (owner, 2026-10-17), the dumb
-cargo play is a GENERIC instance — `∃ ρ, Walk CargoLetter A ρ B` —
+cargo play is a GENERIC instance — `∃ ρ, Walk (tabToTab-shape
+predicate) A ρ B` —
 and no separate name or per-instance support rows live here: the
 verbatim lineage (`Orig/ForklessCeiling.lean:100,108,118`) is
 subsumed by the generic `Walk_run`/`Walk_append` kit.

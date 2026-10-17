@@ -480,16 +480,11 @@ def SWRotW (u v : State) : Prop :=
 ## §7. THE BARE-CARGO EXCHANGE  (live, KEPT 2026-10-17)
 -/
 
-/-- **CargoLetter st m** — the DUMB closure generator: any
-`tabToTab` letter, no arm filter.  The state argument is the
-`Walk P` letter-predicate SOCKET (the cargo letter itself is
-state-independent — any tabToTab at any origin); the burn/reveal
-arms are excluded BY THEOREM (the classification claim's slide
-half), not by this definition.  PORTED from
-`Orig/ForklessCeiling.lean:95` (binder trued to `_st`, recording
-the socket-only role). -/
-def CargoLetter (_st : State) (m : Move) : Prop :=
-  ∃ (c : Card) (b : Base), m = Move.tabToTab c b
+/- CargoLetter — RETIRED at owner call (2026-10-17, with the cargo
+tier quiescent under the pause): the dumb-letter predicate left
+the registry; the dumb play form rides the generic instance at
+the tabToTab move shape when a consumer returns (frozen lineage:
+`Orig/ForklessCeiling.lean:95`). -/
 
 /-- **BareCargoEquiv A B** — the owner's bare-cargo exchange, with
 REVERSIBILITY ENFORCED (owner restate, 2026-10-17: "we should
@@ -589,6 +584,31 @@ readouts). -/
 def chartAgree (st w : State) : Prop :=
   (∀ c, seatOf st c = seatOf w c) ∧ boardFixed st w ∧
     foundsFixed st w ∧ drawPool st = drawPool w ∧ cutOf st = cutOf w
+
+/-!
+## §10. THE FLOATER  (live, owner-defined 2026-10-17 — the
+behavioral form, option (1) of the day's adjudication)
+-/
+
+/-- **Floater st c** — THE FLOATING CARD, behavioral (owner's
+intent line: "a card that can be moved with tabToTab, and
+reversibly"): c carries SOME reversible cargo move.  The carrier
+absorbs both requirements — a witness play exists (the move
+fires) and returns.  LINEAGE NOTE, recorded honestly: the frozen
+tier's Floater (the ceiling card's concept,
+`Orig/ForklessCeiling.lean`) was the STRUCTURAL read — face-up,
+twin ABSENT from face-up, both fitting parents present — the
+"sole live card of its cell with clean parent-twin hops" census
+notion.  The day's adjudication established the two are NOT
+equivalent: the behavioral form includes contended and covered
+movable cards the census form was designed to exclude (the
+proof: a covered card's segment relocation is reversible while
+its twin tops an unrelated pile).  The owner chose the behavioral
+notion as the definition; the census form — if the ceiling
+migration wants it — is a separate name or a claim at WF, never
+silently conflated with this def. -/
+def Floater (st : State) (c : Card) : Prop :=
+  ∃ b, reversibleAtW st (Move.tabToTab c b)
 
 /-!
 # THE REVIEW ANNEX — pending adjudication
