@@ -491,28 +491,24 @@ the socket-only role). -/
 def CargoLetter (_st : State) (m : Move) : Prop :=
   ∃ (c : Card) (b : Base), m = Move.tabToTab c b
 
-/-- **CargoPlay st ρ W** — the inductive play at the cargo-letter
-alphabet: a legal play every letter of which is a cargo letter.
-The Walk instance at the cargo letter.  RESTATE (owner
-unification): formerly the verbatim port of
-`Orig/ForklessCeiling.lean:100`, now `Walk CargoLetter` — identical
-statement, constructor names preserved. -/
-abbrev CargoPlay := Walk CargoLetter
-
 /-- **BareCargoEquiv A B** — the owner's bare-cargo exchange: two
-states joined by tabToTab-only plays in both directions (the
-`RevEqW` both-ways shape).  Single-direction reachability is
-symmetric by the exclusion plus the mirrors at WF (the bridge
-claim, `Orig2/Claims.lean`), but the definition stays canonical
-and dumb.  PORTED VERBATIM from `Orig/ForklessCeiling.lean:137`.
+states joined by tabToTab-only travel in both directions.  RESTATE
+(steps-first, owner 2026-10-17): formerly `∃ τ, CargoPlay A τ B ∧
+∃ ρ, CargoPlay B ρ A` (the both-ways dumb PLAYS, verbatim from
+`Orig/ForklessCeiling.lean:137`); now the both-ways SPANS at the
+dumb letter's transition shadow (`StepOf CargoLetter`) — identical
+content through the banked generic bridges (`steps_to_walk`
+realizes each span to the witnessing play; `walk_to_steps`
+forgets each play back; the play forms leave the statement per
+the steps-first convention, and the compatibility row
+`bareCargoEquiv_iff_play` banks the equivalence green).
 PLUMBING NOTE: the cargo-orbit quotient tier (`cargoSetoid`,
 `CargoOrbit`, the fiber rows) is NOT ported — the orbit-factor
 precedent (§6): the machinery card owns its private kit, and the
 quotient type is resurrectable by a future card with its own
 intent line. -/
 def BareCargoEquiv (A B : State) : Prop :=
-  ∃ (τ : List Move), CargoPlay A τ B ∧
-    ∃ (ρ : List Move), CargoPlay B ρ A
+  Steps (StepOf CargoLetter) A B ∧ Steps (StepOf CargoLetter) B A
 
 /-!
 # THE REVIEW ANNEX — pending adjudication

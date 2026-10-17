@@ -73,26 +73,15 @@ theorem sameOrbit_factor {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF) :
     sameOrbitSetoid.r u v ↔ ∃ z, NoDrawPlayW u z ∧ SWRotW z v := by
   sorry
 
-/-! ## §1C. The bare-cargo support rows and the exchange bridge
+/-! ## §1C. The bare-cargo tier — support retired to the generic kit
 
-§1C-1/2 banked green (trivial inductions, ported verbatim): a
-cargo play is a legal run, and cargo plays concatenate — the
-transitivity engine of the exchange. -/
-
-/-- A cargo play is, in particular, a legal run.  Forwarding to the
-generic kit (the walk unification); the verbatim lineage:
-`Orig/ForklessCeiling.lean:108`. -/
-theorem CargoPlay_run {st : State} : ∀ {ρ : List Move} {W : State},
-    CargoPlay st ρ W → st.run ρ = some W :=
-  Walk_run _
-
-/-- Cargo plays concatenate (the transitivity engine of the
-closure).  Forwarding to the generic kit (the walk unification);
-the verbatim lineage: `Orig/ForklessCeiling.lean:118`. -/
-theorem CargoPlay_append {a b : State} : ∀ {l₁ : List Move},
-    CargoPlay a l₁ b → ∀ {l₂ : List Move} {c : State},
-    CargoPlay b l₂ c → CargoPlay a (l₁ ++ l₂) c :=
-  Walk_append _
+Since the steps-first migration (owner, 2026-10-17), the dumb
+cargo play is a GENERIC instance — `∃ ρ, Walk CargoLetter A ρ B`,
+realized on demand through the banked bridge `steps_to_walk` —
+and no separate name or per-instance support rows live here: the
+verbatim lineage (`Orig/ForklessCeiling.lean:100,108,118`) is
+subsumed by the generic `Walk_run`/`Walk_append` kit and the
+compat row `bareCargoEquiv_iff_play` (§1D, banked green). -/
 
 /-!
 CLAIM §1C-3 — the exchange bridge (the owner's formulation): the
@@ -101,7 +90,8 @@ at WF.
 
 PRICE: (→ the easy half) `CargoPath` legs are witnesses — each
 `FlatStep.cargo` leg IS a cargo letter, so a letter-wise
-induction plus `CargoPlay_append` build the two dumb plays;
+induction plus the generic `Walk_append` build the two dumb
+plays;
 (← the deep half) at WF every SURVIVING cargo leg carries its
 one-move return — the dumb play, letter by letter, lifts to the
 reversible closure.  The frozen content: the exclusion and seat
@@ -149,6 +139,21 @@ theorem steps_to_walk (P : State → Move → Prop) {st : State} :
       obtain ⟨m, hP, hstep⟩ := hQ
       exact ⟨m :: ρ, Walk.cons hP hstep hρ⟩
 
+/-- The dumb cargo play form, on demand through the generic
+bridges (the steps-first restate's compatibility row, banked
+green): the both-ways spans carry the both-ways dumb plays and
+conversely. -/
+theorem bareCargoEquiv_iff_play (A B : State) :
+    BareCargoEquiv A B ↔
+    ∃ τ, Walk CargoLetter A τ B ∧ ∃ ρ, Walk CargoLetter B ρ A := by
+  constructor
+  · rintro ⟨hAB, hBA⟩
+    obtain ⟨τ, hτ⟩ := steps_to_walk _ hAB
+    obtain ⟨ρ, hρ⟩ := steps_to_walk _ hBA
+    exact ⟨τ, hτ, ρ, hρ⟩
+  · rintro ⟨τ, hτ, ρ, hρ⟩
+    exact ⟨walk_to_steps _ hτ, walk_to_steps _ hρ⟩
+
 /-! ## The audit battery
 
 The single claim stub carries `sorryAx` by design — the layer's
@@ -156,8 +161,7 @@ whole debt ledger on one row, priced above. -/
 
 #print axioms reversibleOf_iff_reversibleAtW
 #print axioms sameOrbit_factor
-#print axioms CargoPlay_run
-#print axioms CargoPlay_append
 #print axioms walk_to_steps
 #print axioms steps_to_walk
+#print axioms bareCargoEquiv_iff_play
 #print axioms bareCargo_iff_cargoPath
