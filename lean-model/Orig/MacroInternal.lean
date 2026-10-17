@@ -2038,7 +2038,13 @@ BENIGN/FORKED NO-MIX census (`canonFace_sameKind`, which collapses
 `canonFace_sameShape`'s case split to the within-kind cases), and
 the shape reflexivity.  The frozen statements above keep their
 sorries; every head here is additive, zero `Classical.choice`, and
-consumes no sorried row. -/
+consumes no sorried row.  Wave-3 adds the forked-cell completion
+below (§9.6) — the degenerate-support converter
+(`conjugateCompositeRev_forkState`), the composite's class+rungs
+midpoint row (`conjugateCompositeRev_midpoint`), and the FORKED-CELL
+r-transport and share-shape twins (`canonFace_class_inv_forked`,
+`canonFace_sameShape_forked`) finishing the wave-2 benign
+pair-lift's census. -/
 
 /-- **THE SEAT-CARRYING COMPOSITE AT MI GRADE** — the corrected
 conjugation's firing shape, restated minimally: the three physical
@@ -2198,3 +2204,87 @@ theorem canonFace_class_inv_benign (u w w' : State)
   exact cargoPath_inClass (CargoPath.refl (canon u))
 
 #print axioms canonFace_class_inv_benign
+
+/-! ## §9.6 The forked-cell twins (wave-3, four rows)
+
+The §9.5 record resisted the full `canonFace_class_inv`
+(⇐)-composition at the cite level: a `conjugateForkState` carrier has
+no in-file class row.  Wave-3 supplies the FORKED cell with
+DEGENERATE support instead — the seat-carrying composite package
+carried as a premise, not the derived closure.  The converter reduces
+`conjugateCompositeRev` to the seat-less carrier `FaceShape`'s cross
+arm reads (the census pin `weakForkState` carrying the seat content
+the downstream corrected closure derives); the composite's class and
+rungs content is packaged once at the midpoint grade; the
+class-transport twin rides the canon link alone (`canonFace_inClass`
+at the forked arm) through the in-file class engine; the share-shape
+twin is gated at the cross face exactly as its class sibling
+`faceShape_cross_inClass` prices it.  The wave-2 resist record
+stands: nothing here mints a class row for the carrier itself.  The
+frozen statements above keep their sorries; every head here is
+additive, nothing sorried consumed. -/
+
+/-- **THE DEGENERATE-SUPPORT CONVERTER** (the wave-2 cite-level gap,
+bridged the import-visible way: down-cast, not up-derivation): the
+seat-carrying composite package reduces to the seat-less
+`conjugateForkState` carrier when the census pin `weakForkState st`
+supplies the seat content — the per-leg reversibility witnesses
+degenerate away, the three physical steps and the twin structure
+surviving intact. -/
+theorem conjugateCompositeRev_forkState {st w : State}
+    (hwfs : weakForkState st)
+    (h : conjugateCompositeRev st w) : conjugateForkState st w := by
+  obtain ⟨x, ba, bb, st₁, st₂, h₁, h₂, h₃, -, -, -⟩ := h
+  exact ⟨x, ba, bb, st₁, st₂, hwfs, h₁, h₂, h₃⟩
+
+/-- **THE CROSS-FACE MIDPOINT ROW** (the composite's class + rung
+content packaged at the `conjugateCompositeRev` grade): the
+conjugation's endpoint stays in the starting face's class (the
+per-leg reversibility composition) and keeps its rung read (the
+net-flat anatomy). -/
+theorem conjugateCompositeRev_midpoint {st w : State}
+    (h : conjugateCompositeRev st w) :
+    sameOrbitSetoid.r st w ∧ ∀ s : Suit, rungAt w s = rungAt st s := by
+  have hcp := h
+  obtain ⟨x, ba, bb, st₁, st₂, h₁, h₂, h₃, -, -, -⟩ := h
+  exact ⟨conjugateComposite_class hcp, conjugateComposite_rungs h₁ h₂ h₃⟩
+
+/-- **THE FORKED-CELL r-TRANSPORT** (the `canonFace_sameKind`-
+restricted r-transport, the forked twin of the §9.5 benign cell; the
+frozen `canonFace_class_inv` above keeps its sorry): two forked
+faces — the no-mix census pins both `weakForkState` — are
+class-mates, each face a class member through the canon link
+(`canonFace_inClass`, the forked arm's constructor conjunct at MI
+grade), the shared anchor's class closing the sandwich (`iseqv.symm`
+plus the in-file `class_trans`). -/
+theorem canonFace_class_inv_forked (u w w' : State)
+    (hwf : u.WF)
+    (h : CanonFace u w) (h' : CanonFace u w')
+    (hfork : weakForkState w ∧ weakForkState w') :
+    sameOrbitSetoid.r w w' := by
+  have hmemw : sameOrbitSetoid.r u w := canonFace_inClass u w hwf h
+  have hmemw' : sameOrbitSetoid.r u w' := canonFace_inClass u w' hwf h'
+  exact class_trans (sameOrbitSetoid.iseqv.symm hmemw) hmemw'
+
+/-- **THE FORKED-CELL share-shape TWIN** (the sibling of the §9.5
+benign pair-lift, gated at the cross face exactly as its class
+sibling `faceShape_cross_inClass` prices it): two forked faces
+supplied with the cross-face composite + cargo share the cross face
+shape — the converter degenerates the package to the
+`conjugateForkState` carrier the cross arm reads, the census pin
+carrying the seat content. -/
+theorem canonFace_sameShape_forked (u w w' z : State)
+    (h : CanonFace u w) (h' : CanonFace u w')
+    (hfork : weakForkState w ∧ weakForkState w')
+    (hc : conjugateCompositeRev w z)
+    (hp : CargoPath z w') :
+    FaceShape w w' :=
+  Or.inr ⟨z, conjugateCompositeRev_forkState hfork.1 hc, hp⟩
+
+/-! The wave-3 battery (fresh heads audited; the frozen rows above
+keep their own surfaces): -/
+
+#print axioms conjugateCompositeRev_forkState
+#print axioms conjugateCompositeRev_midpoint
+#print axioms canonFace_class_inv_forked
+#print axioms canonFace_sameShape_forked
