@@ -510,26 +510,46 @@ def BareCargoEquiv (A B : State) : Prop :=
   CargoPath A B ∧ CargoPath B A
 
 /-!
-## §9. THE CHART  (live, owner-ratified 2026-10-17, direction
-corrected by owner the same hour: the chart is `c → the card
-immediately ON TOP of it`)
+## §9. THE CHART  (live, direction FINAL by owner 2026-10-17:
+the beneath map `seatOf` is the chart — mover-keyed; the cover
+map stays as the derived forward-chain locator.  LINEAGE: the
+beneath direction was ratified first, corrected to the cover
+direction, then re-corrected back after the two claim books were
+compared side by side — mover-keyed rows are half the machinery,
+one map replaces two, and the ride-inverse is the only derived
+view needed.  The carrier/validity/decode direction stays FENCED
+until a named consumer exists.)
 
-THE MOVE ALGEBRA (owner, 2026-10-17): every move is ONE mover
-whose cover relation is edited at its two pile ENDPOINTS —
-`tabToTab` DETACHES the mover at the departure key and ATTACHES it
-at the landing key (the ride's internal pairs untouched — they
-ride whole); `tabToFound` deletes the top mover (its under-key
-loses its cover); `foundToTab`/`wasteToTab` add the pair at the
-landing key alone (with the founded row or pool bookkeeping);
-`draw` touches no pair — the cut alone moves, the pool conserved.
-The carrier/validity/decode direction stays FENCED until a named
-consumer exists. -/
+THE MOVE ALGEBRA (owner, 2026-10-17): every move is exactly ONE
+pair change keyed at the MOVER — `tabToTab` UPDATES one pair (the
+mover's seat `inr P → b`); `tabToFound` DELETES one pair (the
+seat vanishes, the card lands on its foundation row);
+`foundToTab`/`wasteToTab` ADD one pair (the seat appears at the
+giveback base; the waste letter additionally consumes the pool
+head); `draw` touches no pair — the cut alone moves, the pool
+conserved.  The ride's internal pairs are never touched: a
+segment relocation is one point edit at the mover.
+-/
 
-/-- **coverOf st c** — THE CHART's map (the owner's correction:
-the pair direction is c → the card immediately on top of it):
-`some d` with d sitting directly above c in its pile, `none` when
-c tops its pile or sits off the tableau.  The RIDE of a mover is
-the forward chain of this map; the landing check is the lookup. -/
+/-- **seatOf st c** — THE CHART's map: where c sits in the face-up
+tableau — `some (.inr z)` with z the card directly beneath it,
+`some (.inl a)` when c bottoms pile a, `none` off the tableau.
+Every move edits exactly one value of this map (the mover's);
+anchor bottoms live inline in the `.inl a` case — one map, no
+second anchor family. -/
+def seatOf (st : State) (c : Card) : Option Base :=
+  match st.pileHolding c with
+  | none => none
+  | some a =>
+      match List.getLast? (below c (st.piles a).faceUp) with
+      | none => some (.inl a)
+      | some z => some (.inr z)
+
+/-- **coverOf st c** — THE DERIVED FORWARD-CHAIN LOCATOR (the
+chart's inverse readout, kept for operational convenience): `some
+d` with d sitting immediately ON TOP of c — the ride of a mover
+is this map's forward chain, and `coverOf z = none` is the
+open-landing read. -/
 def coverOf (st : State) (c : Card) : Option Card :=
   match st.pileHolding c with
   | none => none
@@ -538,25 +558,6 @@ def coverOf (st : State) (c : Card) : Option Card :=
       | [] => none
       | [_] => none
       | _ :: d :: _ => some d
-
-/-- **bottomOf st a** — the chart's anchor side: the face-up
-bottom card of pile `a` (`none` for an empty face-up run) — the
-pair family that anchors the cover chains to the positions. -/
-def bottomOf (st : State) (a : Anchor) : Option Card :=
-  (st.piles a).faceUp.head?
-
-/-- **underOf st c** — the beneath LOCATOR (the chart's inverse
-readout, not the chart itself): the seat of `c` — `some (.inr z)`
-with z the card directly beneath it, `some (.inl a)` when c
-bottoms pile a, `none` off the tableau.  The move rows use it to
-name the departure key. -/
-def underOf (st : State) (c : Card) : Option Base :=
-  match st.pileHolding c with
-  | none => none
-  | some a =>
-      match List.getLast? (below c (st.piles a).faceUp) with
-      | none => some (.inl a)
-      | some z => some (.inr z)
 
 /-- **cutOf st** — the pool split: the stock's length (with the
 pool and the cut, the stock and the waste are determined up to the
