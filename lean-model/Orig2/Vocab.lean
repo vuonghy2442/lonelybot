@@ -368,6 +368,15 @@ inductive Steps (Q : State → State → Prop) : State → State → Prop
   | refl (w : State) : Steps Q w w
   | cons {w z u : State} (h : Q w z) (t : Steps Q z u) : Steps Q w u
 
+/-- **RevStep P w z** — THE REVERSIBLE SHADOW of a letter family: a
+fired P-letter that returns — `reversibleAtW` at the letter's own
+move.  The companion of `StepOf`; the reversible-steps card
+(`Orig2/RevSteps.lean`) proves the general two-way-closure lemma:
+enforcing per-leg reversibility at def time never shrinks a
+two-way closure, for every family P. -/
+def RevStep (P : State → Move → Prop) (w u : State) : Prop :=
+  ∃ m, P w m ∧ w.step m = some u ∧ reversibleAtW w m
+
 /-- **StepOf P w u** — THE CONNECTING LETTER (the walk-steps
 Rosetta): the transition shadow of a letter predicate — some
 move satisfying `P` at the origin fires to `u`.  (The two generic

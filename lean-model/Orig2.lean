@@ -3,6 +3,8 @@ import Orig2.Vocab
 import Orig2.Kit
 import Orig2.Classification
 import Orig2.FloaterLadder
+import Orig2.RevSteps
+import Orig2.FloatFiber
 import Orig2.Claims
 import Orig2.OrbitFactor
 
