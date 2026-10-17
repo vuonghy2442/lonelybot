@@ -170,6 +170,32 @@ travels through the def alone — consumers keep compiling).
   seat — so the extra commit-grade premises fail at the exhibit).
   All six sorries stay exactly where the statements freeze them.
 
+  SESSION-4 CONTINUATION (the fourth succession, relay leg 2 — the
+  raise rung and THE MAIN HEAD): the ladder's "raise via the proved
+  bracket-transfer instantiation" is RE-GRADED and retired — the
+  transfer row carries nothing in the twin-hot region, and the row
+  is REFUTABLE-AS-STATED, now CERTIFIED in-file (§4.2.a.RR): the rr
+  board (the wr family one cell shifted — the hot card `5♦` moved
+  from the waste head to a BARE seat at p3) satisfies every
+  raise-arm premise with the commit grade FREE (the banked
+  `bare_lift_irreversibleAt`), and the conclusion dies by the new
+  class-rung-floor latch (`lowslab_rung_floor`) over the hidden-pin
+  burial of the takeback bases (`lowslab_rung_step_le` the slab
+  side).  The certified negations: `lowslab_raise_refuted` and
+  `lowslab_neighbor_refuted` — the byte-frozen MAIN STATEMENT is
+  FALSE at its own raise-arm instance, the Q(B) frontier-reshaping
+  event this header's refuter-first ledger always priced; the
+  repair (the commit card at-or-below the fork point), or the
+  per-suit slab relaxation, is the owner's to write.  FATE LEDGER,
+  fourth succession: `lowslab_top_census` [H, carries],
+  `fork_lowbridge_raise` [H, REFUTED], `fork_lowbridge_reveal` [H,
+  carries], `lowslab_waste_reseat` [H, REFUTED],
+  `lowslab_waste_targetclass` [H, carries],
+  `fork_lowbridge_pull` [H, WILD-REMAINDER, hosted] — all six
+  statements byte-frozen, all six sorries where the statements
+  freeze them, and the main head's own sorry now sits beside its
+  certified negation, honest up to the owner's repair.
+
 GRADE NOTE (the design decision, kept): the theorem is stated at the
 PROGRAM'S OWN commit grain — `irreversibleAt`, the full no-return
 notion of `Orig/Fate.lean` (plays of any grain) — not at the softer
@@ -233,27 +259,11 @@ theorem fork_self_low {st : State} {x : Card} (hx : ForkWitness st x) :
 /-- The run-append compose: two successful runs concatenate into one
 (the forward-facing companion of `Orig/Play.lean`'s split reader
 `run_append_split`; needed here to join the class witness plays into
-a single return play). -/
+a single return play).
+harvested to Orig/Play.lean's `run_append` at the 2026-10-17 wave. -/
 private theorem p_run_append : ∀ (a : State) (A B : List Move) (z w : State),
-    a.run A = some z → z.run B = some w → a.run (A ++ B) = some w := by
-  intro a A
-  induction A generalizing a with
-  | nil =>
-      intro B z w h1 h2
-      have hz : some a = some z := h1
-      injection hz with hc
-      subst hc
-      exact h2
-  | cons m rest ih =>
-      intro B z w h1 h2
-      obtain ⟨a₁, hs, hr⟩ := State.run_cons h1
-      have h3 := ih a₁ B z w hr h2
-      rw [List.cons_append]
-      show (match State.step a m with
-        | some st' => st'.run (rest ++ B)
-        | none => none) = some w
-      rw [hs]
-      exact h3
+    a.run A = some z → z.run B = some w → a.run (A ++ B) = some w :=
+  run_append
 
 /-- **THE COMMIT-CROSSING BRIDGE** — a semantic commitment exits the
 setoid class: the successor of an `irreversibleAt` move is never
@@ -781,7 +791,12 @@ every member is elevated, NO slab member exists, and the conclusion
   (`lastOf (d.piles k).faceUp = some c` — the §12(a) twin-blindness
   keeps this from all cell data), and (b) the slab-side landing; the
   canonical-assignment route stays priced [H] as the finale assessed,
-  and the row CARRIES at [H], statement byte-frozen. -/
+  and the row CARRIES at [H], statement byte-frozen.
+
+  SESSION-4 NOTE (the fourth succession): the canonical-assignment
+  route re-priced — `canon_class` is WF-GATED (its `u.WF` premise)
+  against this row's byte-frozen WF-free statement, so no license;
+  the two survivors stand as priced.  CARRIES unchanged at [H]. -/
 private theorem lowslab_top_census {st u : State} {x : Card} {c : Card}
     (hx : ForkWitness st x)
     (hmem : sameOrbitSetoid.r st u)
@@ -1038,6 +1053,181 @@ private theorem lowslab_rung_delta_foundToTab {s s' : State} {c : Card} {b : Bas
       rw [hs, putCard_found]
     rw [h1]
     exact congrArg List.length (setFound_found_ne hσ)
+
+/-- **THE ONE-MOVE RUNG CLIMB** (private kit, the fourth succession) —
+a single step moves any suit's rung up by at most one: the founding
+waste letter appends one card to its own suit's row, the seating
+waste letter writes no foundation at all, and the four census letters
+are the per-leg delta kit above.  The row is the SLAB SIDE of the
+twin-hot gap: a slab member's one move — whatever letter it fires,
+committed or not — cannot lift the twin suit's rung past the fork
+point plus one. -/
+private theorem lowslab_rung_step_le {s s' : State} {m : Move}
+    (hstep : State.step s m = some s') (σ : Suit) :
+    rungAt s' σ ≤ rungAt s σ + 1 := by
+  cases m with
+  | draw =>
+      have hcarry := lowslab_rung_delta_draw hstep σ
+      omega
+  | tabToTab c b =>
+      have hcarry := lowslab_rung_delta_tabToTab hstep σ
+      omega
+  | tabToFound c =>
+      obtain ⟨hΔ, hoΔ⟩ := lowslab_rung_delta_tabToFound hstep
+      by_cases hsc : c.suit = σ
+      · rw [hsc] at hΔ
+        omega
+      · have hcarry := hoΔ σ (fun hcon => hsc hcon.symm)
+        omega
+  | foundToTab c b =>
+      obtain ⟨hΔ, hoΔ⟩ := lowslab_rung_delta_foundToTab hstep
+      by_cases hsc : c.suit = σ
+      · rw [hsc] at hΔ
+        omega
+      · have hcarry := hoΔ σ (fun hcon => hsc hcon.symm)
+        omega
+  | wasteToFound c =>
+      obtain ⟨_g, _x, _xs, _w, hs⟩ := step_wasteToFound_inv hstep
+      rw [hs]
+      show ((s.setFound c.suit (s.found c.suit ++ [c])).found σ).length
+          ≤ (s.found σ).length + 1
+      by_cases hsc : c.suit = σ
+      · rw [hsc, setFound_found_self, List.length_append]
+        have h1 : ([c] : List Card).length = 1 := rfl
+        omega
+      · rw [setFound_found_ne (fun hcon => hsc hcon.symm)]
+        omega
+  | wasteToTab c b =>
+      obtain ⟨_g, _x, _xs, _w, hs⟩ := step_wasteToTab_inv hstep
+      rw [hs]
+      show ((s.putCard c b).found σ).length ≤ (s.found σ).length + 1
+      rw [putCard_found]
+      exact Nat.le_succ ((s.found σ).length)
+
+/-- **THE CLASS RUNG FLOOR** (private, the fourth succession) — the
+latch the twin-hot gap runs on.  Fix a card `c` and its floor `R =
+c.rank.toIdx + 1`.  If a WF member of the class sits AT the floor
+(`R ≤ rungAt s c.suit`) and every card fitting under `c` — opposite
+color, one rank up — is hidden-buried somewhere at `s` (the hidden
+pin makes the burial permanent along any witness journey) while `c`
+is no king, then every member a witness journey reaches stays WF,
+keeps the floor, and keeps the burial: a raise letter only climbs
+further, a draw or a slide is level, and a `foundToTab` leg that
+would drop the rung below `R` must pop `c` itself (at the floor the
+WF foundation prefix forces the popped top to be `c`), whose
+placement guard then has to consult a fitting tableau base — all
+pinned-buried, so never a pile top, and the empty-seat read refused
+to the non-king. -/
+private theorem lowslab_rung_floor {c : Card} {R : Nat}
+    (hking : c.rank ≠ Rank.king)
+    (hidx : c.rank.toIdx + 1 = R) :
+    ∀ {s d : State} {ρ : List Move},
+      ShufflePlayW s ρ d →
+      s.WF →
+      R ≤ rungAt s c.suit →
+      (∀ z, z.suit.color ≠ c.suit.color →
+        z.rank.toIdx = c.rank.toIdx + 1 →
+        ∃ a, z ∈ (s.piles a).hidden) →
+      d.WF ∧ R ≤ rungAt d c.suit ∧
+      (∀ z, z.suit.color ≠ c.suit.color →
+        z.rank.toIdx = c.rank.toIdx + 1 →
+        ∃ a, z ∈ (d.piles a).hidden) := by
+  intro s d ρ h
+  induction h with
+  | nil u =>
+      intro hwf hfl hp
+      exact ⟨hwf, hfl, hp⟩
+  | @cons u m s₁ rest w hrev hstep hrest ih =>
+      intro hwfu hfl hp
+      have hwf₁ : s₁.WF := step_wf hwfu hstep
+      have hpin : ∀ a, (s₁.piles a).hidden = (u.piles a).hidden :=
+        shuffle_hiddenPinned (.cons hrev hstep (.nil s₁))
+      have hp₁ : ∀ z, z.suit.color ≠ c.suit.color →
+          z.rank.toIdx = c.rank.toIdx + 1 →
+          ∃ a, z ∈ (s₁.piles a).hidden := by
+        intro z hcol hrk
+        obtain ⟨a, hza⟩ := hp z hcol hrk
+        exact ⟨a, by rw [hpin a]; exact hza⟩
+      have hfl₁ : R ≤ rungAt s₁ c.suit := by
+        obtain hmd | ⟨e, he⟩ | ⟨e, bb, he⟩ | ⟨e, bb, he⟩ :=
+          witness_leg_letters hstep hrev
+        · subst hmd
+          have hcarry := lowslab_rung_delta_draw hstep c.suit
+          omega
+        · subst he
+          obtain ⟨hΔ, hoΔ⟩ := lowslab_rung_delta_tabToFound hstep
+          by_cases hse : e.suit = c.suit
+          · rw [hse] at hΔ
+            omega
+          · have hcarry := hoΔ c.suit (fun hcon => hse hcon.symm)
+            omega
+        · subst he
+          obtain ⟨hΔ, hoΔ⟩ := lowslab_rung_delta_foundToTab hstep
+          by_cases hse : e.suit = c.suit
+          · by_cases hgt : R < rungAt u c.suit
+            · rw [hse] at hΔ
+              omega
+            · exfalso
+              -- u sits AT the floor; the popped top is c ITSELF
+              have hR_eq : R = rungAt u c.suit := by omega
+              obtain ⟨c', htopE, hc'c, hcp, -⟩ := step_foundToTab_inv hstep
+              rw [hc'c] at htopE
+              have hchopE := wf_found_chop_toIdx hwfu htopE
+              have hsplitE : u.found e.suit = chop (u.found e.suit) ++ [e] :=
+                lastOf_chop htopE
+              have hlenE : (u.found e.suit).length
+                  = (chop (u.found e.suit)).length + 1 := by
+                have hh := congrArg List.length hsplitE
+                rw [List.length_append] at hh
+                have h1 : ([e] : List Card).length = 1 := rfl
+                omega
+              rw [hse] at hchopE hlenE
+              have he_idx : e.rank.toIdx = R - 1 := by
+                have h1 : rungAt u c.suit = (u.found c.suit).length := rfl
+                omega
+              have hE_c : e.rank.toIdx = c.rank.toIdx := by omega
+              have hec : e = c := by
+                rcases e with ⟨es, er⟩
+                rcases c with ⟨cs, cr⟩
+                have h1 : es = cs := hse
+                have h2 : er = cr := Rank.toIdx_inj hE_c
+                simp only [Card.mk.injEq]
+                exact ⟨h1, h2⟩
+              rw [hec] at hcp
+              cases bb with
+              | inl aa =>
+                  rw [canPlace_inl_unfold, Bool.and_eq_true] at hcp
+                  exact hking (of_decide_eq_true hcp.2)
+              | inr z =>
+                  rw [canPlace_inr_eq] at hcp
+                  cases hpz : u.pileOfTop z with
+                  | none =>
+                      rw [hpz] at hcp
+                      exact absurd hcp (by simp)
+                  | some k =>
+                      rw [hpz] at hcp
+                      have hfit : canSitOn c z = true := hcp
+                      obtain ⟨hrkf, hcolf⟩ := (canSitOn_eq c z).mp hfit
+                      obtain ⟨a₀, hza⟩ :=
+                        hp z (fun hcon => hcolf hcon.symm) hrkf.symm
+                      obtain ⟨hother, hself, -, -, -⟩ :=
+                        mem_hidden_only hwfu hza
+                      have hzT : u.topOf k = some z :=
+                        of_decide_eq_true
+                          (firstWhere_sound
+                            (fun a => decide (u.topOf a = some z)) hpz)
+                      have hzF : z ∈ (u.piles k).faceUp :=
+                        lastOf_mem
+                          (show lastOf ((u.piles k).faceUp) = some z from hzT)
+                      by_cases hka : k = a₀
+                      · exact hself (by rw [← hka]; exact hzF)
+                      · exact (hother k hka).2 hzF
+          · have hcarry := hoΔ c.suit (fun hcon => hse hcon.symm)
+            omega
+        · subst he
+          have hcarry := lowslab_rung_delta_tabToTab hstep c.suit
+          omega
+      exact ih hwf₁ hfl₁ hp₁
 
 /-- **THE RUNG-WALK CROSSING ENGINE** (private) — a witness journey
 whose ends read one suit's rung as `≤ k` and `> k` must cross the
@@ -1410,12 +1600,29 @@ the slab, the crossing riding as a witness leg.  The row's open
   fence every WF-free mirror kit — the undos' premises are honest —
   and the one-founding door is WF-gated upstream), so no witness
   journey between the replay landing and the commit landing can be
-  built at the statement's grade.  The row CARRIES at [H], statement
-  byte-frozen; the commit face any sequel needs is banked beside it
-  (`lowslab_raise_commit_shape_wf`: at a WF site the raised card is a
-  LONE top — the census's two commit species exactly), and the
-  re-fire bracket mechanics remain the landed `lowslab_bracket_transfer`.
-  -/
+built at the statement's grade.  The row CARRIES at [H], statement
+byte-frozen; the commit face any sequel needs is banked beside it
+(`lowslab_raise_commit_shape_wf`: at a WF site the raised card is a
+LONE top — the census's two commit species exactly), and the
+re-fire bracket mechanics remain the landed `lowslab_bracket_transfer`.
+
+  SESSION-4 VERDICT (2026-10-13, the fourth succession — REFUTED):
+  the assembly is not merely unlicensed — the row is FALSE at its
+  byte-frozen statement, and the refutation is CERTIFIED IN-FILE.
+  The §4.2.a.RR board below (`rr_st`: the `wr_st` family with the
+  hot card `5♦` moved from the waste head to a BARE seat at p3)
+  satisfies EVERY premise — the decided fork parcel, the two-leg
+  elevated class-mate, and the commit grade FREE (the banked
+  `bare_lift_irreversibleAt`: a lone non-king top on an empty
+  deck) — while the conclusion dies by the NEW class-rung-floor
+  latch (`lowslab_rung_floor`): the landing founds `5♦`, whose
+  takeback bases (the black sixes) are hidden-buried in p1's deck
+  — permanent, by the hidden pin — so every class-mate of the
+  landing reads the twin rung at 5 or above, and no slab member's
+  ONE move (`lowslab_rung_step_le`: at most +1) reaches past 4.
+  The certified negation is the zero-sorry public row
+  `lowslab_raise_refuted`; the repair is the owner's rank premise
+  (the commit card at-or-below the fork point). -/
 private theorem fork_lowbridge_raise {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -1527,7 +1734,15 @@ SESSION-2 ADDENDUM (2026-10-13, the take-over pass): the elevated
   missing content (the dashed transport), the same re-threading the
   waste rows' named weld prices from the other side, and no banked
   row builds it at the WF-free grade.  The row CARRIES at [H],
-  statement byte-frozen. -/
+  statement byte-frozen.
+
+  SESSION-4 NOTE (the fourth succession): re-examined against the
+  twin-hot certification — a slide commit writes no foundation, so
+  this row's commit kind moves NO rung and sits OUTSIDE the
+  refutation's blast radius; the dashed-witness transport remains
+  its honest and entire open content, now for whatever repaired
+  statement follows the owner's rank premise.  CARRIES unchanged
+  at [H]. -/
 private theorem fork_lowbridge_reveal {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -2037,6 +2252,307 @@ theorem lowslab_waste_reseat_refuted :
     omega
   · injection heq
 
+/-! ### §4.2.a.RR THE RAISE REFUTATION BOARD (the fourth succession)
+
+THE MAIN HEAD'S OWN ECONOMY: the `wr_st` family shifts ONE cell —
+the hot card `5♦` moves from the waste head to a BARE face-up seat
+at p3 (the waste empties) — and the raise-kind instance comes fully
+into force: at the elevated member (the same hop/raise legs, the
+waste never consulted) `tabToFound 5♦` fires as a BARE-LIFT COMMIT
+(the banked `bare_lift_irreversibleAt`: a lone top on an empty
+deck, of a non-king), so EVERY premise of `fork_lowbridge_raise`
+holds — and with it every premise of the main head's raise-arm
+instance.  The conclusion still dies, this time by THE CLASS RUNG
+FLOOR (§4.2.0's new latch): the commit landing `rr_v` founds `5♦`,
+whose takeback bases are exactly the black sixes — both
+hidden-buried in p1's deck, and the hidden pin makes burial
+permanent along any class journey — so every class-mate of `rr_v`
+keeps the diamond rung at 5 or above, while a slab member (rung
+at-or-below the fork point 3) one move up reaches at most 4.  The
+certified negations: `lowslab_raise_refuted` (the raise residue's
+own statement is FALSE) and `lowslab_neighbor_refuted` — the
+BYTE-FROZEN MAIN STATEMENT `fork_neighbor_lowbridge` ITSELF, the
+frontier-reshaping event the header's refuter-first Q(B) ledger
+always priced.  The repair is the owner's to write: the rank
+.discipline the reseat verdict already records (the commit card
+at-or-below the fork point), the `pullEscape` precedent. -/
+
+/-- The raise board's private step helper (as `wrStep`). -/
+private def rrStep (st : State) (m : Move) : State :=
+  match st.step m with
+  | none => st
+  | some s' => s'
+
+/-- THE FORK BOARD — `wr_st` with the hot card moved from the waste
+head to a bare face-up seat at p3 (the waste now empty; every other
+cell verbatim). -/
+private def rr_st : State where
+  found := fun s => s.upCards.take (wr_hmap s)
+  piles := fun a => match a with
+    | .p1 => ⟨wr_deck, [wrC .club .five, wrC .diamond .four, wrC .spade .three]⟩
+    | .p2 => ⟨[], [wrC .spade .five, wrC .heart .four]⟩
+    | .p3 => ⟨[], [wrC .diamond .five]⟩
+    | _ => ⟨[], []⟩
+  stock := []
+  waste := []
+  drawStep := 1
+
+/-- THE ELEVATED MEMBER: the same hop, then the twin raise. -/
+private def rr_s1 : State :=
+  rrStep rr_st (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four)))
+
+private def rr_u : State :=
+  rrStep rr_s1 (Move.tabToFound (wrC .diamond .four))
+
+/-- THE COMMIT LANDING: the bare lift of the hot card at the member. -/
+private def rr_v : State :=
+  rrStep rr_u (Move.tabToFound (wrC .diamond .five))
+
+private theorem rr_st_wf : rr_st.WF := by
+  refine ⟨fun s => ⟨wr_hmap s, rfl⟩, ?_, ?_, ?_⟩
+  · intro a
+    cases a <;> rfl
+  · intro c _
+    rcases c with ⟨s, r⟩
+    cases s <;> cases r <;> decide
+  · decide
+
+/-- THE FORK PARCEL, DECIDED — the saturation iff and the orientation
+pin over the whole universe, through the SB door. -/
+private theorem rr_fork : ForkWitness rr_st (wrC .heart .four) := by
+  have hrow : forkWitnessRowSB rr_st (wrC .heart .four) = true := by decide
+  exact (forkWitnessRowSB_iff rr_st_wf).1 hrow
+
+/-- the hop fires; its mirror is the un-hop at the hopped member. -/
+private theorem rr_hop_fires :
+    State.step rr_st
+      (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four))) =
+      some rr_s1 := by
+  rfl
+
+/-- the un-hop at the hopped member lands back at the fork, exactly. -/
+private def rr_st' : State :=
+  rrStep rr_s1 (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four)))
+
+private theorem rr_st'_eq : rr_st' = rr_st := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+private theorem rr_unhop_fires :
+    State.step rr_s1
+      (Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four))) =
+      some rr_st := by
+  rw [← rr_st'_eq]
+  rfl
+
+/-- the twin raise fires; its mirror is the giveback at the raised
+member. -/
+private theorem rr_raise_fires :
+    State.step rr_s1 (Move.tabToFound (wrC .diamond .four)) =
+      some rr_u := by
+  rfl
+
+/-- the giveback at the raised member lands back at the hopped
+member, exactly. -/
+private def rr_s1' : State :=
+  rrStep rr_u (Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five)))
+
+private theorem rr_s1'_eq : rr_s1' = rr_s1 := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+private theorem rr_giveback_fires :
+    State.step rr_u
+      (Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five))) =
+      some rr_s1 := by
+  rw [← rr_s1'_eq]
+  rfl
+
+/-- **THE ELEVATED CLASS-MATE** — the fork and the two-leg landing
+are joined by witness shuffles BOTH way (the hop/raise pair and
+their exact mirrors). -/
+private theorem rr_class : sameOrbitSetoid.r rr_st rr_u :=
+  ⟨[Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five)),
+     Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four))],
+    ShufflePlayW.cons
+      ⟨rr_s1,
+         [Move.tabToFound (wrC .diamond .four)],
+         rr_giveback_fires, run_one rr_raise_fires⟩
+      rr_giveback_fires
+      (ShufflePlayW.cons
+        ⟨rr_st,
+           [Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four))],
+           rr_unhop_fires, run_one rr_hop_fires⟩
+        rr_unhop_fires
+        (ShufflePlayW.nil rr_st)),
+    [Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .heart .four)),
+     Move.tabToFound (wrC .diamond .four)],
+    ShufflePlayW.cons
+      ⟨rr_s1,
+         [Move.tabToTab (wrC .spade .three) (Sum.inr (wrC .diamond .four))],
+         rr_hop_fires, run_one rr_unhop_fires⟩
+      rr_hop_fires
+      (ShufflePlayW.cons
+        ⟨rr_u,
+           [Move.foundToTab (wrC .diamond .four) (Sum.inr (wrC .club .five))],
+           rr_raise_fires, run_one rr_giveback_fires⟩
+        rr_raise_fires
+        (ShufflePlayW.nil rr_u))⟩
+
+/-- the twin suit read strictly past the fork point at the member. -/
+private theorem rr_helev : ¬ familyBelowFrontier rr_u (wrC .heart .four) := by
+  intro hc
+  have hr : rungAt rr_u (wrC .diamond .five).suit = 4 := rfl
+  have h3 : (wrC .heart .four).rank.toIdx = 3 := rfl
+  have hs : (wrC .heart .four).twin.suit = (wrC .diamond .five).suit := rfl
+  unfold familyBelowFrontier at hc
+  rw [hs] at hc
+  omega
+
+/-- the bare lift of the hot card fires at the member. -/
+private theorem rr_commit_fires :
+    State.step rr_u (Move.tabToFound (wrC .diamond .five)) =
+      some rr_v := by
+  rfl
+
+/-- ...and it is a full COMMIT — the census's bare non-king lift. -/
+private theorem rr_commit :
+    irreversibleAt rr_u (Move.tabToFound (wrC .diamond .five)) :=
+  bare_lift_irreversibleAt rr_commit_fires
+    (show rr_u.pileOfTop (wrC .diamond .five) = some Anchor.p3 from rfl)
+    (show chop (rr_u.piles Anchor.p3).faceUp = [] from rfl)
+    (show (rr_u.piles Anchor.p3).hidden = [] from rfl)
+    (by decide)
+
+/-- the landing's landing rung: the hot card is founded at index 5. -/
+private theorem rr_v_rung :
+    rungAt rr_v (wrC .diamond .five).suit
+      = (wrC .diamond .five).rank.toIdx + 1 := by
+  rfl
+
+/-- the landing is WF — three steps off the board's own WF. -/
+private theorem rr_v_wf : rr_v.WF :=
+  step_wf (step_wf (step_wf rr_st_wf rr_hop_fires) rr_raise_fires)
+    rr_commit_fires
+
+/-- THE PINCH: the hot card's every takeback base — a black six —
+is hidden-buried in p1's deck at the landing. -/
+private theorem rr_pinch : ∀ z, z.suit.color ≠ (wrC .diamond .five).suit.color →
+    z.rank.toIdx = (wrC .diamond .five).rank.toIdx + 1 →
+    ∃ a, z ∈ (rr_v.piles a).hidden := by
+  intro z hcol hrk
+  rcases z with ⟨zs, zr⟩
+  have h5 : (wrC .diamond .five).rank.toIdx + 1 = 5 := rfl
+  rw [h5] at hrk
+  have hzs : zs = Suit.spade ∨ zs = Suit.club := by
+    cases zs with
+    | spade => exact Or.inl rfl
+    | heart => exact absurd rfl hcol
+    | diamond => exact absurd rfl hcol
+    | club => exact Or.inr rfl
+  have hrk' : zr.toIdx = 5 := hrk
+  have hzr : zr = Rank.six := by
+    cases zr <;> first
+      | rfl
+      | exact absurd hrk' (by decide)
+  subst hzr
+  rcases hzs with rfl | rfl
+  · exact ⟨Anchor.p1, by
+      show wrC .spade .six ∈ (rr_v.piles Anchor.p1).hidden
+      decide⟩
+  · exact ⟨Anchor.p1, by
+      show wrC .club .six ∈ (rr_v.piles Anchor.p1).hidden
+      decide⟩
+
+/-- **THE SHARED KILL** — no slab member of the rr economy reaches
+the commit landing's class in one move: the class rung floor pins
+the landing's class at the diamond rung 5 or above, the one-move
+bound caps a slab member's step at 4, and the slab conjunct read
+at the twin suit caps the member itself at 3. -/
+private theorem rr_no_dupe :
+    ¬ ∃ (u₀ : State) (m₀ : Move) (v₀ : State),
+      familyBelowFrontier u₀ (wrC .heart .four) ∧
+      State.step u₀ m₀ = some v₀ ∧
+      sameOrbitSetoid.r v₀ rr_v := by
+  rintro ⟨u₀, m₀, v₀, hslab, hstep₀, hmatch⟩
+  have hcl : sameOrbitSetoid.r rr_v v₀ :=
+    sameOrbitSetoid.iseqv.symm hmatch
+  obtain ⟨ρ, hρ⟩ := sameOrbit_forward hcl
+  obtain ⟨-, hfloor, -⟩ :=
+    lowslab_rung_floor (c := wrC .diamond .five)
+      (R := (wrC .diamond .five).rank.toIdx + 1)
+      (by decide) rfl hρ rr_v_wf (Nat.le_of_eq rr_v_rung.symm) rr_pinch
+  have hstep := lowslab_rung_step_le hstep₀ (wrC .diamond .five).suit
+  have hs : (wrC .heart .four).twin.suit
+      = (wrC .diamond .five).suit := rfl
+  unfold familyBelowFrontier at hslab
+  rw [hs] at hslab
+  have h5 : (wrC .diamond .five).rank.toIdx + 1 = 5 := rfl
+  have h3 : (wrC .heart .four).rank.toIdx = 3 := rfl
+  omega
+
+/-- **THE RAISE RESIDUE IS REFUTED** — `fork_lowbridge_raise` is
+FALSE at its byte-frozen statement: the exhibited fork class
+satisfies every premise — the decided fork parcel, the two-leg
+elevated class-mate, the fired bare-lift commit — while the
+conclusion is unreachable at the rr economy: no slab member's one
+move lands in the commit landing's class.  The row keeps its sorry
+(the statement is FALSE); the owner's recourse is the rank premise
+the reseat verdict already records — the commit card at-or-below
+the fork point, `lowslab_top_census`'s own `hlow`. -/
+theorem lowslab_raise_refuted :
+    ¬ ∀ (st : State) (x : Card) (u v : State) (c : Card),
+      ForkWitness st x → sameOrbitSetoid.r st u →
+      State.step u (Move.tabToFound c) = some v →
+      irreversibleAt u (Move.tabToFound c) →
+      ¬ familyBelowFrontier u x →
+      ∃ (u₀ : State) (m₀ : Move) (v₀ : State),
+        sameOrbitSetoid.r st u₀ ∧
+        familyBelowFrontier u₀ x ∧
+        State.step u₀ m₀ = some v₀ ∧
+        sameOrbitSetoid.r v₀ v := by
+  intro h
+  obtain ⟨u₀, m₀, v₀, -, hslab, hstep₀, hmatch⟩ :=
+    h rr_st (wrC .heart .four) rr_u rr_v (wrC .diamond .five)
+      rr_fork rr_class rr_commit_fires rr_commit rr_helev
+  exact rr_no_dupe ⟨u₀, m₀, v₀, hslab, hstep₀, hmatch⟩
+
+/-- **THE MAIN STATEMENT IS REFUTED** — `fork_neighbor_lowbridge`
+is FALSE at its byte-frozen statement: every premise of the main
+head's raise-arm instance holds at the rr economy (the fork parcel,
+the class membership, the fired bare-lift commit), while the
+five-tuple conclusion is unreachable — no slab member's one move
+lands in the commit landing's class.  This is the Q(B)
+frontier-reshaping event the header's refuter-first ledger always
+priced: the repair (the commit card at-or-below the fork point, or
+the per-suit relaxation of the slab reading) is the owner's to
+write, the `pullEscape` precedent; the six residue rows keep their
+sorries frozen wherever their statements ride the false reading. -/
+theorem lowslab_neighbor_refuted :
+    ¬ ∀ (st : State) (x : Card) (u v : State) (m : Move),
+      ForkWitness st x → sameOrbitSetoid.r st u →
+      State.step u m = some v → irreversibleAt u m →
+      ∃ (u₀ : State) (m₀ : Move) (v₀ : State),
+        sameOrbitSetoid.r st u₀ ∧
+        familyBelowFrontier u₀ x ∧
+        State.step u₀ m₀ = some v₀ ∧
+        irreversibleAt u₀ m₀ ∧
+        sameOrbitSetoid.r v₀ v := by
+  intro h
+  obtain ⟨u₀, m₀, v₀, -, hslab, hstep₀, -, hmatch⟩ :=
+    h rr_st (wrC .heart .four) rr_u rr_v
+      (Move.tabToFound (wrC .diamond .five))
+      rr_fork rr_class rr_commit_fires rr_commit
+  exact rr_no_dupe ⟨u₀, m₀, v₀, hslab, hstep₀, hmatch⟩
+
 /-- **THE WASTE TARGET-CLASS BRIDGE RESIDUE**
 `lowslab_waste_targetclass` [H, named at the waste-shrink pass] — the
 two waste arms' shared second fighter (THE DASHED-WITNESS TRANSPORT
@@ -2050,8 +2566,18 @@ ROUTE (complete; the transport's own content):
    the two members, the waste-commit's dash (the card popped from
    the waste, founded or seated) must re-fire at the dashed state
    and land on the dashed successor.  Board legs whose suits differ
-   from the commit card's dash cleanly (the mirrors re-fire over
-   the guard-blind congruence, `step_congr_board`-family); the
+   from the commit card's dash cleanly (the mirrors now ride banked
+   zone-blindness squares of this file's §4.2.c: the cargo mirror
+   `ls_slide_congr_zones` is blind to the found/waste zones outright,
+   the pull and raise mirrors `ls_pull_congr_zones` /
+   `ls_raise_congr_zones` hold at the shared-found grade the dashed
+   chain's found-drifting legs must still earn their way back to —
+   NOT the sibling's `step_congr_board`, whose `boardEq` the dashed
+   states' found/waste drift puts out of reach); the found-drift
+   bridge is now BANKED in-file for exactly these legs (§4.2.c's
+   `ls_raise_congr_drift` / `ls_pull_congr_drift`: through the dashed
+   commit's own one-write, the clean pull and raise letters re-ride
+   the squares); the
    same-suit founding legs SHIFT the dashed card one rung up — the
    open content is the per-suit Dyck re-threading (`Orig/BracketDecomp.lean`'s
    stack discipline: the LIFO pull law + the bracket closure), the
@@ -2084,10 +2610,20 @@ of the conclusion is now PROVED mechanically (`lowslab_waste_guard_fires`:
   Dyck re-threading of the nested same-suit brackets — the dashed
   commit must be re-seated inside the bracket word, past every
   same-suit raise/pull leg of the witnessing journey — and no banked
-  row builds that confluence at the WF-free grade; the only banked
-  confinement row (`witness_leg_mint_confined`) is the sibling's own
-  named residue and stays unconsumed per the house discipline.  The
-  row CARRIES at [H], statement byte-frozen. -/
+   row builds that confluence at the WF-free grade; the banked
+   confinement row `witness_leg_mint_confined` is PROVED and
+   zero-sorry at its home (`Orig/HostCensus.lean`, WF-gated) — never
+   this tree's named residue — and stays unconsumed per the house
+   discipline.  The
+   row CARRIES at [H], statement byte-frozen.
+
+  SESSION-4 NOTE (the fourth succession): the transport-only
+  statement is untouched by the twin-hot certification — its
+  premises carry guard shapes only, no rung content, and the
+  reseat-side refutation lives in its own premise pack; the Dyck
+  nesting remains the row's honest content, now for whatever
+  repaired statement follows the owner's rank premise.  CARRIES
+  unchanged at [H]. -/
 private theorem lowslab_waste_targetclass {u u₀ v v₀ : State} {m : Move}
     (hclass : sameOrbitSetoid.r u₀ u)
     (hfu : WasteGuard u m)
@@ -2096,6 +2632,460 @@ private theorem lowslab_waste_targetclass {u u₀ v v₀ : State} {m : Move}
     (hstep₀ : State.step u₀ m = some v₀) :
     sameOrbitSetoid.r v₀ v := by
   sorry
+
+/-! ### §4.2.c THE CLEAN-SLIDE ZONE-BLINDNESS (session-5, the first
+clean-dash square's foundation)
+
+The cargo letter's zone-blindness, landed as a private kit row: the
+`tabToTab` slide reads only piles-field guards and writes only piles,
+so at two states sharing piles/stock/drawStep (found and waste free
+to differ) a fired slide at one fires IDENTICALLY at the other, the
+landings share piles/stock/drawStep again, and each landing keeps
+its own state's found and waste verbatim — the dashed-witness cargo
+mirror's honest grade, from `step_tabToTab_inv`, the public
+`putRun`/`setPile` keep rows and the piles-field congruence rows
+alone; the same-suit Dyck content stays priced [H]. -/
+
+set_option linter.unusedVariables false in
+/-- **THE CLEAN-SLIDE ZONE-BLINDNESS SQUARE** (private kit) — at two
+states sharing the piles, stock and draw step, a fired `tabToTab`
+slide at the first fires identically at the second; the landings
+again share piles, stock and draw step, and each keeps its own
+state's found and waste. -/
+private theorem ls_slide_congr_zones
+    {A B : State} (hp : A.piles = B.piles) (hst : A.stock = B.stock)
+    (hds : A.drawStep = B.drawStep) {c : Card} {b : Base} {A' : State}
+    (hstep : State.step A (Move.tabToTab c b) = some A') :
+    ∃ B', State.step B (Move.tabToTab c b) = some B' ∧
+      A'.piles = B'.piles ∧ A'.stock = B'.stock ∧
+      A'.drawStep = B'.drawStep ∧
+      A'.found = A.found ∧ B'.found = B.found ∧
+      A'.waste = A.waste ∧ B'.waste = B.waste := by
+  obtain ⟨a, hhold, hcp, hfr, hdef⟩ := step_tabToTab_inv hstep
+  have g1 : B.pileHolding c = A.pileHolding c := pileHolding_congr hp.symm
+  have g2 : B.canPlace c b = A.canPlace c b := canPlace_congr c b hp.symm
+  have g3 : fromCard c (B.piles a).faceUp = fromCard c (A.piles a).faceUp :=
+    congrArg (fromCard c) (congrArg Pile.faceUp (congrFun hp a).symm)
+  have hstepB : State.step B (Move.tabToTab c b) = some
+      ((B.setPile a
+          (Pile.afterRunRemoved (B.piles a) (below c (B.piles a).faceUp))).putRun
+        (fromCard c (B.piles a).faceUp) b) := by
+    simp only [State.step, g1, hhold, g2, hcp]
+    cases hrun : fromCard c (B.piles a).faceUp with
+    | nil =>
+        rw [g3] at hrun
+        exact absurd hrun hfr
+    | cons x xs => rfl
+  have hPR : ∀ (S T : State) (r : List Card) (bb : Base), S.piles = T.piles →
+      (S.putRun r bb).piles = (T.putRun r bb).piles := by
+    intro S T r bb hpST
+    cases bb with
+    | inl a₀ =>
+        show (S.setPile a₀ ⟨[], r⟩).piles = (T.setPile a₀ ⟨[], r⟩).piles
+        rw [setPile_piles, setPile_piles, hpST]
+    | inr z =>
+        cases hz : S.pileOfTop z with
+        | none =>
+            simp [State.putRun, hz, (pileOfTop_congr z hpST.symm).trans hz, hpST]
+        | some k =>
+            simp [State.putRun, hz, (pileOfTop_congr z hpST.symm).trans hz,
+              setPile_piles, hpST]
+  have hSPB : (A.setPile a
+        (Pile.afterRunRemoved (B.piles a) (below c (B.piles a).faceUp))).piles =
+      (B.setPile a
+        (Pile.afterRunRemoved (B.piles a) (below c (B.piles a).faceUp))).piles := by
+    rw [setPile_piles, setPile_piles, hp]
+  refine ⟨(B.setPile a
+      (Pile.afterRunRemoved (B.piles a) (below c (B.piles a).faceUp))).putRun
+    (fromCard c (B.piles a).faceUp) b, hstepB, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hdef, congrFun hp a]
+    exact hPR _ _ _ _ hSPB
+  · rw [hdef, putRun_stock, putRun_stock, setPile_stock, setPile_stock]
+    exact hst
+  · rw [hdef, putRun_drawStep, putRun_drawStep, setPile_drawStep, setPile_drawStep]
+    exact hds
+  · rw [hdef, putRun_found, setPile_found]
+  · rw [putRun_found, setPile_found]
+  · rw [hdef, putRun_waste, setPile_waste]
+  · rw [putRun_waste, setPile_waste]
+
+set_option linter.unusedVariables false in
+/-- **THE CLEAN-PULL ZONE-BLINDNESS SQUARE** (private kit) — the
+`foundToTab` pull at two states sharing piles/stock/drawStep and the
+foundations fires identically; the landings share the three zone
+fields, keep each waste verbatim, and the found rows diverge exactly
+by the chop. -/
+private theorem ls_pull_congr_zones
+    {A B : State} (hp : A.piles = B.piles) (hst : A.stock = B.stock)
+    (hds : A.drawStep = B.drawStep) (hf : A.found = B.found)
+    {d : Card} {b : Base} {A' : State}
+    (hstep : State.step A (Move.foundToTab d b) = some A') :
+    ∃ B', State.step B (Move.foundToTab d b) = some B' ∧
+      A'.piles = B'.piles ∧ A'.stock = B'.stock ∧
+      A'.drawStep = B'.drawStep ∧
+      A'.waste = A.waste ∧ B'.waste = B.waste ∧
+      A'.found d.suit = chop (A.found d.suit) ∧
+      (∀ σ, σ ≠ d.suit → A'.found σ = A.found σ) ∧
+      B'.found d.suit = chop (B.found d.suit) ∧
+      (∀ σ, σ ≠ d.suit → B'.found σ = B.found σ) := by
+  obtain ⟨c₀, htopA, hc₀, hcpA, hdef⟩ := step_foundToTab_inv hstep
+  have hftA : A.foundTop d.suit = some d := by rw [htopA, hc₀]
+  have gTop : B.foundTop d.suit = A.foundTop d.suit :=
+    foundTop_congr d.suit hf.symm
+  have g2 : B.canPlace d b = A.canPlace d b := canPlace_congr d b hp.symm
+  have hstepB : State.step B (Move.foundToTab d b) = some
+      ((B.setFound d.suit (chop (B.found d.suit))).putCard d b) := by
+    simp only [State.step, gTop, hftA, g2, hcpA]
+    rfl
+  have hPC : ∀ (S T : State) (cc : Card) (bb : Base), S.piles = T.piles →
+      (S.putCard cc bb).piles = (T.putCard cc bb).piles := by
+    intro S T cc bb hpST
+    cases bb with
+    | inl a₀ =>
+        show (S.setPile a₀ ⟨[], [cc]⟩).piles = (T.setPile a₀ ⟨[], [cc]⟩).piles
+        rw [setPile_piles, setPile_piles, hpST]
+    | inr z =>
+        cases hz : S.pileOfTop z with
+        | none =>
+            simp [State.putCard, hz, (pileOfTop_congr z hpST.symm).trans hz, hpST]
+        | some k =>
+            simp [State.putCard, hz, (pileOfTop_congr z hpST.symm).trans hz,
+              setPile_piles, hpST]
+  have hSF : (A.setFound d.suit (chop (A.found d.suit))).piles =
+      (B.setFound d.suit (chop (B.found d.suit))).piles := by
+    rw [setFound_piles, setFound_piles, hp]
+  refine ⟨(B.setFound d.suit (chop (B.found d.suit))).putCard d b, hstepB,
+    ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hdef]
+    exact hPC _ _ _ _ hSF
+  · rw [hdef, putCard_stock, putCard_stock, setFound_stock, setFound_stock]
+    exact hst
+  · rw [hdef, putCard_drawStep, putCard_drawStep, setFound_drawStep,
+      setFound_drawStep]
+    exact hds
+  · rw [hdef, putCard_waste, setFound_waste]
+  · rw [putCard_waste, setFound_waste]
+  · rw [hdef, putCard_found]
+    exact setFound_found_self
+  · intro σ hσd
+    rw [hdef, putCard_found]
+    exact setFound_found_ne hσd
+  · rw [putCard_found]
+    exact setFound_found_self
+  · intro σ hσd
+    rw [putCard_found]
+    exact setFound_found_ne hσd
+
+set_option linter.unusedVariables false in
+/-- **THE CLEAN-RAISE ZONE-BLINDNESS SQUARE** (private kit) — the
+`tabToFound` raise at two states sharing piles/stock/drawStep and the
+foundations fires identically; the landings share the three zone
+fields, keep each waste verbatim, and the found rows diverge exactly
+by the raise's own append. -/
+private theorem ls_raise_congr_zones
+    {A B : State} (hp : A.piles = B.piles) (hst : A.stock = B.stock)
+    (hds : A.drawStep = B.drawStep) (hf : A.found = B.found)
+    {d : Card} {A' : State}
+    (hstep : State.step A (Move.tabToFound d) = some A') :
+    ∃ B', State.step B (Move.tabToFound d) = some B' ∧
+      A'.piles = B'.piles ∧ A'.stock = B'.stock ∧
+      A'.drawStep = B'.drawStep ∧
+      A'.waste = A.waste ∧ B'.waste = B.waste ∧
+      A'.found d.suit = A.found d.suit ++ [d] ∧
+      (∀ σ, σ ≠ d.suit → A'.found σ = A.found σ) ∧
+      B'.found d.suit = B.found d.suit ++ [d] ∧
+      (∀ σ, σ ≠ d.suit → B'.found σ = B.found σ) := by
+  obtain ⟨hnA, a, hpA, hdef⟩ := step_tabToFound_inv hstep
+  have g1 : B.nextUp d = A.nextUp d := nextUp_congr d hf.symm
+  have g2 : B.pileOfTop d = A.pileOfTop d := pileOfTop_congr d hp.symm
+  have hstepB : State.step B (Move.tabToFound d) = some
+      { B.setFound d.suit (B.found d.suit ++ [d]) with
+        piles := fun a' =>
+          if a' = a then Pile.afterRunRemoved (B.piles a) (chop (B.piles a).faceUp)
+          else B.piles a' } := by
+    simp only [State.step, g1, hnA, g2, hpA]
+    rfl
+  refine ⟨{ B.setFound d.suit (B.found d.suit ++ [d]) with
+      piles := fun a' =>
+        if a' = a then Pile.afterRunRemoved (B.piles a) (chop (B.piles a).faceUp)
+        else B.piles a' }, hstepB, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hdef]
+    show (fun a' => if a' = a then
+            Pile.afterRunRemoved (A.piles a) (chop (A.piles a).faceUp) else
+            A.piles a') =
+        (fun a' => if a' = a then
+            Pile.afterRunRemoved (B.piles a) (chop (B.piles a).faceUp) else
+            B.piles a')
+    rw [congrFun hp a, hp]
+  · rw [hdef]
+    exact hst
+  · rw [hdef]
+    exact hds
+  · rw [hdef]
+    rfl
+  · rfl
+  · rw [hdef]
+    exact setFound_found_self
+  · intro σ hσd
+    rw [hdef]
+    exact setFound_found_ne hσd
+  · exact setFound_found_self
+  · intro σ hσd
+    exact setFound_found_ne hσd
+
+set_option linter.unusedVariables false in
+/-- **THE RAISE-DRIFT BRIDGE** (private kit) — the clean raise letter
+re-rides the square through the dashed commit's own ONE WRITE: at a
+real state `B` and its dashed partner `A` (shared piles/stock/
+drawStep; `A`'s `c.suit` row exactly `B`'s plus the founded card, one
+rung up), a fired `tabToFound d` at `B` with `d.suit ≠ c.suit` fires
+at `A`; the landings share piles/stock/drawStep, each keeps its own
+waste, and the SAME one-write drift persists across the landings. -/
+private theorem ls_raise_congr_drift
+    {A B : State} (hp : A.piles = B.piles) (hst : A.stock = B.stock)
+    (hds : A.drawStep = B.drawStep) {c d : Card} (hsd : d.suit ≠ c.suit)
+    (hdc : A.found c.suit = B.found c.suit ++ [c])
+    (hdn : ∀ σ, σ ≠ c.suit → A.found σ = B.found σ)
+    {B' : State} (hstep : State.step B (Move.tabToFound d) = some B') :
+    ∃ A', State.step A (Move.tabToFound d) = some A' ∧
+      A'.piles = B'.piles ∧ A'.stock = B'.stock ∧
+      A'.drawStep = B'.drawStep ∧
+      A'.waste = A.waste ∧ B'.waste = B.waste ∧
+      A'.found = (B'.setFound c.suit (B'.found c.suit ++ [c])).found := by
+  obtain ⟨hnB, a, hpB, hdefB⟩ := step_tabToFound_inv hstep
+  have hfdd : A.found d.suit = B.found d.suit := hdn d.suit hsd
+  have hnxt : A.nextUp d = B.nextUp d := by
+    show decide (d.rank.toIdx = (A.found d.suit).length) =
+      decide (d.rank.toIdx = (B.found d.suit).length)
+    rw [hfdd]
+  have g2 : A.pileOfTop d = B.pileOfTop d := pileOfTop_congr d hp
+  have hstepA : State.step A (Move.tabToFound d) = some
+      { A.setFound d.suit (A.found d.suit ++ [d]) with
+        piles := fun a' =>
+          if a' = a then Pile.afterRunRemoved (A.piles a) (chop (A.piles a).faceUp)
+          else A.piles a' } := by
+    simp only [State.step, hnxt, hnB, g2, hpB]
+    rfl
+  refine ⟨{ A.setFound d.suit (A.found d.suit ++ [d]) with
+      piles := fun a' =>
+        if a' = a then Pile.afterRunRemoved (A.piles a) (chop (A.piles a).faceUp)
+        else A.piles a' }, hstepA, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hdefB]
+    show (fun a' => if a' = a then
+            Pile.afterRunRemoved (A.piles a) (chop (A.piles a).faceUp) else
+            A.piles a') =
+        (fun a' => if a' = a then
+            Pile.afterRunRemoved (B.piles a) (chop (B.piles a).faceUp) else
+            B.piles a')
+    rw [congrFun hp a, hp]
+  · rw [hdefB]
+    exact hst
+  · rw [hdefB]
+    exact hds
+  · rfl
+  · rw [hdefB]
+    rfl
+  · have hAf : ({ A.setFound d.suit (A.found d.suit ++ [d]) with
+        piles := fun a' =>
+          if a' = a then Pile.afterRunRemoved (A.piles a) (chop (A.piles a).faceUp)
+          else A.piles a' }).found =
+      (A.setFound d.suit (A.found d.suit ++ [d])).found := rfl
+    have hBf : B'.found =
+        (B.setFound d.suit (B.found d.suit ++ [d])).found := by
+      rw [hdefB]
+    have hBfF : ∀ σ, B'.found σ =
+        (B.setFound d.suit (B.found d.suit ++ [d])).found σ :=
+      fun σ => congrFun hBf σ
+    have hAc : (A.setFound d.suit (A.found d.suit ++ [d])).found c.suit =
+        A.found c.suit := setFound_found_ne (Ne.symm hsd)
+    have hAd : (A.setFound d.suit (A.found d.suit ++ [d])).found d.suit =
+        A.found d.suit ++ [d] := setFound_found_self
+    have hAn : ∀ σ, σ ≠ d.suit →
+        (A.setFound d.suit (A.found d.suit ++ [d])).found σ = A.found σ :=
+      fun σ hσ => setFound_found_ne hσ
+    have hBc : ((B'.setFound c.suit (B'.found c.suit ++ [c])).found) c.suit =
+        B'.found c.suit ++ [c] := setFound_found_self
+    have hBn : ∀ σ, σ ≠ c.suit →
+        ((B'.setFound c.suit (B'.found c.suit ++ [c])).found) σ = B'.found σ :=
+      fun σ hσ => setFound_found_ne hσ
+    rw [hAf]
+    funext σ
+    by_cases hσc : σ = c.suit
+    · subst hσc
+      rw [hAc, hdc, hBc, hBfF c.suit, setFound_found_ne (Ne.symm hsd)]
+    · by_cases hσd : σ = d.suit
+      · subst hσd
+        rw [hAd, hfdd, hBn d.suit hsd, hBfF d.suit, setFound_found_self]
+      · rw [hAn σ hσd, hdn σ hσc, hBn σ hσc, hBfF σ, setFound_found_ne hσd]
+
+set_option linter.unusedVariables false in
+/-- **THE PULL-DRIFT BRIDGE** (private kit) — the clean pull letter
+re-rides the square through the dashed commit's own ONE WRITE: the
+`foundToTab` analogue of the raise bridge, the leg's own write the
+chop. -/
+private theorem ls_pull_congr_drift
+    {A B : State} (hp : A.piles = B.piles) (hst : A.stock = B.stock)
+    (hds : A.drawStep = B.drawStep) {c d : Card} (hsd : d.suit ≠ c.suit)
+    (hdc : A.found c.suit = B.found c.suit ++ [c])
+    (hdn : ∀ σ, σ ≠ c.suit → A.found σ = B.found σ)
+    {b : Base} {B' : State}
+    (hstep : State.step B (Move.foundToTab d b) = some B') :
+    ∃ A', State.step A (Move.foundToTab d b) = some A' ∧
+      A'.piles = B'.piles ∧ A'.stock = B'.stock ∧
+      A'.drawStep = B'.drawStep ∧
+      A'.waste = A.waste ∧ B'.waste = B.waste ∧
+      A'.found = (B'.setFound c.suit (B'.found c.suit ++ [c])).found := by
+  obtain ⟨c₀, htopB, hc₀, hcpB, hdefB⟩ := step_foundToTab_inv hstep
+  have hfdd : A.found d.suit = B.found d.suit := hdn d.suit hsd
+  have hftB : B.foundTop d.suit = some d := by rw [htopB, hc₀]
+  have hftA : A.foundTop d.suit = some d := (congrArg lastOf hfdd).trans hftB
+  have g2 : A.canPlace d b = B.canPlace d b := canPlace_congr d b hp
+  have hstepA : State.step A (Move.foundToTab d b) = some
+      ((A.setFound d.suit (chop (A.found d.suit))).putCard d b) := by
+    simp only [State.step, hftA, g2, hcpB]
+    rfl
+  have hPC : ∀ (S T : State) (cc : Card) (bb : Base), S.piles = T.piles →
+      (S.putCard cc bb).piles = (T.putCard cc bb).piles := by
+    intro S T cc bb hpST
+    cases bb with
+    | inl a₀ =>
+        show (S.setPile a₀ ⟨[], [cc]⟩).piles = (T.setPile a₀ ⟨[], [cc]⟩).piles
+        rw [setPile_piles, setPile_piles, hpST]
+    | inr z =>
+        cases hz : S.pileOfTop z with
+        | none =>
+            simp [State.putCard, hz, (pileOfTop_congr z hpST.symm).trans hz, hpST]
+        | some k =>
+            simp [State.putCard, hz, (pileOfTop_congr z hpST.symm).trans hz,
+              setPile_piles, hpST]
+  have hSP : (A.setFound d.suit (chop (A.found d.suit))).piles =
+      (B.setFound d.suit (chop (B.found d.suit))).piles := by
+    rw [setFound_piles, setFound_piles, hp]
+  refine ⟨(A.setFound d.suit (chop (A.found d.suit))).putCard d b, hstepA,
+    ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hdefB]
+    exact hPC _ _ _ _ hSP
+  · rw [hdefB, putCard_stock, putCard_stock, setFound_stock, setFound_stock]
+    exact hst
+  · rw [hdefB, putCard_drawStep, putCard_drawStep, setFound_drawStep,
+      setFound_drawStep]
+    exact hds
+  · rw [putCard_waste, setFound_waste]
+  · rw [hdefB, putCard_waste, setFound_waste]
+  · have hAf : ((A.setFound d.suit (chop (A.found d.suit))).putCard d b).found =
+        (A.setFound d.suit (chop (A.found d.suit))).found := putCard_found _ d b
+    have hBf : B'.found =
+        (B.setFound d.suit (chop (B.found d.suit))).found := by
+      rw [hdefB, putCard_found]
+    have hBfF : ∀ σ, B'.found σ =
+        (B.setFound d.suit (chop (B.found d.suit))).found σ :=
+      fun σ => congrFun hBf σ
+    have hAc : (A.setFound d.suit (chop (A.found d.suit))).found c.suit =
+        A.found c.suit := setFound_found_ne (Ne.symm hsd)
+    have hAd : (A.setFound d.suit (chop (A.found d.suit))).found d.suit =
+        chop (A.found d.suit) := setFound_found_self
+    have hAn : ∀ σ, σ ≠ d.suit →
+        (A.setFound d.suit (chop (A.found d.suit))).found σ = A.found σ :=
+      fun σ hσ => setFound_found_ne hσ
+    have hBc : ((B'.setFound c.suit (B'.found c.suit ++ [c])).found) c.suit =
+        B'.found c.suit ++ [c] := setFound_found_self
+    have hBn : ∀ σ, σ ≠ c.suit →
+        ((B'.setFound c.suit (B'.found c.suit ++ [c])).found) σ = B'.found σ :=
+      fun σ hσ => setFound_found_ne hσ
+    rw [hAf]
+    funext σ
+    by_cases hσc : σ = c.suit
+    · subst hσc
+      rw [hAc, hdc, hBc, hBfF c.suit, setFound_found_ne (Ne.symm hsd)]
+    · by_cases hσd : σ = d.suit
+      · subst hσd
+        rw [hAd, hfdd, hBn d.suit hsd, hBfF d.suit, setFound_found_self]
+      · rw [hAn σ hσd, hdn σ hσc, hBn σ hσc, hBfF σ, setFound_found_ne hσd]
+
+/-! ### §4.2.d THE `hlow` REPAIR STAGING (session-6, owner-ratification)
+
+The certified kills of the two refuted residues exclude exactly the
+commit cards riding ABOVE the fork point:
+
+* `lowslab_raise_refuted` (this file, zero-sorry) kills the raise
+  residue at its byte-frozen statement: its exhibit commits a
+  `tabToFound` whose founded card sits ONE PAST the fork point, and
+  the landing's class rung floor (`lowslab_rung_floor`) then bars
+  every slab member's ONE move (`lowslab_rung_step_le`: at most +1)
+  from re-founding; the same reading is the certified `rr_commit`
+  kill at the §4.2.a.RR board.
+* `lowslab_waste_reseat_refuted` (this file, zero-sorry) kills the
+  waste reseat residue at its byte-frozen statement: the
+  D5-over-fork economy, founding arm `wasteToFound` of the twin
+  suit's next card ONE PAST the fork point, `nextUp` demanding
+  exactly that past-fork rung while the slab pins that suit
+  at-or-below the fork.
+
+THE REPAIR, STAGED (owner-ratified form; NO frozen statement is
+touched): the commit-card rank premise `hlow` — the founded card
+at-or-below the fork point, `lowslab_top_census`'s own frozen binder
+grade `c.rank.toIdx ≤ x.rank.toIdx` — binds the two FOUNDING letters
+alone:
+
+* `tabToFound c` and `wasteToFound c`: `hlow` binds.  The staged
+  `fork_lowbridge_raise_of_hlow` and `lowslab_waste_reseat_of_hlow`
+  below are gated on their named frozen residues — today their
+  sorryAx flows ONLY through those NAMED rows (the axioms battery
+  shows it), and the owner's ratified swap is one line per row:
+  insert the `hlow` binder into the frozen statement and thread it
+  through this staged application; consumers are already typed
+  against the staged shapes.
+* `draw`: the premise is UNSATABLE (the letter carries no card) —
+  the forced exemption; `fork_lowbridge_draw` stays landed clean,
+  unrestricted.
+* `tabToTab` (the reveal arm): no card is founded, so the rr/wr
+  rung-floor latching cannot engage — exempt from the new premise.
+  At-or-below the fork point the arm rides FREE via
+  `lowslab_top_census`'s own `hlow`; ABOVE it the region stays priced
+  open [H] — unrefuted, unprobed (the lb2-style exhibits all live on
+  the low side).
+
+THE SEAT-ARM NOTE: the staged reseat row's `hlow` below is UNIFORM
+across BOTH guard arms (the founding and the seating letters alike);
+the seating arm's relaxation is a priced FUTURE probe — its
+innocence is kills-free-so-far, not mechanism-certified. -/
+
+set_option linter.unusedVariables false in
+/-- **THE RAISE ROW, `hlow`-STAGED** — the frozen raise row's
+statement restated with the commit-card rank premise (the repair the
+session-4 verdict priced): gated on the named frozen residue, so the
+sorryAx flows only through `fork_lowbridge_raise`. -/
+private theorem fork_lowbridge_raise_of_hlow {st : State} {x : Card}
+    (hx : ForkWitness st x)
+    {u v : State} (hmem : sameOrbitSetoid.r st u)
+    {c : Card} (hstep : State.step u (Move.tabToFound c) = some v)
+    (hiv : irreversibleAt u (Move.tabToFound c))
+    (helev : ¬ familyBelowFrontier u x)
+    (hlow : c.rank.toIdx ≤ x.rank.toIdx) :
+    ∃ (u₀ : State) (m₀ : Move) (v₀ : State),
+      sameOrbitSetoid.r st u₀ ∧
+      familyBelowFrontier u₀ x ∧
+      State.step u₀ m₀ = some v₀ ∧
+      sameOrbitSetoid.r v₀ v :=
+  fork_lowbridge_raise hx hmem hstep hiv helev
+
+set_option linter.unusedVariables false in
+/-- **THE WASTE RE-SEAT ROW, `hlow`-STAGED** — the frozen reseat row
+restated with a UNIFORM commit-card rank premise across BOTH guard
+arms; gated on the named frozen residue, so the sorryAx flows only
+through `lowslab_waste_reseat`. -/
+private theorem lowslab_waste_reseat_of_hlow {st u : State} {x : Card} {m : Move}
+    (hx : ForkWitness st x)
+    (hmem : sameOrbitSetoid.r st u)
+    (helev : ¬ familyBelowFrontier u x)
+    (hfu : WasteGuard u m)
+    (hlow : ∀ c, (m = Move.wasteToFound c ∨ ∃ b, m = Move.wasteToTab c b) →
+      c.rank.toIdx ≤ x.rank.toIdx) :
+    ∃ u₀ : State,
+      sameOrbitSetoid.r st u₀ ∧
+      familyBelowFrontier u₀ x ∧
+      WasteGuard u₀ m :=
+  lowslab_waste_reseat hx hmem helev hfu
 
 set_option linter.unusedVariables false in
 /-- **THE WASTE-JUMP REPLAY ROW** (pop-to-foundation arm)
@@ -2385,7 +3375,13 @@ boundary member's own geometry instead of re-deriving it.  The
   miscounted-rung corners the wild members live in (each premise of
   `foundToTab_undo` fences exactly one), so the row hosts as the
   campaign's final honest wild-remainder carry per the owner's
-  third-succession instruction, statement byte-frozen. -/
+  third-succession instruction, statement byte-frozen.
+
+  SESSION-4 NOTE (the fourth succession): hosts as the final
+  carry, per the owner's fourth-succession instruction — unchanged
+  [H, WILD-REMAINDER ONLY], and untouched by the twin-hot
+  certification (a pull commit LOWERs its suit's rung, the wrong
+  direction for the gap). -/
 private theorem fork_lowbridge_pull {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -2420,9 +3416,25 @@ readings), the class membership (`hmem`, both journey extractions),
 the committed step and its grade (`hstep`, `hiv` — the grades are
 never re-derived, only routed), and the case fact (`helev`, the
 dispatcher's caller derives it from the empty arm's dichotomy).  No
-WF anywhere; hypotheses that would be derivable (the elevated rung
-read, for instance — one `omega`) are derived in the consumers, not
-re-stated. -/
+  WF anywhere; hypotheses that would be derivable (the elevated rung
+  read, for instance — one `omega`) are derived in the consumers, not
+  re-stated.
+
+  OWNER-RATIFICATION STAGING (session-6): the program's repair form,
+  recorded here ONCE for the whole six-arm dispatch — `m`'s founded
+  card, IF ANY, is at-or-below the fork point (`hlow`:
+  `c.rank.toIdx ≤ x.rank.toIdx`, `lowslab_top_census`'s own binder
+  grade; the staged rows and the refutation cross-references are at
+  §4.2.d).  Per-kind cut: the two FOUNDING letters (`tabToFound c`,
+  `wasteToFound c`) take the premise — the certified rr/wr kills
+  live exactly on cards one past the fork point; `draw` carries no
+  card, so the premise is UNSATABLE there — a forced exemption
+  (`fork_lowbridge_draw` stays landed clean, unrestricted); the
+  `tabToTab` reveal arm founds nothing and cannot engage the
+  rung-floor latching — exempt, riding at-or-below the fork point
+  free via `lowslab_top_census`'s own `hlow`, with the region above
+  it priced open [H], unrefuted, unprobed.  The sibling rows inherit
+  this cut; NO statement anywhere is touched this session. -/
 private theorem fork_lowbridge_elevated {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -2534,11 +3546,32 @@ COMMITMENT matched by a slab-departing commitment into the same
 target class?  The draw-cursor kind (see
 `fork_lowbridge_draw`'s census note) makes Q(B) strictly stronger
 than the original three-kind reading — a single Q(B)
-counterexample board reshapes the frontier (per-suit relaxation),
-the repair documented alongside — the `pullEscape` precedent.
+  counterexample board reshapes the frontier (per-suit relaxation),
+  the repair documented alongside — the `pullEscape` precedent.
 
-Grading: [H] research-grade overall, per the residue list above;
-the statement is byte-frozen; the fresh heads audited below. -/
+  SESSION-4 LEDGER (the fourth succession — THE REFUTER-FIRST
+  PROGRAM HAS SPOKEN): Q(B) is answered NEGATIVELY, at theorem
+  grade.  The rr economy of §4.2.a.RR puts every premise of this
+  row's RAISE-ARM instance on exhibit — the decided fork parcel,
+  the two-leg elevated class-mate, the fired bare-lift COMMIT —
+  while the five-tuple conclusion is certified unreachable: the
+  landing's class latches the twin rung at the hot card's index
+  plus one (`lowslab_rung_floor`), beyond any slab member's one
+  move (`lowslab_rung_step_le`).  `lowslab_neighbor_refuted` is
+  the certified negation of THIS statement, byte-frozen as it
+  stands; the raise residue and the waste reseat host at
+  [H, REFUTED] with their negations landed beside them, and the
+  remaining carries are hostage to the owner's repair (the commit
+  card at-or-below the fork point, or the per-suit slab
+  relaxation — the `pullEscape` precedent), not to further forcing.
+
+  Grading: [H] research-grade overall, per the residue list above;
+  the statement is byte-frozen; the fresh heads audited below.
+
+  OWNER-RATIFICATION STAGING (session-6): the head consumes the
+  dispatcher's recorded per-kind cut verbatim — `m`'s founded card,
+  if any, at-or-below the fork point (§4.2.d); no statement change
+  rides with this note. -/
 theorem fork_neighbor_lowbridge {st : State} {x : Card}
     (hx : ForkWitness st x)
     {u v : State} (hmem : sameOrbitSetoid.r st u)
@@ -2605,9 +3638,26 @@ bridged by `forkWitnessRowSB_iff`, the step facts and state
 ext-dances riding `funext` — with NO `Classical.choice` anywhere
 (the one new import, `Orig.ForkStateSB`, sits below the already
 transitively-present `Orig.PairName → Orig.ForkWeaker` chain, so
-no cycle and no new inflow); `lowslab_waste_reseat_refuted` — the
-certified negation of the reseat residue's own statement — is
-ZERO-sorry, and the sorry count stays exactly the six. -/
+  no cycle and no new inflow); `lowslab_waste_reseat_refuted` — the
+  certified negation of the reseat residue's own statement — is
+  ZERO-sorry, and the sorry count stays exactly the six.
+
+  THE SESSION-4 CONTINUATION (the raise rung, §4.2.a.RR): the two
+  new machinery rows — `lowslab_rung_step_le` (the one-move +1
+  bound) and `lowslab_rung_floor` (the class-rung-floor latch) —
+  are zero-sorry over the banked kit alone (the per-leg deltas,
+  `witness_leg_letters`, `shuffle_hiddenPinned`, `mem_hidden_only`,
+  `wf_found_chop_toIdx`, `firstWhere_sound`); every rr-board row is
+  zero-sorry at decide/defeq grade (the same SB-door fork parcel,
+  one decide over the shifted economy; the step facts and
+  ext-dances by `rfl` and `funext`; the pinch by decide); and the
+  two certified negations — `lowslab_raise_refuted` (the raise
+  residue's own statement) and `lowslab_neighbor_refuted` (the
+  MAIN STATEMENT's own byte-frozen statement) — are ZERO-sorry.
+  The sorry count stays exactly the six,
+  `fork_neighbor_lowbridge`'s profile stays
+  [propext, sorryAx, Quot.sound] (the negations are not consumed by
+  it), and no `Classical.choice` anywhere. -/
 
 #print axioms lowslab_draw_reversible_phase
 #print axioms lowslab_pull_wf_undo
@@ -2664,3 +3714,30 @@ ZERO-sorry, and the sorry count stays exactly the six. -/
 #print axioms wr_helev
 #print axioms wr_guard
 #print axioms lowslab_waste_reseat_refuted
+#print axioms lowslab_rung_step_le
+#print axioms lowslab_rung_floor
+#print axioms rr_st_wf
+#print axioms rr_fork
+#print axioms rr_hop_fires
+#print axioms rr_st'_eq
+#print axioms rr_unhop_fires
+#print axioms rr_raise_fires
+#print axioms rr_s1'_eq
+#print axioms rr_giveback_fires
+#print axioms rr_class
+#print axioms rr_helev
+#print axioms rr_commit_fires
+#print axioms rr_commit
+#print axioms rr_v_rung
+#print axioms rr_v_wf
+#print axioms rr_pinch
+#print axioms rr_no_dupe
+#print axioms lowslab_raise_refuted
+#print axioms lowslab_neighbor_refuted
+#print axioms ls_slide_congr_zones
+#print axioms ls_pull_congr_zones
+#print axioms ls_raise_congr_zones
+#print axioms fork_lowbridge_raise_of_hlow
+#print axioms lowslab_waste_reseat_of_hlow
+#print axioms ls_raise_congr_drift
+#print axioms ls_pull_congr_drift

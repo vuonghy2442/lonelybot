@@ -1055,25 +1055,11 @@ def padReach (u v : State) : Prop :=
 
 /-- The append reader for the run dialect — the per-file kin of the
 `p_run_append` precedent (LowSlab, ForklessCeiling); the public
-home `run_append_split` carries the SPLIT direction. -/
+home `run_append_split` carries the SPLIT direction.
+harvested to Orig/Play.lean's `run_append` at the 2026-10-17 wave. -/
 private theorem dc_run_append : ∀ (st : State) (A B : List Move) (z w : State),
-    st.run A = some z → z.run B = some w → st.run (A ++ B) = some w := by
-  intro st A
-  induction A generalizing st with
-  | nil =>
-      intro B z w h1 h2
-      have h' : (some st : Option State) = some z := h1
-      have hz : st = z := Option.some.inj h'
-      rw [List.nil_append, hz]
-      exact h2
-  | cons m rest ih =>
-      intro B z w h1 h2
-      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h1
-      show (match State.step st m with
-        | some st' => State.run st' (rest ++ B)
-        | none => none) = some w
-      rw [hstep]
-      exact ih s₁ B z w hrest h2
+    st.run A = some z → z.run B = some w → st.run (A ++ B) = some w :=
+  run_append
 
 /-- The null path: every position wiggles to itself. -/
 theorem padReach_refl (u : State) : padReach u u :=

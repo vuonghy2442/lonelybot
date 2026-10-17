@@ -66,6 +66,16 @@ WHAT IS PROVED HERE (all banked-grade, zero sorry):
   NAMED RESIDUE `decompose_residue_nesting` with its route (the
   per-suit Dyck serialization, nested-bracket recursion, and the
   crossing-deroute step that still prices bracket commutation).
+* **THE DEROUTE ATOM + THE N=2 EXHIBIT** (2026-10-17 landing wave):
+  `putRun_singleton_putCard` — the singleton re-slide lands exactly
+  the excursion-pull it replaces; with the cone's `canPlace_congr`
+  this is the crossing-deroute's landing core.  The N=2 same-suit
+  sandwich world is decide-graded in `Temp/bd_nesting_probe.lean`:
+  orbit-mates joined by `raise S4 · raise H5 · pull H5 · pull S4`
+  span the closure as `bracket S4 · slide H5`; the falsifier hunt
+  closed all three refuter families (burial, base-collision, swap)
+  — the residue CARRIES at N≥2 worlds, its priced remainder the
+  four-suit orchestration and the WF premise-grade bridge.
 
 House note: `Orig/SFlatTransfer.lean` (landed tonight:
 `S_census_one_leg`, `forkState_mate_S`) is not consumed here — this
@@ -915,6 +925,26 @@ theorem bracketClosure_of_flatPath {st w : State} (h : FlatPath st w) :
   | @cons u z u2 hs _t ih =>
       exact BracketClosure.phase (FlatPath.cons hs (FlatPath.refl z)) ih
 
+/-! ### The deroute atoms: the residue route's first banked pieces
+
+The crossing-deroute step the residue prices begins as pure state
+algebra: a singleton re-slide IS the excursion-pull it replaces
+(below), and landing legality rides pile equality (the cone's
+`canPlace_congr`, `Orig/Twin.lean:178`).  The N=2 rehearsal is
+decide-graded in `Temp/bd_nesting_probe.lean`. -/
+
+/-- **THE SINGLETON-RUN LANDING IDENTITY** — the first atom of the
+residue route's crossing-deroute: a re-slide of a singleton run lands
+exactly the card placement of the excursion-pull it replaces (the
+`inl` branches write the same one-card pile; the `inr` branches
+append the same singleton).  Known folklore at `rfl` grade in the
+cone (it rides inline at `Orig/Dominance.lean`'s deroute sites);
+banked here as the named, citable row the nesting deroute's
+re-slide step quotes. -/
+theorem putRun_singleton_putCard (st : State) (c : Card) (b : Base) :
+    st.putRun [c] b = st.putCard c b := by
+  cases b <;> rfl
+
 /-! ## §5. THE ONE-BRACKET DECOMPOSITION -/
 
 /-- **THE ONE-BRACKET DECOMPOSITION** — the assembly's proved frontier:
@@ -1156,9 +1186,36 @@ The route (each step priced by this card's proved rows):
    land, the residue is honestly open.
 3. **The premise grade**: the residue as stated (bare) needs
    `st.WF` added — or derived — for the same-card serialization (the
-   fiber/fork consumers premised on this card all carry `WF`
-   already); the route above is written at the WF grade to stay
-   constructible. -/
+    fiber/fork consumers premised on this card all carry `WF`
+    already); the route above is written at the WF grade to stay
+    constructible.
+
+  LANDING WAVE (2026-10-17, the nesting-probe session): the
+  deroute's first atom is banked at theorem grade —
+  `putRun_singleton_putCard` above (`putRun [c] b = putCard c b`: a
+  singleton re-slide lands exactly the card placement of the
+  excursion-pull it replaces), beside the cone's `canPlace_congr`
+  (`Orig/Twin.lean:178`, landing legality rides pile equality —
+  the "pull landing bases are equivariant under leading slides"
+  half).  The N=2 world itself now carries a decide-grade deroute
+  exhibit (`Temp/bd_nesting_probe.lean`): orbit-mates joined by
+  `raise S4 · raise H5 · pull H5 · pull S4` — the same-suit
+  sandwich the flat-interior grammar cannot parse in the given
+  order — span the closure as `bracket S4 · slide H5`, the inner
+  excursion deleted whole and re-ridden as a phase slide, landing
+  exactly `w` (gates `nest_orbit`, `nest_tuple`,
+  `deroute_closure`; every leg `reversibleAtW` by explicit
+  one-move mirrors; the slide-first order refuted by the probe's
+  control: the run drags 4♠ along).  The falsifier hunt closed
+  all three refuter families: burial (the reveal-expose sandwich
+  above — derouted), base-collision (kings-only empty-pile
+  landings plus the SHARED `canPlace` guard: every pull landing
+  the journey can take, a re-slide can reproduce), and swap (card
+  identities are structurally unique, so a pull-first excursion
+  cannot re-raise a different card).  STILL PRICED: the four-suit
+  orchestration of bracket-edge commutations at arbitrary depth,
+  and this very premise-grade bridge — until both, the residue
+  stays honestly open. -/
 private theorem decompose_residue_nesting {st w : State}
     (h : sameOrbitSetoid.r st w)
     (htup : ∀ σ, rungAt st σ = rungAt w σ) : BracketClosure st w := by
@@ -1200,6 +1257,7 @@ residue (`decompose_residue_nesting` above, with its route). -/
 #print axioms witness_one_bracket
 #print axioms one_bracket_closure
 #print axioms raise_free_closure
+#print axioms putRun_singleton_putCard
 #print axioms sameOrbit_forward
 #print axioms reversible_equaltuple_decompose_one_raise
 #print axioms reversible_equaltuple_decompose

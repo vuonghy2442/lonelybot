@@ -222,6 +222,35 @@ theorem run_append_split : ∀ (st : State) (A B : List Move) (w : State),
       rw [hstep]
       exact hA
 
+/-- The run-append join: two successful plays concatenate into one —
+the forward-facing companion of the split `run_append_split` above
+(landed at the harvest wave so the run dialect's two append readers
+sit in one home; the quiescent private copies — `Orig/LowSlab.lean`'s
+`p_run_append` and `Orig/Decompress.lean`'s `dc_run_append` — now
+cite this home, and the in-flight/next-wave copies —
+`Orig/ForklessCeiling.lean`'s `fc_run_append` and `Orig/HostCensus.lean`'s
+`hc_run_append` — flip here when their fronts close). -/
+theorem run_append : ∀ (a : State) (A B : List Move) (z w : State),
+    a.run A = some z → z.run B = some w → a.run (A ++ B) = some w := by
+  intro a A
+  induction A generalizing a with
+  | nil =>
+      intro B z w h1 h2
+      have hz : some a = some z := h1
+      injection hz with hc
+      subst hc
+      exact h2
+  | cons m rest ih =>
+      intro B z w h1 h2
+      obtain ⟨a₁, hs, hr⟩ := State.run_cons h1
+      have h3 := ih a₁ B z w hr h2
+      rw [List.cons_append]
+      show (match State.step a m with
+        | some st' => st'.run (rest ++ B)
+        | none => none) = some w
+      rw [hs]
+      exact h3
+
 /-- **The first-passage split**: a successful play whose start fails
 `P` and whose end satisfies `P` crosses at a first position — a
 prefix landing on a failing state, one crossing move onto a passing

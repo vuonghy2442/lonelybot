@@ -10009,6 +10009,688 @@ theorem probe_xnext_others :
 
 end WorryCoReal
 
+/-! ### The wave-27 draw-zone congruence (staging, additive)
+
+The draw leg is blind to piles and foundations: two states sharing
+the stock/waste/drawStep triple draw to the identical draw zone
+each keeping its own `found` and `piles` verbatim.  Cited kit, not
+re-derived: the B-side firing is the landed private congruence
+`stepDraw_congr` (whose body carries `draw_unfold` and the
+`recycle_fields` triple); the A-side write-blindness is the same
+`draw_unfold` + `recycle_fields` fold the `ground_step_draw` engine
+uses; every zone equality at the successor is then an iota-read of
+the assembled record.  The gap the congruence leaves open — the
+pre-worry firing that is not supplied — is handled by the caller. -/
+
+/-- THE DRAW ZONE CONGRUENCE SQUARE (staging, additive) — the draw
+leg is blind to the piles and the foundations: two states sharing
+stock/waste/drawStep take the SAME draw transition (identical
+stock/waste/drawStep at the successors), each successor keeping
+its own state's piles and found verbatim. -/
+private theorem dm_draw_congr_zones
+    {A B A' : State} (hst : A.stock = B.stock) (hw : A.waste = B.waste)
+    (hds : A.drawStep = B.drawStep)
+    (hstep : State.step A Move.draw = some A') :
+    ∃ B', State.step B Move.draw = some B' ∧
+      A'.stock = B'.stock ∧ A'.waste = B'.waste ∧
+      A'.drawStep = B'.drawStep ∧
+      B'.piles = B.piles ∧ B'.found = B.found ∧
+      A'.piles = A.piles ∧ A'.found = A.found := by
+  have hkeep : A'.found = A.found ∧ A'.piles = A.piles := by
+    obtain ⟨r, hru, -, hshape⟩ := draw_unfold hstep
+    rw [hshape]
+    rw [← hru]
+    cases hs : A.stock with
+    | nil =>
+        cases hwa : A.waste with
+        | nil => rw [(recycle_fields A).1 hs hwa]; exact ⟨rfl, rfl⟩
+        | cons w ws =>
+            rw [(recycle_fields A).2.1 hs (by rw [hwa]; simp)]
+            exact ⟨rfl, rfl⟩
+    | cons a as =>
+        rw [(recycle_fields A).2.2 (by rw [hs]; simp)]
+        exact ⟨rfl, rfl⟩
+  exact ⟨{ A' with found := B.found, piles := B.piles },
+    stepDraw_congr hst.symm hw.symm hds.symm hstep,
+    rfl, rfl, rfl, rfl, rfl, hkeep.2, hkeep.1⟩
+
+/-! ### The wave-28 fronts (staging, additive)
+
+Front 1, the worry×draw composite square: the residue route's own
+pricing (the draw reads exactly the draw zone; the worry writes
+exactly `found` and `piles`; hence no interference corner at all).
+Assembled, not re-derived: the draw legs ride the wave-27 congruence
+`dm_draw_congr_zones` (which itself carries `stepDraw_congr`,
+`draw_unfold`, and the `recycle_fields` triple); the worry window's
+guards come from `foundToTab_fires`/`foundToTab_fires_eq`, with the
+seat test transferred across the draw leg by the
+`canPlace`/`pileOfTop` piles-agreement (`firstWhere_congr` over the
+identical piles functions); the composite closes by `State.ext` over
+the public record readers.  Front 2, the avoidance-fold staging row:
+the engine `worry_elim`'s spread arm supplies its residue instance
+with a FIRST-OCCURRENCE clean prefix — the fold below re-derives that
+structure from an arbitrary reach witness plus a q-avoiding winning
+play, so either the whole-play composite already avoids the worry
+move, or the residue-shaped window is located behind a clean
+prefix (the repackaging the repair consumes). -/
+
+/-- **The worry×draw composite square (Front 1)** — a `foundToTab c b`
+worry window with a live subsequent `draw` leg commutes: the draw
+fires from the pre-worry state too, and the worry re-fires from the
+draw's landing onto the very same successor.  No interference
+corner — the draw never reads what the worry writes — so unlike
+the raise and waste squares there is no suit or seat hypothesis. -/
+private theorem dm_worry_draw_commute {st : State} {c : Card} {b : Base}
+    {s₁ t : State}
+    (hf : State.step st (Move.foundToTab c b) = some s₁)
+    (hd : State.step s₁ Move.draw = some t) :
+    ∃ t₁, State.step st Move.draw = some t₁ ∧
+      State.step t₁ (Move.foundToTab c b) = some t := by
+  obtain ⟨htop, hcp, hs₁⟩ := foundToTab_fires hf
+  have hzs : s₁.stock = st.stock := by rw [hs₁, putCard_stock, setFound_stock]
+  have hzw : s₁.waste = st.waste := by rw [hs₁, putCard_waste, setFound_waste]
+  have hzd : s₁.drawStep = st.drawStep := by
+    rw [hs₁, putCard_drawStep, setFound_drawStep]
+  obtain ⟨t₁, hst, htzS, htzW, htzD, htpB, htfB, hkeepp, hkeepf⟩ :=
+    dm_draw_congr_zones hzs hzw hzd hd
+  refine ⟨t₁, hst, ?_⟩
+  have hpo : ∀ z : Card, t₁.pileOfTop z = st.pileOfTop z := by
+    intro z
+    have hcc : firstWhere (fun a' => decide ((t₁.piles a').top = some z)) Anchor.all
+        = firstWhere (fun a' => decide ((st.piles a').top = some z)) Anchor.all :=
+      firstWhere_congr (fun a' => by rw [congrFun htpB a'])
+    show firstWhere (fun a' => decide ((t₁.piles a').top = some z)) Anchor.all
+        = firstWhere (fun a' => decide ((st.piles a').top = some z)) Anchor.all
+    exact hcc
+  have hsf₁ : ∀ σ : Suit, s₁.found σ =
+      (if σ = c.suit then chop (st.found c.suit) else st.found σ) := by
+    intro σ
+    rw [hs₁, putCard_found]
+    by_cases hσ : σ = c.suit
+    · rw [ite_eq_left hσ, hσ, setFound_found_self]
+    · rw [ite_eq_right hσ, setFound_found_ne hσ]
+  have htop' : t₁.foundTop c.suit = some c := by
+    show lastOf (t₁.found c.suit) = some c
+    rw [htfB]
+    exact htop
+  have hcp0 : t₁.canPlace c b = st.canPlace c b := by
+    cases b with
+    | inl a => simp only [State.canPlace, congrFun htpB a]
+    | inr z => simp only [State.canPlace, hpo z]
+  have hcp' : t₁.canPlace c b = true := by
+    rw [hcp0]
+    exact hcp
+  have hFire : State.step t₁ (Move.foundToTab c b) =
+      some ((t₁.setFound c.suit (chop (t₁.found c.suit))).putCard c b) :=
+    foundToTab_fires_eq htop' hcp'
+  rw [hFire]
+  refine congrArg some ?_
+  apply State.ext
+  · funext σ
+    rw [putCard_found, hkeepf]
+    by_cases hσc : σ = c.suit
+    · rw [hσc, setFound_found_self, htfB, hsf₁ c.suit, ite_eq_left rfl]
+    · rw [setFound_found_ne hσc, htfB, hsf₁ σ, ite_eq_right hσc]
+  · funext a''
+    cases b with
+    | inl a =>
+        have hL := congrFun (putCard_piles_inl (t₁.setFound c.suit (chop (t₁.found c.suit))) c a) a''
+        have hR := congrFun (putCard_piles_inl (st.setFound c.suit (chop (st.found c.suit))) c a) a''
+        have hs₁p : s₁.piles a''
+            = (if a'' = a then (⟨[], [c]⟩ : Pile) else st.piles a'') := by
+          rw [hs₁, hR, setFound_piles]
+        rw [hkeepp, hL, setFound_piles, htpB, hs₁p]
+    | inr z =>
+        obtain ⟨k, hzk, -⟩ := canPlace_inr hcp
+        have hzS : (st.setFound c.suit (chop (st.found c.suit))).pileOfTop z = some k := by
+          have hcc : firstWhere (fun a' => decide (((st.setFound c.suit (chop (st.found c.suit))).piles a').top = some z)) Anchor.all
+              = firstWhere (fun a' => decide ((st.piles a').top = some z)) Anchor.all :=
+            firstWhere_congr (fun _ => rfl)
+          show firstWhere (fun a' => decide (((st.setFound c.suit (chop (st.found c.suit))).piles a').top = some z)) Anchor.all = some k
+          rw [hcc]
+          exact hzk
+        have hzT : (t₁.setFound c.suit (chop (t₁.found c.suit))).pileOfTop z = some k := by
+          have hcc : firstWhere (fun a' => decide (((t₁.setFound c.suit (chop (t₁.found c.suit))).piles a').top = some z)) Anchor.all
+              = firstWhere (fun a' => decide ((st.piles a').top = some z)) Anchor.all :=
+            firstWhere_congr (fun a' => by
+              show decide (((t₁.setFound c.suit (chop (t₁.found c.suit))).piles a').top = some z)
+                  = decide ((st.piles a').top = some z)
+              rw [setFound_piles, htpB])
+          show firstWhere (fun a' => decide (((t₁.setFound c.suit (chop (t₁.found c.suit))).piles a').top = some z)) Anchor.all = some k
+          rw [hcc]
+          exact hzk
+        have hL := congrFun (putCard_piles_inr (t₁.setFound c.suit (chop (t₁.found c.suit))) c z k hzT) a''
+        have hR := congrFun (putCard_piles_inr (st.setFound c.suit (chop (st.found c.suit))) c z k hzS) a''
+        have hs₁p : s₁.piles a''
+            = (if a'' = k then { st.piles k with faceUp := (st.piles k).faceUp ++ [c] }
+               else st.piles a'') := by
+          rw [hs₁, hR, setFound_piles]
+        rw [hkeepp, hL, setFound_piles, htpB, hs₁p]
+  · rw [putCard_stock, setFound_stock, htzS.symm]
+  · rw [putCard_waste, setFound_waste, htzW.symm]
+  · rw [putCard_drawStep, setFound_drawStep, htzD.symm]
+
+/-- **The avoidance-fold staging row (Front 2)** — from any reach
+witness for `q` plus a `foundToTab c b`-avoiding winning play at
+`q`, either the composed play already avoids the worry move, or the
+residue-shaped window (worry fires, then a continuation to the win)
+sits behind a first-occurrence clean prefix ending at a `WF` state.
+The fold is `mem_avoid_or_first` plus the run splitters/glue the
+engine itself uses. -/
+private theorem dm_worry_avoid_fold {st : State} {c : Card} {b : Base}
+    {q v : State} {σ : List Move}
+    (hwf : st.WF)
+    (hq : Reach st q)
+    (hwinσ : q.run σ = some v) (hiswin : v.isWin = true)
+    (hcleanσ : ∀ m' ∈ σ, m' ≠ Move.foundToTab c b) :
+    (∃ play u, st.run play = some u ∧ u.isWin = true ∧
+        ∀ m' ∈ play, m' ≠ Move.foundToTab c b) ∨
+    (∃ A B s₁ u, st.run A = some u ∧ u.WF ∧
+        (∀ m' ∈ A, m' ≠ Move.foundToTab c b) ∧
+        State.step u (Move.foundToTab c b) = some s₁ ∧
+        s₁.run (B ++ σ) = some v) := by
+  obtain ⟨ρ, hrρ⟩ := hq
+  rcases (mem_avoid_or_first (m := Move.foundToTab c b) ρ) with hcleanρ | ⟨A, B, hρ, hA⟩
+  · refine Or.inl ⟨ρ ++ σ, v, ?_, hiswin, ?_⟩
+    · exact run_app_glue ρ st q v σ hrρ hwinσ
+    · intro m' hm'
+      rcases List.mem_append.mp hm' with hL | hR
+      · exact hcleanρ m' hL
+      · exact hcleanσ m' hR
+  · obtain ⟨u, hA', hu⟩ :=
+      run_app_split A st (Move.foundToTab c b :: B) q (by rw [hρ] at hrρ; exact hrρ)
+    obtain ⟨s₁, h1, hB⟩ := State.run_cons hu
+    refine Or.inr ⟨A, B, s₁, u, hA', run_wf A hA' hwf, hA, h1, ?_⟩
+    exact run_app_glue B s₁ q v σ hB hwinσ
+
+/-! ### The wave-29 fronts (staging, additive)
+
+Front 1, the run-level combine: the two-leg window swap the (C)
+engine's spread-bubble route consumes — the draw-first re-issue of
+a worry-then-draw-led segment, over `State.run_cons` and the landed
+composite square.  Front 2, the (iii)-bank micro-square for the
+`wasteToTab` slot at the priced off-seat corner: the route's words
+("interfere exactly at the worry-created seat") read here as the
+`inl`×`inl` corner — two king-parks at DISTINCT seats — where both
+orders land the same composite; the forward firing is the public
+`step_wasteToTab_eq` branch reader, the seat guards transfer by
+piles-agreement, and the composite closes by `State.ext` exactly as
+the draw square's does. -/
+
+/-- **The run-level combine of the worry×draw square (Front 1)** —
+the two-leg window swap the (C) engine's spread-bubble route
+consumes: a worry window followed by a draw-led segment re-issues
+draw-first (the same segment reading), with the worry re-fired from
+the draw's landing. -/
+private theorem dm_worry_draw_commute_run {st : State} {c : Card} {b : Base}
+    {s₁ : State} {rest : List Move} {w : State}
+    (hf : State.step st (Move.foundToTab c b) = some s₁)
+    (hrun : s₁.run (Move.draw :: rest) = some w) :
+    ∃ t₁, State.step st Move.draw = some t₁ ∧
+      t₁.run (Move.foundToTab c b :: rest) = some w := by
+  obtain ⟨t, hd, hrest⟩ := State.run_cons hrun
+  obtain ⟨t₁, hst, hfire⟩ := dm_worry_draw_commute hf hd
+  refine ⟨t₁, hst, ?_⟩
+  show (match State.step t₁ (Move.foundToTab c b) with
+    | some st' => State.run st' rest
+    | none => none) = some w
+  rw [hfire]
+  exact hrest
+
+/-- **The worry×`wasteToTab` micro-square (Front 2), the off-seat
+`inl`×`inl` corner**: a king worry-back (c onto the empty seat a)
+and a king waste-park (y onto the empty seat a') at DISTINCT seats
+commute — the residue route's priced no-interference corner: the
+exchange interferes exactly when the park lands on (or reads) the
+worry-created seat, barred here by `a ≠ a'`.  The worry never
+touches the waste, so the park pops the same head in either order,
+and each order's seat guard reads only the pile the other order has
+not written. -/
+private theorem dm_worry_wasteToTab_commute_inl {st : State} {c y : Card}
+    {a a' : Anchor} {s₁ t : State}
+    (hne : a ≠ a')
+    (hf : State.step st (Move.foundToTab c (Sum.inl a)) = some s₁)
+    (hw : State.step s₁ (Move.wasteToTab y (Sum.inl a')) = some t) :
+    ∃ r, State.step st (Move.wasteToTab y (Sum.inl a')) = some r ∧
+      State.step r (Move.foundToTab c (Sum.inl a)) = some t := by
+  obtain ⟨htop, hcp, hs₁⟩ := foundToTab_fires hf
+  obtain ⟨hwis, hcpw, ws, hwcons, htshape⟩ := wasteToTab_fires hw
+  have hzW : s₁.waste = st.waste := by rw [hs₁, putCard_waste, setFound_waste]
+  have hzStock : s₁.stock = st.stock := by rw [hs₁, putCard_stock, setFound_stock]
+  have hzD : s₁.drawStep = st.drawStep := by
+    rw [hs₁, putCard_drawStep, setFound_drawStep]
+  have hwcons' : st.waste = y :: ws := hzW.symm.trans hwcons
+  have hcpw' : st.canPlace y (Sum.inl a') = true := by
+    have hs1pa : s₁.piles a' = st.piles a' := by
+      have hL := congrFun (putCard_piles_inl (st.setFound c.suit (chop (st.found c.suit))) c a) a'
+      rw [hs₁, hL, setFound_piles, ite_eq_right (Ne.symm hne)]
+    have h0 : s₁.canPlace y (Sum.inl a') = st.canPlace y (Sum.inl a') := by
+      simp only [State.canPlace, hs1pa]
+    rw [← h0]
+    exact hcpw
+  have hwis' : st.wasteIs y = true := by
+    rw [State.wasteIs_cons hwcons' y]
+    exact decide_eq_true rfl
+  have hcond : (st.wasteIs y && st.canPlace y (Sum.inl a')) = true := by
+    rw [hwis', hcpw']
+    rfl
+  have hs₁p : ∀ z : Anchor, s₁.piles z =
+      (if z = a then (⟨[], [c]⟩ : Pile) else st.piles z) := by
+    intro z
+    have hL := congrFun (putCard_piles_inl (st.setFound c.suit (chop (st.found c.suit))) c a) z
+    rw [hs₁, hL, setFound_piles]
+  have hsf₁ : ∀ σ : Suit, s₁.found σ =
+      (if σ = c.suit then chop (st.found c.suit) else st.found σ) := by
+    intro σ
+    rw [hs₁, putCard_found]
+    by_cases hσ : σ = c.suit
+    · rw [ite_eq_left hσ, hσ, setFound_found_self]
+    · rw [ite_eq_right hσ, setFound_found_ne hσ]
+  have htopr : ({ st.putCard y (Sum.inl a') with waste := ws } : State).foundTop c.suit = some c := by
+    show lastOf (st.found c.suit) = some c
+    exact htop
+  have hcplr : ({ st.putCard y (Sum.inl a') with waste := ws } : State).canPlace c (Sum.inl a) = true := by
+    have hpila : (st.putCard y (Sum.inl a')).piles a = st.piles a := by
+      have h := congrFun (putCard_piles_inl st y a') a
+      rw [h, ite_eq_right hne]
+    have h0 : ({ st.putCard y (Sum.inl a') with waste := ws } : State).canPlace c (Sum.inl a)
+        = st.canPlace c (Sum.inl a) := by
+      simp only [State.canPlace, hpila]
+    rw [h0]
+    exact hcp
+  refine ⟨{ st.putCard y (Sum.inl a') with waste := ws }, ?_, ?_⟩
+  · rw [step_wasteToTab_eq, hcond, hwcons']
+    rfl
+  · rw [foundToTab_fires_eq htopr hcplr]
+    refine congrArg some ?_
+    apply State.ext
+    · funext σ
+      rw [htshape, show ({ s₁.putCard y (Sum.inl a') with waste := ws } : State).found σ
+            = s₁.found σ from rfl, putCard_found]
+      by_cases hσc : σ = c.suit
+      · rw [hσc, setFound_found_self,
+          show (({ st.putCard y (Sum.inl a') with waste := ws } : State).found) = st.found from rfl,
+          hsf₁ c.suit, ite_eq_left rfl]
+      · rw [setFound_found_ne hσc,
+          show (({ st.putCard y (Sum.inl a') with waste := ws } : State).found) = st.found from rfl,
+          hsf₁ σ, ite_eq_right hσc]
+    · funext x
+      have hTL := congrFun (putCard_piles_inl
+        (({ st.putCard y (Sum.inl a') with waste := ws } : State).setFound c.suit
+          (chop (({ st.putCard y (Sum.inl a') with waste := ws } : State).found c.suit))) c a) x
+      have hsL : ({ st.putCard y (Sum.inl a') with waste := ws } : State).piles x =
+          (if x = a' then (⟨[], [y]⟩ : Pile) else st.piles x) := by
+        have h := congrFun (putCard_piles_inl st y a') x
+        rw [show ({ st.putCard y (Sum.inl a') with waste := ws } : State).piles x
+              = (st.putCard y (Sum.inl a')).piles x from rfl, h]
+      have htpx : t.piles x = (if x = a' then (⟨[], [y]⟩ : Pile) else
+          (if x = a then (⟨[], [c]⟩ : Pile) else st.piles x)) := by
+        have hL := congrFun (putCard_piles_inl s₁ y a') x
+        rw [htshape, show ({ s₁.putCard y (Sum.inl a') with waste := ws } : State).piles x
+              = (s₁.putCard y (Sum.inl a')).piles x from rfl, hL, hs₁p x]
+      rw [hTL, setFound_piles, hsL, htpx]
+      by_cases hx : x = a
+      · rw [hx, ite_eq_left rfl, ite_eq_left rfl, ite_eq_right hne]
+      · rw [ite_eq_right hx, ite_eq_right hx]
+    · rw [htshape, show ({ s₁.putCard y (Sum.inl a') with waste := ws } : State).stock = s₁.stock from rfl,
+        putCard_stock, setFound_stock,
+        show ({ st.putCard y (Sum.inl a') with waste := ws } : State).stock = st.stock from rfl,
+        hzStock]
+    · rw [htshape, show ({ s₁.putCard y (Sum.inl a') with waste := ws } : State).waste = ws from rfl,
+        putCard_waste, setFound_waste,
+        show ({ st.putCard y (Sum.inl a') with waste := ws } : State).waste = ws from rfl]
+    · rw [htshape, show ({ s₁.putCard y (Sum.inl a') with waste := ws } : State).drawStep = s₁.drawStep from rfl,
+        putCard_drawStep, setFound_drawStep,
+        show ({ st.putCard y (Sum.inl a') with waste := ws } : State).drawStep = st.drawStep from rfl,
+        hzD]
+
+/-! ### The wave-30 fronts (staging, additive)
+
+Front 1, the mixed `inl`×`inr` corner of the worry×`wasteToTab`
+micro-square: the king worry-back onto the empty seat a, the park
+onto a LOCATED card pile (base `inr z`, located at `k'`),
+interference-free when the locator is not the seat and the base
+does not read the worry's own card (the route's "a base reading x"
+corner, barred by `z ≠ c`).  With both locators written straight
+into the statement (the engine's fire-arm inventory supplies them),
+no search-transfer is needed at all: the seat guard transfers by
+the `putCard_piles_inr` locator equation, the waste leg by the
+readers, and the composite closes by `State.ext` over disjoint
+write footprints `k' ≠ a`.  Front 2, the run-level combine of the
+`inl` wasteToTab square, the exact mirror of
+`dm_worry_draw_commute_run`. -/
+
+/-- **The worry×`wasteToTab` micro-square, the `inl`×`inr` corner**:
+a king worry-back (c onto the empty seat a) and a waste-park onto a
+located card pile (y onto `z`'s pile, located at `k'`), swap to the
+same composite when the park's located pile is not the worry's seat
+(`k' ≠ a`) and the base card is not the worry's own card (`z ≠ c`,
+the route's "a base reading x" corner — the two-locator hypotheses
+carry the search transfer that corner enables). -/
+private theorem dm_worry_wasteToTab_commute_inl_inr {st : State} {c y z : Card}
+    {a k' : Anchor} {s₁ t : State}
+    (_hzc : z ≠ c)
+    (hk₁ : st.pileOfTop z = some k')
+    (hk₂ : s₁.pileOfTop z = some k')
+    (hne : k' ≠ a)
+    (hf : State.step st (Move.foundToTab c (Sum.inl a)) = some s₁)
+    (hw : State.step s₁ (Move.wasteToTab y (Sum.inr z)) = some t) :
+    ∃ r, State.step st (Move.wasteToTab y (Sum.inr z)) = some r ∧
+      State.step r (Move.foundToTab c (Sum.inl a)) = some t := by
+  obtain ⟨htop, hcp, hs₁⟩ := foundToTab_fires hf
+  obtain ⟨hwis, hcpw, ws, hwcons, htshape⟩ := wasteToTab_fires hw
+  have hzW : s₁.waste = st.waste := by rw [hs₁, putCard_waste, setFound_waste]
+  have hwcons' : st.waste = y :: ws := hzW.symm.trans hwcons
+  have hs₁p : ∀ x : Anchor, s₁.piles x =
+      (if x = a then (⟨[], [c]⟩ : Pile) else st.piles x) := by
+    intro x
+    have hL := congrFun (putCard_piles_inl (st.setFound c.suit (chop (st.found c.suit))) c a) x
+    rw [hs₁, hL, setFound_piles]
+  have hoi : s₁.pileOfTop z = st.pileOfTop z := by rw [hk₂, hk₁]
+  have hcpw' : st.canPlace y (Sum.inr z) = true := by
+    have h0 : s₁.canPlace y (Sum.inr z) = st.canPlace y (Sum.inr z) := by
+      simp only [State.canPlace, hoi]
+    rw [← h0]
+    exact hcpw
+  have hwis' : st.wasteIs y = true := by
+    rw [State.wasteIs_cons hwcons' y]
+    exact decide_eq_true rfl
+  have hcond : (st.wasteIs y && st.canPlace y (Sum.inr z)) = true := by
+    rw [hwis', hcpw']
+    rfl
+  have hzStock : s₁.stock = st.stock := by rw [hs₁, putCard_stock, setFound_stock]
+  have hzD : s₁.drawStep = st.drawStep := by rw [hs₁, putCard_drawStep, setFound_drawStep]
+  have hFLst : ({ st.putCard y (Sum.inr z) with waste := ws } : State).found = st.found :=
+    (rfl : (({ st.putCard y (Sum.inr z) with waste := ws } : State).found)
+        = (st.putCard y (Sum.inr z)).found).trans (putCard_found st y (Sum.inr z))
+  have hFLs₁ : ({ s₁.putCard y (Sum.inr z) with waste := ws } : State).found = s₁.found :=
+    (rfl : (({ s₁.putCard y (Sum.inr z) with waste := ws } : State).found)
+        = (s₁.putCard y (Sum.inr z)).found).trans (putCard_found s₁ y (Sum.inr z))
+  have hsf₁ : ∀ ζ : Suit, s₁.found ζ =
+      (if ζ = c.suit then chop (st.found c.suit) else st.found ζ) := by
+    intro ζ
+    rw [hs₁, putCard_found]
+    by_cases hσ : ζ = c.suit
+    · rw [ite_eq_left hσ, hσ, setFound_found_self]
+    · rw [ite_eq_right hσ, setFound_found_ne hσ]
+  have htopr : ({ st.putCard y (Sum.inr z) with waste := ws } : State).foundTop c.suit = some c := by
+    show lastOf (({ st.putCard y (Sum.inr z) with waste := ws } : State).found c.suit) = some c
+    rw [hFLst]
+    exact htop
+  have hcplr : ({ st.putCard y (Sum.inr z) with waste := ws } : State).canPlace c (Sum.inl a) = true := by
+    have hpila : (st.putCard y (Sum.inr z)).piles a = st.piles a := by
+      have hL := congrFun (putCard_piles_inr st y z k' hk₁) a
+      rw [hL, ite_eq_right (Ne.symm hne)]
+    have h0 : ({ st.putCard y (Sum.inr z) with waste := ws } : State).canPlace c (Sum.inl a)
+        = st.canPlace c (Sum.inl a) := by
+      simp only [State.canPlace, hpila]
+    rw [h0]
+    exact hcp
+  refine ⟨{ st.putCard y (Sum.inr z) with waste := ws }, ?_, ?_⟩
+  · rw [step_wasteToTab_eq, hcond, hwcons']
+    rfl
+  · rw [foundToTab_fires_eq htopr hcplr]
+    refine congrArg some ?_
+    apply State.ext
+    · funext σ
+      rw [htshape, hFLs₁, putCard_found]
+      by_cases hσc : σ = c.suit
+      · rw [hσc, setFound_found_self, hFLst, hsf₁ c.suit, ite_eq_left rfl]
+      · rw [setFound_found_ne hσc, hFLst, hsf₁ σ, ite_eq_right hσc]
+    · funext x
+      have hTL := congrFun (putCard_piles_inl
+        (({ st.putCard y (Sum.inr z) with waste := ws } : State).setFound c.suit
+          (chop (({ st.putCard y (Sum.inr z) with waste := ws } : State).found c.suit))) c a) x
+      have hsL : ({ st.putCard y (Sum.inr z) with waste := ws } : State).piles x =
+          (if x = k' then { st.piles k' with faceUp := (st.piles k').faceUp ++ [y] }
+           else st.piles x) := by
+        have h := congrFun (putCard_piles_inr st y z k' hk₁) x
+        rw [show (({ st.putCard y (Sum.inr z) with waste := ws } : State).piles x)
+              = (st.putCard y (Sum.inr z)).piles x from rfl, h]
+      have htpx : t.piles x =
+          (if x = k' then { st.piles k' with faceUp := (st.piles k').faceUp ++ [y] }
+            else (if x = a then (⟨[], [c]⟩ : Pile) else st.piles x)) := by
+        have hL := congrFun (putCard_piles_inr s₁ y z k' hk₂) x
+        rw [htshape, show (({ s₁.putCard y (Sum.inr z) with waste := ws } : State).piles x)
+              = (s₁.putCard y (Sum.inr z)).piles x from rfl, hL, hs₁p k',
+            ite_eq_right hne, hs₁p x]
+      rw [hTL, setFound_piles, hsL, htpx]
+      by_cases hxa : x = a
+      · rw [hxa, ite_eq_left rfl, ite_eq_right (Ne.symm hne), ite_eq_left rfl]
+      · rw [ite_eq_right hxa, ite_eq_right hxa]
+    · rw [putCard_stock, setFound_stock,
+        show (({ st.putCard y (Sum.inr z) with waste := ws } : State).stock)
+          = (st.putCard y (Sum.inr z)).stock from rfl,
+        putCard_stock, htshape,
+        show (({ s₁.putCard y (Sum.inr z) with waste := ws } : State).stock)
+          = (s₁.putCard y (Sum.inr z)).stock from rfl,
+        putCard_stock, hzStock]
+    · rw [putCard_waste, setFound_waste,
+        show (({ st.putCard y (Sum.inr z) with waste := ws } : State).waste) = ws from rfl,
+        htshape,
+        show (({ s₁.putCard y (Sum.inr z) with waste := ws } : State).waste) = ws from rfl]
+    · rw [putCard_drawStep, setFound_drawStep,
+        show (({ st.putCard y (Sum.inr z) with waste := ws } : State).drawStep)
+          = (st.putCard y (Sum.inr z)).drawStep from rfl,
+        putCard_drawStep, htshape,
+        show (({ s₁.putCard y (Sum.inr z) with waste := ws } : State).drawStep)
+          = (s₁.putCard y (Sum.inr z)).drawStep from rfl,
+        putCard_drawStep, hzD]
+
+/-- **The run-level combine of the `inl` worry×`wasteToTab` square** —
+the two-leg window swap for waste legs: a worry window followed by
+a waste-park-led segment re-issues park-first, with the worry
+re-fired from the park's landing.  The exact mirror of
+`dm_worry_draw_commute_run`. -/
+private theorem dm_worry_wasteToTab_commute_inl_run {st : State} {c y : Card}
+    {a a' : Anchor} {s₁ : State} {rest : List Move} {w : State}
+    (hne : a ≠ a')
+    (hf : State.step st (Move.foundToTab c (Sum.inl a)) = some s₁)
+    (hrun : s₁.run (Move.wasteToTab y (Sum.inl a') :: rest) = some w) :
+    ∃ t₁, State.step st (Move.wasteToTab y (Sum.inl a')) = some t₁ ∧
+      t₁.run (Move.foundToTab c (Sum.inl a) :: rest) = some w := by
+  obtain ⟨t, hd, hrest⟩ := State.run_cons hrun
+  obtain ⟨t₁, hst, hfire⟩ := dm_worry_wasteToTab_commute_inl hne hf hd
+  refine ⟨t₁, hst, ?_⟩
+  show (match State.step t₁ (Move.foundToTab c (Sum.inl a)) with
+    | some st' => State.run st' rest
+    | none => none) = some w
+  rw [hfire]
+  exact hrest
+
+/-! ### The wave-31 fronts — the (iii)-bank slot family closes
+
+Front 1, the route's last (iii)-bank slot: the `tabToTab` corner.  The
+route's words ("`tabToTab` is cornered when the moved run passes
+through x") read here as the dual-locator form: the move's source
+`pileHolding y` is located at `k` on BOTH sides of the worry window,
+and the run lands on a distinct empty seat `a''` — the passing-through-x
+corner is barred by `k ≠ a` together with `a'' ≠ a`.  The `fromCard`
+run-extraction is carried symbolically (the fires inventory's own
+shape), with the run-branch pinned by the flip-side contradiction
+(the window fired, so the run is nonempty).  Front 2, the run-level
+combine of the `inl_inr` wasteToTab square, completing the waste-leg
+slot family.
+
+The banked (iii)-bank inventory, this session's additive rows (all
+cited, never re-derived; every fresh head carries its battery line):
+`dm_draw_congr_zones` (the draw-zone congruence square),
+`dm_worry_draw_commute` (+ its `_run` combine), `dm_worry_avoid_fold`
+(the first-occurrence staging row), `dm_worry_wasteToTab_commute_inl`
+(+ `_inl_inr`, + `_inl_run`, + `_inl_inr_run`), and the tabToTab
+corner below.  What remains beyond the frozen three residues is the
+spread-bubble ITERATION over these squares (an engine-side ledger,
+not a square), the twin-equal moment's transport (the stackPile
+residue's recorded route), and the (C) storage prong's slack
+re-derivation (all flagged in the residue docstrings, none
+square-shaped). -/
+
+/-- **The worry×`tabToTab` micro-square (Front 1), the off-`x`
+corner**: a king worry-back (c onto the empty seat a) and a run
+relocation (the run from the pile holding y onto the empty seat
+a''), at the route's "passing through x" corner's complement —
+source and landing both away from the worry's seat, locators
+recorded on both sides of the window — commute to the same
+composite. -/
+private theorem dm_worry_tabToTab_commute_inl {st : State} {c y : Card}
+    {a k a'' : Anchor} {s₁ t : State}
+    (hk₁ : st.pileHolding y = some k)
+    (hk₂ : s₁.pileHolding y = some k)
+    (hne : k ≠ a)
+    (hne' : a'' ≠ a)
+    (hf : State.step st (Move.foundToTab c (Sum.inl a)) = some s₁)
+    (hw : State.step s₁ (Move.tabToTab y (Sum.inl a'')) = some t) :
+    ∃ r, State.step st (Move.tabToTab y (Sum.inl a'')) = some r ∧
+      State.step r (Move.foundToTab c (Sum.inl a)) = some t := by
+  obtain ⟨htop, hcp, hs₁⟩ := foundToTab_fires hf
+  obtain ⟨k₂, hk₂fin, hcan, hts⟩ := tabToTab_fires hw
+  have hkk : k₂ = k := Option.some.inj (hk₂fin.symm.trans hk₂)
+  rw [hkk] at hk₂fin hts
+  have hs₁p : ∀ x : Anchor, s₁.piles x =
+      (if x = a then (⟨[], [c]⟩ : Pile) else st.piles x) := by
+    intro x
+    have hL := congrFun (putCard_piles_inl (st.setFound c.suit (chop (st.found c.suit))) c a) x
+    rw [hs₁, hL, setFound_piles]
+  have hs1k : s₁.piles k = st.piles k := by
+    rw [hs₁p k, ite_eq_right hne]
+  have hs1a'' : s₁.piles a'' = st.piles a'' := by
+    rw [hs₁p a'', ite_eq_right hne']
+  have hcan' : st.canPlace y (Sum.inl a'') = true := by
+    have h0 : s₁.canPlace y (Sum.inl a'') = st.canPlace y (Sum.inl a'') := by
+      simp only [State.canPlace, hs1a'']
+    rw [← h0]
+    exact hcan
+  have hs1fr : fromCard y (s₁.piles k).faceUp = fromCard y (st.piles k).faceUp := by
+    rw [hs1k]
+  have hfrne : (fromCard y (st.piles k).faceUp) ≠ [] := by
+    intro hcon
+    have h2 : fromCard y (s₁.piles k).faceUp = [] := by rw [hs1fr]; exact hcon
+    have hnone : State.step s₁ (Move.tabToTab y (Sum.inl a'')) = none := by
+      rw [step_tabToTab_eq, hk₂]
+      show (if s₁.canPlace y (Sum.inl a'') then
+          match fromCard y (s₁.piles k).faceUp with
+          | [] => none
+          | run => some ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+              (below y (s₁.piles k).faceUp))).putRun run (Sum.inl a''))
+        else none) = none
+      rw [hcan, h2]
+      rfl
+    rw [hnone] at hw
+    cases hw
+  have hzW : s₁.waste = st.waste := by rw [hs₁, putCard_waste, setFound_waste]
+  have hzStock : s₁.stock = st.stock := by rw [hs₁, putCard_stock, setFound_stock]
+  have hzD : s₁.drawStep = st.drawStep := by rw [hs₁, putCard_drawStep, setFound_drawStep]
+  have hsf₁ : ∀ ζ : Suit, s₁.found ζ =
+      (if ζ = c.suit then chop (st.found c.suit) else st.found ζ) := by
+    intro ζ
+    rw [hs₁, putCard_found]
+    by_cases hσ : ζ = c.suit
+    · rw [ite_eq_left hσ, hσ, setFound_found_self]
+    · rw [ite_eq_right hσ, setFound_found_ne hσ]
+  obtain ⟨W, hWdef⟩ : ∃ W : State, W = ((st.setPile k (Pile.afterRunRemoved (st.piles k)
+      (below y (st.piles k).faceUp))).putRun (fromCard y (st.piles k).faceUp) (Sum.inl a'')) := ⟨_, rfl⟩
+  have hR : State.step st (Move.tabToTab y (Sum.inl a'')) = some W := by
+    rw [step_tabToTab_eq, hk₁]
+    show (if st.canPlace y (Sum.inl a'') then
+        match fromCard y (st.piles k).faceUp with
+        | [] => none
+        | run => some ((st.setPile k (Pile.afterRunRemoved (st.piles k)
+            (below y (st.piles k).faceUp))).putRun run (Sum.inl a''))
+      else none) = some W
+    rw [hcan']
+    cases hfr : fromCard y (st.piles k).faceUp with
+    | nil => exact absurd hfr hfrne
+    | cons r rs =>
+        rw [hWdef, hfr]
+        rfl
+  have hWf : W.found = st.found := by rw [hWdef]; rfl
+  have hWs : W.stock = st.stock := by rw [hWdef]; rfl
+  have hWw : W.waste = st.waste := by rw [hWdef]; rfl
+  have hWd : W.drawStep = st.drawStep := by rw [hWdef]; rfl
+  have hRPan : W.piles a = st.piles a := by
+    rw [hWdef]
+    have hL1 := congrFun (putRun_piles_inl (st.setPile k (Pile.afterRunRemoved (st.piles k)
+      (below y (st.piles k).faceUp))) (fromCard y (st.piles k).faceUp) a'') a
+    rw [hL1, ite_eq_right (Ne.symm hne'),
+      show ((st.setPile k (Pile.afterRunRemoved (st.piles k)
+        (below y (st.piles k).faceUp))).piles a) = (if a = k then (Pile.afterRunRemoved (st.piles k)
+        (below y (st.piles k).faceUp)) else st.piles a) from rfl,
+      ite_eq_right (Ne.symm hne)]
+  have htopr : W.foundTop c.suit = some c := by
+    show lastOf (W.found c.suit) = some c
+    rw [hWf]
+    exact htop
+  have hcplr : W.canPlace c (Sum.inl a) = true := by
+    have h0 : W.canPlace c (Sum.inl a) = st.canPlace c (Sum.inl a) := by
+      simp only [State.canPlace, hRPan]
+    rw [h0]
+    exact hcp
+  have htf : t.found = s₁.found := by rw [hts]; rfl
+  have htsk : t.stock = s₁.stock := by rw [hts]; rfl
+  have htw : t.waste = s₁.waste := by rw [hts]; rfl
+  have htd : t.drawStep = s₁.drawStep := by rw [hts]; rfl
+  refine ⟨W, hR, ?_⟩
+  rw [foundToTab_fires_eq htopr hcplr]
+  refine congrArg some ?_
+  apply State.ext
+  · funext σ
+    rw [htf, putCard_found]
+    by_cases hσc : σ = c.suit
+    · rw [hσc, setFound_found_self, hWf, hsf₁ c.suit, ite_eq_left rfl]
+    · rw [setFound_found_ne hσc, hWf, hsf₁ σ, ite_eq_right hσc]
+  · funext x
+    have hTL := congrFun (putCard_piles_inl (W.setFound c.suit (chop (W.found c.suit))) c a) x
+    have hWP : W.piles x = (if x = a'' then (⟨[], fromCard y (st.piles k).faceUp⟩ : Pile) else
+        (if x = k then (Pile.afterRunRemoved (st.piles k)
+          (below y (st.piles k).faceUp) : Pile) else st.piles x)) := by
+      rw [hWdef]
+      have hL1 := congrFun (putRun_piles_inl (st.setPile k (Pile.afterRunRemoved (st.piles k)
+          (below y (st.piles k).faceUp))) (fromCard y (st.piles k).faceUp) a'') x
+      rw [hL1,
+        show ((st.setPile k (Pile.afterRunRemoved (st.piles k)
+          (below y (st.piles k).faceUp))).piles x) = (if x = k then (Pile.afterRunRemoved (st.piles k)
+          (below y (st.piles k).faceUp)) else st.piles x) from rfl]
+    have htpx : t.piles x = (if x = a'' then (⟨[], fromCard y (st.piles k).faceUp⟩ : Pile) else
+        (if x = k then (Pile.afterRunRemoved (st.piles k)
+          (below y (st.piles k).faceUp) : Pile) else
+          (if x = a then (⟨[], [c]⟩ : Pile) else st.piles x))) := by
+      have hL := congrFun (putRun_piles_inl (s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+          (below y (s₁.piles k).faceUp))) (fromCard y (s₁.piles k).faceUp) a'') x
+      rw [hts, hL,
+        show ((s₁.setPile k (Pile.afterRunRemoved (s₁.piles k)
+          (below y (s₁.piles k).faceUp))).piles x) = (if x = k then (Pile.afterRunRemoved (s₁.piles k)
+          (below y (s₁.piles k).faceUp)) else s₁.piles x) from rfl,
+        hs1k, hs₁p x]
+    rw [hTL, setFound_piles, hWP, htpx]
+    by_cases hxa : x = a
+    · rw [hxa, ite_eq_left rfl, ite_eq_right (Ne.symm hne'), ite_eq_right (Ne.symm hne), ite_eq_left rfl]
+    · rw [ite_eq_right hxa, ite_eq_right hxa]
+  · rw [putCard_stock, setFound_stock, hWs, htsk, hzStock]
+  · rw [putCard_waste, setFound_waste, hWw, htw, hzW]
+  · rw [putCard_drawStep, setFound_drawStep, hWd, htd, hzD]
+
+/-- **The run-level combine of the `inl_inr` worry×`wasteToTab`
+square** — the waste-leg window swap over a located-card park
+segment, mirroring `dm_worry_draw_commute_run`. -/
+private theorem dm_worry_wasteToTab_commute_inl_inr_run {st : State} {c y z : Card}
+    {a k' : Anchor} {s₁ : State} {rest : List Move} {w : State}
+    (_hzc : z ≠ c)
+    (hk₁ : st.pileOfTop z = some k')
+    (hk₂ : s₁.pileOfTop z = some k')
+    (hne : k' ≠ a)
+    (hf : State.step st (Move.foundToTab c (Sum.inl a)) = some s₁)
+    (hrun : s₁.run (Move.wasteToTab y (Sum.inr z) :: rest) = some w) :
+    ∃ t₁, State.step st (Move.wasteToTab y (Sum.inr z)) = some t₁ ∧
+      t₁.run (Move.foundToTab c (Sum.inl a) :: rest) = some w := by
+  obtain ⟨t, hd, hrest⟩ := State.run_cons hrun
+  obtain ⟨t₁, hst, hfire⟩ := dm_worry_wasteToTab_commute_inl_inr _hzc hk₁ hk₂ hne hf hd
+  refine ⟨t₁, hst, ?_⟩
+  show (match State.step t₁ (Move.foundToTab c (Sum.inl a)) with
+    | some st' => State.run st' rest
+    | none => none) = some w
+  rw [hfire]
+  exact hrest
+
 /-! ### Axiom discipline
 
 Per-declaration `#print axioms` audit for the new public heads; the
@@ -10040,5 +10722,12 @@ skeleton is sorry-free; the content rides the named stub). -/
 #print axioms WorryCoReal.probe_cnow_others
 #print axioms WorryCoReal.probe_xnext_spade
 #print axioms WorryCoReal.probe_xnext_others
-
-
+#print axioms dm_draw_congr_zones
+#print axioms dm_worry_draw_commute
+#print axioms dm_worry_avoid_fold
+#print axioms dm_worry_draw_commute_run
+#print axioms dm_worry_wasteToTab_commute_inl
+#print axioms dm_worry_wasteToTab_commute_inl_inr
+#print axioms dm_worry_wasteToTab_commute_inl_run
+#print axioms dm_worry_tabToTab_commute_inl
+#print axioms dm_worry_wasteToTab_commute_inl_inr_run

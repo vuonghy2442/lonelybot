@@ -22,6 +22,12 @@ def Anchor.all : List Anchor := [.p0, .p1, .p2, .p3, .p4, .p5, .p6]
 theorem Anchor.mem_all (a : Anchor) : a ∈ Anchor.all := by
   cases a <;> simp [Anchor.all]
 
+/-- The seven anchors are pairwise distinct — the nodup kit row
+(landed at the harvest wave beside `Anchor.all`; the private copy in
+`Orig/Reach.lean` (`Anchor_all_nodup`) flips to this home at its
+harvest, alongside the suit-side sibling `Suit_all_nodup` there). -/
+theorem Anchor.all_nodup : Anchor.all.Nodup := by decide
+
 /-- The pile index (position in the deal). -/
 def Anchor.toIdx : Anchor → Nat
   | .p0 => 0 | .p1 => 1 | .p2 => 2 | .p3 => 3 | .p4 => 4 | .p5 => 5 | .p6 => 6
