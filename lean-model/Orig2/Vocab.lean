@@ -28,8 +28,9 @@ composites, the S-siblings — stay on record where they are).  KEPT —
 `CanRaise`, `CanRaiseS`, `ShufflePlayW`, `RevEqW`, `sameOrbitSetoid`,
 `classOf`, `rungAt`, `twinSuit`, the reversibility carrier
 `reversibleAtW`, the commit-oracle tier (`irreversibleAt`,
-`reversibleAt`, the four commit shapes, and `reversibleOf` — the
-owner's RESTATE flip of `irreversibleOf`, retired with the flip),
+`reversibleAt`, the R-shapes `drawR`/`tabToFoundR`/`foundToTabR`/
+`tabToTabR` — the owner's inside-flip restating the commit
+shapes, retired — and `reversibleOf`, the negation-free assembly),
 and the journey letters `FlatStep`/`FlatPath`/`CargoPath`/`Journey`.
 PENDING — everything in the annex below.
 
@@ -82,14 +83,16 @@ def reversibleAtW (st : State) (m : Move) : Prop :=
   ∃ s₁ play, State.step st m = some s₁ ∧ s₁.run play = some st
 
 /-!
-## §1.6. THE COMMIT ORACLE  (live, KEPT 2026-10-17)
+## §1.6. THE COMMIT ORACLE  (live, KEPT 2026-10-17; shapes flipped
+reversible-first by owner restate the same day)
 
-The oracle tier, ported as a set (the reversible-first assembly
-`reversibleOf` rides its five companions; the shape predicates were
-file-private in the old home and are promoted public here — the
-registry is the single home).  The specification rows (the WF-gated
-iff and the decidability rider) are Claims-layer material, not
-registry.
+The oracle tier, ported as a set and then FLIPPED INSIDE: each
+shape predicate reads UNDOABILITY natively (`drawR`,
+`tabToFoundR`, `foundToTabR`, `tabToTabR`) — the owner's restate
+supersedes the commit-polarity originals (retired from the
+registry; their frozen homes keep the certified classification
+rows).  The specification rows (the WF-gated iff and the
+decidability rider) are Claims-layer material, not registry.
 -/
 
 /-- **irreversibleAt st m** — the semantic commitment: a move is a
@@ -102,81 +105,85 @@ def irreversibleAt (st : State) (m : Move) : Prop :=
 undoable in place.  PORTED VERBATIM from `Orig/Fate.lean:77`. -/
 def reversibleAt (st : State) (m : Move) : Prop := ¬ irreversibleAt st m
 
-/-- **drawIrr st** — the draw shape: with no stock, committed iff
-the waste is empty; with stock, iff the waste is empty or the cycle
-is off-multiple.  PORTED VERBATIM from `Orig/Classify.lean:2778`
-(private there; promoted public here). -/
-def drawIrr (st : State) : Bool :=
+/-- **drawR st** — the draw undoability shape: no stock and the
+waste rests (or stock present and the cycle rests off-multiple)
+means the draw re-deals back; with stock and an off-rest waste the
+draw consumes irreversibly.  RESTATE (polarity flip) of the
+commit-polarity `drawIrr` (`Orig/Classify.lean:2778`); each case
+flipped, provenance cited. -/
+def drawR (st : State) : Bool :=
   match st.stock with
-  | [] => decide (st.waste = [])
-  | _ => decide (st.waste = []) || decide (st.waste.length % st.drawStep ≠ 0)
+  | [] => decide (st.waste ≠ [])
+  | _ => decide (st.waste ≠ []) && decide (st.waste.length % st.drawStep = 0)
 
-/-- **tabToFoundIrr st c** — the raise shape: committed iff unlicensed
-to redo (no next-up, no pile, no chop), or the hidden flip fires, or
-a bare non-king lifts; a chop beneath makes it reversible.  PORTED
-VERBATIM from `Orig/Classify.lean:1775` (private there; public here). -/
-def tabToFoundIrr (st : State) (c : Card) : Bool :=
+/-- **tabToFoundR st c** — the raise undoability shape: reversible
+iff licensed AND a chop beneath the card (the giveback seat), or a
+bare KING seat (the emptied seat readmits the king); bare non-king
+lifts and hidden flips are commits.  RESTATE (polarity flip) of
+the commit-polarity `tabToFoundIrr` (`Orig/Classify.lean:1775`);
+each case flipped. -/
+def tabToFoundR (st : State) (c : Card) : Bool :=
   match st.nextUp c with
-  | false => true
+  | false => false
   | true =>
       match st.pileOfTop c with
-      | none => true
+      | none => false
       | some a =>
           match chop (st.piles a).faceUp with
           | [] =>
               match (st.piles a).hidden with
-              | [] => decide (c.rank ≠ Rank.king)
-              | _ :: _ => true
-          | _ :: _ => false
+              | [] => decide (c.rank = Rank.king)
+              | _ :: _ => false
+          | _ :: _ => true
 
-/-- **foundToTabIrr st c b** — the pull shape: with no founded top,
-no commit (illegal); pulling the CURRENT top is a commit iff the
-landing base is un-placeable.  PORTED VERBATIM from
-`Orig/Classify.lean:1974` (private there; public here). -/
-def foundToTabIrr (st : State) (c : Card) (b : Base) : Bool :=
+/-- **foundToTabR st c b** — the pull undoability shape: reversible
+iff the suit's founded top IS the card AND the landing base
+accepts it (the re-raise); any other read is a commit.  RESTATE
+(polarity flip) of the commit-polarity `foundToTabIrr`
+(`Orig/Classify.lean:1974`); each case flipped. -/
+def foundToTabR (st : State) (c : Card) (b : Base) : Bool :=
   match st.foundTop c.suit with
-  | none => true
-  | some c' => if c' = c then !(st.canPlace c b) else true
+  | none => false
+  | some c' => if c' = c then st.canPlace c b else false
 
-/-- **tabToTabIrr st c b** — the slide shape: committed iff holding
-is unknown, the landing refuses, the hidden flip fires, or a bare
-non-king moves alone; cards with company beneath relocate
-reversibly.  PORTED VERBATIM from `Orig/Classify.lean:2166`
-(private there; public here). -/
-def tabToTabIrr (st : State) (c : Card) (b : Base) : Bool :=
+/-- **tabToTabR st c b** — the slide undoability shape: reversible
+iff holding is known, the landing accepts, and the card rides with
+company beneath it (the segment relocates whole), or a bare KING
+seat; hidden flips and bare non-king moves are commits.  RESTATE
+(polarity flip) of the commit-polarity `tabToTabIrr`
+(`Orig/Classify.lean:2166`); each case flipped. -/
+def tabToTabR (st : State) (c : Card) (b : Base) : Bool :=
   match st.pileHolding c with
-  | none => true
+  | none => false
   | some a =>
       match st.canPlace c b with
-      | false => true
+      | false => false
       | true =>
           match below c (st.piles a).faceUp with
           | [] =>
               match (st.piles a).hidden with
-              | [] => decide (c.rank ≠ Rank.king)
-              | _ :: _ => true
-          | _ :: _ => false
+              | [] => decide (c.rank = Rank.king)
+              | _ :: _ => false
+          | _ :: _ => true
 
 /-- **reversibleOf st m** — the per-move oracle, REVERSIBLE-FIRST
-(owner flip, 2026-10-17): the assembly reads undoability — the
-polar complement of the old commit-classification shapes.  At WF
-states this decides the semantic `reversibleAt` predicate EXACTLY
-(the Claims-tier iff); deliberately not a global instance-gate —
-at wild states the shape and the semantics diverge in both
-directions (the witnessed corners are in the frozen-tier witness
-archive).  The shape predicates above keep their commit-polarity
-(the shapes are what the classification rows proved); the flip
-lives HERE, once, at the assembly.  RESTATE of the old
-`irreversibleOf` (`Orig/Classify.lean:2854`, retired from the
-registry with this flip). -/
+(owner flip, 2026-10-17): the assembly reads undoability directly
+from the R-shapes — no negations anywhere.  At WF states this
+decides the semantic `reversibleAt` predicate EXACTLY (the
+Claims-tier iff); deliberately not a global instance-gate — at
+wild states the shape and the semantics diverge in both directions
+(the witnessed corners are in the frozen-tier witness archive).
+Restate lineage: the old `irreversibleOf` (`Orig/Classify.lean:2854`)
+→ the negated-assembly flip → the inside-flipped R-shapes (this
+one, the final form). -/
 def reversibleOf (st : State) (m : Move) : Bool :=
   match m with
-  | .draw => !drawIrr st
+  | .draw => drawR st
   | .wasteToFound _ => false
   | .wasteToTab _ _ => false
-  | .tabToFound c => !tabToFoundIrr st c
-  | .foundToTab c b => !foundToTabIrr st c b
-  | .tabToTab c b => !tabToTabIrr st c b
+  | .tabToFound c => tabToFoundR st c
+  | .foundToTab c b => foundToTabR st c b
+  | .tabToTab c b => tabToTabR st c b
 
 /-!
 ## §2. THE LICENSES  (live, KEPT 2026-10-17)

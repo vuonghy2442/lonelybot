@@ -51,12 +51,13 @@ reversible-first polarity (the updated `irreversible_iff_of`):
 at a WF state the Bool oracle decides the semantic negative form
 exactly, constructor by constructor.
 
-PRICE: the classification program — the draw row (`drawIrr`'s
+PRICE: the classification program — the draw row (`drawR`'s
 stock/waste cycle-mod reading), the two waste rows' trivial
 commits, and the three table-move rows (chop/hidden-flip/bare-king
-shapes).  Frozen-tier templates: `Orig/Classify.lean`'s
+shapes), all stated at the registry's R-polarity.  Frozen-tier
+templates: `Orig/Classify.lean`'s
 `drawClass`/`tabToFoundClass`/`foundToTabClass`/`tabToTabClass`
-and the waste rows. -/
+and the waste rows (commit-polarity there; flip per case). -/
 
 /-- **CLAIM `reversible_iff_of`** — the WF-gated oracle spec. -/
 theorem reversible_iff_of {st : State} (hwf : st.WF) (m : Move) :
