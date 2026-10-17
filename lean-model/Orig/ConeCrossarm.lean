@@ -36,6 +36,17 @@ What this file proves, and what it prices:
   since both members chop to it), so the gate is not a convenience —
   it is the row's truth content.
 
+* THE PRICED CORRIDOR KIT (§1.5 below, additive, zero sorry): the
+  route's banked halves, landed — the corridor puts its anchors in
+  one class (`crossarm_corridor_class`); the register's flip branch,
+  at two saturated mates, either degenerates or exhibits an
+  arm-contingent card (`crossarm_flip_benign_or_forked` — the
+  corridor flip's kill IS the class's benignity, a `forkedCard`);
+  and the gate assembled from its remaining two named gaps — the
+  in-tree register plus corridor-benign
+  (`crossarm_anchor_agree_of_benign`).  The residue is priced
+  exactly: register + benign, nothing thinner.
+
 House compliance: additive leaf; the in-tree interface consumed as-is
 (`ConePath`, `ConeLedger`, `cone_pop_countP`, `rung_found_prefix`,
 `rung_found_congr`, `Final`, `sameOrbitSetoid`); the headline
@@ -80,11 +91,185 @@ The route (its own analysis, priced honestly):
 3. Until that assembly lands (it is `finals_topFibers`'s second
    conjunct / `saturated_tuple_orbit`'s benign branch — the
    classification card's territory), the gate stays named here, and
-   the headline rides it. -/
+   the headline rides it.
+
+4. Update (additive, zero sorry): the banked halves above are now
+   LANDED as rows in §1.5 below.  `crossarm_corridor_class` is item
+   1's first half (the corridor is a class-mate chain through the
+   rev-closure).  `crossarm_flip_benign_or_forked` is item 2's
+   de-flip reduction: at two Finals of one class the flip branch
+   either degenerates (the twin pair's readings coincide, so the
+   anchor tuples agree outright) or EXHIBITS an arm-contingent card —
+   the flipped suit's card at the pair's shallower index is FOUNDED
+   at the deep-reading anchor and merely at-rung at the shallow one,
+   a `forkedCard`; so the corridor flip's kill IS the class's
+   benignity (`benign_sat_iff_surely`'s `forkfree` premise).
+   `crossarm_anchor_agree_of_benign` assembles everything: the gate
+   follows from (i) the register — the in-tree gated orbit theorem's
+   conclusion at the anchors — plus (ii) corridor-benign (item 2's
+   obstruction content).  The residue's price is thereby two-sided
+   and named twice; nothing thinner closes it. -/
+
+/-! ### §1.5 The priced corridor kit — the route's landed halves
+
+Every fresh head here is zero-sorry (the battery shows the grades):
+`crossarm_corridor_class` banks the class-mate chain;
+`crossarm_flip_benign_or_forked` banks the flip-fork reduction
+through the `FoundKit` founding-height bridge
+(`mem_found_of_rung`/`mem_found_rank_lt`, whose `foundHeight` fields
+read `rungAt` by `rfl`, and the `Card.mk`/`FoundKit.Rk` exhibit
+idiom); `crossarm_anchor_agree_of_benign` banks the assembly the
+gate rides. -/
+
+/-- **The corridor's class-mate chain** (route item 1's first half,
+the banked one): cone legs are reversible, so the cone chains into
+the rev-closure (`cone_inClass`), and the setoid welds the two
+relations (`RevEqW_trans`) — the anchors joined by a corridor are
+same-orbit mates. -/
+theorem crossarm_corridor_class {A₁ A₂ : State}
+    (hcorr : ∃ z, ConePath A₁ z ∧ sameOrbitSetoid.r z A₂) :
+    sameOrbitSetoid.r A₁ A₂ := by
+  obtain ⟨z, p, hz⟩ := hcorr
+  exact RevEqW_trans hz (cone_inClass A₁ z p)
+
+/-- Kit: the split exhibit at the class grade — a card founded at
+one member and missing at a saturated mate is arm-contingency
+(`satStackable` witnessed by the deep member, `surelyStackable`
+refuted by the shallow one).  Pure class bookkeeping; no state
+physics. -/
+private theorem crossarm_forked_of_split {C : SameOrbit} {D S : State}
+    (hclsD : classOf C D) (hclsS : classOf C S) (hsatS : Final S)
+    {c : Card} (hmemD : c ∈ D.found c.suit)
+    (hnmemS : ¬ c ∈ S.found c.suit) : forkedCard C c :=
+  ⟨⟨D, hclsD, hmemD⟩, fun hS => absurd (hS S hclsS hsatS) hnmemS⟩
+
+/-- **THE FLIP-FORK REDUCTION** (route item 2, de-flipped): at two
+WF saturated same-orbit mates, the register's flip branch at a card
+`x` either degenerates — the twin pair's own readings coincide, so
+the anchor tuples agree outright — or exhibits an arm-contingent
+card: the `x.suit` card indexed by the pair's shallower reading is
+FOUNDED at the one anchor (the flipped readings make it the deep
+wing there — `FoundKit.mem_found_of_rung`) and merely next-up at the
+other (its index IS that anchor's own rung —
+`FoundKit.mem_found_rank_lt` refutes membership), i.e. a
+`forkedCard` of the anchors' class.  The orbit theorem's flip
+decision IS the fork decision: the flip branch dies exactly where
+the class is benign. -/
+theorem crossarm_flip_benign_or_forked {A₁ A₂ : State}
+    (hwf₁ : A₁.WF) (hwf₂ : A₂.WF)
+    (hsat₁ : Final A₁) (hsat₂ : Final A₂)
+    (hclass : sameOrbitSetoid.r A₁ A₂)
+    (hflip : ∃ x : Card,
+      rungAt A₁ x.suit = rungAt A₂ x.twin.suit ∧
+      rungAt A₁ x.twin.suit = rungAt A₂ x.suit ∧
+      (∀ s : Suit, s ≠ x.suit → s ≠ x.twin.suit → rungAt A₁ s = rungAt A₂ s)) :
+    (∀ s : Suit, rungAt A₁ s = rungAt A₂ s) ∨
+    ∃ c : Card, forkedCard (Quotient.mk sameOrbitSetoid A₁) c := by
+  obtain ⟨x, h1, h2, h3⟩ := hflip
+  have hclsA₂ : classOf (Quotient.mk sameOrbitSetoid A₁) A₂ :=
+    (Quotient.sound hclass).symm
+  rcases Nat.lt_trichotomy (rungAt A₁ x.suit) (rungAt A₁ x.twin.suit) with
+    hsh | hseq | hdp
+  · -- `x.suit` is the shallow wing at A₁: the at-rung card of
+    -- `x.suit` is founded at A₂ (the flipped deep wing) and merely
+    -- next-up at A₁, the shallow anchor of the same suit.
+    have hk13 : rungAt A₁ x.suit < 13 :=
+      Nat.lt_of_lt_of_le hsh (FoundKit.rung_le hwf₁ x.twin.suit)
+    have hk : (Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.suit))).rank.toIdx =
+        rungAt A₁ x.suit := FoundKit.Rk_toIdx _ hk13
+    have hmemA₂ : Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.suit)) ∈
+        A₂.found x.suit :=
+      FoundKit.mem_found_of_rung hwf₂ (by
+        show (Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.suit))).rank.toIdx <
+          rungAt A₂ x.suit
+        rw [hk]
+        omega)
+    have hnmemA₁ : ¬ Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.suit)) ∈
+        A₁.found x.suit := by
+      intro hmemA₁
+      have hclt : (Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.suit))).rank.toIdx <
+          rungAt A₁ x.suit :=
+        FoundKit.mem_found_rank_lt hwf₁ hmemA₁
+      rw [hk] at hclt
+      exact absurd hclt (Nat.lt_irrefl (rungAt A₁ x.suit))
+    exact Or.inr ⟨Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.suit)),
+      crossarm_forked_of_split hclsA₂ rfl hsat₁ hmemA₂ hnmemA₁⟩
+  · -- the twin pair's readings coincide: the flip degenerates, and
+    -- the tuples agree outright.
+    refine Or.inl fun s => ?_
+    rcases Decidable.em (s = x.suit) with rfl | hs1
+    · exact hseq.trans h2
+    · rcases Decidable.em (s = x.twin.suit) with rfl | hs2
+      · exact hseq.symm.trans h1
+      · exact h3 s hs1 hs2
+  · -- `x.suit` is the deep wing at A₁: the mirror exhibit — the same
+    -- at-rung card, founded at A₁, merely next-up at A₂.
+    have hk13 : rungAt A₁ x.twin.suit < 13 :=
+      Nat.lt_of_lt_of_le hdp (FoundKit.rung_le hwf₁ x.suit)
+    have hk : (Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.twin.suit))).rank.toIdx =
+        rungAt A₁ x.twin.suit := FoundKit.Rk_toIdx _ hk13
+    have hmemA₁ : Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.twin.suit)) ∈
+        A₁.found x.suit :=
+      FoundKit.mem_found_of_rung hwf₁ (by
+        show (Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.twin.suit))).rank.toIdx <
+          rungAt A₁ x.suit
+        rw [hk]
+        exact hdp)
+    have hnmemA₂ : ¬ Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.twin.suit)) ∈
+        A₂.found x.suit := by
+      intro hmemA₂
+      have hclt : (Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.twin.suit))).rank.toIdx <
+          rungAt A₂ x.suit :=
+        FoundKit.mem_found_rank_lt hwf₂ hmemA₂
+      rw [hk] at hclt
+      rw [h2] at hclt
+      exact absurd hclt (Nat.lt_irrefl (rungAt A₂ x.suit))
+    exact Or.inr ⟨Card.mk x.suit (FoundKit.Rk (rungAt A₁ x.twin.suit)),
+      crossarm_forked_of_split rfl hclsA₂ hsat₂ hmemA₁ hnmemA₂⟩
+
+/-- **THE ASSEMBLY CONDITIONAL** — the gate, decomposed: the anchor
+agreement follows from (i) the register's conclusion at the anchors
+(`saturated_tuple_orbit`'s disjunction, gated in-tree at
+`Orig/MacroInternal.lean` §7 — taken here as a premise) and (ii)
+corridor-benign: no arm-contingent card in the anchors' class.  The
+corridor banks the class-mate chain, the flip-fork reduction turns
+the register's flip branch into a `forkedCard`, and the benign
+premise kills it.  This is the gate's whole remaining architecture —
+exactly two named gaps, both on the classification card's territory:
+the register, and the corridor-benign row (the item-2 escape-channel
+obstruction assembly). -/
+theorem crossarm_anchor_agree_of_benign {A₁ A₂ : State}
+    (hwf₁ : A₁.WF) (hwf₂ : A₂.WF)
+    (hsat₁ : Final A₁) (hsat₂ : Final A₂)
+    (hcorr : ∃ z, ConePath A₁ z ∧ sameOrbitSetoid.r z A₂)
+    (horbit : (∀ s : Suit, rungAt A₁ s = rungAt A₂ s) ∨
+      ∃ x : Card,
+        rungAt A₁ x.suit = rungAt A₂ x.twin.suit ∧
+        rungAt A₁ x.twin.suit = rungAt A₂ x.suit ∧
+        (∀ s : Suit, s ≠ x.suit → s ≠ x.twin.suit → rungAt A₁ s = rungAt A₂ s))
+    (hbenign : ∀ c : Card, ¬ forkedCard (Quotient.mk sameOrbitSetoid A₁) c) :
+    ∀ s : Suit, rungAt A₁ s = rungAt A₂ s := by
+  rcases horbit with hag | hflip
+  · exact hag
+  · rcases crossarm_flip_benign_or_forked hwf₁ hwf₂ hsat₁ hsat₂
+      (crossarm_corridor_class hcorr) hflip with hag | ⟨c, hf⟩
+    · exact hag
+    · exact absurd hf (hbenign c)
 
 /-- **THE CORRIDOR GATE** (the named residue): two saturated WF
 anchors joined by the cone corridor share their height tuples.  This is
-the de-flipped classification content; see §1's route. -/
+the de-flipped classification content; see §1's route.  Update record
+(additive, this session): the gate's assembly is landed as
+`crossarm_anchor_agree_of_benign` (§1.5) — it rides exactly (i) the
+register's conclusion at the anchors (`saturated_tuple_orbit`'s
+disjunction, gated in-tree) and (ii) corridor-benign (no `forkedCard`
+in the anchors' class), and `crossarm_flip_benign_or_forked` shows
+(ii) is precisely the flip-kill: the flip's non-degenerate case is a
+forked-card exhibit.  No banked row decides corridor-benign either
+way today; the refutation shape would be a fork arm pair sharing its
+pre-state cone corner, and whether the witness-graded undo survives
+the cargo seat is exactly the item-2 obstruction content.  The gate
+keeps its [H] grade and this sorry. -/
 private theorem crossarm_anchor_agree {A₁ A₂ : State}
     (hwf₁ : A₁.WF) (hwf₂ : A₂.WF)
     (hsat₁ : Final A₁) (hsat₂ : Final A₂)
@@ -165,11 +350,17 @@ end ConeCrossarm
 
 /-! ## The leaf audit battery
 
- `#print axioms` per fresh head.  The mechanical closure (§2) must
- come out clean; the headline carries the §1 gate's `sorryAx` — the
-named residue is the ONLY sorry surface of this leaf, exactly as the
-gated in-tree sibling's audit shows it. -/
+ `#print axioms` per fresh head.  The mechanical closure (§2) and the
+ §1.5 corridor kit come out clean — the landed heads read [propext] or
+ [propext, Quot.sound], zero sorryAx, zero Classical.choice; the
+ headline carries the §1 gate's `sorryAx` — the named residue is the
+ ONLY sorry surface of this leaf, exactly as the gated in-tree
+ sibling's audit shows it. -/
 
 #print axioms ConeCrossarm.cone_pulls_congr_crossarm_of_anchorRungs
+#print axioms ConeCrossarm.crossarm_corridor_class
+#print axioms ConeCrossarm.crossarm_forked_of_split
+#print axioms ConeCrossarm.crossarm_flip_benign_or_forked
+#print axioms ConeCrossarm.crossarm_anchor_agree_of_benign
 #print axioms ConeCrossarm.crossarm_anchor_agree
 #print axioms ConeCrossarm.cone_pulls_congr_crossarm

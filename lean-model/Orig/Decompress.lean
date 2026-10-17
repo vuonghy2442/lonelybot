@@ -28,23 +28,24 @@ rides the same rows landed here):
   (`zoneLeg_plain`/`_short`/`_pass`), the draw keeps the board and
   the pool (`stepDraw_keep`), no draw ever lands an empty waste at
   a positive draw step (`drawLanding_waste_ne` — the
-  pristine-unreachability theorem: pristine zones are draw-unreachable
-  from every waste-bearing presentation, the probe B-family's
-  headline), and the phase line survives the draw chains
-  (`inPhase_stepDraw_keep` — the swCompat resolution: pure-rotation
-  orbits ride RevEqW directly, every chain leg licensed by the banked
-  in-phase/pass rows, so swComp collapses to the consumption/offset
-  cases only).
+      pristine-unreachability theorem: pristine zones are draw-unreachable
+      from every waste-bearing presentation, the probe B-family's
+      headline), and the phase line survives the draw chains
+      (`inPhase_stepDraw_keep` / `inPhase_stepDrawn_keep`, landed
+      below — the swCompat resolution: pure-rotation orbits ride
+      RevEqW directly, every chain leg licensed by the banked
+      in-phase/pass rows, so swComp collapses to the consumption/offset
+      cases only).
 
 * **The saturator's zone rows** — `satStep` never touches the zone
   (`satStep_zone_keep`, so `canon` keeps it), and the saturator's
   board output depends only on the board input
   (`satStep_board_det`, `canon_board_det`).  The padding-generation
-  order-freedom lemma rides them: the LITERAL saturating
-  commutation `canon_draw_comm : canon (stepDrawn st) = stepDrawn
-  (canon st)` — draws interleave freely with the saturation run,
-  expected literal since the probe battery verified it at every
-  zone shape.
+  order-freedom lemma rides them, landed below by the inductive
+  route: the LITERAL saturating commutation `canon_draw_comm :
+  canon (stepDrawn st) = stepDrawn (canon st)` — draws interleave
+  freely with the saturation run, literal as the probe battery
+  verified it at every zone shape.
 
 * **finalWiggle_reach — the ONE named residue** of the card: the
   anchor relation between saturated members in the collapsed grade
@@ -55,9 +56,11 @@ rides the same rows landed here):
   landing's presentation targets).  The probe battery supplies the
   positive family (the wiggle cube, the worry-back bridge) and the
   refutation data (the one-letter pure-pull form dies at the
-  exhibit: no pull fires there); the general theorem is pinned here
-  as a named stub in the house style — `sorryAx` admitted and
-  printed in the audit below.
+  exhibit: no pull fires there).  This landing adds the COMPUTED
+  half beside the stub — the pad kernel (`padReach` and its
+  letter-by-letter rows, below) — while the general routing core
+  remains the card's named stub in the house style — `sorryAx`
+  admitted and printed in the audit below.
 
 Axiom discipline: `[propext, Quot.sound]` at worst, zero
 `Classical.choice`, ZERO `sorry` except the ONE named residue;
@@ -754,27 +757,397 @@ private theorem stepDraw_zone_det {x y x' y' : State}
         rw [hss, hds, hws]
       · rw [hds]
 
-/-! ## The deferred commutation
+/-! ## The phase line under the draws
+
+`inPhase_stepDraw_keep` — probe-b's certificate row, now landed
+at its public consumer site (`Orig.Phase` carries the fact
+privately as `draw_keeps_inPhase`): a firing draw never leaves
+the phase line, at either draw register — the pass base's fresh
+recycle deals a whole deal (or exhausts the pool, emptying the
+stock), and a stock-bearing deal either empties the stock or
+deals a whole deal onto an already-whole waste.  The `stepDrawn`
+form packages the blocked case as identity, so whole draw chains
+stay on the line by induction.  This is the swCompat resolution
+row: with pure rotations pinned to the phase line, every
+reversible draw-round leg is banked by Phase's in-phase
+classification, and `swComp` collapses to the pool comparison. -/
+
+/-- The phase line survives a firing draw: an aligned origin
+lands aligned (Phase's private `draw_keeps_inPhase` mirrored at
+its public consumer home). -/
+theorem inPhase_stepDraw_keep {x y : State}
+    (hsuc : x.stepDraw = some y) (hin : inPhase x = true) :
+    inPhase y = true := by
+  cases hst : x.stock with
+  | nil =>
+      have hwne : x.waste ≠ [] := by
+        intro hw
+        rw [show x.stepDraw = State.dealStock x.recycle from rfl,
+          recycle_allEmpty x hst hw, dealStock_nil x hst] at hsuc
+        exact absurd hsuc (by simp)
+      rw [base_draw_shape hst hwne] at hsuc
+      injection hsuc with hrec
+      subst hrec
+      by_cases hdrop : x.waste.reverse.drop x.drawStep = ([] : List Card)
+      · exact inPhase_eq_true_of_nil hdrop
+      · obtain ⟨c₀, t₀, hcon⟩ := list_cons_of_ne_nil hdrop
+        have hple : 1 ≤ x.waste.length - x.drawStep := by
+          have h1 : (x.waste.reverse.drop x.drawStep).length
+              = x.waste.length - x.drawStep := by
+            rw [List.length_drop, List.length_reverse]
+          have h2 : 1 ≤ (x.waste.reverse.drop x.drawStep).length := by
+            rw [hcon]
+            exact Nat.succ_le_succ (Nat.zero_le t₀.length)
+          omega
+        have htake : (x.waste.reverse.take x.drawStep).length = x.drawStep := by
+          rw [List.length_take, List.length_reverse, Nat.min_eq_left (by omega)]
+        have hlen : ((x.waste.reverse.take x.drawStep).reverse
+            ++ ([] : List Card)).length = x.drawStep := by
+          rw [List.length_append, List.length_nil, List.length_reverse, htake, Nat.add_zero]
+        rw [hcon]
+        show decide (((x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card)).length
+            % x.drawStep = 0) = true
+        rw [hlen, Nat.mod_self]
+        exact decide_eq_true rfl
+  | cons s ss =>
+      have hsne : x.stock ≠ [] := by rw [hst]; simp
+      rw [plain_draw_shape hsne] at hsuc
+      injection hsuc with hrec
+      subst hrec
+      by_cases hdrop : x.stock.drop x.drawStep = ([] : List Card)
+      · exact inPhase_eq_true_of_nil hdrop
+      · obtain ⟨c₀, t₀, hcon⟩ := list_cons_of_ne_nil hdrop
+        have hple : 1 ≤ x.stock.length - x.drawStep := by
+          have h1 : (x.stock.drop x.drawStep).length
+              = x.stock.length - x.drawStep := List.length_drop
+          have h2 : 1 ≤ (x.stock.drop x.drawStep).length := by
+            rw [hcon]
+            exact Nat.succ_le_succ (Nat.zero_le t₀.length)
+          omega
+        have htake : (x.stock.take x.drawStep).length = x.drawStep := by
+          rw [List.length_take, Nat.min_eq_left (by omega)]
+        have hlen : ((x.stock.take x.drawStep).reverse ++ x.waste).length
+            = x.drawStep + x.waste.length := by
+          rw [List.length_append, List.length_reverse, htake]
+        rw [inPhase_eq_decide_of_cons hst] at hin
+        have hres : x.waste.length % x.drawStep = 0 := of_decide_eq_true hin
+        rw [hcon]
+        show decide (((x.stock.take x.drawStep).reverse ++ x.waste).length
+            % x.drawStep = 0) = true
+        rw [hlen, Nat.add_mod, Nat.mod_self, hres, Nat.zero_add, Nat.zero_mod]
+        exact decide_eq_true rfl
+
+/-- The phase line survives the whole draw chain, fired or blocked:
+the `stepDrawn` packaging of the row above (chains of draws stay
+on the line by induction on the chain). -/
+theorem inPhase_stepDrawn_keep {st : State} (hin : inPhase st = true) :
+    inPhase (stepDrawn st) = true := by
+  cases hd : st.stepDraw with
+  | none => rw [stepDrawn_unfired hd]; exact hin
+  | some d => rw [stepDrawn_stepDraw hd]; exact inPhase_stepDraw_keep hd hin
+
+/-! ## The padding-generation commutation
 
 `canon_draw_comm : canon (stepDrawn st) = stepDrawn (canon st)` —
 the padding-generation order-freedom lemma, probe-certified at
-every zone shape (CanonDecompressProbe, family C) — is DEFERRED to
-the follow-up row, with its working route recorded here so the
-follow-up does not restart: prove the per-budget form
-`canonAux_draw_comm : ∀ n st, canonAux n (stepDrawn st) =
-stepDrawn (canonAux n st)` by induction on `n`, where the step case
-needs only the ONE-STEP square `satStep (stepDrawn st) = stepDrawn
-(satStep st)` — a record-level identity whose board half is the
-landed `satStep_board_det` and whose pick half is the landed
-`pick_congr` over the board equality `stepDrawn`-rows (`stepDraw_keep`
-at firing, `rfl` when blocked); the zone halves are the banked
-`stepDraw_keep` and the landing-determinism row `stepDraw_zone_det`
-landed above.  The direct 53-budget assembly whnf-times out on the
-unnormalized `canon` terms even with cheap precomputed fields (both
-`maxRecDepth` and `maxHeartbeats` were raised); the inductive route
-avoids the blowup because each step only ever compares ONE
-`satStep` record.  The zone-determinism minis (`stepDraw_eq_none_iff`,
-`stepDraw_zone_det`) are landed above for the follow-up to consume. -/
+every zone shape (CanonDecompressProbe, family C) — is LANDED
+below by the inductive route this section banked while deferred:
+the ONE-STEP square `satStep_stepDrawn : satStep (stepDrawn st) =
+stepDrawn (satStep st)` closes on the landed determinism rows
+alone — the board-keeping `stepDrawn_board_keep` (the
+`stepDraw_keep` rows at firing, identity when blocked) feeding
+`pick_congr`, the raise-output congruity `raise_board_congr` (a
+`canRaiseB_congr`-kin row: at board-equal origins the raised
+landings are board-equal), the zone halves the banked
+`satStep_zone_keep` plus the draw-landing determinism lifted to
+`stepDrawn_zone_det`; the five field equalities close the record
+identity by structure-eta on `State`.  Then `canonAux_draw_comm`
+inducts on the budget — each step compares ONE `satStep` record,
+so the whnf never explodes (the direct 53-budget assembly's
+timeout stays fenced) — and the assembly at 53 is the definition
+of `canon` itself. -/
+
+/-- The draw keeps the board, fired or blocked (the `stepDrawn`
+packaging of `stepDraw_keep` + `stepDrawn_unfired`). -/
+private theorem stepDrawn_board_keep (st : State) :
+    (stepDrawn st).piles = st.piles ∧ (stepDrawn st).found = st.found := by
+  cases hd : st.stepDraw with
+  | none => rw [stepDrawn_unfired hd]; exact ⟨rfl, rfl⟩
+  | some d =>
+      obtain ⟨hf, hp, -, -⟩ := stepDraw_keep hd
+      rw [stepDrawn_stepDraw hd]
+      exact ⟨hp, hf⟩
+
+/-- The drawn landing is a function of the zone, `stepDrawn`
+packaged: zone-equal origins (blocked or firing alike) draw to
+zone-equal images — `stepDraw_eq_none_iff` carries the blocked
+case across, `stepDraw_zone_det` the firing one. -/
+private theorem stepDrawn_zone_det {x y : State}
+    (hss : x.stock = y.stock) (hws : x.waste = y.waste)
+    (hds : x.drawStep = y.drawStep) :
+    (stepDrawn x).stock = (stepDrawn y).stock ∧
+    (stepDrawn x).waste = (stepDrawn y).waste ∧
+    (stepDrawn x).drawStep = (stepDrawn y).drawStep := by
+  cases hx : x.stepDraw with
+  | none =>
+      obtain ⟨he1, he2⟩ := (stepDraw_eq_none_iff x).1 hx
+      have hyn : y.stepDraw = none :=
+        (stepDraw_eq_none_iff y).2 ⟨hss.symm.trans he1, hws.symm.trans he2⟩
+      rw [stepDrawn_unfired hx, stepDrawn_unfired hyn]
+      exact ⟨hss, hws, hds⟩
+  | some d =>
+      have hyne : ¬ (y.stock = ([] : List Card) ∧ y.waste = ([] : List Card)) := by
+        rintro ⟨e1, e2⟩
+        rw [(stepDraw_eq_none_iff x).2 ⟨hss.trans e1, hws.trans e2⟩] at hx
+        exact absurd hx (by simp)
+      cases hy : y.stepDraw with
+      | none => exact absurd ((stepDraw_eq_none_iff y).1 hy) hyne
+      | some d' =>
+          rw [stepDrawn_stepDraw hx, stepDrawn_stepDraw hy]
+          exact stepDraw_zone_det hx hy hss hws hds
+
+/-- The raise's landing board depends only on the origin board:
+at board-equal origins the raised landings are board-equal (the
+`raise`-grade kin of the landed `canRaiseB_congr`/`pick_congr`
+pair, feeding the commutation square below). -/
+private theorem raise_board_congr {x y : State} {c : Card} {t t' : State}
+    (hp : x.piles = y.piles) (hf : x.found = y.found)
+    (hx : raise x c = some t) (hy : raise y c = some t') :
+    t.piles = t'.piles ∧ t.found = t'.found := by
+  have hPILE : ∀ a, x.piles a = y.piles a := fun a => congrFun hp a
+  have hpt : x.pileOfTop c = y.pileOfTop c :=
+    firstWhereCong (fun a => decide (x.topOf a = some c))
+      (fun a => decide (y.topOf a = some c)) Anchor.all
+      (fun a _ => by
+        show decide ((x.piles a).top = some c) = decide ((y.piles a).top = some c)
+        rw [hPILE a])
+  obtain ⟨-, a, hpa, hs⟩ := step_tabToFound_inv
+    (show State.step x (Move.tabToFound c) = some t from hx)
+  obtain ⟨-, a', hpa', hs'⟩ := step_tabToFound_inv
+    (show State.step y (Move.tabToFound c) = some t' from hy)
+  have hsome : some a = some a' := hpa.symm.trans (hpt.trans hpa')
+  injection hsome with haa
+  rw [← haa] at hs'
+  refine ⟨?_, ?_⟩
+  · rw [hs, hs']
+    show (fun a₁ => if a₁ = a then
+            Pile.afterRunRemoved (x.piles a) (chop (x.piles a).faceUp)
+            else x.piles a₁)
+        = (fun a₁ => if a₁ = a then
+            Pile.afterRunRemoved (y.piles a) (chop (y.piles a).faceUp)
+            else y.piles a₁)
+    funext a₂
+    show (if a₂ = a then
+            Pile.afterRunRemoved (x.piles a) (chop (x.piles a).faceUp)
+            else x.piles a₂)
+        = (if a₂ = a then
+            Pile.afterRunRemoved (y.piles a) (chop (y.piles a).faceUp)
+            else y.piles a₂)
+    by_cases ha₂ : a₂ = a
+    · rw [ite_eq_left ha₂, ite_eq_left ha₂, hp]
+    · rw [ite_eq_right ha₂, ite_eq_right ha₂, hp]
+  · have hT : ∀ σ, t.found σ =
+        if σ = c.suit then x.found c.suit ++ [c] else x.found σ :=
+      (raise_foundTransport (show State.step x (Move.tabToFound c) = some t from hx)).2
+    have hT' : ∀ σ, t'.found σ =
+        if σ = c.suit then y.found c.suit ++ [c] else y.found σ :=
+      (raise_foundTransport (show State.step y (Move.tabToFound c) = some t' from hy)).2
+    funext σ
+    rw [hT σ, hT' σ]
+    by_cases hσ : σ = c.suit
+    · rw [ite_eq_left hσ, ite_eq_left hσ, hf]
+    · rw [ite_eq_right hσ, ite_eq_right hσ, hf]
+
+/-- **The one-step commutation square**: one saturation step and
+the draw commute on the nose — the drawn state's board is the
+origin's (`stepDrawn_board_keep`), so `pick` agrees (`pick_congr`)
+and both sides raise the same card; the raised landings agree on
+the board (`raise_board_congr` — the origins are board-equal),
+the raise keeps the zones verbatim (`satStep_zone_keep`), and the
+draw landing is zone-determined (`stepDrawn_zone_det`); the five
+field equalities close the record identity by structure-eta. -/
+theorem satStep_stepDrawn (st : State) :
+    satStep (stepDrawn st) = stepDrawn (satStep st) := by
+  have hB := stepDrawn_board_keep st
+  have hpick : pick (stepDrawn st) = pick st := pick_congr hB.1 hB.2
+  cases hp : pick st with
+  | none =>
+      rw [satStep_none (by rw [hpick]; exact hp), satStep_none hp]
+  | some c =>
+      have hpD : pick (stepDrawn st) = some c := by rw [hpick]; exact hp
+      obtain ⟨s₁, hs₁⟩ := raise_eq_some_of_canRaise st (pick_some_canRaise hp)
+      have hsSat : satStep st = s₁ := satStep_some hp hs₁
+      obtain ⟨t, ht⟩ := raise_eq_some_of_canRaise (stepDrawn st) (pick_some_canRaise hpD)
+      have hsSatD : satStep (stepDrawn st) = t := satStep_some hpD ht
+      have hBB := raise_board_congr hB.1.symm hB.2.symm hs₁ ht
+      have hBs₁ := stepDrawn_board_keep s₁
+      have hZs₁ : s₁.stock = st.stock ∧ s₁.waste = st.waste ∧
+          s₁.drawStep = st.drawStep := by
+        rw [← hsSat]
+        exact satStep_zone_keep st
+      have hZt : t.stock = (stepDrawn st).stock ∧ t.waste = (stepDrawn st).waste ∧
+          t.drawStep = (stepDrawn st).drawStep := by
+        rw [← hsSatD]
+        exact satStep_zone_keep (stepDrawn st)
+      have hZland := stepDrawn_zone_det (x := st) (y := s₁)
+        hZs₁.1.symm hZs₁.2.1.symm hZs₁.2.2.symm
+      have hP : t.piles = (stepDrawn s₁).piles := hBB.1.symm.trans hBs₁.1.symm
+      have hF : t.found = (stepDrawn s₁).found := hBB.2.symm.trans hBs₁.2.symm
+      have hS : t.stock = (stepDrawn s₁).stock := hZt.1.trans hZland.1
+      have hW : t.waste = (stepDrawn s₁).waste := hZt.2.1.trans hZland.2.1
+      have hD : t.drawStep = (stepDrawn s₁).drawStep := hZt.2.2.trans hZland.2.2
+      rw [hsSatD, hsSat]
+      rw [show t = State.mk t.found t.piles t.stock t.waste t.drawStep from rfl,
+        show stepDrawn s₁ = State.mk (stepDrawn s₁).found (stepDrawn s₁).piles
+          (stepDrawn s₁).stock (stepDrawn s₁).waste (stepDrawn s₁).drawStep from rfl,
+        hF, hP, hS, hW, hD]
+
+/-- The commutation at every budget: the saturator run and the
+draw interleave freely — the induction on the budget, one
+`satStep` record per step, so the whnf never explodes. -/
+theorem canonAux_draw_comm : ∀ (n : Nat) (st : State),
+    canonAux n (stepDrawn st) = stepDrawn (canonAux n st) := by
+  intro n
+  induction n with
+  | zero => intro st; rfl
+  | succ n ih =>
+      intro st
+      rw [canonAux_succ, satStep_stepDrawn, ih (satStep st), ← canonAux_succ]
+
+/-- **The deferred commutation, landed**: draws interleave freely
+with the saturation run — `canon (stepDrawn st) = stepDrawn
+(canon st)`, literal at every zone shape as the probe battery
+verified: padding letters commute with padding generation. -/
+theorem canon_draw_comm (st : State) :
+    canon (stepDrawn st) = stepDrawn (canon st) :=
+  canonAux_draw_comm 53 st
+
+/-! ## The pad kernel — the residue's landed factors
+
+The three-letter padding alphabet the refinements fixed, isolated
+as a predicate and a reachability grade, then spread letter by
+letter: the null path and composition, the one-leg rows per
+letter, the pure-draw round, and the DESCENT kernel
+(`padReach_descent` — every `Final` saturation endpoint wiggles
+back down its whole saturation basin by pure pulls; this is
+`decompress_pulls` re-graded through `canon_unique`'s confluence).
+Each reversible one-letter round already carries its classmate
+row in `Orig.Canonical` (`sameMacro_foundToTab`,
+`sameMacro_tabToTab_quiet`, `sameMacro_swRot` — wrapped-canon
+comparisons that `same_macro_iff'` closes to `SameMacroO` at the
+`WF` gates), so these rows are the computational half of
+`finalWiggle_reach` below, exactly as the route prices them. -/
+
+/-- The three-letter padding alphabet the post-refinement card
+fixed: `foundToTab` pull-downs, `tabToTab` slides, and the `draw`
+letter (the one-letter pure-pull form is refuted at the
+residue-reloc exhibit; slides do irreducible work at the
+twin-kings cell; draws carry the phase-rotation mid-legs). -/
+def padLetter (m : Move) : Prop :=
+  (∃ c b, m = Move.foundToTab c b) ∨ (∃ c b, m = Move.tabToTab c b) ∨ m = Move.draw
+
+/-- **The wiggling grade, the computed side of the residue**: a
+literal run from `u` to `v` whose every leg is a padding letter —
+exactly `finalWiggle_reach`'s certificate, isolated so the kernel
+rows can spread it letter by letter. -/
+def padReach (u v : State) : Prop :=
+  ∃ σ, State.run u σ = some v ∧ ∀ m ∈ σ, padLetter m
+
+/-- The append reader for the run dialect — the per-file kin of the
+`p_run_append` precedent (LowSlab, ForklessCeiling); the public
+home `run_append_split` carries the SPLIT direction. -/
+private theorem dc_run_append : ∀ (st : State) (A B : List Move) (z w : State),
+    st.run A = some z → z.run B = some w → st.run (A ++ B) = some w := by
+  intro st A
+  induction A generalizing st with
+  | nil =>
+      intro B z w h1 h2
+      have h' : (some st : Option State) = some z := h1
+      have hz : st = z := Option.some.inj h'
+      rw [List.nil_append, hz]
+      exact h2
+  | cons m rest ih =>
+      intro B z w h1 h2
+      obtain ⟨s₁, hstep, hrest⟩ := State.run_cons h1
+      show (match State.step st m with
+        | some st' => State.run st' (rest ++ B)
+        | none => none) = some w
+      rw [hstep]
+      exact ih s₁ B z w hrest h2
+
+/-- The null path: every position wiggles to itself. -/
+theorem padReach_refl (u : State) : padReach u u :=
+  ⟨[], rfl, by simp⟩
+
+/-- Padded runs compose — the append reader glues the witnesses. -/
+theorem padReach_trans {u v w : State} (h₁ : padReach u v) (h₂ : padReach v w) :
+    padReach u w := by
+  obtain ⟨σ, hσ, hL⟩ := h₁
+  obtain ⟨τ, hτ, hT⟩ := h₂
+  refine ⟨σ ++ τ, dc_run_append u σ τ v w hσ hτ, ?_⟩
+  intro m hm
+  rw [List.mem_append] at hm
+  rcases hm with hm | hm
+  · exact hL m hm
+  · exact hT m hm
+
+/-- One pull-down leg IS wiggle reachability: the move runs and
+its own letter is the pull. -/
+theorem padReach_pull {u v : State} {c : Card} {b : Base}
+    (h : State.step u (Move.foundToTab c b) = some v) :
+    padReach u v :=
+  ⟨[Move.foundToTab c b], run_one h, by
+    intro m hm
+    rw [List.mem_singleton] at hm
+    exact Or.inl ⟨c, b, hm⟩⟩
+
+/-- One slide leg IS wiggle reachability: the move runs and its
+own letter is the slide. -/
+theorem padReach_slide {u v : State} {c : Card} {b : Base}
+    (h : State.step u (Move.tabToTab c b) = some v) :
+    padReach u v :=
+  ⟨[Move.tabToTab c b], run_one h, by
+    intro m hm
+    rw [List.mem_singleton] at hm
+    exact Or.inr (Or.inl ⟨c, b, hm⟩)⟩
+
+/-- One draw leg IS wiggle reachability: the move runs and its own
+letter is the draw. -/
+theorem padReach_draw {u v : State} (h : u.stepDraw = some v) :
+    padReach u v :=
+  ⟨[Move.draw], run_one (show State.step u Move.draw = some v from h), by
+    intro m hm
+    rw [List.mem_singleton] at hm
+    exact Or.inr (Or.inr hm)⟩
+
+/-- A draws-only witness round is already a padded run — the
+`SWRotW` wedge of the residue, extracted. -/
+theorem padReach_drawPlayW {u v : State} {play : List Move}
+    (h : DrawPlayW u play v) : padReach u v := by
+  obtain ⟨hsh, hdraw⟩ := h
+  exact ⟨play, ShufflePlayW_run hsh, fun m hm => Or.inr (Or.inr (hdraw m hm))⟩
+
+/-- A pure rotation joins by draws alone — the forward round of an
+`SWRotW` pair, as wiggle reachability. -/
+theorem padReach_swRot {u v : State} (h : SWRotW u v) : padReach u v := by
+  obtain ⟨σ, -, hσ, -⟩ := h
+  exact padReach_drawPlayW hσ
+
+/-- **The descent kernel of the residue**: every `Final` saturation
+endpoint wiggles back down to every position in its saturation
+basin by PURE PULLS — `decompress_pulls` graded through
+`canon_unique`'s confluence (the basin's canon IS the endpoint),
+the letter that does the buried-substrate work of the worry-back
+bridge. -/
+theorem padReach_descent {u : State} (hwf : u.WF) {l : List Move} {w : State}
+    (hrun : StackRun u l w) (hfin : Final w) :
+    padReach w u := by
+  obtain ⟨l₀, hrun₀, hfin₀⟩ := canon_run u
+  have hw : canon u = w := canon_unique hwf hrun₀ hfin₀ hrun hfin
+  obtain ⟨τ, hτ, hletters⟩ := decompress_pulls hwf
+  have hrunτ : (canon u).run τ = some u := ShufflePlayW_run hτ
+  rw [hw] at hrunτ
+  exact ⟨τ, hrunτ, fun m hm => Or.inl (hletters m hm)⟩
 
 /-! ## The named residue -/
 
@@ -799,6 +1172,31 @@ orders) and the worry-back bridge (a relocation requiring a
 pulled-down substrate; the return's raise is the pull's exact undo,
 reordered after unburying).  The general theorem is pinned here as
 the card's named stub, in the house style.
+
+Kernel landing (2026-10-17, falsifier-first): the COMPUTED half of
+this stub is now public beside it — `padReach` lifts this very
+conclusion shape into a name, and the letter-by-letter facts
+land: `padReach_refl`/`padReach_trans` (null path, composition),
+`padReach_pull`/`padReach_slide`/`padReach_draw` (one-leg rows),
+`padReach_drawPlayW`/`padReach_swRot` (pure-draw rounds), and
+`padReach_descent` (Final endpoints reach their whole saturation
+basins by pure pulls, through `canon_unique`).  The classmate glue
+is banked up-tree: `same_macro_iff'` closes wrapped-canon
+equality to `SameMacroO` at the `WF` gates, and every reversible
+one-letter round already has its `sameMacro_*` row in
+Orig.Canonical.  What stays open — the routing core, and why the
+stub keeps its `sorryAx` — is the general re-route: no known
+derivation turns an ARBITRARY witness journey between Final
+mates into padded legs, because each raise leg (`tabToFound`)
+must be eliminated or re-ordered across the slides (the
+worry-back bridge shape), and the exchlaw twin-kings cell shows
+pulls and slides do irreducible COMBINED work (the mates' found
+channels split 13/12 vs 12/13).  The pure-pull short-cut is
+refuted at the residue-reloc exhibit (Final endpoints with empty
+foundations — no pull even fires from the source), so no weaker
+alphabet closes the row.  Landing the routing core, or refuting
+the stub outright, is the follow-on's prize; the pad kernel is
+what the route could price today.
 
 Dependency notes for the follow-on:
 * canlaw's twin-cargo pick-fork probe (two rung-ready twins, one
@@ -851,4 +1249,23 @@ zero `Classical.choice`; the ONE named residue prints its
 #print axioms lift_undo_pullW
 #print axioms stackRun_return_pulls
 #print axioms decompress_pulls
+#print axioms inPhase_stepDraw_keep
+#print axioms inPhase_stepDrawn_keep
+#print axioms stepDrawn_board_keep
+#print axioms stepDrawn_zone_det
+#print axioms raise_board_congr
+#print axioms satStep_stepDrawn
+#print axioms canonAux_draw_comm
+#print axioms canon_draw_comm
+#print axioms padLetter
+#print axioms padReach
+#print axioms dc_run_append
+#print axioms padReach_refl
+#print axioms padReach_trans
+#print axioms padReach_pull
+#print axioms padReach_slide
+#print axioms padReach_draw
+#print axioms padReach_drawPlayW
+#print axioms padReach_swRot
+#print axioms padReach_descent
 #print axioms finalWiggle_reach

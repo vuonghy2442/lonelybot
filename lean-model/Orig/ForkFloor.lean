@@ -620,6 +620,134 @@ private theorem p_seatOffered_iff (st : State) (c : Card) :
         rw [p_seatOffered, Bool.or_eq_true]
         exact Or.inr (List.any_eq_true.mpr ⟨z, Card.mem_universe z, hval⟩)
 
+/-- **THE FRONTIER-CELL UNIQUENESS** (the climb's host-reduction
+kernel): same suit and same rank index name the SAME card — so each
+host cell of the founded card is ONE named card, and the two cells
+the route speaks of are the twin pair one rank above it. -/
+private theorem p_card_of_suit_toIdx {e e' : Card}
+    (hss : e.suit = e'.suit) (hr : e.rank.toIdx = e'.rank.toIdx) :
+    e = e' := by
+  obtain ⟨es, er⟩ := e
+  obtain ⟨e's, e'r⟩ := e'
+  have hs : es = e's := hss
+  simp only [Card.mk.injEq]
+  exact ⟨hs, Rank.toIdx_inj hr⟩
+
+/-- **THE NON-KING'S EMPTY-SEAT REFUSAL** [E] (route step 1, the
+bare arm's datum): the empty-anchor consult is king-only, so for a
+non-king the inl arm of the placement guard refuses at EVERY state —
+the BARE-NON-KING arm's climb is purely a HOST-SURFACING question
+(the inl arm never re-opens for it). -/
+private theorem p_king_inl_refusal (c : Card) (hk : c.rank ≠ Rank.king)
+    (t : State) (a : Anchor) : t.canPlace c (Sum.inl a) = false := by
+  show ((t.piles a).isEmpty && decide (c.rank = Rank.king)) = false
+  rw [decide_false_of_not hk]
+  simp
+
+/-- **THE CLIMB'S ACCEPTANCE SHAPE** [M] (route step 2, the
+host-pair reduction): every placement acceptance is one of exactly
+two shapes — the EMPTY-SEAT VACATE (an inl consult: the seat is
+empty and the card is a king) or the CARD-HOST consult (an inr: the
+host tops some pile, exactly one rank above the card, of the
+opposite color family).  With `p_card_of_suit_toIdx` this pins every
+climbing cell to the twin pair one rank above the founded card: the
+HOST-SURFACING question the route's step 2 names. -/
+private theorem p_climb_accept_shape {t : State} {c : Card} {b : Base}
+    (hcp : t.canPlace c b = true) :
+    (∃ a, b = Sum.inl a ∧ c.rank = Rank.king ∧ (t.piles a).isEmpty = true) ∨
+      (∃ z a, b = Sum.inr z ∧ c.rank.toIdx + 1 = z.rank.toIdx ∧
+        c.suit.color ≠ z.suit.color ∧ t.pileOfTop z = some a) := by
+  cases b with
+  | inl a =>
+      obtain ⟨hemp, hking⟩ := canPlace_inl hcp
+      exact Or.inl ⟨a, rfl, hking, hemp⟩
+  | inr z =>
+      obtain ⟨k, hpo, hsit⟩ := canPlace_inr hcp
+      obtain ⟨hidx, hcol⟩ := (canSitOn_eq c z).mp hsit
+      exact Or.inr ⟨z, k, rfl, hidx, hcol, hpo⟩
+
+/-- **THE GUARD-REFUSED ECONOMY'S DISTANCE-ZERO CENSUS** [E–M]
+(route step 2's input datum): when the founding successor's seat
+scan reads FALSE, (i) every placement consult refuses the founded
+card at the successor, (ii) a king's empty-seat vacate is barred —
+no pile at the successor is empty at all, and (iii) no FITTING host
+tops any pile — both host cells of the twin pair start
+buried-or-absent.  This is the climb's starting shape: the schedule
+must SURFACE a host (or, for a king, empty a pile) before any
+consult accepts. -/
+private theorem p_seat_refused_census {s' : State} {c : Card}
+    (hno : p_seatOffered s' c = false) :
+    (∀ b, s'.canPlace c b = false) ∧
+      (∀ a, c.rank = Rank.king → (s'.piles a).isEmpty = false) ∧
+      (∀ z, canSitOn c z = true → s'.pileOfTop z = none) := by
+  have hnot : ¬ p_seatOffered s' c = true := by rw [hno]; simp
+  refine ⟨?_, ?_, ?_⟩
+  · intro b
+    cases hb : s'.canPlace c b with
+    | true => exact absurd ((p_seatOffered_iff s' c).mpr ⟨b, hb⟩) hnot
+    | false => rfl
+  · intro a hking
+    show (s'.piles a).isEmpty = false
+    cases he : (s'.piles a).isEmpty with
+    | true =>
+        have hcp : s'.canPlace c (Sum.inl a) = true := by
+          show ((s'.piles a).isEmpty && decide (c.rank = Rank.king)) = true
+          rw [he, hking]
+          rfl
+        exact absurd ((p_seatOffered_iff s' c).mpr ⟨Sum.inl a, hcp⟩) hnot
+    | false => rfl
+  · intro z hsit
+    cases hp : s'.pileOfTop z with
+    | some a =>
+        have hcp : s'.canPlace c (Sum.inr z) = true := by
+          show (match s'.pileOfTop z with
+              | some _ => canSitOn c z
+              | none => false) = true
+          rw [hp]
+          exact hsit
+        exact absurd ((p_seatOffered_iff s' c).mpr ⟨Sum.inr z, hcp⟩) hnot
+    | none => rfl
+
+/-- **THE REVEAL ARM'S SURFACING DATUM** [E] (route step 1, the
+reveal arm's own record): the emptied pile's hidden head surfaces at
+the founding successor as the raised pile's BARE SINGLETON TOP — the
+face-up record is exactly the surfaced card over the surviving
+hidden tail, the surfaced head tops the pile, and the top-search
+locates it.  Together with `p_seat_refused_census`: the surfaced
+head is not itself a fitting host (else the guard refused nothing),
+so the reveal arm's climb starts one leg deep. -/
+private theorem p_climb_reveal_surface {s s' : State} {c : Card} {k : Anchor}
+    {h : Card} {t : List Card}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.tabToFound c) = some s')
+    (hpo : s.pileOfTop c = some k)
+    (hchop : chop (s.piles k).faceUp = [])
+    (hhid : (s.piles k).hidden = h :: t) :
+    (s'.piles k).faceUp = [h] ∧ s'.topOf k = some h ∧
+      s'.pileOfTop h = some k := by
+  have hwfs' : s'.WF := step_wf hwf hstep
+  obtain ⟨-, k', hpo', hs'⟩ := step_tabToFound_inv hstep
+  have hk' : k' = k := Option.some.inj (hpo'.symm.trans hpo)
+  rw [hk'] at hs'
+  have hpilk : s'.piles k
+      = Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp) := by
+    rw [hs']
+    show (if k = k then
+        Pile.afterRunRemoved (s.piles k) (chop (s.piles k).faceUp)
+      else s.piles k) = _
+    rw [ite_eq_left rfl]
+  rcases hp : s.piles k with ⟨hd, fu⟩
+  rw [hp] at hhid
+  have hhd : hd = h :: t := hhid
+  subst hhd
+  have hfk : (s'.piles k).faceUp = [h] := by
+    rw [hpilk, hchop, hp]
+    rfl
+  have htop : (s'.piles k).top = some h := by
+    rw [hpilk, hchop, hp]
+    rfl
+  exact ⟨hfk, htop, (pileOfTop_eq_some_iff hwfs').2 htop⟩
+
 /-- **THE SEAT-DELAY CLIMB** [H, THE CROWN'S NAMED SUB-ROW, settled
 into isolation after honest effort, per the mission's discipline]:
 the late-seat existence schedule in the GUARD-REFUSED economy —
@@ -686,7 +814,31 @@ HONESTY): the multi-leg bound is the surviving open content.
 `fb3X_notFork` is the honest-tail datapoint: the OPPOSING
 schedule (surfacing lows into corridor content) saturates
 nothing — live member with dead twin, decided — so the climb's
-danger is bounded on its probed cases. -/
+danger is bounded on its probed cases.
+
+LANDED THIS PASS (the staging census, §0-kernel rows above):
+route steps 1-2 are now staged at theorem grade —
+`p_climb_reveal_surface` (the REVEAL arm's surfacing datum: the
+emptied pile's hidden head surfaces as the raised pile's bare
+singleton top, the exact reveal the hidden-total drop of
+`hiddenTotal_step_tabToFound_reveal` prices), `p_king_inl_refusal`
+(the BARE arm's king-only vacate: a non-king's empty-seat consult
+refuses at EVERY state, so that arm's climb is purely
+host-surfacing), `p_climb_accept_shape` (route step 2's
+host-pair reduction: every acceptance is the EMPTY-SEAT VACATE
+or the CARD-HOST consult, one rank above, opposite family),
+`p_card_of_suit_toIdx` (each cell names ONE card — the twin pair
+one rank above), and `p_seat_refused_census` (the guard-refused
+economy's distance-zero read: no consult accepts, a king vacate
+bars every empty seat, no fitting host tops anywhere — the
+schedule's starting shape).  The census budget rows the route
+names (`seatLedger_pair`, `play_census_ledger`,
+`roundtrip_census_repay`, `census_tabToFound_witness`,
+`census_foundToTab_inr`, `excursion_issues_noNewSeat`, the
+public heads of `Orig/HostCensus.lean`) stay CITED, not copied.
+What no census prices is exactly what remains: the REPAIR-TIME
+BOUND of the route's step 3 — this row's sole `sorry`, now staged
+from the refused census's ground state. -/
 private theorem p_seat_climb_rest {s s' : State} {c : Card} {k : Anchor}
     (hwf : s.WF)
     (hstep : State.step s (Move.tabToFound c) = some s')
@@ -1489,8 +1641,457 @@ private theorem p_seal_zone_rows {s s' : State} {c : Card}
         = s.found σ'
     exact setFound_found_ne hσ'
   · show (s.setFound c.suit (s.found c.suit ++ [c])).found c.suit
-        = s.found c.suit ++ [c]
+         = s.found c.suit ++ [c]
     exact setFound_found_self
+
+/-- **THE SHADOW-THREAD LEG CLASS** (the seal's head-replay spine):
+a leg is SHADOW-CLEAN at the sealed suit when its guards read no
+sealed row and no zone cell — the three board letters whose raise /
+pull cards avoid the sealed suit (their guards read piles and the
+card's own suit's row only), and every cargo slide (rung-free by
+`p_reveal_rung`'s own census).  The dirty legs are the draws, the
+waste letters (zone consults on the popped head), and the sealed-suit
+raises/pulls (rung consults against the shadow's one-ahead row). -/
+private def p_shadowLeg (z : Suit) (m : Move) : Bool :=
+  match m with
+  | .draw => false
+  | .wasteToFound _ => false
+  | .wasteToTab _ _ => false
+  | .tabToFound c => decide (c.suit ≠ z)
+  | .foundToTab c _ => decide (c.suit ≠ z)
+  | .tabToTab _ _ => true
+
+/-- **THE SHADOW-PREFIX SPLIT** [E] — every play splits as a
+shadow-clean prefix (possibly empty) followed by its end or the
+FIRST DIRTY LEG (the first leg whose guard consults the sealed row
+or the popped zone).  The structural fact the seal rest's new spine
+rides. -/
+private theorem p_shadow_prefix_split (z : Suit) : ∀ (l : List Move),
+    ∃ C D, l = C ++ D ∧ C.all (p_shadowLeg z) = true ∧
+      (D = [] ∨ (∃ d D', D = d :: D' ∧ p_shadowLeg z d = false)) := by
+  intro l
+  induction l with
+  | nil => exact ⟨[], [], rfl, rfl, Or.inl rfl⟩
+  | cons m t ih =>
+      obtain ⟨C, D, hsplit, hC, hD⟩ := ih
+      cases hm : p_shadowLeg z m with
+      | true =>
+          refine ⟨m :: C, D, ?_, ?_, hD⟩
+          · rw [hsplit]; rfl
+          · exact List.all_eq_true.mpr (fun x hx => by
+              rcases List.mem_cons.1 hx with rfl | hmem
+              · exact hm
+              · exact List.all_eq_true.mp hC x hmem)
+      | false => exact ⟨[], m :: t, rfl, rfl, Or.inr ⟨m, t, rfl, hm⟩⟩
+
+/-- The pointwise `setPile` congruence (the per-file copy; template:
+HostCensus's private `setPile_piles_aux`). -/
+private theorem p_setPile_piles_aux {x y : State} (hp : x.piles = y.piles)
+    (a : Anchor) (p p' : Pile) (hpp : p = p') (a' : Anchor) :
+    (x.setPile a p).piles a' = (y.setPile a p').piles a' := by
+  by_cases h : a' = a
+  · rw [h]
+    show (if a = a then p else x.piles a) = (if a = a then p' else y.piles a)
+    rw [ite_eq_left rfl, ite_eq_left rfl, hpp]
+  · show (if a' = a then p else x.piles a') = (if a' = a then p' else y.piles a')
+    rw [ite_eq_right h, ite_eq_right h, congrFun hp a']
+
+/-- **THE CARGO-SLIDE STEP SPLICE** (the per-file copy; template:
+HostCensus's private `step_tabToTab_succ` — none of Play's public
+splices covers this arm): the located, legal, run-shaped slide is
+the exact `setPile`-then-`putRun` record. -/
+private theorem p_step_tabToTab_succ {st : State} {c : Card} {b : Base}
+    {a : Anchor} {r : Card} {rr : List Card}
+    (hh : st.pileHolding c = some a)
+    (hcp : st.canPlace c b = true)
+    (hfc : fromCard c (st.piles a).faceUp = r :: rr) :
+    State.step st (Move.tabToTab c b) =
+      some ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp))).putRun (r :: rr) b) := by
+  have hR : State.step st (Move.tabToTab c b) =
+      some ((st.setPile a
+        (Pile.afterRunRemoved (st.piles a)
+          (below c (st.piles a).faceUp))).putRun (r :: rr) b) := by
+    simp only [State.step, hh, hcp, hfc]
+    rfl
+  rw [hR]
+
+/-- The `putRun` tableau is determined by the pre-state's tableau
+(the per-file copy of the `putCard` congruence row's pattern). -/
+private theorem p_putRun_piles_congr {x y : State} {run : List Card} {b : Base}
+    (hp : x.piles = y.piles) :
+    (x.putRun run b).piles = (y.putRun run b).piles := by
+  cases b with
+  | inl n => rw [putRun_eq_inl, putRun_eq_inl, setPile_piles, setPile_piles, hp]
+  | inr z =>
+      have hc : y.pileOfTop z = x.pileOfTop z := (p_pileOfTop_congr z hp).symm
+      cases hx : x.pileOfTop z with
+      | none =>
+          rw [show x.putRun run (Sum.inr z) = x from by
+              simp only [State.putRun, hx],
+            show y.putRun run (Sum.inr z) = y from by
+              simp only [State.putRun, hc, hx],
+            hp]
+      | some k =>
+          rw [show x.putRun run (Sum.inr z)
+                = x.setPile k { x.piles k with faceUp := (x.piles k).faceUp ++ run } from by
+              simp only [State.putRun, hx],
+            show y.putRun run (Sum.inr z)
+                = y.setPile k { y.piles k with faceUp := (y.piles k).faceUp ++ run } from by
+              simp only [State.putRun, hc, hx],
+            setPile_piles, setPile_piles, hp]
+
+/-- **THE SHADOW-THREAD SHAPE** — the read-world the seal's mirror
+maintains between the origin thread `P` (the original play's landing,
+with the sealed card still IN THE WASTE) and the successor thread `Q`
+(the committed seal's mirror, with the sealed card FOUNDED one rung
+high): agreeing piles, agreeing foundation rows at every suit but
+the sealed one, the sealed rows pinned at the two threads' own base
+records, and the origin thread's waste verbatim (the popped head
+still resident there). -/
+private def p_shadowShape (s s' : State) (c : Card) (P Q : State) : Prop :=
+  P.piles = Q.piles ∧
+    (∀ σ' : Suit, σ' ≠ c.suit → P.found σ' = Q.found σ') ∧
+    P.found c.suit = s.found c.suit ∧
+    Q.found c.suit = s'.found c.suit ∧
+    P.waste = s.waste
+
+/-- **THE SHADOW STEP** [E–M] — the mirror of one shadow-clean leg:
+a legal clean letter at the origin thread re-fires VERBATIM at the
+successor thread (its guards read only the agreeing piles and the
+card's own off-sealed row), and the landing pair carries the same
+read-world (the write is the same function of the agreeged data:
+piles verbatim, the written row off the sealed suit, the sealed rows
+untouched, the waste verbatim on the origin thread). -/
+private theorem p_shadow_step {s s' : State} {c : Card} {m : Move}
+    {P Q P₁ : State}
+    (hthr : p_shadowLeg c.suit m = true)
+    (hsh : p_shadowShape s s' c P Q)
+    (hstep : State.step P m = some P₁) :
+    ∃ Q₁, State.step Q m = some Q₁ ∧ p_shadowShape s s' c P₁ Q₁ := by
+  obtain ⟨hPp, hR, hPs, hQs, hPw⟩ := hsh
+  cases m with
+  | draw => exact absurd hthr (by simp [p_shadowLeg])
+  | wasteToFound c₀ => exact absurd hthr (by simp [p_shadowLeg])
+  | wasteToTab c₀ b₀ => exact absurd hthr (by simp [p_shadowLeg])
+  | tabToTab e b =>
+      obtain ⟨a, hh, hcp, hne, hs⟩ := step_tabToTab_inv hstep
+      have hva' : P.piles a = Q.piles a := congrFun hPp a
+      have hhQ : Q.pileHolding e = some a := by
+        rw [show Q.pileHolding e = P.pileHolding e from
+          pileHolding_congr (st := P) (s' := Q) hPp.symm]
+        exact hh
+      have hcpQ : Q.canPlace e b = true := by
+        rw [← p_canPlace_congr e b hPp]
+        exact hcp
+      cases hrun : fromCard e (P.piles a).faceUp with
+      | nil =>
+          rw [hrun] at hne
+          exact absurd hne (by simp)
+      | cons r rr =>
+          rw [hrun] at hs
+          have hfcQ : fromCard e (Q.piles a).faceUp = r :: rr := by
+            rw [show (Q.piles a).faceUp = (P.piles a).faceUp from
+              (congrArg Pile.faceUp hva').symm]
+            exact hrun
+          have hfP : P₁.found = P.found := by
+            rw [hs]
+            show ((P.setPile a
+              (Pile.afterRunRemoved (P.piles a)
+                (below e (P.piles a).faceUp))).putRun (r :: rr) b).found
+              = P.found
+            rw [putRun_keep.1, setPile_found]
+          have hfQ : ((Q.setPile a
+              (Pile.afterRunRemoved (Q.piles a)
+                (below e (Q.piles a).faceUp))).putRun (r :: rr) b).found
+              = Q.found := by
+            show ((Q.setPile a
+              (Pile.afterRunRemoved (Q.piles a)
+                (below e (Q.piles a).faceUp))).putRun (r :: rr) b).found
+              = Q.found
+            rw [putRun_keep.1, setPile_found]
+          have hwP : P₁.waste = P.waste := by
+            rw [hs]
+            show ((P.setPile a
+              (Pile.afterRunRemoved (P.piles a)
+                (below e (P.piles a).faceUp))).putRun (r :: rr) b).waste
+              = P.waste
+            rw [putRun_keep.2.2.1, setPile_waste]
+          refine ⟨(Q.setPile a
+              (Pile.afterRunRemoved (Q.piles a)
+                (below e (Q.piles a).faceUp))).putRun (r :: rr) b, ?_, ?_⟩
+          · exact p_step_tabToTab_succ hhQ hcpQ hfcQ
+          · refine ⟨?_, ?_, ?_, ?_, ?_⟩
+            · have hpair : (P.setPile a
+                  (Pile.afterRunRemoved (P.piles a)
+                    (below e (P.piles a).faceUp))).piles
+                  = (Q.setPile a
+                    (Pile.afterRunRemoved (Q.piles a)
+                      (below e (Q.piles a).faceUp))).piles := by
+                funext a'
+                exact p_setPile_piles_aux hPp a
+                  (Pile.afterRunRemoved (P.piles a)
+                    (below e (P.piles a).faceUp))
+                  (Pile.afterRunRemoved (Q.piles a)
+                    (below e (Q.piles a).faceUp))
+                  (by rw [hva']) a'
+              funext a'
+              rw [hs]
+              exact congrFun (p_putRun_piles_congr hpair) a'
+            · intro σ' hσ'
+              rw [show P₁.found σ' = P.found σ' from congrFun hfP σ',
+                  show ((Q.setPile a
+                    (Pile.afterRunRemoved (Q.piles a)
+                      (below e (Q.piles a).faceUp))).putRun (r :: rr) b).found σ'
+                    = Q.found σ' from congrFun hfQ σ']
+              exact hR σ' hσ'
+            · rw [show P₁.found c.suit = P.found c.suit from congrFun hfP c.suit]
+              exact hPs
+            · rw [show ((Q.setPile a
+                  (Pile.afterRunRemoved (Q.piles a)
+                    (below e (Q.piles a).faceUp))).putRun (r :: rr) b).found c.suit
+                   = Q.found c.suit from congrFun hfQ c.suit]
+              exact hQs
+            · exact hwP.trans hPw
+  | tabToFound e =>
+      have hne : e.suit ≠ c.suit := by
+        simp only [p_shadowLeg] at hthr
+        exact of_decide_eq_true hthr
+      obtain ⟨hn, a, hpo, hs⟩ := step_tabToFound_inv hstep
+      have hnQ : Q.nextUp e = true := by
+        show decide (e.rank.toIdx = (Q.found e.suit).length) = true
+        rw [show Q.found e.suit = P.found e.suit from (hR e.suit hne).symm]
+        exact hn
+      have hpoQ : Q.pileOfTop e = some a := (p_pileOfTop_congr e hPp).symm.trans hpo
+      refine ⟨{ Q.setFound e.suit (Q.found e.suit ++ [e]) with
+          piles := fun a' =>
+            if a' = a then
+              Pile.afterRunRemoved (Q.piles a) (chop (Q.piles a).faceUp)
+            else Q.piles a' }, ?_, ?_⟩
+      · exact step_tabToFound_splice hnQ hpoQ
+      · refine ⟨?_, ?_, ?_, ?_, ?_⟩
+        · funext a'
+          rw [hs]
+          show (if a' = a then
+              Pile.afterRunRemoved (P.piles a) (chop (P.piles a).faceUp)
+            else P.piles a')
+              = (if a' = a then
+              Pile.afterRunRemoved (Q.piles a) (chop (Q.piles a).faceUp)
+            else Q.piles a')
+          by_cases ha : a' = a
+          · rw [ha, ite_eq_left rfl, ite_eq_left rfl]
+            rw [congrFun hPp a]
+          · rw [ite_eq_right ha, ite_eq_right ha]
+            exact congrFun hPp a'
+        · intro σ' hσ'
+          rw [hs]
+          show (if σ' = e.suit then P.found e.suit ++ [e] else P.found σ')
+              = (if σ' = e.suit then Q.found e.suit ++ [e] else Q.found σ')
+          by_cases hse : σ' = e.suit
+          · rw [hse, ite_eq_left rfl, ite_eq_left rfl]
+            rw [hR e.suit hne]
+          · rw [ite_eq_right hse, ite_eq_right hse]
+            exact hR σ' hσ'
+        · rw [hs]
+          show (if c.suit = e.suit then P.found e.suit ++ [e] else P.found c.suit)
+              = s.found c.suit
+          rw [ite_eq_right (fun hcon => hne hcon.symm)]
+          exact hPs
+        · show (if c.suit = e.suit then Q.found e.suit ++ [e] else Q.found c.suit)
+              = s'.found c.suit
+          rw [ite_eq_right (fun hcon => hne hcon.symm)]
+          exact hQs
+        · rw [hs]
+          show P.waste = s.waste
+          exact hPw
+  | foundToTab e b =>
+      have hne : e.suit ≠ c.suit := by
+        simp only [p_shadowLeg] at hthr
+        exact of_decide_eq_true hthr
+      obtain ⟨c₀, htop, hc₀c, hcp, hs⟩ := step_foundToTab_inv hstep
+      rw [hc₀c] at htop
+      have htopQ : Q.foundTop e.suit = some e := by
+        show lastOf (Q.found e.suit) = some e
+        rw [show Q.found e.suit = P.found e.suit from (hR e.suit hne).symm]
+        exact htop
+      have hcpQ : Q.canPlace e b = true := by
+        rw [← p_canPlace_congr e b hPp]
+        exact hcp
+      refine ⟨(Q.setFound e.suit (chop (Q.found e.suit))).putCard e b, ?_, ?_⟩
+      · exact step_foundToTab_splice htopQ hcpQ
+      · refine ⟨?_, ?_, ?_, ?_, ?_⟩
+        · have hp2 : (P.setFound e.suit (chop (P.found e.suit))).piles
+              = (Q.setFound e.suit (chop (Q.found e.suit))).piles := by
+            show P.piles = Q.piles
+            exact hPp
+          rw [hs]
+          exact p_putCard_piles_congr e b hp2
+        · intro σ' hσ'
+          rw [hs]
+          rw [show ((P.setFound e.suit (chop (P.found e.suit))).putCard e b).found σ'
+                = (P.setFound e.suit (chop (P.found e.suit))).found σ' from
+              congrFun (putCard_keep (st := P.setFound e.suit
+                (chop (P.found e.suit))) (c := e) (b := b)).1 σ',
+            show ((Q.setFound e.suit (chop (Q.found e.suit))).putCard e b).found σ'
+                = (Q.setFound e.suit (chop (Q.found e.suit))).found σ' from
+              congrFun (putCard_keep (st := Q.setFound e.suit
+                (chop (Q.found e.suit))) (c := e) (b := b)).1 σ']
+          show (if σ' = e.suit then chop (P.found e.suit) else P.found σ')
+              = (if σ' = e.suit then chop (Q.found e.suit) else Q.found σ')
+          by_cases hse : σ' = e.suit
+          · rw [hse, ite_eq_left rfl, ite_eq_left rfl]
+            rw [hR e.suit hne]
+          · rw [ite_eq_right hse, ite_eq_right hse]
+            exact hR σ' hσ'
+        · rw [hs]
+          rw [show ((P.setFound e.suit (chop (P.found e.suit))).putCard e b).found c.suit
+                = (P.setFound e.suit (chop (P.found e.suit))).found c.suit from
+              congrFun (putCard_keep (st := P.setFound e.suit
+                (chop (P.found e.suit))) (c := e) (b := b)).1 c.suit]
+          show (if c.suit = e.suit then chop (P.found e.suit) else P.found c.suit)
+              = s.found c.suit
+          rw [ite_eq_right (fun hcon => hne hcon.symm)]
+          exact hPs
+        · rw [show ((Q.setFound e.suit (chop (Q.found e.suit))).putCard e b).found c.suit
+              = (Q.setFound e.suit (chop (Q.found e.suit))).found c.suit from
+            congrFun (putCard_keep (st := Q.setFound e.suit
+              (chop (Q.found e.suit))) (c := e) (b := b)).1 c.suit]
+          show (if c.suit = e.suit then chop (Q.found e.suit) else Q.found c.suit)
+              = s'.found c.suit
+          rw [ite_eq_right (fun hcon => hne hcon.symm)]
+          rw [show Q.found c.suit = s'.found c.suit from hQs]
+        · rw [hs]
+          rw [show ((P.setFound e.suit (chop (P.found e.suit))).putCard e b).waste
+                = (P.setFound e.suit (chop (P.found e.suit))).waste from
+              (putCard_keep (st := P.setFound e.suit
+                (chop (P.found e.suit))) (c := e) (b := b)).2.2.1]
+          show P.waste = s.waste
+          exact hPw
+
+/-- **THE SHADOW RUN** [E–M] — the mirror of a whole shadow-clean
+play: what the origin thread runs, the successor thread runs too,
+landing the read-world's mirror. -/
+private theorem p_shadow_run {s s' : State} {c : Card} :
+    ∀ (l : List Move), l.all (p_shadowLeg c.suit) = true →
+      ∀ {P Q W : State}, P.run l = some W → p_shadowShape s s' c P Q →
+        ∃ W', Q.run l = some W' ∧ p_shadowShape s s' c W W' := by
+  intro l
+  induction l with
+  | nil =>
+      intro _ P Q W hrun hsh
+      injection hrun with hPW
+      subst hPW
+      exact ⟨Q, rfl, hsh⟩
+  | cons m rest ih =>
+      intro hall P Q W hrun hsh
+      obtain ⟨P₁, hm, hrest⟩ := State.run_cons hrun
+      obtain ⟨Q₁, hQm⟩ :=
+        p_shadow_step (List.all_eq_true.mp hall m (List.mem_cons_self ..)) hsh hm
+      obtain ⟨W', hrest', hsh'⟩ :=
+        ih (List.all_eq_true.mpr (fun y hy =>
+          List.all_eq_true.mp hall y (List.mem_cons.2 (Or.inr hy))))
+          hrest hQm.2
+      exact ⟨W', by
+        show (match State.step Q m with
+            | some st' => st'.run rest
+            | none => none) = some W'
+        rw [show State.step Q m = some Q₁ from hQm.1]
+        exact hrest', hsh'⟩
+
+/-- **THE VANILLA LICENSE IS OFF-RUNG-ONLY TOO** [E–M] — the vanilla
+raise reads the card's own suit's rung and the piles alone, so the
+off-rung congruence carries it verbatim at every card of every other
+suit. -/
+private theorem p_canRaise_offRung {u v : State} (σ : Suit)
+    (hp : u.piles = v.piles)
+    (hf : ∀ σ' : Suit, σ' ≠ σ → u.found σ' = v.found σ') :
+    ∀ {e : Card}, e.suit ≠ σ → (CanRaise u e ↔ CanRaise v e) := by
+  intro e he
+  have hva : ∀ a : Anchor, u.piles a = v.piles a := fun a => congrFun hp a
+  have hvf : ∀ a : Anchor, (v.piles a).faceUp = (u.piles a).faceUp :=
+    fun a => (congrArg Pile.faceUp (hva a)).symm
+  have hvh : ∀ a : Anchor, (v.piles a).hidden = (u.piles a).hidden :=
+    fun a => (congrArg Pile.hidden (hva a)).symm
+  constructor
+  · rintro ⟨hn, a, hpo, (hbs | ⟨hhid, hking⟩)⟩
+    · have hnV : v.nextUp e = true := by
+        show decide (e.rank.toIdx = (v.found e.suit).length) = true
+        rw [(hf e.suit he).symm]
+        exact hn
+      have hpoV : v.pileOfTop e = some a := by
+        rw [show v.pileOfTop e = u.pileOfTop e from
+          (p_pileOfTop_congr e hp).symm]
+        exact hpo
+      exact ⟨hnV, a, hpoV, Or.inl (by
+        rw [show chop (v.piles a).faceUp = chop (u.piles a).faceUp from
+          congrArg chop (hvf a)]
+        exact hbs)⟩
+    · have hnV : v.nextUp e = true := by
+        show decide (e.rank.toIdx = (v.found e.suit).length) = true
+        rw [(hf e.suit he).symm]
+        exact hn
+      have hpoV : v.pileOfTop e = some a := by
+        rw [show v.pileOfTop e = u.pileOfTop e from
+          (p_pileOfTop_congr e hp).symm]
+        exact hpo
+      exact ⟨hnV, a, hpoV, Or.inr ⟨by
+        rw [show (v.piles a).hidden = (u.piles a).hidden from hvh a]
+        exact hhid, hking⟩⟩
+  · rintro ⟨hn, a, hpo, (hbs | ⟨hhid, hking⟩)⟩
+    · have hnU : u.nextUp e = true := by
+        show decide (e.rank.toIdx = (u.found e.suit).length) = true
+        rw [hf e.suit he]
+        exact hn
+      have hpoU : u.pileOfTop e = some a := by
+        rw [show u.pileOfTop e = v.pileOfTop e from p_pileOfTop_congr e hp]
+        exact hpo
+      exact ⟨hnU, a, hpoU, Or.inl (by
+        rw [show chop (u.piles a).faceUp = chop (v.piles a).faceUp from
+          congrArg chop (hvf a).symm]
+        exact hbs)⟩
+    · have hnU : u.nextUp e = true := by
+        show decide (e.rank.toIdx = (u.found e.suit).length) = true
+        rw [hf e.suit he]
+        exact hn
+      have hpoU : u.pileOfTop e = some a := by
+        rw [show u.pileOfTop e = v.pileOfTop e from p_pileOfTop_congr e hp]
+        exact hpo
+      exact ⟨hnU, a, hpoU, Or.inr ⟨by
+        rw [show (u.piles a).hidden = (v.piles a).hidden from (hvh a).symm]
+        exact hhid, hking⟩⟩
+
+/-- **THE OFF-RUNG CERTIFICATE TRANSFER** [M] — the fork certificate
+travels the shadow thread at a witness whose whole pair avoids the
+sealed suit: both conjuncts of the parcel read the piles and the
+off-sealed rungs only (`p_license_offRung` for the S-world, the row
+above for the vanilla pin), and the sealed-suit cards are priced
+dead at the shadow landing by the scan. -/
+private theorem p_fork_offRung_transfer {P Q : State} {x : Card} {σ : Suit}
+    (hwfP : P.WF) (hwfQ : Q.WF)
+    (hp : P.piles = Q.piles)
+    (hf : ∀ σ' : Suit, σ' ≠ σ → P.found σ' = Q.found σ')
+    (hx : x.suit ≠ σ) (hxT : x.twin.suit ≠ σ)
+    (hdead : ∀ e, e.suit = σ → ¬ CanRaiseS Q e)
+    (hwit : ForkWitness P x) : ForkWitness Q x := by
+  obtain ⟨hiff, hnt⟩ := hwit
+  have hoffS : ∀ {e : Card}, e.suit ≠ σ → (CanRaiseS P e ↔ CanRaiseS Q e) :=
+    p_license_offRung σ hwfP hwfQ hp hf
+  have hoffV : ∀ {e : Card}, e.suit ≠ σ → (CanRaise P e ↔ CanRaise Q e) :=
+    p_canRaise_offRung σ hp hf
+  refine ⟨fun c₀ => ⟨fun hmem => ?_, fun hS₀ => ?_⟩, ?_⟩
+  · rcases hmem with h | h
+    · rw [h]
+      exact (hoffS hx).mp ((hiff x).mp (Or.inl rfl))
+    · rw [h]
+      exact (hoffS hxT).mp ((hiff x.twin).mp (Or.inr rfl))
+  · rcases Decidable.em (c₀.suit = σ) with hs | hs
+    · exact absurd hS₀ (hdead c₀ hs)
+    · rcases (hiff c₀).mpr ((hoffS hs).mpr hS₀) with h | h
+      · exact Or.inl h
+      · exact Or.inr h
+  · intro hcr
+    exact hnt ((hoffV hxT).mpr hcr)
 
 /-- **THE SEATING WRITE RECORD, EMPTY-ANCHOR ARM** [E] — the committed
 seating onto the empty anchor `k`: the guard demands a king and an
@@ -1771,6 +2372,87 @@ private theorem p_board_prefix_split : ∀ (l : List Move),
               · exact hm
               · exact List.all_eq_true.mp hB x hmem)
       | false => exact ⟨[], m :: t, rfl, rfl, Or.inr ⟨m, t, rfl, hm⟩⟩
+
+/-- **THE RUN JOIN** (the per-file copy; template: `Orig.Macro`'s
+public `run_split`) — a play landing `s₁` spliced with a play from
+`s₁` landing `w` is one play landing `w`. -/
+private theorem p_run_join : ∀ (A : List Move) (st s₁ : State)
+    (B : List Move) (w : State),
+    st.run A = some s₁ → s₁.run B = some w → st.run (A ++ B) = some w := by
+  intro A
+  induction A with
+  | nil =>
+      intro st s₁ B w h₁ h₂
+      injection h₁ with h
+      subst h
+      exact h₂
+  | cons m t ih =>
+      intro st s₁ B w h₁ h₂
+      obtain ⟨r, hstep, hrest⟩ := State.run_cons h₁
+      show st.run (m :: (t ++ B)) = some w
+      rw [show st.run (m :: (t ++ B)) = (match State.step st m with
+        | some st' => st'.run (t ++ B)
+        | none => none) from rfl, hstep]
+      exact ih r s₁ B w hrest h₂
+
+/-- **THE DRAWN ZONE IS A ZONE FUNCTION** (the per-file copy; template:
+`Orig/HostCensus.lean`'s private `draw_zone_det`, over `Orig/Phase.lean`'s
+public `plain_draw_shape` / `base_draw_shape`) — two states agreeing on
+stock, waste, and draw step whose draws both FIRE land agreeing zones:
+the draw is recycle-then-deal, a function of the zone triple alone, so
+the whole landing is determined by the data the board-thread carries
+(the draw piece's mate-weld at its exactest grain: same data, same
+landing, no orbit machinery needed at the residue's own cut). -/
+private theorem p_draw_zone_det {x xd y yd : State}
+    (hz : x.stock = y.stock ∧ x.waste = y.waste ∧ x.drawStep = y.drawStep)
+    (hx : State.step x Move.draw = some xd)
+    (hy : State.step y Move.draw = some yd) :
+    xd.stock = yd.stock ∧ xd.waste = yd.waste ∧ xd.drawStep = yd.drawStep := by
+  have hss := hz.1
+  have hws := hz.2.1
+  have hds := hz.2.2
+  have hx' : State.stepDraw x = some xd := hx
+  have hy' : State.stepDraw y = some yd := hy
+  cases hst : x.stock with
+  | nil =>
+      have hsty0 : y.stock = ([] : List Card) := by rw [← hss, hst]
+      cases hwsx : x.waste with
+      | nil =>
+          exfalso
+          rw [show State.stepDraw x = State.dealStock x.recycle from rfl,
+            recycle_allEmpty x hst hwsx, dealStock_nil x hst] at hx'
+          exact absurd hx' (by simp)
+      | cons w ws =>
+          have hxw : x.waste ≠ [] := by rw [hwsx]; simp
+          have hyw : y.waste ≠ [] := by rw [← hws]; exact hxw
+          rw [base_draw_shape hst hxw] at hx'
+          rw [base_draw_shape hsty0 hyw] at hy'
+          injection hx' with hrx
+          injection hy' with hry
+          rw [← hrx, ← hry]
+          refine ⟨?_, ?_, ?_⟩
+          · show (x.waste.reverse.drop x.drawStep)
+              = (y.waste.reverse.drop y.drawStep)
+            rw [hws, hds]
+          · show ((x.waste.reverse.take x.drawStep).reverse ++ ([] : List Card))
+              = ((y.waste.reverse.take y.drawStep).reverse ++ ([] : List Card))
+            rw [hws, hds]
+          · rw [show x.drawStep = y.drawStep from hds]
+  | cons s ss =>
+      have hxs : x.stock ≠ [] := by rw [hst]; simp
+      have hsty : y.stock ≠ [] := by rw [← hss]; exact hxs
+      rw [plain_draw_shape hxs] at hx'
+      rw [plain_draw_shape hsty] at hy'
+      injection hx' with hrx
+      injection hy' with hry
+      rw [← hrx, ← hry]
+      refine ⟨?_, ?_, ?_⟩
+      · show x.stock.drop x.drawStep = y.stock.drop y.drawStep
+        rw [hss, hds]
+      · show (x.stock.take x.drawStep).reverse ++ x.waste
+          = (y.stock.take y.drawStep).reverse ++ y.waste
+        rw [hss, hds, hws]
+      · rw [show x.drawStep = y.drawStep from hds]
 
 /-- **THE SEAL'S HOT SCAN** — the decidable probe of the interloper
 census: does some card of the sealed suit, exactly one rung above
@@ -2113,6 +2795,56 @@ private theorem p_seat_interference_forced {s s' : State} {c x : Card} {b : Base
       | inr h => exact Or.inr (Or.inl h)
   | inr z => exact Or.inr (Or.inr ⟨z, rfl⟩)
 
+/-- **THE WASTE-HEAD SHADOW** [H, the cursor birth's named narrow
+sub-residue, exactly one `sorryAx`]: the exhibiting play's first
+load-bearing zone leg is a WASTE letter — the leg `z` (a
+`wasteToFound` or a `wasteToTab`) fired at the boardEq twin `u` of
+the forkless mirror `u'`, consuming the waste head of the cycle at
+`u` — exactly the head the COMMIT's deal left MOVED (the board
+prefix wrote no zone cell, so `u` carries the origin's zone while
+`u'` carries the once-drawn zone: the dealt stock binds the waste's
+front, so the leg's own guard `wasteIs` reads the shifted cursor and
+the leg does not fire at `u'` at all).
+
+ROUTE (complete; the open step named):
+
+1. THE SHIFT, PRICED: the commit's draw pushed the cycle once; the
+   consumed head (the letter's own card) still lives in the
+   successor's two-zone world — the drawn zone is the SAME zone's
+   rotation (`p_draw_zone_det` the function read; the membership
+   conservation the iff row of §4) — so the availability survives at
+   a rotated cursor.
+2. THE RE-PHASING (the open step): rotate the successor's own cycle
+   (draws are legal while the count is positive, and the count is a
+   rotation of the origin's) until the consumed head heads the waste
+   again, then fire the leg's counterpart letter and replay the
+   remaining tail — against the shifted tail guards the same
+   induction recurses at a strictly shorter remaining play.  The
+   REPAIR-TIME BOUND (the rotation's leg count, the measure strictly
+   decreasing along the schedule until a fresh fork witness
+   re-assembles) is the residual content, carried here and nowhere
+   else; the crane's round-trip rows price WHAT the rotation may
+   disturb (a returned excursion issues no seat the arrangement did
+   not already carry), not WHEN.
+3. REMAINING CONTENT: the multi-commit schedule's time bound — the
+   probe program's surviving honest danger (HUNTING-FLOOR HONESTY,
+   `Orig/ForkFloorProbe.lean`: fb2E/fb3E's waste economies, decided
+   only at their snapshots). -/
+private theorem p_draw_zone_shift {s s' u u' w₀ F : State} {z : Move}
+    {R' : List Move} {x : Card}
+    (hwf : s.WF)
+    (hstep : State.step s Move.draw = some s')
+    (hzU : u.stock = s.stock ∧ u.waste = s.waste ∧ u.drawStep = s.drawStep)
+    (hzU' : u'.stock = s'.stock ∧ u'.waste = s'.waste ∧ u'.drawStep = s'.drawStep)
+    (hfbU : ¬ forkStateSB u' = true)
+    (hz : (∃ c', z = Move.wasteToFound c') ∨ (∃ c' b', z = Move.wasteToTab c' b'))
+    (hw₀ : State.step u z = some w₀)
+    (hR' : w₀.run R' = some F)
+    (hwit : ForkWitness F x) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      u'.run π' = some F' ∧ ForkWitness F' x' := by
+  sorry
+
 /-- **THE DRAW ARM'S NAMED ZONE REMAINDER** [H, named sub-residue,
 exactly one `sorry` — the draw kind's carried content once the two
 closed fragments are dispatched]: the exhibiting play heads with a
@@ -2173,12 +2905,23 @@ board cell, so the prefix re-runs from the successor verbatim
 along §4's board thread (`board_run_congr` over the `boardEq`
 the draw commit leaves); when the prefix's mirror LANDING is
 itself fork-headed the prefix IS the successor's exhibit (the
-zone legs all ride strictly AFTER a fork's arrival -- they were
-never load-bearing).  What remains is exactly the CURSOR BIRTH:
-the first zone leg is LOAD-BEARING, firing at the boardEq twin
-of a forkless mirror off the cycle the commit shifted -- the
-re-phasing schedule's raised stake, MOVED HERE as the named
-narrow residue. -/
+      zone legs all ride strictly AFTER a fork's arrival -- they were
+      never load-bearing).  What remains is exactly the CURSOR BIRTH,
+      and this pass SPLITS IT BY THE FIRST ZONE LEG'S KIND: the DRAW
+      leg is CLOSED VERBATIM (the drawn zone is a ZONE FUNCTION,
+      `p_draw_zone_det` -- the commit's own push and the play's inner
+      draw read the same zone triple, so the play's draw at the
+      prefix landing IS the mirror state the successor thread already
+      sits at, and the remaining tail replays verbatim, the same fork
+      one leg sooner); the WASTE leg is the named narrow sub-residue
+      `p_draw_zone_shift` below -- the head the commit's deal left
+      moved, the re-phasing schedule's sole honest stake, which
+      `Orig/EdgeLabel.lean`'s banked share explicitly does not cover
+      (the waste/tab share of the successor program is open there);
+      the `draw_landings_sameOrbit` class-weld stays the
+      assemble-grade record for the not-needed half -- at the draw
+      cut the landing equality is EXACT, one state, stronger than
+      class-mates, so the orbit machinery is spent nowhere new). -/
 private theorem p_draw_zone_rest {s s' F : State} {x : Card}
     {m₀ : Move} {τ : List Move}
     (hwf : s.WF)
@@ -2206,7 +2949,7 @@ private theorem p_draw_zone_rest {s s' F : State} {x : Card}
     obtain ⟨B, R, hsplit, hB, hR⟩ := p_board_prefix_split (m₀ :: τ)
     obtain ⟨u, hrunB, hrest⟩ :=
       run_append_split s B R F (by rw [← hsplit]; exact hrun)
-    obtain ⟨u', hrunB', -⟩ :=
+    obtain ⟨u', hrunB', hbU, hzU, hwU, hdU, hzU', hwU', hdU'⟩ :=
       board_run_congr B (fun mb hmem =>
         p_boardMoveB_true mb (List.all_eq_true.mp hB mb hmem))
         s s' hbss u hrunB
@@ -2226,13 +2969,47 @@ private theorem p_draw_zone_rest {s s' F : State} {x : Card}
         (forkStateSB_true_iff (p_run_wf s' B u' hrunB'
           (step_wf hwf hstep))).mp hfbU
       exact ⟨u', B, xU, hrunB', ⟨hxiff, hxnt⟩⟩
-    · -- THE CURSOR BIRTH (the residue, whole and sole): the first
-      -- zone leg `z` fired at the boardEq twin `u` of the mirror
-      -- `u'`, from the cycle the COMMIT shifted -- its guard reads
-      -- the two-zone cursor, and the repair-time schedule (route
-      -- step 2) must re-phase it from u'.  This is the multi-commit
-      -- danger the probe program names, carried here alone.
-      sorry
+    · -- THE CURSOR BIRTH, at the first zone leg's own kind.  The
+      -- play's first zone leg `z` fired at the boardEq twin `u` of
+      -- the mirror `u'`; the leg's record is in `p_draw_zone_det`'s
+      -- zone function and the named shift row below.
+      obtain ⟨w₀, hw₀, hR'⟩ := State.run_cons hrest
+      cases z with
+      | draw =>
+          -- THE DRAW LEG, CLOSED: the commit's own push and the
+          -- play's inner draw read the SAME zone triple (the board
+          -- prefix wrote no zone cell), so the play's draw at `u`
+          -- lands EXACTLY the mirror `u'` -- and the remaining tail
+          -- replays verbatim: the SAME fork `F`, the same witness,
+          -- the exhibit one leg shorter.
+          have hdw : u.stepDraw = some w₀ := hw₀
+          have hdet := p_draw_zone_det ⟨hzU, hwU, hdU⟩ hw₀ hstep
+          have heq : w₀ = u' := by
+            refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+            · rw [stepDraw_found hdw, hbU.2]
+            · rw [stepDraw_piles hdw, hbU.1]
+            · rw [hdet.1]; exact hzU'.symm
+            · rw [hdet.2.1]; exact hwU'.symm
+            · rw [hdet.2.2]; exact hdU'.symm
+          rw [heq] at hR'
+          exact ⟨F, B ++ R', x, p_run_join B s' u' R' F hrunB' hR', hwit⟩
+      | wasteToFound c' =>
+          -- THE WASTE LETTER: the named narrow sub-residue
+          obtain ⟨F', π'', x', hrun'', hwit'⟩ :=
+            p_draw_zone_shift hwf hstep ⟨hzU, hwU, hdU⟩ ⟨hzU', hwU', hdU'⟩
+              hfbU (Or.inl ⟨c', rfl⟩) hw₀ hR' hwit
+          exact ⟨F', B ++ π'', x', p_run_join B s' u' π'' F' hrunB' hrun'',
+            hwit'⟩
+      | wasteToTab c' b' =>
+          -- the seating waste letter: the same named shift
+          obtain ⟨F', π'', x', hrun'', hwit'⟩ :=
+            p_draw_zone_shift hwf hstep ⟨hzU, hwU, hdU⟩ ⟨hzU', hwU', hdU'⟩
+              hfbU (Or.inr ⟨c', b', rfl⟩) hw₀ hR' hwit
+          exact ⟨F', B ++ π'', x', p_run_join B s' u' π'' F' hrunB' hrun'',
+            hwit'⟩
+      | tabToFound c' => exact absurd hfz (by simp [p_boardMoveB])
+      | foundToTab c' b' => exact absurd hfz (by simp [p_boardMoveB])
+      | tabToTab c' b' => exact absurd hfz (by simp [p_boardMoveB])
 
 /-- **`fork_floor_draw`** — **THE DRAW-CURSOR KIND RESIDUE** [H,
 named residue, exactly one `sorry`]: the committed draw
@@ -2419,7 +3196,44 @@ HUNTING-FLOOR HONESTY.
 CLOSED ALSO (this pass): THE SUCCESSOR'S OWN FORK — when the
 successor is itself fork-headed, the empty play exhibits it
 (`p_successor_fork_repair`, the decidable census bridge).  The
-row's sole carried content is its FORKLESS-SUCCESSOR branch. -/
+row's sole carried content is its FORKLESS-SUCCESSOR branch.
+
+THIS PASS'S SPINE (the seal-feeding restructure): the forkless
+branch is now a SHADOW SPINE — the exhibit splits at its first
+SEALED-SUIT OR ZONE consult (`p_shadow_prefix_split`), the
+shadow-clean prefix RE-RUNS FROM s' VERBATIM (`p_shadow_run` over
+`p_shadow_step`'s letter mirrors: guard reads and writes are
+functions of the agreeing piles and the card's own off-sealed row;
+the base shape is `p_seal_zone_rows`, and the origin thread's waste
+stays resident for the census below), landing the read-world's
+mirror `W'`.  The spine prices the residue to exactly two tokens:
+
+* THE ALL-CLEAN ECONOMY, SCAN-FREE — CLOSED HERE.  When the shadow
+  landing carries no hot sealed-suit card (`p_sealHotScan` false),
+  the witness pair pins prove the pair names NO sealed-suit card
+  (a sealed-suit member's rung would read the origin-side sealed
+  row — one behind the shadow's — pinning it to the eaten waste
+  head itself, which the WF census bars from liveness), and the
+  whole fork certificate transfers to the shadow landing along the
+  off-rung license world (`p_fork_offRung_transfer` over
+  `p_license_offRung` and the vanilla mirror `p_canRaise_offRung`
+  built this pass): the exhibit C itself, played from s'.
+* THE ALL-CLEAN ECONOMY, SCAN-HOT — the interloper at the shadow
+  landing IS the scan's find (sealed suit, rung the sealed rung plus
+  one, S-live at W'): the climb's input datum in hand, the token
+  carries the expose-and-found re-scheduling alone.
+* THE FIRST-CONSULT EXHIBIT — the shadow thread stands congruent at
+  the consult's pre-state, and the token carries the repair-time
+  schedule ACROSS the consult leg (the raised-row shadow on a
+  sealed-suit raise/pull; the cursor read on a draw or waste letter
+  over the popped head) — route steps 2-3, the probe program's
+  honest danger.
+
+The EMPTY EXHIBIT rides the all-clean arm at the EMPTY prefix (its
+forced interloper — `p_seal_interloper_forced`, still the census of
+record for the origin economy — is the scan-hot case there), so the
+row's two tokens now carry exactly: the interloper climb, and the
+first-consult schedule. -/
 private theorem p_waste_found_rest {s s' F : State} {c : Card} {x : Card}
     {π : List Move}
     (hwf : s.WF)
@@ -2433,32 +3247,123 @@ private theorem p_waste_found_rest {s s' F : State} {c : Card} {x : Card}
       s'.run π' = some F' ∧ ForkWitness F' x' := by
   by_cases hfb : forkStateSB s' = true
   · exact p_successor_fork_repair (step_wf hwf hstep) hfb
-  · -- the forkless-successor repair: this row's sole carried content,
-    --  over the SEALED ARITHMETIC (§5.0c: `p_seal_zone_rows` the
-    --  commit's full write record -- piles/stock verbatim, waste
-    --  popped, every found row but the sealed suit verbatim -- and
-    --  `p_license_offRung`: the whole license world off the sealed
-    --  suit is VERBATIM across the commit).  THE EMPTY-EXHIBIT
-    --  ARM'S FIRST CENSUS IS LANDED THIS PASS
-    --  (`p_seal_interloper_forced`): when the fork sat AT the origin,
-    --  the successor can only be forkless by minting a hot
-    --  sealed-suit interloper (rung exactly the sealed rung plus
-    --  one) — the arm now carries that card as its schedule's input
-    --  datum in the open branch; the multi-leg expose-and-found
-    --  re-scheduling (route steps 2-4) is the surviving content, at
-    --  the probe program's HUNTING-FLOOR HONESTY.  The HEADED
-    --  exhibits (board/draw heads) carry the raised-row shadow and
-    --  the cursor read as before.
-    rcases hprof with rfl | ⟨m₀, τ, hheadEq, hneF, hneT⟩
-    · -- the empty exhibit: the fork sat at the origin; the forced
-      -- interloper is in hand as the open schedule's input datum
-      injection hrun with hFs
-      subst hFs
-      obtain ⟨e₀, he₀suit, he₀rung, hS₀⟩ :=
-        p_seal_interloper_forced hwf hstep hwit hfb
-      sorry
-    · -- the headed exhibits: the board/draw heads carry the
-      -- raised-row shadow and the cursor read as before
+  · -- THE SHADOW SPINE (this pass): the forkless-successor repair.
+    --  The exhibit splits at its first SEALED-SUIT OR ZONE consult
+    --  (`p_shadow_prefix_split`); the SHADOW-CLEAN prefix re-runs
+    --  from s' verbatim along the off-rung mirror (`p_shadow_run`:
+    --  the seal's write record `p_seal_zone_rows` is the base shape,
+    --  `p_shadow_step`'s letter mirrors are the legs), landing the
+    --  read-world's mirror.  What the spine leaves is exactly the
+    --  honest danger: the FIRST-CONSULT exhibit below, and — on the
+    --  all-clean economy — the one sealed-suit cell the scan can
+    --  still find hot at the shadow landing (the climb's input
+    --  datum).  THE EMPTY EXHIBIT rides the all-clean arm at the
+    --  EMPTY prefix (its interloper IS the scan's hot find).
+    obtain ⟨C, D, hsplit, hclean, hD⟩ := p_shadow_prefix_split c.suit π
+    obtain ⟨W, hrunC, hrest⟩ :=
+      run_append_split s C D F (by rw [← hsplit]; exact hrun)
+    obtain ⟨hpiles, -, xs', -, hwaste, hrows, hseal⟩ :=
+      p_seal_zone_rows hstep
+    obtain ⟨hgC, wC, wsC, -, -⟩ := step_wasteToFound_inv hstep
+    rw [Bool.and_eq_true] at hgC
+    have hcnext : s.nextUp c = true := hgC.2
+    have hcw : c ∈ s.waste := by
+      rw [hwaste]
+      exact List.mem_cons_self ..
+    obtain ⟨W', hrunC', hsh⟩ := p_shadow_run C hclean hrunC
+      ⟨hpiles.symm, fun σ' hσ' => (hrows σ' hσ').symm, rfl, rfl, rfl⟩
+    obtain ⟨hPp, hR, hPs, hQs, hPw⟩ := hsh
+    have hwfW : W.WF := p_run_wf s C W hrunC hwf
+    have hwfW' : W'.WF :=
+      p_run_wf s' C W' hrunC' (step_wf hwf hstep)
+    rcases hD with rfl | ⟨d, D', rfl, hdirty⟩
+    · -- THE ALL-CLEAN EXHIBIT: the shadow landing W' mirrors F
+      --  itself (W = F here); the scan decides the one question the
+      --  spine leaves — is any sealed-suit card still hot at the
+      --  shadow landing?
+      injection hrest with hWq
+      rw [← hWq] at hwit
+      by_cases hscan : p_sealHotScan W' c = true
+      · -- THE INTERLOPER AT THE SHADOW LANDING (the scan's hot
+        --  find: sealed suit, rung exactly the sealed rung plus
+        --  one, S-live at W'): the datum the expose-and-found
+        --  climb consumes is in hand; the multi-leg re-scheduling
+        --  that defuses it (found the interloper when it tops, dig
+        --  when it is covered, keeping the origin pair mobile) is
+        --  the surviving content, at the probe program's
+        --  HUNTING-FLOOR HONESTY.
+        sorry
+      · -- NO SEALED-SUIT HEAT at the shadow landing: the witness's
+        --  pair names no sealed-suit card (a sealed-suit pair
+        --  member's rung would read the origin-side sealed row,
+        --  pinning it to the sealed card itself — but the sealed
+        --  head is WASTE-resident on this thread, and the WF census
+        --  bars a card both live and wasted), and the whole
+        --  certificate transfers along the off-rung license world:
+        --  the exhibit is C itself, played from s'.  CLOSED.
+        have hcrl : c.rank.toIdx = (s.found c.suit).length :=
+          of_decide_eq_true hcnext
+        have hdead : ∀ e, e.suit = c.suit → ¬ CanRaiseS W' e := by
+          intro e he hS
+          obtain ⟨hnext, -, -, -, -, -, -⟩ := (canRaiseS_iff hwfW').mp hS
+          have hr : e.rank.toIdx = (W'.found e.suit).length :=
+            of_decide_eq_true hnext
+          rw [he] at hr
+          rw [show W'.found c.suit = s'.found c.suit from hQs, hseal,
+            List.length_append, List.length_singleton] at hr
+          exact absurd ((p_sealHotScan_iff hwfW').mpr
+            ⟨e, he, by omega, hS⟩) hscan
+        obtain ⟨hiff, hnt⟩ := hwit
+        have hxpin : x.suit ≠ c.suit ∧ x.twin.suit ≠ c.suit := by
+          constructor
+          · intro hcon
+            obtain ⟨hnext, a, bs, run, hshape, -, -⟩ :=
+              (canRaiseS_iff hwfW).mp ((hiff x).mp (Or.inl rfl))
+            have hmem : x ∈ (W.piles a).faceUp := by
+              rw [hshape]
+              exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
+            have hr : x.rank.toIdx = (W.found x.suit).length :=
+              of_decide_eq_true hnext
+            rw [hcon, hPs] at hr
+            have hxc : x = c := by
+              have hc₂ : x.rank = c.rank :=
+                Rank.toIdx_inj (hr.trans hcrl.symm)
+              show (⟨x.suit, x.rank⟩ : Card) = (⟨c.suit, c.rank⟩ : Card)
+              rw [hcon, hc₂]
+            have hxw : x ∉ W.waste := (mem_faceUp_only hwfW hmem).2.2.2.1
+            rw [hxc] at hxw
+            exact hxw (by rw [hPw]; exact hcw)
+          · intro hcon
+            obtain ⟨hnext, a, bs, run, hshape, -, -⟩ :=
+              (canRaiseS_iff hwfW).mp ((hiff x.twin).mp (Or.inr rfl))
+            have hmem : x.twin ∈ (W.piles a).faceUp := by
+              rw [hshape]
+              exact List.mem_append.2 (Or.inr (List.mem_cons_self ..))
+            have hr : x.twin.rank.toIdx = (W.found x.twin.suit).length :=
+              of_decide_eq_true hnext
+            rw [hcon, hPs] at hr
+            have hxtc : x.twin = c := by
+              have hc₂ : x.twin.rank = c.rank :=
+                Rank.toIdx_inj (hr.trans hcrl.symm)
+              show (⟨x.twin.suit, x.twin.rank⟩ : Card) =
+                (⟨c.suit, c.rank⟩ : Card)
+              rw [hcon, hc₂]
+            have hxw : x.twin ∉ W.waste :=
+              (mem_faceUp_only hwfW hmem).2.2.2.1
+            rw [hxtc] at hxw
+            exact hxw (by rw [hPw]; exact hcw)
+        exact ⟨W', C, x, hrunC',
+          p_fork_offRung_transfer hwfW hwfW' hPp hR hxpin.1 hxpin.2 hdead
+            ⟨hiff, hnt⟩⟩
+    · -- THE FIRST-CONSULT EXHIBIT: the shadow thread stands at the
+      --  mirror of the consult leg's pre-state ((W, W') congruent);
+      --  the leg itself — a sealed-suit raise/pull reading the
+      --  one-ahead rung, or a draw/waste letter reading the popped
+      --  head the commit's seal removed from the waste — does not
+      --  re-fire at the shadow side, and the repair-time schedule
+      --  that re-phases across it is the surviving content: the
+      --  raised-row shadow and the cursor read, the probe
+      --  program's honest danger, the route's steps 2-3 above.
       sorry
 
 /-- **`fork_floor_waste_found`** — **THE WASTE-JUMP KIND RESIDUE**
@@ -2576,6 +3481,128 @@ private theorem fork_floor_waste_found {s s' : State} {c : Card}
               fun c' hcon => absurd hcon (by simp),
               fun c' b' hcon => absurd hcon (by simp)⟩)
 
+/-- **THE EMPTY-ANCHOR KING'S ONE-LEG ROTATION** [E–M, PROVED] —
+the seating kind's rotation datum for the empty exhibit: when the
+seated head is a king whose own rung was ALREADY hot at the origin,
+the ONE-LEG raise `tabToFound c` re-fires at the seating successor
+and lands EXACTLY the state the DIRECT seal `wasteToFound c`
+produces at the origin — the seating's popped waste tail and the
+foundation row carry verbatim, and the raised pile's record empties
+back to the origin's own fully-empty seat (the pre-seat pile was
+empty in both decks, so the raise's chop restores the empty
+record).  The fb1-heartbeat shape at theorem grade; consumed by
+`p_seat_inl_rotation_fork` below. -/
+private theorem p_seat_inl_seal_rotate {s s' : State} {c : Card} {k : Anchor}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.wasteToTab c (Sum.inl k)) = some s')
+    (hhot : s.nextUp c = true) :
+    ∃ r, State.step s' (Move.tabToFound c) = some r ∧
+      State.step s (Move.wasteToFound c) = some r := by
+  obtain ⟨hg, w, ws, hwaste, hsq⟩ := step_wasteToTab_inv hstep
+  rw [Bool.and_eq_true] at hg
+  have hcw : w = c := State.wasteIs_head_eq hwaste hg.1
+  rw [hcw] at hwaste
+  obtain ⟨hemp, -, hs'f, -, hpilek⟩ := p_seat_inl_records hstep
+  obtain ⟨-, hnextA, -, -, -⟩ := p_seat_reads_inl hstep
+  rcases hp : s.piles k with ⟨hdk, hfk⟩
+  rw [hp] at hemp
+  obtain ⟨hhid, hfu⟩ := (Pile.isEmpty_eq _).mp hemp
+  have hhdk : hdk = [] := hhid
+  have hhfk : hfk = [] := hfu
+  subst hhdk
+  subst hhfk
+  have hwfs' : s'.WF := step_wf hwf hstep
+  have hnext' : s'.nextUp c = true := by rw [hnextA c]; exact hhot
+  have htop' : s'.topOf k = some c := by
+    show (s'.piles k).top = some c
+    rw [hpilek]
+    rfl
+  have hpo' : s'.pileOfTop c = some k := (pileOfTop_eq_some_iff hwfs').2 htop'
+  have hsplice := step_tabToFound_splice hnext' hpo'
+  have hrest : Pile.afterRunRemoved (s'.piles k)
+      (chop (s'.piles k).faceUp) = s.piles k := by
+    rw [hpilek, hp]
+    rfl
+  have hgt : (s.wasteIs c && s.nextUp c) = true := by
+    rw [Bool.and_eq_true]
+    exact ⟨hg.1, hhot⟩
+  have hseal : State.step s (Move.wasteToFound c)
+      = some { s.setFound c.suit (s.found c.suit ++ [c]) with waste := ws } := by
+    show (if s.wasteIs c && s.nextUp c then
+        match s.waste with
+        | _ :: wsl => some { s.setFound c.suit (s.found c.suit ++ [c]) with waste := wsl }
+        | [] => none
+      else none) = some _
+    rw [ite_eq_left hgt, hwaste]
+  refine ⟨{ s.setFound c.suit (s.found c.suit ++ [c]) with waste := ws }, ?_, ?_⟩
+  · rw [hsplice]
+    refine congrArg some (State.ext (funext fun σ => ?_)
+      (funext fun a => ?_) ?_ ?_ ?_)
+    · show (if σ = c.suit then s'.found c.suit ++ [c] else s'.found σ)
+        = (if σ = c.suit then s.found c.suit ++ [c] else s.found σ)
+      by_cases hσ : σ = c.suit
+      · rw [ite_eq_left hσ, ite_eq_left hσ, hs'f]
+      · rw [ite_eq_right hσ, ite_eq_right hσ]
+        exact congrFun hs'f σ
+    · show (if a = k then
+          Pile.afterRunRemoved (s'.piles k) (chop (s'.piles k).faceUp)
+        else s'.piles a) = s.piles a
+      by_cases hak : a = k
+      · rw [ite_eq_left hak, hak, hrest]
+      · rw [ite_eq_right hak]
+        show s'.piles a = s.piles a
+        rw [hsq]
+        show (s.putCard c (Sum.inl k)).piles a = _
+        rw [putCard_eq_inl]
+        exact setPile_piles_ne hak
+    · show s'.stock = s.stock
+      rw [hsq]
+      show (s.putCard c (Sum.inl k)).stock = s.stock
+      exact putCard_stock s c (Sum.inl k)
+    · show s'.waste = ws
+      rw [hsq]
+    · show s'.drawStep = s.drawStep
+      rw [hsq]
+      show (s.putCard c (Sum.inl k)).drawStep = s.drawStep
+      exact putCard_drawStep s c (Sum.inl k)
+  · exact hseal
+
+/-- **THE EMPTY-ANCHOR ROTATION CLOSURE** [M, PROVED AS AN ASSEMBLY
+over the sibling residue — its `sorryAx` flows only from the
+consumed `p_waste_found_rest`]: at the empty exhibit with the seated
+head a king whose own rung was already hot at the origin, the
+seating economy ROUTES INTO the waste-founding kind's own residue:
+the one-leg rotation lands the direct seal's successor verbatim
+(`p_seat_inl_seal_rotate`, the seal's irreversibility the banked
+unconditional `irreversibleAt_wasteToFound` of `Orig/Classify.lean`),
+the origin fork rides as the seal's EMPTY exhibit, and any fork the
+seal schedule re-issues from the seal successor lifts back to the
+seating successor along the rotation's own first leg.  The
+COLD-king corner (the born top keeps the twin's maneuver disjunct
+alive at the successor while the origin's waste residency forbids
+it — the twin-cover face of the covered-host search freedom) and the
+CARD-HOST arm stay at the seating kind's own token; the headed
+exhibits carry the covered-top shadow and the cursor read as
+before. -/
+private theorem p_seat_inl_rotation_fork {s s' : State} {c : Card} {k : Anchor}
+    {x : Card}
+    (hwf : s.WF)
+    (hstep : State.step s (Move.wasteToTab c (Sum.inl k)) = some s')
+    (hhot : s.nextUp c = true)
+    (hwit : ForkWitness s x) :
+    ∃ (F' : State) (π' : List Move) (x' : Card),
+      s'.run π' = some F' ∧ ForkWitness F' x' := by
+  obtain ⟨r, hraise, hseal⟩ := p_seat_inl_seal_rotate hwf hstep hhot
+  obtain ⟨F', π', x', hrun', hwit'⟩ :=
+    p_waste_found_rest hwf hseal (irreversibleAt_wasteToFound s c)
+      (rfl : s.run ([] : List Move) = some s) hwit (Or.inl rfl)
+  refine ⟨F', Move.tabToFound c :: π', x', ?_, hwit'⟩
+  show (match State.step s' (Move.tabToFound c) with
+      | some st' => st'.run π'
+      | none => none) = some F'
+  rw [hraise]
+  exact hrun'
+
 /-- **THE WASTE-SEATING ARM'S NAMED REMAINDER** [M–H, named
 sub-residue, exactly one `sorry` — the waste-seating kind's
 carried content once the same-head and the mirror are
@@ -2647,7 +3674,18 @@ twin's (`p_seat_inl_hot_forced`, proved zero-`sorryAx`).  The
 CARD-HOST economy is the disjunct's remaining arm: the covered top,
 the twin-cover corners, and the search exceptions of
 `p_seat_reads_inr` are the row's own open geometry, carried at the
-token below with the probe program's fb2E junk-refusal pricing. -/
+token below with the probe program's fb2E junk-refusal pricing.
+
+THIS PASS narrows the empty-exhibit token to exactly those honest
+corners: the EMPTY-ANCHOR HOT-KING sub-case is now CLOSED through
+the ONE-LEG ROTATION (`p_seat_inl_seal_rotate` +
+`p_seat_inl_rotation_fork`, landed between this row and its sibling
+kind): the seated king's own-rung hot read is the rotation's
+premise, and the whole sub-case dispatches to the waste-founding
+kind's own residue over the origin fork.  The COLD-king corner
+(where the born top keeps the twin's maneuver disjunct alive — the
+inl-side face of the covered-host search freedom) and the
+CARD-HOST arm stay at the token. -/
 private theorem p_waste_seat_rest {s s' F : State} {c : Card} {b : Base}
     {x : Card} {π : List Move}
     (hwf : s.WF)
@@ -2682,12 +3720,36 @@ private theorem p_waste_seat_rest {s s' F : State} {c : Card} {b : Base}
     --  surviving content.  The HEADED exhibits (board/draw heads)
     --  carry the covered-top shadow and the cursor read as before.
     rcases hprof with rfl | ⟨m₀, τ, hheadEq, hneF, hneT⟩
-    · -- the empty exhibit: the fork sat at the origin; the forced
-      -- interference disjunction is in hand at the open token
+    · -- the empty exhibit: the fork sat at the origin.  THIS PASS
+      -- closes the EMPTY-ANCHOR HOT-KING sub-case through the
+      -- ONE-LEG ROTATION into the waste-founding kind's own residue
+      -- (`p_seat_inl_rotation_fork`: the raise `tabToFound c`
+      -- re-fires at the seating successor and lands the DIRECT
+      -- seal's successor verbatim, the origin fork riding as the
+      -- seal's empty exhibit).  Surviving corners at the token:
+      -- the COLD seated king (the born top keeps the twin's
+      -- maneuver disjunct alive at the successor — the twin-cover
+      -- face of the covered-host search freedom) and the CARD-HOST
+      -- arm's covered-top geometry, with the §5.0c forced
+      -- disjunction the cold-king corner's input datum.
       injection hrun with hFs
       subst hFs
-      have hdisj := p_seat_interference_forced hwf hstep hwit hfb
-      sorry
+      have hcase : ((∃ k₀, b = Sum.inl k₀ ∧ s.nextUp c = false) ∨
+          ∃ z, b = Sum.inr z) ∨
+          ∃ k₀, b = Sum.inl k₀ ∧ s.nextUp c = true := by
+        cases b with
+        | inl k₀ =>
+            by_cases hhot : s.nextUp c = true
+            · exact Or.inr ⟨k₀, rfl, hhot⟩
+            · refine Or.inl (Or.inl ⟨k₀, rfl, ?_⟩)
+              cases hb : s.nextUp c with
+              | true => exact absurd hb hhot
+              | false => rfl
+        | inr z => exact Or.inl (Or.inr ⟨z, rfl⟩)
+      rcases hcase with hleft | ⟨k₀, hbk, hhot⟩
+      · sorry
+      · subst hbk
+        exact p_seat_inl_rotation_fork hwf hstep hhot hwit
     · -- the headed exhibits: the board/draw heads carry the
       -- covered-top shadow and the cursor read as before
       sorry
@@ -3371,7 +4433,89 @@ seat was a CARD-HOST arm — the covered-host economy whose corners
 priced at the fb2E probe verdicts.  The seating remainder's
 empty-exhibit arm carries the disjunction as its input datum at the
 token; the row's `sorryAx` profile is unchanged; the sorry count
-stays exactly the SIX carrying rows. -/
+stays exactly the SIX carrying rows.
+
+THE DRAW-CUT PASS restructures the draw kind's named remainder at
+the first zone leg's KIND — **`p_draw_zone_det`** + **`p_run_join`**
+[E, PROVED zero-`sorryAx`, zero-`Classical.choice`: the drawn zone is
+a ZONE FUNCTION (two states agreeing on stock/waste/drawStep whose
+draws both fire land agreeing zones; the per-file copy of
+HostCensus's private `draw_zone_det` over Phase's public
+`plain_draw_shape` / `base_draw_shape`, with the run-splice copy
+`p_run_join` of Macro's public `run_split`)], and with it the CURSOR
+BIRTH's DRAW leg closes verbatim inside `p_draw_zone_rest`: the
+board prefix wrote no zone cell, so the play's inner draw reads the
+commit's own zone triple and lands EXACTLY the mirror state the
+successor thread already sits at — the remaining tail replays
+verbatim, the same fork, one leg sooner — so `p_draw_zone_rest` is
+now a sorry-free THREE-ARM dispatch (successor-fork / mirror-fork /
+first zone leg by kind), and the cursor birth's WASTE leg is
+isolated as its own named narrow sub-residue **`p_draw_zone_shift`**
+[H, one `sorryAx`, complete route] — the waste-head shift, the
+honest danger the `Orig/EdgeLabel.lean` banked successor share
+explicitly does not cover (the waste/tab share is open there).  The
+carrying row set is again exactly the SIX (`p_seat_climb_rest`,
+`p_draw_zone_shift`, `p_waste_found_rest`, `p_waste_seat_rest`,
+`p_raise_rest`, `p_reveal_rest`); the draw child's and the head's
+axiom profiles are unchanged by the restructure.
+
+THE SHADOW-SPINE PASS restructures the waste-founding kind's named
+remainder over the seal's head-replay spine — the leg class
+`p_shadowLeg` with its prefix split `p_shadow_prefix_split`, the
+per-letter step mirrors (`p_step_tabToTab_succ`, `p_setPile_piles_aux`,
+`p_putRun_piles_congr`, `p_shadow_step`) and their run composition
+`p_shadow_run`, the vanilla license mirror `p_canRaise_offRung`, and
+the off-rung certificate transfer `p_fork_offRung_transfer` — every
+one zero-`sorryAx`, zero-`Classical.choice`, audited below.  The
+forkless branch of `p_waste_found_rest` now prices its residue to
+two tokens: the all-clean economy's SCAN-FREE case is CLOSED (the
+heat scan `p_sealHotScan` reads false, the witness pair's rung pins
+prove the pair names no sealed-suit card — a sealed-suit member's
+rung would pin it to the eaten waste head itself, which the WF
+census bars from liveness — and the whole certificate transfers
+along the off-rung license world, the exhibit the clean prefix
+itself played from the successor), while the scan-hot case carries
+the interloper as the climb's input datum, and the first-consult
+exhibit carries the repair-time schedule across the consult leg
+(the raised-row shadow, the cursor read over the popped head).  The
+seat-delay climb `p_seat_climb_rest` stays parked as the crown's
+named sub-row over the proved dichotomy `p_committed_raise_shape`
+(the repair-time bound is its sole content, the probe program's
+honest danger); the three outer arms (`p_waste_seat_rest`,
+`p_raise_rest`, `p_reveal_rest`) collapse to their own honest stakes
+as declared — the seating kind's covered-host geometry, the
+raised-row-plus-emptied-pile shadow, and the run-formed reveal —
+each one `sorryAx`, the main dispatch untouched and pure.  The
+carrying row set stays exactly the SIX; the head's axiom profile
+is unchanged.
+
+THE STAGING PASS lands the seat-delay row's route steps 1-2 as
+theorem-grade kit (the §0-kernel block above the climb):
+**`p_card_of_suit_toIdx`** (the frontier-cell uniqueness: same
+suit and same rank index name one card), **`p_king_inl_refusal`**
+(a non-king's empty-seat consult refuses at every state),
+**`p_climb_accept_shape`** (every acceptance is the empty-seat
+vacate or the pinned card-host cell), **`p_seat_refused_census`**
+(no consult accepts at the guard-refused successor, no empty seat
+at a king, no fitting host topping anywhere), and
+**`p_climb_reveal_surface`** (the reveal arm's surfaced head
+topping the raised pile as a bare singleton) — every one zero-
+`sorryAx`, zero-`Classical.choice`, audited below — AND the
+seating kind's empty-exhibit ROTATION: **`p_seat_inl_seal_rotate`**
+(the one-leg raise at the hot seated king lands the direct seal's
+successor EXACTLY; PROVED, zero-`sorryAx`) with its assembly
+**`p_seat_inl_rotation_fork`** (the empty-anchor hot-king
+sub-case routes into the waste-founding kind's own residue; a
+sorry-free assembly whose `sorryAx` flows only from the consumed
+sibling `p_waste_found_rest`).  The `sorry` TOKENS stay exactly
+the EIGHT (the direct-sorry keywords: one each in
+`p_seat_climb_rest`, `p_draw_zone_shift`, `p_raise_rest`,
+`p_reveal_rest`, two each in `p_waste_found_rest` and
+`p_waste_seat_rest`) and the declaration-level warnings exactly
+the SIX: `p_waste_seat_rest`'s empty-exhibit arm is NARROWED (its
+hot-king sub-case closed via the rotation) but keeps its token for
+the COLD-king and CARD-HOST corners; the head's axiom profile is
+unchanged. -/
 
 #print axioms hidden_never_grows
 #print axioms two_zone_exits_playable
@@ -3395,6 +4539,14 @@ stays exactly the SIX carrying rows. -/
 #print axioms p_census_vec
 #print axioms p_census_none
 #print axioms p_license_offRung
+#print axioms p_shadow_prefix_split
+#print axioms p_setPile_piles_aux
+#print axioms p_step_tabToTab_succ
+#print axioms p_putRun_piles_congr
+#print axioms p_shadow_step
+#print axioms p_shadow_run
+#print axioms p_canRaise_offRung
+#print axioms p_fork_offRung_transfer
 #print axioms p_seal_zone_rows
 #print axioms p_seat_inl_records
 #print axioms p_seat_inr_records
@@ -3405,12 +4557,20 @@ stays exactly the SIX carrying rows. -/
 #print axioms p_mem_afterRunRemoved
 #print axioms p_reveal_rung
 #print axioms p_board_prefix_split
+#print axioms p_run_join
+#print axioms p_draw_zone_det
 #print axioms p_sealHotScan_iff
 #print axioms p_seal_interloper_forced
 #print axioms p_seat_inl_hot_forced
 #print axioms p_seat_interference_forced
+#print axioms p_card_of_suit_toIdx
+#print axioms p_king_inl_refusal
+#print axioms p_climb_accept_shape
+#print axioms p_seat_refused_census
+#print axioms p_climb_reveal_surface
 #print axioms p_seat_climb_rest
 #print axioms p_founded_seat_schedule
+#print axioms p_draw_zone_shift
 #print axioms p_draw_zone_rest
 #print axioms p_waste_found_rest
 #print axioms p_waste_seat_rest
@@ -3418,6 +4578,8 @@ stays exactly the SIX carrying rows. -/
 #print axioms p_reveal_rest
 #print axioms fork_floor_draw
 #print axioms fork_floor_waste_found
+#print axioms p_seat_inl_seal_rotate
+#print axioms p_seat_inl_rotation_fork
 #print axioms fork_floor_waste_seat
 #print axioms fork_floor_raise
 #print axioms fork_floor_reveal
