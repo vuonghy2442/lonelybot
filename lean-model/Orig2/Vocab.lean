@@ -328,12 +328,17 @@ def rungAt (w : State) (s : Suit) : Nat := (w.found s).length
 def twinSuit (s₁ s₂ : Suit) : Prop := s₁ = s₂ ∨ s₁ = s₂.twin
 
 /-!
-## §4. THE JOURNEY LETTERS  (live, KEPT 2026-10-17)
+## §4. THE JOURNEY LETTERS  (live, KEPT 2026-10-17; the state-pair
+unification executed the same day — the closures become instances
+of the generic `Steps Q`, and the CargoPath kind-filter wart
+dissolves into a clean direct letter)
 -/
 
 /-- **FlatStep** — the flat letters: a reversible cargo slide or a
-reversible draw loop (the two non-writing letters — phase rotations).
-PORTED VERBATIM from `Orig/MacroInternal.lean:458`. -/
+reversible draw loop (the two non-writing letters — phase
+rotations).  The LETTER ALPHABET; the closures over it are
+`Steps Q` instances below.  PORTED VERBATIM from
+`Orig/MacroInternal.lean:458`. -/
 inductive FlatStep : State → State → Prop
   | cargo {w u : State} (c : Card) (b : Base)
       (hstep : w.step (.tabToTab c b) = some u)
@@ -342,28 +347,48 @@ inductive FlatStep : State → State → Prop
       (hstep : w.step .draw = some u)
       (hrev : reversibleAtW w .draw) : FlatStep w u
 
+/-- **Steps Q** — THE GENERIC STATE-PAIR CLOSURE (the state-pair
+half of the walk unification, owner restate 2026-10-17): the
+refl-cons closure over any two-place letter predicate.  The
+list-carrying grades live at `Walk P` (§3); the state-pair grades
+below are instances of this one closure. -/
+inductive Steps (Q : State → State → Prop) : State → State → Prop
+  | refl (w : State) : Steps Q w w
+  | cons {w z u : State} (h : Q w z) (t : Steps Q z u) : Steps Q w u
+
 /-- **FlatPath** — a block of flat letters; the interior grammar of
-brackets and phases.  PORTED VERBATIM from
-`Orig/MacroInternal.lean:510`. -/
-inductive FlatPath : State → State → Prop
-  | refl (w : State) : FlatPath w w
-  | cons {w z u : State} (h : FlatStep w z) (t : FlatPath z u) : FlatPath w u
+brackets and phases.  The Steps instance at the flat alphabet.
+RESTATE (owner unification): formerly the verbatim port of
+`Orig/MacroInternal.lean:510`, now `Steps FlatStep` — identical
+statement; the constructor head is `Steps.refl`/`Steps.cons`. -/
+abbrev FlatPath := Steps FlatStep
+
+/-- **CargoLeg w z** — the cargo letter as a DIRECT two-place
+predicate: a fired reversible `tabToTab` leg.  RESTATE (the
+kind-filter wart fix riding the unification): the old `CargoPath`
+cons carried an `h : FlatStep w z` plus a kind-witness existential
+rebuilding the cargo constructor's data — redundant pair; this
+letter states the shape directly.  (The trivial bridge — a
+`FlatStep` together with its cargo-kind witness IS a `CargoLeg` —
+is a two-line claim whenever a consumer wants it.) -/
+def CargoLeg (w z : State) : Prop :=
+  ∃ c b, w.step (.tabToTab c b) = some z ∧
+    reversibleAtW w (.tabToTab c b)
 
 /-- **CargoPath** — the flat world's cargo letter ALONE (no draws:
 phase stays pinned); free twin swaps realize as one cargo move.
-PORTED VERBATIM from `Orig/MacroInternal.lean:1348`. -/
-inductive CargoPath : State → State → Prop
-  | refl (w : State) : CargoPath w w
-  | cons {w z w' : State} (h : FlatStep w z)
-      (hkind : ∃ c b hstep hrev, h = FlatStep.cargo c b hstep hrev)
-      (t : CargoPath z w') : CargoPath w w'
+The Steps instance at the cargo letter.  RESTATE (owner
+unification): formerly the verbatim port of
+`Orig/MacroInternal.lean:1348` with its kind-witness cons, now
+`Steps CargoLeg` — identical span content, the direct letter. -/
+abbrev CargoPath := Steps CargoLeg
 
-/-- **Journey** — a legal journey: any play of legal moves.  PORTED
-VERBATIM from `Orig/MacroInternal.lean:1304`. -/
-inductive Journey : State → State → Prop
-  | refl (w : State) : Journey w w
-  | cons {w u u' : State} (h : ∃ m, w.step m = some u) (t : Journey u u') :
-      Journey w u'
+/-- **Journey** — a legal journey: any play of legal moves.  The
+Steps instance at the anonymous some-fired-move letter.  RESTATE
+(owner unification): formerly the verbatim port of
+`Orig/MacroInternal.lean:1304`, now the `Steps` instance — identical
+statement (`refl` + the ∃-letter cons). -/
+abbrev Journey := Steps (fun w u => ∃ m, w.step m = some u)
 
 /-!
 ## §4.5. THE TWIN INVOLUTION ON CARDS  (live, KEPT 2026-10-17)
