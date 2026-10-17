@@ -18,7 +18,7 @@ imported here — so every row below keeps its frozen cite.
 
 CONTENTS: the witness-grade bridge (the vacuous denial and the
 measure denial), the run engine (`run_rec` and its instances
-`mono_run`/`mono_run_lex`), the constructive list kit, the
+`mono_run`), the constructive list kit, the
 placement field-keepers and guard inversions, the step inversions,
 the measure tables (`cycleCount`, `hiddenTotal`) with their strict
 rows, the phase line, ONE draw footprint (the single home of the
@@ -78,7 +78,7 @@ inversions, the cycle-count table, the hidden-total table.
 
 /-- **The play-lift induction principle** (this card's own row): every
 invariant that walks a play rides this one recursion; the specific
-lifts (`mono_run`, `mono_run_lex`, `run_cycleCount_le`,
+lifts (`mono_run`, `run_cycleCount_le`,
 `bare_king_run`) are its instances.  The motive `P` is an explicit
 argument — each instance names its own invariant. -/
 theorem run_rec (P : State → State → Prop)
@@ -1365,59 +1365,27 @@ theorem draw_notW_of_pristine {st : State}
   obtain ⟨hw₁, hsd₁⟩ := draw_pristine_s1 hd hs hw hsuc
   exact (run_wasteNe st hd hnoWaste hsd₁ hw₁ hrun).1 hw
 
-/-! ### §1j. The lex-descent kit
+/-! ### §1j. The phase-offset denial, SCALARIZED
 
-`Orig.Phase`'s measure packaging for the offset draw: the
-descending lexicographic pair `(cycleCount, D)` with `D` the
-draw-distance to the phase line.  Ends at the carrier grade:
-`draw_notW_of_offset`.
+`Orig.Phase`'s offset argument carried the pair
+`(cycleCount, D)` through a lexicographic order theory
+(`lexDesc`, `lexDescStrict`, and the five rows of their engine).
+The same argument reads as ONE scalar, `phaseMeasure`: the cycle
+count quadratic in front, the draw distance in the units column.
+A drop in the cycle count covers any rise in the distance, since
+`D` never exceeds the cycle count and the quadratic gap
+`(c - c') * (c + c' + 1)` dwarfs `D`'s whole range; an equal cycle
+count compares the distance directly.  One measure, the standard
+`mono_run` engine, the usual denial shape via `not_W_of_desc`.
+The pair machinery retires with this card (its frozen cites:
+`Orig/Phase.lean:904/:909/:912/:916/:928/:939/:976/:1024/:1038`).
+
+The load-bearing facts, each in plain words: `D` is the
+draw-distance potential against the phase line; draws never raise
+it (the two trap rows plus the one-whole-deal shift); the
+committed offset draw drops it by exactly one whole deal
+(`Nat.add_div_right` is that statement).
 -/
-
-/-- The working order for the measure packaging: pairs of naturals
-in the *descending* lexicographic order.  PORTED verbatim from
-`Orig/Phase.lean:904`. -/
-def lexDesc (p p' : Nat × Nat) : Prop :=
-  p'.1 ≤ p.1 ∧ (p'.1 = p.1 → p'.2 ≤ p.2)
-
-/-- Strict descent in the descending lex order.  PORTED verbatim
-from `Orig/Phase.lean:909`. -/
-def lexDescStrict (p p' : Nat × Nat) : Prop :=
-  p'.1 < p.1 ∨ (p'.1 = p.1 ∧ p'.2 < p.2)
-
-/-- Reflexivity of the descending lex order.  PORTED verbatim from
-`Orig/Phase.lean:912`. -/
-theorem lexDesc_refl (p : Nat × Nat) : lexDesc p p :=
-  ⟨Nat.le_refl p.1, fun _ => Nat.le_refl p.2⟩
-
-/-- Transitivity of the descending lex order.  PORTED verbatim from
-`Orig/Phase.lean:916`. -/
-theorem lexDesc_trans {p q r : Nat × Nat} (h1 : lexDesc p q) (h2 : lexDesc q r) :
-    lexDesc p r := by
-  obtain ⟨h1a, h1b⟩ := h1
-  obtain ⟨h2a, h2b⟩ := h2
-  refine ⟨Nat.le_trans h2a h1a, fun hE => ?_⟩
-  have hq : q.1 = p.1 := by omega
-  have hr : r.1 = q.1 := by omega
-  exact Nat.le_trans (h2b hr) (h1b hq)
-
-/-- A strict descent cannot be retraced by a weak one.  PORTED
-verbatim from `Orig/Phase.lean:928`. -/
-theorem lexDescStrict_contra {p q : Nat × Nat}
-    (h1 : lexDescStrict p q) (h2 : lexDesc q p) : False := by
-  obtain ⟨h2a, h2b⟩ := h2
-  rcases h1 with hlt | ⟨heq, hlt⟩
-  · omega
-  · have hp2 := h2b heq.symm
-    omega
-
-/-- **The lex ascent.**  PORTED from `Orig/Phase.lean:939`
-(`mono_run_lex`; rides the run engine). -/
-theorem mono_run_lex (Q : State → Nat × Nat)
-    (h : ∀ {s m s'}, State.step s m = some s' → lexDesc (Q s) (Q s')) :
-    ∀ {s play w}, s.run play = some w → lexDesc (Q s) (Q w) :=
-  run_rec (fun x y => lexDesc (Q x) (Q y))
-    (fun hstep _ ih => lexDesc_trans (h hstep) ih)
-    (fun x => lexDesc_refl (Q x))
 
 /-- The draw-distance potential against the in-phase attractor: `0`
 on phase-aligned positions, otherwise the number of whole deals
@@ -1426,9 +1394,6 @@ from `Orig/Phase.lean:971`. -/
 def D (st : State) : Nat :=
   if (inPhase st) = true then 0 else (st.stock.length + st.drawStep - 1) / st.drawStep
 
-/-- The measure pair: the cycle count first, the draw distance
-second.  PORTED verbatim from `Orig/Phase.lean:976`. -/
-def QPair (st : State) : Nat × Nat := (cycleCount st, D st)
 /-- One successful draw from a nonempty stock, as four bookkeeping
 facts.  PORTED from `Orig/Phase.lean:981` (a §1d footprint
 projection through `recycle_keep`; the frozen proof re-derived the
@@ -1468,145 +1433,229 @@ theorem D_of_inPhase_false {x : State} (h : inPhase x = false) :
   rw [h]
   rfl
 
-/-- The measure pair is verbatim under a move that copies the stock,
-the waste, and the draw step.  PORTED verbatim from
-`Orig/Phase.lean:1024`. -/
-theorem lex_of_fixed {x y : State} (h1 : y.stock = x.stock)
-    (h2 : y.waste = x.waste) (h3 : y.drawStep = x.drawStep) :
-    lexDesc (QPair x) (QPair y) :=
-  ⟨show y.stock.length + y.waste.length ≤ x.stock.length + x.waste.length by
-      rw [h1, h2]
-      omega,
-    fun _ => Nat.le_of_eq (D_congr h1 h2 h3)⟩
+/-- **The scalar phase measure** — the lexicographic argument
+`(cycleCount, D)` linearized into one number: the cycle count
+quadratic carries the primary ordering, the draw-distance
+potential reads in the units column.  PORTED as the scalar form
+of `Orig/Phase.lean:976` (`QPair`) and `:1038` (`step_lexDesc`). -/
+def phaseMeasure (st : State) : Nat :=
+  cycleCount st * (cycleCount st + 1) + D st
 
-/-- **The per-move lex table.**  Every legal move descends the
-measure pair `(cycleCount, D)`.  PORTED verbatim from
-`Orig/Phase.lean:1038`. -/
-theorem step_lexDesc : ∀ {x y : State} {m : Move},
-    State.step x m = some y → lexDesc (QPair x) (QPair y) := by
+/-- **The potential is bounded by the cycle count** — the fact
+that makes the scalarization work: a cycle drop of even one
+covers any conceivable rise in `D`.  The bound in words: an
+off-line position holds cards, and `(n + d - 1) / d =
+((n - 1) + d) / d = (n - 1) / d + 1 <= n` by
+`Nat.add_div_right` and `Nat.div_le_self`. -/
+theorem D_le_cycleCount (st : State) : D st ≤ cycleCount st := by
+  rcases bool_dich (inPhase st) with hin | hin
+  · rw [D_of_inPhase_true hin]
+    exact Nat.zero_le _
+  · by_cases hd : st.drawStep = 0
+    · rw [D_of_inPhase_false hin, hd, Nat.div_zero]
+      exact Nat.zero_le _
+    · have hne : st.stock ≠ [] := by
+        intro hc0
+        exact absurd (inPhase_eq_true_of_nil hc0) (by rw [hin]; simp)
+      obtain ⟨c0, t0, hcon'⟩ := list_cons_of_ne_nil hne
+      have hp : 1 ≤ st.stock.length := by rw [hcon', List.length_cons]; omega
+      rw [D_of_inPhase_false hin,
+        show st.stock.length + st.drawStep - 1
+            = (st.stock.length - 1) + st.drawStep from by omega,
+        Nat.add_div_right _ (by omega : 0 < st.drawStep)]
+      show (st.stock.length - 1) / st.drawStep + 1
+          ≤ st.stock.length + st.waste.length
+      have hq := Nat.div_le_self (st.stock.length - 1) st.drawStep
+      omega
+
+/-- **Draws never raise the phase potential.**  Three readings of
+the trap plus the plain shift: a recycle draw lands aligned; an
+aligned position stays aligned; and an off-line plain draw
+advances the stock by exactly one whole deal, so
+`(y + d - 1) / d = (n - 1) / d` against
+`D x = (n - 1) / d + 1`.  PORTED as the `D`-half of
+`Orig/Phase.lean:1038`'s draw arm. -/
+theorem draw_D_le {x y : State} (hsuc : x.stepDraw = some y) : D y ≤ D x := by
+  by_cases hstock : x.stock = []
+  · have hDy : D y = 0 := D_of_inPhase_true (draw_nil_inPhase hstock hsuc)
+    omega
+  · obtain ⟨-, hdeq, hslen, hwlen⟩ := draw_facts hsuc hstock
+    rcases bool_dich (inPhase x) with hinx | hinx
+    · have hDy : D y = 0 := D_of_inPhase_true (draw_keeps_inPhase hsuc hinx)
+      have hDx : D x = 0 := D_of_inPhase_true hinx
+      omega
+    · obtain ⟨-, hres⟩ := inPhase_eq_false_iff.1 hinx
+      by_cases hd0 : x.drawStep = 0
+      · -- a zero draw step flattens both potentials (division by zero)
+        rcases bool_dich (inPhase y) with hiny | hiny
+        · rw [D_of_inPhase_true hiny, D_of_inPhase_false hinx, hd0, Nat.div_zero]
+          omega
+        · have hy0 : y.drawStep = 0 := hdeq.trans hd0
+          rw [D_of_inPhase_false hiny, hy0, Nat.div_zero,
+            D_of_inPhase_false hinx, hd0, Nat.div_zero]
+          omega
+      · have hdp : 0 < x.drawStep := by omega
+        obtain ⟨cx0, tx0, hconx⟩ := list_cons_of_ne_nil hstock
+        have hpx : 1 ≤ x.stock.length := by rw [hconx, List.length_cons]; omega
+        by_cases hdr : y.stock = []
+        · have hDy : D y = 0 := D_of_inPhase_true (inPhase_eq_true_of_nil hdr)
+          omega
+        · obtain ⟨c', t', hcon'⟩ := list_cons_of_ne_nil hdr
+          have hp' : 1 ≤ y.stock.length := by rw [hcon', List.length_cons]; omega
+          have hiny : inPhase y = false := by
+            rw [inPhase_eq_decide_of_cons hcon']
+            refine decide_eq_false (fun hc0 => ?_)
+            have hresy : y.waste.length % x.drawStep = x.waste.length % x.drawStep := by
+              have hk : min x.drawStep x.stock.length = x.drawStep := by omega
+              rw [show y.waste.length
+                    = min x.drawStep x.stock.length + x.waste.length from hwlen,
+                hk, Nat.add_mod_left]
+            rw [show y.drawStep = x.drawStep from hdeq, hresy] at hc0
+            exact hres hc0
+          rw [D_of_inPhase_false hiny, D_of_inPhase_false hinx,
+            show y.drawStep = x.drawStep from hdeq,
+            show y.stock.length + x.drawStep - 1
+                = x.stock.length - 1 from by omega,
+            show x.stock.length + x.drawStep - 1
+                = (x.stock.length - 1) + x.drawStep from by omega,
+            Nat.add_div_right _ hdp]
+          omega
+
+/-- **The committed offset draw drops the potential by exactly
+one whole deal.**  The cycle count rests, and the stock advanced
+one whole deal means `(y - 1) / d < (y - 1 + d) / d` literally by
+`Nat.add_div_right`.  PORTED as the `D`-half of
+`Orig/Phase.lean:1108`'s strict descent. -/
+theorem draw_D_lt {st s₁ : State} (hd : 0 < st.drawStep) (hs : st.stock ≠ [])
+    (hsuc : st.stepDraw = some s₁) (hoff : st.waste.length % st.drawStep ≠ 0) :
+    D s₁ < D st := by
+  obtain ⟨-, hdeq, hslen, hwlen⟩ := draw_facts hsuc hs
+  obtain ⟨c0, t0, hcon⟩ := list_cons_of_ne_nil hs
+  have hp : 1 ≤ st.stock.length := by rw [hcon, List.length_cons]; omega
+  have hinF : inPhase st = false := by
+    rw [inPhase_eq_decide_of_cons hcon, decide_eq_false hoff]
+  have hDst : D st = (st.stock.length - 1) / st.drawStep + 1 := by
+    rw [D_of_inPhase_false hinF,
+      show st.stock.length + st.drawStep - 1
+          = (st.stock.length - 1) + st.drawStep from by omega,
+      Nat.add_div_right _ hd]
+  by_cases hdr : s₁.stock = []
+  · have hD0 : D s₁ = 0 := D_of_inPhase_true (inPhase_eq_true_of_nil hdr)
+    rw [hD0, hDst]
+    exact Nat.succ_le_succ (Nat.zero_le _)
+  · obtain ⟨c', t', hcon'⟩ := list_cons_of_ne_nil hdr
+    have hp' : 1 ≤ s₁.stock.length := by rw [hcon', List.length_cons]; omega
+    have hiny : inPhase s₁ = false := by
+      rw [inPhase_eq_decide_of_cons hcon']
+      refine decide_eq_false (fun hc0 => ?_)
+      have hresy : s₁.waste.length % st.drawStep
+          = st.waste.length % st.drawStep := by
+        have hk : min st.drawStep st.stock.length = st.drawStep := by omega
+        rw [show s₁.waste.length
+              = min st.drawStep st.stock.length + st.waste.length from hwlen,
+          hk, Nat.add_mod_left]
+      rw [show s₁.drawStep = st.drawStep from hdeq, hresy] at hc0
+      exact hoff hc0
+    have hDs₁ : D s₁ = (s₁.stock.length - 1) / st.drawStep + 1 := by
+      rw [D_of_inPhase_false hiny, show s₁.drawStep = st.drawStep from hdeq,
+        show s₁.stock.length + st.drawStep - 1
+            = (s₁.stock.length - 1) + st.drawStep from by omega,
+        Nat.add_div_right _ hd]
+    have hchain : st.stock.length - 1
+        = (s₁.stock.length - 1) + st.drawStep := by omega
+    rw [hDs₁, hDst]
+    calc (s₁.stock.length - 1) / st.drawStep + 1
+        < ((s₁.stock.length - 1) + st.drawStep) / st.drawStep + 1 := by
+          rw [Nat.add_div_right _ hd]
+          omega
+      _ = (st.stock.length - 1) / st.drawStep + 1 := by rw [hchain]
+
+/-- `phaseMeasure` respects field-coincidence moves: the board
+moves that copy the stock, waste and draw step leave both
+coordinates verbatim. -/
+theorem phaseMeasure_congr {x y : State}
+    (hc : cycleCount x = cycleCount y) (hdd : D x = D y) :
+    phaseMeasure x = phaseMeasure y := by
+  simp only [phaseMeasure, hc, hdd]
+
+/-- **The quadratic's cover** — the fact that lets the scalar
+carry the lexicographic argument: when the cycle count drops at
+all, the quadratic gap
+`(c - c') * (c + c' + 1) >= 2 * c' + 2`
+swallows the phase potential's whole range (which
+`D_le_cycleCount` caps at the smaller cycle count).  The identity
+behind it: `(a + 1) * (a + 1) = a * (a + 1) + (a + 1)`, one
+`Nat.succ_mul`. -/
+theorem phaseMeasure_cover {x y : State} (h : cycleCount y + 1 ≤ cycleCount x) :
+    cycleCount y * (cycleCount y + 1) + cycleCount y + 1
+      ≤ cycleCount x * (cycleCount x + 1) := by
+  have hx1 : (cycleCount y + 1) * (cycleCount y + 1)
+      ≤ cycleCount x * (cycleCount x + 1) :=
+    Nat.mul_le_mul (by omega) (by omega)
+  have hx2 : (cycleCount y + 1) * (cycleCount y + 1)
+      = cycleCount y * (cycleCount y + 1) + (cycleCount y + 1) := by
+    simp [Nat.succ_mul]
+  omega
+
+/-- **The per-move phase-measure table.**  Every legal move
+descends the scalar phase measure: the board moves by
+`phaseMeasure_congr`, the waste moves through the quadratic's
+cover plus the potential bound, the draw through the conserved
+cycle count plus `draw_D_le`.  PORTED as the scalar form of
+`Orig/Phase.lean:1038` (`step_lexDesc`). -/
+theorem step_phaseMeasure_le : ∀ {x y : State} {m : Move},
+    State.step x m = some y → phaseMeasure y ≤ phaseMeasure x := by
   intro x y m hs
   cases m with
   | draw =>
-      have hsuc : x.stepDraw = some y := hs
-      refine ⟨Nat.le_of_eq (draw_cycleCount hsuc), fun _ => ?_⟩
-      by_cases hstock : x.stock = []
-      · have hDy : D y = 0 := D_of_inPhase_true (draw_nil_inPhase hstock hsuc)
-        show D y ≤ D x
-        omega
-      · obtain ⟨_, hdeq, hslen, hwlen⟩ := draw_facts hsuc hstock
-        by_cases hin : inPhase x = true
-        · have hDy : D y = 0 := D_of_inPhase_true (draw_keeps_inPhase hsuc hin)
-          show D y ≤ D x
-          omega
-        · rcases bool_dich (inPhase x) with hb | hb
-          · exact absurd hb hin
-          · obtain ⟨hnx, hres⟩ := inPhase_eq_false_iff.1 hb
-            by_cases hdr : y.stock = []
-            · have hDy : D y = 0 := D_of_inPhase_true (inPhase_eq_true_of_nil hdr)
-              show D y ≤ D x
-              omega
-            · obtain ⟨c', t', hcon'⟩ := list_cons_of_ne_nil hdr
-              have hp' : 1 ≤ y.stock.length := by
-                rw [hcon', List.length_cons]
-                omega
-              have hk : min x.drawStep x.stock.length = x.drawStep := by omega
-              have hresy : y.waste.length % x.drawStep = x.waste.length % x.drawStep := by
-                rw [show y.waste.length =
-                    min x.drawStep x.stock.length + x.waste.length from hwlen,
-                  hk, Nat.add_mod_left]
-              have hiny : inPhase y = false := by
-                rw [inPhase_eq_decide_of_cons hcon']
-                refine decide_eq_false (fun hc0 => ?_)
-                rw [hdeq, hresy] at hc0
-                exact hres hc0
-              show D y ≤ D x
-              rw [D_of_inPhase_false hiny, D_of_inPhase_false hb,
-                show y.drawStep = x.drawStep from hdeq]
-              exact Nat.div_le_div_right (show y.stock.length + x.drawStep - 1 ≤
-                  x.stock.length + x.drawStep - 1 from by omega)
+      have hced : cycleCount y = cycleCount x := draw_cycleCount hs
+      have hdd := draw_D_le hs
+      simp only [phaseMeasure, hced]
+      omega
   | wasteToFound c =>
       have hlt := cycleCount_step_wasteToFound hs
-      refine ⟨?_, fun hE => absurd hE
-        (show ¬(cycleCount y = cycleCount x) from by omega)⟩
-      show cycleCount y ≤ cycleCount x
+      have hmy := D_le_cycleCount y
+      have hcover := phaseMeasure_cover (by omega)
+      simp only [phaseMeasure]
       omega
   | wasteToTab c b =>
       have hlt := cycleCount_step_wasteToTab hs
-      refine ⟨?_, fun hE => absurd hE
-        (show ¬(cycleCount y = cycleCount x) from by omega)⟩
-      show cycleCount y ≤ cycleCount x
+      have hmy := D_le_cycleCount y
+      have hcover := phaseMeasure_cover (by omega)
+      simp only [phaseMeasure]
       omega
   | tabToFound c =>
       obtain ⟨h1, h2, h3⟩ := tabToFound_fixed hs
-      exact lex_of_fixed h1 h2 h3
+      exact Nat.le_of_eq
+        (phaseMeasure_congr (cycleCount_eq_of_stock_waste h1 h2) (D_congr h1 h2 h3))
   | foundToTab c b =>
       obtain ⟨h1, h2, h3⟩ := foundToTab_fixed hs
-      exact lex_of_fixed h1 h2 h3
+      exact Nat.le_of_eq
+        (phaseMeasure_congr (cycleCount_eq_of_stock_waste h1 h2) (D_congr h1 h2 h3))
   | tabToTab c b =>
       obtain ⟨h1, h2, h3⟩ := tabToTab_fixed hs
-      exact lex_of_fixed h1 h2 h3
+      exact Nat.le_of_eq
+        (phaseMeasure_congr (cycleCount_eq_of_stock_waste h1 h2) (D_congr h1 h2 h3))
 
 /-- **Draws at offset positions deny the witness.**  At a position
 with cards still in the stock whose waste sits strictly inside a
 deal (and a positive draw step): the committed draw conserves the
-cycle count and strictly drops the draw distance `D`, and no legal
-play ascends the measure pair.  RE-STATED at the carrier grade
-from `Orig/Phase.lean:1108` (`draw_irreversible_offset_lex`,
-commit grade there); every internal row is the §1h/§1j port
-above. -/
+cycle count and drops the phase potential by exactly one whole
+deal, and no legal play ascends the scalar phase measure.
+RE-STATED at the carrier grade from `Orig/Phase.lean:1108`
+(`draw_irreversible_offset_lex`, commit grade there); the
+argument now rides the standard denial tool. -/
 theorem draw_notW_of_offset {st : State}
     (hd : 0 < st.drawStep) (hs : st.stock ≠ [])
     (hoff : st.waste.length % st.drawStep ≠ 0) :
     ¬ reversibleAtW st Move.draw := by
-  rintro ⟨s₁, play, hstep, hrun⟩
-  have hs₁ : st.stepDraw = some s₁ := hstep
-  obtain ⟨_, hdeq, hslen, hwlen⟩ := draw_facts hs₁ hs
-  obtain ⟨c, t, hcon⟩ := list_cons_of_ne_nil hs
-  have hp : 1 ≤ st.stock.length := by
-    rw [hcon, List.length_cons]
-    omega
-  have hinF : inPhase st = false := by
-    rw [inPhase_eq_decide_of_cons hcon, decide_eq_false hoff]
-  have hDst : D st = (st.stock.length - 1) / st.drawStep + 1 := by
-    rw [D_of_inPhase_false hinF]
-    have hshift : st.stock.length + st.drawStep - 1 =
-        (st.stock.length - 1) + st.drawStep := by omega
-    rw [hshift, Nat.add_div_right _ hd]
-  have hstrict : lexDescStrict (QPair st) (QPair s₁) :=
-    Or.inr ⟨show (QPair s₁).fst = (QPair st).fst from draw_cycleCount hs₁, ?_⟩
-  show D s₁ < D st
-  by_cases hdr : s₁.stock = []
-  · have hD0 : D s₁ = 0 := D_of_inPhase_true (inPhase_eq_true_of_nil hdr)
-    rw [hD0, hDst]
-    have hq : 0 ≤ (st.stock.length - 1) / st.drawStep := Nat.zero_le _
-    omega
-  · obtain ⟨c', t', hcon'⟩ := list_cons_of_ne_nil hdr
-    have hp' : 1 ≤ s₁.stock.length := by
-      rw [hcon', List.length_cons]
-      omega
-    have hresy : s₁.waste.length % st.drawStep = st.waste.length % st.drawStep := by
-      have hk : min st.drawStep st.stock.length = st.drawStep := by omega
-      rw [show s₁.waste.length =
-          min st.drawStep st.stock.length + st.waste.length from hwlen,
-        hk, Nat.add_mod_left]
-    have hiny : inPhase s₁ = false := by
-      rw [inPhase_eq_decide_of_cons hcon']
-      refine decide_eq_false (fun hc0 => ?_)
-      rw [hdeq, hresy] at hc0
-      exact hoff hc0
-    have hDs₁ : D s₁ = (s₁.stock.length - 1) / st.drawStep + 1 := by
-      rw [D_of_inPhase_false hiny,
-        show s₁.drawStep = st.drawStep from hdeq]
-      have hshift : s₁.stock.length + st.drawStep - 1 =
-          (s₁.stock.length - 1) + st.drawStep := by omega
-      rw [hshift, Nat.add_div_right _ hd]
-    have hchain : st.stock.length - 1 = (s₁.stock.length - 1) + st.drawStep := by omega
-    calc D s₁ = (s₁.stock.length - 1) / st.drawStep + 1 := hDs₁
-      _ < ((s₁.stock.length - 1) + st.drawStep) / st.drawStep + 1 := by
-          rw [Nat.add_div_right _ hd]
-          omega
-      _ = D st := by rw [hDst, hchain]
-  exact lexDescStrict_contra hstrict (mono_run_lex QPair step_lexDesc hrun)
+  intro hw
+  obtain ⟨s₁, -, hsuc, -⟩ := id hw
+  have hced : cycleCount s₁ = cycleCount st := draw_cycleCount hsuc
+  have hdd := draw_D_lt hd hs hsuc hoff
+  exact absurd hw (not_W_of_desc phaseMeasure
+    (fun _ _ _ hst => step_phaseMeasure_le hst) hsuc
+    (by simp only [phaseMeasure, hced]; omega))
 
 /-! ### §1k. The draw round trips
 
@@ -2282,7 +2331,8 @@ Per promoted head, this kit.  Expected profile: `[propext]` or
 
 #print axioms run_rec
 #print axioms mono_run
-#print axioms mono_run_lex
+#print axioms step_phaseMeasure_le
+#print axioms draw_D_le
 #print axioms not_W_of_desc
 #print axioms not_W_of_step_none
 #print axioms reversible_mirrorW
