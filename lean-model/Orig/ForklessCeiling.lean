@@ -1574,6 +1574,56 @@ theorem cargo_pair_genesis_alpha {A B : State}
 
 /-! ### §1g.1 The mirror kit (the WF corridor's per-arm certificates) -/
 
+/-- The self-absence row (the kit glue the slide mirror rides): `c`
+is never in its own below-prefix. -/
+private theorem fc_below_not_mem (c : Card) :
+    ∀ (l : List Card), c ∉ below c l := by
+  intro l
+  induction l with
+  | nil => intro hm; cases hm
+  | cons x t ih =>
+      by_cases hxc : x = c
+      · intro hm
+        rw [hxc, below_cons, if_pos rfl] at hm
+        cases hm
+      · intro hm
+        rw [below_cons, if_neg hxc] at hm
+        rcases List.mem_cons.mp hm with he | hb
+        · exact hxc he.symm
+        · exact ih hb
+
+/-- The below-through-append row (at a member-free prefix): the
+prefix rides when `e` is absent from it. -/
+private theorem fc_below_append_ne {e : Card} :
+    ∀ (A : List Card), e ∉ A → ∀ (B : List Card),
+      below e (A ++ B) = A ++ below e B := by
+  intro A
+  induction A with
+  | nil => intro _ B; rfl
+  | cons x t ih =>
+      intro hne B
+      have hxne : x ≠ e := by
+        intro hcon
+        exact hne (by rw [← hcon]; exact List.mem_cons_self)
+      rw [List.cons_append, below_cons, if_neg hxne, List.cons_append,
+        ih (fun hm => hne (List.mem_cons_of_mem x hm))]
+
+/-- The fromCard-through-append row (at a member-free prefix): the
+run read skips a member-free prefix. -/
+private theorem fc_fromCard_append_ne {e : Card} :
+    ∀ (A : List Card), e ∉ A → ∀ (B : List Card),
+      fromCard e (A ++ B) = fromCard e B := by
+  intro A
+  induction A with
+  | nil => intro _ B; rfl
+  | cons x t ih =>
+      intro hne B
+      have hxne : x ≠ e := by
+        intro hcon
+        exact hne (by rw [← hcon]; exact List.mem_cons_self)
+      rw [List.cons_append, fromCard, if_neg (fun hcon => hxne hcon),
+        ih (fun hm => hne (List.mem_cons_of_mem x hm))]
+
 /-- **THE CORNER'S RETURN HOP** — the surviving king-corner arm's
 one-move in-place mirror, at the WF-corridor grade: the loaded
 king-run returns to the EMPTIED source anchor by the very king bar
@@ -1775,6 +1825,127 @@ theorem ceiling_gradeB {st : State} (hwf : st.WF)
     BareCargoEquiv W₁ W₂ := by
   sorry
 
+/-- **THE CLASS-NATIVE FLAGSHIP** `ceiling_class_unique` [H —
+owner-requested, the rung-free start-free form, probe-gated] — a
+forkless macro class has AT MOST ONE stuck endpoint up to bare
+cargo: any two `AscentStuck` members of a forkless class are
+`BareCargoEquiv`.
+
+This `Improves` Grade-B in both directions at once: it drops the
+witness-run pair (`hr₁`/`hr₂`) — the endpoints need not be
+ascended-to from `st` at all, they may be ANY in-class maxima —
+and it drops Grade-A's rung-agreement output as a route premise
+(the class-form of the rung invariance becomes INTERNAL content:
+within one forkless class, stuck forces the raised-set equal).
+No common start, no ascent runs, no rung hypotheses: forkless
+plus membership plus stuck.
+
+RELATIONS (recorded for the ledger): Grade-B is an immediate
+corollary (its premises include this form's, and the dropped run
+witnesses are simply not needed); Grade-A's content is the
+internal rung-cost this form must pay on its own; Grade-C's fcS
+falsifier does NOT conflict (the content board's twin endpoints
+EXIT the class — each run's seating slide is burn-armed and
+COMMITS, the probe's certified boundary — so its two stuck
+states are NOT both in-class and never instantiate this form).
+The `hwf`-on-representative premise matches the graded family;
+the WF-preservation route (`step_wf` through any macro path) may
+later let an in-class member's own WF carry the row — repriced
+then.
+
+ROUTE (probe-gated first: the probe leaf should hunt a
+two-stuck-in-class counterexample family before any proof —
+the non-vacuity hunt IS the new content's falsifier):
+
+1. THE CLASS-FORM RUNG INVARIANCE — every stuck member of the
+   class raises the same set: the twin-guard freeze (Grade-A's
+   step one) is start-free, and stuck-ness plus membership forces
+   the exhausted raised-set locally at each member; the class
+   ties them (this is the ForkAscent exhaustion program's class
+   direction — the steered restructure's fixed-point family is
+   the sibling campaign — and any licensed re-aim rides its OWN
+   probe cycle per the owner's standing note).
+2. THE FIX — rungs equal ⇒ the cargo-fix data (founds, waste,
+   stock, hidden decks) at both endpoints (route as Grade-B's
+   step one, `cargo_fix_rungs` + the exclusion's per-leg hidden
+   preservation).
+3. THE SLACK PINNED AT STUCK — the floating arrangement differs
+   at most in the slack (floaters, free kings), and at a STUCK
+   state NO slide fires at all, so every hop the slack licenses
+   HAS BEEN taken: the surviving slack is pinned identically at
+   both endpoints (the hop-locked freeze, route as Grade-B's
+   step three).
+4. THE WORD — the pinned slack differences bridge by the
+   clean-cargo hops §0d's mirrors witness: the bare-cargo pair
+   composes (the banked MirrorWord machinery from §1g's
+   generating half: `mirrorword_pair_to_equiv`). -/
+
+theorem ceiling_class_unique {st : State} (hwf : st.WF)
+    (hfrk : Forkless st)
+    {W₁ W₂ : State}
+    (hs₁ : AscentStuck W₁) (hm₁ : sameOrbitSetoid.r st W₁)
+    (hs₂ : AscentStuck W₂) (hm₂ : sameOrbitSetoid.r st W₂) :
+    BareCargoEquiv W₁ W₂ := by
+  sorry
+
+/-- **THE TWIN-SEED FORCES THE FORK** `twin_seed_forks` [H —
+owner-requested intermediate, probe-gated, the class-form's
+contrapositive engine] — a divergent twin seed makes the class
+fork-HEADED: if `x`'s fitting parent `z₁` sits live while its
+MS-cell mate `z₂` (the same-rank other-family parent, `x.twin`'s
+fit) sits blocked, then maximally stacking everything else opens
+`z₂`'s seat and lands a genuine `ForkWitness` — the class carries a
+fork member.
+
+WHY THE MS-SPELLING (recorded so the probe hunts the right shape):
+`canSitOn x z ∧ canSitOn x.twin z` on ONE parent is
+rank-arithmetic-impossible (twins share rank, alternate families),
+so the seed's content lives at the CELL: two matched parents
+`z₁`/`z₂` (same rank, opposite families), `x` fit on the live one,
+`x.twin` fit on the blocked one.  `fc_cell_pair` (:1523) is the
+cell-premise kit; the raise/slide saturation is the ascent program's
+own stuck-exhaustion; the witness card naming the fork is the pair
+itself (`ForkWitness`'s exhaustive-iff shape — PairName.lean:27).
+
+RELATIONS (the ledger): this row is `ceiling_class_unique`'s
+step-one CONTRAPOSITIVE ENGINE (forkless ⇒ NO divergent seed
+survives saturation — its negation IS the divergence datum), and
+the arrangeability bridge is ForkCensus's own `PairArrangeable`
+(the presented-and-saturated composite — consult its premise set
+before proofing; the seed form here is strictly WEAKER-headed and
+must not re-derive what the census machinery already banks).
+
+ROUTE (probe-gated first: the FC-boards should hunt a
+blocked-mate world where saturation REFUSES to open `z₂` —
+e.g. hidden-buried `z₂` that no legal play ever surfaces at MP:
+that board KILLS this shape and re-prices the seed premise to
+face-up-blocked-only):
+
+1. SEED-TO-OPEN — the blocked seat `z₂` lies face-up-covered at
+   some pile (the seed spelling must decide: covered-over vs
+   hidden-buried — the probe's fork); the covering run's own
+   saturation (the ascent's maximality) removes the cover.
+2. OPEN-TO-WITNESS — at the open state the two continuations
+   (`x`-on-live vs `x.twin`-on-opened) are both raise-licensed
+   while everything else is saturated-stuck — the exhaustive
+   iff + the second-member refusal assemble `ForkWitness`.
+3. CLASS-CLOSURE — the arranging journey stays macro-in-class
+   (the ascent alphabet's letters are macro letters), so the
+   witness member sits in `st`'s macro class:
+   `ClassForkHeaded st` by ForkCensus's own unpacking. -/
+
+theorem twin_seed_forks {st : State} (hwf : st.WF)
+    {x z₁ z₂ : Card} {a b k : Anchor}
+    (hx : st.pileHolding x = some a)
+    (hfit₁ : canSitOn x z₁ = true)
+    (hfit₂ : canSitOn x.twin z₂ = true)
+    (hcell : z₂.rank = z₁.rank ∧ z₂.suit.color ≠ z₁.suit.color)
+    (hlive₁ : st.pileOfTop z₁ = some k)
+    (hblocked₂ : ∃ (tail : List Card), tail ≠ [] ∧
+      (st.piles b).faceUp = below z₂ (st.piles b).faceUp ++ z₂ :: tail) :
+    ClassForkHeaded st := by
+  sorry
+
 /-- **GRADE-C** `ceiling_gradeC` [H, EXPECTED FALSE — documented,
 not chased] — the same endpoints are EQUAL.  The (i) content
 board's twin runs land at TWO DISTINCT maximal endpoints
@@ -1909,6 +2080,8 @@ verdicts decide the degenerate arms before any direction unlocks). -/
 #print axioms fc_cover_cell
 #print axioms ceiling_gradeA
 #print axioms ceiling_gradeB
+#print axioms ceiling_class_unique
+#print axioms twin_seed_forks
 #print axioms ceiling_gradeC
 #print axioms ceiling_descends
 #print axioms ceiling_descent_imp
