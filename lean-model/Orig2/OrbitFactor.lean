@@ -2472,6 +2472,89 @@ theorem draw_play_transplant {x y x' : State} {play : List Move}
       y'.stock = y.stock ∧ y'.waste = y.waste ∧ y'.drawStep = y.drawStep :=
   draw_play_transplant_aux x x' play y h hdraw hpos hs hw hd
 
+/-! ## §4. THE ASSEMBLY
+
+→ extracts the two witness journeys from the rev-closure, bubbles
+both draws-last, re-splits the composite at `zF`, and transplants
+the `d`-block to `v`'s frame; ← composes the four witnesses (the
+trivial glue).  Templates `sameOrbit_factor_fwd`/
+`sameOrbit_factor_full`, `Orig/OrbitFactorC.lean:442-487`.  The
+`WF` premises pay ONLY the draw-step positivity (the `WF` chain's
+own fourth clause — the Integrity `drawStep_pos` grade): the bubbling's gate
+travels to the split mid-points by zone-keeps, the transplant's by
+the board journey's zone-keep — no `step_wf`, no WF-along-journeys
+freight anywhere (the frozen card's `shuffleW_wf_end` ride retired
+with the restated pull). -/
+
+/-- **§4a: the forward factorization.**  Two `WF` same-orbit mates
+decompose as the board component (`NoDrawPlayW`) onto the phase
+component (`SWRotW`): the ←-journey of the class and the →-journey
+both bubble draws-last; the composite `zF --D--> v --b--> zB --d-->
+u` re-splits draws-last at `zF` (positivity carried there by the
+`B`-journey's zone-keep), the re-split's own landing `z₂` closing
+to `u` by the accounting (boards keep the zone, draws keep the
+board — `State.ext`); and the `d`-block transplants to `v`'s frame
+(`v` shares `zB`'s zone by the `b`-journey's zone-keep), the
+transplanted landing closing to `zF` the same way.  PORT of
+`Orig/OrbitFactorC.lean:442` on the restated pieces. -/
+theorem sameOrbit_factor_fwd {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF)
+    (h : sameOrbitSetoid.r u v) :
+    ∃ z, NoDrawPlayW u z ∧ SWRotW z v := by
+  have hpos₁ : 0 < u.drawStep := hwf₁.2.2.2
+  have hpos₂ : 0 < v.drawStep := hwf₂.2.2.2
+  have h' : RevEqW v u := h
+  obtain ⟨σ, hσW, τ, hτW⟩ := h'
+  obtain ⟨B, D, zF, hBnd, hDdr, hBz, hDz⟩ := shuffle_drawsLast τ u v hτW hpos₁
+  obtain ⟨b, d, zB, hbnd, hddr, hbz, hdz⟩ := shuffle_drawsLast σ v u hσW hpos₂
+  obtain ⟨kF1, kF2, kF3⟩ := shuffleW_zone_keep hBz hBnd
+  obtain ⟨kB1, kB2, kB3⟩ := shuffleW_zone_keep hbz hbnd
+  have hposzF : 0 < zF.drawStep := by rw [kF3]; exact hpos₁
+  have hcomp : ShufflePlayW zF (D ++ b ++ d) u :=
+    ShufflePlayW_append (ShufflePlayW_append hDz hbz) hdz
+  obtain ⟨B₂, D₂, z₂, hB₂nd, hD₂dr, hB₂z, hD₂z⟩ :=
+    shuffle_drawsLast (D ++ b ++ d) zF u hcomp hposzF
+  obtain ⟨k₂1, k₂2, k₂3⟩ := shuffleW_zone_keep hB₂z hB₂nd
+  obtain ⟨kD1, kD2⟩ := shuffleW_board_keep hD₂z hD₂dr
+  have hz₂u : z₂ = u :=
+    State.ext kD2.symm kD1.symm (k₂1.trans kF1) (k₂2.trans kF2) (k₂3.trans kF3)
+  rw [hz₂u] at hB₂z
+  have hposzB : 0 < zB.drawStep := by rw [kB3]; exact hpos₂
+  obtain ⟨y', jμ, hyz1, hyz2, hyz3⟩ :=
+    draw_play_transplant hdz hddr hposzB kB1 kB2 kB3
+  obtain ⟨ky1, ky2⟩ := shuffleW_board_keep jμ hddr
+  obtain ⟨kv1, kv2⟩ := shuffleW_board_keep hDz hDdr
+  have hyeq : y' = zF :=
+    State.ext (ky2.trans kv2) (ky1.trans kv1)
+      (hyz1.trans kF1.symm) (hyz2.trans kF2.symm) (hyz3.trans kF3.symm)
+  rw [hyeq] at jμ
+  exact ⟨zF, ⟨B, hBz, hBnd, B₂, hB₂z, hB₂nd⟩, D, d, ⟨hDz, hDdr⟩, ⟨jμ, hddr⟩⟩
+
+/-- **§4b: THE ORBIT-FACTOR CLAIM, DISCHARGED** (the claims ledger's
+`sameOrbit_factor`, `Orig2/Claims.lean` §1B, promoted here): the
+phase factorization — a class membership is a draw-free board
+reshuffle to a phase-mate, then a pure rotation round.  `→` is
+§4a; `←` composes the four witnesses (a `z` factored by both
+components supplies the `v→u` journey as the rotation round
+followed by the board back, and the `u→v` journey as the board
+front followed by the rotation round — template
+`sameOrbit_factor_full`, `Orig/OrbitFactorC.lean:482`). -/
+theorem sameOrbit_factor {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF) :
+    sameOrbitSetoid.r u v ↔ ∃ z, NoDrawPlayW u z ∧ SWRotW z v := by
+  constructor
+  · exact sameOrbit_factor_fwd hwf₁ hwf₂
+  · rintro ⟨z, ⟨P₁, hP₁, hP₁nd, P₂, hP₂, hP₂nd⟩, σ, τ, ⟨hσW, -⟩, ⟨hτW, -⟩⟩
+    exact ⟨τ ++ P₂, ShufflePlayW_append hτW hP₂, P₁ ++ σ, ShufflePlayW_append hP₁ hσW⟩
+
+/-! ## §5. PROMOTION NOTE (for the claims ledger's §1B)
+
+`sameOrbit_factor` is PROVED here real — the claims-layer stub
+is deleted, the battery line moved to this card's battery block.
+The four-piece PRICE (the general commutation §1, the restated
+bubbling §2, the transplant §3, the assembly §4) is fully paid:
+every ingredient is this card's private kit or the sanctioned
+seam/registry rows, nothing rides the frozen tier, and the
+discharge carries no `sorryAx`, no `Classical.choice`. -/
+
 /-! ## THE AUDIT BATTERY
 
 Per proved head: `[propext]`/`[propext, Quot.sound]` only; zero
@@ -2509,3 +2592,5 @@ Per proved head: `[propext]`/`[propext, Quot.sound]` only; zero
 #print axioms shuffle_drawsLast
 #print axioms draw_play_transplant_aux
 #print axioms draw_play_transplant
+#print axioms sameOrbit_factor_fwd
+#print axioms sameOrbit_factor

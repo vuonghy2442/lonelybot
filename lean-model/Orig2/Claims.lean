@@ -66,14 +66,21 @@ algebra (template `draw_play_transplant`,
 rev-closure, bubbles both, transplants to the common board z;
 ← composes the four witnesses (template `sameOrbit_factor_full`,
 `Orig/OrbitFactorC.lean:442-487`).  The frozen tier's two proved
-rows are the correctness oracle. -/
+rows are the correctness oracle.
 
-/-- **CLAIM `sameOrbit_factor`** — the phase factorization: a
-class membership is a draw-free board reshuffle to a phase-mate,
-then a pure rotation round. -/
-theorem sameOrbit_factor {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF) :
-    sameOrbitSetoid.r u v ↔ ∃ z, NoDrawPlayW u z ∧ SWRotW z v := by
-  sorry
+PROMOTED (2026-10-17): the claim is DISCHARGED at
+`Orig2/OrbitFactor.lean` §4 — the machinery card proves
+`sameOrbit_factor` real over its four landed pieces (the ONE
+general disjoint-field commutation square at the field-equation
+grade; the draws-last bubbling with the restated pull core — the
+crossed board legs re-witness by an explicit composite undo play,
+the classification bridge replaced by witness transport; the
+draw-block transplant over the card's private Phase kit; the
+four-witness composition), and the card's battery carries the
+head ([propext, Quot.sound], zero sorryAx, zero
+`Classical.choice`).  The stub is deleted per the promotion rule
+(never duplicated); the Claims battery line for this claim moved
+to the card. -/
 
 /-! ## §1C. The bare-cargo tier — support retired to the generic kit
 
@@ -152,7 +159,6 @@ classification card at promotion.  The remaining claim stubs
 carry `sorryAx` by design — the layer's whole debt ledger on one
 row each, priced above. -/
 
-#print axioms sameOrbit_factor
 #print axioms walk_to_steps
 #print axioms steps_to_walk
 #print axioms dumbSpan_iff_exchange
