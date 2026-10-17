@@ -36,7 +36,8 @@ boundary data.  KEPT —
 `drawR`/`tabToFoundR`/`foundToTabR`/`tabToTabR` and the
 negation-free oracle `reversibleOf` (the inside-flip; the
 commit-polarity originals retired), and the journey letters
-`FlatStep`/`FlatPath`/`CargoPath`/`Journey`.  PENDING — everything
+`FlatStep`/`FlatPath`/`CargoPath`/`Journey`, and the detection
+pair `forkState`/`ForkWitness`.  PENDING — everything
 in the annex below.
 
 ## §1. PLAY-TAXONOMY COUNTERS (live, ported)
@@ -330,6 +331,40 @@ inductive Journey : State → State → Prop
       Journey w u'
 
 /-!
+## §4.5. THE TWIN INVOLUTION ON CARDS  (live, KEPT 2026-10-17)
+-/
+
+/-- **Card.twin c** — the twin relabeling on cards: every card's
+suit becomes its same-color twin.  PORTED VERBATIM from
+`Orig/Twin.lean:33` (the one-liner is registry-owned rather than
+seam-carried — the `Orig.Twin` module's transitive imports
+collide with the registry's `reversibleAtW`; the involution
+lemmas ride at the Claims layer when needed). -/
+def Card.twin (c : Card) : Card := ⟨c.suit.twin, c.rank⟩
+
+/-!
+## §5. THE DETECTION  (live, KEPT 2026-10-17)
+-/
+
+/-- **forkState st** — THE DETECTION, the maneuver-stable S-grade:
+the pair-saturation iff at the {slide · raise} grade, plus the
+orientation pin (the twin blocked under cargo).  PORTED VERBATIM
+from `Orig/MacroInternal.lean:1193`.  NOTE (the witness-only
+regime's detection side): the RETIRED weak grade does not re-enter
+here — the falsifier family that separated the two grades stays
+archived, and new detection-adjacent rows speak this shape. -/
+def forkState (st : State) : Prop :=
+  ∃ x, (∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c) ∧
+       ¬ CanRaise st x.twin
+
+/-- **ForkWitness st x** — the per-witness parcel of the
+detection: `x` names the S-live pair (up to the twin flip) and its
+twin is vanilla-blocked.  PORTED VERBATIM from
+`Orig/PairName.lean:27`. -/
+def ForkWitness (st : State) (x : Card) : Prop :=
+  (∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c) ∧ ¬ CanRaise st x.twin
+
+/-!
 # THE REVIEW ANNEX — pending adjudication
 
 The old tier's remaining main vocabulary.  Verdict slots open; no
@@ -372,13 +407,6 @@ conjugate-composite family), the semantic commitment pair
 `irreversibleAt`/`reversibleAt` (the witness-only regime), and the
 commit-polarity shape originals `drawIrr`/`tabToFoundIrr`/
 `foundToTabIrr`/`tabToTabIrr`/`irreversibleOf` (the inside-flip).
-
-## PENDING — detection
-
-* `forkState` (`Orig/MacroInternal.lean:1193`) and `ForkWitness`
-  (`Orig/PairName.lean:27`) — the S-grade pair and its per-witness
-  parcel.
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 
 ## PENDING — frontier vocabulary (layer 3-5, restated at their
 migration cards)

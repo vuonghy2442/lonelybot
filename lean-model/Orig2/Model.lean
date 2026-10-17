@@ -12,8 +12,11 @@ the run algebra (`Orig.Play`) — everything beneath the
 class-grade content, certified and shared with the frozen `Orig`
 tier.  The reversibility carrier was seam-carried from `Orig.Fate`
 until the 2026-10-17 review: it is now registry-owned
-(`Orig2/Vocab.lean` §1.5, ported verbatim from `Orig/Fate.lean:92`),
-so the seam is exactly the certified game core.
+(`Orig2/Vocab.lean` §1.5, ported verbatim from `Orig/Fate.lean:92`).
+`Card.twin` joins it at §4.5 (the twin module `Orig.Twin` is NOT
+seam-carried — its transitive imports would collide with the
+registry's carrier; the one-line involution is registry-owned
+instead), so the seam is exactly the certified game core.
 
 Everything above this file (the class notion, witness journeys,
 detection, censuses, the programs) is defined FRESH inside `Orig2`
