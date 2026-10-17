@@ -136,8 +136,11 @@ indexes the proved library only.
   `forkPair_not_twoColors_state` / `forkPair_not_twoRanks_state`
   (`Orig/ForkStateUniq.lean`) pin the witness to *equality* and bar
   two-color / two-rank cohabitation at one state, four lines each.
-  The naive unique-card version of the S-package is REFUTED on
-  record (`forkState_unique_refuted` — see CHALLENGES.md).
+  The naive class-face-uniqueness version is REFUTED on record
+  (the G2 craft — see CHALLENGES.md; the negation row
+  `forkState_unique_refuted` itself was retired at the 2026-10-17
+  stale-grade strike, its statement having targeted the retired
+  weak grade).
 
 ## 2. The exile laws (tonight's engine: reuse these before re-deriving)
 
@@ -229,8 +232,8 @@ indexes the proved library only.
   `journey_raise_shape`, `journey_raise_seatUnfounded` — what a
   witness journey can never contain; plus
   **`shuffle_hiddenPinned`** (the hidden-zone pin) and
-  **`forkState_unique_refuted`** / `forkState_content_of_rungsAgree`
-  (the uniqueness family).
+  **`forkState_content_of_rungsAgree`** (the conditional G2′
+  content head of the retired uniqueness family).
 - **`canRaiseS_iff_or`** — `Orig/ForkStateS.lean` —
   `[propext, Quot.sound]`
   The readable disjunctive license:

@@ -1,12 +1,18 @@
 import Orig.MacroInternal
 
 /-!
-# Orig.ForkStateUniq — the ForkState Uniqueness Theorem
+# Orig.ForkStateUniq — the mate-face and king-shuffle machinery
 
-The last big mathematical content of the fork program: **if one
+THE RETIRED NAMESAKE (truespeaked 2026-10-17, the old ad-hoc
+uniqueness-via-conjugate card): the claim — **if one
 `weakForkState` exists in a macro class, then the only forkStates of that
 macro class are the conjugate weakForkState, up to bare cargo exchange
-(`CargoPath` connected)** — the two parts of the user's formulation:
+(`CargoPath` connected)** — is REFUTED at theorem grade (the G2
+craft, `Orig/ForkStateUniqGate`; the negation row itself retired
+at the 2026-10-17 stale-grade strike, the verdict on ledger
+record — CHALLENGES.md REFUTED tier).  What stands, and what the
+class-grade program consumes, is the formulation's own route
+banked as machinery, both parts PROVED:
 
 * **Part 1 (non-king pairs)** — the mate face is the SLID STATE: the
   covering cargo's run, one direct reversible `tabToTab`, flips the
@@ -29,10 +35,12 @@ macro class are the conjugate weakForkState, up to bare cargo exchange
   connected (`KingVacWalk`, `kingVacWalk_cargoPath`).
 
 The uniqueness head itself is no longer carried by this file:
-refuted at theorem grade exactly as originally stated — the gate
-file's falsifier (`Orig.ForkStateUniqGate.forkState_unique_refuted`)
-is the honest row; the two parts' machinery below is what the
-class-grade program consumes.
+refuted at theorem grade exactly as originally stated (the gate
+file's negation `forkState_unique_refuted` landed 2026-10-11 and
+was RETIRED at the 2026-10-17 stale-grade strike — it fenced the
+retired `weakForkState` grade; the verdict stays on ledger
+record, CHALLENGES.md REFUTED tier); the two parts' machinery
+below is what the class-grade program consumes.
 
 The in-tree interface (`Orig.MacroInternal`) is mirrored, never
 redefined: `weakForkState`, `conjugateForkState`, `CargoPath`,

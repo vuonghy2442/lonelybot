@@ -114,12 +114,23 @@ for the record with resolutions noted.)**
 
 ## REFUTED — never retry
 
-- `forkState_unique_refuted` (`Orig/ForkStateUniqGate.lean:354`) —
-  the naive "one state has a unique fork witness" card-uniqueness:
-  false because the twin co-witnesses (both orientations satisfy the
-  S-package). The honest forms are `forkState_pairUnique` (unique
-  CELL, up to twin) and the bare-select equality
-  `forkPair_not_twoColors_state`/`_twoRanks_state`.
+- weak-grade class-face-uniqueness — REFUTED 2026-10-11 (negation row
+  `forkState_unique_refuted`, retired at the 2026-10-17 stale-grade
+  strike): `forkState_unique` as then stated (same class + both
+  witnesses ⇒ `FaceShape`) is FALSE by the G2 craft — same witness
+  pair {5♥, 5♦}, same orientation, spade rungs 5 vs 6, so neither
+  `FaceShape` grade connects (cargo legs rung-flat, the conjugate
+  composite net-flat).  The statement targets the RETIRED
+  `weakForkState` detection (the ca78844 S-grade migration; the
+  craft's endpoints are NOT forkStates), so the fence reads: never
+  retry class-face-uniqueness at the weak grade, and at any stronger
+  grade first price the G2 mechanism — a flat cargo leg un-blocking
+  a covered next-up's raise.  Evidence rows stay in-tree
+  (`Orig/ForkStateUniqGate.lean` §1: the craft boards +
+  `forkGate_strict_head_false`); the S-GRADE class-uniqueness
+  question is OPEN.  The per-state honest forms stand PROVED:
+  `forkState_pairUnique` (unique, up to twin) and the bare-select
+  equality `forkPair_not_twoColors_state`/`_twoRanks_state`.
 - ForkSpectrumProof's two `_complete_*` rows — INTENTIONALLY sorry'd
   refuted-residue records; the salvage is the statement-family
   lesson (foundation-flat generator languages cannot reach

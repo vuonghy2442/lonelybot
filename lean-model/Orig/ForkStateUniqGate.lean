@@ -14,9 +14,19 @@ task's G2 head — *two same-class `weakForkState`s witnessing the SAME
 pair have equal rungs on every non-pair suit, the strict invariant
 `rungAt st₁ s = rungAt st₂ s`* — is **REFUTED at theorem grade by a
 WF craft**, and with it the assembled in-tree statement of
-`forkState_unique` itself (which this file disproves exactly as
-stated, at BOTH grades of the corrected cross-bridge `FaceShape`
-of 07247ec, all its premises satisfied).  The mechanism the sketch
+`forkState_unique` itself (disproved at BOTH grades of the
+corrected cross-bridge `FaceShape` of 07247ec, all premises
+satisfied).  STALE-GRADE RETIREMENT (2026-10-17, the owner's
+cleanup): the negation ROW `forkState_unique_refuted` that landed
+here is STRUCK — its statement fences only the RETIRED
+`weakForkState` detection (the ca78844 S-grade migration; the
+G2 craft's endpoints are weak-grade detections but NOT
+forkStates — `Orig.MacroInternal`'s def record), so the live
+S-grade class-uniqueness question is untouched and OPEN.  The
+fence's evidence all stays: the craft boards, the witness/census
+heads, `forkGate_strict_head_false`; the verdict itself remains
+on ledger record (CHALLENGES.md, REFUTED tier — never retry at
+the weak grade).  The mechanism the sketch
 never priced: the maximality `∀ c, CanRaise st c ↔ c = x` pins
 licenses at the FIXED arrangement, but the MACRO CLASS may contain
 a flat cargo leg that relocates the witness off a next-up card it
@@ -51,9 +61,11 @@ two-grade `FaceShape` case split added to the refutation head.)
   endpoints WF, both `weakForkState` with witness 5♥ (the license
   census, decided over the full 52-card universe through the banked
   `canRaiseB` bridge), the pair suits pinned at both, and the
-  spade rung moved 5 → 6.  The heads: the strict-G2 negation, and
-  `forkState_unique`'s own statement negated (consuming
-  `cargoPath_rungs` for the `FaceShape` impossibility).
+  spade rung moved 5 → 6.  The surviving public heads: the craft's
+  witness/census rows and the strict-G2 negation (the in-tree row's
+  own statement negated — it consumed `cargoPath_rungs` for the
+  `FaceShape` impossibility — was the 2026-10-17 stale-grade
+  retirement's strike; the verdict stays on ledger record).
 * §2 THE SURVIVORS — the transport rows that DO hold and are the
   honest machinery a repaired uniqueness statement will consume:
   the journey-letter census (waste moves and reveal-shaped lifts
@@ -337,41 +349,13 @@ theorem forkGate_strict_head_false :
     have := forkGate_spade_climbed
     omega
 
-/-- **THE IN-TREE MAIN ROW IS FALSE AS STATED** — `forkState_unique`
-(all its premises satisfied by the craft) cannot close at EITHER
-grade of the corrected cross-bridge `FaceShape` (07247ec): the
-same-face grade's cargo legs preserve all rungs (`cargoPath_rungs`,
-§1 of `Orig.ForkStateUniq`), and the cross-face grade composes the
-physical-swap composite (net-flat on every foundation: raise +1 on
-x's suit, the `tabToTab` slide flat, the pull −1 back — the §4
-loose-shape row `conjugate_endpoint_netflat`, whose `∃ d` absorbs
-the correction's `d := x.twin` verbatim) with a cargo walk (flat) —
-yet the spade rung moved 5 → 6 between the two craft endpoints.
-The residue under the in-tree row was a false conjunct, not a
-missing lemma; the honest repair needs class-grade fork hypotheses
-(the §2 survivors below carry the machinery a repaired statement
-will consume). -/
-theorem forkState_unique_refuted :
-    ¬ (∀ (C : SameOrbit) (st₁ st₂ : State), st₁.WF → st₂.WF →
-        weakForkState st₁ → weakForkState st₂ →
-        classOf C st₁ → classOf C st₂ → FaceShape st₁ st₂) := by
-  intro h
-  obtain ⟨C, hc1, hc2⟩ := forkGate_corbit
-  have hfs := h C cell mate forkGate_cell_wf forkGate_mate_wf
-    forkGate_cell_fork forkGate_mate_fork hc1 hc2
-  have hmove : rungAt cell Suit.spade + 1 = rungAt mate Suit.spade :=
-    forkGate_spade_climbed
-  rcases hfs with hcp | ⟨z, hconj, hcpz⟩
-  · have hsame := cargoPath_rungs hcp Suit.spade
-    omega
-  · obtain ⟨x, ba, bb, st₁, st₂, -, hr, hs, hp⟩ := hconj
-    have hnet := conjugate_endpoint_netflat (w := z) (x := x)
-      ⟨x.twin, ba, bb, st₁, st₂, hr, hs, hp⟩
-    have hz : rungAt z Suit.spade = rungAt cell Suit.spade := by
-      show (z.found Suit.spade).length = (cell.found Suit.spade).length
-      rw [hnet Suit.spade]
-    have hcross := cargoPath_rungs hcpz Suit.spade
-    omega
+/-! **THE STRICT-G2 NEGATION** (the surviving refutation head after
+the 2026-10-17 stale-grade retirement of the in-tree row's own
+negation — that struck row's record: the G2 craft satisfied every
+premise of `forkState_unique` as then stated over the RETIRED
+`weakForkState` grade while no `FaceShape` grade connected the
+endpoints; see CHALLENGES.md). -/
+
 
 /-! ## §2. The survivors — the transport machinery a repaired statement will consume
 
@@ -707,8 +691,10 @@ theorem forkState_content_of_rungsAgree {st₁ st₂ : State}
 `#print axioms` per fresh head — expected `[propext]` or
 `[propext, Quot.sound]` (the class/head rows carry `Quot.sound`),
 zero `Classical.choice` (every split rides `Decidable.em` or
-kernel-decided census rows), zero `sorry`: the refutation is a
-constructed counterexample, not a gated row. -/
+kernel-decided census rows), zero `sorry`: the strict negation is
+a constructed counterexample, not a gated row (the retired
+refutation head's battery line went with it at the stale-grade
+strike). -/
 
 #print axioms forkGate_class
 #print axioms forkGate_corbit
@@ -719,7 +705,6 @@ constructed counterexample, not a gated row. -/
 #print axioms forkGate_rungs_stay
 #print axioms forkGate_spade_climbed
 #print axioms forkGate_strict_head_false
-#print axioms forkState_unique_refuted
 #print axioms journey_never_wasteToFound
 #print axioms journey_never_wasteToTab
 #print axioms journey_tabToFound_never_reveal
@@ -728,4 +713,3 @@ constructed counterexample, not a gated row. -/
 #print axioms journey_raise_seatUnfounded
 #print axioms shuffle_hiddenPinned
 #print axioms forkState_content_of_rungsAgree
-
