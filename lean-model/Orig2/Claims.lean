@@ -116,10 +116,23 @@ theorem chart_round_trip (st w : State) (h : chartAgree st w) :
     st = w := by
   sorry
 
-/-- **CLAIM `chart_tabToTab`** — the UPDATE row: one pair change,
-nothing else in the world moves. -/
+/-- **CLAIM `chart_tabToTab` (RE-GATED)** — the UPDATE row: one pair
+change, nothing else in the world moves.  RE-GATING PROVENANCE
+(2026-10-17): the ungated form (`hstep` alone) was REFUTED by the
+floater-ladder probe's kernel witness (`Temp/float_check.lean`'s
+private `chart_tabToTab_ungated_false`, battery [propext]): (i)
+at wild states a duplicated mover breaks the successor search;
+(ii) a non-reversible fired slide reveals a hidden card and
+materializes its seat (`none → some (.inl a)`), breaking the point
+edit and `boardFixed` alike.  The WF gate (occurrence uniqueness)
+kills (i); the reversibility gate (whose bare cell carries
+`hidden = []`) kills (ii).  The `reversibleAtW` form rides the
+certified per-letter row; the sibling chart rows carry analogous
+gates at their own discharge. -/
 theorem chart_tabToTab {st s' : State} {c : Card} {b : Base}
-    (hstep : State.step st (Move.tabToTab c b) = some s') :
+    (hwf : st.WF)
+    (hstep : State.step st (Move.tabToTab c b) = some s')
+    (hrev : reversibleAtW st (Move.tabToTab c b)) :
     (∀ x, seatOf s' x = if x = c then some b else seatOf st x) ∧
     boardFixed st s' ∧ foundsFixed st s' ∧
     drawPool st = drawPool s' ∧ cutOf st = cutOf s' := by
