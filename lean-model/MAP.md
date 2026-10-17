@@ -34,7 +34,8 @@ CHALLENGES.md).
 
 **S3 — fork-cell algebra & detection**:
 `PositionSeat` `RunOrTwin` `ForkStateSB` `ForkStateS` `ForkWeaker`
-`PairName` `ForkStateUniq` `ForkStateUniqGate` `ForkSpectrumProof`
+`PairName` `ForkStateUniq` `ForkStateUniqGate`
+(`ForkSpectrumProof` retired at the 2026-10-17 cleanup)
 `ConeCrossarm` `SConjugate` `SWRotInert` `ConjugateProof`
 Key rows: `canRaiseS_iff`, the witness pins, intra-state uniqueness
 in both strengths, the cargo-transport fixity family, the decidable

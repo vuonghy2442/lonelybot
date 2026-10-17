@@ -131,10 +131,14 @@ for the record with resolutions noted.)**
   question is OPEN.  The per-state honest forms stand PROVED:
   `forkState_pairUnique` (unique, up to twin) and the bare-select
   equality `forkPair_not_twoColors_state`/`_twoRanks_state`.
-- ForkSpectrumProof's two `_complete_*` rows — INTENTIONALLY sorry'd
-  refuted-residue records; the salvage is the statement-family
-  lesson (foundation-flat generator languages cannot reach
-  different-rung forkStates; add a raise letter).
+- The FORK-SPECTRUM completeness family (`forkSpectrum_complete`,
+  `_locked`/`_mod_phase`, the 2026-10-11 falsifier card) — REFUTED,
+  then RETIRED at the 2026-10-17 cleanup: the unconsumed leaf
+  `Orig/ForkSpectrumProof.lean` was DELETED together with the
+  in-tree `ForkSpectrum` block (session record: FARM_MEMORY.md).
+  The fence stands: never retry as stated — the salvage is the
+  statement-family lesson (foundation-flat generator languages
+  cannot reach different-rung forkStates; add a raise letter).
 - HostCensus's predecessor mirror kit — superseded and FALSE in
   wild generality (a miscounted wild foundation admits reversible
   foundToTab legs whose one-move undo dies); the pullEscape-grade

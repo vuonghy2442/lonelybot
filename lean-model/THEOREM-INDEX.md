@@ -33,8 +33,7 @@ indexes the proved library only.
   forkState_witness_canRaise, forkStateSB_true_iff, forkWitnessB,
   forkWitness, forkWitness_sound
 - §5b fixity & transport: cargoPath_rungs, cargoPath_class,
-  conjugate_endpoint_netflat, conjugate_endpoint_witness,
-  forkSpectrum_rungsFlat, forkSpectrum_keepsPhase
+  conjugate_endpoint_netflat, conjugate_endpoint_witness
 - §5c slab-forms: twin_slab_tableau, slabForms_split,
   slabForms_inclass, slabForms_bothFounded_barred
 - §6 journeys: step_wf, witness_rung_census, witness_tuple_census,
@@ -244,7 +243,7 @@ indexes the proved library only.
   `[propext, Quot.sound]`
   `forkState st → weakForkState st` with the same witness, rung pins
   traveling free — connects S-grade detection to the whole weak-class
-  book (mate, conjugation, spectrum) in one cite.
+  book (mate, conjugation) in one cite.
 - **`forkState_witness_canRaise`** — `Orig/ForkWeaker.lean` —
   `[propext, Quot.sound]`
   The two-conjunct parcel alone forces `CanRaise st x` for the
@@ -258,12 +257,11 @@ indexes the proved library only.
 
 ## 5b. Cargo transport and the fixity laws
 
-The cargo-transport cluster (`Orig/ForkStateUniq.lean`,
-`Orig/ForkSpectrumProof.lean` — `cargoPath_foundCongr`, `cargoPath_class`,
-`cargoPath_sameClass`, `cargoPath_keepsPhase`, `kingVacWalk_cargoPath`,
-and the non-vacuity embeddings `faceShape_spectrum`, `slidMate_spectrum`,
-`kingVacWalk_spectrum`) is uniformly fully proved — cite the family
-rather than re-deriving:
+The cargo-transport cluster (`Orig/ForkStateUniq.lean` —
+`cargoPath_foundCongr`, `cargoPath_class`, `cargoPath_sameClass`,
+`kingVacWalk_cargoPath`) is uniformly fully proved — cite the family
+rather than re-deriving (the former spectrum fixity rows retired with
+`Orig/ForkSpectrumProof.lean` at the 2026-10-17 cleanup):
 
 - **`cargoPath_rungs`** — `Orig/ForkStateUniq.lean` —
   `[propext, Quot.sound]`
@@ -279,16 +277,6 @@ rather than re-deriving:
   `[propext, Quot.sound]`
   The composite's raiser IS the iff-named witness (`y = x`) — the pin
   separating the conjugate composite from the mate.
-- **`forkSpectrum_rungsFlat`** — `Orig/ForkSpectrumProof.lean` —
-  battery-clean
-  `ForkSpectrum st w → ∀ σ, rungAt w σ = rungAt st σ` — the
-  height-tuple fixity over the whole generator closure; any
-  rung-stated invariant transports along the spectrum for free.
-- **`forkSpectrum_keepsPhase`** — `Orig/ForkSpectrumProof.lean` —
-  battery-clean
-  `ForkSpectrum st w → w.waste = st.waste ∧ w.stock = st.stock ∧
-  w.drawStep = st.drawStep` — the phase-fixity invariant beside the
-  tuple; any phase-sensitive completeness repair consumes this.
 
 ### 5c. The slab-forms equivalence: below-forkstate in two languages
 

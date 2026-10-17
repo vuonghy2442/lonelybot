@@ -1772,101 +1772,19 @@ orbits; all other state-difference is cargo within each orbit. -/
 def FaceShape (w w' : State) : Prop :=
   CargoPath w w' ∨ ∃ z, conjugateForkState w z ∧ CargoPath z w'
 
-/-! ## §7. THE FORK-STATE SPECTRUM (the user's simplified characterization)
-
-THE THREE GENERATORS: the game's OWN rules are the only constraint
-—the foundation-stack discipline already prevents worrying back.
-The spectrum of all forkStates of a class is the closure under
-three named structural generators:
-
-1. TWIN SWAP: conjugateForkState (the pair swap, always when
-   the seat precondition holds)
-2. PARENT SWAP: the (x+1) under-seat cards trade between twins
-   — sometimes, when the alternating-color condition is right
-3. CARGO SWAP: CargoPath (the reversible-cargo closure, always)
-
-THE COMPLETENESS CLAIM — RETIRED (refuted 2026-10-11, truespeaked
-2026-10-17): every weakForkState of the class in this
-three-generator closure is FALSE — all three generators are
-foundation-flat, and the G2 craft carries same-class witnesses
-whose NON-PAIR rungs differ (the missing raise letter the
-refutation named; the statement-family lesson on ledger record,
-CHALLENGES.md: add a raise letter).  `ForkSpectrumProof.lean`
-holds the refuted-residue records; the inductive below stays as
-the closure vehicle those fences read at. -/
-
-/-- The fork spectrum: the closure of a starting weakForkState under
-the three generators — the twin swap bridge + the parent swap
-and the cargo closure within and across the bridge.  Read at the
-states where the weakForkState detection fires. -/
-inductive ForkSpectrum : State → State → Prop
-  | base (st : State) : ForkSpectrum st st
-  | twinSwap {st w w' : State}
-      (hc : conjugateForkState st w)
-      (t : ForkSpectrum w w') : ForkSpectrum st w'
-  | parentSwap {st w w' : State}
-      (hp : st = w ∧ True) -- DOCUMENTATION-ONLY stub (cecab21; the honest
-      -- realizations both bypass this premise: the cargo-composite route
-      -- (ForkSpectrumProof §3's ParentSwapShape via the cargo constructor)
-      -- and the foundation route (the conjugate letter instantiated one
-      -- rank up, raise-parent·ride·pull-back — the letter is rank-generic).
-      -- Upgrade = mild flatness/wf churn with no semantic gain; leave
-      -- stubbed with this pointer.
-      (t : ForkSpectrum w w') : ForkSpectrum st w'
-  | cargo {st w w' : State}
-      (h : CargoPath st w)
-      (t : ForkSpectrum w w') : ForkSpectrum st w'
-
-/-- **THE SPECTRUM COMPLETENESS — REFUTED AT BOTH GRADES (see
-`Orig.ForkSpectrumProof`)**: every weakForkState of the class in the
-three-generator closure, FALSE AS STATED — the third landing (rung) and
-the fourth (phase) of the falsifier family.  The honest repairs live in
-the proof leaf: `forkSpectrum_complete_locked` (strong premises, tuple
-+ phase locks, the named G1/G3/bracket gates it leaves behind) and
-`forkSpectrum_complete_mod_phase` (the compatibility form, SWComp
-tail) — both landing sites of the genuinely-open classification
-content.  The on-record refutation heads:
-`forkSpectrum_complete_refuted` (`Orig/ForkSpectrumProof.lean:189`)
-and `forkSpectrum_complete_locked_refuted` (:763 there).  This stub's
-sorry stays as the honest witness of the row-as-stated, per the house
-REFUTED discipline (never retry as stated). -/
-theorem forkSpectrum_complete (st : State) (hwf : st.WF)
-    (hfs : weakForkState st) (w : State)
-    (hcls : sameOrbitSetoid.r st w) (hwfs : weakForkState w) :
-    ForkSpectrum st w := by
-  sorry
-
-/-! ## §7. THE FORK-STATE SPECTRUM (the user's simplified characterization)
-
-THE THREE GENERATORS: the game's OWN rules are the only constraint
-(the foundation-stack discipline already prevents worrying back —
-foundToTab only pops the current top).  The spectrum of all
-forkStates of a class is the closure under three named structural
-generators — no artificial move-language restriction:
-
-1. TWIN SWAP: conjugateForkState (the pair trade positions,
-   taking each other's under-seat, the covering following)
-2. PARENT SWAP: the (x+1) under-seat cards trade between the
-   twins' two piles — sometimes available (the positive color
-   check: both (x+1)s must fit the alternating-color discipline
-   at the traded positions — one from each opposing color)
-3. CARGO SWAP: CargoPath (the full reversible-cargo closure)
-
-The COMPLETENESS theorem: every weakForkState of the class is in this
-three-generator closure from any starting forkState.  The proof:
-raise-pull pair cancellation + the game's stack discipline
-(buried non-pair cards can't come back — the rank-ordered stack
-is the autonomous restriction). -/
-
-/-- The parent swap: the (x+1) under-seat cards of the twins'
-piles trade positions.  Occurs when the color discipline permits
-it (the two (x+1) cards are from opposite-color families and
-neither violates the stacking fit at the swapped position). -/
-/- The parentSwap concept is carried by the ForkSpectrum.parentSwap
-constructor: the (x+1) trade between the twins' piles when the
-alternating-color discipline permits. Its full formalization (the
-fit-side conditions, the tabToTab composite semantics) is the
-spectrum card's territory. -/
+/- THE FORK-STATE SPECTRUM — RETIRED (the 2026-10-17 cleanup): the
+`ForkSpectrum` inductive and the `forkSpectrum_complete` stub are
+DELETED — the completeness row was refuted and sealed at both grades
+(2026-10-11, the third landing (rung) and the fourth (phase) of the
+falsifier family), and the unconsumed proof leaf
+`Orig/ForkSpectrumProof.lean` was deleted with them.  The never-retry
+fence stays at CHALLENGES.md (the statement-family lesson: a
+foundation-flat generator language cannot reach different-rung
+forkStates; add a raise letter); the session record at
+FARM_MEMORY.md.  The generators stay in-tree under their own names:
+`conjugateForkState` (the twin swap), `CargoPath` (the cargo
+closure), and the §9 composites (`conjugateCompositeRev`) the
+living rows read. -/
 
 inductive CanonFace (u w : State) : Prop
   | benign (hwf : u.WF) (hfin : Final w) (hw : w = canon u)
@@ -1967,13 +1885,14 @@ died with the posKey stub; CanV3's own key rows are the public home. -/
 
 FLAGGED rows (2026-10-17 sorry-map truing: the pre-redesign `canusList`
 carrier and its consumer rows were DELETED with the shape-first
-redesign and no longer exist): the current sorry surface is 24
+redesign and no longer exist; the 2026-10-17 spectrum cleanup
+likewise deleted the `forkSpectrum_complete` stub — the retirement
+note sits at the former §7): the current sorry surface is 23
 tactic-level sorries in five tiers — the blocked floor row
 (`founded_implies_atRung`, envelope-gated); the fiber/orbit tier
-(`fiber_iff_flat`, `finals_topFibers`); the conjugate/spectrum rows
+(`fiber_iff_flat`, `finals_topFibers`); the conjugate row
 (`conjugate_forkState` — the seat-less shape refuted at the probe
-grade, see its docstring; `forkSpectrum_complete` — REFUTED as
-staged); the fork dossier (`forkedCard_iff_forkPoint`,
+grade, see its docstring); the fork dossier (`forkedCard_iff_forkPoint`,
 `forkPoint_classifies`, `fork_threeCases`, `fork_threeCards`,
 `afterFork_fewFinals`, `afterFork_neckReachable`, `forkPoint_trial`'s
 exposure tail, `unionable_iff_unionTuple`, `fork_iff_nonUnionable`,
