@@ -139,6 +139,21 @@ for the record with resolutions noted.)**
   The fence stands: never retry as stated — the salvage is the
   statement-family lesson (foundation-flat generator languages
   cannot reach different-rung forkStates; add a raise letter).
+- The DESCENT STALL-CERTIFIES-FLOOR row (`descent_stall_certifies_floor`,
+  `Orig/ForkDescent` §3) — REFUTED TWICE OVER by independent
+  certified families (2026-10-13: the buried-host expose-raise
+  board `descent_stall_refuted`, and the one-seat/two-consumers
+  contention board `descent_stall_refuted_contention`), then
+  RETIRED at the 2026-10-17 supersession cleanup (owner request):
+  the sorry'd row and its route dossier were removed as superseded
+  by the reformulated DESCENT CERTIFICATE — at-or-below-frontier
+  at fork-headed classes (the `Orig/ForkDescentProbe` ladder:
+  `descent_stuck_below_frontier`, `descent_stuck_twin_floor`, the
+  γ `descent_stuck_foundTotal_floor`, the route
+  `descent_elevated_unstuck`).  Both certified boards stay in-tree
+  as boundary data; the repair grades (α inf-split, β
+  host-inventory, γ sum-floor) stay priced.  The fence: never
+  retry the all-suits componentwise floor at the frozen statement.
 - HostCensus's predecessor mirror kit — superseded and FALSE in
   wild generality (a miscounted wild foundation admits reversible
   foundToTab legs whose one-move undo dies); the pullEscape-grade

@@ -85,12 +85,16 @@ classes from floor to fork.
   host, two stalled maximal descents that are class-mates, each
   certificate contradicting the other's existence per-suit; NO
   buried host, so the buried-host-strengthening repair is killed
-  too).  The honest repairs are catalogued in §3.R2: the INF-GRADE
-  α-restatement (staged as the draft `TwoStallResourceSplitFloor`
-  for owner ratification, NOT proved, refuted row NOT rewritten),
-  the PREMISE-GRADE β host-inventory, and the SUM-GRADE γ additive
-  floor.  The residue keeps its sorry and its [H, REFUTED] grade
-  with both families on record.
+   too).  The honest repairs are catalogued in §3.R2: the INF-GRADE
+   α-restatement (staged as the draft `TwoStallResourceSplitFloor`
+   for owner ratification, NOT proved, refuted row NOT rewritten),
+   the PREMISE-GRADE β host-inventory, and the SUM-GRADE γ additive
+   floor.  RETIRED at the 2026-10-17 supersession cleanup (owner
+   request): the sorry'd row and its route dossier were REMOVED as
+   superseded by the reformulated frontier certificate (the probe
+   ladder's at-or-below-frontier drafts); the fence is banked at
+   CHALLENGES.md's REFUTED tier, and both certified families stay
+   on record at §3.R/§3.R2 below.
 * **§4 THE COMPOSITE** (route note only) — `s` reachable ⇒ descent
   reaches the class-minimal rung-floor componentwise, therefore ≤
   every member; the Unstack-then-Ascent composition hands off to
@@ -109,10 +113,11 @@ and `witness_leg_mint_confined` via `Orig/HostCensus.lean`); every
 private kit row a dedup-cited per-file copy; BOLD names with
 grades; `#print axioms` battery for every fresh head; zero
 `Classical.choice` (all splits on `Bool` / `Option` / decidable
-`by_cases` reads and constructor mismatches; `exfalso`/`absurd`
-before `omega` at non-arithmetic goals); the single `sorry` is §3's
-named residue with its complete route — NEVER-force, no premise
-smuggled to save it. -/
+  `by_cases` reads and constructor mismatches; `exfalso`/`absurd`
+  before `omega` at non-arithmetic goals); the leaf is ZERO-`sorry`
+  since the 2026-10-17 retirement of §3's refuted residue (once the
+  single named sorry — NEVER-force, no premise smuggled to save
+  it; the fence and boards on record). -/
 
 /-! ## §0. The script — the step relation and the pick engine -/
 
@@ -768,149 +773,24 @@ theorem descent_stuck_seatExhausted {W : State} {c z : Card} {a : Anchor}
       exact hstuck (Move.foundToTab c (Sum.inr z))
         ⟨c, Sum.inr z, rfl, htop, hcp⟩
 
-/-- **THE STALL-CERTIFIES-FLOOR RESIDUE** `descent_stall_certifies_floor`
-[H — THE NAMED RESIDUE of this leaf] — the floor claim: if a
-maximal descent stalls with the suit σ at rung `h = rungAt W σ`,
-then NO class member has that suit below `h` — the stall itself
-CERTIFIES the class's rung floor, componentwise.
-
-ROUTE (complete; every mechanical step banked in the transitive
-closure or landed in-file above; the single open weave named and
-priced; anchored EXACTLY at the census row the mission names, read
-as stated):
-
-1. **THE CLASS DIPTYCH** — the mission's §2 chain plus its WF
-   face: `descent_stays_class` welds the stall `W` into the
-   start's class (`sameOrbitSetoid.r st W`), and
-   `descent_class_wf` keeps every member WF — a hypothetical lower
-   member `u` (`rungAt u σ < h`) is therefore a WF class-mate, and
-   the weld read through the setoid's own symmetry/transitivity
-   hands the inter-member journeys BOTH ways; `sameOrbit_forward`
-   unpacks each to a forward witness shuffle: `τ : W ⇝ u`,
-   `ρ : u ⇝ W`.  (These are witness journeys, so every leg is
-   reversible and every leg origin is WF-inherited — the member
-   grade `witness_leg_mint_confined` demands.)
-2. **THE RUNG LEDGER** (banked, `Orig/BracketDecomp.lean`) —
-   `witness_rung_census` reads the σ-rungs along `τ`: the deficit
-   `d = h - rungAt u σ` is exactly the NET pull count
-   (`pullsOf τ σ - raisesOf τ σ = d`).  LANDED HERE on the
-   mechanical half: `descent_lower_member_crosses_pull` — a lower
-   member forces `τ` to carry a σ-pull leg; the full serialization
-   of the `d` pulls is the per-suit Dyck stack discipline of the
-   `Orig/BracketDecomp.lean` program (the rung-walk's own nesting),
-   cited not rebuilt.
-3. **THE CENSUS ANCHOR** — `excursion_issues_noNewSeat`
-   (`Orig/HostCensus.lean`), consumed EXACTLY as stated: the round
-   trip `W ⇝ u ⇝ W` is a RETURNED excursion; its per-cell ledger
-   reads `hostCensus u col i + journeyBurn W τ col i = hostCensus
-   W col i + journeyMint W τ col i` at EVERY (color, index) cell,
-   and the two halves' budgets CANCEL cell-for-cell over
-   `τ ++ ρ` — the arrangement profile of the stalled state is the
-   whole truth of the hosting capacity the excursion rides: a
-   returned excursion ISSUES NO NEW SEAT that the stall's
-   arrangement does not carry (with `roundtrip_census_repay` the
-   repayment half; `seatLedger_pair` / `play_census_ledger` the
-   telescoping).
-4. **THE MINT CONFINEMENT** (banked) — `witness_leg_mint_confined`
-   prices which cells each witnessing leg can mint (WF at the leg's
-   origin, step 1's grade): a σ-pull mints ONLY the pulled card's
-   own cell (σ's color at the pulled rank `j`), SPENDING the live
-   host its own `canPlace` guard demanded — the one-up
-   opposite-family cell `((σ's other family), j+1)` — burning it
-   from the base seat; raises mint only their exposed below-cards'
-   cells; slides their cargo below/landing cells.  So each of the
-   `d` σ-pulls burns a host cell the mint side must repay in kind:
-   the exact capacity arithmetic step 3 balances per cell.
-5. **THE STALLED STATE'S LACK** (LANDED HERE) —
-   `descent_stuck_seatExhausted`: at `W` NO host top fits ANY
-   current foundation top — in particular, every cell that σ's
-   remaining runs (the tops of rungs `≤ h`) would need for ANOTHER
-   pull reads EMPTY at `W` (the census-grade packaging a
-   seven-seat split away, through `hostCensus_eq_sum` and the
-   `seatInd` value rows).
-6. **THE OPEN WEAVE** [the residue's entire own content, priced] —
-   net steps 3-5 over the deficit `d`: to read σ lower at `u` the
-   journey must FIRE the `d` σ-pulls, and each of them demanded a
-   LIVE one-up opposite-family host at its leg's origin — the
-   journey must MANUFACTURE, host-by-host, the seats the stalled
-   arrangement lacks, while the returned tour repays every minted
-   cell in kind and the stall's own host cells stay empty at both
-   tour ends.  The per-kind accounting — the interleave of the
-   σ-pulls' host BURNS with the repaying mint legs (the
-   exposure/cargo cells of step 4) under the Dyck serialization of
-   step 2, at WF leg origins — is exactly the census's content, and
-   the missing piece is the global budget: the mint-and-burn
-   interleave cannot simultaneously repay the round trip (step 3)
-   and leave every pull-able host cell empty at the tour's `W`-end
-   (step 5) when `d > 0`.  NO counterexample family is on record
-   for the descent-phrased claim (the neighboring hard content is
-   `Orig/ForkFloor.lean`'s own seat-delay residue
-   `founded_late_seat_exists`, a different half); the row is priced
-   [H], NEVER forced — no premise is added to save it, the canonical
-   order and the WF grade both stay exactly as the mission states
-   them.
-
-The residue's consumers: the §4 composite note below — the floor's
-componentwise minimality is the ascent's handing premise; the
-composite's head belongs to a future leaf over both scripts.
-
-SESSION-4 VERDICT (2026-10-13, the fourth succession — REFUTED AT
-THE FROZEN STATEMENT): the step-6 weave is FALSE, and the
-counterexample family is ON RECORD at decide grade IN-FILE (§3.R
-below, `descent_stall_refuted`): a WF, maximally-unstacked stall
-(spade rung 3, sole pile top `3♣`, no licensed pull) carries a
-BURIED host `4♥` — one-deep in the face-up run `4♥ / 3♣` — that no
-pull can see; the two-leg witness journey (raise the next-up `3♣`
-— reversible, its giveback mirror onto the exposed host; then the
-σ-pull `3♠` onto the exposed `4♥` — reversible, its raise mirror)
-lands at a WF class-mate reading spade at rung 2, strictly below the
-stall's 3.  THE CANONICAL GAP, named: `descent_stuck_seatExhausted`
-pins pile TOPS only, so "every pull-able host cell reads EMPTY at
-the `W`-end" is false of a cell OCCUPIED by a buried face-up card,
-and the expose-raise mints exactly the one host cell mid-tour that
-the σ-pull burns in kind — the mint-and-burn interleave repays the
-round trip (step 3 stays satisfied), the global budget (step 6) is
-balanced, and the deficit `d > 0` is PAYABLE.  NO repair at a
-byte-frozen statement exists in-file (per the never-force
-discipline none is smuggled): the owner's options are
-statement-level, on the `lowslab_top_census` repair precedent —
-strengthen the stall read to buried-host exhaustion, or restrict
-the conclusion to pull-only witnessing journeys.  The row keeps
-its sorry — the row as stated is FALSE — and hosts at [H, REFUTED].
-
-  SESSION-4 SECOND FATE (2026-10-13, the owner's counterexample,
-  certified below at §3.R2): the row is refuted a SECOND time,
-  INDEPENDENTLY — and the repair catalog is reshaped.  THE OWNER'S
-  CONTENTION BOARD: twin red suits at equal rungs, the tableau's
-  ONE black card hosting exactly one red pull; the two maximal
-  descents fork (hearts first or diamonds first), each endpoint
-  STALLED with its consumed suit one rung down and the OTHER red
-  suit at the parent's height, and the two stalled endpoints are
-  class-mates — so each endpoint's stall certificate CONTRADICTS the
-  other's existence per-suit.  NO buried host and NO expose-raise:
-  this family is pure ONE-SEAT/TWO-CONSUMERS contention, and
-  therefore the buried-host-strengthening priced above is KILLED
-  (this board has none to exhaust).  The honest surviving repairs,
-  now exactly three, are catalogued with the board as boundary
-data: (α) INF-GRADE — the per-suit floors are class infima
-  attained SEPARATELY by the two stalled endpoints and never
-  simultaneously (STAGED as the draft def
-  `TwoStallResourceSplitFloor` below, ratification pending, refuted
-  row NOT rewritten); (β) PREMISE-GRADE — a host-inventory premise
-  (a distinct fit host per family beyond the first) under which the
-  single-stall certificate is sound (this board violates it by
-  construction); (γ) SUM-GRADE — `foundTotal W` as the additive
-  floor, consistent with both certified boards and untouched here.
-  The row stays at [H, REFUTED — TWICE OVER, by independent
-  families]. -/
-theorem descent_stall_certifies_floor {st : State} (hwf : st.WF)
-    {play : List Move} {W : State}
-    (hrun : st.run play = some W)
-    (hpulls : PullPlay play)
-    (hstuck : DescentStuck W) :
-    ∀ (σ : Suit) (u : State), sameOrbitSetoid.r st u →
-      rungAt W σ ≤ rungAt u σ := by
-  sorry
+/- THE STALL-CERTIFIES-FLOOR RESIDUE — RETIRED (the 2026-10-17
+supersession cleanup, owner request): `descent_stall_certifies_floor`
+was REFUTED TWICE at its byte-frozen statement (2026-10-13, the
+fourth succession — the buried-host expose-raise board at §3.R
+below, and the owner's one-seat/two-consumers contention board at
+§3.R2), and the sorry'd row plus its complete route dossier (the
+six-step route anchored at `excursion_issues_noNewSeat`, the
+SESSION-4 verdicts and the reshaped repair catalog, both carried
+below by the boards' own headers) were removed as SUPERSEDED: the
+owner's reformulated DESCENT CERTIFICATE — AT-OR-BELOW-FRONTIER at
+fork-headed classes, the twin-suit equality reading, the γ additive
+floor — is drafted in the probe leaf (the `Orig/ForkDescentProbe`
+ladder: `descent_stuck_below_frontier`, `descent_stuck_twin_floor`,
+`descent_stuck_foundTotal_floor`, the route `descent_elevated_unstuck`).
+The never-retry fence is banked at CHALLENGES.md (REFUTED tier);
+the two certified boards, the repair-catalog grades (α inf-split,
+β host-inventory premise, γ sum-floor), and the α draft
+`TwoStallResourceSplitFloor` below stay on record in-file. -/
 
 /-! ### §3.R. THE REFUTATION BOARD (the fourth succession's verdict)
 
@@ -1800,15 +1680,13 @@ program's own sense — `initialReachable s`, so `s.WF` by
 pull play of at most `foundTotal s` legs; §2's
 `descent_stays_class` keeps `W` in `s`'s macro class (and the
 whole journey is `sameFate`-preserving through
-`RevEqW_sameFate`, `Orig/Combine.lean`); §3's
-`descent_stall_certifies_floor` — the named residue, once it
-lands — then reads the end state as the CLASS-MINIMAL RUNG-FLOOR
-COMPONENTWISE: `rungAt W σ ≤ rungAt u σ` at every class member
-`u` and every suit σ.  The descent therefore reaches the class's
-floor, and the floor is therefore ≤ every member — the mission's
-"unstack reaches the class-minimal rung-floor componentwise,
-therefore ≤ every member", the composite's descent half in the
-two-row shape this leaf can bank.
+`RevEqW_sameFate`, `Orig/Combine.lean`); §3's floor reading — the
+all-suits residue REFUTED twice over and RETIRED at the 2026-10-17
+supersession cleanup — is now carried by the REFORMULATED ladder
+(the probe leaf's at-or-below-frontier drafts of the frontier
+certificate, once they land).  The descent therefore reaches the
+class's frontier shape, and the composite's descent half is the
+two-row shape this leaf can bank once the ladder lands.
 
 **THE ASCENT HAND-OFF** (prose citations only — `Orig/ForkAscent.lean`
 is under active repair; this file takes NO import of it): the
@@ -1849,11 +1727,13 @@ found-census rows (`descent_pull_drops`,
 `descent_reaches_floor`), the §2 chain and the census-adjacent
 §3 supports read `[propext, Quot.sound]`; the pick's soundness row
 (`descent_pick_pulls`), the schedule kit and the fuel-free
-inductions sit at `[propext]`-only.  The single `sorry` of the
-leaf is §3's `descent_stall_certifies_floor`, profile EXACTLY
-`[propext, sorryAx]` — its own named residue, NO other inflow —
-and the `sorry`-warning count of the file is exactly one: any
-change that grows either side regresses the battery.
+inductions sit at `[propext]`-only.  §3's refuted residue — the
+single `sorry` the leaf once carried at
+`descent_stall_certifies_floor`, profile EXACTLY
+`[propext, sorryAx]` — was RETIRED at the 2026-10-17 supersession
+cleanup (owner request; superseded by the probe ladder); the
+`sorry`-warning count of the file is now ZERO: any change that
+grows it regresses the battery.
 
 THE §3.R REFUTATION BOARDS (the fourth succession's additions, now
 TWO independent families): the board rows are zero-sorry at
@@ -1865,10 +1745,9 @@ the pure-`Bool`/decide rows `[propext]` or
 heads `descent_stall_refuted` (§3.R, the buried-host expose-raise)
 and `descent_stall_refuted_contention` (§3.R2, the owner's
 one-seat/two-consumers board) — each the certified negation of the
-residue's own statement — are ZERO-sorry: the residue keeps its
-sorry (the row as stated is FALSE — twice over, by independent
-families), so the sorry
-count stays exactly one and every other profile stands.  The
+retired residue's own statement — are ZERO-sorry (the row as
+stated was FALSE — twice over, by independent families), so the
+sorry count stays ZERO and every other profile stands.  The
 α-restatement is STAGED as the def `TwoStallResourceSplitFloor`
 (ratification pending — a def, no proof debt, no profile). -/
 
@@ -1900,7 +1779,10 @@ count stays exactly one and every other profile stands.  The
 #print axioms fd_pullsOf_pos
 #print axioms descent_lower_member_crosses_pull
 #print axioms descent_stuck_seatExhausted
-#print axioms descent_stall_certifies_floor
+/- the retired residue's own profile line removed with the row at
+the 2026-10-17 supersession cleanup (it once read EXACTLY
+[propext, sorryAx] — the honest witness of a FALSE statement;
+the fence and the certified boards carry the record). -/
 #print axioms fdR_st_wf
 #print axioms fdR_top_pin
 #print axioms fdR_canPlace_false
