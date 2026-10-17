@@ -1,5 +1,6 @@
 import Orig2.Model
 import Orig2.Vocab
+import Orig2.Claims
 
 /-!
 # Orig2 — THE REBUILD LIBRARY
