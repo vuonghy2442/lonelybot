@@ -513,13 +513,16 @@ pending adjudication like the rest:
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * **Slab both-suits form** — `xyBelowBoth` (`Orig/SlabForms.lean:93`).
   REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* **Canonical supports** (`Orig/Canonical.lean`) — `Stackable`
-  (321), `canRaiseB` (365), `IsRaise` (465), `suitGap`/`stackFuel`
-  (541-544), `SameMacroO` (2930).
-  (`pick`/`raise` killed with the canon family; `StackRun` killed
-  with `saturatesTo`; `drawPool` resolved to the orbit-factor
-  machinery card's private kit.)
-  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* **Canonical supports** (`Orig/Canonical.lean`) — KILLED (owner,
+  2026-10-17): `Stackable` (321), `canRaiseB` (365), `IsRaise`
+  (465), `suitGap`/`stackFuel` (541-544), `SameMacroO` (2930) —
+  the saturator-tail supports exit with the canon family they
+  rode (`CanRaise`'s own Bool probe is unnecessary in the new
+  tier; `SameMacroO` is the old setoid-mirror prose-restatement,
+  redundant at the registry's own `sameOrbitSetoid`).  Earlier
+  same-day resolutions: `pick`/`raise` killed with the canon
+  family; `StackRun` killed with `saturatesTo`; `drawPool` went
+  to the orbit-factor machinery card's private kit.
 * **Composites** (`Orig/Classify.lean`) — `WFRun` (2907).
   (The oracle tier RESOLVED with lineage: `irreversibleOf` and its
   commit-polarity companions REMOVED in favor of the inside-flip —
