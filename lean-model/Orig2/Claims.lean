@@ -80,32 +80,36 @@ cargo play is a GENERIC instance — `∃ ρ, Walk CargoLetter A ρ B`,
 realized on demand through the banked bridge `steps_to_walk` —
 and no separate name or per-instance support rows live here: the
 verbatim lineage (`Orig/ForklessCeiling.lean:100,108,118`) is
-subsumed by the generic `Walk_run`/`Walk_append` kit and the
-compat row `bareCargoEquiv_iff_play` (§1D, banked green). -/
+subsumed by the generic `Walk_run`/`Walk_append` kit, and the
+official-exchange equivalence is the CLAIM §1C-3
+(`dumbSpan_iff_exchange`) below. -/
 
 /-!
-CLAIM §1C-3 — the exchange bridge (the owner's formulation): the
-DUMB both-ways exchange and the WITNESS-grade cargo closure agree
-at WF.
+CLAIM §1C-3 — the exchange bridge, restated at the enforcement
+(owner, 2026-10-17: the exchange ENFORCES reversibility in its
+own definition — "so that it stays in class" — and this row
+carries the enforcement's real content): the RAW both-ways dumb
+spans and the official exchange agree — each leg of a both-ways
+dumb span IS reversible, by the chain composite.
 
-PRICE: (→ the easy half) `CargoPath` legs are witnesses — each
-`FlatStep.cargo` leg IS a cargo letter, so a letter-wise
-induction plus the generic `Walk_append` build the two dumb
-plays;
-(← the deep half) at WF every SURVIVING cargo leg carries its
-one-move return — the dumb play, letter by letter, lifts to the
-reversible closure.  The frozen content: the exclusion and seat
-mirror rows ride the tabToTabR shape (Claim §1A's slide half);
-the frozen insight lives in `Orig/ForklessCeiling.lean` §0a-§0d
-(the mirrors: every surviving leg's one-move return; the
-zone-fix rows give the field discipline).
+PRICE: (← the easy letter-unpack) a `CargoLeg` is the shadow
+letter with its witness — plain cons-induction builds each
+direction's dumb span; no WF needed.
+(→ the chain half) for any leg of the A→B dumb span, origin w,
+successor u, the `reversibleAtW` witness play is the composite
+suffix (u →* B) ++ reverse span (B →* A) ++ accumulated prefix
+(A →* w) — a cons-induction with a prefix accumulator over the
+BANKED generic kit (`steps_to_walk`, `Walk_append`, `Walk_run`);
+the frozen mirrors (one-move returns,
+`Orig/ForklessCeiling.lean` §0a-§0d) are finer content this row
+does not need; no WF gate.
 -/
 
-/-- **CLAIM `bareCargo_iff_cargoPath`** — the dumb exchange meets
-the witness cargo closure exactly at WF worlds. -/
-theorem bareCargo_iff_cargoPath {A B : State} (hwfA : A.WF)
-    (hwfB : B.WF) :
-    BareCargoEquiv A B ↔ CargoPath A B ∧ CargoPath B A := by
+/-- **CLAIM `dumbSpan_iff_exchange`** — the raw both-ways dumb
+spans are the official exchange, exactly. -/
+theorem dumbSpan_iff_exchange (A B : State) :
+    (Steps (StepOf CargoLetter) A B ∧
+      Steps (StepOf CargoLetter) B A) ↔ BareCargoEquiv A B := by
   sorry
 
 /-! ## §1D. The walk-steps bridge (banked green)
@@ -139,21 +143,6 @@ theorem steps_to_walk (P : State → Move → Prop) {st : State} :
       obtain ⟨m, hP, hstep⟩ := hQ
       exact ⟨m :: ρ, Walk.cons hP hstep hρ⟩
 
-/-- The dumb cargo play form, on demand through the generic
-bridges (the steps-first restate's compatibility row, banked
-green): the both-ways spans carry the both-ways dumb plays and
-conversely. -/
-theorem bareCargoEquiv_iff_play (A B : State) :
-    BareCargoEquiv A B ↔
-    ∃ τ, Walk CargoLetter A τ B ∧ ∃ ρ, Walk CargoLetter B ρ A := by
-  constructor
-  · rintro ⟨hAB, hBA⟩
-    obtain ⟨τ, hτ⟩ := steps_to_walk _ hAB
-    obtain ⟨ρ, hρ⟩ := steps_to_walk _ hBA
-    exact ⟨τ, hτ, ρ, hρ⟩
-  · rintro ⟨τ, hτ, ρ, hρ⟩
-    exact ⟨walk_to_steps _ hτ, walk_to_steps _ hρ⟩
-
 /-! ## The audit battery
 
 The single claim stub carries `sorryAx` by design — the layer's
@@ -163,5 +152,4 @@ whole debt ledger on one row, priced above. -/
 #print axioms sameOrbit_factor
 #print axioms walk_to_steps
 #print axioms steps_to_walk
-#print axioms bareCargoEquiv_iff_play
-#print axioms bareCargo_iff_cargoPath
+#print axioms dumbSpan_iff_exchange
