@@ -79,29 +79,20 @@ theorem sameOrbit_factor {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF) :
 cargo play is a legal run, and cargo plays concatenate — the
 transitivity engine of the exchange. -/
 
-/-- A cargo play is, in particular, a legal run.  PORTED VERBATIM
-from `Orig/ForklessCeiling.lean:108`. -/
+/-- A cargo play is, in particular, a legal run.  Forwarding to the
+generic kit (the walk unification); the verbatim lineage:
+`Orig/ForklessCeiling.lean:108`. -/
 theorem CargoPlay_run {st : State} : ∀ {ρ : List Move} {W : State},
-    CargoPlay st ρ W → st.run ρ = some W := by
-  intro ρ W h
-  induction h with
-  | nil s => rfl
-  | cons _ hstep _ ih =>
-      simp only [State.run, hstep]
-      exact ih
+    CargoPlay st ρ W → st.run ρ = some W :=
+  Walk_run _
 
 /-- Cargo plays concatenate (the transitivity engine of the
-closure).  PORTED VERBATIM from `Orig/ForklessCeiling.lean:118`. -/
+closure).  Forwarding to the generic kit (the walk unification);
+the verbatim lineage: `Orig/ForklessCeiling.lean:118`. -/
 theorem CargoPlay_append {a b : State} : ∀ {l₁ : List Move},
     CargoPlay a l₁ b → ∀ {l₂ : List Move} {c : State},
-    CargoPlay b l₂ c → CargoPlay a (l₁ ++ l₂) c := by
-  intro l₁ h
-  induction h with
-  | nil s => intro l₂ c h₂; exact h₂
-  | @cons st s₁ b' m ρ' hlet hstep hrest ih =>
-      intro l₂ c h₂
-      rw [List.cons_append]
-      exact .cons hlet hstep (ih h₂)
+    CargoPlay b l₂ c → CargoPlay a (l₁ ++ l₂) c :=
+  Walk_append _
 
 /-!
 CLAIM §1C-3 — the exchange bridge (the owner's formulation): the

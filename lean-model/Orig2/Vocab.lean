@@ -212,34 +212,68 @@ inductive CanRaiseS : State → Card → Prop
       (h : CanRaiseS st' c) : CanRaiseS st c
 
 /-!
-## §3. THE CLASS FOUNDATION  (live, KEPT 2026-10-17)
+## §3. THE CLASS FOUNDATION  (live, KEPT 2026-10-17; the walk
+unification restate executed the same day by owner decree —
+completed before the in-flight missions' cards rather than after,
+constructor names and statements preserved through the abbrevs)
 -/
 
+/-- **Walk P st ρ W** — THE GENERIC PLAY CLOSURE (the walk
+unification, owner restate 2026-10-17): a legal play whose every
+letter satisfies the letter predicate `P st m` at its origin.
+The list-carrying journey grades are instances of this one
+closure; the state-pair step relations (`FlatStep`/`FlatPath`/
+`CargoPath`, whose letters bind the successor state or filter by
+kind) and the letter-free `Journey` stay outside the unification,
+on shape merit. -/
+inductive Walk (P : State → Move → Prop) :
+    State → List Move → State → Prop
+  | nil (st : State) : Walk P st [] st
+  | cons {st s₁ W : State} {m : Move} {ρ : List Move}
+      (hlet : P st m) (hstep : State.step st m = some s₁)
+      (hrest : Walk P s₁ ρ W) :
+      Walk P st (m :: ρ) W
+
 /-- **ShufflePlayW** — a witness shuffle: a legal play whose every
-move carries an explicit undoubling play back to the position it was
-played from (the constructive content of `reversibleAt`).  PORTED
-VERBATIM from `Orig/Combine.lean:51`. -/
-inductive ShufflePlayW : State → List Move → State → Prop
-  | nil (st : State) : ShufflePlayW st [] st
-  | cons {st : State} {m : Move} {s₁ : State} {rest : List Move} {st' : State}
-      (hw : reversibleAtW st m) (hstep : State.step st m = some s₁)
-      (hrest : ShufflePlayW s₁ rest st') :
-      ShufflePlayW st (m :: rest) st'
+move carries an explicit undoubling play back to the position it
+was played from (the constructive content of `reversibleAt`).  The
+Walk instance at the reversibility letter.  RESTATE (owner
+unification): formerly the verbatim port of
+`Orig/Combine.lean:51`, now `Walk` applied — identical statements,
+constructor names preserved. -/
+abbrev ShufflePlayW := Walk (fun st m => reversibleAtW st m)
 
 /-- Support kit (the setoid's carrier rows — the ONE structural
-exception to definitions-only, flagged): witness shuffles
-concatenate.  PORTED VERBATIM from `Orig/Combine.lean:71`. -/
+exception to definitions-only, flagged).  Walk legs run. -/
+theorem Walk_run (P : State → Move → Prop) {st : State} :
+    ∀ {ρ : List Move} {W : State}, Walk P st ρ W → st.run ρ = some W := by
+  intro ρ W h
+  induction h with
+  | nil s => rfl
+  | cons _ hstep _ ih =>
+      simp only [State.run, hstep]
+      exact ih
+
+/-- Support kit (flagged): walks concatenate — one proof for every
+letter grade. -/
+theorem Walk_append (P : State → Move → Prop) {a b : State} :
+    ∀ {l₁ : List Move}, Walk P a l₁ b →
+    ∀ {l₂ : List Move} {c : State}, Walk P b l₂ c →
+    Walk P a (l₁ ++ l₂) c := by
+  intro l₁ h
+  induction h with
+  | nil s => intro l₂ c h₂; exact h₂
+  | @cons st s₁ b' m ρ' hlet hstep hrest ih =>
+      intro l₂ c h₂
+      rw [List.cons_append]
+      exact .cons hlet hstep (ih h₂)
+
+/-- Support kit forwarding (name stability for the ported rows
+that cite it): witness shuffles concatenate. -/
 theorem ShufflePlayW_append {a : State} : ∀ {l₁ : List Move} {b : State},
     ShufflePlayW a l₁ b → ∀ {l₂ : List Move} {c : State},
-    ShufflePlayW b l₂ c → ShufflePlayW a (l₁ ++ l₂) c := by
-  intro l₁ b h
-  induction h with
-  | nil s =>
-      intro l₂ c h₂
-      exact h₂
-  | cons hw hstep hrest ih =>
-      intro l₂ c h₂
-      exact .cons hw hstep (ih h₂)
+    ShufflePlayW b l₂ c → ShufflePlayW a (l₁ ++ l₂) c :=
+  Walk_append _
 
 /-- **RevEqW s s'** — the reversible quotient in witness form: two
 positions joined by witness shuffles in both directions.  PORTED
@@ -248,9 +282,10 @@ def RevEqW (s s' : State) : Prop :=
   ∃ σ, ShufflePlayW s σ s' ∧ ∃ τ, ShufflePlayW s' τ s
 
 /-- Support kit (flagged): reflexivity of the carrier.  PORTED
-VERBATIM from `Orig/Combine.lean:125`. -/
+VERBATIM from `Orig/Combine.lean:125` (constructor head corrected
+to the generic at the walk unification). -/
 theorem RevEqW_refl (s : State) : RevEqW s s :=
-  ⟨[], ShufflePlayW.nil s, [], ShufflePlayW.nil s⟩
+  ⟨[], Walk.nil s, [], Walk.nil s⟩
 
 /-- Support kit (flagged): symmetry of the carrier.  PORTED
 VERBATIM from `Orig/Combine.lean:130`. -/
@@ -408,13 +443,11 @@ def CargoLetter (st : State) (m : Move) : Prop :=
 
 /-- **CargoPlay st ρ W** — the inductive play at the cargo-letter
 alphabet: a legal play every letter of which is a cargo letter.
-PORTED VERBATIM from `Orig/ForklessCeiling.lean:100`. -/
-inductive CargoPlay : State → List Move → State → Prop
-  | nil (st : State) : CargoPlay st [] st
-  | cons {st s₁ W : State} {m : Move} {ρ : List Move}
-      (hlet : CargoLetter st m) (hstep : State.step st m = some s₁)
-      (hrest : CargoPlay s₁ ρ W) :
-      CargoPlay st (m :: ρ) W
+The Walk instance at the cargo letter.  RESTATE (owner
+unification): formerly the verbatim port of
+`Orig/ForklessCeiling.lean:100`, now `Walk CargoLetter` — identical
+statement, constructor names preserved. -/
+abbrev CargoPlay := Walk CargoLetter
 
 /-- **BareCargoEquiv A B** — the owner's bare-cargo exchange: two
 states joined by tabToTab-only plays in both directions (the
