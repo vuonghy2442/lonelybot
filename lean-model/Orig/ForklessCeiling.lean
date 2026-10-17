@@ -1422,6 +1422,156 @@ theorem cargo_structure_characterization (A B : State) :
     BareCargoEquiv A B ↔ SameCargoFix A B ∧ FloatingJoin A B := by
   sorry
 
+/-! ## §1g. The genesis program (owner-requested): the unifier of the
+exclusion and the characterization
+
+ONE mechanism underlies both §0c's exclusion and §1f's
+characterization: a both-ways cargo pair is exactly a word over the
+IN-PLACE-MIRRORABLE letters, inside the fix-fiber.  §0c kills the
+non-mirrorable letters at `WF` by the invariant counters (reveals
+and burns are precisely the letters that destroy the hidden/topped
+invariants); §1f's route decomposes the survivors into elementary
+moves (the king-hop and the floater re-parent are precisely the
+mirrorable generators).  This section freezes the unified object —
+`MirrorLetter`/`MirrorWord` — and the three normal forms between
+which the genesis theorem asserts equivalence: the_closure
+(`BareCargoEquiv`), the_structure (§1f's fix ∧ join), and the_word
+(`MirrorWord` + fix).  FALSIFIER-FIRST: the off-WF alphabet probe
+(the probe leaf's §7 boards) decides the degenerate arms BEFORE the
+frozen rows below unlock; no direction is forced against a verdict. -/
+
+/-- **THE ONE-MOVE IN-PLACE MIRROR** — the letter's retrace
+certificate: the successor re-fires ONE move and lands back exactly
+at the letter's own source state, the retrace carrying its own
+letter witness.  Witness-shaped by design — the probe boards craft
+mirrors, the exclusion and the kit certify them, and the
+mirror-of-the-mirror is the original leg (step and letter round-trip
+by the very shape of the certificate). -/
+def MirrorLetter (st s₁ : State) (m : Move) : Prop :=
+  ∃ (mr : Move), State.step s₁ mr = some st ∧ CargoLetter s₁ mr
+
+/-- **THE MIRROR WORD** — a play every leg of which carries its own
+one-move retrace certificate (the per-word normal form of a both-ways
+pair's half; at `WF` its letters are exactly the two witness-grade
+arms of §0c — the corridor row below prices that collapse). -/
+inductive MirrorWord : State → List Move → State → Prop
+  | nil (st : State) : MirrorWord st [] st
+  | mleg {st s₁ W : State} {m : Move} {ρ : List Move}
+      (hlet : CargoLetter st m)
+      (hstep : State.step st m = some s₁)
+      (hmir : MirrorLetter st s₁ m)
+      (hrest : MirrorWord s₁ ρ W) :
+      MirrorWord st (m :: ρ) W
+
+/-- A mirror word is, in particular, a cargo play (the raw
+projection). -/
+theorem MirrorWord_cargo {st : State} : ∀ {τ : List Move} {W : State},
+    MirrorWord st τ W → CargoPlay st τ W := by
+  intro τ W h
+  induction h with
+  | nil s => exact .nil s
+  | @mleg st s₁ W m ρ hlet hstep hmir hrest ih =>
+      exact .cons hlet hstep ih
+
+/-- Mirror words concatenate at their shared endpoint (the
+composability engine of the word normal form). -/
+theorem MirrorWord_append {a b : State} : ∀ {l₁ : List Move},
+    MirrorWord a l₁ b → ∀ {l₂ : List Move} {c : State},
+    MirrorWord b l₂ c → MirrorWord a (l₁ ++ l₂) c := by
+  intro l₁ h
+  induction h with
+  | nil s => intro l₂ c h₂; exact h₂
+  | @mleg st s₁ b' m ρ hlet hstep hmir hrest ih =>
+      intro l₂ c h₂
+      rw [List.cons_append]
+      exact .mleg hlet hstep hmir (ih h₂)
+
+/-- **THE REVERSE WORD EXISTS** — every mirror word's endpoint
+carries a mirror word back: the reversed legs are the certificates'
+own witnesses, each retrace leg mirrored by the original leg itself
+(the round-trip symmetry is definitional in `MirrorLetter`). -/
+theorem MirrorWord_rev {A B : State} {σ : List Move}
+    (hσ : MirrorWord A σ B) :
+    ∃ (rev : List Move), MirrorWord B rev A := by
+  induction hσ with
+  | nil s => exact ⟨[], .nil s⟩
+  | @mleg S₀ S₁ W m ρ hlet hstep hmir hrest ih =>
+      obtain ⟨revT, hrevT⟩ := ih
+      obtain ⟨mr, hmrStep, hmrLet⟩ := hmir
+      have h1 : MirrorWord S₁ [mr] S₀ :=
+        .mleg hmrLet hmrStep ⟨m, hstep, hlet⟩ (.nil S₀)
+      exact ⟨revT ++ [mr], MirrorWord_append hrevT h1⟩
+
+/-- **THE WORD-FORM'S GENERATING HALF (⟸)** — a mirror word inside
+the fix-fiber is a both-ways pair: the raw projection plays one
+direction, the reverse word the other (assembly over
+`MirrorWord_rev`; the fix needs no proof here — the pair is the
+constructive claim, the fix rides separately below). -/
+theorem mirrorword_pair_to_equiv {A B : State} {σ : List Move}
+    (hσ : MirrorWord A σ B) :
+    BareCargoEquiv A B := by
+  obtain ⟨rev, hrev⟩ := MirrorWord_rev hσ
+  exact ⟨σ, MirrorWord_cargo hσ, rev, MirrorWord_cargo hrev⟩
+
+/-- **THE PAIR'S ZONE FIX** — the first three conjuncts of
+`SameCargoFix` ride the per-play zone rows (the hidden-deck
+conjunct is priced below: it needs the per-anchor hidden-prefix
+monotone and the cycle's antisymmetry). -/
+theorem cargo_pair_fix_zones {A B : State} (h : BareCargoEquiv A B) :
+    B.found = A.found ∧ B.stock = A.stock ∧ B.waste = A.waste :=
+  by
+  obtain ⟨τ, hτ, -, -⟩ := h
+  have hz := CargoPlay_fix_zone hτ
+  exact ⟨hz.1, hz.2.1, hz.2.2.1⟩
+
+/-- **THE CARGO PAIR GENESIS** [H — THE §1g NAMED RESIDUE, frozen
+probe-gated] — the three-normal-forms theorem: the both-ways closure,
+the structure (fix ∧ floating join), and the mirror word inside the
+fix-fiber are ONE relation, and at `WF` every witnessing pair
+factorizes (the α-grade).
+
+ROUTE (the three directions, each priced; the probe leaf's §7
+boards decide the off-WF alphabet before any direction unlocks):
+
+* (⟸ WORD-GENERATED) — LANDED modulo the fix conjunct: the word
+  half is `mirrorword_pair_to_equiv` above; the fix conjunct rides
+  `CargoPlay_fix_zone` plus the hidden-prefix antisymmetry (priced).
+* (⟹ RIGIDITY WITHOUT WF) — the real content: every leg of ANY
+  both-ways pair carries a mirror certificate.  At `WF` this is the
+  α-corridor: §0c's exclusion classifies the alphabet (the legs are
+  under-armed slides or king-corners), the §0d mirrors kit
+  certifies each arm's retrace (the slide's back-return onto the
+  identity-cell seat; the corner's return hop onto the emptied
+  source anchor).  OFF-WF the alphabet WIDENS: the under-armed
+  `inl` lifter (below-nonempty king onto an empty seat — legal off
+  WF, forbidden at WF by `fc_runOK_king_first`) has a one-move
+  drop-back in place (the run re-seats on its own below-tower by a
+  single `tabToTab` inr); the probe must exhibit the degenerate
+  arms' both-ways harnesses or refute the genesis's shape at a
+  board — the arms are then NAMED or the vehicle WIDENS.
+* (⟺ STRUCTURE NORMAL FORM) — the corridor to §1f: at `WF` the
+  mirror-word letters are exactly the characterization's elementary
+  moves (the corner ↦ `kingHop`; the slide ↦ `floaterHop` or the
+  twin-locked trivial join per §1f's own rigidity cases), so the
+  genesis iff projects onto `cargo_structure_characterization`; the
+  projection consumes §1f's route machinery verbatim. -/
+theorem cargo_pair_genesis (A B : State) :
+    BareCargoEquiv A B ↔
+      (SameCargoFix A B ∧ ∃ (σ : List Move), MirrorWord A σ B) := by
+  sorry
+
+/-- **THE α-GRADE (WF CORRIDOR)** [H — the genesis's constructive
+upgrade, probe-gated with the genesis] — at a `WF` origin, EVERY
+witnessing pair factorizes: each leg of each play carries its
+mirror certificate, so the pair is a mirror-word pair outright
+(the all-witnesses strengthening; §0c's exclusion supplies the
+alphabet classification, the §0d mirrors kit the certificates). -/
+theorem cargo_pair_genesis_alpha {A B : State}
+    (hwf : A.WF) (hpair : BareCargoEquiv A B) :
+    ∀ {τ ρ : List Move}, CargoPlay A τ B → CargoPlay B ρ A →
+      MirrorWord A τ B ∧ MirrorWord B ρ A ∧ SameCargoFix A B := by
+  sorry
+
 /-! ## §2. The graded ceiling conjectures (frozen; the probe leaf
 decides before any proof starts) -/
 
@@ -1607,7 +1757,12 @@ the per-arm `§0d` mirrors (`cargo_refines_sameOrbit`'s
 one-move in-place returns) remain the priced named residue; the
 frozen §2 grades (and, with them, the §1f characterization) carry
 `sorryAx`, each with the complete route recorded where it is
-declared. -/
+declared; the §1g GENESIS program is STAGED — its word-half
+constructive core (MirrorLetter/MirrorWord with `MirrorWord_rev`'s
+certificate-borne reverse word, `mirrorword_pair_to_equiv`,
+`cargo_pair_fix_zones`) landed CLEAN, while the genesis iff and its
+α-grade upgrade ride FROZEN and PROBE-GATED (the off-WF alphabet
+verdicts decide the degenerate arms before any direction unlocks). -/
 
 #print axioms CargoPlay_run
 #print axioms CargoPlay_append
@@ -1626,6 +1781,13 @@ declared. -/
 #print axioms CargoShuffle_cargo
 #print axioms cargo_shuffle_of_equiv
 #print axioms cargo_clean_of_equiv
+#print axioms MirrorWord_cargo
+#print axioms MirrorWord_append
+#print axioms MirrorWord_rev
+#print axioms mirrorword_pair_to_equiv
+#print axioms cargo_pair_fix_zones
+#print axioms cargo_pair_genesis
+#print axioms cargo_pair_genesis_alpha
 #print axioms CargoPlayRF_cargo
 #print axioms CargoPlayRF_of_return
 #print axioms cargo_revealfree_of_equiv
