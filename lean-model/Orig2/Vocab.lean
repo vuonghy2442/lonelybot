@@ -434,11 +434,14 @@ def SWRotW (u v : State) : Prop :=
 -/
 
 /-- **CargoLetter st m** — the DUMB closure generator: any
-`tabToTab` letter, no arm filter.  The burn/reveal arms are
-excluded BY THEOREM (the classification claim's slide half), not
-by this definition.  PORTED VERBATIM from
-`Orig/ForklessCeiling.lean:95`. -/
-def CargoLetter (st : State) (m : Move) : Prop :=
+`tabToTab` letter, no arm filter.  The state argument is the
+`Walk P` letter-predicate SOCKET (the cargo letter itself is
+state-independent — any tabToTab at any origin); the burn/reveal
+arms are excluded BY THEOREM (the classification claim's slide
+half), not by this definition.  PORTED from
+`Orig/ForklessCeiling.lean:95` (binder trued to `_st`, recording
+the socket-only role). -/
+def CargoLetter (_st : State) (m : Move) : Prop :=
   ∃ (c : Card) (b : Base), m = Move.tabToTab c b
 
 /-- **CargoPlay st ρ W** — the inductive play at the cargo-letter
