@@ -1,5 +1,6 @@
 import Orig2.Model
 import Orig2.Vocab
+import Orig2.Classification
 import Orig2.Claims
 
 /-!
@@ -13,22 +14,29 @@ by fast sessions without sign-off — `below_fork` being the live
 specimen — and retired interface vocabulary stayed load-bearing by
 default).
 
-## THE SEAM POLICY
+## THE SEAM POLICY (OWNER-DECREED CLOSED, 2026-10-17)
 
-`Orig2` imports the GAME-MODEL FOUNDATION ONLY:
+`Orig2` imports the GAME-MODEL CORE ONLY:
 
 * `Orig.Basic`, `Orig.State`, `Orig.Play` — the board, the cards,
   the moves, the step relation.
 
 That is the certified substrate beneath all class-grade content;
-from it upward, `Orig2` defines everything fresh.  **The `Orig`
-macro tier is FROZEN**: no new content lands there; its files may
-be imported here ONLY as an explicitly-recorded override in this
-root's override table (bridge rows during migration, none yet):
+from it upward, `Orig2` defines everything fresh — and it is the
+ENTIRE permanent import surface.  **No other `Orig` module may ever
+be imported by any `Orig2` module** (owner decree, 2026-10-17):
+the override table below is CLOSED — an entry requires the owner
+plus a registry decision, and the expected answer is no.  The
+`Orig` macro tier is FROZEN; the physics tier beyond the core
+(Integrity, Irreversible, Mono, Phase and kin) transitively imports
+`Orig.Fate`, whose root-level `reversibleAtW` collides with the
+registry-owned carrier — so every physics row a card needs is
+PER-FILE PRIVATE KIT restated in the consuming card with its source
+line cited (the house dedup discipline), never an import:
 
 ```
 -- overrides (each with a ledger reason and a migration-out plan)
--- (none)
+-- (none — table closed by owner decree 2026-10-17)
 ```
 
 ## THE MIGRATION CAKE (the order content lands here)

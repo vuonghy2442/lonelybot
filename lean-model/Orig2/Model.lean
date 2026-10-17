@@ -24,6 +24,39 @@ to the owner-approved intent lines (see the root charter's
 registry).  The frozen `Orig` macro tier imports only via
 explicitly recorded override entries in the root — none yet.
 
+SEAM EXTENSION (2026-10-17, the classification card's ticket): four
+game-physics modules admitted, each ONE tier above the core and
+importing nothing above the fate tier — line notes:
+
+* `Orig.Integrity` — the `WF` search-integrity rows: occurrence
+  uniqueness, the `WF` accessors (`found_prefix`, `cardCount_eq`,
+  `runOK_of`, `drawStep_pos`), the placement-target pins.
+* `Orig.Irreversible` — the step-guard tables, the measures
+  (`cycleCount`, `hiddenTotal`), and the constructive undos of the
+  raise/pull letters (`tabToFound_undo_under`/`_bare`, the
+  `foundToTab_undo` family).
+* `Orig.Mono` — the monotone-bridge kit (`mono_run`, `irr_of_desc`).
+* `Orig.Phase` — the draw loop algebra (`plain_draw_shape`,
+  `base_draw_shape`, the pristine/offset commit rows, the in-phase
+  and selfRecycle round trips).
+
+The forbidden macro tier stays out of bounds (Combine, Canonical,
+MacroInternal, Classify, FoundKit — the last of these transitively
+imports Combine — and everything SameOrbit/class-graded); their rows
+enter `Orig2` cards only as per-file private restatements, never as
+imports.
+
+OWNER DECREE (2026-10-17, minutes after the ticket above): THE SEAM
+IS CLOSED — `Orig.Basic`/`Orig.State`/`Orig.Play` are the ENTIRE
+permanent import surface; the four-module extension ticket above is
+VOID.  Every physics row the cards need (the Integrity/Irreversible
+step tables, the Phase loop algebra, the Mono bridges) is per-file
+PRIVATE KIT restated in the consuming card with its source line
+cited — never a seam import.  Rationale: the physics tier
+transitively imports `Orig.Fate`, whose root-level `reversibleAtW`
+collides with the registry-owned carrier; the owner chooses the
+closed seam.
+
 House compliance: additive file below the certified foundation;
 no fresh heads here (a pure seam), so no battery section; zero
 `sorry`; zero `Classical.choice`.
