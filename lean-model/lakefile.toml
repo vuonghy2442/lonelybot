@@ -10,6 +10,8 @@ globs = ["Witnesses.*"]
 
 [[lean_lib]]
 name = "Orig"
+[[lean_lib]]
+name = "Orig2"
 [[lean_exe]]
 name = "GroundRes"
 root = "OrigProbes.GroundRes"

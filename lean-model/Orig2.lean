@@ -1,0 +1,105 @@
+import Orig2.Model
+import Orig2.Vocab
+
+/-!
+# Orig2 — THE REBUILD LIBRARY
+
+Chartered 2026-10-17 (the owner's reset decision).  The macro-state
+program is being rebuilt from scratch here, in a clean namespace,
+because the old tier's vocabulary drifted from the owner's design
+intent (the 2026-10-17 archaeology: shape-guessed definitions landed
+by fast sessions without sign-off — `below_fork` being the live
+specimen — and retired interface vocabulary stayed load-bearing by
+default).
+
+## THE SEAM POLICY
+
+`Orig2` imports the GAME-MODEL FOUNDATION ONLY:
+
+* `Orig.Basic`, `Orig.State`, `Orig.Play` — the board, the cards,
+  the moves, the step relation.
+
+That is the certified substrate beneath all class-grade content;
+from it upward, `Orig2` defines everything fresh.  **The `Orig`
+macro tier is FROZEN**: no new content lands there; its files may
+be imported here ONLY as an explicitly-recorded override in this
+root's override table (bridge rows during migration, none yet):
+
+```
+-- overrides (each with a ledger reason and a migration-out plan)
+-- (none)
+```
+
+## THE MIGRATION CAKE (the order content lands here)
+
+1. **substrate** — the class-grade foundations, defined fresh to
+   the intent lines: the state-class notion, witness journeys, the
+   rung ledger, the LIFO discipline.
+2. **detection chain** — the fork-detection iff family and its
+   witness parcel.
+3. **capstones** — the pair-unique-class theorem family (the
+   pairClass spine: the FIRST migration wave by owner directive
+   2026-10-17).
+4. **census & labels** — the fork-in-class detector, the
+   decidability composites.
+5. **the programs** — low-slab, descent, ceiling, ascent: one per
+   card, restated at the new vocabulary.
+
+Migration honest method: a theorem enters `Orig2` either by
+RESTATEMENT at the new definitions (real work, batched per layer,
+never copy-paste hoped) or by an explicit bridge import (recorded
+in the override table, with a migration-out line).  Layers retire
+from `Orig` last, per-layer, when their `Orig2` replacements are
+green.
+
+## THE FOUNDING LEDGER (2026-10-17 adjudications, binding)
+
+* **KEEP (first migration wave, priority)** — the pairClass spine,
+  by owner directive: `Orig/PairClass` capstones, `Orig/PairConfine`
+  (`pair_cover_pins`, the door complex), `Orig/ForkCensus`,
+  `Orig/OriginLock`, `Orig/CrossFamily`, the read tier, the
+  detector chain, with their substrate (`Orig/BracketDecomp`'s
+  `sameOrbit_forward`, `witness_rung_census`, LIFO; `Orig/SlabEquiv`,
+  `Orig/SlabForms`).
+* **DEAD (retired this day, never re-land as stated)** — the
+  fork-spectrum family (`1dc82fd`); the descent
+  stall-certifies-floor residue (`4184488`); the seat-less
+  conjugate closure stub (`c3294ea`).  LowSlab's raise/reseat
+  unconditionals: refuted and HELD (entangled with the live hlow
+  repair chain — their honest completion is the ratified hlow swap,
+  owner's to write).
+* **BINDING CONSTRAINTS** — every `CHALLENGES.md` REFUTED-tier
+  fence binds `Orig2` definitions from day one: no new def may
+  re-enable a fenced statement.  The falsity archive
+  (`witnesses/`, `probes/`) is the constraint set's evidence and is
+  never cleaned.
+
+## INTENT LINES (the vocabulary registry — DRAFT, owner's edit pass)
+
+The registry rule: NO program-wide definition lands without an
+owner-approved line here first.  Seeded from the owner's own words
+(2026-10-17 chat):
+
+* `below_fork st x` — DRAFT: `ForkWitness st x ∧ (x.twin face-up or
+  covered-hidden in some pile)` — "below_fork also means we have to
+  have a forkState witness at x".  PENDING OWNER RATIFICATION.
+* `weakForkState` fate — OPEN: does the weak grade appear in the
+  new interface at all, or live only inside the G2 falsifier
+  records?
+* `forkState`/`ForkWitness` — carried in spirit (the S-grade
+  detection and the per-witness parcel); the new formalization
+  restates to the intent lines once written.
+* (next lines here — the owner's twenty are the target)
+
+## HOUSE COMPLIANCE (unchanged)
+
+Per-file batteries (`#print axioms`, zero `Classical.choice` by the
+canonical-order discipline), REFUTED-first probing for open rows,
+frozen statements never force-premised, CHALLENGES fences global,
+per-file private kits by the dedup discipline, and the sign-off
+rule above for shared vocabulary.
+
+The vocabulary registry is `Orig2.Vocab` (definitions only, under
+owner intent lines); the import seam is `Orig2.Model`; claim-banking
+lives in `Orig2.Claims`.
+-/

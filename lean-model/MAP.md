@@ -1,5 +1,12 @@
 # MAP — the repository map (2026-10-13)
 
+> **Orig2 — the rebuild library**, chartered 2026-10-17 (the owner's
+> reset decision): the macro-state program rebuilt from scratch in a
+> clean namespace above the certified game-model seam; the `Orig`
+> macro tier is FROZEN for new content (new cards land in `Orig2`
+> to the intent-line registry).  The charter, migration order, and
+> founding ledger live at `lean-model/Orig2.lean`.
+
 The navigation layer. Modules live flat in `Orig/` by import-DAG
 stratum; this map is the stratum diagram, the probe yard, the doc
 system, and the deferred physical re-tree proposal. Placement ground
