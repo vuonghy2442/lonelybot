@@ -365,6 +365,36 @@ def ForkWitness (st : State) (x : Card) : Prop :=
   (∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c) ∧ ¬ CanRaise st x.twin
 
 /-!
+## §6. THE PHASE ROTATION COMPONENTS  (live, KEPT 2026-10-17;
+the orbit-factor migration's vocabulary, owner-approved clean cut)
+-/
+
+/-- **NoDrawPlayW u v** — the board-move closure: two positions
+joined by draw-free witness journeys both ways; the board can be
+reshuffled from one to the other without ever touching the draw
+zone.  PORTED VERBATIM from `Orig/OrbitFactor.lean:40`. -/
+def NoDrawPlayW (u v : State) : Prop :=
+  ∃ play, ShufflePlayW u play v ∧ (∀ m ∈ play, m ≠ Move.draw) ∧
+    ∃ back, ShufflePlayW v back u ∧ (∀ m ∈ back, m ≠ Move.draw)
+
+/-- **DrawPlayW u play v** — a witness shuffle consisting only of
+draws.  PORTED VERBATIM from `Orig/Canonical.lean:2477`. -/
+def DrawPlayW (u : State) (play : List Move) (v : State) : Prop :=
+  ShufflePlayW u play v ∧ ∀ m ∈ play, m = Move.draw
+
+/-- **SWRotW u v** — the witness-backed rotation closure: two
+positions sit at rotations of one draw cycle, joined by draws-only
+witness rounds.  PORTED VERBATIM from `Orig/Canonical.lean:2483`.
+PLUMBING NOTE (the 2026-10-17 clean cut): the phase-quotient tier
+(`SWComp`, `drawPool`, `inPhase`, `swCompSetoid`, `SWPhase`,
+`mkSW`) is NOT ported — it was the factor card's consumer
+interface and invariant bookkeeping; that content lives in the
+machinery card as per-file private kit, and the quotient type is
+resurrectable by a future card with its own intent line. -/
+def SWRotW (u v : State) : Prop :=
+  ∃ σ τ : List Move, DrawPlayW u σ v ∧ DrawPlayW v τ u
+
+/-!
 # THE REVIEW ANNEX — pending adjudication
 
 The old tier's remaining main vocabulary.  Verdict slots open; no
@@ -423,15 +453,12 @@ the steered-ascent zone rows (in-flight).
 The first annex cut missed whole def tiers; indexed verbatim-cite,
 pending adjudication like the rest:
 
-* **The phase/rotation tier** (`Orig/OrbitFactor.lean`,
-  `Orig/Canonical.lean`) — the orbit-FACTORING vocabulary:
-  `NoDrawPlayW` (OrbitFactor:40), `swCompSetoid` (:587), `SWPhase`
-  (:594), `mkSW` (:597); with `SWComp` (Canonical:2473),
-  `DrawPlayW` (:2477), `SWRotW` (:2483).  These carry the
-  factorization claims `sameOrbit_factor_fwd`/`sameOrbit_factor_full`
-  (`Orig/OrbitFactorC.lean:442,482`) — Claims-layer candidates once
-  their vocabulary lands.
-  REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
+* **The phase/rotation tier** — RESOLVED 2026-10-17:
+  `NoDrawPlayW`/`DrawPlayW`/`SWRotW` ported live (§6, the
+  orbit-factor vocabulary); the quotient plumbing
+  (`swCompSetoid`/`SWPhase`/`mkSW`) and the invariant bookkeeping
+  (`SWComp`/`drawPool`/`inPhase`) NOT ported — private kit in the
+  machinery card, resurrectable by intent line.
 * **The tip-edge datum tier** (`Orig/EdgeLabel.lean`) —
   `EdgeLabel` (535), `TipEdge` (1386), `MacroDatums` (1322) +
   `datumOf`/`CanonLabel`/`labelOf`/`drawNext`/`drawNextQ`/
@@ -451,9 +478,10 @@ pending adjudication like the rest:
   REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * **Canonical supports** (`Orig/Canonical.lean`) — `Stackable`
   (321), `canRaiseB` (365), `IsRaise` (465), `suitGap`/`stackFuel`
-  (541-544), `drawPool` (2466), `SameMacroO` (2930).
+  (541-544), `SameMacroO` (2930).
   (`pick`/`raise` killed with the canon family; `StackRun` killed
-  with `saturatesTo`.)
+  with `saturatesTo`; `drawPool` resolved to the orbit-factor
+  machinery card's private kit.)
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * **Composites** (`Orig/Classify.lean`) — `WFRun` (2907).
   (`irreversibleOf` and its oracle companions: RESOLVED — ported

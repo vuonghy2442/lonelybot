@@ -44,9 +44,39 @@ theorem reversibleOf_iff_reversibleAtW {st : State} (hwf : st.WF)
     reversibleOf st m = true ↔ reversibleAtW st m := by
   sorry
 
+/-! ## §1B. The orbit-factor claim (owner-approved clean cut)
+
+PRICE: the machinery card `Orig2/OrbitFactor.lean`, four pieces —
+(1) THE GENERAL disjoint-field commutation lemma: a fired draw's
+field-trace (stock/waste/drawStep) is disjoint from every board
+leg's, so they commute at any fired adjacency — ONE general row at
+the field-equation grade, with the per-move-kind instantiations at
+a few lines each (the old card proved the squares thrice, ~50
+lines per table move — templates `Orig/OrbitFactor.lean:73,132,179`);
+(2) THE DRAWS-LAST BUBBLING: every witness journey permutes to
+draws-last (ordinary induction once the square is general;
+template `shuffle_drawsLast`, `Orig/OrbitFactorC.lean:371`);
+(3) THE DRAW-BLOCK TRANSPLANT: re-rooting a draw block at the
+rotated position — the one deep piece, rides the Phase loop
+algebra (template `draw_play_transplant`,
+`Orig/OrbitFactor.lean:560`);
+(4) THE ASSEMBLY: → extracts the two-witness journeys from the
+rev-closure, bubbles both, transplants to the common board z;
+← composes the four witnesses (template `sameOrbit_factor_full`,
+`Orig/OrbitFactorC.lean:442-487`).  The frozen tier's two proved
+rows are the correctness oracle. -/
+
+/-- **CLAIM `sameOrbit_factor`** — the phase factorization: a
+class membership is a draw-free board reshuffle to a phase-mate,
+then a pure rotation round. -/
+theorem sameOrbit_factor {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF) :
+    sameOrbitSetoid.r u v ↔ ∃ z, NoDrawPlayW u z ∧ SWRotW z v := by
+  sorry
+
 /-! ## The audit battery
 
 The single claim stub carries `sorryAx` by design — the layer's
 whole debt ledger on one row, priced above. -/
 
 #print axioms reversibleOf_iff_reversibleAtW
+#print axioms sameOrbit_factor
