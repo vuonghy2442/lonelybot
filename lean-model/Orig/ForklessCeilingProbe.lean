@@ -914,3 +914,717 @@ record. -/
 #print axioms ForklessCeilingProbe_verdicts
 #print axioms ceiling_gradeC_unconditioned_refuted
 #print axioms ForklessCeilingProbe_verdicts2
+
+/-! ## §7. THE P1 LIFTER HARNESS `gL` — THE ILLEGAL TOWER CARRIED
+off-WF
+
+The P1 verdict block, the lifter round's append: the artificial
+NON-WF board `gL` — `p0` carries the illegal-under-king tower
+(`[K♠, 7♥]`, `runOK`'s bottom-first read: the `7♥` is SEATED ON the
+`K♠`, and only a QUEEN of the other color may sit on a king, so the
+face-up run breaks the `WF` invariant's second conjunct); `p1`
+stands fully bare (the lift's empty seat); every other pile is
+trivial; the foundations are cold; the zones empty.  THE LIFTER:
+the king-headed run — tower and all — rides the king bar of
+`canPlace` OUT to `p1`, and the same king-headed run rides it BACK
+HOME to the emptied `p0`; the empty-seat letters read only the run
+HEAD, so the two-card illegal CARGO crosses both legs unseen (the
+king bar never consults `runOK`, and `canSitOn` is never asked for
+the cards behind the head).  ON-WF THE CARRY IS BANNED: a `WF`
+state's every face-up run is `runOK`-legal — its king-headed runs
+carry exactly a QUEEN of the other color — so NO ILLEGAL TOWER
+COULD EVER ASSEMBLE to be carried; no `runOK` protection survives
+off-WF, and that is precisely the lifter's legality.  This is the
+`CARRIED`-off-WF arm's P1 exhibit, its verdicts landed below:
+`gL_nonWF` (the board's certification), `gL_lift_fires` and
+`gL_dropback_fires` (the MirrorLetter certificate's both halves at
+the board — the out leg and the one-move in-place drop-back retrace
+re-landing at `gL` exactly), and `gL_both_ways` (the two-letter
+out-and-back play literal returning `some gL`, the bare both-ways
+witness beyond the trivial `[]`-identity).  THE P2 HUNT APPEND (the
+slides-which round, the burn-hunt's resolved reading): the
+decide-grade inventory of the WHOLE move alphabet at both boards —
+`gL_fires_iff`/`gL'_fires_iff`, the boards' entire firing alphabet
+is the KING BAR (at `gL` exactly the six letters
+`tabToTab ♠K (Sum.inl a)` with `a ≠ p0`; at `gL'` the six drops
+with `a ≠ p1`; every other letter of every kind refuses by the
+boards' cold facts) — and the hunt's VERDICT read straight off it,
+`gL_noburn`/`gL'_noburn`: NO BURN AT THE LIFTER BOARD — every
+firing leg is one-move-retraceable in place (the mirror letter
+EXISTS for every firing pair), the illegal tower travels only by
+its king head, every lift reversible, the `7♥` board-locked — its
+seat-takers (the black sixes `canSitOn` would admit onto a red
+seven) and its landing pads (the black eights it would ride onto)
+are all absent, so the six-on-seven fact is RANK-TRUE but
+BOARD-UNLOCATABLE (the subsumed matrix cell); the fcS §1 orbit-exit
+read stays where §1 left it (the bars are; the fuller orbit-exit
+read is not certified here — not chased this round). -/
+
+private def SK : Card := fcc .spade .king
+private def H7 : Card := fcc .heart .seven
+
+/-- The harness's foundation heights: every suit cold (lift boards
+write no foundation and read none). -/
+private def gL_hmap : Suit → Nat
+  | .heart => 0 | .diamond => 0 | .spade => 0 | .club => 0
+
+/-- **THE LIFTER BOARD `gL`** — the artificial NON-WF state: `p0`'s
+face-up run is the illegal-under-king tower `[K♠, 7♥]` (the `7♥`
+seated on the king; the hidden deck empty), `p1` is the lift's
+vacant empty seat, the other piles are trivial, and the foundations
+are cold (the boards' house take-spelling at height zero). -/
+private def gL : State where
+  found := fun s => s.upCards.take (gL_hmap s)
+  piles := fun a => match a with
+    | .p0 => ⟨[], [SK, H7]⟩
+    | .p1 => ⟨[], []⟩
+    | .p2 => ⟨[], []⟩
+    | .p3 => ⟨[], []⟩
+    | .p4 => ⟨[], []⟩
+    | .p5 => ⟨[], []⟩
+    | .p6 => ⟨[], []⟩
+  stock := []
+  waste := []
+  drawStep := 1
+
+/-- **ROW (a): THE BOARD IS NON-WF** (decided) — the second `WF`
+conjunct's `runOK` hole, read at the tower's pile: the heart
+seven's seat on the king is rank-barred. -/
+theorem gL_nonWF : ¬ gL.WF := by
+  intro h
+  exact absurd (h.2.1 Anchor.p0) (by decide)
+
+/-- **THE LIFTED BOARD `gL'`** — the successor the lifter leg
+writes: the whole king-headed tower rides out to `p1` and `p0`
+stands emptied (the drop-back's vacant home seat). -/
+private def gL' : State := fcT gL (Move.tabToTab SK (Sum.inl Anchor.p1))
+
+/-- **ROW (b): THE LIFTER LEG FIRES** — `K♠` heads the face-up run
+and `p1` is empty: the king bar of `canPlace` admits the head, and
+the entire two-card tower lifts out as one run, `p0` emptying
+behind it. -/
+theorem gL_lift_fires :
+    State.step gL (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gL' := rfl
+
+private def gLb : State := fcT gL' (Move.tabToTab SK (Sum.inl Anchor.p0))
+
+theorem gLb_step :
+    State.step gL' (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gLb := rfl
+
+theorem gLb_eq : gLb = gL := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+/-- **ROW (c): THE DROP-BACK FIRES — THE IN-PLACE RETRACE** — the
+same king-headed run returns home to the EMPTIED `p0`: the retrace
+letter is the empty-seat letter (the sketched seating letter
+`Sum.inr 7♥` — a king ONTO a seven — is rank-barred by `canSitOn`
+and refuses; the king bar of the vacant home seat is the letter
+that fires), and the `putRun` restores the tower to its exact pile,
+re-landing at `gL` precisely — the MirrorLetter certificate's both
+halves at the board, `gL_lift_fires` out and this back. -/
+theorem gL_dropback_fires :
+    State.step gL' (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL := by
+  rw [← gLb_eq]
+  exact gLb_step
+
+/-- **ROW (d): THE BARE BOTH-WAYS WITNESS** — the out-and-back play
+literal returns `some gL`: the two letters compose at the board
+into the identity on it (a two-letter both-ways pair beyond the
+trivial `[]`-identity, the illegal tower carried off-WF out and
+back with neither leg ever consulting `runOK`). -/
+theorem gL_both_ways :
+    State.run gL [Move.tabToTab SK (Sum.inl Anchor.p1),
+      Move.tabToTab SK (Sum.inl Anchor.p0)] = some gL := by
+  have h2 : State.run gL' [Move.tabToTab SK (Sum.inl Anchor.p0)] = some gL :=
+    run_one gL_dropback_fires
+  show (match State.step gL (Move.tabToTab SK (Sum.inl Anchor.p1)) with
+    | some s' => s'.run [Move.tabToTab SK (Sum.inl Anchor.p0)]
+    | none => none) = some gL
+  rw [gL_lift_fires]
+  exact h2
+
+/- The harness's own four-line battery, the audit tail's pattern:
+every fresh non-`rfl` head at the clean decide/kernel grade. -/
+#print axioms gL_nonWF
+#print axioms gLb_eq
+#print axioms gL_dropback_fires
+#print axioms gL_both_ways
+
+/-! ### §7. THE P2 SLIDES-WHICH HUNT — THE MIRROR-CERTIFICATE KITS
+
+The hunt round's board kits, ahead of the inventory rows: (1) at
+`gL` the five remaining lift targets `gL2`–`gL6` (the `p1` target is
+the landed `gL'`), each with its drop-back mirror kit `gLnb` — the
+one-move home-drop retrace `tabToTab ♠K (Sum.inl p0)` re-landing
+at `gL` exactly, the UNIFORM mirror letter every lift at the board
+shares; (2) at `gL'` the five fresh drop targets `gD2`–`gD6` (the
+`p0` drop is the landed `gLb`, whose OWN mirror is the landed lift
+itself read through `gLb_eq`), each with its lift-back mirror kit
+`gDnb` — the re-ascent `tabToTab ♠K (Sum.inl p1)` re-landing at
+`gL'` exactly.  Six lifts mirror to six drops; the noburn rows
+below are exactly this uniformity, certified. -/
+
+/-- The `p2` lift board (the tower seated at `p2`, the source `p0`
+emptied behind it). -/
+private def gL2 : State := fcT gL (Move.tabToTab SK (Sum.inl Anchor.p2))
+
+theorem gL2_step :
+    State.step gL (Move.tabToTab SK (Sum.inl Anchor.p2)) = some gL2 := rfl
+
+private def gL2b : State := fcT gL2 (Move.tabToTab SK (Sum.inl Anchor.p0))
+
+theorem gL2b_step :
+    State.step gL2 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL2b := rfl
+
+theorem gL2b_eq : gL2b = gL := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+/-- The `p2`-lift's one-move drop-back home (the uniform home-seat
+letter at work: the emptied `p0` re-admits the king-headed tower). -/
+theorem gL2_dropback :
+    State.step gL2 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL := by
+  rw [← gL2b_eq]
+  exact gL2b_step
+
+/-- The `p3` lift board. -/
+private def gL3 : State := fcT gL (Move.tabToTab SK (Sum.inl Anchor.p3))
+
+theorem gL3_step :
+    State.step gL (Move.tabToTab SK (Sum.inl Anchor.p3)) = some gL3 := rfl
+
+private def gL3b : State := fcT gL3 (Move.tabToTab SK (Sum.inl Anchor.p0))
+
+theorem gL3b_step :
+    State.step gL3 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL3b := rfl
+
+theorem gL3b_eq : gL3b = gL := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem gL3_dropback :
+    State.step gL3 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL := by
+  rw [← gL3b_eq]
+  exact gL3b_step
+
+/-- The `p4` lift board. -/
+private def gL4 : State := fcT gL (Move.tabToTab SK (Sum.inl Anchor.p4))
+
+theorem gL4_step :
+    State.step gL (Move.tabToTab SK (Sum.inl Anchor.p4)) = some gL4 := rfl
+
+private def gL4b : State := fcT gL4 (Move.tabToTab SK (Sum.inl Anchor.p0))
+
+theorem gL4b_step :
+    State.step gL4 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL4b := rfl
+
+theorem gL4b_eq : gL4b = gL := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem gL4_dropback :
+    State.step gL4 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL := by
+  rw [← gL4b_eq]
+  exact gL4b_step
+
+/-- The `p5` lift board. -/
+private def gL5 : State := fcT gL (Move.tabToTab SK (Sum.inl Anchor.p5))
+
+theorem gL5_step :
+    State.step gL (Move.tabToTab SK (Sum.inl Anchor.p5)) = some gL5 := rfl
+
+private def gL5b : State := fcT gL5 (Move.tabToTab SK (Sum.inl Anchor.p0))
+
+theorem gL5b_step :
+    State.step gL5 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL5b := rfl
+
+theorem gL5b_eq : gL5b = gL := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem gL5_dropback :
+    State.step gL5 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL := by
+  rw [← gL5b_eq]
+  exact gL5b_step
+
+/-- The `p6` lift board. -/
+private def gL6 : State := fcT gL (Move.tabToTab SK (Sum.inl Anchor.p6))
+
+theorem gL6_step :
+    State.step gL (Move.tabToTab SK (Sum.inl Anchor.p6)) = some gL6 := rfl
+
+private def gL6b : State := fcT gL6 (Move.tabToTab SK (Sum.inl Anchor.p0))
+
+theorem gL6b_step :
+    State.step gL6 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL6b := rfl
+
+theorem gL6b_eq : gL6b = gL := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem gL6_dropback :
+    State.step gL6 (Move.tabToTab SK (Sum.inl Anchor.p0)) = some gL := by
+  rw [← gL6b_eq]
+  exact gL6b_step
+
+/-- **P2 ROW (e) — THE COLD KINDS AT `gL`** (decided, the
+whole-alphabet refusal half for the five non-`tabToTab` kinds): the
+draw deals nothing (stock and waste both empty); the waste arms
+starve (`wasteIs` is false for every card); the rung pass is cold
+(no ace tops any pile — the only top on the board is the `7♥`,
+rungs away from every foundation); no foundation top exists to
+worry back down. -/
+theorem gL_cold_kinds_none :
+    State.step gL Move.draw = none ∧
+    (∀ (c : Card), State.step gL (Move.wasteToFound c) = none) ∧
+    (∀ (c : Card) (b : Base), State.step gL (Move.wasteToTab c b) = none) ∧
+    (∀ (c : Card), State.step gL (Move.tabToFound c) = none) ∧
+    (∀ (c : Card) (b : Base), State.step gL (Move.foundToTab c b) = none) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · rfl
+  · intro c
+    rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+  · intro c b
+    rfl
+  · intro c
+    rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+  · intro c b
+    rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;>
+      cases b with
+      | inl n => cases n <;> decide
+      | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> decide
+
+/-- **P2 ROW (f) — THE SEAT INVENTORY AT `gL`** (the iff-row,
+decide-grade, POSITIVE: the firing letters enumerated): a seat
+letter `tabToTab c (Sum.inl a)` fires iff its head is the tower's
+king ` ♠K` and the seat is one of the six empty non-source
+positions (`a ≠ p0`, i.e. `a ∈ {p1, …, p6}` — `p0` itself is the
+tower's live home and refuses the king bar). -/
+theorem gL_tabToTab_inl_iff : ∀ (c : Card) (a : Anchor),
+    State.step gL (Move.tabToTab c (Sum.inl a)) ≠ none ↔
+      c = SK ∧ a ≠ Anchor.p0 := by
+  intro c a
+  rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> cases a <;> decide
+
+/-- **P2 ROW (g) — THE TARGET MATRIX AT `gL`** (decided): no
+onto-card letter fires — the only locatable pile top on the whole
+board is the `7♥` itself: it seats no king (rank off by six) and
+no card of its own rank/color (twin-barred), and `♠K` is not a top
+at all (the seven sits on it), so no `inr` target ever locates. -/
+theorem gL_tabToTab_inr_none : ∀ (c : Card) (z : Card),
+    State.step gL (Move.tabToTab c (Sum.inr z)) = none := by
+  intro c z
+  rcases c with ⟨s, r⟩ <;> rcases z with ⟨zs, zr⟩ <;>
+    cases s <;> cases r <;> cases zs <;> cases zr <;> decide
+
+/-- **P2 ROW 1 — THE WHOLE-ALPHABET INVENTORY AT `gL`** (the hunt's
+exhaustive reading, decide-grade): a move `m` fires at `gL` iff it
+is one of the SIX lifter letters `tabToTab ♠K (Sum.inl a)` with
+`a ≠ p0` (`a ∈ {p1, …, p6}`); every letter of every other kind
+refuses (the cold rows), and within `tabToTab` only the six
+king-to-empty-seat letters fire (the seat iff plus the target
+matrix).  THE ILLEGAL TOWER TRAVELS ONLY BY ITS KING HEAD. -/
+theorem gL_fires_iff : ∀ (m : Move), State.step gL m ≠ none ↔
+    ∃ (a : Anchor), a ≠ Anchor.p0 ∧ m = Move.tabToTab SK (Sum.inl a) := by
+  intro m
+  constructor
+  · intro h
+    cases m with
+    | draw =>
+        rw [gL_cold_kinds_none.1] at h
+        exact absurd rfl h
+    | wasteToFound c =>
+        rw [gL_cold_kinds_none.2.1 c] at h
+        exact absurd rfl h
+    | wasteToTab c b =>
+        rw [gL_cold_kinds_none.2.2.1 c b] at h
+        exact absurd rfl h
+    | tabToFound c =>
+        rw [gL_cold_kinds_none.2.2.2.1 c] at h
+        exact absurd rfl h
+    | foundToTab c b =>
+        rw [gL_cold_kinds_none.2.2.2.2 c b] at h
+        exact absurd rfl h
+    | tabToTab c b =>
+        cases b with
+        | inl a =>
+            obtain ⟨hc, hne⟩ := (gL_tabToTab_inl_iff c a).mp h
+            subst hc
+            exact ⟨a, hne, rfl⟩
+        | inr z =>
+            rw [gL_tabToTab_inr_none c z] at h
+            exact absurd rfl h
+  · rintro ⟨a, hne, rfl⟩
+    exact (gL_tabToTab_inl_iff SK a).mpr ⟨rfl, hne⟩
+
+/-- **P2 ROW 2 (half) — THE NO-BURN VERDICT AT `gL`** (the hunt's
+burn row, the strongest honest form): every firing leg at the
+lifter board is one-move-retraceable IN PLACE — for every `(m, s')`
+with `step gL m = some s'` the mirror letter EXISTS.  The six lifts
+mirror by the ONE uniform home-drop letter `tabToTab ♠K (inl p0)`,
+each re-landing at `gL` exactly (the `p1`-lift by the landed
+`gL_dropback_fires`, the others by their kits).  NO LEG IS
+BURN-ARMED in the house sense: every departure empties its source
+pile over an empty hidden deck, and the emptied seat re-admits
+precisely the king-headed run that left — the illegal tower's
+carrier never strands its retake. -/
+theorem gL_noburn : ∀ (m : Move) (s' : State),
+    State.step gL m = some s' → ∃ (mr : Move), State.step s' mr = some gL := by
+  intro m s' hs
+  have hfire : State.step gL m ≠ none := by
+    intro hnone
+    rw [hnone] at hs
+    exact absurd hs (by simp)
+  obtain ⟨a, hne, hm⟩ := (gL_fires_iff m).mp hfire
+  subst hm
+  cases a with
+  | p0 => exact absurd rfl hne
+  | p1 =>
+      rw [gL_lift_fires] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p0), gL_dropback_fires⟩
+  | p2 =>
+      rw [gL2_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p0), gL2_dropback⟩
+  | p3 =>
+      rw [gL3_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p0), gL3_dropback⟩
+  | p4 =>
+      rw [gL4_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p0), gL4_dropback⟩
+  | p5 =>
+      rw [gL5_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p0), gL5_dropback⟩
+  | p6 =>
+      rw [gL6_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p0), gL6_dropback⟩
+
+/-- The `gLb` board's own mirror: the lifted board's drop-land is
+`gL` itself by `gLb_eq`, so its lift-back is the landed lift. -/
+theorem gLb_liftback :
+    State.step gLb (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gL' := by
+  rw [gLb_eq]
+  exact gL_lift_fires
+
+/-- The `p2` drop board (the tower re-dropped at `p2`, the source
+`p1` emptied). -/
+private def gD2 : State := fcT gL' (Move.tabToTab SK (Sum.inl Anchor.p2))
+
+theorem gD2_step :
+    State.step gL' (Move.tabToTab SK (Sum.inl Anchor.p2)) = some gD2 := rfl
+
+private def gD2b : State := fcT gD2 (Move.tabToTab SK (Sum.inl Anchor.p1))
+
+theorem gD2b_step :
+    State.step gD2 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gD2b := rfl
+
+theorem gD2b_eq : gD2b = gL' := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+/-- The `p2`-drop's one-move lift-back home (the uniform lift letter
+at work: the emptied `p1` re-admits the king-headed tower). -/
+theorem gD2_liftback :
+    State.step gD2 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gL' := by
+  rw [← gD2b_eq]
+  exact gD2b_step
+
+/-- The `p3` drop board. -/
+private def gD3 : State := fcT gL' (Move.tabToTab SK (Sum.inl Anchor.p3))
+
+theorem gD3_step :
+    State.step gL' (Move.tabToTab SK (Sum.inl Anchor.p3)) = some gD3 := rfl
+
+private def gD3b : State := fcT gD3 (Move.tabToTab SK (Sum.inl Anchor.p1))
+
+theorem gD3b_step :
+    State.step gD3 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gD3b := rfl
+
+theorem gD3b_eq : gD3b = gL' := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem gD3_liftback :
+    State.step gD3 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gL' := by
+  rw [← gD3b_eq]
+  exact gD3b_step
+
+/-- The `p4` drop board. -/
+private def gD4 : State := fcT gL' (Move.tabToTab SK (Sum.inl Anchor.p4))
+
+theorem gD4_step :
+    State.step gL' (Move.tabToTab SK (Sum.inl Anchor.p4)) = some gD4 := rfl
+
+private def gD4b : State := fcT gD4 (Move.tabToTab SK (Sum.inl Anchor.p1))
+
+theorem gD4b_step :
+    State.step gD4 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gD4b := rfl
+
+theorem gD4b_eq : gD4b = gL' := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem gD4_liftback :
+    State.step gD4 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gL' := by
+  rw [← gD4b_eq]
+  exact gD4b_step
+
+/-- The `p5` drop board. -/
+private def gD5 : State := fcT gL' (Move.tabToTab SK (Sum.inl Anchor.p5))
+
+theorem gD5_step :
+    State.step gL' (Move.tabToTab SK (Sum.inl Anchor.p5)) = some gD5 := rfl
+
+private def gD5b : State := fcT gD5 (Move.tabToTab SK (Sum.inl Anchor.p1))
+
+theorem gD5b_step :
+    State.step gD5 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gD5b := rfl
+
+theorem gD5b_eq : gD5b = gL' := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem gD5_liftback :
+    State.step gD5 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gL' := by
+  rw [← gD5b_eq]
+  exact gD5b_step
+
+/-- The `p6` drop board. -/
+private def gD6 : State := fcT gL' (Move.tabToTab SK (Sum.inl Anchor.p6))
+
+theorem gD6_step :
+    State.step gL' (Move.tabToTab SK (Sum.inl Anchor.p6)) = some gD6 := rfl
+
+private def gD6b : State := fcT gD6 (Move.tabToTab SK (Sum.inl Anchor.p1))
+
+theorem gD6b_step :
+    State.step gD6 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gD6b := rfl
+
+theorem gD6b_eq : gD6b = gL' := by
+  refine State.ext (funext fun σ => ?_) (funext fun a => ?_) ?_ ?_ ?_
+  · cases σ <;> rfl
+  · cases a <;> rfl
+  · rfl
+  · rfl
+  · rfl
+
+theorem gD6_liftback :
+    State.step gD6 (Move.tabToTab SK (Sum.inl Anchor.p1)) = some gL' := by
+  rw [← gD6b_eq]
+  exact gD6b_step
+
+/-- **P2 ROW (e') — THE COLD KINDS AT `gL'`** (decided): the lifted
+board's cold facts are its twin's — zones empty, foundations cold,
+the `7♥` still the only pile top, still rungs away from every
+foundation, still no locatable under-card. -/
+theorem gL'_cold_kinds_none :
+    State.step gL' Move.draw = none ∧
+    (∀ (c : Card), State.step gL' (Move.wasteToFound c) = none) ∧
+    (∀ (c : Card) (b : Base), State.step gL' (Move.wasteToTab c b) = none) ∧
+    (∀ (c : Card), State.step gL' (Move.tabToFound c) = none) ∧
+    (∀ (c : Card) (b : Base), State.step gL' (Move.foundToTab c b) = none) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · rfl
+  · intro c
+    rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+  · intro c b
+    rfl
+  · intro c
+    rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> decide
+  · intro c b
+    rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;>
+      cases b with
+      | inl n => cases n <;> decide
+      | inr z => rcases z with ⟨zs, zr⟩ <;> cases zs <;> cases zr <;> decide
+
+/-- **P2 ROW (f') — THE SEAT INVENTORY AT `gL'`** (the iff-row,
+decide-grade): a seat letter fires iff its head is ` ♠K` and the
+seat is one of the six seats empty at the LIFTED board
+(`a ≠ p1` — the tower's new home — i.e. `a ∈ {p0, p2, …, p6}`: the
+home seat `p0` is back in the alphabet, the tower's `p1` is out). -/
+theorem gL'_tabToTab_inl_iff : ∀ (c : Card) (a : Anchor),
+    State.step gL' (Move.tabToTab c (Sum.inl a)) ≠ none ↔
+      c = SK ∧ a ≠ Anchor.p1 := by
+  intro c a
+  rcases c with ⟨s, r⟩ <;> cases s <;> cases r <;> cases a <;> decide
+
+/-- **P2 ROW (g') — THE TARGET MATRIX AT `gL'`** (decided): the
+twin read — the `7♥` is again the only locatable pile top on the
+whole board, and again seats nothing. -/
+theorem gL'_tabToTab_inr_none : ∀ (c : Card) (z : Card),
+    State.step gL' (Move.tabToTab c (Sum.inr z)) = none := by
+  intro c z
+  rcases c with ⟨s, r⟩ <;> rcases z with ⟨zs, zr⟩ <;>
+    cases s <;> cases r <;> cases zs <;> cases zr <;> decide
+
+/-- **P2 ROW 2 — THE WHOLE-ALPHABET INVENTORY AT `gL'`** (the six
+drops): a move fires at the lifted board iff it is one of
+`tabToTab ♠K (Sum.inl a)` with `a ≠ p1` (the SIX DROPS,
+`a ∈ {p0, p2, …, p6}`); every other letter of every kind refuses. -/
+theorem gL'_fires_iff : ∀ (m : Move), State.step gL' m ≠ none ↔
+    ∃ (a : Anchor), a ≠ Anchor.p1 ∧ m = Move.tabToTab SK (Sum.inl a) := by
+  intro m
+  constructor
+  · intro h
+    cases m with
+    | draw =>
+        rw [gL'_cold_kinds_none.1] at h
+        exact absurd rfl h
+    | wasteToFound c =>
+        rw [gL'_cold_kinds_none.2.1 c] at h
+        exact absurd rfl h
+    | wasteToTab c b =>
+        rw [gL'_cold_kinds_none.2.2.1 c b] at h
+        exact absurd rfl h
+    | tabToFound c =>
+        rw [gL'_cold_kinds_none.2.2.2.1 c] at h
+        exact absurd rfl h
+    | foundToTab c b =>
+        rw [gL'_cold_kinds_none.2.2.2.2 c b] at h
+        exact absurd rfl h
+    | tabToTab c b =>
+        cases b with
+        | inl a =>
+            obtain ⟨hc, hne⟩ := (gL'_tabToTab_inl_iff c a).mp h
+            subst hc
+            exact ⟨a, hne, rfl⟩
+        | inr z =>
+            rw [gL'_tabToTab_inr_none c z] at h
+            exact absurd rfl h
+  · rintro ⟨a, hne, rfl⟩
+    exact (gL'_tabToTab_inl_iff SK a).mpr ⟨rfl, hne⟩
+
+/-- **P2 ROW 2 (noburn half) — THE NO-BURN VERDICT AT `gL'`** (the
+burn row at the lifted board, the strongest honest form): the six
+drops mirror back by the ONE uniform lift letter
+`tabToTab ♠K (inl p1)`, each re-landing at `gL'` exactly (the
+`p0`-drop is the landed `gLb_step`, whose mirror is the landed
+lift read through `gLb_eq`); no firing leg is burn-armed here
+either — the lifted board strands no retake. -/
+theorem gL'_noburn : ∀ (m : Move) (s' : State),
+    State.step gL' m = some s' → ∃ (mr : Move), State.step s' mr = some gL' := by
+  intro m s' hs
+  have hfire : State.step gL' m ≠ none := by
+    intro hnone
+    rw [hnone] at hs
+    exact absurd hs (by simp)
+  obtain ⟨a, hne, hm⟩ := (gL'_fires_iff m).mp hfire
+  subst hm
+  cases a with
+  | p0 =>
+      rw [gLb_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p1), gLb_liftback⟩
+  | p1 => exact absurd rfl hne
+  | p2 =>
+      rw [gD2_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p1), gD2_liftback⟩
+  | p3 =>
+      rw [gD3_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p1), gD3_liftback⟩
+  | p4 =>
+      rw [gD4_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p1), gD4_liftback⟩
+  | p5 =>
+      rw [gD5_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p1), gD5_liftback⟩
+  | p6 =>
+      rw [gD6_step] at hs
+      injection hs with hsub
+      subst hsub
+      exact ⟨Move.tabToTab SK (Sum.inl Anchor.p1), gD6_liftback⟩
+
+/- The hunt block's own battery, the audit tail's pattern: every
+fresh non-`rfl` head at the clean decide/kernel grade. -/
+#print axioms gL_cold_kinds_none
+#print axioms gL_tabToTab_inl_iff
+#print axioms gL_tabToTab_inr_none
+#print axioms gL_fires_iff
+#print axioms gL_noburn
+#print axioms gLb_liftback
+#print axioms gL2b_eq
+#print axioms gL3b_eq
+#print axioms gL4b_eq
+#print axioms gL5b_eq
+#print axioms gL6b_eq
+#print axioms gL2_dropback
+#print axioms gL3_dropback
+#print axioms gL4_dropback
+#print axioms gL5_dropback
+#print axioms gL6_dropback
+#print axioms gL'_cold_kinds_none
+#print axioms gL'_tabToTab_inl_iff
+#print axioms gL'_tabToTab_inr_none
+#print axioms gL'_fires_iff
+#print axioms gL'_noburn
+#print axioms gD2b_eq
+#print axioms gD3b_eq
+#print axioms gD4b_eq
+#print axioms gD5b_eq
+#print axioms gD6b_eq
+#print axioms gD2_liftback
+#print axioms gD3_liftback
+#print axioms gD4_liftback
+#print axioms gD5_liftback
+#print axioms gD6_liftback
