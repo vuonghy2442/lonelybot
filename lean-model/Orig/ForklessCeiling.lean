@@ -1757,6 +1757,87 @@ theorem fc_firstWhere_pileOfTop_unique {S : State} {w : Card} {k : Anchor}
     S.pileOfTop w = some k :=
   fc_firstWhere_pileOfTop hkf hk
 
+/-- **THE UNDER-ARMED SLIDE'S MID-STATE KIT** (`cargoMirror_slide`'s
+first package, the corner's inr sibling): the step inversion's mid
+state `M` (the source pile with the seated run removed) with the
+successor its putRun away from `M`, the M-face kept exactly at the
+below-part, the hidden deck untouched (the ≠ [] arm skips the reveal),
+and the placement search still pinned at the host pile `k` — the seam
+card `y` tops the source at `M` and is not the host `z` by WF
+card-unique membership, every other pile's top misses `z` the same
+way, so `fc_firstWhere_pileOfTop` fires. -/
+private theorem cargoMirror_s1 {st s₁ : State} {e z : Card} {k a : Anchor}
+    (hwf : st.WF)
+    (hstep : State.step st (Move.tabToTab e (Sum.inr z)) = some s₁)
+    (hhold : st.pileHolding e = some a)
+    (hpa : st.pileOfTop z = some k)
+    (hfit : canSitOn e z = true)
+    (hpre : below e (st.piles a).faceUp ≠ []) :
+    ∃ M : State,
+      s₁ = M.putRun (fromCard e (st.piles a).faceUp) (Sum.inr z) ∧
+      (M.piles a).faceUp = below e (st.piles a).faceUp ∧
+      (M.piles a).hidden = (st.piles a).hidden ∧
+      M.pileOfTop z = some k ∧
+      (∀ a' ≠ a, M.piles a' = st.piles a') := by
+  obtain ⟨a₂, hh₀, hcp, -, hs'⟩ := step_tabToTab_inv hstep
+  have hae : a = a₂ := Option.some.inj (hhold.symm.trans hh₀)
+  subst hae
+  obtain ⟨M, hMdef⟩ : ∃ M : State,
+      M = st.setPile a (Pile.afterRunRemoved (st.piles a)
+        (below e (st.piles a).faceUp)) := ⟨_, rfl⟩
+  rw [← hMdef] at hs'
+  have hselfM : M.piles a = Pile.afterRunRemoved (st.piles a)
+      (below e (st.piles a).faceUp) := by
+    rw [hMdef]
+    exact setPile_afterRunRemoved_piles_self st a e
+  have hotherM : ∀ a' ≠ a, M.piles a' = st.piles a' := fun a' hne => by
+    rw [hMdef]
+    exact setPile_afterRunRemoved_piles_ne st a e a' hne
+  have hfaceA_M : (M.piles a).faceUp = below e (st.piles a).faceUp := by
+    rw [hselfM]
+    exact fc_afterRunRemoved_faceUp_ne hpre
+  have hhA_M : (M.piles a).hidden = (st.piles a).hidden := by
+    rw [hselfM]
+    cases hbc : below e (st.piles a).faceUp with
+    | nil => exact absurd hbc hpre
+    | cons x t => rfl
+  have hmem : e ∈ (st.piles a).faceUp := pileHolding_mem hh₀
+  have hkane : k ≠ a := fun hcon =>
+    canPlace_inr_target_pile_ne hwf hcp hmem (by rw [← hcon]; exact hpa)
+  obtain ⟨y, hy_last⟩ := lastOf_exists hpre
+  have hymemA : y ∈ (st.piles a).faceUp := mem_below _ (lastOf_mem hy_last)
+  have hztopk : (st.piles k).top = some z :=
+    (pileOfTop_eq_some_iff hwf).mp hpa
+  have hzkmem : z ∈ (st.piles k).faceUp :=
+    lastOf_mem (show lastOf ((st.piles k).faceUp) = some z from hztopk)
+  have hyzne : y ≠ z := by
+    intro hcon
+    have hzInA : z ∈ (st.piles a).faceUp := by rw [← hcon]; exact hymemA
+    have hnotink := ((mem_pile_unique hwf (Or.inr hzInA)).1) k hkane
+    exact hnotink.2 hzkmem
+  have htopMa : (M.piles a).top = some y := by
+    rw [hselfM,
+      show Pile.top (Pile.afterRunRemoved (st.piles a)
+          (below e (st.piles a).faceUp)) = lastOf
+        ((Pile.afterRunRemoved (st.piles a)
+          (below e (st.piles a).faceUp)).faceUp) from rfl,
+      fc_afterRunRemoved_faceUp_ne hpre]
+    exact hy_last
+  have hkf : ∀ x : Anchor, x ≠ k → (M.piles x).top ≠ some z := by
+    intro x hxk
+    by_cases hxa : x = a
+    · rw [hxa, htopMa]
+      intro hcos
+      exact hyzne (Option.some.inj hcos)
+    · rw [hotherM x hxa]
+      intro hcon
+      have hzin := lastOf_mem
+        (show lastOf ((st.piles x).faceUp) = some z from hcon)
+      exact (((mem_pile_unique hwf (Or.inr hzkmem)).1) x hxk).2 hzin
+  have hzM : M.pileOfTop z = some k :=
+    fc_firstWhere_pileOfTop hkf (by rw [hotherM k hkane]; exact hztopk)
+  exact ⟨M, hs', hfaceA_M, hhA_M, hzM, hotherM⟩
+
 /-! ## §2. The graded ceiling conjectures (frozen; the probe leaf
 decides before any proof starts) -/
 
