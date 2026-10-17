@@ -27,7 +27,9 @@ their frozen-tier consumers — the G2 falsifier records, the §9
 composites, the S-siblings — stay on record where they are).  KEPT —
 `CanRaise`, `CanRaiseS`, `ShufflePlayW`, `RevEqW`, `sameOrbitSetoid`,
 `classOf`, `rungAt`, `twinSuit`, the reversibility carrier
-`reversibleAtW`, and the journey letters
+`reversibleAtW`, the commit-oracle tier (`irreversibleAt`,
+`reversibleAt`, `drawIrr`, `tabToFoundIrr`, `foundToTabIrr`,
+`tabToTabIrr`, `irreversibleOf`), and the journey letters
 `FlatStep`/`FlatPath`/`CargoPath`/`Journey`.  PENDING — everything
 in the annex below.
 
@@ -78,6 +80,97 @@ vocabulary; the new tier keeps the same discipline: classification
 rows supply the effective dichotomy themselves. -/
 def reversibleAtW (st : State) (m : Move) : Prop :=
   ∃ s₁ play, State.step st m = some s₁ ∧ s₁.run play = some st
+
+/-!
+## §1.6. THE COMMIT ORACLE  (live, KEPT 2026-10-17)
+
+The oracle tier, ported as a set (the assembly `irreversibleOf`
+rides its five companions; the shape predicates were file-private
+in the old home and are promoted public here — the registry is the
+single home).  The specification rows (the WF-gated iff and the
+decidability rider) are Claims-layer material, not registry.
+-/
+
+/-- **irreversibleAt st m** — the semantic commitment: a move is a
+commitment iff NO continued play ever returns.  PORTED VERBATIM
+from `Orig/Fate.lean:73`. -/
+def irreversibleAt (st : State) (m : Move) : Prop :=
+  ∀ s₁ play, State.step st m = some s₁ → s₁.run play ≠ some st
+
+/-- **reversibleAt st m** — the negative form: not a commitment,
+undoable in place.  PORTED VERBATIM from `Orig/Fate.lean:77`. -/
+def reversibleAt (st : State) (m : Move) : Prop := ¬ irreversibleAt st m
+
+/-- **drawIrr st** — the draw shape: with no stock, committed iff
+the waste is empty; with stock, iff the waste is empty or the cycle
+is off-multiple.  PORTED VERBATIM from `Orig/Classify.lean:2778`
+(private there; promoted public here). -/
+def drawIrr (st : State) : Bool :=
+  match st.stock with
+  | [] => decide (st.waste = [])
+  | _ => decide (st.waste = []) || decide (st.waste.length % st.drawStep ≠ 0)
+
+/-- **tabToFoundIrr st c** — the raise shape: committed iff unlicensed
+to redo (no next-up, no pile, no chop), or the hidden flip fires, or
+a bare non-king lifts; a chop beneath makes it reversible.  PORTED
+VERBATIM from `Orig/Classify.lean:1775` (private there; public here). -/
+def tabToFoundIrr (st : State) (c : Card) : Bool :=
+  match st.nextUp c with
+  | false => true
+  | true =>
+      match st.pileOfTop c with
+      | none => true
+      | some a =>
+          match chop (st.piles a).faceUp with
+          | [] =>
+              match (st.piles a).hidden with
+              | [] => decide (c.rank ≠ Rank.king)
+              | _ :: _ => true
+          | _ :: _ => false
+
+/-- **foundToTabIrr st c b** — the pull shape: with no founded top,
+no commit (illegal); pulling the CURRENT top is a commit iff the
+landing base is un-placeable.  PORTED VERBATIM from
+`Orig/Classify.lean:1974` (private there; public here). -/
+def foundToTabIrr (st : State) (c : Card) (b : Base) : Bool :=
+  match st.foundTop c.suit with
+  | none => true
+  | some c' => if c' = c then !(st.canPlace c b) else true
+
+/-- **tabToTabIrr st c b** — the slide shape: committed iff holding
+is unknown, the landing refuses, the hidden flip fires, or a bare
+non-king moves alone; cards with company beneath relocate
+reversibly.  PORTED VERBATIM from `Orig/Classify.lean:2166`
+(private there; public here). -/
+def tabToTabIrr (st : State) (c : Card) (b : Base) : Bool :=
+  match st.pileHolding c with
+  | none => true
+  | some a =>
+      match st.canPlace c b with
+      | false => true
+      | true =>
+          match below c (st.piles a).faceUp with
+          | [] =>
+              match (st.piles a).hidden with
+              | [] => decide (c.rank ≠ Rank.king)
+              | _ :: _ => true
+          | _ :: _ => false
+
+/-- **irreversibleOf st m** — the per-move oracle, assembled from the
+classification shapes: at WF states this decides the semantic
+commitment predicate EXACTLY (the Claims-tier iff); deliberately
+not a global instance-gate — at wild states the shape and the
+semantics diverge in both directions (the witnessed corners are in
+the frozen-tier witness archive).  PORTED VERBATIM from
+`Orig/Classify.lean:2854`. -/
+def irreversibleOf (st : State) (m : Move) : Bool :=
+  match m with
+  | .draw => drawIrr st
+  | .wasteToFound _ => true
+  | .wasteToTab _ _ => true
+  | .tabToFound c => tabToFoundIrr st c
+  | .foundToTab c b => foundToTabIrr st c b
+  | .tabToTab c b => tabToTabIrr st c b
 
 /-!
 ## §2. THE LICENSES  (live, KEPT 2026-10-17)
@@ -316,8 +409,9 @@ pending adjudication like the rest:
   (465-469), `StackRun` (530), `suitGap`/`stackFuel` (541-544),
   `drawPool` (2466), `SameMacroO` (2930).
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* **Composites** (`Orig/Classify.lean`) — `irreversibleOf` (2854),
-  `WFRun` (2907).
+* **Composites** (`Orig/Classify.lean`) — `WFRun` (2907).
+  (`irreversibleOf` and its oracle companions: RESOLVED — ported
+  live at §1.6, 2026-10-17.)
   REVIEW (family): ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * **Cone/dance & ledger walls** (`Orig/MacroInternal.lean`) —
   `ConeStep`/`ConePath` (329/341), `DanceStep`/`DancePath`
