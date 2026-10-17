@@ -26,8 +26,10 @@ grade and the conjugate-composite family exit the new vocabulary;
 their frozen-tier consumers — the G2 falsifier records, the §9
 composites, the S-siblings — stay on record where they are).  KEPT —
 `CanRaise`, `CanRaiseS`, `ShufflePlayW`, `RevEqW`, `sameOrbitSetoid`,
-`classOf`, `rungAt`, `twinSuit`.  PENDING — everything in the annex
-below.
+`classOf`, `rungAt`, `twinSuit`, the reversibility carrier
+`reversibleAtW`, and the journey letters
+`FlatStep`/`FlatPath`/`CargoPath`/`Journey`.  PENDING — everything
+in the annex below.
 
 ## §1. PLAY-TAXONOMY COUNTERS (live, ported)
 
@@ -60,6 +62,22 @@ def pullTotal : List Move → Nat
   | [] => 0
   | Move.foundToTab _ _ :: t => pullTotal t + 1
   | _ :: t => pullTotal t
+
+/-!
+## §1.5. THE REVERSIBILITY CARRIER  (live, KEPT 2026-10-17)
+-/
+
+/-- **reversibleAtW st m** — the witness form of reversible: the move
+is legal and an EXPLICIT play returns to the origin — the
+constructive content every class-grade letter rides on.  PORTED
+VERBATIM from `Orig/Fate.lean:92`.  DESIGN NOTE (carried from the
+old home): the unconditioned iff between the negative form
+(`reversibleAt`) and this witness form is deliberately NOT stated —
+it is the one step that drags `Classical.choice` through the
+vocabulary; the new tier keeps the same discipline: classification
+rows supply the effective dichotomy themselves. -/
+def reversibleAtW (st : State) (m : Move) : Prop :=
+  ∃ s₁ play, State.step st m = some s₁ ∧ s₁.run play = some st
 
 /-!
 ## §2. THE LICENSES  (live, KEPT 2026-10-17)
@@ -166,6 +184,44 @@ def rungAt (w : State) (s : Suit) : Nat := (w.found s).length
 def twinSuit (s₁ s₂ : Suit) : Prop := s₁ = s₂ ∨ s₁ = s₂.twin
 
 /-!
+## §4. THE JOURNEY LETTERS  (live, KEPT 2026-10-17)
+-/
+
+/-- **FlatStep** — the flat letters: a reversible cargo slide or a
+reversible draw loop (the two non-writing letters — phase rotations).
+PORTED VERBATIM from `Orig/MacroInternal.lean:458`. -/
+inductive FlatStep : State → State → Prop
+  | cargo {w u : State} (c : Card) (b : Base)
+      (hstep : w.step (.tabToTab c b) = some u)
+      (hrev : reversibleAtW w (.tabToTab c b)) : FlatStep w u
+  | draw {w u : State}
+      (hstep : w.step .draw = some u)
+      (hrev : reversibleAtW w .draw) : FlatStep w u
+
+/-- **FlatPath** — a block of flat letters; the interior grammar of
+brackets and phases.  PORTED VERBATIM from
+`Orig/MacroInternal.lean:510`. -/
+inductive FlatPath : State → State → Prop
+  | refl (w : State) : FlatPath w w
+  | cons {w z u : State} (h : FlatStep w z) (t : FlatPath z u) : FlatPath w u
+
+/-- **CargoPath** — the flat world's cargo letter ALONE (no draws:
+phase stays pinned); free twin swaps realize as one cargo move.
+PORTED VERBATIM from `Orig/MacroInternal.lean:1348`. -/
+inductive CargoPath : State → State → Prop
+  | refl (w : State) : CargoPath w w
+  | cons {w z w' : State} (h : FlatStep w z)
+      (hkind : ∃ c b hstep hrev, h = FlatStep.cargo c b hstep hrev)
+      (t : CargoPath z w') : CargoPath w w'
+
+/-- **Journey** — a legal journey: any play of legal moves.  PORTED
+VERBATIM from `Orig/MacroInternal.lean:1304`. -/
+inductive Journey : State → State → Prop
+  | refl (w : State) : Journey w w
+  | cons {w u u' : State} (h : ∃ m, w.step m = some u) (t : Journey u u') :
+      Journey w u'
+
+/-!
 # THE REVIEW ANNEX — pending adjudication
 
 The old tier's remaining main vocabulary.  Verdict slots open; no
@@ -187,12 +243,6 @@ pending entry is ported.
 
 ## PENDING — licenses, letters & grades
 
-* `FlatStep` / `FlatPath` (`Orig/MacroInternal.lean:458,510`)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* `CargoPath` (`Orig/MacroInternal.lean:1348`)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
-* `Journey` (`Orig/MacroInternal.lean:1304`)
-  REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
 * `canon` / `satStep` / `canonAux` (`Orig/Canonical.lean:1480-1493`;
   companions `pick`/`raise` port along)
   REVIEW: ☐ KEEP-SHAPE  ☐ RESTATE (line:)  ☐ RETIRE
