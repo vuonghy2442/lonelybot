@@ -45,9 +45,11 @@ VERBATIM, per-row frozen-home cites kept, to the shared home
 `Orig2/CargoKit.lean` — byte-identical with the certified copy this
 card dry-ran as.  Three never-referenced rows (`tfc_cnt_singleton`,
 `tfc_cntFlat_map_congr`, the fresh `fli_cnt_append_left`) were pruned
-at the 2026-10-17 cleanup pass rather than moved.  The §H1 placement
-constructors (`tfa_canPlace_inl`/`tfa_canPlace_inr`/`tfa_fit_twin`)
-stay here as this card's own restatements.  The four rows ride the
+at the 2026-10-17 cleanup pass rather than moved.  The placement
+constructors and the class-algebra pair (`tfa_canPlace_inl`/
+`tfa_canPlace_inr`/`tfa_fit_twin`, `tfa_steps_append`/
+`tfa_bareCargo_trans`) joined the shared kit in the same day's
+second pass — bodies byte-identical.  The four rows ride the
 oracle bridge (`tabToTabR_iff_reversibleAtW`), constructive
 placement rows, and the conservation/hiding rows — no
 hand-assembled plays, no `reversible_mirrorW`, no choice.
@@ -104,35 +106,6 @@ def SeatEdit (st w : State) (c : Card) (β : Base) : Prop :=
   (∀ x, seatOf w x = if x = c then some β else seatOf st x) ∧
     boardFixed st w ∧ foundsFixed st w ∧
     drawPool st = drawPool w ∧ cutOf st = cutOf w
-
-/-! ### §H1. The placement constructors
-(fresh; the converses Kit's `canPlace_inl`/`canPlace_inr` do not
-carry, plus the reversible-cell hidden conservation) -/
-
-/-- The empty-seat placement, constructed (the converse of Kit's
-`canPlace_inl`; the registry placement arm, `Orig/State.lean:348`). -/
-private theorem tfa_canPlace_inl {st : State} {c : Card} {a : Anchor}
-    (hemp : (st.piles a).isEmpty = true) (hkng : c.rank = Rank.king) :
-    st.canPlace c (Sum.inl a) = true := by
-  simp only [State.canPlace, Bool.and_eq_true]
-  exact ⟨hemp, decide_eq_true hkng⟩
-
-/-- The located card-on-card placement, constructed (the converse of
-Kit's `canPlace_inr`; the located arm, `Orig/State.lean:349`). -/
-private theorem tfa_canPlace_inr {st : State} {c z : Card} {k : Anchor}
-    (hloc : st.pileOfTop z = some k) (hfit : canSitOn c z = true) :
-    st.canPlace c (Sum.inr z) = true := by
-  simp only [State.canPlace, hloc]
-  exact hfit
-
-/-- The twin relabeling keeps the fit (twin-blindness; rides
-`canSitOn_twin_right` at `Orig/Basic.lean:119` through `Card.twin`'s
-`Suit.twin` shape, `Orig2/Vocab.lean:425`). -/
-private theorem tfa_fit_twin {c z : Card} (hfit : canSitOn c z = true) :
-    canSitOn c z.twin = true := by
-  have hz : z.twin = { z with suit := z.suit.twin } := rfl
-  rw [hz, canSitOn_twin_right]
-  exact hfit
 
 /-! ### §H2. The four rows under test (the only public artifact of
 the addendum) -/
@@ -725,27 +698,6 @@ inductive ChartEdits : State → State → Prop
       (hmove : st.canPlace c β = true) (hcell : FloaterCell st c)
       (hrest : ChartEdits u w) : ChartEdits st w
 
-/-- Chains of the generic pair closure concatenate (the Steps
-companion of `Walk_append`, `Orig2/Vocab.lean:259`; fresh, same
-induction). -/
-private theorem steps_append {Q : State → State → Prop} : ∀ {a b : State},
-    Steps Q a b → ∀ {c : State}, Steps Q b c → Steps Q a c := by
-  intro a b h
-  induction h with
-  | refl s => intro c h₂; exact h₂
-  | @cons s0 s1 s2 hl _ ih =>
-      intro c h₂
-      exact .cons hl (ih h₂)
-
-/-- The bare-cargo class is transitive (chain concatenation, both
-directions). -/
-private theorem bareCargo_trans {a b c : State}
-    (h₁ : BareCargoEquiv a b) (h₂ : BareCargoEquiv b c) :
-    BareCargoEquiv a c := by
-  obtain ⟨p1, p2⟩ := h₁
-  obtain ⟨q1, q2⟩ := h₂
-  exact ⟨steps_append p1 q1, steps_append q2 p2⟩
-
 /-- The forward half: every reversible cargo leg IS one one-point
 chart edit (the point-edit row, the conservation row, and the cell
 unpacking), so a cargo path unrolls into the edit closure.  This half
@@ -784,7 +736,7 @@ private theorem bareCargo_of_chartEdits (hroundtrip : ∀ A B, chartAgree A B �
       exact ⟨Steps.refl s', Steps.refl s'⟩
   | @cons s0 s1 s2 c₀ b₀ hwfs1 hedit hmove hcell hrest ih =>
       intro hwf0
-      exact bareCargo_trans
+      exact tfa_bareCargo_trans
         (floater_seat_to_equiv' hwf0 hroundtrip hedit hmove hcell) (ih hwfs1)
 
 /-- **bareCargo_iff_chartEdits** — the class iff: two positions are

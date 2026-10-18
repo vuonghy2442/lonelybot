@@ -23,9 +23,15 @@ DEDUPLICATION HISTORY: the 2026-10-17 cleanup pass proved three rows
 dead at every home (the ported `tfc_cnt_singleton`,
 `Orig/Reach.lean:141`; the ported `tfc_cntFlat_map_congr`,
 `Orig/Reach.lean:227`; the fresh `fli_cnt_append_left`) — pruned, not
-moved here.  Rows that live at exactly one card (FloatOrbit's `fli_*`
-calculus rows; the §L0 placement constructors and their kin) stay at
-their homes.
+moved here.  SECOND PASS (same day, same owner call): the placement
+constructors `tfa_canPlace_inl`/`tfa_canPlace_inr`/`tfa_fit_twin`
+(carried at two homes — `Orig2/FloatFiber.lean` §H1 and
+`Orig2/FloatOrbit.lean` §L0, byte-identical) and the class-algebra
+pair `tfa_steps_append`/`tfa_bareCargo_trans` (FloatFiber §H5's
+unprefixed privates, ported under `orbit_` in FloatOrbit) joined
+here (§E7) — bodies byte-identical, the pair restyled `tfa_`.  Rows
+that live at exactly one card (FloatOrbit's `fli_*` calculus rows;
+the §L1/§L2 successor-readout support rows) stay at their homes.
 
 SEAM COMPLIANCE: `Orig2.Classification` is the sole import — the
 cargo tier's documented seam surface (the same import surface
@@ -2215,6 +2221,56 @@ theorem tfc_chain_inv : ∀ {w u : State}, Steps CargoLeg w u → w.WF →
       obtain ⟨hwf3, hrel23⟩ := ih hwf2
       exact ⟨hwf3, fun c => tfc_rel_trans (tfc_leg_seat_rel hwf hstep hrev) hrel23 c⟩
 
+/-! ### §E7. The placement constructors and the class-algebra rows
+(the 2026-10-17 second consolidation: joined from their two homes,
+bodies byte-identical; per-row cites stand). -/
+
+/-- The empty-seat placement, constructed (the converse of Kit's
+`canPlace_inl`; the registry placement arm, `Orig/State.lean:348`). -/
+theorem tfa_canPlace_inl {st : State} {c : Card} {a : Anchor}
+    (hemp : (st.piles a).isEmpty = true) (hkng : c.rank = Rank.king) :
+    st.canPlace c (Sum.inl a) = true := by
+  simp only [State.canPlace, Bool.and_eq_true]
+  exact ⟨hemp, decide_eq_true hkng⟩
+
+/-- The located card-on-card placement, constructed (the converse of
+Kit's `canPlace_inr`; the located arm, `Orig/State.lean:349`). -/
+theorem tfa_canPlace_inr {st : State} {c z : Card} {k : Anchor}
+    (hloc : st.pileOfTop z = some k) (hfit : canSitOn c z = true) :
+    st.canPlace c (Sum.inr z) = true := by
+  simp only [State.canPlace, hloc]
+  exact hfit
+
+/-- The twin relabeling keeps the fit (twin-blindness; rides
+`canSitOn_twin_right` at `Orig/Basic.lean:119` through `Card.twin`'s
+`Suit.twin` shape, `Orig2/Vocab.lean:425`). -/
+theorem tfa_fit_twin {c z : Card} (hfit : canSitOn c z = true) :
+    canSitOn c z.twin = true := by
+  have hz : z.twin = { z with suit := z.suit.twin } := rfl
+  rw [hz, canSitOn_twin_right]
+  exact hfit
+
+/-- Chains of the generic pair closure concatenate (the Steps
+companion of `Walk_append`, `Orig2/Vocab.lean:259`; fresh, same
+induction). -/
+theorem tfa_steps_append {Q : State → State → Prop} : ∀ {a b : State},
+    Steps Q a b → ∀ {c : State}, Steps Q b c → Steps Q a c := by
+  intro a b h
+  induction h with
+  | refl s => intro c h₂; exact h₂
+  | @cons s0 s1 s2 hl _ ih =>
+      intro c h₂
+      exact .cons hl (ih h₂)
+
+/-- The bare-cargo class is transitive (chain concatenation, both
+directions). -/
+theorem tfa_bareCargo_trans {a b c : State}
+    (h₁ : BareCargoEquiv a b) (h₂ : BareCargoEquiv b c) :
+    BareCargoEquiv a c := by
+  obtain ⟨p1, p2⟩ := h₁
+  obtain ⟨q1, q2⟩ := h₂
+  exact ⟨tfa_steps_append p1 q1, tfa_steps_append q2 p2⟩
+
 /-! ## The audit battery (every head, re-printed per the per-file discipline) -/
 
 #print axioms tfc_cnt
@@ -2291,3 +2347,8 @@ theorem tfc_chain_inv : ∀ {w u : State}, Steps CargoLeg w u → w.WF →
 #print axioms tfc_leg_seat_rel
 #print axioms tfc_rel_trans
 #print axioms tfc_chain_inv
+#print axioms tfa_canPlace_inl
+#print axioms tfa_canPlace_inr
+#print axioms tfa_fit_twin
+#print axioms tfa_steps_append
+#print axioms tfa_bareCargo_trans

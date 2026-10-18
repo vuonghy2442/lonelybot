@@ -415,25 +415,28 @@ token-sliding order card — the mediated-journey structure made
 chart-derivable — as its final ingredient; every other component
 of the §1F.1 price is PROMOTED and battery-certified.
 
-PROMOTED (2026-10-18, the unified strong iff): the mediate
-obstruction DELIMITED, and the iff UNIFIED over unmediated
-orbits — `orbit_king_isEmpty_unmediated` (→ : with no changed
-card st-anchoring the mover's target, the FULL target-emptiness
-is derivable — hidden via the vacate row, faceUp by the resident
-elimination: the mover's own source anchor disagrees, an
-unchanged resident would co-anchor at w, a changed resident is
-the excluded mediator), `bareCargo_to_chartDiff_full` (→ : the
-per-card net relation, readouts, licensing, and the king-target
-hidden-emptiness for every changed bottom-to-bottom mover in ONE
-row), and `bareCargo_iff_seatchart_unmediated` — THE ONE ↔
-THEOREM: over unmediated orbits (the ambient no-mediator binder,
-the same scoping discipline as the company iff's company-arm
-binder), `BareCargoEquiv st w ↔ (net relation with the
-strengthened king arm — the target pile fully empty at st — ∧
-readouts ∧ st-side licensing)`, both directions certified
-([propext, Quot.sound], the card's battery).  The token-sliding
-card remains the sole priced ingredient of the unrestricted
-statement.
+PROMOTED (2026-10-18, the unrestricted iff — the VK arm): the
+mediate obstruction is DISSOLVED rather than excluded.  The king arm
+of the class relation now reads "the changed king lands on a node of
+the origin's FUEL SET" (`VKSet st a'` = vacant or bare-king-bottom),
+not "the target pile is empty at st": the empty-target clause is
+refuted outright by the two-king swap (a mediator vacates the target
+before the mover lands), while the fuel-set clause is what every
+reversible leg actually preserves — `bareCargo_orbit_vk` (pointwise
+invariance of `{vacant} ⊎ {king-bottom}`) and
+`bareCargo_orbit_vk_transfer` (inside the set only kings move).  Both
+directions are certified ([propext, Quot.sound], the card's battery):
+`bareCargo_to_chartDiff_vk` (the →, no mediator binder) and
+`bareCargo_of_chartVK` (the ← : the king seats form an injective map
+into `VKSet` — injective for free by `king_seat_injective`, and the
+schedule exists by `king_assignment_reachable`, §M11b), assembled in
+**`bareCargo_iff_vk`** — THE ONE ↔ THEOREM, with NO `hnomed`.
+`bareCargo_iff_split` factors the same iff into the king half (fuel
+targets) and the twin half.  The former unmediated rows
+(`orbit_king_isEmpty_unmediated`, `bareCargo_iff_seatchart_unmediated`)
+are RETIRED: the VK arm subsumes them, and the token-sliding "order"
+is no longer a missing ingredient — its content is the fuel-set
+invariant plus reachability.
 
 PROMOTED (2026-10-18, the spare-empty invariant and the
 KING-SHUFFLE card at `Orig2/FloatOrbit.lean` §§M9–M10, both
