@@ -2,6 +2,8 @@ import Orig.ForkAscent
 import Orig.ForkStateSB
 import Orig.LowSlab
 import Orig.FoundKit
+import Orig.ForkDescent
+import Orig.SlabEquiv
 
 /-!
 # Orig.ForkAscentSteered — THE RANK-FIRST STEERED ASCENT (forks as
@@ -4801,9 +4803,169 @@ leak caption and route above). -/
 #print axioms tfF_zoneCleanEq
 #print axioms tfF_zoneCleanSup
 #print axioms tfF_fork
-#print axioms tfF_witnessSB
-#print axioms twinFork_rankStep
+#print axioms twinFork_witness_max
 #print axioms twinFork_upCensus
+
+/-! ## §11. THE FRONTIER BRIDGE — the deployed-pair answer (2026-10-17)
+
+The "where is the descent-stuck-below-frontier theorem" question,
+closed honestly: the twin-side slab at a DEPLOYED pair is the
+face-up twin's own unfoundedness — WF's foundation prefixes plus
+zone exclusivity make it automatic, for every state whatsoever,
+stuck or not, descending or not.  The pinned-foundation refuter
+attempted against this bridge was a phantom (its board could only
+exist by violating the twin's deployment: founding the twin card
+itself), and the attempt is recorded here because its failure
+TEACHES the absorption: the 2026-10-12 twin-side refinement —
+"the covered twin's side alone carries the content; the x-lift
+members are absorbed into the slab" — IS this row.  The descent
+program owes the composite nothing on the slab axis; what it
+might owe is the STAGING axis (restoring climb material), which
+is the live hunt's target, not the phantom. -/
+
+/-- **THE FRONTIER BRIDGE, DEPLOYED FORM**: at a WF state, a
+deployed twin already sits below the frontier — the twin-side slab
+is the twin's face-up unfoundedness, one instance of the
+absorption row `slab_of_faceUp` plus the twin-rank bridge. -/
+theorem frontier_of_deployed {st : State} (hwf : st.WF) {x : Card}
+    (hfu : ∃ b, x.twin ∈ (st.piles b).faceUp) :
+    familyBelowFrontier st x := by
+  have h := slab_of_faceUp hwf hfu
+  unfold familyBelowFrontier
+  rw [(congrArg Rank.toIdx (Card.twin_rank x)).symm]
+  exact h
+
+#print axioms frontier_of_deployed
+
+/-! ## §12. THE DESCENT CORPUS TRIPLE — the confirmed bridge
+(`descent_corpus_stays_below`, banked 2026-10-17)
+
+The naive form ("descent-stuck ⇒ below-frontier") was a
+geometry-from-silence claim: vacuous at deployed pairs (the twin's
+own face-up does the work), phantom-refutable off them.  The
+confirmed formulation is the corpus/preservation triple, banked
+here: the frontier at the start (`frontier_of_deployed` — the
+deployment absorption), preservation under every licensed pull
+(pulls never found: the giveback drops its own suit's rung by
+exactly one, leaves every other suit in place), and the corpus
+assembly — with `DescentStuck` as the composite's EXTERNAL stopping
+condition, never a premise of the slab law (the stuck-marked
+corollary carries it decoratively, mirroring the owner's
+formulation verbatim; the clean law does not smuggle it). -/
+
+/-- **A LICENSED PULL'S RUNG LAW** — a fired giveback drops its own
+suit's rung by exactly one and leaves every other suit's in place:
+the pull never founds. -/
+theorem pull_rung {st s' : State} {c : Card} {b : Base}
+    (hstep : State.step st (Move.foundToTab c b) = some s') :
+    rungAt s' c.suit + 1 = rungAt st c.suit ∧
+      ∀ σ : Suit, σ ≠ c.suit → rungAt s' σ = rungAt st σ := by
+  obtain ⟨c', htop, hcc, -, hspl⟩ := step_foundToTab_inv hstep
+  rw [hcc] at htop
+  have hself : s'.found c.suit = chop (st.found c.suit) := by
+    rw [hspl, putCard_found]
+    exact setFound_found_self
+  have hne : ∀ σ : Suit, σ ≠ c.suit → s'.found σ = st.found σ := by
+    intro σ hσ
+    rw [hspl, putCard_found]
+    exact setFound_found_ne hσ
+  refine ⟨?_, ?_⟩
+  · show (s'.found c.suit).length + 1 = (st.found c.suit).length
+    rw [hself]
+    have hsnoc : st.found c.suit = chop (st.found c.suit) ++ [c] :=
+      lastOf_chop htop
+    have hlen := congrArg (fun l : List Card => l.length) hsnoc
+    rw [List.length_append, List.length_singleton] at hlen
+    exact hlen.symm
+  · intro σ hσ
+    show (s'.found σ).length = (st.found σ).length
+    rw [hne σ hσ]
+
+/-- **THE SLAB SURVIVES A PULL** — the twin-side slab is preserved
+(and improved) under every licensed giveback: the pull can only
+lower rungs. -/
+theorem slab_survives_pull {st s' : State} {c : Card} {b : Base} {x : Card}
+    (hstep : State.step st (Move.foundToTab c b) = some s')
+    (hslab : familyBelowFrontier st x) :
+    familyBelowFrontier s' x := by
+  obtain ⟨hdrop, hkeep⟩ := pull_rung hstep
+  unfold familyBelowFrontier at hslab ⊢
+  by_cases hs : x.twin.suit = c.suit
+  · rw [hs] at hslab ⊢
+    omega
+  · rw [hkeep x.twin.suit hs]
+    exact hslab
+
+/-- **THE PULL CORPUS** — a finite sequence of licensed pulls
+(`DescentMove`, consumed verbatim from `Orig.ForkDescent`). -/
+inductive PullCorpus : State → List Move → State → Prop
+  | nil (st : State) : PullCorpus st [] st
+  | cons {st s' W : State} {m : Move} {ρ : List Move}
+      (hmove : DescentMove st m)
+      (hstep : State.step st m = some s')
+      (hrest : PullCorpus s' ρ W) :
+      PullCorpus st (m :: ρ) W
+
+/-- **THE CORPUS PRESERVES THE SLAB** — the inner invariant: any
+pull corpus from a below-frontier world ends below-frontier. -/
+theorem pull_corpus_slab {st W : State} {x : Card} {ρ : List Move}
+    (hrun : PullCorpus st ρ W) (hslab : familyBelowFrontier st x) :
+    familyBelowFrontier W x := by
+  induction hrun with
+  | nil st' => exact hslab
+  | @cons st₀ s' W' m ρ hmove hstep hrest ih =>
+      obtain ⟨c₀, b₀, hmEq, -⟩ := hmove
+      rw [hmEq] at hstep
+      exact ih (slab_survives_pull hstep hslab)
+
+/-- **THE CONFIRMED BRIDGE** — the descent corpus from a deployed
+pair ends below the frontier: the triple assembled (deployment
+absorption at the start, pull-preservation along the corpus). -/
+theorem descent_corpus_stays_below {u W : State} {x : Card} {ρ : List Move}
+    (huwf : u.WF) (hdep : ∃ b, x.twin ∈ (u.piles b).faceUp)
+    (hrun : PullCorpus u ρ W) :
+    familyBelowFrontier W x :=
+  pull_corpus_slab hrun (frontier_of_deployed huwf hdep)
+
+/-- **THE STUCK-MARKED READING** — the owner's formulation verbatim:
+the corpus ends stuck, and the end world sits below the frontier.
+The stuckness is the composite's stopping condition — carried here
+decoratively (the clean law above does not use it). -/
+theorem descent_corpus_stuck_stays_below {u W : State} {x : Card}
+    {ρ : List Move}
+    (huwf : u.WF) (hdep : ∃ b, x.twin ∈ (u.piles b).faceUp)
+    (hrun : PullCorpus u ρ W)
+    (hw : DescentStuck W) :
+    familyBelowFrontier W x :=
+  descent_corpus_stays_below huwf hdep hrun
+
+#print axioms pull_rung
+#print axioms slab_survives_pull
+#print axioms pull_corpus_slab
+#print axioms descent_corpus_stays_below
+#print axioms descent_corpus_stuck_stays_below
+
+/-! ## §13. `below_fork` — THE VOCABULARY NOTE (2026-10-17)
+
+The program-wide below-fork def lives at ITS accessible home —
+`Orig/SlabEquiv.lean` §3, the equivalence's own leaf, imported
+here — with its three faces banked beside it:
+
+* `below_fork st x` — the below-fork state, clean: the covered
+  twin still exists in the tableau (face-up or covered-hidden).
+* `below_fork_of_faceUp` — the face-up instance.
+* `below_fork_rungFace` — the derived arrangement read at WF.
+* `below_fork_iff_rung` — THE CLASS IFF (twin_slab_tableau
+  re-plated): along the witness journey the tableau face and the
+  rung face are the same fact.
+
+Every premise of the family below consumes `below_fork` as the
+SUBSTANTIVE form (§7's `Deployed` clauses, §12's corpus premises
+via `frontier_of_deployed`'s face-up leg, the main-goal stack
+premise), with the rung fact demoted to its derived face everywhere
+it is not the star.  Placement record: LowSlab imports SlabEquiv
+directly, so the def flows to LowSlab, ForkDescent, ForkFloor,
+ForklessCeiling and here — every fork-program consumer. -/
 #print axioms twinFork_witness_max
 
 /- APPEND-MARKER -/

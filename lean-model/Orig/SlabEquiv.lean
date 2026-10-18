@@ -282,5 +282,69 @@ landing: no `sorryAx` anywhere in the battery. -/
 
 #print axioms sequ_mem_of_reverse
 #print axioms sequ_recycle_union
+
+/-! ## §3. `below_fork` — THE CLEAN DEF (2026-10-17, the owner's
+terminology; the program-wide vocabulary, placed at the equivalence's
+home so every consumer — LowSlab and its whole downstream — gets it)
+
+The below-fork state, SAID PLAINLY: **the covered twin still exists
+in the tableau** — face-up or covered-hidden in some pile; the
+fork's material is live.  The def is one line; the rows below give
+its faces:
+
+* `below_fork_of_faceUp` — the face-up instance (the deployment
+  premise's trivial form).
+* `below_fork_rungFace` — the derived arrangement read at WF: a
+  tableau-resident twin is unfounded, so its suit's front sits
+  at-or-below the fork's rank (the rung face; LowSlab's
+  `familyBelowFrontier` is this clause's packaging downstream).
+* `below_fork_iff_rung` — THE CLASS IFF: along the witness journey
+  the two faces are the same fact (`twin_slab_tableau` re-plated
+  through the def; at a single world only the rung direction
+  derives — the converse is the class theorem). -/
+
+/-- **`below_fork`** — THE BELOW-FORK STATE, CLEAN: the covered twin
+still exists in the tableau (face-up or covered-hidden in some
+pile). -/
+def below_fork (st : State) (x : Card) : Prop :=
+  ∃ a, x.twin ∈ (st.piles a).faceUp ∨ x.twin ∈ (st.piles a).hidden
+
+/-- The face-up instance: the deployment premise's trivial form. -/
+theorem below_fork_of_faceUp {st : State} {x : Card}
+    (hfu : ∃ a, x.twin ∈ (st.piles a).faceUp) :
+    below_fork st x := by
+  obtain ⟨a, h⟩ := hfu
+  exact ⟨a, Or.inl h⟩
+
+/-- **THE RUNG FACE** — at a WF world, a below-fork read derives the
+arrangement clause: a tableau-resident twin is unfounded, so its
+suit's front sits at-or-below the fork's rank. -/
+theorem below_fork_rungFace {st : State} (hwf : st.WF) {x : Card}
+    (h : below_fork st x) :
+    rungAt st x.twin.suit ≤ x.rank.toIdx := by
+  obtain ⟨a, hfa | hhi⟩ := h
+  · have hnf : ∀ s, x.twin ∉ st.found s :=
+      (mem_faceUp_only hwf hfa).2.2.2.2
+    exact Nat.le_of_not_gt (fun hgt =>
+      hnf x.twin.suit (FoundKit.mem_found_of_rung hwf hgt))
+  · have hnf : ∀ s, x.twin ∉ st.found s :=
+      (mem_hidden_only hwf hhi).2.2.2.2
+    exact Nat.le_of_not_gt (fun hgt =>
+      hnf x.twin.suit (FoundKit.mem_found_of_rung hwf hgt))
+
+/-- **THE CLASS IFF** — along the witness journey of a below-fork
+origin, the two faces are the same fact: the twin stays in the
+tableau iff its suit's rung stays at-or-below the fork's rank
+(`twin_slab_tableau`, re-plated through the def). -/
+theorem below_fork_iff_rung {st w : State} {x : Card}
+    (hwfst : st.WF) (hwfw : w.WF) {τ : List Move}
+    (hτ : ShufflePlayW st τ w)
+    (htwinst : below_fork st x) :
+    below_fork w x ↔ rungAt w x.twin.suit ≤ x.rank.toIdx :=
+  twin_slab_tableau hwfst hwfw hτ htwinst
+
+#print axioms below_fork_of_faceUp
+#print axioms below_fork_rungFace
+#print axioms below_fork_iff_rung
 #print axioms cycle_zone_pin
 #print axioms twin_slab_tableau
