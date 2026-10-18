@@ -668,14 +668,26 @@ wanting the seated-domain form derive it with a both-twins-seated
 hypothesis at the claims layer.
 -/
 
-/-- **twinPairSwap u v c** — THE UNIFORM TWIN LETTER: v is u with the
-seatOf-values of the twin pair ⟨c, c.twin⟩ interchanged, every other
-readout fixed.  Riders follow their hosts automatically (a rider's
-seatOf still points at its same parent card, so each host's subtree
-relocates whole).  The S-face is this at a hosted pair; the E-face
-(the frozen TwinExchangeBoth) is this at the rider pair; the hard
-content concentrates in the bare-bare non-king hosted instance alone. -/
+/-- **twinPairSwap u v c** — THE BARE TWIN LETTER (default): only the
+pair's own two `seatOf` values are constrained (v carries the pair
+exchanged); every other readout — other seats, hidden decks,
+foundations, pool, cut — is free.  The strict letter below is this plus
+the all-other-readouts-fixed conjuncts.  Consumers read the dichotomy: a
+class journey realizing the exchange is either pure cargo
+(`BareCargoEquiv`) or touches the foundation. -/
 def twinPairSwap (u v : State) (c : Card) : Prop :=
+  seatOf v c = seatOf u c.twin ∧
+    seatOf v c.twin = seatOf u c
+
+/-- **twinPairSwapStrict u v c** — THE EXACT TWIN LETTER: the pair's
+`seatOf`-values interchanged AND every other readout fixed (other seats,
+hidden decks, foundations, stock/waste, cut).  Riders follow their hosts
+automatically (a rider's `seatOf` still points at its same parent card,
+so each host's subtree relocates whole).  The S-face is this at a hosted
+pair; the E-face (the frozen TwinExchangeBoth) is this at the rider pair;
+the hard content concentrates in the bare-bare non-king hosted instance
+alone. -/
+def twinPairSwapStrict (u v : State) (c : Card) : Prop :=
   seatOf v c = seatOf u c.twin ∧
     seatOf v c.twin = seatOf u c ∧
     (∀ x, x ≠ c → x ≠ c.twin → seatOf v x = seatOf u x) ∧

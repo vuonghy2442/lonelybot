@@ -39,12 +39,16 @@ whatever proves in-place. -/
 `Orig2/Vocab.lean` when their rows certify) -/
 
 /-- **ExchLetter w u** — THE ENRICHED-ALPHABET CANDIDATE: fired
-reversible `tabToTab` legs ∪ the registry's uniform twin letter at
-located pairs.  The COARSEST reading (a superset of the frozen licensed + both-occupied forms — so any refutation over it is a fortiori). -/
+reversible `tabToTab` legs ∪ the STRICT registry twin letter at
+located pairs.  The COARSEST reading *with the frame fixed* (a
+superset of the frozen licensed + both-occupied forms — so any
+refutation over it is a fortiori).  The bare letter (`twinPairSwap`,
+other seats free) is deliberately NOT used here: widening the swap
+would make the enriched closure too permissive for the tombstones. -/
 def ExchLetter (w u : State) : Prop :=
   (∃ c b, w.step (Move.tabToTab c b) = some u ∧
       reversibleAtW w (Move.tabToTab c b)) ∨
-  ∃ t, twinPairSwap w u t
+  ∃ t, twinPairSwapStrict w u t
 
 /-- **ExchBoth u v** — the two-way enriched closure over ExchLetter. -/
 def ExchBoth (u v : State) : Prop :=
@@ -242,10 +246,10 @@ formalization of §S4. -/
 theorem fiber_transfer_corrected :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
-      (∃ v, twinPairSwap s v x ∧ sameOrbitSetoid.r s v) →
+      (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
       (∃ seatA, s'.pileHolding x = some seatA) →
       (∃ seatA', s'.pileHolding x.twin = some seatA') →
-      (∃ v', twinPairSwap s' v' x ∧ sameOrbitSetoid.r s' v') := by
+      (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
   sorry
 
 /- §S5. The keystone reference (ALREADY CERTIFIED — the license
