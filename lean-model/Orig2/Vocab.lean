@@ -433,6 +433,45 @@ collide with the registry's `reversibleAtW`; the involution
 lemmas ride at the Claims layer when needed). -/
 def Card.twin (c : Card) : Card := ⟨c.suit.twin, c.rank⟩
 
+/-- **SeatMate c x** — the cards that can take `c`'s seat under the class
+symmetry, INCLUDING `c` itself: for an ordinary card the twin-pair
+`{c, c.twin}`, for a king the whole quad (every bare king reaches every fuel
+node).  Reflexive by construction; with the twin involution in hand it is an
+equivalence (those two rows live at the Claims layer). -/
+def SeatMate (c x : Card) : Prop :=
+  (c.rank = Rank.king ∧ x.rank = Rank.king) ∨
+    (c.rank ≠ Rank.king ∧ (x = c ∨ x = c.twin))
+
+/-- **SeatMates c** — the seat-mate list: itself and its twin for an ordinary
+card, all four kings for a king. -/
+def SeatMates (c : Card) : List Card :=
+  if c.rank = Rank.king then
+    Card.universe.filter (fun x => decide (x.rank = Rank.king))
+  else [c, c.twin]
+
+/-- The list is exact. -/
+theorem mem_SeatMates {c x : Card} : x ∈ SeatMates c ↔ SeatMate c x := by
+  unfold SeatMates SeatMate
+  by_cases hk : c.rank = Rank.king
+  · rw [ite_eq_left hk, List.mem_filter]
+    constructor
+    · rintro ⟨-, h⟩
+      exact Or.inl ⟨hk, of_decide_eq_true h⟩
+    · rintro (⟨-, hx⟩ | ⟨hne, -⟩)
+      · exact ⟨Card.mem_universe x, decide_eq_true hx⟩
+      · exact absurd hk hne
+  · rw [ite_eq_right hk, List.mem_cons, List.mem_cons]
+    simp only [List.not_mem_nil, or_false]
+    constructor
+    · rintro (h | h)
+      · exact Or.inr ⟨hk, Or.inl h⟩
+      · exact Or.inr ⟨hk, Or.inr h⟩
+    · rintro (⟨hk', -⟩ | ⟨-, h | h⟩)
+      · exact absurd hk' hk
+      · exact Or.inl h
+      · exact Or.inr h
+
+
 /-!
 ## §5. THE DETECTION  (live, KEPT 2026-10-17)
 -/
