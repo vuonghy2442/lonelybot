@@ -62,6 +62,24 @@ third row by owner call 2026-10-17.  Certified home:
 consumes occurrence uniqueness off the gate; battery [propext,
 Quot.sound], zero sorry, zero choice).
 
+## THE CLASS IFF — the un-mediated king arm (`bareCargo_iff_vk`)
+
+The bare-cargo class is EXACTLY the flat chart, with no mediator
+binder: identity, the twin edge, or a king landing on a node of the
+origin's FUEL SET (`VKSet st a'` = vacant or bare-king-bottom), plus
+the readouts and the origin-side licensing.  The king arm is
+`VKSet`, not "empty at st": the empty-target clause is refuted by the
+two-king swap (a mediator vacates the target before the mover lands),
+while the fuel set is what every reversible leg preserves
+(`bareCargo_orbit_vk`, pointwise).  The `→` is
+`bareCargo_to_chartDiff_vk`; the `←` is the schedule
+(`king_assignment_reachable`, greedy cycle-fixer over the fuel set)
+plus the residual twin chart.  The per-rank factorization is
+`bareCargo_iff_split` (king half over `VKSet`, twin half).
+Certified home: `Orig2/FloatOrbit.lean` §§M11a–g; battery
+[propext, Quot.sound], zero sorry, zero `Classical.choice`; the WF
+gate supplies the chart round trip, so no ambient rigidity binder.
+
 ## HONORABLE MENTIONS (the lower tier — certified rows ranked below
 the seats; named and cited, never re-exported)
 What lands here: proved-real, battery-clean rows the adjudication
@@ -164,6 +182,25 @@ theorem flagship_floaterOrbitInvariant {st w : State} {c : Card}
     (hpair : BareCargoEquiv st w) (hwf : st.WF) : Floater st c ↔ Floater w c :=
   floater_orbit_invariant hpair hwf
 
+/-- **THE CLASS IFF EXPORT** — the bare-cargo class at a citable name:
+exactly the flat chart with the un-mediated king arm (fuel-set
+targets, no mediator binder), the readouts and the origin-side
+licensing.  Trivial forward of `bareCargo_iff_vk`
+(`Orig2/FloatOrbit.lean` §M11; battery [propext, Quot.sound], zero
+sorry, zero choice; WF-gated both sides, which also supplies the
+chart round trip). -/
+theorem flagship_bareCargoIffVK {st w : State} (hwfst : st.WF) (hw : w.WF) :
+    BareCargoEquiv st w ↔
+      ((∀ x, (seatOf w x = seatOf st x) ∨
+          (∃ z', seatOf st x = some (Sum.inr z') ∧
+            seatOf w x = some (Sum.inr z'.twin)) ∨
+          (x.rank = Rank.king ∧ ∃ a a', seatOf st x = some (Sum.inl a) ∧
+            seatOf w x = some (Sum.inl a') ∧ VKSet st a')) ∧
+      (boardFixed st w ∧ foundsFixed st w ∧
+        drawPool st = drawPool w ∧ cutOf st = cutOf w) ∧
+      (∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x)) :=
+  bareCargo_iff_vk hwfst hw
+
 /-! ## The audit battery
 
 Per exported head, re-printed per the per-file discipline: profiles
@@ -172,3 +209,4 @@ inherited verbatim from the proving cards. -/
 #print axioms flagship_sameOrbitFactor
 #print axioms flagship_revStepsLicense
 #print axioms flagship_floaterOrbitInvariant
+#print axioms flagship_bareCargoIffVK
