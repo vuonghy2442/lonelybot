@@ -1,3 +1,4 @@
+import Orig2.Chart
 import Orig2.FloatFiber
 import Orig2.CargoKit
 
@@ -849,171 +850,6 @@ theorem bareCargo_reconstruct_singleEdit {st w : State} (hwf : st.WF)
   · rw [ite_eq_right hxc]
     exact hcarried x hxc
 
-/-! ### §L. StAGE 3B — THE TWO-HOP DISJOINT RECONSTRUCTION (the flat
-iff's reconstruction half for two movers in disjoint twin-fibers;
-the compose-unit and the license-preservation embryo of the
-safe-order commutation card) -/
-
-/-! ### §L1. THE COMPANY-LEG SUCCESSOR PILE READOUTS — the §H6
-machinery extracted as a standalone row: a company reversible
-slide (the mover seated on z in pile a, licensed to z.twin whose
-pile k is located) rewrites exactly two piles — the donor keeps
-the below prefix, the target pile gains the run — every other
-pile's faceUp carried verbatim; the run is the mover's fromCard. -/
-
-/-- THE SUCCESSOR PILE READOUTS for one company reversible slide.
-The located pile k is pinned by the leg's own license; the WF
-fence and the donor's cell come from the caller. -/
-private theorem orbit_succ_piles {A M : State} {m z : Card}
-    {a k : Anchor}
-    (hwf : A.WF)
-    (hhold : A.pileHolding m = some a)
-    (hbne : below m ((A.piles a).faceUp) ≠ [])
-    (hlast : lastOf (below m ((A.piles a).faceUp)) = some z)
-    (hloc : A.pileOfTop z.twin = some k)
-    (hstep : A.step (Move.tabToTab m (Sum.inr z.twin)) = some M) :
-    ∃ tr, (m :: tr) = fromCard m ((A.piles a).faceUp) ∧
-      (M.piles a).faceUp = below m ((A.piles a).faceUp) ∧
-      (M.piles k).faceUp = (A.piles k).faceUp ++ (m :: tr) ∧
-      (∀ j, j ≠ a → j ≠ k →
-         (M.piles j).faceUp = (A.piles j).faceUp) := by
-  obtain ⟨hsit, -⟩ := tfc_seat_parent hwf hhold hlast
-  have hfit : canSitOn m z.twin = true := tfa_fit_twin hsit
-  have hcc : A.cardCount z.twin = 1 :=
-    hwf.2.2.1 z.twin (Card.mem_universe z.twin)
-  have hktop : lastOf ((A.piles k).faceUp) = some z.twin :=
-    (tfc_pileOfTop_top hloc).2
-  have hka : k ≠ a := tfc_mover_pile_not_target hwf hhold hloc hfit
-  have hak : a ≠ k := fun hh => hka hh.symm
-  obtain ⟨a0, hhold0, -, -, hs1shape⟩ := step_tabToTab_inv hstep
-  have ha0 : a0 = a := Option.some.inj (hhold0.symm.trans hhold)
-  rw [ha0] at hs1shape
-  obtain ⟨tr, hcrr⟩ := tfc_fromCard_cons_head _ (pileHolding_mem hhold)
-  rw [hcrr] at hs1shape
-  have hMk : (A.setPile a (Pile.afterRunRemoved (A.piles a)
-      (below m ((A.piles a).faceUp)))).piles k = A.piles k :=
-    setPile_piles_ne hka
-  have hlocM : (A.setPile a (Pile.afterRunRemoved (A.piles a)
-      (below m ((A.piles a).faceUp)))).pileOfTop z.twin = some k := by
-    have hmidk : (A.setPile a (Pile.afterRunRemoved (A.piles a)
-        (below m ((A.piles a).faceUp)))).topOf k = some z.twin := by
-      show lastOf ((A.setPile a (Pile.afterRunRemoved (A.piles a)
-        (below m ((A.piles a).faceUp)))).piles k).faceUp = some z.twin
-      rw [hMk]
-      exact hktop
-    refine firstWhere_find (Anchor.mem_all k) (decide_eq_true hmidk) ?_
-    intro j _ hjk
-    by_cases hja : j = a
-    · rw [hja]
-      refine decide_false_of_not ?_
-      intro hcon
-      have hset : (A.setPile a (Pile.afterRunRemoved (A.piles a)
-          (below m ((A.piles a).faceUp)))).piles a
-          = Pile.afterRunRemoved (A.piles a)
-              (below m ((A.piles a).faceUp)) :=
-        setPile_piles_self
-      have hcon0 : lastOf (Pile.afterRunRemoved (A.piles a)
-          (below m ((A.piles a).faceUp))).faceUp = some z.twin := by
-        have hp : ((A.setPile a (Pile.afterRunRemoved (A.piles a)
-            (below m ((A.piles a).faceUp)))).piles a).top = some z.twin := hcon
-        rw [hset] at hp
-        exact hp
-      have hznew : z.twin ∈ (Pile.afterRunRemoved (A.piles a)
-          (below m ((A.piles a).faceUp))).faceUp := lastOf_mem hcon0
-      have hzone : z.twin ∈ (Pile.afterRunRemoved (A.piles a)
-          (below m ((A.piles a).faceUp))).hidden
-          ++ (Pile.afterRunRemoved (A.piles a)
-            (below m ((A.piles a).faceUp))).faceUp :=
-        List.mem_append.mpr (Or.inr hznew)
-      have hzold : z.twin ∈ (A.piles a).hidden ++ (A.piles a).faceUp :=
-        tfc_mem_afterRunRemoved_below_zone hzone
-      have hzk : z.twin ∈ (A.piles k).hidden ++ (A.piles k).faceUp :=
-        List.mem_append.mpr (Or.inr (lastOf_mem hktop))
-      exact tfc_two_pile_zone_absurd hak hcc hzold hzk
-    · refine decide_false_of_not ?_
-      intro hcon
-      have hcon2 : A.topOf j = some z.twin := by
-        have hp : ((A.setPile a (Pile.afterRunRemoved (A.piles a)
-            (below m ((A.piles a).faceUp)))).piles j).top = some z.twin := hcon
-        rw [setPile_piles_ne hja] at hp
-        exact hp
-      exact hjk (tfc_top_search_unique hcc hcon2 hktop)
-  rw [putRun_inr_eq hlocM] at hs1shape
-  refine ⟨tr, hcrr.symm, ?_, ?_, ?_⟩
-  · rw [hs1shape, setPile_piles_ne hak, setPile_piles_self,
-    afterRunRemoved_ne hbne]
-  · rw [hs1shape, setPile_piles_self, hMk]
-  · intro j hja hjk
-    rw [hs1shape, setPile_piles_ne hjk, setPile_piles_ne hja]
-
-/-! ### §L2. THE LICENSE PRESERVATION ACROSS A DISJOINT COMPANY HOP —
-after the first mover's hop, a second mover's located twin-pile —
-untouched by the hop (k₂ ∉ {a, k}) — still witnesses the same
-search at the successor: the only top-flips the hop can cause are
-the vacated parent z and the run's last card, and pile
-disjointness plus occurrence counting kill both relocations of
-the second mover's twin target. -/
-
-/-- The located twin-pile search is preserved by a disjoint company
-hop's successor state. -/
-private theorem orbit_license_preserved {A M : State} {m z z₂ : Card}
-    {a k k₂ : Anchor}
-    (hwf : A.WF)
-    (hhold : A.pileHolding m = some a)
-    (hbne : below m ((A.piles a).faceUp) ≠ [])
-    (hlast : lastOf (below m ((A.piles a).faceUp)) = some z)
-    (hloc1 : A.pileOfTop z.twin = some k)
-    (hstep : A.step (Move.tabToTab m (Sum.inr z.twin)) = some M)
-    (hloc2 : A.pileOfTop z₂.twin = some k₂)
-    (hdk2a : k₂ ≠ a) (hdk2k : k₂ ≠ k) :
-    M.pileOfTop z₂.twin = some k₂ := by
-  obtain ⟨tr, hrunEq, hAface, hKface, hOther⟩ :=
-    orbit_succ_piles hwf hhold hbne hlast hloc1 hstep
-  have hcc2 : A.cardCount z₂.twin = 1 :=
-    hwf.2.2.1 z₂.twin (Card.mem_universe z₂.twin)
-  have hzmem : z₂.twin ∈ (A.piles k₂).faceUp :=
-    lastOf_mem (tfc_pileOfTop_top hloc2).2
-  have htopK2 : lastOf ((M.piles k₂).faceUp) = some z₂.twin := by
-    rw [hOther k₂ hdk2a hdk2k]
-    exact (tfc_pileOfTop_top hloc2).2
-  refine firstWhere_find (Anchor.mem_all k₂)
-    (decide_eq_true (show M.topOf k₂ = some z₂.twin from htopK2)) ?_
-  intro j _ hjk2
-  by_cases hja : j = a
-  · rw [hja]
-    refine decide_false_of_not ?_
-    intro hcon
-    have hMa : lastOf ((M.piles a).faceUp) = some z := by
-      rw [hAface]
-      exact hlast
-    have hzz : z₂.twin = z := Option.some.inj (hcon.symm.trans hMa)
-    have hzmema : z ∈ (A.piles a).faceUp :=
-      mem_below _ (lastOf_mem hlast)
-    have hnocross : z₂.twin ∉ (A.piles a).faceUp :=
-      tfc_faceUp_uniq_other hwf hzmem hdk2a.symm
-    rw [hzz] at hnocross
-    exact absurd hzmema hnocross
-  · rcases Decidable.em (j = k) with hjk | hjk
-    · rw [hjk]
-      refine decide_false_of_not ?_
-      intro hcon
-      have hneRun : (m :: tr : List Card) ≠ [] := by simp
-      have hcon0 : lastOf ((A.piles k).faceUp ++ (m :: tr))
-          = some z₂.twin := by
-        have hp : lastOf ((M.piles k).faceUp) = some z₂.twin := hcon
-        rw [hKface] at hp
-        exact hp
-      rw [tfc_lastOf_append_ne _ hneRun] at hcon0
-      have hrun : z₂.twin ∈ m :: tr := lastOf_mem hcon0
-      rw [hrunEq] at hrun
-      have hrunA : z₂.twin ∈ (A.piles a).faceUp := tfc_mem_fromCard _ hrun
-      exact absurd hrunA (tfc_faceUp_uniq_other hwf hzmem hdk2a.symm)
-    · refine decide_false_of_not ?_
-      intro hcon
-      have hp0 : lastOf ((M.piles j).faceUp) = some z₂.twin := hcon
-      rw [hOther j hja hjk] at hp0
-      exact hjk2 (tfc_top_search_unique hcc2 hp0
-        (tfc_pileOfTop_top hloc2).2)
 
 
 /-- **floater_orbit_wf_prsv** — the WF fence rides the whole cargo
@@ -1527,25 +1363,6 @@ st-parent) and the redo leg (the point edit reversed), the chart
 round trip pins the redo's successor back onto the current crate,
 and the accumulated leg pairs close the class both ways. -/
 
-/-- Chains of the generic pair closure concatenate (re-landed; PORT
-of `Orig2/FloatFiber.lean` §H5's private `steps_append`, verbatim). -/
-private theorem orbit_steps_append {Q : State → State → Prop} : ∀ {a b : State},
-    Steps Q a b → ∀ {c : State}, Steps Q b c → Steps Q a c := by
-  intro a b h
-  induction h with
-  | refl s => intro c h₂; exact h₂
-  | @cons s0 s1 s2 hl _ ih =>
-      intro c h₂
-      exact .cons hl (ih h₂)
-
-/-- The class transitivity (re-landed; PORT of `Orig2/FloatFiber.lean`
-§H5's private `bareCargo_trans`, verbatim). -/
-private theorem orbit_bareCargo_trans {a b c : State}
-    (h₁ : BareCargoEquiv a b) (h₂ : BareCargoEquiv b c) :
-    BareCargoEquiv a c := by
-  obtain ⟨p1, p2⟩ := h₁
-  obtain ⟨q1, q2⟩ := h₂
-  exact ⟨orbit_steps_append p1 q1, orbit_steps_append q2 p2⟩
 
 /-- THE MASTER INDUCTION (company grade): over the changed-card
 queue, with the skip-case carrying stale entries.  Invariants at
@@ -1557,7 +1374,6 @@ trip itself; the step processes the head when pending and skips it
 when stale. -/
 private theorem orbit_company_mirror_induct {st w : State}
     (hwfst : st.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
     (hrel : ∀ x, (seatOf w x = seatOf st x) ∨
       (∃ z', seatOf st x = some (Sum.inr z') ∧
         seatOf w x = some (Sum.inr z'.twin)) ∨
@@ -1590,7 +1406,7 @@ private theorem orbit_company_mirror_induct {st w : State}
           exact (hP3.2.1 s0).symm
         · exact hP3.2.2.1.symm
         · exact hP3.2.2.2.symm
-      rw [hroundtrip u st hchart]
+      rw [chart_round_trip u st hwu hwfst hchart]
       exact ⟨Steps.refl st, Steps.refl st⟩
   | cons c R' ih =>
       intro u hP1 hP2 hP3 hwu hP5
@@ -1661,7 +1477,7 @@ private theorem orbit_company_mirror_induct {st w : State}
           · exact fun s0 => (hff2 s0).symm.trans (hff s0).symm
           · exact hdp2.symm.trans hdp.symm
           · exact hco2.symm.trans hco.symm
-        have hu'' : u'' = u := hroundtrip u'' u hchart2
+        have hu'' : u'' = u := chart_round_trip u'' u (tfc_tabToTab_wf (tfc_tabToTab_wf hwu hstep) hstep2) hwu hchart2
         -- recurse on the tail at the successor
         rw [hu''] at hstep2
         have hP1' : ∀ x, x ∈ R' →
@@ -1704,7 +1520,7 @@ private theorem orbit_company_mirror_induct {st w : State}
         have hpair' : BareCargoEquiv u' u :=
           ⟨Steps.cons ⟨c, Sum.inr z.twin, hstep2, hrev2⟩ (Steps.refl u),
             Steps.cons ⟨c, Sum.inr z, hstep, hrev⟩ (Steps.refl u')⟩
-        exact orbit_bareCargo_trans hclas_u' hpair'
+        exact tfa_bareCargo_trans hclas_u' hpair'
       · -- stale: c is already st-shaped; skip
         have hP1' : ∀ x, x ∈ R' →
             seatOf u x = seatOf w x ∨ seatOf u x = seatOf st x :=
@@ -1730,7 +1546,6 @@ membership obligation discharges by the filter's decision, and the
 induction closes the class. -/
 theorem bareCargo_of_seatchart_company {st w : State}
     (hwfst : st.WF) (hw : w.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
     (hrel : ∀ x, (seatOf w x = seatOf st x) ∨
       (∃ z', seatOf st x = some (Sum.inr z') ∧
         seatOf w x = some (Sum.inr z'.twin)) ∨
@@ -1743,7 +1558,7 @@ theorem bareCargo_of_seatchart_company {st w : State}
     (hread : boardFixed st w ∧ foundsFixed st w ∧
       drawPool st = drawPool w ∧ cutOf st = cutOf w) :
     BareCargoEquiv st w :=
-  orbit_company_mirror_induct hwfst hroundtrip hrel hcomp hlic
+  orbit_company_mirror_induct hwfst hrel hcomp hlic
     (Card.universe.filter
       (fun x => decide (seatOf st x ≠ seatOf w x))) w
     (fun x _ => Or.inl rfl)
@@ -1767,7 +1582,6 @@ emptiness upgrade and the king-ordering content); this promoted
 grade covers every twin-hop orbit. -/
 theorem bareCargo_iff_seatchart_company {st w : State}
     (hwfst : st.WF) (hw : w.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
     (hcomp : ∀ x, seatOf st x ≠ seatOf w x →
       ∃ z, seatOf st x = some (Sum.inr z) ∧
         seatOf w x = some (Sum.inr z.twin)) :
@@ -1784,7 +1598,7 @@ theorem bareCargo_iff_seatchart_company {st w : State}
   · intro hpair
     exact bareCargo_to_chartDiff hwfst hpair
   · intro ⟨hrel, hro, hlic⟩
-    exact bareCargo_of_seatchart_company hwfst hw hroundtrip hrel
+    exact bareCargo_of_seatchart_company hwfst hw hrel
       hcomp hlic hro
 
 /-- **bareCargo_reconstruct_kingFlat** — the flat single-king-move
@@ -1908,7 +1722,7 @@ private theorem orbit_last_mover_locator : ∀ {x0 y : State},
       · -- stable at this leg: the change is in the tail
         obtain ⟨u, ū, hpre, b', hstep', hrev', hsuf, hsU⟩ :=
           ih hwf2 c (fun h => hc (hmv.symm.trans h))
-        refine ⟨u, ū, orbit_steps_append
+        refine ⟨u, ū, tfa_steps_append
           (Steps.cons ⟨m, b, hstep, hrev⟩ (Steps.refl x2)) hpre,
           b', hstep', hrev', hsuf, hsU⟩
       · -- moved at this leg: c is the mover (the point edit)
@@ -1927,7 +1741,7 @@ private theorem orbit_last_mover_locator : ∀ {x0 y : State},
         · -- c moves again: recurse on the tail
           obtain ⟨u, ū, hpre, b', hstep', hrev', hsuf, hsU⟩ :=
             ih hwf2 c (fun h => hs h.symm)
-          refine ⟨u, ū, orbit_steps_append
+          refine ⟨u, ū, tfa_steps_append
             (Steps.cons ⟨c, b, hstep, hrev⟩ (Steps.refl x2)) hpre,
             b', hstep', hrev', hsuf, hsU⟩
 
@@ -2238,7 +2052,6 @@ clause carrying the target-pile emptiness, both directions
 derived); stale entries skip as ever. -/
 private theorem orbit_mixed_mirror_induct {st w : State}
     (hwfst : st.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
     (hrel : ∀ x, (seatOf w x = seatOf st x) ∨
       (∃ z', seatOf st x = some (Sum.inr z') ∧
         seatOf w x = some (Sum.inr z'.twin)) ∨
@@ -2271,7 +2084,7 @@ private theorem orbit_mixed_mirror_induct {st w : State}
           exact (hP3.2.1 s0).symm
         · exact hP3.2.2.1.symm
         · exact hP3.2.2.2.symm
-      rw [hroundtrip u st hchart]
+      rw [chart_round_trip u st hwu hwfst hchart]
       exact ⟨Steps.refl st, Steps.refl st⟩
   | cons c R' ih =>
       intro u hP1 hP2 hP3 hwu hP5
@@ -2345,7 +2158,7 @@ private theorem orbit_mixed_mirror_induct {st w : State}
             · exact fun s0 => (hff2 s0).symm.trans (hff s0).symm
             · exact hdp2.symm.trans hdp.symm
             · exact hco2.symm.trans hco.symm
-          have hu'' : u'' = u := hroundtrip u'' u hchart2
+          have hu'' : u'' = u := chart_round_trip u'' u (tfc_tabToTab_wf (tfc_tabToTab_wf hwu hstep) hstep2) hwu hchart2
           rw [hu''] at hstep2
           have hP1' : ∀ x, x ∈ R' →
               seatOf u' x = seatOf w x ∨ seatOf u' x = seatOf st x := by
@@ -2386,7 +2199,7 @@ private theorem orbit_mixed_mirror_induct {st w : State}
           have hpair' : BareCargoEquiv u' u :=
             ⟨Steps.cons ⟨c, Sum.inr z.twin, hstep2, hrev2⟩ (Steps.refl u),
               Steps.cons ⟨c, Sum.inr z, hstep, hrev⟩ (Steps.refl u')⟩
-          exact orbit_bareCargo_trans hclas_u' hpair'
+          exact tfa_bareCargo_trans hclas_u' hpair'
         · -- KING vacate: the king license rows
           have hktc : (st.piles a'0).isEmpty = true :=
             hktall c a0 a'0 ⟨hcs, hcw, hcc⟩
@@ -2444,7 +2257,7 @@ private theorem orbit_mixed_mirror_induct {st w : State}
             · exact fun s0 => (hff2 s0).symm.trans (hff s0).symm
             · exact hdp2.symm.trans hdp.symm
             · exact hco2.symm.trans hco.symm
-          have hu'' : u'' = u := hroundtrip u'' u hchart2
+          have hu'' : u'' = u := chart_round_trip u'' u (tfc_tabToTab_wf (tfc_tabToTab_wf hwu hstep) hstep2) hwu hchart2
           rw [hu''] at hstep2
           have hP1' : ∀ x, x ∈ R' →
               seatOf u' x = seatOf w x ∨ seatOf u' x = seatOf st x := by
@@ -2485,7 +2298,7 @@ private theorem orbit_mixed_mirror_induct {st w : State}
           have hpair' : BareCargoEquiv u' u :=
             ⟨Steps.cons ⟨c, Sum.inl a'0, hstep2, hrev2⟩ (Steps.refl u),
               Steps.cons ⟨c, Sum.inl a0, hstep, hrev⟩ (Steps.refl u')⟩
-          exact orbit_bareCargo_trans hclas_u' hpair'
+          exact tfa_bareCargo_trans hclas_u' hpair'
       · -- stale: c is already st-shaped; skip
         have hP1' : ∀ x, x ∈ R' →
             seatOf u x = seatOf w x ∨ seatOf u x = seatOf st x :=
@@ -2510,7 +2323,6 @@ hktall-clause is exactly the RHS's strengthened king arm with
 nothing extra assumed. -/
 theorem bareCargo_of_seatchart {st w : State}
     (hwfst : st.WF) (hw : w.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
     (hrel : ∀ x, (seatOf w x = seatOf st x) ∨
       (∃ z', seatOf st x = some (Sum.inr z') ∧
         seatOf w x = some (Sum.inr z'.twin)) ∨
@@ -2558,7 +2370,7 @@ theorem bareCargo_of_seatchart {st w : State}
     · exact Or.inl e
     · exact Or.inr (Or.inl ⟨z, h1, h2⟩)
     · exact Or.inr (Or.inr ⟨hk, b1, b2, h1', h2'⟩)
-  exact orbit_mixed_mirror_induct hwfst hroundtrip hrel' hktall hlic
+  exact orbit_mixed_mirror_induct hwfst hrel' hktall hlic
     (Card.universe.filter
       (fun x => decide (seatOf st x ≠ seatOf w x))) w
     (fun x _ => Or.inl rfl)
@@ -3480,7 +3292,6 @@ king's old pile, and the successor is a genuine bare-cargo
 class-mate of the origin. -/
 theorem king_shuffle_vacancy {u : State} {c : Card} {a e : Anchor}
     (hwf : u.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
     (hseat : seatOf u c = some (Sum.inl a))
     (hking : c.rank = Rank.king)
     (hhid : (u.piles a).hidden = [])
@@ -3524,7 +3335,7 @@ theorem king_shuffle_vacancy {u : State} {c : Card} {a e : Anchor}
     · exfalso
       exact hchg (hcar x hxc).symm
   refine ⟨v, hstep, ?_, ?_⟩
-  · exact bareCargo_of_seatchart hwf hwv hroundtrip hrel hlic
+  · exact bareCargo_of_seatchart hwf hwv hrel hlic
       ⟨hbf, hff, hdp, hco⟩
   · -- the vacancy travels: the donor pile is vacated whole
     obtain ⟨hhold, hbE⟩ := tfc_seatOf_of_inl hseat
@@ -3559,11 +3370,11 @@ inductive KingShuffle : State → State → Prop
 
 /-- **king_shuffle_closure** — SHUFFLING THE KINGS ALL YOU WANT:
 every state reached from u by any sequence of vacancy-swapping
-bare-king trades is a bare-cargo class-mate of u (the closure
-carries the fence and the priced round trip along the chain — each
-hop's WF and chart facts are the leg row's own outputs). -/
+bare-king trades is a bare-cargo class-mate of u (the fence is
+derived per hop, and the chart round trip is the WF-gated
+`chart_round_trip` at the two class ends — no ambient rigidity
+binder). -/
 theorem king_shuffle_closure {u w : State} (hwf : u.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
     (h : KingShuffle u w) :
     BareCargoEquiv u w := by
   have aux : ∀ {u' w' : State}, KingShuffle u' w' →
@@ -3576,11 +3387,11 @@ theorem king_shuffle_closure {u w : State} (hwf : u.WF)
     | @hop u1 u2 w0 c a e hseat hking hhid hvac hfired hrest ih =>
         intro hwf1
         obtain ⟨v', hfired', hcls, -⟩ :=
-          king_shuffle_vacancy hwf1 hroundtrip hseat hking hhid hvac
+          king_shuffle_vacancy hwf1 hseat hking hhid hvac
         have hu2 : u2 = v' :=
           Option.some.inj (hfired.symm.trans hfired')
         subst hu2
-        exact orbit_bareCargo_trans hcls
+        exact tfa_bareCargo_trans hcls
           (ih (tfc_tabToTab_wf hwf1 hfired))
   exact aux h hwf
 
@@ -3970,10 +3781,9 @@ theorem king_half_shuffle {st w : State} (hwf : st.WF) (hvac : HasVacancy st)
 any class-mate journey is itself a class-mate (the king component composes with
 the rest of the orbit by transitivity). -/
 theorem bareCargo_king_then {st u w : State} (hwf : st.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
     (hks : KingShuffle st u) (hpair : BareCargoEquiv u w) :
     BareCargoEquiv st w :=
-  orbit_bareCargo_trans (king_shuffle_closure hwf hroundtrip hks) hpair
+  tfa_bareCargo_trans (king_shuffle_closure hwf hks) hpair
 /-! #### §M11d. THE UN-MEDIATED KING ARM: `VKSet` instead of emptiness.  The
 target of a changed king is in the fuel set at the ORIGIN — free from the
 orbit invariant, because the king sits on that target at `w`, hence it is a
@@ -4208,7 +4018,6 @@ private theorem all_eq_false' {l : List Card} {p : Card → Bool} (h : l.all p =
 a chart with the VK king arm, the readouts and the licensing is a class-mate.
 No `hnomed`. -/
 theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
     (hrel : ∀ x, (seatOf w x = seatOf st x) ∨
         (∃ z', seatOf st x = some (Sum.inr z') ∧
           seatOf w x = some (Sum.inr z'.twin)) ∨
@@ -4223,7 +4032,7 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
       have hfixed : ∀ c ∈ kingsOf st, seatOf w c = seatOf st c := by
         intro c hc
         exact of_decide_eq_true (List.all_eq_true.mp hb c hc)
-      refine bareCargo_of_seatchart hwfst hw hroundtrip ?_ hlic hro
+      refine bareCargo_of_seatchart hwfst hw ?_ hlic hro
       intro x
       by_cases hk : x.rank = Rank.king
       · by_cases hmem : x ∈ kingsOf st
@@ -4410,8 +4219,8 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
           drawPool u = drawPool w ∧ cutOf u = cutOf w :=
         ⟨⟨fun j => (hb_u.1 j).symm.trans (hb0.1 j), hb_u.2.symm.trans hb0.2⟩,
           fun j => (hf_u j).symm.trans (hf0 j), hd_u.symm.trans hd0, hc_u.symm.trans hc0⟩
-      exact orbit_bareCargo_trans (king_shuffle_closure hwfst hroundtrip hks)
-        (bareCargo_of_seatchart hwfu hw hroundtrip hrel_u hlic_u hro_u)
+      exact tfa_bareCargo_trans (king_shuffle_closure hwfst hks)
+        (bareCargo_of_seatchart hwfu hw hrel_u hlic_u hro_u)
 /-- **bareCargo_iff_vk** — THE UN-MEDIATED CLASS IFF, with NO `hnomed`: the
 class relation is exactly the per-card chart (identity / twin edge / a king
 landing on a node of the fuel set) together with the readouts and the
@@ -4419,8 +4228,7 @@ st-side licensing.  The king seats are an injective map into `VKSet` (the map
 is `seatOf w`, functional by construction and injective by
 `king_seat_injective`), and the licensing's king cell carries the vacancy the
 schedule needs. -/
-theorem bareCargo_iff_vk {st w : State} (hwfst : st.WF) (hw : w.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B) :
+theorem bareCargo_iff_vk {st w : State} (hwfst : st.WF) (hw : w.WF) :
     BareCargoEquiv st w ↔
       ((∀ x, (seatOf w x = seatOf st x) ∨
           (∃ z', seatOf st x = some (Sum.inr z') ∧
@@ -4434,7 +4242,7 @@ theorem bareCargo_iff_vk {st w : State} (hwfst : st.WF) (hw : w.WF)
   · intro hpair
     exact bareCargo_to_chartDiff_vk hwfst hpair
   · rintro ⟨hrel, hro, hlic⟩
-    exact bareCargo_of_chartVK hwfst hw hroundtrip hrel hro hlic
+    exact bareCargo_of_chartVK hwfst hw hrel hro hlic
 
 /-! #### §M11g. THE FACTORED FORM — the class iff with the per-card relation
 split by rank into the KING half (fuel-set targets) and the TWIN half. -/
@@ -4483,8 +4291,7 @@ theorem king_twin_split {st w : State} (hwfst : st.WF) :
 /-- **bareCargo_iff_split** — the class iff with the relation factored into
 the king half (fuel-set targets) and the twin half. -/
 theorem bareCargo_iff_split {st w : State}
-    (hwfst : st.WF) (hw : w.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B) :
+    (hwfst : st.WF) (hw : w.WF) :
     BareCargoEquiv st w ↔
       ((∀ x, x.rank = Rank.king →
           (seatOf w x = seatOf st x ∨
@@ -4497,7 +4304,7 @@ theorem bareCargo_iff_split {st w : State}
       (boardFixed st w ∧ foundsFixed st w ∧
         drawPool st = drawPool w ∧ cutOf st = cutOf w) ∧
       (∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x) := by
-  rw [bareCargo_iff_vk hwfst hw hroundtrip]
+  rw [bareCargo_iff_vk hwfst hw]
   constructor
   · rintro ⟨hrel, hr, hl⟩
     exact ⟨(king_twin_split hwfst).mp hrel, hr, hl⟩
