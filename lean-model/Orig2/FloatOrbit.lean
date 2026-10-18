@@ -95,6 +95,34 @@ private theorem fli_belownil_head {m : Card} {tr : List Card} {c : Card}
 private theorem fli_twin_inj (p q : Card) (hh : p.twin = q.twin) : p = q := by
   rw [← tfc_card_twin_twin p, ← tfc_card_twin_twin q, hh]
 
+/-- `FloaterSpec` transports across a seat-preserving state map when the
+twin-target search and the empty-anchor existence are transported.  The
+seated king sub-arm is impossible at a WF source: a non-mover cannot sit on
+a king. -/
+private theorem floaterSpec_transport {s t : State} (hwf_s : s.WF)
+    {c : Card} (hse : seatOf t c = seatOf s c)
+    (hhid : ∀ j, (s.piles j).hidden = (t.piles j).hidden)
+    (hT : ∀ (zp : Card) (k : Anchor), seatOf s c = some (Sum.inr zp) →
+      s.pileOfTop zp.twin = some k → ∃ j', t.pileOfTop zp.twin = some j')
+    (hE : ∀ a, (s.piles a).isEmpty = true → ∃ a', (t.piles a').isEmpty = true) :
+    FloaterSpec s c → FloaterSpec t c := by
+  rintro (⟨zp, ap, hseS, hholdS, hloc | ⟨hk, hempty⟩⟩ |
+    ⟨b, hseS, hking, hhidS, aeq, hemp⟩)
+  · obtain ⟨k0, hloc0⟩ := hloc
+    obtain ⟨j', hj'⟩ := hT zp k0 hseS hloc0
+    obtain ⟨q0, hq0, -, -⟩ := tfc_seatOf_of_inr (hse.trans hseS)
+    exact Or.inl ⟨zp, q0, hse.trans hseS, hq0, Or.inl ⟨j', hj'⟩⟩
+  · exfalso
+    obtain ⟨q1, hhq1, -, hlc1⟩ := tfc_seatOf_of_inr hseS
+    obtain ⟨hsit1, -⟩ := tfc_seat_parent hwf_s hhq1 hlc1
+    obtain ⟨hidx, -⟩ := (canSitOn_eq c zp).mp hsit1
+    have hzlt := Rank.toIdx_lt zp.rank
+    have h12 : c.rank.toIdx = 12 := by rw [hk]; rfl
+    omega
+  · obtain ⟨aeq', hemp'⟩ := hE aeq hemp
+    exact Or.inr ⟨b, hse.trans hseS, hking,
+      by rw [← hhid b]; exact hhidS, aeq', hemp'⟩
+
 /-- **floater_leg_invariant** — a single reversible cargo leg fixes
 floater-hood: every card is as much a floater after the leg as
 before. -/
@@ -131,6 +159,11 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
   have hed := tfc_seat_point_edit hwfu hstep hrev
   obtain ⟨hbfUV, -, -, -⟩ := tfa_slide_conserves hwfu hstep hrev
   have hhidUV : ∀ j, (u.piles j).hidden = (v.piles j).hidden := hbfUV.1
+  have hse_of_ne : c ≠ m → seatOf v c = seatOf u c := by
+    intro hcm
+    have h := hed c
+    rw [ite_eq_right (fun hh => hcm hh)] at h
+    exact h
   rw [floater_classification u hwfu c, floater_classification v hwfv c]
   rcases hbcell with hbne | ⟨hb0, hhid, hkng⟩
   · -- THE COMPANY CELL: m sits on z, the target is forced to z.twin
@@ -399,106 +432,65 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
             · intro _
               exact Or.inl ⟨z, a, tfc_seatOf_inr_intro hholdm hlz, hholdm,
                 Or.inl ⟨k, hlocw⟩⟩
-          · have hseVl : seatOf v c = seatOf u c := by
-              have h := hed c
-              rw [ite_eq_right (fun hh => hcm hh)] at h
-              exact h
+          · have hseVl := hse_of_ne hcm
             have hseUl : seatOf u c = seatOf v c := hseVl.symm
             constructor
             · intro hspecU
-              rcases hspecU with ⟨zp, ap, hseU, hholdU, harm⟩ |
-                ⟨b, hseU, hking, hhid, aeq, hempty⟩
-              · rcases harm with ⟨k0, hlocT0⟩ | ⟨hking2, -⟩
-                · have hzpne : zp ≠ z := by
-                    intro hh
-                    rw [hh] at hseU
-                    exact hsitZU c hcm hseU
-                  have hxzt : zp.twin ≠ z.twin := fun hh =>
-                    hzpne (fli_twin_inj zp z hh)
-                  obtain ⟨j', hj'⟩ := hT1 zp.twin k0 hxzt hlocT0
-                  have hholdVu : ∃ q, v.pileHolding c = some q := by
-                    cases hq : v.pileHolding c with
-                    | none =>
-                        exfalso
-                        have hnone := tfc_seatOf_none hq
-                        rw [hseVl, hseU] at hnone
-                        nomatch hnone
-                    | some q => exact ⟨q, rfl⟩
-                  obtain ⟨q0, hq0⟩ := hholdVu
-                  exact Or.inl ⟨zp, q0, hseVl.trans hseU, hq0,
-                    Or.inl ⟨j', hj'⟩⟩
-                · exfalso
-                  obtain ⟨q1, hhq1, -, hlc1⟩ := tfc_seatOf_of_inr hseU
-                  obtain ⟨hsit1, -⟩ := tfc_seat_parent hwfu hhq1 hlc1
-                  obtain ⟨hidx, -⟩ := (canSitOn_eq c zp).mp hsit1
-                  have hzlt := Rank.toIdx_lt zp.rank
-                  have h12 : c.rank.toIdx = 12 := by rw [hking2]; rfl
-                  omega
-              · obtain ⟨hhid', hfu'⟩ := (Pile.isEmpty_eq _).mp hempty
+              have hT : ∀ (zp : Card) (k : Anchor), seatOf u c = some (Sum.inr zp) →
+                  u.pileOfTop zp.twin = some k → ∃ j', v.pileOfTop zp.twin = some j' := by
+                intro zp k hseS hloc
+                have hzpne : zp ≠ z := by
+                  intro hh
+                  rw [hh] at hseS
+                  exact hsitZU c hcm hseS
+                exact hT1 zp.twin k
+                  (fun hh => hzpne (fli_twin_inj zp z hh)) hloc
+              have hE : ∀ aeq, (u.piles aeq).isEmpty = true →
+                  ∃ a', (v.piles a').isEmpty = true := by
+                intro aeq hemp
                 have haeqa : aeq ≠ a := by
                   intro hh
-                  rw [hh] at hempty
-                  have hf := Pile.isEmpty_eq_false_of_mem (pileHolding_mem hholdm)
-                  exact Bool.noConfusion (hf.symm.trans hempty)
+                  rw [hh] at hemp
+                  exact Bool.noConfusion
+                    ((Pile.isEmpty_eq_false_of_mem (pileHolding_mem hholdm)).symm.trans hemp)
                 have haeqk : aeq ≠ k := by
                   intro hh
-                  rw [hh] at hempty
-                  have hf := Pile.isEmpty_eq_false_of_mem (lastOf_mem hktop)
-                  exact Bool.noConfusion (hf.symm.trans hempty)
-                refine Or.inr ⟨b, hseVl.trans hseU, hking, ?_, aeq, ?_⟩
-                · rw [← hhidUV b]
-                  exact hhid
-                · exact (Pile.isEmpty_eq _).mpr
-                    ⟨by rw [← hhidUV aeq]; exact hhid',
-                     by rw [hOther aeq haeqa haeqk]; exact hfu'⟩
+                  rw [hh] at hemp
+                  exact Bool.noConfusion
+                    ((Pile.isEmpty_eq_false_of_mem (lastOf_mem hktop)).symm.trans hemp)
+                exact ⟨aeq, (Pile.isEmpty_eq _).mpr
+                  ⟨by rw [← hhidUV aeq]; exact ((Pile.isEmpty_eq _).mp hemp).1,
+                   by rw [hOther aeq haeqa haeqk]; exact ((Pile.isEmpty_eq _).mp hemp).2⟩⟩
+              exact floaterSpec_transport hwfu hseVl hhidUV hT hE hspecU
             · intro hspecV
-              rcases hspecV with ⟨zp, ap, hseV, hholdV, harm⟩ |
-                ⟨b, hseV, hking, hhid, aeq, hempty⟩
-              · rcases harm with ⟨k0, hlocT0⟩ | ⟨hking2, -⟩
-                · have hzpne : zp ≠ z.twin := by
-                    intro hh
-                    rw [hh] at hseV
-                    exact hsitZTV c hcm hseV
-                  have hxz : zp.twin ≠ z := fun hh =>
-                    hzpne (by rw [← tfc_card_twin_twin zp, hh])
-                  obtain ⟨j', hj'⟩ := hT2 zp.twin k0 hxz hlocT0
-                  have hholdUu : ∃ q, u.pileHolding c = some q := by
-                    cases hq : u.pileHolding c with
-                    | none =>
-                        exfalso
-                        have hnone := tfc_seatOf_none hq
-                        rw [hseUl, hseV] at hnone
-                        nomatch hnone
-                    | some q => exact ⟨q, rfl⟩
-                  obtain ⟨q0, hq0⟩ := hholdUu
-                  exact Or.inl ⟨zp, q0, hseUl.trans hseV, hq0,
-                    Or.inl ⟨j', hj'⟩⟩
-                · exfalso
-                  obtain ⟨q1, hhq1, -, hlc1⟩ := tfc_seatOf_of_inr hseV
-                  obtain ⟨hsit1, -⟩ := tfc_seat_parent hwfv hhq1 hlc1
-                  obtain ⟨hidx, -⟩ := (canSitOn_eq c zp).mp hsit1
-                  have hzlt := Rank.toIdx_lt zp.rank
-                  have h12 : c.rank.toIdx = 12 := by rw [hking2]; rfl
-                  omega
-              · obtain ⟨hhid', hfu'⟩ := (Pile.isEmpty_eq _).mp hempty
+              have hT : ∀ (zp : Card) (k : Anchor), seatOf v c = some (Sum.inr zp) →
+                  v.pileOfTop zp.twin = some k → ∃ j', u.pileOfTop zp.twin = some j' := by
+                intro zp k hseS hloc
+                have hzpne : zp ≠ z.twin := by
+                  intro hh
+                  rw [hh] at hseS
+                  exact hsitZTV c hcm hseS
+                exact hT2 zp.twin k
+                  (fun hh => hzpne (by rw [← tfc_card_twin_twin zp, hh])) hloc
+              have hE : ∀ aeq, (v.piles aeq).isEmpty = true →
+                  ∃ a', (u.piles a').isEmpty = true := by
+                intro aeq hemp
                 have haeqa : aeq ≠ a := by
                   intro hh
-                  rw [hh] at hempty
-                  have hf := Pile.isEmpty_eq_false_of_mem
-                    (by rw [hAface]; exact lastOf_mem hlz)
-                  exact Bool.noConfusion (hf.symm.trans hempty)
+                  rw [hh] at hemp
+                  exact Bool.noConfusion
+                    ((Pile.isEmpty_eq_false_of_mem
+                      (by rw [hAface]; exact lastOf_mem hlz)).symm.trans hemp)
                 have haeqk : aeq ≠ k := by
                   intro hh
-                  rw [hh] at hempty
-                  have hf := Pile.isEmpty_eq_false_of_mem
-                    (by rw [hKface]; exact List.mem_append.mpr (Or.inr (List.mem_cons.mpr (Or.inl rfl))))
-                  exact Bool.noConfusion (hf.symm.trans hempty)
-                refine Or.inr ⟨b, hseUl.trans hseV, hking, ?_, aeq, ?_⟩
-                · rw [hhidUV b]
-                  exact hhid
-                · exact (Pile.isEmpty_eq _).mpr
-                    ⟨by rw [hhidUV aeq]; exact hhid',
-                     by rw [← hOther aeq haeqa haeqk]; exact hfu'⟩
+                  rw [hh] at hemp
+                  exact Bool.noConfusion
+                    ((Pile.isEmpty_eq_false_of_mem
+                      (by rw [hKface]; exact List.mem_append.mpr (Or.inr (List.mem_cons.mpr (Or.inl rfl))))).symm.trans hemp)
+                exact ⟨aeq, (Pile.isEmpty_eq _).mpr
+                  ⟨by rw [hhidUV aeq]; exact ((Pile.isEmpty_eq _).mp hemp).1,
+                   by rw [← hOther aeq haeqa haeqk]; exact ((Pile.isEmpty_eq _).mp hemp).2⟩⟩
+              exact floaterSpec_transport hwfv hseUl (fun j => (hhidUV j).symm) hT hE hspecV
   · -- THE BARE CELL: a lone king vacates a fully-empty-hidden pile
     cases β with
     | inr w₀ =>
@@ -593,109 +585,47 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
           · intro _
             exact Or.inr ⟨a, tfc_seatOf_inl_intro hholdm hb0, hkng, hhid, a',
               (canPlace_inl hcpm).1⟩
-        · have hseVl : seatOf v c = seatOf u c := by
-            have h := hed c
-            rw [ite_eq_right (fun hh => hcm hh)] at h
-            exact h
+        · have hseVl := hse_of_ne hcm
           have hseUl : seatOf u c = seatOf v c := hseVl.symm
           constructor
           · intro hspecU
-            rcases hspecU with ⟨zp, ap, hseU, hholdU, harm⟩ |
-              ⟨b, hseU, hking, hhid, aeq, hempty⟩
-            · rcases harm with ⟨k0, hlocT0⟩ | ⟨hking2, -⟩
-              · obtain ⟨j', hj'⟩ := hTB1 zp.twin k0 hlocT0
-                have hholdVu : ∃ q, v.pileHolding c = some q := by
-                  cases hq : v.pileHolding c with
-                  | none =>
-                      exfalso
-                      have hnone := tfc_seatOf_none hq
-                      rw [hseVl, hseU] at hnone
-                      nomatch hnone
-                  | some q => exact ⟨q, rfl⟩
-                obtain ⟨q0, hq0⟩ := hholdVu
-                exact Or.inl ⟨zp, q0, hseVl.trans hseU, hq0,
-                  Or.inl ⟨j', hj'⟩⟩
-              · exfalso
-                obtain ⟨q1, hhq1, -, hlc1⟩ := tfc_seatOf_of_inr hseU
-                obtain ⟨hsit1, -⟩ := tfc_seat_parent hwfu hhq1 hlc1
-                obtain ⟨hidx, -⟩ := (canSitOn_eq c zp).mp hsit1
-                have hzlt := Rank.toIdx_lt zp.rank
-                have h12 : c.rank.toIdx = 12 := by rw [hking2]; rfl
-                omega
-            · obtain ⟨hhq2U, hbE2U⟩ := tfc_seatOf_of_inl hseU
-              have hba : b ≠ a := by
-                intro hh
-                rw [hh] at hhq2U hbE2U
-                exact hcm (fli_belownil_head (by rw [← hfaceB]; exact hbE2U))
-              have hba' : b ≠ a' := by
-                intro hh
-                rw [hh] at hhq2U
-                have hmem : c ∈ (u.piles a').faceUp := pileHolding_mem hhq2U
-                have hemp : (u.piles a').isEmpty = true := (canPlace_inl hcpm).1
-                have hf := Pile.isEmpty_eq_false_of_mem hmem
-                exact Bool.noConfusion (hf.symm.trans hemp)
-              refine Or.inr ⟨b, hseVl.trans hseU, hking, ?_, ?_⟩
-              · rw [← hhidUV b]
-                exact hhid
-              · rcases Decidable.em (aeq = a') with haeq | haeq
-                · exact ⟨a, by rw [hpeqA]; rfl⟩
-                · have haeqa : aeq ≠ a := by
-                    intro hh
-                    rw [hh] at hempty
-                    have hf := Pile.isEmpty_eq_false_of_mem
-                      (by rw [hfaceB]; exact List.mem_cons_self)
-                    exact Bool.noConfusion (hf.symm.trans hempty)
-                  have hpq : (v.piles aeq) = (u.piles aeq) :=
-                    Pile.ext (hhidUV aeq).symm (hOtherB aeq haeqa haeq)
-                  exact ⟨aeq, by rw [hpq]; exact hempty⟩
+            have hT : ∀ (zp : Card) (k : Anchor), seatOf u c = some (Sum.inr zp) →
+                u.pileOfTop zp.twin = some k → ∃ j', v.pileOfTop zp.twin = some j' :=
+              fun zp k _ hloc => hTB1 zp.twin k hloc
+            have hE : ∀ aeq, (u.piles aeq).isEmpty = true →
+                ∃ a', (v.piles a').isEmpty = true := by
+              intro aeq hemp
+              by_cases haeq : aeq = a'
+              · exact ⟨a, by rw [hpeqA]; rfl⟩
+              · have haeqa : aeq ≠ a := by
+                  intro hh
+                  rw [hh] at hemp
+                  exact Bool.noConfusion
+                    ((Pile.isEmpty_eq_false_of_mem
+                      (by rw [hfaceB]; exact List.mem_cons_self)).symm.trans hemp)
+                exact ⟨aeq, (Pile.isEmpty_eq _).mpr
+                  ⟨by rw [← hhidUV aeq]; exact ((Pile.isEmpty_eq _).mp hemp).1,
+                   by rw [hOtherB aeq haeqa haeq]; exact ((Pile.isEmpty_eq _).mp hemp).2⟩⟩
+            exact floaterSpec_transport hwfu hseVl hhidUV hT hE hspecU
           · intro hspecV
-            rcases hspecV with ⟨zp, ap, hseV, hholdV, harm⟩ |
-              ⟨b, hseV, hking, hhid, aeq, hempty⟩
-            · rcases harm with ⟨k0, hlocT0⟩ | ⟨hking2, -⟩
-              · obtain ⟨j', hj'⟩ := hTB2 zp.twin k0 hlocT0
-                have hholdUu : ∃ q, u.pileHolding c = some q := by
-                  cases hq : u.pileHolding c with
-                  | none =>
-                      exfalso
-                      have hnone := tfc_seatOf_none hq
-                      rw [hseUl, hseV] at hnone
-                      nomatch hnone
-                  | some q => exact ⟨q, rfl⟩
-                obtain ⟨q0, hq0⟩ := hholdUu
-                exact Or.inl ⟨zp, q0, hseUl.trans hseV, hq0,
-                  Or.inl ⟨j', hj'⟩⟩
-              · exfalso
-                obtain ⟨q1, hhq1, -, hlc1⟩ := tfc_seatOf_of_inr hseV
-                obtain ⟨hsit1, -⟩ := tfc_seat_parent hwfv hhq1 hlc1
-                obtain ⟨hidx, -⟩ := (canSitOn_eq c zp).mp hsit1
-                have hzlt := Rank.toIdx_lt zp.rank
-                have h12 : c.rank.toIdx = 12 := by rw [hking2]; rfl
-                omega
-            · obtain ⟨hhq2, hbE2⟩ := tfc_seatOf_of_inl hseV
-              have hba : b ≠ a := by
-                intro hh
-                rw [hh] at hhq2 hbE2
-                have hmem : c ∈ (v.piles a).faceUp := pileHolding_mem hhq2
-                rw [congrArg Pile.faceUp hpeqA] at hmem
-                exact absurd hmem (by simp)
-              have hba' : b ≠ a' := by
-                intro hh
-                rw [hh] at hhq2 hbE2
-                exact hcm (fli_belownil_head (by rw [← hWface]; exact hbE2))
-              refine Or.inr ⟨b, hseUl.trans hseV, hking, ?_, ?_⟩
-              · rw [hhidUV b]
-                exact hhid
-              · rcases Decidable.em (aeq = a) with haeq | haeq
-                · exact ⟨a', (canPlace_inl hcpm).1⟩
-                · have haeqa' : aeq ≠ a' := by
-                    intro hh
-                    rw [hh] at hempty
-                    have hf := Pile.isEmpty_eq_false_of_mem
-                      (by rw [hWface]; exact List.mem_cons_self)
-                    exact Bool.noConfusion (hf.symm.trans hempty)
-                  have hpq : (v.piles aeq) = (u.piles aeq) :=
-                    Pile.ext (hhidUV aeq).symm (hOtherB aeq haeq haeqa')
-                  exact ⟨aeq, by rw [← hpq]; exact hempty⟩
+            have hT : ∀ (zp : Card) (k : Anchor), seatOf v c = some (Sum.inr zp) →
+                v.pileOfTop zp.twin = some k → ∃ j', u.pileOfTop zp.twin = some j' :=
+              fun zp k _ hloc => hTB2 zp.twin k hloc
+            have hE : ∀ aeq, (v.piles aeq).isEmpty = true →
+                ∃ a', (u.piles a').isEmpty = true := by
+              intro aeq hemp
+              by_cases haeq : aeq = a
+              · exact ⟨a', (canPlace_inl hcpm).1⟩
+              · have haeqa' : aeq ≠ a' := by
+                  intro hh
+                  rw [hh] at hemp
+                  exact Bool.noConfusion
+                    ((Pile.isEmpty_eq_false_of_mem
+                      (by rw [hWface]; exact List.mem_cons_self)).symm.trans hemp)
+                exact ⟨aeq, (Pile.isEmpty_eq _).mpr
+                  ⟨by rw [hhidUV aeq]; exact ((Pile.isEmpty_eq _).mp hemp).1,
+                   by rw [← hOtherB aeq haeq haeqa']; exact ((Pile.isEmpty_eq _).mp hemp).2⟩⟩
+            exact floaterSpec_transport hwfv hseUl (fun j => (hhidUV j).symm) hT hE hspecV
 
 /-- The chain lift of the leg row: one cargo direction suffices
 (each leg is an iff). -/
