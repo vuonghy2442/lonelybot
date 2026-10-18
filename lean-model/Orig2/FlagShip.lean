@@ -183,23 +183,24 @@ theorem flagship_floaterOrbitInvariant {st w : State} {c : Card}
     (hpair : BareCargoEquiv st w) (hwf : st.WF) : Floater st c ↔ Floater w c :=
   floater_orbit_invariant hpair hwf
 
-/-- **THE CLASS IFF EXPORT** — the bare-cargo class at a citable name:
-exactly the flat chart with the un-mediated king arm (fuel-set
-targets, no mediator binder), the readouts and the origin-side
-licensing.  Trivial forward of `bareCargo_iff_vk`
-(`Orig2/FloatOrbit.lean` §M11; battery [propext, Quot.sound], zero
-sorry, zero choice; WF-gated both sides, which also supplies the
-chart round trip). -/
+/-- **THE CLASS IFF EXPORT** — the bare-cargo class at a citable name, in
+changed-card normal form: every card whose seat changes is either a licensed
+twin hop or a licensed king landing on a node of the origin's fuel set, and
+the readouts agree.  Trivial forward of `bareCargo_iff_vk`
+(`Orig2/FloatOrbit.lean` §M11; battery [propext, Quot.sound], zero sorry,
+zero choice; WF-gated both sides, which also supplies the chart round trip).
+The redundant total per-card relation (unchanged arm and st-side king anchor)
+stays in the direction lemmas `bareCargo_to_chartDiff_vk` /
+`bareCargo_of_chartVK`. -/
 theorem flagship_bareCargoIffVK {st w : State} (hwfst : st.WF) (hw : w.WF) :
     BareCargoEquiv st w ↔
-      ((∀ x, (seatOf w x = seatOf st x) ∨
-          (∃ z', seatOf st x = some (Sum.inr z') ∧
-            seatOf w x = some (Sum.inr z'.twin)) ∨
-          (x.rank = Rank.king ∧ ∃ a a', seatOf st x = some (Sum.inl a) ∧
-            seatOf w x = some (Sum.inl a') ∧ VKSet st a')) ∧
+      (∀ x, seatOf st x ≠ seatOf w x →
+          (((∃ z', seatOf st x = some (Sum.inr z') ∧
+                seatOf w x = some (Sum.inr z'.twin)) ∨
+            (x.rank = Rank.king ∧ ∃ a', seatOf w x = some (Sum.inl a') ∧
+              VKSet st a')) ∧ FloaterSpec st x)) ∧
       (boardFixed st w ∧ foundsFixed st w ∧
-        drawPool st = drawPool w ∧ cutOf st = cutOf w) ∧
-      (∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x)) :=
+        drawPool st = drawPool w ∧ cutOf st = cutOf w) :=
   bareCargo_iff_vk hwfst hw
 
 /-! ## The audit battery

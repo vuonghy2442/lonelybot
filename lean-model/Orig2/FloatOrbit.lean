@@ -3086,7 +3086,9 @@ theorem king_seat_injective {s : State} {c c' : Card} {a' : Anchor}
 
 /-- **bareCargo_to_chartDiff_vk** — the `→` direction with the UN-MEDIATED
 king arm: a changed king's target is vacant-or-king-bottom at the origin (not
-necessarily empty).  No `hnomed`. -/
+necessarily empty).  No `hnomed`.  This is the total-per-card interface (the
+unchanged arm and the st-side king anchor included); the citable iff below
+uses the changed-card normal form. -/
 theorem bareCargo_to_chartDiff_vk {st w : State} (hwfst : st.WF)
     (hpair : BareCargoEquiv st w) :
     (∀ x, (seatOf w x = seatOf st x) ∨
@@ -3297,9 +3299,10 @@ private theorem all_eq_false' {l : List Card} {p : Card → Bool} (h : l.all p =
           rw [hpx] at h2
           obtain ⟨c, hc, hp⟩ := ih h2
           exact ⟨c, List.mem_cons_of_mem x hc, hp⟩
-/-- **bareCargo_of_chartVK** — the `←` direction for the un-mediated relation:
-a chart with the VK king arm, the readouts and the licensing is a class-mate.
-No `hnomed`. -/
+/-- **bareCargo_of_chartVK** — the `←` direction for the un-mediated relation
+in the total-per-card interface: a chart with the VK king arm, the readouts
+and the licensing is a class-mate.  No `hnomed`.  The citable iff below
+consumes the changed-card normal form through the bridge lemmas. -/
 theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
     (hrel : ∀ x, (seatOf w x = seatOf st x) ∨
         (∃ z', seatOf st x = some (Sum.inr z') ∧
@@ -3504,14 +3507,89 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
           fun j => (hf_u j).symm.trans (hf0 j), hd_u.symm.trans hd0, hc_u.symm.trans hc0⟩
       exact tfa_bareCargo_trans (king_shuffle_closure hwfst hks)
         (bareCargo_of_seatchart hwfu hw hrel_u hlic_u hro_u)
-/-- **bareCargo_iff_vk** — THE UN-MEDIATED CLASS IFF, with NO `hnomed`: the
-class relation is exactly the per-card chart (identity / twin edge / a king
-landing on a node of the fuel set) together with the readouts and the
-st-side licensing.  The king seats are an injective map into `VKSet` (the map
-is `seatOf w`, functional by construction and injective by
-`king_seat_injective`), and the licensing's king cell carries the vacancy the
-schedule needs. -/
-theorem bareCargo_iff_vk {st w : State} (hwfst : st.WF) (hw : w.WF) :
+/-- **chartVK_changed_of_total** — the total per-card relation projects to the
+changed-card normal form: a card whose seat changes is a twin hop or a king
+landing on a fuel node, and it carries the st-side license. -/
+private theorem chartVK_changed_of_total {st w : State}
+    (hrel : ∀ x, (seatOf w x = seatOf st x) ∨
+        (∃ z', seatOf st x = some (Sum.inr z') ∧
+          seatOf w x = some (Sum.inr z'.twin)) ∨
+        (x.rank = Rank.king ∧ ∃ a a', seatOf st x = some (Sum.inl a) ∧
+          seatOf w x = some (Sum.inl a') ∧ VKSet st a'))
+    (hlic : ∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x) :
+    ∀ x, seatOf st x ≠ seatOf w x →
+      (((∃ z', seatOf st x = some (Sum.inr z') ∧
+            seatOf w x = some (Sum.inr z'.twin)) ∨
+        (x.rank = Rank.king ∧ ∃ a', seatOf w x = some (Sum.inl a') ∧
+          VKSet st a')) ∧ FloaterSpec st x) := by
+  intro x hchg
+  refine ⟨?_, hlic x hchg⟩
+  rcases hrel x with hsame | htwin | ⟨hk, a, a', hse_st, hse_w, hvk⟩
+  · exact absurd hsame.symm hchg
+  · exact Or.inl htwin
+  · exact Or.inr ⟨hk, a', hse_w, hvk⟩
+
+/-- **chartVK_total_of_changed** — the changed-card normal form recovers the
+total per-card relation: the unchanged case is the ambient seat equality, and
+the license supplies the st-side king seat that the normal form drops. -/
+private theorem chartVK_total_of_changed {st w : State} (hwfst : st.WF)
+    (h : ∀ x, seatOf st x ≠ seatOf w x →
+      (((∃ z', seatOf st x = some (Sum.inr z') ∧
+            seatOf w x = some (Sum.inr z'.twin)) ∨
+        (x.rank = Rank.king ∧ ∃ a', seatOf w x = some (Sum.inl a') ∧
+          VKSet st a')) ∧ FloaterSpec st x)) :
+    ∀ x, (seatOf w x = seatOf st x) ∨
+        (∃ z', seatOf st x = some (Sum.inr z') ∧
+          seatOf w x = some (Sum.inr z'.twin)) ∨
+        (x.rank = Rank.king ∧ ∃ a a', seatOf st x = some (Sum.inl a) ∧
+          seatOf w x = some (Sum.inl a') ∧ VKSet st a') := by
+  intro x
+  by_cases hsame : seatOf w x = seatOf st x
+  · exact Or.inl hsame
+  · have hchg : seatOf st x ≠ seatOf w x := fun h' => hsame h'.symm
+    obtain ⟨hTK, hL⟩ := h x hchg
+    rcases hTK with htwin | ⟨hk, a', hse_w, hvk⟩
+    · exact Or.inr (Or.inl htwin)
+    · have hst : ∃ a, seatOf st x = some (Sum.inl a) := by
+        rcases hL with ⟨z, a, hse_inr, -, -⟩ | ⟨a, hse_inl, -, -, -⟩
+        · exact (king_seat_inr_absurd hwfst hk hse_inr).elim
+        · exact ⟨a, hse_inl⟩
+      obtain ⟨a, hse_st⟩ := hst
+      exact Or.inr (Or.inr ⟨hk, a, a', hse_st, hse_w, hvk⟩)
+
+/-- **chartVK_rhs_iff** — the total VK RHS and the changed-card normal form
+are the same condition: the total relation adds the unchanged arm (recovered
+from `¬(st-seat ≠ w-seat)`) and the st-side king anchor (recovered from the
+license's king cell), and nothing else. -/
+private theorem chartVK_rhs_iff {st w : State} (hwfst : st.WF) :
+    ((∀ x, (seatOf w x = seatOf st x) ∨
+          (∃ z', seatOf st x = some (Sum.inr z') ∧
+            seatOf w x = some (Sum.inr z'.twin)) ∨
+          (x.rank = Rank.king ∧ ∃ a a', seatOf st x = some (Sum.inl a) ∧
+            seatOf w x = some (Sum.inl a') ∧ VKSet st a')) ∧
+      (boardFixed st w ∧ foundsFixed st w ∧
+        drawPool st = drawPool w ∧ cutOf st = cutOf w) ∧
+      (∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x)) ↔
+    ((∀ x, seatOf st x ≠ seatOf w x →
+        (((∃ z', seatOf st x = some (Sum.inr z') ∧
+              seatOf w x = some (Sum.inr z'.twin)) ∨
+          (x.rank = Rank.king ∧ ∃ a', seatOf w x = some (Sum.inl a') ∧
+            VKSet st a')) ∧ FloaterSpec st x)) ∧
+      (boardFixed st w ∧ foundsFixed st w ∧
+        drawPool st = drawPool w ∧ cutOf st = cutOf w)) := by
+  constructor
+  · rintro ⟨hrel, hro, hlic⟩
+    exact ⟨chartVK_changed_of_total hrel hlic, hro⟩
+  · rintro ⟨hchg, hro⟩
+    exact ⟨chartVK_total_of_changed hwfst hchg, hro,
+      fun x hchg' => (hchg x hchg').2⟩
+
+/-- **bareCargo_iff_vk_total** — the total-per-card form, kept as the internal
+interface of the direction lemmas (`bareCargo_to_chartDiff_vk` returns it,
+`bareCargo_of_chartVK` consumes it).  The citable iff below is the changed-card
+normal form. -/
+private theorem bareCargo_iff_vk_total {st w : State}
+    (hwfst : st.WF) (hw : w.WF) :
     BareCargoEquiv st w ↔
       ((∀ x, (seatOf w x = seatOf st x) ∨
           (∃ z', seatOf st x = some (Sum.inr z') ∧
@@ -3527,72 +3605,80 @@ theorem bareCargo_iff_vk {st w : State} (hwfst : st.WF) (hw : w.WF) :
   · rintro ⟨hrel, hro, hlic⟩
     exact bareCargo_of_chartVK hwfst hw hrel hro hlic
 
-/-! #### §M11g. THE FACTORED FORM — the class iff with the per-card relation
-split by rank into the KING half (fuel-set targets) and the TWIN half. -/
+/-- **bareCargo_iff_vk** — THE UN-MEDIATED CLASS IFF in changed-card normal
+form.  Every card whose seat changes is either a licensed twin hop or a
+licensed king landing on a node of the origin's fuel set; the readouts agree.
+The license is folded into the per-card clause because it is exactly what the
+reconstruction consumes; the redundant total relation (including the unchanged
+arm and the st-side king anchor) lives in `bareCargo_to_chartDiff_vk` and
+`bareCargo_of_chartVK`.  No mediator binder, no chart-round-trip hypothesis. -/
+theorem bareCargo_iff_vk {st w : State} (hwfst : st.WF) (hw : w.WF) :
+    BareCargoEquiv st w ↔
+      (∀ x, seatOf st x ≠ seatOf w x →
+          (((∃ z', seatOf st x = some (Sum.inr z') ∧
+                seatOf w x = some (Sum.inr z'.twin)) ∨
+            (x.rank = Rank.king ∧ ∃ a', seatOf w x = some (Sum.inl a') ∧
+              VKSet st a')) ∧ FloaterSpec st x)) ∧
+      (boardFixed st w ∧ foundsFixed st w ∧
+        drawPool st = drawPool w ∧ cutOf st = cutOf w) :=
+  (bareCargo_iff_vk_total hwfst hw).trans (chartVK_rhs_iff hwfst)
 
-/-- **king_twin_split** — the per-card net relation factors into a KING half
-(kings: fixed or moved onto a node of the fuel set at `st`) and a TWIN half
-(non-kings: fixed or carried to the twin of their parent). -/
+/-! #### §M11g. THE FACTORED FORM — the changed-card relation split by rank
+into the KING half (fuel-set targets) and the TWIN half. -/
+
+/-- **king_twin_split** — the changed-card relation factors by rank: a king
+that moves lands on a node of the fuel set at `st`; a non-king that moves is
+carried to the twin of its parent.  The unchanged case is the antecedent. -/
 theorem king_twin_split {st w : State} (hwfst : st.WF) :
-    (∀ x, (seatOf w x = seatOf st x) ∨
-        (∃ z', seatOf st x = some (Sum.inr z') ∧
-          seatOf w x = some (Sum.inr z'.twin)) ∨
-        (x.rank = Rank.king ∧ ∃ a a', seatOf st x = some (Sum.inl a) ∧
-          seatOf w x = some (Sum.inl a') ∧ VKSet st a'))
+    (∀ x, seatOf st x ≠ seatOf w x →
+        ((∃ z', seatOf st x = some (Sum.inr z') ∧
+            seatOf w x = some (Sum.inr z'.twin)) ∨
+         (x.rank = Rank.king ∧ ∃ a', seatOf w x = some (Sum.inl a') ∧
+            VKSet st a')))
       ↔
-    (∀ x, x.rank = Rank.king →
-        (seatOf w x = seatOf st x ∨
-          ∃ a a', seatOf st x = some (Sum.inl a) ∧
-            seatOf w x = some (Sum.inl a') ∧ VKSet st a')) ∧
-    (∀ x, x.rank ≠ Rank.king →
-        (seatOf w x = seatOf st x ∨
-          ∃ z', seatOf st x = some (Sum.inr z') ∧
-            seatOf w x = some (Sum.inr z'.twin))) := by
+    ((∀ x, x.rank = Rank.king → seatOf st x ≠ seatOf w x →
+        (∃ a', seatOf w x = some (Sum.inl a') ∧ VKSet st a')) ∧
+     (∀ x, x.rank ≠ Rank.king → seatOf st x ≠ seatOf w x →
+        (∃ z', seatOf st x = some (Sum.inr z') ∧
+          seatOf w x = some (Sum.inr z'.twin)))) := by
   constructor
   · intro h
     refine ⟨?_, ?_⟩
-    · intro x hk
-      rcases h x with hsame | htwin | ⟨-, a, a', hse, hse_w, hvk⟩
-      · exact Or.inl hsame
+    · intro x hk hchg
+      rcases h x hchg with htwin | ⟨-, a', hse_w, hvk⟩
       · obtain ⟨z', hse, -⟩ := htwin
         exact (king_seat_inr_absurd hwfst hk hse).elim
-      · exact Or.inr ⟨a, a', hse, hse_w, hvk⟩
-    · intro x hnk
-      rcases h x with hsame | htwin | ⟨hkk, -⟩
-      · exact Or.inl hsame
-      · exact Or.inr htwin
+      · exact ⟨a', hse_w, hvk⟩
+    · intro x hnk hchg
+      rcases h x hchg with htwin | ⟨hkk, -⟩
+      · exact htwin
       · exact absurd hkk hnk
-  · rintro ⟨hking, hnon⟩ x
+  · rintro ⟨hking, hnon⟩ x hchg
     by_cases hk : x.rank = Rank.king
-    · rcases hking x hk with hsame | ⟨a, a', hse, hse_w, hvk⟩
-      · exact Or.inl hsame
-      · exact Or.inr (Or.inr ⟨hk, a, a', hse, hse_w, hvk⟩)
-    · rcases hnon x hk with hsame | htwin
-      · exact Or.inl hsame
-      · exact Or.inr (Or.inl htwin)
+    · exact Or.inr ⟨hk, hking x hk hchg⟩
+    · exact Or.inl (hnon x hk hchg)
 
-/-- **bareCargo_iff_split** — the class iff with the relation factored into
-the king half (fuel-set targets) and the twin half. -/
+/-- **bareCargo_iff_split** — the class iff in the changed-card factored form:
+moved kings land on fuel, moved non-kings are twin-carried, every moved card
+is licensed at the origin, and the readouts agree. -/
 theorem bareCargo_iff_split {st w : State}
     (hwfst : st.WF) (hw : w.WF) :
     BareCargoEquiv st w ↔
-      ((∀ x, x.rank = Rank.king →
-          (seatOf w x = seatOf st x ∨
-            ∃ a a', seatOf st x = some (Sum.inl a) ∧
-              seatOf w x = some (Sum.inl a') ∧ VKSet st a')) ∧
-       (∀ x, x.rank ≠ Rank.king →
-          (seatOf w x = seatOf st x ∨
-            ∃ z', seatOf st x = some (Sum.inr z') ∧
-              seatOf w x = some (Sum.inr z'.twin)))) ∧
+      ((∀ x, x.rank = Rank.king → seatOf st x ≠ seatOf w x →
+          (∃ a', seatOf w x = some (Sum.inl a') ∧ VKSet st a')) ∧
+       (∀ x, x.rank ≠ Rank.king → seatOf st x ≠ seatOf w x →
+          (∃ z', seatOf st x = some (Sum.inr z') ∧
+            seatOf w x = some (Sum.inr z'.twin)))) ∧
+      (∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x) ∧
       (boardFixed st w ∧ foundsFixed st w ∧
-        drawPool st = drawPool w ∧ cutOf st = cutOf w) ∧
-      (∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x) := by
+        drawPool st = drawPool w ∧ cutOf st = cutOf w) := by
   rw [bareCargo_iff_vk hwfst hw]
   constructor
-  · rintro ⟨hrel, hr, hl⟩
-    exact ⟨(king_twin_split hwfst).mp hrel, hr, hl⟩
-  · rintro ⟨hsplit, hr, hl⟩
-    exact ⟨(king_twin_split hwfst).mpr hsplit, hr, hl⟩
+  · rintro ⟨hchg, hro⟩
+    exact ⟨(king_twin_split hwfst).mp (fun x h => (hchg x h).1),
+      (fun x h => (hchg x h).2), hro⟩
+  · rintro ⟨hsplit, hlic, hro⟩
+    exact ⟨fun x h => ⟨(king_twin_split hwfst).mpr hsplit x h, hlic x h⟩, hro⟩
 
 /-! ## The audit battery -/
 
