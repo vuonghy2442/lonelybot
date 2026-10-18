@@ -269,6 +269,91 @@ certified and carded the same hour. -/
    forcing conservation; the owner's proof, the coordinator
    retraction logged) both certified and carded the same hour. -/
 
+/-! ## §S5. The seat-mate stack claim — REFUTED for ordinary cards (W1);
+the KING ARM SURVIVES (W2 retracted by the reversibility objection); the
+repaired ordinary arm is the blocker row -/
+
+/-- **TOMBSTONE T3** — the seat-mate stack claim is FALSE as a whole: for an
+ordinary card neither it, nor its twin, nor a king need be stacked.  The
+KING arm of the same claim is TRUE (`king_change_needs_king_stack`); the
+tombstone's witness is an ordinary card, so the conjunction still fails. -/
+theorem tombstone_seatmate_stack :
+    ¬ (∀ (st w : State), st.WF → w.WF → ∀ (c : Card),
+        (∃ b, seatOf st c = some b) → ¬ Floater st c →
+        seatOf w c ≠ seatOf st c →
+        ∀ play : List Move, ShufflePlayW st play w →
+          ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play) := by
+  sorry
+
+/-! ### §S5.0 EVIDENCE
+
+* **W1, the blocker (VALID).**  `c` seated on `z`, with `z.twin` covered by
+  `d`.  Every play that exposes `z.twin` must stack `d`: `d`'s only cargo
+  move is the twin hop onto `z`, and `z` is covered by `c` itself, so `d`
+  cannot leave its seat by cargo (riding a run keeps `seatOf = inr z.twin`).
+  The raise of `d` is itself reversible — its undo is the pull of `d` back
+  onto `z.twin`, which is the pile top after the raise, `canSitOn d z.twin`
+  being static — so it is a legal `ShufflePlayW` move.  Then `c` twin-hops.
+  The play contains `tabToFound d`, and `d` is neither `c` nor `c.twin`;
+  `c` ordinary, so no king is stacked either.  Refuted.
+* **W2 RETRACTED (the irreversibility objection, owner 2026-10-18).**  The
+  pile-emptying NON-KING raise is not a move of `ShufflePlayW`:
+  `reversibleAtW` demands an exact return play (`∃ play, s₁.run play = some
+  st`), and a non-king can never be put back on the emptied pile
+  (`canPlace x (.inl a)` requires a king), nor restore the exact state any
+  other way.  Hence **in the reversible world every pile-emptying raise
+  raises a KING** — the king arm is not refuted; it is TRUE. -/
+
+/-! ### §S5.1 CANDIDATE VOCABULARY (the blocker split W1 makes unavoidable) -/
+
+/-- `ParentOf s d` — the card directly below `d` in its face-up run. -/
+def ParentOf (s : State) (d : Card) : Option Card :=
+  match s.pileHolding d with
+  | some a => lastOf (below d (s.piles a).faceUp)
+  | none   => none
+
+/-- `Blocker s z d` — `d` sits directly on `z` (the card covering `z`). -/
+def Blocker (s : State) (z d : Card) : Prop := ParentOf s d = some z
+
+/-- **CANDIDATE (surviving king arm) `king_change_needs_king_stack`** — a
+non-Floater king whose seat changes forces a KING stack: either it is raised
+itself, or fuel must be manufactured, and the only reversible fuel-creating
+raise is a king's (W2's retraction).  PRICE: the exact-return argument at
+`reversibleAtW` (a non-king cannot be restored to an emptied pile), the
+per-leg support rows, then the chain induction over `ShufflePlayW`. -/
+theorem king_change_needs_king_stack
+    {st w : State} (hwfst : st.WF) (hw : w.WF)
+    {c : Card} (hking : c.rank = Rank.king)
+    (htab : ∃ b, seatOf st c = some b)
+    (hnf : ¬ FloaterSpec st c)
+    (hchg : seatOf w c ≠ seatOf st c) :
+    ∀ play : List Move, ShufflePlayW st play w →
+      ∃ x : Card, x.rank = Rank.king ∧ Move.tabToFound x ∈ play := by
+  sorry
+
+/-- **CANDIDATE `nonFloater_change_demands_stack`** — the repaired general
+shape: kings force a king stack (`king_change_needs_king_stack`); ordinary
+cards stack themselves or the BLOCKER above their parent's twin.  PRICE: the
+per-leg support rows (slide/stack/pull named subjects), blocker
+immovability (W1's mechanism), then the chain induction over
+`ShufflePlayW`.  STATUS: CANDIDATE — the ordinary arm is exactly W1; the
+hidden-twin case still needs the reveal clause (a reversible stack emptying
+the face-up run above a hidden `parent(c).twin` — a king's stack, by the
+same exact-return argument). -/
+theorem nonFloater_change_demands_stack
+    {st w : State} (hwfst : st.WF) (hw : w.WF)
+    {c : Card}
+    (htab : ∃ b, seatOf st c = some b)
+    (hnf : ¬ FloaterSpec st c)
+    (hchg : seatOf w c ≠ seatOf st c) :
+    ∀ play : List Move, ShufflePlayW st play w →
+      (c.rank = Rank.king →
+        ∃ x : Card, x.rank = Rank.king ∧ Move.tabToFound x ∈ play)
+      ∧ (c.rank ≠ Rank.king →
+        Move.tabToFound c ∈ play
+        ∨ (∃ z d, seatOf st c = some (Sum.inr z) ∧ Blocker st z.twin d ∧
+            Move.tabToFound d ∈ play)) := by
+  sorry
 /-! ## The audit battery
 
 This ledger's stubs deliberately carry their sorry as the honest
@@ -288,3 +373,6 @@ the stub is deleted per the claims-layer rule. -/
 #print axioms class_card_zone
 #print axioms fiber_product_schematic
 #print axioms fiber_transfer_corrected
+#print axioms tombstone_seatmate_stack
+#print axioms king_change_needs_king_stack
+#print axioms nonFloater_change_demands_stack

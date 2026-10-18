@@ -11,6 +11,7 @@ import Orig2.FloatOrbit
 import Orig2.Claims
 import Orig2.ClaimsScrutiny
 import Orig2.OrbitFactor
+import Orig2.SeatMateStack
 import Orig2.FlagShip
 
 /-!

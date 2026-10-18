@@ -447,6 +447,36 @@ the chain).  With the traveling-vacancy leg and the spare-slot
 invariant both certified, the token-sliding card's remaining
 content is exactly the MEDIATED order analysis. -/
 
+/-! ## §1G. THE SEAT-MATE STACK CLAIM (2026-10-18; UNDER SCRUTINY —
+REFUTED AS STATED, see `Orig2/ClaimsScrutiny.lean` §S5)
+
+The requested statement: ANY possible play that moves a non-Floater
+tableau card must contain a founding move of the card or of one of
+its seat-mates (`SeatMate`: the twin-pair for an ordinary card, the
+king quad for a king).  STATUS: refuted FOR ORDINARY CARDS by the
+blocker witness W1 (the card covering the twin target must be
+stacked, and it is neither the card nor its twin).  The KING ARM is
+TRUE: the non-king fuel counterexample W2 is RETRACTED — a
+pile-emptying raise is reversible only when it raises a king, since
+`reversibleAtW` demands an exact return play and a non-king cannot be
+restored to an emptied pile.  Both rows live at `ClaimsScrutiny`
+§S5 with the repaired ordinary arm.  This stub is kept as the frozen
+record of the requested SHAPE only; it is NOT a live debt and never
+promotes verbatim. -/
+
+/-- **CLAIM (REFUTED AS STATED) `nonFloater_change_needs_seatmate_stack`** —
+any possible play moving a non-Floater tableau card contains a founding
+move of the card or of a seat-mate.  Witnesses and repair:
+`ClaimsScrutiny` §S5. -/
+theorem nonFloater_change_needs_seatmate_stack
+    {st w : State} (hwfst : st.WF) (hw : w.WF)
+    {c : Card}
+    (htab : ∃ b, seatOf st c = some b)
+    (hnf : ¬ Floater st c)
+    (hchg : seatOf w c ≠ seatOf st c) :
+    ∀ play : List Move, ShufflePlayW st play w →
+      ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play := by
+  sorry
 /-! ## The audit battery
 
 All battery lines live at the proving cards:
