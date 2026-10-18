@@ -298,8 +298,8 @@ plus `Orig/Classify.lean:294, :310, :392` via `Orig2/Classification.lean`) -/
 `Orig/State.lean:116`: the two recursions are the same). -/
 theorem tfc_getLast?_lastOf : ∀ (l : List Card), l.getLast? = lastOf l
   | [] => rfl
-  | [x] => rfl
-  | x :: y :: t => tfc_getLast?_lastOf (y :: t)
+  | [_] => rfl
+  | _ :: y :: t => tfc_getLast?_lastOf (y :: t)
 
 /-- The last lands in an appended nonempty suffix (fresh row, the
 `Orig/Classify.lean:195` pattern). -/

@@ -150,6 +150,7 @@ theorem floater_hop_targets {st : State} (hwf : st.WF) {c : Card}
         exact ⟨Sum.inl a', hrev, Or.inr ⟨hkng, a, a', hse, rfl,
           ((Pile.isEmpty_eq _).mp hE).2⟩⟩
 
+set_option linter.unusedVariables false in
 /-- **Row 3 — `floater_seat_change`** (proved as drafted).  The class
 fiber: a reversible bare-cargo exchange moves a card's seat only
 across the twin pair, or vacates a king. -/
