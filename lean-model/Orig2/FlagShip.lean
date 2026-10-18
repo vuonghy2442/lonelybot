@@ -109,7 +109,15 @@ By DEBT — the floater books' capstones still re-hoist the priced
 characterization `bareCargo_iff_chartEdits`,
 `Orig2/FloatFiber.lean` §H4-§H5): nothing they cover exports
 until that stub discharges, at which point the hoists drop per the
-debt linkage.  The scrutiny phase's own flagship
+debt linkage.  AMENDMENT (2026-10-18): the stub's UNGATED shape is
+refuted — the chart card landed it WF-GATED with a kernel
+refutation of the ungated form (`Orig2/Chart.lean` §10-§11,
+battery [propext, Quot.sound] / [propext]) — so the hoists above do
+not drop verbatim: they await each site's mate-pinning amendment
+(mate-side WF, or the card's conservation grade
+`chart_round_trip_counts` via a count-neutral SeatEdit) — the
+floater books' own debt, see the ledger's §1F UPDATE.  The
+scrutiny phase's own flagship
 candidate — `fiber_product_schematic`, the (Z/2)^k bit-group
 decomposition over the `twinBit` index, `Orig2/ClaimsScrutiny.lean`
 §S4 — is a PRICED SCHEMATIC carrying its honest sorry; it remains

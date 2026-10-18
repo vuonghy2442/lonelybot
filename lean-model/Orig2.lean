@@ -1,6 +1,7 @@
 import Orig2.Model
 import Orig2.Vocab
 import Orig2.Kit
+import Orig2.Chart
 import Orig2.Classification
 import Orig2.CargoKit
 import Orig2.FloaterLadder

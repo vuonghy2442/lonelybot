@@ -110,13 +110,54 @@ PRICE across the book: the seam's own step unfolds
 kits (the classification and orbit cards each hold copies — this
 book is the dedup strike that replaces them). -/
 
-/-- **CLAIM `chart_round_trip`** — the chart is faithful: states
-are their readouts (the named full agreement). -/
-theorem chart_round_trip (st w : State) (h : chartAgree st w) :
-    st = w := by
-  sorry
+/-! **CLAIM `chart_round_trip`** — the chart is faithful: states are
+their readouts (the named full agreement).
 
-/-- **CLAIM `chart_tabToTab` (RE-GATED)** — the UPDATE row: one pair
+RE-GATING PROVENANCE (2026-10-18): the ungated form (`chartAgree`
+alone) is FALSE — refuted by the chart card's kernel witness
+`chart_round_trip_ungated_false` (`Orig2/Chart.lean` §11, battery
+[propext]): the seat search stops at a card's FIRST face-up pile,
+so a masked extra copy of a card in any LATER pile changes no
+readout whatsoever — two wild boards differing only in the masked
+tail of a late pile are chart-twins but not equal.  The WF gates
+(occurrence uniqueness on BOTH sides) kill exactly this; the claim
+is re-stated at the WF-grade, `chart_round_trip (st w) (hwfst :
+st.WF) (hwfw : w.WF) (h : chartAgree st w) : st = w`, never in the
+ungated shape again.
+
+THE GRADE LADDER (2026-10-18): the card separates the load-bearing
+content — `chart_round_trip_core` is the bare occurrence-grade row
+(`∀ c, cardCount c = 1` per side; no run legality, foundation
+shape, or draw quantum is consumed anywhere), the WF claim is that
+core with the count clause extracted, and
+`chart_round_trip_counts` is the CONSERVATION GRADE: st.WF plus
+count AGREEMENT (`∀ c, st.cardCount c = w.cardCount c`) pins the
+mate with NO mate-side gate.
+
+DEBT-LINKAGE CONSEQUENCE (recorded 2026-10-18, restated on the
+grade ladder): the floater books' hoists read `∀ A B, chartAgree
+A B → A = B` UNGATED — they cannot drop verbatim with the
+discharge (the re-gated row needs the mate's WF, which a wild
+SeatEdit-spec-mate need not have).  Their honest consumption is
+one of two amendments per site: the conservation grade's count-
+neutrality clause — a SeatEdit gains `∀ c, w.cardCount c =
+st.cardCount c` (an edit creates no cards; the natural companion
+of the already-listed conserved readouts) and rides
+`chart_round_trip_counts` — or a direct mate-side WF premise.  The
+floater books' own re-gating work, either way.
+
+PROMOTED (2026-10-18): the re-gated claim is DISCHARGED at
+`Orig2/Chart.lean` §10 — the chart card proves it over the
+below-profile transfer (the one induction: a card's position datum
+transfers to any chart-mate at the same anchor, parent step by
+parent step, every step an occurrence kill; the top card then pins
+the whole face-up run), plus the pool/cut recovery and the field
+congruences.  The card's battery carries the head ([propext,
+Quot.sound], zero sorryAx, zero `Classical.choice`).  The stub is
+deleted per the promotion rule (never duplicated); the Claims
+battery line for this claim moved to the card. -/
+
+/-! **CLAIM `chart_tabToTab` (RE-GATED)** — the UPDATE row: one pair
 change, nothing else in the world moves.  RE-GATING PROVENANCE
 (2026-10-17): the ungated form (`hstep` alone) was REFUTED by the
 floater-ladder probe's kernel witness (`Temp/float_check.lean`'s
@@ -128,15 +169,20 @@ edit and `boardFixed` alike.  The WF gate (occurrence uniqueness)
 kills (i); the reversibility gate (whose bare cell carries
 `hidden = []`) kills (ii).  The `reversibleAtW` form rides the
 certified per-letter row; the sibling chart rows carry analogous
-gates at their own discharge. -/
-theorem chart_tabToTab {st s' : State} {c : Card} {b : Base}
-    (hwf : st.WF)
-    (hstep : State.step st (Move.tabToTab c b) = some s')
-    (hrev : reversibleAtW st (Move.tabToTab c b)) :
-    (∀ x, seatOf s' x = if x = c then some b else seatOf st x) ∧
-    boardFixed st s' ∧ foundsFixed st s' ∧
-    drawPool st = drawPool s' ∧ cutOf st = cutOf s' := by
-  sorry
+gates at their own discharge.
+
+PROMOTED (2026-10-17): the claim is DISCHARGED at
+`Orig2/FloatFiber.lean` §H2 — the fiber card's
+`floater_seat_change_spec` proves the one-point chart edit at the
+mover (the point-edit row plus the conservation row: the edit
+bundle IS this claim's statement — the seat point edit, the fixed
+hidden decks and deal quantum, the foundation rows, the pool and
+the cut), together with the class-STEP fiber (the twin-family
+reseating or the bare-king vacate) — strictly more than the stub.
+The card's battery carries the head ([propext, Quot.sound], zero
+sorryAx, zero `Classical.choice`).  The stub is deleted per the
+promotion rule (never duplicated); the Claims battery line for
+this claim moved to the card. -/
 
 /-- **CLAIM `chart_tabToFound`** — the DELETE row: the pair vanishes,
 the card lands on its foundation row, nothing else moves. -/
@@ -163,15 +209,18 @@ theorem chart_foundToTab {st s' : State} {c : Card} {b : Base}
     cutOf st = cutOf s' := by
   sorry
 
-/-- **CLAIM `chart_draw`** — the CUT row: no pair changes, no
-foundation changes, the pool is conserved; only the split moves
-(the exact cut curve — the pass-base and recycle cases — priced
-from the seam's draw unfold and the orbit card's phase kit). -/
-theorem chart_draw {st s' : State}
-    (hstep : State.step st Move.draw = some s') :
-    (∀ c, seatOf s' c = seatOf st c) ∧ foundsFixed st s' ∧
-    boardFixed st s' ∧ drawPool st = drawPool s' := by
-  sorry
+/-! **CLAIM `chart_draw` (PROMOTED 2026-10-18)** — the CUT row: no
+pair changes, no foundation changes, the pool is conserved; only the
+split moves.  DISCHARGED at `Orig2/Chart.lean` §6, exactly as stated
+(ungated — the draw writes only the stock and the waste, so no gate
+is load-bearing): the record congruence rides the draw footprint fold
+(`Orig2/Kit.lean` §1d: `draw_footprint` and its projections), the
+pool clause is one `dealUpTo`-split computation plus the recycle
+cases (frozen template `Orig/Canonical.lean:2619 draw_pool_keep`,
+restated constructively).  The card's battery carries the head
+([propext, Quot.sound], zero sorryAx, zero `Classical.choice`).  The
+stub is deleted per the promotion rule (never duplicated); the
+Claims battery line for this claim moved to the card. -/
 
 /-- **CLAIM `chart_wasteToFound`** — the pool-to-foundation row: no
 pair changes, the pool head is consumed, the card lands on its
@@ -196,12 +245,232 @@ theorem chart_wasteToTab {st s' : State} {c : Card} {b : Base}
     cutOf st = cutOf s' := by
   sorry
 
+/-! ## §1F. THE FLOATER CLAIM BOOK (promoted at the fiber card and
+the orbit card; the dry-run's four rows, the ladder restatements,
+and the class-invariance keystone)
+
+PROVENANCE (2026-10-17): dry-ran as `Temp/float_agent_check.lean`
+(the agent dry-run over the owner's `Temp/float_check.lean` kit,
+2,300+ lines of certification compiled with every head at
+[propext, Quot.sound] — zero sorry, zero `Classical.choice`), and
+installed at owner request ("migrate it … create a new file for the
+new claim").  PRICE across the book (all landed): the twin-fiber
+forcing (`canSitOn`'s twin-blindness plus the parent-tops-nothing
+seat row), the certified one-point chart edit, the reversible
+slide's readout conservation, the WF-gated R-oracle, and the priced
+`chart_round_trip` hoist.
+
+UPDATE (2026-10-18, the round-trip re-gate): the keystone priced in
+the line above landed at `Orig2/Chart.lean` WF-GATED — the ungated
+form is refuted there (`chart_round_trip_ungated_false`, battery
+[propext]): a wild chart-mate can carry masked extra copies and
+still satisfy every readout, so no ungated round trip exists.  The
+hoists at the rows below therefore do NOT drop verbatim; each
+hoist-site needs its mate pinned — by a mate-side WF premise, or by
+the card's CONSERVATION GRADE `chart_round_trip_counts` (st.WF
+plus count-neutrality `∀ c, w.cardCount c = st.cardCount c`, the
+natural amendment of a SeatEdit-grade spec) — the floater books'
+own re-gating work, recorded here so the debt linkage is not
+misread as settled.
+
+PROMOTED (2026-10-17), per entry:
+
+* `floater_seat_change_spec` (this ledger's `chart_tabToTab`
+  discharge, plus the class-STEP fiber: twin-family reseating or a
+  bare-king vacate) at `Orig2/FloatFiber.lean` §H2;
+* `floater_cargo_lift` (the reverse layer 1: a live fiber-valid
+  cell plus a placement license FIRES as an actual reversible cargo
+  leg realizing the chart spec) at FloatFiber §H2;
+* `floater_classification` (the structural iff: the behavioral
+  Floater equals the target-existence shape `FloaterSpec`) at
+  FloatFiber §H3;
+* `floater_seat_to_equiv'` (the reverse layer 2 MODULO this
+  ledger's priced `chart_round_trip`, hoisted as a hypothesis —
+  the DEBT LINKAGE: when that stub is discharged, the hoist drops)
+  at FloatFiber §H4;
+* the ladder restatements — `slide_reversible_iff_cell` (the
+  per-slide oracle at the seat algebra), `floaterSpec_iff_cargoEdit`
+  and `floater_iff_cargoEdit` (the registry-grade per-card flat
+  iff: the Floater is exactly the licensed one-point class edit),
+  and `bareCargo_iff_chartEdits` (the class iff: the bare-cargo
+  class IS the iterated one-point floater-edit closure — its
+  forward half consumes ONE cargo direction and needs no round
+  trip, its backward half re-hoists `chart_round_trip` once and
+  rides the reverse-layer rows per step) at FloatFiber §H5;
+* `floater_leg_invariant` and `floater_orbit_invariant` (THE
+  ORBIT-INVARIANCE CARD: along one reversible leg — hence along
+  the whole bare-cargo orbit — floater-hood per card is FIXED; the
+  floater SET is a `BareCargoEquiv`-class invariant, the
+  conservation keystone that makes the flat class
+  characterization derivable) at `Orig2/FloatOrbit.lean`;
+* `floater_path_invariant` (the one-way companion: a single cargo
+  DIRECTION already fixes floater-hood per card) and
+  `bareCargo_to_chartDiff` (Stage 2 of the flat reformulation:
+  every class-mate is reached with the per-card three-way net
+  seat relation (the chain invariant), the conserved readouts
+  (hidden decks and deal quantum, foundations, pool, cut), and
+  DERIVED st-side licensing — a net-changed card was some
+  prefix-endpoint's mover, the path invariance transports its
+  floater-hood back, and the classification re-exports the
+  spec LITERALLY at the origin: no round trip, one cargo
+  direction) at `Orig2/FloatOrbit.lean` §J.  What remains priced
+  of the flat iff is only its reconstruction half: the single-edit
+  compose-unit is PROMOTED at `Orig2/FloatOrbit.lean` §K
+  (`bareCargo_reconstruct_singleEdit` — the reverse-layer row at
+  the flat grade); the ordered multi-hop reconstruction (Stage 3B,
+  the consumers-before-carriers safe-order commutation card) is the
+  priced core left.
+
+The two cards' batteries carry the heads ([propext, Quot.sound]
+line-by-line, zero sorryAx, zero `Classical.choice`); the stubs are
+deleted per the promotion rule (never duplicated) — this book had
+no stubs to delete (the rows were certified before registration),
+the `chart_tabToTab` promotion above being the one stub the
+discharge retired. -/
+
+/-! ### §1F.1  THE SEAT-CHART IFF (owner's target, priced): the
+bare-cargo orbit characterized by pure seatOf data.  TARGET
+STATEMENT: `BareCargoEquiv st w ↔ w.WF ∧ per-card three-way net
+seat relation (carried | parent→parent's twin | bare king's
+empty-seat change) ∧ readoutsAgree (hidden, deal quantum,
+founds, pool, cut) ∧ st-side licensing of every net-changed card`.
+STATUS: the → direction is PROMOTED (`bareCargo_to_chartDiff`
+plus the freshly banked `floater_orbit_wf_prsv` — the WF fence
+rides the whole orbit, one cargo direction suffices — both at
+`Orig2/FloatOrbit.lean`, battery [propext, Quot.sound]).  The ←
+direction (the mirror program) is PRICED: (i) license rows at
+consistent neighbors — at any state w-shaped on the pending
+cards, a pending card's mirror undo-leg is licensed directly by
+the flat data itself (the vacated parent tops its pile by
+occurrence uniqueness; a king's vacated pile is empty by the
+readout agreement); (ii) the master induction over the
+changed-card roster firing undo-leg/redo-leg pairs — the undo
+chain builds the w→st path, the redo legs reassemble the
+st→w path, no forward license-preservation machinery; (iii)
+NECESSARY RHS UPGRADE (found 2026-10-17): the king arm must
+carry its target pile's hidden-emptiness at st — `c: a → a′`
+requires `(st.piles a′).hidden = []` — else the flat condition
+admits a near-miss (a hidden card parked under the king's
+w-slot: every naive clause holds, the landing is physically
+impossible, no reversible journey realizes it); the →
+direction derives the upgraded clause from the journey (the
+mover's landing leg rides the bare cell with hidden = [], and
+the readout chains carry it back to st).
+
+PROMOTED (2026-10-17, the company grade): THE SEAT-CHART IFF at
+twin-hop grade — `bareCargo_iff_seatchart_company` at
+`Orig2/FloatOrbit.lean` ([propext, Quot.sound], the card's
+battery): over orbits whose changed cards all move company, the
+bare-cargo class is EXACTLY the flat seat data (the three-way net
+relation, the readouts, the st-side licensing; the WF fence rides
+at both ends as ever).  Both directions certified: the → by
+`bareCargo_to_chartDiff` (with `floater_orbit_wf_prsv` for the
+fence clause); the ← by THE MIRROR PROGRAM — the seating
+foundations (`orbit_sitter_unique` — one sitter per parent,
+`orbit_no_sitter_on_top`, `orbit_bottom_unique`,
+`orbit_exposed_tops`), the derived single-hop reconstructions
+(`barecargo_reconstruct_companyFlat` and `_kingFlat`, licenses
+unpacked from the spec, never assumed), the undo/red license rows
+at consistent neighbors (`orbit_company_undo_license`,
+`orbit_company_redo_license`), and the master induction over the
+filtered-universe queue with the skip-case carrying stale entries
+(`orbit_company_mirror_induct`, activated by
+`bareCargo_of_seatchart_company`).  ALSO PROMOTED (2026-10-17):
+THE KING-ARM HIDDEN-[] DERIVATION — the → upgrade's derivation
+from the journey: `orbit_king_hidden_vacate` at
+`Orig2/FloatOrbit.lean` ([propext, Quot.sound]), riding the
+last-mover locator (`orbit_last_mover_locator`: a seat-changed
+card's LAST fired-and-reversible leg, whose successor keeps the
+card's seat to the far end) plus the oracle's canPlace-target
+emptiness plus the prefix readout chains.  With it, EVERY clause
+of the flat RHS is now derivable in the → direction for all arms.
+PRICED REMAINDER (the last piece): the KING grade of the ←
+direction only — the token-sliding order content for king
+chains landing on piles other kings vacate (the swap-cycle:
+undo-ordering genuinely matters; the last-mover locator now
+certifies the JOURNEY structure this analysis will read).
+
+FINAL PROMOTION AND CLOSING DISCOVERY (2026-10-17): the MIXED
+master induction (`orbit_mixed_mirror_induct`) is landed — the
+changed queue processes each pending card by its own arm: company
+twin hops through the twin license rows, king vacates through the
+king license rows (`orbit_king_undo_license`,
+`orbit_king_redo_license`: the strengthened target-clause carries
+the target pile's st-emptiness; claimant anchors die by
+bottom-uniqueness or their own clause), stale entries skipping as
+ever — ACTIVATED at the filtered universe by
+`bareCargo_of_seatchart` ([propext, Quot.sound], the card's
+battery): with the flat data plus the strengthened king clauses
+the class is genuinely realizable; EVERY clause of the ←
+direction is now landed at FULL grade.  THE CLOSING DISCOVERY,
+recorded as the final priced core: the two directions of the
+NAIVE full iff do not meet — the → derivation of the
+strengthened clause collects ONLY the hidden emptiness
+(`orbit_king_hidden_vacate`), while the target pile's faceUp at
+st can be occupied in MEDIATED king chains (a second king
+vacates the target before the mover lands — the swap-cycle
+again), and the ← mirror genuinely consumes the full isEmpty.
+Hence the unrestricted `bareCargo_iff_seatchart` REQUIRES the
+token-sliding order card — the mediated-journey structure made
+chart-derivable — as its final ingredient; every other component
+of the §1F.1 price is PROMOTED and battery-certified.
+
+PROMOTED (2026-10-18, the unified strong iff): the mediate
+obstruction DELIMITED, and the iff UNIFIED over unmediated
+orbits — `orbit_king_isEmpty_unmediated` (→ : with no changed
+card st-anchoring the mover's target, the FULL target-emptiness
+is derivable — hidden via the vacate row, faceUp by the resident
+elimination: the mover's own source anchor disagrees, an
+unchanged resident would co-anchor at w, a changed resident is
+the excluded mediator), `bareCargo_to_chartDiff_full` (→ : the
+per-card net relation, readouts, licensing, and the king-target
+hidden-emptiness for every changed bottom-to-bottom mover in ONE
+row), and `bareCargo_iff_seatchart_unmediated` — THE ONE ↔
+THEOREM: over unmediated orbits (the ambient no-mediator binder,
+the same scoping discipline as the company iff's company-arm
+binder), `BareCargoEquiv st w ↔ (net relation with the
+strengthened king arm — the target pile fully empty at st — ∧
+readouts ∧ st-side licensing)`, both directions certified
+([propext, Quot.sound], the card's battery).  The token-sliding
+card remains the sole priced ingredient of the unrestricted
+statement.
+
+PROMOTED (2026-10-18, the spare-empty invariant and the
+KING-SHUFFLE card at `Orig2/FloatOrbit.lean` §§M9–M10, both
+[propext, Quot.sound]): `bareCargo_orbit_spare_empty` (the vacancy
+never disappears along the orbit — company legs touch no empty
+pile, bare-king legs swap consumed target for vacated donor), and
+**"with a vacant spot, shuffle the kings all you want"** — TWO
+rows: `king_shuffle_vacancy` (the shuffle leg: a bottomed bare
+king swaps into the current vacancy reversibly, THE VACANCY
+TRAVELS to the king's old pile — the successor carries an empty
+donor, the chain's fuel; the class-mates close via the chart
+activation row, the lift's own SeatEdit being the carried-arm
+chart, the readouts its fixed components, and the licensing the
+hypotheses themselves — the spec's bare-cell shape with the
+vacancy as the empty-pile existential), and `king_shuffle_closure`
+over the `KingShuffle` reachability family (any sequence of
+vacancy-swapping bare-king trades keeps the far end a bare-cargo
+class-mate of the start; the fence and the priced round trip ride
+the chain).  With the traveling-vacancy leg and the spare-slot
+invariant both certified, the token-sliding card's remaining
+content is exactly the MEDIATED order analysis. -/
+
 /-! ## The audit battery
 
 All battery lines live at the proving cards:
 `reversibleOf_iff_reversibleAtW` at the classification card
 (`Orig2/Classification.lean` §7), `sameOrbit_factor` at the
-orbit-factor card (`Orig2/OrbitFactor.lean` §4).  The banked
-walk-steps bridge rows were pulled with the cargo pause (owner,
-2026-10-17, "for now" — the bytes await at
-`Temp/cargo_bridge_aborted.lean`); no priced stub remains. -/
+orbit-factor card (`Orig2/OrbitFactor.lean` §4), the fiber book's
+heads at the fiber card (`Orig2/FloatFiber.lean`), the
+orbit-invariance card's heads at `Orig2/FloatOrbit.lean`, and the
+landed chart heads `chart_draw` and `chart_round_trip` (re-gated
+at WF) at the chart card (`Orig2/Chart.lean`, 2026-10-18 — the
+card's battery section re-prints every head, including the
+ungated-round-trip refutation `chart_round_trip_ungated_false` at
+[propext]).  The priced stubs left standing are the chart book's
+per-letter readout rows (`chart_tabToFound`, `chart_foundToTab`,
+`chart_wasteToFound`, `chart_wasteToTab`); the banked walk-steps
+bridge rows stay pulled with the cargo pause (owner, 2026-10-17,
+"for now" — the bytes await at
+`Temp/cargo_bridge_aborted.lean`). -/
