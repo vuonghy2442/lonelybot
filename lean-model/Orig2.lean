@@ -1,9 +1,11 @@
 import Orig2.Model
 import Orig2.Vocab
 import Orig2.Kit
+import Orig2.Integrity
 import Orig2.Chart
 import Orig2.Classification
 import Orig2.CargoKit
+import Orig2.StepWF
 import Orig2.FloaterLadder
 import Orig2.RevSteps
 import Orig2.FloatFiber
@@ -124,5 +126,11 @@ owner intent lines); the import seam is `Orig2.Model`; claim-banking
 lives in `Orig2.Claims`; the shared cargo-tier kit (the `tfc_*`/`tfa_*`
 family, consolidated 2026-10-17 from the per-file copies) is
 `Orig2.CargoKit`; the flagship export door (the adjudicated headline
-re-exported at citable names) is `Orig2.FlagShip`.
+re-exported at citable names) is `Orig2.FlagShip`; the search-integrity
+chapter's rebuild home (the `Orig/Integrity.lean` occurrence census,
+the search exactness rows, and the `canPlace` self-safety pack,
+split out of the classification card 2026-10-18) is `Orig2.Integrity`;
+and the WF conservation fence (the `step_wf` step-wise capstone and its
+play lift `run_wf`, ported from `Orig/Reach.lean`'s fence chapter
+2026-10-18 over CargoKit's `tfc_tabToTab_wf` case) is `Orig2.StepWF`.
 -/

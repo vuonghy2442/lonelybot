@@ -1,5 +1,6 @@
 import Orig2.Vocab
 import Orig2.Kit
+import Orig2.Integrity
 
 /-!
 # Orig2.Classification — THE CLASSIFICATION CARD
@@ -92,328 +93,26 @@ imports that kit and keeps only its letter-facing machinery from
 §1A' below.
 -/
 
-/-! ### §1a'. The `WF` accessor strip
+/-! ### §1a'. The Integrity pack (promoted 2026-10-18)
 
-The four one-liner projections of `State.WF`, PORTED verbatim
-from `Orig/Integrity.lean:49-62` (the frozen file rides above the
-core seam via `Orig.Fate`, vetoed here).
--/
-namespace State
-
-/-- Foundations are prefixes of their build order. -/
-private theorem WF.found_prefix {st : State} (h : st.WF) (s : Suit) :
-    ∃ n, st.found s = s.upCards.take n := h.1 s
-
-/-- Every pile's face-up run is legal. -/
-private theorem WF.runOK_of {st : State} (h : st.WF) (a : Anchor) :
-    runOK (st.piles a).faceUp = true := h.2.1 a
-
-/-- Every real card occurs exactly once in the position. -/
-private theorem WF.cardCount_eq {st : State} (h : st.WF) {c : Card}
-    (hc : c ∈ Card.universe) : st.cardCount c = 1 := h.2.2.1 c hc
-
-/-- The draw step is positive. -/
-private theorem WF.drawStep_pos {st : State} (h : st.WF) :
-    0 < st.drawStep := h.2.2.2
-
-end State
-
-/-! ### §1l. The count-integrity kit
-
-`Orig.Integrity`'s occurrence bookkeeping and its placement-target
-rows, ported reading (the frozen file rides above the core seam):
-the pile-zone census splits, the two-occurrence contradiction,
-the one-membership universal, the `runOK` descent kit, and the
-`canPlace` self-safety family the undo assemblies consume.
--/
-
-/-- A pile's whole zone, hidden cards under face-up ones.  PORTED
-verbatim from `Orig/Integrity.lean:81`. -/
-private def pileZone (st : State) (a : Anchor) : List Card :=
-  (st.piles a).hidden ++ (st.piles a).faceUp
-
-/-- The anchors before `a` in the deal order.  PORTED verbatim
-from `Orig/Integrity.lean:85`. -/
-private def preAnchors : Anchor → List Anchor
-  | .p0 => [] | .p1 => [.p0] | .p2 => [.p0, .p1] | .p3 => [.p0, .p1, .p2]
-  | .p4 => [.p0, .p1, .p2, .p3] | .p5 => [.p0, .p1, .p2, .p3, .p4]
-  | .p6 => [.p0, .p1, .p2, .p3, .p4, .p5]
-
-/-- The anchors after `a` in the deal order.  PORTED verbatim from
-`Orig/Integrity.lean:91`. -/
-private def sufAnchors : Anchor → List Anchor
-  | .p0 => [.p1, .p2, .p3, .p4, .p5, .p6] | .p1 => [.p2, .p3, .p4, .p5, .p6]
-  | .p2 => [.p3, .p4, .p5, .p6] | .p3 => [.p4, .p5, .p6]
-  | .p4 => [.p5, .p6] | .p5 => [.p6] | .p6 => []
-
-/-- The anchor enumeration splits around its own index.  PORTED
-verbatim from `Orig/Integrity.lean:96`. -/
-private theorem anchor_split (a : Anchor) :
-    Anchor.all = preAnchors a ++ [a] ++ sufAnchors a := by
-  cases a <;> rfl
-
-/-- PORTED verbatim from `Orig/Integrity.lean:100`. -/
-private theorem anchor_ne_mem {a a' : Anchor} (hne : a' ≠ a) :
-    a' ∈ preAnchors a ∨ a' ∈ sufAnchors a := by
-  cases a <;> cases a' <;> simp_all [preAnchors, sufAnchors]
-
-/-- PORTED verbatim from `Orig/Integrity.lean:104`. -/
-private theorem flatMapAppend {α β : Type} (f : α → List β) :
-    ∀ (A B : List α), List.flatMap f (A ++ B) = List.flatMap f A ++ List.flatMap f B := by
-  intro A
-  induction A with
-  | nil => intro B; rfl
-  | cons x t ih =>
-      intro B
-      show f x ++ List.flatMap f (t ++ B) = (f x ++ List.flatMap f t) ++ List.flatMap f B
-      rw [ih, List.append_assoc]
-
-/-- Two card occurrences in separate flatMap blocks make the count
-at least two.  PORTED verbatim from `Orig/Integrity.lean:118`. -/
-private theorem count_ge_two_of_split {st : State} {c : Card} {A B : List (List Card)}
-    (hsplit : st.zones = A ++ B) (hl : c ∈ A.flatMap id) (hr : c ∈ B.flatMap id) :
-    2 ≤ st.cardCount c := by
-  show 2 ≤ ((st.zones.flatMap id).filter fun x => decide (x = c)).length
-  rw [hsplit, flatMapAppend, List.filter_append, List.length_append]
-  have hL := count_filter_pos hl
-  have hR := count_filter_pos hr
-  omega
-
-/-- PORTED verbatim from `Orig/Integrity.lean:127`. -/
-private theorem zone_mem_map {st : State} {zs : List Anchor} {a : Anchor}
-    (h : a ∈ zs) : pileZone st a ∈ zs.map (pileZone st) :=
-  List.mem_map.2 ⟨a, h, rfl⟩
-
-/-- PORTED verbatim from `Orig/Integrity.lean:131`. -/
-private theorem found_mem_map {st : State} {ss : List Suit} {s : Suit}
-    (h : s ∈ ss) : st.found s ∈ ss.map st.found :=
-  List.mem_map.2 ⟨s, h, rfl⟩
-
-/-- PORTED verbatim from `Orig/Integrity.lean:135`. -/
-private theorem zones_split_pre (st : State) (a : Anchor) :
-    st.zones = (Suit.all.map st.found ++ (preAnchors a).map (pileZone st)) ++
-      (pileZone st a :: ((sufAnchors a).map (pileZone st) ++ [st.stock, st.waste])) := by
-  have h1 : Anchor.all = preAnchors a ++ [a] ++ sufAnchors a := anchor_split a
-  have h2 : List.map (pileZone st) [a] = [pileZone st a] := rfl
-  rw [show st.zones = Suit.all.map st.found ++
-      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) from rfl,
-    h1, List.map_append, List.map_append, h2]
-  simp only [List.append_assoc]
-  rfl
-
-/-- PORTED verbatim from `Orig/Integrity.lean:146`. -/
-private theorem zones_split_suf (st : State) (a : Anchor) :
-    st.zones = ((Suit.all.map st.found ++ (preAnchors a).map (pileZone st)) ++
-        [pileZone st a]) ++
-      ((sufAnchors a).map (pileZone st) ++ [st.stock, st.waste]) := by
-  have h1 : Anchor.all = preAnchors a ++ [a] ++ sufAnchors a := anchor_split a
-  have h2 : List.map (pileZone st) [a] = [pileZone st a] := rfl
-  rw [show st.zones = Suit.all.map st.found ++
-      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) from rfl,
-    h1, List.map_append, List.map_append, h2]
-  simp only [List.append_assoc]
-
-/-- PORTED verbatim from `Orig/Integrity.lean:157`. -/
-private theorem wf_two_piles_ne {st : State} {c : Card} {a a' : Anchor} (hwf : st.WF)
-    (hza : c ∈ pileZone st a) (hza' : c ∈ pileZone st a') (hne : a' ≠ a) : False := by
-  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
-  have h2 : 2 ≤ st.cardCount c := by
-    rcases anchor_ne_mem hne with hpre | hsuf
-    · refine count_ge_two_of_split (zones_split_pre st a) ?_ ?_
-      · exact (List.mem_flatMap).2 ⟨pileZone st a',
-          (List.mem_append).2 (Or.inr (zone_mem_map hpre)), hza'⟩
-      · exact (List.mem_flatMap).2 ⟨pileZone st a, List.mem_cons.2 (Or.inl rfl), hza⟩
-    · refine count_ge_two_of_split (zones_split_suf st a) ?_ ?_
-      · exact (List.mem_flatMap).2 ⟨pileZone st a,
-          (List.mem_append).2 (Or.inr (List.mem_cons.2 (Or.inl rfl))), hza⟩
-      · exact (List.mem_flatMap).2 ⟨pileZone st a',
-          (List.mem_append).2 (Or.inl (zone_mem_map hsuf)), hza'⟩
-  omega
-
-/-- PORTED verbatim from `Orig/Integrity.lean:173`. -/
-private theorem wf_pile_found_ne {st : State} {c : Card} {a : Anchor} {s : Suit}
-    (hwf : st.WF) (hza : c ∈ pileZone st a) (hf : c ∈ st.found s) : False := by
-  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
-  have hsplit : st.zones = Suit.all.map st.found ++
-      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) := rfl
-  have h2 : 2 ≤ st.cardCount c :=
-    count_ge_two_of_split hsplit
-      ((List.mem_flatMap).2 ⟨st.found s, found_mem_map (Suit.mem_all s), hf⟩)
-      ((List.mem_flatMap).2 ⟨pileZone st a,
-        (List.mem_append).2 (Or.inl (zone_mem_map (Anchor.mem_all a))), hza⟩)
-  omega
-
-/-- PORTED verbatim from `Orig/Integrity.lean:185`. -/
-private theorem wf_pile_stock_ne {st : State} {c : Card} {a : Anchor}
-    (hwf : st.WF) (hza : c ∈ pileZone st a) (hs : c ∈ st.stock) : False := by
-  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
-  have hz0 : st.zones = Suit.all.map st.found ++
-      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) := rfl
-  have hsplit : st.zones = (Suit.all.map st.found ++ Anchor.all.map (pileZone st)) ++
-      [st.stock, st.waste] := hz0.trans (List.append_assoc _ _ _).symm
-  have h2 : 2 ≤ st.cardCount c :=
-    count_ge_two_of_split hsplit
-      ((List.mem_flatMap).2 ⟨pileZone st a,
-        (List.mem_append).2 (Or.inr (zone_mem_map (Anchor.mem_all a))), hza⟩)
-      ((List.mem_flatMap).2 ⟨st.stock, List.mem_cons.2 (Or.inl rfl), hs⟩)
-  omega
-
-/-- PORTED verbatim from `Orig/Integrity.lean:199`. -/
-private theorem wf_pile_waste_ne {st : State} {c : Card} {a : Anchor}
-    (hwf : st.WF) (hza : c ∈ pileZone st a) (hw : c ∈ st.waste) : False := by
-  have hcount : st.cardCount c = 1 := hwf.cardCount_eq (Card.mem_universe c)
-  have hz0 : st.zones = Suit.all.map st.found ++
-      (Anchor.all.map (pileZone st) ++ [st.stock, st.waste]) := rfl
-  have hsplit : st.zones = (Suit.all.map st.found ++
-        (Anchor.all.map (pileZone st) ++ [st.stock])) ++ [st.waste] := by
-    refine hz0.trans ?_
-    simp only [List.append_assoc]
-    rfl
-  have h2 : 2 ≤ st.cardCount c :=
-    count_ge_two_of_split hsplit
-      ((List.mem_flatMap).2 ⟨pileZone st a,
-        (List.mem_append).2 (Or.inr ((List.mem_append).2
-          (Or.inl (zone_mem_map (Anchor.mem_all a))))), hza⟩)
-      ((List.mem_flatMap).2 ⟨st.waste, List.mem_cons.2 (Or.inl rfl), hw⟩)
-  omega
-
-/-- The one general occurrence fact: a card in pile `a` — hidden
-or face up — is nowhere else in a `WF` state.  PORTED verbatim
-from `Orig/Integrity.lean:221`. -/
-private theorem mem_pile_unique {st : State} {c : Card} {a : Anchor} (hwf : st.WF)
-    (hmem : c ∈ (st.piles a).hidden ∨ c ∈ (st.piles a).faceUp) :
-    (∀ a' ≠ a, c ∉ (st.piles a').hidden ∧ c ∉ (st.piles a').faceUp) ∧
-      c ∉ st.stock ∧ c ∉ st.waste ∧ ∀ s, c ∉ st.found s := by
-  have hz : c ∈ pileZone st a := by
-    rcases hmem with h | h
-    · exact (List.mem_append).2 (Or.inl h)
-    · exact (List.mem_append).2 (Or.inr h)
-  refine ⟨?_, ?_, ?_, ?_⟩
-  · intro a' hne
-    constructor
-    · intro hcon
-      exact wf_two_piles_ne hwf hz ((List.mem_append).2 (Or.inl hcon)) hne
-    · intro hcon
-      exact wf_two_piles_ne hwf hz ((List.mem_append).2 (Or.inr hcon)) hne
-  · intro hcon
-    exact wf_pile_stock_ne hwf hz hcon
-  · intro hcon
-    exact wf_pile_waste_ne hwf hz hcon
-  · intro s hcon
-    exact wf_pile_found_ne hwf hz hcon
-
-/-- A face-up card is in no other pile — face up or hidden — and
-on no stock, waste, or foundation card place.  PORTED verbatim
-from `Orig/Integrity.lean:245`. -/
-private theorem mem_faceUp_unique {st : State} {c : Card} {a : Anchor} (hwf : st.WF)
-    (hmem : c ∈ (st.piles a).faceUp) :
-    ∀ a' ≠ a, c ∉ (st.piles a').faceUp ∧ c ∉ (st.piles a').hidden ∧
-      c ∉ st.stock ∧ c ∉ st.waste ∧ ∀ s, c ∉ st.found s := by
-  intro a' hne
-  obtain ⟨hh, hs, hw, hf⟩ := mem_pile_unique hwf (Or.inr hmem)
-  exact ⟨(hh a' hne).2, (hh a' hne).1, hs, hw, hf⟩
-
-/-- Every card under a legal run's head sits strictly below the
-head in rank.  PORTED verbatim from `Orig/Integrity.lean:565`. -/
-private theorem runOK_head_gt : ∀ {t : List Card} {x y : Card},
-    runOK (x :: t) = true → y ∈ t → y.rank.toIdx < x.rank.toIdx := by
-  intro t
-  induction t with
-  | nil => intro x y _ hmem; cases hmem
-  | cons w t' ih =>
-      intro x y hok hmem
-      rw [runOK, Bool.and_eq_true] at hok
-      obtain ⟨hsit, hrest⟩ := hok
-      obtain ⟨heq, -⟩ := (canSitOn_eq w x).mp hsit
-      have hwlt : w.rank.toIdx < x.rank.toIdx := by omega
-      rcases List.mem_cons.1 hmem with rfl | hyt
-      · exact hwlt
-      · have := ih hrest hyt
-        omega
-
-/-- Strict rank descent, block form.  PORTED verbatim from
-`Orig/Integrity.lean:584`. -/
-private theorem runOK_desc : ∀ {P S : List Card} {x y : Card},
-    runOK (P ++ S) = true → x ∈ P → y ∈ S → y.rank.toIdx < x.rank.toIdx := by
-  intro P
-  induction P with
-  | nil => intro S x y _ hx; cases hx
-  | cons p t ih =>
-      intro S x y hok hx hy
-      rcases List.mem_cons.1 hx with rfl | hxt
-      · exact runOK_head_gt (show runOK (x :: (t ++ S)) = true from hok)
-          ((List.mem_append).2 (Or.inr hy))
-      · exact ih (runOK_cons_tail (show runOK (p :: (t ++ S)) = true from hok)) hxt hy
-
-/-- A pile's top is its face-up list's last element, as a snoc.
-PORTED verbatim from `Orig/Integrity.lean:519`. -/
-private theorem Pile.top_eq_lastOf_iff {p : Pile} {c : Card} :
-    p.top = some c ↔ ∃ front, p.faceUp = front ++ [c] := by
-  constructor
-  · intro h
-    exact lastOf_eq_snoc (show lastOf p.faceUp = some c from h)
-  · rintro ⟨front, hfront⟩
-    show lastOf p.faceUp = some c
-    rw [hfront]
-    exact lastOf_snoc
-
-/-- The top card belongs to the face-up run.  PORTED verbatim from
-`Orig/Integrity.lean:530`. -/
-private theorem Pile.mem_of_top {p : Pile} {c : Card} (h : p.top = some c) :
-    c ∈ p.faceUp :=
-  lastOf_mem (show lastOf p.faceUp = some c from h)
-
-/-- The empty-seat branch never aims at the mover's own pile.  PORTED
-verbatim from `Orig/Integrity.lean:691`. -/
-private theorem canPlace_inl_target_pile_ne {st : State} {c : Card} {a b : Anchor}
-    (hcp : st.canPlace c (Sum.inl b) = true) (hmem : c ∈ (st.piles a).faceUp) :
-    b ≠ a := by
-  intro hcon
-  subst hcon
-  simp only [State.canPlace, Bool.and_eq_true] at hcp
-  obtain ⟨hempty, -⟩ := hcp
-  obtain ⟨-, hfu⟩ := (Pile.isEmpty_eq _).mp hempty
-  rw [hfu] at hmem
-  exact absurd hmem (by simp)
-
-/-- The pile `z` tops is never the pile the mover `c` comes from.
-PORTED verbatim from `Orig/Integrity.lean:649`. -/
-private theorem canPlace_inr_target_pile_ne {st : State} {c z : Card} {a : Anchor}
-    (hwf : st.WF) (hcp : st.canPlace c (Sum.inr z) = true)
-    (hmem : c ∈ (st.piles a).faceUp) :
-    st.pileOfTop z ≠ some a := by
-  intro hcon
-  have htop : (st.piles a).top = some z :=
-    of_decide_eq_true
-      (firstWhere_sound (p := fun a' => decide (st.topOf a' = some z)) hcon)
-  simp only [State.canPlace] at hcp
-  split at hcp
-  · rename_i k hk
-    simp only [canSitOn_eq] at hcp
-    obtain ⟨hrank, -⟩ := hcp
-    obtain ⟨front, hfe⟩ := Pile.top_eq_lastOf_iff.mp htop
-    rw [hfe] at hmem
-    rcases (List.mem_append).1 hmem with hfront | hlast
-    · have hrun : runOK (front ++ [z]) = true := by
-        rw [← hfe]; exact hwf.runOK_of a
-      have hdesc := runOK_desc hrun hfront (List.mem_cons.2 (Or.inl rfl))
-      omega
-    · rcases List.mem_cons.1 hlast with rfl | hnil
-      · omega
-      · cases hnil
-  · exact Bool.noConfusion hcp
-
-/-- The located `inr`-landing's seat facts.  PORTED verbatim from
-`Orig/Integrity.lean:678`. -/
-private theorem canPlace_inr_seat {st : State} {c z : Card} {k a : Anchor}
-    (hwf : st.WF) (hh : st.pileHolding c = some a)
-    (hcp : st.canPlace c (Sum.inr z) = true)
-    (hk₀ : st.pileOfTop z = some k) :
-    k ≠ a ∧ c ∉ (st.piles k).faceUp := by
-  have hka : k ≠ a := fun hcon =>
-    canPlace_inr_target_pile_ne hwf hcp (pileHolding_mem hh)
-      (hk₀.trans (congrArg some hcon))
-  exact ⟨hka, (mem_faceUp_unique hwf (pileHolding_mem hh) k hka).1⟩
+This card's former §1a' (the `WF` accessor strip) and §1l (the
+count-integrity kit) — the 2026-10-17 ported reading of
+`Orig/Integrity.lean`, landed as per-file private kit per the seam
+veto — moved to the dedicated card `Orig2/Integrity.lean` (the
+owner's split decision, 2026-10-18; the strike-then-rewire recipe:
+bodies lifted verbatim, statements byte-frozen, call sites
+resolving by name).  The new card also carries the census rows the
+frozen chapter holds and these private copies lacked:
+`mem_hidden_unique`, the found-side splits, the same-pile
+inversions, the compound census one-liners, the
+foundation/stock/waste uniqueness pack, the search exactness rows
+with their determinism companions, `runOK_nodup`,
+`canPlace_inr_target_off_run`, and `ne_of_canSitOn`.  Every row is
+public there and arrives by the import above.  The two rows the
+frozen home held private are public at the new card because this
+card consumes them by name: `wf_pile_found_ne` (the found-pin
+letter rows below) and `runOK_head_gt` (the deck's `runOK_head_lt`
+alias). -/
 
 /-! ### §1m. The constructive undos, tabToFound pair
 
@@ -697,8 +396,9 @@ private theorem runOK_append_right : ∀ (A B : List Card),
 /-- In a legal run, every tail card sits strictly below the head in
 rank.  PORTED from `Orig/Classify.lean:409`; the frozen sources
 stated this row twice (the Integrity twin is
-`Orig/Integrity.lean:565`, §1l's `runOK_head_gt`) — the deck now
-carries it once and this name aliases it. -/
+`Orig/Integrity.lean:565`, the rebuild home `Orig2/Integrity.lean`'s
+`runOK_head_gt`) — the deck now carries it once and this name
+aliases it. -/
 private theorem runOK_head_lt : ∀ {t : List Card} {x y : Card},
     runOK (x :: t) = true → y ∈ t → y.rank.toIdx < x.rank.toIdx :=
   runOK_head_gt
@@ -1171,7 +871,7 @@ private theorem wf_found_chop_toIdx {st : State} {s : Suit} {c : Card}
   omega
 
 /-- A WF state's foundation top is no pile's top.  PORTED from
-`Orig/Classify.lean:486`; the §1l row `wf_pile_found_ne`
+`Orig/Classify.lean:486`; the Integrity card's row `wf_pile_found_ne`
 (`Orig/Integrity.lean:173`) carries the denial — the duplicated
 `pileZoneC`/`wf_found_not_in_pile` rebuild
 (`Orig/Classify.lean:459/:465`, the same counting restated over a

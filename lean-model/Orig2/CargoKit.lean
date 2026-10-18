@@ -665,7 +665,9 @@ theorem tfc_top_search_unique {st : State} {z : Card} {j k : Anchor}
 
 /-! ## §D. The `tabToTab` conservation fence  (PORT:
 `Orig/Reach.lean:1676-2103`; the frozen tier's private row behind the
-public `step_wf` at `Orig/Reach.lean:2104`). -/
+public `step_wf` at `Orig/Reach.lean:2104` — whose rebuild home,
+since 2026-10-18, is `Orig2/StepWF.lean`, consuming this row as the
+fence capstone's `tabToTab` arm by name). -/
 
 /-- **The `tabToTab` move preserves `WF`.**  PORT of `Orig/Reach.lean:1676`
 (`tabToTab_wf`), restated at the seam's public inversions
@@ -1405,7 +1407,8 @@ theorem tfc_seat_parent {st : State} {c z : Card} {a : Anchor}
 
 /-- The run head never lands a located `inr`-base on its own holding
 pile: the descent exclusion behind `tfc_tabToTab_wf`'s `hak` (fresh
-reading of `Orig2/Classification.lean:381` <- `Orig/Integrity.lean:649`). -/
+reading of `Orig2/Integrity.lean`'s `canPlace_inr_target_pile_ne` <-
+`Orig/Integrity.lean:649`). -/
 theorem tfc_mover_pile_not_target {st : State} {c w : Card} {a : Anchor} {k : Anchor}
     (hwf : st.WF) (hh : st.pileHolding c = some a)
     (hloc : st.pileOfTop w = some k)
@@ -1511,7 +1514,7 @@ theorem tfc_pileHolding_pin {st : State} {x : Card} {k : Anchor}
     (fun j _ hjk => decide_false_of_not (hno j hjk))
 
 /-- The found pile is the only candidate: membership elsewhere is
-absurd (occurrence uniqueness; `Orig2/Classification.lean:217`'s
+absurd (occurrence uniqueness; `Orig2/Integrity.lean`'s
 `wf_two_piles_ne` pattern). -/
 theorem tfc_holding_pin' {st : State} (hwf : st.WF) {x : Card} {q : Anchor}
     (hh : st.pileHolding x = some q) {j : Anchor} (hmem : x ∈ (st.piles j).faceUp) :
@@ -1547,7 +1550,7 @@ theorem tfc_pileHolding_none {st : State} {x : Card}
   exact tfc_firstWhere_none Anchor.all (fun j _ => decide_false_of_not (hno j))
 
 /-- Face-up occurrence uniqueness, both lanes explicit (the
-`Orig2/Classification.lean:217` `wf_two_piles_ne` pattern at the seam). -/
+`Orig2/Integrity.lean` `wf_two_piles_ne` pattern at the seam). -/
 theorem tfc_faceUp_uniq_other {st : State} (hwf : st.WF) {x : Card} {q j : Anchor}
     (hmemq : x ∈ (st.piles q).faceUp) (hjq : j ≠ q) : x ∉ (st.piles j).faceUp := by
   intro hmem

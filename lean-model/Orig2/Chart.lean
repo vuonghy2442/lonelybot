@@ -513,8 +513,8 @@ private theorem chk_firstWhere_none_inv {α : Type} (p : α → Bool) :
 
 /-- THE HOLDING PIN: at occurrence-unique boards, the face-up member's
 search answer is its pile (`Orig2/CargoKit.lean:1516`, pattern
-`Orig2/Classification.lean:217`; re-parameterized at the occurrence
-grade — the extraction is the only WF use). -/
+`Orig2/Integrity.lean`'s `wf_two_piles_ne`; re-parameterized at the
+occurrence grade — the extraction is the only WF use). -/
 private theorem chk_holding_pin {st : State} (hcc : ∀ c, st.cardCount c = 1)
     {c : Card} {a : Anchor}
     (hmem : c ∈ (st.piles a).faceUp) : st.pileHolding c = some a := by

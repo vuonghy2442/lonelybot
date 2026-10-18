@@ -1,6 +1,7 @@
 import Orig2.OrbitFactor
 import Orig2.RevSteps
 import Orig2.FloatOrbit
+import Orig2.StepWF
 
 /-!
 # Orig2.FlagShip — THE FLAGSHIP DOOR (the library's single-question
@@ -81,6 +82,26 @@ Certified home: `Orig2/FloatOrbit.lean` §M11 and §§M11a–g; battery
 [propext, Quot.sound], zero sorry, zero `Classical.choice`; the WF
 gate supplies the chart round trip, so no ambient rigidity binder.
 
+## THE INVARIANT FENCE — conservation of the working world
+(`step_wf`)
+
+A legal move never leaves the well-formed world: a step from a
+`WF` position lands `WF`, and the play lift `run_wf` carries the
+fence along every whole play.  The program's working invariant is
+closed under the rules — and every letter of every program
+crosses the row: each witness play starts at a `WF` state and
+needs every state it names certified, which is why the frozen
+tier re-derived this fence per-file at its consumers
+(`Orig/Dominance.lean:9177`, the ForkFloor/ForkCensus lifts) —
+it had no home to import.  The rebuild gives it one.  Fifth seat
+by owner call 2026-10-18.  Certified home: `Orig2/StepWF.lean`
+(ported the same day from `Orig/Reach.lean:2104`'s fence chapter:
+the `tabToTab` case consumed as CargoKit's `tfc_tabToTab_wf`, the
+five other constructor arms ported verbatim at the kit rows;
+battery [propext, Quot.sound], zero sorry, zero choice).  The
+play lift `run_wf` rides the same home — cited, not re-exported:
+one door seat re-exports one row.
+
 ## HONORABLE MENTIONS (the lower tier — certified rows ranked below
 the seats; named and cited, never re-exported)
 What lands here: proved-real, battery-clean rows the adjudication
@@ -147,7 +168,8 @@ schematic ever exports as flagship.
 ## HOUSE COMPLIANCE
 
 Additive leaf (import surface: `Orig2.OrbitFactor` +
-`Orig2.RevSteps` + `Orig2.FloatOrbit`, hence the certified seam);
+`Orig2.RevSteps` + `Orig2.FloatOrbit` + `Orig2.StepWF`, hence the
+certified seam and the shared kit tier);
 zero sorry; zero `Classical.choice`; per-file battery below —
 profiles inherited from the proving cards, re-printed here per the
 audit discipline.
@@ -203,6 +225,15 @@ theorem flagship_bareCargoIffVK {st w : State} (hwfst : st.WF) (hw : w.WF) :
         drawPool st = drawPool w ∧ cutOf st = cutOf w) :=
   bareCargo_iff_vk hwfst hw
 
+/-- **THE INVARIANT FENCE EXPORT** — the working world is conserved:
+a legal step from a well-formed position lands well-formed.  Trivial
+forward of `step_wf` (`Orig2/StepWF.lean`, ported from
+`Orig/Reach.lean:2104`; battery [propext, Quot.sound], zero sorry,
+zero choice); the play lift `run_wf` stays at the home card. -/
+theorem flagship_stepWF {st st' : State} {m : Move} (hwf : st.WF)
+    (h : State.step st m = some st') : st'.WF :=
+  step_wf hwf h
+
 /-! ## The audit battery
 
 Per exported head, re-printed per the per-file discipline: profiles
@@ -212,3 +243,4 @@ inherited verbatim from the proving cards. -/
 #print axioms flagship_revStepsLicense
 #print axioms flagship_floaterOrbitInvariant
 #print axioms flagship_bareCargoIffVK
+#print axioms flagship_stepWF
