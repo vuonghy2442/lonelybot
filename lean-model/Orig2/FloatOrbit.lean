@@ -700,17 +700,11 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
 /-- The chain lift of the leg row: one cargo direction suffices
 (each leg is an iff). -/
 private theorem floater_chain_invariant : ∀ {x y : State},
-    Steps CargoLeg x y → x.WF → ∀ c, Floater x c ↔ Floater y c := by
-  intro x y h
-  induction h with
-  | refl s =>
-      intro _
-      exact fun _ => Iff.rfl
-  | @cons x0 x1 x2 hleg _ ih =>
-      intro hwf0 c
-      obtain ⟨m₀, b₀, hstep₀, hrev₀⟩ := hleg
-      rw [floater_leg_invariant hwf0 ⟨m₀, b₀, hstep₀, hrev₀⟩ c]
-      exact ih (tfc_tabToTab_wf hwf0 hstep₀) c
+    Steps CargoLeg x y → x.WF → ∀ c, Floater x c ↔ Floater y c :=
+  tfa_chain_lift (R := fun u v => ∀ c, Floater u c ↔ Floater v c)
+    (fun _ _ => Iff.rfl)
+    (fun hleg hwf c => floater_leg_invariant hwf hleg c)
+    (fun h1 h2 c => (h1 c).trans (h2 c))
 
 /-- **floater_orbit_invariant** — the bare-cargo orbit fixes the
 floater SET, card by card: a card is a floater at one end of the
@@ -737,22 +731,21 @@ per-leg conservation row composed by chain induction). -/
 private theorem orbit_readout_conserves : ∀ {x0 y : State},
     Steps CargoLeg x0 y → x0.WF →
     boardFixed x0 y ∧ foundsFixed x0 y ∧
-      drawPool x0 = drawPool y ∧ cutOf x0 = cutOf y := by
-  intro x0 y hpath
-  induction hpath with
-  | refl s =>
-      intro _
-      exact ⟨⟨fun _ => rfl, rfl⟩, fun _ => rfl, rfl, rfl⟩
-  | @cons x1 x2 x3 hleg hrest ih =>
-      intro hwf0
+      drawPool x0 = drawPool y ∧ cutOf x0 = cutOf y :=
+  tfa_chain_lift
+    (R := fun u v => boardFixed u v ∧ foundsFixed u v ∧
+      drawPool u = drawPool v ∧ cutOf u = cutOf v)
+    (fun _ => ⟨⟨fun _ => rfl, rfl⟩, fun _ => rfl, rfl, rfl⟩)
+    (fun hleg hwf0 => by
       obtain ⟨m, b, hstep, hrev⟩ := hleg
-      have hwf2 := tfc_tabToTab_wf hwf0 hstep
-      obtain ⟨bf1, ff1, dp1, co1⟩ := tfa_slide_conserves hwf0 hstep hrev
-      obtain ⟨h1, h2⟩ := bf1
-      obtain ⟨bf2, ff2, dp2, co2⟩ := ih hwf2
-      obtain ⟨g1, g2⟩ := bf2
-      exact ⟨⟨fun j => (h1 j).trans (g1 j), h2.trans g2⟩,
-        fun s0 => (ff1 s0).trans (ff2 s0), dp1.trans dp2, co1.trans co2⟩
+      exact tfa_slide_conserves hwf0 hstep hrev)
+    (fun h1 h2 => by
+      obtain ⟨bf1, ff1, dp1, co1⟩ := h1
+      obtain ⟨bf2, ff2, dp2, co2⟩ := h2
+      obtain ⟨h1a, h1b⟩ := bf1
+      obtain ⟨h2a, h2b⟩ := bf2
+      exact ⟨⟨fun j => (h1a j).trans (h2a j), h1b.trans h2b⟩,
+        fun s0 => (ff1 s0).trans (ff2 s0), dp1.trans dp2, co1.trans co2⟩)
 
 /-- THE MOVERS WITNESS: a card whose seat differs between a journey's
 ends was some prefix-endpoint's mover (riders keep seats at every
@@ -801,10 +794,9 @@ per-card three-way net seat relation (carried, one twin-hop, or a
 bare king's empty-seat change — the chain invariant), (ii) conserved
 readouts (hidden decks and deal quantum, foundation rows, pool,
 cut), and (iii) DERIVED st-side licensing: every net-changed card
-satisfies the FloaterSpec LITERALLY at the origin.  The flat
-"condition at st" RHS of the planned class iff is sound from here
-on; only the reconstruction (Stage 3, the safe-order commutation
-card) remains priced. -/
+  satisfies the FloaterSpec LITERALLY at the origin.  This is the
+  base → emission; the unrestricted class iff is closed by the VK
+  arm (`bareCargo_iff_vk`). -/
 theorem bareCargo_to_chartDiff {st w : State} (hwf : st.WF)
     (hpair : BareCargoEquiv st w) :
     (∀ c, (seatOf w c = seatOf st c) ∨
@@ -819,51 +811,19 @@ theorem bareCargo_to_chartDiff {st w : State} (hwf : st.WF)
   exact ⟨hrel, orbit_readout_conserves hpath hwf,
     fun c hc => orbit_changed_is_stFloater hpath hwf c hc⟩
 
-/-! ### §K. StAGE 3A — THE SINGLE-EDIT RECONSTRUCTION (the flat
-iff's reconstruction half at one point: when the flat condition's
-entire change is ONE card's point edit — every other seat carried,
-the edit value pinned, the mover licensed at a live cell, the
-readouts agreed — the mate is genuine.  The reverse-layer row does
-the work behind the SeatEdit assembly; this row makes the
-flat-to-cash conversion explicit, and is the compose-unit the
-ordered multi-hop reconstruction (Stage 3B, the safe-order
-commutation card) will compose. -/
-
-/-- **bareCargo_reconstruct_singleEdit** — Stage 3a of the flat
-reformulation: the single-edit reconstruction. -/
-theorem bareCargo_reconstruct_singleEdit {st w : State} (hwf : st.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
-    {c : Card} {β : Base}
-    (hcarried : ∀ x, x ≠ c → seatOf w x = seatOf st x)
-    (hval : seatOf w c = some β)
-    (hmove : st.canPlace c β = true)
-    (hcell : FloaterCell st c)
-    (hread : boardFixed st w ∧ foundsFixed st w ∧
-      drawPool st = drawPool w ∧ cutOf st = cutOf w) :
-    BareCargoEquiv st w := by
-  obtain ⟨hbf, hff, hdp, hco⟩ := hread
-  refine floater_seat_to_equiv' hwf hroundtrip ⟨?_, hbf, hff, hdp, hco⟩ hmove hcell
-  intro x
-  by_cases hxc : x = c
-  · rw [hxc, ite_eq_left rfl]
-    exact hval
-  · rw [ite_eq_right hxc]
-    exact hcarried x hxc
-
-
-
 /-- **floater_orbit_wf_prsv** — the WF fence rides the whole cargo
 orbit: every bare-cargo class-mate of a WF state is WF (per-leg
 fence by the tabToTab conservation row, closed by chain induction
 — the ← direction's readout-and-fence clause, one cargo
 direction suffices as ever). -/
 theorem floater_orbit_wf_prsv {x0 y : State} (hpath : Steps CargoLeg x0 y)
-    (hwf : x0.WF) : y.WF := by
-  induction hpath with
-  | refl s => exact hwf
-  | @cons x1 x2 x3 hleg hrest ih =>
-      obtain ⟨m, b, hstep, hrev⟩ := id hleg
-      exact ih (tfc_tabToTab_wf hwf hstep)
+    (hwf : x0.WF) : y.WF :=
+  tfa_chain_lift (R := fun u v => u.WF → v.WF)
+    (fun _ h => h)
+    (fun hleg hwf0 _ => by
+      obtain ⟨m, b, hstep, hrev⟩ := hleg
+      exact tfc_tabToTab_wf hwf0 hstep)
+    (fun h1 h2 h => h2 (h1 h)) hpath hwf hwf
 
 /-! ### §M. THE MIRROR PROGRAM — foundations: the seating uniqueness
 calculus (extracted standalone from the invariance card's internal
@@ -1038,54 +998,10 @@ private theorem orbit_exposed_tops {s : State} {z : Card} {q : Anchor}
         tfc_pileHolding_pin hyL hdecl
       exact (hno y (tfc_seatOf_inr_intro hholdy hlasty)).elim
 
-/-! ### §M1. THE FLAT-GRADE SINGLE RECONSTRUCTIONS — n = 1 with
-the movers' licenses DERIVED from the flat data itself (the spec's
-located target, the seating arithmetic), no operational license
-assumed. -/
-
-/-- **bareCargo_reconstruct_companyFlat** — the flat single-company-hop
-reconstruction: one company hop's net data plus the st-side spec
-suffices (the changed card's license is unpacked from its
-FloaterSpec — the seat-pin names the parent, the located target is
-the spec's own pile, the seated-king arm dies on the fit
-arithmetic — and the single-edit unit closes). -/
-theorem bareCargo_reconstruct_companyFlat {st w : State} (hwf : st.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
-    {c z : Card}
-    (hsec : seatOf st c = some (Sum.inr z))
-    (hsew : seatOf w c = some (Sum.inr z.twin))
-    (hlic : FloaterSpec st c)
-    (hcar : ∀ x, x ≠ c → seatOf w x = seatOf st x)
-    (hread : boardFixed st w ∧ foundsFixed st w ∧
-      drawPool st = drawPool w ∧ cutOf st = cutOf w) :
-    BareCargoEquiv st w := by
-  rcases hlic with ⟨z₀, a₀, hse₀, hhold₀, harm₀⟩ |
-    ⟨a₁, hse₁, hking, -, hempty⟩
-  · have hp : z₀ = z := by
-      have h2 : some (Sum.inr z₀) = some (Sum.inr z) :=
-        hse₀.symm.trans hsec
-      have h3 : Sum.inr z₀ = Sum.inr z := Option.some.inj h2
-      injection h3
-    rw [hp] at harm₀
-    rcases harm₀ with ⟨k₁, hloc⟩ | ⟨hking, -⟩
-    · obtain ⟨a₂, hhold₂, hbne₂, hlast₂⟩ := tfc_seatOf_of_inr hsec
-      obtain ⟨hsit, -⟩ := tfc_seat_parent hwf hhold₂ hlast₂
-      have hfit : canSitOn c z.twin = true := tfa_fit_twin hsit
-      have hcell : FloaterCell st c := Or.inl ⟨z, hsec⟩
-      have hmove : st.canPlace c (Sum.inr z.twin) = true :=
-        tfa_canPlace_inr hloc hfit
-      exact bareCargo_reconstruct_singleEdit hwf hroundtrip hcar hsew hmove hcell hread
-    · exfalso
-      obtain ⟨a₂, hhold₂, hbne₂, hlast₂⟩ := tfc_seatOf_of_inr hsec
-      obtain ⟨hsit, -⟩ := tfc_seat_parent hwf hhold₂ hlast₂
-      obtain ⟨hidx, -⟩ := (canSitOn_eq c z).mp hsit
-      have hzlt := Rank.toIdx_lt z.rank
-      have h12 : c.rank.toIdx = 12 := by rw [hking]; rfl
-      omega
-  · exfalso
-    have hcruz : some (Sum.inl a₁) = some (Sum.inr z) :=
-      hse₁.symm.trans hsec
-    nomatch hcruz
+/-! ### §M1. THE SPEC TARGET AND THE LOCATED MIRROR — the two
+seating rows the company licenses consume: the spec's target pile is
+located, and a faceUp card with no sitter is located by the search in
+its own holding pile. -/
 
 /-- THE SPEC'S LOCATED TARGET, unpacked: with the seat pin, the
 FloaterSpec's first disjunct names the seated parent and its
@@ -1353,344 +1269,6 @@ private theorem orbit_company_redo_license {st w u : State}
       have hloc : u.pileOfTop z.twin = some j₀ :=
         orbit_located_mirror hwu hqz hno
       exact tfa_canPlace_inr hloc hfit
-
-/-! ### §M3. THE MASTER INDUCTION AND THE COMPANY-GRADE IFF — the ←
-direction for orbits whose changed cards all move company (twin
-hops): the queue carries the changed cards (with duplicates
-harmless — a stale entry whose card is already st-shaped skips);
-each process-step fires the undo leg (w-shape restored to the
-st-parent) and the redo leg (the point edit reversed), the chart
-round trip pins the redo's successor back onto the current crate,
-and the accumulated leg pairs close the class both ways. -/
-
-
-/-- THE MASTER INDUCTION (company grade): over the changed-card
-queue, with the skip-case carrying stale entries.  Invariants at
-the current crate u with queue R: queued cards are w-shaped or
-already st-shaped (P1); everything outside the queue is st-shaped
-(P2); the readouts agree with st (P3); the fence holds (P4); every
-queued card is genuinely changed (P5).  The base is the chart round
-trip itself; the step processes the head when pending and skips it
-when stale. -/
-private theorem orbit_company_mirror_induct {st w : State}
-    (hwfst : st.WF)
-    (hrel : ∀ x, (seatOf w x = seatOf st x) ∨
-      (∃ z', seatOf st x = some (Sum.inr z') ∧
-        seatOf w x = some (Sum.inr z'.twin)) ∨
-      (x.rank = Rank.king ∧ ∃ a a', seatOf st x = some (Sum.inl a) ∧
-        seatOf w x = some (Sum.inl a')))
-    (hcomp : ∀ x, seatOf st x ≠ seatOf w x →
-      ∃ z, seatOf st x = some (Sum.inr z) ∧
-        seatOf w x = some (Sum.inr z.twin))
-    (hlic : ∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x) :
-    ∀ (R : List Card) (u : State),
-      (∀ x, x ∈ R →
-        seatOf u x = seatOf w x ∨ seatOf u x = seatOf st x) →
-      (∀ x, x ∉ R → seatOf u x = seatOf st x) →
-      (boardFixed st u ∧ foundsFixed st u ∧
-         drawPool st = drawPool u ∧ cutOf st = cutOf u) →
-      u.WF →
-      (∀ x, x ∈ R → seatOf st x ≠ seatOf w x) →
-      BareCargoEquiv st u := by
-  intro R
-  induction R with
-  | nil =>
-      intro u hP1 hP2 hP3 hwu hP5
-      have hchart : chartAgree u st := by
-        refine ⟨?_, ?_, ?_, ?_, ?_⟩
-        · intro x
-          exact hP2 x (by simp)
-        · obtain ⟨h1, h2⟩ := hP3.1
-          exact ⟨fun j => (h1 j).symm, h2.symm⟩
-        · intro s0
-          exact (hP3.2.1 s0).symm
-        · exact hP3.2.2.1.symm
-        · exact hP3.2.2.2.symm
-      rw [chart_round_trip u st hwu hwfst hchart]
-      exact ⟨Steps.refl st, Steps.refl st⟩
-  | cons c R' ih =>
-      intro u hP1 hP2 hP3 hwu hP5
-      rcases hP1 c List.mem_cons_self with hcu | hcu
-      · -- PENDING: process c's undo and redo
-        have hcc := hP5 c List.mem_cons_self
-        obtain ⟨z, hcs, hcw⟩ := hcomp c hcc
-        have hlicc := hlic c hcc
-        have hsplit : ∀ x, seatOf u x = seatOf st x ∨
-            seatOf u x = seatOf w x := by
-          intro x
-          by_cases hxR : x ∈ c :: R'
-          · rcases hP1 x hxR with hw | hst
-            · exact Or.inr hw
-            · exact Or.inl hst
-          · exact Or.inl (hP2 x hxR)
-        have hcell_u : FloaterCell u c :=
-          Or.inl ⟨z.twin, by rw [hcu, hcw]⟩
-        have hmove_u : u.canPlace c (Sum.inr z) = true :=
-          orbit_company_undo_license hwfst hwu hsplit hcu ⟨hcs, hcw⟩ hcc
-            hlicc hrel
-        obtain ⟨u', hstep, hrev, ⟨hed, hbf, hff, hdp, hco⟩⟩ :=
-          floater_cargo_lift hwu hmove_u hcell_u
-        have hwu' := tfc_tabToTab_wf hwu hstep
-        -- the redo license at the successor
-        have hcat : seatOf u' c = some (Sum.inr z) := by
-          have h0 := hed c
-          rwa [ite_eq_left rfl] at h0
-        have hcst_u' : seatOf u' c = seatOf st c :=
-          hcat.trans hcs.symm
-        have hsplit' : ∀ x, seatOf u' x = seatOf st x ∨
-            seatOf u' x = seatOf w x := by
-          intro x
-          by_cases hxc : x = c
-          · rw [hxc]
-            exact Or.inl hcst_u'
-          · have h0 := hed x
-            rw [ite_eq_right hxc] at h0
-            rw [h0]
-            rcases hsplit x with hs | hs
-            · exact Or.inl hs
-            · exact Or.inr hs
-        have hcell_u' : FloaterCell u' c :=
-          Or.inl ⟨z, by rw [hcst_u', hcs]⟩
-        have hmove_u' : u'.canPlace c (Sum.inr z.twin) = true :=
-          orbit_company_redo_license hwfst hwu' hsplit' hcst_u'
-            ⟨hcs, hcw⟩ hcc hlicc hrel
-        obtain ⟨u'', hstep2, hrev2, ⟨hed2, hbf2, hff2, hdp2, hco2⟩⟩ :=
-          floater_cargo_lift (tfc_tabToTab_wf hwu hstep) hmove_u' hcell_u'
-        -- the redo lands back on the current crate
-        have hchart2 : chartAgree u'' u := by
-          refine ⟨?_, ?_, ?_, ?_, ?_⟩
-          · intro x
-            by_cases hxc : x = c
-            · rw [hxc]
-              have h0 := hed2 c
-              rw [ite_eq_left rfl] at h0
-              exact h0.trans (hcu.trans hcw).symm
-            · have h0 := hed2 x
-              rw [ite_eq_right hxc] at h0
-              have h1 := hed x
-              rw [ite_eq_right hxc] at h1
-              exact h0.trans h1
-          · obtain ⟨h1, h2⟩ := hbf2
-            obtain ⟨h3, h4⟩ := hbf
-            exact ⟨fun j => (h1 j).symm.trans (h3 j).symm,
-              h2.symm.trans h4.symm⟩
-          · exact fun s0 => (hff2 s0).symm.trans (hff s0).symm
-          · exact hdp2.symm.trans hdp.symm
-          · exact hco2.symm.trans hco.symm
-        have hu'' : u'' = u := chart_round_trip u'' u (tfc_tabToTab_wf (tfc_tabToTab_wf hwu hstep) hstep2) hwu hchart2
-        -- recurse on the tail at the successor
-        rw [hu''] at hstep2
-        have hP1' : ∀ x, x ∈ R' →
-            seatOf u' x = seatOf w x ∨ seatOf u' x = seatOf st x := by
-          intro x hxR'
-          by_cases hxc : x = c
-          · rw [hxc]
-            exact Or.inr hcst_u'
-          · have h0 := hed x
-            rw [ite_eq_right hxc] at h0
-            rw [h0]
-            rcases hsplit x with hs | hs
-            · exact Or.inr hs
-            · exact Or.inl hs
-        have hP2' : ∀ x, x ∉ R' → seatOf u' x = seatOf st x := by
-          intro x hxR'
-          by_cases hxc : x = c
-          · rw [hxc]
-            exact hcst_u'
-          · have hxR : x ∉ c :: R' := by
-              intro hmem
-              rcases List.mem_cons.mp hmem with h | h
-              · exact hxc h
-              · exact hxR' h
-            have h0 := hed x
-            rw [ite_eq_right hxc] at h0
-            rw [h0]
-            exact hP2 x hxR
-        have hP3' : boardFixed st u' ∧ foundsFixed st u' ∧
-            drawPool st = drawPool u' ∧ cutOf st = cutOf u' := by
-          obtain ⟨hb1, hb2⟩ := hP3.1
-          obtain ⟨h1, h2⟩ := hbf
-          refine ⟨⟨fun j => (hb1 j).trans (h1 j), hb2.trans h2⟩,
-            fun s0 => (hP3.2.1 s0).trans (hff s0),
-            hP3.2.2.1.trans hdp, hP3.2.2.2.trans hco⟩
-        have hP5' : ∀ x, x ∈ R' → seatOf st x ≠ seatOf w x :=
-          fun x hxR' => hP5 x (List.mem_cons.mpr (Or.inr hxR'))
-        have hclas_u' := ih u' hP1' hP2' hP3' hwu' hP5'
-        -- the fired pair closes the u'↔u class
-        have hpair' : BareCargoEquiv u' u :=
-          ⟨Steps.cons ⟨c, Sum.inr z.twin, hstep2, hrev2⟩ (Steps.refl u),
-            Steps.cons ⟨c, Sum.inr z, hstep, hrev⟩ (Steps.refl u')⟩
-        exact tfa_bareCargo_trans hclas_u' hpair'
-      · -- stale: c is already st-shaped; skip
-        have hP1' : ∀ x, x ∈ R' →
-            seatOf u x = seatOf w x ∨ seatOf u x = seatOf st x :=
-          fun x hxR' => hP1 x (List.mem_cons.mpr (Or.inr hxR'))
-        have hP2' : ∀ x, x ∉ R' → seatOf u x = seatOf st x := by
-          intro x hxR'
-          by_cases hxc : x = c
-          · rw [hxc]
-            exact hcu
-          · have hxR : x ∉ c :: R' := by
-              intro hmem
-              rcases List.mem_cons.mp hmem with h | h
-              · exact hxc h
-              · exact hxR' h
-            exact hP2 x hxR
-        exact ih u hP1' hP2' hP3 hwu
-          (fun x hxR' => hP5 x (List.mem_cons.mpr (Or.inr hxR')))
-
-/-- **bareCargo_of_seatchart_company** — the ← direction, company
-grade, ACTIVATED: the queue is the universe filtered over the
-changed cards (a duplicate, should one ever arise, skips); every
-membership obligation discharges by the filter's decision, and the
-induction closes the class. -/
-theorem bareCargo_of_seatchart_company {st w : State}
-    (hwfst : st.WF) (hw : w.WF)
-    (hrel : ∀ x, (seatOf w x = seatOf st x) ∨
-      (∃ z', seatOf st x = some (Sum.inr z') ∧
-        seatOf w x = some (Sum.inr z'.twin)) ∨
-      (x.rank = Rank.king ∧ ∃ a a', seatOf st x = some (Sum.inl a) ∧
-        seatOf w x = some (Sum.inl a')))
-    (hcomp : ∀ x, seatOf st x ≠ seatOf w x →
-      ∃ z, seatOf st x = some (Sum.inr z) ∧
-        seatOf w x = some (Sum.inr z.twin))
-    (hlic : ∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x)
-    (hread : boardFixed st w ∧ foundsFixed st w ∧
-      drawPool st = drawPool w ∧ cutOf st = cutOf w) :
-    BareCargoEquiv st w :=
-  orbit_company_mirror_induct hwfst hrel hcomp hlic
-    (Card.universe.filter
-      (fun x => decide (seatOf st x ≠ seatOf w x))) w
-    (fun x _ => Or.inl rfl)
-    (fun x hx => by
-      by_cases hxE : seatOf st x = seatOf w x
-      · exact hxE.symm
-      · exfalso
-        refine hx (List.mem_filter.mpr ⟨Card.mem_universe x,
-          decide_eq_true (fun hEq => hxE hEq)⟩))
-    hread
-    hw
-    (fun x hx => of_decide_eq_true (List.mem_filter.mp hx).2)
-
-/-- **bareCargo_iff_seatchart_company** — THE SEAT-CHART IFF,
-COMPANY GRADE: over orbits whose changed cards all move company
-(the twin hops), the bare-cargo class is EXACTLY the flat seat data
-— the three-way net relation, the readouts, the st-side licensing
-— with the WF fence at both ends as ever.  The unrestricted
-statement's king arm stays priced in the ledger (the hidden-
-emptiness upgrade and the king-ordering content); this promoted
-grade covers every twin-hop orbit. -/
-theorem bareCargo_iff_seatchart_company {st w : State}
-    (hwfst : st.WF) (hw : w.WF)
-    (hcomp : ∀ x, seatOf st x ≠ seatOf w x →
-      ∃ z, seatOf st x = some (Sum.inr z) ∧
-        seatOf w x = some (Sum.inr z.twin)) :
-    BareCargoEquiv st w ↔
-      ((∀ x, (seatOf w x = seatOf st x) ∨
-        (∃ z', seatOf st x = some (Sum.inr z') ∧
-          seatOf w x = some (Sum.inr z'.twin)) ∨
-        (x.rank = Rank.king ∧ ∃ a a', seatOf st x = some (Sum.inl a) ∧
-          seatOf w x = some (Sum.inl a'))) ∧
-       (boardFixed st w ∧ foundsFixed st w ∧
-          drawPool st = drawPool w ∧ cutOf st = cutOf w) ∧
-       (∀ x, seatOf st x ≠ seatOf w x → FloaterSpec st x)) := by
-  constructor
-  · intro hpair
-    exact bareCargo_to_chartDiff hwfst hpair
-  · intro ⟨hrel, hro, hlic⟩
-    exact bareCargo_of_seatchart_company hwfst hw hrel
-      hcomp hlic hro
-
-/-- **bareCargo_reconstruct_kingFlat** — the flat single-king-move
-reconstruction, licenses DERIVED: the king's net vacate data (with
-the ledger's upgraded clause — the w-target pile's hidden deck is
-empty at st) unpacks to a canPlace without any operational
-assumption: the target pile's faceUp is empty because a resident
-bottomer would double-bottom with the king at w (the carried
-invariant), and the source cell rides the spec's own king arm.  The
-degenerate equal-anchor corner is the trivial class (the chart round
-trip pins st = w directly). -/
-theorem bareCargo_reconstruct_kingFlat {st w : State} (hwf : st.WF)
-    (_hw : w.WF)
-    (hroundtrip : ∀ A B, chartAgree A B → A = B)
-    {c : Card} {a a' : Anchor}
-    (hking : c.rank = Rank.king)
-    (hsec : seatOf st c = some (Sum.inl a))
-    (hsew : seatOf w c = some (Sum.inl a'))
-    (hlic : FloaterSpec st c)
-    (hhid' : (st.piles a').hidden = [])
-    (hcar : ∀ x, x ≠ c → seatOf w x = seatOf st x)
-    (hread : boardFixed st w ∧ foundsFixed st w ∧
-      drawPool st = drawPool w ∧ cutOf st = cutOf w) :
-    BareCargoEquiv st w := by
-  by_cases haa' : a = a'
-  · -- the degenerate corner: every seat carried, the round trip closes
-    subst haa'
-    have hchart : chartAgree st w := by
-      refine ⟨?_, ?_, ?_, ?_, ?_⟩
-      · intro x
-        by_cases hxc : x = c
-        · rw [hxc]
-          exact hsec.trans hsew.symm
-        · exact (hcar x hxc).symm
-      · exact hread.1
-      · exact hread.2.1
-      · exact hread.2.2.1
-      · exact hread.2.2.2
-    have hwst : st = w := hroundtrip st w hchart
-    rw [← hwst]
-    exact ⟨Steps.refl st, Steps.refl st⟩
-  · -- the real case: derive both licenses, apply the single-edit unit
-    have hface' : (st.piles a').faceUp = [] := by
-      cases hL : (st.piles a').faceUp with
-      | nil => rfl
-      | cons y ys =>
-          exfalso
-          have hyin : y ∈ (st.piles a').faceUp := by
-            rw [hL]
-            exact List.mem_cons_self
-          have hdecl : ∀ j, j ≠ a' → y ∉ (st.piles j).faceUp := by
-            intro j hjq hmemj
-            have hccy : st.cardCount y = 1 :=
-              hwf.2.2.1 y (Card.mem_universe y)
-            exact (tfc_two_pile_zone_absurd hjq hccy
-              (List.mem_append.mpr (Or.inr hmemj))
-              (List.mem_append.mpr (Or.inr hyin))).elim
-          have hholdy : st.pileHolding y = some a' :=
-            tfc_pileHolding_pin hyin hdecl
-          have hby : below y ((st.piles a').faceUp) = [] := by
-            rw [hL, below_cons, ite_eq_left rfl]
-          have hseyst : seatOf st y = some (Sum.inl a') :=
-            tfc_seatOf_inl_intro hholdy hby
-          have hyne : y ≠ c := by
-            intro heq
-            rw [heq] at hseyst
-            have hcruz : some (Sum.inl a') = some (Sum.inl a) :=
-              hseyst.symm.trans hsec
-            injection hcruz with h1
-            injection h1 with h2
-            exact haa' h2.symm
-          have hseyw : seatOf w y = some (Sum.inl a') :=
-            (hcar y hyne).trans hseyst
-          exact (hyne (orbit_bottom_unique hseyw hsew)).elim
-    have hiso : (st.piles a').isEmpty = true :=
-      (Pile.isEmpty_eq _).mpr ⟨hhid', by rw [hface']⟩
-    have hmove : st.canPlace c (Sum.inl a') = true :=
-      tfa_canPlace_inl hiso hking
-    have hcell : FloaterCell st c := by
-      rcases hlic with ⟨z₀, a₀, hse₀, -, -⟩ | ⟨a₁, hse₁, hking₁, hhid₁, -⟩
-      · exfalso
-        have hcruz : some (Sum.inr z₀) = some (Sum.inl a) :=
-          hse₀.symm.trans hsec
-        nomatch hcruz
-      · have hp : a₁ = a := by
-          have h2 : some (Sum.inl a₁) = some (Sum.inl a) :=
-            hse₁.symm.trans hsec
-          have h3 : Sum.inl a₁ = Sum.inl a := Option.some.inj h2
-          injection h3
-        rw [hp] at hhid₁
-        exact Or.inr ⟨a, hsec, hking, hhid₁⟩
-    exact bareCargo_reconstruct_singleEdit hwf hroundtrip hcar hsew hmove hcell hread
 
 /-! ### §M4. THE KING-ARM HIDDEN DERIVATION (the → upgrade) — the
 last-mover locator over a cargo journey, and with it the king's
@@ -2439,27 +2017,6 @@ private theorem fli_isEmpty_false_of_faceUp {p : Pile}
   obtain ⟨x, xs, hx⟩ := list_cons_of_ne_nil h
   exact Pile.isEmpty_eq_false_of_mem (by rw [hx]; exact List.mem_cons_self)
 
-/-- An append onto a nonempty run is never nil (fresh; rides the
-membership row). -/
-private theorem fli_append_ne {X : List Card} {R : List Card} (hR : R ≠ []) :
-    X ++ R ≠ [] := by
-  cases hR2 : R with
-  | nil => exact absurd hR2 hR
-  | cons y R' =>
-      have hmem : y ∈ X ++ y :: R' :=
-        List.mem_append.mpr (Or.inr List.mem_cons_self)
-      intro hc
-      rw [hc] at hmem
-      exact absurd hmem (by simp)
-
-/-- The `decide` read-off of a refuted proposition (the trivia kit's
-`decide_false_of_not` shape, private here). -/
-private theorem fli_decide_false {p : Prop} [Decidable p] (h : ¬p) :
-    decide p = false := by
-  cases hdec : decide p with
-  | false => rfl
-  | true => exact absurd (of_decide_eq_true hdec) h
-
 /-- The certified cell facts, REPACKAGED ANCHORED at the type-graded
 `pileHolding` reading (fresh; the certificate row's `∃ a` witness is
 data, so this row restates its content at the anchor the caller
@@ -2619,7 +2176,8 @@ private def orbit_empty_celldata {u u' : State} {c : Card} {b : Base}
                     by_cases hka : k2 = a
                     · rw [hka, setPile_piles_self]
                       rw [Pile.isEmpty_eq_false_of_mem hmem,
-                        fli_isEmpty_false_of_faceUp (fli_append_ne hfr)]
+                        fli_isEmpty_false_of_faceUp
+                          (List.append_ne_nil_of_right_ne_nil _ hfr)]
                     · rw [setPile_piles_ne (fun h => hka h.symm),
                         setPile_piles_self]
                       have h2 : (Pile.afterRunRemoved (u.piles a)
@@ -2636,7 +2194,8 @@ private def orbit_empty_celldata {u u' : State} {c : Card} {b : Base}
                         rw [setPile_piles_ne hk2ne] at h3
                         exact h3
                       rw [fli_isEmpty_false_of_faceUp h1,
-                        fli_isEmpty_false_of_faceUp (fli_append_ne hfr)]
+                        fli_isEmpty_false_of_faceUp
+                          (List.append_ne_nil_of_right_ne_nil _ hfr)]
                     · rw [setPile_piles_ne hjk, setPile_piles_ne hja]
 
 /-- Per-leg preservation: one reversible slide preserves the
@@ -2659,17 +2218,15 @@ private theorem orbit_empty_exists_step {u u' : State} {c : Card} {b : Base}
 private theorem orbit_empty_exists_chain : ∀ {x y : State},
     Steps CargoLeg x y → x.WF →
     (∃ j, (x.piles j).isEmpty = true) →
-    (∃ j, (y.piles j).isEmpty = true) := by
-  intro x y h
-  induction h with
-  | refl s =>
-      intro _ hsp
-      exact hsp
-  | @cons x1 x2 x3 hleg _ ih =>
-      intro hwf0 hsp
-      obtain ⟨m, b, hstep, hrev⟩ := id hleg
-      exact ih (tfc_tabToTab_wf hwf0 hstep)
-        (orbit_empty_exists_step hwf0 hstep hrev hsp)
+    (∃ j, (y.piles j).isEmpty = true) :=
+  tfa_chain_lift
+    (R := fun u v => (∃ j, (u.piles j).isEmpty = true) →
+      (∃ j, (v.piles j).isEmpty = true))
+    (fun _ h => h)
+    (fun hleg hwf0 => by
+      obtain ⟨m, b, hstep, hrev⟩ := hleg
+      exact orbit_empty_exists_step hwf0 hstep hrev)
+    (fun h1 h2 h => h2 (h1 h))
 
 /-- **bareCargo_orbit_spare_empty** — THE SPARE-EMPTY INVARIANT at
 orbit grade: if some pile is empty at one end of a bare-cargo
@@ -2831,16 +2388,13 @@ Prop-graded, so the orbit-side claim is the genuine `Nonempty` of
 the composite-identity witness — no data is extracted from the path,
 `Classical.choice` stays unbuilt). -/
 private theorem orbit_empty_iso_chain : ∀ {x y : State},
-    Steps CargoLeg x y → x.WF → Nonempty (EmptyEquiv x y) := by
-  intro x y h
-  induction h with
-  | refl s => intro _; exact ⟨EmptyEquiv.refl s⟩
-  | @cons x1 x2 x3 hleg _ ih =>
-      intro hwf0
-      obtain ⟨m, b, hstep, hrev⟩ := id hleg
-      exact (ih (tfc_tabToTab_wf hwf0 hstep)).elim
-        (fun e2 =>
-          ⟨(orbit_empty_equiv_step hwf0 hstep hrev).trans e2⟩)
+    Steps CargoLeg x y → x.WF → Nonempty (EmptyEquiv x y) :=
+  tfa_chain_lift (R := fun u v => Nonempty (EmptyEquiv u v))
+    (fun s => ⟨EmptyEquiv.refl s⟩)
+    (fun hleg hwf0 => by
+      obtain ⟨m, b, hstep, hrev⟩ := hleg
+      exact ⟨orbit_empty_equiv_step hwf0 hstep hrev⟩)
+    (fun h1 h2 => h1.elim (fun e1 => h2.elim (fun e2 => ⟨e1.trans e2⟩)))
 
 /-- **bareCargo_orbit_empty_iso** — THE EMPTY-SET AT ORBIT GRADE:
 the two ends of a bare-cargo class pair carry an equinumerosity
@@ -2851,166 +2405,6 @@ and the per-leg def above is the inspectable data). -/
 theorem bareCargo_orbit_empty_iso {st w : State} (hwfst : st.WF)
     (hpair : BareCargoEquiv st w) : Nonempty (EmptyEquiv st w) :=
   orbit_empty_iso_chain hpair.1 hwfst
-
-/-! #### §M9b-list. THE LAST MILE — the elementary list kit: a
-filter's cons reads as the head's Bool indicator plus the tail, so
-both the pointwise case and the two-point swap close by `omega`
-once the point facts are in.  (Deliberately elementary — no
-pigeonhole, no permutation algebra: the composite-identity pair
-supplies the CONTENT, the indicator arithmetic supplies the
-NUMBER.) -/
-
-/-- The Bool-to-indicator bridge (fresh). -/
-private def fli_b2n : Bool → Nat
-  | true => 1
-  | false => 0
-
-private theorem fli_b2n_true : fli_b2n true = 1 := rfl
-
-private theorem fli_b2n_false : fli_b2n false = 0 := rfl
-
-/-- A filter's cons: the head contributes its indicator. -/
-private theorem fli_len_cons {α : Type} (p : α → Bool) (z : α) (zs : List α) :
-    ((z :: zs).filter p).length = fli_b2n (p z) + (zs.filter p).length := by
-  rw [List.filter_cons]
-  by_cases hp : p z = true
-  · have e1 : (if p z = true then z :: zs.filter p else zs.filter p)
-      = z :: zs.filter p := ite_eq_left hp
-    rw [e1, List.length_cons, hp, fli_b2n_true]
-    omega
-  · have hpf : p z = false := by
-      cases hp2 : p z with
-      | false => rfl
-      | true => exact absurd hp2 hp
-    have e1 : (if p z = true then z :: zs.filter p else zs.filter p)
-        = zs.filter p := ite_eq_right (by rw [hpf]; simp)
-    rw [e1, hpf, fli_b2n_false]
-    omega
-
-/-- Pointwise-equal predicates give equal filter lengths. -/
-private theorem fli_filter_pointwise {α : Type} : ∀ {L : List α} {p q : α → Bool},
-    (∀ j ∈ L, p j = q j) → (L.filter p).length = (L.filter q).length := by
-  intro L
-  induction L with
-  | nil => intro p q _; rfl
-  | cons z zs ih =>
-      intro p q h
-      have hz : p z = q z := h z (List.mem_cons_self)
-      have hzs : ∀ j ∈ zs, p j = q j :=
-        fun j hj => h j (List.mem_cons_of_mem _ hj)
-      have he := ih hzs
-      rw [fli_len_cons p z zs, fli_len_cons q z zs, hz]
-      omega
-
-/-- THE TWO-POINT SWAP AT LENGTH GRADE: predicates that agree off
-the two special points, flip `false→true` at `x` and `true→false`
-at `y`, have filter lengths differing by the count of `x` against
-`y` — the strengthened bookkeeping that stays inductive down the
-tails. -/
-private theorem fli_filter_two_swap {α : Type} [DecidableEq α] :
-    ∀ {L : List α} {p q : α → Bool} {x y : α}, x ≠ y →
-      p x = false → q x = true → p y = true → q y = false →
-      (∀ z ∈ L, z ≠ x → z ≠ y → p z = q z) →
-      (L.filter p).length + ((L.filter (fun z => decide (z = x))).length)
-        = (L.filter q).length + ((L.filter (fun z => decide (z = y))).length) := by
-  intro L
-  induction L with
-  | nil => intro p q x y hxy hpx hqx hpy hqy hrest; rfl
-  | cons z zs ih =>
-      intro p q x y hxy hpx hqx hpy hqy hrest
-      have hzs : ∀ w ∈ zs, w ≠ x → w ≠ y → p w = q w :=
-        fun w hw => hrest w (List.mem_cons_of_mem _ hw)
-      have he := ih (p := p) (q := q) (x := x) (y := y)
-        hxy hpx hqx hpy hqy hzs
-      by_cases hzx : z = x
-      · rw [hzx]
-        have hdx : decide (x = x) = true := decide_eq_true rfl
-        have hdy : decide (x = y) = false := fli_decide_false (fun h => hxy h)
-        rw [fli_len_cons p x zs, fli_len_cons q x zs,
-          fli_len_cons (fun w => decide (w = x)) x zs,
-          fli_len_cons (fun w => decide (w = y)) x zs]
-        rw [hpx, hqx, hdx, hdy]
-        omega
-      · by_cases hzy : z = y
-        · rw [hzy]
-          have hdx : decide (y = x) = false :=
-            fli_decide_false (fun h => hxy h.symm)
-          have hdy : decide (y = y) = true := decide_eq_true rfl
-          rw [fli_len_cons p y zs, fli_len_cons q y zs,
-            fli_len_cons (fun w => decide (w = x)) y zs,
-            fli_len_cons (fun w => decide (w = y)) y zs]
-          rw [hpy, hqy, hdx, hdy]
-          omega
-        · have hzp : p z = q z := hrest z (List.mem_cons_self) hzx hzy
-          have hdx : decide (z = x) = false := fli_decide_false hzx
-          have hdy : decide (z = y) = false := fli_decide_false hzy
-          rw [fli_len_cons p z zs, fli_len_cons q z zs,
-            fli_len_cons (fun w => decide (w = x)) z zs,
-            fli_len_cons (fun w => decide (w = y)) z zs]
-          rw [hzp, hdx, hdy]
-          omega
-
-/-- The singleton count over the all-list: every anchor is filtered
-exactly once (decided on the literal). -/
-private theorem fli_one_count (x : Anchor) :
-    (Anchor.all.filter (fun z => decide (z = x))).length = 1 := by
-  cases x <;> rfl
-
-/-- **emptyCount st** — the number of empty tableau seats: THE
-NUMERIC SHAPE of the spare-empty invariant. -/
-def emptyCount (st : State) : Nat :=
-  (Anchor.all.filter (fun j => (st.piles j).isEmpty)).length
-
-/-- Per-leg count preservation (the last-mile arithmetic). -/
-private theorem orbit_empty_count_step {u u' : State} {c : Card} {b : Base}
-    (hwfu : u.WF)
-    (hstep : State.step u (Move.tabToTab c b) = some u')
-    (hrev : reversibleAtW u (Move.tabToTab c b)) :
-    emptyCount u = emptyCount u' := by
-  rcases orbit_empty_celldata hwfu hstep hrev with
-    hco | ⟨a, a', hne, hd_t, hl_t, hd_f, hl_f, hfix⟩
-  · show (Anchor.all.filter (fun j => (u.piles j).isEmpty)).length
-        = (Anchor.all.filter (fun j => (u'.piles j).isEmpty)).length
-    exact fli_filter_pointwise (fun j _ => hco j)
-  · have h1 := fli_filter_two_swap (L := Anchor.all) hne hd_f hd_t hl_t hl_f
-      (fun z _ hza hza' => (congrArg Pile.isEmpty (hfix z hza hza')).symm)
-    have h2 := fli_one_count a
-    have h3 := fli_one_count a'
-    show (Anchor.all.filter (fun j => (u.piles j).isEmpty)).length
-        = (Anchor.all.filter (fun j => (u'.piles j).isEmpty)).length
-    omega
-
-/-- Chain-grade count preservation along one cargo direction. -/
-private theorem orbit_empty_count_chain : ∀ {x y : State},
-    Steps CargoLeg x y → x.WF → emptyCount x = emptyCount y := by
-  intro x y h
-  induction h with
-  | refl s => intro _; rfl
-  | @cons x1 x2 x3 hleg _ ih =>
-      intro hwf0
-      obtain ⟨m, b, hstep, hrev⟩ := id hleg
-      exact (orbit_empty_count_step hwf0 hstep hrev).trans
-        (ih (tfc_tabToTab_wf hwf0 hstep))
-
-/-- **bareCargo_orbit_empty_count** — THE EMPTY-SEAT CARDINALITY IS
-AN ORBIT CONSTANT: the number of empty piles is the same at both
-ends of a bare-cargo class pair — the exact-count upgrade of the
-spare-empty invariant (which is its count-at-least-one shadow). -/
-theorem bareCargo_orbit_empty_count {st w : State} (hwfst : st.WF)
-    (hpair : BareCargoEquiv st w) :
-    emptyCount st = emptyCount w :=
-  orbit_empty_count_chain hpair.1 hwfst
-
-/-- **vacuity_count_orbit_iff** — the COUNT-grade companion of
-`vacuity_orbit_iff`: the two ends of a class agree on whether the vacancy
-count is zero, i.e. the "no vacant spot at all" states form one side of the
-orbit and every vacancy-carrying state the other. -/
-theorem vacuity_count_orbit_iff {st w : State} (hwfst : st.WF)
-    (hpair : BareCargoEquiv st w) : emptyCount st = 0 ↔ emptyCount w = 0 := by
-  have h := bareCargo_orbit_empty_count hwfst hpair
-  constructor
-  · intro h0; rw [← h]; exact h0
-  · intro h0; rw [h]; exact h0
 
 /-! ### §M11. THE VACANT ⊎ KING-BOTTOM FUEL SET — the king orbit's node set
 is POINTWISE fixed along the bare-cargo class (the §M9a/§M9B machinery one
@@ -3238,15 +2632,13 @@ private theorem orbit_vk_step {u u' : State} {c : Card} {b : Base}
 
 /-- Chain grade: the fuel set is pointwise fixed along one cargo direction. -/
 private theorem orbit_vk_chain : ∀ {x y : State},
-    Steps CargoLeg x y → x.WF → ∀ j, VKSet x j ↔ VKSet y j := by
-  intro x y h
-  induction h with
-  | refl s => intro _ j; exact Iff.rfl
-  | @cons x1 x2 x3 hleg _ ih =>
-      intro hwf0 j
-      obtain ⟨m, b, hstep, hrev⟩ := id hleg
-      exact (orbit_vk_step hwf0 hstep hrev j).trans
-        (ih (tfc_tabToTab_wf hwf0 hstep) j)
+    Steps CargoLeg x y → x.WF → ∀ j, VKSet x j ↔ VKSet y j :=
+  tfa_chain_lift (R := fun u v => ∀ j, VKSet u j ↔ VKSet v j)
+    (fun _ _ => Iff.rfl)
+    (fun hleg hwf0 => by
+      obtain ⟨m, b, hstep, hrev⟩ := hleg
+      exact orbit_vk_step hwf0 hstep hrev)
+    (fun h1 h2 j => (h1 j).trans (h2 j))
 
 /-- **bareCargo_orbit_vk** — THE FUEL SET IS FIXED: at both ends of a
 bare-cargo class pair the anchors are vacant or king-bottomed at exactly the
@@ -3395,19 +2787,6 @@ theorem king_shuffle_closure {u w : State} (hwf : u.WF)
           (ih (tfc_tabToTab_wf hwf1 hfired))
   exact aux h hwf
 
-/-- **king_shuffle_trivial_of_no_vacancy** — NO VACANCY, NO SHUFFLE: with no
-empty pile at the start, the only vacancy-swapping shuffle is the empty one.
-(The "disabled" side of the king card: the shuffle needs a spot to park
-through.) -/
-theorem king_shuffle_trivial_of_no_vacancy :
-    ∀ {u w : State}, KingShuffle u w → ¬ HasVacancy u → u = w := by
-  intro u w h
-  induction h with
-  | refl s => intro _; rfl
-  | @hop u1 u2 w0 c a e hseat hking hhid hvac hfired hrest ih =>
-      intro hno
-      exact absurd ⟨e, hvac⟩ hno
-
 /-! #### §M11a. KING POSITIONS ARE FREE ON VK — one bottomed king, one hop
 (or two, parking an occupant), onto any node of the fuel set. -/
 
@@ -3496,76 +2875,13 @@ private theorem king_shuffle_append {a b c : State} (h1 : KingShuffle a b)
   | hop c a e hseat hking hhid hvac hfired hrest ih =>
       exact KingShuffle.hop c a e hseat hking hhid hvac hfired (ih h2)
 
-/-- **king_reaches_vk** — with a vacancy, a bottomed king can be put on ANY
-node of the fuel set VK; and the move keeps the cage: the state stays WF and
-vacant, the fuel set is pointwise fixed, and every OTHER bottomed king is
-still a bottomed king (at a possibly new anchor). -/
-theorem king_reaches_vk {u : State} (hwf : u.WF) (hvac : HasVacancy u)
-    {c : Card} {a : Anchor} (hse : seatOf u c = some (Sum.inl a))
-    (hkb : KingBottom u a) {e : Anchor} (hsrc : VKSet u e) :
-    ∃ w, KingShuffle u w ∧ seatOf w c = some (Sum.inl e) ∧ KingBottom w e ∧
-      w.WF ∧ HasVacancy w ∧ (∀ j, VKSet u j ↔ VKSet w j) ∧
-      (∀ x, x ≠ c → (∃ a', KingBottom u a' ∧ seatOf u x = some (Sum.inl a')) →
-        ∃ a', KingBottom w a' ∧ seatOf w x = some (Sum.inl a')) := by
-  have hkb' := hkb
-  obtain ⟨ck, hse_k, hkng_c, hhid_a⟩ := hkb'
-  have hck : ck = c := orbit_bottom_unique hse_k hse
-  rw [hck] at hkng_c
-  by_cases hea : e = a
-  · subst hea
-    exact ⟨u, KingShuffle.refl u, hse, hkb, hwf, hvac, fun _ => Iff.rfl,
-      fun x _ h => h⟩
-  · have hae : a ≠ e := fun h => hea h.symm
-    rcases hsrc with hv | hkb_e
-    · obtain ⟨v, hks, hsv, hkbv, hva, -, -, hwv, hvk, hkeeps, -, -, -⟩ :=
-        king_hop_step hwf hse hkb hv
-      exact ⟨v, hks, hsv, hkbv, hwv, ⟨a, hva⟩, hvk, hkeeps⟩
-    · obtain ⟨d, hse_d, hkng_d, hhid_d⟩ := hkb_e
-      have hhold_d : u.pileHolding d = some e := (tfc_seatOf_of_inl hse_d).1
-      have hhold_c : u.pileHolding c = some a := (tfc_seatOf_of_inl hse).1
-      have hdc : d ≠ c := by
-        intro hEq
-        subst hEq
-        have hcruz : some (Sum.inl e) = some (Sum.inl a) := hse_d.symm.trans hse
-        exact hea (Sum.inl.inj (Option.some.inj hcruz))
-      have hne_e : (u.piles e).isEmpty = false :=
-        Pile.isEmpty_eq_false_of_mem (pileHolding_mem hhold_d)
-      have hne_a : (u.piles a).isEmpty = false :=
-        Pile.isEmpty_eq_false_of_mem (pileHolding_mem hhold_c)
-      obtain ⟨v0, hv0⟩ := hvac
-      have hve : v0 ≠ e := by
-        intro hEq
-        rw [hEq, hne_e] at hv0
-        exact Bool.noConfusion hv0
-      have hav0 : a ≠ v0 := by
-        intro hEq
-        rw [← hEq, hne_a] at hv0
-        exact Bool.noConfusion hv0
-      obtain ⟨w1, hks1, hse_d1, hkb_d1, hvac_e, hseat_d_other, hpile_other, hw1,
-        hvk1, hkeeps1, -, -, -⟩ :=
-        king_hop_step hwf hse_d ⟨d, hse_d, hkng_d, hhid_d⟩ hv0
-      have hse_w1 : seatOf w1 c = some (Sum.inl a) := by
-        rw [hseat_d_other c (fun h => hdc h.symm)]; exact hse
-      have hhid_w1 : (w1.piles a).hidden = [] := by
-        rw [hpile_other a hae hav0]; exact hhid_a
-      obtain ⟨w2, hks2, hse2, hkb2, hva2, -, -, hw2, hvk2, hkeeps2, -, -, -⟩ :=
-        king_hop_step hw1 hse_w1 ⟨c, hse_w1, hkng_c, hhid_w1⟩ hvac_e
-      refine ⟨w2, king_shuffle_append hks1 hks2, hse2, hkb2, hw2, ⟨a, hva2⟩,
-        fun j => (hvk1 j).trans (hvk2 j), ?_⟩
-      intro x hx hkbx
-      have hkb1 : ∃ a', KingBottom w1 a' ∧ seatOf w1 x = some (Sum.inl a') := by
-        by_cases hxd : x = d
-        · subst hxd
-          exact ⟨v0, hkb_d1, hse_d1⟩
-        · exact hkeeps1 x hxd hkbx
-      exact hkeeps2 x hx hkb1
 /-! #### §M11b. ASSIGNMENT COMPLETENESS — the multi-king form of §M11a: with a
 vacancy, EVERY injective placement of distinct bottomed kings on distinct nodes
 of the fuel set is reachable.  The induction is the greedy cycle-fixer: take a
 misplaced king, land it on its target (parking the occupant on any vacancy if
 the target is held), and recurse — already-placed kings are never the mover
 (nodup) nor the parked occupant (target injectivity), so the accumulator is
-preserved.  `king_reaches_vk` is the one-king core. -/
+preserved. -/
 
 /-- `done` is placed at `w` according to `τ`. -/
 abbrev PlacedBy (τ : Card → Anchor) (done : List Card) (w : State) : Prop :=
@@ -3751,39 +3067,6 @@ private theorem king_seat_inr_absurd {st : State} (hwf : st.WF) {c : Card} {z : 
   omega
 
 
-/-- **king_half_shuffle** — THE KING HALF IS A SHUFFLE: if the kings of `st`
-sit at the assignment `τ` in `w` and each target is the origin's seat or a spot
-empty at `st`, then some KingShuffle realizes that assignment. -/
-theorem king_half_shuffle {st w : State} (hwf : st.WF) (hvac : HasVacancy st)
-    (cs : List Card) (τ : Card → Anchor)
-    (hk : ∀ c ∈ cs, ∃ a, KingBottom st a ∧ seatOf st c = some (Sum.inl a))
-    (hnd : cs.Nodup)
-    (hinj : ∀ c ∈ cs, ∀ c' ∈ cs, τ c = τ c' → c = c')
-    (hagree : ∀ c ∈ cs, seatOf w c = some (Sum.inl (τ c)))
-    (hhalf : ∀ c ∈ cs, seatOf w c = seatOf st c ∨
-      ∃ a a', seatOf st c = some (Sum.inl a) ∧
-        seatOf w c = some (Sum.inl a') ∧ (st.piles a').isEmpty = true) :
-    ∃ u, KingShuffle st u ∧ ∀ c ∈ cs, seatOf u c = some (Sum.inl (τ c)) := by
-  refine king_assignment_reachable hwf hvac τ cs hk ?_ hnd hinj
-  intro c hc
-  rcases hhalf c hc with hsame | ⟨a, a', hse_st, hse_w, hemp⟩
-  · obtain ⟨a0, hkb, hse0⟩ := hk c hc
-    have h1 : some (Sum.inl a0) = some (Sum.inl (τ c)) :=
-      hse0.symm.trans (hsame.symm.trans (hagree c hc))
-    have hτ : τ c = a0 := (Sum.inl.inj (Option.some.inj h1)).symm
-    rw [hτ]; exact Or.inr hkb
-  · have h2 : some (Sum.inl (τ c)) = some (Sum.inl a') :=
-      (hagree c hc).symm.trans hse_w
-    have hτ : τ c = a' := Sum.inl.inj (Option.some.inj h2)
-    rw [hτ]; exact Or.inl hemp
-
-/-- **bareCargo_king_then** — the product is SOUND: a KingShuffle followed by
-any class-mate journey is itself a class-mate (the king component composes with
-the rest of the orbit by transitivity). -/
-theorem bareCargo_king_then {st u w : State} (hwf : st.WF)
-    (hks : KingShuffle st u) (hpair : BareCargoEquiv u w) :
-    BareCargoEquiv st w :=
-  tfa_bareCargo_trans (king_shuffle_closure hwf hks) hpair
 /-! #### §M11d. THE UN-MEDIATED KING ARM: `VKSet` instead of emptiness.  The
 target of a changed king is in the fuel set at the ORIGIN — free from the
 orbit invariant, because the king sits on that target at `w`, hence it is a
@@ -4318,33 +3601,22 @@ theorem bareCargo_iff_split {st w : State}
 #print axioms vacuity_orbit_iff
 #print axioms orbit_empty_equiv_step
 #print axioms bareCargo_orbit_empty_iso
-#print axioms bareCargo_orbit_empty_count
-#print axioms vacuity_count_orbit_iff
 #print axioms bareCargo_orbit_vk
 #print axioms bareCargo_orbit_vk_transfer
-#print axioms king_reaches_vk
 #print axioms king_assignment_reachable
 #print axioms king_twin_split
 #print axioms bareCargo_iff_split
-#print axioms king_half_shuffle
-#print axioms bareCargo_king_then
 #print axioms king_seat_injective
 #print axioms bareCargo_to_chartDiff_vk
 #print axioms bareCargo_of_chartVK
 #print axioms bareCargo_iff_vk
 #print axioms king_shuffle_vacancy
 #print axioms king_shuffle_closure
-#print axioms king_shuffle_trivial_of_no_vacancy
 #print axioms floater_leg_invariant
 #print axioms floater_orbit_invariant
 #print axioms floater_path_invariant
 #print axioms floater_orbit_wf_prsv
 #print axioms bareCargo_to_chartDiff
-#print axioms bareCargo_reconstruct_singleEdit
-#print axioms bareCargo_reconstruct_companyFlat
-#print axioms bareCargo_reconstruct_kingFlat
-#print axioms bareCargo_of_seatchart_company
-#print axioms bareCargo_iff_seatchart_company
 #print axioms bareCargo_of_seatchart
 #print axioms orbit_king_hidden_vacate
 

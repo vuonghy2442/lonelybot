@@ -2271,6 +2271,23 @@ theorem tfa_bareCargo_trans {a b c : State}
   obtain ⟨q1, q2⟩ := h₂
   exact ⟨tfa_steps_append p1 q1, tfa_steps_append q2 p2⟩
 
+/-- A reflexive-transitive relation lifts along a cargo chain when
+every leg preserves it at a WF origin (the shared induction behind the
+card's chain-grade invariant rows). -/
+theorem tfa_chain_lift {R : State → State → Prop}
+    (hrefl : ∀ s, R s s)
+    (hstep : ∀ {u v : State}, CargoLeg u v → u.WF → R u v)
+    (htrans : ∀ {a b c : State}, R a b → R b c → R a c) :
+    ∀ {x y : State}, Steps CargoLeg x y → x.WF → R x y := by
+  intro x y h
+  induction h with
+  | refl s => intro _; exact hrefl s
+  | @cons x1 x2 x3 hleg _ ih =>
+      intro hwf0
+      obtain ⟨m, b, hstep', hrev⟩ := hleg
+      exact htrans (hstep ⟨m, b, hstep', hrev⟩ hwf0)
+        (ih (tfc_tabToTab_wf hwf0 hstep'))
+
 /-! ## The audit battery (every head, re-printed per the per-file discipline) -/
 
 #print axioms tfc_cnt
@@ -2352,3 +2369,4 @@ theorem tfa_bareCargo_trans {a b c : State}
 #print axioms tfa_fit_twin
 #print axioms tfa_steps_append
 #print axioms tfa_bareCargo_trans
+#print axioms tfa_chain_lift

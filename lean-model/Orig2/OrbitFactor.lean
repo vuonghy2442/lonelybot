@@ -167,12 +167,6 @@ A `putCard`/`putRun` at equal piles boards agrees everywhere (the
 placement walk reads only the piles; `Orig/EdgeLabel.lean:2682-2733`).
 -/
 
-/-- The `setPile` piles write agrees at equal boards (PORTED from
-`Orig/EdgeLabel.lean:2682`). -/
-private theorem setPile_piles_congr {u v : State} (a : Anchor) (p : Pile)
-    (h : u.piles = v.piles) : (u.setPile a p).piles = (v.setPile a p).piles := by
-  rw [setPile_piles, setPile_piles, h]
-
 /-- A `putCard` at equal piles boards agrees everywhere (PORTED
 VERBATIM from `Orig/EdgeLabel.lean:2688`). -/
 private theorem putCard_piles_congr {u v : State} (c : Card) (b : Base)
@@ -328,7 +322,7 @@ measure of the waste rows (`Orig/Irreversible.lean:66`); the two
 waste spenders and the never-rising play lift
 (`Orig/Phase.lean:382-417, 497-512`). -/
 
-/-! The cycle-count rows (PORTED from `Orig/Phase.lean:123/:181/:204/:382/:401/:473/:497`) ride the promoted physics kit `Orig2/Kit.lean` — the `cycleCount` measure, `dealUpTo_lens`, `recycle_cycle`, `run_cycleCount_le`, `draw_cycleCount` (by name), and the inversions-shaped strict rows `cycleCount_step_wasteToFound/_wasteToTab`.  The card's own `cycleCount_lt_*` heads stay below as one-line Kit delegations (its journey rows keep these letters), and `step_cycleCount_le` delegates to Kit's `cycleCount_step`. -/
+/-! The cycle-count rows (PORTED from `Orig/Phase.lean:123/:181/:204/:382/:401/:473/:497`) ride the promoted physics kit `Orig2/Kit.lean` — the `cycleCount` measure, `dealUpTo_lens`, `recycle_cycle`, `run_cycleCount_le`, `draw_cycleCount` (by name), and the inversions-shaped strict rows `cycleCount_step_wasteToFound/_wasteToTab`.  The card's own `cycleCount_lt_*` heads stay below as one-line Kit delegations (its journey rows keep these letters). -/
 
 /-- Building the waste top onto its foundation spends exactly one
 cycle-count unit (PORTED VERBATIM from `Orig/Phase.lean:382`;
@@ -348,11 +342,6 @@ private theorem cycleCount_lt_wasteToTab {x y : State} {c : Card} {b : Base}
   have := cycleCount_step_wasteToTab h
   omega
 
-/-- **The per-move step table** (PORTED from `Orig/Phase.lean:473`;
-now a Kit delegation over `cycleCount_step`). -/
-private theorem step_cycleCount_le {x y : State} : ∀ m : Move,
-    State.step x m = some y → cycleCount y ≤ cycleCount x :=
-  fun _ h => cycleCount_step h
 /-! ### §0.7 No waste mover is ever a witness leg
 
 The two commitment rows at WITNESS grade and UNCONDITIONALLY in

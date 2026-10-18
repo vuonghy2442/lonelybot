@@ -313,13 +313,11 @@ PROMOTED (2026-10-17), per entry:
   prefix-endpoint's mover, the path invariance transports its
   floater-hood back, and the classification re-exports the
   spec LITERALLY at the origin: no round trip, one cargo
-  direction) at `Orig2/FloatOrbit.lean` §J.  What remains priced
-  of the flat iff is only its reconstruction half: the single-edit
-  compose-unit is PROMOTED at `Orig2/FloatOrbit.lean` §K
-  (`bareCargo_reconstruct_singleEdit` — the reverse-layer row at
-  the flat grade); the ordered multi-hop reconstruction (Stage 3B,
-  the consumers-before-carriers safe-order commutation card) is the
-  priced core left.
+  direction) at `Orig2/FloatOrbit.lean` §J.  The Stage-3a
+  single-edit compose-unit and the single-hop reconstruction rows
+  were RETIRED (2026-10-18) as a dead-end chain carrying the
+  refuted global round-trip hypothesis; the flat iff is closed
+  unconditionally by the VK arm (`bareCargo_iff_vk`, §1F.1 below).
 
 The two cards' batteries carry the heads ([propext, Quot.sound]
 line-by-line, zero sorryAx, zero `Classical.choice`); the stubs are
@@ -357,25 +355,15 @@ direction derives the upgraded clause from the journey (the
 mover's landing leg rides the bare cell with hidden = [], and
 the readout chains carry it back to st).
 
-PROMOTED (2026-10-17, the company grade): THE SEAT-CHART IFF at
-twin-hop grade — `bareCargo_iff_seatchart_company` at
-`Orig2/FloatOrbit.lean` ([propext, Quot.sound], the card's
-battery): over orbits whose changed cards all move company, the
-bare-cargo class is EXACTLY the flat seat data (the three-way net
-relation, the readouts, the st-side licensing; the WF fence rides
-at both ends as ever).  Both directions certified: the → by
-`bareCargo_to_chartDiff` (with `floater_orbit_wf_prsv` for the
-fence clause); the ← by THE MIRROR PROGRAM — the seating
-foundations (`orbit_sitter_unique` — one sitter per parent,
-`orbit_no_sitter_on_top`, `orbit_bottom_unique`,
-`orbit_exposed_tops`), the derived single-hop reconstructions
-(`barecargo_reconstruct_companyFlat` and `_kingFlat`, licenses
-unpacked from the spec, never assumed), the undo/red license rows
-at consistent neighbors (`orbit_company_undo_license`,
-`orbit_company_redo_license`), and the master induction over the
-filtered-universe queue with the skip-case carrying stale entries
-(`orbit_company_mirror_induct`, activated by
-`bareCargo_of_seatchart_company`).  ALSO PROMOTED (2026-10-17):
+PROMOTED (2026-10-17) THEN RETIRED (2026-10-18, the company
+grade): the twin-hop seat-chart iff
+(`bareCargo_iff_seatchart_company`), its activation
+(`bareCargo_of_seatchart_company`), and the company master induction
+(`orbit_company_mirror_induct`) were removed: the unconditional VK
+arm below subsumes the company grade, and the company-only rows had
+no Lean consumers.  The shared license rows
+(`orbit_company_undo_license`, `orbit_company_redo_license`) remain
+— the mixed induction consumes them.  ALSO PROMOTED (2026-10-17):
 THE KING-ARM HIDDEN-[] DERIVATION — the → upgrade's derivation
 from the journey: `orbit_king_hidden_vacate` at
 `Orig2/FloatOrbit.lean` ([propext, Quot.sound]), riding the
@@ -434,9 +422,9 @@ schedule exists by `king_assignment_reachable`, §M11b), assembled in
 `bareCargo_iff_split` factors the same iff into the king half (fuel
 targets) and the twin half.  The former unmediated rows
 (`orbit_king_isEmpty_unmediated`, `bareCargo_iff_seatchart_unmediated`)
-are RETIRED: the VK arm subsumes them, and the token-sliding "order"
-is no longer a missing ingredient — its content is the fuel-set
-invariant plus reachability.
+and the company-grade arm are RETIRED: the VK arm subsumes them, and
+the token-sliding "order" is no longer a missing ingredient — its
+content is the fuel-set invariant plus reachability.
 
 PROMOTED (2026-10-18, the spare-empty invariant and the
 KING-SHUFFLE card at `Orig2/FloatOrbit.lean` §§M9–M10, both

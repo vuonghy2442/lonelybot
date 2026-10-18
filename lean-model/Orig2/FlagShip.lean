@@ -56,8 +56,9 @@ keystone that makes the flat class characterization derivable", the
 claims book §1F).  Ranked below the class tier and honest about it:
 bare cargo, not the certified class; one program (the floater
 books), not the whole tree; invariance, not structure.  The door's
-third row by owner call 2026-10-17.  Certified home:
-`Orig2/FloatOrbit.lean` §E5's chain lift (promoted from the
+  third row by owner call 2026-10-17.  Certified home:
+`Orig2/FloatOrbit.lean` §H6 (the chain lift is now shared as
+`CargoKit.tfa_chain_lift`; promoted from the
 `Temp/float_agent_check.lean` dry-run; WF-gated — the leg engine
 consumes occurrence uniqueness off the gate; battery [propext,
 Quot.sound], zero sorry, zero choice).
@@ -76,7 +77,7 @@ while the fuel set is what every reversible leg preserves
 (`king_assignment_reachable`, greedy cycle-fixer over the fuel set)
 plus the residual twin chart.  The per-rank factorization is
 `bareCargo_iff_split` (king half over `VKSet`, twin half).
-Certified home: `Orig2/FloatOrbit.lean` §§M11a–g; battery
+Certified home: `Orig2/FloatOrbit.lean` §M11 and §§M11a–g; battery
 [propext, Quot.sound], zero sorry, zero `Classical.choice`; the WF
 gate supplies the chart round trip, so no ambient rigidity binder.
 
