@@ -2321,6 +2321,63 @@ theorem draw_inphase_reversibleW {st : State} (hd : 0 < st.drawStep)
     exact inphase_redeal_finish hd hjd2 hwB hsizeB
 
 
+/-! ## The deduplicated list & seat kit
+
+These rows were byte-identical private copies in the twin/seat-mate
+cards; they are promoted here so every card reads one copy. -/
+
+theorem card_twin_ne (x : Card) : x.twin ≠ x := by
+  obtain ⟨s, r⟩ := x
+  cases s <;> simp [Card.twin, Suit.twin]
+
+theorem firstWhere_congr {α : Type} {p q : α → Bool}
+    (h : ∀ x, p x = q x) : ∀ l : List α, firstWhere p l = firstWhere q l
+  | [] => rfl
+  | x :: t => by
+      show (match p x with
+            | true => some x
+            | false => firstWhere p t) =
+           (match q x with
+            | true => some x
+            | false => firstWhere q t)
+      rw [h x]
+      cases q x
+      · exact firstWhere_congr h t
+      · rfl
+
+theorem chop_mem {l : List Card} {x : Card} (h : x ∈ chop l) : x ∈ l := by
+  induction l with
+  | nil => cases h
+  | cons y t ih =>
+      cases t with
+      | nil => cases h
+      | cons w t' =>
+          have h' : x ∈ y :: chop (w :: t') := h
+          rcases List.mem_cons.1 h' with hxy | hrest
+          · exact List.mem_cons.2 (Or.inl hxy)
+          · exact List.mem_cons.2 (Or.inr (ih hrest))
+
+theorem afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
+    (Pile.afterRunRemoved p pre).faceUp = pre := by
+  cases pre with
+  | nil => exact absurd rfl h
+  | cons w t => rfl
+
+theorem pileHolding_congr_piles {u v : State} (hp : v.piles = u.piles) (c : Card) :
+    v.pileHolding c = u.pileHolding c := by
+  unfold State.pileHolding
+  rw [hp]
+
+theorem seatOf_congr_piles {u v : State} (hp : v.piles = u.piles) (c : Card) :
+    seatOf v c = seatOf u c := by
+  simp [seatOf, State.pileHolding, hp]
+
+theorem below_cons_self (c : Card) (t : List Card) :
+    below c (c :: t) = [] := by
+  rw [below_cons, ite_eq_left rfl]
+
+theorem universe_nodup : Card.universe.Nodup := by decide
+
 /-! ## The audit battery
 
 Per promoted head, this kit.  Expected profile: `[propext]` or
@@ -2343,3 +2400,11 @@ Per promoted head, this kit.  Expected profile: `[propext]` or
 #print axioms draw_passBase_reversibleW
 #print axioms draw_notW_of_pristine
 #print axioms draw_notW_of_offset
+#print axioms card_twin_ne
+#print axioms firstWhere_congr
+#print axioms chop_mem
+#print axioms afterRunRemoved_faceUp_ne
+#print axioms pileHolding_congr_piles
+#print axioms seatOf_congr_piles
+#print axioms below_cons_self
+#print axioms universe_nodup

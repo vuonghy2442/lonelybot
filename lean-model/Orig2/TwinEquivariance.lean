@@ -282,12 +282,6 @@ theorem firstWhere_congr_relabel {α : Type} {p q : α → Bool}
       | true => rfl
       | false => exact firstWhere_congr_relabel h t
 
-/-- The transposition is injective. -/
-theorem card_relabelTwin_injective (x : Card) : Function.Injective (Card.relabelTwin x) := by
-  intro a b h
-  have := congrArg (Card.relabelTwin x) h
-  simpa [card_relabelTwin_involutive] using this
-
 /-- Option-map equality at the transposition. -/
 theorem decide_option_map_relabelTwin (x z : Card) (o : Option Card) :
     decide (o.map (Card.relabelTwin x) = some z) =
@@ -727,15 +721,6 @@ private theorem recycle_found_relabel (st : State) (s : Suit) :
     · rw [recycle_nil _ hs hw]
   · rw [recycle_keep _ hs]
 
-/-- Recycling keeps the tableau. -/
-private theorem recycle_piles_relabel (st : State) (a : Anchor) :
-    (State.recycle st).piles a = st.piles a := by
-  by_cases hs : st.stock = []
-  · by_cases hw : st.waste = []
-    · rw [recycle_allEmpty _ hs hw]
-    · rw [recycle_nil _ hs hw]
-  · rw [recycle_keep _ hs]
-
 /-- Recycling keeps the draw step. -/
 private theorem recycle_drawStep_relabel (st : State) :
     (State.recycle st).drawStep = st.drawStep := by
@@ -1120,17 +1105,6 @@ theorem zones_relabelTwin (x : Card) (st : State) :
       st.zones.map (List.map (Card.relabelTwin x)) := by
   simp only [State.zones, State.relabelTwin, List.map_map, List.map_append,
     List.map_cons, List.map_nil, Function.comp_def]
-
-/-- Flattening commutes with mapping a list of lists. -/
-theorem flatMap_map_id_relabel (x : Card) :
-    ∀ zs : List (List Card),
-      (zs.map (List.map (Card.relabelTwin x))).flatMap id =
-        (zs.flatMap id).map (Card.relabelTwin x)
-  | [] => rfl
-  | z :: zs => by
-      simp only [List.map_cons, List.flatMap_cons]
-      rw [flatMap_map_id_relabel x zs, List.map_append]
-      rfl
 
 /-- Filtering a mapped list by a mapped value. -/
 theorem filter_map_relabelTwin (x c : Card) :

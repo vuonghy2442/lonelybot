@@ -1462,18 +1462,20 @@ theorem sameOrbitVacant_imp_allVacant_or_someKingFoundable {st : State} (hwf : s
       exact h ⟨w, hw, (noVacancy_iff_not_hasVacancy w).mpr hnv⟩
     exact someKingFoundable_of_vacancy_and_noVacancy hwf hvac hno
 
-/-- **`vacancyDichotomy`** — the class-level vacancy read splits exactly:
-either every class member carries a vacancy (the permanent-vacancy
-regime), or some class member has a bare king raisable to the foundation
-(the vacancy-creating regime). -/
-theorem vacancyDichotomy {st : State} (hwf : st.WF) : VacancyDichotomy st :=
+/-- **`vacancyDichotomy_classical`** — the classical form of the
+class-level vacancy split: either every class member carries a vacancy (the
+permanent-vacancy regime), or some class member has a bare king raisable to
+the foundation (the vacancy-creating regime).  Kept as the historical
+classical disjunction; the choice-free `vacancyDichotomy` is proved at the
+end of this card via the cardinality invariant. -/
+theorem vacancyDichotomy_classical {st : State} (hwf : st.WF) : VacancyDichotomy st :=
   ⟨sameOrbitVacant_imp_allVacant_or_someKingFoundable hwf,
     fun h => h.elim sameOrbitVacant_of_allVacant
       (sameOrbitVacant_of_someKingFoundable hwf)⟩
 
 #print axioms sameOrbitVacant_of_someKingFoundable
 #print axioms sameOrbitVacant_imp_allVacant_or_someKingFoundable
-#print axioms vacancyDichotomy
+#print axioms vacancyDichotomy_classical
 
 
 /-- Choice-free negative form of the vacancy dichotomy: if the class has a
@@ -1502,3 +1504,1063 @@ theorem someKingFoundable_of_vacancy_and_nonVacant {st : State} (hwf : st.WF)
   someKingFoundable_of_vacancy_and_noVacancy hwf hvac hnv
 
 #print axioms someKingFoundable_of_vacancy_and_nonVacant
+
+/-!
+# Choice-free vacancy dichotomy via the cardinality invariant
+
+This tail proves llVacant_iff_accessibleKings_lt_vkSize and replaces the
+classical vacancy dichotomy with a choice-free proof.  kSize counts the
+fuel nodes (vacant spots plus bottomed kings), while ccessibleKings
+counts bottomed kings plus founded kings; every reversible move changes the
+founded-king and vacant counts by the same amount, so the master equation
+ccessibleKings + vacantCount = vkSize + foundationKingCount pins
+ccessibleKings across the whole class.
+-/
+
+
+/-- Number of fuel nodes. -/
+def vkSize (st : State) : Nat :=
+  (Anchor.all.filter (fun a => vkSetB st a)).length
+
+/-- Number of vacant piles. -/
+def vacantCount (st : State) : Nat :=
+  (Anchor.all.filter (fun a => (st.piles a).isEmpty)).length
+
+/-- Number of kings in the foundations. -/
+def foundationKingCount (st : State) : Nat :=
+  (Card.universe.filter (fun c =>
+    decide (c.rank = Rank.king) && decide (c ∈ st.found c.suit))).length
+
+/-- Bottomed kings plus kings already in the foundations. -/
+def accessibleKings (st : State) : Nat :=
+  (kingsOf st).length + foundationKingCount st
+
+theorem foundationKingCount_eq_accessibleKings_sub (st : State) :
+    foundationKingCount st = accessibleKings st - (kingsOf st).length := by
+  unfold accessibleKings
+  rw [Nat.add_sub_cancel_left]
+
+#print axioms foundationKingCount_eq_accessibleKings_sub
+
+/-- The seat test for a bare bottomed card. -/
+def kingBottomSeatB (st : State) (c : Card) : Bool :=
+  match seatOf st c with
+  | some (Sum.inl a) => decide ((st.piles a).hidden = [])
+  | _ => false
+
+/-- The computable accessible-king test. -/
+def accessibleKingB (st : State) (c : Card) : Bool :=
+  decide (c.rank = Rank.king) &&
+    (decide (c ∈ st.found c.suit) || kingBottomSeatB st c)
+
+theorem filter_length_congr {α : Type} (l : List α) (p q : α → Bool)
+    (h : ∀ x ∈ l, p x = q x) :
+    (l.filter p).length = (l.filter q).length := by
+  rw [List.filter_congr h]
+
+theorem vkSize_sameOrbit {a b : State} (hwf : a.WF)
+    (h : sameOrbitSetoid.r a b) : vkSize a = vkSize b := by
+  have hvk := vk_sameOrbit_invariant hwf h
+  unfold vkSize
+  apply filter_length_congr
+  intro j _
+  apply Bool.eq_iff_iff.mpr
+  rw [vkSetB_eq_true, vkSetB_eq_true]
+  exact hvk j
+
+#print axioms vkSize_sameOrbit
+
+/-! ## The vacant / king-bottom split -/
+
+theorem kingBottom_isEmpty_false {st : State} {a : Anchor}
+    (h : KingBottom st a) : (st.piles a).isEmpty = false := by
+  obtain ⟨c, hse, hk, hhid⟩ := h
+  exact Pile.isEmpty_eq_false_of_mem (pileHolding_mem (tfc_seatOf_of_inl hse).1)
+
+theorem length_filter_or_of_disjoint {α : Type} (l : List α) (p q : α → Bool)
+    (h : ∀ x, p x = true → q x = false) :
+    (l.filter (fun x => p x || q x)).length =
+      (l.filter p).length + (l.filter q).length := by
+  induction l with
+  | nil => simp
+  | cons x xs ih =>
+      rw [List.filter_cons, List.filter_cons, List.filter_cons]
+      by_cases hp : p x = true
+      · have hq : q x = false := h x hp
+        rw [hp, hq]
+        simp only [Bool.true_or, Bool.false_eq_true, ite_true, ite_false,
+          List.length_cons]
+        rw [ih]
+        omega
+      · cases hqx : q x with
+        | true =>
+            have hpf : p x = false := by
+              cases hpx : p x with
+              | false => rfl
+              | true => exact absurd hpx hp
+            rw [hpf]
+            simp only [Bool.false_or, Bool.false_eq_true, ite_true, ite_false,
+              List.length_cons]
+            rw [ih]
+            omega
+        | false =>
+            have hpf : p x = false := by
+              cases hpx : p x with
+              | false => rfl
+              | true => exact absurd hpx hp
+            rw [hpf]
+            simp only [Bool.false_or, Bool.false_eq_true, ite_false]
+            exact ih
+
+/-- Changing a predicate at one point changes the filter length by at most one. -/
+theorem length_filter_single_change {α : Type} [DecidableEq α] (l : List α)
+    (p q : α → Bool) {x : α}
+    (hx : x ∈ l) (hnd : l.Nodup)
+    (hagree : ∀ y ∈ l, y ≠ x → p y = q y)
+    (hqx : q x = false) :
+    (l.filter p).length = (l.filter q).length + (if p x = true then 1 else 0) := by
+  obtain ⟨pre, suf, hl⟩ := List.append_of_mem hx
+  have hnd' : (pre ++ x :: suf).Nodup := by rw [← hl]; exact hnd
+  rw [List.nodup_append] at hnd'
+  obtain ⟨hpre, hxsf, hdisj⟩ := hnd'
+  have hxsuf : x ∉ suf := (List.nodup_cons.mp hxsf).1
+  have hxpre : x ∉ pre := fun h => (hdisj x h x (List.mem_cons_self ..)) rfl
+  have hpre_eq : pre.filter p = pre.filter q := by
+    apply List.filter_congr
+    intro y hy
+    exact hagree y (by rw [hl]; exact List.mem_append.mpr (Or.inl hy))
+      (fun hyx => hxpre (hyx ▸ hy))
+  have hsuf_eq : suf.filter p = suf.filter q := by
+    apply List.filter_congr
+    intro y hy
+    exact hagree y (by
+      rw [hl]
+      exact List.mem_append.mpr (Or.inr (List.mem_cons_of_mem x hy)))
+      (fun hyx => hxsuf (hyx ▸ hy))
+  rw [hl, List.filter_append, List.filter_append, List.filter_cons, List.filter_cons,
+    hpre_eq, hsuf_eq, hqx]
+  cases hpx : p x with
+  | false => simp
+  | true => simp <;> omega
+
+/-- A two-point swap of truth values leaves the filter length unchanged. -/
+theorem length_filter_two_point {α : Type} [DecidableEq α] (l : List α)
+    (p q : α → Bool) {a b : α} (hab : a ≠ b)
+    (ha : a ∈ l) (hb : b ∈ l) (hnd : l.Nodup)
+    (hpa : p a = true) (hqa : q a = false)
+    (hpb : p b = false) (hqb : q b = true)
+    (hagree : ∀ x ∈ l, x ≠ a → x ≠ b → p x = q x) :
+    (l.filter p).length = (l.filter q).length := by
+  let r : α → Bool := fun x => if x = b then false else q x
+  have hra : r a = false := by
+    show (if a = b then false else q a) = false
+    rw [ite_eq_right hab, hqa]
+  have hrb : r b = false := by
+    show (if b = b then false else q b) = false
+    rw [ite_eq_left rfl]
+  have hagree1 : ∀ x ∈ l, x ≠ a → p x = r x := by
+    intro x hx hxa
+    by_cases hxb : x = b
+    · rw [hxb]; show p b = (if b = b then false else q b)
+      rw [ite_eq_left rfl, hpb]
+    · show p x = (if x = b then false else q x)
+      rw [ite_eq_right hxb]
+      exact hagree x hx hxa hxb
+  have hagree2 : ∀ x ∈ l, x ≠ b → q x = r x := by
+    intro x hx hxb
+    show q x = (if x = b then false else q x)
+    rw [ite_eq_right hxb]
+  have h1 := length_filter_single_change l p r ha hnd hagree1 hra
+  have h2 := length_filter_single_change l q r hb hnd hagree2 hrb
+  rw [hpa] at h1
+  rw [hqb] at h2
+  simp at h1 h2
+  omega
+
+theorem vkSize_eq_vacant_add_kingBottom (st : State) :
+    vkSize st = vacantCount st +
+      (Anchor.all.filter (fun a => kingBottomB st a)).length := by
+  unfold vkSize vacantCount vkSetB
+  rw [length_filter_or_of_disjoint]
+  · intro a hp
+    cases hb : kingBottomB st a with
+    | false => rfl
+    | true =>
+        have hkb : KingBottom st a := kingBottomB_eq_true.mp hb
+        have hfalse := kingBottom_isEmpty_false hkb
+        rw [hp] at hfalse
+        exact absurd hfalse (by simp)
+
+/-- The anchor list of bottomed kings. -/
+def kingAnchorList (st : State) : List Anchor :=
+  (kingsOf st).map (anchorOf st)
+
+theorem nodup_map_of_inj {α β : Type} {l : List α} {f : α → β}
+    (h : l.Nodup)
+    (hinj : ∀ c ∈ l, ∀ c' ∈ l, f c = f c' → c = c') :
+    (l.map f).Nodup := by
+  induction l with
+  | nil => exact List.Pairwise.nil
+  | cons c cs ih =>
+      rw [List.map_cons, List.nodup_cons]
+      constructor
+      · intro hmem
+        rw [List.mem_map] at hmem
+        obtain ⟨c', hc', hfc⟩ := hmem
+        have hcc' : c = c' :=
+          hinj c (List.mem_cons_self ..) c' (List.mem_cons_of_mem c hc') hfc.symm
+        subst hcc'
+        exact (List.nodup_cons.mp h).1 hc'
+      · exact ih (List.nodup_cons.mp h).2 (fun x hx x' hx' heq =>
+          hinj x (List.mem_cons_of_mem c hx) x' (List.mem_cons_of_mem c hx') heq)
+
+theorem length_kingAnchorList (st : State) :
+    (kingAnchorList st).length = (kingsOf st).length := by
+  simp [kingAnchorList]
+
+theorem nodup_kingAnchorList (st : State) (hwf : st.WF) :
+    (kingAnchorList st).Nodup := by
+  unfold kingAnchorList
+  apply nodup_map_of_inj (kingsOf_nodup st)
+  intro c hc c' hc' heq
+  obtain ⟨a, hkb, hse⟩ := (mem_kingsOf hwf).mp hc
+  obtain ⟨a', hkb', hse'⟩ := (mem_kingsOf hwf).mp hc'
+  have ha : anchorOf st c = a := by simp [anchorOf, hse]
+  have ha' : anchorOf st c' = a' := by simp [anchorOf, hse']
+  have haa : a = a' := by rw [← ha, ← ha']; exact heq
+  rw [← haa] at hse'
+  exact king_seat_injective hse hse'
+
+theorem mem_kingAnchorList_iff_kingBottomB (st : State) (hwf : st.WF)
+    {a : Anchor} :
+    a ∈ kingAnchorList st ↔ kingBottomB st a = true := by
+  constructor
+  · intro h
+    rw [kingAnchorList, List.mem_map] at h
+    obtain ⟨c, hc, hca⟩ := h
+    obtain ⟨a0, hkb, hse⟩ := (mem_kingsOf hwf).mp hc
+    have ha0 : anchorOf st c = a0 := by simp [anchorOf, hse]
+    have haa : a0 = a := by rw [← ha0]; exact hca
+    rw [← haa]
+    exact kingBottomB_eq_true.mpr hkb
+  · intro hb
+    have hkb : KingBottom st a := kingBottomB_eq_true.mp hb
+    obtain ⟨c, hse, hk, hhid⟩ := hkb
+    have hc : KingBottomCard st c := ⟨a, ⟨c, hse, hk, hhid⟩, hse⟩
+    have hmem : c ∈ kingsOf st := (mem_kingsOf hwf).mpr hc
+    rw [kingAnchorList, List.mem_map]
+    exact ⟨c, hmem, by simp [anchorOf, hse]⟩
+
+theorem length_filter_kingBottomB (st : State) (hwf : st.WF) :
+    (Anchor.all.filter (fun a => kingBottomB st a)).length =
+      (kingsOf st).length := by
+  have hd : (kingAnchorList st).Nodup := nodup_kingAnchorList st hwf
+  have hsub : ∀ a, a ∈ kingAnchorList st → a ∈ Anchor.all :=
+    fun a _ => Anchor.mem_all a
+  have hcount := countP_memB_eq_length (l := Anchor.all) (d := kingAnchorList st)
+    Anchor.all_nodup hd hsub
+  rw [List.countP_eq_length_filter] at hcount
+  have hfilter : Anchor.all.filter (fun a => memB a (kingAnchorList st)) =
+      Anchor.all.filter (fun a => kingBottomB st a) := by
+    apply List.filter_congr
+    intro a _
+    apply Bool.eq_iff_iff.mpr
+    rw [memB_eq_true]
+    exact mem_kingAnchorList_iff_kingBottomB st hwf
+  rw [hfilter, length_kingAnchorList] at hcount
+  exact hcount
+
+theorem vkSize_eq_bottomed_add_vacant (st : State) (hwf : st.WF) :
+    vkSize st = (kingsOf st).length + vacantCount st := by
+  rw [vkSize_eq_vacant_add_kingBottom, length_filter_kingBottomB st hwf]
+  omega
+
+#print axioms vkSize_eq_bottomed_add_vacant
+
+/-! ## The accessible-king filter -/
+
+theorem kingBottomSeatB_eq_true {st : State} {c : Card} :
+    kingBottomSeatB st c = true ↔
+      ∃ a, seatOf st c = some (Sum.inl a) ∧ (st.piles a).hidden = [] := by
+  constructor
+  · intro h
+    unfold kingBottomSeatB at h
+    cases hse : seatOf st c with
+    | none => rw [hse] at h; simp at h
+    | some b =>
+        cases b with
+        | inl a =>
+            rw [hse] at h
+            exact ⟨a, rfl, of_decide_eq_true (by simpa using h)⟩
+        | inr z => rw [hse] at h; simp at h
+  · rintro ⟨a, hse, hhid⟩
+    unfold kingBottomSeatB
+    rw [hse]
+    exact decide_eq_true hhid
+
+theorem length_filter_rank_bot (st : State) (hwf : st.WF) :
+    (Card.universe.filter (fun c =>
+      decide (c.rank = Rank.king) && kingBottomSeatB st c)).length =
+      (kingsOf st).length := by
+  have hcount := countP_memB_eq_length (l := Card.universe) (d := kingsOf st)
+    universe_nodup (kingsOf_nodup st) (fun c _ => Card.mem_universe c)
+  rw [List.countP_eq_length_filter] at hcount
+  have hP : List.countP
+      (fun c => decide (c.rank = Rank.king) && kingBottomSeatB st c)
+      Card.universe =
+      List.countP (fun c => memB c (kingsOf st)) Card.universe := by
+    apply List.countP_congr
+    intro c _
+    rw [memB_eq_true]
+    constructor
+    · intro hp
+      obtain ⟨hk, hbot⟩ := Bool.and_eq_true_iff.mp hp
+      have hkr : c.rank = Rank.king := of_decide_eq_true hk
+      obtain ⟨a, hse, hhid⟩ := kingBottomSeatB_eq_true.mp hbot
+      exact (mem_kingsOf hwf).mpr ⟨a, ⟨c, hse, hkr, hhid⟩, hse⟩
+    · intro hmem
+      obtain ⟨a, hkb, hse⟩ := (mem_kingsOf hwf).mp hmem
+      obtain ⟨c0, hse0, hk0, hhid⟩ := hkb
+      have hc : c = c0 := king_seat_injective hse hse0
+      have hkr : c.rank = Rank.king := by rw [hc]; exact hk0
+      have hbot : kingBottomSeatB st c = true :=
+        kingBottomSeatB_eq_true.mpr ⟨a, hse, hhid⟩
+      exact Bool.and_eq_true_iff.mpr ⟨decide_eq_true hkr, hbot⟩
+  rw [← List.countP_eq_length_filter]
+  rw [hP]
+  rw [List.countP_eq_length_filter]
+  exact hcount
+
+/-! ## Foundation king count under the raise / pull -/
+
+/-- The computable foundation-king test. -/
+def foundKingB (st : State) (c : Card) : Bool :=
+  decide (c.rank = Rank.king) && decide (c ∈ st.found c.suit)
+
+theorem upCards_nodup (s : Suit) : (s.upCards).Nodup := by
+  cases s <;> decide
+
+theorem found_nodup {st : State} (hwf : st.WF) (s : Suit) :
+    (st.found s).Nodup := by
+  obtain ⟨n, hn⟩ := hwf.found_prefix s
+  rw [hn]
+  exact (List.take_sublist n (s.upCards)).nodup (upCards_nodup s)
+
+theorem foundationKingCount_raise {u v : State} (hwf : u.WF) {x : Card}
+    (hstep : State.step u (Move.tabToFound x) = some v) :
+    foundationKingCount v =
+      foundationKingCount u + (if x.rank = Rank.king then 1 else 0) := by
+  obtain ⟨-, a, hp, hv⟩ := step_tabToFound_inv hstep
+  obtain ⟨hfv, hfo, -⟩ := tabToFound_found_trio hv
+  have hagree : ∀ y ∈ Card.universe, y ≠ x → foundKingB v y = foundKingB u y := by
+    intro y _ hyx
+    unfold foundKingB
+    by_cases hyk : y.rank = Rank.king
+    · have hmem : (y ∈ v.found y.suit) ↔ (y ∈ u.found y.suit) := by
+        by_cases hys : y.suit = x.suit
+        · rw [hys, hfv]
+          constructor
+          · intro h
+            rcases List.mem_append.mp h with h | h
+            · exact h
+            · rw [List.mem_singleton] at h
+              exact absurd h hyx
+          · intro h
+            exact List.mem_append.mpr (Or.inl h)
+        · rw [hfo y.suit hys]
+      rw [decide_eq_true hyk]
+      simp only [Bool.true_and]
+      by_cases hyu : y ∈ u.found y.suit
+      · rw [decide_eq_true hyu, decide_eq_true (hmem.mpr hyu)]
+      · rw [decide_eq_false hyu,
+          decide_eq_false (fun h => hyu (hmem.mp h))]
+    · rw [decide_eq_false hyk]
+      rfl
+  have hxmem : x ∈ (u.piles a).faceUp := lastOf_mem (pileOfTop_top hp).2
+  have hxnotfound : x ∉ u.found x.suit :=
+    (mem_faceUp_only hwf hxmem).2.2.2.2 x.suit
+  have hqx : foundKingB u x = false := by
+    unfold foundKingB
+    rw [decide_eq_false hxnotfound]
+    simp
+  have hlen := length_filter_single_change (l := Card.universe)
+    (p := foundKingB v) (q := foundKingB u) (x := x)
+    (Card.mem_universe x) universe_nodup hagree hqx
+  change (Card.universe.filter (foundKingB v)).length =
+    (Card.universe.filter (foundKingB u)).length +
+      (if x.rank = Rank.king then 1 else 0)
+  rw [hlen]
+  have hxv : x ∈ v.found x.suit := by
+    rw [hfv]
+    exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
+  have hpx : foundKingB v x = decide (x.rank = Rank.king) := by
+    unfold foundKingB
+    rw [decide_eq_true hxv, Bool.and_true]
+  rw [hpx]
+  by_cases hk : x.rank = Rank.king
+  · simp [hk]
+  · simp [hk]
+
+theorem foundationKingCount_pull {u v : State} (hwf : u.WF) {x : Card} {b : Base}
+    (hstep : State.step u (Move.foundToTab x b) = some v) :
+    foundationKingCount u =
+      foundationKingCount v + (if x.rank = Rank.king then 1 else 0) := by
+  obtain ⟨c', htop, hc'c, hcp, hv⟩ := step_foundToTab_inv hstep
+  subst c'
+  have hkeep : ((u.setFound x.suit (chop (u.found x.suit))).putCard x b).found =
+      (u.setFound x.suit (chop (u.found x.suit))).found :=
+    (putCard_keep (st := u.setFound x.suit (chop (u.found x.suit))) (c := x) (b := b)).1
+  have hfv : v.found x.suit = chop (u.found x.suit) := by
+    rw [hv, hkeep, setFound_found_self]
+  have hfo : ∀ s, s ≠ x.suit → v.found s = u.found s := by
+    intro s hs
+    rw [hv, hkeep, setFound_found_ne hs]
+  have hface : u.found x.suit = chop (u.found x.suit) ++ [x] :=
+    lastOf_chop htop
+  have hagree : ∀ y ∈ Card.universe, y ≠ x → foundKingB u y = foundKingB v y := by
+    intro y _ hyx
+    unfold foundKingB
+    by_cases hyk : y.rank = Rank.king
+    · have hmem : (y ∈ u.found y.suit) ↔ (y ∈ v.found y.suit) := by
+        by_cases hys : y.suit = x.suit
+        · rw [hys, hfv]
+          · constructor
+            · intro h
+              rw [hface] at h
+              rcases List.mem_append.mp h with h | h
+              · exact h
+              · rw [List.mem_singleton] at h
+                exact absurd h hyx
+            · intro h
+              rw [hface]
+              exact List.mem_append.mpr (Or.inl h)
+        · rw [hfo y.suit hys]
+      rw [decide_eq_true hyk]
+      simp only [Bool.true_and]
+      by_cases hyv : y ∈ v.found y.suit
+      · rw [decide_eq_true hyv, decide_eq_true (hmem.mpr hyv)]
+      · rw [decide_eq_false hyv,
+          decide_eq_false (fun h => hyv (hmem.mp h))]
+    · rw [decide_eq_false hyk]
+      rfl
+  have hxv : x ∉ v.found x.suit := by
+    rw [hfv]
+    have hnd : (u.found x.suit).Nodup := found_nodup hwf x.suit
+    rw [hface] at hnd
+    have hdisj := (List.nodup_append.mp hnd).2.2
+    exact fun h => (hdisj x h x (List.mem_cons_self ..)) rfl
+  have hqv : foundKingB v x = false := by
+    unfold foundKingB
+    rw [decide_eq_false hxv]
+    simp
+  have hlen := length_filter_single_change (l := Card.universe)
+    (p := foundKingB u) (q := foundKingB v) (x := x)
+    (Card.mem_universe x) universe_nodup hagree hqv
+  change (Card.universe.filter (foundKingB u)).length =
+    (Card.universe.filter (foundKingB v)).length +
+      (if x.rank = Rank.king then 1 else 0)
+  rw [hlen]
+  have hxu : x ∈ u.found x.suit := lastOf_mem htop
+  have hpx : foundKingB u x = decide (x.rank = Rank.king) := by
+    unfold foundKingB
+    rw [decide_eq_true hxu, Bool.and_true]
+  rw [hpx]
+  by_cases hk : x.rank = Rank.king
+  · simp [hk]
+  · simp [hk]
+
+/-! ## Vacant count under the reversible moves -/
+
+theorem vacantCount_draw {u v : State}
+    (hstep : State.step u Move.draw = some v) :
+    vacantCount v = vacantCount u := by
+  have hsd : u.stepDraw = some v := hstep
+  have hp : v.piles = u.piles := (draw_footprint hsd).2.2.1
+  unfold vacantCount
+  apply filter_length_congr
+  intro a _
+  rw [hp]
+
+theorem vacantCount_raise_bare {u v : State} {x : Card} {a : Anchor}
+    (hstep : State.step u (Move.tabToFound x) = some v)
+    (hp : u.pileOfTop x = some a)
+    (_hchop : chop (u.piles a).faceUp = [])
+    (_hhid : (u.piles a).hidden = [])
+    (hvac : (v.piles a).isEmpty = true) :
+    vacantCount v = vacantCount u + 1 := by
+  obtain ⟨-, a', hp', hv⟩ := step_tabToFound_inv hstep
+  have haa : a' = a := by
+    have h : some a = some a' := hp.symm.trans hp'
+    injection h with h
+    exact h.symm
+  rw [haa] at hv
+  have hnot : (u.piles a).isEmpty = false :=
+    Pile.isEmpty_eq_false_of_mem (lastOf_mem (pileOfTop_top hp).2)
+  have hother : ∀ y ∈ Anchor.all, y ≠ a → (v.piles y).isEmpty = (u.piles y).isEmpty := by
+    intro y _ hya
+    have hpy : v.piles y = u.piles y := by
+      rw [hv]
+      dsimp only
+      rw [ite_eq_right hya]
+    rw [hpy]
+  have hlen := length_filter_single_change (l := Anchor.all)
+    (p := fun y => (v.piles y).isEmpty) (q := fun y => (u.piles y).isEmpty)
+    (x := a) (Anchor.mem_all a) Anchor.all_nodup hother hnot
+  unfold vacantCount
+  rw [hlen, hvac]
+  simp
+
+theorem vacantCount_raise_under {u v : State} {x : Card} {a : Anchor}
+    (hstep : State.step u (Move.tabToFound x) = some v)
+    (hp : u.pileOfTop x = some a)
+    (hchop : chop (u.piles a).faceUp = z :: pre) :
+    vacantCount v = vacantCount u := by
+  obtain ⟨-, a', hp', hv⟩ := step_tabToFound_inv hstep
+  have haa : a' = a := by
+    have h : some a = some a' := hp.symm.trans hp'
+    injection h with h
+    exact h.symm
+  rw [haa] at hv
+  unfold vacantCount
+  apply filter_length_congr
+  intro y _
+  by_cases hya : y = a
+  · rw [hya]
+    have hvface : (v.piles a).faceUp = chop (u.piles a).faceUp := by
+      rw [hv]
+      dsimp only
+      rw [ite_eq_left rfl, afterRunRemoved_ne (by rw [hchop]; simp)]
+    have hu_false : (u.piles a).isEmpty = false :=
+      Pile.isEmpty_eq_false_of_mem (lastOf_mem (pileOfTop_top hp).2)
+    have hv_false : (v.piles a).isEmpty = false :=
+      Pile.isEmpty_eq_false_of_mem (c := z) (by rw [hvface, hchop]; exact List.mem_cons_self ..)
+    rw [hu_false, hv_false]
+  · have hpy : v.piles y = u.piles y := by
+      rw [hv]
+      dsimp only
+      rw [ite_eq_right hya]
+    rw [hpy]
+
+theorem vacantCount_pull_king {u v : State} {x : Card} {a : Anchor}
+    (hstep : State.step u (Move.foundToTab x (Sum.inl a)) = some v)
+    (hvac : (u.piles a).isEmpty = true) :
+    vacantCount u = vacantCount v + 1 := by
+  have hemp := KingFuel.pull_empties_iff hstep
+  obtain ⟨c', htop, hc'c, hcp, hv⟩ := step_foundToTab_inv hstep
+  subst c'
+  have hv_pile : v.piles a = ⟨[], [x]⟩ := by
+    rw [hv, putCard_piles_inl]
+    dsimp only
+    rw [ite_eq_left rfl]
+  have hvacv : (v.piles a).isEmpty = false := by
+    rw [hv_pile]
+    exact Pile.isEmpty_eq_false_of_mem (List.mem_cons_self ..)
+  have hother : ∀ y ∈ Anchor.all, y ≠ a → (u.piles y).isEmpty = (v.piles y).isEmpty := by
+    intro y _ hya
+    apply Bool.eq_iff_iff.mpr
+    constructor
+    · intro hu
+      exact (hemp y).mpr ⟨hu, fun h => hya (Sum.inl.inj h).symm⟩
+    · intro hv
+      rcases (hemp y).mp hv with ⟨hu, -⟩
+      exact hu
+  have hlen := length_filter_single_change (l := Anchor.all)
+    (p := fun y => (u.piles y).isEmpty) (q := fun y => (v.piles y).isEmpty)
+    (x := a) (Anchor.mem_all a) Anchor.all_nodup hother hvacv
+  unfold vacantCount
+  rw [hlen, hvac]
+  simp
+
+
+theorem vacantCount_pull_nonking {u v : State} {x : Card} {b : Base}
+    (hstep : State.step u (Move.foundToTab x b) = some v)
+    (hx : x.rank ≠ Rank.king) :
+    vacantCount v = vacantCount u := by
+  obtain ⟨c', htop, hc'c, hcp, hv⟩ := step_foundToTab_inv hstep
+  have hb : ∀ a, b ≠ Sum.inl a := by
+    intro a hbinl
+    rw [hbinl] at hcp
+    exact hx (canPlace_inl hcp).2
+  unfold vacantCount
+  apply filter_length_congr
+  intro a _
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro hv
+    rcases (KingFuel.pull_empties_iff hstep a).mp hv with ⟨hu, -⟩
+    exact hu
+  · intro hu
+    exact (KingFuel.pull_empties_iff hstep a).mpr ⟨hu, hb a⟩
+
+theorem vacantCount_slide {u v : State} {c : Card} {b : Base}
+    (hwf : u.WF) (hstep : State.step u (Move.tabToTab c b) = some v)
+    (hrev : reversibleAtW u (Move.tabToTab c b)) :
+    vacantCount v = vacantCount u := by
+  rcases orbit_empty_celldata hwf hstep hrev with
+    hpoint | ⟨a, a', haa', hva, hua', hua, hva', hother⟩
+  · unfold vacantCount
+    apply filter_length_congr
+    intro j _
+    rw [hpoint j]
+  · unfold vacantCount
+    exact length_filter_two_point Anchor.all
+      (fun y => (v.piles y).isEmpty) (fun y => (u.piles y).isEmpty)
+      haa' (Anchor.mem_all a) (Anchor.mem_all a') Anchor.all_nodup
+      hva hua hva' hua'
+      (fun y _ hya hya' => by rw [hother y hya hya'])
+
+theorem foundationKingCount_draw {u v : State}
+    (hstep : State.step u Move.draw = some v) :
+    foundationKingCount v = foundationKingCount u := by
+  have hsd : u.stepDraw = some v := hstep
+  have hf : v.found = u.found := (draw_footprint hsd).2.1
+  unfold foundationKingCount
+  apply filter_length_congr
+  intro c _
+  rw [hf]
+
+theorem foundationKingCount_slide {u v : State} {c : Card} {b : Base}
+    (hwf : u.WF) (hstep : State.step u (Move.tabToTab c b) = some v)
+    (hrev : reversibleAtW u (Move.tabToTab c b)) :
+    foundationKingCount v = foundationKingCount u := by
+  have hff : foundsFixed u v := (tfa_slide_conserves hwf hstep hrev).2.1
+  unfold foundationKingCount
+  apply filter_length_congr
+  intro x _
+  apply Bool.eq_iff_iff.mpr
+  have hmem : (x ∈ v.found x.suit) ↔ (x ∈ u.found x.suit) := by
+    rw [← hff x.suit]
+  by_cases hk : x.rank = Rank.king
+  · rw [decide_eq_true hk]
+    simp only [Bool.true_and]
+    by_cases hxu : x ∈ u.found x.suit
+    · rw [decide_eq_true hxu, decide_eq_true (hmem.mpr hxu)]
+    · rw [decide_eq_false hxu, decide_eq_false (fun h => hxu (hmem.mp h))]
+  · rw [decide_eq_false hk]
+    rfl
+
+theorem foundation_vacant_step {u v : State} {m : Move} (hwf : u.WF)
+    (hstep : State.step u m = some v) (hrev : reversibleAtW u m) :
+    (foundationKingCount v = foundationKingCount u + 1 ∧
+        vacantCount v = vacantCount u + 1) ∨
+      (foundationKingCount u = foundationKingCount v + 1 ∧
+        vacantCount u = vacantCount v + 1) ∨
+      (foundationKingCount v = foundationKingCount u ∧
+        vacantCount v = vacantCount u) := by
+  cases m with
+  | draw =>
+      exact Or.inr (Or.inr ⟨foundationKingCount_draw hstep, vacantCount_draw hstep⟩)
+  | wasteToFound x =>
+      exact False.elim (wasteToFound_not_reversibleAtW u x hrev)
+  | wasteToTab x b =>
+      exact False.elim (wasteToTab_not_reversibleAtW u x b hrev)
+  | tabToFound x =>
+      obtain ⟨-, a, hp, hv⟩ := step_tabToFound_inv hstep
+      have hR := (tabToFoundR_iff_reversibleAtW hwf x).mpr hrev
+      rw [tabToFoundR, (step_tabToFound_inv hstep).1, hp] at hR
+      cases hchop : chop (u.piles a).faceUp with
+      | nil =>
+          cases hhid : (u.piles a).hidden with
+          | nil =>
+              have hkx : x.rank = Rank.king := by
+                simpa [hchop, hhid] using hR
+              have hlast := (pileOfTop_top hp).2
+              have hface : (u.piles a).faceUp = [x] := by
+                have h := lastOf_chop hlast
+                rw [hchop, List.nil_append] at h
+                exact h
+              have hvac : (v.piles a).isEmpty = true :=
+                (KingFuel.raise_empties_iff hstep hp).mpr ⟨hface, hhid⟩
+              have hf := foundationKingCount_raise hwf hstep
+              rw [ite_eq_left hkx] at hf
+              have hva := vacantCount_raise_bare hstep hp hchop hhid hvac
+              exact Or.inl ⟨hf, hva⟩
+          | cons hh t =>
+              exact False.elim (by simp [hchop, hhid] at hR)
+      | cons z pre =>
+          have hxk : x.rank ≠ Rank.king := by
+            intro hkx
+            have hlast := (pileOfTop_top hp).2
+            have hface : (u.piles a).faceUp = chop (u.piles a).faceUp ++ [x] :=
+              lastOf_chop hlast
+            have hrun : runOK (u.piles a).faceUp = true := hwf.2.1 a
+            obtain ⟨w, -, hsit⟩ := runOK_snoc_sit (l := chop (u.piles a).faceUp)
+              (by rw [hchop]; simp) (by rw [← hface]; exact hrun)
+            have hfalse := canSitOn_king_false (z := w) hkx
+            rw [hsit] at hfalse
+            exact absurd hfalse (by simp)
+          have hf := foundationKingCount_raise hwf hstep
+          rw [ite_eq_right hxk] at hf
+          simp only [Nat.add_zero] at hf
+          have hva := vacantCount_raise_under hstep hp hchop
+          exact Or.inr (Or.inr ⟨hf, hva⟩)
+  | foundToTab x b =>
+      obtain ⟨c', htop, hc'c, hcp, hv⟩ := step_foundToTab_inv hstep
+      subst c'
+      by_cases hk : x.rank = Rank.king
+      · cases b with
+        | inl a =>
+            have hvac : (u.piles a).isEmpty = true := (canPlace_inl hcp).1
+            have hf := foundationKingCount_pull hwf hstep
+            rw [ite_eq_left hk] at hf
+            have hva := vacantCount_pull_king hstep hvac
+            exact Or.inr (Or.inl ⟨hf, hva⟩)
+        | inr z =>
+            obtain ⟨k, -, hfit⟩ := canPlace_inr hcp
+            have hfalse := canSitOn_king_false (z := z) hk
+            rw [hfit] at hfalse
+            exact False.elim (by simp at hfalse)
+      · cases b with
+        | inl a =>
+            exact False.elim (hk (canPlace_inl hcp).2)
+        | inr z =>
+            have hf := foundationKingCount_pull hwf hstep
+            rw [ite_eq_right hk] at hf
+            simp only [Nat.add_zero] at hf
+            have hva := vacantCount_pull_nonking hstep hk
+            exact Or.inr (Or.inr ⟨hf.symm, hva⟩)
+  | tabToTab c b =>
+      exact Or.inr (Or.inr
+        ⟨foundationKingCount_slide hwf hstep hrev, vacantCount_slide hwf hstep hrev⟩)
+
+theorem accessibleKings_add_vacant (st : State) (hwf : st.WF) :
+    accessibleKings st + vacantCount st = vkSize st + foundationKingCount st := by
+  unfold accessibleKings
+  rw [vkSize_eq_bottomed_add_vacant st hwf]
+  omega
+
+theorem accessibleKings_step {u v : State} {m : Move} (hwf : u.WF)
+    (hstep : State.step u m = some v) (hrev : reversibleAtW u m) :
+    accessibleKings v = accessibleKings u := by
+  have hwfv : v.WF := step_wf hwf hstep
+  have hV : vkSize v = vkSize u := by
+    unfold vkSize
+    apply filter_length_congr
+    intro a _
+    apply Bool.eq_iff_iff.mpr
+    rw [vkSetB_eq_true, vkSetB_eq_true]
+    exact (vk_step_rev hwf hstep hrev a).symm
+  have hM_u := accessibleKings_add_vacant u hwf
+  have hM_v := accessibleKings_add_vacant v hwfv
+  rcases foundation_vacant_step hwf hstep hrev with
+    ⟨hf, hva⟩ | ⟨hf, hva⟩ | ⟨hf, hva⟩
+  · omega
+  · omega
+  · omega
+
+theorem accessibleKings_walk {u v : State} {ρ : List Move}
+    (h : ShufflePlayW u ρ v) (hwf : u.WF) :
+    accessibleKings v = accessibleKings u := by
+  induction h with
+  | nil s => rfl
+  | @cons st s1 W m ρ hrev hstep hrest ih =>
+      have hwf1 : s1.WF := step_wf hwf hstep
+      exact (ih hwf1).trans (accessibleKings_step hwf hstep hrev)
+
+theorem accessibleKings_sameOrbit {a b : State} (hwf : a.WF)
+    (h : sameOrbitSetoid.r a b) : accessibleKings a = accessibleKings b := by
+  obtain ⟨ρ, hρ, τ, hτ⟩ := h
+  exact (accessibleKings_walk hτ hwf).symm
+
+#print axioms accessibleKings_sameOrbit
+
+/-! ## Foundation kings are tops, and the inverse raise -/
+
+theorem lastOf_upCards_king (s : Suit) :
+    lastOf (s.upCards) = some (Card.mk s Rank.king) := by
+  cases s <;> decide
+
+theorem found_eq_upCards_of_king_mem {st : State} (hwf : st.WF) {c : Card}
+    (hk : c.rank = Rank.king) (hmem : c ∈ st.found c.suit) :
+    st.found c.suit = c.suit.upCards := by
+  obtain ⟨n, hn⟩ := hwf.found_prefix c.suit
+  rw [hn] at hmem ⊢
+  have hc : c = Card.mk c.suit Rank.king := by
+    cases c
+    simp only at hk
+    subst hk
+    rfl
+  have hlast : lastOf (c.suit.upCards) = some c := by
+    rw [hc]
+    exact lastOf_upCards_king c.suit
+  have hnd : (c.suit.upCards).Nodup := upCards_nodup c.suit
+  obtain ⟨front, hfront⟩ := lastOf_eq_snoc hlast
+  have hlen : (c.suit.upCards).length = front.length + 1 := by
+    rw [hfront]
+    simp
+  by_cases hle : (c.suit.upCards).length ≤ n
+  · exact List.take_of_length_le hle
+  · exfalso
+    have hnlt : n < (c.suit.upCards).length := by omega
+    have hnle : n ≤ front.length := by omega
+    have hc_take : c ∈ c.suit.upCards.take n := hmem
+    rw [hfront] at hc_take
+    rw [List.take_append_of_le_length (l₁ := front) (l₂ := [c]) hnle] at hc_take
+    have hc_front : c ∈ front := List.mem_of_mem_take hc_take
+    have hnd' : (front ++ [c]).Nodup := by rwa [← hfront]
+    exact (List.nodup_append.mp hnd').2.2 c hc_front c (List.mem_cons_self ..) rfl
+theorem foundTop_of_king_mem {st : State} (hwf : st.WF) {c : Card}
+    (hk : c.rank = Rank.king) (hmem : c ∈ st.found c.suit) :
+    st.foundTop c.suit = some c := by
+  have hfull := found_eq_upCards_of_king_mem hwf hk hmem
+  cases c with
+  | mk s r =>
+      simp only at hk hfull ⊢
+      subst r
+      show lastOf (st.found s) = some (Card.mk s Rank.king)
+      rw [hfull]
+      exact lastOf_upCards_king s
+
+/-- The inverse raise of a king pulled from the foundation onto an empty
+pile: the pull's successor raises the king straight back. -/
+theorem step_tabToFound_of_pull_king {u v : State} {c : Card} {a : Anchor}
+    (hwf : u.WF) (hk : c.rank = Rank.king)
+    (hfound : c ∈ u.found c.suit)
+    (hvac : (u.piles a).isEmpty = true)
+    (hstep : State.step u (Move.foundToTab c (Sum.inl a)) = some v) :
+    State.step v (Move.tabToFound c) = some u := by
+  obtain ⟨c', htop, hc'c, hcp, hv⟩ := step_foundToTab_inv hstep
+  subst c'
+  have hfull : u.found c.suit = c.suit.upCards :=
+    found_eq_upCards_of_king_mem hwf hk hfound
+  have hchop_len : (chop (u.found c.suit)).length = 12 := by
+    rw [hfull]
+    cases c.suit <;> decide
+  have hkeep : ((u.setFound c.suit (chop (u.found c.suit))).putCard c (Sum.inl a)).found =
+      (u.setFound c.suit (chop (u.found c.suit))).found :=
+    (putCard_keep (st := u.setFound c.suit (chop (u.found c.suit))) (c := c)
+      (b := Sum.inl a)).1
+  have hfv : v.found c.suit = chop (u.found c.suit) := by
+    rw [hv, hkeep, setFound_found_self]
+  have hfo : ∀ s, s ≠ c.suit → v.found s = u.found s := by
+    intro s hs
+    rw [hv, hkeep, setFound_found_ne hs]
+  have hppiles : v.piles = (u.putCard c (Sum.inl a)).piles := by
+    rw [hv]
+    exact KingFuel.kf_setFound_putCard_piles u c.suit (chop (u.found c.suit)) c (Sum.inl a)
+  have hpile : v.piles a = ⟨[], [c]⟩ := by
+    rw [hppiles, putCard_piles_inl]
+    dsimp only
+    rw [ite_eq_left rfl]
+  have hwfv : v.WF := step_wf hwf hstep
+  have hnext : v.nextUp c = true := by
+    show decide (c.rank.toIdx = (v.found c.suit).length) = true
+    rw [hk, hfv, hchop_len]
+    rfl
+  have hpo : v.pileOfTop c = some a := by
+    rw [pileOfTop_eq_some_iff hwfv]
+    show lastOf (v.piles a).faceUp = some c
+    rw [hpile]
+    rfl
+  have hface : (u.piles a).faceUp = [] :=
+    ((Pile.isEmpty_eq _).mp hvac).2
+  have hhid : (u.piles a).hidden = [] :=
+    ((Pile.isEmpty_eq _).mp hvac).1
+  rw [step_tabToFound_splice hnext hpo]
+  congr 1
+  apply State.ext
+  · funext s
+    show (if s = c.suit then v.found c.suit ++ [c] else v.found s) = u.found s
+    by_cases hs : s = c.suit
+    · rw [ite_eq_left hs, hs, hfv]
+      have hlast : lastOf (u.found c.suit) = some c := htop
+      exact (lastOf_chop hlast).symm
+    · rw [ite_eq_right hs]
+      exact hfo s hs
+  · funext y
+    show (if y = a then Pile.afterRunRemoved (v.piles a) (chop (v.piles a).faceUp)
+        else v.piles y) = u.piles y
+    by_cases hya : y = a
+    · rw [ite_eq_left hya, hya, hpile]
+      have hu_empty : u.piles a = ⟨[], []⟩ := by
+        obtain ⟨hh, hf⟩ := (Pile.isEmpty_eq (u.piles a)).mp hvac
+        exact Pile.ext hh hf
+      rw [hu_empty]
+      rfl
+    · rw [ite_eq_right hya]
+      rw [hppiles, putCard_piles_inl]
+      dsimp only
+      rw [ite_eq_right hya]
+  · rw [setFound_stock, hv]
+    rfl
+  · rw [setFound_waste, hv]
+    rfl
+  · rw [setFound_drawStep, hv]
+    rfl
+
+/-! ## Filling every vacancy from the foundation -/
+
+theorem exists_vacant_of_vacantCount_pos {st : State}
+    (h : 0 < vacantCount st) :
+    ∃ a, (st.piles a).isEmpty = true := by
+  unfold vacantCount at h
+  obtain ⟨a, ha⟩ := List.length_pos_iff_exists_mem.mp h
+  exact ⟨a, (List.mem_filter.mp ha).2⟩
+
+theorem noVacancy_of_vacantCount_eq_zero {st : State}
+    (h : vacantCount st = 0) : NoVacancy st := by
+  intro a ha
+  have hmem : a ∈ Anchor.all.filter (fun b => (st.piles b).isEmpty) := by
+    rw [List.mem_filter]
+    exact ⟨Anchor.mem_all a, ha⟩
+  have hpos : 0 < vacantCount st :=
+    List.length_pos_iff_exists_mem.mpr ⟨a, hmem⟩
+  omega
+
+theorem exists_foundation_king {st : State}
+    (h : 0 < foundationKingCount st) :
+    ∃ c, c.rank = Rank.king ∧ c ∈ st.found c.suit := by
+  unfold foundationKingCount at h
+  obtain ⟨c, hc⟩ := List.length_pos_iff_exists_mem.mp h
+  have hp := (List.mem_filter.mp hc).2
+  rw [Bool.and_eq_true_iff] at hp
+  exact ⟨c, of_decide_eq_true hp.1, of_decide_eq_true hp.2⟩
+
+private theorem noVacancy_of_vacancy_ge_aux (st : State) (hwf : st.WF) :
+    ∀ (n : Nat) (u : State), sameOrbitSetoid.r st u → u.WF →
+      vkSize u ≤ accessibleKings u → vacantCount u = n →
+      ∃ w, sameOrbitSetoid.r st w ∧ NoVacancy w
+  | 0, u, hcls, hwfu, _, hcount =>
+      ⟨u, hcls, noVacancy_of_vacantCount_eq_zero hcount⟩
+  | n + 1, u, hcls, hwfu, hge, hcount => by
+      have hpos : 0 < vacantCount u := by omega
+      obtain ⟨a, hvac⟩ := exists_vacant_of_vacantCount_pos hpos
+      have hfound_pos : 0 < foundationKingCount u := by
+        have hsplit := vkSize_eq_bottomed_add_vacant u hwfu
+        have hacc : accessibleKings u = (kingsOf u).length + foundationKingCount u := rfl
+        omega
+      obtain ⟨c, hk, hfound⟩ := exists_foundation_king hfound_pos
+      have htop : u.foundTop c.suit = some c :=
+        foundTop_of_king_mem hwfu hk hfound
+      have hcp : u.canPlace c (Sum.inl a) = true := by
+        show ((u.piles a).isEmpty && decide (c.rank = Rank.king)) = true
+        rw [hvac, decide_eq_true hk]
+        rfl
+      let v : State :=
+        (u.setFound c.suit (chop (u.found c.suit))).putCard c (Sum.inl a)
+      have hstep : State.step u (Move.foundToTab c (Sum.inl a)) = some v :=
+        step_foundToTab_splice htop hcp
+      have hraise := step_tabToFound_of_pull_king hwfu hk hfound hvac hstep
+      have hrev_pull : reversibleAtW u (Move.foundToTab c (Sum.inl a)) :=
+        reversible_mirrorW hstep hraise
+      have hrev_raise : reversibleAtW v (Move.tabToFound c) :=
+        reversible_mirrorW hraise hstep
+      have hclass : sameOrbitSetoid.r u v :=
+        ⟨[Move.tabToFound c], Walk.cons hrev_raise hraise (Walk.nil u),
+         [Move.foundToTab c (Sum.inl a)], Walk.cons hrev_pull hstep (Walk.nil v)⟩
+      have hwfv : v.WF := step_wf hwfu hstep
+      have hgev : vkSize v ≤ accessibleKings v := by
+        rw [← vkSize_sameOrbit hwfu hclass,
+          ← accessibleKings_sameOrbit hwfu hclass]
+        exact hge
+      have hcountv : vacantCount v = n := by
+        have hva := vacantCount_pull_king hstep hvac
+        omega
+      have hcls_v : sameOrbitSetoid.r st v :=
+        sameOrbitSetoid.iseqv.trans hcls hclass
+      exact noVacancy_of_vacancy_ge_aux st hwf n v hcls_v hwfv hgev hcountv
+
+theorem exists_noVacancy_of_vacancy_and_ge {st : State} (hwf : st.WF)
+    (hvac : SameOrbitVacant st)
+    (hge : vkSize st ≤ accessibleKings st) :
+    ∃ w, sameOrbitSetoid.r st w ∧ NoVacancy w := by
+  obtain ⟨u, hcls, hvacu⟩ := hvac
+  have hcls_keep : sameOrbitSetoid.r st u := hcls
+  obtain ⟨ρ, hρ, σ, hσ⟩ := hcls
+  have hwfu : u.WF := run_wf hwf
+    (Walk_run (P := fun st m => reversibleAtW st m) (st := st) (W := u) hσ)
+  have hgeu : vkSize u ≤ accessibleKings u := by
+    rw [← vkSize_sameOrbit hwf hcls_keep,
+      ← accessibleKings_sameOrbit hwf hcls_keep]
+    exact hge
+  exact noVacancy_of_vacancy_ge_aux st hwf (vacantCount u) u hcls_keep hwfu hgeu rfl
+
+#print axioms exists_noVacancy_of_vacancy_and_ge
+
+theorem allVacant_iff_accessibleKings_lt_vkSize {st : State} (hwf : st.WF) :
+    AllVacant st ↔ accessibleKings st < vkSize st := by
+  constructor
+  · intro hAll
+    by_cases hlt : accessibleKings st < vkSize st
+    · exact hlt
+    · have hge : vkSize st ≤ accessibleKings st := Nat.le_of_not_lt hlt
+      have hvac : SameOrbitVacant st := sameOrbitVacant_of_allVacant hAll
+      obtain ⟨w, hw, hnw⟩ := exists_noVacancy_of_vacancy_and_ge hwf hvac hge
+      exact absurd (hAll w hw) ((noVacancy_iff_not_hasVacancy w).mp hnw)
+  · intro hlt w hw
+    have hw_keep : sameOrbitSetoid.r st w := hw
+    obtain ⟨ρ, hρ, σ, hσ⟩ := hw
+    have hwfw : w.WF := run_wf hwf
+      (Walk_run (P := fun st m => reversibleAtW st m) (st := st) (W := w) hσ)
+    have hV : vkSize w = vkSize st := (vkSize_sameOrbit hwf hw_keep).symm
+    have hA : accessibleKings w = accessibleKings st :=
+      accessibleKings_sameOrbit hwfw (sameOrbitSetoid.iseqv.symm hw_keep)
+    have hltw : accessibleKings w < vkSize w := by
+      rw [hA, hV]
+      exact hlt
+    have hsplit := vkSize_eq_bottomed_add_vacant w hwfw
+    have hacc : accessibleKings w = (kingsOf w).length + foundationKingCount w := rfl
+    have hpos : 0 < vacantCount w := by omega
+    obtain ⟨a, ha⟩ := exists_vacant_of_vacantCount_pos hpos
+    exact ⟨a, ha⟩
+
+#print axioms allVacant_iff_accessibleKings_lt_vkSize
+
+theorem vacancyDichotomy {st : State} (hwf : st.WF) : VacancyDichotomy st := by
+  constructor
+  · intro hvac
+    by_cases hlt : accessibleKings st < vkSize st
+    · exact Or.inl ((allVacant_iff_accessibleKings_lt_vkSize hwf).mpr hlt)
+    · have hge : vkSize st ≤ accessibleKings st := Nat.le_of_not_lt hlt
+      obtain ⟨w, hw, hnw⟩ := exists_noVacancy_of_vacancy_and_ge hwf hvac hge
+      exact Or.inr (someKingFoundable_of_vacancy_and_nonVacant hwf hvac ⟨w, hw, hnw⟩)
+  · rintro (hA | hS)
+    · exact sameOrbitVacant_of_allVacant hA
+    · exact sameOrbitVacant_of_someKingFoundable hwf hS
+
+#print axioms vacancyDichotomy
+
+theorem filter_and_or_distrib (a b c : Bool) :
+    (a && (b || c)) = ((a && b) || (a && c)) := by
+  cases a <;> cases b <;> cases c <;> rfl
+
+theorem foundation_false_of_bottom {st : State} (hwf : st.WF) {c : Card} {a : Anchor}
+    (hfound : c ∈ st.found c.suit)
+    (hse : seatOf st c = some (Sum.inl a))
+    (_hhid : (st.piles a).hidden = []) : False := by
+  have hmem : c ∈ (st.piles a).faceUp :=
+    pileHolding_mem (tfc_seatOf_of_inl hse).1
+  exact ((mem_found_unique hwf hfound).1 a).2 hmem
+
+theorem accessibleKings_eq_filter (st : State) (hwf : st.WF) :
+    accessibleKings st = (Card.universe.filter (accessibleKingB st)).length := by
+  unfold accessibleKings foundationKingCount accessibleKingB
+  have hcongr : (Card.universe.filter (fun c =>
+      decide (c.rank = Rank.king) &&
+        (decide (c ∈ st.found c.suit) || kingBottomSeatB st c))).length =
+      (Card.universe.filter (fun c =>
+        (decide (c.rank = Rank.king) && decide (c ∈ st.found c.suit)) ||
+        (decide (c.rank = Rank.king) && kingBottomSeatB st c))).length := by
+    apply filter_length_congr
+    intro c _
+    exact filter_and_or_distrib _ _ _
+  rw [hcongr]
+  rw [length_filter_or_of_disjoint]
+  · rw [length_filter_rank_bot st hwf]
+    omega
+  · intro c hp
+    obtain ⟨hk, hfound⟩ := Bool.and_eq_true_iff.mp hp
+    cases hb : (decide (c.rank = Rank.king) && kingBottomSeatB st c) with
+    | false => rfl
+    | true =>
+        have hbot := (Bool.and_eq_true_iff.mp hb).2
+        obtain ⟨a, hse, hhid⟩ := kingBottomSeatB_eq_true.mp hbot
+        exact False.elim (foundation_false_of_bottom hwf
+          (of_decide_eq_true hfound) hse hhid)
+
+#print axioms accessibleKings_eq_filter
+
+
+
+
+

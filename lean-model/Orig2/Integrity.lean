@@ -794,6 +794,62 @@ theorem ne_of_canSitOn {z y : Card} (h : canSitOn z y = true) : z ≠ y := by
   simp only [canSitOn_eq] at h
   omega
 
+/-! ## The deduplicated run/seat kit
+
+Rows previously carried as byte-identical private copies in the
+twin/splice cards, promoted to the shared integrity kit. -/
+
+/-- A seated card is face up somewhere. -/
+theorem mem_faceUp_of_seat {st : State} {c : Card} {b : Base}
+    (h : seatOf st c = some b) : ∃ a, c ∈ (st.piles a).faceUp := by
+  unfold seatOf at h
+  cases hh : st.pileHolding c with
+  | none =>
+      rw [hh] at h
+      exact absurd h (by simp)
+  | some a => exact ⟨a, pileHolding_mem hh⟩
+
+/-- A face-up card is absent from every hidden deck, the stock, the
+waste, and every foundation (occurrence uniqueness at `WF`). -/
+theorem off_zones_of_seat {st : State} (hwf : st.WF) {c : Card}
+    (hse : ∃ b, seatOf st c = some b) :
+    (∀ a, c ∉ (st.piles a).hidden) ∧ c ∉ st.stock ∧ c ∉ st.waste ∧
+      ∀ s, c ∉ st.found s := by
+  obtain ⟨b, hb⟩ := hse
+  obtain ⟨a, hmem⟩ := mem_faceUp_of_seat hb
+  obtain ⟨hother, hown, hstock, hwaste, hfound⟩ := mem_faceUp_only hwf hmem
+  refine ⟨?_, hstock, hwaste, hfound⟩
+  intro a'
+  by_cases ha : a' = a
+  · subst ha
+    exact hown
+  · exact (hother a' ha).1
+
+/-- Two cards of equal rank cannot occupy different positions of a legal
+run: ranks strictly descend along it. -/
+theorem runOK_rank_distinct {l : List Card} (hok : runOK l = true)
+    {u v : Card} (hu : u ∈ l) (hv : v ∈ l) (hr : u.rank = v.rank) : u = v := by
+  induction l with
+  | nil => cases hu
+  | cons a t ih =>
+      cases t with
+      | nil =>
+          rw [List.mem_singleton] at hu hv
+          rw [hu, hv]
+      | cons b t' =>
+          have hok' : runOK (b :: t') = true := runOK_cons_tail hok
+          rcases List.mem_cons.mp hu with rfl | hu'
+          · rcases List.mem_cons.mp hv with rfl | hv'
+            · rfl
+            · have hlt := runOK_head_gt hok hv'
+              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
+              omega
+          · rcases List.mem_cons.mp hv with rfl | hv'
+            · have hlt := runOK_head_gt hok hu'
+              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
+              omega
+            · exact ih hok' hu' hv'
+
 /-! ## The audit battery
 
 Per promoted head, this card.  Expected profile: `[]`,
@@ -839,3 +895,6 @@ Per promoted head, this card.  Expected profile: `[]`,
 #print axioms canPlace_inr_seat
 #print axioms canPlace_inl_target_pile_ne
 #print axioms ne_of_canSitOn
+#print axioms mem_faceUp_of_seat
+#print axioms off_zones_of_seat
+#print axioms runOK_rank_distinct

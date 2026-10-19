@@ -52,11 +52,6 @@ end State
 
 /-! ## §1. The card involution -/
 
-/-- No card is its own twin. -/
-theorem card_twin_ne (x : Card) : x.twin ≠ x := by
-  obtain ⟨s, r⟩ := x
-  cases s <;> simp [Card.twin, Suit.twin]
-
 /-- The twin involution on cards. -/
 theorem card_twin_twin (c : Card) : c.twin.twin = c := by
   cases c with
@@ -87,6 +82,24 @@ theorem card_relabelTwin_ne {x c : Card} (hx : c ≠ x) (hxt : c ≠ x.twin) :
     · subst hct
       rw [card_relabelTwin_twin, card_relabelTwin_self]
     · rw [card_relabelTwin_ne hc hct, card_relabelTwin_ne hc hct]
+
+/-- The transposition is injective. -/
+theorem card_relabelTwin_injective (x : Card) :
+    Function.Injective (Card.relabelTwin x) := by
+  intro a b h
+  have := congrArg (Card.relabelTwin x) h
+  simpa [card_relabelTwin_involutive] using this
+
+/-- Mapping the relabeling over a list of lists commutes with flattening. -/
+theorem flatMap_map_id_relabel (x : Card) :
+    ∀ zs : List (List Card),
+      (zs.map (List.map (Card.relabelTwin x))).flatMap id =
+        (zs.flatMap id).map (Card.relabelTwin x)
+  | [] => rfl
+  | z :: zs => by
+      simp only [List.map_cons, List.flatMap_cons]
+      rw [flatMap_map_id_relabel x zs, List.map_append]
+      rfl
 
 /-! ## §2. The state relabeling and its projections -/
 
@@ -152,22 +165,6 @@ theorem state_relabelTwin_involutive (x : Card) (st : State) :
   · rfl
 
 /-! ## §3. The chart kit for the relabeling -/
-
-/-- `firstWhere` respects pointwise predicate agreement. -/
-private theorem firstWhere_congr {α : Type} {p q : α → Bool}
-    (h : ∀ x, p x = q x) : ∀ l : List α, firstWhere p l = firstWhere q l
-  | [] => rfl
-  | x :: t => by
-      show (match p x with
-            | true => some x
-            | false => firstWhere p t) =
-           (match q x with
-            | true => some x
-            | false => firstWhere q t)
-      rw [h x]
-      cases q x with
-      | true => rfl
-      | false => exact firstWhere_congr h t
 
 /-- Membership in a list mapped by an involution. -/
 private theorem mem_map_involution {f : Card → Card} (hinv : ∀ c, f (f c) = c)
@@ -401,32 +398,6 @@ private theorem map_eq_self {α : Type} (f : α → α) :
   | a :: t, h => by
       rw [List.map_cons, h a (by simp)]
       exact congrArg (a :: ·) (map_eq_self f (fun b hb => h b (by simp [hb])))
-
-/-- A seated card is face up somewhere. -/
-private theorem mem_faceUp_of_seat {st : State} {c : Card} {b : Base}
-    (h : seatOf st c = some b) : ∃ a, c ∈ (st.piles a).faceUp := by
-  unfold seatOf at h
-  cases hh : st.pileHolding c with
-  | none =>
-      rw [hh] at h
-      exact absurd h (by simp)
-  | some a => exact ⟨a, pileHolding_mem hh⟩
-
-/-- A face-up card is absent from every hidden deck, the stock, the
-waste, and every foundation (occurrence uniqueness at `WF`). -/
-private theorem off_zones_of_seat {st : State} (hwf : st.WF) {c : Card}
-    (hse : ∃ b, seatOf st c = some b) :
-    (∀ a, c ∉ (st.piles a).hidden) ∧ c ∉ st.stock ∧ c ∉ st.waste ∧
-      ∀ s, c ∉ st.found s := by
-  obtain ⟨b, hb⟩ := hse
-  obtain ⟨a, hmem⟩ := mem_faceUp_of_seat hb
-  obtain ⟨hother, hown, hstock, hwaste, hfound⟩ := mem_faceUp_only hwf hmem
-  refine ⟨?_, hstock, hwaste, hfound⟩
-  intro a'
-  by_cases ha : a' = a
-  · subst ha
-    exact hown
-  · exact (hother a' ha).1
 
 /-- The bare twin letter: at any `WF` state the relabeling exchanges
 the pair's two seats (no rider clause is needed for the pair seats

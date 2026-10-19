@@ -2279,6 +2279,16 @@ theorem tfa_chain_lift {R : State → State → Prop}
       exact htrans (hstep ⟨m, b, hstep', hrev⟩ hwf0)
         (ih (tfc_tabToTab_wf hwf0 hstep'))
 
+/-- A legal run's `below` part and `fromCard` part are disjoint: a card
+in both would be strictly below itself by the run descent. -/
+theorem run_split_disjoint {l : List Card} (hok : runOK l = true)
+    {c y : Card} (hyP : y ∈ below c l) (hyR : y ∈ fromCard c l) : False := by
+  have hrun : runOK (below c l ++ fromCard c l) = true := by
+    rw [tfc_below_fromCard c l]
+    exact hok
+  have hlt := runOK_desc hrun hyP hyR
+  omega
+
 /-! ## The audit battery (every head, re-printed per the per-file discipline) -/
 
 #print axioms tfc_cnt
@@ -2360,3 +2370,4 @@ theorem tfa_chain_lift {R : State → State → Prop}
 #print axioms tfa_steps_append
 #print axioms tfa_bareCargo_trans
 #print axioms tfa_chain_lift
+#print axioms run_split_disjoint

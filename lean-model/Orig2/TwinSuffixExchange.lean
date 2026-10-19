@@ -126,20 +126,6 @@ open State
 
 /-! ## §1. List kit -/
 
-/-- The prefix strictly below a card meeting it head-on is empty. -/
-private theorem below_cons_self (c : Card) (t : List Card) :
-    below c (c :: t) = [] := by
-  rw [below_cons, ite_eq_left rfl]
-
-/-- A legal run's `below` part and `fromCard` part are disjoint. -/
-private theorem run_split_disjoint {l : List Card} (hok : runOK l = true)
-    {c y : Card} (hyP : y ∈ below c l) (hyR : y ∈ fromCard c l) : False := by
-  have hrun : runOK (below c l ++ fromCard c l) = true := by
-    rw [tfc_below_fromCard c l]
-    exact hok
-  have hlt := runOK_desc hrun hyP hyR
-  omega
-
 /-- A member never occurs again strictly above itself in a legal run. -/
 private theorem above_not_mem_self {c : Card} {l : List Card}
     (hok : runOK l = true) (hmem : c ∈ l) : c ∉ above c l := by
@@ -150,31 +136,6 @@ private theorem above_not_mem_self {c : Card} {l : List Card}
   have hnd := runOK_nodup hok'
   rw [List.nodup_cons] at hnd
   exact hnd.1
-
-/-- Two cards of equal rank cannot occupy different positions of a legal
-run: ranks strictly descend along it. -/
-private theorem runOK_rank_distinct {l : List Card} (hok : runOK l = true)
-    {u v : Card} (hu : u ∈ l) (hv : v ∈ l) (hr : u.rank = v.rank) : u = v := by
-  induction l with
-  | nil => cases hu
-  | cons a t ih =>
-      cases t with
-      | nil =>
-          rw [List.mem_singleton] at hu hv
-          rw [hu, hv]
-      | cons b t' =>
-          have hok' : runOK (b :: t') = true := runOK_cons_tail hok
-          rcases List.mem_cons.mp hu with rfl | hu'
-          · rcases List.mem_cons.mp hv with rfl | hv'
-            · rfl
-            · have hlt := runOK_head_gt hok hv'
-              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
-              omega
-          · rcases List.mem_cons.mp hv with rfl | hv'
-            · have hlt := runOK_head_gt hok hu'
-              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
-              omega
-            · exact ih hok' hu' hv'
 
 /-- A list all of whose entries are fixed by `f` is unchanged by
 `List.map f`. -/

@@ -60,11 +60,6 @@ private theorem canSitOn_parent_of_seat {s : State} (hwf : s.WF)
   obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hse
   exact (tfc_seat_parent hwf hhold hlast).1
 
-/-- No card is its own twin. -/
-private theorem card_twin_ne (z : Card) : z.twin ≠ z := by
-  obtain ⟨sz, rz⟩ := z
-  cases sz <;> simp [Card.twin, Suit.twin]
-
 /-- **`blocker_eq_twin`** — the card seated directly on `z.twin`, over a card
 seated on `z`, is the seated card's twin.  (Same rank by `canSitOn` twice,
 same colour by the two-colour dichotomy; distinct because `z.twin ≠ z`.) -/
@@ -106,21 +101,6 @@ private theorem mover_floater {u : State} (hwf : u.WF) {c : Card} {b : Base}
   (floater_classification u hwf c).mp ⟨b, hrev⟩
 
 /-! ## §2. The pull's seat footprint -/
-
-private theorem firstWhere_congr {α : Type} {p q : α → Bool}
-    (h : ∀ x, p x = q x) : ∀ l : List α, firstWhere p l = firstWhere q l
-  | [] => rfl
-  | x :: t => by
-      show (match p x with
-            | true => some x
-            | false => firstWhere p t) =
-           (match q x with
-            | true => some x
-            | false => firstWhere q t)
-      rw [h x]
-      cases q x with
-      | true => rfl
-      | false => exact firstWhere_congr h t
 
 /-- Appending a fresh card does not disturb the prefix below an older one. -/
 private theorem below_append_snoc_of_mem {x : Card} :
@@ -222,13 +202,6 @@ theorem pull_seat_change {u v : State} {c : Card} {b : Base}
       rw [hbelow a0 (pileHolding_mem hph)]
 
 /-! ## §3. The hidden ledger and the raise's footprint -/
-
-/-- The removal-with-remainder writes the remainder as the face-up run. -/
-private theorem afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
-    (Pile.afterRunRemoved p pre).faceUp = pre := by
-  cases pre with
-  | nil => exact absurd rfl h
-  | cons w t => rfl
 
 /-- A removal with an empty remainder over an empty hidden deck leaves an
 empty face-up run. -/
@@ -528,30 +501,7 @@ theorem raise_seat_change_of_seated {u v : State} {d c : Card}
   | some a2 =>
       simp only []
       rw [hbelow a2 (pileHolding_mem hph)]
-/-! ## §4. Floater-hood readouts under unchanged piles -/
-
-private theorem pileHolding_congr_piles {u v : State} (hp : v.piles = u.piles) (c : Card) :
-    v.pileHolding c = u.pileHolding c := by
-  unfold State.pileHolding
-  rw [hp]
-
-private theorem pileOfTop_congr_piles {u v : State} (hp : v.piles = u.piles) (z : Card) :
-    v.pileOfTop z = u.pileOfTop z := by
-  unfold State.pileOfTop State.topOf
-  rw [hp]
-
-private theorem seatOf_congr_piles {u v : State} (hp : v.piles = u.piles) (c : Card) :
-    seatOf v c = seatOf u c := by
-  unfold seatOf
-  rw [pileHolding_congr_piles hp c, hp]
-
-/-- `FloaterSpec` is a function of the piles. -/
-private theorem floaterSpec_congr_piles {u v : State} (hp : v.piles = u.piles) (c : Card) :
-    FloaterSpec v c ↔ FloaterSpec u c := by
-  unfold FloaterSpec
-  simp only [seatOf_congr_piles hp c, pileHolding_congr_piles hp c,
-    pileOfTop_congr_piles hp, hp]
-/-! ## §5. The letters' seat footprints
+/-! ## §4. The letters' seat footprints
 
 The strong foundation arm (`nonFloater_change_found_needs_target_pull`) needs
 to know that no letter except a raise of `c` takes a seated `c` off the
@@ -592,98 +542,6 @@ private theorem mem_faceUp_of_seatOf_ne {st : State} {c : Card}
   have hh : st.pileHolding c ≠ none := fun hh => h ((seatOf_eq_none_iff_holding st c).mpr hh)
   obtain ⟨a, ha⟩ := option_some_of_ne_none hh
   exact ⟨a, pileHolding_mem ha⟩
-
-/-- A single-card write with a placement license never loses an existing
-face-up card: an `inl` landing is on an empty pile, an `inr` landing appends. -/
-private theorem putCard_faceUp_mem {st : State} {x c : Card} {b : Base}
-    (hcp : st.canPlace x b = true) {a : Anchor}
-    (h : c ∈ (st.piles a).faceUp) :
-    ∃ a', c ∈ ((st.putCard x b).piles a').faceUp := by
-  cases b with
-  | inl t =>
-      rw [putCard_piles_inl]
-      dsimp only
-      by_cases ha : a = t
-      · rw [ha] at h
-        have hiso : (st.piles t).isEmpty = true := (canPlace_inl hcp).1
-        rw [Pile.isEmpty_eq] at hiso
-        rw [hiso.2] at h
-        exact False.elim (List.not_mem_nil h)
-      · exact ⟨a, by rw [ite_eq_right ha]; exact h⟩
-  | inr z =>
-      cases hz : st.pileOfTop z with
-      | none =>
-          have hp : (st.putCard x (Sum.inr z)).piles = st.piles := by
-            simp only [State.putCard, hz]
-          exact ⟨a, by rw [hp]; exact h⟩
-      | some k =>
-          rw [putCard_piles_inr st x z k hz]
-          dsimp only
-          by_cases ha : a = k
-          · rw [ha] at h
-            exact ⟨k, by rw [ite_eq_left rfl]; exact List.mem_append_left _ h⟩
-          · exact ⟨a, by rw [ite_eq_right ha]; exact h⟩
-
-/-- A run write with a placement license never loses an existing face-up
-card. -/
-private theorem putRun_faceUp_mem {st : State} {run : List Card} {x c : Card} {b : Base}
-    (hcp : st.canPlace x b = true) {a : Anchor}
-    (h : c ∈ (st.piles a).faceUp) :
-    ∃ a', c ∈ ((st.putRun run b).piles a').faceUp := by
-  cases b with
-  | inl t =>
-      rw [putRun_piles_inl]
-      dsimp only
-      by_cases ha : a = t
-      · rw [ha] at h
-        have hiso : (st.piles t).isEmpty = true := (canPlace_inl hcp).1
-        rw [Pile.isEmpty_eq] at hiso
-        rw [hiso.2] at h
-        exact False.elim (List.not_mem_nil h)
-      · exact ⟨a, by rw [ite_eq_right ha]; exact h⟩
-  | inr z =>
-      cases hz : st.pileOfTop z with
-      | none =>
-          have hfalse : st.canPlace x (Sum.inr z) = false := by
-            simp only [State.canPlace, hz]
-          rw [hfalse] at hcp
-          exact absurd hcp (by simp)
-      | some k =>
-          rw [putRun_piles_inr st run z k hz]
-          dsimp only
-          by_cases ha : a = k
-          · rw [ha] at h
-            exact ⟨k, by rw [ite_eq_left rfl]; exact List.mem_append_left _ h⟩
-          · exact ⟨a, by rw [ite_eq_right ha]; exact h⟩
-
-/-- A raise of a card other than `c` keeps `c` face-up: `c` is either below
-the raised top (in the kept prefix) or in an untouched pile. -/
-private theorem tabToFound_faceUp_mem {u v : State} {x c : Card}
-    (hstep : State.step u (Move.tabToFound x) = some v)
-    (hxc : c ≠ x) {a0 : Anchor} (h0 : c ∈ (u.piles a0).faceUp) :
-    ∃ a', c ∈ (v.piles a').faceUp := by
-  obtain ⟨-, a, hpa, hs⟩ := step_tabToFound_inv hstep
-  rw [hs]
-  dsimp only
-  by_cases ha : a0 = a
-  · rw [ha] at h0
-    have hlast : lastOf (u.piles a).faceUp = some x := (tfc_pileOfTop_top hpa).2
-    have hsnoc : (u.piles a).faceUp = chop (u.piles a).faceUp ++ [x] :=
-      lastOf_chop hlast
-    have hcchop : c ∈ chop (u.piles a).faceUp := by
-      rw [hsnoc, List.mem_append] at h0
-      rcases h0 with h | h
-      · exact h
-      · rw [List.mem_singleton] at h
-        exact absurd h hxc
-    have hne : chop (u.piles a).faceUp ≠ [] := by
-      intro hnil
-      rw [hnil] at hcchop
-      exact List.not_mem_nil hcchop
-    exact ⟨a, by
-      rw [ite_eq_left rfl, afterRunRemoved_faceUp_ne hne]
-      exact hcchop⟩
-  · exact ⟨a0, by rw [ite_eq_right ha]; exact h0⟩
 
 /-- **A reversible letter cannot take a seated card off the tableau except by
 raising that card.**  Draws and `wasteToFound` leave the piles alone; a
@@ -1333,19 +1191,6 @@ private theorem top_of_floaterSpec {s : State} {c z0 : Card}
   · exact absurd hk hnk
   · exact absurd hk hnk
 
-/-- A card in `chop l` is in `l`. -/
-private theorem chop_mem {l : List Card} {x : Card} (h : x ∈ chop l) : x ∈ l := by
-  induction l with
-  | nil => cases h
-  | cons y t ih =>
-      cases t with
-      | nil => cases h
-      | cons w t' =>
-          have h' : x ∈ y :: chop (w :: t') := h
-          rcases List.mem_cons.1 h' with hxy | hrest
-          · exact List.mem_cons.mpr (Or.inl hxy)
-          · exact List.mem_cons.mpr (Or.inr (ih hrest))
-
 /-- Before the first gain, the target twin cannot enter the foundation: a
 raise of it would already be the gain, a waste-found is irreversible, and the
 other foundation edits cannot add it. -/
@@ -1508,15 +1353,6 @@ private theorem stack_of_tabToFound_self {c : Card} {play : List Move}
   by_cases hk : c.rank = Rank.king
   · exact ⟨c, Or.inl ⟨hk, hk⟩, h⟩
   · exact ⟨c, Or.inr ⟨hk, Or.inl rfl⟩, h⟩
-
-/-- A raise of the twin is a seat-mate stack. -/
-private theorem stack_of_tabToFound_twin {c : Card} {play : List Move}
-    (h : Move.tabToFound c.twin ∈ play) :
-    ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play := by
-  by_cases hk : c.rank = Rank.king
-  · refine ⟨c.twin, Or.inl ⟨hk, ?_⟩, h⟩
-    simpa [Card.twin] using hk
-  · exact ⟨c.twin, Or.inr ⟨hk, Or.inr rfl⟩, h⟩
 
 private theorem fg_canSitOn_parent_of_seat {s : State} (hwf : s.WF)
     {c z : Card} (hse : seatOf s c = some (Sum.inr z)) :
@@ -2334,12 +2170,6 @@ private theorem ka_no_empty_of_nf {s : State} {c : Card} {a0 : Anchor}
   | false => rfl
   | true =>
       exact absurd (Or.inr ⟨a0, hse, hking, hhid, a, ha⟩) hnf
-
-/-- Piles with a nonempty face-up run are not empty. -/
-private theorem ka_pile_not_empty_of_faceUp_ne {p : Pile} (h : p.faceUp ≠ []) :
-    p.isEmpty = false := by
-  rcases p with ⟨hd, fu⟩
-  cases hd <;> cases fu <;> simp_all [Pile.isEmpty]
 
 /-- A removal with a nonempty remainder writes the remainder as the
 face-up run (restatement of the private `afterRunRemoved_faceUp_ne` in

@@ -126,21 +126,6 @@ open State
 
 /-! ## §1. List facts for the run swap -/
 
-/-- The prefix strictly below a card meeting it head-on is empty. -/
-private theorem below_cons_self (c : Card) (t : List Card) :
-    below c (c :: t) = [] := by
-  rw [below_cons, ite_eq_left rfl]
-
-/-- A legal run's `below` part and `fromCard` part are disjoint: a card
-in both would be strictly below itself by the run descent. -/
-private theorem run_split_disjoint {l : List Card} (hok : runOK l = true)
-    {c y : Card} (hyP : y ∈ below c l) (hyR : y ∈ fromCard c l) : False := by
-  have hrun : runOK (below c l ++ fromCard c l) = true := by
-    rw [tfc_below_fromCard c l]
-    exact hok
-  have hlt := runOK_desc hrun hyP hyR
-  omega
-
 /-- A card in the `fromCard` run of a non-head member sits strictly
 above the run's head: the `below` part of the run is nonempty. -/
 private theorem below_fromCard_ne_nil {l : List Card} {c y : Card}
@@ -257,24 +242,6 @@ variable (ha : st.pileHolding x = some a) (hb : st.pileHolding x.twin = some b)
 variable (hab : a ≠ b)
 
 include hwf ha hb hab
-
-/-- The new `a`-pile's face-up run lies in the union of the two old runs. -/
-private theorem mem_faceUp_of_mem_new_a {y : Card}
-    (hy : y ∈ ((st.spliceTwinRuns x).piles a).faceUp) :
-    y ∈ (st.piles a).faceUp ∨ y ∈ (st.piles b).faceUp := by
-  rw [spliceTwinRuns_piles_self ha hb hab] at hy
-  rcases List.mem_append.mp hy with h | h
-  · exact Or.inl (mem_below _ h)
-  · exact Or.inr (tfc_mem_fromCard _ h)
-
-/-- The new `b`-pile's face-up run lies in the union of the two old runs. -/
-private theorem mem_faceUp_of_mem_new_b {y : Card}
-    (hy : y ∈ ((st.spliceTwinRuns x).piles b).faceUp) :
-    y ∈ (st.piles a).faceUp ∨ y ∈ (st.piles b).faceUp := by
-  rw [spliceTwinRuns_piles_second ha hb hab] at hy
-  rcases List.mem_append.mp hy with h | h
-  · exact Or.inr (mem_below _ h)
-  · exact Or.inl (tfc_mem_fromCard _ h)
 
 /-! ### The player positions -/
 
@@ -603,31 +570,6 @@ theorem seatOf_splice_other {st : State} {x y : Card}
 
 
 /-! ## §4. The strict bridge -/
-
-/-- Two cards of equal rank cannot occupy different positions of a legal
-run: ranks strictly descend along it. -/
-private theorem runOK_rank_distinct {l : List Card} (hok : runOK l = true)
-    {u v : Card} (hu : u ∈ l) (hv : v ∈ l) (hr : u.rank = v.rank) : u = v := by
-  induction l with
-  | nil => cases hu
-  | cons a t ih =>
-      cases t with
-      | nil =>
-          rw [List.mem_singleton] at hu hv
-          rw [hu, hv]
-      | cons b t' =>
-          have hok' : runOK (b :: t') = true := runOK_cons_tail hok
-          rcases List.mem_cons.mp hu with rfl | hu'
-          · rcases List.mem_cons.mp hv with rfl | hv'
-            · rfl
-            · have hlt := runOK_head_gt hok hv'
-              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
-              omega
-          · rcases List.mem_cons.mp hv with rfl | hv'
-            · have hlt := runOK_head_gt hok hu'
-              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
-              omega
-            · exact ih hok' hu' hv'
 
 /-- **`twinPairSwapStrict_splice`** — when both twins sit on parents
 (the `.inr` seats, with the second parent the twin of the first), the

@@ -3136,8 +3136,6 @@ theorem mem_kingsOf {st : State} (_hwf : st.WF) {c : Card} :
     rw [Bool.and_eq_true]
     exact ⟨decide_eq_true hk0, decide_eq_true hhid0⟩
 
-private theorem universe_nodup : Card.universe.Nodup := by decide
-
 theorem kingsOf_nodup (st : State) : (kingsOf st).Nodup :=
   universe_nodup.filter (kingCardB st)
 

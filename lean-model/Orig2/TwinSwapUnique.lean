@@ -36,13 +36,6 @@ House compliance: new file only; zero `sorry`; zero
 
 /-! ## §1. The count kit for the relabeling -/
 
-/-- The transposition is injective (it is an involution). -/
-private theorem card_relabelTwin_injective (x : Card) :
-    Function.Injective (Card.relabelTwin x) := by
-  intro a b h
-  have := congrArg (Card.relabelTwin x) h
-  simpa [card_relabelTwin_involutive] using this
-
 /-- A list off the pair is fixed by the transposition. -/
 private theorem map_relabel_eq_self {x : Card} :
     ∀ {l : List Card}, x ∉ l → x.twin ∉ l →
@@ -62,17 +55,6 @@ private theorem zones_relabel (x : Card) (st : State) :
       st.zones.map (List.map (Card.relabelTwin x)) := by
   simp only [State.zones, State.relabelTwin, List.map_map, List.map_append,
     List.map_cons, List.map_nil, Function.comp_def]
-
-/-- Flattening commutes with mapping a list of lists. -/
-private theorem flatMap_map_id_relabel (x : Card) :
-    ∀ zs : List (List Card),
-      (zs.map (List.map (Card.relabelTwin x))).flatMap id =
-        (zs.flatMap id).map (Card.relabelTwin x)
-  | [] => rfl
-  | z :: zs => by
-      simp only [List.map_cons, List.flatMap_cons]
-      rw [flatMap_map_id_relabel x zs, List.map_append]
-      rfl
 
 /-- Filtering a mapped list by a mapped value. -/
 private theorem filter_map_relabel (x c : Card) :
@@ -98,32 +80,6 @@ private theorem cardCount_relabel (x : Card) (st : State) (c : Card) :
     (State.relabelTwin x st).cardCount (Card.relabelTwin x c) = st.cardCount c := by
   unfold State.cardCount
   rw [zones_relabel, flatMap_map_id_relabel, filter_map_relabel]
-
-/-- A seated card is face up somewhere. -/
-private theorem mem_faceUp_of_seat {st : State} {c : Card} {b : Base}
-    (h : seatOf st c = some b) : ∃ a, c ∈ (st.piles a).faceUp := by
-  unfold seatOf at h
-  cases hh : st.pileHolding c with
-  | none =>
-      rw [hh] at h
-      exact absurd h (by simp)
-  | some a => exact ⟨a, pileHolding_mem hh⟩
-
-/-- A face-up card is absent from every hidden deck, the stock, the
-waste, and every foundation (occurrence uniqueness at `WF`). -/
-private theorem off_zones_of_seat {st : State} (hwf : st.WF) {c : Card}
-    (hse : ∃ b, seatOf st c = some b) :
-    (∀ a, c ∉ (st.piles a).hidden) ∧ c ∉ st.stock ∧ c ∉ st.waste ∧
-      ∀ s, c ∉ st.found s := by
-  obtain ⟨b, hb⟩ := hse
-  obtain ⟨a, hmem⟩ := mem_faceUp_of_seat hb
-  obtain ⟨hother, hown, hstock, hwaste, hfound⟩ := mem_faceUp_only hwf hmem
-  refine ⟨?_, hstock, hwaste, hfound⟩
-  intro a'
-  by_cases ha : a' = a
-  · subst ha
-    exact hown
-  · exact (hother a' ha).1
 
 /-! ## §2. The uniqueness row -/
 

@@ -391,20 +391,6 @@ private theorem lastOf_cons_some : ∀ (l : List Card) (x : Card),
   | nil => intro x; exact ⟨x, rfl⟩
   | cons y t _ih => intro x; exact _ih y
 
-/-- Every element of `chop` is an element of the list.  PORTED
-verbatim from `Orig/Classify.lean:220`. -/
-private theorem chop_mem {l : List Card} {x : Card} (h : x ∈ chop l) : x ∈ l := by
-  induction l with
-  | nil => cases h
-  | cons y t ih =>
-      cases t with
-      | nil => cases h
-      | cons w t' =>
-          have h' : x ∈ y :: chop (w :: t') := h
-          rcases List.mem_cons.1 h' with hxy | hrest
-          · exact List.mem_cons.2 (Or.inl hxy)
-          · exact List.mem_cons.2 (Or.inr (ih hrest))
-
 /-- The run `fromCard c l`, when nonempty, starts at `c`.  PORTED
 verbatim from `Orig/Classify.lean:263`. -/
 private theorem fromCard_head {c : Card} : ∀ {l : List Card} {r : List Card},
@@ -491,14 +477,6 @@ private theorem runOK_adjacent_snoc {P : List Card} {z c : Card}
     rfl
   rw [hc1.trans hc2] at hok
   exact runOK_seam _ _ hok
-
-/-- The removal-with-remainder writes the remainder as the face-up
-run.  PORTED verbatim from `Orig/Classify.lean:778`. -/
-private theorem afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
-    (Pile.afterRunRemoved p pre).faceUp = pre := by
-  cases pre with
-  | nil => exact absurd rfl h
-  | cons w t => rfl
 
 /-- With no hidden cards, removing the whole face-up run empties the
 pile outright (no reveal fires).  PORTED verbatim from

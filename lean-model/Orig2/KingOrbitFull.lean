@@ -614,11 +614,6 @@ theorem eq_singleton_of_below_nil_lastOf {l : List Card} {x : Card}
           have hxnot : x ∉ z :: t' := (List.nodup_cons.mp hnd).1
           exact hxnot hxmem
 
-/-- `seatOf` depends only on the piles. -/
-theorem seatOf_congr_piles {u v : State} (hp : v.piles = u.piles) (c : Card) :
-    seatOf v c = seatOf u c := by
-  simp [seatOf, State.pileHolding, hp]
-
 /-- Along a reversible step between two no-vacancy states, a bottomed king
 keeps its seat. -/
 theorem seatOf_no_vacancy_step {u v : State} {m : Move} (hwf : u.WF)
@@ -706,7 +701,6 @@ theorem seatOf_no_vacancy_step {u v : State} {m : Move} (hwf : u.WF)
 #print axioms noVacancy_iff_not_hasVacancy
 #print axioms canSitOn_king_false
 #print axioms eq_singleton_of_below_nil_lastOf
-#print axioms seatOf_congr_piles
 #print axioms seatOf_no_vacancy_step
 
 set_option maxHeartbeats 1200000 in

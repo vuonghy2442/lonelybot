@@ -275,31 +275,7 @@ private theorem draw_revTransfer {x y : State}
       rfl
     exact ⟨y, [], hystep, rfl⟩
 
-/-! ## §4. The strict twin swap is symmetric -/
-
-private theorem twinPairSwapStrict_symm {u v : State} {c : Card}
-    (h : twinPairSwapStrict u v c) : twinPairSwapStrict v u c := by
-  obtain ⟨h1, h2, h3, ⟨hhid, hds⟩, hf, hst, hwa, hcut⟩ := h
-  refine ⟨h2.symm, h1.symm, ?_, ⟨fun a => (hhid a).symm, hds.symm⟩, ?_,
-    hst.symm, hwa.symm, hcut.symm⟩
-  · intro y hyc hyt
-    exact (h3 y hyc hyt).symm
-  · intro s
-    exact (hf s).symm
-
 /-! ## §5. The step and play commutation squares -/
-
-/-- A piles-field equality determines the seat map. -/
-private theorem pileHolding_congr_piles {u v : State} (hp : v.piles = u.piles)
-    (c : Card) : v.pileHolding c = u.pileHolding c := by
-  unfold State.pileHolding
-  rw [hp]
-
-/-- A piles-field equality determines the seat map. -/
-private theorem seatOf_congr_piles {u v : State} (hp : v.piles = u.piles)
-    (c : Card) : seatOf v c = seatOf u c := by
-  unfold seatOf
-  rw [pileHolding_congr_piles hp c, hp]
 
 /-- **Draws commute with the strict twin swap.** -/
 theorem stepDraw_swap {s v s1 : State} {x : Card}

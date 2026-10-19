@@ -84,19 +84,6 @@ The search-read congruences every board leg's firing transfer
 rides: each `State` read consumed by the three table movers is
 determined by its field (`Orig/Twin.lean:143-201`). -/
 
-/-- The `firstWhere` congruence (PORTED VERBATIM from
-`Orig/Twin.lean:143`). -/
-private theorem firstWhere_congr {α : Type} {p q : α → Bool}
-    (h : ∀ x, p x = q x) : ∀ {l : List α}, firstWhere p l = firstWhere q l := by
-  intro l
-  induction l with
-  | nil => rfl
-  | cons x t ih =>
-      rw [firstWhere, firstWhere, h x]
-      split
-      · rfl
-      · exact ih
-
 /-- The pile-top read is a piles-field read (PORTED VERBATIM from
 `Orig/Twin.lean:164`). -/
 private theorem topOf_congr {u v : State} (a : Anchor) (h : u.piles = v.piles) :

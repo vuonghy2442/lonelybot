@@ -28,32 +28,6 @@ House compliance: new file only; zero `sorry`; zero
 
 /-! ## §1. Private run kit -/
 
-/-- Two cards of equal rank cannot occupy different positions of a
-legal run: ranks strictly descend along it.  (The splice rule needs
-`Card.twin`'s rank preservation to keep the twins in different piles.) -/
-private theorem runOK_rank_distinct {l : List Card} (hok : runOK l = true)
-    {u v : Card} (hu : u ∈ l) (hv : v ∈ l) (hr : u.rank = v.rank) : u = v := by
-  induction l with
-  | nil => cases hu
-  | cons a t ih =>
-      cases t with
-      | nil =>
-          rw [List.mem_singleton] at hu hv
-          rw [hu, hv]
-      | cons b t' =>
-          have hok' : runOK (b :: t') = true := runOK_cons_tail hok
-          rcases List.mem_cons.mp hu with rfl | hu'
-          · rcases List.mem_cons.mp hv with rfl | hv'
-            · rfl
-            · have hlt := runOK_head_gt hok hv'
-              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
-              omega
-          · rcases List.mem_cons.mp hv with rfl | hv'
-            · have hlt := runOK_head_gt hok hu'
-              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
-              omega
-            · exact ih hok' hu' hv'
-
 /-! ## §2. The uniqueness row -/
 
 /-- **THE RIDER-GENERAL BRIDGE** — with both twins on `.inr` parents and
