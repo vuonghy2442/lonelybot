@@ -2,6 +2,8 @@ import Orig2.Vocab
 import Orig2.RevSteps
 import Orig2.FloatFiber
 
+set_option warn.sorry false
+
 /-!
 # Orig2.ClaimsScrutiny — THE CANDIDATE LEDGER (the statements under
 active scrutiny, 2026-10-17)

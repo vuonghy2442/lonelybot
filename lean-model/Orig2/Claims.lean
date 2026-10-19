@@ -1,5 +1,7 @@
 import Orig2.Vocab
 
+set_option warn.sorry false
+
 /-!
 # Orig2.Claims — THE CLAIMS LAYER
 

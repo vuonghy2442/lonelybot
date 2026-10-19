@@ -403,10 +403,10 @@ theorem swappableIn_recipe_segment
     (hrecipe : ShufflePlayW u
       [Move.tabToFound x.twin, Move.tabToTab x (Sum.inr z.twin),
         Move.foundToTab x.twin (Sum.inr z)] w)
-    (hrx : ∀ y, y ≠ x → seatOf u y ≠ some (Sum.inr x))
-    (hrt : ∀ y, y ≠ x.twin → seatOf u y ≠ some (Sum.inr x.twin))
-    (hrxw : ∀ y, y ≠ x → seatOf w y ≠ some (Sum.inr x))
-    (hrtw : ∀ y, y ≠ x.twin → seatOf w y ≠ some (Sum.inr x.twin)) :
+    (_hrx : ∀ y, y ≠ x → seatOf u y ≠ some (Sum.inr x))
+    (_hrt : ∀ y, y ≠ x.twin → seatOf u y ≠ some (Sum.inr x.twin))
+    (_hrxw : ∀ y, y ≠ x → seatOf w y ≠ some (Sum.inr x))
+    (_hrtw : ∀ y, y ≠ x.twin → seatOf w y ≠ some (Sum.inr x.twin)) :
     SwappableIn u x ↔ SwappableIn w x := by
   have hstrict : twinPairSwapStrict u w x :=
     twinPairSwapStrict_recipe_endpoint hwfu hwfw hc hct hpa hraise hrecipe

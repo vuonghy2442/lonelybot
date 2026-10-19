@@ -1025,11 +1025,11 @@ theorem step_comm_of_not_foundPair {st st' : State} {x : Card} {m : Move}
           else st.piles a').relabelTwin x
         by_cases h : a' = ain
         · rw [← h]
-          rw [if_pos rfl, if_pos rfl, state_relabelTwin_piles_eq,
+          rw [ite_eq_left rfl, ite_eq_left rfl, state_relabelTwin_piles_eq,
             Pile.relabelTwin_faceUp, chop_map_relabelTwin]
           exact Pile.afterRunRemoved_relabelTwin x (st.piles a')
             (chop (st.piles a').faceUp)
-        · rw [if_neg h, if_neg h, state_relabelTwin_piles_eq]
+        · rw [ite_eq_right h, ite_eq_right h, state_relabelTwin_piles_eq]
       · rfl
       · rfl
       · rfl
@@ -1143,7 +1143,7 @@ theorem filter_map_relabelTwin (x c : Card) :
       rw [List.map_cons, List.filter_cons, List.filter_cons]
       by_cases hyc : y = c
       · have hτ : Card.relabelTwin x y = Card.relabelTwin x c := by rw [hyc]
-        rw [decide_eq_true hyc, decide_eq_true hτ, if_pos rfl, if_pos rfl,
+        rw [decide_eq_true hyc, decide_eq_true hτ, ite_eq_left rfl, ite_eq_left rfl,
           List.length_cons, List.length_cons, filter_map_relabelTwin x c t]
       · have hτ : Card.relabelTwin x y ≠ Card.relabelTwin x c :=
           fun h => hyc (card_relabelTwin_injective x h)
@@ -1248,7 +1248,7 @@ theorem foundToTabR_relabelTwin {st : State} {x c : Card} {b : Base}
       simp only [Option.map_some]
       by_cases hcc' : c' = c
       · have hmap : Card.relabelTwin x c' = c := by rw [hcc', hτc]
-        rw [if_pos hcc', if_pos hmap]
+        rw [ite_eq_left hcc', ite_eq_left hmap]
         have hcan : (State.relabelTwin x st).canPlace c (Base.relabelTwin x b) =
             st.canPlace c b := by
           calc
@@ -1261,7 +1261,7 @@ theorem foundToTabR_relabelTwin {st : State} {x c : Card} {b : Base}
           intro h
           have h' : Card.relabelTwin x c' = Card.relabelTwin x c := by rw [h, hτc]
           exact hcc' (card_relabelTwin_injective x h')
-        simp only [if_neg hcc', if_neg hmap]
+        simp only [ite_eq_right hcc', ite_eq_right hmap]
 
 /-- The slide shape is invariant under the transposition. -/
 theorem tabToTabR_relabelTwin {st : State} {x c : Card} {b : Base}
@@ -1457,8 +1457,8 @@ theorem swappableIn_transfer_seated_riderFree
     (hwf : s.WF) (hwf' : s'.WF)
     (hx : ∃ b, seatOf s x = some b) (hxt : ∃ b, seatOf s x.twin = some b)
     (hx' : ∃ b, seatOf s' x = some b) (hxt' : ∃ b, seatOf s' x.twin = some b)
-    (hrx : ∀ y, y ≠ x → seatOf s y ≠ some (Sum.inr x))
-    (hrt : ∀ y, y ≠ x.twin → seatOf s y ≠ some (Sum.inr x.twin))
+    (_hrx : ∀ y, y ≠ x → seatOf s y ≠ some (Sum.inr x))
+    (_hrt : ∀ y, y ≠ x.twin → seatOf s y ≠ some (Sum.inr x.twin))
     (hrx' : ∀ y, y ≠ x → seatOf s' y ≠ some (Sum.inr x))
     (hrt' : ∀ y, y ≠ x.twin → seatOf s' y ≠ some (Sum.inr x.twin))
     (hswap : sameOrbitSetoid.r s (State.relabelTwin x s))

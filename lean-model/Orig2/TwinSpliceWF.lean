@@ -68,10 +68,10 @@ private theorem sum_map_two_eq {α : Type} [DecidableEq α] (L : List α)
           have hta : a ∉ t := hxnot
           have hba : b ≠ a := fun h => hab h.symm
           by_cases hbt : b ∈ t
-          · rw [if_neg hta, if_neg hta, if_pos hbt, if_pos hbt] at ih'
+          · rw [ite_eq_right hta, ite_eq_right hta, ite_eq_left hbt, ite_eq_left hbt] at ih'
             simp [List.map_cons, List.sum_cons, List.mem_cons, hba, hbt] at ih' ⊢
             omega
-          · rw [if_neg hta, if_neg hta, if_neg hbt, if_neg hbt] at ih'
+          · rw [ite_eq_right hta, ite_eq_right hta, ite_eq_right hbt, ite_eq_right hbt] at ih'
             simp [List.map_cons, List.sum_cons, List.mem_cons, hba, hbt] at ih' ⊢
             omega
         · by_cases hxb : x = b
@@ -79,10 +79,10 @@ private theorem sum_map_two_eq {α : Type} [DecidableEq α] (L : List α)
             have htb : b ∉ t := hxnot
             have hab' : a ≠ b := hab
             by_cases hat : a ∈ t
-            · rw [if_pos hat, if_pos hat, if_neg htb, if_neg htb] at ih'
+            · rw [ite_eq_left hat, ite_eq_left hat, ite_eq_right htb, ite_eq_right htb] at ih'
               simp [List.map_cons, List.sum_cons, List.mem_cons, hab', hat] at ih' ⊢
               omega
-            · rw [if_neg hat, if_neg hat, if_neg htb, if_neg htb] at ih'
+            · rw [ite_eq_right hat, ite_eq_right hat, ite_eq_right htb, ite_eq_right htb] at ih'
               simp [List.map_cons, List.sum_cons, List.mem_cons, hab', hat] at ih' ⊢
               omega
           · have houtx : G x = F x := hout x List.mem_cons_self hxa hxb
@@ -90,28 +90,28 @@ private theorem sum_map_two_eq {α : Type} [DecidableEq α] (L : List α)
             have hbx : b ≠ x := fun h => hxb h.symm
             by_cases hat : a ∈ t
             · by_cases hbt : b ∈ t
-              · rw [if_pos hat, if_pos hat, if_pos hbt, if_pos hbt] at ih'
+              · rw [ite_eq_left hat, ite_eq_left hat, ite_eq_left hbt, ite_eq_left hbt] at ih'
                 simp [List.map_cons, List.sum_cons, List.mem_cons, hax, hbx, hat, hbt,
                   houtx] at ih' ⊢
                 omega
-              · rw [if_pos hat, if_pos hat, if_neg hbt, if_neg hbt] at ih'
+              · rw [ite_eq_left hat, ite_eq_left hat, ite_eq_right hbt, ite_eq_right hbt] at ih'
                 simp [List.map_cons, List.sum_cons, List.mem_cons, hax, hbx, hat, hbt,
                   houtx] at ih' ⊢
                 omega
             · by_cases hbt : b ∈ t
-              · rw [if_neg hat, if_neg hat, if_pos hbt, if_pos hbt] at ih'
+              · rw [ite_eq_right hat, ite_eq_right hat, ite_eq_left hbt, ite_eq_left hbt] at ih'
                 simp [List.map_cons, List.sum_cons, List.mem_cons, hax, hbx, hat, hbt,
                   houtx] at ih' ⊢
                 omega
-              · rw [if_neg hat, if_neg hat, if_neg hbt, if_neg hbt] at ih'
+              · rw [ite_eq_right hat, ite_eq_right hat, ite_eq_right hbt, ite_eq_right hbt] at ih'
                 simp [List.map_cons, List.sum_cons, List.mem_cons, hax, hbx, hat, hbt,
                   houtx] at ih' ⊢
                 omega
   have h := aux L hnd hout
-  have hia : (if a ∈ L then F a else 0) = F a := if_pos ha
-  have hib : (if b ∈ L then F b else 0) = F b := if_pos hb
-  have hga : (if a ∈ L then G a else 0) = G a := if_pos ha
-  have hgb : (if b ∈ L then G b else 0) = G b := if_pos hb
+  have hia : (if a ∈ L then F a else 0) = F a := ite_eq_left ha
+  have hib : (if b ∈ L then F b else 0) = F b := ite_eq_left hb
+  have hga : (if a ∈ L then G a else 0) = G a := ite_eq_left ha
+  have hgb : (if b ∈ L then G b else 0) = G b := ite_eq_left hb
   rw [hia, hib, hga, hgb] at h
   omega
 

@@ -31,7 +31,7 @@ theorem swappableIn_transfer_point_pairFree
     (hxt : ∃ z, seatOf t x = some (Sum.inr z))
     (hxtt : ∃ z : Card, seatOf t x.twin = some (Sum.inr z.twin))
     (hplay : ShufflePlayW s play t)
-    (hno : ∀ m ∈ play, NotFoundPair x m)
+    (_hno : ∀ m ∈ play, NotFoundPair x m)
     (hpoint : sameOrbitSetoid.r (s.spliceTwinRuns x) (t.spliceTwinRuns x))
     (hswap : SwappableIn s x) :
     SwappableIn t x := by
