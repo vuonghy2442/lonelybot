@@ -20,6 +20,7 @@ import Orig2.TwinRelabel
 import Orig2.TwinSwapRecipe
 import Orig2.TwinDrawTransfer
 import Orig2.TwinEquivariance
+import Orig2.TwinSwapUnique
 import Orig2.FlagShip
 
 /-!
